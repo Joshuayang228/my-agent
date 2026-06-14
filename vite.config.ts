@@ -16,6 +16,13 @@ export default defineConfig({
     electron({
       main: {
         entry: 'electron/main/index.ts',
+        vite: {
+          build: {
+            rollupOptions: {
+              external: ['sql.js'],
+            },
+          },
+        },
       },
       preload: {
         input: 'electron/preload/index.ts',

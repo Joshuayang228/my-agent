@@ -34,8 +34,9 @@ desktop.ini
 *.log
 npm-debug.log*
 
-# 测试覆盖率
+# 测试覆盖率 & 测试产物
 coverage/
+test-results/
 
 # Electron 打包
 *.exe
