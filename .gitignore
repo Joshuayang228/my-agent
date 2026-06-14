@@ -1,0 +1,43 @@
+# 依赖
+node_modules/
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# 构建产物
+dist/
+out/
+build/
+
+# IDE / 编辑器
+.cursor/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Harness 与编码规范（暂不开源）
+skills/
+
+# 参考资料库（第三方代码）
+_reference/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志
+*.log
+npm-debug.log*
+
+# 测试覆盖率
+coverage/
+
+# Electron 打包
+*.exe
+*.dmg
+*.AppImage
+*.snap
