@@ -69,7 +69,7 @@ export async function* agentLoop(
     const llmStart = Date.now()
 
     try {
-      const stream = streamChat({ config, messages: workingMessages, tools })
+      const stream = streamChat({ config, messages: workingMessages, tools, signal })
 
       let streamResult = await stream.next()
       while (!streamResult.done) {

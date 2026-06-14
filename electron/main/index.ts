@@ -159,6 +159,16 @@ ipcMain.handle('persona:get-current', async () => {
 
 ipcMain.handle('ping', () => 'pong')
 
+let activeAbortController: AbortController | null = null
+
+ipcMain.handle('chat:abort', () => {
+  if (activeAbortController) {
+    log.info('Chat aborted by user')
+    activeAbortController.abort()
+    activeAbortController = null
+  }
+})
+
 ipcMain.handle('chat:send', async (event, sessionId: string, messages: ChatMessage[]) => {
   const llmConfig = await getLLMConfig()
   const personaId = await settings.getSetting('personaId')
@@ -172,8 +182,12 @@ ipcMain.handle('chat:send', async (event, sessionId: string, messages: ChatMessa
   if (!llmConfig.apiKey) {
     log.error('No API key configured')
     event.sender.send('chat:event', { type: 'error', message: '请先在设置中配置 API Key' })
+    event.sender.send('chat:event', { type: 'done' })
     return
   }
+
+  const abortController = new AbortController()
+  activeAbortController = abortController
 
   // 保存用户消息（最后一条）
   const lastUserMsg = messages[messages.length - 1]
@@ -183,6 +197,9 @@ ipcMain.handle('chat:send', async (event, sessionId: string, messages: ChatMessa
 
   // 自动标题（第一条用户消息时）
   await store.autoTitle(sessionId)
+
+  let assistantContent = ''
+  let assistantSaved = false
 
   try {
     const confirmTool = (name: string, args: Record<string, unknown>): Promise<boolean> => {
@@ -212,37 +229,52 @@ ipcMain.handle('chat:send', async (event, sessionId: string, messages: ChatMessa
         tools: toolRegistry.getAll(),
         confirmTool,
         systemPrompt,
+        signal: abortController.signal,
       },
       toolRegistry,
     )
 
-    let assistantContent = ''
-    let assistantMsgId = ''
-
     for await (const ev of stream) {
       event.sender.send('chat:event', ev)
 
-      // 积累 assistant 文本用于持久化
       if (ev.type === 'text') {
         assistantContent += ev.content
       }
-      if (ev.type === 'done' && assistantContent) {
-        assistantMsgId = `assistant-${Date.now()}`
+      if (ev.type === 'done' && assistantContent && !assistantSaved) {
+        assistantSaved = true
         await store.saveMessage(sessionId, {
-          id: assistantMsgId,
+          id: `assistant-${Date.now()}`,
           role: 'assistant',
           content: assistantContent,
           timestamp: Date.now(),
         })
 
-        // 后台异步提取用户画像（不阻塞主流程）
         maybeExtractProfile(messages, llmConfig).catch((e) =>
           log.warn('Profile extraction failed', { error: String(e) }))
       }
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    log.error('chat:send unhandled error', { error: message })
-    event.sender.send('chat:event', { type: 'error', message })
+    if (abortController.signal.aborted) {
+      log.info('Chat send aborted', { assistantContentLength: assistantContent.length })
+    } else {
+      log.error('chat:send unhandled error', { error: message })
+      event.sender.send('chat:event', { type: 'error', message })
+    }
+  } finally {
+    activeAbortController = null
+
+    // 兜底保存（被中断时正常流程未触发 done 保存）
+    if (assistantContent && !assistantSaved) {
+      assistantSaved = true
+      await store.saveMessage(sessionId, {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: assistantContent,
+        timestamp: Date.now(),
+      }).catch(() => {})
+    }
+    // 兜底：确保 UI 总能收到 done 事件恢复输入状态
+    event.sender.send('chat:event', { type: 'done' })
   }
 })

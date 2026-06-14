@@ -42,6 +42,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   chat: {
     send: (sessionId: string, messages: ChatMessage[]) =>
       ipcRenderer.invoke('chat:send', sessionId, messages),
+    abort: () => ipcRenderer.invoke('chat:abort'),
     onEvent: (callback: (event: AgentStreamEvent) => void) => {
       const handler = (_e: Electron.IpcRendererEvent, ev: AgentStreamEvent) => callback(ev)
       ipcRenderer.on('chat:event', handler)

@@ -37,6 +37,7 @@ declare global {
       }
       chat: {
         send: (sessionId: string, messages: ChatMessage[]) => Promise<void>
+        abort: () => Promise<void>
         onEvent: (callback: (event: AgentStreamEvent) => void) => () => void
         onConfirmRequest: (callback: (data: { requestId: string; name: string; args: Record<string, unknown> }) => void) => () => void
         confirmResponse: (requestId: string, approved: boolean) => void

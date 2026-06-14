@@ -415,13 +415,22 @@ function App() {
                 target.style.height = `${Math.min(target.scrollHeight, 120)}px`
               }}
             />
-            <button
-              onClick={sendMessage}
-              disabled={!input.trim() || isStreaming}
-              className="rounded-xl bg-cyan-500 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {isStreaming ? '思考中...' : '发送'}
-            </button>
+            {isStreaming ? (
+              <button
+                onClick={() => window.electronAPI.chat.abort()}
+                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-red-500"
+              >
+                停止
+              </button>
+            ) : (
+              <button
+                onClick={sendMessage}
+                disabled={!input.trim()}
+                className="rounded-xl bg-cyan-500 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                发送
+              </button>
+            )}
           </div>
         </div>
       </div>

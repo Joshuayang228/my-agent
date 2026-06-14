@@ -1,41 +1,48 @@
 # 踩坑记录
 
-> 发现新坑时由 AI 更新此文件，帮助避免重复踩坑。
+> 开发过程中遇到的坑和解决方案，避免重复踩坑。
 
-## 格式
+## Git 推送代理
 
-每条记录包含：
-- **问题**：遇到了什么
-- **原因**：为什么会发生
-- **解决**：怎么修的
-- **预防**：怎么避免再犯
+**问题**：`git push` 报 `Failed to connect to 127.0.0.1 port 7897`
 
----
+**原因**：Git 全局代理端口配置错误，实际代理端口为 `7892`
 
-## 项目搭建阶段
+**解决**：
+```bash
+git config --global http.proxy http://127.0.0.1:7892
+```
 
-<!-- 暂无记录，开发过程中自动填充 -->
+## sql.js WASM 路径
 
-## Agent Loop
+**问题**：`ENOENT: no such file or directory, open '...dist/dist/sql-wasm.wasm'`
 
-<!-- 暂无记录 -->
+**原因**：`sql-wasm.wasm` 文件路径解析时多嵌套了一层 `dist`
 
-## 工具系统
+**解决**：在 `database.ts` 中使用 `createRequire` 加载 sql.js，`locateFile` 回调中正确拼接 WASM 路径
 
-<!-- 暂无记录 -->
+## better-sqlite3 → sql.js
 
-## 记忆系统
+**问题**：`better-sqlite3` 是 native 模块，在 Electron ESM 环境中 `__filename` 未定义 + 编译版本不匹配
 
-<!-- 暂无记录 -->
+**解决**：放弃 `better-sqlite3`，改用 `sql.js`（WASM 方案，无需编译）
 
-## 前端 / UI
+## react-markdown v9 className
 
-<!-- 暂无记录 -->
+**问题**：`react-markdown` v9 移除了 `className` prop
 
-## IPC 通信
+**解决**：用 `<div className="markdown-body">` 包裹 `<ReactMarkdown>` 组件
 
-<!-- 暂无记录 -->
+## 模型选择器点不动
 
-## 部署打包
+**问题**：顶栏模型选择器下拉菜单打开后立即关闭
 
-<!-- 暂无记录 -->
+**原因**：`document` 上的 `click` 监听器触发冒泡关闭了菜单
+
+**解决**：在 button 和 menu item 的 `onClick` 中加 `e.stopPropagation()`
+
+## PowerShell heredoc 不兼容
+
+**问题**：`git commit -m "$(cat <<'EOF' ... EOF)"` 在 PowerShell 中报语法错误
+
+**解决**：使用简短单行 `-m` 格式

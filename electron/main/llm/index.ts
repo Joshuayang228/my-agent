@@ -13,6 +13,7 @@ export interface StreamChatOptions {
   config: LLMConfig
   messages: ChatMessage[]
   tools?: ToolDefinition[]
+  signal?: AbortSignal
 }
 
 export interface StreamChatResult {
@@ -28,7 +29,7 @@ export interface StreamChatResult {
 export async function* streamChat(
   options: StreamChatOptions,
 ): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
-  const { config, messages, tools } = options
+  const { config, messages, tools, signal } = options
 
   const body: Record<string, unknown> = {
     model: config.model,
@@ -48,6 +49,7 @@ export async function* streamChat(
       Authorization: `Bearer ${config.apiKey}`,
     },
     body: JSON.stringify(body),
+    signal,
   })
 
   if (!response.ok) {
