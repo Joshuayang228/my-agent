@@ -22,6 +22,10 @@ export class ToolRegistry {
     return this.tools.has(name)
   }
 
+  unregister(name: string): boolean {
+    return this.tools.delete(name)
+  }
+
   /**
    * 执行一组工具调用。
    * 按 isConcurrencySafe 分批：安全的并发执行，不安全的串行。

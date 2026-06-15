@@ -35,6 +35,13 @@ declare global {
         list: () => Promise<Array<{ id: string; name: string; description: string }>>
         getCurrent: () => Promise<{ id: string; name: string; description: string }>
       }
+      mcp: {
+        connect: (config: { id: string; name: string; command: string; args: string[]; env?: Record<string, string>; enabled: boolean }) =>
+          Promise<{ success: boolean; toolCount?: number; error?: string }>
+        disconnect: (serverId: string) => Promise<{ success: boolean }>
+        status: () => Promise<Array<{ id: string; name: string; status: string; toolCount: number; error?: string }>>
+        listTools: (serverId?: string) => Promise<Array<{ serverId: string; serverName: string; name: string; description: string }>>
+      }
       chat: {
         send: (sessionId: string, messages: ChatMessage[]) => Promise<void>
         abort: () => Promise<void>

@@ -39,6 +39,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('persona:get-current'),
   },
 
+  mcp: {
+    connect: (config: { id: string; name: string; command: string; args: string[]; env?: Record<string, string>; enabled: boolean }) =>
+      ipcRenderer.invoke('mcp:connect', config),
+    disconnect: (serverId: string) => ipcRenderer.invoke('mcp:disconnect', serverId),
+    status: (): Promise<Array<{ id: string; name: string; status: string; toolCount: number; error?: string }>> =>
+      ipcRenderer.invoke('mcp:status'),
+    listTools: (serverId?: string) => ipcRenderer.invoke('mcp:list-tools', serverId),
+  },
+
   chat: {
     send: (sessionId: string, messages: ChatMessage[]) =>
       ipcRenderer.invoke('chat:send', sessionId, messages),

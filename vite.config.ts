@@ -18,8 +18,14 @@ export default defineConfig({
         entry: 'electron/main/index.ts',
         vite: {
           build: {
+            commonjsOptions: { ignoreDynamicRequires: true },
             rollupOptions: {
-              external: ['sql.js'],
+              external: [
+                'sql.js', 'vectra', 'zod',
+                /^@modelcontextprotocol\//,
+                /^vectra\//,
+                /^zod\//,
+              ],
             },
           },
         },

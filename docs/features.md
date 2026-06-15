@@ -5,9 +5,10 @@
 ## 核心功能
 
 - [x] Agent Loop（think → act → observe 核心循环）
-- [x] 工具系统基础（声明式注册 + 并发安全分批执行）
+- [x] 工具系统基础（声明式注册 + 并发安全分批执行 + 动态注销）
 - [x] 工具权限控制（破坏性操作前弹窗确认，IPC 双向通信）
 - [x] 记忆系统 v1（用户画像 + 偏好 + 事实，注入 System Prompt）
+- [x] 记忆系统 v2（Vectra 向量数据库 + Embedding API 语义检索 + 自动索引对话）
 - [x] LLM 适配器（OpenAI 兼容流式 API + function calling）
 - [x] LLM 路由（顶栏模型快切 + 多 Provider 预设）
 - [x] 上下文压缩（三层分级：Snip / MicroCompact / Collapse，参照 Alice 方法论）
@@ -15,15 +16,17 @@
 - [x] 用户画像三维化（identity / workflow / voice，自动提取写入记忆）
 - [x] 人格模板系统（3 个内置人格：温暖伙伴 / 严谨顾问 / 技术极客，一键切换）
 - [x] 转场白语 / 内心独白（`<aside>` 标签人格化小剧场 + 紫色气泡 UI）
+- [x] MCP 协议支持（MCP Client + StdioClientTransport + 动态工具注册/注销）
+- [x] 流式中断（AbortController + chat:abort IPC + 停止按钮）
 
 ## 桌面应用
 
 - [x] Electron 主窗口
 - [x] 对话界面（流式输出）
-- [x] IPC 通信（统一 AgentStreamEvent 事件流）
+- [x] IPC 通信（统一 AgentStreamEvent 事件流，拆分 6 模块）
 - [x] 会话管理（多会话 / 切换 / 删除 / 侧边栏）
 - [x] 对话历史持久化（SQLite via sql.js）
-- [x] 设置页面（模型配置 / API Key / Base URL / System Prompt）
+- [x] 设置页面（模型配置 / API Key / Base URL / System Prompt / 人格选择 / MCP 管理）
 
 ## UI 组件
 
@@ -32,6 +35,7 @@
 - [x] 输入框（IME 兼容 + 自动高度调整）
 - [x] Markdown 渲染（react-markdown + remark-gfm）
 - [x] 代码高亮（react-syntax-highlighter / Prism / oneDark 主题）
+- [x] MCP 服务器管理面板（连接状态 / 添加 / 删除 / 启用禁用）
 - [ ] 流式打字光标
 
 ## 内置工具
@@ -47,15 +51,16 @@
 - [x] SQLite 数据库初始化（sql.js WASM）
 - [x] 对话历史持久化
 - [x] 用户设置持久化（SQLite settings 表）
-- [ ] 向量数据库集成
+- [x] 向量数据库集成（Vectra LocalIndex，文件存储于 userData）
 - [ ] 数据导出/导入
 
 ## 开发基础设施
 
 - [x] 日志系统（彩色分级 Logger）
 - [x] Electron remote debugging（port 9222）
-- [x] Playwright E2E 测试
-- [ ] 单元测试覆盖（Agent Loop / Tool Registry）
+- [x] Playwright E2E 测试（4 个 UI 测试）
+- [x] vitest 单元测试覆盖（33 个测试：ToolRegistry / PromptBuilder / ContextManager / AgentLoop）
+- [x] 主进程 IPC 模块化拆分（session / chat / settings / memory / persona / mcp）
 
 ## 安全
 

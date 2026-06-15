@@ -9,6 +9,8 @@ export interface AppSettings {
   llmModel: string
   systemPrompt: string
   personaId: string
+  /** JSON string — McpServerConfig[] */
+  mcpServers: string
 }
 
 const DEFAULTS: AppSettings = {
@@ -17,6 +19,7 @@ const DEFAULTS: AppSettings = {
   llmModel: 'gpt-4o',
   systemPrompt: '',
   personaId: 'warm-partner',
+  mcpServers: '[]',
 }
 
 async function ensureTable(): Promise<void> {

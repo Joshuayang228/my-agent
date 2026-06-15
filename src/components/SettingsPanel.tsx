@@ -8,6 +8,23 @@ interface SettingsForm {
   personaId: string
 }
 
+interface McpServerEntry {
+  id: string
+  name: string
+  command: string
+  args: string[]
+  env?: Record<string, string>
+  enabled: boolean
+}
+
+interface McpServerStatus {
+  id: string
+  name: string
+  status: string
+  toolCount: number
+  error?: string
+}
+
 const DEFAULTS: SettingsForm = {
   llmApiKey: '',
   llmBaseUrl: 'https://api.openai.com/v1',
@@ -39,6 +56,15 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const [saved, setSaved] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
   const [personas, setPersonas] = useState<PersonaInfo[]>([])
+  const [mcpServers, setMcpServers] = useState<McpServerEntry[]>([])
+  const [mcpStatuses, setMcpStatuses] = useState<McpServerStatus[]>([])
+  const [mcpAdding, setMcpAdding] = useState(false)
+  const [newMcp, setNewMcp] = useState({ name: '', command: '', args: '' })
+
+  const refreshMcpStatus = useCallback(async () => {
+    const statuses = await window.electronAPI.mcp.status()
+    setMcpStatuses(statuses)
+  }, [])
 
   useEffect(() => {
     window.electronAPI.settings.get().then((s) => {
@@ -49,8 +75,13 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         systemPrompt: s.systemPrompt || '',
         personaId: s.personaId || DEFAULTS.personaId,
       })
+      try {
+        const servers = JSON.parse(s.mcpServers || '[]')
+        setMcpServers(servers)
+      } catch { /* ignore */ }
     })
     window.electronAPI.persona.list().then(setPersonas)
+    refreshMcpStatus()
   }, [])
 
   const handleSave = useCallback(async () => {
@@ -73,9 +104,56 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const update = (key: keyof SettingsForm, value: string) =>
     setForm((f) => ({ ...f, [key]: value }))
 
+  const saveMcpList = useCallback(async (servers: McpServerEntry[]) => {
+    setMcpServers(servers)
+    await window.electronAPI.settings.set('mcpServers', JSON.stringify(servers))
+  }, [])
+
+  const handleAddMcp = useCallback(async () => {
+    if (!newMcp.name || !newMcp.command) return
+    const entry: McpServerEntry = {
+      id: `mcp-${Date.now()}`,
+      name: newMcp.name,
+      command: newMcp.command,
+      args: newMcp.args.split(/\s+/).filter(Boolean),
+      enabled: true,
+    }
+    const updated = [...mcpServers, entry]
+    await saveMcpList(updated)
+    const result = await window.electronAPI.mcp.connect(entry)
+    if (!result.success) {
+      alert(`MCP 连接失败: ${result.error}`)
+    }
+    await refreshMcpStatus()
+    setNewMcp({ name: '', command: '', args: '' })
+    setMcpAdding(false)
+  }, [newMcp, mcpServers, saveMcpList, refreshMcpStatus])
+
+  const handleRemoveMcp = useCallback(async (id: string) => {
+    await window.electronAPI.mcp.disconnect(id)
+    const updated = mcpServers.filter(s => s.id !== id)
+    await saveMcpList(updated)
+    await refreshMcpStatus()
+  }, [mcpServers, saveMcpList, refreshMcpStatus])
+
+  const handleToggleMcp = useCallback(async (id: string) => {
+    const server = mcpServers.find(s => s.id === id)
+    if (!server) return
+    if (server.enabled) {
+      await window.electronAPI.mcp.disconnect(id)
+      const updated = mcpServers.map(s => s.id === id ? { ...s, enabled: false } : s)
+      await saveMcpList(updated)
+    } else {
+      const updated = mcpServers.map(s => s.id === id ? { ...s, enabled: true } : s)
+      await saveMcpList(updated)
+      await window.electronAPI.mcp.connect({ ...server, enabled: true })
+    }
+    await refreshMcpStatus()
+  }, [mcpServers, saveMcpList, refreshMcpStatus])
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="relative w-full max-w-xl rounded-2xl border border-slate-700/60 bg-slate-900 p-6 shadow-2xl">
+      <div className="relative max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-700/60 bg-slate-900 p-6 shadow-2xl">
         {/* 标题栏 */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-white">设置</h2>
@@ -180,15 +258,112 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         </div>
 
         {/* System Prompt */}
-        <div className="mb-6">
+        <div className="mb-5">
           <label className="mb-1.5 block text-xs font-medium text-slate-400">自定义补充指令（会注入到 System Prompt L3 层）</label>
           <textarea
             value={form.systemPrompt}
             onChange={(e) => update('systemPrompt', e.target.value)}
             placeholder="例如：回答时多用比喻，保持简洁..."
-            rows={4}
+            rows={3}
             className="w-full resize-none rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none transition focus:border-cyan-500"
           />
+        </div>
+
+        {/* MCP 服务器管理 */}
+        <div className="mb-6">
+          <div className="mb-2 flex items-center justify-between">
+            <label className="text-xs font-medium text-slate-400">MCP 服务器</label>
+            <button
+              onClick={() => setMcpAdding(!mcpAdding)}
+              className="rounded px-2 py-0.5 text-xs text-cyan-400 transition hover:bg-slate-800"
+            >
+              {mcpAdding ? '取消' : '+ 添加'}
+            </button>
+          </div>
+
+          {mcpAdding && (
+            <div className="mb-3 rounded-lg border border-slate-700 bg-slate-800/50 p-3">
+              <input
+                type="text"
+                value={newMcp.name}
+                onChange={e => setNewMcp(m => ({ ...m, name: e.target.value }))}
+                placeholder="名称（如 filesystem）"
+                className="mb-2 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-500"
+              />
+              <input
+                type="text"
+                value={newMcp.command}
+                onChange={e => setNewMcp(m => ({ ...m, command: e.target.value }))}
+                placeholder="命令（如 npx, node, python3）"
+                className="mb-2 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-500"
+              />
+              <input
+                type="text"
+                value={newMcp.args}
+                onChange={e => setNewMcp(m => ({ ...m, args: e.target.value }))}
+                placeholder="参数（空格分隔，如 -y @modelcontextprotocol/server-filesystem /tmp）"
+                className="mb-2 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-500"
+              />
+              <button
+                onClick={handleAddMcp}
+                disabled={!newMcp.name || !newMcp.command}
+                className="rounded bg-cyan-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-cyan-500 disabled:opacity-40"
+              >
+                连接
+              </button>
+            </div>
+          )}
+
+          {mcpServers.length === 0 && !mcpAdding && (
+            <div className="rounded-lg border border-dashed border-slate-700 p-3 text-center text-xs text-slate-500">
+              暂无 MCP 服务器，点击"+ 添加"连接外部能力
+            </div>
+          )}
+
+          {mcpServers.map(server => {
+            const st = mcpStatuses.find(s => s.id === server.id)
+            return (
+              <div key={server.id} className="mb-2 flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-block h-2 w-2 rounded-full ${
+                      st?.status === 'connected' ? 'bg-green-400' :
+                      st?.status === 'connecting' ? 'bg-yellow-400' :
+                      st?.status === 'error' ? 'bg-red-400' : 'bg-slate-500'
+                    }`} />
+                    <span className="text-xs font-medium text-slate-200">{server.name}</span>
+                    {st?.toolCount ? (
+                      <span className="text-[10px] text-slate-500">{st.toolCount} tools</span>
+                    ) : null}
+                  </div>
+                  <div className="mt-0.5 truncate text-[10px] text-slate-500">
+                    {server.command} {server.args.join(' ')}
+                  </div>
+                  {st?.error && (
+                    <div className="mt-0.5 truncate text-[10px] text-red-400">{st.error}</div>
+                  )}
+                </div>
+                <div className="ml-2 flex items-center gap-1">
+                  <button
+                    onClick={() => handleToggleMcp(server.id)}
+                    className={`rounded px-2 py-0.5 text-[10px] transition ${
+                      server.enabled
+                        ? 'text-yellow-400 hover:bg-slate-700'
+                        : 'text-green-400 hover:bg-slate-700'
+                    }`}
+                  >
+                    {server.enabled ? '禁用' : '启用'}
+                  </button>
+                  <button
+                    onClick={() => handleRemoveMcp(server.id)}
+                    className="rounded px-2 py-0.5 text-[10px] text-red-400 transition hover:bg-slate-700"
+                  >
+                    删除
+                  </button>
+                </div>
+              </div>
+            )
+          })}
         </div>
 
         {/* 保存按钮 */}
