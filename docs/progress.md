@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-**阶段**：P0 ~ P4 全部完成，框架级桌面 AI Agent
+**阶段**：P0 ~ P4 全部完成 + 方法论体系建立 + E2E 测试升级
 
 **已完成全部功能**：
 - 规则体系 + 技能文件设计
@@ -36,9 +36,23 @@
   - 单元测试覆盖（33 个测试 / 4 文件：ToolRegistry / PromptBuilder / ContextManager / AgentLoop）
   - MCP 协议支持（MCP Client + StdioClientTransport + 动态工具注册/注销 + 设置页 UI 管理）
   - 长期记忆 + 向量检索（Vectra 本地向量数据库 + OpenAI 兼容 Embedding API + 语义召回注入 Prompt）
-- Playwright E2E 测试（4 个 UI 测试）+ vitest 单元测试（33 个）
+- **方法论体系**：
+  - methodology/ 文件夹 + README（每个观点需用户对齐后才写入）
+  - methodology.mdc 规则（禁止搬运外部资料，写作流程规范化）
+- **E2E 测试升级**：
+  - UI 测试扩展到 5 个（含设置面板开关测试）
+  - Electron 真实对话测试框架（配置注入 → 发消息 → 流式响应 → 工具调用 → 停止按钮 → 多轮上下文）
+  - E2E 测试规范写入 dev-workflow.mdc（HARD-GATE）
+  - playwright.config 分 ui / electron 两个 project
+- SettingsPanel electronAPI guard 修复（Vite 模式下不再崩溃）
+
+**测试统计**：
+- 单元测试：33 个 / 4 文件（全过）
+- UI E2E：5 个（全过）
+- Electron E2E：4 个（需 TEST_LLM_API_KEY 环境变量）
 
 **下一步**：
+- 沉淀方法论文档（用户触发后逐条对齐写入）
 - 数据导出/导入
 - bundle 体积优化（vectra external 处理）
 - API Key 加密存储
@@ -59,4 +73,5 @@
 | 2026-06-14 | P2 完成：LLM 路由 + 工具扩展 + 权限确认 + 记忆系统 | ✅ |
 | 2026-06-14 | P3 完成：人格引擎（分层 Prompt / 三维画像 / 人格模板 / 内心独白） | ✅ |
 | 2026-06-16 | P4 完成：架构重构 + 单元测试 + MCP 协议 + 向量记忆 | ✅ |
+| 2026-06-16 | 方法论体系 + E2E 升级 + 文档全面更新 | ✅ |
 | - | 首个可用版本 | ⏳ |

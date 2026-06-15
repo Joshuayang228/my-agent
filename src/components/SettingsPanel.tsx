@@ -62,11 +62,13 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const [newMcp, setNewMcp] = useState({ name: '', command: '', args: '' })
 
   const refreshMcpStatus = useCallback(async () => {
+    if (!window.electronAPI) return
     const statuses = await window.electronAPI.mcp.status()
     setMcpStatuses(statuses)
   }, [])
 
   useEffect(() => {
+    if (!window.electronAPI) return
     window.electronAPI.settings.get().then((s) => {
       setForm({
         llmApiKey: s.llmApiKey || '',
@@ -85,6 +87,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   }, [])
 
   const handleSave = useCallback(async () => {
+    if (!window.electronAPI) return
     setSaving(true)
     try {
       for (const [key, value] of Object.entries(form)) {
@@ -106,7 +109,9 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
   const saveMcpList = useCallback(async (servers: McpServerEntry[]) => {
     setMcpServers(servers)
-    await window.electronAPI.settings.set('mcpServers', JSON.stringify(servers))
+    if (window.electronAPI) {
+      await window.electronAPI.settings.set('mcpServers', JSON.stringify(servers))
+    }
   }, [])
 
   const handleAddMcp = useCallback(async () => {
@@ -120,8 +125,8 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     }
     const updated = [...mcpServers, entry]
     await saveMcpList(updated)
-    const result = await window.electronAPI.mcp.connect(entry)
-    if (!result.success) {
+    const result = await window.electronAPI?.mcp.connect(entry)
+    if (result && !result.success) {
       alert(`MCP 连接失败: ${result.error}`)
     }
     await refreshMcpStatus()
@@ -130,7 +135,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   }, [newMcp, mcpServers, saveMcpList, refreshMcpStatus])
 
   const handleRemoveMcp = useCallback(async (id: string) => {
-    await window.electronAPI.mcp.disconnect(id)
+    await window.electronAPI?.mcp.disconnect(id)
     const updated = mcpServers.filter(s => s.id !== id)
     await saveMcpList(updated)
     await refreshMcpStatus()
@@ -140,13 +145,13 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     const server = mcpServers.find(s => s.id === id)
     if (!server) return
     if (server.enabled) {
-      await window.electronAPI.mcp.disconnect(id)
+      await window.electronAPI?.mcp.disconnect(id)
       const updated = mcpServers.map(s => s.id === id ? { ...s, enabled: false } : s)
       await saveMcpList(updated)
     } else {
       const updated = mcpServers.map(s => s.id === id ? { ...s, enabled: true } : s)
       await saveMcpList(updated)
-      await window.electronAPI.mcp.connect({ ...server, enabled: true })
+      await window.electronAPI?.mcp.connect({ ...server, enabled: true })
     }
     await refreshMcpStatus()
   }, [mcpServers, saveMcpList, refreshMcpStatus])

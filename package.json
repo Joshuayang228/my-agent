@@ -13,7 +13,10 @@
     "preview": "vite preview",
     "package": "vite build && electron-builder",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "npx playwright test --project=ui",
+    "test:e2e:electron": "npx playwright test --project=electron",
+    "test:all": "vitest run && npx playwright test --project=ui"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
