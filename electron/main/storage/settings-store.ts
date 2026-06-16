@@ -1,7 +1,24 @@
+import { safeStorage } from 'electron'
 import { getDatabase, persist } from './database'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('SettingsStore')
+
+const ENCRYPTED_KEYS = new Set<keyof AppSettings>(['llmApiKey'])
+
+function encrypt(value: string): string {
+  if (!value || !safeStorage.isEncryptionAvailable()) return value
+  return safeStorage.encryptString(value).toString('base64')
+}
+
+function decrypt(encoded: string): string {
+  if (!encoded || !safeStorage.isEncryptionAvailable()) return encoded
+  try {
+    return safeStorage.decryptString(Buffer.from(encoded, 'base64'))
+  } catch {
+    return encoded
+  }
+}
 
 export interface AppSettings {
   llmApiKey: string
@@ -42,9 +59,11 @@ export async function getSetting<K extends keyof AppSettings>(key: K): Promise<A
 
   if (stmt.step()) {
     const row = stmt.getAsObject() as { value: string }
-  stmt.free()
-  const defaults = getDefaults()
-  return (row.value !== '' ? row.value : defaults[key]) as AppSettings[K]
+    stmt.free()
+    let val = row.value
+    if (val && ENCRYPTED_KEYS.has(key)) val = decrypt(val)
+    const defaults = getDefaults()
+    return (val !== '' ? val : defaults[key]) as AppSettings[K]
   }
 
   stmt.free()
@@ -63,10 +82,13 @@ export async function setSetting<K extends keyof AppSettings>(
   const exists = existing.step()
   existing.free()
 
+  let stored = String(value)
+  if (ENCRYPTED_KEYS.has(key) && stored) stored = encrypt(stored)
+
   if (exists) {
-    db.run('UPDATE settings SET value = ? WHERE key = ?', [String(value), key])
+    db.run('UPDATE settings SET value = ? WHERE key = ?', [stored, key])
   } else {
-    db.run('INSERT INTO settings (key, value) VALUES (?, ?)', [key, String(value)])
+    db.run('INSERT INTO settings (key, value) VALUES (?, ?)', [key, stored])
   }
 
   persist()
@@ -82,7 +104,9 @@ export async function getAllSettings(): Promise<AppSettings> {
   while (stmt.step()) {
     const row = stmt.getAsObject() as { key: string; value: string }
     if (row.key in result && row.value !== '') {
-      (result as Record<string, string>)[row.key] = row.value
+      let val = row.value
+      if (ENCRYPTED_KEYS.has(row.key as keyof AppSettings)) val = decrypt(val)
+      ;(result as Record<string, string>)[row.key] = val
     }
   }
   stmt.free()

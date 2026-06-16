@@ -46,3 +46,21 @@ git config --global http.proxy http://127.0.0.1:7892
 **问题**：`git commit -m "$(cat <<'EOF' ... EOF)"` 在 PowerShell 中报语法错误
 
 **解决**：使用简短单行 `-m` 格式
+
+## .env 变量不加载到设置默认值
+
+**问题**：settings-store.ts 的 `DEFAULTS` 对象在模块加载时初始化，而 `dotenv.config()` 在 `index.ts` 中后执行，导致 `process.env.LLM_API_KEY` 为 `undefined`
+
+**解决**：将 `DEFAULTS` 从静态对象改为惰性函数 `getDefaults()`，每次读取时动态获取 `process.env`
+
+## SQLite 空字符串覆盖 .env 默认值
+
+**问题**：用户没手动设置 API Key 时，SQLite 里存了空字符串 `""`，`getSetting` 返回空字符串而不是 fallback 到 `.env` 默认值
+
+**解决**：`getSetting` 和 `getAllSettings` 中对空字符串值执行 fallback，与"无记录"逻辑一致
+
+## Embedding API 404 不停重试
+
+**问题**：DeepSeek 等不提供 /v1/embeddings 端点的 Provider，每次对话都打 warn 日志
+
+**解决**：首次 404 后设置 `embeddingUnavailable` 标记，后续直接跳过 embedding 调用

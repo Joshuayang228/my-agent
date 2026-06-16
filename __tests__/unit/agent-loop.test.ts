@@ -151,7 +151,7 @@ describe('agentLoop', () => {
   })
 
   it('LLM 错误产出 error 事件', async () => {
-    mockStreamChat.mockImplementationOnce(() => {
+    mockStreamChat.mockImplementation(() => {
       throw new Error('API timeout')
     })
 

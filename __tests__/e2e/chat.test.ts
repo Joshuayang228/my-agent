@@ -53,7 +53,7 @@ test.describe('My Agent UI', () => {
   test('空白消息区显示欢迎内容', async ({ page }) => {
     await page.goto('/')
 
-    await expect(page.locator('text=输入消息开始对话')).toBeVisible()
+    await expect(page.locator('text=有性格、有记忆、能成长的数字伙伴')).toBeVisible()
   })
 
   test('设置面板可打开和关闭', async ({ page }) => {

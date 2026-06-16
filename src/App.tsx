@@ -24,13 +24,44 @@ interface ToolStatus {
   result?: string
 }
 
+interface ThinkingChunk {
+  content: string
+}
+
+interface UsageInfo {
+  promptTokens: number
+  completionTokens: number
+}
+
+function formatTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+}
+
+function groupSessionsByDate(sessions: SessionSummary[]) {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const yesterday = today - 86400000
+
+  const groups: { label: string; items: SessionSummary[] }[] = [
+    { label: '今天', items: [] },
+    { label: '昨天', items: [] },
+    { label: '更早', items: [] },
+  ]
+
+  for (const s of sessions) {
+    if (s.updatedAt >= today) groups[0].items.push(s)
+    else if (s.updatedAt >= yesterday) groups[1].items.push(s)
+    else groups[2].items.push(s)
+  }
+
+  return groups.filter((g) => g.items.length > 0)
+}
+
 function App() {
-  // ── 会话状态 ──
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
-  // ── 聊天状态 ──
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
@@ -45,6 +76,10 @@ function App() {
     args: Record<string, unknown>
   } | null>(null)
   const [currentPersonaName, setCurrentPersonaName] = useState('温暖伙伴')
+  const [thinking, setThinking] = useState<ThinkingChunk[]>([])
+  const [thinkingExpanded, setThinkingExpanded] = useState(false)
+  const [usage, setUsage] = useState<UsageInfo | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -55,7 +90,6 @@ function App() {
     { label: 'DeepSeek V4 Flash', baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash' },
   ]
 
-  // ── 初始化：加载会话列表 + 当前模型 ──
   useEffect(() => {
     if (!window.electronAPI) return
     loadSessions()
@@ -86,6 +120,8 @@ function App() {
     setActiveTools([])
     setInput('')
     setIsStreaming(false)
+    setThinking([])
+    setUsage(null)
 
     const session = await window.electronAPI.session.get(sessionId)
     if (session) {
@@ -102,7 +138,6 @@ function App() {
     await loadSessions()
   }
 
-  // ── 点击外部关闭菜单 ──
   useEffect(() => {
     if (!modelMenuOpen) return
     const handler = () => setModelMenuOpen(false)
@@ -110,7 +145,6 @@ function App() {
     return () => document.removeEventListener('click', handler)
   }, [modelMenuOpen])
 
-  // ── 滚动 & 焦点 ──
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
@@ -121,7 +155,6 @@ function App() {
     if (!isStreaming) inputRef.current?.focus()
   }, [isStreaming])
 
-  // ── 事件处理 ──
   const handleEvent = useCallback((ev: AgentStreamEvent) => {
     switch (ev.type) {
       case 'text':
@@ -132,6 +165,10 @@ function App() {
           }
           return [...prev.slice(0, -1), { ...last, content: last.content + ev.content }]
         })
+        break
+
+      case 'thinking':
+        setThinking((prev) => [...prev, { content: ev.content }])
         break
 
       case 'tool_start':
@@ -149,6 +186,10 @@ function App() {
               : t,
           ),
         )
+        break
+
+      case 'usage':
+        setUsage({ promptTokens: ev.promptTokens, completionTokens: ev.completionTokens })
         break
 
       case 'error':
@@ -169,12 +210,10 @@ function App() {
     }
   }, [])
 
-  // ── 发送消息 ──
-  const sendMessage = async () => {
-    const text = input.trim()
+  const sendMessage = async (overrideText?: string) => {
+    const text = (overrideText ?? input).trim()
     if (!text || isStreaming) return
 
-    // 没有活跃会话则自动创建
     let sid = activeSessionId
     if (!sid) {
       const session = await window.electronAPI.session.create()
@@ -195,6 +234,9 @@ function App() {
     setInput('')
     setIsStreaming(true)
     setActiveTools([])
+    setThinking([])
+    setUsage(null)
+    setThinkingExpanded(false)
 
     const cleanup = window.electronAPI.chat.onEvent((ev) => {
       handleEvent(ev)
@@ -222,6 +264,14 @@ function App() {
     }
   }
 
+  const copyToClipboard = async (text: string, msgId: string) => {
+    await navigator.clipboard.writeText(text)
+    setCopiedId(msgId)
+    setTimeout(() => setCopiedId(null), 1500)
+  }
+
+  const sessionGroups = groupSessionsByDate(sessions)
+
   return (
     <div className="flex h-screen bg-slate-900 text-slate-100">
       {/* ── 侧边栏 ── */}
@@ -238,23 +288,30 @@ function App() {
           </div>
 
           <div className="flex-1 overflow-y-auto px-2">
-            {sessions.map((s) => (
-              <div
-                key={s.id}
-                className={`group mb-1 flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-sm transition ${
-                  s.id === activeSessionId
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-                }`}
-                onClick={() => switchSession(s.id)}
-              >
-                <span className="truncate">{s.title}</span>
-                <button
-                  onClick={(e) => { e.stopPropagation(); deleteSession(s.id) }}
-                  className="hidden text-xs text-slate-600 transition hover:text-red-400 group-hover:block"
-                >
-                  ✕
-                </button>
+            {sessionGroups.map((group) => (
+              <div key={group.label}>
+                <div className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                  {group.label}
+                </div>
+                {group.items.map((s) => (
+                  <div
+                    key={s.id}
+                    className={`group mb-1 flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-sm transition ${
+                      s.id === activeSessionId
+                        ? 'bg-slate-800 text-white'
+                        : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                    }`}
+                    onClick={() => switchSession(s.id)}
+                  >
+                    <span className="truncate">{s.title}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteSession(s.id) }}
+                      className="hidden text-xs text-slate-600 transition hover:text-red-400 group-hover:block"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
               </div>
             ))}
             {sessions.length === 0 && (
@@ -277,11 +334,9 @@ function App() {
           <span className="flex-1 text-sm text-slate-400">
             {sessions.find((s) => s.id === activeSessionId)?.title || 'My Agent'}
           </span>
-          {/* 人格标识 */}
           <span className="mr-3 rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-[11px] text-violet-400">
             {currentPersonaName}
           </span>
-          {/* 模型切换 */}
           <div className="relative mr-2">
             <button
               onClick={(e) => { e.stopPropagation(); setModelMenuOpen(!modelMenuOpen) }}
@@ -331,38 +386,105 @@ function App() {
         <div data-testid="chat-messages" className="flex-1 overflow-y-auto px-4 py-6">
           <div className="mx-auto max-w-3xl space-y-6">
             {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center pt-32 text-center">
+              <div className="flex flex-col items-center justify-center pt-24 text-center">
+                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500/20 to-violet-500/20 text-3xl">
+                  🤖
+                </div>
                 <h1 className="text-3xl font-bold text-white">My Agent</h1>
                 <p className="mt-2 text-slate-400">有性格、有记忆、能成长的数字伙伴</p>
-                <p className="mt-6 text-sm text-slate-600">输入消息开始对话</p>
+
+                <div className="mt-10 grid w-full max-w-md grid-cols-2 gap-3">
+                  <button
+                    onClick={sendQuickPrompt('你好，介绍一下你自己')}
+                    className="rounded-xl border border-slate-700/60 bg-slate-800/40 px-4 py-3 text-left text-sm text-slate-300 transition hover:border-cyan-500/40 hover:bg-slate-800"
+                  >
+                    <span className="mb-1 block text-cyan-400">💬</span>
+                    和我聊聊天
+                  </button>
+                  <button
+                    onClick={sendQuickPrompt('现在几点了？')}
+                    className="rounded-xl border border-slate-700/60 bg-slate-800/40 px-4 py-3 text-left text-sm text-slate-300 transition hover:border-cyan-500/40 hover:bg-slate-800"
+                  >
+                    <span className="mb-1 block text-cyan-400">🔧</span>
+                    试试工具调用
+                  </button>
+                  <button
+                    onClick={() => setShowSettings(true)}
+                    className="rounded-xl border border-slate-700/60 bg-slate-800/40 px-4 py-3 text-left text-sm text-slate-300 transition hover:border-cyan-500/40 hover:bg-slate-800"
+                  >
+                    <span className="mb-1 block text-cyan-400">⚙️</span>
+                    配置模型
+                  </button>
+                  <button
+                    onClick={sendQuickPrompt('帮我搜索一下最近的AI新闻')}
+                    className="rounded-xl border border-slate-700/60 bg-slate-800/40 px-4 py-3 text-left text-sm text-slate-300 transition hover:border-cyan-500/40 hover:bg-slate-800"
+                  >
+                    <span className="mb-1 block text-cyan-400">🌐</span>
+                    网页搜索
+                  </button>
+                </div>
               </div>
             )}
 
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`animate-fade-in-up group flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                  msg.role === 'user'
-                    ? 'bg-cyan-600 text-white'
-                    : 'bg-slate-800 text-slate-200'
-                }`}
-              >
-                {msg.role === 'assistant' ? (
-                  <>
-                    <MarkdownRenderer content={msg.content} />
-                    {isStreaming && msg === messages[messages.length - 1] && !msg.content && (
-                      <span className="inline-block h-4 w-1.5 animate-pulse bg-cyan-400" />
+                <div className="relative max-w-[80%]">
+                  <div
+                    className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                      msg.role === 'user'
+                        ? 'bg-cyan-600 text-white'
+                        : 'bg-slate-800 text-slate-200'
+                    }`}
+                  >
+                    {msg.role === 'assistant' ? (
+                      <>
+                        <MarkdownRenderer content={msg.content} />
+                        {isStreaming && msg === messages[messages.length - 1] && (
+                          <span className="animate-typing-cursor ml-0.5 inline-block h-4 w-1 bg-cyan-400" />
+                        )}
+                      </>
+                    ) : (
+                      <div className="whitespace-pre-wrap">{msg.content}</div>
                     )}
-                  </>
-                ) : (
-                  <div className="whitespace-pre-wrap">{msg.content}</div>
-                )}
-              </div>
+                  </div>
+                  {/* 消息底部：时间戳 + 操作按钮 */}
+                  <div className={`mt-1 flex items-center gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <span className="text-[10px] text-slate-600">{formatTime(msg.timestamp)}</span>
+                    {msg.role === 'assistant' && msg.content && (
+                      <button
+                        onClick={() => copyToClipboard(msg.content, msg.id)}
+                        className="rounded px-1 py-0.5 text-[10px] text-slate-600 opacity-0 transition hover:text-slate-300 group-hover:opacity-100"
+                        title="复制"
+                      >
+                        {copiedId === msg.id ? '✓ 已复制' : '复制'}
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             ))}
+
+            {/* Thinking 区域 */}
+            {thinking.length > 0 && (
+              <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-4 py-3">
+                <button
+                  onClick={() => setThinkingExpanded(!thinkingExpanded)}
+                  className="flex w-full items-center gap-2 text-xs text-indigo-400"
+                >
+                  <span className={`transition-transform ${thinkingExpanded ? 'rotate-90' : ''}`}>▶</span>
+                  <span>思考过程</span>
+                  {isStreaming && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />}
+                </button>
+                {thinkingExpanded && (
+                  <pre className="mt-2 max-h-60 overflow-auto whitespace-pre-wrap text-xs leading-relaxed text-indigo-300/70">
+                    {thinking.map((t) => t.content).join('')}
+                  </pre>
+                )}
+              </div>
+            )}
 
             {activeTools.length > 0 && (
               <div className="space-y-2">
@@ -396,8 +518,16 @@ function App() {
           </div>
         </div>
 
-        {/* 输入区域 */}
+        {/* 底部信息栏 + 输入区域 */}
         <div className="border-t border-slate-700/50 bg-slate-900/80 px-4 py-4 backdrop-blur">
+          {/* Token 用量 */}
+          {usage && (
+            <div className="mx-auto mb-2 flex max-w-3xl justify-end gap-3 text-[10px] text-slate-600">
+              <span>输入 {(usage.promptTokens / 1000).toFixed(1)}k</span>
+              <span>输出 {(usage.completionTokens / 1000).toFixed(1)}k</span>
+              <span>合计 {((usage.promptTokens + usage.completionTokens) / 1000).toFixed(1)}k tokens</span>
+            </div>
+          )}
           <div className="mx-auto flex max-w-3xl items-end gap-3">
             <textarea
               ref={inputRef}
@@ -424,7 +554,7 @@ function App() {
               </button>
             ) : (
               <button
-                onClick={sendMessage}
+                onClick={() => sendMessage()}
                 disabled={!input.trim()}
                 className="rounded-xl bg-cyan-500 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -435,7 +565,6 @@ function App() {
         </div>
       </div>
 
-      {/* 设置面板 */}
       {showSettings && <SettingsPanel onClose={() => {
         setShowSettings(false)
         if (window.electronAPI) {
@@ -448,7 +577,6 @@ function App() {
         }
       }} />}
 
-      {/* 工具确认弹窗 */}
       {confirmDialog?.visible && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl border border-slate-700/60 bg-slate-900 p-6 shadow-2xl">
@@ -487,6 +615,13 @@ function App() {
       )}
     </div>
   )
+
+  function sendQuickPrompt(text: string) {
+    return () => {
+      setInput('')
+      sendMessage(text)
+    }
+  }
 }
 
 export default App

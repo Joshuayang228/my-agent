@@ -22,4 +22,9 @@
 | PlayGround | PlayGround | 组件沙箱页面，用于验证 UI 组件效果 | |
 | HARD-GATE | HARD-GATE | 规则中的硬性门控，不可绕过 | 用 XML 标签包裹 |
 
+| safeStorage | safeStorage | Electron 内置加密模块，用系统级密钥链加解密字符串 | 用于 API Key 加密存储 |
+| 错误脱敏 | Error Sanitization | 从错误信息中过滤 API Key、URL 等敏感内容后再传给前端 | sanitize-error.ts |
+| 指数退避 | Exponential Backoff | 重试间隔按 2^n 指数增长的策略 | LLM 调用重试 |
+| 分层约束 | Layer Constraint | 模块间 import 方向的单向依赖规则 | core.mdc HARD-GATE |
+
 <!-- 后续开发中遇到新概念在此追加 -->

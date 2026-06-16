@@ -78,6 +78,8 @@ think → act → observe → think → ...
 - 支持 AbortSignal 取消（用户停止按钮）
 - 最大迭代次数保护（默认 25 轮）
 - 每轮迭代前自动检查上下文压缩
+- **LLM 调用重试**：网络错误/429/5xx 自动重试，最多 2 次，指数退避
+- **工具并发执行**：concurrencySafe 工具走 Promise.all，非安全工具串行
 
 ### 2. IPC 模块化
 
@@ -98,6 +100,7 @@ think → act → observe → think → ...
 - 并发安全分流：`isConcurrencySafe` → Promise.all，否则串行
 - 动态注册/注销：支持 MCP 工具运行时加入和移除
 - 破坏性操作前用户确认（IPC 双向通信弹窗）
+- **超时保护**：每个工具 30s 超时，超时自动返回错误
 - 5 个内置工具 + MCP 动态工具
 
 ### 4. 记忆系统
@@ -164,7 +167,7 @@ my-agent/
 │   │   ├── memory/           # 向量存储 + Embedding 适配器
 │   │   ├── llm/              # LLM 流式适配器
 │   │   ├── storage/          # SQLite + Session/Settings/Memory Store
-│   │   └── utils/            # Logger
+│   │   └── utils/            # Logger + 错误脱敏
 │   └── preload/              # contextBridge 暴露 API
 ├── src/
 │   ├── App.tsx               # 主 UI

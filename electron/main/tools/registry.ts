@@ -1,5 +1,14 @@
 import type { ToolDefinition, ToolCall, ToolResult } from '../../../src/shared/types'
 
+const TOOL_TIMEOUT_MS = 30_000
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Tool "${label}" timed out after ${ms}ms`)), ms)
+    promise.then(resolve, reject).finally(() => clearTimeout(timer))
+  })
+}
+
 export class ToolRegistry {
   private tools = new Map<string, ToolDefinition>()
 
@@ -87,7 +96,7 @@ export class ToolRegistry {
     }
 
     try {
-      const content = await tool.execute(args)
+      const content = await withTimeout(tool.execute(args), TOOL_TIMEOUT_MS, call.name)
       return { callId: call.id, name: call.name, content }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)

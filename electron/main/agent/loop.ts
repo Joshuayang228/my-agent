@@ -8,12 +8,25 @@ import type {
 import { streamChat } from '../llm/index'
 import { ToolRegistry } from '../tools/registry'
 import { createLogger } from '../utils/logger'
+import { sanitizeError } from '../utils/sanitize-error'
 import { compressContext } from './context-manager'
 
 const log = createLogger('AgentLoop')
 
 const DEFAULT_MAX_ITERATIONS = 25
+const MAX_LLM_RETRIES = 2
+const TOOL_TIMEOUT_MS = 30_000
 const DEFAULT_SYSTEM_PROMPT = `You are a helpful AI assistant. You have access to tools that you can use to help the user. When you need to perform actions, use the available tools. Always respond in the same language as the user.`
+
+function isRetryableError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  const msg = err.message.toLowerCase()
+  return msg.includes('fetch failed') || msg.includes('network') ||
+    msg.includes('econnreset') || msg.includes('timeout') ||
+    msg.includes('429') || msg.includes('502') || msg.includes('503')
+}
+
+function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
 
 /**
  * Agent 主循环 — think → act → observe → think → ...
@@ -63,34 +76,56 @@ export async function* agentLoop(
       workingMessages.push(...compressed)
     }
 
-    // ── Think: 调用 LLM ──
+    // ── Think: 调用 LLM（带重试） ──
     let content: string | null = null
     let toolCalls: ToolCall[] = []
     const llmStart = Date.now()
+    let lastErr: unknown = null
 
-    try {
-      const stream = streamChat({ config, messages: workingMessages, tools, signal })
-
-      let streamResult = await stream.next()
-      while (!streamResult.done) {
-        yield streamResult.value
-        streamResult = await stream.next()
+    for (let attempt = 0; attempt <= MAX_LLM_RETRIES; attempt++) {
+      if (attempt > 0) {
+        const backoff = 1000 * Math.pow(2, attempt - 1)
+        log.warn(`LLM retry ${attempt}/${MAX_LLM_RETRIES}, waiting ${backoff}ms`)
+        await sleep(backoff)
+        if (signal?.aborted) break
       }
 
-      const result = streamResult.value
-      content = result.content
-      toolCalls = result.toolCalls
+      try {
+        const stream = streamChat({ config, messages: workingMessages, tools, signal })
 
-      log.info('LLM response received', {
-        duration: Date.now() - llmStart,
-        contentLength: content?.length ?? 0,
-        toolCallCount: toolCalls.length,
-        usage: result.usage,
-      })
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      log.error('LLM call failed', { duration: Date.now() - llmStart, error: message })
-      yield { type: 'error', message }
+        let streamResult = await stream.next()
+        while (!streamResult.done) {
+          yield streamResult.value
+          streamResult = await stream.next()
+        }
+
+        const result = streamResult.value
+        content = result.content
+        toolCalls = result.toolCalls
+
+        log.info('LLM response received', {
+          duration: Date.now() - llmStart,
+          contentLength: content?.length ?? 0,
+          toolCallCount: toolCalls.length,
+          usage: result.usage,
+          attempt,
+        })
+        lastErr = null
+        break
+      } catch (err) {
+        lastErr = err
+        if (!isRetryableError(err) || attempt === MAX_LLM_RETRIES) break
+        log.warn('LLM call failed (retryable)', {
+          attempt,
+          error: err instanceof Error ? err.message : String(err),
+        })
+      }
+    }
+
+    if (lastErr) {
+      const raw = lastErr instanceof Error ? lastErr.message : String(lastErr)
+      log.error('LLM call failed', { duration: Date.now() - llmStart, error: raw })
+      yield { type: 'error', message: sanitizeError(raw) }
       return
     }
 
@@ -119,55 +154,60 @@ export async function* agentLoop(
       return
     }
 
-    // ── Act: 执行工具 ──
+    // ── Act: 执行工具（并发安全的走 Promise.all，其余串行） ──
     const results: ToolResult[] = []
+    const skippedCallIds = new Set<string>()
 
+    // 先处理破坏性工具确认
+    const parsedArgs = new Map<string, Record<string, unknown>>()
     for (const call of toolCalls) {
-      if (signal?.aborted) {
-        log.warn('Loop cancelled during tool execution', { iteration, tool: call.name })
-        yield { type: 'error', message: 'Agent loop was cancelled during tool execution' }
-        return
-      }
-
       let args: Record<string, unknown> = {}
-      try {
-        args = JSON.parse(call.arguments || '{}')
-      } catch {
-        // args parse failure handled by registry
-      }
+      try { args = JSON.parse(call.arguments || '{}') } catch { /* registry handles */ }
+      parsedArgs.set(call.id, args)
 
-      log.info(`Tool executing: ${call.name}`, { callId: call.id, args })
-
-      // 破坏性工具需要用户确认
       const toolDef = registry.get(call.name)
-      if (toolDef && toolDef.metadata.isDestructive && confirmTool) {
+      if (toolDef?.metadata.isDestructive && confirmTool) {
         yield { type: 'tool_confirm', callId: call.id, name: call.name, args }
         const approved = await confirmTool(call.name, args)
         if (!approved) {
           log.info(`Tool rejected by user: ${call.name}`, { callId: call.id })
           results.push({ callId: call.id, name: call.name, content: 'User denied execution of this tool.', isError: true })
           yield { type: 'tool_end', callId: call.id, name: call.name, result: 'User denied execution.', isError: true }
-          continue
+          skippedCallIds.add(call.id)
         }
       }
+    }
 
-      yield { type: 'tool_start', callId: call.id, name: call.name, args }
+    const pendingCalls = toolCalls.filter((c) => !skippedCallIds.has(c.id))
 
-      const toolStart = Date.now()
-      const [result] = await registry.executeAll([call])
-      results.push(result)
+    if (signal?.aborted) {
+      log.warn('Loop cancelled before tool execution', { iteration })
+      yield { type: 'error', message: 'Agent loop was cancelled during tool execution' }
+      return
+    }
 
-      log.info(`Tool finished: ${call.name}`, {
-        callId: call.id,
+    // 发出所有 tool_start 事件
+    for (const call of pendingCalls) {
+      yield { type: 'tool_start', callId: call.id, name: call.name, args: parsedArgs.get(call.id)! }
+    }
+
+    // 利用 registry.executeAll 的并发分流（concurrencySafe → Promise.all）
+    const toolStart = Date.now()
+    const batchResults = await registry.executeAll(pendingCalls)
+    results.push(...batchResults)
+
+    for (const result of batchResults) {
+      const call = pendingCalls.find((c) => c.id === result.callId)
+      log.info(`Tool finished: ${result.name}`, {
+        callId: result.callId,
         duration: Date.now() - toolStart,
         isError: result.isError,
         resultLength: result.content.length,
       })
-
       yield {
         type: 'tool_end',
-        callId: call.id,
-        name: call.name,
+        callId: result.callId,
+        name: result.name,
         result: result.content,
         isError: result.isError,
       }

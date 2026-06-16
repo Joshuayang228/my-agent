@@ -5,6 +5,25 @@
 
 ## [未发布]
 
+### Added — P5 UI 打磨 + Agent 能力 + 安全加固（2026-06-16）
+- API Key 加密存储（Electron safeStorage，透明加解密）
+- 错误信息脱敏（过滤 API Key / URL 后传渲染进程）
+- 欢迎页增强（图标 + 4 个快捷操作卡片：聊天/工具/设置/搜索）
+- 消息时间戳 + 助手消息一键复制
+- Thinking 可视化（可折叠思考过程区域）
+- 会话侧边栏按日期分组（今天/昨天/更早）
+- Token 消耗可视化（底栏：输入/输出/合计 tokens）
+- 消息入场动画 + 流式打字光标
+- 工具真并发执行（concurrencySafe 的工具走 Promise.all）
+- LLM 调用重试（最多 2 次，指数退避，网络/429/5xx 可重试）
+- 工具超时保护（30s，超时自动返回错误）
+- 架构分层 import 方向约束（core.mdc HARD-GATE）
+
+### Fixed（2026-06-16）
+- .env 变量不加载到设置默认值（DEFAULTS 改为惰性 getDefaults()）
+- SQLite 空字符串覆盖 .env 默认值（跳过空值 fallback）
+- Embedding API 404 重复报错（embeddingUnavailable 标记）
+
 ### Added — P4 框架搭建（2026-06-16）
 - 主进程 IPC 模块化拆分（index.ts 281→131 行，6 个独立 IPC 模块）
 - vitest 单元测试覆盖（33 个测试：ToolRegistry / PromptBuilder / ContextManager / AgentLoop）

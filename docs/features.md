@@ -4,8 +4,8 @@
 
 ## 核心功能
 
-- [x] Agent Loop（think → act → observe 核心循环）
-- [x] 工具系统基础（声明式注册 + 并发安全分批执行 + 动态注销）
+- [x] Agent Loop（think → act → observe 核心循环 + LLM 重试 + 工具超时保护）
+- [x] 工具系统基础（声明式注册 + 真并发执行 + 动态注销 + 30s 超时）
 - [x] 工具权限控制（破坏性操作前弹窗确认，IPC 双向通信）
 - [x] 记忆系统 v1（用户画像 + 偏好 + 事实，注入 System Prompt）
 - [x] 记忆系统 v2（Vectra 向量数据库 + Embedding API 语义检索 + 自动索引对话）
@@ -30,13 +30,18 @@
 
 ## UI 组件
 
-- [x] 消息气泡（用户 / AI 区分样式）
+- [x] 消息气泡（用户 / AI 区分样式 + 入场动画）
+- [x] 消息时间戳 + 一键复制
 - [x] 工具调用可视化（执行中动画 / 结果展示）
 - [x] 输入框（IME 兼容 + 自动高度调整）
+- [x] 欢迎页（图标 + 快捷操作卡片 × 4）
+- [x] Thinking 可视化（可折叠思考过程区域）
+- [x] Token 消耗可视化（输入/输出/合计）
+- [x] 流式打字光标
+- [x] 会话侧边栏按日期分组（今天/昨天/更早）
 - [x] Markdown 渲染（react-markdown + remark-gfm）
 - [x] 代码高亮（react-syntax-highlighter / Prism / oneDark 主题）
 - [x] MCP 服务器管理面板（连接状态 / 添加 / 删除 / 启用禁用）
-- [ ] 流式打字光标
 
 ## 内置工具
 
@@ -58,15 +63,17 @@
 
 - [x] 日志系统（彩色分级 Logger）
 - [x] Electron remote debugging（port 9222）
-- [x] Playwright E2E 测试（4 个 UI 测试）
+- [x] Playwright E2E 测试（5 个 UI + Electron 真实对话框架）
 - [x] vitest 单元测试覆盖（33 个测试：ToolRegistry / PromptBuilder / ContextManager / AgentLoop）
 - [x] 主进程 IPC 模块化拆分（session / chat / settings / memory / persona / mcp）
+- [x] 架构分层 import 方向约束（HARD-GATE 规则）
 
 ## 安全
 
 - [x] API Key 通过 .env 环境变量管理
+- [x] API Key 加密存储（Electron safeStorage）
+- [x] 错误信息脱敏（过滤 API Key / URL）
 - [x] 工具元数据声明（isReadOnly / isDestructive / isConcurrencySafe）
-- [ ] API Key 加密存储
 - [x] 用户确认弹窗（破坏性操作前 IPC 弹窗）
 
 ---
