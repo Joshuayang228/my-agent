@@ -13,6 +13,8 @@ const log = createLogger('Embeddings')
 const DEFAULT_MODEL = 'text-embedding-3-small'
 const DEFAULT_DIMENSIONS = 1536
 
+let embeddingUnavailable = false
+
 export interface EmbeddingResult {
   vector: number[]
   model: string
@@ -24,6 +26,9 @@ export async function createEmbedding(
   config: LLMConfig,
   embeddingModel?: string,
 ): Promise<EmbeddingResult> {
+  if (embeddingUnavailable) {
+    throw new Error('Embedding API previously unavailable, skipping')
+  }
   const model = embeddingModel || DEFAULT_MODEL
   const baseUrl = config.baseUrl.replace(/\/+$/, '')
 
@@ -40,6 +45,10 @@ export async function createEmbedding(
   })
 
   if (!response.ok) {
+    if (response.status === 404) {
+      embeddingUnavailable = true
+      log.info('Embedding endpoint not available for this provider, vector features disabled')
+    }
     const error = await response.text()
     throw new Error(`Embedding API error (${response.status}): ${error}`)
   }
@@ -66,6 +75,9 @@ export async function createEmbeddings(
   config: LLMConfig,
   embeddingModel?: string,
 ): Promise<EmbeddingResult[]> {
+  if (embeddingUnavailable) {
+    throw new Error('Embedding API previously unavailable, skipping')
+  }
   const model = embeddingModel || DEFAULT_MODEL
   const baseUrl = config.baseUrl.replace(/\/+$/, '')
 

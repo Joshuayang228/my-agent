@@ -13,13 +13,15 @@ export interface AppSettings {
   mcpServers: string
 }
 
-const DEFAULTS: AppSettings = {
-  llmApiKey: '',
-  llmBaseUrl: 'https://api.openai.com/v1',
-  llmModel: 'gpt-4o',
-  systemPrompt: '',
-  personaId: 'warm-partner',
-  mcpServers: '[]',
+function getDefaults(): AppSettings {
+  return {
+    llmApiKey: process.env.LLM_API_KEY || '',
+    llmBaseUrl: process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
+    llmModel: process.env.LLM_MODEL || 'gpt-4o',
+    systemPrompt: '',
+    personaId: 'warm-partner',
+    mcpServers: '[]',
+  }
 }
 
 async function ensureTable(): Promise<void> {
@@ -40,12 +42,13 @@ export async function getSetting<K extends keyof AppSettings>(key: K): Promise<A
 
   if (stmt.step()) {
     const row = stmt.getAsObject() as { value: string }
-    stmt.free()
-    return row.value as AppSettings[K]
+  stmt.free()
+  const defaults = getDefaults()
+  return (row.value !== '' ? row.value : defaults[key]) as AppSettings[K]
   }
 
   stmt.free()
-  return DEFAULTS[key]
+  return getDefaults()[key]
 }
 
 export async function setSetting<K extends keyof AppSettings>(
@@ -75,10 +78,10 @@ export async function getAllSettings(): Promise<AppSettings> {
   const db = await getDatabase()
   const stmt = db.prepare('SELECT key, value FROM settings')
 
-  const result = { ...DEFAULTS }
+  const result = { ...getDefaults() }
   while (stmt.step()) {
     const row = stmt.getAsObject() as { key: string; value: string }
-    if (row.key in result) {
+    if (row.key in result && row.value !== '') {
       (result as Record<string, string>)[row.key] = row.value
     }
   }

@@ -328,7 +328,7 @@ function App() {
         </div>
 
         {/* 消息列表 */}
-        <div className="flex-1 overflow-y-auto px-4 py-6">
+        <div data-testid="chat-messages" className="flex-1 overflow-y-auto px-4 py-6">
           <div className="mx-auto max-w-3xl space-y-6">
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center pt-32 text-center">
