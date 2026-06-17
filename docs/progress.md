@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-**阶段**：P0 ~ P11 全部完成（P11 = 消息管道+四层压缩+Runtime+Multi-Agent）
+**阶段**：P0 ~ P12 全部完成（P12 = 分场景模型+中间件+Token限流+Tracing）
 
 **已完成全部功能**：
 - 规则体系 + 技能文件设计
@@ -117,6 +117,12 @@
   - Multi-Agent 子 Agent 系统（delegate_task 工具 + 独立上下文 + 受限工具集 + 权限只降不升）
   - 内置工具增至 12 个（新增 delegate_task）
   - 代码修复：abort sessionId 全链路传递、tokenUsage preload 暴露、优雅关闭流程
+- **P12 效率与可观测**：
+  - 分场景 modelId（auxModel 辅助模型配置，后台任务用便宜模型）
+  - Tool 中间件管道（ToolMiddlewarePipeline 洋葱模型 + 3 个内置中间件 + ToolRegistry 集成）
+  - Token 限流/预算控制（会话级 + 日级限额，超限自动终止）
+  - 结构化 Tracing（Span 追踪 + caller 分类 + 耗时统计 + debug:traces 端点）
+  - 设置页新增辅助模型 + Token 预算 UI
 - **P8 交互增强**：
   - 消息重新生成（↻ 按钮，重新生成最后一条 AI 回复）
   - 消息编辑（✎ 按钮，编辑已发用户消息并重跑后续对话）
@@ -137,9 +143,9 @@
 - Electron E2E：4 个（需 TEST_LLM_API_KEY 环境变量）
 
 **下一步**：
-- 分场景 modelId（不同任务用不同模型/参数）
-- Tool 中间件管道（可组合 middleware pipeline）
-- Token 限流 / 预算控制
+- 权限规则引擎升级（五模式责任链 + YAML 规则）
+- M2 项目记忆（PROJECT.md 可编辑项目知识库）
+- 多 Provider 路由（Anthropic/Gemini + XML 降级）
 - 沉淀方法论文档（用户触发后逐条对齐写入）
 - bundle 体积优化（vectra external 处理）
 - 首个可用版本打包发布
@@ -171,4 +177,5 @@
 | 2026-06-17 | P9 完成：Skill 系统（加载/注册/IPC/UI/Prompt 注入/内置 Skill） | ✅ |
 | 2026-06-17 | P10 完成：框架补强（工具持久化/并发锁/沙箱/allowed_tools/Token计数/执行模式） | ✅ |
 | 2026-06-17 | P11 完成：框架进阶（消息管道/四层压缩/Runtime/Multi-Agent/代码修复） | ✅ |
+| 2026-06-17 | P12 完成：效率与可观测（分场景模型/中间件/Token限流/Tracing） | ✅ |
 | - | 首个可用版本 | ⏳ |

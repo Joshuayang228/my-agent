@@ -15,6 +15,7 @@ import { agentLoop } from './loop'
 import { buildSystemPrompt, BUILTIN_PERSONAS } from './prompt-builder'
 import { maybeExtractProfile } from './profile-extractor'
 import { setQuerySource } from './context-manager'
+import { checkBudget, recordDailyUsage } from './token-budget'
 import { ToolRegistry } from '../tools/registry'
 import * as store from '../storage/session-store'
 import * as settings from '../storage/settings-store'
@@ -22,6 +23,7 @@ import * as memory from '../storage/memory-store'
 import { searchVectorStore, addToVectorStore } from '../memory/vector-store'
 import { buildSkillSummaryForPrompt, getActiveSkill, clearActiveSkill } from '../skills/registry'
 import { createLogger } from '../utils/logger'
+import { startSpan } from '../utils/tracer'
 import type { ChatMessage, LLMConfig, ExecutionMode, AgentStreamEvent } from '../../../src/shared/types'
 
 const log = createLogger('Runtime')
@@ -58,7 +60,7 @@ class AgentRuntime {
     }
   }
 
-  /** 获取 LLM 配置 */
+  /** 获取主对话 LLM 配置 */
   async getLLMConfig(): Promise<LLMConfig> {
     const s = await settings.getAllSettings()
     return {
@@ -69,6 +71,16 @@ class AgentRuntime {
       topP: parseFloat(s.llmTopP) || undefined,
       maxTokens: parseInt(s.llmMaxTokens) || undefined,
     }
+  }
+
+  /** 获取辅助任务 LLM 配置（标题/画像/摘要用便宜模型） */
+  async getAuxLLMConfig(): Promise<LLMConfig> {
+    const main = await this.getLLMConfig()
+    const auxModel = await settings.getSetting('auxModel')
+    if (auxModel) {
+      return { ...main, model: auxModel }
+    }
+    return main
   }
 
   /**
@@ -97,6 +109,14 @@ class AgentRuntime {
       return
     }
 
+    const budgetCheck = await checkBudget(sessionId)
+    if (!budgetCheck.allowed) {
+      log.warn('Budget exceeded', { sessionId, reason: budgetCheck.reason })
+      yield { type: 'error', message: budgetCheck.reason!, sessionId }
+      yield { type: 'done', sessionId }
+      return
+    }
+
     const abortController = new AbortController()
     this.activeControllers.set(sessionId, abortController)
 
@@ -116,6 +136,8 @@ class AgentRuntime {
       const executionMode = (await settings.getSetting('executionMode') || 'auto') as ExecutionMode
       const userProfile = await memory.buildUserProfile()
       const persona = BUILTIN_PERSONAS.find(p => p.id === personaId) ?? BUILTIN_PERSONAS[0]
+
+      const chatSpan = startSpan('chat', 'main', undefined, { sessionId, model: llmConfig.model })
 
       log.info('Chat started', { sessionId, messageCount: messages.length, model: llmConfig.model, persona: persona.id })
 
@@ -173,6 +195,7 @@ class AgentRuntime {
         }
         if (ev.type === 'usage') {
           store.addTokenUsage(sessionId, ev.promptTokens, ev.completionTokens).catch(() => {})
+          recordDailyUsage(ev.promptTokens, ev.completionTokens)
         }
         if (ev.type === 'tool_calls') {
           await store.saveMessage(sessionId, {
@@ -201,15 +224,21 @@ class AgentRuntime {
             timestamp: Date.now(),
           })
 
-          this.enqueuePostTasks(sessionId, messages, assistantContent, lastUserMsg, llmConfig)
+          chatSpan.setAttribute('assistantContentLength', assistantContent.length)
+          chatSpan.end('ok')
+
+          const auxConfig = await this.getAuxLLMConfig()
+          this.enqueuePostTasks(sessionId, messages, assistantContent, lastUserMsg, auxConfig)
         }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       if (abortController.signal.aborted) {
         log.info('Chat aborted', { sessionId, assistantContentLength: assistantContent.length })
+        chatSpan.end('ok')
       } else {
         log.error('Chat unhandled error', { sessionId, error: message })
+        chatSpan.end('error', message)
         yield { type: 'error', message, sessionId }
       }
     } finally {

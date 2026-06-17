@@ -10,6 +10,8 @@ import { getAllSettings } from '../storage/settings-store'
 import { buildUserProfile } from '../storage/memory-store'
 import { mcpManager } from '../mcp/client'
 import { createLogger } from '../utils/logger'
+import { getRecentSpans, getCallerStats } from '../utils/tracer'
+import { getDailyUsage } from '../agent/token-budget'
 import { app } from 'electron'
 
 const log = createLogger('DebugIPC')
@@ -93,6 +95,14 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
         error: s.error,
       })),
       toolCount: toolRegistry.getAll().length,
+    }
+  })
+
+  ipcMain.handle('debug:traces', () => {
+    return {
+      spans: getRecentSpans(100),
+      callerStats: getCallerStats(),
+      dailyTokenUsage: getDailyUsage(),
     }
   })
 

@@ -108,6 +108,8 @@ think → act → observe → think → ...
 - **超时保护**：每个工具 30s 超时，超时自动返回错误
 - 12 个内置工具 + MCP 动态工具
 - **子 Agent 系统**：delegate_task 工具，独立上下文 + 受限工具集 + 权限只降不升
+- **中间件管道**：ToolMiddlewarePipeline 洋葱模型（error-formatting → logging → result-truncation）
+- **Token 预算**：会话级 + 日级限额，超限自动终止
 - **沙箱系统**：参考 Codex 四层纵深防御，三级沙箱模式（read-only / workspace-write / full-access）
 - **命令安全分级**：ExecPolicy 白名单/黑名单 + CommandGuard 路径边界检查 + ApprovalStore 审批记录
 

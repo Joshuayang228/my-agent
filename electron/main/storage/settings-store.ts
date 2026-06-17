@@ -35,6 +35,12 @@ export interface AppSettings {
   sandboxMode: string
   /** Execution mode: auto | confirm-all | plan-first */
   executionMode: string
+  /** 辅助任务模型（标题/画像/压缩摘要，留空则沿用主模型） */
+  auxModel: string
+  /** 会话级 Token 预算（0 = 无限制） */
+  sessionTokenBudget: string
+  /** 日级 Token 预算（0 = 无限制） */
+  dailyTokenBudget: string
 }
 
 function getDefaults(): AppSettings {
@@ -50,6 +56,9 @@ function getDefaults(): AppSettings {
     mcpServers: '[]',
     sandboxMode: 'workspace-write',
     executionMode: 'auto',
+    auxModel: '',
+    sessionTokenBudget: '0',
+    dailyTokenBudget: '0',
   }
 }
 

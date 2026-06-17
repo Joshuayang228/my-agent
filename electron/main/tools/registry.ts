@@ -1,4 +1,5 @@
 import type { ToolDefinition, ToolCall, ToolResult } from '../../../src/shared/types'
+import { ToolMiddlewarePipeline, createDefaultPipeline, type ToolMiddlewareNext } from './middleware'
 
 const TOOL_TIMEOUT_MS = 30_000
 
@@ -11,6 +12,23 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 
 export class ToolRegistry {
   private tools = new Map<string, ToolDefinition>()
+  private pipeline: ToolMiddlewarePipeline
+  private executeFn: ToolMiddlewareNext
+
+  constructor(pipeline?: ToolMiddlewarePipeline) {
+    this.pipeline = pipeline ?? createDefaultPipeline()
+    this.executeFn = this.pipeline.build((ctx) => this.rawExecute(ctx))
+  }
+
+  /** 获取中间件管道（允许外部添加自定义中间件） */
+  get middlewarePipeline(): ToolMiddlewarePipeline {
+    return this.pipeline
+  }
+
+  /** 重新构建执行链（添加/移除中间件后调用） */
+  rebuildPipeline(): void {
+    this.executeFn = this.pipeline.build((ctx) => this.rawExecute(ctx))
+  }
 
   register(tool: ToolDefinition): void {
     if (this.tools.has(tool.name)) {
@@ -95,12 +113,12 @@ export class ToolRegistry {
       }
     }
 
-    try {
-      const content = await withTimeout(tool.execute(args), TOOL_TIMEOUT_MS, call.name)
-      return { callId: call.id, name: call.name, content }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      return { callId: call.id, name: call.name, content: `Error: ${message}`, isError: true }
-    }
+    return this.executeFn({ call, tool, args })
+  }
+
+  /** 原始执行器 — 中间件链的终点 */
+  private async rawExecute(ctx: { call: ToolCall; tool: ToolDefinition; args: Record<string, unknown> }): Promise<ToolResult> {
+    const content = await withTimeout(ctx.tool.execute(ctx.args), TOOL_TIMEOUT_MS, ctx.call.name)
+    return { callId: ctx.call.id, name: ctx.call.name, content }
   }
 }

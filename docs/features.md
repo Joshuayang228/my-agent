@@ -146,6 +146,27 @@
   - session:tokenUsage preload 暴露（前端可获取 Token 用量）
   - 应用退出优雅关闭（Runtime shutdown + MCP 断连 + DB 关闭）
 
+## 效率与可观测（P12）
+
+- [x] 分场景 modelId（辅助模型配置，标题/画像/摘要可用便宜模型）
+  - Settings 新增 auxModel 字段（留空沿用主模型）
+  - Runtime 区分 getLLMConfig / getAuxLLMConfig
+  - 设置页辅助模型 UI 输入框
+- [x] Tool 中间件管道（可组合 middleware pipeline）
+  - ToolMiddlewarePipeline 洋葱模型（注册 → 构建执行链）
+  - 3 个内置中间件：error-formatting / logging / result-truncation（50K 字符截断）
+  - ToolRegistry 集成中间件（可外部添加自定义中间件）
+- [x] Token 限流 / 预算控制
+  - 会话级限额（通过 SQLite 累积 token 检查）
+  - 每日级限额（内存计数器，每日自动重置）
+  - 超限自动终止并返回友好提示
+  - 设置页会话/日级预算 UI
+- [x] 结构化 Tracing / 可观测性增强
+  - 轻量 Span 追踪系统（兼容 OTel 模型）
+  - caller 分类（main/compact/memory/title/subagent/tool/system）
+  - 嵌套 Span + 耗时统计 + 按 caller 聚合
+  - debug:traces IPC 端点（暴露 Span 列表 + caller 统计 + 日 Token 用量）
+
 ---
 
 **图例**：

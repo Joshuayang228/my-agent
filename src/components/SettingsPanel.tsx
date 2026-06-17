@@ -12,6 +12,9 @@ interface SettingsForm {
   personaId: string
   sandboxMode: string
   executionMode: string
+  auxModel: string
+  sessionTokenBudget: string
+  dailyTokenBudget: string
 }
 
 interface McpServerEntry {
@@ -42,6 +45,9 @@ const DEFAULTS: SettingsForm = {
   personaId: 'warm-partner',
   sandboxMode: 'workspace-write',
   executionMode: 'auto',
+  auxModel: '',
+  sessionTokenBudget: '0',
+  dailyTokenBudget: '0',
 }
 
 interface PersonaInfo {
@@ -93,6 +99,9 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         personaId: s.personaId || DEFAULTS.personaId,
         sandboxMode: s.sandboxMode || DEFAULTS.sandboxMode,
         executionMode: s.executionMode || DEFAULTS.executionMode,
+        auxModel: s.auxModel || '',
+        sessionTokenBudget: s.sessionTokenBudget || '0',
+        dailyTokenBudget: s.dailyTokenBudget || '0',
       })
       try {
         const servers = JSON.parse(s.mcpServers || '[]')
@@ -288,6 +297,18 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           />
         </div>
 
+        {/* 辅助模型 */}
+        <div className="mb-4">
+          <label className="mb-1.5 block text-xs font-medium text-slate-400">辅助模型（标题/画像/摘要，留空沿用主模型）</label>
+          <input
+            type="text"
+            value={form.auxModel}
+            onChange={(e) => update('auxModel', e.target.value)}
+            placeholder="如 gpt-4o-mini, deepseek-chat（留空 = 主模型）"
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none transition focus:border-cyan-500"
+          />
+        </div>
+
         {/* LLM 参数 */}
         <div className="mb-5 grid grid-cols-3 gap-3">
           <div>
@@ -377,6 +398,36 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 <div className="mt-0.5 text-[10px] opacity-70">{opt.desc}</div>
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Token 预算 */}
+        <div className="mb-5 grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-slate-400">会话 Token 预算</label>
+            <input
+              type="number"
+              step="10000"
+              min="0"
+              value={form.sessionTokenBudget}
+              onChange={(e) => update('sessionTokenBudget', e.target.value)}
+              placeholder="0 = 无限制"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
+            />
+            <div className="mt-1 text-[10px] text-slate-500">0 = 无限制，单位: tokens</div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-slate-400">每日 Token 预算</label>
+            <input
+              type="number"
+              step="100000"
+              min="0"
+              value={form.dailyTokenBudget}
+              onChange={(e) => update('dailyTokenBudget', e.target.value)}
+              placeholder="0 = 无限制"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
+            />
+            <div className="mt-1 text-[10px] text-slate-500">0 = 无限制，单位: tokens</div>
           </div>
         </div>
 
