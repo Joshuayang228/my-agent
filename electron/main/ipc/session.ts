@@ -17,4 +17,7 @@ export function registerSessionIPC(): void {
 
   ipcMain.handle('message:delete', async (_event, messageId: string) =>
     store.deleteMessage(messageId))
+
+  ipcMain.handle('session:tokenUsage', async (_event, sessionId: string) =>
+    store.getTokenUsage(sessionId))
 }

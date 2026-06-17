@@ -83,7 +83,7 @@ think → act → observe → think → ...
 
 ### 2. IPC 模块化
 
-主进程 IPC 拆分为 9 个独立模块：
+主进程 IPC 拆分为 10 个独立模块：
 
 | 模块 | 职责 |
 |------|------|
@@ -105,6 +105,8 @@ think → act → observe → think → ...
 - 破坏性操作前用户确认（IPC 双向通信弹窗）
 - **超时保护**：每个工具 30s 超时，超时自动返回错误
 - 11 个内置工具 + MCP 动态工具
+- **沙箱系统**：参考 Codex 四层纵深防御，三级沙箱模式（read-only / workspace-write / full-access）
+- **命令安全分级**：ExecPolicy 白名单/黑名单 + CommandGuard 路径边界检查 + ApprovalStore 审批记录
 
 ### 4. 记忆系统
 
@@ -166,6 +168,7 @@ my-agent/
 │   │   ├── ipc/              # IPC 处理器（8 个模块）
 │   │   ├── agent/            # Agent Loop + Prompt Builder + 上下文压缩 + 画像提取
 │   │   ├── tools/            # ToolRegistry + 11 个内置工具
+│   │   ├── sandbox/          # 沙箱系统（policy + exec-policy + command-guard + approval-store）
 │   │   ├── mcp/              # MCP Client + Bridge
 │   │   ├── memory/           # 向量存储 + Embedding 适配器
 │   │   ├── llm/              # LLM 流式适配器

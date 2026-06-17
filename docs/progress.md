@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-**阶段**：P0 ~ P9 全部完成（P9 = Skill 系统）
+**阶段**：P0 ~ P10 全部完成（P10 = 框架补强：沙箱+持久化+并发+执行模式）
 
 **已完成全部功能**：
 - 规则体系 + 技能文件设计
@@ -99,6 +99,17 @@
   - 2 个内置示例 Skill（code-review + content-creator）
   - 快捷键 Ctrl+Shift+K 开关 Skill 面板
   - 用户 Skill 覆盖内置同名 Skill（优先级设计）
+- **P10 框架补强**：
+  - 工具消息持久化（assistant+toolCalls 和 tool results 完整保存 SQLite，修复多轮工具失忆）
+  - tool_calls 事件流（AgentStreamEvent 新增 tool_calls 类型）
+  - Per-session 并发锁（Map<sessionId, AbortController>，同一会话拒绝并行 send）
+  - 后台流式 Session 隔离修复（切换会话时清除 streamingSessionRef）
+  - 沙箱系统（参考 Codex：SandboxPolicy 三级模式 + ExecPolicy 命令分级 + CommandGuard 路径边界 + ApprovalStore 审批记录）
+  - Skill allowed_tools 真正执行（filterTools 回调，loop 动态过滤可用工具集）
+  - Token 精确计数（优先使用 API 返回的 usage.promptTokens，回退启发式估算）
+  - 累积 Token 预算追踪（sessions 表新增 total_prompt_tokens / total_completion_tokens 列）
+  - 执行模式系统（auto / confirm-all / plan-first，影响 loop 确认逻辑 + prompt 注入）
+  - 设置页新增沙箱模式 + 执行模式 UI 选择器
 - **P8 交互增强**：
   - 消息重新生成（↻ 按钮，重新生成最后一条 AI 回复）
   - 消息编辑（✎ 按钮，编辑已发用户消息并重跑后续对话）
@@ -119,6 +130,7 @@
 - Electron E2E：4 个（需 TEST_LLM_API_KEY 环境变量）
 
 **下一步**：
+- Multi-Agent 子 Agent 系统（researcher/developer/writer 角色分工）
 - 沉淀方法论文档（用户触发后逐条对齐写入）
 - bundle 体积优化（vectra external 处理）
 - 首个可用版本打包发布
@@ -148,4 +160,5 @@
 | 2026-06-17 | P7 完成：体验完善（Toast/引导/重命名/code_search/abort） | ✅ |
 | 2026-06-17 | P8 完成：交互增强（重新生成/编辑/删除/主题/附件/Mermaid/url_fetch） | ✅ |
 | 2026-06-17 | P9 完成：Skill 系统（加载/注册/IPC/UI/Prompt 注入/内置 Skill） | ✅ |
+| 2026-06-17 | P10 完成：框架补强（工具持久化/并发锁/沙箱/allowed_tools/Token计数/执行模式） | ✅ |
 | - | 首个可用版本 | ⏳ |

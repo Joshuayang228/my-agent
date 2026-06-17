@@ -10,6 +10,8 @@ interface SettingsForm {
   llmMaxTokens: string
   systemPrompt: string
   personaId: string
+  sandboxMode: string
+  executionMode: string
 }
 
 interface McpServerEntry {
@@ -38,6 +40,8 @@ const DEFAULTS: SettingsForm = {
   llmMaxTokens: '4096',
   systemPrompt: '',
   personaId: 'warm-partner',
+  sandboxMode: 'workspace-write',
+  executionMode: 'auto',
 }
 
 interface PersonaInfo {
@@ -87,6 +91,8 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         llmMaxTokens: s.llmMaxTokens || DEFAULTS.llmMaxTokens,
         systemPrompt: s.systemPrompt || '',
         personaId: s.personaId || DEFAULTS.personaId,
+        sandboxMode: s.sandboxMode || DEFAULTS.sandboxMode,
+        executionMode: s.executionMode || DEFAULTS.executionMode,
       })
       try {
         const servers = JSON.parse(s.mcpServers || '[]')
@@ -319,6 +325,58 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               onChange={(e) => update('llmMaxTokens', e.target.value)}
               className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
             />
+          </div>
+        </div>
+
+        {/* Sandbox Mode */}
+        <div className="mb-5">
+          <label className="mb-1.5 block text-xs font-medium text-slate-400">沙箱模式（命令执行安全策略）</label>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { value: 'read-only', label: '只读', desc: '最安全，禁止写入和网络' },
+              { value: 'workspace-write', label: '工作区写入', desc: '允许工作区内操作' },
+              { value: 'full-access', label: '完全访问', desc: '不限制（需谨慎）' },
+            ] as const).map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => update('sandboxMode', opt.value)}
+                className={`rounded-lg border px-3 py-2 text-left text-xs transition ${
+                  form.sandboxMode === opt.value
+                    ? opt.value === 'full-access'
+                      ? 'border-red-500/50 bg-red-500/10 text-red-400'
+                      : 'border-cyan-500/50 bg-cyan-500/10 text-cyan-400'
+                    : 'border-slate-700 text-slate-400 hover:border-slate-600'
+                }`}
+              >
+                <div className="font-medium">{opt.label}</div>
+                <div className="mt-0.5 text-[10px] opacity-70">{opt.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Execution Mode */}
+        <div className="mb-5">
+          <label className="mb-1.5 block text-xs font-medium text-slate-400">执行模式（工具调用审批策略）</label>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { value: 'auto', label: '自动', desc: '仅破坏性操作需确认' },
+              { value: 'confirm-all', label: '全部确认', desc: '每次工具调用都需审批' },
+              { value: 'plan-first', label: '先计划', desc: 'AI 先说计划再执行' },
+            ] as const).map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => update('executionMode', opt.value)}
+                className={`rounded-lg border px-3 py-2 text-left text-xs transition ${
+                  form.executionMode === opt.value
+                    ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-400'
+                    : 'border-slate-700 text-slate-400 hover:border-slate-600'
+                }`}
+              >
+                <div className="font-medium">{opt.label}</div>
+                <div className="mt-0.5 text-[10px] opacity-70">{opt.desc}</div>
+              </button>
+            ))}
           </div>
         </div>
 

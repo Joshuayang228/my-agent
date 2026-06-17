@@ -9,11 +9,11 @@ import * as memory from '../storage/memory-store'
 import { searchVectorStore, addToVectorStore } from '../memory/vector-store'
 import { buildSkillSummaryForPrompt, getActiveSkill, clearActiveSkill } from '../skills/registry'
 import { createLogger } from '../utils/logger'
-import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
+import type { ChatMessage, LLMConfig, ExecutionMode } from '../../../src/shared/types'
 
 const log = createLogger('ChatIPC')
 
-let activeAbortController: AbortController | null = null
+const activeControllers = new Map<string, AbortController>()
 
 async function getLLMConfig(): Promise<LLMConfig> {
   const s = await settings.getAllSettings()
@@ -30,11 +30,18 @@ async function getLLMConfig(): Promise<LLMConfig> {
 export function registerChatIPC(toolRegistry: ToolRegistry): void {
   ipcMain.handle('ping', () => 'pong')
 
-  ipcMain.handle('chat:abort', () => {
-    if (activeAbortController) {
-      log.info('Chat aborted by user')
-      activeAbortController.abort()
-      activeAbortController = null
+  ipcMain.handle('chat:abort', (_event, sessionId?: string) => {
+    if (sessionId) {
+      const ctrl = activeControllers.get(sessionId)
+      if (ctrl) {
+        log.info('Chat aborted by user', { sessionId })
+        ctrl.abort()
+        activeControllers.delete(sessionId)
+      }
+    } else {
+      log.info('All chats aborted by user', { count: activeControllers.size })
+      for (const ctrl of activeControllers.values()) ctrl.abort()
+      activeControllers.clear()
     }
   })
 
@@ -42,6 +49,7 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
     const llmConfig = await getLLMConfig()
     const personaId = await settings.getSetting('personaId')
     const customPrompt = await settings.getSetting('systemPrompt')
+    const executionMode = (await settings.getSetting('executionMode') || 'auto') as ExecutionMode
     const userProfile = await memory.buildUserProfile()
 
     const persona = BUILTIN_PERSONAS.find(p => p.id === personaId) ?? BUILTIN_PERSONAS[0]
@@ -58,8 +66,15 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
       return
     }
 
+    if (activeControllers.has(sessionId)) {
+      log.warn('Session already processing', { sessionId })
+      emit({ type: 'error', message: '该会话正在处理中，请等待完成或先中断' })
+      emit({ type: 'done' })
+      return
+    }
+
     const abortController = new AbortController()
-    activeAbortController = abortController
+    activeControllers.set(sessionId, abortController)
 
     const lastUserMsg = messages[messages.length - 1]
     if (lastUserMsg?.role === 'user') {
@@ -117,6 +132,7 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
         sessionInfo: customPrompt || undefined,
         skillSummary,
         activeSkillBody,
+        executionMode,
       })
 
       const stream = agentLoop(
@@ -127,6 +143,15 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
           confirmTool,
           systemPrompt,
           signal: abortController.signal,
+          executionMode,
+          filterTools: (allTools) => {
+            const active = getActiveSkill()
+            if (active?.meta.allowed_tools?.length) {
+              const allowed = new Set(active.meta.allowed_tools)
+              return allTools.filter(t => allowed.has(t.name) || t.name.startsWith('skill_invoke_'))
+            }
+            return allTools
+          },
         },
         toolRegistry,
       )
@@ -136,6 +161,27 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
 
         if (ev.type === 'text') {
           assistantContent += ev.content
+        }
+        if (ev.type === 'usage') {
+          store.addTokenUsage(sessionId, ev.promptTokens, ev.completionTokens).catch(() => {})
+        }
+        if (ev.type === 'tool_calls') {
+          await store.saveMessage(sessionId, {
+            id: `assistant-tc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            role: 'assistant',
+            content: '',
+            timestamp: Date.now(),
+            toolCalls: ev.calls,
+          })
+        }
+        if (ev.type === 'tool_end') {
+          await store.saveMessage(sessionId, {
+            id: `tool-${ev.callId}`,
+            role: 'tool',
+            content: ev.result,
+            timestamp: Date.now(),
+            toolCallId: ev.callId,
+          })
         }
         if (ev.type === 'done' && assistantContent && !assistantSaved) {
           assistantSaved = true
@@ -182,7 +228,7 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
         emit({ type: 'error', message })
       }
     } finally {
-      activeAbortController = null
+      activeControllers.delete(sessionId)
 
       if (assistantContent && !assistantSaved) {
         assistantSaved = true

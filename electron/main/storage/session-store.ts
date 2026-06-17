@@ -139,6 +139,31 @@ export async function deleteMessage(messageId: string): Promise<void> {
   log.info('Message deleted', { messageId })
 }
 
+export async function addTokenUsage(sessionId: string, promptTokens: number, completionTokens: number): Promise<void> {
+  const db = await getDatabase()
+  db.run(
+    'UPDATE sessions SET total_prompt_tokens = total_prompt_tokens + ?, total_completion_tokens = total_completion_tokens + ? WHERE id = ?',
+    [promptTokens, completionTokens, sessionId],
+  )
+  persist()
+}
+
+export async function getTokenUsage(sessionId: string): Promise<{ promptTokens: number; completionTokens: number }> {
+  const db = await getDatabase()
+  const stmt = db.prepare('SELECT total_prompt_tokens, total_completion_tokens FROM sessions WHERE id = ?')
+  stmt.bind([sessionId])
+  if (stmt.step()) {
+    const row = stmt.getAsObject() as Record<string, unknown>
+    stmt.free()
+    return {
+      promptTokens: (row.total_prompt_tokens as number) || 0,
+      completionTokens: (row.total_completion_tokens as number) || 0,
+    }
+  }
+  stmt.free()
+  return { promptTokens: 0, completionTokens: 0 }
+}
+
 export async function updateMessageContent(messageId: string, content: string): Promise<void> {
   const db = await getDatabase()
   db.run('UPDATE messages SET content = ? WHERE id = ?', [content, messageId])

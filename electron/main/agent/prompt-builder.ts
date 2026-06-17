@@ -31,6 +31,7 @@ export interface PromptContext {
   sessionInfo?: string
   skillSummary?: string
   activeSkillBody?: string
+  executionMode?: string
 }
 
 // ── 内置人格模板 ──
@@ -106,6 +107,15 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   parts.push('Always respond in the same language as the user.')
   parts.push('')
   parts.push('## Working method')
+  if (ctx.executionMode === 'plan-first') {
+    parts.push('IMPORTANT: You are in plan-first mode. Before executing ANY tool calls, you MUST:')
+    parts.push('1. First explain your plan step-by-step in plain text')
+    parts.push('2. Ask the user for confirmation before proceeding')
+    parts.push('3. Only execute tools after the user approves your plan')
+    parts.push('Never skip the planning step. Always present your plan first.')
+  } else if (ctx.executionMode === 'confirm-all') {
+    parts.push('Note: You are in confirm-all mode. Every tool call will require user approval.')
+  }
   parts.push('For complex requests (3+ steps), use task_plan to create a structured plan BEFORE starting.')
   parts.push('Update each step as you work. After completing all steps, briefly self-evaluate:')
   parts.push('- Did I fully address the user\'s request?')

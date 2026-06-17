@@ -11,6 +11,8 @@ const RECENT_KEEP_COUNT = 6
 
 export interface ContextManagerOptions {
   maxTokens?: number
+  /** API 上一轮返回的实际 promptTokens，比启发式估算更准 */
+  lastActualPromptTokens?: number
 }
 
 /**
@@ -45,9 +47,10 @@ export function compressContext(
 ): ChatMessage[] {
   const maxTokens = options.maxTokens ?? DEFAULT_MAX_TOKENS
   let current = [...messages]
-  let tokens = estimateTokens(current)
+  let tokens = options.lastActualPromptTokens ?? estimateTokens(current)
+  const source = options.lastActualPromptTokens ? 'api' : 'estimate'
 
-  log.debug('Context check', { tokens, maxTokens, messageCount: current.length })
+  log.debug('Context check', { tokens, maxTokens, source, messageCount: current.length })
 
   // ── L1 Snip：删除最早的工具调用轮次 ──
   if (tokens > maxTokens * L1_THRESHOLD) {

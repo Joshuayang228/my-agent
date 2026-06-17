@@ -11,13 +11,14 @@
 - [x] 记忆系统 v2（Vectra 向量数据库 + Embedding API 语义检索 + 自动索引对话）
 - [x] LLM 适配器（OpenAI 兼容流式 API + function calling）
 - [x] LLM 路由（顶栏模型快切 + 多 Provider 预设）
-- [x] 上下文压缩（三层分级：Snip / MicroCompact / Collapse，参照 Alice 方法论）
+- [x] 上下文压缩（三层分级：Snip / MicroCompact / Collapse，优先使用 API 实际 token 数）
 - [x] System Prompt 分层注入（4 层架构：人格定义 / 能力边界 / 上下文 / 动态，[PROTECTED]/[MUTABLE] 分区）
 - [x] 用户画像三维化（identity / workflow / voice，自动提取写入记忆）
 - [x] 人格模板系统（3 个内置人格：温暖伙伴 / 严谨顾问 / 技术极客，一键切换）
 - [x] 转场白语 / 内心独白（`<aside>` 标签人格化小剧场 + 紫色气泡 UI）
 - [x] MCP 协议支持（MCP Client + StdioClientTransport + 动态工具注册/注销）
-- [x] 流式中断（AbortController + chat:abort IPC + 停止按钮）
+- [x] 流式中断（AbortController + chat:abort IPC + 停止按钮 + per-session 锁）
+- [x] 工具消息持久化（assistant+toolCalls 和 tool results 完整保存到 SQLite，多轮工具对话不再"失忆"）
 - [x] 任务规划（task_plan 工具：创建/更新/追踪结构化计划）
 - [x] 自我评估（L2 Prompt 指令：完成复杂任务后自检）
 - [x] Agent 记忆工具（remember/recall/forget，AI 主动管理长期记忆）
@@ -25,7 +26,7 @@
   - Skill 加载器（userData/skills/ 用户目录 + 内置 skills-builtin/）
   - 自动注册 skill_invoke_xxx 工具（模型可主动调用）
   - Skill 列表注入 System Prompt L2（模型知道有哪些 Skill 可用）
-  - 工具白名单（allowed_tools 激活后限制可用工具）
+  - 工具白名单（allowed_tools 激活后真正限制 LLM 可见工具集）
   - SkillsPanel 可视化管理 UI（Ctrl+Shift+K）
   - 2 个内置 Skill（代码审查 + 内容创作）
 
@@ -112,6 +113,19 @@
 - [x] 错误信息脱敏（过滤 API Key / URL）
 - [x] 工具元数据声明（isReadOnly / isDestructive / isConcurrencySafe）
 - [x] 用户确认弹窗（破坏性操作前 IPC 弹窗）
+- [x] 沙箱系统（参考 Codex，三级策略 read-only / workspace-write / full-access）
+  - 命令安全分级（ExecPolicy：安全命令白名单 + 危险模式黑名单）
+  - 命令守卫（CommandGuard：路径边界检查 + 受保护路径 .git/.env）
+  - 审批记录（session/persistent 级，防重复审批）
+  - 进程加固（非 full-access 模式剥离 LD_PRELOAD/DYLD_INSERT_LIBRARIES）
+  - 设置页 UI 沙箱模式选择
+- [x] 执行模式（三种策略 auto / confirm-all / plan-first）
+  - auto：仅破坏性工具需用户确认（默认）
+  - confirm-all：每次工具调用都需审批
+  - plan-first：System Prompt 强制 AI 先计划再执行
+  - 设置页 UI 执行模式选择
+- [x] Per-session 并发锁（防止同一会话并行 chat:send）
+- [x] 累积 Token 预算追踪（session 级别 prompt/completion 分别累加）
 
 ---
 

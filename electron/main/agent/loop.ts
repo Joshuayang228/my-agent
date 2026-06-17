@@ -46,6 +46,8 @@ export async function* agentLoop(
     maxIterations = DEFAULT_MAX_ITERATIONS,
     signal,
     confirmTool,
+    filterTools,
+    executionMode = 'auto',
   } = options
 
   log.info('Loop started', {
@@ -60,6 +62,8 @@ export async function* agentLoop(
     ...inputMessages,
   ]
 
+  let lastPromptTokens: number | undefined = undefined
+
   for (let iteration = 0; iteration < maxIterations; iteration++) {
     if (signal?.aborted) {
       log.warn('Loop cancelled by signal', { iteration })
@@ -69,8 +73,10 @@ export async function* agentLoop(
 
     log.info(`Iteration ${iteration + 1}/${maxIterations} — calling LLM`)
 
-    // ── 上下文压缩（每次迭代前检查） ──
-    const compressed = compressContext(workingMessages)
+    const effectiveTools = filterTools ? filterTools(tools) : tools
+
+    // ── 上下文压缩（每次迭代前检查，优先使用 API 返回的实际 token 数） ──
+    const compressed = compressContext(workingMessages, { lastActualPromptTokens: lastPromptTokens })
     if (compressed.length < workingMessages.length) {
       workingMessages.length = 0
       workingMessages.push(...compressed)
@@ -91,7 +97,7 @@ export async function* agentLoop(
       }
 
       try {
-        const stream = streamChat({ config, messages: workingMessages, tools, signal })
+        const stream = streamChat({ config, messages: workingMessages, tools: effectiveTools, signal })
 
         let streamResult = await stream.next()
         while (!streamResult.done) {
@@ -102,6 +108,10 @@ export async function* agentLoop(
         const result = streamResult.value
         content = result.content
         toolCalls = result.toolCalls
+
+        if (result.usage?.promptTokens) {
+          lastPromptTokens = result.usage.promptTokens
+        }
 
         log.info('LLM response received', {
           duration: Date.now() - llmStart,
@@ -142,6 +152,7 @@ export async function* agentLoop(
         timestamp: Date.now(),
         toolCalls,
       })
+      yield { type: 'tool_calls', calls: toolCalls }
     } else {
       log.info('Loop complete — text response', { contentLength: content?.length ?? 0 })
       workingMessages.push({
@@ -158,7 +169,6 @@ export async function* agentLoop(
     const results: ToolResult[] = []
     const skippedCallIds = new Set<string>()
 
-    // 先处理破坏性工具确认
     const parsedArgs = new Map<string, Record<string, unknown>>()
     for (const call of toolCalls) {
       let args: Record<string, unknown> = {}
@@ -166,11 +176,16 @@ export async function* agentLoop(
       parsedArgs.set(call.id, args)
 
       const toolDef = registry.get(call.name)
-      if (toolDef?.metadata.isDestructive && confirmTool) {
+      const needsConfirm =
+        executionMode === 'confirm-all' ||
+        (executionMode === 'auto' && toolDef?.metadata.isDestructive) ||
+        (executionMode === 'plan-first' && toolDef?.metadata.isDestructive)
+
+      if (needsConfirm && confirmTool) {
         yield { type: 'tool_confirm', callId: call.id, name: call.name, args }
         const approved = await confirmTool(call.name, args)
         if (!approved) {
-          log.info(`Tool rejected by user: ${call.name}`, { callId: call.id })
+          log.info(`Tool rejected by user: ${call.name}`, { callId: call.id, executionMode })
           results.push({ callId: call.id, name: call.name, content: 'User denied execution of this tool.', isError: true })
           yield { type: 'tool_end', callId: call.id, name: call.name, result: 'User denied execution.', isError: true }
           skippedCallIds.add(call.id)

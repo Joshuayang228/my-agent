@@ -72,6 +72,14 @@ function initSchema(db: SqlJsDatabase): void {
     CREATE INDEX IF NOT EXISTS idx_messages_session
       ON messages(session_id, sort_order)
   `)
+
+  // Migration: add token tracking columns if missing
+  try {
+    db.run('ALTER TABLE sessions ADD COLUMN total_prompt_tokens INTEGER NOT NULL DEFAULT 0')
+  } catch { /* column already exists */ }
+  try {
+    db.run('ALTER TABLE sessions ADD COLUMN total_completion_tokens INTEGER NOT NULL DEFAULT 0')
+  } catch { /* column already exists */ }
 }
 
 export function persist(): void {

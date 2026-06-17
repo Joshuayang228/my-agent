@@ -1,6 +1,10 @@
 import type { ToolDefinition } from '../../../../src/shared/types'
 import { exec } from 'node:child_process'
 import { createLogger } from '../../utils/logger'
+import { buildPolicy, type SandboxMode } from '../../sandbox/policy'
+import { guardCommand } from '../../sandbox/command-guard'
+import { checkApproval } from '../../sandbox/approval-store'
+import * as settings from '../../storage/settings-store'
 
 const log = createLogger('ShellExec')
 
@@ -10,7 +14,7 @@ const MAX_OUTPUT_CHARS = 30_000
 export const shellExecTool: ToolDefinition = {
   name: 'shell_exec',
   description:
-    'Execute a shell command and return its output. Use for running scripts, installing packages, checking system info, etc. Commands time out after 30 seconds. Use with caution — this is a destructive operation.',
+    'Execute a shell command and return its output. Use for running scripts, installing packages, checking system info, etc. Commands time out after 30 seconds. Commands are sandboxed — dangerous operations may be blocked.',
   parameters: {
     type: 'object',
     properties: {
@@ -36,10 +40,32 @@ export const shellExecTool: ToolDefinition = {
 
     if (!command?.trim()) return 'Error: command is required'
 
-    log.info('Executing command', { command, cwd })
+    const mode = (await settings.getSetting('sandboxMode') || 'workspace-write') as SandboxMode
+    const policy = buildPolicy(mode, cwd || process.cwd())
+    const decision = guardCommand(command, cwd, policy)
+
+    if (decision.allowed === false) {
+      log.warn('Command blocked by sandbox', { command: command.slice(0, 100), reason: decision.reason })
+      return `[SANDBOX BLOCKED] ${decision.reason}\n\nThe current sandbox mode is "${mode}". This command was blocked for safety reasons.`
+    }
+
+    if (decision.allowed === 'needs_approval') {
+      const priorApproval = checkApproval(command)
+      if (priorApproval === false) {
+        return `[SANDBOX BLOCKED] Previously denied: ${decision.reason}`
+      }
+    }
+
+    log.info('Executing command', { command, cwd, sandboxMode: mode })
+
+    const sanitizedEnv = { ...process.env }
+    if (mode !== 'full-access') {
+      delete sanitizedEnv.LD_PRELOAD
+      delete sanitizedEnv.DYLD_INSERT_LIBRARIES
+    }
 
     return new Promise<string>((resolve) => {
-      exec(command, { timeout: TIMEOUT_MS, cwd, maxBuffer: 2 * 1024 * 1024 }, (error, stdout, stderr) => {
+      exec(command, { timeout: TIMEOUT_MS, cwd, maxBuffer: 2 * 1024 * 1024, env: sanitizedEnv }, (error, stdout, stderr) => {
         const parts: string[] = []
 
         if (stdout) {

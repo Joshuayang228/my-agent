@@ -145,6 +145,7 @@ function App() {
 
   const switchSession = async (sessionId: string) => {
     if (sessionId === activeSessionId) return
+    streamingSessionRef.current = null
     setActiveSessionId(sessionId)
     setMessages([])
     setActiveTools([])
@@ -269,6 +270,16 @@ function App() {
         setThinking((prev) => [...prev, { content: ev.content }])
         break
 
+      case 'tool_calls':
+        setMessages((prev) => [...prev, {
+          id: genId(),
+          role: 'assistant' as const,
+          content: '',
+          timestamp: Date.now(),
+          toolCalls: ev.calls,
+        }])
+        break
+
       case 'tool_start':
         setActiveTools((prev) => [
           ...prev,
@@ -284,6 +295,13 @@ function App() {
               : t,
           ),
         )
+        setMessages((prev) => [...prev, {
+          id: `tool-${ev.callId}`,
+          role: 'tool' as const,
+          content: ev.result,
+          timestamp: Date.now(),
+          toolCallId: ev.callId,
+        }])
         break
 
       case 'usage':
@@ -608,7 +626,7 @@ function App() {
             />
             {searchQuery && (
               <span className="text-xs text-slate-500">
-                {messages.filter(m => m.content.toLowerCase().includes(searchQuery.toLowerCase())).length} 条匹配
+                {messages.filter(m => m.role !== 'tool' && m.content && m.content.toLowerCase().includes(searchQuery.toLowerCase())).length} 条匹配
               </span>
             )}
             <button onClick={() => { setSearchOpen(false); setSearchQuery('') }} className="text-slate-500 hover:text-slate-300">✕</button>
@@ -670,7 +688,11 @@ function App() {
               </div>
             )}
 
-            {messages.map((msg) => {
+            {messages.filter(m => {
+              if (m.role === 'tool') return false
+              if (m.role === 'assistant' && m.toolCalls?.length && !m.content) return false
+              return true
+            }).map((msg) => {
               const isSearchMatch = searchQuery && msg.content.toLowerCase().includes(searchQuery.toLowerCase())
               const dimmed = searchQuery && !isSearchMatch
               return (

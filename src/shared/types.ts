@@ -69,6 +69,8 @@ export interface LLMResponse {
 
 // ── Agent Loop ──
 
+export type ExecutionMode = 'auto' | 'confirm-all' | 'plan-first'
+
 export interface AgentLoopOptions {
   config: LLMConfig
   messages: ChatMessage[]
@@ -78,11 +80,16 @@ export interface AgentLoopOptions {
   signal?: AbortSignal
   /** 破坏性工具执行前的确认回调，返回 true 允许执行 */
   confirmTool?: (name: string, args: Record<string, unknown>) => Promise<boolean>
+  /** 每次迭代前动态过滤可用工具（如 Skill allowed_tools 限制） */
+  filterTools?: (tools: ToolDefinition[]) => ToolDefinition[]
+  /** 执行模式：auto=自动(仅破坏性确认) | confirm-all=全部确认 | plan-first=先计划后执行 */
+  executionMode?: ExecutionMode
 }
 
 export type AgentStreamEvent =
   | { type: 'text'; content: string }
   | { type: 'thinking'; content: string }
+  | { type: 'tool_calls'; calls: ToolCall[] }
   | { type: 'tool_start'; callId: string; name: string; args: Record<string, unknown> }
   | { type: 'tool_end'; callId: string; name: string; result: string; isError?: boolean }
   | { type: 'tool_confirm'; callId: string; name: string; args: Record<string, unknown> }

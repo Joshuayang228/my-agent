@@ -31,6 +31,10 @@ export interface AppSettings {
   personaId: string
   /** JSON string — McpServerConfig[] */
   mcpServers: string
+  /** Sandbox mode: read-only | workspace-write | full-access */
+  sandboxMode: string
+  /** Execution mode: auto | confirm-all | plan-first */
+  executionMode: string
 }
 
 function getDefaults(): AppSettings {
@@ -44,6 +48,8 @@ function getDefaults(): AppSettings {
     systemPrompt: '',
     personaId: 'warm-partner',
     mcpServers: '[]',
+    sandboxMode: 'workspace-write',
+    executionMode: 'auto',
   }
 }
 
