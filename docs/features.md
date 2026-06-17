@@ -167,6 +167,23 @@
   - 嵌套 Span + 耗时统计 + 按 caller 聚合
   - debug:traces IPC 端点（暴露 Span 列表 + caller 统计 + 日 Token 用量）
 
+## 高级框架能力（P13）
+
+- [x] 权限规则引擎升级
+  - 五层责任链：自定义规则 → 审批记录 → 命令分级 → 沙箱策略 → 默认行为
+  - PermissionRule 支持 command/tool/path 三种类型 + allow/deny/ask 三种动作
+  - 正则匹配 + 可编辑规则列表
+- [x] 项目记忆 PROJECT.md
+  - 自动检测工作区 PROJECT.md 文件
+  - 注入 System Prompt L3 层（4000 字符截断）
+  - 读/写/追加接口，Agent 可通过工具更新
+- [x] 多 Provider 路由
+  - Provider 自动检测（根据 baseUrl 正则匹配）
+  - OpenAI 兼容格式（覆盖 DeepSeek/Groq/OpenRouter/Together）
+  - Anthropic Messages API 适配（SSE 流解析 + tool_use 映射）
+  - Gemini API 请求体构建器
+  - 预设新增 Claude Sonnet
+
 ---
 
 **图例**：

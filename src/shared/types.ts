@@ -52,6 +52,8 @@ export interface ToolMetadata {
 
 // ── LLM ──
 
+export type LLMProvider = 'openai' | 'anthropic' | 'gemini' | 'auto'
+
 export interface LLMConfig {
   apiKey: string
   baseUrl: string
@@ -59,6 +61,8 @@ export interface LLMConfig {
   temperature?: number
   topP?: number
   maxTokens?: number
+  /** Provider 类型（auto = 根据 baseUrl 自动检测） */
+  provider?: LLMProvider
 }
 
 /** LLM 单轮返回的结构化结果 */

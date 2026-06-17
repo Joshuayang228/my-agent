@@ -6,6 +6,7 @@ import type {
   ToolResult,
   AgentStreamEvent,
 } from '../../../src/shared/types'
+import { detectProvider, buildAnthropicBody } from './provider-router'
 
 // ── 对外接口 ──
 
@@ -30,7 +31,13 @@ export async function* streamChat(
   options: StreamChatOptions,
 ): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
   const { config, messages, tools, signal } = options
+  const provider = detectProvider(config)
 
+  if (provider === 'anthropic') {
+    return yield* streamChatAnthropic(options)
+  }
+
+  // OpenAI 兼容格式（也覆盖 DeepSeek / Groq / OpenRouter 等）
   const body: Record<string, unknown> = {
     model: config.model,
     messages: buildAPIMessages(messages),
@@ -212,4 +219,120 @@ export function buildToolResultMessages(results: ToolResult[]): Record<string, u
     tool_call_id: r.callId,
     content: r.content,
   }))
+}
+
+// ── Anthropic SSE 流式适配 ──
+
+async function* streamChatAnthropic(
+  options: StreamChatOptions,
+): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
+  const { config, messages, tools, signal } = options
+  const apiMessages = buildAPIMessages(messages)
+  const openaiTools = tools ? tools.map(toOpenAITool) : undefined
+  const { url, headers, body } = buildAnthropicBody(config, apiMessages, openaiTools)
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+    signal,
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(`Anthropic API error (${response.status}): ${error}`)
+  }
+
+  const reader = response.body?.getReader()
+  if (!reader) throw new Error('Response body is not readable')
+
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let contentAcc = ''
+  const toolCallsAcc: Map<string, { id: string; name: string; arguments: string }> = new Map()
+  let usage: { promptTokens: number; completionTokens: number } | null = null
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed || !trimmed.startsWith('data: ')) continue
+      const data = trimmed.slice(6)
+
+      let parsed: Record<string, unknown>
+      try {
+        parsed = JSON.parse(data)
+      } catch {
+        continue
+      }
+
+      const eventType = parsed.type as string
+
+      if (eventType === 'content_block_delta') {
+        const delta = parsed.delta as Record<string, unknown>
+        if (delta?.type === 'text_delta') {
+          const text = delta.text as string
+          contentAcc += text
+          yield { type: 'text', content: text }
+        }
+        if (delta?.type === 'input_json_delta') {
+          const partial = delta.partial_json as string
+          const toolId = (parsed as Record<string, unknown>).index as string
+          const existing = toolCallsAcc.get(toolId)
+          if (existing) existing.arguments += partial || ''
+        }
+      }
+
+      if (eventType === 'content_block_start') {
+        const contentBlock = parsed.content_block as Record<string, unknown>
+        if (contentBlock?.type === 'tool_use') {
+          const idx = String(parsed.index)
+          toolCallsAcc.set(idx, {
+            id: contentBlock.id as string,
+            name: contentBlock.name as string,
+            arguments: '',
+          })
+        }
+      }
+
+      if (eventType === 'message_delta') {
+        const u = (parsed as Record<string, unknown>).usage as Record<string, number> | undefined
+        if (u) {
+          usage = {
+            promptTokens: usage?.promptTokens || 0,
+            completionTokens: u.output_tokens ?? 0,
+          }
+        }
+      }
+
+      if (eventType === 'message_start') {
+        const msg = (parsed as Record<string, unknown>).message as Record<string, unknown> | undefined
+        const u = msg?.usage as Record<string, number> | undefined
+        if (u) {
+          usage = {
+            promptTokens: u.input_tokens ?? 0,
+            completionTokens: u.output_tokens ?? 0,
+          }
+        }
+      }
+    }
+  }
+
+  if (usage) {
+    yield { type: 'usage', promptTokens: usage.promptTokens, completionTokens: usage.completionTokens }
+  }
+
+  const toolCalls: ToolCall[] = Array.from(toolCallsAcc.values()).map(tc => ({
+    id: tc.id,
+    name: tc.name,
+    arguments: tc.arguments,
+  }))
+
+  return { content: contentAcc || null, toolCalls, usage }
 }

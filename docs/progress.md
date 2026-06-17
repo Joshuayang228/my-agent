@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-**阶段**：P0 ~ P12 全部完成（P12 = 分场景模型+中间件+Token限流+Tracing）
+**阶段**：P0 ~ P13 全部完成（P13 = 权限引擎+项目记忆+多Provider路由）
 
 **已完成全部功能**：
 - 规则体系 + 技能文件设计
@@ -123,6 +123,11 @@
   - Token 限流/预算控制（会话级 + 日级限额，超限自动终止）
   - 结构化 Tracing（Span 追踪 + caller 分类 + 耗时统计 + debug:traces 端点）
   - 设置页新增辅助模型 + Token 预算 UI
+- **P13 高级框架能力**：
+  - 权限规则引擎升级（五层责任链 + 自定义规则 command/tool/path × allow/deny/ask）
+  - 项目记忆 PROJECT.md（工作区文件 → L3 Prompt 注入 → Agent 可读写更新）
+  - 多 Provider 路由（OpenAI 兼容 / Anthropic Messages API / Gemini 请求构建器）
+  - 预设新增 Claude Sonnet，baseUrl 自动检测 Provider
 - **P8 交互增强**：
   - 消息重新生成（↻ 按钮，重新生成最后一条 AI 回复）
   - 消息编辑（✎ 按钮，编辑已发用户消息并重跑后续对话）
@@ -143,9 +148,6 @@
 - Electron E2E：4 个（需 TEST_LLM_API_KEY 环境变量）
 
 **下一步**：
-- 权限规则引擎升级（五模式责任链 + YAML 规则）
-- M2 项目记忆（PROJECT.md 可编辑项目知识库）
-- 多 Provider 路由（Anthropic/Gemini + XML 降级）
 - 沉淀方法论文档（用户触发后逐条对齐写入）
 - bundle 体积优化（vectra external 处理）
 - 首个可用版本打包发布
@@ -178,4 +180,5 @@
 | 2026-06-17 | P10 完成：框架补强（工具持久化/并发锁/沙箱/allowed_tools/Token计数/执行模式） | ✅ |
 | 2026-06-17 | P11 完成：框架进阶（消息管道/四层压缩/Runtime/Multi-Agent/代码修复） | ✅ |
 | 2026-06-17 | P12 完成：效率与可观测（分场景模型/中间件/Token限流/Tracing） | ✅ |
+| 2026-06-17 | P13 完成：高级框架（权限引擎/项目记忆/多Provider路由） | ✅ |
 | - | 首个可用版本 | ⏳ |

@@ -22,6 +22,7 @@ import * as settings from '../storage/settings-store'
 import * as memory from '../storage/memory-store'
 import { searchVectorStore, addToVectorStore } from '../memory/vector-store'
 import { buildSkillSummaryForPrompt, getActiveSkill, clearActiveSkill } from '../skills/registry'
+import { buildProjectMemoryPrompt } from './project-memory'
 import { createLogger } from '../utils/logger'
 import { startSpan } from '../utils/tracer'
 import type { ChatMessage, LLMConfig, ExecutionMode, AgentStreamEvent } from '../../../src/shared/types'
@@ -153,6 +154,8 @@ class AgentRuntime {
         }
       } catch { /* skill system not ready */ }
 
+      const projectMemory = buildProjectMemoryPrompt()
+
       const systemPrompt = buildSystemPrompt({
         persona,
         toolNames: toolRegistry.getAll().map(t => t.name),
@@ -162,6 +165,7 @@ class AgentRuntime {
         skillSummary,
         activeSkillBody,
         executionMode,
+        projectMemory,
       })
 
       // ── 运行 Agent Loop ──

@@ -59,6 +59,7 @@ interface PersonaInfo {
 const PRESETS: { label: string; baseUrl: string; model: string }[] = [
   { label: 'OpenAI GPT-4o', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o' },
   { label: 'OpenAI GPT-4o-mini', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+  { label: 'Claude Sonnet', baseUrl: 'https://api.anthropic.com', model: 'claude-sonnet-4-20250514' },
   { label: 'DeepSeek V3', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat' },
   { label: 'DeepSeek V4 Flash', baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash' },
 ]

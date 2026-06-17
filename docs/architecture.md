@@ -112,6 +112,8 @@ think → act → observe → think → ...
 - **Token 预算**：会话级 + 日级限额，超限自动终止
 - **沙箱系统**：参考 Codex 四层纵深防御，三级沙箱模式（read-only / workspace-write / full-access）
 - **命令安全分级**：ExecPolicy 白名单/黑名单 + CommandGuard 路径边界检查 + ApprovalStore 审批记录
+- **权限规则引擎**：五层责任链（自定义规则 → 审批记录 → 命令分级 → 沙箱策略 → 默认）
+- **项目记忆**：PROJECT.md → L3 Prompt 注入（工作区文件，Agent 可读写更新）
 
 ### 4. 记忆系统
 
@@ -148,9 +150,12 @@ think → act → observe → think → ...
 
 ### 7. LLM 路由
 
-- 统一适配器模式，OpenAI 兼容 API
+- **多 Provider 路由**：根据 baseUrl 自动检测 Provider（OpenAI / Anthropic / Gemini）
+- OpenAI 兼容格式（覆盖 DeepSeek / Groq / OpenRouter / Together 等）
+- Anthropic Messages API 适配（SSE 流解析 + content_block_delta + tool_use 映射）
+- Gemini API 请求构建器（systemInstruction + functionDeclarations）
 - 流式 SSE 解析（text / reasoning / tool_calls delta）
-- 模型快切（顶栏 UI + 4 个预设）
+- 模型快切（顶栏 UI + 5 个预设）
 - 复用 API 进行 Embedding 调用
 
 ### 8. 上下文压缩
