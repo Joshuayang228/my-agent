@@ -142,7 +142,7 @@ think → act → observe → think → ...
 ### 6. MCP 协议
 
 - MCP Client Manager：管理多个 MCP Server 的生命周期
-- StdioClientTransport：通过 stdio 子进程通信
+- **双传输层**：StdioClientTransport（本地子进程）+ SSEClientTransport（远程 HTTP/SSE）
 - Bridge 层：自动将 MCP 工具转换为 ToolDefinition 并注册
 - 命名空间隔离：`mcp:{serverId}:{toolName}` 避免冲突
 - 配置持久化：MCP 服务器列表存入 settings

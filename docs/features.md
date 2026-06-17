@@ -184,6 +184,25 @@
   - Gemini API 请求体构建器
   - 预设新增 Claude Sonnet
 
+## 测试扩充 + 多模态 + MCP SSE（P14）
+
+- [x] 单元测试扩充（46 → 88 个）
+  - Tool 中间件管道测试（洋葱模型 / 短路 / 截断 / 错误捕获 / 默认管道）
+  - Token 预算控制测试（会话限额 / 日级限额 / 无限制放行）
+  - 消息管道测试（孤儿 toolCall 修复 / 孤儿 tool 移除 / 连续角色合并 / 完整管道）
+  - 权限引擎测试（自定义规则 / allow/deny/ask / disabled / 沙箱集成 / tool 规则）
+  - Provider 路由测试（auto 检测 / 显式指定 / Anthropic 请求体 / Gemini 请求体）
+- [x] 多模态支持
+  - ImageAttachment 类型（dataUrl + mimeType + fileName）
+  - LLM 适配器支持 image_url content parts（OpenAI Vision API 格式）
+  - 前端粘贴图片自动添加到 pendingImages
+  - 输入区图片预览条（缩略图 + 删除按钮）
+  - 消息气泡内渲染用户附带的图片
+- [x] MCP SSE/HTTP 传输层
+  - McpServerConfig 新增 transport 字段（'stdio' | 'sse'）和 url 字段
+  - 根据 transport 类型自动选择 StdioClientTransport 或 SSEClientTransport
+  - 兼容远程 MCP 服务器（HTTP + SSE 长连接）
+
 ---
 
 **图例**：

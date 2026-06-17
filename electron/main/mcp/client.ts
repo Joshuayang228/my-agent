@@ -10,21 +10,28 @@
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('MCP')
+
+export type McpTransportType = 'stdio' | 'sse'
 
 export interface McpServerConfig {
   /** 唯一标识（自动生成或用户指定） */
   id: string
   /** 显示名称 */
   name: string
-  /** 启动命令（如 npx, node, python3） */
+  /** 传输类型（默认 stdio） */
+  transport?: McpTransportType
+  /** stdio: 启动命令（如 npx, node, python3） */
   command: string
-  /** 命令参数 */
+  /** stdio: 命令参数 */
   args: string[]
-  /** 环境变量（可选，会合并到 process.env） */
+  /** stdio: 环境变量（可选，会合并到 process.env） */
   env?: Record<string, string>
+  /** sse: 服务器 URL（如 http://localhost:3000/sse） */
+  url?: string
   /** 是否启用 */
   enabled: boolean
 }
@@ -40,7 +47,7 @@ export interface McpTool {
 interface McpConnection {
   config: McpServerConfig
   client: Client
-  transport: StdioClientTransport
+  transport: StdioClientTransport | SSEClientTransport
   tools: McpTool[]
   status: 'connecting' | 'connected' | 'error' | 'disconnected'
   error?: string
@@ -64,11 +71,19 @@ class McpClientManager {
       { capabilities: {} },
     )
 
-    const transport = new StdioClientTransport({
-      command: config.command,
-      args: config.args,
-      env: config.env ? { ...process.env, ...config.env } as Record<string, string> : undefined,
-    })
+    const transportType = config.transport || 'stdio'
+    let transport: StdioClientTransport | SSEClientTransport
+
+    if (transportType === 'sse' && config.url) {
+      log.info(`Using SSE transport: ${config.url}`)
+      transport = new SSEClientTransport(new URL(config.url))
+    } else {
+      transport = new StdioClientTransport({
+        command: config.command,
+        args: config.args,
+        env: config.env ? { ...process.env, ...config.env } as Record<string, string> : undefined,
+      })
+    }
 
     const connection: McpConnection = {
       config,

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import type { ChatMessage, AgentStreamEvent } from './shared/types'
+import type { ChatMessage, AgentStreamEvent, ImageAttachment } from './shared/types'
 import { MarkdownRenderer } from './components/MarkdownRenderer'
 import { SettingsPanel } from './components/SettingsPanel'
 import { DevPanel } from './components/DevPanel'
@@ -68,6 +68,7 @@ function App() {
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
+  const [pendingImages, setPendingImages] = useState<ImageAttachment[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [activeTools, setActiveTools] = useState<ToolStatus[]>([])
   const [showSettings, setShowSettings] = useState(false)
@@ -350,11 +351,13 @@ function App() {
       role: 'user',
       content: fullContent,
       timestamp: Date.now(),
+      images: pendingImages.length > 0 ? [...pendingImages] : undefined,
     }
 
     const updatedMessages = [...messages, userMsg]
     setMessages(updatedMessages)
     setInput('')
+    setPendingImages([])
     streamingSessionRef.current = sid
     setBgStreamingSessionId(sid)
     setIsStreaming(true)
@@ -390,6 +393,32 @@ function App() {
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault()
       sendMessage()
+    }
+  }
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault()
+        const file = item.getAsFile()
+        if (!file) continue
+        if (file.size > 5 * 1024 * 1024) {
+          toast('图片超过 5MB 限制', 'warning')
+          continue
+        }
+        const reader = new FileReader()
+        reader.onload = () => {
+          const dataUrl = reader.result as string
+          setPendingImages(prev => [...prev, {
+            dataUrl,
+            mimeType: file.type,
+            fileName: file.name || 'pasted-image.png',
+          }])
+        }
+        reader.readAsDataURL(file)
+      }
     }
   }
 
@@ -730,7 +759,21 @@ function App() {
                         </div>
                       </div>
                     ) : (
-                      <div className="whitespace-pre-wrap">{msg.content}</div>
+                      <>
+                        {msg.images && msg.images.length > 0 && (
+                          <div className="mb-2 flex flex-wrap gap-2">
+                            {msg.images.map((img, i) => (
+                              <img
+                                key={i}
+                                src={img.dataUrl}
+                                alt={img.fileName || 'image'}
+                                className="max-h-48 max-w-xs rounded-lg border border-slate-600"
+                              />
+                            ))}
+                          </div>
+                        )}
+                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                      </>
                     )}
                   </div>
                   {/* 消息底部：时间戳 + 操作按钮 */}
@@ -865,6 +908,25 @@ function App() {
               ))}
             </div>
           )}
+          {pendingImages.length > 0 && (
+            <div className="mx-auto mb-2 flex max-w-3xl gap-2">
+              {pendingImages.map((img, i) => (
+                <div key={i} className="group relative">
+                  <img
+                    src={img.dataUrl}
+                    alt={img.fileName || 'image'}
+                    className="h-16 w-16 rounded-lg border border-slate-600 object-cover"
+                  />
+                  <button
+                    onClick={() => setPendingImages(prev => prev.filter((_, idx) => idx !== i))}
+                    className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white group-hover:flex"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="mx-auto flex max-w-3xl items-end gap-3">
             <textarea
               ref={inputRef}
@@ -872,10 +934,14 @@ function App() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               onPaste={(e) => {
+                handlePaste(e)
                 const files = e.clipboardData?.files
                 if (files && files.length > 0) {
-                  e.preventDefault()
-                  handleFileAttach(files)
+                  const hasNonImage = Array.from(files).some(f => !f.type.startsWith('image/'))
+                  if (hasNonImage) {
+                    e.preventDefault()
+                    handleFileAttach(Array.from(files).filter(f => !f.type.startsWith('image/')))
+                  }
                 }
               }}
               placeholder={attachedFiles.length > 0 ? '描述附件内容或输入问题...' : '输入消息... (Enter 发送, Shift+Enter 换行, 可拖拽/粘贴文件)'}

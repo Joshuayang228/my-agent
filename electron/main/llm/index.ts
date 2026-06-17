@@ -176,7 +176,21 @@ function buildAPIMessages(messages: ChatMessage[]): Record<string, unknown>[] {
 
   for (const msg of messages) {
     if (msg.role === 'user' || msg.role === 'system') {
-      result.push({ role: msg.role, content: msg.content })
+      if (msg.images && msg.images.length > 0) {
+        const contentParts: Record<string, unknown>[] = []
+        if (msg.content) {
+          contentParts.push({ type: 'text', text: msg.content })
+        }
+        for (const img of msg.images) {
+          contentParts.push({
+            type: 'image_url',
+            image_url: { url: img.dataUrl, detail: 'auto' },
+          })
+        }
+        result.push({ role: msg.role, content: contentParts })
+      } else {
+        result.push({ role: msg.role, content: msg.content })
+      }
     } else if (msg.role === 'assistant') {
       const apiMsg: Record<string, unknown> = { role: 'assistant' }
       if (msg.content) apiMsg.content = msg.content

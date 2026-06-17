@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-**阶段**：P0 ~ P13 全部完成（P13 = 权限引擎+项目记忆+多Provider路由）
+**阶段**：P0 ~ P14 全部完成（P14 = 测试扩充+多模态+MCP SSE）
 
 **已完成全部功能**：
 - 规则体系 + 技能文件设计
@@ -128,6 +128,10 @@
   - 项目记忆 PROJECT.md（工作区文件 → L3 Prompt 注入 → Agent 可读写更新）
   - 多 Provider 路由（OpenAI 兼容 / Anthropic Messages API / Gemini 请求构建器）
   - 预设新增 Claude Sonnet，baseUrl 自动检测 Provider
+- **P14 测试扩充 + 多模态 + MCP SSE**：
+  - 单元测试 46 → 88 个（新增中间件/Token预算/消息管道/权限引擎/Provider路由测试）
+  - 多模态支持（ImageAttachment 类型、Vision API image_url、前端粘贴图片+预览+渲染）
+  - MCP SSE/HTTP 传输层（transport 字段、SSEClientTransport、远程服务器支持）
 - **P8 交互增强**：
   - 消息重新生成（↻ 按钮，重新生成最后一条 AI 回复）
   - 消息编辑（✎ 按钮，编辑已发用户消息并重跑后续对话）
@@ -143,12 +147,14 @@
   - 内置工具增至 11 个（新增 url_fetch）
 
 **测试统计**：
-- 单元测试：46 个 / 5 文件（全过）
+- 单元测试：88 个 / 10 文件（全过）
 - UI E2E：5 个（全过）
 - Electron E2E：4 个（需 TEST_LLM_API_KEY 环境变量）
 
 **下一步**：
 - 沉淀方法论文档（用户触发后逐条对齐写入）
+- Streaming UI 优化（逐字渲染 + 骨架屏）
+- 热键系统 / 全局搜索
 - bundle 体积优化（vectra external 处理）
 - 首个可用版本打包发布
 - 多模态支持（图片消息 + Vision API）
@@ -181,4 +187,5 @@
 | 2026-06-17 | P11 完成：框架进阶（消息管道/四层压缩/Runtime/Multi-Agent/代码修复） | ✅ |
 | 2026-06-17 | P12 完成：效率与可观测（分场景模型/中间件/Token限流/Tracing） | ✅ |
 | 2026-06-17 | P13 完成：高级框架（权限引擎/项目记忆/多Provider路由） | ✅ |
+| 2026-06-17 | P14 完成：测试扩充+多模态+MCP SSE | ✅ |
 | - | 首个可用版本 | ⏳ |

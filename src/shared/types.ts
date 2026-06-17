@@ -1,5 +1,14 @@
 // ── 消息 ──
 
+export interface ImageAttachment {
+  /** base64 编码的图片数据（data:image/png;base64,...） */
+  dataUrl: string
+  /** MIME 类型 */
+  mimeType: string
+  /** 文件名（可选） */
+  fileName?: string
+}
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system' | 'tool'
@@ -9,6 +18,8 @@ export interface ChatMessage {
   toolCalls?: ToolCall[]
   /** tool 消息关联的 tool_call id */
   toolCallId?: string
+  /** 图片附件（多模态消息） */
+  images?: ImageAttachment[]
 }
 
 export interface ToolCall {
