@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-**阶段**：P0 ~ P10 全部完成（P10 = 框架补强：沙箱+持久化+并发+执行模式）
+**阶段**：P0 ~ P11 全部完成（P11 = 消息管道+四层压缩+Runtime+Multi-Agent）
 
 **已完成全部功能**：
 - 规则体系 + 技能文件设计
@@ -110,6 +110,13 @@
   - 累积 Token 预算追踪（sessions 表新增 total_prompt_tokens / total_completion_tokens 列）
   - 执行模式系统（auto / confirm-all / plan-first，影响 loop 确认逻辑 + prompt 注入）
   - 设置页新增沙箱模式 + 执行模式 UI 选择器
+- **P11 框架进阶**：
+  - 消息管道（sanitizeToolCallPairs 修复孤儿 tool_call + removeOrphanToolResults + mergeConsecutiveRoles）
+  - 四层上下文压缩（L3 升级为 LLM 摘要 + 新增 L4 AutoCompact 全量重写 + querySource 互斥守卫）
+  - Runtime 编排层（AgentRuntime 单例：会话生命周期 / 后台任务队列 / 优雅关闭；chat.ts 精简到 41 行）
+  - Multi-Agent 子 Agent 系统（delegate_task 工具 + 独立上下文 + 受限工具集 + 权限只降不升）
+  - 内置工具增至 12 个（新增 delegate_task）
+  - 代码修复：abort sessionId 全链路传递、tokenUsage preload 暴露、优雅关闭流程
 - **P8 交互增强**：
   - 消息重新生成（↻ 按钮，重新生成最后一条 AI 回复）
   - 消息编辑（✎ 按钮，编辑已发用户消息并重跑后续对话）
@@ -130,7 +137,9 @@
 - Electron E2E：4 个（需 TEST_LLM_API_KEY 环境变量）
 
 **下一步**：
-- Multi-Agent 子 Agent 系统（researcher/developer/writer 角色分工）
+- 分场景 modelId（不同任务用不同模型/参数）
+- Tool 中间件管道（可组合 middleware pipeline）
+- Token 限流 / 预算控制
 - 沉淀方法论文档（用户触发后逐条对齐写入）
 - bundle 体积优化（vectra external 处理）
 - 首个可用版本打包发布
@@ -161,4 +170,5 @@
 | 2026-06-17 | P8 完成：交互增强（重新生成/编辑/删除/主题/附件/Mermaid/url_fetch） | ✅ |
 | 2026-06-17 | P9 完成：Skill 系统（加载/注册/IPC/UI/Prompt 注入/内置 Skill） | ✅ |
 | 2026-06-17 | P10 完成：框架补强（工具持久化/并发锁/沙箱/allowed_tools/Token计数/执行模式） | ✅ |
+| 2026-06-17 | P11 完成：框架进阶（消息管道/四层压缩/Runtime/Multi-Agent/代码修复） | ✅ |
 | - | 首个可用版本 | ⏳ |

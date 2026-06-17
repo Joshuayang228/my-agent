@@ -891,7 +891,7 @@ function App() {
             />
             {isStreaming ? (
               <button
-                onClick={() => window.electronAPI.chat.abort()}
+                onClick={() => window.electronAPI.chat.abort(activeSessionId || undefined)}
                 className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-red-500"
               >
                 停止

@@ -77,7 +77,9 @@ think → act → observe → think → ...
 - 输出纯数据事件（AgentStreamEvent），不含 UI 逻辑
 - 支持 AbortSignal 取消（用户停止按钮）
 - 最大迭代次数保护（默认 25 轮）
-- 每轮迭代前自动检查上下文压缩
+- 每轮迭代前自动检查上下文压缩（四层分级）
+- **消息管道**：sanitizeToolCallPairs 修复孤儿消息，防止 LLM API 400
+- **Runtime 编排**：AgentRuntime 单例管理生命周期，后台任务队列串行执行
 - **LLM 调用重试**：网络错误/429/5xx 自动重试，最多 2 次，指数退避
 - **工具并发执行**：concurrencySafe 工具走 Promise.all，非安全工具串行
 
@@ -104,7 +106,8 @@ think → act → observe → think → ...
 - 动态注册/注销：支持 MCP 工具运行时加入和移除
 - 破坏性操作前用户确认（IPC 双向通信弹窗）
 - **超时保护**：每个工具 30s 超时，超时自动返回错误
-- 11 个内置工具 + MCP 动态工具
+- 12 个内置工具 + MCP 动态工具
+- **子 Agent 系统**：delegate_task 工具，独立上下文 + 受限工具集 + 权限只降不升
 - **沙箱系统**：参考 Codex 四层纵深防御，三级沙箱模式（read-only / workspace-write / full-access）
 - **命令安全分级**：ExecPolicy 白名单/黑名单 + CommandGuard 路径边界检查 + ApprovalStore 审批记录
 
@@ -150,13 +153,16 @@ think → act → observe → think → ...
 
 ### 8. 上下文压缩
 
-三层分级压缩策略：
+四层分级压缩策略（Alice 方法论 Ch.5）：
 
-| 层级 | 触发阈值 | 策略 |
-|------|----------|------|
-| L1 Snip | 60% | 删除最早的工具调用轮次 |
-| L2 MicroCompact | 75% | 去重相同工具调用 |
-| L3 Collapse | 90% | 保留首尾，中间替换为结构化摘要 |
+| 层级 | 触发阈值 | 策略 | 成本 |
+|------|----------|------|------|
+| L1 Snip | 60% | 删除最早的工具调用轮次 | 零 |
+| L2 MicroCompact | 75% | 去重相同工具调用 | 零 |
+| L3 Collapse | 90% | LLM 生成摘要（降级：规则占位符） | LLM 调用 |
+| L4 AutoCompact | 95% | 全量重写（仅主循环触发） | LLM 调用 |
+
+- querySource 互斥守卫：compact/memory/title 来源自动跳过 LLM 摘要，防递归
 
 ## 目录结构
 
@@ -167,7 +173,7 @@ my-agent/
 │   │   ├── index.ts          # App 生命周期 + 窗口管理（131 行）
 │   │   ├── ipc/              # IPC 处理器（8 个模块）
 │   │   ├── agent/            # Agent Loop + Prompt Builder + 上下文压缩 + 画像提取
-│   │   ├── tools/            # ToolRegistry + 11 个内置工具
+│   │   ├── tools/            # ToolRegistry + 12 个内置工具
 │   │   ├── sandbox/          # 沙箱系统（policy + exec-policy + command-guard + approval-store）
 │   │   ├── mcp/              # MCP Client + Bridge
 │   │   ├── memory/           # 向量存储 + Embedding 适配器

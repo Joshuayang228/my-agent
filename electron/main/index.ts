@@ -11,6 +11,7 @@ import { mcpManager } from './mcp/client'
 import type { McpServerConfig } from './mcp/client'
 import { syncMcpToolsToRegistry } from './mcp/bridge'
 import { initSkillSystem } from './skills/registry'
+import { runtime } from './agent/runtime'
 import * as settings from './storage/settings-store'
 
 const log = createLogger('Main')
@@ -75,6 +76,12 @@ for (const tool of builtinTools) {
   log.info(`Tool registered: ${tool.name}`)
 }
 
+// 注入 registry 给 delegate_task 工具（子 Agent 需要访问父注册表）
+const delegateTool = toolRegistry.get('delegate_task')
+if (delegateTool) {
+  (delegateTool as unknown as Record<string, unknown>)._registry = toolRegistry
+}
+
 // ── IPC 注册 ──
 
 registerAllIPC(toolRegistry)
@@ -108,9 +115,10 @@ app.whenReady().then(async () => {
   restoreMcpConnections()
 })
 
-app.on('window-all-closed', () => {
+app.on('window-all-closed', async () => {
   win = null
-  mcpManager.disconnectAll().catch(() => {})
+  await runtime.shutdown()
+  await mcpManager.disconnectAll().catch(() => {})
   closeDatabase()
   if (process.platform !== 'darwin') app.quit()
 })

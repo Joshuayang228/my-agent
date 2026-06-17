@@ -10,6 +10,7 @@ import { ToolRegistry } from '../tools/registry'
 import { createLogger } from '../utils/logger'
 import { sanitizeError } from '../utils/sanitize-error'
 import { compressContext } from './context-manager'
+import { sanitizeMessages } from './message-pipeline'
 
 const log = createLogger('AgentLoop')
 
@@ -59,7 +60,7 @@ export async function* agentLoop(
 
   const workingMessages: ChatMessage[] = [
     { id: 'system', role: 'system', content: systemPrompt, timestamp: Date.now() },
-    ...inputMessages,
+    ...sanitizeMessages(inputMessages),
   ]
 
   let lastPromptTokens: number | undefined = undefined
@@ -76,7 +77,11 @@ export async function* agentLoop(
     const effectiveTools = filterTools ? filterTools(tools) : tools
 
     // ── 上下文压缩（每次迭代前检查，优先使用 API 返回的实际 token 数） ──
-    const compressed = compressContext(workingMessages, { lastActualPromptTokens: lastPromptTokens })
+    const compressed = await compressContext(workingMessages, {
+      lastActualPromptTokens: lastPromptTokens,
+      llmConfig: config,
+      querySource: 'main',
+    })
     if (compressed.length < workingMessages.length) {
       workingMessages.length = 0
       workingMessages.push(...compressed)

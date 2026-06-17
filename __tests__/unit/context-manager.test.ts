@@ -36,31 +36,31 @@ describe('estimateTokens', () => {
 })
 
 describe('compressContext', () => {
-  it('短对话不压缩', () => {
+  it('短对话不压缩', async () => {
     const messages = [
       msg('system', 'You are helpful'),
       msg('user', 'Hi'),
       msg('assistant', 'Hello'),
     ]
 
-    const result = compressContext(messages)
+    const result = await compressContext(messages)
     expect(result).toHaveLength(3)
     expect(result[0].role).toBe('system')
   })
 
-  it('system prompt 永远保留', () => {
+  it('system prompt 永远保留', async () => {
     const system = msg('system', 'Important system prompt')
     const filler = Array.from({ length: 50 }, (_, i) =>
       msg(i % 2 === 0 ? 'user' : 'assistant', 'x'.repeat(500)))
 
     const messages = [system, ...filler]
-    const result = compressContext(messages, { maxTokens: 500 })
+    const result = await compressContext(messages, { maxTokens: 500 })
 
     expect(result[0].id).toBe(system.id)
     expect(result[0].content).toBe(system.content)
   })
 
-  it('L1 Snip 删除早期工具调用轮次', () => {
+  it('L1 Snip 删除早期工具调用轮次', async () => {
     const system = msg('system', 'sys')
     const toolCallMsg = msg('assistant', '', {
       toolCalls: [{ id: 'tc1', name: 'echo', arguments: '{}' }],
@@ -70,8 +70,7 @@ describe('compressContext', () => {
       msg(i % 2 === 0 ? 'user' : 'assistant', 'recent message'))
 
     const messages = [system, toolCallMsg, toolResult, ...recent]
-    // With low maxTokens threshold, L1 should trigger and remove the tool call pair
-    const result = compressContext(messages, { maxTokens: 80 })
+    const result = await compressContext(messages, { maxTokens: 80 })
 
     const hasToolCall = result.some(m => m.role === 'assistant' && m.toolCalls?.length)
     const hasToolResult = result.some(m => m.role === 'tool' && m.toolCallId === 'tc1')
@@ -79,7 +78,7 @@ describe('compressContext', () => {
     expect(hasToolResult).toBe(false)
   })
 
-  it('L3 Collapse 生成摘要占位符并保留近期消息', () => {
+  it('L3 Collapse 生成摘要占位符并保留近期消息', async () => {
     const system = msg('system', 'sys')
     const old = Array.from({ length: 30 }, (_, i) =>
       msg(i % 2 === 0 ? 'user' : 'assistant', 'x'.repeat(2000)))
@@ -87,7 +86,7 @@ describe('compressContext', () => {
       msg('user', 'recent'))
 
     const messages = [system, ...old, ...recent]
-    const result = compressContext(messages, { maxTokens: 2000 })
+    const result = await compressContext(messages, { maxTokens: 2000 })
 
     const hasSummary = result.some(m => m.content.includes('[Context compressed'))
     expect(hasSummary).toBe(true)

@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     delete: (id: string): Promise<void> => ipcRenderer.invoke('session:delete', id),
     rename: (id: string, title: string): Promise<void> => ipcRenderer.invoke('session:rename', id, title),
     deleteMessage: (messageId: string): Promise<void> => ipcRenderer.invoke('message:delete', messageId),
+    tokenUsage: (sessionId: string): Promise<{ promptTokens: number; completionTokens: number }> =>
+      ipcRenderer.invoke('session:tokenUsage', sessionId),
   },
 
   settings: {
@@ -71,7 +73,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   chat: {
     send: (sessionId: string, messages: ChatMessage[]) =>
       ipcRenderer.invoke('chat:send', sessionId, messages),
-    abort: () => ipcRenderer.invoke('chat:abort'),
+    abort: (sessionId?: string) => ipcRenderer.invoke('chat:abort', sessionId),
     onEvent: (callback: (event: AgentStreamEvent) => void) => {
       const handler = (_e: Electron.IpcRendererEvent, ev: AgentStreamEvent) => callback(ev)
       ipcRenderer.on('chat:event', handler)

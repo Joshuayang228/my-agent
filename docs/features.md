@@ -127,6 +127,25 @@
 - [x] Per-session 并发锁（防止同一会话并行 chat:send）
 - [x] 累积 Token 预算追踪（session 级别 prompt/completion 分别累加）
 
+## 框架能力（P11）
+
+- [x] 消息管道（sanitizeToolCallPairs：修复孤儿 tool_call + 移除孤儿 tool result + 合并连续同 role）
+- [x] 四层上下文压缩（L1 Snip → L2 MicroCompact → L3 Collapse LLM 摘要 → L4 AutoCompact 全量重写）
+  - querySource 互斥守卫（防止压缩/记忆系统递归触发 LLM）
+  - L3/L4 降级机制（非主循环调用自动回退到规则摘要）
+- [x] Runtime 编排层（AgentRuntime 单例，统一管理会话生命周期、后台任务队列、优雅关闭）
+  - 后台任务串行队列（画像提取 / 向量索引 / 智能标题）
+  - IPC 层精简为事件转发（chat.ts 从 259 行精简到 41 行）
+- [x] Multi-Agent 子 Agent 系统
+  - delegate_task 内置工具（父 Agent 可委派任务给子 Agent）
+  - 子 Agent 独立上下文（不污染父 Agent 消息历史）
+  - 受限工具集（只读子 Agent / 白名单工具 / 权限只降不升）
+  - 并发安全（只读子 Agent isConcurrencySafe=true）
+- [x] 代码级修复
+  - abort 精确传递 sessionId（前端 + preload + IPC 全链路）
+  - session:tokenUsage preload 暴露（前端可获取 Token 用量）
+  - 应用退出优雅关闭（Runtime shutdown + MCP 断连 + DB 关闭）
+
 ---
 
 **图例**：

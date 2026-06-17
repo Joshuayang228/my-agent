@@ -21,6 +21,7 @@ declare global {
         delete: (id: string) => Promise<void>
         rename: (id: string, title: string) => Promise<void>
         deleteMessage: (messageId: string) => Promise<void>
+        tokenUsage: (sessionId: string) => Promise<{ promptTokens: number; completionTokens: number }>
       }
       settings: {
         get: () => Promise<Record<string, string>>
@@ -93,7 +94,7 @@ declare global {
       }
       chat: {
         send: (sessionId: string, messages: ChatMessage[]) => Promise<void>
-        abort: () => Promise<void>
+        abort: (sessionId?: string) => Promise<void>
         onEvent: (callback: (event: AgentStreamEvent) => void) => () => void
         onConfirmRequest: (callback: (data: { requestId: string; name: string; args: Record<string, unknown> }) => void) => () => void
         confirmResponse: (requestId: string, approved: boolean) => void

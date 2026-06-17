@@ -8,6 +8,7 @@ import { rememberTool, recallTool, forgetTool } from './memory-manage'
 import { taskPlanTool } from './task-plan'
 import { codeSearchTool } from './code-search'
 import { urlFetchTool } from './url-fetch'
+import { delegateTaskTool } from './delegate-task'
 
 export const builtinTools: ToolDefinition[] = [
   getCurrentTimeTool,
@@ -21,4 +22,5 @@ export const builtinTools: ToolDefinition[] = [
   recallTool,
   forgetTool,
   taskPlanTool,
+  delegateTaskTool,
 ]
