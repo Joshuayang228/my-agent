@@ -1,5 +1,35 @@
 @import "tailwindcss";
 
+:root {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --border-color: #334155;
+  --input-bg: #1e293b;
+  --msg-user-bg: #0891b2;
+  --msg-ai-bg: #1e293b;
+  --sidebar-bg: #0f172a;
+  --sidebar-hover: #1e293b;
+}
+
+[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #94a3b8;
+  --border-color: #e2e8f0;
+  --input-bg: #f1f5f9;
+  --msg-user-bg: #0891b2;
+  --msg-ai-bg: #f1f5f9;
+  --sidebar-bg: #f1f5f9;
+  --sidebar-hover: #e2e8f0;
+}
+
 @keyframes fade-in-up {
   from {
     opacity: 0;

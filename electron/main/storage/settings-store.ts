@@ -24,6 +24,9 @@ export interface AppSettings {
   llmApiKey: string
   llmBaseUrl: string
   llmModel: string
+  llmTemperature: string
+  llmTopP: string
+  llmMaxTokens: string
   systemPrompt: string
   personaId: string
   /** JSON string — McpServerConfig[] */
@@ -35,6 +38,9 @@ function getDefaults(): AppSettings {
     llmApiKey: process.env.LLM_API_KEY || '',
     llmBaseUrl: process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
     llmModel: process.env.LLM_MODEL || 'gpt-4o',
+    llmTemperature: '0.7',
+    llmTopP: '1',
+    llmMaxTokens: '4096',
     systemPrompt: '',
     personaId: 'warm-partner',
     mcpServers: '[]',

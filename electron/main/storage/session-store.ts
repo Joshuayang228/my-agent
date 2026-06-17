@@ -132,6 +132,13 @@ export async function saveMessage(sessionId: string, message: ChatMessage): Prom
   persist()
 }
 
+export async function deleteMessage(messageId: string): Promise<void> {
+  const db = await getDatabase()
+  db.run('DELETE FROM messages WHERE id = ?', [messageId])
+  persist()
+  log.info('Message deleted', { messageId })
+}
+
 export async function updateMessageContent(messageId: string, content: string): Promise<void> {
   const db = await getDatabase()
   db.run('UPDATE messages SET content = ? WHERE id = ?', [content, messageId])
@@ -140,6 +147,17 @@ export async function updateMessageContent(messageId: string, content: string): 
 
 export async function autoTitle(sessionId: string): Promise<void> {
   const db = await getDatabase()
+  const check = db.prepare('SELECT title FROM sessions WHERE id = ?')
+  check.bind([sessionId])
+  if (check.step()) {
+    const row = check.getAsObject() as Record<string, unknown>
+    if (row.title !== '新对话' && row.title !== 'New Chat') {
+      check.free()
+      return
+    }
+  }
+  check.free()
+
   const stmt = db.prepare(
     "SELECT content FROM messages WHERE session_id = ? AND role = 'user' ORDER BY sort_order ASC LIMIT 1",
   )
@@ -153,5 +171,45 @@ export async function autoTitle(sessionId: string): Promise<void> {
     await updateSessionTitle(sessionId, title)
   } else {
     stmt.free()
+  }
+}
+
+export async function generateSmartTitle(
+  sessionId: string,
+  userMessage: string,
+  assistantReply: string,
+  llmConfig: { apiKey: string; baseUrl: string; model: string },
+): Promise<void> {
+  try {
+    const resp = await fetch(`${llmConfig.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${llmConfig.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: llmConfig.model,
+        max_tokens: 30,
+        temperature: 0.3,
+        messages: [
+          {
+            role: 'system',
+            content: '用极简中文为这段对话生成一个标题（4-10个字，不加引号标点）。只返回标题本身。',
+          },
+          { role: 'user', content: userMessage.slice(0, 200) },
+          { role: 'assistant', content: assistantReply.slice(0, 200) },
+        ],
+      }),
+    })
+    if (!resp.ok) return
+
+    const data = await resp.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const title = data.choices?.[0]?.message?.content?.trim()
+    if (title && title.length >= 2 && title.length <= 30) {
+      await updateSessionTitle(sessionId, title)
+      log.info('Smart title generated', { sessionId, title })
+    }
+  } catch (err) {
+    log.warn('Smart title generation failed', { error: String(err) })
   }
 }

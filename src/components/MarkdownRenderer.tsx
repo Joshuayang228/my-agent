@@ -1,8 +1,21 @@
-import { memo, useState } from 'react'
+import { memo, useState, useEffect, useRef, useId } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import mermaid from 'mermaid'
+
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  themeVariables: {
+    darkMode: true,
+    background: '#1e293b',
+    primaryColor: '#06b6d4',
+    primaryTextColor: '#e2e8f0',
+    lineColor: '#64748b',
+  },
+})
 
 interface MarkdownRendererProps {
   content: string
@@ -25,6 +38,27 @@ function CopyButton({ text }: { text: string }) {
       {copied ? '已复制' : '复制'}
     </button>
   )
+}
+
+function MermaidBlock({ code }: { code: string }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const id = 'mermaid-' + useId().replace(/:/g, '')
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    mermaid.render(id, code).then(({ svg }) => {
+      if (!cancelled && containerRef.current) {
+        containerRef.current.innerHTML = svg
+      }
+    }).catch((err) => {
+      if (!cancelled) setError(String(err))
+    })
+    return () => { cancelled = true }
+  }, [code, id])
+
+  if (error) return <pre className="rounded-lg bg-red-950/30 p-3 text-xs text-red-400">{error}</pre>
+  return <div ref={containerRef} className="my-3 flex justify-center overflow-x-auto rounded-lg bg-slate-800/60 p-4" />
 }
 
 function splitAside(raw: string): { main: string; aside: string | null } {
@@ -50,6 +84,10 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: Mark
         code({ className, children, ...props }) {
           const match = /language-(\w+)/.exec(className || '')
           const codeString = String(children).replace(/\n$/, '')
+
+          if (match?.[1] === 'mermaid') {
+            return <MermaidBlock code={codeString} />
+          }
 
           if (match) {
             return (

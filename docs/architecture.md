@@ -83,7 +83,7 @@ think → act → observe → think → ...
 
 ### 2. IPC 模块化
 
-主进程 IPC 拆分为 6 个独立模块：
+主进程 IPC 拆分为 9 个独立模块：
 
 | 模块 | 职责 |
 |------|------|
@@ -93,6 +93,9 @@ think → act → observe → think → ...
 | `ipc/memory.ts` | 记忆 CRUD |
 | `ipc/persona.ts` | 人格模板查询 |
 | `ipc/mcp.ts` | MCP 服务器连接/断开/状态 |
+| `ipc/debug.ts` | DevPanel 调试数据（Prompt/工具/系统状态） |
+| `ipc/data-export.ts` | 数据导出/导入（会话+记忆+设置备份恢复） |
+| `ipc/skills.ts` | Skill CRUD + 重新加载 |
 
 ### 3. 工具系统
 
@@ -101,7 +104,7 @@ think → act → observe → think → ...
 - 动态注册/注销：支持 MCP 工具运行时加入和移除
 - 破坏性操作前用户确认（IPC 双向通信弹窗）
 - **超时保护**：每个工具 30s 超时，超时自动返回错误
-- 5 个内置工具 + MCP 动态工具
+- 11 个内置工具 + MCP 动态工具
 
 ### 4. 记忆系统
 
@@ -160,9 +163,9 @@ my-agent/
 ├── electron/
 │   ├── main/
 │   │   ├── index.ts          # App 生命周期 + 窗口管理（131 行）
-│   │   ├── ipc/              # IPC 处理器（6 个模块）
+│   │   ├── ipc/              # IPC 处理器（8 个模块）
 │   │   ├── agent/            # Agent Loop + Prompt Builder + 上下文压缩 + 画像提取
-│   │   ├── tools/            # ToolRegistry + 5 个内置工具
+│   │   ├── tools/            # ToolRegistry + 11 个内置工具
 │   │   ├── mcp/              # MCP Client + Bridge
 │   │   ├── memory/           # 向量存储 + Embedding 适配器
 │   │   ├── llm/              # LLM 流式适配器
@@ -171,7 +174,7 @@ my-agent/
 │   └── preload/              # contextBridge 暴露 API
 ├── src/
 │   ├── App.tsx               # 主 UI
-│   ├── components/           # SettingsPanel / MarkdownRenderer
+│   ├── components/           # SettingsPanel / MarkdownRenderer / DevPanel
 │   └── shared/types.ts       # 共享类型定义
 ├── __tests__/
 │   ├── unit/                 # vitest 单元测试（33 个）

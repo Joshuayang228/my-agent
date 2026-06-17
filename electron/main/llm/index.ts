@@ -38,6 +38,10 @@ export async function* streamChat(
     stream_options: { include_usage: true },
   }
 
+  if (config.temperature !== undefined) body.temperature = config.temperature
+  if (config.topP !== undefined) body.top_p = config.topP
+  if (config.maxTokens !== undefined) body.max_tokens = config.maxTokens
+
   if (tools && tools.length > 0) {
     body.tools = tools.map(toOpenAITool)
   }

@@ -5,6 +5,74 @@
 
 ## [未发布]
 
+### Added — P9 Skill 系统（2026-06-17）
+- Skill 系统完整实现（结合 Cursor + Alice 方法论设计）
+  - `SkillFrontmatter` 类型：name / description / when_to_use / allowed_tools / disable_model_invocation / version
+  - `SkillDefinition` 类型：meta + body + filePath + source
+- Skill 加载器（gray-matter YAML frontmatter 解析，双目录扫描：内置 + 用户）
+- Skill 注册器（自动生成 `skill_invoke_xxx` 工具，激活后正文注入上下文）
+- Skill IPC 模块 9 个端点（list / get / save / delete / reload）
+- SkillsPanel UI（左右分栏列表+编辑，新建模板预填，来源标签，触发条件展示）
+- Skill 摘要注入 System Prompt L2.5（模型知道可用 Skill 列表和调用方式）
+- 2 个内置 Skill 示例（code-review：代码审查流程，content-creator：内容创作流程）
+- 快捷键 Ctrl+Shift+K 开关 Skill 面板
+- 对话结束自动清除激活的 Skill（clearActiveSkill）
+- 新增依赖：gray-matter（YAML frontmatter 解析）
+
+### Added — P8 交互增强（2026-06-17）
+- 消息重新生成（最后一条 AI 回复下方 ↻ 按钮，移除旧回复后重新请求 LLM）
+- 消息编辑（用户消息 ✎ 按钮，内联 textarea 编辑 + 截断后续对话重新生成）
+- 单条消息删除（所有消息 hover 显示删除按钮，前端 + SQLite 同步）
+- LLM 参数设置（Temperature / Top P / Max Tokens 三个控件，设置页 grid 布局 + API body 传参）
+- URL 内容抓取工具 url_fetch（GET 请求 + HTML 标签剥离 + 50KB 截断 + 15s 超时）
+- 回到底部浮动按钮（滚动距离 > 200px 时显示圆形按钮 + 向下箭头图标）
+- OS 系统通知（Electron Notification API，窗口失焦 + 任务完成时弹出，点击回到窗口聚焦）
+- Mermaid 图表渲染（集成 mermaid 库，code block 自动检测 ```mermaid 语言，暗色主题适配，错误降级为 pre）
+- 深色/浅色主题切换（CSS 变量 data-theme + localStorage 持久化，侧边栏 ☀️/🌙 按钮）
+- 文件附件（拖拽/粘贴文件到聊天区域，1MB 限制，附件预览条 📎 + 移除 ×，内容拼接进用户消息）
+- MCP 环境变量配置 UI（添加 MCP 时可填 KEY=VALUE 格式的 env textarea）
+- 内置工具增至 11 个（新增 url_fetch）
+
+### Added — P7 体验完善 + 新工具（2026-06-17）
+- code_search 内置工具（文本/正则搜索 + 文件类型过滤 + 上下文行 + 忽略 node_modules/.git 等）
+- 全局 Toast 通知系统（success/error/warning/info 4 种类型，右下角动画弹出，3.5s 自动消失）
+- 首次运行引导（无 API Key 时自动打开设置面板 + Toast 提示）
+- 会话双击重命名（侧边栏双击进入编辑，Enter 确认 / Esc 取消 / 失焦自动保存）
+- 切换会话后台继续流式（不中止 AI 响应，事件通过 sessionId 过滤，完成后保存到数据库，切回可见完整结果）
+- 替换所有 alert() 为 Toast（SettingsPanel 中 MCP/导出/导入操作反馈）
+- 消息搜索（Ctrl+F 搜索当前会话，匹配高亮 + 不匹配降透明度 + 匹配数统计）
+- 会话列表搜索（>3 个会话时显示搜索框，按标题过滤）
+- LLM 智能标题（对话完成后异步调用 LLM 生成 4-10 字摘要标题，替代前 30 字截断）
+- 后台流式指示器（侧边栏中正在生成的非当前会话显示青色脉冲圆点）
+
+### Added — P6 续：框架补齐（2026-06-17）
+- 新工具单元测试 13 个（remember/recall/forget/task_plan），总测试数 33→46
+- 数据导出/导入（JSON 格式，含会话+记忆+设置，导出自动脱敏 API Key，导入去重合并）
+- 快捷键体系（Ctrl+N 新建会话 / Ctrl+, 设置 / Ctrl+Shift+M 记忆管理 / Esc 关闭面板 / Ctrl+Shift+D 调试面板）
+- DevPanel Prompt 预览修复（使用与 chat 一致的 buildUserProfile，含 5 分类完整画像）
+
+### Added — P6 记忆系统重构 + Agent 认知能力（2026-06-16）
+- 记忆管理 UI（MemoryPanel：5 分类筛选 / 添加 / 编辑 / 删除 / 日期显示）
+- Agent 记忆工具（remember / recall / forget，AI 可主动管理用户长期记忆）
+- 任务规划工具（task_plan：创建结构化计划 / 追踪进度 / 自动提示下一步）
+- 自我评估机制（L2 Prompt 指令：复杂任务后自检完整性/正确性）
+- Profile 提取增强（加入本轮 assistant 回复 / 节流 5→2 分钟 / 扩展 5 类别）
+- 记忆类型（MemoryCategory / MemoryEntry）移入 shared/types.ts
+
+### Fixed — P6 记忆系统 Bug（2026-06-16）
+- Prompt 双重注入（userProfile + buildMemoryContext 数据完全重复，浪费 token）
+- SQLite ↔ 向量库不同步（增/删/改记忆现自动联动向量库）
+- Profile 提取节流在 API 失败时也锁定（改为仅成功时更新计时器）
+- Profile 提取缺本轮 assistant 回复（补传 latestAssistantContent）
+
+### Added — Developer Panel 可观测性调试面板（2026-06-16）
+- Ctrl+Shift+D 快捷键开关 Developer Panel
+- System Prompt 可视化（4 层分层查看 + 当前人格 + 字符/token 估算）
+- 工具注册表总览（所有已注册工具 + 元数据标签：只读/破坏性/并发安全）
+- 系统状态面板（Electron/Node 版本、内存使用、LLM 配置、MCP 连接状态）
+- 实时事件日志（订阅 AgentStreamEvent 流，按类型彩色标记，最近 500 条）
+- Debug IPC 模块新增 3 个端点（debug:system-prompt / debug:tools / debug:system-info）
+
 ### Added — P5 UI 打磨 + Agent 能力 + 安全加固（2026-06-16）
 - API Key 加密存储（Electron safeStorage，透明加解密）
 - 错误信息脱敏（过滤 API Key / URL 后传渲染进程）

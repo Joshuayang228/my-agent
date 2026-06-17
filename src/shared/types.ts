@@ -56,6 +56,9 @@ export interface LLMConfig {
   apiKey: string
   baseUrl: string
   model: string
+  temperature?: number
+  topP?: number
+  maxTokens?: number
 }
 
 /** LLM 单轮返回的结构化结果 */
@@ -95,10 +98,44 @@ export interface PersonaConfig {
   description: string
 }
 
+// ── 记忆 ──
+
+export type MemoryCategory = 'identity' | 'preference' | 'fact' | 'workflow' | 'voice'
+
+export interface MemoryEntry {
+  id: string
+  category: MemoryCategory
+  content: string
+  createdAt: number
+  updatedAt: number
+}
+
 // ── 会话 ──
 
 export interface ChatSession {
   id: string
   messages: ChatMessage[]
   createdAt: number
+}
+
+// ── Skill 系统 ──
+
+export interface SkillFrontmatter {
+  name: string
+  description: string
+  when_to_use?: string
+  allowed_tools?: string[]
+  disable_model_invocation?: boolean
+  version?: string
+}
+
+export interface SkillDefinition {
+  /** Frontmatter 元数据 */
+  meta: SkillFrontmatter
+  /** Skill 正文（Markdown） */
+  body: string
+  /** 文件路径 */
+  filePath: string
+  /** 来源：内置 / 用户 */
+  source: 'builtin' | 'user'
 }

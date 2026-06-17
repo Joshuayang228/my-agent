@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { ipcMain, BrowserWindow, Notification } from 'electron'
 import { agentLoop } from '../agent/loop'
 import { buildSystemPrompt, BUILTIN_PERSONAS } from '../agent/prompt-builder'
 import { maybeExtractProfile } from '../agent/profile-extractor'
@@ -7,6 +7,7 @@ import * as store from '../storage/session-store'
 import * as settings from '../storage/settings-store'
 import * as memory from '../storage/memory-store'
 import { searchVectorStore, addToVectorStore } from '../memory/vector-store'
+import { buildSkillSummaryForPrompt, getActiveSkill, clearActiveSkill } from '../skills/registry'
 import { createLogger } from '../utils/logger'
 import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
 
@@ -20,6 +21,9 @@ async function getLLMConfig(): Promise<LLMConfig> {
     apiKey: s.llmApiKey || process.env.LLM_API_KEY || '',
     baseUrl: s.llmBaseUrl || process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
     model: s.llmModel || process.env.LLM_MODEL || 'gpt-4o',
+    temperature: parseFloat(s.llmTemperature) || undefined,
+    topP: parseFloat(s.llmTopP) || undefined,
+    maxTokens: parseInt(s.llmMaxTokens) || undefined,
   }
 }
 
@@ -38,16 +42,19 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
     const llmConfig = await getLLMConfig()
     const personaId = await settings.getSetting('personaId')
     const customPrompt = await settings.getSetting('systemPrompt')
-    const memoryContext = await memory.buildMemoryContext()
     const userProfile = await memory.buildUserProfile()
 
     const persona = BUILTIN_PERSONAS.find(p => p.id === personaId) ?? BUILTIN_PERSONAS[0]
     log.info('chat:send received', { sessionId, messageCount: messages.length, model: llmConfig.model, persona: persona.id })
 
+    const emit = (ev: Record<string, unknown>) => {
+      event.sender.send('chat:event', { ...ev, sessionId })
+    }
+
     if (!llmConfig.apiKey) {
       log.error('No API key configured')
-      event.sender.send('chat:event', { type: 'error', message: '请先在设置中配置 API Key' })
-      event.sender.send('chat:event', { type: 'done' })
+      emit({ type: 'error', message: '请先在设置中配置 API Key' })
+      emit({ type: 'done' })
       return
     }
 
@@ -90,14 +97,26 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
         }
       }
 
-      const combinedMemories = [memoryContext, vectorContext].filter(Boolean).join('\n\n')
+      const combinedMemories = vectorContext || undefined
+
+      let skillSummary: string | undefined
+      let activeSkillBody: string | undefined
+      try {
+        skillSummary = buildSkillSummaryForPrompt() || undefined
+        const active = getActiveSkill()
+        if (active) {
+          activeSkillBody = `Skill「${active.meta.name}」已激活，请严格遵循以下操作指南：\n\n${active.body}`
+        }
+      } catch { /* skill system not ready */ }
 
       const systemPrompt = buildSystemPrompt({
         persona,
         toolNames: toolRegistry.getAll().map(t => t.name),
         userProfile: userProfile ?? undefined,
-        memories: combinedMemories || undefined,
+        memories: combinedMemories,
         sessionInfo: customPrompt || undefined,
+        skillSummary,
+        activeSkillBody,
       })
 
       const stream = agentLoop(
@@ -113,7 +132,7 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
       )
 
       for await (const ev of stream) {
-        event.sender.send('chat:event', ev)
+        emit(ev)
 
         if (ev.type === 'text') {
           assistantContent += ev.content
@@ -127,8 +146,10 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
             timestamp: Date.now(),
           })
 
-          maybeExtractProfile(messages, llmConfig).catch((e) =>
+          maybeExtractProfile(messages, llmConfig, assistantContent).catch((e) =>
             log.warn('Profile extraction failed', { error: String(e) }))
+
+          store.generateSmartTitle(sessionId, lastUserMsg?.content || '', assistantContent, llmConfig).catch(() => {})
 
           // 异步写入向量索引（用户消息 + 助手摘要）
           const now = Date.now()
@@ -158,7 +179,7 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
         log.info('Chat send aborted', { assistantContentLength: assistantContent.length })
       } else {
         log.error('chat:send unhandled error', { error: message })
-        event.sender.send('chat:event', { type: 'error', message })
+        emit({ type: 'error', message })
       }
     } finally {
       activeAbortController = null
@@ -172,7 +193,21 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
           timestamp: Date.now(),
         }).catch(() => {})
       }
-      event.sender.send('chat:event', { type: 'done' })
+      emit({ type: 'done' })
+      try { clearActiveSkill() } catch { /* ok */ }
+
+      if (assistantContent) {
+        const win = BrowserWindow.getAllWindows()[0]
+        if (win && !win.isFocused() && Notification.isSupported()) {
+          const n = new Notification({
+            title: 'My Agent',
+            body: assistantContent.slice(0, 100) + (assistantContent.length > 100 ? '...' : ''),
+            silent: false,
+          })
+          n.on('click', () => { win.show(); win.focus() })
+          n.show()
+        }
+      }
     }
   })
 }

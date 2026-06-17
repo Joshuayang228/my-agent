@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     get: (id: string): Promise<ChatSession | null> => ipcRenderer.invoke('session:get', id),
     delete: (id: string): Promise<void> => ipcRenderer.invoke('session:delete', id),
     rename: (id: string, title: string): Promise<void> => ipcRenderer.invoke('session:rename', id, title),
+    deleteMessage: (messageId: string): Promise<void> => ipcRenderer.invoke('message:delete', messageId),
   },
 
   settings: {
@@ -46,6 +47,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
     status: (): Promise<Array<{ id: string; name: string; status: string; toolCount: number; error?: string }>> =>
       ipcRenderer.invoke('mcp:status'),
     listTools: (serverId?: string) => ipcRenderer.invoke('mcp:list-tools', serverId),
+  },
+
+  skills: {
+    list: () => ipcRenderer.invoke('skills:list'),
+    get: (name: string) => ipcRenderer.invoke('skills:get', name),
+    save: (name: string, content: string) => ipcRenderer.invoke('skills:save', name, content),
+    delete: (name: string) => ipcRenderer.invoke('skills:delete', name),
+    reload: () => ipcRenderer.invoke('skills:reload'),
+  },
+
+  data: {
+    export: () => ipcRenderer.invoke('data:export'),
+    import: () => ipcRenderer.invoke('data:import'),
+  },
+
+  debug: {
+    systemPrompt: () => ipcRenderer.invoke('debug:system-prompt'),
+    tools: () => ipcRenderer.invoke('debug:tools'),
+    systemInfo: () => ipcRenderer.invoke('debug:system-info'),
   },
 
   chat: {

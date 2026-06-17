@@ -25,6 +25,8 @@ Categories:
 - identity: who they are (name, role, interests, tech stack, location, etc.)
 - workflow: how they work (tools, habits, schedule, preferences for collaboration)
 - voice: communication style (formal/casual, language preferences, humor style)
+- preference: explicit preferences (likes/dislikes, preferred tools, approaches, aesthetic choices)
+- fact: specific facts about their projects, environment, or context
 
 Rules:
 - Only extract facts clearly supported by the conversation
@@ -35,13 +37,14 @@ Rules:
 
 const MIN_USER_MESSAGES = 3
 const MAX_RECENT_MESSAGES = 20
-const EXTRACT_INTERVAL_MS = 5 * 60 * 1000
+const EXTRACT_INTERVAL_MS = 2 * 60 * 1000
 
 let lastExtractTime = 0
 
 export async function maybeExtractProfile(
   messages: ChatMessage[],
   config: LLMConfig,
+  latestAssistantContent?: string,
 ): Promise<void> {
   const now = Date.now()
   if (now - lastExtractTime < EXTRACT_INTERVAL_MS) return
@@ -49,11 +52,13 @@ export async function maybeExtractProfile(
   const userMessages = messages.filter(m => m.role === 'user')
   if (userMessages.length < MIN_USER_MESSAGES) return
 
-  lastExtractTime = now
   log.info('Starting profile extraction', { userMessageCount: userMessages.length })
 
   try {
-    const recentMessages = messages.slice(-MAX_RECENT_MESSAGES)
+    const allMessages = latestAssistantContent
+      ? [...messages, { id: 'latest', role: 'assistant' as const, content: latestAssistantContent, timestamp: Date.now() }]
+      : messages
+    const recentMessages = allMessages.slice(-MAX_RECENT_MESSAGES)
     const conversationText = recentMessages
       .filter(m => m.role === 'user' || m.role === 'assistant')
       .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.slice(0, 500)}`)
@@ -107,7 +112,7 @@ export async function maybeExtractProfile(
       return
     }
 
-    const validCategories = new Set<string>(['identity', 'workflow', 'voice'])
+    const validCategories = new Set<string>(['identity', 'workflow', 'voice', 'preference', 'fact'])
     let added = 0
 
     for (const item of items) {
@@ -122,6 +127,8 @@ export async function maybeExtractProfile(
       added++
       log.info('Profile item added', { category: item.category, content: item.content })
     }
+
+    lastExtractTime = Date.now()
 
     if (added > 0) {
       log.info(`Profile extraction complete: ${added} new items added`)

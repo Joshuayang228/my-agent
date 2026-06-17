@@ -29,6 +29,8 @@ export interface PromptContext {
   userProfile?: { identity: string; workflow: string; voice: string }
   memories?: string
   sessionInfo?: string
+  skillSummary?: string
+  activeSkillBody?: string
 }
 
 // ── 内置人格模板 ──
@@ -100,8 +102,19 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   parts.push('## Capabilities')
   parts.push(`You have access to the following tools: ${toolNames.join(', ')}.`)
   parts.push('When you need to perform actions beyond text generation, use the available tools.')
-  parts.push('For destructive operations (file_write, shell_exec), the user will be asked to confirm before execution.')
+  parts.push('For destructive operations (file_write, shell_exec, forget), the user will be asked to confirm before execution.')
   parts.push('Always respond in the same language as the user.')
+  parts.push('')
+  parts.push('## Working method')
+  parts.push('For complex requests (3+ steps), use task_plan to create a structured plan BEFORE starting.')
+  parts.push('Update each step as you work. After completing all steps, briefly self-evaluate:')
+  parts.push('- Did I fully address the user\'s request?')
+  parts.push('- Did I miss any edge cases or requirements?')
+  parts.push('- Is the result correct and complete?')
+  parts.push('If the self-check reveals issues, fix them before presenting the final answer.')
+  parts.push('')
+  parts.push('Use remember/recall/forget to manage long-term memory about the user.')
+  parts.push('When the user shares personal info, preferences, or important context, proactively remember it.')
 
   if (persona.aside_style) {
     parts.push('')
@@ -109,6 +122,17 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     parts.push('Your response may include two parts:')
     parts.push('1. Your main response — professional, helpful, and focused.')
     parts.push(`2. Optionally, a brief aside wrapped in <aside>...</aside> tags — ${persona.aside_style}. Keep it to one short sentence. Do not use aside in every response, only when it feels natural.`)
+  }
+
+  // ── L2.5 Skill 系统摘要 ──
+  if (ctx.skillSummary) {
+    parts.push('')
+    parts.push(ctx.skillSummary)
+  }
+  if (ctx.activeSkillBody) {
+    parts.push('')
+    parts.push('## 当前激活的 Skill')
+    parts.push(ctx.activeSkillBody)
   }
 
   // ── L3 上下文注入（每次会话重新构建） ──

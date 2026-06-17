@@ -19,7 +19,7 @@
 | Adapter | Adapter | 适配某个 Provider 的接口实现 | 统一适配器模式 |
 | 声明式工具 | Declarative Tool | 带元数据的工具定义（isReadOnly / isDestructive 等） | |
 | 破坏性操作 | Destructive Operation | 需要用户确认才能执行的操作（删除、发送等） | isDestructive: true |
-| PlayGround | PlayGround | 组件沙箱页面，用于验证 UI 组件效果 | |
+| Developer Panel | Developer Panel | Agent 可观测性调试面板（Ctrl+Shift+D 开关），查看 Prompt/工具/系统状态/事件流 | 受 Alice 启发但独立设计 |
 | HARD-GATE | HARD-GATE | 规则中的硬性门控，不可绕过 | 用 XML 标签包裹 |
 
 | safeStorage | safeStorage | Electron 内置加密模块，用系统级密钥链加解密字符串 | 用于 API Key 加密存储 |

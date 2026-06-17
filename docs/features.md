@@ -18,13 +18,25 @@
 - [x] 转场白语 / 内心独白（`<aside>` 标签人格化小剧场 + 紫色气泡 UI）
 - [x] MCP 协议支持（MCP Client + StdioClientTransport + 动态工具注册/注销）
 - [x] 流式中断（AbortController + chat:abort IPC + 停止按钮）
+- [x] 任务规划（task_plan 工具：创建/更新/追踪结构化计划）
+- [x] 自我评估（L2 Prompt 指令：完成复杂任务后自检）
+- [x] Agent 记忆工具（remember/recall/forget，AI 主动管理长期记忆）
+- [x] Skill 系统（Markdown 操作手册，YAML frontmatter 元数据，按需激活注入）
+  - Skill 加载器（userData/skills/ 用户目录 + 内置 skills-builtin/）
+  - 自动注册 skill_invoke_xxx 工具（模型可主动调用）
+  - Skill 列表注入 System Prompt L2（模型知道有哪些 Skill 可用）
+  - 工具白名单（allowed_tools 激活后限制可用工具）
+  - SkillsPanel 可视化管理 UI（Ctrl+Shift+K）
+  - 2 个内置 Skill（代码审查 + 内容创作）
 
 ## 桌面应用
 
 - [x] Electron 主窗口
 - [x] 对话界面（流式输出）
-- [x] IPC 通信（统一 AgentStreamEvent 事件流，拆分 6 模块）
-- [x] 会话管理（多会话 / 切换 / 删除 / 侧边栏）
+- [x] IPC 通信（统一 AgentStreamEvent 事件流，拆分 8 模块）
+- [x] 会话管理（多会话 / 切换 / 删除 / 重命名 / 侧边栏）
+- [x] 切换会话后台继续流式（事件按 sessionId 隔离，完成后持久化，切回可见完整结果）
+- [x] 首次运行引导（无 API Key 时自动打开设置 + Toast 提示）
 - [x] 对话历史持久化（SQLite via sql.js）
 - [x] 设置页面（模型配置 / API Key / Base URL / System Prompt / 人格选择 / MCP 管理）
 
@@ -42,14 +54,36 @@
 - [x] Markdown 渲染（react-markdown + remark-gfm）
 - [x] 代码高亮（react-syntax-highlighter / Prism / oneDark 主题）
 - [x] MCP 服务器管理面板（连接状态 / 添加 / 删除 / 启用禁用）
+- [x] 记忆管理面板 MemoryPanel（分类筛选 / 添加 / 编辑 / 删除）
+- [x] 全局 Toast 通知系统（替代 alert()，4 种类型 + 动画 + 自动消失）
+- [x] 会话双击重命名
+- [x] 消息搜索（Ctrl+F，匹配高亮 + 不匹配降透明度 + 匹配计数）
+- [x] 会话列表搜索（侧边栏按标题过滤）
+- [x] LLM 智能标题（对话完成后异步生成 4-10 字摘要标题）
+- [x] 后台流式指示器（侧边栏脉冲圆点）
+- [x] 消息重新生成（重新生成最后一条 AI 回复）
+- [x] 消息编辑（编辑已发送的用户消息 + 重新生成后续对话）
+- [x] 单条消息删除（前端 + SQLite 持久化同步）
+- [x] 回到底部浮动按钮（滚动距离 > 200px 时显示）
+- [x] Mermaid 图表渲染（流程图/序列图/甘特图等，暗色主题适配）
+- [x] 深色/浅色主题切换（CSS 变量 + localStorage 持久化）
+- [x] 文件附件（拖拽/粘贴文件到聊天，1MB 限制，附件预览 + 移除）
+- [x] OS 系统通知（窗口失焦时任务完成弹出系统通知，点击回到窗口）
+- [x] MCP 环境变量配置 UI（KEY=VALUE 格式输入）
+- [x] LLM 参数设置（Temperature / Top P / Max Tokens，设置页 + API 传参）
 
 ## 内置工具
 
 - [x] get_current_time（获取当前时间）
 - [x] 网页搜索（Tavily keyless，零配置即可用）
+- [x] URL 内容抓取（url_fetch：获取网页文本，自动去 HTML 标签，15s 超时）
 - [x] 文件读写（file_read + file_write，支持行范围 / 追加模式）
 - [x] 终端命令执行（shell_exec，30s 超时 + 输出截断）
-- [ ] 代码搜索
+- [x] remember（写入长期记忆，自动去重 + 向量同步）
+- [x] recall（检索长期记忆，按类别筛选）
+- [x] forget（删除指定记忆，含向量库同步，需用户确认）
+- [x] task_plan（结构化任务规划，创建/更新/追踪/清除）
+- [x] 代码搜索（code_search：文本/正则搜索 + 文件类型过滤 + 上下文行）
 
 ## 数据与存储
 
@@ -57,16 +91,19 @@
 - [x] 对话历史持久化
 - [x] 用户设置持久化（SQLite settings 表）
 - [x] 向量数据库集成（Vectra LocalIndex，文件存储于 userData）
-- [ ] 数据导出/导入
+- [x] 数据导出/导入（JSON 格式，含会话+记忆+设置）
 
 ## 开发基础设施
 
 - [x] 日志系统（彩色分级 Logger）
 - [x] Electron remote debugging（port 9222）
 - [x] Playwright E2E 测试（5 个 UI + Electron 真实对话框架）
-- [x] vitest 单元测试覆盖（33 个测试：ToolRegistry / PromptBuilder / ContextManager / AgentLoop）
-- [x] 主进程 IPC 模块化拆分（session / chat / settings / memory / persona / mcp）
+- [x] vitest 单元测试覆盖（46 个测试 / 5 文件：ToolRegistry / PromptBuilder / ContextManager / AgentLoop / MemoryTools）
+- [x] 主进程 IPC 模块化拆分（session / chat / settings / memory / persona / mcp / debug / data-export）
 - [x] 架构分层 import 方向约束（HARD-GATE 规则）
+- [x] Developer Panel 调试面板（Ctrl+Shift+D，4 Tab：Prompt/工具/系统/事件）
+- [x] 快捷键体系（Ctrl+N 新建 / Ctrl+, 设置 / Ctrl+Shift+M 记忆 / Esc 关闭面板）
+- [x] 数据导出/导入（JSON 格式，含会话+记忆+设置，自动脱敏，导入去重）
 
 ## 安全
 

@@ -10,6 +10,7 @@ import { registerAllIPC } from './ipc/index'
 import { mcpManager } from './mcp/client'
 import type { McpServerConfig } from './mcp/client'
 import { syncMcpToolsToRegistry } from './mcp/bridge'
+import { initSkillSystem } from './skills/registry'
 import * as settings from './storage/settings-store'
 
 const log = createLogger('Main')
@@ -103,6 +104,7 @@ async function restoreMcpConnections() {
 
 app.whenReady().then(async () => {
   await createWindow()
+  initSkillSystem(toolRegistry).catch(err => log.warn('Skill init failed', { error: String(err) }))
   restoreMcpConnections()
 })
 

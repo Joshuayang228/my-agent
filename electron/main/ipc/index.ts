@@ -5,6 +5,9 @@ import { registerMemoryIPC } from './memory'
 import { registerPersonaIPC } from './persona'
 import { registerChatIPC } from './chat'
 import { registerMcpIPC } from './mcp'
+import { registerDebugIPC } from './debug'
+import { registerDataExportIPC } from './data-export'
+import { registerSkillsIPC } from './skills'
 
 export function registerAllIPC(toolRegistry: ToolRegistry): void {
   registerSessionIPC()
@@ -13,4 +16,7 @@ export function registerAllIPC(toolRegistry: ToolRegistry): void {
   registerPersonaIPC()
   registerChatIPC(toolRegistry)
   registerMcpIPC(toolRegistry)
+  registerDebugIPC(toolRegistry)
+  registerDataExportIPC()
+  registerSkillsIPC(toolRegistry)
 }

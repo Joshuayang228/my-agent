@@ -14,4 +14,7 @@ export function registerSessionIPC(): void {
 
   ipcMain.handle('session:rename', async (_event, sessionId: string, title: string) =>
     store.updateSessionTitle(sessionId, title))
+
+  ipcMain.handle('message:delete', async (_event, messageId: string) =>
+    store.deleteMessage(messageId))
 }

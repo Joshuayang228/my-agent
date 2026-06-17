@@ -1,9 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useToast } from './Toast'
 
 interface SettingsForm {
   llmApiKey: string
   llmBaseUrl: string
   llmModel: string
+  llmTemperature: string
+  llmTopP: string
+  llmMaxTokens: string
   systemPrompt: string
   personaId: string
 }
@@ -29,6 +33,9 @@ const DEFAULTS: SettingsForm = {
   llmApiKey: '',
   llmBaseUrl: 'https://api.openai.com/v1',
   llmModel: 'gpt-4o',
+  llmTemperature: '0.7',
+  llmTopP: '1',
+  llmMaxTokens: '4096',
   systemPrompt: '',
   personaId: 'warm-partner',
 }
@@ -51,6 +58,7 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ onClose }: SettingsPanelProps) {
+  const { toast } = useToast()
   const [form, setForm] = useState<SettingsForm>(DEFAULTS)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -59,7 +67,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const [mcpServers, setMcpServers] = useState<McpServerEntry[]>([])
   const [mcpStatuses, setMcpStatuses] = useState<McpServerStatus[]>([])
   const [mcpAdding, setMcpAdding] = useState(false)
-  const [newMcp, setNewMcp] = useState({ name: '', command: '', args: '' })
+  const [newMcp, setNewMcp] = useState({ name: '', command: '', args: '', env: '' })
 
   const refreshMcpStatus = useCallback(async () => {
     if (!window.electronAPI) return
@@ -74,6 +82,9 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         llmApiKey: s.llmApiKey || '',
         llmBaseUrl: s.llmBaseUrl || DEFAULTS.llmBaseUrl,
         llmModel: s.llmModel || DEFAULTS.llmModel,
+        llmTemperature: s.llmTemperature || DEFAULTS.llmTemperature,
+        llmTopP: s.llmTopP || DEFAULTS.llmTopP,
+        llmMaxTokens: s.llmMaxTokens || DEFAULTS.llmMaxTokens,
         systemPrompt: s.systemPrompt || '',
         personaId: s.personaId || DEFAULTS.personaId,
       })
@@ -116,23 +127,32 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
   const handleAddMcp = useCallback(async () => {
     if (!newMcp.name || !newMcp.command) return
+    let env: Record<string, string> | undefined
+    if (newMcp.env.trim()) {
+      env = {}
+      for (const line of newMcp.env.split('\n')) {
+        const eq = line.indexOf('=')
+        if (eq > 0) env[line.slice(0, eq).trim()] = line.slice(eq + 1).trim()
+      }
+    }
     const entry: McpServerEntry = {
       id: `mcp-${Date.now()}`,
       name: newMcp.name,
       command: newMcp.command,
       args: newMcp.args.split(/\s+/).filter(Boolean),
+      env,
       enabled: true,
     }
     const updated = [...mcpServers, entry]
     await saveMcpList(updated)
     const result = await window.electronAPI?.mcp.connect(entry)
     if (result && !result.success) {
-      alert(`MCP 连接失败: ${result.error}`)
+      toast(`MCP 连接失败: ${result.error}`, 'error')
     }
     await refreshMcpStatus()
-    setNewMcp({ name: '', command: '', args: '' })
+    setNewMcp({ name: '', command: '', args: '', env: '' })
     setMcpAdding(false)
-  }, [newMcp, mcpServers, saveMcpList, refreshMcpStatus])
+  }, [newMcp, mcpServers, saveMcpList, refreshMcpStatus, toast])
 
   const handleRemoveMcp = useCallback(async (id: string) => {
     await window.electronAPI?.mcp.disconnect(id)
@@ -262,6 +282,46 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           />
         </div>
 
+        {/* LLM 参数 */}
+        <div className="mb-5 grid grid-cols-3 gap-3">
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-slate-400">Temperature</label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              max="2"
+              value={form.llmTemperature}
+              onChange={(e) => update('llmTemperature', e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-slate-400">Top P</label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              max="1"
+              value={form.llmTopP}
+              onChange={(e) => update('llmTopP', e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-slate-400">Max Tokens</label>
+            <input
+              type="number"
+              step="256"
+              min="256"
+              max="128000"
+              value={form.llmMaxTokens}
+              onChange={(e) => update('llmMaxTokens', e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
+            />
+          </div>
+        </div>
+
         {/* System Prompt */}
         <div className="mb-5">
           <label className="mb-1.5 block text-xs font-medium text-slate-400">自定义补充指令（会注入到 System Prompt L3 层）</label>
@@ -307,6 +367,13 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 value={newMcp.args}
                 onChange={e => setNewMcp(m => ({ ...m, args: e.target.value }))}
                 placeholder="参数（空格分隔，如 -y @modelcontextprotocol/server-filesystem /tmp）"
+                className="mb-2 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-500"
+              />
+              <textarea
+                value={newMcp.env}
+                onChange={e => setNewMcp(m => ({ ...m, env: e.target.value }))}
+                placeholder="环境变量（每行一个，KEY=VALUE 格式，可选）"
+                rows={2}
                 className="mb-2 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-500"
               />
               <button
@@ -369,6 +436,35 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               </div>
             )
           })}
+        </div>
+
+        {/* 数据管理 */}
+        <div className="mb-6">
+          <label className="mb-2 block text-xs font-medium text-slate-400">数据管理</label>
+          <div className="flex gap-2">
+            <button
+              onClick={async () => {
+                if (!window.electronAPI) return
+                const res = await window.electronAPI.data.export()
+                if (res.success) toast(`导出成功！${res.stats?.sessions} 个会话 + ${res.stats?.memories} 条记忆`, 'success')
+                else if (res.error !== 'cancelled') toast(`导出失败: ${res.error}`, 'error')
+              }}
+              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 transition hover:border-cyan-500 hover:text-cyan-400"
+            >
+              📤 导出数据
+            </button>
+            <button
+              onClick={async () => {
+                if (!window.electronAPI) return
+                const res = await window.electronAPI.data.import()
+                if (res.success) toast(`导入成功！${res.stats?.sessions} 个会话 + ${res.stats?.memories} 条记忆 + ${res.stats?.settings} 项设置`, 'success')
+                else if (res.error !== 'cancelled') toast(`导入失败: ${res.error}`, 'error')
+              }}
+              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 transition hover:border-amber-500 hover:text-amber-400"
+            >
+              📥 导入数据
+            </button>
+          </div>
         </div>
 
         {/* 保存按钮 */}

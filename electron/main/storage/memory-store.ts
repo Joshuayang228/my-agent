@@ -1,7 +1,18 @@
 import { getDatabase, persist } from './database'
 import { createLogger } from '../utils/logger'
+import { addToVectorStore, removeFromVectorStore } from '../memory/vector-store'
+import * as settings from './settings-store'
 
 const log = createLogger('MemoryStore')
+
+async function getLLMConfigForSync() {
+  const s = await settings.getAllSettings()
+  return {
+    apiKey: s.llmApiKey || process.env.LLM_API_KEY || '',
+    baseUrl: s.llmBaseUrl || process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
+    model: s.llmModel || process.env.LLM_MODEL || 'gpt-4o',
+  }
+}
 
 export type MemoryCategory = 'identity' | 'preference' | 'fact' | 'workflow' | 'voice'
 
@@ -38,6 +49,13 @@ export async function addMemory(category: MemoryCategory, content: string): Prom
   )
   persist()
   log.info('Memory added', { id, category })
+
+  getLLMConfigForSync().then(config => {
+    if (!config.apiKey) return
+    addToVectorStore({ id, text: content, category, sessionId: '', timestamp: now }, config)
+      .catch(() => {})
+  })
+
   return { id, category, content, createdAt: now, updatedAt: now }
 }
 
@@ -73,14 +91,24 @@ export async function deleteMemory(id: string): Promise<void> {
   db.run('DELETE FROM memories WHERE id = ?', [id])
   persist()
   log.info('Memory deleted', { id })
+
+  removeFromVectorStore(id).catch(() => {})
 }
 
 export async function updateMemory(id: string, content: string): Promise<void> {
   await ensureTable()
   const db = await getDatabase()
-  db.run('UPDATE memories SET content = ?, updatedAt = ? WHERE id = ?', [content, Date.now(), id])
+  const now = Date.now()
+  db.run('UPDATE memories SET content = ?, updatedAt = ? WHERE id = ?', [content, now, id])
   persist()
   log.info('Memory updated', { id })
+
+  removeFromVectorStore(id).catch(() => {})
+  getLLMConfigForSync().then(config => {
+    if (!config.apiKey) return
+    addToVectorStore({ id, text: content, category: 'fact', sessionId: '', timestamp: now }, config)
+      .catch(() => {})
+  })
 }
 
 /**

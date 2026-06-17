@@ -4,14 +4,17 @@
 
 ## Git 推送代理
 
-**问题**：`git push` 报 `Failed to connect to 127.0.0.1 port 7897`
+**问题**：`git push` 报 `Failed to connect to 127.0.0.1 port XXXX`
 
-**原因**：Git 全局代理端口配置错误，实际代理端口为 `7892`
+**原因**：Git 全局代理端口与实际代理软件端口不一致（端口会变化）
 
-**解决**：
+**解决**：确认当前代理端口后更新配置
 ```bash
-git config --global http.proxy http://127.0.0.1:7892
+git config --global http.proxy http://127.0.0.1:7897
+git config --global https.proxy http://127.0.0.1:7897
 ```
+
+> 历史变化：7897 → 7892 → 7897
 
 ## sql.js WASM 路径
 
