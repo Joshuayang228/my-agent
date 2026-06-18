@@ -5,6 +5,149 @@
 
 ## [未发布]
 
+### Added — P16 高级功能扩展（2026-06-18）
+- Auto Update（`electron-updater` 集成）
+  - `autoDownload=false`，用户确认后下载安装
+  - 启动 3s 后自动检查更新（生产环境）
+  - IPC 端点：`updater:check` / `updater:download` / `updater:install`
+- 会话分支/Fork
+  - `session:fork` IPC + `forkSession` DB 层（克隆消息到新会话）
+  - 前端消息操作栏 "⑂ 分支" 按钮
+- Scheduled Tasks 定时任务
+  - `scheduler/index.ts` 调度器模块（interval + 简易 cron）
+  - SQLite `scheduled_tasks` 表 + CRUD IPC
+  - 启动自动恢复 + 退出清理定时器
+- RAG 文档管道
+  - `rag/index.ts` 文档导入 + 段落感知分块（800 字符/100 重叠）
+  - 独立 RAG 向量索引（与记忆分离）
+  - `rag_search` 内置工具（第 13 个）
+  - `rag:ingest` 文件选择对话框导入
+- Voice I/O 语音交互
+  - Web Speech API 语音输入（中文，连续识别）
+  - SpeechSynthesis TTS 朗读
+  - 输入区 🎤 按钮 + AI 消息 🔊 朗读按钮
+- 新增依赖：`electron-updater`
+- IPC 模块 9 → 11 个（新增 `scheduler.ts` / `rag.ts`）
+
+### Added — P15 框架能力补齐（2026-06-18）
+- System Tray + 全局快捷键
+  - 关闭窗口最小化到托盘 + 托盘右键菜单 + 双击唤起
+  - `Ctrl+Shift+A` 全局快捷键唤起窗口
+- Structured Output / JSON Mode
+  - `ResponseFormat` 类型（text / json_object / json_schema）
+  - OpenAI 请求体自动注入 `response_format`
+- Model Failover 自动降级
+  - `FallbackModelConfig` + `LLMConfig.fallbackModels`
+  - 主模型失败按序降级 + 前端切换提示
+- Prompt Cache（Anthropic）
+  - System Prompt + Tools 末位标记 `cache_control: ephemeral`
+  - Usage 解析 `cache_read_input_tokens` / `cache_creation_input_tokens`
+- Streaming Tool Calls
+  - `tool_call_delta` 事件（OpenAI + Anthropic 双适配）
+  - 前端工具卡片实时显示参数解析过程
+
+### Fixed — P15 UI 修复（2026-06-18）
+- 小声蛐蛐（aside）移到消息下方 + 标签不泄漏（支持多个 aside）
+
+### Changed — 规则体系精简（2026-06-17）
+- **Phase 6 自审**：从"读外部 Skill 文件"改为内联 10 项检查清单
+- **Phase 8 Bug 修复**：内联 7 步调试流程 + 常见陷阱（原 debug-guide.md）
+- **Phase 1 接需求**：区分"新需求五步确认"和"已批准子任务简化执行"
+- **Phase 11 收尾**：必查项从 8 个精简为 3 个必查 + 5 个按需
+- **Skill 路由表**：从 7 项精简为 5 项"参考表"
+- **commit message**：统一改为英文（git-workflow.md）
+- 回填 model-config.md（Provider 路由/双模型/调用规范）
+- 回填 security-checklist.md（沙箱系统/权限引擎/加密存储）
+- 删除过时的 playground-guide.md
+- 补齐 P10-P14 全部文档债务（changelog/decisions/api-contracts/architecture/glossary）
+- 文档结构精简 12→10 个（删除过时 api.md，合并 data-flow.md 到 architecture.md）
+- 重写 testing.md（用 88 个测试的实际覆盖替换过时模板）
+- Git pre-commit hook（代码变更时强制要求同步更新 progress.md + changelog.md）
+- 编辑纪律新增：IPC 接口三处同步检查 + 测试文件查重
+
+### Added — P14 测试扩充 + 多模态 + MCP SSE（2026-06-17）
+- 单元测试 46 → 88 个，新增 5 个测试文件
+  - middleware.test.ts（洋葱模型 / 短路 / 截断 / 错误捕获）
+  - token-budget.test.ts（会话限额 / 日级限额 / 无限制放行）
+  - message-pipeline.test.ts（孤儿修复 / 连续角色合并）
+  - permission-engine.test.ts（自定义规则 / 沙箱集成）
+  - provider-router.test.ts（自动检测 / Anthropic/Gemini 请求体）
+- 多模态图片支持
+  - `ImageAttachment` 类型（dataUrl + mimeType + fileName）
+  - LLM 适配器支持 `image_url` content parts（OpenAI Vision API）
+  - 前端粘贴图片 → pendingImages 预览条 → 消息气泡渲染
+- MCP SSE/HTTP 传输层
+  - `McpServerConfig` 新增 `transport` 字段（`'stdio' | 'sse'`）和 `url` 字段
+  - `SSEClientTransport` 支持远程 MCP 服务器
+
+### Added — P13 高级框架能力（2026-06-17）
+- 权限规则引擎升级（`permission-engine.ts`）
+  - 五层责任链：自定义规则 → 审批记录 → 命令分级 → 沙箱策略 → 默认
+  - `PermissionRule` 支持 command/tool/path 类型 × allow/deny/ask 动作
+- 项目记忆 PROJECT.md（`project-memory.ts`）
+  - 工作区 PROJECT.md 自动检测 → L3 Prompt 注入（4000 字截断）
+  - 读/写/追加接口
+- 多 Provider 路由（`provider-router.ts`）
+  - `detectProvider()` 根据 baseUrl 正则自动匹配
+  - Anthropic Messages API 适配（SSE 流 + content_block_delta + tool_use 映射）
+  - Gemini API 请求构建器（systemInstruction + functionDeclarations）
+  - 预设新增 Claude Sonnet
+
+### Added — P12 效率与可观测（2026-06-17）
+- 分场景 modelId
+  - `auxModel` 辅助模型设置（标题/画像/摘要用便宜模型）
+  - Runtime 区分 `getLLMConfig()` / `getAuxLLMConfig()`
+- Tool 中间件管道（`middleware.ts`）
+  - `ToolMiddlewarePipeline` 洋葱模型
+  - 3 个内置中间件：error-formatting / logging / result-truncation（50K 字符截断）
+  - `ToolRegistry` 集成中间件，支持 `rebuildPipeline()`
+- Token 限流/预算控制（`token-budget.ts`）
+  - 会话级限额（SQLite 累积 token 检查）
+  - 日级限额（内存计数器，每日自动重置）
+  - 超限自动终止 + 友好提示
+- 结构化 Tracing（`tracer.ts`）
+  - 轻量 Span 追踪（兼容 OTel 模型）
+  - caller 分类（main/compact/memory/title/subagent/tool/system）
+  - `debug:traces` IPC 端点
+
+### Changed — P12 设置页扩展（2026-06-17）
+- 设置页新增辅助模型输入框
+- 设置页新增会话/日级 Token 预算配置
+
+### Added — P11 框架进阶（2026-06-17）
+- 消息管道（`message-pipeline.ts`）
+  - `sanitizeToolCallPairs`：补全孤儿 toolCall 的占位 tool 消息
+  - `removeOrphanToolResults`：移除无对应 toolCall 的 tool 消息
+  - `mergeConsecutiveRoles`：合并连续同角色消息
+- 四层上下文压缩升级
+  - L3 Collapse 使用 LLM 生成摘要（降级：规则占位符）
+  - L4 AutoCompact 紧急全量重写
+  - `querySource` 互斥守卫防递归
+- Runtime 编排层（`runtime.ts`）
+  - `AgentRuntime` 单例：会话生命周期 + 后台任务队列 + 优雅关闭
+  - `ipc/chat.ts` 大幅精简（259 → 41 行）
+- Multi-Agent 子 Agent 系统
+  - `delegate_task` 工具（第 12 个内置工具）
+  - `subagent.ts`：独立上下文 + 受限工具集 + 权限只降不升
+
+### Fixed — P11 代码修复（2026-06-17）
+- `chat:abort` 全链路传递 sessionId（preload + App.tsx）
+- `session:tokenUsage` IPC 暴露到渲染进程
+- `window-all-closed` 集成 `runtime.shutdown()` 优雅关闭
+
+### Added — P10 框架补强（2026-06-17）
+- 工具消息持久化（assistant toolCalls + tool result 存入 SQLite）
+- Per-session 并发锁（`Map<sessionId, AbortController>`）
+- 沙箱系统
+  - `SandboxPolicy`（read-only / workspace-write / full-access）
+  - `ExecPolicy`（命令安全分级：safe / dangerous / unknown）
+  - `CommandGuard`（路径边界检查 + 受保护路径检测）
+  - `ApprovalStore`（会话级 + 持久级审批记录）
+- Skill `allowed_tools` 执行（filterTools 回调）
+- 精确 Token 计数（优先使用 API 返回的 `usage.promptTokens`）
+- 累积 Token 使用追踪（`addTokenUsage` / `getTokenUsage`）
+- 执行模式（auto / confirm-all / plan-first）
+
 ### Added — P9 Skill 系统（2026-06-17）
 - Skill 系统完整实现（结合 Cursor + Alice 方法论设计）
   - `SkillFrontmatter` 类型：name / description / when_to_use / allowed_tools / disable_model_invocation / version

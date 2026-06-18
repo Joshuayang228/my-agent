@@ -102,7 +102,7 @@ export async function* agentLoop(
       }
 
       try {
-        const stream = streamChat({ config, messages: workingMessages, tools: effectiveTools, signal })
+        const stream = streamChat({ config, messages: workingMessages, tools: effectiveTools, signal, enablePromptCache: true })
 
         let streamResult = await stream.next()
         while (!streamResult.done) {

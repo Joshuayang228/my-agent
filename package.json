@@ -21,6 +21,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "dotenv": "^17.4.2",
+    "electron-updater": "^6.8.9",
     "gray-matter": "^4.0.3",
     "mermaid": "^11.15.0",
     "react-markdown": "^10.1.0",

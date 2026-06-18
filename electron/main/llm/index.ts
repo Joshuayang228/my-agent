@@ -5,8 +5,12 @@ import type {
   ToolCall,
   ToolResult,
   AgentStreamEvent,
+  ResponseFormat,
 } from '../../../src/shared/types'
 import { detectProvider, buildAnthropicBody } from './provider-router'
+import { createLogger } from '../utils/logger'
+
+const llmLog = createLogger('LLM')
 
 // ── 对外接口 ──
 
@@ -15,22 +19,70 @@ export interface StreamChatOptions {
   messages: ChatMessage[]
   tools?: ToolDefinition[]
   signal?: AbortSignal
+  responseFormat?: ResponseFormat
+  /** 启用 Prompt Cache（Anthropic cache_control） */
+  enablePromptCache?: boolean
 }
 
 export interface StreamChatResult {
   content: string | null
   toolCalls: ToolCall[]
-  usage: { promptTokens: number; completionTokens: number } | null
+  usage: { promptTokens: number; completionTokens: number; cacheReadTokens?: number; cacheCreationTokens?: number } | null
 }
 
 /**
- * 流式调用 LLM，边 yield 事件边积累最终结果。
- * 调用方通过 for-await 消费事件，循环结束后读 return value 拿完整结果。
+ * 流式调用 LLM，支持 failover 降级。
+ * 主模型失败时，按 config.fallbackModels 顺序自动重试备用模型。
  */
 export async function* streamChat(
   options: StreamChatOptions,
 ): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
-  const { config, messages, tools, signal } = options
+  const { config } = options
+  const fallbacks = config.fallbackModels ?? []
+
+  try {
+    return yield* streamChatSingle(options)
+  } catch (err) {
+    if (fallbacks.length === 0) throw err
+    llmLog.warn('Primary model failed, attempting failover', {
+      model: config.model,
+      error: err instanceof Error ? err.message : String(err),
+      fallbackCount: fallbacks.length,
+    })
+  }
+
+  for (let i = 0; i < fallbacks.length; i++) {
+    const fb = fallbacks[i]
+    const fbConfig = {
+      ...config,
+      model: fb.model,
+      baseUrl: fb.baseUrl ?? config.baseUrl,
+      apiKey: fb.apiKey ?? config.apiKey,
+      provider: fb.provider ?? config.provider,
+      fallbackModels: undefined,
+    }
+    try {
+      llmLog.info(`Failover attempt ${i + 1}/${fallbacks.length}`, { model: fb.model })
+      yield { type: 'text', content: `\n\n> ⚡ 主模型不可用，已切换到 ${fb.model}\n\n` }
+      return yield* streamChatSingle({ ...options, config: fbConfig })
+    } catch (fbErr) {
+      llmLog.warn(`Failover model failed: ${fb.model}`, {
+        error: fbErr instanceof Error ? fbErr.message : String(fbErr),
+      })
+      if (i === fallbacks.length - 1) throw fbErr
+    }
+  }
+
+  throw new Error('All models (primary + fallbacks) failed')
+}
+
+/**
+ * 单模型流式调用（内部实现）。
+ */
+async function* streamChatSingle(
+  options: StreamChatOptions,
+): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
+  const { config, messages, tools, signal, responseFormat } = options
   const provider = detectProvider(config)
 
   if (provider === 'anthropic') {
@@ -48,6 +100,10 @@ export async function* streamChat(
   if (config.temperature !== undefined) body.temperature = config.temperature
   if (config.topP !== undefined) body.top_p = config.topP
   if (config.maxTokens !== undefined) body.max_tokens = config.maxTokens
+
+  if (responseFormat && responseFormat.type !== 'text') {
+    body.response_format = responseFormat
+  }
 
   if (tools && tools.length > 0) {
     body.tools = tools.map(toOpenAITool)
@@ -127,23 +183,25 @@ export async function* streamChat(
         yield { type: 'thinking', content: reasoning }
       }
 
-      // tool_calls delta
+      // tool_calls delta — 边流式边 yield
       const tcDeltas = delta.tool_calls as Array<Record<string, unknown>> | undefined
       if (tcDeltas) {
         for (const tcDelta of tcDeltas) {
           const index = tcDelta.index as number
+          const fn = tcDelta.function as Record<string, unknown> | undefined
           const existing = toolCallsAcc.get(index)
 
           if (!existing) {
-            toolCallsAcc.set(index, {
-              id: (tcDelta.id as string) || '',
-              name: ((tcDelta.function as Record<string, unknown>)?.name as string) || '',
-              arguments: ((tcDelta.function as Record<string, unknown>)?.arguments as string) || '',
-            })
+            const id = (tcDelta.id as string) || ''
+            const name = (fn?.name as string) || ''
+            const argChunk = (fn?.arguments as string) || ''
+            toolCallsAcc.set(index, { id, name, arguments: argChunk })
+            yield { type: 'tool_call_delta', index, id: id || undefined, name: name || undefined, argumentsDelta: argChunk }
           } else {
-            const fn = tcDelta.function as Record<string, unknown> | undefined
-            if (fn?.arguments) {
-              existing.arguments += fn.arguments as string
+            const argChunk = (fn?.arguments as string) || ''
+            if (argChunk) {
+              existing.arguments += argChunk
+              yield { type: 'tool_call_delta', index, argumentsDelta: argChunk }
             }
           }
         }
@@ -240,10 +298,10 @@ export function buildToolResultMessages(results: ToolResult[]): Record<string, u
 async function* streamChatAnthropic(
   options: StreamChatOptions,
 ): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
-  const { config, messages, tools, signal } = options
+  const { config, messages, tools, signal, enablePromptCache } = options
   const apiMessages = buildAPIMessages(messages)
   const openaiTools = tools ? tools.map(toOpenAITool) : undefined
-  const { url, headers, body } = buildAnthropicBody(config, apiMessages, openaiTools)
+  const { url, headers, body } = buildAnthropicBody(config, apiMessages, openaiTools, { enablePromptCache })
 
   const response = await fetch(url, {
     method: 'POST',
@@ -264,7 +322,7 @@ async function* streamChatAnthropic(
   let buffer = ''
   let contentAcc = ''
   const toolCallsAcc: Map<string, { id: string; name: string; arguments: string }> = new Map()
-  let usage: { promptTokens: number; completionTokens: number } | null = null
+  let usage: StreamChatResult['usage'] = null
 
   while (true) {
     const { done, value } = await reader.read()
@@ -288,21 +346,6 @@ async function* streamChatAnthropic(
 
       const eventType = parsed.type as string
 
-      if (eventType === 'content_block_delta') {
-        const delta = parsed.delta as Record<string, unknown>
-        if (delta?.type === 'text_delta') {
-          const text = delta.text as string
-          contentAcc += text
-          yield { type: 'text', content: text }
-        }
-        if (delta?.type === 'input_json_delta') {
-          const partial = delta.partial_json as string
-          const toolId = (parsed as Record<string, unknown>).index as string
-          const existing = toolCallsAcc.get(toolId)
-          if (existing) existing.arguments += partial || ''
-        }
-      }
-
       if (eventType === 'content_block_start') {
         const contentBlock = parsed.content_block as Record<string, unknown>
         if (contentBlock?.type === 'tool_use') {
@@ -312,6 +355,25 @@ async function* streamChatAnthropic(
             name: contentBlock.name as string,
             arguments: '',
           })
+          yield { type: 'tool_call_delta', index: Number(idx), id: contentBlock.id as string, name: contentBlock.name as string, argumentsDelta: '' }
+        }
+      }
+
+      if (eventType === 'content_block_delta') {
+        const delta = parsed.delta as Record<string, unknown>
+        if (delta?.type === 'text_delta') {
+          const text = delta.text as string
+          contentAcc += text
+          yield { type: 'text', content: text }
+        }
+        if (delta?.type === 'input_json_delta') {
+          const partial = delta.partial_json as string || ''
+          const toolIdx = String((parsed as Record<string, unknown>).index)
+          const existing = toolCallsAcc.get(toolIdx)
+          if (existing) {
+            existing.arguments += partial
+            yield { type: 'tool_call_delta', index: Number(toolIdx), argumentsDelta: partial }
+          }
         }
       }
 
@@ -332,6 +394,8 @@ async function* streamChatAnthropic(
           usage = {
             promptTokens: u.input_tokens ?? 0,
             completionTokens: u.output_tokens ?? 0,
+            cacheReadTokens: u.cache_read_input_tokens,
+            cacheCreationTokens: u.cache_creation_input_tokens,
           }
         }
       }
@@ -340,6 +404,12 @@ async function* streamChatAnthropic(
 
   if (usage) {
     yield { type: 'usage', promptTokens: usage.promptTokens, completionTokens: usage.completionTokens }
+    if (usage.cacheReadTokens || usage.cacheCreationTokens) {
+      llmLog.info('Prompt cache stats', {
+        cacheRead: usage.cacheReadTokens ?? 0,
+        cacheCreation: usage.cacheCreationTokens ?? 0,
+      })
+    }
   }
 
   const toolCalls: ToolCall[] = Array.from(toolCallsAcc.values()).map(tc => ({

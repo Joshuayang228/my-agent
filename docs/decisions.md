@@ -139,4 +139,94 @@
 - **决定**：先 B，后续可加 C。理由：Rule 约束零成本立即生效，AI 编码时自动遵守分层规则
 - **影响**：core.mdc 新增架构分层约束、所有新增模块必须先明确层级
 
-<!-- 后续决策在此追加 -->
+### DEC-011：沙箱系统参考 Codex 而非自研
+
+- **日期**：2026-06-17
+- **状态**：已决定
+- **背景**：Agent 需要命令执行安全防护，需选择沙箱方案
+- **选项**：
+  - A：参考 Codex 的四层纵深防御 — 三级模式 + 命令分级 + 路径守卫 + 审批记录
+  - B：Docker 容器隔离 — 最安全但部署复杂
+  - C：简单黑名单 — 实现简单但覆盖不全
+- **决定**：A。理由：Codex 方案经过验证，不需要额外依赖，三级模式给用户灵活选择
+- **影响**：sandbox/ 模块（policy + exec-policy + command-guard + approval-store）
+
+### DEC-012：Tool 中间件选择洋葱模型
+
+- **日期**：2026-06-17
+- **状态**：已决定
+- **背景**：工具执行需要可扩展的拦截机制（日志、截断、错误格式化等）
+- **选项**：
+  - A：洋葱模型中间件管道 — 注册顺序执行，每层可修改 ctx 和 result
+  - B：事件钩子（before/after）— 简单但无法短路
+  - C：装饰器模式 — 类型安全但不够灵活
+- **决定**：A。理由：洋葱模型既能前置拦截也能后置修改，支持短路，Express/Koa 验证过的模式
+- **影响**：tools/middleware.ts、ToolRegistry 集成中间件
+
+### DEC-013：多 Provider 路由策略
+
+- **日期**：2026-06-17
+- **状态**：已决定
+- **背景**：用户可能使用不同 LLM 提供商（OpenAI/Anthropic/Gemini），需要统一适配
+- **选项**：
+  - A：baseUrl 自动检测 + 显式 provider 字段 — 零配置体验 + 兜底手动指定
+  - B：每个 Provider 独立配置页 — 用户操作复杂
+  - C：只支持 OpenAI 兼容格式 — 无法覆盖 Anthropic
+- **决定**：A。理由：大部分 Provider 的 baseUrl 有明显特征可自动检测，同时保留 provider 字段给特殊场景
+- **影响**：llm/provider-router.ts、llm/index.ts（streamChatAnthropic）、shared/types.ts（LLMProvider）
+
+### DEC-014：辅助任务使用独立模型配置
+
+- **日期**：2026-06-17
+- **状态**：已决定
+- **背景**：后台任务（标题生成/画像提取/摘要压缩）消耗 token 但质量要求较低
+- **选项**：
+  - A：auxModel 字段 — 后台任务用便宜模型，留空沿用主模型
+  - B：所有任务统一模型 — 简单但浪费成本
+  - C：每个任务独立配置 — 灵活但设置项过多
+- **决定**：A。理由：一个 auxModel 覆盖所有辅助场景，用户只需配一次，不配就自动沿用主模型
+- **影响**：settings-store（新增 auxModel）、runtime.ts（getAuxLLMConfig）、SettingsPanel UI
+
+### DEC-015：Token 预算采用会话级 + 日级双层限额
+
+- **日期**：2026-06-17
+- **状态**：已决定
+- **背景**：需要防止 Token 消耗失控
+- **选项**：
+  - A：双层限额（会话级 SQLite 检查 + 日级内存计数器）— 细粒度控制
+  - B：仅日级限额 — 无法防止单个会话暴走
+  - C：按金额预算 — 需要价格表，维护成本高
+- **决定**：A。理由：会话级防止单次失控，日级防止累积超支，两者互补
+- **影响**：token-budget.ts、runtime.ts（预算检查 + 日级累加）
+
+### DEC-016：多模态采用 base64 dataUrl 内联方案
+
+- **日期**：2026-06-17
+- **状态**：已决定
+- **背景**：支持图片消息需要选择图片传输方式
+- **选项**：
+  - A：base64 dataUrl 内联 — 简单，前后端一致，无需文件服务器
+  - B：保存到本地文件 + file:// URL — 需要管理文件生命周期
+  - C：上传到云存储 — 违背本地优先原则
+- **决定**：A。理由：Electron 环境下 base64 足够，5MB 限制防止过大，OpenAI Vision API 直接支持 dataUrl
+- **影响**：shared/types.ts（ImageAttachment）、llm/index.ts（image_url content）、App.tsx（粘贴/预览/渲染）
+
+### DEC-017：规则体系精简——高频内联 + 80/20 瘦身
+
+- **日期**：2026-06-17
+- **状态**：已决定
+- **背景**：系统性审查发现规则体系"设计完美但执行为零"——8 个 Skill 文件从未被触发，自审 HARD-GATE 被跳过，文档更新规则大量遗漏。根本原因：规则总量超过 AI 上下文记忆容量，依赖"主动读外部文件"的机制不可靠
+- **选项**：
+  - A：保持现有结构，加强提示 — 治标不治本
+  - B：高频规则内联 + 低频保留参考 + 精简 HARD-GATE — 减少读文件依赖，提升执行概率
+  - C：全部删除 Skill 文件，只保留 .mdc — 过于激进，失去深度参考
+- **决定**：B。具体措施：
+  1. code-review 清单（10 项）内联进 dev-workflow.mdc Phase 6
+  2. debug-guide 流程（7 步 + 陷阱）内联进 dev-workflow.mdc Phase 8
+  3. Phase 1 区分"新需求五步确认"和"已批准子任务简化执行"
+  4. Phase 11 必查从 8 项精简为 3 必查 + 5 按需
+  5. model-config / security-checklist 用实际代码知识回填 TODO
+  6. 删除过时的 playground-guide
+  7. commit message 从中文改为英文
+  8. Skill 路由表从 7 项精简为 5 项参考表
+- **影响**：dev-workflow.mdc、core.mdc、7 个 Skill 文件、rules-feedback.md

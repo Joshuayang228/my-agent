@@ -33,7 +33,8 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="rounded px-2 py-0.5 text-xs text-slate-400 transition hover:bg-slate-600 hover:text-white"
+      className="rounded px-2 py-0.5 text-xs transition"
+      style={{ color: 'var(--text-muted)' }}
     >
       {copied ? '已复制' : '复制'}
     </button>
@@ -58,26 +59,26 @@ function MermaidBlock({ code }: { code: string }) {
   }, [code, id])
 
   if (error) return <pre className="rounded-lg bg-red-950/30 p-3 text-xs text-red-400">{error}</pre>
-  return <div ref={containerRef} className="my-3 flex justify-center overflow-x-auto rounded-lg bg-slate-800/60 p-4" />
+  return <div ref={containerRef} className="my-3 flex justify-center overflow-x-auto rounded-lg p-4" style={{ background: 'var(--card-bg)' }} />
 }
 
-function splitAside(raw: string): { main: string; aside: string | null } {
-  const re = /<aside>([\s\S]*?)<\/aside>/i
-  const m = re.exec(raw)
-  if (!m) return { main: raw, aside: null }
-  return { main: raw.replace(re, '').trim(), aside: m[1].trim() }
+function splitAside(raw: string): { main: string; asides: string[] } {
+  const re = /<aside>([\s\S]*?)<\/aside>/gi
+  const asides: string[] = []
+  let match: RegExpExecArray | null
+  while ((match = re.exec(raw)) !== null) {
+    const text = match[1].trim()
+    if (text) asides.push(text)
+  }
+  const main = raw.replace(re, '').replace(/<\/?aside\b[^>]*>/gi, '').trim()
+  return { main, asides }
 }
 
 export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: MarkdownRendererProps) {
-  const { main, aside } = splitAside(content)
+  const { main, asides } = splitAside(content)
 
   return (
     <div className="markdown-body">
-    {aside && (
-      <div className="mb-2 rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-1.5 text-[11px] text-violet-400/80 italic">
-        {aside}
-      </div>
-    )}
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
@@ -91,9 +92,9 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: Mark
 
           if (match) {
             return (
-              <div className="group relative my-3 overflow-hidden rounded-lg border border-slate-700/60">
-                <div className="flex items-center justify-between bg-slate-800/80 px-4 py-1.5 text-xs">
-                  <span className="text-slate-400">{match[1]}</span>
+              <div className="group relative my-3 overflow-hidden rounded-lg border" style={{ borderColor: 'var(--card-border)' }}>
+                <div className="flex items-center justify-between px-4 py-1.5 text-xs" style={{ background: 'var(--bg-tertiary)' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>{match[1]}</span>
                   <CopyButton text={codeString} />
                 </div>
                 <SyntaxHighlighter
@@ -116,7 +117,8 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: Mark
 
           return (
             <code
-              className="rounded bg-slate-700/60 px-1.5 py-0.5 text-[0.8125rem] text-cyan-300"
+              className="rounded px-1.5 py-0.5 text-[0.8125rem] text-cyan-600"
+              style={{ background: 'var(--bg-tertiary)' }}
               {...props}
             >
               {children}
@@ -133,13 +135,13 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: Mark
           )
         },
         thead({ children }) {
-          return <thead className="border-b border-slate-700">{children}</thead>
+          return <thead className="border-b" style={{ borderColor: 'var(--border-color)' }}>{children}</thead>
         },
         th({ children }) {
-          return <th className="px-3 py-2 text-left text-xs font-semibold text-slate-300">{children}</th>
+          return <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{children}</th>
         },
         td({ children }) {
-          return <td className="border-t border-slate-800 px-3 py-2 text-slate-300">{children}</td>
+          return <td className="border-t px-3 py-2" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>{children}</td>
         },
 
         // 块元素
@@ -147,13 +149,13 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: Mark
           return <p className="my-2 leading-relaxed">{children}</p>
         },
         h1({ children }) {
-          return <h1 className="mb-3 mt-6 text-xl font-bold text-white">{children}</h1>
+          return <h1 className="mb-3 mt-6 text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{children}</h1>
         },
         h2({ children }) {
-          return <h2 className="mb-2 mt-5 text-lg font-bold text-white">{children}</h2>
+          return <h2 className="mb-2 mt-5 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{children}</h2>
         },
         h3({ children }) {
-          return <h3 className="mb-2 mt-4 text-base font-semibold text-white">{children}</h3>
+          return <h3 className="mb-2 mt-4 text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{children}</h3>
         },
         ul({ children }) {
           return <ul className="my-2 ml-5 list-disc space-y-1">{children}</ul>
@@ -162,17 +164,17 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: Mark
           return <ol className="my-2 ml-5 list-decimal space-y-1">{children}</ol>
         },
         li({ children }) {
-          return <li className="text-slate-200">{children}</li>
+          return <li style={{ color: 'var(--text-primary)' }}>{children}</li>
         },
         blockquote({ children }) {
           return (
-            <blockquote className="my-3 border-l-3 border-cyan-500/60 pl-4 text-slate-400 italic">
+            <blockquote className="my-3 border-l-3 border-cyan-500/60 pl-4 italic" style={{ color: 'var(--text-muted)' }}>
               {children}
             </blockquote>
           )
         },
         hr() {
-          return <hr className="my-4 border-slate-700/60" />
+          return <hr className="my-4" style={{ borderColor: 'var(--border-color)' }} />
         },
         a({ href, children }) {
           return (
@@ -180,19 +182,28 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: Mark
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-cyan-400 underline decoration-cyan-400/30 transition hover:decoration-cyan-400"
+              className="text-cyan-500 underline decoration-cyan-500/30 transition hover:decoration-cyan-500"
             >
               {children}
             </a>
           )
         },
         strong({ children }) {
-          return <strong className="font-semibold text-white">{children}</strong>
+          return <strong className="font-semibold" style={{ color: 'var(--text-primary)' }}>{children}</strong>
         },
       }}
     >
       {main}
     </ReactMarkdown>
+    {asides.length > 0 && (
+      <div className="mt-2 space-y-1">
+        {asides.map((text, i) => (
+          <p key={i} className="text-[11px] italic" style={{ color: 'var(--text-muted)' }}>
+            {text}
+          </p>
+        ))}
+      </div>
+    )}
     </div>
   )
 })

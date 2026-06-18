@@ -24,8 +24,9 @@ interface ToolStatus {
   callId: string
   name: string
   args: Record<string, unknown>
-  status: 'running' | 'done' | 'error'
+  status: 'pending' | 'running' | 'done' | 'error'
   result?: string
+  streamingArgs?: string
 }
 
 interface ThinkingChunk {
@@ -104,6 +105,8 @@ function App() {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [bgStreamingSessionId, setBgStreamingSessionId] = useState<string | null>(null)
   const [showScrollBtn, setShowScrollBtn] = useState(false)
+  const [isListening, setIsListening] = useState(false)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -271,6 +274,26 @@ function App() {
         setThinking((prev) => [...prev, { content: ev.content }])
         break
 
+      case 'tool_call_delta':
+        setActiveTools((prev) => {
+          const existing = prev.find((_, i) => i === ev.index)
+          if (!existing) {
+            return [...prev, {
+              callId: ev.id || `pending-${ev.index}`,
+              name: ev.name || '',
+              args: {},
+              status: 'pending' as const,
+              streamingArgs: ev.argumentsDelta,
+            }]
+          }
+          return prev.map((t, i) =>
+            i === ev.index
+              ? { ...t, streamingArgs: (t.streamingArgs || '') + ev.argumentsDelta, name: ev.name || t.name, callId: ev.id || t.callId }
+              : t
+          )
+        })
+        break
+
       case 'tool_calls':
         setMessages((prev) => [...prev, {
           id: genId(),
@@ -283,7 +306,7 @@ function App() {
 
       case 'tool_start':
         setActiveTools((prev) => [
-          ...prev,
+          ...prev.filter(t => t.status !== 'pending' || t.callId !== ev.callId),
           { callId: ev.callId, name: ev.name, args: ev.args, status: 'running' },
         ])
         break
@@ -325,6 +348,54 @@ function App() {
         setActiveTools([])
         break
     }
+  }, [])
+
+  const toggleVoiceInput = useCallback(() => {
+    if (isListening) {
+      recognitionRef.current?.stop()
+      setIsListening(false)
+      return
+    }
+
+    const SpeechRecognition = (window as unknown as Record<string, unknown>).SpeechRecognition || (window as unknown as Record<string, unknown>).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      toast?.({ type: 'warning', message: '当前浏览器不支持语音识别' })
+      return
+    }
+
+    const recognition = new (SpeechRecognition as new () => SpeechRecognition)()
+    recognition.lang = 'zh-CN'
+    recognition.interimResults = true
+    recognition.continuous = true
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let transcript = ''
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript
+      }
+      setInput(transcript)
+    }
+
+    recognition.onerror = () => {
+      setIsListening(false)
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+    }
+
+    recognitionRef.current = recognition
+    recognition.start()
+    setIsListening(true)
+  }, [isListening, toast])
+
+  const speakText = useCallback((text: string) => {
+    if (!window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = 'zh-CN'
+    utterance.rate = 1.1
+    window.speechSynthesis.speak(utterance)
   }, [])
 
   const sendMessage = async (overrideText?: string) => {
@@ -481,7 +552,7 @@ function App() {
               <span className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>会话列表</span>
               <button
                 onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-                className="rounded p-1 text-xs transition hover:bg-slate-700/50"
+                className="rounded p-1 text-xs transition"
                 style={{ color: 'var(--text-muted)' }}
                 title={theme === 'dark' ? '切换浅色模式' : '切换深色模式'}
               >
@@ -490,7 +561,8 @@ function App() {
             </div>
             <button
               onClick={createNewSession}
-              className="rounded-lg px-2 py-1 text-xs text-cyan-400 transition hover:bg-slate-800"
+              className="rounded-lg px-2 py-1 text-xs text-cyan-500 font-medium transition"
+              style={{ background: 'var(--accent-subtle)' }}
             >
               + 新建
             </button>
@@ -502,7 +574,8 @@ function App() {
                 value={sessionFilter}
                 onChange={(e) => setSessionFilter(e.target.value)}
                 placeholder="搜索会话..."
-                className="w-full rounded-md bg-slate-800/80 px-2.5 py-1.5 text-xs text-slate-300 placeholder-slate-600 outline-none ring-1 ring-slate-700 focus:ring-cyan-600/50"
+                className="w-full rounded-md px-2.5 py-1.5 text-xs outline-none ring-1 focus:ring-cyan-600/50"
+                style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', ['--tw-ring-color' as string]: 'var(--border-color)' } as React.CSSProperties}
               />
             </div>
           )}
@@ -510,23 +583,26 @@ function App() {
           <div className="flex-1 overflow-y-auto px-2">
             {sessionGroups.map((group) => (
               <div key={group.label}>
-                <div className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                <div className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                   {group.label}
                 </div>
                 {group.items.map((s) => (
                   <div
                     key={s.id}
-                    className={`group mb-1 flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-sm transition ${
-                      s.id === activeSessionId
-                        ? 'bg-slate-800 text-white'
-                        : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-                    }`}
+                    className="group mb-1 flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-sm transition"
+                    style={{
+                      background: s.id === activeSessionId ? 'var(--sidebar-active)' : 'transparent',
+                      color: s.id === activeSessionId ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    }}
                     onClick={() => switchSession(s.id)}
                     onDoubleClick={(e) => { e.stopPropagation(); setRenamingId(s.id); setRenameValue(s.title) }}
+                    onMouseEnter={(e) => { if (s.id !== activeSessionId) (e.currentTarget as HTMLDivElement).style.background = 'var(--sidebar-hover)' }}
+                    onMouseLeave={(e) => { if (s.id !== activeSessionId) (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
                   >
                     {renamingId === s.id ? (
                       <input
-                        className="w-full rounded bg-slate-700 px-1.5 py-0.5 text-sm text-white outline-none ring-1 ring-cyan-500/50"
+                        className="w-full rounded px-1.5 py-0.5 text-sm outline-none ring-1 ring-cyan-500/50"
+                        style={{ background: 'var(--input-bg)', color: 'var(--text-primary)' }}
                         value={renameValue}
                         onChange={(e) => setRenameValue(e.target.value)}
                         onBlur={commitRename}
@@ -544,7 +620,8 @@ function App() {
                     )}
                     <button
                       onClick={(e) => { e.stopPropagation(); deleteSession(s.id) }}
-                      className="ml-1 hidden shrink-0 text-xs text-slate-600 transition hover:text-red-400 group-hover:block"
+                      className="ml-1 hidden shrink-0 text-xs transition hover:text-red-400 group-hover:block"
+                      style={{ color: 'var(--text-muted)' }}
                     >
                       ✕
                     </button>
@@ -553,7 +630,7 @@ function App() {
               </div>
             ))}
             {sessions.length === 0 && (
-              <p className="px-3 pt-4 text-center text-xs text-slate-600">暂无会话</p>
+              <p className="px-3 pt-4 text-center text-xs" style={{ color: 'var(--text-muted)' }}>暂无会话</p>
             )}
           </div>
         </div>
@@ -562,30 +639,32 @@ function App() {
       {/* ── 主聊天区 ── */}
       <div className="flex flex-1 flex-col">
         {/* 顶栏 */}
-        <div className="flex items-center border-b border-slate-700/50 px-4 py-2">
+        <div className="flex items-center border-b px-4 py-2" style={{ borderColor: 'var(--border-color)' }}>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="mr-3 rounded p-1 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+            className="mr-3 rounded p-1 transition"
+            style={{ color: 'var(--text-muted)' }}
           >
             ☰
           </button>
-          <span className="flex-1 text-sm text-slate-400">
+          <span className="flex-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
             {sessions.find((s) => s.id === activeSessionId)?.title || 'My Agent'}
           </span>
-          <span className="mr-3 rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-[11px] text-violet-400">
+          <span className="mr-3 rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-[11px] text-violet-500">
             {currentPersonaName}
           </span>
           <div className="relative mr-2">
             <button
               onClick={(e) => { e.stopPropagation(); setModelMenuOpen(!modelMenuOpen) }}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1 text-xs text-slate-400 transition hover:border-slate-500 hover:text-slate-300"
+              className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition"
+              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
             >
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               {MODEL_PRESETS.find((p) => p.model === currentModel)?.label || currentModel}
               <svg className="h-3 w-3" viewBox="0 0 12 12" fill="currentColor"><path d="M3 5l3 3 3-3" /></svg>
             </button>
             {modelMenuOpen && (
-              <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-slate-700 bg-slate-900 py-1 shadow-xl">
+              <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border py-1 shadow-xl" style={{ borderColor: 'var(--border-color)', background: 'var(--dropdown-bg)' }}>
                 {MODEL_PRESETS.map((p) => (
                   <button
                     key={p.model}
@@ -597,10 +676,14 @@ function App() {
                       setModelMenuOpen(false)
                     }}
                     className={`w-full px-3 py-1.5 text-left text-xs transition ${
-                      currentModel === p.model
-                        ? 'bg-cyan-500/10 text-cyan-400'
-                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                      currentModel === p.model ? 'text-cyan-500 font-medium' : ''
                     }`}
+                    style={{
+                      color: currentModel === p.model ? undefined : 'var(--text-secondary)',
+                      background: currentModel === p.model ? 'var(--accent-subtle)' : undefined,
+                    }}
+                    onMouseEnter={(e) => { if (currentModel !== p.model) (e.currentTarget as HTMLButtonElement).style.background = 'var(--hover-overlay)' }}
+                    onMouseLeave={(e) => { if (currentModel !== p.model) (e.currentTarget as HTMLButtonElement).style.background = '' }}
                   >
                     {p.label}
                   </button>
@@ -612,7 +695,8 @@ function App() {
           <div className="flex items-center gap-1">
             <button
               onClick={() => setShowSkillsPanel(true)}
-              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+              className="rounded-lg p-1.5 transition"
+              style={{ color: 'var(--text-muted)' }}
               title="Skill 管理 (Ctrl+Shift+K)"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -621,7 +705,8 @@ function App() {
             </button>
             <button
               onClick={() => setShowMemoryPanel(true)}
-              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+              className="rounded-lg p-1.5 transition"
+              style={{ color: 'var(--text-muted)' }}
               title="记忆管理"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -630,7 +715,8 @@ function App() {
             </button>
             <button
               onClick={() => setShowSettings(true)}
-              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+              className="rounded-lg p-1.5 transition"
+              style={{ color: 'var(--text-muted)' }}
               title="设置"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -642,8 +728,8 @@ function App() {
 
         {/* 搜索栏 */}
         {searchOpen && (
-          <div className="flex items-center gap-2 border-b border-slate-700/50 bg-slate-800/80 px-4 py-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+          <div className="flex items-center gap-2 border-b px-4 py-2" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" style={{ color: 'var(--text-muted)' }} viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
             </svg>
             <input
@@ -651,14 +737,15 @@ function App() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="搜索消息..."
-              className="flex-1 bg-transparent text-sm text-slate-200 placeholder-slate-500 outline-none"
+              className="flex-1 bg-transparent text-sm outline-none"
+              style={{ color: 'var(--text-primary)' }}
             />
             {searchQuery && (
-              <span className="text-xs text-slate-500">
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 {messages.filter(m => m.role !== 'tool' && m.content && m.content.toLowerCase().includes(searchQuery.toLowerCase())).length} 条匹配
               </span>
             )}
-            <button onClick={() => { setSearchOpen(false); setSearchQuery('') }} className="text-slate-500 hover:text-slate-300">✕</button>
+            <button onClick={() => { setSearchOpen(false); setSearchQuery('') }} style={{ color: 'var(--text-muted)' }}>✕</button>
           </div>
         )}
 
@@ -681,36 +768,40 @@ function App() {
                 <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500/20 to-violet-500/20 text-3xl">
                   🤖
                 </div>
-                <h1 className="text-3xl font-bold text-white">My Agent</h1>
-                <p className="mt-2 text-slate-400">有性格、有记忆、能成长的数字伙伴</p>
+                <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>My Agent</h1>
+                <p className="mt-2" style={{ color: 'var(--text-muted)' }}>有性格、有记忆、能成长的数字伙伴</p>
 
                 <div className="mt-10 grid w-full max-w-md grid-cols-2 gap-3">
                   <button
                     onClick={sendQuickPrompt('你好，介绍一下你自己')}
-                    className="rounded-xl border border-slate-700/60 bg-slate-800/40 px-4 py-3 text-left text-sm text-slate-300 transition hover:border-cyan-500/40 hover:bg-slate-800"
+                    className="rounded-xl border px-4 py-3 text-left text-sm transition hover:border-cyan-500/40"
+                    style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)', color: 'var(--text-secondary)' }}
                   >
-                    <span className="mb-1 block text-cyan-400">💬</span>
+                    <span className="mb-1 block text-cyan-500">💬</span>
                     和我聊聊天
                   </button>
                   <button
                     onClick={sendQuickPrompt('现在几点了？')}
-                    className="rounded-xl border border-slate-700/60 bg-slate-800/40 px-4 py-3 text-left text-sm text-slate-300 transition hover:border-cyan-500/40 hover:bg-slate-800"
+                    className="rounded-xl border px-4 py-3 text-left text-sm transition hover:border-cyan-500/40"
+                    style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)', color: 'var(--text-secondary)' }}
                   >
-                    <span className="mb-1 block text-cyan-400">🔧</span>
+                    <span className="mb-1 block text-cyan-500">🔧</span>
                     试试工具调用
                   </button>
                   <button
                     onClick={() => setShowSettings(true)}
-                    className="rounded-xl border border-slate-700/60 bg-slate-800/40 px-4 py-3 text-left text-sm text-slate-300 transition hover:border-cyan-500/40 hover:bg-slate-800"
+                    className="rounded-xl border px-4 py-3 text-left text-sm transition hover:border-cyan-500/40"
+                    style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)', color: 'var(--text-secondary)' }}
                   >
-                    <span className="mb-1 block text-cyan-400">⚙️</span>
+                    <span className="mb-1 block text-cyan-500">⚙️</span>
                     配置模型
                   </button>
                   <button
                     onClick={sendQuickPrompt('帮我搜索一下最近的AI新闻')}
-                    className="rounded-xl border border-slate-700/60 bg-slate-800/40 px-4 py-3 text-left text-sm text-slate-300 transition hover:border-cyan-500/40 hover:bg-slate-800"
+                    className="rounded-xl border px-4 py-3 text-left text-sm transition hover:border-cyan-500/40"
+                    style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)', color: 'var(--text-secondary)' }}
                   >
-                    <span className="mb-1 block text-cyan-400">🌐</span>
+                    <span className="mb-1 block text-cyan-500">🌐</span>
                     网页搜索
                   </button>
                 </div>
@@ -729,13 +820,13 @@ function App() {
                 key={msg.id}
                 className={`animate-fade-in-up group flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} ${dimmed ? 'opacity-25' : ''} ${isSearchMatch ? 'ring-1 ring-cyan-500/30 rounded-xl' : ''}`}
               >
-                <div className="relative max-w-[80%]">
+                  <div className="relative max-w-[80%]">
                   <div
-                    className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                      msg.role === 'user'
-                        ? 'bg-cyan-600 text-white'
-                        : 'bg-slate-800 text-slate-200'
-                    }`}
+                    className="rounded-2xl px-4 py-3 text-sm leading-relaxed"
+                    style={{
+                      background: msg.role === 'user' ? 'var(--msg-user-bg)' : 'var(--msg-ai-bg)',
+                      color: msg.role === 'user' ? '#fff' : 'var(--text-primary)',
+                    }}
                   >
                     {msg.role === 'assistant' ? (
                       <>
@@ -778,11 +869,12 @@ function App() {
                   </div>
                   {/* 消息底部：时间戳 + 操作按钮 */}
                   <div className={`mt-1 flex items-center gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <span className="text-[10px] text-slate-600">{formatTime(msg.timestamp)}</span>
+                    <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatTime(msg.timestamp)}</span>
                     {msg.role === 'user' && !isStreaming && editingMsgId !== msg.id && (
                       <button
                         onClick={() => { setEditingMsgId(msg.id); setEditingContent(msg.content) }}
-                        className="rounded px-1 py-0.5 text-[10px] text-slate-600 opacity-0 transition hover:text-slate-300 group-hover:opacity-100"
+                        className="rounded px-1 py-0.5 text-[10px] opacity-0 transition group-hover:opacity-100"
+                        style={{ color: 'var(--text-muted)' }}
                         title="编辑"
                       >
                         ✎ 编辑
@@ -792,15 +884,25 @@ function App() {
                       <>
                         <button
                           onClick={() => copyToClipboard(msg.content, msg.id)}
-                          className="rounded px-1 py-0.5 text-[10px] text-slate-600 opacity-0 transition hover:text-slate-300 group-hover:opacity-100"
+                          className="rounded px-1 py-0.5 text-[10px] opacity-0 transition group-hover:opacity-100"
+                          style={{ color: 'var(--text-muted)' }}
                           title="复制"
                         >
                           {copiedId === msg.id ? '✓ 已复制' : '复制'}
                         </button>
+                        <button
+                          onClick={() => speakText(msg.content)}
+                          className="rounded px-1 py-0.5 text-[10px] opacity-0 transition group-hover:opacity-100"
+                          style={{ color: 'var(--text-muted)' }}
+                          title="朗读"
+                        >
+                          🔊 朗读
+                        </button>
                         {messages[messages.length - 1]?.id === msg.id && !isStreaming && (
                           <button
                             onClick={() => regenerateLastResponse()}
-                            className="rounded px-1 py-0.5 text-[10px] text-slate-600 opacity-0 transition hover:text-slate-300 group-hover:opacity-100"
+                            className="rounded px-1 py-0.5 text-[10px] opacity-0 transition group-hover:opacity-100"
+                            style={{ color: 'var(--text-muted)' }}
                             title="重新生成"
                           >
                             ↻ 重新生成
@@ -811,10 +913,30 @@ function App() {
                     {!isStreaming && (
                       <button
                         onClick={async () => {
+                          if (!activeSessionId) return
+                          const forked = await window.electronAPI?.session.fork(activeSessionId, msg.id)
+                          if (forked) {
+                            const list = await window.electronAPI?.session.list() || []
+                            setSessions(list)
+                            setActiveSessionId(forked.id)
+                            setMessages(forked.messages)
+                          }
+                        }}
+                        className="rounded px-1 py-0.5 text-[10px] opacity-0 transition group-hover:opacity-100"
+                        style={{ color: 'var(--text-muted)' }}
+                        title="从此消息分支"
+                      >
+                        ⑂ 分支
+                      </button>
+                    )}
+                    {!isStreaming && (
+                      <button
+                        onClick={async () => {
                           setMessages(prev => prev.filter(m => m.id !== msg.id))
                           await window.electronAPI?.session.deleteMessage(msg.id)
                         }}
-                        className="rounded px-1 py-0.5 text-[10px] text-slate-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"
+                        className="rounded px-1 py-0.5 text-[10px] opacity-0 transition hover:text-red-400 group-hover:opacity-100"
+                        style={{ color: 'var(--text-muted)' }}
                         title="删除此消息"
                       >
                         删除
@@ -827,17 +949,17 @@ function App() {
 
             {/* Thinking 区域 */}
             {thinking.length > 0 && (
-              <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-4 py-3">
+              <div className="rounded-xl border border-indigo-500/20 px-4 py-3" style={{ background: 'var(--accent-subtle)' }}>
                 <button
                   onClick={() => setThinkingExpanded(!thinkingExpanded)}
-                  className="flex w-full items-center gap-2 text-xs text-indigo-400"
+                  className="flex w-full items-center gap-2 text-xs text-indigo-500"
                 >
                   <span className={`transition-transform ${thinkingExpanded ? 'rotate-90' : ''}`}>▶</span>
                   <span>思考过程</span>
                   {isStreaming && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />}
                 </button>
                 {thinkingExpanded && (
-                  <pre className="mt-2 max-h-60 overflow-auto whitespace-pre-wrap text-xs leading-relaxed text-indigo-300/70">
+                  <pre className="mt-2 max-h-60 overflow-auto whitespace-pre-wrap text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                     {thinking.map((t) => t.content).join('')}
                   </pre>
                 )}
@@ -849,21 +971,30 @@ function App() {
                 {activeTools.map((tool) => (
                   <div
                     key={tool.callId}
-                    className="rounded-lg border border-slate-700/60 bg-slate-800/60 px-4 py-3"
+                    className="rounded-lg border px-4 py-3"
+                    style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)' }}
                   >
                     <div className="flex items-center gap-2 text-xs">
                       <span className={`inline-block h-2 w-2 rounded-full ${
-                        tool.status === 'running' ? 'animate-pulse bg-amber-400'
+                        tool.status === 'pending' ? 'animate-pulse bg-cyan-400'
+                        : tool.status === 'running' ? 'animate-pulse bg-amber-400'
                         : tool.status === 'error' ? 'bg-red-400'
                         : 'bg-emerald-400'
                       }`} />
-                      <span className="font-mono text-slate-300">{tool.name}</span>
-                      <span className="text-slate-500">
-                        {tool.status === 'running' ? '执行中...' : tool.status === 'error' ? '失败' : '完成'}
+                      <span className="font-mono" style={{ color: 'var(--text-primary)' }}>{tool.name || '...'}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>
+                        {tool.status === 'pending' ? '解析参数...'
+                          : tool.status === 'running' ? '执行中...'
+                          : tool.status === 'error' ? '失败' : '完成'}
                       </span>
                     </div>
+                    {tool.status === 'pending' && tool.streamingArgs && (
+                      <pre className="mt-2 max-h-32 overflow-auto font-mono text-[11px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                        {tool.streamingArgs}
+                      </pre>
+                    )}
                     {tool.result && (
-                      <pre className="mt-2 overflow-x-auto text-xs text-slate-400">
+                      <pre className="mt-2 overflow-x-auto text-xs" style={{ color: 'var(--text-secondary)' }}>
                         {tool.result.slice(0, 500)}
                       </pre>
                     )}
@@ -878,7 +1009,8 @@ function App() {
           {showScrollBtn && (
             <button
               onClick={scrollToBottom}
-              className="absolute bottom-4 right-6 z-10 rounded-full bg-slate-700/90 p-2 text-slate-300 shadow-lg transition hover:bg-slate-600 hover:text-white"
+              className="absolute bottom-4 right-6 z-10 rounded-full p-2 shadow-lg transition"
+              style={{ background: 'var(--scroll-btn-bg)', color: 'var(--text-secondary)' }}
               title="回到底部"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -889,10 +1021,9 @@ function App() {
         </div>
 
         {/* 底部信息栏 + 输入区域 */}
-        <div className="border-t border-slate-700/50 bg-slate-900/80 px-4 py-4 backdrop-blur">
-          {/* Token 用量 */}
+        <div className="border-t px-4 py-4 backdrop-blur" style={{ borderColor: 'var(--border-color)', background: 'var(--footer-bg)' }}>
           {usage && (
-            <div className="mx-auto mb-2 flex max-w-3xl justify-end gap-3 text-[10px] text-slate-600">
+            <div className="mx-auto mb-2 flex max-w-3xl justify-end gap-3 text-[10px]" style={{ color: 'var(--text-muted)' }}>
               <span>输入 {(usage.promptTokens / 1000).toFixed(1)}k</span>
               <span>输出 {(usage.completionTokens / 1000).toFixed(1)}k</span>
               <span>合计 {((usage.promptTokens + usage.completionTokens) / 1000).toFixed(1)}k tokens</span>
@@ -901,9 +1032,9 @@ function App() {
           {attachedFiles.length > 0 && (
             <div className="mx-auto mb-1 flex max-w-3xl flex-wrap gap-1">
               {attachedFiles.map((f, i) => (
-                <span key={i} className="inline-flex items-center gap-1 rounded bg-slate-700 px-2 py-0.5 text-xs text-slate-300">
+                <span key={i} className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
                   📎 {f.name}
-                  <button onClick={() => setAttachedFiles(prev => prev.filter((_, j) => j !== i))} className="text-slate-400 hover:text-red-400">×</button>
+                  <button onClick={() => setAttachedFiles(prev => prev.filter((_, j) => j !== i))} style={{ color: 'var(--text-muted)' }} className="hover:text-red-400">×</button>
                 </span>
               ))}
             </div>
@@ -915,7 +1046,8 @@ function App() {
                   <img
                     src={img.dataUrl}
                     alt={img.fileName || 'image'}
-                    className="h-16 w-16 rounded-lg border border-slate-600 object-cover"
+                    className="h-16 w-16 rounded-lg border object-cover"
+                    style={{ borderColor: 'var(--border-color)' }}
                   />
                   <button
                     onClick={() => setPendingImages(prev => prev.filter((_, idx) => idx !== i))}
@@ -947,14 +1079,22 @@ function App() {
               placeholder={attachedFiles.length > 0 ? '描述附件内容或输入问题...' : '输入消息... (Enter 发送, Shift+Enter 换行, 可拖拽/粘贴文件)'}
               rows={1}
               disabled={isStreaming}
-              className="flex-1 resize-none rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 disabled:opacity-50"
-              style={{ maxHeight: '120px' }}
+              className="flex-1 resize-none rounded-xl border px-4 py-3 text-sm outline-none transition focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 disabled:opacity-50"
+              style={{ maxHeight: '120px', borderColor: 'var(--border-color)', background: 'var(--input-bg)', color: 'var(--text-primary)' }}
               onInput={(e) => {
                 const target = e.target as HTMLTextAreaElement
                 target.style.height = 'auto'
                 target.style.height = `${Math.min(target.scrollHeight, 120)}px`
               }}
             />
+            <button
+              onClick={toggleVoiceInput}
+              className={`rounded-xl px-3 py-3 text-sm transition-all ${isListening ? 'animate-pulse bg-red-500 text-white' : ''}`}
+              style={isListening ? {} : { color: 'var(--text-muted)', background: 'var(--bg-tertiary)' }}
+              title={isListening ? '停止录音' : '语音输入'}
+            >
+              🎤
+            </button>
             {isStreaming ? (
               <button
                 onClick={() => window.electronAPI.chat.abort(activeSessionId || undefined)}
@@ -993,14 +1133,14 @@ function App() {
 
       {confirmDialog?.visible && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-slate-700/60 bg-slate-900 p-6 shadow-2xl">
-            <h3 className="mb-2 text-base font-semibold text-amber-400">⚠ 操作确认</h3>
-            <p className="mb-3 text-sm text-slate-300">
+          <div className="w-full max-w-md rounded-2xl border p-6 shadow-2xl" style={{ borderColor: 'var(--card-border)', background: 'var(--dropdown-bg)' }}>
+            <h3 className="mb-2 text-base font-semibold text-amber-500">⚠ 操作确认</h3>
+            <p className="mb-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
               AI 请求执行以下操作：
             </p>
-            <div className="mb-4 rounded-lg border border-slate-700/60 bg-slate-800/60 px-4 py-3">
-              <div className="text-sm font-mono text-cyan-400">{confirmDialog.name}</div>
-              <pre className="mt-2 max-h-40 overflow-auto text-xs text-slate-400">
+            <div className="mb-4 rounded-lg border px-4 py-3" style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)' }}>
+              <div className="text-sm font-mono text-cyan-500">{confirmDialog.name}</div>
+              <pre className="mt-2 max-h-40 overflow-auto text-xs" style={{ color: 'var(--text-secondary)' }}>
                 {JSON.stringify(confirmDialog.args, null, 2)}
               </pre>
             </div>
@@ -1010,7 +1150,8 @@ function App() {
                   window.electronAPI.chat.confirmResponse(confirmDialog.requestId, false)
                   setConfirmDialog(null)
                 }}
-                className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
+                className="rounded-lg border px-4 py-2 text-sm transition"
+                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
               >
                 拒绝
               </button>

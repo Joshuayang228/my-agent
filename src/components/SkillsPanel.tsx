@@ -114,23 +114,22 @@ export function SkillsPanel({ visible, onClose }: SkillsPanelProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div
-        className="flex h-[80vh] w-[900px] max-w-[90vw] flex-col rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
+        className="theme-panel flex h-[80vh] w-[900px] max-w-[90vw] flex-col rounded-2xl border shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 头部 */}
-        <div className="flex items-center justify-between border-b border-slate-700 px-6 py-4">
+        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: 'var(--border-color)' }}>
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-bold text-white">Skill 管理</h2>
-            <span className="rounded bg-slate-700 px-2 py-0.5 text-xs text-slate-400">{skills.length} 个</span>
+            <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Skill 管理</h2>
+            <span className="rounded px-2 py-0.5 text-xs" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{skills.length} 个</span>
           </div>
           <div className="flex gap-2">
-            <button onClick={handleReload} className="rounded-lg px-3 py-1.5 text-xs text-slate-400 transition hover:bg-slate-800 hover:text-white">
+            <button onClick={handleReload} className="rounded-lg px-3 py-1.5 text-xs transition" style={{ color: 'var(--text-muted)' }}>
               刷新
             </button>
             <button onClick={handleCreate} className="rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-cyan-500">
               + 新建 Skill
             </button>
-            <button onClick={onClose} className="rounded-lg px-3 py-1.5 text-xs text-slate-400 transition hover:bg-slate-800 hover:text-white">
+            <button onClick={onClose} className="rounded-lg px-3 py-1.5 text-xs transition" style={{ color: 'var(--text-muted)' }}>
               关闭
             </button>
           </div>
@@ -138,9 +137,9 @@ export function SkillsPanel({ visible, onClose }: SkillsPanelProps) {
 
         <div className="flex flex-1 overflow-hidden">
           {/* 左侧列表 */}
-          <div className="w-64 flex-shrink-0 overflow-y-auto border-r border-slate-700/50 p-3">
+          <div className="w-64 flex-shrink-0 overflow-y-auto border-r p-3" style={{ borderColor: 'var(--border-color)' }}>
             {skills.length === 0 ? (
-              <div className="py-8 text-center text-xs text-slate-500">
+              <div className="py-8 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
                 暂无 Skill<br />点击「+ 新建」创建你的第一个 Skill
               </div>
             ) : (
@@ -150,9 +149,10 @@ export function SkillsPanel({ visible, onClose }: SkillsPanelProps) {
                   onClick={() => handleView(s.name)}
                   className={`mb-1 w-full rounded-lg px-3 py-2 text-left transition ${
                     selectedSkill === s.name
-                      ? 'bg-cyan-600/10 text-cyan-400'
-                      : 'text-slate-300 hover:bg-slate-800'
+                      ? 'bg-cyan-600/10 text-cyan-500'
+                      : ''
                   }`}
+                  style={selectedSkill !== s.name ? { color: 'var(--text-secondary)' } : undefined}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium">{s.name}</span>
@@ -164,7 +164,7 @@ export function SkillsPanel({ visible, onClose }: SkillsPanelProps) {
                       {s.source === 'builtin' ? '内置' : '用户'}
                     </span>
                   </div>
-                  <p className="mt-0.5 line-clamp-2 text-[10px] text-slate-500">{s.description}</p>
+                  <p className="mt-0.5 line-clamp-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>{s.description}</p>
                 </button>
               ))
             )}
@@ -175,8 +175,8 @@ export function SkillsPanel({ visible, onClose }: SkillsPanelProps) {
             {(selectedSkill || creating) ? (
               <>
                 {/* 工具栏 */}
-                <div className="flex items-center justify-between border-b border-slate-700/50 px-4 py-2">
-                  <span className="text-sm font-medium text-slate-300">
+                <div className="flex items-center justify-between border-b px-4 py-2" style={{ borderColor: 'var(--border-color)' }}>
+                  <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                     {creating ? '新建 Skill' : selectedSkill}
                   </span>
                   <div className="flex gap-2">
@@ -184,13 +184,13 @@ export function SkillsPanel({ visible, onClose }: SkillsPanelProps) {
                       <>
                         <button
                           onClick={() => setEditing(true)}
-                          className="rounded px-2 py-1 text-xs text-cyan-400 transition hover:bg-slate-800"
+                          className="rounded px-2 py-1 text-xs text-cyan-500 transition"
                         >
                           编辑
                         </button>
                         <button
                           onClick={() => selectedSkill && handleDelete(selectedSkill)}
-                          className="rounded px-2 py-1 text-xs text-red-400 transition hover:bg-slate-800"
+                          className="rounded px-2 py-1 text-xs text-red-400 transition"
                         >
                           删除
                         </button>
@@ -200,7 +200,8 @@ export function SkillsPanel({ visible, onClose }: SkillsPanelProps) {
                       <>
                         <button
                           onClick={() => { setEditing(false); setCreating(false) }}
-                          className="rounded px-2 py-1 text-xs text-slate-400 transition hover:bg-slate-800"
+                          className="rounded px-2 py-1 text-xs transition"
+                          style={{ color: 'var(--text-muted)' }}
                         >
                           取消
                         </button>
@@ -215,13 +216,12 @@ export function SkillsPanel({ visible, onClose }: SkillsPanelProps) {
                   </div>
                 </div>
 
-                {/* 内容区 */}
                 <div className="flex-1 overflow-y-auto p-4">
                   {(editing || creating) ? (
                     <textarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
-                      className="h-full w-full resize-none rounded-lg border border-slate-700 bg-slate-800 p-4 font-mono text-xs leading-relaxed text-slate-200 outline-none transition focus:border-cyan-500"
+                      className="theme-input h-full w-full resize-none rounded-lg border p-4 font-mono text-xs leading-relaxed outline-none transition"
                       spellCheck={false}
                     />
                   ) : (
@@ -230,7 +230,7 @@ export function SkillsPanel({ visible, onClose }: SkillsPanelProps) {
                         <div key={s.name}>
                           <div className="mb-4 space-y-2">
                             <div className="flex flex-wrap gap-2">
-                              {s.version && <span className="rounded bg-slate-700 px-2 py-0.5 text-[10px] text-slate-400">v{s.version}</span>}
+                              {s.version && <span className="rounded px-2 py-0.5 text-[10px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>v{s.version}</span>}
                               {s.disable_model_invocation && <span className="rounded bg-amber-500/20 px-2 py-0.5 text-[10px] text-amber-400">仅手动</span>}
                               {s.allowed_tools.length > 0 && (
                                 <span className="rounded bg-blue-500/20 px-2 py-0.5 text-[10px] text-blue-400">
@@ -238,15 +238,15 @@ export function SkillsPanel({ visible, onClose }: SkillsPanelProps) {
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm text-slate-300">{s.description}</p>
+                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{s.description}</p>
                             {s.when_to_use && (
-                              <div className="rounded-lg bg-slate-800/80 p-3 text-xs text-slate-400">
-                                <span className="font-medium text-slate-300">触发条件：</span>
+                              <div className="rounded-lg p-3 text-xs" style={{ background: 'var(--card-bg)', color: 'var(--text-secondary)' }}>
+                                <span className="font-medium" style={{ color: 'var(--text-primary)' }}>触发条件：</span>
                                 {s.when_to_use}
                               </div>
                             )}
                           </div>
-                          <pre className="whitespace-pre-wrap rounded-lg bg-slate-800/60 p-4 font-mono text-xs leading-relaxed text-slate-300">
+                          <pre className="whitespace-pre-wrap rounded-lg p-4 font-mono text-xs leading-relaxed" style={{ background: 'var(--card-bg)', color: 'var(--text-secondary)' }}>
                             {editContent}
                           </pre>
                         </div>
@@ -256,7 +256,7 @@ export function SkillsPanel({ visible, onClose }: SkillsPanelProps) {
                 </div>
               </>
             ) : (
-              <div className="flex flex-1 items-center justify-center text-slate-500">
+              <div className="flex flex-1 items-center justify-center" style={{ color: 'var(--text-muted)' }}>
                 <div className="text-center">
                   <p className="mb-2 text-lg">选择或新建一个 Skill</p>
                   <p className="text-xs">Skill 是给 AI 的操作手册，用 Markdown 描述工作流程</p>

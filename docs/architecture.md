@@ -21,7 +21,7 @@
 | 语言 | TypeScript 全栈，主进程与渲染进程共享类型定义 |
 | 前端 | React + TailwindCSS + Lucide Icons |
 | 存储 | SQLite（结构化，sql.js WASM）+ Vectra（向量检索）|
-| LLM | OpenAI 兼容 API（支持 OpenAI / DeepSeek 等） |
+| LLM | 多 Provider（OpenAI 兼容 / Anthropic / Gemini，自动检测路由） |
 | 扩展 | MCP 协议（Model Context Protocol） |
 | 测试 | vitest（单元）+ Playwright（E2E） |
 | 打包 | 待定（electron-builder / electron-forge） |
@@ -85,11 +85,11 @@ think → act → observe → think → ...
 
 ### 2. IPC 模块化
 
-主进程 IPC 拆分为 10 个独立模块：
+主进程 IPC 拆分为 11 个独立模块：
 
 | 模块 | 职责 |
 |------|------|
-| `ipc/session.ts` | 会话 CRUD |
+| `ipc/session.ts` | 会话 CRUD + Fork 分支 |
 | `ipc/chat.ts` | 聊天发送 + 中断 + 向量检索注入 |
 | `ipc/settings.ts` | 设置读写 |
 | `ipc/memory.ts` | 记忆 CRUD |
@@ -98,6 +98,8 @@ think → act → observe → think → ...
 | `ipc/debug.ts` | DevPanel 调试数据（Prompt/工具/系统状态） |
 | `ipc/data-export.ts` | 数据导出/导入（会话+记忆+设置备份恢复） |
 | `ipc/skills.ts` | Skill CRUD + 重新加载 |
+| `ipc/scheduler.ts` | 定时任务 CRUD |
+| `ipc/rag.ts` | RAG 文档导入/列表/删除 |
 
 ### 3. 工具系统
 
@@ -106,7 +108,7 @@ think → act → observe → think → ...
 - 动态注册/注销：支持 MCP 工具运行时加入和移除
 - 破坏性操作前用户确认（IPC 双向通信弹窗）
 - **超时保护**：每个工具 30s 超时，超时自动返回错误
-- 12 个内置工具 + MCP 动态工具
+- 13 个内置工具 + MCP 动态工具
 - **子 Agent 系统**：delegate_task 工具，独立上下文 + 受限工具集 + 权限只降不升
 - **中间件管道**：ToolMiddlewarePipeline 洋葱模型（error-formatting → logging → result-truncation）
 - **Token 预算**：会话级 + 日级限额，超限自动终止
@@ -155,6 +157,10 @@ think → act → observe → think → ...
 - Anthropic Messages API 适配（SSE 流解析 + content_block_delta + tool_use 映射）
 - Gemini API 请求构建器（systemInstruction + functionDeclarations）
 - 流式 SSE 解析（text / reasoning / tool_calls delta）
+- **Streaming Tool Calls**：工具参数边流式边 yield `tool_call_delta` 事件
+- **Model Failover**：主模型失败按 `fallbackModels` 配置自动降级
+- **Prompt Cache**：Anthropic `cache_control` 标记 System Prompt + Tools
+- **Structured Output**：`ResponseFormat` 支持 json_object / json_schema
 - 模型快切（顶栏 UI + 5 个预设）
 - 复用 API 进行 Embedding 调用
 
@@ -177,24 +183,67 @@ think → act → observe → think → ...
 my-agent/
 ├── electron/
 │   ├── main/
-│   │   ├── index.ts          # App 生命周期 + 窗口管理（131 行）
-│   │   ├── ipc/              # IPC 处理器（8 个模块）
-│   │   ├── agent/            # Agent Loop + Prompt Builder + 上下文压缩 + 画像提取
-│   │   ├── tools/            # ToolRegistry + 12 个内置工具
-│   │   ├── sandbox/          # 沙箱系统（policy + exec-policy + command-guard + approval-store）
-│   │   ├── mcp/              # MCP Client + Bridge
+│   │   ├── index.ts          # App 生命周期 + 窗口管理 + Tray + Auto Update
+│   │   ├── ipc/              # IPC 处理器（11 个模块）
+│   │   ├── agent/            # Agent Loop + Runtime + Prompt + Context + Pipeline + Subagent
+│   │   ├── tools/            # ToolRegistry + 13 个内置工具 + Middleware
+│   │   ├── sandbox/          # 沙箱系统 + 权限引擎
+│   │   ├── mcp/              # MCP Client（stdio + SSE）+ Bridge
 │   │   ├── memory/           # 向量存储 + Embedding 适配器
-│   │   ├── llm/              # LLM 流式适配器
+│   │   ├── llm/              # LLM 流式适配器 + Provider 路由 + Failover + Cache
+│   │   ├── rag/              # RAG 文档管道（导入 + 分块 + 向量化 + 检索）
+│   │   ├── scheduler/        # 定时任务调度器（interval + cron + SQLite 持久化）
 │   │   ├── storage/          # SQLite + Session/Settings/Memory Store
-│   │   └── utils/            # Logger + 错误脱敏
+│   │   └── utils/            # Logger + 错误脱敏 + Tracer
 │   └── preload/              # contextBridge 暴露 API
 ├── src/
 │   ├── App.tsx               # 主 UI
 │   ├── components/           # SettingsPanel / MarkdownRenderer / DevPanel
 │   └── shared/types.ts       # 共享类型定义
 ├── __tests__/
-│   ├── unit/                 # vitest 单元测试（33 个）
+│   ├── unit/                 # vitest 单元测试（88 个）
 │   └── e2e/                  # Playwright E2E 测试（4 个）
 ├── methodology/              # 设计哲学沉淀
 └── docs/                     # 项目文档
+```
+
+## 核心数据流
+
+### 用户输入 → AI 响应（主链路）
+
+```
+用户输入 → 渲染进程(React) → IPC chat:send
+    → 主进程 AgentRuntime.chat()
+        ├─ 记忆检索（向量 + SQLite + PROJECT.md）
+        ├─ 上下文组装（System Prompt 4 层 + 消息管道清洗）
+        ├─ Token 预算检查
+        └─ Agent Loop（AsyncGenerator）
+            ├─ streamChat → LLM API（Provider Router 自动选择协议）
+            ├─ yield text/thinking/tool_calls 事件
+            ├─ 工具调用 → Middleware Pipeline → 权限检查 → 执行
+            └─ yield done → 后台任务（画像/向量索引/标题）
+    → IPC chat:event → 渲染进程流式显示
+```
+
+### 工具调用链路
+
+```
+LLM 返回 tool_calls
+    → Agent Loop yield tool_start
+    → ToolRegistry.executeSingle()
+        → MiddlewarePipeline（error-formatting → logging → truncation）
+            → 权限检查（PermissionEngine 五层链）
+                ├─ allow → 执行
+                ├─ ask → IPC tool:confirm-request → 用户确认/拒绝
+                └─ deny → 返回拒绝结果
+    → yield tool_end → 继续 loop
+```
+
+### 数据持久化流
+
+```
+对话完成
+    ├─ SQLite：保存消息（含 toolCalls + tool results）+ 累加 token 用量
+    ├─ 向量数据库：嵌入并索引对话内容
+    └─ 日 Token 计数器：recordDailyUsage
 ```

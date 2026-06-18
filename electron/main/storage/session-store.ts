@@ -132,6 +132,68 @@ export async function saveMessage(sessionId: string, message: ChatMessage): Prom
   persist()
 }
 
+export async function forkSession(sourceSessionId: string, upToMessageId: string): Promise<ChatSession> {
+  const db = await getDatabase()
+  const newId = randomUUID()
+  const now = Date.now()
+
+  const titleStmt = db.prepare('SELECT title FROM sessions WHERE id = ?')
+  titleStmt.bind([sourceSessionId])
+  let title = '分支对话'
+  if (titleStmt.step()) {
+    const row = titleStmt.getAsObject() as Record<string, unknown>
+    title = `${row.title as string} (分支)`
+  }
+  titleStmt.free()
+
+  db.run('INSERT INTO sessions (id, title, created_at, updated_at) VALUES (?, ?, ?, ?)',
+    [newId, title, now, now])
+
+  const targetStmt = db.prepare('SELECT sort_order FROM messages WHERE id = ? AND session_id = ?')
+  targetStmt.bind([upToMessageId, sourceSessionId])
+  let maxOrder = -1
+  if (targetStmt.step()) {
+    maxOrder = (targetStmt.getAsObject() as Record<string, unknown>).sort_order as number
+  }
+  targetStmt.free()
+
+  if (maxOrder < 0) {
+    persist()
+    return { id: newId, messages: [], createdAt: now }
+  }
+
+  const msgStmt = db.prepare(
+    'SELECT * FROM messages WHERE session_id = ? AND sort_order <= ? ORDER BY sort_order ASC'
+  )
+  msgStmt.bind([sourceSessionId, maxOrder])
+
+  const messages: ChatMessage[] = []
+  let order = 0
+  while (msgStmt.step()) {
+    const r = msgStmt.getAsObject() as Record<string, unknown>
+    const msgId = randomUUID()
+    db.run(`
+      INSERT INTO messages (id, session_id, role, content, tool_calls, tool_call_id, created_at, sort_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [msgId, newId, r.role, r.content, r.tool_calls, r.tool_call_id, r.created_at, order])
+
+    messages.push({
+      id: msgId,
+      role: r.role as ChatMessage['role'],
+      content: r.content as string,
+      timestamp: r.created_at as number,
+      ...(r.tool_calls ? { toolCalls: JSON.parse(r.tool_calls as string) } : {}),
+      ...(r.tool_call_id ? { toolCallId: r.tool_call_id as string } : {}),
+    })
+    order++
+  }
+  msgStmt.free()
+  persist()
+
+  log.info('Session forked', { sourceId: sourceSessionId, newId, messageCount: messages.length })
+  return { id: newId, messages, createdAt: now }
+}
+
 export async function deleteMessage(messageId: string): Promise<void> {
   const db = await getDatabase()
   db.run('DELETE FROM messages WHERE id = ?', [messageId])

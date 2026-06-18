@@ -194,13 +194,13 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="relative max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-700/60 bg-slate-900 p-6 shadow-2xl">
-        {/* 标题栏 */}
+      <div className="theme-panel relative max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border p-6 shadow-2xl">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">设置</h2>
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>设置</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+            className="rounded-lg p-1.5 transition"
+            style={{ color: 'var(--text-muted)' }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -211,7 +211,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         {/* 人格选择 */}
         {personas.length > 0 && (
           <div className="mb-5">
-            <label className="mb-2 block text-xs font-medium text-slate-400">人格模板</label>
+            <label className="theme-label mb-2 block text-xs font-medium">人格模板</label>
             <div className="flex flex-wrap gap-2">
               {personas.map((p) => (
                 <button
@@ -220,13 +220,14 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                   className={`rounded-lg border px-3 py-2 text-left transition ${
                     form.personaId === p.id
                       ? 'border-violet-500 bg-violet-500/10'
-                      : 'border-slate-700 hover:border-slate-500'
+                      : ''
                   }`}
+                  style={form.personaId !== p.id ? { borderColor: 'var(--border-color)' } : undefined}
                 >
-                  <div className={`text-xs font-medium ${form.personaId === p.id ? 'text-violet-400' : 'text-slate-300'}`}>
+                  <div className="text-xs font-medium" style={{ color: form.personaId === p.id ? '#a78bfa' : 'var(--text-primary)' }}>
                     {p.name}
                   </div>
-                  <div className="mt-0.5 text-[10px] text-slate-500">{p.description}</div>
+                  <div className="mt-0.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>{p.description}</div>
                 </button>
               ))}
             </div>
@@ -235,7 +236,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
         {/* 模型预设快选 */}
         <div className="mb-5">
-          <label className="mb-2 block text-xs font-medium text-slate-400">快速选择模型</label>
+          <label className="theme-label mb-2 block text-xs font-medium">快速选择模型</label>
           <div className="flex flex-wrap gap-2">
             {PRESETS.map((p) => (
               <button
@@ -243,9 +244,10 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 onClick={() => applyPreset(p)}
                 className={`rounded-lg border px-3 py-1.5 text-xs transition ${
                   form.llmBaseUrl === p.baseUrl && form.llmModel === p.model
-                    ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400'
-                    : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-300'
+                    ? 'border-cyan-500 bg-cyan-500/10 text-cyan-500'
+                    : ''
                 }`}
+                style={form.llmBaseUrl !== p.baseUrl || form.llmModel !== p.model ? { borderColor: 'var(--border-color)', color: 'var(--text-secondary)' } : undefined}
               >
                 {p.label}
               </button>
@@ -255,19 +257,20 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
         {/* API Key */}
         <div className="mb-4">
-          <label className="mb-1.5 block text-xs font-medium text-slate-400">API Key</label>
+          <label className="theme-label mb-1.5 block text-xs font-medium">API Key</label>
           <div className="relative">
             <input
               type={showApiKey ? 'text' : 'password'}
               value={form.llmApiKey}
               onChange={(e) => update('llmApiKey', e.target.value)}
               placeholder="sk-..."
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 pr-16 text-sm text-white placeholder-slate-500 outline-none transition focus:border-cyan-500"
+              className="theme-input w-full rounded-lg border px-3 py-2 pr-16 text-sm outline-none transition"
             />
             <button
               type="button"
               onClick={() => setShowApiKey(!showApiKey)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-2 py-0.5 text-xs text-slate-500 transition hover:text-slate-300"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-2 py-0.5 text-xs transition"
+              style={{ color: 'var(--text-muted)' }}
             >
               {showApiKey ? '隐藏' : '显示'}
             </button>
@@ -276,44 +279,44 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
         {/* Base URL */}
         <div className="mb-4">
-          <label className="mb-1.5 block text-xs font-medium text-slate-400">Base URL</label>
+          <label className="theme-label mb-1.5 block text-xs font-medium">Base URL</label>
           <input
             type="text"
             value={form.llmBaseUrl}
             onChange={(e) => update('llmBaseUrl', e.target.value)}
             placeholder="https://api.openai.com/v1"
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none transition focus:border-cyan-500"
+            className="theme-input w-full rounded-lg border px-3 py-2 text-sm outline-none transition"
           />
         </div>
 
         {/* Model */}
         <div className="mb-4">
-          <label className="mb-1.5 block text-xs font-medium text-slate-400">模型</label>
+          <label className="theme-label mb-1.5 block text-xs font-medium">模型</label>
           <input
             type="text"
             value={form.llmModel}
             onChange={(e) => update('llmModel', e.target.value)}
             placeholder="gpt-4o"
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none transition focus:border-cyan-500"
+            className="theme-input w-full rounded-lg border px-3 py-2 text-sm outline-none transition"
           />
         </div>
 
         {/* 辅助模型 */}
         <div className="mb-4">
-          <label className="mb-1.5 block text-xs font-medium text-slate-400">辅助模型（标题/画像/摘要，留空沿用主模型）</label>
+          <label className="theme-label mb-1.5 block text-xs font-medium">辅助模型（标题/画像/摘要，留空沿用主模型）</label>
           <input
             type="text"
             value={form.auxModel}
             onChange={(e) => update('auxModel', e.target.value)}
             placeholder="如 gpt-4o-mini, deepseek-chat（留空 = 主模型）"
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none transition focus:border-cyan-500"
+            className="theme-input w-full rounded-lg border px-3 py-2 text-sm outline-none transition"
           />
         </div>
 
         {/* LLM 参数 */}
         <div className="mb-5 grid grid-cols-3 gap-3">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-400">Temperature</label>
+            <label className="theme-label mb-1.5 block text-xs font-medium">Temperature</label>
             <input
               type="number"
               step="0.1"
@@ -321,11 +324,11 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               max="2"
               value={form.llmTemperature}
               onChange={(e) => update('llmTemperature', e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
+              className="theme-input w-full rounded-lg border px-3 py-2 text-sm outline-none transition"
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-400">Top P</label>
+            <label className="theme-label mb-1.5 block text-xs font-medium">Top P</label>
             <input
               type="number"
               step="0.1"
@@ -333,11 +336,11 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               max="1"
               value={form.llmTopP}
               onChange={(e) => update('llmTopP', e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
+              className="theme-input w-full rounded-lg border px-3 py-2 text-sm outline-none transition"
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-400">Max Tokens</label>
+            <label className="theme-label mb-1.5 block text-xs font-medium">Max Tokens</label>
             <input
               type="number"
               step="256"
@@ -345,14 +348,14 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               max="128000"
               value={form.llmMaxTokens}
               onChange={(e) => update('llmMaxTokens', e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
+              className="theme-input w-full rounded-lg border px-3 py-2 text-sm outline-none transition"
             />
           </div>
         </div>
 
         {/* Sandbox Mode */}
         <div className="mb-5">
-          <label className="mb-1.5 block text-xs font-medium text-slate-400">沙箱模式（命令执行安全策略）</label>
+          <label className="theme-label mb-1.5 block text-xs font-medium">沙箱模式（命令执行安全策略）</label>
           <div className="grid grid-cols-3 gap-2">
             {([
               { value: 'read-only', label: '只读', desc: '最安全，禁止写入和网络' },
@@ -366,9 +369,10 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                   form.sandboxMode === opt.value
                     ? opt.value === 'full-access'
                       ? 'border-red-500/50 bg-red-500/10 text-red-400'
-                      : 'border-cyan-500/50 bg-cyan-500/10 text-cyan-400'
-                    : 'border-slate-700 text-slate-400 hover:border-slate-600'
+                      : 'border-cyan-500/50 bg-cyan-500/10 text-cyan-500'
+                    : ''
                 }`}
+                style={form.sandboxMode !== opt.value ? { borderColor: 'var(--border-color)', color: 'var(--text-secondary)' } : undefined}
               >
                 <div className="font-medium">{opt.label}</div>
                 <div className="mt-0.5 text-[10px] opacity-70">{opt.desc}</div>
@@ -379,7 +383,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
         {/* Execution Mode */}
         <div className="mb-5">
-          <label className="mb-1.5 block text-xs font-medium text-slate-400">执行模式（工具调用审批策略）</label>
+          <label className="theme-label mb-1.5 block text-xs font-medium">执行模式（工具调用审批策略）</label>
           <div className="grid grid-cols-3 gap-2">
             {([
               { value: 'auto', label: '自动', desc: '仅破坏性操作需确认' },
@@ -391,9 +395,10 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 onClick={() => update('executionMode', opt.value)}
                 className={`rounded-lg border px-3 py-2 text-left text-xs transition ${
                   form.executionMode === opt.value
-                    ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-400'
-                    : 'border-slate-700 text-slate-400 hover:border-slate-600'
+                    ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-500'
+                    : ''
                 }`}
+                style={form.executionMode !== opt.value ? { borderColor: 'var(--border-color)', color: 'var(--text-secondary)' } : undefined}
               >
                 <div className="font-medium">{opt.label}</div>
                 <div className="mt-0.5 text-[10px] opacity-70">{opt.desc}</div>
@@ -405,7 +410,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         {/* Token 预算 */}
         <div className="mb-5 grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-400">会话 Token 预算</label>
+            <label className="theme-label mb-1.5 block text-xs font-medium">会话 Token 预算</label>
             <input
               type="number"
               step="10000"
@@ -413,12 +418,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               value={form.sessionTokenBudget}
               onChange={(e) => update('sessionTokenBudget', e.target.value)}
               placeholder="0 = 无限制"
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
+              className="theme-input w-full rounded-lg border px-3 py-2 text-sm outline-none transition"
             />
-            <div className="mt-1 text-[10px] text-slate-500">0 = 无限制，单位: tokens</div>
+            <div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>0 = 无限制，单位: tokens</div>
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-400">每日 Token 预算</label>
+            <label className="theme-label mb-1.5 block text-xs font-medium">每日 Token 预算</label>
             <input
               type="number"
               step="100000"
@@ -426,65 +431,65 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               value={form.dailyTokenBudget}
               onChange={(e) => update('dailyTokenBudget', e.target.value)}
               placeholder="0 = 无限制"
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
+              className="theme-input w-full rounded-lg border px-3 py-2 text-sm outline-none transition"
             />
-            <div className="mt-1 text-[10px] text-slate-500">0 = 无限制，单位: tokens</div>
+            <div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>0 = 无限制，单位: tokens</div>
           </div>
         </div>
 
         {/* System Prompt */}
         <div className="mb-5">
-          <label className="mb-1.5 block text-xs font-medium text-slate-400">自定义补充指令（会注入到 System Prompt L3 层）</label>
+          <label className="theme-label mb-1.5 block text-xs font-medium">自定义补充指令（会注入到 System Prompt L3 层）</label>
           <textarea
             value={form.systemPrompt}
             onChange={(e) => update('systemPrompt', e.target.value)}
             placeholder="例如：回答时多用比喻，保持简洁..."
             rows={3}
-            className="w-full resize-none rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none transition focus:border-cyan-500"
+            className="theme-input w-full resize-none rounded-lg border px-3 py-2 text-sm outline-none transition"
           />
         </div>
 
         {/* MCP 服务器管理 */}
         <div className="mb-6">
           <div className="mb-2 flex items-center justify-between">
-            <label className="text-xs font-medium text-slate-400">MCP 服务器</label>
+            <label className="theme-label text-xs font-medium">MCP 服务器</label>
             <button
               onClick={() => setMcpAdding(!mcpAdding)}
-              className="rounded px-2 py-0.5 text-xs text-cyan-400 transition hover:bg-slate-800"
+              className="rounded px-2 py-0.5 text-xs text-cyan-500 transition"
             >
               {mcpAdding ? '取消' : '+ 添加'}
             </button>
           </div>
 
           {mcpAdding && (
-            <div className="mb-3 rounded-lg border border-slate-700 bg-slate-800/50 p-3">
+            <div className="theme-card mb-3 rounded-lg border p-3">
               <input
                 type="text"
                 value={newMcp.name}
                 onChange={e => setNewMcp(m => ({ ...m, name: e.target.value }))}
                 placeholder="名称（如 filesystem）"
-                className="mb-2 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-500"
+                className="theme-input mb-2 w-full rounded border px-2 py-1.5 text-xs outline-none"
               />
               <input
                 type="text"
                 value={newMcp.command}
                 onChange={e => setNewMcp(m => ({ ...m, command: e.target.value }))}
                 placeholder="命令（如 npx, node, python3）"
-                className="mb-2 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-500"
+                className="theme-input mb-2 w-full rounded border px-2 py-1.5 text-xs outline-none"
               />
               <input
                 type="text"
                 value={newMcp.args}
                 onChange={e => setNewMcp(m => ({ ...m, args: e.target.value }))}
                 placeholder="参数（空格分隔，如 -y @modelcontextprotocol/server-filesystem /tmp）"
-                className="mb-2 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-500"
+                className="theme-input mb-2 w-full rounded border px-2 py-1.5 text-xs outline-none"
               />
               <textarea
                 value={newMcp.env}
                 onChange={e => setNewMcp(m => ({ ...m, env: e.target.value }))}
                 placeholder="环境变量（每行一个，KEY=VALUE 格式，可选）"
                 rows={2}
-                className="mb-2 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-500"
+                className="theme-input mb-2 w-full rounded border px-2 py-1.5 text-xs outline-none"
               />
               <button
                 onClick={handleAddMcp}
@@ -497,7 +502,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           )}
 
           {mcpServers.length === 0 && !mcpAdding && (
-            <div className="rounded-lg border border-dashed border-slate-700 p-3 text-center text-xs text-slate-500">
+            <div className="rounded-lg border border-dashed p-3 text-center text-xs" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
               暂无 MCP 服务器，点击"+ 添加"连接外部能力
             </div>
           )}
@@ -505,7 +510,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           {mcpServers.map(server => {
             const st = mcpStatuses.find(s => s.id === server.id)
             return (
-              <div key={server.id} className="mb-2 flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2">
+              <div key={server.id} className="theme-card mb-2 flex items-center justify-between rounded-lg border px-3 py-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className={`inline-block h-2 w-2 rounded-full ${
@@ -513,12 +518,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                       st?.status === 'connecting' ? 'bg-yellow-400' :
                       st?.status === 'error' ? 'bg-red-400' : 'bg-slate-500'
                     }`} />
-                    <span className="text-xs font-medium text-slate-200">{server.name}</span>
+                    <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{server.name}</span>
                     {st?.toolCount ? (
-                      <span className="text-[10px] text-slate-500">{st.toolCount} tools</span>
+                      <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{st.toolCount} tools</span>
                     ) : null}
                   </div>
-                  <div className="mt-0.5 truncate text-[10px] text-slate-500">
+                  <div className="mt-0.5 truncate text-[10px]" style={{ color: 'var(--text-muted)' }}>
                     {server.command} {server.args.join(' ')}
                   </div>
                   {st?.error && (
@@ -550,7 +555,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
         {/* 数据管理 */}
         <div className="mb-6">
-          <label className="mb-2 block text-xs font-medium text-slate-400">数据管理</label>
+          <label className="theme-label mb-2 block text-xs font-medium">数据管理</label>
           <div className="flex gap-2">
             <button
               onClick={async () => {
@@ -559,7 +564,8 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 if (res.success) toast(`导出成功！${res.stats?.sessions} 个会话 + ${res.stats?.memories} 条记忆`, 'success')
                 else if (res.error !== 'cancelled') toast(`导出失败: ${res.error}`, 'error')
               }}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 transition hover:border-cyan-500 hover:text-cyan-400"
+              className="rounded-lg border px-3 py-1.5 text-xs transition hover:border-cyan-500 hover:text-cyan-500"
+              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
             >
               📤 导出数据
             </button>
@@ -570,7 +576,8 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 if (res.success) toast(`导入成功！${res.stats?.sessions} 个会话 + ${res.stats?.memories} 条记忆 + ${res.stats?.settings} 项设置`, 'success')
                 else if (res.error !== 'cancelled') toast(`导入失败: ${res.error}`, 'error')
               }}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 transition hover:border-amber-500 hover:text-amber-400"
+              className="rounded-lg border px-3 py-1.5 text-xs transition hover:border-amber-500 hover:text-amber-400"
+              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
             >
               📥 导入数据
             </button>
@@ -584,7 +591,8 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           )}
           <button
             onClick={onClose}
-            className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
+            className="rounded-lg border px-4 py-2 text-sm transition"
+            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
           >
             取消
           </button>

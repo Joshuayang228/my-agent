@@ -1,39 +1,51 @@
 # 测试策略
 
-> 测试相关的策略、代码归类方式、覆盖范围。
+> 测试相关的策略、目录结构、运行方式。
 
 ## 测试框架
 
-- **单元测试 / 集成测试**：vitest 或 jest（待项目初始化时确定）
-- **E2E 测试**：待定（Playwright / Spectron 等）
-
-## 测试目录结构
-
-```
-方式一：集中式
-__tests__/
-  agent/
-    agent-loop.test.ts
-  tools/
-    file-tool.test.ts
-  memory/
-    memory-store.test.ts
-
-方式二：就近放置
-src/main/agent/
-  agent-loop.ts
-  agent-loop.test.ts
-```
-
-> 两种方式均可，项目初始化时统一选定一种。
-
-## 测试分层
-
-| 层级 | 范围 | 策略 |
+| 类型 | 框架 | 目录 |
 |------|------|------|
-| 单元测试 | 单个函数/模块 | 必须覆盖核心逻辑、边界条件 |
-| 集成测试 | 模块间交互 | 覆盖工具调用链、IPC 通信 |
-| E2E 测试 | 用户操作流程 | 覆盖关键用户路径（待定） |
+| 单元测试 | vitest | `__tests__/unit/` |
+| E2E 测试 | Playwright | `__tests__/e2e/` |
+
+## 当前覆盖
+
+### 单元测试（88 个 / 10 个文件）
+
+| 文件 | 覆盖模块 | 测试数 |
+|------|----------|--------|
+| `tool-registry.test.ts` | ToolRegistry（注册/执行/并发/超时） | ~15 |
+| `prompt-builder.test.ts` | PromptBuilder（4 层/人格/自定义） | ~10 |
+| `context-manager.test.ts` | ContextManager（L1-L4 压缩） | ~8 |
+| `agent-loop.test.ts` | AgentLoop（文本/工具/中断/重试） | ~10 |
+| `memory-tools.test.ts` | remember/recall/forget/task_plan | ~13 |
+| `middleware.test.ts` | 中间件管道（洋葱模型/短路/截断） | ~8 |
+| `token-budget.test.ts` | Token 预算（会话/日级限额） | ~6 |
+| `message-pipeline.test.ts` | 消息管道（孤儿修复/合并） | ~6 |
+| `permission-engine.test.ts` | 权限引擎（自定义规则/沙箱集成） | ~6 |
+| `provider-router.test.ts` | Provider 路由（检测/Anthropic/Gemini） | ~6 |
+
+### E2E 测试（5 个 UI + 4 个 Electron）
+
+- UI 测试：基本渲染 / 会话创建 / 发送消息 / 设置面板 / 设置开关
+- Electron 测试：真实对话（需 `TEST_LLM_API_KEY` 环境变量）
+
+## 运行命令
+
+```bash
+# 单元测试
+npm test
+
+# 单个文件
+npx vitest run __tests__/unit/middleware.test.ts
+
+# 监听模式
+npx vitest --watch
+
+# E2E 测试（需要先启 dev server 或交给 playwright.config webServer）
+npx playwright test
+```
 
 ## 测试规范
 
@@ -42,42 +54,25 @@ src/main/agent/
 - 新功能的 happy path
 - Bug 修复的复现测试（先写失败测试，再修复）
 - 边界条件（空值、超长输入、并发）
-- 错误处理路径（异常、超时、网络失败）
-
-### 测试命名
-
-```typescript
-describe('模块名', () => {
-  it('应该做什么 - 在什么条件下', () => {
-    // ...
-  });
-});
-```
 
 ### Mock 规则
 
-- ✅ 可以 Mock 外部 API 调用（LLM、网络请求）
-- ✅ 可以 Mock 文件系统（测试环境隔离）
-- ❌ 禁止 Mock 核心业务逻辑（用真实逻辑测试）
-- ❌ 禁止 Mock 真实 AI 调用来假装功能正常（测试环境除外）
+- ✅ Mock 外部 API 调用（LLM / 网络请求）
+- ✅ Mock 文件系统（测试环境隔离）
+- ❌ 禁止 Mock 核心业务逻辑
+- ❌ 禁止 Mock 真实 AI 调用来假装功能正常
 
-## 覆盖范围目标
+### 命名约定
 
-<!-- TODO: 等项目稳定后设定具体覆盖率目标 -->
-
-- 核心模块（Agent Loop / 工具系统 / 记忆系统）：目标高覆盖
-- UI 组件：关键交互覆盖
-- 工具函数：完整覆盖
-
-## 运行方式
-
-```bash
-# 运行全部测试
-npm test
-
-# 运行单个文件
-npm test -- agent-loop.test.ts
-
-# 监听模式
-npm run test:watch
+```typescript
+describe('ModuleName', () => {
+  it('should do X when Y', () => { ... })
+})
 ```
+
+## 环境变量
+
+| 变量 | 用途 |
+|------|------|
+| `TEST_LLM_API_KEY` | E2E 真实对话测试的 API Key |
+| `TEST_LLM_BASE_URL` | 可选，覆盖默认 API 地址 |

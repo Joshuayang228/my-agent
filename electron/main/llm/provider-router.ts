@@ -46,7 +46,9 @@ export function buildAnthropicBody(
   config: LLMConfig,
   messages: Record<string, unknown>[],
   tools?: Record<string, unknown>[],
+  options?: { enablePromptCache?: boolean },
 ): { url: string; headers: Record<string, string>; body: Record<string, unknown> } {
+  const enableCache = options?.enablePromptCache ?? false
   const systemMessages = messages.filter(m => m.role === 'system')
   const nonSystemMessages = messages.filter(m => m.role !== 'system')
 
@@ -84,13 +86,18 @@ export function buildAnthropicBody(
   }
 
   if (systemMessages.length > 0) {
-    body.system = systemMessages.map(m => m.content).join('\n\n')
+    const systemText = systemMessages.map(m => m.content).join('\n\n')
+    if (enableCache) {
+      body.system = [{ type: 'text', text: systemText, cache_control: { type: 'ephemeral' } }]
+    } else {
+      body.system = systemText
+    }
   }
   if (config.temperature !== undefined) body.temperature = config.temperature
   if (config.topP !== undefined) body.top_p = config.topP
 
   if (tools && tools.length > 0) {
-    body.tools = tools.map(t => {
+    const mapped = tools.map(t => {
       const fn = (t as Record<string, unknown>).function as Record<string, unknown>
       return {
         name: fn.name,
@@ -98,15 +105,24 @@ export function buildAnthropicBody(
         input_schema: fn.parameters,
       }
     })
+    if (enableCache && mapped.length > 0) {
+      (mapped[mapped.length - 1] as Record<string, unknown>).cache_control = { type: 'ephemeral' }
+    }
+    body.tools = mapped
+  }
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-api-key': config.apiKey,
+    'anthropic-version': '2023-06-01',
+  }
+  if (enableCache) {
+    headers['anthropic-beta'] = 'prompt-caching-2024-07-31'
   }
 
   return {
     url: `${config.baseUrl}/v1/messages`,
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': config.apiKey,
-      'anthropic-version': '2023-06-01',
-    },
+    headers,
     body,
   }
 }

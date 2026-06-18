@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     delete: (id: string): Promise<void> => ipcRenderer.invoke('session:delete', id),
     rename: (id: string, title: string): Promise<void> => ipcRenderer.invoke('session:rename', id, title),
     deleteMessage: (messageId: string): Promise<void> => ipcRenderer.invoke('message:delete', messageId),
+    fork: (sessionId: string, upToMessageId: string): Promise<ChatSession> =>
+      ipcRenderer.invoke('session:fork', sessionId, upToMessageId),
     tokenUsage: (sessionId: string): Promise<{ promptTokens: number; completionTokens: number }> =>
       ipcRenderer.invoke('session:tokenUsage', sessionId),
   },
@@ -68,6 +70,47 @@ contextBridge.exposeInMainWorld('electronAPI', {
     systemPrompt: () => ipcRenderer.invoke('debug:system-prompt'),
     tools: () => ipcRenderer.invoke('debug:tools'),
     systemInfo: () => ipcRenderer.invoke('debug:system-info'),
+  },
+
+  rag: {
+    list: () => ipcRenderer.invoke('rag:list'),
+    ingest: () => ipcRenderer.invoke('rag:ingest'),
+    delete: (docId: string) => ipcRenderer.invoke('rag:delete', docId),
+  },
+
+  scheduler: {
+    list: () => ipcRenderer.invoke('scheduler:list'),
+    create: (opts: { name: string; prompt: string; cron?: string; intervalMs?: number }) =>
+      ipcRenderer.invoke('scheduler:create', opts),
+    update: (id: string, updates: Record<string, unknown>) =>
+      ipcRenderer.invoke('scheduler:update', id, updates),
+    delete: (id: string) => ipcRenderer.invoke('scheduler:delete', id),
+    onTriggered: (cb: (info: { taskId: string; name: string; prompt: string }) => void) => {
+      const handler = (_e: Electron.IpcRendererEvent, info: { taskId: string; name: string; prompt: string }) => cb(info)
+      ipcRenderer.on('scheduler:triggered', handler)
+      return () => ipcRenderer.off('scheduler:triggered', handler)
+    },
+  },
+
+  updater: {
+    check: () => ipcRenderer.invoke('updater:check'),
+    download: () => ipcRenderer.invoke('updater:download'),
+    install: () => ipcRenderer.invoke('updater:install'),
+    onAvailable: (cb: (info: { version: string; releaseNotes?: string }) => void) => {
+      const handler = (_e: Electron.IpcRendererEvent, info: { version: string; releaseNotes?: string }) => cb(info)
+      ipcRenderer.on('updater:available', handler)
+      return () => ipcRenderer.off('updater:available', handler)
+    },
+    onProgress: (cb: (info: { percent: number }) => void) => {
+      const handler = (_e: Electron.IpcRendererEvent, info: { percent: number }) => cb(info)
+      ipcRenderer.on('updater:progress', handler)
+      return () => ipcRenderer.off('updater:progress', handler)
+    },
+    onDownloaded: (cb: (info: { version: string }) => void) => {
+      const handler = (_e: Electron.IpcRendererEvent, info: { version: string }) => cb(info)
+      ipcRenderer.on('updater:downloaded', handler)
+      return () => ipcRenderer.off('updater:downloaded', handler)
+    },
   },
 
   chat: {

@@ -1,4 +1,5 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell, Tray, Menu, globalShortcut, nativeImage, ipcMain } from 'electron'
+import { autoUpdater } from 'electron-updater'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { config } from 'dotenv'
@@ -13,6 +14,7 @@ import { syncMcpToolsToRegistry } from './mcp/bridge'
 import { initSkillSystem } from './skills/registry'
 import { runtime } from './agent/runtime'
 import * as settings from './storage/settings-store'
+import { initScheduler, shutdownScheduler } from './scheduler/index'
 
 const log = createLogger('Main')
 
@@ -41,6 +43,7 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 let win: BrowserWindow | null = null
+let tray: Tray | null = null
 const preload = path.join(__dirname, 'index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
 
@@ -107,34 +110,150 @@ async function restoreMcpConnections() {
   }
 }
 
+// ── System Tray ──
+
+function createTrayIcon(): nativeImage {
+  const size = 16
+  const canvas = Buffer.alloc(size * size * 4)
+  for (let i = 0; i < size * size; i++) {
+    const x = i % size, y = Math.floor(i / size)
+    const inset = x >= 2 && x < 14 && y >= 2 && y < 14
+    canvas[i * 4] = inset ? 0x06 : 0x00     // R
+    canvas[i * 4 + 1] = inset ? 0xb6 : 0x00 // G
+    canvas[i * 4 + 2] = inset ? 0xd4 : 0x00 // B
+    canvas[i * 4 + 3] = inset ? 0xff : 0x00  // A
+  }
+  return nativeImage.createFromBuffer(canvas, { width: size, height: size })
+}
+
+function createTray() {
+  tray = new Tray(createTrayIcon())
+  tray.setToolTip('My Agent')
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '显示窗口',
+      click: () => showWindow(),
+    },
+    { type: 'separator' },
+    {
+      label: '退出',
+      click: () => {
+        isQuitting = true
+        app.quit()
+      },
+    },
+  ])
+  tray.setContextMenu(contextMenu)
+  tray.on('double-click', () => showWindow())
+}
+
+function showWindow() {
+  if (!win || win.isDestroyed()) {
+    createWindow()
+    return
+  }
+  if (!win.isVisible()) win.show()
+  if (win.isMinimized()) win.restore()
+  win.focus()
+}
+
+let isQuitting = false
+
+// ── Auto Update ──
+
+function setupAutoUpdater() {
+  autoUpdater.autoDownload = false
+  autoUpdater.autoInstallOnAppQuit = true
+
+  autoUpdater.on('update-available', (info) => {
+    log.info('Update available', { version: info.version })
+    win?.webContents.send('updater:available', { version: info.version, releaseNotes: info.releaseNotes })
+  })
+
+  autoUpdater.on('update-not-available', () => {
+    log.debug('No update available')
+  })
+
+  autoUpdater.on('download-progress', (progress) => {
+    win?.webContents.send('updater:progress', { percent: Math.round(progress.percent) })
+  })
+
+  autoUpdater.on('update-downloaded', (info) => {
+    log.info('Update downloaded', { version: info.version })
+    win?.webContents.send('updater:downloaded', { version: info.version })
+  })
+
+  autoUpdater.on('error', (err) => {
+    log.warn('Auto-update error', { error: err.message })
+  })
+
+  ipcMain.handle('updater:check', async () => {
+    try {
+      const result = await autoUpdater.checkForUpdates()
+      return { available: !!result?.updateInfo, version: result?.updateInfo?.version }
+    } catch {
+      return { available: false }
+    }
+  })
+
+  ipcMain.handle('updater:download', async () => {
+    await autoUpdater.downloadUpdate()
+  })
+
+  ipcMain.handle('updater:install', () => {
+    isQuitting = true
+    autoUpdater.quitAndInstall()
+  })
+}
+
 // ── App 生命周期 ──
 
 app.whenReady().then(async () => {
   await createWindow()
+  createTray()
+  setupAutoUpdater()
+
+  globalShortcut.register('CommandOrControl+Shift+A', () => showWindow())
+  log.info('Global shortcut registered: Ctrl+Shift+A')
+
+  win!.on('close', (e) => {
+    if (!isQuitting) {
+      e.preventDefault()
+      win?.hide()
+    }
+  })
+
   initSkillSystem(toolRegistry).catch(err => log.warn('Skill init failed', { error: String(err) }))
   restoreMcpConnections()
+  initScheduler().catch(err => log.warn('Scheduler init failed', { error: String(err) }))
+
+  if (!VITE_DEV_SERVER_URL) {
+    setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 3000)
+  }
 })
 
-app.on('window-all-closed', async () => {
-  win = null
+app.on('before-quit', () => {
+  isQuitting = true
+})
+
+app.on('will-quit', async () => {
+  globalShortcut.unregisterAll()
+  shutdownScheduler()
   await runtime.shutdown()
   await mcpManager.disconnectAll().catch(() => {})
   closeDatabase()
-  if (process.platform !== 'darwin') app.quit()
+})
+
+app.on('window-all-closed', () => {
+  // 有 Tray 时不退出，只在 macOS 以外 + 真正退出时 quit
+  if (process.platform !== 'darwin' && isQuitting) app.quit()
 })
 
 app.on('second-instance', () => {
-  if (win) {
-    if (win.isMinimized()) win.restore()
-    win.focus()
-  }
+  showWindow()
 })
 
 app.on('activate', () => {
-  const allWindows = BrowserWindow.getAllWindows()
-  if (allWindows.length) {
-    allWindows[0].focus()
-  } else {
-    createWindow()
-  }
+  showWindow()
 })

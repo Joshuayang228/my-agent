@@ -84,40 +84,41 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="relative flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-900 shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-700/50 px-5 py-3">
+      <div className="theme-panel relative flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border shadow-2xl">
+        <div className="flex items-center justify-between border-b px-5 py-3" style={{ borderColor: 'var(--border-color)' }}>
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-emerald-400">⚡ Developer Panel</span>
-            <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400">DEBUG</span>
+            <span className="text-sm font-semibold text-emerald-500">⚡ Developer Panel</span>
+            <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-500">DEBUG</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={refresh}
-              className="rounded-lg px-2 py-1 text-xs text-slate-400 transition hover:bg-slate-800 hover:text-white"
+              className="rounded-lg px-2 py-1 text-xs transition"
+              style={{ color: 'var(--text-muted)' }}
             >
               ↻ 刷新
             </button>
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+              className="rounded-lg p-1.5 transition"
+              style={{ color: 'var(--text-muted)' }}
             >
               ✕
             </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-slate-700/50 px-5">
+        <div className="flex border-b px-5" style={{ borderColor: 'var(--border-color)' }}>
           {TABS.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-medium transition ${
                 tab === t.id
-                  ? 'border-emerald-400 text-emerald-400'
-                  : 'border-transparent text-slate-500 hover:text-slate-300'
+                  ? 'border-emerald-400 text-emerald-500'
+                  : 'border-transparent'
               }`}
+              style={tab !== t.id ? { color: 'var(--text-muted)' } : undefined}
             >
               <span>{t.icon}</span>
               {t.label}
@@ -142,7 +143,7 @@ function PromptTab({ info, layer, setLayer }: {
   layer: string
   setLayer: (l: 'full' | 'l1' | 'l2' | 'l3' | 'l4') => void
 }) {
-  if (!info) return <div className="text-sm text-slate-500">加载中... (需要 Electron 环境)</div>
+  if (!info) return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载中... (需要 Electron 环境)</div>
 
   const layers = [
     { id: 'full' as const, label: '完整 Prompt', desc: `${info.charCount} chars / ~${info.estimatedTokens} tokens` },
@@ -157,8 +158,8 @@ function PromptTab({ info, layer, setLayer }: {
   return (
     <div>
       <div className="mb-4 flex items-center gap-3">
-        <span className="text-xs text-slate-400">当前人格：</span>
-        <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-[11px] text-violet-400">
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>当前人格：</span>
+        <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-[11px] text-violet-500">
           {info.persona.name}
         </span>
       </div>
@@ -171,18 +172,19 @@ function PromptTab({ info, layer, setLayer }: {
             className={`rounded-lg border px-3 py-1.5 text-left transition ${
               layer === l.id
                 ? 'border-emerald-500 bg-emerald-500/10'
-                : 'border-slate-700 hover:border-slate-500'
+                : ''
             }`}
+            style={layer !== l.id ? { borderColor: 'var(--border-color)' } : undefined}
           >
-            <div className={`text-[11px] font-medium ${layer === l.id ? 'text-emerald-400' : 'text-slate-300'}`}>
+            <div className="text-[11px] font-medium" style={{ color: layer === l.id ? '#34d399' : 'var(--text-primary)' }}>
               {l.label}
             </div>
-            <div className="text-[10px] text-slate-500">{l.desc}</div>
+            <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{l.desc}</div>
           </button>
         ))}
       </div>
 
-      <pre className="max-h-[50vh] overflow-auto rounded-lg border border-slate-700/60 bg-slate-950 p-4 text-xs leading-relaxed text-slate-300">
+      <pre className="max-h-[50vh] overflow-auto rounded-lg border p-4 text-xs leading-relaxed" style={{ borderColor: 'var(--card-border)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
         {content}
       </pre>
     </div>
@@ -194,14 +196,14 @@ function ToolsTab({ tools, expanded, setExpanded }: {
   expanded: string | null
   setExpanded: (name: string | null) => void
 }) {
-  if (tools.length === 0) return <div className="text-sm text-slate-500">加载中...</div>
+  if (tools.length === 0) return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载中...</div>
 
   const builtins = tools.filter(t => !t.name.startsWith('mcp:'))
   const mcpTools = tools.filter(t => t.name.startsWith('mcp:'))
 
   return (
     <div>
-      <div className="mb-3 text-xs text-slate-400">
+      <div className="mb-3 text-xs" style={{ color: 'var(--text-muted)' }}>
         共 {tools.length} 个工具（{builtins.length} 内置 + {mcpTools.length} MCP）
       </div>
 
@@ -210,10 +212,10 @@ function ToolsTab({ tools, expanded, setExpanded }: {
         ...(mcpTools.length > 0 ? [{ label: 'MCP 工具', items: mcpTools }] : []),
       ].map(group => (
         <div key={group.label} className="mb-4">
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-600">{group.label}</div>
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{group.label}</div>
           <div className="space-y-1">
             {group.items.map(tool => (
-              <div key={tool.name} className="rounded-lg border border-slate-700/60 bg-slate-800/40">
+              <div key={tool.name} className="theme-card rounded-lg border">
                 <button
                   onClick={() => setExpanded(expanded === tool.name ? null : tool.name)}
                   className="flex w-full items-center gap-3 px-4 py-2.5 text-left"
@@ -222,18 +224,18 @@ function ToolsTab({ tools, expanded, setExpanded }: {
                     tool.metadata.isDestructive ? 'bg-red-400' :
                     tool.metadata.isReadOnly ? 'bg-emerald-400' : 'bg-amber-400'
                   }`} />
-                  <span className="flex-1 font-mono text-xs text-slate-200">{tool.name}</span>
+                  <span className="flex-1 font-mono text-xs" style={{ color: 'var(--text-primary)' }}>{tool.name}</span>
                   <div className="flex gap-1">
-                    {tool.metadata.isReadOnly && <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] text-emerald-400">只读</span>}
+                    {tool.metadata.isReadOnly && <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] text-emerald-500">只读</span>}
                     {tool.metadata.isDestructive && <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-[9px] text-red-400">破坏性</span>}
-                    {tool.metadata.isConcurrencySafe && <span className="rounded bg-cyan-500/10 px-1.5 py-0.5 text-[9px] text-cyan-400">并发安全</span>}
+                    {tool.metadata.isConcurrencySafe && <span className="rounded bg-cyan-500/10 px-1.5 py-0.5 text-[9px] text-cyan-500">并发安全</span>}
                   </div>
-                  <span className="text-[10px] text-slate-600">{expanded === tool.name ? '▼' : '▶'}</span>
+                  <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{expanded === tool.name ? '▼' : '▶'}</span>
                 </button>
                 {expanded === tool.name && (
-                  <div className="border-t border-slate-700/40 px-4 py-3">
-                    <p className="mb-2 text-xs text-slate-400">{tool.description}</p>
-                    <pre className="overflow-auto rounded bg-slate-950 p-2 text-[10px] text-slate-500">
+                  <div className="border-t px-4 py-3" style={{ borderColor: 'var(--border-color)' }}>
+                    <p className="mb-2 text-xs" style={{ color: 'var(--text-secondary)' }}>{tool.description}</p>
+                    <pre className="overflow-auto rounded p-2 text-[10px]" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
                       {JSON.stringify(tool.parameters, null, 2)}
                     </pre>
                   </div>
@@ -248,7 +250,7 @@ function ToolsTab({ tools, expanded, setExpanded }: {
 }
 
 function SystemTab({ info }: { info: SystemInfo | null }) {
-  if (!info) return <div className="text-sm text-slate-500">加载中...</div>
+  if (!info) return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载中...</div>
 
   const sections = [
     {
@@ -292,17 +294,18 @@ function SystemTab({ info }: { info: SystemInfo | null }) {
 
       {sections.map(section => (
         <div key={section.title} className="mb-4">
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-600">{section.title}</div>
-          <div className="rounded-lg border border-slate-700/60 bg-slate-800/40">
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{section.title}</div>
+          <div className="theme-card rounded-lg border">
             {section.items.map(([label, value], i) => (
               <div
                 key={label}
                 className={`flex justify-between px-4 py-2 text-xs ${
-                  i < section.items.length - 1 ? 'border-b border-slate-700/30' : ''
+                  i < section.items.length - 1 ? 'border-b' : ''
                 }`}
+                style={i < section.items.length - 1 ? { borderColor: 'var(--border-color)' } : undefined}
               >
-                <span className="text-slate-400">{label}</span>
-                <span className="font-mono text-slate-200">{value}</span>
+                <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+                <span className="font-mono" style={{ color: 'var(--text-primary)' }}>{value}</span>
               </div>
             ))}
           </div>
@@ -311,18 +314,18 @@ function SystemTab({ info }: { info: SystemInfo | null }) {
 
       {info.mcp.length > 0 && (
         <div>
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-600">MCP 连接</div>
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>MCP 连接</div>
           <div className="space-y-1">
             {info.mcp.map(s => (
-              <div key={s.id} className="flex items-center justify-between rounded-lg border border-slate-700/60 bg-slate-800/40 px-4 py-2">
+              <div key={s.id} className="theme-card flex items-center justify-between rounded-lg border px-4 py-2">
                 <div className="flex items-center gap-2">
                   <span className={`h-2 w-2 rounded-full ${
                     s.status === 'connected' ? 'bg-emerald-400' :
                     s.status === 'error' ? 'bg-red-400' : 'bg-amber-400'
                   }`} />
-                  <span className="text-xs text-slate-200">{s.name}</span>
+                  <span className="text-xs" style={{ color: 'var(--text-primary)' }}>{s.name}</span>
                 </div>
-                <span className="text-[10px] text-slate-500">{s.toolCount} tools</span>
+                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{s.toolCount} tools</span>
               </div>
             ))}
           </div>
@@ -348,7 +351,7 @@ function StatCard({ label, value, color }: { label: string; value: string; color
 
 function EventsTab({ events }: { events: Array<{ time: number; type: string; detail: string }> }) {
   if (events.length === 0) {
-    return <div className="text-sm text-slate-500">暂无事件。发送消息后会在这里看到实时事件流。</div>
+    return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>暂无事件。发送消息后会在这里看到实时事件流。</div>
   }
 
   const typeColor: Record<string, string> = {
@@ -364,15 +367,15 @@ function EventsTab({ events }: { events: Array<{ time: number; type: string; det
 
   return (
     <div>
-      <div className="mb-3 text-xs text-slate-400">共 {events.length} 条事件</div>
+      <div className="mb-3 text-xs" style={{ color: 'var(--text-muted)' }}>共 {events.length} 条事件</div>
       <div className="space-y-0.5 font-mono text-[11px]">
         {events.map((ev, i) => (
-          <div key={i} className="flex gap-3 rounded px-2 py-1 hover:bg-slate-800/50">
-            <span className="shrink-0 text-slate-600">
+          <div key={i} className="flex gap-3 rounded px-2 py-1" style={{ color: 'var(--text-secondary)' }}>
+            <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>
               {new Date(ev.time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
-            <span className={`w-20 shrink-0 ${typeColor[ev.type] || 'text-slate-400'}`}>{ev.type}</span>
-            <span className="truncate text-slate-400">{ev.detail}</span>
+            <span className={`w-20 shrink-0 ${typeColor[ev.type] || ''}`} style={!typeColor[ev.type] ? { color: 'var(--text-muted)' } : undefined}>{ev.type}</span>
+            <span className="truncate" style={{ color: 'var(--text-secondary)' }}>{ev.detail}</span>
           </div>
         ))}
       </div>

@@ -9,6 +9,7 @@ import { taskPlanTool } from './task-plan'
 import { codeSearchTool } from './code-search'
 import { urlFetchTool } from './url-fetch'
 import { delegateTaskTool } from './delegate-task'
+import { ragSearchTool } from './rag-search'
 
 export const builtinTools: ToolDefinition[] = [
   getCurrentTimeTool,
@@ -23,4 +24,5 @@ export const builtinTools: ToolDefinition[] = [
   forgetTool,
   taskPlanTool,
   delegateTaskTool,
+  ragSearchTool,
 ]

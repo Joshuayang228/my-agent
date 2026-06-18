@@ -8,6 +8,8 @@ import { registerMcpIPC } from './mcp'
 import { registerDebugIPC } from './debug'
 import { registerDataExportIPC } from './data-export'
 import { registerSkillsIPC } from './skills'
+import { registerSchedulerIPC } from './scheduler'
+import { registerRagIPC } from './rag'
 
 export function registerAllIPC(toolRegistry: ToolRegistry): void {
   registerSessionIPC()
@@ -19,4 +21,6 @@ export function registerAllIPC(toolRegistry: ToolRegistry): void {
   registerDebugIPC(toolRegistry)
   registerDataExportIPC()
   registerSkillsIPC(toolRegistry)
+  registerSchedulerIPC()
+  registerRagIPC()
 }

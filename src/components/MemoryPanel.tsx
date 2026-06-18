@@ -72,36 +72,36 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="relative flex h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-900 shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-700/50 px-5 py-3">
+      <div className="theme-panel relative flex h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border shadow-2xl">
+        <div className="flex items-center justify-between border-b px-5 py-3" style={{ borderColor: 'var(--border-color)' }}>
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-white">🧠 记忆管理</span>
-            <span className="rounded bg-slate-700/50 px-2 py-0.5 text-[10px] text-slate-400">{memories.length} 条</span>
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>🧠 记忆管理</span>
+            <span className="rounded px-2 py-0.5 text-[10px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{memories.length} 条</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setAdding(!adding)}
-              className="rounded-lg px-2.5 py-1 text-xs text-cyan-400 transition hover:bg-slate-800"
+              className="rounded-lg px-2.5 py-1 text-xs text-cyan-500 transition"
             >
               + 添加
             </button>
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+              className="rounded-lg p-1.5 transition"
+              style={{ color: 'var(--text-muted)' }}
             >
               ✕
             </button>
           </div>
         </div>
 
-        {/* Category Filter */}
-        <div className="flex gap-2 border-b border-slate-700/50 px-5 py-2.5">
+        <div className="flex gap-2 border-b px-5 py-2.5" style={{ borderColor: 'var(--border-color)' }}>
           <button
             onClick={() => setFilter('all')}
             className={`rounded-lg px-2.5 py-1 text-[11px] transition ${
-              filter === 'all' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'
+              filter === 'all' ? 'font-medium' : ''
             }`}
+            style={{ background: filter === 'all' ? 'var(--bg-tertiary)' : undefined, color: filter === 'all' ? 'var(--text-primary)' : 'var(--text-muted)' }}
           >
             全部 ({memories.length})
           </button>
@@ -114,8 +114,9 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
                 className={`rounded-lg px-2.5 py-1 text-[11px] transition ${
                   filter === cat.id
                     ? `${COLOR_MAP[cat.color].badge} font-medium`
-                    : 'text-slate-500 hover:text-slate-300'
+                    : ''
                 }`}
+                style={filter !== cat.id ? { color: 'var(--text-muted)' } : undefined}
               >
                 {cat.icon} {cat.label} ({count})
               </button>
@@ -125,15 +126,16 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
 
         {/* Add Form */}
         {adding && (
-          <div className="border-b border-slate-700/50 bg-slate-800/30 px-5 py-3">
+          <div className="border-b px-5 py-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
             <div className="mb-2 flex gap-2">
               {CATEGORIES.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => setNewCategory(cat.id)}
                   className={`rounded px-2 py-0.5 text-[10px] transition ${
-                    newCategory === cat.id ? COLOR_MAP[cat.color].badge : 'text-slate-500 hover:text-slate-300'
+                    newCategory === cat.id ? COLOR_MAP[cat.color].badge : ''
                   }`}
+                  style={newCategory !== cat.id ? { color: 'var(--text-muted)' } : undefined}
                 >
                   {cat.icon} {cat.label}
                 </button>
@@ -146,7 +148,7 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
                 onKeyDown={e => e.key === 'Enter' && handleAdd()}
                 placeholder="输入记忆内容..."
                 autoFocus
-                className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-500"
+                className="theme-input flex-1 rounded-lg border px-3 py-1.5 text-xs outline-none"
               />
               <button
                 onClick={handleAdd}
@@ -164,7 +166,7 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
           {filtered.length === 0 ? (
             <div className="mt-10 text-center">
               <div className="mb-2 text-2xl">🧠</div>
-              <div className="text-sm text-slate-500">
+              <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
                 {memories.length === 0
                   ? '还没有任何记忆。和 Agent 对话后会自动提取，也可以手动添加。'
                   : '该分类下暂无记忆'}
@@ -216,7 +218,7 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
                             if (e.key === 'Escape') setEditing(null)
                           }}
                           autoFocus
-                          className="flex-1 rounded border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-white outline-none focus:border-cyan-500"
+                          className="theme-input flex-1 rounded border px-2 py-1 text-xs outline-none"
                         />
                         <button
                           onClick={() => handleSaveEdit(mem.id)}
@@ -232,10 +234,10 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
                         </button>
                       </div>
                     ) : (
-                      <p className="text-xs leading-relaxed text-slate-300">{mem.content}</p>
+                      <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{mem.content}</p>
                     )}
 
-                    <div className="mt-1.5 text-[9px] text-slate-600">
+                    <div className="mt-1.5 text-[9px]" style={{ color: 'var(--text-muted)' }}>
                       {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
                       {mem.updatedAt !== mem.createdAt && ` (更新于 ${new Date(mem.updatedAt).toLocaleDateString('zh-CN')})`}
                     </div>
@@ -247,7 +249,7 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
         </div>
 
         {/* Footer hint */}
-        <div className="border-t border-slate-700/50 px-5 py-2 text-center text-[10px] text-slate-600">
+        <div className="border-t px-5 py-2 text-center text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
           Agent 会自动从对话中提取记忆 · 你也可以手动管理 · 记忆会注入到每次对话的 System Prompt 中
         </div>
       </div>

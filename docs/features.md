@@ -34,7 +34,7 @@
 
 - [x] Electron 主窗口
 - [x] 对话界面（流式输出）
-- [x] IPC 通信（统一 AgentStreamEvent 事件流，拆分 8 模块）
+- [x] IPC 通信（统一 AgentStreamEvent 事件流，拆分 9 模块）
 - [x] 会话管理（多会话 / 切换 / 删除 / 重命名 / 侧边栏）
 - [x] 切换会话后台继续流式（事件按 sessionId 隔离，完成后持久化，切回可见完整结果）
 - [x] 首次运行引导（无 API Key 时自动打开设置 + Toast 提示）
@@ -99,7 +99,7 @@
 - [x] 日志系统（彩色分级 Logger）
 - [x] Electron remote debugging（port 9222）
 - [x] Playwright E2E 测试（5 个 UI + Electron 真实对话框架）
-- [x] vitest 单元测试覆盖（46 个测试 / 5 文件：ToolRegistry / PromptBuilder / ContextManager / AgentLoop / MemoryTools）
+- [x] vitest 单元测试覆盖（88 个测试 / 10 文件）
 - [x] 主进程 IPC 模块化拆分（session / chat / settings / memory / persona / mcp / debug / data-export）
 - [x] 架构分层 import 方向约束（HARD-GATE 规则）
 - [x] Developer Panel 调试面板（Ctrl+Shift+D，4 Tab：Prompt/工具/系统/事件）
@@ -202,6 +202,70 @@
   - McpServerConfig 新增 transport 字段（'stdio' | 'sse'）和 url 字段
   - 根据 transport 类型自动选择 StdioClientTransport 或 SSEClientTransport
   - 兼容远程 MCP 服务器（HTTP + SSE 长连接）
+
+## 框架能力补齐（P15）
+
+- [x] System Tray + 全局快捷键 + 后台运行
+  - 系统托盘图标（关闭窗口最小化到托盘，不退出进程）
+  - 托盘右键菜单（显示窗口 / 退出）
+  - 托盘双击唤起窗口
+  - 全局快捷键 Ctrl+Shift+A 唤起窗口
+  - `isQuitting` 标志区分关闭和退出
+- [x] Structured Output / JSON Mode
+  - `ResponseFormat` 类型（text / json_object / json_schema）
+  - `StreamChatOptions.responseFormat` 参数
+  - OpenAI 请求体自动注入 `response_format`
+- [x] Model Failover 自动降级
+  - `FallbackModelConfig` 类型 + `LLMConfig.fallbackModels` 配置
+  - 主模型失败后按序尝试备用模型
+  - 降级时自动通知前端（显示切换提示）
+  - 所有模型失败才抛错
+- [x] Prompt Cache 支持（Anthropic）
+  - System Prompt 标记 `cache_control: { type: 'ephemeral' }`
+  - Tools 列表末位标记缓存
+  - `anthropic-beta: prompt-caching-2024-07-31` 请求头
+  - Usage 解析 `cache_read_input_tokens` / `cache_creation_input_tokens`
+  - Agent Loop 默认启用 `enablePromptCache: true`
+- [x] Streaming Tool Calls 流式工具参数
+  - `AgentStreamEvent` 新增 `tool_call_delta` 事件类型
+  - OpenAI + Anthropic 双适配器实时 yield 工具参数增量
+  - 前端 `ToolStatus` 新增 `pending` 状态 + `streamingArgs` 字段
+  - 工具卡片实时显示参数解析过程（青色脉冲指示器）
+- [x] UI 修复
+  - 小声蛐蛐（aside）移到消息下方 + 标签不泄漏（支持多个 aside）
+
+## 高级功能扩展（P16）
+
+- [x] Auto Update 自动更新
+  - electron-updater 集成（autoDownload=false，用户确认后下载）
+  - 启动 3s 后自动检查更新（生产环境）
+  - IPC 端点：check / download / install
+  - 前端事件：update-available / download-progress / update-downloaded
+- [x] 会话分支/Fork
+  - `session:fork` IPC 端点 + `forkSession` DB 层
+  - 从任意消息分叉，复制该消息及之前所有历史到新会话
+  - 新会话标题自动加"(分支)"后缀
+  - 前端消息操作栏"⑂ 分支"按钮
+- [x] Scheduled Tasks 定时任务
+  - `scheduler/index.ts` 调度器模块（interval + 简易 cron）
+  - SQLite `scheduled_tasks` 表持久化
+  - CRUD IPC 端点 + preload API
+  - 任务触发时发送 `scheduler:triggered` 事件到前端
+  - 启动时自动恢复活跃任务，退出时清理定时器
+- [x] RAG 文档管道
+  - `rag/index.ts` 文档导入 + 分块 + Embedding 管道
+  - 段落感知分块（800 字符块 + 100 字符重叠）
+  - 独立 RAG 向量索引（与记忆索引分离）
+  - SQLite `rag_documents` 表管理文档元数据
+  - `rag_search` 内置工具（Agent 可语义检索知识库）
+  - 文件选择对话框导入（支持 txt/md/json/csv/py/js/ts 等）
+  - 内置工具增至 13 个
+- [x] Voice I/O 语音交互
+  - 语音输入（Web Speech API / SpeechRecognition，中文）
+  - 语音输出（SpeechSynthesis TTS 朗读）
+  - 输入区 🎤 语音按钮（录音时红色脉冲动画）
+  - AI 消息 🔊 朗读按钮
+  - 支持连续语音识别 + 实时转写到输入框
 
 ---
 

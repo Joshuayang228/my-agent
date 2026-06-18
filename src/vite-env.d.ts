@@ -21,7 +21,28 @@ declare global {
         delete: (id: string) => Promise<void>
         rename: (id: string, title: string) => Promise<void>
         deleteMessage: (messageId: string) => Promise<void>
+        fork: (sessionId: string, upToMessageId: string) => Promise<ChatSession>
         tokenUsage: (sessionId: string) => Promise<{ promptTokens: number; completionTokens: number }>
+      }
+      rag: {
+        list: () => Promise<Array<{ id: string; name: string; filePath: string; chunkCount: number; createdAt: number }>>
+        ingest: () => Promise<Array<{ id: string; name: string; filePath: string; chunkCount: number; createdAt: number }>>
+        delete: (docId: string) => Promise<void>
+      }
+      scheduler: {
+        list: () => Promise<Array<{ id: string; name: string; prompt: string; cron?: string; intervalMs?: number; enabled: boolean; lastRunAt?: number; nextRunAt?: number; createdAt: number }>>
+        create: (opts: { name: string; prompt: string; cron?: string; intervalMs?: number }) => Promise<unknown>
+        update: (id: string, updates: Record<string, unknown>) => Promise<void>
+        delete: (id: string) => Promise<void>
+        onTriggered: (cb: (info: { taskId: string; name: string; prompt: string }) => void) => () => void
+      }
+      updater: {
+        check: () => Promise<{ available: boolean; version?: string }>
+        download: () => Promise<void>
+        install: () => void
+        onAvailable: (cb: (info: { version: string }) => void) => () => void
+        onProgress: (cb: (info: { percent: number }) => void) => () => void
+        onDownloaded: (cb: (info: { version: string }) => void) => () => void
       }
       settings: {
         get: () => Promise<Record<string, string>>

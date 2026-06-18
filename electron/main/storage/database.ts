@@ -73,6 +73,30 @@ function initSchema(db: SqlJsDatabase): void {
       ON messages(session_id, sort_order)
   `)
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS rag_documents (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      file_path   TEXT NOT NULL,
+      chunk_count INTEGER NOT NULL DEFAULT 0,
+      created_at  INTEGER NOT NULL
+    )
+  `)
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS scheduled_tasks (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      prompt      TEXT NOT NULL,
+      cron        TEXT,
+      interval_ms INTEGER,
+      enabled     INTEGER NOT NULL DEFAULT 1,
+      last_run_at INTEGER,
+      next_run_at INTEGER,
+      created_at  INTEGER NOT NULL
+    )
+  `)
+
   // Migration: add token tracking columns if missing
   try {
     db.run('ALTER TABLE sessions ADD COLUMN total_prompt_tokens INTEGER NOT NULL DEFAULT 0')

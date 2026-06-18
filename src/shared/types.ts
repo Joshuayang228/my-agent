@@ -65,6 +65,11 @@ export interface ToolMetadata {
 
 export type LLMProvider = 'openai' | 'anthropic' | 'gemini' | 'auto'
 
+export type ResponseFormat =
+  | { type: 'text' }
+  | { type: 'json_object' }
+  | { type: 'json_schema'; json_schema: { name: string; strict?: boolean; schema: Record<string, unknown> } }
+
 export interface LLMConfig {
   apiKey: string
   baseUrl: string
@@ -73,6 +78,15 @@ export interface LLMConfig {
   topP?: number
   maxTokens?: number
   /** Provider 类型（auto = 根据 baseUrl 自动检测） */
+  provider?: LLMProvider
+  /** 备用模型列表，主模型失败时按序降级 */
+  fallbackModels?: FallbackModelConfig[]
+}
+
+export interface FallbackModelConfig {
+  model: string
+  baseUrl?: string
+  apiKey?: string
   provider?: LLMProvider
 }
 
@@ -105,6 +119,7 @@ export type AgentStreamEvent =
   | { type: 'text'; content: string }
   | { type: 'thinking'; content: string }
   | { type: 'tool_calls'; calls: ToolCall[] }
+  | { type: 'tool_call_delta'; index: number; id?: string; name?: string; argumentsDelta: string }
   | { type: 'tool_start'; callId: string; name: string; args: Record<string, unknown> }
   | { type: 'tool_end'; callId: string; name: string; result: string; isError?: boolean }
   | { type: 'tool_confirm'; callId: string; name: string; args: Record<string, unknown> }

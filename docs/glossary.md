@@ -27,4 +27,23 @@
 | 指数退避 | Exponential Backoff | 重试间隔按 2^n 指数增长的策略 | LLM 调用重试 |
 | 分层约束 | Layer Constraint | 模块间 import 方向的单向依赖规则 | core.mdc HARD-GATE |
 
+| 沙箱 (Sandbox) | Sandbox | 命令执行安全防护，三级模式（read-only / workspace-write / full-access） | 参考 Codex |
+| 沙箱策略 | SandboxPolicy | 定义文件系统/网络/命令的访问边界 | sandbox/policy.ts |
+| 命令分级 | ExecPolicy | 命令安全等级评估（safe / dangerous / unknown） | sandbox/exec-policy.ts |
+| 路径守卫 | CommandGuard | 检查命令目标路径是否越界 | sandbox/command-guard.ts |
+| 审批记录 | ApprovalStore | 用户对敏感操作的审批历史 | 会话级 + 持久级 |
+| 消息管道 | Message Pipeline | 对话历史清洗（孤儿修复 / 去重 / 合并）| message-pipeline.ts |
+| 运行时编排 | AgentRuntime | 会话生命周期 + 后台任务队列的单例管理器 | runtime.ts |
+| 子 Agent | Subagent | 被主 Agent 委托的独立 Agent 实例，受限工具集 + 权限只降不升 | delegate_task 工具 |
+| 中间件管道 | Middleware Pipeline | 工具执行的洋葱模型拦截链 | tools/middleware.ts |
+| Token 预算 | Token Budget | 会话级 + 日级 Token 消耗限额 | token-budget.ts |
+| 结构化 Tracing | Structured Tracing | 轻量 Span 追踪系统（caller 分类 + 嵌套 + 时长） | utils/tracer.ts |
+| 辅助模型 | Aux Model | 后台任务专用的低成本 LLM 模型配置 | auxModel 设置项 |
+| 权限规则引擎 | Permission Engine | 五层责任链决策（自定义规则 → 审批 → 分级 → 沙箱 → 默认） | permission-engine.ts |
+| 项目记忆 | Project Memory | 工作区根目录 PROJECT.md，注入 L3 Prompt | project-memory.ts |
+| Provider 路由 | Provider Router | 根据 baseUrl / provider 字段自动选择 LLM API 协议 | provider-router.ts |
+| 执行模式 | Execution Mode | Agent 工具审批策略：auto / confirm-all / plan-first | AgentLoopOptions |
+| 多模态 | Multimodal | 消息携带图片附件，通过 Vision API 发送 | ImageAttachment |
+| SSE 传输 | SSE Transport | MCP 客户端的远程 HTTP/SSE 传输方式（对比本地 stdio） | mcp/client.ts |
+
 <!-- 后续开发中遇到新概念在此追加 -->

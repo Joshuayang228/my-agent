@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-**阶段**：P0 ~ P14 全部完成（P14 = 测试扩充+多模态+MCP SSE）
+**阶段**：P0 ~ P16 全部完成（P16 = 高级功能扩展）
 
 **已完成全部功能**：
 - 规则体系 + 技能文件设计
@@ -151,14 +151,33 @@
 - UI E2E：5 个（全过）
 - Electron E2E：4 个（需 TEST_LLM_API_KEY 环境变量）
 
+**规则体系精简**（2026-06-17）：
+- 系统性审查发现规则"设计完美但执行为零"
+- Phase 6 自审 / Phase 8 调试流程内联到规则文件（消除读外部文件依赖）
+- Phase 1 区分新需求/子任务、Phase 11 必查 8→3 项
+- Skill 文件 8→7（删 playground-guide），路由表 7→5
+- model-config / security-checklist 回填实际知识
+- 方法论沉淀：`methodology/09-rule-system-evolution.md`
+
+- **P15 框架能力补齐**：
+  - System Tray + 全局快捷键（Ctrl+Shift+A 唤起 / 关闭最小化到托盘 / 托盘菜单）
+  - Structured Output / JSON Mode（ResponseFormat 类型 / response_format 请求参数）
+  - Model Failover 自动降级（fallbackModels 配置 / 主模型失败按序降级备用）
+  - Prompt Cache（Anthropic cache_control / System Prompt + Tools 缓存 / usage 统计）
+  - Streaming Tool Calls（tool_call_delta 事件 / OpenAI+Anthropic 双适配 / 前端实时参数显示）
+  - 小声蛐蛐修复（aside 移到消息下方 + 标签不泄漏 + 支持多个）
+
+- **P16 高级功能扩展**：
+  - Auto Update（electron-updater 集成 / 自动检查 / 用户确认下载安装）
+  - 会话分支/Fork（从任意消息分叉新对话 / DB 层消息复制 / 前端分支按钮）
+  - Scheduled Tasks（调度器模块 / SQLite 持久化 / interval+cron / 触发事件通知前端）
+  - RAG 文档管道（文档导入分块 / Embedding 入库 / rag_search 内置工具 / 独立向量索引）
+  - Voice I/O（Web Speech API 语音输入 / SpeechSynthesis 朗读 / 前端麦克风+朗读按钮）
+  - 内置工具 12 → 13 个（新增 rag_search）
+
 **下一步**：
-- 沉淀方法论文档（用户触发后逐条对齐写入）
-- Streaming UI 优化（逐字渲染 + 骨架屏）
-- 热键系统 / 全局搜索
 - bundle 体积优化（vectra external 处理）
 - 首个可用版本打包发布
-- 多模态支持（图片消息 + Vision API）
-- MCP SSE/HTTP 传输层
 
 ## 进度时间线
 
@@ -188,4 +207,6 @@
 | 2026-06-17 | P12 完成：效率与可观测（分场景模型/中间件/Token限流/Tracing） | ✅ |
 | 2026-06-17 | P13 完成：高级框架（权限引擎/项目记忆/多Provider路由） | ✅ |
 | 2026-06-17 | P14 完成：测试扩充+多模态+MCP SSE | ✅ |
+| 2026-06-18 | P15 完成：框架能力补齐（Tray/Failover/Cache/Streaming Tools） | ✅ |
+| 2026-06-18 | P16 完成：高级功能扩展（AutoUpdate/Fork/Scheduler/RAG/Voice） | ✅ |
 | - | 首个可用版本 | ⏳ |
