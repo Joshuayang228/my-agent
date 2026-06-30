@@ -126,6 +126,14 @@ export async function runSubAgent(
   }
 }
 
+/** 子 Agent 不允许使用的工具 — 防止递归和越权 */
+const SUBAGENT_TOOL_BLACKLIST = new Set([
+  'delegate_task',  // 防止无限递归
+  'remember',       // 不应修改主 Agent 记忆
+  'forget',         // 不应删除主 Agent 记忆
+  'task_plan',      // 不应操作主 Agent 的任务计划
+])
+
 /** 为子 Agent 构建受限的工具注册表 */
 function buildChildRegistry(parentRegistry: ToolRegistry, config: SubAgentConfig): ToolRegistry {
   const childRegistry = new ToolRegistry()
@@ -144,9 +152,17 @@ function buildChildRegistry(parentRegistry: ToolRegistry, config: SubAgentConfig
     allowedTools = allowedTools.filter(t => !t.metadata.isDestructive)
   }
 
+  allowedTools = allowedTools.filter(t => !SUBAGENT_TOOL_BLACKLIST.has(t.name))
+
   for (const tool of allowedTools) {
     childRegistry.register(tool)
   }
+
+  log.debug('Child registry built', {
+    parentToolCount: parentTools.length,
+    childToolCount: allowedTools.length,
+    blacklisted: [...SUBAGENT_TOOL_BLACKLIST].filter(n => parentRegistry.has(n)),
+  })
 
   return childRegistry
 }

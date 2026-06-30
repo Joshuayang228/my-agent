@@ -1,8 +1,8 @@
-import type { ToolDefinition } from '../../../../src/shared/types'
+import { buildTool } from '../builder'
 import { runSubAgent } from '../../agent/subagent'
 import * as settings from '../../storage/settings-store'
 
-export const delegateTaskTool: ToolDefinition = {
+export const delegateTaskTool = buildTool({
   name: 'delegate_task',
   description: 'Delegate a task to a specialized sub-agent. The sub-agent runs in an isolated context with its own tool set. Use this for: (1) Research tasks that need multiple tool calls, (2) Complex file operations, (3) Any task that benefits from focused, independent execution. The sub-agent result is returned as a single response.',
   parameters: {
@@ -29,7 +29,6 @@ export const delegateTaskTool: ToolDefinition = {
   },
   metadata: {
     isReadOnly: true,
-    isDestructive: false,
     isConcurrencySafe: true,
   },
   execute: async (args) => {
@@ -67,4 +66,4 @@ export const delegateTaskTool: ToolDefinition = {
 
     return `${header}${meta}\n\n${result.content}`
   },
-}
+})

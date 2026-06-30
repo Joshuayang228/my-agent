@@ -143,6 +143,24 @@
 - **建议**：在 Phase 7 验证时增加"是否完成自审"的强制提示
 - **状态**：已采纳（2026-06-19，Phase 7 第一步强化为不可跳过的自审补做机制）
 
+### #15 - Phase 2 调研仍然被跳过（@file 功能）
+
+- **规则文件**：`dev-workflow.mdc`
+- **具体条款**：Phase 2 — 先查项目参考文档，再搜外部资源
+- **问题类型**：未执行
+- **场景描述**：@file 上下文选择器功能开发时，初始只搜了 Alice 方法论就写方案，被用户提醒"你搜 alice 和 GitHub 了吗"后才补搜 GitHub + npm。说明 Phase 2 即使有 HARD-GATE 标记，仍然是最容易被跳过的步骤
+- **建议**：在方案设计输出前增加必填检查项"已搜索：_reference/ / GitHub / npm"，类似 Phase 11 的文档清单
+- **状态**：待审视
+
+### #16 - Phase 11 文档清单仍有遗漏
+
+- **规则文件**：`dev-workflow.mdc`
+- **具体条款**：Phase 11 HARD-GATE — 8 项文档检查
+- **问题类型**：执行不完整
+- **场景描述**：本次会话完成 Vision 修复 + Rules 移除 + @file 功能后，初始只更新了 progress/changelog/features/pitfalls 4 项，漏了 architecture/decisions/glossary 3 项。被用户提醒"规则要求的都做完了没"后才补上
+- **建议**：每次 Phase 11 执行时，先输出"文档检查清单"打勾列表，强制逐项确认，而不是凭感觉判断
+- **状态**：待审视
+
 ## 已采纳
 
 - **#1** — Phase 6 自审升级为 HARD-GATE + Phase 7 增加自审确认项（2026-06-14）

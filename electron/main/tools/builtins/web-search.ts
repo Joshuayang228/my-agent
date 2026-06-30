@@ -1,4 +1,4 @@
-import type { ToolDefinition } from '../../../../src/shared/types'
+import { buildTool } from '../builder'
 import { createLogger } from '../../utils/logger'
 
 const log = createLogger('WebSearch')
@@ -18,7 +18,7 @@ interface TavilyResponse {
   results: TavilyResult[]
 }
 
-export const webSearchTool: ToolDefinition = {
+export const webSearchTool = buildTool({
   name: 'web_search',
   description:
     'Search the web for current information. Use this when you need up-to-date information, facts, news, or anything that requires internet access. Returns search results with titles, URLs, and content snippets.',
@@ -36,11 +36,7 @@ export const webSearchTool: ToolDefinition = {
     },
     required: ['query'],
   },
-  metadata: {
-    isReadOnly: true,
-    isDestructive: false,
-    isConcurrencySafe: true,
-  },
+  metadata: { isReadOnly: true, isConcurrencySafe: true },
   execute: async (args) => {
     const query = args.query as string
     const maxResults = Math.min(Math.max(parseInt(String(args.max_results || '5'), 10) || 5, 1), 10)
@@ -110,4 +106,4 @@ export const webSearchTool: ToolDefinition = {
       return `Search failed: ${message}`
     }
   },
-}
+})

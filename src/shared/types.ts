@@ -52,13 +52,46 @@ export interface ToolDefinition {
     required?: string[]
   }
   metadata: ToolMetadata
-  execute: (args: Record<string, unknown>) => Promise<string>
+  execute: (args: Record<string, unknown>, ctx?: ToolContext) => Promise<string>
+  /**
+   * 工具结果大小上限（字符数）。超过此值时，结果将被写入临时文件，返回文件路径。
+   *
+   * 默认值：50,000
+   * 特殊值：Infinity = 永不落盘（如 file_read，防止循环：读文件 → 写临时文件 → 读临时文件）
+   */
+  maxResultSizeChars?: number
+}
+
+/**
+ * buildTool() 的输入类型 — metadata 字段全部可选，工厂函数负责填充 fail-closed 默认值：
+ * - isReadOnly: false（假设会写状态）
+ * - isDestructive: false
+ * - isConcurrencySafe: false（假设不可并发）
+ * - maxResultSizeChars: 50_000
+ */
+export interface ToolDef {
+  name: string
+  description: string
+  parameters: ToolDefinition['parameters']
+  metadata?: Partial<ToolMetadata>
+  execute: ToolDefinition['execute']
+  maxResultSizeChars?: number
 }
 
 export interface ToolMetadata {
   isReadOnly: boolean
   isDestructive: boolean
   isConcurrencySafe: boolean
+}
+
+/** 工具执行时注入的运行时上下文 */
+export interface ToolContext {
+  /** 当前工作区根目录 */
+  workdir: string
+  /** 当前会话 ID */
+  sessionId: string
+  /** 取消信号 */
+  signal?: AbortSignal
 }
 
 // ── LLM ──
@@ -113,7 +146,17 @@ export interface AgentLoopOptions {
   filterTools?: (tools: ToolDefinition[]) => ToolDefinition[]
   /** 执行模式：auto=自动(仅破坏性确认) | confirm-all=全部确认 | plan-first=先计划后执行 */
   executionMode?: ExecutionMode
+  /** 工具执行上下文（workdir/sessionId/signal），注入到所有工具 */
+  toolContext?: ToolContext
 }
+
+/** Agent 循环终止原因 */
+export type TerminalReason =
+  | 'completed'         // LLM 返回纯文本，正常结束
+  | 'max_turns'         // 达到最大迭代次数
+  | 'aborted'           // 被 AbortSignal 取消
+  | 'prompt_too_long'   // 413 压缩后仍超限
+  | 'model_error'       // LLM 调用不可恢复错误
 
 export type AgentStreamEvent =
   | { type: 'text'; content: string }
@@ -125,7 +168,7 @@ export type AgentStreamEvent =
   | { type: 'tool_confirm'; callId: string; name: string; args: Record<string, unknown> }
   | { type: 'usage'; promptTokens: number; completionTokens: number }
   | { type: 'error'; message: string }
-  | { type: 'done' }
+  | { type: 'done'; reason: TerminalReason }
 
 // ── 人格 ──
 

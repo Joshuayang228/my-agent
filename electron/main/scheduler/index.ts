@@ -1,9 +1,20 @@
 import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../storage/database'
 import { createLogger } from '../utils/logger'
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, Notification } from 'electron'
 
 const log = createLogger('Scheduler')
+
+/**
+ * Headless execution callback — set by runtime.ts on startup.
+ * When set, Scheduler triggers Agent loop directly in main process
+ * instead of just notifying the renderer.
+ */
+let headlessRunner: ((prompt: string, taskName: string) => Promise<string>) | null = null
+
+export function setHeadlessRunner(runner: (prompt: string, taskName: string) => Promise<string>): void {
+  headlessRunner = runner
+}
 
 export interface ScheduledTask {
   id: string
@@ -66,6 +77,25 @@ function scheduleNext(task: ScheduledTask) {
     db.run('UPDATE scheduled_tasks SET last_run_at = ? WHERE id = ?', [Date.now(), task.id])
     persist()
 
+    // Headless execution: run Agent loop directly in main process
+    if (headlessRunner) {
+      try {
+        const result = await headlessRunner(task.prompt, task.name)
+        log.info(`Headless task completed: ${task.name}`, { resultLength: result.length })
+
+        // Notify user via OS notification
+        if (Notification.isSupported()) {
+          new Notification({
+            title: `定时任务完成: ${task.name}`,
+            body: result.slice(0, 200),
+          }).show()
+        }
+      } catch (err) {
+        log.error(`Headless task failed: ${task.name}`, { error: err instanceof Error ? err.message : String(err) })
+      }
+    }
+
+    // Also notify renderer if window exists
     const wins = BrowserWindow.getAllWindows()
     if (wins.length > 0) {
       wins[0].webContents.send('scheduler:triggered', { taskId: task.id, name: task.name, prompt: task.prompt })

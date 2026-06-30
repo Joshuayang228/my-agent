@@ -224,7 +224,9 @@ describe('agentLoop', () => {
 
     const events = await collectEvents(agentLoop(options, registry))
 
-    const errorEvent = events.find(e => e.type === 'error' && 'message' in e && e.message.includes('maximum iterations'))
+    const errorEvent = events.find(e => e.type === 'error' && 'message' in e && e.message.includes('最大迭代次数'))
     expect(errorEvent).toBeTruthy()
+    const doneEvent = events.find(e => e.type === 'done') as Extract<AgentStreamEvent, { type: 'done' }>
+    expect(doneEvent?.reason).toBe('max_turns')
   })
 })

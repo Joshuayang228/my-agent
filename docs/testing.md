@@ -11,20 +11,23 @@
 
 ## 当前覆盖
 
-### 单元测试（88 个 / 10 个文件）
+### 单元测试（105 个 / 13 个文件）
 
 | 文件 | 覆盖模块 | 测试数 |
 |------|----------|--------|
 | `tool-registry.test.ts` | ToolRegistry（注册/执行/并发/超时） | ~15 |
 | `prompt-builder.test.ts` | PromptBuilder（4 层/人格/自定义） | ~10 |
 | `context-manager.test.ts` | ContextManager（L1-L4 压缩） | ~8 |
-| `agent-loop.test.ts` | AgentLoop（文本/工具/中断/重试） | ~10 |
+| `agent-loop.test.ts` | AgentLoop（文本/工具/中断/重试/maxIterations） | ~10 |
 | `memory-tools.test.ts` | remember/recall/forget/task_plan | ~13 |
 | `middleware.test.ts` | 中间件管道（洋葱模型/短路/截断） | ~8 |
 | `token-budget.test.ts` | Token 预算（会话/日级限额） | ~6 |
 | `message-pipeline.test.ts` | 消息管道（孤儿修复/合并） | ~6 |
 | `permission-engine.test.ts` | 权限引擎（自定义规则/沙箱集成） | ~6 |
 | `provider-router.test.ts` | Provider 路由（检测/Anthropic/Gemini） | ~6 |
+| `llm-failover.test.ts` | LLM Failover（降级/通知/全失败） | ~5 |
+| `rag-chunker.test.ts` | RAG 分块（段落感知/重叠/边界） | ~6 |
+| `scheduler.test.ts` | 定时任务调度（CRUD/interval/cron/rowToTask） | ~6 |
 
 ### E2E 测试（5 个 UI + 4 个 Electron）
 

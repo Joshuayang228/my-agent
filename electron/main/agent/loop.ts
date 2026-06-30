@@ -2,11 +2,13 @@ import type {
   AgentLoopOptions,
   AgentStreamEvent,
   ChatMessage,
+  TerminalReason,
   ToolCall,
   ToolResult,
 } from '../../../src/shared/types'
 import { streamChat } from '../llm/index'
 import { ToolRegistry } from '../tools/registry'
+import { checkToolPermission } from '../sandbox/permission-engine'
 import { createLogger } from '../utils/logger'
 import { sanitizeError } from '../utils/sanitize-error'
 import { compressContext } from './context-manager'
@@ -14,10 +16,29 @@ import { sanitizeMessages } from './message-pipeline'
 
 const log = createLogger('AgentLoop')
 
-const DEFAULT_MAX_ITERATIONS = 25
+const DEFAULT_MAX_ITERATIONS = 50
 const MAX_LLM_RETRIES = 2
+const MAX_OUTPUT_RECOVERY_LIMIT = 2
+const MAX_CONSECUTIVE_COMPACT_FAILURES = 3
 const TOOL_TIMEOUT_MS = 30_000
 const DEFAULT_SYSTEM_PROMPT = `You are a helpful AI assistant. You have access to tools that you can use to help the user. When you need to perform actions, use the available tools. Always respond in the same language as the user.`
+
+// ── LoopState ──
+
+type ContinueReason = 'next_turn' | 'reactive_compact_retry' | 'max_output_recovery'
+
+interface LoopState {
+  messages: ChatMessage[]
+  turnCount: number
+  lastPromptTokens?: number
+  hasAttemptedReactiveCompact: boolean
+  maxOutputRecoveryCount: number
+  consecutiveCompactFailures: number
+  deniedTools: Array<{ name: string; reason: string }>
+  transition?: { reason: ContinueReason }
+}
+
+// ── Helpers ──
 
 function isRetryableError(err: unknown): boolean {
   if (!(err instanceof Error)) return false
@@ -27,13 +48,37 @@ function isRetryableError(err: unknown): boolean {
     msg.includes('429') || msg.includes('502') || msg.includes('503')
 }
 
+function is413Error(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  const msg = err.message.toLowerCase()
+  return msg.includes('413') || msg.includes('prompt is too long') ||
+    msg.includes('prompt too long') || msg.includes('context_length_exceeded') ||
+    msg.includes('max_tokens')
+}
+
+function isMaxOutputError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  const msg = err.message.toLowerCase()
+  return msg.includes('max_output_tokens') || msg.includes('length')
+}
+
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
+
+function buildDeniedToolsPromptSuffix(denied: Array<{ name: string; reason: string }>): string {
+  if (denied.length === 0) return ''
+  const lines = denied.map(d => `- ${d.name}: ${d.reason}`)
+  return `\n\n[System] The following tools were denied during this session. Do not attempt to call them again:\n${lines.join('\n')}`
+}
 
 /**
  * Agent 主循环 — think → act → observe → think → ...
  *
- * 无状态：所有依赖通过 options 注入。
- * 输出：AsyncGenerator<AgentStreamEvent>，UI 层消费事件并渲染。
+ * 状态通过 LoopState 集中管理，支持：
+ * - 413 紧急压缩 + 重试
+ * - max_output_tokens 截断恢复
+ * - 权限拒绝累积追踪
+ * - abort 后合成 tool_result 保持消息配对
+ * - done 事件携带 TerminalReason
  */
 export async function* agentLoop(
   options: AgentLoopOptions,
@@ -49,6 +94,7 @@ export async function* agentLoop(
     confirmTool,
     filterTools,
     executionMode = 'auto',
+    toolContext,
   } = options
 
   log.info('Loop started', {
@@ -58,33 +104,65 @@ export async function* agentLoop(
     maxIterations,
   })
 
-  const workingMessages: ChatMessage[] = [
-    { id: 'system', role: 'system', content: systemPrompt, timestamp: Date.now() },
-    ...sanitizeMessages(inputMessages),
-  ]
+  const state: LoopState = {
+    messages: [
+      { id: 'system', role: 'system', content: systemPrompt, timestamp: Date.now() },
+      ...sanitizeMessages(inputMessages),
+    ],
+    turnCount: 0,
+    hasAttemptedReactiveCompact: false,
+    maxOutputRecoveryCount: 0,
+    consecutiveCompactFailures: 0,
+    deniedTools: [],
+  }
 
-  let lastPromptTokens: number | undefined = undefined
-
-  for (let iteration = 0; iteration < maxIterations; iteration++) {
+  while (state.turnCount < maxIterations) {
+    // ── 检查 abort ──
     if (signal?.aborted) {
-      log.warn('Loop cancelled by signal', { iteration })
-      yield { type: 'error', message: 'Agent loop was cancelled' }
+      log.warn('Loop cancelled by signal', { turn: state.turnCount })
+      yield* terminateLoop(state, 'aborted')
       return
     }
 
-    log.info(`Iteration ${iteration + 1}/${maxIterations} — calling LLM`)
+    state.turnCount++
+    log.info(`Turn ${state.turnCount}/${maxIterations} — calling LLM`)
 
     const effectiveTools = filterTools ? filterTools(tools) : tools
 
-    // ── 上下文压缩（每次迭代前检查，优先使用 API 返回的实际 token 数） ──
-    const compressed = await compressContext(workingMessages, {
-      lastActualPromptTokens: lastPromptTokens,
-      llmConfig: config,
-      querySource: 'main',
-    })
-    if (compressed.length < workingMessages.length) {
-      workingMessages.length = 0
-      workingMessages.push(...compressed)
+    // ── 注入权限拒绝摘要到 system prompt ──
+    const deniedSuffix = buildDeniedToolsPromptSuffix(state.deniedTools)
+    if (deniedSuffix && state.messages[0]?.role === 'system') {
+      const basePrompt = systemPrompt
+      state.messages[0] = {
+        ...state.messages[0],
+        content: basePrompt + deniedSuffix,
+      }
+    }
+
+    // ── 上下文压缩（每次迭代前检查，带熔断器） ──
+    if (state.consecutiveCompactFailures >= MAX_CONSECUTIVE_COMPACT_FAILURES) {
+      log.warn('Compact circuit breaker tripped — skipping compression', {
+        failures: state.consecutiveCompactFailures,
+      })
+    } else {
+      const beforeCount = state.messages.length
+      const compressed = await compressContext(state.messages, {
+        lastActualPromptTokens: state.lastPromptTokens,
+        llmConfig: config,
+        querySource: 'main',
+      })
+      if (compressed.length < beforeCount) {
+        state.messages.length = 0
+        state.messages.push(...compressed)
+        state.consecutiveCompactFailures = 0
+      } else {
+        state.consecutiveCompactFailures++
+        if (state.consecutiveCompactFailures >= MAX_CONSECUTIVE_COMPACT_FAILURES) {
+          log.warn('Compact failed to reduce messages, circuit breaker will trip next turn', {
+            failures: state.consecutiveCompactFailures,
+          })
+        }
+      }
     }
 
     // ── Think: 调用 LLM（带重试） ──
@@ -92,6 +170,7 @@ export async function* agentLoop(
     let toolCalls: ToolCall[] = []
     const llmStart = Date.now()
     let lastErr: unknown = null
+    let stopReason: string | undefined
 
     for (let attempt = 0; attempt <= MAX_LLM_RETRIES; attempt++) {
       if (attempt > 0) {
@@ -102,7 +181,7 @@ export async function* agentLoop(
       }
 
       try {
-        const stream = streamChat({ config, messages: workingMessages, tools: effectiveTools, signal, enablePromptCache: true })
+        const stream = streamChat({ config, messages: state.messages, tools: effectiveTools, signal, enablePromptCache: true })
 
         let streamResult = await stream.next()
         while (!streamResult.done) {
@@ -113,9 +192,10 @@ export async function* agentLoop(
         const result = streamResult.value
         content = result.content
         toolCalls = result.toolCalls
+        stopReason = result.stopReason
 
         if (result.usage?.promptTokens) {
-          lastPromptTokens = result.usage.promptTokens
+          state.lastPromptTokens = result.usage.promptTokens
         }
 
         log.info('LLM response received', {
@@ -123,12 +203,36 @@ export async function* agentLoop(
           contentLength: content?.length ?? 0,
           toolCallCount: toolCalls.length,
           usage: result.usage,
+          stopReason,
           attempt,
         })
         lastErr = null
         break
       } catch (err) {
         lastErr = err
+
+        // ── 413 紧急压缩 + 重试 ──
+        if (is413Error(err) && !state.hasAttemptedReactiveCompact) {
+          log.warn('413 detected — triggering reactive compact')
+          state.hasAttemptedReactiveCompact = true
+          const emergencyCompressed = await compressContext(state.messages, {
+            llmConfig: config,
+            querySource: 'main',
+          })
+          if (emergencyCompressed.length < state.messages.length) {
+            state.messages.length = 0
+            state.messages.push(...emergencyCompressed)
+            log.info('Reactive compact done, retrying LLM', { newMessageCount: state.messages.length })
+            state.transition = { reason: 'reactive_compact_retry' }
+            lastErr = null
+            break
+          }
+          log.error('Reactive compact failed to reduce messages')
+          yield { type: 'error', message: '对话上下文过长，压缩后仍超限。请开始新对话。' }
+          yield { type: 'done', reason: 'prompt_too_long' }
+          return
+        }
+
         if (!isRetryableError(err) || attempt === MAX_LLM_RETRIES) break
         log.warn('LLM call failed (retryable)', {
           attempt,
@@ -137,11 +241,46 @@ export async function* agentLoop(
       }
     }
 
+    // 413 触发 reactive compact 后跳回循环头重试
+    if (state.transition?.reason === 'reactive_compact_retry') {
+      state.transition = undefined
+      state.turnCount--
+      continue
+    }
+
     if (lastErr) {
       const raw = lastErr instanceof Error ? lastErr.message : String(lastErr)
       log.error('LLM call failed', { duration: Date.now() - llmStart, error: raw })
       yield { type: 'error', message: sanitizeError(raw) }
+      yield { type: 'done', reason: 'model_error' }
       return
+    }
+
+    // ── max_output_tokens 截断恢复 ──
+    if (stopReason === 'max_tokens' || stopReason === 'length') {
+      if (state.maxOutputRecoveryCount < MAX_OUTPUT_RECOVERY_LIMIT) {
+        state.maxOutputRecoveryCount++
+        log.warn('Output truncated, attempting recovery', {
+          recoveryAttempt: state.maxOutputRecoveryCount,
+          contentLength: content?.length ?? 0,
+        })
+        state.messages.push({
+          id: `assistant-${state.turnCount}`,
+          role: 'assistant',
+          content: content || '',
+          timestamp: Date.now(),
+          toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+        })
+        state.messages.push({
+          id: `user-recovery-${state.turnCount}`,
+          role: 'user',
+          content: '[System] Your previous response was truncated due to length limits. Please continue from where you left off.',
+          timestamp: Date.now(),
+        })
+        state.transition = { reason: 'max_output_recovery' }
+        continue
+      }
+      log.warn('Max output recovery limit reached, proceeding with truncated content')
     }
 
     // ── 写入 assistant 消息 ──
@@ -150,8 +289,8 @@ export async function* agentLoop(
         discardedLength: content?.length ?? 0,
         toolNames: toolCalls.map((tc) => tc.name),
       })
-      workingMessages.push({
-        id: `assistant-${iteration}`,
+      state.messages.push({
+        id: `assistant-${state.turnCount}`,
         role: 'assistant',
         content: '',
         timestamp: Date.now(),
@@ -160,17 +299,17 @@ export async function* agentLoop(
       yield { type: 'tool_calls', calls: toolCalls }
     } else {
       log.info('Loop complete — text response', { contentLength: content?.length ?? 0 })
-      workingMessages.push({
-        id: `assistant-${iteration}`,
+      state.messages.push({
+        id: `assistant-${state.turnCount}`,
         role: 'assistant',
         content: content || '',
         timestamp: Date.now(),
       })
-      yield { type: 'done' }
+      yield { type: 'done', reason: 'completed' }
       return
     }
 
-    // ── Act: 执行工具（并发安全的走 Promise.all，其余串行） ──
+    // ── Act: 执行工具 ──
     const results: ToolResult[] = []
     const skippedCallIds = new Set<string>()
 
@@ -180,11 +319,24 @@ export async function* agentLoop(
       try { args = JSON.parse(call.arguments || '{}') } catch { /* registry handles */ }
       parsedArgs.set(call.id, args)
 
-      const toolDef = registry.get(call.name)
+      const permResult = checkToolPermission(call.name)
+
+      if (permResult.allowed === false) {
+        log.info(`Tool blocked by permission engine: ${call.name}`, { reason: permResult.reason, chain: permResult.chain })
+        const denyMsg = `[Permission Denied] ${permResult.reason}`
+        results.push({ callId: call.id, name: call.name, content: denyMsg, isError: true })
+        yield { type: 'tool_end', callId: call.id, name: call.name, result: denyMsg, isError: true }
+        skippedCallIds.add(call.id)
+        if (!state.deniedTools.some(d => d.name === call.name)) {
+          state.deniedTools.push({ name: call.name, reason: permResult.reason || 'blocked by policy' })
+        }
+        continue
+      }
+
       const needsConfirm =
         executionMode === 'confirm-all' ||
-        (executionMode === 'auto' && toolDef?.metadata.isDestructive) ||
-        (executionMode === 'plan-first' && toolDef?.metadata.isDestructive)
+        permResult.allowed === 'needs_approval' ||
+        ((executionMode === 'auto' || executionMode === 'plan-first') && registry.get(call.name)?.metadata.isDestructive)
 
       if (needsConfirm && confirmTool) {
         yield { type: 'tool_confirm', callId: call.id, name: call.name, args }
@@ -200,24 +352,33 @@ export async function* agentLoop(
 
     const pendingCalls = toolCalls.filter((c) => !skippedCallIds.has(c.id))
 
+    // ── abort 后合成 synthetic tool_result ──
     if (signal?.aborted) {
-      log.warn('Loop cancelled before tool execution', { iteration })
-      yield { type: 'error', message: 'Agent loop was cancelled during tool execution' }
+      log.warn('Loop cancelled before tool execution — synthesizing tool_results', { turn: state.turnCount })
+      for (const call of pendingCalls) {
+        const syntheticResult = '[Tool execution cancelled by user]'
+        state.messages.push({
+          id: `tool-${call.id}`,
+          role: 'tool',
+          content: syntheticResult,
+          timestamp: Date.now(),
+          toolCallId: call.id,
+        })
+        yield { type: 'tool_end', callId: call.id, name: call.name, result: syntheticResult, isError: true }
+      }
+      yield* terminateLoop(state, 'aborted')
       return
     }
 
-    // 发出所有 tool_start 事件
     for (const call of pendingCalls) {
       yield { type: 'tool_start', callId: call.id, name: call.name, args: parsedArgs.get(call.id)! }
     }
 
-    // 利用 registry.executeAll 的并发分流（concurrencySafe → Promise.all）
     const toolStart = Date.now()
-    const batchResults = await registry.executeAll(pendingCalls)
+    const batchResults = await registry.executeAll(pendingCalls, toolContext)
     results.push(...batchResults)
 
     for (const result of batchResults) {
-      const call = pendingCalls.find((c) => c.id === result.callId)
       log.info(`Tool finished: ${result.name}`, {
         callId: result.callId,
         duration: Date.now() - toolStart,
@@ -235,7 +396,7 @@ export async function* agentLoop(
 
     // ── Observe: 工具结果写回上下文 ──
     for (const result of results) {
-      workingMessages.push({
+      state.messages.push({
         id: `tool-${result.callId}`,
         role: 'tool',
         content: result.content,
@@ -244,12 +405,23 @@ export async function* agentLoop(
       })
     }
 
-    log.debug('Context updated, entering next iteration', {
-      totalMessages: workingMessages.length,
+    log.debug('Context updated, entering next turn', {
+      totalMessages: state.messages.length,
+      turn: state.turnCount,
     })
   }
 
-  log.warn(`Max iterations reached (${maxIterations})`)
-  yield { type: 'error', message: `Agent loop reached maximum iterations (${maxIterations})` }
-  yield { type: 'done' }
+  log.warn(`Max turns reached (${maxIterations})`)
+  yield { type: 'error', message: `Agent 已达到最大迭代次数 (${maxIterations})，停止处理。` }
+  yield { type: 'done', reason: 'max_turns' }
+}
+
+async function* terminateLoop(
+  state: LoopState,
+  reason: TerminalReason,
+): AsyncGenerator<AgentStreamEvent> {
+  if (reason === 'aborted') {
+    yield { type: 'error', message: 'Agent loop was cancelled' }
+  }
+  yield { type: 'done', reason }
 }

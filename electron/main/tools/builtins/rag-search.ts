@@ -1,8 +1,8 @@
-import type { ToolDefinition } from '../../../../src/shared/types'
+import { buildTool } from '../builder'
 import { searchDocuments } from '../../rag/index'
 import * as settings from '../../storage/settings-store'
 
-export const ragSearchTool: ToolDefinition = {
+export const ragSearchTool = buildTool({
   name: 'rag_search',
   description: '在用户导入的知识库文档中进行语义搜索，返回最相关的文本片段。适合查找用户上传的文档、笔记、技术资料中的信息。',
   parameters: {
@@ -13,11 +13,7 @@ export const ragSearchTool: ToolDefinition = {
     },
     required: ['query'],
   },
-  metadata: {
-    isReadOnly: true,
-    isDestructive: false,
-    isConcurrencySafe: true,
-  },
+  metadata: { isReadOnly: true, isConcurrencySafe: true },
   execute: async (args) => {
     const query = args.query as string
     const topK = parseInt(args.topK as string) || 5
@@ -39,4 +35,4 @@ export const ragSearchTool: ToolDefinition = {
       `[${i + 1}] 来源: ${r.docName} (相关度: ${(r.score * 100).toFixed(0)}%)\n${r.text}`
     ).join('\n\n---\n\n')
   },
-}
+})

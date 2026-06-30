@@ -5,6 +5,70 @@
 
 ## [未发布]
 
+### Added — @file 上下文选择器（2026-06-19）
+- 输入框输入 `@` 触发文件搜索弹窗（MentionPopup 组件）
+- 工作区文件树扁平化 + 模糊搜索（深度 3 层，排除 node_modules/.git 等）
+- 键盘导航（↑↓Enter Esc）+ 点击选择 + 点击外部关闭
+- 选中后输入框显示 `@文件路径`，上方出现引用文件标签栏（可单独删除）
+- 发送消息时自动通过 IPC 读取引用文件内容，以 `<context><file>` 格式注入消息
+- 50KB 截断保护，支持多文件引用
+- 无后端改动，复用 `project:listFiles` + `project:readFile` IPC
+
+### Removed — 项目级 Rules + PROJECT.md（2026-06-19）
+- 移除 `loadProjectRules()`、`buildProjectRulesPrompt()` 及相关搜索路径常量
+- 移除 `PROJECT.md` 读写机制（`readProjectMemory`/`writeProjectMemory`/`appendProjectSection`/`buildProjectMemoryPrompt`）
+- 移除 `prompt-builder.ts` 中 `projectRules` 和 `projectMemory` 字段及注入逻辑
+- `project-memory.ts` 精简为纯 `workspaceRoot` 管理（`setWorkspaceRoot`/`getWorkspaceRoot`）
+- 原因：自动加载 `.cursor/rules`、`AGENTS.md` 等文件是开发工具的做法，`PROJECT.md` 与记忆系统功能重叠。AI 伙伴产品中用户通过**记忆系统**定制 Agent 行为已足够
+
+### Changed — Vision 动态兼容（2026-06-19）
+- 将硬编码的 `checkVisionSupport` 模型白名单替换为基于缓存的乐观策略
+  - 默认乐观发送图片，首次 API 返回 Vision 相关错误时标记为不支持
+  - `visionDenyCache`（model+baseUrl）缓存，后续同模型直接走无图模式
+  - `isVisionRelatedError()` 匹配 `image_url`/`vision`/`multimodal` 等关键词
+  - OpenAI 路径完整重试闭环，Anthropic/Gemini 路径基于缓存决策
+- 零配置零维护，新模型无需手动更新代码
+
+### Added — 项目选择器（2026-06-19）
+- 输入框下方项目/沙箱目录选择器（类 Codex 风格）
+  - 📁 下拉菜单：最近项目（最多 10 个）+ 添加新项目 + 不使用项目
+  - 后端 `project:browse` / `project:list` / `project:set` / `project:get` IPC
+  - SQLite 持久化 `currentProject` + `recentProjects`
+  - 选择项目后联动 `workspaceRoot` / `process.cwd()` / 沙箱策略
+- IPC 模块 11 → 12 个（新增 `project.ts`）
+
+### Fixed — 流式状态不结束（2026-06-19）
+- AI 完成回复后输入框仍显示停止按钮无法输入
+  - 根因：Electron IPC `invoke` 响应可能先于 `send` 事件到达渲染进程
+  - `finally` 块提前移除了事件监听器，导致 `done` 事件丢失
+  - 修复：`sendMessage` 的 `finally` 中加入安全兜底 `setIsStreaming(false)`
+
+### Changed — UI V2 Codex 风格改版（2026-06-19）
+- 对话样式重设计
+  - 用户消息右对齐圆角气泡（`--msg-user-bg` 背景 + 边框）
+  - AI 消息左对齐纯 Markdown（去掉 You/Agent 角色标签）
+  - 消息操作栏移到消息下方 hover 显示
+  - 消息间距加大（`space-y-6`）
+- 输入区卡片化（`max-w-2xl mx-auto`，集成审批/模型/附件/语音/发送）
+- 审批模式内联（三级下拉：请求批准 / 替我审批 / 完全访问）
+- 底部状态栏移除（Token 用量移到输入框下方，模型选择移入工具栏）
+- 侧边栏重组（顶部功能区：新对话/搜索/技能 + 对话列表）
+- 顶栏精简（`h-12`，仅标题 + 人格名称）
+- 设置页独立全屏（独占窗口 + 左侧导航栏 + 返回应用按钮）
+- 技能/记忆改为主区域 Tab 视图（`activeView` 状态管理）
+- 代码渲染主题跟随（`oneDark`/`oneLight` 动态切换 + MutationObserver）
+- Mermaid 图表跟随主题（`dark` / `default`）
+- 内容宽度收窄（`max-w-4xl` → `max-w-3xl`）
+- 欢迎屏简化居中（"我们应该构建什么？"）
+- Electron 菜单栏隐藏（`autoHideMenuBar: true`）
+- CSS 变量扩充（`--msg-user-bg` / `--sidebar-active` / `--card-bg` / `--hover-overlay` 等）
+- 前端规则 `code-frontend.mdc` 全面重写（三列布局 / 设计原则 / 快捷键体系）
+
+### Fixed — UI V2 Bug 修复（2026-06-19）
+- Shell 命令输出中文乱码（Windows `chcp 65001` + UTF-8 编码）
+- 浅色模式代码块样式异常（硬编码颜色改 CSS 变量 + 动态切换 highlighter 主题）
+- 输入区下拉菜单被截断（移除 `overflow-hidden` + 添加 `relative` 定位）
+
 ### Added — P16 高级功能扩展（2026-06-18）
 - Auto Update（`electron-updater` 集成）
   - `autoDownload=false`，用户确认后下载安装

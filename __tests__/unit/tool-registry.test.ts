@@ -137,9 +137,54 @@ describe('ToolRegistry', () => {
       ])
 
       expect(results).toHaveLength(2)
-      // concurrent ones finish first (all started together via Promise.all),
-      // then sequential ones run after
       expect(order.indexOf('fast-start')).toBeLessThan(order.indexOf('slow-start'))
+    })
+
+    it('保持 LLM 原始顺序：交替的安全/不安全工具分批执行', async () => {
+      const order: string[] = []
+
+      const safeA = makeTool({
+        name: 'safeA',
+        execute: async () => { order.push('safeA'); return 'a' },
+        metadata: { isReadOnly: true, isDestructive: false, isConcurrencySafe: true },
+      })
+      const safeB = makeTool({
+        name: 'safeB',
+        execute: async () => { order.push('safeB'); return 'b' },
+        metadata: { isReadOnly: true, isDestructive: false, isConcurrencySafe: true },
+      })
+      const unsafeC = makeTool({
+        name: 'unsafeC',
+        execute: async () => { order.push('unsafeC'); return 'c' },
+        metadata: { isReadOnly: false, isDestructive: true, isConcurrencySafe: false },
+      })
+      const safeD = makeTool({
+        name: 'safeD',
+        execute: async () => { order.push('safeD'); return 'd' },
+        metadata: { isReadOnly: true, isDestructive: false, isConcurrencySafe: true },
+      })
+
+      const reg = new ToolRegistry()
+      reg.register(safeA)
+      reg.register(safeB)
+      reg.register(unsafeC)
+      reg.register(safeD)
+
+      // LLM 顺序：safeA → safeB → unsafeC → safeD
+      const results = await reg.executeAll([
+        makeCall({ id: '1', name: 'safeA' }),
+        makeCall({ id: '2', name: 'safeB' }),
+        makeCall({ id: '3', name: 'unsafeC' }),
+        makeCall({ id: '4', name: 'safeD' }),
+      ])
+
+      expect(results).toHaveLength(4)
+      expect(results.map(r => r.name)).toEqual(['safeA', 'safeB', 'unsafeC', 'safeD'])
+
+      // safeA & safeB 先并行 → unsafeC 串行 → safeD 最后
+      expect(order.indexOf('safeA')).toBeLessThan(order.indexOf('unsafeC'))
+      expect(order.indexOf('safeB')).toBeLessThan(order.indexOf('unsafeC'))
+      expect(order.indexOf('unsafeC')).toBeLessThan(order.indexOf('safeD'))
     })
   })
 })

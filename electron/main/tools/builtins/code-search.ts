@@ -1,4 +1,4 @@
-import type { ToolDefinition } from '../../../../src/shared/types'
+import { buildTool } from '../builder'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { createLogger } from '../../utils/logger'
@@ -107,10 +107,31 @@ async function searchFile(
   return matches
 }
 
-export const codeSearchTool: ToolDefinition = {
+export const codeSearchTool = buildTool({
   name: 'code_search',
-  description:
-    'Search for text or regex patterns across code files in a directory. Returns matching lines with surrounding context. Useful for finding function definitions, usages, imports, or any text pattern in a codebase.',
+  description: `Search for text or regex patterns across code files in a directory. Returns matching lines with surrounding context.
+
+When to use:
+- Finding where a function, class, or variable is defined
+- Locating all usages/references of a specific identifier
+- Searching for import statements, API calls, or specific patterns
+- Exploring unfamiliar codebases to understand structure
+- Finding files that contain specific keywords or patterns
+- Locating configuration values, error messages, or TODOs
+
+When NOT to use:
+- Reading complete file contents (use file_read instead)
+- You already know the exact file and line number (just read that file directly)
+- Searching through very large result sets (this tool returns max 50 matches - if you hit the limit, refine your query)
+
+Features:
+- Case-insensitive by default (set case_sensitive="true" if needed)
+- Supports both literal text and regex patterns (set is_regex="true" for regex)
+- Shows 2 lines of context before and after each match
+- Automatically skips common ignore directories (node_modules, .git, dist, etc.)
+- Searches code, config, and documentation files only
+
+Returns: Up to 50 matches with file paths, line numbers, and context. Truncated at 60,000 characters.`,
   parameters: {
     type: 'object',
     properties: {
@@ -139,7 +160,6 @@ export const codeSearchTool: ToolDefinition = {
   },
   metadata: {
     isReadOnly: true,
-    isDestructive: false,
     isConcurrencySafe: true,
   },
   execute: async (args) => {
@@ -190,7 +210,7 @@ export const codeSearchTool: ToolDefinition = {
 
     return output
   },
-}
+})
 
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')

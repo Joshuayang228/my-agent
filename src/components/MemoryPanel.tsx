@@ -1,12 +1,21 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { MemoryCategory, MemoryEntry } from '../shared/types'
+import { User, Settings, MessageCircle, Star, Pin, Brain, X } from 'lucide-react'
 
-const CATEGORIES: { id: MemoryCategory; label: string; icon: string; color: string }[] = [
-  { id: 'identity', label: '身份', icon: '👤', color: 'cyan' },
-  { id: 'workflow', label: '工作方式', icon: '⚙️', color: 'violet' },
-  { id: 'voice', label: '沟通风格', icon: '💬', color: 'emerald' },
-  { id: 'preference', label: '偏好', icon: '⭐', color: 'amber' },
-  { id: 'fact', label: '事实', icon: '📌', color: 'rose' },
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  identity: <User size={12} />,
+  workflow: <Settings size={12} />,
+  voice: <MessageCircle size={12} />,
+  preference: <Star size={12} />,
+  fact: <Pin size={12} />,
+}
+
+const CATEGORIES: { id: MemoryCategory; label: string; icon: React.ReactNode; color: string }[] = [
+  { id: 'identity', label: '身份', icon: CATEGORY_ICONS.identity, color: 'cyan' },
+  { id: 'workflow', label: '工作方式', icon: CATEGORY_ICONS.workflow, color: 'violet' },
+  { id: 'voice', label: '沟通风格', icon: CATEGORY_ICONS.voice, color: 'emerald' },
+  { id: 'preference', label: '偏好', icon: CATEGORY_ICONS.preference, color: 'amber' },
+  { id: 'fact', label: '事实', icon: CATEGORY_ICONS.fact, color: 'rose' },
 ]
 
 const COLOR_MAP: Record<string, { bg: string; border: string; text: string; badge: string }> = {
@@ -71,12 +80,11 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
   }, {} as Record<string, number>)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="theme-panel relative flex h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border shadow-2xl">
-        <div className="flex items-center justify-between border-b px-5 py-3" style={{ borderColor: 'var(--border-color)' }}>
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>🧠 记忆管理</span>
-            <span className="rounded px-2 py-0.5 text-[10px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{memories.length} 条</span>
+    <div className="flex h-full flex-col">
+        <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border-color)' }}>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}><Brain size={16} /> 记忆</span>
+            <span className="rounded px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{memories.length}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -89,8 +97,10 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
               onClick={onClose}
               className="rounded-lg p-1.5 transition"
               style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
             >
-              ✕
+              <X size={16} />
             </button>
           </div>
         </div>
@@ -165,7 +175,7 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
         <div className="flex-1 overflow-y-auto px-5 py-3">
           {filtered.length === 0 ? (
             <div className="mt-10 text-center">
-              <div className="mb-2 text-2xl">🧠</div>
+              <div className="mb-2 flex justify-center" style={{ color: 'var(--text-muted)' }}><Brain size={28} /></div>
               <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
                 {memories.length === 0
                   ? '还没有任何记忆。和 Agent 对话后会自动提取，也可以手动添加。'
@@ -249,10 +259,9 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
         </div>
 
         {/* Footer hint */}
-        <div className="border-t px-5 py-2 text-center text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
-          Agent 会自动从对话中提取记忆 · 你也可以手动管理 · 记忆会注入到每次对话的 System Prompt 中
+        <div className="border-t px-4 py-2 text-center text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
+          记忆会注入到每次对话的 System Prompt 中
         </div>
-      </div>
     </div>
   )
 }

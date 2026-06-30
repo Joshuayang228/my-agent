@@ -1,16 +1,19 @@
 /**
- * Agent 记忆工具 — 让 AI 能主动记住、回忆、遗忘
+ * Agent 记忆工具 — LLM 可调用的记忆管理接口。
+ *
+ * 服务层：storage/memory-store.ts（状态管理 + 双写同步）
+ * 本文件：工具定义（薄包装层）
  *
  * remember: 将信息写入长期记忆
- * recall:   按关键词检索已有记忆
+ * recall:   按类别列出记忆（服务层同时被 Runtime 用于自动注入）
  * forget:   删除指定记忆
  */
-import type { ToolDefinition } from '../../../../src/shared/types'
+import { buildTool } from '../builder'
 import { addMemory, listMemories, deleteMemory, type MemoryCategory } from '../../storage/memory-store'
 
 const VALID_CATEGORIES = ['identity', 'preference', 'fact', 'workflow', 'voice'] as const
 
-export const rememberTool: ToolDefinition = {
+export const rememberTool = buildTool({
   name: 'remember',
   description: 'Store important information about the user or their preferences into long-term memory. Use this when the user explicitly asks you to remember something, or when you notice significant facts worth preserving.',
   parameters: {
@@ -29,8 +32,6 @@ export const rememberTool: ToolDefinition = {
     required: ['category', 'content'],
   },
   metadata: {
-    isReadOnly: false,
-    isDestructive: false,
     isConcurrencySafe: true,
   },
   execute: async (args) => {
@@ -53,9 +54,9 @@ export const rememberTool: ToolDefinition = {
     const entry = await addMemory(category as MemoryCategory, content)
     return `Remembered [${category}]: "${content}" (id: ${entry.id})`
   },
-}
+})
 
-export const recallTool: ToolDefinition = {
+export const recallTool = buildTool({
   name: 'recall',
   description: 'Search long-term memory for previously stored information about the user. Use this when you need to check what you know about the user before answering.',
   parameters: {
@@ -70,7 +71,6 @@ export const recallTool: ToolDefinition = {
   },
   metadata: {
     isReadOnly: true,
-    isDestructive: false,
     isConcurrencySafe: true,
   },
   execute: async (args) => {
@@ -87,9 +87,9 @@ export const recallTool: ToolDefinition = {
     const lines = memories.map(m => `- [${m.category}] ${m.content} (id: ${m.id})`)
     return `Found ${memories.length} memories:\n${lines.join('\n')}`
   },
-}
+})
 
-export const forgetTool: ToolDefinition = {
+export const forgetTool = buildTool({
   name: 'forget',
   description: 'Remove a specific memory by ID. Use when the user asks you to forget something, or when information is outdated.',
   parameters: {
@@ -103,7 +103,6 @@ export const forgetTool: ToolDefinition = {
     required: ['id'],
   },
   metadata: {
-    isReadOnly: false,
     isDestructive: true,
     isConcurrencySafe: true,
   },
@@ -114,4 +113,4 @@ export const forgetTool: ToolDefinition = {
     await deleteMemory(id)
     return `Memory ${id} has been forgotten.`
   },
-}
+})

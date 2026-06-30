@@ -1,21 +1,81 @@
-import { memo, useState, useEffect, useRef, useId } from 'react'
+import { memo, useState, useEffect, useRef, useId, useSyncExternalStore } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import tsx from 'react-syntax-highlighter/dist/esm/languages/prism/tsx'
+import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
+import javascript from 'react-syntax-highlighter/dist/esm/languages/prism/javascript'
+import python from 'react-syntax-highlighter/dist/esm/languages/prism/python'
+import bash from 'react-syntax-highlighter/dist/esm/languages/prism/bash'
+import json from 'react-syntax-highlighter/dist/esm/languages/prism/json'
+import css from 'react-syntax-highlighter/dist/esm/languages/prism/css'
+import markdown from 'react-syntax-highlighter/dist/esm/languages/prism/markdown'
+import yaml from 'react-syntax-highlighter/dist/esm/languages/prism/yaml'
+import sql from 'react-syntax-highlighter/dist/esm/languages/prism/sql'
+import go from 'react-syntax-highlighter/dist/esm/languages/prism/go'
+import rust from 'react-syntax-highlighter/dist/esm/languages/prism/rust'
+import java from 'react-syntax-highlighter/dist/esm/languages/prism/java'
+import c from 'react-syntax-highlighter/dist/esm/languages/prism/c'
+import cpp from 'react-syntax-highlighter/dist/esm/languages/prism/cpp'
+import diff from 'react-syntax-highlighter/dist/esm/languages/prism/diff'
 import mermaid from 'mermaid'
 
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'dark',
-  themeVariables: {
-    darkMode: true,
-    background: '#1e293b',
-    primaryColor: '#06b6d4',
-    primaryTextColor: '#e2e8f0',
-    lineColor: '#64748b',
-  },
-})
+SyntaxHighlighter.registerLanguage('tsx', tsx)
+SyntaxHighlighter.registerLanguage('typescript', typescript)
+SyntaxHighlighter.registerLanguage('javascript', javascript)
+SyntaxHighlighter.registerLanguage('python', python)
+SyntaxHighlighter.registerLanguage('bash', bash)
+SyntaxHighlighter.registerLanguage('shell', bash)
+SyntaxHighlighter.registerLanguage('sh', bash)
+SyntaxHighlighter.registerLanguage('json', json)
+SyntaxHighlighter.registerLanguage('css', css)
+SyntaxHighlighter.registerLanguage('markdown', markdown)
+SyntaxHighlighter.registerLanguage('md', markdown)
+SyntaxHighlighter.registerLanguage('yaml', yaml)
+SyntaxHighlighter.registerLanguage('yml', yaml)
+SyntaxHighlighter.registerLanguage('sql', sql)
+SyntaxHighlighter.registerLanguage('go', go)
+SyntaxHighlighter.registerLanguage('rust', rust)
+SyntaxHighlighter.registerLanguage('java', java)
+SyntaxHighlighter.registerLanguage('c', c)
+SyntaxHighlighter.registerLanguage('cpp', cpp)
+SyntaxHighlighter.registerLanguage('diff', diff)
+SyntaxHighlighter.registerLanguage('html', tsx)
+SyntaxHighlighter.registerLanguage('jsx', tsx)
+SyntaxHighlighter.registerLanguage('ts', typescript)
+SyntaxHighlighter.registerLanguage('js', javascript)
+SyntaxHighlighter.registerLanguage('py', python)
+
+const LIGHT_THEMES = new Set(['light', 'mist', 'green-garden', 'golden'])
+
+function getTheme() {
+  const t = document.documentElement.getAttribute('data-theme') || 'dark'
+  return LIGHT_THEMES.has(t) ? 'light' : 'dark'
+}
+
+function subscribeTheme(cb: () => void) {
+  const observer = new MutationObserver(cb)
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+  return () => observer.disconnect()
+}
+
+function useCurrentTheme() {
+  return useSyncExternalStore(subscribeTheme, getTheme)
+}
+
+function initMermaid(isDark: boolean) {
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: isDark ? 'dark' : 'default',
+    themeVariables: isDark
+      ? { darkMode: true, background: '#1e293b', primaryColor: '#06b6d4', primaryTextColor: '#e2e8f0', lineColor: '#64748b' }
+      : { darkMode: false, background: '#ffffff', primaryColor: '#2563eb', primaryTextColor: '#1e293b', lineColor: '#94a3b8' },
+  })
+}
+
+initMermaid(getTheme() === 'dark')
 
 interface MarkdownRendererProps {
   content: string
@@ -76,6 +136,13 @@ function splitAside(raw: string): { main: string; asides: string[] } {
 
 export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: MarkdownRendererProps) {
   const { main, asides } = splitAside(content)
+  const theme = useCurrentTheme()
+  const isDark = theme === 'dark'
+  const codeStyle = isDark ? oneDark : oneLight
+
+  useEffect(() => {
+    initMermaid(isDark)
+  }, [isDark])
 
   return (
     <div className="markdown-body">
@@ -98,13 +165,13 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: Mark
                   <CopyButton text={codeString} />
                 </div>
                 <SyntaxHighlighter
-                  style={oneDark}
+                  style={codeStyle}
                   language={match[1]}
                   PreTag="div"
                   customStyle={{
                     margin: 0,
                     borderRadius: 0,
-                    background: 'rgb(30 41 59 / 0.6)',
+                    background: 'var(--bg-inset)',
                     fontSize: '0.8125rem',
                     lineHeight: '1.6',
                   }}
@@ -117,8 +184,8 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: Mark
 
           return (
             <code
-              className="rounded px-1.5 py-0.5 text-[0.8125rem] text-cyan-600"
-              style={{ background: 'var(--bg-tertiary)' }}
+              className="rounded px-1.5 py-0.5 text-[0.8125rem]"
+              style={{ background: 'var(--bg-tertiary)', color: 'var(--accent-fg)' }}
               {...props}
             >
               {children}
@@ -168,7 +235,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: Mark
         },
         blockquote({ children }) {
           return (
-            <blockquote className="my-3 border-l-3 border-cyan-500/60 pl-4 italic" style={{ color: 'var(--text-muted)' }}>
+            <blockquote className="my-3 pl-4 italic" style={{ color: 'var(--text-muted)', borderLeft: '3px solid var(--accent)' }}>
               {children}
             </blockquote>
           )
@@ -182,7 +249,8 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: Mark
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-cyan-500 underline decoration-cyan-500/30 transition hover:decoration-cyan-500"
+              className="underline transition"
+              style={{ color: 'var(--accent-fg)', textDecorationColor: 'var(--accent-subtle)' }}
             >
               {children}
             </a>

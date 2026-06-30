@@ -1,4 +1,4 @@
-import type { ToolDefinition } from '../../../../src/shared/types'
+import { buildTool } from '../builder'
 import { createLogger } from '../../utils/logger'
 
 const log = createLogger('UrlFetch')
@@ -6,7 +6,7 @@ const log = createLogger('UrlFetch')
 const MAX_CONTENT_LENGTH = 50_000
 const TIMEOUT_MS = 15_000
 
-export const urlFetchTool: ToolDefinition = {
+export const urlFetchTool = buildTool({
   name: 'url_fetch',
   description:
     'Fetch the content of a web page URL and return it as text. Useful for reading articles, documentation, or any web content. Returns the text content with HTML tags stripped.',
@@ -20,11 +20,7 @@ export const urlFetchTool: ToolDefinition = {
     },
     required: ['url'],
   },
-  metadata: {
-    isReadOnly: true,
-    isDestructive: false,
-    isConcurrencySafe: true,
-  },
+  metadata: { isReadOnly: true, isConcurrencySafe: true },
   execute: async (args) => {
     const url = args.url as string
     if (!url?.trim()) return 'Error: URL is required'
@@ -73,7 +69,7 @@ export const urlFetchTool: ToolDefinition = {
       return `Error fetching URL: ${msg}`
     }
   },
-}
+})
 
 function stripHtml(html: string): string {
   let text = html

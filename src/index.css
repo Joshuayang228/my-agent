@@ -1,66 +1,271 @@
 @import "tailwindcss";
 
 :root {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --text-primary: #f1f5f9;
-  --text-secondary: #cbd5e1;
-  --text-muted: #64748b;
-  --border-color: #334155;
-  --input-bg: #1e293b;
-  --msg-user-bg: #0891b2;
-  --msg-ai-bg: #1e293b;
-  --sidebar-bg: #0f172a;
-  --sidebar-hover: #1e293b;
-  --sidebar-active: #334155;
-  --card-bg: rgba(30, 41, 59, 0.6);
-  --card-border: rgba(51, 65, 85, 0.6);
-  --dropdown-bg: #0f172a;
-  --footer-bg: rgba(15, 23, 42, 0.8);
-  --hover-overlay: rgba(30, 41, 59, 0.5);
-  --accent-subtle: rgba(8, 145, 178, 0.1);
-  --scroll-btn-bg: rgba(51, 65, 85, 0.9);
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #21262d;
+  --bg-inset: #010409;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #484f58;
+  --border-color: #30363d;
+  --border-subtle: #21262d;
+  --input-bg: #0d1117;
+  --input-border: #30363d;
+  --accent: #58a6ff;
+  --accent-emphasis: #1f6feb;
+  --accent-subtle: rgba(56, 139, 253, 0.1);
+  --accent-fg: #58a6ff;
+  --success: #3fb950;
+  --warning: #d29922;
+  --danger: #f85149;
+  --msg-user-bg: #1c2128;
+  --msg-ai-bg: transparent;
+  --sidebar-bg: #010409;
+  --sidebar-hover: rgba(177, 186, 196, 0.08);
+  --sidebar-active: rgba(56, 139, 253, 0.15);
+  --card-bg: #161b22;
+  --card-border: #30363d;
+  --dropdown-bg: #161b22;
+  --footer-bg: #0d1117;
+  --hover-overlay: rgba(177, 186, 196, 0.08);
+  --scroll-btn-bg: #30363d;
+  --role-user: #d29922;
+  --role-agent: #58a6ff;
+  --status-bar-bg: #010409;
 }
 
 [data-theme="light"] {
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #e2e8f0;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --border-color: #e2e8f0;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f6f8fa;
+  --bg-tertiary: #eaeef2;
+  --bg-inset: #f6f8fa;
+  --text-primary: #1f2328;
+  --text-secondary: #656d76;
+  --text-muted: #8b949e;
+  --border-color: #d0d7de;
+  --border-subtle: #eaeef2;
   --input-bg: #ffffff;
-  --msg-user-bg: #0891b2;
-  --msg-ai-bg: #f1f5f9;
-  --sidebar-bg: #f1f5f9;
-  --sidebar-hover: #e2e8f0;
-  --sidebar-active: #dbeafe;
+  --input-border: #d0d7de;
+  --accent: #0969da;
+  --accent-emphasis: #0550ae;
+  --accent-subtle: rgba(9, 105, 218, 0.08);
+  --accent-fg: #0969da;
+  --success: #1a7f37;
+  --warning: #9a6700;
+  --danger: #cf222e;
+  --msg-user-bg: #f0f3f6;
+  --msg-ai-bg: transparent;
+  --sidebar-bg: #f6f8fa;
+  --sidebar-hover: rgba(208, 215, 222, 0.32);
+  --sidebar-active: rgba(9, 105, 218, 0.1);
   --card-bg: #ffffff;
-  --card-border: #e2e8f0;
+  --card-border: #d0d7de;
   --dropdown-bg: #ffffff;
-  --footer-bg: rgba(241, 245, 249, 0.9);
-  --hover-overlay: rgba(226, 232, 240, 0.5);
-  --accent-subtle: rgba(8, 145, 178, 0.08);
-  --scroll-btn-bg: rgba(255, 255, 255, 0.9);
+  --footer-bg: #ffffff;
+  --hover-overlay: rgba(208, 215, 222, 0.32);
+  --scroll-btn-bg: #ffffff;
+  --role-user: #9a6700;
+  --role-agent: #0969da;
+  --status-bar-bg: #f6f8fa;
+}
+
+/* 薄雾 — 半透玻璃，透过薄雾看世界 */
+[data-theme="mist"] {
+  --bg-primary: #f7f8fc;
+  --bg-secondary: #eef0f7;
+  --bg-tertiary: #e4e7f0;
+  --bg-inset: #eef0f7;
+  --text-primary: #2c3e50;
+  --text-secondary: #6b7b8d;
+  --text-muted: #95a5b6;
+  --border-color: #d5dce6;
+  --border-subtle: #e4e7f0;
+  --input-bg: #ffffff;
+  --input-border: #d5dce6;
+  --accent: #7c8cf5;
+  --accent-emphasis: #6366f1;
+  --accent-subtle: rgba(99, 102, 241, 0.08);
+  --accent-fg: #6366f1;
+  --success: #22c55e;
+  --warning: #eab308;
+  --danger: #ef4444;
+  --msg-user-bg: #e8eaf6;
+  --msg-ai-bg: transparent;
+  --sidebar-bg: #eef0f7;
+  --sidebar-hover: rgba(99, 102, 241, 0.06);
+  --sidebar-active: rgba(99, 102, 241, 0.1);
+  --card-bg: #ffffff;
+  --card-border: #d5dce6;
+  --dropdown-bg: #ffffff;
+  --footer-bg: #f7f8fc;
+  --hover-overlay: rgba(99, 102, 241, 0.06);
+  --scroll-btn-bg: #ffffff;
+  --role-user: #8b5cf6;
+  --role-agent: #6366f1;
+  --status-bar-bg: #eef0f7;
+}
+
+/* 夜宴 — 深色护眼，月下的仙境盛宴 */
+[data-theme="night-feast"] {
+  --bg-primary: #1a1625;
+  --bg-secondary: #221e30;
+  --bg-tertiary: #2d2840;
+  --bg-inset: #130f1e;
+  --text-primary: #e8e0f0;
+  --text-secondary: #9f93b8;
+  --text-muted: #6b5f85;
+  --border-color: #3d3556;
+  --border-subtle: #2d2840;
+  --input-bg: #1a1625;
+  --input-border: #3d3556;
+  --accent: #c084fc;
+  --accent-emphasis: #a855f7;
+  --accent-subtle: rgba(168, 85, 247, 0.12);
+  --accent-fg: #c084fc;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --msg-user-bg: #251f38;
+  --msg-ai-bg: transparent;
+  --sidebar-bg: #130f1e;
+  --sidebar-hover: rgba(168, 85, 247, 0.08);
+  --sidebar-active: rgba(168, 85, 247, 0.15);
+  --card-bg: #221e30;
+  --card-border: #3d3556;
+  --dropdown-bg: #221e30;
+  --footer-bg: #1a1625;
+  --hover-overlay: rgba(168, 85, 247, 0.08);
+  --scroll-btn-bg: #3d3556;
+  --role-user: #fbbf24;
+  --role-agent: #c084fc;
+  --status-bar-bg: #130f1e;
+}
+
+/* 青园 — 青绿护眼，爱丽丝的秘密花园 */
+[data-theme="green-garden"] {
+  --bg-primary: #f0f9f4;
+  --bg-secondary: #e3f3e8;
+  --bg-tertiary: #d1ebd8;
+  --bg-inset: #e3f3e8;
+  --text-primary: #1a3a2a;
+  --text-secondary: #4a7c5c;
+  --text-muted: #7bab8e;
+  --border-color: #b8dbc6;
+  --border-subtle: #d1ebd8;
+  --input-bg: #ffffff;
+  --input-border: #b8dbc6;
+  --accent: #059669;
+  --accent-emphasis: #047857;
+  --accent-subtle: rgba(5, 150, 105, 0.08);
+  --accent-fg: #059669;
+  --success: #16a34a;
+  --warning: #ca8a04;
+  --danger: #dc2626;
+  --msg-user-bg: #d5f0de;
+  --msg-ai-bg: transparent;
+  --sidebar-bg: #e3f3e8;
+  --sidebar-hover: rgba(5, 150, 105, 0.06);
+  --sidebar-active: rgba(5, 150, 105, 0.1);
+  --card-bg: #ffffff;
+  --card-border: #b8dbc6;
+  --dropdown-bg: #ffffff;
+  --footer-bg: #f0f9f4;
+  --hover-overlay: rgba(5, 150, 105, 0.06);
+  --scroll-btn-bg: #ffffff;
+  --role-user: #b45309;
+  --role-agent: #059669;
+  --status-bar-bg: #e3f3e8;
+}
+
+/* 金阁 — 香槟轻奢，仙境的黄金下午 */
+[data-theme="golden"] {
+  --bg-primary: #faf8f2;
+  --bg-secondary: #f3efe3;
+  --bg-tertiary: #e8e2d0;
+  --bg-inset: #f3efe3;
+  --text-primary: #3d3427;
+  --text-secondary: #7a6f5f;
+  --text-muted: #a69e8e;
+  --border-color: #ddd5c3;
+  --border-subtle: #e8e2d0;
+  --input-bg: #ffffff;
+  --input-border: #ddd5c3;
+  --accent: #b45309;
+  --accent-emphasis: #92400e;
+  --accent-subtle: rgba(180, 83, 9, 0.08);
+  --accent-fg: #b45309;
+  --success: #15803d;
+  --warning: #a16207;
+  --danger: #dc2626;
+  --msg-user-bg: #ece6d5;
+  --msg-ai-bg: transparent;
+  --sidebar-bg: #f3efe3;
+  --sidebar-hover: rgba(180, 83, 9, 0.06);
+  --sidebar-active: rgba(180, 83, 9, 0.1);
+  --card-bg: #ffffff;
+  --card-border: #ddd5c3;
+  --dropdown-bg: #ffffff;
+  --footer-bg: #faf8f2;
+  --hover-overlay: rgba(180, 83, 9, 0.06);
+  --scroll-btn-bg: #ffffff;
+  --role-user: #92400e;
+  --role-agent: #b45309;
+  --status-bar-bg: #f3efe3;
+}
+
+/* 蓝池 — 清新天蓝，眼泪池畔的倒影 */
+[data-theme="blue-pool"] {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-inset: #0b1120;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-color: #334155;
+  --border-subtle: #1e293b;
+  --input-bg: #0f172a;
+  --input-border: #334155;
+  --accent: #38bdf8;
+  --accent-emphasis: #0ea5e9;
+  --accent-subtle: rgba(56, 189, 248, 0.1);
+  --accent-fg: #38bdf8;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #fb7185;
+  --msg-user-bg: #172236;
+  --msg-ai-bg: transparent;
+  --sidebar-bg: #0b1120;
+  --sidebar-hover: rgba(56, 189, 248, 0.06);
+  --sidebar-active: rgba(56, 189, 248, 0.12);
+  --card-bg: #1e293b;
+  --card-border: #334155;
+  --dropdown-bg: #1e293b;
+  --footer-bg: #0f172a;
+  --hover-overlay: rgba(56, 189, 248, 0.06);
+  --scroll-btn-bg: #334155;
+  --role-user: #fbbf24;
+  --role-agent: #38bdf8;
+  --status-bar-bg: #0b1120;
 }
 
 .theme-input {
   background: var(--input-bg);
   color: var(--text-primary);
-  border-color: var(--border-color);
+  border-color: var(--input-border);
 }
 .theme-input:focus {
-  border-color: #06b6d4;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-subtle);
 }
 .theme-input::placeholder {
   color: var(--text-muted);
 }
 
 .theme-panel {
-  background: var(--dropdown-bg);
-  border-color: var(--card-border);
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
   color: var(--text-primary);
 }
 
@@ -76,7 +281,7 @@
 @keyframes fade-in-up {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -89,10 +294,56 @@
   50% { opacity: 0; }
 }
 
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 .animate-fade-in-up {
-  animation: fade-in-up 0.25s ease-out;
+  animation: fade-in-up 0.15s ease-out;
 }
 
 .animate-typing-cursor {
   animation: typing-cursor 0.8s steps(1) infinite;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.2s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+.sidebar-transition {
+  transition: width 0.2s ease-out, opacity 0.2s ease-out;
+}
+
+.view-transition {
+  animation: fade-in 0.15s ease-out;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
 }

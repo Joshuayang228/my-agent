@@ -23,6 +23,7 @@ declare global {
         deleteMessage: (messageId: string) => Promise<void>
         fork: (sessionId: string, upToMessageId: string) => Promise<ChatSession>
         tokenUsage: (sessionId: string) => Promise<{ promptTokens: number; completionTokens: number }>
+        regenerateTitle: (sessionId: string) => Promise<{ success: boolean; error?: string }>
       }
       rag: {
         list: () => Promise<Array<{ id: string; name: string; filePath: string; chunkCount: number; createdAt: number }>>
@@ -84,6 +85,14 @@ declare global {
       data: {
         export: () => Promise<{ success: boolean; path?: string; error?: string; stats?: { sessions: number; memories: number } }>
         import: () => Promise<{ success: boolean; error?: string; stats?: { sessions: number; memories: number; settings: number } }>
+      }
+      project: {
+        browse: () => Promise<{ path: string; name: string } | null>
+        list: () => Promise<{ path: string; name: string }[]>
+        set: (dirPath: string | null) => Promise<{ success: boolean; error?: string }>
+        get: () => Promise<{ path: string; name: string } | null>
+        listFiles: (dirPath: string, depth?: number) => Promise<Array<{ name: string; path: string; isDir: boolean; children?: Array<{ name: string; path: string; isDir: boolean; children?: unknown[] }> }>>
+        readFile: (filePath: string) => Promise<{ content?: string; size?: number; error?: string }>
       }
       debug: {
         systemPrompt: () => Promise<{

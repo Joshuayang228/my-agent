@@ -1,4 +1,4 @@
-import type { ToolDefinition } from '../../../../src/shared/types'
+import { buildTool } from '../builder'
 import { exec } from 'node:child_process'
 import { createLogger } from '../../utils/logger'
 import { buildPolicy, type SandboxMode } from '../../sandbox/policy'
@@ -11,10 +11,34 @@ const log = createLogger('ShellExec')
 const TIMEOUT_MS = 30_000
 const MAX_OUTPUT_CHARS = 30_000
 
-export const shellExecTool: ToolDefinition = {
+export const shellExecTool = buildTool({
   name: 'shell_exec',
-  description:
-    'Execute a shell command and return its output. Use for running scripts, installing packages, checking system info, etc. Commands time out after 30 seconds. Commands are sandboxed — dangerous operations may be blocked.',
+  description: `Execute a shell command and return its output.
+
+When to use:
+- Running build scripts, tests, or compilation commands
+- Installing or managing packages (npm, pip, cargo, etc.)
+- Checking system information (disk space, processes, environment variables)
+- Running Git commands (status, diff, log, etc.)
+- File operations that are easier with shell commands (find, grep with complex patterns)
+- Executing project-specific scripts or tools
+
+When NOT to use:
+- Simple file read/write operations (use dedicated file tools - they're safer and faster)
+- Searching code (use code_search - it's optimized for this and returns structured results)
+- Commands that require interactive input (shell is non-interactive)
+- Long-running processes (commands timeout after 30 seconds)
+
+Behavior:
+- Commands timeout after 30 seconds (returns partial output + timeout indicator)
+- Sandbox mode controls what commands are allowed:
+  * read-only: blocks all write operations
+  * workspace-write: blocks dangerous commands (rm -rf, dd, format, etc.) and writes outside workspace
+  * full-access: allows all commands (use with caution)
+- Returns stdout, stderr, and exit code
+- Output truncated at 30,000 characters (use redirection to file for large outputs)
+
+Security: Dangerous operations may be blocked by sandbox. Previously denied commands are automatically blocked.`,
   parameters: {
     type: 'object',
     properties: {
@@ -30,9 +54,7 @@ export const shellExecTool: ToolDefinition = {
     required: ['command'],
   },
   metadata: {
-    isReadOnly: false,
     isDestructive: true,
-    isConcurrencySafe: false,
   },
   execute: async (args) => {
     const command = args.command as string
@@ -64,8 +86,11 @@ export const shellExecTool: ToolDefinition = {
       delete sanitizedEnv.DYLD_INSERT_LIBRARIES
     }
 
+    const isWin = process.platform === 'win32'
+    const actualCommand = isWin ? `chcp 65001 >nul && ${command}` : command
+
     return new Promise<string>((resolve) => {
-      exec(command, { timeout: TIMEOUT_MS, cwd, maxBuffer: 2 * 1024 * 1024, env: sanitizedEnv }, (error, stdout, stderr) => {
+      exec(actualCommand, { timeout: TIMEOUT_MS, cwd, maxBuffer: 2 * 1024 * 1024, env: sanitizedEnv, encoding: 'utf-8' }, (error, stdout, stderr) => {
         const parts: string[] = []
 
         if (stdout) {
@@ -97,4 +122,4 @@ export const shellExecTool: ToolDefinition = {
       })
     })
   },
-}
+})

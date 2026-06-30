@@ -46,4 +46,23 @@
 | 多模态 | Multimodal | 消息携带图片附件，通过 Vision API 发送 | ImageAttachment |
 | SSE 传输 | SSE Transport | MCP 客户端的远程 HTTP/SSE 传输方式（对比本地 stdio） | mcp/client.ts |
 
+| activeView | activeView | 主内容区视图状态（chat / skills / memory / settings） | App.tsx 状态 |
+| 项目选择器 | Project Selector | 输入区下方项目/工作区切换器，联动 workspaceRoot + cwd + sandbox | 类 Codex 风格 |
+| 工作区根 | Workspace Root | 当前激活项目的根目录路径，shell_exec 的 cwd + 沙箱边界 | project-memory.ts |
+| 文件浏览器 | File Browser | 右侧面板递归展示项目目录树 + 文件预览 | FileBrowser.tsx |
+| 命名主题 | Named Theme | 7 个预定义主题（dark/light/mist/night-feast/green-garden/golden/blue-pool） | data-theme 属性 |
+| PrismLight | PrismLight | react-syntax-highlighter 按需语言注册模式（对比全量 Prism） | Bundle 优化 |
+| manualChunks | manualChunks | Vite/Rolldown 手动代码拆分配置 | vite.config.ts |
+| 置顶会话 | Pinned Session | 用户手动置顶的对话，独立分组显示在列表顶部 | pinnedIds + localStorage |
+
+| MentionPopup | MentionPopup | 输入框 `@` 触发的文件搜索弹窗组件 | MentionPopup.tsx |
+| @file 上下文 | @file Context | 用户通过 `@文件名` 引用项目文件，发送时内容注入消息 | `<context><file>` 标签 |
+| visionDenyCache | Vision Deny Cache | 内存级缓存，记录不支持 Vision 的 model+baseUrl 组合 | llm/index.ts |
+
+| ToolContext | ToolContext | 工具执行时注入的运行时上下文（workdir / sessionId / signal），取代全局 import | shared/types.ts |
+| 工具并发分批 | Batched Execution | 按 LLM 原始顺序分批执行：连续安全工具并行 → 遇非安全工具刷新批次串行 | tools/registry.ts executeAll |
+| 子 Agent 黑名单 | Subagent Tool Blacklist | 禁止子 Agent 使用的工具列表（delegate_task / remember / forget / task_plan） | agent/subagent.ts |
+| 工具/服务边界 | Tool vs Service | 工具 = LLM 可见薄壳；服务 = 内部逻辑（Runtime/中间件/其他工具可直接调用） | DEC-029 |
+| task-plan-service | Task Plan Service | 任务规划的内部服务（状态管理 + SQLite 持久化），从 task_plan 工具中拆分 | services/task-plan-service.ts |
+
 <!-- 后续开发中遇到新概念在此追加 -->

@@ -112,15 +112,11 @@ export function SkillsPanel({ visible, onClose }: SkillsPanelProps) {
   if (!visible) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div
-        className="theme-panel flex h-[80vh] w-[900px] max-w-[90vw] flex-col rounded-2xl border shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: 'var(--border-color)' }}>
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Skill 管理</h2>
-            <span className="rounded px-2 py-0.5 text-xs" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{skills.length} 个</span>
+    <div className="flex h-full flex-col">
+        <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border-color)' }}>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Skills</h2>
+            <span className="rounded px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{skills.length}</span>
           </div>
           <div className="flex gap-2">
             <button onClick={handleReload} className="rounded-lg px-3 py-1.5 text-xs transition" style={{ color: 'var(--text-muted)' }}>
@@ -266,7 +262,6 @@ export function SkillsPanel({ visible, onClose }: SkillsPanelProps) {
             )}
           </div>
         </div>
-      </div>
     </div>
   )
 }

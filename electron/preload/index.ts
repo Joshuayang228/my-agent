@@ -9,6 +9,13 @@ interface SessionSummary {
   messageCount: number
 }
 
+interface FileEntry {
+  name: string
+  path: string
+  isDir: boolean
+  children?: FileEntry[]
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   ping: () => ipcRenderer.invoke('ping'),
 
@@ -23,6 +30,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('session:fork', sessionId, upToMessageId),
     tokenUsage: (sessionId: string): Promise<{ promptTokens: number; completionTokens: number }> =>
       ipcRenderer.invoke('session:tokenUsage', sessionId),
+    regenerateTitle: (sessionId: string): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke('session:regenerateTitle', sessionId),
   },
 
   settings: {
@@ -64,6 +73,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
   data: {
     export: () => ipcRenderer.invoke('data:export'),
     import: () => ipcRenderer.invoke('data:import'),
+  },
+
+  project: {
+    browse: (): Promise<{ path: string; name: string } | null> =>
+      ipcRenderer.invoke('project:browse'),
+    list: (): Promise<{ path: string; name: string }[]> =>
+      ipcRenderer.invoke('project:list'),
+    set: (dirPath: string | null): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke('project:set', dirPath),
+    get: (): Promise<{ path: string; name: string } | null> =>
+      ipcRenderer.invoke('project:get'),
+    listFiles: (dirPath: string, depth?: number): Promise<FileEntry[]> =>
+      ipcRenderer.invoke('project:listFiles', dirPath, depth),
+    readFile: (filePath: string): Promise<{ content?: string; size?: number; error?: string }> =>
+      ipcRenderer.invoke('project:readFile', filePath),
   },
 
   debug: {

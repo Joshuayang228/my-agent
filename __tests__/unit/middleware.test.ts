@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import {
   ToolMiddlewarePipeline,
   loggingMiddleware,
-  resultTruncationMiddleware,
+  resultPersistenceMiddleware,
   errorFormattingMiddleware,
   createDefaultPipeline,
   type ToolExecutionContext,
@@ -99,20 +99,19 @@ describe('ToolMiddlewarePipeline', () => {
 })
 
 describe('内置中间件', () => {
-  it('resultTruncationMiddleware 截断超长结果', async () => {
-    const longContent = 'x'.repeat(60_000)
-    const next = vi.fn().mockResolvedValue(okResult(longContent))
-
-    const result = await resultTruncationMiddleware(makeCtx(), next)
-
-    expect(result.content.length).toBeLessThan(60_000)
-    expect(result.content).toContain('[Result truncated')
+  it('resultPersistenceMiddleware 短结果直接返回', async () => {
+    const next = vi.fn().mockResolvedValue(okResult('short'))
+    const result = await resultPersistenceMiddleware(makeCtx(), next)
+    expect(result.content).toBe('short')
   })
 
-  it('resultTruncationMiddleware 不截断正常结果', async () => {
-    const next = vi.fn().mockResolvedValue(okResult('short'))
-    const result = await resultTruncationMiddleware(makeCtx(), next)
-    expect(result.content).toBe('short')
+  it('resultPersistenceMiddleware maxResultSizeChars=Infinity 时不落盘', async () => {
+    const longContent = 'x'.repeat(100_000)
+    const base = makeCtx()
+    const ctx = { ...base, tool: { ...base.tool, maxResultSizeChars: Infinity } }
+    const next = vi.fn().mockResolvedValue(okResult(longContent))
+    const result = await resultPersistenceMiddleware(ctx, next)
+    expect(result.content).toBe(longContent)
   })
 
   it('errorFormattingMiddleware 捕获异常', async () => {
@@ -130,8 +129,8 @@ describe('内置中间件', () => {
     expect(result.content).toBe('fine')
   })
 
-  it('createDefaultPipeline 创建包含 3 个中间件的管道', () => {
+  it('createDefaultPipeline 创建包含 4 个中间件的管道', () => {
     const pipeline = createDefaultPipeline()
-    expect(pipeline.count).toBe(3)
+    expect(pipeline.count).toBe(4)
   })
 })

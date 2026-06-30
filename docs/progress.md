@@ -125,7 +125,7 @@
   - 设置页新增辅助模型 + Token 预算 UI
 - **P13 高级框架能力**：
   - 权限规则引擎升级（五层责任链 + 自定义规则 command/tool/path × allow/deny/ask）
-  - 项目记忆 PROJECT.md（工作区文件 → L3 Prompt 注入 → Agent 可读写更新）
+  - ~~项目记忆 PROJECT.md~~ **已移除** — 与记忆系统功能重叠
   - 多 Provider 路由（OpenAI 兼容 / Anthropic Messages API / Gemini 请求构建器）
   - 预设新增 Claude Sonnet，baseUrl 自动检测 Provider
 - **P14 测试扩充 + 多模态 + MCP SSE**：
@@ -175,9 +175,97 @@
   - Voice I/O（Web Speech API 语音输入 / SpeechSynthesis 朗读 / 前端麦克风+朗读按钮）
   - 内置工具 12 → 13 个（新增 rag_search）
 
-**下一步**：
-- bundle 体积优化（vectra external 处理）
-- 首个可用版本打包发布
+- **UI V2 改版（Codex 风格）**（2026-06-19）：
+  - 对话样式：用户消息右对齐圆角气泡 + AI 消息左对齐纯 Markdown（去掉 You/Agent 标签）
+  - 输入区：居中卡片式（max-w-2xl），工具栏集成审批模式三级下拉 + 模型快切 + 附件 + 语音 + 圆形发送按钮
+  - 审批模式内联化（请求批准 / 替我审批 / 完全访问，输入框工具栏一键切换）
+  - 底部状态栏完全移除，Token 用量移到输入框下方
+  - 侧边栏重组：顶部功能区（新对话/搜索/技能）+ 对话列表
+  - 顶栏精简（h-12，只显示标题 + 人格名称）
+  - 设置页独立全屏（独占整个窗口 + 左侧导航栏 + ← 返回应用按钮）
+  - 技能/记忆改为主区域 tab 视图（不再使用侧推面板）
+  - 代码渲染浅色/深色主题自动切换（oneLight / oneDark + MutationObserver）
+  - Mermaid 图表跟随主题（dark / default）
+  - 整体留白优化（消息间距加大、内容宽度收窄）
+  - 欢迎屏简化居中（「我们应该构建什么？」）
+  - Electron 菜单栏隐藏（autoHideMenuBar: true）
+
+- **项目选择器**（2026-06-19）：
+  - 输入框下方项目/沙箱目录选择器（类 Codex 风格）
+  - 后端 4 个 IPC（browse/list/set/get）+ SQLite 持久化
+  - 最近 10 个项目 + 联动 workspaceRoot/sandbox/cwd
+
+- **Bug 修复**（2026-06-19）：
+  - 修复流式状态不结束（IPC invoke/send 竞态条件，finally 块安全兜底）
+
+- **UI V2 增强 — Alice 风格**（2026-06-19）：
+  - 设置页左侧导航重构（两栏布局 + 基础/高级分区 + SectionTitle/FieldGroup 组件）
+  - 会话右键菜单增强（置顶/重命名/重新生成标题/删除）
+  - 多主题支持 7 个命名主题（dark/light/mist/night-feast/green-garden/golden/blue-pool）
+  - 项目文件浏览器面板（递归目录树 + 搜索 + 文件预览）
+  - Provider 分组管理（海外/国内/本地 三组预设）
+  - 关于页面（版本/技术栈/致谢）
+  - Lucide 图标统一 + 页面过渡动画 + Token 用量 hover 显示
+
+- **UI 细节打磨 + Bundle 优化 + 首次打包**（2026-06-19）：
+  - 残留 Emoji 全部替换为 Lucide SVG（📌→Pin / ✕→X / ▶→ChevronRight / 原始 SVG→Search）
+  - PrismLight 按需语言注册（16 种常用语言，syntax-hl 从 ~400KB 降至 93KB）
+  - Vite manualChunks 拆分（react-vendor / markdown / syntax-hl 独立 chunk）
+  - 主入口 JS 从 1,202KB 降至 220KB（-82%）
+  - 首次 Windows NSIS 安装包构建成功（My Agent_0.1.0.exe，147.6MB）
+
+- **文档与规则迭代**（2026-06-19）：
+  - README.md 全面重写（对齐当前功能/技术栈/架构）
+  - code-frontend.mdc 重写（对齐 UI V2 规范）
+  - architecture.md 同步（IPC 12 模块/打包方案/目录结构）
+  - api-contracts.md 补充（项目工作区 IPC + 会话增强 IPC）
+  - testing.md 刷新（105 个 / 13 文件）
+  - glossary.md 补充（activeView/项目选择器/命名主题/PrismLight 等 8 个新术语）
+  - decisions.md 新增 4 条 ADR（DEC-018~021：UI V2 / electron-builder / 项目选择器 / Bundle 优化）
+  - Git 代理端口已统一为 7897，无冲突
+
+- **P17 框架能力补齐**（2026-06-19）：
+  - Bug Fix：Vision 动态兼容（乐观发送 → 错误驱动降级 → visionDenyCache 缓存，零配置零维护）
+  - 结构化编辑工具 file_edit + apply_patch（替代全文件覆写）
+  - Git 原生工具链 5 个（status/diff/log/commit/branch）
+  - ~~项目级 Rules 注入~~ **已移除** — 不符合伙伴产品定位，记忆系统已足够
+  - task_plan SQLite 持久化（会话绑定 + 跨重启恢复）
+  - Headless Agent Runtime（runHeadless + Scheduler 直接触发 Agent Loop）
+  - Headless 审批策略（只读放行 / shell 拒绝）
+  - Gemini 流式适配器完成（streamChatGemini SSE + functionCall）
+  - Verify 自愈中间件（文件编辑后自动语法检查）
+  - 内置工具 13 → 20 个
+
+- **@file 上下文选择器**（2026-06-19）：
+  - MentionPopup 组件（@ 触发、文件模糊搜索、键盘导航）
+  - 输入框文件标签栏 + 发送时 `<context>` 标签注入文件内容
+  - 50KB 截断保护、多文件引用支持
+  - 无后端改动（复用已有 IPC）
+
+- **Bug Fix**（2026-06-20）：
+  - 消息列表文本不可选中 → 加 `select-text` 覆盖根容器 `select-none`
+  - @mention 弹窗定位偏移 + "未选择项目目录"误判 → 动态定位 + hasProject 状态区分
+
+- **架构原则确立**（2026-06-20）：
+  - Claude Code 2.1.88 源码（1884 个 TS 文件）加入参考资料
+  - DEC-024：基础设施对齐 Claude Code，差异化在人格层
+  - 工具 ≠ 内部服务的区分原则写入 core.mdc
+  - 调研搜索路径更新：CC 源码 > Alice 方法论 > Alice 编码规范 > GitHub > npm
+
+- **Alice 方法论全面审计**（2026-06-20）：
+  - 对照 21 章方法论审计当前实现，识别 20 个 Gap
+
+**已完成（方法论审计 P0）** ✅：
+> 1. ✅ 工具并发顺序修复 — `executeAll` 按 LLM 原始顺序分批
+> 2. ✅ ToolContext 依赖注入 — 工具通过 ctx 获取 workdir/sessionId/abortSignal
+> 3. ✅ permission-engine 接入主流程 — 替代散落的 isDestructive 判断
+> 4. ✅ 子 Agent 工具黑名单 — 禁止递归 + 排除 remember/forget/task_plan
+> 5. ✅ 工具/内部服务边界重划 — task_plan 下沉为 service
+
+**下一步** → 📋 框架模块深啃路线图，详见 [`docs/module-roadmap.md`](module-roadmap.md)
+
+> 📦 其他
+> - 应用图标设计 + 安装包体积优化
 
 ## 进度时间线
 
@@ -205,8 +293,24 @@
 | 2026-06-17 | P10 完成：框架补强（工具持久化/并发锁/沙箱/allowed_tools/Token计数/执行模式） | ✅ |
 | 2026-06-17 | P11 完成：框架进阶（消息管道/四层压缩/Runtime/Multi-Agent/代码修复） | ✅ |
 | 2026-06-17 | P12 完成：效率与可观测（分场景模型/中间件/Token限流/Tracing） | ✅ |
-| 2026-06-17 | P13 完成：高级框架（权限引擎/项目记忆/多Provider路由） | ✅ |
+| 2026-06-17 | P13 完成：高级框架（权限引擎/多Provider路由） | ✅ |
 | 2026-06-17 | P14 完成：测试扩充+多模态+MCP SSE | ✅ |
 | 2026-06-18 | P15 完成：框架能力补齐（Tray/Failover/Cache/Streaming Tools） | ✅ |
 | 2026-06-18 | P16 完成：高级功能扩展（AutoUpdate/Fork/Scheduler/RAG/Voice） | ✅ |
-| - | 首个可用版本 | ⏳ |
+| 2026-06-19 | UI V2 Codex 风格改版（对话/输入/审批/设置/主题） | ✅ |
+| 2026-06-19 | 项目选择器 + 流式状态竞态修复 | ✅ |
+| 2026-06-19 | UI V2 增强：Alice 风格（设置重构/多主题/文件浏览器/右键菜单/关于页） | ✅ |
+| 2026-06-19 | UI 打磨 + Bundle 优化（PrismLight/-82% 主包）+ 首次打包（Win NSIS） | ✅ |
+| 2026-06-19 | 文档与规则迭代（README/规则/架构/API/测试/术语/决策） | ✅ |
+| 2026-06-19 | P17：框架补齐（编辑工具/Git/Rules/Headless/Gemini/Verify，工具 13→20） | ✅ |
+| 2026-06-19 | @file 上下文选择器（MentionPopup + 文件标签 + context 注入） | ✅ |
+| 2026-06-20 | P0 框架正确性修复（并发顺序/DI/权限/黑名单/服务边界） | ✅ |
+| 2026-06-20 | 架构原则确立 + Alice 方法论审计 + 模块化深啃路线重组 | ✅ |
+| 2026-06-20 | M1 Agent Loop 深啃完成（LoopState/413/max_output/abort/权限追踪/done reason） | ✅ |
+| 2026-06-20 | M1 沉淀（methodology/m01-agent-loop.md + m01-agent-loop-code.md） | ✅ |
+| 2026-06-26 | M2 工具系统深啃完成（description 四要素 / 大结果落盘 / buildTool 工厂迁移 20 工具） | ✅ |
+| 2026-06-26 | M2 沉淀（methodology/m02-tool-system.md） | ✅ |
+| 2026-06-26 | 规则补充（冗余搜索策略 / 注释五要素 / 需求文档规范） | ✅ |
+| 2026-06-26 | 方法论文件迁移至根目录 + 统一 mNN- 命名 | ✅ |
+| - | M3 LLM 层 深啃（Phase 1 第三个模块） | ⏳ |
+| - | 应用图标设计 + 安装包体积优化 | ⏳ |

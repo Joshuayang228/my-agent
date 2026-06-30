@@ -39,7 +39,7 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
       const message = err instanceof Error ? err.message : String(err)
       log.error('chat:send top-level error', { error: message })
       emit({ type: 'error', message })
-      emit({ type: 'done' })
+      emit({ type: 'done', reason: 'model_error' })
     }
   })
 }

@@ -22,10 +22,11 @@ import * as settings from '../storage/settings-store'
 import * as memory from '../storage/memory-store'
 import { searchVectorStore, addToVectorStore } from '../memory/vector-store'
 import { buildSkillSummaryForPrompt, getActiveSkill, clearActiveSkill } from '../skills/registry'
-import { buildProjectMemoryPrompt } from './project-memory'
+import { setCurrentSessionId as setTaskPlanSessionId } from '../services/task-plan-service'
+import { getWorkspaceRoot } from './project-memory'
 import { createLogger } from '../utils/logger'
 import { startSpan } from '../utils/tracer'
-import type { ChatMessage, LLMConfig, ExecutionMode, AgentStreamEvent } from '../../../src/shared/types'
+import type { ChatMessage, LLMConfig, ExecutionMode, AgentStreamEvent, ToolContext } from '../../../src/shared/types'
 
 const log = createLogger('Runtime')
 
@@ -99,14 +100,14 @@ class AgentRuntime {
     if (!llmConfig.apiKey) {
       log.error('No API key configured')
       yield { type: 'error', message: '请先在设置中配置 API Key', sessionId }
-      yield { type: 'done', sessionId }
+      yield { type: 'done', reason: 'model_error', sessionId }
       return
     }
 
     if (this.activeControllers.has(sessionId)) {
       log.warn('Session already processing', { sessionId })
       yield { type: 'error', message: '该会话正在处理中，请等待完成或先中断', sessionId }
-      yield { type: 'done', sessionId }
+      yield { type: 'done', reason: 'model_error', sessionId }
       return
     }
 
@@ -114,12 +115,14 @@ class AgentRuntime {
     if (!budgetCheck.allowed) {
       log.warn('Budget exceeded', { sessionId, reason: budgetCheck.reason })
       yield { type: 'error', message: budgetCheck.reason!, sessionId }
-      yield { type: 'done', sessionId }
+      yield { type: 'done', reason: 'model_error', sessionId }
       return
     }
 
     const abortController = new AbortController()
     this.activeControllers.set(sessionId, abortController)
+
+    setTaskPlanSessionId(sessionId)
 
     const lastUserMsg = messages[messages.length - 1]
     if (lastUserMsg?.role === 'user') {
@@ -154,8 +157,6 @@ class AgentRuntime {
         }
       } catch { /* skill system not ready */ }
 
-      const projectMemory = buildProjectMemoryPrompt()
-
       const systemPrompt = buildSystemPrompt({
         persona,
         toolNames: toolRegistry.getAll().map(t => t.name),
@@ -165,10 +166,15 @@ class AgentRuntime {
         skillSummary,
         activeSkillBody,
         executionMode,
-        projectMemory,
       })
 
       // ── 运行 Agent Loop ──
+      const toolContext: ToolContext = {
+        workdir: getWorkspaceRoot() || process.cwd(),
+        sessionId,
+        signal: abortController.signal,
+      }
+
       const stream = agentLoop(
         {
           config: llmConfig,
@@ -178,6 +184,7 @@ class AgentRuntime {
           systemPrompt,
           signal: abortController.signal,
           executionMode,
+          toolContext,
           filterTools: (allTools) => {
             const active = getActiveSkill()
             if (active?.meta.allowed_tools?.length) {
@@ -257,7 +264,7 @@ class AgentRuntime {
           timestamp: Date.now(),
         }).catch(() => {})
       }
-      yield { type: 'done', sessionId }
+      yield { type: 'done', reason: 'completed' as const, sessionId }
       try { clearActiveSkill() } catch { /* ok */ }
 
       this.sendDesktopNotification(assistantContent)
@@ -374,6 +381,53 @@ class AgentRuntime {
     }
   }
 
+  /**
+   * Headless 执行 — 无 UI 运行 Agent（用于定时任务/后台任务）。
+   * 创建临时会话，执行 Agent Loop，收集结果文本并返回。
+   */
+  async runHeadless(prompt: string, taskName?: string): Promise<string> {
+    const sessionId = `headless_${Date.now()}`
+    const label = taskName || 'headless'
+    log.info(`Headless run starting: ${label}`, { sessionId })
+
+    const userMsg: ChatMessage = { role: 'user', content: prompt }
+    const toolRegistry = new ToolRegistry()
+    const { builtinTools } = await import('../tools/builtins/index')
+    for (const tool of builtinTools) {
+      toolRegistry.register(tool)
+    }
+
+    let resultText = ''
+
+    // Headless approval policy: auto-approve read-only and known-safe tools,
+    // deny truly dangerous operations (like shell_exec with unknown commands).
+    const HEADLESS_DENY_TOOLS = new Set(['shell_exec'])
+    const headlessConfirm = async (name: string, _args: Record<string, unknown>) => {
+      const tool = toolRegistry.get(name)
+      if (tool?.metadata.isReadOnly) return true
+      if (HEADLESS_DENY_TOOLS.has(name)) {
+        log.warn(`Headless: denied destructive tool ${name}`)
+        return false
+      }
+      return true
+    }
+
+    try {
+      for await (const event of this.chat(sessionId, [userMsg], toolRegistry, headlessConfirm)) {
+        if (event.type === 'text') resultText += event.content
+        if (event.type === 'error') {
+          log.error(`Headless error: ${label}`, { message: (event as Record<string, unknown>).message })
+        }
+      }
+    } catch (err) {
+      log.error(`Headless run failed: ${label}`, { error: err instanceof Error ? err.message : String(err) })
+      throw err
+    }
+
+    log.info(`Headless run completed: ${label}`, { resultLength: resultText.length })
+    return resultText
+  }
+
   /** 优雅关闭 — 中断所有活跃会话，等待后台任务完成 */
   async shutdown(): Promise<void> {
     log.info('Runtime shutting down')
@@ -386,3 +440,7 @@ class AgentRuntime {
 }
 
 export const runtime = new AgentRuntime()
+
+// Register headless runner with Scheduler
+import { setHeadlessRunner } from '../scheduler/index'
+setHeadlessRunner((prompt, taskName) => runtime.runHeadless(prompt, taskName))

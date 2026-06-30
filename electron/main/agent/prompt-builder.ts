@@ -32,7 +32,6 @@ export interface PromptContext {
   skillSummary?: string
   activeSkillBody?: string
   executionMode?: string
-  projectMemory?: string
 }
 
 // ── 内置人格模板 ──
@@ -147,12 +146,6 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   }
 
   // ── L3 上下文注入（每次会话重新构建） ──
-  if (ctx.projectMemory) {
-    parts.push('')
-    parts.push('## Project knowledge')
-    parts.push(ctx.projectMemory)
-  }
-
   if (userProfile) {
     const profileParts = []
     if (userProfile.identity) profileParts.push(`### About the user\n${userProfile.identity}`)

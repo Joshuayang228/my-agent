@@ -1,4 +1,4 @@
-import type { ToolDefinition } from '../../../../src/shared/types'
+import { buildTool } from '../builder'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { createLogger } from '../../utils/logger'
@@ -8,10 +8,24 @@ const log = createLogger('FileRead')
 const MAX_FILE_SIZE = 256 * 1024
 const MAX_RESULT_CHARS = 50_000
 
-export const fileReadTool: ToolDefinition = {
+export const fileReadTool = buildTool({
   name: 'file_read',
-  description:
-    'Read the contents of a file. Supports text files (code, config, markdown, etc.). Returns the file content as text. For large files, only the first portion is returned.',
+  description: `Read the contents of a file.
+
+When to use:
+- You need to view the full content of code, config, or documentation files
+- You want to check if a file contains specific content or understand its structure
+- You need to analyze implementation details or configuration values
+- You want to verify file existence (reading will tell you if the file exists or not)
+
+When NOT to use:
+- Searching for specific text patterns across many files (use code_search instead)
+- File is larger than 256KB without line range (use code_search to locate first, then read specific sections with line_start/line_end)
+- You only need to know if a file exists (just try reading it - the error message will tell you)
+
+Supports: Text files (code, config, markdown, logs, etc.)
+Returns: File content as text, truncated at 50,000 characters if too large.
+Optional: Use line_start/line_end parameters to read specific line ranges from large files.`,
   parameters: {
     type: 'object',
     properties: {
@@ -32,9 +46,10 @@ export const fileReadTool: ToolDefinition = {
   },
   metadata: {
     isReadOnly: true,
-    isDestructive: false,
     isConcurrencySafe: true,
   },
+  // Infinity = 永不落盘，防止循环：读文件 → 写临时文件 → 读临时文件 → ...
+  maxResultSizeChars: Infinity,
   execute: async (args) => {
     const filePath = args.path as string
     if (!filePath?.trim()) return 'Error: file path is required'
@@ -73,4 +88,4 @@ export const fileReadTool: ToolDefinition = {
       return `Error reading file: ${message}`
     }
   },
-}
+})

@@ -230,3 +230,208 @@
   7. commit message 从中文改为英文
   8. Skill 路由表从 7 项精简为 5 项参考表
 - **影响**：dev-workflow.mdc、core.mdc、7 个 Skill 文件、rules-feedback.md
+
+### DEC-018：UI V2 采用 Codex + Alice 混合风格
+
+- **日期**：2026-06-19
+- **状态**：已决定
+- **背景**：UI V1 功能堆砌、视觉层级不清晰，需要统一设计语言
+- **选项**：
+  - A：Codex 极简风 — 纯终端感，输入居中，功能通过命令/快捷键触发
+  - B：Alice 伙伴风 — 侧栏导航，多面板，拟人化强
+  - C：融合方案 — Codex 的输入布局 + Alice 的侧栏/面板/多主题
+- **决定**：C。理由：Codex 的居中输入卡 + 底部输入框 体验简洁；Alice 的侧栏 + 全屏 activeView 管理复杂功能不侵占聊天区
+- **影响**：App.tsx 整体布局、SettingsPanel 全屏化、7 个命名主题、Lucide 图标统一、code-frontend.mdc 重写
+
+### DEC-019：打包工具选择 electron-builder
+
+- **日期**：2026-06-19
+- **状态**：已决定
+- **背景**：需要将应用打包为 Windows 安装包，供用户安装使用
+- **选项**：
+  - A：electron-builder — 社区主流，配置灵活，支持 NSIS/DMG/AppImage
+  - B：electron-forge — 官方推荐，但 ESM + Vite 配置兼容性有坑
+  - C：手动 zip 分发 — 无安装体验，不适合普通用户
+- **决定**：A。理由：配置声明式（electron-builder.json），NSIS 安装包体验好，社区文档丰富
+- **影响**：electron-builder.json、package.json scripts、release/ 输出目录
+
+### DEC-020：项目选择器采用输入区内联模式
+
+- **日期**：2026-06-19
+- **状态**：已决定
+- **背景**：用户需要切换工作区/项目，确定 shell_exec 的 cwd 和沙箱边界
+- **选项**：
+  - A：输入区下方内联选择器 — 类 Codex，紧凑直觉
+  - B：设置页配置 — 统一管理但切换不便
+  - C：独立窗口弹窗 — 打断工作流
+- **决定**：A。理由：Codex 验证过该模式，用户在聊天输入时即可看到/切换当前项目，无需跳转
+- **影响**：App.tsx 输入区组件、project IPC 模块（6 个 handler）、sandbox policy 联动
+
+### DEC-021：Bundle 优化选择 PrismLight + manualChunks
+
+- **日期**：2026-06-19
+- **状态**：已决定
+- **背景**：首次打包发现主 bundle 过大（~1.2MB），主要因 react-syntax-highlighter 全量加载 300+ 语言
+- **选项**：
+  - A：PrismLight 按需注册 + Vite manualChunks — 减体积 + 拆包缓存
+  - B：换用轻量高亮库（如 shiki）— 需要重写渲染逻辑
+  - C：不优化，压缩兜底 — gzip 后尚可但首屏解析慢
+- **决定**：A。理由：零迁移成本，仅改 import + 注册 16 个语言，主 bundle 减少 82%
+- **影响**：MarkdownRenderer.tsx（PrismLight 导入）、vite.config.ts（manualChunks 函数）
+
+---
+
+### DEC-022: 移除项目级 Rules 和 PROJECT.md
+
+- **日期**：2026-06-19
+- **状态**：已决定
+- **背景**：P17 实现了 `.cursor/rules`/`AGENTS.md`/`CLAUDE.md` 自动加载注入 Prompt，以及 `PROJECT.md` 文件级项目知识库
+- **问题**：
+  - 自动加载 `.cursor/rules` 是开发工具的做法，不符合 AI 伙伴产品定位
+  - `PROJECT.md` 与已有记忆系统（remember/recall/forget + 用户画像 + 向量检索）功能重叠
+  - 用户不需要"规则文件"这种开发者概念
+- **决定**：全部移除。用户通过对话自然积累记忆来定制 Agent 行为
+- **影响**：`project-memory.ts` 精简为纯 workspaceRoot 管理、`prompt-builder.ts` 和 `runtime.ts` 清理注入逻辑
+
+---
+
+### DEC-023: Vision 支持检测采用动态乐观策略
+
+- **日期**：2026-06-19
+- **状态**：已决定
+- **背景**：模型是否支持 Vision（image_url）无法静态判断，初始方案用硬编码模型名白名单，但模型更新快、名称不稳定
+- **选项**：
+  - A：硬编码白名单 — 需手动维护，过时快
+  - B：动态检测（乐观发送 → 错误驱动降级 → 缓存）— 零维护，自动适应
+  - C：设置页让用户手动标记 — 增加用户认知负担
+- **决定**：B。理由：零维护、对用户无感知、缓存避免重复失败
+- **影响**：`electron/main/llm/index.ts`（visionDenyCache + isVisionRelatedError + 三路径统一）
+
+---
+
+### DEC-024: 架构原则 — 基础设施对齐 Claude Code，差异化在人格层
+
+- **日期**：2026-06-19
+- **状态**：已决定
+- **背景**：获取 Claude Code 2.1.88 源码还原版（1884 个 TS 文件），同时学习 Alice 方法论
+- **原则**：
+  1. 基础设施层（Agent Loop、上下文压缩、工具系统）对齐 Claude Code 的生产验证方案
+  2. 差异化放在人格化伙伴体验（关系型 AI、情感记忆、人设系统）
+  3. 严格区分"工具"（AI 可见可调用）和"内部服务"（框架使用，AI 不可见）
+- **理由**：CC 经过 Anthropic 团队生产验证，基础架构层复用比原创更可靠；精力聚焦在真正差异化的地方能加速产品成型
+- **影响**：`core.mdc` 新增架构原则章节、`dev-workflow.mdc` 调研搜索路径优先级调整
+
+---
+
+### DEC-025: 工具并发顺序保持 LLM 原始语义
+
+- **日期**：2026-06-20
+- **状态**：已决定
+- **背景**：LLM 返回的 tool_calls 数组有隐含的执行顺序语义（如先创建文件再写入），原实现按 concurrencySafe 分两组批量执行，可能打破这个顺序
+- **选项**：
+  - A：保持原有分组方式 — 简单但可能导致顺序错误
+  - B：按 LLM 原始顺序分批（连续安全工具并行，遇到非安全工具刷新批次串行）— 保持语义正确性
+  - C：全部串行 — 最安全但效率低
+- **决定**：B。理由：既保持了 concurrencySafe 工具的并行效率，又确保了非安全工具按 LLM 指定的顺序执行
+- **影响**：`tools/registry.ts` executeAll 方法重构
+
+---
+
+### DEC-026: ToolContext 依赖注入取代全局 import
+
+- **日期**：2026-06-20
+- **状态**：已决定
+- **背景**：工具需要 workdir/sessionId/AbortSignal 等运行时信息，原实现通过全局 import（如 `getWorkspaceRoot()`）获取，导致耦合和测试困难
+- **选项**：
+  - A：继续全局 import — 简单但高耦合
+  - B：ToolContext 依赖注入 — 由 Runtime 构造并通过参数传递
+  - C：工具自行从 IPC 查询 — 不必要的复杂性
+- **决定**：B。理由：对齐 Claude Code 的 ToolUseContext 设计，降低耦合，便于测试
+- **影响**：`shared/types.ts`（ToolContext 接口）、`tools/registry.ts`（传递 ctx）、`agent/runtime.ts`（构造 ctx）
+
+---
+
+### DEC-027: permission-engine 接入 Agent Loop 主流程
+
+- **日期**：2026-06-20
+- **状态**：已决定
+- **背景**：权限检查散落在 loop.ts（`isDestructive` 判断）、沙箱、命令守卫等多处，逻辑重复且不一致
+- **选项**：
+  - A：保持散落 — 简单但容易遗漏
+  - B：统一收归到 PermissionEngine 五层链，loop.ts 只调用 `checkToolPermission`
+- **决定**：B。理由：单一入口，权限逻辑集中管理，新增工具时不需要到处加判断
+- **影响**：`agent/loop.ts`（移除 isDestructive 判断，改用 checkToolPermission）
+
+---
+
+### DEC-028: 子 Agent 工具黑名单
+
+- **日期**：2026-06-20
+- **状态**：已决定
+- **背景**：子 Agent 如果持有 delegate_task 工具会无限递归；持有 remember/forget/task_plan 会修改父 Agent 的状态
+- **选项**：
+  - A：不限制 — 依赖 LLM 自律（不可靠）
+  - B：硬编码黑名单（delegate_task / remember / forget / task_plan）— 代码级保障
+  - C：配置化黑名单 — 灵活但当前没有多样化需求
+- **决定**：B。理由：这 4 个工具的排除理由明确且通用，不需要配置化的灵活性
+- **影响**：`agent/subagent.ts`（SUBAGENT_TOOL_BLACKLIST + buildChildRegistry 过滤）
+
+---
+
+### DEC-029: 工具/服务边界分离（task_plan 示范）
+
+- **日期**：2026-06-20
+- **状态**：已决定
+- **背景**：task_plan 工具文件同时包含业务逻辑（SQLite 持久化 / 状态管理）和 LLM 工具定义，导致 Runtime 需要调用"工具"来设置 sessionId，模糊了内部服务和 AI 工具的边界
+- **选项**：
+  - A：保持在工具文件里 — 简单但边界模糊
+  - B：拆分为 service（状态/持久化）+ tool（薄壳包装）— 对齐 CC 的 Tool vs 内部模块设计
+- **决定**：B。理由：Runtime/中间件/其他工具可直接 import service 而不经 LLM 调用路径，测试也更容易隔离
+- **影响**：新增 `services/task-plan-service.ts`、`tools/builtins/task-plan.ts` 精简为薄壳
+
+---
+
+### DEC-030: Agent Loop 重构为 LoopState 状态机
+
+- **日期**：2026-06-20
+- **状态**：已决定
+- **背景**：原 loop.ts 使用 for 循环 + 散落局部变量，无法支持 reactive compact 重试、max_output 恢复等跨迭代的控制流跳转
+- **选项**：
+  - A：保持 for 循环，用 flag 变量控制 — 简单但随着逻辑增加会变成意大利面
+  - B：while + LoopState + ContinueReason 状态机 — 对齐 CC 的 while(true) 模式
+- **决定**：B。理由：集中状态管理让错误恢复、权限追踪等功能可以自然叠加，不引入深层嵌套
+- **影响**：`agent/loop.ts` 全面重写
+
+---
+
+### DEC-031: done 事件携带 TerminalReason
+
+- **日期**：2026-06-20
+- **状态**：已决定
+- **背景**：原 `{ type: 'done' }` 事件无法区分正常完成、超限、中断、错误等终止原因，前端和 Runtime 无法做差异化处理
+- **决定**：扩展为 `{ type: 'done', reason: TerminalReason }`，定义 5 种终止原因
+- **影响**：`types.ts` 新增 `TerminalReason` 类型；`loop.ts` / `runtime.ts` / `ipc/chat.ts` 所有 done 事件需携带 reason
+
+---
+
+### DEC-032: 413 紧急压缩策略（一次机会）
+
+- **日期**：2026-06-20
+- **状态**：已决定
+- **背景**：长对话场景下 LLM 可能返回 413/context_length_exceeded，需要在不中断循环的前提下恢复
+- **选项**：
+  - A：直接报错终止 — 用户体验差
+  - B：触发一次 reactive compact + 重试 — 平衡恢复能力和无限循环风险
+  - C：无限重试压缩 — 可能死循环
+- **决定**：B。`hasAttemptedReactiveCompact` flag 保证只触发一次，压缩后仍超限则报 `prompt_too_long` 终止
+- **影响**：`agent/loop.ts` 新增 413 检测 + reactive compact 逻辑
+
+---
+
+### DEC-033: max_output_tokens 截断恢复（最多 2 次）
+
+- **日期**：2026-06-20
+- **状态**：已决定
+- **背景**：模型响应可能因输出 token 限制被截断（stopReason=max_tokens/length），Alice 和 CC 都有续写机制
+- **决定**：检测到截断后注入 `[System] continue from where you left off` 续写提示，最多恢复 2 次
+- **影响**：`agent/loop.ts` 新增 max_output_recovery 逻辑；`llm/index.ts` 三个适配器新增 stopReason 提取

@@ -10,6 +10,23 @@ export default defineConfig({
       '@': path.join(__dirname, 'src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
+            return 'react-vendor'
+          }
+          if (id.includes('react-markdown') || id.includes('remark-gfm')) {
+            return 'markdown'
+          }
+          if (id.includes('react-syntax-highlighter')) {
+            return 'syntax-hl'
+          }
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),

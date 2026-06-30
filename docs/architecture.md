@@ -24,7 +24,7 @@
 | LLM | 多 Provider（OpenAI 兼容 / Anthropic / Gemini，自动检测路由） |
 | 扩展 | MCP 协议（Model Context Protocol） |
 | 测试 | vitest（单元）+ Playwright（E2E） |
-| 打包 | 待定（electron-builder / electron-forge） |
+| 打包 | electron-builder（NSIS / DMG） |
 
 ## 整体架构
 
@@ -38,8 +38,8 @@
 │  │               │                    │                │  │
 │  │ - App.tsx     │                    │ ┌────────────┐ │  │
 │  │ - Settings    │                    │ │ IPC 路由层  │ │  │
-│  │ - Markdown    │                    │ │ (6 模块)   │ │  │
-│  │ - MCP 管理    │                    │ └──────┬─────┘ │  │
+│  │ - Markdown    │                    │ │ (12 模块)  │ │  │
+│  │ - FileBrowser │                    │ └──────┬─────┘ │  │
 │  └──────────────┘                    │        │       │  │
 │                                      │ ┌──────▼─────┐ │  │
 │                                      │ │ Agent Loop  │ │  │
@@ -81,41 +81,46 @@ think → act → observe → think → ...
 - **消息管道**：sanitizeToolCallPairs 修复孤儿消息，防止 LLM API 400
 - **Runtime 编排**：AgentRuntime 单例管理生命周期，后台任务队列串行执行
 - **LLM 调用重试**：网络错误/429/5xx 自动重试，最多 2 次，指数退避
-- **工具并发执行**：concurrencySafe 工具走 Promise.all，非安全工具串行
+- **工具并发执行**：按 LLM 原始顺序分批 — concurrencySafe 连续工具并行，遇到非安全工具刷新批次串行，保持 LLM 指定的执行语义
+- **ToolContext 依赖注入**：工具通过 `ctx: ToolContext` 获取 workdir / sessionId / AbortSignal，不再依赖全局 import
 
 ### 2. IPC 模块化
 
-主进程 IPC 拆分为 11 个独立模块：
+主进程 IPC 拆分为 12 个独立模块：
 
 | 模块 | 职责 |
 |------|------|
-| `ipc/session.ts` | 会话 CRUD + Fork 分支 |
+| `ipc/session.ts` | 会话 CRUD + Fork 分支 + 标题重新生成 |
 | `ipc/chat.ts` | 聊天发送 + 中断 + 向量检索注入 |
 | `ipc/settings.ts` | 设置读写 |
 | `ipc/memory.ts` | 记忆 CRUD |
 | `ipc/persona.ts` | 人格模板查询 |
 | `ipc/mcp.ts` | MCP 服务器连接/断开/状态 |
-| `ipc/debug.ts` | DevPanel 调试数据（Prompt/工具/系统状态） |
+| `ipc/debug.ts` | DevPanel 调试数据（Prompt/工具/系统状态/Traces） |
 | `ipc/data-export.ts` | 数据导出/导入（会话+记忆+设置备份恢复） |
 | `ipc/skills.ts` | Skill CRUD + 重新加载 |
 | `ipc/scheduler.ts` | 定时任务 CRUD |
 | `ipc/rag.ts` | RAG 文档导入/列表/删除 |
+| `ipc/project.ts` | 项目工作区（browse/list/set/get + listFiles/readFile） |
 
 ### 3. 工具系统
 
 - 声明式注册（ToolDefinition + ToolMetadata）
+- **buildTool() 工厂**：统一 fail-closed 默认值（isReadOnly/isDestructive/isConcurrencySafe 默认 false，maxResultSizeChars 默认 50,000），工具只声明偏离默认的字段
 - 并发安全分流：`isConcurrencySafe` → Promise.all，否则串行
 - 动态注册/注销：支持 MCP 工具运行时加入和移除
 - 破坏性操作前用户确认（IPC 双向通信弹窗）
 - **超时保护**：每个工具 30s 超时，超时自动返回错误
 - 13 个内置工具 + MCP 动态工具
-- **子 Agent 系统**：delegate_task 工具，独立上下文 + 受限工具集 + 权限只降不升
-- **中间件管道**：ToolMiddlewarePipeline 洋葱模型（error-formatting → logging → result-truncation）
+- **子 Agent 系统**：delegate_task 工具，独立上下文 + 受限工具集 + 权限只降不升 + 工具黑名单（禁止 delegate_task 递归 / remember / forget / task_plan）
+- **中间件管道**：ToolMiddlewarePipeline 洋葱模型（error-formatting → logging → verify → result-persistence）
+- **大结果落盘**：工具结果超过 maxResultSizeChars（默认 50,000）时写临时文件返回路径，防止上下文爆炸；file_read 设 Infinity 避免循环
 - **Token 预算**：会话级 + 日级限额，超限自动终止
 - **沙箱系统**：参考 Codex 四层纵深防御，三级沙箱模式（read-only / workspace-write / full-access）
 - **命令安全分级**：ExecPolicy 白名单/黑名单 + CommandGuard 路径边界检查 + ApprovalStore 审批记录
-- **权限规则引擎**：五层责任链（自定义规则 → 审批记录 → 命令分级 → 沙箱策略 → 默认）
-- **项目记忆**：PROJECT.md → L3 Prompt 注入（工作区文件，Agent 可读写更新）
+- **权限规则引擎**：五层责任链（自定义规则 → 审批记录 → 命令分级 → 沙箱策略 → 默认），已接入 Agent Loop 主流程（替代散落的 isDestructive 判断）
+- **工作区管理**：workspaceRoot 维护（供沙箱/Git/文件工具读取当前项目路径）
+- **工具 vs 服务边界**：工具（ToolDefinition）仅暴露给 LLM 的薄壳，内部逻辑下沉为独立服务（如 task-plan-service.ts），运行时/中间件/其他工具可直接调用服务而不经 LLM
 
 ### 4. 记忆系统
 
@@ -184,9 +189,10 @@ my-agent/
 ├── electron/
 │   ├── main/
 │   │   ├── index.ts          # App 生命周期 + 窗口管理 + Tray + Auto Update
-│   │   ├── ipc/              # IPC 处理器（11 个模块）
+│   │   ├── ipc/              # IPC 处理器（12 个模块）
 │   │   ├── agent/            # Agent Loop + Runtime + Prompt + Context + Pipeline + Subagent
-│   │   ├── tools/            # ToolRegistry + 13 个内置工具 + Middleware
+│   │   ├── tools/            # ToolRegistry + 20 个内置工具 + Middleware
+│   │   ├── services/         # 内部服务（task-plan-service 等，工具调用的底层逻辑）
 │   │   ├── sandbox/          # 沙箱系统 + 权限引擎
 │   │   ├── mcp/              # MCP Client（stdio + SSE）+ Bridge
 │   │   ├── memory/           # 向量存储 + Embedding 适配器
@@ -198,11 +204,11 @@ my-agent/
 │   └── preload/              # contextBridge 暴露 API
 ├── src/
 │   ├── App.tsx               # 主 UI
-│   ├── components/           # SettingsPanel / MarkdownRenderer / DevPanel
+│   ├── components/           # SettingsPanel / MarkdownRenderer / DevPanel / MemoryPanel / SkillsPanel / FileBrowser / Toast
 │   └── shared/types.ts       # 共享类型定义
 ├── __tests__/
-│   ├── unit/                 # vitest 单元测试（88 个）
-│   └── e2e/                  # Playwright E2E 测试（4 个）
+│   ├── unit/                 # vitest 单元测试
+│   └── e2e/                  # Playwright E2E 测试
 ├── methodology/              # 设计哲学沉淀
 └── docs/                     # 项目文档
 ```
@@ -214,7 +220,7 @@ my-agent/
 ```
 用户输入 → 渲染进程(React) → IPC chat:send
     → 主进程 AgentRuntime.chat()
-        ├─ 记忆检索（向量 + SQLite + PROJECT.md）
+        ├─ 记忆检索（向量 + SQLite）
         ├─ 上下文组装（System Prompt 4 层 + 消息管道清洗）
         ├─ Token 预算检查
         └─ Agent Loop（AsyncGenerator）
@@ -228,14 +234,18 @@ my-agent/
 ### 工具调用链路
 
 ```
-LLM 返回 tool_calls
-    → Agent Loop yield tool_start
-    → ToolRegistry.executeSingle()
-        → MiddlewarePipeline（error-formatting → logging → truncation）
-            → 权限检查（PermissionEngine 五层链）
-                ├─ allow → 执行
-                ├─ ask → IPC tool:confirm-request → 用户确认/拒绝
-                └─ deny → 返回拒绝结果
+LLM 返回 tool_calls（可能多个）
+    → Agent Loop 按 LLM 原始顺序分批
+        ├─ 连续 concurrencySafe 工具 → 并行批次（Promise.all）
+        └─ 非安全工具 → 刷新批次，串行执行
+    → 每个工具：
+        → PermissionEngine 权限检查（五层责任链）
+            ├─ allow → 继续
+            ├─ needs_approval → IPC tool:confirm-request → 用户确认/拒绝
+            └─ deny → 返回拒绝结果
+        → ToolRegistry.executeSingle(toolCall, toolContext)
+            → MiddlewarePipeline（error-formatting → logging → truncation）
+                → toolDef.execute(args, ctx)  ← ToolContext 注入 workdir/sessionId/signal
     → yield tool_end → 继续 loop
 ```
 

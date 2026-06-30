@@ -41,6 +41,10 @@ export interface AppSettings {
   sessionTokenBudget: string
   /** 日级 Token 预算（0 = 无限制） */
   dailyTokenBudget: string
+  /** 当前项目目录路径 */
+  currentProject: string
+  /** 最近使用的项目目录列表（JSON 字符串） */
+  recentProjects: string
 }
 
 function getDefaults(): AppSettings {
@@ -59,6 +63,8 @@ function getDefaults(): AppSettings {
     auxModel: '',
     sessionTokenBudget: '0',
     dailyTokenBudget: '0',
+    currentProject: '',
+    recentProjects: '[]',
   }
 }
 

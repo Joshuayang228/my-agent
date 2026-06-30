@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { FileText, Wrench, BarChart3, ClipboardList, Zap, RotateCcw, X, CheckCircle, XCircle, ChevronRight } from 'lucide-react'
 
 type Tab = 'prompt' | 'tools' | 'system' | 'events'
 
@@ -44,11 +45,11 @@ function formatUptime(seconds: number): string {
   return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`
 }
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'prompt', label: 'System Prompt', icon: '📝' },
-  { id: 'tools', label: '工具注册表', icon: '🔧' },
-  { id: 'system', label: '系统状态', icon: '📊' },
-  { id: 'events', label: '事件日志', icon: '📋' },
+const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  { id: 'prompt', label: 'System Prompt', icon: <FileText size={12} /> },
+  { id: 'tools', label: '工具注册表', icon: <Wrench size={12} /> },
+  { id: 'system', label: '系统状态', icon: <BarChart3 size={12} /> },
+  { id: 'events', label: '事件日志', icon: <ClipboardList size={12} /> },
 ]
 
 interface DevPanelProps {
@@ -83,12 +84,11 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
   useEffect(() => { refresh() }, [refresh])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="theme-panel relative flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border shadow-2xl">
-        <div className="flex items-center justify-between border-b px-5 py-3" style={{ borderColor: 'var(--border-color)' }}>
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-emerald-500">⚡ Developer Panel</span>
-            <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-500">DEBUG</span>
+    <div className="flex h-full flex-col">
+        <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border-color)' }}>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--success)' }}><Zap size={14} /> Dev</span>
+            <span className="rounded px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--accent-subtle)', color: 'var(--success)' }}>DEBUG</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -96,14 +96,14 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
               className="rounded-lg px-2 py-1 text-xs transition"
               style={{ color: 'var(--text-muted)' }}
             >
-              ↻ 刷新
+              <RotateCcw size={12} /> 刷新
             </button>
             <button
               onClick={onClose}
               className="rounded-lg p-1.5 transition"
               style={{ color: 'var(--text-muted)' }}
             >
-              ✕
+              <X size={14} />
             </button>
           </div>
         </div>
@@ -133,7 +133,6 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
           {tab === 'system' && <SystemTab info={systemInfo} />}
           {tab === 'events' && <EventsTab events={eventLog} />}
         </div>
-      </div>
     </div>
   )
 }
@@ -230,7 +229,7 @@ function ToolsTab({ tools, expanded, setExpanded }: {
                     {tool.metadata.isDestructive && <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-[9px] text-red-400">破坏性</span>}
                     {tool.metadata.isConcurrencySafe && <span className="rounded bg-cyan-500/10 px-1.5 py-0.5 text-[9px] text-cyan-500">并发安全</span>}
                   </div>
-                  <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{expanded === tool.name ? '▼' : '▶'}</span>
+                  <ChevronRight size={12} className={`transition-transform ${expanded === tool.name ? 'rotate-90' : ''}`} style={{ color: 'var(--text-muted)' }} />
                 </button>
                 {expanded === tool.name && (
                   <div className="border-t px-4 py-3" style={{ borderColor: 'var(--border-color)' }}>
@@ -278,8 +277,8 @@ function SystemTab({ info }: { info: SystemInfo | null }) {
         ['模型', info.settings.model],
         ['Base URL', info.settings.baseUrl],
         ['人格', info.settings.personaId],
-        ['API Key', info.settings.hasApiKey ? '✅ 已配置' : '❌ 未配置'],
-        ['自定义 Prompt', info.settings.hasCustomPrompt ? '✅ 有' : '—'],
+        ['API Key', info.settings.hasApiKey ? '已配置' : '未配置'],
+        ['自定义 Prompt', info.settings.hasCustomPrompt ? '有' : '—'],
       ],
     },
   ]

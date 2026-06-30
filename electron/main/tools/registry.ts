@@ -1,4 +1,4 @@
-import type { ToolDefinition, ToolCall, ToolResult } from '../../../src/shared/types'
+import type { ToolDefinition, ToolCall, ToolResult, ToolContext } from '../../../src/shared/types'
 import { ToolMiddlewarePipeline, createDefaultPipeline, type ToolMiddlewareNext } from './middleware'
 
 const TOOL_TIMEOUT_MS = 30_000
@@ -54,43 +54,40 @@ export class ToolRegistry {
   }
 
   /**
-   * 执行一组工具调用。
-   * 按 isConcurrencySafe 分批：安全的并发执行，不安全的串行。
+   * 执行一组工具调用，保持 LLM 返回的原始顺序。
+   * 连续的 concurrencySafe 工具并行执行，遇到非安全工具则先 flush 再串行。
    */
-  async executeAll(calls: ToolCall[]): Promise<ToolResult[]> {
-    const concurrent: ToolCall[] = []
-    const sequential: ToolCall[] = []
+  async executeAll(calls: ToolCall[], toolContext?: ToolContext): Promise<ToolResult[]> {
+    const results: ToolResult[] = []
+    let safeBatch: ToolCall[] = []
+
+    const flushBatch = async () => {
+      if (safeBatch.length === 0) return
+      const batch = safeBatch
+      safeBatch = []
+      const batchResults = await Promise.all(
+        batch.map((call) => this.executeSingle(call, toolContext)),
+      )
+      results.push(...batchResults)
+    }
 
     for (const call of calls) {
       const tool = this.tools.get(call.name)
-      if (!tool) {
-        sequential.push(call)
-        continue
-      }
-      if (tool.metadata.isConcurrencySafe) {
-        concurrent.push(call)
+      const isSafe = tool?.metadata.isConcurrencySafe ?? false
+
+      if (isSafe) {
+        safeBatch.push(call)
       } else {
-        sequential.push(call)
+        await flushBatch()
+        results.push(await this.executeSingle(call, toolContext))
       }
     }
 
-    const results: ToolResult[] = []
-
-    if (concurrent.length > 0) {
-      const concurrentResults = await Promise.all(
-        concurrent.map((call) => this.executeSingle(call)),
-      )
-      results.push(...concurrentResults)
-    }
-
-    for (const call of sequential) {
-      results.push(await this.executeSingle(call))
-    }
-
+    await flushBatch()
     return results
   }
 
-  private async executeSingle(call: ToolCall): Promise<ToolResult> {
+  private async executeSingle(call: ToolCall, toolContext?: ToolContext): Promise<ToolResult> {
     const tool = this.tools.get(call.name)
     if (!tool) {
       return {
@@ -113,12 +110,12 @@ export class ToolRegistry {
       }
     }
 
-    return this.executeFn({ call, tool, args })
+    return this.executeFn({ call, tool, args, toolContext })
   }
 
   /** 原始执行器 — 中间件链的终点 */
-  private async rawExecute(ctx: { call: ToolCall; tool: ToolDefinition; args: Record<string, unknown> }): Promise<ToolResult> {
-    const content = await withTimeout(ctx.tool.execute(ctx.args), TOOL_TIMEOUT_MS, ctx.call.name)
+  private async rawExecute(ctx: { call: ToolCall; tool: ToolDefinition; args: Record<string, unknown>; toolContext?: ToolContext }): Promise<ToolResult> {
+    const content = await withTimeout(ctx.tool.execute(ctx.args, ctx.toolContext), TOOL_TIMEOUT_MS, ctx.call.name)
     return { callId: ctx.call.id, name: ctx.call.name, content }
   }
 }

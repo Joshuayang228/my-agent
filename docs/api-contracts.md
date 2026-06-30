@@ -398,3 +398,53 @@ interface VectorMemoryEntry {
   timestamp: number
 }
 ```
+
+## 项目工作区 IPC
+
+```typescript
+// ── 项目选择器 ──
+ipcMain.handle('project:browse')     // 打开系统文件夹选择器 → { path, name } | null
+ipcMain.handle('project:list')       // 获取最近项目列表 → { path: string; name: string }[]
+ipcMain.handle('project:set', path)  // 设置当前项目（联动 workspaceRoot / cwd / sandbox）→ void
+ipcMain.handle('project:get')        // 获取当前项目 → { path, name } | null
+
+// ── 文件浏览器 ──
+ipcMain.handle('project:listFiles', dirPath, depth?)  // 递归列出目录 → FileEntry[]
+ipcMain.handle('project:readFile', filePath)           // 读取文件内容（256KB 限制） → string
+
+interface FileEntry {
+  name: string
+  path: string
+  isDirectory: boolean
+  children?: FileEntry[]
+}
+```
+
+## ToolContext 接口（P0 新增）
+
+```typescript
+// 工具执行时注入的运行时上下文（取代全局 import）
+interface ToolContext {
+  workdir: string        // 当前工作区根目录
+  sessionId: string      // 当前会话 ID
+  signal?: AbortSignal   // 用户中断信号
+}
+
+// ToolDefinition.execute 签名变更：新增可选 ctx 参数
+execute: (args: Record<string, unknown>, ctx?: ToolContext) => Promise<string>
+
+// AgentLoopOptions 新增
+interface AgentLoopOptions {
+  // ... 其他字段 ...
+  toolContext?: ToolContext  // 由 Runtime 构造并注入
+}
+```
+
+## 会话增强 IPC
+
+```typescript
+// ── 标题重新生成 ──
+ipcMain.handle('session:regenerateTitle', sessionId)
+  // 取首条用户消息 + 助手回复，调用 LLM 生成 4-10 字摘要
+  // → { success: boolean; error?: string }
+```
