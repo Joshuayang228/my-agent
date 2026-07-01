@@ -12,6 +12,17 @@ import type {
 // Mock streamChat — 我们不实际调用 LLM
 vi.mock('../../electron/main/llm/index', () => ({
   streamChat: vi.fn(),
+  // loop 用 `err instanceof LLMError` 判断 retry-after，mock 需提供等价类
+  LLMError: class LLMError extends Error {
+    status?: number
+    retryAfterMs?: number
+    constructor(message: string, status?: number, retryAfterMs?: number) {
+      super(message)
+      this.name = 'LLMError'
+      this.status = status
+      this.retryAfterMs = retryAfterMs
+    }
+  },
 }))
 
 // Mock logger to suppress output

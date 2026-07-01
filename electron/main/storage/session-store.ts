@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from './database'
 import { createLogger } from '../utils/logger'
+import { chatComplete } from '../llm/index'
 import type { ChatMessage, ChatSession } from '../../../src/shared/types'
 
 const log = createLogger('SessionStore')
@@ -268,30 +269,22 @@ export async function generateSmartTitle(
   llmConfig: { apiKey: string; baseUrl: string; model: string },
 ): Promise<void> {
   try {
-    const resp = await fetch(`${llmConfig.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${llmConfig.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: llmConfig.model,
-        max_tokens: 30,
-        temperature: 0.3,
-        messages: [
-          {
-            role: 'system',
-            content: '用极简中文为这段对话生成一个标题（4-10个字，不加引号标点）。只返回标题本身。',
-          },
-          { role: 'user', content: userMessage.slice(0, 200) },
-          { role: 'assistant', content: assistantReply.slice(0, 200) },
-        ],
-      }),
-    })
-    if (!resp.ok) return
+    // 走统一路由层（chatComplete）而非直接 fetch —— 自动获得多 Provider 支持 + failover
+    const title = (await chatComplete({
+      config: llmConfig,
+      messages: [
+        {
+          role: 'system',
+          content: '用极简中文为这段对话生成一个标题（4-10个字，不加引号标点）。只返回标题本身。',
+        },
+        { role: 'user', content: userMessage.slice(0, 200) },
+        { role: 'assistant', content: assistantReply.slice(0, 200) },
+      ],
+      temperature: 0.3,
+      maxTokens: 30,
+      caller: 'title',
+    })).trim()
 
-    const data = await resp.json() as { choices?: Array<{ message?: { content?: string } }> }
-    const title = data.choices?.[0]?.message?.content?.trim()
     if (title && title.length >= 2 && title.length <= 30) {
       await updateSessionTitle(sessionId, title)
       log.info('Smart title generated', { sessionId, title })

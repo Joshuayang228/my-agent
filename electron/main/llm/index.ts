@@ -12,6 +12,43 @@ import { createLogger } from '../utils/logger'
 
 const llmLog = createLogger('LLM')
 
+/**
+ * 携带 HTTP 状态码和服务端 retry-after 的 LLM 错误。
+ *
+ * 纯字符串 Error 会丢掉 429/503 响应里的 `retry-after` header，
+ * 导致上层重试只能盲目指数退避。这个类把这些信息随错误一起传出去，
+ * 让 loop 的重试能遵从服务端指定的等待时间（对照 CC withRetry.ts:530）。
+ */
+export class LLMError extends Error {
+  status: number
+  /** 服务端要求的重试等待毫秒数（来自 retry-after header），无则 undefined */
+  retryAfterMs?: number
+  constructor(message: string, status: number, retryAfterMs?: number) {
+    super(message)
+    this.name = 'LLMError'
+    this.status = status
+    this.retryAfterMs = retryAfterMs
+  }
+}
+
+/**
+ * 从响应头解析 retry-after。
+ * 支持两种格式：整数秒（`retry-after: 30`）或 HTTP 日期。
+ * @returns 毫秒数，解析不出则 undefined
+ */
+export function parseRetryAfterMs(response: Response): number | undefined {
+  const raw = response.headers.get('retry-after')
+  if (!raw) return undefined
+  const asSeconds = Number(raw)
+  if (Number.isFinite(asSeconds)) return asSeconds * 1000
+  const asDate = Date.parse(raw)
+  if (Number.isFinite(asDate)) {
+    const delta = asDate - Date.now()
+    return delta > 0 ? delta : undefined
+  }
+  return undefined
+}
+
 // ── 对外接口 ──
 
 export interface StreamChatOptions {
@@ -22,6 +59,8 @@ export interface StreamChatOptions {
   responseFormat?: ResponseFormat
   /** 启用 Prompt Cache（Anthropic cache_control） */
   enablePromptCache?: boolean
+  /** 调用方标识（用于日志归因和成本统计），如 'main' / 'summary' / 'profile' */
+  caller?: string
 }
 
 export interface StreamChatResult {
@@ -42,11 +81,19 @@ export async function* streamChat(
   const { config } = options
   const fallbacks = config.fallbackModels ?? []
 
+  llmLog.info('streamChat start', {
+    caller: options.caller ?? 'unknown',
+    model: config.model,
+    messageCount: options.messages.length,
+    toolCount: options.tools?.length ?? 0,
+  })
+
   try {
     return yield* streamChatSingle(options)
   } catch (err) {
     if (fallbacks.length === 0) throw err
     llmLog.warn('Primary model failed, attempting failover', {
+      caller: options.caller ?? 'unknown',
       model: config.model,
       error: err instanceof Error ? err.message : String(err),
       fallbackCount: fallbacks.length,
@@ -135,13 +182,13 @@ async function* streamChatSingle(
       markVisionDenied(config)
       response = await doFetch(buildBody(true))
     } else {
-      throw new Error(`LLM API error (${response.status}): ${error}`)
+      throw new LLMError(`LLM API error (${response.status}): ${error}`, response.status, parseRetryAfterMs(response))
     }
   }
 
   if (!response.ok) {
     const error = await response.text()
-    throw new Error(`LLM API error (${response.status}): ${error}`)
+    throw new LLMError(`LLM API error (${response.status}): ${error}`, response.status, parseRetryAfterMs(response))
   }
 
   const reader = response.body?.getReader()
@@ -179,9 +226,10 @@ async function* streamChatSingle(
       // usage 统计（某些模型在最后一个 chunk 里返回）
       const u = parsed.usage as Record<string, number> | undefined
       if (u) {
+        // >0 guard：只在拿到正数时更新，防止代理在中间 chunk 塞 0 值覆盖真实统计
         usage = {
-          promptTokens: u.prompt_tokens ?? 0,
-          completionTokens: u.completion_tokens ?? 0,
+          promptTokens: (u.prompt_tokens ?? 0) > 0 ? u.prompt_tokens : (usage?.promptTokens ?? 0),
+          completionTokens: (u.completion_tokens ?? 0) > 0 ? u.completion_tokens : (usage?.completionTokens ?? 0),
         }
       }
 
@@ -385,7 +433,7 @@ async function* streamChatAnthropic(
 
   if (!response.ok) {
     const error = await response.text()
-    throw new Error(`Anthropic API error (${response.status}): ${error}`)
+    throw new LLMError(`Anthropic API error (${response.status}): ${error}`, response.status, parseRetryAfterMs(response))
   }
 
   const reader = response.body?.getReader()
@@ -458,9 +506,12 @@ async function* streamChatAnthropic(
         }
         const u = (parsed as Record<string, unknown>).usage as Record<string, number> | undefined
         if (u) {
+          // 合并更新而非重建：message_delta 只带 output_tokens，
+          // input_tokens / cache tokens 来自更早的 message_start，必须保留。
+          // 且用 >0 guard 防止 delta 的 0 值覆盖 start 的真实值（对照 CC claude.ts:2924）。
           usage = {
-            promptTokens: usage?.promptTokens || 0,
-            completionTokens: u.output_tokens ?? 0,
+            ...(usage ?? { promptTokens: 0, completionTokens: 0 }),
+            completionTokens: u.output_tokens > 0 ? u.output_tokens : (usage?.completionTokens ?? 0),
           }
         }
       }
@@ -499,6 +550,88 @@ async function* streamChatAnthropic(
   return { content: contentAcc || null, toolCalls, usage, stopReason }
 }
 
+// ── 非流式便捷入口 ──
+
+export interface ChatCompleteOptions {
+  config: LLMConfig
+  /** 简单的对话消息（system / user / assistant），辅助调用无需完整 ChatMessage */
+  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
+  /** 覆盖温度（辅助调用通常用低温） */
+  temperature?: number
+  /** 覆盖最大输出 token */
+  maxTokens?: number
+  /** 调用方标识，用于日志归因（如 'summary' / 'profile' / 'title'） */
+  caller?: string
+  /** 超时（毫秒）。非流式无中间反馈，默认放宽到 120s */
+  timeoutMs?: number
+  /** 外部中断信号，与超时信号合并 */
+  signal?: AbortSignal
+}
+
+/**
+ * 非流式 LLM 调用 —— 辅助场景（摘要 / 画像提取 / 标题生成）的统一入口。
+ *
+ * 设计（对照 CC queryModelWithoutStreaming / Alice 单一流式接口）：
+ * 内部复用 streamChat 的完整路由链（三家 Provider 适配 + Vision 降级 + failover），
+ * 把流式生成器消费到结束、只取最终文本。不为非流式单独维护一套请求/解析逻辑。
+ *
+ * 与 streamChat 的差异：
+ * - 不传 tools（辅助调用不需要工具）
+ * - 丢弃流式事件，只 return 完整字符串
+ * - 独立放宽超时（非流式没有 token 心跳）
+ *
+ * @returns 模型输出的完整文本；失败或空结果时抛出错误由调用方兜底
+ */
+export async function chatComplete(options: ChatCompleteOptions): Promise<string> {
+  const { config, messages, temperature, maxTokens, caller, timeoutMs = 120_000, signal } = options
+
+  // 合并「外部中断」和「超时」两个信号
+  const timeoutSignal = AbortSignal.timeout(timeoutMs)
+  const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
+
+  // 用调用方指定的温度/上限覆盖 config，收敛为一次性调用
+  const callConfig: LLMConfig = {
+    ...config,
+    temperature: temperature ?? config.temperature,
+    maxTokens: maxTokens ?? config.maxTokens,
+    fallbackModels: config.fallbackModels,
+  }
+
+  const chatMessages: ChatMessage[] = messages.map((m, i) => ({
+    id: `cc_${i}`,
+    role: m.role,
+    content: m.content,
+    timestamp: Date.now(),
+  }))
+
+  const startedAt = Date.now()
+  // 消费整个流式生成器，只取最终结果（方案 A：流式收敛）
+  const gen = streamChat({ config: callConfig, messages: chatMessages, signal: combinedSignal, caller })
+  let result: StreamChatResult
+  while (true) {
+    const next = await gen.next()
+    if (next.done) {
+      result = next.value
+      break
+    }
+    // 流式事件对辅助调用无用，直接丢弃
+  }
+
+  llmLog.info('chatComplete done', {
+    caller: caller ?? 'unknown',
+    model: callConfig.model,
+    ms: Date.now() - startedAt,
+    promptTokens: result.usage?.promptTokens ?? 0,
+    completionTokens: result.usage?.completionTokens ?? 0,
+  })
+
+  const content = result.content?.trim()
+  if (!content) {
+    throw new Error(`chatComplete returned empty content (caller=${caller ?? 'unknown'})`)
+  }
+  return content
+}
+
 // ── Gemini SSE 流式适配 ──
 
 async function* streamChatGemini(
@@ -519,7 +652,7 @@ async function* streamChatGemini(
 
   if (!response.ok) {
     const error = await response.text()
-    throw new Error(`Gemini API error (${response.status}): ${error}`)
+    throw new LLMError(`Gemini API error (${response.status}): ${error}`, response.status, parseRetryAfterMs(response))
   }
 
   const reader = response.body?.getReader()

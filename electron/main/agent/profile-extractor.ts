@@ -11,6 +11,7 @@
 
 import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
+import { chatComplete } from '../llm/index'
 import { addMemory, listMemories, type MemoryCategory } from '../storage/memory-store'
 
 const log = createLogger('ProfileExtractor')
@@ -71,33 +72,23 @@ export async function maybeExtractProfile(
       ? `Already known about this user: ${existingFacts}\n\nDo NOT repeat known facts. Only extract NEW information.\n\nRecent conversation:\n${conversationText}`
       : `Recent conversation:\n${conversationText}`
 
-    const response = await fetch(`${config.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: config.model,
+    // 走统一路由层（chatComplete）而非直接 fetch —— 自动获得多 Provider 支持 + failover
+    let text: string
+    try {
+      text = await chatComplete({
+        config,
         messages: [
           { role: 'system', content: EXTRACTION_PROMPT },
           { role: 'user', content: prompt },
         ],
         temperature: 0.1,
-        max_tokens: 500,
-      }),
-    })
-
-    if (!response.ok) {
-      log.warn('Profile extraction API failed', { status: response.status })
+        maxTokens: 500,
+        caller: 'profile',
+      })
+    } catch (apiErr) {
+      log.warn('Profile extraction API failed', { error: apiErr instanceof Error ? apiErr.message : String(apiErr) })
       return
     }
-
-    const data = await response.json() as {
-      choices?: Array<{ message?: { content?: string } }>
-    }
-    const text = data.choices?.[0]?.message?.content?.trim()
-    if (!text) return
 
     const jsonMatch = /\[[\s\S]*\]/.exec(text)
     if (!jsonMatch) return

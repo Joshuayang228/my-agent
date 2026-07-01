@@ -262,6 +262,22 @@
 > 4. ✅ 子 Agent 工具黑名单 — 禁止递归 + 排除 remember/forget/task_plan
 > 5. ✅ 工具/内部服务边界重划 — task_plan 下沉为 service
 
+- **M3 LLM 层深啃完成**（2026-07-01）：
+  - **第一批（G1 吸收任务）**：三处辅助调用（摘要/画像/标题）统一收进路由层
+    - 新增 `chatComplete()` 非流式便捷入口（消费 streamChat 到结束取终态，对照 CC queryModelWithoutStreaming）
+    - 改造 context-manager / profile-extractor / session-store 走 chatComplete
+    - **连带收益**：这三个辅助功能自动获得 Anthropic/Gemini 支持（之前只会拼 OpenAI body，切非 OpenAI 模型会静默失效）+ failover + Vision 降级，删掉三份重复 fetch 样板
+    - 埋 `caller` 字段（'summary'/'profile'/'title'），为后续 token 归因铺路
+    - 补 4 个单测（流式收敛/空结果抛错/temperature 覆盖/failover 复用）
+  - **第二批（G2/G3 正确性修复）**：
+    - **G2 流式 usage `>0` guard**：OpenAI/Anthropic 两处改为只在拿到正数时更新，防止 delta 的 0 值覆盖 start 真实统计；Anthropic message_delta 改为合并更新（不再冲掉 cache tokens）
+    - **G3 loop 重试遵从 retry-after**：新增 LLMError 类（携带 status + retryAfterMs）+ parseRetryAfterMs 解析器，四处抛错点改用它；loop 重试等待优先遵从服务端 retry-after，否则退回指数退避
+    - 补 3 个单测（usage guard 防 0 覆盖 / parseRetryAfterMs 双格式 / LLMError 携带 retry-after）
+  - **G5 caller 归因**：StreamChatOptions 加 `caller` 字段，streamChat 入口打日志（含 caller/model/messageCount），loop 主对话标 `'main'`，chatComplete 透传 `'summary'/'profile'/'title'`——所有 LLM 调用可按来源归因，为 per-caller 成本统计铺路
+  - **G4 评估后关闭（不做）**：派 subagent 审计 CC 的 413/重试职责分层，确认「把 413 重试下沉到 LLM 层」是错误方向。CC 的 queryModel 同样是纯函数、不持有对话状态；413 输入压缩也在 Agent 循环层（query.ts），用「LLM 层降级成结构化 error message + 上层 withhold 识别」而非回调钩子。判据：**能在不改对话内容下完成的重试下沉到 LLM 层（failover/max_output），需要重写 messages 的重试上浮到能看到 state 的循环层（413 压缩）**。当前分层与 CC 同构，`hasAttemptedReactiveCompact` 单发闸也与 CC 同名标志一致——现状即正解，关闭 G4
+  - **对照 CC/Alice 审计**：派 subagent 并行读 CC `services/api/` 和 Alice Ch.11，确认两家都是"单一流式管线 + 外层 drain"，不为非流式写第二套逻辑
+  - **验证**：tsc 零错误，113 个测试全过（13 文件，原 106 + 新 7）
+
 **下一步** → 📋 框架模块深啃路线图，详见 [`docs/module-roadmap.md`](module-roadmap.md)
 
 > 📦 其他
@@ -312,5 +328,6 @@
 | 2026-06-26 | M2 沉淀（methodology/m02-tool-system.md） | ✅ |
 | 2026-06-26 | 规则补充（冗余搜索策略 / 注释五要素 / 需求文档规范） | ✅ |
 | 2026-06-26 | 方法论文件迁移至根目录 + 统一 mNN- 命名 | ✅ |
-| - | M3 LLM 层 深啃（Phase 1 第三个模块） | ⏳ |
+| 2026-07-01 | M3 LLM 层深啃完成（chatComplete 统一辅助调用 / usage guard / retry-after / caller 归因 / G4 评估关闭 / 对照 CC-Alice 审计） | ✅ |
+| 2026-07-01 | M3 沉淀（methodology/m03-llm-routing.md + m03-llm-routing-code.md） | ✅ |
 | - | 应用图标设计 + 安装包体积优化 | ⏳ |

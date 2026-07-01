@@ -5,6 +5,19 @@
 
 ## [未发布]
 
+### Changed — M3 LLM 路由层深啃（2026-07-01）
+- **G1 辅助调用统一走路由层**：新增 `chatComplete()` 非流式便捷入口（消费 `streamChat` 到结束取终态），摘要（context-manager）/ 画像（profile-extractor）/ 标题（session-store）三处改走它
+  - 连带收益：三个辅助功能自动获得多 Provider（Anthropic/Gemini）+ failover + Vision 降级，删除三份重复 fetch 样板
+  - 之前手拼 OpenAI 请求，切非 OpenAI 模型会静默失效
+- **G2 usage 流式累积正确性**：改为合并更新 + `>0` guard
+  - 修复 Anthropic `message_delta` 重建 usage 对象时丢失 `message_start` 设的 cache tokens
+  - OpenAI 分支加 `>0` guard，防代理在中间 chunk 塞 0 值覆盖真实统计
+- **G3 遵从服务端 retry-after**：新增 `LLMError` 类（携带 `status` + `retryAfterMs`）+ `parseRetryAfterMs`（支持秒数/HTTP 日期），四处抛错点改用它；loop 重试等待优先遵从服务端 retry-after，否则退回指数退避
+- **G5 caller 归因**：`StreamChatOptions` 加 `caller` 字段，streamChat 入口打日志，loop 主对话标 `'main'`，chatComplete 透传调用来源
+- **G4 评估后关闭**：对照 CC 源码确认「重试职责下沉到 LLM 层」是错误方向——413 压缩必须在能看到 state 的循环层，failover 才在 LLM 层，当前分层与 CC 同构
+- 单元测试 106 → 113（新增 chatComplete 4 个 + G2/G3 3 个）
+- 沉淀 `methodology/m03-llm-routing.md` + `m03-llm-routing-code.md`
+
 ### Added — @file 上下文选择器（2026-06-19）
 - 输入框输入 `@` 触发文件搜索弹窗（MentionPopup 组件）
 - 工作区文件树扁平化 + 模糊搜索（深度 3 层，排除 node_modules/.git 等）

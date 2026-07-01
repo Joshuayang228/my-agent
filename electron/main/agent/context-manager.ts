@@ -1,5 +1,6 @@
 import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
+import { chatComplete } from '../llm/index'
 
 const log = createLogger('ContextManager')
 
@@ -344,31 +345,17 @@ async function generateLLMSummary(
     ? '请详细总结以下对话的完整内容，包括：讨论的主题、做出的决策、完成的任务、关键代码变更、未完成的工作。确保不丢失重要信息。用中文回答，控制在 500 字以内。'
     : '请简洁总结以下对话的要点：主要话题、关键结论、执行了什么操作。用中文回答，控制在 200 字以内。'
 
-  const resp = await fetch(`${llmConfig.baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${llmConfig.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: llmConfig.model,
-      max_tokens: comprehensive ? 800 : 400,
-      temperature: 0.2,
-      messages: [
-        { role: 'system', content: instruction },
-        { role: 'user', content: conversationText },
-      ],
-    }),
+  // 走统一路由层（chatComplete）而非直接 fetch —— 自动获得多 Provider 支持 + failover
+  const summary = await chatComplete({
+    config: llmConfig,
+    messages: [
+      { role: 'system', content: instruction },
+      { role: 'user', content: conversationText },
+    ],
+    temperature: 0.2,
+    maxTokens: comprehensive ? 800 : 400,
+    caller: 'summary',
   })
-
-  if (!resp.ok) {
-    throw new Error(`LLM summary API error (${resp.status})`)
-  }
-
-  const data = await resp.json() as { choices?: Array<{ message?: { content?: string } }> }
-  const summary = data.choices?.[0]?.message?.content?.trim()
-
-  if (!summary) throw new Error('Empty summary from LLM')
 
   return `[Context compressed — conversation summary]\n${summary}`
 }

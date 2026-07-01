@@ -6,7 +6,7 @@ import type {
   ToolCall,
   ToolResult,
 } from '../../../src/shared/types'
-import { streamChat } from '../llm/index'
+import { streamChat, LLMError } from '../llm/index'
 import { ToolRegistry } from '../tools/registry'
 import { checkToolPermission } from '../sandbox/permission-engine'
 import { createLogger } from '../utils/logger'
@@ -171,17 +171,22 @@ export async function* agentLoop(
     const llmStart = Date.now()
     let lastErr: unknown = null
     let stopReason: string | undefined
+    // 服务端 retry-after（毫秒），由上一次失败的 LLMError 传入下一轮重试
+    let nextRetryAfterMs: number | undefined
 
     for (let attempt = 0; attempt <= MAX_LLM_RETRIES; attempt++) {
       if (attempt > 0) {
-        const backoff = 1000 * Math.pow(2, attempt - 1)
-        log.warn(`LLM retry ${attempt}/${MAX_LLM_RETRIES}, waiting ${backoff}ms`)
+        // 优先遵从服务端 retry-after，否则退回指数退避（对照 CC withRetry.ts:530）
+        const backoff = nextRetryAfterMs ?? 1000 * Math.pow(2, attempt - 1)
+        log.warn(`LLM retry ${attempt}/${MAX_LLM_RETRIES}, waiting ${backoff}ms`, {
+          source: nextRetryAfterMs != null ? 'retry-after' : 'exponential',
+        })
         await sleep(backoff)
         if (signal?.aborted) break
       }
 
       try {
-        const stream = streamChat({ config, messages: state.messages, tools: effectiveTools, signal, enablePromptCache: true })
+        const stream = streamChat({ config, messages: state.messages, tools: effectiveTools, signal, enablePromptCache: true, caller: 'main' })
 
         let streamResult = await stream.next()
         while (!streamResult.done) {
@@ -234,9 +239,12 @@ export async function* agentLoop(
         }
 
         if (!isRetryableError(err) || attempt === MAX_LLM_RETRIES) break
+        // 若服务端返回了 Retry-After，下一轮优先遵从它而非指数退避（对照 CC withRetry.ts:530）
+        nextRetryAfterMs = err instanceof LLMError ? err.retryAfterMs : undefined
         log.warn('LLM call failed (retryable)', {
           attempt,
           error: err instanceof Error ? err.message : String(err),
+          retryAfterMs: nextRetryAfterMs,
         })
       }
     }
