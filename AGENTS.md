@@ -1,11 +1,11 @@
-﻿# AGENTS.md
+# AGENTS.md
 
 Codex entrypoint for this repository.
 
-Before making code changes, read and follow:
+**本项目的唯一权威规则源是根目录的 `CLAUDE.md`。动手前必须先完整阅读它。**
 
-1. `docs/agent-harness.md` - shared project rules for all coding agents
-2. `docs/architecture.md` - current system architecture
-3. `docs/progress.md` - current project status
+`CLAUDE.md` 包含：项目定位、硬约束（安全红线、架构分层、IPC 三处同步、质量底线、Git 门控）、需求文档规范、场景规则索引、收尾沉淀要求。
 
-Use `docs/agent-harness.md` as the single source of truth for project-level agent behavior. When it routes a task to a file under `docs/agent-skills/`, read that file before acting. The old `.cursor/rules/` and `.cursor/skills/` files are historical Cursor-facing references; do not treat them as the primary rule source unless `docs/agent-harness.md` explicitly points to them.
+当 `CLAUDE.md` 的「场景规则索引」把任务指向 `docs/agent-skills/` 下某个文件时，读该文件再动手。
+
+`.cursor/` 下的旧规则已归档至 `_archive/cursor-legacy/`，只作历史参考，不是规则来源。

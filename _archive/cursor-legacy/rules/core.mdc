@@ -1,0 +1,124 @@
+---
+description: 核心底线规则，始终生效
+alwaysApply: true
+---
+
+# 核心规则
+
+## 规则冲突优先级
+
+当两条规则矛盾时，按以下顺序裁决：
+
+```
+安全红线 > 用户显式指令 > 开发流程 > 代码规范 > 建议性规则
+```
+
+## 项目定位
+
+本项目目标是构建一个**类似 Alice 的人格化桌面 AI Agent** — 有性格、有记忆、能成长的数字伙伴。详见 `docs/architecture.md`。
+
+## 架构原则
+
+**站在巨人肩上，在差异处创新。**
+
+- **基础设施层对齐 Claude Code** — Agent Loop、上下文压缩、工具系统、System Prompt 结构等框架能力，参考 CC 的生产验证方案，不重复发明
+- **差异化在人格层** — 关系型 AI、活人感、人设系统、情感记忆，这些是 CC 没有的，是我们的核心竞争力
+- **工具 ≠ 内部服务** — 工具是 AI 可见可调用的（出现在对话历史中），内部服务是框架使用的（AI 不可见，如调度器、日志、自动备份）
+
+> 参考源码：`_reference/framework-harness/repos/claude-code-sourcemap-main/`（CC 2.1.88 还原版）
+
+## 语言与沟通
+
+- 所有响应使用**简体中文**
+- 重要信息**加粗**强调
+- 长对话（>10 轮）关键操作前先复述当前目标
+- 发现自己在重复、偷懒或模糊化时，主动建议开新会话
+
+## 新对话初始化
+
+每次新对话开始时：
+1. 读取 `docs/progress.md`（当前进度）
+2. 读取 `docs/architecture.md`（系统架构）
+3. 如果两个文件都不存在，询问用户当前要做什么
+
+> **summary 恢复场景**：如果对话是从上一轮 summary 恢复的（系统上下文中已包含完整进度信息），可以跳过上述读取步骤。但如果 summary 中的信息看起来可能过时（如跨天恢复），仍应读取文件确认。
+
+## 编辑纪律
+
+✅ 编辑文件前必须先 Read 最新版本
+✅ 删代码前必须告知用户并说明理由
+✅ 改依赖文件（package.json 等）时必须声明新增/移除了什么
+✅ 收到修改建议（包括用户的）先验证可行性再执行，不盲从
+✅ 改 IPC 接口时确认三处同步：`shared/types.ts` + `preload/index.ts` + `ipc/*.ts`
+✅ 写测试前先 Glob `__tests__/**/*.test.ts` 查看已有测试文件，避免重复
+✅ 前端 UI 改动后**必须截图验收**（深色 + 浅色主题都要检查）
+✅ 不确定的假设必须用 **[待确认]** 标记并告知用户，禁止默默假设后往下走
+✅ 文件 >500 行时，优先读目录/关键章节，不要全量读取浪费 token
+
+❌ 禁止静默删除代码
+❌ 禁止静默安装或移除依赖
+
+## 安全红线
+
+<HARD-GATE>
+✅ API Key / 密码 / token 必须走环境变量
+✅ .env 文件必须在 .gitignore 中
+✅ 错误返回只暴露用户友好信息
+
+❌ 禁止硬编码任何密钥或凭据
+❌ 禁止在错误响应中暴露堆栈、内部路径等敏感信息
+</HARD-GATE>
+
+## 质量底线
+
+<HARD-GATE>
+✅ 每次给出完整方案，不分期实现
+✅ 同一方法失败两次必须换路径，禁止第三次重试
+
+❌ 禁止简化实现（"先临时方案""后续再优化"）
+❌ 禁止 Mock 真实 AI 调用（测试除外）
+❌ 禁止猜测性修复——先定位原因再修
+</HARD-GATE>
+
+## 架构分层约束
+
+<HARD-GATE>
+主进程代码的 import 方向必须遵守分层规则：
+
+```
+ipc/（入口层）→ agent/（核心逻辑层）→ llm/（外部服务层）
+         ↓              ↓
+    storage/（持久化层）  tools/（工具层）
+         ↓
+    memory/（记忆层）
+```
+
+**禁止反向依赖**：
+- ❌ `agent/` 禁止 import `ipc/`
+- ❌ `llm/` 禁止 import `agent/`、`ipc/`
+- ❌ `storage/` 禁止 import `agent/`、`ipc/`、`llm/`
+- ❌ `tools/builtins/` 禁止 import `agent/`、`ipc/`
+
+**允许的依赖方向**：
+- ✅ `ipc/` → `agent/`、`storage/`、`tools/`、`llm/`、`memory/`
+- ✅ `agent/` → `llm/`、`tools/`、`storage/`
+- ✅ `tools/` → `llm/`（仅工具实现需要时）
+- ✅ 所有模块 → `utils/`（工具函数是共享底层）
+- ✅ 所有模块 → `src/shared/types.ts`（共享类型）
+
+新增模块时必须先明确它在哪一层，再开始编码。
+</HARD-GATE>
+
+## Skill 参考表
+
+以下 Skill 文件提供**深入参考信息**，在对应场景下需要详细指导时读取：
+
+| 场景 | Skill 文件 | 说明 |
+|------|-----------|------|
+| Git 操作 / 推送 | `.cursor/skills/git-workflow.md` | commit 规范、分支命名、代理配置 |
+| 部署上线 | `.cursor/skills/deploy-checklist.md` | 打包发布流程 |
+| 写文档 / 文章 | `.cursor/skills/writing-style.md` | 写作风格规范 |
+| LLM 适配 / 新增 Provider | `.cursor/skills/model-config.md` | Provider 路由架构、双模型配置 |
+| 安全 / 沙箱 / 权限 | `.cursor/skills/security-checklist.md` | 沙箱分级、权限引擎、加密存储 |
+
+> 代码自审和 Bug 调试的核心流程已内联到 `dev-workflow.mdc`（Phase 6 / Phase 8），无需额外读取 Skill 文件。

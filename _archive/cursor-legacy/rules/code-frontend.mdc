@@ -1,0 +1,89 @@
+---
+description: 前端代码规范，编辑 .tsx/.css 文件时自动加载
+globs: ["**/*.tsx", "**/*.css"]
+---
+
+# 前端代码规范
+
+## 技术栈
+
+- **框架**：React 19（Electron 渲染进程）
+- **样式**：TailwindCSS 4 + CSS 变量（`src/index.css`）
+- **图标**：lucide-react SVG 组件（禁止 Emoji / 原始 SVG）
+- **设计参考**：OpenAI Codex + Alice — 卡片式输入、气泡对话
+
+## UI 架构（V2）
+
+```
+┌─ Sidebar(260px) ─┬──── Main Area ─────────────┐
+│ + 新对话          │ Top bar (标题 + 人格名)      │
+│ 🔍 搜索           │                              │
+│ ⚡ 技能            │ [activeView = chat]          │
+│ ── 分隔线 ──      │   消息流（用户气泡+AI Markdown）│
+│ 📌 置顶           │   Thinking / 工具卡片         │
+│ 今天              │   输入卡片（居中 max-w-2xl）   │
+│ 昨天              │     工具栏（附件/审批/模型/语音）│
+│ 更早              │   项目选择器 + Token 用量      │
+│                   │                              │
+│ ── 底部 ──        │ [activeView = settings]       │
+│ ⚙ 设置  🧠 📐     │   SettingsPanel 独占全屏       │
+└───────────────────┤ [activeView = skills/memory]  │
+                    │   对应面板全屏渲染             │
+                    └───────────────────────────────┘
+```
+
+## 设计原则
+
+1. **气泡对话** — 用户消息右对齐圆角气泡（`--msg-user-bg`），AI 消息左对齐纯 Markdown
+2. **activeView 全屏** — 设置/技能/记忆占据整个主内容区，不使用侧推面板（DevPanel 除外）
+3. **输入区卡片** — 居中 `max-w-2xl`，工具栏集成审批模式 + 模型快切 + 附件 + 语音 + 发送
+4. **信息分层** — 核心内容突出（`--text-primary`），辅助信息淡化（`--text-muted`）
+5. **克制动效** — `fade-in-up`(150ms) / `slide-in-right`(200ms) / `view-transition`
+6. **hover 交互** — 消息操作栏（复制/编辑/分支/删除）hover 时才显示，Token 用量 hover 可见
+7. **无底部状态栏** — 模型选择移入输入区工具栏，Token 用量移入输入框下方
+
+## CSS 变量体系
+
+所有颜色通过 `src/index.css` 中的 CSS 变量控制，支持 **7 个命名主题**：
+- 背景层级：`--bg-primary` → `--bg-secondary` → `--bg-tertiary` → `--bg-inset`
+- 文字层级：`--text-primary` → `--text-secondary` → `--text-muted`
+- 边框层级：`--border-color` → `--border-subtle`
+- 语义色：`--accent` / `--success` / `--warning` / `--danger`
+- 消息：`--msg-user-bg` / `--msg-ai-bg`
+- 交互：`--sidebar-active` / `--sidebar-hover` / `--hover-overlay` / `--card-bg` / `--dropdown-bg`
+
+✅ 新增 UI 元素必须使用 CSS 变量，禁止硬编码颜色
+✅ 新增图标必须使用 lucide-react，禁止 Emoji 或原始 SVG
+✅ 切换主题后必须测试（至少 dark + light 两个极端）
+
+## 编码原则
+
+- **KISS / DRY / YAGNI** — 同 code-ts.mdc
+- **不可变优先** — 修改状态时创建新对象
+- 组件文件上限 ~500 行，超过则拆分子组件
+- 工具函数组件（`SidebarNavBtn` / `SidebarBtn` / `MsgBtn`）放在同文件底部
+- 下拉菜单向上弹出（`absolute bottom-full`），避免被容器截断
+
+## 流式输出
+
+✅ AI 响应必须流式返回，让用户看到实时输出
+✅ 结构性事件（工具开始/结束、完成、错误）立即发送
+✅ `sendMessage` finally 块必须兜底 `setIsStreaming(false)`（防 IPC 竞态）
+
+## IME 处理
+
+✅ 输入框键盘事件必须检查 `event.isComposing` 或 `event.nativeEvent.isComposing`
+✅ 中文输入法组合状态下不触发快捷键或提交
+
+## 快捷键
+
+| 快捷键 | 功能 |
+|--------|------|
+| `Ctrl+N` | 新建会话 |
+| `Ctrl+B` | 切换侧边栏 |
+| `Ctrl+F` | 搜索消息 |
+| `Ctrl+,` | 设置（activeView 切换） |
+| `Ctrl+Shift+D` | 调试面板（侧推） |
+| `Ctrl+Shift+M` | 记忆（activeView 切换） |
+| `Ctrl+Shift+K` | 技能（activeView 切换） |
+| `Esc` | 关闭面板/搜索/回到 chat |
