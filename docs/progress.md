@@ -300,6 +300,14 @@
   - **验证**：tsc 零错误，122 测试全过（Phase A 119 + B1×1 + B3×2）
   - **待续**：Phase C（PTL 重试 + 动态阈值）、DevPanel 展示 compactMetadata（可观测性 UI，独立小任务）
 
+- **M4 上下文压缩深啃 · Phase C 边界完善完成**（2026-07-02）：
+  - **改（Phase C）**：
+    - C1（G7）PTL 逃生舱 — 413 reactive compact 未缩小时回退 emergencyTruncate 硬截断重试
+    - C2（G10）动态阈值 — getEffectiveContextWindow 按模型推断窗口，压缩阈值自适应（小窗口保真实值，下限 16K）
+  - **验证**：tsc 零错误，127 测试全过（Phase B 122 + C2×5）
+  - **M4 五步收尾**：学/审/设计/改（A+B+C）已完成，待沉淀 methodology
+  - **待续**：DevPanel 展示 compactMetadata（可观测性 UI，独立小任务）
+
 > 📦 其他
 > - 应用图标设计 + 安装包体积优化
 

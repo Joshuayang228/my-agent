@@ -247,7 +247,19 @@ export async function* agentLoop(
             lastErr = null
             break
           }
-          log.error('Reactive compact failed to reduce messages')
+          // C1: 压缩没缩小消息 —— 用 emergencyTruncate 逐级硬截断作为 413 的最后逃生舱，
+          // 而非直接放弃。对照 CC truncateHeadForPTLRetry 的渐进删除逻辑。
+          log.warn('Reactive compact did not shrink — falling back to emergency truncation')
+          const truncated = emergencyTruncate(state.messages, DEFAULT_MAX_TOKENS * 0.5)
+          if (truncated.length < state.messages.length) {
+            state.messages.length = 0
+            state.messages.push(...truncated)
+            log.info('Emergency truncation done, retrying LLM', { newMessageCount: state.messages.length })
+            state.transition = { reason: 'reactive_compact_retry' }
+            lastErr = null
+            break
+          }
+          log.error('Reactive compact and emergency truncation both failed to reduce messages')
           yield { type: 'error', message: '对话上下文过长，压缩后仍超限。请开始新对话。' }
           yield { type: 'done', reason: 'prompt_too_long' }
           return

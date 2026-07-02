@@ -11,6 +11,58 @@ const L3_THRESHOLD = 0.90
 const L4_THRESHOLD = 0.95
 const RECENT_KEEP_COUNT = 6
 
+/** 预留给模型输出的 token，压缩阈值基于「窗口 - 预留」计算 */
+const OUTPUT_RESERVE_TOKENS = 8_000
+
+/**
+ * 已知模型的 context window（token）。按模型名前缀匹配。
+ * 未知模型回退到 DEFAULT_MAX_TOKENS，保守但不会误判超限。
+ * 对照 CC 的 getEffectiveContextWindow —— 不同模型窗口差异极大
+ * （Claude 200K / Gemini 1M / DeepSeek 64K），硬编码单一阈值会误伤。
+ */
+const MODEL_CONTEXT_WINDOWS: Array<{ prefix: string; window: number }> = [
+  // Anthropic Claude
+  { prefix: 'claude-3-5', window: 200_000 },
+  { prefix: 'claude-3-7', window: 200_000 },
+  { prefix: 'claude-sonnet', window: 200_000 },
+  { prefix: 'claude-opus', window: 200_000 },
+  { prefix: 'claude-haiku', window: 200_000 },
+  { prefix: 'claude-', window: 200_000 },
+  // Google Gemini
+  { prefix: 'gemini-2', window: 1_000_000 },
+  { prefix: 'gemini-1.5-pro', window: 2_000_000 },
+  { prefix: 'gemini-1.5', window: 1_000_000 },
+  { prefix: 'gemini-', window: 1_000_000 },
+  // OpenAI
+  { prefix: 'gpt-4o', window: 128_000 },
+  { prefix: 'gpt-4-turbo', window: 128_000 },
+  { prefix: 'gpt-4.1', window: 1_000_000 },
+  { prefix: 'o1', window: 200_000 },
+  { prefix: 'o3', window: 200_000 },
+  // DeepSeek（V3/V3.1/V3.2 API 均为 128K；早期 V3 与消费端 App 曾限 64K）
+  { prefix: 'deepseek', window: 128_000 },
+  // Qwen / 通义
+  { prefix: 'qwen', window: 128_000 },
+]
+
+/**
+ * 根据模型名推断有效上下文窗口（已扣除输出预留）。
+ * 未知模型回退到 DEFAULT_MAX_TOKENS。
+ */
+export function getEffectiveContextWindow(model?: string): number {
+  if (!model) return DEFAULT_MAX_TOKENS
+  const normalized = model.toLowerCase()
+  for (const { prefix, window } of MODEL_CONTEXT_WINDOWS) {
+    if (normalized.includes(prefix)) {
+      // 扣除输出预留；小窗口模型（如 DeepSeek 64K）保留其真实窗口，
+      // 不能用 DEFAULT_MAX_TOKENS 兜底——否则会压缩过晚触发 413。
+      // 下限 16K 防止极端小窗口配置把阈值压到不可用。
+      return Math.max(window - OUTPUT_RESERVE_TOKENS, 16_000)
+    }
+  }
+  return DEFAULT_MAX_TOKENS
+}
+
 /**
  * querySource 标记 — 区分调用来源，防止压缩/记忆系统递归触发 LLM 调用。
  * 'main' = 主对话循环, 'compact' = 压缩系统, 'memory' = 记忆提取, 'title' = 标题生成
@@ -74,7 +126,9 @@ export async function compressContext(
   messages: ChatMessage[],
   options: ContextManagerOptions = {},
 ): Promise<ChatMessage[]> {
-  const maxTokens = options.maxTokens ?? DEFAULT_MAX_TOKENS
+  // C2: maxTokens 优先级 —— 显式传入 > 按模型推断 > 默认。
+  // 不同模型窗口差异大，硬编码单一阈值会让大窗口模型过早压缩、小窗口模型压缩不及时。
+  const maxTokens = options.maxTokens ?? getEffectiveContextWindow(options.llmConfig?.model)
   const querySource = options.querySource ?? 'main'
   let current = [...messages]
   let tokens = options.lastActualPromptTokens ?? estimateTokens(current)

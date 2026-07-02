@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { estimateTokens, compressContext, emergencyTruncate } from '../../electron/main/agent/context-manager'
+import { estimateTokens, compressContext, emergencyTruncate, getEffectiveContextWindow } from '../../electron/main/agent/context-manager'
 import type { ChatMessage } from '../../src/shared/types'
 
 function msg(role: ChatMessage['role'], content: string, extra: Partial<ChatMessage> = {}): ChatMessage {
@@ -251,5 +251,31 @@ describe('A3: emergencyTruncate 紧急截断', () => {
 
   it('空消息列表返回空', () => {
     expect(emergencyTruncate([], 1000)).toEqual([])
+  })
+})
+
+describe('C2: getEffectiveContextWindow 动态阈值', () => {
+  it('Claude 模型返回 200K 窗口（扣除输出预留）', () => {
+    expect(getEffectiveContextWindow('claude-3-5-sonnet-20241022')).toBe(200_000 - 8_000)
+    expect(getEffectiveContextWindow('claude-opus-4-8')).toBe(200_000 - 8_000)
+  })
+
+  it('Gemini 2.x 返回 1M 窗口', () => {
+    expect(getEffectiveContextWindow('gemini-2.0-flash-exp')).toBe(1_000_000 - 8_000)
+  })
+
+  it('DeepSeek 返回真实 64K 窗口（扣除预留），不被默认值兜高', () => {
+    // 64K - 8K = 56K，保留真实窗口避免压缩过晚触发 413
+    expect(getEffectiveContextWindow('deepseek-chat')).toBe(64_000 - 8_000)
+  })
+
+  it('未知模型回退到默认值', () => {
+    expect(getEffectiveContextWindow('some-unknown-model')).toBe(120_000)
+    expect(getEffectiveContextWindow(undefined)).toBe(120_000)
+    expect(getEffectiveContextWindow('')).toBe(120_000)
+  })
+
+  it('大小写不敏感', () => {
+    expect(getEffectiveContextWindow('CLAUDE-3-5-SONNET')).toBe(200_000 - 8_000)
   })
 })
