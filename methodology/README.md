@@ -23,7 +23,8 @@
 | `m03-llm-routing-code.md` | LLM 路由层代码走读（CC × Alice 对照） | ✅ 已写 |
 | `m04-context-compression.md` | 上下文压缩工程化方法论 | ✅ 已写 |
 | `m04-context-compression-code.md` | 上下文压缩代码走读（CC × Alice 对照） | ✅ 已写 |
-| m05 | 记忆系统 | 待写 |
+| `m05-memory-system.md` | 记忆系统工程化方法论 | ✅ 已写 |
+| `m05-memory-system-code.md` | 记忆系统代码走读（CC × Alice 对照） | ✅ 已写 |
 | m06 | 权限与安全 | 待写 |
 | m07 | 可观测性 | 待写 |
 | m08 | 多 Agent 协作 | 待写 |

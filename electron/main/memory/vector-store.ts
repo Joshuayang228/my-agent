@@ -146,6 +146,51 @@ export async function searchVectorStore(
 }
 
 /**
+ * 将时间戳格式化为人类可读的「距今多久」。
+ *
+ * G2 防漂移：LLM 不擅长对原始 ISO 时间戳做陈旧性推理，但「30 天前」这样的
+ * 相对表述能触发它对记忆时效性的判断。对照 CC memoryAge.ts 的设计动机。
+ */
+export function formatMemoryAge(timestamp: number, now: number = Date.now()): string {
+  const days = Math.max(0, Math.floor((now - timestamp) / (24 * 60 * 60 * 1000)))
+  if (days === 0) return '今天'
+  if (days === 1) return '昨天'
+  return `${days} 天前`
+}
+
+/** 超过此天数的记忆，注入时追加"请以当前实际为准"的陈旧提示 */
+export const MEMORY_STALE_THRESHOLD_DAYS = 7
+
+/**
+ * 把向量召回结果加工成注入 System Prompt 的文本。
+ * 纯函数，便于测试。整合 G5 去重 + G2 老化告警：
+ * - G5：排除 id 前缀 mem- 的 SQLite 记忆镜像（已由 buildUserProfile 全量注入，避免双重注入）
+ * - G2：每条加相对时间感；存在超阈值记忆时追加陈旧提示
+ * 返回 null 表示去重后无内容可注入。
+ */
+export function formatRecallForInjection(
+  results: VectorSearchResult[],
+  now: number = Date.now(),
+): string | null {
+  const deduped = results.filter(r => !r.id.startsWith('mem-'))
+  if (deduped.length === 0) return null
+
+  let hasStale = false
+  const lines = deduped.map(r => {
+    const age = formatMemoryAge(r.timestamp, now)
+    const ageDays = Math.floor((now - r.timestamp) / (24 * 60 * 60 * 1000))
+    if (ageDays > MEMORY_STALE_THRESHOLD_DAYS) hasStale = true
+    return `- [${r.category}·${age}] ${r.text}`
+  })
+
+  let output = lines.join('\n')
+  if (hasStale) {
+    output += '\n\n（部分记忆记录较早，如与当前对话不符，请以用户当前表述为准。）'
+  }
+  return output
+}
+
+/**
  * 删除指定 ID 的向量记忆。
  */
 export async function removeFromVectorStore(id: string): Promise<void> {

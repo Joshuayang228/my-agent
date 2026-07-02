@@ -5,6 +5,27 @@
 
 ## [未发布]
 
+### Changed — M5 记忆系统深啃（2026-07-03）
+- **G1 自我强化循环修复**：删掉把 assistant 原始回复写入向量库的分支，只索引用户消息。修复"AI 把自己刚说的话当记忆召回喂回自己"（Alice Ch.5 陷阱）；assistant 输出的价值改由 profile-extractor 提炼成结构化记忆
+- **G2 记忆老化告警**：新增 `formatMemoryAge`（今天/昨天/N天前）+ `formatRecallForInjection`，召回记忆带相对时间感，>7 天追加"如与当前不符请以当前为准"陈旧提示，对抗记忆漂移（对照 CC memoryAge）
+- **G4 提取判据强化**：`profile-extractor` 的 EXTRACTION_PROMPT 吸收 CC 的"该存/不该存"清单——不存临时状态/可推导信息/AI 自己的指令，只存"添加了就一直有用"的知识
+- **G5 双重注入去重**：向量召回排除 id 前缀 `mem-` 的 SQLite 记忆镜像（已由 buildUserProfile 全量注入），避免同一条记忆注入两次
+- 架构决策：不照搬 CC 的 memdir 文件系统方案，保持 SQLite+向量双层（伙伴产品定位不同），只吸收其原则
+- 大结果落盘（roadmap 吸收任务）确认已在 M2 实现（result-persistence 中间件）
+- 单元测试 127 → 139（新增 G2×6 / G5+G2×6）
+- 沉淀 `methodology/m05-memory-system.md` + `m05-memory-system-code.md`
+
+### Changed — Harness 配置层重构：CLAUDE.md 升为唯一权威（2026-07-02）
+- **动机**：主力工具改为 Claude Code（偶尔 Cursor/Codex，靠各自入口重定向），原「双入口 + agent-harness.md 单一权威 + 文档路由表」的工具中立设计在此定位下多一跳、且有 `.cursor/` 死重
+- **CLAUDE.md 升为权威主体**：合并原 `docs/agent-harness.md` 核心规则，硬约束（安全红线 / 架构分层依赖方向 / IPC 三处同步 / 质量底线 / Git 提交推送门控）常驻正文，每次生效；查阅型规则用「场景规则索引」表引导按需读 `docs/agent-skills/`
+- **入口重定向**：`AGENTS.md`（Codex）、`.cursor/rules/core.mdc`（Cursor，`alwaysApply: true`）改为「必须先读 CLAUDE.md」的薄入口，不再各自维护规则
+- **归档**：`.cursor/rules/` + `.cursor/skills/`（13 个文件）迁至 `_archive/cursor-legacy/`，仅作历史参考
+- **删除**：`docs/agent-harness.md`（内容已并入 CLAUDE.md）
+- **保留**：`docs/agent-skills/`（10 个查阅型规则）原样保留，作为 CLAUDE.md 索引指向的详细规则库
+- **决策记录**：探索过「迁 CC 原生 `.claude/skills/`」但放弃——当前 CC-经-Kiro-CLI 反代环境会把 `.claude` 路径重写为 `.config`，且宿主此刻未扫描任何项目级 skills 目录；改用「CLAUDE.md 权威索引 + docs/ 文档」链路，不依赖客户端 skill 自动发现，对 CC/Cursor/Codex 三线一致有效
+- **补全流程闸**：核对归档的 `.cursor/rules/dev-workflow.mdc` 后，将其三条实质流程规则补回 CLAUDE.md 正文「开发流程闸」——接需求三态（逃生口 / 新需求五步「思考→提问→复述→方案→等许可」/ 已批准子任务简化）、研究调研硬门（先查 CC 源码 + Alice 再搜外部）、完成验证顺序（自审→测试→build→lint，用户催「继续」也不跳过自审）
+- **归档核对**：逐对 diff `.cursor/skills/` 与 `docs/agent-skills/`（7 对），确认规则内容完整无损失，差异仅为排版措辞与实现锚点泛化
+
 ### Changed — M4 上下文压缩深啃 Phase C：边界完善（2026-07-02）
 - **C1 PTL 重试逃生舱（G7）**：413 reactive compact 若未缩小消息，回退到 `emergencyTruncate` 逐级硬截断再重试，而非直接放弃，对照 CC `truncateHeadForPTLRetry` 渐进删除
 - **C2 动态阈值（G10）**：新增 `getEffectiveContextWindow`，按模型名前缀推断 context window，压缩阈值随模型自适应；`compressContext` 未显式传 maxTokens 时按模型推断

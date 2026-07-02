@@ -308,6 +308,19 @@
   - **M4 五步收尾**：学/审/设计/改（A+B+C）已完成，待沉淀 methodology
   - **待续**：DevPanel 展示 compactMetadata（可观测性 UI，独立小任务）
 
+- **M5 记忆系统深啃完成**（2026-07-03）：
+  - **学**：三 subagent 并行读 Alice Ch.05 记忆部分 + CC memdir/SessionMemory/extractMemories + 审计当前实现
+  - **审**：8 项 Gap（P0 自我强化循环/老化防漂移 · P1 生命周期/提取判据/双重注入 · P2 语义去重/recall一致/死代码）
+  - **设计**：4 项落地，不动存储架构（SQLite+向量双层）；架构决策不照搬 CC memdir，只吸收原则
+  - **改**：
+    - G1 自我强化循环 — 删 assistant 回复写向量库分支，只索引用户消息
+    - G2 老化告警 — formatMemoryAge + formatRecallForInjection，召回带时间感，>7天加陈旧提示
+    - G4 提取判据 — EXTRACTION_PROMPT 吸收 CC "该存/不该存"清单
+    - G5 双重注入去重 — 召回排除 mem- 前缀 SQLite 镜像
+  - **验证**：tsc 零错误，139 测试全过（M4 后 127 + G2×6 + G5×6）
+  - **沉淀**：methodology/m05-memory-system.md + m05-memory-system-code.md
+  - **暂缓**：G3 生命周期（TTL/衰减）/ G6 语义去重 / G7 recall 一致性 / G8 死代码清理
+
 > 📦 其他
 > - 应用图标设计 + 安装包体积优化
 
@@ -362,4 +375,6 @@
 | 2026-07-02 | M4 上下文压缩 Phase B（结构化摘要/boundary marker，122 测试） | ✅ |
 | 2026-07-02 | M4 上下文压缩 Phase C（PTL 逃生舱/动态阈值，127 测试） | ✅ |
 | 2026-07-02 | M4 沉淀（methodology/m04-context-compression.md + -code.md） | ✅ |
+| 2026-07-03 | Harness 重构：CLAUDE.md 升为唯一权威（硬约束常驻 + 场景索引），删 agent-harness.md，AGENTS/.cursor 改重定向入口，.cursor 旧规则归档 | ✅ |
+| 2026-07-03 | M5 记忆系统深啃（自我强化循环/老化告警/提取判据/双重注入去重，139 测试）+ 沉淀 m05 | ✅ |
 | - | 应用图标设计 + 安装包体积优化 | ⏳ |

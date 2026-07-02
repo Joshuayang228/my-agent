@@ -20,7 +20,7 @@ import { ToolRegistry } from '../tools/registry'
 import * as store from '../storage/session-store'
 import * as settings from '../storage/settings-store'
 import * as memory from '../storage/memory-store'
-import { searchVectorStore, addToVectorStore } from '../memory/vector-store'
+import { searchVectorStore, addToVectorStore, formatRecallForInjection } from '../memory/vector-store'
 import { buildSkillSummaryForPrompt, getActiveSkill, clearActiveSkill } from '../skills/registry'
 import { setCurrentSessionId as setTaskPlanSessionId } from '../services/task-plan-service'
 import { getWorkspaceRoot } from './project-memory'
@@ -276,9 +276,11 @@ class AgentRuntime {
     if (!query) return undefined
     try {
       const results = await searchVectorStore(query, llmConfig, { topK: 5, minScore: 0.6 })
-      if (results.length > 0) {
+      // G5 去重（排除 SQLite 镜像）+ G2 老化告警，逻辑抽在 formatRecallForInjection 纯函数
+      const output = formatRecallForInjection(results)
+      if (output) {
         log.info('Vector recall', { query: query.slice(0, 50), resultCount: results.length })
-        return results.map(r => `- [${r.category}] ${r.text}`).join('\n')
+        return output
       }
     } catch (err) {
       log.warn('Vector search skipped', { error: String(err) })
@@ -332,19 +334,10 @@ class AgentRuntime {
       })
     }
 
-    if (assistantContent.length > 50) {
-      const now = Date.now()
-      this.backgroundQueue.push({
-        name: 'vector-index-assistant',
-        fn: () => addToVectorStore({
-          id: `conv-assistant-${now}`,
-          text: assistantContent.slice(0, 500),
-          category: 'conversation',
-          sessionId,
-          timestamp: now,
-        }, llmConfig),
-      })
-    }
+    // G1 自我强化循环修复：不再把 assistant 原始回复写入向量库。
+    // 否则下一轮检索会把「AI 自己刚说的话」当记忆召回喂回自己（Alice Ch.5 陷阱）。
+    // assistant 输出里真正有价值的信息，由 profile-extractor 提炼成结构化记忆存 SQLite，
+    // 而不是整段回复堆进向量库。只索引用户消息作为语义召回源。
 
     this.processBackgroundQueue()
   }

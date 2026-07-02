@@ -16,10 +16,10 @@ import { addMemory, listMemories, type MemoryCategory } from '../storage/memory-
 
 const log = createLogger('ProfileExtractor')
 
-const EXTRACTION_PROMPT = `You are a user profile analyzer. Given the recent conversation, extract any NEW information about the user. Only extract information that is clearly stated or strongly implied.
+const EXTRACTION_PROMPT = `You are a user profile analyzer. Given the recent conversation, extract any NEW, DURABLE information about the user. The guiding test: a memory should be something that "stays useful once added" — not a log of what happened.
 
 Output a JSON array where each item has:
-- "category": one of "identity", "workflow", "voice"
+- "category": one of "identity", "workflow", "voice", "preference", "fact"
 - "content": a concise statement (one sentence max)
 
 Categories:
@@ -27,13 +27,24 @@ Categories:
 - workflow: how they work (tools, habits, schedule, preferences for collaboration)
 - voice: communication style (formal/casual, language preferences, humor style)
 - preference: explicit preferences (likes/dislikes, preferred tools, approaches, aesthetic choices)
-- fact: specific facts about their projects, environment, or context
+- fact: durable facts about their projects, environment, or context
+
+DO save (durable knowledge):
+- Stable preferences and habits ("prefers TypeScript over JS", "works late at night")
+- Identity facts (role, expertise, tech stack, location)
+- Explicit corrections about how they want you to work
+
+Do NOT save (these are noise or belong elsewhere):
+- Transient task state ("currently debugging the login flow", "on step 3")
+- Anything derivable from the current conversation or easily re-observed
+- The assistant's own instructions, persona, or behavior rules
+- Overly generic statements ("uses a computer", "likes good code")
+- One-off facts that won't matter in the next conversation
 
 Rules:
 - Only extract facts clearly supported by the conversation
 - Skip vague or uncertain information
-- Skip information that is too generic (e.g. "uses a computer")
-- Return [] if nothing new is found
+- Return [] if nothing durable is found
 - Respond with ONLY the JSON array, no other text`
 
 const MIN_USER_MESSAGES = 3

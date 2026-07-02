@@ -33,7 +33,7 @@
 | M2 | [工具系统](#m2-工具系统) | 2（直接依赖） | Alice Ch.04 × CC Tool.ts + toolOrchestration.ts | 工具 description 四要素 | ✅ 全部完成 |
 | M3 | [LLM 层](#m3-llm-层) | 2（直接依赖） | Alice Ch.11 × CC services/api/ | LLM 调用统一过路由层 | ✅ 全部完成 |
 | M4 | [上下文与压缩](#m4-上下文与压缩) | 2（直接依赖） | Alice Ch.05 × CC compact/ | 413 紧急 collapse + 压缩摘要结构化 | ✅ 全部完成 |
-| M5 | [记忆系统](#m5-记忆系统) | 3（支撑层） | Alice Ch.05 × CC SessionMemory/ + memdir/ | 记忆注入策略统一 + 大结果落盘 | |
+| M5 | [记忆系统](#m5-记忆系统) | 3（支撑层） | Alice Ch.05 × CC SessionMemory/ + memdir/ | 记忆注入策略统一 + 大结果落盘 | ✅ 全部完成 |
 | M6 | [权限与安全](#m6-权限与安全) | 3（支撑层） | Alice Ch.07+12 × CC utils/permissions/ | 权限拒绝追踪 | |
 | M7 | [可观测性](#m7-可观测性) | 3（支撑层） | Alice Ch.13 × CC tracing/ | Trace 补全 | |
 | M8 | [多 Agent 协作](#m8-多-agent-协作) | 4（上层建筑） | Alice Ch.06 × CC coordinator/ + tasks/ | — | |
@@ -192,11 +192,13 @@
 **当前实现**: `electron/main/memory/` + `electron/main/storage/`
 
 **5 步进度**:
-- [ ] 学
-- [ ] 审
-- [ ] 设计
-- [ ] 改
-- [ ] 沉淀
+- [x] 学（Alice Ch.05 记忆部分 + CC memdir/SessionMemory/extractMemories 三方对照）
+- [x] 审（8 项 Gap：P0 自我强化循环/老化防漂移 · P1 生命周期/提取判据/双重注入 · P2 语义去重/recall一致/死代码）
+- [x] 设计（4 项落地 G1/G2/G4/G5，不动存储架构；G3/G6/G7/G8 暂缓，用户确认）
+- [x] 改（G1 召回过滤 / G2 老化告警 / G4 提取判据 / G5 去重；139 测试全过 + tsc 零错误）
+- [x] 沉淀（methodology/m05-memory-system.md + m05-memory-system-code.md）
+
+> 吸收任务对照：「记忆注入策略统一」→ G1+G5；「大结果落盘」→ 已在 M2 工具系统实现（result-persistence 中间件 + maxResultSizeChars）
 
 ---
 
