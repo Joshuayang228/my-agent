@@ -164,8 +164,8 @@
 
 **5 步进度**:
 - [x] 学（Alice Ch.05 + CC compact/ 源码，三 subagent 并行深挖）
-- [x] 审（13 项 Gap：P0 正确性 3 / P1 体验 6 / P2 优化 4，见 context-compression-gap-analysis.md）
-- [x] 设计（分 Phase A/B/C 三批，见 context-compression-improvement-plan.md）
+- [x] 审（13 项 Gap：P0 正确性 3 / P1 体验 6 / P2 优化 4，见 methodology/m04-context-compression.md）
+- [x] 设计（分 Phase A/B/C 三批）
 - [x] 改（A：保护任务说明/文件恢复/熔断降级；B：结构化摘要/boundary marker；C：PTL 逃生舱/动态阈值；127 测试全过 + tsc 零错误）
 - [x] 沉淀（methodology/m04-context-compression.md + m04-context-compression-code.md）
 

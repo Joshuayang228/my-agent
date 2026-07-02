@@ -282,8 +282,8 @@
 
 - **M4 上下文压缩深啃 · Phase A 正确性修复完成**（2026-07-02）：
   - **学**：三 subagent 并行读 Alice Ch.05 + CC compact/ 源码（compact.ts/microCompact.ts/autoCompact.ts）+ 审计当前实现
-  - **审**：13 项 Gap 清单（P0 正确性 3 / P1 体验 6 / P2 优化 4），详见 [`docs/context-compression-gap-analysis.md`](context-compression-gap-analysis.md)
-  - **设计**：分 Phase A/B/C 三批，详见 [`docs/context-compression-improvement-plan.md`](context-compression-improvement-plan.md)
+  - **审**：13 项 Gap 清单（P0 正确性 3 / P1 体验 6 / P2 优化 4），详见 [`methodology/m04-context-compression.md`](../methodology/m04-context-compression.md)
+  - **设计**：分 Phase A/B/C 三批落地
   - **改（Phase A）**：
     - A1（G1）保护任务说明 — `getPreambleEndIndex` 统一 L1/L3/L4，对齐 CC group 0 语义
     - A2（G4）压缩后文件恢复 — 入口快照 file_read 结果（避开 L1 Snip 提前删除），限 5 文件/50K token 注入
