@@ -11,7 +11,7 @@ import { ToolRegistry } from '../tools/registry'
 import { checkToolPermission } from '../sandbox/permission-engine'
 import { createLogger } from '../utils/logger'
 import { sanitizeError } from '../utils/sanitize-error'
-import { compressContext } from './context-manager'
+import { compressContext, emergencyTruncate, estimateTokens, DEFAULT_MAX_TOKENS } from './context-manager'
 import { sanitizeMessages } from './message-pipeline'
 
 const log = createLogger('AgentLoop')
@@ -141,9 +141,24 @@ export async function* agentLoop(
 
     // ── 上下文压缩（每次迭代前检查，带熔断器） ──
     if (state.consecutiveCompactFailures >= MAX_CONSECUTIVE_COMPACT_FAILURES) {
-      log.warn('Compact circuit breaker tripped — skipping compression', {
-        failures: state.consecutiveCompactFailures,
-      })
+      // A3: 熔断后不能什么都不做（下一轮会因超限崩溃），降级为紧急截断
+      const tokens = state.lastPromptTokens ?? estimateTokens(state.messages)
+      if (tokens > DEFAULT_MAX_TOKENS * 0.9) {
+        const before = state.messages.length
+        const truncated = emergencyTruncate(state.messages, DEFAULT_MAX_TOKENS * 0.5)
+        state.messages.length = 0
+        state.messages.push(...truncated)
+        log.warn('Compact circuit breaker tripped — emergency truncation applied', {
+          failures: state.consecutiveCompactFailures,
+          messages: `${before} → ${truncated.length}`,
+        })
+        // 截断后重置熔断器，给压缩系统重新尝试的机会
+        state.consecutiveCompactFailures = 0
+      } else {
+        log.warn('Compact circuit breaker tripped — skipping compression', {
+          failures: state.consecutiveCompactFailures,
+        })
+      }
     } else {
       const beforeCount = state.messages.length
       const compressed = await compressContext(state.messages, {

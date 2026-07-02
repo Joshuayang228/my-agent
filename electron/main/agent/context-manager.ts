@@ -4,7 +4,7 @@ import { chatComplete } from '../llm/index'
 
 const log = createLogger('ContextManager')
 
-const DEFAULT_MAX_TOKENS = 120_000
+export const DEFAULT_MAX_TOKENS = 120_000
 const L1_THRESHOLD = 0.60
 const L2_THRESHOLD = 0.75
 const L3_THRESHOLD = 0.90
@@ -80,6 +80,10 @@ export async function compressContext(
   let tokens = options.lastActualPromptTokens ?? estimateTokens(current)
   const source = options.lastActualPromptTokens ? 'api' : 'estimate'
 
+  // A2: 在任何压缩层运行前快照文件读取状态。L1 Snip 会删掉早期 file_read 轮次，
+  // 若等到 L3/L4 再提取就晚了——必须从原始消息捕获。对照 CC preCompactReadFileState。
+  const preCompactFileReads = extractRecentFileReads(messages)
+
   log.debug('Context check', { tokens, maxTokens, source, messageCount: current.length, querySource })
 
   // ── L1 Snip：删除最早的工具调用轮次 ──
@@ -108,7 +112,7 @@ export async function compressContext(
   if (tokens > maxTokens * L3_THRESHOLD) {
     const before = current.length
     const useLLM = querySource === 'main' && !!options.llmConfig
-    current = await collapse(current, maxTokens, useLLM ? options.llmConfig : undefined)
+    current = await collapse(current, maxTokens, useLLM ? options.llmConfig : undefined, preCompactFileReads)
     const after = estimateTokens(current)
     log.info(`L3 Collapse: ${before} → ${current.length} messages, ${tokens} → ${after} tokens`, { usedLLM: useLLM })
     tokens = after
@@ -117,7 +121,7 @@ export async function compressContext(
   // ── L4 AutoCompact：紧急全量重写（只在主循环 + 有 LLM 配置时触发） ──
   if (tokens > maxTokens * L4_THRESHOLD && querySource === 'main' && options.llmConfig) {
     const before = current.length
-    current = await autoCompact(current, maxTokens, options.llmConfig)
+    current = await autoCompact(current, maxTokens, options.llmConfig, preCompactFileReads)
     const after = estimateTokens(current)
     log.info(`L4 AutoCompact: ${before} → ${current.length} messages, ${tokens} → ${after} tokens`)
     tokens = after
@@ -127,19 +131,184 @@ export async function compressContext(
 }
 
 /**
+ * 计算 preamble（前导消息）边界，返回最后一条 preamble 消息的索引。
+ *
+ * Preamble = 第一条 assistant 消息「之前」的所有消息（system + 用户任务说明）。
+ * 这些消息包含任务锚点，压缩时必须永久保护。对照 CC groupMessagesByApiRound
+ * 的 group 0：第一条 assistant 开启 group 1，此前都是 preamble。
+ */
+function getPreambleEndIndex(messages: ChatMessage[]): number {
+  if (messages.length === 0) return -1
+
+  for (let i = 0; i < messages.length; i++) {
+    if (messages[i].role === 'assistant') {
+      return i - 1 // preamble 到第一条 assistant 之前为止
+    }
+  }
+
+  // 没有 assistant 消息，全部都是 preamble
+  return messages.length - 1
+}
+
+const FILE_READ_TOOL_NAMES = new Set(['file_read'])
+const MAX_RESTORED_FILES = 5
+const MAX_RESTORED_TOKENS_PER_FILE = 5_000
+const MAX_RESTORED_TOTAL_TOKENS = 50_000
+
+interface RestoredFile {
+  path: string
+  content: string
+  /** 在原消息序列中的位置，越大越近 */
+  order: number
+}
+
+/**
+ * 从「将被摘要掉」的消息中提取最近读取的文件内容。
+ *
+ * 压缩会把中段的 file_read 结果摘要成一句话，AI 随后可能重复 Read 同一文件。
+ * 这里按路径去重（保留最近一次），取最近 MAX_RESTORED_FILES 个，作为附件
+ * 重新注入压缩结果，避免重复工具调用。
+ *
+ * 对照 CC 的 createPostCompactFileAttachments（compact.ts），但我们没有独立的
+ * readFileState 全局状态，改为直接从消息历史提取——纯函数，无副作用。
+ */
+function extractRecentFileReads(summarizedMessages: ChatMessage[]): RestoredFile[] {
+  // toolCallId → 文件路径（从 assistant 的 toolCall arguments 解析）
+  const toolCallPaths = new Map<string, string>()
+
+  for (const msg of summarizedMessages) {
+    if (msg.role === 'assistant' && msg.toolCalls) {
+      for (const tc of msg.toolCalls) {
+        if (!FILE_READ_TOOL_NAMES.has(tc.name)) continue
+        try {
+          const args = JSON.parse(tc.arguments || '{}') as { path?: string }
+          if (args.path) toolCallPaths.set(tc.id, args.path)
+        } catch {
+          // 参数解析失败则跳过该调用
+        }
+      }
+    }
+  }
+
+  // path → 最近一次读取结果（后出现的覆盖先出现的）
+  const byPath = new Map<string, RestoredFile>()
+
+  for (let i = 0; i < summarizedMessages.length; i++) {
+    const msg = summarizedMessages[i]
+    if (msg.role !== 'tool' || !msg.toolCallId) continue
+    const filePath = toolCallPaths.get(msg.toolCallId)
+    if (!filePath) continue
+    // 跳过错误结果，避免把 "Error reading file" 当有效内容恢复
+    if (msg.content.startsWith('Error')) continue
+    byPath.set(filePath, { path: filePath, content: msg.content, order: i })
+  }
+
+  // 按 order 降序（最近的在前），取前 N 个
+  return Array.from(byPath.values())
+    .sort((a, b) => b.order - a.order)
+    .slice(0, MAX_RESTORED_FILES)
+}
+
+/**
+ * 将提取到的文件构造成一条附件消息，注入压缩后的上下文。
+ * 严格限制单文件和总 token 上限，防止恢复本身导致上下文膨胀。
+ * 返回 null 表示没有可恢复的文件。
+ */
+function buildFileRestoreMessage(files: RestoredFile[]): ChatMessage | null {
+  if (files.length === 0) return null
+
+  const sections: string[] = []
+  let totalTokens = 0
+
+  for (const file of files) {
+    let content = file.content
+    let contentTokens = estimateTokens([{ role: 'user', content } as ChatMessage])
+
+    if (contentTokens > MAX_RESTORED_TOKENS_PER_FILE) {
+      // 截断到单文件上限（token → chars，用 estimateTokens 的 2.5 反推）
+      content = content.slice(0, MAX_RESTORED_TOKENS_PER_FILE * 2.5) + '\n[... truncated for compaction]'
+      contentTokens = MAX_RESTORED_TOKENS_PER_FILE
+    }
+
+    if (totalTokens + contentTokens > MAX_RESTORED_TOTAL_TOKENS) break
+
+    sections.push(`### ${file.path}\n${content}`)
+    totalTokens += contentTokens
+  }
+
+  if (sections.length === 0) return null
+
+  return {
+    id: 'context-file-restore',
+    role: 'system',
+    content: `[压缩后文件恢复 — 以下是压缩前最近读取的文件内容，避免重复读取]\n\n${sections.join('\n\n')}`,
+    timestamp: Date.now(),
+  }
+}
+
+/**
+ * 紧急截断 — 压缩熔断后的降级策略。
+ *
+ * 当 L1~L4 连续失败触发熔断时，不能什么都不做（下一轮会因超限崩溃）。
+ * 这里强制保护 preamble + 保留最近消息，硬截断到目标 token 内。
+ * 纯规则、零 LLM 成本、不会失败——是最后的安全兜底。
+ *
+ * 对照 CC：PTL 重试耗尽后抛 ERROR_MESSAGE_PROMPT_TOO_LONG 引导用户手动干预；
+ * 我们是桌面伙伴产品，不适合把错误抛给用户，改为自动截断 + 保留最近上下文。
+ */
+export function emergencyTruncate(messages: ChatMessage[], targetTokens: number): ChatMessage[] {
+  if (messages.length === 0) return messages
+
+  const preambleEnd = getPreambleEndIndex(messages)
+  const preamble = messages.slice(0, preambleEnd + 1)
+  const rest = messages.slice(preambleEnd + 1)
+
+  let tokens = estimateTokens(preamble)
+  const kept: ChatMessage[] = []
+
+  // 从最近往前保留，直到逼近目标
+  for (let i = rest.length - 1; i >= 0; i--) {
+    const msgTokens = estimateTokens([rest[i]])
+    if (tokens + msgTokens > targetTokens && kept.length > 0) break
+    kept.unshift(rest[i])
+    tokens += msgTokens
+  }
+
+  return [...preamble, ...removeOrphanToolMessages(kept)]
+}
+
+/**
+ * 移除孤儿 tool 消息 —— 截断可能把 assistant(toolCalls) 留在被删段，
+ * 只剩 tool 结果消息在头部，会导致 LLM API 400。
+ */
+function removeOrphanToolMessages(messages: ChatMessage[]): ChatMessage[] {
+  const validToolCallIds = new Set<string>()
+  for (const msg of messages) {
+    if (msg.role === 'assistant' && msg.toolCalls) {
+      for (const tc of msg.toolCalls) validToolCallIds.add(tc.id)
+    }
+  }
+  return messages.filter(
+    (msg) => msg.role !== 'tool' || (msg.toolCallId != null && validToolCallIds.has(msg.toolCallId)),
+  )
+}
+
+/**
  * L1 Snip — 删除最早的工具调用轮次（assistant+tool 对）。
- * 保护 system prompt 和最近消息。
+ * 保护 preamble（任务说明）和最近消息。
  */
 function snip(messages: ChatMessage[]): ChatMessage[] {
+  const preambleEnd = getPreambleEndIndex(messages)
   const result: ChatMessage[] = []
-  const recentStart = Math.max(1, messages.length - RECENT_KEEP_COUNT)
+  const recentStart = Math.max(preambleEnd + 1, messages.length - RECENT_KEEP_COUNT)
   let snipped = 0
   const MAX_SNIP = 5
 
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i]
 
-    if (i === 0 || i >= recentStart || snipped >= MAX_SNIP) {
+    // 保护 preamble、最近消息，以及达到 snip 上限
+    if (i <= preambleEnd || i >= recentStart || snipped >= MAX_SNIP) {
       result.push(msg)
       continue
     }
@@ -233,13 +402,20 @@ function microCompact(messages: ChatMessage[]): ChatMessage[] {
  * L3 Collapse — 保留 system prompt + 近期消息，中间替换为 LLM 生成的摘要。
  * 当 llmConfig 可用且 querySource='main' 时使用 LLM 生成摘要；否则降级为规则占位符。
  */
-async function collapse(messages: ChatMessage[], maxTokens: number, llmConfig?: LLMConfig): Promise<ChatMessage[]> {
+async function collapse(
+  messages: ChatMessage[],
+  maxTokens: number,
+  llmConfig?: LLMConfig,
+  preCompactFileReads: RestoredFile[] = [],
+): Promise<ChatMessage[]> {
+  const preambleEnd = getPreambleEndIndex(messages)
   const recentKeep = Math.max(RECENT_KEEP_COUNT, 8)
-  const recentStart = Math.max(1, messages.length - recentKeep)
+  const recentStart = Math.max(preambleEnd + 1, messages.length - recentKeep)
 
-  const system = messages[0]
+  // A1: 保护整个 preamble（system + 任务说明 + 首条回复），而非只保护 system
+  const preamble = messages.slice(0, preambleEnd + 1)
   const recent = messages.slice(recentStart)
-  const middleMessages = messages.slice(1, recentStart)
+  const middleMessages = messages.slice(preambleEnd + 1, recentStart)
 
   if (middleMessages.length === 0) return messages
 
@@ -266,18 +442,23 @@ async function collapse(messages: ChatMessage[], maxTokens: number, llmConfig?: 
     timestamp: Date.now(),
   }
 
-  const result = [system, summaryMsg, ...recent]
+  // A2: 恢复压缩前最近读取的文件（快照来自 compressContext 入口，未受 L1 Snip 影响）
+  const fileRestore = buildFileRestoreMessage(preCompactFileReads)
+
+  const head = fileRestore ? [...preamble, summaryMsg, fileRestore] : [...preamble, summaryMsg]
+  const result = [...head, ...recent]
   const finalTokens = estimateTokens(result)
 
   if (finalTokens > maxTokens) {
     log.warn('Context still over limit after L3 collapse, trimming recent messages', {
       tokens: finalTokens, maxTokens,
     })
-    const trimmed = [system, summaryMsg]
+    const trimmed = [...head]
+    const insertAt = trimmed.length
     for (let i = recent.length - 1; i >= 0; i--) {
-      trimmed.splice(2, 0, recent[i])
+      trimmed.splice(insertAt, 0, recent[i])
       if (estimateTokens(trimmed) > maxTokens * 0.85) {
-        trimmed.splice(2, 1)
+        trimmed.splice(insertAt, 1)
         break
       }
     }
@@ -291,11 +472,18 @@ async function collapse(messages: ChatMessage[], maxTokens: number, llmConfig?: 
  * L4 AutoCompact — 紧急全量重写。将全部对话压缩为一条摘要 + 最近几条消息。
  * 只在主循环 (querySource='main') 且 L3 仍不够时触发。
  */
-async function autoCompact(messages: ChatMessage[], maxTokens: number, llmConfig: LLMConfig): Promise<ChatMessage[]> {
-  const system = messages[0]
+async function autoCompact(
+  messages: ChatMessage[],
+  maxTokens: number,
+  llmConfig: LLMConfig,
+  preCompactFileReads: RestoredFile[] = [],
+): Promise<ChatMessage[]> {
+  const preambleEnd = getPreambleEndIndex(messages)
   const recentKeep = 4
-  const recentStart = Math.max(1, messages.length - recentKeep)
-  const toSummarize = messages.slice(1, recentStart)
+  const recentStart = Math.max(preambleEnd + 1, messages.length - recentKeep)
+  // A1: 保护整个 preamble（含任务说明），而非只保护 system
+  const preamble = messages.slice(0, preambleEnd + 1)
+  const toSummarize = messages.slice(preambleEnd + 1, recentStart)
   const recent = messages.slice(recentStart)
 
   if (toSummarize.length === 0) return messages
@@ -311,16 +499,19 @@ async function autoCompact(messages: ChatMessage[], maxTokens: number, llmConfig
     setQuerySource(null)
   }
 
-  return [
-    system,
-    {
-      id: 'auto-compact-summary',
-      role: 'system',
-      content: `[AutoCompact — Full conversation summary]\n${summaryContent}`,
-      timestamp: Date.now(),
-    },
-    ...recent,
-  ]
+  // A2: 恢复压缩前最近读取的文件（快照来自 compressContext 入口）
+  const fileRestore = buildFileRestoreMessage(preCompactFileReads)
+
+  const summaryMsg: ChatMessage = {
+    id: 'auto-compact-summary',
+    role: 'system',
+    content: `[AutoCompact — Full conversation summary]\n${summaryContent}`,
+    timestamp: Date.now(),
+  }
+
+  return fileRestore
+    ? [...preamble, summaryMsg, fileRestore, ...recent]
+    : [...preamble, summaryMsg, ...recent]
 }
 
 /** 调用 LLM 生成对话摘要 */

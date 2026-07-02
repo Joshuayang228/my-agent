@@ -31,7 +31,7 @@
 |---|------|------|--------|-------------|------|
 | M1 | [Agent Loop](#m1-agent-loop) | 1（心脏） | Alice Ch.03 × CC query.ts 状态机 | — | ✅ 全部完成 |
 | M2 | [工具系统](#m2-工具系统) | 2（直接依赖） | Alice Ch.04 × CC Tool.ts + toolOrchestration.ts | 工具 description 四要素 | ✅ 全部完成 |
-| M3 | [LLM 层](#m3-llm-层) | 2（直接依赖） | Alice Ch.11 × CC services/api/ | LLM 调用统一过路由层 | |
+| M3 | [LLM 层](#m3-llm-层) | 2（直接依赖） | Alice Ch.11 × CC services/api/ | LLM 调用统一过路由层 | ✅ 全部完成 |
 | M4 | [上下文与压缩](#m4-上下文与压缩) | 2（直接依赖） | Alice Ch.05 × CC compact/ | 413 紧急 collapse + 压缩摘要结构化 | |
 | M5 | [记忆系统](#m5-记忆系统) | 3（支撑层） | Alice Ch.05 × CC SessionMemory/ + memdir/ | 记忆注入策略统一 + 大结果落盘 | |
 | M6 | [权限与安全](#m6-权限与安全) | 3（支撑层） | Alice Ch.07+12 × CC utils/permissions/ | 权限拒绝追踪 | |
@@ -136,11 +136,11 @@
 **当前实现**: `electron/main/llm/`
 
 **5 步进度**:
-- [ ] 学
-- [ ] 审
-- [ ] 设计
-- [ ] 改
-- [ ] 沉淀
+- [x] 学（Alice Ch.11 + CC services/api/ 对照阅读）
+- [x] 审（5 项差距清单：G1 辅助调用统一 / G2 usage guard / G3 retry-after / G4 评估关闭 / G5 caller 归因）
+- [x] 设计（两批次方案，用户确认）
+- [x] 改（chatComplete 统一 + usage 正确性 + retry-after 遵从 + caller 打标；113 测试全过 + tsc 零错误）
+- [x] 沉淀（methodology/m03-llm-routing.md + m03-llm-routing-code.md）
 
 ---
 

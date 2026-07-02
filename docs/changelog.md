@@ -5,6 +5,16 @@
 
 ## [未发布]
 
+### Changed — M4 上下文压缩深啃 Phase A：正确性修复（2026-07-02）
+- **A1 保护任务说明（G1）**：新增 `getPreambleEndIndex`，L1 Snip / L3 Collapse / L4 AutoCompact 三层统一保护 preamble（第一条 assistant 之前的 system + 用户任务说明），对齐 CC `groupMessagesByApiRound` 的 group 0 语义
+  - 修复：长任务中用户初始任务说明可能被 collapse/autoCompact 摘要掉（原来只保护 `messages[0]`）
+- **A2 压缩后文件恢复（G4）**：在 `compressContext` 入口快照 `file_read` 结果，压缩后作为附件重新注入，避免 AI 忘记已读文件重复 Read
+  - 关键：快照必须在 L1 Snip 之前捕获——Snip 会先删掉早期 file_read 轮次
+  - 限制 5 文件 / 单文件 5K token / 总 50K token，错误结果（`Error...`）不恢复
+- **A3 熔断后降级截断（G11）**：新增 `emergencyTruncate`，压缩连续失败熔断后强制硬截断到 50% context + 移除孤儿 tool 消息，防止下一轮因超限崩溃
+  - 桌面伙伴产品不适合把 413 错误抛给用户（对照 CC 抛 `ERROR_MESSAGE_PROMPT_TOO_LONG`），改为自动截断保留最近上下文
+- 单元测试 113 → 119（新增 A1×1 / A2×2 / A3×3）
+
 ### Changed — M3 LLM 路由层深啃（2026-07-01）
 - **G1 辅助调用统一走路由层**：新增 `chatComplete()` 非流式便捷入口（消费 `streamChat` 到结束取终态），摘要（context-manager）/ 画像（profile-extractor）/ 标题（session-store）三处改走它
   - 连带收益：三个辅助功能自动获得多 Provider（Anthropic/Gemini）+ failover + Vision 降级，删除三份重复 fetch 样板

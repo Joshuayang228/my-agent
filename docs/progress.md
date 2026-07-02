@@ -280,6 +280,18 @@
 
 **下一步** → 📋 框架模块深啃路线图，详见 [`docs/module-roadmap.md`](module-roadmap.md)
 
+- **M4 上下文压缩深啃 · Phase A 正确性修复完成**（2026-07-02）：
+  - **学**：三 subagent 并行读 Alice Ch.05 + CC compact/ 源码（compact.ts/microCompact.ts/autoCompact.ts）+ 审计当前实现
+  - **审**：13 项 Gap 清单（P0 正确性 3 / P1 体验 6 / P2 优化 4），详见 [`docs/context-compression-gap-analysis.md`](context-compression-gap-analysis.md)
+  - **设计**：分 Phase A/B/C 三批，详见 [`docs/context-compression-improvement-plan.md`](context-compression-improvement-plan.md)
+  - **改（Phase A）**：
+    - A1（G1）保护任务说明 — `getPreambleEndIndex` 统一 L1/L3/L4，对齐 CC group 0 语义
+    - A2（G4）压缩后文件恢复 — 入口快照 file_read 结果（避开 L1 Snip 提前删除），限 5 文件/50K token 注入
+    - A3（G11）熔断降级截断 — `emergencyTruncate` 纯规则硬截断 + 移除孤儿 tool 消息
+    - 过程发现两个真实 bug：① L1 Snip 先删 file_read 导致无内容可恢复 → 改入口快照；② collapse/autoCompact 只保护 system 导致任务说明被摘要 → 改保护整个 preamble
+  - **验证**：tsc 零错误，119 测试全过（原 113 + 新 6）
+  - **待续**：Phase B（结构化摘要 + boundary marker）、Phase C（PTL 重试 + 动态阈值）
+
 > 📦 其他
 > - 应用图标设计 + 安装包体积优化
 
@@ -330,4 +342,5 @@
 | 2026-06-26 | 方法论文件迁移至根目录 + 统一 mNN- 命名 | ✅ |
 | 2026-07-01 | M3 LLM 层深啃完成（chatComplete 统一辅助调用 / usage guard / retry-after / caller 归因 / G4 评估关闭 / 对照 CC-Alice 审计） | ✅ |
 | 2026-07-01 | M3 沉淀（methodology/m03-llm-routing.md + m03-llm-routing-code.md） | ✅ |
+| 2026-07-02 | M4 上下文压缩 Phase A（保护任务说明/文件恢复/熔断降级截断，119 测试全过） | ✅ |
 | - | 应用图标设计 + 安装包体积优化 | ⏳ |
