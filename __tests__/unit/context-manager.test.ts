@@ -255,21 +255,26 @@ describe('A3: emergencyTruncate 紧急截断', () => {
 })
 
 describe('C2: getEffectiveContextWindow 动态阈值', () => {
-  it('Claude 模型返回 200K 窗口（扣除输出预留）', () => {
+  it('Claude 家族返回 200K 窗口（扣除输出预留）', () => {
     expect(getEffectiveContextWindow('claude-3-5-sonnet-20241022')).toBe(200_000 - 8_000)
     expect(getEffectiveContextWindow('claude-opus-4-8')).toBe(200_000 - 8_000)
   })
 
-  it('Gemini 2.x 返回 1M 窗口', () => {
+  it('Gemini 家族返回 1M 窗口', () => {
     expect(getEffectiveContextWindow('gemini-2.0-flash-exp')).toBe(1_000_000 - 8_000)
+    expect(getEffectiveContextWindow('gemini-1.5-pro')).toBe(1_000_000 - 8_000)
   })
 
-  it('DeepSeek 返回真实 64K 窗口（扣除预留），不被默认值兜高', () => {
-    // 64K - 8K = 56K，保留真实窗口避免压缩过晚触发 413
-    expect(getEffectiveContextWindow('deepseek-chat')).toBe(64_000 - 8_000)
+  it('窗口随代际频繁变动的家族（GPT/o/DeepSeek/Qwen）回退默认值，不猜', () => {
+    // 这些模型窗口迭代快或跨度大，硬编码易过时，统一回退 DEFAULT（保守）
+    expect(getEffectiveContextWindow('gpt-4o')).toBe(120_000)
+    expect(getEffectiveContextWindow('gpt-4.1')).toBe(120_000)
+    expect(getEffectiveContextWindow('o3-mini')).toBe(120_000)
+    expect(getEffectiveContextWindow('deepseek-chat')).toBe(120_000)
+    expect(getEffectiveContextWindow('qwen-max')).toBe(120_000)
   })
 
-  it('未知模型回退到默认值', () => {
+  it('未知模型 / 空值回退到默认值', () => {
     expect(getEffectiveContextWindow('some-unknown-model')).toBe(120_000)
     expect(getEffectiveContextWindow(undefined)).toBe(120_000)
     expect(getEffectiveContextWindow('')).toBe(120_000)

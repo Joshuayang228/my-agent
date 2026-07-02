@@ -7,8 +7,10 @@
 
 ### Changed — M4 上下文压缩深啃 Phase C：边界完善（2026-07-02）
 - **C1 PTL 重试逃生舱（G7）**：413 reactive compact 若未缩小消息，回退到 `emergencyTruncate` 逐级硬截断再重试，而非直接放弃，对照 CC `truncateHeadForPTLRetry` 渐进删除
-- **C2 动态阈值（G10）**：新增 `getEffectiveContextWindow`，按模型名前缀推断 context window（Claude 200K / Gemini 1M / GPT 128K / DeepSeek 64K），压缩阈值随模型自适应；`compressContext` 未显式传 maxTokens 时按模型推断
-  - 小窗口模型保留真实窗口（下限 16K），不被默认 120K 兜高，避免压缩过晚触发 413
+- **C2 动态阈值（G10）**：新增 `getEffectiveContextWindow`，按模型名前缀推断 context window，压缩阈值随模型自适应；`compressContext` 未显式传 maxTokens 时按模型推断
+  - 只写窗口跨代际稳定的家族：Claude 200K / Gemini 1M
+  - GPT/o 系列、DeepSeek、Qwen 窗口迭代快或跨度大（32K~10M），硬编码易过时，统一回退默认值（保守，宁可略早压缩也不误判超限）
+  - 下限 16K 防止极端配置把阈值压到不可用；真实窗口以 API 的 413 反压为准
 - 单元测试 122 → 127（新增 C2×5）
 
 ### Changed — M4 上下文压缩深啃 Phase B：体验增强（2026-07-02）

@@ -17,32 +17,19 @@ const OUTPUT_RESERVE_TOKENS = 8_000
 /**
  * 已知模型的 context window（token）。按模型名前缀匹配。
  * 未知模型回退到 DEFAULT_MAX_TOKENS，保守但不会误判超限。
- * 对照 CC 的 getEffectiveContextWindow —— 不同模型窗口差异极大
- * （Claude 200K / Gemini 1M / DeepSeek 64K），硬编码单一阈值会误伤。
+ *
+ * 原则：只写「窗口长期稳定、跨代际不变」的家族。
+ * - Claude 家族多代稳定 200K（3.5/3.7/opus/sonnet/haiku 一致）。
+ * - Gemini 家族稳定 1M 级（1.5 起）。
+ * 其余（GPT/o 系列、DeepSeek、Qwen）窗口随代际频繁变动或跨度极大，
+ * 硬编码具体值迟早过时，故不列入——未知则回退 DEFAULT_MAX_TOKENS（保守，
+ * 宁可压缩略早，也不误判超限触发 413）。真实窗口以 API 返回的 413 反压为准。
  */
 const MODEL_CONTEXT_WINDOWS: Array<{ prefix: string; window: number }> = [
-  // Anthropic Claude
-  { prefix: 'claude-3-5', window: 200_000 },
-  { prefix: 'claude-3-7', window: 200_000 },
-  { prefix: 'claude-sonnet', window: 200_000 },
-  { prefix: 'claude-opus', window: 200_000 },
-  { prefix: 'claude-haiku', window: 200_000 },
+  // Anthropic Claude — 多代稳定 200K
   { prefix: 'claude-', window: 200_000 },
-  // Google Gemini
-  { prefix: 'gemini-2', window: 1_000_000 },
-  { prefix: 'gemini-1.5-pro', window: 2_000_000 },
-  { prefix: 'gemini-1.5', window: 1_000_000 },
+  // Google Gemini — 1.5 起稳定 1M 级（1.5-pro 可达 2M，保守取 1M）
   { prefix: 'gemini-', window: 1_000_000 },
-  // OpenAI
-  { prefix: 'gpt-4o', window: 128_000 },
-  { prefix: 'gpt-4-turbo', window: 128_000 },
-  { prefix: 'gpt-4.1', window: 1_000_000 },
-  { prefix: 'o1', window: 200_000 },
-  { prefix: 'o3', window: 200_000 },
-  // DeepSeek（V3/V3.1/V3.2 API 均为 128K；早期 V3 与消费端 App 曾限 64K）
-  { prefix: 'deepseek', window: 128_000 },
-  // Qwen / 通义
-  { prefix: 'qwen', window: 128_000 },
 ]
 
 /**
@@ -54,9 +41,7 @@ export function getEffectiveContextWindow(model?: string): number {
   const normalized = model.toLowerCase()
   for (const { prefix, window } of MODEL_CONTEXT_WINDOWS) {
     if (normalized.includes(prefix)) {
-      // 扣除输出预留；小窗口模型（如 DeepSeek 64K）保留其真实窗口，
-      // 不能用 DEFAULT_MAX_TOKENS 兜底——否则会压缩过晚触发 413。
-      // 下限 16K 防止极端小窗口配置把阈值压到不可用。
+      // 扣除输出预留；下限 16K 防止极端配置把阈值压到不可用。
       return Math.max(window - OUTPUT_RESERVE_TOKENS, 16_000)
     }
   }

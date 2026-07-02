@@ -32,7 +32,7 @@
 | M1 | [Agent Loop](#m1-agent-loop) | 1（心脏） | Alice Ch.03 × CC query.ts 状态机 | — | ✅ 全部完成 |
 | M2 | [工具系统](#m2-工具系统) | 2（直接依赖） | Alice Ch.04 × CC Tool.ts + toolOrchestration.ts | 工具 description 四要素 | ✅ 全部完成 |
 | M3 | [LLM 层](#m3-llm-层) | 2（直接依赖） | Alice Ch.11 × CC services/api/ | LLM 调用统一过路由层 | ✅ 全部完成 |
-| M4 | [上下文与压缩](#m4-上下文与压缩) | 2（直接依赖） | Alice Ch.05 × CC compact/ | 413 紧急 collapse + 压缩摘要结构化 | |
+| M4 | [上下文与压缩](#m4-上下文与压缩) | 2（直接依赖） | Alice Ch.05 × CC compact/ | 413 紧急 collapse + 压缩摘要结构化 | ✅ 全部完成 |
 | M5 | [记忆系统](#m5-记忆系统) | 3（支撑层） | Alice Ch.05 × CC SessionMemory/ + memdir/ | 记忆注入策略统一 + 大结果落盘 | |
 | M6 | [权限与安全](#m6-权限与安全) | 3（支撑层） | Alice Ch.07+12 × CC utils/permissions/ | 权限拒绝追踪 | |
 | M7 | [可观测性](#m7-可观测性) | 3（支撑层） | Alice Ch.13 × CC tracing/ | Trace 补全 | |
@@ -160,14 +160,16 @@
 
 **吸收任务**: ~~413 紧急 collapse~~ ✅ 已在 M1 实现 + 压缩摘要结构化
 
-**当前实现**: `electron/main/agent/context.ts`
+**当前实现**: `electron/main/agent/context-manager.ts`
 
 **5 步进度**:
-- [ ] 学
-- [ ] 审
-- [ ] 设计
-- [ ] 改
-- [ ] 沉淀
+- [x] 学（Alice Ch.05 + CC compact/ 源码，三 subagent 并行深挖）
+- [x] 审（13 项 Gap：P0 正确性 3 / P1 体验 6 / P2 优化 4，见 context-compression-gap-analysis.md）
+- [x] 设计（分 Phase A/B/C 三批，见 context-compression-improvement-plan.md）
+- [x] 改（A：保护任务说明/文件恢复/熔断降级；B：结构化摘要/boundary marker；C：PTL 逃生舱/动态阈值；127 测试全过 + tsc 零错误）
+- [x] 沉淀（methodology/m04-context-compression.md + m04-context-compression-code.md）
+
+> 暂缓项（按需再做）：G6 L4 独立会话隔离 / G2 L2 去重优化 / G5 image 剥离 / G8 prompt cache 复用 / G9 hooks / G13 token 估算精度
 
 ---
 
@@ -335,3 +337,5 @@
 |------|------|
 | 2026-06-20 | 初始创建，从 progress.md 迁移并重组为 Phase 1/2/3 三阶段 |
 | 2026-06-20 | M1 Agent Loop 5 步全部完成（学/审/设计/改/沉淀） |
+| 2026-07-01 | M3 LLM 层 5 步完成（chatComplete/usage/retry-after/caller） |
+| 2026-07-02 | M4 上下文压缩 5 步完成（Phase A/B/C，127 测试，m04 沉淀） |

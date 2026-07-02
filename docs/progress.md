@@ -303,7 +303,7 @@
 - **M4 上下文压缩深啃 · Phase C 边界完善完成**（2026-07-02）：
   - **改（Phase C）**：
     - C1（G7）PTL 逃生舱 — 413 reactive compact 未缩小时回退 emergencyTruncate 硬截断重试
-    - C2（G10）动态阈值 — getEffectiveContextWindow 按模型推断窗口，压缩阈值自适应（小窗口保真实值，下限 16K）
+    - C2（G10）动态阈值 — getEffectiveContextWindow 按模型推断窗口，压缩阈值自适应；只写跨代际稳定家族（Claude 200K/Gemini 1M），GPT/o/DeepSeek/Qwen 迭代快回退默认（下限 16K）
   - **验证**：tsc 零错误，127 测试全过（Phase B 122 + C2×5）
   - **M4 五步收尾**：学/审/设计/改（A+B+C）已完成，待沉淀 methodology
   - **待续**：DevPanel 展示 compactMetadata（可观测性 UI，独立小任务）
@@ -359,4 +359,7 @@
 | 2026-07-01 | M3 LLM 层深啃完成（chatComplete 统一辅助调用 / usage guard / retry-after / caller 归因 / G4 评估关闭 / 对照 CC-Alice 审计） | ✅ |
 | 2026-07-01 | M3 沉淀（methodology/m03-llm-routing.md + m03-llm-routing-code.md） | ✅ |
 | 2026-07-02 | M4 上下文压缩 Phase A（保护任务说明/文件恢复/熔断降级截断，119 测试全过） | ✅ |
+| 2026-07-02 | M4 上下文压缩 Phase B（结构化摘要/boundary marker，122 测试） | ✅ |
+| 2026-07-02 | M4 上下文压缩 Phase C（PTL 逃生舱/动态阈值，127 测试） | ✅ |
+| 2026-07-02 | M4 沉淀（methodology/m04-context-compression.md + -code.md） | ✅ |
 | - | 应用图标设计 + 安装包体积优化 | ⏳ |

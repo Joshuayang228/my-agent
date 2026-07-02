@@ -21,7 +21,8 @@
 | `m02-tool-system-code.md` | 工具系统代码走读（CC × Alice 对照） | ✅ 已写 |
 | `m03-llm-routing.md` | LLM 路由层工程化方法论 | ✅ 已写 |
 | `m03-llm-routing-code.md` | LLM 路由层代码走读（CC × Alice 对照） | ✅ 已写 |
-| m04 | 上下文与压缩 | 待写 |
+| `m04-context-compression.md` | 上下文压缩工程化方法论 | ✅ 已写 |
+| `m04-context-compression-code.md` | 上下文压缩代码走读（CC × Alice 对照） | ✅ 已写 |
 | m05 | 记忆系统 | 待写 |
 | m06 | 权限与安全 | 待写 |
 | m07 | 可观测性 | 待写 |
