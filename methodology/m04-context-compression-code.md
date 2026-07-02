@@ -274,11 +274,10 @@ summaryMsg.compactMetadata!.postCompactTokens = estimateTokens(result)
 
 ```ts
 const MODEL_CONTEXT_WINDOWS: Array<{ prefix: string; window: number }> = [
+  // 只写跨代际稳定的家族
   { prefix: 'claude-', window: 200_000 },
-  { prefix: 'gemini-2', window: 1_000_000 },
-  { prefix: 'gpt-4o', window: 128_000 },
-  { prefix: 'deepseek', window: 64_000 },
-  // ...（前缀顺序：具体在前，通用兜底在后）
+  { prefix: 'gemini-', window: 1_000_000 },
+  // GPT/o/DeepSeek/Qwen 迭代快或跨度大，不写——回退 DEFAULT_MAX_TOKENS
 ]
 
 export function getEffectiveContextWindow(model?: string): number {
@@ -286,7 +285,7 @@ export function getEffectiveContextWindow(model?: string): number {
   const normalized = model.toLowerCase()
   for (const { prefix, window } of MODEL_CONTEXT_WINDOWS) {
     if (normalized.includes(prefix)) {
-      // 下限 16K 只防极端小窗口，不能用 DEFAULT_MAX_TOKENS 兜高（否则小窗口压缩不及时）
+      // 下限 16K 只防极端配置，不能用 DEFAULT_MAX_TOKENS 兜高（否则小窗口压缩不及时）
       return Math.max(window - OUTPUT_RESERVE_TOKENS, 16_000)
     }
   }
@@ -297,9 +296,9 @@ export function getEffectiveContextWindow(model?: string): number {
 const maxTokens = options.maxTokens ?? getEffectiveContextWindow(options.llmConfig?.model)
 ```
 
-**前缀顺序陷阱**：`claude-3-5` 必须排在 `claude-` 前（虽然值相同无所谓，但 gemini 系列 `gemini-1.5-pro` 的 2M 必须排在 `gemini-1.5` 的 1M 前，否则被通用规则先命中）。用 `includes` 匹配，顺序即优先级。
+**只写稳定家族**（认知框架第九节 + 坑 3）：第一版按前缀写死了 6 个模型，DeepSeek 凭记忆写成 64K（实际 128K）、Qwen 跨 32K~10M 无法区分。收敛为只保留 Claude(200K)/Gemini(1M) 两个多代稳定家族，其余回退保守默认 + 靠 API 的 413 反压兜底。**参数变化频率 > 代码维护频率时，回退比硬编码稳。**
 
-**下限方向陷阱**（认知框架第九节）：第一版 `Math.max(window - reserve, DEFAULT_MAX_TOKENS)` 把 DeepSeek 56K 兜成 120K，压缩不及时。改为 16K 下限后 DeepSeek 正确保留 56K。测试 `DeepSeek 返回真实 64K 窗口` 锁死这个行为。
+**下限方向陷阱**：`Math.max(window - reserve, floor)` 的 `floor` 若取 `DEFAULT_MAX_TOKENS` 会把真实小窗口兜高，压缩不及时。取 16K 小值只防极端配置。
 
 ---
 
@@ -312,6 +311,6 @@ const maxTokens = options.maxTokens ?? getEffectiveContextWindow(options.llmConf
 | A3 emergencyTruncate ×3 | 保护 preamble+最近 / 移除孤儿 tool / 空列表 | context-manager.test.ts |
 | B1 结构化摘要 | 指令含 5 节框架 + usedLLM 标记 | context-structured-summary.test.ts |
 | B3 boundary marker ×2 | metadata 字段正确 / 不泄漏 role/content | context-manager.test.ts |
-| C2 动态阈值 ×5 | Claude/Gemini/DeepSeek/未知/大小写 | context-manager.test.ts |
+| C2 动态阈值 ×5 | Claude/Gemini/迭代快家族回退/未知/大小写 | context-manager.test.ts |
 
 单测 113 → 127。全程 tsc 零错误。
