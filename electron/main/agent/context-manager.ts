@@ -419,12 +419,15 @@ async function collapse(
 
   if (middleMessages.length === 0) return messages
 
+  const preCompactTokens = estimateTokens(messages)
   let summaryContent: string
+  let usedLLM = false
 
   if (llmConfig) {
     try {
       setQuerySource('compact')
       summaryContent = await generateLLMSummary(middleMessages, llmConfig)
+      usedLLM = true
     } catch (err) {
       log.warn('L3 LLM summary failed, falling back to rule-based', { error: String(err) })
       summaryContent = buildRuleSummary(middleMessages)
@@ -435,19 +438,29 @@ async function collapse(
     summaryContent = buildRuleSummary(middleMessages)
   }
 
+  // A2: 恢复压缩前最近读取的文件（快照来自 compressContext 入口，未受 L1 Snip 影响）
+  const fileRestore = buildFileRestoreMessage(preCompactFileReads)
+
   const summaryMsg: ChatMessage = {
     id: 'context-summary',
     role: 'system',
     content: summaryContent,
     timestamp: Date.now(),
+    // B3: boundary marker 元数据（postCompactTokens 在组装后回填）
+    compactMetadata: {
+      level: 'L3_Collapse',
+      preCompactTokens,
+      postCompactTokens: 0,
+      trigger: 'proactive',
+      compactedAt: Date.now(),
+      usedLLM,
+    },
   }
-
-  // A2: 恢复压缩前最近读取的文件（快照来自 compressContext 入口，未受 L1 Snip 影响）
-  const fileRestore = buildFileRestoreMessage(preCompactFileReads)
 
   const head = fileRestore ? [...preamble, summaryMsg, fileRestore] : [...preamble, summaryMsg]
   const result = [...head, ...recent]
   const finalTokens = estimateTokens(result)
+  summaryMsg.compactMetadata!.postCompactTokens = finalTokens
 
   if (finalTokens > maxTokens) {
     log.warn('Context still over limit after L3 collapse, trimming recent messages', {
@@ -488,10 +501,13 @@ async function autoCompact(
 
   if (toSummarize.length === 0) return messages
 
+  const preCompactTokens = estimateTokens(messages)
   let summaryContent: string
+  let usedLLM = false
   try {
     setQuerySource('compact')
     summaryContent = await generateLLMSummary(toSummarize, llmConfig, true)
+    usedLLM = true
   } catch (err) {
     log.warn('L4 AutoCompact LLM summary failed', { error: String(err) })
     summaryContent = buildRuleSummary(toSummarize)
@@ -507,11 +523,21 @@ async function autoCompact(
     role: 'system',
     content: `[AutoCompact — Full conversation summary]\n${summaryContent}`,
     timestamp: Date.now(),
+    compactMetadata: {
+      level: 'L4_AutoCompact',
+      preCompactTokens,
+      postCompactTokens: 0,
+      trigger: 'proactive',
+      compactedAt: Date.now(),
+      usedLLM,
+    },
   }
 
-  return fileRestore
+  const result = fileRestore
     ? [...preamble, summaryMsg, fileRestore, ...recent]
     : [...preamble, summaryMsg, ...recent]
+  summaryMsg.compactMetadata!.postCompactTokens = estimateTokens(result)
+  return result
 }
 
 /** 调用 LLM 生成对话摘要 */
@@ -532,9 +558,30 @@ async function generateLLMSummary(
     .join('\n')
     .slice(0, 6000)
 
-  const instruction = comprehensive
-    ? '请详细总结以下对话的完整内容，包括：讨论的主题、做出的决策、完成的任务、关键代码变更、未完成的工作。确保不丢失重要信息。用中文回答，控制在 500 字以内。'
-    : '请简洁总结以下对话的要点：主要话题、关键结论、执行了什么操作。用中文回答，控制在 200 字以内。'
+  // B1: 结构化摘要框架 —— 自由文本摘要在下一轮推理时易被误读，
+  // 结构化框架（当前任务/已完成/状态/下一步/关键上下文）更利于 LLM 正确解读。
+  // 对照 Alice Ch.5 + CC compact/prompt.ts getCompactPrompt。
+  const wordLimit = comprehensive ? 500 : 300
+  const instruction = `你正在为一个持续进行的对话生成压缩摘要。摘要将替换早期对话历史，供 AI 继续任务时参考。
+
+请严格按以下结构化格式输出（每节简明扼要，缺失的节写「无」）：
+
+## 当前任务
+[用一句话说明用户的核心目标]
+
+## 已完成步骤
+[按顺序列出已完成的关键操作，无则写「无」]
+
+## 当前状态
+[进展到哪一步，遇到什么问题，无则写「无」]
+
+## 下一步计划
+[接下来应该做什么，无则写「无」]
+
+## 关键上下文
+[必须记住的信息：文件路径、变量名、配置值、用户偏好等，无则写「无」]
+
+用中文回答，总字数控制在 ${wordLimit} 字以内。只输出上述结构，不要额外说明。`
 
   // 走统一路由层（chatComplete）而非直接 fetch —— 自动获得多 Provider 支持 + failover
   const summary = await chatComplete({

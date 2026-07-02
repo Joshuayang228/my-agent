@@ -5,6 +5,14 @@
 
 ## [未发布]
 
+### Changed — M4 上下文压缩深啃 Phase B：体验增强（2026-07-02）
+- **B1 结构化摘要（G3）**：L3 Collapse / L4 AutoCompact 的摘要指令从自由文本改为结构化框架（当前任务 / 已完成步骤 / 当前状态 / 下一步计划 / 关键上下文），对照 Alice Ch.5 + CC `compact/prompt.ts`
+  - 结构化摘要在下一轮 LLM 推理时更易被正确解读，降低摘要质量波动
+- **B3 Compact boundary marker（G12）**：`ChatMessage` 新增 `compactMetadata` 字段（level / preCompactTokens / postCompactTokens / trigger / compactedAt / usedLLM），压缩后的摘要消息携带元数据，供调试与可观测性
+  - LLM 层序列化只取 role/content，元数据不泄漏到 API
+  - B2（L4 独立会话隔离）按方案跳过——当前 querySource 防护已覆盖递归风险，实现成本高
+- 单元测试 119 → 122（新增 B1×1 / B3×2）
+
 ### Changed — M4 上下文压缩深啃 Phase A：正确性修复（2026-07-02）
 - **A1 保护任务说明（G1）**：新增 `getPreambleEndIndex`，L1 Snip / L3 Collapse / L4 AutoCompact 三层统一保护 preamble（第一条 assistant 之前的 system + 用户任务说明），对齐 CC `groupMessagesByApiRound` 的 group 0 语义
   - 修复：长任务中用户初始任务说明可能被 collapse/autoCompact 摘要掉（原来只保护 `messages[0]`）

@@ -292,6 +292,14 @@
   - **验证**：tsc 零错误，119 测试全过（原 113 + 新 6）
   - **待续**：Phase B（结构化摘要 + boundary marker）、Phase C（PTL 重试 + 动态阈值）
 
+- **M4 上下文压缩深啃 · Phase B 体验增强完成**（2026-07-02）：
+  - **改（Phase B）**：
+    - B1（G3）结构化摘要 — L3/L4 摘要指令改为「当前任务/已完成/状态/下一步/关键上下文」框架
+    - B3（G12）boundary marker — ChatMessage 加 compactMetadata 字段，摘要消息携带压缩元数据（层级/前后 token/触发源/是否用 LLM）
+    - B2（L4 独立会话）按方案跳过 — querySource 防护已够，成本高
+  - **验证**：tsc 零错误，122 测试全过（Phase A 119 + B1×1 + B3×2）
+  - **待续**：Phase C（PTL 重试 + 动态阈值）、DevPanel 展示 compactMetadata（可观测性 UI，独立小任务）
+
 > 📦 其他
 > - 应用图标设计 + 安装包体积优化
 

@@ -95,6 +95,43 @@ describe('compressContext', () => {
   })
 })
 
+describe('B3: Compact boundary marker', () => {
+  it('L3 Collapse 摘要消息携带 compactMetadata', async () => {
+    const system = msg('system', 'sys')
+    const old = Array.from({ length: 30 }, (_, i) =>
+      msg(i % 2 === 0 ? 'user' : 'assistant', 'x'.repeat(2000)))
+    const recent = Array.from({ length: 3 }, () => msg('user', 'recent'))
+
+    const messages = [system, ...old, ...recent]
+    const result = await compressContext(messages, { maxTokens: 2000 })
+
+    const summaryMsg = result.find(m => m.compactMetadata)
+    expect(summaryMsg).toBeDefined()
+    expect(summaryMsg!.compactMetadata!.level).toBe('L3_Collapse')
+    expect(summaryMsg!.compactMetadata!.preCompactTokens).toBeGreaterThan(0)
+    expect(summaryMsg!.compactMetadata!.postCompactTokens).toBeGreaterThan(0)
+    // 压缩后 token 应小于压缩前
+    expect(summaryMsg!.compactMetadata!.postCompactTokens)
+      .toBeLessThan(summaryMsg!.compactMetadata!.preCompactTokens)
+    // 无 llmConfig 时走规则降级
+    expect(summaryMsg!.compactMetadata!.usedLLM).toBe(false)
+    expect(summaryMsg!.compactMetadata!.trigger).toBe('proactive')
+  })
+
+  it('compactMetadata 不影响消息内容结构（不泄漏到 role/content）', async () => {
+    const system = msg('system', 'sys')
+    const old = Array.from({ length: 30 }, (_, i) =>
+      msg(i % 2 === 0 ? 'user' : 'assistant', 'x'.repeat(2000)))
+    const recent = Array.from({ length: 3 }, () => msg('user', 'recent'))
+
+    const result = await compressContext([system, ...old, ...recent], { maxTokens: 2000 })
+    const summaryMsg = result.find(m => m.compactMetadata)!
+    // 摘要消息仍是标准 system 消息
+    expect(summaryMsg.role).toBe('system')
+    expect(typeof summaryMsg.content).toBe('string')
+  })
+})
+
 describe('A1: L1 Snip 保护任务说明', () => {
   it('用户首条任务说明（在第一条 assistant 之前）不被 snip 删除', async () => {
     const system = msg('system', 'sys')

@@ -20,6 +20,24 @@ export interface ChatMessage {
   toolCallId?: string
   /** 图片附件（多模态消息） */
   images?: ImageAttachment[]
+  /** 压缩边界标记元数据（由上下文压缩系统写入，供调试/可观测性使用） */
+  compactMetadata?: CompactMetadata
+}
+
+/** 压缩边界元数据 — 标记一次压缩发生的位置与效果 */
+export interface CompactMetadata {
+  /** 触发的压缩层级 */
+  level: 'L3_Collapse' | 'L4_AutoCompact'
+  /** 压缩前的估算 token 数 */
+  preCompactTokens: number
+  /** 压缩后的估算 token 数 */
+  postCompactTokens: number
+  /** 触发来源：主动检查 / 413 被动触发 */
+  trigger: 'proactive' | 'reactive_413'
+  /** 压缩发生时间戳 */
+  compactedAt: number
+  /** 是否使用了 LLM 摘要（false = 规则降级） */
+  usedLLM: boolean
 }
 
 export interface ToolCall {
