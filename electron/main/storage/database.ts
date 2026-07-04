@@ -97,6 +97,15 @@ function initSchema(db: SqlJsDatabase): void {
     )
   `)
 
+  // 持久审批记录（scope='persistent'），跨会话保留用户对命令的允许/拒绝决策
+  db.run(`
+    CREATE TABLE IF NOT EXISTS persistent_approvals (
+      command_pattern TEXT PRIMARY KEY,
+      approved        INTEGER NOT NULL,
+      created_at      INTEGER NOT NULL
+    )
+  `)
+
   // Migration: add token tracking columns if missing
   try {
     db.run('ALTER TABLE sessions ADD COLUMN total_prompt_tokens INTEGER NOT NULL DEFAULT 0')

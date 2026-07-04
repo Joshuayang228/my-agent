@@ -229,6 +229,10 @@ app.whenReady().then(async () => {
   restoreMcpConnections()
   initScheduler().catch(err => log.warn('Scheduler init failed', { error: String(err) }))
 
+  // 加载持久审批记录（sandbox approval-store）
+  const { loadPersistentApprovals } = await import('./sandbox/approval-store')
+  loadPersistentApprovals().catch(err => log.warn('Persistent approvals load failed', { error: String(err) }))
+
   if (!VITE_DEV_SERVER_URL) {
     setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 3000)
   }

@@ -84,14 +84,26 @@ describe('Permission Engine', () => {
   })
 
   describe('沙箱策略集成', () => {
-    it('full-access 模式放行所有命令', () => {
+    it('危险命令 bypass-immune — full-access 模式也拦截（G1）', () => {
       const result = checkCommandPermission('rm -rf /', undefined, 'full-access')
-      expect(result.allowed).toBe(true)
+      expect(result.allowed).toBe(false)
+      expect(result.decisionType).toBe('dangerous')
+      expect(result.reason).toContain('危险命令被拦截')
     })
 
-    it('dangerous 命令在非 full-access 模式下被拦截', () => {
-      const result = checkCommandPermission('rm -rf /', undefined, 'workspace-write')
-      expect(result.allowed).toBe(false)
+    it('危险命令在所有模式下被拦截', () => {
+      const result1 = checkCommandPermission('rm -rf /', undefined, 'workspace-write')
+      expect(result1.allowed).toBe(false)
+      expect(result1.decisionType).toBe('dangerous')
+
+      const result2 = checkCommandPermission('format C:', undefined, 'read-only')
+      expect(result2.allowed).toBe(false)
+      expect(result2.decisionType).toBe('dangerous')
+    })
+
+    it('safe 命令在 full-access 模式下放行', () => {
+      const result = checkCommandPermission('ls -la', undefined, 'full-access')
+      expect(result.allowed).toBe(true)
     })
   })
 })

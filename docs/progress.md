@@ -147,7 +147,7 @@
   - 内置工具增至 11 个（新增 url_fetch）
 
 **测试统计**：
-- 单元测试：88 个 / 10 文件（全过）
+- 单元测试：140 个 / 15 文件（全过）
 - UI E2E：5 个（全过）
 - Electron E2E：4 个（需 TEST_LLM_API_KEY 环境变量）
 
@@ -321,6 +321,19 @@
   - **沉淀**：methodology/m05-memory-system.md + m05-memory-system-code.md
   - **暂缓**：G3 生命周期（TTL/衰减）/ G6 语义去重 / G7 recall 一致性 / G8 死代码清理
 
+- **M6 权限与安全深啃完成**（2026-07-04）：
+  - **学**：对照 Alice Ch.07(权限模式) + Ch.12(沙箱边界) + CC utils/permissions/ 五层责任链
+  - **审**：识别 4 项 Gap（G1 bypass-immune / G4 DecisionType / G2 deniedCommands / G3 persistent 审批）
+  - **设计**：保持五层责任链架构，修正安全缺口 + 增强可观测性
+  - **改**：
+    - G1 bypass-immune — command-guard.ts 危险命令检测提前到 full-access 判断前（1 行前移）
+    - G4 DecisionType — permission-engine.ts 新增 `DecisionType` 枚举 + `PermissionCheckResult.decisionType` 字段（5 处返回点）
+    - G2 deniedCommands — loop.ts 新增 `state.deniedCommands` + `extractBlockedCommand()` + Observe 检测 `[SANDBOX BLOCKED]` + `buildDeniedToolsPromptSuffix` 扩展
+    - G3 persistent 审批 — approval-store.ts 接入 SQLite（`persistent_approvals` 表 + 内存缓存镜像 + 异步落盘 + app.whenReady 预加载）
+  - **验证**：tsc 零错误，140 测试全过（M5 后 139 + 1 旧测试改 + 2 新测试）
+  - **沉淀**：methodology/m06-permission-security.md（第一性原理：可配置的平衡点 → 三组推论）
+  - **架构决策**：不照搬 Alice 五模式，保持三级沙箱+三级执行模式（更适合桌面应用），吸收责任链/bypass-immune/拒绝追踪原则
+
 > 📦 其他
 > - 应用图标设计 + 安装包体积优化
 
@@ -375,6 +388,10 @@
 | 2026-07-02 | M4 上下文压缩 Phase B（结构化摘要/boundary marker，122 测试） | ✅ |
 | 2026-07-02 | M4 上下文压缩 Phase C（PTL 逃生舱/动态阈值，127 测试） | ✅ |
 | 2026-07-02 | M4 沉淀（methodology/m04-context-compression.md + -code.md） | ✅ |
+| 2026-07-03 | M5 记忆系统深啃（自我强化/老化/提取/去重，139 测试） | ✅ |
+| 2026-07-03 | M5 沉淀（methodology/m05-memory-system.md） | ✅ |
+| 2026-07-04 | M6 权限与安全深啃（bypass-immune/DecisionType/deniedCommands/persistent审批，140测试） | ✅ |
+| 2026-07-04 | M6 沉淀（methodology/m06-permission-security.md） | ✅ |
 | 2026-07-03 | Harness 重构：CLAUDE.md 升为唯一权威（硬约束常驻 + 场景索引），删 agent-harness.md，AGENTS/.cursor 改重定向入口，.cursor 旧规则归档 | ✅ |
 | 2026-07-03 | M5 记忆系统深啃（自我强化循环/老化告警/提取判据/双重注入去重，139 测试）+ 沉淀 m05 | ✅ |
 | - | 应用图标设计 + 安装包体积优化 | ⏳ |

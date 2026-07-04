@@ -34,7 +34,7 @@
 | M3 | [LLM 层](#m3-llm-层) | 2（直接依赖） | Alice Ch.11 × CC services/api/ | LLM 调用统一过路由层 | ✅ 全部完成 |
 | M4 | [上下文与压缩](#m4-上下文与压缩) | 2（直接依赖） | Alice Ch.05 × CC compact/ | 413 紧急 collapse + 压缩摘要结构化 | ✅ 全部完成 |
 | M5 | [记忆系统](#m5-记忆系统) | 3（支撑层） | Alice Ch.05 × CC SessionMemory/ + memdir/ | 记忆注入策略统一 + 大结果落盘 | ✅ 全部完成 |
-| M6 | [权限与安全](#m6-权限与安全) | 3（支撑层） | Alice Ch.07+12 × CC utils/permissions/ | 权限拒绝追踪 | |
+| M6 | [权限与安全](#m6-权限与安全) | 3（支撑层） | Alice Ch.07+12 × CC utils/permissions/ | 权限拒绝追踪 | ✅ 全部完成 |
 | M7 | [可观测性](#m7-可观测性) | 3（支撑层） | Alice Ch.13 × CC tracing/ | Trace 补全 | |
 | M8 | [多 Agent 协作](#m8-多-agent-协作) | 4（上层建筑） | Alice Ch.06 × CC coordinator/ + tasks/ | — | |
 | M9 | [人格引擎 + Prompt 工程](#m9-人格引擎--prompt-工程) | 4（上层建筑） | Alice Ch.14+16 × CC context.ts | 角色设定集 / PROTECTED 守卫 / MUTABLE 进化 | |
@@ -215,16 +215,16 @@
 - 沙箱边界的精确控制
 - 安全审计日志
 
-**吸收任务**: ~~权限拒绝追踪~~ ✅ 已在 M1 实现（deniedTools 注入 System Prompt）
-
 **当前实现**: `electron/main/sandbox/`
 
 **5 步进度**:
-- [ ] 学
-- [ ] 审
-- [ ] 设计
-- [ ] 改
-- [ ] 沉淀
+- ✅ 学：Alice Ch.07(权限模式) + Ch.12(沙箱边界) + CC utils/permissions/ 五层责任链
+- ✅ 审：识别 4 项 Gap（bypass-immune / DecisionType / deniedCommands / persistent 审批）
+- ✅ 设计：保持五层责任链，修正安全缺口 + 增强可观测性
+- ✅ 改：G1/G2/G4/G3 全部落地，140 测试全过
+- ✅ 沉淀：`methodology/m06-permission-security.md`（第一性原理：可配置的平衡点 → 三组推论）
+
+> 吸收任务对照：「权限拒绝追踪」→ M1 已有 deniedTools，M6 补全 deniedCommands（G2）
 
 ---
 

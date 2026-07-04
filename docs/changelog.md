@@ -5,6 +5,15 @@
 
 ## [未发布]
 
+### Changed — M6 权限与安全深啃（2026-07-04）
+- **G1 bypass-immune 防护**：危险命令检测提前到 full-access 判断之前（`command-guard.ts` 1行前移），`rm -rf /` / `format C:` / fork bomb 等极端危险操作无论沙箱模式如何都强制拦截，对照 Alice Ch.7 + CC safetyCheck 概念
+- **G4 DecisionType 结构化**：`permission-engine.ts` 新增 `DecisionType` 枚举（custom-rule / approval-store / dangerous / sandbox-policy / default-allow），`PermissionCheckResult` 增加 `decisionType` 字段，5 处返回点全部带上决策类型，利于后续 DevPanel 展示权限决策链
+- **G2 deniedCommands 追踪**：`loop.ts` 新增 `state.deniedCommands` 追踪被沙箱拦截的命令（shell_exec 返回 `[SANDBOX BLOCKED]` 时提取），`buildDeniedToolsPromptSuffix` 扩展注入两类拒绝（工具级 + 命令级），防止 AI 反复重试被拦命令
+- **G3 persistent 审批持久化**：`approval-store.ts` 重写为「内存缓存镜像 + 异步落盘」模式，`database.ts` 新增 `persistent_approvals` 表，`loadPersistentApprovals()` 在 app.whenReady 预加载，用户审批决策跨会话保留，保持 `checkApproval()` 同步 API 不变
+- 架构决策：不照搬 Alice 五模式（plan / default / accept_edits / dont_ask / bypass），保持三级沙箱 + 三级执行模式（更适合桌面应用 UI），吸收责任链优先级 / bypass-immune / 拒绝追踪三个原则
+- 单元测试 139 → 140（1 旧测试更新 + 2 新测试）
+- 沉淀 `methodology/m06-permission-security.md`（第一性原理：可配置的平衡点 → 三组推论）
+
 ### Changed — M5 记忆系统深啃（2026-07-03）
 - **G1 自我强化循环修复**：删掉把 assistant 原始回复写入向量库的分支，只索引用户消息。修复"AI 把自己刚说的话当记忆召回喂回自己"（Alice Ch.5 陷阱）；assistant 输出的价值改由 profile-extractor 提炼成结构化记忆
 - **G2 记忆老化告警**：新增 `formatMemoryAge`（今天/昨天/N天前）+ `formatRecallForInjection`，召回记忆带相对时间感，>7 天追加"如与当前不符请以当前为准"陈旧提示，对抗记忆漂移（对照 CC memoryAge）

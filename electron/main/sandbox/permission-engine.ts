@@ -30,9 +30,18 @@ export interface PermissionRule {
   enabled: boolean
 }
 
+/** 决策来源类型，便于审计和 DevPanel 展示 */
+export type DecisionType =
+  | 'custom-rule'      // 用户自定义规则命中
+  | 'approval-store'   // 历史审批记录
+  | 'dangerous'        // 危险命令检测（bypass-immune）
+  | 'sandbox-policy'   // 沙箱策略
+  | 'default-allow'    // 默认允许（无规则命中）
+
 export interface PermissionCheckResult {
   allowed: boolean | 'needs_approval'
   reason: string
+  decisionType: DecisionType
   matchedRule?: string
   chain: string
 }
@@ -85,6 +94,7 @@ export function checkCommandPermission(
     return {
       allowed: approved,
       reason: approved ? '历史审批：已允许' : '历史审批：已拒绝',
+      decisionType: 'approval-store',
       chain: 'approval-store',
     }
   }
@@ -103,7 +113,7 @@ export function checkToolPermission(toolName: string): PermissionCheckResult {
   const customResult = matchCustomRules(toolName, 'tool')
   if (customResult) return customResult
 
-  return { allowed: true, reason: '默认允许', chain: 'fallback' }
+  return { allowed: true, reason: '默认允许', decisionType: 'default-allow', chain: 'fallback' }
 }
 
 function matchCustomRules(target: string, type: PermissionRule['type']): PermissionCheckResult | null {
@@ -119,6 +129,7 @@ function matchCustomRules(target: string, type: PermissionRule['type']): Permiss
         return {
           allowed,
           reason: rule.description || `匹配规则: ${rule.pattern}`,
+          decisionType: 'custom-rule',
           matchedRule: rule.id,
           chain: 'custom-rule',
         }
@@ -132,10 +143,14 @@ function matchCustomRules(target: string, type: PermissionRule['type']): Permiss
 
 function guardToResult(guard: GuardDecision): PermissionCheckResult {
   if (guard.allowed === true) {
-    return { allowed: true, reason: '沙箱策略允许', chain: 'sandbox-policy' }
+    return { allowed: true, reason: '沙箱策略允许', decisionType: 'sandbox-policy', chain: 'sandbox-policy' }
   }
   if (guard.allowed === false) {
-    return { allowed: false, reason: guard.reason, chain: 'sandbox-policy' }
+    // 区分危险命令（bypass-immune）和普通策略拒绝
+    const decisionType: DecisionType = guard.reason.startsWith('危险命令被拦截')
+      ? 'dangerous'
+      : 'sandbox-policy'
+    return { allowed: false, reason: guard.reason, decisionType, chain: 'sandbox-policy' }
   }
-  return { allowed: 'needs_approval', reason: guard.reason, chain: 'sandbox-policy' }
+  return { allowed: 'needs_approval', reason: guard.reason, decisionType: 'sandbox-policy', chain: 'sandbox-policy' }
 }

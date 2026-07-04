@@ -35,6 +35,7 @@ interface LoopState {
   maxOutputRecoveryCount: number
   consecutiveCompactFailures: number
   deniedTools: Array<{ name: string; reason: string }>
+  deniedCommands: Array<{ command: string; reason: string }>
   transition?: { reason: ContinueReason }
 }
 
@@ -64,10 +65,38 @@ function isMaxOutputError(err: unknown): boolean {
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
 
-function buildDeniedToolsPromptSuffix(denied: Array<{ name: string; reason: string }>): string {
-  if (denied.length === 0) return ''
-  const lines = denied.map(d => `- ${d.name}: ${d.reason}`)
-  return `\n\n[System] The following tools were denied during this session. Do not attempt to call them again:\n${lines.join('\n')}`
+function buildDeniedToolsPromptSuffix(
+  deniedTools: Array<{ name: string; reason: string }>,
+  deniedCommands: Array<{ command: string; reason: string }> = [],
+): string {
+  if (deniedTools.length === 0 && deniedCommands.length === 0) return ''
+  const parts: string[] = []
+  if (deniedTools.length > 0) {
+    const lines = deniedTools.map(d => `- ${d.name}: ${d.reason}`)
+    parts.push(`[System] The following tools were denied during this session. Do not attempt to call them again:\n${lines.join('\n')}`)
+  }
+  if (deniedCommands.length > 0) {
+    const lines = deniedCommands.map(d => `- ${d.command}: ${d.reason}`)
+    parts.push(`[System] The following commands were blocked by the sandbox this session. Do not run them again; try a different approach:\n${lines.join('\n')}`)
+  }
+  return `\n\n${parts.join('\n\n')}`
+}
+
+/** 从 shell_exec 的工具结果里识别被沙箱拦截的命令（G2 命令拒绝追踪） */
+const SANDBOX_BLOCK_MARKER = '[SANDBOX BLOCKED]'
+function extractBlockedCommand(
+  call: ToolCall,
+  result: ToolResult,
+  parsedArgs: Map<string, Record<string, unknown>>,
+): { command: string; reason: string } | null {
+  if (!result.isError || !result.content.includes(SANDBOX_BLOCK_MARKER)) return null
+  const command = (parsedArgs.get(call.id)?.command as string) || call.name
+  // 提取标记之后的原因文字（首行），去掉后续说明段落
+  const reason = result.content
+    .slice(result.content.indexOf(SANDBOX_BLOCK_MARKER) + SANDBOX_BLOCK_MARKER.length)
+    .split('\n')[0]
+    .trim() || 'blocked by sandbox'
+  return { command: command.slice(0, 120), reason }
 }
 
 /**
@@ -114,6 +143,7 @@ export async function* agentLoop(
     maxOutputRecoveryCount: 0,
     consecutiveCompactFailures: 0,
     deniedTools: [],
+    deniedCommands: [],
   }
 
   while (state.turnCount < maxIterations) {
@@ -130,7 +160,7 @@ export async function* agentLoop(
     const effectiveTools = filterTools ? filterTools(tools) : tools
 
     // ── 注入权限拒绝摘要到 system prompt ──
-    const deniedSuffix = buildDeniedToolsPromptSuffix(state.deniedTools)
+    const deniedSuffix = buildDeniedToolsPromptSuffix(state.deniedTools, state.deniedCommands)
     if (deniedSuffix && state.messages[0]?.role === 'system') {
       const basePrompt = systemPrompt
       state.messages[0] = {
@@ -438,6 +468,16 @@ export async function* agentLoop(
         timestamp: Date.now(),
         toolCallId: result.callId,
       })
+
+      // G2: 追踪被沙箱拦截的命令，避免 LLM 反复重试同一条被拦命令
+      const call = pendingCalls.find(c => c.id === result.callId)
+      if (call) {
+        const blocked = extractBlockedCommand(call, result, parsedArgs)
+        if (blocked && !state.deniedCommands.some(d => d.command === blocked.command)) {
+          state.deniedCommands.push(blocked)
+          log.info('Blocked command tracked for denial injection', { command: blocked.command, reason: blocked.reason })
+        }
+      }
     }
 
     log.debug('Context updated, entering next turn', {
