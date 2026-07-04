@@ -35,7 +35,7 @@
 | M4 | [上下文与压缩](#m4-上下文与压缩) | 2（直接依赖） | Alice Ch.05 × CC compact/ | 413 紧急 collapse + 压缩摘要结构化 | ✅ 全部完成 |
 | M5 | [记忆系统](#m5-记忆系统) | 3（支撑层） | Alice Ch.05 × CC SessionMemory/ + memdir/ | 记忆注入策略统一 + 大结果落盘 | ✅ 全部完成 |
 | M6 | [权限与安全](#m6-权限与安全) | 3（支撑层） | Alice Ch.07+12 × CC utils/permissions/ | 权限拒绝追踪 | ✅ 全部完成 |
-| M7 | [可观测性](#m7-可观测性) | 3（支撑层） | Alice Ch.13 × CC tracing/ | Trace 补全 | |
+| M7 | [可观测性](#m7-可观测性) | 3（支撑层） | Alice Ch.13 × CC tracing/ | Trace 补全 | ✅ 全部完成 |
 | M8 | [多 Agent 协作](#m8-多-agent-协作) | 4（上层建筑） | Alice Ch.06 × CC coordinator/ + tasks/ | — | |
 | M9 | [人格引擎 + Prompt 工程](#m9-人格引擎--prompt-工程) | 4（上层建筑） | Alice Ch.14+16 × CC context.ts | 角色设定集 / PROTECTED 守卫 / MUTABLE 进化 | |
 | M10 | [自进化与 Skill](#m10-自进化与-skill) | 4（上层建筑） | Alice Ch.09+10 | Skill 微调闭环 / 代码级自进化 | |
@@ -247,11 +247,13 @@
 **当前实现**: `electron/main/utils/tracer.ts`
 
 **5 步进度**:
-- [ ] 学
-- [ ] 审
-- [ ] 设计
-- [ ] 改
-- [ ] 沉淀
+- ✅ 学：Alice Ch.13（OTel 三信号 + blocked_on_user + startup marks）+ CC sessionTracing.ts（五种 SpanType + cost-tracker）
+- ✅ 审：发现关键断点：tracer 基础设施已完整，但 interactionSpanId 未从 runtime 传入 loop，调用链树无法形成
+- ✅ 设计：补完三处接线（types.ts / runtime.ts / loop.ts），不引入 OTel SDK，保持轻量实现
+- ✅ 改：接线 + tracer.ts 修复 duration=0 bug + 新增 tracer.test.ts（21 个测试）；161 测试全过
+- ✅ 沉淀：`methodology/m07-observability.md` + `m07-observability-code.md`
+
+> 暂缓：G4 日志文件落盘 / G5 DevPanel 树状视图（数据模型已完备，只差前端渲染）
 
 ---
 

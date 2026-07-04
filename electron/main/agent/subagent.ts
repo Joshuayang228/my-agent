@@ -13,6 +13,7 @@
 import { agentLoop } from './loop'
 import { ToolRegistry } from '../tools/registry'
 import { createLogger } from '../utils/logger'
+import { startSpan } from '../utils/tracer'
 import type {
   ChatMessage,
   LLMConfig,
@@ -79,6 +80,12 @@ export async function runSubAgent(
     readOnly: config.readOnly ?? false,
   })
 
+  const subSpan = startSpan('subagent', 'subagent', 'subagent', undefined, {
+    role: config.role.slice(0, 100),
+    task: config.task.slice(0, 200),
+    toolCount: childRegistry.getAll().length,
+  })
+
   let content = ''
   const toolsUsed: string[] = []
   let iterations = 0
@@ -118,10 +125,14 @@ export async function runSubAgent(
       iterations,
     })
 
+    subSpan.setAttributes({ iterations, toolsUsed: toolsUsed.join(','), contentLength: content.length })
+    subSpan.end('ok')
+
     return { success: true, content, toolsUsed, iterations }
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err)
     log.error('SubAgent failed', { error: errMsg })
+    subSpan.end('error', errMsg)
     return { success: false, content: `SubAgent failed: ${errMsg}`, toolsUsed, iterations }
   }
 }

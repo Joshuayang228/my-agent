@@ -10,7 +10,7 @@ import { getAllSettings } from '../storage/settings-store'
 import { buildUserProfile } from '../storage/memory-store'
 import { mcpManager } from '../mcp/client'
 import { createLogger } from '../utils/logger'
-import { getRecentSpans, getCallerStats } from '../utils/tracer'
+import { getRecentSpans, getCallerStats, getStartupMarks, getSpanTypeStats } from '../utils/tracer'
 import { getDailyUsage } from '../agent/token-budget'
 import { app } from 'electron'
 

@@ -141,7 +141,7 @@ class AgentRuntime {
       const userProfile = await memory.buildUserProfile()
       const persona = BUILTIN_PERSONAS.find(p => p.id === personaId) ?? BUILTIN_PERSONAS[0]
 
-      const chatSpan = startSpan('chat', 'main', undefined, { sessionId, model: llmConfig.model })
+      const chatSpan = startSpan('chat', 'main', 'interaction', undefined, { sessionId, model: llmConfig.model })
 
       log.info('Chat started', { sessionId, messageCount: messages.length, model: llmConfig.model, persona: persona.id })
 
@@ -185,6 +185,7 @@ class AgentRuntime {
           signal: abortController.signal,
           executionMode,
           toolContext,
+          interactionSpanId: chatSpan.id,  // 传入父 span ID，使 loop 内的子 span 形成调用链树
           filterTools: (allTools) => {
             const active = getActiveSkill()
             if (active?.meta.allowed_tools?.length) {

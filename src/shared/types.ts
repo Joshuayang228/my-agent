@@ -166,6 +166,8 @@ export interface AgentLoopOptions {
   executionMode?: ExecutionMode
   /** 工具执行上下文（workdir/sessionId/signal），注入到所有工具 */
   toolContext?: ToolContext
+  /** 父 interaction span ID，用于将 loop 内的子 span 挂在同一棵调用链树下 */
+  interactionSpanId?: string
 }
 
 /** Agent 循环终止原因 */

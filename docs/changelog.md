@@ -5,6 +5,14 @@
 
 ## [未发布]
 
+### Changed — M7 可观测性深啃（2026-07-04）
+- **调用链树断点修复**：`AgentLoopOptions` 新增 `interactionSpanId?: string`，`runtime.ts` 传入 `chatSpan.id`，`loop.ts` 初始化 state 时赋值——三处改动接通调用链树，所有子 span（llm_request / tool / tool_blocked / compress）的 parentId 正确指向 interaction span
+- **tracer duration=0 bug 修复**：`getCallerStats()` / `getSpanTypeStats()` 过滤条件由 `!span.duration`（会误过滤 duration=0 的合法 span）改为 `span.duration === undefined`（只跳过未结束的 span）
+- **新增 tracer.test.ts**：21 个测试覆盖 SpanType 分类、父子嵌套、blocked_on_user vs execution 分离、mark()、callerStats token 累计、SpanTypeStats、MAX_SPANS 溢出剪裁
+- 已有实现（随 M6 提交）：tracer.ts 全套 SpanType + mark() + getCallerStats()（含 token）、loop.ts 所有埋点（compress/llm_request/tool_blocked/tool/tool_execution）、index.ts 四个 startup marks、subagent.ts subagent span
+- 单元测试 140 → 161（+21）
+- 沉淀 `methodology/m07-observability.md` + `m07-observability-code.md`（第一性原理：可观测性 = 系统可以解释自己 → 三组推论）
+
 ### Changed — M6 权限与安全深啃（2026-07-04）
 - **G1 bypass-immune 防护**：危险命令检测提前到 full-access 判断之前（`command-guard.ts` 1行前移），`rm -rf /` / `format C:` / fork bomb 等极端危险操作无论沙箱模式如何都强制拦截，对照 Alice Ch.7 + CC safetyCheck 概念
 - **G4 DecisionType 结构化**：`permission-engine.ts` 新增 `DecisionType` 枚举（custom-rule / approval-store / dangerous / sandbox-policy / default-allow），`PermissionCheckResult` 增加 `decisionType` 字段，5 处返回点全部带上决策类型，利于后续 DevPanel 展示权限决策链

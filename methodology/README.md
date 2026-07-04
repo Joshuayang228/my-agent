@@ -25,7 +25,8 @@
 | `m04-context-compression-code.md` | 上下文压缩代码走读（CC × Alice 对照） | ✅ 已写 |
 | `m05-memory-system.md` | 记忆系统工程化方法论 | ✅ 已写 |
 | `m05-memory-system-code.md` | 记忆系统代码走读（CC × Alice 对照） | ✅ 已写 |
-| m06 | 权限与安全 | 待写 |
+| `m06-permission-security.md` | 权限与安全工程化方法论 | ✅ 已写 |
+| `m06-permission-security-code.md` | 权限与安全代码走读（CC × Alice 对照） | ✅ 已写 |
 | m07 | 可观测性 | 待写 |
 | m08 | 多 Agent 协作 | 待写 |
 | `m09-rule-system-evolution.md` | 规则体系的进化 | ✅ 已写 |

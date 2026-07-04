@@ -6,6 +6,7 @@ import { config } from 'dotenv'
 import { ToolRegistry } from './tools/registry'
 import { builtinTools } from './tools/builtins/index'
 import { createLogger } from './utils/logger'
+import { mark } from './utils/tracer'
 import { closeDatabase } from './storage/database'
 import { registerAllIPC } from './ipc/index'
 import { mcpManager } from './mcp/client'
@@ -17,6 +18,7 @@ import * as settings from './storage/settings-store'
 import { initScheduler, shutdownScheduler } from './scheduler/index'
 
 const log = createLogger('Main')
+mark('imports_done')
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -79,6 +81,7 @@ for (const tool of builtinTools) {
   toolRegistry.register(tool)
   log.info(`Tool registered: ${tool.name}`)
 }
+mark('tools_ready')
 
 // 注入 registry 给 delegate_task 工具（子 Agent 需要访问父注册表）
 const delegateTool = toolRegistry.get('delegate_task')
@@ -226,8 +229,10 @@ app.whenReady().then(async () => {
   })
 
   initSkillSystem(toolRegistry).catch(err => log.warn('Skill init failed', { error: String(err) }))
-  restoreMcpConnections()
+  restoreMcpConnections().then(() => mark('mcp_ready'))
   initScheduler().catch(err => log.warn('Scheduler init failed', { error: String(err) }))
+
+  mark('window_shown')
 
   // 加载持久审批记录（sandbox approval-store）
   const { loadPersistentApprovals } = await import('./sandbox/approval-store')

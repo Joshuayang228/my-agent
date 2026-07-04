@@ -11,6 +11,7 @@ import { ToolRegistry } from '../tools/registry'
 import { checkToolPermission } from '../sandbox/permission-engine'
 import { createLogger } from '../utils/logger'
 import { sanitizeError } from '../utils/sanitize-error'
+import { startSpan, type SpanHandle } from '../utils/tracer'
 import { compressContext, emergencyTruncate, estimateTokens, DEFAULT_MAX_TOKENS } from './context-manager'
 import { sanitizeMessages } from './message-pipeline'
 
@@ -37,6 +38,8 @@ interface LoopState {
   deniedTools: Array<{ name: string; reason: string }>
   deniedCommands: Array<{ command: string; reason: string }>
   transition?: { reason: ContinueReason }
+  /** 父 interaction span ID，用于嵌套子 span */
+  interactionSpanId?: string
 }
 
 // ── Helpers ──
@@ -124,6 +127,7 @@ export async function* agentLoop(
     filterTools,
     executionMode = 'auto',
     toolContext,
+    interactionSpanId,
   } = options
 
   log.info('Loop started', {
@@ -144,6 +148,7 @@ export async function* agentLoop(
     consecutiveCompactFailures: 0,
     deniedTools: [],
     deniedCommands: [],
+    interactionSpanId,  // 挂载父 span ID，loop 内的子 span 都会以此为 parentId
   }
 
   while (state.turnCount < maxIterations) {
@@ -191,6 +196,9 @@ export async function* agentLoop(
       }
     } else {
       const beforeCount = state.messages.length
+      const compressSpan = startSpan('compress', 'compact', 'compress', state.interactionSpanId, {
+        beforeMessages: beforeCount,
+      })
       const compressed = await compressContext(state.messages, {
         lastActualPromptTokens: state.lastPromptTokens,
         llmConfig: config,
@@ -200,8 +208,12 @@ export async function* agentLoop(
         state.messages.length = 0
         state.messages.push(...compressed)
         state.consecutiveCompactFailures = 0
+        compressSpan.setAttribute('afterMessages', compressed.length)
+        compressSpan.end('ok')
       } else {
         state.consecutiveCompactFailures++
+        compressSpan.setAttribute('afterMessages', beforeCount)
+        compressSpan.end(state.consecutiveCompactFailures >= MAX_CONSECUTIVE_COMPACT_FAILURES ? 'error' : 'ok')
         if (state.consecutiveCompactFailures >= MAX_CONSECUTIVE_COMPACT_FAILURES) {
           log.warn('Compact failed to reduce messages, circuit breaker will trip next turn', {
             failures: state.consecutiveCompactFailures,
@@ -218,6 +230,11 @@ export async function* agentLoop(
     let stopReason: string | undefined
     // 服务端 retry-after（毫秒），由上一次失败的 LLMError 传入下一轮重试
     let nextRetryAfterMs: number | undefined
+
+    const llmSpan = startSpan(`llm_request_t${state.turnCount}`, 'main', 'llm_request', state.interactionSpanId, {
+      model: config.model,
+      turn: state.turnCount,
+    })
 
     for (let attempt = 0; attempt <= MAX_LLM_RETRIES; attempt++) {
       if (attempt > 0) {
@@ -248,6 +265,15 @@ export async function* agentLoop(
           state.lastPromptTokens = result.usage.promptTokens
         }
 
+        // C1: llm_request span 记录 token 维度（归因到 caller）
+        llmSpan.setAttributes({
+          inputTokens: result.usage?.promptTokens ?? 0,
+          outputTokens: result.usage?.completionTokens ?? 0,
+          attempt,
+          stopReason: stopReason ?? 'unknown',
+          toolCallCount: toolCalls.length,
+        })
+
         log.info('LLM response received', {
           duration: Date.now() - llmStart,
           contentLength: content?.length ?? 0,
@@ -257,6 +283,7 @@ export async function* agentLoop(
           attempt,
         })
         lastErr = null
+        llmSpan.end('ok')
         break
       } catch (err) {
         lastErr = err
@@ -316,6 +343,7 @@ export async function* agentLoop(
     if (lastErr) {
       const raw = lastErr instanceof Error ? lastErr.message : String(lastErr)
       log.error('LLM call failed', { duration: Date.now() - llmStart, error: raw })
+      llmSpan.end('error', raw)
       yield { type: 'error', message: sanitizeError(raw) }
       yield { type: 'done', reason: 'model_error' }
       return
@@ -404,8 +432,14 @@ export async function* agentLoop(
         ((executionMode === 'auto' || executionMode === 'plan-first') && registry.get(call.name)?.metadata.isDestructive)
 
       if (needsConfirm && confirmTool) {
+        // G2: blocked_on_user 独立计时 — Alice Ch.13 核心要求
+        const blockedSpan = startSpan(`blocked_${call.name}`, 'tool', 'tool_blocked', state.interactionSpanId, {
+          toolName: call.name,
+        })
         yield { type: 'tool_confirm', callId: call.id, name: call.name, args }
         const approved = await confirmTool(call.name, args)
+        blockedSpan.setAttribute('decision', approved ? 'approved' : 'denied')
+        blockedSpan.end('ok')
         if (!approved) {
           log.info(`Tool rejected by user: ${call.name}`, { callId: call.id, executionMode })
           results.push({ callId: call.id, name: call.name, content: 'User denied execution of this tool.', isError: true })
@@ -435,18 +469,36 @@ export async function* agentLoop(
       return
     }
 
+    // 为每个 pending 工具创建 tool span
+    const toolSpans = new Map<string, SpanHandle>()
     for (const call of pendingCalls) {
+      const toolSpan = startSpan(`tool_${call.name}`, 'tool', 'tool', state.interactionSpanId, {
+        toolName: call.name,
+      })
+      toolSpans.set(call.id, toolSpan)
       yield { type: 'tool_start', callId: call.id, name: call.name, args: parsedArgs.get(call.id)! }
     }
 
-    const toolStart = Date.now()
+    // tool_execution span 覆盖实际执行时间
+    const execSpan = startSpan('tool_batch_exec', 'tool', 'tool_execution', state.interactionSpanId, {
+      batchSize: pendingCalls.length,
+      toolNames: pendingCalls.map(c => c.name).join(','),
+    })
     const batchResults = await registry.executeAll(pendingCalls, toolContext)
+    execSpan.end('ok')
     results.push(...batchResults)
 
     for (const result of batchResults) {
+      const tSpan = toolSpans.get(result.callId)
+      if (tSpan) {
+        tSpan.setAttributes({
+          isError: result.isError ?? false,
+          resultLength: result.content.length,
+        })
+        tSpan.end(result.isError ? 'error' : 'ok')
+      }
       log.info(`Tool finished: ${result.name}`, {
         callId: result.callId,
-        duration: Date.now() - toolStart,
         isError: result.isError,
         resultLength: result.content.length,
       })
