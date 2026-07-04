@@ -36,7 +36,7 @@
 | M5 | [记忆系统](#m5-记忆系统) | 3（支撑层） | Alice Ch.05 × CC SessionMemory/ + memdir/ | 记忆注入策略统一 + 大结果落盘 | ✅ 全部完成 |
 | M6 | [权限与安全](#m6-权限与安全) | 3（支撑层） | Alice Ch.07+12 × CC utils/permissions/ | 权限拒绝追踪 | ✅ 全部完成 |
 | M7 | [可观测性](#m7-可观测性) | 3（支撑层） | Alice Ch.13 × CC tracing/ | Trace 补全 | ✅ 全部完成 |
-| M8 | [多 Agent 协作](#m8-多-agent-协作) | 4（上层建筑） | Alice Ch.06 × CC coordinator/ + tasks/ | — | |
+| M8 | [多 Agent 协作](#m8-多-agent-协作) | 4（上层建筑） | Alice Ch.06 × CC coordinator/ + tasks/ | — | ✅ 全部完成 |
 | M9 | [人格引擎 + Prompt 工程](#m9-人格引擎--prompt-工程) | 4（上层建筑） | Alice Ch.14+16 × CC context.ts | 角色设定集 / PROTECTED 守卫 / MUTABLE 进化 | |
 | M10 | [自进化与 Skill](#m10-自进化与-skill) | 4（上层建筑） | Alice Ch.09+10 | Skill 微调闭环 / 代码级自进化 | |
 
@@ -274,11 +274,11 @@
 **当前实现**: `electron/main/agent/subagent.ts`
 
 **5 步进度**:
-- [ ] 学
-- [ ] 审
-- [ ] 设计
-- [ ] 改
-- [ ] 沉淀
+- [x] 学：Alice Ch.06（三种模式：父子/Coordinator/Swarm + isReadOnly 并发）× CC coordinatorMode.ts（Coordinator 系统提示原则）
+- [x] 审：发现 P0 破损 bug（delegate_task 完全不可用）+ G1 span 无父 ID + G2 未用辅助模型 + G3 description 无判据
+- [x] 设计：修复 registry 取法 + ToolContext 扩展（registry/parentSpanId）+ auxModel 优先 + description 重写
+- [x] 改：types.ts/runtime.ts/delegate-task.ts/subagent.ts 四处改动，tsc 通过，测试 161 个全过
+- [x] 沉淀：methodology/m08-multi-agent.md（信息积累型 vs 并发执行型判据 + 三种模式 + 隔离机制 + 信息流）
 
 ---
 

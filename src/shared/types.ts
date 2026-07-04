@@ -110,6 +110,13 @@ export interface ToolContext {
   sessionId: string
   /** 取消信号 */
   signal?: AbortSignal
+  /** 父 span ID，用于调用链嵌套（M7 tracing） */
+  parentSpanId?: string
+  /**
+   * 工具注册表引用，供 delegate_task 等需要创建子 Agent 的工具使用。
+   * 类型为 unknown 避免 shared/types.ts 循环 import 主进程模块，使用方按需断言。
+   */
+  registry?: unknown
 }
 
 // ── LLM ──

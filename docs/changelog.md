@@ -5,6 +5,16 @@
 
 ## [未发布]
 
+### Changed — M8 多 Agent 协作深啃（2026-07-04）
+- **P0 破损修复**：`delegate_task` 工具 registry 取法从不存在的 `_registry` 私有字段改为从 `toolContext.registry` 取，修复"子 Agent 功能完全不可用"的功能性破损
+- **G1 调用链嵌套**：`ToolContext` 新增 `parentSpanId?: string`，`runtime.ts` 构建 toolContext 时带入 `chatSpan.id`，`delegate-task.ts` 传给 `runSubAgent`，子 Agent span 正确挂到父 span（调用链树支持多层嵌套）
+- **G2 辅助模型优先**：`delegate-task.ts` 优先读 `auxModel`（子 Agent 任务通常更轻量），无辅助模型时 fallback 主模型
+- **G3 description 加判据**：重写 `delegate_task` 工具描述，加入 Alice Ch.6 核心判据（信息积累型 vs 并发执行型）+ "When to use" / "When NOT to use" 两段 + 典型场景，指导何时该用子 Agent
+- **ToolContext 扩展**：`types.ts` 新增 `registry?: unknown`（避免循环 import）和 `parentSpanId?: string`，`runtime.ts` 传入这两个字段
+- 架构决策：只实现父子模式（Subagent），覆盖大部分中等复杂度需求；Coordinator（专门分解者）和 Swarm（任务队列）留待产品需要时再引入
+- 单元测试 161 个全过（无新增，已有 subagent 测试已覆盖核心逻辑）
+- 沉淀 `methodology/m08-multi-agent.md`（第一性原理：多 Agent = 分而治之 → 三组推论）
+
 ### Changed — M7 可观测性深啃（2026-07-04）
 - **调用链树断点修复**：`AgentLoopOptions` 新增 `interactionSpanId?: string`，`runtime.ts` 传入 `chatSpan.id`，`loop.ts` 初始化 state 时赋值——三处改动接通调用链树，所有子 span（llm_request / tool / tool_blocked / compress）的 parentId 正确指向 interaction span
 - **tracer duration=0 bug 修复**：`getCallerStats()` / `getSpanTypeStats()` 过滤条件由 `!span.duration`（会误过滤 duration=0 的合法 span）改为 `span.duration === undefined`（只跳过未结束的 span）

@@ -394,6 +394,8 @@
 | 2026-07-04 | M6 沉淀（methodology/m06-permission-security.md） | ✅ |
 | 2026-07-04 | M7 可观测性深啃（接上 interactionSpanId 调用链断点，tracer duration=0 修复，161 测试） | ✅ |
 | 2026-07-04 | M7 沉淀（methodology/m07-observability.md + m07-observability-code.md） | ✅ |
+| 2026-07-04 | M8 多 Agent 协作深啃（修复 P0 delegate_task 破损 + parentSpanId 调用链嵌套 + auxModel 优先 + description 加判据，161 测试） | ✅ |
+| 2026-07-04 | M8 沉淀（methodology/m08-multi-agent.md：信息积累型 vs 并发执行型判据 + 三种模式 + 隔离机制 + 信息流） | ✅ |
 | 2026-07-03 | Harness 重构：CLAUDE.md 升为唯一权威（硬约束常驻 + 场景索引），删 agent-harness.md，AGENTS/.cursor 改重定向入口，.cursor 旧规则归档 | ✅ |
 | 2026-07-03 | M5 记忆系统深啃（自我强化循环/老化告警/提取判据/双重注入去重，139 测试）+ 沉淀 m05 | ✅ |
 | - | 应用图标设计 + 安装包体积优化 | ⏳ |

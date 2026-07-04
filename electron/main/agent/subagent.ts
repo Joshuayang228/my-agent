@@ -34,6 +34,8 @@ export interface SubAgentConfig {
   readOnly?: boolean
   /** 最大迭代次数（默认 10，比父 Agent 少） */
   maxIterations?: number
+  /** 父 span ID，用于调用链嵌套（M7 + M8） */
+  parentSpanId?: string
 }
 
 export interface SubAgentResult {
@@ -80,11 +82,17 @@ export async function runSubAgent(
     readOnly: config.readOnly ?? false,
   })
 
-  const subSpan = startSpan('subagent', 'subagent', 'subagent', undefined, {
-    role: config.role.slice(0, 100),
-    task: config.task.slice(0, 200),
-    toolCount: childRegistry.getAll().length,
-  })
+  const subSpan = startSpan(
+    'subagent',
+    'subagent',
+    'subagent',
+    config.parentSpanId,  // G1 修复：使用父 span ID，让子 Agent 挂到调用链树
+    {
+      role: config.role.slice(0, 100),
+      task: config.task.slice(0, 200),
+      toolCount: childRegistry.getAll().length,
+    }
+  )
 
   let content = ''
   const toolsUsed: string[] = []

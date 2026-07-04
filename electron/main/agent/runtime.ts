@@ -173,6 +173,8 @@ class AgentRuntime {
         workdir: getWorkspaceRoot() || process.cwd(),
         sessionId,
         signal: abortController.signal,
+        parentSpanId: chatSpan.id,  // 调用链嵌套（子 Agent span 可挂到父 span）
+        registry: toolRegistry,     // 工具注册表（delegate_task 需要）
       }
 
       const stream = agentLoop(
