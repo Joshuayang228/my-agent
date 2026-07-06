@@ -81,6 +81,8 @@ declare global {
         save: (name: string, content: string) => Promise<{ success: boolean; filePath: string }>
         delete: (name: string) => Promise<{ success: boolean }>
         reload: () => Promise<{ success: boolean; count: number }>
+        versions: (name: string) => Promise<number[]>
+        rollback: (name: string, version: number) => Promise<{ success: boolean }>
       }
       data: {
         export: () => Promise<{ success: boolean; path?: string; error?: string; stats?: { sessions: number; memories: number } }>

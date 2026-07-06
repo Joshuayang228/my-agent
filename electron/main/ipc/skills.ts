@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { getLoadedSkills, reloadSkills } from '../skills/registry'
-import { saveSkill, deleteSkill, getSkillContent } from '../skills/loader'
+import { saveSkill, deleteSkill, getSkillContent, listSkillVersions, rollbackSkill } from '../skills/loader'
 import { ToolRegistry } from '../tools/registry'
 
 export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
@@ -36,5 +36,16 @@ export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
   ipcMain.handle('skills:reload', async () => {
     await reloadSkills(toolRegistry)
     return { success: true, count: getLoadedSkills().length }
+  })
+
+  // G1 版本管理：列出历史版本 + 回滚
+  ipcMain.handle('skills:versions', async (_event, name: string) => {
+    return listSkillVersions(name)
+  })
+
+  ipcMain.handle('skills:rollback', async (_event, name: string, version: number) => {
+    const success = await rollbackSkill(name, version)
+    if (success) await reloadSkills(toolRegistry)
+    return { success }
   })
 }

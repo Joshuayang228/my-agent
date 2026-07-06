@@ -33,7 +33,8 @@
 | `m08-multi-agent-code.md` | 多 Agent 协作代码走读（CC × Alice 对照） | ✅ 已写 |
 | `m09-persona-engine.md` | 人格引擎工程化方法论 | ✅ 已写 |
 | `m09-persona-engine-code.md` | 人格引擎代码走读 | ✅ 已写 |
-| m10 | 自进化与 Skill | 待写 |
+| `m10-self-evolution.md` | 自进化与 Skill 工程化方法论 | ✅ 已写 |
+| `m10-self-evolution-code.md` | 自进化与 Skill 代码走读 | ✅ 已写 |
 | `rule-system-evolution.md` | 规则体系的进化（独立主题，非 roadmap 模块） | ✅ 已写 |
 
 > 触发写作：告诉 AI "写方法论" 或 "沉淀一下 XX 的思考"

@@ -5,6 +5,13 @@
 
 ## [未发布]
 
+### Changed — M10 自进化与 Skill 深啃（2026-07-05）
+- **G1 Skill 版本备份/回滚**：saveSkill 覆盖前备份旧内容到 `.versions/v{N}.md`，序号单调递增保证时间顺序，保留最近 10 版，超出删最旧。listSkillVersions 按新→旧返回，rollbackSkill 恢复历史版本且当前内容也被备份（回滚可再回滚）
+- **IPC 三处同步**：`ipc/skills.ts` + `preload/index.ts` + `vite-env.d.ts` 加 `versions`/`rollback` 方法，前端可列版本+回滚
+- 单元测试 163 → 171（+8 个 skill 版本测试：首次不备份/覆盖备份/内容相同不重复/超上限删最旧/新旧序/回滚恢复/回滚可再回滚/回滚不存在版本返回 false）
+- 沉淀 `methodology/m10-self-evolution.md` + `-code.md`（第一性原理：用户可控范围内的系统自我改善）
+- **占位待做（自进化核心）**：G2 Skill 自动改进闭环（依赖 G1 + LLM 分析 + 确认 UI）、G3 代码级自进化（Widget/自定义页面 + 沙盒 + SecurityScanner，Alice/Hermes 根本分叉点）、G4 主动提案、G5 撤销栈
+
 ### Changed — M9 人格引擎深啃（2026-07-05）
 - **G1 结尾人格锚点**：`buildSystemPrompt` 末尾（动态时间之后）追加"Remember: you are {name}..."近因锚点，对抗长对话人格稀释。放在动态内容后，不破坏 KV Cache 前缀（Alice Ch.14 策略一双锚点）
 - **G2 防注入声明**：PROTECTED 区内加元指令，声明身份不可被任何用户输入覆盖，把"要求改人格/扮演无限制 AI"识别为要拒绝的内容而非要执行的指令（Alice Ch.16 防注入）

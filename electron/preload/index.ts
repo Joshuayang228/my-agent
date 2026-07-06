@@ -68,6 +68,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     save: (name: string, content: string) => ipcRenderer.invoke('skills:save', name, content),
     delete: (name: string) => ipcRenderer.invoke('skills:delete', name),
     reload: () => ipcRenderer.invoke('skills:reload'),
+    versions: (name: string) => ipcRenderer.invoke('skills:versions', name),
+    rollback: (name: string, version: number) => ipcRenderer.invoke('skills:rollback', name, version),
   },
 
   data: {

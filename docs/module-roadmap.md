@@ -38,7 +38,7 @@
 | M7 | [可观测性](#m7-可观测性) | 3（支撑层） | Alice Ch.13 × CC tracing/ | Trace 补全 | ✅ 全部完成 |
 | M8 | [多 Agent 协作](#m8-多-agent-协作) | 4（上层建筑） | Alice Ch.06 × CC coordinator/ + tasks/ | — | ✅ 全部完成 |
 | M9 | [人格引擎 + Prompt 工程](#m9-人格引擎--prompt-工程) | 4（上层建筑） | Alice Ch.14+16 × CC context.ts | 角色设定集 / PROTECTED 守卫 / MUTABLE 进化 | 🟡 一致性落地，成长性占位 |
-| M10 | [自进化与 Skill](#m10-自进化与-skill) | 4（上层建筑） | Alice Ch.09+10 | Skill 微调闭环 / 代码级自进化 | |
+| M10 | [自进化与 Skill](#m10-自进化与-skill) | 4（上层建筑） | Alice Ch.09+10 | Skill 微调闭环 / 代码级自进化 | 🟡 版本备份落地，自动改进占位 |
 
 ---
 
@@ -329,11 +329,13 @@
 **当前实现**: `electron/main/skills/`
 
 **5 步进度**:
-- [ ] 学
-- [ ] 审
-- [ ] 设计
-- [ ] 改
-- [ ] 沉淀
+- [x] 学：Alice Ch.9（Skill 系统：when_to_use / 按需激活 / 最小权限）+ Ch.10（自进化：L0-L2 分层 / 沙盒 / 撤销栈）+ Hermes 对比
+- [x] 审：5 项 Gap（G1 版本备份回滚 / G2 自动改进闭环 / G3 代码级自进化 / G4 主动提案 / G5 撤销栈）
+- [x] 设计：先做 G1（自进化安全地基），G2-G5 占位（依赖 G1 + 需求明确）
+- [x] 改：Skill 版本备份/回滚（backupSkillVersion + rollbackSkill + IPC 三处同步），171 测试全过
+- [x] 沉淀：`methodology/m10-self-evolution.md` + `-code.md`（第一性原理：用户可控范围内的系统自我改善）
+
+> **占位待做（自进化核心）**：G2 Skill 自动改进闭环、G3 代码级自进化（Widget + 沙盒 + SecurityScanner）、G4 主动提案、G5 撤销栈。认知框架已在方法论写全。
 
 ---
 
