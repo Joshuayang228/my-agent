@@ -37,7 +37,7 @@
 | M6 | [权限与安全](#m6-权限与安全) | 3（支撑层） | Alice Ch.07+12 × CC utils/permissions/ | 权限拒绝追踪 | ✅ 全部完成 |
 | M7 | [可观测性](#m7-可观测性) | 3（支撑层） | Alice Ch.13 × CC tracing/ | Trace 补全 | ✅ 全部完成 |
 | M8 | [多 Agent 协作](#m8-多-agent-协作) | 4（上层建筑） | Alice Ch.06 × CC coordinator/ + tasks/ | — | ✅ 全部完成 |
-| M9 | [人格引擎 + Prompt 工程](#m9-人格引擎--prompt-工程) | 4（上层建筑） | Alice Ch.14+16 × CC context.ts | 角色设定集 / PROTECTED 守卫 / MUTABLE 进化 | |
+| M9 | [人格引擎 + Prompt 工程](#m9-人格引擎--prompt-工程) | 4（上层建筑） | Alice Ch.14+16 × CC context.ts | 角色设定集 / PROTECTED 守卫 / MUTABLE 进化 | 🟡 一致性落地，成长性占位 |
 | M10 | [自进化与 Skill](#m10-自进化与-skill) | 4（上层建筑） | Alice Ch.09+10 | Skill 微调闭环 / 代码级自进化 | |
 
 ---
@@ -301,11 +301,13 @@
 **当前实现**: `electron/main/agent/prompt-builder.ts`
 
 **5 步进度**:
-- [ ] 学
-- [ ] 审
-- [ ] 设计
-- [ ] 改
-- [ ] 沉淀
+- [x] 学：Alice Ch.14（人格三层次 / PROTECTED-MUTABLE / 防漂移）+ Ch.16（五层结构 / KV Cache / 防注入）
+- [x] 审：5 项 Gap（G1 结尾锚点 / G2 防注入声明 / G3 MUTABLE 动态演化 / G4 定期重申 / G5 具名角色）
+- [x] 设计：一致性防护先落地（G1/G2），成长性+差异化占位（G3/G5 核心待做）
+- [x] 改：G1 结尾人格锚点 + G2 防注入声明，163 测试全过，tsc 零错误
+- [x] 沉淀：`methodology/m09-persona-engine.md` + `-code.md`（第一性原理：一致性 × 成长性 的张力）
+
+> **占位待做（核心中的核心）**：G3 MUTABLE 动态演化（当前静态模板，真成长性缺失）、G5 具名角色设定集（Character Bible，差异化塔尖）。认知框架已在方法论写全，下次直接从认知地图接着做。
 
 ---
 

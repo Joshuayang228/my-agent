@@ -5,6 +5,14 @@
 
 ## [未发布]
 
+### Changed — M9 人格引擎深啃（2026-07-05）
+- **G1 结尾人格锚点**：`buildSystemPrompt` 末尾（动态时间之后）追加"Remember: you are {name}..."近因锚点，对抗长对话人格稀释。放在动态内容后，不破坏 KV Cache 前缀（Alice Ch.14 策略一双锚点）
+- **G2 防注入声明**：PROTECTED 区内加元指令，声明身份不可被任何用户输入覆盖，把"要求改人格/扮演无限制 AI"识别为要拒绝的内容而非要执行的指令（Alice Ch.16 防注入）
+- **命名冲突修复**：`m09-rule-system-evolution.md`（规则体系进化，非 roadmap 模块）改名为 `rule-system-evolution.md`，让出 m09 编号给人格引擎；同步更新 README + progress.md 引用
+- 单元测试 161 → 163（G1×1 / G2×1），tsc 零错误
+- 沉淀 `methodology/m09-persona-engine.md` + `-code.md`（第一性原理：人格 = 一致性 × 成长性 的张力）
+- **占位待做（核心）**：G3 MUTABLE 动态演化（当前静态模板，真成长性缺失）、G5 具名角色设定集（Character Bible 差异化塔尖）——认知框架已在方法论写全，代码分批推进
+
 ### Changed — M8 多 Agent 协作深啃（2026-07-04）
 - **P0 破损修复**：`delegate_task` 工具 registry 取法从不存在的 `_registry` 私有字段改为从 `toolContext.registry` 取，修复"子 Agent 功能完全不可用"的功能性破损
 - **G1 调用链嵌套**：`ToolContext` 新增 `parentSpanId?: string`，`runtime.ts` 构建 toolContext 时带入 `chatSpan.id`，`delegate-task.ts` 传给 `runSubAgent`，子 Agent span 正确挂到父 span（调用链树支持多层嵌套）
