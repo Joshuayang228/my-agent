@@ -23,6 +23,7 @@ import * as memory from '../storage/memory-store'
 import { searchVectorStore, addToVectorStore, formatRecallForInjection } from '../memory/vector-store'
 import { buildSkillSummaryForPrompt, getActiveSkill, clearActiveSkill } from '../skills/registry'
 import { setCurrentSessionId as setTaskPlanSessionId } from '../services/task-plan-service'
+import { clearSessionSubAgents } from './subagent-registry'
 import { getWorkspaceRoot } from './project-memory'
 import { createLogger } from '../utils/logger'
 import { startSpan } from '../utils/tracer'
@@ -175,6 +176,7 @@ class AgentRuntime {
         signal: abortController.signal,
         parentSpanId: chatSpan.id,  // 调用链嵌套（子 Agent span 可挂到父 span）
         registry: toolRegistry,     // 工具注册表（delegate_task 需要）
+        executionMode,              // 父执行模式（子 Agent 权限只降不升，G4）
       }
 
       const stream = agentLoop(
@@ -269,6 +271,8 @@ class AgentRuntime {
       }
       yield { type: 'done', reason: 'completed' as const, sessionId }
       try { clearActiveSkill() } catch { /* ok */ }
+      // 清理本会话的子 Agent 实例（continue 机制的实例生命周期绑定会话）
+      try { clearSessionSubAgents(sessionId) } catch { /* ok */ }
 
       this.sendDesktopNotification(assistantContent)
     }

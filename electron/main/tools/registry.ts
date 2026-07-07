@@ -115,7 +115,11 @@ export class ToolRegistry {
 
   /** 原始执行器 — 中间件链的终点 */
   private async rawExecute(ctx: { call: ToolCall; tool: ToolDefinition; args: Record<string, unknown>; toolContext?: ToolContext }): Promise<ToolResult> {
-    const content = await withTimeout(ctx.tool.execute(ctx.args, ctx.toolContext), TOOL_TIMEOUT_MS, ctx.call.name)
+    // longRunning 工具（如 delegate_task 跑完整子 Agent 循环）跳过 30s 超时，
+    // 否则会被误杀。这类工具自己靠子 Agent 的 maxIterations / abort signal 兜底。
+    const content = ctx.tool.metadata.longRunning
+      ? await ctx.tool.execute(ctx.args, ctx.toolContext)
+      : await withTimeout(ctx.tool.execute(ctx.args, ctx.toolContext), TOOL_TIMEOUT_MS, ctx.call.name)
     return { callId: ctx.call.id, name: ctx.call.name, content }
   }
 }

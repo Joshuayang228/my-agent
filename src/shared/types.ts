@@ -100,6 +100,8 @@ export interface ToolMetadata {
   isReadOnly: boolean
   isDestructive: boolean
   isConcurrencySafe: boolean
+  /** 长任务标记：跳过工具执行超时（如 delegate_task 会跑完整子 Agent 循环，远超 30s） */
+  longRunning?: boolean
 }
 
 /** 工具执行时注入的运行时上下文 */
@@ -117,6 +119,8 @@ export interface ToolContext {
    * 类型为 unknown 避免 shared/types.ts 循环 import 主进程模块，使用方按需断言。
    */
   registry?: unknown
+  /** 父 Agent 执行模式 —— 供 delegate_task 传给子 Agent 实现权限只降不升（G4） */
+  executionMode?: ExecutionMode
 }
 
 // ── LLM ──

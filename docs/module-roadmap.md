@@ -280,6 +280,14 @@
 - [x] 改：types.ts/runtime.ts/delegate-task.ts/subagent.ts 四处改动，tsc 通过，测试 161 个全过
 - [x] 沉淀：methodology/m08-multi-agent.md（信息积累型 vs 并发执行型判据 + 三种模式 + 隔离机制 + 信息流）
 
+**补齐（2026-07-05）**：首轮"暂缓项"里混着真实 bug/安全漏洞，一次补齐——
+- G4 权限只降不升（resolveChildExecutionMode）：子 Agent 不能从严格父模式逃逸
+- G5 子 Agent 传 toolContext（正确性 bug）：原来子 Agent 工具拿不到 workdir/sessionId
+- G6 role 角色系统（AGENT_ROLES：researcher/coder/analyst，各带默认工具集）
+- G7 delegate_task 超时（longRunning 标记跳过 30s 超时，正确性 bug）
+- Coordinator continue 机制（subagent-registry + continue_task 工具，同步续跑）
+- 测试 178 → 202（+24）；Swarm 模式仍占位
+
 ---
 
 ### M9: 人格引擎 + Prompt 工程

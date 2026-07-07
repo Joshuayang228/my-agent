@@ -20,13 +20,21 @@ export const delegateTaskTool = buildTool({
 **典型场景:**
 - "分析 docs/ 下所有 Markdown 文件，提取标题和摘要" → 可并发读取
 - "查询五个城市的天气，汇总对比" → 可并发查询
-- "研究 src/auth/ 的代码结构，找出所有 API 入口" → 独立研究任务`,
+- "研究 src/auth/ 的代码结构，找出所有 API 入口" → 独立研究任务
+
+**预设角色（role 用这些名字会自动带合适的工具集）:**
+- "researcher"：只读研究，带 file_read/code_search/web_search/url_fetch/rag_search
+- "coder"：代码修改，带 file_read/file_edit/file_write/apply_patch/code_search/shell_exec
+- "analyst"：只读分析，带 file_read/code_search/rag_search
+其它 role 名按自由描述处理，默认只给只读工具。
+
+**继续同一个子 Agent:** 返回结果里带 agent ID。若要让同一个子 Agent 带着上下文继续做后续任务，用 continue_task(agent_id, message)，不用重开一个。`,
   parameters: {
     type: 'object',
     properties: {
       role: {
         type: 'string',
-        description: 'The role/specialization of the sub-agent (e.g., "code researcher", "file analyzer", "API tester")',
+        description: 'The role/specialization. Use a preset (researcher/coder/analyst) for sensible default tools, or a free description (e.g. "API tester").',
       },
       task: {
         type: 'string',
@@ -44,8 +52,9 @@ export const delegateTaskTool = buildTool({
     required: ['role', 'task'],
   },
   metadata: {
-    isReadOnly: true,       // delegate_task 本身不修改文件，只是启动子 Agent
+    isReadOnly: true,        // delegate_task 本身不修改文件，只是启动子 Agent
     isConcurrencySafe: true, // 多个子 Agent 可以并发启动（只读子 Agent 安全）
+    longRunning: true,       // G7: 子 Agent 跑完整循环，跳过 30s 工具超时
   },
   execute: async (args, toolContext) => {  // ← 修复：接收 toolContext 参数
     const role = args.role as string
@@ -80,8 +89,10 @@ export const delegateTaskTool = buildTool({
         role,
         task,
         allowedTools,
-        readOnly,
-        parentSpanId: toolContext.parentSpanId,  // G1: 传入父 span ID
+        readOnly: args.read_only !== undefined ? readOnly : undefined,  // 未显式传时交给角色预设决定
+        parentSpanId: toolContext.parentSpanId,       // G1: 传入父 span ID
+        toolContext,                                   // G5: 子 Agent 工具拿到 workdir/sessionId/signal
+        parentExecutionMode: toolContext.executionMode, // G4: 权限只降不升
       },
       llmConfig,
       registry,
@@ -92,7 +103,9 @@ export const delegateTaskTool = buildTool({
     const meta = result.toolsUsed.length > 0
       ? `\nTools used: ${result.toolsUsed.join(', ')} (${result.iterations} iterations)`
       : ''
+    // 带上 agent ID，供 LLM 后续用 continue_task 追加消息
+    const idLine = result.agentId ? `\nAgent ID: ${result.agentId} (use continue_task to send follow-ups)` : ''
 
-    return `${header}${meta}\n\n${result.content}`
+    return `${header}${meta}${idLine}\n\n${result.content}`
   },
 })

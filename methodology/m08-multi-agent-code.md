@@ -605,12 +605,91 @@ const toolContext: ToolContext = {
 3. **结构化返回**：不写全局状态，返回 `{ success, content, toolsUsed, iterations }`
 4. **自包含 prompt**：description 强调"self-contained"，隐式约束父 Agent 综合
 
-**Alice Ch.6 vs CC vs 我们的实现对比**：
+**Alice Ch.6 vs CC vs 我们的实现对比**（2026-07-05 更新）：
 
 | | Alice Ch.6 | CC coordinatorMode | 我们 |
 |---|-----------|-------------------|------|
-| 协作模式 | 父子/Coordinator/Swarm | Coordinator（主力）| 父子（唯一）|
-| continue 机制 | 支持 | SendMessage 工具 | 暂无 |
-| 权限传递 | 明确要求 | 隐含在 Worker 设计里 | 暂未实现 |
+| 协作模式 | 父子/Coordinator/Swarm | Coordinator（主力）| 父子 + continue（Swarm 缓）|
+| continue 机制 | 支持 | SendMessage（异步总线）| continue_task（同步续跑）|
+| 权限传递 | 明确要求 | 隐含在 Worker 设计里 | resolveChildExecutionMode 只降不升 |
+| 角色系统 | researcher/writer/developer | worker | AGENT_ROLES: researcher/coder/analyst |
 | 不委托理解 | 提及 | 显式 system prompt 约束 | 隐式 description 约束 |
 | 调用链嵌套 | 未提及 | 未提及 | 我们实现了（G1）|
+
+---
+
+## 补做走读（2026-07-05）：continue / 角色 / 权限
+
+### 权限只降不升（G4）
+
+```typescript
+// subagent.ts —— 模式严格度序 + 只降不升纯函数
+const MODE_STRICTNESS: Record<ExecutionMode, number> = {
+  'auto': 0,          // 最松（自动执行）
+  'confirm-all': 1,   // 中（每次确认）
+  'plan-first': 2,    // 最严（先计划）
+}
+
+export function resolveChildExecutionMode(parentMode: ExecutionMode | undefined): ExecutionMode {
+  if (!parentMode) return 'auto'
+  // 子 Agent 期望 auto，但不能比父级更宽松 → 取更严的
+  // auto 严格度 >= 父级？说明父级就是 auto（或更松，不存在）→ 用 auto
+  // 否则父级更严 → 子 Agent 被拉到父级严格度
+  return MODE_STRICTNESS['auto'] >= MODE_STRICTNESS[parentMode] ? 'auto' : parentMode
+}
+```
+
+关键：不是简单复制父模式，而是"子可以更保守、不能更激进"。父 confirm-all 时子必须 confirm-all（不能逃到 auto）；父 auto 时子也 auto。
+
+### 角色系统（G6）
+
+```typescript
+// subagent.ts —— 预设角色表
+export const AGENT_ROLES: Record<string, AgentRole> = {
+  researcher: { systemPromptAddon: '...', defaultAllowedTools: ['file_read','code_search','web_search','url_fetch','rag_search'], defaultReadOnly: true },
+  coder:      { systemPromptAddon: '...', defaultAllowedTools: ['file_read','file_edit','file_write','apply_patch','code_search','shell_exec'], defaultReadOnly: false },
+  analyst:    { systemPromptAddon: '...', defaultAllowedTools: ['file_read','code_search','rag_search'], defaultReadOnly: true },
+}
+
+// buildChildRegistry —— 工具集来源优先级：显式 > 角色预设 > 父只读
+const preset = AGENT_ROLES[config.role]
+const allowedNames = config.allowedTools ?? preset?.defaultAllowedTools  // ← 三级 fallback
+const effectiveReadOnly = config.readOnly ?? preset?.defaultReadOnly ?? false
+```
+
+匹配预设→用预设默认；显式参数→覆盖预设；自由字符串→回退父只读工具（向后兼容）。
+
+### continue 机制（Coordinator）
+
+```typescript
+// subagent-registry.ts —— 实例保活 + 续跑
+const instances = new Map<string, SubAgentInstance>()  // agentId → 实例（含 messages/工具集/模式）
+
+// runSubAgent 跑完后注册，返回 agentId
+const agentId = registerSubAgent({ sessionId, role, messages, childRegistry, llmConfig, executionMode, maxIterations, parentSpanId })
+
+// continue_task 工具 → continueSubAgent：取实例、追加消息、复用上下文续跑
+export async function continueSubAgent(agentId, message, signal) {
+  const inst = instances.get(agentId)
+  if (!inst) return { success: false, content: '... not found ...' }
+  inst.messages.push({ role: 'user', content: message, ... })  // 追加到已有历史
+  const stream = agentLoop({ messages: inst.messages, tools: inst.childRegistry.getAll(), executionMode: inst.executionMode, ... }, inst.childRegistry)
+  // ... 消费 stream，回写 assistant 消息保留历史供再次 continue
+}
+
+// runtime.ts —— 会话结束清理（实例生命周期绑定会话）
+try { clearSessionSubAgents(sessionId) } catch { /* ok */ }
+```
+
+关键：continue 复用实例的 messages 历史 + childRegistry + executionMode——子 Agent 带着完整上下文续跑，这是 continue 相对 spawn 的核心价值。
+
+### longRunning 超时豁免（G7）
+
+```typescript
+// registry.ts rawExecute —— longRunning 工具跳过 30s 超时
+const content = ctx.tool.metadata.longRunning
+  ? await ctx.tool.execute(ctx.args, ctx.toolContext)          // 不包 withTimeout
+  : await withTimeout(ctx.tool.execute(...), TOOL_TIMEOUT_MS, ctx.call.name)
+```
+
+delegate_task / continue_task 标 `longRunning: true`——它们跑完整子 Agent 循环，靠子 Agent 自己的 maxIterations + abort signal 兜底，不受 30s 工具超时限制。

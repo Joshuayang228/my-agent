@@ -187,4 +187,43 @@ describe('ToolRegistry', () => {
       expect(order.indexOf('unsafeC')).toBeLessThan(order.indexOf('safeD'))
     })
   })
+
+  describe('G7: longRunning 超时豁免', () => {
+    it('普通工具超过 30s 被超时杀掉', async () => {
+      vi.useFakeTimers()
+      try {
+        const reg = new ToolRegistry()
+        reg.register(makeTool({
+          name: 'slow',
+          execute: () => new Promise(resolve => setTimeout(() => resolve('done'), 60_000)),
+        }))
+        const promise = reg.executeAll([makeCall({ name: 'slow' })])
+        await vi.advanceTimersByTimeAsync(31_000)  // 越过 30s 超时
+        const results = await promise
+        expect(results[0].isError).toBe(true)
+        expect(results[0].content).toContain('timed out')
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('longRunning 工具超过 30s 不被杀，正常返回', async () => {
+      vi.useFakeTimers()
+      try {
+        const reg = new ToolRegistry()
+        reg.register(makeTool({
+          name: 'long_task',
+          metadata: { isReadOnly: true, isDestructive: false, isConcurrencySafe: true, longRunning: true },
+          execute: () => new Promise(resolve => setTimeout(() => resolve('long done'), 60_000)),
+        }))
+        const promise = reg.executeAll([makeCall({ name: 'long_task' })])
+        await vi.advanceTimersByTimeAsync(60_000)  // 远超 30s
+        const results = await promise
+        expect(results[0].isError).toBeFalsy()
+        expect(results[0].content).toBe('long done')
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+  })
 })

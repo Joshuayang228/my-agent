@@ -11,6 +11,7 @@ import { taskPlanTool } from './task-plan'
 import { codeSearchTool } from './code-search'
 import { urlFetchTool } from './url-fetch'
 import { delegateTaskTool } from './delegate-task'
+import { continueTaskTool } from './continue-task'
 import { ragSearchTool } from './rag-search'
 import { gitStatusTool, gitDiffTool, gitLogTool, gitCommitTool, gitBranchTool } from './git-tools'
 
@@ -34,5 +35,6 @@ export const builtinTools: ToolDefinition[] = [
   forgetTool,
   taskPlanTool,
   delegateTaskTool,
+  continueTaskTool,
   ragSearchTool,
 ]

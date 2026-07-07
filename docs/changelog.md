@@ -5,6 +5,16 @@
 
 ## [未发布]
 
+### Changed — M8 多 Agent 协作补齐（2026-07-05）
+- **G4 权限只降不升**（安全）：`resolveChildExecutionMode` 实现子 Agent 执行模式不能比父级宽松（严格度序 auto<confirm-all<plan-first）；`ToolContext` 加 `executionMode`，runtime 构建时带入，delegate_task 传给子 Agent
+- **G5 子 Agent 传 toolContext**（正确性 bug）：`runSubAgent` 调 agentLoop 原来没传 toolContext，导致子 Agent 里的工具拿不到 workdir/sessionId/signal；现在透传，子 Agent 的文件类工具不再 workdir 错乱
+- **G6 role 角色系统**：`AGENT_ROLES` 预设 researcher/coder/analyst，各带默认工具集 + 只读性；`buildChildRegistry` 工具集来源优先级 = 显式 allowedTools > 角色预设 > 父只读工具；显式参数可覆盖，自由字符串回退
+- **G7 delegate_task 超时**（正确性 bug）：子 Agent 跑完整循环远超 registry 30s `TOOL_TIMEOUT_MS`；`ToolMetadata` 加 `longRunning`，registry 对这类工具跳过 withTimeout；delegate_task/continue_task 标记 longRunning
+- **Coordinator continue 机制**：新增 `subagent-registry.ts`（实例保活 Map + 会话级清理）+ `continue_task` 工具（对应 CC SendMessage）；子 Agent 跑完存实例返回 agentId，continue_task 追加消息复用上下文续跑；单一主对话流下是同步续跑；continue_task 加入子 Agent 黑名单防递归
+- 内置工具 20 → 21（新增 continue_task）
+- 单元测试 178 → 202（+24：角色/权限纯函数 + registry continue + longRunning 超时豁免）
+- 沉淀：m08 方法论 §六/§九 更新 + 补做记录（真实 bug 被 P0 掩盖的教训）；Swarm 模式仍占位
+
 ### Changed — M5 记忆系统剩余 Gap 清理（2026-07-05）
 - **G9 feedback 分类**：`MemoryCategory` 新增 `feedback`（6 类），覆盖 CC 强调的两面——纠正（该改什么）+ 确认（该保持什么），提取 prompt 要求写成"该做/避免 + 为什么"，注入归入 workflow 段。同步 6 处：types.ts / memory-store.ts / profile-extractor.ts（prompt+校验）/ memory-manage.ts（工具描述+校验）/ MemoryPanel.tsx（图标+标签+配色）。伙伴产品差异化：记住"上次这么做你很满意"
 - **G3 记忆生命周期**：`conversation` 类对话向量设容量上限（MAX_CONVERSATION_VECTORS=500，LRU 按 timestamp 淘汰最旧）；结构化记忆（identity/preference/fact/feedback 等）永不自动淘汰。淘汰选择逻辑抽为纯函数 `selectEvictableItems`
