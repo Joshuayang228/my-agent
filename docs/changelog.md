@@ -5,6 +5,14 @@
 
 ## [未发布]
 
+### Changed — M5 记忆系统剩余 Gap 清理（2026-07-05）
+- **G9 feedback 分类**：`MemoryCategory` 新增 `feedback`（6 类），覆盖 CC 强调的两面——纠正（该改什么）+ 确认（该保持什么），提取 prompt 要求写成"该做/避免 + 为什么"，注入归入 workflow 段。同步 6 处：types.ts / memory-store.ts / profile-extractor.ts（prompt+校验）/ memory-manage.ts（工具描述+校验）/ MemoryPanel.tsx（图标+标签+配色）。伙伴产品差异化：记住"上次这么做你很满意"
+- **G3 记忆生命周期**：`conversation` 类对话向量设容量上限（MAX_CONVERSATION_VECTORS=500，LRU 按 timestamp 淘汰最旧）；结构化记忆（identity/preference/fact/feedback 等）永不自动淘汰。淘汰选择逻辑抽为纯函数 `selectEvictableItems`
+- **G8 死代码清理**：删除无调用方的 `buildMemoryContext()`；顺带消除 memory-store.ts 与 shared/types.ts 对 MemoryCategory/MemoryEntry 的重复定义（统一由 shared/types 定义）
+- **G7 recall 一致性**：核查确认为"设计如此非 bug"——自动注入同时用 SQLite 画像 + 向量召回，recall 走 SQLite 列结构化记忆，职责划分清晰，无需改动
+- **G6 语义去重**：继续暂缓（阈值难调、边际收益低，精确去重 + LLM 判据已够）
+- 单元测试 171 → 178（+7：G3 六个淘汰用例 + G9 feedback 分类），tsc 零错误
+
 ### Changed — M10 自进化与 Skill 深啃（2026-07-05）
 - **G1 Skill 版本备份/回滚**：saveSkill 覆盖前备份旧内容到 `.versions/v{N}.md`，序号单调递增保证时间顺序，保留最近 10 版，超出删最旧。listSkillVersions 按新→旧返回，rollbackSkill 恢复历史版本且当前内容也被备份（回滚可再回滚）
 - **IPC 三处同步**：`ipc/skills.ts` + `preload/index.ts` + `vite-env.d.ts` 加 `versions`/`rollback` 方法，前端可列版本+回滚

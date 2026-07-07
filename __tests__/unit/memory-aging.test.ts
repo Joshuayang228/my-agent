@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatMemoryAge, formatRecallForInjection, MEMORY_STALE_THRESHOLD_DAYS } from '../../electron/main/memory/vector-store'
+import { formatMemoryAge, formatRecallForInjection, MEMORY_STALE_THRESHOLD_DAYS, selectEvictableItems } from '../../electron/main/memory/vector-store'
 import type { VectorSearchResult } from '../../electron/main/memory/vector-store'
 
 describe('G2: formatMemoryAge 记忆老化格式化', () => {
@@ -79,5 +79,58 @@ describe('G5+G2: formatRecallForInjection 召回加工', () => {
     const results = [result('conv-fresh', '刚说的', 1)]
     const output = formatRecallForInjection(results, now)
     expect(output).not.toContain('请以用户当前表述为准')
+  })
+})
+
+describe('G3: selectEvictableItems 记忆生命周期淘汰', () => {
+  function conv(id: string, ts: number) {
+    return { itemId: id, metadata: { category: 'conversation', timestamp: ts } }
+  }
+  function structured(id: string, ts: number) {
+    return { itemId: id, metadata: { category: 'identity', timestamp: ts } }
+  }
+
+  it('未超上限时不淘汰', () => {
+    const items = [conv('a', 1), conv('b', 2), conv('c', 3)]
+    expect(selectEvictableItems(items, 5)).toEqual([])
+  })
+
+  it('超上限时按 timestamp 升序淘汰最旧的', () => {
+    const items = [conv('new', 300), conv('old', 100), conv('mid', 200)]
+    // max=2，超 1 个，淘汰最旧的 old(100)
+    expect(selectEvictableItems(items, 2)).toEqual(['old'])
+  })
+
+  it('超多个时淘汰足够数量回到上限', () => {
+    const items = [conv('a', 1), conv('b', 2), conv('c', 3), conv('d', 4), conv('e', 5)]
+    // max=2，超 3 个，淘汰最旧的 3 个 a/b/c
+    expect(selectEvictableItems(items, 2)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('只淘汰 conversation 类，结构化记忆永不淘汰', () => {
+    const items = [
+      structured('id-1', 1),
+      structured('id-2', 2),
+      conv('conv-old', 3),
+      conv('conv-new', 4),
+    ]
+    // max=1，conversation 有 2 个超 1 个，淘汰最旧的 conv-old；结构化记忆不算入也不淘汰
+    const evicted = selectEvictableItems(items, 1)
+    expect(evicted).toEqual(['conv-old'])
+    expect(evicted).not.toContain('id-1')
+    expect(evicted).not.toContain('id-2')
+  })
+
+  it('结构化记忆多于上限也不淘汰（只数 conversation）', () => {
+    const items = [structured('id-1', 1), structured('id-2', 2), structured('id-3', 3)]
+    expect(selectEvictableItems(items, 1)).toEqual([])
+  })
+
+  it('缺失 timestamp 的条目按 0 处理（最旧，优先淘汰）', () => {
+    const items = [
+      { itemId: 'no-ts', metadata: { category: 'conversation' } },
+      conv('has-ts', 100),
+    ]
+    expect(selectEvictableItems(items, 1)).toEqual(['no-ts'])
   })
 })

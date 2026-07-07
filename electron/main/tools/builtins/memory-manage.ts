@@ -11,7 +11,7 @@
 import { buildTool } from '../builder'
 import { addMemory, listMemories, deleteMemory, type MemoryCategory } from '../../storage/memory-store'
 
-const VALID_CATEGORIES = ['identity', 'preference', 'fact', 'workflow', 'voice'] as const
+const VALID_CATEGORIES = ['identity', 'preference', 'fact', 'workflow', 'voice', 'feedback'] as const
 
 export const rememberTool = buildTool({
   name: 'remember',
@@ -21,7 +21,7 @@ export const rememberTool = buildTool({
     properties: {
       category: {
         type: 'string',
-        description: 'Category: identity (who they are), workflow (how they work), voice (communication style), preference (likes/dislikes), fact (specific facts)',
+        description: 'Category: identity (who they are), workflow (how they work), voice (communication style), preference (likes/dislikes), fact (specific facts), feedback (their corrections AND confirmations about how you should work — both what to change and what to keep doing)',
         enum: [...VALID_CATEGORIES],
       },
       content: {
@@ -64,7 +64,7 @@ export const recallTool = buildTool({
     properties: {
       category: {
         type: 'string',
-        description: 'Optional: filter by category (identity, workflow, voice, preference, fact). Omit to search all.',
+        description: 'Optional: filter by category (identity, workflow, voice, preference, fact, feedback). Omit to search all.',
       },
     },
     required: [],

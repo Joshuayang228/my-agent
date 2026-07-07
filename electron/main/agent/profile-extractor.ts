@@ -19,7 +19,7 @@ const log = createLogger('ProfileExtractor')
 const EXTRACTION_PROMPT = `You are a user profile analyzer. Given the recent conversation, extract any NEW, DURABLE information about the user. The guiding test: a memory should be something that "stays useful once added" — not a log of what happened.
 
 Output a JSON array where each item has:
-- "category": one of "identity", "workflow", "voice", "preference", "fact"
+- "category": one of "identity", "workflow", "voice", "preference", "fact", "feedback"
 - "content": a concise statement (one sentence max)
 
 Categories:
@@ -28,11 +28,16 @@ Categories:
 - voice: communication style (formal/casual, language preferences, humor style)
 - preference: explicit preferences (likes/dislikes, preferred tools, approaches, aesthetic choices)
 - fact: durable facts about their projects, environment, or context
+- feedback: the user's corrections AND confirmations about how you should work. BOTH matter:
+  - correction ("don't auto-commit", "stop explaining so much") — what to change
+  - confirmation ("that's exactly right", "yes, keep doing it this way") — what to keep doing
+  For feedback, phrase content as "what to do/avoid + why", e.g. "Prefers concise answers without preamble (said long explanations waste time)". Confirmations are as valuable as corrections — remembering "you did that well last time" is core to being a companion, not just a tool.
 
 DO save (durable knowledge):
 - Stable preferences and habits ("prefers TypeScript over JS", "works late at night")
 - Identity facts (role, expertise, tech stack, location)
-- Explicit corrections about how they want you to work
+- Explicit corrections about how they want you to work → category "feedback"
+- Explicit confirmations that you did something the right way → category "feedback"
 
 Do NOT save (these are noise or belong elsewhere):
 - Transient task state ("currently debugging the login flow", "on step 3")
@@ -114,7 +119,7 @@ export async function maybeExtractProfile(
       return
     }
 
-    const validCategories = new Set<string>(['identity', 'workflow', 'voice', 'preference', 'fact'])
+    const validCategories = new Set<string>(['identity', 'workflow', 'voice', 'preference', 'fact', 'feedback'])
     let added = 0
 
     for (const item of items) {

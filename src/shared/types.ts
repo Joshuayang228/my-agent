@@ -207,7 +207,7 @@ export interface PersonaConfig {
 
 // ── 记忆 ──
 
-export type MemoryCategory = 'identity' | 'preference' | 'fact' | 'workflow' | 'voice'
+export type MemoryCategory = 'identity' | 'preference' | 'fact' | 'workflow' | 'voice' | 'feedback'
 
 export interface MemoryEntry {
   id: string

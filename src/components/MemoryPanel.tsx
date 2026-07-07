@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { MemoryCategory, MemoryEntry } from '../shared/types'
-import { User, Settings, MessageCircle, Star, Pin, Brain, X } from 'lucide-react'
+import { User, Settings, MessageCircle, Star, Pin, Brain, X, ThumbsUp } from 'lucide-react'
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   identity: <User size={12} />,
@@ -8,6 +8,7 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   voice: <MessageCircle size={12} />,
   preference: <Star size={12} />,
   fact: <Pin size={12} />,
+  feedback: <ThumbsUp size={12} />,
 }
 
 const CATEGORIES: { id: MemoryCategory; label: string; icon: React.ReactNode; color: string }[] = [
@@ -16,6 +17,7 @@ const CATEGORIES: { id: MemoryCategory; label: string; icon: React.ReactNode; co
   { id: 'voice', label: '沟通风格', icon: CATEGORY_ICONS.voice, color: 'emerald' },
   { id: 'preference', label: '偏好', icon: CATEGORY_ICONS.preference, color: 'amber' },
   { id: 'fact', label: '事实', icon: CATEGORY_ICONS.fact, color: 'rose' },
+  { id: 'feedback', label: '反馈', icon: CATEGORY_ICONS.feedback, color: 'blue' },
 ]
 
 const COLOR_MAP: Record<string, { bg: string; border: string; text: string; badge: string }> = {
@@ -24,6 +26,7 @@ const COLOR_MAP: Record<string, { bg: string; border: string; text: string; badg
   emerald: { bg: 'bg-emerald-500/5', border: 'border-emerald-500/30', text: 'text-emerald-400', badge: 'bg-emerald-500/10 text-emerald-400' },
   amber: { bg: 'bg-amber-500/5', border: 'border-amber-500/30', text: 'text-amber-400', badge: 'bg-amber-500/10 text-amber-400' },
   rose: { bg: 'bg-rose-500/5', border: 'border-rose-500/30', text: 'text-rose-400', badge: 'bg-rose-500/10 text-rose-400' },
+  blue: { bg: 'bg-blue-500/5', border: 'border-blue-500/30', text: 'text-blue-400', badge: 'bg-blue-500/10 text-blue-400' },
 }
 
 interface MemoryPanelProps {

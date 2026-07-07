@@ -2,8 +2,12 @@ import { getDatabase, persist } from './database'
 import { createLogger } from '../utils/logger'
 import { addToVectorStore, removeFromVectorStore } from '../memory/vector-store'
 import * as settings from './settings-store'
+import type { MemoryCategory, MemoryEntry } from '../../../src/shared/types'
 
 const log = createLogger('MemoryStore')
+
+// MemoryCategory / MemoryEntry 统一由 src/shared/types.ts 定义，此处 re-export 供本层调用方使用
+export type { MemoryCategory, MemoryEntry }
 
 async function getLLMConfigForSync() {
   const s = await settings.getAllSettings()
@@ -12,16 +16,6 @@ async function getLLMConfigForSync() {
     baseUrl: s.llmBaseUrl || process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
     model: s.llmModel || process.env.LLM_MODEL || 'gpt-4o',
   }
-}
-
-export type MemoryCategory = 'identity' | 'preference' | 'fact' | 'workflow' | 'voice'
-
-export interface MemoryEntry {
-  id: string
-  category: MemoryCategory
-  content: string
-  createdAt: number
-  updatedAt: number
 }
 
 async function ensureTable(): Promise<void> {
@@ -112,46 +106,6 @@ export async function updateMemory(id: string, content: string): Promise<void> {
 }
 
 /**
- * 构建记忆注入文本，供 Agent Loop 注入 System Prompt。
- */
-export async function buildMemoryContext(): Promise<string> {
-  const memories = await listMemories()
-  if (memories.length === 0) return ''
-
-  const sections: Record<string, string[]> = {
-    identity: [],
-    preference: [],
-    fact: [],
-    workflow: [],
-    voice: [],
-  }
-
-  for (const m of memories) {
-    sections[m.category]?.push(`- ${m.content}`)
-  }
-
-  const parts: string[] = []
-
-  if (sections.identity.length > 0) {
-    parts.push('### About the user\n' + sections.identity.join('\n'))
-  }
-  if (sections.workflow.length > 0) {
-    parts.push('### How they work\n' + sections.workflow.join('\n'))
-  }
-  if (sections.voice.length > 0) {
-    parts.push('### Communication style\n' + sections.voice.join('\n'))
-  }
-  if (sections.preference.length > 0) {
-    parts.push('### Preferences\n' + sections.preference.join('\n'))
-  }
-  if (sections.fact.length > 0) {
-    parts.push('### Known facts\n' + sections.fact.join('\n'))
-  }
-
-  return parts.join('\n\n')
-}
-
-/**
  * 构建三维用户画像，供 prompt-builder L3 层使用。
  */
 export async function buildUserProfile(): Promise<{
@@ -169,7 +123,8 @@ export async function buildUserProfile(): Promise<{
   }
 
   const identity = [...(byCategory.identity ?? []), ...(byCategory.fact ?? [])].join('\n')
-  const workflow = (byCategory.workflow ?? []).join('\n')
+  // feedback（用户对协作方式的纠正与确认）归入 workflow —— 本质是"该怎么跟用户配合"的知识
+  const workflow = [...(byCategory.workflow ?? []), ...(byCategory.feedback ?? [])].join('\n')
   const voice = [...(byCategory.voice ?? []), ...(byCategory.preference ?? [])].join('\n')
 
   if (!identity && !workflow && !voice) return null

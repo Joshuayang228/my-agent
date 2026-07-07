@@ -92,6 +92,11 @@ describe('remember tool', () => {
     expect(result).toContain('Error: invalid category')
   })
 
+  it('G9: accepts feedback category (corrections & confirmations)', async () => {
+    const result = await rememberTool.execute({ category: 'feedback', content: 'Prefers concise answers without preamble (said long explanations waste time)' })
+    expect(result).toContain('Remembered [feedback]')
+  })
+
   it('rejects empty content', async () => {
     const result = await rememberTool.execute({ category: 'fact', content: '' })
     expect(result).toContain('Error')

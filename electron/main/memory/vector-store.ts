@@ -19,6 +19,14 @@ const log = createLogger('VectorStore')
 
 let index: LocalIndex | null = null
 
+/**
+ * G3 记忆生命周期：conversation 类向量只增不减会无限膨胀。
+ * 设上限，超出时按 timestamp 删最旧的（LRU）。
+ * 只淘汰 conversation 类——结构化记忆（identity/preference/fact 等）是精心维护的
+ * 高价值知识，由用户/画像提取管理，不自动淘汰。
+ */
+const MAX_CONVERSATION_VECTORS = 500
+
 function getIndexPath(): string {
   const userDataPath = app?.getPath?.('userData') ?? path.join(process.cwd(), '.agent-data')
   const indexPath = path.join(userDataPath, 'vector-index')
@@ -74,9 +82,57 @@ export async function addToVectorStore(
     })
 
     log.info('Vector memory added', { id: entry.id, category: entry.category })
+
+    // G3：conversation 类写入后检查容量，超上限淘汰最旧的
+    if (entry.category === 'conversation') {
+      await evictOldConversationVectors()
+    }
   } catch (err) {
     log.warn('Failed to add vector memory', { id: entry.id, error: String(err) })
   }
+}
+
+/**
+ * G3 淘汰：conversation 类向量超过 MAX_CONVERSATION_VECTORS 时，
+ * 按 timestamp 升序删除最旧的，直到回到上限。只动 conversation 类。
+ * 从选出待删条目到 items（纯逻辑）抽出为 selectEvictableItems 便于测试。
+ */
+async function evictOldConversationVectors(): Promise<void> {
+  const idx = await getIndex()
+  try {
+    const items = await idx.listItems()
+    const toEvict = selectEvictableItems(
+      items.map(it => ({ itemId: it.id, metadata: it.metadata as Record<string, unknown> })),
+      MAX_CONVERSATION_VECTORS,
+    )
+    for (const itemId of toEvict) {
+      await idx.deleteItem(itemId)
+    }
+    if (toEvict.length > 0) {
+      log.info('Evicted old conversation vectors', { count: toEvict.length })
+    }
+  } catch (err) {
+    log.warn('Conversation vector eviction failed', { error: String(err) })
+  }
+}
+
+/**
+ * 纯函数：给定所有向量条目，选出需要淘汰的 conversation 条目 id。
+ * 规则：只看 category==='conversation' 的条目，若超过 max，按 timestamp 升序
+ * （最旧优先）选出多余的部分返回。非 conversation 条目永不淘汰。
+ */
+export function selectEvictableItems(
+  items: Array<{ itemId: string; metadata: Record<string, unknown> }>,
+  max: number,
+): string[] {
+  const conversations = items
+    .filter(it => (it.metadata.category as string) === 'conversation')
+    .map(it => ({ itemId: it.itemId, timestamp: (it.metadata.timestamp as number) ?? 0 }))
+    .sort((a, b) => a.timestamp - b.timestamp)  // 最旧在前
+
+  const overflow = conversations.length - max
+  if (overflow <= 0) return []
+  return conversations.slice(0, overflow).map(c => c.itemId)
 }
 
 /**
