@@ -5,6 +5,14 @@
 
 ## [未发布]
 
+### Changed — M7 可观测性补做：日志文件落盘（G4，2026-07-08）
+- **日志落盘**：`logger.ts` 在 `log()` 内部加落盘层，与 console 并行——写入 `app.getPath('logs')/my-agent/agent-YYYY-MM-DD.log`，同步 `appendFileSync` 保证多次调用顺序，惰性初始化（首次写才解析目录并开文件）
+- **按日期轮转**：文件名含日期，启动时 `cleanupOldLogs` 删超过保留期（默认 7 天）的旧日志；纯逻辑 `selectExpiredLogs`（字典序=时间序）抽出便于单测，副作用（读目录/删文件）留在壳里
+- **降级不崩**：非 Electron 环境（vitest / 纯 Node）`require('electron')` 或 `app.getPath` 失败时落盘整段跳过，console 照常——44 个 logger 调用方和所有测试零改动
+- **脱敏另算**：日志写盘暂不过滤 API key / token，§八 隐私原则的强制脱敏留作独立后续任务（方法论检查清单第 7 条已留锚点）
+- 单元测试 202 → 209（+7 logger 落盘/轮转/降级）
+- 沉淀：`methodology/m07-observability.md` §十 G4 从暂缓改已做 + `m07-observability-code.md` 补 G4 代码走读
+
 ### Changed — M8 多 Agent 协作补齐（2026-07-05）
 - **G4 权限只降不升**（安全）：`resolveChildExecutionMode` 实现子 Agent 执行模式不能比父级宽松（严格度序 auto<confirm-all<plan-first）；`ToolContext` 加 `executionMode`，runtime 构建时带入，delegate_task 传给子 Agent
 - **G5 子 Agent 传 toolContext**（正确性 bug）：`runSubAgent` 调 agentLoop 原来没传 toolContext，导致子 Agent 里的工具拿不到 workdir/sessionId/signal；现在透传，子 Agent 的文件类工具不再 workdir 错乱
