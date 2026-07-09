@@ -10,6 +10,7 @@
 - ✅ 完成三源方法论缺口审计（learning-claude-code 14 章 / Anthropic 10 篇文章 / lingxi 生产 Go Agent）
 - ✅ 创建缺口文档 `methodology/gap-audit-2026-07.md`（带复选框 todo 清单）
 - ✅ M6 权限安全第一步：新增 `file_delete` 工具，删除操作强制走回收站（对齐 lingxi send2trash 模式）
+- ✅ 缺口 4 错误体系：新增 `electron/main/errs/`（AgentErrorCode 枚举 + AgentError 因果链 + toAgentError 归一 + 错误码入 error 事件），229 测试全过
 
 **已完成全部功能**：
 - 规则体系 + 技能文件设计
@@ -409,6 +410,7 @@
 | 2026-07-08 | M7 补做 G4 日志文件落盘（logger 按日期分文件 + 7天轮转 + 无 Electron 环境降级不崩），209 测试全过；脱敏另算 | ✅ |
 | 2026-07-09 | 三源方法论缺口审计（learning-claude-code 14 章 / Anthropic 10 篇 / lingxi），产出 methodology/gap-audit-2026-07.md 带复选框 todo | ✅ |
 | 2026-07-09 | M6 安全补强第一步：file_delete 工具（删除走回收站 + 白名单永久删除 + 审计日志），218 测试全过；AI分类器/Deny-and-Continue 待做 | ✅ |
+| 2026-07-09 | 独立错误体系（缺口 4）：errs/ 模块 AgentError + AgentErrorCode 枚举 + 因果链 + 归一化，接入 runtime/loop/chat 抛错点，error 事件带 code，229 测试全过 | ✅ |
 | 2026-07-03 | Harness 重构：CLAUDE.md 升为唯一权威（硬约束常驻 + 场景索引），删 agent-harness.md，AGENTS/.cursor 改重定向入口，.cursor 旧规则归档 | ✅ |
 | 2026-07-03 | M5 记忆系统深啃（自我强化循环/老化告警/提取判据/双重注入去重，139 测试）+ 沉淀 m05 | ✅ |
 | - | 应用图标设计 + 安装包体积优化 | ⏳ |

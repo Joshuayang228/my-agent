@@ -47,9 +47,16 @@
 - [ ] 输入层注入探针（工具结果进入上下文前扫描）
 - [ ] Denial Tracking 自动降级（连续拒绝后从 auto 降回 ask）
 
-### [ ] 4. 独立错误体系 —— 完全空白（lingxi）
+### [~] 4. 独立错误体系 —— 后端已落地（2026-07-09，commit 待填）
 Code 枚举 + 因果链保留（Wrap/Unwrap）+ **错误可直接作为 UI 事件**。联动 M9——错误码驱动人格化道歉话术（"您拒绝了…"）。我们方法论连章节都没有。
 **建议：独立新章节，高价值且联动人格化。**
+
+- [x] `electron/main/errs/index.ts`：`AgentErrorCode` 枚举（12 码，每个对应真实抛错点）+ `AgentError`（code/cause 因果链/retryable）+ `toAgentError` 归一化（含 LLMError duck-typing 互操作）
+- [x] `error` 事件加 `code?: string`（renderer 解耦，不依赖主进程枚举）；runtime/loop/chat 的抛错点全部接上错误码
+- [x] `chain()` 沿 cause 链收集诊断信息（仅内部日志）；`toEventPayload()` 脱敏 message + code 给前端
+- [x] 11 个单测（errs.test.ts）
+- [ ] **前端按 code 分派 UI**（重试按钮 / 降级提示）—— 待做
+- [ ] **联动 M9 人格化道歉话术**（错误码 → 语气模板）—— 待做，需和人格引擎一起设计
 
 ## 🟡 第二梯队：已有模块的明确盲点
 

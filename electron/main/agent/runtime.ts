@@ -27,6 +27,7 @@ import { clearSessionSubAgents } from './subagent-registry'
 import { getWorkspaceRoot } from './project-memory'
 import { createLogger } from '../utils/logger'
 import { startSpan } from '../utils/tracer'
+import { AgentErrorCode } from '../errs'
 import type { ChatMessage, LLMConfig, ExecutionMode, AgentStreamEvent, ToolContext } from '../../../src/shared/types'
 
 const log = createLogger('Runtime')
@@ -100,14 +101,14 @@ class AgentRuntime {
 
     if (!llmConfig.apiKey) {
       log.error('No API key configured')
-      yield { type: 'error', message: '请先在设置中配置 API Key', sessionId }
+      yield { type: 'error', message: '请先在设置中配置 API Key', code: AgentErrorCode.CONFIG_MISSING_API_KEY, sessionId }
       yield { type: 'done', reason: 'model_error', sessionId }
       return
     }
 
     if (this.activeControllers.has(sessionId)) {
       log.warn('Session already processing', { sessionId })
-      yield { type: 'error', message: '该会话正在处理中，请等待完成或先中断', sessionId }
+      yield { type: 'error', message: '该会话正在处理中，请等待完成或先中断', code: AgentErrorCode.SESSION_BUSY, sessionId }
       yield { type: 'done', reason: 'model_error', sessionId }
       return
     }
@@ -115,7 +116,7 @@ class AgentRuntime {
     const budgetCheck = await checkBudget(sessionId)
     if (!budgetCheck.allowed) {
       log.warn('Budget exceeded', { sessionId, reason: budgetCheck.reason })
-      yield { type: 'error', message: budgetCheck.reason!, sessionId }
+      yield { type: 'error', message: budgetCheck.reason!, code: AgentErrorCode.BUDGET_EXCEEDED, sessionId }
       yield { type: 'done', reason: 'model_error', sessionId }
       return
     }

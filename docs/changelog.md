@@ -5,6 +5,15 @@
 
 ## [未发布]
 
+### Added — 独立错误体系（gap-audit 缺口 4，2026-07-09）
+- **`electron/main/errs/` 新模块**：`AgentError`（code + cause 因果链 + retryable 标记）+ `AgentErrorCode` 枚举（12 个码，均对应代码里真实抛错/终止场景，不凭空造）+ `toAgentError`（把任意 unknown 归一，含 LLMError duck-typing 互操作，避免 errs→llm 循环 import）
+- **错误码接入 error 事件**：`AgentStreamEvent` 的 `error` 分支加可选 `code?: string`（renderer 用 string 解耦，不依赖主进程枚举，同 `registry?: unknown` 模式）；前端可按 code 分派 UI（重试按钮/降级提示/人格化话术）
+- **真实抛错点接码**：runtime.ts（CONFIG_MISSING_API_KEY / SESSION_BUSY / BUDGET_EXCEEDED）、loop.ts（CONTEXT_TOO_LONG / MAX_TURNS_REACHED / ABORTED / LLM 失败经 toAgentError 映射 429→LLM_RATE_LIMITED）、ipc/chat.ts 顶层 catch 归一化 + `chain()` 记因果链到日志
+- **联动 M9 铺路**：错误码是人格化道歉话术的分派依据（对照 lingxi "请以「您拒绝了…」开头回复"）；话术层本次未做，码已就位
+- **retryable 元数据**：每个码标注是否可自动重试（对照 M1 §5.1 可重试/不可重试分类），LLM_RATE_LIMITED/TOOL_TIMEOUT 可重试，配置/权限类不可重试
+- 单元测试 218 → 229（+11：错误码归一 / 因果链 / 脱敏 payload / LLMError 互操作）
+- 沉淀待补：错误体系方法论章节（独立新篇，下次写）
+
 ### Added — M6 权限安全：删除操作强制走回收站（2026-07-09）
 - **新增 file_delete 工具**：专用文件删除工具，默认所有删除操作走回收站（trash），用户可从系统回收站恢复
 - **白名单机制**：临时文件、构建产物（node_modules/.git/__pycache__/dist/build/tmp/.cache/.DS_Store 等）可永久删除，避免回收站污染

@@ -2,7 +2,9 @@ import { ipcMain } from 'electron'
 import { runtime } from '../agent/runtime'
 import { ToolRegistry } from '../tools/registry'
 import { createLogger } from '../utils/logger'
+import { toAgentError } from '../errs'
 import type { ChatMessage } from '../../../src/shared/types'
+import { toAgentError } from '../errs'
 
 const log = createLogger('ChatIPC')
 
@@ -36,9 +38,10 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
         emit(ev)
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      log.error('chat:send top-level error', { error: message })
-      emit({ type: 'error', message })
+      const agentErr = toAgentError(err)
+      log.error('chat:send top-level error', { error: agentErr.chain() })
+      const payload = agentErr.toEventPayload()
+      emit({ type: 'error', message: payload.message, code: payload.code })
       emit({ type: 'done', reason: 'model_error' })
     }
   })

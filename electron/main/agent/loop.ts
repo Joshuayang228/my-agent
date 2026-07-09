@@ -11,6 +11,7 @@ import { ToolRegistry } from '../tools/registry'
 import { checkToolPermission } from '../sandbox/permission-engine'
 import { createLogger } from '../utils/logger'
 import { sanitizeError } from '../utils/sanitize-error'
+import { AgentError, AgentErrorCode, toAgentError } from '../errs/index'
 import { startSpan, type SpanHandle } from '../utils/tracer'
 import { compressContext, emergencyTruncate, estimateTokens, DEFAULT_MAX_TOKENS } from './context-manager'
 import { sanitizeMessages } from './message-pipeline'
@@ -317,7 +318,7 @@ export async function* agentLoop(
             break
           }
           log.error('Reactive compact and emergency truncation both failed to reduce messages')
-          yield { type: 'error', message: '对话上下文过长，压缩后仍超限。请开始新对话。' }
+          yield { type: 'error', message: '对话上下文过长，压缩后仍超限。请开始新对话。', code: AgentErrorCode.CONTEXT_TOO_LONG }
           yield { type: 'done', reason: 'prompt_too_long' }
           return
         }
@@ -341,10 +342,10 @@ export async function* agentLoop(
     }
 
     if (lastErr) {
-      const raw = lastErr instanceof Error ? lastErr.message : String(lastErr)
-      log.error('LLM call failed', { duration: Date.now() - llmStart, error: raw })
-      llmSpan.end('error', raw)
-      yield { type: 'error', message: sanitizeError(raw) }
+      const agentErr = toAgentError(lastErr)
+      log.error('LLM call failed', { duration: Date.now() - llmStart, error: agentErr.chain() })
+      llmSpan.end('error', agentErr.message)
+      yield { type: 'error', ...agentErr.toEventPayload() }
       yield { type: 'done', reason: 'model_error' }
       return
     }
@@ -539,7 +540,11 @@ export async function* agentLoop(
   }
 
   log.warn(`Max turns reached (${maxIterations})`)
-  yield { type: 'error', message: `Agent 已达到最大迭代次数 (${maxIterations})，停止处理。` }
+  yield {
+    type: 'error',
+    message: `Agent 已达到最大迭代次数 (${maxIterations})，停止处理。`,
+    code: AgentErrorCode.MAX_TURNS_REACHED,
+  }
   yield { type: 'done', reason: 'max_turns' }
 }
 
@@ -548,7 +553,7 @@ async function* terminateLoop(
   reason: TerminalReason,
 ): AsyncGenerator<AgentStreamEvent> {
   if (reason === 'aborted') {
-    yield { type: 'error', message: 'Agent loop was cancelled' }
+    yield { type: 'error', message: 'Agent loop was cancelled', code: AgentErrorCode.ABORTED }
   }
   yield { type: 'done', reason }
 }
