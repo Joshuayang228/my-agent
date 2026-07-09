@@ -5,6 +5,16 @@
 
 ## [未发布]
 
+### Added — M6 权限安全：删除操作强制走回收站（2026-07-09）
+- **新增 file_delete 工具**：专用文件删除工具，默认所有删除操作走回收站（trash），用户可从系统回收站恢复
+- **白名单机制**：临时文件、构建产物（node_modules/.git/__pycache__/dist/build/tmp/.cache/.DS_Store 等）可永久删除，避免回收站污染
+- **审计日志**：logger 记录所有删除操作（路径、时间、删除方式、是否可恢复）
+- **对齐参考**：lingxi audit_lite.py 的 `sys.addaudithook` + send2trash 安全删除模式，Anthropic 桌面 AI 安全准则
+- **测试覆盖**：9 个单元测试（普通文件走回收站、白名单永久删除、目录删除、不存在路径、相对路径解析等）
+- 内置工具 21 → 22（新增 file_delete）
+- 单元测试 209 → 218（+9 file-delete）
+- 缺口文档：`methodology/gap-audit-2026-07.md` 缺口 3（M6 权限安全）部分完成——删除走回收站 ✅，AI 分类器/Deny-and-Continue/Denial Tracking 待后续
+
 ### Changed — M7 可观测性补做：日志文件落盘（G4，2026-07-08）
 - **日志落盘**：`logger.ts` 在 `log()` 内部加落盘层，与 console 并行——写入 `app.getPath('logs')/my-agent/agent-YYYY-MM-DD.log`，同步 `appendFileSync` 保证多次调用顺序，惰性初始化（首次写才解析目录并开文件）
 - **按日期轮转**：文件名含日期，启动时 `cleanupOldLogs` 删超过保留期（默认 7 天）的旧日志；纯逻辑 `selectExpiredLogs`（字典序=时间序）抽出便于单测，副作用（读目录/删文件）留在壳里

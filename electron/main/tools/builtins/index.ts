@@ -4,6 +4,7 @@ import { webSearchTool } from './web-search'
 import { fileReadTool } from './file-read'
 import { fileWriteTool } from './file-write'
 import { fileEditTool } from './file-edit'
+import { fileDeleteTool } from './file-delete'
 import { applyPatchTool } from './apply-patch'
 import { shellExecTool } from './shell-exec'
 import { rememberTool, recallTool, forgetTool } from './memory-manage'
@@ -22,6 +23,7 @@ export const builtinTools: ToolDefinition[] = [
   fileReadTool,
   fileWriteTool,
   fileEditTool,
+  fileDeleteTool,
   applyPatchTool,
   shellExecTool,
   codeSearchTool,

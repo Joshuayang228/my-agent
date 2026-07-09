@@ -4,7 +4,12 @@
 
 ## 当前状态
 
-**阶段**：P0 ~ P16 全部完成（P16 = 高级功能扩展）
+**阶段**：P0 ~ P16 全部完成 + 方法论缺口审计中（M6 安全补强进行中）
+
+**最新动态（2026-07-09）**：
+- ✅ 完成三源方法论缺口审计（learning-claude-code 14 章 / Anthropic 10 篇文章 / lingxi 生产 Go Agent）
+- ✅ 创建缺口文档 `methodology/gap-audit-2026-07.md`（带复选框 todo 清单）
+- ✅ M6 权限安全第一步：新增 `file_delete` 工具，删除操作强制走回收站（对齐 lingxi send2trash 模式）
 
 **已完成全部功能**：
 - 规则体系 + 技能文件设计
@@ -402,6 +407,8 @@
 | 2026-07-05 | M5 剩余 Gap 清理（G9 feedback 分类 / G3 记忆生命周期 / G8 死代码删除 / G7 澄清；G6 语义去重续缓），178 测试全过 | ✅ |
 | 2026-07-05 | M8 补齐（G4 权限只降不升 / G5 子Agent传toolContext / G6 角色系统 / G7 超时豁免 / Coordinator continue_task），202 测试全过；Swarm 占位 | ✅ |
 | 2026-07-08 | M7 补做 G4 日志文件落盘（logger 按日期分文件 + 7天轮转 + 无 Electron 环境降级不崩），209 测试全过；脱敏另算 | ✅ |
+| 2026-07-09 | 三源方法论缺口审计（learning-claude-code 14 章 / Anthropic 10 篇 / lingxi），产出 methodology/gap-audit-2026-07.md 带复选框 todo | ✅ |
+| 2026-07-09 | M6 安全补强第一步：file_delete 工具（删除走回收站 + 白名单永久删除 + 审计日志），218 测试全过；AI分类器/Deny-and-Continue 待做 | ✅ |
 | 2026-07-03 | Harness 重构：CLAUDE.md 升为唯一权威（硬约束常驻 + 场景索引），删 agent-harness.md，AGENTS/.cursor 改重定向入口，.cursor 旧规则归档 | ✅ |
 | 2026-07-03 | M5 记忆系统深啃（自我强化循环/老化告警/提取判据/双重注入去重，139 测试）+ 沉淀 m05 | ✅ |
 | - | 应用图标设计 + 安装包体积优化 | ⏳ |
