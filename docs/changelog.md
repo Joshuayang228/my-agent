@@ -5,6 +5,13 @@
 
 ## [未发布]
 
+### Changed — M6 Deny-and-Continue 权限拒绝改进（gap-audit 缺口 3，2026-07-09）
+- **拒绝提示改为"引导找替代方案"**：`buildDeniedToolsPromptSuffix` 与用户拒绝的 tool_result 措辞从"别再试（Do not attempt again）"改为"不要重试同一动作，换个方式或问用户怎么继续"——对照 Anthropic Auto Mode，拒绝不该只是堵死，而要引导 agent 找安全替代
+- **拒绝熔断**：新增连续/累计拒绝计数（`consecutiveDenials` / `totalDenials`），连续 ≥3 或累计 ≥20 次拒绝时终止循环，防 AI 无限撞墙烧 turn；连续计数在本轮有工具真正执行时清零（衡量"一直撞墙"），累计计数不清零（衡量"整场撞墙总量"）
+- **新增 TerminalReason `too_many_denials`**：与 max_turns 并列的终止原因；熔断时产出 `PERMISSION_DENIED` 码的 error 事件 + 人格化提示（"请调整权限设置，或换一种方式告诉我"）
+- 熔断计数覆盖两个拒绝点：权限引擎拒绝（`checkToolPermission` false）+ 用户确认拒绝（confirmTool false）
+- 单元测试 229 → 230（+1 连续拒绝熔断）
+
 ### Added — 独立错误体系（gap-audit 缺口 4，2026-07-09）
 - **`electron/main/errs/` 新模块**：`AgentError`（code + cause 因果链 + retryable 标记）+ `AgentErrorCode` 枚举（12 个码，均对应代码里真实抛错/终止场景，不凭空造）+ `toAgentError`（把任意 unknown 归一，含 LLMError duck-typing 互操作，避免 errs→llm 循环 import）
 - **错误码接入 error 事件**：`AgentStreamEvent` 的 `error` 分支加可选 `code?: string`（renderer 用 string 解耦，不依赖主进程枚举，同 `registry?: unknown` 模式）；前端可按 code 分派 UI（重试按钮/降级提示/人格化话术）

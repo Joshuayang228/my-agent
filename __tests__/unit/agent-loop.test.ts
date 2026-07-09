@@ -240,4 +240,40 @@ describe('agentLoop', () => {
     const doneEvent = events.find(e => e.type === 'done') as Extract<AgentStreamEvent, { type: 'done' }>
     expect(doneEvent?.reason).toBe('max_turns')
   })
+
+  it('Deny-and-Continue 熔断：连续多次拒绝后终止（too_many_denials）', async () => {
+    const destructiveTool: ToolDefinition = {
+      name: 'rm',
+      description: 'delete file',
+      parameters: { type: 'object', properties: { path: { type: 'string' } } },
+      metadata: { isReadOnly: false, isDestructive: true, isConcurrencySafe: false },
+      execute: async () => 'deleted',
+    }
+
+    // 每轮都要调破坏性工具，且用户每轮都拒绝 → 连续拒绝累积
+    mockStreamChat.mockImplementation(() =>
+      makeMockStream([], [{ id: `tc-${Math.random()}`, name: 'rm', arguments: '{"path":"/tmp/x"}' }]))
+
+    const registry = new ToolRegistry()
+    registry.register(destructiveTool)
+
+    // confirmTool 永远拒绝
+    const confirmTool = vi.fn().mockResolvedValue(false)
+
+    const options: AgentLoopOptions = {
+      config: testConfig,
+      messages: [userMsg('keep deleting')],
+      tools: registry.getAll(),
+      confirmTool,
+      maxIterations: 50, // 足够高，确保是熔断而非 max_turns 先触发
+    }
+
+    const events = await collectEvents(agentLoop(options, registry))
+
+    const doneEvent = events.find(e => e.type === 'done') as Extract<AgentStreamEvent, { type: 'done' }>
+    expect(doneEvent?.reason).toBe('too_many_denials')
+
+    // 连续拒绝阈值是 3，所以应在第 3 轮左右熔断，远早于 maxIterations=50
+    expect(confirmTool.mock.calls.length).toBeLessThanOrEqual(4)
+  })
 })

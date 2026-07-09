@@ -23,6 +23,10 @@ const MAX_LLM_RETRIES = 2
 const MAX_OUTPUT_RECOVERY_LIMIT = 2
 const MAX_CONSECUTIVE_COMPACT_FAILURES = 3
 const TOOL_TIMEOUT_MS = 30_000
+// Deny-and-Continue 熔断阈值（对照 Anthropic Auto Mode：连续 N 次 / 累计 M 次拒绝后终止，
+// 防止 AI 无限撞墙烧 turn；连续计数在有工具成功执行时清零）
+const MAX_CONSECUTIVE_DENIALS = 3
+const MAX_TOTAL_DENIALS = 20
 const DEFAULT_SYSTEM_PROMPT = `You are a helpful AI assistant. You have access to tools that you can use to help the user. When you need to perform actions, use the available tools. Always respond in the same language as the user.`
 
 // ── LoopState ──
@@ -38,6 +42,10 @@ interface LoopState {
   consecutiveCompactFailures: number
   deniedTools: Array<{ name: string; reason: string }>
   deniedCommands: Array<{ command: string; reason: string }>
+  /** Deny-and-Continue 熔断计数：连续拒绝次数（有工具成功执行则清零）*/
+  consecutiveDenials: number
+  /** Deny-and-Continue 熔断计数：本会话累计拒绝次数（只增不减）*/
+  totalDenials: number
   transition?: { reason: ContinueReason }
   /** 父 interaction span ID，用于嵌套子 span */
   interactionSpanId?: string
@@ -77,11 +85,11 @@ function buildDeniedToolsPromptSuffix(
   const parts: string[] = []
   if (deniedTools.length > 0) {
     const lines = deniedTools.map(d => `- ${d.name}: ${d.reason}`)
-    parts.push(`[System] The following tools were denied during this session. Do not attempt to call them again:\n${lines.join('\n')}`)
+    parts.push(`[System] The following tools were denied this session. Don't retry them as-is — instead, find a safer alternative that achieves the user's goal, or explain to the user what you'd need to proceed:\n${lines.join('\n')}`)
   }
   if (deniedCommands.length > 0) {
     const lines = deniedCommands.map(d => `- ${d.command}: ${d.reason}`)
-    parts.push(`[System] The following commands were blocked by the sandbox this session. Do not run them again; try a different approach:\n${lines.join('\n')}`)
+    parts.push(`[System] The following commands were blocked by the sandbox this session. Don't rerun them — reach the goal a different way (a safer command, a dedicated tool, or ask the user to adjust the sandbox):\n${lines.join('\n')}`)
   }
   return `\n\n${parts.join('\n\n')}`
 }
@@ -149,6 +157,8 @@ export async function* agentLoop(
     consecutiveCompactFailures: 0,
     deniedTools: [],
     deniedCommands: [],
+    consecutiveDenials: 0,
+    totalDenials: 0,
     interactionSpanId,  // 挂载父 span ID，loop 内的子 span 都会以此为 parentId
   }
 
@@ -424,6 +434,9 @@ export async function* agentLoop(
         if (!state.deniedTools.some(d => d.name === call.name)) {
           state.deniedTools.push({ name: call.name, reason: permResult.reason || 'blocked by policy' })
         }
+        // Deny-and-Continue 熔断计数：连续 + 累计（对照 Anthropic Auto Mode）
+        state.consecutiveDenials++
+        state.totalDenials++
         continue
       }
 
@@ -443,14 +456,23 @@ export async function* agentLoop(
         blockedSpan.end('ok')
         if (!approved) {
           log.info(`Tool rejected by user: ${call.name}`, { callId: call.id, executionMode })
-          results.push({ callId: call.id, name: call.name, content: 'User denied execution of this tool.', isError: true })
+          results.push({ callId: call.id, name: call.name, content: 'User denied execution of this tool. Do not retry this exact action — acknowledge the decision and either proceed differently or ask the user how to continue.', isError: true })
           yield { type: 'tool_end', callId: call.id, name: call.name, result: 'User denied execution.', isError: true }
           skippedCallIds.add(call.id)
+          // Deny-and-Continue 熔断计数
+          state.consecutiveDenials++
+          state.totalDenials++
         }
       }
     }
 
     const pendingCalls = toolCalls.filter((c) => !skippedCallIds.has(c.id))
+
+    // Deny-and-Continue：本轮有工具真正执行 → 连续拒绝计数清零（累计计数不清）。
+    // 连续计数衡量"一直撞墙"，一旦有成功推进就重置；累计计数衡量"整场撞墙总量"，不重置。
+    if (pendingCalls.length > 0) {
+      state.consecutiveDenials = 0
+    }
 
     // ── abort 后合成 synthetic tool_result ──
     if (signal?.aborted) {
@@ -531,6 +553,25 @@ export async function* agentLoop(
           log.info('Blocked command tracked for denial injection', { command: blocked.command, reason: blocked.reason })
         }
       }
+    }
+
+    // ── Deny-and-Continue 熔断：连续或累计拒绝过多 → 终止，防 AI 无限撞墙烧 turn ──
+    // 对照 Anthropic Auto Mode：拒绝不中断，但撞墙到阈值必须停，把决定权交回用户。
+    if (
+      state.consecutiveDenials >= MAX_CONSECUTIVE_DENIALS ||
+      state.totalDenials >= MAX_TOTAL_DENIALS
+    ) {
+      log.warn('Too many denials — terminating loop', {
+        consecutive: state.consecutiveDenials,
+        total: state.totalDenials,
+      })
+      yield {
+        type: 'error',
+        message: '连续多次操作被拒绝或需要授权，已停止本轮处理。请调整权限设置，或换一种方式告诉我你想怎么做。',
+        code: AgentErrorCode.PERMISSION_DENIED,
+      }
+      yield { type: 'done', reason: 'too_many_denials' }
+      return
     }
 
     log.debug('Context updated, entering next turn', {

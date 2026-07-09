@@ -41,9 +41,14 @@
 - ✅ 审计日志：记录所有删除操作（路径、时间、是否可恢复）
 - ✅ 单元测试 9 个全部通过
 
+**Deny-and-Continue（2026-07-09，commit 待提交）**：
+- [x] 拒绝提示词从"别再试"改为"引导找替代方案"（`buildDeniedToolsPromptSuffix` + 用户拒绝的 tool_result 措辞）
+- [x] 拒绝熔断计数：连续 `MAX_CONSECUTIVE_DENIALS=3` / 累计 `MAX_TOTAL_DENIALS=20` → 终止（新 TerminalReason `too_many_denials`），防 AI 无限撞墙烧 turn
+- [x] 连续计数在有工具真正执行时清零，累计计数不清（连续=一直撞墙，累计=整场撞墙总量）
+- [x] 单元测试 1 个（连续拒绝触发熔断）
+
 **待完成部分**：
 - [ ] AI 分类器替代硬规则（Auto Mode）
-- [ ] Deny-and-Continue 模式（拒绝后引导寻找替代方案）
 - [ ] 输入层注入探针（工具结果进入上下文前扫描）
 - [ ] Denial Tracking 自动降级（连续拒绝后从 auto 降回 ask）
 
