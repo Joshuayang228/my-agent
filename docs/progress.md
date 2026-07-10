@@ -12,6 +12,7 @@
 - ✅ M6 权限安全第一步：新增 `file_delete` 工具，删除操作强制走回收站（对齐 lingxi send2trash 模式）
 - ✅ 缺口 4 错误体系：新增 `electron/main/errs/`（AgentErrorCode 枚举 + AgentError 因果链 + toAgentError 归一 + 错误码入 error 事件），229 测试全过
 - ✅ M6 Deny-and-Continue：拒绝提示改"引导找替代方案"（不再是"别再试"）+ 拒绝熔断（连续 3 次/累计 20 次终止，新增 too_many_denials 终止原因），230 测试全过
+- ✅ 重试判断对齐错误体系（isRetryableError 用 AgentError.retryable）+ MCP 工具描述截断 2048 防污染
 
 **已完成全部功能**：
 - 规则体系 + 技能文件设计

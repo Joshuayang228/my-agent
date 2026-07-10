@@ -15,6 +15,16 @@ const log = createLogger('MCPBridge')
 
 const MCP_TOOL_PREFIX = 'mcp'
 
+// MCP 工具描述截断上限（对照 CC learning-claude-code 08-mcp：OpenAPI 生成的工具描述可达
+// 15-60KB，全量注入会污染上下文、挤占 token）。超限截断并标注，避免单个外部工具撑爆预算。
+const MAX_TOOL_DESCRIPTION_LENGTH = 2048
+
+/** 截断过长的工具描述，尾部标注被截断（防 MCP 生态接入后超长 description 污染上下文）*/
+function truncateDescription(desc: string): string {
+  if (desc.length <= MAX_TOOL_DESCRIPTION_LENGTH) return desc
+  return desc.slice(0, MAX_TOOL_DESCRIPTION_LENGTH) + '…[description truncated]'
+}
+
 export function mcpToolFullName(serverId: string, toolName: string): string {
   return `${MCP_TOOL_PREFIX}:${serverId}:${toolName}`
 }
@@ -40,7 +50,7 @@ function mcpToolToDefinition(tool: McpTool): ToolDefinition {
 
   return {
     name: fullName,
-    description: `[${tool.serverName}] ${tool.description}`,
+    description: truncateDescription(`[${tool.serverName}] ${tool.description}`),
     parameters: {
       type: 'object',
       properties: schema.properties ?? {},

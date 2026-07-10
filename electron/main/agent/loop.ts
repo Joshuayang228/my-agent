@@ -54,6 +54,13 @@ interface LoopState {
 // ── Helpers ──
 
 function isRetryableError(err: unknown): boolean {
+  // 优先用错误体系的 retryable 元数据（结构化判断，对照 lingxi retrier.go 错误码白名单）
+  if (err instanceof AgentError) return err.retryable
+  // LLMError duck-typing：429 = 限流可重试
+  if (err instanceof Error && typeof (err as { status?: unknown }).status === 'number') {
+    return toAgentError(err).retryable
+  }
+  // 兜底：字符串匹配（覆盖未经包装的网络错误）
   if (!(err instanceof Error)) return false
   const msg = err.message.toLowerCase()
   return msg.includes('fetch failed') || msg.includes('network') ||

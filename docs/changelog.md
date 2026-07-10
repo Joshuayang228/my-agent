@@ -5,6 +5,10 @@
 
 ## [未发布]
 
+### Changed — 重试判断对齐错误体系 + MCP 描述截断（2026-07-09）
+- `isRetryableError` 优先用 `AgentError.retryable` 元数据判断（结构化白名单，对照 lingxi retrier.go），字符串匹配仅作兜底
+- MCP bridge 加 `MAX_TOOL_DESCRIPTION_LENGTH=2048` 截断（防 OpenAPI 生成的超长 description 污染上下文，对照 CC 08-mcp 章）
+
 ### Changed — M6 Deny-and-Continue 权限拒绝改进（gap-audit 缺口 3，2026-07-09）
 - **拒绝提示改为"引导找替代方案"**：`buildDeniedToolsPromptSuffix` 与用户拒绝的 tool_result 措辞从"别再试（Do not attempt again）"改为"不要重试同一动作，换个方式或问用户怎么继续"——对照 Anthropic Auto Mode，拒绝不该只是堵死，而要引导 agent 找安全替代
 - **拒绝熔断**：新增连续/累计拒绝计数（`consecutiveDenials` / `totalDenials`），连续 ≥3 或累计 ≥20 次拒绝时终止循环，防 AI 无限撞墙烧 turn；连续计数在本轮有工具真正执行时清零（衡量"一直撞墙"），累计计数不清零（衡量"整场撞墙总量"）
