@@ -44,6 +44,10 @@ Optional: Use line_start/line_end parameters to read specific line ranges from l
     },
     required: ['path'],
   },
+  inputExamples: [
+    { path: 'src/main.ts' },
+    { path: 'electron/main/agent/loop.ts', line_start: '100', line_end: '160' },
+  ],
   metadata: {
     isReadOnly: true,
     isConcurrencySafe: true,

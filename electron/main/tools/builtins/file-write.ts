@@ -76,6 +76,10 @@ CAUTION: This is a destructive operation. Double-check the path and content befo
     },
     required: ['path', 'content'],
   },
+  inputExamples: [
+    { path: 'notes/todo.md', content: '# TODO\n- item 1\n' },
+    { path: 'logs/run.log', content: 'appended line\n', append: 'true' },
+  ],
   metadata: {
     isDestructive: true,
   },

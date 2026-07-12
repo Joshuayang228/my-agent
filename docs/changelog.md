@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — M2 Tool Use Examples（gap-audit 缺口 M2，2026-07-09）
+- `ToolDefinition` / `ToolDef` 加 `inputExamples?: Array<Record<string, unknown>>`，序列化时由 `appendExamplesToDescription` 拼到 description 末尾（拼文本对 OpenAI/Anthropic/Gemini 通用，不依赖 provider 专属字段；provider-router 从 OpenAI 格式二次转换，一处改动全 provider 生效）
+- 对照 Anthropic Advanced Tool Use：input_examples 使工具调用准确率 72%→90%
+- 5 个高频工具已补示例：file_read（全量/行范围）、file_write（覆盖/追加）、file_edit（替换/删除）、code_search（文本/regex+扩展名）
+- 新增 4 个单测（tool-examples.test.ts），234 测试全过
+
 ### Changed — 重试判断对齐错误体系 + MCP 描述截断（2026-07-09）
 - `isRetryableError` 优先用 `AgentError.retryable` 元数据判断（结构化白名单，对照 lingxi retrier.go），字符串匹配仅作兜底
 - MCP bridge 加 `MAX_TOOL_DESCRIPTION_LENGTH=2048` 截断（防 OpenAPI 生成的超长 description 污染上下文，对照 CC 08-mcp 章）

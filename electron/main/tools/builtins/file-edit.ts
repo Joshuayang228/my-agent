@@ -92,6 +92,10 @@ Sandbox: Respects current sandbox mode (blocks writes outside workspace in works
     },
     required: ['path', 'old_str', 'new_str'],
   },
+  inputExamples: [
+    { path: 'src/config.ts', old_str: 'const PORT = 3000', new_str: 'const PORT = 8080' },
+    { path: 'src/app.ts', old_str: 'import { debug } from "./debug"\n', new_str: '', count: 1 },
+  ],
   metadata: {
     isDestructive: true,
   },

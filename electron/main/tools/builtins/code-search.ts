@@ -158,6 +158,10 @@ Returns: Up to 50 matches with file paths, line numbers, and context. Truncated 
     },
     required: ['query'],
   },
+  inputExamples: [
+    { query: 'buildSystemPrompt' },
+    { query: 'export function \\w+', file_extension: '.ts', is_regex: 'true' },
+  ],
   metadata: {
     isReadOnly: true,
     isConcurrencySafe: true,

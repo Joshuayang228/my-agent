@@ -78,6 +78,12 @@ export interface ToolDefinition {
    * 特殊值：Infinity = 永不落盘（如 file_read，防止循环：读文件 → 写临时文件 → 读临时文件）
    */
   maxResultSizeChars?: number
+  /**
+   * 工具调用示例（对照 Anthropic Advanced Tool Use：input_examples 使调用准确率 72%→90%）。
+   * 每个示例是一组合法的参数对象，展示参数格式约定 / 可选参数组合 / 嵌套结构用法。
+   * 序列化时追加到 description 末尾（拼文本对所有 provider 通用，不依赖某 provider 的特殊字段）。
+   */
+  inputExamples?: Array<Record<string, unknown>>
 }
 
 /**
@@ -94,6 +100,7 @@ export interface ToolDef {
   metadata?: Partial<ToolMetadata>
   execute: ToolDefinition['execute']
   maxResultSizeChars?: number
+  inputExamples?: Array<Record<string, unknown>>
 }
 
 export interface ToolMetadata {

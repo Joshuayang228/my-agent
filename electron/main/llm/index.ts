@@ -392,13 +392,27 @@ function hasImages(messages: ChatMessage[]): boolean {
   return messages.some(m => m.images && m.images.length > 0)
 }
 
+/**
+ * 把 inputExamples 拼到 description 末尾。
+ * 拼文本对所有 provider 通用（OpenAI/Anthropic/Gemini），不依赖某 provider 的专属字段。
+ * 对照 Anthropic Advanced Tool Use：展示参数示例使工具调用准确率 72%→90%。
+ * 导出供单测（纯函数）。
+ */
+export function appendExamplesToDescription(tool: ToolDefinition): string {
+  if (!tool.inputExamples || tool.inputExamples.length === 0) return tool.description
+  const examples = tool.inputExamples
+    .map((ex, i) => `Example ${i + 1}: ${JSON.stringify(ex)}`)
+    .join('\n')
+  return `${tool.description}\n\nExample inputs:\n${examples}`
+}
+
 /** 将我们的 ToolDefinition 转为 OpenAI tools 格式 */
 function toOpenAITool(tool: ToolDefinition): Record<string, unknown> {
   return {
     type: 'function',
     function: {
       name: tool.name,
-      description: tool.description,
+      description: appendExamplesToDescription(tool),
       parameters: tool.parameters,
     },
   }

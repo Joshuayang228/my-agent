@@ -13,6 +13,7 @@
 - ✅ 缺口 4 错误体系：新增 `electron/main/errs/`（AgentErrorCode 枚举 + AgentError 因果链 + toAgentError 归一 + 错误码入 error 事件），229 测试全过
 - ✅ M6 Deny-and-Continue：拒绝提示改"引导找替代方案"（不再是"别再试"）+ 拒绝熔断（连续 3 次/累计 20 次终止，新增 too_many_denials 终止原因），230 测试全过
 - ✅ 重试判断对齐错误体系（isRetryableError 用 AgentError.retryable）+ MCP 工具描述截断 2048 防污染
+- ✅ M2 Tool Use Examples：ToolDefinition.inputExamples 拼进 description（准确率 72%→90%），5 个高频工具已补，234 测试全过
 
 **已完成全部功能**：
 - 规则体系 + 技能文件设计
@@ -413,6 +414,7 @@
 | 2026-07-09 | 三源方法论缺口审计（learning-claude-code 14 章 / Anthropic 10 篇 / lingxi），产出 methodology/gap-audit-2026-07.md 带复选框 todo | ✅ |
 | 2026-07-09 | M6 安全补强第一步：file_delete 工具（删除走回收站 + 白名单永久删除 + 审计日志），218 测试全过；AI分类器/Deny-and-Continue 待做 | ✅ |
 | 2026-07-09 | 独立错误体系（缺口 4）：errs/ 模块 AgentError + AgentErrorCode 枚举 + 因果链 + 归一化，接入 runtime/loop/chat 抛错点，error 事件带 code，229 测试全过 | ✅ |
+| 2026-07-09 | M2 Tool Use Examples（缺口 M2）：ToolDefinition.inputExamples 拼进 description（准确率 72%→90%），5 个高频工具已补，234 测试全过 | ✅ |
 | 2026-07-09 | M6 Deny-and-Continue（缺口 3）：拒绝提示改为引导找替代方案 + 拒绝熔断（连续 3/累计 20 → too_many_denials 终止），防 AI 无限撞墙烧 turn，230 测试全过 | ✅ |
 | 2026-07-03 | Harness 重构：CLAUDE.md 升为唯一权威（硬约束常驻 + 场景索引），删 agent-harness.md，AGENTS/.cursor 改重定向入口，.cursor 旧规则归档 | ✅ |
 | 2026-07-03 | M5 记忆系统深啃（自我强化循环/老化告警/提取判据/双重注入去重，139 测试）+ 沉淀 m05 | ✅ |
