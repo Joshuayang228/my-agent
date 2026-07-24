@@ -92,6 +92,7 @@ function App() {
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
   const [approvalMode, setApprovalMode] = useState<'confirm-all' | 'auto' | 'full-access'>('confirm-all')
   const [approvalMenuOpen, setApprovalMenuOpen] = useState(false)
+  const [modeChangeNotice, setModeChangeNotice] = useState<string | null>(null)
   const [currentProject, setCurrentProject] = useState<{ path: string; name: string } | null>(null)
   const [recentProjects, setRecentProjects] = useState<{ path: string; name: string }[]>([])
   const [projectMenuOpen, setProjectMenuOpen] = useState(false)
@@ -292,6 +293,7 @@ function App() {
       : ev.type === 'tool_start' ? `${ev.name}(${JSON.stringify(ev.args).slice(0, 60)})`
       : ev.type === 'tool_end' ? `${ev.name} → ${ev.isError ? 'ERR' : 'OK'}`
       : ev.type === 'error' ? ev.message
+      : ev.type === 'execution_mode_changed' ? `${ev.mode}: ${ev.reason}`
       : ev.type === 'usage' ? `in:${ev.promptTokens} out:${ev.completionTokens}`
       : ev.type === 'thinking' ? ev.content.slice(0, 80)
       : ''
@@ -378,7 +380,18 @@ function App() {
           }
           return [...prev, { id: genId(), role: 'assistant', content: `⚠️ ${ev.message}`, timestamp: Date.now() }]
         })
+        if (ev.code === 'PERMISSION_DENIED') {
+          setModeChangeNotice('操作被权限策略拒绝。可以在输入区切换审批模式，或让 Agent 尝试更安全的替代方案。')
+        } else if (ev.code === 'LLM_RATE_LIMITED' || ev.code === 'LLM_REQUEST_FAILED' || ev.code === 'TOOL_TIMEOUT') {
+          setModeChangeNotice('请求暂时失败，可以稍后重试。')
+        }
         setIsStreaming(false)
+        break
+
+      case 'execution_mode_changed':
+        setApprovalMode(ev.mode === 'plan-first' ? 'confirm-all' : ev.mode)
+        setModeChangeNotice(ev.reason)
+        toast(ev.reason, 'warning')
         break
 
       case 'done':
@@ -1187,6 +1200,12 @@ function App() {
             )}
 
             {/* 输入卡片 */}
+            {modeChangeNotice && (
+              <div className="mb-2 flex items-center justify-between rounded-md border px-3 py-2 text-xs" style={{ borderColor: 'var(--warning)', color: 'var(--text-secondary)', background: 'var(--bg-secondary)' }}>
+                <span>{modeChangeNotice}</span>
+                <button onClick={() => setModeChangeNotice(null)} title="关闭提示" style={{ color: 'var(--text-muted)' }}><X size={13} /></button>
+              </div>
+            )}
             <div className="relative rounded-xl border shadow-sm" style={{ borderColor: 'var(--border-color)', background: 'var(--card-bg)' }}>
               {/* 引用文件标签 */}
               {mentionedFiles.length > 0 && (

@@ -46,11 +46,11 @@
 - [x] 拒绝熔断计数：连续 `MAX_CONSECUTIVE_DENIALS=3` / 累计 `MAX_TOTAL_DENIALS=20` → 终止（新 TerminalReason `too_many_denials`），防 AI 无限撞墙烧 turn
 - [x] 连续计数在有工具真正执行时清零，累计计数不清（连续=一直撞墙，累计=整场撞墙总量）
 - [x] 单元测试 1 个（连续拒绝触发熔断）
+- [x] Denial Tracking 自动降级：`auto` 模式连续 3 次拒绝后切换为 `confirm-all`，通过 `execution_mode_changed` 事件通知前端并持久化设置
 
 **待完成部分**：
 - [ ] AI 分类器替代硬规则（Auto Mode）
 - [ ] 输入层注入探针（工具结果进入上下文前扫描）
-- [ ] Denial Tracking 自动降级（连续拒绝后从 auto 降回 ask）
 
 ### [~] 4. 独立错误体系 —— 后端已落地（2026-07-09，commit bfd1beb）
 Code 枚举 + 因果链保留（Wrap/Unwrap）+ **错误可直接作为 UI 事件**。联动 M9——错误码驱动人格化道歉话术（"您拒绝了…"）。我们方法论连章节都没有。
@@ -60,8 +60,8 @@ Code 枚举 + 因果链保留（Wrap/Unwrap）+ **错误可直接作为 UI 事�
 - [x] `error` 事件加 `code?: string`（renderer 解耦，不依赖主进程枚举）；runtime/loop/chat 的抛错点全部接上错误码
 - [x] `chain()` 沿 cause 链收集诊断信息（仅内部日志）；`toEventPayload()` 脱敏 message + code 给前端
 - [x] 11 个单测（errs.test.ts）
-- [ ] **前端按 code 分派 UI**（重试按钮 / 降级提示）—— 待做
-- [ ] **联动 M9 人格化道歉话术**（错误码 → 语气模板）—— 待做，需和人格引擎一起设计
+- [x] **前端按 code 分派 UI**：权限拒绝显示调整审批模式/替代方案提示；限流、LLM 失败、工具超时显示可重试提示
+- [ ] **联动 M9 人格化道歉话术**（错误码 → 语气模板）——待人格引擎一起设计
 
 ## 🟡 第二梯队：已有模块的明确盲点
 

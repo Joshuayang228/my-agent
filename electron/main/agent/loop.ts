@@ -146,6 +146,9 @@ export async function* agentLoop(
     interactionSpanId,
   } = options
 
+  // 运行时有效模式可因连续拒绝自动收紧；只允许从 auto 降到 confirm-all，不提升权限。
+  let effectiveExecutionMode = executionMode
+
   log.info('Loop started', {
     model: config.model,
     messageCount: inputMessages.length,
@@ -167,6 +170,36 @@ export async function* agentLoop(
     consecutiveDenials: 0,
     totalDenials: 0,
     interactionSpanId,  // 挂载父 span ID，loop 内的子 span 都会以此为 parentId
+  }
+
+  /**
+   * 连续拒绝达到预警阈值时收紧执行模式，防止 auto 模式反复撞同一权限边界。
+   *
+   * 背景：Deny-and-Continue 允许 Agent 换方案，但连续拒绝说明当前自动授权策略
+   * 与用户边界不匹配，继续保持 auto 会重复弹窗或重复失败。
+   * 策略：只把用户选择的 auto 降为 confirm-all，不改变 confirm-all/plan-first，
+   * 并通过事件让 Runtime 持久化、Renderer 展示；达到熔断阈值前仍保留一次替代方案机会。
+   * 调用方：每个权限拒绝点之后。
+   * 边界情况：同一轮多个拒绝只发一次事件；已经降级或非 auto 模式返回 null。
+   */
+  const maybeDowngradeExecutionMode = (): AgentStreamEvent | null => {
+    if (
+      effectiveExecutionMode !== 'auto' ||
+      state.consecutiveDenials < MAX_CONSECUTIVE_DENIALS
+    ) return null
+
+    effectiveExecutionMode = 'confirm-all'
+    if (toolContext) toolContext.executionMode = effectiveExecutionMode
+    log.warn('Execution mode downgraded after repeated denials', {
+      from: executionMode,
+      to: effectiveExecutionMode,
+      consecutiveDenials: state.consecutiveDenials,
+    })
+    return {
+      type: 'execution_mode_changed',
+      mode: effectiveExecutionMode,
+      reason: '连续多次操作被拒绝，已自动切换为全部确认模式。',
+    }
   }
 
   while (state.turnCount < maxIterations) {
@@ -448,9 +481,9 @@ export async function* agentLoop(
       }
 
       const needsConfirm =
-        executionMode === 'confirm-all' ||
+        effectiveExecutionMode === 'confirm-all' ||
         permResult.allowed === 'needs_approval' ||
-        ((executionMode === 'auto' || executionMode === 'plan-first') && registry.get(call.name)?.metadata.isDestructive)
+        ((effectiveExecutionMode === 'auto' || effectiveExecutionMode === 'plan-first') && registry.get(call.name)?.metadata.isDestructive)
 
       if (needsConfirm && confirmTool) {
         // G2: blocked_on_user 独立计时 — Alice Ch.13 核心要求
@@ -479,6 +512,9 @@ export async function* agentLoop(
     // 连续计数衡量"一直撞墙"，一旦有成功推进就重置；累计计数衡量"整场撞墙总量"，不重置。
     if (pendingCalls.length > 0) {
       state.consecutiveDenials = 0
+    } else {
+      const modeChanged = maybeDowngradeExecutionMode()
+      if (modeChanged) yield modeChanged
     }
 
     // ── abort 后合成 synthetic tool_result ──

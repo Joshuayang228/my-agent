@@ -207,6 +207,7 @@ export type AgentStreamEvent =
   | { type: 'tool_confirm'; callId: string; name: string; args: Record<string, unknown> }
   | { type: 'usage'; promptTokens: number; completionTokens: number }
   | { type: 'error'; message: string; code?: string }
+  | { type: 'execution_mode_changed'; mode: ExecutionMode; reason: string }
   | { type: 'done'; reason: TerminalReason }
 
 // ── 人格 ──

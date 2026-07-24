@@ -273,6 +273,13 @@ describe('agentLoop', () => {
     const doneEvent = events.find(e => e.type === 'done') as Extract<AgentStreamEvent, { type: 'done' }>
     expect(doneEvent?.reason).toBe('too_many_denials')
 
+    const modeEvent = events.find(e => e.type === 'execution_mode_changed') as Extract<AgentStreamEvent, { type: 'execution_mode_changed' }>
+    expect(modeEvent).toEqual({
+      type: 'execution_mode_changed',
+      mode: 'confirm-all',
+      reason: '连续多次操作被拒绝，已自动切换为全部确认模式。',
+    })
+
     // 连续拒绝阈值是 3，所以应在第 3 轮左右熔断，远早于 maxIterations=50
     expect(confirmTool.mock.calls.length).toBeLessThanOrEqual(4)
   })

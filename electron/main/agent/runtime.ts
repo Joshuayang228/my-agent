@@ -205,6 +205,15 @@ class AgentRuntime {
 
       // ── 消费事件流 ──
       for await (const ev of stream) {
+        if (ev.type === 'execution_mode_changed') {
+          // 安全降级必须跨当前 loop 生效到后续请求，避免下次对话又恢复 auto。
+          await settings.setSetting('executionMode', ev.mode)
+          log.warn('Execution mode persisted after runtime downgrade', {
+            sessionId,
+            mode: ev.mode,
+            reason: ev.reason,
+          })
+        }
         yield { ...ev, sessionId } as AgentStreamEvent & { sessionId: string }
 
         if (ev.type === 'text') {

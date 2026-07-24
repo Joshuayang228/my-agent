@@ -5,7 +5,7 @@
  * 落盘本身依赖 electron app.getPath('logs')，测试环境拿不到 → 应降级为仅 console 不崩。
  */
 import { describe, it, expect, vi } from 'vitest'
-import { createLogger, selectExpiredLogs, setLogLevel } from '../../electron/main/utils/logger'
+import { createLogger, sanitizeLogData, selectExpiredLogs, setLogLevel } from '../../electron/main/utils/logger'
 
 describe('G4: selectExpiredLogs 日志轮转保留', () => {
   it('文件数不超过 maxDays 时不删', () => {
@@ -72,5 +72,27 @@ describe('G4: createLogger 无 electron 环境降级', () => {
 
     spy.mockRestore()
     setLogLevel('info')  // 复原
+  })
+
+  it('递归脱敏敏感字段和常见凭据文本', () => {
+    const circular: Record<string, unknown> = {
+      apiKey: 'sk-test-secret-value',
+      nested: {
+        authorization: 'Bearer abcdefghijklmnop',
+        note: 'request failed for https://api.example.com/v1/chat?token=secret-value',
+      },
+      values: ['ghp_1234567890abcdef', 'ordinary text'],
+    }
+    circular.self = circular
+
+    expect(sanitizeLogData(circular)).toEqual({
+      apiKey: '[REDACTED]',
+      nested: {
+        authorization: '[REDACTED]',
+        note: 'request failed for https://api.example.com/v1/chat?token=[REDACTED]',
+      },
+      values: ['[REDACTED]', 'ordinary text'],
+      self: '[Circular]',
+    })
   })
 })

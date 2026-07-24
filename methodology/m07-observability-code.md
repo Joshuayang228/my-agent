@@ -608,7 +608,7 @@ function cleanupOldLogs(dir: string): void {
 
 ### 4. 脱敏为什么另算
 
-落盘层目前**不过滤** `data` 里的敏感字段（API key / token）。§八 隐私原则要求"记元数据不记内容"，但强制脱敏需要在写盘前对 `data` 做递归字段扫描（识别 `sk-` 前缀、`apiKey`/`token`/`password` 键名），是独立一小块。当前先落地"能持久化"，脱敏作为后续独立任务——检查清单第 7 条留了锚点。
+落盘层已在写入前统一过滤敏感字段（API key / token / password / Authorization 等）和常见凭据前缀，console 与文件日志使用同一份脱敏数据。`sanitizeLogData` 递归处理嵌套对象、数组、URL 敏感参数和循环引用，避免日志成为凭据泄漏路径。
 
 ---
 

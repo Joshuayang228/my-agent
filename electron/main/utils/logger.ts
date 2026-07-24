@@ -90,6 +90,39 @@ function writeToFile(line: string): void {
   } catch { /* 落盘失败不影响 console 输出 */ }
 }
 
+const SENSITIVE_KEY_PATTERN = /^(?:api[-_]?key|apikey|access[-_]?token|accesstoken|auth(?:orization)?|bearer|client[-_]?secret|clientsecret|credential|password|refresh[-_]?token|refreshtoken|secret|token)$/i
+const SENSITIVE_VALUE_PATTERN = /(?:Bearer\s+|sk-(?:ant-)?|gh[pousr]_|github_pat_|xox[baprs]-)[A-Za-z0-9._~+/=-]{8,}/gi
+const SENSITIVE_URL_PARAM_PATTERN = /([?&](?:api[-_]?key|access[-_]?token|token|secret|password)=)[^&#\s"']+/gi
+
+/**
+ * 脱敏日志字段，避免 console 和落盘日志成为凭据泄漏路径。
+ *
+ * 背景：日志会同时输出到开发者控制台和本地文件，工具参数、LLM 错误和 MCP
+ * 返回值都可能意外携带 API key 或 token。
+ * 策略：敏感字段名直接替换，普通字符串再扫描常见凭据前缀；递归处理数组和对象。
+ * 约束：只接收 JSON-like 数据，不修改调用方对象；循环引用由占位文本收敛。
+ * 调用方：createLogger 的 console 与文件输出入口。
+ * 边界情况：undefined、BigInt、循环引用和序列化失败均不抛错。
+ */
+export function sanitizeLogData(value: unknown, key?: string, seen = new WeakSet<object>()): unknown {
+  if (key && SENSITIVE_KEY_PATTERN.test(key)) return '[REDACTED]'
+  if (typeof value === 'string') return value
+    .replace(SENSITIVE_VALUE_PATTERN, '[REDACTED]')
+    .replace(SENSITIVE_URL_PARAM_PATTERN, '$1[REDACTED]')
+  if (typeof value === 'bigint') return `${value}n`
+  if (value === null || typeof value !== 'object') return value
+  if (seen.has(value)) return '[Circular]'
+  seen.add(value)
+
+  if (Array.isArray(value)) return value.map(item => sanitizeLogData(item, undefined, seen))
+
+  const result: Record<string, unknown> = {}
+  for (const [childKey, childValue] of Object.entries(value)) {
+    result[childKey] = sanitizeLogData(childValue, childKey, seen)
+  }
+  return result
+}
+
 export function createLogger(module: string) {
   function log(level: LogLevel, message: string, data?: Record<string, unknown>): void {
     if (LEVEL_PRIORITY[level] < LEVEL_PRIORITY[globalLevel]) return
@@ -97,15 +130,20 @@ export function createLogger(module: string) {
     const time = new Date().toISOString().slice(11, 23)
     const color = LEVEL_COLORS[level]
     const prefix = `${color}[${time}] [${level.toUpperCase()}] [${module}]${RESET}`
+    // console 与落盘必须使用同一份脱敏数据，避免只保护文件日志而泄漏到开发者控制台。
+    const safeMessage = message
+      .replace(SENSITIVE_VALUE_PATTERN, '[REDACTED]')
+      .replace(SENSITIVE_URL_PARAM_PATTERN, '$1[REDACTED]')
+    const safeData = data ? sanitizeLogData(data) as Record<string, unknown> : undefined
     // 落盘用无颜色前缀
     const plainPrefix = `[${time}] [${level.toUpperCase()}] [${module}]`
 
-    if (data && Object.keys(data).length > 0) {
-      console.log(`${prefix} ${message}`, data)
-      writeToFile(`${plainPrefix} ${message} ${safeStringify(data)}`)
+    if (safeData && Object.keys(safeData).length > 0) {
+      console.log(`${prefix} ${safeMessage}`, safeData)
+      writeToFile(`${plainPrefix} ${safeMessage} ${safeStringify(safeData)}`)
     } else {
-      console.log(`${prefix} ${message}`)
-      writeToFile(`${plainPrefix} ${message}`)
+      console.log(`${prefix} ${safeMessage}`)
+      writeToFile(`${plainPrefix} ${safeMessage}`)
     }
   }
 

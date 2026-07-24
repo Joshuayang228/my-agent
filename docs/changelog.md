@@ -5,6 +5,13 @@
 
 ## [未发布]
 
+### Changed — Eval 前置安全与错误体验收口（2026-07-25）
+- 日志统一脱敏：敏感字段、常见 API key/token、Bearer 凭据和 URL 敏感参数在 console 与文件日志中统一替换，支持嵌套对象、循环引用和 BigInt。
+- `auto` 执行模式连续 3 次拒绝后自动降为 `confirm-all`，通过 `execution_mode_changed` 事件通知前端并持久化，防止自动模式反复撞权限边界。
+- 前端按错误码分派提示：权限拒绝提供审批模式/安全替代方案引导，限流、LLM 失败和工具超时提示可重试。
+- 修复 Electron 构建阻断：移除 `ipc/chat.ts` 重复导入的 `toAgentError`。
+- 单元测试 234 → 235，类型检查与 Vite/Electron 构建通过。
+
 ### Changed — 工具描述与项目心愿池整理（2026-07-09）
 - 为 `delegate_task`、`shell_exec`、`web_search` 补充典型输入示例，帮助模型稳定生成工具参数。
 - 新增 `docs/wishlist.md`，集中记录尚未承诺执行的外部参考启发，并加入项目规则索引。

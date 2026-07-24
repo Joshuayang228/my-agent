@@ -4,7 +4,6 @@ import { ToolRegistry } from '../tools/registry'
 import { createLogger } from '../utils/logger'
 import { toAgentError } from '../errs'
 import type { ChatMessage } from '../../../src/shared/types'
-import { toAgentError } from '../errs'
 
 const log = createLogger('ChatIPC')
 
