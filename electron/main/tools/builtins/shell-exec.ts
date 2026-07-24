@@ -53,6 +53,10 @@ Security: Dangerous operations may be blocked by sandbox. Previously denied comm
     },
     required: ['command'],
   },
+  inputExamples: [
+    { command: 'npm test' },
+    { command: 'git status', cwd: 'packages/core' },
+  ],
   metadata: {
     isDestructive: true,
   },

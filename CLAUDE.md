@@ -186,6 +186,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 - `docs/decisions.md` — 技术决策时
 - `docs/pitfalls.md` — 踩坑和修复经验
 - `docs/rules-feedback.md` — 规则不合理或冲突时
+- `docs/wishlist.md` — 外部参考分析或灵感闪现时（不承诺执行，只防遗忘）
 
 ## 规则自进化
 

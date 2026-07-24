@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Changed — 工具描述与项目心愿池整理（2026-07-09）
+- 为 `delegate_task`、`shell_exec`、`web_search` 补充典型输入示例，帮助模型稳定生成工具参数。
+- 新增 `docs/wishlist.md`，集中记录尚未承诺执行的外部参考启发，并加入项目规则索引。
+- 清理进度文档顶部和时间线中的重复历史条目，保留当前状态与完整功能清单。
+
 ### Added — M2 Tool Use Examples（gap-audit 缺口 M2，2026-07-09）
 - `ToolDefinition` / `ToolDef` 加 `inputExamples?: Array<Record<string, unknown>>`，序列化时由 `appendExamplesToDescription` 拼到 description 末尾（拼文本对 OpenAI/Anthropic/Gemini 通用，不依赖 provider 专属字段；provider-router 从 OpenAI 格式二次转换，一处改动全 provider 生效）
 - 对照 Anthropic Advanced Tool Use：input_examples 使工具调用准确率 72%→90%

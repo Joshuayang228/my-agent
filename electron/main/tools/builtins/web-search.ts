@@ -36,6 +36,10 @@ export const webSearchTool = buildTool({
     },
     required: ['query'],
   },
+  inputExamples: [
+    { query: 'TypeScript 5.5 release notes' },
+    { query: 'electron sandbox best practices', max_results: '3' },
+  ],
   metadata: { isReadOnly: true, isConcurrencySafe: true },
   execute: async (args) => {
     const query = args.query as string

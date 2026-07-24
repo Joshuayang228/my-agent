@@ -51,6 +51,10 @@ export const delegateTaskTool = buildTool({
     },
     required: ['role', 'task'],
   },
+  inputExamples: [
+    { role: 'researcher', task: 'Find all files that import the deprecated auth module and list them with line numbers.' },
+    { role: 'coder', task: 'Add input validation to the login handler in src/auth.ts', allowed_tools: 'file_read,file_edit', read_only: 'false' },
+  ],
   metadata: {
     isReadOnly: true,        // delegate_task 本身不修改文件，只是启动子 Agent
     isConcurrencySafe: true, // 多个子 Agent 可以并发启动（只读子 Agent 安全）
