@@ -5,6 +5,13 @@
 
 ## [未发布]
 
+### Added — Think Tool（M2 gap-audit，2026-07-25）
+- 新增内置工具 `think`：零副作用推理工具，在工具调用链中间插入结构化推理步骤。
+- 不读文件、不调网络、不改状态；思考内容通过 tool_end 事件记录，不直接展示给用户。
+- 对应 Anthropic Article 2（带领域示例的 think prompt 在航空客服场景提升 54%）。
+- 适用：政策密集环境（权限/用户偏好校验）、顺序决策、工具结果分析后再行动。
+- 内置工具 22 → 23 个。
+
 ### Added — M11 任务生命周期 v1（2026-07-25）
 - `TaskQueueManager`：后台任务五态状态机（pending → running → completed/failed/cancelled）+ 串行执行 + 幂等通知标志。
 - `task:event` IPC 通道：任务完成/失败时主动推送给渲染进程（`task:started`/`task:completed`/`task:failed`）。

@@ -15,6 +15,7 @@ import { delegateTaskTool } from './delegate-task'
 import { continueTaskTool } from './continue-task'
 import { ragSearchTool } from './rag-search'
 import { gitStatusTool, gitDiffTool, gitLogTool, gitCommitTool, gitBranchTool } from './git-tools'
+import { thinkTool } from './think'
 
 export const builtinTools: ToolDefinition[] = [
   getCurrentTimeTool,
@@ -39,4 +40,5 @@ export const builtinTools: ToolDefinition[] = [
   delegateTaskTool,
   continueTaskTool,
   ragSearchTool,
+  thinkTool,
 ]

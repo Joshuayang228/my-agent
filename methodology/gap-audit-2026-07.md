@@ -21,13 +21,30 @@
 
 ## 🔴 第一梯队：多源共识 or 系统性空白，最该补
 
-### [ ] 1. Eval 评估体系 —— 最大系统性空白（Anthropic P0）
+### [x] 1. Eval 评估体系 —— 最大系统性空白（Anthropic P0）
 我们有单元测试（验证代码正确），但**完全没有衡量"Agent 行为质量"的评估体系**——人格一致性、记忆有效性、对话质量都没法系统度量。Anthropic 把 eval 当开发核心驱动力（eval-driven development）。含 pass^k 一致性度量、LLM-as-Judge 校准、capability→regression eval 演进。
 **建议：独立新模块（暂记 M12 Eval），对伙伴产品极高价值。**
 
-### [ ] 2. 任务生命周期系统 —— 完全缺失模块（CC 共识）
+**已完成（2026-07-25）**：
+- ✅ M12 方法论两章（m12-eval.md + m12-eval-persona.md）按第一性原理规范结构写完
+- ✅ Eval Suite v1：12 个场景（F01-F08 + P01-P04），脚本 LLM，零 API 消耗，`npm run eval:run` 独立跑
+- ✅ Graders 体系（code-based：ToolTrace / Permission / ErrorCode / Filesystem / Security / 消息捕获）
+- ⏳ B 类场景（LLM judge + 真实模型）待 v2
+
+### [x] 2. 任务生命周期系统 —— 完全缺失模块（CC 共识）
 后台任务统一状态机、通知幂等（notified 标志）、进度追踪（input/output token 分别计数）、断线重连、稳定空闲判定。桌面伙伴的记忆整合/主动关怀/定时任务/长任务全靠它，还是"陪伴可见性"（DreamTask 式"正在为你做什么"pill）的基础设施。
 **建议：独立新模块（暂记 M11），高价值。**
+
+**已完成（2026-07-25）**：
+- ✅ TaskQueueManager：五态状态机 + 串行执行 + 幂等通知标志（notified）
+- ✅ `task:event` IPC 通道推送给渲染进程
+- ✅ `task:list` / `task:cancel` IPC 接口
+- ✅ runtime.ts 迁移：backgroundQueue → TaskQueueManager
+- ✅ App.tsx 订阅任务事件，profile-extract 完成 Toast 通知
+- ✅ 7 个单元测试全过（242 总测试）
+- ⏳ SQLite 持久化（进程崩溃恢复）待做
+- ⏳ 重试机制（指数退避）待做
+- ⏳ 断线重连长任务待做
 
 ### [x] 3. M6 权限安全 —— 三源全部点名的重灾区
 - **Anthropic**：Auto Mode AI 分类器（两阶段：快速 filter + CoT 推理）、Deny-and-Continue、输入层注入探针、OS 级沙箱
