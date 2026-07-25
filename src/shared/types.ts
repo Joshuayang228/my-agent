@@ -237,7 +237,41 @@ export interface MemoryEntry {
   updatedAt: number
 }
 
-// ── 会话 ──
+// ── 后台任务（M11 任务生命周期）──
+
+/**
+ * 后台任务类型。
+ * 这些任务在主对话结束后异步执行，产出注入 M5 记忆系统。
+ */
+export type TaskType =
+  | 'profile-extract'    // 用户画像提取（→ SQLite + 向量库）
+  | 'smart-title'        // 智能标题生成
+  | 'vector-index-user'  // 用户消息向量索引
+
+/** 后台任务五态状态机 */
+export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+
+/** 可通过 IPC 查询的任务摘要（不含 fn） */
+export interface BackgroundTaskInfo {
+  id: string
+  name: TaskType
+  sessionId: string
+  status: TaskStatus
+  /** 是否已向渲染进程发送完成/失败通知（幂等标志） */
+  notified: boolean
+  createdAt: number
+  updatedAt: number
+  error?: string
+}
+
+/**
+ * 任务生命周期事件，通过 `task:event` IPC 通道推送给渲染进程。
+ * 渲染进程订阅后按 type 分发（可显示 Toast、更新状态 pill 等）。
+ */
+export type TaskLifecycleEvent =
+  | { type: 'task:started';   task: BackgroundTaskInfo }
+  | { type: 'task:completed'; task: BackgroundTaskInfo }
+  | { type: 'task:failed';    task: BackgroundTaskInfo }
 
 export interface ChatSession {
   id: string

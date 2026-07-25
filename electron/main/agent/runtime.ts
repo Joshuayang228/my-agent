@@ -29,19 +29,12 @@ import { createLogger } from '../utils/logger'
 import { startSpan } from '../utils/tracer'
 import { AgentErrorCode } from '../errs'
 import type { ChatMessage, LLMConfig, ExecutionMode, AgentStreamEvent, ToolContext } from '../../../src/shared/types'
+import { taskQueue } from '../services/task-queue'
 
 const log = createLogger('Runtime')
 
-/** 后台任务（fire-and-forget），失败只记日志 */
-interface BackgroundTask {
-  name: string
-  fn: () => Promise<void>
-}
-
 class AgentRuntime {
   private activeControllers = new Map<string, AbortController>()
-  private backgroundQueue: BackgroundTask[] = []
-  private processingBackground = false
 
   /** 检查某会话是否正在执行 */
   isSessionActive(sessionId: string): boolean {
@@ -305,7 +298,7 @@ class AgentRuntime {
     return undefined
   }
 
-  /** 将对话完成后的后台任务加入队列 */
+  /** 将对话完成后的后台任务加入 TaskQueue（M11 任务生命周期） */
   private enqueuePostTasks(
     sessionId: string,
     messages: ChatMessage[],
@@ -313,67 +306,37 @@ class AgentRuntime {
     lastUserMsg: ChatMessage | undefined,
     llmConfig: LLMConfig,
   ): void {
-    this.backgroundQueue.push({
-      name: 'profile-extract',
-      fn: async () => {
-        setQuerySource('memory')
-        try {
-          await maybeExtractProfile(messages, llmConfig, assistantContent)
-        } finally {
-          setQuerySource(null)
-        }
-      },
+    taskQueue.enqueue(sessionId, 'profile-extract', async () => {
+      setQuerySource('memory')
+      try {
+        await maybeExtractProfile(messages, llmConfig, assistantContent)
+      } finally {
+        setQuerySource(null)
+      }
     })
 
-    this.backgroundQueue.push({
-      name: 'smart-title',
-      fn: async () => {
-        setQuerySource('title')
-        try {
-          await store.generateSmartTitle(sessionId, lastUserMsg?.content || '', assistantContent, llmConfig)
-        } finally {
-          setQuerySource(null)
-        }
-      },
+    taskQueue.enqueue(sessionId, 'smart-title', async () => {
+      setQuerySource('title')
+      try {
+        await store.generateSmartTitle(sessionId, lastUserMsg?.content || '', assistantContent, llmConfig)
+      } finally {
+        setQuerySource(null)
+      }
     })
 
     if (lastUserMsg?.content && lastUserMsg.content.length > 20) {
       const now = Date.now()
-      this.backgroundQueue.push({
-        name: 'vector-index-user',
-        fn: () => addToVectorStore({
-          id: `conv-user-${now}`,
-          text: lastUserMsg.content.slice(0, 500),
-          category: 'conversation',
-          sessionId,
-          timestamp: now,
-        }, llmConfig),
-      })
+      taskQueue.enqueue(sessionId, 'vector-index-user', () => addToVectorStore({
+        id: `conv-user-${now}`,
+        text: lastUserMsg.content.slice(0, 500),
+        category: 'conversation',
+        sessionId,
+        timestamp: now,
+      }, llmConfig))
     }
 
     // G1 自我强化循环修复：不再把 assistant 原始回复写入向量库。
-    // 否则下一轮检索会把「AI 自己刚说的话」当记忆召回喂回自己（Alice Ch.5 陷阱）。
-    // assistant 输出里真正有价值的信息，由 profile-extractor 提炼成结构化记忆存 SQLite，
-    // 而不是整段回复堆进向量库。只索引用户消息作为语义召回源。
-
-    this.processBackgroundQueue()
-  }
-
-  /** 串行处理后台任务队列（避免并发写冲突） */
-  private async processBackgroundQueue(): Promise<void> {
-    if (this.processingBackground) return
-    this.processingBackground = true
-
-    while (this.backgroundQueue.length > 0) {
-      const task = this.backgroundQueue.shift()!
-      try {
-        await task.fn()
-      } catch (err) {
-        log.warn(`Background task failed: ${task.name}`, { error: String(err) })
-      }
-    }
-
-    this.processingBackground = false
+    // 只索引用户消息作为语义召回源（Alice Ch.5 陷阱）。
   }
 
   /** 窗口失焦时发送桌面通知 */
@@ -442,9 +405,7 @@ class AgentRuntime {
   async shutdown(): Promise<void> {
     log.info('Runtime shutting down')
     this.abort()
-    while (this.processingBackground) {
-      await new Promise(r => setTimeout(r, 100))
-    }
+    await taskQueue.shutdown()
     log.info('Runtime shutdown complete')
   }
 }

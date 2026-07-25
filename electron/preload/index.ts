@@ -1,5 +1,5 @@
 import { ipcRenderer, contextBridge } from 'electron'
-import type { ChatMessage, ChatSession, AgentStreamEvent } from '../../src/shared/types'
+import type { ChatMessage, ChatSession, AgentStreamEvent, TaskLifecycleEvent } from '../../src/shared/types'
 
 interface SessionSummary {
   id: string
@@ -155,5 +155,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     confirmResponse: (requestId: string, approved: boolean) =>
       ipcRenderer.send(`tool:confirm-response:${requestId}`, approved),
+  },
+
+  tasks: {
+    list: (sessionId?: string) => ipcRenderer.invoke('task:list', sessionId),
+    cancel: (taskId: string) => ipcRenderer.invoke('task:cancel', taskId),
+    onEvent: (callback: (event: TaskLifecycleEvent) => void) => {
+      const handler = (_e: Electron.IpcRendererEvent, ev: TaskLifecycleEvent) => callback(ev)
+      ipcRenderer.on('task:event', handler)
+      return () => ipcRenderer.off('task:event', handler)
+    },
   },
 })

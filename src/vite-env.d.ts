@@ -131,6 +131,11 @@ declare global {
         onConfirmRequest: (callback: (data: { requestId: string; name: string; args: Record<string, unknown> }) => void) => () => void
         confirmResponse: (requestId: string, approved: boolean) => void
       }
+      tasks: {
+        list: (sessionId?: string) => Promise<import('./shared/types').BackgroundTaskInfo[]>
+        cancel: (taskId: string) => Promise<boolean>
+        onEvent: (callback: (event: import('./shared/types').TaskLifecycleEvent) => void) => () => void
+      }
     }
   }
 }

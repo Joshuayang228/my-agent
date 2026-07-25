@@ -412,7 +412,8 @@
 | 2026-07-09 | Eval 前置收口：日志统一脱敏、`auto` 连续拒绝后自动降为 `confirm-all`、错误码前端分派，235 测试全过；构建通过 | ✅ |
 | 2026-07-25 | M12 Eval 方法论（上章：框架 Eval，CC+lingxi+Anthropic 三源对照；下章：伙伴 Eval，循环性 + A/B 类分层） | ✅ |
 | 2026-07-25 | Eval Suite v1：11 场景全过（F01-F07 框架行为 + P01-P04 伙伴行为），npm run eval:run，235 单测全过 | ✅ |
-| 2026-07-25 | m12-eval.md 规范重写（第一性原理→推论地图）+ m12-eval-code.md + m11-task-lifecycle.md 新模块方法论 | ✅ |
+| 2026-07-25 | m12-eval-persona.md 规范重写（第一性原理→推论地图）| ✅ |
+| 2026-07-25 | M11 任务生命周期 v1（TaskQueueManager + 状态机 + 通知 + IPC，242 测试全过） | ✅ |
 | 2026-07-03 | Harness 重构：CLAUDE.md 升为唯一权威（硬约束常驻 + 场景索引），删 agent-harness.md，AGENTS/.cursor 改重定向入口，.cursor 旧规则归档 | ✅ |
 | 2026-07-03 | M5 记忆系统深啃（自我强化循环/老化告警/提取判据/双重注入去重，139 测试）+ 沉淀 m05 | ✅ |
 | - | 应用图标设计 + 安装包体积优化 | ⏳ |

@@ -11,6 +11,7 @@ import { registerSkillsIPC } from './skills'
 import { registerSchedulerIPC } from './scheduler'
 import { registerRagIPC } from './rag'
 import { registerProjectIPC } from './project'
+import { registerTasksIPC } from './tasks'
 
 export function registerAllIPC(toolRegistry: ToolRegistry): void {
   registerSessionIPC()
@@ -25,4 +26,5 @@ export function registerAllIPC(toolRegistry: ToolRegistry): void {
   registerSchedulerIPC()
   registerRagIPC()
   registerProjectIPC()
+  registerTasksIPC()
 }

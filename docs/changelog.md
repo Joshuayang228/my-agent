@@ -5,6 +5,15 @@
 
 ## [未发布]
 
+### Added — M11 任务生命周期 v1（2026-07-25）
+- `TaskQueueManager`：后台任务五态状态机（pending → running → completed/failed/cancelled）+ 串行执行 + 幂等通知标志。
+- `task:event` IPC 通道：任务完成/失败时主动推送给渲染进程（`task:started`/`task:completed`/`task:failed`）。
+- `task:list` / `task:cancel` IPC 接口：渲染进程可查询当前活跃任务并取消 pending 任务。
+- `runtime.ts` 迁移：`enqueuePostTasks` 从 fire-and-forget `backgroundQueue` 切换到 `TaskQueueManager`，任务有可观测的状态和生命周期。
+- `App.tsx` 订阅任务事件：`profile-extract` 完成时 Toast 通知"已更新对你的了解"；任务失败时警告提示。
+- 单元测试：7 个（task-queue.test.ts），覆盖状态机转换 / 失败隔离 / 通知幂等 / 取消语义。
+- 对应方法论：`methodology/m11-task-lifecycle.md`（第一性原理：可信赖感来自可见性）
+
 ### Added — Eval Suite v1（2026-07-25）
 - `npm run eval:run`：独立 Eval 套件，与单元测试完全隔离（vitest.eval.config.ts）。
 - 11 个场景全部通过（F01-F07 框架行为 + P01-P04 伙伴行为），脚本 LLM，零 API 消耗。

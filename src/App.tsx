@@ -148,6 +148,19 @@ function App() {
     { label: 'DeepSeek V4 Flash', baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash' },
   ]
 
+  // ── M11：后台任务生命周期事件订阅 ──
+  useEffect(() => {
+    if (!window.electronAPI?.tasks) return
+    const cleanup = window.electronAPI.tasks.onEvent((ev) => {
+      if (ev.type === 'task:completed' && ev.task.name === 'profile-extract') {
+        toast('已更新对你的了解 🧠', 'info')
+      } else if (ev.type === 'task:failed') {
+        toast(`后台任务失败（${ev.task.name}），学习记录可能不完整`, 'warning')
+      }
+    })
+    return cleanup
+  }, [toast])
+
   useEffect(() => {
     if (!window.electronAPI) return
     loadSessions()
