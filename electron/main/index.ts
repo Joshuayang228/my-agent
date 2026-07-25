@@ -238,6 +238,10 @@ app.whenReady().then(async () => {
   const { loadPersistentApprovals } = await import('./sandbox/approval-store')
   loadPersistentApprovals().catch(err => log.warn('Persistent approvals load failed', { error: String(err) }))
 
+  // M11：恢复上次崩溃中断的后台任务（从 SQLite background_tasks 表重载 pending 状态）
+  const { taskQueue } = await import('./services/task-queue')
+  taskQueue.recoverPendingTasks().catch(err => log.warn('Task recovery failed', { error: String(err) }))
+
   if (!VITE_DEV_SERVER_URL) {
     setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 3000)
   }

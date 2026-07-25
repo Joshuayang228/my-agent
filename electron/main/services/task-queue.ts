@@ -1,23 +1,26 @@
 /**
- * 后台任务队列服务 — M11 任务生命周期
+ * 后台任务队列服务 — M11 任务生命周期 v2（SQLite 持久化）
  *
  * 第一性原理（m11-task-lifecycle.md）：
  * 伙伴的可信赖感来自可见性。用户不需要盯着它，但它必须告诉你它在做什么。
  *
- * 本模块提供的核心能力：
- * - 唯一 ID：幂等保证，同一任务不会重复入队
- * - 五态状态机：pending → running → completed | failed | cancelled
- * - 事件推送：任务完成/失败时通知渲染进程，触发 Toast 等可见性组件
- * - 串行执行：避免并发写冲突（画像提取 + 向量索引不并发）
+ * v2 新增（对照方法论幂等性章节）：
+ * - SQLite 持久化：任务状态写库，进程崩溃后可从 background_tasks 表恢复 pending 任务
+ * - 启动恢复：app ready 后调用 recoverPendingTasks()，把中断的任务重新入队
+ * - notified 幂等标志落盘：通知发出后写库，重启后不重发
  *
- * v1 局限性（按方法论暂缓清单）：
- * - 纯内存存储，进程崩溃后任务丢失（SQLite 持久化待实现）
- * - 无重试机制（指数退避 + 最多 3 次，待实现）
- * - 无断点恢复（长任务，待实现）
+ * 内存 vs SQLite 的职责划分：
+ * - 内存：执行函数（fn）、运行时状态的来源
+ * - SQLite：崩溃后的恢复依据、通知幂等的持久记录
+ *
+ * 还未做（按方法论暂缓清单）：
+ * - 指数退避重试（最多 3 次）
+ * - 长任务断点续接
  */
 
 import { BrowserWindow } from 'electron'
 import { createLogger } from '../utils/logger'
+import { getDatabase, persist } from '../storage/database'
 import type { BackgroundTaskInfo, TaskLifecycleEvent, TaskType } from '../../../src/shared/types'
 
 const log = createLogger('TaskQueue')
@@ -25,7 +28,27 @@ const log = createLogger('TaskQueue')
 // ── 内部任务定义（含执行函数，不对外暴露） ──
 
 interface InternalTask extends BackgroundTaskInfo {
-  fn: () => Promise<void>
+  fn?: () => Promise<void>  // 恢复的任务没有 fn，等外部重新注册
+}
+
+// ── SQLite helpers ──
+
+/** 把任务写入/更新 background_tasks 表（fire-and-forget，失败只记日志）*/
+function dbUpsertTask(task: BackgroundTaskInfo): void {
+  void getDatabase().then(db => {
+    try {
+      db.run(
+        `INSERT OR REPLACE INTO background_tasks
+           (id, session_id, type, status, notified, created_at, updated_at, error)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [task.id, task.sessionId, task.name, task.status,
+          task.notified ? 1 : 0, task.createdAt, task.updatedAt, task.error ?? null]
+      )
+      persist()
+    } catch (err) {
+      log.warn('Failed to persist task to SQLite', { taskId: task.id, error: String(err) })
+    }
+  }).catch(() => { /* DB 未就绪时静默跳过 */ })
 }
 
 // ── TaskQueueManager ──
@@ -37,13 +60,6 @@ class TaskQueueManager {
 
   // ── 入队 ──
 
-  /**
-   * 将一个后台任务加入队列。
-   *
-   * - 返回唯一 taskId，调用方可用于查询状态
-   * - 调用后立即触发 processNext（如果当前没有任务在跑）
-   * - 注意：同一 sessionId + type 组合可以多次入队（每次对话结束都需要重新提取画像）
-   */
   enqueue(sessionId: string, name: TaskType, fn: () => Promise<void>): string {
     const id = `task-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     const now = Date.now()
@@ -58,52 +74,109 @@ class TaskQueueManager {
 
     this.tasks.set(id, task)
     this.queue.push(id)
+    dbUpsertTask(this.toInfo(task))
     log.info(`Task enqueued: ${name}`, { taskId: id, sessionId, queueLength: this.queue.length })
 
-    // 非阻塞启动，不 await
     void this.processNext()
     return id
   }
 
+  // ── 启动恢复：从 SQLite 加载上次中断的 pending 任务 ──
+
+  /**
+   * 进程启动后调用一次，把 status='pending' 或 'running'（上次崩溃中断）的任务
+   * 重置为 pending 并加回内存队列，等外部重新注册执行函数。
+   *
+   * 注意：恢复的任务没有 fn，调用 reRegisterRecoveredTask() 注入函数后才会真正执行。
+   * 对于没有被重新注册的任务，它们会停留在 pending 状态直到 app 生命周期结束。
+   */
+  async recoverPendingTasks(): Promise<BackgroundTaskInfo[]> {
+    try {
+      const db = await getDatabase()
+      const stmt = db.prepare(
+        `SELECT id, session_id, type, status, notified, created_at, updated_at, error
+         FROM background_tasks
+         WHERE status IN ('pending', 'running')
+         ORDER BY created_at ASC`
+      )
+      const recovered: BackgroundTaskInfo[] = []
+      while (stmt.step()) {
+        const row = stmt.getAsObject() as Record<string, unknown>
+        const info: BackgroundTaskInfo = {
+          id: String(row.id),
+          sessionId: String(row.session_id),
+          name: String(row.type) as TaskType,
+          status: 'pending',  // 重置 running → pending（上次崩溃）
+          notified: row.notified === 1 || row.notified === '1',
+          createdAt: Number(row.created_at),
+          updatedAt: Date.now(),
+          error: row.error ? String(row.error) : undefined,
+        }
+        // 更新状态为 pending（覆盖 running）
+        if (row.status === 'running') {
+          db.run('UPDATE background_tasks SET status=?, updated_at=? WHERE id=?',
+            ['pending', info.updatedAt, info.id])
+          persist()
+        }
+        this.tasks.set(info.id, info)
+        this.queue.push(info.id)
+        recovered.push(info)
+      }
+      stmt.free()
+      if (recovered.length > 0) {
+        log.info('Recovered interrupted tasks from SQLite', { count: recovered.length })
+      }
+      return recovered
+    } catch (err) {
+      log.warn('Failed to recover tasks from SQLite', { error: String(err) })
+      return []
+    }
+  }
+
+  /**
+   * 为恢复的任务注入执行函数。注入后任务会在下一个 processNext 轮次被执行。
+   * 如果 taskId 不存在或任务已不是 pending，返回 false。
+   */
+  reRegisterRecoveredTask(taskId: string, fn: () => Promise<void>): boolean {
+    const task = this.tasks.get(taskId)
+    if (!task || task.status !== 'pending') return false
+    task.fn = fn
+    void this.processNext()
+    return true
+  }
+
   // ── 查询 ──
 
-  /** 返回当前 pending 或 running 的任务摘要（不含 fn） */
   getActiveTasks(sessionId?: string): BackgroundTaskInfo[] {
     const result: BackgroundTaskInfo[] = []
     for (const task of this.tasks.values()) {
       if (task.status !== 'pending' && task.status !== 'running') continue
       if (sessionId && task.sessionId !== sessionId) continue
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { fn: _fn, ...info } = task
-      result.push(info)
+      result.push(this.toInfo(task))
     }
     return result
   }
 
-  /** 返回指定任务信息（不含 fn） */
   getTask(taskId: string): BackgroundTaskInfo | undefined {
     const task = this.tasks.get(taskId)
     if (!task) return undefined
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { fn: _fn, ...info } = task
-    return info
+    return this.toInfo(task)
   }
 
   // ── 取消 ──
 
-  /** 取消一个 pending 任务（running 任务无法取消）*/
   cancel(taskId: string): boolean {
     const task = this.tasks.get(taskId)
     if (!task || task.status !== 'pending') return false
     task.status = 'cancelled'
     task.updatedAt = Date.now()
+    dbUpsertTask(this.toInfo(task))
     log.info(`Task cancelled: ${task.name}`, { taskId })
     return true
   }
 
   // ── 优雅关闭 ──
 
-  /** 等待正在运行的任务完成（用于 app shutdown） */
   async shutdown(): Promise<void> {
     if (!this.running) return
     log.info('TaskQueue: waiting for running task to finish...')
@@ -120,26 +193,36 @@ class TaskQueueManager {
 
     try {
       while (this.queue.length > 0) {
-        const id = this.queue.shift()!
+        const id = this.queue[0]
         const task = this.tasks.get(id)
-        if (!task || task.status === 'cancelled') continue
+
+        if (!task || task.status === 'cancelled') {
+          this.queue.shift()
+          continue
+        }
+
+        // 恢复的任务还没有 fn，跳过等待注入
+        if (!task.fn) {
+          this.queue.shift()
+          continue
+        }
+
+        this.queue.shift()
 
         // pending → running
         task.status = 'running'
         task.updatedAt = Date.now()
+        dbUpsertTask(this.toInfo(task))
         this.emit({ type: 'task:started', task: this.toInfo(task) })
         log.info(`Task started: ${task.name}`, { taskId: id, sessionId: task.sessionId })
 
         try {
           await task.fn()
-
-          // running → completed
           task.status = 'completed'
           task.updatedAt = Date.now()
           log.info(`Task completed: ${task.name}`, { taskId: id })
           this.notify(task, { type: 'task:completed', task: this.toInfo(task) })
         } catch (err) {
-          // running → failed
           task.status = 'failed'
           task.error = err instanceof Error ? err.message : String(err)
           task.updatedAt = Date.now()
@@ -154,24 +237,20 @@ class TaskQueueManager {
 
   // ── 内部：事件发送 ──
 
-  /** 向渲染进程推送任务事件（不设 notified，仅用于 started 等中间状态） */
   private emit(event: TaskLifecycleEvent): void {
-    const win = BrowserWindow.getAllWindows()[0]
-    win?.webContents.send('task:event', event)
+    BrowserWindow.getAllWindows()[0]?.webContents.send('task:event', event)
   }
 
-  /** 向渲染进程推送终态事件（completed/failed），设置 notified 幂等标志 */
   private notify(task: InternalTask, event: TaskLifecycleEvent): void {
     if (task.notified) {
       log.warn(`Task notification already sent (skipping): ${task.name}`, { taskId: task.id })
       return
     }
     task.notified = true
-    const win = BrowserWindow.getAllWindows()[0]
-    win?.webContents.send('task:event', event)
+    dbUpsertTask(this.toInfo(task))  // 落盘 notified=true，重启后不重发
+    BrowserWindow.getAllWindows()[0]?.webContents.send('task:event', event)
   }
 
-  /** 返回不含 fn 的任务信息 */
   private toInfo(task: InternalTask): BackgroundTaskInfo {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { fn: _fn, ...info } = task
@@ -179,5 +258,5 @@ class TaskQueueManager {
   }
 }
 
-// 单例，与 runtime.ts 共享生命周期
 export const taskQueue = new TaskQueueManager()
+

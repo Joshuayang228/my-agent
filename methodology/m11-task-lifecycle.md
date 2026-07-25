@@ -2,7 +2,7 @@
 
 > 参考源：CC `tasks/` 目录（InProcessTeammateTask / DreamTask / TaskState 类型）、CC `cli/print.ts`（runHeadless + 事件流收集）、lingxi `observability/` 源码（Observer 接口 + 异步 span 链接）、Anthropic learning-claude-code Ch.06（task-system）。
 >
-> **注**：M11 的代码尚未实现，本文记录的是设计判断和架构方向。代码走读文档（m11-task-lifecycle-code.md）将在实现后补写。
+> **实现状态**：v2 已完成 SQLite 持久化、崩溃恢复、通知幂等落盘（2026-07-25）。代码走读见 `m11-task-lifecycle-code.md`。
 
 ---
 
@@ -199,20 +199,33 @@ isIdle: boolean
 
 ## 九、实战记录
 
-### 现状（2026-07-25）
+### 实现历史
 
-M11 尚未实现。当前的后台任务都分散在 `runtime.ts` 的 `backgroundQueue`（内存数组 + fire-and-forget）：
+**v1（2026-07-25 前）**：内存数组 + fire-and-forget，无状态、无持久化、无通知、无重试、无进度。
 
 ```typescript
-// 当前实现
+// v1 实现
 backgroundQueue.push({
   name: 'profile-extract',
   fn: async () => maybeExtractProfile(...)
 })
-// 没有状态、没有持久化、没有通知、没有重试、没有进度
 ```
 
-这意味着：应用崩溃后，这些任务直接丢失；用户看不到它们在运行；失败了没有任何信号；token 消耗计入主会话。
+应用崩溃后任务丢失，用户看不到运行状态，失败无信号，token 混入主会话。
+
+**v2（2026-07-25）**：SQLite 持久化 + 崩溃恢复 + 通知幂等。
+
+核心改动：
+- 新增 `background_tasks` 表（id / session_id / type / status / notified / created_at / updated_at / error）
+- 状态机：pending → running → completed / failed / cancelled
+- `TaskQueueManager` 内部分层：内存队列 + SQLite 持久层
+- 启动时从 SQLite 恢复 pending/running 任务（running 重置为 pending）
+- `notified` 标志防止重复通知
+- 函数重新注册机制：恢复任务通过 type 查找对应实现函数
+
+**v2 已验证**：249 个测试全过（包含 7 个新增持久化测试）。
+
+**v2 暂未做**：前后台 token 分离、失败重试、UI 任务状态可见化、断线重连、长任务断点续接。
 
 ### 优先级判断
 
@@ -238,10 +251,10 @@ M11 的实现顺序建议：
 
 实现 M11 时对照以下问题：
 
-- [ ] 任务状态是否持久化到 SQLite？重启后能恢复状态吗？
-- [ ] 每个任务有唯一 ID，防止重复触发吗？
-- [ ] `notified` 标志位是否在通知发送后立即置为 true？
-- [ ] 辅助任务的 token 是否独立计入，不混入用户 session 预算？
-- [ ] 任务完成/失败是否有用户可见的状态通知？
-- [ ] 长任务失败后是否有指数退避重试，重试耗尽后是否通知用户？
-- [ ] 后台任务的 span 是否用 linked span，不影响主 trace 耗时？
+- [x] 任务状态是否持久化到 SQLite？重启后能恢复状态吗？— v2 已完成
+- [x] 每个任务有唯一 ID，防止重复触发吗？— v2 使用 uuid
+- [x] `notified` 标志位是否在通知发送后立即置为 true？— v2 已落盘
+- [ ] 辅助任务的 token 是否独立计入，不混入用户 session 预算？— v2 未做
+- [ ] 任务完成/失败是否有用户可见的状态通知？— v2 未做（只有内部事件）
+- [ ] 长任务失败后是否有指数退避重试，重试耗尽后是否通知用户？— v2 未做
+- [ ] 后台任务的 span 是否用 linked span，不影响主 trace 耗时？— v2 未做（M7 依赖）

@@ -106,6 +106,22 @@ function initSchema(db: SqlJsDatabase): void {
     )
   `)
 
+  // M11 后台任务生命周期：任务状态持久化，进程崩溃后可恢复 pending/running 任务
+  db.run(`
+    CREATE TABLE IF NOT EXISTS background_tasks (
+      id          TEXT PRIMARY KEY,
+      session_id  TEXT NOT NULL,
+      type        TEXT NOT NULL,
+      status      TEXT NOT NULL DEFAULT 'pending',
+      notified    INTEGER NOT NULL DEFAULT 0,
+      created_at  INTEGER NOT NULL,
+      updated_at  INTEGER NOT NULL,
+      error       TEXT
+    )
+  `)
+  db.run(`CREATE INDEX IF NOT EXISTS idx_btasks_status ON background_tasks(status)`)
+  db.run(`CREATE INDEX IF NOT EXISTS idx_btasks_session ON background_tasks(session_id)`)
+
   // Migration: add token tracking columns if missing
   try {
     db.run('ALTER TABLE sessions ADD COLUMN total_prompt_tokens INTEGER NOT NULL DEFAULT 0')

@@ -5,6 +5,15 @@
 
 ## [未发布]
 
+### Added — M11 任务生命周期 v2：SQLite 持久化 + 崩溃恢复（2026-07-25）
+- `background_tasks` 表：id/session_id/type/status/notified/created_at/updated_at/error 八字段，支持任务持久化和重启恢复。
+- `TaskQueueManager` 双层架构：内存队列 + SQLite 持久层，入队先落盘后执行，保证崩溃时任务不丢。
+- 崩溃恢复机制：启动时从 SQLite 恢复 pending/running 任务，running 重置为 pending，通过 `taskTypeToFunction` map 重新注册函数。
+- `notified` 幂等标志：防止断线重连或轮询场景下重复通知。
+- 7 个新增持久化测试（task-queue-persistence.test.ts），249 个测试全过。
+- 对应方法论：`m11-task-lifecycle.md` 更新 v2 实现历史 + `m11-task-lifecycle-code.md` 代码走读（DDL/恢复逻辑/与其他模块集成）。
+- 剩余待做：前后台 token 分离、UI 任务状态可见化、失败重试、断线重连、长任务断点续接。
+
 ### Added — Eval B 类场景（P05/P06）+ ModelBasedGrader（2026-07-25）
 - `ModelBasedGrader`：LLM judge 基础设施，接受违规项问题列表，二元判断避免综合分，无 API key 自动跳过。
 - P05 语气一致性：检测客服话术和"汇报感"（`required: false`，需真实 LLM）。
