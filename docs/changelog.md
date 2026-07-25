@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Changed — M7 sessionId 自动注入 tracing（2026-07-25）
+- `startSpan` 新增父 span 属性继承：传入 `parentId` 时自动从父 span 的 attributes 继承 `sessionId`（以及将来的 `userId`），无需每个子 span 调用点手动传参。
+- 显式传入的 attributes 优先级高于继承值，保持可覆盖性。
+- 对照 lingxi observability/context.go 的 With.../From... 系列 context 传播，我们用 span 树内继承等价实现，不引入 AsyncLocalStorage。
+- 3 个新增 tracer 测试（sessionId 自动继承/显式覆盖/无 parentId 时不注入），255 个测试全过。
+
 ### Changed — M5 记忆使用前存在性验证提示（2026-07-25）
 - `formatRecallForInjection` 新增 FILE_PATH_PATTERN 检测：召回结果含文件路径时，自动追加提示 Agent 使用前用 `file_read` 或 `code_search` 验证路径是否仍然存在。
 - 对应 M5 gap-audit 缺口：使用含文件/函数引用的记忆前应先验证（避免基于已移动或删除的文件给出错误建议）。

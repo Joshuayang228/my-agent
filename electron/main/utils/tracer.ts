@@ -67,6 +67,11 @@ function generateSpanId(): string {
 
 /**
  * 开始一个 Span — 返回 SpanHandle 用于结束。
+ *
+ * M7 自动注入：如果传了 parentId，自动从父 span 的 attributes 继承
+ * sessionId（以及将来可能的 userId），无需每个调用点手动传参。
+ * 对照 lingxi observability/context.go: With../From.. 系列通过 context 自动传播。
+ * 我们的等价做法: span 树内继承，不需要 AsyncLocalStorage。
  */
 export function startSpan(
   name: string,
@@ -75,6 +80,16 @@ export function startSpan(
   parentId?: string,
   attributes: Record<string, unknown> = {},
 ): SpanHandle {
+  // 从父 span 自动继承 identity 属性（sessionId、userId），显式传入的属性优先级更高
+  const inherited: Record<string, unknown> = {}
+  if (parentId) {
+    const parentSpan = spans.find(s => s.id === parentId)
+    if (parentSpan) {
+      if (parentSpan.attributes.sessionId !== undefined) inherited.sessionId = parentSpan.attributes.sessionId
+      if (parentSpan.attributes.userId !== undefined) inherited.userId = parentSpan.attributes.userId
+    }
+  }
+
   const span: TraceSpan = {
     id: generateSpanId(),
     name,
@@ -83,7 +98,7 @@ export function startSpan(
     parentId,
     startTime: Date.now(),
     status: 'running',
-    attributes,
+    attributes: { ...inherited, ...attributes },
   }
 
   spans.push(span)

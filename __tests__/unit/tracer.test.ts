@@ -129,6 +129,42 @@ describe('Tracer — 父子嵌套（M7 核心：调用链树）', () => {
     const span = getRecentSpans(10).find(s => s.id === top.id)
     expect(span!.parentId).toBeUndefined()
   })
+
+  it('M7 sessionId 自动注入：子 span 从父 span 继承 sessionId', () => {
+    const session = 'test-session-123'
+    const parent = startSpan('chat', 'main', 'interaction', undefined, { sessionId: session })
+    const child = startSpan('llm_request', 'main', 'llm_request', parent.id)
+    child.end('ok')
+    parent.end('ok')
+
+    const spans = getRecentSpans(10)
+    const childSpan = spans.find(s => s.id === child.id)
+    // 子 span 自动继承父 span 的 sessionId，无需手动传参
+    expect(childSpan!.attributes.sessionId).toBe(session)
+  })
+
+  it('M7 sessionId 自动注入：显式传入属性优先于继承', () => {
+    const parentSession = 'parent-session'
+    const childSession = 'explicit-child-session'
+    const parent = startSpan('chat', 'main', 'interaction', undefined, { sessionId: parentSession })
+    const child = startSpan('llm_request', 'main', 'llm_request', parent.id, { sessionId: childSession })
+    child.end('ok')
+    parent.end('ok')
+
+    const spans = getRecentSpans(10)
+    const childSpan = spans.find(s => s.id === child.id)
+    // 显式传入的 sessionId 覆盖继承的
+    expect(childSpan!.attributes.sessionId).toBe(childSession)
+  })
+
+  it('M7 sessionId 自动注入：无 parentId 时不注入', () => {
+    const top = startSpan('orphan', 'main', 'llm_request')
+    top.end('ok')
+
+    const spans = getRecentSpans(10)
+    const span = spans.find(s => s.id === top.id)
+    expect(span!.attributes.sessionId).toBeUndefined()
+  })
 })
 
 describe('Tracer — blocked_on_user vs tool_execution 分离计时（G2）', () => {
