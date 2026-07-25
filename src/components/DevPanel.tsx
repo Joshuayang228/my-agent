@@ -362,6 +362,8 @@ function EventsTab({ events }: { events: Array<{ time: number; type: string; det
     error: 'text-red-400',
     done: 'text-slate-600',
     tool_confirm: 'text-amber-300',
+    compact: 'text-violet-400',
+    execution_mode_changed: 'text-orange-400',
   }
 
   return (
@@ -369,12 +371,18 @@ function EventsTab({ events }: { events: Array<{ time: number; type: string; det
       <div className="mb-3 text-xs" style={{ color: 'var(--text-muted)' }}>共 {events.length} 条事件</div>
       <div className="space-y-0.5 font-mono text-[11px]">
         {events.map((ev, i) => (
-          <div key={i} className="flex gap-3 rounded px-2 py-1" style={{ color: 'var(--text-secondary)' }}>
+          <div
+            key={i}
+            className={`flex gap-3 rounded px-2 py-1 ${ev.type === 'compact' ? 'border-l-2 border-violet-500/40' : ''}`}
+            style={{ color: 'var(--text-secondary)', background: ev.type === 'compact' ? 'var(--bg-secondary)' : undefined }}
+          >
             <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>
               {new Date(ev.time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
-            <span className={`w-20 shrink-0 ${typeColor[ev.type] || ''}`} style={!typeColor[ev.type] ? { color: 'var(--text-muted)' } : undefined}>{ev.type}</span>
-            <span className="truncate" style={{ color: 'var(--text-secondary)' }}>{ev.detail}</span>
+            <span className={`w-24 shrink-0 ${typeColor[ev.type] || ''}`} style={!typeColor[ev.type] ? { color: 'var(--text-muted)' } : undefined}>
+              {ev.type === 'compact' ? '🗜 ' + ev.type : ev.type}
+            </span>
+            <span className="truncate" style={{ color: ev.type === 'compact' ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{ev.detail}</span>
           </div>
         ))}
       </div>

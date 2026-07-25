@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — M4 DevPanel 展示 compactMetadata（2026-07-25）
+- 新增 `compact` AgentStreamEvent 类型：压缩成功后 yield 压缩层级/前后 token/触发方式/是否用 LLM。
+- DevPanel 事件日志对 `compact` 事件专属样式（紫色 + 左边框 + 高亮背景），格式示例：`L3_Collapse 8000→3000t [proactive LLM]`。
+- `execution_mode_changed` 事件也补充颜色标注（橙色）。
+- 对应 M4 Phase B boundary marker 的可观测性完成闭环。
+
 ### Changed — 文档同步：gap-audit 完成项勾选（2026-07-25）
 - `gap-audit-2026-07.md` 标记已完成项：Think Tool / Tool Use Examples / Deny-and-Continue / 结构化错误体系 / M11 任务生命周期 / 重试错误码白名单。
 - 标注 M7 Observer 接口抽象进展：span + OTel GenAI 属性对齐已完成，接口化重构待优化。

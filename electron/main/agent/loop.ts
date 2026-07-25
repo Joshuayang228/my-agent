@@ -263,6 +263,19 @@ export async function* agentLoop(
         state.consecutiveCompactFailures = 0
         compressSpan.setAttribute('afterMessages', compressed.length)
         compressSpan.end('ok')
+        // M4 compactMetadata 可观测事件：压缩成功后找到元数据消息，yield 给渲染层
+        const metaMsg = compressed.find(m => m.compactMetadata)
+        if (metaMsg?.compactMetadata) {
+          const cm = metaMsg.compactMetadata
+          yield {
+            type: 'compact',
+            level: cm.level,
+            preTokens: cm.preCompactTokens,
+            postTokens: cm.postCompactTokens,
+            trigger: cm.trigger,
+            usedLLM: cm.usedLLM,
+          }
+        }
       } else {
         state.consecutiveCompactFailures++
         compressSpan.setAttribute('afterMessages', beforeCount)

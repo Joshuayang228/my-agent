@@ -307,6 +307,7 @@ function App() {
       : ev.type === 'tool_end' ? `${ev.name} → ${ev.isError ? 'ERR' : 'OK'}`
       : ev.type === 'error' ? ev.message
       : ev.type === 'execution_mode_changed' ? `${ev.mode}: ${ev.reason}`
+      : ev.type === 'compact' ? `${ev.level} ${ev.preTokens}→${ev.postTokens}t [${ev.trigger}${ev.usedLLM ? ' LLM' : ''}]`
       : ev.type === 'usage' ? `in:${ev.promptTokens} out:${ev.completionTokens}`
       : ev.type === 'thinking' ? ev.content.slice(0, 80)
       : ''

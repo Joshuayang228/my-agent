@@ -417,6 +417,7 @@
 | 2026-07-25 | M2 Think Tool（零副作用推理工具，内置工具 22→23 个）+ gap-audit M11/M12 勾选完成 | ✅ |
 | 2026-07-25 | M11 任务生命周期 v2（SQLite 持久化 + 崩溃恢复 + notified 幂等，249 测试全过）+ 沉淀 m11 code | ✅ |
 | 2026-07-25 | gap-audit-2026-07.md 同步完成项勾选（Think Tool / Tool Use Examples / Deny-and-Continue / 错误体系 / M11 任务生命周期 / M7 Observer 标注进展） | ✅ |
+| 2026-07-25 | M4 DevPanel 展示 compactMetadata（compact AgentStreamEvent + 事件日志专属样式） | ✅ |
 | 2026-07-03 | Harness 重构：CLAUDE.md 升为唯一权威（硬约束常驻 + 场景索引），删 agent-harness.md，AGENTS/.cursor 改重定向入口，.cursor 旧规则归档 | ✅ |
 | 2026-07-03 | M5 记忆系统深啃（自我强化循环/老化告警/提取判据/双重注入去重，139 测试）+ 沉淀 m05 | ✅ |
 | - | 应用图标设计 + 安装包体积优化 | ⏳ |

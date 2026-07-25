@@ -215,6 +215,15 @@ export type AgentStreamEvent =
   | { type: 'usage'; promptTokens: number; completionTokens: number }
   | { type: 'error'; message: string; code?: string }
   | { type: 'execution_mode_changed'; mode: ExecutionMode; reason: string }
+  | {
+      /** M4 compactMetadata 可观测事件 — 压缩发生后由 agentLoop yield */
+      type: 'compact'
+      level: 'L3_Collapse' | 'L4_AutoCompact'
+      preTokens: number
+      postTokens: number
+      trigger: 'proactive' | 'reactive_413'
+      usedLLM: boolean
+    }
   | { type: 'done'; reason: TerminalReason }
 
 // ── 人格 ──
