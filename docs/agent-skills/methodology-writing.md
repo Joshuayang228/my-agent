@@ -93,10 +93,74 @@
 
 ```text
 methodology/
-├── m01-agent-loop.md          ← 产品思考
-├── m01-agent-loop-code.md     ← 代码走读
-├── m02-tool-system.md
-├── m02-tool-system-code.md
+├── m01-agent-loop.md              ← 理念章（产品思考）
+├── m01-agent-loop-code.md         ← 代码走读章
+├── streaming-design.md            ← 占位章（待写，尚未重命名）
+├── error-system.md                ← 占位章
 ```
 
-编号对应 `docs/module-roadmap.md` 的模块编号（M1-M10），同一主题的产品思考和代码走读使用相同编号。
+编号对应 `methodology/README.md` 的完整章节目录（M01–M27）。现有已写章节文件名为 `mNN-主题.md`，新增占位章节暂用描述性名称，内容就绪后批量重命名为 `mNN-主题.md`。
+
+---
+
+## 占位章节写作规范
+
+新建占位章节时，文件应包含：
+
+```markdown
+# MXX 章节名
+
+> **所属**：Part N 分组名
+> **核心问题**：一句话说明这章要回答什么
+> **状态**：📋 待写
+
+---
+
+## 待覆盖内容
+
+- 要点1
+- 要点2（通常3-7条，来自讨论时的设计决策）
+
+## 参考源
+
+- Alice chXX：...
+- CC sourcemap：...
+- 我们自己的实现文件
+```
+
+占位章节不需要用户对齐就可以创建（结构性骨架），但**正式写作时仍需走完整流程**（观点清单 → 用户对齐 → 草稿 → 用户审阅）。
+
+---
+
+## 参考源映射表
+
+写各章节时优先查阅对应参考源，避免重复检索：
+
+| 我们的章节 | Alice 方法论 | CC sourcemap | feiche |
+|---|---|---|---|
+| M01 Agent Loop | ch03-agent-loop | query/ | agent/ |
+| M02 Streaming | ch15（范式二：事件流） | streamChat | stream/ |
+| M03 错误体系 | ch01（可丢弃组件）| errors/ | retrier.go |
+| M04 工具系统 | ch04-tool-system | tools/ | tool_catalog |
+| M05 LLM 路由 | ch11-llm-routing | services/api/ | llm/ |
+| M06 System Prompt | ch14-prompts | context.ts | prompt/ |
+| M07 上下文压缩 | ch05（§context）+ ch15（范式三）| compact/ | compressor |
+| M08 记忆系统 | ch05（§memory）+ blog-04 | memory/ | memory/ |
+| M09 后台任务 | ch15（范式四）| tasks/ | tasks/ |
+| M10 权限与安全 | ch07+ch12 | permissions/ | permission/ |
+| M11 Hook 架构 | ch15（范式一：声明式契约）| hooks/ | observer.go |
+| M12 IPC 架构 | ch13-electron-client（feiche spec）| — | electron-client-design.md |
+| M13 MCP | ch08-mcp | services/mcp/ | mcp-integration-design.md |
+| M14 可观测性 | ch13-observability | tracing/ | observability/ |
+| M15 状态机 | ch01（状态优先）| session state | — |
+| M16 并发数据 | ch15（并发相关范式）| — | concurrency-queue-design.md |
+| M17 测试架构 | ch15（范式五）| eval/ | aisdk-testing-design.md |
+| M18 Eval | — | Harness Guide | observability/ |
+| M19 多Agent | ch06-multi-agent | coordinator/ | a2a/ |
+| M20 自进化 | ch09+ch10 | — | — |
+| M21 人格引擎 | ch16-alive-agent + ch14-prompts | context.ts | — |
+| M22–M27 伙伴类 | ch16+ch18+ch19+ch20（Alice 特有章节）| — | — |
+
+Alice 方法论路径：`_reference/framework-harness/repos/alice-methodology/chapters/`
+CC sourcemap 路径：`_reference/framework-harness/repos/claude-code-sourcemap-main/.../restored-src/src/`
+feiche 路径：`_reference/framework-harness/repos/wps-cowork/vibe/spec/`
