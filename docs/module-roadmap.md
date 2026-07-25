@@ -39,7 +39,7 @@
 | M8 | [多 Agent 协作](#m8-多-agent-协作) | 4（上层建筑） | Alice Ch.06 × CC coordinator/ + tasks/ | — | ✅ 全部完成 |
 | M9 | [人格引擎 + Prompt 工程](#m9-人格引擎--prompt-工程) | 4（上层建筑） | Alice Ch.14+16 × CC context.ts | 角色设定集 / PROTECTED 守卫 / MUTABLE 进化 | 🟡 一致性落地，成长性占位 |
 | M10 | [自进化与 Skill](#m10-自进化与-skill) | 4（上层建筑） | Alice Ch.09+10 | Skill 微调闭环 / 代码级自进化 | 🟡 版本备份落地，自动改进占位 |
-| M11 | [任务生命周期](#m11-任务生命周期) | 3（支撑层） | CC tasks/ × learning-claude-code Ch.06 | 后台任务状态机 / 通知幂等 / 前后台分离 | 🟡 v2 落地（SQLite 持久化+恢复），UI/重试/token 分离待做 |
+| M11 | [任务生命周期](#m11-任务生命周期) | 3（支撑层） | CC tasks/ × learning-claude-code Ch.06 | 后台任务状态机 / 通知幂等 / 前后台分离 | ✅ v3 落地（SQLite 持久化+恢复+指数退避重试+UI pill） |
 | M12 | [Eval 体系](#m12-eval-体系) | 5（度量层） | CC Harness Guide × feiche observability × Anthropic Article 4 | Eval 场景 / Grader / Runner | 🟡 方法论 + v1 场景 14 个全过，B类 LLM judge 待做 |
 
 ---
@@ -52,7 +52,39 @@
 - 会话状态 Runtime 中心化（UI 不再承担会话读写）
 - MCP 协议深入（Alice Ch.08 × CC services/mcp/）
 
-## Phase 3：差异化特色
+## Phase 1b：工程框架补全（新增章节 M02–M03、M06、M11–M13、M15–M17）
+
+> 方法论重组后新增的工程章节，优先级：高（M03 错误体系、M11 Hook、M12 IPC、M06 System Prompt）→ 中（M02 Streaming、M15–M17）→ 低（M13 MCP 占位）。
+> 详见 `methodology/README.md` 完整章节目录及设计决策说明。
+
+| 编号 | 章节 | 文件 | 状态 |
+|------|------|------|------|
+| M02 | Streaming 设计范式 | `methodology/streaming-design.md` | 📋 占位 |
+| M03 | 错误体系设计 | `methodology/error-system.md` | 📋 占位 |
+| M06 | System Prompt 工程化 | `methodology/system-prompt-engineering.md` | 📋 占位 |
+| M11 | Hook / 扩展点架构 | `methodology/hook-extension-architecture.md` | 📋 占位 |
+| M12 | IPC 架构 | `methodology/ipc-architecture.md` | 📋 占位 |
+| M13 | MCP 集成 | `methodology/mcp-integration.md` | 📋 占位 |
+| M15 | 状态机设计 | `methodology/state-machine-design.md` | 📋 占位 |
+| M16 | 并发与数据架构 | `methodology/concurrency-data-architecture.md` | 📋 占位 |
+| M17 | 测试架构 | `methodology/testing-architecture.md` | 📋 占位 |
+
+## Phase 3：伙伴类 Agent（新增章节 M22–M27）
+
+> 人格引擎（原 M09）已移入伙伴章节（M21），其余章节为新增。
+> 先占位，等工程框架补全后再启动。
+
+| 编号 | 章节 | 文件 | 状态 |
+|------|------|------|------|
+| M21 | 人格引擎 | `methodology/m09-persona-engine.md` | ✅（原 M09） |
+| M22 | 信息不对称设计 | `methodology/companion-asymmetric-info.md` | 📋 占位 |
+| M23 | 冷启动与关系建立 | `methodology/companion-cold-start.md` | 📋 占位 |
+| M24 | 对话行为规范 | `methodology/companion-conversation-norms.md` | 📋 占位 |
+| M25 | 能力边界表达 | `methodology/companion-capability-expression.md` | 📋 占位 |
+| M26 | 叙事连贯性 | `methodology/companion-narrative-coherence.md` | 📋 占位 |
+| M27 | 主动在场设计 | `methodology/companion-proactive-presence.md` | 📋 占位 |
+
+## Phase 4：差异化特色
 
 > 我们的人格化伙伴独有功能，自主创新。
 
