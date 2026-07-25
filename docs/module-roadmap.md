@@ -39,8 +39,8 @@
 | M8 | [多 Agent 协作](#m8-多-agent-协作) | 4（上层建筑） | Alice Ch.06 × CC coordinator/ + tasks/ | — | ✅ 全部完成 |
 | M9 | [人格引擎 + Prompt 工程](#m9-人格引擎--prompt-工程) | 4（上层建筑） | Alice Ch.14+16 × CC context.ts | 角色设定集 / PROTECTED 守卫 / MUTABLE 进化 | 🟡 一致性落地，成长性占位 |
 | M10 | [自进化与 Skill](#m10-自进化与-skill) | 4（上层建筑） | Alice Ch.09+10 | Skill 微调闭环 / 代码级自进化 | 🟡 版本备份落地，自动改进占位 |
-| M11 | [任务生命周期](#m11-任务生命周期) | 3（支撑层） | CC tasks/ × learning-claude-code Ch.06 | 后台任务状态机 / 通知幂等 / 前后台分离 | 📋 方法论完成，代码待实现 |
-| M12 | [Eval 体系](#m12-eval-体系) | 5（度量层） | CC Harness Guide × lingxi observability × Anthropic Article 4 | Eval 场景 / Grader / Runner | 🟡 方法论 + v1 场景完成，B类待做 |
+| M11 | [任务生命周期](#m11-任务生命周期) | 3（支撑层） | CC tasks/ × learning-claude-code Ch.06 | 后台任务状态机 / 通知幂等 / 前后台分离 | 🟡 v2 落地（SQLite 持久化+恢复），UI/重试/token 分离待做 |
+| M12 | [Eval 体系](#m12-eval-体系) | 5（度量层） | CC Harness Guide × lingxi observability × Anthropic Article 4 | Eval 场景 / Grader / Runner | 🟡 方法论 + v1 场景 14 个全过，B类 LLM judge 待做 |
 
 ---
 
@@ -349,6 +349,65 @@
 
 ---
 
+### M11: 任务生命周期
+
+**Ring**: 3（支撑层）
+
+**参考源**:
+- CC: `tasks/` 目录（InProcessTeammateTask / DreamTask / TaskState）
+- learning-claude-code Ch.06（task-system）
+- lingxi observability/（异步 linked span）
+
+**要学的核心问题**:
+- 后台任务统一状态机（pending → running → completed/failed/cancelled）
+- 通知幂等（notified 标志防止重复推送）
+- 前后台 token 分离计数
+- 断线重连后任务状态恢复
+- 陪伴可见性（DreamTask 式"正在为你做 X"pill）
+
+**当前实现**: `electron/main/services/task-queue.ts`
+
+**5 步进度**:
+- [x] 学：CC tasks/ × learning-claude-code Ch.06 × lingxi observability/（异步 span）
+- [x] 审：backgroundQueue 的核心缺陷（无状态 + fire-and-forget + 无通知 + 崩溃丢失）
+- [x] 设计：双层架构（内存队列 + SQLite 持久层），`background_tasks` 表 DDL，崩溃恢复机制
+- [x] 改 v1（2026-07-25）：TaskQueueManager 五态状态机 + IPC 通道 + App.tsx 订阅，242 测试
+- [x] 改 v2（2026-07-25）：SQLite 持久化 + 崩溃恢复 + notified 幂等标志落盘，249 测试
+- [x] 沉淀：`methodology/m11-task-lifecycle.md` + `m11-task-lifecycle-code.md`
+
+> **占位待做**：前后台 token 分离、UI 任务状态 pill、失败重试（指数退避）、断线重连、长任务断点续接。
+
+---
+
+### M12: Eval 体系
+
+**Ring**: 5（度量层，横切所有模块）
+
+**参考源**:
+- Anthropic Article 4（Demystifying Evals）+ Article 2（Think Tool）
+- CC Harness Engineering Guide（long-running-harness.md / eval-awareness.md）
+- lingxi `.cursor/skills/agent-evaluation/`（Jaeger trace 驱动 eval）
+
+**要学的核心问题**:
+- task → trial → grader → transcript → outcome 结构
+- pass@k（能力天花板）vs pass^k（可靠性）
+- Code-based grader vs Model-based grader 分工
+- 伙伴 Eval 特有的循环性问题（用 Claude 评 Claude）
+- A 类（结构性）vs B 类（主观质量）场景设计
+
+**当前实现**: `evals/` 目录
+
+**5 步进度**:
+- [x] 学：Anthropic 10 篇文章 × CC Harness Guide × lingxi eval 脚本，三源 subagent 并行研读
+- [x] 审：最大系统性空白——完全没有衡量 Agent 行为质量的评估体系
+- [x] 设计：两章方法论（框架 Eval + 伙伴 Eval），脚本 LLM / 真实 LLM 两条路
+- [x] 改（2026-07-25）：Eval Suite v1（F01-F08 + P01-P06）14 个场景全过，ModelBasedGrader 基础设施，`npm run eval:run` 独立运行
+- [x] 沉淀：`methodology/m12-eval.md` + `m12-eval-persona.md` + `m12-eval-code.md`
+
+> **占位待做**：B 类真实 LLM 场景（P05/P06）需配置 API Key 运行、pass^k 多次采样、LLM-as-Judge 人工校准机制、Baseline diff 和回归报警。
+
+---
+
 ## 更新记录
 
 | 日期 | 变更 |
@@ -357,3 +416,7 @@
 | 2026-06-20 | M1 Agent Loop 5 步全部完成（学/审/设计/改/沉淀） |
 | 2026-07-01 | M3 LLM 层 5 步完成（chatComplete/usage/retry-after/caller） |
 | 2026-07-02 | M4 上下文压缩 5 步完成（Phase A/B/C，127 测试，m04 沉淀） |
+| 2026-07-03~05 | M5/M6/M7/M8/M9/M10 陆续完成，见 progress.md 时间线 |
+| 2026-07-25 | 新增 M11 任务生命周期（v1+v2，SQLite 持久化+崩溃恢复，249 测试）+ 方法论 |
+| 2026-07-25 | 新增 M12 Eval 体系（14 个场景全过，ModelBasedGrader，独立 runner）+ 方法论两章 |
+| 2026-07-25 | Phase 1 表格扩展为 12 个模块（M11+M12），更新记录补全 |

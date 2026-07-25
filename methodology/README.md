@@ -9,7 +9,7 @@
 
 ## 命名约定
 
-框架模块文件统一用 `mNN-主题.md` 前缀，编号对应 `docs/module-roadmap.md` 的模块编号（M1-M10）。不属于 roadmap 模块的独立主题（如规则体系进化）不占用 mNN 编号，直接用主题名。
+框架模块文件统一用 `mNN-主题.md` 前缀，编号对应 `docs/module-roadmap.md` 的模块编号（M1-M12）。不属于 roadmap 模块的独立主题（如规则体系进化）不占用 mNN 编号，直接用主题名。
 
 ## 目录
 
@@ -35,9 +35,11 @@
 | `m09-persona-engine-code.md` | 人格引擎代码走读 | ✅ 已写 |
 | `m10-self-evolution.md` | 自进化与 Skill 工程化方法论 | ✅ 已写 |
 | `m10-self-evolution-code.md` | 自进化与 Skill 代码走读 | ✅ 已写 |
-| `m11-task-lifecycle.md` | 任务生命周期工程化方法论 | ✅ 已写（代码未实现，待补 code 章） |
+| `m11-task-lifecycle.md` | 任务生命周期工程化方法论 | ✅ 已写（v2 SQLite 持久化+崩溃恢复已实现） |
+| `m11-task-lifecycle-code.md` | 任务生命周期代码走读（DDL/恢复逻辑/集成） | ✅ 已写 |
 | `m12-eval.md` | Eval 体系工程化方法论（上章：框架 Eval） | ✅ 已写 |
 | `m12-eval-persona.md` | Eval 体系工程化方法论（下章：伙伴 Eval） | ✅ 已写 |
+| `m12-eval-code.md` | Eval 体系代码走读（三源映射/Mock LLM/Runner/Graders） | ✅ 已写 |
 | `rule-system-evolution.md` | 规则体系的进化（独立主题，非 roadmap 模块） | ✅ 已写 |
 | `gap-audit-2026-07.md` | 方法论缺口审计（三源对照：learning-claude-code / Anthropic 文章 / lingxi）+ 待办清单 | 📋 对照+todo |
 
