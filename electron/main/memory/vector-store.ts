@@ -219,11 +219,16 @@ export const MEMORY_STALE_THRESHOLD_DAYS = 7
 
 /**
  * 把向量召回结果加工成注入 System Prompt 的文本。
- * 纯函数，便于测试。整合 G5 去重 + G2 老化告警：
+ * 纯函数，便于测试。整合 G5 去重 + G2 老化告警 + M5 存在性验证提示：
  * - G5：排除 id 前缀 mem- 的 SQLite 记忆镜像（已由 buildUserProfile 全量注入，避免双重注入）
  * - G2：每条加相对时间感；存在超阈值记忆时追加陈旧提示
+ * - M5：检测含文件路径的记忆，追加"使用前请验证是否仍存在"提示
  * 返回 null 表示去重后无内容可注入。
  */
+
+/** 匹配文件路径特征：/path/to/file.ext 或 dir/file.ext（含 .ts/.py/.json 等扩展名） */
+const FILE_PATH_PATTERN = /(?:^|[\s'"`])([/~][\w./\\-]+\.\w+|[\w.-]+\/[\w./\\-]+\.\w+)/
+
 export function formatRecallForInjection(
   results: VectorSearchResult[],
   now: number = Date.now(),
@@ -232,16 +237,22 @@ export function formatRecallForInjection(
   if (deduped.length === 0) return null
 
   let hasStale = false
+  let hasFileRef = false
   const lines = deduped.map(r => {
     const age = formatMemoryAge(r.timestamp, now)
     const ageDays = Math.floor((now - r.timestamp) / (24 * 60 * 60 * 1000))
     if (ageDays > MEMORY_STALE_THRESHOLD_DAYS) hasStale = true
+    if (FILE_PATH_PATTERN.test(r.text)) hasFileRef = true
     return `- [${r.category}·${age}] ${r.text}`
   })
 
   let output = lines.join('\n')
   if (hasStale) {
     output += '\n\n（部分记忆记录较早，如与当前对话不符，请以用户当前表述为准。）'
+  }
+  if (hasFileRef) {
+    // M5 存在性验证提示：文件路径类记忆在使用前须通过工具确认是否仍存在
+    output += '\n\n（记忆中包含文件路径引用。在依赖这些路径前，请先用 file_read 或 code_search 确认文件仍然存在，避免基于已移动或删除的文件给出错误建议。）'
   }
   return output
 }

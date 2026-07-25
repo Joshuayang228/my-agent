@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Changed — M5 记忆使用前存在性验证提示（2026-07-25）
+- `formatRecallForInjection` 新增 FILE_PATH_PATTERN 检测：召回结果含文件路径时，自动追加提示 Agent 使用前用 `file_read` 或 `code_search` 验证路径是否仍然存在。
+- 对应 M5 gap-audit 缺口：使用含文件/函数引用的记忆前应先验证（避免基于已移动或删除的文件给出错误建议）。
+- 3 个新增测试，252 个测试全过。
+
 ### Added — M4 DevPanel 展示 compactMetadata（2026-07-25）
 - 新增 `compact` AgentStreamEvent 类型：压缩成功后 yield 压缩层级/前后 token/触发方式/是否用 LLM。
 - DevPanel 事件日志对 `compact` 事件专属样式（紫色 + 左边框 + 高亮背景），格式示例：`L3_Collapse 8000→3000t [proactive LLM]`。

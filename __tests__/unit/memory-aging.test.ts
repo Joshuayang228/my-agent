@@ -80,6 +80,27 @@ describe('G5+G2: formatRecallForInjection 召回加工', () => {
     const output = formatRecallForInjection(results, now)
     expect(output).not.toContain('请以用户当前表述为准')
   })
+
+  it('M5: 记忆含文件路径时追加存在性验证提示', () => {
+    const results = [result('conv-1', '用户的项目在 src/auth.ts', 1)]
+    const output = formatRecallForInjection(results, now)
+    expect(output).toContain('file_read 或 code_search 确认文件仍然存在')
+  })
+
+  it('M5: 记忆无文件路径时不追加存在性验证提示', () => {
+    const results = [result('conv-1', '用户喜欢 TypeScript', 1)]
+    const output = formatRecallForInjection(results, now)
+    expect(output).not.toContain('file_read 或 code_search')
+  })
+
+  it('M5: 多条记忆其中一条含路径即追加提示', () => {
+    const results = [
+      result('conv-1', '用户偏好简洁', 1),
+      result('conv-2', '配置文件在 /home/user/.config/app.json', 1),
+    ]
+    const output = formatRecallForInjection(results, now)
+    expect(output).toContain('file_read 或 code_search 确认文件仍然存在')
+  })
 })
 
 describe('G3: selectEvictableItems 记忆生命周期淘汰', () => {
