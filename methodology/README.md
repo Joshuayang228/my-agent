@@ -40,7 +40,7 @@ M01–M27 按**依赖层级**从底向上排列：底层基础设施决定上层
 | 编号 | 章节 | 文件 | 状态 |
 |------|------|------|------|
 | M01 | Agent Loop | `m01-agent-loop.md` + `m01-agent-loop-code.md` | ✅ |
-| M02 | Streaming 设计范式 | `m02-streaming-design.md` | 📋 占位 |
+| M02 | Streaming 设计范式 | `m02-streaming-design.md` | ✅ |
 | M03 | 错误体系设计 | `m03-error-system.md` | 📋 占位 |
 | M04 | 工具系统 | `m04-tool-system.md` + `m04-tool-system-code.md` | ✅ |
 | M05 | LLM 路由与适配 | `m05-llm-routing.md` + `m05-llm-routing-code.md` | ✅ |
