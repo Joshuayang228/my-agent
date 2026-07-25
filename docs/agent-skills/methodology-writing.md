@@ -163,4 +163,5 @@ methodology/
 
 Alice 方法论路径：`_reference/framework-harness/repos/alice-methodology/chapters/`
 CC sourcemap 路径：`_reference/framework-harness/repos/claude-code-sourcemap-main/.../restored-src/src/`
-feiche 路径：`_reference/framework-harness/repos/wps-cowork/vibe/spec/`
+feiche 源码路径：`_reference/feiche/feiche/`（feiche-agents / feiche-server / feiche-env / feiche-sandbox）
+feiche spec 路径：`_reference/framework-harness/repos/wps-cowork/vibe/spec/`（设计文档，如 concurrency-queue-design.md）
