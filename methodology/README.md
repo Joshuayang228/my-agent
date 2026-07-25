@@ -29,7 +29,7 @@ M01–M27 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 ### 文件命名过渡说明
 
-现有章节文件保持原有命名（m01–m12），新增占位章节使用描述性名称。全部文件将在内容基本就绪后做一次批量重命名，对齐到最终编号（mNN-主题.md）。
+所有文件已统一重命名为 `mNN-主题.md` 格式，与章节编号一一对应。
 
 ---
 
@@ -40,57 +40,57 @@ M01–M27 按**依赖层级**从底向上排列：底层基础设施决定上层
 | 编号 | 章节 | 文件 | 状态 |
 |------|------|------|------|
 | M01 | Agent Loop | `m01-agent-loop.md` + `m01-agent-loop-code.md` | ✅ |
-| M02 | Streaming 设计范式 | `streaming-design.md` | 📋 占位 |
-| M03 | 错误体系设计 | `error-system.md` | 📋 占位 |
-| M04 | 工具系统 | `m02-tool-system.md` + `m02-tool-system-code.md` | ✅ |
-| M05 | LLM 路由与适配 | `m03-llm-routing.md` + `m03-llm-routing-code.md` | ✅ |
+| M02 | Streaming 设计范式 | `m02-streaming-design.md` | 📋 占位 |
+| M03 | 错误体系设计 | `m03-error-system.md` | 📋 占位 |
+| M04 | 工具系统 | `m04-tool-system.md` + `m04-tool-system-code.md` | ✅ |
+| M05 | LLM 路由与适配 | `m05-llm-routing.md` + `m05-llm-routing-code.md` | ✅ |
 
 ### Part II：上下文与记忆
 
 | 编号 | 章节 | 文件 | 状态 |
 |------|------|------|------|
-| M06 | System Prompt 工程化 | `system-prompt-engineering.md` | 📋 占位 |
-| M07 | 上下文压缩 | `m04-context-compression.md` + `m04-context-compression-code.md` | ✅ |
-| M08 | 记忆系统 | `m05-memory-system.md` + `m05-memory-system-code.md` | ✅ |
-| M09 | 后台任务生命周期 | `m11-task-lifecycle.md` + `m11-task-lifecycle-code.md` | ✅ |
+| M06 | System Prompt 工程化 | `m06-system-prompt-engineering.md` | 📋 占位 |
+| M07 | 上下文压缩 | `m07-context-compression.md` + `m07-context-compression-code.md` | ✅ |
+| M08 | 记忆系统 | `m08-memory-system.md` + `m08-memory-system-code.md` | ✅ |
+| M09 | 后台任务生命周期 | `m09-task-lifecycle.md` + `m09-task-lifecycle-code.md` | ✅ |
 
 ### Part III：安全与扩展
 
 | 编号 | 章节 | 文件 | 状态 |
 |------|------|------|------|
-| M10 | 权限与安全 | `m06-permission-security.md` + `m06-permission-security-code.md` | ✅ |
-| M11 | Hook / 扩展点架构 | `hook-extension-architecture.md` | 📋 占位 |
-| M12 | IPC 架构 | `ipc-architecture.md` | 📋 占位 |
-| M13 | MCP 集成 | `mcp-integration.md` | 📋 占位 |
+| M10 | 权限与安全 | `m10-permission-security.md` + `m10-permission-security-code.md` | ✅ |
+| M11 | Hook / 扩展点架构 | `m11-hook-extension-architecture.md` | 📋 占位 |
+| M12 | IPC 架构 | `m12-ipc-architecture.md` | 📋 占位 |
+| M13 | MCP 集成 | `m13-mcp-integration.md` | 📋 占位 |
 
 ### Part IV：可观测与质量
 
 | 编号 | 章节 | 文件 | 状态 |
 |------|------|------|------|
-| M14 | 可观测性 | `m07-observability.md` + `m07-observability-code.md` | ✅ |
-| M15 | 状态机设计 | `state-machine-design.md` | 📋 占位 |
-| M16 | 并发与数据架构 | `concurrency-data-architecture.md` | 📋 占位 |
-| M17 | 测试架构 | `testing-architecture.md` | 📋 占位 |
-| M18 | Eval 体系（上下两章） | `m12-eval.md` + `m12-eval-persona.md` + `m12-eval-code.md` | ✅ |
+| M14 | 可观测性 | `m14-observability.md` + `m14-observability-code.md` | ✅ |
+| M15 | 状态机设计 | `m15-state-machine-design.md` | 📋 占位 |
+| M16 | 并发与数据架构 | `m16-concurrency-data-architecture.md` | 📋 占位 |
+| M17 | 测试架构 | `m17-testing-architecture.md` | 📋 占位 |
+| M18 | Eval 体系（上下两章） | `m18-eval.md` + `m18-eval-persona.md` + `m18-eval-code.md` | ✅ |
 
 ### Part V：智能与进化
 
 | 编号 | 章节 | 文件 | 状态 |
 |------|------|------|------|
-| M19 | 多 Agent 协作 | `m08-multi-agent.md` + `m08-multi-agent-code.md` | ✅ |
-| M20 | 自进化架构 | `m10-self-evolution.md` + `m10-self-evolution-code.md` | ✅ |
+| M19 | 多 Agent 协作 | `m19-multi-agent.md` + `m19-multi-agent-code.md` | ✅ |
+| M20 | 自进化架构 | `m20-self-evolution.md` + `m20-self-evolution-code.md` | ✅ |
 
 ### Part VI：伙伴类 Agent
 
 | 编号 | 章节 | 文件 | 状态 |
 |------|------|------|------|
-| M21 | 人格引擎 | `m09-persona-engine.md` + `m09-persona-engine-code.md` | ✅ |
-| M22 | 信息不对称设计 | `companion-asymmetric-info.md` | 📋 占位 |
-| M23 | 冷启动与关系建立 | `companion-cold-start.md` | 📋 占位 |
-| M24 | 对话行为规范 | `companion-conversation-norms.md` | 📋 占位 |
-| M25 | 能力边界表达 | `companion-capability-expression.md` | 📋 占位 |
-| M26 | 叙事连贯性 | `companion-narrative-coherence.md` | 📋 占位 |
-| M27 | 主动在场设计 | `companion-proactive-presence.md` | 📋 占位 |
+| M21 | 人格引擎 | `m21-persona-engine.md` + `m21-persona-engine-code.md` | ✅ |
+| M22 | 信息不对称设计 | `m22-companion-asymmetric-info.md` | 📋 占位 |
+| M23 | 冷启动与关系建立 | `m23-companion-cold-start.md` | 📋 占位 |
+| M24 | 对话行为规范 | `m24-companion-conversation-norms.md` | 📋 占位 |
+| M25 | 能力边界表达 | `m25-companion-capability-expression.md` | 📋 占位 |
+| M26 | 叙事连贯性 | `m26-companion-narrative-coherence.md` | 📋 占位 |
+| M27 | 主动在场设计 | `m27-companion-proactive-presence.md` | 📋 占位 |
 
 ---
 
