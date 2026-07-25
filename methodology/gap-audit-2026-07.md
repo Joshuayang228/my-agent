@@ -341,16 +341,16 @@ A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、�
 | 优先级 | 缺失原则 | 来源文章 | 对伙伴产品的价值判断 |
 |--------|---------|---------|-------------------|
 | **P0** | **评估驱动开发体系**（task/trial/grader/harness 结构、capability vs regression eval、pass^k 一致性度量、LLM-as-Judge 校准） | Demystifying Evals | 没有 eval 就无法系统地衡量和改进伙伴体验质量，尤其是人格一致性和记忆有效性 |
-| **P0** | **Think Tool 作为独立推理工具**（零副作用 scratchpad + 领域化推理示例） | Think Tool | 伙伴在遵循用户偏好（=政策）、处理复杂多步任务时，需要显式推理空间来保持一致性 |
+| ~~P0~~ | ~~**Think Tool 作为独立推理工具**~~（零副作用 scratchpad + 领域化推理示例） | Think Tool | ~~伙伴在遵循用户偏好（=政策）、处理复杂多步任务时，需要显式推理空间来保持一致性~~ **→ 已完成**：Opus 4.8 内置 Extended Thinking，无需额外工具 |
 | **P0** | **Workflow vs Agent 决策框架**（5 种 workflow 模式 + "只在简单方案不够时才加复杂度"） | Building Effective Agents | 伙伴的大部分交互是简单对话，不需要完整 Agent Loop；需要轻量路由决定走哪条路径 |
 | **P1** | **AI 分类器替代人工审批**（两阶段分类、剥离 assistant 文本防说服、overeager threat model） | Auto Mode | 伙伴产品不能频繁弹窗确认，但也不能完全放开；模型分类器是最佳平衡点 |
-| **P1** | **Deny-and-Continue 模式**（拒绝作为 tool_result 返回、引导找替代方案、N 次升级） | Auto Mode | 比"告诉 AI 别再试"更优雅——让伙伴自己找到安全的替代方案，减少对话中断 |
+| ~~P1~~ | ~~**Deny-and-Continue 模式**~~（拒绝作为 tool_result 返回、引导找替代方案、N 次升级） | Auto Mode | ~~比"告诉 AI 别再试"更优雅——让伙伴自己找到安全的替代方案，减少对话中断~~ **→ 已完成**：M6 已实现 Deny-and-Continue + 拒绝熔断 |
 | **P1** | **Context Engineering 作为独立学科**（有限注意力预算、context rot、最小高信号 token 集） | Context Engineering | 需要将 M4 压缩和 M9 prompt 结构统一到"context engineering"这个完整框架下 |
 | **P1** | **Just-in-time Context + Progressive Disclosure**（轻量引用 + 按需加载 + 逐层发现） | Context Engineering | 伙伴面对用户的文件系统和信息时，应该像人一样按需探索，而非预先全量加载 |
 | **P1** | **Input-layer Prompt Injection Probe**（工具结果进入 Agent 前的独立扫描 + 警告注入） | Auto Mode | 伙伴会读取用户的文件/网页，这些内容可能包含注入攻击；需要输入层防御 |
 | **P2** | **Eval-driven Tool Optimization**（用 eval 衡量工具效果、让 Agent 分析 transcript 自动优化） | Writing Tools | 工具质量需要系统化衡量和迭代，不能只靠人工判断 |
 | **P2** | **Tool Consolidation + Namespacing + Response Format Enum** | Writing Tools + Advanced | 随着工具增长、MCP 接入，需要更系统的工具组织和效率策略 |
-| **P2** | **Tool Use Examples**（`input_examples` 展示参数模式） | Advanced Tool Use | 提升工具调用准确率的低成本方法（72%→90%） |
+| ~~P2~~ | ~~**Tool Use Examples**~~（`input_examples` 展示参数模式） | Advanced Tool Use | ~~提升工具调用准确率的低成本方法（72%→90%）~~ **→ 已完成**：M2 已实现 inputExamples 拼入 description |
 | **P2** | **Tool Search Tool（按需发现大规模工具库）** | Advanced Tool Use | MCP 生态扩大后必须有；当前工具量级暂不急 |
 | **P2** | **Structured Note-taking 作为 task-level 工作记忆** | Context Engineering | 长任务中 Agent 主动写笔记、context reset 后读回，与 M5 跨会话记忆互补 |
 | **P2** | **Context Reset + 结构化交接（vs 仅压缩）** | Context Engineering + Harness Design | 某些模型有"上下文焦虑"，完全重置可能比压缩更有效；作为 M4 的补充方案 |
@@ -396,7 +396,7 @@ A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、�
 
 **缺口 1：可观测性的"闭环 + 标准语义约定 + 生命周期钩子接口化"**
 - **lingxi 怎么做**：`Observer` 是一个稳定接口（4 类 8 个钩子），业务代码只依赖接口；`OTelObserver`/`CompositeObserver`/`NoopObserver` 可插拔。所有 span 走 OTel GenAI 标准 key（`gen_ai.usage.input_tokens` 等），metrics 与 span **在同一处闭环**记录。`CompositeObserver` 支持一次 fan-out 到多个观察者（如同时喂 tracing + 计费）。
-- **对应模块**：M7（可观测性，只有轻量 tracer）。
+- **对应模块**：M7（可观测性，只有轻量 tracer）。**→ 已完成**：M7 已实现 span 追踪 + OTel GenAI 属性对齐，但 Observer 接口抽象仍待重构（M7 后续优化项）。
 - **我们缺的工程维度**：
   1. **把 tracer 从"日志"升级为"接口化生命周期钩子"** —— NoopObserver 默认注入，生产可换 OTel，测试可换 mock，业务零改动。这是 M7 最该抄的架构，跟云无关。
   2. **对齐 OTel GenAI 语义约定的 attribute key** —— 即使桌面不接 Jaeger，用标准 key 命名（agent/turn/tool/llm 的 input/output/token/ttft/finish_reason）能让本地 trace 面板、future 云同步、第三方工具直接复用。
@@ -405,7 +405,7 @@ A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、�
 
 **缺口 2：结构化错误体系（Code + Wrap + 可作为事件流回前端）**
 - **lingxi 怎么做**：`errs.Error{Code, Message, InnerErr}`，`Code` 是带 `String()` 的枚举（`ToolNameNotFound`/`MaxGenerationExceeded`/`ContentEmpty` 等 agent 语义错误），`Wrap/Wrapf` 保留因果链，`Is/CodeOf` 支持类型判断。关键：`Error` 实现了 `EventType() "error"`，**错误能直接作为 AGUI 事件推给前端渲染**。
-- **对应模块**：无对应（M 模块没有独立的错误体系章节，明显盲区）。
+- **对应模块**：无对应（M 模块没有独立的错误体系章节，明显盲区）。**→ 已完成**：引入 `AgentError` + 错误码枚举 + retryable 分类 + 前端分派（M6 后续工作）。
 - **我们缺的工程维度**：一套 agent 领域错误码 + 因果链保留 + 错误直达 UI 的机制。桌面 AI 伙伴的错误（工具失败、超轮次、内容审核、权限拒绝）需要**分类**才能决定 UI 表现（重试按钮？降级提示？人格化道歉话术？）。
 - **桌面价值判断**：**高**。人格化产品尤其需要——错误码决定了"伙伴"用什么语气回应失败（参考 sandbox 里权限拒绝的话术模板 `_deny`："请以「您拒绝了…」开头回复用户"，这就是错误码驱动人格化话术）。这点对 M9 人格引擎也有联动价值。
 
@@ -417,7 +417,7 @@ A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、�
 
 **缺口 4：重试与退避的"错误码白名单"策略**
 - **lingxi 怎么做**：`retrier.go` 只对特定错误码（限流类 + `EmptyToolCalls`）重试，指数退避 + 上限 + 溢出保护，且**重试轮次与生成轮次共享配额**（防无限重试）。明确**不重试**业务错误（参数错、工具不存在）。
-- **对应模块**：M3（LLM 路由）或 M1，可能提了重试但没讲"哪些该重试"。
+- **对应模块**：M3（LLM 路由）或 M1，可能提了重试但没讲"哪些该重试"。**→ 已完成**：M6 后续工作统一了 retryable 判断，对齐 lingxi 的错误码白名单逻辑。
 - **我们缺的工程维度**：**可重试 vs 不可重试的分类**。桌面同样会遇到模型限流、空 tool_calls（豆包这类模型的已知问题）、网络抖动。盲目重试业务错误会浪费 token 和时间。
 - **桌面价值判断**：**高**。桌面调云端模型 API 一样会限流/抖动，退避策略直接影响可用性。
 
@@ -564,7 +564,7 @@ A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、�
 ### 三、报告 C 缺口清单（按对「人格化桌面 AI 伙伴」价值排序）
 
 **第一梯队 — 立即补新模块**
-1. ~~**任务生命周期系统（→ M11）**：后台能力 + 陪伴可见性（DreamTask 式 pill）基础设施~~ **✅ v2 已完成**（2026-07-25）
+1. ~~**任务生命周期系统（→ M11）**：后台能力 + 陪伴可见性（DreamTask 式 pill）基础设施~~ **✅ 已完成**（2026-07-25）
 2. **可逆性 / undo 机制**：连 CC 都没解决的空白，信任型陪伴产品的差异化关键
 
 **第二梯队 — 补进现有 M**

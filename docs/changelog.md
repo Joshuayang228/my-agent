@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Changed — 文档同步：gap-audit 完成项勾选（2026-07-25）
+- `gap-audit-2026-07.md` 标记已完成项：Think Tool / Tool Use Examples / Deny-and-Continue / 结构化错误体系 / M11 任务生命周期 / 重试错误码白名单。
+- 标注 M7 Observer 接口抽象进展：span + OTel GenAI 属性对齐已完成，接口化重构待优化。
+- 同步 `progress.md` 时间线：2026-07-25 新增一条勾选记录。
+- 无代码逻辑变更，仅文档状态同步。
+
 ### Added — M11 任务生命周期 v2：SQLite 持久化 + 崩溃恢复（2026-07-25）
 - `background_tasks` 表：id/session_id/type/status/notified/created_at/updated_at/error 八字段，支持任务持久化和重启恢复。
 - `TaskQueueManager` 双层架构：内存队列 + SQLite 持久层，入队先落盘后执行，保证崩溃时任务不丢。

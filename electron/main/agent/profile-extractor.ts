@@ -38,11 +38,13 @@ DO save (durable knowledge):
 - Identity facts (role, expertise, tech stack, location)
 - Explicit corrections about how they want you to work → category "feedback"
 - Explicit confirmations that you did something the right way → category "feedback"
+- Don't extract what the assistant (you) *should* remember about itself — only extract what the assistant should remember about the *user*
 
 Do NOT save (these are noise or belong elsewhere):
 - Transient task state ("currently debugging the login flow", "on step 3")
 - Anything derivable from the current conversation or easily re-observed
 - The assistant's own instructions, persona, or behavior rules
+- Assistant promises to remember something in the future — those are *actions* the assistant takes, not *facts* about the user
 - Overly generic statements ("uses a computer", "likes good code")
 - One-off facts that won't matter in the next conversation
 
