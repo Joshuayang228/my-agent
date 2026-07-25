@@ -205,9 +205,29 @@ Anthropic Context Engineering 文章提出了更进化的模式：**just-in-time
 
 ## 实战记录
 
-### 踩过的坑
+**踩过的最大坑：L4 时间精度导致 0% 缓存命中**
 
-**不同执行模式的注入时机**
+最初 L4 注入的是 `toLocaleString()`——精确到秒的完整时间戳。结果：每次 LLM 调用时间都会变，L4 之后的所有内容（包括对话历史）都无法缓存。多轮对话后，缓存命中率为 0%。
+
+Cherry Studio、opencode 等多个开源项目都踩过同一个坑，有明确的 issue 记录（Cherry Studio #16398、opencode #29672）。
+
+**修复方式**（对照 CC 的 DYNAMIC_BOUNDARY 设计）：
+1. L4 改为**日期仅**（`YYYY-MM-DD`）——全天稳定，前缀缓存不被时间污染
+2. 当前时间（HH:MM）改为在每轮 LLM 调用前注入到 user 消息的开头
+
+```typescript
+// loop.ts：每次 LLM 调用前的时间注入（临时副本，不修改 state.messages）
+const messagesWithTime = state.messages.map((m, i) => {
+  if (attempt > 0) return m                         // 重试不重复注入
+  if (i !== state.messages.length - 1) return m    // 只改最后一条
+  if (m.role !== 'user') return m                  // 只改 user 消息
+  return { ...m, content: `[当前时间: ${timeStr}]\n${m.content}` }
+})
+```
+
+这样 L1-L3 全天缓存，对话历史也可以在工具调用之间缓存，只有新增的 user 消息内容（含时间前缀）每次不同——这是无法避免的，因为消息本身就是新的。
+
+
 
 `executionMode`（auto / confirm-all / plan-first）会影响 L2 能力边界的描述——plan-first 模式需要额外告知 LLM"先计划再执行"的约束。早期实现里这段说明是硬编码在 system prompt 里的，导致切换执行模式需要重建整个 system prompt。改为通过 `PromptContext.executionMode` 参数控制，分层注入后模式切换不影响其他层。
 
