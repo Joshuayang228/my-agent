@@ -40,8 +40,8 @@ M01–M27 按**依赖层级**从底向上排列：底层基础设施决定上层
 | 编号 | 章节 | 文件 | 状态 |
 |------|------|------|------|
 | M01 | Agent Loop | `m01-agent-loop.md` + `m01-agent-loop-code.md` | ✅ |
-| M02 | Streaming 设计范式 | `m02-streaming-design.md` | ✅ |
-| M03 | 错误体系设计 | `m03-error-system.md` | ✅ |
+| M02 | Streaming 设计范式 | `m02-streaming-design.md` + `m02-streaming-design-code.md` | ✅ |
+| M03 | 错误体系设计 | `m03-error-system.md` + `m03-error-system-code.md` | ✅ |
 | M04 | 工具系统 | `m04-tool-system.md` + `m04-tool-system-code.md` | ✅ |
 | M05 | LLM 路由与适配 | `m05-llm-routing.md` + `m05-llm-routing-code.md` | ✅ |
 
@@ -49,7 +49,7 @@ M01–M27 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 | 编号 | 章节 | 文件 | 状态 |
 |------|------|------|------|
-| M06 | System Prompt 工程化 | `m06-system-prompt-engineering.md` | 📋 占位 |
+| M06 | System Prompt 工程化 | `m06-system-prompt-engineering.md` + `m06-system-prompt-engineering-code.md` | ✅ |
 | M07 | 上下文压缩 | `m07-context-compression.md` + `m07-context-compression-code.md` | ✅ |
 | M08 | 记忆系统 | `m08-memory-system.md` + `m08-memory-system-code.md` | ✅ |
 | M09 | 后台任务生命周期 | `m09-task-lifecycle.md` + `m09-task-lifecycle-code.md` | ✅ |
