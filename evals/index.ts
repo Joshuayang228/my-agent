@@ -12,10 +12,11 @@ import type { EvalScenario } from './types'
 
 import { F01 } from './scenarios/f01'
 import { F02, F03, F04, F05, F06, F07 } from './scenarios/f02-f07'
+import { F08 } from './scenarios/f08'
 import { P01, P02, P03, P04 } from './scenarios/p01-p04'
 
 const ALL_SCENARIOS: EvalScenario[] = [
-  F01, F02, F03, F04, F05, F06, F07,
+  F01, F02, F03, F04, F05, F06, F07, F08,
   P01, P02, P03, P04,
 ]
 

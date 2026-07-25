@@ -38,16 +38,17 @@ export async function runScenario(scenario: EvalScenario): Promise<ScenarioResul
     // 构建 agentLoop options
     const baseOptions = await scenario.buildOptions(workdir, registry)
 
-    // 注入 Mock LLM（如有）
+    // 优先用 buildOptions 自带的 _streamChatOverride（场景自定义 mock，如消息捕获），
+    // 其次用 mockResponses 生成的标准脚本 mock，都没有则走真实 LLM。
     resetMockCounter()
-    const streamChatOverride = scenario.mockResponses
-      ? createMockStreamChat(scenario.mockResponses)
-      : undefined
+    const { _streamChatOverride: overrideFromOptions, ...restBaseOptions } = baseOptions
+    const streamChatOverride = overrideFromOptions
+      ?? (scenario.mockResponses ? createMockStreamChat(scenario.mockResponses) : undefined)
 
     const loopOptions = {
-      ...baseOptions,
+      ...restBaseOptions,
       toolContext: {
-        ...(baseOptions.toolContext ?? {}),
+        ...(restBaseOptions.toolContext ?? {}),
         workdir,
         sessionId: `eval-${scenario.id}`,
       },

@@ -56,6 +56,48 @@ export function createMockStreamChat(turns: MockTurn[]) {
   }
 }
 
+/**
+ * 消息捕获接口 — 记录每次 LLM 调用时传入的 messages
+ */
+export interface CapturedLLMCall {
+  messages: import('../src/shared/types').ChatMessage[]
+  turnIndex: number
+}
+
+/**
+ * createCapturingMockStreamChat — 在 createMockStreamChat 基础上，
+ * 在每次调用时把 messages 记录进 captured，供断言压缩后 preamble 是否保留。
+ *
+ * 用法（F08 场景）：
+ *   const captured: { calls: CapturedLLMCall[] } = { calls: [] }
+ *   const mock = createCapturingMockStreamChat(turns, captured)
+ *   // buildOptions 返回 _streamChatOverride: mock
+ *   // grader 通过 captured 读取调用历史
+ */
+export function createCapturingMockStreamChat(
+  turns: MockTurn[],
+  captured: { calls: CapturedLLMCall[] },
+) {
+  let callIdx = 0
+  const baseFn = createMockStreamChat(turns)
+
+  // 必须手动 forward 而非 yield*，以保证 AsyncGenerator 的 return value 正确传播
+  return async function* capturingMock(options: unknown): AsyncGenerator<import('../src/shared/types').AgentStreamEvent, import('../electron/main/llm/index').StreamChatResult> {
+    const opts = options as { messages: import('../src/shared/types').ChatMessage[] }
+    callIdx++
+    // 拷贝一份：loop 内部可能会修改 messages 数组
+    captured.calls.push({ messages: [...opts.messages], turnIndex: callIdx })
+
+    const gen = baseFn(options)
+    let step = await gen.next()
+    while (!step.done) {
+      yield step.value as import('../src/shared/types').AgentStreamEvent
+      step = await gen.next()
+    }
+    return step.value as import('../electron/main/llm/index').StreamChatResult
+  }
+}
+
 /** 重置调用计数（每个场景开始前调用） */
 export function resetMockCounter() {
   _callCounter = 0
