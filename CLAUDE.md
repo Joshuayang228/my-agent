@@ -96,7 +96,10 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 功能开发完成且测试通过后**必须**立即 commit + push：
 
 - commit 前必须通过单元测试（`npm run test`）和类型检查（`npx tsc --noEmit`）。
+- 改动涉及 import 结构、主进程模块或打包配置时，commit 前必须补跑 `npx vite build`——`tsc` 查不出重复导入/打包期错误（已踩坑：重复 import 过了 tsc、build 才失败）。
+- 动手前先 `git status`：把与本次任务无关的存量改动单独提交或 stash，不混进本次提交。
 - 严禁本地积压大量未提交修改；严禁只 commit 不 push。
+- 一个 commit 只做一件事；用 `git add <具体文件>` 而非 `git add .`，staged 后再 `git status` 复查。
 - 遇 `Failed to connect to 127.0.0.1` 类代理报错，检查代理端口（Clash 常见 7890 / 7897），更新或 `git config --global --unset http.proxy` 尝试直连，直至推送成功。
 
 > commit 规范、分支命名、PR 流程详见 `docs/agent-skills/git-workflow.md`。

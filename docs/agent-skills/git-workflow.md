@@ -18,12 +18,16 @@ git config --global http.proxy http://127.0.0.1:7892
 
 ## 推送前检查
 
-按变更风险选择执行：
+必做：
 
 1. `npx tsc --noEmit`，类型检查。
-2. `npx vite build`，构建验证。
-3. `npx playwright test`，E2E 测试。
-4. 确认 `.env` 等敏感文件不在 staged 中。
+2. `npm run test`，单元测试。
+3. 确认 `.env`、密钥等敏感文件不在 staged 中。
+
+条件必做：
+
+4. 改到 import 结构 / 主进程模块 / 打包配置 → `npx vite build`（tsc 查不出打包期错误）。
+5. 改到 UI 交互 / 关键流程 → `npx playwright test`。
 
 PowerShell 中不支持 bash heredoc，commit message 使用简短单行 `-m` 格式即可。
 
