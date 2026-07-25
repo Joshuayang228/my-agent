@@ -5,6 +5,13 @@
 
 ## [未发布]
 
+### Added — Eval B 类场景（P05/P06）+ ModelBasedGrader（2026-07-25）
+- `ModelBasedGrader`：LLM judge 基础设施，接受违规项问题列表，二元判断避免综合分，无 API key 自动跳过。
+- P05 语气一致性：检测客服话术和"汇报感"（`required: false`，需真实 LLM）。
+- P06 记忆使用自然度：检测机械引用记忆格式（`required: false`，需真实 LLM）。
+- Eval Suite 12 → 14 个场景；B 类场景无 API key 时跳过（pass=true + 说明），不阻断 CI。
+- 对应方法论：`m12-eval-persona.md` §8（B 类 LLM judge 设计方向）。
+
 ### Added — Think Tool（M2 gap-audit，2026-07-25）
 - 新增内置工具 `think`：零副作用推理工具，在工具调用链中间插入结构化推理步骤。
 - 不读文件、不调网络、不改状态；思考内容通过 tool_end 事件记录，不直接展示给用户。
