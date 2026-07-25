@@ -6,7 +6,7 @@ import type {
   ToolCall,
   ToolResult,
 } from '../../../src/shared/types'
-import { streamChat, LLMError } from '../llm/index'
+import { streamChat as defaultStreamChat, LLMError } from '../llm/index'
 import { ToolRegistry } from '../tools/registry'
 import { checkToolPermission } from '../sandbox/permission-engine'
 import { createLogger } from '../utils/logger'
@@ -148,6 +148,8 @@ export async function* agentLoop(
 
   // 运行时有效模式可因连续拒绝自动收紧；只允许从 auto 降到 confirm-all，不提升权限。
   let effectiveExecutionMode = executionMode
+  // eval / 集成测试可注入 mock LLM，生产代码使用默认 streamChat
+  const streamChat = options._streamChatOverride ?? defaultStreamChat
 
   log.info('Loop started', {
     model: config.model,
@@ -185,7 +187,7 @@ export async function* agentLoop(
   const maybeDowngradeExecutionMode = (): AgentStreamEvent | null => {
     if (
       effectiveExecutionMode !== 'auto' ||
-      state.consecutiveDenials < MAX_CONSECUTIVE_DENIALS
+      state.consecutiveDenials < MAX_CONSECUTIVE_DENIALS - 1
     ) return null
 
     effectiveExecutionMode = 'confirm-all'

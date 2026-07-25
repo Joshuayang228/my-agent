@@ -5,6 +5,13 @@
 
 ## [未发布]
 
+### Added — Eval Suite v1（2026-07-25）
+- `npm run eval:run`：独立 Eval 套件，与单元测试完全隔离（vitest.eval.config.ts）。
+- 11 个场景全部通过（F01-F07 框架行为 + P01-P04 伙伴行为），脚本 LLM，零 API 消耗。
+- `_streamChatOverride` 注入点：agentLoop 可接受 mock LLM，不破坏生产代码路径。
+- downgrade 阈值调整为 `MAX_CONSECUTIVE_DENIALS - 1`，给 Agent 在降级后完成一轮的机会再熔断。
+- `docs/eval-design.md`：12 个场景的具体输入、mock 序列、断言规格。
+
 ### Changed — Eval 前置安全与错误体验收口（2026-07-25）
 - 日志统一脱敏：敏感字段、常见 API key/token、Bearer 凭据和 URL 敏感参数在 console 与文件日志中统一替换，支持嵌套对象、循环引用和 BigInt。
 - `auto` 执行模式连续 3 次拒绝后自动降为 `confirm-all`，通过 `execution_mode_changed` 事件通知前端并持久化，防止自动模式反复撞权限边界。

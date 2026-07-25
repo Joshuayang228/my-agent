@@ -186,6 +186,13 @@ export interface AgentLoopOptions {
   toolContext?: ToolContext
   /** 父 interaction span ID，用于将 loop 内的子 span 挂在同一棵调用链树下 */
   interactionSpanId?: string
+  /**
+   * 覆盖默认 streamChat 实现，主要供 eval / 集成测试使用。
+   * 传入时 loop 不调真实 LLM，而是走这个函数。
+   * 前缀下划线提示：仅测试/eval 场景，勿在生产业务逻辑里使用。
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  _streamChatOverride?: (options: any) => AsyncGenerator<any, any>
 }
 
 /** Agent 循环终止原因 */
