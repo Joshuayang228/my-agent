@@ -59,13 +59,14 @@ export interface EvalScenario {
   /** 一句话描述 */
   description: string
   /**
-   * 构建 agentLoop options（不含 _streamChatOverride，runner 自动注入）。
-   * workdir 是 runner 创建的临时目录，可以在此预置文件。
+   * 构建 agentLoop options。
+   * 可以返回完整 AgentLoopOptions（含 _streamChatOverride）供需要自定义 mock 的场景使用；
+   * 也可以不包含 _streamChatOverride，runner 会根据 mockResponses 自动注入。
    */
   buildOptions: (
     workdir: string,
     registry: ToolRegistry,
-  ) => Promise<Omit<AgentLoopOptions, '_streamChatOverride'>>
+  ) => Promise<AgentLoopOptions>
   /**
    * 注册场景所需的工具（runner 新建空 ToolRegistry 后调用）。
    * 不传则使用空 registry。

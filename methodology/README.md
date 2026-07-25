@@ -35,6 +35,7 @@
 | `m09-persona-engine-code.md` | 人格引擎代码走读 | ✅ 已写 |
 | `m10-self-evolution.md` | 自进化与 Skill 工程化方法论 | ✅ 已写 |
 | `m10-self-evolution-code.md` | 自进化与 Skill 代码走读 | ✅ 已写 |
+| `m11-task-lifecycle.md` | 任务生命周期工程化方法论 | ✅ 已写（代码未实现，待补 code 章） |
 | `m12-eval.md` | Eval 体系工程化方法论（上章：框架 Eval） | ✅ 已写 |
 | `m12-eval-persona.md` | Eval 体系工程化方法论（下章：伙伴 Eval） | ✅ 已写 |
 | `rule-system-evolution.md` | 规则体系的进化（独立主题，非 roadmap 模块） | ✅ 已写 |

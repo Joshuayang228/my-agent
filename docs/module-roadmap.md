@@ -25,7 +25,7 @@
 
 ---
 
-## Phase 1：框架模块深啃（10 个模块）
+## Phase 1：框架模块深啃（10 个模块 + 2 个扩展）
 
 | # | 模块 | Ring | 参考源 | 吸收的原任务 | 状态 |
 |---|------|------|--------|-------------|------|
@@ -39,6 +39,8 @@
 | M8 | [多 Agent 协作](#m8-多-agent-协作) | 4（上层建筑） | Alice Ch.06 × CC coordinator/ + tasks/ | — | ✅ 全部完成 |
 | M9 | [人格引擎 + Prompt 工程](#m9-人格引擎--prompt-工程) | 4（上层建筑） | Alice Ch.14+16 × CC context.ts | 角色设定集 / PROTECTED 守卫 / MUTABLE 进化 | 🟡 一致性落地，成长性占位 |
 | M10 | [自进化与 Skill](#m10-自进化与-skill) | 4（上层建筑） | Alice Ch.09+10 | Skill 微调闭环 / 代码级自进化 | 🟡 版本备份落地，自动改进占位 |
+| M11 | [任务生命周期](#m11-任务生命周期) | 3（支撑层） | CC tasks/ × learning-claude-code Ch.06 | 后台任务状态机 / 通知幂等 / 前后台分离 | 📋 方法论完成，代码待实现 |
+| M12 | [Eval 体系](#m12-eval-体系) | 5（度量层） | CC Harness Guide × lingxi observability × Anthropic Article 4 | Eval 场景 / Grader / Runner | 🟡 方法论 + v1 场景完成，B类待做 |
 
 ---
 
