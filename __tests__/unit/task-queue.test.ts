@@ -67,7 +67,7 @@ describe('TaskQueueManager', () => {
     expect(task?.status).toBe('completed')
   })
 
-  it('任务抛错后状态变为 failed，包含 error 信息', async () => {
+  it('任务首次抛错后进入 pending 重试，retryCount 递增', async () => {
     const id = taskQueue.enqueue('s3', 'smart-title', async () => {
       throw new Error('测试失败')
     })
@@ -75,8 +75,30 @@ describe('TaskQueueManager', () => {
     await new Promise<void>(r => setTimeout(r, 50))
 
     const task = taskQueue.getTask(id)
-    expect(task?.status).toBe('failed')
-    expect(task?.error).toContain('测试失败')
+    // 第一次失败后：retryCount=1，status=pending（等待 1s 后重试）
+    expect(task?.retryCount).toBe(1)
+    expect(task?.status).toBe('pending')
+  })
+
+  it('重试耗尽后状态变为 failed，包含 error 信息', async () => {
+    vi.useFakeTimers()
+    try {
+      let callCount = 0
+      const id = taskQueue.enqueue('s3b', 'smart-title', async () => {
+        callCount++
+        throw new Error('测试失败')
+      })
+
+      // 首次执行（微任务，0ms）+ 三次重试（1s/2s/4s），超过 7s 即全部耗尽
+      await vi.advanceTimersByTimeAsync(8000)
+
+      const task = taskQueue.getTask(id)
+      expect(task?.status).toBe('failed')
+      expect(task?.error).toContain('测试失败')
+      expect(callCount).toBe(4) // 首次 + 3 次重试
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('任务完成后 notified 置为 true', async () => {

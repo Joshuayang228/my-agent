@@ -9,12 +9,14 @@
  * - 启动恢复：app ready 后调用 recoverPendingTasks()，把中断的任务重新入队
  * - notified 幂等标志落盘：通知发出后写库，重启后不重发
  *
+ * v3 新增（M11 方向一：可靠性）：
+ * - 指数退避重试：任务失败后最多重试 MAX_RETRIES=3 次（1s/2s/4s），耗尽后通知用户
+ *
  * 内存 vs SQLite 的职责划分：
  * - 内存：执行函数（fn）、运行时状态的来源
  * - SQLite：崩溃后的恢复依据、通知幂等的持久记录
  *
  * 还未做（按方法论暂缓清单）：
- * - 指数退避重试（最多 3 次）
  * - 长任务断点续接
  */
 
@@ -24,6 +26,9 @@ import { getDatabase, persist } from '../storage/database'
 import type { BackgroundTaskInfo, TaskLifecycleEvent, TaskType } from '../../../src/shared/types'
 
 const log = createLogger('TaskQueue')
+
+/** 最多重试次数（指数退避：1s → 2s → 4s），对照 feiche retrier.go 策略 */
+const MAX_RETRIES = 3
 
 // ── 内部任务定义（含执行函数，不对外暴露） ──
 
@@ -223,11 +228,33 @@ class TaskQueueManager {
           log.info(`Task completed: ${task.name}`, { taskId: id })
           this.notify(task, { type: 'task:completed', task: this.toInfo(task) })
         } catch (err) {
-          task.status = 'failed'
-          task.error = err instanceof Error ? err.message : String(err)
-          task.updatedAt = Date.now()
-          log.warn(`Task failed: ${task.name}`, { taskId: id, error: task.error })
-          this.notify(task, { type: 'task:failed', task: this.toInfo(task) })
+          const retryCount = (task.retryCount ?? 0) + 1
+          task.retryCount = retryCount
+
+          if (retryCount <= MAX_RETRIES) {
+            // 指数退避重试：1s / 2s / 4s，非阻塞（不卡主循环）
+            const backoffMs = 1000 * Math.pow(2, retryCount - 1)
+            log.warn(`Task failed, retry ${retryCount}/${MAX_RETRIES} in ${backoffMs}ms`, {
+              taskId: id, error: err instanceof Error ? err.message : String(err),
+            })
+            task.status = 'pending'
+            task.updatedAt = Date.now()
+            dbUpsertTask(this.toInfo(task))
+
+            setTimeout(() => {
+              this.queue.push(id)
+              void this.processNext()
+            }, backoffMs)
+          } else {
+            // 重试耗尽 → 永久失败，通知用户
+            task.status = 'failed'
+            task.error = err instanceof Error ? err.message : String(err)
+            task.updatedAt = Date.now()
+            log.warn(`Task failed permanently after ${retryCount} attempts: ${task.name}`, {
+              taskId: id, error: task.error,
+            })
+            this.notify(task, { type: 'task:failed', task: this.toInfo(task) })
+          }
         }
       }
     } finally {

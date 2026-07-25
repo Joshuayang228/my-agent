@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — M11 方向一：指数退避重试 + UI 活跃任务 pill（2026-07-25）
+- `TaskQueueManager.processNext()` 失败后自动重试，最多 MAX_RETRIES=3 次，退避间隔 1s/2s/4s。重试通过非阻塞 `setTimeout` 重新入队，不阻塞主循环。
+- `BackgroundTaskInfo.retryCount` 字段落 SQLite，崩溃恢复后保留已重试次数，不从0重算。
+- 侧边栏底部新增"● 更新中"pill：订阅 `task:started` 递增、`task:completed/failed` 递减，任务全部完成时自动消失。
+- 新增2个 task-queue 单元测试：重试进入 pending 状态、重试耗尽后 failed（vitest fake timers + advanceTimersByTimeAsync），256 个测试全过。
+
 ### Changed — M7 sessionId 自动注入 tracing（2026-07-25）
 - `startSpan` 新增父 span 属性继承：传入 `parentId` 时自动从父 span 的 attributes 继承 `sessionId`（以及将来的 `userId`），无需每个子 span 调用点手动传参。
 - 显式传入的 attributes 优先级高于继承值，保持可覆盖性。

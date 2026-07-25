@@ -271,6 +271,8 @@ export interface BackgroundTaskInfo {
   createdAt: number
   updatedAt: number
   error?: string
+  /** 已重试次数（指数退避，最多 MAX_RETRIES=3 次） */
+  retryCount?: number
 }
 
 /**

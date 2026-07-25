@@ -4,14 +4,13 @@
 
 ## 当前状态
 
-**阶段**：M12 Eval 方法论 + 第一版 Eval Suite 已落地（11 场景全过），下一步扩充场景和接入真实 LLM
+**阶段**：M11 方向一（可靠性）完成，M12 Eval Suite 已落地（11 场景全过），下一步扩充 B 类场景 + 接入真实 LLM
 
 **最新动态（2026-07-25）**：
-- ✅ 日志统一脱敏：console 与文件落盘均过滤敏感字段、常见凭据和 URL 敏感参数
-- ✅ `auto` 模式连续 3 次拒绝后自动降为 `confirm-all`，事件通知前端并持久化
-- ✅ 前端按错误码分派权限拒绝、限流、LLM 失败和工具超时提示
-- ✅ 修复 Electron 构建中的重复 `toAgentError` 导入
-- ✅ 类型检查、235 个单元测试和 Vite/Electron 构建通过
+- ✅ M11 方向一：指数退避重试（MAX_RETRIES=3，1s/2s/4s），非阻塞 setTimeout re-queue
+- ✅ M11 UI pill：侧边栏底部"●更新中"指示，订阅 task:started/completed/failed 自动增减
+- ✅ 新增2个 task-queue 单元测试（重试 pending 状态、重试耗尽 failed 状态，fake timers）
+- ✅ 类型检查 + 256 个单元测试全通过
 
 
 - 规则体系 + 技能文件设计

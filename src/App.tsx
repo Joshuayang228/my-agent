@@ -131,6 +131,7 @@ function App() {
   const [mentionStartPos, setMentionStartPos] = useState(-1)
   const [mentionedFiles, setMentionedFiles] = useState<Array<{ name: string; path: string }>>([])
   const [bgStreamingSessionId, setBgStreamingSessionId] = useState<string | null>(null)
+  const [activeBgTaskCount, setActiveBgTaskCount] = useState(0)
   const [showScrollBtn, setShowScrollBtn] = useState(false)
   const [isListening, setIsListening] = useState(false)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -152,9 +153,15 @@ function App() {
   useEffect(() => {
     if (!window.electronAPI?.tasks) return
     const cleanup = window.electronAPI.tasks.onEvent((ev) => {
-      if (ev.type === 'task:completed' && ev.task.name === 'profile-extract') {
-        toast('已更新对你的了解 🧠', 'info')
+      if (ev.type === 'task:started') {
+        setActiveBgTaskCount(n => n + 1)
+      } else if (ev.type === 'task:completed') {
+        setActiveBgTaskCount(n => Math.max(0, n - 1))
+        if (ev.task.name === 'profile-extract') {
+          toast('已更新对你的了解 🧠', 'info')
+        }
       } else if (ev.type === 'task:failed') {
+        setActiveBgTaskCount(n => Math.max(0, n - 1))
         toast(`后台任务失败（${ev.task.name}），学习记录可能不完整`, 'warning')
       }
     })
@@ -783,17 +790,30 @@ function App() {
 
           {/* 侧边栏底部 */}
           <div className="flex items-center justify-between border-t px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
-            <button
-              onClick={() => setActiveView('settings')}
-              className="flex items-center gap-2 rounded-md px-2 py-1 text-[13px] transition"
-              style={{ color: 'var(--text-secondary)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-              title="设置 (Ctrl+,)"
-            >
-              <Settings size={16} style={{ color: 'var(--text-muted)' }} />
-              设置
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setActiveView('settings')}
+                className="flex items-center gap-2 rounded-md px-2 py-1 text-[13px] transition"
+                style={{ color: 'var(--text-secondary)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+                title="设置 (Ctrl+,)"
+              >
+                <Settings size={16} style={{ color: 'var(--text-muted)' }} />
+                设置
+              </button>
+              {/* M11 后台任务活跃指示 pill */}
+              {activeBgTaskCount > 0 && (
+                <span
+                  className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}
+                  title={`${activeBgTaskCount} 个后台任务运行中`}
+                >
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: 'var(--accent)' }} />
+                  更新中
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-1">
               <SidebarBtn onClick={() => setActiveView(v => v === 'memory' ? 'chat' : 'memory')} title="记忆 (Ctrl+Shift+M)">
                 <Brain size={14} />
