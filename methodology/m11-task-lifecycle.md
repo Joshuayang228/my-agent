@@ -1,6 +1,6 @@
 # M11 任务生命周期工程化方法论
 
-> 参考源：CC `tasks/` 目录（InProcessTeammateTask / DreamTask / TaskState 类型）、CC `cli/print.ts`（runHeadless + 事件流收集）、lingxi `observability/` 源码（Observer 接口 + 异步 span 链接）、Anthropic learning-claude-code Ch.06（task-system）。
+> 参考源：CC `tasks/` 目录（InProcessTeammateTask / DreamTask / TaskState 类型）、CC `cli/print.ts`（runHeadless + 事件流收集）、feiche `observability/` 源码（Observer 接口 + 异步 span 链接）、Anthropic learning-claude-code Ch.06（task-system）。
 >
 > **实现状态**：v2 已完成 SQLite 持久化、崩溃恢复、通知幂等落盘（2026-07-25）。代码走读见 `m11-task-lifecycle-code.md`。
 
@@ -123,7 +123,7 @@ SQLite 记忆条目
 
 - **M11 的产出是 M5 的输入**：记忆系统（M5）的召回质量取决于 M11 的写入质量。如果向量索引任务积压（比如应用离线时大量对话堆积），召回会使用旧的嵌入，用户偏好无法及时更新。M11 需要考虑积压时的优先级策略（最新的任务优先 vs 顺序处理）。
 
-- **lingxi 的 StartLinkedAsyncSpan 模式**：后台任务创建 linked span，不影响主 trace 但可追溯。这让可观测性系统能区分"主对话时间"和"后台任务时间"，不会把 5 分钟的向量索引计入某次对话的响应延迟。
+- **feiche 的 StartLinkedAsyncSpan 模式**：后台任务创建 linked span，不影响主 trace 但可追溯。这让可观测性系统能区分"主对话时间"和"后台任务时间"，不会把 5 分钟的向量索引计入某次对话的响应延迟。
 
 ---
 

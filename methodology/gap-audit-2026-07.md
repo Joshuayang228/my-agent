@@ -1,12 +1,12 @@
 # 方法论缺口审计（2026-07-09）
 
-> **这是什么**：用三个新参考源（learning-claude-code 14 章、Anthropic 官方 10 篇文章、lingxi 生产级 Go Agent）对照我们的 M1-M10 方法论，找出「完全缺失的模块」和「已有模块的盲点」。
+> **这是什么**：用三个新参考源（learning-claude-code 14 章、Anthropic 官方 10 篇文章、feiche 生产级 Go Agent）对照我们的 M1-M10 方法论，找出「完全缺失的模块」和「已有模块的盲点」。
 >
 > **怎么用**：这是接下来几天的**对照 + todo 文档**。每完成一项，在对应条目打勾并注明落地位置（哪个 commit / 哪个 mNN 章节）。
 >
 > **为什么一字不落存档**：三份 agent 报告的原始结论都完整保留在第四部分，避免汇总时丢失细节——后续任何一条要动手时，能追溯到原始论据。
 >
-> 沉淀时间：2026-07-09 · 参考源：`_reference/learning-claude-code-master`、`_reference/lingxi`、Anthropic 官方文章
+> 沉淀时间：2026-07-09 · 参考源：`_reference/learning-claude-code-master`、`_reference/feiche`、Anthropic 官方文章
 
 ---
 
@@ -15,7 +15,7 @@
 三个源的视角互补：
 - **learning-claude-code**：CC 生产实现的机制盲点 + 我们没有的模块
 - **Anthropic 官方文章**：设计原则层（Eval / workflow-vs-agent / think tool）
-- **lingxi**：工程韧性层（错误体系 / 可观测性架构 / 沙箱安全）
+- **feiche**：工程韧性层（错误体系 / 可观测性架构 / 沙箱安全）
 
 排序依据：**多源共识度 + 对「人格化桌面 AI 伙伴」的价值**。
 
@@ -48,7 +48,7 @@
 
 ### [x] 3. M6 权限安全 —— 三源全部点名的重灾区
 - **Anthropic**：Auto Mode AI 分类器（两阶段：快速 filter + CoT 推理）、Deny-and-Continue、输入层注入探针、OS 级沙箱
-- **lingxi**：运行时审计钩子、**删除强制走回收站（send2trash）** ✅ 已实现（commit 待提交）
+- **feiche**：运行时审计钩子、**删除强制走回收站（send2trash）** ✅ 已实现（commit 待提交）
 - **CC**：Denial Tracking 自动降级、yoloClassifier（AI 审计 AI）、危险规则黑名单本质
 **桌面直接操作用户文件，风险最高。补进 M6，极高价值。**
 
@@ -82,7 +82,7 @@ Code 枚举 + 因果链保留（Wrap/Unwrap）+ **错误可直接作为 UI 事�
 
 ## 🟡 第二梯队：已有模块的明确盲点
 
-### [ ] 5. M7 可观测性 → Observer 接口化（lingxi 架构级 + CC 细节）
+### [ ] 5. M7 可观测性 → Observer 接口化（feiche 架构级 + CC 细节）
 从"轻量 tracer"升级为"接口化生命周期钩子"（Noop/OTel/mock 可插拔，业务零改动）+ OTel GenAI 标准语义（`gen_ai.*`）+ span/metrics 闭环（同一处 End span + Record metric）。CC 补充：孤儿 span 30min TTL 清理 + `interval.unref()`、懒加载 exporter、Console Exporter 流模式自动禁用。
 **架构级改造但成本低（exporter 换本地 SQLite/文件）。**
 
@@ -112,7 +112,7 @@ Code 枚举 + 因果链保留（Wrap/Unwrap）+ **错误可直接作为 UI 事�
 ## 🟢 第三梯队：中价值
 
 - [ ] **M1/架构**：工具层 vs 服务层平级且互斥的边界原则（决定 AI 能力边界）、`querySource` 全系统"身份证"机制（防递归 + 行为分流）
-- [ ] **M1 韧性**：分层超时 + 心跳保活（lingxi）、重试的可重试/不可重试错误码白名单
+- [ ] **M1 韧性**：分层超时 + 心跳保活（feiche）、重试的可重试/不可重试错误码白名单
 - [ ] **配置管理章节**：配置源抽象 + 本地热更新（弃 etcd watch，取思想，用本地文件监听）
 - [ ] **启动优化**：等待窗口内并行 I/O、阶段计时、超时不缓存 null（可扩进 M7）
 - [ ] **可逆性/undo**：连 CC 都没解决的空白，信任型陪伴产品差异化机会
@@ -121,7 +121,7 @@ Code 枚举 + 因果链保留（Wrap/Unwrap）+ **错误可直接作为 UI 事�
 - [ ] **M8**：Mailbox 权限冒泡、动态 Agent 列表移出工具描述保 prompt cache（曾浪费 10.2% token）、侧信道 Emitter（控制流/数据流分离）
 - [ ] **Generator-Evaluator 架构**：独立 evaluator 解决自我评价过于宽容（Anthropic Harness Design）
 
-## ⚪ 已确认排除（lingxi 标注云特有，不踩坑）
+## ⚪ 已确认排除（feiche 标注云特有，不踩坑）
 A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、分布式 IPC 回调）、cgroup/容器资源指标、会话级降采样（本地 100% 采样）、ES 字段预算（preview/sha256/chars，`_ignored` 特有）、多租户 label 维度（product_name/intention_code）、企业策略管控（MDM 下发）
 
 ---
@@ -145,13 +145,13 @@ A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、�
 |---|---------|---------|
 | **learning-claude-code** | CC 生产实现的机制细节 + 缺失模块 | 任务系统、压缩熔断、记忆排除清单、Denial Tracking |
 | **Anthropic 官方文章** | 设计原则 / 智能层 | Eval 体系、workflow-vs-agent、think tool、context engineering |
-| **lingxi** | 工程韧性 / 生产扛压层 | 错误体系、Observer 接口化、沙箱安全、超时分层 |
+| **feiche** | 工程韧性 / 生产扛压层 | 错误体系、Observer 接口化、沙箱安全、超时分层 |
 
 **两份报告"撞车"的缺口 = 最可信的真缺口**：
-- 可观测性不够深（Anthropic context engineering + lingxi Observer 接口化 + CC span 细节）
-- 权限/沙箱偏弱（Anthropic Auto Mode + lingxi 审计钩子 + CC Denial Tracking）
+- 可观测性不够深（Anthropic context engineering + feiche Observer 接口化 + CC span 细节）
+- 权限/沙箱偏弱（Anthropic Auto Mode + feiche 审计钩子 + CC Denial Tracking）
 
-**视角差异的洞察**：Anthropic 讲"怎么让 Agent 更聪明/更安全"（原则层），lingxi 讲"怎么让 Agent 在生产扛得住"（韧性层），CC 讲"生产级实现的每个机制细节"。三层都是我们方法论的盲区。
+**视角差异的洞察**：Anthropic 讲"怎么让 Agent 更聪明/更安全"（原则层），feiche 讲"怎么让 Agent 在生产扛得住"（韧性层），CC 讲"生产级实现的每个机制细节"。三层都是我们方法论的盲区。
 
 ---
 
@@ -372,7 +372,7 @@ A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、�
 
 ---
 
-## 报告 B：lingxi 生产级 Go Agent vs 我们方法论
+## 报告 B：feiche 生产级 Go Agent vs 我们方法论
 
 ### 一、读到的关键事实（有代码依据）
 
@@ -386,7 +386,7 @@ A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、�
 - **错误体系**：`errs/` — 带 Code 枚举 + Message + InnerErr 的结构化错误，实现 `Unwrap`/`Is`/`CodeOf`，且 `Error` 本身实现了前端 Event 接口（错误能直接作为事件流回前端）。
 - **重试/退避**：`retrier.go` — 指数退避 + 白名单错误码（`GateWayLimitError`/`RateLimited.*`/`EmptyToolCalls`），溢出保护。
 - **配置中心**：`configcenter/` — Source 抽象，etcd 支持 prefix watch **热更新**，env/file 是启动快照；类型安全 `ConfigVar[T]`。
-- **A2A（agent-to-agent）**：`lingxiclaw/a2a/` — 标准 A2A 协议客户端（AgentCard 发现、拦截器链透传凭证/身份）、IPC 回调注册表、侧信道 Emitter、三级事件分类持久化、超时分层。
+- **A2A（agent-to-agent）**：`feicheclaw/a2a/` — 标准 A2A 协议客户端（AgentCard 发现、拦截器链透传凭证/身份）、IPC 回调注册表、侧信道 Emitter、三级事件分类持久化、超时分层。
 - **沙箱**：Python `audit_lite.py`（`sys.addaudithook` 拦截 `os.remove/rmdir`，强制 send2trash + 路径白名单）+ `jupyter_executor.py`（kernel 审计钩子经 stdin `__PERM_REQ__` 通道向前端请求授权）+ `kernel_pool.py`（按 workspace 复用 kernel）。架构上是**独立 local-server 进程** + Jupyter kernel 子进程，与主 agent 逻辑（云端）进程隔离。
 - **上下文压缩**：`offloader.go` — 按轮次 + token 双限裁剪历史（不是压缩摘要，是硬裁剪）。
 
@@ -395,7 +395,7 @@ A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、�
 #### 🔴 高价值 — 桌面产品直接受益，建议补进方法论
 
 **缺口 1：可观测性的"闭环 + 标准语义约定 + 生命周期钩子接口化"**
-- **lingxi 怎么做**：`Observer` 是一个稳定接口（4 类 8 个钩子），业务代码只依赖接口；`OTelObserver`/`CompositeObserver`/`NoopObserver` 可插拔。所有 span 走 OTel GenAI 标准 key（`gen_ai.usage.input_tokens` 等），metrics 与 span **在同一处闭环**记录。`CompositeObserver` 支持一次 fan-out 到多个观察者（如同时喂 tracing + 计费）。
+- **feiche 怎么做**：`Observer` 是一个稳定接口（4 类 8 个钩子），业务代码只依赖接口；`OTelObserver`/`CompositeObserver`/`NoopObserver` 可插拔。所有 span 走 OTel GenAI 标准 key（`gen_ai.usage.input_tokens` 等），metrics 与 span **在同一处闭环**记录。`CompositeObserver` 支持一次 fan-out 到多个观察者（如同时喂 tracing + 计费）。
 - **对应模块**：M7（可观测性，只有轻量 tracer）。**→ 已完成**：M7 已实现 span 追踪 + OTel GenAI 属性对齐，但 Observer 接口抽象仍待重构（M7 后续优化项）。
 - **我们缺的工程维度**：
   1. **把 tracer 从"日志"升级为"接口化生命周期钩子"** —— NoopObserver 默认注入，生产可换 OTel，测试可换 mock，业务零改动。这是 M7 最该抄的架构，跟云无关。
@@ -404,25 +404,25 @@ A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、�
 - **桌面价值判断**：**高，且几乎零改造成本**。桌面反而更需要本地可观测（用户机器上出问题没法登服务器看日志）。区别是 exporter 换成本地 SQLite / 结构化日志文件 / 可选上报，而不是 OTLP collector。
 
 **缺口 2：结构化错误体系（Code + Wrap + 可作为事件流回前端）**
-- **lingxi 怎么做**：`errs.Error{Code, Message, InnerErr}`，`Code` 是带 `String()` 的枚举（`ToolNameNotFound`/`MaxGenerationExceeded`/`ContentEmpty` 等 agent 语义错误），`Wrap/Wrapf` 保留因果链，`Is/CodeOf` 支持类型判断。关键：`Error` 实现了 `EventType() "error"`，**错误能直接作为 AGUI 事件推给前端渲染**。
+- **feiche 怎么做**：`errs.Error{Code, Message, InnerErr}`，`Code` 是带 `String()` 的枚举（`ToolNameNotFound`/`MaxGenerationExceeded`/`ContentEmpty` 等 agent 语义错误），`Wrap/Wrapf` 保留因果链，`Is/CodeOf` 支持类型判断。关键：`Error` 实现了 `EventType() "error"`，**错误能直接作为 AGUI 事件推给前端渲染**。
 - **对应模块**：无对应（M 模块没有独立的错误体系章节，明显盲区）。**→ 已完成**：引入 `AgentError` + 错误码枚举 + retryable 分类 + 前端分派（M6 后续工作）。
 - **我们缺的工程维度**：一套 agent 领域错误码 + 因果链保留 + 错误直达 UI 的机制。桌面 AI 伙伴的错误（工具失败、超轮次、内容审核、权限拒绝）需要**分类**才能决定 UI 表现（重试按钮？降级提示？人格化道歉话术？）。
 - **桌面价值判断**：**高**。人格化产品尤其需要——错误码决定了"伙伴"用什么语气回应失败（参考 sandbox 里权限拒绝的话术模板 `_deny`："请以「您拒绝了…」开头回复用户"，这就是错误码驱动人格化话术）。这点对 M9 人格引擎也有联动价值。
 
 **缺口 3：分层超时 + 心跳保活 + 资源清理（长任务韧性）**
-- **lingxi 怎么做**（A2A 文档 §7）：超时分 4 层（工具配置超时 → IPC 缓冲 3min → context deadline → 单次等待超时 → 心跳 5s）；IPC 等待期间每 5 秒发心跳防前端断连；资源清理有明确的 defer + 后台 TTL cleanup（10min）防泄漏。
+- **feiche 怎么做**（A2A 文档 §7）：超时分 4 层（工具配置超时 → IPC 缓冲 3min → context deadline → 单次等待超时 → 心跳 5s）；IPC 等待期间每 5 秒发心跳防前端断连；资源清理有明确的 defer + 后台 TTL cleanup（10min）防泄漏。
 - **对应模块**：M1（Agent Loop）部分相关，但没讲透超时分层和心跳。
 - **我们缺的工程维度**：长任务（生成 PPT、深度研究）的**超时分层**和**保活心跳**。桌面 agent 跑本地长任务（大文件处理、多轮工具调用）时，UI 需要心跳知道"还活着"，否则用户以为卡死。
 - **桌面价值判断**：**高**。桌面长任务比云更常见（本地大文件），心跳保活对 UX 直接相关。
 
 **缺口 4：重试与退避的"错误码白名单"策略**
-- **lingxi 怎么做**：`retrier.go` 只对特定错误码（限流类 + `EmptyToolCalls`）重试，指数退避 + 上限 + 溢出保护，且**重试轮次与生成轮次共享配额**（防无限重试）。明确**不重试**业务错误（参数错、工具不存在）。
-- **对应模块**：M3（LLM 路由）或 M1，可能提了重试但没讲"哪些该重试"。**→ 已完成**：M6 后续工作统一了 retryable 判断，对齐 lingxi 的错误码白名单逻辑。
+- **feiche 怎么做**：`retrier.go` 只对特定错误码（限流类 + `EmptyToolCalls`）重试，指数退避 + 上限 + 溢出保护，且**重试轮次与生成轮次共享配额**（防无限重试）。明确**不重试**业务错误（参数错、工具不存在）。
+- **对应模块**：M3（LLM 路由）或 M1，可能提了重试但没讲"哪些该重试"。**→ 已完成**：M6 后续工作统一了 retryable 判断，对齐 feiche 的错误码白名单逻辑。
 - **我们缺的工程维度**：**可重试 vs 不可重试的分类**。桌面同样会遇到模型限流、空 tool_calls（豆包这类模型的已知问题）、网络抖动。盲目重试业务错误会浪费 token 和时间。
 - **桌面价值判断**：**高**。桌面调云端模型 API 一样会限流/抖动，退避策略直接影响可用性。
 
 **缺口 5：沙箱的"审计钩子 + 强制安全删除 + 授权经通道回传前端"**
-- **lingxi 怎么做**：三层——(a) `audit_lite.py` 用 Python `sys.addaudithook` **在解释器层**拦截 `os.remove/os.rmdir`，强制改用 send2trash（可恢复），配路径白名单（workspace/tmp/pycache/回收站/python env/matplotlib cache）；(b) `jupyter_executor.py` 把权限请求经 Jupyter stdin `__PERM_REQ__` 通道**异步回调前端**，用户点授权才放行；(c) 进程级隔离：agent 逻辑在云端进程，代码执行在用户机 local-server 的 Jupyter kernel 子进程，`kernel_pool` 按 workspace 复用 + Lock 串行化。
+- **feiche 怎么做**：三层——(a) `audit_lite.py` 用 Python `sys.addaudithook` **在解释器层**拦截 `os.remove/os.rmdir`，强制改用 send2trash（可恢复），配路径白名单（workspace/tmp/pycache/回收站/python env/matplotlib cache）；(b) `jupyter_executor.py` 把权限请求经 Jupyter stdin `__PERM_REQ__` 通道**异步回调前端**，用户点授权才放行；(c) 进程级隔离：agent 逻辑在云端进程，代码执行在用户机 local-server 的 Jupyter kernel 子进程，`kernel_pool` 按 workspace 复用 + Lock 串行化。
 - **对应模块**：M6（权限安全，只有命令分级 + 路径守卫）。
 - **我们缺的工程维度**：
   1. **运行时审计钩子** —— 不是靠"命令分级"事前分类，而是在真正执行危险操作（删除）时**运行时拦截**。桌面版可对等：Electron 主进程拦截 fs 操作，或在工具执行层加 audit hook。
@@ -433,25 +433,25 @@ A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、�
 #### 🟡 中价值 — 桌面需要，但形态要改造
 
 **缺口 6：配置热更新与配置源抽象**
-- **lingxi 怎么做**：`configcenter` 抽象 Source 接口，etcd 源支持 prefix watch **运行时热更新**（改采样率、开关不重启），env/file 源是启动快照；`ConfigVar[T]` 类型安全，采样率通过 `rateFunc` 闭包实现热更。
+- **feiche 怎么做**：`configcenter` 抽象 Source 接口，etcd 源支持 prefix watch **运行时热更新**（改采样率、开关不重启），env/file 源是启动快照；`ConfigVar[T]` 类型安全，采样率通过 `rateFunc` 闭包实现热更。
 - **对应模块**：无对应（方法论完全没讲配置管理，确认是空白）。
 - **我们缺的工程维度**：**配置源抽象 + 部分配置热更新**。桌面不需要 etcd，但需要：本地 settings 文件（用户可改）、可选云端下发配置（feature flag、模型开关、prompt 模板）、以及**不重启生效**的机制。
 - **桌面价值判断**：**中**。etcd/prefix watch 是云服务特有，桌面不需要。但"配置源抽象 + 热更新（改人格参数、模型选择、采样开关无需重启）"对桌面有价值——桌面版的热更对象是本地文件监听而非 etcd watch。**取其思想，弃其实现。**
 
 **缺口 7：会话级确定性采样**
-- **lingxi 怎么做**：`session_sampler.go` FNV-1a 哈希会话 ID，同会话全采或全丢，rate 热更。
+- **feiche 怎么做**：`session_sampler.go` FNV-1a 哈希会话 ID，同会话全采或全丢，rate 热更。
 - **对应模块**：M7。
 - **我们缺的工程维度**：采样策略。桌面单机 QPS 极低，**通常应 100% 采样**（本地存储便宜），采样"降流量"的动机基本不存在。但"同会话决策一致"的思想在**选择性详细记录**（只对出错会话保留完整 input/output）时有用。
 - **桌面价值判断**：**低-中，部分云特有**。降采样是云服务省成本/省带宽特有，桌面不需要。但"按会话决定记录详细程度"可借鉴用于本地存储控制。
 
 **缺口 8：大字段预算（preview/sha256/chars）**
-- **lingxi 怎么做**：超长文本存摘要三件套，防 Elasticsearch `_ignored`。
+- **feiche 怎么做**：超长文本存摘要三件套，防 Elasticsearch `_ignored`。
 - **对应模块**：M7 / M4（上下文压缩，但那是喂模型；这是存遥测）。
 - **我们缺的工程维度**：遥测数据的存储预算。
 - **桌面价值判断**：**低，云特有**。`_ignored` 是 ES 特有问题。桌面本地存 SQLite/文件没有字段大小硬限制。**明确标注：桌面不需要。** 但"记录 sha256 做去重/引用"可选保留。
 
 **缺口 9：token/成本/TTFB 的精细化指标 + 标签维度**
-- **lingxi 怎么做**：token 分 prompt/completion/cache_read/cache_creation 四类计量，成本单独计量，label 带 model/source/agent/product_name/intention_code，TTFB 和 SSE 间隔有专门直方图。
+- **feiche 怎么做**：token 分 prompt/completion/cache_read/cache_creation 四类计量，成本单独计量，label 带 model/source/agent/product_name/intention_code，TTFB 和 SSE 间隔有专门直方图。
 - **对应模块**：M7 / M3。
 - **我们缺的工程维度**：指标的**维度设计**（按什么切分）和 **cache token 单列**（缓存命中率直接关系成本和延迟）。
 - **桌面价值判断**：**中**。桌面用户也关心 token 消耗（尤其自带 key 的用户）、响应速度。cache 命中率对用 Claude prompt caching 的桌面 agent 有实际成本意义。多维 label（product_name/intention_code 这类云端多租户维度）桌面可精简，但 model/agent/场景维度值得保留。
@@ -459,16 +459,16 @@ A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、�
 #### 🟢 低价值 / 云服务特有 — 桌面单机基本不需要
 
 **缺口 10：A2A（agent-to-agent）分布式协议**
-- **lingxi 怎么做**：完整的跨服务 A2A——AgentCard 发现（`/.well-known/agent.json`）、JSON-RPC 传输、凭证/身份 header 透传拦截器、IPC 回调注册表（`sync.Map` 全局表 + Signal 唤醒）、侧信道 Emitter、三级事件持久化。这是为了让灵犀 agent 调用**远端独立部署**的其他 agent（wps-cowork 等）。
+- **feiche 怎么做**：完整的跨服务 A2A——AgentCard 发现（`/.well-known/agent.json`）、JSON-RPC 传输、凭证/身份 header 透传拦截器、IPC 回调注册表（`sync.Map` 全局表 + Signal 唤醒）、侧信道 Emitter、三级事件持久化。这是为了让灵犀 agent 调用**远端独立部署**的其他 agent（wps-cowork 等）。
 - **对应模块**：M8（多 Agent）。
-- **我们缺的工程维度**：如果 M8 讲的是**进程内/本地多 agent 协作**，那 lingxi 的 A2A 是**跨网络分布式 agent 编排**，量级不同。
+- **我们缺的工程维度**：如果 M8 讲的是**进程内/本地多 agent 协作**，那 feiche 的 A2A 是**跨网络分布式 agent 编排**，量级不同。
 - **桌面价值判断**：**大部分云特有**。桌面单机不需要跨服务 AgentCard 发现、凭证透传、JSON-RPC 网络传输、IPC 分布式回调。**但有两个思想值得下沉到 M8**：
   1. **侧信道 Emitter 模式** —— 主通道走组件生命周期，侧信道走实时数据/心跳/文件产物。桌面多 agent 或 agent→UI 通信同样受益于"控制流与数据流分离"。
   2. **能力发现 + 标准化 agent 描述** —— 即使本地多 agent，用统一的 card/signature 描述能力也有价值。
   - 分布式 IPC、凭证透传、notify 代理转发这些**明确标注为云特有**。
 
 **缺口 11：容器/进程强隔离（cgroup、系统资源指标）**
-- **lingxi 怎么做**：`pkg/metrics/cgroup` 读容器 CPU/内存，`collector_unix/windows` 跨平台系统指标，Go runtime 指标（goroutine/GC/heap）。sandbox 用独立 local-server 进程 + Jupyter kernel 子进程隔离。
+- **feiche 怎么做**：`pkg/metrics/cgroup` 读容器 CPU/内存，`collector_unix/windows` 跨平台系统指标，Go runtime 指标（goroutine/GC/heap）。sandbox 用独立 local-server 进程 + Jupyter kernel 子进程隔离。
 - **对应模块**：M6 / M7。
 - **我们缺的工程维度**：进程级资源监控与隔离。
 - **桌面价值判断**：**mostly 云特有**。cgroup、容器 CPU 核数是 K8s 部署特有。但**"代码执行放独立子进程 + kernel 池 + Lock 串行化 + idle 回收"这个进程隔离模式对桌面高度适用**——Electron 桌面 agent 执行不可信代码/工具时，也应该 fork 子进程而非在主进程跑。系统资源监控（本机 CPU/内存占用）对桌面 UX 也有意义（别让 AI 伙伴把用户机器跑爆）。

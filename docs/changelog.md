@@ -8,7 +8,7 @@
 ### Changed — M7 sessionId 自动注入 tracing（2026-07-25）
 - `startSpan` 新增父 span 属性继承：传入 `parentId` 时自动从父 span 的 attributes 继承 `sessionId`（以及将来的 `userId`），无需每个子 span 调用点手动传参。
 - 显式传入的 attributes 优先级高于继承值，保持可覆盖性。
-- 对照 lingxi observability/context.go 的 With.../From... 系列 context 传播，我们用 span 树内继承等价实现，不引入 AsyncLocalStorage。
+- 对照 feiche observability/context.go 的 With.../From... 系列 context 传播，我们用 span 树内继承等价实现，不引入 AsyncLocalStorage。
 - 3 个新增 tracer 测试（sessionId 自动继承/显式覆盖/无 parentId 时不注入），255 个测试全过。
 
 ### Changed — M5 记忆使用前存在性验证提示（2026-07-25）
@@ -86,7 +86,7 @@
 - 新增 4 个单测（tool-examples.test.ts），234 测试全过
 
 ### Changed — 重试判断对齐错误体系 + MCP 描述截断（2026-07-09）
-- `isRetryableError` 优先用 `AgentError.retryable` 元数据判断（结构化白名单，对照 lingxi retrier.go），字符串匹配仅作兜底
+- `isRetryableError` 优先用 `AgentError.retryable` 元数据判断（结构化白名单，对照 feiche retrier.go），字符串匹配仅作兜底
 - MCP bridge 加 `MAX_TOOL_DESCRIPTION_LENGTH=2048` 截断（防 OpenAPI 生成的超长 description 污染上下文，对照 CC 08-mcp 章）
 
 ### Changed — M6 Deny-and-Continue 权限拒绝改进（gap-audit 缺口 3，2026-07-09）
@@ -100,7 +100,7 @@
 - **`electron/main/errs/` 新模块**：`AgentError`（code + cause 因果链 + retryable 标记）+ `AgentErrorCode` 枚举（12 个码，均对应代码里真实抛错/终止场景，不凭空造）+ `toAgentError`（把任意 unknown 归一，含 LLMError duck-typing 互操作，避免 errs→llm 循环 import）
 - **错误码接入 error 事件**：`AgentStreamEvent` 的 `error` 分支加可选 `code?: string`（renderer 用 string 解耦，不依赖主进程枚举，同 `registry?: unknown` 模式）；前端可按 code 分派 UI（重试按钮/降级提示/人格化话术）
 - **真实抛错点接码**：runtime.ts（CONFIG_MISSING_API_KEY / SESSION_BUSY / BUDGET_EXCEEDED）、loop.ts（CONTEXT_TOO_LONG / MAX_TURNS_REACHED / ABORTED / LLM 失败经 toAgentError 映射 429→LLM_RATE_LIMITED）、ipc/chat.ts 顶层 catch 归一化 + `chain()` 记因果链到日志
-- **联动 M9 铺路**：错误码是人格化道歉话术的分派依据（对照 lingxi "请以「您拒绝了…」开头回复"）；话术层本次未做，码已就位
+- **联动 M9 铺路**：错误码是人格化道歉话术的分派依据（对照 feiche "请以「您拒绝了…」开头回复"）；话术层本次未做，码已就位
 - **retryable 元数据**：每个码标注是否可自动重试（对照 M1 §5.1 可重试/不可重试分类），LLM_RATE_LIMITED/TOOL_TIMEOUT 可重试，配置/权限类不可重试
 - 单元测试 218 → 229（+11：错误码归一 / 因果链 / 脱敏 payload / LLMError 互操作）
 - 沉淀待补：错误体系方法论章节（独立新篇，下次写）
@@ -109,7 +109,7 @@
 - **新增 file_delete 工具**：专用文件删除工具，默认所有删除操作走回收站（trash），用户可从系统回收站恢复
 - **白名单机制**：临时文件、构建产物（node_modules/.git/__pycache__/dist/build/tmp/.cache/.DS_Store 等）可永久删除，避免回收站污染
 - **审计日志**：logger 记录所有删除操作（路径、时间、删除方式、是否可恢复）
-- **对齐参考**：lingxi audit_lite.py 的 `sys.addaudithook` + send2trash 安全删除模式，Anthropic 桌面 AI 安全准则
+- **对齐参考**：feiche audit_lite.py 的 `sys.addaudithook` + send2trash 安全删除模式，Anthropic 桌面 AI 安全准则
 - **测试覆盖**：9 个单元测试（普通文件走回收站、白名单永久删除、目录删除、不存在路径、相对路径解析等）
 - 内置工具 21 → 22（新增 file_delete）
 - 单元测试 209 → 218（+9 file-delete）

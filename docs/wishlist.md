@@ -25,4 +25,4 @@
 ### 架构参考
 
 - [ ] **CompositeObserver 组合模式** — 多个 Observer（追踪/计费/事件上报）组合扇出，Start 正序 End 逆序。来源：灵犀 `observability/composite_observer.go`
-- [ ] **Callback 组件化** — reasoning/content/tool 三种 UI 组件各有独立 Start/Progress/Complete 生命周期。来源：灵犀 `lingxi-agents/cc/callback.go`
+- [ ] **Callback 组件化** — reasoning/content/tool 三种 UI 组件各有独立 Start/Progress/Complete 生命周期。来源：灵犀 `feiche-agents/cc/callback.go`

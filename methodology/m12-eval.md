@@ -1,6 +1,6 @@
 # M12 Eval 体系工程化方法论 — 上章：框架 Eval
 
-> 参考源：Anthropic 官方 Article 4（Demystifying Evals for AI Agents）、CC Harness Engineering Guide（long-running-harness.md / eval-awareness.md）、lingxi observability/ 源码（Observer 接口 + eval 脚本）。
+> 参考源：Anthropic 官方 Article 4（Demystifying Evals for AI Agents）、CC Harness Engineering Guide（long-running-harness.md / eval-awareness.md）、feiche observability/ 源码（Observer 接口 + eval 脚本）。
 >
 > **上下章分工**：上章专注框架行为的 Eval——工具选择、权限决策、错误处理、压缩保护、安全边界，这些有明确对标和确定性断言。下章专注伙伴行为的 Eval，见 `m12-eval-persona.md`。
 
@@ -47,7 +47,7 @@ done { reason: TerminalReason }       → 循环终止原因
 
 M7 tracer 还额外记录了每次 LLM 调用的 span（token 数、耗时、调用链），作为补充证据。
 
-这对应 lingxi 的 Observer 接口的设计哲学：**生命周期钩子既是生产监控的入口，也是 eval 证据的来源**。不同之处在于 lingxi 把它设计成接口（`OnLLMEnd / OnToolEnd`），我们直接用 agentLoop 的 yield 事件——本质是同一件事，只是形态不同。
+这对应 feiche 的 Observer 接口的设计哲学：**生命周期钩子既是生产监控的入口，也是 eval 证据的来源**。不同之处在于 feiche 把它设计成接口（`OnLLMEnd / OnToolEnd`），我们直接用 agentLoop 的 yield 事件——本质是同一件事，只是形态不同。
 
 **推论**：eval harness 的工作不是"采集证据"，而是"驱动 agentLoop + 对已有证据断言"。eval 基础设施越薄，越好维护。
 

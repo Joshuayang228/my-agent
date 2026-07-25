@@ -410,7 +410,7 @@
 | 2026-07-05 | M8 补齐（G4 权限只降不升 / G5 子Agent传toolContext / G6 角色系统 / G7 超时豁免 / Coordinator continue_task），202 测试全过；Swarm 占位 | ✅ |
 | 2026-07-08 | M7 补做 G4 日志文件落盘（logger 按日期分文件 + 7天轮转 + 无 Electron 环境降级不崩），209 测试全过；脱敏另算 | ✅ |
 | 2026-07-09 | Eval 前置收口：日志统一脱敏、`auto` 连续拒绝后自动降为 `confirm-all`、错误码前端分派，235 测试全过；构建通过 | ✅ |
-| 2026-07-25 | M12 Eval 方法论（上章：框架 Eval，CC+lingxi+Anthropic 三源对照；下章：伙伴 Eval，循环性 + A/B 类分层） | ✅ |
+| 2026-07-25 | M12 Eval 方法论（上章：框架 Eval，CC+feiche+Anthropic 三源对照；下章：伙伴 Eval，循环性 + A/B 类分层） | ✅ |
 | 2026-07-25 | Eval Suite v1：11 场景全过（F01-F07 框架行为 + P01-P04 伙伴行为），npm run eval:run，235 单测全过 | ✅ |
 | 2026-07-25 | m12-eval-persona.md 规范重写（第一性原理→推论地图）| ✅ |
 | 2026-07-25 | M11 任务生命周期 v1（TaskQueueManager + 状态机 + 通知 + IPC，242 测试全过） | ✅ |

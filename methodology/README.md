@@ -41,6 +41,6 @@
 | `m12-eval-persona.md` | Eval 体系工程化方法论（下章：伙伴 Eval） | ✅ 已写 |
 | `m12-eval-code.md` | Eval 体系代码走读（三源映射/Mock LLM/Runner/Graders） | ✅ 已写 |
 | `rule-system-evolution.md` | 规则体系的进化（独立主题，非 roadmap 模块） | ✅ 已写 |
-| `gap-audit-2026-07.md` | 方法论缺口审计（三源对照：learning-claude-code / Anthropic 文章 / lingxi）+ 待办清单 | 📋 对照+todo |
+| `gap-audit-2026-07.md` | 方法论缺口审计（三源对照：learning-claude-code / Anthropic 文章 / feiche）+ 待办清单 | 📋 对照+todo |
 
 > 触发写作：告诉 AI "写方法论" 或 "沉淀一下 XX 的思考"

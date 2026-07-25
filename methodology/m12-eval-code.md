@@ -2,7 +2,7 @@
 
 > **上下章分工**：`m12-eval.md` 讲设计原则和判断；本篇讲实际代码——我们的实现如何对应三源参考、关键代码决策背后的理由、以及我们没有的东西。
 >
-> **参考源**：CC 的 Harness Engineering Guide（long-running-harness.md）/ lingxi observability/ 源码 / Anthropic Article 4（Demystifying Evals）。CC 的 sourcemap 没有独立 eval 目录，eval 能力内嵌在框架设计里——这是我们代码对应它时"设计即可测"的核心依据。
+> **参考源**：CC 的 Harness Engineering Guide（long-running-harness.md）/ feiche observability/ 源码 / Anthropic Article 4（Demystifying Evals）。CC 的 sourcemap 没有独立 eval 目录，eval 能力内嵌在框架设计里——这是我们代码对应它时"设计即可测"的核心依据。
 
 ---
 
@@ -14,9 +14,9 @@
 | `grader`（独立上下文的评估者） | Harness Guide Generator-Evaluator | `EvalGrader` 接口：`grade(ctx)` 只接受 transcript + workdir | `evals/graders/index.ts` |
 | `harness`（task → trial 驱动器） | Anthropic Article 4 | `runner.ts: runScenario()` | `evals/runner.ts` |
 | `task`（场景定义 + 成功标准） | Anthropic Article 4 | `EvalScenario`：buildOptions + mockResponses + graders | `evals/types.ts` |
-| `OnLLMEnd / OnToolEnd` Observer 钩子 | lingxi `observer.go` | `agentLoop` yield 的 `error`、`tool_end`、`execution_mode_changed` 事件 | `electron/main/agent/loop.ts` |
-| `CompositeObserver`（多 observer 扇出） | lingxi `composite_observer.go` | graders 列表：同一 transcript 顺序喂给每个 grader | `evals/runner.ts` |
-| `NoopObserver`（测试/eval 场景静默运行） | lingxi `observer.go` | `_streamChatOverride = undefined`（真实 LLM 路径，无注入） | `evals/runner.ts` |
+| `OnLLMEnd / OnToolEnd` Observer 钩子 | feiche `observer.go` | `agentLoop` yield 的 `error`、`tool_end`、`execution_mode_changed` 事件 | `electron/main/agent/loop.ts` |
+| `CompositeObserver`（多 observer 扇出） | feiche `composite_observer.go` | graders 列表：同一 transcript 顺序喂给每个 grader | `evals/runner.ts` |
+| `NoopObserver`（测试/eval 场景静默运行） | feiche `observer.go` | `_streamChatOverride = undefined`（真实 LLM 路径，无注入） | `evals/runner.ts` |
 | `fixture`（确定性回放） | CC VCR（vcr.ts） | `MockTurn[]`：预设响应序列，每次 agentLoop 调用消费下一条 | `evals/mock-llm.ts` |
 
 ---
@@ -155,7 +155,7 @@ const graders = [
 
 `SecurityGrader` 是单例（无参数），其余通过工厂函数参数化。
 
-**与 lingxi OTelObserver 的对应**：lingxi 的 `OnLLMEnd` 记录的 `ToolNames`、`FinishReason`、`InputTokens` 等字段——我们的 grader 断言的是同等信息，只是来源是 agentLoop yield 的事件流而非 OTel span。两者本质都是"在生命周期结束点拿到证据，由独立模块判定"。
+**与 feiche OTelObserver 的对应**：feiche 的 `OnLLMEnd` 记录的 `ToolNames`、`FinishReason`、`InputTokens` 等字段——我们的 grader 断言的是同等信息，只是来源是 agentLoop yield 的事件流而非 OTel span。两者本质都是"在生命周期结束点拿到证据，由独立模块判定"。
 
 ---
 
@@ -199,13 +199,13 @@ function createCapturingMock(turns: MockTurn[]) {
 
 `buildOptions` 返回值中直接包含 `_streamChatOverride: createCapturingMock(turns)`，grader 通过闭包访问 `capturedCalls`。
 
-这是对 lingxi `OnLLMStart(ctx, info, messages)` 钩子的等效实现——`OnLLMStart` 就是在 LLM 调用前拿到完整 messages 的机会，我们的"注入时记录"做的是同一件事。
+这是对 feiche `OnLLMStart(ctx, info, messages)` 钩子的等效实现——`OnLLMStart` 就是在 LLM 调用前拿到完整 messages 的机会，我们的"注入时记录"做的是同一件事。
 
 ---
 
 ## 八、我们没有（暂缓）的部分
 
-**基线对比和回归检测**：lingxi 的 eval 脚本对 Jaeger trace 做了 baseline diff（耗时 > 1.5x 报警）。我们 v1 只做绝对断言，没有历史 baseline。需要引入版本化 baseline 后补。
+**基线对比和回归检测**：feiche 的 eval 脚本对 Jaeger trace 做了 baseline diff（耗时 > 1.5x 报警）。我们 v1 只做绝对断言，没有历史 baseline。需要引入版本化 baseline 后补。
 
 **LLM-as-Judge Grader**：B 类主观评分（人格一致性、记忆自然度）需要 `ModelBasedGrader`，目前只有 `CodeBasedGrader`。接口已预留（`EvalGrader` 是通用接口），等 v2 补实现。
 
