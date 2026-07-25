@@ -4,12 +4,14 @@
 
 ## 当前状态
 
-**阶段**：M11 方向一（可靠性）完成，M12 Eval Suite 已落地（11 场景全过），下一步扩充 B 类场景 + 接入真实 LLM
+**阶段**：方法论重组 M01-M27 完成，M02/M03/M06 新增理念章+code章，KV Cache时间注入策略修正
 
 **最新动态（2026-07-25）**：
-- ✅ M11 方向一：指数退避重试（MAX_RETRIES=3，1s/2s/4s），非阻塞 setTimeout re-queue
-- ✅ M11 UI pill：侧边栏底部"●更新中"指示，订阅 task:started/completed/failed 自动增减
-- ✅ 新增2个 task-queue 单元测试（重试 pending 状态、重试耗尽 failed 状态，fake timers）
+- ✅ 方法论章节重组为 M01-M27（6部分），15个占位章节，skill更新
+- ✅ M02 Streaming 设计范式理念章 + code章（CC × 我们对照）
+- ✅ M03 错误体系设计理念章 + code章（feiche × 我们对照）
+- ✅ M06 System Prompt 工程化理念章 + code章（Alice ch14 × 我们对照）
+- ✅ KV Cache修正：L4改为日期仅（YYYY-MM-DD），时间注入移至每轮user消息
 - ✅ 类型检查 + 256 个单元测试全通过
 
 

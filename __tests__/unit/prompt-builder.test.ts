@@ -79,10 +79,12 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('Focus on security review')
   })
 
-  it('L4 包含动态时间戳', () => {
+  it('L4 包含日期（仅日期，不含秒级时间）', () => {
     const prompt = buildSystemPrompt(makeCtx())
     expect(prompt).toContain('[Dynamic Context]')
-    expect(prompt).toContain('Current time:')
+    expect(prompt).toContain("Today's date:")
+    // 不应包含秒级时间（会导致每次调用都破坏 KV Cache）
+    expect(prompt).not.toContain('Current time:')
   })
 
   it('层级顺序：PROTECTED → MUTABLE → Capabilities → Profile → Memory → Session → Dynamic', () => {

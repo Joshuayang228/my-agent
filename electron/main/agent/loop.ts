@@ -314,7 +314,21 @@ export async function* agentLoop(
       }
 
       try {
-        const stream = streamChat({ config, messages: state.messages, tools: effectiveTools, signal, enablePromptCache: true, caller: 'main' })
+        // ── 注入当前时间到最后一条 user 消息（每轮 LLM 调用前）──
+        // 系统 prompt 的 L4 只放日期（稳定，KV Cache 友好）；精确时间在这里注入，
+        // 这样它只存在于对话历史的最后一条 user 消息里，不污染系统 prompt 前缀。
+        // 参考 CC 的 <system-reminder> 机制（注入对话层而非 system prompt 层）。
+        const now = new Date()
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+        const messagesWithTime = state.messages.map((m, i) => {
+          // 只修改最后一条 user 消息，且只在第一次 attempt（重试不重复注入）
+          if (attempt > 0) return m
+          if (i !== state.messages.length - 1) return m
+          if (m.role !== 'user') return m
+          return { ...m, content: `[当前时间: ${timeStr}]\n${m.content}` }
+        })
+
+        const stream = streamChat({ config, messages: messagesWithTime, tools: effectiveTools, signal, enablePromptCache: true, caller: 'main' })
 
         let streamResult = await stream.next()
         while (!streamResult.done) {

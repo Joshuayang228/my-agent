@@ -5,6 +5,10 @@
 
 ## [未发布]
 
+### Fixed — KV Cache 时间注入策略修正（2026-07-25）
+- `prompt-builder.ts` L4 时间从秒级（`toLocaleString`）改为日期仅（`YYYY-MM-DD`），防止每次调用都破坏系统 prompt 前缀缓存。
+- `loop.ts` 每轮 LLM 调用前把当前时间（HH:MM）注入最后一条 user 消息，保持 LLM 时间感知而不污染系统 prompt。参考 CC 的 `<system-reminder>` 机制。
+
 ### Added — M11 方向一：指数退避重试 + UI 活跃任务 pill（2026-07-25）
 - `TaskQueueManager.processNext()` 失败后自动重试，最多 MAX_RETRIES=3 次，退避间隔 1s/2s/4s。重试通过非阻塞 `setTimeout` 重新入队，不阻塞主循环。
 - `BackgroundTaskInfo.retryCount` 字段落 SQLite，崩溃恢复后保留已重试次数，不从0重算。

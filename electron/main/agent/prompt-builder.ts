@@ -176,10 +176,14 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   }
 
   // ── L4 动态追加（放末尾，不破坏前缀 KV Cache） ──
+  // 只注入日期（YYYY-MM-DD），不注入时间——精确到秒的时间每次调用都变，
+  // 会让 L4 之后的对话历史缓存全部失效。具体时间在每轮 user message 里动态注入。
+  // 参考：CC DYNAMIC_BOUNDARY 设计 + opencode issue #29672 + Cherry Studio issue #16398
   parts.push('')
   parts.push('[Dynamic Context]')
   const now = new Date()
-  parts.push(`Current time: ${now.toLocaleString('zh-CN', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, hour12: false })}`)
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  parts.push(`Today's date: ${dateStr}`)
 
   // ── G1 结尾人格锚点（近因效应，对抗长对话中 PROTECTED 权重稀释） ──
   // Alice Ch.14 策略一：开头 + 结尾双锚点。放在动态时间之后，
