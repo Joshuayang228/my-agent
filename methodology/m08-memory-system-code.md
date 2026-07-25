@@ -1,4 +1,4 @@
-# M5：记忆系统 — 代码走读
+# M08 记忆系统 — 代码走读
 
 > 配套 [m05-memory-system.md](m05-memory-system.md) 的认知框架，这里记录具体代码改动。
 > 涉及文件：`electron/main/agent/runtime.ts`、`electron/main/memory/vector-store.ts`、`electron/main/agent/profile-extractor.ts`

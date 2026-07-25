@@ -1,4 +1,4 @@
-# M11 任务生命周期工程化方法论
+# M09 任务生命周期工程化方法论
 
 > 参考源：CC `tasks/` 目录（InProcessTeammateTask / DreamTask / TaskState 类型）、CC `cli/print.ts`（runHeadless + 事件流收集）、feiche `observability/` 源码（Observer 接口 + 异步 span 链接）、Anthropic learning-claude-code Ch.06（task-system）。
 >

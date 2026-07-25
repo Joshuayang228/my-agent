@@ -1,4 +1,4 @@
-# M7：可观测性工程化方法论 — 代码走读
+# M14 可观测性 — 代码走读
 
 > 本文档对照 [`m07-observability.md`](m07-observability.md) 的认知框架，展示真实代码实现。
 > 代码来源：my-agent `electron/main/utils/tracer.ts` × `agent/loop.ts` × `agent/runtime.ts` × `index.ts`

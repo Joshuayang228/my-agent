@@ -1,4 +1,4 @@
-# M2：工具系统 — 代码走读
+# M04 工具系统 — 代码走读
 
 > 对照 `m02-tool-system.md` 的每个章节，展示 CC（Claude Code）和 Alice 的真实代码实现。
 > 

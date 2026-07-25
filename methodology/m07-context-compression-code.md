@@ -1,4 +1,4 @@
-# M4：上下文压缩 — 代码走读
+# M07 上下文压缩 — 代码走读
 
 > 配套 `m04-context-compression.md` 的认知框架，这里是代码层面的对照与实现细节。
 > 对照对象：CC（Claude Code 2.1.88 源码 `services/compact/`）与 Alice（方法论 Ch.5）。

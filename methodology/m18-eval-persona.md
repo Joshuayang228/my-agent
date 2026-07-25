@@ -1,4 +1,4 @@
-# M12 Eval 体系工程化方法论 — 下章：伙伴 Eval
+# M18 Eval 体系工程化方法论 — 下章：伙伴 Eval
 
 > 参考源：Anthropic Article 4（Eval 任务设计原则 + LLM-as-Judge 校准）、CC Harness Engineering Guide（自我评估偏差 + Generator-Evaluator 分离）、上章 m12-eval.md（第一性原理 + 两类行为路径）。
 >

@@ -1,4 +1,4 @@
-# M12 Eval 体系工程化方法论 — 上章：框架 Eval
+# M18 Eval 体系工程化方法论 — 上章：框架 Eval
 
 > 参考源：Anthropic 官方 Article 4（Demystifying Evals for AI Agents）、CC Harness Engineering Guide（long-running-harness.md / eval-awareness.md）、feiche observability/ 源码（Observer 接口 + eval 脚本）。
 >

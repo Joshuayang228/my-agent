@@ -1,4 +1,4 @@
-# M1：Agent Loop — 代码走读
+# M01 Agent Loop — 代码走读
 
 > 对照 `m01-agent-loop.md` 的每个章节，展示 CC（Claude Code）和 Alice 的真实代码实现。
 > 

@@ -1,4 +1,4 @@
-# M6：权限与安全工程化方法论 — 代码走读
+# M10 权限与安全 — 代码走读
 
 > 本文档对照 [`m06-permission-security.md`](m06-permission-security.md) 的认知框架，展示真实代码实现。
 > 代码来源：my-agent `electron/main/sandbox/` × Claude Code `utils/permissions/` × Alice 混淆源码
