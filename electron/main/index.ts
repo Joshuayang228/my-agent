@@ -58,6 +58,9 @@ async function createWindow() {
     autoHideMenuBar: true,
     webPreferences: {
       preload,
+      // 显式声明信任边界（Electron 默认已是此组合；写出避免依赖隐式默认）
+      contextIsolation: true,
+      nodeIntegration: false,
     },
   })
 
@@ -237,6 +240,15 @@ app.whenReady().then(async () => {
   // 加载持久审批记录（sandbox approval-store）
   const { loadPersistentApprovals } = await import('./sandbox/approval-store')
   loadPersistentApprovals().catch(err => log.warn('Persistent approvals load failed', { error: String(err) }))
+
+  // 自定义权限规则 → permission-engine 第一层（settings.permissionRules JSON）
+  try {
+    const { loadRules } = await import('./sandbox/permission-engine')
+    const rulesJson = await settings.getSetting('permissionRules')
+    loadRules(rulesJson || '[]')
+  } catch (err) {
+    log.warn('Permission rules load failed', { error: String(err) })
+  }
 
   // M11：恢复上次崩溃中断的后台任务（从 SQLite background_tasks 表重载 pending 状态）
   const { taskQueue } = await import('./services/task-queue')

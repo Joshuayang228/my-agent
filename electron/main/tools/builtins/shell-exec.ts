@@ -1,9 +1,9 @@
 import { buildTool } from '../builder'
 import { exec } from 'node:child_process'
 import { createLogger } from '../../utils/logger'
-import { buildPolicy, type SandboxMode } from '../../sandbox/policy'
-import { guardCommand } from '../../sandbox/command-guard'
-import { checkApproval } from '../../sandbox/approval-store'
+import type { SandboxMode } from '../../sandbox/policy'
+import { checkCommandPermission } from '../../sandbox/permission-engine'
+import { getWorkspaceRoot } from '../../agent/project-memory'
 import * as settings from '../../storage/settings-store'
 
 const log = createLogger('ShellExec')
@@ -38,7 +38,7 @@ Behavior:
 - Returns stdout, stderr, and exit code
 - Output truncated at 30,000 characters (use redirection to file for large outputs)
 
-Security: Dangerous operations may be blocked by sandbox. Previously denied commands are automatically blocked.`,
+Security: All commands go through the permission engine (custom rules → approval store → sandbox). Dangerous operations may be blocked. Previously denied commands are automatically blocked.`,
   parameters: {
     type: 'object',
     properties: {
@@ -67,22 +67,36 @@ Security: Dangerous operations may be blocked by sandbox. Previously denied comm
     if (!command?.trim()) return 'Error: command is required'
 
     const mode = (await settings.getSetting('sandboxMode') || 'workspace-write') as SandboxMode
-    const policy = buildPolicy(mode, cwd || process.cwd())
-    const decision = guardCommand(command, cwd, policy)
+    const workspaceRoot = getWorkspaceRoot()
+    // 统一走五层责任链（自定义规则 / 审批记录 / 沙箱），禁止工具内自管权限
+    const decision = checkCommandPermission(command, cwd, mode, workspaceRoot)
 
     if (decision.allowed === false) {
-      log.warn('Command blocked by sandbox', { command: command.slice(0, 100), reason: decision.reason })
+      log.warn('Command blocked by permission engine', {
+        command: command.slice(0, 100),
+        reason: decision.reason,
+        decisionType: decision.decisionType,
+        chain: decision.chain,
+      })
       return `[SANDBOX BLOCKED] ${decision.reason}\n\nThe current sandbox mode is "${mode}". This command was blocked for safety reasons.`
     }
 
     if (decision.allowed === 'needs_approval') {
-      const priorApproval = checkApproval(command)
-      if (priorApproval === false) {
-        return `[SANDBOX BLOCKED] Previously denied: ${decision.reason}`
-      }
+      // 责任链已查过审批库仍为 needs_approval → 尚无允许记录。
+      // Loop 在 confirmTool 通过后会 recordApproval(session)；若仍到这里说明未确认或 confirm 被跳过。
+      log.warn('Command needs approval but none recorded', {
+        command: command.slice(0, 100),
+        reason: decision.reason,
+      })
+      return `[SANDBOX BLOCKED] ${decision.reason}\n\nThis command requires approval before execution. Ask the user to confirm, or use a less privileged alternative.`
     }
 
-    log.info('Executing command', { command, cwd, sandboxMode: mode })
+    log.info('Executing command', {
+      command,
+      cwd,
+      sandboxMode: mode,
+      decisionType: decision.decisionType,
+    })
 
     const sanitizedEnv = { ...process.env }
     if (mode !== 'full-access') {

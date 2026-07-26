@@ -81,23 +81,23 @@ Alice 提出五种权限模式，从最保守到最激进：
 ```
 输入：工具名 + 参数
     ↓
-1. 用户自定义规则（最高优先级）
-    allow → 放行，deny → 拒绝，ask → 继续
+1. 用户自定义硬规则（allow / deny）
+    allow → 放行，deny → 拒绝
     ↓
 2. 历史审批记录（session / persistent）
     已允许 → 放行，已拒绝 → 拒绝
     ↓
-3. 命令安全分级（dangerous / safe / unknown）
-    dangerous → 拒绝，safe → 放行
+3. 用户自定义 ask 规则
+    命中 → needs_approval（须在审批库之后，否则「本次允许」永远命不中）
     ↓
-4. 沙箱策略（mode + 路径边界）
+4. 命令安全分级 + 沙箱策略（dangerous / safe / 路径边界）
     ↓
 5. 默认行为（fallback）
 ```
 
-**关键判据**：优先级越高的规则越精确、越接近用户意图。用户显式配置的规则（自定义）优先级最高，系统推断的规则（命令分级）优先级较低，默认行为（fallback）优先级最低。
+**关键判据**：优先级越高的规则越精确、越接近用户意图。用户显式 **allow/deny** 最高；**ask 不能压在审批库前面**——ask 只是「还没批过时要问」，批过之后应以审批记录为准。系统推断（命令分级）更低，fallback 最低。
 
-**我们的实现**：五层责任链（custom-rule → approval-store → exec-policy → sandbox-policy → fallback），每层返回 `allow / deny / needs_approval`，第一个非 `null` 结果生效。
+**我们的实现**：`allow/deny → approval-store → ask → exec-policy/sandbox → fallback`，每层返回 `allow / deny / needs_approval`，第一个非 `null` 结果生效。
 
 ---
 
@@ -253,9 +253,15 @@ G2 要从 tool_result 里提取被拦截的命令，但 `[SANDBOX BLOCKED]` 后�
 
 **沉淀**：错误信息和原始输入是两个维度，提取时要分别处理。错误信息适合给 AI 看（解释为什么拦截），原始输入适合去重（判断是否同一条命令）。
 
-## 暂缓项
+## 暂缓项 / 后续补齐
 
-无。四个 Gap 全部落地，无暂缓。
+2026-07-04 深啃时四个 Gap 已落地。2026-07-26 补齐工程债：
+
+- ✅ `shell_exec` 统一走 `checkCommandPermission`（不再工具内自调 `guardCommand`）
+- ✅ `settings.permissionRules` → 启动 `loadRules` + 设置页热更新
+- ✅ 用户确认 `shell_exec` 后 `recordApproval(..., 'session')`，避免 needs_approval 无记录仍执行
+
+仍可增强（非阻塞）：设置页规则可视化编辑器（当前为 JSON textarea）。
 
 ## 沉淀：权限系统的设计检查清单
 
@@ -263,5 +269,5 @@ G2 要从 tool_result 里提取被拦截的命令，但 `[SANDBOX BLOCKED]` 后�
 2. 新的拒绝路径（工具/命令/路径），有没有追踪到 denied* 并注入 prompt？
 3. 权限决策带 `decisionType` 了吗？利于后续 DevPanel 展示吗？
 4. 持久审批的边界清楚吗？哪些需要持久、哪些只需要 session？
-5. 责任链优先级对吗？用户自定义规则 > 历史审批 > 命令分级 > 沙箱策略？
+5. 责任链优先级对吗？allow/deny > 历史审批 > ask > 命令分级/沙箱？
 6. bypass-immune 的边界清楚吗？哪些是"致命"（必须拦），哪些是"危险"（可配置）？

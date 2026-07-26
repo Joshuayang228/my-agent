@@ -9,6 +9,7 @@ import type {
 import { streamChat as defaultStreamChat, LLMError } from '../llm/index'
 import { ToolRegistry } from '../tools/registry'
 import { checkToolPermission } from '../sandbox/permission-engine'
+import { recordApproval } from '../sandbox/approval-store'
 import { createLogger } from '../utils/logger'
 import { sanitizeError } from '../utils/sanitize-error'
 import { AgentError, AgentErrorCode, toAgentError } from '../errs/index'
@@ -523,6 +524,10 @@ export async function* agentLoop(
         const approved = await confirmTool(call.name, args)
         blockedSpan.setAttribute('decision', approved ? 'approved' : 'denied')
         blockedSpan.end('ok')
+        // shell_exec：把用户确认写入会话审批库，供 checkCommandPermission 第二层命中
+        if (call.name === 'shell_exec' && typeof args.command === 'string' && args.command.trim()) {
+          recordApproval(args.command, approved, 'session')
+        }
         if (!approved) {
           log.info(`Tool rejected by user: ${call.name}`, { callId: call.id, executionMode })
           results.push({ callId: call.id, name: call.name, content: 'User denied execution of this tool. Do not retry this exact action — acknowledge the decision and either proceed differently or ask the user how to continue.', isError: true })

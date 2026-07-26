@@ -45,6 +45,8 @@ export interface AppSettings {
   currentProject: string
   /** 最近使用的项目目录列表（JSON 字符串） */
   recentProjects: string
+  /** 自定义权限规则 JSON（PermissionRule[]），启动时 loadRules */
+  permissionRules: string
 }
 
 function getDefaults(): AppSettings {
@@ -65,6 +67,7 @@ function getDefaults(): AppSettings {
     dailyTokenBudget: '0',
     currentProject: '',
     recentProjects: '[]',
+    permissionRules: '[]',
   }
 }
 

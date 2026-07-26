@@ -4,15 +4,18 @@
 
 ## 当前状态
 
-**阶段**：方法论重组 M01-M27 完成，M02/M03/M06 新增理念章+code章，KV Cache时间注入策略修正
+**阶段**：方法论重组进行中；M12/M15/M17 已沉淀；中优剩余 **M16**；其后 M13 / M22–M27
 
-**最新动态（2026-07-25）**：
-- ✅ 方法论章节重组为 M01-M27（6部分），15个占位章节，skill更新
-- ✅ M02 Streaming 设计范式理念章 + code章（CC × 我们对照）
-- ✅ M03 错误体系设计理念章 + code章（feiche × 我们对照）
-- ✅ M06 System Prompt 工程化理念章 + code章（Alice ch14 × 我们对照）
-- ✅ KV Cache修正：L4改为日期仅（YYYY-MM-DD），时间注入移至每轮user消息
-- ✅ 类型检查 + 256 个单元测试全通过
+**最新动态（2026-07-26）**：
+- ✅ **M12 IPC 架构**：核对收尾 + 小改代码。显式 `contextIsolation`/`nodeIntegration`；confirm 超时清理 + `randomUUID`；方法论改为「四处同步」（含 `vite-env.d.ts`）；C4 确认 UI 串行队列暂缓进 wishlist。
+- ✅ **M17 测试架构**：理念章 + code 章（分轨测确定性/概率性；四层金字塔；DI 优先于 vi.mock；Unit/Eval 门禁隔离；E2E 冒烟诚实分层）。工程债 G1–G4 进 wishlist；本轮无强制代码迁移。
+- ✅ **M15 状态机设计**：理念章 + code 章（第一性原理：状态是可命名/可转移/可解释契约；显式 vs 隐式选型；转移必带 reason；持久化边界；系统状态机图鉴）。本轮无代码改动——主干已在 Loop/Task/ExecutionMode/MCP。
+- ✅ `docs/module-roadmap.md` 有用部分并入 `methodology-writing` skill，原文件归档
+- ✅ **M11 Hook / 扩展点**：理念章 + code 章（用户 Hook 不做；三层分层）
+- ✅ **M10 工程债**：shell → `checkCommandPermission`；`permissionRules` 启动/热更新；确认后 session 审批；设置页 JSON；CLAUDE.md 增加 wishlist 同步硬约束；wishlist 同步待办缺口
+
+**此前（2026-07-25）**：
+- ✅ 方法论章节重组为 M01-M27（6部分），M02/M03/M06 理念+code，KV Cache 时间注入修正
 
 
 - 规则体系 + 技能文件设计
@@ -286,7 +289,7 @@
   - **对照 CC/Alice 审计**：派 subagent 并行读 CC `services/api/` 和 Alice Ch.11，确认两家都是"单一流式管线 + 外层 drain"，不为非流式写第二套逻辑
   - **验证**：tsc 零错误，113 个测试全过（13 文件，原 106 + 新 7）
 
-**下一步** → 📋 框架模块深啃路线图，详见 [`docs/module-roadmap.md`](module-roadmap.md)
+**下一步** → 📋 方法论待补队列见 [`methodology/README.md`](../methodology/README.md)；深啃五步见 [`docs/agent-skills/methodology-writing.md`](agent-skills/methodology-writing.md)
 
 - **M4 上下文压缩深啃 · Phase A 正确性修复完成**（2026-07-02）：
   - **学**：三 subagent 并行读 Alice Ch.05 + CC compact/ 源码（compact.ts/microCompact.ts/autoCompact.ts）+ 审计当前实现
@@ -421,6 +424,10 @@
 | 2026-07-25 | M4 DevPanel 展示 compactMetadata（compact AgentStreamEvent + 事件日志专属样式） | ✅ |
 | 2026-07-25 | M5 记忆使用前存在性验证（FILE_PATH_PATTERN + 提示注入 + 3 个新测试，252 总测试） | ✅ |
 | 2026-07-25 | M7 sessionId 自动注入 tracing（startSpan 父 span 属性继承，3 个新测试，255 总测试） | ✅ |
+| 2026-07-26 | module-roadmap 并入 methodology-writing skill 并归档；**M11 Hook/扩展点**方法论沉淀（用户 Hook 不做，三层分层） | ✅ |
+| 2026-07-26 | M10 工程债：shell 统一权限引擎 + loadRules + session 审批；wishlist 同步规则写入 CLAUDE.md | ✅ |
+| 2026-07-26 | **M15 状态机**方法论沉淀（理念+code；无代码改动） | ✅ |
+| 2026-07-26 | **M17 测试架构**方法论沉淀（四层金字塔 / DI / 门禁；G1–G4 进 wishlist） | ✅ |
 | 2026-07-03 | Harness 重构：CLAUDE.md 升为唯一权威（硬约束常驻 + 场景索引），删 agent-harness.md，AGENTS/.cursor 改重定向入口，.cursor 旧规则归档 | ✅ |
 | 2026-07-03 | M5 记忆系统深啃（自我强化循环/老化告警/提取判据/双重注入去重，139 测试）+ 沉淀 m05 | ✅ |
 | - | 应用图标设计 + 安装包体积优化 | ⏳ |

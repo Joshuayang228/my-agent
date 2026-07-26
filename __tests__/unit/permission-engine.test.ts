@@ -12,10 +12,15 @@ import {
   checkCommandPermission,
   checkToolPermission,
 } from '../../electron/main/sandbox/permission-engine'
+import {
+  recordApproval,
+  clearSessionApprovals,
+} from '../../electron/main/sandbox/approval-store'
 
 describe('Permission Engine', () => {
   beforeEach(() => {
     loadRules('[]')
+    clearSessionApprovals()
   })
 
   describe('自定义规则', () => {
@@ -104,6 +109,30 @@ describe('Permission Engine', () => {
     it('safe 命令在 full-access 模式下放行', () => {
       const result = checkCommandPermission('ls -la', undefined, 'full-access')
       expect(result.allowed).toBe(true)
+    })
+  })
+
+  describe('审批记录与命令链（shell_exec 统一入口）', () => {
+    it('会话审批通过后，needs_approval 命令可放行', () => {
+      loadRules(JSON.stringify([
+        { id: 'r1', type: 'command', pattern: 'docker', action: 'ask', enabled: true },
+      ]))
+      expect(checkCommandPermission('docker run x', undefined, 'workspace-write').allowed).toBe('needs_approval')
+
+      recordApproval('docker run x', true, 'session')
+      const after = checkCommandPermission('docker run x', undefined, 'workspace-write')
+      expect(after.allowed).toBe(true)
+      expect(after.decisionType).toBe('approval-store')
+    })
+
+    it('会话审批拒绝后，命令被拦截', () => {
+      loadRules(JSON.stringify([
+        { id: 'r1', type: 'command', pattern: 'docker', action: 'ask', enabled: true },
+      ]))
+      recordApproval('docker run x', false, 'session')
+      const result = checkCommandPermission('docker run x', undefined, 'workspace-write')
+      expect(result.allowed).toBe(false)
+      expect(result.decisionType).toBe('approval-store')
     })
   })
 })

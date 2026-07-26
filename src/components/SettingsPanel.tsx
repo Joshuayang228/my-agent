@@ -19,6 +19,8 @@ interface SettingsForm {
   auxModel: string
   sessionTokenBudget: string
   dailyTokenBudget: string
+  /** PermissionRule[] JSON — 自定义命令/工具规则 */
+  permissionRules: string
 }
 
 interface McpServerEntry {
@@ -52,6 +54,7 @@ const DEFAULTS: SettingsForm = {
   auxModel: '',
   sessionTokenBudget: '0',
   dailyTokenBudget: '0',
+  permissionRules: '[]',
 }
 
 interface PersonaInfo {
@@ -164,6 +167,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
         auxModel: s.auxModel || '',
         sessionTokenBudget: s.sessionTokenBudget || '0',
         dailyTokenBudget: s.dailyTokenBudget || '0',
+        permissionRules: s.permissionRules || DEFAULTS.permissionRules,
       })
       try {
         const servers = JSON.parse(s.mcpServers || '[]')
@@ -501,6 +505,20 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
             </button>
           ))}
         </div>
+      </FieldGroup>
+
+      <FieldGroup
+        label="自定义权限规则"
+        hint='JSON 数组。示例：[{"id":"no-publish","type":"command","pattern":"npm publish","action":"deny","enabled":true}]。type=command|tool|path；action=allow|deny|ask'
+      >
+        <textarea
+          value={form.permissionRules}
+          onChange={(e) => update('permissionRules', e.target.value)}
+          rows={5}
+          spellCheck={false}
+          className="theme-input w-full rounded-lg border px-3 py-2 font-mono text-xs outline-none transition"
+          placeholder='[]'
+        />
       </FieldGroup>
 
       <FieldGroup label="Token 预算">

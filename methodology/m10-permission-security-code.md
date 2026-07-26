@@ -51,6 +51,7 @@ export function buildPolicy(mode: SandboxMode, workspaceRoot?: string): SandboxP
 
 ```typescript
 // electron/main/sandbox/permission-engine.ts
+// 顺序：allow/deny → 审批库 → ask → 沙箱（ask 不能抢在审批前）
 
 export function checkCommandPermission(
   command: string,
@@ -59,48 +60,32 @@ export function checkCommandPermission(
   workspaceRoot?: string,
 ): PermissionCheckResult {
 
-  // ① Layer 1: 用户自定义规则（最高优先级）
-  const customResult = matchCustomRules(command, 'command')
-  if (customResult) {
-    log.debug('Custom rule matched', { command: command.slice(0, 60), rule: customResult.matchedRule })
-    return customResult  // 命中即返回（allow / deny / needs_approval）
-  }
+  // ① 用户自定义硬规则（仅 allow / deny）
+  const hardCustom = matchCustomRules(command, 'command', { includeAsk: false })
+  if (hardCustom) return hardCustom
 
-  // ② Layer 2: 历史审批记录（session / persistent，G3 跨会话保留）
-  const approved = checkApproval(command)  // 从内存缓存读取（同步）
+  // ② 历史审批（含对 ask 规则的 session 确认）
+  const approved = checkApproval(command)
   if (approved !== null) {
     return {
       allowed: approved,
       reason: approved ? '历史审批：已允许' : '历史审批：已拒绝',
-      decisionType: 'approval-store',  // G4 结构化决策类型
+      decisionType: 'approval-store',
       chain: 'approval-store',
     }
   }
 
-  // ③④ Layer 3-4: 命令安全分级 + 沙箱策略（委托给 guardCommand）
+  // ③ 自定义 ask（无审批记录时才要求确认）
+  const askCustom = matchCustomRules(command, 'command', { includeAsk: true, askOnly: true })
+  if (askCustom) return askCustom
+
+  // ④⑤ 命令分级 + 沙箱（委托 guardCommand）
   const policy = buildPolicy(sandboxMode, workspaceRoot)
-  const guard = guardCommand(command, cwd, policy)  // → §四 bypass-immune
-
-  return guardToResult(guard)  // 转换为 PermissionCheckResult 格式
-}
-
-// 辅助函数：把 GuardDecision 转换为 PermissionCheckResult
-function guardToResult(guard: GuardDecision): PermissionCheckResult {
-  if (guard.allowed === true) {
-    return { allowed: true, reason: '沙箱策略允许', decisionType: 'sandbox-policy', chain: 'sandbox-policy' }
-  }
-  if (guard.allowed === false) {
-    // ⑤ 区分危险命令（bypass-immune）和普通策略拒绝
-    const decisionType: DecisionType = guard.reason.startsWith('危险命令被拦截')
-      ? 'dangerous'         // G1 bypass-immune 拦截
-      : 'sandbox-policy'    // 普通沙箱策略拒绝
-    return { allowed: false, reason: guard.reason, decisionType, chain: 'sandbox-policy' }
-  }
-  return { allowed: 'needs_approval', reason: guard.reason, decisionType: 'sandbox-policy', chain: 'sandbox-policy' }
+  return guardToResult(guardCommand(command, cwd, policy))
 }
 ```
 
-**方法论对照 → m06 §三**：责任链优先级：用户自定义 > 历史审批 > 命令分级 > 沙箱策略 > fallback。第一个非 null 结果即返回，不再继续检查下一层。
+**方法论对照 → m06 §三**：责任链优先级：allow/deny > 历史审批 > ask > 命令分级/沙箱 > fallback。第一个非 null 结果即返回。
 
 ---
 

@@ -165,3 +165,13 @@ Get-ChildItem "d:\projects\my-agent\_reference" -Force -Recurse -Depth 3
 **解决**：将 `electron-builder.json` 的 `directories.output` 临时改为项目外路径（如 `D:/temp/my-agent-release/${version}`），打包完成后再改回
 
 > 教训：Windows 上构建 Electron 安装包时，输出目录避免在被实时监控的路径下
+
+## 权限责任链：ask 不能压在审批库前面
+
+**问题**：自定义 `ask` 规则若在 `checkApproval` 之前就返回 `needs_approval`，用户点「允许」写入 session 审批后，下次仍永远命中 ask，确认无效。
+
+**原因**：责任链「第一个非 null 即返回」——ask 抢先返回后，审批库永远到不了。
+
+**解决**：顺序固定为 `allow/deny → approval-store → ask → sandbox`（见 `permission-engine.ts`）。
+
+> 教训：ask 表示「尚未批过时要问」，不是「永远覆盖审批结果」。

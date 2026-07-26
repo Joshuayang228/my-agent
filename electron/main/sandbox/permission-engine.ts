@@ -4,11 +4,11 @@
  * Alice 方法论 Ch.12：sandbox-mode → tool-allow/deny → path-guard → rate-limit → user-override
  *
  * 责任链执行顺序：
- * 1. 用户自定义规则（allow/deny/ask）
- * 2. 审批记录（session / persistent）
- * 3. 命令安全分级（exec-policy）
- * 4. 沙箱策略（sandbox policy）
- * 5. 默认行为（fallback）
+ * 1. 用户自定义硬规则（allow/deny）
+ * 2. 审批记录（session / persistent）— 须在 ask 之前，否则确认无效
+ * 3. 用户自定义 ask 规则
+ * 4. 命令安全分级 + 沙箱策略（exec-policy / guardCommand）
+ * 5. 默认行为（fallback，在 guard 内）
  */
 
 import { assessCommand } from './exec-policy'
@@ -73,6 +73,9 @@ export function getRules(): PermissionRule[] {
 
 /**
  * 命令权限检查 — 五层责任链
+ *
+ * ask 规则不能抢在审批库之前返回：否则用户确认后的 session 审批永远命不中。
+ * 顺序：自定义 allow/deny → 审批库 → 自定义 ask → 沙箱。
  */
 export function checkCommandPermission(
   command: string,
@@ -81,14 +84,14 @@ export function checkCommandPermission(
   workspaceRoot?: string,
 ): PermissionCheckResult {
 
-  // Layer 1: 用户自定义规则
-  const customResult = matchCustomRules(command, 'command')
-  if (customResult) {
-    log.debug('Custom rule matched', { command: command.slice(0, 60), rule: customResult.matchedRule })
-    return customResult
+  // Layer 1: 用户自定义硬规则（仅 allow / deny）
+  const hardCustom = matchCustomRules(command, 'command', { includeAsk: false })
+  if (hardCustom) {
+    log.debug('Custom hard rule matched', { command: command.slice(0, 60), rule: hardCustom.matchedRule })
+    return hardCustom
   }
 
-  // Layer 2: 历史审批记录
+  // Layer 2: 历史审批记录（含对 ask 规则的会话确认）
   const approved = checkApproval(command)
   if (approved !== null) {
     return {
@@ -99,13 +102,19 @@ export function checkCommandPermission(
     }
   }
 
+  // Layer 1b: 自定义 ask（无审批记录时才要求确认）
+  const askCustom = matchCustomRules(command, 'command', { includeAsk: true, askOnly: true })
+  if (askCustom) {
+    log.debug('Custom ask rule matched', { command: command.slice(0, 60), rule: askCustom.matchedRule })
+    return askCustom
+  }
+
   // Layer 3-4: exec-policy + sandbox policy（委托给 guardCommand）
   const policy = buildPolicy(sandboxMode, workspaceRoot)
   const guard = guardCommand(command, cwd, policy)
 
   return guardToResult(guard)
 }
-
 /**
  * 工具权限检查 — 检查某工具是否允许执行
  */
@@ -116,9 +125,19 @@ export function checkToolPermission(toolName: string): PermissionCheckResult {
   return { allowed: true, reason: '默认允许', decisionType: 'default-allow', chain: 'fallback' }
 }
 
-function matchCustomRules(target: string, type: PermissionRule['type']): PermissionCheckResult | null {
+function matchCustomRules(
+  target: string,
+  type: PermissionRule['type'],
+  opts: { includeAsk?: boolean; askOnly?: boolean } = {},
+): PermissionCheckResult | null {
+  const includeAsk = opts.includeAsk !== false
+  const askOnly = opts.askOnly === true
+
   for (const rule of userRules) {
     if (!rule.enabled || rule.type !== type) continue
+    if (askOnly && rule.action !== 'ask') continue
+    if (!includeAsk && rule.action === 'ask') continue
+
     try {
       const regex = new RegExp(rule.pattern, 'i')
       if (regex.test(target)) {
@@ -140,7 +159,6 @@ function matchCustomRules(target: string, type: PermissionRule['type']): Permiss
   }
   return null
 }
-
 function guardToResult(guard: GuardDecision): PermissionCheckResult {
   if (guard.allowed === true) {
     return { allowed: true, reason: '沙箱策略允许', decisionType: 'sandbox-policy', chain: 'sandbox-policy' }

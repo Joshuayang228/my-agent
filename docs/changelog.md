@@ -5,6 +5,21 @@
 
 ## [未发布]
 
+### Fixed — IPC 确认超时清理 + 显式进程隔离（2026-07-26）
+- `webPreferences` 显式 `contextIsolation: true` / `nodeIntegration: false`。
+- 工具确认：`randomUUID` requestId；超时与应答统一 `finish`，卸掉 `ipcMain` 监听器，避免 once 泄漏。
+- 方法论 M12 收尾；硬约束改为 IPC 四处同步（含 `vite-env.d.ts`）。
+
+### Added — M17 测试架构方法论（2026-07-26）
+- 沉淀 `methodology/m17-testing-architecture.md` + `-code.md`：四层金字塔（Unit / Eval / E2E / 人工）、DI 优先于 `vi.mock(llm)`、门禁隔离、E2E 冒烟诚实分层。
+- 同步 wishlist 工程债 G1–G4；`typescript-guidelines` E2E 规范与仓库现状对齐。
+
+### Fixed — shell 权限统一走 permission-engine + loadRules 接线（2026-07-26）
+- `shell_exec` 改为 `checkCommandPermission`（allow/deny → 审批库 → ask → 沙箱），不再工具内自调 `guardCommand`。
+- `settings.permissionRules`：启动加载 + 设置保存热更新；设置页「安全与权限」增加 JSON 编辑框。
+- Loop 确认/拒绝 `shell_exec` 时 `recordApproval(..., 'session')`，避免 `needs_approval` 无记忆仍执行。
+- ask 规则置于审批库之后，避免「本次允许」永远命不中；新增审批链单测。
+
 ### Fixed — KV Cache 时间注入策略修正（2026-07-25）
 - `prompt-builder.ts` L4 时间从秒级（`toLocaleString`）改为日期仅（`YYYY-MM-DD`），防止每次调用都破坏系统 prompt 前缀缓存。
 - `loop.ts` 每轮 LLM 调用前把当前时间（HH:MM）注入最后一条 user 消息，保持 LLM 时间感知而不污染系统 prompt。参考 CC 的 `<system-reminder>` 机制。
@@ -44,8 +59,9 @@
 - 崩溃恢复机制：启动时从 SQLite 恢复 pending/running 任务，running 重置为 pending，通过 `taskTypeToFunction` map 重新注册函数。
 - `notified` 幂等标志：防止断线重连或轮询场景下重复通知。
 - 7 个新增持久化测试（task-queue-persistence.test.ts），249 个测试全过。
-- 对应方法论：`m11-task-lifecycle.md` 更新 v2 实现历史 + `m11-task-lifecycle-code.md` 代码走读（DDL/恢复逻辑/与其他模块集成）。
-- 剩余待做：前后台 token 分离、UI 任务状态可见化、失败重试、断线重连、长任务断点续接。
+- 对应方法论：`m09-task-lifecycle.md`（原深啃编号 M11）更新 v2 实现历史 + `m09-task-lifecycle-code.md`。
+- v2 当时剩余：前后台 token 分离、UI 可见化、失败重试、断线重连、长任务断点续接。
+- **v3 已补**（见上方「方向一」条目）：指数退避重试 + UI pill。**仍开着**：前后台 token 分离、断线重连、长任务断点续接。
 
 ### Added — Eval B 类场景（P05/P06）+ ModelBasedGrader（2026-07-25）
 - `ModelBasedGrader`：LLM judge 基础设施，接受违规项问题列表，二元判断避免综合分，无 API key 自动跳过。
