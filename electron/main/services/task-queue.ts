@@ -16,6 +16,8 @@
  * - 内存：执行函数（fn）、运行时状态的来源
  * - SQLite：崩溃后的恢复依据、通知幂等的持久记录
  *
+ * M16 G2：running / completed / failed / notified 转移 await 落盘；enqueue 仍可非阻塞。
+ *
  * 还未做（按方法论暂缓清单）：
  * - 长任务断点续接
  */
@@ -38,22 +40,28 @@ interface InternalTask extends BackgroundTaskInfo {
 
 // ── SQLite helpers ──
 
-/** 把任务写入/更新 background_tasks 表（fire-and-forget，失败只记日志）*/
-function dbUpsertTask(task: BackgroundTaskInfo): void {
-  void getDatabase().then(db => {
-    try {
-      db.run(
-        `INSERT OR REPLACE INTO background_tasks
-           (id, session_id, type, status, notified, created_at, updated_at, error)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [task.id, task.sessionId, task.name, task.status,
-          task.notified ? 1 : 0, task.createdAt, task.updatedAt, task.error ?? null]
-      )
-      persist()
-    } catch (err) {
-      log.warn('Failed to persist task to SQLite', { taskId: task.id, error: String(err) })
-    }
-  }).catch(() => { /* DB 未就绪时静默跳过 */ })
+/**
+ * 把任务写入/更新 background_tasks 表。
+ *
+ * 背景（M16 G2）：原先 fire-and-forget，关键状态转移（running/completed/failed/notified）
+ * 可能在崩溃窗口丢写。现改为 await 可等待；入队仍可 void 调用。
+ *
+ * 失败只记日志，不抛给调用方（队列执行不应因落盘失败而中断）。
+ */
+async function dbUpsertTask(task: BackgroundTaskInfo): Promise<void> {
+  try {
+    const database = await getDatabase()
+    database.run(
+      `INSERT OR REPLACE INTO background_tasks
+         (id, session_id, type, status, notified, created_at, updated_at, error)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [task.id, task.sessionId, task.name, task.status,
+        task.notified ? 1 : 0, task.createdAt, task.updatedAt, task.error ?? null],
+    )
+    persist()
+  } catch (err) {
+    log.warn('Failed to persist task to SQLite', { taskId: task.id, error: String(err) })
+  }
 }
 
 // ── TaskQueueManager ──
@@ -79,7 +87,8 @@ class TaskQueueManager {
 
     this.tasks.set(id, task)
     this.queue.push(id)
-    dbUpsertTask(this.toInfo(task))
+    // 入队：非阻塞落盘（内存已有真相；崩溃最多丢这个 pending，可接受）
+    void dbUpsertTask(this.toInfo(task))
     log.info(`Task enqueued: ${name}`, { taskId: id, sessionId, queueLength: this.queue.length })
 
     void this.processNext()
@@ -175,7 +184,7 @@ class TaskQueueManager {
     if (!task || task.status !== 'pending') return false
     task.status = 'cancelled'
     task.updatedAt = Date.now()
-    dbUpsertTask(this.toInfo(task))
+    void dbUpsertTask(this.toInfo(task))
     log.info(`Task cancelled: ${task.name}`, { taskId })
     return true
   }
@@ -214,10 +223,10 @@ class TaskQueueManager {
 
         this.queue.shift()
 
-        // pending → running
+        // pending → running（关键转移：await 落盘，缩小崩溃丢写窗口）
         task.status = 'running'
         task.updatedAt = Date.now()
-        dbUpsertTask(this.toInfo(task))
+        await dbUpsertTask(this.toInfo(task))
         this.emit({ type: 'task:started', task: this.toInfo(task) })
         log.info(`Task started: ${task.name}`, { taskId: id, sessionId: task.sessionId })
 
@@ -226,7 +235,7 @@ class TaskQueueManager {
           task.status = 'completed'
           task.updatedAt = Date.now()
           log.info(`Task completed: ${task.name}`, { taskId: id })
-          this.notify(task, { type: 'task:completed', task: this.toInfo(task) })
+          await this.notify(task, { type: 'task:completed', task: this.toInfo(task) })
         } catch (err) {
           const retryCount = (task.retryCount ?? 0) + 1
           task.retryCount = retryCount
@@ -239,7 +248,7 @@ class TaskQueueManager {
             })
             task.status = 'pending'
             task.updatedAt = Date.now()
-            dbUpsertTask(this.toInfo(task))
+            await dbUpsertTask(this.toInfo(task))
 
             setTimeout(() => {
               this.queue.push(id)
@@ -253,7 +262,7 @@ class TaskQueueManager {
             log.warn(`Task failed permanently after ${retryCount} attempts: ${task.name}`, {
               taskId: id, error: task.error,
             })
-            this.notify(task, { type: 'task:failed', task: this.toInfo(task) })
+            await this.notify(task, { type: 'task:failed', task: this.toInfo(task) })
           }
         }
       }
@@ -268,13 +277,14 @@ class TaskQueueManager {
     BrowserWindow.getAllWindows()[0]?.webContents.send('task:event', event)
   }
 
-  private notify(task: InternalTask, event: TaskLifecycleEvent): void {
+  private async notify(task: InternalTask, event: TaskLifecycleEvent): Promise<void> {
     if (task.notified) {
       log.warn(`Task notification already sent (skipping): ${task.name}`, { taskId: task.id })
       return
     }
     task.notified = true
-    dbUpsertTask(this.toInfo(task))  // 落盘 notified=true，重启后不重发
+    // notified 幂等标志必须落盘后再发事件，避免重启后重复 Toast
+    await dbUpsertTask(this.toInfo(task))
     BrowserWindow.getAllWindows()[0]?.webContents.send('task:event', event)
   }
 

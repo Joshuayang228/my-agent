@@ -73,11 +73,7 @@
 
 | 优先级 | 章节 | 说明 |
 |--------|------|------|
-| — | M17 测试架构 | ✅ 已沉淀：四层金字塔 / DI 优先 / 门禁隔离 |
-| — | M12 IPC | ✅ 已沉淀：四处同步 / confirm 超时清理；C4 UI 串行暂缓 |
-| — | M11 Hook | ✅ 已沉淀：用户 lifecycle Hook 不做；扩展点三层方法论 |
-| — | M15 状态机 | ✅ 已沉淀：横切纪律 + 图鉴；本轮无代码改动 |
-| 中 | M16 并发与数据 | 仍占位 |
+| — | M11 / M12 / M15 / M16 / M17 | ✅ 已沉淀 |
 | 低 | M13 MCP | 扩展协议，按需深啃 |
 | 工程补完后 | M22–M27 | 伙伴类；先别抢工程占位 |
 | 增量补洞 | 见下方索引 | 细节以各章实战记录为准 |
@@ -89,6 +85,7 @@
 | 新编号 | 章节 | 仍开着的要点 |
 |--------|------|-------------|
 | M12 | IPC 架构 | C4 确认 UI 串行队列 |
+| M16 | 并发与数据 | 迁 better-sqlite3 / 增量快照（等体量痛点） |
 | M04 | 工具系统 | 元数据函数化 / 并发数上限 / 工具别名 |
 | M07 | 上下文压缩 | G2 L2 去重优化；G5 image 剥离；G6 L4 独立会话（有意暂缓）；G8 prompt cache 复用；G9 hooks；G13 token 估算精度 |
 | M08 | 记忆系统 | G6 语义去重 |
@@ -118,6 +115,7 @@
 | M12 | `electron/preload/index.ts` + `electron/main/ipc/` |
 | M13 | `electron/main/mcp/` |
 | M14 | `electron/main/utils/tracer.ts` |
+| M16 | `electron/main/storage/database.ts` + `tools/registry.ts` + `services/task-queue.ts` |
 | M15 | 横切：`types.ts`（TerminalReason/TaskStatus/ExecutionMode）+ `loop.ts` + `task-queue.ts` + `mcp/client.ts` |
 | M17 | `__tests__/unit/` + `evals/` + `vitest*.config.ts` + `__tests__/e2e/` |
 | M18 | `evals/` |
@@ -300,7 +298,7 @@ methodology/
 | M13 MCP | ch08-mcp | services/mcp/ | mcp-integration-design.md |
 | M14 可观测性 | ch13-observability | tracing/ | observability/ |
 | M15 状态机 | ch01（状态优先）| session state | — |
-| M16 并发数据 | ch15（并发相关范式）| — | concurrency-queue-design.md |
+| M16 并发数据 | ch15（并发相关范式）| Tool.ts / StreamingToolExecutor | `2026-04-03-sandbox-concurrency-queue-design.md` |
 | M17 测试架构 | ch15 **范式二**（事件流可插测试中间件）+ **范式十一**（接口稳定/实现可替换）；**非**范式五（范式五=权限，属 M10） | 无独立 eval 目录；Harness Guide | aisdk-testing-design.md（HTTP 边界 replay） |
 | M18 Eval | — | Harness Guide | observability/ |
 | M19 多Agent | ch06-multi-agent | coordinator/ | a2a/ |

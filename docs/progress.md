@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：方法论重组进行中；M12/M15/M17 已沉淀；中优剩余 **M16**；其后 M13 / M22–M27
+**阶段**：方法论工程占位章基本收齐；剩余低优 **M13 MCP** 与后置 **M22–M27** 伙伴章
 
 **最新动态（2026-07-26）**：
+- ✅ **M16 并发与数据架构**：理念章 + code 章。第一性原理「并发边界与数据落点同图」；G1 persist coalesce、G9 原子写盘、G2 任务关键转移 await 落盘、G3 `schema_version` migration；sql.js 不迁库。264 单测通过。
 - ✅ **M12 IPC 架构**：核对收尾 + 小改代码。显式 `contextIsolation`/`nodeIntegration`；confirm 超时清理 + `randomUUID`；方法论改为「四处同步」（含 `vite-env.d.ts`）；C4 确认 UI 串行队列暂缓进 wishlist。
 - ✅ **M17 测试架构**：理念章 + code 章（分轨测确定性/概率性；四层金字塔；DI 优先于 vi.mock；Unit/Eval 门禁隔离；E2E 冒烟诚实分层）。工程债 G1–G4 进 wishlist；本轮无强制代码迁移。
 - ✅ **M15 状态机设计**：理念章 + code 章（第一性原理：状态是可命名/可转移/可解释契约；显式 vs 隐式选型；转移必带 reason；持久化边界；系统状态机图鉴）。本轮无代码改动——主干已在 Loop/Task/ExecutionMode/MCP。

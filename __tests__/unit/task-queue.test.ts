@@ -26,6 +26,15 @@ vi.mock('../../../electron/main/utils/logger', () => ({
   }),
 }))
 
+// M16：关键转移会 await 落盘；测试里不碰真实 sql.js / electron app
+vi.mock('../../../electron/main/storage/database', () => ({
+  getDatabase: vi.fn(async () => ({
+    run: vi.fn(),
+    prepare: vi.fn(),
+  })),
+  persist: vi.fn(),
+}))
+
 // 每次测试使用独立实例（不用单例）
 async function makeQueue() {
   vi.resetModules()
@@ -110,10 +119,10 @@ describe('TaskQueueManager', () => {
   })
 
   it('取消 pending 任务成功，不执行', async () => {
-    // 先让队列忙，阻塞后续
-    let release: () => void
+    // 先让队列忙，阻塞后续（await 落盘后 fn 才启动，需等到 running 再 release）
+    let release: (() => void) | undefined
     const blocker = taskQueue.enqueue('s5', 'smart-title', () =>
-      new Promise<void>(r => { release = r })
+      new Promise<void>(r => { release = r }),
     )
 
     const cancelTargetId = taskQueue.enqueue('s5', 'vector-index-user', async () => {
@@ -123,7 +132,11 @@ describe('TaskQueueManager', () => {
     const cancelled = taskQueue.cancel(cancelTargetId)
     expect(cancelled).toBe(true)
 
-    // 释放阻塞任务
+    // 等到 blocker 真正进入 running（release 已被赋值）
+    for (let i = 0; i < 20 && !release; i++) {
+      await new Promise<void>(r => setTimeout(r, 10))
+    }
+    expect(release).toBeTypeOf('function')
     release!()
     await new Promise<void>(r => setTimeout(r, 50))
 
@@ -131,7 +144,6 @@ describe('TaskQueueManager', () => {
     expect(task?.status).toBe('cancelled')
     expect(task?.error).toBeUndefined()
 
-    // blocker task
     const blockerTask = taskQueue.getTask(blocker)
     expect(blockerTask?.status).toBe('completed')
   })

@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Changed — M16 写盘纪律：原子 persist + schema 版本 + 任务关键落盘（2026-07-26）
+- `database.persist`：dirty coalesce + `atomicWriteFileSync`（tmp → rename；Windows copy+unlink），降低半截库与冗余全量写。
+- `meta.schema_version` + 有序 `runMigrations`（v0→v1 幂等补 sessions token 列）。
+- `task-queue`：running / retry / notified 转移 `await` 落盘；enqueue 仍可非阻塞。
+- 方法论：`m16-concurrency-data-architecture.md` + `-code.md`；新增 `database-persist` 单测。
+
 ### Fixed — IPC 确认超时清理 + 显式进程隔离（2026-07-26）
 - `webPreferences` 显式 `contextIsolation: true` / `nodeIntegration: false`。
 - 工具确认：`randomUUID` requestId；超时与应答统一 `finish`，卸掉 `ipcMain` 监听器，避免 once 泄漏。
