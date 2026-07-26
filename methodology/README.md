@@ -61,7 +61,7 @@ M01–M27 按**依赖层级**从底向上排列：底层基础设施决定上层
 | M10 | 权限与安全 | `m10-permission-security.md` + `m10-permission-security-code.md` | ✅ |
 | M11 | Hook / 扩展点架构 | `m11-hook-extension-architecture.md` + `m11-hook-extension-architecture-code.md` | ✅ |
 | M12 | IPC 架构 | `m12-ipc-architecture.md` + `m12-ipc-architecture-code.md` | ✅ |
-| M13 | MCP 集成 | `m13-mcp-integration.md` | 📋 占位 |
+| M13 | MCP 集成 | `m13-mcp-integration.md` + `m13-mcp-integration-code.md` | ✅ |
 
 ### Part IV：可观测与质量
 
@@ -109,10 +109,9 @@ M01–M27 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 | 优先级 | 下一章 | 说明 |
 |--------|--------|------|
-| — | M11 / M12 / M15 / M16 / M17 | ✅ 已沉淀 |
-| 低 | **M13 MCP** | 按需深啃 |
-| 后置 | M22–M27 | 工程占位补完后再启动伙伴章 |
-| 增量 | 已写章节的暂缓 Gap | 索引见 skill「增量补洞索引」（人格/自进化/Eval 等） |
+| — | M11–M17（含 M13） | ✅ 工程方法论占位章已齐 |
+| 后置 | **M22–M27** | 伙伴章；工程占位补完后启动 |
+| 增量 | 已写章节的暂缓 Gap | 索引见 skill「增量补洞索引」+ wishlist |
 
 ## 写作约定
 

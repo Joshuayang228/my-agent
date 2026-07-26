@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：方法论工程占位章基本收齐；剩余低优 **M13 MCP** 与后置 **M22–M27** 伙伴章
+**阶段**：工程方法论占位章已齐（M01–M21）；下一档为 **M22–M27** 伙伴章或各章增量 Gap
 
 **最新动态（2026-07-26）**：
+- ✅ **M13 MCP 集成**：理念章 + code 章。第一性原理「不可信外部能力的标准通道」；Bridge 同构进 Registry；元数据纠偏为 `isDestructive:true` / `isConcurrencySafe:false`；新增 `mcp-bridge` 单测。SSE UI / 重连 / Elicitation 暂缓进 wishlist。
 - ✅ **M16 并发与数据架构**：理念章 + code 章。第一性原理「并发边界与数据落点同图」；G1 persist coalesce、G9 原子写盘、G2 任务关键转移 await 落盘、G3 `schema_version` migration；sql.js 不迁库。264 单测通过。
 - ✅ **M12 IPC 架构**：核对收尾 + 小改代码。显式 `contextIsolation`/`nodeIntegration`；confirm 超时清理 + `randomUUID`；方法论改为「四处同步」（含 `vite-env.d.ts`）；C4 确认 UI 串行队列暂缓进 wishlist。
 - ✅ **M17 测试架构**：理念章 + code 章（分轨测确定性/概率性；四层金字塔；DI 优先于 vi.mock；Unit/Eval 门禁隔离；E2E 冒烟诚实分层）。工程债 G1–G4 进 wishlist；本轮无强制代码迁移。

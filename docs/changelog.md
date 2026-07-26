@@ -5,6 +5,10 @@
 
 ## [未发布]
 
+### Changed — MCP 工具元数据改保守默认（2026-07-26）
+- `mcp/bridge.ts`：外部工具默认 `isDestructive: true`、`isConcurrencySafe: false`（auto 下需确认、不并行）；对齐 Alice「权限保守默认」。
+- 新增 `__tests__/unit/mcp-bridge.test.ts`；方法论 `m13-mcp-integration.md` + `-code.md`。
+
 ### Changed — M16 写盘纪律：原子 persist + schema 版本 + 任务关键落盘（2026-07-26）
 - `database.persist`：dirty coalesce + `atomicWriteFileSync`（tmp → rename；Windows copy+unlink），降低半截库与冗余全量写。
 - `meta.schema_version` + 有序 `runMigrations`（v0→v1 幂等补 sessions token 列）。

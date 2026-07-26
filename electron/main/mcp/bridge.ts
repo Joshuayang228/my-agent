@@ -39,7 +39,30 @@ export function parseMcpToolName(fullName: string): { serverId: string; toolName
   return { serverId: parts[1], toolName: parts.slice(2).join(':') }
 }
 
-function mcpToolToDefinition(tool: McpTool): ToolDefinition {
+/**
+ * MCP 工具元数据默认值（比内置 buildTool 更保守）。
+ *
+ * 背景：MCP 工具来自不可信外部 Server，宿主无法先验知道副作用。
+ * 旧默认 isDestructive:false + isConcurrencySafe:true 会在 auto 下默默并行执行。
+ *
+ * 策略（受 Alice Ch.08「权限保守默认」启发）：
+ * - isReadOnly: false — 不假设只读
+ * - isDestructive: true — auto / plan-first 走 confirmTool（对齐 Alice requiresPermission）
+ * - isConcurrencySafe: false — 未知副作用不并行（对齐 buildTool fail-closed）
+ *
+ * 放行路径：用户可在 permissionRules 里对 `mcp:serverId:*` 配 allow；或改执行模式。
+ */
+export const DEFAULT_MCP_TOOL_METADATA = {
+  isReadOnly: false,
+  isDestructive: true,
+  isConcurrencySafe: false,
+} as const
+
+/**
+ * 把单个 MCP 工具转成 ToolDefinition（纯转换 + 闭包 execute）。
+ * 导出供单测断言命名空间 / 截断 / 元数据默认。
+ */
+export function mcpToolToDefinition(tool: McpTool): ToolDefinition {
   const fullName = mcpToolFullName(tool.serverId, tool.name)
 
   const schema = tool.inputSchema as {
@@ -56,11 +79,7 @@ function mcpToolToDefinition(tool: McpTool): ToolDefinition {
       properties: schema.properties ?? {},
       required: schema.required,
     },
-    metadata: {
-      isReadOnly: false,
-      isDestructive: false,
-      isConcurrencySafe: true,
-    },
+    metadata: { ...DEFAULT_MCP_TOOL_METADATA },
     execute: async (args: Record<string, unknown>) => {
       return mcpManager.callTool(tool.serverId, tool.name, args)
     },
