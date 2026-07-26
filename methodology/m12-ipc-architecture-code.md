@@ -34,7 +34,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
 })
 ```
 
-**preload 的类型化方案**：preload 暴露的是 `window.electronAPI`，渲染进程需要知道它的类型。我们没有独立的 `.d.ts` 文件——类型通过 React 组件直接使用 `window.electronAPI?.xxx()` 的方式隐式推断。这是轻量但不严格的方案，后续可以补 `Window` 接口的类型声明来强化。
+**preload 的类型化方案**：`window.electronAPI` 的形状写在 `src/vite-env.d.ts`（`declare global { interface Window { electronAPI: ... } }`）。这是四处同步里的第 4 处——preload 增删方法时必须同步改这里，否则渲染进程类型会漂移。
+
+### 窗口创建上的显式信任边界
+
+```typescript
+// electron/main/index.ts — createWindow
+webPreferences: {
+  preload,
+  contextIsolation: true,   // ↑ 渲染进程隔离；只能碰 bridge
+  nodeIntegration: false,   // ↑ 禁止 renderer 直接 require Node
+}
+```
+
+**发现**：Alice 每个 BrowserWindow 都显式写这两项；feiche spec 同样强制。Electron 42 默认已安全，显式写出是防「读代码的人依赖默认值」和防未来默认变更。
 
 **方法论对照**：→ `m12-ipc-architecture.md` §2（contextBridge：显式声明的安全桥）
 
@@ -168,26 +181,40 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
 ### main 侧（ipc/chat.ts）
 
 ```typescript
-// chat.ts — confirmTool 的完整实现
+// chat.ts — confirmTool（2026-07-26：UUID + 超时清理）
+
+const CONFIRM_TIMEOUT_MS = 60_000
 
 const confirmTool = (name: string, args: Record<string, unknown>): Promise<boolean> => {
   return new Promise((resolve) => {
-    // ① 每次确认请求生成唯一 ID
-    const requestId = `confirm-${Date.now()}`
+    // ① UUID，避免 Date.now() 同毫秒碰撞
+    const requestId = `confirm-${randomUUID()}`
+    const channel = `tool:confirm-response:${requestId}`
+    let settled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
 
-    // ② 通知渲染进程显示确认对话框（单向推送）
+    // ② 统一收口：应答 / 超时都走 finish，清 timer + 卸 listener
+    const finish = (approved: boolean) => {
+      if (settled) return
+      settled = true
+      if (timer !== undefined) clearTimeout(timer)
+      ipcMain.removeListener(channel, onResponse)
+      resolve(approved)
+    }
+
+    function onResponse(_e: Electron.IpcMainEvent, approved: boolean) {
+      finish(approved)  // ③ 用户点了允许/拒绝
+    }
+
+    ipcMain.once(channel, onResponse)
+    // ④ 通知渲染进程弹确认框（单向推送）
     event.sender.send('tool:confirm-request', { requestId, name, args })
 
-    // ③ 注册一次性监听器，等待渲染进程的回答
-    //    ipcMain.once = 只处理一次，处理完自动移除
-    //    频道名包含 requestId = 动态频道，不同请求互不干扰
-    ipcMain.once(`tool:confirm-response:${requestId}`, (_e, approved: boolean) => {
-      resolve(approved)  // ④ 用户点了"允许"或"拒绝"
-    })
-
-    // ⑤ 超时兜底：60 秒无回应则自动拒绝
-    //    防止主进程永久 pending（用户切走了窗口、关掉了弹窗等）
-    setTimeout(() => resolve(false), 60_000)
+    // ⑤ 60s 无回应 → 自动拒绝，并卸掉 once（防泄漏）
+    timer = setTimeout(() => {
+      log.warn('tool confirm timed out', { requestId, name })
+      finish(false)
+    }, CONFIRM_TIMEOUT_MS)
   })
 }
 ```
@@ -211,40 +238,42 @@ confirmResponse: (requestId: string, approved: boolean) =>
   ipcRenderer.send(`tool:confirm-response:${requestId}`, approved),
 ```
 
-**动态频道的本质**：`ipcMain.once` 注册了一个名为 `tool:confirm-response:confirm-${Date.now()}` 的一次性监听器，渲染进程用 `ipcRenderer.send` 发到这个频道。两者通过 `requestId` 配对。如果同时有两个工具需要确认，每个都有自己的 `requestId`，对应不同的 `ipcMain.once` 监听器，不会串话。
+**动态频道的本质**：`ipcMain.once` 注册 `tool:confirm-response:${requestId}`，渲染进程 `send` 到同一频道。主进程侧按 requestId 隔离，不会串话。
+
+**发现（UI 侧缺口）**：主进程可并发等多个确认，但 `App.tsx` 只有一个 `confirmDialog`——后到的请求会覆盖对话框。与 Alice 的 permission/askUser 串行队列不同；标为已知限制，见理念章 §6。
 
 **方法论对照**：→ `m12-ipc-architecture.md` §6（确认对话框的动态频道模式）
 
 ---
 
-## §7 对照：三处同步的完整链路
+## §7 对照：四处同步的完整链路
 
-以 `session:list` 为例，展示三处定义的完整链路：
+以 `session:list` 为例：
 
 ```typescript
-// 第一处：src/shared/types.ts（数据类型定义）
-export interface ChatSession {
-  id: string
-  messages: ChatMessage[]
-  createdAt: number
-}
-// SessionSummary 在 preload/index.ts 里本地定义（轻量 DTO）
+// ① src/shared/types.ts — 载荷数据类型
+export interface ChatSession { id: string; messages: ChatMessage[]; createdAt: number }
 
-// 第二处：electron/preload/index.ts（渲染进程接入点）
+// ② electron/preload/index.ts — bridge 接入点
 session: {
   list: (): Promise<SessionSummary[]> => ipcRenderer.invoke('session:list'),
-  //         ↑ 类型声明                                      ↑ 频道名字符串
 }
 
-// 第三处：electron/main/ipc/session.ts（主进程处理器）
-ipcMain.handle('session:list', async () => {
-  //           ↑ 频道名必须和 invoke 里的完全一致（字符串，TypeScript 无法校验）
-  const sessions = await sessionStore.list()
-  return sessions  // 返回值会成为渲染进程 invoke 的 resolved value
-})
+// ③ electron/main/ipc/session.ts — 主进程 handler
+ipcMain.handle('session:list', async () => store.listSessions())
+
+// ④ src/vite-env.d.ts — 渲染进程看到的 window.electronAPI 形状
+declare global {
+  interface Window {
+    electronAPI: {
+      session: { list: () => Promise<SessionSummary[]>; /* ... */ }
+      // ...
+    }
+  }
+}
 ```
 
-**频道名是字符串，TypeScript 无法校验一致性**——这是三处同步最脆弱的地方。`ipcRenderer.invoke('session:list')` 和 `ipcMain.handle('session:list', ...)` 里的字符串必须完全一样，但 TypeScript 不会提醒你它们不一致。修改频道名时必须同时改两处，而且只能靠人工 or 运行时报错发现。
+**频道名是字符串，TypeScript 校不住 ②↔③ 拼写一致性**——四处同步里最脆的一环。④ 只能保证渲染进程「调用面」类型正确，不能证明 handler 已注册。
 
 ---
 
@@ -253,7 +282,10 @@ ipcMain.handle('session:list', async () => {
 | 设计维度 | 我们的选择 | 备注 |
 |---|---|---|
 | preload 组织 | 单文件集中管理 | 规模小时简单，规模大时按模块拆分 |
-| emit 函数 | 闭包捕获 `event.sender` | 避免多窗口广播问题 |
-| 确认等待 | `new Promise` + `ipcMain.once` | 动态频道，60s 超时兜底 |
+| 信任边界 | 显式 contextIsolation + 禁 nodeIntegration | 与 Alice/feiche 一致 |
+| emit 函数 | 闭包捕获 `event.sender` | chat 路径避免多窗口误广播 |
+| 确认等待 | Promise + once + UUID + finish 收口 | 60s 超时卸 listener |
+| 确认 UI | 单 dialog（已知限制） | 并行确认变常见再做串行队列 |
 | 清理机制 | on 返回清理函数 | 调用方负责生命周期 |
+| 类型同步 | 四处（含 vite-env.d.ts） | 频道名仍无编译期校验 |
 | 频道名约定 | `模块:操作`（如 `session:list`） | 字符串，无类型校验 |

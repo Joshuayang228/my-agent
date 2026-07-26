@@ -9,6 +9,7 @@
 - `webPreferences` 显式 `contextIsolation: true` / `nodeIntegration: false`。
 - 工具确认：`randomUUID` requestId；超时与应答统一 `finish`，卸掉 `ipcMain` 监听器，避免 once 泄漏。
 - 方法论 M12 收尾；硬约束改为 IPC 四处同步（含 `vite-env.d.ts`）。
+- 确认超时默认拒绝并打 warn 日志，避免悬挂 Promise。
 
 ### Added — M17 测试架构方法论（2026-07-26）
 - 沉淀 `methodology/m17-testing-architecture.md` + `-code.md`：四层金字塔（Unit / Eval / E2E / 人工）、DI 优先于 `vi.mock(llm)`、门禁隔离、E2E 冒烟诚实分层。

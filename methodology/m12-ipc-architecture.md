@@ -1,7 +1,10 @@
 # M12 IPC 架构
 
 > **所属**：Part III 安全与扩展
-> **参考源**：`electron/preload/index.ts` · `electron/main/ipc/` · CC sourcemap（同样是 Electron）
+> **状态**：✅
+> **参考源**：`electron/preload/index.ts` · `electron/main/ipc/` · `src/vite-env.d.ts` · feiche/wps-cowork `electron-client-design.md` · Alice preload/main（本机 `D:\alice-extracted\out`）
+>
+> 说明：Alice 方法论目录里没有独立的「Electron IPC」章（skill 映射里的 ch13 实际是可观测性）；IPC 对照以 feiche Electron 薄壳 spec + Alice 解包源码为准。
 
 ---
 
@@ -23,12 +26,12 @@ Electron 的进程模型把应用分成两层：
 ```
 根认知：IPC 边界是信任边界，不是技术边界
     │
-    ├─ ① 如何安全地暴露主进程能力？    → contextBridge（§2）
+    ├─ ① 如何安全地暴露主进程能力？    → contextBridge + 显式 webPreferences（§2）
     ├─ ② 什么逻辑该放主进程，什么放渲染进程？ → 职责划分（§3）
     ├─ ③ 调用和推送如何区分？         → invoke vs on（§4）
     ├─ ④ 流式 AI 响应如何跨进程传输？  → 双通道组合（§5）
     ├─ ⑤ 确认对话框如何实现双向通信？  → 动态频道模式（§6）
-    └─ ⑥ 如何保证三处定义不脱节？     → 三处同步原则（§7）
+    └─ ⑥ 如何保证定义不脱节？         → 四处同步原则（§7）
 ```
 
 ---
@@ -63,6 +66,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 **这个设计的安全价值**：`contextBridge` 在暴露时会对 value 做深度克隆，确保渲染进程拿到的是一个"沙盒化"的对象，不是对主进程真实对象的引用。渲染进程无法通过这个桥接触到它没有被授权的任何能力。
 
+**信任边界要写在窗口创建上，不只写在 preload 里**（受 Alice / feiche 启发）：
+
+```typescript
+webPreferences: {
+  preload,
+  contextIsolation: true,   // 渲染进程拿不到 Node；只能碰 bridge 暴露的面
+  nodeIntegration: false,   // 禁止 renderer require('fs') 等
+}
+```
+
+Electron 42 默认已是此组合，但**默认值会变、读代码的人看不见默认**——显式写出才是纪律。feiche 薄壳还用「通用 `invoke` + `client_` 频道白名单」；我们选**按命名空间显式声明方法**，攻击面更小，不跟通用 invoke。
+
 ---
 
 ## 三、职责划分：什么放主进程，什么放渲染进程
@@ -78,7 +93,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 | Agent Loop 运行 | 流式文字动画 |
 | 后台任务（M09） | 审批模式选择 |
 
-**一个容易出错的判断**：会话标题是在主进程生成的（需要调用 LLM），但显示在渲染进程里。标题更新通过 IPC 推送：主进程生成完 → 通过 `session:title-updated` 事件推送 → 渲染进程更新状态。
+**标题怎么跨进程**：智能标题在主进程由后台任务 `smart-title` 生成并写库；渲染进程在 `chat:event` 的 `done`（或手动「重新生成标题」的 invoke 返回）后 `loadSessions()` 刷新列表。没有单独的 `session:title-updated` 推送通道——这是刻意保持通道面简单，用「写库 + 列表刷新」而不是再开一条事件。
 
 ---
 
@@ -189,39 +204,55 @@ confirmResponse: (requestId: string, approved: boolean) =>
 **主进程侧的等待逻辑**（ipc/chat.ts 简化版）：
 
 ```typescript
-// 等待渲染进程的确认，最多等 30 秒
+// 等待渲染进程的确认，最多等 60 秒；超时与应答都走同一 finish，避免 once 泄漏
 const approved = await new Promise<boolean>((resolve) => {
-  const timeout = setTimeout(() => resolve(false), 30_000)
-  ipcMain.once(`tool:confirm-response:${requestId}`, (_e, result) => {
-    clearTimeout(timeout)
+  const requestId = `confirm-${randomUUID()}`
+  const channel = `tool:confirm-response:${requestId}`
+  let settled = false
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const finish = (result: boolean) => {
+    if (settled) return
+    settled = true
+    if (timer !== undefined) clearTimeout(timer)
+    ipcMain.removeListener(channel, onResponse)
     resolve(result)
-  })
-  // 通知渲染进程弹出确认对话框
-  win.webContents.send('tool:confirm-request', { requestId, name, args })
+  }
+  function onResponse(_e: Electron.IpcMainEvent, result: boolean) {
+    finish(result)
+  }
+  ipcMain.once(channel, onResponse)
+  event.sender.send('tool:confirm-request', { requestId, name, args })
+  timer = setTimeout(() => finish(false), 60_000)
 })
 ```
 
-**动态频道名的价值**：如果用固定频道名，并发的多个确认请求会互相串扰（A 的确认被 B 收到）。用 `requestId` 作为频道名的一部分，每次确认有独立频道，互不干扰。
+**动态频道名的价值**：如果用固定频道名，并发的多个确认请求会互相串扰（A 的确认被 B 收到）。用 `requestId` 作为频道名的一部分，每次确认有独立频道，互不干扰。`requestId` 用 UUID，不用裸 `Date.now()`（同毫秒碰撞）。
+
+**已知限制（C4）**：主进程侧频道已按 requestId 隔离，但渲染进程 UI 目前只有一个 `confirmDialog` 状态——若两个需确认的工具并发弹出，后到的请求会覆盖对话框，先到的那次主进程仍在等待。破坏性工具通常不标 concurrency-safe，实战里少见；若以后并行确认变常见，应学 Alice 的 `permission:request` / `askUser` **串行队列**（一次只展示一个，应答后再出下一个）。
 
 ---
 
-## 七、三处同步原则
+## 七、四处同步原则
 
-IPC 接口由三处代码共同定义，缺一不可：
+IPC 接口由**四处**共同定义，缺一不可：
 
 ```
-1. src/shared/types.ts        ← 数据类型（ChatMessage、AgentStreamEvent...）
-2. electron/preload/index.ts  ← 渲染进程的接入点（contextBridge 声明）
-3. electron/main/ipc/*.ts     ← 主进程的处理器（ipcMain.handle / ipcMain.on）
+1. src/shared/types.ts           ← 载荷数据类型（ChatMessage、AgentStreamEvent...）
+2. electron/preload/index.ts     ← 渲染进程接入点（contextBridge 声明）
+3. electron/main/ipc/*.ts        ← 主进程处理器（ipcMain.handle / on）
+4. src/vite-env.d.ts             ← window.electronAPI 的 TypeScript 形状
 ```
+
+早期口头说「三处同步」，漏了第 4 处：没有 `vite-env.d.ts` 时，渲染进程侧靠可选链蒙混过关，补了新 API 却忘了改类型时，`tsc` 拦不住错误调用。
 
 任何一处漏掉或不一致，都会在运行时报"方法未定义"或类型错误：
 
 - 漏了 `preload` → 渲染进程调用时报 `window.electronAPI.xxx is not a function`
 - 漏了 `ipc handler` → 主进程不处理请求，`invoke` 永久 pending
-- `types.ts` 类型不对 → TypeScript 编译通过，运行时数据格式错误（最难调试）
+- `types.ts` 载荷类型不对 → 编译通过，运行时数据格式错误（最难调试）
+- 漏了 `vite-env.d.ts` → 渲染进程类型与真实 API 漂移，误用却可能仍能编译
 
-**执行纪律**：每新增一个 IPC 接口，必须同时改三处，然后跑 `tsc --noEmit` 验证。
+**执行纪律**：每新增一个 IPC 接口，必须同时改四处，然后跑 `tsc --noEmit` 验证。频道名是字符串，TypeScript **校不住** preload 与 handler 是否拼写一致——这是最脆弱的一环，只能靠纪律和运行时暴露。
 
 ---
 
@@ -235,13 +266,23 @@ IPC 代码是最难测试的部分——主进程的 IPC handler 直接依赖 El
 
 ## 实战记录
 
+### 学 / 审做了什么（2026-07-26）
+
+三路对照：
+
+1. **feiche Electron 薄壳**：`contextIsolation` + `nodeIntegration: false`；通用 `invoke` + `client_` 前缀白名单——我们不跟通用 invoke，保留显式方法面。
+2. **Alice preload/main**：显式 webPreferences；流事件在 listener 未就绪时缓冲；`stream-batch`；permission/askUser **串行队列**；固定 `permission:respond` + id，而非动态频道。
+3. **我们**：显式 bridge 命名空间；chat 用 invoke+on 双通道；confirm 用动态频道；`vite-env.d.ts` 已有完整 Window 类型（code 章旧表述过时）。
+
+本轮代码：显式 webPreferences（C1）；confirm 超时清理 + settled 标志（C2）；`randomUUID` requestId（C3）。C4 确认 UI 串行队列写入已知限制，不本轮实现。
+
 ### 踩过的坑
 
 **preload 没注册就调用**
 
 最经典的错误：在渲染进程里调用了 `window.electronAPI.xxx`，但 preload 里没有注册对应的方法，报 `window.electronAPI.xxx is not a function`。
 
-根因：新加了 IPC handler（第三处），但忘了在 preload 加对应桥接（第二处）。修复纪律：三处同步，改完立即 `tsc`。
+根因：新加了 IPC handler，但忘了在 preload 加对应桥接。修复纪律：四处同步，改完立即 `tsc`。
 
 **invoke 竞态：最后一个事件丢失**
 
@@ -253,9 +294,26 @@ AI 流式响应结束时，最后一个 `done` 事件和 `invoke resolve` 几乎
 
 `ipc/chat.ts` 里同一个函数被 import 了两次（在重构过程中留下的），TypeScript 编译通过，但 Vite build 时报重复导入错误。教训：`tsc --noEmit` 查不到 Vite 的打包期错误，改了 import 结构必须单独跑 `vite build` 验证。
 
+**确认超时泄漏 once 监听器**
+
+超时只 `resolve(false)`、不 `removeListener` 时，迟到的用户点击仍会打到残留的 once（虽已 settled 无害，但监听器堆着）。finish 路径必须同时清 timer 和 listener。
+
+### 暂缓项
+
+| 项 | 说明 |
+|----|------|
+| C4 确认 UI 串行队列 | 主进程频道已隔离；UI 单 dialog 覆盖为已知限制；并行确认变常见再做 |
+| S1 流事件预缓冲 | 我们先 `onEvent` 再 `send`，当前够用 |
+| S2 stream-batch | 无性能痛点 |
+| S3 task/scheduler 广播窗口选择 | 单窗口可接受；多窗口再改为定向 sender |
+| S4 频道名类型化 / IPC 单测 | 与 §8 一并暂缓 |
+| S5 feiche 通用 invoke 白名单 | 显式方法更安全，不采用 |
+
 ### 设计检查清单
 
-- [ ] 新增 IPC 接口时：三处同步（types.ts / preload / ipc handler），`tsc --noEmit` 验证
+- [ ] 新增 IPC 接口时：四处同步（types.ts / preload / ipc handler / vite-env.d.ts），`tsc --noEmit` 验证
+- [ ] 新建 BrowserWindow 时：显式 `contextIsolation: true` + `nodeIntegration: false`
 - [ ] on 订阅时：必须返回清理函数，调用方在组件销毁时调用
 - [ ] invoke 配合 on 使用时：在 invoke 的 finally 里加状态兜底，处理竞态
-- [ ] 需要"等待用户回应"时：用动态频道名（`channel:${requestId}`），不用固定频道
+- [ ] 需要"等待用户回应"时：用动态频道名（`channel:${requestId}`）+ UUID；超时路径必须卸掉 listener
+- [ ] 确认类 UI：若可能并发，是否已串行？否则标为已知限制

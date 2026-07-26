@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { ipcMain } from 'electron'
 import { runtime } from '../agent/runtime'
 import { ToolRegistry } from '../tools/registry'
@@ -6,6 +7,8 @@ import { toAgentError } from '../errs'
 import type { ChatMessage } from '../../../src/shared/types'
 
 const log = createLogger('ChatIPC')
+
+const CONFIRM_TIMEOUT_MS = 60_000
 
 export function registerChatIPC(toolRegistry: ToolRegistry): void {
   ipcMain.handle('ping', () => 'pong')
@@ -21,12 +24,31 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
 
     const confirmTool = (name: string, args: Record<string, unknown>): Promise<boolean> => {
       return new Promise((resolve) => {
-        const requestId = `confirm-${Date.now()}`
-        event.sender.send('tool:confirm-request', { requestId, name, args })
-        ipcMain.once(`tool:confirm-response:${requestId}`, (_e, approved: boolean) => {
+        // UUID 避免 Date.now() 同毫秒碰撞；动态频道靠 requestId 配对
+        const requestId = `confirm-${randomUUID()}`
+        const channel = `tool:confirm-response:${requestId}`
+        let settled = false
+        let timer: ReturnType<typeof setTimeout> | undefined
+
+        const finish = (approved: boolean) => {
+          if (settled) return
+          settled = true
+          if (timer !== undefined) clearTimeout(timer)
+          ipcMain.removeListener(channel, onResponse)
           resolve(approved)
-        })
-        setTimeout(() => resolve(false), 60_000)
+        }
+
+        function onResponse(_e: Electron.IpcMainEvent, approved: boolean) {
+          finish(approved)
+        }
+
+        ipcMain.once(channel, onResponse)
+        event.sender.send('tool:confirm-request', { requestId, name, args })
+
+        timer = setTimeout(() => {
+          log.warn('tool confirm timed out', { requestId, name })
+          finish(false)
+        }, CONFIRM_TIMEOUT_MS)
       })
     }
 
