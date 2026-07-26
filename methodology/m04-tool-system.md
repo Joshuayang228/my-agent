@@ -178,7 +178,7 @@ M1 沉淀时，把 `m01-agent-loop.md` 写到了 `docs/methodology/`，而正确
 
 **根因**：`docs/` 下文档很多，惯性地以为方法论也归 docs 管。但项目早就约定 `methodology/` 是独立的根级文件夹，定位是"设计哲学沉淀"，和 `docs/`（项目运行文档）刻意分开。
 
-**教训**：沉淀类产出有它自己的归属，写之前先确认目录约定。这次顺手把命名也统一成了 `mNN-` 前缀，对齐 module-roadmap 的模块编号。
+**教训**：沉淀类产出有它自己的归属，写之前先确认目录约定。这次顺手把命名也统一成了 `mNN-` 前缀，对齐 `methodology/README.md` 的章节编号。
 
 ## 沉淀：工具系统的设计检查清单
 
@@ -193,4 +193,4 @@ M1 沉淀时，把 `m01-agent-loop.md` 写到了 `docs/methodology/`，而正确
 
 ---
 
-*上一篇：[M1 Agent Loop](m01-agent-loop.md) · 模块路线图：[module-roadmap.md](../docs/module-roadmap.md)*
+*上一篇：[M1 Agent Loop](m01-agent-loop.md) · 章节目录：[README.md](README.md)*

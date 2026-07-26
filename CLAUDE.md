@@ -71,15 +71,16 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 
 新增模块前先明确它属于哪一层。
 
-### IPC 三处同步
+### IPC 四处同步
 
-修改 IPC 接口时**必须同步三处**，否则运行时报"方法未定义"：
+修改 IPC 接口时**必须同步四处**，否则运行时报"方法未定义"或类型漂移：
 
-1. `src/shared/types.ts` — 类型定义
+1. `src/shared/types.ts` — 载荷数据类型
 2. `electron/preload/index.ts` — preload 桥接层
 3. `electron/main/ipc/*.ts` — 主进程处理器
+4. `src/vite-env.d.ts` — `window.electronAPI` 的 TypeScript 形状
 
-改完用 `tsc` + 测试验证。
+改完用 `tsc` + 测试验证。频道名是字符串，TS 校不住 preload 与 handler 拼写一致——靠纪律。
 
 ### 质量底线
 
@@ -189,7 +190,22 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 - `docs/decisions.md` — 技术决策时
 - `docs/pitfalls.md` — 踩坑和修复经验
 - `docs/rules-feedback.md` — 规则不合理或冲突时
-- `docs/wishlist.md` — 外部参考分析或灵感闪现时（不承诺执行，只防遗忘）
+- `docs/wishlist.md` — 见下方「wishlist 同步」（硬约束）
+
+### wishlist 同步（硬约束，防遗忘）
+
+识别到以下任一情况时，**必须在当轮把条目写进 `docs/wishlist.md`「待办缺口」**（可与灵感区分开写），不得只口头说过或只写在方法论暂缓段：
+
+1. 方法论/深啃留下的**暂缓、占位、工程债**（本轮不做）
+2. Gap 审计或 code review 里**确认要做但未排期**的项
+3. 产品灵感 / 外部参考启发（可放「灵感」节）
+
+同步纪律：
+
+- 条目用 `- [ ]` 一行描述 + 可选来源/对应章节编号（如 M07 G9）
+- **按顺序推进**时以 `methodology/README.md` 待补队列为准；wishlist 是防丢的旁路账本，不是第二套编号路线图
+- 项被完成或明确取消 → 在 wishlist 勾掉或删除，并在 `progress.md` 留痕
+- 收尾自检：若本轮新增了「以后再说」，问自己 wishlist 里有没有对应行
 
 ## 规则自进化
 

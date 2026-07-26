@@ -59,8 +59,8 @@ M01–M27 按**依赖层级**从底向上排列：底层基础设施决定上层
 | 编号 | 章节 | 文件 | 状态 |
 |------|------|------|------|
 | M10 | 权限与安全 | `m10-permission-security.md` + `m10-permission-security-code.md` | ✅ |
-| M11 | Hook / 扩展点架构 | `m11-hook-extension-architecture.md` | 📋 占位 |
-| M12 | IPC 架构 | `m12-ipc-architecture.md` | 📋 占位 |
+| M11 | Hook / 扩展点架构 | `m11-hook-extension-architecture.md` + `m11-hook-extension-architecture-code.md` | ✅ |
+| M12 | IPC 架构 | `m12-ipc-architecture.md` + `m12-ipc-architecture-code.md` | ✅ |
 | M13 | MCP 集成 | `m13-mcp-integration.md` | 📋 占位 |
 
 ### Part IV：可观测与质量
@@ -68,9 +68,9 @@ M01–M27 按**依赖层级**从底向上排列：底层基础设施决定上层
 | 编号 | 章节 | 文件 | 状态 |
 |------|------|------|------|
 | M14 | 可观测性 | `m14-observability.md` + `m14-observability-code.md` | ✅ |
-| M15 | 状态机设计 | `m15-state-machine-design.md` | 📋 占位 |
-| M16 | 并发与数据架构 | `m16-concurrency-data-architecture.md` | 📋 占位 |
-| M17 | 测试架构 | `m17-testing-architecture.md` | 📋 占位 |
+| M15 | 状态机设计 | `m15-state-machine-design.md` + `m15-state-machine-design-code.md` | ✅ |
+| M16 | 并发与数据架构 | `m16-concurrency-data-architecture.md` + `m16-concurrency-data-architecture-code.md` | ✅ |
+| M17 | 测试架构 | `m17-testing-architecture.md` + `m17-testing-architecture-code.md` | ✅ |
 | M18 | Eval 体系（上下两章） | `m18-eval.md` + `m18-eval-persona.md` + `m18-eval-code.md` | ✅ |
 
 ### Part V：智能与进化
@@ -103,9 +103,25 @@ M01–M27 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 ---
 
+## 待补队列
+
+> 完整流程（深啃五步、参考源映射、产品 backlog）见 `docs/agent-skills/methodology-writing.md`。状态以本目录表为准。
+
+| 优先级 | 下一章 | 说明 |
+|--------|--------|------|
+| — | **M17 测试架构** | ✅ 已沉淀（四层金字塔；DI 优先；门禁隔离） |
+| — | **M12 IPC** | ✅ 已沉淀（四处同步；confirm 超时清理；C4 UI 串行暂缓） |
+| — | M11 Hook | ✅ 已沉淀（用户 Hook 不做；分层方法论） |
+| — | M15 状态机 | ✅ 已沉淀（横切纪律 + 图鉴；本轮无代码改动） |
+| 中 | **M16** 并发与数据 | 仍占位 |
+| 低 | M13 MCP | 按需 |
+| 后置 | M22–M27 | 工程占位补完后再启动伙伴章 |
+| 增量 | 已写章节的暂缓 Gap | 索引见 skill「增量补洞索引」（人格/自进化/Eval 等） |
+
 ## 写作约定
 
 - **触发写作**：告诉 AI「写方法论」或「沉淀一下 XX 的思考」
-- **写作规范**：参考 `docs/agent-skills/methodology-writing.md`
+- **写作规范 / 深啃五步**：`docs/agent-skills/methodology-writing.md`（原 `docs/module-roadmap.md` 已并入此 skill）
 - **配对结构**：每章通常包含理念章（`.md`）和代码走读章（`-code.md`）；占位章节先建理念章，代码走读视实现情况补充
-- **参考源**：Alice 方法论（`_reference/framework-harness/repos/alice-methodology/`）、CC 源码（`_reference/framework-harness/repos/claude-code-sourcemap-main/`）、feiche（`_reference/framework-harness/repos/wps-cowork/`）
+- **参考源**：Alice 方法论（`_reference/framework-harness/repos/alice-methodology/`）、CC 源码（`_reference/framework-harness/repos/claude-code-sourcemap-main/`）、feiche（`_reference/feiche/`）
+- **进度时间线**：`docs/progress.md`（本 README 只维护章节状态，不写实施流水账）

@@ -86,7 +86,7 @@ Anthropic 的定义：*"LLMs using tools based on environmental feedback in a lo
 └──────────────────────────────────────────────┘
 ```
 
-工具系统、上下文管理、权限引擎等主题有独立的设计复杂度，在各自的模块文档中详写。模块之间的关系见 [模块路线图](../module-roadmap.md)。
+工具系统、上下文管理、权限引擎等主题有独立的设计复杂度，在各自的模块文档中详写。章节目录见 [methodology/README.md](README.md)。
 
 ### 1.5 章节路线图
 
@@ -627,4 +627,4 @@ const TOOL_TIMEOUT_MS = 30_000       // 工具超时
 
 ---
 
-*下一个模块：[M2 工具系统](m02-tool-system.md) · 完整路线图见 [module-roadmap](../module-roadmap.md)*
+*下一个模块：[M2 工具系统](m02-tool-system.md) · 章节目录见 [README.md](README.md)*

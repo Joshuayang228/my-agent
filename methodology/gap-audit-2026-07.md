@@ -40,11 +40,11 @@
 - ✅ `task:event` IPC 通道推送给渲染进程
 - ✅ `task:list` / `task:cancel` IPC 接口
 - ✅ runtime.ts 迁移：backgroundQueue → TaskQueueManager
-- ✅ App.tsx 订阅任务事件，profile-extract 完成 Toast 通知
-- ✅ 7 个单元测试全过（242 总测试）
-- ⏳ SQLite 持久化（进程崩溃恢复）待做
-- ⏳ 重试机制（指数退避）待做
-- ⏳ 断线重连长任务待做
+- ✅ App.tsx 订阅任务事件，profile-extract 完成 Toast + 活跃任务 pill
+- ✅ SQLite 持久化 + 崩溃恢复（v2）
+- ✅ 指数退避重试 MAX_RETRIES=3（v3）
+- ✅ 单元/持久化测试（见 progress；方法论章现为 `m09-task-lifecycle.md`）
+- ⏳ 前后台 token 分离 / 断线重连 / 长任务断点续接
 
 ### [x] 3. M6 权限安全 —— 三源全部点名的重灾区
 - **Anthropic**：Auto Mode AI 分类器（两阶段：快速 filter + CoT 推理）、Deny-and-Continue、输入层注入探针、OS 级沙箱
@@ -502,7 +502,7 @@ A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、�
 
 ### 一、我们完全缺失的模块（M1-M10 无对应）
 
-**06-task-system 任务生命周期系统** — ~~后台任务的统一状态机、通知幂等、进度追踪、断线重连；桌面伙伴的记忆整合/主动关怀/定时任务全靠它。高优先级，建议新增 M11。~~ **✅ v2 已完成 SQLite 持久化 + 崩溃恢复 + 通知幂等（2026-07-25），m11-task-lifecycle.md + m11-task-lifecycle-code.md。** 剩余：前后台 token 分离、UI 任务状态可见化、失败重试、断线重连、长任务断点续接。
+**06-task-system 任务生命周期系统** — ~~后台任务的统一状态机、通知幂等、进度追踪、断线重连；桌面伙伴的记忆整合/主动关怀/定时任务全靠它。高优先级，建议新增 M11。~~ **✅ v2+v3 已完成** SQLite 持久化 + 崩溃恢复 + 通知幂等 + 指数退避重试 + UI pill（2026-07-25），方法论现为 `m09-task-lifecycle.md` + `-code.md`。**仍开着**：前后台 token 分离、断线重连、长任务断点续接。
 
 **10-startup 启动优化** — 等待窗口内并行 I/O、阶段计时、超时不缓存 null；Electron 冷启动直接影响陪伴即时感。**中高优先级，可扩展进 M7。**
 

@@ -97,30 +97,14 @@ if (!isSafe) { ... }
 
 ### E2E 测试规范
 
-E2E 测试必须覆盖**真实的对话流程**，而不只是测试元素存在：
+E2E 分两档（详见 `methodology/m17-testing-architecture.md` §八）：
 
-- 用真实 LLM 调用（从 `TEST_LLM_API_KEY` 环境变量读取 API Key）
-- 测试完整的用户交互路径：发消息 → AI 响应 → 工具调用 → 结果展示
-- Playwright 配置必须包含 `webServer`，超时设为 30s
-- **禁止只测元素存在** — 测 `expect(button).toBeVisible()` 不够，要测点击后的行为变化
+1. **冒烟（当前默认）**：壳子能起来、主控件可交互（标题、侧边栏、输入框）。允许存在，但**不能**当作「对话质量已测」。
+2. **可选真对话**：有 `TEST_LLM_API_KEY` 时测发消息 → 响应 →（如有）工具结果；**无 Key 必须 skip，不报错**。不进 commit 必跑门禁。
 
-示例（E2E 测试结构）：
-```typescript
-test('AI 能调用工具并展示结果', async ({ page }) => {
-  await page.goto('/')
-  await page.fill('[data-testid="chat-input"]', '读取 package.json 的 name 字段')
-  await page.click('[data-testid="send-button"]')
-  
-  // 等待 AI 响应 + 工具调用完成
-  await page.waitForSelector('[data-testid="tool-result"]', { timeout: 30000 })
-  
-  // 验证结果包含预期内容
-  const result = await page.textContent('[data-testid="tool-result"]')
-  expect(result).toContain('my-agent')
-})
-```
+Playwright 配置应包含 `webServer`；真对话用例超时建议 ≥ 30s。
 
-未配置 `TEST_LLM_API_KEY` 时，E2E 测试应跳过（不报错）。
+Agent **行为**主战场在 `npm run eval:run`（M18），不是 Playwright。
 
 ## 代码搜索策略
 

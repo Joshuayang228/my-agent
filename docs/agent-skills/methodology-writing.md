@@ -29,6 +29,113 @@
    - 真实记录思考过程，包括走过的弯路。
    - 有个人风格，不写成教科书。
 4. 用户审阅：写完后展示给用户确认。
+5. **写完一章立即单独 commit**（用户确认通过后）：
+   - 至少包含本章 `mNN-*.md` + 配对的 `mNN-*-code.md`（若有）。
+   - **一个 commit 只做这一章**，不与并行会话的其他改动混提。
+   - 索引文件（`methodology/README.md` / `docs/wishlist.md` / `docs/progress.md` / 本 skill 待补队列）若混有他章改动：能干净拆出本章状态更新则一并提交；拆不开就本章正文先 commit，索引下轮再同步。
+   - commit message 风格对齐仓库：`docs(MNN): …`；用户要求 push 时再推，不默认 push。
+
+---
+
+## 深啃五步（学 → 审 → 设计 → 改 → 沉淀）
+
+啃一个尚未写满的方法论章节时，按五步推进。**「沉淀」才触发上面的写作流程**；前四步产出 Gap 清单与代码改动，不直接开写长文。
+
+| 步骤 | 做什么 | 产出 |
+|------|--------|------|
+| 1. 学 | 读参考源（Alice 方法论 + Alice/CC/feiche 源码，按章节映射表选） | 理解行业实践 |
+| 2. 审 | 对比我们的实现，列 Gap（尽量具体到文件/行） | Gap 清单 |
+| 3. 设计 | 写改进方案，用户确认后再动代码 | 方案确认 |
+| 4. 改 | 编码 + 测试（`tsc` + `npm run test`）；**允许「无代码改动」**（主干已在、只缺认知地图时） | 代码变更或明确记录「本轮不改代码」 |
+| 5. 沉淀 | 走「写作流程」写入 `methodology/`，**用户确认后单独 commit 本章** | 理念章 + code 章 + git commit |
+
+原则：
+
+- 同心圆从内向外：先核心运行时，再上下文/安全，再可观测，最后伙伴差异化（顺序见 `methodology/README.md` 六部分）。
+- 编号以 **M01–M27**（`methodology/README.md`）为准；不要再用旧深啃编号（旧 M11=任务生命周期、旧 M12=Eval，已并入新目录）。
+- 「学到但暂缓」的项写进该章实战记录，不另开第二套路线图文件。
+- 时间线与完成记录写 `docs/progress.md`，不在本 skill 里维护进度表。
+- **每章沉淀收尾必 commit**（见上方写作流程第 5 步）；勿把多章或无关工程改动打进同一个方法论 commit。
+
+### 「学」步骤：核心问题清单（模板）
+
+进入「学」时，对照参考源至少回答下列问题（按章节裁剪，写入 Gap 清单）：
+
+1. **状态 / 生命周期**：有哪些状态？转换条件是什么？谁持有状态？
+2. **失败与恢复**：失败后如何继续 / 降级 / 熔断？哪些可重试、哪些不可？
+3. **边界与隔离**：权限、进程、子 Agent、压缩递归——边界在哪、如何防泄漏？
+4. **成本与可观测**：token / 延迟如何计量？能否按 caller 归因？
+5. **与相邻模块的交点**：本模块触发/被谁触发？压缩、记忆、权限、Hook 谁先谁后？
+
+占位章的「待覆盖内容」应优先写成这类问题，而不是功能愿望清单。
+
+### 待补优先序（执行时以 README 状态为准）
+
+| 优先级 | 章节 | 说明 |
+|--------|------|------|
+| — | M17 测试架构 | ✅ 已沉淀：四层金字塔 / DI 优先 / 门禁隔离 |
+| — | M12 IPC | ✅ 已沉淀：四处同步 / confirm 超时清理；C4 UI 串行暂缓 |
+| — | M11 Hook | ✅ 已沉淀：用户 lifecycle Hook 不做；扩展点三层方法论 |
+| — | M15 状态机 | ✅ 已沉淀：横切纪律 + 图鉴；本轮无代码改动 |
+| 中 | M16 并发与数据 | 仍占位 |
+| 低 | M13 MCP | 扩展协议，按需深啃 |
+| 工程补完后 | M22–M27 | 伙伴类；先别抢工程占位 |
+| 增量补洞 | 见下方索引 | 细节以各章实战记录为准 |
+
+### 增量补洞索引（已写章节里仍开着的 Gap）
+
+> 只做索引，避免和各章「暂缓/占位待做」双份维护。动手前先读对应章节实战记录。
+
+| 新编号 | 章节 | 仍开着的要点 |
+|--------|------|-------------|
+| M12 | IPC 架构 | C4 确认 UI 串行队列 |
+| M04 | 工具系统 | 元数据函数化 / 并发数上限 / 工具别名 |
+| M07 | 上下文压缩 | G2 L2 去重优化；G5 image 剥离；G6 L4 独立会话（有意暂缓）；G8 prompt cache 复用；G9 hooks；G13 token 估算精度 |
+| M08 | 记忆系统 | G6 语义去重 |
+| M09 | 后台任务 | 前后台 token 分离；断线重连；长任务断点续接（v3 已有：持久化/恢复/指数退避重试/UI pill） |
+| M14 | 可观测性 | 日志脱敏；DevPanel 树状调用链视图 |
+| M17 | 测试架构 | G1 loop 单测迁 DI；G2 SSE replay；G3 可选真对话 E2E；G4 IPC 可测性（详见 wishlist） |
+| M18 | Eval | B 类真实 LLM + LLM-as-Judge；pass^k；Baseline diff；F08 preamble 场景 |
+| M19 | 多 Agent | Swarm 模式 |
+| M20 | 自进化 | G2 自动改进闭环；G3 代码级自进化；G4 主动提案；G5 撤销栈 |
+| M21 | 人格引擎 | G3 MUTABLE 动态演化（P0）；G5 具名角色 Character Bible；G4 定期重申（有意暂缓） |
+
+### 实现入口（深啃时从这里打开代码）
+
+| 新编号 | 主要路径 |
+|--------|---------|
+| M01 | `electron/main/agent/loop.ts` |
+| M02 | `electron/main/llm/`（流式解析）+ loop 事件 yield |
+| M03 | `electron/main/errs/` |
+| M04 | `electron/main/tools/` |
+| M05 | `electron/main/llm/` |
+| M06 | `electron/main/agent/prompt-builder.ts` |
+| M07 | `electron/main/agent/context-manager.ts` |
+| M08 | `electron/main/memory/` + `electron/main/storage/` |
+| M09 | `electron/main/services/task-queue.ts` |
+| M10 | `electron/main/sandbox/` |
+| M11 | 无独立用户 Hook 模块（产品选择）；横切见 `tools/middleware.ts` + `permission-engine` + `tracer.ts` |
+| M12 | `electron/preload/index.ts` + `electron/main/ipc/` |
+| M13 | `electron/main/mcp/` |
+| M14 | `electron/main/utils/tracer.ts` |
+| M15 | 横切：`types.ts`（TerminalReason/TaskStatus/ExecutionMode）+ `loop.ts` + `task-queue.ts` + `mcp/client.ts` |
+| M17 | `__tests__/unit/` + `evals/` + `vitest*.config.ts` + `__tests__/e2e/` |
+| M18 | `evals/` |
+| M19 | `electron/main/agent/subagent.ts` |
+| M20 | `electron/main/skills/` |
+| M21 | `electron/main/agent/prompt-builder.ts` |
+
+### 产品向 backlog（不占 mNN，做时再查参考源）
+
+**查阅型（不专门深啃）**：
+
+- Playground 实验环境（免上下文快速测试）
+- 会话状态 Runtime 中心化（UI 不再承担会话读写）
+- MCP 协议深入（Alice Ch.08 × CC `services/mcp/`；方法论章为 M13）
+
+**差异化特色（自主创新）**：具名角色设定集（Character Bible）、子 Agent 人设库、活人感设计。
+
+灵感进 `docs/wishlist.md`；决定要做再开需求/写进进度，不在本 skill 扩成第二路线图。
 
 ## 文档结构
 
@@ -132,13 +239,14 @@
 
 ```text
 methodology/
-├── m01-agent-loop.md              ← 理念章（产品思考）
+├── README.md                      ← 章节目录 + 待补队列（唯一权威）
+├── m01-agent-loop.md              ← 理念章
 ├── m01-agent-loop-code.md         ← 代码走读章
-├── streaming-design.md            ← 占位章（待写，尚未重命名）
-├── error-system.md                ← 占位章
+├── m11-hook-extension-architecture.md  ← 占位章也用 mNN- 前缀
+└── gap-audit-2026-07.md           ← 独立主题（不占编号）
 ```
 
-编号对应 `methodology/README.md` 的完整章节目录（M01–M27）。现有已写章节文件名为 `mNN-主题.md`，新增占位章节暂用描述性名称，内容就绪后批量重命名为 `mNN-主题.md`。
+编号与文件名一一对应 `methodology/README.md` 的 M01–M27。占位章创建时即用 `mNN-主题.md`，不再用无编号临时名。
 
 ---
 
@@ -193,14 +301,21 @@ methodology/
 | M14 可观测性 | ch13-observability | tracing/ | observability/ |
 | M15 状态机 | ch01（状态优先）| session state | — |
 | M16 并发数据 | ch15（并发相关范式）| — | concurrency-queue-design.md |
-| M17 测试架构 | ch15（范式五）| eval/ | aisdk-testing-design.md |
+| M17 测试架构 | ch15 **范式二**（事件流可插测试中间件）+ **范式十一**（接口稳定/实现可替换）；**非**范式五（范式五=权限，属 M10） | 无独立 eval 目录；Harness Guide | aisdk-testing-design.md（HTTP 边界 replay） |
 | M18 Eval | — | Harness Guide | observability/ |
 | M19 多Agent | ch06-multi-agent | coordinator/ | a2a/ |
 | M20 自进化 | ch09+ch10 | — | — |
 | M21 人格引擎 | ch16-alive-agent + ch14-prompts | context.ts | — |
 | M22–M27 伙伴类 | ch16+ch18+ch19+ch20（Alice 特有章节）| — | — |
 
-Alice 方法论路径：`_reference/framework-harness/repos/alice-methodology/chapters/`
-CC sourcemap 路径：`_reference/framework-harness/repos/claude-code-sourcemap-main/.../restored-src/src/`
-feiche 源码路径：`_reference/feiche/feiche/`（feiche-agents / feiche-server / feiche-env / feiche-sandbox）
-feiche spec 路径：`_reference/framework-harness/repos/wps-cowork/vibe/spec/`（设计文档，如 concurrency-queue-design.md）
+### 路径速查
+
+| 来源 | 路径 | 看什么 |
+|------|------|--------|
+| Alice 方法论 | `_reference/framework-harness/repos/alice-methodology/chapters/` | 设计理念（21 章） |
+| Alice 源码 | `_reference/framework-harness/repos/alice-source/` | 解包格式化 JS（main-index / main-chunks） |
+| Alice 源码（完整解包） | `D:\alice-extracted\out\`（本机） | 完整 main/ + renderer/，repo 内副本不够时用 |
+| CC 源码 | `_reference/framework-harness/repos/claude-code-sourcemap-main/.../restored-src/src/` | 生产级 TS |
+| learning-claude-code | `_reference/learning-claude-code-master/` | CC 机制导读（如 Ch.06 task-system） |
+| feiche 源码 | `_reference/feiche/feiche/` | feiche-agents / server / env / sandbox |
+| feiche spec | `_reference/framework-harness/repos/wps-cowork/vibe/spec/` | 设计文档（如 concurrency-queue-design.md），**不是** feiche 本体 |
