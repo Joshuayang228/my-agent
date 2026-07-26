@@ -21,14 +21,14 @@
 
 ### 已写章节的增量补洞（详见 skill「增量补洞索引」）
 
-- [ ] **M13** — SSE UI + 类型同步；断线重连；Schema 保真；Elicitation/Resources；工具名字符集规范化
-- [ ] **M12 C4** — 确认对话框串行队列（并发确认会覆盖 UI）
-- [ ] **M04 工具** — 元数据函数化 / 并发数上限 / 工具别名
-- [ ] **M07 压缩** — G2 L2 去重；G5 image 剥离；G8 prompt cache；G9 内部压缩回调；G13 token 估算
-- [ ] **M08 记忆** — G6 语义去重
-- [ ] **M09 后台任务** — 前后台 token 分离；断线重连；长任务断点续接
-- [ ] **M14 可观测** — 日志脱敏；DevPanel 树状调用链；Observer 接口化
-- [ ] **M18 Eval** — B 类真实 LLM + LLM-as-Judge；pass^k；Baseline diff
+- [x] ~~**M13** SSE UI + 工具名规范化 + 断线重连 + Schema 保真 + Elicitation/Resources~~ — 2026-07-26
+- [x] ~~**M12 C4** 确认对话框串行队列~~ — 2026-07-26
+- [x] ~~**M04 工具** — 元数据函数化 / 工具别名 / 并发上限~~ — 2026-07-26
+- [x] ~~**M07** G5/G13 + G2 连续 tool 去重 + G8 system 前缀 + G9 onCompact~~ — 2026-07-26
+- [x] ~~**M08 记忆** — G6 语义去重~~ — 2026-07-26
+- [x] ~~**M09 后台任务** — token 前后台分离；task:sync；checkpoint 列~~ — 2026-07-26
+- [x] ~~**M14** 日志脱敏 + DevPanel 树 + Observer 接口化~~ — 2026-07-26
+- [x] ~~**M18 Eval** — B01 + Judge + pass^k + Baseline diff~~ — 2026-07-26
 - [ ] **M19 多 Agent** — Swarm 模式
 - [ ] **M20 自进化** — G2 自动改进 / G3 代码级自进化 / G4 主动提案 / G5 撤销栈
 - [ ] **M21 人格** — G3 MUTABLE 动态演化（P0）；G5 具名角色 Character Bible
@@ -37,12 +37,12 @@
 
 - [x] ~~M10 shell 权限统一 + loadRules 接线~~ — 2026-07-26 已做
 - [ ] **权限规则可视化编辑器** — 当前设置页为 JSON textarea
-- [ ] **M17 G1** — `agent-loop.test` 等存量单测迁 `_streamChatOverride`（少用 `vi.mock(llm)`）
-- [ ] **M17 G2** — LLM 适配层 SSE fixture / replay（参考 aisdk-testing-design）
-- [ ] **M17 G3** — 可选真对话 E2E（无 `TEST_LLM_API_KEY` 则 skip）+ 与 skill 规范对齐
-- [ ] **M17 G4** — IPC handler 可测性 / 单元测（与 M12 协同）
+- [x] ~~**M17 G1** `agent-loop` 迁 `_streamChatOverride`~~ — 2026-07-26
+- [x] ~~**M17 G2** — LLM SSE fixture / replay~~ — 2026-07-26
+- [x] ~~**M17 G3** — 可选真对话 E2E（无 `TEST_LLM_API_KEY` 则 skip）~~ — 2026-07-26
+- [x] ~~**M17 G4** — IPC 可测纯逻辑单测~~ — 2026-07-26
 - [ ] **Playground** — 免上下文快速测试（查阅型）
-- [ ] **会话 Runtime 中心化** — UI 不再承担会话读写
+- [x] ~~**会话 Runtime 中心化** — chat:send 只传本轮用户消息~~ — 2026-07-26
 - [ ] **具名角色 / 子 Agent 人设库 / 活人感** — 差异化特色
 
 ---
@@ -53,8 +53,8 @@
 
 ### 可观测性（灵犀参考）
 
-- [ ] **Observer 接口抽象** — 把 tracer 埋点从 loop.ts 里抽成 Observer 接口（`OnLLMStart/End`、`OnToolStart/End`），监控代码和业务代码解耦。来源：灵犀 `observability/observer.go`
-- [ ] **日志脱敏** — 落盘日志加 API key / token 过滤。来源：灵犀 `otel_observer.go` 的 `marshalMessagesWithSelectiveSanitize`
+- [x] ~~**Observer 接口抽象**~~ — 2026-07-26 已做（`electron/main/utils/observer.ts`）
+- [x] ~~**日志脱敏**~~ — 已有 sanitize；2026-07-26 勾掉重复项
 - [ ] **Context 传播 identity** — `sessionId` / `userId` 自动注入 span attributes，不用手动传参。来源：灵犀 `observability/context.go`
 - [ ] **异步 span 链接** — 后台任务（标题生成/画像提取/向量索引）创建 linked span，不影响主 trace 但可追溯。来源：灵犀 `context.go` 的 `StartLinkedAsyncSpan`
 
@@ -66,5 +66,5 @@
 
 ### 架构参考
 
-- [ ] **CompositeObserver 组合模式** — 多个 Observer（追踪/计费/事件上报）组合扇出，Start 正序 End 逆序。来源：灵犀 `observability/composite_observer.go`
+- [x] ~~**CompositeObserver 组合模式**~~ — 2026-07-26 已做（`observer.ts` CompositeObserver）
 - [ ] **Callback 组件化** — reasoning/content/tool 三种 UI 组件各有独立 Start/Progress/Complete 生命周期。来源：灵犀 `feiche-agents/cc/callback.go`

@@ -20,6 +20,17 @@ export function registerTasksIPC(): void {
     return tasks
   })
 
+  // M09：渲染进程重挂后主动对齐（活跃 + 未通知终态）
+  ipcMain.handle('task:sync', (_event, sessionId?: string) => {
+    const snapshot = taskQueue.syncForRenderer(sessionId)
+    log.debug('task:sync', {
+      sessionId,
+      active: snapshot.active.length,
+      pendingNotify: snapshot.pendingNotify.length,
+    })
+    return snapshot
+  })
+
   // 取消 pending 任务
   ipcMain.handle('task:cancel', (_event, taskId: string) => {
     return taskQueue.cancel(taskId)

@@ -96,12 +96,13 @@ function App() {
   const [currentProject, setCurrentProject] = useState<{ path: string; name: string } | null>(null)
   const [recentProjects, setRecentProjects] = useState<{ path: string; name: string }[]>([])
   const [projectMenuOpen, setProjectMenuOpen] = useState(false)
-  const [confirmDialog, setConfirmDialog] = useState<{
-    visible: boolean
+  /** 确认请求串行队列（M12-C4）：并发 tool_confirm 不得互相覆盖 */
+  const [confirmQueue, setConfirmQueue] = useState<Array<{
     requestId: string
     name: string
     args: Record<string, unknown>
-  } | null>(null)
+  }>>([])
+  const confirmDialog = confirmQueue[0] ?? null
   const [currentPersonaName, setCurrentPersonaName] = useState('温暖伙伴')
   const [thinking, setThinking] = useState<ThinkingChunk[]>([])
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
@@ -149,20 +150,55 @@ function App() {
     { label: 'DeepSeek V4 Flash', baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash' },
   ]
 
-  // ── M11：后台任务生命周期事件订阅 ──
+  // ── M13：MCP Elicitation（服务端要补充信息）──
+  useEffect(() => {
+    if (!window.electronAPI?.mcp?.onElicitRequest) return
+    return window.electronAPI.mcp.onElicitRequest((data) => {
+      const answer = window.prompt(
+        `[MCP ${data.serverId}] ${data.message}\n（可填 JSON 对象；取消则拒绝）`,
+        '{}',
+      )
+      if (answer == null) {
+        window.electronAPI.mcp.elicitResponse(data.requestId, null)
+        return
+      }
+      try {
+        const parsed = JSON.parse(answer) as Record<string, unknown>
+        window.electronAPI.mcp.elicitResponse(data.requestId, parsed)
+      } catch {
+        window.electronAPI.mcp.elicitResponse(data.requestId, { value: answer })
+      }
+    })
+  }, [])
+
+  // ── M11：后台任务生命周期事件订阅 + M09 断线重连 sync ──
   useEffect(() => {
     if (!window.electronAPI?.tasks) return
+
+    const applyTaskToast = (task: { name: string }, kind: 'completed' | 'failed') => {
+      if (kind === 'completed' && task.name === 'profile-extract') {
+        toast('已更新对你的了解 🧠', 'info')
+      } else if (kind === 'failed') {
+        toast(`后台任务失败（${task.name}），学习记录可能不完整`, 'warning')
+      }
+    }
+
+    void window.electronAPI.tasks.sync().then((snap) => {
+      setActiveBgTaskCount(snap.active.length)
+      for (const t of snap.pendingNotify) {
+        applyTaskToast(t, t.status === 'failed' ? 'failed' : 'completed')
+      }
+    }).catch(() => {})
+
     const cleanup = window.electronAPI.tasks.onEvent((ev) => {
       if (ev.type === 'task:started') {
         setActiveBgTaskCount(n => n + 1)
       } else if (ev.type === 'task:completed') {
         setActiveBgTaskCount(n => Math.max(0, n - 1))
-        if (ev.task.name === 'profile-extract') {
-          toast('已更新对你的了解 🧠', 'info')
-        }
+        applyTaskToast(ev.task, 'completed')
       } else if (ev.type === 'task:failed') {
         setActiveBgTaskCount(n => Math.max(0, n - 1))
-        toast(`后台任务失败（${ev.task.name}），学习记录可能不完整`, 'warning')
+        applyTaskToast(ev.task, 'failed')
       }
     })
     return cleanup
@@ -521,8 +557,8 @@ function App() {
       images: pendingImages.length > 0 ? [...pendingImages] : undefined,
     }
 
-    const updatedMessages = [...messages, userMsg]
-    setMessages(updatedMessages)
+    // 乐观更新 UI；真相源在主进程 session-store（会话 Runtime 中心化）
+    setMessages(prev => [...prev, userMsg])
     setInput('')
     setPendingImages([])
     streamingSessionRef.current = sid
@@ -541,15 +577,21 @@ function App() {
         streamingSessionRef.current = null
         setBgStreamingSessionId(null)
         loadSessions()
+        // 与主进程会话对齐，避免本地流式状态与库不一致
+        void window.electronAPI.session.get(sid).then((session) => {
+          if (session && streamingSessionRef.current === null) {
+            setMessages(session.messages)
+          }
+        })
       }
     })
 
     const cleanupConfirm = window.electronAPI.chat.onConfirmRequest((data) => {
-      setConfirmDialog({ ...data, visible: true })
+      setConfirmQueue(q => [...q, { requestId: data.requestId, name: data.name, args: data.args }])
     })
 
     try {
-      await window.electronAPI.chat.send(sid, updatedMessages)
+      await window.electronAPI.chat.send(sid, userMsg)
     } finally {
       cleanup()
       cleanupConfirm()
@@ -1579,11 +1621,18 @@ function App() {
 
       {/* Memory 和 Skills 已改为主区域 tab 视图，不再使用侧推面板 */}
 
-      {/* 确认对话框 */}
-      {confirmDialog?.visible && (
+      {/* 确认对话框（串行队列：一次只展示队首，应答后出队） */}
+      {confirmDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-lg border p-5 shadow-2xl" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
-            <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--warning)' }}><AlertTriangle size={14} /> 操作确认</h3>
+            <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--warning)' }}>
+              <AlertTriangle size={14} /> 操作确认
+              {confirmQueue.length > 1 && (
+                <span className="ml-auto text-[11px] font-normal" style={{ color: 'var(--text-muted)' }}>
+                  队列 {confirmQueue.length}
+                </span>
+              )}
+            </h3>
             <p className="mb-3 text-[13px]" style={{ color: 'var(--text-secondary)' }}>AI 请求执行以下操作：</p>
             <div className="mb-4 rounded-md border px-3 py-2" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
               <div className="font-mono text-[13px]" style={{ color: 'var(--accent)' }}>{confirmDialog.name}</div>
@@ -1593,12 +1642,18 @@ function App() {
             </div>
             <div className="flex justify-end gap-2">
               <button
-                onClick={() => { window.electronAPI.chat.confirmResponse(confirmDialog.requestId, false); setConfirmDialog(null) }}
+                onClick={() => {
+                  window.electronAPI.chat.confirmResponse(confirmDialog.requestId, false)
+                  setConfirmQueue(q => q.slice(1))
+                }}
                 className="rounded-md border px-3 py-1.5 text-[13px] transition"
                 style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
               >拒绝</button>
               <button
-                onClick={() => { window.electronAPI.chat.confirmResponse(confirmDialog.requestId, true); setConfirmDialog(null) }}
+                onClick={() => {
+                  window.electronAPI.chat.confirmResponse(confirmDialog.requestId, true)
+                  setConfirmQueue(q => q.slice(1))
+                }}
                 className="rounded-md px-3 py-1.5 text-[13px] font-medium text-white transition"
                 style={{ background: 'var(--warning)' }}
               >允许执行</button>

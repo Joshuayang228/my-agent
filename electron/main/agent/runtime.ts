@@ -84,9 +84,13 @@ class AgentRuntime {
    * 主入口 — 启动会话的 Agent 循环。
    * 返回 AsyncGenerator 让 IPC 层消费事件并转发到渲染进程。
    */
+  /**
+   * 会话中心化入口：只接收本轮用户消息，历史从 session-store 加载。
+   * UI 不再作为会话真相源（M13/架构：会话 Runtime 中心化）。
+   */
   async *chat(
     sessionId: string,
-    messages: ChatMessage[],
+    userMessage: ChatMessage,
     toolRegistry: ToolRegistry,
     confirmTool?: (name: string, args: Record<string, unknown>) => Promise<boolean>,
   ): AsyncGenerator<AgentStreamEvent & { sessionId: string }> {
@@ -119,10 +123,15 @@ class AgentRuntime {
 
     setTaskPlanSessionId(sessionId)
 
-    const lastUserMsg = messages[messages.length - 1]
-    if (lastUserMsg?.role === 'user') {
-      await store.saveMessage(sessionId, lastUserMsg)
+    // 先落盘用户消息，再从 DB 组装完整历史（避免 UI 本地数组与库不一致）
+    if (userMessage.role === 'user') {
+      await store.saveMessage(sessionId, userMessage)
     }
+    const session = await store.getSession(sessionId)
+    const messages = session?.messages ?? [userMessage]
+    const lastUserMsg = userMessage.role === 'user'
+      ? userMessage
+      : messages.filter(m => m.role === 'user').at(-1)
     await store.autoTitle(sessionId)
 
     let assistantContent = ''
@@ -359,11 +368,18 @@ class AgentRuntime {
    * 创建临时会话，执行 Agent Loop，收集结果文本并返回。
    */
   async runHeadless(prompt: string, taskName?: string): Promise<string> {
-    const sessionId = `headless_${Date.now()}`
     const label = taskName || 'headless'
+    const session = await store.createSession()
+    const sessionId = session.id
     log.info(`Headless run starting: ${label}`, { sessionId })
 
-    const userMsg: ChatMessage = { role: 'user', content: prompt }
+    const userMsg: ChatMessage = {
+      id: `headless-user-${Date.now()}`,
+      role: 'user',
+      content: prompt,
+      timestamp: Date.now(),
+    }
+
     const toolRegistry = new ToolRegistry()
     const { builtinTools } = await import('../tools/builtins/index')
     for (const tool of builtinTools) {
@@ -386,7 +402,7 @@ class AgentRuntime {
     }
 
     try {
-      for await (const event of this.chat(sessionId, [userMsg], toolRegistry, headlessConfirm)) {
+      for await (const event of this.chat(sessionId, userMsg, toolRegistry, headlessConfirm)) {
         if (event.type === 'text') resultText += event.content
         if (event.type === 'error') {
           log.error(`Headless error: ${label}`, { message: (event as Record<string, unknown>).message })

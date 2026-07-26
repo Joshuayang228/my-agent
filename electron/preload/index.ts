@@ -54,12 +54,40 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   mcp: {
-    connect: (config: { id: string; name: string; command: string; args: string[]; env?: Record<string, string>; enabled: boolean }) =>
-      ipcRenderer.invoke('mcp:connect', config),
+    connect: (config: {
+      id: string
+      name: string
+      transport?: 'stdio' | 'sse'
+      command: string
+      args: string[]
+      env?: Record<string, string>
+      url?: string
+      enabled: boolean
+    }) => ipcRenderer.invoke('mcp:connect', config),
     disconnect: (serverId: string) => ipcRenderer.invoke('mcp:disconnect', serverId),
-    status: (): Promise<Array<{ id: string; name: string; status: string; toolCount: number; error?: string }>> =>
+    status: (): Promise<Array<{ id: string; name: string; status: string; toolCount: number; resourceCount?: number; error?: string }>> =>
       ipcRenderer.invoke('mcp:status'),
     listTools: (serverId?: string) => ipcRenderer.invoke('mcp:list-tools', serverId),
+    listResources: (serverId?: string) => ipcRenderer.invoke('mcp:list-resources', serverId),
+    readResource: (serverId: string, uri: string) =>
+      ipcRenderer.invoke('mcp:read-resource', serverId, uri),
+    onElicitRequest: (
+      callback: (data: {
+        requestId: string
+        serverId: string
+        message: string
+        schema: Record<string, unknown>
+      }) => void,
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        data: { requestId: string; serverId: string; message: string; schema: Record<string, unknown> },
+      ) => callback(data)
+      ipcRenderer.on('mcp:elicit-request', handler)
+      return () => ipcRenderer.off('mcp:elicit-request', handler)
+    },
+    elicitResponse: (requestId: string, values: Record<string, unknown> | null) =>
+      ipcRenderer.send(`mcp:elicit-response:${requestId}`, values),
   },
 
   skills: {
@@ -96,6 +124,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     systemPrompt: () => ipcRenderer.invoke('debug:system-prompt'),
     tools: () => ipcRenderer.invoke('debug:tools'),
     systemInfo: () => ipcRenderer.invoke('debug:system-info'),
+    traces: () => ipcRenderer.invoke('debug:traces'),
   },
 
   rag: {
@@ -140,8 +169,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   chat: {
-    send: (sessionId: string, messages: ChatMessage[]) =>
-      ipcRenderer.invoke('chat:send', sessionId, messages),
+    /** 只传本轮用户消息；完整历史由主进程 session-store 加载 */
+    send: (sessionId: string, userMessage: ChatMessage) =>
+      ipcRenderer.invoke('chat:send', sessionId, userMessage),
     abort: (sessionId?: string) => ipcRenderer.invoke('chat:abort', sessionId),
     onEvent: (callback: (event: AgentStreamEvent) => void) => {
       const handler = (_e: Electron.IpcRendererEvent, ev: AgentStreamEvent) => callback(ev)
@@ -159,6 +189,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   tasks: {
     list: (sessionId?: string) => ipcRenderer.invoke('task:list', sessionId),
+    sync: (sessionId?: string) => ipcRenderer.invoke('task:sync', sessionId),
     cancel: (taskId: string) => ipcRenderer.invoke('task:cancel', taskId),
     onEvent: (callback: (event: TaskLifecycleEvent) => void) => {
       const handler = (_e: Electron.IpcRendererEvent, ev: TaskLifecycleEvent) => callback(ev)

@@ -2,7 +2,7 @@
  * MCP → ToolRegistry 桥接层
  *
  * 将 MCP Server 发现的工具转换为 ToolDefinition 并注册到 ToolRegistry。
- * 使用 `mcp:server-id:tool-name` 命名空间避免冲突。
+ * 使用 `mcp__serverId__toolName` 命名空间（Provider 安全字符集）。
  */
 
 import { ToolRegistry } from '../tools/registry'
@@ -25,15 +25,33 @@ function truncateDescription(desc: string): string {
   return desc.slice(0, MAX_TOOL_DESCRIPTION_LENGTH) + '…[description truncated]'
 }
 
+/**
+ * 规范化 MCP 标识段，满足 OpenAI function name 字符集（[a-zA-Z0-9_-]）。
+ * 内部仍用 `__` 分隔 server / tool，避免冒号被部分 Provider 拒绝。
+ */
+export function normalizeMcpNameSegment(raw: string): string {
+  const cleaned = raw.replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+  return cleaned || 'unnamed'
+}
+
+/** LLM / Registry 可见全名：mcp__{serverId}__{toolName} */
 export function mcpToolFullName(serverId: string, toolName: string): string {
-  return `${MCP_TOOL_PREFIX}:${serverId}:${toolName}`
+  return `${MCP_TOOL_PREFIX}__${normalizeMcpNameSegment(serverId)}__${normalizeMcpNameSegment(toolName)}`
 }
 
 export function isMcpTool(name: string): boolean {
-  return name.startsWith(`${MCP_TOOL_PREFIX}:`)
+  return name.startsWith(`${MCP_TOOL_PREFIX}__`) || name.startsWith(`${MCP_TOOL_PREFIX}:`)
 }
 
 export function parseMcpToolName(fullName: string): { serverId: string; toolName: string } | null {
+  // 新格式 mcp__server__tool（tool 段可含额外 __）
+  if (fullName.startsWith(`${MCP_TOOL_PREFIX}__`)) {
+    const rest = fullName.slice(MCP_TOOL_PREFIX.length + 2)
+    const sep = rest.indexOf('__')
+    if (sep <= 0) return null
+    return { serverId: rest.slice(0, sep), toolName: rest.slice(sep + 2) }
+  }
+  // 兼容旧冒号格式
   const parts = fullName.split(':')
   if (parts.length < 3 || parts[0] !== MCP_TOOL_PREFIX) return null
   return { serverId: parts[1], toolName: parts.slice(2).join(':') }
@@ -69,6 +87,12 @@ export function mcpToolToDefinition(tool: McpTool): ToolDefinition {
     type?: string
     properties?: Record<string, any>
     required?: string[]
+    $defs?: Record<string, unknown>
+    definitions?: Record<string, unknown>
+    additionalProperties?: boolean | Record<string, unknown>
+    anyOf?: unknown[]
+    oneOf?: unknown[]
+    allOf?: unknown[]
   }
 
   return {
@@ -78,7 +102,16 @@ export function mcpToolToDefinition(tool: McpTool): ToolDefinition {
       type: 'object',
       properties: schema.properties ?? {},
       required: schema.required,
-    },
+      // Schema 保真：保留 JSON Schema 组合/定义字段，避免复杂 MCP 工具丢约束
+      ...(schema.$defs ? { $defs: schema.$defs } : {}),
+      ...(schema.definitions ? { definitions: schema.definitions } : {}),
+      ...(schema.additionalProperties !== undefined
+        ? { additionalProperties: schema.additionalProperties }
+        : {}),
+      ...(schema.anyOf ? { anyOf: schema.anyOf } : {}),
+      ...(schema.oneOf ? { oneOf: schema.oneOf } : {}),
+      ...(schema.allOf ? { allOf: schema.allOf } : {}),
+    } as ToolDefinition['parameters'],
     metadata: { ...DEFAULT_MCP_TOOL_METADATA },
     execute: async (args: Record<string, unknown>) => {
       return mcpManager.callTool(tool.serverId, tool.name, args)
@@ -122,8 +155,14 @@ export function removeMcpToolsFromRegistry(
   registry: ToolRegistry,
   serverId: string,
 ): void {
-  const prefix = `${MCP_TOOL_PREFIX}:${serverId}:`
-  const toRemove = registry.getAll().filter(t => t.name.startsWith(prefix))
+  const normId = normalizeMcpNameSegment(serverId)
+  const prefixes = [
+    `${MCP_TOOL_PREFIX}__${normId}__`,
+    `${MCP_TOOL_PREFIX}:${serverId}:`, // 兼容旧名
+  ]
+  const toRemove = registry.getAll().filter(t =>
+    prefixes.some(p => t.name.startsWith(p)),
+  )
   for (const tool of toRemove) {
     registry.unregister(tool.name)
   }

@@ -31,8 +31,40 @@ async function ensureTable(): Promise<void> {
   `)
 }
 
+/** 规范化文本供模糊去重（小写、去标点空白） */
+export function normalizeMemoryText(text: string): string {
+  return text.toLowerCase().replace(/[\s\p{P}]+/gu, '')
+}
+
+/** Jaccard 相似度（字符 bigram）；≥ threshold 视为语义近重复（G6） */
+export function memoryTextSimilarity(a: string, b: string): number {
+  const na = normalizeMemoryText(a)
+  const nb = normalizeMemoryText(b)
+  if (!na || !nb) return 0
+  if (na === nb) return 1
+  const grams = (s: string) => {
+    const set = new Set<string>()
+    for (let i = 0; i < s.length - 1; i++) set.add(s.slice(i, i + 2))
+    if (s.length === 1) set.add(s)
+    return set
+  }
+  const A = grams(na)
+  const B = grams(nb)
+  let inter = 0
+  for (const g of A) if (B.has(g)) inter++
+  const union = A.size + B.size - inter
+  return union === 0 ? 0 : inter / union
+}
+
 export async function addMemory(category: MemoryCategory, content: string): Promise<MemoryEntry> {
   await ensureTable()
+  const existing = await listMemories(category)
+  const dup = existing.find(m => memoryTextSimilarity(m.content, content) >= 0.85)
+  if (dup) {
+    log.info('Memory semantic dedup: skip insert', { existingId: dup.id, category })
+    return dup
+  }
+
   const db = await getDatabase()
   const now = Date.now()
   const id = `mem-${now}-${Math.random().toString(36).slice(2, 8)}`

@@ -60,11 +60,35 @@ declare global {
         getCurrent: () => Promise<{ id: string; name: string; description: string }>
       }
       mcp: {
-        connect: (config: { id: string; name: string; command: string; args: string[]; env?: Record<string, string>; enabled: boolean }) =>
-          Promise<{ success: boolean; toolCount?: number; error?: string }>
+        connect: (config: {
+          id: string
+          name: string
+          transport?: 'stdio' | 'sse'
+          command: string
+          args: string[]
+          env?: Record<string, string>
+          url?: string
+          enabled: boolean
+        }) => Promise<{ success: boolean; toolCount?: number; error?: string }>
         disconnect: (serverId: string) => Promise<{ success: boolean }>
-        status: () => Promise<Array<{ id: string; name: string; status: string; toolCount: number; error?: string }>>
+        status: () => Promise<Array<{ id: string; name: string; status: string; toolCount: number; resourceCount?: number; error?: string }>>
         listTools: (serverId?: string) => Promise<Array<{ serverId: string; serverName: string; name: string; description: string }>>
+        listResources: (serverId?: string) => Promise<Array<{
+          serverId: string
+          serverName: string
+          uri: string
+          name: string
+          description?: string
+          mimeType?: string
+        }>>
+        readResource: (serverId: string, uri: string) => Promise<{ success: boolean; content?: string; error?: string }>
+        onElicitRequest: (callback: (data: {
+          requestId: string
+          serverId: string
+          message: string
+          schema: Record<string, unknown>
+        }) => void) => () => void
+        elicitResponse: (requestId: string, values: Record<string, unknown> | null) => void
       }
       skills: {
         list: () => Promise<Array<{
@@ -123,9 +147,26 @@ declare global {
           mcp: Array<{ id: string; name: string; status: string; toolCount: number; error?: string }>
           toolCount: number
         }>
+        traces: () => Promise<{
+          spans: Array<{
+            id: string
+            name: string
+            type: string
+            caller: string
+            parentId?: string
+            startTime: number
+            endTime?: number
+            duration?: number
+            status: string
+            attributes: Record<string, unknown>
+            error?: string
+          }>
+          callerStats: Record<string, unknown>
+          dailyTokenUsage: unknown
+        }>
       }
       chat: {
-        send: (sessionId: string, messages: ChatMessage[]) => Promise<void>
+        send: (sessionId: string, userMessage: ChatMessage) => Promise<void>
         abort: (sessionId?: string) => Promise<void>
         onEvent: (callback: (event: AgentStreamEvent) => void) => () => void
         onConfirmRequest: (callback: (data: { requestId: string; name: string; args: Record<string, unknown> }) => void) => () => void
@@ -133,6 +174,10 @@ declare global {
       }
       tasks: {
         list: (sessionId?: string) => Promise<import('./shared/types').BackgroundTaskInfo[]>
+        sync: (sessionId?: string) => Promise<{
+          active: import('./shared/types').BackgroundTaskInfo[]
+          pendingNotify: import('./shared/types').BackgroundTaskInfo[]
+        }>
         cancel: (taskId: string) => Promise<boolean>
         onEvent: (callback: (event: import('./shared/types').TaskLifecycleEvent) => void) => () => void
       }

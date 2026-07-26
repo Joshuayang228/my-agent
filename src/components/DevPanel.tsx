@@ -1,7 +1,21 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import { FileText, Wrench, BarChart3, ClipboardList, Zap, RotateCcw, X, CheckCircle, XCircle, ChevronRight } from 'lucide-react'
 
-type Tab = 'prompt' | 'tools' | 'system' | 'events'
+type Tab = 'prompt' | 'tools' | 'system' | 'events' | 'traces'
+
+interface TraceSpanInfo {
+  id: string
+  name: string
+  type: string
+  caller: string
+  parentId?: string
+  startTime: number
+  endTime?: number
+  duration?: number
+  status: string
+  attributes: Record<string, unknown>
+  error?: string
+}
 
 interface PromptInfo {
   full: string
@@ -49,6 +63,7 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'prompt', label: 'System Prompt', icon: <FileText size={12} /> },
   { id: 'tools', label: '工具注册表', icon: <Wrench size={12} /> },
   { id: 'system', label: '系统状态', icon: <BarChart3 size={12} /> },
+  { id: 'traces', label: '调用链', icon: <Zap size={12} /> },
   { id: 'events', label: '事件日志', icon: <ClipboardList size={12} /> },
 ]
 
@@ -64,6 +79,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
   const [expandedTool, setExpandedTool] = useState<string | null>(null)
   const [promptLayer, setPromptLayer] = useState<'full' | 'l1' | 'l2' | 'l3' | 'l4'>('full')
+  const [spans, setSpans] = useState<TraceSpanInfo[]>([])
 
   const refresh = useCallback(async () => {
     if (!window.electronAPI?.debug) return
@@ -77,6 +93,9 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
       } else if (tab === 'system') {
         const info = await window.electronAPI.debug.systemInfo()
         setSystemInfo(info)
+      } else if (tab === 'traces') {
+        const data = await window.electronAPI.debug.traces()
+        setSpans(data.spans ?? [])
       }
     } catch { /* not in Electron */ }
   }, [tab])
@@ -131,6 +150,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
           {tab === 'prompt' && <PromptTab info={promptInfo} layer={promptLayer} setLayer={setPromptLayer} />}
           {tab === 'tools' && <ToolsTab tools={tools} expanded={expandedTool} setExpanded={setExpandedTool} />}
           {tab === 'system' && <SystemTab info={systemInfo} />}
+          {tab === 'traces' && <TracesTab spans={spans} />}
           {tab === 'events' && <EventsTab events={eventLog} />}
         </div>
     </div>
@@ -344,6 +364,65 @@ function StatCard({ label, value, color }: { label: string; value: string; color
     <div className={`rounded-xl border p-3 text-center ${colorMap[color] || colorMap.cyan}`}>
       <div className="text-lg font-bold">{value}</div>
       <div className="text-[10px] opacity-70">{label}</div>
+    </div>
+  )
+}
+
+/** 将扁平 spans 按 parentId 建成树并缩进渲染 */
+function TracesTab({ spans }: { spans: TraceSpanInfo[] }) {
+  if (spans.length === 0) {
+    return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>暂无 Span。发送消息后会在这里看到调用链树。</div>
+  }
+
+  const byParent = new Map<string | undefined, TraceSpanInfo[]>()
+  for (const s of spans) {
+    const key = s.parentId
+    if (!byParent.has(key)) byParent.set(key, [])
+    byParent.get(key)!.push(s)
+  }
+
+  const roots = [
+    ...(byParent.get(undefined) ?? []),
+    // 孤立节点：parent 不在当前窗口内
+    ...spans.filter(s => s.parentId && !spans.some(p => p.id === s.parentId)),
+  ]
+  // 去重（孤立可能已在 roots）
+  const seen = new Set<string>()
+  const uniqueRoots = roots.filter(r => {
+    if (seen.has(r.id)) return false
+    seen.add(r.id)
+    return true
+  })
+
+  function renderNode(span: TraceSpanInfo, depth: number): ReactNode {
+    const children = (byParent.get(span.id) ?? []).filter(c => c.id !== span.id)
+    return (
+      <div key={span.id}>
+        <div
+          className="flex items-center gap-2 rounded px-2 py-1 font-mono text-[11px]"
+          style={{ paddingLeft: 8 + depth * 14, color: 'var(--text-secondary)' }}
+        >
+          <span className={span.status === 'error' ? 'text-red-400' : span.status === 'running' ? 'text-amber-400' : 'text-emerald-400'}>
+            {span.status === 'ok' ? '●' : span.status === 'error' ? '✗' : '○'}
+          </span>
+          <span style={{ color: 'var(--text-primary)' }}>{span.name}</span>
+          <span style={{ color: 'var(--text-muted)' }}>{span.type}/{span.caller}</span>
+          <span style={{ color: 'var(--text-muted)' }}>
+            {span.duration !== undefined ? `${span.duration}ms` : '…'}
+          </span>
+          {span.error && <span className="truncate text-red-400">{span.error}</span>}
+        </div>
+        {children.map(c => renderNode(c, depth + 1))}
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="mb-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+        最近 {spans.length} 个 Span（树状，按 parentId）
+      </div>
+      <div className="space-y-0.5">{uniqueRoots.map(r => renderNode(r, 0))}</div>
     </div>
   )
 }

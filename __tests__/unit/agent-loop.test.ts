@@ -9,23 +9,7 @@ import type {
   LLMConfig,
 } from '../../src/shared/types'
 
-// Mock streamChat — 我们不实际调用 LLM
-vi.mock('../../electron/main/llm/index', () => ({
-  streamChat: vi.fn(),
-  // loop 用 `err instanceof LLMError` 判断 retry-after，mock 需提供等价类
-  LLMError: class LLMError extends Error {
-    status?: number
-    retryAfterMs?: number
-    constructor(message: string, status?: number, retryAfterMs?: number) {
-      super(message)
-      this.name = 'LLMError'
-      this.status = status
-      this.retryAfterMs = retryAfterMs
-    }
-  },
-}))
-
-// Mock logger to suppress output
+// Mock logger only — LLM 走 _streamChatOverride（M17-G1：少用 vi.mock(llm)）
 vi.mock('../../electron/main/utils/logger', () => ({
   createLogger: () => ({
     info: vi.fn(),
@@ -34,10 +18,6 @@ vi.mock('../../electron/main/utils/logger', () => ({
     debug: vi.fn(),
   }),
 }))
-
-import { streamChat } from '../../electron/main/llm/index'
-
-const mockStreamChat = vi.mocked(streamChat)
 
 const testConfig: LLMConfig = {
   apiKey: 'test-key',
@@ -59,9 +39,7 @@ function echoTool(): ToolDefinition {
   }
 }
 
-/**
- * Helper: create a mock AsyncGenerator that yields text events then returns a result.
- */
+/** 测试用假 stream：yield text，return ChatResult 形态 */
 function makeMockStream(
   textChunks: string[],
   toolCalls: { id: string; name: string; arguments: string }[] = [],
@@ -93,13 +71,12 @@ describe('agentLoop', () => {
   })
 
   it('纯文本回复：产出 text + done 事件', async () => {
-    mockStreamChat.mockReturnValueOnce(makeMockStream(['Hello', ' world']))
-
     const registry = new ToolRegistry()
     const options: AgentLoopOptions = {
       config: testConfig,
       messages: [userMsg('Hi')],
       tools: [],
+      _streamChatOverride: () => makeMockStream(['Hello', ' world']),
     }
 
     const events = await collectEvents(agentLoop(options, registry))
@@ -114,14 +91,7 @@ describe('agentLoop', () => {
   })
 
   it('工具调用：产出 tool_start → tool_end 然后继续循环', async () => {
-    // 第一轮：LLM 返回 tool_call
-    mockStreamChat.mockReturnValueOnce(makeMockStream(
-      [],
-      [{ id: 'tc1', name: 'echo', arguments: '{"text":"ping"}' }],
-    ))
-    // 第二轮：LLM 返回文本
-    mockStreamChat.mockReturnValueOnce(makeMockStream(['pong']))
-
+    let turn = 0
     const registry = new ToolRegistry()
     registry.register(echoTool())
 
@@ -129,6 +99,13 @@ describe('agentLoop', () => {
       config: testConfig,
       messages: [userMsg('echo ping')],
       tools: registry.getAll(),
+      _streamChatOverride: () => {
+        turn++
+        if (turn === 1) {
+          return makeMockStream([], [{ id: 'tc1', name: 'echo', arguments: '{"text":"ping"}' }])
+        }
+        return makeMockStream(['pong'])
+      },
     }
 
     const events = await collectEvents(agentLoop(options, registry))
@@ -154,6 +131,7 @@ describe('agentLoop', () => {
       messages: [userMsg('Hi')],
       tools: [],
       signal: controller.signal,
+      _streamChatOverride: () => makeMockStream(['should not run']),
     }
 
     const events = await collectEvents(agentLoop(options, registry))
@@ -162,15 +140,14 @@ describe('agentLoop', () => {
   })
 
   it('LLM 错误产出 error 事件', async () => {
-    mockStreamChat.mockImplementation(() => {
-      throw new Error('API timeout')
-    })
-
     const registry = new ToolRegistry()
     const options: AgentLoopOptions = {
       config: testConfig,
       messages: [userMsg('Hi')],
       tools: [],
+      _streamChatOverride: () => {
+        throw new Error('API timeout')
+      },
     }
 
     const events = await collectEvents(agentLoop(options, registry))
@@ -189,17 +166,9 @@ describe('agentLoop', () => {
       execute: async () => 'deleted',
     }
 
-    // 第一轮：LLM 要调用破坏性工具
-    mockStreamChat.mockReturnValueOnce(makeMockStream(
-      [],
-      [{ id: 'tc1', name: 'rm', arguments: '{"path":"/tmp/x"}' }],
-    ))
-    // 第二轮：LLM 看到拒绝后正常回复
-    mockStreamChat.mockReturnValueOnce(makeMockStream(['OK, cancelled']))
-
+    let turn = 0
     const registry = new ToolRegistry()
     registry.register(destructiveTool)
-
     const confirmTool = vi.fn().mockResolvedValue(false)
 
     const options: AgentLoopOptions = {
@@ -207,6 +176,13 @@ describe('agentLoop', () => {
       messages: [userMsg('delete /tmp/x')],
       tools: registry.getAll(),
       confirmTool,
+      _streamChatOverride: () => {
+        turn++
+        if (turn === 1) {
+          return makeMockStream([], [{ id: 'tc1', name: 'rm', arguments: '{"path":"/tmp/x"}' }])
+        }
+        return makeMockStream(['OK, cancelled'])
+      },
     }
 
     const events = await collectEvents(agentLoop(options, registry))
@@ -219,10 +195,6 @@ describe('agentLoop', () => {
   })
 
   it('达到 maxIterations 上限时产出 error + done', async () => {
-    // 每轮都返回 tool call，永远不停
-    mockStreamChat.mockImplementation(() =>
-      makeMockStream([], [{ id: `tc-${Date.now()}`, name: 'echo', arguments: '{"text":"loop"}' }]))
-
     const registry = new ToolRegistry()
     registry.register(echoTool())
 
@@ -231,6 +203,8 @@ describe('agentLoop', () => {
       messages: [userMsg('loop forever')],
       tools: registry.getAll(),
       maxIterations: 2,
+      _streamChatOverride: () =>
+        makeMockStream([], [{ id: `tc-${Date.now()}`, name: 'echo', arguments: '{"text":"loop"}' }]),
     }
 
     const events = await collectEvents(agentLoop(options, registry))
@@ -250,14 +224,8 @@ describe('agentLoop', () => {
       execute: async () => 'deleted',
     }
 
-    // 每轮都要调破坏性工具，且用户每轮都拒绝 → 连续拒绝累积
-    mockStreamChat.mockImplementation(() =>
-      makeMockStream([], [{ id: `tc-${Math.random()}`, name: 'rm', arguments: '{"path":"/tmp/x"}' }]))
-
     const registry = new ToolRegistry()
     registry.register(destructiveTool)
-
-    // confirmTool 永远拒绝
     const confirmTool = vi.fn().mockResolvedValue(false)
 
     const options: AgentLoopOptions = {
@@ -265,7 +233,9 @@ describe('agentLoop', () => {
       messages: [userMsg('keep deleting')],
       tools: registry.getAll(),
       confirmTool,
-      maxIterations: 50, // 足够高，确保是熔断而非 max_turns 先触发
+      maxIterations: 50,
+      _streamChatOverride: () =>
+        makeMockStream([], [{ id: `tc-${Math.random()}`, name: 'rm', arguments: '{"path":"/tmp/x"}' }]),
     }
 
     const events = await collectEvents(agentLoop(options, registry))
@@ -280,7 +250,6 @@ describe('agentLoop', () => {
       reason: '连续多次操作被拒绝，已自动切换为全部确认模式。',
     })
 
-    // 连续拒绝阈值是 3，所以应在第 3 轮左右熔断，远早于 maxIterations=50
     expect(confirmTool.mock.calls.length).toBeLessThanOrEqual(4)
   })
 })

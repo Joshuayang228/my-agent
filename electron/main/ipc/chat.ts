@@ -17,7 +17,7 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
     runtime.abort(sessionId)
   })
 
-  ipcMain.handle('chat:send', async (event, sessionId: string, messages: ChatMessage[]) => {
+  ipcMain.handle('chat:send', async (event, sessionId: string, userMessage: ChatMessage) => {
     const emit = (ev: Record<string, unknown>) => {
       event.sender.send('chat:event', { ...ev, sessionId })
     }
@@ -53,7 +53,8 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
     }
 
     try {
-      const stream = runtime.chat(sessionId, messages, toolRegistry, confirmTool)
+      // 会话 Runtime 中心化：只传本轮用户消息，历史由 runtime 从 store 加载
+      const stream = runtime.chat(sessionId, userMessage, toolRegistry, confirmTool)
 
       for await (const ev of stream) {
         emit(ev)
@@ -67,3 +68,10 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
     }
   })
 }
+
+/** 纯函数：confirm 超时默认拒绝（供单测，M17 G4） */
+export function resolveConfirmOnTimeout(): boolean {
+  return false
+}
+
+export { CONFIRM_TIMEOUT_MS }

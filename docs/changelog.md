@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — 工程化 Gap 三批补齐（2026-07-26）
+- **Batch1**：确认对话框串行队列；DevPanel traces；MCP SSE 设置与工具名 `mcp__`；工具并发上限；压缩前 image 剥离 + token 估算；agent-loop 测迁 `_streamChatOverride`。
+- **Batch2**：工具别名 / `resolveMetadata`；记忆语义去重；前后台 token 车道 + `task:sync` + checkpoint；L2 去重/G8/G9 `onCompact`；MCP 退避重连与 Schema 保真；SSE fixture 回放；可选 live LLM E2E；IPC 纯逻辑单测。
+- **Batch3**：Eval B01 + `runPassK` + baseline diff；MCP Elicitation/Resources IPC；`chat:send` 会话 Runtime 中心化；`AgentObserver` 接口（loop LLM 埋点接入）。
+
 ### Changed — MCP 工具元数据改保守默认（2026-07-26）
 - `mcp/bridge.ts`：外部工具默认 `isDestructive: true`、`isConcurrencySafe: false`（auto 下需确认、不并行）；对齐 Alice「权限保守默认」。
 - 新增 `__tests__/unit/mcp-bridge.test.ts`；方法论 `m13-mcp-integration.md` + `-code.md`。

@@ -2,6 +2,8 @@ import type { ToolDefinition, ToolCall, ToolResult, ToolContext } from '../../..
 import { ToolMiddlewarePipeline, createDefaultPipeline, type ToolMiddlewareNext } from './middleware'
 
 const TOOL_TIMEOUT_MS = 30_000
+/** 单批 concurrencySafe 工具最大并行数（M04），防止 Promise.all 打爆资源 */
+const MAX_CONCURRENT_TOOLS = 10
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -12,12 +14,19 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 
 export class ToolRegistry {
   private tools = new Map<string, ToolDefinition>()
+  /** 别名 → 主工具名 */
+  private aliases = new Map<string, string>()
   private pipeline: ToolMiddlewarePipeline
   private executeFn: ToolMiddlewareNext
 
   constructor(pipeline?: ToolMiddlewarePipeline) {
     this.pipeline = pipeline ?? createDefaultPipeline()
     this.executeFn = this.pipeline.build((ctx) => this.rawExecute(ctx))
+  }
+
+  /** 解析主名或别名 → 主工具名 */
+  resolveName(name: string): string {
+    return this.aliases.get(name) ?? name
   }
 
   /** 获取中间件管道（允许外部添加自定义中间件） */
@@ -31,14 +40,22 @@ export class ToolRegistry {
   }
 
   register(tool: ToolDefinition): void {
-    if (this.tools.has(tool.name)) {
+    if (this.tools.has(tool.name) || this.aliases.has(tool.name)) {
       throw new Error(`Tool "${tool.name}" is already registered`)
     }
+    for (const alias of tool.aliases ?? []) {
+      if (this.tools.has(alias) || this.aliases.has(alias)) {
+        throw new Error(`Tool alias "${alias}" conflicts with existing name`)
+      }
+    }
     this.tools.set(tool.name, tool)
+    for (const alias of tool.aliases ?? []) {
+      this.aliases.set(alias, tool.name)
+    }
   }
 
   get(name: string): ToolDefinition | undefined {
-    return this.tools.get(name)
+    return this.tools.get(this.resolveName(name))
   }
 
   getAll(): ToolDefinition[] {
@@ -46,11 +63,17 @@ export class ToolRegistry {
   }
 
   has(name: string): boolean {
-    return this.tools.has(name)
+    return this.tools.has(this.resolveName(name))
   }
 
   unregister(name: string): boolean {
-    return this.tools.delete(name)
+    const canonical = this.resolveName(name)
+    const tool = this.tools.get(canonical)
+    if (!tool) return false
+    for (const alias of tool.aliases ?? []) {
+      this.aliases.delete(alias)
+    }
+    return this.tools.delete(canonical)
   }
 
   /**
@@ -65,15 +88,26 @@ export class ToolRegistry {
       if (safeBatch.length === 0) return
       const batch = safeBatch
       safeBatch = []
-      const batchResults = await Promise.all(
-        batch.map((call) => this.executeSingle(call, toolContext)),
-      )
-      results.push(...batchResults)
+      // 分片并行，避免一次 Promise.all 开过多工具
+      for (let i = 0; i < batch.length; i += MAX_CONCURRENT_TOOLS) {
+        const chunk = batch.slice(i, i + MAX_CONCURRENT_TOOLS)
+        const chunkResults = await Promise.all(
+          chunk.map((call) => this.executeSingle(call, toolContext)),
+        )
+        results.push(...chunkResults)
+      }
     }
 
     for (const call of calls) {
-      const tool = this.tools.get(call.name)
-      const isSafe = tool?.metadata.isConcurrencySafe ?? false
+      const tool = this.get(call.name)
+      let isSafe = tool?.metadata.isConcurrencySafe ?? false
+      if (tool?.resolveMetadata) {
+        try {
+          const args = JSON.parse(call.arguments || '{}') as Record<string, unknown>
+          const dyn = tool.resolveMetadata(args)
+          if (typeof dyn.isConcurrencySafe === 'boolean') isSafe = dyn.isConcurrencySafe
+        } catch { /* 参数非法时按静态元数据 */ }
+      }
 
       if (isSafe) {
         safeBatch.push(call)
@@ -88,7 +122,8 @@ export class ToolRegistry {
   }
 
   private async executeSingle(call: ToolCall, toolContext?: ToolContext): Promise<ToolResult> {
-    const tool = this.tools.get(call.name)
+    const canonical = this.resolveName(call.name)
+    const tool = this.tools.get(canonical)
     if (!tool) {
       return {
         callId: call.id,
@@ -110,7 +145,14 @@ export class ToolRegistry {
       }
     }
 
-    return this.executeFn({ call, tool, args, toolContext })
+    // 元数据函数化：按参数覆盖静态 metadata（权限/并发决策方应读合并后的 tool）
+    const resolved = tool.resolveMetadata?.(args)
+    const effectiveTool: ToolDefinition = resolved
+      ? { ...tool, metadata: { ...tool.metadata, ...resolved } }
+      : tool
+
+    const normalizedCall = call.name === canonical ? call : { ...call, name: canonical }
+    return this.executeFn({ call: normalizedCall, tool: effectiveTool, args, toolContext })
   }
 
   /** 原始执行器 — 中间件链的终点 */

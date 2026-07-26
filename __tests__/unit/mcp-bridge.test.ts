@@ -5,6 +5,7 @@ import {
   parseMcpToolName,
   mcpToolToDefinition,
   DEFAULT_MCP_TOOL_METADATA,
+  normalizeMcpNameSegment,
 } from '../../electron/main/mcp/bridge'
 import type { McpTool } from '../../electron/main/mcp/client'
 
@@ -23,13 +24,23 @@ function makeMcpTool(overrides: Partial<McpTool> = {}): McpTool {
 }
 
 describe('MCP Bridge', () => {
-  it('命名空间 mcp:serverId:toolName', () => {
-    expect(mcpToolFullName('notes', 'search')).toBe('mcp:notes:search')
-    expect(isMcpTool('mcp:notes:search')).toBe(true)
+  it('命名空间 mcp__serverId__toolName（Provider 安全）', () => {
+    expect(mcpToolFullName('notes', 'search')).toBe('mcp__notes__search')
+    expect(isMcpTool('mcp__notes__search')).toBe(true)
+    expect(isMcpTool('mcp:notes:search')).toBe(true) // 旧格式仍识别
     expect(isMcpTool('file_read')).toBe(false)
   })
 
-  it('parseMcpToolName 保留工具名内冒号', () => {
+  it('normalizeMcpNameSegment 去掉非法字符', () => {
+    expect(normalizeMcpNameSegment('my-server.v1')).toBe('my-server_v1')
+    expect(normalizeMcpNameSegment('a:b')).toBe('a_b')
+  })
+
+  it('parseMcpToolName 解析新格式与旧冒号格式', () => {
+    expect(parseMcpToolName('mcp__notes__a__b')).toEqual({
+      serverId: 'notes',
+      toolName: 'a__b',
+    })
     expect(parseMcpToolName('mcp:notes:a:b')).toEqual({
       serverId: 'notes',
       toolName: 'a:b',

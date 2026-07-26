@@ -68,6 +68,14 @@ export function isCompactGuardActive(): boolean {
   return activeQuerySource === 'compact'
 }
 
+export interface CompactCallbackInfo {
+  level: 'L2_MicroCompact' | 'L3_Collapse' | 'L4_AutoCompact' | 'L1_Snip'
+  preTokens: number
+  postTokens: number
+  preMessages: number
+  postMessages: number
+}
+
 export interface ContextManagerOptions {
   maxTokens?: number
   /** API 上一轮返回的实际 promptTokens，比启发式估算更准 */
@@ -76,24 +84,57 @@ export interface ContextManagerOptions {
   llmConfig?: LLMConfig
   /** 调用来源，非 'main' 时跳过 LLM 摘要避免递归 */
   querySource?: QuerySource
+  /** G9：内部压缩观测回调（非用户 Hook） */
+  onCompact?: (info: CompactCallbackInfo) => void
 }
 
 /**
- * 粗略估算消息列表的 token 数量。
- * 混合中英文场景：中文 ~2 chars/token，英文 ~4 chars/token。
- * 取折中值 ~2.5 chars/token + 每条消息固定开销 4 tokens。
+ * 估算消息列表的 token 数量（G13：中英分开启发式）。
+ * 中文 ~1.5 chars/token，ASCII ~4 chars/token；图片按占位计入（真实 vision token 由 API usage 覆盖）。
+ * 每条消息固定开销 4 tokens。API `lastActualPromptTokens` 优先时本函数仅作回退。
  */
 export function estimateTokens(messages: ChatMessage[]): number {
   let total = 0
   for (const msg of messages) {
-    total += Math.ceil(msg.content.length / 2.5) + 4
+    total += estimateTextTokens(msg.content) + 4
+    if (msg.images?.length) {
+      // 粗估：每张图约 1000 tokens（压缩前会先 strip，见 stripImagesForCompression）
+      total += msg.images.length * 1000
+    }
     if (msg.toolCalls) {
       for (const tc of msg.toolCalls) {
-        total += Math.ceil((tc.arguments?.length ?? 0) / 3) + 10
+        total += estimateTextTokens(tc.arguments ?? '') + 10
       }
     }
   }
   return total
+}
+
+function estimateTextTokens(text: string): number {
+  if (!text) return 0
+  let cjk = 0
+  let other = 0
+  for (const ch of text) {
+    // CJK Unified Ideographs + 常见全角标点
+    if (ch.charCodeAt(0) >= 0x4e00 && ch.charCodeAt(0) <= 0x9fff) cjk++
+    else other++
+  }
+  return Math.ceil(cjk / 1.5) + Math.ceil(other / 4)
+}
+
+/**
+ * G5：压缩前剥离多模态图片载荷，只留占位说明。
+ * Vision 大图会严重扭曲 token 预算；压缩管线只关心文本结构。
+ */
+export function stripImagesForCompression(messages: ChatMessage[]): ChatMessage[] {
+  return messages.map(msg => {
+    if (!msg.images?.length) return msg
+    const n = msg.images.length
+    const placeholder = msg.content
+      ? `${msg.content}\n\n[${n} image(s) stripped before compaction]`
+      : `[${n} image(s) stripped before compaction]`
+    return { ...msg, content: placeholder, images: undefined }
+  })
 }
 
 /**
@@ -115,34 +156,55 @@ export async function compressContext(
   // 不同模型窗口差异大，硬编码单一阈值会让大窗口模型过早压缩、小窗口模型压缩不及时。
   const maxTokens = options.maxTokens ?? getEffectiveContextWindow(options.llmConfig?.model)
   const querySource = options.querySource ?? 'main'
-  let current = [...messages]
+  // G5: 压缩管线不携带图片二进制，避免 vision 载荷扭曲预算与摘要
+  let current = stripImagesForCompression(messages)
   let tokens = options.lastActualPromptTokens ?? estimateTokens(current)
   const source = options.lastActualPromptTokens ? 'api' : 'estimate'
 
   // A2: 在任何压缩层运行前快照文件读取状态。L1 Snip 会删掉早期 file_read 轮次，
   // 若等到 L3/L4 再提取就晚了——必须从原始消息捕获。对照 CC preCompactReadFileState。
-  const preCompactFileReads = extractRecentFileReads(messages)
+  const preCompactFileReads = extractRecentFileReads(current)
 
   log.debug('Context check', { tokens, maxTokens, source, messageCount: current.length, querySource })
 
   // ── L1 Snip：删除最早的工具调用轮次 ──
   if (tokens > maxTokens * L1_THRESHOLD) {
     const before = current.length
+    const preTok = tokens
     current = snip(current)
     const after = estimateTokens(current)
     if (before !== current.length) {
       log.info(`L1 Snip: ${before} → ${current.length} messages, ${tokens} → ${after} tokens`)
+      options.onCompact?.({
+        level: 'L1_Snip',
+        preTokens: preTok,
+        postTokens: after,
+        preMessages: before,
+        postMessages: current.length,
+      })
     }
     tokens = after
   }
 
-  // ── L2 MicroCompact：去重相同工具调用 ──
+  // ── L2 MicroCompact：去重相同工具调用（G8：system 首条保持引用稳定以利 prompt cache）──
   if (tokens > maxTokens * L2_THRESHOLD) {
     const before = current.length
+    const preTok = tokens
+    const systemBefore = current[0]
     current = microCompact(current)
+    if (systemBefore?.role === 'system' && current[0] !== systemBefore) {
+      current[0] = systemBefore
+    }
     const after = estimateTokens(current)
     if (before !== current.length) {
       log.info(`L2 MicroCompact: ${before} → ${current.length} messages, ${tokens} → ${after} tokens`)
+      options.onCompact?.({
+        level: 'L2_MicroCompact',
+        preTokens: preTok,
+        postTokens: after,
+        preMessages: before,
+        postMessages: current.length,
+      })
     }
     tokens = after
   }
@@ -150,19 +212,37 @@ export async function compressContext(
   // ── L3 Collapse：保留首尾，中间替换为摘要 ──
   if (tokens > maxTokens * L3_THRESHOLD) {
     const before = current.length
+    const preTok = tokens
     const useLLM = querySource === 'main' && !!options.llmConfig
     current = await collapse(current, maxTokens, useLLM ? options.llmConfig : undefined, preCompactFileReads)
     const after = estimateTokens(current)
     log.info(`L3 Collapse: ${before} → ${current.length} messages, ${tokens} → ${after} tokens`, { usedLLM: useLLM })
+    if (before !== current.length) {
+      options.onCompact?.({
+        level: 'L3_Collapse',
+        preTokens: preTok,
+        postTokens: after,
+        preMessages: before,
+        postMessages: current.length,
+      })
+    }
     tokens = after
   }
 
   // ── L4 AutoCompact：紧急全量重写（只在主循环 + 有 LLM 配置时触发） ──
   if (tokens > maxTokens * L4_THRESHOLD && querySource === 'main' && options.llmConfig) {
     const before = current.length
+    const preTok = tokens
     current = await autoCompact(current, maxTokens, options.llmConfig, preCompactFileReads)
     const after = estimateTokens(current)
     log.info(`L4 AutoCompact: ${before} → ${current.length} messages, ${tokens} → ${after} tokens`)
+    options.onCompact?.({
+      level: 'L4_AutoCompact',
+      preTokens: preTok,
+      postTokens: after,
+      preMessages: before,
+      postMessages: current.length,
+    })
     tokens = after
   }
 
@@ -371,10 +451,10 @@ function snip(messages: ChatMessage[]): ChatMessage[] {
 }
 
 /**
- * L2 MicroCompact — 对重复的同名工具调用只保留最后一次结果。
- * 早期重复调用替换为一行说明。
+ * L2 MicroCompact — 对重复的同名工具调用只保留最后一次结果；
+ * G2：折叠中间区连续相同的大段 tool_result 文本。
  */
-function microCompact(messages: ChatMessage[]): ChatMessage[] {
+export function microCompact(messages: ChatMessage[]): ChatMessage[] {
   const toolCallLastSeen = new Map<string, number>()
 
   for (let i = 0; i < messages.length; i++) {
@@ -390,12 +470,14 @@ function microCompact(messages: ChatMessage[]): ChatMessage[] {
   const result: ChatMessage[] = []
   const recentStart = Math.max(1, messages.length - RECENT_KEEP_COUNT)
   const skipToolIds = new Set<string>()
+  let lastToolContent: string | null = null
 
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i]
 
     if (i === 0 || i >= recentStart) {
       result.push(msg)
+      lastToolContent = msg.role === 'tool' ? msg.content : null
       continue
     }
 
@@ -424,12 +506,30 @@ function microCompact(messages: ChatMessage[]): ChatMessage[] {
       } else {
         result.push(msg)
       }
+      lastToolContent = null
       continue
     }
 
     if (msg.role === 'tool' && msg.toolCallId && skipToolIds.has(msg.toolCallId)) {
       continue
     }
+
+    // G2：连续重复且较长的 tool 结果折叠
+    if (
+      msg.role === 'tool' &&
+      lastToolContent !== null &&
+      msg.content.length > 200 &&
+      msg.content === lastToolContent
+    ) {
+      result.push({
+        ...msg,
+        content: '[duplicate tool result collapsed]',
+      })
+      continue
+    }
+
+    if (msg.role === 'tool') lastToolContent = msg.content
+    else lastToolContent = null
 
     result.push(msg)
   }

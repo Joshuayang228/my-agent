@@ -13,6 +13,8 @@ function makeTool(overrides: Partial<ToolDefinition> = {}): ToolDefinition {
       isConcurrencySafe: true,
       ...overrides.metadata,
     },
+    aliases: overrides.aliases,
+    resolveMetadata: overrides.resolveMetadata,
     execute: overrides.execute ?? (async (args) => JSON.stringify(args)),
   }
 }
@@ -185,6 +187,55 @@ describe('ToolRegistry', () => {
       expect(order.indexOf('safeA')).toBeLessThan(order.indexOf('unsafeC'))
       expect(order.indexOf('safeB')).toBeLessThan(order.indexOf('unsafeC'))
       expect(order.indexOf('unsafeC')).toBeLessThan(order.indexOf('safeD'))
+    })
+  })
+
+  describe('M04 aliases + resolveMetadata', () => {
+    it('别名解析到主工具并执行', async () => {
+      const reg = new ToolRegistry()
+      reg.register(makeTool({
+        name: 'file_read',
+        aliases: ['read_file'],
+        execute: async () => 'ok',
+      }))
+      expect(reg.has('read_file')).toBe(true)
+      expect(reg.resolveName('read_file')).toBe('file_read')
+      const results = await reg.executeAll([makeCall({ name: 'read_file' })])
+      expect(results[0].content).toBe('ok')
+      expect(results[0].name).toBe('file_read')
+    })
+
+    it('resolveMetadata 可动态关闭并发安全', async () => {
+      const order: string[] = []
+      const reg = new ToolRegistry()
+      reg.register(makeTool({
+        name: 'dyn',
+        metadata: { isReadOnly: true, isDestructive: false, isConcurrencySafe: true },
+        resolveMetadata: (args) => ({
+          isConcurrencySafe: args.mode !== 'write',
+        }),
+        execute: async (args) => {
+          order.push(String(args.mode))
+          await new Promise(r => setTimeout(r, 5))
+          return 'x'
+        },
+      }))
+      reg.register(makeTool({
+        name: 'other',
+        execute: async () => {
+          order.push('other')
+          return 'y'
+        },
+        metadata: { isReadOnly: true, isDestructive: false, isConcurrencySafe: true },
+      }))
+
+      await reg.executeAll([
+        makeCall({ id: '1', name: 'dyn', arguments: JSON.stringify({ mode: 'write' }) }),
+        makeCall({ id: '2', name: 'other' }),
+      ])
+      // write 非并发安全 → 先串行 dyn，再 other
+      expect(order[0]).toBe('write')
+      expect(order[1]).toBe('other')
     })
   })
 

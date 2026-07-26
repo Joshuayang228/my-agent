@@ -18,14 +18,18 @@
  *
  * M16 G2：running / completed / failed / notified 转移 await 落盘；enqueue 仍可非阻塞。
  *
- * 还未做（按方法论暂缓清单）：
- * - 长任务断点续接
+ * M09：checkpoint 断点续接 + task:sync 断线对齐。
  */
 
 import { BrowserWindow } from 'electron'
 import { createLogger } from '../utils/logger'
 import { getDatabase, persist } from '../storage/database'
-import type { BackgroundTaskInfo, TaskLifecycleEvent, TaskType } from '../../../src/shared/types'
+import type {
+  BackgroundTaskInfo,
+  TaskCheckpoint,
+  TaskLifecycleEvent,
+  TaskType,
+} from '../../../src/shared/types'
 
 const log = createLogger('TaskQueue')
 
@@ -53,15 +57,33 @@ async function dbUpsertTask(task: BackgroundTaskInfo): Promise<void> {
     const database = await getDatabase()
     database.run(
       `INSERT OR REPLACE INTO background_tasks
-         (id, session_id, type, status, notified, created_at, updated_at, error)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [task.id, task.sessionId, task.name, task.status,
-        task.notified ? 1 : 0, task.createdAt, task.updatedAt, task.error ?? null],
+         (id, session_id, type, status, notified, created_at, updated_at, error, checkpoint)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        task.id,
+        task.sessionId,
+        task.name,
+        task.status,
+        task.notified ? 1 : 0,
+        task.createdAt,
+        task.updatedAt,
+        task.error ?? null,
+        task.checkpoint ? JSON.stringify(task.checkpoint) : null,
+      ],
     )
     persist()
   } catch (err) {
     log.warn('Failed to persist task to SQLite', { taskId: task.id, error: String(err) })
   }
+}
+
+function parseCheckpoint(raw: unknown): TaskCheckpoint | undefined {
+  if (raw == null || raw === '') return undefined
+  try {
+    const obj = typeof raw === 'string' ? JSON.parse(raw) : raw
+    if (obj && typeof obj === 'object') return obj as TaskCheckpoint
+  } catch { /* ignore */ }
+  return undefined
 }
 
 // ── TaskQueueManager ──
@@ -108,7 +130,7 @@ class TaskQueueManager {
     try {
       const db = await getDatabase()
       const stmt = db.prepare(
-        `SELECT id, session_id, type, status, notified, created_at, updated_at, error
+        `SELECT id, session_id, type, status, notified, created_at, updated_at, error, checkpoint
          FROM background_tasks
          WHERE status IN ('pending', 'running')
          ORDER BY created_at ASC`
@@ -125,6 +147,7 @@ class TaskQueueManager {
           createdAt: Number(row.created_at),
           updatedAt: Date.now(),
           error: row.error ? String(row.error) : undefined,
+          checkpoint: parseCheckpoint(row.checkpoint),
         }
         // 更新状态为 pending（覆盖 running）
         if (row.status === 'running') {
@@ -175,6 +198,44 @@ class TaskQueueManager {
     const task = this.tasks.get(taskId)
     if (!task) return undefined
     return this.toInfo(task)
+  }
+
+  /**
+   * 断线重连同步：活跃任务 + 尚未 notified 的终态任务（供 UI 补 Toast / 对齐 pill）。
+   */
+  syncForRenderer(sessionId?: string): {
+    active: BackgroundTaskInfo[]
+    pendingNotify: BackgroundTaskInfo[]
+  } {
+    const active = this.getActiveTasks(sessionId)
+    const pendingNotify: BackgroundTaskInfo[] = []
+    for (const task of this.tasks.values()) {
+      if (sessionId && task.sessionId !== sessionId) continue
+      if (
+        (task.status === 'completed' || task.status === 'failed') &&
+        !task.notified
+      ) {
+        pendingNotify.push(this.toInfo(task))
+      }
+    }
+    return { active, pendingNotify }
+  }
+
+  /** 写入/更新断点（长任务续接） */
+  async updateCheckpoint(taskId: string, checkpoint: Omit<TaskCheckpoint, 'updatedAt'> & { updatedAt?: number }): Promise<boolean> {
+    const task = this.tasks.get(taskId)
+    if (!task) return false
+    task.checkpoint = {
+      ...checkpoint,
+      updatedAt: checkpoint.updatedAt ?? Date.now(),
+    }
+    task.updatedAt = Date.now()
+    await dbUpsertTask(this.toInfo(task))
+    return true
+  }
+
+  getCheckpoint(taskId: string): TaskCheckpoint | undefined {
+    return this.tasks.get(taskId)?.checkpoint
   }
 
   // ── 取消 ──

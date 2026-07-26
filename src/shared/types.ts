@@ -84,6 +84,16 @@ export interface ToolDefinition {
    * 序列化时追加到 description 末尾（拼文本对所有 provider 通用，不依赖某 provider 的特殊字段）。
    */
   inputExamples?: Array<Record<string, unknown>>
+  /**
+   * 工具别名（M04）：LLM 若用旧名/简称调用，Registry 解析到主 name。
+   * 别名不得与其他工具主名或别名冲突。
+   */
+  aliases?: string[]
+  /**
+   * 运行时按参数解析元数据（M04 元数据函数化）。
+   * 未提供时用静态 metadata；提供时在权限/并发决策前与静态字段浅合并。
+   */
+  resolveMetadata?: (args: Record<string, unknown>) => Partial<ToolMetadata>
 }
 
 /**
@@ -101,6 +111,8 @@ export interface ToolDef {
   execute: ToolDefinition['execute']
   maxResultSizeChars?: number
   inputExamples?: Array<Record<string, unknown>>
+  aliases?: string[]
+  resolveMetadata?: (args: Record<string, unknown>) => Partial<ToolMetadata>
 }
 
 export interface ToolMetadata {
@@ -260,6 +272,14 @@ export type TaskType =
 /** 后台任务五态状态机 */
 export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
 
+/** 长任务断点（M09）：重试/恢复时可续接的轻量状态 */
+export interface TaskCheckpoint {
+  step?: number
+  label?: string
+  payload?: Record<string, unknown>
+  updatedAt: number
+}
+
 /** 可通过 IPC 查询的任务摘要（不含 fn） */
 export interface BackgroundTaskInfo {
   id: string
@@ -273,6 +293,8 @@ export interface BackgroundTaskInfo {
   error?: string
   /** 已重试次数（指数退避，最多 MAX_RETRIES=3 次） */
   retryCount?: number
+  /** 断点续接数据（JSON） */
+  checkpoint?: TaskCheckpoint
 }
 
 /**

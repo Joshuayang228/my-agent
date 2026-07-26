@@ -241,6 +241,34 @@ export function getSpanTypeStats(): Record<SpanType, { count: number; totalMs: n
   return result as Record<SpanType, { count: number; totalMs: number; avgMs: number }>
 }
 
+/**
+ * M09：前后台 token 分离。
+ * foreground = main 对话；background = 其余 caller（compact/memory/title/subagent/tool/profile/system）。
+ */
+export function getTokenLaneStats(): {
+  foreground: { inputTokens: number; outputTokens: number }
+  background: { inputTokens: number; outputTokens: number }
+  byCaller: ReturnType<typeof getCallerStats>
+} {
+  const byCaller = getCallerStats()
+  const sum = (keys: SpanCaller[]) => {
+    let inputTokens = 0
+    let outputTokens = 0
+    for (const k of keys) {
+      const s = byCaller[k]
+      if (!s) continue
+      inputTokens += s.totalInputTokens
+      outputTokens += s.totalOutputTokens
+    }
+    return { inputTokens, outputTokens }
+  }
+  return {
+    foreground: sum(['main']),
+    background: sum(['compact', 'memory', 'title', 'subagent', 'tool', 'profile', 'system']),
+    byCaller,
+  }
+}
+
 /** 清空 Span 记录 */
 export function clearSpans(): void {
   spans.length = 0

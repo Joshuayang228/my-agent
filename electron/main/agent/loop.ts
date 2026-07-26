@@ -14,6 +14,7 @@ import { createLogger } from '../utils/logger'
 import { sanitizeError } from '../utils/sanitize-error'
 import { AgentError, AgentErrorCode, toAgentError } from '../errs/index'
 import { startSpan, type SpanHandle } from '../utils/tracer'
+import { getObserver } from '../utils/observer'
 import { compressContext, emergencyTruncate, estimateTokens, DEFAULT_MAX_TOKENS } from './context-manager'
 import { sanitizeMessages } from './message-pipeline'
 
@@ -298,9 +299,12 @@ export async function* agentLoop(
     // 服务端 retry-after（毫秒），由上一次失败的 LLMError 传入下一轮重试
     let nextRetryAfterMs: number | undefined
 
-    const llmSpan = startSpan(`llm_request_t${state.turnCount}`, 'main', 'llm_request', state.interactionSpanId, {
-      model: config.model,
-      turn: state.turnCount,
+    // M14 Observer：LLM 埋点经接口，默认桥接 tracer
+    const llmSpan = getObserver().onLLMStart({
+      name: `llm_request_t${state.turnCount}`,
+      caller: 'main',
+      parentId: state.interactionSpanId,
+      attributes: { model: config.model, turn: state.turnCount },
     })
 
     for (let attempt = 0; attempt <= MAX_LLM_RETRIES; attempt++) {
@@ -364,7 +368,7 @@ export async function* agentLoop(
           attempt,
         })
         lastErr = null
-        llmSpan.end('ok')
+        getObserver().onLLMEnd(llmSpan, true)
         break
       } catch (err) {
         lastErr = err
@@ -424,7 +428,7 @@ export async function* agentLoop(
     if (lastErr) {
       const agentErr = toAgentError(lastErr)
       log.error('LLM call failed', { duration: Date.now() - llmStart, error: agentErr.chain() })
-      llmSpan.end('error', agentErr.message)
+      getObserver().onLLMEnd(llmSpan, false, agentErr.message)
       yield { type: 'error', ...agentErr.toEventPayload() }
       yield { type: 'done', reason: 'model_error' }
       return

@@ -26,9 +26,11 @@ interface SettingsForm {
 interface McpServerEntry {
   id: string
   name: string
+  transport?: 'stdio' | 'sse'
   command: string
   args: string[]
   env?: Record<string, string>
+  url?: string
   enabled: boolean
 }
 
@@ -142,7 +144,14 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
   const [mcpServers, setMcpServers] = useState<McpServerEntry[]>([])
   const [mcpStatuses, setMcpStatuses] = useState<McpServerStatus[]>([])
   const [mcpAdding, setMcpAdding] = useState(false)
-  const [newMcp, setNewMcp] = useState({ name: '', command: '', args: '', env: '' })
+  const [newMcp, setNewMcp] = useState({
+    name: '',
+    transport: 'stdio' as 'stdio' | 'sse',
+    command: '',
+    args: '',
+    url: '',
+    env: '',
+  })
 
   const refreshMcpStatus = useCallback(async () => {
     if (!window.electronAPI) return
@@ -228,7 +237,8 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
   }, [])
 
   const handleAddMcp = useCallback(async () => {
-    if (!newMcp.name || !newMcp.command) return
+    if (!newMcp.name) return
+    if (newMcp.transport === 'sse' ? !newMcp.url.trim() : !newMcp.command) return
     let env: Record<string, string> | undefined
     if (newMcp.env.trim()) {
       env = {}
@@ -240,8 +250,10 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
     const entry: McpServerEntry = {
       id: `mcp-${Date.now()}`,
       name: newMcp.name,
-      command: newMcp.command,
-      args: newMcp.args.split(/\s+/).filter(Boolean),
+      transport: newMcp.transport,
+      command: newMcp.transport === 'sse' ? '' : newMcp.command,
+      args: newMcp.transport === 'sse' ? [] : newMcp.args.split(/\s+/).filter(Boolean),
+      url: newMcp.transport === 'sse' ? newMcp.url.trim() : undefined,
       env,
       enabled: true,
     }
@@ -252,7 +264,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
       toast(`MCP 连接失败: ${result.error}`, 'error')
     }
     await refreshMcpStatus()
-    setNewMcp({ name: '', command: '', args: '', env: '' })
+    setNewMcp({ name: '', transport: 'stdio', command: '', args: '', url: '', env: '' })
     setMcpAdding(false)
   }, [newMcp, mcpServers, saveMcpList, refreshMcpStatus, toast])
 
@@ -574,20 +586,40 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
             placeholder="名称（如 filesystem）"
             className="theme-input mb-2 w-full rounded border px-2 py-1.5 text-xs outline-none"
           />
-          <input
-            type="text"
-            value={newMcp.command}
-            onChange={e => setNewMcp(m => ({ ...m, command: e.target.value }))}
-            placeholder="命令（如 npx, node, python3）"
+          <select
+            value={newMcp.transport}
+            onChange={e => setNewMcp(m => ({ ...m, transport: e.target.value as 'stdio' | 'sse' }))}
             className="theme-input mb-2 w-full rounded border px-2 py-1.5 text-xs outline-none"
-          />
-          <input
-            type="text"
-            value={newMcp.args}
-            onChange={e => setNewMcp(m => ({ ...m, args: e.target.value }))}
-            placeholder="参数（空格分隔）"
-            className="theme-input mb-2 w-full rounded border px-2 py-1.5 text-xs outline-none"
-          />
+          >
+            <option value="stdio">stdio（本地命令）</option>
+            <option value="sse">SSE（远程 URL）</option>
+          </select>
+          {newMcp.transport === 'sse' ? (
+            <input
+              type="text"
+              value={newMcp.url}
+              onChange={e => setNewMcp(m => ({ ...m, url: e.target.value }))}
+              placeholder="SSE URL（如 http://localhost:3000/sse）"
+              className="theme-input mb-2 w-full rounded border px-2 py-1.5 text-xs outline-none"
+            />
+          ) : (
+            <>
+              <input
+                type="text"
+                value={newMcp.command}
+                onChange={e => setNewMcp(m => ({ ...m, command: e.target.value }))}
+                placeholder="命令（如 npx, node, python3）"
+                className="theme-input mb-2 w-full rounded border px-2 py-1.5 text-xs outline-none"
+              />
+              <input
+                type="text"
+                value={newMcp.args}
+                onChange={e => setNewMcp(m => ({ ...m, args: e.target.value }))}
+                placeholder="参数（空格分隔）"
+                className="theme-input mb-2 w-full rounded border px-2 py-1.5 text-xs outline-none"
+              />
+            </>
+          )}
           <textarea
             value={newMcp.env}
             onChange={e => setNewMcp(m => ({ ...m, env: e.target.value }))}
@@ -597,7 +629,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
           />
           <button
             onClick={handleAddMcp}
-            disabled={!newMcp.name || !newMcp.command}
+            disabled={!newMcp.name || (newMcp.transport === 'sse' ? !newMcp.url.trim() : !newMcp.command)}
             className="rounded bg-cyan-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-cyan-500 disabled:opacity-40"
           >
             连接
@@ -629,7 +661,9 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
                   ) : null}
                 </div>
                 <div className="mt-0.5 truncate text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                  {server.command} {server.args.join(' ')}
+                  {server.transport === 'sse'
+                    ? `SSE ${server.url ?? ''}`
+                    : `${server.command} ${server.args.join(' ')}`}
                 </div>
                 {st?.error && (
                   <div className="mt-0.5 truncate text-[10px] text-red-400">{st.error}</div>

@@ -153,3 +153,19 @@ export async function runSuite(
     results,
   }
 }
+
+/**
+ * pass^k：同一场景连续跑 k 次，全部通过才算 pass（M18 可靠性度量）。
+ * 无真实 LLM / mock 场景同样适用。
+ */
+export async function runPassK(
+  scenario: EvalScenario,
+  k: number,
+): Promise<{ pass: boolean; passes: number; k: number; trials: ScenarioResult[] }> {
+  const trials: ScenarioResult[] = []
+  for (let i = 0; i < k; i++) {
+    trials.push(await runScenario(scenario))
+  }
+  const passes = trials.filter(t => t.pass).length
+  return { pass: passes === k, passes, k, trials }
+}

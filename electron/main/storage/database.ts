@@ -36,7 +36,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -152,7 +152,8 @@ function initSchema(database: SqlJsDatabase): void {
       notified    INTEGER NOT NULL DEFAULT 0,
       created_at  INTEGER NOT NULL,
       updated_at  INTEGER NOT NULL,
-      error       TEXT
+      error       TEXT,
+      checkpoint  TEXT
     )
   `)
   database.run(`CREATE INDEX IF NOT EXISTS idx_btasks_status ON background_tasks(status)`)
@@ -176,6 +177,10 @@ export function runMigrations(database: SqlJsDatabase): void {
     (d) => {
       addColumnIfMissing(d, 'sessions', 'total_prompt_tokens', 'INTEGER NOT NULL DEFAULT 0')
       addColumnIfMissing(d, 'sessions', 'total_completion_tokens', 'INTEGER NOT NULL DEFAULT 0')
+    },
+    // v1 → v2：后台任务 checkpoint 列（M09 断点续接）
+    (d) => {
+      addColumnIfMissing(d, 'background_tasks', 'checkpoint', 'TEXT')
     },
   ]
 

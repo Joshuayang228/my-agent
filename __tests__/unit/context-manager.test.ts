@@ -17,10 +17,10 @@ describe('estimateTokens', () => {
     expect(estimateTokens([])).toBe(0)
   })
 
-  it('短消息估算合理（每条 = ceil(len/2.5) + 4）', () => {
+  it('短消息估算合理（G13：ASCII ~4 chars/token + 4 开销）', () => {
     const messages = [msg('user', 'hello')]
     const tokens = estimateTokens(messages)
-    // "hello" = 5 chars → ceil(5/2.5) + 4 = 2 + 4 = 6
+    // "hello" = 5 ASCII → ceil(5/4) + 4 = 2 + 4 = 6
     expect(tokens).toBe(6)
   })
 
@@ -29,9 +29,9 @@ describe('estimateTokens', () => {
       toolCalls: [{ id: 'tc1', name: 'echo', arguments: '{"text":"hi"}' }],
     })]
     const tokens = estimateTokens(messages)
-    // content "" → ceil(0/2.5) + 4 = 4
-    // toolCall arguments 13 chars → ceil(13/3) + 10 = 5 + 10 = 15
-    expect(tokens).toBe(4 + 15)
+    // content "" → 0 + 4 = 4
+    // toolCall arguments 13 ASCII → ceil(13/4) + 10 = 4 + 10 = 14
+    expect(tokens).toBe(4 + 14)
   })
 })
 

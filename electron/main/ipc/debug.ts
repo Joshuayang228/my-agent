@@ -10,7 +10,7 @@ import { getAllSettings } from '../storage/settings-store'
 import { buildUserProfile } from '../storage/memory-store'
 import { mcpManager } from '../mcp/client'
 import { createLogger } from '../utils/logger'
-import { getRecentSpans, getCallerStats, getStartupMarks, getSpanTypeStats } from '../utils/tracer'
+import { getRecentSpans, getCallerStats, getStartupMarks, getSpanTypeStats, getTokenLaneStats } from '../utils/tracer'
 import { getDailyUsage } from '../agent/token-budget'
 import { app } from 'electron'
 
@@ -99,9 +99,14 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
   })
 
   ipcMain.handle('debug:traces', () => {
+    const lanes = getTokenLaneStats()
     return {
       spans: getRecentSpans(100),
       callerStats: getCallerStats(),
+      tokenLanes: {
+        foreground: lanes.foreground,
+        background: lanes.background,
+      },
       dailyTokenUsage: getDailyUsage(),
     }
   })
