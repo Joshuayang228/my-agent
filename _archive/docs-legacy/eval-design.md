@@ -1,8 +1,10 @@
 # Eval 实施规格
 
-> **和方法论的分工**：`methodology/m12-eval.md` 讲"为什么"，本文件讲"怎么做"——每个场景的具体输入、Mock LLM 响应序列、断言点。是实施 `evals/` 目录的直接依据。
+> **已降级（2026-07-30）**：质量总控见 [`quality.md`](./quality.md)；场景与 runner 以 `evals/` 代码为准；深 Why 见 `methodology/m18-eval.md`（非旧 m12）。  
+> 下文为历史规格底稿，可能与代码不一致。
 
 ---
+
 
 ## Runner 架构
 

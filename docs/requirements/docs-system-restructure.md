@@ -1,0 +1,39 @@
+# 文档体系重构方案
+
+> 状态：已落地（2026-07-30）
+
+## Why
+
+缺产品横切入口；部分文档与代码双真相。`methodology/` 保留（深 Why，慢更）。
+
+## What（四维 + methodology）
+
+| 维 | 职责 | 落点 |
+|----|------|------|
+| 产品 | 能力边界、任务入口、横切导航 | `docs/modules/product-module-map.md` + 各模块卡 |
+| 技术 | 分层与连接（一张图） | `docs/architecture.md` |
+| 质量 | Unit / Eval / E2E 总控 | `docs/quality.md` |
+| 账本 | 对内进度 / 对外变更 / 缺口 / 坑 / 决策 / 规则反馈 | `progress` · `changelog` · `wishlist` · `pitfalls` · `decisions` · `rules-feedback` |
+
+旁路：`methodology/`（深 Why）；`CLAUDE.md`（规则入口）；根目录 `agent-skills/`（协作 SOP，与 docs 并列，不在 docs 内）。
+
+## 约定
+
+- 产品模块地图文件名：`product-module-map.md`（不必用 README）
+- 模块卡：薄契约 + 必读文件；不写函数清单
+- progress 对内、changelog 对外；pitfalls / decisions 属账本
+- 真相：代码行为 > 模块卡现状 > architecture > methodology 愿景
+
+## 归档
+
+已迁入 `_archive/docs-legacy/`：
+
+`features.md` · `api-contracts.md` · `testing.md` · `eval-design.md` · `glossary.md`
+
+## 验收
+
+- [x] product-module-map + persona/memory/permission
+- [x] quality.md
+- [x] CLAUDE / writing-style / architecture 对齐
+- [x] 旧文档归档
+- [x] 账本含 pitfalls / decisions

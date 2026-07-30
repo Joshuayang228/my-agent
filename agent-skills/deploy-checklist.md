@@ -33,7 +33,7 @@
 
 - [ ] `package.json` 版本号已更新。
 - [ ] `docs/changelog.md` 已更新。
-- [ ] `docs/features.md` 已更新。
+- [ ] 若模块契约变化：对应 `docs/modules/*.md` 已更新。
 
 ### 数据安全
 

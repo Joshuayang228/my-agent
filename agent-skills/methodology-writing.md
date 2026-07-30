@@ -32,7 +32,7 @@
 5. **写完一章立即单独 commit**（用户确认通过后）：
    - 至少包含本章 `mNN-*.md` + 配对的 `mNN-*-code.md`（若有）。
    - **一个 commit 只做这一章**，不与并行会话的其他改动混提。
-   - 索引文件（`methodology/README.md` / `docs/wishlist.md` / `docs/progress.md` / 本 skill 待补队列）若混有他章改动：能干净拆出本章状态更新则一并提交；拆不开就本章正文先 commit，索引下轮再同步。
+   - 索引文件（`methodology/README.md` / `docs/wishlist.md` / `docs/progress.md`）若混有他章改动：能干净拆出本章状态更新则一并提交；拆不开就本章正文先 commit，索引下轮再同步。
    - commit message 风格对齐仓库：`docs(MNN): …`；用户要求 push 时再推，不默认 push。
 
 ---
@@ -53,7 +53,7 @@
 
 - 同心圆从内向外：先核心运行时，再上下文/安全，再可观测，最后伙伴差异化（顺序见 `methodology/README.md` 六部分）。
 - 编号以 **M01–M27**（`methodology/README.md`）为准；不要再用旧深啃编号（旧 M11=任务生命周期、旧 M12=Eval，已并入新目录）。
-- 「学到但暂缓」的项写进该章实战记录，不另开第二套路线图文件。
+- 「学到但暂缓」的项：章内实战记录可点一句 + **必须同步 `docs/wishlist.md`**；不在本 skill 维护 Gap 明细。
 - 时间线与完成记录写 `docs/progress.md`，不在本 skill 里维护进度表。
 - **每章沉淀收尾必 commit**（见上方写作流程第 5 步）；勿把多章或无关工程改动打进同一个方法论 commit。
 
@@ -69,33 +69,19 @@
 
 占位章的「待覆盖内容」应优先写成这类问题，而不是功能愿望清单。
 
-### 待补优先序（执行时以 README 状态为准）
+### 待补优先序与 Gap 真相源（禁止在本 skill 维护明细表）
 
-| 优先级 | 章节 | 说明 |
-|--------|------|------|
-| — | M11–M17（含 M13） | ✅ 工程方法论占位章已齐 |
-| 工程补完后 | M22–M27 | 伙伴类 |
-| 增量补洞 | 见下方索引 | 细节以各章实战记录为准 |
+**章节队列**以 `methodology/README.md`「待补队列 / 完整目录状态」为准。  
+**仍开着的工程/产品 Gap**以 `docs/wishlist.md`「待办缺口」为准。  
+**某章内部暂缓说明**以该章「实战记录 / 占位待做」为准。
 
-### 增量补洞索引（已写章节里仍开着的 Gap）
+本 skill **不维护**「增量补洞明细表」——易与 wishlist 双真相、快速过期。深啃或补洞前：
 
-> 只做索引，避免和各章「暂缓/占位待做」双份维护。动手前先读对应章节实战记录。
+1. 打开 `methodology/README.md` 看下一章 / 状态  
+2. 打开 `docs/wishlist.md` 看未勾选项  
+3. 打开对应 `mNN-*.md` 实战记录看章内暂缓  
 
-| 新编号 | 章节 | 仍开着的要点 |
-|--------|------|-------------|
-| M12 | IPC 架构 | C4 确认 UI 串行队列 |
-| M13 | MCP | SSE UI；断线重连；Schema 保真；Elicitation/Resources |
-| M16 | 并发与数据 | 迁 better-sqlite3 / 增量快照（等体量痛点） |
-| M04 | 工具系统 | 元数据函数化 / 并发数上限 / 工具别名 |
-| M07 | 上下文压缩 | G2 L2 去重优化；G5 image 剥离；G6 L4 独立会话（有意暂缓）；G8 prompt cache 复用；G9 hooks；G13 token 估算精度 |
-| M08 | 记忆系统 | G6 语义去重 |
-| M09 | 后台任务 | 前后台 token 分离；断线重连；长任务断点续接（v3 已有：持久化/恢复/指数退避重试/UI pill） |
-| M14 | 可观测性 | 日志脱敏；DevPanel 树状调用链视图 |
-| M17 | 测试架构 | G1 loop 单测迁 DI；G2 SSE replay；G3 可选真对话 E2E；G4 IPC 可测性（详见 wishlist） |
-| M18 | Eval | B 类真实 LLM + LLM-as-Judge；pass^k；Baseline diff；F08 preamble 场景 |
-| M19 | 多 Agent | Swarm 模式 |
-| M20 | 自进化 | G2 自动改进闭环；G3 代码级自进化；G4 主动提案；G5 撤销栈 |
-| M21 | 人格引擎 | G3 MUTABLE 动态演化（P0）；G5 具名角色 Character Bible；G4 定期重申（有意暂缓） |
+学到但暂缓的新缺口 → **写入 wishlist**（并可选记一笔到该章实战记录），不要追加进本文件。
 
 ### 实现入口（深啃时从这里打开代码）
 
@@ -123,15 +109,9 @@
 | M20 | `electron/main/skills/` |
 | M21 | `electron/main/agent/prompt-builder.ts` |
 
-### 产品向 backlog（不占 mNN，做时再查参考源）
+### 产品向 backlog（不占 mNN）
 
-**查阅型（不专门深啃）**：
-
-- Playground 实验环境（免上下文快速测试）
-- 会话状态 Runtime 中心化（UI 不再承担会话读写）
-**差异化特色（自主创新）**：具名角色设定集（Character Bible）、子 Agent 人设库、活人感设计。
-
-灵感进 `docs/wishlist.md`；决定要做再开需求/写进进度，不在本 skill 扩成第二路线图。
+不在本 skill 列明细。灵感 / 查阅型债 / 差异化项一律进 `docs/wishlist.md`；决定要做再开 `docs/requirements/` 或记 `progress.md`。
 
 ## 文档结构
 

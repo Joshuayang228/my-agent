@@ -99,15 +99,14 @@ npm run package
 
 | 文档 | 说明 |
 |------|------|
+| [product-module-map.md](docs/modules/product-module-map.md) | 产品模块地图（协作入口） |
 | [architecture.md](docs/architecture.md) | 系统架构与数据流 |
-| [features.md](docs/features.md) | 完整功能清单 |
-| [progress.md](docs/progress.md) | 开发进度时间线 |
-| [changelog.md](docs/changelog.md) | 变更记录 |
-| [api-contracts.md](docs/api-contracts.md) | IPC / 类型契约 |
-| [decisions.md](docs/decisions.md) | 架构决策记录 (ADR) |
-| [glossary.md](docs/glossary.md) | 术语表 |
+| [quality.md](docs/quality.md) | 质量总控（Unit / Eval / E2E） |
+| [progress.md](docs/progress.md) | 对内进度 |
+| [changelog.md](docs/changelog.md) | 对外变更记录 |
+| [wishlist.md](docs/wishlist.md) | 缺口与灵感 |
+| [decisions.md](docs/decisions.md) | 技术决策 (ADR) |
 | [pitfalls.md](docs/pitfalls.md) | 踩坑记录 |
-| [testing.md](docs/testing.md) | 测试策略 |
 
 ## 许可证
 

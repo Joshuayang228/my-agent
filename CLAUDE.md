@@ -2,7 +2,7 @@
 
 > 本文件是本项目面向所有开发 Agent（Claude Code 主力，偶尔 Cursor / Codex）的**唯一权威规则源**。
 > Claude Code 会自动加载本文件。其他工具（Cursor / Codex）的入口文件已配置为「必须先读本文件」。
-> 高频、强约束、必须默认执行的规则写在正文常驻；低频、场景化的详细规则放 `docs/agent-skills/`，按索引表引导按需读取。
+> 高频、强约束、必须默认执行的规则写在正文常驻；低频、场景化的详细规则放 `agent-skills/`，按索引表引导按需读取。
 
 ## 项目定位
 
@@ -16,13 +16,21 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 
 ## 启动上下文
 
-开始较大的代码任务前，先读：
+文档分四维：**产品**（`docs/modules/`，入口 `product-module-map.md`）· **技术**（`architecture.md`）· **质量**（`quality.md`）· **账本**（progress / changelog / wishlist / pitfalls / decisions / rules-feedback）。  
+协作 SOP 在根目录 `agent-skills/`（与 docs 并列，见下文「agent-skills」）。深 Why 在 `methodology/`。方案见 `docs/requirements/docs-system-restructure.md`。
 
-1. `docs/architecture.md` — 当前系统架构
-2. `docs/progress.md` — 当前项目状态
-3. 与任务直接相关的 `docs/*.md`
+**按任务类型读**：
 
-小任务（typo、注释、单文件少量改动）只读相关文件即可。若从上一轮 summary 恢复且信息完整，可跳过；但 summary 可能过时（如跨天恢复）时仍应读文件确认。
+| 任务 | 先读 |
+|------|------|
+| 落在某产品能力（人格/记忆/权限等） | 对应 `docs/modules/<名>.md` → 其「必读文件」→ 必要时 `architecture.md` |
+| 跨模块 / 架构 | `docs/modules/product-module-map.md` + `architecture.md` + `progress.md` |
+| 测试 / Eval 门禁 | `docs/quality.md` |
+| 小改（typo、单文件少量且意图明确） | 相关代码即可 |
+
+从 summary 恢复且信息完整可跳过；summary 可能过时（如跨天）时仍应读文件确认。
+
+动手前若已读模块卡：用几行复述边界、拟改文件、不碰什么、必测点；越界先问用户。
 
 ## 规则冲突优先级
 
@@ -49,7 +57,7 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 - 对外错误信息只暴露用户友好内容，不暴露堆栈、内部路径、SQL 语句。
 - 文件路径操作做防穿越检查；SQL 用参数化，禁止拼接用户输入。
 
-> 沙箱分级、权限规则引擎、命令安全分级等详情见 `docs/agent-skills/security-checklist.md`。
+> 沙箱分级、权限规则引擎、命令安全分级等详情见 `agent-skills/security-checklist.md`。
 
 ### 架构分层依赖方向
 
@@ -103,7 +111,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 - 一个 commit 只做一件事；用 `git add <具体文件>` 而非 `git add .`，staged 后再 `git status` 复查。
 - 遇 `Failed to connect to 127.0.0.1` 类代理报错，检查代理端口（Clash 常见 7890 / 7897），更新或 `git config --global --unset http.proxy` 尝试直连，直至推送成功。
 
-> commit 规范、分支命名、PR 流程详见 `docs/agent-skills/git-workflow.md`。
+> commit 规范、分支命名、PR 流程详见 `agent-skills/git-workflow.md`。
 
 ---
 
@@ -138,7 +146,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 ### 闸 3：完成前按序验证
 
 声称"已完成 / 已修复"前**必须按顺序**执行，即使用户一直说"继续"也不能跳过第 1 步：
-1. **自审**（对照 `docs/agent-skills/code-review.md` 清单，跳过了 Phase 6 就在此补做）
+1. **自审**（对照 `agent-skills/code-review.md` 清单，跳过了 Phase 6 就在此补做）
 2. 运行测试并展示通过结果
 3. 确认 build 通过
 4. 确认无新增 linter 报错
@@ -147,29 +155,38 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 
 ---
 
-## 场景规则索引（按需读取 `docs/agent-skills/`）
+## agent-skills（规则技能库）
 
-遇到以下场景，先读对应文件再动手：
+**是什么**：与 `docs/` 四维并列的**协作 SOP**——低频、场景化的详细规范。不回答「产品/架构是什么」，回答「这类活怎么干」。目录在仓库根下 `agent-skills/`（不在 `docs/` 内）。
+
+**何时读（注入时机）**：
+
+1. 任务匹配下表任一场景 → **动手前先 Read 对应文件**，再改代码  
+2. 完成前验证 → 必读 `code-review.md` 做自审（见上方闸 3）  
+3. 正文硬约束（安全、分层、IPC、Git 门控等）**始终生效**，不必等索引触发  
+4. 小改（typo / 单文件少量）可不读技能文件，但仍遵守硬约束  
+
+**不要**每轮把 `agent-skills/` 全部读进上下文；按场景点读即可。
+
+### 场景规则索引
 
 | 场景 | 读取文件 |
 |------|----------|
-| TypeScript / 主进程 / 工具系统开发 | `docs/agent-skills/typescript-guidelines.md` |
-| React / CSS / UI 改动 | `docs/agent-skills/frontend-guidelines.md` |
-| Bug 修复 / 调试 | `docs/agent-skills/debug-guide.md` |
-| 代码审查 / 自审 | `docs/agent-skills/code-review.md` |
-| Git / commit / push / PR | `docs/agent-skills/git-workflow.md` |
-| 部署 / 打包 / 发版 | `docs/agent-skills/deploy-checklist.md` |
-| LLM Provider / 模型配置 / 上下文压缩 | `docs/agent-skills/model-config.md` |
-| 安全 / 密钥 / 权限 / 沙箱 | `docs/agent-skills/security-checklist.md` |
-| 写文档 / 文章 / README | `docs/agent-skills/writing-style.md` |
-| `methodology/` 方法论沉淀 | `docs/agent-skills/methodology-writing.md` |
-
-> 索引指向的是「查阅型」详细规则；正文的「硬约束」始终生效，无需等索引触发。
+| TypeScript / 主进程 / 工具系统开发 | `agent-skills/typescript-guidelines.md` |
+| React / CSS / UI 改动 | `agent-skills/frontend-guidelines.md` |
+| Bug 修复 / 调试 | `agent-skills/debug-guide.md` |
+| 代码审查 / 自审 | `agent-skills/code-review.md` |
+| Git / commit / push / PR | `agent-skills/git-workflow.md` |
+| 部署 / 打包 / 发版 | `agent-skills/deploy-checklist.md` |
+| LLM Provider / 模型配置 / 上下文压缩 | `agent-skills/model-config.md` |
+| 安全 / 密钥 / 权限 / 沙箱 | `agent-skills/security-checklist.md` |
+| 写文档 / 文章 / README | `agent-skills/writing-style.md` |
+| `methodology/` 方法论沉淀 | `agent-skills/methodology-writing.md` |
 
 ## 工作方式
 
 - 用户明确要求修改时直接推进；需求含糊或风险较高时先问清楚。
-- 新增功能前搜索项目内已有实现，避免重复造轮子（冗余搜索策略见 `docs/agent-skills/typescript-guidelines.md`）。
+- 新增功能前搜索项目内已有实现，避免重复造轮子（冗余搜索策略见 `agent-skills/typescript-guidelines.md`）。
 - 复杂功能优先查项目参考资料：`_reference/framework-harness/`、Alice 方法论、项目 `docs/`，再考虑 GitHub/npm 或自研。
 - 所有响应用**简体中文**，技术术语保留英文原文；重要信息可加粗。
 - 长对话（>10 轮）关键操作前先复述当前目标；发现自己重复、偷懒或模糊化时主动建议开新会话。
@@ -180,17 +197,22 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 
 ## 收尾沉淀
 
-功能完成后按实际影响范围更新文档（不机械全更，也不遗漏）：
+**契约变了才更新对应文档**（不机械全更）。真相冲突时：代码行为 > 模块卡现状 > architecture > methodology 愿景。
 
-- `docs/progress.md` — 当前进度时间线（状态变化必更新）
-- `docs/changelog.md` — 用户可见变更（功能/修复必更新）
-- `docs/architecture.md` — 架构或模块边界变化时
-- `docs/features.md` — 用户可见功能变化时
-- `docs/api-contracts.md` — IPC / 类型 / 接口变化时
-- `docs/decisions.md` — 技术决策时
-- `docs/pitfalls.md` — 踩坑和修复经验
-- `docs/rules-feedback.md` — 规则不合理或冲突时
-- `docs/wishlist.md` — 见下方「wishlist 同步」（硬约束）
+| 变了什么 | 更新 |
+|----------|------|
+| 模块边界 / 入口 / 不变量 / 必测 / 现状缺口 | 对应 `docs/modules/<名>.md`（必更） |
+| 新增大产品能力且会反复改 | `docs/modules/product-module-map.md` + 新建模块卡 |
+| 分层 / 主数据流 / 目录边界 | `docs/architecture.md` |
+| 质量门禁或 Eval 分层策略 | `docs/quality.md` |
+| 项目阶段 / 下一步 | `docs/progress.md`（对内，状态变化必更新） |
+| 用户可见能力或修复 | `docs/changelog.md`（对外） |
+| 暂缓 / 缺口 / 灵感 | `docs/wishlist.md`（见下方硬约束） |
+| 技术取舍 | `docs/decisions.md`（账本，一条即可） |
+| 新坑 | `docs/pitfalls.md`（账本） |
+| 规则问题 | `docs/rules-feedback.md`（账本） |
+
+已归档（勿再当权威源，见 `_archive/docs-legacy/`）：features / api-contracts / testing / eval-design / glossary。类型以 `src/shared/types.ts` 为准；IPC 仍遵守「四处同步」硬约束。
 
 ### wishlist 同步（硬约束，防遗忘）
 

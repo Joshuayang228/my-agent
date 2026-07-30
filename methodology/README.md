@@ -105,18 +105,18 @@ M01–M27 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 ## 待补队列
 
-> 完整流程（深啃五步、参考源映射、产品 backlog）见 `docs/agent-skills/methodology-writing.md`。状态以本目录表为准。
+> 完整流程（深啃五步、参考源映射、产品 backlog）见 `agent-skills/methodology-writing.md`。状态以本目录表为准。
 
 | 优先级 | 下一章 | 说明 |
 |--------|--------|------|
 | — | M11–M17（含 M13） | ✅ 工程方法论占位章已齐 |
 | 后置 | **M22–M27** | 伙伴章；工程占位补完后启动 |
-| 增量 | 已写章节的暂缓 Gap | 索引见 skill「增量补洞索引」+ wishlist |
+| 增量 | 已写章节的暂缓 Gap | 以 `docs/wishlist.md` + 各章实战记录为准（skill 不维护明细表） |
 
 ## 写作约定
 
 - **触发写作**：告诉 AI「写方法论」或「沉淀一下 XX 的思考」
-- **写作规范 / 深啃五步**：`docs/agent-skills/methodology-writing.md`（原 `docs/module-roadmap.md` 已并入此 skill）
+- **写作规范 / 深啃五步**：`agent-skills/methodology-writing.md`（原 `docs/module-roadmap.md` 已并入此 skill）
 - **配对结构**：每章通常包含理念章（`.md`）和代码走读章（`-code.md`）；占位章节先建理念章，代码走读视实现情况补充
 - **参考源**：Alice 方法论（`_reference/framework-harness/repos/alice-methodology/`）、CC 源码（`_reference/framework-harness/repos/claude-code-sourcemap-main/`）、feiche（`_reference/feiche/`）
 - **进度时间线**：`docs/progress.md`（本 README 只维护章节状态，不写实施流水账）

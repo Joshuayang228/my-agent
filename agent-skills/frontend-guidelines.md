@@ -23,7 +23,7 @@ Main Area:
 
 1. 气泡对话：用户消息右对齐圆角气泡，AI 消息左对齐 Markdown。
 2. activeView 全屏：设置、技能、记忆占据整个主内容区，不使用侧推面板，DevPanel 除外。
-3. 输入区卡片：居中 `max-w-2xl`，工具栏集成审批模式、模型快切、附件、语音、发送。
+3. 输入区卡片：居中 `max-w-2xl`，工具栏集成审批模式、模型快切、附件、发送（语音输入暂缓，见 wishlist）。
 4. 信息分层：核心内容突出，辅助信息淡化。
 5. 克制动效：短动画即可，例如 150ms 到 200ms。
 6. hover 交互：消息操作栏、Token 用量等低频信息 hover 时出现。
@@ -38,9 +38,45 @@ Main Area:
 - 背景：`--bg-primary`、`--bg-secondary`、`--bg-tertiary`、`--bg-inset`
 - 文字：`--text-primary`、`--text-secondary`、`--text-muted`
 - 边框：`--border-color`、`--border-subtle`
-- 语义色：`--accent`、`--success`、`--warning`、`--danger`
+- 卡片：`--card-bg`、`--card-border`（内容块外框只用这对，不要混用 `--border-color` 当卡片边）
+- 输入：`--input-bg`、`--input-border`（经 `.theme-input`）
+- 语义色：`--accent`、`--accent-subtle`、`--accent-fg`、`--success`、`--warning`、`--danger`
 - 消息：`--msg-user-bg`、`--msg-ai-bg`
-- 交互：`--sidebar-active`、`--sidebar-hover`、`--hover-overlay`、`--card-bg`、`--dropdown-bg`
+- 交互：`--sidebar-active`、`--sidebar-hover`、`--hover-overlay`、`--dropdown-bg`
+
+禁止在组件里写死 `border-cyan-500` / `border-violet-500` 等选中色；选中态走 `--accent*`（危险例外走 `--danger`）。
+
+## 画布框与设置页规范（强制统一）
+
+后续凡新增设置区块、侧栏卡片、列表行，按本节约定，避免「有的有底、有的只有线、圆角/选中色各一套」。
+
+### 三层框
+
+| 层 | 用途 | 实现 |
+|----|------|------|
+| 页面壳 | 全屏视图背景 | `var(--bg-primary)`；侧栏可用 `--bg-secondary` |
+| 内容卡 | 一组表单项 / 说明块 | `.settings-field` 或 `theme-card rounded-lg border p-4`（`card-bg` + `card-border`） |
+| 控件 | input / textarea / select | `.theme-input` + **统一 `rounded-lg`**（禁止同页混用 `rounded`） |
+
+列表行（如 MCP 服务器）：也用 `theme-card rounded-lg border`，与内容卡同 token。
+
+### 选项芯片（主题 / 人格 / 沙箱 / 预设等）
+
+- 类名：`.settings-option`；选中：`data-selected="true"`；危险选项另加 `data-danger="true"`。
+- 未选：透明底 + `--border-color`；选中：`--accent` 描边 + `--accent-subtle` 底（勿硬编码 cyan/violet）。
+- 主题色块预览可以保留各主题 swatch 颜色，但**选中环优先仍用 accent**，或仅用 swatch 色做点缀，不要整页混多套选中语义。
+
+### 网格
+
+选项网格用 `grid` + `repeat(auto-fill, minmax(7.5rem, 1fr))`（或等价），避免写死 `grid-cols-4` 却只剩 3 个导致末行空缺难看。
+
+### 设置页结构约定
+
+- `FieldGroup` = 一块内容卡（标题 + 可选 hint + 控件）。
+- 分区标题用 `SectionTitle`，不要再给标题单独套边框。
+- 空状态用 `border-dashed` + `--border-color`，仍保持 `rounded-lg`。
+
+参考实现：`src/components/SettingsPanel.tsx` + `src/index.css` 中 `.settings-field` / `.settings-option`。
 
 ## 编码原则
 

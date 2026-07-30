@@ -19,7 +19,7 @@
 - [ ] **M22–M27 伙伴章** — 工程占位补完后再启动
 - [ ] **迁 better-sqlite3 / 增量快照** — M16 暂缓；等 sql.js 全量 export 体感卡顿再评估
 
-### 已写章节的增量补洞（详见 skill「增量补洞索引」）
+### 已写章节的增量补洞（真相源：本节 + 各章实战记录；skill 不维护明细）
 
 - [x] ~~**M13** SSE UI + 工具名规范化 + 断线重连 + Schema 保真 + Elicitation/Resources~~ — 2026-07-26
 - [x] ~~**M12 C4** 确认对话框串行队列~~ — 2026-07-26
@@ -36,6 +36,7 @@
 ### 工程债 / 产品向
 
 - [x] ~~M10 shell 权限统一 + loadRules 接线~~ — 2026-07-26 已做
+- [ ] **原生语音输入** — Electron Web Speech API 不可靠，已从输入栏移除 Mic；若要做需主进程/系统 API 方案
 - [ ] **权限规则可视化编辑器** — 当前设置页为 JSON textarea
 - [x] ~~**M17 G1** `agent-loop` 迁 `_streamChatOverride`~~ — 2026-07-26
 - [x] ~~**M17 G2** — LLM SSE fixture / replay~~ — 2026-07-26

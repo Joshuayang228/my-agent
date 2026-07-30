@@ -163,7 +163,7 @@
 
 ### #17 - 提交门控缺少 build 验证与存量改动隔离
 
-- **规则文件**：`CLAUDE.md`（Git 提交与推送门控）+ `docs/agent-skills/git-workflow.md`（推送前检查）
+- **规则文件**：`CLAUDE.md`（Git 提交与推送门控）+ `agent-skills/git-workflow.md`（推送前检查）
 - **具体条款**：commit 前只要求 `tsc` + `test`，未强制 build；未规定动手前分离无关存量改动
 - **问题类型**：缺失
 - **场景描述**：Eval 前置收口时，`ipc/chat.ts` 重复导入 `toAgentError` 过了 `tsc --noEmit` 和单测，直到 `vite build` 才失败——说明改到 import 结构时只跑 tsc 不足以拦住打包期错误。另外开工时工作区已有上一阶段存量改动，需先单独提交再动手，避免混入本次提交
@@ -172,7 +172,7 @@
 
 ### #18 - 方法论写完一章必须单独 commit
 
-- **规则文件**：`docs/agent-skills/methodology-writing.md` / `CLAUDE.md`（Git 门控）
+- **规则文件**：`agent-skills/methodology-writing.md` / `CLAUDE.md`（Git 门控）
 - **具体条款**：写作流程收尾未写「沉淀完成后立即 commit」
 - **问题类型**：缺失
 - **场景描述**：用户明确要求「每次写完一章就提交 git」（2026-07-26，M15 沉淀后）

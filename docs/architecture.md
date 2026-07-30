@@ -1,6 +1,7 @@
 # 系统架构
 
-> 架构变更时由 AI 更新此文件。
+> **技术维**总图。架构变更时更新此文件。  
+> 产品横切入口：[`modules/product-module-map.md`](./modules/product-module-map.md) · 质量总控：[`quality.md`](./quality.md) · 对内进度：[`progress.md`](./progress.md)
 
 ## 项目愿景
 
