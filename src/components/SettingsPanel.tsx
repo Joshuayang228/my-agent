@@ -297,21 +297,21 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
       <SectionTitle>通用</SectionTitle>
 
       <FieldGroup label="外观" hint="选择界面主题风格">
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(7.5rem, 1fr))' }}>
           {THEMES.map((t) => (
             <button
               key={t.id}
+              type="button"
               onClick={() => onThemeChange?.(t.id)}
-              className="rounded-lg border p-2.5 text-left transition"
-            style={{
-              borderColor: currentTheme === t.id ? t.color : 'var(--border-color)',
-              boxShadow: currentTheme === t.id ? `0 0 0 2px ${t.color}40` : undefined,
-              background: currentTheme === t.id ? `${t.color}10` : undefined,
-            }}
+              className="settings-option p-2.5 text-xs"
+              data-selected={currentTheme === t.id ? 'true' : undefined}
             >
               <div className="mb-1.5 flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded-full border" style={{ background: t.color, borderColor: t.isDark ? '#333' : '#ddd' }} />
-                <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{t.label}</span>
+                <span
+                  className="inline-block h-3 w-3 rounded-full border"
+                  style={{ background: t.color, borderColor: 'var(--border-color)' }}
+                />
+                <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{t.label}</span>
               </div>
               <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t.desc}</div>
             </button>
@@ -325,13 +325,12 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
             {personas.map((p) => (
               <button
                 key={p.id}
+                type="button"
                 onClick={() => update('personaId', p.id)}
-                className={`rounded-lg border px-3 py-2 text-left transition ${
-                  form.personaId === p.id ? 'border-violet-500 bg-violet-500/10' : ''
-                }`}
-                style={form.personaId !== p.id ? { borderColor: 'var(--border-color)' } : undefined}
+                className="settings-option px-3 py-2 text-xs"
+                data-selected={form.personaId === p.id ? 'true' : undefined}
               >
-                <div className="text-xs font-medium" style={{ color: form.personaId === p.id ? '#a78bfa' : 'var(--text-primary)' }}>
+                <div className="font-medium" style={{ color: form.personaId === p.id ? 'var(--accent-fg)' : 'var(--text-primary)' }}>
                   {p.name}
                 </div>
                 <div className="mt-0.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>{p.description}</div>
@@ -365,20 +364,20 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
                 {group.group}
               </div>
               <div className="flex flex-wrap gap-2">
-                {group.items.map((p) => (
-                  <button
-                    key={p.label}
-                    onClick={() => applyPreset(p)}
-                    className={`rounded-lg border px-3 py-1.5 text-xs transition ${
-                      form.llmBaseUrl === p.baseUrl && form.llmModel === p.model
-                        ? 'border-cyan-500 bg-cyan-500/10 text-cyan-500'
-                        : ''
-                    }`}
-                    style={form.llmBaseUrl !== p.baseUrl || form.llmModel !== p.model ? { borderColor: 'var(--border-color)', color: 'var(--text-secondary)' } : undefined}
-                  >
-                    {p.label}
-                  </button>
-                ))}
+                {group.items.map((p) => {
+                  const selected = form.llmBaseUrl === p.baseUrl && form.llmModel === p.model
+                  return (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={() => applyPreset(p)}
+                      className="settings-option px-3 py-1.5 text-xs"
+                      data-selected={selected ? 'true' : undefined}
+                    >
+                      {p.label}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           ))}
@@ -470,23 +469,19 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
       <SectionTitle>安全与权限</SectionTitle>
 
       <FieldGroup label="沙箱模式" hint="控制文件写入和命令执行的安全策略">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(8.5rem, 1fr))' }}>
           {([
             { value: 'read-only', label: '只读', desc: '最安全，禁止写入和网络' },
             { value: 'workspace-write', label: '工作区写入', desc: '允许工作区内操作' },
-            { value: 'full-access', label: '完全访问', desc: '不限制（需谨慎）' },
+            { value: 'full-access', label: '完全访问', desc: '不限制（需谨慎）', danger: true },
           ] as const).map(opt => (
             <button
               key={opt.value}
+              type="button"
               onClick={() => update('sandboxMode', opt.value)}
-              className={`rounded-lg border px-3 py-2 text-left text-xs transition ${
-                form.sandboxMode === opt.value
-                  ? opt.value === 'full-access'
-                    ? 'border-red-500/50 bg-red-500/10 text-red-400'
-                    : 'border-cyan-500/50 bg-cyan-500/10 text-cyan-500'
-                  : ''
-              }`}
-              style={form.sandboxMode !== opt.value ? { borderColor: 'var(--border-color)', color: 'var(--text-secondary)' } : undefined}
+              className="settings-option px-3 py-2 text-xs"
+              data-selected={form.sandboxMode === opt.value ? 'true' : undefined}
+              data-danger={'danger' in opt && opt.danger ? 'true' : undefined}
             >
               <div className="font-medium">{opt.label}</div>
               <div className="mt-0.5 text-[10px] opacity-70">{opt.desc}</div>
@@ -496,7 +491,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
       </FieldGroup>
 
       <FieldGroup label="执行模式" hint="工具调用审批策略">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(8.5rem, 1fr))' }}>
           {([
             { value: 'auto', label: '自动', desc: '仅破坏性操作需确认' },
             { value: 'confirm-all', label: '全部确认', desc: '每次工具调用都需审批' },
@@ -504,13 +499,10 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
           ] as const).map(opt => (
             <button
               key={opt.value}
+              type="button"
               onClick={() => update('executionMode', opt.value)}
-              className={`rounded-lg border px-3 py-2 text-left text-xs transition ${
-                form.executionMode === opt.value
-                  ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-500'
-                  : ''
-              }`}
-              style={form.executionMode !== opt.value ? { borderColor: 'var(--border-color)', color: 'var(--text-secondary)' } : undefined}
+              className="settings-option px-3 py-2 text-xs"
+              data-selected={form.executionMode === opt.value ? 'true' : undefined}
             >
               <div className="font-medium">{opt.label}</div>
               <div className="mt-0.5 text-[10px] opacity-70">{opt.desc}</div>
@@ -571,25 +563,26 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
         </p>
         <button
           onClick={() => setMcpAdding(!mcpAdding)}
-          className="rounded px-2 py-0.5 text-xs text-cyan-500 transition"
+          className="rounded-lg px-2 py-0.5 text-xs transition"
+          style={{ color: 'var(--accent-fg)' }}
         >
           {mcpAdding ? '取消' : '+ 添加'}
         </button>
       </div>
 
       {mcpAdding && (
-        <div className="theme-card rounded-lg border p-3">
+        <div className="settings-field">
           <input
             type="text"
             value={newMcp.name}
             onChange={e => setNewMcp(m => ({ ...m, name: e.target.value }))}
             placeholder="名称（如 filesystem）"
-            className="theme-input mb-2 w-full rounded border px-2 py-1.5 text-xs outline-none"
+            className="theme-input mb-2 w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
           />
           <select
             value={newMcp.transport}
             onChange={e => setNewMcp(m => ({ ...m, transport: e.target.value as 'stdio' | 'sse' }))}
-            className="theme-input mb-2 w-full rounded border px-2 py-1.5 text-xs outline-none"
+            className="theme-input mb-2 w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
           >
             <option value="stdio">stdio（本地命令）</option>
             <option value="sse">SSE（远程 URL）</option>
@@ -600,7 +593,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
               value={newMcp.url}
               onChange={e => setNewMcp(m => ({ ...m, url: e.target.value }))}
               placeholder="SSE URL（如 http://localhost:3000/sse）"
-              className="theme-input mb-2 w-full rounded border px-2 py-1.5 text-xs outline-none"
+              className="theme-input mb-2 w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
             />
           ) : (
             <>
@@ -609,14 +602,14 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
                 value={newMcp.command}
                 onChange={e => setNewMcp(m => ({ ...m, command: e.target.value }))}
                 placeholder="命令（如 npx, node, python3）"
-                className="theme-input mb-2 w-full rounded border px-2 py-1.5 text-xs outline-none"
+                className="theme-input mb-2 w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
               />
               <input
                 type="text"
                 value={newMcp.args}
                 onChange={e => setNewMcp(m => ({ ...m, args: e.target.value }))}
                 placeholder="参数（空格分隔）"
-                className="theme-input mb-2 w-full rounded border px-2 py-1.5 text-xs outline-none"
+                className="theme-input mb-2 w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
               />
             </>
           )}
@@ -625,12 +618,14 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
             onChange={e => setNewMcp(m => ({ ...m, env: e.target.value }))}
             placeholder="环境变量（每行 KEY=VALUE，可选）"
             rows={2}
-            className="theme-input mb-2 w-full rounded border px-2 py-1.5 text-xs outline-none"
+            className="theme-input mb-2 w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
           />
           <button
+            type="button"
             onClick={handleAddMcp}
             disabled={!newMcp.name || (newMcp.transport === 'sse' ? !newMcp.url.trim() : !newMcp.command)}
-            className="rounded bg-cyan-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-cyan-500 disabled:opacity-40"
+            className="rounded-lg px-3 py-1 text-xs font-medium text-white transition disabled:opacity-40"
+            style={{ background: 'var(--accent-emphasis)' }}
           >
             连接
           </button>
@@ -705,32 +700,34 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
         导出或导入你的会话历史、记忆和设置
       </p>
 
-      <div className="flex gap-3">
-        <button
-          onClick={async () => {
-            if (!window.electronAPI) return
-            const res = await window.electronAPI.data.export()
-            if (res.success) toast(`导出成功！${res.stats?.sessions} 个会话 + ${res.stats?.memories} 条记忆`, 'success')
-            else if (res.error !== 'cancelled') toast(`导出失败: ${res.error}`, 'error')
-          }}
-          className="flex items-center gap-2 rounded-lg border px-4 py-2 text-xs transition hover:border-cyan-500 hover:text-cyan-500"
-          style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-        >
-          <Upload size={14} /> 导出数据
-        </button>
-        <button
-          onClick={async () => {
-            if (!window.electronAPI) return
-            const res = await window.electronAPI.data.import()
-            if (res.success) toast(`导入成功！${res.stats?.sessions} 个会话 + ${res.stats?.memories} 条记忆 + ${res.stats?.settings} 项设置`, 'success')
-            else if (res.error !== 'cancelled') toast(`导入失败: ${res.error}`, 'error')
-          }}
-          className="flex items-center gap-2 rounded-lg border px-4 py-2 text-xs transition hover:border-amber-500 hover:text-amber-400"
-          style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-        >
-          <Download size={14} /> 导入数据
-        </button>
-      </div>
+      <FieldGroup label="导入 / 导出">
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={async () => {
+              if (!window.electronAPI) return
+              const res = await window.electronAPI.data.export()
+              if (res.success) toast(`导出成功！${res.stats?.sessions} 个会话 + ${res.stats?.memories} 条记忆`, 'success')
+              else if (res.error !== 'cancelled') toast(`导出失败: ${res.error}`, 'error')
+            }}
+            className="settings-option flex items-center gap-2 px-4 py-2 text-xs"
+          >
+            <Upload size={14} /> 导出数据
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!window.electronAPI) return
+              const res = await window.electronAPI.data.import()
+              if (res.success) toast(`导入成功！${res.stats?.sessions} 个会话 + ${res.stats?.memories} 条记忆 + ${res.stats?.settings} 项设置`, 'success')
+              else if (res.error !== 'cancelled') toast(`导入失败: ${res.error}`, 'error')
+            }}
+            className="settings-option flex items-center gap-2 px-4 py-2 text-xs"
+          >
+            <Download size={14} /> 导入数据
+          </button>
+        </div>
+      </FieldGroup>
     </div>
   )
 
@@ -742,15 +739,17 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
         调试工具和内部状态查看
       </p>
 
-      <button
-        onClick={() => { onOpenDevPanel?.(); onClose() }}
-        className="flex items-center gap-2 rounded-lg border px-4 py-2 text-xs transition hover:border-cyan-500 hover:text-cyan-500"
-        style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-      >
-        <Code size={14} />
-        打开开发者面板
-        <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>Ctrl+Shift+D</span>
-      </button>
+      <FieldGroup label="调试">
+        <button
+          type="button"
+          onClick={() => { onOpenDevPanel?.(); onClose() }}
+          className="settings-option flex w-full items-center gap-2 px-4 py-2 text-xs"
+        >
+          <Code size={14} />
+          打开开发者面板
+          <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>Ctrl+Shift+D</span>
+        </button>
+      </FieldGroup>
     </div>
   )
 
@@ -758,7 +757,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
     <div className="space-y-6">
       <SectionTitle>关于</SectionTitle>
 
-      <div className="rounded-lg border p-5" style={{ borderColor: 'var(--border-color)' }}>
+      <div className="settings-field">
         <h3 className="text-lg font-bold italic" style={{ color: 'var(--text-primary)' }}>My Agent</h3>
         <p className="mt-1 text-xs italic" style={{ color: 'var(--text-muted)' }}>
           "越探索，越着迷。"
@@ -850,9 +849,11 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
           <div className="flex items-center gap-2">
             {saved && <span className="text-xs text-green-400">已保存</span>}
             <button
+              type="button"
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-cyan-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-cyan-500 disabled:opacity-50"
+              className="rounded-lg px-3 py-1 text-xs font-medium text-white transition disabled:opacity-50"
+              style={{ background: 'var(--accent-emphasis)' }}
             >
               {saving ? '保存中...' : '保存'}
             </button>
@@ -891,7 +892,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function FieldGroup({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div>
+    <div className="settings-field">
       <label className="theme-label mb-1.5 block text-xs font-medium">{label}</label>
       {hint && <div className="mb-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>{hint}</div>}
       {children}

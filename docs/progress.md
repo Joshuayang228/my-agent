@@ -4,9 +4,16 @@
 
 ## 当前状态
 
-**阶段**：工程化 Gap 三批已落地；下一档 **M22–M27** 伙伴章，或 Swarm / M20 / M21 产品向大项
+**阶段**：文档四维已落地；设置页视觉框已统一；产品下一档仍是 **M21/M22–M27** 人格与伙伴向
 
-**最新动态（2026-07-26）**：
+**最新动态（2026-07-31）**：
+- ✅ **设置页画布框统一**：`.settings-field` / `.settings-option` + `SettingsPanel` 改造；规范写入 `agent-skills/frontend-guidelines.md`「画布框与设置页规范」。
+
+**此前（2026-07-30）**：
+- ✅ **agent-skills 提出 docs**：迁至仓库根 `agent-skills/`；`CLAUDE.md` 补齐技能简介与注入时机（场景点读 / 自审必读 / 勿整库吞）。
+- ✅ **文档体系重构**：`docs/modules/product-module-map.md` + persona/memory/permission 三卡；`docs/quality.md`；坑/决策归账本；features 等五份迁 `_archive/docs-legacy/`；冷启动模板 `_template/code-project/` 已对齐。方案见 `docs/requirements/docs-system-restructure.md`。
+
+**此前（2026-07-26）**：
 - ✅ **工程化 Gap 三批**：Batch1（确认队列/脱敏树/SSE UI/MCP 命名/并发上限/G5·G13/agent-loop DI）+ Batch2（别名·元数据函数化/记忆去重/M09 token 车道·sync·checkpoint/M07 G2·G8·G9/MCP 重连·Schema/M17 G2–G4）+ Batch3（Eval B01+pass^k+baseline、Elicitation/Resources、会话 Runtime 中心化、Observer）。短需求见 `docs/requirements/batch3-capability-gaps.md`。
 - ✅ **M13 MCP 集成**：理念章 + code 章；后续增量（SSE UI / 重连 / Elicitation / Resources）已在工程化批次补齐。
 - ✅ **M16 并发与数据架构**：理念章 + code 章。第一性原理「并发边界与数据落点同图」；G1 persist coalesce、G9 原子写盘、G2 任务关键转移 await 落盘、G3 `schema_version` migration；sql.js 不迁库。264 单测通过。
@@ -292,7 +299,7 @@
   - **对照 CC/Alice 审计**：派 subagent 并行读 CC `services/api/` 和 Alice Ch.11，确认两家都是"单一流式管线 + 外层 drain"，不为非流式写第二套逻辑
   - **验证**：tsc 零错误，113 个测试全过（13 文件，原 106 + 新 7）
 
-**下一步** → 📋 方法论待补队列见 [`methodology/README.md`](../methodology/README.md)；深啃五步见 [`docs/agent-skills/methodology-writing.md`](agent-skills/methodology-writing.md)
+**下一步** → 📋 方法论待补队列见 [`methodology/README.md`](../methodology/README.md)；深啃五步见 [`agent-skills/methodology-writing.md`](../agent-skills/methodology-writing.md)
 
 - **M4 上下文压缩深啃 · Phase A 正确性修复完成**（2026-07-02）：
   - **学**：三 subagent 并行读 Alice Ch.05 + CC compact/ 源码（compact.ts/microCompact.ts/autoCompact.ts）+ 审计当前实现

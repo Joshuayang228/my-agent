@@ -10,11 +10,11 @@ import { FileBrowser } from './components/FileBrowser'
 import MentionPopup from './components/MentionPopup'
 import {
   Sun, Moon, MessageCircle, Wrench, Settings, Globe,
-  Volume2, Paperclip, Shield, RefreshCw, Zap, Mic,
+  Volume2, Paperclip, Shield, RefreshCw, Zap,
   Folder, FolderOpen, Ban, AlertTriangle, User,
   Plug, ChevronDown, ChevronRight, Square,
   Copy, Check, X, Pencil, RotateCcw, GitBranch, Trash2,
-  Plus, Search, Cpu, Menu, ArrowDown, Brain, Code, Send,
+  Plus, Search, Cpu, Menu, Brain, Code, Send,
   Pin, File,
 } from 'lucide-react'
 
@@ -43,6 +43,39 @@ interface ToolStatus {
 
 interface ThinkingChunk {
   content: string
+}
+
+function ThinkingBlock({
+  thinking,
+  expanded,
+  onToggle,
+  streaming,
+  className = '',
+}: {
+  thinking: ThinkingChunk[]
+  expanded: boolean
+  onToggle: () => void
+  streaming: boolean
+  className?: string
+}) {
+  return (
+    <div className={`rounded-md border px-3 py-2 ${className}`} style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+      <button
+        onClick={onToggle}
+        className="flex w-full items-center gap-2 text-[11px] font-medium"
+        style={{ color: 'var(--text-muted)' }}
+      >
+        <ChevronRight size={12} className={`transition-transform ${expanded ? 'rotate-90' : ''}`} />
+        <span>思考过程</span>
+        {streaming && <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: 'var(--accent)' }} />}
+      </button>
+      {expanded && (
+        <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          {thinking.map((t) => t.content).join('')}
+        </pre>
+      )}
+    </div>
+  )
 }
 
 interface UsageInfo {
@@ -133,10 +166,6 @@ function App() {
   const [mentionedFiles, setMentionedFiles] = useState<Array<{ name: string; path: string }>>([])
   const [bgStreamingSessionId, setBgStreamingSessionId] = useState<string | null>(null)
   const [activeBgTaskCount, setActiveBgTaskCount] = useState(0)
-  const [showScrollBtn, setShowScrollBtn] = useState(false)
-  const [isListening, setIsListening] = useState(false)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -457,46 +486,6 @@ function App() {
         break
     }
   }, [])
-
-  const toggleVoiceInput = useCallback(() => {
-    if (isListening) {
-      recognitionRef.current?.stop()
-      setIsListening(false)
-      return
-    }
-
-    const SpeechRecognition = (window as unknown as Record<string, unknown>).SpeechRecognition || (window as unknown as Record<string, unknown>).webkitSpeechRecognition
-    if (!SpeechRecognition) {
-      toast?.('当前浏览器不支持语音识别', 'warning')
-      return
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const recognition = new (SpeechRecognition as any)()
-    recognition.lang = 'zh-CN'
-    recognition.interimResults = true
-    recognition.continuous = true
-
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let transcript = ''
-      for (let i = 0; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript
-      }
-      setInput(transcript)
-    }
-
-    recognition.onerror = () => {
-      setIsListening(false)
-    }
-
-    recognition.onend = () => {
-      setIsListening(false)
-    }
-
-    recognitionRef.current = recognition
-    recognition.start()
-    setIsListening(true)
-  }, [isListening, toast])
 
   const speakText = useCallback((text: string) => {
     if (!window.speechSynthesis) return
@@ -995,10 +984,6 @@ function App() {
           data-testid="chat-messages"
           className={`scrollbar-thin relative flex-1 select-text overflow-y-auto ${dragOver ? 'ring-2 ring-inset' : ''}`}
           style={dragOver ? { ['--tw-ring-color' as string]: 'var(--accent)' } as React.CSSProperties : {}}
-          onScroll={(e) => {
-            const el = e.currentTarget
-            setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 200)
-          }}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
           onDragLeave={() => setDragOver(false)}
           onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) handleFileAttach(e.dataTransfer.files) }}
@@ -1035,10 +1020,12 @@ function App() {
 
             {/* 消息流 — Codex 风格 */}
             <div className="space-y-6">
-              {visibleMessages.map((msg) => {
+              {visibleMessages.map((msg, msgIndex) => {
                 const isSearchMatch = searchQuery && msg.content.toLowerCase().includes(searchQuery.toLowerCase())
                 const dimmed = searchQuery && !isSearchMatch
                 const isUser = msg.role === 'user'
+                const isLastMsg = msgIndex === visibleMessages.length - 1
+                const showThinkingBeforeMsg = !isUser && isLastMsg && thinking.length > 0
 
                 return (
                   <div
@@ -1046,6 +1033,15 @@ function App() {
                     className={`animate-fade-in-up group ${dimmed ? 'opacity-20' : ''} ${isSearchMatch ? 'rounded-md ring-1' : ''} ${isUser ? 'flex justify-end' : ''}`}
                     style={isSearchMatch ? { ['--tw-ring-color' as string]: 'var(--accent)', ['--tw-ring-opacity' as string]: '0.3' } as React.CSSProperties : {}}
                   >
+                    {showThinkingBeforeMsg && (
+                      <ThinkingBlock
+                        thinking={thinking}
+                        expanded={thinkingExpanded}
+                        onToggle={() => setThinkingExpanded(!thinkingExpanded)}
+                        streaming={isStreaming}
+                        className="mb-3"
+                      />
+                    )}
                     {isUser ? (
                       /* ── 用户消息：右对齐气泡 ── */
                       <div className="relative max-w-[85%]">
@@ -1148,24 +1144,15 @@ function App() {
               })}
             </div>
 
-            {/* Thinking */}
-            {thinking.length > 0 && (
-              <div className="mt-4 rounded-md border px-3 py-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
-                <button
-                  onClick={() => setThinkingExpanded(!thinkingExpanded)}
-                  className="flex w-full items-center gap-2 text-[11px] font-medium"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  <ChevronRight size={12} className={`transition-transform ${thinkingExpanded ? 'rotate-90' : ''}`} />
-                  <span>思考过程</span>
-                  {isStreaming && <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: 'var(--accent)' }} />}
-                </button>
-                {thinkingExpanded && (
-                  <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                    {thinking.map((t) => t.content).join('')}
-                  </pre>
-                )}
-              </div>
+            {/* 思考过程：助手消息尚未出现时显示在消息流下方 */}
+            {thinking.length > 0 && visibleMessages[visibleMessages.length - 1]?.role !== 'assistant' && (
+              <ThinkingBlock
+                thinking={thinking}
+                expanded={thinkingExpanded}
+                onToggle={() => setThinkingExpanded(!thinkingExpanded)}
+                streaming={isStreaming}
+                className="mt-4"
+              />
             )}
 
             {/* 工具卡片 — 可折叠 */}
@@ -1213,16 +1200,6 @@ function App() {
             <div ref={messagesEndRef} />
           </div>
 
-          {showScrollBtn && (
-            <button
-              onClick={scrollToBottom}
-              className="absolute bottom-3 right-4 z-10 rounded-full border p-1.5 shadow transition"
-              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-              title="回到底部"
-            >
-              <ArrowDown size={16} />
-            </button>
-          )}
         </div>}
 
         {/* 输入区 — Codex 风格居中卡片 */}
@@ -1463,16 +1440,6 @@ function App() {
                       </div>
                     )}
                   </div>
-
-                  {/* 语音 */}
-                  <button
-                    onClick={toggleVoiceInput}
-                    className={`flex h-7 w-7 items-center justify-center rounded-md text-sm transition ${isListening ? 'animate-pulse text-white' : ''}`}
-                    style={isListening ? { background: 'var(--danger)' } : { color: 'var(--text-muted)' }}
-                    onMouseEnter={(e) => { if (!isListening) e.currentTarget.style.background = 'var(--hover-overlay)' }}
-                    onMouseLeave={(e) => { if (!isListening) e.currentTarget.style.background = '' }}
-                    title={isListening ? '停止录音' : '语音输入'}
-                  ><Mic size={14} /></button>
 
                   {/* 发送/停止 */}
                   {isStreaming ? (

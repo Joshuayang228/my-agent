@@ -278,6 +278,35 @@
   border-color: var(--card-border);
 }
 
+/* 设置页 / 面板：统一「内容卡」与「选项芯片」——细则见 agent-skills/frontend-guidelines.md */
+.settings-field {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.settings-option {
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--text-secondary);
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.settings-option[data-selected="true"] {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+  color: var(--accent-fg);
+  box-shadow: 0 0 0 2px var(--accent-subtle);
+}
+.settings-option[data-selected="true"][data-danger="true"] {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 20%, transparent);
+}
+
 @keyframes fade-in-up {
   from {
     opacity: 0;
@@ -346,4 +375,10 @@
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background: var(--border-color);
   border-radius: 3px;
+}
+/* 隐藏 Windows 滚动条上下箭头按钮 */
+.scrollbar-thin::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
 }

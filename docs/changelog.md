@@ -5,6 +5,18 @@
 
 ## [未发布]
 
+### Changed — 设置页画布框统一（2026-07-31）
+
+- 设置内容卡 / 选项芯片统一为 `.settings-field`、`.settings-option`（accent 选中态，危险项走 danger）
+- 视觉约定写入 `agent-skills/frontend-guidelines.md`，后续 UI 改动按该节执行
+
+### Changed — 文档体系重组（2026-07-30）
+- 产品入口：`docs/modules/product-module-map.md` + 人格/记忆/权限试点卡；质量总控：`docs/quality.md`。
+- 账本含 progress / changelog / wishlist / pitfalls / decisions / rules-feedback。
+- 协作 SOP：`docs/agent-skills/` → 根目录 `agent-skills/`；`CLAUDE.md` 写明技能简介与读取时机。
+- 旧文档 `features` / `api-contracts` / `testing` / `eval-design` / `glossary` 迁入 `_archive/docs-legacy/`。
+- 协作：`progress` 对内、`changelog` 对外；产品任务先读模块卡（见根目录 `CLAUDE.md`）。
+
 ### Added — 工程化 Gap 三批补齐（2026-07-26）
 - **Batch1**：确认对话框串行队列；DevPanel traces；MCP SSE 设置与工具名 `mcp__`；工具并发上限；压缩前 image 剥离 + token 估算；agent-loop 测迁 `_streamChatOverride`。
 - **Batch2**：工具别名 / `resolveMetadata`；记忆语义去重；前后台 token 车道 + `task:sync` + checkpoint；L2 去重/G8/G9 `onCompact`；MCP 退避重连与 Schema 保真；SSE fixture 回放；可选 live LLM E2E；IPC 纯逻辑单测。
