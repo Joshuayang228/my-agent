@@ -13,7 +13,7 @@
 
 ### 为什么分六个部分
 
-M01–M27 按**依赖层级**从底向上排列：底层基础设施决定上层能做什么，读者应先理解当前章节所依赖的那一层。
+M01–M31 按**依赖层级**从底向上排列：底层基础设施决定上层能做什么，读者应先理解当前章节所依赖的那一层。
 
 **Part I 核心运行时** 最先，因为 Streaming 和错误体系是 Agent Loop 本身运行的基础——不理解流式传输如何传播，就无法真正理解 Loop 为何如此设计。错误体系放在工具系统之前，因为错误处理贯穿整个运行时，不是某个模块的附属。
 
@@ -25,11 +25,13 @@ M01–M27 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 **Part V 智能与进化** 只保留多 Agent 和自进化两章——这两块是通用 Agent 能力，与产品类型无关。
 
-**Part VI 伙伴类 Agent** 以人格引擎为起点：伙伴章节首先要回答"她是谁"，然后才能讨论关系如何建立、如何说话、如何深化。人格引擎（原 M09）从工程章节移入这组，原因是它是伙伴类产品的核心差异化能力——工具型 Agent 不需要人格引擎，CC 的"身份"是静态 system prompt，不是动态引擎。
+**Part VI 伙伴与生活世界**（2026-08-01 重排）：终局对齐「有人设、有成长、有每日生活、有朋友圈/衣柜/交际圈」。结构为 **Identity → Growth → World → 体验横切 → 在场**。旧 M22–M27 体验向占位已归档至 `_archive/methodology-companion-legacy/`。
 
-### 文件命名过渡说明
+**施工与沉淀分工**：工程只认 `docs/requirements/companion-world-framework.md` 的 **W0–W6**；方法论按问题域编号（M21–M31），**不按 M 号顺序施工**，随对应 W 批次完成后深啃沉淀。
 
-所有文件已统一重命名为 `mNN-主题.md` 格式，与章节编号一一对应。
+### 文件命名
+
+`mNN-主题.md`（+ 可选 `-code.md`），与章节编号一一对应。
 
 ---
 
@@ -80,17 +82,25 @@ M01–M27 按**依赖层级**从底向上排列：底层基础设施决定上层
 | M19 | 多 Agent 协作 | `m19-multi-agent.md` + `m19-multi-agent-code.md` | ✅ |
 | M20 | 自进化架构 | `m20-self-evolution.md` + `m20-self-evolution-code.md` | ✅ |
 
-### Part VI：伙伴类 Agent
+### Part VI：伙伴与生活世界
 
-| 编号 | 章节 | 文件 | 状态 |
-|------|------|------|------|
-| M21 | 人格引擎 | `m21-persona-engine.md` + `m21-persona-engine-code.md` | ✅ |
-| M22 | 信息不对称设计 | `m22-companion-asymmetric-info.md` | 📋 占位 |
-| M23 | 冷启动与关系建立 | `m23-companion-cold-start.md` | 📋 占位 |
-| M24 | 对话行为规范 | `m24-companion-conversation-norms.md` | 📋 占位 |
-| M25 | 能力边界表达 | `m25-companion-capability-expression.md` | 📋 占位 |
-| M26 | 叙事连贯性 | `m26-companion-narrative-coherence.md` | 📋 占位 |
-| M27 | 主动在场设计 | `m27-companion-proactive-presence.md` | 📋 占位 |
+> 技术框架与 W 批次：`docs/requirements/companion-world-framework.md`
+
+| 编号 | 章节 | 文件 | 层 | 主 W | 状态 |
+|------|------|------|----|------|------|
+| M21 | 人格引擎与设定集 | `m21-persona-engine.md` + `-code.md` | Identity | W0 | ✅（G3/G5 见 M22/W0） |
+| M22 | 成长核：MUTABLE 与反思 | `m22-growth-mutable.md` | Growth | W1 | 📋 |
+| M23 | 生活世界架构 | `m23-world-architecture.md` | World | W2 | 📋 |
+| M24 | 朋友圈与事件层 | `m24-moments-event-layer.md` | World | W3 | 📋 |
+| M25 | 资产层（衣柜等） | `m25-assets-wardrobe.md` | World | W4 | 📋 |
+| M26 | 交际圈与卡司 | `m26-social-cast.md` | World | W5 | 📋 |
+| M27 | 对话行为与两空间 | `m27-conversation-two-spaces.md` | 体验 | W0/W6 | 📋 |
+| M28 | 冷启动与关系阶段 | `m28-cold-start-relationship.md` | 体验 | W1 | 📋 |
+| M29 | 信息不对称与记忆透明 | `m29-asymmetric-memory.md` | 体验 | W1+ | 📋 |
+| M30 | 叙事连贯与能力边界 | `m30-narrative-capability.md` | 体验 | W2–W4 | 📋 |
+| M31 | 主动在场设计 | `m31-proactive-presence.md` | Surfaces | W3+W6 | 📋 |
+
+旧文件归档：`_archive/methodology-companion-legacy/`。
 
 ---
 
@@ -105,13 +115,14 @@ M01–M27 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 ## 待补队列
 
-> 完整流程（深啃五步、参考源映射、产品 backlog）见 `agent-skills/methodology-writing.md`。状态以本目录表为准。
+> 完整流程见 `agent-skills/methodology-writing.md`。  
+> **工程施工**认 W0–W6（`docs/requirements/companion-world-framework.md`）；**本章目录**只认沉淀状态。
 
-| 优先级 | 下一章 | 说明 |
-|--------|--------|------|
-| — | M11–M17（含 M13） | ✅ 工程方法论占位章已齐 |
-| 后置 | **M22–M27** | 伙伴章；工程占位补完后启动 |
-| 增量 | 已写章节的暂缓 Gap | 以 `docs/wishlist.md` + 各章实战记录为准（skill 不维护明细表） |
+| 优先级 | 项 | 说明 |
+|--------|-----|------|
+| 工程下一步 | **W0** | 人设资产化 + 主角色 Bible 骨架 |
+| 沉淀 | 随 W 完成写对应 M 章 | 勿按 M22→M31 编号顺序开工 |
+| 增量 | 已写章节暂缓 Gap | `docs/wishlist.md` + 各章实战记录 |
 
 ## 写作约定
 

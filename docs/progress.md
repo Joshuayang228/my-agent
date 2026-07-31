@@ -4,9 +4,12 @@
 
 ## 当前状态
 
-**阶段**：文档四维已落地；设置页视觉框已统一；产品下一档仍是 **M21/M22–M27** 人格与伙伴向
+**阶段**：伙伴终局框架已定（Identity/Growth/World）；下一工程步 **W0** 人设资产化
 
-**最新动态（2026-07-31）**：
+**最新动态（2026-08-01）**：
+- ✅ **伙伴与生活世界技术框架**：`docs/requirements/companion-world-framework.md`（W0–W6）；方法论 Part VI 重排为 **M21–M31**；旧 M22–M27 占位归档 `_archive/methodology-companion-legacy/`。
+
+**此前（2026-07-31）**：
 - ✅ **设置页画布框统一**：`.settings-field` / `.settings-option` + `SettingsPanel` 改造；规范写入 `agent-skills/frontend-guidelines.md`「画布框与设置页规范」。
 
 **此前（2026-07-30）**：

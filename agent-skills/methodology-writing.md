@@ -107,7 +107,9 @@
 | M18 | `evals/` |
 | M19 | `electron/main/agent/subagent.ts` |
 | M20 | `electron/main/skills/` |
-| M21 | `electron/main/agent/prompt-builder.ts` |
+| M21–M22 | `electron/main/agent/prompt-builder.ts`（目标：`personas/` + persona-store / reflection） |
+| M23–M26 | 目标：`electron/main/world/`（随 W2–W5 生长） |
+| M27–M31 | Prompt 规范 + UI 截面（Settings / Memory / Moments / 触达） |
 
 ### 产品向 backlog（不占 mNN）
 
@@ -281,8 +283,19 @@ methodology/
 | M18 Eval | — | Harness Guide | observability/ |
 | M19 多Agent | ch06-multi-agent | coordinator/ | a2a/ |
 | M20 自进化 | ch09+ch10 | — | — |
-| M21 人格引擎 | ch16-alive-agent + ch14-prompts | context.ts | — |
-| M22–M27 伙伴类 | ch16+ch18+ch19+ch20（Alice 特有章节）| — | — |
+| M21 人格引擎与设定集 | ch16 + ch14 | context.ts | — |
+| M22 成长 MUTABLE | ch14/ch16 PersonaReflection | — | — |
+| M23 生活世界 | ch16 + ch18 | dayscript / paths | — |
+| M24 朋友圈事件层 | ch18 | Moments 相关 | — |
+| M25 资产层衣柜 | ch18 | assets / wardrobe | — |
+| M26 交际圈卡司 | ch16 子 Agent 人设 | role-prompt-map | — |
+| M27 对话两空间 | ch16 aside | — | — |
+| M28 冷启动关系 | ch16；Reflection 门控 | PersonaReflectionService | — |
+| M29 记忆透明 | ch16 自洽3 | — | — |
+| M30 叙事与能力边界 | ch18 + ch19/20 | — | — |
+| M31 主动在场 | ch18 | — | — |
+
+> Part VI 施工批次见 `docs/requirements/companion-world-framework.md`（W0–W6），勿按 M 号顺序工程实现。
 
 ### 路径速查
 

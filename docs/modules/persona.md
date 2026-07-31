@@ -49,5 +49,5 @@
 
 ## 现状 / 缺口
 
-**现状**：3 个内置模板；L1 分区；画像三维注入在记忆侧。  
-**缺口**：身份硬锚加强；MUTABLE 动态演化（M21 G3）；具名角色 / Character Bible（M21 G5）；卡司设定。
+**现状**：3 个内置模板硬编码于 `prompt-builder.ts`；L1 分区；画像三维注入在记忆侧。  
+**缺口 / 路线**：见 `docs/requirements/companion-world-framework.md`（W0–W6）与方法论 **M21–M31**。下一刀 **W0** 主角色 Bible 资产化。
