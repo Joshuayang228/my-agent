@@ -4,11 +4,11 @@
 
 ## 当前状态
 
-**阶段**：伙伴架构文档已齐；**等确认后再写 W0 代码**
+**阶段**：伙伴**完整技术方案**已补全（tech-spec）；待确认 §8 讨论项后再写 W0
 
 **最新动态（2026-08-01）**：
-- ✅ **文档规范方案 A**：契约 `companion-world-framework.md` + 详设 `companion-architecture.md`；`architecture.md` §5.1；DEC-034；modules 候选；Part VI 对齐单活跃/Catch-up≤7 天。清理 WPS「副本」误同步；恢复被回滚的 README/账本。
-- ✅ **产品约束**：同团多主角、单活跃、禁会话中换角、完整切换、非活跃暂停、Catch-up≤7 天、废旧模板。
+- ✅ **companion-tech-spec.md**：Role Pack 格式、SQLite 表、IPC/API、迁移、W0–W6 验收、风险；施工认此文。
+- ✅ 契约 + 架构详设 + DEC-034 + architecture §5.1；Part VI 对齐单活跃/Catch-up≤7 天。
 
 **此前（2026-07-31）**：
 - ✅ **设置页画布框统一**：`.settings-field` / `.settings-option` + `SettingsPanel` 改造；规范写入 `agent-skills/frontend-guidelines.md`「画布框与设置页规范」。

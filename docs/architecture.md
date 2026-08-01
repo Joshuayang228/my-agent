@@ -154,8 +154,9 @@ think → act → observe → think → ...
 |------|------|
 | 运行时 | 唯一 `activeRoleId`；会话中禁止换角；完整切换 + 非活跃暂停 |
 | Catch-up | 切换时细补最近 ≤7 日生活剧本/事件 |
-| 详设 | [`requirements/companion-architecture.md`](./requirements/companion-architecture.md) |
 | 契约/批次 | [`requirements/companion-world-framework.md`](./requirements/companion-world-framework.md) |
+| 模块架构 | [`requirements/companion-architecture.md`](./requirements/companion-architecture.md) |
+| 施工合同 | [`requirements/companion-tech-spec.md`](./requirements/companion-tech-spec.md) |
 
 目录落点随 W0+ 生长（意向：`electron/main/companion/`）；`prompt-builder` 退化为组装器。
 

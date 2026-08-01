@@ -54,7 +54,8 @@
 | 文件 | 写什么 |
 |------|--------|
 | **本文** | 产品契约、约束、W 批次 |
-| `companion-architecture.md` | 六域模块、数据分桶、切换/Catch-up 时序 |
+| `companion-architecture.md` | 六域模块、分桶、时序 |
+| `companion-tech-spec.md` | **施工合同**：表/接口/迁移/逐步验收/风险 |
 | `docs/architecture.md` | Electron 总图 + 本节指针 |
 | `docs/modules/*` | 有代码边界后再开/改产品卡 |
 | `methodology/` M21–M31 | 深 Why；随 W 沉淀 |
@@ -62,5 +63,5 @@
 
 ## 下一步
 
-1. 详设评审通过（`companion-architecture.md`）  
-2. 再动 W0 代码（你明确说可以写代码之前，不改 `electron/` 业务实现）  
+1. 评审并确认 `companion-tech-spec.md`（含文末 §8 待讨论项）  
+2. 你说「可以按此施工」后从 **W0** 动手；此前不改 `electron/` 业务实现  
