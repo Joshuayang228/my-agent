@@ -72,6 +72,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
       toVersion: number,
     ): Promise<{ ok: true; version: number } | { ok: false; error: string }> =>
       ipcRenderer.invoke('companion:rollback-mutable', roleId, toVersion),
+    getMoments: (opts?: { limit?: number; offset?: number }): Promise<{
+      roleId: string
+      items: Array<{
+        id: string
+        roleId: string
+        eventId: string
+        publishedAt: number
+        text: string
+        meta: Record<string, unknown>
+      }>
+    }> => ipcRenderer.invoke('companion:get-moments', opts),
+    catchupStatus: (): Promise<{
+      roleId: string
+      pausedAt: number | null
+      catchupSummary: string
+      lastTickAt: number
+    }> => ipcRenderer.invoke('companion:catchup-status'),
   },
 
   mcp: {

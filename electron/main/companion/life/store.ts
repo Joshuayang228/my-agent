@@ -11,6 +11,7 @@ import { getDatabase, persist } from '../../storage/database'
 import type {
   CompanionEvent,
   CompanionEventStatus,
+  CompanionMoment,
   CompanionRoleState,
   DayScriptPayload,
   DayScriptRow,
@@ -55,6 +56,24 @@ async function ensureTables(): Promise<void> {
   db.run(`
     CREATE INDEX IF NOT EXISTS idx_companion_events_role_sched
       ON companion_events(role_id, scheduled_at)
+  `)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS companion_moments (
+      id           TEXT PRIMARY KEY,
+      role_id      TEXT NOT NULL,
+      event_id     TEXT NOT NULL,
+      published_at INTEGER NOT NULL,
+      text         TEXT NOT NULL,
+      meta_json    TEXT NOT NULL DEFAULT '{}'
+    )
+  `)
+  db.run(`
+    CREATE INDEX IF NOT EXISTS idx_companion_moments_role_pub
+      ON companion_moments(role_id, published_at DESC)
+  `)
+  db.run(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_moments_event
+      ON companion_moments(event_id)
   `)
 }
 
@@ -325,4 +344,143 @@ export async function hasEventsForScript(dayScriptId: string): Promise<boolean> 
   const ok = stmt.step()
   stmt.free()
   return ok
+}
+
+export async function setCatchupSummary(roleId: string, summary: string): Promise<void> {
+  await ensureTables()
+  const db = await getDatabase()
+  const now = Date.now()
+  const existing = await getRoleState(roleId)
+  db.run(
+    `INSERT INTO companion_role_state (role_id, paused_at, last_tick_at, catchup_summary, updated_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(role_id) DO UPDATE SET
+       catchup_summary = excluded.catchup_summary,
+       updated_at = excluded.updated_at`,
+    [
+      roleId,
+      existing?.pausedAt ?? null,
+      existing?.lastTickAt ?? 0,
+      summary,
+      now,
+    ],
+  )
+  persist()
+}
+
+/** 将指定 id 标为 published */
+export async function markEventPublished(eventId: string): Promise<void> {
+  await ensureTables()
+  const db = await getDatabase()
+  db.run(`UPDATE companion_events SET status = 'published' WHERE id = ?`, [eventId])
+  persist()
+}
+
+export async function getEventById(eventId: string): Promise<CompanionEvent | null> {
+  await ensureTables()
+  const db = await getDatabase()
+  const stmt = db.prepare(
+    `SELECT id, role_id, scheduled_at, status, type, payload_json, day_script_id
+     FROM companion_events WHERE id = ?`,
+  )
+  stmt.bind([eventId])
+  if (!stmt.step()) {
+    stmt.free()
+    return null
+  }
+  const r = stmt.getAsObject() as Record<string, unknown>
+  stmt.free()
+  return {
+    id: r.id as string,
+    roleId: r.role_id as string,
+    scheduledAt: r.scheduled_at as number,
+    status: r.status as CompanionEventStatus,
+    type: r.type as string,
+    payload: JSON.parse((r.payload_json as string) || '{}') as Record<string, unknown>,
+    dayScriptId: (r.day_script_id as string) || null,
+  }
+}
+
+export async function insertMoment(input: {
+  roleId: string
+  eventId: string
+  publishedAt: number
+  text: string
+  meta?: Record<string, unknown>
+}): Promise<CompanionMoment | null> {
+  await ensureTables()
+  const db = await getDatabase()
+  const exists = db.prepare('SELECT 1 AS x FROM companion_moments WHERE event_id = ? LIMIT 1')
+  exists.bind([input.eventId])
+  if (exists.step()) {
+    exists.free()
+    return null
+  }
+  exists.free()
+
+  const id = randomUUID()
+  db.run(
+    `INSERT INTO companion_moments (id, role_id, event_id, published_at, text, meta_json)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      input.roleId,
+      input.eventId,
+      input.publishedAt,
+      input.text,
+      JSON.stringify(input.meta ?? {}),
+    ],
+  )
+  persist()
+  return {
+    id,
+    roleId: input.roleId,
+    eventId: input.eventId,
+    publishedAt: input.publishedAt,
+    text: input.text,
+    meta: input.meta ?? {},
+  }
+}
+
+export async function listMoments(
+  roleId: string,
+  opts?: { limit?: number; offset?: number },
+): Promise<CompanionMoment[]> {
+  await ensureTables()
+  const db = await getDatabase()
+  const limit = Math.min(Math.max(opts?.limit ?? 50, 1), 200)
+  const offset = Math.max(opts?.offset ?? 0, 0)
+  const stmt = db.prepare(
+    `SELECT id, role_id, event_id, published_at, text, meta_json
+     FROM companion_moments
+     WHERE role_id = ?
+     ORDER BY published_at DESC
+     LIMIT ? OFFSET ?`,
+  )
+  stmt.bind([roleId, limit, offset])
+  const out: CompanionMoment[] = []
+  while (stmt.step()) {
+    const r = stmt.getAsObject() as Record<string, unknown>
+    out.push({
+      id: r.id as string,
+      roleId: r.role_id as string,
+      eventId: r.event_id as string,
+      publishedAt: r.published_at as number,
+      text: r.text as string,
+      meta: JSON.parse((r.meta_json as string) || '{}') as Record<string, unknown>,
+    })
+  }
+  stmt.free()
+  return out
+}
+
+export async function countMoments(roleId: string): Promise<number> {
+  await ensureTables()
+  const db = await getDatabase()
+  const stmt = db.prepare('SELECT COUNT(*) AS c FROM companion_moments WHERE role_id = ?')
+  stmt.bind([roleId])
+  stmt.step()
+  const c = (stmt.getAsObject() as { c: number }).c
+  stmt.free()
+  return c
 }

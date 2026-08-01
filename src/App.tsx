@@ -4,6 +4,7 @@ import { MarkdownRenderer } from './components/MarkdownRenderer'
 import { SettingsPanel } from './components/SettingsPanel'
 import { DevPanel } from './components/DevPanel'
 import { MemoryPanel } from './components/MemoryPanel'
+import { MomentsPanel } from './components/MomentsPanel'
 import { ToastProvider, useToast } from './components/Toast'
 import { SkillsPanel } from './components/SkillsPanel'
 import { FileBrowser } from './components/FileBrowser'
@@ -15,7 +16,7 @@ import {
   Plug, ChevronDown, ChevronRight, Square,
   Copy, Check, X, Pencil, RotateCcw, GitBranch, Trash2,
   Plus, Search, Cpu, Menu, Brain, Code, Send,
-  Pin, File,
+  Pin, File, Newspaper,
 } from 'lucide-react'
 
 let messageIdCounter = 0
@@ -117,7 +118,7 @@ function App() {
   const [pendingImages, setPendingImages] = useState<ImageAttachment[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [activeTools, setActiveTools] = useState<ToolStatus[]>([])
-  const [activeView, setActiveView] = useState<'chat' | 'skills' | 'memory' | 'settings'>('chat')
+  const [activeView, setActiveView] = useState<'chat' | 'skills' | 'memory' | 'moments' | 'settings'>('chat')
   const [theme, setTheme] = useState<string>(() => {
     return localStorage.getItem('theme') || 'dark'
   })
@@ -322,6 +323,10 @@ function App() {
       if (e.ctrlKey && e.shiftKey && e.key === 'M') {
         e.preventDefault()
         setActiveView(v => v === 'memory' ? 'chat' : 'memory')
+      }
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault()
+        setActiveView(v => v === 'moments' ? 'chat' : 'moments')
       }
       if (e.ctrlKey && e.shiftKey && e.key === 'K') {
         e.preventDefault()
@@ -846,6 +851,9 @@ function App() {
               )}
             </div>
             <div className="flex items-center gap-1">
+              <SidebarBtn onClick={() => setActiveView(v => v === 'moments' ? 'chat' : 'moments')} title="朋友圈 (Ctrl+Shift+F)">
+                <Newspaper size={14} />
+              </SidebarBtn>
               <SidebarBtn onClick={() => setActiveView(v => v === 'memory' ? 'chat' : 'memory')} title="记忆 (Ctrl+Shift+M)">
                 <Brain size={14} />
               </SidebarBtn>
@@ -952,6 +960,9 @@ function App() {
               )}
               {activeView === 'memory' && (
                 <MemoryPanel onClose={() => setActiveView('chat')} />
+              )}
+              {activeView === 'moments' && (
+                <MomentsPanel onClose={() => setActiveView('chat')} />
               )}
             </div>
           </div>

@@ -100,3 +100,13 @@ export interface CompanionRoleState {
   catchupSummary: string
   updatedAt: number
 }
+
+/** 朋友圈截面（由 published 事件投影） */
+export interface CompanionMoment {
+  id: string
+  roleId: string
+  eventId: string
+  publishedAt: number
+  text: string
+  meta: Record<string, unknown>
+}

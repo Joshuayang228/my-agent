@@ -80,6 +80,23 @@ declare global {
           roleId: string,
           toVersion: number,
         ) => Promise<{ ok: true; version: number } | { ok: false; error: string }>
+        getMoments: (opts?: { limit?: number; offset?: number }) => Promise<{
+          roleId: string
+          items: Array<{
+            id: string
+            roleId: string
+            eventId: string
+            publishedAt: number
+            text: string
+            meta: Record<string, unknown>
+          }>
+        }>
+        catchupStatus: () => Promise<{
+          roleId: string
+          pausedAt: number | null
+          catchupSummary: string
+          lastTickAt: number
+        }>
       }
       mcp: {
         connect: (config: {

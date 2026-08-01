@@ -345,8 +345,8 @@ storage: database.ts migration + companion-*-store.ts
 
 **验收：**
 
-- [ ] 暂停 10 日后切回：细补 7 日 + summary 有值（单测冻时间）  
-- [ ] 朋友圈仅显示 active role  
+- [x] 暂停 10 日后切回：细补 7 日 + summary 有值（单测冻时间）  
+- [x] 朋友圈仅显示 active role  
 
 ### W4 — Assets 衣柜
 
@@ -418,4 +418,4 @@ storage: database.ts migration + companion-*-store.ts
 | 3 全局指针 | architecture.md §5.1 |
 | 4 沉淀 | methodology M21–M31（代码后写） |
 
-**W0 / W1 / W2 已完成**。继续时从 **W3**（Moments + Catch-up≤7 日）开工。  
+**W0–W3 已完成**。继续时从 **W4**（Assets 衣柜）开工。  

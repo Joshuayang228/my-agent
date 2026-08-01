@@ -5,6 +5,13 @@
 
 ## [未发布]
 
+### Added — Companion W3：Catch-up 与朋友圈（2026-08-02）
+
+- 切换回曾暂停主角时同步 `runCatchup`：细补近 7×24h 剧本/事件，更早空洞写入概况摘要
+- SQLite `companion_moments`（schema v6）；published 事件投影为朋友圈
+- IPC `companion:get-moments` / `catchup-status`（仅活跃主角）；侧栏「朋友圈」时间线
+- System Prompt 注入 Catch-up 摘要（`## Recent life (catch-up)`）
+
 ### Added — Companion W2：LifeEngine 暂停 / 日剧本 / tick（2026-08-02）
 
 - SQLite `companion_role_state` / `companion_day_scripts` / `companion_events`（schema v5）

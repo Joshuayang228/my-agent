@@ -17,6 +17,8 @@ import {
   rollbackMutable,
   setMutable,
 } from '../companion/growth/mutable-store'
+import { listMomentsForRole } from '../companion/life/moments'
+import { getRoleState } from '../companion/life/store'
 import * as settings from '../storage/settings-store'
 
 export function registerCompanionIPC(): void {
@@ -69,6 +71,29 @@ export function registerCompanionIPC(): void {
       return { ok: true as const, version }
     } catch (err) {
       return { ok: false as const, error: String(err) }
+    }
+  })
+
+  /** 朋友圈：仅返回当前活跃主角 */
+  ipcMain.handle(
+    'companion:get-moments',
+    async (_e, opts?: { limit?: number; offset?: number }) => {
+      const roleId = await getActiveRoleId()
+      const limit = typeof opts?.limit === 'number' ? opts.limit : 50
+      const offset = typeof opts?.offset === 'number' ? opts.offset : 0
+      const items = await listMomentsForRole(roleId, { limit, offset })
+      return { roleId, items }
+    },
+  )
+
+  ipcMain.handle('companion:catchup-status', async () => {
+    const roleId = await getActiveRoleId()
+    const state = await getRoleState(roleId)
+    return {
+      roleId,
+      pausedAt: state?.pausedAt ?? null,
+      catchupSummary: state?.catchupSummary ?? '',
+      lastTickAt: state?.lastTickAt ?? 0,
     }
   })
 }

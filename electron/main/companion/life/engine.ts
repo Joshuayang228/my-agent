@@ -12,6 +12,7 @@ import * as settings from '../../storage/settings-store'
 import * as identity from '../identity/loader'
 import type { DayScriptPayload } from '../types'
 import { eachLocalDateInclusive, localDateTimeMs, toLocalDateString } from './dates'
+import { publishAndProjectDue } from './moments'
 import { generateDayScript } from './script-generator'
 import * as store from './store'
 
@@ -107,7 +108,7 @@ export async function tickActiveRole(now: number): Promise<{
 
   const today = toLocalDateString(now)
   const { created } = await ensureDayScripts(roleId, today, today)
-  const published = await store.publishDueEvents(roleId, now)
+  const published = await publishAndProjectDue(roleId, now)
   await store.touchLastTick(roleId, now)
   if (published || created) {
     log.info('Active role ticked', { roleId, published, scriptsCreated: created, now })
@@ -122,4 +123,6 @@ export const __lifeStore = {
   countDayScripts: store.countDayScripts,
   countEvents: store.countEvents,
   listEvents: store.listEvents,
+  countMoments: store.countMoments,
+  listMoments: store.listMoments,
 }

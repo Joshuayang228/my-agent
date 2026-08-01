@@ -157,7 +157,7 @@ class AgentRuntime {
       // 优先用会话绑定的 role_id；否则用当前活跃主角
       const sessionMeta = await store.getSession(sessionId)
       const roleId = sessionMeta?.roleId || (await getActiveRoleId())
-      const { pack, mutableBody } = await loadRoleAssembleInput(roleId)
+      const { pack, mutableBody, catchupSummary } = await loadRoleAssembleInput(roleId)
       const persona = rolePackToPromptParts(pack, mutableBody)
 
       const chatSpan = startSpan('chat', 'main', 'interaction', undefined, { sessionId, model: llmConfig.model })
@@ -185,6 +185,7 @@ class AgentRuntime {
         skillSummary,
         activeSkillBody,
         executionMode,
+        catchupSummary,
       })
 
       // ── 运行 Agent Loop ──

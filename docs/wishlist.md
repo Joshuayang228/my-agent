@@ -34,7 +34,7 @@
 - [x] ~~**W0** Universe + Role Pack（新主角×3 同团；废旧模板）~~ — 2026-08-01
 - [x] ~~**W1** Orchestrator 单活跃门控 + MUTABLE 分桶 + 冷启动~~ — 2026-08-02
 - [x] ~~**W2** LifeEngine 暂停/剧本/tick~~ — 2026-08-02
-- [ ] **W3** Catch-up≤7 日 + 朋友圈 Moments
+- [x] ~~**W3** Catch-up≤7 日 + 朋友圈 Moments~~ — 2026-08-02
 - [ ] **W4–W5** 衣柜 / 交际圈卡司
 - [ ] **W6** 主动在场与体验横切收齐
 

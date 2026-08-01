@@ -36,7 +36,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 5
+export const SCHEMA_VERSION = 6
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -252,6 +252,27 @@ export function runMigrations(database: SqlJsDatabase): void {
       d.run(`
         CREATE INDEX IF NOT EXISTS idx_companion_events_role_sched
           ON companion_events(role_id, scheduled_at)
+      `)
+    },
+    // v5 → v6：朋友圈 Moments 截面（W3）
+    (d) => {
+      d.run(`
+        CREATE TABLE IF NOT EXISTS companion_moments (
+          id           TEXT PRIMARY KEY,
+          role_id      TEXT NOT NULL,
+          event_id     TEXT NOT NULL,
+          published_at INTEGER NOT NULL,
+          text         TEXT NOT NULL,
+          meta_json    TEXT NOT NULL DEFAULT '{}'
+        )
+      `)
+      d.run(`
+        CREATE INDEX IF NOT EXISTS idx_companion_moments_role_pub
+          ON companion_moments(role_id, published_at DESC)
+      `)
+      d.run(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_moments_event
+          ON companion_moments(event_id)
       `)
     },
   ]

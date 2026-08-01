@@ -64,5 +64,5 @@
 
 ## 下一步
 
-1. ✅ W0 / W1 / W2 已落地  
-2. 下一刀按 tech-spec 做 **W3**（Moments + Catch-up≤7 日）  
+1. ✅ W0–W3 已落地  
+2. 下一刀按 tech-spec 做 **W4**（Assets 衣柜）  
