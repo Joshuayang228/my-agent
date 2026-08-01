@@ -328,8 +328,21 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
                 type="button"
                 onClick={() => {
                   if (form.activeRoleId === p.id) return
-                  update('activeRoleId', p.id)
-                  void window.electronAPI?.companion.requestSwitch(p.id)
+                  void (async () => {
+                    const result = await window.electronAPI?.companion.requestSwitch(p.id)
+                    if (!result) return
+                    if (result.ok) {
+                      update('activeRoleId', p.id)
+                      return
+                    }
+                    if (result.code === 'SESSION_ACTIVE') {
+                      toast('对话进行中，请先结束或中断当前回复后再切换主角', 'error')
+                      return
+                    }
+                    if (result.code === 'ALREADY_ACTIVE') {
+                      update('activeRoleId', p.id)
+                    }
+                  })()
                 }}
                 className="settings-option px-3 py-2 text-xs"
                 data-selected={form.activeRoleId === p.id ? 'true' : undefined}

@@ -13,7 +13,8 @@
 import { BrowserWindow, Notification } from 'electron'
 import { agentLoop } from './loop'
 import { buildSystemPrompt, rolePackToPromptParts } from './prompt-builder'
-import { loadActiveRolePack } from '../companion/orchestrator'
+import { getActiveRoleId, loadRoleAssembleInput } from '../companion/orchestrator'
+import { registerStreamingProbe } from '../companion/streaming-gate'
 import { maybeExtractProfile } from './profile-extractor'
 import { setQuerySource } from './context-manager'
 import { checkBudget, recordDailyUsage } from './token-budget'
@@ -37,9 +38,19 @@ const log = createLogger('Runtime')
 class AgentRuntime {
   private activeControllers = new Map<string, AbortController>()
 
+  constructor() {
+    // 供 Companion Orchestrator 门控换角，避免 companion import agent
+    registerStreamingProbe(() => this.activeControllers.size > 0)
+  }
+
   /** 检查某会话是否正在执行 */
   isSessionActive(sessionId: string): boolean {
     return this.activeControllers.has(sessionId)
+  }
+
+  /** 是否存在任意进行中的流式会话 */
+  hasAnyActiveSession(): boolean {
+    return this.activeControllers.size > 0
   }
 
   /** 中断指定会话或全部会话 */
@@ -143,8 +154,11 @@ class AgentRuntime {
       const customPrompt = await settings.getSetting('systemPrompt')
       const executionMode = (await settings.getSetting('executionMode') || 'auto') as ExecutionMode
       const userProfile = await memory.buildUserProfile()
-      const rolePack = await loadActiveRolePack()
-      const persona = rolePackToPromptParts(rolePack)
+      // 优先用会话绑定的 role_id；否则用当前活跃主角
+      const sessionMeta = await store.getSession(sessionId)
+      const roleId = sessionMeta?.roleId || (await getActiveRoleId())
+      const { pack, mutableBody } = await loadRoleAssembleInput(roleId)
+      const persona = rolePackToPromptParts(pack, mutableBody)
 
       const chatSpan = startSpan('chat', 'main', 'interaction', undefined, { sessionId, model: llmConfig.model })
 

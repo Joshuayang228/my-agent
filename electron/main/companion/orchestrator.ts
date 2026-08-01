@@ -1,25 +1,23 @@
 /**
- * Companion Orchestrator（W0 最小实现）
+ * Companion Orchestrator
  *
- * 背景：设置页与 runtime 需要统一读写 activeRoleId；完整会话门控 / Catch-up 在 W1+。
- * 意图：提供 getActiveRoleId / requestSwitch / 解析当前 RolePack。
- * 约束：W0 的 requestSwitch 不做 SESSION_ACTIVE 检查（W1 补齐）；未知角色拒绝。
+ * 背景：设置页与 runtime 需要统一读写 activeRoleId；切换必须门控进行中会话。
+ * 意图：getActiveRoleId / requestSwitch / 解析当前 RolePack（含 MUTABLE 覆盖）。
+ * 约束：有流式 chat 时拒绝切换（SESSION_ACTIVE）；Catch-up 仍在 W2+。
+ *       本模块不 import agent/（通过 streaming-gate 探针）。
  */
 
 import * as settings from '../storage/settings-store'
-import {
-  getDefaultProtagonistId,
-  isKnownProtagonist,
-  listProtagonists,
-  loadRolePack,
-} from './identity/loader'
+import * as identity from './identity/loader'
+import { getMutable } from './growth/mutable-store'
+import { isStreamingActive } from './streaming-gate'
 import type { RolePack, RoleSummary, SwitchResult } from './types'
 
 export async function getActiveRoleId(): Promise<string> {
   const universeId = await settings.getSetting('universeId')
   const active = await settings.getSetting('activeRoleId')
-  if (active && isKnownProtagonist(active, universeId)) return active
-  const fallback = getDefaultProtagonistId(universeId)
+  if (active && identity.isKnownProtagonist(active, universeId)) return active
+  const fallback = identity.getDefaultProtagonistId(universeId)
   if (active !== fallback) {
     await settings.setSetting('activeRoleId', fallback)
   }
@@ -29,7 +27,7 @@ export async function getActiveRoleId(): Promise<string> {
 export async function getActiveRole(): Promise<RoleSummary & { universeId: string }> {
   const universeId = await settings.getSetting('universeId')
   const roleId = await getActiveRoleId()
-  const pack = loadRolePack(roleId, universeId)
+  const pack = identity.loadRolePack(roleId, universeId)
   return {
     id: pack.id,
     name: pack.name,
@@ -41,26 +39,47 @@ export async function getActiveRole(): Promise<RoleSummary & { universeId: strin
 export async function loadActiveRolePack(): Promise<RolePack> {
   const universeId = await settings.getSetting('universeId')
   const roleId = await getActiveRoleId()
-  return loadRolePack(roleId, universeId)
+  return identity.loadRolePack(roleId, universeId)
+}
+
+/** Assemble 输入：Pack + 当前 MUTABLE 正文（覆盖或默认） */
+export async function loadRoleAssembleInput(
+  roleId: string,
+  universeId?: string,
+): Promise<{ pack: RolePack; mutableBody: string }> {
+  const uid = universeId ?? (await settings.getSetting('universeId'))
+  const pack = identity.loadRolePack(roleId, uid)
+  const mutableBody = await getMutable(roleId, uid)
+  return { pack, mutableBody }
+}
+
+export async function loadActiveAssembleInput(): Promise<{ pack: RolePack; mutableBody: string }> {
+  const universeId = await settings.getSetting('universeId')
+  const roleId = await getActiveRoleId()
+  return loadRoleAssembleInput(roleId, universeId)
 }
 
 export function listActiveUniverseProtagonists(universeId?: string): RoleSummary[] {
-  return listProtagonists(universeId ?? 'default')
+  return identity.listProtagonists(universeId ?? 'default')
 }
 
 /**
- * 切换活跃主角（W0：仅写 settings；W1 补会话门控与 Catch-up）。
+ * 切换活跃主角。
+ * 流式进行中 → SESSION_ACTIVE；未知角色 / 已是当前 → 对应错误码。
  */
 export async function requestSwitch(roleId: string): Promise<SwitchResult> {
   const universeId = await settings.getSetting('universeId')
-  if (!isKnownProtagonist(roleId, universeId)) {
+  if (!identity.isKnownProtagonist(roleId, universeId)) {
     return { ok: false, code: 'UNKNOWN_ROLE' }
   }
   const current = await getActiveRoleId()
   if (current === roleId) {
     return { ok: false, code: 'ALREADY_ACTIVE' }
   }
+  if (isStreamingActive()) {
+    return { ok: false, code: 'SESSION_ACTIVE' }
+  }
   await settings.setSetting('activeRoleId', roleId)
-  // W0：尚无 LifeEngine，不排队 Catch-up
+  // Catch-up 排队：W2+
   return { ok: true, catchupQueued: false }
 }

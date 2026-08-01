@@ -36,7 +36,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -190,6 +190,28 @@ export function runMigrations(database: SqlJsDatabase): void {
       if (tableExists(d, 'messages')) d.run('DELETE FROM messages')
       if (tableExists(d, 'sessions')) d.run('DELETE FROM sessions')
       if (tableExists(d, 'settings')) d.run(`DELETE FROM settings WHERE key = 'personaId'`)
+    },
+    // v3 → v4：Companion MUTABLE 覆盖与版本（W1 Growth）
+    (d) => {
+      d.run(`
+        CREATE TABLE IF NOT EXISTS companion_mutable (
+          role_id    TEXT PRIMARY KEY,
+          body       TEXT NOT NULL,
+          version    INTEGER NOT NULL DEFAULT 1,
+          updated_at INTEGER NOT NULL
+        )
+      `)
+      d.run(`
+        CREATE TABLE IF NOT EXISTS companion_mutable_versions (
+          id         TEXT PRIMARY KEY,
+          role_id    TEXT NOT NULL,
+          version    INTEGER NOT NULL,
+          body       TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          summary    TEXT NOT NULL DEFAULT '',
+          UNIQUE(role_id, version)
+        )
+      `)
     },
   ]
 

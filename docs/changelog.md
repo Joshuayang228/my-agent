@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — Companion W1：换角门控与 MUTABLE 版本（2026-08-02）
+
+- 对话流式进行中切换主角返回 `SESSION_ACTIVE`，设置页提示先结束/中断
+- SQLite `companion_mutable` / `companion_mutable_versions`（schema v4）；IPC get/set/list/rollback
+- System Prompt 组装使用用户态 MUTABLE 覆盖（无覆盖则用 Pack 默认）
+
 ### Changed — Companion W0：Role Pack 取代旧人格模板（2026-08-01）
 
 - **破坏性**：删除 `personaId` / `persona:*` IPC / `warm-partner` 等三模板；本地旧会话在 schema v3 迁移时清空

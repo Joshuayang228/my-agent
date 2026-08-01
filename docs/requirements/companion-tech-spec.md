@@ -1,6 +1,6 @@
 # 伙伴与生活世界 — 完整技术方案（施工合同）
 
-> 状态：**W0 已落地**（2026-08-01）· 下一刀 W1  
+> 状态：**W1 已落地**（2026-08-02）· 下一刀 W2  
 > 上位文档：[产品契约](./companion-world-framework.md) · [模块架构](./companion-architecture.md) · [DEC-034](../decisions.md)  
 > 本文补齐：数据模型 · Role Pack 格式 · 关键接口 · 影响范围 · W0–W6 可验证步骤 · 风险权衡  
 
@@ -326,9 +326,9 @@ storage: database.ts migration + companion-*-store.ts
 
 **验收：**
 
-- [ ] 流式中 switch → `SESSION_ACTIVE`  
-- [ ] 无进行中会话时 switch 成功且 UI 主角名变  
-- [ ] mutable 版本可回滚（单测）  
+- [x] 流式中 switch → `SESSION_ACTIVE`（单测 + 设置页 toast）  
+- [x] 无进行中会话时 switch 成功写 `activeRoleId`  
+- [x] mutable 版本可回滚（单测）  
 
 ### W2 — LifeEngine 暂停 / 剧本 / tick
 
@@ -418,4 +418,4 @@ storage: database.ts migration + companion-*-store.ts
 | 3 全局指针 | architecture.md §5.1 |
 | 4 沉淀 | methodology M21–M31（代码后写） |
 
-**W0 已完成**。继续时从 **W1**（Orchestrator 会话门控 + Growth MUTABLE）开工。  
+**W0 / W1 已完成**。继续时从 **W2**（LifeEngine 暂停 / 剧本 / tick）开工。  

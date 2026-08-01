@@ -4,11 +4,11 @@
 
 ## 当前状态
 
-**阶段**：伙伴 W0（Identity + Assemble）已落地；下一刀 **W1**（Orchestrator 会话门控 + MUTABLE）
+**阶段**：伙伴 **W1**（Orchestrator 门控 + MUTABLE）已落地；下一刀 **W2**（LifeEngine 暂停/剧本/tick）
 
-**最新动态（2026-08-01）**：
-- ✅ **W0 施工**：Role Pack `lin`（小林）+ `plannedProtagonistSlots: 3`；删 `BUILTIN_PERSONAS`/`personaId`/`persona:*`；`activeRoleId` + `companion:*` IPC；sessions.`role_id` + schema v3 清空旧会话；设置页绑主角。
-- ✅ **companion-tech-spec.md** §8 已拍板（DEC-035）；契约 + 架构详设 + DEC-034。
+**最新动态（2026-08-02）**：
+- ✅ **W1**：流式中 `requestSwitch` → `SESSION_ACTIVE`；`companion_mutable` + 版本回滚；Assemble 用 MUTABLE 覆盖；设置页切换失败 toast；schema v4。
+- ✅ **W0**：Role Pack `lin` + 三槽位架构；删旧 persona；`activeRoleId` / `companion:*` IPC。
 
 **此前（2026-07-31）**：
 - ✅ **设置页画布框统一**：`.settings-field` / `.settings-option` + `SettingsPanel` 改造；规范写入 `agent-skills/frontend-guidelines.md`「画布框与设置页规范」。

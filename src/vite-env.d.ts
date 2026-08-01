@@ -62,6 +62,24 @@ declare global {
           | { ok: true; catchupQueued: boolean }
           | { ok: false; code: 'SESSION_ACTIVE' | 'UNKNOWN_ROLE' | 'ALREADY_ACTIVE' }
         >
+        getMutable: (roleId?: string) => Promise<{ roleId: string; body: string }>
+        setMutable: (
+          roleId: string,
+          body: string,
+          summary?: string,
+        ) => Promise<{ ok: true; version: number } | { ok: false; error: string }>
+        listMutableVersions: (roleId: string) => Promise<Array<{
+          id: string
+          roleId: string
+          version: number
+          body: string
+          createdAt: number
+          summary: string
+        }>>
+        rollbackMutable: (
+          roleId: string,
+          toVersion: number,
+        ) => Promise<{ ok: true; version: number } | { ok: false; error: string }>
       }
       mcp: {
         connect: (config: {

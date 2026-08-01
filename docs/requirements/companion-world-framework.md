@@ -64,5 +64,5 @@
 
 ## 下一步
 
-1. ✅ tech-spec §8 已拍板；**W0 已落地**（Identity + Assemble + 破坏性去 persona）  
-2. 下一刀按 tech-spec 做 **W1**（会话门控 + MUTABLE 分桶）  
+1. ✅ W0 / W1 已落地  
+2. 下一刀按 tech-spec 做 **W2**（LifeEngine：暂停 / 日剧本 / tick）  

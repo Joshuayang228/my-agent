@@ -57,6 +57,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
       | { ok: true; catchupQueued: boolean }
       | { ok: false; code: 'SESSION_ACTIVE' | 'UNKNOWN_ROLE' | 'ALREADY_ACTIVE' }
     > => ipcRenderer.invoke('companion:request-switch', roleId),
+    getMutable: (roleId?: string): Promise<{ roleId: string; body: string }> =>
+      ipcRenderer.invoke('companion:get-mutable', roleId),
+    setMutable: (
+      roleId: string,
+      body: string,
+      summary?: string,
+    ): Promise<{ ok: true; version: number } | { ok: false; error: string }> =>
+      ipcRenderer.invoke('companion:set-mutable', roleId, body, summary),
+    listMutableVersions: (roleId: string) =>
+      ipcRenderer.invoke('companion:list-mutable-versions', roleId),
+    rollbackMutable: (
+      roleId: string,
+      toVersion: number,
+    ): Promise<{ ok: true; version: number } | { ok: false; error: string }> =>
+      ipcRenderer.invoke('companion:rollback-mutable', roleId, toVersion),
   },
 
   mcp: {
