@@ -4,11 +4,11 @@
 
 ## 当前状态
 
-**阶段**：伙伴**完整技术方案**已补全（tech-spec）；待确认 §8 讨论项后再写 W0
+**阶段**：伙伴 W0（Identity + Assemble）已落地；下一刀 **W1**（Orchestrator 会话门控 + MUTABLE）
 
 **最新动态（2026-08-01）**：
-- ✅ **companion-tech-spec.md**：Role Pack 格式、SQLite 表、IPC/API、迁移、W0–W6 验收、风险；施工认此文。
-- ✅ 契约 + 架构详设 + DEC-034 + architecture §5.1；Part VI 对齐单活跃/Catch-up≤7 天。
+- ✅ **W0 施工**：Role Pack `lin`（小林）+ `plannedProtagonistSlots: 3`；删 `BUILTIN_PERSONAS`/`personaId`/`persona:*`；`activeRoleId` + `companion:*` IPC；sessions.`role_id` + schema v3 清空旧会话；设置页绑主角。
+- ✅ **companion-tech-spec.md** §8 已拍板（DEC-035）；契约 + 架构详设 + DEC-034。
 
 **此前（2026-07-31）**：
 - ✅ **设置页画布框统一**：`.settings-field` / `.settings-option` + `SettingsPanel` 改造；规范写入 `agent-skills/frontend-guidelines.md`「画布框与设置页规范」。

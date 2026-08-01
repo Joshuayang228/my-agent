@@ -41,7 +41,7 @@ interface SystemInfo {
   appVersion: string
   uptime: number
   memoryUsage: { rss: number; heapUsed: number; heapTotal: number }
-  settings: { model: string; baseUrl: string; personaId: string; hasApiKey: boolean; hasCustomPrompt: boolean }
+  settings: { model: string; baseUrl: string; activeRoleId: string; hasApiKey: boolean; hasCustomPrompt: boolean }
   mcp: Array<{ id: string; name: string; status: string; toolCount: number; error?: string }>
   toolCount: number
 }
@@ -296,7 +296,7 @@ function SystemTab({ info }: { info: SystemInfo | null }) {
       items: [
         ['模型', info.settings.model],
         ['Base URL', info.settings.baseUrl],
-        ['人格', info.settings.personaId],
+        ['主角', info.settings.activeRoleId],
         ['API Key', info.settings.hasApiKey ? '已配置' : '未配置'],
         ['自定义 Prompt', info.settings.hasCustomPrompt ? '有' : '—'],
       ],

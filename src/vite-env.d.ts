@@ -55,9 +55,13 @@ declare global {
         delete: (id: string) => Promise<void>
         update: (id: string, content: string) => Promise<void>
       }
-      persona: {
-        list: () => Promise<Array<{ id: string; name: string; description: string }>>
-        getCurrent: () => Promise<{ id: string; name: string; description: string }>
+      companion: {
+        listProtagonists: () => Promise<Array<{ id: string; name: string; description: string }>>
+        getActive: () => Promise<{ id: string; name: string; description: string; universeId: string }>
+        requestSwitch: (roleId: string) => Promise<
+          | { ok: true; catchupQueued: boolean }
+          | { ok: false; code: 'SESSION_ACTIVE' | 'UNKNOWN_ROLE' | 'ALREADY_ACTIVE' }
+        >
       }
       mcp: {
         connect: (config: {
@@ -143,7 +147,7 @@ declare global {
           appVersion: string
           uptime: number
           memoryUsage: { rss: number; heapUsed: number; heapTotal: number }
-          settings: { model: string; baseUrl: string; personaId: string; hasApiKey: boolean; hasCustomPrompt: boolean }
+          settings: { model: string; baseUrl: string; activeRoleId: string; hasApiKey: boolean; hasCustomPrompt: boolean }
           mcp: Array<{ id: string; name: string; status: string; toolCount: number; error?: string }>
           toolCount: number
         }>

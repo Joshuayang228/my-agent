@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { buildSystemPrompt, BUILTIN_PERSONAS } from '../../electron/main/agent/prompt-builder'
+import { buildSystemPrompt, rolePackToPromptParts } from '../../electron/main/agent/prompt-builder'
 import type { PersonaTemplate, PromptContext } from '../../electron/main/agent/prompt-builder'
+import { loadRolePack, listProtagonists, loadUniverseManifest } from '../../electron/main/companion/identity/loader'
 
 const minimalPersona: PersonaTemplate = {
   id: 'test',
@@ -131,13 +132,19 @@ describe('buildSystemPrompt', () => {
     expect(prompt.trimEnd().endsWith('someone else.')).toBe(true)
   })
 
-  it('BUILTIN_PERSONAS 至少有 3 个模板', () => {
-    expect(BUILTIN_PERSONAS.length).toBeGreaterThanOrEqual(3)
-    for (const p of BUILTIN_PERSONAS) {
-      expect(p.id).toBeTruthy()
-      expect(p.name).toBeTruthy()
-      expect(p.protected).toBeTruthy()
-      expect(p.mutable).toBeTruthy()
-    }
+  it('Role Pack lin 可组装进 L1，且宇宙预留 3 槽位', () => {
+    const universe = loadUniverseManifest('default')
+    expect(universe.plannedProtagonistSlots).toBe(3)
+    expect(universe.protagonistIds).toEqual(['lin'])
+
+    const protagonists = listProtagonists('default')
+    expect(protagonists).toHaveLength(1)
+    expect(protagonists[0].id).toBe('lin')
+
+    const pack = loadRolePack('lin')
+    const persona = rolePackToPromptParts(pack)
+    const prompt = buildSystemPrompt(makeCtx({ persona }))
+    expect(prompt).toContain(pack.protected.slice(0, 20))
+    expect(prompt).toContain('Remember: you are 小林')
   })
 })

@@ -64,5 +64,5 @@
 
 ## 下一步
 
-1. 评审并确认 `companion-tech-spec.md`（含文末 §8 待讨论项）  
-2. 你说「可以按此施工」后从 **W0** 动手；此前不改 `electron/` 业务实现  
+1. ✅ tech-spec §8 已拍板；**W0 已落地**（Identity + Assemble + 破坏性去 persona）  
+2. 下一刀按 tech-spec 做 **W1**（会话门控 + MUTABLE 分桶）  

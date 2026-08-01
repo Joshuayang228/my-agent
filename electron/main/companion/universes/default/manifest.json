@@ -1,0 +1,8 @@
+{
+  "id": "default",
+  "title": "默认主角团",
+  "version": 1,
+  "protagonistIds": ["lin"],
+  "plannedProtagonistSlots": 3,
+  "defaultProtagonistId": "lin"
+}

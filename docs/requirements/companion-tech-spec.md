@@ -1,6 +1,6 @@
 # 伙伴与生活世界 — 完整技术方案（施工合同）
 
-> 状态：**§8 已拍板**（2026-08-01）· 等你说「可以按此施工」后开 W0  
+> 状态：**W0 已落地**（2026-08-01）· 下一刀 W1  
 > 上位文档：[产品契约](./companion-world-framework.md) · [模块架构](./companion-architecture.md) · [DEC-034](../decisions.md)  
 > 本文补齐：数据模型 · Role Pack 格式 · 关键接口 · 影响范围 · W0–W6 可验证步骤 · 风险权衡  
 
@@ -315,10 +315,10 @@ storage: database.ts migration + companion-*-store.ts
 
 **验收：**
 
-- [ ] `tsc` + 相关单测绿  
-- [ ] 设置可见 **1** 个主角；对话 L1 含其 protected  
-- [ ] grep 无 `personaId` / `warm-partner` / `BUILTIN_PERSONAS`  
-- [ ] 再加一个角色目录并写入 `protagonistIds` 后，**无需改 Orchestrator/Assemble 模型**即可列出（可在 W0 末用最小第二 pack 做一次「扩容烟测」，或留到加第二个主角时验）  
+- [x] `tsc` + 相关单测绿  
+- [x] 设置可见 **1** 个主角（小林 / `lin`）；对话 L1 从 Pack 读 protected  
+- [x] 业务代码无 `personaId` / `warm-partner` / `BUILTIN_PERSONAS`（仅迁移删除与注释残留）  
+- [ ] 再加一个角色目录并写入 `protagonistIds` 后，**无需改 Orchestrator/Assemble 模型**即可列出（留到加第二个主角时验）  
 
 ### W1 — Orchestrator + Growth 门控
 
@@ -418,4 +418,4 @@ storage: database.ts migration + companion-*-store.ts
 | 3 全局指针 | architecture.md §5.1 |
 | 4 沉淀 | methodology M21–M31（代码后写） |
 
-你说 **「可以按此施工」** 后，从 **W0**（1 个主角 Pack + 三槽位架构）开始写代码。  
+**W0 已完成**。继续时从 **W1**（Orchestrator 会话门控 + Growth MUTABLE）开工。  

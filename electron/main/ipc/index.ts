@@ -2,7 +2,7 @@ import { ToolRegistry } from '../tools/registry'
 import { registerSessionIPC } from './session'
 import { registerSettingsIPC } from './settings'
 import { registerMemoryIPC } from './memory'
-import { registerPersonaIPC } from './persona'
+import { registerCompanionIPC } from './companion'
 import { registerChatIPC } from './chat'
 import { registerMcpIPC } from './mcp'
 import { registerDebugIPC } from './debug'
@@ -17,7 +17,7 @@ export function registerAllIPC(toolRegistry: ToolRegistry): void {
   registerSessionIPC()
   registerSettingsIPC()
   registerMemoryIPC()
-  registerPersonaIPC()
+  registerCompanionIPC()
   registerChatIPC(toolRegistry)
   registerMcpIPC(toolRegistry)
   registerDebugIPC(toolRegistry)

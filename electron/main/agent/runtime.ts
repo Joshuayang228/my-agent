@@ -12,7 +12,8 @@
 
 import { BrowserWindow, Notification } from 'electron'
 import { agentLoop } from './loop'
-import { buildSystemPrompt, BUILTIN_PERSONAS } from './prompt-builder'
+import { buildSystemPrompt, rolePackToPromptParts } from './prompt-builder'
+import { loadActiveRolePack } from '../companion/orchestrator'
 import { maybeExtractProfile } from './profile-extractor'
 import { setQuerySource } from './context-manager'
 import { checkBudget, recordDailyUsage } from './token-budget'
@@ -139,15 +140,15 @@ class AgentRuntime {
 
     try {
       // ── 构建上下文 ──
-      const personaId = await settings.getSetting('personaId')
       const customPrompt = await settings.getSetting('systemPrompt')
       const executionMode = (await settings.getSetting('executionMode') || 'auto') as ExecutionMode
       const userProfile = await memory.buildUserProfile()
-      const persona = BUILTIN_PERSONAS.find(p => p.id === personaId) ?? BUILTIN_PERSONAS[0]
+      const rolePack = await loadActiveRolePack()
+      const persona = rolePackToPromptParts(rolePack)
 
       const chatSpan = startSpan('chat', 'main', 'interaction', undefined, { sessionId, model: llmConfig.model })
 
-      log.info('Chat started', { sessionId, messageCount: messages.length, model: llmConfig.model, persona: persona.id })
+      log.info('Chat started', { sessionId, messageCount: messages.length, model: llmConfig.model, roleId: persona.id })
 
       const vectorContext = await this.safeVectorSearch(lastUserMsg?.content, llmConfig)
 

@@ -13,7 +13,8 @@
 import type { EvalScenario, EvalGrader, GraderResult } from '../types'
 import { makeTerminalReasonGrader } from '../graders/index'
 import { createCapturingMockStreamChat, type CapturedLLMCall } from '../mock-llm'
-import { buildSystemPrompt, BUILTIN_PERSONAS } from '../../electron/main/agent/prompt-builder'
+import { buildSystemPrompt, rolePackToPromptParts } from '../../electron/main/agent/prompt-builder'
+import { loadRolePack } from '../../electron/main/companion/identity/loader'
 import { makeEvalLLMConfig } from '../types'
 import type { ChatMessage } from '../../src/shared/types'
 
@@ -75,7 +76,7 @@ export const F08: EvalScenario = {
     // 重置捕获记录，保证多次 run 互不干扰
     captured.calls = []
 
-    const persona = BUILTIN_PERSONAS[0]
+    const persona = rolePackToPromptParts(loadRolePack('lin'))
     // 在 system prompt 最前面加标记，压缩后检查是否保留
     const baseSystemPrompt = buildSystemPrompt({ persona, toolNames: [] })
     const markedSystemPrompt = `${PREAMBLE_MARKER}\n${baseSystemPrompt}`

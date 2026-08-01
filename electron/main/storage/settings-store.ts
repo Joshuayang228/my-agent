@@ -28,7 +28,10 @@ export interface AppSettings {
   llmTopP: string
   llmMaxTokens: string
   systemPrompt: string
-  personaId: string
+  /** 当前活跃主角（Companion Role Pack id） */
+  activeRoleId: string
+  /** 当前宇宙 id，默认 default */
+  universeId: string
   /** JSON string — McpServerConfig[] */
   mcpServers: string
   /** Sandbox mode: read-only | workspace-write | full-access */
@@ -58,7 +61,8 @@ function getDefaults(): AppSettings {
     llmTopP: '1',
     llmMaxTokens: '4096',
     systemPrompt: '',
-    personaId: 'warm-partner',
+    activeRoleId: 'lin',
+    universeId: 'default',
     mcpServers: '[]',
     sandboxMode: 'workspace-write',
     executionMode: 'auto',
@@ -79,6 +83,8 @@ async function ensureTable(): Promise<void> {
       value TEXT NOT NULL
     )
   `)
+  // 破坏性重置：旧 personaId 键直接删除，不做映射兼容
+  db.run(`DELETE FROM settings WHERE key = 'personaId'`)
 }
 
 export async function getSetting<K extends keyof AppSettings>(key: K): Promise<AppSettings[K]> {

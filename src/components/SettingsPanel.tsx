@@ -13,7 +13,7 @@ interface SettingsForm {
   llmTopP: string
   llmMaxTokens: string
   systemPrompt: string
-  personaId: string
+  activeRoleId: string
   sandboxMode: string
   executionMode: string
   auxModel: string
@@ -50,7 +50,7 @@ const DEFAULTS: SettingsForm = {
   llmTopP: '1',
   llmMaxTokens: '4096',
   systemPrompt: '',
-  personaId: 'warm-partner',
+  activeRoleId: 'lin',
   sandboxMode: 'workspace-write',
   executionMode: 'auto',
   auxModel: '',
@@ -59,7 +59,7 @@ const DEFAULTS: SettingsForm = {
   permissionRules: '[]',
 }
 
-interface PersonaInfo {
+interface RoleInfo {
   id: string
   name: string
   description: string
@@ -140,7 +140,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
-  const [personas, setPersonas] = useState<PersonaInfo[]>([])
+  const [protagonists, setProtagonists] = useState<RoleInfo[]>([])
   const [mcpServers, setMcpServers] = useState<McpServerEntry[]>([])
   const [mcpStatuses, setMcpStatuses] = useState<McpServerStatus[]>([])
   const [mcpAdding, setMcpAdding] = useState(false)
@@ -170,7 +170,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
         llmTopP: s.llmTopP || DEFAULTS.llmTopP,
         llmMaxTokens: s.llmMaxTokens || DEFAULTS.llmMaxTokens,
         systemPrompt: s.systemPrompt || '',
-        personaId: s.personaId || DEFAULTS.personaId,
+        activeRoleId: s.activeRoleId || DEFAULTS.activeRoleId,
         sandboxMode: s.sandboxMode || DEFAULTS.sandboxMode,
         executionMode: s.executionMode || DEFAULTS.executionMode,
         auxModel: s.auxModel || '',
@@ -183,7 +183,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
         setMcpServers(servers)
       } catch { /* ignore */ }
     })
-    window.electronAPI.persona.list().then(setPersonas)
+    window.electronAPI.companion.listProtagonists().then(setProtagonists)
     refreshMcpStatus()
   }, [])
 
@@ -319,18 +319,22 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
         </div>
       </FieldGroup>
 
-      {personas.length > 0 && (
-        <FieldGroup label="人格模板">
+      {protagonists.length > 0 && (
+        <FieldGroup label="活跃主角" hint="同宇宙可挂最多 3 位；当前先交付 1 位。切换后新会话绑定该角色。">
           <div className="flex flex-wrap gap-2">
-            {personas.map((p) => (
+            {protagonists.map((p) => (
               <button
                 key={p.id}
                 type="button"
-                onClick={() => update('personaId', p.id)}
+                onClick={() => {
+                  if (form.activeRoleId === p.id) return
+                  update('activeRoleId', p.id)
+                  void window.electronAPI?.companion.requestSwitch(p.id)
+                }}
                 className="settings-option px-3 py-2 text-xs"
-                data-selected={form.personaId === p.id ? 'true' : undefined}
+                data-selected={form.activeRoleId === p.id ? 'true' : undefined}
               >
-                <div className="font-medium" style={{ color: form.personaId === p.id ? 'var(--accent-fg)' : 'var(--text-primary)' }}>
+                <div className="font-medium" style={{ color: form.activeRoleId === p.id ? 'var(--accent-fg)' : 'var(--text-primary)' }}>
                   {p.name}
                 </div>
                 <div className="mt-0.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>{p.description}</div>

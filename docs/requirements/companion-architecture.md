@@ -13,7 +13,7 @@
 | `prompt-builder` | 退化为 **Assemble**：只拼装，不养文案 |
 | `memory/` | 用户画像仍跨角色；MUTABLE/生活按 role 分桶，不混进记忆事实库抢职责 |
 | `storage/` SQLite | 新增 companion 相关表（或命名空间），沿用现有 DB 纪律 |
-| `ipc/` | 增设 companion/persona 门控通道；**四处同步**纪律不变 |
+| `ipc/` | 增设 `companion:*` 门控通道（已取代 `persona:*`）；**四处同步**纪律不变 |
 | `tools/` / sandbox | 生活不挡干活；权限模型不因朋友圈绕过 |
 
 依赖方向仍遵守：`ipc → agent/companion → storage/llm`；禁止 companion UI 直写 DB。
@@ -89,10 +89,10 @@ electron/main/companion/     # 或 agent/companion/
   orchestrator.ts
   identity/   growth/   universe/
   life/       assemble 桥接 prompt-builder
-ipc: companion.* / 扩展 persona.*
+ipc: companion.*
 ```
 
-旧 `BUILTIN_PERSONAS`：W0 删除，改为 Universe 内新主角包。
+旧 `BUILTIN_PERSONAS`：W0 已删除，改为 Universe 内 Role Pack（首发 `lin`）。
 
 ## 7. Eval / 可插拔
 

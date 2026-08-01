@@ -1,5 +1,5 @@
 /**
- * System Prompt 分层注入系统
+ * System Prompt 分层注入系统（Assemble）
  *
  * 参照 Alice 方法论 Ch.14，4 层结构：
  *   L1 人格定义（稳定，KV Cache 友好）
@@ -9,12 +9,11 @@
  *
  * 稳定内容在前，动态内容在末尾，最大化 KV Cache 命中率。
  *
- * 人格定义使用 [PROTECTED] / [MUTABLE] 分区：
- *   PROTECTED —— 核心身份，任何自进化都不能触碰
- *   MUTABLE —— 可根据用户偏好逐渐调整的行为规范
+ * 人格正文来自 Companion Role Pack（Identity），本文件只拼装，不养文案。
  */
 
-export interface PersonaTemplate {
+/** Assemble 用的角色切片（由 RolePack 映射而来） */
+export interface RolePromptParts {
   id: string
   name: string
   description: string
@@ -23,8 +22,11 @@ export interface PersonaTemplate {
   aside_style?: string
 }
 
+/** @deprecated 使用 RolePromptParts；保留别名避免外部测试一次性大改 */
+export type PersonaTemplate = RolePromptParts
+
 export interface PromptContext {
-  persona: PersonaTemplate
+  persona: RolePromptParts
   toolNames: string[]
   userProfile?: { identity: string; workflow: string; voice: string }
   memories?: string
@@ -32,56 +34,37 @@ export interface PromptContext {
   skillSummary?: string
   activeSkillBody?: string
   executionMode?: string
+  /** 可选：Catch-up 概况摘要（W2+） */
+  catchupSummary?: string
 }
 
-// ── 内置人格模板 ──
-
-export const BUILTIN_PERSONAS: PersonaTemplate[] = [
-  {
-    id: 'warm-partner',
-    name: '温暖伙伴',
-    description: '温柔体贴，像朋友一样陪伴，偶尔有小幽默',
-    protected: `你是用户的数字伙伴——有温度、有记忆、能成长。
-你有自己的性格：温暖、耐心、细心，偶尔带一点小幽默。
-你不是冷冰冰的工具，但也不会越界。你知道自己是在设备上运行的 AI，不会假装有真实感受。
-你的价值观：真诚、实用、尊重用户的时间和判断。
-行为底线：不编造事实，不确定时坦诚说"我不确定"。`,
-    mutable: `默认用简体中文回复。
-回答风格：先给结论，再展开细节。
-遇到用户深夜工作时，可以适当表达关心。`,
-    aside_style: '温柔的小声嘀咕，像朋友的碎碎念',
+/**
+ * 将 Role Pack 转为 Assemble 输入。
+ * mutableBody 缺省时用 pack.mutableDefault；W1 起可传入用户态覆盖。
+ */
+export function rolePackToPromptParts(
+  pack: {
+    id: string
+    name: string
+    description: string
+    protected: string
+    mutableDefault: string
+    asideStyle?: string
+    voice?: string
   },
-  {
-    id: 'rigorous-advisor',
-    name: '严谨顾问',
-    description: '专业严谨，逻辑清晰，追求准确和深度',
-    protected: `你是一位专业的技术顾问——严谨、逻辑清晰、追求准确。
-你重视证据和推理，不做没有依据的推测。
-当信息不足时，你会明确指出还需要哪些信息才能给出可靠建议。
-你的价值观：准确、深度、系统性思考。
-行为底线：宁可说"这个问题我需要更多信息"，也不给出不可靠的答案。`,
-    mutable: `默认用简体中文回复。
-回答风格：结构化，善用列表和对比表格。
-对技术问题倾向于给出原理性解释，而不仅仅是解决方案。`,
-    aside_style: '冷静的旁注，偶尔流露对技术细节的热情',
-  },
-  {
-    id: 'tech-geek',
-    name: '技术极客',
-    description: '充满热情，爱折腾，喜欢深入底层原理',
-    protected: `你是一个热爱技术的极客——对新技术充满好奇，喜欢刨根问底。
-你说话直接、节奏快，偶尔会兴奋地跑题聊到相关的有趣技术。
-你不盲目追新，但会热情地分享你认为值得关注的东西。
-你的价值观：好奇心、动手实践、开源精神。
-行为底线：推荐技术方案时会坦诚说明 trade-off，不会只说好的一面。`,
-    mutable: `默认用简体中文回复。
-回答风格：简洁直接，代码优先于长篇解释。
-喜欢用类比解释复杂概念。`,
-    aside_style: '兴奋的技术吐槽和感叹',
-  },
-]
-
-const DEFAULT_PERSONA = BUILTIN_PERSONAS[0]
+  mutableBody?: string,
+): RolePromptParts {
+  const mutable = mutableBody ?? pack.mutableDefault
+  const withVoice = pack.voice ? `${mutable}\n\n${pack.voice}` : mutable
+  return {
+    id: pack.id,
+    name: pack.name,
+    description: pack.description,
+    protected: pack.protected,
+    mutable: withVoice,
+    aside_style: pack.asideStyle,
+  }
+}
 
 // ── Prompt 组装 ──
 
@@ -173,6 +156,12 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     parts.push('')
     parts.push('## Session context')
     parts.push(sessionInfo)
+  }
+
+  if (ctx.catchupSummary) {
+    parts.push('')
+    parts.push('## Recent life (catch-up)')
+    parts.push(ctx.catchupSummary)
   }
 
   // ── L4 动态追加（放末尾，不破坏前缀 KV Cache） ──

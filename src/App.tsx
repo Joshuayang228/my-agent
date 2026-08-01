@@ -248,7 +248,7 @@ function App() {
         if (Array.isArray(pinned)) setPinnedIds(pinned)
       } catch { /* ignore */ }
     })
-    window.electronAPI.persona.getCurrent().then((p) => {
+    window.electronAPI.companion.getActive().then((p) => {
       if (p?.name) setCurrentPersonaName(p.name)
     })
     window.electronAPI.project.get().then((p) => {
@@ -705,7 +705,7 @@ function App() {
   const closeSettings = useCallback(() => {
     setActiveView('chat')
     if (window.electronAPI) {
-      window.electronAPI.persona.getCurrent().then((p) => {
+      window.electronAPI.companion.getActive().then((p) => {
         if (p?.name) setCurrentPersonaName(p.name)
       })
       window.electronAPI.settings.get().then((s) => {

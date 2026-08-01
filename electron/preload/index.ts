@@ -46,11 +46,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     update: (id: string, content: string) => ipcRenderer.invoke('memory:update', id, content),
   },
 
-  persona: {
-    list: (): Promise<{ id: string; name: string; description: string }[]> =>
-      ipcRenderer.invoke('persona:list'),
-    getCurrent: (): Promise<{ id: string; name: string; description: string }> =>
-      ipcRenderer.invoke('persona:get-current'),
+  companion: {
+    listProtagonists: (): Promise<{ id: string; name: string; description: string }[]> =>
+      ipcRenderer.invoke('companion:list-protagonists'),
+    getActive: (): Promise<{ id: string; name: string; description: string; universeId: string }> =>
+      ipcRenderer.invoke('companion:get-active'),
+    requestSwitch: (
+      roleId: string,
+    ): Promise<
+      | { ok: true; catchupQueued: boolean }
+      | { ok: false; code: 'SESSION_ACTIVE' | 'UNKNOWN_ROLE' | 'ALREADY_ACTIVE' }
+    > => ipcRenderer.invoke('companion:request-switch', roleId),
   },
 
   mcp: {

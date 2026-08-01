@@ -5,6 +5,13 @@
 
 ## [未发布]
 
+### Changed — Companion W0：Role Pack 取代旧人格模板（2026-08-01）
+
+- **破坏性**：删除 `personaId` / `persona:*` IPC / `warm-partner` 等三模板；本地旧会话在 schema v3 迁移时清空
+- 新增 `electron/main/companion/`（Identity 加载 + Orchestrator 最小切换）与主角 Pack `lin`（小林）；设置键 `activeRoleId` / `universeId`
+- Prompt 组装从 Role Pack 读取 L1；设置页展示「活跃主角」；IPC `companion:list-protagonists` / `get-active` / `request-switch`
+- 会话表增加 `role_id`（创建时绑定，不可改）
+
 ### Changed — 伙伴与生活世界框架 + 方法论 Part VI 重排（2026-08-01）
 
 - 契约 `companion-world-framework.md` + 模块详设 `companion-architecture.md`；`architecture.md` §5.1；DEC-034

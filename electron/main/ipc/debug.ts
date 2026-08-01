@@ -5,7 +5,8 @@
  */
 import { ipcMain } from 'electron'
 import { ToolRegistry } from '../tools/registry'
-import { buildSystemPrompt, BUILTIN_PERSONAS, type PromptContext } from '../agent/prompt-builder'
+import { buildSystemPrompt, rolePackToPromptParts, type PromptContext } from '../agent/prompt-builder'
+import { loadActiveRolePack } from '../companion/orchestrator'
 import { getAllSettings } from '../storage/settings-store'
 import { buildUserProfile } from '../storage/memory-store'
 import { mcpManager } from '../mcp/client'
@@ -20,7 +21,7 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
   ipcMain.handle('debug:system-prompt', async () => {
     try {
       const settings = await getAllSettings()
-      const persona = BUILTIN_PERSONAS.find(p => p.id === settings.personaId) || BUILTIN_PERSONAS[0]
+      const persona = rolePackToPromptParts(await loadActiveRolePack())
       const toolNames = toolRegistry.getAll().map(t => t.name)
 
       let userProfile: PromptContext['userProfile'] | undefined
@@ -83,7 +84,7 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
       settings: {
         model: settings.llmModel,
         baseUrl: settings.llmBaseUrl,
-        personaId: settings.personaId,
+        activeRoleId: settings.activeRoleId,
         hasApiKey: !!settings.llmApiKey,
         hasCustomPrompt: !!settings.systemPrompt,
       },

@@ -10,7 +10,8 @@
 import type { EvalScenario, EvalGrader, EvalContext, GraderResult } from '../types'
 import { makeTerminalReasonGrader, makeToolCallGrader, makeTextNotContainsGrader } from '../graders/index'
 import { buildTool } from '../../electron/main/tools/builder'
-import { buildSystemPrompt, BUILTIN_PERSONAS } from '../../electron/main/agent/prompt-builder'
+import { buildSystemPrompt, rolePackToPromptParts } from '../../electron/main/agent/prompt-builder'
+import { loadRolePack } from '../../electron/main/companion/identity/loader'
 import type { ToolRegistry } from '../../electron/main/tools/registry'
 import { makeEvalLLMConfig } from '../types'
 import type { ChatMessage } from '../../src/shared/types'
@@ -73,7 +74,7 @@ export const P01: EvalScenario = {
   registerTools(_registry) { /* 不需要工具 */ },
 
   async buildOptions(workdir, registry) {
-    const persona = BUILTIN_PERSONAS[0] // 温暖伙伴
+    const persona = rolePackToPromptParts(loadRolePack('lin'))
     const systemPrompt = buildSystemPrompt({
       persona,
       toolNames: registry.getAll().map((t) => t.name),
@@ -100,12 +101,12 @@ export const P01: EvalScenario = {
   },
 
   mockResponses: [
-    { content: `任务完成，人格锚点 ${BUILTIN_PERSONAS[0].name} 仍在` },
+    { content: '任务完成，人格锚点 小林 仍在' },
   ],
 
   graders: [
     makeTerminalReasonGrader('completed'),
-    makeSystemPromptContainsGrader(BUILTIN_PERSONAS[0].name),
+    makeSystemPromptContainsGrader('小林'),
   ],
 }
 

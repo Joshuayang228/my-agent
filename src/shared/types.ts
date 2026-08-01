@@ -238,13 +238,17 @@ export type AgentStreamEvent =
     }
   | { type: 'done'; reason: TerminalReason }
 
-// ── 人格 ──
+// ── Companion 主角 ──
 
-export interface PersonaConfig {
+/** 设置页 / IPC 列表用的主角摘要 */
+export interface RoleSummary {
   id: string
   name: string
   description: string
 }
+
+/** @deprecated 使用 RoleSummary */
+export type PersonaConfig = RoleSummary
 
 // ── 记忆 ──
 
@@ -310,6 +314,8 @@ export interface ChatSession {
   id: string
   messages: ChatMessage[]
   createdAt: number
+  /** 创建时绑定的主角 id，中途不可改 */
+  roleId: string
 }
 
 // ── Skill 系统 ──

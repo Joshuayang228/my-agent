@@ -49,5 +49,5 @@
 
 ## 现状 / 缺口
 
-**现状**：3 个内置模板仍硬编码于 `prompt-builder.ts`（**已决定废弃**，W0 换同团新主角 Role Pack）。  
-**缺口 / 路线**：契约 [`companion-world-framework.md`](../requirements/companion-world-framework.md)；详设 [`companion-architecture.md`](../requirements/companion-architecture.md)；方法论 M21–M31。下一刀 **W0**（确认可写代码后）。
+**现状**：W0 已换 Role Pack（`electron/main/companion/universes/default/roles/lin`）；设置键 `activeRoleId`；旧三模板与 `persona:*` 已删。
+**缺口 / 路线**：下一刀 **W1**（会话中禁换角 + MUTABLE 版本）；契约 / 详设 / tech-spec 见 `docs/requirements/companion-*.md`。

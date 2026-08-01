@@ -36,7 +36,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -87,7 +87,8 @@ function initSchema(database: SqlJsDatabase): void {
       created_at               INTEGER NOT NULL,
       updated_at               INTEGER NOT NULL,
       total_prompt_tokens      INTEGER NOT NULL DEFAULT 0,
-      total_completion_tokens  INTEGER NOT NULL DEFAULT 0
+      total_completion_tokens  INTEGER NOT NULL DEFAULT 0,
+      role_id                  TEXT NOT NULL DEFAULT ''
     )
   `)
 
@@ -182,6 +183,14 @@ export function runMigrations(database: SqlJsDatabase): void {
     (d) => {
       addColumnIfMissing(d, 'background_tasks', 'checkpoint', 'TEXT')
     },
+    // v2 → v3：会话绑定主角；开发期破坏性清空旧会话（无 role_id 兼容路径）
+    (d) => {
+      addColumnIfMissing(d, 'sessions', 'role_id', "TEXT NOT NULL DEFAULT ''")
+      // 测试夹具可能缺表；生产库两条表都在
+      if (tableExists(d, 'messages')) d.run('DELETE FROM messages')
+      if (tableExists(d, 'sessions')) d.run('DELETE FROM sessions')
+      if (tableExists(d, 'settings')) d.run(`DELETE FROM settings WHERE key = 'personaId'`)
+    },
   ]
 
   while (version < SCHEMA_VERSION) {
@@ -246,6 +255,18 @@ export function hasColumn(database: SqlJsDatabase, table: string, column: string
       if (row.name === column) return true
     }
     return false
+  } finally {
+    stmt.free()
+  }
+}
+
+function tableExists(database: SqlJsDatabase, table: string): boolean {
+  const stmt = database.prepare(
+    `SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1`,
+  )
+  try {
+    stmt.bind([table])
+    return stmt.step()
   } finally {
     stmt.free()
   }

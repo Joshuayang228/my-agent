@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from './database'
 import { createLogger } from '../utils/logger'
 import { chatComplete } from '../llm/index'
+import { getSetting } from './settings-store'
 import type { ChatMessage, ChatSession } from '../../../src/shared/types'
 
 const log = createLogger('SessionStore')
@@ -12,27 +13,31 @@ export interface SessionSummary {
   createdAt: number
   updatedAt: number
   messageCount: number
+  roleId: string
 }
 
 // ── 会话 CRUD ──
 
-export async function createSession(): Promise<ChatSession> {
+export async function createSession(roleId?: string): Promise<ChatSession> {
   const db = await getDatabase()
   const id = randomUUID()
   const now = Date.now()
+  const resolvedRoleId = roleId || (await getSetting('activeRoleId'))
 
-  db.run('INSERT INTO sessions (id, title, created_at, updated_at) VALUES (?, ?, ?, ?)',
-    [id, '新对话', now, now])
+  db.run(
+    'INSERT INTO sessions (id, title, created_at, updated_at, role_id) VALUES (?, ?, ?, ?, ?)',
+    [id, '新对话', now, now, resolvedRoleId],
+  )
   persist()
 
-  log.info('Session created', { id })
-  return { id, messages: [], createdAt: now }
+  log.info('Session created', { id, roleId: resolvedRoleId })
+  return { id, messages: [], createdAt: now, roleId: resolvedRoleId }
 }
 
 export async function listSessions(): Promise<SessionSummary[]> {
   const db = await getDatabase()
   const stmt = db.prepare(`
-    SELECT s.id, s.title, s.created_at, s.updated_at,
+    SELECT s.id, s.title, s.created_at, s.updated_at, s.role_id,
            (SELECT COUNT(*) FROM messages m WHERE m.session_id = s.id) as message_count
     FROM sessions s
     ORDER BY s.updated_at DESC
@@ -47,6 +52,7 @@ export async function listSessions(): Promise<SessionSummary[]> {
       createdAt: row.created_at as number,
       updatedAt: row.updated_at as number,
       messageCount: row.message_count as number,
+      roleId: (row.role_id as string) || '',
     })
   }
   stmt.free()
@@ -84,7 +90,12 @@ export async function getSession(sessionId: string): Promise<ChatSession | null>
   }
   msgStmt.free()
 
-  return { id: session.id as string, messages, createdAt: session.created_at as number }
+  return {
+    id: session.id as string,
+    messages,
+    createdAt: session.created_at as number,
+    roleId: (session.role_id as string) || '',
+  }
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
@@ -138,17 +149,24 @@ export async function forkSession(sourceSessionId: string, upToMessageId: string
   const newId = randomUUID()
   const now = Date.now()
 
-  const titleStmt = db.prepare('SELECT title FROM sessions WHERE id = ?')
+  const titleStmt = db.prepare('SELECT title, role_id FROM sessions WHERE id = ?')
   titleStmt.bind([sourceSessionId])
   let title = '分支对话'
+  let roleId = ''
   if (titleStmt.step()) {
     const row = titleStmt.getAsObject() as Record<string, unknown>
     title = `${row.title as string} (分支)`
+    roleId = (row.role_id as string) || ''
   }
   titleStmt.free()
+  if (!roleId) {
+    roleId = await getSetting('activeRoleId')
+  }
 
-  db.run('INSERT INTO sessions (id, title, created_at, updated_at) VALUES (?, ?, ?, ?)',
-    [newId, title, now, now])
+  db.run(
+    'INSERT INTO sessions (id, title, created_at, updated_at, role_id) VALUES (?, ?, ?, ?, ?)',
+    [newId, title, now, now, roleId],
+  )
 
   const targetStmt = db.prepare('SELECT sort_order FROM messages WHERE id = ? AND session_id = ?')
   targetStmt.bind([upToMessageId, sourceSessionId])
@@ -160,7 +178,7 @@ export async function forkSession(sourceSessionId: string, upToMessageId: string
 
   if (maxOrder < 0) {
     persist()
-    return { id: newId, messages: [], createdAt: now }
+    return { id: newId, messages: [], createdAt: now, roleId }
   }
 
   const msgStmt = db.prepare(
@@ -191,8 +209,8 @@ export async function forkSession(sourceSessionId: string, upToMessageId: string
   msgStmt.free()
   persist()
 
-  log.info('Session forked', { sourceId: sourceSessionId, newId, messageCount: messages.length })
-  return { id: newId, messages, createdAt: now }
+  log.info('Session forked', { sourceId: sourceSessionId, newId, messageCount: messages.length, roleId })
+  return { id: newId, messages, createdAt: now, roleId }
 }
 
 export async function deleteMessage(messageId: string): Promise<void> {
