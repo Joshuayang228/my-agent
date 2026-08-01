@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：伙伴 **W3**（Moments + Catch-up）已落地；下一刀 **W4**（Assets 衣柜）
+**阶段**：伙伴 **W4**（Assets 衣柜）已落地；下一刀 **W5**（Cast 名册 / 召唤）
 
 **最新动态（2026-08-02）**：
+- ✅ **W4**：`companion_assets`（schema v7）；starter 衣柜；moment 事件引用 `assetId`；IPC `get-assets`；侧栏衣柜面板；按 role 隔离单测。
 - ✅ **W3**：`runCatchup`（细窗≤7×24h + 更早概况摘要）；`companion_moments`（schema v6）；事件 published→投影；IPC `get-moments` / `catchup-status`；侧栏朋友圈时间线；Assemble 注入 catchupSummary；换角时同步 Catch-up。
 - ✅ **W2**：`companion_role_state` / `day_scripts` / `events`（schema v5）；`pauseRole` / `resumeRole` / `ensureDayScripts`（确定性 mock）；`tickActiveRole` 仅 active；`requestSwitch` 接入 pause + `catchupQueued`；启动 LifeTicker；单测覆盖缺页补齐与非活跃不推进。
 - ✅ **W1**：流式中 `requestSwitch` → `SESSION_ACTIVE`；`companion_mutable` + 版本回滚；Assemble 用 MUTABLE 覆盖；设置页切换失败 toast；schema v4。

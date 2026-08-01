@@ -12,6 +12,7 @@ import * as settings from '../../storage/settings-store'
 import * as identity from '../identity/loader'
 import type { DayScriptPayload } from '../types'
 import { eachLocalDateInclusive, localDateTimeMs, toLocalDateString } from './dates'
+import { pickWardrobeAssetId } from './assets'
 import { publishAndProjectDue } from './moments'
 import { generateDayScript } from './script-generator'
 import * as store from './store'
@@ -73,6 +74,11 @@ async function materializePlannedEvents(
 ): Promise<void> {
   for (const slot of payload.slots) {
     const scheduledAt = localDateTimeMs(payload.date, slot.hour, slot.minute)
+    // moment 槽位挂衣柜引用（派生截面，非独立真相）
+    const assetId =
+      slot.type === 'moment'
+        ? await pickWardrobeAssetId(roleId, scheduledAt)
+        : null
     await store.insertEvent({
       roleId,
       scheduledAt,
@@ -85,6 +91,7 @@ async function materializePlannedEvents(
         location: slot.location,
         date: payload.date,
         theme: payload.theme,
+        ...(assetId ? { assetId } : {}),
       },
     })
   }

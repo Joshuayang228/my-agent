@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — Companion W4：衣柜 Assets（2026-08-02）
+
+- SQLite `companion_assets`（schema v7）；活跃角色空库时播种 starter 衣柜
+- 日剧本 moment 事件 payload 携带 `assetId`；朋友圈文案可带「穿着…」
+- IPC `companion:get-assets`；侧栏「衣柜」只读面板（仅当前活跃主角）
+
 ### Added — Companion W3：Catch-up 与朋友圈（2026-08-02）
 
 - 切换回曾暂停主角时同步 `runCatchup`：细补近 7×24h 剧本/事件，更早空洞写入概况摘要

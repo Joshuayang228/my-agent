@@ -89,6 +89,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
       catchupSummary: string
       lastTickAt: number
     }> => ipcRenderer.invoke('companion:catchup-status'),
+    getAssets: (opts?: { kind?: string }): Promise<{
+      roleId: string
+      items: Array<{
+        id: string
+        roleId: string
+        kind: string
+        name: string
+        payload: Record<string, unknown>
+        acquiredAt: number
+        sourceEventId: string | null
+      }>
+    }> => ipcRenderer.invoke('companion:get-assets', opts),
   },
 
   mcp: {

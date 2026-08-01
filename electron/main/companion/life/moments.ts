@@ -6,17 +6,16 @@
  */
 
 import type { CompanionEvent, CompanionMoment } from '../types'
+import { getAsset } from './assets'
 import * as store from './store'
 
-export function formatMomentText(event: CompanionEvent): string {
+export function formatMomentText(event: CompanionEvent, outfitName?: string): string {
   const p = event.payload
   const activity = String(p.activity ?? event.type)
   const mood = p.mood ? `（${String(p.mood)}）` : ''
   const location = p.location ? ` · ${String(p.location)}` : ''
-  if (event.type === 'moment') {
-    return `${activity}${mood}${location}`
-  }
-  return `${activity}${mood}${location}`
+  const outfit = outfitName ? ` · 穿着${outfitName}` : ''
+  return `${activity}${mood}${location}${outfit}`
 }
 
 /** 将已 published 事件投影为 moment（幂等） */
@@ -24,17 +23,24 @@ export async function projectMomentFromEvent(
   event: CompanionEvent,
 ): Promise<CompanionMoment | null> {
   if (event.status !== 'published') return null
-  // 朋友圈优先 moment 类型；activity 也投影，方便时间线有内容
+  let outfitName: string | undefined
+  const assetId = typeof event.payload.assetId === 'string' ? event.payload.assetId : null
+  if (assetId) {
+    const asset = await getAsset(assetId)
+    if (asset) outfitName = asset.name
+  }
   return store.insertMoment({
     roleId: event.roleId,
     eventId: event.id,
     publishedAt: event.scheduledAt,
-    text: formatMomentText(event),
+    text: formatMomentText(event, outfitName),
     meta: {
       type: event.type,
       mood: event.payload.mood,
       location: event.payload.location,
       theme: event.payload.theme,
+      assetId: assetId ?? undefined,
+      outfit: outfitName,
     },
   })
 }

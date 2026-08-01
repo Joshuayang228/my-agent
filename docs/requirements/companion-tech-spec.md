@@ -354,7 +354,7 @@ storage: database.ts migration + companion-*-store.ts
 
 **验收：**
 
-- [ ] 资产按 role 隔离；切换后列表变  
+- [x] 资产按 role 隔离；切换后列表变  
 
 ### W5 — Cast 名册 / 召唤
 
@@ -418,4 +418,4 @@ storage: database.ts migration + companion-*-store.ts
 | 3 全局指针 | architecture.md §5.1 |
 | 4 沉淀 | methodology M21–M31（代码后写） |
 
-**W0–W3 已完成**。继续时从 **W4**（Assets 衣柜）开工。  
+**W0–W4 已完成**。继续时从 **W5**（Cast 名册 / 召唤）开工。  

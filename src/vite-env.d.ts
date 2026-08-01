@@ -97,6 +97,18 @@ declare global {
           catchupSummary: string
           lastTickAt: number
         }>
+        getAssets: (opts?: { kind?: string }) => Promise<{
+          roleId: string
+          items: Array<{
+            id: string
+            roleId: string
+            kind: string
+            name: string
+            payload: Record<string, unknown>
+            acquiredAt: number
+            sourceEventId: string | null
+          }>
+        }>
       }
       mcp: {
         connect: (config: {

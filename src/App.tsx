@@ -5,6 +5,7 @@ import { SettingsPanel } from './components/SettingsPanel'
 import { DevPanel } from './components/DevPanel'
 import { MemoryPanel } from './components/MemoryPanel'
 import { MomentsPanel } from './components/MomentsPanel'
+import { AssetsPanel } from './components/AssetsPanel'
 import { ToastProvider, useToast } from './components/Toast'
 import { SkillsPanel } from './components/SkillsPanel'
 import { FileBrowser } from './components/FileBrowser'
@@ -16,7 +17,7 @@ import {
   Plug, ChevronDown, ChevronRight, Square,
   Copy, Check, X, Pencil, RotateCcw, GitBranch, Trash2,
   Plus, Search, Cpu, Menu, Brain, Code, Send,
-  Pin, File, Newspaper,
+  Pin, File, Newspaper, Shirt,
 } from 'lucide-react'
 
 let messageIdCounter = 0
@@ -118,7 +119,7 @@ function App() {
   const [pendingImages, setPendingImages] = useState<ImageAttachment[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [activeTools, setActiveTools] = useState<ToolStatus[]>([])
-  const [activeView, setActiveView] = useState<'chat' | 'skills' | 'memory' | 'moments' | 'settings'>('chat')
+  const [activeView, setActiveView] = useState<'chat' | 'skills' | 'memory' | 'moments' | 'assets' | 'settings'>('chat')
   const [theme, setTheme] = useState<string>(() => {
     return localStorage.getItem('theme') || 'dark'
   })
@@ -854,6 +855,9 @@ function App() {
               <SidebarBtn onClick={() => setActiveView(v => v === 'moments' ? 'chat' : 'moments')} title="朋友圈 (Ctrl+Shift+F)">
                 <Newspaper size={14} />
               </SidebarBtn>
+              <SidebarBtn onClick={() => setActiveView(v => v === 'assets' ? 'chat' : 'assets')} title="衣柜">
+                <Shirt size={14} />
+              </SidebarBtn>
               <SidebarBtn onClick={() => setActiveView(v => v === 'memory' ? 'chat' : 'memory')} title="记忆 (Ctrl+Shift+M)">
                 <Brain size={14} />
               </SidebarBtn>
@@ -963,6 +967,9 @@ function App() {
               )}
               {activeView === 'moments' && (
                 <MomentsPanel onClose={() => setActiveView('chat')} />
+              )}
+              {activeView === 'assets' && (
+                <AssetsPanel onClose={() => setActiveView('chat')} />
               )}
             </div>
           </div>

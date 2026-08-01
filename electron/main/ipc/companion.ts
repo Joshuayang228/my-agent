@@ -17,6 +17,7 @@ import {
   rollbackMutable,
   setMutable,
 } from '../companion/growth/mutable-store'
+import { ensureStarterWardrobe, listAssets } from '../companion/life/assets'
 import { listMomentsForRole } from '../companion/life/moments'
 import { getRoleState } from '../companion/life/store'
 import * as settings from '../storage/settings-store'
@@ -96,4 +97,16 @@ export function registerCompanionIPC(): void {
       lastTickAt: state?.lastTickAt ?? 0,
     }
   })
+
+  /** 衣柜等资产：仅活跃主角；空库时播种 starter */
+  ipcMain.handle(
+    'companion:get-assets',
+    async (_e, opts?: { kind?: string }) => {
+      const roleId = await getActiveRoleId()
+      await ensureStarterWardrobe(roleId)
+      const kind = typeof opts?.kind === 'string' ? opts.kind : undefined
+      const items = await listAssets(roleId, kind ? { kind } : undefined)
+      return { roleId, items }
+    },
+  )
 }

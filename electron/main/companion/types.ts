@@ -110,3 +110,14 @@ export interface CompanionMoment {
   text: string
   meta: Record<string, unknown>
 }
+
+/** 角色资产（衣柜等，按 role 分桶） */
+export interface CompanionAsset {
+  id: string
+  roleId: string
+  kind: string
+  name: string
+  payload: Record<string, unknown>
+  acquiredAt: number
+  sourceEventId: string | null
+}

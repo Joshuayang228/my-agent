@@ -36,7 +36,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 6
+export const SCHEMA_VERSION = 7
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -273,6 +273,24 @@ export function runMigrations(database: SqlJsDatabase): void {
       d.run(`
         CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_moments_event
           ON companion_moments(event_id)
+      `)
+    },
+    // v6 → v7：Assets 衣柜等（W4）
+    (d) => {
+      d.run(`
+        CREATE TABLE IF NOT EXISTS companion_assets (
+          id               TEXT PRIMARY KEY,
+          role_id          TEXT NOT NULL,
+          kind             TEXT NOT NULL,
+          name             TEXT NOT NULL,
+          payload_json     TEXT NOT NULL DEFAULT '{}',
+          acquired_at      INTEGER NOT NULL,
+          source_event_id  TEXT
+        )
+      `)
+      d.run(`
+        CREATE INDEX IF NOT EXISTS idx_companion_assets_role_kind
+          ON companion_assets(role_id, kind)
       `)
     },
   ]
