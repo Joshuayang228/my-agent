@@ -444,5 +444,16 @@
 - **选项**：
   - A：共享时间线 + 视角滤镜，允许会话中换角 — 灵活但易跳戏、Prompt 难控
   - B：同宇宙多 Role Pack，同时只启用一个角色；会话中禁止换角；完整切换；非活跃暂停；Catch-up 细补 ≤7 天 — 更清晰
-- **决定**：B。人设推倒重来（废旧三模板）。文档：契约+W 批次 → `requirements/companion-world-framework.md`；模块详设 → `requirements/companion-architecture.md`；`architecture.md` 只留指针；modules 卡待有代码边界再开；methodology Part VI（M21–M31）随 W 沉淀
+- **决定**：B。人设推倒重来（废旧三模板）。文档：契约+W 批次 → `requirements/companion-world-framework.md`；模块详设 → `requirements/companion-architecture.md`；施工合同 → `requirements/companion-tech-spec.md`；`architecture.md` 只留指针；modules 卡待有代码边界再开；methodology Part VI（M21–M31）随 W 沉淀
 - **影响**：后续 W0–W6；Orchestrator 门控；LifeEngine 分桶；Eval 带 protagonistId
+
+### DEC-035: 主角交付节奏与破坏性重置
+
+- **日期**：2026-08-01
+- **状态**：已决定
+- **背景**：tech-spec §8 拍板
+- **决定**：
+  1. 架构按 3 主角位（`plannedProtagonistSlots`）；**内容先做 1 个** Role Pack，再逐个追加
+  2. 开发期可清空 sessions；不为旧会话做无 `role_id` 兼容
+  3. 设置字段直接用 `activeRoleId`，删除 `personaId`，不做迁移映射；`persona:*` IPC 直接换成 `companion:*`
+- **影响**：W0 范围缩小为单 Pack + 可扩容目录；设置/IPC/单测破坏性一次改完

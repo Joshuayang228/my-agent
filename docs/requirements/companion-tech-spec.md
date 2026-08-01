@@ -1,9 +1,16 @@
 # 伙伴与生活世界 — 完整技术方案（施工合同）
 
-> 状态：**讨论稿 / 待你确认后开工**（2026-08-01）  
+> 状态：**§8 已拍板**（2026-08-01）· 等你说「可以按此施工」后开 W0  
 > 上位文档：[产品契约](./companion-world-framework.md) · [模块架构](./companion-architecture.md) · [DEC-034](../decisions.md)  
 > 本文补齐：数据模型 · Role Pack 格式 · 关键接口 · 影响范围 · W0–W6 可验证步骤 · 风险权衡  
-> **确认前不改 `electron/` 业务代码。**
+
+### 已拍板补充（原 §8）
+
+| 项 | 决定 |
+|----|------|
+| 主角数量 | **架构按 3 个主角位设计**（`protagonistIds` 可挂满 3）；**内容先做 1 个**，其余按需一个一个加 Pack |
+| 旧会话 | 开发阶段**可清空** sessions/messages；不保留无 `role_id` 的兼容路径 |
+| 设置字段 | **直接使用 `activeRoleId`**，删除 `personaId`；不做读写兼容/映射 |
 
 ---
 
@@ -15,7 +22,7 @@
 
 | # | 目标 | 验收意象 |
 |---|------|----------|
-| G1 | 同宇宙 3 个可选主角（人设新建，废旧模板） | 设置里三选一；无 warm-partner 等旧 id |
+| G1 | 同宇宙架构支持 3 主角位；**首发 1 个完整 Role Pack**（废旧模板） | 设置可见已启用主角（先 1 个）；manifest 预留另 2 个 id 槽或空位说明；无 warm-partner 等旧 id |
 | G2 | 同时仅一个 `activeRoleId` 接管聊天+生活 UI | 切角色 = 整面切换 |
 | G3 | 会话绑定角色，禁止中途换角 | 进行中会话调用 switch → 明确错误码 |
 | G4 | 非活跃完全暂停；切换 Catch-up 细补 ≤7 日 | 单测覆盖天数上限与摘要路径 |
@@ -68,10 +75,13 @@ electron/main/companion/universes/default/
   "id": "default",
   "title": "默认主角团",
   "version": 1,
-  "protagonistIds": ["role-a", "role-b", "role-c"],
+  "protagonistIds": ["role-a"],
+  "plannedProtagonistSlots": 3,
   "defaultProtagonistId": "role-a"
 }
 ```
+
+> W0：`protagonistIds` 仅含已交付的 1 个；`plannedProtagonistSlots: 3` 标明架构容量。加第二/第三个主角 = 新增 `roles/<id>/` + 把 id 追加进 `protagonistIds` + 补 `relations`，**不改引擎模型**。
 
 **`roles/<id>/manifest.json`**
 
@@ -97,17 +107,16 @@ electron/main/companion/universes/default/
 
 组装名册时：以 `activeRoleId` 为视角，把 `from/to` 转成「你与 X 的关系」短句；**禁止**在三份 `protected.md` 里各写一套互相矛盾的人物小传。
 
-**W0 人设正文**：可用占位文案（标明 TODO），但 **id/目录/加载链路必须一次做对**；正式三主角文案可并行另开 `docs/requirements/companion-cast-content.md`（纯内容，不挡引擎）。
+**W0 人设正文**：先交付 **1 个**主角的可用 protected/mutable（可仍标迭代中）；另 2 个位不建半残 Pack。后续主角文案可另开 `docs/requirements/companion-cast-content.md`。
 
-**废弃**：`BUILTIN_PERSONAS` / `warm-partner` / `rigorous-advisor` / `tech-geek`。迁移策略见 §5。
+**废弃（直接删除，无兼容）**：`BUILTIN_PERSONAS` / `warm-partner` / `rigorous-advisor` / `tech-geek` / settings.`personaId`。
 
 ### 3.3 设置与会话字段
 
 | 键 / 列 | 位置 | 说明 |
 |---------|------|------|
 | `universeId` | settings | 默认 `"default"` |
-| `activeRoleId` | settings | 取代业务语义上的 `personaId`（见迁移） |
-| `personaId` | settings | **兼容读**：W0 期间若存在旧值则映射/忽略并写入 `activeRoleId`；稳定后可删 |
+| `activeRoleId` | settings | **唯一**当前主角；**无** `personaId` 字段 |
 | `sessions.role_id` | SQLite | 创建会话时写入当时 `activeRoleId`；**不可 UPDATE** |
 | `sessions` 进行中判定 | 现有流式/任务状态 | Orchestrator：若该 session 未结束且 `role_id ≠ 目标` → 拒绝 switch |
 
@@ -239,7 +248,7 @@ buildSystemPrompt({
 | `companion:get-assets` | inv | W4 |
 | `companion:catchup-status` | inv/事件 | 可选：进度给 UI |
 
-旧 `persona:list` / `persona:get-current`：W0 改为薄封装转调 companion，或标记 deprecated 一版后删除。
+旧 `persona:*` IPC：**直接删除**，由 `companion:*` 取代（四处同步一并改完）。
 
 ### 3.6 Catch-up 算法（冻结）
 
@@ -276,19 +285,18 @@ storage: database.ts migration + companion-*-store.ts
 
 | 区域 | 影响 | 破坏性 |
 |------|------|--------|
-| `prompt-builder.ts` / 单测 | 改加载源；断言改 role id | 中：测例改写 |
-| `ipc/persona.ts`、preload、vite-env、SettingsPanel | 列表/切换走 companion | 中：UI 文案「主角」 |
-| `settings-store` | 增 `activeRoleId`/`universeId`；默认角色 id 变更 | 中：旧设置需迁移 |
-| `sessions` | 增 `role_id` | 中：旧会话 `role_id` 可填当时默认或 null 只读 |
-| Eval `b01-persona-tone` 等 | 改 `protagonistId` / system 夹具 | 低～中 |
-| Memory | 用户画像仍全局；不按角色劈开（第一期） | 低 |
-| 方法论 | 不挡施工；W 后沉淀 | 无 |
+| `prompt-builder.ts` / 单测 | 改加载源；断言改新 role id | 中：测例改写 |
+| `ipc/persona.ts` → `companion.ts`、preload、vite-env、SettingsPanel | 删 persona API，改 companion | 中：破坏性一次做完 |
+| `settings-store` | 删 `personaId`，加 `activeRoleId`/`universeId` | 高：本地设置重置相关键 |
+| `sessions` | 加 `role_id`；**允许清空**旧会话表（开发期） | 高：历史对话可丢 |
+| Eval | 夹具改新 protagonistId | 低～中 |
+| Memory | 用户画像仍全局 | 低 |
 
-**迁移旧模板**
+**破坏性重置（开发期允许）**
 
-1. W0：打包内仅新三角色；设置若读到旧 `personaId` → 强制映射到 `defaultProtagonistId` 并写回 `activeRoleId`。  
-2. 不保留「温暖伙伴」等旧文案兼容渲染。  
-3. changelog 写明「人格模板重置」。
+1. 删除旧三模板与一切 `personaId` 引用。  
+2. W0 可提供「清空会话」或 migration 直接 `DELETE` sessions/messages（无客户数据顾虑）。  
+3. changelog 写明「人格与会话存储破坏性变更」。
 
 ---
 
@@ -298,18 +306,19 @@ storage: database.ts migration + companion-*-store.ts
 
 **做：**
 
-1. 建 `universes/default` + 3 个 Role Pack 目录（占位文案可）  
-2. `loadRolePack` / `listProtagonists`  
-3. `prompt-builder` 改为从 pack 读 L1；删 `BUILTIN_PERSONAS`  
-4. settings：`activeRoleId` + 旧 id 迁移  
-5. IPC `companion:list-protagonists` / `get-active`；设置页改绑（切换可先「直接改 settings」，完整门控放 W1）  
-6. sessions 加 `role_id`（新会话写入）  
+1. 建 `universes/default`：`plannedProtagonistSlots: 3`，**仅 1 个** `roles/<id>/` 完整 Pack  
+2. `loadRolePack` / `listProtagonists`（列表 = 已在 `protagonistIds` 中的包）  
+3. `prompt-builder` 从 pack 读 L1；删 `BUILTIN_PERSONAS`  
+4. settings：删 `personaId`，加 `activeRoleId` + `universeId`（默认指向该唯一主角）  
+5. IPC：删 `persona:*`，加 `companion:list-protagonists` / `get-active`（及设置写 active）；设置页改绑  
+6. sessions 加 `role_id`；开发期清空或 migration 丢弃旧会话  
 
 **验收：**
 
-- [ ] `tsc` + 相关单测绿（prompt-builder 新断言）  
-- [ ] 设置可见 3 主角；对话 L1 含对应 protected 片段  
-- [ ] 无 warm-partner 字符串残留（grep）  
+- [ ] `tsc` + 相关单测绿  
+- [ ] 设置可见 **1** 个主角；对话 L1 含其 protected  
+- [ ] grep 无 `personaId` / `warm-partner` / `BUILTIN_PERSONAS`  
+- [ ] 再加一个角色目录并写入 `protagonistIds` 后，**无需改 Orchestrator/Assemble 模型**即可列出（可在 W0 末用最小第二 pack 做一次「扩容烟测」，或留到加第二个主角时验）  
 
 ### W1 — Orchestrator + Growth 门控
 
@@ -394,13 +403,9 @@ storage: database.ts migration + companion-*-store.ts
 
 ---
 
-## 8. 待讨论项（确认前请拍板）
+## 8. 待讨论项 — 已关闭
 
-请你在本条回复或下轮明确：
-
-1. **W0 三角色**：是否接受「引擎用占位名 role-a/b/c + 占位 protected」先打通，正式人设另轨并行？还是 W0 必须同期给出三份完整 Bible？  
-2. **旧会话**：打开无 `role_id` 的历史会话时，是只读用当前 active 展示，还是冻结为「未知角色、禁止继续聊」？  
-3. **`personaId` 字段**：兼容一个版本后删除，还是直接改名 `activeRoleId`（破坏性一次做完）？  
+见文首「已拍板补充」。无开放项。
 
 ---
 
@@ -413,4 +418,4 @@ storage: database.ts migration + companion-*-store.ts
 | 3 全局指针 | architecture.md §5.1 |
 | 4 沉淀 | methodology M21–M31（代码后写） |
 
-确认本文 §8 三点并说「可以按此施工」后，从 **W0** 开始写代码。  
+你说 **「可以按此施工」** 后，从 **W0**（1 个主角 Pack + 三槽位架构）开始写代码。  
