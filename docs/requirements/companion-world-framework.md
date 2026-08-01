@@ -2,7 +2,8 @@
 
 > 状态：已确认（2026-08-01）  
 > **本文职责**：Why / 硬约束 / W0–W6 施工队列（产品契约）  
-> **模块详设**：见同目录 [`companion-architecture.md`](./companion-architecture.md)  
+> **模块详设**：[`companion-architecture.md`](./companion-architecture.md)  
+> **完整技术方案（施工合同）**：[`companion-tech-spec.md`](./companion-tech-spec.md) ← 接口/表结构/W 验收/风险  
 > **全局技术图**：[`../architecture.md`](../architecture.md) 仅留指针  
 > **深 Why**：`methodology/` Part VI（M21–M31），随 W 沉淀，不当施工图  
 
