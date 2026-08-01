@@ -56,3 +56,47 @@ export interface UniverseRelations {
 export type SwitchResult =
   | { ok: true; catchupQueued: boolean }
   | { ok: false; code: 'SESSION_ACTIVE' | 'UNKNOWN_ROLE' | 'ALREADY_ACTIVE' }
+
+/** 日剧本槽位（W2 LifeEngine；LLM 生成前用确定性 mock） */
+export interface DayScriptSlot {
+  hour: number
+  minute: number
+  activity: string
+  mood: string
+  location: string
+  type: 'moment' | 'activity'
+}
+
+export interface DayScriptPayload {
+  date: string
+  theme: string
+  slots: DayScriptSlot[]
+}
+
+export interface DayScriptRow {
+  id: string
+  roleId: string
+  date: string
+  payload: DayScriptPayload
+  createdAt: number
+}
+
+export type CompanionEventStatus = 'planned' | 'published' | 'cancelled'
+
+export interface CompanionEvent {
+  id: string
+  roleId: string
+  scheduledAt: number
+  status: CompanionEventStatus
+  type: string
+  payload: Record<string, unknown>
+  dayScriptId: string | null
+}
+
+export interface CompanionRoleState {
+  roleId: string
+  pausedAt: number | null
+  lastTickAt: number
+  catchupSummary: string
+  updatedAt: number
+}

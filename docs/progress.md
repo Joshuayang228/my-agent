@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：伙伴 **W1**（Orchestrator 门控 + MUTABLE）已落地；下一刀 **W2**（LifeEngine 暂停/剧本/tick）
+**阶段**：伙伴 **W2**（LifeEngine）已落地；下一刀 **W3**（Moments + Catch-up≤7 日）
 
 **最新动态（2026-08-02）**：
+- ✅ **W2**：`companion_role_state` / `day_scripts` / `events`（schema v5）；`pauseRole` / `resumeRole` / `ensureDayScripts`（确定性 mock）；`tickActiveRole` 仅 active；`requestSwitch` 接入 pause + `catchupQueued`；启动 LifeTicker；单测覆盖缺页补齐与非活跃不推进。
 - ✅ **W1**：流式中 `requestSwitch` → `SESSION_ACTIVE`；`companion_mutable` + 版本回滚；Assemble 用 MUTABLE 覆盖；设置页切换失败 toast；schema v4。
 - ✅ **W0**：Role Pack `lin` + 三槽位架构；删旧 persona；`activeRoleId` / `companion:*` IPC。
 

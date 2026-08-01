@@ -64,5 +64,5 @@
 
 ## 下一步
 
-1. ✅ W0 / W1 已落地  
-2. 下一刀按 tech-spec 做 **W2**（LifeEngine：暂停 / 日剧本 / tick）  
+1. ✅ W0 / W1 / W2 已落地  
+2. 下一刀按 tech-spec 做 **W3**（Moments + Catch-up≤7 日）  

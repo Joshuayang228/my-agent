@@ -158,7 +158,8 @@ think → act → observe → think → ...
 | 模块架构 | [`requirements/companion-architecture.md`](./requirements/companion-architecture.md) |
 | 施工合同 | [`requirements/companion-tech-spec.md`](./requirements/companion-tech-spec.md) |
 
-目录落点随 W0+ 生长（意向：`electron/main/companion/`）；`prompt-builder` 退化为组装器。
+目录落点：`electron/main/companion/`（identity / growth / life / orchestrator）；`prompt-builder` 为组装器。  
+已落地：**W0** Identity+Assemble · **W1** 换角门控+MUTABLE · **W2** LifeEngine（pause/剧本/tick）。下一刀 **W3** Moments+Catch-up。
 
 ### 6. MCP 协议
 

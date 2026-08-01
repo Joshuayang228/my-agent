@@ -336,8 +336,8 @@ storage: database.ts migration + companion-*-store.ts
 
 **验收：**
 
-- [ ] 非活跃不新增 script/event  
-- [ ] ensure 某 3 日缺页则补齐（可 mock LLM）  
+- [x] 非活跃不新增 script/event  
+- [x] ensure 某 3 日缺页则补齐（可 mock LLM）  
 
 ### W3 — Moments + Catch-up
 
@@ -418,4 +418,4 @@ storage: database.ts migration + companion-*-store.ts
 | 3 全局指针 | architecture.md §5.1 |
 | 4 沉淀 | methodology M21–M31（代码后写） |
 
-**W0 / W1 已完成**。继续时从 **W2**（LifeEngine 暂停 / 剧本 / tick）开工。  
+**W0 / W1 / W2 已完成**。继续时从 **W3**（Moments + Catch-up≤7 日）开工。  

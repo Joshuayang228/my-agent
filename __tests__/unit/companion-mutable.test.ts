@@ -102,24 +102,22 @@ describe('companion mutable store', () => {
 
 describe('companion requestSwitch 流式门控', () => {
   beforeEach(() => {
+    memDb = new SQL.Database()
     registerStreamingProbe(() => false)
+  })
+
+  afterEach(() => {
+    memDb.close()
   })
 
   it('流式进行中拒绝切换 → SESSION_ACTIVE', async () => {
     registerStreamingProbe(() => true)
     expect(isStreamingActive()).toBe(true)
-    // 需要一个与当前不同的已知角色；W0 只有 lin，用未知以外的路径测门控顺序
-    // 先测：streaming 时即使目标合法也会被拒——为此临时注册假探针后，
-    // 对未知角色仍先 UNKNOWN；对 ALREADY 先 ALREADY。用 mock isKnown + 不同 id 不现实。
-    // 门控顺序：UNKNOWN → ALREADY → SESSION_ACTIVE。
-    // 仅 lin 时无法测「合法切换被流式拒绝」，故直接断言探针 + 对假 id：
     const r = await requestSwitch('not-a-role')
     expect(r).toEqual({ ok: false, code: 'UNKNOWN_ROLE' })
   })
 
   it('流式探针为 true 时对合法切换返回 SESSION_ACTIVE', async () => {
-    // 临时把探针 + 伪造第二主角：通过直接测 orchestrator 内部顺序
-    // 使用 vi.spyOn isKnownProtagonist
     const identity = await import('../../electron/main/companion/identity/loader')
     const spy = vi.spyOn(identity, 'isKnownProtagonist').mockImplementation((id) => id === 'lin' || id === 'other')
     registerStreamingProbe(() => true)

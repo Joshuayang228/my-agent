@@ -36,7 +36,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 5
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -211,6 +211,47 @@ export function runMigrations(database: SqlJsDatabase): void {
           summary    TEXT NOT NULL DEFAULT '',
           UNIQUE(role_id, version)
         )
+      `)
+    },
+    // v4 → v5：LifeEngine 运行态 / 日剧本 / 事件（W2）
+    (d) => {
+      d.run(`
+        CREATE TABLE IF NOT EXISTS companion_role_state (
+          role_id         TEXT PRIMARY KEY,
+          paused_at       INTEGER,
+          last_tick_at    INTEGER NOT NULL DEFAULT 0,
+          catchup_summary TEXT NOT NULL DEFAULT '',
+          updated_at      INTEGER NOT NULL
+        )
+      `)
+      d.run(`
+        CREATE TABLE IF NOT EXISTS companion_day_scripts (
+          id           TEXT PRIMARY KEY,
+          role_id      TEXT NOT NULL,
+          date         TEXT NOT NULL,
+          payload_json TEXT NOT NULL,
+          created_at   INTEGER NOT NULL,
+          UNIQUE(role_id, date)
+        )
+      `)
+      d.run(`
+        CREATE INDEX IF NOT EXISTS idx_companion_day_scripts_role_date
+          ON companion_day_scripts(role_id, date)
+      `)
+      d.run(`
+        CREATE TABLE IF NOT EXISTS companion_events (
+          id            TEXT PRIMARY KEY,
+          role_id       TEXT NOT NULL,
+          scheduled_at  INTEGER NOT NULL,
+          status        TEXT NOT NULL,
+          type          TEXT NOT NULL,
+          payload_json  TEXT NOT NULL,
+          day_script_id TEXT
+        )
+      `)
+      d.run(`
+        CREATE INDEX IF NOT EXISTS idx_companion_events_role_sched
+          ON companion_events(role_id, scheduled_at)
       `)
     },
   ]

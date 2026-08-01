@@ -3,13 +3,16 @@
  *
  * 背景：设置页与 runtime 需要统一读写 activeRoleId；切换必须门控进行中会话。
  * 意图：getActiveRoleId / requestSwitch / 解析当前 RolePack（含 MUTABLE 覆盖）。
- * 约束：有流式 chat 时拒绝切换（SESSION_ACTIVE）；Catch-up 仍在 W2+。
+ * 约束：有流式 chat 时拒绝切换（SESSION_ACTIVE）；切换时 pause 旧角色 / resume 新角色。
+ *       Catch-up 细补在 W3；本模块只排队标记 catchupQueued。
  *       本模块不 import agent/（通过 streaming-gate 探针）。
  */
 
 import * as settings from '../storage/settings-store'
 import * as identity from './identity/loader'
 import { getMutable } from './growth/mutable-store'
+import { pauseRole, resumeRole } from './life/engine'
+import { getRoleState } from './life/store'
 import { isStreamingActive } from './streaming-gate'
 import type { RolePack, RoleSummary, SwitchResult } from './types'
 
@@ -64,8 +67,9 @@ export function listActiveUniverseProtagonists(universeId?: string): RoleSummary
 }
 
 /**
- * 切换活跃主角。
+ * 完整切换活跃主角。
  * 流式进行中 → SESSION_ACTIVE；未知角色 / 已是当前 → 对应错误码。
+ * 成功：pause 旧角色 → 写 activeRoleId → resume 新角色；若新角色曾暂停则 catchupQueued。
  */
 export async function requestSwitch(roleId: string): Promise<SwitchResult> {
   const universeId = await settings.getSetting('universeId')
@@ -79,7 +83,15 @@ export async function requestSwitch(roleId: string): Promise<SwitchResult> {
   if (isStreamingActive()) {
     return { ok: false, code: 'SESSION_ACTIVE' }
   }
+
+  const now = Date.now()
+  await pauseRole(current, now)
+
+  const targetPrev = await getRoleState(roleId)
+  const catchupQueued = targetPrev?.pausedAt != null
+
   await settings.setSetting('activeRoleId', roleId)
-  // Catch-up 排队：W2+
-  return { ok: true, catchupQueued: false }
+  await resumeRole(roleId)
+
+  return { ok: true, catchupQueued }
 }

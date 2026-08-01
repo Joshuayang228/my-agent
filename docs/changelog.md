@@ -5,6 +5,13 @@
 
 ## [未发布]
 
+### Added — Companion W2：LifeEngine 暂停 / 日剧本 / tick（2026-08-02）
+
+- SQLite `companion_role_state` / `companion_day_scripts` / `companion_events`（schema v5）
+- `pauseRole` / `resumeRole` / `ensureDayScripts`（确定性剧本生成，可换 LLM）/ `tickActiveRole`（仅活跃主角）
+- 切换主角时 pause 旧角色；曾暂停的新角色标记 `catchupQueued`（细补在 W3）
+- 应用启动后周期性 LifeTicker 推进活跃角色生活世界
+
 ### Added — Companion W1：换角门控与 MUTABLE 版本（2026-08-02）
 
 - 对话流式进行中切换主角返回 `SESSION_ACTIVE`，设置页提示先结束/中断

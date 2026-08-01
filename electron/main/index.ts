@@ -254,6 +254,10 @@ app.whenReady().then(async () => {
   const { taskQueue } = await import('./services/task-queue')
   taskQueue.recoverPendingTasks().catch(err => log.warn('Task recovery failed', { error: String(err) }))
 
+  // W2：活跃主角生活世界 tick（非活跃不推进）
+  const { startLifeTicker } = await import('./companion/life/ticker')
+  startLifeTicker()
+
   if (!VITE_DEV_SERVER_URL) {
     setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 3000)
   }
@@ -266,6 +270,8 @@ app.on('before-quit', () => {
 app.on('will-quit', async () => {
   globalShortcut.unregisterAll()
   shutdownScheduler()
+  const { stopLifeTicker } = await import('./companion/life/ticker')
+  stopLifeTicker()
   await runtime.shutdown()
   await mcpManager.disconnectAll().catch(() => {})
   closeDatabase()
