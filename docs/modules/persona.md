@@ -49,5 +49,5 @@
 
 ## 现状 / 缺口
 
-**现状**：3 个内置模板硬编码于 `prompt-builder.ts`；L1 分区；画像三维注入在记忆侧。  
-**缺口 / 路线**：见 `docs/requirements/companion-world-framework.md`（W0–W6）与方法论 **M21–M31**。下一刀 **W0** 主角色 Bible 资产化。
+**现状**：3 个内置模板仍硬编码于 `prompt-builder.ts`（**已决定废弃**，W0 换同团新主角 Role Pack）。  
+**缺口 / 路线**：契约 [`companion-world-framework.md`](../requirements/companion-world-framework.md)；详设 [`companion-architecture.md`](../requirements/companion-architecture.md)；方法论 M21–M31。下一刀 **W0**（确认可写代码后）。

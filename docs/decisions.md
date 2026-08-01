@@ -435,3 +435,14 @@
 - **背景**：模型响应可能因输出 token 限制被截断（stopReason=max_tokens/length），Alice 和 CC 都有续写机制
 - **决定**：检测到截断后注入 `[System] continue from where you left off` 续写提示，最多恢复 2 次
 - **影响**：`agent/loop.ts` 新增 max_output_recovery 逻辑；`llm/index.ts` 三个适配器新增 stopReason 提取
+
+### DEC-034: 伙伴生活世界 — 单活跃角色与文档分工
+
+- **日期**：2026-08-01
+- **状态**：已决定
+- **背景**：终局要做同团多主角 + 朋友圈/衣柜等生活世界；需避免会话跳戏、双真相文档、以及与 Electron 底层分层冲突
+- **选项**：
+  - A：共享时间线 + 视角滤镜，允许会话中换角 — 灵活但易跳戏、Prompt 难控
+  - B：同宇宙多 Role Pack，同时只启用一个角色；会话中禁止换角；完整切换；非活跃暂停；Catch-up 细补 ≤7 天 — 更清晰
+- **决定**：B。人设推倒重来（废旧三模板）。文档：契约+W 批次 → `requirements/companion-world-framework.md`；模块详设 → `requirements/companion-architecture.md`；`architecture.md` 只留指针；modules 卡待有代码边界再开；methodology Part VI（M21–M31）随 W 沉淀
+- **影响**：后续 W0–W6；Orchestrator 门控；LifeEngine 分桶；Eval 带 protagonistId

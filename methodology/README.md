@@ -25,9 +25,20 @@ M01–M31 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 **Part V 智能与进化** 只保留多 Agent 和自进化两章——这两块是通用 Agent 能力，与产品类型无关。
 
-**Part VI 伙伴与生活世界**（2026-08-01 重排）：终局对齐「有人设、有成长、有每日生活、有朋友圈/衣柜/交际圈」。结构为 **Identity → Growth → World → 体验横切 → 在场**。旧 M22–M27 体验向占位已归档至 `_archive/methodology-companion-legacy/`。
+**Part VI 伙伴与生活世界**（2026-08-01 重排）：终局对齐「有人设、有成长、有每日生活、有朋友圈/衣柜/交际圈」。结构为 **Identity → Growth → World → 体验横切 → 在场**。旧体验向占位归档至 `_archive/methodology-companion-legacy/`。
 
-**施工与沉淀分工**：工程只认 `docs/requirements/companion-world-framework.md` 的 **W0–W6**；方法论按问题域编号（M21–M31），**不按 M 号顺序施工**，随对应 W 批次完成后深啃沉淀。
+**与四维文档对齐**（不必再改章号）：
+
+| 写什么 | 落点 |
+|--------|------|
+| 产品契约 / W 批次 | `docs/requirements/companion-world-framework.md` |
+| 模块架构详设 | `docs/requirements/companion-architecture.md` |
+| 全局技术指针 | `docs/architecture.md` §5.1 |
+| 深 Why / 自洽 | **本目录 M21–M31**（随 W 沉淀，不当施工图） |
+
+**运行时硬约束（写入各章时勿违背）**：同团多主角可切换；**同时只启用一个**；会话中禁止换角；非活跃暂停；切换 Catch-up **细补 ≤7 天**。
+
+**施工与沉淀**：工程只认 W0–W6；方法论按问题域编号，**不按 M 号顺序施工**。
 
 ### 文件命名
 

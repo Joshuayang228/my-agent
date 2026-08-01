@@ -7,8 +7,8 @@
 
 ### Changed — 伙伴与生活世界框架 + 方法论 Part VI 重排（2026-08-01）
 
-- 新增技术框架 `docs/requirements/companion-world-framework.md`（W0–W6）
-- 方法论 Part VI 改为 M21–M31（含生活世界/朋友圈/衣柜/交际圈）；旧体验占位归档
+- 契约 `companion-world-framework.md` + 模块详设 `companion-architecture.md`；`architecture.md` §5.1；DEC-034
+- 方法论 Part VI 为 M21–M31；约束：单活跃 / 完整切换 / Catch-up≤7 天；旧体验占位归档
 
 ### Changed — 设置页画布框统一（2026-07-31）
 

@@ -15,11 +15,18 @@
 
 | 模块 | 一句话 | 卡 | 状态 |
 |------|--------|----|------|
-| 人格 | 一致身份与风格，防止漂移 | [persona.md](./persona.md) | 试点 |
+| 人格 | 一致身份与风格，防止漂移 | [persona.md](./persona.md) | 试点（将随 W0 扩为 Role Pack / 单活跃） |
 | 记忆 | 跨会话记住并召回用户信息 | [memory.md](./memory.md) | 试点 |
 | 权限 | 工具/命令能否执行、是否要问用户 | [permission.md](./permission.md) | 试点 |
 
-后续候选（有横切痛再开卡）：会话 Runtime、MCP 扩展、Skill、RAG、项目工作区。
+后续候选（有横切痛 / W 批次落地后再开卡）：
+
+| 候选 | 说明 | 设计入口 |
+|------|------|----------|
+| 生活世界 | 剧本、暂停、tick、Catch-up | [companion-architecture](../requirements/companion-architecture.md) |
+| 朋友圈 | 事件层截面 | 同上 + M24 |
+| 衣柜/资产 | 持久资产层 | 同上 + M25 |
+| 会话 Runtime、MCP、Skill、RAG、项目工作区 | 原有候选 | — |
 
 ## 模块卡字段（封顶）
 

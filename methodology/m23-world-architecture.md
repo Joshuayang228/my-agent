@@ -11,11 +11,14 @@
 
 - 世界状态最小集：居所、时区、日程、短期情境（心情/在忙什么）  
 - DayScript / 每日生活生成器：输入世界状态 → 输出当日事件草案  
+- **按 roleId 分桶**；非活跃**完全暂停**（不 tick）  
+- **Catch-up**：完整切换时细补最近 **≤7 天**，更早仅摘要（对照 Alice `ensureDayScriptsForDateRange`）  
 - 与对话组装：哪些摘要进 L3/L4，避免整库灌进 Prompt  
 - 生活不挡干活：World 与 Agent Loop 的优先级  
 - 单一真相源：后续 Moments/Assets 只派生本层  
 
 ## 参考源
 
-- Alice ch16 设定集与自洽；ch18「展示是截面」  
-- 源码：paths / dayscript 相关 prompt 键、`role-prompt-map`  
+- Alice ch16/ch18；源码 `ensureDayScriptsForDateRange` / `day_scripts` / `worldTick`  
+- 详设：`docs/requirements/companion-architecture.md`  
+

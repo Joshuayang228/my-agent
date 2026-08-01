@@ -1,7 +1,6 @@
 # 系统架构
 
-> **技术维**总图。架构变更时更新此文件。  
-> 产品横切入口：[`modules/product-module-map.md`](./modules/product-module-map.md) · 质量总控：[`quality.md`](./quality.md) · 对内进度：[`progress.md`](./progress.md)
+> 架构变更时由 AI 更新此文件。
 
 ## 项目愿景
 
@@ -146,6 +145,19 @@ think → act → observe → think → ...
 | L2 能力边界 | 工具列表、行为规范、aside 格式 | 稳定 |
 | L3 上下文 | 用户画像、记忆、向量检索结果、自定义指令 | 每次重建 |
 | L4 动态 | 当前时间 | 每次变化 |
+
+### 5.1 伙伴与生活世界（Companion）
+
+人格化伙伴的**产品终局**（多主角同团、单活跃、生活世界、朋友圈/衣柜）挂在现有 Loop / Memory / IPC 之上，**不另起进程模型**。
+
+| 要点 | 说明 |
+|------|------|
+| 运行时 | 唯一 `activeRoleId`；会话中禁止换角；完整切换 + 非活跃暂停 |
+| Catch-up | 切换时细补最近 ≤7 日生活剧本/事件 |
+| 详设 | [`requirements/companion-architecture.md`](./requirements/companion-architecture.md) |
+| 契约/批次 | [`requirements/companion-world-framework.md`](./requirements/companion-world-framework.md) |
+
+目录落点随 W0+ 生长（意向：`electron/main/companion/`）；`prompt-builder` 退化为组装器。
 
 ### 6. MCP 协议
 

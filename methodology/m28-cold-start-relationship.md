@@ -13,9 +13,12 @@
 - 初次信息采集：问什么、何时问、如何不冒犯  
 - 熟悉度阈值：何时可更自然、何时可启动 MUTABLE 反思  
 - 与 Alice 冷启动 72h / 冷却 24h 的取舍（数值自定）  
-- 与 M08 记忆、M22 成长核的联动  
+- **换角 ≠ 冷启动会话**：完整切换门控、会话绑定 roleId、禁止中途换角  
+- 与 M08 记忆、M22 成长核、Orchestrator 的联动  
 
 ## 参考源
 
 - Alice PersonaReflectionService 门控  
+- `docs/requirements/companion-architecture.md` 切换时序  
 - 旧占位：`_archive/methodology-companion-legacy/m23-companion-cold-start.md`  
+
