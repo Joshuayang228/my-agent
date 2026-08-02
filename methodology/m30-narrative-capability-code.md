@@ -1,59 +1,120 @@
 # M30 叙事连贯与能力边界代码走读
 
-> 对应 `m30-narrative-capability.md`。
+> 对应 `m30-narrative-capability.md`（加厚修订版）。  
+> 理念章讲为什么；本章按推论节号展示「代码如何体现」。无 CC 独章对照时，以我们的实现 + 设计决策为主。
 
 ---
 
-## 一、模块地图
+## §二 对照：三条叙事线的落点
 
-```
-prompt-builder.ts     # L2 Capabilities / Working method；文末身份锚
-context-manager.ts    # 压缩（叙事风险点）
-runtime.ts            # 记忆/Catch-up/roster 注入
-life/* + cast/*       # 世界与名册叙事原料
-evals/b01-persona-tone.ts
-```
+| 叙事线 | 主要代码 | 说明 |
+|--------|----------|------|
+| 关系线 | `memory-store` / `profile-extractor` / `mutable-store` / 会话 messages | 持久；压缩不直接删这些表 |
+| 日子线 | `life/engine` · `moments` · `assets` · `catchup` | UI 截面 + Catch-up 摘要进 Prompt |
+| 干活线 | `loop` · `ToolRegistry` · `permission-engine` | 工具轨迹；失败/确认可见 |
+
+**发现**：三条线分属不同模块，没有「NarrativeCoordinator」——一致性靠纪律与组装，不靠中心裁判（M24-G1 / 本章 Gap 相关）。
+
+**方法论对照**：→ `m30-narrative-capability.md` §二
 
 ---
 
-## 二、能力边界（L2）
+## §三 对照：压缩 vs 持久关系
 
+### 我们的实现
+
+- 压缩：`context-manager` 处理 **messages** 轮次  
+- 关系要点若只存在 assistant 口头承诺 → 可被 Snip  
+- 正确姿势：`remember` / profile-extract → SQLite；默契 → `setMutable`
+
+```text
+危险：约定只活在 chat 气泡里
+安全：约定进 memory 或 MUTABLE 后，压缩删气泡也不丢「我们是谁」
 ```
+
+**发现**：M30-G2「压缩白名单」尚未做；工程上用「提前入库」补救，而不是改压缩器特例。
+
+**方法论对照**：→ §三
+
+---
+
+## §五 对照：组装时注入的叙事薄片
+
+### 我们的实现（`runtime` → `buildSystemPrompt`）
+
+| 注入 | 来源 | 叙事作用 |
+|------|------|----------|
+| userProfile | memory | 关系线 |
+| memories（向量） | vector-store | 关系线召回 |
+| catchupSummary | catchup | 日子线（换角后） |
+| rosterLines | cast/roster | 圈子浅层 |
+| summon 声明 | runtime 字符串 | 番外边界，防日子线偷跑 |
+
+召唤：`session_kind=summon` 时跳过 catchup 注入与反思调度。
+
+**方法论对照**：→ §五
+
+---
+
+## §六–八 对照：能力边界声明（L2）
+
+### 我们的实现（`prompt-builder.ts`）
+
+```text
 ## Capabilities
-- 工具列表 toolNames
-- 破坏性操作需确认
-- 用户语言跟随
+- 枚举当前 toolNames（动态，随注册变化）
+- 破坏性操作将确认
+- 跟随用户语言
 
 ## Working method
-- plan-first / confirm-all 分支
+- plan-first / confirm-all 分支文案
 - task_plan + 收尾自检
 - remember/recall/forget
 ```
 
-无独立「能力评分」模块；边界靠工具+权限+Prompt。
+文末身份锚（近因效应）服务**叙事身份**，不是能力清单：
+
+```text
+Remember: you are {name}. Stay in this identity...
+```
+
+| 能力相关 | 落点 | 是否 L2 |
+|----------|------|---------|
+| 有没有某工具 | ToolRegistry → toolNames | 是 |
+| 能不能硬干 | permission-engine | 运行时，非 Prompt |
+| 会不会装懂 | 模型 + M29 规范 | 无强制拦截器 |
+
+**发现**：把「不会生图朋友圈」写进 PROTECTED 会腐化人设文件；保持「工具列表说了算」更干净。
+
+**方法论对照**：→ §六 §七 §八
 
 ---
 
-## 三、叙事原料注入（L3）
+## §九 对照：干活时丢掉陪伴废话
 
-- 用户画像 + 向量召回  
-- catchupSummary  
-- rosterLines  
-- （召唤）presence / 不推进生活声明  
+### 我们的实现（`loop.ts`）
 
-一致性依赖各章纪律，无跨层「叙事校验器」（接 M24-G1）。
+有 `tool_calls` 时，写入历史的 assistant `content` 置空（Alice strategy 日志：`Discarding companion text`）。
 
----
+**发现**：这是叙事让位于干活线的硬措施——防止工具链上下文被小剧场污染。
 
-## 四、压缩接缝
-
-压缩删的是对话轮次噪声；结构化记忆 / MUTABLE / day_scripts **不在** Snip 路径里。  
-风险：只活在对话里、未进记忆的关系约定可能被折叠（M30-G2）。
+**方法论对照**：→ §九
 
 ---
 
-## 五、已知简化
+## §十 对照：Eval
 
-- 无里程碑实体（M30-G1）  
-- 无压缩关系白名单（M30-G2）  
-- 无专家度调节（M30-G3）  
+- `evals/scenarios/b01-persona-tone.ts`：像人，不考核万能  
+- `c01-companion.ts`：名册浅注入契约（防串味，服务叙事身份）
+
+**方法论对照**：→ §十
+
+---
+
+## 已知简化（与理念 Gap 对齐）
+
+| Gap | 代码现状 |
+|-----|----------|
+| M30-G1 里程碑 | 无表、无 IPC |
+| M30-G2 压缩白名单 | 无；靠入库纪律 |
+| M30-G3 专家度 | 无用户模型字段 |
