@@ -67,6 +67,9 @@
 - [ ] **M26-G1** 卡司出现在 Moments 互动（评论/同框）
 - [ ] **M26-G2** 召唤会话与 M19 子 Agent 任务协作
 - [ ] **M26-G3** NPC 多场景 prompt 组（执行/展示/互动）
+- [ ] **M27-G1** 问/做/安慰/推回显式策略或轻量分类
+- [ ] **M27-G2** aside 频率/质量 Eval（过油/缺失）
+- [ ] **M27-G3** 情绪语气收放控制器（非纯靠模型）
 - [x] ~~**自动反思写 MUTABLE**~~ — 2026-08-02：门闸 + 对话后入队 + Settings 手动/强制；需求见 `docs/requirements/companion-mutable-reflection.md`
 
 ### 工程债 / 产品向
