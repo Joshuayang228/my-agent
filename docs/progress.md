@@ -4,10 +4,11 @@
 
 ## 当前状态
 
-**阶段**：伙伴主线已收齐；**M22–M23 已沉淀**；下一步 **M24 朋友圈/事件层**
+**阶段**：伙伴主线已收齐；**M22–M24 已沉淀**；下一步 **M25 衣柜/资产层**
 
 **最新动态（2026-08-02）**：
-- ✅ **M23 生活世界方法论**：暂停/tick/Catch-up≤7 日；Gap G1–G3 进 wishlist；队列指向 M24。
+- ✅ **M24 朋友圈/事件层方法论**：投影非独立真相；Gap G1–G3 进 wishlist；队列指向 M25。
+- ✅ **M23 生活世界方法论**：暂停/tick/Catch-up≤7 日；Gap G1–G3 进 wishlist。
 - ✅ **M22 成长核方法论**：理念章 + code 章；Gap G1–G4 进 wishlist。
 - ✅ **CLAUDE.md 导航**：启动上下文 + 收尾沉淀接入 `capability-catalog` / `requirements/README`。
 - ✅ **文档导航补缺**：`docs/modules/capability-catalog.md`（陪伴/记忆/权限/运行时 + Prompt 管线）；`docs/requirements/README.md` 三分类；刷新 `companion.md` / product-module-map / architecture 链接。
