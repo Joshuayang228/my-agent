@@ -66,7 +66,7 @@
 - [x] ~~**M24-G1** 对话与最近 Moment 一致性校验~~ — 2026-08-02：Assemble 近 3 条锚点 + 软校验（不拦 Loop）
 - [x] ~~**M24-G2** LLM 润色动态文案~~ — 2026-08-02：tick prefer 润色；Catch-up 默认规则；校验拒新地点
 - [ ] **M24-G3** 生图朋友圈（非本阶段）
-- [ ] **M25-G1** 用户编辑/删除资产 UI
+- [x] **M25-G1** 用户编辑/删除资产 UI（`updateAsset`/`deleteAsset` + AssetsPanel）
 - [ ] **M25-G2** 获得事件自动入库（`maybeGrantFromEvent` 尚未挂 publish 主路径）
 - [ ] **M25-G3** bookshelf 等其它 asset kind
 - [ ] **M26-G1** 卡司出现在 Moments 互动（评论/同框）

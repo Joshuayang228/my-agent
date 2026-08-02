@@ -1,9 +1,9 @@
 /**
- * 活跃主角衣柜（生活面）：穿着中主卡 + 库存网格 / 场合标签
+ * 活跃主角衣柜（生活面）：穿着中主卡 + 库存网格 / 编辑删除（M25-G1）
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { RefreshCw, Shirt, Sparkles, X } from 'lucide-react'
+import { Pencil, RefreshCw, Shirt, Sparkles, Trash2, X } from 'lucide-react'
 
 interface AssetItem {
   id: string
@@ -27,6 +27,11 @@ function occasionTags(payload: Record<string, unknown>): string[] {
   return tags
 }
 
+function strField(payload: Record<string, unknown>, key: string): string {
+  const v = payload[key]
+  return typeof v === 'string' ? v : ''
+}
+
 export function AssetsPanel({ onClose }: AssetsPanelProps) {
   const [roleId, setRoleId] = useState('')
   const [roleName, setRoleName] = useState('')
@@ -34,6 +39,13 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
   const [wearingId, setWearingId] = useState<string | null>(null)
   const [wearingHint, setWearingHint] = useState('')
   const [loading, setLoading] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editColor, setEditColor] = useState('')
+  const [editStyle, setEditStyle] = useState('')
+  const [editOccasion, setEditOccasion] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [toast, setToast] = useState('')
 
   const load = useCallback(async () => {
     if (!window.electronAPI?.companion) return
@@ -83,6 +95,7 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
   useEffect(() => {
     if (!window.electronAPI?.companion.onRoleChanged) return
     return window.electronAPI.companion.onRoleChanged(() => {
+      setEditingId(null)
       void load()
     })
   }, [load])
@@ -94,6 +107,157 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
   const inventory = useMemo(
     () => items.filter((a) => a.id !== wearing?.id),
     [items, wearing],
+  )
+
+  const flash = (msg: string) => {
+    setToast(msg)
+    window.setTimeout(() => setToast(''), 2200)
+  }
+
+  const startEdit = (a: AssetItem) => {
+    setEditingId(a.id)
+    setEditName(a.name)
+    setEditColor(strField(a.payload, 'color'))
+    setEditStyle(strField(a.payload, 'style'))
+    setEditOccasion(strField(a.payload, 'occasion'))
+  }
+
+  const saveEdit = async () => {
+    if (!editingId || !window.electronAPI?.companion?.updateAsset) return
+    setBusy(true)
+    try {
+      const result = await window.electronAPI.companion.updateAsset(editingId, {
+        name: editName,
+        payload: {
+          color: editColor,
+          style: editStyle,
+          occasion: editOccasion,
+        },
+      })
+      if (!result.ok) {
+        flash(result.error || '保存失败')
+        return
+      }
+      setEditingId(null)
+      flash('已保存')
+      await load()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const removeAsset = async (a: AssetItem) => {
+    if (!window.electronAPI?.companion?.deleteAsset) return
+    if (!window.confirm(`删除「${a.name}」？历史动态里的着装引用会降级为无着装。`)) return
+    setBusy(true)
+    try {
+      const result = await window.electronAPI.companion.deleteAsset(a.id)
+      if (!result.ok) {
+        flash(result.error || '删除失败')
+        return
+      }
+      if (editingId === a.id) setEditingId(null)
+      if (wearingId === a.id) setWearingId(null)
+      flash('已删除')
+      await load()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const renderEditForm = (a: AssetItem) => (
+    <div className="mt-2 space-y-2 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
+      <label className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>
+        名称
+        <input
+          value={editName}
+          onChange={(e) => setEditName(e.target.value)}
+          className="mt-0.5 w-full rounded border px-2 py-1 text-[12px]"
+          style={{
+            borderColor: 'var(--border-color)',
+            background: 'var(--bg-secondary)',
+            color: 'var(--text-primary)',
+          }}
+          maxLength={40}
+        />
+      </label>
+      <div className="grid grid-cols-3 gap-1.5">
+        {[
+          { label: '颜色', value: editColor, set: setEditColor },
+          { label: '风格', value: editStyle, set: setEditStyle },
+          { label: '场合', value: editOccasion, set: setEditOccasion },
+        ].map((f) => (
+          <label key={f.label} className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>
+            {f.label}
+            <input
+              value={f.value}
+              onChange={(e) => f.set(e.target.value)}
+              className="mt-0.5 w-full rounded border px-1.5 py-1 text-[11px]"
+              style={{
+                borderColor: 'var(--border-color)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+              }}
+              maxLength={24}
+            />
+          </label>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={busy || !editName.trim()}
+          onClick={() => void saveEdit()}
+          className="rounded px-2.5 py-1 text-[11px] font-medium"
+          style={{
+            background: 'var(--companion-accent-warm)',
+            color: 'var(--bg-primary)',
+            opacity: busy || !editName.trim() ? 0.5 : 1,
+          }}
+        >
+          保存
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => setEditingId(null)}
+          className="rounded px-2.5 py-1 text-[11px]"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          取消
+        </button>
+      </div>
+      <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+        编辑 {a.kind} · 仅当前活跃主角
+      </p>
+    </div>
+  )
+
+  const assetActions = (a: AssetItem) => (
+    <div className="mt-2 flex gap-1">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => startEdit(a)}
+        className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px]"
+        style={{ color: 'var(--text-secondary)', background: 'var(--bg-secondary)' }}
+        title="编辑"
+      >
+        <Pencil size={11} />
+        编辑
+      </button>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void removeAsset(a)}
+        className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px]"
+        style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)' }}
+        title="删除"
+      >
+        <Trash2 size={11} />
+        删除
+      </button>
+    </div>
   )
 
   return (
@@ -109,11 +273,16 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
               衣柜
             </div>
             <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              {roleName || roleId || '活跃主角'} · 叙事道具（非资产表）
+              {roleName || roleId || '活跃主角'} · 可编辑 / 删除
             </div>
           </div>
         </div>
         <div className="flex items-center gap-1">
+          {toast ? (
+            <span className="mr-1 text-[11px]" style={{ color: 'var(--companion-accent-warm)' }}>
+              {toast}
+            </span>
+          ) : null}
           <button
             type="button"
             onClick={() => load()}
@@ -136,7 +305,6 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin">
-        {/* 穿着中主卡 */}
         <section className="mb-5">
           <div
             className="mb-2 text-[10px] font-semibold uppercase tracking-wider"
@@ -186,6 +354,7 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
                       </span>
                     ))}
                   </div>
+                  {editingId === wearing.id ? renderEditForm(wearing) : assetActions(wearing)}
                 </div>
               </div>
             </div>
@@ -199,7 +368,6 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
           )}
         </section>
 
-        {/* 库存网格 */}
         <section>
           <div
             className="mb-2 text-[10px] font-semibold uppercase tracking-wider"
@@ -221,12 +389,17 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
                   key={a.id}
                   className="companion-life-card rounded-xl border px-3 py-3"
                   style={{
-                    borderColor: 'var(--card-border)',
+                    borderColor: editingId === a.id
+                      ? 'var(--companion-accent-warm)'
+                      : 'var(--card-border)',
                     background: 'var(--card-bg)',
                     boxShadow: 'var(--companion-shadow-card)',
                   }}
                 >
-                  <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                  <div
+                    className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg"
+                    style={{ background: 'var(--bg-secondary)' }}
+                  >
                     <Shirt size={16} style={{ color: 'var(--text-secondary)' }} />
                   </div>
                   <div className="truncate text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
@@ -246,6 +419,7 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
                       </span>
                     ))}
                   </div>
+                  {editingId === a.id ? renderEditForm(a) : assetActions(a)}
                 </div>
               ))}
             </div>

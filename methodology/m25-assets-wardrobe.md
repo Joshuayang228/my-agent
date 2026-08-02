@@ -72,7 +72,7 @@ tech-spec / 模块卡常说朋友圈/衣柜是「截面」：
 | Starter 种子 | ✅ | 空柜幂等写入基础款，稳定 id |
 | 显式 addAsset | ✅ API | 购买/剧情；可挂 source_event_id |
 | 事件自动 grant | △ 有 `maybeGrantFromEvent`，未挂 publish 主路径 | M25-G2 |
-| 用户编辑/删除 UI | ❌ | M25-G1 |
+| 用户编辑/删除 UI | ✅ | M25-G1：update/delete + AssetsPanel |
 
 资产有 `acquired_at`；版本需求弱于 MUTABLE——物多为增删，不是全文演化。
 
@@ -141,7 +141,7 @@ W4 只证明「引用 + 分桶 + 面板」三件套；书架不阻塞认知地�
 
 | ID | 内容 | 为什么暂缓 |
 |----|------|------------|
-| M25-G1 | 编辑/删除 UI | 最小演示不依赖 |
+| M25-G1 | 编辑/删除 UI | ✅ 已落地 |
 | M25-G2 | 获得事件自动入库 | 剧情与平衡未设计 |
 | M25-G3 | bookshelf 等 | 先验证衣柜闭环 |
 

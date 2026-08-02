@@ -1,9 +1,9 @@
 /**
- * Assets / 衣柜（W4）
+ * Assets / 衣柜（W4 / M25-G1）
  *
  * 背景：着装等是角色世界状态截面，按 role_id 隔离；非独立内容真相。
- * 意图：list/add/ensureStarter；事件 payload 可引用 assetId。
- * 约束：IPC 只暴露 active role；不 import agent/。
+ * 意图：list/add/update/delete/ensureStarter；事件 payload 可引用 assetId。
+ * 约束：IPC 只暴露 active role；删除后 Moment 着装引用自然降级；不 import agent/。
  */
 
 import { randomUUID } from 'node:crypto'
@@ -84,6 +84,10 @@ export async function getAsset(assetId: string): Promise<CompanionAsset | null> 
   stmt.free()
   return asset
 }
+
+export type AssetMutationResult =
+  | { ok: true; asset: CompanionAsset }
+  | { ok: false; code: 'NOT_FOUND' | 'ROLE_MISMATCH' | 'INVALID'; error: string }
 
 export async function addAsset(input: {
   roleId: string
@@ -193,6 +197,79 @@ export async function pickWardrobeAssetId(
   const items = await listAssets(roleId, { kind: 'wardrobe' })
   if (!items.length) return null
   return items[Math.abs(seed) % items.length].id
+}
+
+/**
+ * 更新资产名称 / payload（合并写入）。
+ * expectedRoleId：若提供则必须属于该角色（IPC 用 active）。
+ */
+export async function updateAsset(
+  assetId: string,
+  patch: { name?: string; payload?: Record<string, unknown> },
+  opts?: { expectedRoleId?: string },
+): Promise<AssetMutationResult> {
+  const existing = await getAsset(assetId)
+  if (!existing) {
+    return { ok: false, code: 'NOT_FOUND', error: '资产不存在' }
+  }
+  if (opts?.expectedRoleId && existing.roleId !== opts.expectedRoleId) {
+    return { ok: false, code: 'ROLE_MISMATCH', error: '只能改当前活跃主角的衣柜' }
+  }
+
+  const name = typeof patch.name === 'string' ? patch.name.trim() : existing.name
+  if (!name || name.length > 40) {
+    return { ok: false, code: 'INVALID', error: '名称无效（1–40 字）' }
+  }
+
+  let payload = existing.payload
+  if (patch.payload && typeof patch.payload === 'object') {
+    const next: Record<string, unknown> = { ...existing.payload }
+    for (const [k, v] of Object.entries(patch.payload)) {
+      if (v === null || v === undefined || v === '') {
+        delete next[k]
+        continue
+      }
+      if (typeof v === 'string') {
+        const t = v.trim().slice(0, 24)
+        if (t) next[k] = t
+        else delete next[k]
+      } else {
+        next[k] = v
+      }
+    }
+    payload = next
+  }
+
+  const db = await getDatabase()
+  db.run(
+    `UPDATE companion_assets SET name = ?, payload_json = ? WHERE id = ?`,
+    [name, JSON.stringify(payload), assetId],
+  )
+  persist()
+  const asset: CompanionAsset = { ...existing, name, payload }
+  log.info('Asset updated', { assetId, roleId: existing.roleId, name })
+  return { ok: true, asset }
+}
+
+/**
+ * 删除资产。expectedRoleId 用于防改他人衣柜。
+ */
+export async function deleteAsset(
+  assetId: string,
+  opts?: { expectedRoleId?: string },
+): Promise<{ ok: true } | { ok: false; code: 'NOT_FOUND' | 'ROLE_MISMATCH'; error: string }> {
+  const existing = await getAsset(assetId)
+  if (!existing) {
+    return { ok: false, code: 'NOT_FOUND', error: '资产不存在' }
+  }
+  if (opts?.expectedRoleId && existing.roleId !== opts.expectedRoleId) {
+    return { ok: false, code: 'ROLE_MISMATCH', error: '只能删当前活跃主角的衣柜' }
+  }
+  const db = await getDatabase()
+  db.run(`DELETE FROM companion_assets WHERE id = ?`, [assetId])
+  persist()
+  log.info('Asset deleted', { assetId, roleId: existing.roleId })
+  return { ok: true }
 }
 
 /**

@@ -37,9 +37,10 @@ projectMomentFromEvent → getAsset → outfitName 进 text/meta
 ## §八 对照：可见性
 
 `companion:get-assets` → active role；可按 kind 过滤。  
-`AssetsPanel` 随 `role-changed` 刷新。
+`companion:update-asset` / `companion:delete-asset` → 仅 active（`expectedRoleId`）。  
+`AssetsPanel`：编辑名称/色/风格/场合；删除确认后降级引用。
 
-**方法论对照**：→ §四 §八
+**方法论对照**：→ §四 §八 · M25-G1
 
 ---
 
@@ -53,4 +54,4 @@ projectMomentFromEvent → getAsset → outfitName 进 text/meta
 
 ## 已知简化
 
-无编辑/删除 IPC；grant 未接线；仅 wardrobe 种子。
+grant 未接线（M25-G2）；仅 wardrobe 种子（M25-G3）。

@@ -104,6 +104,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
         sourceEventId: string | null
       }>
     }> => ipcRenderer.invoke('companion:get-assets', opts),
+    updateAsset: (
+      assetId: string,
+      patch: { name?: string; payload?: Record<string, unknown> },
+    ): Promise<
+      | {
+          ok: true
+          asset: {
+            id: string
+            roleId: string
+            kind: string
+            name: string
+            payload: Record<string, unknown>
+            acquiredAt: number
+            sourceEventId: string | null
+          }
+        }
+      | { ok: false; error: string; code?: string }
+    > => ipcRenderer.invoke('companion:update-asset', assetId, patch),
+    deleteAsset: (
+      assetId: string,
+    ): Promise<{ ok: true } | { ok: false; error: string; code?: string }> =>
+      ipcRenderer.invoke('companion:delete-asset', assetId),
     getRoster: (): Promise<{
       roleId: string
       lines: Array<{

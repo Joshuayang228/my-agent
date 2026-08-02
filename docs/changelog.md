@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — M25-G1 衣柜编辑/删除（2026-08-02）
+
+- `updateAsset` / `deleteAsset`：仅活跃主角可改删；payload 合并写入
+- IPC：`companion:update-asset` / `companion:delete-asset`（三处同步）
+- `AssetsPanel`：编辑名称与色/风格/场合；删除确认；历史着装引用自然降级
+
 ### Added — M24-G2 Moment LLM 润色（2026-08-02）
 
 - `resolveMomentText`：tick 发布 prefer 润色；仍绑定 event；校验拒新地点

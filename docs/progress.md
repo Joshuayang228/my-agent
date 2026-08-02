@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22/M23 收齐 · M24-G1/G2**；下一步：M24-G3（非本阶段）或 M25 Gaps
+**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22–M24 收齐 · M25-G1**；下一步：M25-G2（事件 grant）/ G3
 
 **最新动态（2026-08-02）**：
+- ✅ **M25-G1**：衣柜编辑/删除 API + IPC + AssetsPanel；单测覆盖角色隔离。
 - ✅ **M24-G2**：Moment 文案 LLM 润色（绑 event）；tick prefer / Catch-up 规则底稿。
 - ✅ **M24-G1**：近 Moment 薄锚点进 Assemble + 软一致性校验（不拦 Loop）。
 - ✅ **M23-G3**：Catch-up 概况 prefer LLM + 模板回退；Prompt 留在 `catchup.ts`。

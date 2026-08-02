@@ -113,6 +113,27 @@ declare global {
             sourceEventId: string | null
           }>
         }>
+        updateAsset: (
+          assetId: string,
+          patch: { name?: string; payload?: Record<string, unknown> },
+        ) => Promise<
+          | {
+              ok: true
+              asset: {
+                id: string
+                roleId: string
+                kind: string
+                name: string
+                payload: Record<string, unknown>
+                acquiredAt: number
+                sourceEventId: string | null
+              }
+            }
+          | { ok: false; error: string; code?: string }
+        >
+        deleteAsset: (
+          assetId: string,
+        ) => Promise<{ ok: true } | { ok: false; error: string; code?: string }>
         getRoster: () => Promise<{
           roleId: string
           lines: Array<{

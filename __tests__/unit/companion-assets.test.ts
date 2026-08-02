@@ -42,6 +42,8 @@ const {
   ensureStarterWardrobe,
   listAssets,
   addAsset,
+  updateAsset,
+  deleteAsset,
   pickWardrobeAssetId,
 } = await import('../../electron/main/companion/life/assets')
 
@@ -102,5 +104,51 @@ describe('Companion Assets', () => {
     const b = await pickWardrobeAssetId('lin', 42)
     expect(a).toBe(b)
     expect(a).toBeTruthy()
+  })
+
+  it('updateAsset 可改名与 payload，角色不匹配则失败', async () => {
+    const created = await addAsset({
+      roleId: 'lin',
+      kind: 'wardrobe',
+      name: '旧名外套',
+      payload: { color: '灰', style: '简约', occasion: '日常' },
+    })
+    const ok = await updateAsset(
+      created.id,
+      { name: '新名外套', payload: { color: '黑' } },
+      { expectedRoleId: 'lin' },
+    )
+    expect(ok.ok).toBe(true)
+    if (!ok.ok) return
+    expect(ok.asset.name).toBe('新名外套')
+    expect(ok.asset.payload.color).toBe('黑')
+    expect(ok.asset.payload.style).toBe('简约')
+
+    const wrong = await updateAsset(
+      created.id,
+      { name: '黑客' },
+      { expectedRoleId: 'other' },
+    )
+    expect(wrong.ok).toBe(false)
+    if (wrong.ok) return
+    expect(wrong.code).toBe('ROLE_MISMATCH')
+  })
+
+  it('deleteAsset 仅本人可删', async () => {
+    const created = await addAsset({
+      roleId: 'lin',
+      kind: 'wardrobe',
+      name: '待删外套',
+      payload: { color: '白', style: '休闲', occasion: '日常' },
+    })
+    const deny = await deleteAsset(created.id, { expectedRoleId: 'other' })
+    expect(deny.ok).toBe(false)
+    if (!deny.ok) expect(deny.code).toBe('ROLE_MISMATCH')
+
+    const ok = await deleteAsset(created.id, { expectedRoleId: 'lin' })
+    expect(ok.ok).toBe(true)
+    const again = await deleteAsset(created.id, { expectedRoleId: 'lin' })
+    expect(again.ok).toBe(false)
+    if (!again.ok) expect(again.code).toBe('NOT_FOUND')
   })
 })

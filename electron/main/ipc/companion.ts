@@ -26,7 +26,12 @@ import {
   runReflectionNow,
 } from '../companion/growth/reflection-service'
 import { describeCastPresence } from '../companion/cast/availability'
-import { ensureStarterWardrobe, listAssets } from '../companion/life/assets'
+import {
+  deleteAsset,
+  ensureStarterWardrobe,
+  listAssets,
+  updateAsset,
+} from '../companion/life/assets'
 import { listMomentsForRole } from '../companion/life/moments'
 import { getRoleState } from '../companion/life/store'
 import * as settings from '../storage/settings-store'
@@ -126,6 +131,38 @@ export function registerCompanionIPC(): void {
       return { roleId, items }
     },
   )
+
+  /** M25-G1：更新活跃主角资产 */
+  ipcMain.handle(
+    'companion:update-asset',
+    async (
+      _e,
+      assetId: string,
+      patch?: { name?: string; payload?: Record<string, unknown> },
+    ) => {
+      if (typeof assetId !== 'string' || !assetId.trim()) {
+        return { ok: false as const, error: 'INVALID_ID' }
+      }
+      if (!patch || typeof patch !== 'object') {
+        return { ok: false as const, error: 'INVALID_PATCH' }
+      }
+      const roleId = await getActiveRoleId()
+      const result = await updateAsset(assetId.trim(), patch, { expectedRoleId: roleId })
+      if (!result.ok) return { ok: false as const, error: result.error, code: result.code }
+      return { ok: true as const, asset: result.asset }
+    },
+  )
+
+  /** M25-G1：删除活跃主角资产 */
+  ipcMain.handle('companion:delete-asset', async (_e, assetId: string) => {
+    if (typeof assetId !== 'string' || !assetId.trim()) {
+      return { ok: false as const, error: 'INVALID_ID' }
+    }
+    const roleId = await getActiveRoleId()
+    const result = await deleteAsset(assetId.trim(), { expectedRoleId: roleId })
+    if (!result.ok) return { ok: false as const, error: result.error, code: result.code }
+    return { ok: true as const }
+  })
 
   /** 名册：以活跃主角为视角的关系短句 + 卡司浅层 */
   ipcMain.handle('companion:get-roster', async () => getActiveRoster())

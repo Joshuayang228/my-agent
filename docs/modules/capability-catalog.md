@@ -46,7 +46,7 @@
 | Catch-up ≤7×24h | 已落地 | 朋友圈暖色条 / Prompt | `life/catchup` · `catchup-status` |
 | 此刻 presence | 已落地 | Chat `CompanionStatusBar` | `describeCastPresence` · `catchup-status.presence` |
 | Moments（朋友圈） | 已落地 | 状态条 / 欢迎屏 → Moments | `get-moments` · MomentsPanel |
-| Assets（衣柜） | 已落地 | 欢迎屏 → 衣柜 | `get-assets` · AssetsPanel |
+| Assets（衣柜） | 已落地 | 欢迎屏 → 衣柜 | `get/update/delete-asset` · AssetsPanel |
 | 名册浅注入 | 已落地 | （Prompt） | `cast/roster` |
 | CastPanel（名册 / 召唤） | 已落地 | 状态条 / 欢迎屏 → 名册 | CastPanel · `start-summon` |
 | 召唤子会话 | 已落地 | 名册「开聊」 | 不改 active / 不 tick 对方 |
