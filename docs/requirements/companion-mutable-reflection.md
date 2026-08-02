@@ -1,6 +1,7 @@
 # 自动反思写 MUTABLE — 短需求
 
-> 2026-08-02。对照 Alice `PersonaReflectionService` + `runPersonaReflection`，自研落地。
+> 状态：**已落地**（2026-08-02）。索引见 [README.md](./README.md)。  
+> 对照 Alice `PersonaReflectionService` + `runPersonaReflection`，自研落地。
 
 ## Why
 

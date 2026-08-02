@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Changed — 文档：能力目录 + requirements 索引（2026-08-02）
+
+- 新增 `docs/modules/capability-catalog.md`：已落地能力表（伙伴/记忆/权限/运行时）与聊天 Prompt/召回管线
+- 新增 `docs/requirements/README.md`：进行中 / 已落地契约 / 元批次
+- 刷新 companion 模块卡、product-module-map、architecture 伙伴节链接
+
 ### Added — 自动反思写 MUTABLE（Alice 对照）（2026-08-02）
 
 - 门闸：冷启动 72h + 冷却 24h + 近 7 日 ≥5 条用户消息（按活跃主角分桶）

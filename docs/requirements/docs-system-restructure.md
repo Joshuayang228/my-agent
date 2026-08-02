@@ -37,3 +37,5 @@
 - [x] CLAUDE / writing-style / architecture 对齐
 - [x] 旧文档归档
 - [x] 账本含 pitfalls / decisions
+- [x] 能力目录 `modules/capability-catalog.md`（补 features 归档后的「有什么」缺口，2026-08-02）
+- [x] `requirements/README.md` 三分类索引（进行中 / 已落地契约 / 元批次）

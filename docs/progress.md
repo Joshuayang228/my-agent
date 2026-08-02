@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：伙伴 **W0–W6 主线已收齐**；召唤/忙闲/自动反思已通；后续方法论 M21–M31 深啃
+**阶段**：伙伴主线已收齐；**文档导航补齐**（能力目录 + requirements 索引）；后续 Pack 打磨 + methodology M21–M31 深啃
 
 **最新动态（2026-08-02）**：
+- ✅ **文档导航补缺**：`docs/modules/capability-catalog.md`（陪伴/记忆/权限/运行时 + Prompt 管线）；`docs/requirements/README.md` 三分类；刷新 `companion.md` / product-module-map / architecture 链接。
 - ✅ **自动反思 MUTABLE**：Alice 对照门闸 + 对话后入队 + Settings 手动/强制；见 `docs/requirements/companion-mutable-reflection.md`。
 - ✅ **召唤忙闲**：对照 Alice `checkFriendAvailability`；婉拒+改约+force；召唤 Prompt 带此刻情境（runtime 静态导入）。
 - ✅ **召唤子会话**：`startSummon` + schema v8；CastPanel「开聊」装载对方 Pack，不改 active / 不启生活。

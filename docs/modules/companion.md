@@ -6,7 +6,7 @@
 
 ## 边界
 
-**做**：Role Pack / 单活跃门控 / MUTABLE 版本 / LifeEngine（暂停·剧本·tick）/ Catch-up≤7×24h / Moments·Assets 截面 / 名册浅注入 / 冷启动在场文案。  
+**做**：Role Pack / 单活跃门控 / MUTABLE 版本与自动反思 / LifeEngine（暂停·剧本·tick）/ Catch-up≤7×24h / Moments·Assets 截面 / 名册浅注入 / 冷启动在场 / 召唤子会话与忙闲婉拒。  
 **不做**：会话中途换角；非活跃后台养成；多宇宙并行；生图朋友圈（非本阶段）。
 
 ## 短 Why
@@ -17,16 +17,17 @@
 
 | 类型 | 位置 |
 |------|------|
-| UI | 设置「活跃主角」；侧栏朋友圈 / 衣柜；空会话冷启动欢迎屏 |
-| IPC | `companion:*`（list / switch / moments / assets / roster / summon-brief…） |
-| Prompt | `prompt-builder` + `orchestrator.loadRoleAssembleInput` |
+| UI | 设置「活跃主角」+ MUTABLE/反思；侧栏朋友圈/衣柜/名册；欢迎屏冷启动；CastPanel「开聊」 |
+| IPC | `companion:*`（list / switch / moments / assets / roster / start-summon / reflection…） |
+| Prompt | `prompt-builder` + `orchestrator.loadRoleAssembleInput`（管线见能力目录 §1.1） |
 | 资产 | `electron/main/companion/universes/default/` |
-| 契约 | `docs/requirements/companion-*.md` |
+| 契约 | `docs/requirements/companion-*.md`（索引见 [requirements/README](../requirements/README.md)） |
+| 能力表 | [capability-catalog.md](./capability-catalog.md) §伙伴世界 |
 
 ## 依赖
 
-- **依赖**：settings-store、SQLite、streaming-gate、（可选）LLM 日后换剧本生成器  
-- **被依赖**：runtime 聊天组装、Eval C01 / B01、设置页
+- **依赖**：settings-store、SQLite、streaming-gate、LLM（反思 / 日后剧本生成）、task-queue  
+- **被依赖**：runtime 聊天组装、Eval C01 / B01、设置页、CastPanel
 
 ## 不变量
 
@@ -34,6 +35,7 @@
 - 流式进行中 `requestSwitch` → `SESSION_ACTIVE`  
 - 非活跃不 tick、不生成剧本/事件  
 - 名册只注入 summary/关系短句，不注入他人全文 protected  
+- 召唤不改 active、不推进对方生活世界  
 - 朋友圈/衣柜为事件与资产的派生截面，非第二真相库  
 
 ## 必读文件
@@ -41,15 +43,18 @@
 - `electron/main/companion/orchestrator.ts`
 - `electron/main/companion/life/engine.ts`
 - `electron/main/companion/cast/roster.ts`
+- `electron/main/companion/growth/reflection-service.ts`
 - `electron/main/agent/prompt-builder.ts`
+- `electron/main/agent/runtime.ts`（组装 + 召回 + 反思调度）
 - `docs/requirements/companion-tech-spec.md`
 
 ## 必测点
 
 - 换角门控、Catch-up 7 日边界、名册无他人 protected、资产按 role 隔离  
+- 召唤不改 active；反思门闸 / 召唤跳过  
 - Eval：`evals/scenarios/c01-companion.ts`；语气基线 `b01-persona-tone.ts`（有 key）
 
 ## 现状 / 缺口
 
-**现状**：W0–W5 已落地；W6 补冷启动在场与模块卡 / Eval C01。  
-**缺口**：自动反思写 MUTABLE；方法论 M21–M31 审核式深啃。三主角薄 Pack（小林/小周/小夏）已挂满；召唤子会话（`session_kind=summon`）已通。
+**现状**：W0–W6 主线 + 三槽满 + 召唤子会话/忙闲 + 自动反思 MUTABLE 已落地。  
+**缺口**：主角 Pack 内容打磨；methodology M21–M31 审核式深啃；生图朋友圈等非本阶段项见 wishlist。

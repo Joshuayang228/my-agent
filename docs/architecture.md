@@ -154,12 +154,12 @@ think → act → observe → think → ...
 |------|------|
 | 运行时 | 唯一 `activeRoleId`；会话中禁止换角；完整切换 + 非活跃暂停 |
 | Catch-up | 切换时细补最近 ≤7 日生活剧本/事件 |
-| 契约/批次 | [`requirements/companion-world-framework.md`](./requirements/companion-world-framework.md) |
-| 模块架构 | [`requirements/companion-architecture.md`](./requirements/companion-architecture.md) |
-| 施工合同 | [`requirements/companion-tech-spec.md`](./requirements/companion-tech-spec.md) |
+| 契约索引 | [`requirements/README.md`](./requirements/README.md) |
+| 产品模块 | [`modules/companion.md`](./modules/companion.md) |
+| 能力表 | [`modules/capability-catalog.md`](./modules/capability-catalog.md) §伙伴世界 |
 
-目录落点：`electron/main/companion/`（identity / growth / life / orchestrator）；`prompt-builder` 为组装器。  
-已落地：**W0–W6** 伙伴主线。后续：第二主角内容 Pack、召唤子会话 UI、methodology 深啃。
+目录落点：`electron/main/companion/`（identity / growth / life / cast / orchestrator）；`prompt-builder` 为组装器。  
+已落地：**W0–W6** + 三槽 + 召唤子会话/忙闲 + 自动反思 MUTABLE。后续：Pack 内容打磨、methodology M21–M31 深啃。
 
 ### 6. MCP 协议
 

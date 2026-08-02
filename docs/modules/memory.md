@@ -26,7 +26,7 @@
 ## 依赖
 
 - **依赖**：storage（SQLite）、memory/vector-store + embeddings、prompt-builder、llm（提取/嵌入）  
-- **被依赖**：chat 发送路径、人格成长（未来）、DevPanel 可观测
+- **被依赖**：chat 发送路径、companion 反思（用户消息/反馈信号）、DevPanel 可观测
 
 ## 不变量
 
@@ -53,5 +53,5 @@
 
 ## 现状 / 缺口
 
-**现状**：SQLite + Vectra；工具三件套；画像提取；语义去重（工程化批次）。  
-**缺口**：与人格 MUTABLE 的闭环联动；记忆治理 UX 深化。
+**现状**：SQLite + Vectra；工具三件套；画像提取；语义去重；能力表见 [capability-catalog §2](./capability-catalog.md)。  
+**缺口**：记忆治理 UX 深化；反思侧对记忆信号的利用仍可加厚（当前以用户消息计数为主）。
