@@ -117,13 +117,14 @@ Runner 输出 JSON：`{ newMutable: string|null, summary }`。
 
 ## 八、信号够用即可，不抄全量 worldFacts
 
-Alice 侧会把更多世界事实喂进反思。我们本轮刻意收窄：
+Alice 侧会把更多世界事实喂进反思。我们收窄为**薄信号**（M22-G4 已接）：
 
 - 近 7 日用户消息摘要  
-- `feedback` 类记忆  
+- `feedback` 类记忆（按 role）  
 - 当前 MUTABLE + PROTECTED 摘要  
+- Catch-up 一句 + 近 N 条 Moments 一行（`life-signals`；不灌 day_scripts / 全量 feed）  
 
-生活剧本 / Moments 全量进反思 = 增强项（见 Gap），不挡「成长核成立」。先证明低频固化行为默认值这条链路是通的，再加厚信号。
+行程事实仍不得写进 MUTABLE——生活信号只供推断相处节奏。
 
 ---
 
@@ -171,6 +172,6 @@ Alice 侧会把更多世界事实喂进反思。我们本轮刻意收窄：
 | M22-G1 | 成长时钟按 role 分桶 | ✅ 2026-08-02 |
 | M22-G2 | feedback 记忆按 role 过滤 | ✅ 2026-08-02 |
 | M22-G3 | 结构性防退化校验 | ✅ 2026-08-02 |
-| M22-G4 | 生活世界事件作反思信号 | 暂缓 |
+| M22-G4 | 生活世界事件作反思信号 | ✅ 2026-08-02 |
 
 代码走读见 `m22-growth-mutable-code.md`。

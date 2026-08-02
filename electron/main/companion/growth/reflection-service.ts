@@ -17,6 +17,7 @@ import { taskQueue } from '../../services/task-queue'
 import { loadRolePack } from '../identity/loader'
 import { getMutable, setMutable } from './mutable-store'
 import { MUTABLE_MAX_CHARS } from './mutable-validate'
+import { collectLifeSignalsForRole } from './life-signals'
 import {
   LOOKBACK_MS,
   ensureGrowthStartedAt,
@@ -35,6 +36,8 @@ function buildReflectionPrompt(input: {
   currentMutable: string
   recentUserMessages: string[]
   feedbackNotes: string[]
+  /** M22-G4：Catch-up + 近 Moments 薄切片 */
+  lifeSignals?: string
 }): string {
   const msgs = input.recentUserMessages.length
     ? input.recentUserMessages.map((m, i) => `${i + 1}. ${m}`).join('\n')
@@ -42,6 +45,7 @@ function buildReflectionPrompt(input: {
   const feedback = input.feedbackNotes.length
     ? input.feedbackNotes.map((f) => `- ${f}`).join('\n')
     : '（无）'
+  const life = input.lifeSignals?.trim() || '（无）'
 
   return `你是人格成长系统的审慎编辑。角色「${input.roleName}」是用户的数字伙伴。
 
@@ -57,6 +61,9 @@ ${msgs}
 ## 用户对协作方式的反馈记忆
 ${feedback}
 
+## 近况生活信号（薄切片；仅供推断相处节奏，勿把行程事实写入 MUTABLE）
+${life}
+
 ## 任务
 判断是否需要微调 MUTABLE（语气、节奏、默认表达习惯等）。
 
@@ -64,7 +71,8 @@ ${feedback}
 1. 不得违背 PROTECTED；不得发明新身份或改变核心价值观
 2. 调整幅度要小；若当前已足够好，newMutable 必须为 null
 3. 新 MUTABLE 上限 ${MUTABLE_MAX_CHARS} 字；写行为默认值，不要写具体事实流水账（事实属于记忆）
-4. 只输出 JSON：{"newMutable": string|null, "summary": "一句话说明"}`
+4. 生活信号里的地点/行程/穿着只作氛围参考，不得抄进 MUTABLE
+5. 只输出 JSON：{"newMutable": string|null, "summary": "一句话说明"}`
 
 }
 
@@ -123,6 +131,7 @@ async function runReflectionCore(
     40,
   )
   const feedbacks = (await listFeedbackForRole(roleId, 12)).map((m) => m.content)
+  const lifeSignals = await collectLifeSignalsForRole(roleId)
   const protectedSummary = pack.protected.slice(0, 400)
 
   const prompt = buildReflectionPrompt({
@@ -131,6 +140,7 @@ async function runReflectionCore(
     currentMutable,
     recentUserMessages,
     feedbackNotes: feedbacks,
+    lifeSignals,
   })
 
   let parsed: { newMutable: string | null; summary: string }
@@ -282,4 +292,7 @@ export async function getReflectionStatus(roleId: string): Promise<{
 }
 
 /** 测试用：暴露解析与门闸辅助 */
-export const __test = { parseReflectionJson, buildReflectionPrompt }
+export const __test = {
+  parseReflectionJson,
+  buildReflectionPrompt,
+}

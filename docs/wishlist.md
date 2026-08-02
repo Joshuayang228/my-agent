@@ -59,7 +59,7 @@
 - [x] ~~**M22-G1** 成长时钟按 role 分桶~~ — 2026-08-02：`companionGrowthStartedAtByRole`；旧键迁移到活跃主角
 - [x] ~~**M22-G2** 反思用的 feedback 记忆按 role 过滤~~ — 2026-08-02：`memories.role_id` + `listFeedbackForRole`
 - [x] ~~**M22-G3** MUTABLE 结构性防退化校验~~ — 2026-08-02：`mutable-validate` 规则门闸；setMutable/反思拒绝写入
-- [ ] **M22-G4** 生活世界事件作反思信号（现仅用户消息 + feedback）
+- [x] ~~**M22-G4** 生活世界事件作反思信号~~ — 2026-08-02：Catch-up + 近 Moments 薄切片进反思 Prompt
 - [ ] **M23-G1** 日剧本换 LLM 生成器（现哈希 mock）
 - [ ] **M23-G2** 世界状态加厚（居所/时区/短期情境结构化）
 - [ ] **M23-G3** Catch-up 概况改 LLM 叙事（现规则模板）

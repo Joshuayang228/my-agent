@@ -36,6 +36,7 @@
 | 成长时钟按 role 分桶（72h） | 已落地 | （隐式）反思门闸 | `companionGrowthStartedAtByRole` |
 | feedback 记忆按 role 分桶 | 已落地 | （隐式）反思 / L3 画像 | `memories.role_id` · `listFeedbackForRole` |
 | MUTABLE 结构性防退化（G3） | 已落地 | 设置保存 / 自动反思 | `mutable-validate` · setMutable 门闸 |
+| 反思吃生活薄信号（G4） | 已落地 | （隐式）自动/手动反思 | `life-signals` · Moments + Catch-up |
 | LifeEngine（暂停 · 剧本 · tick） | 已落地 | （隐式）状态条 presence | `life/engine.ts` |
 | Catch-up ≤7×24h | 已落地 | 朋友圈暖色条 / Prompt | `life/catchup` · `catchup-status` |
 | 此刻 presence | 已落地 | Chat `CompanionStatusBar` | `describeCastPresence` · `catchup-status.presence` |

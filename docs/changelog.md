@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — M22-G4 生活薄信号进反思（2026-08-02）
+
+- `life-signals`：Catch-up + 近 Moments（≤12）压成多行薄切片
+- 反思 Prompt 增「近况生活信号」；硬性禁止把行程/穿着抄进 MUTABLE
+- 单测：格式化 + Prompt 含生活信号
+
 ### Added — M22-G3 MUTABLE 结构性防退化（2026-08-02）
 
 - `mutable-validate`：空/过短过长、PROTECTED 克隆、突然暴涨、事实流水账、锚点漂移

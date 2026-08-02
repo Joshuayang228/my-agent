@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22-G1–G3 成长核**；下一步：M22-G4 或其它 wishlist Gaps
+**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22 成长核 G1–G4 收齐**；下一步：其它 wishlist Gaps（如 M23-G1）
 
 **最新动态（2026-08-02）**：
+- ✅ **M22-G4**：反思吃 Catch-up + 近 Moments 薄信号（`life-signals`）；不灌全量生活库。
 - ✅ **M22-G3**：`mutable-validate` 结构性防退化；setMutable/反思拒绝退化写入；回滚可跳过。
 - ✅ **M22-G2**：feedback 记忆 `role_id` 分桶；反思与画像按主角过滤；schema v9。
 - ✅ **M22-G1**：成长时钟 `companionGrowthStartedAtByRole` 按主角分桶；旧全局键迁移到活跃主角。

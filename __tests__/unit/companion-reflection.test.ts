@@ -34,6 +34,12 @@ vi.mock('../../electron/main/storage/memory-store', () => ({
   listFeedbackForRole: vi.fn(async () => []),
 }))
 
+vi.mock('../../electron/main/companion/growth/life-signals', () => ({
+  collectLifeSignalsForRole: vi.fn(async () => '【近动态】\n- 08-02 12:00 午饭散步（放松） · 附近街道'),
+  formatLifeSignalsForReflection: vi.fn(() => ''),
+  LIFE_SIGNAL_MOMENT_LIMIT: 12,
+}))
+
 const SQL = await initSqlJs()
 let memDb: InstanceType<typeof SQL.Database>
 /** 按 role 分桶的成长时钟 JSON */
@@ -223,6 +229,20 @@ describe('companion reflection runner', () => {
     )
   })
 
+  it('buildReflectionPrompt 含生活薄信号且禁止抄行程进 MUTABLE', () => {
+    const prompt = __test.buildReflectionPrompt({
+      roleName: '林晚',
+      protectedSummary: '独立个体',
+      currentMutable: '少客套',
+      recentUserMessages: ['你好'],
+      feedbackNotes: [],
+      lifeSignals: '【近动态】\n- 08-02 12:00 午饭散步',
+    })
+    expect(prompt).toContain('近况生活信号')
+    expect(prompt).toContain('午饭散步')
+    expect(prompt).toContain('不得抄进 MUTABLE')
+  })
+
   it('LLM 返回 null 不改 mutable', async () => {
     vi.mocked(chatComplete).mockResolvedValueOnce('{"newMutable":null,"summary":"no-change"}')
     const before = await getMutable('lin')
@@ -231,6 +251,11 @@ describe('companion reflection runner', () => {
     }, { force: true })
     expect(r.changed).toBe(false)
     expect(await getMutable('lin')).toBe(before)
+    const call = vi.mocked(chatComplete).mock.calls[0]?.[0] as {
+      messages: Array<{ content: string }>
+    }
+    expect(call.messages[0].content).toContain('近况生活信号')
+    expect(call.messages[0].content).toContain('午饭散步')
   })
 
   it('LLM 返回正文则写入', async () => {

@@ -10,6 +10,7 @@
 electron/main/companion/growth/
   mutable-store.ts       # get/set/rollback；SQLite 用户态
   mutable-validate.ts    # M22-G3 结构性防退化（纯规则）
+  life-signals.ts        # M22-G4 Catch-up + Moments 薄信号
   reflection-gate.ts     # 72h / 24h / ≥5 msgs
   reflection-log.ts      # 每 role 的 lastRun / 摘要
   reflection-service.ts  # schedule / run / LLM / setMutable
@@ -32,7 +33,7 @@ IPC：companion:get/set/rollback-mutable · reflection-status · run-reflection
   → taskQueue.enqueue(persona-reflection)
   → runReflectionCore
        load Pack + getMutable
-       近 7 日用户消息 + feedback memories
+       近 7 日用户消息 + feedback + life-signals（薄）
        chatComplete(caller: persona-reflection)
        parse JSON → null? 只 recordReflectionRun
                  → 有正文且不同于当前 → setMutable（含 G3 校验）
@@ -64,7 +65,8 @@ IPC：companion:get/set/rollback-mutable · reflection-status · run-reflection
 - 与当前正文相同：视为 no-change，占冷却不升版本  
 - `setMutable` 被 G3 拒绝：`summary=rejected:<code>`，`changed: false`
 
-反馈信号：`listFeedbackForRole(roleId, 12)`——**已按 role 分桶**（M22-G2；`memories.role_id`）。
+反馈信号：`listFeedbackForRole(roleId, 12)`——**已按 role 分桶**（M22-G2；`memories.role_id`）。  
+生活信号：`collectLifeSignalsForRole` → Catch-up + `listMomentsForRole(limit=12)`（M22-G4；不读 day_scripts 全文）。
 
 ---
 
