@@ -11,6 +11,8 @@ electron/main/companion/life/
   engine.ts            # pause / resume / ensureDayScripts / tickActiveRole
   ticker.ts            # 启动 + 周期 tick（默认 5min）
   script-generator.ts  # DayScript：LLM + 哈希回退（M23-G1）
+  world-codec.ts       # 世界状态编解码（无 IO）
+  world-state.ts       # ensure / 情境刷新（M23-G2）
   catchup.ts           # ≤7×24h 细补 + 概况摘要
   store.ts             # role_state / day_scripts / events …
   moments.ts           # 到期发布 + 投影朋友圈
@@ -19,7 +21,7 @@ electron/main/companion/life/
 ```
 
 换角：`orchestrator.requestSwitch` → `pauseRole(旧)` → 写 `activeRoleId` → `runCatchup(新)`。  
-组装：`loadRoleAssembleInput` 带上 `catchupSummary`（若有）→ `prompt-builder` L3。
+组装：`loadRoleAssembleInput` 带上 `catchupSummary` / `worldSlice`（若有）→ `prompt-builder` L3。
 
 ---
 
@@ -79,4 +81,4 @@ moment 槽可 `pickWardrobeAssetId` 写入 payload（派生引用）。
 - 剧本文案：✅ 当日 LLM + 哈希回退（M23-G1）；Catch-up 细补仍哈希  
 
 - Catch-up 摘要：固定中文模板（M23-G3）  
-- 世界状态字段：以 script/event payload 内 mood/location 为主，未独立「居所/时区」表（M23-G2）
+- 世界状态：✅ `world_json` 居所/时区/情境（M23-G2）；Assemble `## World slice` 一行

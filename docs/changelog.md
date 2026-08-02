@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — M23-G2 世界状态薄片（2026-08-02）
+
+- `companion_role_state.world_json`（schema v10）：居所 / 时区 / 短期情境
+- tick 后按最近 published 事件刷新情境；Assemble L3 注入 `## World slice` 一行
+- 召唤会话不注入对方世界薄片
+
 ### Added — M23-G1 日剧本 LLM 生成（2026-08-02）
 
 - `resolveDayScript`：aux LLM 生成 theme/slots，结构校验失败或无 key → 哈希回退

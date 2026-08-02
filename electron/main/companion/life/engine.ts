@@ -16,6 +16,7 @@ import { eachLocalDateInclusive, localDateTimeMs, toLocalDateString } from './da
 import { pickWardrobeAssetId } from './assets'
 import { publishAndProjectDue } from './moments'
 import { resolveDayScript } from './script-generator'
+import { refreshSituationFromLife } from './world-state'
 import * as store from './store'
 
 /** 解析当前活跃主角（不经过 orchestrator，避免 life ↔ orchestrator 循环依赖） */
@@ -148,6 +149,8 @@ export async function tickActiveRole(now: number): Promise<{
     universeId,
   })
   const published = await publishAndProjectDue(roleId, now)
+  // M23-G2：用最近 published 事件刷新短期情境（居所/时区保持稳定）
+  await refreshSituationFromLife(roleId, now)
   await store.touchLastTick(roleId, now)
   if (published || created) {
     log.info('Active role ticked', { roleId, published, scriptsCreated: created, now })

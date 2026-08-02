@@ -36,6 +36,8 @@ export interface PromptContext {
   executionMode?: string
   /** 可选：Catch-up 概况摘要（W2+） */
   catchupSummary?: string
+  /** 可选：世界状态薄片（M23-G2：居所/时区/近况一行） */
+  worldSlice?: string
   /** 可选：团员名册浅注入（W5；短句，非他人全文 protected） */
   rosterLines?: string
 }
@@ -164,6 +166,13 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     parts.push('')
     parts.push('## Recent life (catch-up)')
     parts.push(ctx.catchupSummary)
+  }
+
+  if (ctx.worldSlice?.trim()) {
+    parts.push('')
+    parts.push('## World slice')
+    parts.push(ctx.worldSlice.trim())
+    parts.push('（稳定背景，勿编造额外行程；近况仅供语气参考）')
   }
 
   if (ctx.rosterLines?.trim()) {

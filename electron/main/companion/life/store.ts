@@ -13,9 +13,11 @@ import type {
   CompanionEventStatus,
   CompanionMoment,
   CompanionRoleState,
+  CompanionWorldState,
   DayScriptPayload,
   DayScriptRow,
 } from '../types'
+import { defaultWorldState, parseWorldJson, serializeWorldState } from './world-codec'
 
 async function ensureTables(): Promise<void> {
   const db = await getDatabase()
@@ -25,9 +27,16 @@ async function ensureTables(): Promise<void> {
       paused_at       INTEGER,
       last_tick_at    INTEGER NOT NULL DEFAULT 0,
       catchup_summary TEXT NOT NULL DEFAULT '',
+      world_json      TEXT NOT NULL DEFAULT '{}',
       updated_at      INTEGER NOT NULL
     )
   `)
+  // 旧表缺列时补齐（单测 memDb / 未跑完 schema migrate 的路径）
+  try {
+    db.run(`ALTER TABLE companion_role_state ADD COLUMN world_json TEXT NOT NULL DEFAULT '{}'`)
+  } catch {
+    // 列已存在
+  }
   db.run(`
     CREATE TABLE IF NOT EXISTS companion_day_scripts (
       id           TEXT PRIMARY KEY,
@@ -81,7 +90,7 @@ export async function getRoleState(roleId: string): Promise<CompanionRoleState |
   await ensureTables()
   const db = await getDatabase()
   const stmt = db.prepare(
-    `SELECT role_id, paused_at, last_tick_at, catchup_summary, updated_at
+    `SELECT role_id, paused_at, last_tick_at, catchup_summary, world_json, updated_at
      FROM companion_role_state WHERE role_id = ?`,
   )
   stmt.bind([roleId])
@@ -96,6 +105,7 @@ export async function getRoleState(roleId: string): Promise<CompanionRoleState |
     pausedAt: (r.paused_at as number | null) ?? null,
     lastTickAt: (r.last_tick_at as number) || 0,
     catchupSummary: (r.catchup_summary as string) || '',
+    world: parseWorldJson((r.world_json as string) || ''),
     updatedAt: r.updated_at as number,
   }
 }
@@ -105,25 +115,18 @@ export async function writePausedAt(roleId: string, at: number): Promise<void> {
   await ensureTables()
   const db = await getDatabase()
   const now = Date.now()
-  const prev = db.prepare(
-    'SELECT last_tick_at, catchup_summary FROM companion_role_state WHERE role_id = ?',
-  )
-  prev.bind([roleId])
-  let lastTick = 0
-  let summary = ''
-  if (prev.step()) {
-    const row = prev.getAsObject() as { last_tick_at: number; catchup_summary: string }
-    lastTick = row.last_tick_at || 0
-    summary = row.catchup_summary || ''
-  }
-  prev.free()
+  const existing = await getRoleState(roleId)
+  const lastTick = existing?.lastTickAt ?? 0
+  const summary = existing?.catchupSummary ?? ''
+  const worldJson = serializeWorldState(existing?.world ?? defaultWorldState(roleId))
   db.run(
-    `INSERT INTO companion_role_state (role_id, paused_at, last_tick_at, catchup_summary, updated_at)
-     VALUES (?, ?, ?, ?, ?)
+    `INSERT INTO companion_role_state
+       (role_id, paused_at, last_tick_at, catchup_summary, world_json, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)
      ON CONFLICT(role_id) DO UPDATE SET
        paused_at = excluded.paused_at,
        updated_at = excluded.updated_at`,
-    [roleId, at, lastTick, summary, now],
+    [roleId, at, lastTick, summary, worldJson, now],
   )
   persist()
 }
@@ -139,15 +142,17 @@ export async function clearPausedAt(
   const existing = await getRoleState(roleId)
   const summary = opts?.catchupSummary ?? existing?.catchupSummary ?? ''
   const lastTick = opts?.lastTickAt ?? existing?.lastTickAt ?? 0
+  const worldJson = serializeWorldState(existing?.world ?? defaultWorldState(roleId))
   db.run(
-    `INSERT INTO companion_role_state (role_id, paused_at, last_tick_at, catchup_summary, updated_at)
-     VALUES (?, NULL, ?, ?, ?)
+    `INSERT INTO companion_role_state
+       (role_id, paused_at, last_tick_at, catchup_summary, world_json, updated_at)
+     VALUES (?, NULL, ?, ?, ?, ?)
      ON CONFLICT(role_id) DO UPDATE SET
        paused_at = NULL,
        last_tick_at = excluded.last_tick_at,
        catchup_summary = excluded.catchup_summary,
        updated_at = excluded.updated_at`,
-    [roleId, lastTick, summary, now],
+    [roleId, lastTick, summary, worldJson, now],
   )
   persist()
 }
@@ -157,9 +162,11 @@ export async function touchLastTick(roleId: string, at: number): Promise<void> {
   const db = await getDatabase()
   const now = Date.now()
   const existing = await getRoleState(roleId)
+  const worldJson = serializeWorldState(existing?.world ?? defaultWorldState(roleId))
   db.run(
-    `INSERT INTO companion_role_state (role_id, paused_at, last_tick_at, catchup_summary, updated_at)
-     VALUES (?, ?, ?, ?, ?)
+    `INSERT INTO companion_role_state
+       (role_id, paused_at, last_tick_at, catchup_summary, world_json, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)
      ON CONFLICT(role_id) DO UPDATE SET
        last_tick_at = excluded.last_tick_at,
        updated_at = excluded.updated_at`,
@@ -168,6 +175,7 @@ export async function touchLastTick(roleId: string, at: number): Promise<void> {
       existing?.pausedAt ?? null,
       at,
       existing?.catchupSummary ?? '',
+      worldJson,
       now,
     ],
   )
@@ -351,9 +359,11 @@ export async function setCatchupSummary(roleId: string, summary: string): Promis
   const db = await getDatabase()
   const now = Date.now()
   const existing = await getRoleState(roleId)
+  const worldJson = serializeWorldState(existing?.world ?? defaultWorldState(roleId))
   db.run(
-    `INSERT INTO companion_role_state (role_id, paused_at, last_tick_at, catchup_summary, updated_at)
-     VALUES (?, ?, ?, ?, ?)
+    `INSERT INTO companion_role_state
+       (role_id, paused_at, last_tick_at, catchup_summary, world_json, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)
      ON CONFLICT(role_id) DO UPDATE SET
        catchup_summary = excluded.catchup_summary,
        updated_at = excluded.updated_at`,
@@ -362,6 +372,36 @@ export async function setCatchupSummary(roleId: string, summary: string): Promis
       existing?.pausedAt ?? null,
       existing?.lastTickAt ?? 0,
       summary,
+      worldJson,
+      now,
+    ],
+  )
+  persist()
+}
+
+/** M23-G2：写入世界状态薄片 */
+export async function setWorldState(
+  roleId: string,
+  world: CompanionWorldState,
+): Promise<void> {
+  await ensureTables()
+  const db = await getDatabase()
+  const now = Date.now()
+  const existing = await getRoleState(roleId)
+  const worldJson = serializeWorldState(world)
+  db.run(
+    `INSERT INTO companion_role_state
+       (role_id, paused_at, last_tick_at, catchup_summary, world_json, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(role_id) DO UPDATE SET
+       world_json = excluded.world_json,
+       updated_at = excluded.updated_at`,
+    [
+      roleId,
+      existing?.pausedAt ?? null,
+      existing?.lastTickAt ?? 0,
+      existing?.catchupSummary ?? '',
+      worldJson,
       now,
     ],
   )

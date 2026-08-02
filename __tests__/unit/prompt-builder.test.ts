@@ -80,6 +80,15 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('Focus on security review')
   })
 
+  it('L3 注入世界薄片（M23-G2）', () => {
+    const prompt = buildSystemPrompt(makeCtx({
+      worldSlice: '居所城西小公寓 · 时区Asia/Shanghai · 近况午饭散步@附近街道',
+    }))
+    expect(prompt).toContain('## World slice')
+    expect(prompt).toContain('居所城西小公寓')
+    expect(prompt).toContain('勿编造额外行程')
+  })
+
   it('L4 包含日期（仅日期，不含秒级时间）', () => {
     const prompt = buildSystemPrompt(makeCtx())
     expect(prompt).toContain('[Dynamic Context]')

@@ -93,11 +93,24 @@ export interface CompanionEvent {
   dayScriptId: string | null
 }
 
+/** 角色世界状态薄片（M23-G2；存 companion_role_state.world_json） */
+export interface CompanionWorldState {
+  /** 稳定居所短名 */
+  home: string
+  /** IANA 时区；日历日仍用本机 local，此字段供叙事/展示 */
+  timezone: string
+  /** 短期情境短句（常由最近 published 事件刷新） */
+  situation: string
+  updatedAt: number
+}
+
 export interface CompanionRoleState {
   roleId: string
   pausedAt: number | null
   lastTickAt: number
   catchupSummary: string
+  /** M23-G2：居所 / 时区 / 短期情境 */
+  world: CompanionWorldState
   updatedAt: number
 }
 
