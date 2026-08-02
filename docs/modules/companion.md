@@ -56,5 +56,5 @@
 
 ## 现状 / 缺口
 
-**现状**：W0–W6 主线 + 三槽满 + 召唤/忙闲 + 自动反思 MUTABLE 已落地；深 Why 见 `methodology/m22-growth-mutable.md`。  
-**缺口**：主角 Pack 内容打磨；methodology M23–M31；生图朋友圈等见 wishlist。
+**现状**：W0–W6 主线 + 三槽满 + 召唤/忙闲 + 自动反思已落地；深 Why：`m22` 成长 · `m23` 生活世界。  
+**缺口**：主角 Pack 内容打磨；methodology M24–M31；生图朋友圈等见 wishlist。
