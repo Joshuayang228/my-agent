@@ -1,68 +1,77 @@
 # M24 朋友圈与事件层代码走读
 
-> 对应 `m24-moments-event-layer.md`。
+> 对应 `m24-moments-event-layer.md`（加厚修订版）。
 
 ---
 
-## 一、模块地图
+## §二 / §五 对照：投影与状态机
 
-```
-life/moments.ts     # format / project / publishAndProject*
-life/store.ts       # events + moments CRUD
-life/engine.ts      # tick → publishAndProjectDue
-life/catchup.ts     # → publishAndProjectRange
-ipc/companion.ts    # get-moments → active role only
-src/components/MomentsPanel.tsx
-```
+### 我们的实现（`life/moments.ts`）
 
----
-
-## 二、投影路径
-
-```
+```text
 projectMomentFromEvent(event)
   require status === 'published'
-  optional: getAsset(payload.assetId) → outfitName
+  optional outfit from payload.assetId → getAsset
   text = formatMomentText(activity, mood, location, outfit)
   store.insertMoment({ roleId, eventId, publishedAt: scheduledAt, text, meta })
+
+publishAndProjectRange(roleId, from, to)
+  planned ∧ scheduledAt∈[from,to] → mark published → project
+
+publishAndProjectDue(roleId, now) ≡ Range(0, now)
 ```
 
-`publishAndProjectRange(roleId, from, to)`：扫 `planned` 且 `scheduledAt ∈ [from,to]` → mark published → project。  
-`publishAndProjectDue(roleId, now)` ≡ `Range(0, now)`。
+| 理念约束 | 代码体现 |
+|----------|----------|
+| 无独立编造 | 无「只写 moment」的公共 API 给 UI |
+| 幂等投影 | eventId 关联；重复 project 由 store 约束 |
+| 朴素文案 | `formatMomentText` 规则拼接 |
 
-幂等：同一 event 重复 project 由 store 约束（eventId 唯一/忽略重复）。
-
----
-
-## 三、可见性
-
-- 存储：`listMomentsForRole(roleId)`  
-- IPC：解析当前 `activeRoleId`，只返回该角色分页列表  
-- UI：随 `companion:role-changed` 刷新
+**方法论对照**：→ §二 §四 §五
 
 ---
 
-## 四、与剧本槽位
+## §六 对照：仅 active 可见
 
-`script-generator` 槽 `type: 'moment' | 'activity'`：  
-moment 槽在 `materializePlannedEvents` 时挂 `assetId`；activity 可不挂。  
-两者都可以 published→投影；文案都走同一 `formatMomentText`。
+```text
+ipc get-moments → 解析 activeRoleId → listMomentsForRole(roleId)
+```
+
+store 可按任意 role 查；**门控在 IPC**，防止渲染误传别人 id 刷混。
+
+**方法论对照**：→ §六
 
 ---
 
-## 五、约束速查
+## §七 对照：Catch-up
 
-| 约束 | 落点 |
+`catchup.runCatchup` → `ensureDayScripts` + `publishAndProjectRange(fineStart, now)`。  
+只对该 `roleId`；细窗公式见 M23。
+
+**方法论对照**：→ §七
+
+---
+
+## §九 对照：资产引用
+
+`engine.materializePlannedEvents`：moment 槽 `pickWardrobeAssetId` → payload.assetId。  
+投影时读名；资产缺失则无着装后缀。
+
+**方法论对照**：→ §九
+
+---
+
+## 触发链
+
+| 触发 | 调用 |
 |------|------|
-| 无独立朋友圈真相 | 只从 event 投影 |
-| 仅 active 展示 | IPC 门控 |
-| Catch-up 细窗发布 | `publishAndProjectRange(fineStart, now)` |
-| 失败不挡 Loop | tick/catchup 上层已吞错 |
+| ticker | `tickActiveRole` → `publishAndProjectDue` |
+| 换角 | `runCatchup` → `publishAndProjectRange` |
+
+**方法论对照**：→ §五、实战记录
 
 ---
 
-## 六、已知简化
+## 已知简化
 
-- 文案规则拼接，无 LLM（M24-G2）  
-- 无聊圈一致性裁判（M24-G1）  
-- 无图片字段（M24-G3）
+M24-G1/G2/G3 均无对应模块；生图字段未进 schema。
