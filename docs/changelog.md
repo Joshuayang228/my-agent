@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — M22-G3 MUTABLE 结构性防退化（2026-08-02）
+
+- `mutable-validate`：空/过短过长、PROTECTED 克隆、突然暴涨、事实流水账、锚点漂移
+- `setMutable` / 反思 / 设置页保存共用门闸；校验失败不写库；回滚跳过校验
+- 单测：`mutable-validate.test` + companion-mutable 拒绝路径
+
 ### Fixed — M22-G2 feedback 记忆按 role 分桶（2026-08-02）
 
 - `memories.role_id`（schema v9）；feedback 写入时打会话/活跃主角

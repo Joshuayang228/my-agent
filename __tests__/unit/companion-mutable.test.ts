@@ -69,26 +69,39 @@ describe('companion mutable store', () => {
   })
 
   it('setMutable 写入覆盖并可列出版本', async () => {
-    await setMutable('lin', '自定义 MUTABLE v1', 'first')
-    await setMutable('lin', '自定义 MUTABLE v2', 'second')
-    expect(await getMutable('lin')).toBe('自定义 MUTABLE v2')
+    const v1 = await setMutable('lin', '相处时语气更松，少客套，多直接回', 'first')
+    const v2 = await setMutable('lin', '相处时语气更松，偶尔吐槽，少客套', 'second')
+    expect(v1).toEqual({ ok: true, version: 1 })
+    expect(v2).toEqual({ ok: true, version: 2 })
+    expect(await getMutable('lin')).toBe('相处时语气更松，偶尔吐槽，少客套')
     const versions = await listMutableVersions('lin')
     expect(versions.map((v) => v.version)).toEqual([2, 1])
     expect(versions[0].summary).toBe('second')
   })
 
+  it('setMutable 拒绝事实流水账（M22-G3）', async () => {
+    const r = await setMutable(
+      'lin',
+      '用户叫小明，昨天早上一起吃了早餐。',
+      'bad',
+    )
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.code).toBe('fact-dump')
+    expect(await getMutable('lin')).toBe(loadRolePack('lin').mutableDefault)
+  })
+
   it('rollbackMutable 可回滚到历史版本（生成新版本号）', async () => {
-    await setMutable('lin', 'AAA', 'a')
-    await setMutable('lin', 'BBB', 'b')
+    await setMutable('lin', '相处默认：先听完再给建议，不打断', 'a')
+    await setMutable('lin', '相处默认：可以打断确认重点，再给建议', 'b')
     const { version } = await rollbackMutable('lin', 1)
     expect(version).toBe(3)
-    expect(await getMutable('lin')).toBe('AAA')
+    expect(await getMutable('lin')).toBe('相处默认：先听完再给建议，不打断')
     const versions = await listMutableVersions('lin')
     expect(versions[0].summary).toContain('rollback')
   })
 
   it('Assemble 使用覆盖后的 MUTABLE', async () => {
-    await setMutable('lin', '覆盖语气：更直接', 'override')
+    await setMutable('lin', '覆盖语气：更直接，少铺垫', 'override')
     const pack = loadRolePack('lin')
     const body = await getMutable('lin')
     const persona = rolePackToPromptParts(pack, body)
@@ -96,7 +109,7 @@ describe('companion mutable store', () => {
       persona,
       toolNames: ['file_read'],
     })
-    expect(prompt).toContain('覆盖语气：更直接')
+    expect(prompt).toContain('覆盖语气：更直接，少铺垫')
     expect(prompt).toContain(pack.protected.slice(0, 12))
   })
 })

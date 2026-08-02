@@ -9,6 +9,7 @@
 ```
 electron/main/companion/growth/
   mutable-store.ts       # get/set/rollback；SQLite 用户态
+  mutable-validate.ts    # M22-G3 结构性防退化（纯规则）
   reflection-gate.ts     # 72h / 24h / ≥5 msgs
   reflection-log.ts      # 每 role 的 lastRun / 摘要
   reflection-service.ts  # schedule / run / LLM / setMutable
@@ -34,7 +35,8 @@ IPC：companion:get/set/rollback-mutable · reflection-status · run-reflection
        近 7 日用户消息 + feedback memories
        chatComplete(caller: persona-reflection)
        parse JSON → null? 只 recordReflectionRun
-                 → 有正文且不同于当前 → setMutable(+version)
+                 → 有正文且不同于当前 → setMutable（含 G3 校验）
+                 → 校验失败 → record rejected:<code>，不写库
 ```
 
 召唤：`sessionKind === 'summon'` → `scheduleReflectionAfterChat` 直接 `{ queued: false }`。
@@ -56,21 +58,24 @@ IPC：companion:get/set/rollback-mutable · reflection-status · run-reflection
 ## 四、Runner 约束（reflection-service.ts）
 
 - Prompt 硬性：不碰 PROTECTED；事实不进 MUTABLE；可返回 null  
-- `MAX_MUTABLE_CHARS = 800`  
+- `MUTABLE_MAX_CHARS = 800`（与 `mutable-validate` 同源）  
 - `pendingRoles` Set：同 role 去重入队  
 - LLM 失败 / 解析失败：记 log，**不** `setMutable`  
 - 与当前正文相同：视为 no-change，占冷却不升版本  
+- `setMutable` 被 G3 拒绝：`summary=rejected:<code>`，`changed: false`
 
 反馈信号：`listFeedbackForRole(roleId, 12)`——**已按 role 分桶**（M22-G2；`memories.role_id`）。
 
 ---
 
-## 五、mutable-store.ts
+## 五、mutable-store.ts + mutable-validate.ts
 
 - 表：`companion_mutable`（当前）+ `companion_mutable_versions`（历史）  
 - `getMutable`：无覆盖 → Pack `mutable.default`  
-- `setMutable(roleId, body, summary)` → version+1 + persist  
-- `rollbackMutable(roleId, toVersion)` → 回写当前并留痕  
+- `setMutable` → 默认跑 `validateMutableCandidate`；失败 `{ ok:false, code, error }` 不写库  
+- `rollbackMutable` → `skipValidation: true` 回写并留痕  
+
+G3 规则码：`empty` / `too-short` / `too-long` / `protected-quote` / `protected-clone` / `sudden-bloat` / `fact-dump` / `anchor-drift`。
 
 永不写磁盘上的 Role Pack 文件。
 
@@ -80,6 +85,7 @@ IPC：companion:get/set/rollback-mutable · reflection-status · run-reflection
 
 - 门闸：冷启动 / 冷却 / 消息不足  
 - Runner：null → 不写版本；有正文 → version+1  
+- G3：`mutable-validate.test` + store 拒绝事实流水账  
 - 召唤路径不入队（集成/行为上由 `sessionKind` 短接）
 
 手工：设置页看上次反思时间；强制反思一轮；回滚一版。

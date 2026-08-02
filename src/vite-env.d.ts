@@ -67,7 +67,10 @@ declare global {
           roleId: string,
           body: string,
           summary?: string,
-        ) => Promise<{ ok: true; version: number } | { ok: false; error: string }>
+        ) => Promise<
+          | { ok: true; version: number }
+          | { ok: false; error: string; code?: string }
+        >
         listMutableVersions: (roleId: string) => Promise<Array<{
           id: string
           roleId: string

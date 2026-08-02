@@ -75,8 +75,11 @@ export function registerCompanionIPC(): void {
       if (typeof body !== 'string') {
         return { ok: false as const, error: 'INVALID_BODY' }
       }
-      const { version } = await setMutable(roleId.trim(), body, summary || '')
-      return { ok: true as const, version }
+      const result = await setMutable(roleId.trim(), body, summary || '')
+      if (!result.ok) {
+        return { ok: false as const, error: result.error, code: result.code }
+      }
+      return { ok: true as const, version: result.version }
     },
   )
 

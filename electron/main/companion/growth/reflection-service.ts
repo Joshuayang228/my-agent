@@ -16,6 +16,7 @@ import { createLogger } from '../../utils/logger'
 import { taskQueue } from '../../services/task-queue'
 import { loadRolePack } from '../identity/loader'
 import { getMutable, setMutable } from './mutable-store'
+import { MUTABLE_MAX_CHARS } from './mutable-validate'
 import {
   LOOKBACK_MS,
   ensureGrowthStartedAt,
@@ -27,8 +28,6 @@ import { getReflectionState, recordReflectionRun } from './reflection-log'
 const log = createLogger('PersonaReflection')
 
 const pendingRoles = new Set<string>()
-
-const MAX_MUTABLE_CHARS = 800
 
 function buildReflectionPrompt(input: {
   roleName: string
@@ -64,7 +63,7 @@ ${feedback}
 硬性要求：
 1. 不得违背 PROTECTED；不得发明新身份或改变核心价值观
 2. 调整幅度要小；若当前已足够好，newMutable 必须为 null
-3. 新 MUTABLE 上限 ${MAX_MUTABLE_CHARS} 字；写行为默认值，不要写具体事实流水账（事实属于记忆）
+3. 新 MUTABLE 上限 ${MUTABLE_MAX_CHARS} 字；写行为默认值，不要写具体事实流水账（事实属于记忆）
 4. 只输出 JSON：{"newMutable": string|null, "summary": "一句话说明"}`
 
 }
@@ -77,7 +76,7 @@ function parseReflectionJson(raw: string): { newMutable: string | null; summary:
     let newMutable: string | null = null
     if (typeof obj.newMutable === 'string') {
       const t = obj.newMutable.trim()
-      if (t && t.toLowerCase() !== 'null') newMutable = t.slice(0, MAX_MUTABLE_CHARS)
+      if (t && t.toLowerCase() !== 'null') newMutable = t.slice(0, MUTABLE_MAX_CHARS)
     }
     const summary = typeof obj.summary === 'string' && obj.summary.trim()
       ? obj.summary.trim().slice(0, 200)
@@ -189,22 +188,40 @@ async function runReflectionCore(
     }
   }
 
-  const { version } = await setMutable(
+  const write = await setMutable(
     roleId,
     parsed.newMutable,
     `reflection: ${parsed.summary}`,
   )
+  if (!write.ok) {
+    await recordReflectionRun(roleId, {
+      at: now,
+      changed: false,
+      summary: `rejected:${write.code}`,
+    })
+    log.warn('Reflection mutable rejected', {
+      roleId,
+      code: write.code,
+      error: write.error,
+    })
+    return {
+      skipped: false,
+      changed: false,
+      summary: `rejected:${write.code}`,
+      gate,
+    }
+  }
   await recordReflectionRun(roleId, {
     at: now,
     changed: true,
     summary: parsed.summary,
   })
-  log.info('Reflection applied', { roleId, version, summary: parsed.summary })
+  log.info('Reflection applied', { roleId, version: write.version, summary: parsed.summary })
   return {
     skipped: false,
     changed: true,
     summary: parsed.summary,
-    version,
+    version: write.version,
     gate,
   }
 }

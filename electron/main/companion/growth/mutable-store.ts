@@ -10,8 +10,22 @@ import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../../storage/database'
 import { loadRolePack } from '../identity/loader'
 import { createLogger } from '../../utils/logger'
+import {
+  validateMutableCandidate,
+  type MutableRejectCode,
+} from './mutable-validate'
 
 const log = createLogger('MutableStore')
+
+export type SetMutableResult =
+  | { ok: true; version: number }
+  | { ok: false; code: MutableRejectCode; error: string }
+
+export interface SetMutableOpts {
+  universeId?: string
+  /** 回滚等可信路径跳过防退化 */
+  skipValidation?: boolean
+}
 
 export interface MutableVersion {
   id: string
@@ -82,15 +96,39 @@ export async function getMutableMeta(
 
 /**
  * 写入 MUTABLE 覆盖并追加版本历史。
+ * 默认跑 M22-G3 防退化校验；失败不写库。
  */
 export async function setMutable(
   roleId: string,
   body: string,
   summary: string,
-): Promise<{ version: number }> {
+  opts?: SetMutableOpts,
+): Promise<SetMutableResult> {
   await ensureTables()
+  const universeId = opts?.universeId ?? 'default'
+  const pack = loadRolePack(roleId, universeId)
+  const current = await getMutable(roleId, universeId)
+
+  if (!opts?.skipValidation) {
+    const gate = validateMutableCandidate({
+      candidate: body,
+      current,
+      protectedText: pack.protected,
+      mutableDefault: pack.mutableDefault,
+    })
+    if (!gate.ok) {
+      log.warn('Mutable rejected by structural gate', {
+        roleId,
+        code: gate.code,
+        reason: gate.reason,
+      })
+      return { ok: false, code: gate.code, error: gate.reason }
+    }
+  }
+
   const db = await getDatabase()
   const now = Date.now()
+  const trimmed = body.trim()
 
   const existing = db.prepare('SELECT version FROM companion_mutable WHERE role_id = ?')
   existing.bind([roleId])
@@ -108,18 +146,18 @@ export async function setMutable(
        body = excluded.body,
        version = excluded.version,
        updated_at = excluded.updated_at`,
-    [roleId, body, nextVersion, now],
+    [roleId, trimmed, nextVersion, now],
   )
 
   db.run(
     `INSERT INTO companion_mutable_versions (id, role_id, version, body, created_at, summary)
      VALUES (?, ?, ?, ?, ?, ?)`,
-    [randomUUID(), roleId, nextVersion, body, now, summary || `v${nextVersion}`],
+    [randomUUID(), roleId, nextVersion, trimmed, now, summary || `v${nextVersion}`],
   )
 
   persist()
   log.info('Mutable updated', { roleId, version: nextVersion })
-  return { version: nextVersion }
+  return { ok: true, version: nextVersion }
 }
 
 export async function listMutableVersions(roleId: string): Promise<MutableVersion[]> {
@@ -167,5 +205,11 @@ export async function rollbackMutable(
   }
   const body = (stmt.getAsObject() as { body: string }).body
   stmt.free()
-  return setMutable(roleId, body, `rollback to v${toVersion}`)
+  const result = await setMutable(roleId, body, `rollback to v${toVersion}`, {
+    skipValidation: true,
+  })
+  if (!result.ok) {
+    throw new Error(result.error)
+  }
+  return { version: result.version }
 }

@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22-G1/G2 成长分桶**；下一步：M22-G3/G4 或其它 wishlist Gaps
+**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22-G1–G3 成长核**；下一步：M22-G4 或其它 wishlist Gaps
 
 **最新动态（2026-08-02）**：
+- ✅ **M22-G3**：`mutable-validate` 结构性防退化；setMutable/反思拒绝退化写入；回滚可跳过。
 - ✅ **M22-G2**：feedback 记忆 `role_id` 分桶；反思与画像按主角过滤；schema v9。
 - ✅ **M22-G1**：成长时钟 `companionGrowthStartedAtByRole` 按主角分桶；旧全局键迁移到活跃主角。
 - ✅ **Pack 内容打磨**：lin/zhou/xia protected·voice·mutable 加厚；陈姐/阿雨召唤文案；relations 补边；日剧本与 starter 衣柜按角色分味；见 `companion-cast-content.md`。
