@@ -1,72 +1,68 @@
 # M29 信息不对称与记忆透明代码走读
 
-> 对应 `m29-asymmetric-memory.md`。工程细节以 M08 为准；本章只钉体验相关路径。
+> 对应 `m29-asymmetric-memory.md`（加厚修订版）。
 
 ---
 
-## 一、模块地图
+## §二 / §四 对照：不对称能力（注入）
 
-```
-storage/memory-store.ts          # 结构化记忆 CRUD
-memory/vector-store.ts           # 向量召回 / 双写删除
-tools/builtins/memory-manage.ts  # remember / recall / forget
-agent/profile-extractor.ts       # 后台提炼（非原始 assistant 入库）
-agent/runtime.ts                 # buildUserProfile + safeVectorSearch
-ipc/memory.ts + MemoryPanel.tsx  # 用户可见治理面
-```
-
----
-
-## 二、透明主路径（用户侧）
-
-```
-MemoryPanel
-  → memory:list / add / update / delete
-  → store + vector 联动
-```
-
-工具路径：模型可 `remember` / `forget`；应与面板最终一致。
-
----
-
-## 三、不对称能力路径（注入）
-
-```
-chat 组装
-  → memory.buildUserProfile()     # 结构化
-  → safeVectorSearch(lastUser)  # topK/minScore → formatRecallForInjection
+```text
+runtime 组装
+  → memory.buildUserProfile()
+  → safeVectorSearch(lastUser) → formatRecallForInjection
   → buildSystemPrompt L3
 ```
 
-**无**：把「本轮 hit 的 memory id」yield 给 UI（M29-G1）。
+**无**：把 hit 的 memory id yield 给渲染进程（M29-G1）。
+
+**方法论对照**：→ §二 §四
 
 ---
 
-## 四、纠错路径
+## §五 对照：治理面
 
-```
-forget(id) / Panel delete
-  → SQLite 删
-  → 向量侧同步删（双写纪律）
-```
-
-对话内「记错了」无专用快捷 IPC（M29-G2）；依赖模型调 forget 或用户打开面板。
-
----
-
-## 五、约束速查
-
-| 约束 | 落点 |
+| 入口 | 路径 |
 |------|------|
-| 用户可看见条目 | MemoryPanel |
-| 删要双清 | memory 工具 + store |
-| 不索引 assistant 原文 | runtime enqueuePostTasks |
-| 引用标注 | 未做 → M29-G1 |
+| UI | MemoryPanel → `memory:list/add/update/delete` |
+| 工具 | `memory-manage.ts` remember/recall/forget |
+| 人格默契 | **不**走 Panel → `companion:*mutable*` |
+
+**方法论对照**：→ §五 §九
 
 ---
 
-## 六、已知简化
+## §七 对照：双写删除
 
-- 无本轮引用芯片（M29-G1）  
-- 无对话内一键纠错（M29-G2）  
-- 无敏感类高亮（M29-G3）  
+forget / Panel delete：SQLite 删除后必须联动向量删除（M08 纪律）。  
+写入：用户消息可索引；assistant 原文不进向量（防自我强化）。
+
+**方法论对照**：→ §七
+
+---
+
+## §六 对照：纠错闭环缺口
+
+| 步骤 | 现状 |
+|------|------|
+| 用户口头纠正 | 依赖模型调 forget |
+| 一键按钮 | 无（M29-G2） |
+| 指认本轮引用 | 无芯片（M29-G1） |
+| 面板手删 | ✅ |
+
+**方法论对照**：→ §六
+
+---
+
+## §十 对照：跨角色
+
+- 画像：全局 memory 表（无 role 强制隔离）  
+- MUTABLE / 生活：按 roleId  
+- 反思 feedback：`listMemories('feedback')` 未按 role 过滤（M22-G2）
+
+**方法论对照**：→ §十
+
+---
+
+## 已知简化
+
+与理念 Gap M29-G1–G3 一致；工程细节见 `m08-memory-system*.md`。
