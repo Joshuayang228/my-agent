@@ -44,7 +44,12 @@
 - [x] ~~**MUTABLE 设置 UI**~~ — Settings 读写/版本回滚（2026-08-02）
 - [x] ~~**召唤子会话（完整 Pack 装载）**~~ — `startSummon` + session_kind=summon（2026-08-02）；CastPanel「开聊」
 - [x] ~~**召唤忙闲婉拒**~~ — 对照 Alice `checkFriendAvailability`（2026-08-02）；可 force
-- [ ] **methodology M21–M31** 随 W 审核式深啃（代码后写；需观点对齐后写）
+- [x] ~~**M22 成长核方法论**~~ — 2026-08-02：理念+code 已沉淀
+- [ ] **methodology M23–M31** 随深啃推进（先观点对齐再写）
+- [ ] **M22-G1** 成长时钟 `companionGrowthStartedAt` 按 role 分桶（现全局一份）
+- [ ] **M22-G2** 反思用的 feedback 记忆按 role 过滤
+- [ ] **M22-G3** MUTABLE 结构性防退化校验（现仅 Prompt 软约束）
+- [ ] **M22-G4** 生活世界事件作反思信号（现仅用户消息 + feedback）
 - [x] ~~**自动反思写 MUTABLE**~~ — 2026-08-02：门闸 + 对话后入队 + Settings 手动/强制；需求见 `docs/requirements/companion-mutable-reflection.md`
 
 ### 工程债 / 产品向
