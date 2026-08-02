@@ -141,6 +141,14 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
   const [saved, setSaved] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
   const [protagonists, setProtagonists] = useState<RoleInfo[]>([])
+  const [mutableBody, setMutableBody] = useState('')
+  const [mutableLoading, setMutableLoading] = useState(false)
+  const [mutableSaving, setMutableSaving] = useState(false)
+  const [mutableVersions, setMutableVersions] = useState<Array<{
+    version: number
+    summary: string
+    createdAt: number
+  }>>([])
   const [mcpServers, setMcpServers] = useState<McpServerEntry[]>([])
   const [mcpStatuses, setMcpStatuses] = useState<McpServerStatus[]>([])
   const [mcpAdding, setMcpAdding] = useState(false)
@@ -157,6 +165,27 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
     if (!window.electronAPI) return
     const statuses = await window.electronAPI.mcp.status()
     setMcpStatuses(statuses)
+  }, [])
+
+  const loadMutable = useCallback(async (roleId: string) => {
+    if (!window.electronAPI?.companion || !roleId) return
+    setMutableLoading(true)
+    try {
+      const [cur, versions] = await Promise.all([
+        window.electronAPI.companion.getMutable(roleId),
+        window.electronAPI.companion.listMutableVersions(roleId),
+      ])
+      setMutableBody(cur.body)
+      setMutableVersions(
+        versions.map((v) => ({
+          version: v.version,
+          summary: v.summary,
+          createdAt: v.createdAt,
+        })),
+      )
+    } finally {
+      setMutableLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -182,10 +211,11 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
         const servers = JSON.parse(s.mcpServers || '[]')
         setMcpServers(servers)
       } catch { /* ignore */ }
+      void loadMutable(s.activeRoleId || DEFAULTS.activeRoleId)
     })
     window.electronAPI.companion.listProtagonists().then(setProtagonists)
     refreshMcpStatus()
-  }, [])
+  }, [loadMutable, refreshMcpStatus])
 
   const handleSave = useCallback(async () => {
     if (!window.electronAPI) return
@@ -323,7 +353,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
       </FieldGroup>
 
       {protagonists.length > 0 && (
-        <FieldGroup label="活跃主角" hint="同宇宙最多 3 位；已挂小林/小周。切换=完整换人（朋友圈/衣柜跟他）；流式中禁止。旧会话仍绑定创建时的主角，请新建对话。">
+        <FieldGroup label="活跃主角" hint="同宇宙 3 槽：小林 / 小周 / 小夏。切换=完整换人（朋友圈/衣柜跟他）；流式中禁止。旧会话仍绑定创建时的主角，请新建对话。">
           <div className="flex flex-wrap gap-2">
             {protagonists.map((p) => (
               <button
@@ -336,6 +366,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
                     if (!result) return
                     if (result.ok) {
                       update('activeRoleId', p.id)
+                      void loadMutable(p.id)
                       toast(
                         result.catchupQueued
                           ? `已切换到${p.name}，正在追赶最近生活…`
@@ -350,6 +381,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
                     }
                     if (result.code === 'ALREADY_ACTIVE') {
                       update('activeRoleId', p.id)
+                      void loadMutable(p.id)
                       return
                     }
                     if (result.code === 'UNKNOWN_ROLE') {
@@ -369,6 +401,112 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
           </div>
         </FieldGroup>
       )}
+
+      <FieldGroup
+        label="成长区（MUTABLE）"
+        hint="只改当前活跃主角的可成长语气/习惯；PROTECTED 核心身份不可在此编辑。保存会记版本，可回滚。"
+      >
+        <textarea
+          value={mutableBody}
+          onChange={(e) => setMutableBody(e.target.value)}
+          disabled={mutableLoading || mutableSaving}
+          rows={5}
+          placeholder={mutableLoading ? '加载中…' : '当前主角的可成长行为规范'}
+          className="theme-input w-full resize-y rounded-lg border px-3 py-2 text-sm outline-none transition"
+        />
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={mutableLoading || mutableSaving || !mutableBody.trim()}
+            onClick={() => {
+              void (async () => {
+                if (!window.electronAPI?.companion) return
+                setMutableSaving(true)
+                try {
+                  const result = await window.electronAPI.companion.setMutable(
+                    form.activeRoleId,
+                    mutableBody,
+                    'settings-edit',
+                  )
+                  if (result.ok) {
+                    toast(`已保存成长区 v${result.version}`, 'success')
+                    await loadMutable(form.activeRoleId)
+                  } else {
+                    toast(result.error || '保存失败', 'error')
+                  }
+                } finally {
+                  setMutableSaving(false)
+                }
+              })()
+            }}
+            className="settings-option px-3 py-1.5 text-xs font-medium"
+          >
+            {mutableSaving ? '保存中…' : '保存成长区'}
+          </button>
+          <button
+            type="button"
+            disabled={mutableLoading || mutableSaving}
+            onClick={() => void loadMutable(form.activeRoleId)}
+            className="settings-option px-3 py-1.5 text-xs"
+          >
+            重新加载
+          </button>
+        </div>
+        {mutableVersions.length > 0 && (
+          <div className="mt-3 space-y-1.5">
+            <div className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              版本历史
+            </div>
+            {mutableVersions.slice(0, 8).map((v) => (
+              <div
+                key={v.version}
+                className="flex items-center justify-between gap-2 rounded-md border px-2.5 py-1.5 text-[11px]"
+                style={{ borderColor: 'var(--border-color)' }}
+              >
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  v{v.version}
+                  {v.summary ? ` · ${v.summary}` : ''}
+                  <span className="ml-1.5" style={{ color: 'var(--text-muted)' }}>
+                    {new Date(v.createdAt).toLocaleString('zh-CN', {
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  className="settings-option px-2 py-0.5 text-[10px]"
+                  disabled={mutableSaving}
+                  onClick={() => {
+                    void (async () => {
+                      if (!window.electronAPI?.companion) return
+                      setMutableSaving(true)
+                      try {
+                        const result = await window.electronAPI.companion.rollbackMutable(
+                          form.activeRoleId,
+                          v.version,
+                        )
+                        if (result.ok) {
+                          toast(`已回滚到 v${v.version}（现为 v${result.version}）`, 'success')
+                          await loadMutable(form.activeRoleId)
+                        } else {
+                          toast(result.error || '回滚失败', 'error')
+                        }
+                      } finally {
+                        setMutableSaving(false)
+                      }
+                    })()
+                  }}
+                >
+                  回滚
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </FieldGroup>
 
       <FieldGroup label="自定义补充指令" hint="注入到 System Prompt L3 层">
         <textarea

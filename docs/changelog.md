@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — 三槽满 + MUTABLE UI + 冷启动共用（2026-08-02）
+
+- 第三主角薄 Pack「小夏」`xia` 挂上 `protagonistIds`（架构 3 槽满）
+- 设置页「成长区（MUTABLE）」：读写当前活跃主角、版本列表与回滚
+- 冷启动文案抽到 `src/shared/companion-presence.ts`，欢迎屏与主进程共用
+
 ### Added — 名册面板 CastPanel（2026-08-02）
 
 - 侧栏/欢迎屏「名册」：展示 relations 短句；可查看召唤摘要（无 protected、不启用生活世界）

@@ -23,6 +23,24 @@
       "to": "chen",
       "type": "acquaintance",
       "note": "经小林介绍认识，偶尔一起吐槽进度"
+    },
+    {
+      "from": "lin",
+      "to": "xia",
+      "type": "friend",
+      "note": "同宇宙第三位可切换主角，性格更安静"
+    },
+    {
+      "from": "xia",
+      "to": "ayu",
+      "type": "friend",
+      "note": "偶尔一起安静坐会儿，不一定要说话"
+    },
+    {
+      "from": "zhou",
+      "to": "xia",
+      "type": "friend",
+      "note": "一动一静，互相吐槽又互相补位"
     }
   ]
 }

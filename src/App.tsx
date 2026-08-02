@@ -20,6 +20,7 @@ import {
   Plus, Search, Cpu, Menu, Brain, Code, Send,
   Pin, File, Newspaper, Shirt, Users,
 } from 'lucide-react'
+import { buildColdStartCopy } from './shared/companion-presence'
 
 let messageIdCounter = 0
 function genId() {
@@ -738,6 +739,11 @@ function App() {
     return true
   })
 
+  const coldStart = buildColdStartCopy({
+    name: currentPersonaName,
+    description: companionBlurb,
+  })
+
   const closeSettings = useCallback(() => {
     setActiveView('chat')
     if (window.electronAPI) {
@@ -1064,13 +1070,13 @@ function App() {
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center pt-28 text-center">
                 <h1 className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  嗨，我是{currentPersonaName}
+                  {coldStart.title}
                 </h1>
                 <p className="mt-2 max-w-md text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                  {companionBlurb}
+                  {coldStart.subtitle}
                 </p>
                 <p className="mt-1.5 max-w-sm text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                  聊天、朋友圈和衣柜都跟着当前主角；对话进行中不能换人。
+                  {coldStart.hint}
                 </p>
                 <div className="mt-10 flex flex-wrap justify-center gap-2">
                   {[

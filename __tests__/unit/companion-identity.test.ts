@@ -16,19 +16,23 @@ describe('companion identity loader', () => {
     expect(m.protagonistIds).toContain('lin')
   })
 
-  it('listProtagonists 仅返回已挂主角（含第二槽 zhou）', () => {
+  it('listProtagonists 返回已挂满的 3 个主角槽', () => {
     const list = listProtagonists('default')
-    expect(list.map((r) => r.id)).toEqual(['lin', 'zhou'])
+    expect(list.map((r) => r.id)).toEqual(['lin', 'zhou', 'xia'])
     expect(list[0].name).toBe('小林')
     expect(list[1].name).toBe('小周')
-    expect(isKnownProtagonist('zhou')).toBe(true)
+    expect(list[2].name).toBe('小夏')
+    expect(isKnownProtagonist('xia')).toBe(true)
   })
 
-  it('loadRolePack 读出 protected / mutable', () => {
+  it('loadRolePack 读出 protected / mutable（含第三槽 xia）', () => {
     const pack = loadRolePack('lin')
     expect(pack.protected.length).toBeGreaterThan(20)
     expect(pack.mutableDefault.length).toBeGreaterThan(10)
     expect(pack.canBeProtagonist).toBe(true)
+    const xia = loadRolePack('xia')
+    expect(xia.name).toBe('小夏')
+    expect(xia.canBeProtagonist).toBe(true)
   })
 
   it('未知角色校验', () => {

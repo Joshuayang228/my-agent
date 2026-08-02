@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildColdStartCopy } from '../../electron/main/companion/presence'
+import { buildColdStartCopy } from '../../src/shared/companion-presence'
 
 describe('companion presence', () => {
   it('冷启动文案绑定主角名', () => {
