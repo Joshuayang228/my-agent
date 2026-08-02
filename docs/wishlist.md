@@ -54,7 +54,7 @@
 - [x] ~~**M30 叙事/能力边界方法论**~~ — 2026-08-02：理念+code 已沉淀
 - [x] ~~**M31 主动在场方法论**~~ — 2026-08-02：理念+code 已沉淀
 - [x] ~~**Part VI M22–M31**~~ — 2026-08-02：伙伴方法论主线已收齐
-- [ ] **Part VI 加厚修订** — M27–M31 已加厚；**M24–M26** 仍待按 M10 标准续写
+- [x] ~~**Part VI 加厚修订**~~ — 2026-08-02：M22–M31 均已加厚
 - [ ] **M22-G1** 成长时钟 `companionGrowthStartedAt` 按 role 分桶（现全局一份）
 - [ ] **M22-G2** 反思用的 feedback 记忆按 role 过滤
 - [ ] **M22-G3** MUTABLE 结构性防退化校验（现仅 Prompt 软约束）
@@ -87,6 +87,8 @@
 - [ ] **M31-G2** 勿扰时段 / 频率预算
 - [ ] **M31-G3** 定时主动问候（须严格派生 World）
 - [x] ~~**自动反思写 MUTABLE**~~ — 2026-08-02：门闸 + 对话后入队 + Settings 手动/强制；需求见 `docs/requirements/companion-mutable-reflection.md`
+
+- [ ] **Alice 前端走查 → 更新 frontend-guidelines + 功能/模块文档** — 方法论加厚完成后
 
 ### 工程债 / 产品向
 
