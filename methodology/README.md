@@ -127,12 +127,14 @@ M01–M31 按**依赖层级**从底向上排列：底层基础设施决定上层
 ## 待补队列
 
 > 完整流程见 `agent-skills/methodology-writing.md`。  
-> **工程施工**认 W0–W6（`docs/requirements/companion-world-framework.md`）；**本章目录**只认沉淀状态。
+> **工程施工**认 W0–W6（主线已收齐，见 `docs/progress.md`）；**本章目录**只认沉淀状态。  
+> 「有什么能力」见 `docs/modules/capability-catalog.md`，不在本 README 列功能清单。
 
 | 优先级 | 项 | 说明 |
 |--------|-----|------|
-| 工程下一步 | **W0** | 人设资产化 + 主角色 Bible 骨架 |
-| 沉淀 | 随 W 完成写对应 M 章 | 勿按 M22→M31 编号顺序开工 |
+| 沉淀下一步 | **M22** | 成长核：MUTABLE 与反思（代码已通；需观点对齐后写理念+code） |
+| 沉淀随后 | **M23→M31** | 随深啃推进；勿按编号盲目开写，先对齐观点 |
+| 工程可选 | Pack 内容打磨 | 三槽薄 Pack 加厚（非方法论阻塞） |
 | 增量 | 已写章节暂缓 Gap | `docs/wishlist.md` + 各章实战记录 |
 
 ## 写作约定

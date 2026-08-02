@@ -107,9 +107,9 @@
 | M18 | `evals/` |
 | M19 | `electron/main/agent/subagent.ts` |
 | M20 | `electron/main/skills/` |
-| M21–M22 | `electron/main/agent/prompt-builder.ts`（目标：`personas/` + persona-store / reflection） |
-| M23–M26 | 目标：`electron/main/world/`（随 W2–W5 生长） |
-| M27–M31 | Prompt 规范 + UI 截面（Settings / Memory / Moments / 触达） |
+| M21–M22 | `electron/main/companion/`（identity / growth/mutable-store · reflection-*）+ `prompt-builder.ts` |
+| M23–M26 | `electron/main/companion/life/` · `cast/` · Moments/Assets UI |
+| M27–M31 | Prompt 规范 + UI 截面（欢迎屏 / Settings / Memory / Moments / CastPanel） |
 
 ### 产品向 backlog（不占 mNN）
 

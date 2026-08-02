@@ -17,14 +17,18 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 ## 启动上下文
 
 文档分四维：**产品**（`docs/modules/`，入口 `product-module-map.md`）· **技术**（`architecture.md`）· **质量**（`quality.md`）· **账本**（progress / changelog / wishlist / pitfalls / decisions / rules-feedback）。  
+**「有什么能力」**看 [`docs/modules/capability-catalog.md`](docs/modules/capability-catalog.md)（补已归档 `features.md` 的缺口；模块卡只管边界）。  
+施工合同 / 批次索引：[`docs/requirements/README.md`](docs/requirements/README.md)。  
 协作 SOP 在根目录 `agent-skills/`（与 docs 并列，见下文「agent-skills」）。深 Why 在 `methodology/`。方案见 `docs/requirements/docs-system-restructure.md`。
 
 **按任务类型读**：
 
 | 任务 | 先读 |
 |------|------|
-| 落在某产品能力（人格/记忆/权限等） | 对应 `docs/modules/<名>.md` → 其「必读文件」→ 必要时 `architecture.md` |
+| 落在某产品能力（伙伴/记忆/权限等） | 对应 `docs/modules/<名>.md` → 其「必读文件」→ 必要时 `capability-catalog` / `architecture.md` |
+| 「有没有某某能力 / Prompt 怎么组装」 | `docs/modules/capability-catalog.md`（再下钻模块卡或代码） |
 | 跨模块 / 架构 | `docs/modules/product-module-map.md` + `architecture.md` + `progress.md` |
+| 开工合同 / 批次缺口 | `docs/requirements/README.md` → 对应契约文 |
 | 测试 / Eval 门禁 | `docs/quality.md` |
 | 小改（typo、单文件少量且意图明确） | 相关代码即可 |
 
@@ -203,8 +207,10 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 |----------|------|
 | 模块边界 / 入口 / 不变量 / 必测 / 现状缺口 | 对应 `docs/modules/<名>.md`（必更） |
 | 新增大产品能力且会反复改 | `docs/modules/product-module-map.md` + 新建模块卡 |
+| 能力增删或行为变更（「有什么」） | `docs/modules/capability-catalog.md`（同轮） |
 | 分层 / 主数据流 / 目录边界 | `docs/architecture.md` |
 | 质量门禁或 Eval 分层策略 | `docs/quality.md` |
+| 需求合同状态（进行中↔已落地） | `docs/requirements/README.md`（必要时改契约文首状态） |
 | 项目阶段 / 下一步 | `docs/progress.md`（对内，状态变化必更新） |
 | 用户可见能力或修复 | `docs/changelog.md`（对外） |
 | 暂缓 / 缺口 / 灵感 | `docs/wishlist.md`（见下方硬约束） |
@@ -212,7 +218,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 | 新坑 | `docs/pitfalls.md`（账本） |
 | 规则问题 | `docs/rules-feedback.md`（账本） |
 
-已归档（勿再当权威源，见 `_archive/docs-legacy/`）：features / api-contracts / testing / eval-design / glossary。类型以 `src/shared/types.ts` 为准；IPC 仍遵守「四处同步」硬约束。
+已归档（勿再当权威源，见 `_archive/docs-legacy/`）：features / api-contracts / testing / eval-design / glossary——**「有什么」改查 `capability-catalog.md`**。类型以 `src/shared/types.ts` 为准；IPC 仍遵守「四处同步」硬约束。
 
 ### wishlist 同步（硬约束，防遗忘）
 
