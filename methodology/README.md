@@ -106,7 +106,7 @@ M01–M31 按**依赖层级**从底向上排列：底层基础设施决定上层
 | M25 | 资产层（衣柜等） | `m25-assets-wardrobe.md` + `-code.md` | World | W4 | ✅ |
 | M26 | 交际圈与卡司 | `m26-social-cast.md` + `-code.md` | World | W5 | ✅ |
 | M27 | 对话行为与两空间 | `m27-conversation-two-spaces.md` + `-code.md` | 体验 | W0/W6 | ✅ |
-| M28 | 冷启动与关系阶段 | `m28-cold-start-relationship.md` | 体验 | W1 | 📋 |
+| M28 | 冷启动与关系阶段 | `m28-cold-start-relationship.md` + `-code.md` | 体验 | W1 | ✅ |
 | M29 | 信息不对称与记忆透明 | `m29-asymmetric-memory.md` | 体验 | W1+ | 📋 |
 | M30 | 叙事连贯与能力边界 | `m30-narrative-capability.md` | 体验 | W2–W4 | 📋 |
 | M31 | 主动在场设计 | `m31-proactive-presence.md` | Surfaces | W3+W6 | 📋 |
@@ -132,8 +132,8 @@ M01–M31 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 | 优先级 | 项 | 说明 |
 |--------|-----|------|
-| 沉淀下一步 | **M28** | 冷启动与关系阶段（先对齐观点再写） |
-| 沉淀随后 | **M29→M31** | 随深啃推进；勿按编号盲目开写，先对齐观点 |
+| 沉淀下一步 | **M29** | 信息不对称与记忆透明（先对齐观点再写） |
+| 沉淀随后 | **M30→M31** | 随深啃推进；勿按编号盲目开写，先对齐观点 |
 | 工程可选 | Pack 内容打磨 | 三槽薄 Pack 加厚（非方法论阻塞） |
 | 增量 | 已写章节暂缓 Gap | `docs/wishlist.md` + 各章实战记录 |
 
