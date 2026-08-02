@@ -72,6 +72,20 @@ store 可按任意 role 查；**门控在 IPC**，防止渲染误传别人 id �
 
 ---
 
+## M24-G1 聊圈一致性
+
+```text
+loadRoleAssembleInput
+  → collectRecentMomentsSlice(limit=3)
+  → buildSystemPrompt ## Recent moments
+
+checkReplyAgainstRecentMoments(reply, moments)  # 软校验，不拦 Loop
+```
+
+模块：`life/moment-consistency.ts`。
+
 ## 已知简化
 
-M24-G1/G2/G3 均无对应模块；生图字段未进 schema。
+- M24-G2 LLM 润色、M24-G3 生图：未做  
+- 软校验仅地点自称打脸启发式，不做完整 NLP  
+

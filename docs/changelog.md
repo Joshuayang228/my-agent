@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — M24-G1 聊圈薄一致性（2026-08-02）
+
+- Assemble L3 `## Recent moments`：近 1–3 条 Moment 锚点（召唤不注入）
+- `checkReplyAgainstRecentMoments` 软校验地点自称打脸；不阻断主对话
+- 模块：`life/moment-consistency.ts`
+
 ### Added — M23-G3 Catch-up 概况 LLM（2026-08-02）
 
 - `resolveCatchupSummary`：空洞 >7 日时 prefer aux LLM 写概况；失败/无 key → 规则模板

@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22 / M23 Gaps 收齐**；下一步：M24 Gaps 或其它 wishlist
+**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22/M23 收齐 · M24-G1**；下一步：M24-G2 或其它 Gaps
 
 **最新动态（2026-08-02）**：
+- ✅ **M24-G1**：近 Moment 薄锚点进 Assemble + 软一致性校验（不拦 Loop）。
 - ✅ **M23-G3**：Catch-up 概况 prefer LLM + 模板回退；Prompt 留在 `catchup.ts`。
 - ✅ **M23-G2**：`world_json` 居所/时区/情境；tick 刷新近况；Assemble L3 一行薄片。
 - ✅ **M23-G1**：日剧本 LLM（tick 当日）+ 哈希回退；Catch-up 细补仍确定性。

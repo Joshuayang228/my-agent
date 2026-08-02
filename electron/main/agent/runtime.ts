@@ -167,7 +167,7 @@ class AgentRuntime {
       }
       // feedback 按会话主角分桶注入（M22-G2）
       const userProfile = await memory.buildUserProfile(assembleRoleId)
-      const { pack, mutableBody, catchupSummary, worldSlice, rosterLines } =
+      const { pack, mutableBody, catchupSummary, worldSlice, recentMomentsSlice, rosterLines } =
         await loadRoleAssembleInput(assembleRoleId)
       const persona = rolePackToPromptParts(pack, mutableBody)
       const isSummon = sessionMeta?.sessionKind === 'summon'
@@ -220,9 +220,10 @@ class AgentRuntime {
         skillSummary,
         activeSkillBody,
         executionMode,
-        // 召唤不注入生活追赶 / 世界薄片（不启用对方生活世界）
+        // 召唤不注入生活追赶 / 世界薄片 / 近 Moment（不启用对方生活世界）
         catchupSummary: isSummon ? undefined : catchupSummary,
         worldSlice: isSummon ? undefined : worldSlice,
+        recentMomentsSlice: isSummon ? undefined : recentMomentsSlice,
         rosterLines,
       })
 

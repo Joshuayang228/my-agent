@@ -62,7 +62,7 @@ export async function loadActiveRolePack(): Promise<RolePack> {
   return identity.loadRolePack(roleId, universeId)
 }
 
-/** Assemble 输入：Pack + MUTABLE + catchup + 世界薄片 + 名册浅注入 */
+/** Assemble 输入：Pack + MUTABLE + catchup + 世界薄片 + 近 Moment + 名册浅注入 */
 export async function loadRoleAssembleInput(
   roleId: string,
   universeId?: string,
@@ -72,6 +72,8 @@ export async function loadRoleAssembleInput(
   catchupSummary?: string
   /** M23-G2：居所/时区/近况一行 */
   worldSlice?: string
+  /** M24-G1：近 1–3 条 Moment 薄锚点 */
+  recentMomentsSlice?: string
   rosterLines?: string
 }> {
   const uid = universeId ?? (await settings.getSetting('universeId'))
@@ -82,13 +84,16 @@ export async function loadRoleAssembleInput(
   const roster = formatRosterForPrompt(buildRosterLines(roleId, uid))
   // 延迟 import，避免 orchestrator ↔ life 启动环
   const { ensureWorldState, formatWorldSliceForPrompt } = await import('./life/world-state')
+  const { collectRecentMomentsSlice } = await import('./life/moment-consistency')
   const world = await ensureWorldState(roleId)
   const worldSlice = formatWorldSliceForPrompt(world) || undefined
+  const { slice: recentMomentsSlice } = await collectRecentMomentsSlice(roleId)
   return {
     pack,
     mutableBody,
     catchupSummary,
     worldSlice,
+    recentMomentsSlice: recentMomentsSlice || undefined,
     rosterLines: roster || undefined,
   }
 }
@@ -98,6 +103,7 @@ export async function loadActiveAssembleInput(): Promise<{
   mutableBody: string
   catchupSummary?: string
   worldSlice?: string
+  recentMomentsSlice?: string
   rosterLines?: string
 }> {
   const universeId = await settings.getSetting('universeId')

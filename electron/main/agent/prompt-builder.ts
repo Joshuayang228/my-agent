@@ -38,6 +38,8 @@ export interface PromptContext {
   catchupSummary?: string
   /** 可选：世界状态薄片（M23-G2：居所/时区/近况一行） */
   worldSlice?: string
+  /** 可选：近 Moment 薄锚点（M24-G1；勿与圈打脸） */
+  recentMomentsSlice?: string
   /** 可选：团员名册浅注入（W5；短句，非他人全文 protected） */
   rosterLines?: string
 }
@@ -173,6 +175,12 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     parts.push('## World slice')
     parts.push(ctx.worldSlice.trim())
     parts.push('（稳定背景，勿编造额外行程；近况仅供语气参考）')
+  }
+
+  if (ctx.recentMomentsSlice?.trim()) {
+    parts.push('')
+    parts.push('## Recent moments')
+    parts.push(ctx.recentMomentsSlice.trim())
   }
 
   if (ctx.rosterLines?.trim()) {

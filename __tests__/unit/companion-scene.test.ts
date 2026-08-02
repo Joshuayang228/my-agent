@@ -25,6 +25,7 @@ describe('companion-scene', () => {
   })
 
   it('falls back to default', () => {
-    expect(resolveCompanionScene({ presence: '' })).toBe('default')
+    const day = new Date('2026-08-02T14:00:00').getTime()
+    expect(resolveCompanionScene({ presence: '', now: day })).toBe('default')
   })
 })

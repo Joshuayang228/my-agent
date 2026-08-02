@@ -63,7 +63,7 @@
 - [x] ~~**M23-G1** 日剧本换 LLM 生成器~~ — 2026-08-02：tick 当日 LLM + 哈希回退；Catch-up 细补仍哈希
 - [x] ~~**M23-G2** 世界状态加厚~~ — 2026-08-02：`world_json` 居所/时区/情境；Assemble L3 一行薄片
 - [x] ~~**M23-G3** Catch-up 概况改 LLM 叙事~~ — 2026-08-02：`resolveCatchupSummary` LLM + 模板回退；Prompt 留在 catchup.ts
-- [ ] **M24-G1** 对话与最近 Moment 一致性校验
+- [x] ~~**M24-G1** 对话与最近 Moment 一致性校验~~ — 2026-08-02：Assemble 近 3 条锚点 + 软校验（不拦 Loop）
 - [ ] **M24-G2** LLM 润色动态文案（仍须绑定 event）
 - [ ] **M24-G3** 生图朋友圈（非本阶段）
 - [ ] **M25-G1** 用户编辑/删除资产 UI
