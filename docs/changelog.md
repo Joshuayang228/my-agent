@@ -8,7 +8,7 @@
 ### Added — 召唤忙闲婉拒（Alice 对照）（2026-08-02）
 
 - `checkCastAvailability`：忙时段/日程忙点可婉拒并给改约；`force` 可强开
-- 召唤 Prompt 注入对方此刻日程情境（不推进其生活世界）
+- 召唤 Prompt 注入对方此刻日程情境（不推进其生活世界；runtime 静态导入）
 
 ### Added — 召唤子会话（2026-08-02）
 
