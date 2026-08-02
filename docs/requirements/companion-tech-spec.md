@@ -363,6 +363,7 @@ storage: database.ts migration + companion-*-store.ts
 **验收：**
 
 - [x] 主对话 Prompt 含名册短句；不出现其他主角全文 protected  
+- [x] 召唤子会话：`startSummon` 装载非 active Pack（含 protected），`session_kind=summon`，不改 active、不注入 catchup  
 
 ### W6 — 主动在场与体验收齐
 

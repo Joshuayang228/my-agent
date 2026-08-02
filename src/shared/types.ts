@@ -310,12 +310,17 @@ export type TaskLifecycleEvent =
   | { type: 'task:completed'; task: BackgroundTaskInfo }
   | { type: 'task:failed';    task: BackgroundTaskInfo }
 
+/** 会话种类：main=活跃主角主线；summon=名册召唤（装载对方 Pack，不启生活世界） */
+export type SessionKind = 'main' | 'summon'
+
 export interface ChatSession {
   id: string
   messages: ChatMessage[]
   createdAt: number
-  /** 创建时绑定的主角 id，中途不可改 */
+  /** 创建时绑定的角色 id，中途不可改 */
   roleId: string
+  /** 缺省视为 main（旧数据迁移后默认 main） */
+  sessionKind?: SessionKind
 }
 
 // ── Skill 系统 ──

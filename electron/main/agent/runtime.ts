@@ -166,6 +166,7 @@ class AgentRuntime {
       }
       const { pack, mutableBody, catchupSummary, rosterLines } = await loadRoleAssembleInput(assembleRoleId)
       const persona = rolePackToPromptParts(pack, mutableBody)
+      const isSummon = sessionMeta?.sessionKind === 'summon'
 
       const chatSpan = startSpan('chat', 'main', 'interaction', undefined, { sessionId, model: llmConfig.model })
 
@@ -176,6 +177,7 @@ class AgentRuntime {
         roleId: persona.id,
         activeRoleId,
         roleMismatch: mismatch,
+        sessionKind: sessionMeta?.sessionKind || 'main',
       })
 
       const vectorContext = await this.safeVectorSearch(lastUserMsg?.content, llmConfig)
@@ -190,16 +192,22 @@ class AgentRuntime {
         }
       } catch { /* skill system not ready */ }
 
+      const summonNote = isSummon
+        ? '【召唤子会话】用户正在与你单独短聊；生活世界（朋友圈/衣柜/日程）仍以当前活跃主角为准，本会话不推进你的生活世界。'
+        : undefined
+      const sessionInfoParts = [customPrompt, summonNote].filter(Boolean)
+
       const systemPrompt = buildSystemPrompt({
         persona,
         toolNames: toolRegistry.getAll().map(t => t.name),
         userProfile: userProfile ?? undefined,
         memories: vectorContext,
-        sessionInfo: customPrompt || undefined,
+        sessionInfo: sessionInfoParts.length ? sessionInfoParts.join('\n\n') : undefined,
         skillSummary,
         activeSkillBody,
         executionMode,
-        catchupSummary,
+        // 召唤不注入生活追赶摘要（不启用对方生活世界）
+        catchupSummary: isSummon ? undefined : catchupSummary,
         rosterLines,
       })
 

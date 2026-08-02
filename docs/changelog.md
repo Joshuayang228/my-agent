@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — 召唤子会话（2026-08-02）
+
+- `companion:start-summon`：创建 `session_kind=summon` 会话并装载对方完整 Role Pack；不改 `activeRoleId`、不推进对方生活
+- CastPanel「开聊」；顶栏显示「· 召唤」；schema v8 `sessions.session_kind`
+
 ### Added — 三槽满 + MUTABLE UI + 冷启动共用（2026-08-02）
 
 - 第三主角薄 Pack「小夏」`xia` 挂上 `protagonistIds`（架构 3 槽满）

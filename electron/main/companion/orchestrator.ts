@@ -9,6 +9,7 @@
 
 import { BrowserWindow } from 'electron'
 import * as settings from '../storage/settings-store'
+import * as store from '../storage/session-store'
 import * as identity from './identity/loader'
 import {
   buildRosterLines,
@@ -112,6 +113,59 @@ export async function getActiveRoster(): Promise<{
 export async function summonCastBrief(roleId: string): Promise<CastBrief> {
   const universeId = await settings.getSetting('universeId')
   return loadCastBrief(roleId, universeId)
+}
+
+/**
+ * 开启召唤子会话：绑定目标 Role Pack（含 protected），不改 activeRoleId，不 resume 对方生活。
+ * 若目标就是当前活跃主角，退化为普通主线会话。
+ */
+export async function startSummonSession(roleId: string): Promise<
+  | {
+      ok: true
+      sessionId: string
+      roleId: string
+      name: string
+      sessionKind: 'main' | 'summon'
+      activeRoleId: string
+    }
+  | { ok: false; error: string }
+> {
+  const universeId = await settings.getSetting('universeId')
+  const id = roleId.trim()
+  if (!id) return { ok: false, error: 'INVALID_ROLE' }
+
+  let pack
+  try {
+    pack = identity.loadRolePack(id, universeId)
+  } catch {
+    return { ok: false, error: 'UNKNOWN_ROLE' }
+  }
+
+  const activeRoleId = await getActiveRoleId()
+  if (id === activeRoleId) {
+    const session = await store.createSession(id, { sessionKind: 'main' })
+    return {
+      ok: true,
+      sessionId: session.id,
+      roleId: id,
+      name: pack.name,
+      sessionKind: 'main',
+      activeRoleId,
+    }
+  }
+
+  const session = await store.createSession(id, {
+    sessionKind: 'summon',
+    title: `召唤 · ${pack.name}`,
+  })
+  return {
+    ok: true,
+    sessionId: session.id,
+    roleId: id,
+    name: pack.name,
+    sessionKind: 'summon',
+    activeRoleId,
+  }
 }
 
 export function listActiveUniverseProtagonists(universeId?: string): RoleSummary[] {

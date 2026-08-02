@@ -140,6 +140,17 @@ declare global {
             }
           | { ok: false; error: string }
         >
+        startSummon: (roleId: string) => Promise<
+          | {
+              ok: true
+              sessionId: string
+              roleId: string
+              name: string
+              sessionKind: 'main' | 'summon'
+              activeRoleId: string
+            }
+          | { ok: false; error: string }
+        >
         onRoleChanged: (
           callback: (payload: {
             roleId: string

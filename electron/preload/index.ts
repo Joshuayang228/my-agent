@@ -133,6 +133,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
         }
       | { ok: false; error: string }
     > => ipcRenderer.invoke('companion:summon-brief', roleId),
+    startSummon: (roleId: string): Promise<
+      | {
+          ok: true
+          sessionId: string
+          roleId: string
+          name: string
+          sessionKind: 'main' | 'summon'
+          activeRoleId: string
+        }
+      | { ok: false; error: string }
+    > => ipcRenderer.invoke('companion:start-summon', roleId),
     onRoleChanged: (
       callback: (payload: {
         roleId: string

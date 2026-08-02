@@ -11,6 +11,7 @@ import {
   getActiveRoster,
   listActiveUniverseProtagonists,
   requestSwitch,
+  startSummonSession,
   summonCastBrief,
 } from '../companion/orchestrator'
 import {
@@ -126,5 +127,13 @@ export function registerCompanionIPC(): void {
     } catch (err) {
       return { ok: false as const, error: String(err) }
     }
+  })
+
+  /** 召唤子会话：装载对方完整 Pack，不改 active、不启对方生活 */
+  ipcMain.handle('companion:start-summon', async (_e, roleId: string) => {
+    if (typeof roleId !== 'string' || !roleId.trim()) {
+      return { ok: false as const, error: 'INVALID_ROLE' }
+    }
+    return startSummonSession(roleId.trim())
   })
 }

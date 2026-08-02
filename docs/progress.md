@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：伙伴 **W0–W6 主线已收齐**；3 主角槽已满；后续召唤子会话 / 自动反思 MUTABLE / 方法论深啃
+**阶段**：伙伴 **W0–W6 主线已收齐**；3 主角槽已满；召唤子会话已通；后续自动反思 MUTABLE / 方法论深啃
 
 **最新动态（2026-08-02）**：
+- ✅ **召唤子会话**：`startSummon` + schema v8；CastPanel「开聊」装载对方 Pack，不改 active / 不启生活。
 - ✅ **三槽满**：第三主角薄 Pack「小夏」`xia`；冷启动文案 shared；Settings MUTABLE 读写/回滚 UI。
 - ✅ **名册 UI**：CastPanel（get-roster / summon-brief）；欢迎屏入口。
 - ✅ **审计补缺**：`assertSessionRole`；`role-changed`；设置 toast；小周第二主角槽。

@@ -34,6 +34,7 @@ interface SessionSummary {
   updatedAt: number
   messageCount: number
   roleId?: string
+  sessionKind?: 'main' | 'summon'
 }
 
 interface ToolStatus {
@@ -269,8 +270,13 @@ function App() {
     window.electronAPI.companion.listProtagonists().then((list) => {
       const map: Record<string, string> = {}
       for (const p of list) map[p.id] = p.name
-      setProtagonistNames(map)
+      setProtagonistNames((prev) => ({ ...prev, ...map }))
     })
+    window.electronAPI.companion.getRoster?.().then((data) => {
+      const map: Record<string, string> = {}
+      for (const c of data.cast) map[c.id] = c.name
+      setProtagonistNames((prev) => ({ ...prev, ...map }))
+    }).catch(() => { /* 旧 preload 无 getRoster */ })
     window.electronAPI.project.get().then((p) => {
       if (p) setCurrentProject(p)
     })
@@ -282,7 +288,7 @@ function App() {
       })
       const sid = activeSessionIdRef.current
       const sess = sid ? sessionsRef.current.find((s) => s.id === sid) : undefined
-      if (sess?.roleId && sess.roleId !== payload.roleId) {
+      if (sess?.roleId && sess.roleId !== payload.roleId && sess.sessionKind !== 'summon') {
         toast('主角已切换。当前会话仍绑定旧主角，请新建对话开始新关系。', 'info')
       }
     })
@@ -316,6 +322,12 @@ function App() {
     if (session) {
       setMessages(session.messages)
     }
+  }
+
+  const openSummonSession = async (sessionId: string) => {
+    await loadSessions()
+    setActiveView('chat')
+    await switchSession(sessionId)
   }
 
   const deleteSession = async (sessionId: string) => {
@@ -999,13 +1011,21 @@ function App() {
             </button>
           )}
           {(() => {
-            const sessRole = sessions.find((s) => s.id === activeSessionId)?.roleId
+            const sess = sessions.find((s) => s.id === activeSessionId)
+            const sessRole = sess?.roleId
             const headerRole = sessRole || activeRoleId
             const headerName = protagonistNames[headerRole] || currentPersonaName
-            const mismatched = !!(sessRole && sessRole !== activeRoleId)
+            const isSummon = sess?.sessionKind === 'summon'
+            const mismatched = !!(sessRole && sessRole !== activeRoleId && !isSummon)
+            const badge = isSummon ? ' · 召唤' : mismatched ? ' · 会话' : ''
+            const title = isSummon
+              ? '召唤子会话：已装载对方人设，不推进其生活世界'
+              : mismatched
+                ? '此会话绑定旧主角；生活世界已是新活跃主角'
+                : undefined
             return (
-              <span className="text-[11px]" style={{ color: mismatched ? 'var(--warning)' : 'var(--text-muted)' }} title={mismatched ? '此会话绑定旧主角；生活世界已是新活跃主角' : undefined}>
-                {headerName}{mismatched ? ' · 会话' : ''}
+              <span className="text-[11px]" style={{ color: (mismatched || isSummon) ? 'var(--warning)' : 'var(--text-muted)' }} title={title}>
+                {headerName}{badge}
               </span>
             )
           })()}
@@ -1028,7 +1048,10 @@ function App() {
                 <AssetsPanel onClose={() => setActiveView('chat')} />
               )}
               {activeView === 'cast' && (
-                <CastPanel onClose={() => setActiveView('chat')} />
+                <CastPanel
+                  onClose={() => setActiveView('chat')}
+                  onOpenSession={(sid) => { void openSummonSession(sid) }}
+                />
               )}
             </div>
           </div>

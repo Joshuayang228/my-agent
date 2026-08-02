@@ -36,7 +36,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 7
+export const SCHEMA_VERSION = 8
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -292,6 +292,10 @@ export function runMigrations(database: SqlJsDatabase): void {
         CREATE INDEX IF NOT EXISTS idx_companion_assets_role_kind
           ON companion_assets(role_id, kind)
       `)
+    },
+    // v7 → v8：召唤子会话标记（不改 active、不启对方生活）
+    (d) => {
+      addColumnIfMissing(d, 'sessions', 'session_kind', "TEXT NOT NULL DEFAULT 'main'")
     },
   ]
 

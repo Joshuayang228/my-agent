@@ -1,10 +1,11 @@
 /**
- * 名册 / 召唤摘要（W5 Surfaces）
- * 只读展示活跃主角相关卡司；召唤仅浅层 brief，不启用对方生活世界。
+ * 名册 / 召唤（W5 Surfaces）
+ * 展示活跃主角相关卡司；可看摘要或开召唤子会话（装载对方 Pack，不启生活世界）。
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { RefreshCw, Users, X } from 'lucide-react'
+import { MessageCircle, RefreshCw, Users, X } from 'lucide-react'
+import { useToast } from './Toast'
 
 interface RosterLine {
   otherId: string
@@ -24,14 +25,18 @@ interface CastBrief {
 
 interface CastPanelProps {
   onClose: () => void
+  /** 召唤开聊成功后切到该会话 */
+  onOpenSession?: (sessionId: string) => void
 }
 
-export function CastPanel({ onClose }: CastPanelProps) {
+export function CastPanel({ onClose, onOpenSession }: CastPanelProps) {
+  const { toast } = useToast()
   const [roleId, setRoleId] = useState('')
   const [lines, setLines] = useState<RosterLine[]>([])
   const [cast, setCast] = useState<CastBrief[]>([])
   const [selected, setSelected] = useState<CastBrief | null>(null)
   const [loading, setLoading] = useState(false)
+  const [starting, setStarting] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!window.electronAPI?.companion.getRoster) return
@@ -64,6 +69,28 @@ export function CastPanel({ onClose }: CastPanelProps) {
     if (r.ok) setSelected(r.brief)
   }
 
+  const startChat = async (id: string, name: string) => {
+    if (!window.electronAPI?.companion.startSummon) return
+    setStarting(id)
+    try {
+      const r = await window.electronAPI.companion.startSummon(id)
+      if (!r.ok) {
+        toast(r.error === 'UNKNOWN_ROLE' ? '未知角色，无法召唤' : '召唤失败', 'error')
+        return
+      }
+      toast(
+        r.sessionKind === 'summon'
+          ? `已开启与${name}的召唤对话（不推进其生活世界）`
+          : `已开启与${name}的对话`,
+        'success',
+      )
+      onOpenSession?.(r.sessionId)
+      onClose()
+    } finally {
+      setStarting(null)
+    }
+  }
+
   return (
     <div className="flex h-full flex-col">
       <div
@@ -77,7 +104,7 @@ export function CastPanel({ onClose }: CastPanelProps) {
               名册
             </div>
             <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              以 {roleId || '活跃主角'} 为视角 · 仅摘要
+              以 {roleId || '活跃主角'} 为视角
             </div>
           </div>
         </div>
@@ -105,7 +132,7 @@ export function CastPanel({ onClose }: CastPanelProps) {
 
       <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-thin">
         <p className="mb-3 text-[11px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-          名册短句会注入主对话 Prompt。点「查看摘要」可召唤浅层信息；不会加载对方全文人设，也不会推进其生活世界。
+          名册短句会注入主对话 Prompt。「开聊」创建召唤子会话并装载对方完整人设；不会切换活跃主角，也不会推进对方生活世界。
         </p>
 
         {lines.length === 0 && !loading ? (
@@ -125,7 +152,7 @@ export function CastPanel({ onClose }: CastPanelProps) {
                   <div className="text-[13px]" style={{ color: 'var(--text-primary)' }}>
                     {line.text}
                   </div>
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={() => void summon(line.otherId)}
@@ -133,6 +160,16 @@ export function CastPanel({ onClose }: CastPanelProps) {
                       style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
                     >
                       查看摘要
+                    </button>
+                    <button
+                      type="button"
+                      disabled={starting === line.otherId}
+                      onClick={() => void startChat(line.otherId, line.otherName)}
+                      className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] transition"
+                      style={{ color: 'var(--text-primary)', background: 'var(--hover-overlay)' }}
+                    >
+                      <MessageCircle size={11} />
+                      {starting === line.otherId ? '开启中…' : '开聊'}
                     </button>
                     {brief?.canBeProtagonist ? (
                       <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
@@ -157,9 +194,21 @@ export function CastPanel({ onClose }: CastPanelProps) {
             <div className="mt-1 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
               {selected.summonHint || selected.summary || selected.description}
             </div>
-            <p className="mt-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-              召唤摘要（无 protected 全文 · 未启用生活世界）
-            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                type="button"
+                disabled={starting === selected.id}
+                onClick={() => void startChat(selected.id, selected.name)}
+                className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] transition"
+                style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
+              >
+                <MessageCircle size={11} />
+                {starting === selected.id ? '开启中…' : '开聊'}
+              </button>
+              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                摘要无 protected；开聊后装载完整人设
+              </p>
+            </div>
           </div>
         ) : null}
       </div>
