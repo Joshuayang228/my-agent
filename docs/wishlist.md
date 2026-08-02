@@ -48,7 +48,8 @@
 - [x] ~~**M23 生活世界方法论**~~ — 2026-08-02：理念+code 已沉淀
 - [x] ~~**M24 朋友圈/事件层方法论**~~ — 2026-08-02：理念+code 已沉淀
 - [x] ~~**M25 资产层/衣柜方法论**~~ — 2026-08-02：理念+code 已沉淀
-- [ ] **methodology M26–M31** 随深啃推进（先观点对齐再写）
+- [x] ~~**M26 交际圈/卡司方法论**~~ — 2026-08-02：理念+code 已沉淀
+- [ ] **methodology M27–M31** 随深啃推进（先观点对齐再写）
 - [ ] **M22-G1** 成长时钟 `companionGrowthStartedAt` 按 role 分桶（现全局一份）
 - [ ] **M22-G2** 反思用的 feedback 记忆按 role 过滤
 - [ ] **M22-G3** MUTABLE 结构性防退化校验（现仅 Prompt 软约束）
@@ -62,6 +63,9 @@
 - [ ] **M25-G1** 用户编辑/删除资产 UI
 - [ ] **M25-G2** 获得事件自动入库（`maybeGrantFromEvent` 尚未挂 publish 主路径）
 - [ ] **M25-G3** bookshelf 等其它 asset kind
+- [ ] **M26-G1** 卡司出现在 Moments 互动（评论/同框）
+- [ ] **M26-G2** 召唤会话与 M19 子 Agent 任务协作
+- [ ] **M26-G3** NPC 多场景 prompt 组（执行/展示/互动）
 - [x] ~~**自动反思写 MUTABLE**~~ — 2026-08-02：门闸 + 对话后入队 + Settings 手动/强制；需求见 `docs/requirements/companion-mutable-reflection.md`
 
 ### 工程债 / 产品向
