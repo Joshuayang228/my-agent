@@ -16,7 +16,7 @@
 - [x] ~~**M16 并发与数据架构**~~ — 2026-07-26 已沉淀（G1/G2/G3/G9 代码 + 理念/code 章）
 - [x] ~~**M17 测试架构**~~ — 2026-07-26 理念+code 已沉淀
 - [x] ~~**M13 MCP 集成**~~ — 2026-07-26 已沉淀（理念+code；元数据保守默认纠偏）
-- [ ] **Part VI M22–M31** — 随 W0–W6 沉淀（框架见 `docs/requirements/companion-world-framework.md`）；旧占位已归档
+- [ ] **Part VI M22–M31** — W 主线已通；按 `methodology/README.md` 待补队列从 **M22** 起对齐沉淀；旧占位已归档
 - [ ] **迁 better-sqlite3 / 增量快照** — M16 暂缓；等 sql.js 全量 export 体感卡顿再评估
 
 ### 已写章节的增量补洞（真相源：本节 + 各章实战记录；skill 不维护明细）
