@@ -71,6 +71,9 @@
 - [ ] **M27-G1** 问/做/安慰/推回显式策略或轻量分类
 - [ ] **M27-G2** aside 频率/质量 Eval（过油/缺失）
 - [ ] **M27-G3** 情绪语气收放控制器（非纯靠模型）
+- [ ] **M28-G1** relationshipStage 显式状态驱动 Prompt/行为
+- [ ] **M28-G2** 熟悉度区分「交心 vs 纯干活」信号
+- [ ] **M28-G3** 换角后的「再认识」微文案（不重置成长时钟）
 - [x] ~~**自动反思写 MUTABLE**~~ — 2026-08-02：门闸 + 对话后入队 + Settings 手动/强制；需求见 `docs/requirements/companion-mutable-reflection.md`
 
 ### 工程债 / 产品向
