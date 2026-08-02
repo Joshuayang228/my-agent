@@ -1038,6 +1038,7 @@ function App() {
             roleName={currentPersonaName}
             roleId={activeRoleId}
             onOpenMoments={() => setActiveView('moments')}
+            onOpenAssets={() => setActiveView('assets')}
             onOpenShelf={() => setActiveView('shelf')}
             onOpenCast={() => setActiveView('cast')}
           />
@@ -1063,6 +1064,18 @@ function App() {
                 <CastPanel
                   onClose={() => setActiveView('chat')}
                   onOpenSession={(sid) => { void openSummonSession(sid) }}
+                  onOpenShelf={() => setActiveView('shelf')}
+                  recentByRole={Object.fromEntries(
+                    sessions
+                      .filter((s) => s.sessionKind === 'summon' && s.roleId)
+                      .sort((a, b) => b.updatedAt - a.updatedAt)
+                      .reduce<Array<[string, { sessionId: string; title: string; updatedAt: number }]>>((acc, s) => {
+                        const rid = s.roleId!
+                        if (acc.some(([id]) => id === rid)) return acc
+                        acc.push([rid, { sessionId: s.id, title: s.title, updatedAt: s.updatedAt }])
+                        return acc
+                      }, []),
+                  )}
                 />
               )}
               {activeView === 'shelf' && (

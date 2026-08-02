@@ -43,7 +43,8 @@
 | 召唤忙闲婉拒 + force | 已落地 | 名册开聊前 | `check-cast-availability` |
 | 冷启动在场文案 | 已落地 | Chat 空态欢迎屏 | `companion-presence.ts` |
 | 角色架 UI | 已落地 | 状态条 / 欢迎「换主角」 | CharacterShelfPanel · `shelf` |
-| 衣柜主视觉 / 名册关系感 | 部分 | 同上 | P1 见 frontend 方案 |
+| 衣柜主视觉（穿着中 + 场合标签） | 已落地 | 状态条 / 欢迎屏 → 衣柜 | AssetsPanel · Moment.assetId/outfit |
+| 名册关系卡 + 最近召唤互动 | 已落地 | 状态条 / 欢迎屏 → 名册 | CastPanel · sessions(summon) |
 | 场景弱背景 | 缺口 | — | P2 |
 | 生图朋友圈 / 多宇宙并行 | 缺口 | — | wishlist / 非本阶段 |
 | 非活跃后台养成 | 缺口 | — | 产品明确不做 |

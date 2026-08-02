@@ -3,12 +3,13 @@
  */
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { LayoutGrid, Newspaper, Users } from 'lucide-react'
+import { LayoutGrid, Newspaper, Shirt, Users } from 'lucide-react'
 
 interface CompanionStatusBarProps {
   roleName: string
   roleId: string
   onOpenMoments: () => void
+  onOpenAssets: () => void
   onOpenShelf: () => void
   onOpenCast: () => void
 }
@@ -17,6 +18,7 @@ export function CompanionStatusBar({
   roleName,
   roleId,
   onOpenMoments,
+  onOpenAssets,
   onOpenShelf,
   onOpenCast,
 }: CompanionStatusBarProps) {
@@ -67,6 +69,7 @@ export function CompanionStatusBar({
       </div>
       <div className="flex shrink-0 items-center gap-0.5">
         <StatusChip icon={<Newspaper size={12} />} label="朋友圈" onClick={onOpenMoments} />
+        <StatusChip icon={<Shirt size={12} />} label="衣柜" onClick={onOpenAssets} />
         <StatusChip icon={<Users size={12} />} label="名册" onClick={onOpenCast} />
         <StatusChip icon={<LayoutGrid size={12} />} label="角色架" onClick={onOpenShelf} />
       </div>

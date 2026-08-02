@@ -58,8 +58,9 @@ Main Area:
 1. **CompanionStatusBar**（仅 chat）：`name · presence` + 朋友圈/名册/角色架快捷；高度约 36px，不抢气泡。
 2. **Moments**：卡片时间线；类型色点；Catch-up 暖色条。
 3. **CharacterShelf（shelf）**：换角**主入口**；3 槽卡片 + 活跃徽标；文案含流式禁止 / Catch-up / 召唤≠换角。设置页切换为次要入口。
-4. **Wardrobe / Cast**（P1）：穿着中主卡在上；名册强调关系短句（本轮可暂缓视觉加厚）。
-5. **场景背景**（P2）：Chat 随 location 弱变化；无资产时用 presence 文案即可。
+4. **Wardrobe（assets）**：上「穿着中」主卡（由最近 Moment 的 `assetId`/`outfit` 推断），下库存网格；`style`/`occasion`/`color` 作场合标签芯片。
+5. **Cast（名册）**：关系卡（头像字 + 关系徽标 + 短句）；展示最近召唤互动；可任主角者链到角色架，禁止把「开聊」做成换活跃。
+6. **场景背景**（P2）：Chat 随 location 弱变化；无资产时用 presence 文案即可。
 
 ## CSS 变量
 

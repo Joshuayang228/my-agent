@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — 前端伴侣表面 P1（衣柜 / 名册）（2026-08-02）
+
+- `AssetsPanel`：穿着中主卡（由最近 Moment `assetId`/`outfit` 推断）+ 库存网格与场合标签
+- `CastPanel`：关系卡（头像字/关系徽标/短句）+ 最近召唤互动 + 可任主角链到角色架
+- 状态条增加「衣柜」快捷入口
+
 ### Added — 前端伴侣表面 P0（Alice 对照）（2026-08-02）
 
 - Chat `CompanionStatusBar`：主角 · 此刻 presence · 朋友圈/名册/角色架快捷

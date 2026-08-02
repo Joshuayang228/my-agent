@@ -20,7 +20,7 @@
 
 | 文档 | 说明 |
 |------|------|
-| [frontend-companion-surfaces.md](./frontend-companion-surfaces.md) | Alice 前端走查 + 伴侣表面：P0 已落地；P1/P2 待做 |
+| [frontend-companion-surfaces.md](./frontend-companion-surfaces.md) | Alice 前端走查 + 伴侣表面：P0/P1 已落地；P2 场景弱背景待做 |
 
 若开新大功能：先写需求文档 → 用户确认 → 再编码（见根 `CLAUDE.md`）。
 
