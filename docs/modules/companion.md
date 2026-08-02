@@ -68,5 +68,5 @@
 
 ## 现状 / 缺口
 
-**现状**：W0–W6 主线已落地；深 Why：`methodology/m22`–`m31`（Part VI 收齐）；前端 P0–P2（状态条 / Moments / 角色架 / 衣柜 / 名册 / Chat 弱场景）已落地。  
-**缺口**：Pack 内容打磨；各章 Gap 见 wishlist；生图场景等非本阶段。
+**现状**：W0–W6 主线已落地；深 Why：`methodology/m22`–`m31`（Part VI 收齐）；前端 P0–P2 已落地；Pack 三角色分味 + 剧本/衣柜分味已加厚（见 companion-cast-content）。  
+**缺口**：各章 Gap 见 wishlist（如 M22 成长时钟分桶）；生图场景等非本阶段。
