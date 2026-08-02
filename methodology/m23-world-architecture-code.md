@@ -80,5 +80,6 @@ moment 槽可 `pickWardrobeAssetId` 写入 payload（派生引用）。
 
 - 剧本文案：✅ 当日 LLM + 哈希回退（M23-G1）；Catch-up 细补仍哈希  
 
-- Catch-up 摘要：固定中文模板（M23-G3）  
+- Catch-up 摘要：✅ LLM 叙事 + 模板回退（M23-G3；Prompt 在 `catchup.ts`）  
+
 - 世界状态：✅ `world_json` 居所/时区/情境（M23-G2）；Assemble `## World slice` 一行

@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — M23-G3 Catch-up 概况 LLM（2026-08-02）
+
+- `resolveCatchupSummary`：空洞 >7 日时 prefer aux LLM 写概况；失败/无 key → 规则模板
+- 辅任务 Prompt 留在 `catchup.ts`；细补剧本仍哈希（不连打多日 LLM）
+- 单测：规范化 / 成功 / 回退
+
 ### Added — M23-G2 世界状态薄片（2026-08-02）
 
 - `companion_role_state.world_json`（schema v10）：居所 / 时区 / 短期情境

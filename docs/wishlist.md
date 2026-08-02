@@ -62,7 +62,7 @@
 - [x] ~~**M22-G4** 生活世界事件作反思信号~~ — 2026-08-02：Catch-up + 近 Moments 薄切片进反思 Prompt
 - [x] ~~**M23-G1** 日剧本换 LLM 生成器~~ — 2026-08-02：tick 当日 LLM + 哈希回退；Catch-up 细补仍哈希
 - [x] ~~**M23-G2** 世界状态加厚~~ — 2026-08-02：`world_json` 居所/时区/情境；Assemble L3 一行薄片
-- [ ] **M23-G3** Catch-up 概况改 LLM 叙事（现规则模板）
+- [x] ~~**M23-G3** Catch-up 概况改 LLM 叙事~~ — 2026-08-02：`resolveCatchupSummary` LLM + 模板回退；Prompt 留在 catchup.ts
 - [ ] **M24-G1** 对话与最近 Moment 一致性校验
 - [ ] **M24-G2** LLM 润色动态文案（仍须绑定 event）
 - [ ] **M24-G3** 生图朋友圈（非本阶段）
