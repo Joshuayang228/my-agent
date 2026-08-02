@@ -6,6 +6,7 @@ import { DevPanel } from './components/DevPanel'
 import { MemoryPanel } from './components/MemoryPanel'
 import { MomentsPanel } from './components/MomentsPanel'
 import { AssetsPanel } from './components/AssetsPanel'
+import { CastPanel } from './components/CastPanel'
 import { ToastProvider, useToast } from './components/Toast'
 import { SkillsPanel } from './components/SkillsPanel'
 import { FileBrowser } from './components/FileBrowser'
@@ -17,7 +18,7 @@ import {
   Plug, ChevronDown, ChevronRight, Square,
   Copy, Check, X, Pencil, RotateCcw, GitBranch, Trash2,
   Plus, Search, Cpu, Menu, Brain, Code, Send,
-  Pin, File, Newspaper, Shirt,
+  Pin, File, Newspaper, Shirt, Users,
 } from 'lucide-react'
 
 let messageIdCounter = 0
@@ -120,7 +121,7 @@ function App() {
   const [pendingImages, setPendingImages] = useState<ImageAttachment[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [activeTools, setActiveTools] = useState<ToolStatus[]>([])
-  const [activeView, setActiveView] = useState<'chat' | 'skills' | 'memory' | 'moments' | 'assets' | 'settings'>('chat')
+  const [activeView, setActiveView] = useState<'chat' | 'skills' | 'memory' | 'moments' | 'assets' | 'cast' | 'settings'>('chat')
   const [theme, setTheme] = useState<string>(() => {
     return localStorage.getItem('theme') || 'dark'
   })
@@ -894,6 +895,9 @@ function App() {
               <SidebarBtn onClick={() => setActiveView(v => v === 'assets' ? 'chat' : 'assets')} title="衣柜">
                 <Shirt size={14} />
               </SidebarBtn>
+              <SidebarBtn onClick={() => setActiveView(v => v === 'cast' ? 'chat' : 'cast')} title="名册">
+                <Users size={14} />
+              </SidebarBtn>
               <SidebarBtn onClick={() => setActiveView(v => v === 'memory' ? 'chat' : 'memory')} title="记忆 (Ctrl+Shift+M)">
                 <Brain size={14} />
               </SidebarBtn>
@@ -1017,6 +1021,9 @@ function App() {
               {activeView === 'assets' && (
                 <AssetsPanel onClose={() => setActiveView('chat')} />
               )}
+              {activeView === 'cast' && (
+                <CastPanel onClose={() => setActiveView('chat')} />
+              )}
             </div>
           </div>
         )}
@@ -1070,6 +1077,7 @@ function App() {
                     { icon: <MessageCircle size={14} />, label: '打个招呼', prompt: '你好，介绍一下你自己' },
                     { icon: <Newspaper size={14} />, label: '朋友圈', action: () => setActiveView('moments') },
                     { icon: <Shirt size={14} />, label: '衣柜', action: () => setActiveView('assets') },
+                    { icon: <Users size={14} />, label: '名册', action: () => setActiveView('cast') },
                     { icon: <Wrench size={14} />, label: '试工具', prompt: '现在几点了？' },
                     { icon: <Settings size={14} />, label: '换主角', action: () => setActiveView('settings') },
                     { icon: <Globe size={14} />, label: '搜索', prompt: '帮我搜索一下最近的AI新闻' },

@@ -5,6 +5,10 @@
 
 ## [未发布]
 
+### Added — 名册面板 CastPanel（2026-08-02）
+
+- 侧栏/欢迎屏「名册」：展示 relations 短句；可查看召唤摘要（无 protected、不启用生活世界）
+
 ### Fixed — Companion 审计补缺（2026-08-02）
 
 - 聊天组装强制会话 `role_id`（`assertSessionRole`）；与 active 不一致时不偷换人设

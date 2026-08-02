@@ -7,8 +7,9 @@
 **阶段**：伙伴 **W0–W6 主线已收齐** + 审计补缺；后续召唤 UI / 方法论深啃 / 主角内容打磨
 
 **最新动态（2026-08-02）**：
-- ✅ **审计补缺**：`assertSessionRole`；`role-changed` Surfaces rebind；设置 toast；小周第二主角槽；catchupSummary→Prompt 单测。
-- ✅ **W6–W0**：冷启动 / 名册 / 衣柜 / Catch-up / LifeEngine / 门控+MUTABLE / Role Pack。
+- ✅ **名册 UI**：CastPanel（get-roster / summon-brief）；欢迎屏入口。
+- ✅ **审计补缺**：`assertSessionRole`；`role-changed`；设置 toast；小周第二主角槽。
+- ✅ **W6–W0**：冷启动 / 名册注入 / 衣柜 / Catch-up / LifeEngine / 门控+MUTABLE / Role Pack。
 
 **此前（2026-07-31）**：
 - ✅ **设置页画布框统一**：`.settings-field` / `.settings-option` + `SettingsPanel` 改造；规范写入 `agent-skills/frontend-guidelines.md`「画布框与设置页规范」。
