@@ -46,7 +46,8 @@
 - [x] ~~**召唤忙闲婉拒**~~ — 对照 Alice `checkFriendAvailability`（2026-08-02）；可 force
 - [x] ~~**M22 成长核方法论**~~ — 2026-08-02：理念+code 已沉淀
 - [x] ~~**M23 生活世界方法论**~~ — 2026-08-02：理念+code 已沉淀
-- [ ] **methodology M24–M31** 随深啃推进（先观点对齐再写）
+- [x] ~~**M24 朋友圈/事件层方法论**~~ — 2026-08-02：理念+code 已沉淀
+- [ ] **methodology M25–M31** 随深啃推进（先观点对齐再写）
 - [ ] **M22-G1** 成长时钟 `companionGrowthStartedAt` 按 role 分桶（现全局一份）
 - [ ] **M22-G2** 反思用的 feedback 记忆按 role 过滤
 - [ ] **M22-G3** MUTABLE 结构性防退化校验（现仅 Prompt 软约束）
@@ -54,6 +55,9 @@
 - [ ] **M23-G1** 日剧本换 LLM 生成器（现哈希 mock）
 - [ ] **M23-G2** 世界状态加厚（居所/时区/短期情境结构化）
 - [ ] **M23-G3** Catch-up 概况改 LLM 叙事（现规则模板）
+- [ ] **M24-G1** 对话与最近 Moment 一致性校验
+- [ ] **M24-G2** LLM 润色动态文案（仍须绑定 event）
+- [ ] **M24-G3** 生图朋友圈（非本阶段）
 - [x] ~~**自动反思写 MUTABLE**~~ — 2026-08-02：门闸 + 对话后入队 + Settings 手动/强制；需求见 `docs/requirements/companion-mutable-reflection.md`
 
 ### 工程债 / 产品向
