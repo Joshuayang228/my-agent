@@ -105,7 +105,7 @@ M01–M31 按**依赖层级**从底向上排列：底层基础设施决定上层
 | M24 | 朋友圈与事件层 | `m24-moments-event-layer.md` + `-code.md` | World | W3 | ✅ |
 | M25 | 资产层（衣柜等） | `m25-assets-wardrobe.md` + `-code.md` | World | W4 | ✅ |
 | M26 | 交际圈与卡司 | `m26-social-cast.md` + `-code.md` | World | W5 | ✅ |
-| M27 | 对话行为与两空间 | `m27-conversation-two-spaces.md` | 体验 | W0/W6 | 📋 |
+| M27 | 对话行为与两空间 | `m27-conversation-two-spaces.md` + `-code.md` | 体验 | W0/W6 | ✅ |
 | M28 | 冷启动与关系阶段 | `m28-cold-start-relationship.md` | 体验 | W1 | 📋 |
 | M29 | 信息不对称与记忆透明 | `m29-asymmetric-memory.md` | 体验 | W1+ | 📋 |
 | M30 | 叙事连贯与能力边界 | `m30-narrative-capability.md` | 体验 | W2–W4 | 📋 |
