@@ -165,6 +165,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
           presence?: string
         }
     > => ipcRenderer.invoke('companion:start-summon', roleId, force),
+    reflectionStatus: (roleId?: string) =>
+      ipcRenderer.invoke('companion:reflection-status', roleId),
+    runReflection: (roleId?: string, force?: boolean) =>
+      ipcRenderer.invoke('companion:run-reflection', roleId, force),
     onRoleChanged: (
       callback: (payload: {
         roleId: string

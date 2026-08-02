@@ -50,6 +50,8 @@ export interface AppSettings {
   recentProjects: string
   /** 自定义权限规则 JSON（PermissionRule[]），启动时 loadRules */
   permissionRules: string
+  /** 成长核冷启动时钟（首次有效对话时间戳 ms 字符串）；空=尚未开始 */
+  companionGrowthStartedAt: string
 }
 
 function getDefaults(): AppSettings {
@@ -72,6 +74,7 @@ function getDefaults(): AppSettings {
     currentProject: '',
     recentProjects: '[]',
     permissionRules: '[]',
+    companionGrowthStartedAt: '',
   }
 }
 

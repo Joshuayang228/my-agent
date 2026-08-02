@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — 自动反思写 MUTABLE（Alice 对照）（2026-08-02）
+
+- 门闸：冷启动 72h + 冷却 24h + 近 7 日 ≥5 条用户消息（按活跃主角分桶）
+- 对话结束后后台入队 `persona-reflection`；LLM 可返回 null（不改）；写入走 `setMutable` 版本
+- 设置页「立即反思 / 强制反思」；召唤会话不触发
+
 ### Added — 召唤忙闲婉拒（Alice 对照）（2026-08-02）
 
 - `checkCastAvailability`：忙时段/日程忙点可婉拒并给改约；`force` 可强开

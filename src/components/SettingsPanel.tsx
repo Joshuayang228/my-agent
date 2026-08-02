@@ -149,6 +149,8 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
     summary: string
     createdAt: number
   }>>([])
+  const [reflectionHint, setReflectionHint] = useState('加载中…')
+  const [reflectionRunning, setReflectionRunning] = useState(false)
   const [mcpServers, setMcpServers] = useState<McpServerEntry[]>([])
   const [mcpStatuses, setMcpStatuses] = useState<McpServerStatus[]>([])
   const [mcpAdding, setMcpAdding] = useState(false)
@@ -183,6 +185,20 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
           createdAt: v.createdAt,
         })),
       )
+      if (window.electronAPI.companion.reflectionStatus) {
+        const st = await window.electronAPI.companion.reflectionStatus(roleId)
+        const g = st.gate
+        const last = st.state.lastRunAt
+          ? new Date(st.state.lastRunAt).toLocaleString('zh-CN', {
+            month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
+          })
+          : '从未'
+        setReflectionHint(
+          g.allowed
+            ? `可反思 · 近7日消息 ${g.recentUserMessages} · 上次 ${last}`
+            : `暂不可反思（${g.reason}${g.detail ? `：${g.detail}` : ''}）· 上次 ${last}`,
+        )
+      }
     } finally {
       setMutableLoading(false)
     }
@@ -506,6 +522,69 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
             ))}
           </div>
         )}
+      </FieldGroup>
+
+      <FieldGroup
+        label="自动反思"
+        hint="对话后后台低频微调成长区（72h 冷启动 + 24h 冷却 + 近7日≥5条消息）。不改 PROTECTED。"
+      >
+        <p className="mb-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+          {reflectionHint}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={reflectionRunning || mutableLoading}
+            className="settings-option px-3 py-1.5 text-xs font-medium"
+            onClick={() => {
+              void (async () => {
+                if (!window.electronAPI?.companion.runReflection) return
+                setReflectionRunning(true)
+                try {
+                  const r = await window.electronAPI.companion.runReflection(form.activeRoleId, false)
+                  if (r.skipped) {
+                    toast(r.summary || r.reason || '已跳过', 'info')
+                  } else if (r.changed) {
+                    toast(`反思已写入成长区${r.version ? ` v${r.version}` : ''}：${r.summary}`, 'success')
+                    await loadMutable(form.activeRoleId)
+                  } else {
+                    toast(`反思完成，无需改动：${r.summary}`, 'info')
+                    await loadMutable(form.activeRoleId)
+                  }
+                } finally {
+                  setReflectionRunning(false)
+                }
+              })()
+            }}
+          >
+            {reflectionRunning ? '反思中…' : '立即反思'}
+          </button>
+          <button
+            type="button"
+            disabled={reflectionRunning || mutableLoading}
+            className="settings-option px-3 py-1.5 text-xs"
+            onClick={() => {
+              void (async () => {
+                if (!window.electronAPI?.companion.runReflection) return
+                if (!window.confirm('强制反思会跳过冷启动/冷却/消息数门闸，仍调用模型。继续？')) return
+                setReflectionRunning(true)
+                try {
+                  const r = await window.electronAPI.companion.runReflection(form.activeRoleId, true)
+                  if (r.changed) {
+                    toast(`强制反思已写入：${r.summary}`, 'success')
+                  } else {
+                    toast(r.summary || '无改动', 'info')
+                  }
+                  await loadMutable(form.activeRoleId)
+                } finally {
+                  setReflectionRunning(false)
+                }
+              })()
+            }}
+          >
+            强制反思
+          </button>
+        </div>
       </FieldGroup>
 
       <FieldGroup label="自定义补充指令" hint="注入到 System Prompt L3 层">

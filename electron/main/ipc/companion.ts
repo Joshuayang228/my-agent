@@ -21,10 +21,27 @@ import {
   rollbackMutable,
   setMutable,
 } from '../companion/growth/mutable-store'
+import {
+  getReflectionStatus,
+  runReflectionNow,
+} from '../companion/growth/reflection-service'
 import { ensureStarterWardrobe, listAssets } from '../companion/life/assets'
 import { listMomentsForRole } from '../companion/life/moments'
 import { getRoleState } from '../companion/life/store'
 import * as settings from '../storage/settings-store'
+import type { LLMConfig } from '../../../src/shared/types'
+
+async function loadAuxLLMConfig(): Promise<LLMConfig> {
+  const s = await settings.getAllSettings()
+  return {
+    apiKey: s.llmApiKey || process.env.LLM_API_KEY || '',
+    baseUrl: s.llmBaseUrl || process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
+    model: s.auxModel || s.llmModel || process.env.LLM_MODEL || 'gpt-4o',
+    temperature: parseFloat(s.llmTemperature) || undefined,
+    topP: parseFloat(s.llmTopP) || undefined,
+    maxTokens: parseInt(s.llmMaxTokens) || undefined,
+  }
+}
 
 export function registerCompanionIPC(): void {
   ipcMain.handle('companion:list-protagonists', async () => {
@@ -146,6 +163,25 @@ export function registerCompanionIPC(): void {
         return { ok: false as const, error: 'INVALID_ROLE' }
       }
       return startSummonSession(roleId.trim(), { force: !!force })
+    },
+  )
+
+  /** 成长反思状态（门闸 + 最近 runs） */
+  ipcMain.handle('companion:reflection-status', async (_e, roleId?: string) => {
+    const id = (typeof roleId === 'string' && roleId.trim()) || (await getActiveRoleId())
+    return getReflectionStatus(id)
+  })
+
+  /** 立即反思；force 跳过 72h/24h/消息数门闸 */
+  ipcMain.handle(
+    'companion:run-reflection',
+    async (_e, roleId?: string, force?: boolean) => {
+      const id = (typeof roleId === 'string' && roleId.trim()) || (await getActiveRoleId())
+      const llm = await loadAuxLLMConfig()
+      if (!llm.apiKey) {
+        return { skipped: true, changed: false, summary: 'NO_API_KEY', reason: 'NO_API_KEY' }
+      }
+      return runReflectionNow(id, llm, { force: !!force })
     },
   )
 }

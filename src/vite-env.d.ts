@@ -172,6 +172,31 @@ declare global {
               presence?: string
             }
         >
+        reflectionStatus: (roleId?: string) => Promise<{
+          gate: {
+            allowed: boolean
+            reason: string
+            detail?: string
+            growthStartedAt: number
+            lastRunAt: number
+            recentUserMessages: number
+          }
+          state: {
+            roleId: string
+            lastRunAt: number
+            runs: Array<{ at: number; changed: boolean; summary: string }>
+          }
+        }>
+        runReflection: (
+          roleId?: string,
+          force?: boolean,
+        ) => Promise<{
+          skipped: boolean
+          reason?: string
+          changed: boolean
+          summary: string
+          version?: number
+        }>
         onRoleChanged: (
           callback: (payload: {
             roleId: string

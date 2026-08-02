@@ -45,7 +45,7 @@
 - [x] ~~**召唤子会话（完整 Pack 装载）**~~ — `startSummon` + session_kind=summon（2026-08-02）；CastPanel「开聊」
 - [x] ~~**召唤忙闲婉拒**~~ — 对照 Alice `checkFriendAvailability`（2026-08-02）；可 force
 - [ ] **methodology M21–M31** 随 W 审核式深啃（代码后写；需观点对齐后写）
-- [ ] **自动反思写 MUTABLE** — 存储/UI 已通；对照 Alice `PersonaReflectionService`：冷启动 72h + 24h cooldown + 低优 BGQueue runner + 版本备份后再写
+- [x] ~~**自动反思写 MUTABLE**~~ — 2026-08-02：门闸 + 对话后入队 + Settings 手动/强制；需求见 `docs/requirements/companion-mutable-reflection.md`
 
 ### 工程债 / 产品向
 

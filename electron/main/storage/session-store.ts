@@ -229,6 +229,59 @@ export async function forkSession(sourceSessionId: string, upToMessageId: string
   return { id: newId, messages, createdAt: now, roleId, sessionKind }
 }
 
+/**
+ * 统计某角色会话中、自 sinceMs 起的用户消息数（不含召唤会话）。
+ * 供成长反思门闸使用。
+ */
+export async function countUserMessagesForRoleSince(
+  roleId: string,
+  sinceMs: number,
+): Promise<number> {
+  const db = await getDatabase()
+  const stmt = db.prepare(`
+    SELECT COUNT(*) AS c
+    FROM messages m
+    JOIN sessions s ON s.id = m.session_id
+    WHERE s.role_id = ?
+      AND COALESCE(s.session_kind, 'main') != 'summon'
+      AND m.role = 'user'
+      AND m.created_at >= ?
+  `)
+  stmt.bind([roleId, sinceMs])
+  stmt.step()
+  const c = (stmt.getAsObject() as { c: number }).c || 0
+  stmt.free()
+  return c
+}
+
+/** 近 lookback 内该角色用户消息正文（截断），供反思 runner */
+export async function listRecentUserMessagesForRole(
+  roleId: string,
+  sinceMs: number,
+  limit = 40,
+): Promise<string[]> {
+  const db = await getDatabase()
+  const stmt = db.prepare(`
+    SELECT m.content AS content
+    FROM messages m
+    JOIN sessions s ON s.id = m.session_id
+    WHERE s.role_id = ?
+      AND COALESCE(s.session_kind, 'main') != 'summon'
+      AND m.role = 'user'
+      AND m.created_at >= ?
+    ORDER BY m.created_at DESC
+    LIMIT ?
+  `)
+  stmt.bind([roleId, sinceMs, limit])
+  const out: string[] = []
+  while (stmt.step()) {
+    const content = String((stmt.getAsObject() as { content: string }).content || '').trim()
+    if (content) out.push(content.slice(0, 200))
+  }
+  stmt.free()
+  return out.reverse()
+}
+
 export async function deleteMessage(messageId: string): Promise<void> {
   const db = await getDatabase()
   db.run('DELETE FROM messages WHERE id = ?', [messageId])

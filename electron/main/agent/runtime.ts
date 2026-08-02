@@ -14,6 +14,7 @@ import { BrowserWindow, Notification } from 'electron'
 import { agentLoop } from './loop'
 import { buildSystemPrompt, rolePackToPromptParts } from './prompt-builder'
 import { describeCastPresence } from '../companion/cast/availability'
+import { scheduleReflectionAfterChat } from '../companion/growth/reflection-service'
 import { assertSessionRole, loadRoleAssembleInput } from '../companion/orchestrator'
 import { registerStreamingProbe } from '../companion/streaming-gate'
 import { maybeExtractProfile } from './profile-extractor'
@@ -306,7 +307,17 @@ class AgentRuntime {
           chatSpan.end('ok')
 
           const auxConfig = await this.getAuxLLMConfig()
-          this.enqueuePostTasks(sessionId, messages, assistantContent, lastUserMsg, auxConfig)
+          this.enqueuePostTasks(
+            sessionId,
+            messages,
+            assistantContent,
+            lastUserMsg,
+            auxConfig,
+            {
+              roleId: assembleRoleId,
+              sessionKind: sessionMeta?.sessionKind,
+            },
+          )
         }
       }
     } catch (err) {
@@ -364,6 +375,7 @@ class AgentRuntime {
     assistantContent: string,
     lastUserMsg: ChatMessage | undefined,
     llmConfig: LLMConfig,
+    companion?: { roleId: string; sessionKind?: string },
   ): void {
     taskQueue.enqueue(sessionId, 'profile-extract', async () => {
       setQuerySource('memory')
@@ -396,6 +408,15 @@ class AgentRuntime {
 
     // G1 自我强化循环修复：不再把 assistant 原始回复写入向量库。
     // 只索引用户消息作为语义召回源（Alice Ch.5 陷阱）。
+
+    if (companion?.roleId) {
+      void scheduleReflectionAfterChat(
+        companion.roleId,
+        sessionId,
+        llmConfig,
+        { sessionKind: companion.sessionKind },
+      )
+    }
   }
 
   /** 窗口失焦时发送桌面通知 */

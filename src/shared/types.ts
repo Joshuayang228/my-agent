@@ -272,6 +272,7 @@ export type TaskType =
   | 'profile-extract'    // 用户画像提取（→ SQLite + 向量库）
   | 'smart-title'        // 智能标题生成
   | 'vector-index-user'  // 用户消息向量索引
+  | 'persona-reflection' // 活跃主角 MUTABLE 低频反思（成长核）
 
 /** 后台任务五态状态机 */
 export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
