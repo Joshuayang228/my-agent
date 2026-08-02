@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — M24-G2 Moment LLM 润色（2026-08-02）
+
+- `resolveMomentText`：tick 发布 prefer 润色；仍绑定 event；校验拒新地点
+- Catch-up 细补默认规则底稿；`meta.textSource` 标记 llm/rule
+- Prompt 留在 `moment-polish.ts`
+
 ### Added — M24-G1 聊圈薄一致性（2026-08-02）
 
 - Assemble L3 `## Recent moments`：近 1–3 条 Moment 锚点（召唤不注入）

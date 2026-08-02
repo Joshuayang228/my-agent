@@ -84,8 +84,23 @@ checkReplyAgainstRecentMoments(reply, moments)  # 软校验，不拦 Loop
 
 模块：`life/moment-consistency.ts`。
 
+## M24-G2 润色
+
+```text
+projectMomentFromEvent(preferLlm?)
+  → resolveMomentText → polishMomentTextViaLlm | formatMomentText
+  → insertMoment(meta.textSource)
+
+publishAndProjectDue → preferLlm: true
+catchup publishAndProjectRange → 默认 false
+```
+
+模块：`moment-format.ts` · `moment-polish.ts`（Prompt 不进 prompt-builder）。
+
 ## 已知简化
 
-- M24-G2 LLM 润色、M24-G3 生图：未做  
+- M24-G3 生图：未做  
 - 软校验仅地点自称打脸启发式，不做完整 NLP  
+- 润色校验为规则启发式，非 embedding  
+
 

@@ -33,6 +33,7 @@
 | 世界状态薄片（居所/时区/情境） | 已落地 | （隐式）Assemble L3 | `world_json` · `## World slice` |
 | Catch-up 概况 LLM + 模板回退 | 已落地 | （隐式）换角追赶 | `resolveCatchupSummary` · catchup.ts |
 | 聊圈薄一致性（近 Moment 锚点） | 已落地 | （隐式）Assemble L3 | `moment-consistency` · `## Recent moments` |
+| Moment LLM 润色（绑 event） | 已落地 | （隐式）tick 发布 | `moment-polish` · 规则回退 |
 | 单活跃 + 流式换角门控 | 已落地 | **角色架（主）** / 设置（次） | `orchestrator` · `streaming-gate` · `requestSwitch` |
 | 会话绑定 `role_id` | 已落地 | （隐式）Chat 顶栏徽标 | `runtime` · `assertSessionRole` |
 | MUTABLE 分桶版本 + 回滚 | 已落地 | 设置 | `mutable-store` · Settings |
