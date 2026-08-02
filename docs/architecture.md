@@ -159,7 +159,7 @@ think → act → observe → think → ...
 | 施工合同 | [`requirements/companion-tech-spec.md`](./requirements/companion-tech-spec.md) |
 
 目录落点：`electron/main/companion/`（identity / growth / life / orchestrator）；`prompt-builder` 为组装器。  
-已落地：**W0–W4**（Identity / 门控+MUTABLE / LifeEngine / Moments+Catch-up / Assets）。下一刀 **W5** Cast 名册。
+已落地：**W0–W5**（含 Cast 名册浅注入）。下一刀 **W6** 主动在场与体验收齐。
 
 ### 6. MCP 协议
 

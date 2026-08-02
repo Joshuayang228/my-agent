@@ -1,3 +1,16 @@
 {
-  "edges": []
+  "edges": [
+    {
+      "from": "lin",
+      "to": "chen",
+      "type": "colleague",
+      "note": "常一起赶项目，互相吐槽加班"
+    },
+    {
+      "from": "lin",
+      "to": "ayu",
+      "type": "friend",
+      "note": "认识多年，偶尔约咖啡聊天"
+    }
+  ]
 }

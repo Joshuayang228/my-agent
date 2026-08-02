@@ -1,0 +1,3 @@
+CHEN_PROTECTED_FULL_BODY_MUST_NOT_APPEAR_IN_MAIN_PROMPT
+
+你是陈姐。这段全文仅在被召唤到子会话时才可装载；主对话名册只许用 summary。

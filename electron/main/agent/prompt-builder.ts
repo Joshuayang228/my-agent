@@ -36,6 +36,8 @@ export interface PromptContext {
   executionMode?: string
   /** 可选：Catch-up 概况摘要（W2+） */
   catchupSummary?: string
+  /** 可选：团员名册浅注入（W5；短句，非他人全文 protected） */
+  rosterLines?: string
 }
 
 /**
@@ -162,6 +164,12 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     parts.push('')
     parts.push('## Recent life (catch-up)')
     parts.push(ctx.catchupSummary)
+  }
+
+  if (ctx.rosterLines?.trim()) {
+    parts.push('')
+    parts.push('## Cast roster')
+    parts.push(ctx.rosterLines.trim())
   }
 
   // ── L4 动态追加（放末尾，不破坏前缀 KV Cache） ──

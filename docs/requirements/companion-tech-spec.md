@@ -362,7 +362,7 @@ storage: database.ts migration + companion-*-store.ts
 
 **验收：**
 
-- [ ] 主对话 Prompt 含名册短句；不出现其他主角全文 protected  
+- [x] 主对话 Prompt 含名册短句；不出现其他主角全文 protected  
 
 ### W6 — 主动在场与体验收齐
 
@@ -418,4 +418,4 @@ storage: database.ts migration + companion-*-store.ts
 | 3 全局指针 | architecture.md §5.1 |
 | 4 沉淀 | methodology M21–M31（代码后写） |
 
-**W0–W4 已完成**。继续时从 **W5**（Cast 名册 / 召唤）开工。  
+**W0–W5 已完成**。继续时从 **W6**（主动在场与体验收齐）开工。  

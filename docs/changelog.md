@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — Companion W5：Cast 名册 / 召唤摘要（2026-08-02）
+
+- 宇宙 `relations.json` + NPC Pack（陈姐 / 阿雨，非主角槽）
+- 主对话 System Prompt 注入 `## Cast roster` 短句；不注入他人全文 protected
+- IPC `companion:get-roster` / `summon-brief`（召唤仅摘要，不启用对方生活世界）
+
 ### Added — Companion W4：衣柜 Assets（2026-08-02）
 
 - SQLite `companion_assets`（schema v7）；活跃角色空库时播种 starter 衣柜

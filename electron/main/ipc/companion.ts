@@ -8,8 +8,10 @@ import { ipcMain } from 'electron'
 import {
   getActiveRole,
   getActiveRoleId,
+  getActiveRoster,
   listActiveUniverseProtagonists,
   requestSwitch,
+  summonCastBrief,
 } from '../companion/orchestrator'
 import {
   getMutable,
@@ -109,4 +111,20 @@ export function registerCompanionIPC(): void {
       return { roleId, items }
     },
   )
+
+  /** 名册：以活跃主角为视角的关系短句 + 卡司浅层 */
+  ipcMain.handle('companion:get-roster', async () => getActiveRoster())
+
+  /** 召唤摘要：不含 protected，不启用对方生活世界 */
+  ipcMain.handle('companion:summon-brief', async (_e, roleId: string) => {
+    if (typeof roleId !== 'string' || !roleId.trim()) {
+      return { ok: false as const, error: 'INVALID_ROLE' }
+    }
+    try {
+      const brief = await summonCastBrief(roleId.trim())
+      return { ok: true as const, brief }
+    } catch (err) {
+      return { ok: false as const, error: String(err) }
+    }
+  })
 }

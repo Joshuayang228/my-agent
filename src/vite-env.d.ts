@@ -109,6 +109,37 @@ declare global {
             sourceEventId: string | null
           }>
         }>
+        getRoster: () => Promise<{
+          roleId: string
+          lines: Array<{
+            otherId: string
+            otherName: string
+            relationType: string
+            text: string
+          }>
+          cast: Array<{
+            id: string
+            name: string
+            description: string
+            summary: string
+            canBeProtagonist: boolean
+            summonHint: string
+          }>
+        }>
+        summonBrief: (roleId: string) => Promise<
+          | {
+              ok: true
+              brief: {
+                id: string
+                name: string
+                description: string
+                summary: string
+                canBeProtagonist: boolean
+                summonHint: string
+              }
+            }
+          | { ok: false; error: string }
+        >
       }
       mcp: {
         connect: (config: {

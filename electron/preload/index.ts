@@ -101,6 +101,37 @@ contextBridge.exposeInMainWorld('electronAPI', {
         sourceEventId: string | null
       }>
     }> => ipcRenderer.invoke('companion:get-assets', opts),
+    getRoster: (): Promise<{
+      roleId: string
+      lines: Array<{
+        otherId: string
+        otherName: string
+        relationType: string
+        text: string
+      }>
+      cast: Array<{
+        id: string
+        name: string
+        description: string
+        summary: string
+        canBeProtagonist: boolean
+        summonHint: string
+      }>
+    }> => ipcRenderer.invoke('companion:get-roster'),
+    summonBrief: (roleId: string): Promise<
+      | {
+          ok: true
+          brief: {
+            id: string
+            name: string
+            description: string
+            summary: string
+            canBeProtagonist: boolean
+            summonHint: string
+          }
+        }
+      | { ok: false; error: string }
+    > => ipcRenderer.invoke('companion:summon-brief', roleId),
   },
 
   mcp: {
