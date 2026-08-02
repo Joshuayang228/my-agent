@@ -1,5 +1,5 @@
 /**
- * 活跃主角朋友圈时间线（W3）
+ * 活跃主角朋友圈时间线（生活面卡片）
  * 仅展示当前 activeRole 的 moments；切换主角后列表随 IPC 变。
  */
 
@@ -19,6 +19,14 @@ interface MomentsPanelProps {
   onClose: () => void
 }
 
+const TYPE_DOT: Record<string, string> = {
+  daily: 'var(--companion-accent-warm)',
+  social: 'var(--accent-fg)',
+  work: 'var(--warning)',
+  mood: 'var(--success)',
+  outfit: '#a78bfa',
+}
+
 function formatWhen(ms: number): string {
   const d = new Date(ms)
   const y = d.getFullYear()
@@ -27,6 +35,12 @@ function formatWhen(ms: number): string {
   const hh = String(d.getHours()).padStart(2, '0')
   const mm = String(d.getMinutes()).padStart(2, '0')
   return `${y}-${m}-${day} ${hh}:${mm}`
+}
+
+function typeColor(type: unknown): string {
+  if (typeof type !== 'string' || !type) return 'var(--companion-accent-warm)'
+  const key = type.toLowerCase()
+  return TYPE_DOT[key] || 'var(--companion-accent-warm)'
 }
 
 export function MomentsPanel({ onClose }: MomentsPanelProps) {
@@ -72,13 +86,13 @@ export function MomentsPanel({ onClose }: MomentsPanelProps) {
         style={{ borderColor: 'var(--border-subtle)' }}
       >
         <div className="flex items-center gap-2">
-          <Newspaper size={16} style={{ color: 'var(--accent-fg)' }} />
+          <Newspaper size={16} style={{ color: 'var(--companion-accent-warm)' }} />
           <div>
             <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
               朋友圈
             </div>
             <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              {roleName || roleId || '活跃主角'} · 仅当前角色
+              {roleName || roleId || '活跃主角'} · 生活广播（非日志表）
             </div>
           </div>
         </div>
@@ -107,13 +121,16 @@ export function MomentsPanel({ onClose }: MomentsPanelProps) {
       <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-thin">
         {summary ? (
           <div
-            className="mb-4 rounded-md border px-3 py-2 text-[12px] leading-relaxed"
+            className="mb-4 rounded-lg border px-3 py-2.5 text-[12px] leading-relaxed"
             style={{
-              borderColor: 'var(--border-color)',
-              background: 'var(--bg-secondary)',
+              borderColor: 'var(--companion-catchup-border)',
+              background: 'var(--companion-catchup-bg)',
               color: 'var(--text-secondary)',
             }}
           >
+            <div className="mb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: 'var(--companion-accent-warm)' }}>
+              Catch-up
+            </div>
             {summary}
           </div>
         ) : null}
@@ -124,21 +141,35 @@ export function MomentsPanel({ onClose }: MomentsPanelProps) {
           </p>
         ) : (
           <ul className="space-y-3">
-            {items.map((m) => (
-              <li
-                key={m.id}
-                className="rounded-md border px-3 py-2.5"
-                style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
-              >
-                <div className="mb-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                  {formatWhen(m.publishedAt)}
-                  {typeof m.meta?.type === 'string' ? ` · ${m.meta.type}` : ''}
-                </div>
-                <div className="text-[13px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>
-                  {m.text}
-                </div>
-              </li>
-            ))}
+            {items.map((m) => {
+              const type = typeof m.meta?.type === 'string' ? m.meta.type : ''
+              const location = typeof m.meta?.location === 'string' ? m.meta.location : ''
+              return (
+                <li
+                  key={m.id}
+                  className="companion-life-card rounded-xl border px-3.5 py-3"
+                  style={{
+                    borderColor: 'var(--card-border)',
+                    background: 'var(--card-bg)',
+                    boxShadow: 'var(--companion-shadow-card)',
+                  }}
+                >
+                  <div className="mb-1.5 flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    <span
+                      className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+                      style={{ background: typeColor(type) }}
+                      aria-hidden
+                    />
+                    <span>{formatWhen(m.publishedAt)}</span>
+                    {type ? <span>· {type}</span> : null}
+                    {location ? <span>· {location}</span> : null}
+                  </div>
+                  <div className="text-[13px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+                    {m.text}
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>

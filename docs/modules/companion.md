@@ -17,12 +17,24 @@
 
 | 类型 | 位置 |
 |------|------|
-| UI | 设置「活跃主角」+ MUTABLE/反思；侧栏朋友圈/衣柜/名册；欢迎屏冷启动；CastPanel「开聊」 |
-| IPC | `companion:*`（list / switch / moments / assets / roster / start-summon / reflection…） |
+| UI · 生活面 | Chat `CompanionStatusBar`；`moments` / `assets` / `cast` / **`shelf`（换角主入口）**；欢迎屏快捷 |
+| UI · 工具面 | 设置：MUTABLE/反思 + 活跃主角（次要）；侧栏 Skills/记忆/设置 |
+| IPC | `companion:*`（list / switch / moments / assets / roster / catchup-status(+presence) / start-summon / reflection…） |
 | Prompt | `prompt-builder` + `orchestrator.loadRoleAssembleInput`（管线见能力目录 §1.1） |
 | 资产 | `electron/main/companion/universes/default/` |
-| 契约 | `docs/requirements/companion-*.md`（索引见 [requirements/README](../requirements/README.md)） |
+| 契约 | `docs/requirements/companion-*.md`；前端方案 [frontend-companion-surfaces.md](../requirements/frontend-companion-surfaces.md) |
 | 能力表 | [capability-catalog.md](./capability-catalog.md) §伙伴世界 |
+
+### 前端 View 映射
+
+| View | 组件 | 说明 |
+|------|------|------|
+| `chat` | App + CompanionStatusBar | 对话；状态条展示 presence |
+| `moments` | MomentsPanel | 朋友圈卡片时间线 |
+| `assets` | AssetsPanel | 衣柜（P1 加厚主视觉） |
+| `cast` | CastPanel | 名册 / 召唤（≠换活跃） |
+| `shelf` | CharacterShelfPanel | 角色架换角 |
+| `settings` | SettingsPanel | 伴侣开关 / MUTABLE / 反思 |
 
 ## 依赖
 
@@ -56,5 +68,5 @@
 
 ## 现状 / 缺口
 
-**现状**：W0–W6 主线已落地；深 Why：`methodology/m22`–`m31`（Part VI 收齐）。  
-**缺口**：主角 Pack 内容打磨；各章 Gap 见 wishlist；生图朋友圈等非本阶段。
+**现状**：W0–W6 主线已落地；深 Why：`methodology/m22`–`m31`（Part VI 收齐）；前端 P0（状态条 / Moments 卡片 / 角色架 / companion token）已落地。  
+**缺口**：P1 衣柜/名册视觉；P2 场景弱背景；Pack 内容打磨；各章 Gap 见 wishlist。

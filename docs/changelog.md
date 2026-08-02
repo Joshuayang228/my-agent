@@ -5,6 +5,13 @@
 
 ## [未发布]
 
+### Added — 前端伴侣表面 P0（Alice 对照）（2026-08-02）
+
+- Chat `CompanionStatusBar`：主角 · 此刻 presence · 朋友圈/名册/角色架快捷
+- `MomentsPanel` 卡片时间线 + Catch-up 暖色条；`CharacterShelfPanel` 换角主入口（`shelf`）
+- CSS `--companion-*` token；`catchup-status` 增补 `presence`
+- 更新 `agent-skills/frontend-guidelines.md`、capability-catalog、companion 模块卡；方案见 `docs/requirements/frontend-companion-surfaces.md`
+
 ### Changed — 文档：能力目录 + requirements 索引（2026-08-02）
 
 - 新增 `docs/modules/capability-catalog.md`：已落地能力表（伙伴/记忆/权限/运行时）与聊天 Prompt/召回管线

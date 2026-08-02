@@ -4,10 +4,11 @@
 
 ## 当前状态
 
-**阶段**：伙伴主线 + **Part VI 方法论加厚已收齐**；下一步：Alice 前端走查 → 更新 frontend skill / 功能文档
+**阶段**：伙伴主线 + Part VI 方法论收齐 + **前端伴侣表面 P0 已落地**；下一步：P1 衣柜/名册视觉（可选 P2 场景背景）
 
 **最新动态（2026-08-02）**：
-- ✅ **Part VI 方法论加厚收齐**：M22–M31 均按 M10 标准（推论组·判据·检查清单·code 节对照）；下一步可做 Alice 前端走查。
+- ✅ **前端伴侣表面 P0**：方案定稿 `frontend-companion-surfaces.md`；`frontend-guidelines` 生活面章节；catalog/companion 用户入口；`--companion-*` token；Chat 状态条 + Moments 卡片 + Character Shelf；`catchup-status.presence`。
+- ✅ **Part VI 方法论加厚收齐**：M22–M31 均按 M10 标准（推论组·判据·检查清单·code 节对照）。
 - ✅ **M30/M31 方法论**：叙事·能力边界 + 主动在场；Part VI 收齐；Gap 进 wishlist。
 - ✅ **M29 信息不对称/记忆透明方法论**：可见可纠错；Gap G1–G3 进 wishlist；队列指向 M30。
 - ✅ **M28 冷启动/关系阶段方法论**：欢迎在场 vs 72h 成长门闸；Gap G1–G3 进 wishlist。

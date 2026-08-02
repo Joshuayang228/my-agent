@@ -96,6 +96,7 @@ declare global {
           pausedAt: number | null
           catchupSummary: string
           lastTickAt: number
+          presence: string
         }>
         getAssets: (opts?: { kind?: string }) => Promise<{
           roleId: string

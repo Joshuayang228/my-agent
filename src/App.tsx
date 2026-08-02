@@ -7,6 +7,8 @@ import { MemoryPanel } from './components/MemoryPanel'
 import { MomentsPanel } from './components/MomentsPanel'
 import { AssetsPanel } from './components/AssetsPanel'
 import { CastPanel } from './components/CastPanel'
+import { CompanionStatusBar } from './components/CompanionStatusBar'
+import { CharacterShelfPanel } from './components/CharacterShelfPanel'
 import { ToastProvider, useToast } from './components/Toast'
 import { SkillsPanel } from './components/SkillsPanel'
 import { FileBrowser } from './components/FileBrowser'
@@ -18,7 +20,7 @@ import {
   Plug, ChevronDown, ChevronRight, Square,
   Copy, Check, X, Pencil, RotateCcw, GitBranch, Trash2,
   Plus, Search, Cpu, Menu, Brain, Code, Send,
-  Pin, File, Newspaper, Shirt, Users,
+  Pin, File, Newspaper, Shirt, Users, LayoutGrid,
 } from 'lucide-react'
 import { buildColdStartCopy } from './shared/companion-presence'
 
@@ -123,7 +125,7 @@ function App() {
   const [pendingImages, setPendingImages] = useState<ImageAttachment[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [activeTools, setActiveTools] = useState<ToolStatus[]>([])
-  const [activeView, setActiveView] = useState<'chat' | 'skills' | 'memory' | 'moments' | 'assets' | 'cast' | 'settings'>('chat')
+  const [activeView, setActiveView] = useState<'chat' | 'skills' | 'memory' | 'moments' | 'assets' | 'cast' | 'shelf' | 'settings'>('chat')
   const [theme, setTheme] = useState<string>(() => {
     return localStorage.getItem('theme') || 'dark'
   })
@@ -1031,7 +1033,17 @@ function App() {
           })()}
         </div>
 
-        {/* Tab 视图 — 技能/记忆等非聊天页 */}
+        {activeView === 'chat' && (
+          <CompanionStatusBar
+            roleName={currentPersonaName}
+            roleId={activeRoleId}
+            onOpenMoments={() => setActiveView('moments')}
+            onOpenShelf={() => setActiveView('shelf')}
+            onOpenCast={() => setActiveView('cast')}
+          />
+        )}
+
+        {/* Tab 视图 — 技能/记忆/生活面等非聊天页 */}
         {activeView !== 'chat' && (
           <div className="view-transition flex flex-1 flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto scrollbar-thin" style={{ background: 'var(--bg-primary)' }}>
@@ -1051,6 +1063,16 @@ function App() {
                 <CastPanel
                   onClose={() => setActiveView('chat')}
                   onOpenSession={(sid) => { void openSummonSession(sid) }}
+                />
+              )}
+              {activeView === 'shelf' && (
+                <CharacterShelfPanel
+                  onClose={() => setActiveView('chat')}
+                  onSwitched={(p) => {
+                    setCurrentPersonaName(p.name)
+                    setCompanionBlurb(p.description)
+                    setActiveRoleId(p.id)
+                  }}
                 />
               )}
             </div>
@@ -1107,8 +1129,8 @@ function App() {
                     { icon: <Newspaper size={14} />, label: '朋友圈', action: () => setActiveView('moments') },
                     { icon: <Shirt size={14} />, label: '衣柜', action: () => setActiveView('assets') },
                     { icon: <Users size={14} />, label: '名册', action: () => setActiveView('cast') },
+                    { icon: <LayoutGrid size={14} />, label: '换主角', action: () => setActiveView('shelf') },
                     { icon: <Wrench size={14} />, label: '试工具', prompt: '现在几点了？' },
-                    { icon: <Settings size={14} />, label: '换主角', action: () => setActiveView('settings') },
                     { icon: <Globe size={14} />, label: '搜索', prompt: '帮我搜索一下最近的AI新闻' },
                   ].map((item) => (
                     <button

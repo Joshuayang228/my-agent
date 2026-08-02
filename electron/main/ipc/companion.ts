@@ -25,6 +25,7 @@ import {
   getReflectionStatus,
   runReflectionNow,
 } from '../companion/growth/reflection-service'
+import { describeCastPresence } from '../companion/cast/availability'
 import { ensureStarterWardrobe, listAssets } from '../companion/life/assets'
 import { listMomentsForRole } from '../companion/life/moments'
 import { getRoleState } from '../companion/life/store'
@@ -111,11 +112,15 @@ export function registerCompanionIPC(): void {
   ipcMain.handle('companion:catchup-status', async () => {
     const roleId = await getActiveRoleId()
     const state = await getRoleState(roleId)
+    const universeId = await settings.getSetting('universeId')
+    const presence = (await describeCastPresence(roleId, { universeId })) || ''
     return {
       roleId,
       pausedAt: state?.pausedAt ?? null,
       catchupSummary: state?.catchupSummary ?? '',
       lastTickAt: state?.lastTickAt ?? 0,
+      /** 此刻活动/地点一句话（供 Chat 状态条） */
+      presence,
     }
   })
 

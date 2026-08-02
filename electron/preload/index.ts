@@ -89,6 +89,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       pausedAt: number | null
       catchupSummary: string
       lastTickAt: number
+      presence: string
     }> => ipcRenderer.invoke('companion:catchup-status'),
     getAssets: (opts?: { kind?: string }): Promise<{
       roleId: string

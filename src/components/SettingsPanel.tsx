@@ -369,7 +369,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
       </FieldGroup>
 
       {protagonists.length > 0 && (
-        <FieldGroup label="活跃主角" hint="同宇宙 3 槽：小林 / 小周 / 小夏。切换=完整换人（朋友圈/衣柜跟他）；流式中禁止。旧会话仍绑定创建时的主角，请新建对话。">
+        <FieldGroup label="活跃主角" hint="主入口在「角色架」（欢迎页/状态条）。此处为快捷切换。同宇宙 3 槽；切换=完整换人；流式中禁止；旧会话请新建对话。">
           <div className="flex flex-wrap gap-2">
             {protagonists.map((p) => (
               <button

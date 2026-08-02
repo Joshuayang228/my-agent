@@ -20,7 +20,7 @@
 
 | 文档 | 说明 |
 |------|------|
-| （暂无独立进行中大项） | 伙伴主线 W0–W6 + 召唤/反思已通；下一工程向以 methodology 深啃与内容打磨为主 |
+| [frontend-companion-surfaces.md](./frontend-companion-surfaces.md) | Alice 前端走查 + 伴侣表面：P0 已落地；P1/P2 待做 |
 
 若开新大功能：先写需求文档 → 用户确认 → 再编码（见根 `CLAUDE.md`）。
 

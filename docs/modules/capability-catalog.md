@@ -25,24 +25,28 @@
 
 模块卡：[companion.md](./companion.md)
 
-| 能力 | 状态 | 入口 / 落点 |
-|------|------|-------------|
-| Universe + Role Pack（三槽：lin / zhou / xia） | 已落地 | `companion/universes/default/` · `companion:list-protagonists` |
-| 单活跃 `activeRoleId` + 流式换角门控 | 已落地 | `orchestrator` · `streaming-gate` · Settings |
-| 会话绑定 `role_id`（`assertSessionRole`） | 已落地 | chat 组装路径 · `runtime` |
-| MUTABLE 分桶版本 + 回滚 | 已落地 | `growth/mutable-store` · Settings UI · `companion:set/rollback-mutable` |
-| 自动反思写 MUTABLE（门闸 + 对话后入队） | 已落地 | `growth/reflection-*` · Settings「立即/强制反思」 |
-| LifeEngine（非活跃暂停 · 剧本 · tick） | 已落地 | `life/engine.ts` · ticker |
-| Catch-up ≤7×24h | 已落地 | `life/catchup` · 换角时注入 Prompt |
-| Moments（朋友圈截面） | 已落地 | `companion:get-moments` · Moments UI |
-| Assets（衣柜截面） | 已落地 | `companion:get-assets` · Assets UI |
-| 名册浅注入（relations 短句） | 已落地 | `cast/roster` · Prompt L3 |
-| CastPanel（名册 / 召唤摘要） | 已落地 | 侧栏 / 欢迎屏 |
-| 召唤子会话（`session_kind=summon`） | 已落地 | `companion:start-summon` · 不改 active / 不 tick 对方生活 |
-| 召唤忙闲婉拒 + force | 已落地 | `cast/availability` · `check-cast-availability` |
-| 冷启动在场文案 | 已落地 | `src/shared/companion-presence.ts` · 欢迎屏 |
-| 生图朋友圈 / 多宇宙并行 | 缺口 | wishlist / 非本阶段 |
-| 非活跃后台养成 | 缺口 | 产品明确不做 |
+| 能力 | 状态 | 用户入口 | 落点 |
+|------|------|----------|------|
+| Universe + Role Pack（三槽：lin / zhou / xia） | 已落地 | 角色架 / 设置 | `companion/universes/default/` · `list-protagonists` |
+| 单活跃 + 流式换角门控 | 已落地 | **角色架（主）** / 设置（次） | `orchestrator` · `streaming-gate` · `requestSwitch` |
+| 会话绑定 `role_id` | 已落地 | （隐式）Chat 顶栏徽标 | `runtime` · `assertSessionRole` |
+| MUTABLE 分桶版本 + 回滚 | 已落地 | 设置 | `mutable-store` · Settings |
+| 自动反思写 MUTABLE | 已落地 | 设置「立即/强制反思」 | `reflection-*` · task-queue |
+| LifeEngine（暂停 · 剧本 · tick） | 已落地 | （隐式）状态条 presence | `life/engine.ts` |
+| Catch-up ≤7×24h | 已落地 | 朋友圈暖色条 / Prompt | `life/catchup` · `catchup-status` |
+| 此刻 presence | 已落地 | Chat `CompanionStatusBar` | `describeCastPresence` · `catchup-status.presence` |
+| Moments（朋友圈） | 已落地 | 状态条 / 欢迎屏 → Moments | `get-moments` · MomentsPanel |
+| Assets（衣柜） | 已落地 | 欢迎屏 → 衣柜 | `get-assets` · AssetsPanel |
+| 名册浅注入 | 已落地 | （Prompt） | `cast/roster` |
+| CastPanel（名册 / 召唤） | 已落地 | 状态条 / 欢迎屏 → 名册 | CastPanel · `start-summon` |
+| 召唤子会话 | 已落地 | 名册「开聊」 | 不改 active / 不 tick 对方 |
+| 召唤忙闲婉拒 + force | 已落地 | 名册开聊前 | `check-cast-availability` |
+| 冷启动在场文案 | 已落地 | Chat 空态欢迎屏 | `companion-presence.ts` |
+| 角色架 UI | 已落地 | 状态条 / 欢迎「换主角」 | CharacterShelfPanel · `shelf` |
+| 衣柜主视觉 / 名册关系感 | 部分 | 同上 | P1 见 frontend 方案 |
+| 场景弱背景 | 缺口 | — | P2 |
+| 生图朋友圈 / 多宇宙并行 | 缺口 | — | wishlist / 非本阶段 |
+| 非活跃后台养成 | 缺口 | — | 产品明确不做 |
 
 ### 1.1 Prompt / 召回组装管线（聊天一轮）
 

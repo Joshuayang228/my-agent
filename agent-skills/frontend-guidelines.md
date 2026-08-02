@@ -12,22 +12,54 @@
 ```text
 Sidebar(260px) + Main Area
 
+Sidebar（工具面）:
+- 会话列表 + Skills / 记忆 / 设置入口
+
 Main Area:
-- chat: 消息流 + Thinking / 工具卡片 + 居中输入卡片
-- settings: SettingsPanel 全屏
-- skills / memory: 对应面板全屏
+- chat: CompanionStatusBar + 消息流 + Thinking / 工具卡片 + 居中输入卡片
+- 生活面: moments / assets / cast / shelf（角色架）
+- 工具面: skills / memory / settings（settings 独立全屏）
 - DevPanel: 侧推面板例外
 ```
 
 ## 设计原则
 
 1. 气泡对话：用户消息右对齐圆角气泡，AI 消息左对齐 Markdown。
-2. activeView 全屏：设置、技能、记忆占据整个主内容区，不使用侧推面板，DevPanel 除外。
+2. activeView 全屏：设置、技能、记忆、生活面占据整个主内容区，不使用侧推面板，DevPanel 除外。
 3. 输入区卡片：居中 `max-w-2xl`，工具栏集成审批模式、模型快切、附件、发送（语音输入暂缓，见 wishlist）。
 4. 信息分层：核心内容突出，辅助信息淡化。
 5. 克制动效：短动画即可，例如 150ms 到 200ms。
 6. hover 交互：消息操作栏、Token 用量等低频信息 hover 时出现。
 7. 无底部状态栏：模型选择和 Token 用量留在输入区附近。
+8. **生活面 / 工具面分离**：侧栏偏工具；朋友圈、衣柜、名册、角色架走主区专用 View + Chat 状态条快捷入口，禁止首屏做成能力仪表盘。
+
+## 伴侣生活面（对照 Alice，方案见 `docs/requirements/frontend-companion-surfaces.md`）
+
+### 双面原则
+
+| 面 | 用户心智 | 视觉 | 典型 View |
+|----|----------|------|-----------|
+| 生活面 | 「她在过生活」 | 略暖、glass、卡片、主视觉优先 | chat 状态条 / moments / assets / cast / shelf |
+| 工具面 | 「我在用工具」 | 略冷、密、表单 | skills / memory / settings |
+
+### Token（`src/index.css`）
+
+生活面组件优先用：
+
+- `--companion-accent-warm` — 暖金点缀（徽标、分隔、Catch-up）
+- `--companion-surface` / `--companion-blur` — 状态条薄雾底
+- `--companion-shadow-card` — 朋友圈/角色卡阴影
+- `--companion-catchup-bg` / `--companion-catchup-border` — Catch-up 暖色条（勿用 `--danger`）
+
+禁止：紫光霓虹堆叠、无交互也套重卡片、把方法论术语写进 UI 文案。
+
+### 组件约定
+
+1. **CompanionStatusBar**（仅 chat）：`name · presence` + 朋友圈/名册/角色架快捷；高度约 36px，不抢气泡。
+2. **Moments**：卡片时间线；类型色点；Catch-up 暖色条。
+3. **CharacterShelf（shelf）**：换角**主入口**；3 槽卡片 + 活跃徽标；文案含流式禁止 / Catch-up / 召唤≠换角。设置页切换为次要入口。
+4. **Wardrobe / Cast**（P1）：穿着中主卡在上；名册强调关系短句（本轮可暂缓视觉加厚）。
+5. **场景背景**（P2）：Chat 随 location 弱变化；无资产时用 presence 文案即可。
 
 ## CSS 变量
 
@@ -41,6 +73,7 @@ Main Area:
 - 卡片：`--card-bg`、`--card-border`（内容块外框只用这对，不要混用 `--border-color` 当卡片边）
 - 输入：`--input-bg`、`--input-border`（经 `.theme-input`）
 - 语义色：`--accent`、`--accent-subtle`、`--accent-fg`、`--success`、`--warning`、`--danger`
+- 伴侣生活面：`--companion-accent-warm`、`--companion-surface`、`--companion-blur`、`--companion-shadow-card`、`--companion-catchup-*`
 - 消息：`--msg-user-bg`、`--msg-ai-bg`
 - 交互：`--sidebar-active`、`--sidebar-hover`、`--hover-overlay`、`--dropdown-bg`
 
