@@ -140,7 +140,21 @@ declare global {
             }
           | { ok: false; error: string }
         >
-        startSummon: (roleId: string) => Promise<
+        checkCastAvailability: (roleId: string) => Promise<
+          | {
+              available: boolean
+              roleId: string
+              name: string
+              reason?: string
+              alternative?: string
+              presence?: string
+            }
+          | { ok: false; error: string }
+        >
+        startSummon: (
+          roleId: string,
+          force?: boolean,
+        ) => Promise<
           | {
               ok: true
               sessionId: string
@@ -148,8 +162,15 @@ declare global {
               name: string
               sessionKind: 'main' | 'summon'
               activeRoleId: string
+              presence?: string
             }
-          | { ok: false; error: string }
+          | {
+              ok: false
+              error: string
+              reason?: string
+              alternative?: string
+              presence?: string
+            }
         >
         onRoleChanged: (
           callback: (payload: {

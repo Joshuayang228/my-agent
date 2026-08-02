@@ -13,6 +13,7 @@
 import { BrowserWindow, Notification } from 'electron'
 import { agentLoop } from './loop'
 import { buildSystemPrompt, rolePackToPromptParts } from './prompt-builder'
+import { describeCastPresence } from '../companion/cast/availability'
 import { assertSessionRole, loadRoleAssembleInput } from '../companion/orchestrator'
 import { registerStreamingProbe } from '../companion/streaming-gate'
 import { maybeExtractProfile } from './profile-extractor'
@@ -192,9 +193,18 @@ class AgentRuntime {
         }
       } catch { /* skill system not ready */ }
 
-      const summonNote = isSummon
-        ? '【召唤子会话】用户正在与你单独短聊；生活世界（朋友圈/衣柜/日程）仍以当前活跃主角为准，本会话不推进你的生活世界。'
-        : undefined
+      let summonNote: string | undefined
+      if (isSummon) {
+        let presenceLine = ''
+        try {
+          const { describeCastPresence } = await import('../companion/cast/availability')
+          const presence = await describeCastPresence(assembleRoleId)
+          if (presence) presenceLine = `\n你此刻的情境（来自日程摘要，可自然带一点，勿编造额外行程）：${presence}`
+        } catch { /* ignore */ }
+        summonNote =
+          '【召唤子会话】用户正在与你单独短聊；生活世界（朋友圈/衣柜/日程）仍以当前活跃主角为准，本会话不推进你的生活世界。' +
+          presenceLine
+      }
       const sessionInfoParts = [customPrompt, summonNote].filter(Boolean)
 
       const systemPrompt = buildSystemPrompt({

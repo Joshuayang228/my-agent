@@ -12,6 +12,11 @@ import * as settings from '../storage/settings-store'
 import * as store from '../storage/session-store'
 import * as identity from './identity/loader'
 import {
+  checkCastAvailability,
+  describeCastPresence,
+  type CastAvailability,
+} from './cast/availability'
+import {
   buildRosterLines,
   formatRosterForPrompt,
   listRelatedCast,
@@ -115,11 +120,30 @@ export async function summonCastBrief(roleId: string): Promise<CastBrief> {
   return loadCastBrief(roleId, universeId)
 }
 
+/** 召唤前忙闲查询（UI 可先预检） */
+export async function getCastAvailability(
+  roleId: string,
+  opts?: { now?: number; random?: () => number },
+): Promise<CastAvailability | { ok: false; error: string }> {
+  const universeId = await settings.getSetting('universeId')
+  const id = roleId.trim()
+  if (!id) return { ok: false, error: 'INVALID_ROLE' }
+  try {
+    return await checkCastAvailability(id, { ...opts, universeId })
+  } catch {
+    return { ok: false, error: 'UNKNOWN_ROLE' }
+  }
+}
+
 /**
  * 开启召唤子会话：绑定目标 Role Pack（含 protected），不改 activeRoleId，不 resume 对方生活。
  * 若目标就是当前活跃主角，退化为普通主线会话。
+ * 默认走可用性检查（Alice checkFriendAvailability）；force=true 可强开。
  */
-export async function startSummonSession(roleId: string): Promise<
+export async function startSummonSession(
+  roleId: string,
+  opts?: { force?: boolean; now?: number; random?: () => number },
+): Promise<
   | {
       ok: true
       sessionId: string
@@ -127,8 +151,15 @@ export async function startSummonSession(roleId: string): Promise<
       name: string
       sessionKind: 'main' | 'summon'
       activeRoleId: string
+      presence?: string
     }
-  | { ok: false; error: string }
+  | {
+      ok: false
+      error: string
+      reason?: string
+      alternative?: string
+      presence?: string
+    }
 > {
   const universeId = await settings.getSetting('universeId')
   const id = roleId.trim()
@@ -154,6 +185,26 @@ export async function startSummonSession(roleId: string): Promise<
     }
   }
 
+  if (!opts?.force) {
+    const avail = await checkCastAvailability(id, {
+      universeId,
+      now: opts?.now,
+      random: opts?.random,
+    })
+    if (!avail.available) {
+      return {
+        ok: false,
+        error: 'BUSY',
+        reason: avail.reason,
+        alternative: avail.alternative,
+        presence: avail.presence,
+      }
+    }
+  }
+
+  const presence =
+    (await describeCastPresence(id, { universeId, now: opts?.now })) || undefined
+
   const session = await store.createSession(id, {
     sessionKind: 'summon',
     title: `召唤 · ${pack.name}`,
@@ -165,6 +216,7 @@ export async function startSummonSession(roleId: string): Promise<
     name: pack.name,
     sessionKind: 'summon',
     activeRoleId,
+    presence,
   }
 }
 

@@ -43,8 +43,9 @@
 - [x] ~~**名册/召唤摘要 UI**~~ — CastPanel（2026-08-02）；完整子会话装载仍可后置
 - [x] ~~**MUTABLE 设置 UI**~~ — Settings 读写/版本回滚（2026-08-02）
 - [x] ~~**召唤子会话（完整 Pack 装载）**~~ — `startSummon` + session_kind=summon（2026-08-02）；CastPanel「开聊」
+- [x] ~~**召唤忙闲婉拒**~~ — 对照 Alice `checkFriendAvailability`（2026-08-02）；可 force
 - [ ] **methodology M21–M31** 随 W 审核式深啃（代码后写；需观点对齐后写）
-- [ ] **自动反思写 MUTABLE** — 存储/UI 已通，尚无低频反思管线
+- [ ] **自动反思写 MUTABLE** — 存储/UI 已通；对照 Alice `PersonaReflectionService`：冷启动 72h + 24h cooldown + 低优 BGQueue runner + 版本备份后再写
 
 ### 工程债 / 产品向
 

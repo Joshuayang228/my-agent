@@ -69,18 +69,31 @@ export function CastPanel({ onClose, onOpenSession }: CastPanelProps) {
     if (r.ok) setSelected(r.brief)
   }
 
-  const startChat = async (id: string, name: string) => {
+  const startChat = async (id: string, name: string, force = false) => {
     if (!window.electronAPI?.companion.startSummon) return
     setStarting(id)
     try {
-      const r = await window.electronAPI.companion.startSummon(id)
+      const r = await window.electronAPI.companion.startSummon(id, force)
       if (!r.ok) {
+        if (r.error === 'BUSY' && !force) {
+          const tip = [r.reason, r.alternative].filter(Boolean).join(' · ')
+          toast(tip || `${name}现在不太方便`, 'warning')
+          setStarting(null)
+          // 忙时仍可强开（对照 Alice：可用性是体验层，不是硬墙）
+          const okForce = window.confirm(
+            `${tip || `${name}现在不太方便`}\n\n仍要强行开聊吗？`,
+          )
+          if (okForce) await startChat(id, name, true)
+          return
+        }
         toast(r.error === 'UNKNOWN_ROLE' ? '未知角色，无法召唤' : '召唤失败', 'error')
         return
       }
       toast(
         r.sessionKind === 'summon'
-          ? `已开启与${name}的召唤对话（不推进其生活世界）`
+          ? r.presence
+            ? `已开启与${name}的召唤对话 · 此刻：${r.presence}`
+            : `已开启与${name}的召唤对话（不推进其生活世界）`
           : `已开启与${name}的对话`,
         'success',
       )

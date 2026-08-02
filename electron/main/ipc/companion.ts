@@ -10,6 +10,7 @@ import {
   getActiveRoleId,
   getActiveRoster,
   listActiveUniverseProtagonists,
+  getCastAvailability,
   requestSwitch,
   startSummonSession,
   summonCastBrief,
@@ -129,11 +130,22 @@ export function registerCompanionIPC(): void {
     }
   })
 
-  /** 召唤子会话：装载对方完整 Pack，不改 active、不启对方生活 */
-  ipcMain.handle('companion:start-summon', async (_e, roleId: string) => {
+  /** 召唤前忙闲（Alice checkFriendAvailability 对照） */
+  ipcMain.handle('companion:check-cast-availability', async (_e, roleId: string) => {
     if (typeof roleId !== 'string' || !roleId.trim()) {
       return { ok: false as const, error: 'INVALID_ROLE' }
     }
-    return startSummonSession(roleId.trim())
+    return getCastAvailability(roleId.trim())
   })
+
+  /** 召唤子会话：装载对方完整 Pack，不改 active、不启对方生活 */
+  ipcMain.handle(
+    'companion:start-summon',
+    async (_e, roleId: string, force?: boolean) => {
+      if (typeof roleId !== 'string' || !roleId.trim()) {
+        return { ok: false as const, error: 'INVALID_ROLE' }
+      }
+      return startSummonSession(roleId.trim(), { force: !!force })
+    },
+  )
 }

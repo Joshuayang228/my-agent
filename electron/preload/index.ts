@@ -133,7 +133,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
         }
       | { ok: false; error: string }
     > => ipcRenderer.invoke('companion:summon-brief', roleId),
-    startSummon: (roleId: string): Promise<
+    checkCastAvailability: (roleId: string): Promise<
+      | {
+          available: boolean
+          roleId: string
+          name: string
+          reason?: string
+          alternative?: string
+          presence?: string
+        }
+      | { ok: false; error: string }
+    > => ipcRenderer.invoke('companion:check-cast-availability', roleId),
+    startSummon: (
+      roleId: string,
+      force?: boolean,
+    ): Promise<
       | {
           ok: true
           sessionId: string
@@ -141,9 +155,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
           name: string
           sessionKind: 'main' | 'summon'
           activeRoleId: string
+          presence?: string
         }
-      | { ok: false; error: string }
-    > => ipcRenderer.invoke('companion:start-summon', roleId),
+      | {
+          ok: false
+          error: string
+          reason?: string
+          alternative?: string
+          presence?: string
+        }
+    > => ipcRenderer.invoke('companion:start-summon', roleId, force),
     onRoleChanged: (
       callback: (payload: {
         roleId: string

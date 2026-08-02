@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — 召唤忙闲婉拒（Alice 对照）（2026-08-02）
+
+- `checkCastAvailability`：忙时段/日程忙点可婉拒并给改约；`force` 可强开
+- 召唤 Prompt 注入对方此刻日程情境（不推进其生活世界）
+
 ### Added — 召唤子会话（2026-08-02）
 
 - `companion:start-summon`：创建 `session_kind=summon` 会话并装载对方完整 Role Pack；不改 `activeRoleId`、不推进对方生活

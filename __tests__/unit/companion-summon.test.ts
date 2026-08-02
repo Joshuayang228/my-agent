@@ -85,7 +85,7 @@ describe('companion summon session', () => {
   })
 
   it('startSummonSession 创建 summon 会话且不改 active', async () => {
-    const result = await startSummonSession('chen')
+    const result = await startSummonSession('chen', { force: true })
     expect(result.ok).toBe(true)
     if (!result.ok) return
 
@@ -106,6 +106,26 @@ describe('companion summon session', () => {
     if (!result.ok) return
     expect(result.sessionKind).toBe('main')
     expect(result.roleId).toBe('lin')
+  })
+
+  it('忙时婉拒（可 force）', async () => {
+    // 固定到陈姐忙时段：周三 15 点；random 恒 0 → 必婉拒
+    const busyNow = new Date(2026, 7, 5, 15, 0, 0).getTime() // Aug 5 2026 Wed
+    const busy = await startSummonSession('chen', {
+      now: busyNow,
+      random: () => 0,
+    })
+    expect(busy.ok).toBe(false)
+    if (busy.ok) return
+    expect(busy.error).toBe('BUSY')
+    expect(busy.reason).toBeTruthy()
+
+    const forced = await startSummonSession('chen', {
+      force: true,
+      now: busyNow,
+      random: () => 0,
+    })
+    expect(forced.ok).toBe(true)
   })
 
   it('未知角色失败', async () => {
