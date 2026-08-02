@@ -75,6 +75,9 @@
 - [ ] **M28-G1** relationshipStage 显式状态驱动 Prompt/行为
 - [ ] **M28-G2** 熟悉度区分「交心 vs 纯干活」信号
 - [ ] **M28-G3** 换角后的「再认识」微文案（不重置成长时钟）
+- [ ] **M29-G1** 本轮注入/引用记忆的 UI 标注（id 或摘要芯片）
+- [ ] **M29-G2** 「记错了」对话内一键纠错（触发 forget/更新）
+- [ ] **M29-G3** 敏感类别采集提示与面板高亮
 - [x] ~~**自动反思写 MUTABLE**~~ — 2026-08-02：门闸 + 对话后入队 + Settings 手动/强制；需求见 `docs/requirements/companion-mutable-reflection.md`
 
 ### 工程债 / 产品向
