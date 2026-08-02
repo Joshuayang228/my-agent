@@ -31,6 +31,7 @@
 | 文档 | 说明 |
 |------|------|
 | [frontend-companion-surfaces.md](./frontend-companion-surfaces.md) | Alice 对照前端表面：生活/工具 IA、P0–P2 验收 |
+| [companion-cast-content.md](./companion-cast-content.md) | 三角色文案定位 + 分味剧本/衣柜约定 |
 | [companion-world-framework.md](./companion-world-framework.md) | 产品终局：三槽、单活跃、Catch-up、生活世界 |
 | [companion-architecture.md](./companion-architecture.md) | 模块边界与依赖方向 |
 | [companion-tech-spec.md](./companion-tech-spec.md) | W0–W6 施工合同 / 验收 |

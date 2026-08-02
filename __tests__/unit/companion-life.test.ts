@@ -72,6 +72,15 @@ describe('life dates', () => {
       generateDayScript('lin', '2026-08-01'),
     )
   })
+
+  it('generateDayScript 不同主角同分味', () => {
+    const lin = generateDayScript('lin', '2026-08-01')
+    const zhou = generateDayScript('zhou', '2026-08-01')
+    const xia = generateDayScript('xia', '2026-08-01')
+    expect(lin.slots[0].activity).not.toEqual(zhou.slots[0].activity)
+    expect(zhou.slots.some((s) => /点子|约人|拍张/.test(s.activity))).toBe(true)
+    expect(xia.slots.some((s) => /安静|静坐|公园|窗/.test(s.activity))).toBe(true)
+  })
 })
 
 describe('LifeEngine', () => {

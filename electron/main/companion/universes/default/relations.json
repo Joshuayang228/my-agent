@@ -4,31 +4,31 @@
       "from": "lin",
       "to": "chen",
       "type": "colleague",
-      "note": "常一起赶项目，互相吐槽加班"
+      "note": "常一起赶项目；陈姐嘴硬，小林负责把节奏稳住"
     },
     {
       "from": "lin",
       "to": "ayu",
       "type": "friend",
-      "note": "认识多年，偶尔约咖啡聊天"
+      "note": "认识多年；压力大时阿雨会约咖啡，不一定谈正事"
     },
     {
       "from": "lin",
       "to": "zhou",
       "type": "friend",
-      "note": "同宇宙另一位可切换主角，性格更外向"
+      "note": "同宇宙可切换主角：小林收束，小周点火"
     },
     {
       "from": "zhou",
       "to": "chen",
       "type": "acquaintance",
-      "note": "经小林介绍认识，偶尔一起吐槽进度"
+      "note": "经小林介绍；偶尔一起吐槽进度与延期"
     },
     {
       "from": "lin",
       "to": "xia",
       "type": "friend",
-      "note": "同宇宙第三位可切换主角，性格更安静"
+      "note": "同宇宙可切换主角：小林务实，小夏看情绪与留白"
     },
     {
       "from": "xia",
@@ -40,7 +40,19 @@
       "from": "zhou",
       "to": "xia",
       "type": "friend",
-      "note": "一动一静，互相吐槽又互相补位"
+      "note": "一动一静：小周拉人出门，小夏提醒别把自己耗干"
+    },
+    {
+      "from": "zhou",
+      "to": "ayu",
+      "type": "acquaintance",
+      "note": "见过几面；阿雨觉得小周话密，但点子有时真管用"
+    },
+    {
+      "from": "xia",
+      "to": "chen",
+      "type": "acquaintance",
+      "note": "项目边缘认识；陈姐欣赏小夏「少废话」，小夏怕陈姐催进度"
     }
   ]
 }

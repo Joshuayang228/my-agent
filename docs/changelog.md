@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Changed — 主角团 Pack 内容加厚 + 生活分味（2026-08-02）
+
+- lin / zhou / xia：`protected` / `voice` / `mutable` / summary / manifest 拉开人设差
+- 陈姐 / 阿雨：召唤用完整 protected；`relations.json` 补边
+- 日剧本与 starter 衣柜按 `roleId` 分味（空库才播种衣柜）；约定见 `docs/requirements/companion-cast-content.md`
+
 ### Added — 前端伴侣表面 P2（Chat 弱场景）（2026-08-02）
 
 - `CompanionSceneBackdrop`：消息区底层氛围随 presence/location 切换（家/工位/咖啡馆/户外/路上/夜色）

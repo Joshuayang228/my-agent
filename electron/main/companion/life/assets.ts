@@ -126,22 +126,43 @@ export async function addAsset(input: {
   }
 }
 
-/** 确定性 starter 衣柜：每角色空库时播种，id 稳定可幂等跳过 */
-const STARTER_WARDROBE: Array<{ key: string; name: string; payload: Record<string, unknown> }> = [
+type StarterItem = { key: string; name: string; payload: Record<string, unknown> }
+
+/** 默认 starter；各主角可覆盖以体现分味（仅空库时播种） */
+const STARTER_DEFAULT: StarterItem[] = [
   { key: 'tee-white', name: '白 T 恤', payload: { color: '白', style: '休闲' } },
   { key: 'hoodie-gray', name: '灰色连帽衫', payload: { color: '灰', style: '日常' } },
   { key: 'sneakers', name: '运动鞋', payload: { color: '白', style: '出行' } },
 ]
+
+const STARTER_BY_ROLE: Record<string, StarterItem[]> = {
+  lin: [
+    { key: 'shirt-navy', name: '藏青衬衫', payload: { color: '深蓝', style: '通勤', occasion: '工位' } },
+    { key: 'cardigan-beige', name: '米色针织开衫', payload: { color: '米', style: '日常', occasion: '家' } },
+    { key: 'loafers', name: '棕色乐福鞋', payload: { color: '棕', style: '出行', occasion: '路上' } },
+  ],
+  zhou: [
+    { key: 'tee-graphic', name: '印花短袖', payload: { color: '白', style: '街头', occasion: '户外' } },
+    { key: 'denim-jacket', name: '浅色牛仔外套', payload: { color: '浅蓝', style: '轻快', occasion: '咖啡馆' } },
+    { key: 'sneakers-color', name: '撞色运动鞋', payload: { color: '彩', style: '出行', occasion: '路上' } },
+  ],
+  xia: [
+    { key: 'linen-shirt', name: '亚麻衬衫', payload: { color: '浅灰', style: '安静', occasion: '家' } },
+    { key: 'soft-hoodie', name: '软乎乎连帽衫', payload: { color: '雾蓝', style: '宅家', occasion: '家' } },
+    { key: 'quiet-sneakers', name: '低饱和运动鞋', payload: { color: '灰白', style: '散步', occasion: '户外' } },
+  ],
+}
 
 export async function ensureStarterWardrobe(roleId: string): Promise<{ created: number }> {
   await ensureTables()
   const existing = await listAssets(roleId, { kind: 'wardrobe' })
   if (existing.length > 0) return { created: 0 }
 
+  const starter = STARTER_BY_ROLE[roleId] ?? STARTER_DEFAULT
   let created = 0
   const base = Date.now()
-  for (let i = 0; i < STARTER_WARDROBE.length; i++) {
-    const item = STARTER_WARDROBE[i]
+  for (let i = 0; i < starter.length; i++) {
+    const item = starter[i]
     const id = `wardrobe:${roleId}:${item.key}`
     const db = await getDatabase()
     const check = db.prepare('SELECT 1 AS x FROM companion_assets WHERE id = ?')

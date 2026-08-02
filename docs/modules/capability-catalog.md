@@ -27,7 +27,8 @@
 
 | 能力 | 状态 | 用户入口 | 落点 |
 |------|------|----------|------|
-| Universe + Role Pack（三槽：lin / zhou / xia） | 已落地 | 角色架 / 设置 | `companion/universes/default/` · `list-protagonists` |
+| Universe + Role Pack（三槽：lin / zhou / xia） | 已落地 | 角色架 / 设置 | `universes/default/` · 文案见 [companion-cast-content](../requirements/companion-cast-content.md) |
+| 生活分味（剧本 / starter 衣柜） | 已落地 | 朋友圈 / 衣柜随主角 | `script-generator` · `ensureStarterWardrobe` |
 | 单活跃 + 流式换角门控 | 已落地 | **角色架（主）** / 设置（次） | `orchestrator` · `streaming-gate` · `requestSwitch` |
 | 会话绑定 `role_id` | 已落地 | （隐式）Chat 顶栏徽标 | `runtime` · `assertSessionRole` |
 | MUTABLE 分桶版本 + 回滚 | 已落地 | 设置 | `mutable-store` · Settings |
