@@ -61,7 +61,7 @@ IPC：companion:get/set/rollback-mutable · reflection-status · run-reflection
 - LLM 失败 / 解析失败：记 log，**不** `setMutable`  
 - 与当前正文相同：视为 no-change，占冷却不升版本  
 
-反馈信号：`listMemories('feedback').slice(0, 12)`——**未按 role 过滤**（M22-G2）。
+反馈信号：`listFeedbackForRole(roleId, 12)`——**已按 role 分桶**（M22-G2；`memories.role_id`）。
 
 ---
 

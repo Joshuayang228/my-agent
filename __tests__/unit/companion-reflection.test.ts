@@ -31,6 +31,7 @@ vi.mock('../../electron/main/llm/index', () => ({
 
 vi.mock('../../electron/main/storage/memory-store', () => ({
   listMemories: vi.fn(async () => []),
+  listFeedbackForRole: vi.fn(async () => []),
 }))
 
 const SQL = await initSqlJs()

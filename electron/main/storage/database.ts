@@ -36,7 +36,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 8
+export const SCHEMA_VERSION = 9
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -296,6 +296,16 @@ export function runMigrations(database: SqlJsDatabase): void {
     // v7 → v8：召唤子会话标记（不改 active、不启对方生活）
     (d) => {
       addColumnIfMissing(d, 'sessions', 'session_kind', "TEXT NOT NULL DEFAULT 'main'")
+    },
+    // v8 → v9：记忆可选归属主角（feedback 反思分桶，M22-G2）
+    (d) => {
+      if (tableExists(d, 'memories')) {
+        addColumnIfMissing(d, 'memories', 'role_id', "TEXT NOT NULL DEFAULT ''")
+        d.run(`
+          CREATE INDEX IF NOT EXISTS idx_memories_category_role
+            ON memories(category, role_id)
+        `)
+      }
     },
   ]
 

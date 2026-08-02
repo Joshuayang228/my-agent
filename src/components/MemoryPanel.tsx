@@ -52,7 +52,14 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
 
   const handleAdd = async () => {
     if (!window.electronAPI || !newContent.trim()) return
-    await window.electronAPI.memory.add(newCategory, newContent.trim())
+    let roleId: string | undefined
+    if (newCategory === 'feedback' && window.electronAPI.companion?.getActive) {
+      try {
+        const active = await window.electronAPI.companion.getActive()
+        roleId = active?.id
+      } catch { /* ignore */ }
+    }
+    await window.electronAPI.memory.add(newCategory, newContent.trim(), roleId)
     setNewContent('')
     setAdding(false)
     await loadMemories()

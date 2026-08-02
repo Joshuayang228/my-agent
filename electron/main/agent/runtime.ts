@@ -155,7 +155,6 @@ class AgentRuntime {
       // ── 构建上下文 ──
       const customPrompt = await settings.getSetting('systemPrompt')
       const executionMode = (await settings.getSetting('executionMode') || 'auto') as ExecutionMode
-      const userProfile = await memory.buildUserProfile()
       // 会话绑定 role_id 优先；与 active 不一致时仍按会话组装（禁止中途换角偷换人设）
       const sessionMeta = await store.getSession(sessionId)
       const { assembleRoleId, activeRoleId, mismatch } = await assertSessionRole(sessionMeta?.roleId)
@@ -166,6 +165,8 @@ class AgentRuntime {
           activeRoleId,
         })
       }
+      // feedback 按会话主角分桶注入（M22-G2）
+      const userProfile = await memory.buildUserProfile(assembleRoleId)
       const { pack, mutableBody, catchupSummary, rosterLines } = await loadRoleAssembleInput(assembleRoleId)
       const persona = rolePackToPromptParts(pack, mutableBody)
       const isSummon = sessionMeta?.sessionKind === 'summon'
@@ -231,6 +232,7 @@ class AgentRuntime {
         parentSpanId: chatSpan.id,  // 调用链嵌套（子 Agent span 可挂到父 span）
         registry: toolRegistry,     // 工具注册表（delegate_task 需要）
         executionMode,              // 父执行模式（子 Agent 权限只降不升，G4）
+        roleId: assembleRoleId,     // feedback 记忆分桶（M22-G2）
       }
 
       const stream = agentLoop(
@@ -380,7 +382,9 @@ class AgentRuntime {
     taskQueue.enqueue(sessionId, 'profile-extract', async () => {
       setQuerySource('memory')
       try {
-        await maybeExtractProfile(messages, llmConfig, assistantContent)
+        await maybeExtractProfile(messages, llmConfig, assistantContent, {
+          roleId: companion?.roleId,
+        })
       } finally {
         setQuerySource(null)
       }

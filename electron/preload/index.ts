@@ -42,7 +42,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   memory: {
     list: (category?: string) => ipcRenderer.invoke('memory:list', category),
-    add: (category: string, content: string) => ipcRenderer.invoke('memory:add', category, content),
+    add: (category: string, content: string, roleId?: string) =>
+      ipcRenderer.invoke('memory:add', category, content, roleId),
     delete: (id: string) => ipcRenderer.invoke('memory:delete', id),
     update: (id: string, content: string) => ipcRenderer.invoke('memory:update', id, content),
   },

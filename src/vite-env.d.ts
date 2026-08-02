@@ -51,7 +51,7 @@ declare global {
       }
       memory: {
         list: (category?: string) => Promise<Array<{ id: string; category: string; content: string; createdAt: number; updatedAt: number }>>
-        add: (category: string, content: string) => Promise<{ id: string; category: string; content: string; createdAt: number; updatedAt: number }>
+        add: (category: string, content: string, roleId?: string) => Promise<{ id: string; category: string; content: string; createdAt: number; updatedAt: number; roleId?: string }>
         delete: (id: string) => Promise<void>
         update: (id: string, content: string) => Promise<void>
       }

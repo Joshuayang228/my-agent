@@ -8,7 +8,7 @@
 
 import type { LLMConfig } from '../../../../src/shared/types'
 import { chatComplete } from '../../llm/index'
-import { listMemories } from '../../storage/memory-store'
+import { listFeedbackForRole } from '../../storage/memory-store'
 import {
   listRecentUserMessagesForRole,
 } from '../../storage/session-store'
@@ -123,7 +123,7 @@ async function runReflectionCore(
     now - LOOKBACK_MS,
     40,
   )
-  const feedbacks = (await listMemories('feedback')).slice(0, 12).map((m) => m.content)
+  const feedbacks = (await listFeedbackForRole(roleId, 12)).map((m) => m.content)
   const protectedSummary = pack.protected.slice(0, 400)
 
   const prompt = buildReflectionPrompt({

@@ -57,7 +57,7 @@ forget / Panel delete：SQLite 删除后必须联动向量删除（M08 纪律）
 
 - 画像：全局 memory 表（无 role 强制隔离）  
 - MUTABLE / 生活：按 roleId  
-- 反思 feedback：`listMemories('feedback')` 未按 role 过滤（M22-G2）
+- 反思 feedback：`listFeedbackForRole(roleId)`（M22-G2 已收）
 
 **方法论对照**：→ §十
 

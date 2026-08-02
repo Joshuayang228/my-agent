@@ -64,6 +64,7 @@ export async function maybeExtractProfile(
   messages: ChatMessage[],
   config: LLMConfig,
   latestAssistantContent?: string,
+  opts?: { roleId?: string },
 ): Promise<void> {
   const now = Date.now()
   if (now - lastExtractTime < EXTRACT_INTERVAL_MS) return
@@ -132,7 +133,9 @@ export async function maybeExtractProfile(
       )
       if (isDuplicate) continue
 
-      await addMemory(item.category as MemoryCategory, item.content)
+      await addMemory(item.category as MemoryCategory, item.content, {
+        roleId: item.category === 'feedback' ? opts?.roleId : undefined,
+      })
       added++
       log.info('Profile item added', { category: item.category, content: item.content })
     }

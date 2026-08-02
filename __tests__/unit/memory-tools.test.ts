@@ -12,6 +12,7 @@ vi.mock('../../electron/main/storage/database', () => {
           content: params?.[2],
           createdAt: params?.[3],
           updatedAt: params?.[4],
+          role_id: params?.[5] ?? '',
         })
       }
       if (sql.startsWith('DELETE')) {

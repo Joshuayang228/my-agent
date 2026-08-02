@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Fixed — M22-G2 feedback 记忆按 role 分桶（2026-08-02）
+
+- `memories.role_id`（schema v9）；feedback 写入时打会话/活跃主角
+- 反思与 L3 画像用 `listFeedbackForRole` / `buildUserProfile(roleId)`，避免协作默契串味
+- 旧无 role 的 feedback 不进入反思桶（防串味优先）
+
 ### Fixed — M22-G1 成长时钟按 role 分桶（2026-08-02）
 
 - `companionGrowthStartedAtByRole`：每主角独立 72h 冷启动；旧全局时钟仅迁移到当时活跃主角

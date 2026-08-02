@@ -34,7 +34,7 @@ export const rememberTool = buildTool({
   metadata: {
     isConcurrencySafe: true,
   },
-  execute: async (args) => {
+  execute: async (args, ctx) => {
     const category = args.category as string
     const content = args.content as string
 
@@ -45,13 +45,17 @@ export const rememberTool = buildTool({
       return 'Error: content is too short'
     }
 
+    const roleId = category === 'feedback' ? ctx?.roleId?.trim() : undefined
     const existing = await listMemories(category as MemoryCategory)
-    const isDuplicate = existing.some(m => m.content.toLowerCase() === content.toLowerCase())
+    const pool = category === 'feedback' && roleId
+      ? existing.filter((m) => (m.roleId || '') === roleId)
+      : existing
+    const isDuplicate = pool.some(m => m.content.toLowerCase() === content.toLowerCase())
     if (isDuplicate) {
       return `Already remembered: "${content}"`
     }
 
-    const entry = await addMemory(category as MemoryCategory, content)
+    const entry = await addMemory(category as MemoryCategory, content, { roleId })
     return `Remembered [${category}]: "${content}" (id: ${entry.id})`
   },
 })

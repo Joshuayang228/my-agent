@@ -57,7 +57,7 @@
 - [x] ~~**Part VI M22–M31**~~ — 2026-08-02：伙伴方法论主线已收齐
 - [x] ~~**Part VI 加厚修订**~~ — 2026-08-02：M22–M31 均已加厚
 - [x] ~~**M22-G1** 成长时钟按 role 分桶~~ — 2026-08-02：`companionGrowthStartedAtByRole`；旧键迁移到活跃主角
-- [ ] **M22-G2** 反思用的 feedback 记忆按 role 过滤
+- [x] ~~**M22-G2** 反思用的 feedback 记忆按 role 过滤~~ — 2026-08-02：`memories.role_id` + `listFeedbackForRole`
 - [ ] **M22-G3** MUTABLE 结构性防退化校验（现仅 Prompt 软约束）
 - [ ] **M22-G4** 生活世界事件作反思信号（现仅用户消息 + feedback）
 - [ ] **M23-G1** 日剧本换 LLM 生成器（现哈希 mock）

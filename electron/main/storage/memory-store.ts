@@ -9,6 +9,11 @@ const log = createLogger('MemoryStore')
 // MemoryCategory / MemoryEntry 统一由 src/shared/types.ts 定义，此处 re-export 供本层调用方使用
 export type { MemoryCategory, MemoryEntry }
 
+export interface AddMemoryOpts {
+  /** feedback 等应按主角分桶；其它类别可省略（全局） */
+  roleId?: string
+}
+
 async function getLLMConfigForSync() {
   const s = await settings.getAllSettings()
   return {
@@ -26,9 +31,32 @@ async function ensureTable(): Promise<void> {
       category  TEXT NOT NULL,
       content   TEXT NOT NULL,
       createdAt INTEGER NOT NULL,
-      updatedAt INTEGER NOT NULL
+      updatedAt INTEGER NOT NULL,
+      role_id   TEXT NOT NULL DEFAULT ''
     )
   `)
+  // 旧库由 schema v9 加列；新库 CREATE 已含列。幂等补齐。
+  try {
+    db.run(`ALTER TABLE memories ADD COLUMN role_id TEXT NOT NULL DEFAULT ''`)
+  } catch {
+    /* already exists */
+  }
+  db.run(`
+    CREATE INDEX IF NOT EXISTS idx_memories_category_role
+      ON memories(category, role_id)
+  `)
+}
+
+function rowToEntry(row: Record<string, unknown>): MemoryEntry {
+  const roleId = typeof row.role_id === 'string' ? row.role_id : ''
+  return {
+    id: row.id as string,
+    category: row.category as MemoryEntry['category'],
+    content: row.content as string,
+    createdAt: row.createdAt as number,
+    updatedAt: row.updatedAt as number,
+    ...(roleId ? { roleId } : {}),
+  }
 }
 
 /** 规范化文本供模糊去重（小写、去标点空白） */
@@ -56,12 +84,22 @@ export function memoryTextSimilarity(a: string, b: string): number {
   return union === 0 ? 0 : inter / union
 }
 
-export async function addMemory(category: MemoryCategory, content: string): Promise<MemoryEntry> {
+export async function addMemory(
+  category: MemoryCategory,
+  content: string,
+  opts?: AddMemoryOpts,
+): Promise<MemoryEntry> {
   await ensureTable()
+  // feedback 必须带 role 才参与同桶去重；其它类别保持全局去重
+  const roleId =
+    category === 'feedback' && opts?.roleId?.trim() ? opts.roleId.trim() : ''
   const existing = await listMemories(category)
-  const dup = existing.find(m => memoryTextSimilarity(m.content, content) >= 0.85)
+  const pool = category === 'feedback' && roleId
+    ? existing.filter((m) => (m.roleId || '') === roleId || !(m.roleId))
+    : existing
+  const dup = pool.find(m => memoryTextSimilarity(m.content, content) >= 0.85)
   if (dup) {
-    log.info('Memory semantic dedup: skip insert', { existingId: dup.id, category })
+    log.info('Memory semantic dedup: skip insert', { existingId: dup.id, category, roleId })
     return dup
   }
 
@@ -70,11 +108,11 @@ export async function addMemory(category: MemoryCategory, content: string): Prom
   const id = `mem-${now}-${Math.random().toString(36).slice(2, 8)}`
 
   db.run(
-    'INSERT INTO memories (id, category, content, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)',
-    [id, category, content, now, now],
+    'INSERT INTO memories (id, category, content, createdAt, updatedAt, role_id) VALUES (?, ?, ?, ?, ?, ?)',
+    [id, category, content, now, now, roleId],
   )
   persist()
-  log.info('Memory added', { id, category })
+  log.info('Memory added', { id, category, roleId: roleId || undefined })
 
   getLLMConfigForSync().then(config => {
     if (!config.apiKey) return
@@ -82,7 +120,7 @@ export async function addMemory(category: MemoryCategory, content: string): Prom
       .catch(() => {})
   })
 
-  return { id, category, content, createdAt: now, updatedAt: now }
+  return { id, category, content, createdAt: now, updatedAt: now, ...(roleId ? { roleId } : {}) }
 }
 
 export async function listMemories(category?: MemoryCategory): Promise<MemoryEntry[]> {
@@ -98,14 +136,34 @@ export async function listMemories(category?: MemoryCategory): Promise<MemoryEnt
 
   const results: MemoryEntry[] = []
   while (stmt.step()) {
-    const row = stmt.getAsObject() as Record<string, unknown>
-    results.push({
-      id: row.id as string,
-      category: row.category as MemoryEntry['category'],
-      content: row.content as string,
-      createdAt: row.createdAt as number,
-      updatedAt: row.updatedAt as number,
-    })
+    results.push(rowToEntry(stmt.getAsObject() as Record<string, unknown>))
+  }
+  stmt.free()
+  return results
+}
+
+/**
+ * 反思用 feedback：只取该 role 桶内条目。
+ * 旧数据 role_id 为空：不注入任何角色的反思（避免串味）；新写入必须带 roleId。
+ */
+export async function listFeedbackForRole(
+  roleId: string,
+  limit = 12,
+): Promise<MemoryEntry[]> {
+  const id = roleId.trim()
+  if (!id) return []
+  await ensureTable()
+  const db = await getDatabase()
+  const stmt = db.prepare(
+    `SELECT * FROM memories
+     WHERE category = 'feedback' AND role_id = ?
+     ORDER BY updatedAt DESC
+     LIMIT ?`,
+  )
+  stmt.bind([id, limit])
+  const results: MemoryEntry[] = []
+  while (stmt.step()) {
+    results.push(rowToEntry(stmt.getAsObject() as Record<string, unknown>))
   }
   stmt.free()
   return results
@@ -139,8 +197,9 @@ export async function updateMemory(id: string, content: string): Promise<void> {
 
 /**
  * 构建三维用户画像，供 prompt-builder L3 层使用。
+ * @param roleId 若提供：feedback 只注入该主角桶，避免协作默契串味
  */
-export async function buildUserProfile(): Promise<{
+export async function buildUserProfile(roleId?: string): Promise<{
   identity: string
   workflow: string
   voice: string
@@ -150,6 +209,9 @@ export async function buildUserProfile(): Promise<{
 
   const byCategory: Record<string, string[]> = {}
   for (const m of memories) {
+    if (m.category === 'feedback' && roleId) {
+      if ((m.roleId || '') !== roleId) continue
+    }
     if (!byCategory[m.category]) byCategory[m.category] = []
     byCategory[m.category].push(`- ${m.content}`)
   }

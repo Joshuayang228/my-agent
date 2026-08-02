@@ -140,6 +140,8 @@ export interface ToolContext {
   registry?: unknown
   /** 父 Agent 执行模式 —— 供 delegate_task 传给子 Agent 实现权限只降不升（G4） */
   executionMode?: ExecutionMode
+  /** 本会话绑定的主角（供 feedback 记忆分桶等） */
+  roleId?: string
 }
 
 // ── LLM ──
@@ -260,6 +262,11 @@ export interface MemoryEntry {
   content: string
   createdAt: number
   updatedAt: number
+  /**
+   * 归属主角（主要给 feedback 分桶，防反思串味）。
+   * 空字符串 = 未分桶（旧数据或全局类记忆）。
+   */
+  roleId?: string
 }
 
 // ── 后台任务（M11 任务生命周期）──
