@@ -10,7 +10,7 @@
 electron/main/companion/life/
   engine.ts            # pause / resume / ensureDayScripts / tickActiveRole
   ticker.ts            # 启动 + 周期 tick（默认 5min）
-  script-generator.ts  # 确定性 DayScript（mock）
+  script-generator.ts  # DayScript：LLM + 哈希回退（M23-G1）
   catchup.ts           # ≤7×24h 细补 + 概况摘要
   store.ts             # role_state / day_scripts / events …
   moments.ts           # 到期发布 + 投影朋友圈
@@ -56,8 +56,9 @@ clearPausedAt + touchLastTick
 
 ## 四、剧本物化
 
-`generateDayScript(roleId, date)` → theme + slots → `insertDayScript` → 每槽 `insertEvent(planned)`；  
-moment 槽可 `pickWardrobeAssetId` 写入 payload（派生引用）。
+`resolveDayScript(roleId, date, { preferLlm })` → theme + slots → `insertDayScript` → 每槽 `insertEvent(planned)`；  
+moment 槽可 `pickWardrobeAssetId` 写入 payload（派生引用）。  
+`tickActiveRole`：`preferLlm: true`；`runCatchup` → `ensureDayScripts` 默认哈希。
 
 ---
 
@@ -75,6 +76,7 @@ moment 槽可 `pickWardrobeAssetId` 写入 payload（派生引用）。
 
 ## 六、已知简化
 
-- 剧本文案：哈希 mock，非 LLM（M23-G1）  
+- 剧本文案：✅ 当日 LLM + 哈希回退（M23-G1）；Catch-up 细补仍哈希  
+
 - Catch-up 摘要：固定中文模板（M23-G3）  
 - 世界状态字段：以 script/event payload 内 mood/location 为主，未独立「居所/时区」表（M23-G2）

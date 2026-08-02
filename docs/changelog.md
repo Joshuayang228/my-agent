@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — M23-G1 日剧本 LLM 生成（2026-08-02）
+
+- `resolveDayScript`：aux LLM 生成 theme/slots，结构校验失败或无 key → 哈希回退
+- `tickActiveRole` 当日 prefer LLM；Catch-up 细补默认哈希（不拖换角）
+- 抽出 `llm/aux-config`；单测覆盖解析 / 成功 / 回退
+
 ### Added — M22-G4 生活薄信号进反思（2026-08-02）
 
 - `life-signals`：Catch-up + 近 Moments（≤12）压成多行薄切片

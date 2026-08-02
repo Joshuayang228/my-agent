@@ -1,12 +1,13 @@
 /**
- * LifeEngine 核心（W2）
+ * LifeEngine 核心（W2 / M23-G1）
  *
  * 背景：非活跃角色生活世界完全暂停；活跃角色按日补剧本并 tick 物化到期事件。
  * 意图：pauseRole / resumeRole / ensureDayScripts / tickActiveRole。
- * 约束：tick 仅处理 getActiveRoleId()；剧本生成当前为确定性 mock（可换 LLM）。
- *       Catch-up 细补算法在 W3；本模块 resume 只清 paused_at。
+ * 约束：tick 仅处理 active；当日剧本 prefer LLM（失败回退哈希）；Catch-up 细补默认哈希。
  */
 
+import type { LLMConfig } from '../../../../src/shared/types'
+import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { createLogger } from '../../utils/logger'
 import * as settings from '../../storage/settings-store'
 import * as identity from '../identity/loader'
@@ -14,7 +15,7 @@ import type { DayScriptPayload } from '../types'
 import { eachLocalDateInclusive, localDateTimeMs, toLocalDateString } from './dates'
 import { pickWardrobeAssetId } from './assets'
 import { publishAndProjectDue } from './moments'
-import { generateDayScript } from './script-generator'
+import { resolveDayScript } from './script-generator'
 import * as store from './store'
 
 /** 解析当前活跃主角（不经过 orchestrator，避免 life ↔ orchestrator 循环依赖） */
@@ -38,17 +39,37 @@ export async function resumeRole(roleId: string): Promise<void> {
   log.info('Role resumed (pause cleared)', { roleId })
 }
 
+export interface EnsureDayScriptsOpts {
+  /** 为 true 且提供 llmConfig/可加载 aux 时，缺页走 LLM（失败回退哈希） */
+  preferLlm?: boolean
+  llmConfig?: LLMConfig
+  universeId?: string
+}
+
 /**
  * 补齐 [fromDate, toDate] 缺失日剧本，并为新剧本写入 planned 事件。
  * 可对任意 role 调用（供 Catch-up）；日常 tick 只应对 active 调用。
+ * Catch-up 应默认 preferLlm=false，避免换角连打多日 LLM。
  */
 export async function ensureDayScripts(
   roleId: string,
   fromDate: string,
   toDate: string,
-): Promise<{ created: number }> {
+  opts?: EnsureDayScriptsOpts,
+): Promise<{ created: number; llmDays: number }> {
   const dates = eachLocalDateInclusive(fromDate, toDate)
   let created = 0
+  let llmDays = 0
+  let llmConfig = opts?.llmConfig
+  if (opts?.preferLlm && !llmConfig) {
+    try {
+      llmConfig = await loadAuxLLMConfig()
+    } catch (err) {
+      log.warn('loadAuxLLMConfig failed; fall back to hash scripts', {
+        error: String(err),
+      })
+    }
+  }
   for (const date of dates) {
     const existing = await store.getDayScript(roleId, date)
     if (existing) {
@@ -58,13 +79,20 @@ export async function ensureDayScripts(
       }
       continue
     }
-    const payload = generateDayScript(roleId, date)
+    const { payload, source } = await resolveDayScript(roleId, date, {
+      preferLlm: opts?.preferLlm,
+      llmConfig,
+      universeId: opts?.universeId,
+    })
+    if (source === 'llm') llmDays += 1
     const row = await store.insertDayScript(roleId, date, payload)
     await materializePlannedEvents(roleId, row.id, payload)
     created += 1
   }
-  if (created) log.info('Day scripts ensured', { roleId, fromDate, toDate, created })
-  return { created }
+  if (created) {
+    log.info('Day scripts ensured', { roleId, fromDate, toDate, created, llmDays })
+  }
+  return { created, llmDays }
 }
 
 async function materializePlannedEvents(
@@ -114,7 +142,11 @@ export async function tickActiveRole(now: number): Promise<{
   }
 
   const today = toLocalDateString(now)
-  const { created } = await ensureDayScripts(roleId, today, today)
+  const universeId = (await settings.getSetting('universeId')) || 'default'
+  const { created } = await ensureDayScripts(roleId, today, today, {
+    preferLlm: true,
+    universeId,
+  })
   const published = await publishAndProjectDue(roleId, now)
   await store.touchLastTick(roleId, now)
   if (published || created) {

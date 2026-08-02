@@ -30,19 +30,7 @@ import { ensureStarterWardrobe, listAssets } from '../companion/life/assets'
 import { listMomentsForRole } from '../companion/life/moments'
 import { getRoleState } from '../companion/life/store'
 import * as settings from '../storage/settings-store'
-import type { LLMConfig } from '../../../src/shared/types'
-
-async function loadAuxLLMConfig(): Promise<LLMConfig> {
-  const s = await settings.getAllSettings()
-  return {
-    apiKey: s.llmApiKey || process.env.LLM_API_KEY || '',
-    baseUrl: s.llmBaseUrl || process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
-    model: s.auxModel || s.llmModel || process.env.LLM_MODEL || 'gpt-4o',
-    temperature: parseFloat(s.llmTemperature) || undefined,
-    topP: parseFloat(s.llmTopP) || undefined,
-    maxTokens: parseInt(s.llmMaxTokens) || undefined,
-  }
-}
+import { loadAuxLLMConfig } from '../llm/aux-config'
 
 export function registerCompanionIPC(): void {
   ipcMain.handle('companion:list-protagonists', async () => {

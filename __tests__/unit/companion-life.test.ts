@@ -39,6 +39,17 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
   setSetting: vi.fn(async (key: string, value: string) => {
     if (key === 'activeRoleId') activeRoleId = value
   }),
+  getAllSettings: vi.fn(async () => ({
+    llmApiKey: '',
+    llmBaseUrl: 'http://localhost',
+    llmModel: 'test',
+    auxModel: '',
+    llmTemperature: '',
+    llmTopP: '',
+    llmMaxTokens: '',
+    universeId: 'default',
+    activeRoleId: 'lin',
+  })),
 }))
 
 const {

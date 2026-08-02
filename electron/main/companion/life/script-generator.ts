@@ -1,12 +1,18 @@
 /**
- * 日剧本确定性生成器（W2 mock；日后可换 LLM）
+ * 日剧本生成器（M23-G1：LLM 优先 + 哈希回退）
  *
- * 背景：ensureDayScripts 缺页时需可测、无网可跑的剧本。
- * 意图：由 roleId + date 哈希产出稳定 theme/slots；主角各有活动池分味。
- * 约束：不调 LLM；输出符合 DayScriptPayload。
+ * 背景：ensureDayScripts 缺页时需要 theme/slots；纯哈希可测但文案重复。
+ * 意图：有 aux 配置时用 LLM 按角色分味生成；失败/无 key/解析坏 → 确定性哈希。
+ * 约束：输出必须通过结构校验；Catch-up 细补默认不用 LLM（见 engine opts）。
  */
 
+import type { LLMConfig } from '../../../../src/shared/types'
+import { chatComplete } from '../../llm/index'
+import { createLogger } from '../../utils/logger'
+import { loadRolePack } from '../identity/loader'
 import type { DayScriptPayload, DayScriptSlot } from '../types'
+
+const log = createLogger('DayScriptGen')
 
 type ActivitySeed = Omit<DayScriptSlot, 'hour' | 'minute'>
 
@@ -78,6 +84,10 @@ const ROLE_POOL: Record<string, { themes: string[]; activities: ActivitySeed[] }
   },
 }
 
+const SLOT_COUNT_MIN = 5
+const SLOT_COUNT_MAX = 8
+const TEXT_MAX = 40
+
 function hashSeed(roleId: string, date: string): number {
   const s = `${roleId}:${date}`
   let h = 2166136261
@@ -92,7 +102,7 @@ function poolFor(roleId: string): { themes: string[]; activities: ActivitySeed[]
   return ROLE_POOL[roleId] ?? { themes: DEFAULT_THEMES, activities: DEFAULT_ACTIVITIES }
 }
 
-/** 确定性日剧本（可单测冻结） */
+/** 确定性日剧本（回退 / 单测 / Catch-up 细补） */
 export function generateDayScript(roleId: string, date: string): DayScriptPayload {
   const seed = hashSeed(roleId, date)
   const { themes, activities } = poolFor(roleId)
@@ -110,4 +120,156 @@ export function generateDayScript(roleId: string, date: string): DayScriptPayloa
     }
   })
   return { date, theme, slots }
+}
+
+function clipText(raw: unknown, fallback: string): string {
+  if (typeof raw !== 'string') return fallback
+  const t = raw.trim().replace(/\s+/g, ' ')
+  if (!t) return fallback
+  return t.slice(0, TEXT_MAX)
+}
+
+function normalizeMinute(n: number): number {
+  if (n < 15) return 0
+  if (n < 45) return 30
+  return 0
+}
+
+/**
+ * 解析并规范化 LLM/任意 JSON → DayScriptPayload；失败返回 null。
+ */
+export function parseDayScriptPayload(
+  raw: unknown,
+  date: string,
+): DayScriptPayload | null {
+  let obj: unknown = raw
+  if (typeof raw === 'string') {
+    const match = raw.match(/\{[\s\S]*\}/)
+    if (!match) return null
+    try {
+      obj = JSON.parse(match[0])
+    } catch {
+      return null
+    }
+  }
+  if (!obj || typeof obj !== 'object') return null
+  const rec = obj as Record<string, unknown>
+  const theme = clipText(rec.theme, '')
+  if (!theme) return null
+  if (!Array.isArray(rec.slots)) return null
+  if (rec.slots.length < SLOT_COUNT_MIN || rec.slots.length > SLOT_COUNT_MAX) return null
+
+  const slots: DayScriptSlot[] = []
+  for (const item of rec.slots) {
+    if (!item || typeof item !== 'object') return null
+    const s = item as Record<string, unknown>
+    const hour = Number(s.hour)
+    if (!Number.isInteger(hour) || hour < 0 || hour > 23) return null
+    const minuteRaw = Number(s.minute ?? 0)
+    const minute = Number.isFinite(minuteRaw) ? normalizeMinute(minuteRaw) : 0
+    const type = s.type === 'moment' ? 'moment' : s.type === 'activity' ? 'activity' : null
+    if (!type) return null
+    const activity = clipText(s.activity, '')
+    const mood = clipText(s.mood, '平静')
+    const location = clipText(s.location, '某处')
+    if (!activity) return null
+    slots.push({ hour, minute, activity, mood, location, type })
+  }
+
+  slots.sort((a, b) => a.hour * 60 + a.minute - (b.hour * 60 + b.minute))
+  // 至少一条 moment，便于朋友圈有截面
+  if (!slots.some((s) => s.type === 'moment')) {
+    slots[Math.min(3, slots.length - 1)].type = 'moment'
+  }
+
+  return { date, theme, slots }
+}
+
+function buildLlmPrompt(input: {
+  roleName: string
+  roleId: string
+  date: string
+  voiceHint: string
+}): string {
+  return `你是生活世界编剧。为数字伙伴「${input.roleName}」(id=${input.roleId}) 生成 ${input.date} 的一日剧本。
+
+人设语气参考（勿写成对白，只影响活动气质）：
+${input.voiceHint || '（无）'}
+
+要求：
+1. 日常可信、有分味，不要夸张奇幻；地点用短词（家/工位/路上/咖啡馆/附近街道等）
+2. slots ${SLOT_COUNT_MIN}～${SLOT_COUNT_MAX} 条，按时间升序；hour 0-23，minute 0 或 30
+3. type 只能是 "moment"（适合发动态）或 "activity"（推进日程）；至少 2 条 moment
+4. theme / activity / mood / location 各不超过 ${TEXT_MAX} 字
+5. 只输出 JSON：{"theme":"...","slots":[{"hour":8,"minute":0,"activity":"...","mood":"...","location":"...","type":"activity"}]}`
+}
+
+/** 尝试 LLM；失败返回 null（由调用方回退哈希） */
+export async function generateDayScriptViaLlm(
+  roleId: string,
+  date: string,
+  llmConfig: LLMConfig,
+  opts?: { universeId?: string },
+): Promise<DayScriptPayload | null> {
+  if (!llmConfig.apiKey?.trim()) return null
+  try {
+    const pack = loadRolePack(roleId, opts?.universeId ?? 'default')
+    const voiceHint = (pack.voice || pack.summary || pack.protected).slice(0, 280)
+    const raw = await chatComplete({
+      config: {
+        ...llmConfig,
+        maxTokens: llmConfig.maxTokens ?? 900,
+        temperature: llmConfig.temperature ?? 0.8,
+      },
+      messages: [{
+        role: 'user',
+        content: buildLlmPrompt({
+          roleName: pack.name,
+          roleId,
+          date,
+          voiceHint,
+        }),
+      }],
+      caller: 'day-script',
+    })
+    const parsed = parseDayScriptPayload(raw, date)
+    if (!parsed) {
+      log.warn('Day script LLM parse failed', { roleId, date })
+      return null
+    }
+    return parsed
+  } catch (err) {
+    log.warn('Day script LLM failed', { roleId, date, error: String(err) })
+    return null
+  }
+}
+
+export interface ResolveDayScriptOpts {
+  preferLlm?: boolean
+  llmConfig?: LLMConfig
+  universeId?: string
+}
+
+/**
+ * 解析一日剧本：preferLlm + 有 key → LLM；否则或失败 → 哈希。
+ */
+export async function resolveDayScript(
+  roleId: string,
+  date: string,
+  opts?: ResolveDayScriptOpts,
+): Promise<{ payload: DayScriptPayload; source: 'llm' | 'hash' }> {
+  if (opts?.preferLlm && opts.llmConfig?.apiKey?.trim()) {
+    const llm = await generateDayScriptViaLlm(roleId, date, opts.llmConfig, {
+      universeId: opts.universeId,
+    })
+    if (llm) return { payload: llm, source: 'llm' }
+  }
+  return { payload: generateDayScript(roleId, date), source: 'hash' }
+}
+
+export const __test = {
+  parseDayScriptPayload,
+  buildLlmPrompt,
+  SLOT_COUNT_MIN,
+  SLOT_COUNT_MAX,
 }
