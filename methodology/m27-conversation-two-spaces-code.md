@@ -1,48 +1,48 @@
 # M27 对话行为与两空间代码走读
 
-> 对应 `m27-conversation-two-spaces.md`。
+> 对应 `m27-conversation-two-spaces.md`（加厚修订版）。
 
 ---
 
-## 一、模块地图
+## §二–§三 对照：aside 协议与渲染
 
-```
-agent/prompt-builder.ts     # aside 协议 + executionMode 行为提示
-agent/loop.ts               # 工具轮 Discarding companion text
-agent/runtime.ts            # 召唤会话行为短声明
-src/components/MarkdownRenderer.tsx  # splitAside 双栏渲染
-Role Pack asideStyle        # universes/*/roles/*/（字段映射 aside_style）
-```
+### 我们的实现
 
----
+**Prompt（`prompt-builder.ts`）**：
 
-## 二、aside 协议
-
-```
-buildSystemPrompt
-  if persona.aside_style:
-    ## Response format
-    1. main — professional, helpful
-    2. optional <aside>...</aside> — {aside_style}, one sentence, not every turn
-
-rolePackToPromptParts: aside_style ← pack.asideStyle
+```text
+## Response format
+1. main — professional, helpful, focused
+2. optional <aside>...</aside> — {aside_style}, one sentence, not every turn
 ```
 
-UI：
+`aside_style` ← `rolePackToPromptParts` ← Pack `asideStyle`。
 
-```
+**UI（`MarkdownRenderer.tsx`）**：
+
+```text
 splitAside(raw) → { main, asides[] }
 ReactMarkdown(main)
-asides → italic muted 小字
+asides → text-[11px] italic muted
 ```
+
+| 设计点 | 选择 | 原因 |
+|--------|------|------|
+| 标签名 | `<aside>` | 与 HTML 语义接近、少碰撞 |
+| 多 aside | 数组全渲染 | 容错；规范仍要求一句 |
+| 剥离失败标签 | regex 清残留 | 防半截标签进正文 |
+
+**方法论对照**：→ §二 §三
 
 ---
 
-## 三、工具轮丢弃正文
+## §四 对照：工具轮丢弃正文
 
-```
+### 我们的实现（`loop.ts`）
+
+```text
 if (toolCalls.length > 0) {
-  // 不把 content 写入历史
+  log.debug('Discarding companion text (Alice strategy)', { discardedLength })
   messages.push({ content: '', toolCalls })
   yield tool_calls
 } else {
@@ -51,32 +51,45 @@ if (toolCalls.length > 0) {
 }
 ```
 
-目的：历史轨迹服务工具链，不为陪伴旁白买单。
+| 层 | 是否保留陪伴字 |
+|----|----------------|
+| 流式 UI 瞬时 | 可能闪过 |
+| messages 持久 | 否（工具轮） |
+| 下一轮模型输入 | 见持久历史 |
+
+**发现**：这是行为纪律的硬闸，不依赖模型「自觉少说话」。
+
+**方法论对照**：→ §四
 
 ---
 
-## 四、相关行为提示（非独立引擎）
+## §五 / §十 对照：executionMode 文案
 
-- `executionMode === 'plan-first'` → 先明文计划再工具  
-- `confirm-all` → 提示每步需用户批  
-- `task_plan` + 收尾自检段落（L2）  
-- summon：`【召唤子会话】…不推进生活世界`
+```text
+plan-first → 必须先明文计划再工具
+confirm-all → 提示每步需批
+（另）task_plan + 收尾自检段落
+```
 
----
+无独立「行为状态机」对象；旋钮在 settings → Prompt。
 
-## 五、约束速查
-
-| 约束 | 落点 |
-|------|------|
-| 两空间可拆 | `<aside>` + UI split |
-| 工具轮历史干净 | loop 丢 content |
-| 人设只染 aside 风格 | Pack.asideStyle |
-| 不问/做状态机 | 规范层；Gap M27-G1 |
+**方法论对照**：→ §五 §八 §十
 
 ---
 
-## 六、已知简化
+## §十 对照：召唤声明
 
-- 无 ask/act 分类器（M27-G1）  
-- 无 aside Eval（M27-G2）  
-- 无情绪控制器（M27-G3）
+`runtime` 组装召唤会话时追加短声明：单独短聊、不推进对方生活世界。  
+与 `scheduleReflectionAfterChat` 的 summon 短接配合。
+
+**方法论对照**：→ §十
+
+---
+
+## 已知简化
+
+| Gap | 代码 |
+|-----|------|
+| M27-G1 | 无 ask/act 路由模块 |
+| M27-G2 | 无 aside Eval 场景 |
+| M27-G3 | 无情绪特征输入 |
