@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：伙伴主线 + Part VI 方法论收齐 + **前端伴侣表面 P0+P1 已落地**；下一步：可选 P2 场景弱背景 / Pack 内容打磨
+**阶段**：伙伴主线 + Part VI 方法论收齐 + **前端伴侣表面 P0–P2 已收齐**；下一步：Pack 内容打磨 / wishlist Gaps
 
 **最新动态（2026-08-02）**：
+- ✅ **前端伴侣表面 P2**：Chat `CompanionSceneBackdrop`；`resolveCompanionScene` 映射家/工位/咖啡馆/户外/路上/夜色；CSS 氛围无外部资产。
 - ✅ **前端伴侣表面 P1**：衣柜「穿着中」主卡 + 场合标签网格；名册关系卡 + 最近召唤互动 + 可任主角→角色架；状态条补衣柜入口。
 - ✅ **前端伴侣表面 P0**：方案定稿 `frontend-companion-surfaces.md`；`frontend-guidelines` 生活面章节；catalog/companion 用户入口；`--companion-*` token；Chat 状态条 + Moments 卡片 + Character Shelf；`catchup-status.presence`。
 - ✅ **Part VI 方法论加厚收齐**：M22–M31 均按 M10 标准（推论组·判据·检查清单·code 节对照）。

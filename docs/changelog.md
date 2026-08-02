@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — 前端伴侣表面 P2（Chat 弱场景）（2026-08-02）
+
+- `CompanionSceneBackdrop`：消息区底层氛围随 presence/location 切换（家/工位/咖啡馆/户外/路上/夜色）
+- `src/shared/companion-scene.ts` + 单测；纯 CSS 渐变，不引入外部插画
+
 ### Added — 前端伴侣表面 P1（衣柜 / 名册）（2026-08-02）
 
 - `AssetsPanel`：穿着中主卡（由最近 Moment `assetId`/`outfit` 推断）+ 库存网格与场合标签

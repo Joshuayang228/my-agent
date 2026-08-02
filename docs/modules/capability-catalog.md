@@ -45,7 +45,7 @@
 | 角色架 UI | 已落地 | 状态条 / 欢迎「换主角」 | CharacterShelfPanel · `shelf` |
 | 衣柜主视觉（穿着中 + 场合标签） | 已落地 | 状态条 / 欢迎屏 → 衣柜 | AssetsPanel · Moment.assetId/outfit |
 | 名册关系卡 + 最近召唤互动 | 已落地 | 状态条 / 欢迎屏 → 名册 | CastPanel · sessions(summon) |
-| 场景弱背景 | 缺口 | — | P2 |
+| 场景弱背景（Chat 氛围） | 已落地 | Chat 消息区底层 | `CompanionSceneBackdrop` · `companion-scene.ts` |
 | 生图朋友圈 / 多宇宙并行 | 缺口 | — | wishlist / 非本阶段 |
 | 非活跃后台养成 | 缺口 | — | 产品明确不做 |
 

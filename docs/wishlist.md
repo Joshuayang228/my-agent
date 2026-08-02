@@ -88,8 +88,7 @@
 - [ ] **M31-G3** 定时主动问候（须严格派生 World）
 - [x] ~~**自动反思写 MUTABLE**~~ — 2026-08-02：门闸 + 对话后入队 + Settings 手动/强制；需求见 `docs/requirements/companion-mutable-reflection.md`
 
-- [x] ~~**Alice 前端走查 → 设计方案 + P0/P1**~~ — 2026-08-02：方案 `frontend-companion-surfaces.md`；P0 状态条/Moments/角色架；P1 衣柜主视觉/名册关系卡
-- [ ] **P2 UI**：场景弱背景（方案 G6）
+- [x] ~~**Alice 前端走查 → P0/P1/P2**~~ — 2026-08-02：方案 `frontend-companion-surfaces.md`；含状态条/Moments/角色架/衣柜/名册/Chat 弱场景
 
 ### 工程债 / 产品向
 

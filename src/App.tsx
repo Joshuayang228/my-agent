@@ -8,6 +8,7 @@ import { MomentsPanel } from './components/MomentsPanel'
 import { AssetsPanel } from './components/AssetsPanel'
 import { CastPanel } from './components/CastPanel'
 import { CompanionStatusBar } from './components/CompanionStatusBar'
+import { CompanionSceneBackdrop } from './components/CompanionSceneBackdrop'
 import { CharacterShelfPanel } from './components/CharacterShelfPanel'
 import { ToastProvider, useToast } from './components/Toast'
 import { SkillsPanel } from './components/SkillsPanel'
@@ -1123,7 +1124,8 @@ function App() {
           onDragLeave={() => setDragOver(false)}
           onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) handleFileAttach(e.dataTransfer.files) }}
         >
-          <div className="mx-auto max-w-3xl px-6 py-8">
+          <CompanionSceneBackdrop roleId={activeRoleId} />
+          <div className="relative z-[1] mx-auto max-w-3xl px-6 py-8">
             {/* 欢迎屏 — 绑定活跃主角冷启动文案（W6） */}
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center pt-28 text-center">

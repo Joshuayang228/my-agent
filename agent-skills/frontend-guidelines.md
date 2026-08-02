@@ -60,7 +60,7 @@ Main Area:
 3. **CharacterShelf（shelf）**：换角**主入口**；3 槽卡片 + 活跃徽标；文案含流式禁止 / Catch-up / 召唤≠换角。设置页切换为次要入口。
 4. **Wardrobe（assets）**：上「穿着中」主卡（由最近 Moment 的 `assetId`/`outfit` 推断），下库存网格；`style`/`occasion`/`color` 作场合标签芯片。
 5. **Cast（名册）**：关系卡（头像字 + 关系徽标 + 短句）；展示最近召唤互动；可任主角者链到角色架，禁止把「开聊」做成换活跃。
-6. **场景背景**（P2）：Chat 随 location 弱变化；无资产时用 presence 文案即可。
+6. **场景背景（P2）**：`CompanionSceneBackdrop` 铺在消息区底层；`resolveCompanionScene` 从 presence/location 映射 `home|office|cafe|street|commute|night|default`；只用 CSS 渐变/光晕，禁止引入 Alice 插画资产；对比度以气泡可读为先。
 
 ## CSS 变量
 

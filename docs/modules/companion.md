@@ -29,7 +29,7 @@
 
 | View | 组件 | 说明 |
 |------|------|------|
-| `chat` | App + CompanionStatusBar | 对话；状态条展示 presence |
+| `chat` | App + CompanionStatusBar + CompanionSceneBackdrop | 对话；状态条 presence；弱场景随地点 |
 | `moments` | MomentsPanel | 朋友圈卡片时间线 |
 | `assets` | AssetsPanel | 衣柜（P1 加厚主视觉） |
 | `cast` | CastPanel | 名册 / 召唤（≠换活跃） |
@@ -68,5 +68,5 @@
 
 ## 现状 / 缺口
 
-**现状**：W0–W6 主线已落地；深 Why：`methodology/m22`–`m31`（Part VI 收齐）；前端 P0+P1（状态条 / Moments / 角色架 / 衣柜主视觉 / 名册关系卡）已落地。  
-**缺口**：P2 场景弱背景；Pack 内容打磨；各章 Gap 见 wishlist。
+**现状**：W0–W6 主线已落地；深 Why：`methodology/m22`–`m31`（Part VI 收齐）；前端 P0–P2（状态条 / Moments / 角色架 / 衣柜 / 名册 / Chat 弱场景）已落地。  
+**缺口**：Pack 内容打磨；各章 Gap 见 wishlist；生图场景等非本阶段。

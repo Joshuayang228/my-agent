@@ -20,7 +20,7 @@
 
 | 文档 | 说明 |
 |------|------|
-| [frontend-companion-surfaces.md](./frontend-companion-surfaces.md) | Alice 前端走查 + 伴侣表面：P0/P1 已落地；P2 场景弱背景待做 |
+| （暂无独立进行中大项） | 前端伴侣表面 P0–P2 已收；下一工程向以 Pack 打磨 / wishlist Gaps 为主 |
 
 若开新大功能：先写需求文档 → 用户确认 → 再编码（见根 `CLAUDE.md`）。
 
@@ -30,6 +30,7 @@
 
 | 文档 | 说明 |
 |------|------|
+| [frontend-companion-surfaces.md](./frontend-companion-surfaces.md) | Alice 对照前端表面：生活/工具 IA、P0–P2 验收 |
 | [companion-world-framework.md](./companion-world-framework.md) | 产品终局：三槽、单活跃、Catch-up、生活世界 |
 | [companion-architecture.md](./companion-architecture.md) | 模块边界与依赖方向 |
 | [companion-tech-spec.md](./companion-tech-spec.md) | W0–W6 施工合同 / 验收 |

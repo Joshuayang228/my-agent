@@ -374,6 +374,62 @@
   animation: fade-in 0.15s ease-out;
 }
 
+/* 伴侣 Chat 弱场景（P2）：只铺氛围，不抢文字对比度 */
+.companion-scene-backdrop {
+  --scene-wash: transparent;
+  --scene-glow: transparent;
+  z-index: 0;
+  transition: opacity 0.35s ease;
+}
+.companion-scene-wash {
+  background: var(--scene-wash);
+  transition: background 0.45s ease;
+}
+.companion-scene-glow {
+  width: min(72%, 36rem);
+  height: min(48%, 22rem);
+  left: 50%;
+  top: 18%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--scene-glow);
+  filter: blur(48px);
+  opacity: 0.55;
+  transition: background 0.45s ease;
+}
+.companion-scene-vignette {
+  background: radial-gradient(ellipse at center, transparent 40%, color-mix(in srgb, var(--bg-primary) 55%, transparent) 100%);
+}
+
+.companion-scene-backdrop[data-companion-scene="home"] {
+  --scene-wash: linear-gradient(180deg, color-mix(in srgb, var(--companion-accent-warm) 10%, var(--bg-primary)) 0%, var(--bg-primary) 72%);
+  --scene-glow: color-mix(in srgb, var(--companion-accent-warm) 28%, transparent);
+}
+.companion-scene-backdrop[data-companion-scene="office"] {
+  --scene-wash: linear-gradient(180deg, color-mix(in srgb, #7aa2c5 12%, var(--bg-primary)) 0%, var(--bg-primary) 70%);
+  --scene-glow: color-mix(in srgb, #7aa2c5 22%, transparent);
+}
+.companion-scene-backdrop[data-companion-scene="cafe"] {
+  --scene-wash: linear-gradient(180deg, color-mix(in srgb, #c4a484 14%, var(--bg-primary)) 0%, var(--bg-primary) 70%);
+  --scene-glow: color-mix(in srgb, #c4a484 26%, transparent);
+}
+.companion-scene-backdrop[data-companion-scene="street"] {
+  --scene-wash: linear-gradient(180deg, color-mix(in srgb, #8fbe9a 12%, var(--bg-primary)) 0%, var(--bg-primary) 70%);
+  --scene-glow: color-mix(in srgb, #8fbe9a 20%, transparent);
+}
+.companion-scene-backdrop[data-companion-scene="commute"] {
+  --scene-wash: linear-gradient(180deg, color-mix(in srgb, #8a9bb5 12%, var(--bg-primary)) 0%, var(--bg-primary) 70%);
+  --scene-glow: color-mix(in srgb, #8a9bb5 20%, transparent);
+}
+.companion-scene-backdrop[data-companion-scene="night"] {
+  --scene-wash: linear-gradient(180deg, color-mix(in srgb, #3d4a6b 18%, var(--bg-primary)) 0%, var(--bg-primary) 75%);
+  --scene-glow: color-mix(in srgb, #c9a96e 16%, transparent);
+}
+.companion-scene-backdrop[data-companion-scene="default"] {
+  --scene-wash: linear-gradient(180deg, color-mix(in srgb, var(--companion-surface) 80%, var(--bg-primary)) 0%, var(--bg-primary) 65%);
+  --scene-glow: color-mix(in srgb, var(--companion-accent-warm) 12%, transparent);
+}
+
 .scrollbar-thin {
   scrollbar-width: thin;
   scrollbar-color: var(--border-color) transparent;
