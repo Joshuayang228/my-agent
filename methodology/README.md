@@ -108,8 +108,8 @@ M01–M31 按**依赖层级**从底向上排列：底层基础设施决定上层
 | M27 | 对话行为与两空间 | `m27-conversation-two-spaces.md` + `-code.md` | 体验 | W0/W6 | ✅ |
 | M28 | 冷启动与关系阶段 | `m28-cold-start-relationship.md` + `-code.md` | 体验 | W1 | ✅ |
 | M29 | 信息不对称与记忆透明 | `m29-asymmetric-memory.md` + `-code.md` | 体验 | W1+ | ✅ |
-| M30 | 叙事连贯与能力边界 | `m30-narrative-capability.md` | 体验 | W2–W4 | 📋 |
-| M31 | 主动在场设计 | `m31-proactive-presence.md` | Surfaces | W3+W6 | 📋 |
+| M30 | 叙事连贯与能力边界 | `m30-narrative-capability.md` + `-code.md` | 体验 | W2–W4 | ✅ |
+| M31 | 主动在场设计 | `m31-proactive-presence.md` + `-code.md` | Surfaces | W3+W6 | ✅ |
 
 旧文件归档：`_archive/methodology-companion-legacy/`。
 
@@ -132,8 +132,7 @@ M01–M31 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 | 优先级 | 项 | 说明 |
 |--------|-----|------|
-| 沉淀下一步 | **M30** | 叙事连贯与能力边界（先对齐观点再写） |
-| 沉淀随后 | **M31** | 主动在场设计（先对齐观点再写） |
+| 沉淀下一步 | （Part VI 已收齐） | 增量 Gap 见 wishlist；工程可选 Pack 打磨 |
 | 工程可选 | Pack 内容打磨 | 三槽薄 Pack 加厚（非方法论阻塞） |
 | 增量 | 已写章节暂缓 Gap | `docs/wishlist.md` + 各章实战记录 |
 
