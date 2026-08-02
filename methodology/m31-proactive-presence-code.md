@@ -1,55 +1,113 @@
 # M31 主动在场代码走读
 
-> 对应 `m31-proactive-presence.md`。
+> 对应 `m31-proactive-presence.md`（加厚修订版）。按理念节号对照。
 
 ---
 
-## 一、模块地图
+## §二 对照：在场层级落点
 
-```
-src/shared/companion-presence.ts  # buildColdStartCopy
-companion/presence.ts             # re-export
-companion/life/ticker.ts          # 活跃推进（无 UI 推送）
-companion/life/moments.ts         # 截面内容
-companion/cast/availability.ts    # describeCastPresence（召唤查询）
-agent/runtime.ts                  # sendDesktopNotification（失焦回复）
-欢迎屏 / MomentsPanel / AssetsPanel / CastPanel
-```
+| 层级 | 代码 | 是否推 UI |
+|------|------|-----------|
+| L0 | `life/ticker.ts` → `tickActiveRole` → `publishAndProjectDue` | 否 |
+| L1 | `buildColdStartCopy` + Moments/Assets/Cast 面板 | 用户打开才见 |
+| L2 | — | 未做（M31-G1） |
+| L3 | `runtime.sendDesktopNotification` | 失焦 + 有回复正文 |
+| L4 | — | 未做（M31-G3） |
 
----
+**发现**：L0 与 L1 分离，让「日子在过」不必等于「吵你」。
 
-## 二、打开即在场
-
-```
-buildColdStartCopy(activeRole meta) → 欢迎屏
-hint: 聊天、朋友圈和衣柜都跟着当前主角；对话进行中不能换人
-```
+**方法论对照**：→ §二
 
 ---
 
-## 三、静默推进 vs 触达
+## §三 对照：打开即在场
 
-| 机制 | 是否推送 UI |
-|------|-------------|
-| life ticker → publish moments | 否（用户打开面板才见） |
-| 桌面 Notification | 是（失焦 + 有回复正文） |
-| 定时问候 | 无 |
+### 我们的实现
 
----
+```text
+src/shared/companion-presence.ts
+  buildColdStartCopy({ name, description })
+    → title / subtitle / hint
 
-## 四、约束速查
+electron/main/companion/presence.ts
+  re-export（主进程与单测进口）
 
-| 约束 | 落点 |
+渲染：欢迎屏读 active 角色元数据后调用同一函数
+```
+
+| 字段 | 作用 |
 |------|------|
-| 内容派生 World | moments/assets 非独立编造 |
-| 欢迎文案一致 | shared 模块 |
-| 不挡 Loop | ticker catch 日志 |
-| 主动推送预算 | 未做 → M31-G1/G2 |
+| title | 身份招呼 |
+| subtitle | Pack description |
+| hint | 圈柜绑定 + 禁中途换角（产品纪律的人话版） |
+
+**发现**：纯函数、无 I/O——在场文案不依赖 DB，换角即时一致。
+
+**方法论对照**：→ §三
 
 ---
 
-## 五、已知简化
+## §四 对照：截面内容
 
-- 无「新动态」轻提示（M31-G1）  
-- 无勿扰时段（M31-G2）  
-- 无定时问候（M31-G3）  
+| 截面 | API / 模块 |
+|------|------------|
+| Moments | `companion:get-moments` ← `listMomentsForRole(active)` |
+| Assets | `companion:get-assets` |
+| Catch-up | 组装进 Prompt 的 summary；非推送 |
+
+均按 active 过滤；非活跃不 tick → 不刷圈。
+
+**方法论对照**：→ §四
+
+---
+
+## §七 对照：查询式 presence
+
+### 我们的实现（`cast/availability.ts`）
+
+`describeCastPresence(roleId)` / `checkCastAvailability`：
+
+- 可读 day_script / events 生成「在忙什么」  
+- **不** `resume` / **不** `tick`  
+- 供召唤前 UI 与 Prompt 情境  
+
+与推送式在场完全不同路径。
+
+**方法论对照**：→ §七
+
+---
+
+## §六 / §十 对照：桌面通知（干活线）
+
+```text
+runtime.sendDesktopNotification(assistantContent)
+  窗口存在且 !focused 且 Notification 支持
+  → 标题 My Agent，body 截断回复
+```
+
+触发于**对话完成**，不是 moment publish。  
+生活线主动触达尚未接线——有意为之。
+
+**方法论对照**：→ §六 §十
+
+---
+
+## L0 失败隔离
+
+```text
+ticker: tickActiveRole(...).catch(err => log.warn)
+```
+
+不抛到 Electron 主进程致命路径——在场不得绑架干活运行时。
+
+**方法论对照**：→ §十、检查清单 5
+
+---
+
+## 已知简化
+
+| Gap | 代码 |
+|-----|------|
+| M31-G1 | 无 moment 订阅 → UI toast |
+| M31-G2 | 无 quiet hours 配置 |
+| M31-G3 | 无 cron 问候任务 |
