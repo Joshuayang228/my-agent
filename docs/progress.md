@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + **Pack 内容分味已加厚**；下一步：wishlist Gaps（如 M22 成长时钟分桶）或体验验收
+**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22-G1 成长时钟分桶**；下一步：M22-G2 feedback 按 role 过滤等 Gaps
 
 **最新动态（2026-08-02）**：
+- ✅ **M22-G1**：成长时钟 `companionGrowthStartedAtByRole` 按主角分桶；旧全局键迁移到活跃主角。
 - ✅ **Pack 内容打磨**：lin/zhou/xia protected·voice·mutable 加厚；陈姐/阿雨召唤文案；relations 补边；日剧本与 starter 衣柜按角色分味；见 `companion-cast-content.md`。
 - ✅ **前端伴侣表面 P2**：Chat `CompanionSceneBackdrop`；`resolveCompanionScene` 映射家/工位/咖啡馆/户外/路上/夜色；CSS 氛围无外部资产。
 - ✅ **前端伴侣表面 P1**：衣柜「穿着中」主卡 + 场合标签网格；名册关系卡 + 最近召唤互动 + 可任主角→角色架；状态条补衣柜入口。

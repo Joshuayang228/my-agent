@@ -26,7 +26,7 @@ IPC：companion:get/set/rollback-mutable · reflection-status · run-reflection
 
 ```
 主会话 chat 结束
-  → ensureGrowthStartedAt()          # 首次打点全局成长时钟
+  → ensureGrowthStartedAt(roleId)    # 首次打点该角色成长时钟（按 role 分桶）
   → shouldReflectNow(roleId)         # 门闸；fail → 不入队
   → taskQueue.enqueue(persona-reflection)
   → runReflectionCore
@@ -49,7 +49,7 @@ IPC：companion:get/set/rollback-mutable · reflection-status · run-reflection
 - 消息计数：`countUserMessagesForRoleSince(roleId, since)`（按会话 `role_id`）  
 - 冷却看 `getReflectionState(roleId).lastRunAt`
 
-**已知简化**：`companionGrowthStartedAt` 在 settings 里**全局一份**，非 per-role（理念章 M22-G1）。
+**M22-G1 已落地**：settings 键 `companionGrowthStartedAtByRole`（JSON `Record<roleId, ms>`）；旧 `companionGrowthStartedAt` 仅作迁移源（落到当时 `activeRoleId`）。
 
 ---
 

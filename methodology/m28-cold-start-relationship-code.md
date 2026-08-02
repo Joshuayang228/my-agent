@@ -38,7 +38,7 @@ shouldReflectNow(roleId)
 ```
 
 `ensureGrowthStartedAt`：settings 键 `companionGrowthStartedAt`，首次打点，已存在不改。  
-**非 per-role**（M22-G1）。
+**已 per-role**（M22-G1，`companionGrowthStartedAtByRole`）。
 
 单测：`companion-reflection.test.ts` 覆盖冷启动拒绝等。
 

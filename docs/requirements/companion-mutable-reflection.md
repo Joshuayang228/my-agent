@@ -10,7 +10,7 @@ MUTABLE 已有存储/版本/手动 UI，但缺少「低频从互动里固化默�
 ## What（本轮）
 
 1. **门闸**（按 `roleId` 分桶）  
-   - 冷启动：`companionGrowthStartedAt` 起不满 **72h** → skip  
+   - 冷启动：该 role 的 `companionGrowthStartedAtByRole[roleId]` 起不满 **72h** → skip（旧全局键仅迁移用）  
    - 冷却：该角色上次反思起不满 **24h** → skip  
    - 信号：近 **7 日** 该角色会话用户消息 **≥ 5** 条，否则 skip  
 2. **触发**：主对话结束后后台入队 `persona-reflection`（与 profile-extract 同级）；门闸内静默跳过  

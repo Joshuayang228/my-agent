@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Fixed — M22-G1 成长时钟按 role 分桶（2026-08-02）
+
+- `companionGrowthStartedAtByRole`：每主角独立 72h 冷启动；旧全局时钟仅迁移到当时活跃主角
+- `ensureGrowthStartedAt(roleId)` / `shouldReflectNow` 读分桶时钟；单测覆盖分桶与迁移
+
 ### Changed — 主角团 Pack 内容加厚 + 生活分味（2026-08-02）
 
 - lin / zhou / xia：`protected` / `voice` / `mutable` / summary / manifest 拉开人设差

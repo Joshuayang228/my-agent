@@ -222,7 +222,7 @@ export async function scheduleReflectionAfterChat(
     return { queued: false, reason: 'summon-session' }
   }
 
-  await ensureGrowthStartedAt()
+  await ensureGrowthStartedAt(roleId)
 
   if (pendingRoles.has(roleId)) {
     return { queued: false, reason: 'already-queued' }
@@ -251,7 +251,7 @@ export async function runReflectionNow(
   llmConfig: LLMConfig,
   opts?: { force?: boolean },
 ): Promise<ReflectionResult> {
-  await ensureGrowthStartedAt()
+  await ensureGrowthStartedAt(roleId)
   return runReflectionCore(roleId, llmConfig, { force: opts?.force })
 }
 
