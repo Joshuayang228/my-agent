@@ -140,6 +140,13 @@ declare global {
             }
           | { ok: false; error: string }
         >
+        onRoleChanged: (
+          callback: (payload: {
+            roleId: string
+            catchupQueued: boolean
+            previousRoleId: string
+          }) => void,
+        ) => () => void
       }
       mcp: {
         connect: (config: {

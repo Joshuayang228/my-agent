@@ -192,6 +192,8 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
     setSaving(true)
     try {
       for (const [key, value] of Object.entries(form)) {
+        // activeRoleId 只能走 companion.requestSwitch（含 pause/catchup）
+        if (key === 'activeRoleId') continue
         await window.electronAPI.settings.set(key, value)
       }
       setSaved(true)
@@ -214,6 +216,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
       if (!window.electronAPI) return
       try {
         for (const [key, value] of Object.entries(form)) {
+          if (key === 'activeRoleId') continue
           await window.electronAPI.settings.set(key, value)
         }
         toast('设置已自动保存', 'success')
@@ -320,7 +323,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
       </FieldGroup>
 
       {protagonists.length > 0 && (
-        <FieldGroup label="活跃主角" hint="同宇宙最多 3 位主角；当前先交付小林。切换=完整换人（聊天/朋友圈/衣柜全跟他）；对话流式中禁止切换。">
+        <FieldGroup label="活跃主角" hint="同宇宙最多 3 位；已挂小林/小周。切换=完整换人（朋友圈/衣柜跟他）；流式中禁止。旧会话仍绑定创建时的主角，请新建对话。">
           <div className="flex flex-wrap gap-2">
             {protagonists.map((p) => (
               <button
@@ -333,6 +336,12 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
                     if (!result) return
                     if (result.ok) {
                       update('activeRoleId', p.id)
+                      toast(
+                        result.catchupQueued
+                          ? `已切换到${p.name}，正在追赶最近生活…`
+                          : `已切换到${p.name}`,
+                        'success',
+                      )
                       return
                     }
                     if (result.code === 'SESSION_ACTIVE') {
@@ -341,6 +350,10 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
                     }
                     if (result.code === 'ALREADY_ACTIVE') {
                       update('activeRoleId', p.id)
+                      return
+                    }
+                    if (result.code === 'UNKNOWN_ROLE') {
+                      toast('未知主角，无法切换', 'error')
                     }
                   })()
                 }}

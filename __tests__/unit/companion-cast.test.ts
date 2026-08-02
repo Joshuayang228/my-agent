@@ -14,6 +14,7 @@ import {
 
 vi.mock('electron', () => ({
   app: { getPath: () => '/tmp' },
+  BrowserWindow: { getAllWindows: () => [] },
   safeStorage: {
     isEncryptionAvailable: () => false,
     encryptString: (s: string) => Buffer.from(s),
@@ -100,10 +101,10 @@ describe('Companion Cast roster', () => {
     expect(block).not.toContain('CHEN_PROTECTED_FULL_BODY_MUST_NOT_APPEAR_IN_MAIN_PROMPT')
   })
 
-  it('NPC 不在主角列表中', async () => {
+  it('NPC 不在主角列表；第二主角 zhou 可列出且无需改 Orchestrator', async () => {
     const { listProtagonists } = await import('../../electron/main/companion/identity/loader')
     const ids = listProtagonists('default').map((p) => p.id)
-    expect(ids).toEqual(['lin'])
+    expect(ids).toEqual(['lin', 'zhou'])
     expect(ids).not.toContain('chen')
     expect(ids).not.toContain('ayu')
   })

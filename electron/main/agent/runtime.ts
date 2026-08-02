@@ -13,7 +13,7 @@
 import { BrowserWindow, Notification } from 'electron'
 import { agentLoop } from './loop'
 import { buildSystemPrompt, rolePackToPromptParts } from './prompt-builder'
-import { getActiveRoleId, loadRoleAssembleInput } from '../companion/orchestrator'
+import { assertSessionRole, loadRoleAssembleInput } from '../companion/orchestrator'
 import { registerStreamingProbe } from '../companion/streaming-gate'
 import { maybeExtractProfile } from './profile-extractor'
 import { setQuerySource } from './context-manager'
@@ -154,15 +154,29 @@ class AgentRuntime {
       const customPrompt = await settings.getSetting('systemPrompt')
       const executionMode = (await settings.getSetting('executionMode') || 'auto') as ExecutionMode
       const userProfile = await memory.buildUserProfile()
-      // 优先用会话绑定的 role_id；否则用当前活跃主角
+      // 会话绑定 role_id 优先；与 active 不一致时仍按会话组装（禁止中途换角偷换人设）
       const sessionMeta = await store.getSession(sessionId)
-      const roleId = sessionMeta?.roleId || (await getActiveRoleId())
-      const { pack, mutableBody, catchupSummary, rosterLines } = await loadRoleAssembleInput(roleId)
+      const { assembleRoleId, activeRoleId, mismatch } = await assertSessionRole(sessionMeta?.roleId)
+      if (mismatch) {
+        log.warn('Session role differs from activeRoleId; assembling with session binding', {
+          sessionId,
+          sessionRoleId: assembleRoleId,
+          activeRoleId,
+        })
+      }
+      const { pack, mutableBody, catchupSummary, rosterLines } = await loadRoleAssembleInput(assembleRoleId)
       const persona = rolePackToPromptParts(pack, mutableBody)
 
       const chatSpan = startSpan('chat', 'main', 'interaction', undefined, { sessionId, model: llmConfig.model })
 
-      log.info('Chat started', { sessionId, messageCount: messages.length, model: llmConfig.model, roleId: persona.id })
+      log.info('Chat started', {
+        sessionId,
+        messageCount: messages.length,
+        model: llmConfig.model,
+        roleId: persona.id,
+        activeRoleId,
+        roleMismatch: mismatch,
+      })
 
       const vectorContext = await this.safeVectorSearch(lastUserMsg?.content, llmConfig)
 

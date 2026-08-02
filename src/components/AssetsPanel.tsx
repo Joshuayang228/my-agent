@@ -45,6 +45,13 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
     load()
   }, [load])
 
+  useEffect(() => {
+    if (!window.electronAPI?.companion.onRoleChanged) return
+    return window.electronAPI.companion.onRoleChanged(() => {
+      void load()
+    })
+  }, [load])
+
   return (
     <div className="flex h-full flex-col">
       <div

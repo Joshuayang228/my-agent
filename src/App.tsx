@@ -31,6 +31,7 @@ interface SessionSummary {
   createdAt: number
   updatedAt: number
   messageCount: number
+  roleId?: string
 }
 
 interface ToolStatus {
@@ -140,6 +141,8 @@ function App() {
   const confirmDialog = confirmQueue[0] ?? null
   const [currentPersonaName, setCurrentPersonaName] = useState('小林')
   const [companionBlurb, setCompanionBlurb] = useState('沉稳体贴的数字伙伴')
+  const [activeRoleId, setActiveRoleId] = useState('lin')
+  const [protagonistNames, setProtagonistNames] = useState<Record<string, string>>({ lin: '小林' })
   const [thinking, setThinking] = useState<ThinkingChunk[]>([])
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
   const [usage, setUsage] = useState<UsageInfo | null>(null)
@@ -173,7 +176,12 @@ function App() {
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const streamingSessionRef = useRef<string | null>(null)
+  const sessionsRef = useRef<SessionSummary[]>([])
+  const activeSessionIdRef = useRef<string | null>(null)
   const { toast } = useToast()
+
+  useEffect(() => { sessionsRef.current = sessions }, [sessions])
+  useEffect(() => { activeSessionIdRef.current = activeSessionId }, [activeSessionId])
 
   const MODEL_PRESETS = [
     { label: 'GPT-4o', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o' },
@@ -254,11 +262,30 @@ function App() {
     window.electronAPI.companion.getActive().then((p) => {
       if (p?.name) setCurrentPersonaName(p.name)
       if (p?.description) setCompanionBlurb(p.description)
+      if (p?.id) setActiveRoleId(p.id)
+    })
+    window.electronAPI.companion.listProtagonists().then((list) => {
+      const map: Record<string, string> = {}
+      for (const p of list) map[p.id] = p.name
+      setProtagonistNames(map)
     })
     window.electronAPI.project.get().then((p) => {
       if (p) setCurrentProject(p)
     })
-  }, [])
+    const unsub = window.electronAPI.companion.onRoleChanged?.((payload) => {
+      void window.electronAPI.companion.getActive().then((p) => {
+        if (p?.name) setCurrentPersonaName(p.name)
+        if (p?.description) setCompanionBlurb(p.description)
+        if (p?.id) setActiveRoleId(p.id)
+      })
+      const sid = activeSessionIdRef.current
+      const sess = sid ? sessionsRef.current.find((s) => s.id === sid) : undefined
+      if (sess?.roleId && sess.roleId !== payload.roleId) {
+        toast('主角已切换。当前会话仍绑定旧主角，请新建对话开始新关系。', 'info')
+      }
+    })
+    return () => { unsub?.() }
+  }, [toast])
 
   const loadSessions = async () => {
     if (!window.electronAPI) return
@@ -716,6 +743,12 @@ function App() {
       window.electronAPI.companion.getActive().then((p) => {
         if (p?.name) setCurrentPersonaName(p.name)
         if (p?.description) setCompanionBlurb(p.description)
+        if (p?.id) setActiveRoleId(p.id)
+      })
+      window.electronAPI.companion.listProtagonists().then((list) => {
+        const map: Record<string, string> = {}
+        for (const p of list) map[p.id] = p.name
+        setProtagonistNames(map)
       })
       window.electronAPI.settings.get().then((s) => {
         if (s.llmModel) setCurrentModel(s.llmModel)
@@ -955,7 +988,17 @@ function App() {
               <Folder size={13} />
             </button>
           )}
-          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{currentPersonaName}</span>
+          {(() => {
+            const sessRole = sessions.find((s) => s.id === activeSessionId)?.roleId
+            const headerRole = sessRole || activeRoleId
+            const headerName = protagonistNames[headerRole] || currentPersonaName
+            const mismatched = !!(sessRole && sessRole !== activeRoleId)
+            return (
+              <span className="text-[11px]" style={{ color: mismatched ? 'var(--warning)' : 'var(--text-muted)' }} title={mismatched ? '此会话绑定旧主角；生活世界已是新活跃主角' : undefined}>
+                {headerName}{mismatched ? ' · 会话' : ''}
+              </span>
+            )
+          })()}
         </div>
 
         {/* Tab 视图 — 技能/记忆等非聊天页 */}

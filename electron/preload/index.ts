@@ -7,6 +7,7 @@ interface SessionSummary {
   createdAt: number
   updatedAt: number
   messageCount: number
+  roleId?: string
 }
 
 interface FileEntry {
@@ -132,6 +133,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
         }
       | { ok: false; error: string }
     > => ipcRenderer.invoke('companion:summon-brief', roleId),
+    onRoleChanged: (
+      callback: (payload: {
+        roleId: string
+        catchupQueued: boolean
+        previousRoleId: string
+      }) => void,
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        payload: { roleId: string; catchupQueued: boolean; previousRoleId: string },
+      ) => callback(payload)
+      ipcRenderer.on('companion:role-changed', handler)
+      return () => ipcRenderer.removeListener('companion:role-changed', handler)
+    },
   },
 
   mcp: {

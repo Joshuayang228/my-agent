@@ -5,6 +5,13 @@
 
 ## [未发布]
 
+### Fixed — Companion 审计补缺（2026-08-02）
+
+- 聊天组装强制会话 `role_id`（`assertSessionRole`）；与 active 不一致时不偷换人设
+- 换角广播 `companion:role-changed`，朋友圈/衣柜/顶栏刷新；旧会话错位提示
+- 设置页换角成功/Catch-up toast；`activeRoleId` 禁止经 settings 自动保存旁路
+- 第二主角薄 Pack「小周」`zhou` 挂上 `protagonistIds`（验 W0 空勾）
+
 ### Added — Companion W6：主动在场与体验收齐（2026-08-02）
 
 - 空会话欢迎屏改为「嗨，我是{主角}」冷启动文案，并快捷进入朋友圈 / 衣柜 / 换主角

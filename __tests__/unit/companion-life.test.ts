@@ -7,6 +7,7 @@ import initSqlJs from 'sql.js'
 
 vi.mock('electron', () => ({
   app: { getPath: () => '/tmp' },
+  BrowserWindow: { getAllWindows: () => [] },
   safeStorage: {
     isEncryptionAvailable: () => false,
     encryptString: (s: string) => Buffer.from(s),

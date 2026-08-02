@@ -132,14 +132,13 @@ describe('buildSystemPrompt', () => {
     expect(prompt.trimEnd().endsWith('someone else.')).toBe(true)
   })
 
-  it('Role Pack lin 可组装进 L1，且宇宙预留 3 槽位', () => {
+  it('Role Pack lin 可组装进 L1，且宇宙预留 3 槽位（已挂 lin+zhou）', () => {
     const universe = loadUniverseManifest('default')
     expect(universe.plannedProtagonistSlots).toBe(3)
-    expect(universe.protagonistIds).toEqual(['lin'])
+    expect(universe.protagonistIds).toEqual(['lin', 'zhou'])
 
     const protagonists = listProtagonists('default')
-    expect(protagonists).toHaveLength(1)
-    expect(protagonists[0].id).toBe('lin')
+    expect(protagonists.map((p) => p.id)).toEqual(['lin', 'zhou'])
 
     const pack = loadRolePack('lin')
     const persona = rolePackToPromptParts(pack)

@@ -4,12 +4,11 @@
 
 ## 当前状态
 
-**阶段**：伙伴 **W0–W6 主线已收齐**；后续为第二主角内容、召唤 UI、方法论深啃
+**阶段**：伙伴 **W0–W6 主线已收齐** + 审计补缺；后续召唤 UI / 方法论深啃 / 主角内容打磨
 
 **最新动态（2026-08-02）**：
-- ✅ **W6**：冷启动欢迎屏绑活跃主角；侧栏/欢迎屏触达朋友圈·衣柜；`docs/modules/companion.md`；Eval **C01**；设置页换角说明强化。
-- ✅ **W5**：名册浅注入（陈姐/阿雨 NPC）；`summon-brief`；主 Prompt 无他人全文 protected。
-- ✅ **W4–W0**：衣柜 / Moments+Catch-up / LifeEngine / 换角门控+MUTABLE / Role Pack `lin`。
+- ✅ **审计补缺**：`assertSessionRole`；`role-changed` Surfaces rebind；设置 toast；小周第二主角槽；catchupSummary→Prompt 单测。
+- ✅ **W6–W0**：冷启动 / 名册 / 衣柜 / Catch-up / LifeEngine / 门控+MUTABLE / Role Pack。
 
 **此前（2026-07-31）**：
 - ✅ **设置页画布框统一**：`.settings-field` / `.settings-option` + `SettingsPanel` 改造；规范写入 `agent-skills/frontend-guidelines.md`「画布框与设置页规范」。

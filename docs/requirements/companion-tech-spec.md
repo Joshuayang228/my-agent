@@ -318,7 +318,7 @@ storage: database.ts migration + companion-*-store.ts
 - [x] `tsc` + 相关单测绿  
 - [x] 设置可见 **1** 个主角（小林 / `lin`）；对话 L1 从 Pack 读 protected  
 - [x] 业务代码无 `personaId` / `warm-partner` / `BUILTIN_PERSONAS`（仅迁移删除与注释残留）  
-- [ ] 再加一个角色目录并写入 `protagonistIds` 后，**无需改 Orchestrator/Assemble 模型**即可列出（留到加第二个主角时验）  
+- [x] 再加一个角色目录并写入 `protagonistIds` 后，**无需改 Orchestrator/Assemble 模型**即可列出（已验：`zhou` / 小周）  
 
 ### W1 — Orchestrator + Growth 门控
 

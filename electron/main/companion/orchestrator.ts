@@ -2,11 +2,12 @@
  * Companion Orchestrator
  *
  * 背景：设置页与 runtime 需要统一读写 activeRoleId；切换必须门控进行中会话。
- * 意图：getActiveRoleId / requestSwitch / 解析当前 RolePack（含 MUTABLE 覆盖）。
+ * 意图：getActiveRoleId / requestSwitch / assertSessionRole / Assemble 输入。
  * 约束：有流式 chat 时拒绝切换（SESSION_ACTIVE）；切换时 pause 旧角色；
  *       新角色曾暂停则同步 runCatchup（W3）；本模块不 import agent/。
  */
 
+import { BrowserWindow } from 'electron'
 import * as settings from '../storage/settings-store'
 import * as identity from './identity/loader'
 import {
@@ -118,8 +119,40 @@ export function listActiveUniverseProtagonists(universeId?: string): RoleSummary
 }
 
 /**
+ * 聊天前校验：会话绑定的 role_id 不可被 activeRoleId 悄悄替换。
+ * 返回应使用的 assembleRoleId；mismatch 时 UI 应提示「当前会话仍是旧主角」。
+ */
+export async function assertSessionRole(sessionRoleId: string | undefined | null): Promise<{
+  assembleRoleId: string
+  activeRoleId: string
+  mismatch: boolean
+}> {
+  const activeRoleId = await getActiveRoleId()
+  const bound = (sessionRoleId || '').trim()
+  if (!bound) {
+    return { assembleRoleId: activeRoleId, activeRoleId, mismatch: false }
+  }
+  return {
+    assembleRoleId: bound,
+    activeRoleId,
+    mismatch: bound !== activeRoleId,
+  }
+}
+
+function broadcastRoleChanged(payload: {
+  roleId: string
+  catchupQueued: boolean
+  previousRoleId: string
+}): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send('companion:role-changed', payload)
+  }
+}
+
+/**
  * 完整切换活跃主角。
  * 成功：pause 旧角色 → 写 activeRoleId → 若新角色曾暂停则 runCatchup，否则 resume。
+ * 并向渲染进程广播 Surfaces rebind。
  */
 export async function requestSwitch(roleId: string): Promise<SwitchResult> {
   const universeId = await settings.getSetting('universeId')
@@ -142,11 +175,14 @@ export async function requestSwitch(roleId: string): Promise<SwitchResult> {
 
   await settings.setSetting('activeRoleId', roleId)
 
+  let catchupQueued = false
   if (pausedAt != null) {
     await runCatchup(roleId, pausedAt, now)
-    return { ok: true, catchupQueued: true }
+    catchupQueued = true
+  } else {
+    await resumeRole(roleId)
   }
 
-  await resumeRole(roleId)
-  return { ok: true, catchupQueued: false }
+  broadcastRoleChanged({ roleId, catchupQueued, previousRoleId: current })
+  return { ok: true, catchupQueued }
 }

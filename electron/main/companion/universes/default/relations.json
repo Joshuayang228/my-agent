@@ -11,6 +11,18 @@
       "to": "ayu",
       "type": "friend",
       "note": "认识多年，偶尔约咖啡聊天"
+    },
+    {
+      "from": "lin",
+      "to": "zhou",
+      "type": "friend",
+      "note": "同宇宙另一位可切换主角，性格更外向"
+    },
+    {
+      "from": "zhou",
+      "to": "chen",
+      "type": "acquaintance",
+      "note": "经小林介绍认识，偶尔一起吐槽进度"
     }
   ]
 }
