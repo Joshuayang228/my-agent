@@ -4,14 +4,12 @@
 
 ## 当前状态
 
-**阶段**：伙伴 **W5**（Cast 名册）已落地；下一刀 **W6**（主动在场与体验收齐）
+**阶段**：伙伴 **W0–W6 主线已收齐**；后续为第二主角内容、召唤 UI、方法论深啃
 
 **最新动态（2026-08-02）**：
-- ✅ **W5**：`relations` → 名册浅注入（陈姐/阿雨 NPC，非主角）；Assemble `## Cast roster`；`loadCastBrief` 召唤摘要不含 protected；IPC `get-roster` / `summon-brief`；单测断言主 Prompt 无他人全文 protected。
-- ✅ **W4**：`companion_assets`（schema v7）；starter 衣柜；moment 事件引用 `assetId`；IPC `get-assets`；侧栏衣柜面板；按 role 隔离单测。
-- ✅ **W3**：`runCatchup`（细窗≤7×24h + 更早概况摘要）；`companion_moments`（schema v6）；事件 published→投影；IPC `get-moments` / `catchup-status`；侧栏朋友圈时间线；Assemble 注入 catchupSummary；换角时同步 Catch-up。
-- ✅ **W2**：`companion_role_state` / `day_scripts` / `events`（schema v5）；pause / ensure / tick 仅 active；LifeTicker；schema v5。
-- ✅ **W1 / W0**：换角门控 + MUTABLE；Role Pack `lin`；`companion:*` IPC。
+- ✅ **W6**：冷启动欢迎屏绑活跃主角；侧栏/欢迎屏触达朋友圈·衣柜；`docs/modules/companion.md`；Eval **C01**；设置页换角说明强化。
+- ✅ **W5**：名册浅注入（陈姐/阿雨 NPC）；`summon-brief`；主 Prompt 无他人全文 protected。
+- ✅ **W4–W0**：衣柜 / Moments+Catch-up / LifeEngine / 换角门控+MUTABLE / Role Pack `lin`。
 
 **此前（2026-07-31）**：
 - ✅ **设置页画布框统一**：`.settings-field` / `.settings-option` + `SettingsPanel` 改造；规范写入 `agent-skills/frontend-guidelines.md`「画布框与设置页规范」。

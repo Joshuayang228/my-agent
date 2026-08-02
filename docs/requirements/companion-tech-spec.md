@@ -1,6 +1,6 @@
 # 伙伴与生活世界 — 完整技术方案（施工合同）
 
-> 状态：**W1 已落地**（2026-08-02）· 下一刀 W2  
+> 状态：**W0–W6 主线已落地**（2026-08-02）· 后续为内容 Pack / 方法论深啃  
 > 上位文档：[产品契约](./companion-world-framework.md) · [模块架构](./companion-architecture.md) · [DEC-034](../decisions.md)  
 > 本文补齐：数据模型 · Role Pack 格式 · 关键接口 · 影响范围 · W0–W6 可验证步骤 · 风险权衡  
 
@@ -370,8 +370,8 @@ storage: database.ts migration + companion-*-store.ts
 
 **验收：**
 
-- [ ] 产品清单 G1–G6 可演示  
-- [ ] Eval：禁中途换角 + 基线主角语气（有 key 或 skip）  
+- [x] 产品清单 G1–G6 可演示（设置主角 / 禁流式换角 / Catch-up / 名册 / 朋友圈 / 衣柜 / 冷启动欢迎）  
+- [x] Eval：C01 名册浅注入契约；禁中途换角由单测覆盖；B01 语气基线（有 key，无 key skip）  
 
 每完成一批：更新 progress/changelog；**再**补对应 methodology 章（审核式沉淀）。
 
@@ -418,4 +418,4 @@ storage: database.ts migration + companion-*-store.ts
 | 3 全局指针 | architecture.md §5.1 |
 | 4 沉淀 | methodology M21–M31（代码后写） |
 
-**W0–W5 已完成**。继续时从 **W6**（主动在场与体验收齐）开工。  
+**W0–W6 主线已完成**。后续：第二主角内容 Pack、子会话召唤 UI、methodology M21–M31 审核式沉淀。  

@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — Companion W6：主动在场与体验收齐（2026-08-02）
+
+- 空会话欢迎屏改为「嗨，我是{主角}」冷启动文案，并快捷进入朋友圈 / 衣柜 / 换主角
+- 模块卡 `docs/modules/companion.md`；旧 persona 卡重定向
+- Eval `C01`：名册浅注入且不泄露他人 protected（无 API key 可跑）
+
 ### Added — Companion W5：Cast 名册 / 召唤摘要（2026-08-02）
 
 - 宇宙 `relations.json` + NPC Pack（陈姐 / 阿雨，非主角槽）

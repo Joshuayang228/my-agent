@@ -138,7 +138,8 @@ function App() {
     args: Record<string, unknown>
   }>>([])
   const confirmDialog = confirmQueue[0] ?? null
-  const [currentPersonaName, setCurrentPersonaName] = useState('温暖伙伴')
+  const [currentPersonaName, setCurrentPersonaName] = useState('小林')
+  const [companionBlurb, setCompanionBlurb] = useState('沉稳体贴的数字伙伴')
   const [thinking, setThinking] = useState<ThinkingChunk[]>([])
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
   const [usage, setUsage] = useState<UsageInfo | null>(null)
@@ -252,6 +253,7 @@ function App() {
     })
     window.electronAPI.companion.getActive().then((p) => {
       if (p?.name) setCurrentPersonaName(p.name)
+      if (p?.description) setCompanionBlurb(p.description)
     })
     window.electronAPI.project.get().then((p) => {
       if (p) setCurrentProject(p)
@@ -713,6 +715,7 @@ function App() {
     if (window.electronAPI) {
       window.electronAPI.companion.getActive().then((p) => {
         if (p?.name) setCurrentPersonaName(p.name)
+        if (p?.description) setCompanionBlurb(p.description)
       })
       window.electronAPI.settings.get().then((s) => {
         if (s.llmModel) setCurrentModel(s.llmModel)
@@ -1007,17 +1010,25 @@ function App() {
           onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) handleFileAttach(e.dataTransfer.files) }}
         >
           <div className="mx-auto max-w-3xl px-6 py-8">
-            {/* 欢迎屏 */}
+            {/* 欢迎屏 — 绑定活跃主角冷启动文案（W6） */}
             {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center pt-32 text-center">
+              <div className="flex flex-col items-center justify-center pt-28 text-center">
                 <h1 className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  我们应该构建什么？
+                  嗨，我是{currentPersonaName}
                 </h1>
+                <p className="mt-2 max-w-md text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  {companionBlurb}
+                </p>
+                <p className="mt-1.5 max-w-sm text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  聊天、朋友圈和衣柜都跟着当前主角；对话进行中不能换人。
+                </p>
                 <div className="mt-10 flex flex-wrap justify-center gap-2">
                   {[
-                    { icon: <MessageCircle size={14} />, label: '聊聊天', prompt: '你好，介绍一下你自己' },
+                    { icon: <MessageCircle size={14} />, label: '打个招呼', prompt: '你好，介绍一下你自己' },
+                    { icon: <Newspaper size={14} />, label: '朋友圈', action: () => setActiveView('moments') },
+                    { icon: <Shirt size={14} />, label: '衣柜', action: () => setActiveView('assets') },
                     { icon: <Wrench size={14} />, label: '试工具', prompt: '现在几点了？' },
-                    { icon: <Settings size={14} />, label: '配置', action: () => setActiveView('settings') },
+                    { icon: <Settings size={14} />, label: '换主角', action: () => setActiveView('settings') },
                     { icon: <Globe size={14} />, label: '搜索', prompt: '帮我搜索一下最近的AI新闻' },
                   ].map((item) => (
                     <button

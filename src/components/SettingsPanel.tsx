@@ -320,7 +320,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
       </FieldGroup>
 
       {protagonists.length > 0 && (
-        <FieldGroup label="活跃主角" hint="同宇宙可挂最多 3 位；当前先交付 1 位。切换后新会话绑定该角色。">
+        <FieldGroup label="活跃主角" hint="同宇宙最多 3 位主角；当前先交付小林。切换=完整换人（聊天/朋友圈/衣柜全跟他）；对话流式中禁止切换。">
           <div className="flex flex-wrap gap-2">
             {protagonists.map((p) => (
               <button
