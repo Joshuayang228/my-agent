@@ -84,7 +84,7 @@
 - [x] **M29-G3** 敏感类别采集提示与面板高亮 — `sensitive-memory` 启发式 + MemoryPanel/remember
 - [x] **M30-G1** 关系里程碑对象与回调提示 — 每角色每种一次；toast + Prompt 薄提示；反成就绑架
 - [x] **M30-G2** 压缩保护「关系最小集」显式白名单 — compact instruction + 启发式并入摘要
-- [ ] **M30-G3** 用户专家度 → 能力解释粒度
+- [x] **M30-G3** 用户专家度 → 能力解释粒度 — settings 覆盖 + 启发式；注入 Explanation grain
 - [ ] **M31-G1** 基于新 Moment 的可选轻提示（可静音）
 - [ ] **M31-G2** 勿扰时段 / 频率预算
 - [ ] **M31-G3** 定时主动问候（须严格派生 World）

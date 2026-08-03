@@ -16,6 +16,8 @@ interface SettingsForm {
   activeRoleId: string
   sandboxMode: string
   executionMode: string
+  /** auto | novice | intermediate | expert — 能力解释粒度（M30-G3） */
+  userExpertiseLevel: string
   auxModel: string
   sessionTokenBudget: string
   dailyTokenBudget: string
@@ -53,6 +55,7 @@ const DEFAULTS: SettingsForm = {
   activeRoleId: 'lin',
   sandboxMode: 'workspace-write',
   executionMode: 'auto',
+  userExpertiseLevel: 'auto',
   auxModel: '',
   sessionTokenBudget: '0',
   dailyTokenBudget: '0',
@@ -218,6 +221,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
         activeRoleId: s.activeRoleId || DEFAULTS.activeRoleId,
         sandboxMode: s.sandboxMode || DEFAULTS.sandboxMode,
         executionMode: s.executionMode || DEFAULTS.executionMode,
+        userExpertiseLevel: s.userExpertiseLevel || DEFAULTS.userExpertiseLevel,
         auxModel: s.auxModel || '',
         sessionTokenBudget: s.sessionTokenBudget || '0',
         dailyTokenBudget: s.dailyTokenBudget || '0',
@@ -745,6 +749,31 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
               onClick={() => update('executionMode', opt.value)}
               className="settings-option px-3 py-2 text-xs"
               data-selected={form.executionMode === opt.value ? 'true' : undefined}
+            >
+              <div className="font-medium">{opt.label}</div>
+              <div className="mt-0.5 text-[10px] opacity-70">{opt.desc}</div>
+            </button>
+          ))}
+        </div>
+      </FieldGroup>
+
+      <FieldGroup
+        label="解释粒度（专家度）"
+        hint="影响能力讲解详略，不改工具权限。自动=按对话/画像启发式，不确定偏中性。"
+      >
+        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(7.5rem, 1fr))' }}>
+          {([
+            { value: 'auto', label: '自动', desc: '启发式，偏中性' },
+            { value: 'novice', label: '入门', desc: '多白话与步骤' },
+            { value: 'intermediate', label: '熟练', desc: '少铺垫' },
+            { value: 'expert', label: '专家', desc: '结论优先' },
+          ] as const).map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => update('userExpertiseLevel', opt.value)}
+              className="settings-option px-3 py-2 text-xs"
+              data-selected={form.userExpertiseLevel === opt.value ? 'true' : undefined}
             >
               <div className="font-medium">{opt.label}</div>
               <div className="mt-0.5 text-[10px] opacity-70">{opt.desc}</div>

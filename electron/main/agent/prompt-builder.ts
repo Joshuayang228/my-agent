@@ -50,6 +50,8 @@ export interface PromptContext {
   relationshipStageHint?: string
   /** 可选：关系里程碑薄提示（M30-G1；可偶尔回调，勿成就化） */
   milestoneHint?: string
+  /** 可选：用户专家度 → 解释粒度（M30-G3） */
+  expertiseHint?: string
 }
 
 /**
@@ -165,6 +167,14 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     parts.push('')
     parts.push('## Relationship milestones')
     parts.push(ctx.milestoneHint.trim())
+  }
+
+  // ── L2.4e 专家度 / 解释粒度（M30-G3）──
+  if (ctx.expertiseHint?.trim()) {
+    parts.push('')
+    parts.push('## Explanation grain')
+    parts.push(ctx.expertiseHint.trim())
+    parts.push('（只调讲解密度，不改工具权限；勿用专家度标签当面称呼用户。）')
   }
 
   // ── L2.5 Skill 系统摘要 ──

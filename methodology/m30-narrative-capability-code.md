@@ -117,7 +117,19 @@ Remember: you are {name}. Stay in this identity...
 |-----|----------|
 | M30-G1 里程碑 | ✅ `milestones.ts`；换角/反思/rapport；list + toast |
 | M30-G2 压缩白名单 | ✅ `relationship-minset` → compact instruction + merge |
-| M30-G3 专家度 | 无用户模型字段 |
+| M30-G3 专家度 | ✅ `expertise-level` + `userExpertiseLevel` 设置 |
+
+---
+
+## §八 / M30-G3 对照：解释粒度
+
+```text
+settings.userExpertiseLevel（auto|novice|…）
+  + 近窗用户话 / 画像启发式
+→ resolveExpertiseLevel → Assemble ## Explanation grain
+```
+
+**方法论对照**：→ §八 · M30-G3
 
 ---
 

@@ -38,6 +38,11 @@ export interface AppSettings {
   sandboxMode: string
   /** Execution mode: auto | confirm-all | plan-first */
   executionMode: string
+  /**
+   * 用户专家度（M30-G3）：auto | novice | intermediate | expert | unknown
+   * auto/空 = 启发式；显式值覆盖解释粒度。
+   */
+  userExpertiseLevel: string
   /** 辅助任务模型（标题/画像/压缩摘要，留空则沿用主模型） */
   auxModel: string
   /** 会话级 Token 预算（0 = 无限制） */
@@ -72,6 +77,7 @@ function getDefaults(): AppSettings {
     mcpServers: '[]',
     sandboxMode: 'workspace-write',
     executionMode: 'auto',
+    userExpertiseLevel: 'auto',
     auxModel: '',
     sessionTokenBudget: '0',
     dailyTokenBudget: '0',

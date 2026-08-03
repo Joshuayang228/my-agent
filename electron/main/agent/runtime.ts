@@ -25,6 +25,10 @@ import {
   getMilestonePromptHint,
   recordAndBroadcastMilestone,
 } from '../companion/growth/milestones'
+import {
+  formatExpertiseLevelForPrompt,
+  resolveExpertiseLevel,
+} from './expertise-level'
 import { assertSessionRole, loadRoleAssembleInput } from '../companion/orchestrator'
 import { registerStreamingProbe } from '../companion/streaming-gate'
 import { maybeExtractProfile } from './profile-extractor'
@@ -173,6 +177,7 @@ class AgentRuntime {
       // ── 构建上下文 ──
       const customPrompt = await settings.getSetting('systemPrompt')
       const executionMode = (await settings.getSetting('executionMode') || 'auto') as ExecutionMode
+      const expertiseOverride = await settings.getSetting('userExpertiseLevel')
       // 会话绑定 role_id 优先；与 active 不一致时仍按会话组装（禁止中途换角偷换人设）
       const sessionMeta = await store.getSession(sessionId)
       const { assembleRoleId, activeRoleId, mismatch } = await assertSessionRole(sessionMeta?.roleId)
@@ -255,6 +260,7 @@ class AgentRuntime {
       // M28-G1：关系阶段（召唤强制陌生客人）
       let relationshipStageHint: string | undefined
       let milestoneHint: string | undefined
+      let expertiseHint: string | undefined
       try {
         const rel = await resolveRelationshipStageForRole(assembleRoleId, {
           sessionKind: isSummon ? 'summon' : 'main',
@@ -269,11 +275,26 @@ class AgentRuntime {
         if (!isSummon) {
           milestoneHint = await getMilestonePromptHint(assembleRoleId)
         }
-        log.debug('Reply stance / tone / relationship', {
+        // M30-G3：专家度 → 解释粒度
+        const profileText = userProfile
+          ? [userProfile.identity, userProfile.workflow, userProfile.voice].filter(Boolean).join('\n')
+          : ''
+        const recentUserTexts = messages
+          .filter((m) => m.role === 'user')
+          .slice(-6)
+          .map((m) => m.content || '')
+        const expertise = resolveExpertiseLevel({
+          override: expertiseOverride,
+          profileText,
+          recentUserTexts,
+        })
+        expertiseHint = formatExpertiseLevelForPrompt(expertise)
+        log.debug('Reply stance / tone / relationship / expertise', {
           stance: stance.primary,
           tone: tone.register,
           aside: tone.asidePolicy,
           relationship: rel.stage,
+          expertise: expertise.level,
         })
       } catch (err) {
         log.warn('Relationship stage resolve failed', { err })
@@ -302,6 +323,7 @@ class AgentRuntime {
         toneControlHint,
         relationshipStageHint,
         milestoneHint,
+        expertiseHint,
       })
 
       // ── 运行 Agent Loop ──
