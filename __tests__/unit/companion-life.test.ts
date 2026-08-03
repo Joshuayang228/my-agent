@@ -162,12 +162,19 @@ describe('LifeEngine', () => {
     // 先让 lin 有过活跃态
     await resumeRole('lin')
     const r1 = await requestSwitch('other')
-    expect(r1).toEqual({ ok: true, catchupQueued: false })
+    expect(r1).toMatchObject({ ok: true, catchupQueued: false })
+    if (r1.ok) {
+      expect(r1.reacquaint.toast).toContain('又见面了')
+      expect(r1.reacquaint.body).toMatch(/不是教程重开|成长与记忆/)
+    }
     expect((await __lifeStore.getRoleState('lin'))?.pausedAt).not.toBeNull()
     expect((await __lifeStore.getRoleState('other'))?.pausedAt).toBeNull()
 
     const r2 = await requestSwitch('lin')
-    expect(r2).toEqual({ ok: true, catchupQueued: true })
+    expect(r2).toMatchObject({ ok: true, catchupQueued: true })
+    if (r2.ok) {
+      expect(r2.reacquaint.toast).toContain('成长未重置')
+    }
     expect((await __lifeStore.getRoleState('other'))?.pausedAt).not.toBeNull()
     expect((await __lifeStore.getRoleState('lin'))?.pausedAt).toBeNull()
 

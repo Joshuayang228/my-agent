@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — M28-G3 换角「再认识」微文案（2026-08-03）
+
+- `buildReacquaintCopy`：换视角非重开；明示成长/记忆不重置
+- `requestSwitch` 返回 + 广播 `reacquaint`；角色架/设置 toast 使用
+
 ### Added — M28-G2 交心/干活熟悉度混合（2026-08-03）
 
 - `familiarity-mix`：近窗消息 bond/task lean

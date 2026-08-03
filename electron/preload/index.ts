@@ -56,7 +56,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     requestSwitch: (
       roleId: string,
     ): Promise<
-      | { ok: true; catchupQueued: boolean }
+      | {
+          ok: true
+          catchupQueued: boolean
+          reacquaint: { title: string; body: string; toast: string }
+        }
       | { ok: false; code: 'SESSION_ACTIVE' | 'UNKNOWN_ROLE' | 'ALREADY_ACTIVE' }
     > => ipcRenderer.invoke('companion:request-switch', roleId),
     getMutable: (roleId?: string): Promise<{ roleId: string; body: string }> =>
@@ -198,11 +202,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
         roleId: string
         catchupQueued: boolean
         previousRoleId: string
+        reacquaint?: { title: string; body: string; toast: string }
       }) => void,
     ) => {
       const handler = (
         _e: Electron.IpcRendererEvent,
-        payload: { roleId: string; catchupQueued: boolean; previousRoleId: string },
+        payload: {
+          roleId: string
+          catchupQueued: boolean
+          previousRoleId: string
+          reacquaint?: { title: string; body: string; toast: string }
+        },
       ) => callback(payload)
       ipcRenderer.on('companion:role-changed', handler)
       return () => ipcRenderer.removeListener('companion:role-changed', handler)

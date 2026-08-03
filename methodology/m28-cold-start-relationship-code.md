@@ -104,4 +104,18 @@ listRecentUserMessagesForRole → resolveFamiliarityMix
 |-----|------|
 | M28-G1 | ✅ 派生枚举注入 Prompt（未另持久化情感分字段） |
 | M28-G2 | ✅ lean 启发式；非可靠情感特征 |
-| M28-G3 | 无换角专用文案 API |
+| M28-G3 | ✅ `buildReacquaintCopy` → SwitchResult.reacquaint / role-changed |
+
+---
+
+## §七 / M28-G3 对照：再认识文案
+
+```text
+requestSwitch
+  …pause / active / catchup…
+  buildReacquaintCopy({ fromName, toName, catchupQueued })
+  broadcast + return { reacquaint }
+  // 路径内无 clearGrowthStartedAt
+```
+
+**方法论对照**：→ §七 · M28-G3

@@ -59,7 +59,11 @@ declare global {
         listProtagonists: () => Promise<Array<{ id: string; name: string; description: string }>>
         getActive: () => Promise<{ id: string; name: string; description: string; universeId: string }>
         requestSwitch: (roleId: string) => Promise<
-          | { ok: true; catchupQueued: boolean }
+          | {
+              ok: true
+              catchupQueued: boolean
+              reacquaint: { title: string; body: string; toast: string }
+            }
           | { ok: false; code: 'SESSION_ACTIVE' | 'UNKNOWN_ROLE' | 'ALREADY_ACTIVE' }
         >
         getMutable: (roleId?: string) => Promise<{ roleId: string; body: string }>
@@ -227,6 +231,7 @@ declare global {
             roleId: string
             catchupQueued: boolean
             previousRoleId: string
+            reacquaint?: { title: string; body: string; toast: string }
           }) => void,
         ) => () => void
       }

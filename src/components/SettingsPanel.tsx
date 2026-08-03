@@ -383,12 +383,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
                     if (result.ok) {
                       update('activeRoleId', p.id)
                       void loadMutable(p.id)
-                      toast(
-                        result.catchupQueued
-                          ? `已切换到${p.name}，正在追赶最近生活…`
-                          : `已切换到${p.name}`,
-                        'success',
-                      )
+                      toast(result.reacquaint?.toast || `已切换到${p.name}`, 'success')
                       return
                     }
                     if (result.code === 'SESSION_ACTIVE') {

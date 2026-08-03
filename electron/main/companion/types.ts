@@ -53,8 +53,15 @@ export interface UniverseRelations {
   }>
 }
 
+/** 换角成功时附带再认识微文案（M28-G3） */
+export interface ReacquaintCopyPayload {
+  title: string
+  body: string
+  toast: string
+}
+
 export type SwitchResult =
-  | { ok: true; catchupQueued: boolean }
+  | { ok: true; catchupQueued: boolean; reacquaint: ReacquaintCopyPayload }
   | { ok: false; code: 'SESSION_ACTIVE' | 'UNKNOWN_ROLE' | 'ALREADY_ACTIVE' }
 
 /** 事件/槽位可选：发布时写入 companion_assets（M25-G2） */

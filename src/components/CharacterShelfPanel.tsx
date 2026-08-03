@@ -60,12 +60,7 @@ export function CharacterShelfPanel({ onClose, onSwitched }: CharacterShelfPanel
       if (result.ok) {
         setActiveId(p.id)
         onSwitched?.(p)
-        toast(
-          result.catchupQueued
-            ? `已切换到${p.name}，正在追赶最近生活…`
-            : `已切换到${p.name}`,
-          'success',
-        )
+        toast(result.reacquaint?.toast || `已切换到${p.name}`, 'success')
         return
       }
       if (result.code === 'SESSION_ACTIVE') {

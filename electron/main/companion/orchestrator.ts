@@ -28,6 +28,7 @@ import { getMutable } from './growth/mutable-store'
 import { runCatchup } from './life/catchup'
 import { pauseRole, resumeRole } from './life/engine'
 import { getRoleState } from './life/store'
+import { buildReacquaintCopy } from './presence'
 import { isStreamingActive } from './streaming-gate'
 import type { RolePack, RoleSummary, SwitchResult } from './types'
 
@@ -263,6 +264,7 @@ function broadcastRoleChanged(payload: {
   roleId: string
   catchupQueued: boolean
   previousRoleId: string
+  reacquaint: { title: string; body: string; toast: string }
 }): void {
   for (const win of BrowserWindow.getAllWindows()) {
     win.webContents.send('companion:role-changed', payload)
@@ -303,6 +305,26 @@ export async function requestSwitch(roleId: string): Promise<SwitchResult> {
     await resumeRole(roleId)
   }
 
-  broadcastRoleChanged({ roleId, catchupQueued, previousRoleId: current })
-  return { ok: true, catchupQueued }
+  // M28-G3：再认识微文案（不碰成长时钟）
+  let fromName = current
+  let toName = roleId
+  try {
+    fromName = identity.loadRolePack(current, universeId).name
+    toName = identity.loadRolePack(roleId, universeId).name
+  } catch {
+    /* 名缺失时用 id */
+  }
+  const reacquaint = buildReacquaintCopy({
+    fromName,
+    toName,
+    catchupQueued,
+  })
+
+  broadcastRoleChanged({
+    roleId,
+    catchupQueued,
+    previousRoleId: current,
+    reacquaint,
+  })
+  return { ok: true, catchupQueued, reacquaint }
 }

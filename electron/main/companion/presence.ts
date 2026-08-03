@@ -6,5 +6,7 @@
 
 export {
   buildColdStartCopy,
+  buildReacquaintCopy,
   type ColdStartCopy,
+  type ReacquaintCopy,
 } from '../../../src/shared/companion-presence'
