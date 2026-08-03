@@ -16,12 +16,19 @@
 | 质量 | Unit / Eval / E2E 总控 | `docs/quality.md` |
 | 账本 | 对内进度 / 对外变更 / 缺口 / 坑 / 决策 / 规则反馈 | `progress` · `changelog` · `wishlist` · `pitfalls` · `decisions` · `rules-feedback` |
 
-旁路：`methodology/`（深 Why）；`CLAUDE.md`（规则入口）；根目录 `agent-skills/`（协作 SOP，与 docs 并列，不在 docs 内）。
+旁路（**不是**四维之一）：
+
+| 旁路 | 职责 | 落点 |
+|------|------|------|
+| **施工合同** | 大改开工前 Why/What/How/验收（唯一称呼） | `docs/requirements/` |
+| 深 Why | 设计哲学与取舍 | `methodology/` |
+| 暂缓评估 | 未升格为施工合同的调研 | `docs/notes/` |
+| 规则 / SOP | 协作入口 | `CLAUDE.md` · 根目录 `agent-skills/` |
 
 ## 约定
 
-- 产品模块导览：`docs/modules/README.md`（夹首页；原名 product-module-map）
-- 模块卡：薄契约 + 必读文件；不写函数清单
+- **术语**：`docs/requirements/` 内文件一律称**施工合同**，禁止「需求文档 / 需求合同 / 开工合同」别名
+- 产品模块导览：`docs/modules/README.md`；模块卡含「已落地能力」
 - progress 对内、changelog 对外；pitfalls / decisions 属账本
 - 真相：代码行为 > 模块卡现状 > architecture > methodology 愿景
 
@@ -33,7 +40,7 @@
 
 ## 验收
 
-- [x] modules/README（产品导览）+ companion/memory/permission（persona 空壳卡已删，并入 companion）
+- [x] modules/README（产品导览）+ companion/memory/permission/agent-runtime（persona 空壳卡已删）
 - [x] quality.md
 - [x] CLAUDE / writing-style / architecture 对齐
 - [x] 旧文档归档

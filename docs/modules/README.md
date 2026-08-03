@@ -4,7 +4,7 @@
 > **产品维入口**：任务落到某能力时，先读对应模块卡，再改代码。  
 > 技术总图见 [`../architecture.md`](../architecture.md)；质量总控见 [`../quality.md`](../quality.md)。  
 > **「有什么能力」**写在各卡的「已落地能力」节（不再单独维护总 catalog）。  
-> 需求合同索引：[`../requirements/README.md`](../requirements/README.md)。  
+> 施工合同索引：[`../requirements/README.md`](../requirements/README.md)。  
 > 文档体系：[`../docs-system.md`](../docs-system.md)
 
 ## 为什么需要模块卡

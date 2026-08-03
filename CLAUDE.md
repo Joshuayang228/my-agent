@@ -18,7 +18,7 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 
 文档分四维：**产品**（`docs/modules/`，入口 `README.md`）· **技术**（`architecture.md`）· **质量**（`quality.md`）· **账本**（progress / changelog / wishlist / pitfalls / decisions / rules-feedback）。  
 **「有什么能力」**看对应模块卡的「已落地能力」节（导览：[`docs/modules/README.md`](docs/modules/README.md)）。  
-施工合同索引：[`docs/requirements/README.md`](docs/requirements/README.md)。  
+**施工合同**（唯一称呼，勿称「需求文档 / 需求合同 / 开工合同」）索引：[`docs/requirements/README.md`](docs/requirements/README.md)。  
 协作 SOP 在根目录 `agent-skills/`（与 docs 并列，见下文「agent-skills」）。深 Why 在 `methodology/`。文档四维见 `docs/docs-system.md`。
 
 **模块卡纪律**：`docs/modules/` 只放**有实质边界的模块卡** + `README` 导览。能力清单写在各卡「已落地能力」，**禁止**再维护总 `capability-catalog`；能力合并后更新导览指向存活卡，**禁止**留下仅「请改读 xxx」的重定向/空壳文档。
@@ -30,7 +30,7 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 | 落在某产品能力（伙伴/记忆/权限/运行时等） | 对应 `docs/modules/<名>.md`（含「已落地能力」）→ 其「必读文件」→ 必要时 `architecture.md` |
 | 「有没有某某能力 / Prompt 怎么组装」 | 模块卡「已落地能力」；伙伴 Prompt 管线见 `companion.md` |
 | 跨模块 / 架构 | `docs/modules/README.md` + `architecture.md` + `progress.md` |
-| 开工合同 / 批次缺口 | `docs/requirements/README.md` → 对应契约文 |
+| 大改要对齐 / 翻施工合同 | `docs/requirements/README.md` → 对应 `docs/requirements/*.md` |
 | 测试 / Eval 门禁 | `docs/quality.md` |
 | 小改（typo、单文件少量且意图明确） | 相关代码即可 |
 
@@ -101,7 +101,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 - 修 bug 先定位根因，禁止猜测式修改。
 - 同一方法失败两次必须换路径，禁止第三次盲试。
 - 禁止 Mock 真实 AI 调用（测试场景除外）。
-- **禁止分期实现或临时方案**——每次给出完整可用实现，不留"TODO 后续补""先用简化版"。功能确实复杂需分步时，在需求文档里明确拆分边界，每步独立可验证。
+- **禁止分期实现或临时方案**——每次给出完整可用实现，不留"TODO 后续补""先用简化版"。功能确实复杂需分步时，在**施工合同**（`docs/requirements/`）里明确拆分边界，每步独立可验证。
 - 编辑文件前先 Read 最新版本；删代码前说明原因，大段删除先获用户确认；改依赖（package.json 等）声明新增/移除了什么。
 - 不确定的假设用 **[待确认]** 标记并告知用户，禁止默默假设后往下走。
 - 文件 >500 行时优先读目录/关键章节，不全量读浪费 token。
@@ -121,9 +121,12 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 
 ---
 
-## 需求文档规范
+## 施工合同规范（`docs/requirements/`）
 
-**适用场景**：跨 3 个以上文件的新功能、架构变更、复杂功能模块。这类任务**必须先写需求文档，用户确认后再动手**。
+> 统一称呼：**施工合同**。落点固定为 `docs/requirements/*.md`。  
+> 禁止混用「需求文档 / 需求合同 / 开工合同」等别名（避免 AI 找错目录）。
+
+**适用场景**：跨 3 个以上文件的新功能、架构变更、复杂功能模块。这类任务**必须先写施工合同，用户确认后再动手**。
 
 必须包含：需求背景（Why）、功能目标（What）、技术方案（How：架构/数据流/关键接口/依赖）、影响范围评估（破坏性/测试/文档）、实施步骤（按逻辑顺序、每步可验证）、风险与权衡。
 
@@ -213,7 +216,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 | 模块合并 / 废弃 | 删旧卡；导览改指存活卡；勿留重定向文件 |
 | 分层 / 主数据流 / 目录边界 | `docs/architecture.md` |
 | 质量门禁或 Eval 分层策略 | `docs/quality.md` |
-| 需求合同状态（进行中↔已落地） | `docs/requirements/README.md`（必要时改契约文首状态） |
+| 施工合同状态（进行中↔已落地） | `docs/requirements/README.md`（必要时改对应文首状态） |
 | 项目阶段 / 下一步 | `docs/progress.md`（对内，状态变化必更新） |
 | 用户可见能力或修复 | `docs/changelog.md`（对外） |
 | 暂缓 / 缺口 / 灵感 | `docs/wishlist.md`（见下方硬约束） |

@@ -5,6 +5,10 @@
 
 ## [未发布]
 
+### Changed — 施工合同术语统一（2026-08-03）
+
+- `docs/requirements/` 唯一称呼为「施工合同」；CLAUDE / docs-system / requirements README 禁混用旧别名
+
 ### Changed — 能力清单拆进各模块卡（2026-08-03）
 
 - 删除总表 `capability-catalog.md`；「有什么」改由各卡「已落地能力」维护
