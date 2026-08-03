@@ -17,7 +17,7 @@
 **阶段**：公开运营起步；体验与前端统一优先于再堆基建；原生语音与 M24-G3 暂缓。
 
 **最新动态（2026-08-04）**：
-- ✅ **GitHub 运营前门**：双语 README + CONTRIBUTING；`docs/deferred` → `docs/deferred`；progress 人读摘要；Cursor stop hook 提醒模块卡能力行。
+- ✅ **GitHub 运营前门**：双语 README + CONTRIBUTING；`docs/notes` → `docs/deferred`；progress 人读摘要；Cursor stop hook 提醒模块卡能力行。
 - ✅ **双语 README**：`README.md`（EN）+ `README.zh-CN.md`。
 - ✅ **术语统一**：施工合同（禁称需求文档等别名）。
 - ✅ **能力表拆进各模块卡**；新增 `agent-runtime.md`；删 persona 空壳卡。
