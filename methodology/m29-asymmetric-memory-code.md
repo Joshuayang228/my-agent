@@ -30,7 +30,13 @@ extractMemoryCitations(results)  // 与 formatRecall 同去重
 | 步骤 | 现状 |
 |------|------|
 | 本轮 hit → UI | ✅ `memory_citations` |
-| 一键纠错 | 无（M29-G2） |
+| 一键纠错 | ✅ `correctCitedMemory` + 芯片按钮 |
+
+```text
+memory:correct-citation(id, replacement?)
+  planCitationCorrection(hasSqlite, replacement)
+  → deleteMemory | removeFromVectorStore | updateMemory | addMemory(fact)
+```
 
 ---
 
@@ -60,7 +66,7 @@ forget / Panel delete：SQLite 删除后必须联动向量删除（M08 纪律）
 | 步骤 | 现状 |
 |------|------|
 | 用户口头纠正 | 依赖模型调 forget |
-| 一键按钮 | 无（M29-G2） |
+| 一键按钮 | ✅ 芯片「记错了/改正」 |
 | 指认本轮引用 | ✅ 芯片（M29-G1） |
 | 面板手删 | ✅ |
 

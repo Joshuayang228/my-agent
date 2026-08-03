@@ -54,6 +54,13 @@ declare global {
         add: (category: string, content: string, roleId?: string) => Promise<{ id: string; category: string; content: string; createdAt: number; updatedAt: number; roleId?: string }>
         delete: (id: string) => Promise<void>
         update: (id: string, content: string) => Promise<void>
+        correctCitation: (
+          id: string,
+          replacement?: string,
+        ) => Promise<
+          | { ok: true; action: 'deleted' | 'updated' | 'replaced'; id: string; newId?: string }
+          | { ok: false; error: string }
+        >
       }
       companion: {
         listProtagonists: () => Promise<Array<{ id: string; name: string; description: string }>>

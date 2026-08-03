@@ -188,6 +188,51 @@ function App() {
   const activeSessionIdRef = useRef<string | null>(null)
   const { toast } = useToast()
 
+  /** M29-G2：从消息与本轮 ref 去掉已纠错芯片 */
+  const dropCitationChip = useCallback((citationId: string) => {
+    turnCitationsRef.current = turnCitationsRef.current.filter((c) => c.id !== citationId)
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (!m.memoryCitations?.length) return m
+        const next = m.memoryCitations.filter((c) => c.id !== citationId)
+        if (next.length === m.memoryCitations.length) return m
+        return { ...m, memoryCitations: next.length ? next : undefined }
+      }),
+    )
+  }, [])
+
+  const handleForgetCitation = useCallback(
+    async (citationId: string) => {
+      const r = await window.electronAPI?.memory.correctCitation(citationId)
+      if (!r?.ok) {
+        toast(r && 'error' in r ? r.error : '纠错失败', 'error')
+        return
+      }
+      dropCitationChip(citationId)
+      toast('已忘掉这条引用（库已清理）', 'success')
+    },
+    [dropCitationChip, toast],
+  )
+
+  const handleAmendCitation = useCallback(
+    async (citationId: string, hint: string) => {
+      const replacement = window.prompt('改正为（将写入事实记忆，并清掉错误引用）', hint)
+      if (replacement == null) return
+      if (!replacement.trim()) {
+        toast('改正内容不能为空', 'error')
+        return
+      }
+      const r = await window.electronAPI?.memory.correctCitation(citationId, replacement.trim())
+      if (!r?.ok) {
+        toast(r && 'error' in r ? r.error : '改正失败', 'error')
+        return
+      }
+      dropCitationChip(citationId)
+      toast(r.action === 'updated' ? '已更新这条记忆' : '已改正并写入新事实', 'success')
+    },
+    [dropCitationChip, toast],
+  )
+
   useEffect(() => { sessionsRef.current = sessions }, [sessions])
   useEffect(() => { activeSessionIdRef.current = activeSessionId }, [activeSessionId])
 
@@ -1313,21 +1358,45 @@ function App() {
                       <div className="relative max-w-full">
                         {msg.memoryCitations && msg.memoryCitations.length > 0 && (
                           <div
-                            className="mb-1.5 flex flex-wrap gap-1"
+                            className="mb-1.5 flex flex-wrap gap-1.5"
                             aria-label="本轮引用的记忆"
                           >
                             {msg.memoryCitations.map((c) => (
                               <span
                                 key={c.id}
                                 title={`id: ${c.id}\n${c.summary}`}
-                                className="max-w-[14rem] truncate rounded px-1.5 py-0.5 text-[10px] leading-snug"
+                                className="inline-flex max-w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] leading-snug"
                                 style={{
                                   color: 'var(--text-muted)',
                                   background: 'var(--bg-secondary)',
                                   border: '1px solid var(--border-subtle)',
                                 }}
                               >
-                                记忆·{c.category}: {c.summary}
+                                <span className="max-w-[10rem] truncate">
+                                  记忆·{c.category}: {c.summary}
+                                </span>
+                                {!isStreaming && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="shrink-0 underline-offset-2 hover:underline"
+                                      style={{ color: 'var(--text-secondary)' }}
+                                      title="记错了：从库中删除这条引用"
+                                      onClick={() => void handleForgetCitation(c.id)}
+                                    >
+                                      记错了
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="shrink-0 underline-offset-2 hover:underline"
+                                      style={{ color: 'var(--text-secondary)' }}
+                                      title="改正：写入正确内容"
+                                      onClick={() => void handleAmendCitation(c.id, c.summary)}
+                                    >
+                                      改正
+                                    </button>
+                                  </>
+                                )}
                               </span>
                             ))}
                           </div>

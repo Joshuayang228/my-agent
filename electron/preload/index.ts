@@ -46,6 +46,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('memory:add', category, content, roleId),
     delete: (id: string) => ipcRenderer.invoke('memory:delete', id),
     update: (id: string, content: string) => ipcRenderer.invoke('memory:update', id, content),
+    correctCitation: (
+      id: string,
+      replacement?: string,
+    ): Promise<
+      | { ok: true; action: 'deleted' | 'updated' | 'replaced'; id: string; newId?: string }
+      | { ok: false; error: string }
+    > => ipcRenderer.invoke('memory:correct-citation', id, replacement),
   },
 
   companion: {

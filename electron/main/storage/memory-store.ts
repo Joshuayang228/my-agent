@@ -169,6 +169,22 @@ export async function listFeedbackForRole(
   return results
 }
 
+/** 按 id 取一条；不存在返回 null（M29-G2 纠错分流） */
+export async function getMemory(id: string): Promise<MemoryEntry | null> {
+  const key = (id || '').trim()
+  if (!key) return null
+  await ensureTable()
+  const db = await getDatabase()
+  const stmt = db.prepare('SELECT * FROM memories WHERE id = ? LIMIT 1')
+  stmt.bind([key])
+  let entry: MemoryEntry | null = null
+  if (stmt.step()) {
+    entry = rowToEntry(stmt.getAsObject() as Record<string, unknown>)
+  }
+  stmt.free()
+  return entry
+}
+
 export async function deleteMemory(id: string): Promise<void> {
   await ensureTable()
   const db = await getDatabase()

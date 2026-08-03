@@ -80,7 +80,7 @@
 - [x] **M28-G2** 熟悉度区分「交心 vs 纯干活」信号 — `familiarity-mix` lean；task-leaning 压制 rapport
 - [x] **M28-G3** 换角后的「再认识」微文案（不重置成长时钟）— `buildReacquaintCopy` + SwitchResult/toast
 - [x] **M29-G1** 本轮注入/引用记忆的 UI 标注（id 或摘要芯片）— `memory_citations` 事件 + Chat 芯片
-- [ ] **M29-G2** 「记错了」对话内一键纠错（触发 forget/更新）
+- [x] **M29-G2** 「记错了」对话内一键纠错（触发 forget/更新）— `correctCitedMemory` + 芯片按钮
 - [ ] **M29-G3** 敏感类别采集提示与面板高亮
 - [ ] **M30-G1** 关系里程碑对象与回调提示
 - [ ] **M30-G2** 压缩保护「关系最小集」显式白名单

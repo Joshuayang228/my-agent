@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — M29-G2 对话内一键纠错（2026-08-03）
+
+- `memory:correct-citation`：删向量 / 删或改 SQLite；改正可写新 fact
+- Chat 芯片「记错了 / 改正」按钮
+
 ### Added — M29-G1 本轮记忆引用芯片（2026-08-03）
 
 - `extractMemoryCitations` + 流事件 `memory_citations`
