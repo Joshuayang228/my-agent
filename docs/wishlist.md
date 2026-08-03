@@ -75,7 +75,7 @@
 - [x] **M26-G3** NPC 多场景 prompt 组（执行/展示/互动）— `scenes/*.md` + summon 注入
 - [x] **M27-G1** 问/做/安慰/推回显式策略或轻量分类 — `reply-stance` 启发式注入 Prompt
 - [x] **M27-G2** aside 频率/质量 Eval（过油/缺失）— `shared/aside` + Eval C02
-- [ ] **M27-G3** 情绪语气收放控制器（非纯靠模型）
+- [x] **M27-G3** 情绪语气收放控制器（非纯靠模型）— `tone-control` 紧/软/中性 + aside 策略
 - [ ] **M28-G1** relationshipStage 显式状态驱动 Prompt/行为
 - [ ] **M28-G2** 熟悉度区分「交心 vs 纯干活」信号
 - [ ] **M28-G3** 换角后的「再认识」微文案（不重置成长时钟）

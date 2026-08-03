@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — M27-G3 语气收放（2026-08-03）
+
+- `resolveToneControl`：紧/软/中性 + aside discourage|optional|encourage-once
+- 结合报错高潮、executionMode、reply-stance；注入 `## Tone control`
+
 ### Added — M27-G2 aside 频率/质量 Eval（2026-08-03）
 
 - `src/shared/aside`：解析 + 单轮/多轮阈值（过油/夺权）

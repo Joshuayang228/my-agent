@@ -31,6 +31,7 @@ import { buildSkillSummaryForPrompt, getActiveSkill, clearActiveSkill } from '..
 import { setCurrentSessionId as setTaskPlanSessionId } from '../services/task-plan-service'
 import { clearSessionSubAgents } from './subagent-registry'
 import { detectReplyStance, formatReplyStanceForPrompt } from './reply-stance'
+import { formatToneControlForPrompt, resolveToneControl } from './tone-control'
 import { getWorkspaceRoot } from './project-memory'
 import { createLogger } from '../utils/logger'
 import { startSpan } from '../utils/tracer'
@@ -222,12 +223,22 @@ class AgentRuntime {
       }
       const sessionInfoParts = [customPrompt, summonNote].filter(Boolean)
 
-      // M27-G1：本轮问/做/安慰/推回轻量策略（不拦 Loop）
-      const stance = detectReplyStance(lastUserMsg?.content ?? '', { executionMode })
+      // M27-G1/G3：立场 + 语气收放（不拦 Loop）
+      const userText = lastUserMsg?.content ?? ''
+      const stance = detectReplyStance(userText, { executionMode })
       const replyStanceHint = formatReplyStanceForPrompt(stance) || undefined
-      if (replyStanceHint) {
-        log.debug('Reply stance', { primary: stance.primary, signals: stance.signals })
-      }
+      const tone = resolveToneControl({
+        stance: stance.primary,
+        executionMode,
+        sessionKind: isSummon ? 'summon' : 'main',
+        userText,
+      })
+      const toneControlHint = formatToneControlForPrompt(tone)
+      log.debug('Reply stance / tone', {
+        stance: stance.primary,
+        tone: tone.register,
+        aside: tone.asidePolicy,
+      })
 
       const systemPrompt = buildSystemPrompt({
         persona,
@@ -244,6 +255,7 @@ class AgentRuntime {
         recentMomentsSlice: isSummon ? undefined : recentMomentsSlice,
         rosterLines,
         replyStanceHint,
+        toneControlHint,
       })
 
       // ── 运行 Agent Loop ──

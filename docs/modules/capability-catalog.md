@@ -68,11 +68,12 @@
   → assertSessionRole(session.role_id)          # 禁止偷换人设
   → loadRoleAssembleInput(roleId)               # Pack + MUTABLE + catchup + worldSlice + recentMoments + roster
   → detectReplyStance(lastUser)                 # M27-G1 问/做/安慰/推回 hint
+  → resolveToneControl(stance, mode, text)      # M27-G3 紧/软/中性 + aside 策略
   → memory.buildUserProfile()                   # 结构化画像
   → safeVectorSearch(lastUser)                  # 向量语义召回 → L3 memories
   → buildSystemPrompt({
         L1: PROTECTED + MUTABLE
-        L2: 工具/aside/Reply stance/skill 摘要
+        L2: 工具/aside/Reply stance/Tone control/skill 摘要
         L3: 画像 + memories + catchup + worldSlice + recentMoments + roster
         L4: 动态（时间等）
      })

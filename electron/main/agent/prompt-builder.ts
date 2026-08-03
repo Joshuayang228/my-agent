@@ -44,6 +44,8 @@ export interface PromptContext {
   rosterLines?: string
   /** 可选：本轮问/做/安慰/推回轻量策略（M27-G1） */
   replyStanceHint?: string
+  /** 可选：本轮语气收放（M27-G3；紧/软/中性 + aside 策略） */
+  toneControlHint?: string
 }
 
 /**
@@ -135,6 +137,14 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     parts.push('## Reply stance (this turn)')
     parts.push(ctx.replyStanceHint.trim())
     parts.push('（启发式提示，非硬指令；危险/违规信号应优先遵守。主答办成事，aside 不夺权。）')
+  }
+
+  // ── L2.4b 语气收放（M27-G3）──
+  if (ctx.toneControlHint?.trim()) {
+    parts.push('')
+    parts.push('## Tone control (this turn)')
+    parts.push(ctx.toneControlHint.trim())
+    parts.push('（收放旋钮，不改变人设身份；与 aside_style 染色正交。）')
   }
 
   // ── L2.5 Skill 系统摘要 ──

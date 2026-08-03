@@ -123,7 +123,7 @@
 | 闲聊 / 安慰 / 冷启动前几轮 | 可软 | 可更自然，仍一句 |
 | 召唤子会话 | 对方 Pack 全开 | 提示不推进生活；别替 active 过日子 |
 
-**暂未实现**：情绪分类 → 语气模板（M27-G3）。现靠 PROTECTED/MUTABLE + 模型自觉；Eval B01 盯「像人」，不盯「每轮 aside 达标」。
+**已落地轻量版（M27-G3）**：`resolveToneControl` 按报错/模式/立场输出紧|软|中性与 aside 策略，注入 Prompt；Eval B01 仍盯「像人」。
 
 ---
 
@@ -194,6 +194,6 @@ Catch-up、名册、朋友圈近况进 L3，是为了「她有日子」（M23–
 |----|------|------------|
 | M27-G1 | 问/做/安慰/推回分类器 | ✅ 启发式 `reply-stance` 注入 Prompt；不硬拦 Loop |
 | M27-G2 | aside 频率/质量 Eval | ✅ `src/shared/aside` 阈值 + Eval C02 / 单测 |
-| M27-G3 | 情绪语气控制器 | 缺可靠情绪信号 |
+| M27-G3 | 情绪语气控制器 | ✅ `tone-control` 启发式收放；非完整情绪模型 |
 
 代码走读见 `m27-conversation-two-spaces-code.md`。

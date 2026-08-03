@@ -119,8 +119,23 @@ Unit aside-quality.test.ts
 
 ---
 
+## §七 / M27-G3 对照：语气收放
+
+```text
+resolveToneControl({ stance, executionMode, sessionKind, userText })
+  → tight | soft | neutral + aside policy
+  → ## Tone control (this turn)
+```
+
+报错高潮 / confirm|plan / act|pushback → tight+discourage aside  
+comfort → soft+encourage-once  
+
+**方法论对照**：→ §七 · M27-G3
+
+---
+
 ## 已知简化
 
-| Gap | 代码 |
-|-----|------|
-| M27-G3 | 无情绪特征输入；安慰仅靠关键词 |
+| 项 | 说明 |
+|----|------|
+| 情绪模型 | 仍关键词级（接 reply-stance），无多模态情绪 |
