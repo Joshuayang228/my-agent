@@ -86,7 +86,7 @@
 - [x] **M30-G2** 压缩保护「关系最小集」显式白名单 — compact instruction + 启发式并入摘要
 - [x] **M30-G3** 用户专家度 → 能力解释粒度 — settings 覆盖 + 启发式；注入 Explanation grain
 - [x] **M31-G1** 基于新 Moment 的可选轻提示（可静音）— tick 后应用内 toast；静音开关 + 15min 冷却
-- [ ] **M31-G2** 勿扰时段 / 频率预算
+- [x] **M31-G2** 勿扰时段 / 频率预算 — 默认 22–8 + 日上限 3；可配置
 - [ ] **M31-G3** 定时主动问候（须严格派生 World）
 - [x] ~~**自动反思写 MUTABLE**~~ — 2026-08-02：门闸 + 对话后入队 + Settings 手动/强制；需求见 `docs/requirements/companion-mutable-reflection.md`
 

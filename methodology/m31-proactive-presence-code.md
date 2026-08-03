@@ -98,13 +98,14 @@ runtime.sendDesktopNotification(assistantContent)
 tickActiveRole
   → publishAndProjectDue
   → maybeNotifyNewMoments(roleId, published)
-       muted / published<=0 / 无文案 / 15min 冷却 → 跳过
-       else broadcast companion:moment-tip { toast }
+       muted / published<=0 / 无文案
+       / 勿扰时段 / 日预算用尽 / 15min 冷却 → 跳过
+       else broadcast companion:moment-tip { toast } + 记日计数
 App: onMomentTip → useToast
-设置：companionMomentTipsMuted
+设置：Muted · QuietStart/End · MaxPerDay
 ```
 
-**发现**：内容预览来自已投影 Moment，不另造文案；失败不阻断 tick。
+**发现**：内容预览来自已投影 Moment，不另造文案；失败不阻断 tick；勿扰只抑提示不抑 L0。
 
 **方法论对照**：→ §五、§二 L2
 
@@ -127,5 +128,5 @@ ticker: tickActiveRole(...).catch(err => log.warn)
 | Gap | 代码 |
 |-----|------|
 | M31-G1 | ✅ `moment-tips` + 静音 + 冷却 |
-| M31-G2 | 无 quiet hours 配置 |
+| M31-G2 | ✅ 勿扰小时窗 + 日预算 |
 | M31-G3 | 无 cron 问候任务 |

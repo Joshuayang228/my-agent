@@ -67,6 +67,14 @@ export interface AppSettings {
   companionMomentTipsMuted: string
   /** 上次 Moment 轻提示时间戳 ms（M31-G1 冷却） */
   companionMomentTipsLastAt: string
+  /** 勿扰开始小时 0–23（M31-G2），默认 22；与 end 相等=关闭勿扰 */
+  companionMomentTipsQuietStart: string
+  /** 勿扰结束小时 0–23（M31-G2），默认 8；可跨午夜 */
+  companionMomentTipsQuietEnd: string
+  /** 每日最多生活轻提示条数（M31-G2），默认 3；0=不限 */
+  companionMomentTipsMaxPerDay: string
+  /** 当日计数 JSON：{ day: YYYY-MM-DD, count: number }（M31-G2） */
+  companionMomentTipsDayStats: string
 }
 
 function getDefaults(): AppSettings {
@@ -95,6 +103,10 @@ function getDefaults(): AppSettings {
     companionMilestonesByRole: '{}',
     companionMomentTipsMuted: 'false',
     companionMomentTipsLastAt: '',
+    companionMomentTipsQuietStart: '22',
+    companionMomentTipsQuietEnd: '8',
+    companionMomentTipsMaxPerDay: '3',
+    companionMomentTipsDayStats: '',
   }
 }
 

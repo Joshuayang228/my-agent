@@ -20,6 +20,12 @@ interface SettingsForm {
   userExpertiseLevel: string
   /** 新 Moment 应用内轻提示静音（M31-G1） */
   companionMomentTipsMuted: string
+  /** 勿扰开始小时（M31-G2） */
+  companionMomentTipsQuietStart: string
+  /** 勿扰结束小时（M31-G2） */
+  companionMomentTipsQuietEnd: string
+  /** 每日最多轻提示（M31-G2）；0=不限 */
+  companionMomentTipsMaxPerDay: string
   auxModel: string
   sessionTokenBudget: string
   dailyTokenBudget: string
@@ -59,6 +65,9 @@ const DEFAULTS: SettingsForm = {
   executionMode: 'auto',
   userExpertiseLevel: 'auto',
   companionMomentTipsMuted: 'false',
+  companionMomentTipsQuietStart: '22',
+  companionMomentTipsQuietEnd: '8',
+  companionMomentTipsMaxPerDay: '3',
   auxModel: '',
   sessionTokenBudget: '0',
   dailyTokenBudget: '0',
@@ -226,6 +235,12 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
         executionMode: s.executionMode || DEFAULTS.executionMode,
         userExpertiseLevel: s.userExpertiseLevel || DEFAULTS.userExpertiseLevel,
         companionMomentTipsMuted: s.companionMomentTipsMuted || DEFAULTS.companionMomentTipsMuted,
+        companionMomentTipsQuietStart:
+          s.companionMomentTipsQuietStart || DEFAULTS.companionMomentTipsQuietStart,
+        companionMomentTipsQuietEnd:
+          s.companionMomentTipsQuietEnd || DEFAULTS.companionMomentTipsQuietEnd,
+        companionMomentTipsMaxPerDay:
+          s.companionMomentTipsMaxPerDay || DEFAULTS.companionMomentTipsMaxPerDay,
         auxModel: s.auxModel || '',
         sessionTokenBudget: s.sessionTokenBudget || '0',
         dailyTokenBudget: s.dailyTokenBudget || '0',
@@ -423,7 +438,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
 
       <FieldGroup
         label="动态轻提示"
-        hint="活跃主角有新朋友圈投影时，应用内气泡提示（非系统通知）。最短间隔约 15 分钟；勿扰时段见后续。"
+        hint="活跃主角有新朋友圈投影时，应用内气泡提示（非系统通知）。最短间隔约 15 分钟；默认勿扰 22–8 点，每日最多 3 条。"
       >
         <div className="flex flex-wrap gap-2">
           <button
@@ -445,6 +460,44 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
             <div className="mt-0.5 text-[10px] opacity-70">仍推进日子，不弹气泡</div>
           </button>
         </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <label className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            勿扰开始（时）
+            <input
+              type="number"
+              min={0}
+              max={23}
+              value={form.companionMomentTipsQuietStart}
+              onChange={(e) => update('companionMomentTipsQuietStart', e.target.value)}
+              className="theme-input mt-1 w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
+            />
+          </label>
+          <label className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            勿扰结束（时）
+            <input
+              type="number"
+              min={0}
+              max={23}
+              value={form.companionMomentTipsQuietEnd}
+              onChange={(e) => update('companionMomentTipsQuietEnd', e.target.value)}
+              className="theme-input mt-1 w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
+            />
+          </label>
+          <label className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            每日上限（0=不限）
+            <input
+              type="number"
+              min={0}
+              max={99}
+              value={form.companionMomentTipsMaxPerDay}
+              onChange={(e) => update('companionMomentTipsMaxPerDay', e.target.value)}
+              className="theme-input mt-1 w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
+            />
+          </label>
+        </div>
+        <p className="mt-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+          起止小时相同=关闭勿扰；起&gt;止表示跨午夜（如 22→8）。日子仍会推进，只是不弹气泡。
+        </p>
       </FieldGroup>
 
       <FieldGroup
