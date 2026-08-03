@@ -37,7 +37,7 @@ npm run eval:run
 
 质量横切所有产品模块：
 
-- 改人格 → 看 `modules/persona.md` 必测 + 相关 Eval  
+- 改伙伴/人格 → 看 `modules/companion.md` 必测 + 相关 Eval  
 - 改记忆 → `modules/memory.md` 必测 + memory 单测  
 - 改权限 → `modules/permission.md` 必测 + permission Eval/单测  
 

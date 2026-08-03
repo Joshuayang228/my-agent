@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Changed — 删除 persona 空壳模块卡（2026-08-03）
+
+- 人格域已并入 `companion.md`；不再保留「请改读」重定向文件
+- `CLAUDE.md` 增加模块卡纪律：禁止空壳/重定向卡
+
 ### Changed — 产品模块导览改名为 modules/README（2026-08-03）
 
 - `docs/modules/product-module-map.md` → `docs/modules/README.md`（夹首页）

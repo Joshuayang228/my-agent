@@ -33,7 +33,7 @@
 
 ## 验收
 
-- [x] modules/README（产品导览）+ persona/memory/permission
+- [x] modules/README（产品导览）+ companion/memory/permission（persona 空壳卡已删，并入 companion）
 - [x] quality.md
 - [x] CLAUDE / writing-style / architecture 对齐
 - [x] 旧文档归档

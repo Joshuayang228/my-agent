@@ -17,9 +17,11 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 ## 启动上下文
 
 文档分四维：**产品**（`docs/modules/`，入口 `README.md`）· **技术**（`architecture.md`）· **质量**（`quality.md`）· **账本**（progress / changelog / wishlist / pitfalls / decisions / rules-feedback）。  
-**「有什么能力」**看 [`docs/modules/capability-catalog.md`](docs/modules/capability-catalog.md)（补已归档 `features.md` 的缺口；模块卡只管边界）。  
-施工合同 / 批次索引：[`docs/requirements/README.md`](docs/requirements/README.md)。  
+**「有什么能力」**看 [`docs/modules/capability-catalog.md`](docs/modules/capability-catalog.md)（各模块卡已落地能力表；模块卡只管边界）。  
+施工合同索引：[`docs/requirements/README.md`](docs/requirements/README.md)。  
 协作 SOP 在根目录 `agent-skills/`（与 docs 并列，见下文「agent-skills」）。深 Why 在 `methodology/`。文档四维见 `docs/docs-system.md`。
+
+**模块卡纪律**：`docs/modules/` 只放**有实质边界的模块卡** + `README` 导览 + `capability-catalog`。能力合并后更新导览/catalog 指向存活卡，**禁止**留下仅「请改读 xxx」的重定向/空壳文档（曾有 `persona.md`，已删）。
 
 **按任务类型读**：
 
@@ -206,8 +208,9 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 | 变了什么 | 更新 |
 |----------|------|
 | 模块边界 / 入口 / 不变量 / 必测 / 现状缺口 | 对应 `docs/modules/<名>.md`（必更） |
-| 新增大产品能力且会反复改 | `docs/modules/README.md` + 新建模块卡 |
+| 新增大产品能力且会反复改 | `docs/modules/README.md` + 新建模块卡（须有实质边界，禁止空壳/重定向卡） |
 | 能力增删或行为变更（「有什么」） | `docs/modules/capability-catalog.md`（同轮） |
+| 模块合并 / 废弃 | 删旧卡；导览改指存活卡；勿留重定向文件 |
 | 分层 / 主数据流 / 目录边界 | `docs/architecture.md` |
 | 质量门禁或 Eval 分层策略 | `docs/quality.md` |
 | 需求合同状态（进行中↔已落地） | `docs/requirements/README.md`（必要时改契约文首状态） |

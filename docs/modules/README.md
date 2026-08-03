@@ -18,8 +18,7 @@
 
 | 模块 | 一句话 | 卡 | 状态 |
 |------|--------|----|------|
-| 伙伴世界 | 单活跃主角 + 生活世界 + 截面 | [companion.md](./companion.md) | W0–W6 + 召唤/反思 |
-| 人格（归档） | 已并入伙伴世界 | [persona.md](./persona.md) | 重定向 |
+| 伙伴世界 | 单活跃主角 + 生活世界 + 截面（含原「人格」） | [companion.md](./companion.md) | W0–W6 + 召唤/反思 |
 | 记忆 | 跨会话记住并召回用户信息 | [memory.md](./memory.md) | 试点 |
 | 权限 | 工具/命令能否执行、是否要问用户 | [permission.md](./permission.md) | 试点 |
 | Agent 运行时 | Loop / Prompt / 压缩 / 任务队列 | （暂无独立卡） | 见 [capability-catalog §4](./capability-catalog.md) |
@@ -38,7 +37,7 @@
 8. 必测点  
 9. 现状 / 缺口  
 
-禁止：函数清单、与 architecture 重复的分层科普、把愿望写进「现状」。
+禁止：函数清单、与 architecture 重复的分层科普、把愿望写进「现状」、**仅重定向/占位的空壳卡**（合并后直接改导览指向存活卡，不留 `xxx → 请读 yyy` 文件）。
 
 ## 易混词（薄 glossary）
 
