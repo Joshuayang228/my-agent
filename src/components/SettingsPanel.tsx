@@ -18,6 +18,8 @@ interface SettingsForm {
   executionMode: string
   /** auto | novice | intermediate | expert — 能力解释粒度（M30-G3） */
   userExpertiseLevel: string
+  /** 新 Moment 应用内轻提示静音（M31-G1） */
+  companionMomentTipsMuted: string
   auxModel: string
   sessionTokenBudget: string
   dailyTokenBudget: string
@@ -56,6 +58,7 @@ const DEFAULTS: SettingsForm = {
   sandboxMode: 'workspace-write',
   executionMode: 'auto',
   userExpertiseLevel: 'auto',
+  companionMomentTipsMuted: 'false',
   auxModel: '',
   sessionTokenBudget: '0',
   dailyTokenBudget: '0',
@@ -222,6 +225,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
         sandboxMode: s.sandboxMode || DEFAULTS.sandboxMode,
         executionMode: s.executionMode || DEFAULTS.executionMode,
         userExpertiseLevel: s.userExpertiseLevel || DEFAULTS.userExpertiseLevel,
+        companionMomentTipsMuted: s.companionMomentTipsMuted || DEFAULTS.companionMomentTipsMuted,
         auxModel: s.auxModel || '',
         sessionTokenBudget: s.sessionTokenBudget || '0',
         dailyTokenBudget: s.dailyTokenBudget || '0',
@@ -416,6 +420,32 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
           </div>
         </FieldGroup>
       )}
+
+      <FieldGroup
+        label="动态轻提示"
+        hint="活跃主角有新朋友圈投影时，应用内气泡提示（非系统通知）。最短间隔约 15 分钟；勿扰时段见后续。"
+      >
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => update('companionMomentTipsMuted', 'false')}
+            className="settings-option px-3 py-2 text-xs"
+            data-selected={form.companionMomentTipsMuted !== 'true' ? 'true' : undefined}
+          >
+            <div className="font-medium">开启</div>
+            <div className="mt-0.5 text-[10px] opacity-70">有新动态时轻提示</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => update('companionMomentTipsMuted', 'true')}
+            className="settings-option px-3 py-2 text-xs"
+            data-selected={form.companionMomentTipsMuted === 'true' ? 'true' : undefined}
+          >
+            <div className="font-medium">静音</div>
+            <div className="mt-0.5 text-[10px] opacity-70">仍推进日子，不弹气泡</div>
+          </button>
+        </div>
+      </FieldGroup>
 
       <FieldGroup
         label="成长区（MUTABLE）"

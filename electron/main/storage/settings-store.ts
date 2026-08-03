@@ -61,6 +61,12 @@ export interface AppSettings {
   companionGrowthStartedAt: string
   /** 成长核冷启动时钟（按 role 分桶）：JSON Record<roleId, ms>；空对象=尚未开始 */
   companionGrowthStartedAtByRole: string
+  /** 关系里程碑（按 role）：JSON Record<roleId, MilestoneKind[]>（M30-G1） */
+  companionMilestonesByRole: string
+  /** 新 Moment 应用内轻提示是否静音（M31-G1）：true|false */
+  companionMomentTipsMuted: string
+  /** 上次 Moment 轻提示时间戳 ms（M31-G1 冷却） */
+  companionMomentTipsLastAt: string
 }
 
 function getDefaults(): AppSettings {
@@ -86,6 +92,9 @@ function getDefaults(): AppSettings {
     permissionRules: '[]',
     companionGrowthStartedAt: '',
     companionGrowthStartedAtByRole: '{}',
+    companionMilestonesByRole: '{}',
+    companionMomentTipsMuted: 'false',
+    companionMomentTipsLastAt: '',
   }
 }
 

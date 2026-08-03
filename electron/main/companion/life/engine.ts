@@ -15,6 +15,7 @@ import type { DayScriptPayload } from '../types'
 import { eachLocalDateInclusive, localDateTimeMs, toLocalDateString } from './dates'
 import { pickWardrobeAssetId } from './assets'
 import { publishAndProjectDue } from './moments'
+import { maybeNotifyNewMoments } from './moment-tips'
 import { resolveDayScript } from './script-generator'
 import { refreshSituationFromLife } from './world-state'
 import * as store from './store'
@@ -153,6 +154,14 @@ export async function tickActiveRole(now: number): Promise<{
   // M23-G2：用最近 published 事件刷新短期情境（居所/时区保持稳定）
   await refreshSituationFromLife(roleId, now)
   await store.touchLastTick(roleId, now)
+  // M31-G1：有新投影时可选应用内轻提示（失败不阻断 tick）
+  if (published > 0) {
+    try {
+      await maybeNotifyNewMoments(roleId, published, now)
+    } catch (err) {
+      log.warn('moment tip notify failed', { roleId, error: String(err) })
+    }
+  }
   if (published || created) {
     log.info('Active role ticked', { roleId, published, scriptsCreated: created, now })
   }

@@ -10,7 +10,7 @@
 |------|------|-----------|
 | L0 | `life/ticker.ts` → `tickActiveRole` → `publishAndProjectDue` | 否 |
 | L1 | `buildColdStartCopy` + Moments/Assets/Cast 面板 | 用户打开才见 |
-| L2 | — | 未做（M31-G1） |
+| L2 | `moment-tips.ts` → `companion:moment-tip` → App toast | ✅ 可静音 |
 | L3 | `runtime.sendDesktopNotification` | 失焦 + 有回复正文 |
 | L4 | — | 未做（M31-G3） |
 
@@ -86,9 +86,27 @@ runtime.sendDesktopNotification(assistantContent)
 ```
 
 触发于**对话完成**，不是 moment publish。  
-生活线主动触达尚未接线——有意为之。
+生活线 L2 走应用内 toast（见下），故意不复用桌面 Notification。
 
 **方法论对照**：→ §六 §十
+
+---
+
+## §五 对照：L2 Moment 轻提示（M31-G1）
+
+```text
+tickActiveRole
+  → publishAndProjectDue
+  → maybeNotifyNewMoments(roleId, published)
+       muted / published<=0 / 无文案 / 15min 冷却 → 跳过
+       else broadcast companion:moment-tip { toast }
+App: onMomentTip → useToast
+设置：companionMomentTipsMuted
+```
+
+**发现**：内容预览来自已投影 Moment，不另造文案；失败不阻断 tick。
+
+**方法论对照**：→ §五、§二 L2
 
 ---
 
@@ -108,6 +126,6 @@ ticker: tickActiveRole(...).catch(err => log.warn)
 
 | Gap | 代码 |
 |-----|------|
-| M31-G1 | 无 moment 订阅 → UI toast |
+| M31-G1 | ✅ `moment-tips` + 静音 + 冷却 |
 | M31-G2 | 无 quiet hours 配置 |
 | M31-G3 | 无 cron 问候任务 |

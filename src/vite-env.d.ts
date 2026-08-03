@@ -244,6 +244,9 @@ declare global {
             toast: string
           }) => void,
         ) => () => void
+        onMomentTip: (
+          callback: (payload: { roleId: string; toast: string; published: number }) => void,
+        ) => () => void
         onRoleChanged: (
           callback: (payload: {
             roleId: string

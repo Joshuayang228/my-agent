@@ -226,6 +226,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('companion:milestone', handler)
       return () => ipcRenderer.removeListener('companion:milestone', handler)
     },
+    onMomentTip: (
+      callback: (payload: { roleId: string; toast: string; published: number }) => void,
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        payload: { roleId: string; toast: string; published: number },
+      ) => callback(payload)
+      ipcRenderer.on('companion:moment-tip', handler)
+      return () => ipcRenderer.removeListener('companion:moment-tip', handler)
+    },
     onRoleChanged: (
       callback: (payload: {
         roleId: string

@@ -345,9 +345,13 @@ function App() {
     const unsubMilestone = window.electronAPI.companion.onMilestone?.((payload) => {
       if (payload.toast) toast(payload.toast, 'info')
     })
+    const unsubMomentTip = window.electronAPI.companion.onMomentTip?.((payload) => {
+      if (payload.toast) toast(payload.toast, 'info')
+    })
     return () => {
       unsub?.()
       unsubMilestone?.()
+      unsubMomentTip?.()
     }
   }, [toast])
 
