@@ -1,7 +1,7 @@
 # 功能清单
 
 > **已降级（2026-07-30）**：不再作为权威源，勿强制同步。  
-> 产品能力入口改看 `docs/modules/product-module-map.md`；对外变更记 `docs/changelog.md`。  
+> 产品能力入口改看 `docs/modules/README.md`；对外变更记 `docs/changelog.md`。  
 > 下文保留作历史清单，仅供查阅。
 
 ## 核心功能
