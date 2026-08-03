@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Changed — GitHub 公开运营配套（2026-08-04）
+
+- 双语 README + `CONTRIBUTING.md`；GitHub About / Topics 对齐
+- `docs/notes` → `docs/deferred`；progress「人读摘要」；Cursor stop hook 提醒模块卡「已落地能力」
+
 ### Changed — 双语 README 面向公开运营（2026-08-04）
 
 - 根目录 `README.md`（English）+ `README.zh-CN.md`（中文）；修正过时能力表述，突出伙伴世界差异化
@@ -30,7 +35,7 @@
 ### Changed — requirements 目录只留施工合同（2026-08-03）
 
 - 文档体系说明迁至 `docs/docs-system.md`
-- 原生语音评估迁至 `docs/notes/native-voice-input.md`
+- 原生语音评估迁至 `docs/deferred/native-voice-input.md`
 - Batch3 历史短需求归档 `_archive/docs-legacy/batch3-capability-gaps.md`
 - `requirements/README.md` 去掉「元/批次」混放
 
@@ -56,7 +61,7 @@
 ### Changed — 原生语音输入暂缓落账（2026-08-03）
 
 - 评估结论：不恢复 Web Speech，不设假 Mic；待原生 STT 或云端方案立项
-- 详见 `docs/notes/native-voice-input.md`
+- 详见 `docs/deferred/native-voice-input.md`
 
 ### Added — Dev Playground（2026-08-03）
 

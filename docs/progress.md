@@ -2,37 +2,41 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
+## 人读摘要（约 30 秒）
+
+| | |
+|--|--|
+| **现在在哪** | 公开 alpha（`v0.1.0`）。伙伴主线 W0–W6 已通；文档四维 + 施工合同旁路理顺；可观测/调试债与 wishlist 可落地项基本收口。 |
+| **产品怎么记** | `docs/modules/README.md` → 各卡「已落地能力」；大改先写 `docs/requirements/` **施工合同**。 |
+| **下一步可做** | 前端视觉统一（先写施工合同）；Pack/体验打磨；Eval 加强。 |
+| **明确暂缓** | 原生语音 STT（`docs/deferred/native-voice-input.md`）；生图 Moments（M24-G3）；Python 嵌入沙箱。 |
+| **仓库** | 双语 README；Issues/PR 欢迎；见 `CONTRIBUTING.md`。 |
+
 ## 当前状态
 
-**阶段**：可观测灵感项继续落地；原生语音与 M24-G3 暂缓。
+**阶段**：公开运营起步；体验与前端统一优先于再堆基建；原生语音与 M24-G3 暂缓。
 
-**最新动态（2026-08-03）**：
-- ✅ **双语 README**：`README.md`（EN）+ `README.zh-CN.md`；GitHub 公开运营前门。
-- ✅ **术语统一**：`docs/requirements/` 一律称「施工合同」（禁称需求文档/需求合同/开工合同）；写入 CLAUDE / docs-system。
-- ✅ **能力表拆进各模块卡**：取消总 `capability-catalog`；新增 `agent-runtime.md`；各卡维护「已落地能力」。
-- ✅ **删 persona 空壳卡**：并入 companion；CLAUDE 禁止再留重定向模块卡。
-- ✅ **modules 导览改名**：`product-module-map.md` → `docs/modules/README.md`。
-- ✅ **requirements 瘦身**：只保留伴侣施工合同；文档体系 → `docs/docs-system.md`；语音评估 → `docs/notes/`；Batch3 → `_archive/docs-legacy/`。
-- ✅ **Callback 组件化**：Chat 流式拆 reasoning/content/tool 三通道（Start/Progress/Complete）；Python 嵌入沙箱搁置。
-- ✅ **Session-based 采样**：按 sessionId 哈希确定性整会话收/丢；默认全收；环境变量可调。
-- ✅ **PII 脱敏 + 文本预算**：`text-capture.ts`（preview/sha256/chars）；tracer attributes / error 统一捕获。
-- ⏸ **原生语音输入**：评估后暂缓（不做假 Mic）；见 `docs/notes/native-voice-input.md`；**停止** wishlist loop 自动续跑。
-- ✅ **Playground**：DevPanel 脱离上下文单轮试跑（`debug:playground-run`）。
-- ✅ **异步 linked span**：后台任务 `startLinkedAsyncSpan`（links 非 parent）；task-queue 接线。
-- ✅ **TraceContext identity**：ALS 自动注入 sessionId/userId 到 span；chat/task-queue 接线。
-- ✅ **权限规则可视化编辑器**：表单增删改 + 高级 JSON；替代裸 textarea。
-- ✅ **M25 旁路**：书架薄切片进 Assemble；Moment 偶发「在读」引用。
-- ✅ **M31-G3**：定时主动问候（默认关；近 Moment 派生；每日一次；复用勿扰）。
-- ✅ **M31-G2**：勿扰时段（默认 22–8）+ 每日频率预算（默认 3）；设置可配。
-- ✅ **M31-G1**：新 Moment 应用内轻提示（可静音 + 15min 冷却）；非桌面通知。
-- ✅ **M30-G3**：用户专家度 → 解释粒度（设置覆盖 + 启发式）；Prompt 注入。
-- ✅ **M30-G2**：压缩「关系最小集」白名单；摘要强制保留称呼/约定/锚点。
-- ✅ **M30-G1**：关系里程碑（换角/反思/默契各一次）；toast + Prompt；反成就绑架。
-- ✅ **M29-G3**：敏感类别启发式；面板高亮 + 入库确认；remember/Prompt 克制。
-- ✅ **M29-G2**：芯片「记错了/改正」→ `correctCitedMemory` 双写清理或改写。
-- ✅ **M29-G1**：本轮向量召回 → `memory_citations` 事件；Chat 摘要芯片可指认 id。
-- ✅ **M28-G3**：换角「再认识」微文案（`buildReacquaintCopy`）；toast 明示非重开、不重置成长。
-- ✅ **M28-G2**：近窗交心/干活 `familiarity-mix`；task-leaning 压制默契口吻。
+**最新动态（2026-08-04）**：
+- ✅ **GitHub 运营前门**：双语 README + CONTRIBUTING；`docs/deferred` → `docs/deferred`；progress 人读摘要；Cursor stop hook 提醒模块卡能力行。
+- ✅ **双语 README**：`README.md`（EN）+ `README.zh-CN.md`。
+- ✅ **术语统一**：施工合同（禁称需求文档等别名）。
+- ✅ **能力表拆进各模块卡**；新增 `agent-runtime.md`；删 persona 空壳卡。
+- ✅ **requirements 瘦身**；文档体系 → `docs/docs-system.md`；Batch3 归档。
+
+**近期已落地（摘要，细节见 changelog）**：
+- 伙伴：M24–M31 Gaps（Moments 提示/勿扰/问候、关系阶段、记忆芯片、召唤卡司、书架等）
+- 工程：Callback 三通道、权限可视化编辑器、Playground、TraceContext / linked span / 采样 / PII 文本预算
+- ⏸ 原生语音：见 `docs/deferred/native-voice-input.md`
+
+<details>
+<summary>更早条目（2026-08-03 流水，可折叠参考）</summary>
+
+- ✅ **modules 导览改名**：`product-module-map.md` → `docs/modules/README.md`
+- ✅ **Callback 组件化** / Session 采样 / PII 文本预算
+- ✅ **Playground** / linked span / TraceContext
+- ✅ **权限规则可视化编辑器** / M25 书架旁路
+- ✅ **M31–M28** 系列（问候、勿扰、提示、专家度、关系最小集、里程碑、熟悉度等）
+
 - ✅ **M28-G1**：`relationshipStage`（陌生/熟悉/默契）由门闸代理指标推导并注入 Prompt；召唤强制陌生。
 - ✅ **M27-G3**：语气收放（紧/软/中性 + aside 策略）注入 Prompt。
 - ✅ **M27-G2**：aside 过油/夺权阈值 + Eval C02 + 共享 `splitAside`。
@@ -75,6 +79,8 @@
 - ✅ **名册 UI**：CastPanel（get-roster / summon-brief）；欢迎屏入口。
 - ✅ **审计补缺**：`assertSessionRole`；`role-changed`；设置 toast；小周第二主角槽。
 - ✅ **W6–W0**：冷启动 / 名册注入 / 衣柜 / Catch-up / LifeEngine / 门控+MUTABLE / Role Pack。
+
+</details>
 
 **此前（2026-07-31）**：
 - ✅ **设置页画布框统一**：`.settings-field` / `.settings-option` + `SettingsPanel` 改造；规范写入 `agent-skills/frontend-guidelines.md`「画布框与设置页规范」。

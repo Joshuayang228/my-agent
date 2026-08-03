@@ -105,16 +105,14 @@ npm run dev
 - 打磨伴侣体验与 Pack 内容
 - 加强可观测与 Eval
 - 前端视觉统一（将写施工合同）
-- 可靠语音输入（暂缓，见 `docs/notes/`）
+- 可靠语音输入（暂缓，见 `docs/deferred/`）
 - 生图朋友圈 / 多宇宙（非本阶段）
 
 ## 参与贡献
 
-欢迎 Issue / PR。大改请先在 `docs/requirements/` 写或更新**施工合同**（见根目录 `CLAUDE.md`）。
+详见 **[CONTRIBUTING.md](./CONTRIBUTING.md)**。欢迎 Issue / PR。
 
-1. Fork 并建分支  
-2. 跑通 `npm run test` 与 `npm run typecheck`  
-3. 提交保持聚焦；用户可见变更请同步模块卡「已落地能力」与 changelog  
+大改请先在 `docs/requirements/` 写**施工合同**（见根目录 `CLAUDE.md`）。
 
 ## 许可证
 

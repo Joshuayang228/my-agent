@@ -105,16 +105,14 @@ We maintain a small **four-dimension** doc system (product / architecture / qual
 - Polish companion UX and Pack content
 - Strengthen observability & eval coverage
 - Frontend visual unification (planned construction contract)
-- Native / reliable voice input (deferred — see `docs/notes/`)
+- Native / reliable voice input (deferred — see `docs/deferred/`)
 - Image Moments & multi-universe (out of scope for now)
 
 ## Contributing
 
-Issues and PRs are welcome. For large changes, open or update a **construction contract** under `docs/requirements/` before coding (see root `CLAUDE.md`).
+See **[CONTRIBUTING.md](./CONTRIBUTING.md)**. Issues and PRs welcome.
 
-1. Fork & branch  
-2. `npm run test` and `npm run typecheck`  
-3. Keep commits focused; update module cards / changelog when user-visible behavior changes  
+For large changes, write a **construction contract** under `docs/requirements/` first (see root `CLAUDE.md`).
 
 ## License
 

@@ -4,7 +4,7 @@
 > **只放**开工前对齐 Why/What/How/验收的合同；完工后标已落地，作长期不变量参照。  
 > **不是**能力清单——「有什么」见各 [`../modules/`](../modules/) 模块卡的「已落地能力」节。  
 > **不是**文档体系说明——见 [`../docs-system.md`](../docs-system.md)。  
-> **不是**暂缓评估 / 历史批次——评估见 [`../notes/`](../notes/)；已完成批次见 [`../../_archive/docs-legacy/`](../../_archive/docs-legacy/)。
+> **不是**暂缓评估 / 历史批次——评估见 [`../deferred/`](../deferred/)；已完成批次见 [`../../_archive/docs-legacy/`](../../_archive/docs-legacy/)。
 
 ## 怎么放文件
 

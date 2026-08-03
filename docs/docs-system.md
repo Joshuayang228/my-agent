@@ -22,7 +22,7 @@
 |------|------|------|
 | **施工合同** | 大改开工前 Why/What/How/验收（唯一称呼） | `docs/requirements/` |
 | 深 Why | 设计哲学与取舍 | `methodology/` |
-| 暂缓评估 | 未升格为施工合同的调研 | `docs/notes/` |
+| 暂缓评估 | 未升格为施工合同的调研 | `docs/deferred/` |
 | 规则 / SOP | 协作入口 | `CLAUDE.md` · 根目录 `agent-skills/` |
 
 ## 约定
@@ -46,4 +46,5 @@
 - [x] 旧文档归档
 - [x] 账本含 pitfalls / decisions
 - [x] 「有什么」写入各模块卡「已落地能力」（2026-08-03 取消总 `capability-catalog`；补 features 归档缺口）
-- [x] `requirements/README.md` 只索引施工合同（进行中 / 已落地）；元规则本文件、历史批次进 `_archive/docs-legacy/`、评估进 `docs/notes/`（2026-08-03）
+- [x] `requirements/README.md` 只索引施工合同；元规则本文件；历史批次 `_archive/docs-legacy/`；暂缓评估 `docs/deferred/`（原 notes，2026-08-04 改名）
+- [x] progress「人读摘要」+ Cursor stop hook 提醒模块卡能力行（2026-08-04）
