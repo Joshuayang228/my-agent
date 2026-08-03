@@ -164,6 +164,6 @@ Prompt 声明：名册摘要不是完整人设；不要假装成为他们。
 |----|------|------------|
 | M26-G1 | Moments 卡司互动 | ✅ 投影派生 meta.interactions（评论/同框）；不另开事件 |
 | M26-G2 | 召唤×M19 协作 | ✅ 召唤可 delegate；子 Agent 任务工边界（非卡司） |
-| M26-G3 | NPC 多场景 prompt 组 | 薄 Pack 阶段非阻塞 |
+| M26-G3 | NPC 多场景 prompt 组 | ✅ display/interact/execute；chen/ayu 专文 + 默认派生 |
 
 代码走读见 `m26-social-cast-code.md`。

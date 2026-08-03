@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22–M25 收齐 · M26-G1/G2**；下一步：M26-G3
+**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22–M26 收齐**；下一步：M27 Gaps（对话两空间）
 
 **最新动态（2026-08-03）**：
+- ✅ **M26-G3**：NPC 多场景 prompt（展示/互动/执行）；chen/ayu 专文；召唤注入。
 - ✅ **M26-G2**：召唤可委派子 Agent；`sessionKind` 透传 + 任务工边界（非卡司）。
 - ✅ **M26-G1**：Moments 投影派生卡司评论/同框（`moment-interactions`）；面板展示。
 - ✅ **M25-G3**：bookshelf kind + 分味 starter；物什面板分栏；Assemble 注入另议。

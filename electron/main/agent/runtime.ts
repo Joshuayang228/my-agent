@@ -14,6 +14,7 @@ import { BrowserWindow, Notification } from 'electron'
 import { agentLoop } from './loop'
 import { buildSystemPrompt, rolePackToPromptParts } from './prompt-builder'
 import { describeCastPresence } from '../companion/cast/availability'
+import { formatSummonSceneBlock } from '../companion/cast/scene-prompts'
 import { summonParentDelegationHint } from '../companion/cast/summon-delegation'
 import { scheduleReflectionAfterChat } from '../companion/growth/reflection-service'
 import { assertSessionRole, loadRoleAssembleInput } from '../companion/orchestrator'
@@ -206,11 +207,17 @@ class AgentRuntime {
             presenceLine = `\n你此刻的情境（来自日程摘要，可自然带一点，勿编造额外行程）：${presence}`
           }
         } catch { /* ignore */ }
+        // M26-G3：互动/执行场景组（NPC 有专文；主角走派生默认）
+        let sceneBlock = ''
+        try {
+          sceneBlock = '\n\n' + formatSummonSceneBlock(assembleRoleId)
+        } catch { /* ignore */ }
         summonNote =
           '【召唤子会话】用户正在与你单独短聊；生活世界（朋友圈/衣柜/日程）仍以当前活跃主角为准，本会话不推进你的生活世界。' +
           presenceLine +
           '\n' +
-          summonParentDelegationHint()
+          summonParentDelegationHint() +
+          sceneBlock
       }
       const sessionInfoParts = [customPrompt, summonNote].filter(Boolean)
 

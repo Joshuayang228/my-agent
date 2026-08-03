@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — M26-G3 NPC 多场景 Prompt（2026-08-03）
+
+- `display` / `interact` / `execute` 三场景；chen/ayu 专文，缺省派生
+- 名册展示 / 召唤摘要 / 召唤 sessionInfo 分别接线
+- 模块：`cast/scene-prompts.ts` · `roles/*/scenes/`
+
 ### Added — M26-G2 召唤×子 Agent 协作边界（2026-08-03）
 
 - `ToolContext.sessionKind` 透传；召唤父会话提示可 `delegate_task`

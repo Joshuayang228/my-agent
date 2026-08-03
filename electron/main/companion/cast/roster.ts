@@ -8,6 +8,7 @@
 
 import { loadRelations, loadRolePack, loadUniverseManifest } from '../identity/loader'
 import type { RolePack } from '../types'
+import { loadCastDisplayLine, loadCastScenePrompt } from './scene-prompts'
 
 const TYPE_LABELS: Record<string, string> = {
   colleague: '同事',
@@ -64,7 +65,9 @@ export function buildRosterLines(
     }
 
     const rel = typeLabel(edge.type)
-    const detail = (edge.note || other.summary || other.description).trim()
+    // M26-G3：优先展示场景短句，再退回边 note / summary
+    const display = loadCastDisplayLine(other.id, universeId)
+    const detail = (edge.note || display || other.summary || other.description).trim()
     const text = `你与${other.name}（${rel}）：${detail}`
     lines.push({
       otherId: other.id,
@@ -93,13 +96,15 @@ export function loadCastBrief(roleId: string, universeId = 'default'): CastBrief
   const pack = loadRolePack(roleId, universeId)
   const manifest = loadUniverseManifest(universeId)
   const isProtagonist = manifest.protagonistIds.includes(roleId)
+  // 召唤入口用互动场景；展示场景留给名册卡片 description 旁白
+  const interact = loadCastScenePrompt(roleId, 'interact', universeId)
   return {
     id: pack.id,
     name: pack.name,
     description: pack.description,
     summary: pack.summary,
     canBeProtagonist: pack.canBeProtagonist && isProtagonist,
-    summonHint: pack.summary || pack.description,
+    summonHint: interact || pack.summary || pack.description,
   }
 }
 

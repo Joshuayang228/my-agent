@@ -83,6 +83,20 @@ runSubAgent systemPrompt += summonWorkerSystemAddon(summon)
 
 ---
 
+## M26-G3 对照：多场景 Prompt
+
+```text
+roles/{id}/scenes/{display|interact|execute}.md
+loadCastScenePrompt → 文件 || defaultCastScenePrompt
+buildRosterLines → display 短句（无边 note 时）
+loadCastBrief.summonHint → interact
+runtime summonNote += formatSummonSceneBlock（互动+执行）
+```
+
+**方法论对照**：→ §三 §五 · M26-G3
+
+---
+
 ## 已知简化
 
-无多场景 prompt map；互动未进 Assemble 主对话；无「请 TA 帮忙」独立 UI。
+互动未进 Assemble 主对话薄切片；无「请 TA 帮忙」独立 UI；主角 scenes 可后补专文。

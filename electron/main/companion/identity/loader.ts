@@ -151,3 +151,17 @@ export function isKnownProtagonist(roleId: string, universeId: string = DEFAULT_
   const manifest = loadUniverseManifest(universeId)
   return manifest.protagonistIds.includes(roleId)
 }
+
+/**
+ * 读取角色目录下可选文本资产；不存在返回 null。
+ * 应用场景：scenes/*.md 等多场景 prompt（M26-G3）。
+ */
+export function tryReadRoleText(
+  roleId: string,
+  fileRelWithinRole: string,
+  universeId: string = DEFAULT_UNIVERSE,
+): string | null {
+  const rel = `${universeId}/roles/${roleId}/${fileRelWithinRole.replace(/\\/g, '/')}`
+  if (!assetExists(rel)) return null
+  return readText(rel)
+}
