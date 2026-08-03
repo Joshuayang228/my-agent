@@ -7,6 +7,7 @@
 **阶段**：可观测灵感项继续落地；原生语音与 M24-G3 暂缓。
 
 **最新动态（2026-08-03）**：
+- ✅ **Callback 组件化**：Chat 流式拆 reasoning/content/tool 三通道（Start/Progress/Complete）；Python 嵌入沙箱搁置。
 - ✅ **Session-based 采样**：按 sessionId 哈希确定性整会话收/丢；默认全收；环境变量可调。
 - ✅ **PII 脱敏 + 文本预算**：`text-capture.ts`（preview/sha256/chars）；tracer attributes / error 统一捕获。
 - ⏸ **原生语音输入**：评估后暂缓（不做假 Mic）；见 `docs/requirements/native-voice-input.md`；**停止** wishlist loop 自动续跑。

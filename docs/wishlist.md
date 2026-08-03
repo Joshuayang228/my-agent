@@ -119,11 +119,11 @@
 
 ### 沙箱与安全
 
-- [ ] **Python 嵌入沙箱** — CGO 嵌入 Python 解释器 + PEP 578 审计钩子 + 9 个预注册 CGO 函数做能力代理。来源：灵犀 `pyairscript/cgo_sandbox/sandbox/`
+- [ ] **Python 嵌入沙箱** — ⏸ 搁置（2026-08-03）：灵犀 CGO 嵌入 Python，与 Electron 栈不对齐；现有策略型沙箱对个人桌面够用。真要强隔离再评估 OS/容器方案。来源：灵犀 `pyairscript/cgo_sandbox/sandbox/`
 - [x] ~~**PII 脱敏 + 文本预算**~~ — 2026-08-03 已做（`text-capture.ts`；tracer attributes / error 接入）
 - [x] ~~**Session-based 采样**~~ — 2026-08-03 已做（`session-sampler.ts`；`MY_AGENT_TRACE_SAMPLE_RATE`；默认 1 全收）
 
 ### 架构参考
 
 - [x] ~~**CompositeObserver 组合模式**~~ — 2026-07-26 已做（`observer.ts` CompositeObserver）
-- [ ] **Callback 组件化** — reasoning/content/tool 三种 UI 组件各有独立 Start/Progress/Complete 生命周期。来源：灵犀 `feiche-agents/cc/callback.go`
+- [x] ~~**Callback 组件化**~~ — 2026-08-03 已做（`src/components/chat/callbacks/`：reasoning/content/tool 三通道 + App 接线）

@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — Chat Callback 组件化（2026-08-03）
+
+- `src/components/chat/callbacks/`：reasoning / content / tool 独立生命周期
+- 纯 apply 函数可单测；App 事件分发按通道分流
+- Python 嵌入沙箱 wishlist 标为搁置（策略型沙箱够用）
+
 ### Added — Session-based span 采样（2026-08-03）
 
 - `session-sampler.ts`：同会话确定性全收或全丢；无 sessionId 始终保留

@@ -24,6 +24,20 @@ import {
   Pin, File, Newspaper, Shirt, Users, LayoutGrid,
 } from 'lucide-react'
 import { buildColdStartCopy } from './shared/companion-presence'
+import {
+  ReasoningCallback,
+  ToolCallbackList,
+  ContentCallbackCue,
+  contentPhase,
+  applyReasoningEvent,
+  applyContentEvent,
+  applyToolEvent,
+  appendToolResultMessage,
+  resetReasoning,
+  completeReasoning,
+  type ReasoningCallbackState,
+  type ToolCallbackItem,
+} from './components/chat/callbacks'
 
 let messageIdCounter = 0
 function genId() {
@@ -38,53 +52,6 @@ interface SessionSummary {
   messageCount: number
   roleId?: string
   sessionKind?: 'main' | 'summon'
-}
-
-interface ToolStatus {
-  callId: string
-  name: string
-  args: Record<string, unknown>
-  status: 'pending' | 'running' | 'done' | 'error'
-  result?: string
-  streamingArgs?: string
-  collapsed?: boolean
-}
-
-interface ThinkingChunk {
-  content: string
-}
-
-function ThinkingBlock({
-  thinking,
-  expanded,
-  onToggle,
-  streaming,
-  className = '',
-}: {
-  thinking: ThinkingChunk[]
-  expanded: boolean
-  onToggle: () => void
-  streaming: boolean
-  className?: string
-}) {
-  return (
-    <div className={`rounded-md border px-3 py-2 ${className}`} style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
-      <button
-        onClick={onToggle}
-        className="flex w-full items-center gap-2 text-[11px] font-medium"
-        style={{ color: 'var(--text-muted)' }}
-      >
-        <ChevronRight size={12} className={`transition-transform ${expanded ? 'rotate-90' : ''}`} />
-        <span>思考过程</span>
-        {streaming && <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: 'var(--accent)' }} />}
-      </button>
-      {expanded && (
-        <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          {thinking.map((t) => t.content).join('')}
-        </pre>
-      )}
-    </div>
-  )
 }
 
 interface UsageInfo {
@@ -125,7 +92,7 @@ function App() {
   const [input, setInput] = useState('')
   const [pendingImages, setPendingImages] = useState<ImageAttachment[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
-  const [activeTools, setActiveTools] = useState<ToolStatus[]>([])
+  const [activeTools, setActiveTools] = useState<ToolCallbackItem[]>([])
   const [activeView, setActiveView] = useState<'chat' | 'skills' | 'memory' | 'moments' | 'assets' | 'cast' | 'shelf' | 'settings'>('chat')
   const [theme, setTheme] = useState<string>(() => {
     return localStorage.getItem('theme') || 'dark'
@@ -149,7 +116,7 @@ function App() {
   const [companionBlurb, setCompanionBlurb] = useState('沉稳体贴的数字伙伴')
   const [activeRoleId, setActiveRoleId] = useState('lin')
   const [protagonistNames, setProtagonistNames] = useState<Record<string, string>>({ lin: '小林' })
-  const [thinking, setThinking] = useState<ThinkingChunk[]>([])
+  const [reasoning, setReasoning] = useState<ReasoningCallbackState>(() => resetReasoning())
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
   const [usage, setUsage] = useState<UsageInfo | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -379,7 +346,7 @@ function App() {
     setActiveTools([])
     setInput('')
     setIsStreaming(false)
-    setThinking([])
+    setReasoning(resetReasoning())
     setUsage(null)
 
     const session = await window.electronAPI.session.get(sessionId)
@@ -499,125 +466,29 @@ function App() {
       : ''
     setEventLog(prev => [...prev.slice(-500), { time: Date.now(), type: ev.type, detail }])
 
+    // reasoning / content / tool 三通道（对照灵犀 Callback 组件化）
+    if (ev.type === 'thinking') {
+      setReasoning((prev) => applyReasoningEvent(prev, ev) ?? prev)
+      return
+    }
+
+    if (ev.type === 'memory_citations' || ev.type === 'text' || ev.type === 'tool_calls') {
+      if (ev.type === 'memory_citations') turnCitationsRef.current = ev.items
+      setMessages((prev) =>
+        applyContentEvent(prev, ev, { genId, citations: turnCitationsRef.current }) ?? prev,
+      )
+      return
+    }
+
+    if (ev.type === 'tool_call_delta' || ev.type === 'tool_start' || ev.type === 'tool_end') {
+      setActiveTools((prev) => applyToolEvent(prev, ev) ?? prev)
+      if (ev.type === 'tool_end') {
+        setMessages((prev) => appendToolResultMessage(prev, ev))
+      }
+      return
+    }
+
     switch (ev.type) {
-      case 'memory_citations':
-        turnCitationsRef.current = ev.items
-        setMessages((prev) => {
-          const last = prev[prev.length - 1]
-          if (last?.role === 'assistant') {
-            return [...prev.slice(0, -1), { ...last, memoryCitations: ev.items }]
-          }
-          return [
-            ...prev,
-            {
-              id: genId(),
-              role: 'assistant',
-              content: '',
-              timestamp: Date.now(),
-              memoryCitations: ev.items,
-            },
-          ]
-        })
-        break
-
-      case 'text':
-        setMessages((prev) => {
-          const last = prev[prev.length - 1]
-          if (last?.role !== 'assistant') {
-            return [
-              ...prev,
-              {
-                id: genId(),
-                role: 'assistant',
-                content: ev.content,
-                timestamp: Date.now(),
-                memoryCitations: turnCitationsRef.current.length
-                  ? turnCitationsRef.current
-                  : undefined,
-              },
-            ]
-          }
-          return [...prev.slice(0, -1), { ...last, content: last.content + ev.content }]
-        })
-        break
-
-      case 'thinking':
-        setThinking((prev) => [...prev, { content: ev.content }])
-        break
-
-      case 'tool_call_delta':
-        setActiveTools((prev) => {
-          const existing = prev.find((_, i) => i === ev.index)
-          if (!existing) {
-            return [...prev, {
-              callId: ev.id || `pending-${ev.index}`,
-              name: ev.name || '',
-              args: {},
-              status: 'pending' as const,
-              streamingArgs: ev.argumentsDelta,
-            }]
-          }
-          return prev.map((t, i) =>
-            i === ev.index
-              ? { ...t, streamingArgs: (t.streamingArgs || '') + ev.argumentsDelta, name: ev.name || t.name, callId: ev.id || t.callId }
-              : t
-          )
-        })
-        break
-
-      case 'tool_calls':
-        setMessages((prev) => {
-          const last = prev[prev.length - 1]
-          // 若 memory_citations 已预置空 assistant，合并到同一条
-          if (last?.role === 'assistant' && !last.content && !last.toolCalls?.length) {
-            return [
-              ...prev.slice(0, -1),
-              {
-                ...last,
-                toolCalls: ev.calls,
-                memoryCitations: last.memoryCitations ?? (
-                  turnCitationsRef.current.length ? turnCitationsRef.current : undefined
-                ),
-              },
-            ]
-          }
-          return [...prev, {
-            id: genId(),
-            role: 'assistant' as const,
-            content: '',
-            timestamp: Date.now(),
-            toolCalls: ev.calls,
-            memoryCitations: turnCitationsRef.current.length
-              ? turnCitationsRef.current
-              : undefined,
-          }]
-        })
-        break
-
-      case 'tool_start':
-        setActiveTools((prev) => [
-          ...prev.filter(t => t.status !== 'pending' || t.callId !== ev.callId),
-          { callId: ev.callId, name: ev.name, args: ev.args, status: 'running' },
-        ])
-        break
-
-      case 'tool_end':
-        setActiveTools((prev) =>
-          prev.map((t) =>
-            t.callId === ev.callId
-              ? { ...t, status: ev.isError ? 'error' : 'done', result: ev.result, collapsed: true }
-              : t,
-          ),
-        )
-        setMessages((prev) => [...prev, {
-          id: `tool-${ev.callId}`,
-          role: 'tool' as const,
-          content: ev.result,
-          timestamp: Date.now(),
-          toolCallId: ev.callId,
-        }])
-        break
-
       case 'usage':
         setUsage({ promptTokens: ev.promptTokens, completionTokens: ev.completionTokens })
         break
@@ -636,6 +507,7 @@ function App() {
           setModeChangeNotice('请求暂时失败，可以稍后重试。')
         }
         setIsStreaming(false)
+        setReasoning((prev) => completeReasoning(prev))
         break
 
       case 'execution_mode_changed':
@@ -647,9 +519,13 @@ function App() {
       case 'done':
         setIsStreaming(false)
         setActiveTools([])
+        setReasoning((prev) => completeReasoning(prev))
+        break
+
+      case 'compact':
         break
     }
-  }, [])
+  }, [toast])
 
   const speakText = useCallback((text: string) => {
     if (!window.speechSynthesis) return
@@ -719,7 +595,7 @@ function App() {
     setBgStreamingSessionId(sid)
     setIsStreaming(true)
     setActiveTools([])
-    setThinking([])
+    setReasoning(resetReasoning())
     setUsage(null)
     setThinkingExpanded(false)
 
@@ -1296,7 +1172,7 @@ function App() {
                 const dimmed = searchQuery && !isSearchMatch
                 const isUser = msg.role === 'user'
                 const isLastMsg = msgIndex === visibleMessages.length - 1
-                const showThinkingBeforeMsg = !isUser && isLastMsg && thinking.length > 0
+                const showThinkingBeforeMsg = !isUser && isLastMsg && reasoning.chunks.length > 0
 
                 return (
                   <div
@@ -1305,8 +1181,8 @@ function App() {
                     style={isSearchMatch ? { ['--tw-ring-color' as string]: 'var(--accent)', ['--tw-ring-opacity' as string]: '0.3' } as React.CSSProperties : {}}
                   >
                     {showThinkingBeforeMsg && (
-                      <ThinkingBlock
-                        thinking={thinking}
+                      <ReasoningCallback
+                        chunks={reasoning.chunks}
                         expanded={thinkingExpanded}
                         onToggle={() => setThinkingExpanded(!thinkingExpanded)}
                         streaming={isStreaming}
@@ -1460,10 +1336,10 @@ function App() {
               })}
             </div>
 
-            {/* 思考过程：助手消息尚未出现时显示在消息流下方 */}
-            {thinking.length > 0 && visibleMessages[visibleMessages.length - 1]?.role !== 'assistant' && (
-              <ThinkingBlock
-                thinking={thinking}
+            {/* Reasoning：助手消息尚未出现时显示在消息流下方 */}
+            {reasoning.chunks.length > 0 && visibleMessages[visibleMessages.length - 1]?.role !== 'assistant' && (
+              <ReasoningCallback
+                chunks={reasoning.chunks}
                 expanded={thinkingExpanded}
                 onToggle={() => setThinkingExpanded(!thinkingExpanded)}
                 streaming={isStreaming}
@@ -1471,47 +1347,24 @@ function App() {
               />
             )}
 
-            {/* 工具卡片 — 可折叠 */}
-            {activeTools.length > 0 && (
-              <div className="mt-4 space-y-1">
-                {activeTools.map((tool) => (
-                  <div key={tool.callId} className="rounded-md border" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
-                    <button
-                      onClick={() => setActiveTools(prev => prev.map(t => t.callId === tool.callId ? { ...t, collapsed: !t.collapsed } : t))}
-                      className="flex w-full items-center gap-2 px-3 py-1.5 text-[12px]"
-                    >
-                      <span className={`inline-block h-1.5 w-1.5 rounded-full ${
-                        tool.status === 'pending' ? 'animate-pulse' : ''
-                      }`} style={{
-                        background: tool.status === 'pending' || tool.status === 'running' ? 'var(--accent)'
-                          : tool.status === 'error' ? 'var(--danger)' : 'var(--success)',
-                      }} />
-                      <span className="font-mono" style={{ color: 'var(--text-primary)' }}>{tool.name || '...'}</span>
-                      <span style={{ color: 'var(--text-muted)' }}>
-                        {tool.status === 'pending' ? '解析参数...'
-                          : tool.status === 'running' ? '执行中...'
-                          : tool.status === 'error' ? '失败' : '完成'}
-                      </span>
-                      <ChevronRight size={12} className={`ml-auto transition-transform ${tool.collapsed ? '' : 'rotate-90'}`} style={{ color: 'var(--text-muted)' }} />
-                    </button>
-                    {!tool.collapsed && (
-                      <div className="border-t px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
-                        {tool.status === 'pending' && tool.streamingArgs && (
-                          <pre className="max-h-24 overflow-auto font-mono text-[11px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                            {tool.streamingArgs}
-                          </pre>
-                        )}
-                        {tool.result && (
-                          <pre className="max-h-32 overflow-auto text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                            {tool.result.slice(0, 500)}
-                          </pre>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+            <ContentCallbackCue
+              phase={contentPhase(
+                Boolean(
+                  messages[messages.length - 1]?.role === 'assistant'
+                  && messages[messages.length - 1]?.content,
+                ),
+                isStreaming,
+              )}
+            />
+
+            <ToolCallbackList
+              tools={activeTools}
+              onToggleCollapse={(callId) =>
+                setActiveTools((prev) =>
+                  prev.map((t) => (t.callId === callId ? { ...t, collapsed: !t.collapsed } : t)),
+                )
+              }
+            />
 
             <div ref={messagesEndRef} />
           </div>
