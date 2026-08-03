@@ -75,6 +75,10 @@ export interface AppSettings {
   companionMomentTipsMaxPerDay: string
   /** 当日计数 JSON：{ day: YYYY-MM-DD, count: number }（M31-G2） */
   companionMomentTipsDayStats: string
+  /** 定时主动问候开关（M31-G3 / L4）：默认 false */
+  companionProactiveGreetingEnabled: string
+  /** 上次主动问候本地日 YYYY-MM-DD（M31-G3） */
+  companionProactiveGreetingLastDay: string
 }
 
 function getDefaults(): AppSettings {
@@ -107,6 +111,8 @@ function getDefaults(): AppSettings {
     companionMomentTipsQuietEnd: '8',
     companionMomentTipsMaxPerDay: '3',
     companionMomentTipsDayStats: '',
+    companionProactiveGreetingEnabled: 'false',
+    companionProactiveGreetingLastDay: '',
   }
 }
 

@@ -348,10 +348,14 @@ function App() {
     const unsubMomentTip = window.electronAPI.companion.onMomentTip?.((payload) => {
       if (payload.toast) toast(payload.toast, 'info')
     })
+    const unsubGreeting = window.electronAPI.companion.onProactiveGreeting?.((payload) => {
+      if (payload.toast) toast(payload.toast, 'info')
+    })
     return () => {
       unsub?.()
       unsubMilestone?.()
       unsubMomentTip?.()
+      unsubGreeting?.()
     }
   }, [toast])
 

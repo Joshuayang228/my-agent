@@ -236,6 +236,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('companion:moment-tip', handler)
       return () => ipcRenderer.removeListener('companion:moment-tip', handler)
     },
+    onProactiveGreeting: (
+      callback: (payload: { roleId: string; toast: string; momentId: string }) => void,
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        payload: { roleId: string; toast: string; momentId: string },
+      ) => callback(payload)
+      ipcRenderer.on('companion:proactive-greeting', handler)
+      return () => ipcRenderer.removeListener('companion:proactive-greeting', handler)
+    },
     onRoleChanged: (
       callback: (payload: {
         roleId: string

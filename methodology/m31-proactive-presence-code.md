@@ -12,7 +12,7 @@
 | L1 | `buildColdStartCopy` + Moments/Assets/Cast 面板 | 用户打开才见 |
 | L2 | `moment-tips.ts` → `companion:moment-tip` → App toast | ✅ 可静音 |
 | L3 | `runtime.sendDesktopNotification` | 失焦 + 有回复正文 |
-| L4 | — | 未做（M31-G3） |
+| L4 | `proactive-greeting.ts` → `companion:proactive-greeting` | ✅ 默认关 |
 
 **发现**：L0 与 L1 分离，让「日子在过」不必等于「吵你」。
 
@@ -111,6 +111,22 @@ App: onMomentTip → useToast
 
 ---
 
+## §五 / §二 对照：L4 定时问候（M31-G3）
+
+```text
+life ticker → tickActiveRole → maybeProactiveGreeting
+  disabled（默认）/ muted / quiet / 当日已问候 / 无近 24h Moment → 跳过
+  else broadcast companion:proactive-greeting { toast 挂 Moment 预览 }
+App: onProactiveGreeting → useToast
+设置：companionProactiveGreetingEnabled（默认 false）
+```
+
+**发现**：无 World 增量绝不问候；不走桌面 Notification。
+
+**方法论对照**：→ §二 L4、§五、§八
+
+---
+
 ## L0 失败隔离
 
 ```text
@@ -129,4 +145,4 @@ ticker: tickActiveRole(...).catch(err => log.warn)
 |-----|------|
 | M31-G1 | ✅ `moment-tips` + 静音 + 冷却 |
 | M31-G2 | ✅ 勿扰小时窗 + 日预算 |
-| M31-G3 | 无 cron 问候任务 |
+| M31-G3 | ✅ ticker 门控问候（默认关） |

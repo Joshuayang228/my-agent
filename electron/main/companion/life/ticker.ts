@@ -8,6 +8,7 @@
 
 import { createLogger } from '../../utils/logger'
 import { tickActiveRole } from './engine'
+import { maybeProactiveGreeting } from './proactive-greeting'
 
 const log = createLogger('LifeTicker')
 
@@ -18,9 +19,18 @@ let timer: ReturnType<typeof setInterval> | null = null
 export function startLifeTicker(intervalMs = DEFAULT_INTERVAL_MS): void {
   if (timer) return
   const run = () => {
-    tickActiveRole(Date.now()).catch((err) => {
-      log.warn('tickActiveRole failed', { error: String(err) })
-    })
+    const now = Date.now()
+    tickActiveRole(now)
+      .then((r) => {
+        if (!r.roleId) return
+        // M31-G3：默认可关；失败不阻断 ticker
+        return maybeProactiveGreeting(r.roleId, now).catch((err) => {
+          log.warn('proactive greeting failed', { error: String(err) })
+        })
+      })
+      .catch((err) => {
+        log.warn('tickActiveRole failed', { error: String(err) })
+      })
   }
   run()
   timer = setInterval(run, intervalMs)

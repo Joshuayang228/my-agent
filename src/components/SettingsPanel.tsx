@@ -26,6 +26,8 @@ interface SettingsForm {
   companionMomentTipsQuietEnd: string
   /** 每日最多轻提示（M31-G2）；0=不限 */
   companionMomentTipsMaxPerDay: string
+  /** 定时主动问候（M31-G3）；默认关 */
+  companionProactiveGreetingEnabled: string
   auxModel: string
   sessionTokenBudget: string
   dailyTokenBudget: string
@@ -68,6 +70,7 @@ const DEFAULTS: SettingsForm = {
   companionMomentTipsQuietStart: '22',
   companionMomentTipsQuietEnd: '8',
   companionMomentTipsMaxPerDay: '3',
+  companionProactiveGreetingEnabled: 'false',
   auxModel: '',
   sessionTokenBudget: '0',
   dailyTokenBudget: '0',
@@ -241,6 +244,8 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
           s.companionMomentTipsQuietEnd || DEFAULTS.companionMomentTipsQuietEnd,
         companionMomentTipsMaxPerDay:
           s.companionMomentTipsMaxPerDay || DEFAULTS.companionMomentTipsMaxPerDay,
+        companionProactiveGreetingEnabled:
+          s.companionProactiveGreetingEnabled || DEFAULTS.companionProactiveGreetingEnabled,
         auxModel: s.auxModel || '',
         sessionTokenBudget: s.sessionTokenBudget || '0',
         dailyTokenBudget: s.dailyTokenBudget || '0',
@@ -498,6 +503,26 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
         <p className="mt-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>
           起止小时相同=关闭勿扰；起&gt;止表示跨午夜（如 22→8）。日子仍会推进，只是不弹气泡。
         </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => update('companionProactiveGreetingEnabled', 'false')}
+            className="settings-option px-3 py-2 text-xs"
+            data-selected={form.companionProactiveGreetingEnabled !== 'true' ? 'true' : undefined}
+          >
+            <div className="font-medium">定时问候：关</div>
+            <div className="mt-0.5 text-[10px] opacity-70">默认；不主动找上门</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => update('companionProactiveGreetingEnabled', 'true')}
+            className="settings-option px-3 py-2 text-xs"
+            data-selected={form.companionProactiveGreetingEnabled === 'true' ? 'true' : undefined}
+          >
+            <div className="font-medium">定时问候：开</div>
+            <div className="mt-0.5 text-[10px] opacity-70">有近 24h 动态时每日至多一次</div>
+          </button>
+        </div>
       </FieldGroup>
 
       <FieldGroup
