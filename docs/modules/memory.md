@@ -54,5 +54,4 @@
 ## 现状 / 缺口
 
 **现状**：SQLite + Vectra；工具三件套；画像提取；语义去重；体验契约见 `methodology/m29-asymmetric-memory.md`。  
-**缺口**：敏感类高亮（M29-G3）。  
-**已落地**：本轮引用芯片（M29-G1）；对话内「记错了/改正」（M29-G2：`memory:correct-citation`）。
+**已落地**：本轮引用芯片（M29-G1）；对话内纠错（M29-G2）；敏感高亮与采集提示（M29-G3：`sensitive-memory`）。

@@ -124,6 +124,7 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   parts.push('')
   parts.push('Use remember/recall/forget to manage long-term memory about the user.')
   parts.push('When the user shares personal info, preferences, or important context, proactively remember it.')
+  parts.push('Do not store passwords, API keys, or raw secrets. For health/finance/workplace-confidential details, prefer asking before remembering; the Memory panel highlights sensitive entries.')
 
   if (persona.aside_style) {
     parts.push('')

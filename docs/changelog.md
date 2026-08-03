@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — M29-G3 敏感记忆提示与高亮（2026-08-03）
+
+- `sensitive-memory`：健康/财务/凭据/隐私/职场启发式
+- MemoryPanel 高亮 + 入库确认；`remember` 附注；Prompt 克制声明
+
 ### Added — M29-G2 对话内一键纠错（2026-08-03）
 
 - `memory:correct-citation`：删向量 / 删或改 SQLite；改正可写新 fact

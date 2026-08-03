@@ -81,7 +81,7 @@
 - [x] **M28-G3** 换角后的「再认识」微文案（不重置成长时钟）— `buildReacquaintCopy` + SwitchResult/toast
 - [x] **M29-G1** 本轮注入/引用记忆的 UI 标注（id 或摘要芯片）— `memory_citations` 事件 + Chat 芯片
 - [x] **M29-G2** 「记错了」对话内一键纠错（触发 forget/更新）— `correctCitedMemory` + 芯片按钮
-- [ ] **M29-G3** 敏感类别采集提示与面板高亮
+- [x] **M29-G3** 敏感类别采集提示与面板高亮 — `sensitive-memory` 启发式 + MemoryPanel/remember
 - [ ] **M30-G1** 关系里程碑对象与回调提示
 - [ ] **M30-G2** 压缩保护「关系最小集」显式白名单
 - [ ] **M30-G3** 用户专家度 → 能力解释粒度

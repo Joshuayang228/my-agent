@@ -1,6 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import type { MemoryCategory, MemoryEntry } from '../shared/types'
-import { User, Settings, MessageCircle, Star, Pin, Brain, X, ThumbsUp } from 'lucide-react'
+import {
+  detectSensitiveKinds,
+  formatSensitiveCollectionHint,
+  labelSensitiveKinds,
+} from '../shared/sensitive-memory'
+import { User, Settings, MessageCircle, Star, Pin, Brain, X, ThumbsUp, ShieldAlert } from 'lucide-react'
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   identity: <User size={12} />,
@@ -50,8 +55,18 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
 
   useEffect(() => { loadMemories() }, [loadMemories])
 
+  const addSensitiveKinds = useMemo(
+    () => detectSensitiveKinds(newContent),
+    [newContent],
+  )
+
   const handleAdd = async () => {
     if (!window.electronAPI || !newContent.trim()) return
+    const kinds = detectSensitiveKinds(newContent)
+    if (kinds.length > 0) {
+      const ok = window.confirm(formatSensitiveCollectionHint(kinds))
+      if (!ok) return
+    }
     let roleId: string | undefined
     if (newCategory === 'feedback' && window.electronAPI.companion?.getActive) {
       try {
@@ -165,19 +180,32 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
               <input
                 value={newContent}
                 onChange={e => setNewContent(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleAdd()}
+                onKeyDown={e => e.key === 'Enter' && void handleAdd()}
                 placeholder="输入记忆内容..."
                 autoFocus
                 className="theme-input flex-1 rounded-lg border px-3 py-1.5 text-xs outline-none"
               />
               <button
-                onClick={handleAdd}
+                onClick={() => void handleAdd()}
                 disabled={!newContent.trim()}
                 className="rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-cyan-500 disabled:opacity-40"
               >
                 保存
               </button>
             </div>
+            {addSensitiveKinds.length > 0 && (
+              <div
+                className="mt-2 flex items-start gap-1.5 rounded px-2 py-1.5 text-[10px] leading-snug"
+                style={{
+                  color: 'var(--companion-accent-warm, #d4a574)',
+                  background: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 12%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--companion-accent-warm, #d4a574) 35%, transparent)',
+                }}
+              >
+                <ShieldAlert size={12} className="mt-0.5 shrink-0" />
+                <span>{formatSensitiveCollectionHint(addSensitiveKinds)}</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -198,16 +226,43 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
                 const cat = CATEGORIES.find(c => c.id === mem.category)
                 const colors = COLOR_MAP[cat?.color || 'cyan']
                 const isEditing = editing === mem.id
+                const sensitiveKinds = detectSensitiveKinds(mem.content)
+                const isSensitive = sensitiveKinds.length > 0
 
                 return (
                   <div
                     key={mem.id}
-                    className={`group rounded-lg border ${colors.border} ${colors.bg} px-4 py-2.5 transition hover:bg-opacity-10`}
+                    className={`group rounded-lg border px-4 py-2.5 transition hover:bg-opacity-10 ${
+                      isSensitive ? '' : `${colors.border} ${colors.bg}`
+                    }`}
+                    style={
+                      isSensitive
+                        ? {
+                            borderColor: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 55%, transparent)',
+                            background: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 10%, transparent)',
+                          }
+                        : undefined
+                    }
                   >
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${colors.badge}`}>
-                        {cat?.icon} {cat?.label}
-                      </span>
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${colors.badge}`}>
+                          {cat?.icon} {cat?.label}
+                        </span>
+                        {isSensitive && (
+                          <span
+                            className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium"
+                            title="启发式敏感标记，可删除或改正"
+                            style={{
+                              color: 'var(--companion-accent-warm, #d4a574)',
+                              background: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 18%, transparent)',
+                            }}
+                          >
+                            <ShieldAlert size={10} />
+                            敏感·{labelSensitiveKinds(sensitiveKinds)}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
                         {!isEditing && (
                           <>
@@ -270,7 +325,7 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
 
         {/* Footer hint */}
         <div className="border-t px-4 py-2 text-center text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
-          记忆会注入到每次对话的 System Prompt 中
+          记忆会注入到每次对话的 System Prompt 中 · 敏感项（健康/财务/凭据等）会高亮，勿存密码原文
         </div>
     </div>
   )

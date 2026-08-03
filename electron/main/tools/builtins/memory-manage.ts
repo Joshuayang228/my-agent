@@ -10,6 +10,10 @@
  */
 import { buildTool } from '../builder'
 import { addMemory, listMemories, deleteMemory, type MemoryCategory } from '../../storage/memory-store'
+import {
+  detectSensitiveKinds,
+  formatSensitiveRememberNote,
+} from '../../../../src/shared/sensitive-memory'
 
 const VALID_CATEGORIES = ['identity', 'preference', 'fact', 'workflow', 'voice', 'feedback'] as const
 
@@ -56,7 +60,9 @@ export const rememberTool = buildTool({
     }
 
     const entry = await addMemory(category as MemoryCategory, content, { roleId })
-    return `Remembered [${category}]: "${content}" (id: ${entry.id})`
+    const sensitive = detectSensitiveKinds(content)
+    const note = formatSensitiveRememberNote(sensitive)
+    return `Remembered [${category}]: "${content}" (id: ${entry.id})${note}`
   },
 })
 

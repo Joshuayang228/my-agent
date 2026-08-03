@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22–M29-G2**；下一步：M29-G3
+**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22–M29 收齐**；下一步：M30 Gaps
 
 **最新动态（2026-08-03）**：
+- ✅ **M29-G3**：敏感类别启发式；面板高亮 + 入库确认；remember/Prompt 克制。
 - ✅ **M29-G2**：芯片「记错了/改正」→ `correctCitedMemory` 双写清理或改写。
 - ✅ **M29-G1**：本轮向量召回 → `memory_citations` 事件；Chat 摘要芯片可指认 id。
 - ✅ **M28-G3**：换角「再认识」微文案（`buildReacquaintCopy`）；toast 明示非重开、不重置成长。

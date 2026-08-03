@@ -84,6 +84,25 @@ forget / Panel delete：SQLite 删除后必须联动向量删除（M08 纪律）
 
 ---
 
+## §八 / M29-G3 对照：敏感采集与高亮
+
+```text
+src/shared/sensitive-memory.ts → detectSensitiveKinds
+MemoryPanel：列表暖色高亮 + 入库 confirm
+remember 工具：返回附注
+prompt-builder：勿存密钥 / 敏感先问
+```
+
+**方法论对照**：→ §八
+
+---
+
 ## 已知简化
 
-与理念 Gap M29-G1–G3 一致；工程细节见 `m08-memory-system*.md`。
+| Gap | 代码 |
+|-----|------|
+| M29-G1 | ✅ 芯片（未持久进 session 库） |
+| M29-G2 | ✅ correct-citation |
+| M29-G3 | ✅ 启发式五类；误标可忽略，非分类器 |
+
+工程细节亦见 `m08-memory-system*.md`。
