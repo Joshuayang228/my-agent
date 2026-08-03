@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
-import { FileText, Wrench, BarChart3, ClipboardList, Zap, RotateCcw, X, CheckCircle, XCircle, ChevronRight } from 'lucide-react'
+import { FileText, Wrench, BarChart3, ClipboardList, Zap, RotateCcw, X, CheckCircle, XCircle, ChevronRight, FlaskConical } from 'lucide-react'
 
-type Tab = 'prompt' | 'tools' | 'system' | 'events' | 'traces'
+type Tab = 'prompt' | 'tools' | 'system' | 'events' | 'traces' | 'playground'
 
 interface TraceSpanInfo {
   id: string
@@ -61,6 +61,7 @@ function formatUptime(seconds: number): string {
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'prompt', label: 'System Prompt', icon: <FileText size={12} /> },
+  { id: 'playground', label: 'Playground', icon: <FlaskConical size={12} /> },
   { id: 'tools', label: '工具注册表', icon: <Wrench size={12} /> },
   { id: 'system', label: '系统状态', icon: <BarChart3 size={12} /> },
   { id: 'traces', label: '调用链', icon: <Zap size={12} /> },
@@ -148,11 +149,92 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5">
           {tab === 'prompt' && <PromptTab info={promptInfo} layer={promptLayer} setLayer={setPromptLayer} />}
+          {tab === 'playground' && <PlaygroundTab />}
           {tab === 'tools' && <ToolsTab tools={tools} expanded={expandedTool} setExpanded={setExpandedTool} />}
           {tab === 'system' && <SystemTab info={systemInfo} />}
           {tab === 'traces' && <TracesTab spans={spans} />}
           {tab === 'events' && <EventsTab events={eventLog} />}
         </div>
+    </div>
+  )
+}
+
+function PlaygroundTab() {
+  const [systemPrompt, setSystemPrompt] = useState('')
+  const [userPrompt, setUserPrompt] = useState('用一句话解释什么是 KV Cache。')
+  const [running, setRunning] = useState(false)
+  const [result, setResult] = useState<{ text: string; ms: number; model: string } | null>(null)
+  const [error, setError] = useState('')
+
+  const run = async () => {
+    if (!window.electronAPI?.debug?.playgroundRun) {
+      setError('需要 Electron 环境')
+      return
+    }
+    setRunning(true)
+    setError('')
+    setResult(null)
+    try {
+      const r = await window.electronAPI.debug.playgroundRun({
+        systemPrompt: systemPrompt.trim() || undefined,
+        userPrompt,
+      })
+      if (r.ok) setResult({ text: r.text, ms: r.ms, model: r.model })
+      else setError(r.error)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+        免伴侣上下文单轮试跑：不注入 Role Pack / 记忆 / 工具 / 会话历史。用设置里的主模型 API。
+      </p>
+      <label className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
+        System（可空，空则用默认 playground 指令）
+        <textarea
+          value={systemPrompt}
+          onChange={(e) => setSystemPrompt(e.target.value)}
+          rows={3}
+          className="theme-input mt-1 w-full rounded-lg border px-2 py-1.5 font-mono text-xs outline-none"
+          placeholder="可选覆盖 system prompt"
+        />
+      </label>
+      <label className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
+        User
+        <textarea
+          value={userPrompt}
+          onChange={(e) => setUserPrompt(e.target.value)}
+          rows={4}
+          className="theme-input mt-1 w-full rounded-lg border px-2 py-1.5 font-mono text-xs outline-none"
+        />
+      </label>
+      <button
+        type="button"
+        disabled={running || !userPrompt.trim()}
+        onClick={() => void run()}
+        className="settings-option px-3 py-1.5 text-xs disabled:opacity-50"
+      >
+        {running ? '运行中…' : '运行'}
+      </button>
+      {error && (
+        <p className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: 'var(--danger, #c44)', color: 'var(--danger, #c44)' }}>
+          {error}
+        </p>
+      )}
+      {result && (
+        <div className="rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border-color)' }}>
+          <div className="mb-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+            {result.model} · {result.ms}ms
+          </div>
+          <pre className="whitespace-pre-wrap break-words font-mono text-xs" style={{ color: 'var(--text-primary)' }}>
+            {result.text}
+          </pre>
+        </div>
+      )}
     </div>
   )
 }

@@ -101,7 +101,7 @@
 - [x] ~~**M17 G2** — LLM SSE fixture / replay~~ — 2026-07-26
 - [x] ~~**M17 G3** — 可选真对话 E2E（无 `TEST_LLM_API_KEY` 则 skip）~~ — 2026-07-26
 - [x] ~~**M17 G4** — IPC 可测纯逻辑单测~~ — 2026-07-26
-- [ ] **Playground** — 免上下文快速测试（查阅型）
+- [x] **Playground** — DevPanel「Playground」单轮试跑；无 Assemble/记忆/工具
 - [x] ~~**会话 Runtime 中心化** — chat:send 只传本轮用户消息~~ — 2026-07-26
 
 ---

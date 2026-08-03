@@ -340,6 +340,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     tools: () => ipcRenderer.invoke('debug:tools'),
     systemInfo: () => ipcRenderer.invoke('debug:system-info'),
     traces: () => ipcRenderer.invoke('debug:traces'),
+    playgroundRun: (input: {
+      systemPrompt?: string
+      userPrompt: string
+    }): Promise<
+      | { ok: true; text: string; ms: number; model: string }
+      | { ok: false; error: string }
+    > => ipcRenderer.invoke('debug:playground-run', input),
   },
 
   rag: {

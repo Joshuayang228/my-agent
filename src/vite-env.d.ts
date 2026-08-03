@@ -364,6 +364,13 @@ declare global {
           callerStats: Record<string, unknown>
           dailyTokenUsage: unknown
         }>
+        playgroundRun: (input: {
+          systemPrompt?: string
+          userPrompt: string
+        }) => Promise<
+          | { ok: true; text: string; ms: number; model: string }
+          | { ok: false; error: string }
+        >
       }
       chat: {
         send: (sessionId: string, userMessage: ChatMessage) => Promise<void>

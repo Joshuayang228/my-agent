@@ -7,6 +7,7 @@
 **阶段**：伙伴主线 + Part VI + 前端 + **方法论 Gaps / 权限 UI 债收口中**；下一步：wishlist 其余工程债
 
 **最新动态（2026-08-03）**：
+- ✅ **Playground**：DevPanel 免上下文单轮试跑（`debug:playground-run`）。
 - ✅ **异步 linked span**：后台任务 `startLinkedAsyncSpan`（links 非 parent）；task-queue 接线。
 - ✅ **TraceContext identity**：ALS 自动注入 sessionId/userId 到 span；chat/task-queue 接线。
 - ✅ **权限规则可视化编辑器**：表单增删改 + 高级 JSON；替代裸 textarea。

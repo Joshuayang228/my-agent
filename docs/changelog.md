@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — Dev Playground（2026-08-03）
+
+- DevPanel 新标签：粘贴 system/user，单轮 `chatComplete` 试跑
+- 不注入伴侣 Assemble / 记忆 / 工具；`debug:playground-run` IPC
+
 ### Added — 异步 linked span（2026-08-03）
 
 - `startLinkedAsyncSpan`：后台任务无 parent、经 `links` 追溯主对话
