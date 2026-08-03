@@ -19,7 +19,7 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 文档分四维：**产品**（`docs/modules/`，入口 `product-module-map.md`）· **技术**（`architecture.md`）· **质量**（`quality.md`）· **账本**（progress / changelog / wishlist / pitfalls / decisions / rules-feedback）。  
 **「有什么能力」**看 [`docs/modules/capability-catalog.md`](docs/modules/capability-catalog.md)（补已归档 `features.md` 的缺口；模块卡只管边界）。  
 施工合同 / 批次索引：[`docs/requirements/README.md`](docs/requirements/README.md)。  
-协作 SOP 在根目录 `agent-skills/`（与 docs 并列，见下文「agent-skills」）。深 Why 在 `methodology/`。方案见 `docs/requirements/docs-system-restructure.md`。
+协作 SOP 在根目录 `agent-skills/`（与 docs 并列，见下文「agent-skills」）。深 Why 在 `methodology/`。文档四维见 `docs/docs-system.md`。
 
 **按任务类型读**：
 

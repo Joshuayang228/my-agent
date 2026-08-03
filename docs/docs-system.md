@@ -1,6 +1,7 @@
-# 文档体系重构方案
+# 文档体系（四维 + methodology）
 
-> 状态：已落地（2026-07-30）
+> 状态：已落地（2026-07-30）。  
+> 原路径 `docs/requirements/docs-system-restructure.md`；2026-08-03 迁出 requirements（本文件不是施工合同）。
 
 ## Why
 
@@ -38,4 +39,4 @@
 - [x] 旧文档归档
 - [x] 账本含 pitfalls / decisions
 - [x] 能力目录 `modules/capability-catalog.md`（补 features 归档后的「有什么」缺口，2026-08-02）
-- [x] `requirements/README.md` 三分类索引（进行中 / 已落地契约 / 元批次）
+- [x] `requirements/README.md` 只索引施工合同（进行中 / 已落地）；元规则本文件、历史批次进 `_archive/docs-legacy/`、评估进 `docs/notes/`（2026-08-03）

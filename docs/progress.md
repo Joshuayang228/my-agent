@@ -7,10 +7,11 @@
 **阶段**：可观测灵感项继续落地；原生语音与 M24-G3 暂缓。
 
 **最新动态（2026-08-03）**：
+- ✅ **requirements 瘦身**：只保留伴侣施工合同；文档体系 → `docs/docs-system.md`；语音评估 → `docs/notes/`；Batch3 → `_archive/docs-legacy/`。
 - ✅ **Callback 组件化**：Chat 流式拆 reasoning/content/tool 三通道（Start/Progress/Complete）；Python 嵌入沙箱搁置。
 - ✅ **Session-based 采样**：按 sessionId 哈希确定性整会话收/丢；默认全收；环境变量可调。
 - ✅ **PII 脱敏 + 文本预算**：`text-capture.ts`（preview/sha256/chars）；tracer attributes / error 统一捕获。
-- ⏸ **原生语音输入**：评估后暂缓（不做假 Mic）；见 `docs/requirements/native-voice-input.md`；**停止** wishlist loop 自动续跑。
+- ⏸ **原生语音输入**：评估后暂缓（不做假 Mic）；见 `docs/notes/native-voice-input.md`；**停止** wishlist loop 自动续跑。
 - ✅ **Playground**：DevPanel 脱离上下文单轮试跑（`debug:playground-run`）。
 - ✅ **异步 linked span**：后台任务 `startLinkedAsyncSpan`（links 非 parent）；task-queue 接线。
 - ✅ **TraceContext identity**：ALS 自动注入 sessionId/userId 到 span；chat/task-queue 接线。
@@ -75,10 +76,10 @@
 
 **此前（2026-07-30）**：
 - ✅ **agent-skills 提出 docs**：迁至仓库根 `agent-skills/`；`CLAUDE.md` 补齐技能简介与注入时机（场景点读 / 自审必读 / 勿整库吞）。
-- ✅ **文档体系重构**：`docs/modules/product-module-map.md` + persona/memory/permission 三卡；`docs/quality.md`；坑/决策归账本；features 等五份迁 `_archive/docs-legacy/`；冷启动模板 `_template/code-project/` 已对齐。方案见 `docs/requirements/docs-system-restructure.md`。
+- ✅ **文档体系重构**：`docs/modules/product-module-map.md` + persona/memory/permission 三卡；`docs/quality.md`；坑/决策归账本；features 等五份迁 `_archive/docs-legacy/`；冷启动模板 `_template/code-project/` 已对齐。方案见 `docs/docs-system.md`。
 
 **此前（2026-07-26）**：
-- ✅ **工程化 Gap 三批**：Batch1（确认队列/脱敏树/SSE UI/MCP 命名/并发上限/G5·G13/agent-loop DI）+ Batch2（别名·元数据函数化/记忆去重/M09 token 车道·sync·checkpoint/M07 G2·G8·G9/MCP 重连·Schema/M17 G2–G4）+ Batch3（Eval B01+pass^k+baseline、Elicitation/Resources、会话 Runtime 中心化、Observer）。短需求见 `docs/requirements/batch3-capability-gaps.md`。
+- ✅ **工程化 Gap 三批**：Batch1（确认队列/脱敏树/SSE UI/MCP 命名/并发上限/G5·G13/agent-loop DI）+ Batch2（别名·元数据函数化/记忆去重/M09 token 车道·sync·checkpoint/M07 G2·G8·G9/MCP 重连·Schema/M17 G2–G4）+ Batch3（Eval B01+pass^k+baseline、Elicitation/Resources、会话 Runtime 中心化、Observer）。短需求已归档 `_archive/docs-legacy/batch3-capability-gaps.md`。
 - ✅ **M13 MCP 集成**：理念章 + code 章；后续增量（SSE UI / 重连 / Elicitation / Resources）已在工程化批次补齐。
 - ✅ **M16 并发与数据架构**：理念章 + code 章。第一性原理「并发边界与数据落点同图」；G1 persist coalesce、G9 原子写盘、G2 任务关键转移 await 落盘、G3 `schema_version` migration；sql.js 不迁库。264 单测通过。
 - ✅ **M12 IPC 架构**：核对收尾 + 小改代码。显式 `contextIsolation`/`nodeIntegration`；confirm 超时清理 + `randomUUID`；方法论改为「四处同步」（含 `vite-env.d.ts`）；C4 确认 UI 串行队列暂缓进 wishlist。

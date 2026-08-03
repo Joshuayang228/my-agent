@@ -33,7 +33,7 @@
 
 ## 项目文档职责
 
-四维模型见 `docs/requirements/docs-system-restructure.md`。
+四维模型见 `docs/docs-system.md`。
 
 | 文件 | 维 | 用途 | 更新时机 |
 |------|----|------|----------|

@@ -1,8 +1,9 @@
 # docs/requirements/ 索引
 
-> 施工合同与批次说明的目录。  
-> **不是**产品能力清单——「有什么」见 [`../modules/capability-catalog.md`](../modules/capability-catalog.md)。  
-> 方案元规则见 [`docs-system-restructure.md`](./docs-system-restructure.md)。
+> **只放产品/工程施工合同**（开工前对齐 Why/What/How/验收；完工后标已落地，作长期不变量参照）。  
+> **不是**能力清单——「有什么」见 [`../modules/capability-catalog.md`](../modules/capability-catalog.md)。  
+> **不是**文档体系说明——四维模型见 [`../docs-system.md`](../docs-system.md)。  
+> **不是**暂缓评估 / 历史批次——评估见 [`../notes/`](../notes/)；已完成批次见 [`../../_archive/docs-legacy/`](../../_archive/docs-legacy/)。
 
 ## 怎么放文件
 
@@ -10,9 +11,8 @@
 |------|------|------|
 | **进行中** | 仍指导未完成施工 | 保留；改行为时同步改文 |
 | **已落地契约** | 主线已通，仍作长期不变量/验收参照 | 保留；文首标「已落地」；细节以代码为准 |
-| **元 / 批次** | 文档体系或工程化批次说明 | 保留索引；勿与产品契约混读 |
 
-不要把灵感写进本目录（去 `wishlist.md`）；不要把进度写进本目录（去 `progress.md`）。
+不要把灵感写进本目录（去 `wishlist.md`）；不要把进度写进本目录（去 `progress.md`）；不要把文档元规则、可行性评估、已完成工程批次写进本目录。
 
 ---
 
@@ -20,9 +20,7 @@
 
 | 文档 | 说明 |
 |------|------|
-| （暂无独立进行中大项） | 前端伴侣表面 P0–P2 已收；下一工程向以 Pack 打磨 / wishlist Gaps 为主 |
-
-若开新大功能：先写需求文档 → 用户确认 → 再编码（见根 `CLAUDE.md`）。
+| （暂无） | 开新大功能时先写需求合同 → 用户确认 → 再编码（见根 `CLAUDE.md`） |
 
 ---
 
@@ -30,21 +28,12 @@
 
 | 文档 | 说明 |
 |------|------|
-| [frontend-companion-surfaces.md](./frontend-companion-surfaces.md) | Alice 对照前端表面：生活/工具 IA、P0–P2 验收 |
-| [companion-cast-content.md](./companion-cast-content.md) | 三角色文案定位 + 分味剧本/衣柜约定 |
 | [companion-world-framework.md](./companion-world-framework.md) | 产品终局：三槽、单活跃、Catch-up、生活世界 |
 | [companion-architecture.md](./companion-architecture.md) | 模块边界与依赖方向 |
 | [companion-tech-spec.md](./companion-tech-spec.md) | W0–W6 施工合同 / 验收 |
 | [companion-mutable-reflection.md](./companion-mutable-reflection.md) | 自动反思写 MUTABLE（门闸 / 入队 / Settings） |
-
----
-
-## 元 / 批次
-
-| 文档 | 说明 |
-|------|------|
-| [docs-system-restructure.md](./docs-system-restructure.md) | 四维文档体系（产品/技术/质量/账本）；已落地 |
-| [batch3-capability-gaps.md](./batch3-capability-gaps.md) | 工程化 Batch3 缺口清单（历史批次） |
+| [companion-cast-content.md](./companion-cast-content.md) | 三角色文案定位 + 分味剧本/衣柜约定 |
+| [frontend-companion-surfaces.md](./frontend-companion-surfaces.md) | Alice 对照前端表面：生活/工具 IA、P0–P2 验收 |
 
 ---
 
@@ -52,4 +41,4 @@
 
 - 模块卡：横切边界 + 必读文件（薄）  
 - 能力目录：已落地能力表 + Prompt 管线  
-- requirements：Why/What/How 合同与批次——**开工前读，完工后标已落地，不删历史契约**
+- requirements：施工合同——**开工前读，完工后标已落地，不删历史契约**

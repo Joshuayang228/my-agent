@@ -5,7 +5,7 @@
 > 技术总图见 [`../architecture.md`](../architecture.md)；质量总控见 [`../quality.md`](../quality.md)。  
 > **已落地能力表**见 [`capability-catalog.md`](./capability-catalog.md)（替代已归档的 `features.md`）。  
 > 需求合同索引：[`../requirements/README.md`](../requirements/README.md)。  
-> 方案：[`../requirements/docs-system-restructure.md`](../requirements/docs-system-restructure.md)
+> 文档体系：[`../docs-system.md`](../docs-system.md)
 
 ## 为什么需要模块卡
 

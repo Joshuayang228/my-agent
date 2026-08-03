@@ -5,7 +5,16 @@
 
 ## [未发布]
 
+### Changed — requirements 目录只留施工合同（2026-08-03）
+
+- 文档体系说明迁至 `docs/docs-system.md`
+- 原生语音评估迁至 `docs/notes/native-voice-input.md`
+- Batch3 历史短需求归档 `_archive/docs-legacy/batch3-capability-gaps.md`
+- `requirements/README.md` 去掉「元/批次」混放
+
 ### Added — Chat Callback 组件化（2026-08-03）
+
+
 
 - `src/components/chat/callbacks/`：reasoning / content / tool 独立生命周期
 - 纯 apply 函数可单测；App 事件分发按通道分流
@@ -25,7 +34,7 @@
 ### Changed — 原生语音输入暂缓落账（2026-08-03）
 
 - 评估结论：不恢复 Web Speech，不设假 Mic；待原生 STT 或云端方案立项
-- 详见 `docs/requirements/native-voice-input.md`
+- 详见 `docs/notes/native-voice-input.md`
 
 ### Added — Dev Playground（2026-08-03）
 

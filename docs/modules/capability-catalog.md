@@ -115,7 +115,7 @@
 | 命令分级 + 路径守卫 | 已落地 | `command-guard` · `shell_exec` |
 | 用户确认 IPC + 超时拒绝 | 已落地 | tool confirm · 监听清理 |
 | `permissionRules` 热更新 | 已落地 | settings JSON |
-| 权限规则可视化编辑器 | 缺口 | wishlist |
+| 权限规则可视化编辑器 | 已落地 | 设置「安全与权限」· `PermissionRulesEditor` |
 
 ---
 
