@@ -441,7 +441,7 @@ span.end('ok')
 // 概念映射：
 // OTel Span   → TraceSpan
 // OTel Tracer → startSpan() 函数
-// OTel Context → parentId 字段（手动传递，而非 context propagation）
+// OTel Context → parentId 树内继承 + AsyncLocalStorage TraceContext（sessionId/userId）
 // OTel Exporter → DevPanel 通过 getRecentSpans() 读取（本地展示，无远程导出）
 ```
 
