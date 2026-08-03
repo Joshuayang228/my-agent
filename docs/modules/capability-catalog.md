@@ -72,6 +72,7 @@
   → resolveRelationshipStageForRole(...)        # M28-G1/G2 阶段 + 交心/干活 lean
   → memory.buildUserProfile()                   # 结构化画像
   → safeVectorSearch(lastUser)                  # 向量语义召回 → L3 memories
+  → yield memory_citations                      # M29-G1 UI 芯片
   → buildSystemPrompt({
         L1: PROTECTED + MUTABLE
         L2: 工具/aside/stance/tone/relationship/skill 摘要

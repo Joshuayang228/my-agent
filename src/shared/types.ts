@@ -22,6 +22,17 @@ export interface ChatMessage {
   images?: ImageAttachment[]
   /** 压缩边界标记元数据（由上下文压缩系统写入，供调试/可观测性使用） */
   compactMetadata?: CompactMetadata
+  /** 本轮注入的记忆引用芯片（M29-G1；会话持久化可选，UI 可先挂本地） */
+  memoryCitations?: MemoryCitation[]
+}
+
+/** 本轮向量召回命中（注入 Prompt 的那批，已去 mem- 镜像） */
+export interface MemoryCitation {
+  id: string
+  category: string
+  /** 短摘要（截断正文） */
+  summary: string
+  score?: number
 }
 
 /** 压缩边界元数据 — 标记一次压缩发生的位置与效果 */
@@ -231,6 +242,11 @@ export type AgentStreamEvent =
   | { type: 'usage'; promptTokens: number; completionTokens: number }
   | { type: 'error'; message: string; code?: string }
   | { type: 'execution_mode_changed'; mode: ExecutionMode; reason: string }
+  | {
+      /** M29-G1：本轮注入 Prompt 的记忆引用（供 UI 芯片） */
+      type: 'memory_citations'
+      items: MemoryCitation[]
+    }
   | {
       /** M4 compactMetadata 可观测事件 — 压缩发生后由 agentLoop yield */
       type: 'compact'

@@ -229,6 +229,35 @@ export const MEMORY_STALE_THRESHOLD_DAYS = 7
 /** 匹配文件路径特征：/path/to/file.ext 或 dir/file.ext（含 .ts/.py/.json 等扩展名） */
 const FILE_PATH_PATTERN = /(?:^|[\s'"`])([/~][\w./\\-]+\.\w+|[\w.-]+\/[\w./\\-]+\.\w+)/
 
+/** 与注入 Prompt 同一批 hit（已去 mem- 镜像），供 UI 芯片（M29-G1） */
+export interface MemoryCitationItem {
+  id: string
+  category: string
+  summary: string
+  score?: number
+}
+
+const CITATION_SUMMARY_MAX = 48
+
+/**
+ * 从召回结果抽出可指认芯片。
+ * 背景：用户要能指认「这一轮用了哪条」，不能只靠模型旁白。
+ * 约束：与 formatRecallForInjection 去重规则一致；summary 截断防 UI 爆。
+ */
+export function extractMemoryCitations(
+  results: VectorSearchResult[],
+): MemoryCitationItem[] {
+  return results
+    .filter(r => !r.id.startsWith('mem-'))
+    .map(r => ({
+      id: r.id,
+      category: r.category || 'memory',
+      summary: (r.text || '').replace(/\s+/g, ' ').trim().slice(0, CITATION_SUMMARY_MAX),
+      score: typeof r.score === 'number' ? r.score : undefined,
+    }))
+    .filter(c => c.id && c.summary)
+}
+
 export function formatRecallForInjection(
   results: VectorSearchResult[],
   now: number = Date.now(),

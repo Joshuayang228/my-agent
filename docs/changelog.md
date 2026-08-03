@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — M29-G1 本轮记忆引用芯片（2026-08-03）
+
+- `extractMemoryCitations` + 流事件 `memory_citations`
+- Chat 在助手消息上展示摘要芯片（hover 见 id）
+
 ### Added — M28-G3 换角「再认识」微文案（2026-08-03）
 
 - `buildReacquaintCopy`：换视角非重开；明示成长/记忆不重置

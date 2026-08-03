@@ -30,7 +30,13 @@ import { ToolRegistry } from '../tools/registry'
 import * as store from '../storage/session-store'
 import * as settings from '../storage/settings-store'
 import * as memory from '../storage/memory-store'
-import { searchVectorStore, addToVectorStore, formatRecallForInjection } from '../memory/vector-store'
+import {
+  searchVectorStore,
+  addToVectorStore,
+  extractMemoryCitations,
+  formatRecallForInjection,
+} from '../memory/vector-store'
+import type { MemoryCitation } from '../../../src/shared/types'
 import { buildSkillSummaryForPrompt, getActiveSkill, clearActiveSkill } from '../skills/registry'
 import { setCurrentSessionId as setTaskPlanSessionId } from '../services/task-plan-service'
 import { clearSessionSubAgents } from './subagent-registry'
@@ -192,7 +198,11 @@ class AgentRuntime {
         sessionKind: sessionMeta?.sessionKind || 'main',
       })
 
-      const vectorContext = await this.safeVectorSearch(lastUserMsg?.content, llmConfig)
+      const { text: vectorContext, citations: memoryCitations } =
+        await this.safeVectorSearch(lastUserMsg?.content, llmConfig)
+      if (memoryCitations.length > 0) {
+        yield { type: 'memory_citations', items: memoryCitations, sessionId }
+      }
 
       let skillSummary: string | undefined
       let activeSkillBody: string | undefined
@@ -409,21 +419,33 @@ class AgentRuntime {
     }
   }
 
-  /** 安全的向量搜索（失败静默） */
-  private async safeVectorSearch(query: string | undefined, llmConfig: LLMConfig): Promise<string | undefined> {
-    if (!query) return undefined
+  /**
+   * 安全的向量搜索（失败静默）。
+   * 同时返回注入文本与可指认芯片（M29-G1）。
+   */
+  private async safeVectorSearch(
+    query: string | undefined,
+    llmConfig: LLMConfig,
+  ): Promise<{ text?: string; citations: MemoryCitation[] }> {
+    if (!query) return { citations: [] }
     try {
       const results = await searchVectorStore(query, llmConfig, { topK: 5, minScore: 0.6 })
       // G5 去重（排除 SQLite 镜像）+ G2 老化告警，逻辑抽在 formatRecallForInjection 纯函数
       const output = formatRecallForInjection(results)
+      const citations = extractMemoryCitations(results)
       if (output) {
-        log.info('Vector recall', { query: query.slice(0, 50), resultCount: results.length })
-        return output
+        log.info('Vector recall', {
+          query: query.slice(0, 50),
+          resultCount: results.length,
+          citationCount: citations.length,
+        })
+        return { text: output, citations }
       }
+      return { citations: [] }
     } catch (err) {
       log.warn('Vector search skipped', { error: String(err) })
     }
-    return undefined
+    return { citations: [] }
   }
 
   /** 将对话完成后的后台任务加入 TaskQueue（M11 任务生命周期） */

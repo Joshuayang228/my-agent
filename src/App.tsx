@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import type { ChatMessage, AgentStreamEvent, ImageAttachment } from './shared/types'
+import type { ChatMessage, AgentStreamEvent, ImageAttachment, MemoryCitation } from './shared/types'
 import { MarkdownRenderer } from './components/MarkdownRenderer'
 import { SettingsPanel } from './components/SettingsPanel'
 import { DevPanel } from './components/DevPanel'
@@ -182,6 +182,8 @@ function App() {
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const streamingSessionRef = useRef<string | null>(null)
+  /** 本轮记忆引用芯片（done 后 session.reload 会丢本地字段，用 ref 补回） */
+  const turnCitationsRef = useRef<MemoryCitation[]>([])
   const sessionsRef = useRef<SessionSummary[]>([])
   const activeSessionIdRef = useRef<string | null>(null)
   const { toast } = useToast()
@@ -434,15 +436,47 @@ function App() {
       : ev.type === 'compact' ? `${ev.level} ${ev.preTokens}→${ev.postTokens}t [${ev.trigger}${ev.usedLLM ? ' LLM' : ''}]`
       : ev.type === 'usage' ? `in:${ev.promptTokens} out:${ev.completionTokens}`
       : ev.type === 'thinking' ? ev.content.slice(0, 80)
+      : ev.type === 'memory_citations' ? `${ev.items.length} refs`
       : ''
     setEventLog(prev => [...prev.slice(-500), { time: Date.now(), type: ev.type, detail }])
 
     switch (ev.type) {
+      case 'memory_citations':
+        turnCitationsRef.current = ev.items
+        setMessages((prev) => {
+          const last = prev[prev.length - 1]
+          if (last?.role === 'assistant') {
+            return [...prev.slice(0, -1), { ...last, memoryCitations: ev.items }]
+          }
+          return [
+            ...prev,
+            {
+              id: genId(),
+              role: 'assistant',
+              content: '',
+              timestamp: Date.now(),
+              memoryCitations: ev.items,
+            },
+          ]
+        })
+        break
+
       case 'text':
         setMessages((prev) => {
           const last = prev[prev.length - 1]
           if (last?.role !== 'assistant') {
-            return [...prev, { id: genId(), role: 'assistant', content: ev.content, timestamp: Date.now() }]
+            return [
+              ...prev,
+              {
+                id: genId(),
+                role: 'assistant',
+                content: ev.content,
+                timestamp: Date.now(),
+                memoryCitations: turnCitationsRef.current.length
+                  ? turnCitationsRef.current
+                  : undefined,
+              },
+            ]
           }
           return [...prev.slice(0, -1), { ...last, content: last.content + ev.content }]
         })
@@ -473,13 +507,32 @@ function App() {
         break
 
       case 'tool_calls':
-        setMessages((prev) => [...prev, {
-          id: genId(),
-          role: 'assistant' as const,
-          content: '',
-          timestamp: Date.now(),
-          toolCalls: ev.calls,
-        }])
+        setMessages((prev) => {
+          const last = prev[prev.length - 1]
+          // 若 memory_citations 已预置空 assistant，合并到同一条
+          if (last?.role === 'assistant' && !last.content && !last.toolCalls?.length) {
+            return [
+              ...prev.slice(0, -1),
+              {
+                ...last,
+                toolCalls: ev.calls,
+                memoryCitations: last.memoryCitations ?? (
+                  turnCitationsRef.current.length ? turnCitationsRef.current : undefined
+                ),
+              },
+            ]
+          }
+          return [...prev, {
+            id: genId(),
+            role: 'assistant' as const,
+            content: '',
+            timestamp: Date.now(),
+            toolCalls: ev.calls,
+            memoryCitations: turnCitationsRef.current.length
+              ? turnCitationsRef.current
+              : undefined,
+          }]
+        })
         break
 
       case 'tool_start':
@@ -603,6 +656,7 @@ function App() {
     setInput('')
     setPendingImages([])
     streamingSessionRef.current = sid
+    turnCitationsRef.current = []
     setBgStreamingSessionId(sid)
     setIsStreaming(true)
     setActiveTools([])
@@ -621,7 +675,19 @@ function App() {
         // 与主进程会话对齐，避免本地流式状态与库不一致
         void window.electronAPI.session.get(sid).then((session) => {
           if (session && streamingSessionRef.current === null) {
-            setMessages(session.messages)
+            const cites = turnCitationsRef.current
+            if (!cites.length) {
+              setMessages(session.messages)
+              return
+            }
+            const msgs = session.messages.map(m => ({ ...m }))
+            for (let i = msgs.length - 1; i >= 0; i--) {
+              if (msgs[i].role === 'assistant') {
+                msgs[i] = { ...msgs[i], memoryCitations: cites }
+                break
+              }
+            }
+            setMessages(msgs)
           }
         })
       }
@@ -1245,6 +1311,27 @@ function App() {
                     ) : (
                       /* ── AI 消息：左对齐纯文本 ── */
                       <div className="relative max-w-full">
+                        {msg.memoryCitations && msg.memoryCitations.length > 0 && (
+                          <div
+                            className="mb-1.5 flex flex-wrap gap-1"
+                            aria-label="本轮引用的记忆"
+                          >
+                            {msg.memoryCitations.map((c) => (
+                              <span
+                                key={c.id}
+                                title={`id: ${c.id}\n${c.summary}`}
+                                className="max-w-[14rem] truncate rounded px-1.5 py-0.5 text-[10px] leading-snug"
+                                style={{
+                                  color: 'var(--text-muted)',
+                                  background: 'var(--bg-secondary)',
+                                  border: '1px solid var(--border-subtle)',
+                                }}
+                              >
+                                记忆·{c.category}: {c.summary}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <div className="text-[13.5px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>
                           <MarkdownRenderer content={msg.content} />
                           {isStreaming && msg === messages[messages.length - 1] && (

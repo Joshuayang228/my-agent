@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { formatMemoryAge, formatRecallForInjection, MEMORY_STALE_THRESHOLD_DAYS, selectEvictableItems } from '../../electron/main/memory/vector-store'
+import {
+  formatMemoryAge,
+  formatRecallForInjection,
+  extractMemoryCitations,
+  MEMORY_STALE_THRESHOLD_DAYS,
+  selectEvictableItems,
+} from '../../electron/main/memory/vector-store'
 import type { VectorSearchResult } from '../../electron/main/memory/vector-store'
 
 describe('G2: formatMemoryAge 记忆老化格式化', () => {
@@ -32,6 +38,31 @@ describe('G2: formatMemoryAge 记忆老化格式化', () => {
     const staleTs = now - (MEMORY_STALE_THRESHOLD_DAYS + 1) * DAY
     const ageDays = Math.floor((now - staleTs) / DAY)
     expect(ageDays > MEMORY_STALE_THRESHOLD_DAYS).toBe(true)
+  })
+})
+
+describe('M29-G1: extractMemoryCitations', () => {
+  const now = 1_700_000_000_000
+
+  function result(id: string, text: string): VectorSearchResult {
+    return { id, text, category: 'preference', score: 0.9, timestamp: now }
+  }
+
+  it('排除 mem- 镜像并截断摘要', () => {
+    const long = '用户喜欢安静的咖啡馆聊工作，并且不喜欢被打断'.repeat(3)
+    const items = extractMemoryCitations([
+      result('mem-1', '不应出现'),
+      result('conv-abc', long),
+    ])
+    expect(items).toHaveLength(1)
+    expect(items[0].id).toBe('conv-abc')
+    expect(items[0].summary.length).toBeLessThanOrEqual(48)
+    expect(items[0].category).toBe('preference')
+  })
+
+  it('与 formatRecall 去重一致：全 mem- 则无芯片', () => {
+    expect(extractMemoryCitations([result('mem-1', 'a')])).toEqual([])
+    expect(formatRecallForInjection([result('mem-1', 'a')], now)).toBeNull()
   })
 })
 

@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22–M28 收齐**；下一步：M29 Gaps
+**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22–M29-G1**；下一步：M29-G2/G3
 
 **最新动态（2026-08-03）**：
+- ✅ **M29-G1**：本轮向量召回 → `memory_citations` 事件；Chat 摘要芯片可指认 id。
 - ✅ **M28-G3**：换角「再认识」微文案（`buildReacquaintCopy`）；toast 明示非重开、不重置成长。
 - ✅ **M28-G2**：近窗交心/干活 `familiarity-mix`；task-leaning 压制默契口吻。
 - ✅ **M28-G1**：`relationshipStage`（陌生/熟悉/默契）由门闸代理指标推导并注入 Prompt；召唤强制陌生。

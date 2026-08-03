@@ -13,9 +13,24 @@ runtime 组装
   → buildSystemPrompt L3
 ```
 
-**无**：把 hit 的 memory id yield 给渲染进程（M29-G1）。
+**已落地（M29-G1）**：
+
+```text
+extractMemoryCitations(results)  // 与 formatRecall 同去重
+→ yield { type: 'memory_citations', items }
+→ Chat 挂 memoryCitations 芯片（hover 见 id）
+```
 
 **方法论对照**：→ §二 §四
+
+---
+
+## §六 / M29-G1 对照：指认
+
+| 步骤 | 现状 |
+|------|------|
+| 本轮 hit → UI | ✅ `memory_citations` |
+| 一键纠错 | 无（M29-G2） |
 
 ---
 
@@ -46,7 +61,7 @@ forget / Panel delete：SQLite 删除后必须联动向量删除（M08 纪律）
 |------|------|
 | 用户口头纠正 | 依赖模型调 forget |
 | 一键按钮 | 无（M29-G2） |
-| 指认本轮引用 | 无芯片（M29-G1） |
+| 指认本轮引用 | ✅ 芯片（M29-G1） |
 | 面板手删 | ✅ |
 
 **方法论对照**：→ §六
