@@ -5,6 +5,10 @@
 
 ## [未发布]
 
+### Changed — 双语 README 面向公开运营（2026-08-04）
+
+- 根目录 `README.md`（English）+ `README.zh-CN.md`（中文）；修正过时能力表述，突出伙伴世界差异化
+
 ### Changed — 施工合同术语统一（2026-08-03）
 
 - `docs/requirements/` 唯一称呼为「施工合同」；CLAUDE / docs-system / requirements README 禁混用旧别名

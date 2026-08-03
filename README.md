@@ -1,113 +1,121 @@
 # My Agent
 
-一个人格化桌面 AI Agent — 有性格、有记忆、能成长的数字伙伴。
+[中文](./README.zh-CN.md) · English
 
-## 愿景
+**A personality-first desktop AI companion** — not only a coding harness, but a digital partner with character, memory, and a living world.
 
-不只是一个 AI 工具，而是一个真正的数字伙伴：
+> Status: **early public alpha** (`v0.1.0`). APIs and UI will keep moving while we iterate in the open.
 
-- **人格化交互** — 有一致的性格特征和交流风格，3 个内置人格可切换
-- **持久记忆** — 记住你的偏好、项目上下文、历史对话，越用越懂你
-- **主动协作** — 不仅被动回答，还能主动提醒、建议、推进任务
-- **本地优先** — SQLite + 向量数据库，数据全部存储在本地
-- **可扩展** — Skill 系统 + MCP 协议，按需扩展能力边界
+## Why this project
 
-## 功能亮点
+Most agents optimize for tools and throughput. My Agent optimizes for **relationship continuity**:
 
-| 能力 | 描述 |
-|------|------|
-| Agent Loop | AsyncGenerator 事件流驱动，LLM 重试 + 工具超时保护 |
-| 13 个内置工具 | 文件读写、终端命令、代码搜索、网页搜索、记忆管理、RAG 搜索等 |
-| MCP 协议 | 支持 Stdio + SSE 两种传输层，可接入外部 MCP 服务器 |
-| Skill 系统 | Markdown 操作手册，YAML 元数据，按需激活注入上下文 |
-| 多 Provider | OpenAI / Anthropic / Gemini / DeepSeek 等，自动检测适配 |
-| 沙箱安全 | 三级策略（只读 / 工作区写入 / 完全访问）+ 命令分级 + 审批记录 |
-| 多主题 | 7 个命名主题（dark / light / mist / night-feast 等） |
-| 语音交互 | Web Speech API 语音输入 + TTS 朗读 |
-| RAG 管道 | 文档导入分块 + Embedding + 语义检索 |
-| 定时任务 | interval + cron 调度，SQLite 持久化 |
+- **Three protagonist slots** — switch who you talk to; only one is active at a time
+- **Living world** — day scripts, Moments (life feed), wardrobe / bookshelf, cast summoning
+- **Growth** — MUTABLE behavior layer with gated reflection (not a static system prompt skin)
+- **Memory that lasts** — structured store + vector recall, citations you can correct
+- **Local-first** — SQLite + local vectors; your data stays on your machine
+- **Harness you can trust** — Agent Loop, sandbox / permission engine, MCP & Skills
 
-## 技术栈
+## Highlights
 
-| 层级 | 技术 |
-|------|------|
-| 外壳 | Electron 42 |
-| 语言 | TypeScript 全栈 |
-| 前端 | React 19 + TailwindCSS 4 |
-| 存储 | SQLite (sql.js WASM) + Vectra 向量数据库 |
-| 核心 | Agent Loop (AsyncGenerator) + Runtime 编排层 |
-| 测试 | vitest (单元) + Playwright (E2E) |
-| 打包 | electron-builder (NSIS / DMG) |
+| Area | What you get |
+|------|----------------|
+| Companion world | Role packs, LifeEngine ticks, Catch-up, Moments, assets, cast summon |
+| Agent runtime | Streaming loop, prompt assembly, context compaction, task queue |
+| Tools | Files, shell, search, memory, RAG, and more (permission-gated) |
+| MCP | Stdio + SSE clients for external servers |
+| Skills | Markdown playbooks injected on demand |
+| LLM | OpenAI / Anthropic / Gemini / DeepSeek-style providers + failover |
+| Safety | read-only / workspace-write / full-access + command classes + approvals |
+| UI | Multi-theme desktop chat, companion surfaces, Dev Playground |
 
-## 快速开始
+## Tech stack
 
-### 环境要求
+| Layer | Stack |
+|-------|--------|
+| Shell | Electron |
+| Language | TypeScript (main + renderer) |
+| UI | React + Tailwind CSS |
+| Storage | sql.js (SQLite) + Vectra |
+| Core | AsyncGenerator Agent Loop + Runtime |
+| Tests | Vitest + Playwright |
+| Package | electron-builder |
 
-- Node.js >= 20
-- npm >= 10
+## Quick start
 
-### 安装 & 启动
+**Requirements:** Node.js ≥ 20, npm ≥ 10
 
 ```bash
-# 克隆项目
 git clone https://github.com/Joshuayang228/my-agent.git
 cd my-agent
-
-# 安装依赖
 npm install
-
-# 配置 API Key（复制 .env.example 并填入你的 Key）
-cp .env.example .env
-
-# 启动开发模式
+cp .env.example .env   # add your API keys
 npm run dev
 ```
 
-### 打包
+### Scripts
 
-```bash
-# 构建 + 打包 Windows 安装程序
-npm run package
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Dev app (Vite + Electron) |
+| `npm run test` | Unit tests |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run package` | Production build + installer |
+
+## Architecture (sketch)
+
+```text
+┌────────────────────────────────────────────────────┐
+│                   Electron App                     │
+│  ┌─────────────┐   IPC / stream    ┌────────────┐  │
+│  │  Renderer   │◄────────────────►│ Main       │  │
+│  │  React UI   │  AgentStreamEvent │ Node.js    │  │
+│  │  Chat /     │                   │ Loop ·     │  │
+│  │  Moments /  │                   │ Runtime ·  │  │
+│  │  Settings   │                   │ Tools ·    │  │
+│  └─────────────┘                   │ Companion  │  │
+│                                    │ Memory ·   │  │
+│                                    │ Sandbox    │  │
+│                                    └────────────┘  │
+└────────────────────────────────────────────────────┘
 ```
 
-## 架构概览
+Deeper map: [docs/architecture.md](docs/architecture.md) (Chinese technical notes for now).
 
-```
-┌──────────────────────────────────────────────────────┐
-│                    Electron App                      │
-│                                                      │
-│  ┌────────────┐      IPC (12模块)    ┌────────────┐ │
-│  │  渲染进程   │◄───────────────────►│   主进程    │ │
-│  │  (React)   │  AgentStreamEvent   │  (Node.js) │ │
-│  │            │                     │            │ │
-│  │ - UI V2   │                     │ - Agent    │ │
-│  │   Codex风格│                     │   Loop     │ │
-│  │ - 多主题  │                     │ - Runtime  │ │
-│  │ - Markdown│                     │ - 工具系统 │ │
-│  │   渲染    │                     │ - 记忆系统 │ │
-│  │ - 设置/   │                     │ - MCP/Skill│ │
-│  │   技能/   │                     │ - 沙箱策略 │ │
-│  │   记忆面板│                     │ - LLM 路由 │ │
-│  └────────────┘                     │ - SQLite   │ │
-│                                     └────────────┘ │
-└──────────────────────────────────────────────────────┘
-```
+## Documentation
 
-详细架构文档见 [docs/architecture.md](docs/architecture.md)。
+We maintain a small **four-dimension** doc system (product / architecture / quality / ledgers) plus **construction contracts** under `docs/requirements/`.
 
-## 项目文档
+| Doc | Role |
+|-----|------|
+| [docs/modules/README.md](docs/modules/README.md) | Product modules (companion, memory, permission, runtime) |
+| [docs/architecture.md](docs/architecture.md) | System architecture |
+| [docs/quality.md](docs/quality.md) | Unit / Eval / E2E gates |
+| [docs/requirements/README.md](docs/requirements/README.md) | Construction contracts (large changes) |
+| [docs/changelog.md](docs/changelog.md) | User-facing changes |
+| [docs/progress.md](docs/progress.md) | Internal progress |
+| [docs/wishlist.md](docs/wishlist.md) | Deferred ideas & gaps |
+| [docs/docs-system.md](docs/docs-system.md) | How docs are organized |
 
-| 文档 | 说明 |
-|------|------|
-| [modules/README.md](docs/modules/README.md) | 产品模块导览（协作入口） |
-| [architecture.md](docs/architecture.md) | 系统架构与数据流 |
-| [quality.md](docs/quality.md) | 质量总控（Unit / Eval / E2E） |
-| [progress.md](docs/progress.md) | 对内进度 |
-| [changelog.md](docs/changelog.md) | 对外变更记录 |
-| [wishlist.md](docs/wishlist.md) | 缺口与灵感 |
-| [decisions.md](docs/decisions.md) | 技术决策 (ADR) |
-| [pitfalls.md](docs/pitfalls.md) | 踩坑记录 |
+> Most long-form docs are currently in **Chinese** (authoring language). English READMEs are the public front door; we will bilingualize more as the repo grows.
 
-## 许可证
+## Roadmap (high level)
 
-[MIT](LICENSE)
+- Polish companion UX and Pack content
+- Strengthen observability & eval coverage
+- Frontend visual unification (planned construction contract)
+- Native / reliable voice input (deferred — see `docs/notes/`)
+- Image Moments & multi-universe (out of scope for now)
+
+## Contributing
+
+Issues and PRs are welcome. For large changes, open or update a **construction contract** under `docs/requirements/` before coding (see root `CLAUDE.md`).
+
+1. Fork & branch  
+2. `npm run test` and `npm run typecheck`  
+3. Keep commits focused; update module cards / changelog when user-visible behavior changes  
+
+## License
+
+[MIT](LICENSE) · © [Joshuayang228](https://github.com/Joshuayang228)

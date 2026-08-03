@@ -2,7 +2,7 @@
   "name": "my-agent",
   "version": "0.1.0",
   "private": true,
-  "description": "一个人格化桌面 AI Agent — 有性格、有记忆、能成长的数字伙伴",
+  "description": "Personality-first desktop AI companion — character, memory, and a living world",
   "license": "MIT",
   "author": "Joshuayang228",
   "type": "module",
