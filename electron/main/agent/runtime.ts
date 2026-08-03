@@ -14,6 +14,7 @@ import { BrowserWindow, Notification } from 'electron'
 import { agentLoop } from './loop'
 import { buildSystemPrompt, rolePackToPromptParts } from './prompt-builder'
 import { describeCastPresence } from '../companion/cast/availability'
+import { summonParentDelegationHint } from '../companion/cast/summon-delegation'
 import { scheduleReflectionAfterChat } from '../companion/growth/reflection-service'
 import { assertSessionRole, loadRoleAssembleInput } from '../companion/orchestrator'
 import { registerStreamingProbe } from '../companion/streaming-gate'
@@ -207,7 +208,9 @@ class AgentRuntime {
         } catch { /* ignore */ }
         summonNote =
           '【召唤子会话】用户正在与你单独短聊；生活世界（朋友圈/衣柜/日程）仍以当前活跃主角为准，本会话不推进你的生活世界。' +
-          presenceLine
+          presenceLine +
+          '\n' +
+          summonParentDelegationHint()
       }
       const sessionInfoParts = [customPrompt, summonNote].filter(Boolean)
 
@@ -236,6 +239,7 @@ class AgentRuntime {
         registry: toolRegistry,     // 工具注册表（delegate_task 需要）
         executionMode,              // 父执行模式（子 Agent 权限只降不升，G4）
         roleId: assembleRoleId,     // feedback 记忆分桶（M22-G2）
+        sessionKind: isSummon ? 'summon' : 'main', // M26-G2：子 Agent 任务工边界
       }
 
       const stream = agentLoop(

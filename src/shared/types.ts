@@ -142,6 +142,8 @@ export interface ToolContext {
   executionMode?: ExecutionMode
   /** 本会话绑定的主角（供 feedback 记忆分桶等） */
   roleId?: string
+  /** 会话种别：召唤时子 Agent 须守 M26 任务工边界（M26-G2） */
+  sessionKind?: 'main' | 'summon'
 }
 
 // ── LLM ──

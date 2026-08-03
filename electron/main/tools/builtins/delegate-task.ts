@@ -11,11 +11,13 @@ export const delegateTaskTool = buildTool({
 - **并发执行型任务**：需要并行做多个独立的事（查询多个数据源、分析多个文件）
 - **Research + Implementation 拆分**：先让子 Agent 研究收集信息，父 Agent 综合后再启动新子 Agent 实现
 - **独立子任务**：任务边界清晰、不需要父 Agent 的上下文
+- **召唤子会话帮忙干活（M26）**：可委派查/改；子 Agent 是匿名任务工，不是另一个卡司；完成后由你用角色语气转述
 
 **When NOT to use:**
 - **信息积累型任务**：任务需要持续积累上下文才能完成 → 用单 Agent 串行处理更可靠
 - **简单单次工具调用**：直接调用工具即可，不需要子 Agent 包装
 - **需要多轮对话澄清**：子 Agent 不能问用户问题
+- **把子 Agent 当成另一个朋友角色**：禁止；卡司用召唤会话，干活用本工具
 
 **典型场景:**
 - "分析 docs/ 下所有 Markdown 文件，提取标题和摘要" → 可并发读取
@@ -86,6 +88,12 @@ export const delegateTaskTool = buildTool({
       return '[Error] Sub-agent system not initialized. Tool registry is not available in toolContext.'
     }
 
+    // M26-G2：仅 main/summon（或未标记）可委派；避免 tools→companion 反向依赖
+    const sk = toolContext.sessionKind
+    if (sk != null && sk !== '' && sk !== 'main' && sk !== 'summon') {
+      return '[Error] Delegating sub-agents is not allowed in this session kind.'
+    }
+
     const registry = toolContext.registry as ToolRegistry
 
     const result = await runSubAgent(
@@ -95,7 +103,7 @@ export const delegateTaskTool = buildTool({
         allowedTools,
         readOnly: args.read_only !== undefined ? readOnly : undefined,  // 未显式传时交给角色预设决定
         parentSpanId: toolContext.parentSpanId,       // G1: 传入父 span ID
-        toolContext,                                   // G5: 子 Agent 工具拿到 workdir/sessionId/signal
+        toolContext,                                   // G5: 含 sessionKind → M26 任务工边界
         parentExecutionMode: toolContext.executionMode, // G4: 权限只降不升
       },
       llmConfig,

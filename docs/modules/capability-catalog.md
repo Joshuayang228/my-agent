@@ -49,7 +49,7 @@
 | Assets（物什） | 已落地 | 欢迎屏 → 物什 | wardrobe/bookshelf · `get/update/delete-asset` · AssetsPanel |
 | 名册浅注入 | 已落地 | （Prompt） | `cast/roster` |
 | CastPanel（名册 / 召唤） | 已落地 | 状态条 / 欢迎屏 → 名册 | CastPanel · `start-summon` |
-| 召唤子会话 | 已落地 | 名册「开聊」 | 不改 active / 不 tick 对方 |
+| 召唤子会话 | 已落地 | 名册「开聊」 | 不改 active / 不 tick；可 delegate（任务工） |
 | 召唤忙闲婉拒 + force | 已落地 | 名册开聊前 | `check-cast-availability` |
 | 冷启动在场文案 | 已落地 | Chat 空态欢迎屏 | `companion-presence.ts` |
 | 角色架 UI | 已落地 | 状态条 / 欢迎「换主角」 | CharacterShelfPanel · `shelf` |
@@ -126,7 +126,7 @@
 | System Prompt 四层组装 | 已落地 | `prompt-builder.ts` |
 | 上下文压缩 L1–L4 | 已落地 | `context-manager` |
 | 任务队列（后处理 / 反思等） | 已落地 | `services/task-queue` 等 |
-| 子 Agent | 部分 | `subagent`；Swarm 见 wishlist M19 |
+| 子 Agent | 部分 | `subagent`；召唤下任务工边界（M26-G2）；Swarm 见 wishlist |
 | MCP Client（stdio + SSE） | 已落地 | `mcp/` · 设置页 |
 | 多 Provider LLM + Failover | 已落地 | `llm/` |
 | Headless 运行（定时/后台） | 已落地 | `runtime.runHeadless` |

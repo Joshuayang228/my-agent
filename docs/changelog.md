@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — M26-G2 召唤×子 Agent 协作边界（2026-08-03）
+
+- `ToolContext.sessionKind` 透传；召唤父会话提示可 `delegate_task`
+- 子 Agent 在 summon 下注入任务工边界（非卡司、不推生活）
+- 模块：`cast/summon-delegation.ts`
+
 ### Added — M26-G1 Moments 卡司互动（2026-08-03）
 
 - 投影时确定性派生 `meta.interactions`（同框 / 评论）；只用名册浅层姓名

@@ -11,6 +11,7 @@
  */
 
 import { agentLoop } from './loop'
+import { summonWorkerSystemAddon } from '../companion/cast/summon-delegation'
 import { ToolRegistry } from '../tools/registry'
 import { createLogger } from '../utils/logger'
 import { startSpan } from '../utils/tracer'
@@ -102,10 +103,19 @@ export function resolveChildExecutionMode(parentMode: ExecutionMode | undefined)
   return MODE_STRICTNESS['auto'] >= MODE_STRICTNESS[parentMode] ? 'auto' : parentMode
 }
 
-function buildSubAgentSystemPrompt(role: string): string {
+/**
+ * 构建子 Agent system prompt。
+ * sessionKind=summon 时追加 M26 任务工边界（不是卡司人设）。
+ */
+export function buildSubAgentSystemPrompt(
+  role: string,
+  opts?: { sessionKind?: string },
+): string {
   const preset = AGENT_ROLES[role]
   // 预设角色用其专业化描述；自由字符串直接作为角色描述
   const roleDesc = preset ? preset.systemPromptAddon : role
+  const summonAddon = summonWorkerSystemAddon(opts?.sessionKind)
+  const boundary = summonAddon ? `\n\n${summonAddon}` : ''
   return `You are a specialized sub-agent with the following role:
 
 ${roleDesc}
@@ -115,7 +125,7 @@ IMPORTANT CONSTRAINTS:
 - Do not engage in conversation or ask clarifying questions — just complete the task.
 - Return your result as a clear, structured response.
 - If you cannot complete the task with the available tools, explain what you need.
-- Keep your response concise and actionable.`
+- Keep your response concise and actionable.${boundary}`
 }
 
 /**
@@ -133,7 +143,9 @@ export async function runSubAgent(
 
   const childRegistry = buildChildRegistry(parentRegistry, config)
 
-  const systemPrompt = buildSubAgentSystemPrompt(config.role)
+  const systemPrompt = buildSubAgentSystemPrompt(config.role, {
+    sessionKind: config.toolContext?.sessionKind,
+  })
   const messages: ChatMessage[] = [
     { id: 'sub-user', role: 'user', content: config.task, timestamp: Date.now() },
   ]

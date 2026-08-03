@@ -69,6 +69,20 @@ MomentsPanel：同框角标 + 评论行
 
 ---
 
+## §九 / M26-G2 对照：召唤 × 委派
+
+```text
+runtime toolContext.sessionKind = summon|main
+summonNote += summonParentDelegationHint()
+delegate_task → canDelegateInSession
+runSubAgent systemPrompt += summonWorkerSystemAddon(summon)
+  // 任务工 ≠ 卡司；不推生活 / 不换 active
+```
+
+**方法论对照**：→ §九 · M26-G2
+
+---
+
 ## 已知简化
 
-无 M19 接线；无多场景 prompt map；互动未进 Assemble 主对话。
+无多场景 prompt map；互动未进 Assemble 主对话；无「请 TA 帮忙」独立 UI。
