@@ -99,7 +99,7 @@ npm run package
 
 | 文档 | 说明 |
 |------|------|
-| [product-module-map.md](docs/modules/product-module-map.md) | 产品模块地图（协作入口） |
+| [modules/README.md](docs/modules/README.md) | 产品模块导览（协作入口） |
 | [architecture.md](docs/architecture.md) | 系统架构与数据流 |
 | [quality.md](docs/quality.md) | 质量总控（Unit / Eval / E2E） |
 | [progress.md](docs/progress.md) | 对内进度 |

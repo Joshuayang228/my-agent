@@ -4,7 +4,7 @@
 > 模块卡管边界与入口；本表管**已落地能力清单**（防 `features.md` 归档后失忆）。  
 > 细节以代码为准；卡/架构只导航。更新节奏：能力增删或行为变了 → 同轮改对应行。
 
-入口：[`product-module-map.md`](./product-module-map.md) · 技术总图：[`../architecture.md`](../architecture.md)
+入口：[`README.md`](./README.md)（产品模块导览）· 技术总图：[`../architecture.md`](../architecture.md)
 
 ---
 

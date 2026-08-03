@@ -16,7 +16,7 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 
 ## 启动上下文
 
-文档分四维：**产品**（`docs/modules/`，入口 `product-module-map.md`）· **技术**（`architecture.md`）· **质量**（`quality.md`）· **账本**（progress / changelog / wishlist / pitfalls / decisions / rules-feedback）。  
+文档分四维：**产品**（`docs/modules/`，入口 `README.md`）· **技术**（`architecture.md`）· **质量**（`quality.md`）· **账本**（progress / changelog / wishlist / pitfalls / decisions / rules-feedback）。  
 **「有什么能力」**看 [`docs/modules/capability-catalog.md`](docs/modules/capability-catalog.md)（补已归档 `features.md` 的缺口；模块卡只管边界）。  
 施工合同 / 批次索引：[`docs/requirements/README.md`](docs/requirements/README.md)。  
 协作 SOP 在根目录 `agent-skills/`（与 docs 并列，见下文「agent-skills」）。深 Why 在 `methodology/`。文档四维见 `docs/docs-system.md`。
@@ -27,7 +27,7 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 |------|------|
 | 落在某产品能力（伙伴/记忆/权限等） | 对应 `docs/modules/<名>.md` → 其「必读文件」→ 必要时 `capability-catalog` / `architecture.md` |
 | 「有没有某某能力 / Prompt 怎么组装」 | `docs/modules/capability-catalog.md`（再下钻模块卡或代码） |
-| 跨模块 / 架构 | `docs/modules/product-module-map.md` + `architecture.md` + `progress.md` |
+| 跨模块 / 架构 | `docs/modules/README.md` + `architecture.md` + `progress.md` |
 | 开工合同 / 批次缺口 | `docs/requirements/README.md` → 对应契约文 |
 | 测试 / Eval 门禁 | `docs/quality.md` |
 | 小改（typo、单文件少量且意图明确） | 相关代码即可 |
@@ -206,7 +206,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 | 变了什么 | 更新 |
 |----------|------|
 | 模块边界 / 入口 / 不变量 / 必测 / 现状缺口 | 对应 `docs/modules/<名>.md`（必更） |
-| 新增大产品能力且会反复改 | `docs/modules/product-module-map.md` + 新建模块卡 |
+| 新增大产品能力且会反复改 | `docs/modules/README.md` + 新建模块卡 |
 | 能力增删或行为变更（「有什么」） | `docs/modules/capability-catalog.md`（同轮） |
 | 分层 / 主数据流 / 目录边界 | `docs/architecture.md` |
 | 质量门禁或 Eval 分层策略 | `docs/quality.md` |

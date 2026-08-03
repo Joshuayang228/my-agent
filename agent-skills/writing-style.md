@@ -37,7 +37,7 @@
 
 | 文件 | 维 | 用途 | 更新时机 |
 |------|----|------|----------|
-| `modules/product-module-map.md` + `modules/*.md` | 产品 | 产品模块地图与横切卡 | 模块契约变化时 |
+| `modules/README.md` + `modules/*.md` | 产品 | 产品模块导览与横切卡 | 模块契约变化时 |
 | `architecture.md` | 技术 | 系统分层与主数据流 | 架构变更时 |
 | `quality.md` | 质量 | Unit / Eval / E2E 总控 | 门禁或分层策略变化时 |
 | `progress.md` | 账本（对内） | 当前阶段与下一步 | 状态变化时 |

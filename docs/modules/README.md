@@ -1,6 +1,6 @@
-# 产品模块地图
+# 产品模块（`docs/modules/`）
 
-> 文件名：`product-module-map.md`（Product Module Map）。  
+> 本夹 **README**：产品维导览（原 `product-module-map.md`）。  
 > **产品维入口**：任务落到某能力时，先读对应模块卡，再改代码。  
 > 技术总图见 [`../architecture.md`](../architecture.md)；质量总控见 [`../quality.md`](../quality.md)。  
 > **已落地能力表**见 [`capability-catalog.md`](./capability-catalog.md)（替代已归档的 `features.md`）。  

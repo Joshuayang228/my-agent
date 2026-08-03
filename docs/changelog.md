@@ -5,6 +5,10 @@
 
 ## [未发布]
 
+### Changed — 产品模块导览改名为 modules/README（2026-08-03）
+
+- `docs/modules/product-module-map.md` → `docs/modules/README.md`（夹首页）
+
 ### Changed — requirements 目录只留施工合同（2026-08-03）
 
 - 文档体系说明迁至 `docs/docs-system.md`

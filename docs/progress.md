@@ -7,6 +7,7 @@
 **阶段**：可观测灵感项继续落地；原生语音与 M24-G3 暂缓。
 
 **最新动态（2026-08-03）**：
+- ✅ **modules 导览改名**：`product-module-map.md` → `docs/modules/README.md`。
 - ✅ **requirements 瘦身**：只保留伴侣施工合同；文档体系 → `docs/docs-system.md`；语音评估 → `docs/notes/`；Batch3 → `_archive/docs-legacy/`。
 - ✅ **Callback 组件化**：Chat 流式拆 reasoning/content/tool 三通道（Start/Progress/Complete）；Python 嵌入沙箱搁置。
 - ✅ **Session-based 采样**：按 sessionId 哈希确定性整会话收/丢；默认全收；环境变量可调。
