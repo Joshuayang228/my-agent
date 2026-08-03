@@ -7,6 +7,7 @@
 **阶段**：可观测灵感项继续落地；原生语音与 M24-G3 暂缓。
 
 **最新动态（2026-08-03）**：
+- ✅ **术语统一**：`docs/requirements/` 一律称「施工合同」（禁称需求文档/需求合同/开工合同）；写入 CLAUDE / docs-system。
 - ✅ **能力表拆进各模块卡**：取消总 `capability-catalog`；新增 `agent-runtime.md`；各卡维护「已落地能力」。
 - ✅ **删 persona 空壳卡**：并入 companion；CLAUDE 禁止再留重定向模块卡。
 - ✅ **modules 导览改名**：`product-module-map.md` → `docs/modules/README.md`。
