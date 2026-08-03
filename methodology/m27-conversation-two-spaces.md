@@ -193,7 +193,7 @@ Catch-up、名册、朋友圈近况进 L3，是为了「她有日子」（M23–
 | ID | 内容 | 为什么暂缓 |
 |----|------|------------|
 | M27-G1 | 问/做/安慰/推回分类器 | ✅ 启发式 `reply-stance` 注入 Prompt；不硬拦 Loop |
-| M27-G2 | aside 频率/质量 Eval | 需标注集与过油阈值共识 |
+| M27-G2 | aside 频率/质量 Eval | ✅ `src/shared/aside` 阈值 + Eval C02 / 单测 |
 | M27-G3 | 情绪语气控制器 | 缺可靠情绪信号 |
 
 代码走读见 `m27-conversation-two-spaces-code.md`。

@@ -21,6 +21,7 @@ import c from 'react-syntax-highlighter/dist/esm/languages/prism/c'
 import cpp from 'react-syntax-highlighter/dist/esm/languages/prism/cpp'
 import diff from 'react-syntax-highlighter/dist/esm/languages/prism/diff'
 import mermaid from 'mermaid'
+import { splitAside } from '../shared/aside'
 
 SyntaxHighlighter.registerLanguage('tsx', tsx)
 SyntaxHighlighter.registerLanguage('typescript', typescript)
@@ -120,18 +121,6 @@ function MermaidBlock({ code }: { code: string }) {
 
   if (error) return <pre className="rounded-lg bg-red-950/30 p-3 text-xs text-red-400">{error}</pre>
   return <div ref={containerRef} className="my-3 flex justify-center overflow-x-auto rounded-lg p-4" style={{ background: 'var(--card-bg)' }} />
-}
-
-function splitAside(raw: string): { main: string; asides: string[] } {
-  const re = /<aside>([\s\S]*?)<\/aside>/gi
-  const asides: string[] = []
-  let match: RegExpExecArray | null
-  while ((match = re.exec(raw)) !== null) {
-    const text = match[1].trim()
-    if (text) asides.push(text)
-  }
-  const main = raw.replace(re, '').replace(/<\/?aside\b[^>]*>/gi, '').trim()
-  return { main, asides }
 }
 
 export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: MarkdownRendererProps) {

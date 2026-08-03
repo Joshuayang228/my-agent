@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — M27-G2 aside 频率/质量 Eval（2026-08-03）
+
+- `src/shared/aside`：解析 + 单轮/多轮阈值（过油/夺权）
+- Eval `C02` 金/负样例；MarkdownRenderer 共用 `splitAside`
+
 ### Added — M27-G1 本轮回复立场（2026-08-03）
 
 - `detectReplyStance`：问/做/安慰/推回轻量启发式

@@ -102,9 +102,25 @@ runtime: detectReplyStance(lastUserText, executionMode)
 
 ---
 
+## §二 / M27-G2 对照：aside 质量
+
+```text
+src/shared/aside.ts
+  splitAside / evaluateAsideTurn / evaluateAsideSequence
+  阈值：单句≤40字；连续≥3轮=过油；近5轮比例>80%=过油
+  有 aside 时主答≥4字；aside 禁代码块/多步说明夺权
+
+MarkdownRenderer → splitAside（共享）
+Eval C02 → 金样例/负样例夹具
+Unit aside-quality.test.ts
+```
+
+**方法论对照**：→ §二 判据 A/B · 检查清单 #6
+
+---
+
 ## 已知简化
 
 | Gap | 代码 |
 |-----|------|
-| M27-G2 | 无 aside Eval 场景 |
 | M27-G3 | 无情绪特征输入；安慰仅靠关键词 |

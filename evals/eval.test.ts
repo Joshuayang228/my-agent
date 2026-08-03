@@ -17,6 +17,7 @@ import { F08 } from './scenarios/f08'
 import { P01, P02, P03, P04 } from './scenarios/p01-p04'
 import { P05, P06 } from './scenarios/p05-p06'
 import { C01 } from './scenarios/c01-companion'
+import { C02 } from './scenarios/c02-aside-quality'
 import type { EvalScenario } from './types'
 
 const ALL_SCENARIOS: EvalScenario[] = [
@@ -24,6 +25,7 @@ const ALL_SCENARIOS: EvalScenario[] = [
   P01, P02, P03, P04,
   P05, P06,
   C01,
+  C02,
 ]
 
 const idFilter = process.env['EVAL_ID']
