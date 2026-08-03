@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      {
+        "command": "python .cursor/hooks/docs-capability-remind.py",
+        "timeout": 15
+      }
+    ]
+  }
+}

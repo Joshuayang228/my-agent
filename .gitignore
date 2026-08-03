@@ -13,7 +13,12 @@ out/
 release/
 
 # IDE / 编辑器
-.cursor/
+.cursor/*
+!.cursor/hooks.json
+!.cursor/hooks/
+!.cursor/hooks/**
+!.cursor/rules/
+!.cursor/rules/**
 .vscode/
 *.swp
 *.swo
