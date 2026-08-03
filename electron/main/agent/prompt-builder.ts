@@ -42,6 +42,8 @@ export interface PromptContext {
   recentMomentsSlice?: string
   /** 可选：团员名册浅注入（W5；短句，非他人全文 protected） */
   rosterLines?: string
+  /** 可选：本轮问/做/安慰/推回轻量策略（M27-G1） */
+  replyStanceHint?: string
 }
 
 /**
@@ -125,6 +127,14 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     parts.push('Your response may include two parts:')
     parts.push('1. Your main response — professional, helpful, and focused.')
     parts.push(`2. Optionally, a brief aside wrapped in <aside>...</aside> tags — ${persona.aside_style}. Keep it to one short sentence. Do not use aside in every response, only when it feels natural.`)
+  }
+
+  // ── L2.4 本轮回复立场（M27-G1；启发式，可偏离但勿无视高风险）──
+  if (ctx.replyStanceHint?.trim()) {
+    parts.push('')
+    parts.push('## Reply stance (this turn)')
+    parts.push(ctx.replyStanceHint.trim())
+    parts.push('（启发式提示，非硬指令；危险/违规信号应优先遵守。主答办成事，aside 不夺权。）')
   }
 
   // ── L2.5 Skill 系统摘要 ──

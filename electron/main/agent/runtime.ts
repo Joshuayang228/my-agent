@@ -30,6 +30,7 @@ import { searchVectorStore, addToVectorStore, formatRecallForInjection } from '.
 import { buildSkillSummaryForPrompt, getActiveSkill, clearActiveSkill } from '../skills/registry'
 import { setCurrentSessionId as setTaskPlanSessionId } from '../services/task-plan-service'
 import { clearSessionSubAgents } from './subagent-registry'
+import { detectReplyStance, formatReplyStanceForPrompt } from './reply-stance'
 import { getWorkspaceRoot } from './project-memory'
 import { createLogger } from '../utils/logger'
 import { startSpan } from '../utils/tracer'
@@ -221,6 +222,13 @@ class AgentRuntime {
       }
       const sessionInfoParts = [customPrompt, summonNote].filter(Boolean)
 
+      // M27-G1：本轮问/做/安慰/推回轻量策略（不拦 Loop）
+      const stance = detectReplyStance(lastUserMsg?.content ?? '', { executionMode })
+      const replyStanceHint = formatReplyStanceForPrompt(stance) || undefined
+      if (replyStanceHint) {
+        log.debug('Reply stance', { primary: stance.primary, signals: stance.signals })
+      }
+
       const systemPrompt = buildSystemPrompt({
         persona,
         toolNames: toolRegistry.getAll().map(t => t.name),
@@ -235,6 +243,7 @@ class AgentRuntime {
         worldSlice: isSummon ? undefined : worldSlice,
         recentMomentsSlice: isSummon ? undefined : recentMomentsSlice,
         rosterLines,
+        replyStanceHint,
       })
 
       // ── 运行 Agent Loop ──

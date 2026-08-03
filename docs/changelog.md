@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — M27-G1 本轮回复立场（2026-08-03）
+
+- `detectReplyStance`：问/做/安慰/推回轻量启发式
+- 注入 Assemble `## Reply stance (this turn)`；不硬拦 Loop
+- 模块：`agent/reply-stance.ts`
+
 ### Added — M26-G3 NPC 多场景 Prompt（2026-08-03）
 
 - `display` / `interact` / `execute` 三场景；chen/ayu 专文，缺省派生

@@ -86,10 +86,25 @@ confirm-all → 提示每步需批
 
 ---
 
+## §五 / M27-G1 对照：回复立场
+
+```text
+runtime: detectReplyStance(lastUserText, executionMode)
+  → formatReplyStanceForPrompt
+  → buildSystemPrompt.replyStanceHint
+     ## Reply stance (this turn)
+```
+
+启发式优先级：推回 > 危险偏问 > 安慰 > 催办即做 > 不清则问 > 均衡。  
+不拦 Loop；高风险以 ask/pushback hint 引导。
+
+**方法论对照**：→ §五 · M27-G1
+
+---
+
 ## 已知简化
 
 | Gap | 代码 |
 |-----|------|
-| M27-G1 | 无 ask/act 路由模块 |
 | M27-G2 | 无 aside Eval 场景 |
-| M27-G3 | 无情绪特征输入 |
+| M27-G3 | 无情绪特征输入；安慰仅靠关键词 |
