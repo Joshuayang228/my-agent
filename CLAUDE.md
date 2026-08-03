@@ -17,18 +17,18 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 ## 启动上下文
 
 文档分四维：**产品**（`docs/modules/`，入口 `README.md`）· **技术**（`architecture.md`）· **质量**（`quality.md`）· **账本**（progress / changelog / wishlist / pitfalls / decisions / rules-feedback）。  
-**「有什么能力」**看 [`docs/modules/capability-catalog.md`](docs/modules/capability-catalog.md)（各模块卡已落地能力表；模块卡只管边界）。  
+**「有什么能力」**看对应模块卡的「已落地能力」节（导览：[`docs/modules/README.md`](docs/modules/README.md)）。  
 施工合同索引：[`docs/requirements/README.md`](docs/requirements/README.md)。  
 协作 SOP 在根目录 `agent-skills/`（与 docs 并列，见下文「agent-skills」）。深 Why 在 `methodology/`。文档四维见 `docs/docs-system.md`。
 
-**模块卡纪律**：`docs/modules/` 只放**有实质边界的模块卡** + `README` 导览 + `capability-catalog`。能力合并后更新导览/catalog 指向存活卡，**禁止**留下仅「请改读 xxx」的重定向/空壳文档（曾有 `persona.md`，已删）。
+**模块卡纪律**：`docs/modules/` 只放**有实质边界的模块卡** + `README` 导览。能力清单写在各卡「已落地能力」，**禁止**再维护总 `capability-catalog`；能力合并后更新导览指向存活卡，**禁止**留下仅「请改读 xxx」的重定向/空壳文档。
 
 **按任务类型读**：
 
 | 任务 | 先读 |
 |------|------|
-| 落在某产品能力（伙伴/记忆/权限等） | 对应 `docs/modules/<名>.md` → 其「必读文件」→ 必要时 `capability-catalog` / `architecture.md` |
-| 「有没有某某能力 / Prompt 怎么组装」 | `docs/modules/capability-catalog.md`（再下钻模块卡或代码） |
+| 落在某产品能力（伙伴/记忆/权限/运行时等） | 对应 `docs/modules/<名>.md`（含「已落地能力」）→ 其「必读文件」→ 必要时 `architecture.md` |
+| 「有没有某某能力 / Prompt 怎么组装」 | 模块卡「已落地能力」；伙伴 Prompt 管线见 `companion.md` |
 | 跨模块 / 架构 | `docs/modules/README.md` + `architecture.md` + `progress.md` |
 | 开工合同 / 批次缺口 | `docs/requirements/README.md` → 对应契约文 |
 | 测试 / Eval 门禁 | `docs/quality.md` |
@@ -209,7 +209,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 |----------|------|
 | 模块边界 / 入口 / 不变量 / 必测 / 现状缺口 | 对应 `docs/modules/<名>.md`（必更） |
 | 新增大产品能力且会反复改 | `docs/modules/README.md` + 新建模块卡（须有实质边界，禁止空壳/重定向卡） |
-| 能力增删或行为变更（「有什么」） | `docs/modules/capability-catalog.md`（同轮） |
+| 能力增删或行为变更（「有什么」） | 对应模块卡「已落地能力」节（同轮） |
 | 模块合并 / 废弃 | 删旧卡；导览改指存活卡；勿留重定向文件 |
 | 分层 / 主数据流 / 目录边界 | `docs/architecture.md` |
 | 质量门禁或 Eval 分层策略 | `docs/quality.md` |
@@ -221,7 +221,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 | 新坑 | `docs/pitfalls.md`（账本） |
 | 规则问题 | `docs/rules-feedback.md`（账本） |
 
-已归档（勿再当权威源，见 `_archive/docs-legacy/`）：features / api-contracts / testing / eval-design / glossary——**「有什么」改查 `capability-catalog.md`**。类型以 `src/shared/types.ts` 为准；IPC 仍遵守「四处同步」硬约束。
+已归档（勿再当权威源，见 `_archive/docs-legacy/`）：features / api-contracts / testing / eval-design / glossary / 曾用的总 `capability-catalog`——**「有什么」改查各模块卡「已落地能力」**。类型以 `src/shared/types.ts` 为准；IPC 仍遵守「四处同步」硬约束。
 
 ### wishlist 同步（硬约束，防遗忘）
 

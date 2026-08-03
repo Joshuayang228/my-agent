@@ -20,10 +20,9 @@
 | UI · 生活面 | Chat `CompanionStatusBar`；`moments` / `assets` / `cast` / **`shelf`（换角主入口）**；欢迎屏快捷 |
 | UI · 工具面 | 设置：MUTABLE/反思 + 活跃主角（次要）；侧栏 Skills/记忆/设置 |
 | IPC | `companion:*`（list / switch / moments / assets / roster / catchup-status(+presence) / start-summon / reflection…） |
-| Prompt | `prompt-builder` + `orchestrator.loadRoleAssembleInput`（管线见能力目录 §1.1） |
+| Prompt | `prompt-builder` + `orchestrator.loadRoleAssembleInput`（管线见下方「Prompt 组装」） |
 | 资产 | `electron/main/companion/universes/default/` |
 | 契约 | `docs/requirements/companion-*.md`；前端方案 [frontend-companion-surfaces.md](../requirements/frontend-companion-surfaces.md) |
-| 能力表 | [capability-catalog.md](./capability-catalog.md) §伙伴世界 |
 
 ### 前端 View 映射
 
@@ -66,7 +65,72 @@
 - 召唤不改 active；反思门闸 / 召唤跳过  
 - Eval：`evals/scenarios/c01-companion.ts`；语气基线 `b01-persona-tone.ts`（有 key）
 
+## 已落地能力
+
+状态：`已落地` · `部分` · `缺口`。能力增删或行为变了 → **同轮改本表**。
+
+| 能力 | 状态 | 用户入口 | 落点 |
+|------|------|----------|------|
+| Universe + Role Pack（三槽：lin / zhou / xia） | 已落地 | 角色架 / 设置 | `universes/default/` · 文案见 [companion-cast-content](../requirements/companion-cast-content.md) |
+| 生活分味（剧本 / starter 衣柜） | 已落地 | 朋友圈 / 衣柜随主角 | `script-generator` · `ensureStarterWardrobe` |
+| 日剧本 LLM（当日）+ 哈希回退 | 已落地 | （隐式）Life ticker | `resolveDayScript` · aux-config |
+| 世界状态薄片（居所/时区/情境） | 已落地 | （隐式）Assemble L3 | `world_json` · `## World slice` |
+| Catch-up 概况 LLM + 模板回退 | 已落地 | （隐式）换角追赶 | `resolveCatchupSummary` · catchup.ts |
+| 聊圈薄一致性（近 Moment 锚点） | 已落地 | （隐式）Assemble L3 | `moment-consistency` · `## Recent moments` |
+| Moment LLM 润色（绑 event） | 已落地 | （隐式）tick 发布 | `moment-polish` · 规则回退 |
+| 单活跃 + 流式换角门控 | 已落地 | **角色架（主）** / 设置（次） | `orchestrator` · `streaming-gate` · `requestSwitch` |
+| 会话绑定 `role_id` | 已落地 | （隐式）Chat 顶栏徽标 | `runtime` · `assertSessionRole` |
+| MUTABLE 分桶版本 + 回滚 | 已落地 | 设置 | `mutable-store` · Settings |
+| 自动反思写 MUTABLE | 已落地 | 设置「立即/强制反思」 | `reflection-*` · task-queue |
+| 成长时钟按 role 分桶（72h） | 已落地 | （隐式）反思门闸 | `companionGrowthStartedAtByRole` |
+| feedback 记忆按 role 分桶 | 已落地 | （隐式）反思 / L3 画像 | `memories.role_id` · `listFeedbackForRole` |
+| MUTABLE 结构性防退化（G3） | 已落地 | 设置保存 / 自动反思 | `mutable-validate` · setMutable 门闸 |
+| 反思吃生活薄信号（G4） | 已落地 | （隐式）自动/手动反思 | `life-signals` · Moments + Catch-up |
+| LifeEngine（暂停 · 剧本 · tick） | 已落地 | （隐式）状态条 presence | `life/engine.ts` |
+| Catch-up ≤7×24h | 已落地 | 朋友圈暖色条 / Prompt | `life/catchup` · `catchup-status` |
+| 此刻 presence | 已落地 | Chat `CompanionStatusBar` | `describeCastPresence` · `catchup-status.presence` |
+| Moments（朋友圈） | 已落地 | 状态条 / 欢迎屏 → Moments | `get-moments` · MomentsPanel · 卡司互动 meta |
+| Assets（物什） | 已落地 | 欢迎屏 → 物什 | wardrobe/bookshelf · `get/update/delete-asset` · AssetsPanel |
+| 名册浅注入 | 已落地 | （Prompt） | `cast/roster` |
+| CastPanel（名册 / 召唤） | 已落地 | 状态条 / 欢迎屏 → 名册 | CastPanel · `start-summon` · 场景 prompt |
+| 召唤子会话 | 已落地 | 名册「开聊」 | 不改 active / 不 tick；可 delegate（任务工） |
+| 召唤忙闲婉拒 + force | 已落地 | 名册开聊前 | `check-cast-availability` |
+| 冷启动在场文案 | 已落地 | Chat 空态欢迎屏 | `companion-presence.ts` |
+| 角色架 UI | 已落地 | 状态条 / 欢迎「换主角」 | CharacterShelfPanel · `shelf` |
+| 物什主视觉（衣柜穿着中 + 书架分栏） | 已落地 | 状态条 / 欢迎屏 → 物什 | AssetsPanel · Moment.assetId/outfit |
+| 名册关系卡 + 最近召唤互动 | 已落地 | 状态条 / 欢迎屏 → 名册 | CastPanel · sessions(summon) |
+| 场景弱背景（Chat 氛围） | 已落地 | Chat 消息区底层 | `CompanionSceneBackdrop` · `companion-scene.ts` |
+| 生图朋友圈 / 多宇宙并行 | 缺口 | — | wishlist / 非本阶段 |
+| 非活跃后台养成 | 缺口 | — | 产品明确不做 |
+
+### Prompt / 召回组装管线（聊天一轮）
+
+主路径：`AgentRuntime` → `loadRoleAssembleInput` → `buildSystemPrompt` → Loop。
+
+```text
+用户发消息
+  → assertSessionRole(session.role_id)          # 禁止偷换人设
+  → loadRoleAssembleInput(roleId)               # Pack + MUTABLE + catchup + worldSlice + recentMoments + roster
+  → detectReplyStance(lastUser)                 # M27-G1 问/做/安慰/推回 hint
+  → resolveToneControl(stance, mode, text)      # M27-G3 紧/软/中性 + aside 策略
+  → resolveRelationshipStageForRole(...)        # M28-G1/G2 阶段 + 交心/干活 lean
+  → memory.buildUserProfile()                   # 结构化画像
+  → safeVectorSearch(lastUser)                  # 向量语义召回 → L3 memories
+  → yield memory_citations                      # M29-G1 UI 芯片
+  → buildSystemPrompt({
+        L1: PROTECTED + MUTABLE
+        L2: 工具/aside/stance/tone/relationship/skill 摘要
+        L3: 画像 + memories + catchup + worldSlice + recentMoments + roster
+        L4: 动态（时间等）
+     })
+  → Agent Loop（流式）
+  → 后台：profile-extract / smart-title / vector-index-user
+  → scheduleReflectionAfterChat（召唤会话跳过）
+```
+
+召唤差异：装载对方完整 Pack；**不**改 `activeRoleId`；**不** tick / catchup 对方生活；Prompt 可带忙闲情境（`describeCastPresence`）。
+
 ## 现状 / 缺口
 
 **现状**：W0–W6 主线已落地；深 Why：`methodology/m22`–`m31`（Part VI 收齐）；前端 P0–P2 已落地；Pack 三角色分味 + 剧本/衣柜分味已加厚（见 companion-cast-content）。  
-**缺口**：各章 Gap 见 wishlist（如 M22 成长时钟分桶）；生图场景等非本阶段。
+**缺口**：见上表「缺口」行 + wishlist；生图场景等非本阶段。

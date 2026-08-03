@@ -6,8 +6,8 @@
 
 ## 边界
 
-**做**：PermissionEngine 责任链、执行模式（confirm-all / auto / full-access）、沙箱策略、命令分级与路径守卫、审批记录、确认 IPC/UI、settings 中 permissionRules。  
-**不做**：OS 级强隔离沙箱（当前为策略级）；精美权限规则可视化编辑器（wishlist）。
+**做**：PermissionEngine 责任链、执行模式（confirm-all / auto / full-access）、沙箱策略、命令分级与路径守卫、审批记录、确认 IPC/UI、settings 中 permissionRules 与可视化编辑器。  
+**不做**：OS 级强隔离沙箱（当前为策略级）；Python 嵌入解释器沙箱（wishlist 搁置）。
 
 ## 短 Why
 
@@ -17,7 +17,7 @@
 
 | 类型 | 位置 |
 |------|------|
-| UI | 输入区审批模式；确认弹窗；设置页权限 JSON |
+| UI | 输入区审批模式；确认弹窗；设置页规则表单 + 高级 JSON |
 | IPC | tool confirm 请求/应答；settings |
 | 运行时 | Agent Loop 调权限引擎后再 execute |
 | 工具 | `shell_exec` 等走 `checkCommandPermission` |
@@ -51,7 +51,20 @@
 - confirm 批准/拒绝/超时  
 - 单测：`permission-engine`；Eval：F01 等权限场景
 
+## 已落地能力
+
+状态：`已落地` · `部分` · `缺口`。能力增删或行为变了 → **同轮改本表**。
+
+| 能力 | 状态 | 入口 / 落点 |
+|------|------|-------------|
+| PermissionEngine 责任链 | 已落地 | `sandbox/permission-engine.ts` |
+| 执行模式 confirm-all / auto / full-access | 已落地 | 输入区 · settings |
+| 命令分级 + 路径守卫 | 已落地 | `command-guard` · `shell_exec` |
+| 用户确认 IPC + 超时拒绝 | 已落地 | tool confirm · 监听清理 |
+| `permissionRules` 热更新 | 已落地 | settings |
+| 权限规则可视化编辑器 | 已落地 | 设置「安全与权限」· `PermissionRulesEditor` |
+
 ## 现状 / 缺口
 
-**现状**：五层链已接 Loop；shell 统一走引擎；permissionRules 可热更新；设置页可视化编辑器（高级 JSON 可选）；确认队列（UI）。  
-**缺口**：权限规则可视化编辑器；更细的产品向权限说明文案。
+**现状**：五层链已接 Loop；shell 统一走引擎；permissionRules 热更新 + 可视化编辑器；确认队列（UI）。  
+**缺口**：更细的产品向权限说明文案；OS/嵌入级强隔离非本阶段。

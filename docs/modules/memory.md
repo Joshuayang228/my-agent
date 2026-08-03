@@ -51,7 +51,24 @@
 - 相关单测：`memory-tools`；语义去重相关测试（若有）  
 - 手动：MemoryPanel CRUD 与对话注入可感知
 
+## 已落地能力
+
+状态：`已落地` · `部分` · `缺口`。能力增删或行为变了 → **同轮改本表**。
+
+| 能力 | 状态 | 入口 / 落点 |
+|------|------|-------------|
+| 结构化记忆（画像 / 偏好 / 事实） | 已落地 | `memory-store` · MemoryPanel · `memory:*` IPC |
+| remember / recall / forget 工具 | 已落地 | `tools/builtins/memory-manage.ts` |
+| 向量语义召回注入 L3 | 已落地 | `vector-store` · `runtime.safeVectorSearch` |
+| 对话后索引用户消息 | 已落地 | `vector-index-user`（不索引 assistant 原文） |
+| 后台画像提取 | 已落地 | `profile-extractor` · task `profile-extract` |
+| 语义去重（记忆写入） | 已落地 | M08 G6 |
+| 本轮引用芯片（M29-G1） | 已落地 | `memory_citations` · Chat 芯片 |
+| 对话内纠错（M29-G2） | 已落地 | `correctCitedMemory` |
+| 敏感高亮与采集提示（M29-G3） | 已落地 | `sensitive-memory` |
+| 项目文档 RAG | 不做（本模块） | 见 `rag/` |
+
 ## 现状 / 缺口
 
-**现状**：SQLite + Vectra；工具三件套；画像提取；语义去重；体验契约见 `methodology/m29-asymmetric-memory.md`。  
-**已落地**：本轮引用芯片（M29-G1）；对话内纠错（M29-G2）；敏感高亮与采集提示（M29-G3：`sensitive-memory`）。
+**现状**：SQLite + Vectra；工具三件套；画像提取；语义去重；M29 芯片/纠错/敏感；体验契约见 `methodology/m29-asymmetric-memory.md`。  
+**缺口**：见上表；项目 RAG 不归本模块。

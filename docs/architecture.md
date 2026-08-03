@@ -156,7 +156,7 @@ think → act → observe → think → ...
 | Catch-up | 切换时细补最近 ≤7 日生活剧本/事件 |
 | 契约索引 | [`requirements/README.md`](./requirements/README.md) |
 | 产品模块 | [`modules/companion.md`](./modules/companion.md) |
-| 能力表 | [`modules/capability-catalog.md`](./modules/capability-catalog.md) §伙伴世界 |
+| 能力表 | [`modules/companion.md`](./modules/companion.md)「已落地能力」；运行时见 [`modules/agent-runtime.md`](./modules/agent-runtime.md) |
 
 目录落点：`electron/main/companion/`（identity / growth / life / cast / orchestrator）；`prompt-builder` 为组装器。  
 已落地：**W0–W6** + 三槽 + 召唤子会话/忙闲 + 自动反思 MUTABLE。后续：Pack 内容打磨、methodology M21–M31 深啃。

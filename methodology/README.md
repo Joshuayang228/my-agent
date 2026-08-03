@@ -128,7 +128,7 @@ M01–M31 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 > 完整流程见 `agent-skills/methodology-writing.md`。  
 > **工程施工**认 W0–W6（主线已收齐，见 `docs/progress.md`）；**本章目录**只认沉淀状态。  
-> 「有什么能力」见 `docs/modules/capability-catalog.md`，不在本 README 列功能清单。
+> 「有什么能力」见各 `docs/modules/*.md`「已落地能力」节，不在本 README 列功能清单。
 
 | 优先级 | 项 | 说明 |
 |--------|-----|------|

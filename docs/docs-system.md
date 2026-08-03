@@ -11,7 +11,7 @@
 
 | 维 | 职责 | 落点 |
 |----|------|------|
-| 产品 | 能力边界、任务入口、横切导航 | `docs/modules/README.md` + 各模块卡 |
+| 产品 | 能力边界、任务入口、横切导航、已落地能力表 | `docs/modules/README.md` + 各模块卡（卡内「已落地能力」） |
 | 技术 | 分层与连接（一张图） | `docs/architecture.md` |
 | 质量 | Unit / Eval / E2E 总控 | `docs/quality.md` |
 | 账本 | 对内进度 / 对外变更 / 缺口 / 坑 / 决策 / 规则反馈 | `progress` · `changelog` · `wishlist` · `pitfalls` · `decisions` · `rules-feedback` |
@@ -38,5 +38,5 @@
 - [x] CLAUDE / writing-style / architecture 对齐
 - [x] 旧文档归档
 - [x] 账本含 pitfalls / decisions
-- [x] 能力目录 `modules/capability-catalog.md`（补 features 归档后的「有什么」缺口，2026-08-02）
+- [x] 「有什么」写入各模块卡「已落地能力」（2026-08-03 取消总 `capability-catalog`；补 features 归档缺口）
 - [x] `requirements/README.md` 只索引施工合同（进行中 / 已落地）；元规则本文件、历史批次进 `_archive/docs-legacy/`、评估进 `docs/notes/`（2026-08-03）

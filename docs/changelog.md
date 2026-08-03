@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Changed — 能力清单拆进各模块卡（2026-08-03）
+
+- 删除总表 `capability-catalog.md`；「有什么」改由各卡「已落地能力」维护
+- 新增 `docs/modules/agent-runtime.md`（承接原 catalog 运行时节）
+
 ### Changed — 删除 persona 空壳模块卡（2026-08-03）
 
 - 人格域已并入 `companion.md`；不再保留「请改读」重定向文件
