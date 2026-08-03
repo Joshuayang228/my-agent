@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Changed — 原生语音输入暂缓落账（2026-08-03）
+
+- 评估结论：不恢复 Web Speech，不设假 Mic；待原生 STT 或云端方案立项
+- 详见 `docs/requirements/native-voice-input.md`
+
 ### Added — Dev Playground（2026-08-03）
 
 - DevPanel 新标签：粘贴 system/user，单轮 `chatComplete` 试跑
