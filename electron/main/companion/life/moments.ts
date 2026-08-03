@@ -1,9 +1,9 @@
 /**
- * Moments 投影（W3 / M24-G2）
+ * Moments 投影（W3 / M24-G2 / M26-G1）
  *
  * 背景：朋友圈是 published 事件的 UI 截面，不是另一套生活真相。
- * 意图：事件 → companion_moments；可选 LLM 润色仍绑定 event。
- * 约束：列表仅按 role 查询（IPC 再限 active）；Catch-up 批量默认不润色。
+ * 意图：事件 → companion_moments；可选 LLM 润色；派生卡司互动进 meta。
+ * 约束：列表仅按 role 查询；互动不 tick 对方、不写独立真相。
  */
 
 import type { LLMConfig } from '../../../../src/shared/types'
@@ -11,6 +11,7 @@ import { loadAuxLLMConfig } from '../../llm/aux-config'
 import type { CompanionEvent, CompanionMoment } from '../types'
 import { getAsset, maybeGrantFromEvent } from './assets'
 import { formatMomentText } from './moment-format'
+import { deriveCastInteractions } from './moment-interactions'
 import { resolveMomentText } from './moment-polish'
 import * as store from './store'
 
@@ -52,6 +53,11 @@ export async function projectMomentFromEvent(
     universeId: opts?.universeId,
   })
 
+  // M26-G1：名册浅派生评论/同框（确定性；无边则空）
+  const interactions = deriveCastInteractions(event, {
+    universeId: opts?.universeId,
+  })
+
   return store.insertMoment({
     roleId: event.roleId,
     eventId: event.id,
@@ -65,6 +71,7 @@ export async function projectMomentFromEvent(
       assetId: assetId ?? undefined,
       outfit: outfitName,
       textSource: source,
+      ...(interactions.length ? { interactions } : {}),
     },
   })
 }

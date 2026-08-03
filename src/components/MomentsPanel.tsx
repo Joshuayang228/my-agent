@@ -43,6 +43,31 @@ function typeColor(type: unknown): string {
   return TYPE_DOT[key] || 'var(--companion-accent-warm)'
 }
 
+interface MomentInteractionView {
+  kind: string
+  castName: string
+  text?: string
+}
+
+function parseInteractions(meta: Record<string, unknown>): MomentInteractionView[] {
+  const raw = meta.interactions
+  if (!Array.isArray(raw)) return []
+  const out: MomentInteractionView[] = []
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue
+    const r = item as Record<string, unknown>
+    const castName = typeof r.castName === 'string' ? r.castName : ''
+    const kind = typeof r.kind === 'string' ? r.kind : ''
+    if (!castName || (kind !== 'coframe' && kind !== 'comment')) continue
+    out.push({
+      kind,
+      castName,
+      text: typeof r.text === 'string' ? r.text : undefined,
+    })
+  }
+  return out
+}
+
 export function MomentsPanel({ onClose }: MomentsPanelProps) {
   const [roleId, setRoleId] = useState('')
   const [roleName, setRoleName] = useState('')
@@ -144,6 +169,9 @@ export function MomentsPanel({ onClose }: MomentsPanelProps) {
             {items.map((m) => {
               const type = typeof m.meta?.type === 'string' ? m.meta.type : ''
               const location = typeof m.meta?.location === 'string' ? m.meta.location : ''
+              const interactions = parseInteractions(m.meta || {})
+              const coframes = interactions.filter((i) => i.kind === 'coframe')
+              const comments = interactions.filter((i) => i.kind === 'comment')
               return (
                 <li
                   key={m.id}
@@ -163,10 +191,28 @@ export function MomentsPanel({ onClose }: MomentsPanelProps) {
                     <span>{formatWhen(m.publishedAt)}</span>
                     {type ? <span>· {type}</span> : null}
                     {location ? <span>· {location}</span> : null}
+                    {coframes.length ? (
+                      <span>· 与{coframes.map((c) => c.castName).join('、')}同框</span>
+                    ) : null}
                   </div>
                   <div className="text-[13px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>
                     {m.text}
                   </div>
+                  {comments.length ? (
+                    <ul className="mt-2 space-y-1 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
+                      {comments.map((c, idx) => (
+                        <li
+                          key={`${c.castName}-${idx}`}
+                          className="text-[11px] leading-snug"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
+                          <span style={{ color: 'var(--companion-accent-warm)' }}>{c.castName}</span>
+                          {'：'}
+                          {c.text || '赞'}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </li>
               )
             })}

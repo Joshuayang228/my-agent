@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — M26-G1 Moments 卡司互动（2026-08-03）
+
+- 投影时确定性派生 `meta.interactions`（同框 / 评论）；只用名册浅层姓名
+- 不 tick 对方、不另写事件真相；MomentsPanel 展示评论与同框
+
 ### Added — M25-G3 书架 kind（2026-08-03）
 
 - `kind=bookshelf` starter（主角分味）+ `ensureStarterAssets`

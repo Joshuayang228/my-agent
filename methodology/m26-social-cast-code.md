@@ -54,6 +54,21 @@ runtime：assertSessionRole(会话 role) 装完整 Pack
 
 ---
 
+## §十 / M26-G1 对照：Moments 互动
+
+```text
+projectMomentFromEvent
+  deriveCastInteractions(event)  // roster 浅层 + seed；仅 moment
+  → meta.interactions: coframe | comment
+  // 不 insert 对方 moment；不 tick 对方
+
+MomentsPanel：同框角标 + 评论行
+```
+
+**方法论对照**：→ §十 · M26-G1
+
+---
+
 ## 已知简化
 
-无 Moments 卡司互动；无 M19 接线；无多场景 prompt map。
+无 M19 接线；无多场景 prompt map；互动未进 Assemble 主对话。
