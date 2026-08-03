@@ -1,6 +1,11 @@
 import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
 import { chatComplete } from '../llm/index'
+import {
+  extractRelationshipMinSet,
+  formatMinSetWhitelistForCompactPrompt,
+  mergeMinSetIntoSummary,
+} from './relationship-minset'
 
 const log = createLogger('ContextManager')
 
@@ -701,6 +706,8 @@ async function generateLLMSummary(
   // 结构化框架（当前任务/已完成/状态/下一步/关键上下文）更利于 LLM 正确解读。
   // 对照 Alice Ch.5 + CC compact/prompt.ts getCompactPrompt。
   const wordLimit = comprehensive ? 500 : 300
+  // M30-G2：关系最小集白名单进压缩 instruction
+  const minSetSection = formatMinSetWhitelistForCompactPrompt()
   const instruction = `你正在为一个持续进行的对话生成压缩摘要。摘要将替换早期对话历史，供 AI 继续任务时参考。
 
 请严格按以下结构化格式输出（每节简明扼要，缺失的节写「无」）：
@@ -720,6 +727,8 @@ async function generateLLMSummary(
 ## 关键上下文
 [必须记住的信息：文件路径、变量名、配置值、用户偏好等，无则写「无」]
 
+${minSetSection}
+
 用中文回答，总字数控制在 ${wordLimit} 字以内。只输出上述结构，不要额外说明。`
 
   // 走统一路由层（chatComplete）而非直接 fetch —— 自动获得多 Provider 支持 + failover
@@ -734,7 +743,8 @@ async function generateLLMSummary(
     caller: 'summary',
   })
 
-  return `[Context compressed — conversation summary]\n${summary}`
+  const withMinSet = mergeMinSetIntoSummary(summary, extractRelationshipMinSet(messages))
+  return `[Context compressed — conversation summary]\n${withMinSet}`
 }
 
 /** 规则占位符摘要（不调用 LLM 的降级方案） */
@@ -762,5 +772,6 @@ function buildRuleSummary(middleMessages: ChatMessage[]): string {
   parts.push('Key topics discussed in earlier messages have been compressed to save context space.')
   parts.push('If you need to refer to earlier context, ask the user to clarify.')
 
-  return parts.join('\n')
+  // M30-G2：规则摘要也并入关系最小集，避免降级路径丢关系
+  return mergeMinSetIntoSummary(parts.join('\n'), extractRelationshipMinSet(middleMessages))
 }

@@ -116,8 +116,21 @@ Remember: you are {name}. Stay in this identity...
 | Gap | 代码现状 |
 |-----|----------|
 | M30-G1 里程碑 | ✅ `milestones.ts`；换角/反思/rapport；list + toast |
-| M30-G2 压缩白名单 | 无；靠入库纪律 |
+| M30-G2 压缩白名单 | ✅ `relationship-minset` → compact instruction + merge |
 | M30-G3 专家度 | 无用户模型字段 |
+
+---
+
+## §三 / M30-G2 对照：关系最小集
+
+```text
+RELATIONSHIP_MINSET_WHITELIST
+extractRelationshipMinSet(middleMessages)
+→ generateLLMSummary instruction 含白名单节
+→ mergeMinSetIntoSummary（LLM 与规则路径）
+```
+
+**方法论对照**：→ §三 · M30-G2
 
 ---
 
