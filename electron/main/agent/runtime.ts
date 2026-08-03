@@ -52,6 +52,10 @@ import { detectReplyStance, formatReplyStanceForPrompt } from './reply-stance'
 import { formatToneControlForPrompt, resolveToneControl } from './tone-control'
 import { getWorkspaceRoot } from './project-memory'
 import { createLogger } from '../utils/logger'
+import {
+  DEFAULT_TRACE_USER_ID,
+  runWithTraceContextAsyncGen,
+} from '../utils/trace-context'
 import { startSpan } from '../utils/tracer'
 import { AgentErrorCode } from '../errs'
 import type { ChatMessage, LLMConfig, ExecutionMode, AgentStreamEvent, ToolContext } from '../../../src/shared/types'
@@ -154,6 +158,21 @@ class AgentRuntime {
       return
     }
 
+    // M14：整段对话在 TraceContext 内，子 span / Observer 自动带 sessionId·userId
+    yield* runWithTraceContextAsyncGen(
+      { sessionId, userId: DEFAULT_TRACE_USER_ID },
+      () => this.chatTracked(sessionId, userMessage, toolRegistry, confirmTool),
+    )
+  }
+
+  /** chat 主体（须在 TraceContext 内调用） */
+  private async *chatTracked(
+    sessionId: string,
+    userMessage: ChatMessage,
+    toolRegistry: ToolRegistry,
+    confirmTool?: (name: string, args: Record<string, unknown>) => Promise<boolean>,
+  ): AsyncGenerator<AgentStreamEvent & { sessionId: string }> {
+    const llmConfig = await this.getLLMConfig()
     const abortController = new AbortController()
     this.activeControllers.set(sessionId, abortController)
 

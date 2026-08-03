@@ -157,13 +157,36 @@ describe('Tracer — 父子嵌套（M7 核心：调用链树）', () => {
     expect(childSpan!.attributes.sessionId).toBe(childSession)
   })
 
-  it('M7 sessionId 自动注入：无 parentId 时不注入', () => {
+  it('无 parentId 且无 TraceContext 时不注入 sessionId', () => {
     const top = startSpan('orphan', 'main', 'llm_request')
     top.end('ok')
 
     const spans = getRecentSpans(10)
     const span = spans.find(s => s.id === top.id)
     expect(span!.attributes.sessionId).toBeUndefined()
+  })
+})
+
+describe('Tracer — AsyncLocalStorage TraceContext', () => {
+  it('无 parentId 时从 TraceContext 注入 sessionId/userId', async () => {
+    const { runWithTraceContext } = await import('../../electron/main/utils/trace-context')
+    runWithTraceContext({ sessionId: 'ctx-sess', userId: 'local' }, () => {
+      const orphan = startSpan('from_ctx', 'main', 'llm_request')
+      orphan.end('ok')
+    })
+    const span = getRecentSpans(10).find(s => s.name === 'from_ctx')
+    expect(span!.attributes.sessionId).toBe('ctx-sess')
+    expect(span!.attributes.userId).toBe('local')
+  })
+
+  it('显式 attributes 覆盖 TraceContext', async () => {
+    const { runWithTraceContext } = await import('../../electron/main/utils/trace-context')
+    runWithTraceContext({ sessionId: 'ctx-sess' }, () => {
+      const s = startSpan('override', 'main', 'llm_request', undefined, { sessionId: 'explicit' })
+      s.end('ok')
+    })
+    const span = getRecentSpans(10).find(s => s.name === 'override')
+    expect(span!.attributes.sessionId).toBe('explicit')
   })
 })
 

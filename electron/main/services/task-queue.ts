@@ -292,7 +292,11 @@ class TaskQueueManager {
         log.info(`Task started: ${task.name}`, { taskId: id, sessionId: task.sessionId })
 
         try {
-          await task.fn()
+          const { runWithTraceContext, DEFAULT_TRACE_USER_ID } = await import('../utils/trace-context')
+          await runWithTraceContext(
+            { sessionId: task.sessionId, userId: DEFAULT_TRACE_USER_ID },
+            () => task.fn!(),
+          )
           task.status = 'completed'
           task.updatedAt = Date.now()
           log.info(`Task completed: ${task.name}`, { taskId: id })

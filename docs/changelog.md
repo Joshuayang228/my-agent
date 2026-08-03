@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — TraceContext identity 传播（2026-08-03）
+
+- `AsyncLocalStorage` 承载 sessionId/userId；`startSpan` 自动合并
+- `chat` / 后台 task-queue 进入上下文，无需每个埋点手传
+
 ### Added — 权限规则可视化编辑器（2026-08-03）
 
 - 设置「安全与权限」用表单增删改规则（类型/动作/匹配/启用）
