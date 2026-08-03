@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useToast } from './Toast'
+import { PermissionRulesEditor } from './PermissionRulesEditor'
 import {
   Upload, Download, Settings, Shield, Cpu, Plug, Database, Code,
   User, ChevronRight, Eye, EyeOff, Info,
@@ -892,15 +893,11 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
 
       <FieldGroup
         label="自定义权限规则"
-        hint='JSON 数组。示例：[{"id":"no-publish","type":"command","pattern":"npm publish","action":"deny","enabled":true}]。type=command|tool|path；action=allow|deny|ask'
+        hint="可视化编辑；type=命令/工具/路径，action=允许/拒绝/询问。保存后热更新到权限引擎。高级用户仍可展开 JSON。"
       >
-        <textarea
+        <PermissionRulesEditor
           value={form.permissionRules}
-          onChange={(e) => update('permissionRules', e.target.value)}
-          rows={5}
-          spellCheck={false}
-          className="theme-input w-full rounded-lg border px-3 py-2 font-mono text-xs outline-none transition"
-          placeholder='[]'
+          onChange={(json) => update('permissionRules', json)}
         />
       </FieldGroup>
 

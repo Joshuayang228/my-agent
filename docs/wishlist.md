@@ -96,7 +96,7 @@
 
 - [x] ~~M10 shell 权限统一 + loadRules 接线~~ — 2026-07-26 已做
 - [ ] **原生语音输入** — Electron Web Speech API 不可靠，已从输入栏移除 Mic；若要做需主进程/系统 API 方案
-- [ ] **权限规则可视化编辑器** — 当前设置页为 JSON textarea
+- [x] **权限规则可视化编辑器** — 设置页表单编辑 + 可选高级 JSON；热更新不变
 - [x] ~~**M17 G1** `agent-loop` 迁 `_streamChatOverride`~~ — 2026-07-26
 - [x] ~~**M17 G2** — LLM SSE fixture / replay~~ — 2026-07-26
 - [x] ~~**M17 G3** — 可选真对话 E2E（无 `TEST_LLM_API_KEY` 则 skip）~~ — 2026-07-26
