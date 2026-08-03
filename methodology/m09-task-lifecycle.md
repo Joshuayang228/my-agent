@@ -239,7 +239,7 @@ backgroundQueue.push({
 3. **前后台 token 分离**——影响 token 预算准确性
 4. **断线重连**——可靠性
 5. **长任务断点续接**——等有长任务场景再做
-6. **linked span**——交 M14 可观测性一起做
+6. **linked span**——✅ `startLinkedAsyncSpan` + task-queue（M14）
 ### 与其他模块的依赖
 
 | 依赖方向 | 说明 |

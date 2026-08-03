@@ -11,6 +11,8 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 export interface TraceIdentity {
   sessionId?: string
   userId?: string
+  /** 当前主对话 interaction span，供后台 linked span 追溯（非 parent） */
+  interactionSpanId?: string
 }
 
 const als = new AsyncLocalStorage<TraceIdentity>()
@@ -22,7 +24,18 @@ function stripEmpty(ctx: TraceIdentity): TraceIdentity {
   const out: TraceIdentity = {}
   if (ctx.sessionId?.trim()) out.sessionId = ctx.sessionId.trim()
   if (ctx.userId?.trim()) out.userId = ctx.userId.trim()
+  if (ctx.interactionSpanId?.trim()) out.interactionSpanId = ctx.interactionSpanId.trim()
   return out
+}
+
+/**
+ * 就地更新当前 ALS store（须已在 runWithTraceContext 内）。
+ * 用于 chat 创建 interaction span 后写入 interactionSpanId。
+ */
+export function updateTraceContext(patch: TraceIdentity): void {
+  const store = als.getStore()
+  if (!store) return
+  Object.assign(store, stripEmpty(patch))
 }
 
 /** 读取当前异步上下文中的 identity（无则空对象） */

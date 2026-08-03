@@ -15,7 +15,7 @@
  */
 
 import { createLogger } from './logger'
-import { traceContextAttributes } from './trace-context'
+import { getTraceContext, traceContextAttributes } from './trace-context'
 
 const log = createLogger('Tracer')
 
@@ -40,6 +40,11 @@ export interface TraceSpan {
   type: SpanType
   caller: SpanCaller
   parentId?: string
+  /**
+   * 因果链接（非父子）：后台任务指向主对话 span。
+   * 对照 OTel Span Links / 灵犀 StartLinkedAsyncSpan——不拉长主 trace 耗时。
+   */
+  links?: string[]
   startTime: number
   endTime?: number
   duration?: number
@@ -110,6 +115,39 @@ export function startSpan(
   }
 
   return new SpanHandle(span)
+}
+
+/**
+ * 后台异步任务用的 linked span：无 parentId（不并入主对话耗时树），
+ * 通过 links 指向主 interaction span（可追溯）。
+ */
+export function startLinkedAsyncSpan(
+  name: string,
+  caller: SpanCaller,
+  opts?: {
+    /** 显式链接目标；默认取 TraceContext.interactionSpanId */
+    linkToSpanId?: string
+    type?: SpanType
+    attributes?: Record<string, unknown>
+  },
+): SpanHandle {
+  const linkTo = (opts?.linkToSpanId || getTraceContext().interactionSpanId || '').trim()
+  const handle = startSpan(
+    name,
+    caller,
+    opts?.type ?? 'interaction',
+    undefined,
+    {
+      asyncLinked: true,
+      ...(linkTo ? { linkedTo: linkTo } : {}),
+      ...(opts?.attributes ?? {}),
+    },
+  )
+  if (linkTo) {
+    const span = spans.find((s) => s.id === handle.id)
+    if (span) span.links = [linkTo]
+  }
+  return handle
 }
 
 export class SpanHandle {

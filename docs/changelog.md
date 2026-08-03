@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — 异步 linked span（2026-08-03）
+
+- `startLinkedAsyncSpan`：后台任务无 parent、经 `links` 追溯主对话
+- task-queue 入队捕获 interactionSpanId；不拉长主 trace 耗时
+
 ### Added — TraceContext identity 传播（2026-08-03）
 
 - `AsyncLocalStorage` 承载 sessionId/userId；`startSpan` 自动合并

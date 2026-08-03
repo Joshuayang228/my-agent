@@ -190,6 +190,40 @@ describe('Tracer — AsyncLocalStorage TraceContext', () => {
   })
 })
 
+describe('Tracer — startLinkedAsyncSpan', () => {
+  it('无 parentId，但 links 指向主 span', async () => {
+    const { startLinkedAsyncSpan } = await import('../../electron/main/utils/tracer')
+    const main = startSpan('chat', 'main', 'interaction')
+    const bg = startLinkedAsyncSpan('bg:smart-title', 'title', {
+      linkToSpanId: main.id,
+      attributes: { taskId: 't1' },
+    })
+    bg.end('ok')
+    main.end('ok')
+
+    const bgSpan = getRecentSpans(20).find(s => s.id === bg.id)!
+    expect(bgSpan.parentId).toBeUndefined()
+    expect(bgSpan.links).toEqual([main.id])
+    expect(bgSpan.attributes.asyncLinked).toBe(true)
+    expect(bgSpan.attributes.linkedTo).toBe(main.id)
+    expect(bgSpan.attributes.taskId).toBe('t1')
+  })
+
+  it('默认从 TraceContext.interactionSpanId 取链接', async () => {
+    const { runWithTraceContext } = await import('../../electron/main/utils/trace-context')
+    const { startLinkedAsyncSpan } = await import('../../electron/main/utils/tracer')
+    const main = startSpan('chat', 'main', 'interaction')
+    runWithTraceContext({ interactionSpanId: main.id }, () => {
+      const bg = startLinkedAsyncSpan('bg:profile-extract', 'profile')
+      bg.end('ok')
+    })
+    main.end('ok')
+    const bgSpan = getRecentSpans(20).find(s => s.name === 'bg:profile-extract')!
+    expect(bgSpan.links).toEqual([main.id])
+    expect(bgSpan.parentId).toBeUndefined()
+  })
+})
+
 describe('Tracer — blocked_on_user vs tool_execution 分离计时（G2）', () => {
   it('blocked span 和 execution span 耗时独立，不互相包含', async () => {
     const blockedSpan = startSpan('blocked', 'tool', 'tool_blocked')

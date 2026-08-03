@@ -24,12 +24,32 @@
 import { BrowserWindow } from 'electron'
 import { createLogger } from '../utils/logger'
 import { getDatabase, persist } from '../storage/database'
+import {
+  DEFAULT_TRACE_USER_ID,
+  getTraceContext,
+  runWithTraceContext,
+} from '../utils/trace-context'
+import { startLinkedAsyncSpan, type SpanCaller } from '../utils/tracer'
 import type {
   BackgroundTaskInfo,
   TaskCheckpoint,
   TaskLifecycleEvent,
   TaskType,
 } from '../../../src/shared/types'
+
+function callerForTask(name: TaskType): SpanCaller {
+  switch (name) {
+    case 'smart-title':
+      return 'title'
+    case 'profile-extract':
+    case 'persona-reflection':
+      return 'profile'
+    case 'vector-index-user':
+      return 'memory'
+    default:
+      return 'system'
+  }
+}
 
 const log = createLogger('TaskQueue')
 
@@ -40,6 +60,8 @@ const MAX_RETRIES = 3
 
 interface InternalTask extends BackgroundTaskInfo {
   fn?: () => Promise<void>  // 恢复的任务没有 fn，等外部重新注册
+  /** 入队时捕获的主对话 span，供 linked async span 追溯 */
+  linkSpanId?: string
 }
 
 // ── SQLite helpers ──
@@ -98,6 +120,8 @@ class TaskQueueManager {
   enqueue(sessionId: string, name: TaskType, fn: () => Promise<void>): string {
     const id = `task-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     const now = Date.now()
+    // 入队瞬间捕获主对话 span（任务稍后执行时 ALS 可能已空）
+    const linkSpanId = getTraceContext().interactionSpanId
 
     const task: InternalTask = {
       id, name, sessionId, fn,
@@ -105,6 +129,7 @@ class TaskQueueManager {
       notified: false,
       createdAt: now,
       updatedAt: now,
+      linkSpanId,
     }
 
     this.tasks.set(id, task)
@@ -292,10 +317,25 @@ class TaskQueueManager {
         log.info(`Task started: ${task.name}`, { taskId: id, sessionId: task.sessionId })
 
         try {
-          const { runWithTraceContext, DEFAULT_TRACE_USER_ID } = await import('../utils/trace-context')
           await runWithTraceContext(
-            { sessionId: task.sessionId, userId: DEFAULT_TRACE_USER_ID },
-            () => task.fn!(),
+            {
+              sessionId: task.sessionId,
+              userId: DEFAULT_TRACE_USER_ID,
+              interactionSpanId: task.linkSpanId,
+            },
+            async () => {
+              const bgSpan = startLinkedAsyncSpan(`bg:${task.name}`, callerForTask(task.name), {
+                linkToSpanId: task.linkSpanId,
+                attributes: { taskId: id, taskName: task.name },
+              })
+              try {
+                await task.fn!()
+                bgSpan.end('ok')
+              } catch (err) {
+                bgSpan.end('error', err instanceof Error ? err.message : String(err))
+                throw err
+              }
+            },
           )
           task.status = 'completed'
           task.updatedAt = Date.now()

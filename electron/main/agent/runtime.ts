@@ -55,6 +55,7 @@ import { createLogger } from '../utils/logger'
 import {
   DEFAULT_TRACE_USER_ID,
   runWithTraceContextAsyncGen,
+  updateTraceContext,
 } from '../utils/trace-context'
 import { startSpan } from '../utils/tracer'
 import { AgentErrorCode } from '../errs'
@@ -222,6 +223,8 @@ class AgentRuntime {
       const isSummon = sessionMeta?.sessionKind === 'summon'
 
       const chatSpan = startSpan('chat', 'main', 'interaction', undefined, { sessionId, model: llmConfig.model })
+      // 供后台 task linked span 追溯（非父子，不拉长主对话耗时）
+      updateTraceContext({ interactionSpanId: chatSpan.id })
 
       log.info('Chat started', {
         sessionId,

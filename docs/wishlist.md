@@ -115,7 +115,7 @@
 - [x] ~~**Observer 接口抽象**~~ — 2026-07-26 已做（`electron/main/utils/observer.ts`）
 - [x] ~~**日志脱敏**~~ — 已有 sanitize；2026-07-26 勾掉重复项
 - [x] **Context 传播 identity** — AsyncLocalStorage TraceContext → startSpan 自动注入；chat/task-queue 已接线
-- [ ] **异步 span 链接** — 后台任务（标题生成/画像提取/向量索引）创建 linked span，不影响主 trace 但可追溯。来源：灵犀 `context.go` 的 `StartLinkedAsyncSpan`
+- [x] **异步 span 链接** — `startLinkedAsyncSpan` + task-queue 入队捕获 interactionSpanId；无 parent、有 links
 
 ### 沙箱与安全
 
