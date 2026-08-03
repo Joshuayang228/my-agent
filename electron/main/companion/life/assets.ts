@@ -1,9 +1,9 @@
 /**
- * Assets / 衣柜（W4 / M25-G1·G2）
+ * Assets / 物什（W4 / M25-G1–G3）
  *
- * 背景：着装等是角色世界状态截面，按 role_id 隔离；非独立内容真相。
- * 意图：list/add/update/delete/ensureStarter；publish 可 grant；事件可引用 assetId。
- * 约束：IPC 只暴露 active role；删除后 Moment 着装引用自然降级；不 import agent/。
+ * 背景：着装/书籍等是角色世界状态截面，按 role_id + kind 隔离；非独立内容真相。
+ * 意图：list/add/update/delete/ensureStarter(wardrobe|bookshelf)；publish 可 grant。
+ * 约束：IPC 只暴露 active role；删除后引用自然降级；不 import agent/。
  */
 
 import { randomUUID } from 'node:crypto'
@@ -133,16 +133,21 @@ export async function addAsset(input: {
   }
 }
 
+export const ASSET_KIND_WARDROBE = 'wardrobe'
+export const ASSET_KIND_BOOKSHELF = 'bookshelf'
+
+export type AssetKind = typeof ASSET_KIND_WARDROBE | typeof ASSET_KIND_BOOKSHELF
+
 type StarterItem = { key: string; name: string; payload: Record<string, unknown> }
 
-/** 默认 starter；各主角可覆盖以体现分味（仅空库时播种） */
-const STARTER_DEFAULT: StarterItem[] = [
+/** 默认 starter；各主角可覆盖以体现分味（仅该 kind 空柜时播种） */
+const WARDROBE_DEFAULT: StarterItem[] = [
   { key: 'tee-white', name: '白 T 恤', payload: { color: '白', style: '休闲' } },
   { key: 'hoodie-gray', name: '灰色连帽衫', payload: { color: '灰', style: '日常' } },
   { key: 'sneakers', name: '运动鞋', payload: { color: '白', style: '出行' } },
 ]
 
-const STARTER_BY_ROLE: Record<string, StarterItem[]> = {
+const WARDROBE_BY_ROLE: Record<string, StarterItem[]> = {
   lin: [
     { key: 'shirt-navy', name: '藏青衬衫', payload: { color: '深蓝', style: '通勤', occasion: '工位' } },
     { key: 'cardigan-beige', name: '米色针织开衫', payload: { color: '米', style: '日常', occasion: '家' } },
@@ -160,17 +165,53 @@ const STARTER_BY_ROLE: Record<string, StarterItem[]> = {
   ],
 }
 
-export async function ensureStarterWardrobe(roleId: string): Promise<{ created: number }> {
+const BOOKSHELF_DEFAULT: StarterItem[] = [
+  { key: 'essay-quiet', name: '小闲笔', payload: { author: '佚名', genre: '随笔', note: '翻两页就够' } },
+  { key: 'novel-night', name: '夜读一本', payload: { author: '佚名', genre: '小说', note: '睡前' } },
+]
+
+const BOOKSHELF_BY_ROLE: Record<string, StarterItem[]> = {
+  lin: [
+    { key: 'work-craft', name: '匠人', payload: { author: '森博嗣', genre: '随笔', note: '做事的分寸' } },
+    { key: 'midnight-lib', name: '午夜图书馆', payload: { author: '马特·海格', genre: '小说', note: '如果换一条路' } },
+    { key: 'notes-desk', name: '工位边的笔记', payload: { author: '自用', genre: '手记', note: '备忘' } },
+  ],
+  zhou: [
+    { key: 'design-eye', name: '设计中的设计', payload: { author: '原研哉', genre: '设计', note: '看世界的角度' } },
+    { key: 'manga-slice', name: '四格日常', payload: { author: '合集', genre: '漫画', note: '咖啡馆翻' } },
+    { key: 'city-walk', name: '走街的理由', payload: { author: '佚名', genre: '随笔', note: '出门灵感' } },
+  ],
+  xia: [
+    { key: 'poetry-soft', name: '柔软的句子', payload: { author: '合集', genre: '诗', note: '很小声' } },
+    { key: 'rain-essay', name: '雨天读本', payload: { author: '佚名', genre: '随笔', note: '窗边' } },
+    { key: 'quiet-novel', name: '没有高潮的故事', payload: { author: '佚名', genre: '小说', note: '慢慢看' } },
+  ],
+}
+
+function startersFor(kind: AssetKind, roleId: string): StarterItem[] {
+  if (kind === ASSET_KIND_BOOKSHELF) {
+    return BOOKSHELF_BY_ROLE[roleId] ?? BOOKSHELF_DEFAULT
+  }
+  return WARDROBE_BY_ROLE[roleId] ?? WARDROBE_DEFAULT
+}
+
+/**
+ * 某 kind 空柜时播种 starter（幂等稳定 id：`{kind}:{roleId}:{key}`）。
+ */
+export async function ensureStarterForKind(
+  roleId: string,
+  kind: AssetKind,
+): Promise<{ created: number }> {
   await ensureTables()
-  const existing = await listAssets(roleId, { kind: 'wardrobe' })
+  const existing = await listAssets(roleId, { kind })
   if (existing.length > 0) return { created: 0 }
 
-  const starter = STARTER_BY_ROLE[roleId] ?? STARTER_DEFAULT
+  const starter = startersFor(kind, roleId)
   let created = 0
   const base = Date.now()
   for (let i = 0; i < starter.length; i++) {
     const item = starter[i]
-    const id = `wardrobe:${roleId}:${item.key}`
+    const id = `${kind}:${roleId}:${item.key}`
     const db = await getDatabase()
     const check = db.prepare('SELECT 1 AS x FROM companion_assets WHERE id = ?')
     check.bind([id])
@@ -180,7 +221,7 @@ export async function ensureStarterWardrobe(roleId: string): Promise<{ created: 
     await addAsset({
       id,
       roleId,
-      kind: 'wardrobe',
+      kind,
       name: item.name,
       payload: item.payload,
       acquiredAt: base + i,
@@ -191,13 +232,28 @@ export async function ensureStarterWardrobe(roleId: string): Promise<{ created: 
   return { created }
 }
 
+export async function ensureStarterWardrobe(roleId: string): Promise<{ created: number }> {
+  return ensureStarterForKind(roleId, ASSET_KIND_WARDROBE)
+}
+
+export async function ensureStarterBookshelf(roleId: string): Promise<{ created: number }> {
+  return ensureStarterForKind(roleId, ASSET_KIND_BOOKSHELF)
+}
+
+/** 活跃主角打开物什面板时：衣柜 + 书架一并播种 */
+export async function ensureStarterAssets(roleId: string): Promise<{ created: number }> {
+  const w = await ensureStarterWardrobe(roleId)
+  const b = await ensureStarterBookshelf(roleId)
+  return { created: w.created + b.created }
+}
+
 /** 为事件挑选一件衣柜（确定性：按 scheduledAt 取模） */
 export async function pickWardrobeAssetId(
   roleId: string,
   seed: number,
 ): Promise<string | null> {
   await ensureStarterWardrobe(roleId)
-  const items = await listAssets(roleId, { kind: 'wardrobe' })
+  const items = await listAssets(roleId, { kind: ASSET_KIND_WARDROBE })
   if (!items.length) return null
   return items[Math.abs(seed) % items.length].id
 }
@@ -216,7 +272,7 @@ export async function updateAsset(
     return { ok: false, code: 'NOT_FOUND', error: '资产不存在' }
   }
   if (opts?.expectedRoleId && existing.roleId !== opts.expectedRoleId) {
-    return { ok: false, code: 'ROLE_MISMATCH', error: '只能改当前活跃主角的衣柜' }
+    return { ok: false, code: 'ROLE_MISMATCH', error: '只能改当前活跃主角的资产' }
   }
 
   const name = typeof patch.name === 'string' ? patch.name.trim() : existing.name
@@ -255,7 +311,7 @@ export async function updateAsset(
 }
 
 /**
- * 删除资产。expectedRoleId 用于防改他人衣柜。
+ * 删除资产。expectedRoleId 用于防改他人资产。
  */
 export async function deleteAsset(
   assetId: string,
@@ -266,7 +322,7 @@ export async function deleteAsset(
     return { ok: false, code: 'NOT_FOUND', error: '资产不存在' }
   }
   if (opts?.expectedRoleId && existing.roleId !== opts.expectedRoleId) {
-    return { ok: false, code: 'ROLE_MISMATCH', error: '只能删当前活跃主角的衣柜' }
+    return { ok: false, code: 'ROLE_MISMATCH', error: '只能删当前活跃主角的资产' }
   }
   const db = await getDatabase()
   db.run(`DELETE FROM companion_assets WHERE id = ?`, [assetId])

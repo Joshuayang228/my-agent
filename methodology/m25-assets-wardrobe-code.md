@@ -7,17 +7,17 @@
 ## §五 对照：Starter 与入库
 
 ```text
-ensureStarterWardrobe(roleId)
-  若已有 kind=wardrobe → return
-  插入 tee-white / hoodie-gray / sneakers
-  id = wardrobe:{roleId}:{key}  // 稳定幂等
+ensureStarterForKind(roleId, kind)  // wardrobe | bookshelf
+  若该 kind 已有 → return
+  id = `{kind}:{roleId}:{key}`  // 稳定幂等；主角分味
+ensureStarterAssets = wardrobe + bookshelf
 
 addAsset({ roleId, kind, name, payload, sourceEventId?, id? })
 maybeGrantFromEvent({ roleId, eventId, eventPayload })  // id=grant:{eventId} 幂等
 normalizeGrantAsset → grant-asset.ts（纯函数）
 ```
 
-**方法论对照**：→ §五 · M25-G2
+**方法论对照**：→ §五 · M25-G2 · M25-G3
 
 ---
 
@@ -42,9 +42,9 @@ projectMomentFromEvent → getAsset → outfitName 进 text/meta
 
 `companion:get-assets` → active role；可按 kind 过滤。  
 `companion:update-asset` / `companion:delete-asset` → 仅 active（`expectedRoleId`）。  
-`AssetsPanel`：编辑名称/色/风格/场合；删除确认后降级引用。
+`AssetsPanel`：衣柜 / 书架分栏；编辑字段随 kind；删除确认后降级引用。
 
-**方法论对照**：→ §四 §八 · M25-G1
+**方法论对照**：→ §四 §八 · M25-G1 · M25-G3
 
 ---
 
@@ -58,4 +58,4 @@ projectMomentFromEvent → getAsset → outfitName 进 text/meta
 
 ## 已知简化
 
-仅 wardrobe starter（M25-G3 bookshelf）；哈希日剧本不自动 grant。
+哈希日剧本不自动 grant；书架尚未进 Assemble / Moment 引用（可后续）。

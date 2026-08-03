@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22–M24 收齐 · M25-G1/G2**；下一步：M25-G3（bookshelf 等）
+**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22–M25 收齐**；下一步：M26 Gaps（交际圈/卡司）
 
-**最新动态（2026-08-02）**：
+**最新动态（2026-08-03）**：
+- ✅ **M25-G3**：bookshelf kind + 分味 starter；物什面板分栏；Assemble 注入另议。
 - ✅ **M25-G2**：publish 挂 `grantAsset` 幂等入库；剧本透传；哈希不默认发物。
 - ✅ **M25-G1**：衣柜编辑/删除 API + IPC + AssetsPanel；单测覆盖角色隔离。
 - ✅ **M24-G2**：Moment 文案 LLM 润色（绑 event）；tick prefer / Catch-up 规则底稿。

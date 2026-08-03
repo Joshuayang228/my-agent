@@ -40,6 +40,8 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
 
 const {
   ensureStarterWardrobe,
+  ensureStarterBookshelf,
+  ensureStarterAssets,
   listAssets,
   addAsset,
   updateAsset,
@@ -47,6 +49,7 @@ const {
   pickWardrobeAssetId,
   maybeGrantFromEvent,
   normalizeGrantAsset,
+  ASSET_KIND_BOOKSHELF,
 } = await import('../../electron/main/companion/life/assets')
 
 const { ensureDayScripts, __lifeStore } =
@@ -75,6 +78,30 @@ describe('Companion Assets', () => {
     const items = await listAssets('lin', { kind: 'wardrobe' })
     expect(items).toHaveLength(3)
     expect(items.every((a) => a.roleId === 'lin')).toBe(true)
+  })
+
+  it('ensureStarterBookshelf 分味播种且幂等', async () => {
+    const r1 = await ensureStarterBookshelf('lin')
+    expect(r1.created).toBe(3)
+    const r2 = await ensureStarterBookshelf('lin')
+    expect(r2.created).toBe(0)
+    const books = await listAssets('lin', { kind: ASSET_KIND_BOOKSHELF })
+    expect(books).toHaveLength(3)
+    expect(books.every((a) => a.kind === 'bookshelf' && a.id.startsWith('bookshelf:lin:'))).toBe(true)
+    expect(books.some((a) => a.name === '匠人')).toBe(true)
+
+    await ensureStarterBookshelf('zhou')
+    const zhou = await listAssets('zhou', { kind: 'bookshelf' })
+    expect(zhou.some((a) => a.name === '设计中的设计')).toBe(true)
+    expect(zhou.every((a) => a.roleId === 'zhou')).toBe(true)
+  })
+
+  it('ensureStarterAssets 同时播种衣柜与书架', async () => {
+    const r = await ensureStarterAssets('xia')
+    expect(r.created).toBe(6)
+    const all = await listAssets('xia')
+    expect(all.filter((a) => a.kind === 'wardrobe')).toHaveLength(3)
+    expect(all.filter((a) => a.kind === 'bookshelf')).toHaveLength(3)
   })
 
   it('资产按 role 隔离', async () => {

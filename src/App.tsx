@@ -913,7 +913,7 @@ function App() {
               <SidebarBtn onClick={() => setActiveView(v => v === 'moments' ? 'chat' : 'moments')} title="朋友圈 (Ctrl+Shift+F)">
                 <Newspaper size={14} />
               </SidebarBtn>
-              <SidebarBtn onClick={() => setActiveView(v => v === 'assets' ? 'chat' : 'assets')} title="衣柜">
+              <SidebarBtn onClick={() => setActiveView(v => v === 'assets' ? 'chat' : 'assets')} title="物什">
                 <Shirt size={14} />
               </SidebarBtn>
               <SidebarBtn onClick={() => setActiveView(v => v === 'cast' ? 'chat' : 'cast')} title="名册">
@@ -1142,7 +1142,7 @@ function App() {
                   {[
                     { icon: <MessageCircle size={14} />, label: '打个招呼', prompt: '你好，介绍一下你自己' },
                     { icon: <Newspaper size={14} />, label: '朋友圈', action: () => setActiveView('moments') },
-                    { icon: <Shirt size={14} />, label: '衣柜', action: () => setActiveView('assets') },
+                    { icon: <Shirt size={14} />, label: '物什', action: () => setActiveView('assets') },
                     { icon: <Users size={14} />, label: '名册', action: () => setActiveView('cast') },
                     { icon: <LayoutGrid size={14} />, label: '换主角', action: () => setActiveView('shelf') },
                     { icon: <Wrench size={14} />, label: '试工具', prompt: '现在几点了？' },

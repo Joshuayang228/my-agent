@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — M25-G3 书架 kind（2026-08-03）
+
+- `kind=bookshelf` starter（主角分味）+ `ensureStarterAssets`
+- AssetsPanel 衣柜/书架分栏；编辑作者/类型/备注；入口文案「物什」
+- 书架尚未挂 Moment/Assemble（防过早叙事绑定）
+
 ### Added — M25-G2 事件获得资产入库（2026-08-02）
 
 - publish 主路径调用 `maybeGrantFromEvent`（`payload.grantAsset`）

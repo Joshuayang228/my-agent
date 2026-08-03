@@ -98,10 +98,10 @@ projectMoment → getAsset(name) → 拼进 text
 IPC `get-assets` / `AssetsPanel` 只暴露活跃主角。  
 非活跃柜在 DB，不因别人 tick 乱增（除非 Catch-up/显式逻辑触达该 role）。
 
-## 九、kind 可扩展；本阶段衣柜最小集
+## 九、kind 可扩展；衣柜 + 书架
 
-`kind` 预留：`wardrobe` / 未来 `bookshelf`…  
-W4 只证明「引用 + 分桶 + 面板」三件套；书架不阻塞认知地图（M25-G3）。
+`kind`：`wardrobe` / `bookshelf`（可再扩）。  
+W4 证明「引用 + 分桶 + 面板」；M25-G3 书架 starter + 面板分栏；进 Assemble 薄切片另议（不阻塞认知地图闭环）。
 
 ## 十、叙事与生图预留
 
@@ -143,6 +143,6 @@ W4 只证明「引用 + 分桶 + 面板」三件套；书架不阻塞认知地�
 |----|------|------------|
 | M25-G1 | 编辑/删除 UI | ✅ 已落地 |
 | M25-G2 | 获得事件自动入库 | ✅ publish 挂钩；哈希不刷柜，LLM 日最多 1 件 |
-| M25-G3 | bookshelf 等 | 先验证衣柜闭环 |
+| M25-G3 | bookshelf 等 | ✅ starter + 面板分栏；Assemble 薄注入另议 |
 
 代码走读见 `m25-assets-wardrobe-code.md`。

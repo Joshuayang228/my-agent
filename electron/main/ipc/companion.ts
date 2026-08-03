@@ -28,7 +28,7 @@ import {
 import { describeCastPresence } from '../companion/cast/availability'
 import {
   deleteAsset,
-  ensureStarterWardrobe,
+  ensureStarterAssets,
   listAssets,
   updateAsset,
 } from '../companion/life/assets'
@@ -120,12 +120,12 @@ export function registerCompanionIPC(): void {
     }
   })
 
-  /** 衣柜等资产：仅活跃主角；空库时播种 starter */
+  /** 物什（衣柜/书架）：仅活跃主角；空 kind 时播种 starter */
   ipcMain.handle(
     'companion:get-assets',
     async (_e, opts?: { kind?: string }) => {
       const roleId = await getActiveRoleId()
-      await ensureStarterWardrobe(roleId)
+      await ensureStarterAssets(roleId)
       const kind = typeof opts?.kind === 'string' ? opts.kind : undefined
       const items = await listAssets(roleId, kind ? { kind } : undefined)
       return { roleId, items }

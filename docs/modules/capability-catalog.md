@@ -46,14 +46,14 @@
 | Catch-up ≤7×24h | 已落地 | 朋友圈暖色条 / Prompt | `life/catchup` · `catchup-status` |
 | 此刻 presence | 已落地 | Chat `CompanionStatusBar` | `describeCastPresence` · `catchup-status.presence` |
 | Moments（朋友圈） | 已落地 | 状态条 / 欢迎屏 → Moments | `get-moments` · MomentsPanel |
-| Assets（衣柜） | 已落地 | 欢迎屏 → 衣柜 | `get/update/delete-asset` · AssetsPanel |
+| Assets（物什） | 已落地 | 欢迎屏 → 物什 | wardrobe/bookshelf · `get/update/delete-asset` · AssetsPanel |
 | 名册浅注入 | 已落地 | （Prompt） | `cast/roster` |
 | CastPanel（名册 / 召唤） | 已落地 | 状态条 / 欢迎屏 → 名册 | CastPanel · `start-summon` |
 | 召唤子会话 | 已落地 | 名册「开聊」 | 不改 active / 不 tick 对方 |
 | 召唤忙闲婉拒 + force | 已落地 | 名册开聊前 | `check-cast-availability` |
 | 冷启动在场文案 | 已落地 | Chat 空态欢迎屏 | `companion-presence.ts` |
 | 角色架 UI | 已落地 | 状态条 / 欢迎「换主角」 | CharacterShelfPanel · `shelf` |
-| 衣柜主视觉（穿着中 + 场合标签） | 已落地 | 状态条 / 欢迎屏 → 衣柜 | AssetsPanel · Moment.assetId/outfit |
+| 物什主视觉（衣柜穿着中 + 书架分栏） | 已落地 | 状态条 / 欢迎屏 → 物什 | AssetsPanel · Moment.assetId/outfit |
 | 名册关系卡 + 最近召唤互动 | 已落地 | 状态条 / 欢迎屏 → 名册 | CastPanel · sessions(summon) |
 | 场景弱背景（Chat 氛围） | 已落地 | Chat 消息区底层 | `CompanionSceneBackdrop` · `companion-scene.ts` |
 | 生图朋友圈 / 多宇宙并行 | 缺口 | — | wishlist / 非本阶段 |
