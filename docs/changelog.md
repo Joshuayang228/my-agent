@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — M28-G2 交心/干活熟悉度混合（2026-08-03）
+
+- `familiarity-mix`：近窗消息 bond/task lean
+- task-leaning 时不上报「默契」口吻；注入 Relationship stage 块
+
 ### Added — M28-G1 关系阶段驱动 Prompt（2026-08-03）
 
 - `resolveRelationshipStage`：陌生/熟悉/默契（成长时钟·消息密度·是否已反思）

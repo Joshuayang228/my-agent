@@ -77,7 +77,7 @@
 - [x] **M27-G2** aside 频率/质量 Eval（过油/缺失）— `shared/aside` + Eval C02
 - [x] **M27-G3** 情绪语气收放控制器（非纯靠模型）— `tone-control` 紧/软/中性 + aside 策略
 - [x] **M28-G1** relationshipStage 显式状态驱动 Prompt/行为 — 代理指标 → stranger/familiar/rapport 注入 Prompt
-- [ ] **M28-G2** 熟悉度区分「交心 vs 纯干活」信号
+- [x] **M28-G2** 熟悉度区分「交心 vs 纯干活」信号 — `familiarity-mix` lean；task-leaning 压制 rapport
 - [ ] **M28-G3** 换角后的「再认识」微文案（不重置成长时钟）
 - [ ] **M29-G1** 本轮注入/引用记忆的 UI 标注（id 或摘要芯片）
 - [ ] **M29-G2** 「记错了」对话内一键纠错（触发 forget/更新）

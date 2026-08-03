@@ -69,7 +69,7 @@
   → loadRoleAssembleInput(roleId)               # Pack + MUTABLE + catchup + worldSlice + recentMoments + roster
   → detectReplyStance(lastUser)                 # M27-G1 问/做/安慰/推回 hint
   → resolveToneControl(stance, mode, text)      # M27-G3 紧/软/中性 + aside 策略
-  → resolveRelationshipStageForRole(...)        # M28-G1 陌生/熟悉/默契
+  → resolveRelationshipStageForRole(...)        # M28-G1/G2 阶段 + 交心/干活 lean
   → memory.buildUserProfile()                   # 结构化画像
   → safeVectorSearch(lastUser)                  # 向量语义召回 → L3 memories
   → buildSystemPrompt({

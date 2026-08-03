@@ -4,9 +4,10 @@
 
 ## 当前状态
 
-**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22–M28-G1**；下一步：M28-G2/G3
+**阶段**：伙伴主线 + Part VI + 前端 P0–P2 + Pack 分味 + **M22–M28-G2**；下一步：M28-G3
 
 **最新动态（2026-08-03）**：
+- ✅ **M28-G2**：近窗交心/干活 `familiarity-mix`；task-leaning 压制默契口吻。
 - ✅ **M28-G1**：`relationshipStage`（陌生/熟悉/默契）由门闸代理指标推导并注入 Prompt；召唤强制陌生。
 - ✅ **M27-G3**：语气收放（紧/软/中性 + aside 策略）注入 Prompt。
 - ✅ **M27-G2**：aside 过油/夺权阈值 + Eval C02 + 共享 `splitAside`。

@@ -70,12 +70,13 @@ shouldReflectNow(roleId)
 ## §三 / M28-G1 对照：关系阶段
 
 ```text
-resolveRelationshipStage({ growthStartedAt, lastRunAt, recentUserMessages, sessionKind })
+resolveRelationshipStage({ growthStartedAt, lastRunAt, recentUserMessages, sessionKind, mix })
   summon → stranger（客人）
   !growth or <72h or msgs<5 → stranger
   lastRunAt>0 → rapport
   else → familiar
-→ formatRelationshipStageForPrompt → Assemble ## Relationship stage
+  mix.lean=task-leaning ∧ rapport → 压回 familiar（M28-G2）
+→ format + familiarity-mix → Assemble ## Relationship stage
 ```
 
 模块：`companion/growth/relationship-stage.ts`；Runtime 装载。
@@ -84,10 +85,23 @@ resolveRelationshipStage({ growthStartedAt, lastRunAt, recentUserMessages, sessi
 
 ---
 
+## §六 / M28-G2 对照：交心 vs 干活
+
+```text
+listRecentUserMessagesForRole → resolveFamiliarityMix
+  bond/task/neutral 计数 → lean: bond|task|mixed|sparse
+```
+
+模块：`companion/growth/familiarity-mix.ts`（不改反思硬门闸数字）。
+
+**方法论对照**：→ §六 · M28-G2
+
+---
+
 ## 已知简化
 
 | Gap | 代码 |
 |-----|------|
 | M28-G1 | ✅ 派生枚举注入 Prompt（未另持久化情感分字段） |
-| M28-G2 | 消息计数不区分意图 |
+| M28-G2 | ✅ lean 启发式；非可靠情感特征 |
 | M28-G3 | 无换角专用文案 API |
