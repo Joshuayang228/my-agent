@@ -45,10 +45,18 @@ const {
   updateAsset,
   deleteAsset,
   pickWardrobeAssetId,
+  maybeGrantFromEvent,
+  normalizeGrantAsset,
 } = await import('../../electron/main/companion/life/assets')
 
 const { ensureDayScripts, __lifeStore } =
   await import('../../electron/main/companion/life/engine')
+
+const { publishAndProjectRange } =
+  await import('../../electron/main/companion/life/moments')
+
+const { parseDayScriptPayload } =
+  await import('../../electron/main/companion/life/script-generator')
 
 describe('Companion Assets', () => {
   beforeEach(() => {
@@ -150,5 +158,81 @@ describe('Companion Assets', () => {
     const again = await deleteAsset(created.id, { expectedRoleId: 'lin' })
     expect(again.ok).toBe(false)
     if (!again.ok) expect(again.code).toBe('NOT_FOUND')
+  })
+
+  it('maybeGrantFromEvent 幂等入库，非法 grant 跳过', async () => {
+    expect(normalizeGrantAsset({ kind: '', name: 'x' })).toBeNull()
+    const a = await maybeGrantFromEvent({
+      roleId: 'lin',
+      eventId: 'ev-grant-1',
+      grant: { kind: 'wardrobe', name: '跳蚤市场围巾', payload: { color: '红' } },
+    })
+    expect(a?.id).toBe('grant:ev-grant-1')
+    expect(a?.sourceEventId).toBe('ev-grant-1')
+    const b = await maybeGrantFromEvent({
+      roleId: 'lin',
+      eventId: 'ev-grant-1',
+      eventPayload: {
+        grantAsset: { kind: 'wardrobe', name: '应被忽略的重复' },
+      },
+    })
+    expect(b?.id).toBe(a?.id)
+    expect(b?.name).toBe('跳蚤市场围巾')
+  })
+
+  it('publish 路径：payload.grantAsset 自动入库', async () => {
+    const ev = await __lifeStore.insertEvent({
+      roleId: 'lin',
+      scheduledAt: Date.UTC(2026, 7, 2, 10, 0),
+      status: 'planned',
+      type: 'moment',
+      dayScriptId: null,
+      payload: {
+        activity: '淘到一条围巾',
+        mood: '开心',
+        location: '跳蚤市场',
+        grantAsset: { kind: 'wardrobe', name: '旧羊绒围巾', payload: { color: '驼' } },
+      },
+    })
+    const n = await publishAndProjectRange('lin', 0, Date.UTC(2026, 7, 3))
+    expect(n).toBeGreaterThanOrEqual(1)
+    const granted = await listAssets('lin', { kind: 'wardrobe' })
+    expect(granted.some((a) => a.id === `grant:${ev.id}` && a.name === '旧羊绒围巾')).toBe(true)
+  })
+
+  it('parseDayScriptPayload 每天最多保留一件 grantAsset', () => {
+    const base = (hour: number, activity: string, type: 'moment' | 'activity') => ({
+      hour,
+      minute: 0,
+      activity,
+      mood: '平静',
+      location: '家',
+      type,
+    })
+    const parsed = parseDayScriptPayload(
+      {
+        theme: '小收获的一天',
+        slots: [
+          {
+            ...base(9, '买咖啡', 'activity'),
+            location: '咖啡馆',
+            grantAsset: { kind: 'wardrobe', name: '帆布袋' },
+          },
+          base(11, '开工', 'activity'),
+          {
+            ...base(14, '散步', 'moment'),
+            location: '公园',
+            grantAsset: { kind: 'wardrobe', name: '第二件不该留下' },
+          },
+          base(16, '回信', 'activity'),
+          base(19, '晚饭', 'moment'),
+        ],
+      },
+      '2026-08-02',
+    )
+    expect(parsed).toBeTruthy()
+    const grants = parsed!.slots.filter((s) => s.grantAsset)
+    expect(grants).toHaveLength(1)
+    expect(grants[0].grantAsset?.name).toBe('帆布袋')
   })
 })

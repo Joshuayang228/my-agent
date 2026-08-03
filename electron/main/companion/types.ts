@@ -57,7 +57,14 @@ export type SwitchResult =
   | { ok: true; catchupQueued: boolean }
   | { ok: false; code: 'SESSION_ACTIVE' | 'UNKNOWN_ROLE' | 'ALREADY_ACTIVE' }
 
-/** 日剧本槽位（W2 LifeEngine；LLM 生成前用确定性 mock） */
+/** 事件/槽位可选：发布时写入 companion_assets（M25-G2） */
+export interface GrantAssetSpec {
+  kind: string
+  name: string
+  payload?: Record<string, unknown>
+}
+
+/** 日剧本槽位（W2 LifeEngine；哈希确定性 / LLM 可选） */
 export interface DayScriptSlot {
   hour: number
   minute: number
@@ -65,6 +72,8 @@ export interface DayScriptSlot {
   mood: string
   location: string
   type: 'moment' | 'activity'
+  /** 发布该槽事件时入库一件资产（可选；哈希剧本默认不填） */
+  grantAsset?: GrantAssetSpec
 }
 
 export interface DayScriptPayload {

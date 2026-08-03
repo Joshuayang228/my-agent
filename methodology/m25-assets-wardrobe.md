@@ -71,7 +71,7 @@ tech-spec / 模块卡常说朋友圈/衣柜是「截面」：
 |------|------|------|
 | Starter 种子 | ✅ | 空柜幂等写入基础款，稳定 id |
 | 显式 addAsset | ✅ API | 购买/剧情；可挂 source_event_id |
-| 事件自动 grant | △ 有 `maybeGrantFromEvent`，未挂 publish 主路径 | M25-G2 |
+| 事件自动 grant | ✅ | M25-G2：publish 读 grantAsset；幂等 id |
 | 用户编辑/删除 UI | ✅ | M25-G1：update/delete + AssetsPanel |
 
 资产有 `acquired_at`；版本需求弱于 MUTABLE——物多为增删，不是全文演化。
@@ -125,7 +125,7 @@ W4 只证明「引用 + 分桶 + 面板」三件套；书架不阻塞认知地�
 
 1. **先衣柜后万物**——闭环可演示再扩 kind。  
 2. **Starter 固定 id**（`wardrobe:{roleId}:{key}`）——防重复灌柜。  
-3. **grant 函数先放着不接线**——避免未设计获得剧情就自动刷物。  
+3. **grant 挂 publish、哈希不默认发**——剧情入口在 slot.grantAsset；防刷靠日上限 + 幂等 id。  
 4. **初稿补「截面」澄清**——减少和「无真相」的误读。
 
 ## 设计检查清单
@@ -142,7 +142,7 @@ W4 只证明「引用 + 分桶 + 面板」三件套；书架不阻塞认知地�
 | ID | 内容 | 为什么暂缓 |
 |----|------|------------|
 | M25-G1 | 编辑/删除 UI | ✅ 已落地 |
-| M25-G2 | 获得事件自动入库 | 剧情与平衡未设计 |
+| M25-G2 | 获得事件自动入库 | ✅ publish 挂钩；哈希不刷柜，LLM 日最多 1 件 |
 | M25-G3 | bookshelf 等 | 先验证衣柜闭环 |
 
 代码走读见 `m25-assets-wardrobe-code.md`。

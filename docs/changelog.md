@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — M25-G2 事件获得资产入库（2026-08-02）
+
+- publish 主路径调用 `maybeGrantFromEvent`（`payload.grantAsset`）
+- 幂等 id `grant:{eventId}`；日剧本 slot 透传；解析日最多保留 1 件 grant
+- 哈希剧本默认不发物，避免 Catch-up 刷柜
+
 ### Added — M25-G1 衣柜编辑/删除（2026-08-02）
 
 - `updateAsset` / `deleteAsset`：仅活跃主角可改删；payload 合并写入

@@ -121,6 +121,7 @@ async function materializePlannedEvents(
         date: payload.date,
         theme: payload.theme,
         ...(assetId ? { assetId } : {}),
+        ...(slot.grantAsset ? { grantAsset: slot.grantAsset } : {}),
       },
     })
   }
@@ -167,4 +168,5 @@ export const __lifeStore = {
   listEvents: store.listEvents,
   countMoments: store.countMoments,
   listMoments: store.listMoments,
+  insertEvent: store.insertEvent,
 }

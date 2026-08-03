@@ -9,7 +9,7 @@
 import type { LLMConfig } from '../../../../src/shared/types'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import type { CompanionEvent, CompanionMoment } from '../types'
-import { getAsset } from './assets'
+import { getAsset, maybeGrantFromEvent } from './assets'
 import { formatMomentText } from './moment-format'
 import { resolveMomentText } from './moment-polish'
 import * as store from './store'
@@ -85,6 +85,12 @@ export async function publishAndProjectRange(
     if (ev.scheduledAt < fromMs || ev.scheduledAt > toMs) continue
     await store.markEventPublished(ev.id)
     const published: CompanionEvent = { ...ev, status: 'published' }
+    // M25-G2：payload.grantAsset → 幂等入库（无则 noop）
+    await maybeGrantFromEvent({
+      roleId: ev.roleId,
+      eventId: ev.id,
+      eventPayload: ev.payload,
+    })
     await projectMomentFromEvent(published, opts)
     n += 1
   }

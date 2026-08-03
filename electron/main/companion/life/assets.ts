@@ -1,15 +1,18 @@
 /**
- * Assets / 衣柜（W4 / M25-G1）
+ * Assets / 衣柜（W4 / M25-G1·G2）
  *
  * 背景：着装等是角色世界状态截面，按 role_id 隔离；非独立内容真相。
- * 意图：list/add/update/delete/ensureStarter；事件 payload 可引用 assetId。
+ * 意图：list/add/update/delete/ensureStarter；publish 可 grant；事件可引用 assetId。
  * 约束：IPC 只暴露 active role；删除后 Moment 着装引用自然降级；不 import agent/。
  */
 
 import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
-import type { CompanionAsset } from '../types'
+import type { CompanionAsset, GrantAssetSpec } from '../types'
+import { normalizeGrantAsset } from './grant-asset'
+
+export { normalizeGrantAsset } from './grant-asset'
 
 const log = createLogger('CompanionAssets')
 
@@ -273,19 +276,32 @@ export async function deleteAsset(
 }
 
 /**
- * 从事件获得新资产（若 payload.grantAsset 指定）；返回新建或 null。
+ * 从事件获得新资产（payload.grantAsset 或显式 grant）。
+ * 背景：M25-G2 挂 publish；幂等 id=`grant:{eventId}`，重复发布不刷柜。
+ * 约束：仅在调用方已决定「该事件可 grant」时调用；哈希日剧本默认不带 grant。
  */
 export async function maybeGrantFromEvent(input: {
   roleId: string
   eventId: string
-  grant?: { kind: string; name: string; payload?: Record<string, unknown> }
+  grant?: GrantAssetSpec | null
+  /** 事件 payload；若未传 grant 则读 grantAsset */
+  eventPayload?: Record<string, unknown>
 }): Promise<CompanionAsset | null> {
-  if (!input.grant) return null
+  const grant =
+    input.grant ??
+    normalizeGrantAsset(input.eventPayload?.grantAsset)
+  if (!grant) return null
+
+  const id = `grant:${input.eventId}`
+  const existing = await getAsset(id)
+  if (existing) return existing
+
   return addAsset({
+    id,
     roleId: input.roleId,
-    kind: input.grant.kind,
-    name: input.grant.name,
-    payload: input.grant.payload,
+    kind: grant.kind,
+    name: grant.name,
+    payload: grant.payload,
     sourceEventId: input.eventId,
   })
 }

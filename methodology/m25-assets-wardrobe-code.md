@@ -13,10 +13,11 @@ ensureStarterWardrobe(roleId)
   id = wardrobe:{roleId}:{key}  // 稳定幂等
 
 addAsset({ roleId, kind, name, payload, sourceEventId?, id? })
-maybeGrantFromEvent(...)  // 未挂 publish 主路径（M25-G2）
+maybeGrantFromEvent({ roleId, eventId, eventPayload })  // id=grant:{eventId} 幂等
+normalizeGrantAsset → grant-asset.ts（纯函数）
 ```
 
-**方法论对照**：→ §五
+**方法论对照**：→ §五 · M25-G2
 
 ---
 
@@ -24,8 +25,11 @@ maybeGrantFromEvent(...)  // 未挂 publish 主路径（M25-G2）
 
 ```text
 materializePlannedEvents
-  slot.type === 'moment' → assetId = pickWardrobeAssetId(roleId, scheduledAt)
-  pick：ensureStarter → list wardrobe → seed % length
+  slot.type === 'moment' → assetId = pickWardrobeAssetId(...)
+  slot.grantAsset? → event.payload.grantAsset
+
+publishAndProjectRange
+  mark published → maybeGrantFromEvent → projectMoment
 
 projectMomentFromEvent → getAsset → outfitName 进 text/meta
 ```
@@ -54,4 +58,4 @@ projectMomentFromEvent → getAsset → outfitName 进 text/meta
 
 ## 已知简化
 
-grant 未接线（M25-G2）；仅 wardrobe 种子（M25-G3）。
+仅 wardrobe starter（M25-G3 bookshelf）；哈希日剧本不自动 grant。

@@ -11,6 +11,7 @@ import { chatComplete } from '../../llm/index'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
 import type { DayScriptPayload, DayScriptSlot } from '../types'
+import { normalizeGrantAsset } from './grant-asset'
 
 const log = createLogger('DayScriptGen')
 
@@ -173,13 +174,29 @@ export function parseDayScriptPayload(
     const mood = clipText(s.mood, '平静')
     const location = clipText(s.location, '某处')
     if (!activity) return null
-    slots.push({ hour, minute, activity, mood, location, type })
+    const grantAsset = normalizeGrantAsset(s.grantAsset) ?? undefined
+    slots.push({
+      hour,
+      minute,
+      activity,
+      mood,
+      location,
+      type,
+      ...(grantAsset ? { grantAsset } : {}),
+    })
   }
 
   slots.sort((a, b) => a.hour * 60 + a.minute - (b.hour * 60 + b.minute))
   // 至少一条 moment，便于朋友圈有截面
   if (!slots.some((s) => s.type === 'moment')) {
     slots[Math.min(3, slots.length - 1)].type = 'moment'
+  }
+  // 每天最多一件 grant，防 LLM 刷柜
+  let grantSeen = false
+  for (const slot of slots) {
+    if (!slot.grantAsset) continue
+    if (grantSeen) delete slot.grantAsset
+    else grantSeen = true
   }
 
   return { date, theme, slots }
@@ -201,7 +218,8 @@ ${input.voiceHint || '（无）'}
 2. slots ${SLOT_COUNT_MIN}～${SLOT_COUNT_MAX} 条，按时间升序；hour 0-23，minute 0 或 30
 3. type 只能是 "moment"（适合发动态）或 "activity"（推进日程）；至少 2 条 moment
 4. theme / activity / mood / location 各不超过 ${TEXT_MAX} 字
-5. 只输出 JSON：{"theme":"...","slots":[{"hour":8,"minute":0,"activity":"...","mood":"...","location":"...","type":"activity"}]}`
+5. 可选：整天最多 1 个 slot 带 grantAsset（购得/获赠的小物），形如 {"kind":"wardrobe","name":"短名","payload":{"color":"…"}}；日常勿滥发
+6. 只输出 JSON：{"theme":"...","slots":[{"hour":8,"minute":0,"activity":"...","mood":"...","location":"...","type":"activity"}]}`
 }
 
 /** 尝试 LLM；失败返回 null（由调用方回退哈希） */

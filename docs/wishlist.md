@@ -67,7 +67,7 @@
 - [x] ~~**M24-G2** LLM 润色动态文案~~ — 2026-08-02：tick prefer 润色；Catch-up 默认规则；校验拒新地点
 - [ ] **M24-G3** 生图朋友圈（非本阶段）
 - [x] **M25-G1** 用户编辑/删除资产 UI（`updateAsset`/`deleteAsset` + AssetsPanel）
-- [ ] **M25-G2** 获得事件自动入库（`maybeGrantFromEvent` 尚未挂 publish 主路径）
+- [x] **M25-G2** 获得事件自动入库（publish 读 `grantAsset`；幂等 `grant:{eventId}`；哈希剧本默认不填）
 - [ ] **M25-G3** bookshelf 等其它 asset kind
 - [ ] **M26-G1** 卡司出现在 Moments 互动（评论/同框）
 - [ ] **M26-G2** 召唤会话与 M19 子 Agent 任务协作
