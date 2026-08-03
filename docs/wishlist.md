@@ -121,7 +121,7 @@
 
 - [ ] **Python 嵌入沙箱** — CGO 嵌入 Python 解释器 + PEP 578 审计钩子 + 9 个预注册 CGO 函数做能力代理。来源：灵犀 `pyairscript/cgo_sandbox/sandbox/`
 - [x] ~~**PII 脱敏 + 文本预算**~~ — 2026-08-03 已做（`text-capture.ts`；tracer attributes / error 接入）
-- [ ] **Session-based 采样** — 按会话 ID 哈希做确定性采样，同一会话全收或全丢。来源：灵犀 `observability/session_sampler.go`
+- [x] ~~**Session-based 采样**~~ — 2026-08-03 已做（`session-sampler.ts`；`MY_AGENT_TRACE_SAMPLE_RATE`；默认 1 全收）
 
 ### 架构参考
 

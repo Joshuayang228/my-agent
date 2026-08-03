@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — Session-based span 采样（2026-08-03）
+
+- `session-sampler.ts`：同会话确定性全收或全丢；无 sessionId 始终保留
+- 默认采样率 1；可用 `MY_AGENT_TRACE_SAMPLE_RATE` / `setTraceSampleRate` 调整
+- 未采样仍返回 SpanHandle（供 parentId 接线），不入 DevPanel 缓冲
+
 ### Added — PII 脱敏 + span 文本预算（2026-08-03）
 
 - `text-capture.ts`：凭据/敏感字段脱敏；超长字符串改为 `preview + sha256 + chars`

@@ -15,6 +15,7 @@
  */
 
 import { createLogger } from './logger'
+import { shouldSampleSession } from './session-sampler'
 import { captureAttributes, captureAttributeValue, captureErrorMessage } from './text-capture'
 import { getTraceContext, traceContextAttributes } from './trace-context'
 
@@ -99,6 +100,10 @@ export function startSpan(
     }
   }
 
+  // 先合并再采样：保证同一 sessionId 整树收/丢（对照 session_sampler）
+  const mergedAttrs = captureAttributes({ ...fromContext, ...inherited, ...attributes })
+  const sessionId = typeof mergedAttrs.sessionId === 'string' ? mergedAttrs.sessionId : undefined
+
   const span: TraceSpan = {
     id: generateSpanId(),
     name,
@@ -107,8 +112,12 @@ export function startSpan(
     parentId,
     startTime: Date.now(),
     status: 'running',
-    // 写入前统一脱敏 + 超长文本预算（preview/sha256/chars）
-    attributes: captureAttributes({ ...fromContext, ...inherited, ...attributes }),
+    attributes: mergedAttrs,
+  }
+
+  if (!shouldSampleSession(sessionId)) {
+    // 仍返回真实 id，供 interactionSpanId / parentId 接线；不入环形缓冲
+    return new SpanHandle(span, { dropped: true })
   }
 
   spans.push(span)
@@ -145,7 +154,7 @@ export function startLinkedAsyncSpan(
       ...(opts?.attributes ?? {}),
     },
   )
-  if (linkTo) {
+  if (linkTo && !handle.dropped) {
     const span = spans.find((s) => s.id === handle.id)
     if (span) span.links = [linkTo]
   }
@@ -153,22 +162,33 @@ export function startLinkedAsyncSpan(
 }
 
 export class SpanHandle {
-  constructor(private span: TraceSpan) {}
+  /** 未采样会话：句柄可用但不进入 getRecentSpans */
+  readonly dropped: boolean
+
+  constructor(
+    private span: TraceSpan,
+    opts?: { dropped?: boolean },
+  ) {
+    this.dropped = opts?.dropped === true
+  }
 
   get id(): string {
     return this.span.id
   }
 
   setAttribute(key: string, value: unknown): void {
+    if (this.dropped) return
     this.span.attributes[key] = captureAttributeValue(key, value)
   }
 
   /** 批量设置属性（含 PII 脱敏与文本预算） */
   setAttributes(attrs: Record<string, unknown>): void {
+    if (this.dropped) return
     Object.assign(this.span.attributes, captureAttributes(attrs))
   }
 
   end(status: 'ok' | 'error' = 'ok', error?: string): void {
+    if (this.dropped) return
     this.span.endTime = Date.now()
     this.span.duration = this.span.endTime - this.span.startTime
     this.span.status = status

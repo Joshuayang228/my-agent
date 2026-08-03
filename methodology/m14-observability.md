@@ -234,5 +234,5 @@ OTel SDK 提供标准的 Span 创建、导出、采样等全套能力，还能�
 3. 新的 interaction 入口（如 headless agent），有没有创建 interaction span 并把 id 传给 agentLoop？
 4. 关键初始化步骤，有没有对应的 startup mark？
 5. Span 的 attributes 只记元数据（token 数/耗时/模型）；若必须带文本，是否经 `text-capture`（脱敏 + preview/sha256/chars）？
-6. MAX_SPANS 满时旧 span 会被剪裁，重要的统计（callerStats）不依赖历史 span 的完整性吗？
+6. MAX_SPANS 满时旧 span 会被剪裁；高流量时是否用 `MY_AGENT_TRACE_SAMPLE_RATE` 做 session 级确定性采样？
 7. 日志落盘层有没有过滤敏感内容（API key / token）？（`sanitizeLogData` 已统一处理 console/文件）

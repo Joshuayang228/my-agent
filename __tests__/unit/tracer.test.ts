@@ -10,7 +10,7 @@
  * - getSpanTypeStats() 类型统计
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import {
   startSpan,
   mark,
@@ -21,6 +21,7 @@ import {
   clearSpans,
   type SpanType,
 } from '../../electron/main/utils/tracer'
+import { getTraceSampleRate, setTraceSampleRate } from '../../electron/main/utils/session-sampler'
 
 // 每个测试前清空 spans，保证隔离
 beforeEach(() => {
@@ -79,6 +80,35 @@ describe('Tracer — Span 基础操作', () => {
     expect(span!.attributes.prompt).toMatchObject({ chars: 250 })
     expect(span!.attributes.apiKey).toBe('[REDACTED]')
     expect(span!.error).toContain('sha256=')
+  })
+})
+
+describe('Tracer — session-based 采样', () => {
+  const prevRate = getTraceSampleRate()
+
+  afterEach(() => {
+    setTraceSampleRate(prevRate)
+    clearSpans()
+  })
+
+  it('rate=0 时有 sessionId 的 span 被丢弃但仍有 id', () => {
+    setTraceSampleRate(0)
+    const handle = startSpan('dropped_chat', 'main', 'interaction', undefined, {
+      sessionId: 'sess-drop-me',
+    })
+    expect(handle.dropped).toBe(true)
+    expect(handle.id).toMatch(/^span-/)
+    handle.setAttribute('model', 'gpt-4')
+    handle.end('ok')
+    expect(getRecentSpans(50).find(s => s.id === handle.id)).toBeUndefined()
+  })
+
+  it('rate=0 时无 sessionId 仍保留', () => {
+    setTraceSampleRate(0)
+    const handle = startSpan('system_keep', 'system', 'interaction')
+    expect(handle.dropped).toBe(false)
+    handle.end('ok')
+    expect(getRecentSpans(50).find(s => s.id === handle.id)).toBeDefined()
   })
 })
 
