@@ -95,7 +95,7 @@
 ### 工程债 / 产品向
 
 - [x] ~~M10 shell 权限统一 + loadRules 接线~~ — 2026-07-26 已做
-- [ ] **原生语音输入** — Electron Web Speech API 不可靠，已从输入栏移除 Mic；若要做需主进程/系统 API 方案
+- [ ] **原生语音输入** — ⏸ 暂缓（2026-08-03）：Web Speech 已证不可靠；不做假 Mic。待选定 Win 原生 STT 或云端 Whisper 后单独立项。评估见 `docs/requirements/native-voice-input.md`
 - [x] **权限规则可视化编辑器** — 设置页表单编辑 + 可选高级 JSON；热更新不变
 - [x] ~~**M17 G1** `agent-loop` 迁 `_streamChatOverride`~~ — 2026-07-26
 - [x] ~~**M17 G2** — LLM SSE fixture / replay~~ — 2026-07-26
