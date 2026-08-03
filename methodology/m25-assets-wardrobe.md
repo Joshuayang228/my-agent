@@ -101,7 +101,7 @@ IPC `get-assets` / `AssetsPanel` 只暴露活跃主角。
 ## 九、kind 可扩展；衣柜 + 书架
 
 `kind`：`wardrobe` / `bookshelf`（可再扩）。  
-W4 证明「引用 + 分桶 + 面板」；M25-G3 书架 starter + 面板分栏；进 Assemble 薄切片另议（不阻塞认知地图闭环）。
+W4 证明「引用 + 分桶 + 面板」；M25-G3 书架 starter + 面板分栏；**Assemble `## Bookshelf` + Moment「在读」**已接线（薄切片，勿编未入库书）。
 
 ## 十、叙事与生图预留
 
@@ -143,6 +143,7 @@ W4 证明「引用 + 分桶 + 面板」；M25-G3 书架 starter + 面板分栏�
 |----|------|------------|
 | M25-G1 | 编辑/删除 UI | ✅ 已落地 |
 | M25-G2 | 获得事件自动入库 | ✅ publish 挂钩；哈希不刷柜，LLM 日最多 1 件 |
-| M25-G3 | bookshelf 等 | ✅ starter + 面板分栏；Assemble 薄注入另议 |
+| M25-G3 | bookshelf 等 | ✅ starter + 面板分栏 |
+| M25 旁路 | Assemble / Moment 可读 | ✅ `## Bookshelf` + 稀疏 `bookAssetId` |
 
 代码走读见 `m25-assets-wardrobe-code.md`。

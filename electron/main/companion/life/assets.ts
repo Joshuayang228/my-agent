@@ -258,6 +258,71 @@ export async function pickWardrobeAssetId(
   return items[Math.abs(seed) % items.length].id
 }
 
+/** 为事件挑选一本书架书（确定性：按 scheduledAt 取模） */
+export async function pickBookshelfAssetId(
+  roleId: string,
+  seed: number,
+): Promise<string | null> {
+  await ensureStarterBookshelf(roleId)
+  const items = await listAssets(roleId, { kind: ASSET_KIND_BOOKSHELF })
+  if (!items.length) return null
+  return items[Math.abs(seed) % items.length].id
+}
+
+/**
+ * 是否给该 moment 槽挂书架引用（稀薄：读/书相关，或家中且 seed%4===0）。
+ */
+export function shouldAttachBookshelfRef(input: {
+  activity?: string
+  location?: string
+  seed: number
+}): boolean {
+  const act = (input.activity || '').toLowerCase()
+  const loc = input.location || ''
+  if (/读|书|笔记|翻页|夜读|睡前/.test(act)) return true
+  if ((loc.includes('家') || loc.includes('公寓')) && Math.abs(input.seed) % 4 === 0) {
+    return true
+  }
+  return false
+}
+
+export const BOOKSHELF_PROMPT_LIMIT = 3
+
+/** Assemble 薄切片：最多 N 本，勿编造未入库书 */
+export function formatBookshelfSliceForPrompt(
+  items: CompanionAsset[],
+  limit = BOOKSHELF_PROMPT_LIMIT,
+): string {
+  const lines: string[] = []
+  for (const a of items.slice(0, limit)) {
+    const name = a.name.trim()
+    if (!name) continue
+    const author = typeof a.payload.author === 'string' ? a.payload.author.trim() : ''
+    const note = typeof a.payload.note === 'string' ? a.payload.note.trim() : ''
+    const extra = [author, note].filter(Boolean).join(' · ')
+    lines.push(extra ? `- 《${name}》${extra}` : `- 《${name}》`)
+  }
+  if (lines.length === 0) return ''
+  return [
+    '书架上现有（已入库，勿宣称未列出的书）：',
+    ...lines,
+    '提及阅读时优先引用上列；没有就不硬编书名。',
+  ].join('\n')
+}
+
+export async function collectBookshelfSlice(
+  roleId: string,
+  opts?: { limit?: number },
+): Promise<{ slice: string; items: CompanionAsset[] }> {
+  await ensureStarterBookshelf(roleId)
+  const items = await listAssets(roleId, { kind: ASSET_KIND_BOOKSHELF })
+  const limit = opts?.limit ?? BOOKSHELF_PROMPT_LIMIT
+  return {
+    slice: formatBookshelfSliceForPrompt(items, limit),
+    items: items.slice(0, limit),
+  }
+}
+
 /**
  * 更新资产名称 / payload（合并写入）。
  * expectedRoleId：若提供则必须属于该角色（IPC 用 active）。

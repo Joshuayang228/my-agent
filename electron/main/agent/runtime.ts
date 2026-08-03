@@ -190,8 +190,15 @@ class AgentRuntime {
       }
       // feedback 按会话主角分桶注入（M22-G2）
       const userProfile = await memory.buildUserProfile(assembleRoleId)
-      const { pack, mutableBody, catchupSummary, worldSlice, recentMomentsSlice, rosterLines } =
-        await loadRoleAssembleInput(assembleRoleId)
+      const {
+        pack,
+        mutableBody,
+        catchupSummary,
+        worldSlice,
+        recentMomentsSlice,
+        bookshelfSlice,
+        rosterLines,
+      } = await loadRoleAssembleInput(assembleRoleId)
       const persona = rolePackToPromptParts(pack, mutableBody)
       const isSummon = sessionMeta?.sessionKind === 'summon'
 
@@ -318,6 +325,7 @@ class AgentRuntime {
         catchupSummary: isSummon ? undefined : catchupSummary,
         worldSlice: isSummon ? undefined : worldSlice,
         recentMomentsSlice: isSummon ? undefined : recentMomentsSlice,
+        bookshelfSlice: isSummon ? undefined : bookshelfSlice,
         rosterLines,
         replyStanceHint,
         toneControlHint,

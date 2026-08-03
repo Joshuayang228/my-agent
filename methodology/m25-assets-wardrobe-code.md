@@ -58,4 +58,15 @@ projectMomentFromEvent → getAsset → outfitName 进 text/meta
 
 ## 已知简化
 
-哈希日剧本不自动 grant；书架尚未进 Assemble / Moment 引用（可后续）。
+哈希日剧本不自动 grant。
+
+### M25 旁路：书架 → Assemble / Moment
+
+```text
+collectBookshelfSlice → loadRoleAssembleInput.bookshelfSlice
+  → buildSystemPrompt ## Bookshelf
+
+shouldAttachBookshelfRef → payload.bookAssetId
+  → projectMoment → 「在读{书名}」
+```
+

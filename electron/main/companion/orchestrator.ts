@@ -76,6 +76,8 @@ export async function loadRoleAssembleInput(
   worldSlice?: string
   /** M24-G1：近 1–3 条 Moment 薄锚点 */
   recentMomentsSlice?: string
+  /** M25 旁路：书架薄切片 */
+  bookshelfSlice?: string
   rosterLines?: string
 }> {
   const uid = universeId ?? (await settings.getSetting('universeId'))
@@ -87,15 +89,18 @@ export async function loadRoleAssembleInput(
   // 延迟 import，避免 orchestrator ↔ life 启动环
   const { ensureWorldState, formatWorldSliceForPrompt } = await import('./life/world-state')
   const { collectRecentMomentsSlice } = await import('./life/moment-consistency')
+  const { collectBookshelfSlice } = await import('./life/assets')
   const world = await ensureWorldState(roleId)
   const worldSlice = formatWorldSliceForPrompt(world) || undefined
   const { slice: recentMomentsSlice } = await collectRecentMomentsSlice(roleId)
+  const { slice: bookshelfSlice } = await collectBookshelfSlice(roleId)
   return {
     pack,
     mutableBody,
     catchupSummary,
     worldSlice,
     recentMomentsSlice: recentMomentsSlice || undefined,
+    bookshelfSlice: bookshelfSlice || undefined,
     rosterLines: roster || undefined,
   }
 }
@@ -106,6 +111,7 @@ export async function loadActiveAssembleInput(): Promise<{
   catchupSummary?: string
   worldSlice?: string
   recentMomentsSlice?: string
+  bookshelfSlice?: string
   rosterLines?: string
 }> {
   const universeId = await settings.getSetting('universeId')

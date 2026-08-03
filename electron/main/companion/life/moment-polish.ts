@@ -27,6 +27,7 @@ function buildPolishPrompt(input: {
   mood: string
   location: string
   outfit?: string
+  book?: string
   ruleText: string
   voiceHint: string
 }): string {
@@ -38,6 +39,7 @@ function buildPolishPrompt(input: {
 - 心情：${input.mood || '（无）'}
 - 地点：${input.location || '（无）'}
 - 着装：${input.outfit || '（无）'}
+- 在读：${input.book || '（无）'}
 规则底稿：${input.ruleText}
 
 人设语气参考（勿写成对白）：
@@ -85,6 +87,7 @@ export async function polishMomentTextViaLlm(
   opts: {
     llmConfig: LLMConfig
     outfitName?: string
+    bookName?: string
     universeId?: string
   },
 ): Promise<string | null> {
@@ -94,7 +97,8 @@ export async function polishMomentTextViaLlm(
   const activity = String(event.payload.activity ?? event.type)
   const mood = String(event.payload.mood ?? '')
   const location = String(event.payload.location ?? '')
-  const ruleText = formatMomentText(event, opts.outfitName)
+  const refs = { outfitName: opts.outfitName, bookName: opts.bookName }
+  const ruleText = formatMomentText(event, refs)
 
   try {
     const pack = loadRolePack(event.roleId, opts.universeId ?? 'default')
@@ -113,6 +117,7 @@ export async function polishMomentTextViaLlm(
           mood,
           location,
           outfit: opts.outfitName,
+          book: opts.bookName,
           ruleText,
           voiceHint,
         }),
@@ -140,14 +145,17 @@ export async function resolveMomentText(
     preferLlm?: boolean
     llmConfig?: LLMConfig
     outfitName?: string
+    bookName?: string
     universeId?: string
   },
 ): Promise<{ text: string; source: 'llm' | 'rule' }> {
-  const ruleText = formatMomentText(event, opts?.outfitName)
+  const refs = { outfitName: opts?.outfitName, bookName: opts?.bookName }
+  const ruleText = formatMomentText(event, refs)
   if (opts?.preferLlm && opts.llmConfig?.apiKey?.trim()) {
     const polished = await polishMomentTextViaLlm(event, {
       llmConfig: opts.llmConfig,
       outfitName: opts.outfitName,
+      bookName: opts.bookName,
       universeId: opts.universeId,
     })
     if (polished) return { text: polished, source: 'llm' }

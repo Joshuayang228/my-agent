@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — M25 书架进 Assemble / Moment（2026-08-03）
+
+- Assemble `## Bookshelf` 薄切片（最多 3 本，禁止编造未入库书）
+- Moment 可稀疏挂 `bookAssetId` → 文案「在读…」
+
 ### Added — M31-G3 定时主动问候（2026-08-03）
 
 - 默认关闭；开启后 ticker 检查：近 24h Moment + 勿扰外 + 每日至多一次

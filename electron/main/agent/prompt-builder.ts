@@ -40,6 +40,8 @@ export interface PromptContext {
   worldSlice?: string
   /** 可选：近 Moment 薄锚点（M24-G1；勿与圈打脸） */
   recentMomentsSlice?: string
+  /** 可选：书架薄切片（M25 旁路；勿编未入库书） */
+  bookshelfSlice?: string
   /** 可选：团员名册浅注入（W5；短句，非他人全文 protected） */
   rosterLines?: string
   /** 可选：本轮问/做/安慰/推回轻量策略（M27-G1） */
@@ -231,6 +233,12 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     parts.push('')
     parts.push('## Recent moments')
     parts.push(ctx.recentMomentsSlice.trim())
+  }
+
+  if (ctx.bookshelfSlice?.trim()) {
+    parts.push('')
+    parts.push('## Bookshelf')
+    parts.push(ctx.bookshelfSlice.trim())
   }
 
   if (ctx.rosterLines?.trim()) {

@@ -31,10 +31,17 @@ export async function projectMomentFromEvent(
 ): Promise<CompanionMoment | null> {
   if (event.status !== 'published') return null
   let outfitName: string | undefined
+  let bookName: string | undefined
   const assetId = typeof event.payload.assetId === 'string' ? event.payload.assetId : null
+  const bookAssetId =
+    typeof event.payload.bookAssetId === 'string' ? event.payload.bookAssetId : null
   if (assetId) {
     const asset = await getAsset(assetId)
     if (asset) outfitName = asset.name
+  }
+  if (bookAssetId) {
+    const book = await getAsset(bookAssetId)
+    if (book) bookName = book.name
   }
 
   let llmConfig = opts?.llmConfig
@@ -50,6 +57,7 @@ export async function projectMomentFromEvent(
     preferLlm: opts?.preferLlm,
     llmConfig,
     outfitName,
+    bookName,
     universeId: opts?.universeId,
   })
 
@@ -70,6 +78,8 @@ export async function projectMomentFromEvent(
       theme: event.payload.theme,
       assetId: assetId ?? undefined,
       outfit: outfitName,
+      bookAssetId: bookAssetId ?? undefined,
+      book: bookName,
       textSource: source,
       ...(interactions.length ? { interactions } : {}),
     },

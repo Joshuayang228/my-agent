@@ -69,7 +69,7 @@
 - [x] **M25-G1** 用户编辑/删除资产 UI（`updateAsset`/`deleteAsset` + AssetsPanel）
 - [x] **M25-G2** 获得事件自动入库（publish 读 `grantAsset`；幂等 `grant:{eventId}`；哈希剧本默认不填）
 - [x] **M25-G3** bookshelf 等其它 asset kind（starter 分味 + 面板分栏；叙事注入另议）
-- [ ] **M25 旁路** 书架薄切片进 Assemble / Moment 可读引用（G3 刻意未挂，防过早叙事绑定）
+- [x] **M25 旁路** 书架薄切片进 Assemble / Moment 可读引用 — `## Bookshelf` + 稀疏 `在读…`
 - [x] **M26-G1** 卡司出现在 Moments 互动（评论/同框）— `deriveCastInteractions` → meta；面板展示
 - [x] **M26-G2** 召唤会话与 M19 子 Agent 任务协作 — sessionKind 透传 + 任务工边界 Prompt
 - [x] **M26-G3** NPC 多场景 prompt 组（执行/展示/互动）— `scenes/*.md` + summon 注入

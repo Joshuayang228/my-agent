@@ -13,7 +13,11 @@ import * as settings from '../../storage/settings-store'
 import * as identity from '../identity/loader'
 import type { DayScriptPayload } from '../types'
 import { eachLocalDateInclusive, localDateTimeMs, toLocalDateString } from './dates'
-import { pickWardrobeAssetId } from './assets'
+import {
+  pickBookshelfAssetId,
+  pickWardrobeAssetId,
+  shouldAttachBookshelfRef,
+} from './assets'
 import { publishAndProjectDue } from './moments'
 import { maybeNotifyNewMoments } from './moment-tips'
 import { resolveDayScript } from './script-generator'
@@ -104,10 +108,19 @@ async function materializePlannedEvents(
 ): Promise<void> {
   for (const slot of payload.slots) {
     const scheduledAt = localDateTimeMs(payload.date, slot.hour, slot.minute)
-    // moment 槽位挂衣柜引用（派生截面，非独立真相）
+    // moment 槽位挂衣柜引用；偶发挂书架（M25 旁路，派生截面）
     const assetId =
       slot.type === 'moment'
         ? await pickWardrobeAssetId(roleId, scheduledAt)
+        : null
+    const bookAssetId =
+      slot.type === 'moment' &&
+      shouldAttachBookshelfRef({
+        activity: slot.activity,
+        location: slot.location,
+        seed: scheduledAt,
+      })
+        ? await pickBookshelfAssetId(roleId, scheduledAt + 17)
         : null
     await store.insertEvent({
       roleId,
@@ -122,6 +135,7 @@ async function materializePlannedEvents(
         date: payload.date,
         theme: payload.theme,
         ...(assetId ? { assetId } : {}),
+        ...(bookAssetId ? { bookAssetId } : {}),
         ...(slot.grantAsset ? { grantAsset: slot.grantAsset } : {}),
       },
     })
