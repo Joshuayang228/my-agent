@@ -352,7 +352,7 @@ useEffect(() => {
 1. **无 token 分离**：后台任务的 LLM 调用 token 混入主会话统计（`caller` 字段已埋点，但 token 归因未分离）。
 2. **无长任务断点续接**：任务必须一次执行完，中途崩溃会从头重做（幂等性由业务函数自行保证）。
 3. **无断线重连同步**：渲染进程重挂后靠事件流，缺主动拉取对齐。
-4. **无 linked span**：后台任务没有独立 span，影响 trace 耗时准确性（交可观测性 / 原 M14）。
+4. **linked span**：✅ `startLinkedAsyncSpan`；入队捕获 `interactionSpanId`，执行时无 parent、有 links。
 
 ---
 
