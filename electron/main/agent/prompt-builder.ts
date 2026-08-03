@@ -48,6 +48,8 @@ export interface PromptContext {
   toneControlHint?: string
   /** 可选：关系阶段（M28-G1；陌生/熟悉/默契） */
   relationshipStageHint?: string
+  /** 可选：关系里程碑薄提示（M30-G1；可偶尔回调，勿成就化） */
+  milestoneHint?: string
 }
 
 /**
@@ -156,6 +158,13 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     parts.push('## Relationship stage')
     parts.push(ctx.relationshipStageHint.trim())
     parts.push('（代理指标推导，偏保守；勿用阶段借口审讯或绕过安全。）')
+  }
+
+  // ── L2.4d 关系里程碑（M30-G1）──
+  if (ctx.milestoneHint?.trim()) {
+    parts.push('')
+    parts.push('## Relationship milestones')
+    parts.push(ctx.milestoneHint.trim())
   }
 
   // ── L2.5 Skill 系统摘要 ──

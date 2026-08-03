@@ -217,4 +217,11 @@ export function registerCompanionIPC(): void {
       return runReflectionNow(id, llm, { force: !!force })
     },
   )
+
+  /** M30-G1：已记录的关系里程碑种类（无成就点数） */
+  ipcMain.handle('companion:list-milestones', async (_e, roleId?: string) => {
+    const id = (typeof roleId === 'string' && roleId.trim()) || (await getActiveRoleId())
+    const { listMilestoneKinds } = await import('../companion/growth/milestones')
+    return { roleId: id, kinds: await listMilestoneKinds(id) }
+  })
 }

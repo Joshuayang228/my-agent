@@ -15,6 +15,7 @@ import {
 import { createLogger } from '../../utils/logger'
 import { taskQueue } from '../../services/task-queue'
 import { loadRolePack } from '../identity/loader'
+import { recordAndBroadcastMilestone } from './milestones'
 import { getMutable, setMutable } from './mutable-store'
 import { MUTABLE_MAX_CHARS } from './mutable-validate'
 import { collectLifeSignalsForRole } from './life-signals'
@@ -227,6 +228,17 @@ async function runReflectionCore(
     summary: parsed.summary,
   })
   log.info('Reflection applied', { roleId, version: write.version, summary: parsed.summary })
+
+  // M30-G1：第一次反思真正写入 MUTABLE
+  try {
+    const pack = loadRolePack(roleId)
+    void recordAndBroadcastMilestone(roleId, 'first_reflection', {
+      roleDisplayName: pack.name,
+    })
+  } catch {
+    void recordAndBroadcastMilestone(roleId, 'first_reflection')
+  }
+
   return {
     skipped: false,
     changed: true,

@@ -204,6 +204,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('companion:reflection-status', roleId),
     runReflection: (roleId?: string, force?: boolean) =>
       ipcRenderer.invoke('companion:run-reflection', roleId, force),
+    listMilestones: (roleId?: string): Promise<{
+      roleId: string
+      kinds: Array<'first_role_switch' | 'first_reflection' | 'first_rapport'>
+    }> => ipcRenderer.invoke('companion:list-milestones', roleId),
+    onMilestone: (
+      callback: (payload: {
+        roleId: string
+        kind: 'first_role_switch' | 'first_reflection' | 'first_rapport'
+        toast: string
+      }) => void,
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        payload: {
+          roleId: string
+          kind: 'first_role_switch' | 'first_reflection' | 'first_rapport'
+          toast: string
+        },
+      ) => callback(payload)
+      ipcRenderer.on('companion:milestone', handler)
+      return () => ipcRenderer.removeListener('companion:milestone', handler)
+    },
     onRoleChanged: (
       callback: (payload: {
         roleId: string

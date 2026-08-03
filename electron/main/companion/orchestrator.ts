@@ -28,6 +28,7 @@ import { getMutable } from './growth/mutable-store'
 import { runCatchup } from './life/catchup'
 import { pauseRole, resumeRole } from './life/engine'
 import { getRoleState } from './life/store'
+import { recordAndBroadcastMilestone } from './growth/milestones'
 import { buildReacquaintCopy } from './presence'
 import { isStreamingActive } from './streaming-gate'
 import type { RolePack, RoleSummary, SwitchResult } from './types'
@@ -326,5 +327,11 @@ export async function requestSwitch(roleId: string): Promise<SwitchResult> {
     previousRoleId: current,
     reacquaint,
   })
+
+  // M30-G1：第一次切到该主角（反成就绑架，仅记一次）
+  void recordAndBroadcastMilestone(roleId, 'first_role_switch', {
+    roleDisplayName: toName,
+  }).catch(() => {})
+
   return { ok: true, catchupQueued, reacquaint }
 }

@@ -21,6 +21,10 @@ import {
   formatRelationshipStageForPrompt,
   resolveRelationshipStageForRole,
 } from '../companion/growth/relationship-stage'
+import {
+  getMilestonePromptHint,
+  recordAndBroadcastMilestone,
+} from '../companion/growth/milestones'
 import { assertSessionRole, loadRoleAssembleInput } from '../companion/orchestrator'
 import { registerStreamingProbe } from '../companion/streaming-gate'
 import { maybeExtractProfile } from './profile-extractor'
@@ -250,11 +254,21 @@ class AgentRuntime {
       const toneControlHint = formatToneControlForPrompt(tone)
       // M28-G1：关系阶段（召唤强制陌生客人）
       let relationshipStageHint: string | undefined
+      let milestoneHint: string | undefined
       try {
         const rel = await resolveRelationshipStageForRole(assembleRoleId, {
           sessionKind: isSummon ? 'summon' : 'main',
         })
         relationshipStageHint = formatRelationshipStageForPrompt(rel)
+        // M30-G1：主会话首次进入默契密度时记里程碑
+        if (!isSummon && rel.stage === 'rapport') {
+          void recordAndBroadcastMilestone(assembleRoleId, 'first_rapport', {
+            roleDisplayName: persona.name,
+          }).catch(() => {})
+        }
+        if (!isSummon) {
+          milestoneHint = await getMilestonePromptHint(assembleRoleId)
+        }
         log.debug('Reply stance / tone / relationship', {
           stance: stance.primary,
           tone: tone.register,
@@ -287,6 +301,7 @@ class AgentRuntime {
         replyStanceHint,
         toneControlHint,
         relationshipStageHint,
+        milestoneHint,
       })
 
       // ── 运行 Agent Loop ──

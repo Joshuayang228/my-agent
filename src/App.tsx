@@ -342,7 +342,13 @@ function App() {
         toast('主角已切换。当前会话仍绑定旧主角，请新建对话开始新关系。', 'info')
       }
     })
-    return () => { unsub?.() }
+    const unsubMilestone = window.electronAPI.companion.onMilestone?.((payload) => {
+      if (payload.toast) toast(payload.toast, 'info')
+    })
+    return () => {
+      unsub?.()
+      unsubMilestone?.()
+    }
   }, [toast])
 
   const loadSessions = async () => {

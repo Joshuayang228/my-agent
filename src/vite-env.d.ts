@@ -233,6 +233,17 @@ declare global {
           summary: string
           version?: number
         }>
+        listMilestones: (roleId?: string) => Promise<{
+          roleId: string
+          kinds: Array<'first_role_switch' | 'first_reflection' | 'first_rapport'>
+        }>
+        onMilestone: (
+          callback: (payload: {
+            roleId: string
+            kind: 'first_role_switch' | 'first_reflection' | 'first_rapport'
+            toast: string
+          }) => void,
+        ) => () => void
         onRoleChanged: (
           callback: (payload: {
             roleId: string

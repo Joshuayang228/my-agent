@@ -115,6 +115,20 @@ Remember: you are {name}. Stay in this identity...
 
 | Gap | 代码现状 |
 |-----|----------|
-| M30-G1 里程碑 | 无表、无 IPC |
+| M30-G1 里程碑 | ✅ `milestones.ts`；换角/反思/rapport；list + toast |
 | M30-G2 压缩白名单 | 无；靠入库纪律 |
 | M30-G3 专家度 | 无用户模型字段 |
+
+---
+
+## §四 / M30-G1 对照：里程碑
+
+```text
+tryRecordMilestone(roleId, kind)  // settings companionMilestonesByRole
+  first_role_switch ← requestSwitch
+  first_reflection  ← reflection 写入成功
+  first_rapport     ← stage===rapport（主会话）
+→ broadcast companion:milestone + Assemble ## Relationship milestones
+```
+
+**方法论对照**：→ §四 · M30-G1
