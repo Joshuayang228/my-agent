@@ -46,6 +46,8 @@ export interface PromptContext {
   replyStanceHint?: string
   /** 可选：本轮语气收放（M27-G3；紧/软/中性 + aside 策略） */
   toneControlHint?: string
+  /** 可选：关系阶段（M28-G1；陌生/熟悉/默契） */
+  relationshipStageHint?: string
 }
 
 /**
@@ -145,6 +147,14 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     parts.push('## Tone control (this turn)')
     parts.push(ctx.toneControlHint.trim())
     parts.push('（收放旋钮，不改变人设身份；与 aside_style 染色正交。）')
+  }
+
+  // ── L2.4c 关系阶段（M28-G1）──
+  if (ctx.relationshipStageHint?.trim()) {
+    parts.push('')
+    parts.push('## Relationship stage')
+    parts.push(ctx.relationshipStageHint.trim())
+    parts.push('（代理指标推导，偏保守；勿用阶段借口审讯或绕过安全。）')
   }
 
   // ── L2.5 Skill 系统摘要 ──

@@ -17,6 +17,10 @@ import { describeCastPresence } from '../companion/cast/availability'
 import { formatSummonSceneBlock } from '../companion/cast/scene-prompts'
 import { summonParentDelegationHint } from '../companion/cast/summon-delegation'
 import { scheduleReflectionAfterChat } from '../companion/growth/reflection-service'
+import {
+  formatRelationshipStageForPrompt,
+  resolveRelationshipStageForRole,
+} from '../companion/growth/relationship-stage'
 import { assertSessionRole, loadRoleAssembleInput } from '../companion/orchestrator'
 import { registerStreamingProbe } from '../companion/streaming-gate'
 import { maybeExtractProfile } from './profile-extractor'
@@ -234,11 +238,27 @@ class AgentRuntime {
         userText,
       })
       const toneControlHint = formatToneControlForPrompt(tone)
-      log.debug('Reply stance / tone', {
-        stance: stance.primary,
-        tone: tone.register,
-        aside: tone.asidePolicy,
-      })
+      // M28-G1：关系阶段（召唤强制陌生客人）
+      let relationshipStageHint: string | undefined
+      try {
+        const rel = await resolveRelationshipStageForRole(assembleRoleId, {
+          sessionKind: isSummon ? 'summon' : 'main',
+        })
+        relationshipStageHint = formatRelationshipStageForPrompt(rel)
+        log.debug('Reply stance / tone / relationship', {
+          stance: stance.primary,
+          tone: tone.register,
+          aside: tone.asidePolicy,
+          relationship: rel.stage,
+        })
+      } catch (err) {
+        log.warn('Relationship stage resolve failed', { err })
+        log.debug('Reply stance / tone', {
+          stance: stance.primary,
+          tone: tone.register,
+          aside: tone.asidePolicy,
+        })
+      }
 
       const systemPrompt = buildSystemPrompt({
         persona,
@@ -256,6 +276,7 @@ class AgentRuntime {
         rosterLines,
         replyStanceHint,
         toneControlHint,
+        relationshipStageHint,
       })
 
       // ── 运行 Agent Loop ──

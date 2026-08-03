@@ -67,10 +67,27 @@ shouldReflectNow(roleId)
 
 ---
 
+## §三 / M28-G1 对照：关系阶段
+
+```text
+resolveRelationshipStage({ growthStartedAt, lastRunAt, recentUserMessages, sessionKind })
+  summon → stranger（客人）
+  !growth or <72h or msgs<5 → stranger
+  lastRunAt>0 → rapport
+  else → familiar
+→ formatRelationshipStageForPrompt → Assemble ## Relationship stage
+```
+
+模块：`companion/growth/relationship-stage.ts`；Runtime 装载。
+
+**方法论对照**：→ §三 · M28-G1
+
+---
+
 ## 已知简化
 
 | Gap | 代码 |
 |-----|------|
-| M28-G1 | 无 relationshipStage 字段 |
+| M28-G1 | ✅ 派生枚举注入 Prompt（未另持久化情感分字段） |
 | M28-G2 | 消息计数不区分意图 |
 | M28-G3 | 无换角专用文案 API |

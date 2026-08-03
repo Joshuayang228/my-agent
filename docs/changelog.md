@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — M28-G1 关系阶段驱动 Prompt（2026-08-03）
+
+- `resolveRelationshipStage`：陌生/熟悉/默契（成长时钟·消息密度·是否已反思）
+- 召唤强制陌生客人；注入 Assemble `## Relationship stage`
+
 ### Added — M27-G3 语气收放（2026-08-03）
 
 - `resolveToneControl`：紧/软/中性 + aside discourage|optional|encourage-once
