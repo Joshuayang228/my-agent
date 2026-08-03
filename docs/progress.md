@@ -4,11 +4,12 @@
 
 ## 当前状态
 
-**阶段**：伙伴主线 Gaps / 可观测 / 调试债本轮收口；wishlist 可落地项已空。原生语音与 M24-G3 暂缓。
+**阶段**：可观测灵感项继续落地；原生语音与 M24-G3 暂缓。
 
 **最新动态（2026-08-03）**：
+- ✅ **PII 脱敏 + 文本预算**：`text-capture.ts`（preview/sha256/chars）；tracer attributes / error 统一捕获。
 - ⏸ **原生语音输入**：评估后暂缓（不做假 Mic）；见 `docs/requirements/native-voice-input.md`；**停止** wishlist loop 自动续跑。
-- ✅ **Playground**：DevPanel 免上下文单轮试跑（`debug:playground-run`）。
+- ✅ **Playground**：DevPanel 脱离上下文单轮试跑（`debug:playground-run`）。
 - ✅ **异步 linked span**：后台任务 `startLinkedAsyncSpan`（links 非 parent）；task-queue 接线。
 - ✅ **TraceContext identity**：ALS 自动注入 sessionId/userId 到 span；chat/task-queue 接线。
 - ✅ **权限规则可视化编辑器**：表单增删改 + 高级 JSON；替代裸 textarea。

@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — PII 脱敏 + span 文本预算（2026-08-03）
+
+- `text-capture.ts`：凭据/敏感字段脱敏；超长字符串改为 `preview + sha256 + chars`
+- `tracer` 的 `startSpan` / `setAttribute(s)` / `end(error)` 统一走捕获，避免 DevPanel 存全文
+
 ### Changed — 原生语音输入暂缓落账（2026-08-03）
 
 - 评估结论：不恢复 Web Speech，不设假 Mic；待原生 STT 或云端方案立项

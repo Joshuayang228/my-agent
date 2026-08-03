@@ -120,7 +120,7 @@
 ### 沙箱与安全
 
 - [ ] **Python 嵌入沙箱** — CGO 嵌入 Python 解释器 + PEP 578 审计钩子 + 9 个预注册 CGO 函数做能力代理。来源：灵犀 `pyairscript/cgo_sandbox/sandbox/`
-- [ ] **PII 脱敏 + 文本预算** — span attributes 超长文本用 `preview + sha256 + chars` 三段式替代存全文。来源：灵犀 `observability/text_capture.go`
+- [x] ~~**PII 脱敏 + 文本预算**~~ — 2026-08-03 已做（`text-capture.ts`；tracer attributes / error 接入）
 - [ ] **Session-based 采样** — 按会话 ID 哈希做确定性采样，同一会话全收或全丢。来源：灵犀 `observability/session_sampler.go`
 
 ### 架构参考

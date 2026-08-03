@@ -15,6 +15,7 @@
  */
 
 import { createLogger } from './logger'
+import { captureAttributes, captureAttributeValue, captureErrorMessage } from './text-capture'
 import { getTraceContext, traceContextAttributes } from './trace-context'
 
 const log = createLogger('Tracer')
@@ -106,7 +107,8 @@ export function startSpan(
     parentId,
     startTime: Date.now(),
     status: 'running',
-    attributes: { ...fromContext, ...inherited, ...attributes },
+    // 写入前统一脱敏 + 超长文本预算（preview/sha256/chars）
+    attributes: captureAttributes({ ...fromContext, ...inherited, ...attributes }),
   }
 
   spans.push(span)
@@ -158,19 +160,19 @@ export class SpanHandle {
   }
 
   setAttribute(key: string, value: unknown): void {
-    this.span.attributes[key] = value
+    this.span.attributes[key] = captureAttributeValue(key, value)
   }
 
-  /** 批量设置属性 */
+  /** 批量设置属性（含 PII 脱敏与文本预算） */
   setAttributes(attrs: Record<string, unknown>): void {
-    Object.assign(this.span.attributes, attrs)
+    Object.assign(this.span.attributes, captureAttributes(attrs))
   }
 
   end(status: 'ok' | 'error' = 'ok', error?: string): void {
     this.span.endTime = Date.now()
     this.span.duration = this.span.endTime - this.span.startTime
     this.span.status = status
-    if (error) this.span.error = error
+    if (error) this.span.error = captureErrorMessage(error)
 
     log.debug(`Span ${this.span.name} [${this.span.type}/${this.span.caller}]`, {
       duration: this.span.duration,

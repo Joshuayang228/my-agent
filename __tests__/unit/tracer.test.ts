@@ -66,6 +66,20 @@ describe('Tracer — Span 基础操作', () => {
     expect(span!.attributes.inputTokens).toBe(100)
     expect(span!.attributes.outputTokens).toBe(50)
   })
+
+  it('超长 attribute 文本走 preview + sha256 + chars', () => {
+    const long = 'x'.repeat(250)
+    const handle = startSpan('budget_span', 'main', 'llm_request', undefined, {
+      prompt: long,
+      apiKey: 'sk-ant-should-not-appear',
+    })
+    handle.end('error', `${'boom-'.repeat(50)}`)
+
+    const span = getRecentSpans(10).find(s => s.id === handle.id)
+    expect(span!.attributes.prompt).toMatchObject({ chars: 250 })
+    expect(span!.attributes.apiKey).toBe('[REDACTED]')
+    expect(span!.error).toContain('sha256=')
+  })
 })
 
 describe('Tracer — SpanType 分类', () => {
