@@ -18,7 +18,7 @@
 | 类型 | 位置 |
 |------|------|
 | UI · 生活面 | Chat `CompanionStatusBar`；`moments` / `assets` / `cast` / **`shelf`（换角主入口）**；欢迎屏快捷 |
-| UI · 工具面 | 设置：MUTABLE/反思 + 活跃主角（次要）；侧栏 Skills/记忆/设置 |
+| UI · 工具面 | 设置「伙伴」：MUTABLE/反思 + 活跃主角（次要）；侧栏 Skills/记忆/设置 |
 | IPC | `companion:*`（list / switch / moments / assets / roster / catchup-status(+presence) / start-summon / reflection…） |
 | Prompt | `prompt-builder` + `orchestrator.loadRoleAssembleInput`（管线见下方「Prompt 组装」） |
 | 资产 | `electron/main/companion/universes/default/` |
@@ -100,6 +100,7 @@
 | 物什主视觉（衣柜穿着中 + 书架分栏） | 已落地 | 状态条 / 欢迎屏 → 物什 | AssetsPanel · Moment.assetId/outfit |
 | 名册关系卡 + 最近召唤互动 | 已落地 | 状态条 / 欢迎屏 → 名册 | CastPanel · sessions(summon) |
 | 场景弱背景（Chat 氛围） | 已落地 | Chat 消息区底层 | `CompanionSceneBackdrop` · `companion-scene.ts` |
+| 前端视觉语言（token / 设置 IA / Chat 气质） | 已落地 | 主题·设置·侧栏身份·空态 | `frontend-visual-language` Phase1–3 |
 | 生图朋友圈 / 多宇宙并行 | 缺口 | — | wishlist / 非本阶段 |
 | 非活跃后台养成 | 缺口 | — | 产品明确不做 |
 

@@ -447,6 +447,8 @@ function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('theme', theme)
+    const scale = localStorage.getItem('uiFontScale') || 'md'
+    document.documentElement.dataset.fontScale = scale
   }, [theme])
 
   useEffect(() => {
@@ -783,28 +785,57 @@ function App() {
   /* ── 设置独立全屏 ── */
   if (activeView === 'settings') {
     return (
-      <div className="view-transition flex h-screen select-none" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-        <SettingsPanel onClose={closeSettings} onOpenDevPanel={() => setShowDevPanel(true)} currentTheme={theme} onThemeChange={setTheme} />
+      <div className="app-shell view-transition flex h-screen min-w-0 select-none" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+        <div className="flex h-full w-full min-h-0 min-w-0 flex-1 flex-col">
+          <SettingsPanel
+            onClose={closeSettings}
+            onOpenDevPanel={() => setShowDevPanel(true)}
+            onOpenMemory={() => setActiveView('memory')}
+            onOpenSkills={() => setActiveView('skills')}
+            currentTheme={theme}
+            onThemeChange={setTheme}
+          />
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="flex h-screen select-none" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+    <div className="app-shell flex h-screen select-none" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       {/* ── 侧边栏 ── */}
       {sidebarOpen && (
         <div className="flex w-[260px] shrink-0 flex-col border-r" style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border-color)' }}>
+          {/* 活跃主角身份条（Phase 3） */}
+          <button
+            type="button"
+            onClick={() => setActiveView('shelf')}
+            className="mx-2 mt-3 flex items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-left transition"
+            style={{ background: 'var(--companion-surface)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--companion-surface)')}
+            title="打开角色架"
+          >
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
+              style={{ background: 'var(--accent-subtle)', color: 'var(--companion-accent-warm)' }}
+            >
+              {(currentPersonaName || '?').slice(0, 1)}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {currentPersonaName || '伙伴'}
+              </span>
+              <span className="mt-0.5 block truncate text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                {companionBlurb || '点击切换主角'}
+              </span>
+            </span>
+            <LayoutGrid size={14} style={{ color: 'var(--companion-accent-warm)' }} />
+          </button>
+
           {/* 侧边栏顶部功能区 */}
-          <div className="flex flex-col gap-0.5 px-2 pb-1 pt-3">
+          <div className="flex flex-col gap-0.5 px-2 pb-1 pt-2">
             <SidebarNavBtn onClick={createNewSession} icon={<Plus size={16} />} label="新对话" shortcut="Ctrl+N" />
             <SidebarNavBtn onClick={() => { setSidebarSearchOpen(v => !v); setTimeout(() => sessionFilterRef.current?.focus(), 50) }} icon={<Search size={16} />} label="搜索" />
-            <SidebarNavBtn
-              onClick={() => setActiveView(v => v === 'skills' ? 'chat' : 'skills')}
-              icon={<Cpu size={16} />}
-              label="技能"
-              shortcut="Ctrl+Shift+K"
-              active={activeView === 'skills'}
-            />
           </div>
 
           <div className="mx-3 my-1" style={{ borderTop: '1px solid var(--border-subtle)' }} />
@@ -884,21 +915,23 @@ function App() {
             )}
           </div>
 
-          {/* 侧边栏底部 */}
-          <div className="flex items-center justify-between border-t px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActiveView('settings')}
-                className="flex items-center gap-2 rounded-md px-2 py-1 text-[13px] transition"
-                style={{ color: 'var(--text-secondary)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-                title="设置 (Ctrl+,)"
-              >
-                <Settings size={16} style={{ color: 'var(--text-muted)' }} />
-                设置
-              </button>
-              {/* M11 后台任务活跃指示 pill */}
+          {/* 侧边栏底部：生活入口 + 设置；开发入口下沉为次级 */}
+          <div className="border-t px-2 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="mb-1.5 flex items-center justify-between px-1">
+              <div className="flex items-center gap-0.5">
+                <SidebarBtn onClick={() => setActiveView(v => v === 'moments' ? 'chat' : 'moments')} title="朋友圈 (Ctrl+Shift+F)">
+                  <Newspaper size={14} />
+                </SidebarBtn>
+                <SidebarBtn onClick={() => setActiveView(v => v === 'assets' ? 'chat' : 'assets')} title="物什">
+                  <Shirt size={14} />
+                </SidebarBtn>
+                <SidebarBtn onClick={() => setActiveView(v => v === 'cast' ? 'chat' : 'cast')} title="名册">
+                  <Users size={14} />
+                </SidebarBtn>
+                <SidebarBtn onClick={() => setActiveView(v => v === 'memory' ? 'chat' : 'memory')} title="记忆 (Ctrl+Shift+M)">
+                  <Brain size={14} />
+                </SidebarBtn>
+              </div>
               {activeBgTaskCount > 0 && (
                 <span
                   className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
@@ -910,32 +943,42 @@ function App() {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-1">
-              <SidebarBtn onClick={() => setActiveView(v => v === 'moments' ? 'chat' : 'moments')} title="朋友圈 (Ctrl+Shift+F)">
-                <Newspaper size={14} />
-              </SidebarBtn>
-              <SidebarBtn onClick={() => setActiveView(v => v === 'assets' ? 'chat' : 'assets')} title="物什">
-                <Shirt size={14} />
-              </SidebarBtn>
-              <SidebarBtn onClick={() => setActiveView(v => v === 'cast' ? 'chat' : 'cast')} title="名册">
-                <Users size={14} />
-              </SidebarBtn>
-              <SidebarBtn onClick={() => setActiveView(v => v === 'memory' ? 'chat' : 'memory')} title="记忆 (Ctrl+Shift+M)">
-                <Brain size={14} />
-              </SidebarBtn>
+            <div className="flex items-center justify-between gap-1">
               <button
-                onClick={() => {
-                  const darkThemes = new Set(['dark', 'night-feast', 'blue-pool'])
-                  setTheme(darkThemes.has(theme) ? 'light' : 'dark')
-                }}
-                className="flex h-7 w-7 items-center justify-center rounded text-xs transition"
-                style={{ color: 'var(--text-muted)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
+                onClick={() => setActiveView('settings')}
+                className="flex flex-1 items-center gap-2 rounded-[var(--radius-md)] px-2 py-1.5 text-[13px] transition"
+                style={{ color: 'var(--text-secondary)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-                title="切换深色/浅色"
+                title="设置 (Ctrl+,)"
               >
-                {['dark', 'night-feast', 'blue-pool'].includes(theme) ? <Sun size={14} /> : <Moon size={14} />}
+                <Settings size={16} style={{ color: 'var(--text-muted)' }} />
+                设置
               </button>
+              <div className="flex items-center gap-0.5">
+                <SidebarBtn
+                  onClick={() => setActiveView(v => v === 'skills' ? 'chat' : 'skills')}
+                  title="Skills (Ctrl+Shift+K)"
+                >
+                  <Cpu size={14} />
+                </SidebarBtn>
+                <SidebarBtn onClick={() => setShowDevPanel(true)} title="调试 (Ctrl+Shift+D)">
+                  <Code size={14} />
+                </SidebarBtn>
+                <button
+                  onClick={() => {
+                    const darkThemes = new Set(['dark', 'night-feast', 'blue-pool'])
+                    setTheme(darkThemes.has(theme) ? 'light' : 'dark')
+                  }}
+                  className="flex h-7 w-7 items-center justify-center rounded text-xs transition"
+                  style={{ color: 'var(--text-muted)' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+                  title="切换深色/浅色"
+                >
+                  {['dark', 'night-feast', 'blue-pool'].includes(theme) ? <Sun size={14} /> : <Moon size={14} />}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1127,37 +1170,50 @@ function App() {
         >
           <CompanionSceneBackdrop roleId={activeRoleId} />
           <div className="relative z-[1] mx-auto max-w-3xl px-6 py-8">
-            {/* 欢迎屏 — 绑定活跃主角冷启动文案（W6） */}
+            {/* 欢迎屏 — 衬线问候 + 建议 pill（Phase 3） */}
             {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center pt-28 text-center">
-                <h1 className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+              <div className="flex flex-col items-center justify-center pt-24 text-center">
+                <h1
+                  className="font-display text-[1.75rem] font-medium tracking-tight sm:text-[2rem]"
+                  style={{ color: 'var(--text-primary)' }}
+                >
                   {coldStart.title}
                 </h1>
-                <p className="mt-2 max-w-md text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                <p className="mt-3 max-w-md text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                   {coldStart.subtitle}
                 </p>
-                <p className="mt-1.5 max-w-sm text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                <p className="mt-2 max-w-sm text-[12px]" style={{ color: 'var(--text-muted)' }}>
                   {coldStart.hint}
                 </p>
-                <div className="mt-10 flex flex-wrap justify-center gap-2">
-                  {[
-                    { icon: <MessageCircle size={14} />, label: '打个招呼', prompt: '你好，介绍一下你自己' },
-                    { icon: <Newspaper size={14} />, label: '朋友圈', action: () => setActiveView('moments') },
-                    { icon: <Shirt size={14} />, label: '物什', action: () => setActiveView('assets') },
-                    { icon: <Users size={14} />, label: '名册', action: () => setActiveView('cast') },
-                    { icon: <LayoutGrid size={14} />, label: '换主角', action: () => setActiveView('shelf') },
-                    { icon: <Wrench size={14} />, label: '试工具', prompt: '现在几点了？' },
-                    { icon: <Globe size={14} />, label: '搜索', prompt: '帮我搜索一下最近的AI新闻' },
-                  ].map((item) => (
+                <div className="mt-12 flex max-w-lg flex-wrap justify-center gap-2">
+                  {([
+                    { label: '打个招呼', prompt: '你好，介绍一下你自己' },
+                    { label: '今天打算怎么过', prompt: '今天打算怎么过？陪我想想。' },
+                    { label: '看看朋友圈', view: 'moments' as const },
+                    { label: '换个主角聊聊', view: 'shelf' as const },
+                  ]).map((item) => (
                     <button
                       key={item.label}
-                      onClick={item.action || (() => sendMessage(item.prompt!))}
-                      className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-[13px] transition"
-                      style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border-color)')}
+                      type="button"
+                      onClick={() => {
+                        if ('view' in item && item.view) setActiveView(item.view)
+                        else if ('prompt' in item && item.prompt) void sendMessage(item.prompt)
+                      }}
+                      className="rounded-full border px-3.5 py-1.5 text-[12.5px] transition"
+                      style={{
+                        borderColor: 'var(--border-color)',
+                        color: 'var(--text-secondary)',
+                        background: 'var(--card-bg)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--companion-accent-warm)'
+                        e.currentTarget.style.color = 'var(--text-primary)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--border-color)'
+                        e.currentTarget.style.color = 'var(--text-secondary)'
+                      }}
                     >
-                      <span>{item.icon}</span>
                       {item.label}
                     </button>
                   ))}
@@ -1428,7 +1484,14 @@ function App() {
                 <button onClick={() => setModeChangeNotice(null)} title="关闭提示" style={{ color: 'var(--text-muted)' }}><X size={13} /></button>
               </div>
             )}
-            <div className="relative rounded-xl border shadow-sm" style={{ borderColor: 'var(--border-color)', background: 'var(--card-bg)' }}>
+            <div
+              className="relative border shadow-sm"
+              style={{
+                borderColor: 'var(--border-color)',
+                background: 'var(--card-bg)',
+                borderRadius: 'var(--radius-xl)',
+              }}
+            >
               {/* 引用文件标签 */}
               {mentionedFiles.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 px-3 pt-2">
@@ -1488,11 +1551,11 @@ function App() {
                     }
                   }
                 }}
-                placeholder={attachedFiles.length > 0 ? '描述附件内容或输入问题...' : '随心输入'}
+                placeholder={attachedFiles.length > 0 ? '描述附件内容或输入问题...' : `和${currentPersonaName || '伙伴'}说说…`}
                 rows={1}
                 disabled={isStreaming}
-                className="w-full resize-none bg-transparent px-4 pb-1 pt-3 text-[13.5px] outline-none disabled:opacity-50"
-                style={{ color: 'var(--text-primary)', maxHeight: '120px' }}
+                className="w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[14px] outline-none disabled:opacity-50"
+                style={{ color: 'var(--text-primary)', maxHeight: '140px' }}
                 onInput={(e) => {
                   const target = e.target as HTMLTextAreaElement
                   target.style.height = 'auto'
@@ -1614,7 +1677,7 @@ function App() {
                   {isStreaming ? (
                     <button
                       onClick={() => window.electronAPI.chat.abort(activeSessionId || undefined)}
-                      className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white transition"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white transition"
                       style={{ background: 'var(--danger)' }}
                       title="停止"
                     ><Square size={10} fill="currentColor" /></button>
@@ -1622,11 +1685,11 @@ function App() {
                     <button
                       onClick={() => sendMessage()}
                       disabled={!input.trim()}
-                      className="flex h-7 w-7 items-center justify-center rounded-full text-xs text-white transition disabled:cursor-not-allowed disabled:opacity-30"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-xs text-white transition disabled:cursor-not-allowed disabled:opacity-30"
                       style={{ background: 'var(--accent-emphasis)' }}
                       title="发送"
                     >
-                      <Send size={14} />
+                      <Send size={15} />
                     </button>
                   )}
                 </div>

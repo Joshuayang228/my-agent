@@ -1,6 +1,20 @@
 @import "tailwindcss";
 
 :root {
+  /* 圆角 / 动效 / 字体（全主题共享；见 agent-skills/frontend-guidelines.md） */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-full: 9999px;
+  --motion-fast: 150ms;
+  --motion-normal: 220ms;
+  --motion-slow: 280ms;
+  --motion-ease: ease;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Songti SC", "Noto Serif SC", Georgia, serif;
+
   --bg-primary: #0d1117;
   --bg-secondary: #161b22;
   --bg-tertiary: #21262d;
@@ -43,78 +57,93 @@
   --companion-catchup-border: rgba(201, 169, 110, 0.35);
 }
 
+html {
+  font-family: var(--font-ui);
+  font-size: 15px;
+}
+html[data-font-scale="sm"] {
+  font-size: 14px;
+}
+html[data-font-scale="md"] {
+  font-size: 15px;
+}
+html[data-font-scale="lg"] {
+  font-size: 16px;
+}
+
+/* 日光 — 纸感浅底（Alice 纸白），暖石强调；非 GitHub 冷白 */
 [data-theme="light"] {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f6f8fa;
-  --bg-tertiary: #eaeef2;
-  --bg-inset: #f6f8fa;
-  --text-primary: #1f2328;
-  --text-secondary: #656d76;
-  --text-muted: #8b949e;
-  --border-color: #d0d7de;
-  --border-subtle: #eaeef2;
+  --bg-primary: #fafaf7;
+  --bg-secondary: #f3f0ea;
+  --bg-tertiary: #ebe6dc;
+  --bg-inset: #f3f0ea;
+  --text-primary: #1a1714;
+  --text-secondary: #5a5450;
+  --text-muted: #a09890;
+  --border-color: #e0d9ce;
+  --border-subtle: #ebe6dc;
   --input-bg: #ffffff;
-  --input-border: #d0d7de;
-  --accent: #0969da;
-  --accent-emphasis: #0550ae;
-  --accent-subtle: rgba(9, 105, 218, 0.08);
-  --accent-fg: #0969da;
-  --success: #1a7f37;
+  --input-border: #e0d9ce;
+  --accent: #8b7355;
+  --accent-emphasis: #6f5a42;
+  --accent-subtle: rgba(139, 115, 85, 0.1);
+  --accent-fg: #6f5a42;
+  --success: #2e7d32;
   --warning: #9a6700;
-  --danger: #cf222e;
-  --msg-user-bg: #f0f3f6;
+  --danger: #c0392b;
+  --msg-user-bg: #f3f0ea;
   --msg-ai-bg: transparent;
-  --sidebar-bg: #f6f8fa;
-  --sidebar-hover: rgba(208, 215, 222, 0.32);
-  --sidebar-active: rgba(9, 105, 218, 0.1);
+  --sidebar-bg: #f3f0ea;
+  --sidebar-hover: rgba(139, 115, 85, 0.08);
+  --sidebar-active: rgba(139, 115, 85, 0.14);
   --card-bg: #ffffff;
-  --card-border: #d0d7de;
+  --card-border: #e8e4dc;
   --dropdown-bg: #ffffff;
-  --footer-bg: #ffffff;
-  --hover-overlay: rgba(208, 215, 222, 0.32);
+  --footer-bg: #fafaf7;
+  --hover-overlay: rgba(139, 115, 85, 0.08);
   --scroll-btn-bg: #ffffff;
   --role-user: #9a6700;
-  --role-agent: #0969da;
-  --status-bar-bg: #f6f8fa;
-  --companion-surface: rgba(240, 240, 235, 0.55);
+  --role-agent: #8b7355;
+  --status-bar-bg: #f3f0ea;
+  --companion-surface: rgba(243, 240, 234, 0.72);
   --companion-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
-/* 薄雾 — 半透玻璃，透过薄雾看世界 */
+/* 薄雾 — 暖雾纸感；强调色收拢为暖石（去掉多套紫） */
 [data-theme="mist"] {
-  --bg-primary: #f7f8fc;
-  --bg-secondary: #eef0f7;
-  --bg-tertiary: #e4e7f0;
-  --bg-inset: #eef0f7;
-  --text-primary: #2c3e50;
-  --text-secondary: #6b7b8d;
-  --text-muted: #95a5b6;
-  --border-color: #d5dce6;
-  --border-subtle: #e4e7f0;
+  --bg-primary: #f7f6f2;
+  --bg-secondary: #efede6;
+  --bg-tertiary: #e6e2d8;
+  --bg-inset: #efede6;
+  --text-primary: #1a1714;
+  --text-secondary: #5a5450;
+  --text-muted: #9a9288;
+  --border-color: #ddd6ca;
+  --border-subtle: #e6e2d8;
   --input-bg: #ffffff;
-  --input-border: #d5dce6;
-  --accent: #7c8cf5;
-  --accent-emphasis: #6366f1;
-  --accent-subtle: rgba(99, 102, 241, 0.08);
-  --accent-fg: #6366f1;
-  --success: #22c55e;
-  --warning: #eab308;
-  --danger: #ef4444;
-  --msg-user-bg: #e8eaf6;
+  --input-border: #ddd6ca;
+  --accent: #8b7355;
+  --accent-emphasis: #6f5a42;
+  --accent-subtle: rgba(139, 115, 85, 0.1);
+  --accent-fg: #6f5a42;
+  --success: #2e7d32;
+  --warning: #b45309;
+  --danger: #c0392b;
+  --msg-user-bg: #efede6;
   --msg-ai-bg: transparent;
-  --sidebar-bg: #eef0f7;
-  --sidebar-hover: rgba(99, 102, 241, 0.06);
-  --sidebar-active: rgba(99, 102, 241, 0.1);
+  --sidebar-bg: #efede6;
+  --sidebar-hover: rgba(139, 115, 85, 0.08);
+  --sidebar-active: rgba(139, 115, 85, 0.14);
   --card-bg: #ffffff;
-  --card-border: #d5dce6;
+  --card-border: #e4ddd2;
   --dropdown-bg: #ffffff;
-  --footer-bg: #f7f8fc;
-  --hover-overlay: rgba(99, 102, 241, 0.06);
+  --footer-bg: #f7f6f2;
+  --hover-overlay: rgba(139, 115, 85, 0.08);
   --scroll-btn-bg: #ffffff;
-  --role-user: #8b5cf6;
-  --role-agent: #6366f1;
-  --status-bar-bg: #eef0f7;
-  --companion-surface: rgba(247, 247, 242, 0.65);
+  --role-user: #b45309;
+  --role-agent: #8b7355;
+  --status-bar-bg: #efede6;
+  --companion-surface: rgba(247, 246, 242, 0.7);
   --companion-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
@@ -190,14 +219,14 @@
   --status-bar-bg: #e3f3e8;
 }
 
-/* 金阁 — 香槟轻奢，仙境的黄金下午 */
+/* 金阁 — 香槟纸感，黄金下午 */
 [data-theme="golden"] {
   --bg-primary: #faf8f2;
   --bg-secondary: #f3efe3;
   --bg-tertiary: #e8e2d0;
   --bg-inset: #f3efe3;
-  --text-primary: #3d3427;
-  --text-secondary: #7a6f5f;
+  --text-primary: #2c2418;
+  --text-secondary: #6b5f4e;
   --text-muted: #a69e8e;
   --border-color: #ddd5c3;
   --border-subtle: #e8e2d0;
@@ -206,17 +235,17 @@
   --accent: #b45309;
   --accent-emphasis: #92400e;
   --accent-subtle: rgba(180, 83, 9, 0.08);
-  --accent-fg: #b45309;
+  --accent-fg: #92400e;
   --success: #15803d;
   --warning: #a16207;
-  --danger: #dc2626;
+  --danger: #c0392b;
   --msg-user-bg: #ece6d5;
   --msg-ai-bg: transparent;
   --sidebar-bg: #f3efe3;
   --sidebar-hover: rgba(180, 83, 9, 0.06);
-  --sidebar-active: rgba(180, 83, 9, 0.1);
+  --sidebar-active: rgba(180, 83, 9, 0.12);
   --card-bg: #ffffff;
-  --card-border: #ddd5c3;
+  --card-border: #e4dcc8;
   --dropdown-bg: #ffffff;
   --footer-bg: #faf8f2;
   --hover-overlay: rgba(180, 83, 9, 0.06);
@@ -224,6 +253,8 @@
   --role-user: #92400e;
   --role-agent: #b45309;
   --status-bar-bg: #f3efe3;
+  --companion-surface: rgba(243, 239, 227, 0.75);
+  --companion-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 /* 蓝池 — 清新天蓝，眼泪池畔的倒影 */
@@ -266,6 +297,9 @@
   background: var(--input-bg);
   color: var(--text-primary);
   border-color: var(--input-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease);
 }
 .theme-input:focus {
   border-color: var(--accent);
@@ -279,6 +313,7 @@
   background: var(--bg-secondary);
   border-color: var(--border-color);
   color: var(--text-primary);
+  border-radius: var(--radius-md);
 }
 
 .theme-label {
@@ -288,23 +323,35 @@
 .theme-card {
   background: var(--card-bg);
   border-color: var(--card-border);
+  border-radius: var(--radius-md);
+}
+
+.font-display {
+  font-family: var(--font-display);
 }
 
 /* 设置页 / 面板：统一「内容卡」与「选项芯片」——细则见 agent-skills/frontend-guidelines.md */
 .settings-field {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   padding: 1rem;
 }
 
 .settings-option {
   border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-secondary);
   text-align: left;
-  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color var(--motion-fast) var(--motion-ease),
+    background var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease);
 }
 .settings-option[data-selected="true"] {
   border-color: var(--accent);
@@ -317,6 +364,11 @@
   background: color-mix(in srgb, var(--danger) 12%, transparent);
   color: var(--danger);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 20%, transparent);
+}
+
+.settings-nav-item {
+  border-radius: var(--radius-md);
+  transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
 }
 
 @keyframes fade-in-up {
@@ -346,7 +398,7 @@
 }
 
 .animate-fade-in-up {
-  animation: fade-in-up 0.15s ease-out;
+  animation: fade-in-up var(--motion-fast) var(--motion-ease);
 }
 
 .animate-typing-cursor {
@@ -354,7 +406,7 @@
 }
 
 .animate-slide-in-right {
-  animation: slide-in-right 0.2s ease-out;
+  animation: slide-in-right var(--motion-normal) var(--motion-ease);
 }
 
 @keyframes fade-in {
@@ -363,15 +415,38 @@
 }
 
 .animate-fade-in {
-  animation: fade-in 0.2s ease-out;
+  animation: fade-in var(--motion-normal) var(--motion-ease);
 }
 
 .sidebar-transition {
-  transition: width 0.2s ease-out, opacity 0.2s ease-out;
+  transition: width var(--motion-normal) var(--motion-ease), opacity var(--motion-normal) var(--motion-ease);
 }
 
 .view-transition {
-  animation: fade-in 0.15s ease-out;
+  animation: fade-in var(--motion-fast) var(--motion-ease);
+}
+
+/* 主题切换时根壳软过渡（避免硬切闪屏） */
+.app-shell {
+  transition:
+    background-color var(--motion-normal) var(--motion-ease),
+    color var(--motion-normal) var(--motion-ease);
+}
+
+/* Markdown 引用：用底色分层，不用左侧 accent 竖线（公理 1） */
+.md-blockquote {
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* 事件行强调：底色而非 border-l 色条 */
+.event-row-emphasis {
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 /* 伴侣 Chat 弱场景（P2）：只铺氛围，不抢文字对比度 */

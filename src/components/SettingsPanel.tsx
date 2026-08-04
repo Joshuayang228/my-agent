@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useToast } from './Toast'
 import { PermissionRulesEditor } from './PermissionRulesEditor'
 import {
-  Upload, Download, Settings, Shield, Cpu, Plug, Database, Code,
-  User, ChevronRight, Eye, EyeOff, Info,
+  Upload, Download, Settings, Shield, Cpu, Database, Code,
+  ChevronRight, Eye, EyeOff, Info, Heart, Brain, Wrench, SlidersHorizontal, Link2,
 } from 'lucide-react'
 
 interface SettingsForm {
@@ -113,48 +113,79 @@ const PRESET_GROUPS: { group: string; items: PresetItem[] }[] = [
   },
 ]
 
-type SettingsSection = 'general' | 'model' | 'security' | 'mcp' | 'data' | 'developer' | 'about'
+type SettingsSection =
+  | 'general'
+  | 'companion'
+  | 'model'
+  | 'memory'
+  | 'security'
+  | 'connection'
+  | 'data'
+  | 'about'
+  | 'parameters'
+  | 'tools'
+  | 'developer'
 
 const NAV_ITEMS: { group: string; items: { id: SettingsSection; label: string; icon: React.ReactNode }[] }[] = [
   {
     group: '基础',
     items: [
       { id: 'general', label: '通用', icon: <Settings size={15} /> },
+      { id: 'companion', label: '伙伴', icon: <Heart size={15} /> },
       { id: 'model', label: '模型', icon: <Cpu size={15} /> },
+      { id: 'memory', label: '记忆', icon: <Brain size={15} /> },
       { id: 'security', label: '安全', icon: <Shield size={15} /> },
+      { id: 'connection', label: '连接', icon: <Link2 size={15} /> },
+      { id: 'data', label: '数据', icon: <Database size={15} /> },
+      { id: 'about', label: '关于', icon: <Info size={15} /> },
     ],
   },
   {
     group: '高级',
     items: [
-      { id: 'mcp', label: 'MCP', icon: <Plug size={15} /> },
-      { id: 'data', label: '数据', icon: <Database size={15} /> },
+      { id: 'parameters', label: '参数', icon: <SlidersHorizontal size={15} /> },
+      { id: 'tools', label: '工具', icon: <Wrench size={15} /> },
       { id: 'developer', label: '开发者', icon: <Code size={15} /> },
-      { id: 'about', label: '关于', icon: <Info size={15} /> },
     ],
   },
 ]
 
+const FONT_SCALES: { id: string; label: string; desc: string }[] = [
+  { id: 'sm', label: '偏小', desc: '14px 基准' },
+  { id: 'md', label: '标准', desc: '15px 基准' },
+  { id: 'lg', label: '偏大', desc: '16px 基准' },
+]
+
 const THEMES: { id: string; label: string; desc: string; color: string; isDark: boolean }[] = [
-  { id: 'dark', label: '暗夜', desc: 'GitHub 暗色经典', color: '#0d1117', isDark: true },
-  { id: 'light', label: '日光', desc: '清亮白色', color: '#ffffff', isDark: false },
-  { id: 'mist', label: '薄雾', desc: '半透玻璃，薰衣草', color: '#7c8cf5', isDark: false },
+  { id: 'dark', label: '暗夜', desc: '深色工具向', color: '#0d1117', isDark: true },
+  { id: 'light', label: '日光', desc: '纸感浅底，暖石', color: '#fafaf7', isDark: false },
+  { id: 'mist', label: '薄雾', desc: '暖雾纸感', color: '#efede6', isDark: false },
   { id: 'night-feast', label: '夜宴', desc: '深紫护眼', color: '#a855f7', isDark: true },
   { id: 'green-garden', label: '青园', desc: '青绿自然', color: '#059669', isDark: false },
-  { id: 'golden', label: '金阁', desc: '香槟轻奢', color: '#b45309', isDark: false },
+  { id: 'golden', label: '金阁', desc: '香槟纸感', color: '#b45309', isDark: false },
   { id: 'blue-pool', label: '蓝池', desc: '深邃天蓝', color: '#38bdf8', isDark: true },
 ]
 
 interface SettingsPanelProps {
   onClose: () => void
   onOpenDevPanel?: () => void
+  onOpenMemory?: () => void
+  onOpenSkills?: () => void
   currentTheme?: string
   onThemeChange?: (themeId: string) => void
 }
 
-export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeChange }: SettingsPanelProps) {
+export function SettingsPanel({
+  onClose,
+  onOpenDevPanel,
+  onOpenMemory,
+  onOpenSkills,
+  currentTheme,
+  onThemeChange,
+}: SettingsPanelProps) {
   const { toast } = useToast()
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
+  const [fontScale, setFontScale] = useState(() => localStorage.getItem('uiFontScale') || 'md')
   const [form, setForm] = useState<SettingsForm>(DEFAULTS)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -222,6 +253,11 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
       setMutableLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    document.documentElement.dataset.fontScale = fontScale
+    localStorage.setItem('uiFontScale', fontScale)
+  }, [fontScale])
 
   useEffect(() => {
     if (!window.electronAPI) return
@@ -374,7 +410,14 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
     <div className="space-y-6">
       <SectionTitle>通用</SectionTitle>
 
-      <FieldGroup label="外观" hint="选择界面主题风格">
+      <FieldGroup label="界面语言" hint="当前仅提供简体中文；其它语言未接入，不提供假选项。">
+        <button type="button" className="settings-option px-3 py-2 text-xs" data-selected="true">
+          <div className="font-medium">简体中文</div>
+          <div className="mt-0.5 text-[10px] opacity-70">默认界面语言</div>
+        </button>
+      </FieldGroup>
+
+      <FieldGroup label="外观" hint="选择界面主题风格；浅色主题为纸感暖底。">
         <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(7.5rem, 1fr))' }}>
           {THEMES.map((t) => (
             <button
@@ -396,6 +439,30 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
           ))}
         </div>
       </FieldGroup>
+
+      <FieldGroup label="字体大小" hint="仅影响界面基准字号，保存在本机（不进云端）。">
+        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(7.5rem, 1fr))' }}>
+          {FONT_SCALES.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setFontScale(s.id)}
+              className="settings-option px-3 py-2 text-xs"
+              data-selected={fontScale === s.id ? 'true' : undefined}
+            >
+              <div className="font-medium">{s.label}</div>
+              <div className="mt-0.5 text-[10px] opacity-70">{s.desc}</div>
+            </button>
+          ))}
+        </div>
+      </FieldGroup>
+    </div>
+  )
+
+  const renderCompanion = () => (
+    <div className="space-y-6">
+      <SectionTitle>伙伴</SectionTitle>
+
 
       {protagonists.length > 0 && (
         <FieldGroup label="活跃主角" hint="主入口在「角色架」（欢迎页/状态条）。此处为快捷切换。同宇宙 3 槽；切换=完整换人；流式中禁止；旧会话请新建对话。">
@@ -709,7 +776,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
 
   const renderModel = () => (
     <div className="space-y-6">
-      <SectionTitle>模型配置</SectionTitle>
+      <SectionTitle>模型</SectionTitle>
 
       <FieldGroup label="快速选择">
         <div className="space-y-3">
@@ -789,7 +856,15 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
           />
         </FieldGroup>
       </div>
+    </div>
+  )
 
+  const renderParameters = () => (
+    <div className="space-y-6">
+      <SectionTitle>参数</SectionTitle>
+      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        采样与预算类高级参数；日常改模型请回「模型」。
+      </p>
       <div className="grid grid-cols-3 gap-3">
         <FieldGroup label="Temperature">
           <input
@@ -816,6 +891,100 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
           />
         </FieldGroup>
       </div>
+      <FieldGroup label="Token 预算">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-[11px]" style={{ color: 'var(--text-muted)' }}>会话预算</label>
+            <input
+              type="number" step="10000" min="0"
+              value={form.sessionTokenBudget}
+              onChange={(e) => update('sessionTokenBudget', e.target.value)}
+              placeholder="0 = 无限制"
+              className="theme-input w-full rounded-lg border px-3 py-2 text-sm outline-none transition"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px]" style={{ color: 'var(--text-muted)' }}>每日预算</label>
+            <input
+              type="number" step="100000" min="0"
+              value={form.dailyTokenBudget}
+              onChange={(e) => update('dailyTokenBudget', e.target.value)}
+              placeholder="0 = 无限制"
+              className="theme-input w-full rounded-lg border px-3 py-2 text-sm outline-none transition"
+            />
+          </div>
+        </div>
+        <div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>0 = 无限制，单位: tokens</div>
+      </FieldGroup>
+    </div>
+  )
+
+  const renderMemory = () => (
+    <div className="space-y-6">
+      <SectionTitle>记忆</SectionTitle>
+      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        结构化记忆与向量召回在「记忆」面板管理；此处只放解释粒度等横切开关。
+      </p>
+      <FieldGroup
+        label="解释粒度（专家度）"
+        hint="影响能力讲解详略，不改工具权限。自动=按对话/画像启发式。"
+      >
+        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(7.5rem, 1fr))' }}>
+          {([
+            { value: 'auto', label: '自动', desc: '启发式，偏中性' },
+            { value: 'novice', label: '入门', desc: '多白话与步骤' },
+            { value: 'intermediate', label: '熟练', desc: '少铺垫' },
+            { value: 'expert', label: '专家', desc: '结论优先' },
+          ] as const).map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => update('userExpertiseLevel', opt.value)}
+              className="settings-option px-3 py-2 text-xs"
+              data-selected={form.userExpertiseLevel === opt.value ? 'true' : undefined}
+            >
+              <div className="font-medium">{opt.label}</div>
+              <div className="mt-0.5 text-[10px] opacity-70">{opt.desc}</div>
+            </button>
+          ))}
+        </div>
+      </FieldGroup>
+      <FieldGroup label="记忆面板" hint="浏览、纠正引用与遗忘条目。">
+        <button
+          type="button"
+          onClick={() => { onOpenMemory?.(); onClose() }}
+          className="settings-option flex w-full items-center gap-2 px-4 py-2 text-xs"
+        >
+          <Brain size={14} />
+          打开记忆面板
+          <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>Ctrl+Shift+M</span>
+        </button>
+      </FieldGroup>
+    </div>
+  )
+
+  const renderTools = () => (
+    <div className="space-y-6">
+      <SectionTitle>工具</SectionTitle>
+      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        Skills 与项目工作目录；沙箱边界见「安全」。项目切换仍在 Chat 输入区（DEC-020）。
+      </p>
+      <FieldGroup label="Skills" hint="按需注入的 Markdown 能力手册。">
+        <button
+          type="button"
+          onClick={() => { onOpenSkills?.(); onClose() }}
+          className="settings-option flex w-full items-center gap-2 px-4 py-2 text-xs"
+        >
+          <Wrench size={14} />
+          打开 Skills 面板
+          <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>Ctrl+Shift+K</span>
+        </button>
+      </FieldGroup>
+      <FieldGroup label="工作目录" hint="shell / 文件工具的 cwd 与沙箱根。">
+        <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          在聊天输入区下方的「项目 / 文件夹」选择器切换。设置页不重复造第二入口，避免两处状态不一致。
+        </p>
+      </FieldGroup>
     </div>
   )
 
@@ -867,31 +1036,6 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
       </FieldGroup>
 
       <FieldGroup
-        label="解释粒度（专家度）"
-        hint="影响能力讲解详略，不改工具权限。自动=按对话/画像启发式，不确定偏中性。"
-      >
-        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(7.5rem, 1fr))' }}>
-          {([
-            { value: 'auto', label: '自动', desc: '启发式，偏中性' },
-            { value: 'novice', label: '入门', desc: '多白话与步骤' },
-            { value: 'intermediate', label: '熟练', desc: '少铺垫' },
-            { value: 'expert', label: '专家', desc: '结论优先' },
-          ] as const).map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => update('userExpertiseLevel', opt.value)}
-              className="settings-option px-3 py-2 text-xs"
-              data-selected={form.userExpertiseLevel === opt.value ? 'true' : undefined}
-            >
-              <div className="font-medium">{opt.label}</div>
-              <div className="mt-0.5 text-[10px] opacity-70">{opt.desc}</div>
-            </button>
-          ))}
-        </div>
-      </FieldGroup>
-
-      <FieldGroup
         label="自定义权限规则"
         hint="可视化编辑；type=命令/工具/路径，action=允许/拒绝/询问。保存后热更新到权限引擎。高级用户仍可展开 JSON。"
       >
@@ -900,38 +1044,12 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
           onChange={(json) => update('permissionRules', json)}
         />
       </FieldGroup>
-
-      <FieldGroup label="Token 预算">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1 block text-[11px]" style={{ color: 'var(--text-muted)' }}>会话预算</label>
-            <input
-              type="number" step="10000" min="0"
-              value={form.sessionTokenBudget}
-              onChange={(e) => update('sessionTokenBudget', e.target.value)}
-              placeholder="0 = 无限制"
-              className="theme-input w-full rounded-lg border px-3 py-2 text-sm outline-none transition"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-[11px]" style={{ color: 'var(--text-muted)' }}>每日预算</label>
-            <input
-              type="number" step="100000" min="0"
-              value={form.dailyTokenBudget}
-              onChange={(e) => update('dailyTokenBudget', e.target.value)}
-              placeholder="0 = 无限制"
-              className="theme-input w-full rounded-lg border px-3 py-2 text-sm outline-none transition"
-            />
-          </div>
-        </div>
-        <div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>0 = 无限制，单位: tokens</div>
-      </FieldGroup>
     </div>
   )
 
-  const renderMcp = () => (
+  const renderConnection = () => (
     <div className="space-y-6">
-      <SectionTitle>MCP 服务器</SectionTitle>
+      <SectionTitle>连接（MCP）</SectionTitle>
 
       <div className="flex items-center justify-between">
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -1173,18 +1291,26 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
 
   const SECTION_RENDERERS: Record<SettingsSection, () => React.ReactNode> = {
     general: renderGeneral,
+    companion: renderCompanion,
     model: renderModel,
+    memory: renderMemory,
     security: renderSecurity,
-    mcp: renderMcp,
+    connection: renderConnection,
     data: renderData,
-    developer: renderDeveloper,
     about: renderAbout,
+    parameters: renderParameters,
+    tools: renderTools,
+    developer: renderDeveloper,
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-1" data-testid="settings-panel">
       {/* 左侧导航 */}
-      <div className="flex w-[180px] shrink-0 flex-col border-r py-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+      <aside
+        data-testid="settings-nav"
+        className="flex w-[200px] shrink-0 flex-col overflow-y-auto border-r py-4"
+        style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
+      >
         {NAV_ITEMS.map((group) => (
           <div key={group.group} className="mb-3 px-3">
             <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
@@ -1194,7 +1320,7 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
               <button
                 key={item.id}
                 onClick={() => setActiveSection(item.id)}
-                className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[13px] transition ${
+                className={`settings-nav-item flex w-full items-center gap-2 px-2.5 py-1.5 text-[13px] ${
                   activeSection === item.id ? 'font-medium' : ''
                 }`}
                 style={{
@@ -1215,12 +1341,12 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
             ))}
           </div>
         ))}
-      </div>
+      </aside>
 
-      {/* 右侧内容 */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      {/* 右侧内容：必须 flex-1 + min-w-0，否则整页只吃内容固有宽度，滚动条会出现在窗口中间 */}
+      <div data-testid="settings-main" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {/* 顶部栏 */}
-        <div className="flex items-center justify-between border-b px-6 py-3" style={{ borderColor: 'var(--border-color)' }}>
+        <div className="flex shrink-0 items-center justify-between border-b px-6 py-3" style={{ borderColor: 'var(--border-color)' }}>
           <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>设置</h2>
           <div className="flex items-center gap-2">
             {saved && <span className="text-xs text-green-400">已保存</span>}
@@ -1247,9 +1373,9 @@ export function SettingsPanel({ onClose, onOpenDevPanel, currentTheme, onThemeCh
           </div>
         </div>
 
-        {/* 内容区 */}
-        <div className="scrollbar-thin flex-1 overflow-y-auto px-6 py-5">
-          <div className="view-transition" key={activeSection}>
+        {/* 内容区：铺满右栏；表单最大宽度便于阅读，但仍相对右栏居中而非整窗左贴 */}
+        <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-6 py-5">
+          <div className="view-transition mx-auto w-full max-w-3xl" key={activeSection}>
             {SECTION_RENDERERS[activeSection]()}
           </div>
         </div>

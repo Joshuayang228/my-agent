@@ -19,7 +19,7 @@
 **最新动态（2026-08-04）**：
 - ✅ **体验调试 Phase 0（M32-G1–G3）**：DevPanel 两面 + 工具手测 + Prompt 会话覆盖；施工合同已落地。
 - ✅ **M32 体验调试方法论**：Debug ≠ Playground；对照 Alice `/debug`+`/playground` 源码。
-- ✅ **前端视觉语言 Phase 3**：侧栏身份条、空态问候/pill、输入卡圆角、开发入口下沉；合同标已落地。
+- ✅ **前端视觉语言 Phase 3**：侧栏身份条、空态问候/pill、输入卡圆角、开发入口下沉；合同与 UI 代码已入库。
 - ✅ **前端视觉语言 Phase 2**：设置基础/高级重排；伙伴/参数/记忆/工具/连接拆分；字号本机档。
 - ✅ **前端视觉语言 Phase 1**：`frontend-visual-language` 施工合同；`frontend-guidelines` 七公理；radius/motion/font token；浅色纸感；去左侧 accent 竖线。
 - ✅ **GitHub 运营前门**：双语 README + CONTRIBUTING；`docs/notes` → `docs/deferred`；progress 人读摘要；Cursor stop hook 提醒模块卡能力行。

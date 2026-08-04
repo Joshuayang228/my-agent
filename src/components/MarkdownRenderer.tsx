@@ -223,11 +223,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: Mark
           return <li style={{ color: 'var(--text-primary)' }}>{children}</li>
         },
         blockquote({ children }) {
-          return (
-            <blockquote className="my-3 pl-4 italic" style={{ color: 'var(--text-muted)', borderLeft: '3px solid var(--accent)' }}>
-              {children}
-            </blockquote>
-          )
+          return <blockquote className="md-blockquote">{children}</blockquote>
         },
         hr() {
           return <hr className="my-4" style={{ borderColor: 'var(--border-color)' }} />

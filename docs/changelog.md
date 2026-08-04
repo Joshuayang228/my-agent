@@ -19,9 +19,9 @@
 
 ### Changed — 前端视觉语言 Phase 3 Chat 气质（2026-08-04）
 
-- 侧栏顶部活跃主角身份条（进角色架）；空态衬线问候 + 建议 pill（弱化工具宫格）
+- 侧栏顶部活跃主角身份条（进角色架）；空态问候 + 建议 pill（弱化工具宫格）
 - 输入卡加大圆角；占位跟主角；Skills / Debug 下沉底栏次级
-- 施工合同 `frontend-visual-language.md` 标已落地
+- 施工合同 `frontend-visual-language.md` 标已落地；UI 代码随本提交入库
 
 ### Changed — 前端视觉语言 Phase 2 设置 IA（2026-08-04）
 
