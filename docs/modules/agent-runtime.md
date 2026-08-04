@@ -68,7 +68,7 @@
 | Observer / DevPanel 可观测 | 已落地 | tracer / observer / DevPanel |
 | Chat Callback 三通道 UI | 已落地 | `src/components/chat/callbacks/` |
 | Dev Playground（无 Assemble 试跑） | 已落地 | DevPanel · `debug:playground-run` |
-| DevPanel Debug/Playground 两面 | 已落地 | surface 切换；Prompt 实装 vs 试验 |
+| Debug / Playground 独立全页 | 已落地 | 侧栏双入口 + `activeView`；非右侧抽屉 |
 | 工具手测（权限门闸） | 已落地 | `debug:tool-run` · confirmRisk |
 | Prompt 会话覆盖（不写 settings） | 已落地 | 载入实装 → playgroundRun |
 | 设计 token 场 | 已落地 | Playground「设计 token」tab |
