@@ -1,6 +1,6 @@
 # 施工合同：体验调试（Debug / Playground）
 
-> 状态：**已落地**（Phase 0 = G1–G3；Phase 1 = G4，2026-08-04）  
+> 状态：**已落地**（Phase 0–2：G1–G5；G6–G8 仍暂缓）  
 > 日期：2026-08-04  
 > 上位：[`methodology/m32-experience-debug-playground.md`](../../methodology/m32-experience-debug-playground.md)  
 > 参考：Alice `/debug` · `/playground` · `enableDebugMode`（本地 `alice-source/_extract/`）
@@ -41,9 +41,19 @@ DevPanel 已有 Prompt 查看、traces、单轮 LLM 试跑，但心智仍是「�
 |----|------|------|
 | **G4** | Debug 面「世界态」tab + 聚合只读 IPC | 一眼看到活跃角色、MUTABLE、world 薄片、今日剧本、近 Moments、画像/近记忆；长字段截断；无 API Key |
 
-**不做（Phase 1）**：完整 Alice 生活树编辑、写操作、G5–G8。
+**不做（Phase 1）**：完整 Alice 生活树编辑、写操作。
 
 IPC：`debug:world-snapshot` → `buildDebugWorldSnapshot()`（截断：记忆≤20、Moments≤10、MUTABLE≤2k 等）。
+
+---
+
+## 2c. Phase 2 — G5 设计 token 场
+
+| ID | 目标 | 验收 |
+|----|------|------|
+| **G5** | Playground「设计 token」tab | 展示当前主题颜色 / radius / motion；基础按钮·输入样例；无完整 Storybook |
+
+**不做（Phase 2）**：G6 错误卡夹具全家桶、G7 对话叠加、G8 aside 预览。
 
 ---
 
@@ -54,7 +64,7 @@ IPC：`debug:world-snapshot` → `buildDebugWorldSnapshot()`（截断：记忆�
 ```text
 [ Debug | Playground ]     ← surface
 Debug:     Prompt实装 | 世界态 | 系统 | 调用链 | 事件
-Playground: Prompt试验 | 工具手测
+Playground: Prompt试验 | 工具手测 | 设计 token
 ```
 
 文案纪律：Debug Prompt =「生产实装（只读）」；Playground =「会话覆盖，不写设置」。

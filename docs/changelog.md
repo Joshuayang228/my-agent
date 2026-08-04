@@ -5,6 +5,10 @@
 
 ## [未发布]
 
+### Added — 体验调试 Phase 2（M32-G5）（2026-08-05）
+
+- Playground「设计 token」：当前主题色板 / radius / motion + 基础控件样例（非完整 Storybook）
+
 ### Added — 体验调试 Phase 1（M32-G4）（2026-08-04）
 
 - Debug「世界态」tab：活跃角色 / MUTABLE / world / 日剧本 / Moments / 画像与近记忆

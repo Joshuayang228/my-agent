@@ -66,7 +66,7 @@ type Surface = 'debug' | 'playground'
 | Alice | 我们现状 | Gap |
 |-------|----------|-----|
 | `/debug` 世界态树 | Debug「世界态」：角色/MUTABLE/world/剧本/Moments/记忆（只读截断） | G4 ✅；完整生活树仍薄 |
-| `/playground` 试验+UI 场 | Prompt 试验 + 工具手测；无色板 Storybook | M32-G5/G6 |
+| `/playground` 试验+UI 场 | Prompt 试验 + 工具手测 + 设计 token；无完整 Storybook | G5 ✅；G6 错误卡仍缺 |
 | debugMode 叠加 | Ctrl+Shift+D 开面板，无对话内叠加策略 | M32-G7 |
 
 ---

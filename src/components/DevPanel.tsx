@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import {
   FileText, Wrench, BarChart3, ClipboardList, Zap, RotateCcw, X,
-  FlaskConical, Bug, Play, Globe,
+  FlaskConical, Bug, Play, Globe, Palette,
 } from 'lucide-react'
 
 type Surface = 'debug' | 'playground'
 type DebugTab = 'prompt' | 'world' | 'system' | 'traces' | 'events'
-type PlayTab = 'prompt-lab' | 'tool-run'
+type PlayTab = 'prompt-lab' | 'tool-run' | 'tokens'
 
 interface WorldSnapshot {
   role: { id: string; name: string; description: string; universeId: string }
@@ -113,6 +113,7 @@ const DEBUG_TABS: { id: DebugTab; label: string; icon: React.ReactNode }[] = [
 const PLAY_TABS: { id: PlayTab; label: string; icon: React.ReactNode }[] = [
   { id: 'prompt-lab', label: 'Prompt 试验', icon: <FlaskConical size={12} /> },
   { id: 'tool-run', label: '工具手测', icon: <Wrench size={12} /> },
+  { id: 'tokens', label: '设计 token', icon: <Palette size={12} /> },
 ]
 
 interface DevPanelProps {
@@ -235,6 +236,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
           <PromptLabTab onLoadedProduction={setPromptInfo} />
         )}
         {surface === 'playground' && playTab === 'tool-run' && <ToolRunTab tools={tools} />}
+        {surface === 'playground' && playTab === 'tokens' && <TokensTab />}
       </div>
     </div>
   )
@@ -675,6 +677,133 @@ function ToolRunTab({ tools }: { tools: ToolInfo[] }) {
           {output}
         </pre>
       )}
+    </div>
+  )
+}
+
+/** Playground：当前主题下的设计 token + 基础控件样例（M32-G5） */
+function TokensTab() {
+  const [tick, setTick] = useState(0)
+  const read = (name: string) => {
+    void tick
+    if (typeof document === 'undefined') return ''
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  }
+
+  const colors = [
+    ['--bg-primary', '结构 · 主底'],
+    ['--bg-secondary', '结构 · 次底'],
+    ['--bg-tertiary', '结构 · 三级'],
+    ['--bg-inset', '结构 · 内凹'],
+    ['--text-primary', '文本 · 主'],
+    ['--text-secondary', '文本 · 次'],
+    ['--text-muted', '文本 · 弱'],
+    ['--accent-emphasis', '强调 · 实色'],
+    ['--accent-fg', '强调 · 前景'],
+    ['--accent-subtle', '强调 · 浅底'],
+    ['--border-color', '边框'],
+    ['--success', '语义 · 成功'],
+    ['--danger', '语义 · 危险'],
+  ] as const
+
+  const radii = ['--radius-sm', '--radius-md', '--radius-lg', '--radius-xl'] as const
+  const motions = ['--motion-fast', '--motion-normal', '--motion-slow'] as const
+
+  return (
+    <div className="space-y-5" data-testid="tokens-lab">
+      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+        读取当前主题的 CSS 变量（人眼回归场）。规范见 <code className="font-mono">agent-skills/frontend-guidelines.md</code>。
+        不是完整 Storybook。
+      </p>
+      <button
+        type="button"
+        className="settings-option px-3 py-1.5 text-xs"
+        onClick={() => setTick(t => t + 1)}
+      >
+        重新读取 token
+      </button>
+
+      <section>
+        <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+          颜色
+        </h3>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {colors.map(([name, label]) => {
+            const val = read(name)
+            return (
+              <div
+                key={name}
+                className="overflow-hidden rounded-lg border"
+                style={{ borderColor: 'var(--border-color)' }}
+              >
+                <div className="h-10" style={{ background: `var(${name})` }} />
+                <div className="space-y-0.5 px-2 py-1.5">
+                  <div className="font-mono text-[10px]" style={{ color: 'var(--text-primary)' }}>{name}</div>
+                  <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{label}</div>
+                  <div className="truncate font-mono text-[9px]" style={{ color: 'var(--text-secondary)' }}>{val || '—'}</div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      <section>
+        <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+          圆角 / 动效
+        </h3>
+        <div className="flex flex-wrap gap-3">
+          {radii.map(name => (
+            <div key={name} className="text-center">
+              <div
+                className="mx-auto mb-1 h-12 w-12 border"
+                style={{
+                  borderColor: 'var(--accent-fg)',
+                  background: 'var(--accent-subtle)',
+                  borderRadius: `var(${name})`,
+                }}
+              />
+              <div className="font-mono text-[9px]" style={{ color: 'var(--text-muted)' }}>{name}</div>
+              <div className="font-mono text-[9px]" style={{ color: 'var(--text-secondary)' }}>{read(name) || '—'}</div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex flex-wrap gap-3 text-[10px] font-mono" style={{ color: 'var(--text-secondary)' }}>
+          {motions.map(name => (
+            <span key={name}>{name} = {read(name) || '—'}</span>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+          基础控件（现有 class）
+        </h3>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" className="settings-option px-3 py-1.5 text-xs">主要按钮</button>
+          <button
+            type="button"
+            className="rounded-lg border px-3 py-1.5 text-xs"
+            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+          >
+            次要
+          </button>
+          <input
+            className="theme-input w-40 rounded-lg border px-2 py-1.5 text-xs outline-none"
+            placeholder="theme-input"
+            defaultValue=""
+          />
+          <span
+            className="rounded-full px-2.5 py-0.5 text-[11px]"
+            style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}
+          >
+            chip
+          </span>
+        </div>
+        <p className="mt-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+          禁止左侧 accent 竖线贴标签；层级用底色 / 字重 / 留白。
+        </p>
+      </section>
     </div>
   )
 }

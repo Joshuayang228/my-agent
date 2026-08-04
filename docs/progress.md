@@ -8,7 +8,7 @@
 |--|--|
 | **现在在哪** | 公开 alpha。前端视觉语言 **Phase 1–3 已收口**（token + 设置 IA + Chat 气质）。 |
 | **产品怎么记** | `docs/modules/README.md` → 各卡「已落地能力」；大改先写 `docs/requirements/` **施工合同**。 |
-| **下一步可做** | M32-G5+（色板场 / 错误夹具）或行内 aside；公开截图等前端再好看一点再说。 |
+| **下一步可做** | M32-G6 错误卡夹具 / 行内 aside；公开截图前再打磨 Chat。 |
 | **明确暂缓** | 原生语音 STT（`docs/deferred/native-voice-input.md`）；生图 Moments（M24-G3）；Python 嵌入沙箱。 |
 | **仓库** | 双语 README；Issues/PR 欢迎；见 `CONTRIBUTING.md`。 |
 
@@ -16,7 +16,8 @@
 
 **阶段**：公开运营起步；体验与前端统一优先于再堆基建；原生语音与 M24-G3 暂缓。
 
-**最新动态（2026-08-04）**：
+**最新动态（2026-08-05）**：
+- ✅ **体验调试 Phase 2（M32-G5）**：Playground「设计 token」色板 / radius / 基础控件样例。
 - ✅ **体验调试 Phase 1（M32-G4）**：Debug「世界态」+ `debug:world-snapshot`。
 - ✅ **体验调试 Phase 0（M32-G1–G3）**：DevPanel 两面 + 工具手测 + Prompt 会话覆盖；施工合同已落地。
 - ✅ **M32 体验调试方法论**：Debug ≠ Playground；对照 Alice `/debug`+`/playground` 源码。
