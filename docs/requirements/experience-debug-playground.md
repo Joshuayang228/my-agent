@@ -1,6 +1,6 @@
 # 施工合同：体验调试（Debug / Playground）
 
-> 状态：**已落地**（Phase 0–2：G1–G5；G6–G8 仍暂缓）  
+> 状态：**已落地**（Phase 0–3：G1–G5 + 独立全页入口；G6–G8 仍暂缓）  
 > 日期：2026-08-04  
 > 上位：[`methodology/m32-experience-debug-playground.md`](../../methodology/m32-experience-debug-playground.md)  
 > 参考：Alice `/debug` · `/playground` · `enableDebugMode`（本地 `alice-source/_extract/`）
@@ -57,14 +57,30 @@ IPC：`debug:world-snapshot` → `buildDebugWorldSnapshot()`（截断：记忆�
 
 ---
 
+## 2d. Phase 3 — 独立全页入口（对齐 Alice）
+
+| 目标 | 验收 |
+|------|------|
+| Debug / Playground **各为侧栏独立入口** | 不再嵌在聊天右侧抽屉；进入后占主内容区（同 Moments/记忆） |
+| 两页心智分离 | 各页标题即身份；可提供「去另一页」弱链，但不是顶栏二选一嵌套壳 |
+| 快捷键 | Ctrl+Shift+D → Debug 全页；Ctrl+Shift+P → Playground 全页（与 Alice 双入口一致） |
+
+**不做**：真实 URL 路由 `/debug`（Electron 无 React Router 时用 `activeView` 即可）；Alice 生活树全量 tab。
+
+---
+
 ## 3. 技术方案（How）
 
-### 3.1 UI（`src/components/DevPanel.tsx`）
+### 3.1 UI
 
 ```text
-[ Debug | Playground ]     ← surface
-Debug:     Prompt实装 | 世界态 | 系统 | 调用链 | 事件
-Playground: Prompt试验 | 工具手测 | 设计 token
+侧栏底：… | Skills | Debug | Playground | 主题
+主区 activeView:
+  debug      → DevPanel surface=debug（全页）
+  playground → DevPanel surface=playground（全页）
+
+Debug 内：     Prompt实装 | 世界态 | 系统 | 调用链 | 事件
+Playground 内： Prompt试验 | 工具手测 | 设计 token
 ```
 
 文案纪律：Debug Prompt =「生产实装（只读）」；Playground =「会话覆盖，不写设置」。

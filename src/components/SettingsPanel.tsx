@@ -169,6 +169,7 @@ const THEMES: { id: string; label: string; desc: string; color: string; isDark: 
 interface SettingsPanelProps {
   onClose: () => void
   onOpenDevPanel?: () => void
+  onOpenPlayground?: () => void
   onOpenMemory?: () => void
   onOpenSkills?: () => void
   currentTheme?: string
@@ -178,6 +179,7 @@ interface SettingsPanelProps {
 export function SettingsPanel({
   onClose,
   onOpenDevPanel,
+  onOpenPlayground,
   onOpenMemory,
   onOpenSkills,
   currentTheme,
@@ -1233,16 +1235,30 @@ export function SettingsPanel({
         调试工具和内部状态查看
       </p>
 
-      <FieldGroup label="调试">
-        <button
-          type="button"
-          onClick={() => { onOpenDevPanel?.(); onClose() }}
-          className="settings-option flex w-full items-center gap-2 px-4 py-2 text-xs"
-        >
-          <Code size={14} />
-          打开开发者面板
-          <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>Ctrl+Shift+D</span>
-        </button>
+      <FieldGroup label="体验调试">
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => { onOpenDevPanel?.(); onClose() }}
+            className="settings-option flex w-full items-center gap-2 px-4 py-2 text-xs"
+          >
+            <Code size={14} />
+            打开 Debug
+            <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>Ctrl+Shift+D</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { onOpenPlayground?.(); onClose() }}
+            className="settings-option flex w-full items-center gap-2 px-4 py-2 text-xs"
+          >
+            <Code size={14} />
+            打开 Playground
+            <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>Ctrl+Shift+P</span>
+          </button>
+        </div>
+        <p className="mt-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+          独立全页入口（非聊天右侧抽屉），对齐 Alice Debug / Playground。
+        </p>
       </FieldGroup>
     </div>
   )

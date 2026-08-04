@@ -55,10 +55,10 @@ Debug Console `ZM()` 按产品域分组（不是按「工程师喜欢的文件�
 ### §四 我们：DevPanel 已拆两面（Phase 0）
 
 ```typescript
-// src/components/DevPanel.tsx（语义）
-type Surface = 'debug' | 'playground'
-// Debug:     prompt | system | traces | events
-// Playground: prompt-lab | tool-run
+// App activeView: 'debug' | 'playground' → 主区全页 DevPanel(surface=…)
+// 侧栏双入口；不再右侧抽屉嵌套
+// Debug:     prompt | world | system | traces | events
+// Playground: prompt-lab | tool-run | tokens
 ```
 
 对照：

@@ -20,8 +20,9 @@ import {
   Folder, FolderOpen, Ban, AlertTriangle, User,
   Plug, ChevronDown, ChevronRight, Square,
   Copy, Check, X, Pencil, RotateCcw, GitBranch, Trash2,
-  Plus, Search, Cpu, Menu, Brain, Code, Send,
+  Plus, Search, Cpu, Menu, Brain, Send,
   Pin, File, Newspaper, Shirt, Users, LayoutGrid,
+  Bug, FlaskConical,
 } from 'lucide-react'
 import { buildColdStartCopy } from './shared/companion-presence'
 import {
@@ -93,7 +94,9 @@ function App() {
   const [pendingImages, setPendingImages] = useState<ImageAttachment[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [activeTools, setActiveTools] = useState<ToolCallbackItem[]>([])
-  const [activeView, setActiveView] = useState<'chat' | 'skills' | 'memory' | 'moments' | 'assets' | 'cast' | 'shelf' | 'settings'>('chat')
+  const [activeView, setActiveView] = useState<
+    'chat' | 'skills' | 'memory' | 'moments' | 'assets' | 'cast' | 'shelf' | 'settings' | 'debug' | 'playground'
+  >('chat')
   const [theme, setTheme] = useState<string>(() => {
     return localStorage.getItem('theme') || 'dark'
   })
@@ -120,8 +123,7 @@ function App() {
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
   const [usage, setUsage] = useState<UsageInfo | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [showDevPanel, setShowDevPanel] = useState(false)
-  // showMemoryPanel / showSkillsPanel 已合并为 activeView
+  // showMemoryPanel / showSkillsPanel / DevPanel 已合并为 activeView
   const [eventLog, setEventLog] = useState<Array<{ time: number; type: string; detail: string }>>([])
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -384,7 +386,11 @@ function App() {
     const handleGlobalKey = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'D') {
         e.preventDefault()
-        setShowDevPanel(v => !v)
+        setActiveView(v => v === 'debug' ? 'chat' : 'debug')
+      }
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault()
+        setActiveView(v => v === 'playground' ? 'chat' : 'playground')
       }
       if (e.ctrlKey && !e.shiftKey && e.key === 'n') {
         e.preventDefault()
@@ -422,9 +428,6 @@ function App() {
       if (e.key === 'Escape') {
         if (searchOpen) { setSearchOpen(false); setSearchQuery('') }
         else if (activeView !== 'chat') { setActiveView('chat') }
-        else {
-          setShowDevPanel(false)
-        }
       }
     }
     window.addEventListener('keydown', handleGlobalKey)
@@ -789,7 +792,8 @@ function App() {
         <div className="flex h-full w-full min-h-0 min-w-0 flex-1 flex-col">
           <SettingsPanel
             onClose={closeSettings}
-            onOpenDevPanel={() => setShowDevPanel(true)}
+            onOpenDevPanel={() => setActiveView('debug')}
+            onOpenPlayground={() => setActiveView('playground')}
             onOpenMemory={() => setActiveView('memory')}
             onOpenSkills={() => setActiveView('skills')}
             currentTheme={theme}
@@ -959,11 +963,23 @@ function App() {
                 <SidebarBtn
                   onClick={() => setActiveView(v => v === 'skills' ? 'chat' : 'skills')}
                   title="Skills (Ctrl+Shift+K)"
+                  active={activeView === 'skills'}
                 >
                   <Cpu size={14} />
                 </SidebarBtn>
-                <SidebarBtn onClick={() => setShowDevPanel(true)} title="调试 (Ctrl+Shift+D)">
-                  <Code size={14} />
+                <SidebarBtn
+                  onClick={() => setActiveView(v => v === 'debug' ? 'chat' : 'debug')}
+                  title="Debug (Ctrl+Shift+D)"
+                  active={activeView === 'debug'}
+                >
+                  <Bug size={14} />
+                </SidebarBtn>
+                <SidebarBtn
+                  onClick={() => setActiveView(v => v === 'playground' ? 'chat' : 'playground')}
+                  title="Playground (Ctrl+Shift+P)"
+                  active={activeView === 'playground'}
+                >
+                  <FlaskConical size={14} />
                 </SidebarBtn>
                 <button
                   onClick={() => {
@@ -1089,51 +1105,60 @@ function App() {
           />
         )}
 
-        {/* Tab 视图 — 技能/记忆/生活面等非聊天页 */}
+        {/* Tab 视图 — 技能/记忆/生活面/Debug/Playground 等非聊天页 */}
         {activeView !== 'chat' && (
-          <div className="view-transition flex flex-1 flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto scrollbar-thin" style={{ background: 'var(--bg-primary)' }}>
-              {activeView === 'skills' && (
-                <SkillsPanel visible={true} onClose={() => setActiveView('chat')} />
-              )}
-              {activeView === 'memory' && (
-                <MemoryPanel onClose={() => setActiveView('chat')} />
-              )}
-              {activeView === 'moments' && (
-                <MomentsPanel onClose={() => setActiveView('chat')} />
-              )}
-              {activeView === 'assets' && (
-                <AssetsPanel onClose={() => setActiveView('chat')} />
-              )}
-              {activeView === 'cast' && (
-                <CastPanel
-                  onClose={() => setActiveView('chat')}
-                  onOpenSession={(sid) => { void openSummonSession(sid) }}
-                  onOpenShelf={() => setActiveView('shelf')}
-                  recentByRole={Object.fromEntries(
-                    sessions
-                      .filter((s) => s.sessionKind === 'summon' && s.roleId)
-                      .sort((a, b) => b.updatedAt - a.updatedAt)
-                      .reduce<Array<[string, { sessionId: string; title: string; updatedAt: number }]>>((acc, s) => {
-                        const rid = s.roleId!
-                        if (acc.some(([id]) => id === rid)) return acc
-                        acc.push([rid, { sessionId: s.id, title: s.title, updatedAt: s.updatedAt }])
-                        return acc
-                      }, []),
-                  )}
-                />
-              )}
-              {activeView === 'shelf' && (
-                <CharacterShelfPanel
-                  onClose={() => setActiveView('chat')}
-                  onSwitched={(p) => {
-                    setCurrentPersonaName(p.name)
-                    setCompanionBlurb(p.description)
-                    setActiveRoleId(p.id)
-                  }}
-                />
-              )}
-            </div>
+          <div className="view-transition flex flex-1 flex-col overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+            {(activeView === 'debug' || activeView === 'playground') ? (
+              <DevPanel
+                surface={activeView}
+                eventLog={eventLog}
+                onClose={() => setActiveView('chat')}
+                onOpenSibling={(s) => setActiveView(s)}
+              />
+            ) : (
+              <div className="flex-1 overflow-y-auto scrollbar-thin">
+                {activeView === 'skills' && (
+                  <SkillsPanel visible={true} onClose={() => setActiveView('chat')} />
+                )}
+                {activeView === 'memory' && (
+                  <MemoryPanel onClose={() => setActiveView('chat')} />
+                )}
+                {activeView === 'moments' && (
+                  <MomentsPanel onClose={() => setActiveView('chat')} />
+                )}
+                {activeView === 'assets' && (
+                  <AssetsPanel onClose={() => setActiveView('chat')} />
+                )}
+                {activeView === 'cast' && (
+                  <CastPanel
+                    onClose={() => setActiveView('chat')}
+                    onOpenSession={(sid) => { void openSummonSession(sid) }}
+                    onOpenShelf={() => setActiveView('shelf')}
+                    recentByRole={Object.fromEntries(
+                      sessions
+                        .filter((s) => s.sessionKind === 'summon' && s.roleId)
+                        .sort((a, b) => b.updatedAt - a.updatedAt)
+                        .reduce<Array<[string, { sessionId: string; title: string; updatedAt: number }]>>((acc, s) => {
+                          const rid = s.roleId!
+                          if (acc.some(([id]) => id === rid)) return acc
+                          acc.push([rid, { sessionId: s.id, title: s.title, updatedAt: s.updatedAt }])
+                          return acc
+                        }, []),
+                    )}
+                  />
+                )}
+                {activeView === 'shelf' && (
+                  <CharacterShelfPanel
+                    onClose={() => setActiveView('chat')}
+                    onSwitched={(p) => {
+                      setCurrentPersonaName(p.name)
+                      setCompanionBlurb(p.description)
+                      setActiveRoleId(p.id)
+                    }}
+                  />
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -1811,14 +1836,7 @@ function App() {
         </div>
       )}
 
-      {/* DevPanel 保留侧推（调试面板适合侧边查看） */}
-      {showDevPanel && (
-        <div className="animate-slide-in-right w-[380px] shrink-0 border-l overflow-y-auto" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
-          <DevPanel onClose={() => setShowDevPanel(false)} eventLog={eventLog} />
-        </div>
-      )}
-
-      {/* Memory 和 Skills 已改为主区域 tab 视图，不再使用侧推面板 */}
+      {/* Memory / Skills / Debug / Playground 均为主区域全页视图 */}
 
       {/* 确认对话框（串行队列：一次只展示队首，应答后出队） */}
       {confirmDialog && (
@@ -1883,14 +1901,31 @@ function SidebarNavBtn({ onClick, icon, label, shortcut, active }: { onClick: ()
   )
 }
 
-function SidebarBtn({ onClick, title, children }: { onClick: () => void; title: string; children: React.ReactNode }) {
+function SidebarBtn({
+  onClick, title, children, active,
+}: {
+  onClick: () => void
+  title: string
+  children: React.ReactNode
+  active?: boolean
+}) {
   return (
     <button
       onClick={onClick}
       className="flex h-7 w-7 items-center justify-center rounded transition"
-      style={{ color: 'var(--text-muted)' }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--hover-overlay)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--text-muted)' }}
+      style={{
+        color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
+        background: active ? 'var(--accent-subtle)' : '',
+      }}
+      onMouseEnter={(e) => {
+        if (active) return
+        e.currentTarget.style.background = 'var(--hover-overlay)'
+        e.currentTarget.style.color = 'var(--text-secondary)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = active ? 'var(--accent-subtle)' : ''
+        e.currentTarget.style.color = active ? 'var(--accent-fg)' : 'var(--text-muted)'
+      }}
       title={title}
     >{children}</button>
   )

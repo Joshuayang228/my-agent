@@ -117,12 +117,15 @@ const PLAY_TABS: { id: PlayTab; label: string; icon: React.ReactNode }[] = [
 ]
 
 interface DevPanelProps {
+  /** 由侧栏独立入口决定，不再在页内二选一嵌套 */
+  surface: Surface
   onClose: () => void
   eventLog: Array<{ time: number; type: string; detail: string }>
+  /** 弱链跳到另一独立页（可选） */
+  onOpenSibling?: (surface: Surface) => void
 }
 
-export function DevPanel({ onClose, eventLog }: DevPanelProps) {
-  const [surface, setSurface] = useState<Surface>('debug')
+export function DevPanel({ surface, onClose, eventLog, onOpenSibling }: DevPanelProps) {
   const [debugTab, setDebugTab] = useState<DebugTab>('prompt')
   const [playTab, setPlayTab] = useState<PlayTab>('prompt-lab')
   const [promptInfo, setPromptInfo] = useState<PromptInfo | null>(null)
@@ -162,46 +165,44 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
 
   const tabs = surface === 'debug' ? DEBUG_TABS : PLAY_TABS
   const activeTab = surface === 'debug' ? debugTab : playTab
+  const title = surface === 'debug' ? 'Debug' : 'Playground'
+  const TitleIcon = surface === 'debug' ? Bug : Play
 
   return (
-    <div className="flex h-full flex-col" data-testid="dev-panel">
-      <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border-color)' }}>
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--success)' }}>
-            <Zap size={14} /> Dev
-          </span>
-          <div className="flex rounded-lg border p-0.5" style={{ borderColor: 'var(--border-color)' }} data-testid="dev-surface-switch">
-            <SurfaceBtn
-              active={surface === 'debug'}
-              onClick={() => setSurface('debug')}
-              icon={<Bug size={12} />}
-              label="Debug"
-              title="透视：系统现在是什么"
-            />
-            <SurfaceBtn
-              active={surface === 'playground'}
-              onClick={() => setSurface('playground')}
-              icon={<Play size={12} />}
-              label="Playground"
-              title="试验：改了会怎样（不写设置）"
-            />
+    <div className="flex h-full flex-col" data-testid="dev-panel" data-surface={surface}>
+      <div className="flex items-center justify-between border-b px-5 py-3" style={{ borderColor: 'var(--border-color)' }}>
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+              <TitleIcon size={16} style={{ color: 'var(--success)' }} />
+              {title}
+            </span>
+            {onOpenSibling && (
+              <button
+                type="button"
+                className="text-[11px] underline-offset-2 hover:underline"
+                style={{ color: 'var(--text-muted)' }}
+                onClick={() => onOpenSibling(surface === 'debug' ? 'playground' : 'debug')}
+              >
+                {surface === 'debug' ? '去 Playground' : '去 Debug'}
+              </button>
+            )}
           </div>
+          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            {surface === 'debug'
+              ? '只读透视：生产实装、世界态与运行痕迹。'
+              : '安全试验：Prompt 覆盖、工具手测、设计 token（不写全局设置）。'}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <button onClick={() => void refresh()} className="rounded-lg px-2 py-1 text-xs transition" style={{ color: 'var(--text-muted)' }}>
             <RotateCcw size={12} /> 刷新
           </button>
-          <button onClick={onClose} className="rounded-lg p-1.5 transition" style={{ color: 'var(--text-muted)' }}>
+          <button onClick={onClose} className="rounded-lg p-1.5 transition" style={{ color: 'var(--text-muted)' }} title="返回聊天">
             <X size={14} />
           </button>
         </div>
       </div>
-
-      <p className="border-b px-5 py-2 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
-        {surface === 'debug'
-          ? 'Debug：只读透视生产实装与运行痕迹。'
-          : 'Playground：会话级试验。Prompt 覆盖与工具手测默认不写入全局设置 / 真会话。'}
-      </p>
 
       <div className="flex border-b px-5" style={{ borderColor: 'var(--border-color)' }}>
         {tabs.map(t => (
@@ -239,31 +240,6 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
         {surface === 'playground' && playTab === 'tokens' && <TokensTab />}
       </div>
     </div>
-  )
-}
-
-function SurfaceBtn({
-  active, onClick, icon, label, title,
-}: {
-  active: boolean
-  onClick: () => void
-  icon: ReactNode
-  label: string
-  title: string
-}) {
-  return (
-    <button
-      type="button"
-      title={title}
-      onClick={onClick}
-      className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
-        active ? 'bg-emerald-500/15 text-emerald-500' : ''
-      }`}
-      style={!active ? { color: 'var(--text-muted)' } : undefined}
-    >
-      {icon}
-      {label}
-    </button>
   )
 }
 

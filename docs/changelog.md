@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Changed — Debug / Playground 独立全页入口（2026-08-05）
+
+- 侧栏双入口（Bug / 烧瓶），主区全页打开；去掉聊天右侧嵌套抽屉
+- 快捷键：Ctrl+Shift+D → Debug；Ctrl+Shift+P → Playground
+- 对齐 Alice「独立入口」而非页内 surface 嵌套
+
 ### Added — 体验调试 Phase 2（M32-G5）（2026-08-05）
 
 - Playground「设计 token」：当前主题色板 / radius / motion + 基础控件样例（非完整 Storybook）

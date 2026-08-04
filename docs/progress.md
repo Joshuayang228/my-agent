@@ -17,6 +17,7 @@
 **阶段**：公开运营起步；体验与前端统一优先于再堆基建；原生语音与 M24-G3 暂缓。
 
 **最新动态（2026-08-05）**：
+- ✅ **体验调试 Phase 3**：Debug / Playground 侧栏独立入口 + 主区全页（对齐 Alice，去右侧抽屉）。
 - ✅ **体验调试 Phase 2（M32-G5）**：Playground「设计 token」色板 / radius / 基础控件样例。
 - ✅ **体验调试 Phase 1（M32-G4）**：Debug「世界态」+ `debug:world-snapshot`。
 - ✅ **体验调试 Phase 0（M32-G1–G3）**：DevPanel 两面 + 工具手测 + Prompt 会话覆盖；施工合同已落地。
