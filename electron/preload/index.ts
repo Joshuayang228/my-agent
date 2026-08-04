@@ -378,6 +378,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
           }
         }
     > => ipcRenderer.invoke('debug:tool-run', input),
+    worldSnapshot: () => ipcRenderer.invoke('debug:world-snapshot'),
   },
 
   rag: {

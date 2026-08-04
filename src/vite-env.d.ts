@@ -402,6 +402,48 @@ declare global {
               }
             }
         >
+        worldSnapshot: () => Promise<{
+          role: { id: string; name: string; description: string; universeId: string }
+          mutable: {
+            body: string
+            truncated: boolean
+            version: number | null
+            updatedAt: number | null
+            source: 'override' | 'pack-default'
+          }
+          world: {
+            home: string
+            timezone: string
+            situation: string
+            updatedAt: number
+          } | null
+          life: {
+            pausedAt: number | null
+            lastTickAt: number
+            catchupSummary: string
+            catchupTruncated: boolean
+          } | null
+          dayScript: {
+            date: string
+            id: string
+            theme: string
+            slots: Array<{
+              hour: number
+              minute: number
+              type: string
+              activity: string
+              mood: string
+              location: string
+            }>
+            slotsTruncated: boolean
+          } | null
+          moments: Array<{ id: string; publishedAt: number; text: string }>
+          momentsTruncated: boolean
+          profile: { identity: string; workflow: string; voice: string } | null
+          memories: Array<{ id: string; category: string; content: string; updatedAt: number }>
+          memoriesTruncated: boolean
+          generatedAt: number
+        }>
       }
       chat: {
         send: (sessionId: string, userMessage: ChatMessage) => Promise<void>

@@ -1,6 +1,6 @@
 # 施工合同：体验调试（Debug / Playground）
 
-> 状态：**已落地**（Phase 0 = M32-G1–G3，2026-08-04）  
+> 状态：**已落地**（Phase 0 = G1–G3；Phase 1 = G4，2026-08-04）  
 > 日期：2026-08-04  
 > 上位：[`methodology/m32-experience-debug-playground.md`](../../methodology/m32-experience-debug-playground.md)  
 > 参考：Alice `/debug` · `/playground` · `enableDebugMode`（本地 `alice-source/_extract/`）
@@ -27,11 +27,23 @@ DevPanel 已有 Prompt 查看、traces、单轮 LLM 试跑，但心智仍是「�
 | **G2** | 工具手测 | 选工具 → JSON 参数 → 执行；走 Registry + 权限检查；deny 不可绕过；需确认/破坏性工具必须勾选「确认风险」 |
 | **G3** | Prompt 会话级覆盖 | Playground 可「载入当前实装」到编辑器；试跑只用该文本；**不写** `settings.systemPrompt`；UI 标明仅本次有效 |
 
-### 不做（本 Phase）
+### 不做（Phase 0）
 
 - G4 世界态树、G5 色板 Storybook、G6 错误卡夹具、G7 对话内 debugMode 叠加、G8 aside 预览  
 - 独立 `/debug` `/playground` 路由（可仍用侧推 DevPanel）  
 - Webhook / 狼人杀等 Alice 产品专属 tab  
+
+---
+
+## 2b. Phase 1 — G4 世界态透视
+
+| ID | 目标 | 验收 |
+|----|------|------|
+| **G4** | Debug 面「世界态」tab + 聚合只读 IPC | 一眼看到活跃角色、MUTABLE、world 薄片、今日剧本、近 Moments、画像/近记忆；长字段截断；无 API Key |
+
+**不做（Phase 1）**：完整 Alice 生活树编辑、写操作、G5–G8。
+
+IPC：`debug:world-snapshot` → `buildDebugWorldSnapshot()`（截断：记忆≤20、Moments≤10、MUTABLE≤2k 等）。
 
 ---
 
@@ -41,7 +53,7 @@ DevPanel 已有 Prompt 查看、traces、单轮 LLM 试跑，但心智仍是「�
 
 ```text
 [ Debug | Playground ]     ← surface
-Debug:     Prompt实装 | 系统 | 调用链 | 事件
+Debug:     Prompt实装 | 世界态 | 系统 | 调用链 | 事件
 Playground: Prompt试验 | 工具手测
 ```
 

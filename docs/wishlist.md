@@ -58,7 +58,7 @@
 - [x] ~~**M32-G1** DevPanel 拆 Debug / Playground 两面~~ — 2026-08-04：顶层 surface 切换
 - [x] ~~**M32-G2** 工具手测（真执行 + 权限路径）~~ — 2026-08-04：`debug:tool-run` + confirmRisk
 - [x] ~~**M32-G3** Prompt 会话级覆盖（非全局 settings）~~ — 2026-08-04：载入实装 + playgroundRun
-- [ ] **M32-G4** 关键世界态透视（记忆 / 日程 / 角色快照）
+- [x] ~~**M32-G4** 关键世界态透视（记忆 / 日程 / 角色快照）~~ — 2026-08-04：`debug:world-snapshot` + Debug「世界态」
 - [ ] **M32-G5** 产品内设计 token / 基础控件场
 - [ ] **M32-G6** 错误卡 / 空态 / 权限确认夹具
 - [ ] **M32-G7** 对话内 debugMode 叠加策略

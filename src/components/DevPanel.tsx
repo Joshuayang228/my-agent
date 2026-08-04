@@ -1,12 +1,50 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import {
   FileText, Wrench, BarChart3, ClipboardList, Zap, RotateCcw, X,
-  FlaskConical, Bug, Play,
+  FlaskConical, Bug, Play, Globe,
 } from 'lucide-react'
 
 type Surface = 'debug' | 'playground'
-type DebugTab = 'prompt' | 'system' | 'traces' | 'events'
+type DebugTab = 'prompt' | 'world' | 'system' | 'traces' | 'events'
 type PlayTab = 'prompt-lab' | 'tool-run'
+
+interface WorldSnapshot {
+  role: { id: string; name: string; description: string; universeId: string }
+  mutable: {
+    body: string
+    truncated: boolean
+    version: number | null
+    updatedAt: number | null
+    source: 'override' | 'pack-default'
+  }
+  world: { home: string; timezone: string; situation: string; updatedAt: number } | null
+  life: {
+    pausedAt: number | null
+    lastTickAt: number
+    catchupSummary: string
+    catchupTruncated: boolean
+  } | null
+  dayScript: {
+    date: string
+    id: string
+    theme: string
+    slots: Array<{
+      hour: number
+      minute: number
+      type: string
+      activity: string
+      mood: string
+      location: string
+    }>
+    slotsTruncated: boolean
+  } | null
+  moments: Array<{ id: string; publishedAt: number; text: string }>
+  momentsTruncated: boolean
+  profile: { identity: string; workflow: string; voice: string } | null
+  memories: Array<{ id: string; category: string; content: string; updatedAt: number }>
+  memoriesTruncated: boolean
+  generatedAt: number
+}
 
 interface TraceSpanInfo {
   id: string
@@ -66,6 +104,7 @@ function formatUptime(seconds: number): string {
 
 const DEBUG_TABS: { id: DebugTab; label: string; icon: React.ReactNode }[] = [
   { id: 'prompt', label: 'Prompt 实装', icon: <FileText size={12} /> },
+  { id: 'world', label: '世界态', icon: <Globe size={12} /> },
   { id: 'system', label: '系统', icon: <BarChart3 size={12} /> },
   { id: 'traces', label: '调用链', icon: <Zap size={12} /> },
   { id: 'events', label: '事件', icon: <ClipboardList size={12} /> },
@@ -90,6 +129,8 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
   const [promptLayer, setPromptLayer] = useState<'full' | 'l1' | 'l2' | 'l3' | 'l4'>('full')
   const [spans, setSpans] = useState<TraceSpanInfo[]>([])
+  const [worldSnap, setWorldSnap] = useState<WorldSnapshot | null>(null)
+  const [worldError, setWorldError] = useState('')
 
   const refresh = useCallback(async () => {
     if (!window.electronAPI?.debug) return
@@ -97,6 +138,9 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
       if (surface === 'debug') {
         if (debugTab === 'prompt') {
           setPromptInfo(await window.electronAPI.debug.systemPrompt())
+        } else if (debugTab === 'world') {
+          setWorldError('')
+          setWorldSnap(await window.electronAPI.debug.worldSnapshot())
         } else if (debugTab === 'system') {
           setSystemInfo(await window.electronAPI.debug.systemInfo())
         } else if (debugTab === 'traces') {
@@ -106,7 +150,11 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
       } else if (playTab === 'tool-run') {
         setTools(await window.electronAPI.debug.tools())
       }
-    } catch { /* not in Electron */ }
+    } catch (e) {
+      if (debugTab === 'world') {
+        setWorldError(e instanceof Error ? e.message : String(e))
+      }
+    }
   }, [surface, debugTab, playTab])
 
   useEffect(() => { void refresh() }, [refresh])
@@ -177,6 +225,9 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
         {surface === 'debug' && debugTab === 'prompt' && (
           <PromptTab info={promptInfo} layer={promptLayer} setLayer={setPromptLayer} readonly />
         )}
+        {surface === 'debug' && debugTab === 'world' && (
+          <WorldTab snap={worldSnap} error={worldError} />
+        )}
         {surface === 'debug' && debugTab === 'system' && <SystemTab info={systemInfo} />}
         {surface === 'debug' && debugTab === 'traces' && <TracesTab spans={spans} />}
         {surface === 'debug' && debugTab === 'events' && <EventsTab events={eventLog} />}
@@ -211,6 +262,162 @@ function SurfaceBtn({
       {icon}
       {label}
     </button>
+  )
+}
+
+function WorldTab({ snap, error }: { snap: WorldSnapshot | null; error: string }) {
+  if (error) {
+    return <p className="text-xs" style={{ color: 'var(--danger, #c44)' }}>{error}</p>
+  }
+  if (!snap) {
+    return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载中…（需要 Electron）</div>
+  }
+
+  const fmt = (ms: number) =>
+    ms ? new Date(ms).toLocaleString('zh-CN', { hour12: false }) : '—'
+
+  return (
+    <div className="space-y-4" data-testid="world-snapshot">
+      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+        只读透视：它以为自己是谁、在哪、今天剧本与近记忆。已截断长字段；不含 API Key。
+        <span className="ml-2 font-mono">@{fmt(snap.generatedAt)}</span>
+      </p>
+
+      <Section title="活跃主角">
+        <KV label="id" value={snap.role.id} mono />
+        <KV label="name" value={snap.role.name} />
+        <KV label="universe" value={snap.role.universeId} mono />
+        <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{snap.role.description}</p>
+      </Section>
+
+      <Section title={`MUTABLE（${snap.mutable.source}${snap.mutable.version != null ? ` · v${snap.mutable.version}` : ''}）`}>
+        {snap.mutable.truncated && (
+          <p className="mb-1 text-[10px] text-amber-500">正文已截断</p>
+        )}
+        <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded border p-2 font-mono text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
+          {snap.mutable.body || '（空）'}
+        </pre>
+      </Section>
+
+      <Section title="世界薄片">
+        {!snap.world ? (
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>尚无 role_state</p>
+        ) : (
+          <>
+            <KV label="home" value={snap.world.home} />
+            <KV label="timezone" value={snap.world.timezone} mono />
+            <KV label="situation" value={snap.world.situation || '—'} />
+            <KV label="updated" value={fmt(snap.world.updatedAt)} mono />
+          </>
+        )}
+      </Section>
+
+      <Section title="生活引擎">
+        {!snap.life ? (
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>—</p>
+        ) : (
+          <>
+            <KV label="pausedAt" value={snap.life.pausedAt ? fmt(snap.life.pausedAt) : '（活跃）'} mono />
+            <KV label="lastTickAt" value={fmt(snap.life.lastTickAt)} mono />
+            {snap.life.catchupTruncated && (
+              <p className="mb-1 text-[10px] text-amber-500">catchup 已截断</p>
+            )}
+            <pre className="max-h-28 overflow-auto whitespace-pre-wrap rounded border p-2 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
+              {snap.life.catchupSummary || '（无 catchup）'}
+            </pre>
+          </>
+        )}
+      </Section>
+
+      <Section title={`今日剧本${snap.dayScript ? ` · ${snap.dayScript.date}` : ''}`}>
+        {!snap.dayScript ? (
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>今日尚无 day_script</p>
+        ) : (
+          <>
+            <KV label="theme" value={snap.dayScript.theme || '—'} />
+            {snap.dayScript.slotsTruncated && (
+              <p className="mb-1 text-[10px] text-amber-500">槽位已截断</p>
+            )}
+            <div className="space-y-1">
+              {snap.dayScript.slots.map((s, i) => (
+                <div key={i} className="rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: 'var(--border-color)' }}>
+                  <span className="font-mono" style={{ color: 'var(--text-muted)' }}>
+                    {String(s.hour).padStart(2, '0')}:{String(s.minute).padStart(2, '0')}
+                  </span>
+                  {' '}
+                  <span style={{ color: 'var(--text-primary)' }}>{s.activity}</span>
+                  <span style={{ color: 'var(--text-muted)' }}> · {s.mood} · {s.location} · {s.type}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </Section>
+
+      <Section title={`近 Moments${snap.momentsTruncated ? '（已截断）' : ''}`}>
+        {snap.moments.length === 0 ? (
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>暂无</p>
+        ) : (
+          <div className="space-y-1">
+            {snap.moments.map((m) => (
+              <div key={m.id} className="rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: 'var(--border-color)' }}>
+                <div className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{fmt(m.publishedAt)}</div>
+                <div style={{ color: 'var(--text-secondary)' }}>{m.text}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      <Section title="用户画像（L3）">
+        {!snap.profile ? (
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>无画像</p>
+        ) : (
+          <>
+            <KV label="identity" value={snap.profile.identity || '—'} />
+            <KV label="workflow" value={snap.profile.workflow || '—'} />
+            <KV label="voice" value={snap.profile.voice || '—'} />
+          </>
+        )}
+      </Section>
+
+      <Section title={`近记忆${snap.memoriesTruncated ? '（已截断）' : ''}`}>
+        {snap.memories.length === 0 ? (
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>暂无</p>
+        ) : (
+          <div className="space-y-1">
+            {snap.memories.map((m) => (
+              <div key={m.id} className="flex gap-2 rounded border px-2 py-1 text-[11px]" style={{ borderColor: 'var(--border-color)' }}>
+                <span className="shrink-0 font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{m.category}</span>
+                <span style={{ color: 'var(--text-secondary)' }}>{m.content}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+    </div>
+  )
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div>
+      <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+        {title}
+      </div>
+      <div className="theme-card rounded-lg border p-3" style={{ borderColor: 'var(--border-color)' }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function KV({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex gap-2 text-xs leading-relaxed">
+      <span className="w-20 shrink-0" style={{ color: 'var(--text-muted)' }}>{label}</span>
+      <span className={mono ? 'font-mono break-all' : 'break-words'} style={{ color: 'var(--text-primary)' }}>{value}</span>
+    </div>
   )
 }
 

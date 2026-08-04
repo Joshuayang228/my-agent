@@ -141,5 +141,11 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     },
   )
 
+  /** 世界态只读快照（M32-G4） */
+  ipcMain.handle('debug:world-snapshot', async () => {
+    const { buildDebugWorldSnapshot } = await import('../agent/debug-world-snapshot')
+    return buildDebugWorldSnapshot()
+  })
+
   log.info('Debug IPC registered')
 }

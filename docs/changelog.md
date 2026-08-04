@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Added — 体验调试 Phase 1（M32-G4）（2026-08-04）
+
+- Debug「世界态」tab：活跃角色 / MUTABLE / world / 日剧本 / Moments / 画像与近记忆
+- `debug:world-snapshot` 聚合只读快照（字段截断，不含密钥）
+
 ### Added — 体验调试 Phase 0（M32-G1–G3）（2026-08-04）
 
 - DevPanel 顶层拆 **Debug / Playground**；Debug 只读透视，Playground 做试验

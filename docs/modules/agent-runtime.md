@@ -71,6 +71,7 @@
 | DevPanel Debug/Playground 两面 | 已落地 | surface 切换；Prompt 实装 vs 试验 |
 | 工具手测（权限门闸） | 已落地 | `debug:tool-run` · confirmRisk |
 | Prompt 会话覆盖（不写 settings） | 已落地 | 载入实装 → playgroundRun |
+| Debug 世界态透视 | 已落地 | `debug:world-snapshot` · DevPanel 世界态 tab |
 
 ## 现状 / 缺口
 
