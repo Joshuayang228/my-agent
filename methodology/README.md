@@ -13,7 +13,7 @@
 
 ### 为什么分六个部分
 
-M01–M31 按**依赖层级**从底向上排列：底层基础设施决定上层能做什么，读者应先理解当前章节所依赖的那一层。
+M01–M32 按**依赖层级**从底向上排列：底层基础设施决定上层能做什么，读者应先理解当前章节所依赖的那一层。
 
 **Part I 核心运行时** 最先，因为 Streaming 和错误体系是 Agent Loop 本身运行的基础——不理解流式传输如何传播，就无法真正理解 Loop 为何如此设计。错误体系放在工具系统之前，因为错误处理贯穿整个运行时，不是某个模块的附属。
 
@@ -34,7 +34,7 @@ M01–M31 按**依赖层级**从底向上排列：底层基础设施决定上层
 | 产品契约 / W 批次 | `docs/requirements/companion-world-framework.md` |
 | 模块架构详设 | `docs/requirements/companion-architecture.md` |
 | 全局技术指针 | `docs/architecture.md` §5.1 |
-| 深 Why / 自洽 | **本目录 M21–M31**（随 W 沉淀，不当施工图） |
+| 深 Why / 自洽 | **本目录 M21–M32**（随 W / 体验基建沉淀，不当施工图） |
 
 **运行时硬约束（写入各章时勿违背）**：同团多主角可切换；**同时只启用一个**；会话中禁止换角；非活跃暂停；切换 Catch-up **细补 ≤7 天**。
 
@@ -110,6 +110,7 @@ M01–M31 按**依赖层级**从底向上排列：底层基础设施决定上层
 | M29 | 信息不对称与记忆透明 | `m29-asymmetric-memory.md` + `-code.md` | 体验 | W1+ | ✅ |
 | M30 | 叙事连贯与能力边界 | `m30-narrative-capability.md` + `-code.md` | 体验 | W2–W4 | ✅ |
 | M31 | 主动在场设计 | `m31-proactive-presence.md` + `-code.md` | Surfaces | W3+W6 | ✅ |
+| M32 | 体验调试：Debug 与 Playground | `m32-experience-debug-playground.md` + `-code.md` | 体验 | — | ✅（工程 Gap 见章内 / wishlist） |
 
 旧文件归档：`_archive/methodology-companion-legacy/`。
 
@@ -132,8 +133,8 @@ M01–M31 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 | 优先级 | 项 | 说明 |
 |--------|-----|------|
-| 沉淀下一步 | （Part VI 已收齐） | 增量 Gap 见 wishlist；工程可选 Pack 打磨 |
-| 工程可选 | Pack 内容打磨 | 三槽薄 Pack 加厚（非方法论阻塞） |
+| 工程可选 | M32 Gap（Debug/Playground 面） | 先写施工合同再动 DevPanel；见 wishlist M32-G* |
+| 工程可选 | Pack 内容打磨 | 三槽 Pack 持续加厚（非方法论阻塞） |
 | 增量 | 已写章节暂缓 Gap | `docs/wishlist.md` + 各章实战记录 |
 
 ## 写作约定
