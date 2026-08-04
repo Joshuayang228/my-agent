@@ -54,6 +54,15 @@
 - [x] ~~**M29 信息不对称/记忆透明方法论**~~ — 2026-08-02：理念+code 已沉淀
 - [x] ~~**M30 叙事/能力边界方法论**~~ — 2026-08-02：理念+code 已沉淀
 - [x] ~~**M31 主动在场方法论**~~ — 2026-08-02：理念+code 已沉淀
+- [x] ~~**M32 体验调试方法论**~~ — 2026-08-04：理念+code；工程 Gap 见下（先施工合同）
+- [x] ~~**M32-G1** DevPanel 拆 Debug / Playground 两面~~ — 2026-08-04：顶层 surface 切换
+- [x] ~~**M32-G2** 工具手测（真执行 + 权限路径）~~ — 2026-08-04：`debug:tool-run` + confirmRisk
+- [x] ~~**M32-G3** Prompt 会话级覆盖（非全局 settings）~~ — 2026-08-04：载入实装 + playgroundRun
+- [ ] **M32-G4** 关键世界态透视（记忆 / 日程 / 角色快照）
+- [ ] **M32-G5** 产品内设计 token / 基础控件场
+- [ ] **M32-G6** 错误卡 / 空态 / 权限确认夹具
+- [ ] **M32-G7** 对话内 debugMode 叠加策略
+- [ ] **M32-G8** aside Playground 预览（与行内 aside 耦合）
 - [x] ~~**Part VI M22–M31**~~ — 2026-08-02：伙伴方法论主线已收齐
 - [x] ~~**Part VI 加厚修订**~~ — 2026-08-02：M22–M31 均已加厚
 - [x] ~~**M22-G1** 成长时钟按 role 分桶~~ — 2026-08-02：`companionGrowthStartedAtByRole`；旧键迁移到活跃主角
@@ -127,3 +136,9 @@
 
 - [x] ~~**CompositeObserver 组合模式**~~ — 2026-07-26 已做（`observer.ts` CompositeObserver）
 - [x] ~~**Callback 组件化**~~ — 2026-08-03 已做（`src/components/chat/callbacks/`：reasoning/content/tool 三通道 + App 接线）
+
+### 前端 / 产品面（施工合同外）
+
+- [x] ~~**前端视觉语言 + 设置 IA**~~ — Phase1–3 已落地：`docs/requirements/frontend-visual-language.md`
+- [ ] **设置：账号 / 隐私云同步 / 用量统计大盘 / 自动化工作流** — Alice 有、我方无后端；合同明确不做假入口
+- [ ] **侧栏 Wiki / 待办 / 定时应用模块** — Alice 应用区；非本轮视觉合同范围

@@ -1,7 +1,12 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
-import { FileText, Wrench, BarChart3, ClipboardList, Zap, RotateCcw, X, CheckCircle, XCircle, ChevronRight, FlaskConical } from 'lucide-react'
+import {
+  FileText, Wrench, BarChart3, ClipboardList, Zap, RotateCcw, X,
+  FlaskConical, Bug, Play,
+} from 'lucide-react'
 
-type Tab = 'prompt' | 'tools' | 'system' | 'events' | 'traces' | 'playground'
+type Surface = 'debug' | 'playground'
+type DebugTab = 'prompt' | 'system' | 'traces' | 'events'
+type PlayTab = 'prompt-lab' | 'tool-run'
 
 interface TraceSpanInfo {
   id: string
@@ -59,13 +64,16 @@ function formatUptime(seconds: number): string {
   return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`
 }
 
-const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'prompt', label: 'System Prompt', icon: <FileText size={12} /> },
-  { id: 'playground', label: 'Playground', icon: <FlaskConical size={12} /> },
-  { id: 'tools', label: '工具注册表', icon: <Wrench size={12} /> },
-  { id: 'system', label: '系统状态', icon: <BarChart3 size={12} /> },
+const DEBUG_TABS: { id: DebugTab; label: string; icon: React.ReactNode }[] = [
+  { id: 'prompt', label: 'Prompt 实装', icon: <FileText size={12} /> },
+  { id: 'system', label: '系统', icon: <BarChart3 size={12} /> },
   { id: 'traces', label: '调用链', icon: <Zap size={12} /> },
-  { id: 'events', label: '事件日志', icon: <ClipboardList size={12} /> },
+  { id: 'events', label: '事件', icon: <ClipboardList size={12} /> },
+]
+
+const PLAY_TABS: { id: PlayTab; label: string; icon: React.ReactNode }[] = [
+  { id: 'prompt-lab', label: 'Prompt 试验', icon: <FlaskConical size={12} /> },
+  { id: 'tool-run', label: '工具手测', icon: <Wrench size={12} /> },
 ]
 
 interface DevPanelProps {
@@ -74,97 +82,163 @@ interface DevPanelProps {
 }
 
 export function DevPanel({ onClose, eventLog }: DevPanelProps) {
-  const [tab, setTab] = useState<Tab>('prompt')
+  const [surface, setSurface] = useState<Surface>('debug')
+  const [debugTab, setDebugTab] = useState<DebugTab>('prompt')
+  const [playTab, setPlayTab] = useState<PlayTab>('prompt-lab')
   const [promptInfo, setPromptInfo] = useState<PromptInfo | null>(null)
   const [tools, setTools] = useState<ToolInfo[]>([])
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
-  const [expandedTool, setExpandedTool] = useState<string | null>(null)
   const [promptLayer, setPromptLayer] = useState<'full' | 'l1' | 'l2' | 'l3' | 'l4'>('full')
   const [spans, setSpans] = useState<TraceSpanInfo[]>([])
 
   const refresh = useCallback(async () => {
     if (!window.electronAPI?.debug) return
     try {
-      if (tab === 'prompt') {
-        const info = await window.electronAPI.debug.systemPrompt()
-        setPromptInfo(info)
-      } else if (tab === 'tools') {
-        const list = await window.electronAPI.debug.tools()
-        setTools(list)
-      } else if (tab === 'system') {
-        const info = await window.electronAPI.debug.systemInfo()
-        setSystemInfo(info)
-      } else if (tab === 'traces') {
-        const data = await window.electronAPI.debug.traces()
-        setSpans(data.spans ?? [])
+      if (surface === 'debug') {
+        if (debugTab === 'prompt') {
+          setPromptInfo(await window.electronAPI.debug.systemPrompt())
+        } else if (debugTab === 'system') {
+          setSystemInfo(await window.electronAPI.debug.systemInfo())
+        } else if (debugTab === 'traces') {
+          const data = await window.electronAPI.debug.traces()
+          setSpans(data.spans ?? [])
+        }
+      } else if (playTab === 'tool-run') {
+        setTools(await window.electronAPI.debug.tools())
       }
     } catch { /* not in Electron */ }
-  }, [tab])
+  }, [surface, debugTab, playTab])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => { void refresh() }, [refresh])
+
+  const tabs = surface === 'debug' ? DEBUG_TABS : PLAY_TABS
+  const activeTab = surface === 'debug' ? debugTab : playTab
 
   return (
-    <div className="flex h-full flex-col">
-        <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border-color)' }}>
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--success)' }}><Zap size={14} /> Dev</span>
-            <span className="rounded px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--accent-subtle)', color: 'var(--success)' }}>DEBUG</span>
+    <div className="flex h-full flex-col" data-testid="dev-panel">
+      <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border-color)' }}>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--success)' }}>
+            <Zap size={14} /> Dev
+          </span>
+          <div className="flex rounded-lg border p-0.5" style={{ borderColor: 'var(--border-color)' }} data-testid="dev-surface-switch">
+            <SurfaceBtn
+              active={surface === 'debug'}
+              onClick={() => setSurface('debug')}
+              icon={<Bug size={12} />}
+              label="Debug"
+              title="透视：系统现在是什么"
+            />
+            <SurfaceBtn
+              active={surface === 'playground'}
+              onClick={() => setSurface('playground')}
+              icon={<Play size={12} />}
+              label="Playground"
+              title="试验：改了会怎样（不写设置）"
+            />
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={refresh}
-              className="rounded-lg px-2 py-1 text-xs transition"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              <RotateCcw size={12} /> 刷新
-            </button>
-            <button
-              onClick={onClose}
-              className="rounded-lg p-1.5 transition"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              <X size={14} />
-            </button>
-          </div>
         </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => void refresh()} className="rounded-lg px-2 py-1 text-xs transition" style={{ color: 'var(--text-muted)' }}>
+            <RotateCcw size={12} /> 刷新
+          </button>
+          <button onClick={onClose} className="rounded-lg p-1.5 transition" style={{ color: 'var(--text-muted)' }}>
+            <X size={14} />
+          </button>
+        </div>
+      </div>
 
-        <div className="flex border-b px-5" style={{ borderColor: 'var(--border-color)' }}>
-          {TABS.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-medium transition ${
-                tab === t.id
-                  ? 'border-emerald-400 text-emerald-500'
-                  : 'border-transparent'
-              }`}
-              style={tab !== t.id ? { color: 'var(--text-muted)' } : undefined}
-            >
-              <span>{t.icon}</span>
-              {t.label}
-            </button>
-          ))}
-        </div>
+      <p className="border-b px-5 py-2 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
+        {surface === 'debug'
+          ? 'Debug：只读透视生产实装与运行痕迹。'
+          : 'Playground：会话级试验。Prompt 覆盖与工具手测默认不写入全局设置 / 真会话。'}
+      </p>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5">
-          {tab === 'prompt' && <PromptTab info={promptInfo} layer={promptLayer} setLayer={setPromptLayer} />}
-          {tab === 'playground' && <PlaygroundTab />}
-          {tab === 'tools' && <ToolsTab tools={tools} expanded={expandedTool} setExpanded={setExpandedTool} />}
-          {tab === 'system' && <SystemTab info={systemInfo} />}
-          {tab === 'traces' && <TracesTab spans={spans} />}
-          {tab === 'events' && <EventsTab events={eventLog} />}
-        </div>
+      <div className="flex border-b px-5" style={{ borderColor: 'var(--border-color)' }}>
+        {tabs.map(t => (
+          <button
+            key={t.id}
+            onClick={() => {
+              if (surface === 'debug') setDebugTab(t.id as DebugTab)
+              else setPlayTab(t.id as PlayTab)
+            }}
+            className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-medium transition ${
+              activeTab === t.id ? 'border-emerald-400 text-emerald-500' : 'border-transparent'
+            }`}
+            style={activeTab !== t.id ? { color: 'var(--text-muted)' } : undefined}
+          >
+            <span>{t.icon}</span>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-5">
+        {surface === 'debug' && debugTab === 'prompt' && (
+          <PromptTab info={promptInfo} layer={promptLayer} setLayer={setPromptLayer} readonly />
+        )}
+        {surface === 'debug' && debugTab === 'system' && <SystemTab info={systemInfo} />}
+        {surface === 'debug' && debugTab === 'traces' && <TracesTab spans={spans} />}
+        {surface === 'debug' && debugTab === 'events' && <EventsTab events={eventLog} />}
+        {surface === 'playground' && playTab === 'prompt-lab' && (
+          <PromptLabTab onLoadedProduction={setPromptInfo} />
+        )}
+        {surface === 'playground' && playTab === 'tool-run' && <ToolRunTab tools={tools} />}
+      </div>
     </div>
   )
 }
 
-function PlaygroundTab() {
+function SurfaceBtn({
+  active, onClick, icon, label, title,
+}: {
+  active: boolean
+  onClick: () => void
+  icon: ReactNode
+  label: string
+  title: string
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
+        active ? 'bg-emerald-500/15 text-emerald-500' : ''
+      }`}
+      style={!active ? { color: 'var(--text-muted)' } : undefined}
+    >
+      {icon}
+      {label}
+    </button>
+  )
+}
+
+function PromptLabTab({ onLoadedProduction }: { onLoadedProduction: (info: PromptInfo) => void }) {
   const [systemPrompt, setSystemPrompt] = useState('')
   const [userPrompt, setUserPrompt] = useState('用一句话解释什么是 KV Cache。')
   const [running, setRunning] = useState(false)
+  const [loadingProd, setLoadingProd] = useState(false)
   const [result, setResult] = useState<{ text: string; ms: number; model: string } | null>(null)
   const [error, setError] = useState('')
+
+  const loadProduction = async () => {
+    if (!window.electronAPI?.debug) {
+      setError('需要 Electron 环境')
+      return
+    }
+    setLoadingProd(true)
+    setError('')
+    try {
+      const info = await window.electronAPI.debug.systemPrompt()
+      onLoadedProduction(info)
+      setSystemPrompt(info.full || '')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setLoadingProd(false)
+    }
+  }
 
   const run = async () => {
     if (!window.electronAPI?.debug?.playgroundRun) {
@@ -189,18 +263,36 @@ function PlaygroundTab() {
   }
 
   return (
-    <div className="space-y-3">
-      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-        免伴侣上下文单轮试跑：不注入 Role Pack / 记忆 / 工具 / 会话历史。用设置里的主模型 API。
+    <div className="space-y-3" data-testid="prompt-lab">
+      <p className="rounded-lg border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
+        会话级覆盖：下方 System 仅用于本次试跑，<strong style={{ color: 'var(--text-primary)' }}>不会写入设置</strong>。
+        可先「载入当前实装」再改。
       </p>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={loadingProd}
+          onClick={() => void loadProduction()}
+          className="settings-option px-3 py-1.5 text-xs disabled:opacity-50"
+        >
+          {loadingProd ? '载入中…' : '载入当前实装'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setSystemPrompt('')}
+          className="settings-option px-3 py-1.5 text-xs"
+        >
+          清空 System（用默认试验指令）
+        </button>
+      </div>
       <label className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
-        System（可空，空则用默认 playground 指令）
+        System（会话覆盖）
         <textarea
           value={systemPrompt}
           onChange={(e) => setSystemPrompt(e.target.value)}
-          rows={3}
+          rows={8}
           className="theme-input mt-1 w-full rounded-lg border px-2 py-1.5 font-mono text-xs outline-none"
-          placeholder="可选覆盖 system prompt"
+          placeholder="空 = 使用默认 playground 指令；不写全局 settings"
         />
       </label>
       <label className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
@@ -208,7 +300,7 @@ function PlaygroundTab() {
         <textarea
           value={userPrompt}
           onChange={(e) => setUserPrompt(e.target.value)}
-          rows={4}
+          rows={3}
           className="theme-input mt-1 w-full rounded-lg border px-2 py-1.5 font-mono text-xs outline-none"
         />
       </label>
@@ -218,7 +310,7 @@ function PlaygroundTab() {
         onClick={() => void run()}
         className="settings-option px-3 py-1.5 text-xs disabled:opacity-50"
       >
-        {running ? '运行中…' : '运行'}
+        {running ? '运行中…' : '试跑（单轮 · 无工具）'}
       </button>
       {error && (
         <p className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: 'var(--danger, #c44)', color: 'var(--danger, #c44)' }}>
@@ -239,10 +331,166 @@ function PlaygroundTab() {
   )
 }
 
-function PromptTab({ info, layer, setLayer }: {
+function ToolRunTab({ tools }: { tools: ToolInfo[] }) {
+  const [name, setName] = useState('')
+  const [argsJson, setArgsJson] = useState('{\n  \n}')
+  const [confirmRisk, setConfirmRisk] = useState(false)
+  const [running, setRunning] = useState(false)
+  const [output, setOutput] = useState('')
+  const [meta, setMeta] = useState('')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!name && tools.length > 0) {
+      const first = tools.find(t => !t.name.startsWith('mcp:')) ?? tools[0]
+      setName(first.name)
+      setArgsJson(`${JSON.stringify(exampleArgs(first), null, 2)}\n`)
+    }
+  }, [tools, name])
+
+  const selected = tools.find(t => t.name === name)
+
+  const onPick = (n: string) => {
+    setName(n)
+    const t = tools.find(x => x.name === n)
+    if (t) setArgsJson(`${JSON.stringify(exampleArgs(t), null, 2)}\n`)
+    setConfirmRisk(false)
+    setError('')
+    setOutput('')
+    setMeta('')
+  }
+
+  const run = async () => {
+    if (!window.electronAPI?.debug?.toolRun) {
+      setError('需要 Electron 环境')
+      return
+    }
+    let args: Record<string, unknown> = {}
+    try {
+      args = JSON.parse(argsJson || '{}') as Record<string, unknown>
+    } catch {
+      setError('参数不是合法 JSON')
+      return
+    }
+    setRunning(true)
+    setError('')
+    setOutput('')
+    setMeta('')
+    try {
+      const r = await window.electronAPI.debug.toolRun({
+        name,
+        args,
+        confirmRisk,
+      })
+      if (r.ok) {
+        setOutput(r.content)
+        setMeta(`${r.ms}ms · chain=${r.permission.chain} · ${r.permission.reason}${r.isError ? ' · tool reported error' : ''}`)
+      } else if (r.needsConfirmation) {
+        setError(`需要确认风险：${r.error}（勾选下方确认后再执行）`)
+        setMeta(r.permission ? `chain=${r.permission.chain}` : '')
+      } else {
+        setError(r.error)
+        setMeta(r.permission ? `chain=${r.permission.chain}` : '')
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  return (
+    <div className="space-y-3" data-testid="tool-run">
+      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+        真实走 Registry + 权限引擎。硬拒绝不可绕过；破坏性 / 需审批工具必须勾选确认。
+      </p>
+      {tools.length === 0 ? (
+        <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载工具列表中…</div>
+      ) : (
+        <>
+          <label className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            工具
+            <select
+              value={name}
+              onChange={(e) => onPick(e.target.value)}
+              className="theme-input mt-1 w-full rounded-lg border px-2 py-1.5 font-mono text-xs outline-none"
+            >
+              {tools.map(t => (
+                <option key={t.name} value={t.name}>{t.name}</option>
+              ))}
+            </select>
+          </label>
+          {selected && (
+            <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+              {selected.description}
+              {selected.metadata.isDestructive && (
+                <span className="ml-2 text-red-400">破坏性</span>
+              )}
+            </p>
+          )}
+          <label className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            参数 JSON
+            <textarea
+              value={argsJson}
+              onChange={(e) => setArgsJson(e.target.value)}
+              rows={8}
+              className="theme-input mt-1 w-full rounded-lg border px-2 py-1.5 font-mono text-xs outline-none"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            <input
+              type="checkbox"
+              checked={confirmRisk}
+              onChange={(e) => setConfirmRisk(e.target.checked)}
+            />
+            我了解风险，确认执行（破坏性 / 需审批时必选）
+          </label>
+          <button
+            type="button"
+            disabled={running || !name}
+            onClick={() => void run()}
+            className="settings-option px-3 py-1.5 text-xs disabled:opacity-50"
+          >
+            {running ? '执行中…' : '执行工具'}
+          </button>
+        </>
+      )}
+      {error && (
+        <p className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: 'var(--danger, #c44)', color: 'var(--danger, #c44)' }}>
+          {error}
+        </p>
+      )}
+      {meta && (
+        <p className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>{meta}</p>
+      )}
+      {output && (
+        <pre className="max-h-[40vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border p-3 font-mono text-xs" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
+          {output}
+        </pre>
+      )}
+    </div>
+  )
+}
+
+function exampleArgs(tool: ToolInfo): Record<string, unknown> {
+  const props = (tool.parameters?.properties ?? {}) as Record<string, { type?: string }>
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(props)) {
+    if (v?.type === 'string') out[k] = ''
+    else if (v?.type === 'number' || v?.type === 'integer') out[k] = 0
+    else if (v?.type === 'boolean') out[k] = false
+    else if (v?.type === 'array') out[k] = []
+    else if (v?.type === 'object') out[k] = {}
+    else out[k] = null
+  }
+  return out
+}
+
+function PromptTab({ info, layer, setLayer, readonly }: {
   info: PromptInfo | null
   layer: string
   setLayer: (l: 'full' | 'l1' | 'l2' | 'l3' | 'l4') => void
+  readonly?: boolean
 }) {
   if (!info) return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载中... (需要 Electron 环境)</div>
 
@@ -258,6 +506,11 @@ function PromptTab({ info, layer, setLayer }: {
 
   return (
     <div>
+      {readonly && (
+        <p className="mb-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+          生产实装（只读）。要改了试跑 → 切到 Playground「Prompt 试验」。
+        </p>
+      )}
       <div className="mb-4 flex items-center gap-3">
         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>当前人格：</span>
         <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-[11px] text-violet-500">
@@ -271,9 +524,7 @@ function PromptTab({ info, layer, setLayer }: {
             key={l.id}
             onClick={() => setLayer(l.id)}
             className={`rounded-lg border px-3 py-1.5 text-left transition ${
-              layer === l.id
-                ? 'border-emerald-500 bg-emerald-500/10'
-                : ''
+              layer === l.id ? 'border-emerald-500 bg-emerald-500/10' : ''
             }`}
             style={layer !== l.id ? { borderColor: 'var(--border-color)' } : undefined}
           >
@@ -288,64 +539,6 @@ function PromptTab({ info, layer, setLayer }: {
       <pre className="max-h-[50vh] overflow-auto rounded-lg border p-4 text-xs leading-relaxed" style={{ borderColor: 'var(--card-border)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
         {content}
       </pre>
-    </div>
-  )
-}
-
-function ToolsTab({ tools, expanded, setExpanded }: {
-  tools: ToolInfo[]
-  expanded: string | null
-  setExpanded: (name: string | null) => void
-}) {
-  if (tools.length === 0) return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载中...</div>
-
-  const builtins = tools.filter(t => !t.name.startsWith('mcp:'))
-  const mcpTools = tools.filter(t => t.name.startsWith('mcp:'))
-
-  return (
-    <div>
-      <div className="mb-3 text-xs" style={{ color: 'var(--text-muted)' }}>
-        共 {tools.length} 个工具（{builtins.length} 内置 + {mcpTools.length} MCP）
-      </div>
-
-      {[
-        { label: '内置工具', items: builtins },
-        ...(mcpTools.length > 0 ? [{ label: 'MCP 工具', items: mcpTools }] : []),
-      ].map(group => (
-        <div key={group.label} className="mb-4">
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{group.label}</div>
-          <div className="space-y-1">
-            {group.items.map(tool => (
-              <div key={tool.name} className="theme-card rounded-lg border">
-                <button
-                  onClick={() => setExpanded(expanded === tool.name ? null : tool.name)}
-                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left"
-                >
-                  <span className={`h-2 w-2 rounded-full ${
-                    tool.metadata.isDestructive ? 'bg-red-400' :
-                    tool.metadata.isReadOnly ? 'bg-emerald-400' : 'bg-amber-400'
-                  }`} />
-                  <span className="flex-1 font-mono text-xs" style={{ color: 'var(--text-primary)' }}>{tool.name}</span>
-                  <div className="flex gap-1">
-                    {tool.metadata.isReadOnly && <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] text-emerald-500">只读</span>}
-                    {tool.metadata.isDestructive && <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-[9px] text-red-400">破坏性</span>}
-                    {tool.metadata.isConcurrencySafe && <span className="rounded bg-cyan-500/10 px-1.5 py-0.5 text-[9px] text-cyan-500">并发安全</span>}
-                  </div>
-                  <ChevronRight size={12} className={`transition-transform ${expanded === tool.name ? 'rotate-90' : ''}`} style={{ color: 'var(--text-muted)' }} />
-                </button>
-                {expanded === tool.name && (
-                  <div className="border-t px-4 py-3" style={{ borderColor: 'var(--border-color)' }}>
-                    <p className="mb-2 text-xs" style={{ color: 'var(--text-secondary)' }}>{tool.description}</p>
-                    <pre className="overflow-auto rounded p-2 text-[10px]" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
-                      {JSON.stringify(tool.parameters, null, 2)}
-                    </pre>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
   )
 }
@@ -450,7 +643,6 @@ function StatCard({ label, value, color }: { label: string; value: string; color
   )
 }
 
-/** 将扁平 spans 按 parentId 建成树并缩进渲染 */
 function TracesTab({ spans }: { spans: TraceSpanInfo[] }) {
   if (spans.length === 0) {
     return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>暂无 Span。发送消息后会在这里看到调用链树。</div>
@@ -465,10 +657,8 @@ function TracesTab({ spans }: { spans: TraceSpanInfo[] }) {
 
   const roots = [
     ...(byParent.get(undefined) ?? []),
-    // 孤立节点：parent 不在当前窗口内
     ...spans.filter(s => s.parentId && !spans.some(p => p.id === s.parentId)),
   ]
-  // 去重（孤立可能已在 roots）
   const seen = new Set<string>()
   const uniqueRoots = roots.filter(r => {
     if (seen.has(r.id)) return false
@@ -534,14 +724,14 @@ function EventsTab({ events }: { events: Array<{ time: number; type: string; det
         {events.map((ev, i) => (
           <div
             key={i}
-            className={`flex gap-3 rounded px-2 py-1 ${ev.type === 'compact' ? 'border-l-2 border-violet-500/40' : ''}`}
-            style={{ color: 'var(--text-secondary)', background: ev.type === 'compact' ? 'var(--bg-secondary)' : undefined }}
+            className={`flex gap-3 rounded px-2 py-1 ${ev.type === 'compact' ? 'event-row-emphasis' : ''}`}
+            style={{ color: 'var(--text-secondary)' }}
           >
             <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>
               {new Date(ev.time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
             <span className={`w-24 shrink-0 ${typeColor[ev.type] || ''}`} style={!typeColor[ev.type] ? { color: 'var(--text-muted)' } : undefined}>
-              {ev.type === 'compact' ? '🗜 ' + ev.type : ev.type}
+              {ev.type}
             </span>
             <span className="truncate" style={{ color: ev.type === 'compact' ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{ev.detail}</span>
           </div>

@@ -125,5 +125,21 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     },
   )
 
+  /** 工具手测：真实 Registry + 权限门闸（M32-G2） */
+  ipcMain.handle(
+    'debug:tool-run',
+    async (
+      _e,
+      input: { name: string; args?: Record<string, unknown>; confirmRisk?: boolean },
+    ) => {
+      const { runDebugTool } = await import('../agent/debug-tool-run')
+      return runDebugTool(toolRegistry, {
+        name: input?.name ?? '',
+        args: input?.args,
+        confirmRisk: !!input?.confirmRisk,
+      })
+    },
+  )
+
   log.info('Debug IPC registered')
 }

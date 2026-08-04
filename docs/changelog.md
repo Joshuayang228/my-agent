@@ -5,6 +5,36 @@
 
 ## [未发布]
 
+### Added — 体验调试 Phase 0（M32-G1–G3）（2026-08-04）
+
+- DevPanel 顶层拆 **Debug / Playground**；Debug 只读透视，Playground 做试验
+- `debug:tool-run`：真实 Registry + 权限门闸；破坏性/需审批须勾选确认
+- Prompt 试验：载入当前实装 → 会话覆盖试跑（不写 settings）
+- 施工合同：`docs/requirements/experience-debug-playground.md`
+
+### Added — M32 体验调试方法论（2026-08-04）
+
+- `methodology/m32-experience-debug-playground.md` + `-code.md`：Debug 透视 / Playground 试验 / 对话内叠加三面分工
+- 对照 Alice renderer 源码纠正「单仪表盘」误解；工程 Gap（G1–G8）记入 wishlist
+
+### Changed — 前端视觉语言 Phase 3 Chat 气质（2026-08-04）
+
+- 侧栏顶部活跃主角身份条（进角色架）；空态衬线问候 + 建议 pill（弱化工具宫格）
+- 输入卡加大圆角；占位跟主角；Skills / Debug 下沉底栏次级
+- 施工合同 `frontend-visual-language.md` 标已落地
+
+### Changed — 前端视觉语言 Phase 2 设置 IA（2026-08-04）
+
+- 设置导航：基础（通用/伙伴/模型/记忆/安全/连接/数据/关于）+ 高级（参数/工具/开发者）
+- 伙伴设置独立页；采样与 Token 预算进「参数」；专家度进「记忆」；MCP 归「连接」
+- 字体大小本机档位（`uiFontScale`）；界面语言仅简体占位（无假选项）
+
+### Changed — 前端视觉语言 Phase 1（2026-08-04）
+
+- 施工合同 `docs/requirements/frontend-visual-language.md`；规范写入 `agent-skills/frontend-guidelines.md`（Alice Ch.19 七公理）
+- CSS：`--radius-*` / `--motion-*` / `--font-ui|display`；`light`/`mist`/`golden` 纸感暖底；`.app-shell` 主题软过渡
+- 去掉引用块 / DevPanel compact 左侧 accent 竖线（改底色分层）
+
 ### Changed — GitHub 公开运营配套（2026-08-04）
 
 - 双语 README + `CONTRIBUTING.md`；GitHub About / Topics 对齐

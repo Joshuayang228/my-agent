@@ -6,9 +6,9 @@
 
 | | |
 |--|--|
-| **现在在哪** | 公开 alpha（`v0.1.0`）。伙伴主线 W0–W6 已通；文档四维 + 施工合同旁路理顺；可观测/调试债与 wishlist 可落地项基本收口。 |
+| **现在在哪** | 公开 alpha。前端视觉语言 **Phase 1–3 已收口**（token + 设置 IA + Chat 气质）。 |
 | **产品怎么记** | `docs/modules/README.md` → 各卡「已落地能力」；大改先写 `docs/requirements/` **施工合同**。 |
-| **下一步可做** | 前端视觉统一（先写施工合同）；Pack/体验打磨；Eval 加强。 |
+| **下一步可做** | M32-G4+（世界态透视 / 色板场）或行内 aside；公开截图等前端再好看一点再说。 |
 | **明确暂缓** | 原生语音 STT（`docs/deferred/native-voice-input.md`）；生图 Moments（M24-G3）；Python 嵌入沙箱。 |
 | **仓库** | 双语 README；Issues/PR 欢迎；见 `CONTRIBUTING.md`。 |
 
@@ -17,6 +17,11 @@
 **阶段**：公开运营起步；体验与前端统一优先于再堆基建；原生语音与 M24-G3 暂缓。
 
 **最新动态（2026-08-04）**：
+- ✅ **体验调试 Phase 0（M32-G1–G3）**：DevPanel 两面 + 工具手测 + Prompt 会话覆盖；施工合同已落地。
+- ✅ **M32 体验调试方法论**：Debug ≠ Playground；对照 Alice `/debug`+`/playground` 源码。
+- ✅ **前端视觉语言 Phase 3**：侧栏身份条、空态问候/pill、输入卡圆角、开发入口下沉；合同标已落地。
+- ✅ **前端视觉语言 Phase 2**：设置基础/高级重排；伙伴/参数/记忆/工具/连接拆分；字号本机档。
+- ✅ **前端视觉语言 Phase 1**：`frontend-visual-language` 施工合同；`frontend-guidelines` 七公理；radius/motion/font token；浅色纸感；去左侧 accent 竖线。
 - ✅ **GitHub 运营前门**：双语 README + CONTRIBUTING；`docs/notes` → `docs/deferred`；progress 人读摘要；Cursor stop hook 提醒模块卡能力行。
 - ✅ **双语 README**：`README.md`（EN）+ `README.zh-CN.md`。
 - ✅ **术语统一**：施工合同（禁称需求文档等别名）。

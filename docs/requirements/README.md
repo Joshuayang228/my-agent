@@ -21,7 +21,7 @@
 
 | 文档 | 说明 |
 |------|------|
-| （暂无） | 开新大功能时先写施工合同 → 用户确认 → 再编码（见根 `CLAUDE.md`「施工合同规范」） |
+| （暂无） | 开新大功能时先写施工合同 → 用户确认 → 再编码 |
 
 ---
 
@@ -29,6 +29,8 @@
 
 | 文档 | 说明 |
 |------|------|
+| [experience-debug-playground.md](./experience-debug-playground.md) | 体验调试 Phase 0：DevPanel 两面 + 工具手测 + Prompt 会话覆盖 |
+| [frontend-visual-language.md](./frontend-visual-language.md) | 前端视觉语言 + 设置 IA + Chat 气质（Phase1–3） |
 | [companion-world-framework.md](./companion-world-framework.md) | 产品终局：三槽、单活跃、Catch-up、生活世界 |
 | [companion-architecture.md](./companion-architecture.md) | 模块边界与依赖方向 |
 | [companion-tech-spec.md](./companion-tech-spec.md) | W0–W6 验收与技术方案 |

@@ -371,6 +371,37 @@ declare global {
           | { ok: true; text: string; ms: number; model: string }
           | { ok: false; error: string }
         >
+        toolRun: (input: {
+          name: string
+          args?: Record<string, unknown>
+          confirmRisk?: boolean
+        }) => Promise<
+          | {
+              ok: true
+              content: string
+              isError?: boolean
+              ms: number
+              permission: {
+                allowed: boolean | 'needs_approval'
+                reason: string
+                decisionType: string
+                matchedRule?: string
+                chain: string
+              }
+            }
+          | {
+              ok: false
+              error: string
+              needsConfirmation?: boolean
+              permission?: {
+                allowed: boolean | 'needs_approval'
+                reason: string
+                decisionType: string
+                matchedRule?: string
+                chain: string
+              }
+            }
+        >
       }
       chat: {
         send: (sessionId: string, userMessage: ChatMessage) => Promise<void>

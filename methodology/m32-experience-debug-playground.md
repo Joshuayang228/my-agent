@@ -7,7 +7,7 @@
 > 对照源：Alice renderer（`/debug` Console · `/playground` · `enableDebugMode`）× 分析笔记 `_reference/alice-debug-mode-analysis.md` × 我们 `DevPanel`  
 > 上位：M14（系统如何解释自己）· M06（Prompt 分层）· M27（两空间 / aside）· 前端视觉语言  
 > 观点对齐：2026-08-04  
-> **状态**：✅ 理念首版（本轮无代码改动；工程实施另开施工合同）
+> **状态**：✅ 理念首版；Phase 0 工程（G1–G3）已按施工合同落地
 
 ---
 
@@ -181,15 +181,15 @@ Playground 的设计系统 / UI 控件 tab，本质是**体验的单元测试夹
 
 ## 暂缓 Gap（工程；需施工合同后动手）
 
-| ID | 内容 | 为什么暂缓 |
-|----|------|------------|
-| M32-G1 | DevPanel 显式拆成 Debug / Playground 两面（或两路由） | 要信息架构与文案，属跨文件 UI，需施工合同 |
-| M32-G2 | 工具手测（真执行 + 权限路径） | P0；涉及 tools IPC 与安全展示 |
-| M32-G3 | Prompt 会话级覆盖（非全局 settings） | P0；需试验会话模型 |
-| M32-G4 | 关键世界态透视（记忆 / 日程 / 角色快照） | P1；依赖 companion 模块稳定 API |
-| M32-G5 | 设计 token / 基础控件场（产品内） | P1；对齐 frontend-guidelines |
-| M32-G6 | 错误卡 / 空态 / 权限确认夹具 | P1 |
-| M32-G7 | 对话内 debugMode 叠加策略（token 等） | 需产品决定默认开给谁 |
-| M32-G8 | aside（蛐蛐）Playground 预览与行内渲染 | 与 M27 行内 aside 需求耦合 |
+| ID | 内容 | 状态 |
+|----|------|------|
+| M32-G1 | DevPanel 显式拆成 Debug / Playground 两面 | ✅ 2026-08-04 |
+| M32-G2 | 工具手测（真执行 + 权限路径） | ✅ 2026-08-04 |
+| M32-G3 | Prompt 会话级覆盖（非全局 settings） | ✅ 2026-08-04 |
+| M32-G4 | 关键世界态透视（记忆 / 日程 / 角色快照） | 暂缓 P1 |
+| M32-G5 | 设计 token / 基础控件场（产品内） | 暂缓 P1 |
+| M32-G6 | 错误卡 / 空态 / 权限确认夹具 | 暂缓 P1 |
+| M32-G7 | 对话内 debugMode 叠加策略（token 等） | 暂缓 |
+| M32-G8 | aside（蛐蛐）Playground 预览与行内渲染 | 暂缓；与行内 aside 耦合 |
 
 代码走读见 `m32-experience-debug-playground-code.md`。
