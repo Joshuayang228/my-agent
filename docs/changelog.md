@@ -5,6 +5,13 @@
 
 ## [未发布]
 
+### Changed — 前端壳层对齐 Alice（Phase A）（2026-08-05）
+
+- Primary 侧栏：品牌区、大号新对话、会话时间/摘要、底栏双入口 + 生活宫格
+- 非聊天全页出现 Secondary 分组导航（生活 / 工具含 Skills / 开发）
+- 默认主题无记录时改为 `mist`；设置仍独立全屏；输入区 `max-w-3xl`
+- 施工合同：`docs/requirements/frontend-alice-shell.md`
+
 ### Added — Debug/Playground 需要才补（Phase 5）（2026-08-05）
 
 - Debug「系统」：沙箱 / 审批 / 权限规则 / Skills（`buildDebugSystemInfo`）

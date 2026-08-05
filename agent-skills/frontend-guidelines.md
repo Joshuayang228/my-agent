@@ -32,24 +32,28 @@
 ## UI 架构
 
 ```text
-Sidebar(260px) + Main Area
+PrimarySidebar(260px) [+ SecondaryNav(200px)?] + Main Area
 
-Sidebar（工具面）:
-- 会话列表 + Skills / 记忆 / 设置入口
-- Phase 3：顶部活跃主角身份条；开发入口下沉
+Primary（对齐 Alice 侧栏）:
+- 品牌/主角区 + 大号「新对话」CTA
+- 会话列表（标题 + 时间戳 + 摘要）
+- 底栏：Playground/Debug 字钮 + 生活宫格（朋友圈/物什/名册/记忆/角色架/设置）
+- Skills 不进宫格 → Secondary「工具」或设置入口
+
+Secondary（非 chat / 非 settings 全屏时）:
+- 生活 | 工具 | 开发 分组导航
 
 Main Area:
-- chat: CompanionStatusBar + 消息流 + Thinking / 工具卡片 + 居中输入卡片
-- 生活面: moments / assets / cast / shelf（角色架）
-- 工具面: skills / memory / settings（settings 独立全屏）
-- DevPanel: 侧推面板例外
+- chat: CompanionStatusBar + 消息流 + 居中输入（max-w-3xl）
+- 生活面 / 工具面 / DevPanel 全页
+- settings: 独立全屏（无 Secondary）
 ```
 
 ## 设计原则（布局与交互）
 
 1. 气泡对话：用户右对齐圆角气泡，AI 左对齐 Markdown。
 2. activeView 全屏：设置、技能、记忆、生活面占主区；DevPanel 可侧推。
-3. 输入区卡片：居中 `max-w-2xl`（Phase 3 加大圆角 / 克制工具条）。
+3. 输入区卡片：居中 `max-w-3xl`（Alice 壳 Phase A）；克制工具条。
 4. 生活面 / 工具面分离：侧栏偏工具；朋友圈、衣柜、名册、角色架走专用 View + 状态条入口，禁止首屏仪表盘。
 5. hover 显辅助：消息操作、Token 等低频信息。
 6. IME：`event.isComposing` 时不提交。

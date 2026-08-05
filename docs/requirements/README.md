@@ -29,6 +29,7 @@
 
 | 文档 | 说明 |
 |------|------|
+| [frontend-alice-shell.md](./frontend-alice-shell.md) | 前端壳层对齐 Alice 布局（大气改造 Phase A） |
 | [experience-debug-playground.md](./experience-debug-playground.md) | 体验调试 Phase 0：DevPanel 两面 + 工具手测 + Prompt 会话覆盖 |
 | [frontend-visual-language.md](./frontend-visual-language.md) | 前端视觉语言 + 设置 IA + Chat 气质（Phase1–3） |
 | [companion-world-framework.md](./companion-world-framework.md) | 产品终局：三槽、单活跃、Catch-up、生活世界 |

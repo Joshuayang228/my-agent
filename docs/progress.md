@@ -6,9 +6,9 @@
 
 | | |
 |--|--|
-| **现在在哪** | 公开 alpha。体验调试 **Phase 0–5**（G7 对话叠加 + 系统态/夹具精简）已收口。 |
+| **现在在哪** | 公开 alpha。前端壳 **Alice Phase A**（大气侧栏 + 二级导航）已落地。 |
 | **产品怎么记** | `docs/modules/README.md` → 各卡「已落地能力」；大改先写 `docs/requirements/` **施工合同**。 |
-| **下一步可做** | M32-G8 行内 aside；公开截图前再打磨 Chat。 |
+| **下一步可做** | 前端 Phase B（Chat 消息区大气化）/ M32-G8 aside；公开截图前再打磨。 |
 | **明确暂缓** | 原生语音 STT（`docs/deferred/native-voice-input.md`）；生图 Moments（M24-G3）；Python 嵌入沙箱。 |
 | **仓库** | 双语 README；Issues/PR 欢迎；见 `CONTRIBUTING.md`。 |
 
@@ -17,6 +17,7 @@
 **阶段**：公开运营起步；体验与前端统一优先于再堆基建；原生语音与 M24-G3 暂缓。
 
 **最新动态（2026-08-05）**：
+- ✅ **前端 Alice 壳 Phase A**：Primary/Secondary 布局、会话时间摘要、底栏宫格、默认 mist。
 - ✅ **体验调试 Phase 5**：Debug 系统态（沙箱/规则/Skills）+ 调用链统计；Playground G6 精简夹具。
 - ✅ **体验调试 Phase 4（M32-G7）**：对话内 `conversationDebugMode` 叠加（token/事件/工具保留；≠ 全页入口）。
 - ✅ **体验调试 Phase 3**：Debug / Playground 侧栏独立入口 + 主区全页（对齐 Alice，去右侧抽屉）。

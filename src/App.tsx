@@ -15,14 +15,11 @@ import { SkillsPanel } from './components/SkillsPanel'
 import { FileBrowser } from './components/FileBrowser'
 import MentionPopup from './components/MentionPopup'
 import {
-  Sun, Moon, MessageCircle, Wrench, Settings, Globe,
   Volume2, Paperclip, Shield, RefreshCw, Zap,
-  Folder, FolderOpen, Ban, AlertTriangle, User,
-  Plug, ChevronDown, ChevronRight, Square,
+  Folder, FolderOpen, Ban, AlertTriangle,
+  ChevronDown, Square,
   Copy, Check, X, Pencil, RotateCcw, GitBranch, Trash2,
-  Plus, Search, Cpu, Menu, Brain, Send,
-  Pin, File, Newspaper, Shirt, Users, LayoutGrid,
-  Bug, FlaskConical,
+  Plus, Search, Menu, Send, File,
 } from 'lucide-react'
 import { buildColdStartCopy } from './shared/companion-presence'
 import {
@@ -41,6 +38,7 @@ import {
 } from './components/chat/callbacks'
 import { ConversationDebugOverlay } from './components/chat/ConversationDebugOverlay'
 import { parseConversationDebugMode } from './components/chat/conversation-debug'
+import { PrimarySidebar, SecondaryNav, formatSessionPreview } from './components/shell'
 
 let messageIdCounter = 0
 function genId() {
@@ -100,7 +98,7 @@ function App() {
     'chat' | 'skills' | 'memory' | 'moments' | 'assets' | 'cast' | 'shelf' | 'settings' | 'debug' | 'playground'
   >('chat')
   const [theme, setTheme] = useState<string>(() => {
-    return localStorage.getItem('theme') || 'dark'
+    return localStorage.getItem('theme') || 'mist'
   })
   const [currentModel, setCurrentModel] = useState('gpt-4o')
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
@@ -136,6 +134,8 @@ function App() {
   const [renameValue, setRenameValue] = useState('')
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; sessionId: string } | null>(null)
   const [pinnedIds, setPinnedIds] = useState<string[]>([])
+  /** 会话列表摘要（打开过的会话缓存最后一条可见消息） */
+  const [sessionPreviews, setSessionPreviews] = useState<Record<string, string>>({})
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [sessionFilter, setSessionFilter] = useState('')
@@ -480,6 +480,18 @@ function App() {
   useEffect(() => {
     if (!isStreaming) inputRef.current?.focus()
   }, [isStreaming])
+
+  useEffect(() => {
+    if (!activeSessionId) return
+    const last = [...messages].reverse().find(
+      (m) => m.role !== 'tool' && typeof m.content === 'string' && m.content.trim(),
+    )
+    if (!last) return
+    const preview = formatSessionPreview(last.content)
+    setSessionPreviews((prev) =>
+      prev[activeSessionId] === preview ? prev : { ...prev, [activeSessionId]: preview },
+    )
+  }, [messages, activeSessionId])
 
   const handleEvent = useCallback((ev: AgentStreamEvent) => {
     const detail = ev.type === 'text' ? ev.content.slice(0, 80)
@@ -835,199 +847,55 @@ function App() {
 
   return (
     <div className="app-shell flex h-screen select-none" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-      {/* ── 侧边栏 ── */}
+      {/* ── Primary 侧栏（Alice 壳） ── */}
       {sidebarOpen && (
-        <div className="flex w-[260px] shrink-0 flex-col border-r" style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border-color)' }}>
-          {/* 活跃主角身份条（Phase 3） */}
-          <button
-            type="button"
-            onClick={() => setActiveView('shelf')}
-            className="mx-2 mt-3 flex items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-left transition"
-            style={{ background: 'var(--companion-surface)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--companion-surface)')}
-            title="打开角色架"
-          >
-            <span
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
-              style={{ background: 'var(--accent-subtle)', color: 'var(--companion-accent-warm)' }}
-            >
-              {(currentPersonaName || '?').slice(0, 1)}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {currentPersonaName || '伙伴'}
-              </span>
-              <span className="mt-0.5 block truncate text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                {companionBlurb || '点击切换主角'}
-              </span>
-            </span>
-            <LayoutGrid size={14} style={{ color: 'var(--companion-accent-warm)' }} />
-          </button>
-
-          {/* 侧边栏顶部功能区 */}
-          <div className="flex flex-col gap-0.5 px-2 pb-1 pt-2">
-            <SidebarNavBtn onClick={createNewSession} icon={<Plus size={16} />} label="新对话" shortcut="Ctrl+N" />
-            <SidebarNavBtn onClick={() => { setSidebarSearchOpen(v => !v); setTimeout(() => sessionFilterRef.current?.focus(), 50) }} icon={<Search size={16} />} label="搜索" />
-          </div>
-
-          <div className="mx-3 my-1" style={{ borderTop: '1px solid var(--border-subtle)' }} />
-
-          {/* 会话列表标题 + 搜索 */}
-          <div className="flex items-center justify-between px-4 py-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>对话</span>
-          </div>
-          {sidebarSearchOpen && (
-            <div className="px-3 pb-2">
-              <input
-                ref={sessionFilterRef}
-                value={sessionFilter}
-                onChange={(e) => setSessionFilter(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Escape') { setSidebarSearchOpen(false); setSessionFilter('') } }}
-                placeholder="搜索对话..."
-                className="theme-input w-full rounded-md border px-2.5 py-1 text-xs outline-none"
-              />
-            </div>
-          )}
-
-          {/* 会话列表 */}
-          <div className="scrollbar-thin flex-1 overflow-y-auto px-2">
-            {sessionGroups.map((group) => (
-              <div key={group.label}>
-                <div className="px-2 pb-1 pt-3 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                  {group.label}
-                </div>
-                {group.items.map((s) => (
-                  <div
-                    key={s.id}
-                    className="group mb-0.5 flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-[13px] transition"
-                    style={{
-                      background: s.id === activeSessionId ? 'var(--sidebar-active)' : 'transparent',
-                      color: s.id === activeSessionId ? 'var(--accent-fg)' : 'var(--text-secondary)',
-                    }}
-                    onClick={() => { setActiveView('chat'); switchSession(s.id) }}
-                    onDoubleClick={(e) => { e.stopPropagation(); setRenamingId(s.id); setRenameValue(s.title) }}
-                    onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, sessionId: s.id }) }}
-                    onMouseEnter={(e) => { if (s.id !== activeSessionId) (e.currentTarget as HTMLDivElement).style.background = 'var(--sidebar-hover)' }}
-                    onMouseLeave={(e) => { if (s.id !== activeSessionId) (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
-                  >
-                    {renamingId === s.id ? (
-                      <input
-                        className="theme-input w-full rounded border px-1.5 py-0.5 text-[13px] outline-none"
-                        value={renameValue}
-                        onChange={(e) => setRenameValue(e.target.value)}
-                        onBlur={commitRename}
-                        onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenamingId(null) }}
-                        autoFocus
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    ) : (
-                      <span className="flex items-center gap-1.5 truncate">
-                        {bgStreamingSessionId === s.id && s.id !== activeSessionId && (
-                          <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full" style={{ background: 'var(--accent)' }} title="AI 正在回复..." />
-                        )}
-                        {pinnedIds.includes(s.id) && <Pin size={10} style={{ color: 'var(--accent)' }} />}
-                        {s.title}
-                      </span>
-                    )}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); deleteSession(s.id) }}
-                      className="ml-1 hidden shrink-0 transition group-hover:block"
-                      style={{ color: 'var(--text-muted)' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ))}
-            {sessions.length === 0 && (
-              <p className="px-2 pt-4 text-center text-xs" style={{ color: 'var(--text-muted)' }}>暂无会话</p>
-            )}
-          </div>
-
-          {/* 侧边栏底部：生活入口 + 设置；开发入口下沉为次级 */}
-          <div className="border-t px-2 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
-            <div className="mb-1.5 flex items-center justify-between px-1">
-              <div className="flex items-center gap-0.5">
-                <SidebarBtn onClick={() => setActiveView(v => v === 'moments' ? 'chat' : 'moments')} title="朋友圈 (Ctrl+Shift+F)">
-                  <Newspaper size={14} />
-                </SidebarBtn>
-                <SidebarBtn onClick={() => setActiveView(v => v === 'assets' ? 'chat' : 'assets')} title="物什">
-                  <Shirt size={14} />
-                </SidebarBtn>
-                <SidebarBtn onClick={() => setActiveView(v => v === 'cast' ? 'chat' : 'cast')} title="名册">
-                  <Users size={14} />
-                </SidebarBtn>
-                <SidebarBtn onClick={() => setActiveView(v => v === 'memory' ? 'chat' : 'memory')} title="记忆 (Ctrl+Shift+M)">
-                  <Brain size={14} />
-                </SidebarBtn>
-              </div>
-              {activeBgTaskCount > 0 && (
-                <span
-                  className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                  style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}
-                  title={`${activeBgTaskCount} 个后台任务运行中`}
-                >
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: 'var(--accent)' }} />
-                  更新中
-                </span>
-              )}
-            </div>
-            <div className="flex items-center justify-between gap-1">
-              <button
-                onClick={() => setActiveView('settings')}
-                className="flex flex-1 items-center gap-2 rounded-[var(--radius-md)] px-2 py-1.5 text-[13px] transition"
-                style={{ color: 'var(--text-secondary)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-                title="设置 (Ctrl+,)"
-              >
-                <Settings size={16} style={{ color: 'var(--text-muted)' }} />
-                设置
-              </button>
-              <div className="flex items-center gap-0.5">
-                <SidebarBtn
-                  onClick={() => setActiveView(v => v === 'skills' ? 'chat' : 'skills')}
-                  title="Skills (Ctrl+Shift+K)"
-                  active={activeView === 'skills'}
-                >
-                  <Cpu size={14} />
-                </SidebarBtn>
-                <SidebarBtn
-                  onClick={() => setActiveView(v => v === 'debug' ? 'chat' : 'debug')}
-                  title="Debug (Ctrl+Shift+D)"
-                  active={activeView === 'debug'}
-                >
-                  <Bug size={14} />
-                </SidebarBtn>
-                <SidebarBtn
-                  onClick={() => setActiveView(v => v === 'playground' ? 'chat' : 'playground')}
-                  title="Playground (Ctrl+Shift+P)"
-                  active={activeView === 'playground'}
-                >
-                  <FlaskConical size={14} />
-                </SidebarBtn>
-                <button
-                  onClick={() => {
-                    const darkThemes = new Set(['dark', 'night-feast', 'blue-pool'])
-                    setTheme(darkThemes.has(theme) ? 'light' : 'dark')
-                  }}
-                  className="flex h-7 w-7 items-center justify-center rounded text-xs transition"
-                  style={{ color: 'var(--text-muted)' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-                  title="切换深色/浅色"
-                >
-                  {['dark', 'night-feast', 'blue-pool'].includes(theme) ? <Sun size={14} /> : <Moon size={14} />}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PrimarySidebar
+          personaName={currentPersonaName}
+          personaBlurb={companionBlurb || '越探索，越着迷。'}
+          activeView={activeView}
+          activeSessionId={activeSessionId}
+          sessionGroups={sessionGroups}
+          sessionPreviews={sessionPreviews}
+          pinnedIds={pinnedIds}
+          bgStreamingSessionId={bgStreamingSessionId}
+          activeBgTaskCount={activeBgTaskCount}
+          sidebarSearchOpen={sidebarSearchOpen}
+          sessionFilter={sessionFilter}
+          sessionFilterRef={sessionFilterRef}
+          renamingId={renamingId}
+          renameValue={renameValue}
+          theme={theme}
+          onOpenShelf={() => setActiveView('shelf')}
+          onCreateSession={() => { void createNewSession() }}
+          onToggleSearch={() => {
+            setSidebarSearchOpen((v) => !v)
+            setTimeout(() => sessionFilterRef.current?.focus(), 50)
+          }}
+          onSessionFilterChange={setSessionFilter}
+          onCloseSearch={() => { setSidebarSearchOpen(false); setSessionFilter('') }}
+          onSelectSession={(id) => { setActiveView('chat'); void switchSession(id) }}
+          onStartRename={(id, title) => { setRenamingId(id); setRenameValue(title) }}
+          onRenameChange={setRenameValue}
+          onCommitRename={() => { void commitRename() }}
+          onCancelRename={() => setRenamingId(null)}
+          onDeleteSession={(id) => { void deleteSession(id) }}
+          onContextMenu={(e, sessionId) => {
+            e.preventDefault()
+            setContextMenu({ x: e.clientX, y: e.clientY, sessionId })
+          }}
+          onNavigate={(view) => setActiveView(view)}
+          onCollapse={() => setSidebarOpen(false)}
+          onToggleTheme={() => {
+            const darkThemes = new Set(['dark', 'night-feast', 'blue-pool'])
+            setTheme(darkThemes.has(theme) ? 'mist' : 'dark')
+          }}
+        />
       )}
+
+      <SecondaryNav
+        activeView={activeView}
+        onNavigate={(view) => setActiveView(view)}
+      />
 
       {/* 会话右键菜单 */}
       {contextMenu && (
@@ -1502,7 +1370,7 @@ function App() {
 
         {/* 输入区 — Codex 风格居中卡片 */}
         {activeView === 'chat' && <div className="relative shrink-0 px-4 pb-4 pt-2" style={{ background: 'var(--bg-primary)' }}>
-          <div className="mx-auto max-w-2xl">
+          <div className="mx-auto max-w-3xl">
             {conversationDebugMode && (
               <ConversationDebugOverlay
                 usage={usage}
@@ -1947,55 +1815,6 @@ function App() {
         </div>
       )}
     </div>
-  )
-}
-
-function SidebarNavBtn({ onClick, icon, label, shortcut, active }: { onClick: () => void; icon: React.ReactNode; label: string; shortcut?: string; active?: boolean }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] transition"
-      style={{
-        color: active ? 'var(--accent-fg)' : 'var(--text-secondary)',
-        background: active ? 'var(--sidebar-active)' : undefined,
-      }}
-      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'var(--sidebar-hover)' }}
-      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = '' }}
-      title={shortcut}
-    >
-      <span style={{ color: active ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{icon}</span>
-      <span className="flex-1 text-left">{label}</span>
-    </button>
-  )
-}
-
-function SidebarBtn({
-  onClick, title, children, active,
-}: {
-  onClick: () => void
-  title: string
-  children: React.ReactNode
-  active?: boolean
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex h-7 w-7 items-center justify-center rounded transition"
-      style={{
-        color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
-        background: active ? 'var(--accent-subtle)' : '',
-      }}
-      onMouseEnter={(e) => {
-        if (active) return
-        e.currentTarget.style.background = 'var(--hover-overlay)'
-        e.currentTarget.style.color = 'var(--text-secondary)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = active ? 'var(--accent-subtle)' : ''
-        e.currentTarget.style.color = active ? 'var(--accent-fg)' : 'var(--text-muted)'
-      }}
-      title={title}
-    >{children}</button>
   )
 }
 
