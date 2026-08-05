@@ -74,7 +74,9 @@
 | Prompt 会话覆盖（不写 settings） | 已落地 | 载入实装 → playgroundRun |
 | 设计 token 场 | 已落地 | Playground「设计系统」 |
 | Playground 组件展厅（顶栏活目录 + 故事矩阵） | 已落地 | `src/components/playground/` · M32-G9 |
+| Playground UI 矩阵加厚（确认/芯片/状态条） | 已落地 | M32-G9 Phase 1 · 正式组件故事格 |
 | Prompt 资产目录 | 已落地 | Playground「提示词」· `prompt-assets.ts` |
+| Playground 多轮隔离对话 | 已落地 | `playgroundRun.history` · PromptLab transcript |
 | Debug 世界态透视 | 已落地 | `debug:world-snapshot` · DevPanel 世界态 tab |
 
 ## 现状 / 缺口

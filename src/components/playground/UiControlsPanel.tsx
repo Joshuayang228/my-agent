@@ -6,8 +6,12 @@
 import { useState } from 'react'
 import { ToolCallbackList } from '../chat/callbacks/ToolCallbackList'
 import type { ToolCallbackItem } from '../chat/callbacks/types'
+import { MemoryCitationChips } from '../chat/MemoryCitationChips'
+import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
+import { CompanionStatusBar } from '../CompanionStatusBar'
 import { UI_CONTROLS_SUBTABS, type UiControlsSubId } from './catalog'
 import { StoryBlock } from './StoryBlock'
+import type { MemoryCitation } from '../../shared/types'
 
 const TOOL_STORIES: ToolCallbackItem[] = [
   {
@@ -180,6 +184,78 @@ export function UiControlsPanel() {
           </StoryBlock>
           <StoryBlock title="长说明文案" source="空态文案边缘" edge>
             <ChatEmptyFixture long />
+          </StoryBlock>
+        </div>
+      )}
+
+      {sub === 'confirm' && (
+        <div className="space-y-3">
+          <StoryBlock title="权限确认" source="src/components/chat/PermissionConfirmCard.tsx">
+            <PermissionConfirmCard
+              toolName="shell_exec"
+              args={{ command: 'npm test' }}
+            />
+          </StoryBlock>
+          <StoryBlock title="队列 >1" source="PermissionConfirmCard · queueLength" edge>
+            <PermissionConfirmCard
+              toolName="write_file"
+              args={{ path: 'a.ts', content: 'x'.repeat(80) }}
+              queueLength={3}
+            />
+          </StoryBlock>
+        </div>
+      )}
+
+      {sub === 'memory-chips' && (
+        <div className="space-y-3">
+          <StoryBlock title="引用芯片 + 纠错" source="src/components/chat/MemoryCitationChips.tsx">
+            <MemoryCitationChips
+              citations={[
+                { id: 'm1', category: 'preference', summary: '喜欢简洁回答' },
+                { id: 'm2', category: 'fact', summary: '在做 Electron Agent' },
+              ]}
+              showActions
+            />
+          </StoryBlock>
+          <StoryBlock title="超长摘要截断" source="MemoryCitationChips truncate" edge>
+            <MemoryCitationChips
+              citations={[
+                {
+                  id: 'm-long',
+                  category: 'workflow',
+                  summary: '这是一段故意写得很长的记忆摘要，用来检查芯片在窄栏下 max-w truncate 是否正常、会不会把同行挤爆。',
+                },
+              ]}
+            />
+          </StoryBlock>
+        </div>
+      )}
+
+      {sub === 'status-bar' && (
+        <div className="space-y-3">
+          <StoryBlock title="伴侣状态条" source="src/components/CompanionStatusBar.tsx">
+            <div className="overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
+              <CompanionStatusBar
+                roleName="白艾莉"
+                roleId="playground-demo"
+                onOpenMoments={() => undefined}
+                onOpenAssets={() => undefined}
+                onOpenShelf={() => undefined}
+                onOpenCast={() => undefined}
+              />
+            </div>
+          </StoryBlock>
+          <StoryBlock title="超长角色名" source="CompanionStatusBar truncate" edge>
+            <div className="overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
+              <CompanionStatusBar
+                roleName="这是一个故意起得很长的角色名字用来测试状态条截断表现"
+                roleId="playground-demo-long"
+                onOpenMoments={() => undefined}
+                onOpenAssets={() => undefined}
+                onOpenShelf={() => undefined}
+                onOpenCast={() => undefined}
+              />
+            </div>
           </StoryBlock>
         </div>
       )}

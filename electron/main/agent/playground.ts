@@ -1,8 +1,8 @@
 /**
- * Dev Playground — 免伴侣上下文的单轮 LLM 试跑
+ * Dev Playground — 免伴侣上下文的 LLM 试跑（可多轮，仍不写 settings）
  *
  * 背景：wishlist「Playground」；调试 Prompt 时不想带着 Assemble/记忆/工具。
- * 意图：可选 system + 必填 user → 一次 chatComplete；不建会话、不跑 Agent Loop。
+ * 意图：可选 system + 历史 + 本轮 user → chatComplete；不建真会话、不跑 Agent Loop。
  * 约束：不注入 Role Pack / Moments / 记忆；失败返回可读错误。
  */
 
@@ -17,27 +17,45 @@ const log = createLogger('Playground')
 export const DEFAULT_PLAYGROUND_SYSTEM =
   'You are a helpful assistant in a developer playground. Keep replies concise. No tools.'
 
+/** 试验场历史轮（不含 system） */
+export type PlaygroundTurn = { role: 'user' | 'assistant'; content: string }
+
 export function buildPlaygroundMessages(input: {
   systemPrompt?: string
   userPrompt: string
+  history?: PlaygroundTurn[]
 }): ChatMessage[] {
   const user = input.userPrompt.trim()
   const system = (input.systemPrompt ?? '').trim() || DEFAULT_PLAYGROUND_SYSTEM
   const now = Date.now()
-  return [
+  const msgs: ChatMessage[] = [
     {
       id: `pg-sys-${now}`,
       role: 'system',
       content: system,
       timestamp: now,
     },
-    {
-      id: `pg-user-${now}`,
-      role: 'user',
-      content: user,
-      timestamp: now,
-    },
   ]
+  const history = input.history ?? []
+  for (let i = 0; i < history.length; i++) {
+    const h = history[i]
+    const content = (h.content ?? '').trim()
+    if (!content) continue
+    if (h.role !== 'user' && h.role !== 'assistant') continue
+    msgs.push({
+      id: `pg-h-${now}-${i}`,
+      role: h.role,
+      content,
+      timestamp: now + i + 1,
+    })
+  }
+  msgs.push({
+    id: `pg-user-${now}`,
+    role: 'user',
+    content: user,
+    timestamp: now + history.length + 1,
+  })
+  return msgs
 }
 
 async function loadPlaygroundLLMConfig(): Promise<LLMConfig> {
@@ -58,11 +76,12 @@ export type PlaygroundRunResult =
   | { ok: false; error: string }
 
 /**
- * 单轮试跑（无工具、无会话持久化）。
+ * 试跑（无工具、无会话持久化）。可带 history 做多轮隔离对话。
  */
 export async function runPlayground(input: {
   systemPrompt?: string
   userPrompt: string
+  history?: PlaygroundTurn[]
 }): Promise<PlaygroundRunResult> {
   const user = input.userPrompt?.trim() || ''
   if (!user) return { ok: false, error: '请输入用户 Prompt' }
@@ -75,9 +94,14 @@ export async function runPlayground(input: {
   const messages = buildPlaygroundMessages({
     systemPrompt: input.systemPrompt,
     userPrompt: user,
+    history: input.history,
   })
   const span = startLinkedAsyncSpan('playground:run', 'system', {
-    attributes: { model: config.model, playground: true },
+    attributes: {
+      model: config.model,
+      playground: true,
+      historyTurns: (input.history ?? []).length,
+    },
   })
   const t0 = Date.now()
   try {

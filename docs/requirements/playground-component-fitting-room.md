@@ -1,6 +1,6 @@
 # 施工合同：Playground 对齐 Alice（组件场 + 运行时试验）
 
-> 状态：**已落地 Phase 0**（Alice 壳 + Storybook 思路；未装 Storybook）  
+> 状态：**已落地 Phase 0 + Phase 1**（矩阵加厚 + 多轮试验；未装 Storybook）  
 > 日期：2026-08-06  
 > 上位：[`methodology/m32-experience-debug-playground.md`](../../methodology/m32-experience-debug-playground.md) · [`experience-debug-playground.md`](./experience-debug-playground.md)（G1–G7 已落地）  
 > **壳与目录对照**：`_reference/framework-harness/repos/alice-source/_extract/page-playground-DH91WfGW.js`  
@@ -198,3 +198,11 @@ type UiStory = {
 | A2 UI 故事矩阵 | `UiControlsPanel`（按钮/输入/工具卡/空态 + 边缘格） |
 | A3 Prompt 目录 | `PromptCatalogPanel` + `PROMPT_ASSETS` |
 | A4 文档 | guidelines / M32 / changelog / progress / agent-runtime |
+
+### Phase 1 落地摘要（2026-08-06）
+
+| 验收 | 落点 |
+|------|------|
+| A5 确认/芯片/状态条 | `UiControlsPanel` 子 tab + 共享组件 |
+| A7 多轮隔离对话 | `buildPlaygroundMessages.history` · PromptLab transcript |
+| 模块卡 | agent-runtime / memory / permission / companion |

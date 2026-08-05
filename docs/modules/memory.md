@@ -63,7 +63,7 @@
 | 对话后索引用户消息 | 已落地 | `vector-index-user`（不索引 assistant 原文） |
 | 后台画像提取 | 已落地 | `profile-extractor` · task `profile-extract` |
 | 语义去重（记忆写入） | 已落地 | M08 G6 |
-| 本轮引用芯片（M29-G1） | 已落地 | `memory_citations` · Chat 芯片 |
+| 本轮引用芯片（M29-G1） | 已落地 | `memory_citations` · `MemoryCitationChips`（Chat + Playground） |
 | 对话内纠错（M29-G2） | 已落地 | `correctCitedMemory` |
 | 敏感高亮与采集提示（M29-G3） | 已落地 | `sensitive-memory` |
 | 项目文档 RAG | 不做（本模块） | 见 `rag/` |

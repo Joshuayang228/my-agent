@@ -103,6 +103,7 @@
 | 前端视觉语言（token / 设置 IA / Chat 气质） | 已落地 | 主题·设置·侧栏身份·空态 | `frontend-visual-language` Phase1–3 |
 | Alice 壳 Phase A（大气侧栏 + Secondary） | 已落地 | Primary/底栏宫格/非 chat 二级导航 | `PrimarySidebar` · `SecondaryNav` · `frontend-alice-shell` |
 | Chat 消息区大气化（Phase B 留白） | 已落地 | 消息流 `space-y-8`；工具卡见 agent-runtime | `frontend-alice-shell` Phase B |
+| 伴侣状态条进 Playground 故事矩阵 | 已落地 | UI 控件 · 状态条 | `CompanionStatusBar` · M32-G9 P1 |
 | 生图朋友圈 / 多宇宙并行 | 缺口 | — | wishlist / 非本阶段 |
 | 非活跃后台养成 | 缺口 | — | 产品明确不做 |
 

@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — Playground Phase 1：矩阵加厚 + 多轮试验（2026-08-06）
+
+- UI 控件子区新增：确认框 / 记忆芯片 / 状态条（import 正式组件）
+- 抽出 `MemoryCitationChips`、`PermissionConfirmCard` 供 Chat 与展厅共用
+- 对话试验支持 `history` 多轮隔离试跑（IPC 三处同步）；仍不写 settings
+
 ### Added — Playground 组件展厅 Phase 0（M32-G9）（2026-08-06）
 
 - 顶栏活目录：设计系统 / UI 控件矩阵 / 提示词资产 / 对话试验 / 工具 / 体验夹具

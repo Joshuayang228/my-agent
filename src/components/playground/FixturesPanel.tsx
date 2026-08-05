@@ -2,7 +2,7 @@
  * 体验夹具 — 空态 / 错误 / 权限确认（原 FixturesTab）。
  */
 
-import { AlertTriangle } from 'lucide-react'
+import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 
 function FixtureError({ title, body, action }: { title: string; body: string; action: string }) {
   return (
@@ -86,36 +86,11 @@ export function FixturesPanel() {
         <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
           权限确认（静态样例）
         </h3>
-        <div
-          className="mx-auto max-w-md rounded-lg border p-5 shadow-2xl"
-          style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
-        >
-          <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--warning)' }}>
-            <AlertTriangle size={14} /> 操作确认
-          </h4>
-          <p className="mb-3 text-[13px]" style={{ color: 'var(--text-secondary)' }}>AI 请求执行以下操作：</p>
-          <div className="mb-4 rounded-md border px-3 py-2" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
-            <div className="font-mono text-[13px]" style={{ color: 'var(--accent)' }}>shell_exec</div>
-            <pre className="mt-1.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-              {JSON.stringify({ command: 'rm -rf ./tmp' }, null, 2)}
-            </pre>
-          </div>
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              className="rounded-md border px-3 py-1.5 text-[13px]"
-              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-            >
-              拒绝
-            </button>
-            <button
-              type="button"
-              className="rounded-md px-3 py-1.5 text-[13px] font-medium text-white"
-              style={{ background: 'var(--warning)' }}
-            >
-              允许执行
-            </button>
-          </div>
+        <div className="mx-auto flex justify-center">
+          <PermissionConfirmCard
+            toolName="shell_exec"
+            args={{ command: 'rm -rf ./tmp' }}
+          />
         </div>
       </section>
     </div>

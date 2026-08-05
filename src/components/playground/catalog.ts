@@ -29,13 +29,23 @@ export const PLAYGROUND_TABS: readonly PlaygroundTabDef[] = [
   { id: 'fixtures', label: '体验夹具' },
 ] as const
 
-export type UiControlsSubId = 'buttons' | 'inputs' | 'tool-cards' | 'empty'
+export type UiControlsSubId =
+  | 'buttons'
+  | 'inputs'
+  | 'tool-cards'
+  | 'empty'
+  | 'confirm'
+  | 'memory-chips'
+  | 'status-bar'
 
 export const UI_CONTROLS_SUBTABS: readonly { id: UiControlsSubId; label: string }[] = [
   { id: 'buttons', label: '按钮' },
   { id: 'inputs', label: '输入' },
   { id: 'tool-cards', label: '工具卡' },
   { id: 'empty', label: '空态' },
+  { id: 'confirm', label: '确认框' },
+  { id: 'memory-chips', label: '记忆芯片' },
+  { id: 'status-bar', label: '状态条' },
 ] as const
 
 export interface PromptAsset {

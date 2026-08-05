@@ -85,14 +85,22 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     }
   })
 
-  /** 免伴侣上下文的单轮 Prompt 试跑（wishlist Playground） */
+  /** 免伴侣上下文的 Prompt 试跑（可多轮 history；wishlist Playground） */
   ipcMain.handle(
     'debug:playground-run',
-    async (_e, input: { systemPrompt?: string; userPrompt: string }) => {
+    async (
+      _e,
+      input: {
+        systemPrompt?: string
+        userPrompt: string
+        history?: Array<{ role: 'user' | 'assistant'; content: string }>
+      },
+    ) => {
       const { runPlayground } = await import('../agent/playground')
       return runPlayground({
         systemPrompt: input?.systemPrompt,
         userPrompt: input?.userPrompt ?? '',
+        history: input?.history,
       })
     },
   )

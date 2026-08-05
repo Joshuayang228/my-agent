@@ -14,9 +14,11 @@ import { ToastProvider, useToast } from './components/Toast'
 import { SkillsPanel } from './components/SkillsPanel'
 import { FileBrowser } from './components/FileBrowser'
 import MentionPopup from './components/MentionPopup'
+import { MemoryCitationChips } from './components/chat/MemoryCitationChips'
+import { PermissionConfirmCard } from './components/chat/PermissionConfirmCard'
 import {
   Volume2, Paperclip, Shield, RefreshCw, Zap,
-  Folder, FolderOpen, Ban, AlertTriangle,
+  Folder, FolderOpen, Ban,
   ChevronDown, Square,
   Copy, Check, X, Pencil, RotateCcw, GitBranch, Trash2,
   Plus, Search, Menu, Send, File,
@@ -1268,49 +1270,12 @@ function App() {
                       /* ── AI 消息：左对齐纯文本 ── */
                       <div className="relative max-w-full">
                         {msg.memoryCitations && msg.memoryCitations.length > 0 && (
-                          <div
-                            className="mb-1.5 flex flex-wrap gap-1.5"
-                            aria-label="本轮引用的记忆"
-                          >
-                            {msg.memoryCitations.map((c) => (
-                              <span
-                                key={c.id}
-                                title={`id: ${c.id}\n${c.summary}`}
-                                className="inline-flex max-w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] leading-snug"
-                                style={{
-                                  color: 'var(--text-muted)',
-                                  background: 'var(--bg-secondary)',
-                                  border: '1px solid var(--border-subtle)',
-                                }}
-                              >
-                                <span className="max-w-[10rem] truncate">
-                                  记忆·{c.category}: {c.summary}
-                                </span>
-                                {!isStreaming && (
-                                  <>
-                                    <button
-                                      type="button"
-                                      className="shrink-0 underline-offset-2 hover:underline"
-                                      style={{ color: 'var(--text-secondary)' }}
-                                      title="记错了：从库中删除这条引用"
-                                      onClick={() => void handleForgetCitation(c.id)}
-                                    >
-                                      记错了
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="shrink-0 underline-offset-2 hover:underline"
-                                      style={{ color: 'var(--text-secondary)' }}
-                                      title="改正：写入正确内容"
-                                      onClick={() => void handleAmendCitation(c.id, c.summary)}
-                                    >
-                                      改正
-                                    </button>
-                                  </>
-                                )}
-                              </span>
-                            ))}
-                          </div>
+                          <MemoryCitationChips
+                            citations={msg.memoryCitations}
+                            showActions={!isStreaming}
+                            onForget={(id) => void handleForgetCitation(id)}
+                            onAmend={(id, summary) => void handleAmendCitation(id, summary)}
+                          />
                         )}
                         {(msg.content || (isStreaming && isLastMsg)) && (
                         <div className="mb-3 text-[13.5px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>
@@ -1811,41 +1776,19 @@ function App() {
       {/* 确认对话框（串行队列：一次只展示队首，应答后出队） */}
       {confirmDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-lg border p-5 shadow-2xl" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
-            <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--warning)' }}>
-              <AlertTriangle size={14} /> 操作确认
-              {confirmQueue.length > 1 && (
-                <span className="ml-auto text-[11px] font-normal" style={{ color: 'var(--text-muted)' }}>
-                  队列 {confirmQueue.length}
-                </span>
-              )}
-            </h3>
-            <p className="mb-3 text-[13px]" style={{ color: 'var(--text-secondary)' }}>AI 请求执行以下操作：</p>
-            <div className="mb-4 rounded-md border px-3 py-2" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
-              <div className="font-mono text-[13px]" style={{ color: 'var(--accent)' }}>{confirmDialog.name}</div>
-              <pre className="mt-1.5 max-h-36 overflow-auto text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                {JSON.stringify(confirmDialog.args, null, 2)}
-              </pre>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  window.electronAPI.chat.confirmResponse(confirmDialog.requestId, false)
-                  setConfirmQueue(q => q.slice(1))
-                }}
-                className="rounded-md border px-3 py-1.5 text-[13px] transition"
-                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-              >拒绝</button>
-              <button
-                onClick={() => {
-                  window.electronAPI.chat.confirmResponse(confirmDialog.requestId, true)
-                  setConfirmQueue(q => q.slice(1))
-                }}
-                className="rounded-md px-3 py-1.5 text-[13px] font-medium text-white transition"
-                style={{ background: 'var(--warning)' }}
-              >允许执行</button>
-            </div>
-          </div>
+          <PermissionConfirmCard
+            toolName={confirmDialog.name}
+            args={confirmDialog.args}
+            queueLength={confirmQueue.length}
+            onDeny={() => {
+              window.electronAPI.chat.confirmResponse(confirmDialog.requestId, false)
+              setConfirmQueue(q => q.slice(1))
+            }}
+            onAllow={() => {
+              window.electronAPI.chat.confirmResponse(confirmDialog.requestId, true)
+              setConfirmQueue(q => q.slice(1))
+            }}
+          />
         </div>
       )}
     </div>

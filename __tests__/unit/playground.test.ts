@@ -25,4 +25,18 @@ describe('buildPlaygroundMessages', () => {
     expect(msgs[0].content).toBe('只回 JSON')
     expect(msgs[1].content).toBe('ping')
   })
+
+  it('带 history 拼多轮', () => {
+    const msgs = buildPlaygroundMessages({
+      userPrompt: '再问一句',
+      history: [
+        { role: 'user', content: '你好' },
+        { role: 'assistant', content: '嗨' },
+      ],
+    })
+    expect(msgs.map((m) => m.role)).toEqual(['system', 'user', 'assistant', 'user'])
+    expect(msgs[1].content).toBe('你好')
+    expect(msgs[2].content).toBe('嗨')
+    expect(msgs[3].content).toBe('再问一句')
+  })
 })

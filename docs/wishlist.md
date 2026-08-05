@@ -64,7 +64,7 @@
 - [x] ~~**M32-G7** 对话内 debugMode 叠加策略~~ — 2026-08-05：`conversationDebugMode` + 聊天 Overlay / 工具保留
 - [ ] **M32-G8** aside Playground 预览（与行内 aside 耦合）
 - [x] ~~**M32-G9** Playground 对齐 Alice（顶栏活目录 + UI 矩阵 + Prompt 目录）~~ — 2026-08-06 Phase 0；合同已落地；不装 Storybook
-- [ ] **M32-G9 Phase 1** 控件矩阵加厚（确认框/记忆芯片/状态条）+ 可选多轮隔离对话
+- [x] ~~**M32-G9 Phase 1** 控件矩阵加厚 + 多轮隔离对话~~ — 2026-08-06：确认/芯片/状态条 + `history`
 - [x] ~~**M32 Debug 系统态补全**~~ — 2026-08-05：沙箱/权限规则/Skills + 调用链统计展示
 - [x] ~~**Part VI M22–M31**~~ — 2026-08-02：伙伴方法论主线已收齐
 - [x] ~~**Part VI 加厚修订**~~ — 2026-08-02：M22–M31 均已加厚

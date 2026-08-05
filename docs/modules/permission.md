@@ -61,6 +61,7 @@
 | 执行模式 confirm-all / auto / full-access | 已落地 | 输入区 · settings |
 | 命令分级 + 路径守卫 | 已落地 | `command-guard` · `shell_exec` |
 | 用户确认 IPC + 超时拒绝 | 已落地 | tool confirm · 监听清理 |
+| 确认弹窗组件（Chat + Playground） | 已落地 | `PermissionConfirmCard` · 串行队列 |
 | `permissionRules` 热更新 | 已落地 | settings |
 | 权限规则可视化编辑器 | 已落地 | 设置「安全与权限」· `PermissionRulesEditor` |
 

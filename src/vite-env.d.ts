@@ -406,6 +406,7 @@ declare global {
         playgroundRun: (input: {
           systemPrompt?: string
           userPrompt: string
+          history?: Array<{ role: 'user' | 'assistant'; content: string }>
         }) => Promise<
           | { ok: true; text: string; ms: number; model: string }
           | { ok: false; error: string }

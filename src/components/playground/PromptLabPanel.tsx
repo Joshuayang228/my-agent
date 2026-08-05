@@ -1,5 +1,5 @@
 /**
- * 对话试验 — 会话级 System 覆盖 + 单轮试跑（原 PromptLabTab）。
+ * 对话试验 — 会话级 System 覆盖 + 可多轮隔离试跑（不写 settings）。
  */
 
 import { useState } from 'react'
@@ -12,6 +12,8 @@ interface PromptInfo {
   estimatedTokens: number
 }
 
+type Turn = { role: 'user' | 'assistant'; content: string }
+
 export function PromptLabPanel({
   onLoadedProduction,
 }: {
@@ -19,9 +21,10 @@ export function PromptLabPanel({
 }) {
   const [systemPrompt, setSystemPrompt] = useState('')
   const [userPrompt, setUserPrompt] = useState('用一句话解释什么是 KV Cache。')
+  const [turns, setTurns] = useState<Turn[]>([])
   const [running, setRunning] = useState(false)
   const [loadingProd, setLoadingProd] = useState(false)
-  const [result, setResult] = useState<{ text: string; ms: number; model: string } | null>(null)
+  const [lastMeta, setLastMeta] = useState('')
   const [error, setError] = useState('')
 
   const loadProduction = async () => {
@@ -47,21 +50,34 @@ export function PromptLabPanel({
       setError('需要 Electron 环境')
       return
     }
+    const user = userPrompt.trim()
+    if (!user) return
     setRunning(true)
     setError('')
-    setResult(null)
     try {
       const r = await window.electronAPI.debug.playgroundRun({
         systemPrompt: systemPrompt.trim() || undefined,
-        userPrompt,
+        userPrompt: user,
+        history: turns,
       })
-      if (r.ok) setResult({ text: r.text, ms: r.ms, model: r.model })
-      else setError(r.error)
+      if (r.ok) {
+        setTurns((prev) => [...prev, { role: 'user', content: user }, { role: 'assistant', content: r.text }])
+        setUserPrompt('')
+        setLastMeta(`${r.model} · ${r.ms}ms · 已 ${turns.length / 2 + 1} 轮`)
+      } else {
+        setError(r.error)
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
       setRunning(false)
     }
+  }
+
+  const resetTurns = () => {
+    setTurns([])
+    setLastMeta('')
+    setError('')
   }
 
   return (
@@ -71,8 +87,9 @@ export function PromptLabPanel({
           对话试验
         </h2>
         <p className="mt-1 rounded-lg border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
-          隔离迷你对话：下方 System 仅本次试跑，
-          <strong style={{ color: 'var(--text-primary)' }}>不会写入设置</strong>。可先「载入当前实装」再改。
+          隔离迷你对话（可多轮）：System 与 transcript 仅本页试验，
+          <strong style={{ color: 'var(--text-primary)' }}>不会写入设置 / 真会话</strong>。
+          可先「载入当前实装」再改。
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -91,24 +108,58 @@ export function PromptLabPanel({
         >
           清空 System（用默认试验指令）
         </button>
+        <button
+          type="button"
+          onClick={resetTurns}
+          className="settings-option px-3 py-1.5 text-xs"
+          disabled={turns.length === 0}
+        >
+          清空对话轮次
+        </button>
       </div>
       <label className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
         System（会话覆盖）
         <textarea
           value={systemPrompt}
           onChange={(e) => setSystemPrompt(e.target.value)}
-          rows={8}
+          rows={6}
           className="theme-input mt-1 w-full rounded-lg border px-2 py-1.5 font-mono text-xs outline-none"
           placeholder="空 = 使用默认 playground 指令；不写全局 settings"
         />
       </label>
+
+      {turns.length > 0 && (
+        <div
+          className="max-h-56 space-y-2 overflow-y-auto rounded-lg border p-3"
+          style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
+          data-testid="prompt-lab-transcript"
+        >
+          {turns.map((t, i) => (
+            <div key={`${t.role}-${i}`} className="text-[12px]">
+              <span className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                {t.role === 'user' ? 'User' : 'Assistant'}
+              </span>
+              <pre className="mt-0.5 whitespace-pre-wrap break-words font-sans" style={{ color: 'var(--text-primary)' }}>
+                {t.content}
+              </pre>
+            </div>
+          ))}
+        </div>
+      )}
+
       <label className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
-        User
+        User（下一轮）
         <textarea
           value={userPrompt}
           onChange={(e) => setUserPrompt(e.target.value)}
           rows={3}
           className="theme-input mt-1 w-full rounded-lg border px-2 py-1.5 font-mono text-xs outline-none"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+              e.preventDefault()
+              void run()
+            }
+          }}
         />
       </label>
       <button
@@ -117,22 +168,15 @@ export function PromptLabPanel({
         onClick={() => void run()}
         className="settings-option px-3 py-1.5 text-xs disabled:opacity-50"
       >
-        {running ? '运行中…' : '试跑（单轮 · 无工具）'}
+        {running ? '运行中…' : turns.length > 0 ? '继续试跑（带历史）' : '试跑（无工具）'}
       </button>
+      {lastMeta && (
+        <p className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>{lastMeta}</p>
+      )}
       {error && (
         <p className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: 'var(--danger, #c44)', color: 'var(--danger, #c44)' }}>
           {error}
         </p>
-      )}
-      {result && (
-        <div className="rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border-color)' }}>
-          <div className="mb-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-            {result.model} · {result.ms}ms
-          </div>
-          <pre className="whitespace-pre-wrap break-words font-mono text-xs" style={{ color: 'var(--text-primary)' }}>
-            {result.text}
-          </pre>
-        </div>
       )}
     </div>
   )
