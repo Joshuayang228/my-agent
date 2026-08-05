@@ -20,11 +20,14 @@ describe('session-format', () => {
 })
 
 describe('shouldShowSecondaryNav', () => {
-  it('chat / settings 不显示，其余全页显示', () => {
+  it('仅 memory / skills 显示二级列；独立全页不显示', () => {
     expect(shouldShowSecondaryNav('chat')).toBe(false)
     expect(shouldShowSecondaryNav('settings')).toBe(false)
-    expect(shouldShowSecondaryNav('debug')).toBe(true)
-    expect(shouldShowSecondaryNav('moments')).toBe(true)
+    expect(shouldShowSecondaryNav('debug')).toBe(false)
+    expect(shouldShowSecondaryNav('playground')).toBe(false)
+    expect(shouldShowSecondaryNav('world')).toBe(false)
+    expect(shouldShowSecondaryNav('moments')).toBe(false)
+    expect(shouldShowSecondaryNav('memory')).toBe(true)
     expect(shouldShowSecondaryNav('skills')).toBe(true)
   })
 })

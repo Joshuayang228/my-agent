@@ -1,11 +1,9 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import {
   FileText, BarChart3, ClipboardList, Zap, RotateCcw, X,
-  Bug, Play, Globe,
+  Bug, Globe,
 } from 'lucide-react'
-import { PlaygroundShell } from './playground'
 
-type Surface = 'debug' | 'playground'
 type DebugTab = 'prompt' | 'world' | 'system' | 'traces' | 'events'
 
 interface WorldSnapshot {
@@ -151,15 +149,12 @@ const DEBUG_TABS: { id: DebugTab; label: string; icon: React.ReactNode }[] = [
 ]
 
 interface DevPanelProps {
-  /** 由侧栏独立入口决定，不再在页内二选一嵌套 */
-  surface: Surface
   onClose: () => void
   eventLog: Array<{ time: number; type: string; detail: string }>
-  /** 弱链跳到另一独立页（可选） */
-  onOpenSibling?: (surface: Surface) => void
 }
 
-export function DevPanel({ surface, onClose, eventLog, onOpenSibling }: DevPanelProps) {
+/** Debug 独立全页（与 Playground 分离，不再共用 surface 双页壳） */
+export function DevPanel({ onClose, eventLog }: DevPanelProps) {
   const [debugTab, setDebugTab] = useState<DebugTab>('prompt')
   const [promptInfo, setPromptInfo] = useState<PromptInfo | null>(null)
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
@@ -170,7 +165,6 @@ export function DevPanel({ surface, onClose, eventLog, onOpenSibling }: DevPanel
 
   const refresh = useCallback(async () => {
     if (!window.electronAPI?.debug) return
-    if (surface !== 'debug') return
     try {
       if (debugTab === 'prompt') {
         setPromptInfo(await window.electronAPI.debug.systemPrompt())
@@ -193,86 +187,59 @@ export function DevPanel({ surface, onClose, eventLog, onOpenSibling }: DevPanel
         setWorldError(e instanceof Error ? e.message : String(e))
       }
     }
-  }, [surface, debugTab])
+  }, [debugTab])
 
   useEffect(() => { void refresh() }, [refresh])
 
-  const title = surface === 'debug' ? 'Debug' : 'Playground'
-  const TitleIcon = surface === 'debug' ? Bug : Play
-
   return (
-    <div className="flex h-full flex-col" data-testid="dev-panel" data-surface={surface}>
+    <div className="flex h-full flex-col" data-testid="dev-panel" data-surface="debug">
       <div className="flex items-center justify-between border-b px-5 py-3" style={{ borderColor: 'var(--border-color)' }}>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-              <TitleIcon size={16} style={{ color: 'var(--success)' }} />
-              {title}
-            </span>
-            {onOpenSibling && (
-              <button
-                type="button"
-                className="text-[11px] underline-offset-2 hover:underline"
-                style={{ color: 'var(--text-muted)' }}
-                onClick={() => onOpenSibling(surface === 'debug' ? 'playground' : 'debug')}
-              >
-                {surface === 'debug' ? '去 Playground' : '去 Debug'}
-              </button>
-            )}
-          </div>
+          <span className="flex items-center gap-1.5 text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <Bug size={16} style={{ color: 'var(--success)' }} />
+            Debug
+          </span>
           <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            {surface === 'debug'
-              ? '只读透视：生产实装、世界态与运行痕迹。'
-              : '组件展厅 + 隔离试验（不写全局设置；非 Storybook 工程）。'}
+            只读透视：生产实装、世界态与运行痕迹。
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {surface === 'debug' && (
-            <button onClick={() => void refresh()} className="rounded-lg px-2 py-1 text-xs transition" style={{ color: 'var(--text-muted)' }}>
-              <RotateCcw size={12} /> 刷新
-            </button>
-          )}
+          <button onClick={() => void refresh()} className="rounded-lg px-2 py-1 text-xs transition" style={{ color: 'var(--text-muted)' }}>
+            <RotateCcw size={12} /> 刷新
+          </button>
           <button onClick={onClose} className="rounded-lg p-1.5 transition" style={{ color: 'var(--text-muted)' }} title="返回聊天">
             <X size={14} />
           </button>
         </div>
       </div>
 
-      {surface === 'playground' ? (
-        <div className="min-h-0 flex-1">
-          <PlaygroundShell />
-        </div>
-      ) : (
-        <>
-          <div className="flex border-b px-5" style={{ borderColor: 'var(--border-color)' }}>
-            {DEBUG_TABS.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setDebugTab(t.id)}
-                className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-medium transition ${
-                  debugTab === t.id ? 'border-emerald-400 text-emerald-500' : 'border-transparent'
-                }`}
-                style={debugTab !== t.id ? { color: 'var(--text-muted)' } : undefined}
-              >
-                <span>{t.icon}</span>
-                {t.label}
-              </button>
-            ))}
-          </div>
+      <div className="flex border-b px-5" style={{ borderColor: 'var(--border-color)' }}>
+        {DEBUG_TABS.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setDebugTab(t.id)}
+            className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-medium transition ${
+              debugTab === t.id ? 'border-emerald-400 text-emerald-500' : 'border-transparent'
+            }`}
+            style={debugTab !== t.id ? { color: 'var(--text-muted)' } : undefined}
+          >
+            <span>{t.icon}</span>
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-          <div className="flex-1 overflow-y-auto p-5">
-            {debugTab === 'prompt' && (
-              <PromptTab info={promptInfo} layer={promptLayer} setLayer={setPromptLayer} readonly />
-            )}
-            {debugTab === 'world' && (
-              <WorldTab snap={worldSnap} error={worldError} />
-            )}
-            {debugTab === 'system' && <SystemTab info={systemInfo} />}
-            {debugTab === 'traces' && <TracesTab data={traces} />}
-            {debugTab === 'events' && <EventsTab events={eventLog} />}
-          </div>
-        </>
-      )}
+      <div className="flex-1 overflow-y-auto p-5">
+        {debugTab === 'prompt' && (
+          <PromptTab info={promptInfo} layer={promptLayer} setLayer={setPromptLayer} readonly />
+        )}
+        {debugTab === 'world' && (
+          <WorldTab snap={worldSnap} error={worldError} />
+        )}
+        {debugTab === 'system' && <SystemTab info={systemInfo} />}
+        {debugTab === 'traces' && <TracesTab data={traces} />}
+        {debugTab === 'events' && <EventsTab events={eventLog} />}
+      </div>
     </div>
   )
 }

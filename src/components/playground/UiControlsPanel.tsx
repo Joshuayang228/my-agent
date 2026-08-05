@@ -11,7 +11,6 @@ import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import { CompanionStatusBar } from '../CompanionStatusBar'
 import { UI_CONTROLS_SUBTABS, type UiControlsSubId } from './catalog'
 import { StoryBlock } from './StoryBlock'
-import type { MemoryCitation } from '../../shared/types'
 
 const TOOL_STORIES: ToolCallbackItem[] = [
   {

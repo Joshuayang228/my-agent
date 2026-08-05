@@ -6,7 +6,7 @@
 
 | | |
 |--|--|
-| **现在在哪** | 公开 alpha。Playground **Phase 0+1**（展厅矩阵加厚 + 多轮隔离试验）已落地。 |
+| **现在在哪** | 公开 alpha。壳层 IA：人物世界口袋 + Debug/Playground 独立全页；Playground Phase 0+1 已落地。 |
 | **产品怎么记** | `docs/modules/README.md` → 各卡「已落地能力」；大改先写 `docs/requirements/` **施工合同**。 |
 | **下一步可做** | 前端 Phase C / M32-G8 aside；公开截图前再打磨。 |
 | **明确暂缓** | 原生语音 STT（`docs/deferred/native-voice-input.md`）；生图 Moments（M24-G3）；Python 嵌入沙箱。 |
@@ -17,6 +17,7 @@
 **阶段**：公开运营起步；体验与前端统一优先于再堆基建；原生语音与 M24-G3 暂缓。
 
 **最新动态（2026-08-06）**：
+- ✅ **壳层 IA**：人物世界 `WorldHub`；撤顶栏状态条与侧栏主题钮；Debug/Playground 独立页壳。
 - ✅ **Playground Phase 1（M32-G9）**：确认框/记忆芯片/状态条故事格；多轮 `history` 试验；Chat 共用抽组件。
 - ✅ **Playground 组件展厅 Phase 0（M32-G9）**：顶栏活目录 + UI 故事矩阵 + Prompt 资产目录；`src/components/playground/`。
 - ✅ **前端 Alice 壳 Phase B**：工具卡行内附着 assistant；历史还原；消息流 `space-y-8`。

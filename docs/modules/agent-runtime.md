@@ -21,7 +21,7 @@
 | Prompt | `agent/prompt-builder.ts` |
 | 压缩 | `agent/context-manager.ts` |
 | 队列 | `services/task-queue.ts` |
-| UI 调试 | DevPanel · Playground |
+| UI 调试 | DevPanel（Debug）· PlaygroundPage |
 | 分层说明 | [`../architecture.md`](../architecture.md) |
 
 ## 依赖
@@ -68,8 +68,8 @@
 | Observer / DevPanel 可观测 | 已落地 | tracer / observer / DevPanel |
 | Chat Callback 三通道 UI | 已落地 | `src/components/chat/callbacks/` |
 | 工具卡行内附着 assistant（Alice Phase B） | 已落地 | `resolve-tools-for-message.ts` · 历史 `toolCalls`+`role=tool`；进行中挂 live host |
-| Dev Playground（无 Assemble 试跑） | 已落地 | DevPanel · `debug:playground-run` |
-| Debug / Playground 独立全页 | 已落地 | 侧栏双入口 + `activeView`；非右侧抽屉 |
+| Dev Playground（无 Assemble 试跑） | 已落地 | PlaygroundPage · `debug:playground-run` |
+| Debug / Playground 独立全页 | 已落地 | 侧栏纵向分列入口 + 各自页面壳；非双 tab / 非抽屉 |
 | 工具手测（权限门闸） | 已落地 | `debug:tool-run` · confirmRisk |
 | Prompt 会话覆盖（不写 settings） | 已落地 | 载入实装 → playgroundRun |
 | 设计 token 场 | 已落地 | Playground「设计系统」 |

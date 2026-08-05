@@ -1286,7 +1286,7 @@ export function SettingsPanel({
           </button>
         </div>
         <p className="mt-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-          独立全页入口（非聊天右侧抽屉），对齐 Alice Debug / Playground。
+          侧栏各有独立全页入口（纵向分列，非双 tab），对齐 Alice Debug / Playground。
         </p>
       </FieldGroup>
     </div>

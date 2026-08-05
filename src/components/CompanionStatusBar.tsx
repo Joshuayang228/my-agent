@@ -1,5 +1,5 @@
 /**
- * Chat 顶栏下的伴侣状态条：主角 · 此刻状态 · 生活面快捷入口
+ * 伴侣状态条（展厅/故事用）。聊天主壳已收进侧栏「人物世界」，不再常驻顶栏。
  */
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'

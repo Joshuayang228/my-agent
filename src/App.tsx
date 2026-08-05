@@ -3,13 +3,9 @@ import type { ChatMessage, AgentStreamEvent, ImageAttachment, MemoryCitation } f
 import { MarkdownRenderer } from './components/MarkdownRenderer'
 import { SettingsPanel } from './components/SettingsPanel'
 import { DevPanel } from './components/DevPanel'
+import { PlaygroundPage } from './components/PlaygroundPage'
 import { MemoryPanel } from './components/MemoryPanel'
-import { MomentsPanel } from './components/MomentsPanel'
-import { AssetsPanel } from './components/AssetsPanel'
-import { CastPanel } from './components/CastPanel'
-import { CompanionStatusBar } from './components/CompanionStatusBar'
 import { CompanionSceneBackdrop } from './components/CompanionSceneBackdrop'
-import { CharacterShelfPanel } from './components/CharacterShelfPanel'
 import { ToastProvider, useToast } from './components/Toast'
 import { SkillsPanel } from './components/SkillsPanel'
 import { FileBrowser } from './components/FileBrowser'
@@ -42,7 +38,16 @@ import {
 } from './components/chat/callbacks'
 import { ConversationDebugOverlay } from './components/chat/ConversationDebugOverlay'
 import { parseConversationDebugMode } from './components/chat/conversation-debug'
-import { PrimarySidebar, SecondaryNav, formatSessionPreview } from './components/shell'
+import {
+  PrimarySidebar,
+  SecondaryNav,
+  WorldHub,
+  isWorldView,
+  worldTabFromView,
+  formatSessionPreview,
+  type ShellView,
+  type WorldTab,
+} from './components/shell'
 
 let messageIdCounter = 0
 function genId() {
@@ -98,9 +103,8 @@ function App() {
   const [pendingImages, setPendingImages] = useState<ImageAttachment[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [activeTools, setActiveTools] = useState<ToolCallbackItem[]>([])
-  const [activeView, setActiveView] = useState<
-    'chat' | 'skills' | 'memory' | 'moments' | 'assets' | 'cast' | 'shelf' | 'settings' | 'debug' | 'playground'
-  >('chat')
+  const [activeView, setActiveView] = useState<ShellView>('chat')
+  const [worldTab, setWorldTab] = useState<WorldTab>('moments')
   const [theme, setTheme] = useState<string>(() => {
     return localStorage.getItem('theme') || 'mist'
   })
@@ -909,8 +913,10 @@ function App() {
           sessionFilterRef={sessionFilterRef}
           renamingId={renamingId}
           renameValue={renameValue}
-          theme={theme}
-          onOpenShelf={() => setActiveView('shelf')}
+          onOpenShelf={() => {
+            setWorldTab('shelf')
+            setActiveView('world')
+          }}
           onCreateSession={() => { void createNewSession() }}
           onToggleSearch={() => {
             setSidebarSearchOpen((v) => !v)
@@ -928,18 +934,28 @@ function App() {
             e.preventDefault()
             setContextMenu({ x: e.clientX, y: e.clientY, sessionId })
           }}
-          onNavigate={(view) => setActiveView(view)}
-          onCollapse={() => setSidebarOpen(false)}
-          onToggleTheme={() => {
-            const darkThemes = new Set(['dark', 'night-feast', 'blue-pool'])
-            setTheme(darkThemes.has(theme) ? 'mist' : 'dark')
+          onNavigate={(view) => {
+            if (isWorldView(view) || view === 'world') {
+              setWorldTab(worldTabFromView(view === 'world' ? 'world' : view))
+              setActiveView('world')
+              return
+            }
+            setActiveView(view)
           }}
+          onCollapse={() => setSidebarOpen(false)}
         />
       )}
 
       <SecondaryNav
         activeView={activeView}
-        onNavigate={(view) => setActiveView(view)}
+        onNavigate={(view) => {
+          if (isWorldView(view) || view === 'world') {
+            setWorldTab(worldTabFromView(view === 'world' ? 'world' : view))
+            setActiveView('world')
+            return
+          }
+          setActiveView(view)
+        }}
       />
 
       {/* 会话右键菜单 */}
@@ -1036,26 +1052,40 @@ function App() {
           })()}
         </div>
 
-        {activeView === 'chat' && (
-          <CompanionStatusBar
-            roleName={currentPersonaName}
-            roleId={activeRoleId}
-            onOpenMoments={() => setActiveView('moments')}
-            onOpenAssets={() => setActiveView('assets')}
-            onOpenShelf={() => setActiveView('shelf')}
-            onOpenCast={() => setActiveView('cast')}
-          />
-        )}
-
-        {/* Tab 视图 — 技能/记忆/生活面/Debug/Playground 等非聊天页 */}
         {activeView !== 'chat' && (
           <div className="view-transition flex flex-1 flex-col overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
-            {(activeView === 'debug' || activeView === 'playground') ? (
+            {activeView === 'debug' ? (
               <DevPanel
-                surface={activeView}
                 eventLog={eventLog}
                 onClose={() => setActiveView('chat')}
-                onOpenSibling={(s) => setActiveView(s)}
+              />
+            ) : activeView === 'playground' ? (
+              <PlaygroundPage onClose={() => setActiveView('chat')} />
+            ) : isWorldView(activeView) ? (
+              <WorldHub
+                tab={activeView === 'world' ? worldTab : worldTabFromView(activeView)}
+                onTabChange={(t) => {
+                  setWorldTab(t)
+                  setActiveView('world')
+                }}
+                onClose={() => setActiveView('chat')}
+                onOpenSession={(sid) => { void openSummonSession(sid) }}
+                onSwitched={(p) => {
+                  setCurrentPersonaName(p.name)
+                  setCompanionBlurb(p.description)
+                  setActiveRoleId(p.id)
+                }}
+                recentByRole={Object.fromEntries(
+                  sessions
+                    .filter((s) => s.sessionKind === 'summon' && s.roleId)
+                    .sort((a, b) => b.updatedAt - a.updatedAt)
+                    .reduce<Array<[string, { sessionId: string; title: string; updatedAt: number }]>>((acc, s) => {
+                      const rid = s.roleId!
+                      if (acc.some(([id]) => id === rid)) return acc
+                      acc.push([rid, { sessionId: s.id, title: s.title, updatedAt: s.updatedAt }])
+                      return acc
+                    }, []),
+                )}
               />
             ) : (
               <div className="flex-1 overflow-y-auto scrollbar-thin">
@@ -1064,40 +1094,6 @@ function App() {
                 )}
                 {activeView === 'memory' && (
                   <MemoryPanel onClose={() => setActiveView('chat')} />
-                )}
-                {activeView === 'moments' && (
-                  <MomentsPanel onClose={() => setActiveView('chat')} />
-                )}
-                {activeView === 'assets' && (
-                  <AssetsPanel onClose={() => setActiveView('chat')} />
-                )}
-                {activeView === 'cast' && (
-                  <CastPanel
-                    onClose={() => setActiveView('chat')}
-                    onOpenSession={(sid) => { void openSummonSession(sid) }}
-                    onOpenShelf={() => setActiveView('shelf')}
-                    recentByRole={Object.fromEntries(
-                      sessions
-                        .filter((s) => s.sessionKind === 'summon' && s.roleId)
-                        .sort((a, b) => b.updatedAt - a.updatedAt)
-                        .reduce<Array<[string, { sessionId: string; title: string; updatedAt: number }]>>((acc, s) => {
-                          const rid = s.roleId!
-                          if (acc.some(([id]) => id === rid)) return acc
-                          acc.push([rid, { sessionId: s.id, title: s.title, updatedAt: s.updatedAt }])
-                          return acc
-                        }, []),
-                    )}
-                  />
-                )}
-                {activeView === 'shelf' && (
-                  <CharacterShelfPanel
-                    onClose={() => setActiveView('chat')}
-                    onSwitched={(p) => {
-                      setCurrentPersonaName(p.name)
-                      setCompanionBlurb(p.description)
-                      setActiveRoleId(p.id)
-                    }}
-                  />
                 )}
               </div>
             )}
@@ -1163,8 +1159,10 @@ function App() {
                       key={item.label}
                       type="button"
                       onClick={() => {
-                        if ('view' in item && item.view) setActiveView(item.view)
-                        else if ('prompt' in item && item.prompt) void sendMessage(item.prompt)
+                        if ('view' in item && item.view) {
+                          setWorldTab(worldTabFromView(item.view))
+                          setActiveView('world')
+                        } else if ('prompt' in item && item.prompt) void sendMessage(item.prompt)
                       }}
                       className="rounded-full border px-3.5 py-1.5 text-[12.5px] transition"
                       style={{

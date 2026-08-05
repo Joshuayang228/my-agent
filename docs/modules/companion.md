@@ -17,8 +17,8 @@
 
 | 类型 | 位置 |
 |------|------|
-| UI · 生活面 | Chat `CompanionStatusBar`；`moments` / `assets` / `cast` / **`shelf`（换角主入口）**；欢迎屏快捷 |
-| UI · 工具面 | 设置「伙伴」：MUTABLE/反思 + 活跃主角（次要）；侧栏 Skills/记忆/设置 |
+| UI · 生活面 | 侧栏「人物世界」口袋（`WorldHub`：朋友圈/物什/名册/角色架）；欢迎屏快捷 |
+| UI · 工具面 | 设置「伙伴」：MUTABLE/反思 + 活跃主角（次要）；侧栏记忆/设置；Skills 经二级列 |
 | IPC | `companion:*`（list / switch / moments / assets / roster / catchup-status(+presence) / start-summon / reflection…） |
 | Prompt | `prompt-builder` + `orchestrator.loadRoleAssembleInput`（管线见下方「Prompt 组装」） |
 | 资产 | `electron/main/companion/universes/default/` |
@@ -28,8 +28,9 @@
 
 | View | 组件 | 说明 |
 |------|------|------|
-| `chat` | App + CompanionStatusBar + CompanionSceneBackdrop | 对话；状态条 presence；弱场景随地点 |
-| `moments` | MomentsPanel | 朋友圈卡片时间线 |
+| `chat` | App + CompanionSceneBackdrop | 对话；弱场景随地点 |
+| `world` | WorldHub | 人物世界口袋（内页 tab） |
+| `moments` | MomentsPanel（经 WorldHub） | 朋友圈卡片时间线 |
 | `assets` | AssetsPanel | 衣柜（P1 加厚主视觉） |
 | `cast` | CastPanel | 名册 / 召唤（≠换活跃） |
 | `shelf` | CharacterShelfPanel | 角色架换角 |
@@ -86,24 +87,25 @@
 | feedback 记忆按 role 分桶 | 已落地 | （隐式）反思 / L3 画像 | `memories.role_id` · `listFeedbackForRole` |
 | MUTABLE 结构性防退化（G3） | 已落地 | 设置保存 / 自动反思 | `mutable-validate` · setMutable 门闸 |
 | 反思吃生活薄信号（G4） | 已落地 | （隐式）自动/手动反思 | `life-signals` · Moments + Catch-up |
-| LifeEngine（暂停 · 剧本 · tick） | 已落地 | （隐式）状态条 presence | `life/engine.ts` |
+| LifeEngine（暂停 · 剧本 · tick） | 已落地 | （隐式）presence / Prompt | `life/engine.ts` |
 | Catch-up ≤7×24h | 已落地 | 朋友圈暖色条 / Prompt | `life/catchup` · `catchup-status` |
-| 此刻 presence | 已落地 | Chat `CompanionStatusBar` | `describeCastPresence` · `catchup-status.presence` |
-| Moments（朋友圈） | 已落地 | 状态条 / 欢迎屏 → Moments | `get-moments` · MomentsPanel · 卡司互动 meta |
+| 此刻 presence | 已落地 | Catch-up / Prompt | `describeCastPresence` · `catchup-status.presence` |
+| Moments（朋友圈） | 已落地 | 人物世界 / 欢迎屏 → 朋友圈 | `get-moments` · MomentsPanel · 卡司互动 meta |
 | Assets（物什） | 已落地 | 欢迎屏 → 物什 | wardrobe/bookshelf · `get/update/delete-asset` · AssetsPanel |
 | 名册浅注入 | 已落地 | （Prompt） | `cast/roster` |
-| CastPanel（名册 / 召唤） | 已落地 | 状态条 / 欢迎屏 → 名册 | CastPanel · `start-summon` · 场景 prompt |
+| CastPanel（名册 / 召唤） | 已落地 | 人物世界 / 欢迎屏 → 名册 | CastPanel · `start-summon` · 场景 prompt |
 | 召唤子会话 | 已落地 | 名册「开聊」 | 不改 active / 不 tick；可 delegate（任务工） |
 | 召唤忙闲婉拒 + force | 已落地 | 名册开聊前 | `check-cast-availability` |
 | 冷启动在场文案 | 已落地 | Chat 空态欢迎屏 | `companion-presence.ts` |
-| 角色架 UI | 已落地 | 状态条 / 欢迎「换主角」 | CharacterShelfPanel · `shelf` |
-| 物什主视觉（衣柜穿着中 + 书架分栏） | 已落地 | 状态条 / 欢迎屏 → 物什 | AssetsPanel · Moment.assetId/outfit |
-| 名册关系卡 + 最近召唤互动 | 已落地 | 状态条 / 欢迎屏 → 名册 | CastPanel · sessions(summon) |
+| 角色架 UI | 已落地 | 人物世界 / 欢迎「换主角」 | CharacterShelfPanel · `shelf` |
+| 物什主视觉（衣柜穿着中 + 书架分栏） | 已落地 | 人物世界 / 欢迎屏 → 物什 | AssetsPanel · Moment.assetId/outfit |
+| 名册关系卡 + 最近召唤互动 | 已落地 | 人物世界 / 欢迎屏 → 名册 | CastPanel · sessions(summon) |
 | 场景弱背景（Chat 氛围） | 已落地 | Chat 消息区底层 | `CompanionSceneBackdrop` · `companion-scene.ts` |
 | 前端视觉语言（token / 设置 IA / Chat 气质） | 已落地 | 主题·设置·侧栏身份·空态 | `frontend-visual-language` Phase1–3 |
-| Alice 壳 Phase A（大气侧栏 + Secondary） | 已落地 | Primary/底栏宫格/非 chat 二级导航 | `PrimarySidebar` · `SecondaryNav` · `frontend-alice-shell` |
+| Alice 壳 Phase A（大气侧栏 + Secondary） | 已落地 | Primary/底栏宫格；二级列仅工具 | `PrimarySidebar` · `SecondaryNav` · `frontend-alice-shell` |
 | Chat 消息区大气化（Phase B 留白） | 已落地 | 消息流 `space-y-8`；工具卡见 agent-runtime | `frontend-alice-shell` Phase B |
-| 伴侣状态条进 Playground 故事矩阵 | 已落地 | UI 控件 · 状态条 | `CompanionStatusBar` · M32-G9 P1 |
+| 人物世界口袋（对齐 Alice `/moments`） | 已落地 | 侧栏一入口 + 内页 tab | `WorldHub` |
+| 伴侣状态条（展厅故事格） | 已落地 | Playground UI · 状态条 | `CompanionStatusBar` · Chat 顶栏已撤 |
 | 生图朋友圈 / 多宇宙并行 | 缺口 | — | wishlist / 非本阶段 |
 | 非活跃后台养成 | 缺口 | — | 产品明确不做 |
 

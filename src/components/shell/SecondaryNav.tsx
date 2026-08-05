@@ -1,12 +1,11 @@
 import type { ReactNode } from 'react'
-import {
-  Newspaper, Shirt, Users, LayoutGrid, Brain, Cpu, Bug, FlaskConical, Settings,
-} from 'lucide-react'
+import { Brain, Cpu } from 'lucide-react'
 
 export type ShellView =
   | 'chat'
   | 'skills'
   | 'memory'
+  | 'world'
   | 'moments'
   | 'assets'
   | 'cast'
@@ -20,34 +19,20 @@ const GROUPS: {
   items: { id: ShellView; label: string; icon: ReactNode }[]
 }[] = [
   {
-    title: '生活',
-    items: [
-      { id: 'moments', label: '朋友圈', icon: <Newspaper size={15} strokeWidth={1.5} /> },
-      { id: 'assets', label: '物什', icon: <Shirt size={15} strokeWidth={1.5} /> },
-      { id: 'cast', label: '名册', icon: <Users size={15} strokeWidth={1.5} /> },
-      { id: 'shelf', label: '角色架', icon: <LayoutGrid size={15} strokeWidth={1.5} /> },
-    ],
-  },
-  {
     title: '工具',
     items: [
       { id: 'memory', label: '记忆', icon: <Brain size={15} strokeWidth={1.5} /> },
       { id: 'skills', label: 'Skills', icon: <Cpu size={15} strokeWidth={1.5} /> },
-      { id: 'settings', label: '设置', icon: <Settings size={15} strokeWidth={1.5} /> },
-    ],
-  },
-  {
-    title: '开发',
-    items: [
-      { id: 'debug', label: 'Debug', icon: <Bug size={15} strokeWidth={1.5} /> },
-      { id: 'playground', label: 'Playground', icon: <FlaskConical size={15} strokeWidth={1.5} /> },
     ],
   },
 ]
 
-/** chat / settings 全屏时不渲染二级列 */
+/**
+ * 独立全页（人物世界 / Debug / Playground / 设置）不再挂二级列，
+ * 避免与侧栏入口或页内 tab 重复成「双 tab」感。
+ */
 export function shouldShowSecondaryNav(view: ShellView): boolean {
-  return view !== 'chat' && view !== 'settings'
+  return view === 'memory' || view === 'skills'
 }
 
 export function SecondaryNav({

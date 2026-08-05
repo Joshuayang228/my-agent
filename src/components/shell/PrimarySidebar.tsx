@@ -1,13 +1,15 @@
 /**
- * Primary 侧栏：品牌区 + 大号新对话 + 会话列表 + 底栏（Alice 壳 Phase A）。
+ * Primary 侧栏：品牌区 + 大号新对话 + 会话列表 + 底栏（Alice 壳）。
+ * Debug / Playground 为独立全页入口（纵向分列，非双 tab）；生活面收进「人物世界」。
  */
 
 import type { RefObject, ReactNode, MouseEvent } from 'react'
 import {
-  Plus, Search, X, Pin, Newspaper, Shirt, Users, LayoutGrid, Brain, Settings,
-  Bug, FlaskConical, Sun, Moon, PanelLeftClose,
+  Plus, Search, X, Pin, Sparkles, Brain, Settings,
+  Bug, FlaskConical, PanelLeftClose,
 } from 'lucide-react'
 import type { ShellView } from './SecondaryNav'
+import { isWorldView } from './WorldHub'
 import { formatSessionPreview, formatSessionStamp } from './session-format'
 
 export interface SidebarSession {
@@ -21,11 +23,8 @@ export interface SidebarSession {
 }
 
 const DOCK: { id: ShellView; label: string; icon: ReactNode }[] = [
-  { id: 'moments', label: '朋友圈', icon: <Newspaper size={18} strokeWidth={1.5} /> },
-  { id: 'assets', label: '物什', icon: <Shirt size={18} strokeWidth={1.5} /> },
-  { id: 'cast', label: '名册', icon: <Users size={18} strokeWidth={1.5} /> },
+  { id: 'world', label: '人物世界', icon: <Sparkles size={18} strokeWidth={1.5} /> },
   { id: 'memory', label: '记忆', icon: <Brain size={18} strokeWidth={1.5} /> },
-  { id: 'shelf', label: '角色架', icon: <LayoutGrid size={18} strokeWidth={1.5} /> },
   { id: 'settings', label: '设置', icon: <Settings size={18} strokeWidth={1.5} /> },
 ]
 
@@ -44,7 +43,6 @@ export function PrimarySidebar({
   sessionFilterRef,
   renamingId,
   renameValue,
-  theme,
   onOpenShelf,
   onCreateSession,
   onToggleSearch,
@@ -59,7 +57,6 @@ export function PrimarySidebar({
   onContextMenu,
   onNavigate,
   onCollapse,
-  onToggleTheme,
 }: {
   personaName: string
   personaBlurb: string
@@ -75,7 +72,6 @@ export function PrimarySidebar({
   sessionFilterRef: RefObject<HTMLInputElement | null>
   renamingId: string | null
   renameValue: string
-  theme: string
   onOpenShelf: () => void
   onCreateSession: () => void
   onToggleSearch: () => void
@@ -90,11 +86,7 @@ export function PrimarySidebar({
   onContextMenu: (e: MouseEvent, sessionId: string) => void
   onNavigate: (view: ShellView) => void
   onCollapse: () => void
-  onToggleTheme: () => void
 }) {
-  const darkThemes = new Set(['dark', 'night-feast', 'blue-pool'])
-  const isDark = darkThemes.has(theme)
-
   return (
     <aside
       className="flex w-[260px] shrink-0 flex-col border-r"
@@ -284,7 +276,7 @@ export function PrimarySidebar({
         )}
       </div>
 
-      {/* 底栏：Playground / Debug + 宫格 */}
+      {/* 底栏：独立全页入口 + 人物世界宫格 */}
       <div className="border-t px-3 py-2.5" style={{ borderColor: 'var(--border-subtle)' }}>
         {activeBgTaskCount > 0 && (
           <div
@@ -295,23 +287,23 @@ export function PrimarySidebar({
             {activeBgTaskCount} 个后台任务
           </div>
         )}
-        <div className="mb-2 grid grid-cols-2 gap-1">
-          <DockTextBtn
-            active={activeView === 'playground'}
-            onClick={() => onNavigate(activeView === 'playground' ? 'chat' : 'playground')}
-            icon={<FlaskConical size={14} />}
-            label="Playground"
-          />
+        <div className="mb-2 flex flex-col gap-1">
           <DockTextBtn
             active={activeView === 'debug'}
             onClick={() => onNavigate(activeView === 'debug' ? 'chat' : 'debug')}
             icon={<Bug size={14} />}
             label="Debug"
           />
+          <DockTextBtn
+            active={activeView === 'playground'}
+            onClick={() => onNavigate(activeView === 'playground' ? 'chat' : 'playground')}
+            icon={<FlaskConical size={14} />}
+            label="Playground"
+          />
         </div>
         <div className="grid grid-cols-3 gap-1">
           {DOCK.map((item) => {
-            const active = activeView === item.id
+            const active = item.id === 'world' ? isWorldView(activeView) : activeView === item.id
             return (
               <button
                 key={item.id}
@@ -336,19 +328,6 @@ export function PrimarySidebar({
             )
           })}
         </div>
-        <div className="mt-1.5 flex justify-end">
-          <button
-            type="button"
-            onClick={onToggleTheme}
-            className="flex h-7 w-7 items-center justify-center rounded transition"
-            style={{ color: 'var(--text-muted)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-            title="切换深色/浅色"
-          >
-            {isDark ? <Sun size={14} /> : <Moon size={14} />}
-          </button>
-        </div>
       </div>
     </aside>
   )
@@ -369,7 +348,7 @@ function DockTextBtn({
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center justify-center gap-1.5 rounded-[var(--radius-md)] py-1.5 text-[11px] transition"
+      className="flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-md)] py-1.5 text-[11px] transition"
       style={{
         color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
         background: active ? 'var(--accent-subtle)' : 'transparent',

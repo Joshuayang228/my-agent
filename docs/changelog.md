@@ -5,6 +5,13 @@
 
 ## [未发布]
 
+### Changed — 壳层 IA：人物世界口袋 + 独立 Debug/Playground（2026-08-06）
+
+- 去掉侧栏主题切换钮（主题只走设置）；去掉聊天顶 `CompanionStatusBar`（与左下角重复）
+- 朋友圈/物什/名册/角色架收成侧栏「人物世界」一入口，`WorldHub` 内页 tab（对齐 Alice `/moments`）
+- Debug 与 Playground 拆成独立全页（`DevPanel` / `PlaygroundPage`），侧栏纵向分列，去掉「去对面」双页壳
+- Secondary 二级列仅保留记忆 / Skills
+
 ### Added — Playground Phase 1：矩阵加厚 + 多轮试验（2026-08-06）
 
 - UI 控件子区新增：确认框 / 记忆芯片 / 状态条（import 正式组件）
