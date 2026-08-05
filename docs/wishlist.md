@@ -61,7 +61,7 @@
 - [x] ~~**M32-G4** 关键世界态透视（记忆 / 日程 / 角色快照）~~ — 2026-08-04：`debug:world-snapshot` + Debug「世界态」
 - [x] ~~**M32-G5** 产品内设计 token / 基础控件场~~ — 2026-08-05：Playground「设计 token」
 - [ ] **M32-G6** 错误卡 / 空态 / 权限确认夹具
-- [ ] **M32-G7** 对话内 debugMode 叠加策略
+- [x] ~~**M32-G7** 对话内 debugMode 叠加策略~~ — 2026-08-05：`conversationDebugMode` + 聊天 Overlay / 工具保留
 - [ ] **M32-G8** aside Playground 预览（与行内 aside 耦合）
 - [x] ~~**Part VI M22–M31**~~ — 2026-08-02：伙伴方法论主线已收齐
 - [x] ~~**Part VI 加厚修订**~~ — 2026-08-02：M22–M31 均已加厚

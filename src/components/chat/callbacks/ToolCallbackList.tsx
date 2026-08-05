@@ -62,7 +62,7 @@ export function ToolCallbackList({
               />
             </button>
             {!tool.collapsed && (
-              <div className="border-t px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
+              <div className="border-t px-3 py-2 space-y-2" style={{ borderColor: 'var(--border-subtle)' }}>
                 {tool.status === 'pending' && tool.streamingArgs && (
                   <pre
                     className="max-h-24 overflow-auto font-mono text-[11px] leading-relaxed"
@@ -71,10 +71,24 @@ export function ToolCallbackList({
                     {tool.streamingArgs}
                   </pre>
                 )}
+                {Object.keys(tool.args).length > 0 && (
+                  <div>
+                    <div className="mb-0.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>args</div>
+                    <pre
+                      className="max-h-28 overflow-auto font-mono text-[11px] leading-relaxed"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      {JSON.stringify(tool.args, null, 2)}
+                    </pre>
+                  </div>
+                )}
                 {tool.result && (
-                  <pre className="max-h-32 overflow-auto text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                    {tool.result.slice(0, 500)}
-                  </pre>
+                  <div>
+                    <div className="mb-0.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>result</div>
+                    <pre className="max-h-32 overflow-auto text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                      {tool.result.slice(0, 2000)}
+                    </pre>
+                  </div>
                 )}
               </div>
             )}

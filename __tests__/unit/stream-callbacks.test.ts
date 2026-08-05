@@ -85,6 +85,7 @@ describe('stream callbacks — tool', () => {
       result: 'ok',
     })!
     expect(tools[0].status).toBe('done')
+    expect(tools[0].collapsed).toBe(true)
     expect(toolItemPhase(tools[0].status)).toBe('complete')
 
     const msgs = appendToolResultMessage([], {
@@ -95,5 +96,19 @@ describe('stream callbacks — tool', () => {
     })
     expect(msgs[0].role).toBe('tool')
     expect(msgs[0].toolCallId).toBe('t1')
+  })
+
+  it('keepExpanded=true 时完成后不折叠（对话 debug）', () => {
+    let tools = applyToolEvent(
+      [],
+      { type: 'tool_start', callId: 't2', name: 'read_file', args: { path: 'a.ts' } },
+      { keepExpanded: true },
+    )!
+    tools = applyToolEvent(
+      tools,
+      { type: 'tool_end', callId: 't2', name: 'read_file', result: 'src' },
+      { keepExpanded: true },
+    )!
+    expect(tools[0].collapsed).toBe(false)
   })
 })

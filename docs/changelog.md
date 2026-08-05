@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — 对话内 debugMode 叠加（M32-G7）（2026-08-05）
+
+- 设置键 `conversationDebugMode`；聊天底栏 **Debug** 开关 + 设置 → 开发者
+- 打开后：Token/预算条常显、可折叠事件日志、工具卡默认展开并保留、消息流可见 `role=tool`
+- 与全页 Debug / Playground 入口分离（Alice `enableDebugMode` 心智）
+
 ### Changed — Debug / Playground 独立全页入口（2026-08-05）
 
 - 侧栏双入口（Bug / 烧瓶），主区全页打开；去掉聊天右侧嵌套抽屉

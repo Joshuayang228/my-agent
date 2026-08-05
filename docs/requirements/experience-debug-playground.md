@@ -1,9 +1,9 @@
 # 施工合同：体验调试（Debug / Playground）
 
-> 状态：**已落地**（Phase 0–3：G1–G5 + 独立全页入口；G6–G8 仍暂缓）  
-> 日期：2026-08-04  
+> 状态：**已落地**（Phase 0–4：G1–G5 + 全页入口 + **G7 对话内叠加**；G6/G8 仍暂缓）  
+> 日期：2026-08-04（Phase 4：2026-08-05）  
 > 上位：[`methodology/m32-experience-debug-playground.md`](../../methodology/m32-experience-debug-playground.md)  
-> 参考：Alice `/debug` · `/playground` · `enableDebugMode`（本地 `alice-source/_extract/`）
+> 参考：Alice `/debug` · `/playground` · `enableDebugMode` / `showTokenStats` / `showToolCalls` / `showThinking`
 
 ---
 
@@ -66,6 +66,24 @@ IPC：`debug:world-snapshot` → `buildDebugWorldSnapshot()`（截断：记忆�
 | 快捷键 | Ctrl+Shift+D → Debug 全页；Ctrl+Shift+P → Playground 全页（与 Alice 双入口一致） |
 
 **不做**：真实 URL 路由 `/debug`（Electron 无 React Router 时用 `activeView` 即可）；Alice 生活树全量 tab。
+
+---
+
+## 2e. Phase 4 — G7 对话内 debugMode 叠加
+
+> **与全页 Debug / Playground 无关**：侧栏入口仍是透视台 / 试验场；本 Phase 只改**主聊天**在开关打开后的信息密度。
+
+| ID | 目标 | 验收 |
+|----|------|------|
+| **G7** | 设置 + 聊天底栏可开关 `conversationDebugMode`（默认关） | 关掉后主聊天仍像产品；打开后叠加调试层 |
+| G7a | Token / 上下文常显 | 有 usage 时显示用量条（非仅 hover）；有 session 预算则显示占比 |
+| G7b | 工具可审计 | debug 开：工具卡完成后默认展开；展示 args；本轮结束后保留工具卡；消息流可见 `role=tool` |
+| G7c | 事件条 | 可折叠「本会话事件」：tool / usage / compact / error 等短日志 |
+| G7d | Thinking | 打开 debug 时默认展开 reasoning |
+
+**不做（Phase 4）**：G6 错误卡夹具全家桶；G8 行内 aside；把全页 Debug 嵌回聊天抽屉。
+
+设置键：`conversationDebugMode` = `'true' | 'false'`（`AppSettings`，默认 `'false'`）。
 
 ---
 

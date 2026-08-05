@@ -129,6 +129,7 @@ function attachToolCalls(
 export function applyToolEvent(
   tools: ToolCallbackItem[],
   ev: AgentStreamEvent,
+  opts?: { keepExpanded?: boolean },
 ): ToolCallbackItem[] | null {
   if (ev.type === 'tool_call_delta') {
     const existing = tools[ev.index]
@@ -141,6 +142,7 @@ export function applyToolEvent(
           args: {},
           status: 'pending',
           streamingArgs: ev.argumentsDelta,
+          collapsed: opts?.keepExpanded ? false : undefined,
         },
       ]
     }
@@ -159,7 +161,13 @@ export function applyToolEvent(
   if (ev.type === 'tool_start') {
     return [
       ...tools.filter((t) => !(t.status === 'pending' && t.callId === ev.callId)),
-      { callId: ev.callId, name: ev.name, args: ev.args, status: 'running' },
+      {
+        callId: ev.callId,
+        name: ev.name,
+        args: ev.args,
+        status: 'running',
+        collapsed: opts?.keepExpanded ? false : undefined,
+      },
     ]
   }
 
@@ -170,7 +178,8 @@ export function applyToolEvent(
             ...t,
             status: ev.isError ? 'error' : 'done',
             result: ev.result,
-            collapsed: true,
+            // 产品态：完成后折叠；对话 debug：保持展开便于审计
+            collapsed: opts?.keepExpanded ? false : true,
           }
         : t,
     )

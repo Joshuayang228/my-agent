@@ -39,6 +39,8 @@ import {
   type ReasoningCallbackState,
   type ToolCallbackItem,
 } from './components/chat/callbacks'
+import { ConversationDebugOverlay } from './components/chat/ConversationDebugOverlay'
+import { parseConversationDebugMode } from './components/chat/conversation-debug'
 
 let messageIdCounter = 0
 function genId() {
@@ -123,6 +125,11 @@ function App() {
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
   const [usage, setUsage] = useState<UsageInfo | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  /** 对话内 debugMode（M32-G7）；与全页 Debug/Playground 无关 */
+  const [conversationDebugMode, setConversationDebugMode] = useState(false)
+  const conversationDebugModeRef = useRef(false)
+  /** token 预算：优先 sessionTokenBudget，否则 llmMaxTokens；0=无上限 */
+  const [debugTokenBudget, setDebugTokenBudget] = useState(0)
   // showMemoryPanel / showSkillsPanel / DevPanel 已合并为 activeView
   const [eventLog, setEventLog] = useState<Array<{ time: number; type: string; detail: string }>>([])
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -272,6 +279,13 @@ function App() {
     window.electronAPI.settings.get().then((s) => {
       if (s.llmModel) setCurrentModel(s.llmModel)
       if (s.executionMode) setApprovalMode(s.executionMode as 'confirm-all' | 'auto' | 'full-access')
+      const debugOn = parseConversationDebugMode(s.conversationDebugMode)
+      setConversationDebugMode(debugOn)
+      conversationDebugModeRef.current = debugOn
+      if (debugOn) setThinkingExpanded(true)
+      const sessionBudget = Number.parseInt(s.sessionTokenBudget || '0', 10) || 0
+      const modelMax = Number.parseInt(s.llmMaxTokens || '0', 10) || 0
+      setDebugTokenBudget(sessionBudget > 0 ? sessionBudget : modelMax)
       if (!s.llmApiKey) {
         setActiveView('settings')
         setTimeout(() => toast('欢迎！请先配置 API Key 以开始使用', 'warning'), 500)
@@ -346,6 +360,7 @@ function App() {
     setActiveSessionId(sessionId)
     setMessages([])
     setActiveTools([])
+    setEventLog([])
     setInput('')
     setIsStreaming(false)
     setReasoning(resetReasoning())
@@ -356,6 +371,14 @@ function App() {
       setMessages(session.messages)
     }
   }
+
+  const setConversationDebug = useCallback(async (on: boolean) => {
+    setConversationDebugMode(on)
+    conversationDebugModeRef.current = on
+    if (on) setThinkingExpanded(true)
+    else setActiveTools([])
+    await window.electronAPI?.settings.set('conversationDebugMode', on ? 'true' : 'false')
+  }, [])
 
   const openSummonSession = async (sessionId: string) => {
     await loadSessions()
@@ -486,7 +509,10 @@ function App() {
     }
 
     if (ev.type === 'tool_call_delta' || ev.type === 'tool_start' || ev.type === 'tool_end') {
-      setActiveTools((prev) => applyToolEvent(prev, ev) ?? prev)
+      setActiveTools(
+        (prev) =>
+          applyToolEvent(prev, ev, { keepExpanded: conversationDebugModeRef.current }) ?? prev,
+      )
       if (ev.type === 'tool_end') {
         setMessages((prev) => appendToolResultMessage(prev, ev))
       }
@@ -523,7 +549,8 @@ function App() {
 
       case 'done':
         setIsStreaming(false)
-        setActiveTools([])
+        // 对话 debug：保留本轮工具卡；产品态：清掉以免污染伙伴感
+        if (!conversationDebugModeRef.current) setActiveTools([])
         setReasoning((prev) => completeReasoning(prev))
         break
 
@@ -755,7 +782,7 @@ function App() {
   }
 
   const visibleMessages = messages.filter(m => {
-    if (m.role === 'tool') return false
+    if (m.role === 'tool') return conversationDebugMode
     if (m.role === 'assistant' && m.toolCalls?.length && !m.content) return false
     return true
   })
@@ -798,6 +825,8 @@ function App() {
             onOpenSkills={() => setActiveView('skills')}
             currentTheme={theme}
             onThemeChange={setTheme}
+            conversationDebugMode={conversationDebugMode}
+            onConversationDebugModeChange={(on) => { void setConversationDebug(on) }}
           />
         </div>
       </div>
@@ -1252,8 +1281,27 @@ function App() {
                 const isSearchMatch = searchQuery && msg.content.toLowerCase().includes(searchQuery.toLowerCase())
                 const dimmed = searchQuery && !isSearchMatch
                 const isUser = msg.role === 'user'
+                const isTool = msg.role === 'tool'
                 const isLastMsg = msgIndex === visibleMessages.length - 1
-                const showThinkingBeforeMsg = !isUser && isLastMsg && reasoning.chunks.length > 0
+                const showThinkingBeforeMsg = !isUser && !isTool && isLastMsg && reasoning.chunks.length > 0
+
+                if (isTool) {
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`animate-fade-in-up rounded-md border px-3 py-2 font-mono text-[11px] ${dimmed ? 'opacity-20' : ''}`}
+                      style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}
+                      data-testid="debug-tool-message"
+                    >
+                      <div className="mb-1 text-[10px]" style={{ color: 'var(--accent)' }}>
+                        tool · {msg.toolCallId || msg.id}
+                      </div>
+                      <pre className="max-h-40 overflow-auto whitespace-pre-wrap">
+                        {msg.content.slice(0, 2000)}
+                      </pre>
+                    </div>
+                  )
+                }
 
                 return (
                   <div
@@ -1455,6 +1503,13 @@ function App() {
         {/* 输入区 — Codex 风格居中卡片 */}
         {activeView === 'chat' && <div className="relative shrink-0 px-4 pb-4 pt-2" style={{ background: 'var(--bg-primary)' }}>
           <div className="mx-auto max-w-2xl">
+            {conversationDebugMode && (
+              <ConversationDebugOverlay
+                usage={usage}
+                maxTokens={debugTokenBudget}
+                events={eventLog}
+              />
+            )}
             {/* 附件预览 */}
             {attachedFiles.length > 0 && (
               <div className="mb-1.5 flex flex-wrap gap-1">
@@ -1816,14 +1871,27 @@ function App() {
                 )}
               </div>
 
-              {/* Token 用量（hover 显示） */}
-              {usage && (
+              {/* Token：产品态 hover 才见；对话 debug 时由上方 Overlay 常显 */}
+              {usage && !conversationDebugMode && (
                 <div className="flex gap-2 text-[10px] opacity-0 transition-opacity hover:opacity-100" style={{ color: 'var(--text-muted)' }}>
                   <span>↑{(usage.promptTokens / 1000).toFixed(1)}k</span>
                   <span>↓{(usage.completionTokens / 1000).toFixed(1)}k</span>
                   <span>Σ{((usage.promptTokens + usage.completionTokens) / 1000).toFixed(1)}k</span>
                 </div>
               )}
+              <button
+                type="button"
+                onClick={() => { void setConversationDebug(!conversationDebugMode) }}
+                className="rounded px-1.5 py-0.5 text-[10px] transition"
+                style={{
+                  color: conversationDebugMode ? 'var(--accent)' : 'var(--text-muted)',
+                  background: conversationDebugMode ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
+                }}
+                title="对话内调试信息（与全页 Debug 无关）"
+                data-testid="conversation-debug-toggle"
+              >
+                {conversationDebugMode ? 'Debug ON' : 'Debug'}
+              </button>
             </div>
           </div>
         </div>}

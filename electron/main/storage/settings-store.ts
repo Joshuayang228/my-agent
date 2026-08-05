@@ -79,6 +79,11 @@ export interface AppSettings {
   companionProactiveGreetingEnabled: string
   /** 上次主动问候本地日 YYYY-MM-DD（M31-G3） */
   companionProactiveGreetingLastDay: string
+  /**
+   * 对话内 debugMode 叠加（M32-G7）：true|false
+   * 与全页 Debug/Playground 入口无关；只提高主聊天信息密度。
+   */
+  conversationDebugMode: string
 }
 
 function getDefaults(): AppSettings {
@@ -113,6 +118,7 @@ function getDefaults(): AppSettings {
     companionMomentTipsDayStats: '',
     companionProactiveGreetingEnabled: 'false',
     companionProactiveGreetingLastDay: '',
+    conversationDebugMode: 'false',
   }
 }
 
