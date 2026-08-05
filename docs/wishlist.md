@@ -60,9 +60,10 @@
 - [x] ~~**M32-G3** Prompt 会话级覆盖（非全局 settings）~~ — 2026-08-04：载入实装 + playgroundRun
 - [x] ~~**M32-G4** 关键世界态透视（记忆 / 日程 / 角色快照）~~ — 2026-08-04：`debug:world-snapshot` + Debug「世界态」
 - [x] ~~**M32-G5** 产品内设计 token / 基础控件场~~ — 2026-08-05：Playground「设计 token」
-- [ ] **M32-G6** 错误卡 / 空态 / 权限确认夹具
+- [x] ~~**M32-G6** 错误卡 / 空态 / 权限确认夹具~~ — 2026-08-05：Playground「体验夹具」精简 3+1；非全家桶
 - [x] ~~**M32-G7** 对话内 debugMode 叠加策略~~ — 2026-08-05：`conversationDebugMode` + 聊天 Overlay / 工具保留
 - [ ] **M32-G8** aside Playground 预览（与行内 aside 耦合）
+- [x] ~~**M32 Debug 系统态补全**~~ — 2026-08-05：沙箱/权限规则/Skills + 调用链统计展示
 - [x] ~~**Part VI M22–M31**~~ — 2026-08-02：伙伴方法论主线已收齐
 - [x] ~~**Part VI 加厚修订**~~ — 2026-08-02：M22–M31 均已加厚
 - [x] ~~**M22-G1** 成长时钟按 role 分桶~~ — 2026-08-02：`companionGrowthStartedAtByRole`；旧键迁移到活跃主角

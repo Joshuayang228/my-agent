@@ -1,7 +1,7 @@
 # 施工合同：体验调试（Debug / Playground）
 
-> 状态：**已落地**（Phase 0–4：G1–G5 + 全页入口 + **G7 对话内叠加**；G6/G8 仍暂缓）  
-> 日期：2026-08-04（Phase 4：2026-08-05）  
+> 状态：**已落地**（Phase 0–5：G1–G5 + 全页 + G7 + **系统态补全 / 调用链统计 / G6 精简夹具**；G8 仍暂缓）  
+> 日期：2026-08-04（Phase 5：2026-08-05）  
 > 上位：[`methodology/m32-experience-debug-playground.md`](../../methodology/m32-experience-debug-playground.md)  
 > 参考：Alice `/debug` · `/playground` · `enableDebugMode` / `showTokenStats` / `showToolCalls` / `showThinking`
 
@@ -84,6 +84,16 @@ IPC：`debug:world-snapshot` → `buildDebugWorldSnapshot()`（截断：记忆�
 **不做（Phase 4）**：G6 错误卡夹具全家桶；G8 行内 aside；把全页 Debug 嵌回聊天抽屉。
 
 设置键：`conversationDebugMode` = `'true' | 'false'`（`AppSettings`，默认 `'false'`）。
+
+---
+
+## 2f. Phase 5 — 需要才补（不硬堆）
+
+| 目标 | 验收 | 不做 |
+|------|------|------|
+| Debug「系统」补全 | 沙箱 / 审批 / 对话 Debug / Token 预算；权限规则列表；Skills 列表；MCP | Alice 生活树全量 tab |
+| Debug「调用链」用满已有 IPC | 今日 Token、前后台 lane、caller 统计 + Span 树 | 新造一套 LLM 日志库 |
+| Playground「体验夹具」= G6 精简 | 空态 + 3 张常用错误卡 + 权限确认静态样例 | 完整 Storybook / 狼人杀 / Webhook |
 
 ---
 

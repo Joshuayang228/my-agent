@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import {
   FileText, Wrench, BarChart3, ClipboardList, Zap, RotateCcw, X,
-  FlaskConical, Bug, Play, Globe, Palette,
+  FlaskConical, Bug, Play, Globe, Palette, LayoutTemplate, AlertTriangle,
 } from 'lucide-react'
 
 type Surface = 'debug' | 'playground'
 type DebugTab = 'prompt' | 'world' | 'system' | 'traces' | 'events'
-type PlayTab = 'prompt-lab' | 'tool-run' | 'tokens'
+type PlayTab = 'prompt-lab' | 'tool-run' | 'tokens' | 'fixtures'
 
 interface WorldSnapshot {
   role: { id: string; name: string; description: string; universeId: string }
@@ -84,9 +84,56 @@ interface SystemInfo {
   appVersion: string
   uptime: number
   memoryUsage: { rss: number; heapUsed: number; heapTotal: number }
-  settings: { model: string; baseUrl: string; activeRoleId: string; hasApiKey: boolean; hasCustomPrompt: boolean }
+  settings: {
+    model: string
+    baseUrl: string
+    activeRoleId: string
+    hasApiKey: boolean
+    hasCustomPrompt: boolean
+    sandboxMode?: string
+    executionMode?: string
+    conversationDebugMode?: boolean
+    sessionTokenBudget?: number
+    dailyTokenBudget?: number
+  }
   mcp: Array<{ id: string; name: string; status: string; toolCount: number; error?: string }>
   toolCount: number
+  permissionRules?: {
+    total: number
+    enabled: number
+    items: Array<{
+      id: string
+      type: string
+      pattern: string
+      action: string
+      enabled: boolean
+      description?: string
+    }>
+    truncated: boolean
+  }
+  skills?: {
+    total: number
+    items: Array<{ name: string; source: string; description: string }>
+    truncated: boolean
+  }
+}
+
+interface CallerStat {
+  count: number
+  totalMs: number
+  avgMs: number
+  totalInputTokens: number
+  totalOutputTokens: number
+}
+
+interface TracesPayload {
+  spans: TraceSpanInfo[]
+  callerStats: Record<string, CallerStat>
+  tokenLanes?: {
+    foreground: { inputTokens: number; outputTokens: number }
+    background: { inputTokens: number; outputTokens: number }
+  }
+  dailyTokenUsage?: number
 }
 
 function formatBytes(bytes: number): string {
@@ -114,6 +161,7 @@ const PLAY_TABS: { id: PlayTab; label: string; icon: React.ReactNode }[] = [
   { id: 'prompt-lab', label: 'Prompt 试验', icon: <FlaskConical size={12} /> },
   { id: 'tool-run', label: '工具手测', icon: <Wrench size={12} /> },
   { id: 'tokens', label: '设计 token', icon: <Palette size={12} /> },
+  { id: 'fixtures', label: '体验夹具', icon: <LayoutTemplate size={12} /> },
 ]
 
 interface DevPanelProps {
@@ -132,7 +180,7 @@ export function DevPanel({ surface, onClose, eventLog, onOpenSibling }: DevPanel
   const [tools, setTools] = useState<ToolInfo[]>([])
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
   const [promptLayer, setPromptLayer] = useState<'full' | 'l1' | 'l2' | 'l3' | 'l4'>('full')
-  const [spans, setSpans] = useState<TraceSpanInfo[]>([])
+  const [traces, setTraces] = useState<TracesPayload | null>(null)
   const [worldSnap, setWorldSnap] = useState<WorldSnapshot | null>(null)
   const [worldError, setWorldError] = useState('')
 
@@ -149,7 +197,12 @@ export function DevPanel({ surface, onClose, eventLog, onOpenSibling }: DevPanel
           setSystemInfo(await window.electronAPI.debug.systemInfo())
         } else if (debugTab === 'traces') {
           const data = await window.electronAPI.debug.traces()
-          setSpans(data.spans ?? [])
+          setTraces({
+            spans: data.spans ?? [],
+            callerStats: (data.callerStats ?? {}) as Record<string, CallerStat>,
+            tokenLanes: data.tokenLanes,
+            dailyTokenUsage: typeof data.dailyTokenUsage === 'number' ? data.dailyTokenUsage : undefined,
+          })
         }
       } else if (playTab === 'tool-run') {
         setTools(await window.electronAPI.debug.tools())
@@ -231,13 +284,14 @@ export function DevPanel({ surface, onClose, eventLog, onOpenSibling }: DevPanel
           <WorldTab snap={worldSnap} error={worldError} />
         )}
         {surface === 'debug' && debugTab === 'system' && <SystemTab info={systemInfo} />}
-        {surface === 'debug' && debugTab === 'traces' && <TracesTab spans={spans} />}
+        {surface === 'debug' && debugTab === 'traces' && <TracesTab data={traces} />}
         {surface === 'debug' && debugTab === 'events' && <EventsTab events={eventLog} />}
         {surface === 'playground' && playTab === 'prompt-lab' && (
           <PromptLabTab onLoadedProduction={setPromptInfo} />
         )}
         {surface === 'playground' && playTab === 'tool-run' && <ToolRunTab tools={tools} />}
         {surface === 'playground' && playTab === 'tokens' && <TokensTab />}
+        {surface === 'playground' && playTab === 'fixtures' && <FixturesTab />}
       </div>
     </div>
   )
@@ -784,6 +838,125 @@ function TokensTab() {
   )
 }
 
+/**
+ * Playground 体验夹具（M32-G6 精简）：只放会反复回归的 空态 / 错误 / 权限确认。
+ * 不是完整 Storybook；视觉用现有 CSS token，不另造组件库。
+ */
+function FixturesTab() {
+  return (
+    <div className="space-y-5" data-testid="fixtures-lab">
+      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+        P0 体验回归夹具。改主题 / 文案时来这里扫一眼；不复制 Alice 错误卡博物馆。
+      </p>
+
+      <section>
+        <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+          空态
+        </h3>
+        <div
+          className="flex flex-col items-center rounded-xl border px-6 py-10 text-center"
+          style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
+        >
+          <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>还没有话题</p>
+          <p className="mt-1 max-w-xs text-[12px]" style={{ color: 'var(--text-muted)' }}>
+            打个招呼，或从侧栏开一个新会话。伙伴在这儿等你。
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {['今天怎么样？', '帮我理一下待办', '随便聊聊'].map((t) => (
+              <span
+                key={t}
+                className="rounded-full px-3 py-1 text-[11px]"
+                style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+          错误卡（常用 3 态）
+        </h3>
+        <div className="space-y-2">
+          <FixtureError
+            title="未配置 API Key"
+            body="请在设置 → 模型里填写密钥后再试。"
+            action="打开设置"
+          />
+          <FixtureError
+            title="操作被权限策略拒绝"
+            body="可以切换审批模式，或让 Agent 换更安全的替代方案。"
+            action="查看权限"
+          />
+          <FixtureError
+            title="请求暂时失败"
+            body="可能是限流或上游抖动。稍后再试，或检查网络 / Base URL。"
+            action="重试"
+          />
+        </div>
+      </section>
+
+      <section>
+        <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+          权限确认（静态样例）
+        </h3>
+        <div
+          className="mx-auto max-w-md rounded-lg border p-5 shadow-2xl"
+          style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
+        >
+          <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--warning)' }}>
+            <AlertTriangle size={14} /> 操作确认
+          </h4>
+          <p className="mb-3 text-[13px]" style={{ color: 'var(--text-secondary)' }}>AI 请求执行以下操作：</p>
+          <div className="mb-4 rounded-md border px-3 py-2" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
+            <div className="font-mono text-[13px]" style={{ color: 'var(--accent)' }}>shell_exec</div>
+            <pre className="mt-1.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+              {JSON.stringify({ command: 'rm -rf ./tmp' }, null, 2)}
+            </pre>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              className="rounded-md border px-3 py-1.5 text-[13px]"
+              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+            >
+              拒绝
+            </button>
+            <button
+              type="button"
+              className="rounded-md px-3 py-1.5 text-[13px] font-medium text-white"
+              style={{ background: 'var(--warning)' }}
+            >
+              允许执行
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function FixtureError({ title, body, action }: { title: string; body: string; action: string }) {
+  return (
+    <div
+      className="rounded-lg border px-3 py-2.5"
+      style={{ borderColor: 'color-mix(in srgb, var(--danger) 35%, var(--border-color))', background: 'var(--bg-secondary)' }}
+    >
+      <div className="text-[12px] font-medium" style={{ color: 'var(--danger)' }}>{title}</div>
+      <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{body}</p>
+      <button
+        type="button"
+        className="mt-2 rounded border px-2 py-0.5 text-[11px]"
+        style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}
+      >
+        {action}
+      </button>
+    </div>
+  )
+}
+
 function exampleArgs(tool: ToolInfo): Record<string, unknown> {
   const props = (tool.parameters?.properties ?? {}) as Record<string, { type?: string }>
   const out: Record<string, unknown> = {}
@@ -879,6 +1052,16 @@ function SystemTab({ info }: { info: SystemInfo | null }) {
       ],
     },
     {
+      title: '运行时策略',
+      items: [
+        ['沙箱', info.settings.sandboxMode || '—'],
+        ['审批模式', info.settings.executionMode || '—'],
+        ['对话 Debug', info.settings.conversationDebugMode ? '开' : '关'],
+        ['会话 Token 预算', String(info.settings.sessionTokenBudget ?? 0)],
+        ['日 Token 预算', String(info.settings.dailyTokenBudget ?? 0)],
+      ],
+    },
+    {
       title: 'LLM 配置',
       items: [
         ['模型', info.settings.model],
@@ -890,12 +1073,16 @@ function SystemTab({ info }: { info: SystemInfo | null }) {
     },
   ]
 
+  const rules = info.permissionRules
+  const skills = info.skills
+
   return (
     <div>
-      <div className="mb-4 grid grid-cols-3 gap-3">
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="工具数" value={String(info.toolCount)} color="cyan" />
-        <StatCard label="MCP 服务器" value={String(info.mcp.length)} color="violet" />
-        <StatCard label="运行时间" value={formatUptime(info.uptime)} color="emerald" />
+        <StatCard label="Skills" value={String(skills?.total ?? 0)} color="violet" />
+        <StatCard label="权限规则" value={String(rules?.enabled ?? 0)} color="emerald" />
+        <StatCard label="MCP" value={String(info.mcp.length)} color="cyan" />
       </div>
 
       {sections.map(section => (
@@ -918,6 +1105,58 @@ function SystemTab({ info }: { info: SystemInfo | null }) {
         </div>
       ))}
 
+      {rules && (
+        <div className="mb-4">
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+            权限规则（{rules.enabled}/{rules.total} 启用{rules.truncated ? ' · 已截断' : ''}）
+          </div>
+          {rules.items.length === 0 ? (
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>无自定义规则（走默认沙箱链）</p>
+          ) : (
+            <div className="space-y-1">
+              {rules.items.map((r) => (
+                <div
+                  key={r.id}
+                  className="theme-card flex flex-wrap items-center gap-2 rounded-lg border px-3 py-1.5 font-mono text-[11px]"
+                  style={{ borderColor: 'var(--border-color)', opacity: r.enabled ? 1 : 0.5 }}
+                >
+                  <span style={{ color: r.action === 'deny' ? 'var(--danger)' : r.action === 'ask' ? 'var(--warning)' : 'var(--success)' }}>
+                    {r.action}
+                  </span>
+                  <span style={{ color: 'var(--text-muted)' }}>{r.type}</span>
+                  <span className="break-all" style={{ color: 'var(--text-primary)' }}>{r.pattern}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {skills && (
+        <div className="mb-4">
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+            Skills（{skills.total}{skills.truncated ? ' · 已截断' : ''}）
+          </div>
+          {skills.items.length === 0 ? (
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>未加载 Skill</p>
+          ) : (
+            <div className="space-y-1">
+              {skills.items.map((s) => (
+                <div key={s.name} className="theme-card rounded-lg border px-3 py-1.5" style={{ borderColor: 'var(--border-color)' }}>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span style={{ color: 'var(--text-primary)' }}>{s.name}</span>
+                    <span className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{s.source}</span>
+                  </div>
+                  {s.description && (
+                    <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{s.description}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {info.mcp.length > 0 && (
         <div>
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>MCP 连接</div>
@@ -930,6 +1169,7 @@ function SystemTab({ info }: { info: SystemInfo | null }) {
                     s.status === 'error' ? 'bg-red-400' : 'bg-amber-400'
                   }`} />
                   <span className="text-xs" style={{ color: 'var(--text-primary)' }}>{s.name}</span>
+                  {s.error && <span className="text-[10px]" style={{ color: 'var(--danger)' }}>{s.error}</span>}
                 </div>
                 <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{s.toolCount} tools</span>
               </div>
@@ -955,10 +1195,15 @@ function StatCard({ label, value, color }: { label: string; value: string; color
   )
 }
 
-function TracesTab({ spans }: { spans: TraceSpanInfo[] }) {
-  if (spans.length === 0) {
-    return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>暂无 Span。发送消息后会在这里看到调用链树。</div>
+function TracesTab({ data }: { data: TracesPayload | null }) {
+  if (!data) {
+    return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载中…</div>
   }
+
+  const spans = data.spans
+  const callers = Object.entries(data.callerStats || {})
+  const fg = data.tokenLanes?.foreground
+  const bg = data.tokenLanes?.background
 
   const byParent = new Map<string | undefined, TraceSpanInfo[]>()
   for (const s of spans) {
@@ -1002,11 +1247,57 @@ function TracesTab({ spans }: { spans: TraceSpanInfo[] }) {
   }
 
   return (
-    <div>
-      <div className="mb-3 text-xs" style={{ color: 'var(--text-muted)' }}>
-        最近 {spans.length} 个 Span（树状，按 parentId）
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <StatCard
+          label="今日 Token"
+          value={String(data.dailyTokenUsage ?? 0)}
+          color="emerald"
+        />
+        <StatCard
+          label="前台 in/out"
+          value={fg ? `${fg.inputTokens}/${fg.outputTokens}` : '—'}
+          color="cyan"
+        />
+        <StatCard
+          label="后台 in/out"
+          value={bg ? `${bg.inputTokens}/${bg.outputTokens}` : '—'}
+          color="violet"
+        />
       </div>
-      <div className="space-y-0.5">{uniqueRoots.map(r => renderNode(r, 0))}</div>
+
+      {callers.length > 0 && (
+        <div>
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+            Caller 统计
+          </div>
+          <div className="theme-card overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
+            {callers.map(([name, s], i) => (
+              <div
+                key={name}
+                className={`flex flex-wrap justify-between gap-2 px-3 py-1.5 font-mono text-[11px] ${i < callers.length - 1 ? 'border-b' : ''}`}
+                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+              >
+                <span style={{ color: 'var(--text-primary)' }}>{name}</span>
+                <span>
+                  n={s.count} · avg={Math.round(s.avgMs)}ms · tok {s.totalInputTokens}/{s.totalOutputTokens}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+          Span 树（最近 {spans.length}）
+        </div>
+        {spans.length === 0 ? (
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>暂无 Span。发送消息后会出现调用链。</p>
+        ) : (
+          <div className="space-y-0.5">{uniqueRoots.map(r => renderNode(r, 0))}</div>
+        )}
+      </div>
     </div>
   )
 }

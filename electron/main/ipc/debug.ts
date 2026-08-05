@@ -9,11 +9,9 @@ import { buildSystemPrompt, rolePackToPromptParts, type PromptContext } from '..
 import { loadActiveAssembleInput } from '../companion/orchestrator'
 import { getAllSettings } from '../storage/settings-store'
 import { buildUserProfile } from '../storage/memory-store'
-import { mcpManager } from '../mcp/client'
 import { createLogger } from '../utils/logger'
-import { getRecentSpans, getCallerStats, getStartupMarks, getSpanTypeStats, getTokenLaneStats } from '../utils/tracer'
+import { getRecentSpans, getCallerStats, getTokenLaneStats } from '../utils/tracer'
 import { getDailyUsage } from '../agent/token-budget'
-import { app } from 'electron'
 
 const log = createLogger('DebugIPC')
 
@@ -70,34 +68,8 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
   })
 
   ipcMain.handle('debug:system-info', async () => {
-    const settings = await getAllSettings()
-    const mcpStatuses = mcpManager.getStatus()
-
-    return {
-      electron: process.versions.electron,
-      node: process.versions.node,
-      chrome: process.versions.chrome,
-      platform: process.platform,
-      arch: process.arch,
-      appVersion: app.getVersion(),
-      uptime: Math.round(process.uptime()),
-      memoryUsage: process.memoryUsage(),
-      settings: {
-        model: settings.llmModel,
-        baseUrl: settings.llmBaseUrl,
-        activeRoleId: settings.activeRoleId,
-        hasApiKey: !!settings.llmApiKey,
-        hasCustomPrompt: !!settings.systemPrompt,
-      },
-      mcp: mcpStatuses.map(s => ({
-        id: s.id,
-        name: s.name,
-        status: s.status,
-        toolCount: s.toolCount,
-        error: s.error,
-      })),
-      toolCount: toolRegistry.getAll().length,
-    }
+    const { buildDebugSystemInfo } = await import('../agent/debug-system-info')
+    return buildDebugSystemInfo(toolRegistry)
   })
 
   ipcMain.handle('debug:traces', () => {

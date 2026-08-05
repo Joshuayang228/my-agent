@@ -343,9 +343,38 @@ declare global {
           appVersion: string
           uptime: number
           memoryUsage: { rss: number; heapUsed: number; heapTotal: number }
-          settings: { model: string; baseUrl: string; activeRoleId: string; hasApiKey: boolean; hasCustomPrompt: boolean }
+          settings: {
+            model: string
+            baseUrl: string
+            activeRoleId: string
+            hasApiKey: boolean
+            hasCustomPrompt: boolean
+            sandboxMode: string
+            executionMode: string
+            conversationDebugMode: boolean
+            sessionTokenBudget: number
+            dailyTokenBudget: number
+          }
           mcp: Array<{ id: string; name: string; status: string; toolCount: number; error?: string }>
           toolCount: number
+          permissionRules: {
+            total: number
+            enabled: number
+            items: Array<{
+              id: string
+              type: string
+              pattern: string
+              action: string
+              enabled: boolean
+              description?: string
+            }>
+            truncated: boolean
+          }
+          skills: {
+            total: number
+            items: Array<{ name: string; source: string; description: string }>
+            truncated: boolean
+          }
         }>
         traces: () => Promise<{
           spans: Array<{
@@ -361,8 +390,18 @@ declare global {
             attributes: Record<string, unknown>
             error?: string
           }>
-          callerStats: Record<string, unknown>
-          dailyTokenUsage: unknown
+          callerStats: Record<string, {
+            count: number
+            totalMs: number
+            avgMs: number
+            totalInputTokens: number
+            totalOutputTokens: number
+          }>
+          tokenLanes?: {
+            foreground: { inputTokens: number; outputTokens: number }
+            background: { inputTokens: number; outputTokens: number }
+          }
+          dailyTokenUsage: number
         }>
         playgroundRun: (input: {
           systemPrompt?: string

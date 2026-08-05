@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — Debug/Playground 需要才补（Phase 5）（2026-08-05）
+
+- Debug「系统」：沙箱 / 审批 / 权限规则 / Skills（`buildDebugSystemInfo`）
+- Debug「调用链」：展示已有今日 Token、前后台 lane、caller 统计
+- Playground「体验夹具」：空态 + 3 常用错误卡 + 权限确认静态样例（G6 精简，非博物馆）
+
 ### Added — 对话内 debugMode 叠加（M32-G7）（2026-08-05）
 
 - 设置键 `conversationDebugMode`；聊天底栏 **Debug** 开关 + 设置 → 开发者
