@@ -56,6 +56,15 @@ Main Area:
 - `role=tool` **不单独占消息行**；产品态默认折叠，对话 Debug 可展开历史卡
 - **禁止**只挂消息流底部并在 `done` 时清空（会蒸发）
 
+### Playground（组件展厅 · 轻量，非 Storybook）
+
+施工合同：`docs/requirements/playground-component-fitting-room.md`
+
+- **壳**：产品内全页 + 顶栏活目录（设计系统 / UI 控件 / 提示词 / 对话试验 / 工具 / 体验夹具）
+- **故事格**：一状态一格；import 正式组件/class；边缘态必有；格旁标源路径
+- **纪律**：新交互/动效先建场 → 同轮同步更新 → catalog **只增不删**（可 `archived`）
+- **硬禁**：不装 `@storybook/*`，不以 `npm run storybook` / :6006 为验收
+
 ## 设计原则（布局与交互）
 
 1. 气泡对话：用户右对齐圆角气泡，AI 左对齐 Markdown。

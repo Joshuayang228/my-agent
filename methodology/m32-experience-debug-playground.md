@@ -191,5 +191,6 @@ Playground 的设计系统 / UI 控件 tab，本质是**体验的单元测试夹
 | M32-G6 | 错误卡 / 空态 / 权限确认夹具 | ✅ 2026-08-05 精简版（非全家桶） |
 | M32-G7 | 对话内 debugMode 叠加策略（token 等） | ✅ 2026-08-05 |
 | M32-G8 | aside（蛐蛐）Playground 预览与行内渲染 | 暂缓；与行内 aside 耦合 |
+| M32-G9 | Playground 组件展厅（Alice 壳 + 轻量故事；不装 SB） | ✅ 2026-08-06 Phase 0 |
 
 代码走读见 `m32-experience-debug-playground-code.md`。

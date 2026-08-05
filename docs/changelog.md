@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — Playground 组件展厅 Phase 0（M32-G9）（2026-08-06）
+
+- 顶栏活目录：设计系统 / UI 控件矩阵 / 提示词资产 / 对话试验 / 工具 / 体验夹具
+- `src/components/playground/`（`PlaygroundShell`）；故事格 import 正式组件；不装 Storybook
+- 施工合同：`docs/requirements/playground-component-fitting-room.md`
+
 ### Changed — Chat 工具卡行内附着（Alice Phase B）（2026-08-05）
 
 - 工具卡挂在发起调用的 assistant 回合内（正文后），不再漂在消息流底部

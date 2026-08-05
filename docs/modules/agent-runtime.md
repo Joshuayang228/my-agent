@@ -72,7 +72,9 @@
 | Debug / Playground 独立全页 | 已落地 | 侧栏双入口 + `activeView`；非右侧抽屉 |
 | 工具手测（权限门闸） | 已落地 | `debug:tool-run` · confirmRisk |
 | Prompt 会话覆盖（不写 settings） | 已落地 | 载入实装 → playgroundRun |
-| 设计 token 场 | 已落地 | Playground「设计 token」tab |
+| 设计 token 场 | 已落地 | Playground「设计系统」 |
+| Playground 组件展厅（顶栏活目录 + 故事矩阵） | 已落地 | `src/components/playground/` · M32-G9 |
+| Prompt 资产目录 | 已落地 | Playground「提示词」· `prompt-assets.ts` |
 | Debug 世界态透视 | 已落地 | `debug:world-snapshot` · DevPanel 世界态 tab |
 
 ## 现状 / 缺口
