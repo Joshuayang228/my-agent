@@ -44,10 +44,17 @@ Secondary（非 chat / 非 settings 全屏时）:
 - 生活 | 工具 | 开发 分组导航
 
 Main Area:
-- chat: CompanionStatusBar + 消息流 + 居中输入（max-w-3xl）
+- chat: CompanionStatusBar + 消息流（`space-y-8`）+ 居中输入（max-w-3xl）
 - 生活面 / 工具面 / DevPanel 全页
 - settings: 独立全屏（无 Secondary）
 ```
+
+### Chat 工具卡放置（Alice Phase B）
+
+- 工具卡**挂在发起调用的 assistant 回合内**（正文后），解析见 `resolve-tools-for-message.ts`
+- 历史：`assistant.toolCalls` + 紧随 `role=tool`；进行中：`activeTools` 挂 `findLiveToolHostId`
+- `role=tool` **不单独占消息行**；产品态默认折叠，对话 Debug 可展开历史卡
+- **禁止**只挂消息流底部并在 `done` 时清空（会蒸发）
 
 ## 设计原则（布局与交互）
 

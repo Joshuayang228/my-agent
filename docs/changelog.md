@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Changed — Chat 工具卡行内附着（Alice Phase B）（2026-08-05）
+
+- 工具卡挂在发起调用的 assistant 回合内（正文后），不再漂在消息流底部
+- 历史回合由 `toolCalls` + 后续 `role=tool` 还原并默认折叠；`role=tool` 不再单独占行
+- 消息流间距 `space-y-8`；解析逻辑：`resolve-tools-for-message.ts`
+
 ### Changed — 前端壳层对齐 Alice（Phase A）（2026-08-05）
 
 - Primary 侧栏：品牌区、大号新对话、会话时间/摘要、底栏双入口 + 生活宫格
@@ -21,7 +27,7 @@
 ### Added — 对话内 debugMode 叠加（M32-G7）（2026-08-05）
 
 - 设置键 `conversationDebugMode`；聊天底栏 **Debug** 开关 + 设置 → 开发者
-- 打开后：Token/预算条常显、可折叠事件日志、工具卡默认展开并保留、消息流可见 `role=tool`
+- 打开后：Token/预算条常显、可折叠事件日志、工具卡默认展开并保留（行内附着；不再拆 `role=tool` 为独立消息行）
 - 与全页 Debug / Playground 入口分离（Alice `enableDebugMode` 心智）
 
 ### Changed — Debug / Playground 独立全页入口（2026-08-05）

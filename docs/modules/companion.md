@@ -101,6 +101,8 @@
 | 名册关系卡 + 最近召唤互动 | 已落地 | 状态条 / 欢迎屏 → 名册 | CastPanel · sessions(summon) |
 | 场景弱背景（Chat 氛围） | 已落地 | Chat 消息区底层 | `CompanionSceneBackdrop` · `companion-scene.ts` |
 | 前端视觉语言（token / 设置 IA / Chat 气质） | 已落地 | 主题·设置·侧栏身份·空态 | `frontend-visual-language` Phase1–3 |
+| Alice 壳 Phase A（大气侧栏 + Secondary） | 已落地 | Primary/底栏宫格/非 chat 二级导航 | `PrimarySidebar` · `SecondaryNav` · `frontend-alice-shell` |
+| Chat 消息区大气化（Phase B 留白） | 已落地 | 消息流 `space-y-8`；工具卡见 agent-runtime | `frontend-alice-shell` Phase B |
 | 生图朋友圈 / 多宇宙并行 | 缺口 | — | wishlist / 非本阶段 |
 | 非活跃后台养成 | 缺口 | — | 产品明确不做 |
 

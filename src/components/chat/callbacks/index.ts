@@ -17,4 +17,10 @@ export {
 
 export { ReasoningCallback } from './ReasoningCallback'
 export { ToolCallbackList } from './ToolCallbackList'
+export {
+  resolveHistoricTools,
+  resolveToolsForAssistant,
+  findLiveToolHostId,
+  collectToolResultsAfter,
+} from './resolve-tools-for-message'
 export { ContentCallbackCue, contentPhase } from './ContentCallback'

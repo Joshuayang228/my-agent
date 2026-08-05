@@ -1,9 +1,9 @@
 # 施工合同：前端壳层对齐 Alice 布局（大气改造 Phase A）
 
-> 状态：**已落地**（Phase A，2026-08-05）  
+> 状态：**已落地 Phase A + Phase B**（Chat 大气化 + 工具调用行内附着）  
 > 日期：2026-08-05  
 > 上位：[`frontend-visual-language.md`](./frontend-visual-language.md)（已落地语言骨架）· [`frontend-companion-surfaces.md`](./frontend-companion-surfaces.md)  
-> 参考：Alice 侧栏截图 + `_extract` 路由（`/chat` · `/debug` 二级导航）· DEC-018  
+> 参考：Alice 侧栏截图 + `_extract`（`tool_call` 跟在 assistant 后组成 agent_group）· DEC-018  
 > 路线：**先抄布局骨架与气质，不抄 Alice 产品模块全家桶**
 
 ### 已锁定决策（2026-08-05）
@@ -13,7 +13,8 @@
 | 默认主题 | 无本地记录时默认 `mist`（纸感）；有记录则保持用户上次选择 |
 | Skills | **不进底栏宫格**；放 Secondary「工具」+ 设置里已有入口。Alice 有 Skills（设置页 / Playground 可见），但底栏不强调 |
 | 设置 | **继续独立全屏** |
-| 其余 | 按本合同 Phase A 执行 |
+| 其余 Phase A | 已执行 |
+| Phase B 工具 | 工具卡**附着在发起调用的 assistant 回合内**（Alice `assistant → tool_call*`）；产品态默认折叠保留；不再只挂消息流底部并在 done 时蒸发 |
 
 ---
 
@@ -140,18 +141,23 @@ Chat 时 Secondary **不渲染**（或宽度 0），避免三栏挤对话。
 
 ---
 
-## 5. 后续 Phase（本合同不做）
+## 5. 后续 Phase
 
-| Phase | 内容 |
-|-------|------|
-| B | Chat 消息区排版大气化（气泡间距、空态全幅、状态条重排） |
-| C | 生活面（Moments/衣柜）卡片节奏对齐 Alice 时间线密度 |
-| D | 可选：主题诗意文案 / 轻纹理背景（有资产再上） |
+| Phase | 内容 | 状态 |
+|-------|------|------|
+| B | Chat 消息区大气化 + **工具调用行内附着** | ✅ 已落地 |
+| C | 生活面（Moments/衣柜）卡片节奏对齐 Alice 时间线密度 | 暂缓 |
+| D | 可选：主题诗意文案 / 轻纹理背景（有资产再上） | 暂缓 |
+
+### Phase B 验收（工具）
+
+1. 流式中：工具卡出现在**当前 assistant 气泡下方**，不漂在整页消息流最底  
+2. 结束后：历史会话仍能看到该回合工具摘要（折叠）；不依赖 `activeTools` 仍存活  
+3. `role=tool` 不再单独占一行（除非对话 Debug 开，可额外展开详情）  
+4. 消息区间距加大（`space-y-8`）；输入区保持 `max-w-3xl`  
 
 ---
 
-## 6. 待你拍板
+## 6. 决策记录（原拍板，已关闭）
 
-1. **默认主题**：是否 Phase A 起冷启动默认改为 `light` / `mist`（更纸感）？还是保持用户上次选择？  
-2. **底栏宫格 6 格**：朋友圈 / 物什 / 名册 / 记忆 / 角色架 / 设置 —— Skills 是否挤进宫格，还是只留二级导航？  
-3. **设置**：继续独立全屏，还是也走「二级列 + 主区」？（建议 Phase A **仍全屏**，少动 SettingsPanel）  
+见文首「已锁定决策」。

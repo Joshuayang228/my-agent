@@ -67,6 +67,7 @@
 | Headless 运行（定时/后台） | 已落地 | `runtime.runHeadless` |
 | Observer / DevPanel 可观测 | 已落地 | tracer / observer / DevPanel |
 | Chat Callback 三通道 UI | 已落地 | `src/components/chat/callbacks/` |
+| 工具卡行内附着 assistant（Alice Phase B） | 已落地 | `resolve-tools-for-message.ts` · 历史 `toolCalls`+`role=tool`；进行中挂 live host |
 | Dev Playground（无 Assemble 试跑） | 已落地 | DevPanel · `debug:playground-run` |
 | Debug / Playground 独立全页 | 已落地 | 侧栏双入口 + `activeView`；非右侧抽屉 |
 | 工具手测（权限门闸） | 已落地 | `debug:tool-run` · confirmRisk |

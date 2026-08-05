@@ -33,6 +33,8 @@ import {
   appendToolResultMessage,
   resetReasoning,
   completeReasoning,
+  findLiveToolHostId,
+  resolveToolsForAssistant,
   type ReasoningCallbackState,
   type ToolCallbackItem,
 } from './components/chat/callbacks'
@@ -136,6 +138,8 @@ function App() {
   const [pinnedIds, setPinnedIds] = useState<string[]>([])
   /** 会话列表摘要（打开过的会话缓存最后一条可见消息） */
   const [sessionPreviews, setSessionPreviews] = useState<Record<string, string>>({})
+  /** 工具卡折叠态（callId → collapsed）；未记录则 running/pending 展开、完成折叠 */
+  const [toolCollapse, setToolCollapse] = useState<Record<string, boolean>>({})
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [sessionFilter, setSessionFilter] = useState('')
@@ -365,6 +369,7 @@ function App() {
     setIsStreaming(false)
     setReasoning(resetReasoning())
     setUsage(null)
+    setToolCollapse({})
 
     const session = await window.electronAPI.session.get(sessionId)
     if (session) {
@@ -639,6 +644,7 @@ function App() {
     setBgStreamingSessionId(sid)
     setIsStreaming(true)
     setActiveTools([])
+    setToolCollapse({})
     setReasoning(resetReasoning())
     setUsage(null)
     setThinkingExpanded(false)
@@ -794,10 +800,47 @@ function App() {
   }
 
   const visibleMessages = messages.filter(m => {
-    if (m.role === 'tool') return conversationDebugMode
-    if (m.role === 'assistant' && m.toolCalls?.length && !m.content) return false
+    // tool 结果并入 assistant 行内卡片，顶层不再单独占行（Debug 也不拆行，避免双份）
+    if (m.role === 'tool') return false
+    if (
+      m.role === 'assistant'
+      && !m.content
+      && !m.toolCalls?.length
+      && !(m.memoryCitations && m.memoryCitations.length)
+    ) {
+      return false
+    }
     return true
   })
+
+  const liveToolHostId = findLiveToolHostId(messages, activeTools, isStreaming)
+
+  const toggleToolCollapse = useCallback((callId: string) => {
+    setToolCollapse((prev) => {
+      if (Object.prototype.hasOwnProperty.call(prev, callId)) {
+        return { ...prev, [callId]: !prev[callId] }
+      }
+      const live = activeTools.find((t) => t.callId === callId)
+      const defaultCollapsed = live
+        ? !(live.status === 'running' || live.status === 'pending')
+        : true
+      return { ...prev, [callId]: !defaultCollapsed }
+    })
+  }, [activeTools])
+
+  const applyToolCollapse = useCallback(
+    (tools: ToolCallbackItem[]): ToolCallbackItem[] =>
+      tools.map((t) => {
+        if (Object.prototype.hasOwnProperty.call(toolCollapse, t.callId)) {
+          return { ...t, collapsed: toolCollapse[t.callId] }
+        }
+        if (t.status === 'running' || t.status === 'pending') {
+          return { ...t, collapsed: false }
+        }
+        return { ...t, collapsed: true }
+      }),
+    [toolCollapse],
+  )
 
   const coldStart = buildColdStartCopy({
     name: currentPersonaName,
@@ -1094,7 +1137,7 @@ function App() {
           <div className="relative z-[1] mx-auto max-w-3xl px-6 py-8">
             {/* 欢迎屏 — 衬线问候 + 建议 pill（Phase 3） */}
             {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center pt-24 text-center">
+              <div className="flex flex-col items-center justify-center pt-28 text-center">
                 <h1
                   className="font-display text-[1.75rem] font-medium tracking-tight sm:text-[2rem]"
                   style={{ color: 'var(--text-primary)' }}
@@ -1143,33 +1186,14 @@ function App() {
               </div>
             )}
 
-            {/* 消息流 — Codex 风格 */}
-            <div className="space-y-6">
+            {/* 消息流 — Alice 壳 Phase B */}
+            <div className="space-y-8">
               {visibleMessages.map((msg, msgIndex) => {
                 const isSearchMatch = searchQuery && msg.content.toLowerCase().includes(searchQuery.toLowerCase())
                 const dimmed = searchQuery && !isSearchMatch
                 const isUser = msg.role === 'user'
-                const isTool = msg.role === 'tool'
                 const isLastMsg = msgIndex === visibleMessages.length - 1
-                const showThinkingBeforeMsg = !isUser && !isTool && isLastMsg && reasoning.chunks.length > 0
-
-                if (isTool) {
-                  return (
-                    <div
-                      key={msg.id}
-                      className={`animate-fade-in-up rounded-md border px-3 py-2 font-mono text-[11px] ${dimmed ? 'opacity-20' : ''}`}
-                      style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}
-                      data-testid="debug-tool-message"
-                    >
-                      <div className="mb-1 text-[10px]" style={{ color: 'var(--accent)' }}>
-                        tool · {msg.toolCallId || msg.id}
-                      </div>
-                      <pre className="max-h-40 overflow-auto whitespace-pre-wrap">
-                        {msg.content.slice(0, 2000)}
-                      </pre>
-                    </div>
-                  )
-                }
+                const showThinkingBeforeMsg = !isUser && isLastMsg && reasoning.chunks.length > 0
 
                 return (
                   <div
@@ -1288,12 +1312,31 @@ function App() {
                             ))}
                           </div>
                         )}
-                        <div className="text-[13.5px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>
-                          <MarkdownRenderer content={msg.content} />
-                          {isStreaming && msg === messages[messages.length - 1] && (
+                        {(msg.content || (isStreaming && isLastMsg)) && (
+                        <div className="mb-3 text-[13.5px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+                          {msg.content ? <MarkdownRenderer content={msg.content} /> : null}
+                          {isStreaming && msg.id === messages.filter(m => m.role === 'assistant').at(-1)?.id && (
                             <span className="animate-typing-cursor ml-0.5 inline-block h-4 w-0.5" style={{ background: 'var(--accent)' }} />
                           )}
                         </div>
+                        )}
+                        {(() => {
+                          // Alice：tool_call 跟在本回合 assistant 正文后；历史从 toolCalls+后续 tool 还原
+                          const turnTools = applyToolCollapse(
+                            resolveToolsForAssistant(msg, messages, {
+                              liveHostId: liveToolHostId,
+                              liveTools: activeTools,
+                              expandHistoric: conversationDebugMode,
+                            }),
+                          )
+                          return turnTools.length > 0 ? (
+                            <ToolCallbackList
+                              tools={turnTools}
+                              onToggleCollapse={toggleToolCollapse}
+                              className="mt-1"
+                            />
+                          ) : null
+                        })()}
                         {/* hover 操作 */}
                         <div className="absolute -bottom-5 left-0 flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
                           {msg.content && (
@@ -1352,15 +1395,6 @@ function App() {
                 ),
                 isStreaming,
               )}
-            />
-
-            <ToolCallbackList
-              tools={activeTools}
-              onToggleCollapse={(callId) =>
-                setActiveTools((prev) =>
-                  prev.map((t) => (t.callId === callId ? { ...t, collapsed: !t.collapsed } : t)),
-                )
-              }
             />
 
             <div ref={messagesEndRef} />
