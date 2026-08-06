@@ -91,6 +91,9 @@ export function registerProjectIPC(): void {
   ipcMain.handle('project:get', async () => {
     const dirPath = await settings.getSetting('currentProject')
     if (!dirPath) return null
+    if (!fs.existsSync(dirPath)) return null
+    // 启动后仅读设置不会 set workspace；这里恢复主进程工作区，避免沙箱/相对路径漂移
+    applyProject(dirPath)
     return { path: dirPath, name: pathToName(dirPath) }
   })
 

@@ -1,8 +1,8 @@
 import { buildTool } from '../builder'
 import { promises as fs } from 'node:fs'
-import path from 'node:path'
 import { createLogger } from '../../utils/logger'
-import { buildPolicy, type SandboxMode } from '../../sandbox/policy'
+import type { SandboxMode } from '../../sandbox/policy'
+import { checkFileWriteSandbox, resolveToolFilePath } from '../../sandbox/file-path-guard'
 import * as settings from '../../storage/settings-store'
 import { getWorkspaceRoot } from '../../agent/project-memory'
 
@@ -147,30 +147,12 @@ export const applyPatchTool = buildTool({
     if (!filePath) return 'Error: could not determine target file. Provide path parameter or include +++ line in patch.'
     if (hunks.length === 0) return 'Error: no valid hunks found in patch.'
 
-    const resolved = path.resolve(filePath)
+    const resolved = resolveToolFilePath(filePath, getWorkspaceRoot())
 
     const mode = (await settings.getSetting('sandboxMode') || 'workspace-write') as SandboxMode
     const wsRoot = getWorkspaceRoot()
-
-    if (mode !== 'full-access') {
-      if (mode === 'read-only') {
-        return `[SANDBOX BLOCKED] 只读模式下禁止编辑文件。`
-      }
-      const policy = buildPolicy(mode, wsRoot)
-      if (wsRoot) {
-        const normalizedPath = path.resolve(resolved).toLowerCase()
-        const normalizedRoot = path.resolve(wsRoot).toLowerCase()
-        if (!normalizedPath.startsWith(normalizedRoot)) {
-          return `[SANDBOX BLOCKED] 目标路径 "${resolved}" 超出工作区 "${wsRoot}"。`
-        }
-      }
-      for (const protPath of policy.protectedPaths) {
-        const segments = resolved.split(path.sep)
-        if (segments.some((s) => s === protPath)) {
-          return `[SANDBOX BLOCKED] 目标路径包含受保护路径 "${protPath}"。`
-        }
-      }
-    }
+    const blocked = checkFileWriteSandbox(resolved, mode, wsRoot, { action: '编辑' })
+    if (blocked) return blocked
 
     let original: string
     try {

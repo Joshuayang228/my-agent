@@ -2,39 +2,12 @@ import { buildTool } from '../builder'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { createLogger } from '../../utils/logger'
-import { buildPolicy, type SandboxMode } from '../../sandbox/policy'
+import type { SandboxMode } from '../../sandbox/policy'
+import { checkFileWriteSandbox, resolveToolFilePath } from '../../sandbox/file-path-guard'
 import * as settings from '../../storage/settings-store'
 import { getWorkspaceRoot } from '../../agent/project-memory'
 
 const log = createLogger('FileWrite')
-
-function checkFileSandbox(resolved: string, mode: SandboxMode, wsRoot?: string): string | null {
-  if (mode === 'full-access') return null
-
-  if (mode === 'read-only') {
-    return `[SANDBOX BLOCKED] 只读模式下禁止写入文件。当前沙箱模式为 "${mode}"。`
-  }
-
-  // workspace-write: 必须在工作区内
-  const policy = buildPolicy(mode, wsRoot)
-
-  if (wsRoot) {
-    const normalizedPath = path.resolve(resolved).toLowerCase()
-    const normalizedRoot = path.resolve(wsRoot).toLowerCase()
-    if (!normalizedPath.startsWith(normalizedRoot)) {
-      return `[SANDBOX BLOCKED] 目标路径 "${resolved}" 超出工作区 "${wsRoot}"。workspace-write 模式仅允许写入工作区内的文件。`
-    }
-  }
-
-  for (const protPath of policy.protectedPaths) {
-    const segments = resolved.split(path.sep)
-    if (segments.some((s) => s === protPath)) {
-      return `[SANDBOX BLOCKED] 目标路径包含受保护路径 "${protPath}"。`
-    }
-  }
-
-  return null
-}
 
 export const fileWriteTool = buildTool({
   name: 'file_write',
@@ -55,7 +28,9 @@ Behavior:
 - Creates parent directories automatically if they don't exist
 - Default mode: overwrites existing files completely
 - Append mode: adds content to the end of existing files
+- Relative paths resolve against the opened project workspace (not a random cwd)
 - Sandbox: respects current sandbox mode (read-only blocks all writes, workspace-write blocks writes outside project)
+- User clicking Allow in the confirm dialog does NOT bypass sandbox path/mode checks
 
 CAUTION: This is a destructive operation. Double-check the path and content before executing.`,
   parameters: {
@@ -63,7 +38,7 @@ CAUTION: This is a destructive operation. Double-check the path and content befo
     properties: {
       path: {
         type: 'string',
-        description: 'Absolute or relative file path to write to.',
+        description: 'Absolute or relative file path to write to. Relative paths are resolved from the opened workspace root.',
       },
       content: {
         type: 'string',
@@ -90,12 +65,10 @@ CAUTION: This is a destructive operation. Double-check the path and content befo
 
     if (!filePath?.trim()) return 'Error: file path is required'
 
-    const resolved = path.resolve(filePath)
-
-    // 沙箱策略检查
     const mode = (await settings.getSetting('sandboxMode') || 'workspace-write') as SandboxMode
     const wsRoot = getWorkspaceRoot()
-    const blocked = checkFileSandbox(resolved, mode, wsRoot)
+    const resolved = resolveToolFilePath(filePath, wsRoot)
+    const blocked = checkFileWriteSandbox(resolved, mode, wsRoot, { action: '写入' })
     if (blocked) {
       log.warn('File write blocked by sandbox', { path: resolved, mode, wsRoot })
       return blocked

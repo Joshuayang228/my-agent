@@ -1007,7 +1007,7 @@ export function SettingsPanel({
         <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(8.5rem, 1fr))' }}>
           {([
             { value: 'read-only', label: '只读', desc: '最安全，禁止写入和网络' },
-            { value: 'workspace-write', label: '工作区写入', desc: '允许工作区内操作' },
+            { value: 'workspace-write', label: '工作区写入', desc: '允许已打开项目内读写；确认≠绕过' },
             { value: 'full-access', label: '完全访问', desc: '不限制（需谨慎）', danger: true },
           ] as const).map(opt => (
             <button

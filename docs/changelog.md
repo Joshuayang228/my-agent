@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Fixed — 写文件确认后仍被沙箱拦住（2026-08-06）
+
+- 启动时 `project:get` 恢复主进程工作区（此前 UI 有项目、沙箱根却是空的）
+- 相对路径按工作区解析；统一 `file-path-guard`；拦截文案标明「确认≠绕过沙箱」
+- BrowserWindow `sandbox: false`，减轻 Electron `startupData/preloadScripts` 控制台噪声（仍保持 contextIsolation）
+
 ### Changed — 壳层 IA：人物世界口袋 + 独立 Debug/Playground（2026-08-06）
 
 - 去掉侧栏主题切换钮（主题只走设置）；去掉聊天顶 `CompanionStatusBar`（与左下角重复）

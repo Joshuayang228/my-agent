@@ -1,39 +1,12 @@
 import { buildTool } from '../builder'
 import { promises as fs } from 'node:fs'
-import path from 'node:path'
 import { createLogger } from '../../utils/logger'
-import { buildPolicy, type SandboxMode } from '../../sandbox/policy'
+import type { SandboxMode } from '../../sandbox/policy'
+import { checkFileWriteSandbox, resolveToolFilePath } from '../../sandbox/file-path-guard'
 import * as settings from '../../storage/settings-store'
 import { getWorkspaceRoot } from '../../agent/project-memory'
 
 const log = createLogger('FileEdit')
-
-function checkFileSandbox(resolved: string, mode: SandboxMode, wsRoot?: string): string | null {
-  if (mode === 'full-access') return null
-
-  if (mode === 'read-only') {
-    return `[SANDBOX BLOCKED] 只读模式下禁止编辑文件。当前沙箱模式为 "${mode}"。`
-  }
-
-  const policy = buildPolicy(mode, wsRoot)
-
-  if (wsRoot) {
-    const normalizedPath = path.resolve(resolved).toLowerCase()
-    const normalizedRoot = path.resolve(wsRoot).toLowerCase()
-    if (!normalizedPath.startsWith(normalizedRoot)) {
-      return `[SANDBOX BLOCKED] 目标路径 "${resolved}" 超出工作区 "${wsRoot}"。`
-    }
-  }
-
-  for (const protPath of policy.protectedPaths) {
-    const segments = resolved.split(path.sep)
-    if (segments.some((s) => s === protPath)) {
-      return `[SANDBOX BLOCKED] 目标路径包含受保护路径 "${protPath}"。`
-    }
-  }
-
-  return null
-}
 
 export const fileEditTool = buildTool({
   name: 'file_edit',
@@ -65,13 +38,14 @@ Best practices:
 3. If old_str appears multiple times, consider using apply_patch for more precise control
 4. Use count parameter to limit replacements (default: 1 = first occurrence only)
 
-Sandbox: Respects current sandbox mode (blocks writes outside workspace in workspace-write mode).`,
+Sandbox: Respects current sandbox mode (blocks writes outside workspace in workspace-write mode).
+Relative paths resolve against the opened workspace. Confirm dialog Allow does not bypass sandbox.`,
   parameters: {
     type: 'object',
     properties: {
       path: {
         type: 'string',
-        description: 'Absolute or relative file path to edit.',
+        description: 'Absolute or relative file path to edit. Relative paths resolve from workspace root.',
       },
       old_str: {
         type: 'string',
@@ -109,11 +83,10 @@ Sandbox: Respects current sandbox mode (blocks writes outside workspace in works
     if (!filePath?.trim()) return 'Error: file path is required'
     if (!oldStr) return 'Error: old_str is required'
 
-    const resolved = path.resolve(filePath)
-
     const mode = (await settings.getSetting('sandboxMode') || 'workspace-write') as SandboxMode
     const wsRoot = getWorkspaceRoot()
-    const blocked = checkFileSandbox(resolved, mode, wsRoot)
+    const resolved = resolveToolFilePath(filePath, wsRoot)
+    const blocked = checkFileWriteSandbox(resolved, mode, wsRoot, { action: '编辑' })
     if (blocked) {
       log.warn('File edit blocked by sandbox', { path: resolved, mode })
       return blocked
