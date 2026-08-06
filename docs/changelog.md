@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Changed — 启动首帧体验（2026-08-06）
+
+- Electron `BrowserWindow` 创建后先隐藏，等待 `ready-to-show` 再显示，避免默认白底闪现
+- 主进程窗口底色与默认 mist 主题对齐；开发者工具改为首帧显示后打开
+- 渲染入口增加轻量启动 Splash：提前恢复主题，React 根节点挂载后淡出移除
+
 ### Changed — 壳层交互：侧栏并排 / 返回左上 / 对话 Debug 右栏（2026-08-06）
 
 - 侧栏 Debug / Playground 改回 `grid-cols-2` 并排

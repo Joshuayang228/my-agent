@@ -46,16 +46,22 @@ if (!app.requestSingleInstanceLock()) {
 
 let win: BrowserWindow | null = null
 let tray: Tray | null = null
+let windowReady = false
 const preload = path.join(__dirname, 'index.cjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
+const STARTUP_BACKGROUND_COLOR = '#f7f6f2'
 
 async function createWindow() {
+  windowReady = false
   win = new BrowserWindow({
     title: 'My Agent',
     width: 1200,
     height: 800,
     icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
     autoHideMenuBar: true,
+    // 首帧完成前隐藏窗口，避免 Chromium/Electron 默认白底闪现。
+    show: false,
+    backgroundColor: STARTUP_BACKGROUND_COLOR,
     webPreferences: {
       preload,
       contextIsolation: true,
@@ -64,9 +70,17 @@ async function createWindow() {
     },
   })
 
+  const currentWindow = win
+  currentWindow.once('ready-to-show', () => {
+    if (currentWindow.isDestroyed() || win !== currentWindow) return
+    windowReady = true
+    currentWindow.show()
+    mark('window_shown')
+    if (VITE_DEV_SERVER_URL) currentWindow.webContents.openDevTools()
+  })
+
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
-    win.webContents.openDevTools()
   } else {
     win.loadFile(indexHtml)
   }
@@ -160,6 +174,7 @@ function showWindow() {
     createWindow()
     return
   }
+  if (!windowReady) return
   if (!win.isVisible()) win.show()
   if (win.isMinimized()) win.restore()
   win.focus()
@@ -234,8 +249,6 @@ app.whenReady().then(async () => {
   initSkillSystem(toolRegistry).catch(err => log.warn('Skill init failed', { error: String(err) }))
   restoreMcpConnections().then(() => mark('mcp_ready'))
   initScheduler().catch(err => log.warn('Scheduler init failed', { error: String(err) }))
-
-  mark('window_shown')
 
   // 加载持久审批记录（sandbox approval-store）
   const { loadPersistentApprovals } = await import('./sandbox/approval-store')
