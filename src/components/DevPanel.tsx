@@ -193,7 +193,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
 
   return (
     <div className="flex h-full flex-col" data-testid="dev-panel" data-surface="debug">
-      <div className="flex items-center justify-between border-b px-5 py-3" style={{ borderColor: 'var(--border-color)' }}>
+      <div className="flex shrink-0 items-center justify-between border-b px-5 py-3" style={{ borderColor: 'var(--border-color)' }}>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex items-center gap-1.5 text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
             <Bug size={16} style={{ color: 'var(--success)' }} />
@@ -213,32 +213,49 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
         </div>
       </div>
 
-      <div className="flex border-b px-5" style={{ borderColor: 'var(--border-color)' }}>
-        {DEBUG_TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setDebugTab(t.id)}
-            className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-medium transition ${
-              debugTab === t.id ? 'border-emerald-400 text-emerald-500' : 'border-transparent'
-            }`}
-            style={debugTab !== t.id ? { color: 'var(--text-muted)' } : undefined}
-          >
-            <span>{t.icon}</span>
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <div className="flex min-h-0 flex-1">
+        <nav
+          className="flex w-[156px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r px-2 py-3"
+          style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
+          aria-label="Debug 分区"
+        >
+          {DEBUG_TABS.map(t => {
+            const active = debugTab === t.id
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setDebugTab(t.id)}
+                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition"
+                style={{
+                  color: active ? 'var(--text-primary)' : 'var(--text-muted)',
+                  background: active ? 'var(--sidebar-active)' : 'transparent',
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) e.currentTarget.style.background = 'var(--sidebar-hover)'
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) e.currentTarget.style.background = 'transparent'
+                }}
+              >
+                <span style={{ color: active ? 'var(--success)' : 'var(--text-muted)' }}>{t.icon}</span>
+                {t.label}
+              </button>
+            )
+          })}
+        </nav>
 
-      <div className="flex-1 overflow-y-auto p-5">
-        {debugTab === 'prompt' && (
-          <PromptTab info={promptInfo} layer={promptLayer} setLayer={setPromptLayer} readonly />
-        )}
-        {debugTab === 'world' && (
-          <WorldTab snap={worldSnap} error={worldError} />
-        )}
-        {debugTab === 'system' && <SystemTab info={systemInfo} />}
-        {debugTab === 'traces' && <TracesTab data={traces} />}
-        {debugTab === 'events' && <EventsTab events={eventLog} />}
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-5">
+          {debugTab === 'prompt' && (
+            <PromptTab info={promptInfo} layer={promptLayer} setLayer={setPromptLayer} readonly />
+          )}
+          {debugTab === 'world' && (
+            <WorldTab snap={worldSnap} error={worldError} />
+          )}
+          {debugTab === 'system' && <SystemTab info={systemInfo} />}
+          {debugTab === 'traces' && <TracesTab data={traces} />}
+          {debugTab === 'events' && <EventsTab events={eventLog} />}
+        </div>
       </div>
     </div>
   )

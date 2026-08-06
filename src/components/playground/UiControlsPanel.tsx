@@ -77,34 +77,39 @@ export function UiControlsPanel() {
   }))
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4" data-testid="ui-controls-panel">
-      <div>
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          UI 控件
-        </h2>
-        <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-          正式样式/组件的变体矩阵（一状态一格）。改组件先改这里再集成——产品内轻量展厅，不装 Storybook。
-        </p>
+    <div className="flex min-h-0 gap-4" data-testid="ui-controls-panel">
+      <div className="w-[120px] shrink-0 space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            UI 控件
+          </h2>
+          <p className="mt-1 text-[11px] leading-snug" style={{ color: 'var(--text-muted)' }}>
+            变体矩阵；不装 Storybook。
+          </p>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          {UI_CONTROLS_SUBTABS.map((t) => {
+            const active = sub === t.id
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setSub(t.id)}
+                className="rounded-lg px-2.5 py-1.5 text-left text-xs transition"
+                style={{
+                  color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
+                  background: active ? 'var(--accent-subtle)' : 'transparent',
+                  fontWeight: active ? 500 : 400,
+                }}
+              >
+                {t.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-1 border-b" style={{ borderColor: 'var(--border-color)' }}>
-        {UI_CONTROLS_SUBTABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setSub(t.id)}
-            className="px-3 py-1.5 text-xs transition"
-            style={{
-              color: sub === t.id ? 'var(--accent-fg)' : 'var(--text-muted)',
-              borderBottom: sub === t.id ? '2px solid var(--accent-fg)' : '2px solid transparent',
-              marginBottom: -1,
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
+      <div className="min-w-0 max-w-2xl flex-1 space-y-4">
       {sub === 'buttons' && (
         <div className="space-y-3">
           <StoryBlock title="主要 / 次要" source="index.css · .settings-option">
@@ -258,6 +263,7 @@ export function UiControlsPanel() {
           </StoryBlock>
         </div>
       )}
+      </div>
     </div>
   )
 }

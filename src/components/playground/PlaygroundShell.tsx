@@ -1,5 +1,5 @@
 /**
- * Playground 壳 — Alice 式顶栏活目录 + 居中内容。
+ * Playground 壳 — 左侧活目录 + 右侧展示/编辑区（对齐 Alice Debug 左右栏）。
  */
 
 import { useCallback, useEffect, useState } from 'react'
@@ -31,31 +31,39 @@ export function PlaygroundShell() {
   const activeTabs = PLAYGROUND_TABS.filter((t) => t.status !== 'archived')
 
   return (
-    <div className="flex h-full flex-col" data-testid="playground-shell">
-      <div
-        className="flex-shrink-0 overflow-x-auto border-b px-4 py-1.5"
-        style={{ borderColor: 'var(--border-color)', scrollbarWidth: 'none' }}
+    <div className="flex h-full min-h-0" data-testid="playground-shell">
+      <nav
+        className="flex w-[156px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r px-2 py-3"
+        style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
+        aria-label="Playground 分区"
       >
-        <div className="flex items-center gap-0.5">
-          {activeTabs.map((t) => (
+        {activeTabs.map((t) => {
+          const active = tab === t.id
+          return (
             <button
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
-              className="whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition-all"
+              className="w-full rounded-lg px-2.5 py-2 text-left text-sm transition-all"
               style={
-                tab === t.id
+                active
                   ? { background: 'var(--accent-subtle)', color: 'var(--accent-fg)', fontWeight: 500 }
                   : { color: 'var(--text-muted)' }
               }
-              data-active={tab === t.id ? 'true' : undefined}
+              onMouseEnter={(e) => {
+                if (!active) e.currentTarget.style.background = 'var(--sidebar-hover)'
+              }}
+              onMouseLeave={(e) => {
+                if (!active) e.currentTarget.style.background = 'transparent'
+              }}
+              data-active={active ? 'true' : undefined}
             >
               {t.label}
             </button>
-          ))}
-        </div>
-      </div>
-      <div className="flex-1 overflow-y-auto px-6 py-6">
+          )
+        })}
+      </nav>
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-6 py-6">
         {tab === 'design-system' && <DesignSystemPanel />}
         {tab === 'ui-controls' && <UiControlsPanel />}
         {tab === 'prompts' && <PromptCatalogPanel onOpenChatLab={() => setTab('chat-lab')} />}
