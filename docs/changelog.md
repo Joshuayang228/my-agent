@@ -5,6 +5,14 @@
 
 ## [未发布]
 
+### Changed — 壳层交互：侧栏并排 / 返回左上 / 对话 Debug 右栏（2026-08-06）
+
+- 侧栏 Debug / Playground 改回 `grid-cols-2` 并排
+- 设置 / Debug / Playground 返回移到左栏顶部（取消右上角 X）
+- 设置「模型」改为 Provider 分类卡片（对齐 Alice 列表感，底层仍单端点）
+- 对话 Debug ON 时在 Chat 右侧出栏（非输入区上方叠加）
+- preload 改为 CJS（`index.cjs`），修复 `require is not defined in ES module`
+
 ### Changed — Debug / Playground 左右栏布局（2026-08-06）
 
 - 主 tab 从顶栏横滑改为左侧纵向导航（约 156px）+ 右侧展示/编辑区

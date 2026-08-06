@@ -1,8 +1,9 @@
 /**
- * Playground 壳 — 左侧活目录 + 右侧展示/编辑区（对齐 Alice Debug 左右栏）。
+ * Playground 壳 — 左侧返回 + 活目录，右侧展示/编辑区。
  */
 
 import { useCallback, useEffect, useState } from 'react'
+import { ArrowLeft, FlaskConical } from 'lucide-react'
 import { PLAYGROUND_TABS, type PlaygroundTabId } from './catalog'
 import { DesignSystemPanel } from './DesignSystemPanel'
 import { UiControlsPanel } from './UiControlsPanel'
@@ -11,7 +12,7 @@ import { PromptLabPanel } from './PromptLabPanel'
 import { ToolRunPanel, type PlaygroundToolInfo } from './ToolRunPanel'
 import { FixturesPanel } from './FixturesPanel'
 
-export function PlaygroundShell() {
+export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
   const [tab, setTab] = useState<PlaygroundTabId>('design-system')
   const [tools, setTools] = useState<PlaygroundToolInfo[]>([])
 
@@ -37,6 +38,24 @@ export function PlaygroundShell() {
         style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
         aria-label="Playground 分区"
       >
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="mb-2 flex w-full items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] transition"
+            style={{ color: 'var(--text-secondary)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+            title="返回聊天"
+          >
+            <ArrowLeft size={15} strokeWidth={1.75} />
+            返回
+          </button>
+        )}
+        <div className="mb-2 flex items-center gap-1.5 px-2.5 pb-2 text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <FlaskConical size={13} style={{ color: 'var(--accent)' }} />
+          Playground
+        </div>
         {activeTabs.map((t) => {
           const active = tab === t.id
           return (

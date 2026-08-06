@@ -1,6 +1,6 @@
 /**
  * Primary 侧栏：品牌区 + 大号新对话 + 会话列表 + 底栏（Alice 壳）。
- * Debug / Playground 为独立全页入口（纵向分列，非双 tab）；生活面收进「人物世界」。
+ * Debug / Playground 为独立全页入口（底栏并排）；生活面收进「人物世界」。
  */
 
 import type { RefObject, ReactNode, MouseEvent } from 'react'
@@ -287,7 +287,7 @@ export function PrimarySidebar({
             {activeBgTaskCount} 个后台任务
           </div>
         )}
-        <div className="mb-2 flex flex-col gap-1">
+        <div className="mb-2 grid grid-cols-2 gap-1">
           <DockTextBtn
             active={activeView === 'debug'}
             onClick={() => onNavigate(activeView === 'debug' ? 'chat' : 'debug')}

@@ -46,7 +46,7 @@ if (!app.requestSingleInstanceLock()) {
 
 let win: BrowserWindow | null = null
 let tray: Tray | null = null
-const preload = path.join(__dirname, 'index.mjs')
+const preload = path.join(__dirname, 'index.cjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
 
 async function createWindow() {
@@ -58,13 +58,9 @@ async function createWindow() {
     autoHideMenuBar: true,
     webPreferences: {
       preload,
-      // 显式声明信任边界（Electron 默认已是此组合；写出避免依赖隐式默认）
       contextIsolation: true,
       nodeIntegration: false,
-      // Electron 20+ 默认 sandbox=true；部分版本 DevTools/子 frame 会打出
-      // startupData/preloadScripts null 噪声。preload 已自包含，关闭渲染进程 sandbox
-      // 不恢复 nodeIntegration，仍靠 contextIsolation 隔离。
-      sandbox: false,
+      // 默认 sandbox=true；preload 已打成 CJS，与沙箱兼容
     },
   })
 

@@ -49,6 +49,18 @@ export default defineConfig({
       },
       preload: {
         input: 'electron/preload/index.ts',
+        vite: {
+          build: {
+            rollupOptions: {
+              output: {
+                // Electron preload 需 CJS；ESM .mjs 会在 sandbox:false / Node 加载时炸 require
+                format: 'cjs',
+                entryFileNames: 'index.cjs',
+                inlineDynamicImports: true,
+              },
+            },
+          },
+        },
       },
     }),
   ],

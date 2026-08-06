@@ -4,6 +4,7 @@ import { PermissionRulesEditor } from './PermissionRulesEditor'
 import {
   Upload, Download, Settings, Shield, Cpu, Database, Code,
   ChevronRight, Eye, EyeOff, Info, Heart, Brain, Wrench, SlidersHorizontal, Link2,
+  ArrowLeft, Check,
 } from 'lucide-react'
 
 interface SettingsForm {
@@ -787,16 +788,21 @@ export function SettingsPanel({
 
   const renderModel = () => (
     <div className="space-y-6">
-      <SectionTitle>模型</SectionTitle>
+      <div>
+        <SectionTitle>模型</SectionTitle>
+        <p className="mt-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
+          选择 Provider 预设，再填 API Key。底层仍是单一 OpenAI 兼容端点（Base URL + 模型名）。
+        </p>
+      </div>
 
-      <FieldGroup label="快速选择">
-        <div className="space-y-3">
+      <FieldGroup label="Provider 预设" hint="对齐 Alice「模型」页：分类卡片 + 一键填入 Base URL / 模型。">
+        <div className="space-y-4">
           {PRESET_GROUPS.map((group) => (
             <div key={group.group}>
-              <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                 {group.group}
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid gap-2 sm:grid-cols-2">
                 {group.items.map((p) => {
                   const selected = form.llmBaseUrl === p.baseUrl && form.llmModel === p.model
                   return (
@@ -804,10 +810,24 @@ export function SettingsPanel({
                       key={p.label}
                       type="button"
                       onClick={() => applyPreset(p)}
-                      className="settings-option px-3 py-1.5 text-xs"
-                      data-selected={selected ? 'true' : undefined}
+                      className="rounded-[var(--radius-lg)] border px-3 py-2.5 text-left transition"
+                      style={{
+                        borderColor: selected ? 'var(--accent)' : 'var(--border-color)',
+                        background: selected ? 'var(--accent-subtle)' : 'var(--card-bg)',
+                      }}
                     >
-                      {p.label}
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
+                          {p.label}
+                        </span>
+                        {selected && <Check size={14} style={{ color: 'var(--accent-fg)' }} />}
+                      </div>
+                      <div className="mt-1 font-mono text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                        {p.model}
+                      </div>
+                      <div className="mt-0.5 truncate font-mono text-[10px]" style={{ color: 'var(--text-muted)' }} title={p.baseUrl}>
+                        {p.baseUrl}
+                      </div>
                     </button>
                   )
                 })}
@@ -817,14 +837,14 @@ export function SettingsPanel({
         </div>
       </FieldGroup>
 
-      <FieldGroup label="API Key">
+      <FieldGroup label="API Key" hint="存于本机安全存储；留空保存时不覆盖已有 Key。">
         <div className="relative">
           <input
             type={showApiKey ? 'text' : 'password'}
             value={form.llmApiKey}
             onChange={(e) => update('llmApiKey', e.target.value)}
             placeholder="sk-..."
-            className="theme-input w-full rounded-lg border px-3 py-2 pr-16 text-sm outline-none transition"
+            className="theme-input w-full rounded-lg border px-3 py-2 pr-16 font-mono text-sm outline-none transition"
           />
           <button
             type="button"
@@ -843,27 +863,27 @@ export function SettingsPanel({
           value={form.llmBaseUrl}
           onChange={(e) => update('llmBaseUrl', e.target.value)}
           placeholder="https://api.openai.com/v1"
-          className="theme-input w-full rounded-lg border px-3 py-2 text-sm outline-none transition"
+          className="theme-input w-full rounded-lg border px-3 py-2 font-mono text-sm outline-none transition"
         />
       </FieldGroup>
 
       <div className="grid grid-cols-2 gap-4">
-        <FieldGroup label="主模型">
+        <FieldGroup label="主模型" hint="对话主力；可手改预设模型名。">
           <input
             type="text"
             value={form.llmModel}
             onChange={(e) => update('llmModel', e.target.value)}
             placeholder="gpt-4o"
-            className="theme-input w-full rounded-lg border px-3 py-2 text-sm outline-none transition"
+            className="theme-input w-full rounded-lg border px-3 py-2 font-mono text-sm outline-none transition"
           />
         </FieldGroup>
-        <FieldGroup label="辅助模型" hint="留空沿用主模型">
+        <FieldGroup label="辅助模型" hint="留空沿用主模型（标题/压缩等轻量任务）。">
           <input
             type="text"
             value={form.auxModel}
             onChange={(e) => update('auxModel', e.target.value)}
             placeholder="如 gpt-4o-mini"
-            className="theme-input w-full rounded-lg border px-3 py-2 text-sm outline-none transition"
+            className="theme-input w-full rounded-lg border px-3 py-2 font-mono text-sm outline-none transition"
           />
         </FieldGroup>
       </div>
@@ -1356,6 +1376,21 @@ export function SettingsPanel({
         className="flex w-[200px] shrink-0 flex-col overflow-y-auto border-r py-4"
         style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
       >
+        <div className="mb-3 px-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] transition"
+            style={{ color: 'var(--text-secondary)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+            title="返回聊天"
+            data-testid="settings-back"
+          >
+            <ArrowLeft size={15} strokeWidth={1.75} />
+            返回
+          </button>
+        </div>
         {NAV_ITEMS.map((group) => (
           <div key={group.group} className="mb-3 px-3">
             <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
@@ -1403,17 +1438,6 @@ export function SettingsPanel({
               style={{ background: 'var(--accent-emphasis)' }}
             >
               {saving ? '保存中...' : '保存'}
-            </button>
-            <button
-              onClick={onClose}
-              className="rounded p-1 transition"
-              style={{ color: 'var(--text-muted)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
             </button>
           </div>
         </div>

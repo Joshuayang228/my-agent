@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import {
-  FileText, BarChart3, ClipboardList, Zap, RotateCcw, X,
-  Bug, Globe,
+  FileText, BarChart3, ClipboardList, Zap, RotateCcw,
+  Bug, Globe, ArrowLeft,
 } from 'lucide-react'
 
 type DebugTab = 'prompt' | 'world' | 'system' | 'traces' | 'events'
@@ -192,70 +192,75 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
   useEffect(() => { void refresh() }, [refresh])
 
   return (
-    <div className="flex h-full flex-col" data-testid="dev-panel" data-surface="debug">
-      <div className="flex shrink-0 items-center justify-between border-b px-5 py-3" style={{ borderColor: 'var(--border-color)' }}>
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="flex items-center gap-1.5 text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-            <Bug size={16} style={{ color: 'var(--success)' }} />
+    <div className="flex h-full min-h-0" data-testid="dev-panel" data-surface="debug">
+      <nav
+        className="flex w-[156px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r px-2 py-3"
+        style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
+        aria-label="Debug 分区"
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="mb-2 flex w-full items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] transition"
+          style={{ color: 'var(--text-secondary)' }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+          title="返回聊天"
+        >
+          <ArrowLeft size={15} strokeWidth={1.75} />
+          返回
+        </button>
+        <div className="mb-1 flex items-center justify-between gap-1 px-2.5 pb-2">
+          <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <Bug size={13} style={{ color: 'var(--success)' }} />
             Debug
           </span>
-          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            只读透视：生产实装、世界态与运行痕迹。
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <button onClick={() => void refresh()} className="rounded-lg px-2 py-1 text-xs transition" style={{ color: 'var(--text-muted)' }}>
-            <RotateCcw size={12} /> 刷新
-          </button>
-          <button onClick={onClose} className="rounded-lg p-1.5 transition" style={{ color: 'var(--text-muted)' }} title="返回聊天">
-            <X size={14} />
+          <button
+            type="button"
+            onClick={() => void refresh()}
+            className="rounded p-1 transition"
+            style={{ color: 'var(--text-muted)' }}
+            title="刷新"
+          >
+            <RotateCcw size={12} />
           </button>
         </div>
-      </div>
+        {DEBUG_TABS.map(t => {
+          const active = debugTab === t.id
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setDebugTab(t.id)}
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition"
+              style={{
+                color: active ? 'var(--text-primary)' : 'var(--text-muted)',
+                background: active ? 'var(--sidebar-active)' : 'transparent',
+              }}
+              onMouseEnter={(e) => {
+                if (!active) e.currentTarget.style.background = 'var(--sidebar-hover)'
+              }}
+              onMouseLeave={(e) => {
+                if (!active) e.currentTarget.style.background = 'transparent'
+              }}
+            >
+              <span style={{ color: active ? 'var(--success)' : 'var(--text-muted)' }}>{t.icon}</span>
+              {t.label}
+            </button>
+          )
+        })}
+      </nav>
 
-      <div className="flex min-h-0 flex-1">
-        <nav
-          className="flex w-[156px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r px-2 py-3"
-          style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
-          aria-label="Debug 分区"
-        >
-          {DEBUG_TABS.map(t => {
-            const active = debugTab === t.id
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setDebugTab(t.id)}
-                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition"
-                style={{
-                  color: active ? 'var(--text-primary)' : 'var(--text-muted)',
-                  background: active ? 'var(--sidebar-active)' : 'transparent',
-                }}
-                onMouseEnter={(e) => {
-                  if (!active) e.currentTarget.style.background = 'var(--sidebar-hover)'
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) e.currentTarget.style.background = 'transparent'
-                }}
-              >
-                <span style={{ color: active ? 'var(--success)' : 'var(--text-muted)' }}>{t.icon}</span>
-                {t.label}
-              </button>
-            )
-          })}
-        </nav>
-
-        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-5">
-          {debugTab === 'prompt' && (
-            <PromptTab info={promptInfo} layer={promptLayer} setLayer={setPromptLayer} readonly />
-          )}
-          {debugTab === 'world' && (
-            <WorldTab snap={worldSnap} error={worldError} />
-          )}
-          {debugTab === 'system' && <SystemTab info={systemInfo} />}
-          {debugTab === 'traces' && <TracesTab data={traces} />}
-          {debugTab === 'events' && <EventsTab events={eventLog} />}
-        </div>
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-5">
+        {debugTab === 'prompt' && (
+          <PromptTab info={promptInfo} layer={promptLayer} setLayer={setPromptLayer} readonly />
+        )}
+        {debugTab === 'world' && (
+          <WorldTab snap={worldSnap} error={worldError} />
+        )}
+        {debugTab === 'system' && <SystemTab info={systemInfo} />}
+        {debugTab === 'traces' && <TracesTab data={traces} />}
+        {debugTab === 'events' && <EventsTab events={eventLog} />}
       </div>
     </div>
   )

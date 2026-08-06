@@ -36,7 +36,7 @@ import {
   type ReasoningCallbackState,
   type ToolCallbackItem,
 } from './components/chat/callbacks'
-import { ConversationDebugOverlay } from './components/chat/ConversationDebugOverlay'
+import { ConversationDebugAside } from './components/chat/ConversationDebugAside'
 import { parseConversationDebugMode } from './components/chat/conversation-debug'
 import {
   PrimarySidebar,
@@ -1368,13 +1368,6 @@ function App() {
         {/* 输入区 — Codex 风格居中卡片 */}
         {activeView === 'chat' && <div className="relative shrink-0 px-4 pb-4 pt-2" style={{ background: 'var(--bg-primary)' }}>
           <div className="mx-auto max-w-3xl">
-            {conversationDebugMode && (
-              <ConversationDebugOverlay
-                usage={usage}
-                maxTokens={debugTokenBudget}
-                events={eventLog}
-              />
-            )}
             {/* 附件预览 */}
             {attachedFiles.length > 0 && (
               <div className="mb-1.5 flex flex-wrap gap-1">
@@ -1761,6 +1754,15 @@ function App() {
           </div>
         </div>}
       </div>
+
+      {activeView === 'chat' && conversationDebugMode && (
+        <ConversationDebugAside
+          usage={usage}
+          maxTokens={debugTokenBudget}
+          events={eventLog}
+          onClose={() => { void setConversationDebug(false) }}
+        />
+      )}
 
       {/* 文件浏览器面板 */}
       {showFileBrowser && (
