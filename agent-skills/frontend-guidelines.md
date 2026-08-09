@@ -60,10 +60,16 @@ Main Area:
 
 施工合同：`docs/requirements/playground-component-fitting-room.md`
 
-- **壳**：产品内全页 + 顶栏活目录（设计系统 / UI 控件 / 提示词 / 对话试验 / 工具 / 体验夹具）
+- **壳**：产品内全页 + 左侧活目录（设计系统 / UI 控件 / 页面基线 / 对话试验 / 模型测试 / 工具 / 体验夹具）
 - **故事格**：一状态一格；import 正式组件/class；边缘态必有；格旁标源路径
 - **纪律**：新交互/动效先建场 → 同轮同步更新 → catalog **只增不删**（可 `archived`）
 - **硬禁**：不装 `@storybook/*`，不以 `npm run storybook` / :6006 为验收
+
+### Debug（生产真相 · 只读）
+
+- Prompt 资产目录、当前装配预览、真实请求上下文、世界态、系统配置和运行记录全部归 Debug；装配预览不得冒充某次实发内容。
+- Debug 可搜索、筛选、复制和刷新真实数据，但不在此直接改生产配置。
+- Playground 不复制 Debug 的生产资产目录；需要试验时显式载入为隔离草稿。
 
 ## 设计原则（布局与交互）
 
@@ -144,6 +150,19 @@ Main Area:
 ## 流式输出
 
 - 必须流式；`sendMessage` 的 `finally` 兜底 `setIsStreaming(false)`。
+
+## 滚动条
+
+- **嵌套长文块 / Debug 侧栏列表**：用 `scrollbar-hover`——**槽位常占位**（防文字被挤），拇指默认透明，仅悬停 / `focus-within` 显色。
+- **主滚动容器**（会话列表、消息流、设置正文）：用 `scrollbar-thin`，始终可感知但样式克制。
+- 滚动条颜色走 token：`text-muted` 低透明 + 全圆角；禁止系统默认粗条 / 硬边实心拇指。
+- 禁止靠「悬停才从 width:0 变成有宽度」实现隐藏——会挤动正文布局。
+- 禁止为「好看」给短内容强加 overflow 滚轮。
+
+## 可拖分界
+
+- 侧栏宽 / 右坞宽 / 文件树↔预览 / 审阅列表↔diff：用 `ResizeHandle` + `usePersistedNumber`（`layout.*` localStorage）。
+- 有 min/max；拖动热区用 `.resize-handle`，勿自造粗分割条。
 
 ## 快捷键
 

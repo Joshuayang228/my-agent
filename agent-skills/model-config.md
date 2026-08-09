@@ -1,4 +1,4 @@
-﻿# Model Config
+# Model Config
 
 ## 使用场景
 
@@ -43,7 +43,14 @@ OpenAI 兼容路径覆盖 DeepSeek、Groq、OpenRouter 等。
 | `llmModel` | 主对话模型 | `gpt-4o` |
 | `auxModel` | 辅助任务模型，标题、画像、压缩摘要 | 留空时沿用主模型 |
 
-Runtime 通过 `getLLMConfig()` / `getAuxLLMConfig()` 分别获取。
+Runtime 通过 `getLLMConfig()` / `getAuxLLMConfig()` 分别获取。二者必须委托 `llm/aux-config.ts` 的 `loadMainLLMConfig` / `loadAuxLLMConfig`——**禁止**在 ipc / storage / tools / playground 手拼 `apiKey`+`baseUrl`+`model`。`loadAuxLLMConfig` 会按能力缓存或启发式挂上 `thinking: { type: 'disabled' }`（DeepSeek / Moonshot 等）。
+
+## Thinking / reasoning
+
+- OpenAI 兼容请求可带 `LLMConfig.thinking = { type: 'enabled' | 'disabled' }`（对照 Alice provider `extraParams.thinking`）。
+- DeepSeek V4 默认开 thinking，**reasoning 与 content 共用 `max_tokens`**；辅助调用（title/profile）若预算过小会只吐 reasoning。
+- Playground「模型测试」可烟测连通，并探测 `thinking.disabled` 是否生效；结果写入 settings `llmCapabilityCache`。
+- 探测优先级：`supported` → 辅助关 thinking；`unsupported` → 不传；`unknown` → 按 baseUrl/model 启发式。
 
 ## LLM 调用规范
 

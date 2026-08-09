@@ -126,7 +126,20 @@ Get-ChildItem "d:\projects\my-agent\_reference" -Force -Recurse -Depth 3
 
 > 教训：不要完全依赖 IDE 搜索工具，对于 gitignore 排除的目录或特殊路径，改用 Shell 直接访问
 
-## file_write 未经沙箱策略检查（待修复）
+## Chat「完全访问」未联动文件沙箱 → 改为有效沙箱推导（2026-08-08）
+
+**问题**：输入区选「完全访问权限」后，`file_write` 仍返回 `[SANDBOX BLOCKED]`；随后一度把 Chat 去改全局 `sandboxMode`，又与「沙箱应在对话页控」冲突。
+
+**原因**：审批菜单只写 `executionMode`；写入工具却读独立的 `sandboxMode`。两套旋钮语义打架。
+
+**修复**：
+- `resolveEffectiveSandbox(executionMode)`：`full-access` → 放开路径；其余 → `workspace-write`
+- 工具统一 `loadEffectiveSandbox()`，不再以 settings.sandboxMode 为真相
+- 设置页删除沙箱区块；日常只改对话页审批菜单
+
+> 教训：「完全访问」若暗示文件权限，必须让工具层从同一入口推导，不要维护第二套全局沙箱开关。
+
+## file_write 未经沙箱策略检查（已修复）
 
 **问题**：设置沙箱为"只读"模式后，AI 调用 `file_write` 工具仍可写入文件（用户审批后）
 

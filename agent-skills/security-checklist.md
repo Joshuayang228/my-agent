@@ -1,4 +1,4 @@
-﻿# Security Checklist
+# Security Checklist
 
 ## 使用场景
 
@@ -25,13 +25,22 @@
 
 ## 沙箱系统
 
-三级沙箱模式：
+策略级三级沙箱（`SandboxMode`）。**产品主入口是对话页审批模式**，由 `resolveEffectiveSandbox(executionMode)` 推导有效档：
+
+| 对话页模式 | 有效沙箱 |
+|------------|----------|
+| `confirm-all` / `auto` / `plan-first` | `workspace-write` |
+| `full-access` | `full-access` |
+
+策略含义：
 
 | 模式 | 文件读 | 文件写 | 命令执行 |
 |------|--------|--------|----------|
 | `read-only` | 允许 | 禁止 | 仅安全命令 |
 | `workspace-write` | 允许 | 工作区内 | 需审批 |
-| `full-access` | 允许 | 任意 | 需审批 |
+| `full-access` | 允许 | 任意 | 需审批（危险命令仍 bypass-immune） |
+
+设置页不再提供独立沙箱开关。工具层须用 `loadEffectiveSandbox()`，禁止只信旧键 `settings.sandboxMode`。
 
 ## 命令安全分级
 
