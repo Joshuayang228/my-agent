@@ -63,6 +63,7 @@
 - [x] ~~**M32-G6** 错误卡 / 空态 / 权限确认夹具~~ — 2026-08-05：Playground「体验夹具」精简 3+1；非全家桶
 - [x] ~~**M32-G7** 对话内 debugMode 叠加策略~~ — 2026-08-05：`conversationDebugMode` + 聊天 Overlay / 工具保留
 - [ ] **M32-G8** aside Playground 预览（与行内 aside 耦合）
+- [ ] **Playground Prompt Lab 加厚** — 从 Debug 选择资产、模拟上下文、A/B 对比、模型/参数切换；用户明确暂缓（2026-08-09）
 - [x] ~~**M32-G9** Playground 对齐 Alice（顶栏活目录 + UI 矩阵 + Prompt 目录）~~ — 2026-08-06 Phase 0；合同已落地；不装 Storybook
 - [x] ~~**M32-G9 Phase 1** 控件矩阵加厚 + 多轮隔离对话~~ — 2026-08-06：确认/芯片/状态条 + `history`
 - [x] ~~**M32 Debug 系统态补全**~~ — 2026-08-05：沙箱/权限规则/Skills + 调用链统计展示
@@ -108,6 +109,8 @@
 
 - [x] ~~M10 shell 权限统一 + loadRules 接线~~ — 2026-07-26 已做
 - [ ] **原生语音输入** — ⏸ 暂缓（2026-08-03）：Web Speech 已证不可靠；不做假 Mic。待选定 Win 原生 STT 或云端 Whisper 后单独立项。评估见 `docs/deferred/native-voice-input.md`
+- [x] **Chat 右侧工作台（非仅文件夹）** — Phase 1 已落地：文件/审阅/终端 Tab + Debug 覆盖；缺真 PTY、独立浏览器、侧边聊天。合同：`docs/requirements/chat-right-dock.md`
+- [ ] **真伪终端（node-pty / xterm）** — 右坞 Phase 1 仅为命令控制台；交互程序（vim 等）需后续。来源：chat-right-dock Phase 1 不做项
 - [x] **权限规则可视化编辑器** — 设置页表单编辑 + 可选高级 JSON；热更新不变
 - [x] ~~**M17 G1** `agent-loop` 迁 `_streamChatOverride`~~ — 2026-07-26
 - [x] ~~**M17 G2** — LLM SSE fixture / replay~~ — 2026-07-26

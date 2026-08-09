@@ -1,6 +1,15 @@
 /// <reference types="vite/client" />
 
-import type { ChatMessage, ChatSession, AgentStreamEvent } from './shared/types'
+import type {
+  ChatMessage,
+  ChatSession,
+  AgentStreamEvent,
+  LLMCallDetail,
+  LLMCallEvent,
+  LLMCallQuery,
+  LLMCallQueryResult,
+  LLMSubagentSession,
+} from './shared/types'
 
 interface SessionSummary {
   id: string
@@ -24,6 +33,28 @@ declare global {
         fork: (sessionId: string, upToMessageId: string) => Promise<ChatSession>
         tokenUsage: (sessionId: string) => Promise<{ promptTokens: number; completionTokens: number }>
         regenerateTitle: (sessionId: string) => Promise<{ success: boolean; error?: string }>
+        listFileChanges: (sessionId: string) => Promise<Array<{
+          path: string
+          toolName: string
+          updatedAt: number
+          hasBefore: boolean
+          beforeTruncated?: boolean
+        }>>
+        clearFileChanges: (sessionId: string) => Promise<{ ok: boolean }>
+        getFileChangeDiff: (sessionId: string, filePath: string) => Promise<{
+          path?: string
+          toolName?: string
+          updatedAt?: number
+          beforeTruncated?: boolean
+          diff?: string
+          after?: string
+          hasBefore?: boolean
+          error?: string
+        }>
+        onFileChange: (callback: (payload: {
+          sessionId: string
+          change: { path: string; toolName: string; updatedAt: number; hasBefore: boolean; beforeTruncated?: boolean }
+        }) => void) => () => void
       }
       rag: {
         list: () => Promise<Array<{ id: string; name: string; filePath: string; chunkCount: number; createdAt: number }>>
@@ -312,13 +343,32 @@ declare global {
         export: () => Promise<{ success: boolean; path?: string; error?: string; stats?: { sessions: number; memories: number } }>
         import: () => Promise<{ success: boolean; error?: string; stats?: { sessions: number; memories: number; settings: number } }>
       }
+      terminal: {
+        run: (input: { command: string; cwd?: string }) => Promise<
+          { ok: true; runId: string } | { ok: false; error: string }
+        >
+        kill: (runId: string) => Promise<{ ok: boolean }>
+        onStdout: (callback: (ev: { runId: string; chunk: string }) => void) => () => void
+        onStderr: (callback: (ev: { runId: string; chunk: string }) => void) => () => void
+        onExit: (callback: (ev: { runId: string; code: number }) => void) => () => void
+      }
       project: {
         browse: () => Promise<{ path: string; name: string } | null>
         list: () => Promise<{ path: string; name: string }[]>
         set: (dirPath: string | null) => Promise<{ success: boolean; error?: string }>
         get: () => Promise<{ path: string; name: string } | null>
         listFiles: (dirPath: string, depth?: number) => Promise<Array<{ name: string; path: string; isDir: boolean; children?: Array<{ name: string; path: string; isDir: boolean; children?: unknown[] }> }>>
-        readFile: (filePath: string) => Promise<{ content?: string; size?: number; error?: string }>
+        readFile: (filePath: string) => Promise<{
+          kind?: 'text' | 'image' | 'unsupported'
+          content?: string
+          dataUrl?: string
+          mimeType?: string
+          languageHint?: string
+          reason?: string
+          size?: number
+          error?: string
+        }>
+        openExternal: (filePath: string) => Promise<{ ok: boolean; error?: string }>
       }
       debug: {
         systemPrompt: () => Promise<{
@@ -328,11 +378,26 @@ declare global {
           charCount: number
           estimatedTokens: number
         }>
+        promptAssets: () => Promise<Array<{
+          id: string
+          name: string
+          category: 'system' | 'context' | 'companion' | 'subagent' | 'ui'
+          desc: string
+          sourcePath: string
+          preview?: string
+          content?: string
+          dynamic?: boolean
+        }>>
         tools: () => Promise<Array<{
           name: string
           description: string
           parameters: Record<string, unknown>
-          metadata: { isReadOnly: boolean; isDestructive: boolean; isConcurrencySafe: boolean }
+          metadata: {
+            isReadOnly: boolean
+            isDestructive: boolean
+            isConcurrencySafe: boolean
+            longRunning?: boolean
+          }
         }>>
         systemInfo: () => Promise<{
           electron: string
@@ -403,6 +468,24 @@ declare global {
           }
           dailyTokenUsage: number
         }>
+        llmLogsQuery: (input?: LLMCallQuery) => Promise<LLMCallQueryResult>
+        llmLogGet: (id: string) => Promise<LLMCallDetail | null>
+        llmLogExport: (id: string) => Promise<{
+          ok: boolean
+          canceled?: boolean
+          filePath?: string
+          error?: string
+        }>
+        llmSubagents: (mainSessionId: string) => Promise<LLMSubagentSession[]>
+        llmLogsClear: (sessionId?: string) => Promise<{ ok: boolean }>
+        llmLogsExport: (input?: LLMCallQuery) => Promise<{
+          ok: boolean
+          canceled?: boolean
+          filePath?: string
+          count?: number
+          error?: string
+        }>
+        onLLMCallEvent: (callback: (event: LLMCallEvent) => void) => () => void
         playgroundRun: (input: {
           systemPrompt?: string
           userPrompt: string
@@ -477,12 +560,66 @@ declare global {
             }>
             slotsTruncated: boolean
           } | null
+          events: Array<{
+            id: string
+            scheduledAt: number
+            status: 'planned' | 'published'
+            type: string
+            activity: string
+            mood: string
+            location: string
+          }>
+          eventsTruncated: boolean
           moments: Array<{ id: string; publishedAt: number; text: string }>
           momentsTruncated: boolean
           profile: { identity: string; workflow: string; voice: string } | null
           memories: Array<{ id: string; category: string; content: string; updatedAt: number }>
           memoriesTruncated: boolean
           generatedAt: number
+        }>
+        modelSmoke: () => Promise<
+          | {
+              ok: true
+              text: string
+              ms: number
+              model: string
+              baseUrl: string
+              contentLen: number
+              reasoningLen: number
+              completionTokens: number
+              thinkingApplied?: { type: 'enabled' | 'disabled' }
+            }
+          | { ok: false; error: string; model?: string; baseUrl?: string }
+        >
+        modelProbeThinking: () => Promise<
+          | {
+              ok: true
+              model: string
+              baseUrl: string
+              support: 'supported' | 'unsupported' | 'unknown'
+              heuristic: boolean
+              default: { contentLen: number; reasoningLen: number; completionTokens: number; ms: number }
+              disabled: {
+                contentLen: number
+                reasoningLen: number
+                completionTokens: number
+                ms: number
+                httpOk: boolean
+                error?: string
+              }
+              note: string
+            }
+          | { ok: false; error: string; model?: string; baseUrl?: string }
+        >
+        modelTestStatus: () => Promise<{
+          model: string
+          baseUrl: string
+          heuristic: boolean
+          capability: {
+            thinkingDisable: 'supported' | 'unsupported' | 'unknown'
+            probedAt?: number
+            note?: string
+          }
         }>
       }
       chat: {

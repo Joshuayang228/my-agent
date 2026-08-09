@@ -19,6 +19,9 @@ import {
   getSpanTypeStats,
   getStartupMarks,
   clearSpans,
+  setLLMTraceSink,
+  attachLLMTraceRequest,
+  attachLLMTraceResponse,
   type SpanType,
 } from '../../electron/main/utils/tracer'
 import { getTraceSampleRate, setTraceSampleRate } from '../../electron/main/utils/session-sampler'
@@ -80,6 +83,41 @@ describe('Tracer — Span 基础操作', () => {
     expect(span!.attributes.prompt).toMatchObject({ chars: 250 })
     expect(span!.attributes.apiKey).toBe('[REDACTED]')
     expect(span!.error).toContain('sha256=')
+  })
+})
+
+describe('Tracer — LLM Debug sink', () => {
+  afterEach(() => {
+    setLLMTraceSink()
+  })
+
+  it('沿用现有 Span ID 发送请求与响应快照', () => {
+    const starts: string[] = []
+    const ends: Array<{ id: string; status: string }> = []
+    setLLMTraceSink({
+      onLLMStart: (request) => starts.push(request.spanId),
+      onLLMEnd: (id, response) => ends.push({ id, status: response.status }),
+    })
+
+    const handle = startSpan('llm_debug', 'main', 'llm_request')
+    attachLLMTraceRequest(handle, {
+      sessionId: 'session-1',
+      provider: 'openai',
+      model: 'gpt-4o',
+      caller: 'main',
+      messages: [{ role: 'user', content: 'hello' }],
+      tools: [],
+      extra: {},
+    })
+    attachLLMTraceResponse(handle, {
+      status: 'success',
+      content: 'world',
+      usage: { promptTokens: 3, completionTokens: 1 },
+    })
+    handle.end('ok')
+
+    expect(starts).toEqual([handle.id])
+    expect(ends).toEqual([{ id: handle.id, status: 'success' }])
   })
 })
 

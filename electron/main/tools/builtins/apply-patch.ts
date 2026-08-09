@@ -1,9 +1,8 @@
 import { buildTool } from '../builder'
 import { promises as fs } from 'node:fs'
 import { createLogger } from '../../utils/logger'
-import type { SandboxMode } from '../../sandbox/policy'
 import { checkFileWriteSandbox, resolveToolFilePath } from '../../sandbox/file-path-guard'
-import * as settings from '../../storage/settings-store'
+import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from '../../agent/project-memory'
 
 const log = createLogger('ApplyPatch')
@@ -149,7 +148,7 @@ export const applyPatchTool = buildTool({
 
     const resolved = resolveToolFilePath(filePath, getWorkspaceRoot())
 
-    const mode = (await settings.getSetting('sandboxMode') || 'workspace-write') as SandboxMode
+    const mode = await loadEffectiveSandbox()
     const wsRoot = getWorkspaceRoot()
     const blocked = checkFileWriteSandbox(resolved, mode, wsRoot, { action: '编辑' })
     if (blocked) return blocked

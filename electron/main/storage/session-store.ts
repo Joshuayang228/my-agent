@@ -3,7 +3,8 @@ import { getDatabase, persist } from './database'
 import { createLogger } from '../utils/logger'
 import { chatComplete } from '../llm/index'
 import { getSetting } from './settings-store'
-import type { ChatMessage, ChatSession, SessionKind } from '../../../src/shared/types'
+import { llmDebugStore } from './llm-debug-store'
+import type { ChatMessage, ChatSession, LLMConfig, SessionKind } from '../../../src/shared/types'
 
 const log = createLogger('SessionStore')
 
@@ -116,6 +117,7 @@ export async function deleteSession(sessionId: string): Promise<void> {
   db.run('DELETE FROM messages WHERE session_id = ?', [sessionId])
   db.run('DELETE FROM sessions WHERE id = ?', [sessionId])
   persist()
+  await llmDebugStore.clear(sessionId)
   log.info('Session deleted', { id: sessionId })
 }
 
@@ -353,10 +355,26 @@ export async function generateSmartTitle(
   sessionId: string,
   userMessage: string,
   assistantReply: string,
-  llmConfig: { apiKey: string; baseUrl: string; model: string },
+  llmConfig: LLMConfig,
+  opts?: { force?: boolean },
 ): Promise<void> {
   try {
+    if (!opts?.force) {
+      const db = await getDatabase()
+      const check = db.prepare('SELECT title FROM sessions WHERE id = ?')
+      check.bind([sessionId])
+      if (check.step()) {
+        const row = check.getAsObject() as Record<string, unknown>
+        if (row.title !== '新对话' && row.title !== 'New Chat') {
+          check.free()
+          return
+        }
+      }
+      check.free()
+    }
+
     // 走统一路由层（chatComplete）而非直接 fetch —— 自动获得多 Provider 支持 + failover
+    // maxTokens 略放宽：即使未关闭 thinking，也给正文留一点预算
     const title = (await chatComplete({
       config: llmConfig,
       messages: [
@@ -368,8 +386,9 @@ export async function generateSmartTitle(
         { role: 'assistant', content: assistantReply.slice(0, 200) },
       ],
       temperature: 0.3,
-      maxTokens: 30,
+      maxTokens: 64,
       caller: 'title',
+      sessionId,
     })).trim()
 
     if (title && title.length >= 2 && title.length <= 30) {

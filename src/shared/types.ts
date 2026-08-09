@@ -35,6 +35,20 @@ export interface MemoryCitation {
   score?: number
 }
 
+/** Prompt 资产目录的 IPC 数据契约；正文仍由主进程生产代码或 Role Pack 提供。 */
+export type PromptAssetKind = 'system' | 'context' | 'companion' | 'subagent' | 'ui'
+
+export interface PromptAsset {
+  id: string
+  name: string
+  category: PromptAssetKind
+  desc: string
+  sourcePath: string
+  preview?: string
+  content?: string
+  dynamic?: boolean
+}
+
 /** 压缩边界元数据 — 标记一次压缩发生的位置与效果 */
 export interface CompactMetadata {
   /** 触发的压缩层级 */
@@ -107,6 +121,68 @@ export interface ToolDefinition {
   resolveMetadata?: (args: Record<string, unknown>) => Partial<ToolMetadata>
 }
 
+// ── LLM Debug 持久化（现有 tracer Span 的正文扩展）──
+
+export interface LLMCallSummary {
+  id: string
+  sessionId?: string
+  parentSpanId?: string
+  startedAt: number
+  endedAt?: number
+  provider: string
+  model: string
+  caller: string
+  status: 'pending' | 'success' | 'error'
+  promptTokens: number
+  completionTokens: number
+  totalTokens: number
+  toolCallCount: number
+  cacheReadTokens: number
+  cacheCreationTokens: number
+  durationMs: number
+  error?: string
+}
+
+export interface LLMCallDetail extends LLMCallSummary {
+  requestMessages: unknown
+  requestTools: unknown
+  requestExtra: Record<string, unknown>
+  responseContent?: string | null
+  responseReasoning?: string
+  responseToolCalls: unknown
+}
+
+export interface LLMCallQuery {
+  sessionId?: string
+  includeSubagents?: boolean
+  caller?: string
+  model?: string
+  status?: LLMCallSummary['status']
+  /** 仅搜索未加密元数据；请求/响应正文通过详情接口懒加载。 */
+  search?: string
+  order?: 'asc' | 'desc'
+  limit?: number
+  offset?: number
+}
+
+export interface LLMCallQueryResult {
+  records: LLMCallSummary[]
+  total: number
+  storageBytes: number
+}
+
+export interface LLMSubagentSession {
+  debugSessionId: string
+  mainSessionId: string
+  role: string
+  parentSpanId?: string
+  createdAt: number
+}
+
+export type LLMCallEvent =
+  | { type: 'started' | 'updated' | 'ended'; record: LLMCallSummary }
+  | { type: 'cleared'; sessionId?: string }
+
 /**
  * buildTool() 的输入类型 — metadata 字段全部可选，工厂函数负责填充 fail-closed 默认值：
  * - isReadOnly: false（假设会写状态）
@@ -173,6 +249,12 @@ export interface LLMConfig {
   temperature?: number
   topP?: number
   maxTokens?: number
+  /**
+   * OpenAI 兼容请求体上的 thinking 开关（DeepSeek V4 / Kimi 等）。
+   * undefined = 不传，走厂商默认；辅助调用经能力探测或启发式后常设为 disabled。
+   * 对照 Alice provider `extraParams.thinking`。
+   */
+  thinking?: { type: 'enabled' | 'disabled' }
   /** Provider 类型（auto = 根据 baseUrl 自动检测） */
   provider?: LLMProvider
   /** 备用模型列表，主模型失败时按序降级 */
@@ -194,7 +276,8 @@ export interface LLMResponse {
 
 // ── Agent Loop ──
 
-export type ExecutionMode = 'auto' | 'confirm-all' | 'plan-first'
+/** auto / confirm-all / plan-first 管确认；full-access 跳过确认且有效沙箱为放开路径 */
+export type ExecutionMode = 'auto' | 'confirm-all' | 'plan-first' | 'full-access'
 
 export interface AgentLoopOptions {
   config: LLMConfig

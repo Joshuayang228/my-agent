@@ -7,10 +7,11 @@ import { ArrowLeft, FlaskConical } from 'lucide-react'
 import { PLAYGROUND_TABS, type PlaygroundTabId } from './catalog'
 import { DesignSystemPanel } from './DesignSystemPanel'
 import { UiControlsPanel } from './UiControlsPanel'
-import { PromptCatalogPanel } from './PromptCatalogPanel'
+import { SurfaceBaselinePanel } from './SurfaceBaselinePanel'
 import { PromptLabPanel } from './PromptLabPanel'
 import { ToolRunPanel, type PlaygroundToolInfo } from './ToolRunPanel'
 import { FixturesPanel } from './FixturesPanel'
+import { ModelTestPanel } from './ModelTestPanel'
 
 export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
   const [tab, setTab] = useState<PlaygroundTabId>('design-system')
@@ -85,8 +86,9 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-6 py-6">
         {tab === 'design-system' && <DesignSystemPanel />}
         {tab === 'ui-controls' && <UiControlsPanel />}
-        {tab === 'prompts' && <PromptCatalogPanel onOpenChatLab={() => setTab('chat-lab')} />}
+        {tab === 'surface-baseline' && <SurfaceBaselinePanel />}
         {tab === 'chat-lab' && <PromptLabPanel />}
+        {tab === 'model-test' && <ModelTestPanel />}
         {tab === 'tools' && <ToolRunPanel tools={tools} />}
         {tab === 'fixtures' && <FixturesPanel />}
       </div>

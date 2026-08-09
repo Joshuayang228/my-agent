@@ -54,6 +54,10 @@ describe('G4: resolveChildExecutionMode 权限只降不升', () => {
   it('父级 undefined → 默认 auto', () => {
     expect(resolveChildExecutionMode(undefined)).toBe('auto')
   })
+
+  it('父为 full-access 时子仍落到 auto（不能比父更松，但可不继承最松）', () => {
+    expect(resolveChildExecutionMode('full-access')).toBe('auto')
+  })
 })
 
 describe('G6: AGENT_ROLES 预设', () => {

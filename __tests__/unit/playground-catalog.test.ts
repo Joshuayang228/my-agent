@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { PLAYGROUND_TABS, UI_CONTROLS_SUBTABS } from '../../src/components/playground/catalog'
-import { PROMPT_ASSETS } from '../../src/components/playground/prompt-assets'
 
 describe('playground catalog', () => {
-  it('顶栏含合同 Phase 0 六 tab 且默认无 archived', () => {
+  it('顶栏含设计系统到体验夹具且含模型测试，默认无 archived', () => {
     const ids = PLAYGROUND_TABS.map((t) => t.id)
     expect(ids).toEqual([
       'design-system',
       'ui-controls',
-      'prompts',
+      'surface-baseline',
       'chat-lab',
+      'model-test',
       'tools',
       'fixtures',
     ])
@@ -26,13 +26,5 @@ describe('playground catalog', () => {
       'memory-chips',
       'status-bar',
     ])
-  })
-
-  it('Prompt 资产目录非空且带源路径', () => {
-    expect(PROMPT_ASSETS.length).toBeGreaterThanOrEqual(5)
-    for (const a of PROMPT_ASSETS) {
-      expect(a.id).toBeTruthy()
-      expect(a.sourcePath).toBeTruthy()
-    }
   })
 })

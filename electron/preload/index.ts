@@ -1,5 +1,15 @@
 import { ipcRenderer, contextBridge } from 'electron'
-import type { ChatMessage, ChatSession, AgentStreamEvent, TaskLifecycleEvent } from '../../src/shared/types'
+import type {
+  ChatMessage,
+  ChatSession,
+  AgentStreamEvent,
+  TaskLifecycleEvent,
+  LLMCallDetail,
+  LLMCallEvent,
+  LLMCallQuery,
+  LLMCallQueryResult,
+  LLMSubagentSession,
+} from '../../src/shared/types'
 
 interface SessionSummary {
   id: string
@@ -33,6 +43,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('session:tokenUsage', sessionId),
     regenerateTitle: (sessionId: string): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke('session:regenerateTitle', sessionId),
+    listFileChanges: (sessionId: string) => ipcRenderer.invoke('session:listFileChanges', sessionId),
+    clearFileChanges: (sessionId: string) => ipcRenderer.invoke('session:clearFileChanges', sessionId),
+    getFileChangeDiff: (sessionId: string, filePath: string) =>
+      ipcRenderer.invoke('session:getFileChangeDiff', sessionId, filePath),
+    onFileChange: (callback: (payload: {
+      sessionId: string
+      change: { path: string; toolName: string; updatedAt: number; hasBefore: boolean; beforeTruncated?: boolean }
+    }) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, payload: {
+        sessionId: string
+        change: { path: string; toolName: string; updatedAt: number; hasBefore: boolean; beforeTruncated?: boolean }
+      }) => callback(payload)
+      ipcRenderer.on('session:file-change', listener)
+      return () => ipcRenderer.removeListener('session:file-change', listener)
+    },
   },
 
   settings: {
@@ -320,6 +345,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
     import: () => ipcRenderer.invoke('data:import'),
   },
 
+  terminal: {
+    run: (input: { command: string; cwd?: string }): Promise<
+      { ok: true; runId: string } | { ok: false; error: string }
+    > => ipcRenderer.invoke('terminal:run', input),
+    kill: (runId: string): Promise<{ ok: boolean }> => ipcRenderer.invoke('terminal:kill', runId),
+    onStdout: (callback: (ev: { runId: string; chunk: string }) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, payload: { runId: string; chunk: string }) => callback(payload)
+      ipcRenderer.on('terminal:stdout', listener)
+      return () => ipcRenderer.removeListener('terminal:stdout', listener)
+    },
+    onStderr: (callback: (ev: { runId: string; chunk: string }) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, payload: { runId: string; chunk: string }) => callback(payload)
+      ipcRenderer.on('terminal:stderr', listener)
+      return () => ipcRenderer.removeListener('terminal:stderr', listener)
+    },
+    onExit: (callback: (ev: { runId: string; code: number }) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, payload: { runId: string; code: number }) => callback(payload)
+      ipcRenderer.on('terminal:exit', listener)
+      return () => ipcRenderer.removeListener('terminal:exit', listener)
+    },
+  },
+
   project: {
     browse: (): Promise<{ path: string; name: string } | null> =>
       ipcRenderer.invoke('project:browse'),
@@ -331,15 +378,43 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('project:get'),
     listFiles: (dirPath: string, depth?: number): Promise<FileEntry[]> =>
       ipcRenderer.invoke('project:listFiles', dirPath, depth),
-    readFile: (filePath: string): Promise<{ content?: string; size?: number; error?: string }> =>
-      ipcRenderer.invoke('project:readFile', filePath),
+    readFile: (filePath: string): Promise<{
+      kind?: 'text' | 'image' | 'unsupported'
+      content?: string
+      dataUrl?: string
+      mimeType?: string
+      languageHint?: string
+      reason?: string
+      size?: number
+      error?: string
+    }> => ipcRenderer.invoke('project:readFile', filePath),
+    openExternal: (filePath: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('project:openExternal', filePath),
   },
 
   debug: {
     systemPrompt: () => ipcRenderer.invoke('debug:system-prompt'),
+    promptAssets: () => ipcRenderer.invoke('debug:prompt-assets'),
     tools: () => ipcRenderer.invoke('debug:tools'),
     systemInfo: () => ipcRenderer.invoke('debug:system-info'),
     traces: () => ipcRenderer.invoke('debug:traces'),
+    llmLogsQuery: (input?: LLMCallQuery): Promise<LLMCallQueryResult> =>
+      ipcRenderer.invoke('debug:llm-logs-query', input),
+    llmLogGet: (id: string): Promise<LLMCallDetail | null> =>
+      ipcRenderer.invoke('debug:llm-log-get', id),
+    llmLogExport: (id: string): Promise<{ ok: boolean; canceled?: boolean; filePath?: string; error?: string }> =>
+      ipcRenderer.invoke('debug:llm-log-export', id),
+    llmSubagents: (mainSessionId: string): Promise<LLMSubagentSession[]> =>
+      ipcRenderer.invoke('debug:llm-subagents', mainSessionId),
+    llmLogsClear: (sessionId?: string): Promise<{ ok: boolean }> =>
+      ipcRenderer.invoke('debug:llm-logs-clear', sessionId),
+    llmLogsExport: (input?: LLMCallQuery): Promise<{ ok: boolean; canceled?: boolean; filePath?: string; count?: number; error?: string }> =>
+      ipcRenderer.invoke('debug:llm-logs-export', input),
+    onLLMCallEvent: (callback: (event: LLMCallEvent) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, payload: LLMCallEvent) => callback(payload)
+      ipcRenderer.on('debug:llm-call-event', listener)
+      return () => ipcRenderer.removeListener('debug:llm-call-event', listener)
+    },
     playgroundRun: (input: {
       systemPrompt?: string
       userPrompt: string
@@ -380,6 +455,50 @@ contextBridge.exposeInMainWorld('electronAPI', {
         }
     > => ipcRenderer.invoke('debug:tool-run', input),
     worldSnapshot: () => ipcRenderer.invoke('debug:world-snapshot'),
+    modelSmoke: (): Promise<
+      | {
+          ok: true
+          text: string
+          ms: number
+          model: string
+          baseUrl: string
+          contentLen: number
+          reasoningLen: number
+          completionTokens: number
+          thinkingApplied?: { type: 'enabled' | 'disabled' }
+        }
+      | { ok: false; error: string; model?: string; baseUrl?: string }
+    > => ipcRenderer.invoke('debug:model-smoke'),
+    modelProbeThinking: (): Promise<
+      | {
+          ok: true
+          model: string
+          baseUrl: string
+          support: 'supported' | 'unsupported' | 'unknown'
+          heuristic: boolean
+          default: { contentLen: number; reasoningLen: number; completionTokens: number; ms: number }
+          disabled: {
+            contentLen: number
+            reasoningLen: number
+            completionTokens: number
+            ms: number
+            httpOk: boolean
+            error?: string
+          }
+          note: string
+        }
+      | { ok: false; error: string; model?: string; baseUrl?: string }
+    > => ipcRenderer.invoke('debug:model-probe-thinking'),
+    modelTestStatus: (): Promise<{
+      model: string
+      baseUrl: string
+      heuristic: boolean
+      capability: {
+        thinkingDisable: 'supported' | 'unsupported' | 'unknown'
+        probedAt?: number
+        note?: string
+      }
+    }> => ipcRenderer.invoke('debug:model-test-status'),
   },
 
   rag: {

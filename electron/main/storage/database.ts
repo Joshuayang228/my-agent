@@ -36,7 +36,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 10
+export const SCHEMA_VERSION = 11
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -312,6 +312,60 @@ export function runMigrations(database: SqlJsDatabase): void {
       if (tableExists(d, 'companion_role_state')) {
         addColumnIfMissing(d, 'companion_role_state', 'world_json', "TEXT NOT NULL DEFAULT '{}'")
       }
+    },
+    // v10 → v11：LLM Debug 请求/响应快照（复用现有 database，不另建日志库）
+    (d) => {
+      d.run(`
+        CREATE TABLE IF NOT EXISTS llm_debug_logs (
+          id                    TEXT PRIMARY KEY,
+          session_id            TEXT,
+          parent_span_id        TEXT,
+          started_at            INTEGER NOT NULL,
+          ended_at              INTEGER,
+          provider              TEXT NOT NULL DEFAULT '',
+          model                 TEXT NOT NULL DEFAULT '',
+          caller                TEXT NOT NULL DEFAULT 'system',
+          status                TEXT NOT NULL DEFAULT 'pending'
+                                CHECK(status IN ('pending', 'success', 'error')),
+          request_messages      TEXT NOT NULL DEFAULT '',
+          request_tools         TEXT NOT NULL DEFAULT '',
+          request_extra         TEXT NOT NULL DEFAULT '{}',
+          response_content      TEXT,
+          response_reasoning    TEXT,
+          response_tool_calls   TEXT,
+          error                 TEXT,
+          prompt_tokens         INTEGER NOT NULL DEFAULT 0,
+          completion_tokens     INTEGER NOT NULL DEFAULT 0,
+          total_tokens          INTEGER NOT NULL DEFAULT 0,
+          tool_call_count       INTEGER NOT NULL DEFAULT 0,
+          cache_read_tokens     INTEGER NOT NULL DEFAULT 0,
+          cache_creation_tokens INTEGER NOT NULL DEFAULT 0,
+          duration_ms           INTEGER NOT NULL DEFAULT 0
+        )
+      `)
+      addColumnIfMissing(d, 'llm_debug_logs', 'total_tokens', 'INTEGER NOT NULL DEFAULT 0')
+      addColumnIfMissing(d, 'llm_debug_logs', 'tool_call_count', 'INTEGER NOT NULL DEFAULT 0')
+      d.run(`
+        CREATE INDEX IF NOT EXISTS idx_llm_debug_logs_session_started
+          ON llm_debug_logs(session_id, started_at DESC)
+      `)
+      d.run(`
+        CREATE INDEX IF NOT EXISTS idx_llm_debug_logs_parent_span
+          ON llm_debug_logs(parent_span_id)
+      `)
+      d.run(`
+        CREATE TABLE IF NOT EXISTS llm_debug_subagent_sessions (
+          debug_session_id TEXT PRIMARY KEY,
+          main_session_id  TEXT NOT NULL,
+          role             TEXT NOT NULL DEFAULT '',
+          parent_span_id   TEXT,
+          created_at       INTEGER NOT NULL
+        )
+      `)
+      d.run(`
+        CREATE INDEX IF NOT EXISTS idx_llm_debug_subagent_main
+          ON llm_debug_subagent_sessions(main_session_id, created_at DESC)
+      `)
     },
   ]
 

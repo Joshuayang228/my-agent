@@ -8,7 +8,7 @@
 
 import { getActiveRole } from '../companion/orchestrator'
 import { getMutable, getMutableMeta } from '../companion/growth/mutable-store'
-import { getRoleState, getDayScript } from '../companion/life/store'
+import { getRoleState, getDayScript, listEvents } from '../companion/life/store'
 import { listMomentsForRole } from '../companion/life/moments'
 import { toLocalDateString } from '../companion/life/dates'
 import { buildUserProfile, listMemories } from '../storage/memory-store'
@@ -23,6 +23,7 @@ const MEMORY_CONTENT_MAX = 160
 const MOMENT_LIMIT = 10
 const MOMENT_TEXT_MAX = 200
 const SLOT_LIMIT = 12
+const EVENT_LIMIT = 30
 
 function clip(s: string, max: number): string {
   if (s.length <= max) return s
@@ -64,6 +65,16 @@ export type DebugWorldSnapshot = {
     }>
     slotsTruncated: boolean
   } | null
+  events: Array<{
+    id: string
+    scheduledAt: number
+    status: 'planned' | 'published'
+    type: string
+    activity: string
+    mood: string
+    location: string
+  }>
+  eventsTruncated: boolean
   moments: Array<{ id: string; publishedAt: number; text: string }>
   momentsTruncated: boolean
   profile: { identity: string; workflow: string; voice: string } | null
@@ -84,6 +95,24 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
   const state = await getRoleState(role.id)
   const today = toLocalDateString(new Date())
   const script = await getDayScript(role.id, today)
+  const [plannedEvents, publishedEvents] = await Promise.all([
+    listEvents(role.id, { status: 'planned', order: 'desc', limit: EVENT_LIMIT + 1 }),
+    listEvents(role.id, { status: 'published', order: 'desc', limit: EVENT_LIMIT + 1 }),
+  ])
+  const eventsRaw = [...plannedEvents, ...publishedEvents]
+    .sort((a, b) => b.scheduledAt - a.scheduledAt)
+  const eventsTruncated = plannedEvents.length > EVENT_LIMIT
+    || publishedEvents.length > EVENT_LIMIT
+    || eventsRaw.length > EVENT_LIMIT
+  const events = eventsRaw.slice(0, EVENT_LIMIT).reverse().map((event) => ({
+    id: event.id,
+    scheduledAt: event.scheduledAt,
+    status: event.status as 'planned' | 'published',
+    type: clip(event.type || '', 40),
+    activity: clip(typeof event.payload.activity === 'string' ? event.payload.activity : '', 80),
+    mood: clip(typeof event.payload.mood === 'string' ? event.payload.mood : '', 40),
+    location: clip(typeof event.payload.location === 'string' ? event.payload.location : '', 40),
+  }))
 
   let dayScript: DebugWorldSnapshot['dayScript'] = null
   if (script) {
@@ -154,6 +183,8 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
         }
       : null,
     dayScript,
+    events,
+    eventsTruncated,
     moments,
     momentsTruncated,
     profile: profile
@@ -170,6 +201,7 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
 
   log.info('World snapshot built', {
     roleId: role.id,
+    events: events.length,
     moments: moments.length,
     memories: memories.length,
     hasDayScript: !!dayScript,
@@ -183,4 +215,5 @@ export const __test = {
   MEMORY_LIMIT,
   MOMENT_LIMIT,
   SLOT_LIMIT,
+  EVENT_LIMIT,
 }

@@ -1,4 +1,5 @@
 export { PrimarySidebar, type SidebarSession } from './PrimarySidebar'
+export { ResizeHandle } from './ResizeHandle'
 export {
   SecondaryNav,
   shouldShowSecondaryNav,

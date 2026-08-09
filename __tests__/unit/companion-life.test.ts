@@ -116,6 +116,17 @@ describe('LifeEngine', () => {
     expect(await __lifeStore.countEvents('lin')).toBeGreaterThan(0)
   })
 
+  it('listEvents 支持为 Debug 时间线倒序限量读取', async () => {
+    await ensureDayScripts('lin', '2026-08-01', '2026-08-03')
+    const recent = await __lifeStore.listEvents('lin', {
+      status: 'planned',
+      order: 'desc',
+      limit: 2,
+    })
+    expect(recent).toHaveLength(2)
+    expect(recent[0].scheduledAt).toBeGreaterThanOrEqual(recent[1].scheduledAt)
+  })
+
   it('pause / resume 读写 paused_at', async () => {
     const at = 1_700_000_000_000
     await pauseRole('lin', at)

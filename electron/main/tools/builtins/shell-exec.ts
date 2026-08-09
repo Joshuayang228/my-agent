@@ -1,10 +1,9 @@
 import { buildTool } from '../builder'
 import { exec } from 'node:child_process'
 import { createLogger } from '../../utils/logger'
-import type { SandboxMode } from '../../sandbox/policy'
 import { checkCommandPermission } from '../../sandbox/permission-engine'
+import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from '../../agent/project-memory'
-import * as settings from '../../storage/settings-store'
 
 const log = createLogger('ShellExec')
 
@@ -66,7 +65,7 @@ Security: All commands go through the permission engine (custom rules → approv
 
     if (!command?.trim()) return 'Error: command is required'
 
-    const mode = (await settings.getSetting('sandboxMode') || 'workspace-write') as SandboxMode
+    const mode = await loadEffectiveSandbox()
     const workspaceRoot = getWorkspaceRoot()
     // 统一走五层责任链（自定义规则 / 审批记录 / 沙箱），禁止工具内自管权限
     const decision = checkCommandPermission(command, cwd, mode, workspaceRoot)
@@ -94,7 +93,7 @@ Security: All commands go through the permission engine (custom rules → approv
     log.info('Executing command', {
       command,
       cwd,
-      sandboxMode: mode,
+      effectiveSandbox: mode,
       decisionType: decision.decisionType,
     })
 

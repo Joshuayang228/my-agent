@@ -1,0 +1,397 @@
+/**
+ * 全页 Debug 的持久化 LLM 调用浏览器。
+ *
+ * 背景：对话右坞只适合当前会话快速检查，全页 Debug 需要跨会话搜索、筛选和查看完整请求/响应。
+ * 设计意图：复用现有 tracer sink 与 llm_debug_logs，不创建第二套调用生命周期或日志库。
+ * 关键约束：正文按单条懒加载；清空只删除 Debug 日志，并在界面内要求二次确认。
+ */
+
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import {
+  ChevronLeft, ChevronRight, Copy, Download, RefreshCw, Search, Trash2,
+} from 'lucide-react'
+import type { LLMCallDetail, LLMCallQuery, LLMCallSummary } from '../../shared/types'
+import { formatDebugBytes, formatDebugValue, normalizeDebugMessages } from './debug-format'
+
+const PAGE_SIZE = 30
+
+type DetailView = 'messages' | 'tools' | 'response' | 'json'
+
+export function LLMCallsPanel() {
+  const [records, setRecords] = useState<LLMCallSummary[]>([])
+  const [total, setTotal] = useState(0)
+  const [storageBytes, setStorageBytes] = useState(0)
+  const [page, setPage] = useState(0)
+  const [searchDraft, setSearchDraft] = useState('')
+  const [callerDraft, setCallerDraft] = useState('')
+  const [modelDraft, setModelDraft] = useState('')
+  const [statusDraft, setStatusDraft] = useState<LLMCallQuery['status'] | ''>('')
+  const [filters, setFilters] = useState<Pick<LLMCallQuery, 'search' | 'caller' | 'model' | 'status'>>({})
+  const [selectedId, setSelectedId] = useState('')
+  const [detail, setDetail] = useState<LLMCallDetail | null>(null)
+  const [detailView, setDetailView] = useState<DetailView>('messages')
+  const [loading, setLoading] = useState(true)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [clearArmed, setClearArmed] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const selectedIdRef = useRef('')
+
+  useEffect(() => {
+    selectedIdRef.current = selectedId
+  }, [selectedId])
+
+  const query = useMemo<LLMCallQuery>(() => ({
+    ...filters,
+    order: 'desc',
+    limit: PAGE_SIZE,
+    offset: page * PAGE_SIZE,
+  }), [filters, page])
+
+  const loadDetail = useCallback(async (id: string) => {
+    if (!id || !window.electronAPI?.debug) {
+      setDetail(null)
+      return
+    }
+    setDetailLoading(true)
+    try {
+      setDetail(await window.electronAPI.debug.llmLogGet(id))
+    } catch (cause) {
+      setDetail(null)
+      setError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setDetailLoading(false)
+    }
+  }, [])
+
+  const loadRecords = useCallback(async (keepSelection = true) => {
+    const debug = window.electronAPI?.debug
+    if (!debug) {
+      setError('需要 Electron 环境才能读取 LLM Debug 日志')
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    setError('')
+    try {
+      const result = await debug.llmLogsQuery(query)
+      setRecords(result.records)
+      setTotal(result.total)
+      setStorageBytes(result.storageBytes)
+      const currentSelection = selectedIdRef.current
+      const selection = keepSelection && result.records.some((record) => record.id === currentSelection)
+        ? currentSelection
+        : result.records[0]?.id ?? ''
+      setSelectedId(selection)
+      if (selection) await loadDetail(selection)
+      else setDetail(null)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setLoading(false)
+    }
+  }, [loadDetail, query])
+
+  useEffect(() => { void loadRecords(true) }, [loadRecords])
+
+  useEffect(() => {
+    const unsubscribe = window.electronAPI?.debug?.onLLMCallEvent((event) => {
+      if (event.type === 'ended' || event.type === 'cleared') void loadRecords(true)
+    })
+    return unsubscribe
+  }, [loadRecords])
+
+  const applyFilters = (event: FormEvent) => {
+    event.preventDefault()
+    setPage(0)
+    setFilters({
+      ...(searchDraft.trim() ? { search: searchDraft.trim() } : {}),
+      ...(callerDraft.trim() ? { caller: callerDraft.trim() } : {}),
+      ...(modelDraft.trim() ? { model: modelDraft.trim() } : {}),
+      ...(statusDraft ? { status: statusDraft } : {}),
+    })
+  }
+
+  const exportFiltered = async () => {
+    const debug = window.electronAPI?.debug
+    if (!debug) return
+    try {
+      const result = await debug.llmLogsExport({ ...filters, order: 'desc' })
+      if (!result.ok && !result.canceled) setError(result.error || '导出失败')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause))
+    }
+  }
+
+  const clearLogs = async () => {
+    if (!clearArmed) {
+      setClearArmed(true)
+      window.setTimeout(() => setClearArmed(false), 4000)
+      return
+    }
+    const debug = window.electronAPI?.debug
+    if (!debug) return
+    try {
+      const result = await debug.llmLogsClear()
+      if (!result.ok) throw new Error('清空 Debug 日志失败')
+      setClearArmed(false)
+      setPage(0)
+      await loadRecords(false)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause))
+    }
+  }
+
+  const messages = normalizeDebugMessages(detail?.requestMessages)
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+  return (
+    <div className="space-y-3" data-testid="llm-calls-panel">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>LLM 调用</h2>
+            <span className="font-mono text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              {total} 条 · {formatDebugBytes(storageBytes)}
+            </span>
+          </div>
+          <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            完整请求与响应按需读取；筛选与导出使用同一查询条件。
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <IconButton title="刷新" onClick={() => void loadRecords(true)}><RefreshCw size={13} /></IconButton>
+          <IconButton title="导出筛选结果为 JSONL" onClick={() => void exportFiltered()}><Download size={13} /></IconButton>
+          <button
+            type="button"
+            onClick={() => void clearLogs()}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[11px]"
+            style={{ borderColor: 'var(--border-color)', color: clearArmed ? 'var(--danger)' : 'var(--text-muted)' }}
+          >
+            <Trash2 size={12} />
+            {clearArmed ? '再次确认清空' : '清空日志'}
+          </button>
+        </div>
+      </header>
+
+      <form onSubmit={applyFilters} className="grid gap-2 lg:grid-cols-[minmax(180px,1fr)_150px_180px_130px_auto]">
+        <label className="relative">
+          <Search size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+          <input
+            value={searchDraft}
+            onChange={(event) => setSearchDraft(event.target.value)}
+            className="theme-input h-9 w-full rounded-lg border pl-8 pr-3 text-xs"
+            placeholder="模型、Provider、会话…"
+          />
+        </label>
+        <input
+          value={callerDraft}
+          onChange={(event) => setCallerDraft(event.target.value)}
+          className="theme-input h-9 rounded-lg border px-3 text-xs"
+          placeholder="Caller"
+        />
+        <input
+          value={modelDraft}
+          onChange={(event) => setModelDraft(event.target.value)}
+          className="theme-input h-9 rounded-lg border px-3 text-xs"
+          placeholder="精确模型"
+        />
+        <select
+          value={statusDraft}
+          onChange={(event) => setStatusDraft(event.target.value as LLMCallQuery['status'] | '')}
+          className="theme-input h-9 rounded-lg border px-2 text-xs"
+          aria-label="调用状态"
+        >
+          <option value="">全部状态</option>
+          <option value="success">成功</option>
+          <option value="error">错误</option>
+          <option value="pending">进行中</option>
+        </select>
+        <button type="submit" className="h-9 rounded-lg px-3 text-xs font-medium" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>
+          筛选
+        </button>
+      </form>
+
+      {error && <p className="text-xs" style={{ color: 'var(--danger)' }}>{error}</p>}
+
+      <div className="grid min-h-[500px] gap-3 xl:grid-cols-[minmax(300px,0.72fr)_minmax(0,1.28fr)]">
+        <div className="scrollbar-hover min-h-0 overflow-y-auto rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
+          {loading && records.length === 0 && <Empty text="读取 LLM 调用中…" />}
+          {!loading && records.length === 0 && <Empty text="没有匹配的 LLM 调用。" />}
+          {records.map((record) => (
+            <button
+              key={record.id}
+              type="button"
+              onClick={() => {
+                setSelectedId(record.id)
+                setDetail(null)
+                void loadDetail(record.id)
+              }}
+              className="block w-full border-b px-3 py-2.5 text-left last:border-b-0"
+              style={{
+                borderColor: 'var(--border-subtle)',
+                background: selectedId === record.id ? 'var(--sidebar-active)' : 'transparent',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <StatusDot status={record.status} />
+                <span className="min-w-0 flex-1 truncate font-mono text-[11px]" style={{ color: 'var(--text-primary)' }}>{record.model || 'unknown'}</span>
+                <span className="shrink-0 font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatTime(record.startedAt)}</span>
+              </div>
+              <div className="mt-1 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                <span className="rounded px-1.5 py-0.5" style={{ background: 'var(--bg-tertiary)' }}>{record.caller || 'system'}</span>
+                <span>{formatDuration(record.durationMs)}</span>
+                <span>·</span>
+                <span className="font-mono">{record.totalTokens}t</span>
+                {record.error && <span className="ml-auto max-w-28 truncate" style={{ color: 'var(--danger)' }}>{record.error}</span>}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div className="min-w-0 rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+          {detailLoading && !detail && <Empty text="读取调用详情中…" />}
+          {!detailLoading && !detail && <Empty text="从左侧选择一条调用查看完整请求与响应。" />}
+          {detail && (
+            <>
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div>
+                  <div className="font-mono text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{detail.model}</div>
+                  <div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                    {detail.provider} · {detail.caller} · {detail.promptTokens}/{detail.completionTokens} tokens · {formatDuration(detail.durationMs)}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(JSON.stringify(detail, null, 2)).then(() => {
+                      setCopied(true)
+                      window.setTimeout(() => setCopied(false), 1200)
+                    })
+                  }}
+                  className="inline-flex items-center gap-1 rounded px-2 py-1 text-[10px]"
+                  style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }}
+                >
+                  <Copy size={11} />
+                  {copied ? '已复制' : '复制 JSON'}
+                </button>
+              </div>
+
+              <div className="my-2 flex flex-wrap gap-1">
+                {(['messages', 'tools', 'response', 'json'] as DetailView[]).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setDetailView(item)}
+                    className="rounded-lg px-2.5 py-1.5 text-[11px]"
+                    style={{
+                      color: detailView === item ? 'var(--accent-fg)' : 'var(--text-muted)',
+                      background: detailView === item ? 'var(--accent-subtle)' : 'transparent',
+                    }}
+                  >
+                    {{ messages: `请求消息 ${messages.length}`, tools: 'Tools', response: '响应', json: '完整 JSON' }[item]}
+                  </button>
+                ))}
+              </div>
+
+              {detailView === 'messages' && <DetailMessages messages={messages} />}
+              {detailView === 'tools' && <CodeBlock value={detail.requestTools} />}
+              {detailView === 'response' && (
+                <div className="space-y-2">
+                  {detail.error && <ResponseBlock label="错误" value={detail.error} danger />}
+                  {detail.responseReasoning && <ResponseBlock label="Reasoning" value={detail.responseReasoning} />}
+                  <ResponseBlock label="正文" value={detail.responseContent || '（空）'} />
+                  <ResponseBlock label="Tool Calls" value={formatDebugValue(detail.responseToolCalls) || '[]'} />
+                </div>
+              )}
+              {detailView === 'json' && <CodeBlock value={detail} />}
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between text-[11px]" style={{ color: 'var(--text-muted)' }}>
+        <span>第 {total === 0 ? 0 : page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, total)} / 共 {total} 条</span>
+        <div className="flex gap-1">
+          <IconButton title="上一页" disabled={page === 0} onClick={() => setPage((value) => Math.max(0, value - 1))}><ChevronLeft size={14} /></IconButton>
+          <span className="inline-flex h-8 min-w-16 items-center justify-center font-mono">{page + 1}/{totalPages}</span>
+          <IconButton title="下一页" disabled={page + 1 >= totalPages} onClick={() => setPage((value) => value + 1)}><ChevronRight size={14} /></IconButton>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DetailMessages({ messages }: { messages: ReturnType<typeof normalizeDebugMessages> }) {
+  if (messages.length === 0) return <Empty text="本次调用没有请求消息。" />
+  return (
+    <div className="scrollbar-hover max-h-[52vh] space-y-2 overflow-y-auto pr-1">
+      {messages.map((message, index) => (
+        <article key={`${message.id ?? index}-${index}`} className="rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
+          <div className="flex justify-between border-b px-3 py-1.5" style={{ borderColor: 'var(--border-subtle)' }}>
+            <span className="font-mono text-[10px] font-semibold" style={{ color: roleColor(message.role) }}>{message.role}</span>
+            <span className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{message.content.length} chars</span>
+          </div>
+          <pre className="whitespace-pre-wrap break-words p-3 font-mono text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{message.content || '（空）'}</pre>
+        </article>
+      ))}
+    </div>
+  )
+}
+
+function CodeBlock({ value }: { value: unknown }) {
+  return (
+    <pre className="scrollbar-hover max-h-[52vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border p-3 font-mono text-[11px] leading-relaxed" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
+      {formatDebugValue(value) || '（空）'}
+    </pre>
+  )
+}
+
+function ResponseBlock({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
+  return (
+    <section>
+      <div className="mb-1 text-[10px] font-semibold uppercase" style={{ color: danger ? 'var(--danger)' : 'var(--text-muted)' }}>{label}</div>
+      <pre className="scrollbar-hover max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-lg border p-3 font-mono text-[11px]" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: danger ? 'var(--danger)' : 'var(--text-secondary)' }}>{value}</pre>
+    </section>
+  )
+}
+
+function IconButton({ title, onClick, disabled, children }: { title: string; onClick: () => void; disabled?: boolean; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      disabled={disabled}
+      onClick={onClick}
+      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border disabled:opacity-35"
+      style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}
+    >
+      {children}
+    </button>
+  )
+}
+
+function Empty({ text }: { text: string }) {
+  return <p className="px-4 py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>{text}</p>
+}
+
+function StatusDot({ status }: { status: LLMCallSummary['status'] }) {
+  const color = status === 'success' ? 'var(--success)' : status === 'error' ? 'var(--danger)' : 'var(--warning)'
+  return <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-label={status} />
+}
+
+function formatTime(value: number): string {
+  return new Date(value).toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+}
+
+function formatDuration(ms: number): string {
+  return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`
+}
+
+function roleColor(role: string): string {
+  if (role === 'system') return 'var(--accent)'
+  if (role === 'user') return 'var(--warning)'
+  if (role === 'assistant') return 'var(--success)'
+  return 'var(--text-muted)'
+}

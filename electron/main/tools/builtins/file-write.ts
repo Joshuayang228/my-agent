@@ -2,9 +2,8 @@ import { buildTool } from '../builder'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { createLogger } from '../../utils/logger'
-import type { SandboxMode } from '../../sandbox/policy'
 import { checkFileWriteSandbox, resolveToolFilePath } from '../../sandbox/file-path-guard'
-import * as settings from '../../storage/settings-store'
+import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from '../../agent/project-memory'
 
 const log = createLogger('FileWrite')
@@ -65,7 +64,7 @@ CAUTION: This is a destructive operation. Double-check the path and content befo
 
     if (!filePath?.trim()) return 'Error: file path is required'
 
-    const mode = (await settings.getSetting('sandboxMode') || 'workspace-write') as SandboxMode
+    const mode = await loadEffectiveSandbox()
     const wsRoot = getWorkspaceRoot()
     const resolved = resolveToolFilePath(filePath, wsRoot)
     const blocked = checkFileWriteSandbox(resolved, mode, wsRoot, { action: '写入' })
@@ -74,7 +73,7 @@ CAUTION: This is a destructive operation. Double-check the path and content befo
       return blocked
     }
 
-    log.info('Writing file', { path: resolved, append, contentLength: content.length, sandboxMode: mode })
+    log.info('Writing file', { path: resolved, append, contentLength: content.length, effectiveSandbox: mode })
 
     try {
       await fs.mkdir(path.dirname(resolved), { recursive: true })

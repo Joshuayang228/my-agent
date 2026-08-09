@@ -14,6 +14,7 @@ import {
   type PermissionCheckResult,
 } from '../sandbox/permission-engine'
 import type { SandboxMode } from '../sandbox/policy'
+import { resolveEffectiveSandbox } from '../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from './project-memory'
 import { getAllSettings } from '../storage/settings-store'
 import { createLogger } from '../utils/logger'
@@ -46,8 +47,7 @@ export type DebugToolRunResult =
     }
 
 function resolveSandboxMode(raw: unknown): SandboxMode {
-  if (raw === 'read-only' || raw === 'workspace-write' || raw === 'full-access') return raw
-  return 'workspace-write'
+  return resolveEffectiveSandbox(typeof raw === 'string' ? raw : undefined)
 }
 
 /**
@@ -88,7 +88,7 @@ export async function preflightDebugTool(
     const command = typeof input.args?.command === 'string' ? input.args.command : ''
     if (command.trim()) {
       const settings = await getAllSettings()
-      const mode = resolveSandboxMode(settings.sandboxMode)
+      const mode = resolveSandboxMode(settings.executionMode)
       const cwd = getWorkspaceRoot() || process.cwd()
       const cmdPerm = checkCommandPermission(command, cwd, mode, getWorkspaceRoot())
       // 取更严：false > needs_approval > true

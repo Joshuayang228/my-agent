@@ -16,7 +16,7 @@ import { addMemory, listMemories, type MemoryCategory } from '../storage/memory-
 
 const log = createLogger('ProfileExtractor')
 
-const EXTRACTION_PROMPT = `You are a user profile analyzer. Given the recent conversation, extract any NEW, DURABLE information about the user. The guiding test: a memory should be something that "stays useful once added" — not a log of what happened.
+export const EXTRACTION_PROMPT = `You are a user profile analyzer. Given the recent conversation, extract any NEW, DURABLE information about the user. The guiding test: a memory should be something that "stays useful once added" — not a log of what happened.
 
 Output a JSON array where each item has:
 - "category": one of "identity", "workflow", "voice", "preference", "fact", "feedback"
@@ -64,7 +64,7 @@ export async function maybeExtractProfile(
   messages: ChatMessage[],
   config: LLMConfig,
   latestAssistantContent?: string,
-  opts?: { roleId?: string },
+  opts?: { roleId?: string; sessionId?: string },
 ): Promise<void> {
   const now = Date.now()
   if (now - lastExtractTime < EXTRACT_INTERVAL_MS) return
@@ -103,6 +103,7 @@ export async function maybeExtractProfile(
         temperature: 0.1,
         maxTokens: 500,
         caller: 'profile',
+        sessionId: opts?.sessionId,
       })
     } catch (apiErr) {
       log.warn('Profile extraction API failed', { error: apiErr instanceof Error ? apiErr.message : String(apiErr) })

@@ -34,9 +34,9 @@ export interface AppSettings {
   universeId: string
   /** JSON string — McpServerConfig[] */
   mcpServers: string
-  /** Sandbox mode: read-only | workspace-write | full-access */
+  /** @deprecated 写入边界改由 executionMode → resolveEffectiveSandbox；保留键以免旧库报错 */
   sandboxMode: string
-  /** Execution mode: auto | confirm-all | plan-first */
+  /** 对话页审批模式：auto | confirm-all | plan-first | full-access（并推导有效沙箱） */
   executionMode: string
   /**
    * 用户专家度（M30-G3）：auto | novice | intermediate | expert | unknown
@@ -84,6 +84,11 @@ export interface AppSettings {
    * 与全页 Debug/Playground 入口无关；只提高主聊天信息密度。
    */
   conversationDebugMode: string
+  /**
+   * 模型能力探测缓存（Playground「模型测试」写入）：
+   * JSON Record<`${baseUrl}|${model}`, { thinkingDisable, probedAt?, note? }>
+   */
+  llmCapabilityCache: string
 }
 
 function getDefaults(): AppSettings {
@@ -119,6 +124,7 @@ function getDefaults(): AppSettings {
     companionProactiveGreetingEnabled: 'false',
     companionProactiveGreetingLastDay: '',
     conversationDebugMode: 'false',
+    llmCapabilityCache: '{}',
   }
 }
 

@@ -16,7 +16,6 @@ interface SettingsForm {
   llmMaxTokens: string
   systemPrompt: string
   activeRoleId: string
-  sandboxMode: string
   executionMode: string
   /** auto | novice | intermediate | expert — 能力解释粒度（M30-G3） */
   userExpertiseLevel: string
@@ -67,7 +66,6 @@ const DEFAULTS: SettingsForm = {
   llmMaxTokens: '4096',
   systemPrompt: '',
   activeRoleId: 'lin',
-  sandboxMode: 'workspace-write',
   executionMode: 'auto',
   userExpertiseLevel: 'auto',
   companionMomentTipsMuted: 'false',
@@ -282,7 +280,6 @@ export function SettingsPanel({
         llmMaxTokens: s.llmMaxTokens || DEFAULTS.llmMaxTokens,
         systemPrompt: s.systemPrompt || '',
         activeRoleId: s.activeRoleId || DEFAULTS.activeRoleId,
-        sandboxMode: s.sandboxMode || DEFAULTS.sandboxMode,
         executionMode: s.executionMode || DEFAULTS.executionMode,
         userExpertiseLevel: s.userExpertiseLevel || DEFAULTS.userExpertiseLevel,
         companionMomentTipsMuted: s.companionMomentTipsMuted || DEFAULTS.companionMomentTipsMuted,
@@ -354,6 +351,14 @@ export function SettingsPanel({
 
   const update = (key: keyof SettingsForm, value: string) =>
     setForm((f) => ({ ...f, [key]: value }))
+
+  /** 执行模式点选即落盘（与对话页同一 settings.executionMode） */
+  const updateAndPersist = async (key: 'executionMode', value: string) => {
+    update(key, value)
+    if (!window.electronAPI) return
+    await window.electronAPI.settings.set(key, value)
+    toast('执行模式已切换', 'success')
+  }
 
   const saveMcpList = useCallback(async (servers: McpServerEntry[]) => {
     setMcpServers(servers)
@@ -1023,39 +1028,21 @@ export function SettingsPanel({
     <div className="space-y-6">
       <SectionTitle>安全与权限</SectionTitle>
 
-      <FieldGroup label="沙箱模式" hint="控制文件写入和命令执行的安全策略">
-        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(8.5rem, 1fr))' }}>
-          {([
-            { value: 'read-only', label: '只读', desc: '最安全，禁止写入和网络' },
-            { value: 'workspace-write', label: '工作区写入', desc: '允许已打开项目内读写；确认≠绕过' },
-            { value: 'full-access', label: '完全访问', desc: '不限制（需谨慎）', danger: true },
-          ] as const).map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => update('sandboxMode', opt.value)}
-              className="settings-option px-3 py-2 text-xs"
-              data-selected={form.sandboxMode === opt.value ? 'true' : undefined}
-              data-danger={'danger' in opt && opt.danger ? 'true' : undefined}
-            >
-              <div className="font-medium">{opt.label}</div>
-              <div className="mt-0.5 text-[10px] opacity-70">{opt.desc}</div>
-            </button>
-          ))}
-        </div>
-      </FieldGroup>
+      <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+        文件写入边界由对话页输入区的审批模式控制（请求批准 / 替我审批 → 仅工作区内写入；完全访问 → 放开路径沙箱）。此处只管规则与默认确认策略。
+      </p>
 
-      <FieldGroup label="执行模式" hint="工具调用审批策略">
+      <FieldGroup label="执行模式" hint="工具调用默认确认策略（与对话页同一设置项；完全访问请在对话页切换）">
         <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(8.5rem, 1fr))' }}>
           {([
-            { value: 'auto', label: '自动', desc: '仅破坏性操作需确认' },
-            { value: 'confirm-all', label: '全部确认', desc: '每次工具调用都需审批' },
-            { value: 'plan-first', label: '先计划', desc: 'AI 先说计划再执行' },
+            { value: 'auto', label: '自动', desc: '仅破坏性操作需确认；工作区写入' },
+            { value: 'confirm-all', label: '全部确认', desc: '每次工具调用都需审批；工作区写入' },
+            { value: 'plan-first', label: '先计划', desc: 'AI 先说计划再执行；工作区写入' },
           ] as const).map(opt => (
             <button
               key={opt.value}
               type="button"
-              onClick={() => update('executionMode', opt.value)}
+              onClick={() => { void updateAndPersist('executionMode', opt.value) }}
               className="settings-option px-3 py-2 text-xs"
               data-selected={form.executionMode === opt.value ? 'true' : undefined}
             >

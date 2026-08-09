@@ -1,7 +1,6 @@
 import { getDatabase, persist } from './database'
 import { createLogger } from '../utils/logger'
 import { addToVectorStore, removeFromVectorStore } from '../memory/vector-store'
-import * as settings from './settings-store'
 import type { MemoryCategory, MemoryEntry } from '../../../src/shared/types'
 
 const log = createLogger('MemoryStore')
@@ -15,12 +14,8 @@ export interface AddMemoryOpts {
 }
 
 async function getLLMConfigForSync() {
-  const s = await settings.getAllSettings()
-  return {
-    apiKey: s.llmApiKey || process.env.LLM_API_KEY || '',
-    baseUrl: s.llmBaseUrl || process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
-    model: s.llmModel || process.env.LLM_MODEL || 'gpt-4o',
-  }
+  const { loadMainLLMConfig } = await import('../llm/aux-config')
+  return loadMainLLMConfig()
 }
 
 async function ensureTable(): Promise<void> {

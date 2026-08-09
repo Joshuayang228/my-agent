@@ -1,7 +1,7 @@
 # 施工合同：体验调试（Debug / Playground）
 
-> 状态：**已落地**（Phase 0–5：G1–G5 + 全页 + G7 + **系统态补全 / 调用链统计 / G6 精简夹具**；G8 仍暂缓）  
-> 日期：2026-08-04（Phase 5：2026-08-05）  
+> 状态：**已落地**（Phase 0–6：Debug 五域 + 真实上下文 / LLM 日志 / 世界时间线 / 工具清单）
+> 日期：2026-08-04（Phase 6：2026-08-09）
 > 上位：[`methodology/m32-experience-debug-playground.md`](../../methodology/m32-experience-debug-playground.md)  
 > 参考：Alice `/debug` · `/playground` · `enableDebugMode` / `showTokenStats` / `showToolCalls` / `showThinking`
 
@@ -97,6 +97,22 @@ IPC：`debug:world-snapshot` → `buildDebugWorldSnapshot()`（截断：记忆�
 
 ---
 
+## 2g. Phase 6 — Debug 五域诊断闭环
+
+> 对照 Alice Debug 全量页面后，不复制生活树栏目数量；按本项目真实数据与调试问题收拢为五个顶层域。
+
+| ID | 目标 | 验收 |
+|----|------|------|
+| **G9** | 顶层固定为「提示词管理器 / 上下文 / 世界态 / 运行记录 / 系统」 | 不新增 Alice 产品专属顶层 tab；调用链与事件并入运行记录内部视图 |
+| **G9a** | 上下文绑定真实 LLM 调用 | 默认读取最近一次持久化请求；展示实际 `requestMessages` / `requestTools`，不以重组预览冒充实发内容 |
+| **G9b** | 运行记录补完整 LLM 日志 | LLM 调用列表支持状态与元数据搜索、分页、详情、JSON/JSONL 导出及 Debug 日志两步清空；Span / 实时事件保留为内部视图 |
+| **G9c** | 世界态补计划与发布状态时间线 | 同时展示今日剧本槽位与 `companion_events` 的 planned / published 状态，Moments 继续作为事件投影截面 |
+| **G9d** | 系统补真实能力清单 | 展示 Tool Registry 的名称、说明、参数与只读 / 破坏性 / 并发元数据；Skills / MCP / 权限仍复用现有系统态 |
+
+**只读边界**：不复制 Alice 的「重新生成日程 / 旅行 / 设置心情 / 换装 / 强制完成 / 添加物品」等写操作。清空仅作用于可重建的 Debug 日志，并要求界面内二次确认。
+
+---
+
 ## 3. 技术方案（How）
 
 ### 3.1 UI
@@ -107,11 +123,30 @@ IPC：`debug:world-snapshot` → `buildDebugWorldSnapshot()`（截断：记忆�
   debug      → DevPanel surface=debug（全页）
   playground → DevPanel surface=playground（全页）
 
-Debug 内：     Prompt实装 | 世界态 | 系统 | 调用链 | 事件
-Playground 内： Prompt试验 | 工具手测 | 设计 token
+Debug 内：     提示词管理器 | 上下文 | 世界态 | 运行记录 | 系统
+运行记录内：  LLM 调用 | Span 调用链 | 实时事件
+Playground 内： 设计系统 | UI 控件 | 页面基线 | 对话试验 | 模型测试 | 工具 | 体验夹具
 ```
 
-文案纪律：Debug Prompt =「生产实装（只读）」；Playground =「会话覆盖，不写设置」。
+文案纪律：Debug Prompt 资产 =「生产来源（只读）」；即时重组结果 =「装配预览」；真实实发内容只认「上下文」中的持久化请求快照；Playground =「会话覆盖，不写设置」。
+
+### 3.1a IA 全量审计（2026-08-09）
+
+| Surface | Tab | 归属判断 | 结论 |
+|---------|-----|----------|------|
+| Debug | 提示词管理器 | 生产 Prompt 资产 + 当前组装结果 | 保留；合并原「Prompt 实装」与资产目录 |
+| Debug | 上下文 | 最近一次真实 LLM 请求 + 用户画像 / 注入记忆 | 新增；以持久化 requestMessages 为事实源 |
+| Debug | 世界态 | 当前角色、生活、计划/发布事件真实快照 | 保留并补时间线 |
+| Debug | 系统 | 运行环境、配置、权限、Skills、MCP | 保留 |
+| Debug | 运行记录 | LLM 日志 / Span / 当前会话事件 | 合并原「调用链」「事件」；LLM 调用为默认视图 |
+| Playground | 设计系统 | token 与基础视觉实验 | 保留 |
+| Playground | UI 控件 | 正式组件的隔离状态故事 | 保留 |
+| Playground | 页面基线 | 正式页面组合态实验 | 保留 |
+| Playground | 对话试验 | 隔离 Prompt 覆盖与多轮试跑 | 保留 |
+| Playground | 模型测试 | 连通、thinking 能力实验 | 保留 |
+| Playground | 工具 | Registry + 权限路径手测 | 保留 |
+| Playground | 体验夹具 | 空态、错误、确认等模拟状态 | 保留 |
+| Playground | 提示词目录 | 生产资产浏览，不是实验 | 移入 Debug |
 
 ### 3.2 IPC（三处同步）
 
@@ -156,6 +191,14 @@ Playground 内： Prompt试验 | 工具手测 | 设计 token
 4. DevPanel 两面 IA + Prompt 载入实装 + 工具手测 UI  
 5. `tsc` + `npm run test`；文档收尾  
 
+### Phase 6
+
+1. 扩展现有 LLM Debug 查询契约（筛选 / 顺序 / 存储量），不新建日志生命周期
+2. 新建上下文与 LLM 日志 UI；调用链 / 事件改为运行记录内部视图
+3. 世界快照增加最近事件；世界态增加计划 / 发布状态时间线
+4. 系统页接入现有 `debug:tools` 注册表只读清单
+5. 聚焦单测 + `tsc` + unit + build + UI 截图验收；更新模块卡 / progress / changelog
+
 ---
 
 ## 6. 风险与权衡
@@ -164,4 +207,4 @@ Playground 内： Prompt试验 | 工具手测 | 设计 token
 |------|------|
 | Dev 手测误伤本机 | deny 不可绕过；破坏性/ask 强制 confirmRisk；结果区展示 permission chain |
 | 用户误以为覆盖了全局 Prompt | 固定警告文案；不提供「写入设置」按钮（本 Phase） |
-| DevPanel 文件变胖 | 本 Phase 仍单文件；若 >500 行再拆子组件（不阻塞验收） |
+| DevPanel 文件变胖 | 世界态与 LLM / Context / Prompt 面板拆入 `src/components/debug/`；主壳只保留导航与运行记录编排 |

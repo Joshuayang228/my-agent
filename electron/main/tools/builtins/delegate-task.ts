@@ -1,7 +1,7 @@
 import { buildTool } from '../builder'
 import { runSubAgent } from '../../agent/subagent'
 import type { ToolRegistry } from '../registry'
-import * as settings from '../../storage/settings-store'
+import { loadAuxLLMConfig } from '../../llm/aux-config'
 
 export const delegateTaskTool = buildTool({
   name: 'delegate_task',
@@ -72,16 +72,8 @@ export const delegateTaskTool = buildTool({
       ? allowedToolsStr.split(',').map(s => s.trim()).filter(Boolean)
       : undefined
 
-    const s = await settings.getAllSettings()
-
-    // G2: 优先用辅助模型（auxModel），子 Agent 任务通常更轻量
-    const modelToUse = s.auxModel || s.llmModel || process.env.LLM_MODEL || 'gpt-4o'
-
-    const llmConfig = {
-      apiKey: s.llmApiKey || process.env.LLM_API_KEY || '',
-      baseUrl: s.llmBaseUrl || process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
-      model: modelToUse,
-    }
+    // G2: 子 Agent 走辅助配置工厂（auxModel + thinking 策略），禁止手拼密钥
+    const llmConfig = await loadAuxLLMConfig()
 
     // G0 修复：从 toolContext 取 registry（runtime.ts 已带入）
     if (!toolContext?.registry) {

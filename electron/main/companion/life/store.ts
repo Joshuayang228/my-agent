@@ -241,20 +241,24 @@ export async function insertDayScript(
 
 export async function listEvents(
   roleId: string,
-  opts?: { status?: CompanionEventStatus },
+  opts?: { status?: CompanionEventStatus; order?: 'asc' | 'desc'; limit?: number },
 ): Promise<CompanionEvent[]> {
   await ensureTables()
   const db = await getDatabase()
-  const sql = opts?.status
+  const order = opts?.order === 'desc' ? 'DESC' : 'ASC'
+  const limit = Number.isFinite(opts?.limit)
+    ? Math.max(1, Math.min(500, Math.floor(opts?.limit as number)))
+    : null
+  const baseSql = opts?.status
     ? `SELECT id, role_id, scheduled_at, status, type, payload_json, day_script_id
-       FROM companion_events WHERE role_id = ? AND status = ?
-       ORDER BY scheduled_at ASC`
+       FROM companion_events WHERE role_id = ? AND status = ?`
     : `SELECT id, role_id, scheduled_at, status, type, payload_json, day_script_id
-       FROM companion_events WHERE role_id = ?
-       ORDER BY scheduled_at ASC`
+       FROM companion_events WHERE role_id = ?`
+  const sql = `${baseSql} ORDER BY scheduled_at ${order}${limit === null ? '' : ' LIMIT ?'}`
   const stmt = db.prepare(sql)
-  if (opts?.status) stmt.bind([roleId, opts.status])
-  else stmt.bind([roleId])
+  const params: Array<string | number> = opts?.status ? [roleId, opts.status] : [roleId]
+  if (limit !== null) params.push(limit)
+  stmt.bind(params)
   const out: CompanionEvent[] = []
   while (stmt.step()) {
     const r = stmt.getAsObject() as Record<string, unknown>

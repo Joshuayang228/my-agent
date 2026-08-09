@@ -55,6 +55,56 @@ export interface TraceSpan {
   error?: string
 }
 
+/**
+ * LLM Debug 请求快照。
+ *
+ * 背景：TraceSpan 只保留可观测摘要，不能把完整 Prompt / Tools 放进
+ *       attributes，否则会破坏文本预算和 DevPanel 的轻量性。
+ * 意图：用现有 Span ID 作为 Debug 记录 ID，把完整请求交给可选持久化 sink。
+ * 约束：数据只通过 hook 转发，不由 tracer 直接依赖 storage；sink 失败不能影响
+ *       LLM 主链路，且每个 Span 最多产生一条 Debug 记录。
+ */
+export interface LLMTraceRequest {
+  spanId: string
+  sessionId?: string
+  provider: string
+  model: string
+  caller: string
+  parentSpanId?: string
+  messages: unknown
+  tools: unknown
+  extra: Record<string, unknown>
+}
+
+/** LLM Debug 响应快照；正文只存入 Debug 专用存储，不进入普通 Span attributes。 */
+export interface LLMTraceResponse {
+  status: 'success' | 'error'
+  content?: string | null
+  reasoning?: string
+  toolCalls?: unknown
+  error?: string
+  usage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens?: number
+    cacheReadTokens?: number
+    cacheCreationTokens?: number
+  } | null
+  durationMs?: number
+}
+
+/**
+ * 可选的 LLM Debug 持久化 sink。
+ *
+ * tracer 只定义数据边界，不 import storage；主进程启动时注册实现。
+ * `onLLMRequestUpdate` 用于 413 reactive compact 等同一 Span 内请求上下文变化。
+ */
+export interface LLMTraceSink {
+  onLLMStart(request: LLMTraceRequest): void | Promise<void>
+  onLLMRequestUpdate?(request: LLMTraceRequest): void | Promise<void>
+  onLLMEnd(spanId: string, response: LLMTraceResponse): void | Promise<void>
+}
+
 /** 启动性能打点 — Alice Ch.13 startup marks */
 export interface StartupMark {
   name: string
@@ -68,6 +118,77 @@ let spanCounter = 0
 
 const processStartTime = Date.now()
 const startupMarks: StartupMark[] = []
+let llmTraceSink: LLMTraceSink | null = null
+const llmDebugPayloads = new Map<string, {
+  request?: LLMTraceRequest
+  response?: LLMTraceResponse
+}>()
+
+/** 注册/取消 LLM Debug 持久化 sink；测试和无持久化场景可传 undefined。 */
+export function setLLMTraceSink(sink?: LLMTraceSink): void {
+  llmTraceSink = sink ?? null
+}
+
+function reportLLMTraceStart(request: LLMTraceRequest): void {
+  if (!llmTraceSink) return
+  try {
+    void Promise.resolve(llmTraceSink.onLLMStart(request)).catch((error: unknown) => {
+      log.warn('LLM Debug sink start failed', { error: error instanceof Error ? error.message : String(error) })
+    })
+  } catch (error) {
+    log.warn('LLM Debug sink start threw', { error: error instanceof Error ? error.message : String(error) })
+  }
+}
+
+function reportLLMTraceUpdate(request: LLMTraceRequest): void {
+  if (!llmTraceSink?.onLLMRequestUpdate) return
+  try {
+    void Promise.resolve(llmTraceSink.onLLMRequestUpdate(request)).catch((error: unknown) => {
+      log.warn('LLM Debug sink update failed', { error: error instanceof Error ? error.message : String(error) })
+    })
+  } catch (error) {
+    log.warn('LLM Debug sink update threw', { error: error instanceof Error ? error.message : String(error) })
+  }
+}
+
+function reportLLMTraceEnd(spanId: string, response: LLMTraceResponse): void {
+  if (!llmTraceSink) return
+  try {
+    void Promise.resolve(llmTraceSink.onLLMEnd(spanId, response)).catch((error: unknown) => {
+      log.warn('LLM Debug sink end failed', { error: error instanceof Error ? error.message : String(error) })
+    })
+  } catch (error) {
+    log.warn('LLM Debug sink end threw', { error: error instanceof Error ? error.message : String(error) })
+  }
+}
+
+/**
+ * 把完整请求挂到现有 LLM Span，并通知持久化 sink。
+ *
+ * 背景：Agent Loop 已经通过 Observer 创建 LLM Span，Debug 不应再反推事件流或
+ *       新建第二个调用生命周期。
+ * 意图：首次调用创建 pending 记录，后续同一 Span 的请求变化只更新快照。
+ * 边界：没有 sink 时仅保留内存中的短暂 payload，Span 结束后立即清理。
+ */
+export function attachLLMTraceRequest(handle: SpanHandle, request: Omit<LLMTraceRequest, 'spanId'>): void {
+  const fullRequest: LLMTraceRequest = { ...request, spanId: handle.id }
+  const payload = llmDebugPayloads.get(handle.id)
+  if (payload?.request) {
+    payload.request = fullRequest
+    reportLLMTraceUpdate(fullRequest)
+    return
+  }
+
+  llmDebugPayloads.set(handle.id, { request: fullRequest })
+  reportLLMTraceStart(fullRequest)
+}
+
+/** 更新现有 Span 对应的 Debug 响应；最终状态在 SpanHandle.end 时提交。 */
+export function attachLLMTraceResponse(handle: SpanHandle, response: LLMTraceResponse): void {
+  const payload = llmDebugPayloads.get(handle.id) ?? {}
+  payload.response = response
+  llmDebugPayloads.set(handle.id, payload)
+}
 
 function generateSpanId(): string {
   return `span-${++spanCounter}-${Date.now().toString(36)}`
@@ -188,8 +309,21 @@ export class SpanHandle {
   }
 
   end(status: 'ok' | 'error' = 'ok', error?: string): void {
+    const endTime = Date.now()
+    const payload = llmDebugPayloads.get(this.span.id)
+    if (payload?.request) {
+      const response: LLMTraceResponse = {
+        ...(payload.response ?? {}),
+        status: status === 'error' ? 'error' : (payload.response?.status ?? 'success'),
+        ...(error ? { error: captureErrorMessage(error) } : {}),
+        durationMs: this.span.duration ?? endTime - this.span.startTime,
+      }
+      reportLLMTraceEnd(this.span.id, response)
+      llmDebugPayloads.delete(this.span.id)
+    }
+
     if (this.dropped) return
-    this.span.endTime = Date.now()
+    this.span.endTime = endTime
     this.span.duration = this.span.endTime - this.span.startTime
     this.span.status = status
     if (error) this.span.error = captureErrorMessage(error)
@@ -335,4 +469,5 @@ export function getTokenLaneStats(): {
 /** 清空 Span 记录 */
 export function clearSpans(): void {
   spans.length = 0
+  llmDebugPayloads.clear()
 }

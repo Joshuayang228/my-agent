@@ -10,6 +10,7 @@
 import type { ToolRegistry } from '../tools/registry'
 import { getAllSettings } from '../storage/settings-store'
 import { getRules } from '../sandbox/permission-engine'
+import { resolveEffectiveSandbox } from '../sandbox/effective-sandbox'
 import { getLoadedSkills } from '../skills/registry'
 import { mcpManager } from '../mcp/client'
 import { app } from 'electron'
@@ -100,7 +101,8 @@ export async function buildDebugSystemInfo(toolRegistry: ToolRegistry): Promise<
       activeRoleId: settings.activeRoleId,
       hasApiKey: !!settings.llmApiKey,
       hasCustomPrompt: !!settings.systemPrompt,
-      sandboxMode: settings.sandboxMode || 'workspace-write',
+      /** 由对话页 executionMode 推导的有效沙箱（非独立设置项） */
+      sandboxMode: resolveEffectiveSandbox(settings.executionMode),
       executionMode: settings.executionMode || 'auto',
       conversationDebugMode:
         settings.conversationDebugMode === 'true' || settings.conversationDebugMode === '1',

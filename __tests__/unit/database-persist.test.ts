@@ -94,6 +94,12 @@ describe('schema migration', () => {
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION)
     expect(hasColumn(db, 'sessions', 'total_prompt_tokens')).toBe(true)
     expect(hasColumn(db, 'sessions', 'total_completion_tokens')).toBe(true)
+    const tables = db.exec(
+      `SELECT name FROM sqlite_master
+       WHERE type = 'table' AND name IN ('llm_debug_logs', 'llm_debug_subagent_sessions')
+       ORDER BY name`,
+    )[0]?.values.map((row) => row[0])
+    expect(tables).toEqual(['llm_debug_logs', 'llm_debug_subagent_sessions'])
   })
 
   it('重复跑 migration 幂等', () => {

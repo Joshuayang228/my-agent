@@ -37,7 +37,7 @@ export function checkFileWriteSandbox(
   if (mode === 'read-only') {
     return (
       `[SANDBOX BLOCKED] 只读模式下禁止${action}文件。当前沙箱模式为 "read-only"。\n` +
-      `说明：聊天确认只过审批层，不会绕过沙箱。请到设置 → 安全，将沙箱改为「工作区写入」或「完全访问」。`
+      `说明：聊天确认只过审批层，不会绕过沙箱。请到对话页输入区将审批改为「替我审批」或「完全访问」（完全访问会放开路径限制）。`
     )
   }
 
@@ -49,8 +49,8 @@ export function checkFileWriteSandbox(
       `[SANDBOX BLOCKED] 目标路径超出工作区，禁止${action}。\n` +
       `- 目标: ${resolved}\n` +
       `- 工作区: ${wsRoot}\n` +
-      `说明：你点的「允许」只表示同意调用工具；workspace-write 仍要求路径落在已打开的项目内。` +
-      `请改用工作区内路径，或将沙箱改为「完全访问」。`
+      `说明：你点的「允许」只表示同意调用工具；工作区写入仍要求路径落在已打开的项目内。` +
+      `请改用工作区内路径，或在对话页将审批改为「完全访问」。`
     )
   }
 

@@ -104,17 +104,130 @@ export function registerProjectIPC(): void {
 
   ipcMain.handle('project:readFile', async (_e, filePath: string) => {
     try {
+      if (!filePath || typeof filePath !== 'string') return { error: 'Invalid path' }
       if (!fs.existsSync(filePath)) return { error: 'File not found' }
       const stat = fs.statSync(filePath)
-      if (stat.size > 256 * 1024) return { error: 'File too large (>256KB)' }
-      const content = fs.readFileSync(filePath, 'utf-8')
-      return { content, size: stat.size }
+      if (!stat.isFile()) return { error: 'Not a file' }
+
+      const ext = path.extname(filePath).toLowerCase()
+      const imageExt = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico'])
+      // Office / 压缩等太重：不在内嵌预览里解，交给系统应用
+      const externalOnly = new Set([
+        '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+        '.zip', '.7z', '.rar', '.gz', '.tar',
+        '.exe', '.dll', '.so', '.dylib', '.wasm',
+        '.mp4', '.mov', '.avi', '.mkv', '.mp3', '.wav', '.flac',
+      ])
+
+      if (imageExt.has(ext)) {
+        if (stat.size > 8 * 1024 * 1024) return { error: '图片过大（>8MB）', size: stat.size }
+        const mime = mimeFromExt(ext)
+        const dataUrl = `data:${mime};base64,${fs.readFileSync(filePath).toString('base64')}`
+        return { kind: 'image' as const, mimeType: mime, dataUrl, size: stat.size }
+      }
+
+      if (externalOnly.has(ext)) {
+        return {
+          kind: 'unsupported' as const,
+          size: stat.size,
+          reason: '该格式不适合内嵌预览，可用系统应用打开',
+        }
+      }
+
+      if (stat.size > 512 * 1024) return { error: '文件过大（>512KB）', size: stat.size }
+
+      const buf = fs.readFileSync(filePath)
+      if (looksBinary(buf)) {
+        return {
+          kind: 'unsupported' as const,
+          size: stat.size,
+          reason: '二进制文件，可用系统应用打开',
+        }
+      }
+
+      const content = buf.toString('utf-8')
+      return {
+        kind: 'text' as const,
+        content,
+        size: stat.size,
+        languageHint: languageHintFromExt(ext),
+      }
     } catch (err) {
-      return { error: String(err) }
+      return { error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  ipcMain.handle('project:openExternal', async (_e, filePath: string) => {
+    try {
+      if (!filePath || typeof filePath !== 'string') return { ok: false, error: 'Invalid path' }
+      if (!fs.existsSync(filePath)) return { ok: false, error: 'File not found' }
+      const { shell } = await import('electron')
+      const err = await shell.openPath(filePath)
+      if (err) return { ok: false, error: err }
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
     }
   })
 
   log.info('Project IPC registered')
+}
+
+function mimeFromExt(ext: string): string {
+  switch (ext) {
+    case '.png': return 'image/png'
+    case '.jpg':
+    case '.jpeg': return 'image/jpeg'
+    case '.gif': return 'image/gif'
+    case '.webp': return 'image/webp'
+    case '.bmp': return 'image/bmp'
+    case '.svg': return 'image/svg+xml'
+    case '.ico': return 'image/x-icon'
+    default: return 'application/octet-stream'
+  }
+}
+
+function languageHintFromExt(ext: string): string {
+  const map: Record<string, string> = {
+    '.md': 'markdown',
+    '.mdx': 'markdown',
+    '.json': 'json',
+    '.jsonc': 'json',
+    '.ts': 'typescript',
+    '.tsx': 'tsx',
+    '.js': 'javascript',
+    '.jsx': 'jsx',
+    '.css': 'css',
+    '.html': 'html',
+    '.htm': 'html',
+    '.py': 'python',
+    '.rs': 'rust',
+    '.go': 'go',
+    '.yml': 'yaml',
+    '.yaml': 'yaml',
+    '.toml': 'toml',
+    '.xml': 'xml',
+    '.csv': 'csv',
+    '.sql': 'sql',
+    '.sh': 'shell',
+    '.ps1': 'powershell',
+    '.txt': 'text',
+    '.log': 'text',
+  }
+  return map[ext] || 'text'
+}
+
+/** 粗判二进制：前 8KB 含 NUL，或非 UTF-8 可解码占比过低 */
+function looksBinary(buf: Buffer): boolean {
+  const sample = buf.subarray(0, Math.min(buf.length, 8192))
+  if (sample.includes(0)) return true
+  let weird = 0
+  for (let i = 0; i < sample.length; i++) {
+    const c = sample[i]
+    if (c === 9 || c === 10 || c === 13) continue
+    if (c < 32) weird++
+  }
+  return sample.length > 0 && weird / sample.length > 0.3
 }
 
 interface FileEntry {

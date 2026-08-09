@@ -9,6 +9,14 @@ import type {
 } from '../../../src/shared/types'
 import { detectProvider, buildAnthropicBody, buildGeminiBody } from './provider-router'
 import { createLogger } from '../utils/logger'
+import { getObserver } from '../utils/observer'
+import {
+  attachLLMTraceRequest,
+  attachLLMTraceResponse,
+  type SpanCaller,
+  type SpanHandle,
+} from '../utils/tracer'
+import { getTraceContext } from '../utils/trace-context'
 
 const llmLog = createLogger('LLM')
 
@@ -61,14 +69,93 @@ export interface StreamChatOptions {
   enablePromptCache?: boolean
   /** 调用方标识（用于日志归因和成本统计），如 'main' / 'summary' / 'profile' */
   caller?: string
+  /** 当前会话 ID；未传时从 TraceContext 继承 */
+  sessionId?: string
+  /** 辅助调用的父 Span；主 Agent 通常已直接传入 traceSpan */
+  parentSpanId?: string
+  /** 主 Agent 已创建的 llm_request Span，避免统一入口重复建 Span */
+  traceSpan?: SpanHandle
+  /** Agent Loop 内部重试次数，仅写入 Debug extra，不改变 Span 生命周期 */
+  retryAttempt?: number
 }
 
 export interface StreamChatResult {
   content: string | null
   toolCalls: ToolCall[]
   usage: { promptTokens: number; completionTokens: number; cacheReadTokens?: number; cacheCreationTokens?: number } | null
+  /** Provider 返回的 reasoning/thinking 正文（若有） */
+  reasoning?: string
   /** LLM 停止原因：stop=正常结束, length/max_tokens=截断, tool_calls=工具调用 */
   stopReason?: string
+}
+
+function toTraceCaller(caller?: string): SpanCaller {
+  switch (caller) {
+    case 'main':
+      return 'main'
+    case 'summary':
+    case 'compact':
+      return 'compact'
+    case 'memory':
+    case 'catchup-summary':
+    case 'moment-polish':
+    case 'day-script':
+      return 'memory'
+    case 'title':
+      return 'title'
+    case 'subagent':
+      return 'subagent'
+    case 'tool':
+      return 'tool'
+    case 'profile':
+      return 'profile'
+    default:
+      return 'system'
+  }
+}
+
+function debugMessages(messages: ChatMessage[]): unknown[] {
+  return messages.map((message) => ({
+    ...message,
+    // 图片二进制不进入持久化 Debug，保留文件名/类型即可定位请求来源。
+    ...(message.images
+      ? { images: message.images.map(({ fileName, mimeType }) => ({ fileName, mimeType })) }
+      : {}),
+  }))
+}
+
+function debugTools(tools: ToolDefinition[] | undefined): unknown[] {
+  return (tools ?? []).map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    parameters: tool.parameters,
+    metadata: tool.metadata,
+    inputExamples: tool.inputExamples,
+    aliases: tool.aliases,
+    maxResultSizeChars: tool.maxResultSizeChars,
+  }))
+}
+
+function finishLLMTrace(
+  traceSpan: SpanHandle,
+  ownsTraceSpan: boolean,
+  ok: boolean,
+  result?: StreamChatResult,
+  error?: string,
+): void {
+  attachLLMTraceResponse(traceSpan, {
+    status: ok ? 'success' : 'error',
+    ...(result
+      ? {
+          content: result.content,
+          reasoning: result.reasoning,
+          toolCalls: result.toolCalls,
+          usage: result.usage,
+        }
+      : {}),
+    ...(error ? { error } : {}),
+  })
+  if (ownsTraceSpan) getObserver().onLLMEnd(traceSpan, ok, error)
 }
 
 /**
@@ -80,6 +167,43 @@ export async function* streamChat(
 ): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
   const { config } = options
   const fallbacks = config.fallbackModels ?? []
+  const sessionId = options.sessionId ?? getTraceContext().sessionId
+  const traceSpan = options.traceSpan ?? getObserver().onLLMStart({
+    name: `llm_request_${options.caller ?? 'system'}`,
+    caller: toTraceCaller(options.caller),
+    parentId: options.parentSpanId,
+    attributes: {
+      model: config.model,
+      ...(options.caller ? { rawCaller: options.caller } : {}),
+      ...(sessionId ? { sessionId } : {}),
+    },
+  })
+  const ownsTraceSpan = !options.traceSpan
+  const attachRequest = (activeConfig: LLMConfig, providerAttempt: number, previousError?: string) => {
+    attachLLMTraceRequest(traceSpan, {
+      sessionId,
+      provider: detectProvider(activeConfig),
+      model: activeConfig.model,
+      caller: options.caller ?? 'unknown',
+      parentSpanId: options.parentSpanId,
+      messages: debugMessages(options.messages),
+      tools: debugTools(options.tools),
+      extra: {
+        agentAttempt: options.retryAttempt ?? 0,
+        providerAttempt,
+        ...(previousError ? { previousError } : {}),
+        baseUrl: activeConfig.baseUrl,
+        temperature: activeConfig.temperature,
+        topP: activeConfig.topP,
+        maxTokens: activeConfig.maxTokens,
+        thinking: activeConfig.thinking,
+        responseFormat: options.responseFormat,
+        enablePromptCache: options.enablePromptCache === true,
+      },
+    })
+  }
+
+  attachRequest(config, 0)
 
   llmLog.info('streamChat start', {
     caller: options.caller ?? 'unknown',
@@ -89,40 +213,52 @@ export async function* streamChat(
   })
 
   try {
-    return yield* streamChatSingle(options)
-  } catch (err) {
-    if (fallbacks.length === 0) throw err
-    llmLog.warn('Primary model failed, attempting failover', {
-      caller: options.caller ?? 'unknown',
-      model: config.model,
-      error: err instanceof Error ? err.message : String(err),
-      fallbackCount: fallbacks.length,
-    })
-  }
-
-  for (let i = 0; i < fallbacks.length; i++) {
-    const fb = fallbacks[i]
-    const fbConfig = {
-      ...config,
-      model: fb.model,
-      baseUrl: fb.baseUrl ?? config.baseUrl,
-      apiKey: fb.apiKey ?? config.apiKey,
-      provider: fb.provider ?? config.provider,
-      fallbackModels: undefined,
-    }
     try {
-      llmLog.info(`Failover attempt ${i + 1}/${fallbacks.length}`, { model: fb.model })
-      yield { type: 'text', content: `\n\n> ⚡ 主模型不可用，已切换到 ${fb.model}\n\n` }
-      return yield* streamChatSingle({ ...options, config: fbConfig })
-    } catch (fbErr) {
-      llmLog.warn(`Failover model failed: ${fb.model}`, {
-        error: fbErr instanceof Error ? fbErr.message : String(fbErr),
+      const result = yield* streamChatSingle(options)
+      finishLLMTrace(traceSpan, ownsTraceSpan, true, result)
+      return result
+    } catch (err) {
+      if (fallbacks.length === 0) throw err
+      llmLog.warn('Primary model failed, attempting failover', {
+        caller: options.caller ?? 'unknown',
+        model: config.model,
+        error: err instanceof Error ? err.message : String(err),
+        fallbackCount: fallbacks.length,
       })
-      if (i === fallbacks.length - 1) throw fbErr
+      const primaryError = err instanceof Error ? err.message : String(err)
+      let previousError = primaryError
+      for (let i = 0; i < fallbacks.length; i++) {
+        const fb = fallbacks[i]
+        const fbConfig = {
+          ...config,
+          model: fb.model,
+          baseUrl: fb.baseUrl ?? config.baseUrl,
+          apiKey: fb.apiKey ?? config.apiKey,
+          provider: fb.provider ?? config.provider,
+          fallbackModels: undefined,
+        }
+        try {
+          attachRequest(fbConfig, i + 1, previousError)
+          llmLog.info(`Failover attempt ${i + 1}/${fallbacks.length}`, { model: fb.model })
+          yield { type: 'text', content: `\n\n> ⚡ 主模型不可用，已切换到 ${fb.model}\n\n` }
+          const result = yield* streamChatSingle({ ...options, config: fbConfig })
+          finishLLMTrace(traceSpan, ownsTraceSpan, true, result)
+          return result
+        } catch (fbErr) {
+          previousError = fbErr instanceof Error ? fbErr.message : String(fbErr)
+          llmLog.warn(`Failover model failed: ${fb.model}`, {
+            error: previousError,
+          })
+          if (i === fallbacks.length - 1) throw fbErr
+        }
+      }
+      throw new Error('All models (primary + fallbacks) failed')
     }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    finishLLMTrace(traceSpan, ownsTraceSpan, false, undefined, message)
+    throw error
   }
-
-  throw new Error('All models (primary + fallbacks) failed')
 }
 
 /**
@@ -155,6 +291,8 @@ async function* streamChatSingle(
     if (config.temperature !== undefined) b.temperature = config.temperature
     if (config.topP !== undefined) b.top_p = config.topP
     if (config.maxTokens !== undefined) b.max_tokens = config.maxTokens
+    // DeepSeek V4 / Kimi 等：thinking 与 content 共用 max_tokens；辅助调用常显式 disabled
+    if (config.thinking) b.thinking = config.thinking
     if (responseFormat && responseFormat.type !== 'text') b.response_format = responseFormat
     if (tools && tools.length > 0) b.tools = tools.map(toOpenAITool)
     return b
@@ -198,6 +336,7 @@ async function* streamChatSingle(
   let buffer = ''
 
   let contentAcc = ''
+  let reasoningAcc = ''
   const toolCallsAcc: Map<number, { id: string; name: string; arguments: string }> = new Map()
   let usage: { promptTokens: number; completionTokens: number } | null = null
   let stopReason: string | undefined
@@ -252,6 +391,7 @@ async function* streamChatSingle(
       // reasoning / thinking（部分模型支持）
       const reasoning = (delta as Record<string, unknown>).reasoning_content as string | undefined
       if (reasoning) {
+        reasoningAcc += reasoning
         yield { type: 'thinking', content: reasoning }
       }
 
@@ -295,6 +435,7 @@ async function* streamChatSingle(
     content: contentAcc || null,
     toolCalls,
     usage,
+    reasoning: reasoningAcc || undefined,
     stopReason,
   }
 }
@@ -456,6 +597,7 @@ async function* streamChatAnthropic(
   const decoder = new TextDecoder()
   let buffer = ''
   let contentAcc = ''
+  let reasoningAcc = ''
   const toolCallsAcc: Map<string, { id: string; name: string; arguments: string }> = new Map()
   let usage: StreamChatResult['usage'] = null
   let stopReason: string | undefined
@@ -501,6 +643,13 @@ async function* streamChatAnthropic(
           const text = delta.text as string
           contentAcc += text
           yield { type: 'text', content: text }
+        }
+        if (delta?.type === 'thinking_delta') {
+          const thinking = delta.thinking as string | undefined
+          if (thinking) {
+            reasoningAcc += thinking
+            yield { type: 'thinking', content: thinking }
+          }
         }
         if (delta?.type === 'input_json_delta') {
           const partial = delta.partial_json as string || ''
@@ -561,7 +710,7 @@ async function* streamChatAnthropic(
     arguments: tc.arguments,
   }))
 
-  return { content: contentAcc || null, toolCalls, usage, stopReason }
+  return { content: contentAcc || null, toolCalls, usage, reasoning: reasoningAcc || undefined, stopReason }
 }
 
 // ── 非流式便捷入口 ──
@@ -576,6 +725,10 @@ export interface ChatCompleteOptions {
   maxTokens?: number
   /** 调用方标识，用于日志归因（如 'summary' / 'profile' / 'title'） */
   caller?: string
+  /** 当前会话 ID；未传时从 TraceContext 继承 */
+  sessionId?: string
+  /** 辅助调用的父 Span */
+  parentSpanId?: string
   /** 超时（毫秒）。非流式无中间反馈，默认放宽到 120s */
   timeoutMs?: number
   /** 外部中断信号，与超时信号合并 */
@@ -597,7 +750,17 @@ export interface ChatCompleteOptions {
  * @returns 模型输出的完整文本；失败或空结果时抛出错误由调用方兜底
  */
 export async function chatComplete(options: ChatCompleteOptions): Promise<string> {
-  const { config, messages, temperature, maxTokens, caller, timeoutMs = 120_000, signal } = options
+  const {
+    config,
+    messages,
+    temperature,
+    maxTokens,
+    caller,
+    sessionId,
+    parentSpanId,
+    timeoutMs = 120_000,
+    signal,
+  } = options
 
   // 合并「外部中断」和「超时」两个信号
   const timeoutSignal = AbortSignal.timeout(timeoutMs)
@@ -620,7 +783,14 @@ export async function chatComplete(options: ChatCompleteOptions): Promise<string
 
   const startedAt = Date.now()
   // 消费整个流式生成器，只取最终结果（方案 A：流式收敛）
-  const gen = streamChat({ config: callConfig, messages: chatMessages, signal: combinedSignal, caller })
+  const gen = streamChat({
+    config: callConfig,
+    messages: chatMessages,
+    signal: combinedSignal,
+    caller,
+    sessionId,
+    parentSpanId,
+  })
   let result: StreamChatResult
   while (true) {
     const next = await gen.next()
@@ -675,6 +845,7 @@ async function* streamChatGemini(
   const decoder = new TextDecoder()
   let buffer = ''
   let contentAcc = ''
+  let reasoningAcc = ''
   const toolCallsAcc: Map<number, { id: string; name: string; arguments: string }> = new Map()
   let usage: StreamChatResult['usage'] = null
   let stopReason: string | undefined
@@ -713,8 +884,13 @@ async function* streamChatGemini(
           for (const part of parts) {
             if (part.text) {
               const text = part.text as string
-              contentAcc += text
-              yield { type: 'text', content: text }
+              if (part.thought === true) {
+                reasoningAcc += text
+                yield { type: 'thinking', content: text }
+              } else {
+                contentAcc += text
+                yield { type: 'text', content: text }
+              }
             }
 
             if (part.functionCall) {
@@ -750,5 +926,5 @@ async function* streamChatGemini(
     arguments: tc.arguments,
   }))
 
-  return { content: contentAcc || null, toolCalls, usage, stopReason }
+  return { content: contentAcc || null, toolCalls, usage, reasoning: reasoningAcc || undefined, stopReason }
 }

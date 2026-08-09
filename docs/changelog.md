@@ -5,11 +5,56 @@
 
 ## [未发布]
 
+### Added — Debug 五域诊断闭环（2026-08-09）
+
+- Debug 顶层固定为「提示词管理器 / 上下文 / 世界态 / 运行记录 / 系统」；原调用链与事件并入运行记录内部视图
+- 「上下文」直接读取最近真实 LLM 请求的 messages / tools / extra；Prompt 即时重组改称装配预览，不再冒充精确实发内容
+- 「运行记录」新增跨会话 LLM 调用筛选、分页、详情、JSONL 导出和应用内两步清空；查询与导出共用过滤条件
+- 「世界态」新增 planned / published 有界时间线；「系统」新增 Tool Registry 参数与只读、破坏性、并发、长任务元数据
+
+### Added — Playground 页面基线（2026-08-09）
+
+- 新增「页面基线」分区，集中走查 Chat 壳、Primary Sidebar、Right Dock、人物世界与设置的正式组件组合态
+- 基线故事格使用静态 props 隔离真实会话 / LLM / 设置写入；先确认 Alice 对齐的比例、密度与状态，再回流正式页面
+- 能力渐进披露暂不在本轮决定，保留为页面基线确认后的第二阶段
+
+### Changed — Prompt 目录单一事实源（2026-08-09）
+
+- Prompt 生产目录移入 Debug「提示词管理器」，与当前装配预览统一只读查看；真实实发内容以「上下文」请求快照为准
+- Playground 移除「提示词」资产 tab，只保留设计、故事、夹具和隔离试验职责
+- 默认 System / Playground / 用户画像 Prompt 直接引用实际生产常量；角色和场景 Prompt 从 Role Pack 资产读取
+- 动态组装项标记为 `dynamic`，前端不再维护第二份 Prompt 正文或静态资产清单
+
+### Fixed — 对话 Debug / 标题 / Thinking（2026-08-08）
+
+- Debug 侧栏展开顺序改为「思考 → 正文」；成功但无正文时给出提示
+- 智能标题：仅默认「新对话」时调用；`maxTokens` 放宽；DeepSeek 等辅助调用可关 thinking，避免 reasoning 吃光预算
+- Playground 新增「模型测试」tab（对齐 Alice）：烟测连通 + 探测 `thinking.disabled`，结果写入 `llmCapabilityCache`
+- LLM 配置装配统一走 `loadMainLLMConfig` / `loadAuxLLMConfig`（runtime / playground / memory / delegate / 右键重生标题），禁止手拼密钥端点
+- Chat 顶栏去掉会话标题；LLM 调用链可覆盖「项目文件」右坞（Alice 式）
+- 项目文件预览：图片 / 文本 / Markdown / HTML（沙箱 iframe）；pdf·docx 等改为系统应用打开
+- 有效沙箱改由对话页审批模式推导（`full-access` 放开路径）；设置页移除独立沙箱开关
+- Chat 右侧能力坞 Phase 1：文件 / 审阅 / 终端 Tab；会话写文件变更 + diff；命令控制台；Debug 仍覆盖整坞
+- 面板可拖分界：左栏宽、右坞宽、文件树/预览、审阅列表/diff；尺寸写入 localStorage
+
 ### Changed — 启动首帧体验（2026-08-06）
 
 - Electron `BrowserWindow` 创建后先隐藏，等待 `ready-to-show` 再显示，避免默认白底闪现
 - 主进程窗口底色与默认 mist 主题对齐；开发者工具改为首帧显示后打开
 - 渲染入口增加轻量启动 Splash：提前恢复主题，React 根节点挂载后淡出移除
+
+### Changed — 对话 Debug 侧栏改为 LLM 调用链（2026-08-06）
+
+- 对齐 Alice：侧栏按一次 LLM 调用展示一行，默认呈现调用者、模型、时间、tokens、耗时和状态
+- 展开单次调用后才显示工具、错误和详细元信息
+- `text` / `thinking` 等高频流式事件不再污染聊天侧栏，仍保留在全页 Debug Console
+
+### Added — LLM Debug 数据持久化（2026-08-08）
+
+- Debug 正文接入现有 `observer → tracer` 生命周期，使用 `llm_request` Span ID 作为稳定 `logId`
+- 复用 `my-agent.db` 的 `llm_debug_logs` 表，不新增平行日志库；请求/响应正文按设备 `safeStorage` 能力保护
+- 侧栏可恢复历史调用，展开时按 `logId` 懒加载正文；支持子 Agent 聚合、单独清空和 JSONL 导出
+- 普通 logger 仍只负责运行诊断与脱敏，不写入完整 Prompt / Response；全量流式事件仍留在全页 Debug Console
 
 ### Changed — 壳层交互：侧栏并排 / 返回左上 / 对话 Debug 右栏（2026-08-06）
 

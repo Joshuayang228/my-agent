@@ -10,11 +10,13 @@
  * 权限：只降不升。子 Agent 的工具集是父 Agent 工具集的子集。
  */
 
+import { randomUUID } from 'node:crypto'
 import { agentLoop } from './loop'
 import { summonWorkerSystemAddon } from '../companion/cast/summon-delegation'
 import { ToolRegistry } from '../tools/registry'
 import { createLogger } from '../utils/logger'
 import { startSpan } from '../utils/tracer'
+import { llmDebugStore } from '../storage/llm-debug-store'
 import { registerSubAgent } from './subagent-registry'
 import type {
   ChatMessage,
@@ -86,6 +88,7 @@ export const AGENT_ROLES: Record<string, AgentRole> = {
 
 /** 模式严格程度序（数字越大越严）——用于权限只降不升比较 */
 const MODE_STRICTNESS: Record<ExecutionMode, number> = {
+  'full-access': -1,
   'auto': 0,
   'confirm-all': 1,
   'plan-first': 2,
@@ -142,6 +145,12 @@ export async function runSubAgent(
   const maxIterations = config.maxIterations ?? 10
 
   const childRegistry = buildChildRegistry(parentRegistry, config)
+  const debugSessionId = config.toolContext?.sessionId
+    ? `subagent-${randomUUID()}`
+    : undefined
+  const childToolContext = debugSessionId && config.toolContext
+    ? { ...config.toolContext, sessionId: debugSessionId }
+    : config.toolContext
 
   const systemPrompt = buildSubAgentSystemPrompt(config.role, {
     sessionKind: config.toolContext?.sessionKind,
@@ -172,6 +181,14 @@ export async function runSubAgent(
       toolCount: childRegistry.getAll().length,
     }
   )
+  if (debugSessionId) {
+    void llmDebugStore.registerSubagentSession(
+      debugSessionId,
+      config.toolContext?.sessionId,
+      config.role,
+      subSpan.id,
+    )
+  }
 
   let content = ''
   const toolsUsed: string[] = []
@@ -187,7 +204,8 @@ export async function runSubAgent(
         maxIterations,
         signal,
         executionMode,           // G4：只降不升后的模式
-        toolContext: config.toolContext,  // G5：子 Agent 工具拿到 workdir/sessionId/signal
+        toolContext: childToolContext,  // G5：子 Agent 工具拿到 workdir/sessionId/signal
+        interactionSpanId: subSpan.id,
       },
       childRegistry,
     )
@@ -219,6 +237,8 @@ export async function runSubAgent(
       executionMode,
       maxIterations,
       parentSpanId: config.parentSpanId,
+      debugSessionId,
+      toolContext: childToolContext,
     })
 
     log.info('SubAgent completed', {

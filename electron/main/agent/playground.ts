@@ -2,13 +2,14 @@
  * Dev Playground — 免伴侣上下文的 LLM 试跑（可多轮，仍不写 settings）
  *
  * 背景：wishlist「Playground」；调试 Prompt 时不想带着 Assemble/记忆/工具。
- * 意图：可选 system + 历史 + 本轮 user → chatComplete；不建真会话、不跑 Agent Loop。
- * 约束：不注入 Role Pack / Moments / 记忆；失败返回可读错误。
+ * 设计意图：可选 system + 历史 + 本轮 user → chatComplete；不建真会话、不跑 Agent Loop。
+ *           LLM 配置走 loadMainLLMConfig，禁止在本文件手拼 apiKey/baseUrl。
+ * 关键约束：不注入 Role Pack / Moments / 记忆；失败返回可读错误。
  */
 
 import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
 import { chatComplete } from '../llm/index'
-import * as settings from '../storage/settings-store'
+import { loadMainLLMConfig } from '../llm/aux-config'
 import { createLogger } from '../utils/logger'
 import { startLinkedAsyncSpan } from '../utils/tracer'
 
@@ -59,13 +60,9 @@ export function buildPlaygroundMessages(input: {
 }
 
 async function loadPlaygroundLLMConfig(): Promise<LLMConfig> {
-  const apiKey = await settings.getSetting('llmApiKey')
-  const baseUrl = (await settings.getSetting('llmBaseUrl')) || 'https://api.openai.com/v1'
-  const model = (await settings.getSetting('llmModel')) || 'gpt-4o'
+  const main = await loadMainLLMConfig()
   return {
-    apiKey,
-    baseUrl,
-    model,
+    ...main,
     temperature: 0.7,
     maxTokens: 1024,
   }

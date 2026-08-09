@@ -17,5 +17,6 @@ describe('debug-world-snapshot clip', () => {
     expect(__test.MEMORY_LIMIT).toBeLessThanOrEqual(50)
     expect(__test.MOMENT_LIMIT).toBeLessThanOrEqual(20)
     expect(__test.SLOT_LIMIT).toBeLessThanOrEqual(24)
+    expect(__test.EVENT_LIMIT).toBeLessThanOrEqual(50)
   })
 })

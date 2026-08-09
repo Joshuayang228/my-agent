@@ -2,5 +2,5 @@
 export {
   ConversationDebugAside as ConversationDebugOverlay,
   ConversationDebugAside,
-  type ConversationDebugEvent,
 } from './ConversationDebugAside'
+export type { ConversationDebugEvent } from './conversation-debug'

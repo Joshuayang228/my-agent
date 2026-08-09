@@ -57,6 +57,7 @@ export function PrimarySidebar({
   onContextMenu,
   onNavigate,
   onCollapse,
+  width,
 }: {
   personaName: string
   personaBlurb: string
@@ -86,11 +87,17 @@ export function PrimarySidebar({
   onContextMenu: (e: MouseEvent, sessionId: string) => void
   onNavigate: (view: ShellView) => void
   onCollapse: () => void
+  /** 可拖宽度；默认 260 */
+  width?: number
 }) {
   return (
     <aside
-      className="flex w-[260px] shrink-0 flex-col border-r"
-      style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border-color)' }}
+      className="flex shrink-0 flex-col border-r"
+      style={{
+        width: width ?? 260,
+        background: 'var(--sidebar-bg)',
+        borderColor: 'var(--border-color)',
+      }}
       data-testid="primary-sidebar"
     >
       {/* 品牌 / 主角 */}

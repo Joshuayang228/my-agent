@@ -129,8 +129,8 @@ describe('内置中间件', () => {
     expect(result.content).toBe('fine')
   })
 
-  it('createDefaultPipeline 创建包含 4 个中间件的管道', () => {
+  it('createDefaultPipeline 创建包含 5 个中间件的管道', () => {
     const pipeline = createDefaultPipeline()
-    expect(pipeline.count).toBe(4)
+    expect(pipeline.count).toBe(5)
   })
 })

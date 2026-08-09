@@ -17,18 +17,12 @@
 
 ---
 
-## 进行中
-
-| 文档 | 说明 |
-|------|------|
-| （暂无） | 开新大功能时先写施工合同 → 用户确认 → 再编码 |
-
----
-
 ## 已落地（长期参照）
 
 | 文档 | 说明 |
 |------|------|
+| [chat-right-dock.md](./chat-right-dock.md) | Chat 右侧能力坞 Phase 1：文件 / 审阅 / 终端；Debug 覆盖；命令控制台 |
+| [debug-llm-call-storage.md](./debug-llm-call-storage.md) | 对齐 Alice 的 LLM Debug 调用记录存储、IPC 同步与侧栏恢复 |
 | [playground-component-fitting-room.md](./playground-component-fitting-room.md) | Playground：Alice 壳 + Storybook 思路（Phase 0） |
 | [frontend-alice-shell.md](./frontend-alice-shell.md) | 前端壳层对齐 Alice 布局（大气改造 Phase A） |
 | [experience-debug-playground.md](./experience-debug-playground.md) | 体验调试 Phase 0：DevPanel 两面 + 工具手测 + Prompt 会话覆盖 |

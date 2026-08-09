@@ -1,9 +1,8 @@
 import { buildTool } from '../builder'
 import { promises as fs } from 'node:fs'
 import { createLogger } from '../../utils/logger'
-import type { SandboxMode } from '../../sandbox/policy'
 import { checkFileWriteSandbox, resolveToolFilePath } from '../../sandbox/file-path-guard'
-import * as settings from '../../storage/settings-store'
+import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from '../../agent/project-memory'
 
 const log = createLogger('FileEdit')
@@ -83,7 +82,7 @@ Relative paths resolve against the opened workspace. Confirm dialog Allow does n
     if (!filePath?.trim()) return 'Error: file path is required'
     if (!oldStr) return 'Error: old_str is required'
 
-    const mode = (await settings.getSetting('sandboxMode') || 'workspace-write') as SandboxMode
+    const mode = await loadEffectiveSandbox()
     const wsRoot = getWorkspaceRoot()
     const resolved = resolveToolFilePath(filePath, wsRoot)
     const blocked = checkFileWriteSandbox(resolved, mode, wsRoot, { action: '编辑' })

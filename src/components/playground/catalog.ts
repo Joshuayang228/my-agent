@@ -6,8 +6,9 @@
 export type PlaygroundTabId =
   | 'design-system'
   | 'ui-controls'
-  | 'prompts'
+  | 'surface-baseline'
   | 'chat-lab'
+  | 'model-test'
   | 'tools'
   | 'fixtures'
 
@@ -23,8 +24,9 @@ export interface PlaygroundTabDef {
 export const PLAYGROUND_TABS: readonly PlaygroundTabDef[] = [
   { id: 'design-system', label: '设计系统' },
   { id: 'ui-controls', label: 'UI 控件' },
-  { id: 'prompts', label: '提示词' },
+  { id: 'surface-baseline', label: '页面基线' },
   { id: 'chat-lab', label: '对话试验' },
+  { id: 'model-test', label: '模型测试' },
   { id: 'tools', label: '工具' },
   { id: 'fixtures', label: '体验夹具' },
 ] as const
@@ -47,13 +49,3 @@ export const UI_CONTROLS_SUBTABS: readonly { id: UiControlsSubId; label: string 
   { id: 'memory-chips', label: '记忆芯片' },
   { id: 'status-bar', label: '状态条' },
 ] as const
-
-export interface PromptAsset {
-  id: string
-  name: string
-  desc: string
-  sourcePath: string
-  /** 可折叠预览；过长则只给摘要 */
-  preview?: string
-  status?: PlaygroundTabStatus
-}

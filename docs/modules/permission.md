@@ -6,8 +6,8 @@
 
 ## 边界
 
-**做**：PermissionEngine 责任链、执行模式（confirm-all / auto / full-access）、沙箱策略、命令分级与路径守卫、审批记录、确认 IPC/UI、settings 中 permissionRules 与可视化编辑器。  
-**不做**：OS 级强隔离沙箱（当前为策略级）；Python 嵌入解释器沙箱（wishlist 搁置）。
+**做**：PermissionEngine 责任链、对话页审批模式（confirm-all / auto / full-access）、由审批模式推导的有效沙箱、命令分级与路径守卫、审批记录、确认 IPC/UI、settings 中 permissionRules 与可视化编辑器。
+**不做**：设置页独立沙箱开关（已移除）；OS 级强隔离沙箱；Python 嵌入解释器沙箱（wishlist 搁置）。
 
 ## 短 Why
 
@@ -17,14 +17,14 @@
 
 | 类型 | 位置 |
 |------|------|
-| UI | 输入区审批模式；确认弹窗；设置页规则表单 + 高级 JSON |
-| IPC | tool confirm 请求/应答；settings |
+| UI | **对话页输入区审批模式**（主入口：确认策略 + 有效沙箱）；确认弹窗；设置页规则表单 + 默认执行模式 |
+| IPC | tool confirm 请求/应答；settings.executionMode |
 | 运行时 | Agent Loop 调权限引擎后再 execute |
-| 工具 | `shell_exec` 等走 `checkCommandPermission` |
+| 工具 | `loadEffectiveSandbox()` → `file-path-guard` / `checkCommandPermission` |
 
 ## 依赖
 
-- **依赖**：sandbox（policy / exec-policy / command-guard / approval-store）、settings-store、loop  
+- **依赖**：sandbox（effective-sandbox / policy / exec-policy / command-guard / approval-store）、settings-store、loop
 - **被依赖**：所有破坏性/未知工具执行路径、Eval 权限向场景
 
 ## 不变量
@@ -33,14 +33,15 @@
 - 权限只降不升（含子 Agent）  
 - 确认超时必须清理监听并默认拒绝，避免悬挂  
 - shell 不得绕过引擎自行放行
+- **有效沙箱由 executionMode 推导**：full-access → 放开路径；其余 → workspace-write
 
 ## 必读文件
 
+- `electron/main/sandbox/effective-sandbox.ts`
 - `electron/main/sandbox/permission-engine.ts`
 - `electron/main/sandbox/policy.ts`
-- `electron/main/sandbox/exec-policy.ts`
+- `electron/main/sandbox/file-path-guard.ts`
 - `electron/main/sandbox/command-guard.ts`
-- `electron/main/sandbox/approval-store.ts`
 - `electron/main/agent/loop.ts`（确认与执行衔接）
 - `electron/main/tools/builtins/shell-exec.ts`
 - `agent-skills/security-checklist.md`
@@ -48,8 +49,9 @@
 ## 必测点
 
 - 责任链：自定义规则 → 审批库 → 分级 → 沙箱 → 默认  
+- `resolveEffectiveSandbox`：full-access vs 其他
 - confirm 批准/拒绝/超时  
-- 单测：`permission-engine`；Eval：F01 等权限场景
+- 单测：`permission-engine` / `effective-sandbox`；Eval：F01 等权限场景
 
 ## 已落地能力
 
@@ -58,17 +60,18 @@
 | 能力 | 状态 | 入口 / 落点 |
 |------|------|-------------|
 | PermissionEngine 责任链 | 已落地 | `sandbox/permission-engine.ts` |
-| 执行模式 confirm-all / auto / full-access | 已落地 | 输入区 · settings |
+| 对话页审批模式 | 已落地 | 输入区 · `executionMode`（含 full-access） |
+| 有效沙箱（由审批模式推导） | 已落地 | `effective-sandbox.ts` · write/edit/patch/shell |
 | 命令分级 + 路径守卫 | 已落地 | `command-guard` · `shell_exec` |
-| 文件写入路径沙箱 | 已落地 | `file-path-guard` · write/edit/patch；相对路径相对工作区 |
+| 文件写入路径沙箱 | 已落地 | `file-path-guard`；相对路径相对工作区 |
 | 启动恢复工作区根 | 已落地 | `project:get` → `applyProject` |
 | 用户确认 IPC + 超时拒绝 | 已落地 | tool confirm · 监听清理 |
 | 确认弹窗组件（Chat + Playground） | 已落地 | `PermissionConfirmCard` · 串行队列 |
-| 确认 ≠ 绕过沙箱 | 已落地 | 拦截文案明示；设置「工作区写入」说明 |
+| 确认 ≠ 绕过沙箱 | 已落地 | 拦截文案明示改路径或对话页「完全访问」 |
 | `permissionRules` 热更新 | 已落地 | settings |
 | 权限规则可视化编辑器 | 已落地 | 设置「安全与权限」· `PermissionRulesEditor` |
 
 ## 现状 / 缺口
 
-**现状**：五层链已接 Loop；shell 统一走引擎；permissionRules 热更新 + 可视化编辑器；确认队列（UI）。  
+**现状**：五层链已接 Loop；写入边界以对话页审批为主；设置页不再提供独立沙箱开关。
 **缺口**：更细的产品向权限说明文案；OS/嵌入级强隔离非本阶段。

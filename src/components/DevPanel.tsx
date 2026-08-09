@@ -1,48 +1,15 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import {
   FileText, BarChart3, ClipboardList, Zap, RotateCcw,
-  Bug, Globe, ArrowLeft,
+  Bug, Globe, ArrowLeft, Layers3, Activity,
 } from 'lucide-react'
+import { PromptManagerPanel, type DebugPromptInfo } from './debug/PromptManagerPanel'
+import { ContextInspectorPanel } from './debug/ContextInspectorPanel'
+import { LLMCallsPanel } from './debug/LLMCallsPanel'
+import { WorldStatePanel, type WorldSnapshot } from './debug/WorldStatePanel'
 
-type DebugTab = 'prompt' | 'world' | 'system' | 'traces' | 'events'
-
-interface WorldSnapshot {
-  role: { id: string; name: string; description: string; universeId: string }
-  mutable: {
-    body: string
-    truncated: boolean
-    version: number | null
-    updatedAt: number | null
-    source: 'override' | 'pack-default'
-  }
-  world: { home: string; timezone: string; situation: string; updatedAt: number } | null
-  life: {
-    pausedAt: number | null
-    lastTickAt: number
-    catchupSummary: string
-    catchupTruncated: boolean
-  } | null
-  dayScript: {
-    date: string
-    id: string
-    theme: string
-    slots: Array<{
-      hour: number
-      minute: number
-      type: string
-      activity: string
-      mood: string
-      location: string
-    }>
-    slotsTruncated: boolean
-  } | null
-  moments: Array<{ id: string; publishedAt: number; text: string }>
-  momentsTruncated: boolean
-  profile: { identity: string; workflow: string; voice: string } | null
-  memories: Array<{ id: string; category: string; content: string; updatedAt: number }>
-  memoriesTruncated: boolean
-  generatedAt: number
-}
+type DebugTab = 'prompt' | 'context' | 'world' | 'runtime' | 'system'
+type RuntimeView = 'llm' | 'traces' | 'events'
 
 interface TraceSpanInfo {
   id: string
@@ -56,14 +23,6 @@ interface TraceSpanInfo {
   status: string
   attributes: Record<string, unknown>
   error?: string
-}
-
-interface PromptInfo {
-  full: string
-  layers: { l1: string; l2: string; l3: string; l4: string }
-  persona: { id: string; name: string }
-  charCount: number
-  estimatedTokens: number
 }
 
 interface SystemInfo {
@@ -109,6 +68,18 @@ interface SystemInfo {
   }
 }
 
+interface DebugToolInfo {
+  name: string
+  description: string
+  parameters: Record<string, unknown>
+  metadata: {
+    isReadOnly: boolean
+    isDestructive: boolean
+    isConcurrencySafe: boolean
+    longRunning?: boolean
+  }
+}
+
 interface CallerStat {
   count: number
   totalMs: number
@@ -140,12 +111,12 @@ function formatUptime(seconds: number): string {
   return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`
 }
 
-const DEBUG_TABS: { id: DebugTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'prompt', label: 'Prompt 实装', icon: <FileText size={12} /> },
+export const DEBUG_TABS: { id: DebugTab; label: string; icon: ReactNode }[] = [
+  { id: 'prompt', label: '提示词管理器', icon: <FileText size={12} /> },
+  { id: 'context', label: '上下文', icon: <Layers3 size={12} /> },
   { id: 'world', label: '世界态', icon: <Globe size={12} /> },
+  { id: 'runtime', label: '运行记录', icon: <Activity size={12} /> },
   { id: 'system', label: '系统', icon: <BarChart3 size={12} /> },
-  { id: 'traces', label: '调用链', icon: <Zap size={12} /> },
-  { id: 'events', label: '事件', icon: <ClipboardList size={12} /> },
 ]
 
 interface DevPanelProps {
@@ -156,10 +127,11 @@ interface DevPanelProps {
 /** Debug 独立全页（与 Playground 分离，不再共用 surface 双页壳） */
 export function DevPanel({ onClose, eventLog }: DevPanelProps) {
   const [debugTab, setDebugTab] = useState<DebugTab>('prompt')
-  const [promptInfo, setPromptInfo] = useState<PromptInfo | null>(null)
+  const [promptInfo, setPromptInfo] = useState<DebugPromptInfo | null>(null)
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
-  const [promptLayer, setPromptLayer] = useState<'full' | 'l1' | 'l2' | 'l3' | 'l4'>('full')
+  const [tools, setTools] = useState<DebugToolInfo[]>([])
   const [traces, setTraces] = useState<TracesPayload | null>(null)
+  const [runtimeView, setRuntimeView] = useState<RuntimeView>('llm')
   const [worldSnap, setWorldSnap] = useState<WorldSnapshot | null>(null)
   const [worldError, setWorldError] = useState('')
 
@@ -172,8 +144,13 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
         setWorldError('')
         setWorldSnap(await window.electronAPI.debug.worldSnapshot())
       } else if (debugTab === 'system') {
-        setSystemInfo(await window.electronAPI.debug.systemInfo())
-      } else if (debugTab === 'traces') {
+        const [nextSystemInfo, nextTools] = await Promise.all([
+          window.electronAPI.debug.systemInfo(),
+          window.electronAPI.debug.tools(),
+        ])
+        setSystemInfo(nextSystemInfo)
+        setTools(nextTools)
+      } else if (debugTab === 'runtime' && runtimeView === 'traces') {
         const data = await window.electronAPI.debug.traces()
         setTraces({
           spans: data.spans ?? [],
@@ -187,7 +164,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
         setWorldError(e instanceof Error ? e.message : String(e))
       }
     }
-  }, [debugTab])
+  }, [debugTab, runtimeView])
 
   useEffect(() => { void refresh() }, [refresh])
 
@@ -253,233 +230,27 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
 
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-5">
         {debugTab === 'prompt' && (
-          <PromptTab info={promptInfo} layer={promptLayer} setLayer={setPromptLayer} readonly />
+          <PromptManagerPanel info={promptInfo} />
         )}
+        {debugTab === 'context' && <ContextInspectorPanel />}
         {debugTab === 'world' && (
-          <WorldTab snap={worldSnap} error={worldError} />
+          <WorldStatePanel snap={worldSnap} error={worldError} />
         )}
-        {debugTab === 'system' && <SystemTab info={systemInfo} />}
-        {debugTab === 'traces' && <TracesTab data={traces} />}
-        {debugTab === 'events' && <EventsTab events={eventLog} />}
+        {debugTab === 'runtime' && (
+          <RuntimePanel
+            view={runtimeView}
+            setView={setRuntimeView}
+            traces={traces}
+            events={eventLog}
+          />
+        )}
+        {debugTab === 'system' && <SystemTab info={systemInfo} tools={tools} />}
       </div>
     </div>
   )
 }
 
-function WorldTab({ snap, error }: { snap: WorldSnapshot | null; error: string }) {
-  if (error) {
-    return <p className="text-xs" style={{ color: 'var(--danger, #c44)' }}>{error}</p>
-  }
-  if (!snap) {
-    return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载中…（需要 Electron）</div>
-  }
-
-  const fmt = (ms: number) =>
-    ms ? new Date(ms).toLocaleString('zh-CN', { hour12: false }) : '—'
-
-  return (
-    <div className="space-y-4" data-testid="world-snapshot">
-      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-        只读透视：它以为自己是谁、在哪、今天剧本与近记忆。已截断长字段；不含 API Key。
-        <span className="ml-2 font-mono">@{fmt(snap.generatedAt)}</span>
-      </p>
-
-      <Section title="活跃主角">
-        <KV label="id" value={snap.role.id} mono />
-        <KV label="name" value={snap.role.name} />
-        <KV label="universe" value={snap.role.universeId} mono />
-        <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{snap.role.description}</p>
-      </Section>
-
-      <Section title={`MUTABLE（${snap.mutable.source}${snap.mutable.version != null ? ` · v${snap.mutable.version}` : ''}）`}>
-        {snap.mutable.truncated && (
-          <p className="mb-1 text-[10px] text-amber-500">正文已截断</p>
-        )}
-        <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded border p-2 font-mono text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
-          {snap.mutable.body || '（空）'}
-        </pre>
-      </Section>
-
-      <Section title="世界薄片">
-        {!snap.world ? (
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>尚无 role_state</p>
-        ) : (
-          <>
-            <KV label="home" value={snap.world.home} />
-            <KV label="timezone" value={snap.world.timezone} mono />
-            <KV label="situation" value={snap.world.situation || '—'} />
-            <KV label="updated" value={fmt(snap.world.updatedAt)} mono />
-          </>
-        )}
-      </Section>
-
-      <Section title="生活引擎">
-        {!snap.life ? (
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>—</p>
-        ) : (
-          <>
-            <KV label="pausedAt" value={snap.life.pausedAt ? fmt(snap.life.pausedAt) : '（活跃）'} mono />
-            <KV label="lastTickAt" value={fmt(snap.life.lastTickAt)} mono />
-            {snap.life.catchupTruncated && (
-              <p className="mb-1 text-[10px] text-amber-500">catchup 已截断</p>
-            )}
-            <pre className="max-h-28 overflow-auto whitespace-pre-wrap rounded border p-2 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
-              {snap.life.catchupSummary || '（无 catchup）'}
-            </pre>
-          </>
-        )}
-      </Section>
-
-      <Section title={`今日剧本${snap.dayScript ? ` · ${snap.dayScript.date}` : ''}`}>
-        {!snap.dayScript ? (
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>今日尚无 day_script</p>
-        ) : (
-          <>
-            <KV label="theme" value={snap.dayScript.theme || '—'} />
-            {snap.dayScript.slotsTruncated && (
-              <p className="mb-1 text-[10px] text-amber-500">槽位已截断</p>
-            )}
-            <div className="space-y-1">
-              {snap.dayScript.slots.map((s, i) => (
-                <div key={i} className="rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: 'var(--border-color)' }}>
-                  <span className="font-mono" style={{ color: 'var(--text-muted)' }}>
-                    {String(s.hour).padStart(2, '0')}:{String(s.minute).padStart(2, '0')}
-                  </span>
-                  {' '}
-                  <span style={{ color: 'var(--text-primary)' }}>{s.activity}</span>
-                  <span style={{ color: 'var(--text-muted)' }}> · {s.mood} · {s.location} · {s.type}</span>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </Section>
-
-      <Section title={`近 Moments${snap.momentsTruncated ? '（已截断）' : ''}`}>
-        {snap.moments.length === 0 ? (
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>暂无</p>
-        ) : (
-          <div className="space-y-1">
-            {snap.moments.map((m) => (
-              <div key={m.id} className="rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: 'var(--border-color)' }}>
-                <div className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{fmt(m.publishedAt)}</div>
-                <div style={{ color: 'var(--text-secondary)' }}>{m.text}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Section>
-
-      <Section title="用户画像（L3）">
-        {!snap.profile ? (
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>无画像</p>
-        ) : (
-          <>
-            <KV label="identity" value={snap.profile.identity || '—'} />
-            <KV label="workflow" value={snap.profile.workflow || '—'} />
-            <KV label="voice" value={snap.profile.voice || '—'} />
-          </>
-        )}
-      </Section>
-
-      <Section title={`近记忆${snap.memoriesTruncated ? '（已截断）' : ''}`}>
-        {snap.memories.length === 0 ? (
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>暂无</p>
-        ) : (
-          <div className="space-y-1">
-            {snap.memories.map((m) => (
-              <div key={m.id} className="flex gap-2 rounded border px-2 py-1 text-[11px]" style={{ borderColor: 'var(--border-color)' }}>
-                <span className="shrink-0 font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{m.category}</span>
-                <span style={{ color: 'var(--text-secondary)' }}>{m.content}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </Section>
-    </div>
-  )
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div>
-      <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-        {title}
-      </div>
-      <div className="theme-card rounded-lg border p-3" style={{ borderColor: 'var(--border-color)' }}>
-        {children}
-      </div>
-    </div>
-  )
-}
-
-function KV({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="flex gap-2 text-xs leading-relaxed">
-      <span className="w-20 shrink-0" style={{ color: 'var(--text-muted)' }}>{label}</span>
-      <span className={mono ? 'font-mono break-all' : 'break-words'} style={{ color: 'var(--text-primary)' }}>{value}</span>
-    </div>
-  )
-}
-
-function PromptTab({ info, layer, setLayer, readonly }: {
-  info: PromptInfo | null
-  layer: string
-  setLayer: (l: 'full' | 'l1' | 'l2' | 'l3' | 'l4') => void
-  readonly?: boolean
-}) {
-  if (!info) return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载中... (需要 Electron 环境)</div>
-
-  const layers = [
-    { id: 'full' as const, label: '完整 Prompt', desc: `${info.charCount} chars / ~${info.estimatedTokens} tokens` },
-    { id: 'l1' as const, label: 'L1 人格定义', desc: '[PROTECTED] + [MUTABLE]' },
-    { id: 'l2' as const, label: 'L2 能力边界', desc: '工具列表、行为规范' },
-    { id: 'l3' as const, label: 'L3 上下文注入', desc: '画像、记忆、自定义指令' },
-    { id: 'l4' as const, label: 'L4 动态', desc: '当前时间' },
-  ]
-
-  const content = layer === 'full' ? info.full : info.layers[layer as keyof typeof info.layers] || ''
-
-  return (
-    <div>
-      {readonly && (
-        <p className="mb-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-          生产实装（只读）。要改了试跑 → 切到 Playground「对话试验」。
-        </p>
-      )}
-      <div className="mb-4 flex items-center gap-3">
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>当前人格：</span>
-        <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-[11px] text-violet-500">
-          {info.persona.name}
-        </span>
-      </div>
-
-      <div className="mb-4 flex flex-wrap gap-2">
-        {layers.map(l => (
-          <button
-            key={l.id}
-            onClick={() => setLayer(l.id)}
-            className={`rounded-lg border px-3 py-1.5 text-left transition ${
-              layer === l.id ? 'border-emerald-500 bg-emerald-500/10' : ''
-            }`}
-            style={layer !== l.id ? { borderColor: 'var(--border-color)' } : undefined}
-          >
-            <div className="text-[11px] font-medium" style={{ color: layer === l.id ? '#34d399' : 'var(--text-primary)' }}>
-              {l.label}
-            </div>
-            <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{l.desc}</div>
-          </button>
-        ))}
-      </div>
-
-      <pre className="max-h-[50vh] overflow-auto rounded-lg border p-4 text-xs leading-relaxed" style={{ borderColor: 'var(--card-border)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-        {content}
-      </pre>
-    </div>
-  )
-}
-
-function SystemTab({ info }: { info: SystemInfo | null }) {
+function SystemTab({ info, tools }: { info: SystemInfo | null; tools: DebugToolInfo[] }) {
   if (!info) return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载中...</div>
 
   const sections = [
@@ -505,7 +276,7 @@ function SystemTab({ info }: { info: SystemInfo | null }) {
     {
       title: '运行时策略',
       items: [
-        ['沙箱', info.settings.sandboxMode || '—'],
+        ['有效沙箱', info.settings.sandboxMode || '—'],
         ['审批模式', info.settings.executionMode || '—'],
         ['对话 Debug', info.settings.conversationDebugMode ? '开' : '关'],
         ['会话 Token 预算', String(info.settings.sessionTokenBudget ?? 0)],
@@ -555,6 +326,41 @@ function SystemTab({ info }: { info: SystemInfo | null }) {
           </div>
         </div>
       ))}
+
+      <div className="mb-4">
+        <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+          工具注册表（{tools.length}）
+        </div>
+        {tools.length === 0 ? (
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>未注册工具</p>
+        ) : (
+          <div className="space-y-1.5">
+            {tools.map((tool) => (
+              <details key={tool.name} className="theme-card rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border-color)' }}>
+                <summary className="cursor-pointer">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-mono text-xs" style={{ color: 'var(--text-primary)' }}>{tool.name}</div>
+                      <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{tool.description}</p>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap gap-1 text-[10px]">
+                      <ToolFlag enabled={tool.metadata.isReadOnly} trueLabel="只读" falseLabel="可写" tone="success" />
+                      <ToolFlag enabled={tool.metadata.isDestructive} trueLabel="破坏性" falseLabel="非破坏性" tone="danger" />
+                      <ToolFlag enabled={tool.metadata.isConcurrencySafe} trueLabel="可并发" falseLabel="串行" tone="accent" />
+                      {tool.metadata.longRunning && (
+                        <ToolFlag enabled trueLabel="长任务" falseLabel="" tone="warning" />
+                      )}
+                    </div>
+                  </div>
+                </summary>
+                <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words border-t pt-2 font-mono text-[10px] leading-relaxed" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
+                  {JSON.stringify(tool.parameters, null, 2)}
+                </pre>
+              </details>
+            ))}
+          </div>
+        )}
+      </div>
 
       {rules && (
         <div className="mb-4">
@@ -639,9 +445,76 @@ function StatCard({ label, value, color }: { label: string; value: string; color
     emerald: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-400',
   }
   return (
-    <div className={`rounded-xl border p-3 text-center ${colorMap[color] || colorMap.cyan}`}>
+    <div className={`rounded-lg border p-3 text-center ${colorMap[color] || colorMap.cyan}`}>
       <div className="text-lg font-bold">{value}</div>
       <div className="text-[10px] opacity-70">{label}</div>
+    </div>
+  )
+}
+
+function ToolFlag({
+  enabled,
+  trueLabel,
+  falseLabel,
+  tone,
+}: {
+  enabled: boolean
+  trueLabel: string
+  falseLabel: string
+  tone: 'success' | 'danger' | 'accent' | 'warning'
+}) {
+  const color = enabled
+    ? `var(--${tone})`
+    : 'var(--text-muted)'
+  return (
+    <span className="rounded border px-1.5 py-0.5" style={{ borderColor: color, color }}>
+      {enabled ? trueLabel : falseLabel}
+    </span>
+  )
+}
+
+/** 运行记录将三种观察粒度放在同一域内，避免把技术实现细节提升成一级导航。 */
+function RuntimePanel({
+  view,
+  setView,
+  traces,
+  events,
+}: {
+  view: RuntimeView
+  setView: (view: RuntimeView) => void
+  traces: TracesPayload | null
+  events: Array<{ time: number; type: string; detail: string }>
+}) {
+  const views: Array<{ id: RuntimeView; label: string; icon: ReactNode }> = [
+    { id: 'llm', label: 'LLM 调用', icon: <Activity size={13} /> },
+    { id: 'traces', label: 'Span 调用链', icon: <Zap size={13} /> },
+    { id: 'events', label: '实时事件', icon: <ClipboardList size={13} /> },
+  ]
+  return (
+    <div className="space-y-4" data-testid="runtime-panel">
+      <div className="flex flex-wrap gap-1 border-b pb-2" style={{ borderColor: 'var(--border-subtle)' }}>
+        {views.map((item) => {
+          const active = view === item.id
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setView(item.id)}
+              className="inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-medium"
+              style={{
+                color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
+                background: active ? 'var(--accent-subtle)' : 'transparent',
+              }}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          )
+        })}
+      </div>
+      {view === 'llm' && <LLMCallsPanel />}
+      {view === 'traces' && <TracesTab data={traces} />}
+      {view === 'events' && <EventsTab events={events} />}
     </div>
   )
 }

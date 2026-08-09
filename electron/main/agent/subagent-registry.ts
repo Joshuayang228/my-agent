@@ -27,6 +27,9 @@ interface SubAgentInstance {
   executionMode: ExecutionMode
   maxIterations: number
   parentSpanId?: string
+  /** Debug 查询用的子会话 ID；业务 sessionId 仍保持父会话，用于生命周期清理 */
+  debugSessionId?: string
+  toolContext?: ToolContext
   createdAt: number
 }
 
@@ -47,6 +50,8 @@ export function registerSubAgent(params: {
   executionMode: ExecutionMode
   maxIterations: number
   parentSpanId?: string
+  debugSessionId?: string
+  toolContext?: ToolContext
 }): string {
   const agentId = generateAgentId()
   instances.set(agentId, { agentId, createdAt: Date.now(), ...params })
@@ -101,6 +106,8 @@ export async function continueSubAgent(
         maxIterations: inst.maxIterations,
         signal,
         executionMode: inst.executionMode,
+        toolContext: inst.toolContext,
+        interactionSpanId: subSpan.id,
       },
       inst.childRegistry,
     )

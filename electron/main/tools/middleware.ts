@@ -15,6 +15,7 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { randomBytes } from 'node:crypto'
+import { sessionFileChangeMiddleware } from './session-file-change-middleware'
 
 const log = createLogger('ToolMiddleware')
 
@@ -283,6 +284,7 @@ export function createDefaultPipeline(): ToolMiddlewarePipeline {
   const pipeline = new ToolMiddlewarePipeline()
   pipeline.use('error-formatting', errorFormattingMiddleware)
   pipeline.use('logging', loggingMiddleware)
+  pipeline.use('session-file-change', sessionFileChangeMiddleware)
   pipeline.use('verify', verifyMiddleware)
   pipeline.use('result-persistence', resultPersistenceMiddleware)
   return pipeline

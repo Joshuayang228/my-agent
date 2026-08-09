@@ -1,6 +1,5 @@
 import { ipcMain } from 'electron'
 import * as store from '../storage/session-store'
-import * as settings from '../storage/settings-store'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('SessionIPC')
@@ -36,16 +35,18 @@ export function registerSessionIPC(): void {
       const assistantMsg = session.messages.find(m => m.role === 'assistant')
       if (!userMsg) return { success: false, error: 'No user message found' }
 
-      const apiKey = await settings.getSetting('llmApiKey')
-      const baseUrl = await settings.getSetting('llmBaseUrl') || 'https://api.openai.com/v1'
-      const auxModel = await settings.getSetting('auxModel')
-      const mainModel = await settings.getSetting('llmModel') || 'gpt-4o'
-      const model = auxModel || mainModel
+      const { loadAuxLLMConfig } = await import('../llm/aux-config')
+      const llmConfig = await loadAuxLLMConfig()
+      if (!llmConfig.apiKey) return { success: false, error: 'API Key not configured' }
 
-      if (!apiKey) return { success: false, error: 'API Key not configured' }
-
-      await store.updateSessionTitle(sessionId, '新对话')
-      await store.generateSmartTitle(sessionId, userMsg.content, assistantMsg?.content || '', { apiKey, baseUrl, model })
+      // force：显式重生成，绕过「仅默认标题才调用」门闸
+      await store.generateSmartTitle(
+        sessionId,
+        userMsg.content,
+        assistantMsg?.content || '',
+        llmConfig,
+        { force: true },
+      )
       log.info('Title regenerated', { sessionId })
       return { success: true }
     } catch (err) {

@@ -98,27 +98,16 @@ class AgentRuntime {
     }
   }
 
-  /** 获取主对话 LLM 配置 */
+  /** 获取主对话 LLM 配置（唯一入口：loadMainLLMConfig） */
   async getLLMConfig(): Promise<LLMConfig> {
-    const s = await settings.getAllSettings()
-    return {
-      apiKey: s.llmApiKey || process.env.LLM_API_KEY || '',
-      baseUrl: s.llmBaseUrl || process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
-      model: s.llmModel || process.env.LLM_MODEL || 'gpt-4o',
-      temperature: parseFloat(s.llmTemperature) || undefined,
-      topP: parseFloat(s.llmTopP) || undefined,
-      maxTokens: parseInt(s.llmMaxTokens) || undefined,
-    }
+    const { loadMainLLMConfig } = await import('../llm/aux-config')
+    return loadMainLLMConfig()
   }
 
-  /** 获取辅助任务 LLM 配置（标题/画像/摘要用便宜模型） */
+  /** 获取辅助任务 LLM 配置（唯一入口：loadAuxLLMConfig，含 thinking 策略） */
   async getAuxLLMConfig(): Promise<LLMConfig> {
-    const main = await this.getLLMConfig()
-    const auxModel = await settings.getSetting('auxModel')
-    if (auxModel) {
-      return { ...main, model: auxModel }
-    }
-    return main
+    const { loadAuxLLMConfig } = await import('../llm/aux-config')
+    return loadAuxLLMConfig()
   }
 
   /**
@@ -529,6 +518,7 @@ class AgentRuntime {
       try {
         await maybeExtractProfile(messages, llmConfig, assistantContent, {
           roleId: companion?.roleId,
+          sessionId,
         })
       } finally {
         setQuerySource(null)

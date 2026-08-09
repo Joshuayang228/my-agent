@@ -21,7 +21,7 @@
 | Prompt | `agent/prompt-builder.ts` |
 | 压缩 | `agent/context-manager.ts` |
 | 队列 | `services/task-queue.ts` |
-| UI 调试 | DevPanel（Debug）· PlaygroundPage |
+| UI 调试 | DevPanel（Debug）· PlaygroundPage · `ConversationDebugAside` |
 | 分层说明 | [`../architecture.md`](../architecture.md) |
 
 ## 依赖
@@ -63,9 +63,10 @@
 | 任务队列（后处理 / 反思等） | 已落地 | `services/task-queue` 等 |
 | 子 Agent | 部分 | `subagent`；召唤下任务工边界（M26-G2）；Swarm 见 wishlist |
 | MCP Client（stdio + SSE） | 已落地 | `mcp/` · 设置页 |
-| 多 Provider LLM + Failover | 已落地 | `llm/` |
+| 多 Provider LLM + Failover | 已落地 | `llm/`；配置唯一经 `loadMainLLMConfig` / `loadAuxLLMConfig` |
 | Headless 运行（定时/后台） | 已落地 | `runtime.runHeadless` |
 | Observer / DevPanel 可观测 | 已落地 | tracer / observer / DevPanel |
+| LLM Debug 调用持久化 | 已落地 | tracer sink · `llm_debug_logs` · Debug IPC；复用 `my-agent.db` |
 | Chat Callback 三通道 UI | 已落地 | `src/components/chat/callbacks/` |
 | 工具卡行内附着 assistant（Alice Phase B） | 已落地 | `resolve-tools-for-message.ts` · 历史 `toolCalls`+`role=tool`；进行中挂 live host |
 | Dev Playground（无 Assemble 试跑） | 已落地 | PlaygroundPage · `debug:playground-run` |
@@ -75,12 +76,18 @@
 | 设计 token 场 | 已落地 | Playground「设计系统」 |
 | Playground 组件展厅（左侧活目录 + 故事矩阵） | 已落地 | `src/components/playground/` · M32-G9 · 左右栏 |
 | Playground UI 矩阵加厚（确认/芯片/状态条） | 已落地 | M32-G9 Phase 1 · 正式组件故事格 |
-| 对话 Debug 右侧栏 | 已落地 | Chat 右栏 · `ConversationDebugAside` · ≠ 全页 Debug |
-| Prompt 资产目录 | 已落地 | Playground「提示词」· `prompt-assets.ts` |
+| 对话 Debug 右侧栏 | 已落地 | Chat 右坞 · `ConversationDebugAside`；可盖在能力坞之上（Alice 式）；持久化 LLM 调用链 |
+| 项目文件预览 | 已落地 | `FileBrowser` · text/image/unsupported；图/文本/md；html 沙箱 iframe；pdf·Office 外开 |
+| Chat 右侧能力坞 | 已落地 | `ChatRightDock` · Tab 文件/审阅/终端；会话写文件变更账本；命令控制台（非 PTY）；可拖宽 + 内部分界 |
+| Prompt 资产目录 | 已落地 | Debug「提示词管理器」· `debug:prompt-assets` · `electron/main/agent/prompt-assets.ts`（生产代码唯一来源） |
 | Playground 多轮隔离对话 | 已落地 | `playgroundRun.history` · PromptLab transcript |
+| Playground 模型测试（烟测 + thinking.disabled 探测） | 已落地 | `model-test` tab · `debug:model-smoke` / `model-probe-thinking`；能力缓存供辅助调用 |
 | Debug 世界态透视 | 已落地 | `debug:world-snapshot` · DevPanel 世界态 tab |
+| Debug 五域诊断闭环 | 已落地 | 提示词管理器 / 上下文 / 世界态 / 运行记录 / 系统；Span 与实时事件收进运行记录内部视图 |
+| Debug 真实请求上下文 | 已落地 | `ContextInspectorPanel` 读取持久化 `requestMessages` / `requestTools`；装配预览不声明为实发内容 |
+| Debug 全量 LLM 调用浏览 | 已落地 | 元数据筛选、分页、详情、JSONL 导出、两步清空；查询与导出共用过滤语义 |
 
 ## 现状 / 缺口
 
-**现状**：Loop / Runtime / Prompt / 压缩 / 队列 / MCP / 可观测主线已落地。  
+**现状**：Loop / Runtime / Prompt / 压缩 / 队列 / MCP / 可观测主线已落地；LLM Debug 正文通过现有 observer → tracer Span sink 持久化，侧栏可跨重启恢复；全页 Debug 已按五域收口并直接读取真实请求快照。
 **缺口**：Swarm（wishlist）；更完整的子 Agent 产品化。

@@ -12,6 +12,8 @@ import { registerSchedulerIPC } from './scheduler'
 import { registerRagIPC } from './rag'
 import { registerProjectIPC } from './project'
 import { registerTasksIPC } from './tasks'
+import { registerSessionChangesIPC } from './session-changes'
+import { registerTerminalIPC } from './terminal'
 
 export function registerAllIPC(toolRegistry: ToolRegistry): void {
   registerSessionIPC()
@@ -27,4 +29,6 @@ export function registerAllIPC(toolRegistry: ToolRegistry): void {
   registerRagIPC()
   registerProjectIPC()
   registerTasksIPC()
+  registerSessionChangesIPC()
+  registerTerminalIPC()
 }

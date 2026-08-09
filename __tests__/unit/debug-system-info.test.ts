@@ -11,7 +11,6 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
     activeRoleId: 'lin',
     llmApiKey: 'sk-test',
     systemPrompt: '',
-    sandboxMode: 'workspace-write',
     executionMode: 'confirm-all',
     conversationDebugMode: 'true',
     sessionTokenBudget: '8000',

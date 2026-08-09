@@ -29,7 +29,7 @@ const TOOL_TIMEOUT_MS = 30_000
 // 防止 AI 无限撞墙烧 turn；连续计数在有工具成功执行时清零）
 const MAX_CONSECUTIVE_DENIALS = 3
 const MAX_TOTAL_DENIALS = 20
-const DEFAULT_SYSTEM_PROMPT = `You are a helpful AI assistant. You have access to tools that you can use to help the user. When you need to perform actions, use the available tools. Always respond in the same language as the user.`
+export const DEFAULT_SYSTEM_PROMPT = `You are a helpful AI assistant. You have access to tools that you can use to help the user. When you need to perform actions, use the available tools. Always respond in the same language as the user.`
 
 // ── LoopState ──
 
@@ -333,7 +333,18 @@ export async function* agentLoop(
           return { ...m, content: `[当前时间: ${timeStr}]\n${m.content}` }
         })
 
-        const stream = streamChat({ config, messages: messagesWithTime, tools: effectiveTools, signal, enablePromptCache: true, caller: 'main' })
+        const stream = streamChat({
+          config,
+          messages: messagesWithTime,
+          tools: effectiveTools,
+          signal,
+          enablePromptCache: true,
+          caller: 'main',
+          sessionId: toolContext?.sessionId,
+          parentSpanId: state.interactionSpanId,
+          traceSpan: llmSpan,
+          retryAttempt: attempt,
+        })
 
         let streamResult = await stream.next()
         while (!streamResult.done) {
@@ -387,6 +398,7 @@ export async function* agentLoop(
             log.info('Reactive compact done, retrying LLM', { newMessageCount: state.messages.length })
             state.transition = { reason: 'reactive_compact_retry' }
             lastErr = null
+            getObserver().onLLMEnd(llmSpan, false, 'reactive compact retry')
             break
           }
           // C1: 压缩没缩小消息 —— 用 emergencyTruncate 逐级硬截断作为 413 的最后逃生舱，
@@ -399,9 +411,11 @@ export async function* agentLoop(
             log.info('Emergency truncation done, retrying LLM', { newMessageCount: state.messages.length })
             state.transition = { reason: 'reactive_compact_retry' }
             lastErr = null
+            getObserver().onLLMEnd(llmSpan, false, 'reactive compact retry')
             break
           }
           log.error('Reactive compact and emergency truncation both failed to reduce messages')
+          getObserver().onLLMEnd(llmSpan, false, 'context too long after compact and truncation')
           yield { type: 'error', message: '对话上下文过长，压缩后仍超限。请开始新对话。', code: AgentErrorCode.CONTEXT_TOO_LONG }
           yield { type: 'done', reason: 'prompt_too_long' }
           return

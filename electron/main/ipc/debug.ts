@@ -3,19 +3,34 @@
  *
  * 遵循架构分层：ipc/ → agent/, tools/, storage/, memory/, mcp/
  */
-import { ipcMain } from 'electron'
+import { BrowserWindow, dialog, ipcMain } from 'electron'
+import { writeFile } from 'node:fs/promises'
 import { ToolRegistry } from '../tools/registry'
 import { buildSystemPrompt, rolePackToPromptParts, type PromptContext } from '../agent/prompt-builder'
+import { getPromptAssets } from '../agent/prompt-assets'
 import { loadActiveAssembleInput } from '../companion/orchestrator'
 import { getAllSettings } from '../storage/settings-store'
 import { buildUserProfile } from '../storage/memory-store'
 import { createLogger } from '../utils/logger'
 import { getRecentSpans, getCallerStats, getTokenLaneStats } from '../utils/tracer'
 import { getDailyUsage } from '../agent/token-budget'
+import {
+  llmDebugStore,
+} from '../storage/llm-debug-store'
+import type { LLMCallQuery } from '../../../src/shared/types'
 
 const log = createLogger('DebugIPC')
+let llmDebugUnsubscribe: (() => void) | null = null
 
 export function registerDebugIPC(toolRegistry: ToolRegistry): void {
+  if (!llmDebugUnsubscribe) {
+    llmDebugUnsubscribe = llmDebugStore.subscribe((event) => {
+      for (const window of BrowserWindow.getAllWindows()) {
+        if (!window.isDestroyed()) window.webContents.send('debug:llm-call-event', event)
+      }
+    })
+  }
+
   ipcMain.handle('debug:system-prompt', async () => {
     try {
       const settings = await getAllSettings()
@@ -57,6 +72,9 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     }
   })
 
+  /** Prompt 资产目录：由主进程生产代码和 Role Pack 资产生成，前端不维护副本。 */
+  ipcMain.handle('debug:prompt-assets', () => getPromptAssets())
+
   ipcMain.handle('debug:tools', () => {
     const tools = toolRegistry.getAll()
     return tools.map(t => ({
@@ -82,6 +100,75 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
         background: lanes.background,
       },
       dailyTokenUsage: getDailyUsage(),
+    }
+  })
+
+  /** LLM Debug 历史摘要：正文不随列表查询返回，避免侧栏加载大 payload。 */
+  ipcMain.handle('debug:llm-logs-query', async (_event, input?: LLMCallQuery) => {
+    return llmDebugStore.query({
+      sessionId: typeof input?.sessionId === 'string' ? input.sessionId : undefined,
+      includeSubagents: input?.includeSubagents === true,
+      limit: typeof input?.limit === 'number' ? input.limit : undefined,
+      offset: typeof input?.offset === 'number' ? input.offset : undefined,
+    })
+  })
+
+  /** 按 logId（现有 tracer Span ID）懒加载单条 Debug 正文。 */
+  ipcMain.handle('debug:llm-log-get', async (_event, id: string) => {
+    if (typeof id !== 'string' || !id.trim()) return null
+    return llmDebugStore.getById(id)
+  })
+
+  ipcMain.handle('debug:llm-log-export', async (event, id: string) => {
+    if (typeof id !== 'string' || !id.trim()) return { ok: false, error: '无效的 Debug 记录' }
+    const record = await llmDebugStore.getById(id)
+    if (!record) return { ok: false, error: 'Debug 记录不存在' }
+    const owner = BrowserWindow.fromWebContents(event.sender) ?? undefined
+    const result = await dialog.showSaveDialog(owner, {
+      defaultPath: `my-agent-llm-debug-${id}.json`,
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    })
+    if (result.canceled || !result.filePath) return { ok: false, canceled: true }
+    try {
+      await writeFile(result.filePath, JSON.stringify(record, null, 2), 'utf8')
+      return { ok: true, filePath: result.filePath }
+    } catch (error) {
+      log.warn('Failed to export single LLM Debug log', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+      return { ok: false, error: '导出 Debug 记录失败' }
+    }
+  })
+
+  ipcMain.handle('debug:llm-subagents', async (_event, mainSessionId: string) => {
+    if (typeof mainSessionId !== 'string' || !mainSessionId.trim()) return []
+    return llmDebugStore.listSubagentSessions(mainSessionId)
+  })
+
+  ipcMain.handle('debug:llm-logs-clear', async (_event, sessionId?: string) => {
+    await llmDebugStore.clear(typeof sessionId === 'string' ? sessionId : undefined)
+    return { ok: true }
+  })
+
+  ipcMain.handle('debug:llm-logs-export', async (event, input?: LLMCallQuery) => {
+    const content = await llmDebugStore.exportJsonl({
+      sessionId: typeof input?.sessionId === 'string' ? input.sessionId : undefined,
+      includeSubagents: input?.includeSubagents === true,
+    })
+    const owner = BrowserWindow.fromWebContents(event.sender) ?? undefined
+    const result = await dialog.showSaveDialog(owner, {
+      defaultPath: 'my-agent-llm-debug.jsonl',
+      filters: [{ name: 'JSON Lines', extensions: ['jsonl'] }],
+    })
+    if (result.canceled || !result.filePath) return { ok: false, canceled: true }
+    try {
+      await writeFile(result.filePath, content, 'utf8')
+      return { ok: true, filePath: result.filePath, count: content ? content.trimEnd().split('\n').length : 0 }
+    } catch (error) {
+      log.warn('Failed to export LLM Debug logs', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+      return { ok: false, error: '导出 Debug 记录失败' }
     }
   })
 
@@ -125,6 +212,23 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
   ipcMain.handle('debug:world-snapshot', async () => {
     const { buildDebugWorldSnapshot } = await import('../agent/debug-world-snapshot')
     return buildDebugWorldSnapshot()
+  })
+
+  /** Playground 模型烟测（对齐 Alice「模型测试」） */
+  ipcMain.handle('debug:model-smoke', async () => {
+    const { runModelSmokeTest } = await import('../agent/playground-model-test')
+    return runModelSmokeTest()
+  })
+
+  /** Playground：探测 thinking.disabled 并写入能力缓存 */
+  ipcMain.handle('debug:model-probe-thinking', async () => {
+    const { probeThinkingDisable } = await import('../agent/playground-model-test')
+    return probeThinkingDisable()
+  })
+
+  ipcMain.handle('debug:model-test-status', async () => {
+    const { getModelTestStatus } = await import('../agent/playground-model-test')
+    return getModelTestStatus()
   })
 
   log.info('Debug IPC registered')

@@ -1,5 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import type { ChatMessage, AgentStreamEvent, ImageAttachment, MemoryCitation } from './shared/types'
+import type {
+  ChatMessage,
+  AgentStreamEvent,
+  ImageAttachment,
+  MemoryCitation,
+  LLMCallSummary,
+} from './shared/types'
 import { MarkdownRenderer } from './components/MarkdownRenderer'
 import { SettingsPanel } from './components/SettingsPanel'
 import { DevPanel } from './components/DevPanel'
@@ -8,7 +14,7 @@ import { MemoryPanel } from './components/MemoryPanel'
 import { CompanionSceneBackdrop } from './components/CompanionSceneBackdrop'
 import { ToastProvider, useToast } from './components/Toast'
 import { SkillsPanel } from './components/SkillsPanel'
-import { FileBrowser } from './components/FileBrowser'
+import { ChatRightDock } from './components/chat/right-dock/ChatRightDock'
 import MentionPopup from './components/MentionPopup'
 import { MemoryCitationChips } from './components/chat/MemoryCitationChips'
 import { PermissionConfirmCard } from './components/chat/PermissionConfirmCard'
@@ -36,7 +42,6 @@ import {
   type ReasoningCallbackState,
   type ToolCallbackItem,
 } from './components/chat/callbacks'
-import { ConversationDebugAside } from './components/chat/ConversationDebugAside'
 import { parseConversationDebugMode } from './components/chat/conversation-debug'
 import {
   PrimarySidebar,
@@ -48,6 +53,8 @@ import {
   type ShellView,
   type WorldTab,
 } from './components/shell'
+import { ResizeHandle } from './components/shell/ResizeHandle'
+import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from './shared/panel-layout'
 
 let messageIdCounter = 0
 function genId() {
@@ -134,10 +141,10 @@ function App() {
   /** 对话内 debugMode（M32-G7）；与全页 Debug/Playground 无关 */
   const [conversationDebugMode, setConversationDebugMode] = useState(false)
   const conversationDebugModeRef = useRef(false)
-  /** token 预算：优先 sessionTokenBudget，否则 llmMaxTokens；0=无上限 */
-  const [debugTokenBudget, setDebugTokenBudget] = useState(0)
   // showMemoryPanel / showSkillsPanel / DevPanel 已合并为 activeView
   const [eventLog, setEventLog] = useState<Array<{ time: number; type: string; detail: string }>>([])
+  const [persistedDebugCalls, setPersistedDebugCalls] = useState<LLMCallSummary[]>([])
+  const [persistedDebugLoading, setPersistedDebugLoading] = useState(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; sessionId: string } | null>(null)
@@ -157,6 +164,16 @@ function App() {
   const sessionFilterRef = useRef<HTMLInputElement>(null)
   const [sidebarSearchOpen, setSidebarSearchOpen] = useState(false)
   const [showFileBrowser, setShowFileBrowser] = useState(false)
+  const [sidebarWidth, setSidebarWidth] = usePersistedNumber(
+    LAYOUT_KEYS.sidebarWidth,
+    LAYOUT_BOUNDS.sidebarWidth.fallback,
+    LAYOUT_BOUNDS.sidebarWidth,
+  )
+  const [rightDockWidth, setRightDockWidth] = usePersistedNumber(
+    LAYOUT_KEYS.rightDockWidth,
+    LAYOUT_BOUNDS.rightDockWidth.fallback,
+    LAYOUT_BOUNDS.rightDockWidth,
+  )
   const [mentionOpen, setMentionOpen] = useState(false)
   const [mentionQuery, setMentionQuery] = useState('')
   const [mentionAnchor, setMentionAnchor] = useState({ top: 0, left: 0 })
@@ -221,6 +238,56 @@ function App() {
 
   useEffect(() => { sessionsRef.current = sessions }, [sessions])
   useEffect(() => { activeSessionIdRef.current = activeSessionId }, [activeSessionId])
+
+  /** 对话 Debug 读取现有 tracer sink 的持久化摘要，并订阅增量事件。 */
+  useEffect(() => {
+    const debug = window.electronAPI?.debug
+    if (!debug || !activeSessionId || !conversationDebugMode) {
+      setPersistedDebugCalls([])
+      setPersistedDebugLoading(false)
+      return
+    }
+
+    let disposed = false
+    const refresh = async () => {
+      setPersistedDebugLoading(true)
+      try {
+        const result = await debug.llmLogsQuery({
+          sessionId: activeSessionId,
+          includeSubagents: true,
+          limit: 300,
+        })
+        if (!disposed) setPersistedDebugCalls(result.records)
+      } catch {
+        if (!disposed) setPersistedDebugCalls([])
+      } finally {
+        if (!disposed) setPersistedDebugLoading(false)
+      }
+    }
+
+    void refresh()
+    const unsubscribe = debug.onLLMCallEvent((event) => {
+      if (disposed) return
+      if (event.type === 'cleared') {
+        if (!event.sessionId || event.sessionId === activeSessionId) setPersistedDebugCalls([])
+        return
+      }
+      if (event.record.sessionId === activeSessionId) {
+        setPersistedDebugCalls((previous) => {
+          const next = new Map(previous.map((record) => [record.id, record]))
+          next.set(event.record.id, event.record)
+          return Array.from(next.values()).sort((a, b) => a.startedAt - b.startedAt)
+        })
+      } else {
+        // 子 Agent 使用独立 Debug session；事件到达时重新按主会话聚合。
+        void refresh()
+      }
+    })
+    return () => {
+      disposed = true
+      unsubscribe()
+    }
+  }, [activeSessionId, conversationDebugMode])
 
   const MODEL_PRESETS = [
     { label: 'GPT-4o', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o' },
@@ -293,9 +360,6 @@ function App() {
       setConversationDebugMode(debugOn)
       conversationDebugModeRef.current = debugOn
       if (debugOn) setThinkingExpanded(true)
-      const sessionBudget = Number.parseInt(s.sessionTokenBudget || '0', 10) || 0
-      const modelMax = Number.parseInt(s.llmMaxTokens || '0', 10) || 0
-      setDebugTokenBudget(sessionBudget > 0 ? sessionBudget : modelMax)
       if (!s.llmApiKey) {
         setActiveView('settings')
         setTimeout(() => toast('欢迎！请先配置 API Key 以开始使用', 'warning'), 500)
@@ -371,6 +435,7 @@ function App() {
     setMessages([])
     setActiveTools([])
     setEventLog([])
+    setPersistedDebugCalls([])
     setInput('')
     setIsStreaming(false)
     setReasoning(resetReasoning())
@@ -898,52 +963,60 @@ function App() {
     <div className="app-shell flex h-screen select-none" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       {/* ── Primary 侧栏（Alice 壳） ── */}
       {sidebarOpen && (
-        <PrimarySidebar
-          personaName={currentPersonaName}
-          personaBlurb={companionBlurb || '越探索，越着迷。'}
-          activeView={activeView}
-          activeSessionId={activeSessionId}
-          sessionGroups={sessionGroups}
-          sessionPreviews={sessionPreviews}
-          pinnedIds={pinnedIds}
-          bgStreamingSessionId={bgStreamingSessionId}
-          activeBgTaskCount={activeBgTaskCount}
-          sidebarSearchOpen={sidebarSearchOpen}
-          sessionFilter={sessionFilter}
-          sessionFilterRef={sessionFilterRef}
-          renamingId={renamingId}
-          renameValue={renameValue}
-          onOpenShelf={() => {
-            setWorldTab('shelf')
-            setActiveView('world')
-          }}
-          onCreateSession={() => { void createNewSession() }}
-          onToggleSearch={() => {
-            setSidebarSearchOpen((v) => !v)
-            setTimeout(() => sessionFilterRef.current?.focus(), 50)
-          }}
-          onSessionFilterChange={setSessionFilter}
-          onCloseSearch={() => { setSidebarSearchOpen(false); setSessionFilter('') }}
-          onSelectSession={(id) => { setActiveView('chat'); void switchSession(id) }}
-          onStartRename={(id, title) => { setRenamingId(id); setRenameValue(title) }}
-          onRenameChange={setRenameValue}
-          onCommitRename={() => { void commitRename() }}
-          onCancelRename={() => setRenamingId(null)}
-          onDeleteSession={(id) => { void deleteSession(id) }}
-          onContextMenu={(e, sessionId) => {
-            e.preventDefault()
-            setContextMenu({ x: e.clientX, y: e.clientY, sessionId })
-          }}
-          onNavigate={(view) => {
-            if (isWorldView(view) || view === 'world') {
-              setWorldTab(worldTabFromView(view === 'world' ? 'world' : view))
+        <>
+          <PrimarySidebar
+            personaName={currentPersonaName}
+            personaBlurb={companionBlurb || '越探索，越着迷。'}
+            activeView={activeView}
+            activeSessionId={activeSessionId}
+            sessionGroups={sessionGroups}
+            sessionPreviews={sessionPreviews}
+            pinnedIds={pinnedIds}
+            bgStreamingSessionId={bgStreamingSessionId}
+            activeBgTaskCount={activeBgTaskCount}
+            sidebarSearchOpen={sidebarSearchOpen}
+            sessionFilter={sessionFilter}
+            sessionFilterRef={sessionFilterRef}
+            renamingId={renamingId}
+            renameValue={renameValue}
+            width={sidebarWidth}
+            onOpenShelf={() => {
+              setWorldTab('shelf')
               setActiveView('world')
-              return
-            }
-            setActiveView(view)
-          }}
-          onCollapse={() => setSidebarOpen(false)}
-        />
+            }}
+            onCreateSession={() => { void createNewSession() }}
+            onToggleSearch={() => {
+              setSidebarSearchOpen((v) => !v)
+              setTimeout(() => sessionFilterRef.current?.focus(), 50)
+            }}
+            onSessionFilterChange={setSessionFilter}
+            onCloseSearch={() => { setSidebarSearchOpen(false); setSessionFilter('') }}
+            onSelectSession={(id) => { setActiveView('chat'); void switchSession(id) }}
+            onStartRename={(id, title) => { setRenamingId(id); setRenameValue(title) }}
+            onRenameChange={setRenameValue}
+            onCommitRename={() => { void commitRename() }}
+            onCancelRename={() => setRenamingId(null)}
+            onDeleteSession={(id) => { void deleteSession(id) }}
+            onContextMenu={(e, sessionId) => {
+              e.preventDefault()
+              setContextMenu({ x: e.clientX, y: e.clientY, sessionId })
+            }}
+            onNavigate={(view) => {
+              if (isWorldView(view) || view === 'world') {
+                setWorldTab(worldTabFromView(view === 'world' ? 'world' : view))
+                setActiveView('world')
+                return
+              }
+              setActiveView(view)
+            }}
+            onCollapse={() => setSidebarOpen(false)}
+          />
+          <ResizeHandle
+            orientation="vertical"
+            title="拖动调整侧栏宽度"
+            onDelta={(dx) => setSidebarWidth((w) => w + dx)}
+          />
+        </>
       )}
 
       <SecondaryNav
@@ -1013,9 +1086,8 @@ function App() {
               <Menu size={16} />
             </button>
           )}
-          <span className="flex-1 truncate text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-            {sessions.find((s) => s.id === activeSessionId)?.title || 'My Agent'}
-          </span>
+          {/* 对齐 Alice：顶栏不放会话标题（标题只在左侧列表）；右侧留给操作与伙伴态 */}
+          <div className="flex-1" />
           {currentProject && (
             <button
               onClick={() => setShowFileBrowser(v => !v)}
@@ -1522,7 +1594,7 @@ function App() {
 
                   <span className="mx-0.5 h-4 w-px" style={{ background: 'var(--border-subtle)' }} />
 
-                  {/* 审批模式 */}
+                  {/* 审批模式：同时决定「问不问」与有效沙箱（full-access → 放开路径限制） */}
                   <div className="relative">
                     <button
                       onClick={(e) => { e.stopPropagation(); setApprovalMenuOpen(!approvalMenuOpen) }}
@@ -1539,9 +1611,9 @@ function App() {
                       <div className="absolute bottom-full left-0 z-50 mb-1 w-56 rounded-lg border py-1.5 shadow-lg" style={{ borderColor: 'var(--border-color)', background: 'var(--dropdown-bg)' }}>
                         <div className="px-3 pb-1.5 pt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>应如何批准操作？</div>
                         {([
-                          { mode: 'confirm-all' as const, icon: <Shield size={14} />, label: '请求批准', desc: '编辑外部文件和使用互联网时始终询问' },
-                          { mode: 'auto' as const, icon: <RefreshCw size={14} />, label: '替我审批', desc: '仅对检测到的风险操作请求批准' },
-                          { mode: 'full-access' as const, icon: <Zap size={14} />, label: '完全访问权限', desc: '可不受限制地访问互联网和文件' },
+                          { mode: 'confirm-all' as const, icon: <Shield size={14} />, label: '请求批准', desc: '破坏性操作始终询问；仅允许工作区内写入' },
+                          { mode: 'auto' as const, icon: <RefreshCw size={14} />, label: '替我审批', desc: '仅对风险操作请求批准；仅允许工作区内写入' },
+                          { mode: 'full-access' as const, icon: <Zap size={14} />, label: '完全访问权限', desc: '跳过确认，并放开文件路径沙箱' },
                         ]).map((opt) => (
                           <button
                             key={opt.mode}
@@ -1755,20 +1827,26 @@ function App() {
         </div>}
       </div>
 
-      {activeView === 'chat' && conversationDebugMode && (
-        <ConversationDebugAside
-          usage={usage}
-          maxTokens={debugTokenBudget}
-          events={eventLog}
-          onClose={() => { void setConversationDebug(false) }}
-        />
-      )}
-
-      {/* 文件浏览器面板 */}
-      {showFileBrowser && (
-        <div className="animate-slide-in-right w-[320px] shrink-0 border-l overflow-hidden" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
-          <FileBrowser projectPath={currentProject?.path || null} onClose={() => setShowFileBrowser(false)} />
-        </div>
+      {/* 右坞：文件/审阅/终端；Debug 调用链盖上层（Alice 式） */}
+      {(showFileBrowser || (activeView === 'chat' && conversationDebugMode)) && (
+        <>
+          <ResizeHandle
+            orientation="vertical"
+            title="拖动调整右坞宽度"
+            onDelta={(dx) => setRightDockWidth((w) => w - dx)}
+          />
+          <ChatRightDock
+            projectPath={currentProject?.path || null}
+            sessionId={activeSessionId}
+            showFiles={showFileBrowser}
+            conversationDebug={activeView === 'chat' && conversationDebugMode}
+            persistedCalls={persistedDebugCalls}
+            persistedLoading={persistedDebugLoading}
+            width={rightDockWidth}
+            onCloseFiles={() => setShowFileBrowser(false)}
+            onCloseDebug={() => { void setConversationDebug(false) }}
+          />
+        </>
       )}
 
       {/* Memory / Skills / Debug / Playground 均为主区域全页视图 */}

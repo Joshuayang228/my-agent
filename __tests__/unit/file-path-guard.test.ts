@@ -29,6 +29,7 @@ describe('file-path-guard', () => {
     expect(msg).toContain('SANDBOX BLOCKED')
     expect(msg).toContain('只读')
     expect(msg).toContain('不会绕过沙箱')
+    expect(msg).toContain('对话页')
   })
 
   it('workspace-write 越界拦截', () => {
@@ -36,6 +37,7 @@ describe('file-path-guard', () => {
     const msg = checkFileWriteSandbox(outside, 'workspace-write', root)
     expect(msg).toContain('超出工作区')
     expect(msg).toContain('允许')
+    expect(msg).toContain('完全访问')
   })
 
   it('workspace-write 工作区内允许', () => {

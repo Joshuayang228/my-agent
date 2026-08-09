@@ -11,7 +11,7 @@ vi.mock('../../electron/main/sandbox/permission-engine', () => ({
 }))
 
 vi.mock('../../electron/main/storage/settings-store', () => ({
-  getAllSettings: vi.fn(async () => ({ sandboxMode: 'workspace-write' })),
+  getAllSettings: vi.fn(async () => ({ executionMode: 'auto' })),
 }))
 
 vi.mock('../../electron/main/agent/project-memory', () => ({

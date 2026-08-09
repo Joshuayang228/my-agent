@@ -8,7 +8,7 @@
 |--|--|
 | **现在在哪** | 公开 alpha。壳层 IA：人物世界口袋 + Debug/Playground 独立全页；Playground Phase 0+1 已落地。 |
 | **产品怎么记** | `docs/modules/README.md` → 各卡「已落地能力」；大改先写 `docs/requirements/` **施工合同**。 |
-| **下一步可做** | 前端 Phase C / M32-G8 aside；公开截图前再打磨。 |
+| **下一步可做** | Playground 页面基线确认 → 正式页面回流；之后再做能力渐进披露。 |
 | **明确暂缓** | 原生语音 STT（`docs/deferred/native-voice-input.md`）；生图 Moments（M24-G3）；Python 嵌入沙箱。 |
 | **仓库** | 双语 README；Issues/PR 欢迎；见 `CONTRIBUTING.md`。 |
 
@@ -16,9 +16,20 @@
 
 **阶段**：公开运营起步；体验与前端统一优先于再堆基建；原生语音与 M24-G3 暂缓。
 
-**最新动态（2026-08-06）**：
+**最新动态（2026-08-09）**：
+- ✅ **Debug 五域诊断闭环**：顶层收口为「提示词管理器 / 上下文 / 世界态 / 运行记录 / 系统」；真实请求快照、完整 LLM 日志、计划/发布状态时间线和 Tool Registry 清单已接入；Debug 继续只读，日志清空需两步确认。
+- ✅ **Playground 页面基线（2026-08-09）**：新增 Chat 壳 / Primary Sidebar / Right Dock / 人物世界 / 设置组合态展厅；先确认 Alice 对齐的布局、密度与状态，再回流正式页面。
+- ✅ **Debug / Playground IA 收口（2026-08-09）**：全量审计两边 tab；Prompt 生产目录移入 Debug「提示词管理器」，Playground 只保留设计、组件/页面故事和隔离试验。目录继续由 `debug:prompt-assets` 读取主进程唯一注册表。
+- ✅ **面板可拖分界**：左栏 / 右坞 / 文件树↔预览 / 审阅列表↔diff；`layout.*` 持久化。
+- ✅ **Chat 右侧能力坞 Phase 1**：`ChatRightDock` 文件/审阅/终端；会话写盘变更审阅；命令控制台；Debug 覆盖。
+- ✅ **有效沙箱**：由对话页 `executionMode` 推导（完全访问 → 放开路径）；设置页已删独立沙箱开关。
+- ✅ **右坞 / 文件预览**：对话 Debug（LLM 调用链）可盖在「项目文件」上（Alice 式）；预览支持图片 + 文本/Markdown/HTML，Office/PDF 等走系统应用打开。
+- ✅ **Debug / 标题 / Thinking**：侧栏思考在上；标题仅默认标题时生成；Playground「模型测试」探测 `thinking.disabled`；LLM 配置统一走 `loadMain/AuxLLMConfig`（含右键重生标题）。
+- ✅ **规则**：模板 + my-agent 补强「注释三要素 / 注释保护 / 删除声明」（非 M01 Agent Loop 内容）。
 - ✅ **启动首帧体验**：BrowserWindow `show:false` + `ready-to-show`；入口 Splash 提前恢复主题并在 React 挂载后淡出，启动重初始化不阻塞首帧。
 - ✅ **壳层交互**：侧栏 Debug/Playground 并排；独立页返回左上；对话 Debug 右栏；preload CJS。
+- ✅ **对话 Debug 调用链收敛**：参考 Alice 的 `LLM 调用链` 侧栏，按模型调用展示状态、模型、tokens、耗时和工具摘要；`text` / `thinking` 事件继续留在全页 Debug。
+- ✅ **LLM Debug 数据持久化**：不另起独立日志库；复用 `observer → tracer` 的 `llm_request` Span，以 Span ID 作为 logId，将请求/响应正文写入 `my-agent.db` 的 `llm_debug_logs`，支持主会话/子 Agent 聚合、懒加载、清空和 JSONL 导出。
 - ✅ **Debug/Playground 左右栏**：左侧纵向 tab + 右侧内容区（告别顶栏横滑）。
 - ✅ **写文件沙箱修复**：启动恢复工作区；相对路径对齐项目根；确认≠绕过文案；渲染进程 sandbox 噪声收敛。
 - ✅ **壳层 IA**：人物世界 `WorldHub`；撤顶栏状态条与侧栏主题钮；Debug/Playground 独立页壳。

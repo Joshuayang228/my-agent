@@ -6,8 +6,9 @@ import { config } from 'dotenv'
 import { ToolRegistry } from './tools/registry'
 import { builtinTools } from './tools/builtins/index'
 import { createLogger } from './utils/logger'
-import { mark } from './utils/tracer'
+import { mark, setLLMTraceSink } from './utils/tracer'
 import { closeDatabase } from './storage/database'
+import { llmDebugStore } from './storage/llm-debug-store'
 import { registerAllIPC } from './ipc/index'
 import { mcpManager } from './mcp/client'
 import type { McpServerConfig } from './mcp/client'
@@ -108,6 +109,8 @@ if (delegateTool) {
 
 // ── IPC 注册 ──
 
+// Debug 正文持久化挂到现有 tracer Span；不另建 LLM 调用生命周期。
+setLLMTraceSink(llmDebugStore)
 registerAllIPC(toolRegistry)
 
 // ── 启动时恢复 MCP 连接 ──
