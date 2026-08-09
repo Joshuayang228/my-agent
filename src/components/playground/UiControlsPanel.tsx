@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react'
+import { LoaderCircle, PanelRight, Search, Send, Settings, SlidersHorizontal, Sparkles, WandSparkles } from 'lucide-react'
 import { ToolCallbackList } from '../chat/callbacks/ToolCallbackList'
 import type { ToolCallbackItem } from '../chat/callbacks/types'
 import { MemoryCitationChips } from '../chat/MemoryCitationChips'
@@ -112,7 +113,7 @@ export function UiControlsPanel() {
       <div className="min-w-0 max-w-2xl flex-1 space-y-4">
       {sub === 'buttons' && (
         <div className="space-y-3">
-          <StoryBlock title="主要 / 次要" source="index.css · .settings-option">
+          <StoryBlock title="主要 / 次要" source="index.css · .settings-option" adopted>
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" className="settings-option px-3 py-1.5 text-xs">主要操作</button>
               <button
@@ -131,7 +132,7 @@ export function UiControlsPanel() {
               </button>
             </div>
           </StoryBlock>
-          <StoryBlock title="禁用" source="disabled:opacity-50" edge>
+          <StoryBlock title="禁用" source="disabled:opacity-50" edge adopted>
             <button type="button" disabled className="settings-option px-3 py-1.5 text-xs disabled:opacity-50">
               不可点
             </button>
@@ -141,25 +142,34 @@ export function UiControlsPanel() {
 
       {sub === 'inputs' && (
         <div className="space-y-3">
-          <StoryBlock title="theme-input 默认" source=".theme-input">
+          <StoryBlock title="theme-input 默认" source=".theme-input" adopted>
             <input
               className="theme-input w-full max-w-sm rounded-lg border px-2 py-1.5 text-xs outline-none"
               placeholder="输入…"
               defaultValue="示例"
             />
           </StoryBlock>
-          <StoryBlock title="超长占位 / 窄宽" source=".theme-input" edge>
+          <StoryBlock title="超长占位 / 窄宽" source=".theme-input" edge adopted>
             <input
               className="theme-input w-28 rounded-lg border px-2 py-1.5 text-xs outline-none"
               defaultValue="这是一段故意超长的输入内容用来看截断与溢出"
             />
+          </StoryBlock>
+          <StoryBlock title="带图标输入" source="Playground story">
+            <label className="relative block max-w-sm">
+              <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+              <input
+                className="theme-input h-9 w-full border pl-9 pr-3 text-xs outline-none"
+                placeholder="搜索会话、文件或能力"
+              />
+            </label>
           </StoryBlock>
         </div>
       )}
 
       {sub === 'tool-cards' && (
         <div className="space-y-3">
-          <StoryBlock title="工具卡三态" source="src/components/chat/callbacks/ToolCallbackList.tsx">
+          <StoryBlock title="工具卡三态" source="src/components/chat/callbacks/ToolCallbackList.tsx" adopted>
             <ToolCallbackList
               tools={tools}
               onToggleCollapse={(id) =>
@@ -172,7 +182,7 @@ export function UiControlsPanel() {
               }
             />
           </StoryBlock>
-          <StoryBlock title="错误态展开" source="ToolCallbackList · status=error" edge>
+          <StoryBlock title="错误态展开" source="ToolCallbackList · status=error" edge adopted>
             <ToolCallbackList
               tools={[TOOL_STORIES[2]]}
               onToggleCollapse={() => undefined}
@@ -194,13 +204,13 @@ export function UiControlsPanel() {
 
       {sub === 'confirm' && (
         <div className="space-y-3">
-          <StoryBlock title="权限确认" source="src/components/chat/PermissionConfirmCard.tsx">
+          <StoryBlock title="权限确认" source="src/components/chat/PermissionConfirmCard.tsx" adopted>
             <PermissionConfirmCard
               toolName="shell_exec"
               args={{ command: 'npm test' }}
             />
           </StoryBlock>
-          <StoryBlock title="队列 >1" source="PermissionConfirmCard · queueLength" edge>
+          <StoryBlock title="队列 >1" source="PermissionConfirmCard · queueLength" edge adopted>
             <PermissionConfirmCard
               toolName="write_file"
               args={{ path: 'a.ts', content: 'x'.repeat(80) }}
@@ -212,7 +222,7 @@ export function UiControlsPanel() {
 
       {sub === 'memory-chips' && (
         <div className="space-y-3">
-          <StoryBlock title="引用芯片 + 纠错" source="src/components/chat/MemoryCitationChips.tsx">
+          <StoryBlock title="引用芯片 + 纠错" source="src/components/chat/MemoryCitationChips.tsx" adopted>
             <MemoryCitationChips
               citations={[
                 { id: 'm1', category: 'preference', summary: '喜欢简洁回答' },
@@ -221,7 +231,7 @@ export function UiControlsPanel() {
               showActions
             />
           </StoryBlock>
-          <StoryBlock title="超长摘要截断" source="MemoryCitationChips truncate" edge>
+          <StoryBlock title="超长摘要截断" source="MemoryCitationChips truncate" edge adopted>
             <MemoryCitationChips
               citations={[
                 {
@@ -237,7 +247,7 @@ export function UiControlsPanel() {
 
       {sub === 'status-bar' && (
         <div className="space-y-3">
-          <StoryBlock title="伴侣状态条" source="src/components/CompanionStatusBar.tsx">
+          <StoryBlock title="伴侣状态条" source="src/components/CompanionStatusBar.tsx" adopted>
             <div className="overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
               <CompanionStatusBar
                 roleName="白艾莉"
@@ -249,7 +259,7 @@ export function UiControlsPanel() {
               />
             </div>
           </StoryBlock>
-          <StoryBlock title="超长角色名" source="CompanionStatusBar truncate" edge>
+          <StoryBlock title="超长角色名" source="CompanionStatusBar truncate" edge adopted>
             <div className="overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
               <CompanionStatusBar
                 roleName="这是一个故意起得很长的角色名字用来测试状态条截断表现"
@@ -259,6 +269,42 @@ export function UiControlsPanel() {
                 onOpenShelf={() => undefined}
                 onOpenCast={() => undefined}
               />
+            </div>
+          </StoryBlock>
+        </div>
+      )}
+
+      {sub === 'icons' && (
+        <div className="space-y-3">
+          <StoryBlock title="操作图标阶梯" source="lucide-react · 12 / 14 / 16 / 20" adopted>
+            <div className="flex flex-wrap items-end gap-5">
+              {[
+                { label: '搜索', icon: Search },
+                { label: '筛选', icon: SlidersHorizontal },
+                { label: '侧栏', icon: PanelRight },
+                { label: '设置', icon: Settings },
+                { label: '发送', icon: Send },
+              ].map(({ label, icon: Icon }, index) => (
+                <div key={label} className="flex min-w-12 flex-col items-center gap-1.5">
+                  <button type="button" className="flex h-8 w-8 items-center justify-center rounded-md" style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }} title={label}>
+                    <Icon size={[12, 14, 16, 20, 16][index]} strokeWidth={1.6} />
+                  </button>
+                  <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{label}</span>
+                </div>
+              ))}
+            </div>
+          </StoryBlock>
+          <StoryBlock title="生成动作" source="Playground story">
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
+                <Sparkles size={14} />生成
+              </button>
+              <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs text-white" style={{ background: 'var(--accent-emphasis)' }}>
+                <WandSparkles size={14} />重新生成
+              </button>
+              <button type="button" disabled className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs opacity-60" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
+                <LoaderCircle size={14} className="animate-spin" />生成中
+              </button>
             </div>
           </StoryBlock>
         </div>

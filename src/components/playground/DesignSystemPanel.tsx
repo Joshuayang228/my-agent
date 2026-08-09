@@ -1,8 +1,11 @@
 /**
- * 设计系统 — 当前主题 CSS 变量（Alice design-system 轻量版）。
+ * 设计系统实验室：读取生产 token，同时容纳尚未回流产品的组合候选。
  */
 
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
+import { MoreHorizontal, Search, SlidersHorizontal } from 'lucide-react'
+import { AdoptionMark } from './AdoptionMark'
+import { StoryBlock } from './StoryBlock'
 
 const COLORS = [
   ['--bg-primary', '结构 · 主底'],
@@ -23,8 +26,35 @@ const COLORS = [
 
 const RADII = ['--radius-sm', '--radius-md', '--radius-lg', '--radius-xl'] as const
 const MOTIONS = ['--motion-fast', '--motion-normal', '--motion-slow'] as const
+const THEMES = [
+  { id: 'dark', label: '暗夜' },
+  { id: 'light', label: '日光' },
+  { id: 'mist', label: '薄雾' },
+  { id: 'night-feast', label: '夜宴' },
+  { id: 'green-garden', label: '青园' },
+  { id: 'golden', label: '金阁' },
+  { id: 'blue-pool', label: '蓝池' },
+] as const
 
-type Sub = 'colors' | 'radius' | 'samples'
+const DARK_THEME_STYLE: CSSProperties = {
+  '--bg-primary': '#0d1117',
+  '--bg-secondary': '#161b22',
+  '--bg-tertiary': '#21262d',
+  '--text-primary': '#e6edf3',
+  '--text-secondary': '#8b949e',
+  '--text-muted': '#484f58',
+  '--border-color': '#30363d',
+  '--border-subtle': '#21262d',
+  '--accent': '#58a6ff',
+  '--accent-emphasis': '#1f6feb',
+  '--accent-fg': '#58a6ff',
+  '--accent-subtle': 'rgba(56, 139, 253, 0.1)',
+  '--success': '#3fb950',
+  '--warning': '#d29922',
+  '--danger': '#f85149',
+} as CSSProperties
+
+type Sub = 'colors' | 'themes' | 'radius' | 'samples'
 
 export function DesignSystemPanel() {
   const [sub, setSub] = useState<Sub>('colors')
@@ -38,63 +68,61 @@ export function DesignSystemPanel() {
 
   const subs: { id: Sub; label: string }[] = [
     { id: 'colors', label: '颜色' },
+    { id: 'themes', label: '主题对照' },
     { id: 'radius', label: '圆角 / 动效' },
-    { id: 'samples', label: '基础样例' },
+    { id: 'samples', label: '组合实验' },
   ]
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5" data-testid="design-system-panel">
+    <div className="mx-auto max-w-4xl space-y-5" data-testid="design-system-panel">
       <div>
         <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          设计系统 — 主题 Token
+          设计系统
         </h2>
-        <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-          当前主题 CSS 变量的<strong style={{ color: 'var(--text-secondary)' }}>唯一可信来源</strong>
-          （读运行时计算值）。规范见 <code className="font-mono">agent-skills/frontend-guidelines.md</code>。
-          不是 Storybook。
+        <p className="mt-1 max-w-2xl text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>
+          Token 直接读取生产 CSS；组合实验只在本页存在。只有带图标的项目已经进入正式产品。
         </p>
       </div>
 
       <div className="flex flex-wrap gap-1 border-b" style={{ borderColor: 'var(--border-color)' }}>
-        {subs.map((t) => (
+        {subs.map((item) => (
           <button
-            key={t.id}
+            key={item.id}
             type="button"
-            onClick={() => setSub(t.id)}
+            onClick={() => setSub(item.id)}
             className="px-3 py-1.5 text-xs transition"
             style={{
-              color: sub === t.id ? 'var(--accent-fg)' : 'var(--text-muted)',
-              borderBottom: sub === t.id ? '2px solid var(--accent-fg)' : '2px solid transparent',
+              color: sub === item.id ? 'var(--accent-fg)' : 'var(--text-muted)',
+              borderBottom: sub === item.id ? '2px solid var(--accent-fg)' : '2px solid transparent',
               marginBottom: -1,
             }}
           >
-            {t.label}
+            {item.label}
           </button>
         ))}
         <button
           type="button"
           className="ml-auto settings-option mb-1 px-2 py-1 text-[10px]"
-          onClick={() => setTick((n) => n + 1)}
+          onClick={() => setTick((value) => value + 1)}
         >
           重新读取
         </button>
       </div>
 
       {sub === 'colors' && (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {COLORS.map(([name, label]) => {
-            const val = read(name)
+            const value = read(name)
             return (
-              <div
-                key={name}
-                className="overflow-hidden rounded-lg border"
-                style={{ borderColor: 'var(--border-color)' }}
-              >
+              <div key={name} className="overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
                 <div className="h-10" style={{ background: `var(${name})` }} />
                 <div className="space-y-0.5 px-2 py-1.5">
-                  <div className="font-mono text-[10px]" style={{ color: 'var(--text-primary)' }}>{name}</div>
+                  <div className="flex items-center gap-1">
+                    <div className="min-w-0 truncate font-mono text-[10px]" style={{ color: 'var(--text-primary)' }}>{name}</div>
+                    <AdoptionMark />
+                  </div>
                   <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{label}</div>
-                  <div className="truncate font-mono text-[9px]" style={{ color: 'var(--text-secondary)' }}>{val || '—'}</div>
+                  <div className="truncate font-mono text-[9px]" style={{ color: 'var(--text-secondary)' }}>{value || '—'}</div>
                 </div>
               </div>
             )
@@ -102,53 +130,98 @@ export function DesignSystemPanel() {
         </div>
       )}
 
+      {sub === 'themes' && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {THEMES.map((theme) => (
+            <div
+              key={theme.id}
+              data-theme={theme.id}
+              className="overflow-hidden rounded-lg border"
+              style={{
+                ...(theme.id === 'dark' ? DARK_THEME_STYLE : {}),
+                borderColor: 'var(--border-color)',
+                background: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <div className="flex items-center justify-between border-b px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
+                <span className="text-xs font-medium">{theme.label}</span>
+                <AdoptionMark />
+              </div>
+              <div className="space-y-3 p-3">
+                <div className="grid grid-cols-4 gap-1">
+                  {['--bg-secondary', '--bg-tertiary', '--accent', '--danger'].map((token) => (
+                    <div key={token} className="h-7 rounded" style={{ background: `var(${token})` }} title={token} />
+                  ))}
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[12px] font-medium">主要文本</div>
+                  <div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>次级说明用于检视层级和对比度。</div>
+                </div>
+                <button type="button" className="h-7 rounded-md px-2 text-[10px] text-white" style={{ background: 'var(--accent-emphasis)' }}>主要操作</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {sub === 'radius' && (
         <div className="space-y-4">
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-4">
             {RADII.map((name) => (
               <div key={name} className="text-center">
-                <div
-                  className="mx-auto mb-1 h-12 w-12 border"
-                  style={{
-                    borderColor: 'var(--accent-fg)',
-                    background: 'var(--accent-subtle)',
-                    borderRadius: `var(${name})`,
-                  }}
-                />
-                <div className="font-mono text-[9px]" style={{ color: 'var(--text-muted)' }}>{name}</div>
+                <div className="mx-auto mb-1 h-12 w-12 border" style={{ borderColor: 'var(--accent-fg)', background: 'var(--accent-subtle)', borderRadius: `var(${name})` }} />
+                <div className="flex items-center justify-center gap-1 font-mono text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                  {name}<AdoptionMark />
+                </div>
                 <div className="font-mono text-[9px]" style={{ color: 'var(--text-secondary)' }}>{read(name) || '—'}</div>
               </div>
             ))}
           </div>
-          <div className="flex flex-wrap gap-3 font-mono text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+          <div className="flex flex-wrap gap-4">
             {MOTIONS.map((name) => (
-              <span key={name}>{name} = {read(name) || '—'}</span>
+              <span key={name} className="inline-flex items-center gap-1 font-mono text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                {name} = {read(name) || '—'} <AdoptionMark />
+              </span>
             ))}
           </div>
         </div>
       )}
 
       {sub === 'samples' && (
-        <div className="flex flex-wrap items-center gap-2">
-          <button type="button" className="settings-option px-3 py-1.5 text-xs">主要按钮</button>
-          <button
-            type="button"
-            className="rounded-lg border px-3 py-1.5 text-xs"
-            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-          >
-            次要
-          </button>
-          <input
-            className="theme-input w-40 rounded-lg border px-2 py-1.5 text-xs outline-none"
-            placeholder="theme-input"
-            defaultValue=""
-          />
-          <span
-            className="rounded-full px-2.5 py-0.5 text-[11px]"
-            style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}
-          >
-            chip
-          </span>
+        <div className="space-y-3">
+          <StoryBlock title="设置控件组合" source=".settings-option · .theme-input" adopted>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" className="settings-option px-3 py-1.5 text-xs">主要按钮</button>
+              <label className="relative block min-w-52">
+                <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                <input className="theme-input h-8 w-full border pl-8 pr-2 text-xs outline-none" placeholder="搜索" />
+              </label>
+            </div>
+          </StoryBlock>
+          <StoryBlock title="静默工具条" source="Playground story">
+            <div className="flex max-w-sm items-center justify-between border-b py-2" style={{ borderColor: 'var(--border-subtle)' }}>
+              <div>
+                <div className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>上下文摘要</div>
+                <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>最近更新于 14:32</div>
+              </div>
+              <div className="flex items-center gap-1">
+                <button type="button" className="rounded-md p-1.5" style={{ color: 'var(--text-muted)' }} title="筛选"><SlidersHorizontal size={14} /></button>
+                <button type="button" className="rounded-md p-1.5" style={{ color: 'var(--text-muted)' }} title="更多"><MoreHorizontal size={14} /></button>
+              </div>
+            </div>
+          </StoryBlock>
+          <StoryBlock title="高密度状态列表" source="Playground story" edge>
+            <div className="max-w-md divide-y rounded-md border" style={{ borderColor: 'var(--border-color)' }}>
+              {['主对话模型', '标题生成', '记忆提取'].map((label, index) => (
+                <div key={label} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 px-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-subtle)' }}>
+                  <span style={{ color: 'var(--text-primary)' }}>{label}</span>
+                  <span className="font-mono" style={{ color: 'var(--text-muted)' }}>{index === 0 ? 'qwen3.5' : 'aux'}</span>
+                  <span style={{ color: index === 2 ? 'var(--warning)' : 'var(--success)' }}>{index === 2 ? '待检查' : '可用'}</span>
+                </div>
+              ))}
+            </div>
+          </StoryBlock>
         </div>
       )}
     </div>

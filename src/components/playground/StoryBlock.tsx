@@ -1,17 +1,20 @@
 /**
- * 故事格外壳：标题 + 源路径 + 边缘标记 + 预览区。
+ * 故事格外壳：标题 + 源路径 + 已采用图标 + 边缘标记 + 预览区。
  */
 
 import type { ReactNode } from 'react'
+import { AdoptionMark } from './AdoptionMark'
 
 export function StoryBlock({
   title,
   source,
+  adopted,
   edge,
   children,
 }: {
   title: string
   source: string
+  adopted?: boolean
   edge?: boolean
   children: ReactNode
 }) {
@@ -22,8 +25,9 @@ export function StoryBlock({
       data-edge={edge ? 'true' : undefined}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h4 className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>
-          {title}
+        <h4 className="flex min-w-0 items-center gap-1.5 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>
+          <span className="truncate">{title}</span>
+          {adopted && <AdoptionMark />}
           {edge && (
             <span
               className="ml-2 rounded px-1.5 py-0.5 text-[10px] font-normal"

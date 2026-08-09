@@ -12,6 +12,7 @@ import { PromptLabPanel } from './PromptLabPanel'
 import { ToolRunPanel, type PlaygroundToolInfo } from './ToolRunPanel'
 import { FixturesPanel } from './FixturesPanel'
 import { ModelTestPanel } from './ModelTestPanel'
+import { AdoptionMark } from './AdoptionMark'
 
 export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
   const [tab, setTab] = useState<PlaygroundTabId>('design-system')
@@ -84,6 +85,10 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
         })}
       </nav>
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-6 py-6">
+        <div className="mx-auto mb-4 flex max-w-5xl items-center justify-end gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+          <AdoptionMark label="已用于正式产品" />
+          已用于正式产品
+        </div>
         {tab === 'design-system' && <DesignSystemPanel />}
         {tab === 'ui-controls' && <UiControlsPanel />}
         {tab === 'surface-baseline' && <SurfaceBaselinePanel />}

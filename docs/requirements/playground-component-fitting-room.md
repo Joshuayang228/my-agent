@@ -42,6 +42,7 @@
 | Props 驱动 | 优先展示「纯 props / 纯 class」能表达的态；强依赖 Provider 时用薄 Decorator 包一层主题即可 |
 | 边缘案例 | 空 / 长文 / loading / disabled / error **必须有故事格**，不只秀 happy path |
 | 活文档 | 每格旁标注来源路径；禁止另写一份易过期的 Markdown 组件说明书 |
+| 采用状态 | 只给已进入正式产品的故事显示统一小图标；无图标不分类，不另标实验中、备用或候选 |
 | 别贪大 | Phase 0 只覆盖高频核心：按钮样例、输入、工具卡、空态 + 已有错误/确认夹具 |
 | Controls 面板 | **不作为 Phase 0**；高变动效再考虑迷你调参（Phase 2），仍不装 Storybook |
 
@@ -85,6 +86,7 @@ Alice 产品专属 tab；Storybook 全套；Webhook 实验室等——M32「两�
 | 2 | 形态变了 → 同轮更新对应故事格 |
 | 3 | 只增不删（可 `archived` 弱化） |
 | 4 | 每个核心组件至少：默认态 + 1 个边缘态（空/错/禁用/长文之一） |
+| 5 | 已采用图标是单向事实标记；未显示图标的故事保持开放，不附加状态语义 |
 
 ### 2.3 Phase
 
@@ -219,3 +221,12 @@ type UiStory = {
 | A7 多轮隔离对话 | `buildPlaygroundMessages.history` · PromptLab transcript |
 | 页面基线 | `SurfaceBaselinePanel`（Chat / Sidebar / Right Dock / 人物世界 / 设置组合态） |
 | 模块卡 | agent-runtime / memory / permission / companion |
+
+### 实验室加厚（2026-08-10）
+
+| 验收 | 落点 |
+|------|------|
+| 已采用单向标记 | `AdoptionMark` + `StoryBlock.adopted`；无图标不分类 |
+| 主题对照 | 七套生产主题在同页对照结构色、文本与操作色 |
+| 组合实验 | 设计系统新增无副作用组合故事；UI 控件新增图标子区与输入/生成动作故事 |
+| 页面来源 | 页面基线区分正式组件预览与 Playground 组合故事 |

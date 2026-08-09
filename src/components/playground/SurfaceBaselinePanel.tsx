@@ -14,12 +14,12 @@ import { StoryBlock } from './StoryBlock'
 
 type SurfaceId = 'chat' | 'sidebar' | 'dock' | 'world' | 'settings'
 
-const SURFACES: { id: SurfaceId; label: string; description: string }[] = [
-  { id: 'chat', label: 'Chat 壳', description: '身份、消息流与输入区的组合态' },
-  { id: 'sidebar', label: 'Primary Sidebar', description: '伙伴身份、会话与底栏入口' },
-  { id: 'dock', label: 'Right Dock', description: '文件、审阅、终端与 Debug 层级' },
-  { id: 'world', label: '人物世界', description: '生活面 tab 与内容节奏' },
-  { id: 'settings', label: '设置', description: '设置分组与详情区的整体密度' },
+const SURFACES: { id: SurfaceId; label: string; description: string; adopted: boolean; source: string }[] = [
+  { id: 'chat', label: 'Chat 壳', description: '身份、消息流与输入区的组合态', adopted: false, source: 'Playground story' },
+  { id: 'sidebar', label: 'Primary Sidebar', description: '伙伴身份、会话与底栏入口', adopted: true, source: 'src/components/shell/PrimarySidebar.tsx' },
+  { id: 'dock', label: 'Right Dock', description: '文件、审阅、终端与 Debug 层级', adopted: true, source: 'src/components/chat/right-dock/ChatRightDock.tsx' },
+  { id: 'world', label: '人物世界', description: '生活面 tab 与内容节奏', adopted: true, source: 'src/components/shell/WorldHub.tsx' },
+  { id: 'settings', label: '设置', description: '设置分组与详情区的整体密度', adopted: true, source: 'src/components/SettingsPanel.tsx' },
 ]
 
 const SAMPLE_SESSIONS: SidebarSession[] = [
@@ -236,7 +236,7 @@ export function SurfaceBaselinePanel() {
         })}
       </div>
 
-      <StoryBlock title={active.label} source="正式壳层组件 / 页面组合态">
+      <StoryBlock title={active.label} source={active.source} adopted={active.adopted}>
         <p className="mb-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>{active.description}</p>
         {surface === 'chat' && <ChatSurface />}
         {surface === 'sidebar' && <SidebarSurface />}

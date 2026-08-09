@@ -3,6 +3,7 @@
  */
 
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
+import { StoryBlock } from './StoryBlock'
 
 function FixtureError({ title, body, action }: { title: string; body: string; action: string }) {
   return (
@@ -33,10 +34,7 @@ export function FixturesPanel() {
         </p>
       </div>
 
-      <section>
-        <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-          空态
-        </h3>
+      <StoryBlock title="对话空态" source="Playground fixture">
         <div
           className="flex flex-col items-center rounded-xl border px-6 py-10 text-center"
           style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
@@ -57,12 +55,9 @@ export function FixturesPanel() {
             ))}
           </div>
         </div>
-      </section>
+      </StoryBlock>
 
-      <section>
-        <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-          错误卡（常用 3 态）
-        </h3>
+      <StoryBlock title="错误卡（常用 3 态）" source="Playground fixture" edge>
         <div className="space-y-2">
           <FixtureError
             title="未配置 API Key"
@@ -80,19 +75,16 @@ export function FixturesPanel() {
             action="重试"
           />
         </div>
-      </section>
+      </StoryBlock>
 
-      <section>
-        <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-          权限确认（静态样例）
-        </h3>
+      <StoryBlock title="权限确认" source="src/components/chat/PermissionConfirmCard.tsx" adopted>
         <div className="mx-auto flex justify-center">
           <PermissionConfirmCard
             toolName="shell_exec"
             args={{ command: 'rm -rf ./tmp' }}
           />
         </div>
-      </section>
+      </StoryBlock>
     </div>
   )
 }

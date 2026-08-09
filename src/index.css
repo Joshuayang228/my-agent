@@ -309,6 +309,47 @@ html[data-font-scale="lg"] {
   color: var(--text-muted);
 }
 
+/* Playground 在窄屏只保留实验室自身目录，避免主侧栏 + 实验室目录把内容压成竖排。 */
+@media (max-width: 700px) {
+  body:has([data-testid="playground-page"]) [data-testid="primary-sidebar"] {
+    display: none;
+  }
+
+  [data-testid="playground-shell"] {
+    flex-direction: column;
+  }
+
+  [data-testid="playground-shell"] > nav {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.5rem;
+  }
+
+  [data-testid="playground-shell"] > nav > button {
+    width: auto;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  [data-testid="playground-shell"] > nav > button:first-child {
+    margin-bottom: 0;
+  }
+
+  [data-testid="playground-shell"] > nav > div {
+    margin: 0 0.25rem 0 0;
+    flex-shrink: 0;
+    padding: 0 0.5rem;
+  }
+
+  [data-testid="playground-shell"] > nav > div + button {
+    margin-left: 0;
+  }
+}
+
 .theme-panel {
   background: var(--bg-secondary);
   border-color: var(--border-color);

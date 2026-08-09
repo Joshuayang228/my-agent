@@ -39,6 +39,7 @@ export type UiControlsSubId =
   | 'confirm'
   | 'memory-chips'
   | 'status-bar'
+  | 'icons'
 
 export const UI_CONTROLS_SUBTABS: readonly { id: UiControlsSubId; label: string }[] = [
   { id: 'buttons', label: '按钮' },
@@ -48,4 +49,5 @@ export const UI_CONTROLS_SUBTABS: readonly { id: UiControlsSubId; label: string 
   { id: 'confirm', label: '确认框' },
   { id: 'memory-chips', label: '记忆芯片' },
   { id: 'status-bar', label: '状态条' },
+  { id: 'icons', label: '图标' },
 ] as const
