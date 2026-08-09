@@ -66,6 +66,7 @@
 | 本轮引用芯片（M29-G1） | 已落地 | `memory_citations` · `MemoryCitationChips`（Chat + Playground） |
 | 对话内纠错（M29-G2） | 已落地 | `correctCitedMemory` |
 | 敏感高亮与采集提示（M29-G3） | 已落地 | `sensitive-memory` |
+| MemoryPanel 页面基线 | 已落地 | Playground 静态只读夹具：列表 / 空态 / 敏感项 / 编辑态 |
 | 项目文档 RAG | 不做（本模块） | 见 `rag/` |
 
 ## 现状 / 缺口

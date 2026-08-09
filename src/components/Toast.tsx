@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+import { Check, CircleAlert, Info, X, XCircle } from 'lucide-react'
 
 type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -7,6 +8,8 @@ interface ToastItem {
   message: string
   type: ToastType
 }
+
+export type ToastPreviewItem = ToastItem
 
 interface ToastContextValue {
   toast: (message: string, type?: ToastType) => void
@@ -34,7 +37,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="pointer-events-none fixed bottom-6 right-6 z-[9999] flex flex-col gap-2">
+      <div className="pointer-events-none fixed bottom-6 right-6 z-[9999] flex max-w-[min(24rem,calc(100vw-2rem))] flex-col gap-2">
         {items.map(item => (
           <ToastBubble key={item.id} item={item} onDismiss={(id) => setItems(prev => prev.filter(t => t.id !== id))} />
         ))}
@@ -43,36 +46,70 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
-const TYPE_STYLES: Record<ToastType, string> = {
-  success: 'border-emerald-500/40 bg-emerald-950/90 text-emerald-200',
-  error: 'border-red-500/40 bg-red-950/90 text-red-200',
-  warning: 'border-amber-500/40 bg-amber-950/90 text-amber-200',
-  info: 'border-cyan-500/40 bg-slate-800/95 text-slate-200',
+const TYPE_STYLES: Record<ToastType, { border: string; background: string; color: string }> = {
+  success: { border: 'color-mix(in srgb, var(--success) 38%, var(--border-color))', background: 'color-mix(in srgb, var(--success) 10%, var(--card-bg))', color: 'var(--success)' },
+  error: { border: 'color-mix(in srgb, var(--danger) 42%, var(--border-color))', background: 'color-mix(in srgb, var(--danger) 10%, var(--card-bg))', color: 'var(--danger)' },
+  warning: { border: 'color-mix(in srgb, var(--warning) 42%, var(--border-color))', background: 'color-mix(in srgb, var(--warning) 10%, var(--card-bg))', color: 'var(--warning)' },
+  info: { border: 'color-mix(in srgb, var(--accent) 38%, var(--border-color))', background: 'color-mix(in srgb, var(--accent) 9%, var(--card-bg))', color: 'var(--accent-fg)' },
 }
 
-const TYPE_ICONS: Record<ToastType, string> = {
-  success: '\u2713',
-  error: '\u2717',
-  warning: '\u26A0',
-  info: '\u2139',
+const TYPE_ICONS: Record<ToastType, typeof Check> = {
+  success: Check,
+  error: XCircle,
+  warning: CircleAlert,
+  info: Info,
 }
 
-function ToastBubble({ item, onDismiss }: { item: ToastItem; onDismiss: (id: number) => void }) {
+export function ToastBubble({ item, onDismiss, staticPreview = false }: { item: ToastItem; onDismiss: (id: number) => void; staticPreview?: boolean }) {
   const [visible, setVisible] = useState(false)
+  const Icon = TYPE_ICONS[item.type]
+  const style = TYPE_STYLES[item.type]
 
   useEffect(() => {
+    if (staticPreview) {
+      setVisible(true)
+      return
+    }
     requestAnimationFrame(() => setVisible(true))
     const timer = setTimeout(() => setVisible(false), 3000)
     return () => clearTimeout(timer)
-  }, [])
+  }, [staticPreview])
 
   return (
     <div
-      className={`pointer-events-auto flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2.5 shadow-lg backdrop-blur-sm transition-all duration-300 ${TYPE_STYLES[item.type]} ${visible ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}
-      onClick={() => onDismiss(item.id)}
+      className={`pointer-events-auto flex items-start gap-2 rounded-lg border px-3.5 py-2.5 shadow-lg backdrop-blur-sm transition-all duration-300 ${visible ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}
+      style={{ borderColor: style.border, background: style.background, color: style.color }}
+      role="status"
     >
-      <span className="text-sm font-medium">{TYPE_ICONS[item.type]}</span>
-      <span className="text-sm">{item.message}</span>
+      <Icon size={15} strokeWidth={1.8} className="mt-0.5 shrink-0" aria-hidden="true" />
+      <span className="min-w-0 text-[12px] leading-5" style={{ color: 'var(--text-primary)' }}>{item.message}</span>
+      <button
+        type="button"
+        onClick={() => onDismiss(item.id)}
+        className="mt-0.5 shrink-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        style={{ color: 'var(--text-muted)' }}
+        aria-label="关闭通知"
+      >
+        <X size={14} strokeWidth={1.8} aria-hidden="true" />
+      </button>
+    </div>
+  )
+}
+
+/** Playground 只读预览：复用正式 ToastBubble，不触发全局通知。 */
+export function ToastPreview({ items }: { items: ToastPreviewItem[] }) {
+  const [visibleItems, setVisibleItems] = useState(items)
+
+  return (
+    <div className="flex max-w-md flex-col gap-2">
+      {visibleItems.map((item) => (
+        <ToastBubble
+          key={item.id}
+          item={item}
+          onDismiss={(id) => setVisibleItems((current) => current.filter((entry) => entry.id !== id))}
+          staticPreview
+        />
+      ))}
     </div>
   )
 }

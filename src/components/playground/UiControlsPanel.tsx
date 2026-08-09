@@ -10,6 +10,8 @@ import type { ToolCallbackItem } from '../chat/callbacks/types'
 import { MemoryCitationChips } from '../chat/MemoryCitationChips'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import { CompanionStatusBar } from '../CompanionStatusBar'
+import { MarkdownRenderer } from '../MarkdownRenderer'
+import { ToastPreview, type ToastPreviewItem } from '../Toast'
 import { UI_CONTROLS_SUBTABS, type UiControlsSubId } from './catalog'
 import { StoryBlock } from './StoryBlock'
 
@@ -37,6 +39,13 @@ const TOOL_STORIES: ToolCallbackItem[] = [
     result: '⚠️ 权限策略拒绝',
     collapsed: false,
   },
+]
+
+const TOAST_STORIES: ToastPreviewItem[] = [
+  { id: 1, type: 'info', message: '后台任务已开始，完成后会在这里告诉你。' },
+  { id: 2, type: 'success', message: '已更新这条记忆。' },
+  { id: 3, type: 'warning', message: '模型连接暂时不可用，请检查设置后重试。' },
+  { id: 4, type: 'error', message: '文件没有保存成功，原内容没有被覆盖。' },
 ]
 
 function ChatEmptyFixture({ long }: { long?: boolean }) {
@@ -78,8 +87,8 @@ export function UiControlsPanel() {
   }))
 
   return (
-    <div className="flex min-h-0 gap-4" data-testid="ui-controls-panel">
-      <div className="w-[120px] shrink-0 space-y-3">
+    <div className="flex min-h-0 flex-col gap-4 sm:flex-row" data-testid="ui-controls-panel">
+      <div className="w-full shrink-0 space-y-3 sm:w-[120px]">
         <div>
           <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
             UI 控件
@@ -88,7 +97,7 @@ export function UiControlsPanel() {
             变体矩阵；不装 Storybook。
           </p>
         </div>
-        <div className="flex flex-col gap-0.5">
+        <div className="scrollbar-hover flex gap-0.5 overflow-x-auto sm:flex-col sm:overflow-x-visible">
           {UI_CONTROLS_SUBTABS.map((t) => {
             const active = sub === t.id
             return (
@@ -96,7 +105,7 @@ export function UiControlsPanel() {
                 key={t.id}
                 type="button"
                 onClick={() => setSub(t.id)}
-                className="rounded-lg px-2.5 py-1.5 text-left text-xs transition"
+                className="shrink-0 rounded-lg px-2.5 py-1.5 text-left text-xs transition"
                 style={{
                   color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
                   background: active ? 'var(--accent-subtle)' : 'transparent',
@@ -305,6 +314,32 @@ export function UiControlsPanel() {
               <button type="button" disabled className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs opacity-60" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
                 <LoaderCircle size={14} className="animate-spin" />生成中
               </button>
+            </div>
+          </StoryBlock>
+        </div>
+      )}
+      {sub === 'feedback' && (
+        <div className="space-y-3">
+          <StoryBlock title="Toast 四态" source="src/components/Toast.tsx" adopted>
+            <ToastPreview items={TOAST_STORIES} />
+          </StoryBlock>
+          <StoryBlock title="长文与窄宽" source="ToastBubble · responsive max-width" edge adopted>
+            <div className="max-w-[280px]">
+              <ToastPreview items={[{
+                id: 5,
+                type: 'warning',
+                message: '当前请求已完成，但有两个后台步骤仍在处理。你可以继续对话，结果回来后会再次通知。',
+              }]} />
+            </div>
+          </StoryBlock>
+          <StoryBlock title="正文与内心独白" source="src/components/MarkdownRenderer.tsx" adopted>
+            <div className="max-w-xl text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>
+              <MarkdownRenderer content={'先把今天必须完成的两件事挑出来，剩下的明天再看。\n\n<aside>他看起来有点累，别一次塞太多。</aside>'} />
+            </div>
+          </StoryBlock>
+          <StoryBlock title="长独白边缘" source="MarkdownRenderer · aside guard" edge adopted>
+            <div className="max-w-xl text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>
+              <MarkdownRenderer content={'我先给你一个可以直接执行的版本。\n\n<aside>这是一段故意拉长的内心独白，用来检查窄栏换行、正文层级和弱化后的可读性，不能盖过真正的回答。</aside>'} />
             </div>
           </StoryBlock>
         </div>

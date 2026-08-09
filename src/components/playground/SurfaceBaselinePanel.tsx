@@ -6,21 +6,36 @@
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { ArrowUp, Folder, Menu, Paperclip } from 'lucide-react'
 import { SettingsPanel } from '../SettingsPanel'
+import { MemoryPanel } from '../MemoryPanel'
 import { CompanionStatusBar } from '../CompanionStatusBar'
 import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
 import { WorldHub } from '../shell/WorldHub'
 import { StoryBlock } from './StoryBlock'
+import type { MemoryEntry } from '../../shared/types'
 
-type SurfaceId = 'chat' | 'sidebar' | 'dock' | 'world' | 'settings'
+type SurfaceId = 'chat' | 'sidebar' | 'dock' | 'world' | 'memory' | 'settings'
 
 const SURFACES: { id: SurfaceId; label: string; description: string; adopted: boolean; source: string }[] = [
   { id: 'chat', label: 'Chat 壳', description: '身份、消息流与输入区的组合态', adopted: false, source: 'Playground story' },
   { id: 'sidebar', label: 'Primary Sidebar', description: '伙伴身份、会话与底栏入口', adopted: true, source: 'src/components/shell/PrimarySidebar.tsx' },
   { id: 'dock', label: 'Right Dock', description: '文件、审阅、终端与 Debug 层级', adopted: true, source: 'src/components/chat/right-dock/ChatRightDock.tsx' },
   { id: 'world', label: '人物世界', description: '生活面 tab 与内容节奏', adopted: true, source: 'src/components/shell/WorldHub.tsx' },
+  { id: 'memory', label: '记忆', description: '结构化记忆的列表、空态、敏感项与编辑态', adopted: true, source: 'src/components/MemoryPanel.tsx' },
   { id: 'settings', label: '设置', description: '设置分组与详情区的整体密度', adopted: true, source: 'src/components/SettingsPanel.tsx' },
 ]
+
+const NOW = Date.now()
+const MEMORY_FIXTURES: MemoryEntry[] = [
+  { id: 'memory-identity', category: 'identity', content: '正在做一款人格化桌面 Agent。', createdAt: NOW - 5 * 86_400_000, updatedAt: NOW - 5 * 86_400_000 },
+  { id: 'memory-workflow', category: 'workflow', content: '先在 Playground 确认页面基线，再回流正式 UI。', createdAt: NOW - 2 * 86_400_000, updatedAt: NOW - 86_400_000 },
+  { id: 'memory-voice', category: 'voice', content: '偏好直接、清楚、有判断依据的回答。', createdAt: NOW - 86_400_000, updatedAt: NOW - 86_400_000 },
+]
+const SENSITIVE_MEMORY_FIXTURES: MemoryEntry[] = [
+  ...MEMORY_FIXTURES,
+  { id: 'memory-sensitive', category: 'fact', content: '最近在调整睡眠和用药安排。', createdAt: NOW, updatedAt: NOW },
+]
+const EMPTY_MEMORY_FIXTURES: MemoryEntry[] = []
 
 const SAMPLE_SESSIONS: SidebarSession[] = [
   {
@@ -200,6 +215,56 @@ function SettingsSurface() {
   )
 }
 
+type MemoryScenario = 'list' | 'empty' | 'sensitive' | 'editing'
+
+/** 静态场景只驱动正式 MemoryPanel 的 preview props，不访问 memory IPC。 */
+function MemorySurface() {
+  const [scenario, setScenario] = useState<MemoryScenario>('list')
+  const scenarios: Array<{ id: MemoryScenario; label: string }> = [
+    { id: 'list', label: '列表' },
+    { id: 'empty', label: '空态' },
+    { id: 'sensitive', label: '敏感项' },
+    { id: 'editing', label: '编辑态' },
+  ]
+  const memories = scenario === 'empty'
+    ? EMPTY_MEMORY_FIXTURES
+    : scenario === 'sensitive'
+      ? SENSITIVE_MEMORY_FIXTURES
+      : MEMORY_FIXTURES
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1" role="tablist" aria-label="记忆页面场景">
+        {scenarios.map((item) => {
+          const active = scenario === item.id
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setScenario(item.id)}
+              className="settings-option px-2.5 py-1 text-[10px]"
+              data-selected={active ? 'true' : undefined}
+            >
+              {item.label}
+            </button>
+          )
+        })}
+      </div>
+      <SurfaceViewport>
+        <MemoryPanel
+          key={scenario}
+          onClose={noop}
+          previewMemories={memories}
+          previewEditingId={scenario === 'editing' ? 'memory-workflow' : undefined}
+          readOnly
+        />
+      </SurfaceViewport>
+    </div>
+  )
+}
+
 export function SurfaceBaselinePanel() {
   const [surface, setSurface] = useState<SurfaceId>('chat')
   const active = SURFACES.find((item) => item.id === surface) ?? SURFACES[0]
@@ -242,6 +307,7 @@ export function SurfaceBaselinePanel() {
         {surface === 'sidebar' && <SidebarSurface />}
         {surface === 'dock' && <DockSurface />}
         {surface === 'world' && <WorldSurface />}
+        {surface === 'memory' && <MemorySurface />}
         {surface === 'settings' && <SettingsSurface />}
       </StoryBlock>
     </div>

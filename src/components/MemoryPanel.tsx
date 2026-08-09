@@ -36,22 +36,32 @@ const COLOR_MAP: Record<string, { bg: string; border: string; text: string; badg
 
 interface MemoryPanelProps {
   onClose: () => void
+  /** Playground 页面基线传入静态夹具，避免读取或写入真实记忆。 */
+  previewMemories?: MemoryEntry[]
+  previewEditingId?: string
+  readOnly?: boolean
 }
 
-export function MemoryPanel({ onClose }: MemoryPanelProps) {
-  const [memories, setMemories] = useState<MemoryEntry[]>([])
+export function MemoryPanel({ onClose, previewMemories, previewEditingId, readOnly = false }: MemoryPanelProps) {
+  const [memories, setMemories] = useState<MemoryEntry[]>(previewMemories ?? [])
   const [filter, setFilter] = useState<MemoryCategory | 'all'>('all')
-  const [editing, setEditing] = useState<string | null>(null)
-  const [editContent, setEditContent] = useState('')
+  const [editing, setEditing] = useState<string | null>(previewEditingId ?? null)
+  const [editContent, setEditContent] = useState(
+    previewMemories?.find((memory) => memory.id === previewEditingId)?.content ?? '',
+  )
   const [adding, setAdding] = useState(false)
   const [newCategory, setNewCategory] = useState<MemoryCategory>('fact')
   const [newContent, setNewContent] = useState('')
 
   const loadMemories = useCallback(async () => {
+    if (previewMemories) {
+      setMemories(previewMemories)
+      return
+    }
     if (!window.electronAPI) return
     const list = await window.electronAPI.memory.list()
     setMemories(list as MemoryEntry[])
-  }, [])
+  }, [previewMemories])
 
   useEffect(() => { loadMemories() }, [loadMemories])
 
@@ -61,7 +71,7 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
   )
 
   const handleAdd = async () => {
-    if (!window.electronAPI || !newContent.trim()) return
+    if (readOnly || !window.electronAPI || !newContent.trim()) return
     const kinds = detectSensitiveKinds(newContent)
     if (kinds.length > 0) {
       const ok = window.confirm(formatSensitiveCollectionHint(kinds))
@@ -81,13 +91,13 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
   }
 
   const handleDelete = async (id: string) => {
-    if (!window.electronAPI) return
+    if (readOnly || !window.electronAPI) return
     await window.electronAPI.memory.delete(id)
     await loadMemories()
   }
 
   const handleSaveEdit = async (id: string) => {
-    if (!window.electronAPI || !editContent.trim()) return
+    if (readOnly || !window.electronAPI || !editContent.trim()) return
     await window.electronAPI.memory.update(id, editContent.trim())
     setEditing(null)
     await loadMemories()
@@ -112,12 +122,13 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
             <span className="rounded px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{memories.length}</span>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            {!readOnly && <button
               onClick={() => setAdding(!adding)}
-              className="rounded-lg px-2.5 py-1 text-xs text-cyan-500 transition"
+              className="rounded-lg px-2.5 py-1 text-xs transition"
+              style={{ color: 'var(--accent-fg)' }}
             >
               + 添加
-            </button>
+            </button>}
             <button
               onClick={onClose}
               className="rounded-lg p-1.5 transition"
@@ -130,7 +141,7 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
           </div>
         </div>
 
-        <div className="flex gap-2 border-b px-5 py-2.5" style={{ borderColor: 'var(--border-color)' }}>
+        <div className="flex flex-wrap gap-2 border-b px-5 py-2.5" style={{ borderColor: 'var(--border-color)' }}>
           <button
             onClick={() => setFilter('all')}
             className={`rounded-lg px-2.5 py-1 text-[11px] transition ${
@@ -264,7 +275,7 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
                         )}
                       </div>
                       <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
-                        {!isEditing && (
+                        {!readOnly && !isEditing && (
                           <>
                             <button
                               onClick={() => startEdit(mem)}
@@ -293,11 +304,14 @@ export function MemoryPanel({ onClose }: MemoryPanelProps) {
                             if (e.key === 'Escape') setEditing(null)
                           }}
                           autoFocus
+                          readOnly={readOnly}
                           className="theme-input flex-1 rounded border px-2 py-1 text-xs outline-none"
                         />
                         <button
                           onClick={() => handleSaveEdit(mem.id)}
-                          className="rounded bg-cyan-600 px-2 py-1 text-[10px] text-white hover:bg-cyan-500"
+                          disabled={readOnly}
+                          className="rounded px-2 py-1 text-[10px] text-white disabled:opacity-50"
+                          style={{ background: 'var(--accent-emphasis)' }}
                         >
                           保存
                         </button>

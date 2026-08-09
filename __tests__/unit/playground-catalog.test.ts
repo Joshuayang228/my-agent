@@ -16,7 +16,7 @@ describe('playground catalog', () => {
     expect(PLAYGROUND_TABS.every((t) => t.status !== 'archived')).toBe(true)
   })
 
-  it('UI 控件子区覆盖按钮/输入/工具卡/空态/确认/芯片/状态条/图标', () => {
+  it('UI 控件子区覆盖按钮/输入/工具卡/空态/确认/芯片/状态条/图标/系统反馈', () => {
     expect(UI_CONTROLS_SUBTABS.map((t) => t.id)).toEqual([
       'buttons',
       'inputs',
@@ -26,6 +26,7 @@ describe('playground catalog', () => {
       'memory-chips',
       'status-bar',
       'icons',
+      'feedback',
     ])
   })
 })

@@ -75,7 +75,7 @@
 | Prompt 会话覆盖（不写 settings） | 已落地 | 载入实装 → playgroundRun |
 | 设计 token 场 | 已落地 | Playground「设计系统」 |
 | Playground 组件展厅（左侧活目录 + 故事矩阵） | 已落地 | `src/components/playground/` · M32-G9 · 左右栏 |
-| Playground UI 矩阵加厚（确认/芯片/状态条） | 已落地 | M32-G9 Phase 1 · 正式组件故事格 |
+| Playground UI 矩阵加厚（确认/芯片/状态条/反馈/独白） | 已落地 | M32-G9 Phase 1 · Toast / MarkdownRenderer 等正式组件故事格 |
 | Playground 已采用标记与主题对照 | 已落地 | `AdoptionMark` · 壳层开关统一显隐并持久化 · 七主题同页审计；无图标不附加实验状态 |
 | 对话 Debug 右侧栏 | 已落地 | Chat 右坞 · `ConversationDebugAside`；可盖在能力坞之上（Alice 式）；持久化 LLM 调用链 |
 | 项目文件预览 | 已落地 | `FileBrowser` · text/image/unsupported；图/文本/md；html 沙箱 iframe；pdf·Office 外开 |
