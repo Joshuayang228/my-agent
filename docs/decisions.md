@@ -457,3 +457,15 @@
   2. 开发期可清空 sessions；不为旧会话做无 `role_id` 兼容
   3. 设置字段直接用 `activeRoleId`，删除 `personaId`，不做迁移映射；`persona:*` IPC 直接换成 `companion:*`
 - **影响**：W0 范围缩小为单 Pack + 可扩容目录；设置/IPC/单测破坏性一次改完
+
+### DEC-036: 角色档案、默认世界与表达状态分层
+
+- **日期**：2026-08-11
+- **状态**：已决定
+- **背景**：现有 Role Pack 能表达核心人格和 voice，但人物履历、居住细节与“热度”缺少结构化归属；Alice 源码使用静态人设、character state、home profile、world facts 和时间线分层。
+- **选项**：
+  - A：继续把年龄、职业、住所和表达强度写进 `protected.md` / `voice.md` — 简单，但 Prompt 膨胀且稳定事实与动态状态混杂
+  - B：增加 `profile.json` 与 `world.default.json`，运行时状态继续由 `world_json` 持有 — 多一层资产，但真相边界清晰
+- **决定**：选择 B。表达不采用单一热度参数，而使用五维人格基线 + 本轮 tone-control + 关系阶段；LLM `temperature` 只负责采样随机性。
+- **补充决定**：当前只施工主角候选小航；平台支持可选 `profile/world` 资产，但不扩写其他角色。先确认行为人格，再设计人物故事；姓名不得自动推导主题、职业或世界观。旧三字段 `world_json` 全局不兼容、不迁移，读取时按各角色当前默认值重置；这不代表扩写其他角色内容。
+- **影响**：小航 Role Pack、Playground 人格验收、Persona Eval、identity loader、Prompt L1、世界初始化、日剧本与 Debug 世界态；其他角色保持原状。参考审计在 `_reference/alice-persona-world-source-analysis.md`。

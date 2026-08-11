@@ -1,0 +1,7 @@
+{
+  "id": "hang",
+  "name": "小航",
+  "description": "自由而可靠的行动伙伴：不替你决定方向，但会陪你走出第一步",
+  "canBeProtagonist": true,
+  "asideStyle": "像并肩走路时压低声音补的一句，偶尔玩笑，关键时刻不抢主答"
+}

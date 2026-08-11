@@ -8,6 +8,7 @@ describe('playground catalog', () => {
       'design-system',
       'ui-controls',
       'surface-baseline',
+      'persona-review',
       'chat-lab',
       'model-test',
       'tools',

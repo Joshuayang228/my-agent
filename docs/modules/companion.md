@@ -39,7 +39,7 @@
 ## 依赖
 
 - **依赖**：settings-store、SQLite、streaming-gate、LLM（反思 / 日后剧本生成）、task-queue  
-- **被依赖**：runtime 聊天组装、Eval C01 / B01、设置页、CastPanel
+- **被依赖**：runtime 聊天组装、Eval C01 / B01–B07、设置页、CastPanel
 
 ## 不变量
 
@@ -64,7 +64,7 @@
 
 - 换角门控、Catch-up 7 日边界、名册无他人 protected、资产按 role 隔离  
 - 召唤不改 active；反思门闸 / 召唤跳过  
-- Eval：`evals/scenarios/c01-companion.ts`；语气基线 `b01-persona-tone.ts`（有 key）
+- Eval：`evals/scenarios/c01-companion.ts`；语气基线 `b01-persona-tone.ts`；主角行为 `b02-protagonist-behavior.ts`（真实模型判断需 key）
 
 ## 已落地能力
 
@@ -73,9 +73,12 @@
 | 能力 | 状态 | 用户入口 | 落点 |
 |------|------|----------|------|
 | Universe + Role Pack（三槽：lin / zhou / xia） | 已落地 | 角色架 / 设置 | `universes/default/` · 文案见 [companion-cast-content](../requirements/companion-cast-content.md) |
+| 主角候选结构化档案（Role Profile） | 已落地 | Debug「世界态」/ Prompt L1 | 当前仅小航 `profile.json`；行为边界与五维表达基线已定，人物故事字段待定 |
 | 生活分味（剧本 / starter 衣柜） | 已落地 | 朋友圈 / 衣柜随主角 | `script-generator` · `ensureStarterWardrobe` |
 | 日剧本 LLM（当日）+ 哈希回退 | 已落地 | （隐式）Life ticker | `resolveDayScript` · aux-config |
-| 世界状态薄片（居所/时区/情境） | 已落地 | （隐式）Assemble L3 | `world_json` · `## World slice` |
+| 世界状态薄片（居所/时区/情境/心情/精力/当前位置与活动） | 已落地 | （隐式）Assemble L3 | schema v1 `world_json` · `## World slice` |
+| 主角候选默认世界结构 | 已落地 | Debug「世界态」/ 世界初始化 | 当前仅小航 `world.default.json`；城市、住所、地点、物品与作息均待定 |
+| 主角候选行为人格验收 | 已落地 | Playground「人格验收」 | 七个中性故事格 + Eval B02–B07；不定义人物故事 |
 | Catch-up 概况 LLM + 模板回退 | 已落地 | （隐式）换角追赶 | `resolveCatchupSummary` · catchup.ts |
 | 聊圈薄一致性（近 Moment 锚点） | 已落地 | （隐式）Assemble L3 | `moment-consistency` · `## Recent moments` |
 | Moment LLM 润色（绑 event） | 已落地 | （隐式）tick 发布 | `moment-polish` · 规则回退 |
@@ -139,5 +142,5 @@
 
 ## 现状 / 缺口
 
-**现状**：W0–W6 主线已落地；深 Why：`methodology/m22`–`m31`（Part VI 收齐）；前端 P0–P2 已落地；Pack 三角色分味 + 剧本/衣柜分味已加厚（见 companion-cast-content）。  
+**现状**：W0–W6 主线已落地；深 Why：`methodology/m22`–`m31`（Part VI 收齐）；前端 P0–P2 已落地；小航行为人格已进入 Playground / Eval 验收，人物故事尚未确定且未激活；其他角色本轮不扩写。
 **缺口**：见上表「缺口」行 + wishlist；生图场景等非本阶段。

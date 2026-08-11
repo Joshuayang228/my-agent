@@ -42,6 +42,7 @@ const {
   ensureStarterWardrobe,
   ensureStarterBookshelf,
   ensureStarterAssets,
+  ensureWorldDefaultPossessions,
   listAssets,
   addAsset,
   updateAsset,
@@ -102,6 +103,15 @@ describe('Companion Assets', () => {
     const all = await listAssets('xia')
     expect(all.filter((a) => a.kind === 'wardrobe')).toHaveLength(3)
     expect(all.filter((a) => a.kind === 'bookshelf')).toHaveLength(3)
+  })
+
+  it('人物故事未定时，小航不播种默认世界物品', async () => {
+    const first = await ensureStarterAssets('hang')
+    expect(first.created).toBe(5)
+    const seeded = (await listAssets('hang')).filter((asset) => asset.payload.seededFrom === 'world.default')
+    expect(seeded).toHaveLength(0)
+    const second = await ensureWorldDefaultPossessions('hang')
+    expect(second.created).toBe(0)
   })
 
   it('资产按 role 隔离', async () => {

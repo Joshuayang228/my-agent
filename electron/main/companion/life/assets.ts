@@ -10,6 +10,7 @@ import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
 import type { CompanionAsset, GrantAssetSpec } from '../types'
+import { loadRoleWorldDefaults } from '../identity/loader'
 import { normalizeGrantAsset } from './grant-asset'
 
 export { normalizeGrantAsset } from './grant-asset'
@@ -240,11 +241,56 @@ export async function ensureStarterBookshelf(roleId: string): Promise<{ created:
   return ensureStarterForKind(roleId, ASSET_KIND_BOOKSHELF)
 }
 
+/**
+ * 播种 Role Pack 默认世界声明的初始物品。
+ *
+ * 背景：world.default.json 负责出厂世界，但运行后物品真相必须落到 companion_assets。
+ * 设计意图：以稳定 id 幂等写入，不覆盖用户已编辑或事件产生的资产。
+ * 关键约束：首次整组播种；已有任一种子即不补单件，避免用户删除后复活。
+ */
+export async function ensureWorldDefaultPossessions(roleId: string): Promise<{ created: number }> {
+  const defaults = loadRoleWorldDefaults(roleId)
+  if (!defaults?.possessions.length) return { created: 0 }
+  await ensureTables()
+  const existing = await listAssets(roleId)
+  if (existing.some((asset) => asset.payload.seededFrom === 'world.default')) {
+    return { created: 0 }
+  }
+  const db = await getDatabase()
+  let created = 0
+  const base = Date.now()
+  for (let index = 0; index < defaults.possessions.length; index++) {
+    const item = defaults.possessions[index]
+    const id = `world:${roleId}:${item.id}`
+    const stmt = db.prepare('SELECT 1 AS x FROM companion_assets WHERE id = ?')
+    stmt.bind([id])
+    const exists = stmt.step()
+    stmt.free()
+    if (exists) continue
+    await addAsset({
+      id,
+      roleId,
+      kind: item.kind,
+      name: item.name,
+      payload: {
+        description: item.description,
+        condition: item.condition,
+        seededFrom: 'world.default',
+      },
+      acquiredAt: base + index,
+      sourceEventId: null,
+    })
+    created += 1
+  }
+  return { created }
+}
+
 /** 活跃主角打开物什面板时：衣柜 + 书架一并播种 */
 export async function ensureStarterAssets(roleId: string): Promise<{ created: number }> {
   const w = await ensureStarterWardrobe(roleId)
   const b = await ensureStarterBookshelf(roleId)
-  return { created: w.created + b.created }
+  const p = await ensureWorldDefaultPossessions(roleId)
+  return { created: w.created + b.created + p.created }
 }
 
 /** 为事件挑选一件衣柜（确定性：按 scheduledAt 取模） */

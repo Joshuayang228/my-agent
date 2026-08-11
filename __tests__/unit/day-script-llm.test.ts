@@ -91,6 +91,14 @@ describe('resolveDayScript', () => {
     expect(chatComplete).not.toHaveBeenCalled()
   })
 
+  it('人物故事未定时，小航哈希回退使用中性默认池', async () => {
+    const result = await resolveDayScript('hang', '2026-08-11')
+    const text = result.payload.slots.map((slot) => `${slot.activity}@${slot.location}`).join('|')
+    expect(result.source).toBe('hash')
+    expect(result.payload.slots.every((slot) => slot.location === '未设定')).toBe(true)
+    expect(text).not.toMatch(/临湾|海堤|旧街|码头|船笛|通勤|工位|咖啡馆|在家|宅家/)
+  })
+
   it('LLM 成功则采用模型主题', async () => {
     vi.mocked(chatComplete).mockResolvedValueOnce(JSON.stringify({
       theme: 'LLM定制主题',
@@ -120,5 +128,27 @@ describe('resolveDayScript', () => {
     })
     expect(r.source).toBe('hash')
     expect(r.payload).toEqual(generateDayScript('zhou', '2026-08-02'))
+  })
+
+  it('小航 LLM 日剧本收到故事待定边界', async () => {
+    vi.mocked(chatComplete).mockResolvedValueOnce(JSON.stringify({
+      theme: '中性测试日',
+      slots: [
+        { hour: 8, minute: 30, activity: '确认今天的一件事', mood: '清醒', location: '未设定', type: 'activity' },
+        { hour: 10, minute: 0, activity: '做一个小版本', mood: '专注', location: '未设定', type: 'moment' },
+        { hour: 12, minute: 30, activity: '午间休息', mood: '松弛', location: '未设定', type: 'moment' },
+        { hour: 16, minute: 0, activity: '整理资料', mood: '平静', location: '未设定', type: 'activity' },
+        { hour: 19, minute: 0, activity: '收尾复盘', mood: '稳定', location: '未设定', type: 'moment' },
+      ],
+    }))
+    await resolveDayScript('hang', '2026-08-11', {
+      preferLlm: true,
+      llmConfig: { apiKey: 'k', baseUrl: 'http://x', model: 'm' },
+    })
+    const request = vi.mocked(chatComplete).mock.calls[0][0]
+    const prompt = String(request.messages[0].content)
+    expect(prompt).toContain('人物故事尚未确定')
+    expect(prompt).toContain('当前不声明城市、家乡或长期生活地点')
+    expect(prompt).not.toMatch(/临湾|海堤|旧港|码头/)
   })
 })

@@ -7,12 +7,14 @@
  */
 
 import { getActiveRole } from '../companion/orchestrator'
+import { loadRolePack } from '../companion/identity/loader'
 import { getMutable, getMutableMeta } from '../companion/growth/mutable-store'
 import { getRoleState, getDayScript, listEvents } from '../companion/life/store'
 import { listMomentsForRole } from '../companion/life/moments'
 import { toLocalDateString } from '../companion/life/dates'
 import { buildUserProfile, listMemories } from '../storage/memory-store'
 import { createLogger } from '../utils/logger'
+import type { RoleProfile, RoleWorldDefaults } from '../companion/types'
 
 const log = createLogger('DebugWorldSnapshot')
 
@@ -32,6 +34,8 @@ function clip(s: string, max: number): string {
 
 export type DebugWorldSnapshot = {
   role: { id: string; name: string; description: string; universeId: string }
+  characterProfile: RoleProfile | null
+  worldDefaults: RoleWorldDefaults | null
   mutable: {
     body: string
     truncated: boolean
@@ -40,9 +44,17 @@ export type DebugWorldSnapshot = {
     source: 'override' | 'pack-default'
   }
   world: {
+    schemaVersion: 1
     home: string
     timezone: string
     situation: string
+    mood: number
+    energy: number
+    socialNeed: number
+    currentLocation: string
+    locationDetail: string
+    currentActivity: string
+    statusTags: string[]
     updatedAt: number
   } | null
   life: {
@@ -88,6 +100,7 @@ export type DebugWorldSnapshot = {
  */
 export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
   const role = await getActiveRole()
+  const pack = loadRolePack(role.id, role.universeId)
   const meta = await getMutableMeta(role.id)
   const mutableBody = meta?.body ?? (await getMutable(role.id, role.universeId))
   const mutableTrunc = mutableBody.length > MUTABLE_MAX
@@ -159,6 +172,8 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
       description: role.description,
       universeId: role.universeId,
     },
+    characterProfile: pack.profile ?? null,
+    worldDefaults: pack.worldDefaults ?? null,
     mutable: {
       body: clip(mutableBody, MUTABLE_MAX),
       truncated: mutableTrunc,
@@ -168,9 +183,17 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
     },
     world: state
       ? {
+          schemaVersion: state.world.schemaVersion,
           home: state.world.home,
           timezone: state.world.timezone,
           situation: clip(state.world.situation || '', 300),
+          mood: state.world.mood,
+          energy: state.world.energy,
+          socialNeed: state.world.socialNeed,
+          currentLocation: clip(state.world.currentLocation || '', 80),
+          locationDetail: clip(state.world.locationDetail || '', 120),
+          currentActivity: clip(state.world.currentActivity || '', 160),
+          statusTags: state.world.statusTags.slice(0, 8),
           updatedAt: state.world.updatedAt,
         }
       : null,

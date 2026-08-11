@@ -10,6 +10,96 @@ import type { ReactNode } from 'react'
 
 export interface WorldSnapshot {
   role: { id: string; name: string; description: string; universeId: string }
+  characterProfile: {
+    schemaVersion: 1
+    agePresentation: string
+    birthday: string
+    genderPresentation: string
+    pronouns: string
+    origin: string
+    occupation: string
+    background: string[]
+    education: string[]
+    careerHistory: string[]
+    skills: string[]
+    dailyRhythm: string[]
+    interests: string[]
+    dislikes: string[]
+    habits: string[]
+    flaws: string[]
+    socialStyle: string[]
+    valuesInPractice: string[]
+    lifeAnchors: Array<{ period: string; title: string; summary: string }>
+    appearance: {
+      overall: string
+      hair: string
+      eyes: string
+      build: string
+      clothingStyle: string
+      distinguishingFeatures: string[]
+    }
+    favorites: {
+      foods: string[]
+      drinks: string[]
+      music: string[]
+      books: string[]
+      activities: string[]
+      weather: string[]
+      colors: string[]
+    }
+    selfAwareness: string
+    expression: {
+      warmth: number
+      energy: number
+      directness: number
+      playfulness: number
+      initiative: number
+    }
+  } | null
+  worldDefaults: {
+    schemaVersion: 1
+    city: { id: string; name: string; fictional: boolean; description: string; climate: string }
+    timezone: string
+    district: string
+    districtDescription: string
+    home: {
+      shortName: string
+      residence: string
+      surroundings: string
+      interior: string
+      layout: string
+      view: string
+      sensoryDetails: string[]
+    }
+    initialLocation: string
+    mobility: { primary: string; alternatives: string[] }
+    favoritePlaces: Array<{
+      id: string
+      name: string
+      kind: string
+      description: string
+      travelMinutes: number
+    }>
+    possessions: Array<{
+      id: string
+      kind: string
+      name: string
+      description: string
+      condition: string
+    }>
+    routines: { weekday: string[]; weekend: string[] }
+    standingFacts: string[]
+    initialState: {
+      mood: number
+      energy: number
+      socialNeed: number
+      currentLocation: string
+      locationDetail: string
+      currentActivity: string
+      statusTags: string[]
+    }
+    rooms: Array<{ id: string; name: string; day: string; night: string }>
+  } | null
   mutable: {
     body: string
     truncated: boolean
@@ -17,7 +107,20 @@ export interface WorldSnapshot {
     updatedAt: number | null
     source: 'override' | 'pack-default'
   }
-  world: { home: string; timezone: string; situation: string; updatedAt: number } | null
+  world: {
+    schemaVersion: 1
+    home: string
+    timezone: string
+    situation: string
+    mood: number
+    energy: number
+    socialNeed: number
+    currentLocation: string
+    locationDetail: string
+    currentActivity: string
+    statusTags: string[]
+    updatedAt: number
+  } | null
   life: {
     pausedAt: number | null
     lastTickAt: number
@@ -106,6 +209,85 @@ export function WorldStatePanel({ snap, error }: { snap: WorldSnapshot | null; e
         )}
       </Section>
 
+      <Section title="角色档案（Role Pack）">
+        {snap.characterProfile ? (
+          <>
+            <KV label="年龄感" value={snap.characterProfile.agePresentation || '—'} />
+            <KV label="生日" value={snap.characterProfile.birthday || '—'} />
+            <KV label="性别气质" value={snap.characterProfile.genderPresentation || '—'} />
+            <KV label="成长背景" value={snap.characterProfile.origin || '—'} />
+            <KV label="当前身份" value={snap.characterProfile.occupation || '—'} />
+            <KV label="教育" value={snap.characterProfile.education.join('；') || '—'} />
+            <KV label="职业经历" value={snap.characterProfile.careerHistory.join('；') || '—'} />
+            <KV label="能力" value={snap.characterProfile.skills.join('；') || '—'} />
+            <KV label="表达基线" value={[
+              `温暖 ${snap.characterProfile.expression.warmth}`,
+              `能量 ${snap.characterProfile.expression.energy}`,
+              `直接 ${snap.characterProfile.expression.directness}`,
+              `玩闹 ${snap.characterProfile.expression.playfulness}`,
+              `主动 ${snap.characterProfile.expression.initiative}`,
+            ].join(' · ')} mono />
+            <KV label="日常节奏" value={snap.characterProfile.dailyRhythm.join('；') || '—'} />
+            <KV label="兴趣" value={snap.characterProfile.interests.join('；') || '—'} />
+            <KV label="不喜欢" value={snap.characterProfile.dislikes.join('；') || '—'} />
+            <KV label="习惯" value={snap.characterProfile.habits.join('；') || '—'} />
+            <KV label="可控缺点" value={snap.characterProfile.flaws.join('；') || '—'} />
+            <KV label="社交方式" value={snap.characterProfile.socialStyle.join('；') || '—'} />
+            <KV label="价值实践" value={snap.characterProfile.valuesInPractice.join('；') || '—'} />
+            <KV label="人生锚点" value={snap.characterProfile.lifeAnchors.map((anchor) => `${anchor.period}·${anchor.title}：${anchor.summary}`).join('；') || '—'} />
+            <KV label="外观" value={[
+              snap.characterProfile.appearance.overall,
+              snap.characterProfile.appearance.hair,
+              snap.characterProfile.appearance.eyes,
+              snap.characterProfile.appearance.build,
+              snap.characterProfile.appearance.clothingStyle,
+              ...snap.characterProfile.appearance.distinguishingFeatures,
+            ].join('；')} />
+            <KV label="偏好" value={[
+              `食物：${snap.characterProfile.favorites.foods.join('、')}`,
+              `饮品：${snap.characterProfile.favorites.drinks.join('、')}`,
+              `音乐：${snap.characterProfile.favorites.music.join('、')}`,
+              `阅读：${snap.characterProfile.favorites.books.join('、')}`,
+              `活动：${snap.characterProfile.favorites.activities.join('、')}`,
+              `天气：${snap.characterProfile.favorites.weather.join('、')}`,
+              `颜色：${snap.characterProfile.favorites.colors.join('、')}`,
+            ].join('；')} />
+            <KV label="身份边界" value={snap.characterProfile.selfAwareness || '—'} />
+          </>
+        ) : (
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>当前角色尚无 profile.json</p>
+        )}
+      </Section>
+
+      <Section title="默认世界（Role Pack）">
+        {snap.worldDefaults ? (
+          <>
+            <KV label="城市" value={`${snap.worldDefaults.city.name}${snap.worldDefaults.city.fictional ? '（虚构）' : ''}`} />
+            <KV label="城市描述" value={snap.worldDefaults.city.description || '—'} />
+            <KV label="气候" value={snap.worldDefaults.city.climate || '—'} />
+            <KV label="片区" value={snap.worldDefaults.district || '—'} />
+            <KV label="片区描述" value={snap.worldDefaults.districtDescription || '—'} />
+            <KV label="居所" value={snap.worldDefaults.home.shortName || '—'} />
+            <KV label="住所描述" value={snap.worldDefaults.home.residence || '—'} />
+            <KV label="周边" value={snap.worldDefaults.home.surroundings || '—'} />
+            <KV label="室内" value={snap.worldDefaults.home.interior || '—'} />
+            <KV label="户型" value={snap.worldDefaults.home.layout || '—'} />
+            <KV label="窗外" value={snap.worldDefaults.home.view || '—'} />
+            <KV label="感官细节" value={snap.worldDefaults.home.sensoryDetails.join('；') || '—'} />
+            <KV label="初始地点" value={snap.worldDefaults.initialLocation || '—'} />
+            <KV label="交通" value={[snap.worldDefaults.mobility.primary, ...snap.worldDefaults.mobility.alternatives].join('；')} />
+            <KV label="常去地点" value={snap.worldDefaults.favoritePlaces.map((place) => `${place.name}（${place.kind}，${place.travelMinutes} 分钟）`).join('；') || '—'} />
+            <KV label="初始物品" value={snap.worldDefaults.possessions.map((item) => `${item.name}（${item.condition}）`).join('；') || '—'} />
+            <KV label="工作日" value={snap.worldDefaults.routines.weekday.join('；') || '—'} />
+            <KV label="周末" value={snap.worldDefaults.routines.weekend.join('；') || '—'} />
+            <KV label="长期世界事实" value={snap.worldDefaults.standingFacts.join('；') || '—'} />
+            <KV label="房间场景" value={snap.worldDefaults.rooms.map((room) => room.name).join('、') || '—'} />
+          </>
+        ) : (
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>当前角色尚无 world.default.json</p>
+        )}
+      </Section>
+
       <Section title="活跃主角">
         <KV label="id" value={snap.role.id} mono />
         <KV label="name" value={snap.role.name} />
@@ -127,6 +309,13 @@ export function WorldStatePanel({ snap, error }: { snap: WorldSnapshot | null; e
           <>
             <KV label="home" value={snap.world.home} />
             <KV label="timezone" value={snap.world.timezone} mono />
+            <KV label="mood" value={`${snap.world.mood}/100`} mono />
+            <KV label="energy" value={`${snap.world.energy}/100`} mono />
+            <KV label="socialNeed" value={`${snap.world.socialNeed}/100`} mono />
+            <KV label="location" value={snap.world.currentLocation || '—'} />
+            <KV label="locationDetail" value={snap.world.locationDetail || '—'} />
+            <KV label="activity" value={snap.world.currentActivity || '—'} />
+            <KV label="tags" value={snap.world.statusTags.join('、') || '—'} />
             <KV label="situation" value={snap.world.situation || '—'} />
             <KV label="updated" value={fmt(snap.world.updatedAt)} mono />
           </>

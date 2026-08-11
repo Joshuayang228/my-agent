@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "city": {
+    "id": "undecided",
+    "name": "未设定",
+    "fictional": true,
+    "description": "人物故事尚未确定；当前不声明城市、家乡或长期生活地点",
+    "climate": "待定"
+  },
+  "timezone": "Asia/Shanghai",
+  "district": "未设定",
+  "districtDescription": "待人物故事确认后再补充",
+  "home": {
+    "shortName": "未设定",
+    "residence": "人物住所尚未确定",
+    "surroundings": "待定",
+    "interior": "待定",
+    "layout": "待定",
+    "view": "待定",
+    "sensoryDetails": []
+  },
+  "initialLocation": "未设定",
+  "mobility": {
+    "primary": "待定",
+    "alternatives": []
+  },
+  "favoritePlaces": [],
+  "possessions": [],
+  "routines": {
+    "weekday": [],
+    "weekend": []
+  },
+  "standingFacts": [
+    "人物故事尚未确定，不得自行补写城市、住所、地点、物品、职业、经历或生活时间线"
+  ],
+  "initialState": {
+    "mood": 60,
+    "energy": 60,
+    "socialNeed": 50,
+    "currentLocation": "未设定",
+    "locationDetail": "人物故事待确认",
+    "currentActivity": "参与行为人格验收",
+    "statusTags": [
+      "主角候选",
+      "故事待定"
+    ]
+  },
+  "rooms": []
+}

@@ -47,6 +47,7 @@ export async function runScenario(scenario: EvalScenario): Promise<ScenarioResul
 
     const loopOptions = {
       ...restBaseOptions,
+      tools: restBaseOptions.tools ?? registry.getAll(),
       toolContext: {
         ...(restBaseOptions.toolContext ?? {}),
         workdir,

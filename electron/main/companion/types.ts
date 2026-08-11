@@ -30,6 +30,138 @@ export interface RoleSummary {
   description: string
 }
 
+/** 角色稳定表达基线；与 LLM temperature 无关，由本轮 tone-control 再做场景收放。 */
+export interface RoleExpressionBaseline {
+  warmth: number
+  energy: number
+  directness: number
+  playfulness: number
+  initiative: number
+}
+
+export interface RoleAppearance {
+  overall: string
+  hair: string
+  eyes: string
+  build: string
+  clothingStyle: string
+  distinguishingFeatures: string[]
+}
+
+export interface RoleFavorites {
+  foods: string[]
+  drinks: string[]
+  music: string[]
+  books: string[]
+  activities: string[]
+  weather: string[]
+  colors: string[]
+}
+
+export interface RoleLifeAnchor {
+  period: string
+  title: string
+  summary: string
+}
+
+/** 角色稳定人物档案；只保存“这个人是谁”，不保存本轮心情或当前位置。 */
+export interface RoleProfile {
+  schemaVersion: 1
+  agePresentation: string
+  birthday: string
+  genderPresentation: string
+  pronouns: string
+  origin: string
+  occupation: string
+  background: string[]
+  education: string[]
+  careerHistory: string[]
+  skills: string[]
+  dailyRhythm: string[]
+  interests: string[]
+  dislikes: string[]
+  habits: string[]
+  flaws: string[]
+  socialStyle: string[]
+  valuesInPractice: string[]
+  lifeAnchors: RoleLifeAnchor[]
+  appearance: RoleAppearance
+  favorites: RoleFavorites
+  selfAwareness: string
+  expression: RoleExpressionBaseline
+}
+
+export interface RoleHomeScene {
+  id: string
+  name: string
+  day: string
+  night: string
+}
+
+export interface RoleWorldPlace {
+  id: string
+  name: string
+  kind: string
+  description: string
+  travelMinutes: number
+}
+
+export interface RoleWorldPossession {
+  id: string
+  kind: string
+  name: string
+  description: string
+  condition: string
+}
+
+export interface RoleWorldInitialState {
+  mood: number
+  energy: number
+  socialNeed: number
+  currentLocation: string
+  locationDetail: string
+  currentActivity: string
+  statusTags: string[]
+}
+
+/** 角色出厂世界；运行后当前位置与近况仍以 companion_role_state.world_json 为准。 */
+export interface RoleWorldDefaults {
+  schemaVersion: 1
+  city: {
+    id: string
+    name: string
+    fictional: boolean
+    description: string
+    climate: string
+  }
+  timezone: string
+  district: string
+  districtDescription: string
+  home: {
+    shortName: string
+    residence: string
+    surroundings: string
+    interior: string
+    layout: string
+    view: string
+    sensoryDetails: string[]
+  }
+  initialLocation: string
+  mobility: {
+    primary: string
+    alternatives: string[]
+  }
+  favoritePlaces: RoleWorldPlace[]
+  possessions: RoleWorldPossession[]
+  routines: {
+    weekday: string[]
+    weekend: string[]
+  }
+  standingFacts: string[]
+  initialState: RoleWorldInitialState
+  rooms: RoleHomeScene[]
+}
+
 /** 完整 Role Pack（仓库资产 + 组装用正文） */
 export interface RolePack {
   id: string
@@ -42,6 +174,8 @@ export interface RolePack {
   summary: string
   asideStyle?: string
   voice?: string
+  profile?: RoleProfile
+  worldDefaults?: RoleWorldDefaults
 }
 
 export interface UniverseRelations {
@@ -111,12 +245,20 @@ export interface CompanionEvent {
 
 /** 角色世界状态薄片（M23-G2；存 companion_role_state.world_json） */
 export interface CompanionWorldState {
+  schemaVersion: 1
   /** 稳定居所短名 */
   home: string
   /** IANA 时区；日历日仍用本机 local，此字段供叙事/展示 */
   timezone: string
   /** 短期情境短句（常由最近 published 事件刷新） */
   situation: string
+  mood: number
+  energy: number
+  socialNeed: number
+  currentLocation: string
+  locationDetail: string
+  currentActivity: string
+  statusTags: string[]
   updatedAt: number
 }
 

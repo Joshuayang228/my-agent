@@ -155,4 +155,23 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain(pack.protected.slice(0, 20))
     expect(prompt).toContain('Remember: you are 小林')
   })
+
+  it('结构化角色档案以薄摘要进入 L1，不注入原始 JSON', () => {
+    const pack = loadRolePack('hang')
+    const persona = rolePackToPromptParts(pack)
+    const prompt = buildSystemPrompt(makeCtx({ persona }))
+
+    expect(prompt).toContain('## Character profile')
+    expect(prompt).toContain('年龄感：待定')
+    expect(prompt).toContain('温暖度 6/10')
+    expect(prompt).toContain('本轮仍由场景与关系阶段收放')
+    expect(prompt).toContain('## Home world')
+    expect(prompt).toContain('人物故事尚未确定')
+    expect(prompt).toContain('默认居所：未设定')
+    expect(prompt).toContain('初始物品只用于播种资产库')
+    expect(prompt).not.toMatch(/临湾|海堤|旧港|码头|船笛/)
+    expect(prompt).not.toContain('"agePresentation"')
+    expect(prompt.indexOf('## Character profile')).toBeLessThan(prompt.indexOf('[MUTABLE]'))
+    expect(prompt.indexOf('## Home world')).toBeLessThan(prompt.indexOf('[MUTABLE]'))
+  })
 })

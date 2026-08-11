@@ -7,6 +7,7 @@ export type PlaygroundTabId =
   | 'design-system'
   | 'ui-controls'
   | 'surface-baseline'
+  | 'persona-review'
   | 'chat-lab'
   | 'model-test'
   | 'tools'
@@ -25,6 +26,7 @@ export const PLAYGROUND_TABS: readonly PlaygroundTabDef[] = [
   { id: 'design-system', label: '设计系统' },
   { id: 'ui-controls', label: 'UI 控件' },
   { id: 'surface-baseline', label: '页面基线' },
+  { id: 'persona-review', label: '人格验收' },
   { id: 'chat-lab', label: '对话试验' },
   { id: 'model-test', label: '模型测试' },
   { id: 'tools', label: '工具' },

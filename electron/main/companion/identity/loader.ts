@@ -14,7 +14,9 @@ import { fileURLToPath } from 'node:url'
 import type {
   RoleManifest,
   RolePack,
+  RoleProfile,
   RoleSummary,
+  RoleWorldDefaults,
   UniverseManifest,
   UniverseRelations,
 } from '../types'
@@ -101,6 +103,48 @@ export function loadRelations(universeId: string = DEFAULT_UNIVERSE): UniverseRe
   return readJson<UniverseRelations>(rel)
 }
 
+function assertSchemaVersion(assetName: string, schemaVersion: unknown): asserts schemaVersion is 1 {
+  if (schemaVersion !== 1) {
+    throw new Error(`${assetName} requires schemaVersion 1`)
+  }
+}
+
+/**
+ * 读取可选人物档案。
+ *
+ * 背景：角色团不应被迫同时补齐人物故事，当前只有进入结构化设计阶段的角色拥有该资产。
+ * 设计意图：缺失返回 undefined，让旧 Role Pack 保持原有三槽结构；存在时拒绝未知 schema。
+ * 关键约束：只验证版本边界，字段完整性由仓库资产测试负责，运行时不得自动脑补缺失故事。
+ */
+export function loadRoleProfile(
+  roleId: string,
+  universeId: string = DEFAULT_UNIVERSE,
+): RoleProfile | undefined {
+  const rel = `${universeId}/roles/${roleId}/profile.json`
+  if (!assetExists(rel)) return undefined
+  const profile = readJson<RoleProfile>(rel)
+  assertSchemaVersion(rel, profile.schemaVersion)
+  return profile
+}
+
+/**
+ * 读取可选默认世界。
+ *
+ * 背景：默认世界与运行态 world_json 必须分层，且其他角色暂不扩写完整生活资产。
+ * 设计意图：缺失返回 undefined；存在时只接受 schema v1，由调用方决定 Prompt、播种和初始态用途。
+ * 关键约束：该资产只描述出厂事实，不能覆盖运行后的位置、活动或用户编辑资产。
+ */
+export function loadRoleWorldDefaults(
+  roleId: string,
+  universeId: string = DEFAULT_UNIVERSE,
+): RoleWorldDefaults | undefined {
+  const rel = `${universeId}/roles/${roleId}/world.default.json`
+  if (!assetExists(rel)) return undefined
+  const world = readJson<RoleWorldDefaults>(rel)
+  assertSchemaVersion(rel, world.schemaVersion)
+  return world
+}
+
 /**
  * 列出宇宙中已挂上的主角（仅 protagonistIds 中的包）。
  */
@@ -138,6 +182,8 @@ export function loadRolePack(roleId: string, universeId: string = DEFAULT_UNIVER
     summary: assetExists(summaryRel) ? readText(summaryRel) : '',
     asideStyle: manifest.asideStyle,
     voice: assetExists(voiceRel) ? readText(voiceRel) : undefined,
+    profile: loadRoleProfile(roleId, universeId),
+    worldDefaults: loadRoleWorldDefaults(roleId, universeId),
   }
 }
 

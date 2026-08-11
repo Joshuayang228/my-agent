@@ -55,7 +55,7 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
       return {
         full: prompt,
         layers: {
-          l1: `[PROTECTED]\n${persona.protected}\n[/PROTECTED]\n\n[MUTABLE]\n${persona.mutable}\n[/MUTABLE]`,
+          l1: `[PROTECTED]\n${persona.protected}\n[/PROTECTED]${persona.profile ? `\n\n## Character profile\n${persona.profile}` : ''}${persona.worldProfile ? `\n\n## Home world\n${persona.worldProfile}` : ''}\n\n[MUTABLE]\n${persona.mutable}\n[/MUTABLE]`,
           l2: `Tools: ${toolNames.join(', ')}`,
           l3: userProfile
             ? `Identity: ${userProfile.identity.slice(0, 100) || '(none)'}\nWorkflow: ${userProfile.workflow.slice(0, 100) || '(none)'}\nVoice: ${userProfile.voice.slice(0, 100) || '(none)'}${customPrompt ? `\nCustom: ${customPrompt.slice(0, 100)}` : ''}`

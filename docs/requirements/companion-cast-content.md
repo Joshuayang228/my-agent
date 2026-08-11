@@ -23,6 +23,8 @@
 
 NPC（`chen` / `ayu`）：主对话只用 summary；完整 `protected` 仅召唤子会话装载。
 
+小航候选额外包含 `profile.json` 与 `world.default.json`；这是主角设计施工，不代表当前角色团都要补齐同类资产。
+
 ## 分味联动
 
 - 日剧本：`life/script-generator.ts` 按 `roleId` 选活动池  

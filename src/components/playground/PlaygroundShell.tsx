@@ -8,6 +8,7 @@ import { PLAYGROUND_TABS, type PlaygroundTabId } from './catalog'
 import { DesignSystemPanel } from './DesignSystemPanel'
 import { UiControlsPanel } from './UiControlsPanel'
 import { SurfaceBaselinePanel } from './SurfaceBaselinePanel'
+import { ProtagonistBehaviorPanel } from './ProtagonistBehaviorPanel'
 import { PromptLabPanel } from './PromptLabPanel'
 import { ToolRunPanel, type PlaygroundToolInfo } from './ToolRunPanel'
 import { FixturesPanel } from './FixturesPanel'
@@ -96,6 +97,7 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
           {tab === 'design-system' && <DesignSystemPanel />}
           {tab === 'ui-controls' && <UiControlsPanel />}
           {tab === 'surface-baseline' && <SurfaceBaselinePanel />}
+          {tab === 'persona-review' && <ProtagonistBehaviorPanel />}
           {tab === 'chat-lab' && <PromptLabPanel />}
           {tab === 'model-test' && <ModelTestPanel />}
           {tab === 'tools' && <ToolRunPanel tools={tools} />}

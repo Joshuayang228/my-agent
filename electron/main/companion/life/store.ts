@@ -105,7 +105,7 @@ export async function getRoleState(roleId: string): Promise<CompanionRoleState |
     pausedAt: (r.paused_at as number | null) ?? null,
     lastTickAt: (r.last_tick_at as number) || 0,
     catchupSummary: (r.catchup_summary as string) || '',
-    world: parseWorldJson((r.world_json as string) || ''),
+    world: parseWorldJson((r.world_json as string) || '', roleId),
     updatedAt: r.updated_at as number,
   }
 }

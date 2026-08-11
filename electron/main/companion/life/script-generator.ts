@@ -10,6 +10,10 @@ import type { LLMConfig } from '../../../../src/shared/types'
 import { chatComplete } from '../../llm/index'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
+import {
+  formatRoleProfileForPrompt,
+  formatRoleWorldDefaultsForPrompt,
+} from '../identity/profile'
 import type { DayScriptPayload, DayScriptSlot } from '../types'
 import { normalizeGrantAsset } from './grant-asset'
 
@@ -35,6 +39,23 @@ const DEFAULT_ACTIVITIES: ActivitySeed[] = [
   { activity: '下午推进一件事', mood: '认真', location: '工位', type: 'activity' },
   { activity: '傍晚发条短动态', mood: '俏皮', location: '咖啡馆', type: 'moment' },
   { activity: '晚饭后放空', mood: '困倦', location: '家', type: 'activity' },
+]
+
+/**
+ * 故事待定角色的中性剧本池。
+ *
+ * 背景：小航当前只验收行为人格，不能由通用回退池反向写死住所、工位或常去地点。
+ * 设计意图：保留 LifeEngine 所需的日内槽位，但所有活动只描述行为验收，不声明生活路线。
+ * 关键约束：地点固定为“未设定”；人物故事确认前不得加入职业、住所、交通或店铺事实。
+ */
+const UNDECIDED_ACTIVITIES: ActivitySeed[] = [
+  { activity: '确认今天最重要的一件事', mood: '清醒', location: '未设定', type: 'activity' },
+  { activity: '整理当前思路', mood: '平静', location: '未设定', type: 'moment' },
+  { activity: '完成一个可逆小步骤', mood: '专注', location: '未设定', type: 'activity' },
+  { activity: '停下来检查方向', mood: '审慎', location: '未设定', type: 'moment' },
+  { activity: '收束一个阻塞点', mood: '认真', location: '未设定', type: 'activity' },
+  { activity: '记录今天确认的边界', mood: '稳定', location: '未设定', type: 'moment' },
+  { activity: '做简短复盘', mood: '平和', location: '未设定', type: 'activity' },
 ]
 
 /** 小林：务实收束型日常 */
@@ -71,6 +92,10 @@ const XIA_ACTIVITIES: ActivitySeed[] = [
 ]
 
 const ROLE_POOL: Record<string, { themes: string[]; activities: ActivitySeed[] }> = {
+  hang: {
+    themes: ['行为人格验收日', '故事待定', '确认一个小步骤'],
+    activities: UNDECIDED_ACTIVITIES,
+  },
   lin: {
     themes: ['稳稳推进', '把一件事做完', '留白与复盘', '咖啡馆整理思绪', ...DEFAULT_THEMES],
     activities: LIN_ACTIVITIES,
@@ -207,11 +232,15 @@ function buildLlmPrompt(input: {
   roleId: string
   date: string
   voiceHint: string
+  characterHint: string
 }): string {
   return `你是生活世界编剧。为数字伙伴「${input.roleName}」(id=${input.roleId}) 生成 ${input.date} 的一日剧本。
 
 人设语气参考（勿写成对白，只影响活动气质）：
 ${input.voiceHint || '（无）'}
+
+人物与默认世界参考（只用于保持生活连续性，不要逐条复述）：
+${input.characterHint || '（无）'}
 
 要求：
 1. 日常可信、有分味，不要夸张奇幻；地点用短词（家/工位/路上/咖啡馆/附近街道等）
@@ -233,6 +262,11 @@ export async function generateDayScriptViaLlm(
   try {
     const pack = loadRolePack(roleId, opts?.universeId ?? 'default')
     const voiceHint = (pack.voice || pack.summary || pack.protected).slice(0, 280)
+    const profileHint = pack.profile ? formatRoleProfileForPrompt(pack.profile).slice(0, 750) : ''
+    const worldHint = pack.worldDefaults
+      ? formatRoleWorldDefaultsForPrompt(pack.worldDefaults).slice(0, 750)
+      : ''
+    const characterHint = [profileHint, worldHint].filter(Boolean).join('\n')
     const raw = await chatComplete({
       config: {
         ...llmConfig,
@@ -246,6 +280,7 @@ export async function generateDayScriptViaLlm(
           roleId,
           date,
           voiceHint,
+          characterHint,
         }),
       }],
       caller: 'day-script',

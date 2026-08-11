@@ -527,6 +527,96 @@ declare global {
         >
         worldSnapshot: () => Promise<{
           role: { id: string; name: string; description: string; universeId: string }
+          characterProfile: {
+            schemaVersion: 1
+            agePresentation: string
+            birthday: string
+            genderPresentation: string
+            pronouns: string
+            origin: string
+            occupation: string
+            background: string[]
+            education: string[]
+            careerHistory: string[]
+            skills: string[]
+            dailyRhythm: string[]
+            interests: string[]
+            dislikes: string[]
+            habits: string[]
+            flaws: string[]
+            socialStyle: string[]
+            valuesInPractice: string[]
+            lifeAnchors: Array<{ period: string; title: string; summary: string }>
+            appearance: {
+              overall: string
+              hair: string
+              eyes: string
+              build: string
+              clothingStyle: string
+              distinguishingFeatures: string[]
+            }
+            favorites: {
+              foods: string[]
+              drinks: string[]
+              music: string[]
+              books: string[]
+              activities: string[]
+              weather: string[]
+              colors: string[]
+            }
+            selfAwareness: string
+            expression: {
+              warmth: number
+              energy: number
+              directness: number
+              playfulness: number
+              initiative: number
+            }
+          } | null
+          worldDefaults: {
+            schemaVersion: 1
+            city: { id: string; name: string; fictional: boolean; description: string; climate: string }
+            timezone: string
+            district: string
+            districtDescription: string
+            home: {
+              shortName: string
+              residence: string
+              surroundings: string
+              interior: string
+              layout: string
+              view: string
+              sensoryDetails: string[]
+            }
+            initialLocation: string
+            mobility: { primary: string; alternatives: string[] }
+            favoritePlaces: Array<{
+              id: string
+              name: string
+              kind: string
+              description: string
+              travelMinutes: number
+            }>
+            possessions: Array<{
+              id: string
+              kind: string
+              name: string
+              description: string
+              condition: string
+            }>
+            routines: { weekday: string[]; weekend: string[] }
+            standingFacts: string[]
+            initialState: {
+              mood: number
+              energy: number
+              socialNeed: number
+              currentLocation: string
+              locationDetail: string
+              currentActivity: string
+              statusTags: string[]
+            }
+            rooms: Array<{ id: string; name: string; day: string; night: string }>
+          } | null
           mutable: {
             body: string
             truncated: boolean
@@ -535,9 +625,17 @@ declare global {
             source: 'override' | 'pack-default'
           }
           world: {
+            schemaVersion: 1
             home: string
             timezone: string
             situation: string
+            mood: number
+            energy: number
+            socialNeed: number
+            currentLocation: string
+            locationDetail: string
+            currentActivity: string
+            statusTags: string[]
             updatedAt: number
           } | null
           life: {
