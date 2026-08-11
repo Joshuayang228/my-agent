@@ -1,7 +1,7 @@
-# CLAUDE.md — My Agent 项目权威规则
+# My Agent 项目权威规则（CLAUDE.md / AGENTS.md 同步镜像）
 
-> 本文件是本项目面向所有开发 Agent（Claude Code 主力，偶尔 Cursor / Codex）的**唯一权威规则源**。
-> Claude Code 会自动加载本文件。其他工具（Cursor / Codex）的入口文件已配置为「必须先读本文件」。
+> 根目录 `CLAUDE.md` 与 `AGENTS.md` 保存字节级一致的完整规则，是本项目面向所有开发 Agent（Claude Code 主力，偶尔 Cursor / Codex）的同一权威规则镜像。
+> Claude Code 自动加载 `CLAUDE.md`，Codex 自动加载 `AGENTS.md`；两者都直接承载完整规则，不再使用单向路由。修改任一文件后必须同步另一份。
 > 所有 Agent 进入项目后，必须从项目根目录到当前工作目录，按父 → 子顺序逐层完整读取沿途所有 `CLAUDE.md`。
 > 多级 `CLAUDE.md` 规则冲突时，除安全红线和上级明确声明不可覆盖的规则外，以更接近当前工作目录的规则为准。
 > 高频、强约束、必须默认执行的规则写在正文常驻；低频、场景化的详细规则放 `agent-skills/`，按索引表引导按需读取。
@@ -18,9 +18,9 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 
 ## 启动上下文
 
-文档分四维：**产品**（`docs/modules/`，入口 `README.md`）· **技术**（`architecture.md`）· **质量**（`quality.md`）· **账本**（progress / changelog / wishlist / pitfalls / decisions / rules-feedback）。  
-**「有什么能力」**看对应模块卡的「已落地能力」节（导览：[`docs/modules/README.md`](docs/modules/README.md)）。  
-**施工合同**（唯一称呼，勿称「需求文档 / 需求合同 / 开工合同」）索引：[`docs/requirements/README.md`](docs/requirements/README.md)。  
+文档分四维：**产品**（`docs/modules/`，入口 `README.md`）· **技术**（`architecture.md`）· **质量**（`quality.md`）· **账本**（progress / changelog / wishlist / pitfalls / decisions / rules-feedback）。
+**「有什么能力」**看对应模块卡的「已落地能力」节（导览：[`docs/modules/README.md`](docs/modules/README.md)）。
+**施工合同**（唯一称呼，勿称「需求文档 / 需求合同 / 开工合同」）索引：[`docs/requirements/README.md`](docs/requirements/README.md)。
 协作 SOP 在根目录 `agent-skills/`（与 docs 并列，见下文「agent-skills」）。深 Why 在 `methodology/`。文档四维见 `docs/docs-system.md`。
 
 **模块卡纪律**：`docs/modules/` 只放**有实质边界的模块卡** + `README` 导览。能力清单写在各卡「已落地能力」，**禁止**再维护总 `capability-catalog`；能力合并后更新导览指向存活卡，**禁止**留下仅「请改读 xxx」的重定向/空壳文档。
@@ -134,6 +134,8 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 
 功能开发完成且测试通过后**必须**立即 commit + push：
 
+- 用户已长期授权仓库任务在验证通过后直接 commit + push，**无需每次再次询问是否提交或推送**；除非用户在当轮明确要求不提交、暂缓推送或只做审查。
+- 每个可独立回滚的任务必须在当轮完成提交与推送，不得只在回复中建议用户之后再提交。
 - commit 前必须通过单元测试（`npm run test`）和类型检查（`npx tsc --noEmit`）。
 - 改动涉及 import 结构、主进程模块或打包配置时，commit 前必须补跑 `npx vite build`——`tsc` 查不出重复导入/打包期错误（已踩坑：重复 import 过了 tsc、build 才失败）。
 - 动手前先 `git status`：把与本次任务无关的存量改动单独提交或 stash，不混进本次提交。
@@ -147,7 +149,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 
 ## 施工合同规范（`docs/requirements/`）
 
-> 统一称呼：**施工合同**。落点固定为 `docs/requirements/*.md`。  
+> 统一称呼：**施工合同**。落点固定为 `docs/requirements/*.md`。
 > 禁止混用「需求文档 / 需求合同 / 开工合同」等别名（避免 AI 找错目录）。
 
 **适用场景**：跨 3 个以上文件的新功能、架构变更、复杂功能模块。这类任务**必须先写施工合同，用户确认后再动手**。
@@ -195,10 +197,10 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 
 **何时读（注入时机）**：
 
-1. 任务匹配下表任一场景 → **动手前先 Read 对应文件**，再改代码  
-2. 完成前验证 → 必读 `code-review.md` 做自审（见上方闸 3）  
-3. 正文硬约束（安全、分层、IPC、Git 门控等）**始终生效**，不必等索引触发  
-4. 小改（typo / 单文件少量）可不读技能文件，但仍遵守硬约束  
+1. 任务匹配下表任一场景 → **动手前先 Read 对应文件**，再改代码
+2. 完成前验证 → 必读 `code-review.md` 做自审（见上方闸 3）
+3. 正文硬约束（安全、分层、IPC、Git 门控等）**始终生效**，不必等索引触发
+4. 小改（typo / 单文件少量）可不读技能文件，但仍遵守硬约束
 
 **不要**每轮把 `agent-skills/` 全部读进上下文；按场景点读即可。
 
@@ -286,5 +288,6 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 
 ## 其他工具入口
 
-- `AGENTS.md`（Codex）、`.cursor/rules/core.mdc`（Cursor）均已改为「必须先读本 CLAUDE.md」的重定向入口，不再各自维护规则。
+- `CLAUDE.md` 与 `AGENTS.md` 必须保持字节级一致，分别供 Claude Code 与 Codex 直接加载完整规则；禁止恢复成单向重定向入口。
+- `.cursor/rules/core.mdc`（Cursor）仍是「必须先读根目录完整规则」的入口。
 - `.cursor/` 旧规则已归档至 `_archive/cursor-legacy/`，仅作历史参考，不再是规则来源。
