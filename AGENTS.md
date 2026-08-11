@@ -1,10 +1,10 @@
-# My Agent 项目权威规则（CLAUDE.md / AGENTS.md 同步镜像）
+# AGENTS.md — My Agent 项目权威规则
 
-> 根目录 `CLAUDE.md` 与 `AGENTS.md` 保存字节级一致的完整规则，是本项目面向所有开发 Agent（Claude Code 主力，偶尔 Cursor / Codex）的同一权威规则镜像。
-> Claude Code 自动加载 `CLAUDE.md`，Codex 自动加载 `AGENTS.md`；两者都直接承载完整规则，不再使用单向路由。修改任一文件后必须同步另一份。
-> 所有 Agent 进入项目后，必须从项目根目录到当前工作目录，按父 → 子顺序逐层完整读取沿途所有 `CLAUDE.md`。
-> 多级 `CLAUDE.md` 规则冲突时，除安全红线和上级明确声明不可覆盖的规则外，以更接近当前工作目录的规则为准。
-> 高频、强约束、必须默认执行的规则写在正文常驻；低频、场景化的详细规则放 `agent-skills/`，按索引表引导按需读取。
+> `AGENTS.md` 是本项目面向所有开发 Agent 的 canonical source。
+> Claude Code 通过同目录 `CLAUDE.md` 的 `@AGENTS.md` 导入；Codex 等工具直接读取。
+> 所有 Agent 必须从项目根目录到当前工作目录，按父 → 子顺序完整读取沿途 `AGENTS.md`。
+> 多级规则冲突时，除安全红线和上级不可覆盖规则外，以更接近当前工作目录的规则为准。
+> 高频强约束写在正文；低频场景规则放 `agent-skills/`。
 
 ## 项目定位
 
@@ -286,8 +286,9 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 2. 累计 3 条反馈后主动建议修订规则
 3. 用户确认后批量更新本文档和相关 agent-skills 文件
 
-## 其他工具入口
+## 工具入口
 
-- `CLAUDE.md` 与 `AGENTS.md` 必须保持字节级一致，分别供 Claude Code 与 Codex 直接加载完整规则；禁止恢复成单向重定向入口。
-- `.cursor/rules/core.mdc`（Cursor）仍是「必须先读根目录完整规则」的入口。
-- `.cursor/` 旧规则已归档至 `_archive/cursor-legacy/`，仅作历史参考，不再是规则来源。
+- `AGENTS.md` 保存完整共享规则，是唯一权威规则源。
+- `CLAUDE.md` 只保留 `@AGENTS.md` 和必要的 Claude 专属差异。
+- `.cursor/rules/core.mdc` 只保留 Cursor 专属入口或差异，不复制公共规则正文。
+- `.cursor/` 旧规则已归档至 `_archive/cursor-legacy/`，仅作历史参考。
