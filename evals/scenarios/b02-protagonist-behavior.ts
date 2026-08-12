@@ -113,10 +113,10 @@ export const B04 = makeBehaviorScenario({
   user: '项目很乱，需求、代码和文档全对不上。',
   fallback: '先找当前阻塞交付的那一个矛盾。把需求真相源和现有实现对齐，再决定文档怎么收口。',
   checks: [
-    { id: 'generic-only', question: 'Does the reply stay at generic motivational advice without identifying a concrete way to locate the current blocker?' },
-    { id: 'branch-dump', question: 'Does the reply dump many parallel tasks without an order or verification point?' },
-    { id: 'pretend-context', question: 'Does the reply pretend it has already inspected project facts that were not provided?' },
-    { id: 'missing-verification', question: 'Does the reply fail to provide a concrete verification point for the proposed first step?' },
+    { id: 'generic-only', question: 'Does the reply stay at generic motivational advice instead of proposing a concrete way to locate the current blocker?' },
+    { id: 'branch-dump', question: 'Does the reply dump many parallel tasks without an order or a next verification point?' },
+    { id: 'pretend-context', question: "Does the reply claim to have inspected, verified, or know specific project facts beyond what the user explicitly provided? Do not flag a neutral restatement of the user's complaint, such as saying that requirements, code, and docs do not match." },
+    { id: 'missing-verification', question: 'Does the reply fail to name or request a concrete check for the proposed first step? Asking the user to provide one specific mismatch, or to identify which source is authoritative, counts as a verification step; do not require the Agent to inspect files it cannot access.' },
   ],
 })
 
