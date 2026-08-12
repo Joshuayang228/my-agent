@@ -248,6 +248,51 @@ export interface DebugPersonaEvalIndex {
   skippedFiles: number
 }
 
+export type DebugEvalSuite = 'mock' | 'persona-real'
+export type DebugEvalRunState = 'idle' | 'running' | 'succeeded' | 'failed' | 'cancelled'
+
+export interface DebugEvalRunPlan {
+  suite: DebugEvalSuite
+  label: string
+  command: string
+  requiresConfirmation: boolean
+  available: boolean
+  unavailableReason?: string
+  model?: string
+  baseUrl?: string
+  hasApiKey?: boolean
+  passK?: number
+  scenarioCount?: number
+  estimatedAgentCalls?: number
+  estimatedJudgeCalls?: number
+}
+
+export interface DebugEvalScenarioProgress {
+  id: string
+  completedTrials: number
+  passedTrials: number
+  totalTrials: number
+  state: 'pending' | 'running' | 'passed' | 'failed'
+}
+
+export interface DebugEvalRunStatus {
+  runId?: string
+  suite?: DebugEvalSuite
+  state: DebugEvalRunState
+  startedAt?: number
+  endedAt?: number
+  exitCode?: number
+  cancelRequested?: boolean
+  output: string
+  error?: string
+  latestReportFile?: string
+  completedTrials?: number
+  totalTrials?: number
+  scenarios?: DebugEvalScenarioProgress[]
+}
+
+export type DebugEvalRunEvent = { type: 'status'; status: DebugEvalRunStatus }
+
 /**
  * buildTool() 的输入类型 — metadata 字段全部可选，工厂函数负责填充 fail-closed 默认值：
  * - isReadOnly: false（假设会写状态）

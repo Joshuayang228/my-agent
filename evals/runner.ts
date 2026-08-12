@@ -177,10 +177,13 @@ export async function runSuite(
 export async function runPassK(
   scenario: EvalScenario,
   k: number,
+  onTrial?: (event: { trialIndex: number; result: ScenarioResult }) => void,
 ): Promise<{ pass: boolean; passes: number; k: number; trials: ScenarioResult[] }> {
   const trials: ScenarioResult[] = []
   for (let i = 0; i < k; i++) {
-    trials.push(await runScenario(scenario))
+    const result = await runScenario(scenario)
+    trials.push(result)
+    onTrial?.({ trialIndex: i, result })
   }
   const passes = trials.filter(t => t.pass).length
   return { pass: passes === k, passes, k, trials }

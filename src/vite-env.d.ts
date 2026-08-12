@@ -11,6 +11,10 @@ import type {
   LLMSubagentSession,
   DebugPersonaEvalIndex,
   DebugPersonaEvalReport,
+  DebugEvalRunEvent,
+  DebugEvalRunPlan,
+  DebugEvalRunStatus,
+  DebugEvalSuite,
 } from './shared/types'
 
 interface SessionSummary {
@@ -445,6 +449,14 @@ declare global {
         }>
         personaEvalReports: () => Promise<DebugPersonaEvalIndex>
         personaEvalReportGet: (fileName: string) => Promise<DebugPersonaEvalReport | null>
+        evalRunPlans: () => Promise<DebugEvalRunPlan[]>
+        evalRunStatus: () => Promise<DebugEvalRunStatus>
+        evalRunStart: (suite: DebugEvalSuite) => Promise<
+          | { ok: true; status: DebugEvalRunStatus }
+          | { ok: false; error: string }
+        >
+        evalRunCancel: (runId: string) => Promise<{ ok: boolean; error?: string }>
+        onEvalRunEvent: (callback: (event: DebugEvalRunEvent) => void) => () => void
         traces: () => Promise<{
           spans: Array<{
             id: string

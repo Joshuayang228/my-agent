@@ -1,8 +1,11 @@
 ﻿import { useCallback, useEffect, useState } from 'react'
-import { CheckCircle2, Copy, FileJson2, RotateCcw, XCircle } from 'lucide-react'
+import { CheckCircle2, Copy, FileJson2, Play, RotateCcw, Square, X, XCircle } from 'lucide-react'
 import type {
   DebugPersonaEvalIndex,
   DebugPersonaEvalReport,
+  DebugEvalRunPlan,
+  DebugEvalRunStatus,
+  DebugEvalSuite,
   PersonaEvalScenarioReport,
 } from '../../shared/types'
 
@@ -27,6 +30,11 @@ export function PersonaEvalPanel() {
   const [report, setReport] = useState<DebugPersonaEvalReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [plans, setPlans] = useState<DebugEvalRunPlan[]>([])
+  const [runStatus, setRunStatus] = useState<DebugEvalRunStatus>({ state: 'idle', output: '' })
+  const [confirmPlan, setConfirmPlan] = useState<DebugEvalRunPlan | null>(null)
+  const [runError, setRunError] = useState('')
+  const [, setClockTick] = useState(0)
 
   const loadIndex = useCallback(async () => {
     if (!window.electronAPI?.debug?.personaEvalReports) return
@@ -45,6 +53,62 @@ export function PersonaEvalPanel() {
 
   useEffect(() => { void loadIndex() }, [loadIndex])
 
+  useEffect(() => {
+    if (runStatus.state !== 'running') return
+    const timer = window.setInterval(() => setClockTick((value) => value + 1), 1000)
+    return () => window.clearInterval(timer)
+  }, [runStatus.state])
+
+  useEffect(() => {
+    const debug = window.electronAPI?.debug
+    if (!debug?.evalRunPlans || !debug.evalRunStatus) return
+    void Promise.all([debug.evalRunPlans(), debug.evalRunStatus()]).then(([nextPlans, nextStatus]) => {
+      setPlans(nextPlans)
+      setRunStatus(nextStatus)
+    }).catch((cause) => setRunError(cause instanceof Error ? cause.message : String(cause)))
+    return debug.onEvalRunEvent?.((event) => {
+      setRunStatus((previous) => {
+        if (previous.state === 'running' && event.status.state !== 'running' && event.status.suite === 'persona-real') {
+          setTimeout(() => { void loadIndex() }, 250)
+        }
+        return event.status
+      })
+    })
+  }, [loadIndex])
+
+  const requestRun = (plan: DebugEvalRunPlan) => {
+    setRunError('')
+    if (!plan.available) {
+      setRunError(plan.unavailableReason || '当前 Eval 不可运行')
+      return
+    }
+    if (plan.requiresConfirmation) {
+      setConfirmPlan(plan)
+      return
+    }
+    void startRun(plan.suite)
+  }
+
+  const startRun = async (suite: DebugEvalSuite) => {
+    const debug = window.electronAPI?.debug
+    if (!debug?.evalRunStart) return
+    setConfirmPlan(null)
+    setRunError('')
+    const result = await debug.evalRunStart(suite)
+    if (!result.ok) {
+      setRunError(result.error)
+      return
+    }
+    setRunStatus(result.status)
+  }
+
+  const cancelRun = async () => {
+    const runId = runStatus.runId
+    if (!runId || !window.electronAPI?.debug?.evalRunCancel) return
+    const result = await window.electronAPI.debug.evalRunCancel(runId)
+    if (!result.ok) setRunError(result.error || '停止 Eval 失败')
+  }
+
   const selectReport = async (fileName: string) => {
     if (!window.electronAPI?.debug?.personaEvalReportGet) return
     setLoading(true)
@@ -60,20 +124,22 @@ export function PersonaEvalPanel() {
     }
   }
 
-  if (loading && !index) {
-    return <p className="text-sm" style={{ color: 'var(--text-muted)' }}>正在读取 Eval 报告…</p>
-  }
-
-  if (error && !report) {
-    return <EmptyState title="读取失败" detail={error} reportDir={index?.reportDir} />
-  }
-
-  if (!report) {
-    return <EmptyState title="还没有 Persona Eval 报告" detail="先在项目终端运行 npm run eval:persona，完成后回到这里刷新。" reportDir={index?.reportDir} />
-  }
-
   return (
     <div className="mx-auto max-w-5xl space-y-4" data-testid="persona-eval-panel">
+      <EvalRunnerCard
+        plans={plans}
+        status={runStatus}
+        error={runError}
+        onRun={requestRun}
+        onCancel={() => void cancelRun()}
+      />
+      {loading && !index ? (
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>正在读取 Eval 报告…</p>
+      ) : error && !report ? (
+        <EmptyState title="读取失败" detail={error} reportDir={index?.reportDir} />
+      ) : !report ? (
+        <EmptyState title="还没有 Persona Eval 报告" detail="可以在上方运行真实 Persona Eval；完成后报告会自动载入。" reportDir={index?.reportDir} />
+      ) : (<>
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -134,12 +200,136 @@ export function PersonaEvalPanel() {
       </div>
 
       <details className="theme-card rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border-color)' }}>
-        <summary className="cursor-pointer text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>在哪里重新运行？</summary>
+        <summary className="cursor-pointer text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>报告位置与 CLI</summary>
         <div className="mt-2 space-y-1 text-xs leading-5" style={{ color: 'var(--text-muted)' }}>
-          <p>在项目终端运行 <code className="rounded px-1 py-0.5" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>npm run eval:persona</code>，完成后点击本页“刷新报告”。</p>
+          <p>同一套入口也可在项目终端运行 <code className="rounded px-1 py-0.5" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>npm run eval:persona</code>。</p>
           <p>报告目录：<code className="break-all" style={{ color: 'var(--text-secondary)' }}>{index?.reportDir || 'eval-reports'}</code></p>
         </div>
       </details>
+      </>)}
+      {confirmPlan && (
+        <EvalRunConfirmDialog
+          plan={confirmPlan}
+          onCancel={() => setConfirmPlan(null)}
+          onConfirm={() => void startRun(confirmPlan.suite)}
+        />
+      )}
+    </div>
+  )
+}
+
+function EvalRunnerCard({
+  plans,
+  status,
+  error,
+  onRun,
+  onCancel,
+}: {
+  plans: DebugEvalRunPlan[]
+  status: DebugEvalRunStatus
+  error: string
+  onRun: (plan: DebugEvalRunPlan) => void
+  onCancel: () => void
+}) {
+  const running = status.state === 'running'
+  const elapsed = status.startedAt
+    ? Math.max(0, Math.round(((status.endedAt || Date.now()) - status.startedAt) / 1000))
+    : 0
+  const stateLabel: Record<DebugEvalRunStatus['state'], string> = {
+    idle: '未运行', running: '运行中', succeeded: '通过', failed: '失败', cancelled: '已停止',
+  }
+  return (
+    <section className="theme-card rounded-xl border p-4" style={{ borderColor: 'var(--border-color)' }}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>运行 Eval</h2>
+          <p className="mt-1 text-xs leading-5" style={{ color: 'var(--text-muted)' }}>固定白名单套件，不接受任意命令；真实验收会消耗模型调用。</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {plans.map((plan) => (
+            <button
+              key={plan.suite}
+              type="button"
+              onClick={() => onRun(plan)}
+              disabled={running || !plan.available}
+              className="inline-flex h-8 items-center gap-1.5 rounded border px-2.5 text-xs disabled:cursor-not-allowed disabled:opacity-40"
+              style={{ borderColor: 'var(--border-color)', color: plan.suite === 'persona-real' ? 'var(--accent-fg)' : 'var(--text-secondary)' }}
+              title={plan.unavailableReason}
+            >
+              <Play size={12} />{plan.label}
+            </button>
+          ))}
+          {running && (
+            <button type="button" onClick={onCancel} className="inline-flex h-8 items-center gap-1.5 rounded border px-2.5 text-xs" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}>
+              <Square size={11} />停止
+            </button>
+          )}
+        </div>
+      </div>
+
+      {(status.state !== 'idle' || error) && (
+        <div className="mt-3 space-y-3 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
+          <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <span>状态：<strong style={{ color: status.state === 'failed' ? 'var(--danger)' : status.state === 'succeeded' ? 'var(--success)' : 'var(--text-primary)' }}>{stateLabel[status.state]}</strong></span>
+            {status.suite && <span>套件：{status.suite === 'mock' ? 'Mock Eval' : '真实 Persona Eval'}</span>}
+            {status.startedAt && <span>用时：{elapsed}s</span>}
+            {typeof status.completedTrials === 'number' && typeof status.totalTrials === 'number' && <span>进度：{status.completedTrials}/{status.totalTrials}</span>}
+            {status.cancelRequested && <span style={{ color: 'var(--warning)' }}>正在停止进程树…</span>}
+          </div>
+          {status.scenarios && (
+            <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
+              {status.scenarios.map((scenario) => (
+                <div key={scenario.id} className="rounded border px-2 py-1.5 text-center text-[10px]" style={{ borderColor: scenario.state === 'failed' ? 'var(--danger)' : 'var(--border-subtle)', color: scenario.state === 'passed' ? 'var(--success)' : scenario.state === 'failed' ? 'var(--danger)' : 'var(--text-muted)' }}>
+                  <div className="font-semibold">{scenario.id}</div>
+                  <div>{scenario.completedTrials}/{scenario.totalTrials}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {(error || status.error) && <p className="text-xs" style={{ color: 'var(--danger)' }}>{error || status.error}</p>}
+          {status.output && (
+            <details open={running} className="rounded border" style={{ borderColor: 'var(--border-subtle)' }}>
+              <summary className="cursor-pointer px-2.5 py-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>运行输出</summary>
+              <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words border-t px-2.5 py-2 font-mono text-[10px] leading-4" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>{status.output}</pre>
+            </details>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function EvalRunConfirmDialog({ plan, onCancel, onConfirm }: { plan: DebugEvalRunPlan; onCancel: () => void; onConfirm: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="确认真实 Persona Eval">
+      <div className="theme-card w-full max-w-md rounded-xl border p-5 shadow-2xl" style={{ borderColor: 'var(--border-color)' }}>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>开始真实 Persona Eval？</h3>
+            <p className="mt-1 text-xs leading-5" style={{ color: 'var(--text-muted)' }}>这会调用真实模型并产生 API 消耗，运行期间可停止。</p>
+          </div>
+          <button type="button" onClick={onCancel} className="rounded p-1" style={{ color: 'var(--text-muted)' }} aria-label="关闭确认"><X size={15} /></button>
+        </div>
+        <div className="mt-4 overflow-hidden rounded-lg border text-xs" style={{ borderColor: 'var(--border-subtle)' }}>
+          {[
+            ['模型', plan.model || '—'],
+            ['Base URL', plan.baseUrl || '—'],
+            ['场景', `B02–B07（${plan.scenarioCount || 0} 个）`],
+            ['稳定性', `pass^${plan.passK || 0}`],
+            ['预计 Agent 调用', String(plan.estimatedAgentCalls || 0)],
+            ['预计 Judge 调用', String(plan.estimatedJudgeCalls || 0)],
+          ].map(([label, value], index, items) => (
+            <div key={label} className="flex justify-between gap-3 px-3 py-2" style={index < items.length - 1 ? { borderBottom: '1px solid var(--border-subtle)' } : undefined}>
+              <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+              <span className="max-w-[250px] truncate font-mono" style={{ color: 'var(--text-primary)' }} title={value}>{value}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={onCancel} className="h-8 rounded border px-3 text-xs" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>取消</button>
+          <button type="button" onClick={onConfirm} className="h-8 rounded px-3 text-xs font-medium" style={{ background: 'var(--accent)', color: 'white' }}>开始真实验收</button>
+        </div>
+      </div>
     </div>
   )
 }

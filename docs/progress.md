@@ -17,7 +17,7 @@
 **阶段**：公开运营起步；体验与前端统一优先于再堆基建；原生语音与 M24-G3 暂缓。
 
 **最新动态（2026-08-12）**：
-- ✅ **Debug Persona Eval 报告查看器**：只读读取 `eval-reports`，支持历史切换、B02–B07 场景矩阵以及逐 trial 回复/violations/evidence；Playground 保持人格设计基线。
+- ✅ **Debug Persona Eval 验收台**：读取 `eval-reports` 并支持历史/逐 trial evidence；新增白名单 Mock/Real Runner、真实调用确认、实时进度、脱敏日志、停止与完成后自动刷新；Playground 保持人格设计基线。
 - ✅ **DeepSeek Persona `pass^3`**：B02–B07 全部 3/3，通过 18 次真实回复 + 18 次 Judge；自动行为门禁已过，人工语气审美仍待本地 Playground 验收。
 - ✅ **远程 Persona Eval 基础设施**：真实/Mock 明确分层、B02–B07 `pass^k` 命令与 JSON/Markdown 报告；修复 Judge 空结果与跨行解析根因，Mock 不再冒充人格通过。
 - ✅ **人格波动回流**：正式首轮发现 B03 可能停在卡点分类、B05 可能漏恢复检查；已强化 Role Pack、Playground 与 Eval 正向缺失检查后稳定通过。

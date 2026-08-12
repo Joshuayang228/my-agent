@@ -23,7 +23,14 @@ describe('Persona Real Eval', () => {
     const scenarios = []
 
     for (const scenario of PERSONA_BEHAVIOR_SCENARIOS) {
-      const result = await runPassK(scenario, k)
+      const result = await runPassK(scenario, k, ({ trialIndex, result: trial }) => {
+        console.log(`[PERSONA_EVAL_PROGRESS]${JSON.stringify({
+          scenarioId: scenario.id,
+          trial: trialIndex + 1,
+          k,
+          pass: trial.pass,
+        })}`)
+      })
       scenarios.push({
         id: scenario.id,
         description: scenario.description,

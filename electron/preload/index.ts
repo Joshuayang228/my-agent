@@ -11,6 +11,10 @@ import type {
   LLMSubagentSession,
   DebugPersonaEvalIndex,
   DebugPersonaEvalReport,
+  DebugEvalRunEvent,
+  DebugEvalRunPlan,
+  DebugEvalRunStatus,
+  DebugEvalSuite,
 } from '../../src/shared/types'
 
 interface SessionSummary {
@@ -404,6 +408,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('debug:persona-eval-reports'),
     personaEvalReportGet: (fileName: string): Promise<DebugPersonaEvalReport | null> =>
       ipcRenderer.invoke('debug:persona-eval-report-get', fileName),
+    evalRunPlans: (): Promise<DebugEvalRunPlan[]> => ipcRenderer.invoke('debug:eval-run-plans'),
+    evalRunStatus: (): Promise<DebugEvalRunStatus> => ipcRenderer.invoke('debug:eval-run-status'),
+    evalRunStart: (suite: DebugEvalSuite): Promise<
+      | { ok: true; status: DebugEvalRunStatus }
+      | { ok: false; error: string }
+    > => ipcRenderer.invoke('debug:eval-run-start', suite),
+    evalRunCancel: (runId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('debug:eval-run-cancel', runId),
+    onEvalRunEvent: (callback: (event: DebugEvalRunEvent) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, payload: DebugEvalRunEvent) => callback(payload)
+      ipcRenderer.on('debug:eval-run-event', listener)
+      return () => ipcRenderer.removeListener('debug:eval-run-event', listener)
+    },
     llmLogsQuery: (input?: LLMCallQuery): Promise<LLMCallQueryResult> =>
       ipcRenderer.invoke('debug:llm-logs-query', input),
     llmLogGet: (id: string): Promise<LLMCallDetail | null> =>

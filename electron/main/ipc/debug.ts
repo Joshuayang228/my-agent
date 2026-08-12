@@ -16,15 +16,28 @@ import { createLogger } from '../utils/logger'
 import { getRecentSpans, getCallerStats, getTokenLaneStats } from '../utils/tracer'
 import { getDailyUsage } from '../agent/token-budget'
 import { getPersonaEvalReport, listPersonaEvalReports } from '../debug/persona-eval-reports'
+import { DebugEvalRunner } from '../debug/eval-runner'
 import {
   llmDebugStore,
 } from '../storage/llm-debug-store'
-import type { LLMCallQuery } from '../../../src/shared/types'
+import type { DebugEvalSuite, LLMCallQuery } from '../../../src/shared/types'
 
 const log = createLogger('DebugIPC')
 let llmDebugUnsubscribe: (() => void) | null = null
+let evalRunner: DebugEvalRunner | null = null
+let evalRunnerUnsubscribe: (() => void) | null = null
 
 export function registerDebugIPC(toolRegistry: ToolRegistry): void {
+  if (!evalRunner) {
+    evalRunner = new DebugEvalRunner(process.env.APP_ROOT || process.cwd())
+  }
+  if (!evalRunnerUnsubscribe) {
+    evalRunnerUnsubscribe = evalRunner.subscribe((payload) => {
+      for (const window of BrowserWindow.getAllWindows()) {
+        if (!window.isDestroyed()) window.webContents.send('debug:eval-run-event', payload)
+      }
+    })
+  }
   if (!llmDebugUnsubscribe) {
     llmDebugUnsubscribe = llmDebugStore.subscribe((event) => {
       for (const window of BrowserWindow.getAllWindows()) {
@@ -115,6 +128,19 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     if (typeof fileName !== 'string' || !fileName.trim()) return null
     const reportDir = path.join(process.env.APP_ROOT || process.cwd(), 'eval-reports')
     return getPersonaEvalReport(reportDir, fileName)
+  })
+
+  ipcMain.handle('debug:eval-run-plans', () => evalRunner!.getPlans())
+  ipcMain.handle('debug:eval-run-status', () => evalRunner!.getStatus())
+  ipcMain.handle('debug:eval-run-start', (_event, suite: DebugEvalSuite) => {
+    if (suite !== 'mock' && suite !== 'persona-real') {
+      return { ok: false, error: '不支持的 Eval 套件' }
+    }
+    return evalRunner!.start(suite)
+  })
+  ipcMain.handle('debug:eval-run-cancel', (_event, runId: string) => {
+    if (typeof runId !== 'string' || !runId.trim()) return { ok: false, error: '无效的 Eval runId' }
+    return evalRunner!.cancel(runId)
   })
 
   /** LLM Debug 历史摘要：正文不随列表查询返回，避免侧栏加载大 payload。 */

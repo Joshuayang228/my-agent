@@ -36,7 +36,7 @@ EVAL_PASS_K=3 npm run eval:persona
 ```
 
 该命令固定使用 `EVAL_MODE=real`，缺少 API Key、Judge 返回 `UNKNOWN` 或任何场景未达到
-`pass^k` 都会失败，并在 `eval-reports/` 生成 JSON 与 Markdown 报告。报告不保存 API Key。Debug「Eval」只读展示这些真实报告，支持历史切换、场景矩阵与逐 trial evidence；不会在打开页面时自动产生真实模型调用。
+`pass^k` 都会失败，并在 `eval-reports/` 生成 JSON 与 Markdown 报告。报告不保存 API Key。Debug「Eval」展示这些真实报告，并提供受控 Runner：Mock 可直接运行；Real 必须确认模型、`pass^k`、场景和预计调用数后启动。Runner 只允许固定 npm script，支持实时 trial 进度、停止和有限脱敏日志；打开页面不会自动产生真实模型调用。
 
 2026-08-12 基线：DeepSeek `deepseek-v4-flash` 的 B02–B07 全部达到 `pass^3`。该结果是自动化行为门禁，不替代用户对语气、活人感和审美的最终人工验收。
 
