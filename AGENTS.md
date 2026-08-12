@@ -1,5 +1,11 @@
 # AGENTS.md — My Agent 项目权威规则
 
+<!-- RULE_HIERARCHY:START -->
+> 规则层级：**L4 · 独立项目规则**
+> 规则链（父 → 子）：`L1 <Vault>/AGENTS.md` → `L2 <Vault>/积核/项目/AGENTS.md` → `L3 <Vault>/积核/项目/个人项目/AGENTS.md` → `L4 <Vault>/积核/项目/个人项目/my-agent/my-agent/AGENTS.md`
+> 加载约定：仅适用于 `<Vault>`（`瓶盖的AI碎碎念`）内部；始终按父 → 子读取。若 Agent 从子目录或独立 Git repo root 启动且未自动加载上层规则，必须主动补读；冲突时近层优先，安全红线不可覆盖。
+<!-- RULE_HIERARCHY:END -->
+
 > `AGENTS.md` 是本项目面向所有开发 Agent 的 canonical source。
 > Claude Code 通过同目录 `CLAUDE.md` 的 `@AGENTS.md` 导入；Codex 等工具直接读取。
 > 所有 Agent 必须从项目根目录到当前工作目录，按父 → 子顺序完整读取沿途 `AGENTS.md`。
