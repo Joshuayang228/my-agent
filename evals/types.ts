@@ -7,8 +7,9 @@
  * - GraderResult：具体问题列表，不是综合分数
  */
 
-import type { AgentStreamEvent, AgentLoopOptions, LLMConfig, ToolDefinition } from '../src/shared/types'
+import type { AgentLoopOptions, LLMConfig } from '../src/shared/types'
 import type { ToolRegistry } from '../electron/main/tools/registry'
+import { loadEvalEnvironment } from './eval-config'
 
 // ── Mock LLM ──
 
@@ -95,11 +96,18 @@ export interface ScenarioResult {
     graderName: string
     result: GraderResult
   }>
+  /** 供远程报告审阅的用户可见回复，不含 reasoning / tool 原始输出。 */
+  agentTexts: string[]
   error?: string
+  mode?: 'mock' | 'real'
 }
 
 export interface EvalReport {
   timestamp: string
+  mode: 'mock' | 'real'
+  model?: string
+  baseUrl?: string
+  hasApiKey: boolean
   totalScenarios: number
   passed: number
   failed: number
@@ -111,8 +119,9 @@ export interface EvalReport {
 
 /** 给 eval 用的最小 LLMConfig（real LLM 场景需传入真实 key） */
 export function makeEvalLLMConfig(overrides?: Partial<LLMConfig>): LLMConfig {
+  loadEvalEnvironment()
   return {
-    apiKey: process.env.LLM_API_KEY || 'eval-mock-key',
+    apiKey: process.env.TEST_LLM_API_KEY || process.env.LLM_API_KEY || 'eval-mock-key',
     baseUrl: process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
     model: process.env.LLM_MODEL || 'gpt-4o',
     ...overrides,

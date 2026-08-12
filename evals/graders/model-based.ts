@@ -18,6 +18,8 @@ import type { EvalGrader, GraderResult, EvalContext } from '../types'
 import type { LLMConfig, ChatMessage } from '../../src/shared/types'
 import { chatComplete } from '../../electron/main/llm/index'
 import { makeEvalLLMConfig } from '../types'
+import { getEvalMode } from '../eval-config'
+import { collectAgentText } from '../transcript'
 
 export interface ViolationCheck {
   /** 便于引用的短 ID（如 'cliche' / 'report'） */
@@ -49,22 +51,27 @@ export function makeModelBasedGrader(
     name: graderName,
 
     async grade({ transcript }: EvalContext): Promise<GraderResult> {
+      const mode = getEvalMode()
+      if (mode === 'mock') {
+        return {
+          pass: true,
+          violations: [],
+          evidence: ['[SKIPPED] Mock 模式不运行 Model Judge'],
+        }
+      }
+
       // ── 1. 检查 API Key ──
       const cfg = makeEvalLLMConfig(llmConfig)
       if (!cfg.apiKey || cfg.apiKey === 'eval-mock-key') {
         return {
-          pass: true,
-          violations: [],
-          evidence: ['[SKIPPED] 无 LLM API Key，B 类场景跳过（设置 LLM_API_KEY 后手动运行）'],
+          pass: false,
+          violations: ['Real Eval 缺少 LLM API Key'],
+          evidence: [],
         }
       }
 
       // ── 2. 收集被测 Agent 的文本回复 ──
-      const agentTexts = transcript
-        .filter(ev => ev.type === 'text')
-        .map(ev => (ev as { type: 'text'; content: string }).content)
-        .join('\n\n---\n\n')
-        .trim()
+      const agentTexts = collectAgentText(transcript)
 
       if (!agentTexts) {
         return {
@@ -107,12 +114,11 @@ ${checkList}
 
       let judgeResponse: string
       try {
-        const result = await chatComplete({
+        judgeResponse = await chatComplete({
           config: cfg,
           messages: [judgeMsg],
           caller: 'eval-judge',
         })
-        judgeResponse = result.content || ''
       } catch (err) {
         return {
           pass: false,
@@ -126,21 +132,30 @@ ${checkList}
       const evidence: string[] = []
 
       for (let i = 0; i < checks.length; i++) {
-        const pattern = new RegExp(`\\[${i + 1}\\]\\s+(VIOLATION_FOUND|NOT_FOUND|UNKNOWN)([:\\s]*)([^\\n]*)`, 'i')
+        // Judge 偶尔会加 Markdown 列表或粗体；逐行解析，禁止 `\s` 跨行吞掉下一条结论。
+        const pattern = new RegExp(
+          `^[ \\t]*(?:[-*][ \\t]*)?(?:\\*\\*)?\\[${i + 1}\\](?:\\*\\*)?[ \\t]*[:：-]?[ \\t]*`
+          + `(?:\\*\\*)?(VIOLATION_FOUND|NOT_FOUND|UNKNOWN)(?:\\*\\*)?`
+          + `[ \\t]*(?::|：|-)?[ \\t]*([^\\r\\n]*)$`,
+          'im',
+        )
         const m = judgeResponse.match(pattern)
 
         if (!m) {
-          evidence.push(`[${i + 1}] (无法解析 judge 回复)`)
+          evidence.push(`[${i + 1}] UNKNOWN: 无法解析 Judge 回复；原始 Judge：${judgeResponse.slice(0, 500)}`)
+          violations.push(`${checks[i].id}: Judge 未返回可解析结论`)
           continue
         }
 
         const verdict = m[1].toUpperCase()
-        const detail = (m[3] || '').trim()
+        const detail = (m[2] || '').trim()
         const evidenceLine = `[${i + 1}] ${verdict}${detail ? ': ' + detail : ''}`
         evidence.push(evidenceLine)
 
         if (verdict === 'VIOLATION_FOUND') {
           violations.push(`${checks[i].id}: ${detail || checks[i].question}`)
+        } else if (verdict === 'UNKNOWN') {
+          violations.push(`${checks[i].id}: Judge 返回 UNKNOWN${detail ? `：${detail}` : ''}`)
         }
       }
 

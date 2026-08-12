@@ -3,6 +3,7 @@ node_modules/
 
 # 环境变量
 .env
+eval-reports/
 .env.local
 .env.*.local
 

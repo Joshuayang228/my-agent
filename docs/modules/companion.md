@@ -78,7 +78,7 @@
 | 日剧本 LLM（当日）+ 哈希回退 | 已落地 | （隐式）Life ticker | `resolveDayScript` · aux-config |
 | 世界状态薄片（居所/时区/情境/心情/精力/当前位置与活动） | 已落地 | （隐式）Assemble L3 | schema v1 `world_json` · `## World slice` |
 | 主角候选默认世界结构 | 已落地 | Debug「世界态」/ 世界初始化 | 当前仅小航 `world.default.json`；城市、住所、地点、物品与作息均待定 |
-| 主角候选行为人格验收 | 已落地 | Playground「人格验收」 | 七个中性故事格 + Eval B02–B07；不定义人物故事 |
+| 主角候选行为人格验收 | 已落地 | Playground「人格验收」/ `npm run eval:persona` | 七个中性故事格 + B02–B07 DeepSeek `pass^3`；自动门禁已过，人工语气审美待本地验收 |
 | Catch-up 概况 LLM + 模板回退 | 已落地 | （隐式）换角追赶 | `resolveCatchupSummary` · catchup.ts |
 | 聊圈薄一致性（近 Moment 锚点） | 已落地 | （隐式）Assemble L3 | `moment-consistency` · `## Recent moments` |
 | Moment LLM 润色（绑 event） | 已落地 | （隐式）tick 发布 | `moment-polish` · 规则回退 |
@@ -142,5 +142,5 @@
 
 ## 现状 / 缺口
 
-**现状**：W0–W6 主线已落地；深 Why：`methodology/m22`–`m31`（Part VI 收齐）；前端 P0–P2 已落地；小航行为人格已进入 Playground / Eval 验收，人物故事尚未确定且未激活；其他角色本轮不扩写。
+**现状**：W0–W6 主线已落地；深 Why：`methodology/m22`–`m31`（Part VI 收齐）；前端 P0–P2 已落地；小航 B02–B07 真实 DeepSeek `pass^3` 已通过，仍待本地人工语气审美验收；人物故事尚未确定且未激活；其他角色本轮不扩写。
 **缺口**：见上表「缺口」行 + wishlist；生图场景等非本阶段。

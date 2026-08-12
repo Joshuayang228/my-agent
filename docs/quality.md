@@ -10,6 +10,7 @@
 |----|------|------|------|
 | Unit | 确定性逻辑 | `npm test` | commit 前必过 |
 | Eval | Agent 行为场景（多 Mock LLM） | `npm run eval:run` | 行为改动时跑；不替代 unit |
+| Persona Real Eval | B02–B07 真实 LLM + Judge + pass^k | `npm run eval:persona` | 远程人格验收；需要 `.env` / `LLM_API_KEY` |
 | E2E UI | 界面冒烟 | `npm run test:e2e` | 涉 UI 时 |
 | E2E Electron | 可选真对话 | `npm run test:e2e:electron` | 需 `TEST_LLM_API_KEY`；无 key 则 skip |
 
@@ -20,12 +21,24 @@
 - 目录：`evals/`（runner、mock-llm、graders、scenarios、baseline）
 - 注入点：`AgentLoopOptions.streamChatOverride`（禁止用假 LLM 冒充产品功能，仅测试/Eval）
 - 场景标签：框架向 `f*`、伙伴向 `p*`、人格向 `b01-*` 等——**按产品关心点选题，但 Eval 本身不是产品模块**
+- `ModelBasedGrader` 只接受“是否存在违规”的负向二元问题；正向要求必须改写为“是否缺失该行为”，避免通过行为被当作违规。
 - 模块卡可链接相关场景 ID；场景正文不复制进模块卡
 - 历史规格底稿：`_archive/docs-legacy/eval-design.md`（可能过时）
 
 ```bash
 npm run eval:run
 ```
+
+远程人格验收：
+
+```bash
+EVAL_PASS_K=3 npm run eval:persona
+```
+
+该命令固定使用 `EVAL_MODE=real`，缺少 API Key、Judge 返回 `UNKNOWN` 或任何场景未达到
+`pass^k` 都会失败，并在 `eval-reports/` 生成 JSON 与 Markdown 报告。报告不保存 API Key。
+
+2026-08-12 基线：DeepSeek `deepseek-v4-flash` 的 B02–B07 全部达到 `pass^3`。该结果是自动化行为门禁，不替代用户对语气、活人感和审美的最终人工验收。
 
 ## Unit 要点
 

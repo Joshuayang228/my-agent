@@ -20,10 +20,14 @@ import type {
   EvalContext,
 } from './types'
 import type { AgentStreamEvent } from '../src/shared/types'
+import { getEvalMode, loadEvalEnvironment } from './eval-config'
+import { collectAgentText } from './transcript'
 
 // ── 单场景运行 ──
 
 export async function runScenario(scenario: EvalScenario): Promise<ScenarioResult> {
+  loadEvalEnvironment()
+  const mode = getEvalMode()
   const start = Date.now()
   const workdir = join(tmpdir(), `eval-${scenario.id}-${Date.now()}`)
   mkdirSync(workdir, { recursive: true })
@@ -68,7 +72,9 @@ export async function runScenario(scenario: EvalScenario): Promise<ScenarioResul
       pass: false,
       durationMs: Date.now() - start,
       graderResults: [],
+      agentTexts: [],
       error: errorMsg,
+      mode,
     }
   }
 
@@ -103,6 +109,11 @@ export async function runScenario(scenario: EvalScenario): Promise<ScenarioResul
     pass: allPass,
     durationMs: Date.now() - start,
     graderResults,
+    agentTexts: (() => {
+      const text = collectAgentText(transcript)
+      return text ? [text] : []
+    })(),
+    mode,
   }
 }
 
@@ -112,6 +123,8 @@ export async function runSuite(
   scenarios: EvalScenario[],
   opts: { verbose?: boolean } = {},
 ): Promise<EvalReport> {
+  loadEvalEnvironment()
+  const mode = getEvalMode()
   const results: ScenarioResult[] = []
 
   for (const scenario of scenarios) {
@@ -147,6 +160,8 @@ export async function runSuite(
 
   return {
     timestamp: new Date().toISOString(),
+    mode,
+    hasApiKey: Boolean((process.env.TEST_LLM_API_KEY || process.env.LLM_API_KEY || '').trim()),
     totalScenarios: results.length,
     passed,
     failed,

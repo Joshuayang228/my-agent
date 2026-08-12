@@ -6,6 +6,7 @@
 import type { EvalScenario } from '../types'
 import { makeEvalLLMConfig } from '../types'
 import { makeModelBasedGrader } from '../graders/model-based'
+import { getEvalMode, hasEvalApiKey } from '../eval-config'
 
 export const B01: EvalScenario = {
   id: 'B01',
@@ -17,9 +18,10 @@ export const B01: EvalScenario = {
     const cfg = makeEvalLLMConfig({
       apiKey: process.env.TEST_LLM_API_KEY || process.env.LLM_API_KEY || '',
     })
-    const hasKey = !!cfg.apiKey && cfg.apiKey !== 'eval-mock-key'
+    const realMode = getEvalMode() === 'real'
+    const hasKey = hasEvalApiKey()
 
-    if (!hasKey) {
+    if (!realMode) {
       return {
         config: makeEvalLLMConfig(),
         messages: [{ id: 'u1', role: 'user' as const, content: '你好', timestamp: Date.now() }],
@@ -35,6 +37,7 @@ export const B01: EvalScenario = {
         },
       }
     }
+    if (!hasKey) throw new Error('Real Eval 缺少 LLM API Key')
 
     return {
       config: cfg,

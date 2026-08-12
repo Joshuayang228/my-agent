@@ -5,6 +5,14 @@
 
 ## [未发布]
 
+### Added — 远程 Persona Eval（2026-08-12）
+
+- 新增 `npm run eval:persona`：自动读取本地 `.env`，使用真实模型运行 B02–B07 `pass^k`，默认 `pass^3`
+- 生成本地 JSON / Markdown 远程验收报告，记录实际回复、Judge evidence 与稳定通过次数，不保存 API Key
+- Mock Eval 与真实人格验收明确分层；无 Key、Judge `UNKNOWN`、无法解析或任一 trial 失败都会阻断真实门禁
+- 修复 Model Judge 长期空结果与跨行解析问题；流式 text chunk 先聚合为完整回复再评估
+- DeepSeek `deepseek-v4-flash` 已完成 B02–B07 全部 `3/3`；根据首轮波动强化“任务未明也给可逆小动作”和“危险删除必须确认恢复方式”
+
 ### Added — 角色档案与默认世界分层（2026-08-11）
 
 - Playground 新增「人格验收」：七个中性行为故事格只验证回应方式，不定义主角职业、经历、住所或世界观

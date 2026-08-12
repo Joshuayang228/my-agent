@@ -18,11 +18,15 @@ import { makeModelBasedGrader } from '../graders/model-based'
 import { makeEvalLLMConfig } from '../types'
 import { createMockStreamChat } from '../mock-llm'
 import { buildTool } from '../../electron/main/tools/builder'
+import { getEvalMode, hasEvalApiKey } from '../eval-config'
 
 /** 没有真实 API key 时注入占位 mock，让场景以 completed 结束但 ModelBasedGrader 自动跳过 */
 function skipMockIfNoApiKey() {
-  const hasKey = !!(process.env['LLM_API_KEY'])
-  return hasKey ? undefined : createMockStreamChat([{ content: '[B类场景跳过：未设置 LLM_API_KEY]' }])
+  if (getEvalMode() === 'mock') {
+    return createMockStreamChat([{ content: '[B类场景跳过：Mock 模式]' }])
+  }
+  if (!hasEvalApiKey()) throw new Error('Real Eval 缺少 LLM API Key')
+  return undefined
 }
 
 // ── P05：语气一致性 ──
@@ -122,7 +126,7 @@ export const P06: EvalScenario = {
         },
         {
           id: 'natural_usage',
-          question: '回复本身是否确实偏向简洁（内容精炼、没有废话）？（这是正向检验：答案 NOT_FOUND 表示违规——回复没有体现用户偏好）',
+          question: '回复是否没有体现用户偏好的简洁风格，例如内容冗长、重复或包含明显无关铺垫？',
         },
       ],
     ),

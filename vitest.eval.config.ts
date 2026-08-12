@@ -8,6 +8,9 @@ import { defineConfig } from 'vitest/config'
  */
 export default defineConfig({
   test: {
+    env: {
+      EVAL_MODE: 'mock',
+    },
     include: ['evals/eval.test.ts'],
     globals: true,
     testTimeout: 30000,  // 单场景最多 30s
