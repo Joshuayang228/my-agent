@@ -183,6 +183,71 @@ export type LLMCallEvent =
   | { type: 'started' | 'updated' | 'ended'; record: LLMCallSummary }
   | { type: 'cleared'; sessionId?: string }
 
+// ── Debug Persona Eval 报告 ──
+
+export interface PersonaEvalGraderResult {
+  graderName: string
+  result: {
+    pass: boolean
+    violations: string[]
+    evidence: string[]
+  }
+}
+
+export interface PersonaEvalTrialReport {
+  id: string
+  description: string
+  pass: boolean
+  durationMs: number
+  graderResults: PersonaEvalGraderResult[]
+  agentTexts: string[]
+  error?: string
+  mode?: 'mock' | 'real'
+}
+
+export interface PersonaEvalScenarioReport {
+  id: string
+  description: string
+  pass: boolean
+  passes: number
+  k: number
+  trials: PersonaEvalTrialReport[]
+}
+
+export interface PersonaEvalReport {
+  timestamp: string
+  mode: 'real'
+  model: string
+  baseUrl: string
+  pass: boolean
+  totalScenarios: number
+  passedScenarios: number
+  k: number
+  scenarios: PersonaEvalScenarioReport[]
+}
+
+export interface PersonaEvalReportSummary {
+  fileName: string
+  timestamp: string
+  model: string
+  baseUrl: string
+  pass: boolean
+  totalScenarios: number
+  passedScenarios: number
+  k: number
+}
+
+export interface DebugPersonaEvalReport extends PersonaEvalReport {
+  fileName: string
+}
+
+export interface DebugPersonaEvalIndex {
+  reportDir: string
+  reports: PersonaEvalReportSummary[]
+  latest: DebugPersonaEvalReport | null
+  skippedFiles: number
+}
+
 /**
  * buildTool() 的输入类型 — metadata 字段全部可选，工厂函数负责填充 fail-closed 默认值：
  * - isReadOnly: false（假设会写状态）

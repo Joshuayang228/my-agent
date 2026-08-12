@@ -9,28 +9,9 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import type { ScenarioResult } from './types'
+import type { PersonaEvalReport } from '../src/shared/types'
 
-export interface PersonaScenarioReport {
-  id: string
-  description: string
-  pass: boolean
-  passes: number
-  k: number
-  trials: ScenarioResult[]
-}
-
-export interface PersonaEvalReport {
-  timestamp: string
-  mode: 'real'
-  model: string
-  baseUrl: string
-  pass: boolean
-  totalScenarios: number
-  passedScenarios: number
-  k: number
-  scenarios: PersonaScenarioReport[]
-}
+export type { PersonaEvalReport } from '../src/shared/types'
 
 function mdEscape(value: string): string {
   return value.replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>')

@@ -8,6 +8,7 @@ describe('debug catalog', () => {
       ['context', '上下文'],
       ['world', '世界态'],
       ['runtime', '运行记录'],
+      ['eval', 'Eval'],
       ['system', '系统'],
     ])
   })

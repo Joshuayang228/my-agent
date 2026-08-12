@@ -75,6 +75,7 @@ eval:persona
 5. 补 Unit，运行 TypeScript、Unit、Mock Eval、Build。
 6. 使用现有 DeepSeek 配置运行真实 B02–B07，保存报告并根据结果判断是否需要调整人格规则。
 7. 更新质量文档和进度账本，提交并推送。
+8. Debug 增加只读 Eval 查看器，直接读取 `eval-reports/*.json`；Playground 继续只承载人格设计基线。
 
 ## 风险与权衡
 
@@ -93,3 +94,5 @@ eval:persona
   - `chatComplete()` 返回字符串，却被误当作 `{ content }`，导致 Judge 永远为空。
   - Judge 正则使用 `\s` 跨行吞掉下一条结论，现改为逐行严格解析并兼容 Markdown。
 - 报告输出到本地忽略目录 `eval-reports/`，包含回复、Grader evidence 和 `pass^k`，不保存 API Key。
+- Debug 新增「Eval」页签：展示最新结果、历史报告、B02–B07 矩阵、逐 trial 回复和 Grader evidence；只读消费报告，不隐式触发付费真实测试。
+- Playground「人格验收」保持静态设计基线，避免把理想行为样例冒充最近一次真实验收结果。

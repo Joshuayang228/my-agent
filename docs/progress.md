@@ -8,7 +8,7 @@
 |--|--|
 | **现在在哪** | 公开 alpha。壳层 IA：人物世界口袋 + Debug/Playground 独立全页；Playground Phase 0+1 已落地。 |
 | **产品怎么记** | `docs/modules/README.md` → 各卡「已落地能力」；大改先写 `docs/requirements/` **施工合同**。 |
-| **下一步可做** | 远程可审阅 `eval-reports/` 的 DeepSeek `pass^3` 回复；回到本机后做 Playground 人工语气审美验收，再决定是否进入人物故事设计。 |
+| **下一步可做** | 在 Debug「Eval」审阅 DeepSeek `pass^3` 的真实回复与 Judge evidence；再做 Playground 人工语气审美验收，决定是否进入人物故事设计。 |
 | **明确暂缓** | 原生语音 STT（`docs/deferred/native-voice-input.md`）；生图 Moments（M24-G3）；Python 嵌入沙箱。 |
 | **仓库** | 双语 README；Issues/PR 欢迎；见 `CONTRIBUTING.md`。 |
 
@@ -17,6 +17,7 @@
 **阶段**：公开运营起步；体验与前端统一优先于再堆基建；原生语音与 M24-G3 暂缓。
 
 **最新动态（2026-08-12）**：
+- ✅ **Debug Persona Eval 报告查看器**：只读读取 `eval-reports`，支持历史切换、B02–B07 场景矩阵以及逐 trial 回复/violations/evidence；Playground 保持人格设计基线。
 - ✅ **DeepSeek Persona `pass^3`**：B02–B07 全部 3/3，通过 18 次真实回复 + 18 次 Judge；自动行为门禁已过，人工语气审美仍待本地 Playground 验收。
 - ✅ **远程 Persona Eval 基础设施**：真实/Mock 明确分层、B02–B07 `pass^k` 命令与 JSON/Markdown 报告；修复 Judge 空结果与跨行解析根因，Mock 不再冒充人格通过。
 - ✅ **人格波动回流**：正式首轮发现 B03 可能停在卡点分类、B05 可能漏恢复检查；已强化 Role Pack、Playground 与 Eval 正向缺失检查后稳定通过。

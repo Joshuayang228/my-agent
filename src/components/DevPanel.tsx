@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import {
   FileText, BarChart3, ClipboardList, Zap, RotateCcw,
-  Bug, Globe, ArrowLeft, Layers3, Activity,
+  Bug, Globe, ArrowLeft, Layers3, Activity, FlaskConical,
 } from 'lucide-react'
 import { PromptManagerPanel, type DebugPromptInfo } from './debug/PromptManagerPanel'
 import { ContextInspectorPanel } from './debug/ContextInspectorPanel'
 import { LLMCallsPanel } from './debug/LLMCallsPanel'
 import { WorldStatePanel, type WorldSnapshot } from './debug/WorldStatePanel'
+import { PersonaEvalPanel } from './debug/PersonaEvalPanel'
 
-type DebugTab = 'prompt' | 'context' | 'world' | 'runtime' | 'system'
+type DebugTab = 'prompt' | 'context' | 'world' | 'runtime' | 'eval' | 'system'
 type RuntimeView = 'llm' | 'traces' | 'events'
 
 interface TraceSpanInfo {
@@ -116,6 +117,7 @@ export const DEBUG_TABS: { id: DebugTab; label: string; icon: ReactNode }[] = [
   { id: 'context', label: '上下文', icon: <Layers3 size={12} /> },
   { id: 'world', label: '世界态', icon: <Globe size={12} /> },
   { id: 'runtime', label: '运行记录', icon: <Activity size={12} /> },
+  { id: 'eval', label: 'Eval', icon: <FlaskConical size={12} /> },
   { id: 'system', label: '系统', icon: <BarChart3 size={12} /> },
 ]
 
@@ -244,6 +246,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
             events={eventLog}
           />
         )}
+        {debugTab === 'eval' && <PersonaEvalPanel />}
         {debugTab === 'system' && <SystemTab info={systemInfo} tools={tools} />}
       </div>
     </div>

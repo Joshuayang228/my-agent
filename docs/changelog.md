@@ -12,6 +12,7 @@
 - Mock Eval 与真实人格验收明确分层；无 Key、Judge `UNKNOWN`、无法解析或任一 trial 失败都会阻断真实门禁
 - 修复 Model Judge 长期空结果与跨行解析问题；流式 text chunk 先聚合为完整回复再评估
 - DeepSeek `deepseek-v4-flash` 已完成 B02–B07 全部 `3/3`；根据首轮波动强化“任务未明也给可逆小动作”和“危险删除必须确认恢复方式”
+- Debug 新增「Eval」真实报告查看器：可切换历史运行，展开 B02–B07 每个 trial 的 Agent 回复、violations 与 Judge evidence；Playground 继续只显示人格设计基线
 
 ### Added — 角色档案与默认世界分层（2026-08-11）
 

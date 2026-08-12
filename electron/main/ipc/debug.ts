@@ -5,6 +5,7 @@
  */
 import { BrowserWindow, dialog, ipcMain } from 'electron'
 import { writeFile } from 'node:fs/promises'
+import path from 'node:path'
 import { ToolRegistry } from '../tools/registry'
 import { buildSystemPrompt, rolePackToPromptParts, type PromptContext } from '../agent/prompt-builder'
 import { getPromptAssets } from '../agent/prompt-assets'
@@ -14,6 +15,7 @@ import { buildUserProfile } from '../storage/memory-store'
 import { createLogger } from '../utils/logger'
 import { getRecentSpans, getCallerStats, getTokenLaneStats } from '../utils/tracer'
 import { getDailyUsage } from '../agent/token-budget'
+import { getPersonaEvalReport, listPersonaEvalReports } from '../debug/persona-eval-reports'
 import {
   llmDebugStore,
 } from '../storage/llm-debug-store'
@@ -101,6 +103,18 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
       },
       dailyTokenUsage: getDailyUsage(),
     }
+  })
+
+  /** Persona Eval 报告：Debug 只读展示 CLI 生成的真实报告，不在 UI 隐式触发付费运行。 */
+  ipcMain.handle('debug:persona-eval-reports', async () => {
+    const reportDir = path.join(process.env.APP_ROOT || process.cwd(), 'eval-reports')
+    return listPersonaEvalReports(reportDir)
+  })
+
+  ipcMain.handle('debug:persona-eval-report-get', async (_event, fileName: string) => {
+    if (typeof fileName !== 'string' || !fileName.trim()) return null
+    const reportDir = path.join(process.env.APP_ROOT || process.cwd(), 'eval-reports')
+    return getPersonaEvalReport(reportDir, fileName)
   })
 
   /** LLM Debug 历史摘要：正文不随列表查询返回，避免侧栏加载大 payload。 */

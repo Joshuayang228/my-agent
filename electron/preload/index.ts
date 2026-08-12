@@ -9,6 +9,8 @@ import type {
   LLMCallQuery,
   LLMCallQueryResult,
   LLMSubagentSession,
+  DebugPersonaEvalIndex,
+  DebugPersonaEvalReport,
 } from '../../src/shared/types'
 
 interface SessionSummary {
@@ -398,6 +400,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     tools: () => ipcRenderer.invoke('debug:tools'),
     systemInfo: () => ipcRenderer.invoke('debug:system-info'),
     traces: () => ipcRenderer.invoke('debug:traces'),
+    personaEvalReports: (): Promise<DebugPersonaEvalIndex> =>
+      ipcRenderer.invoke('debug:persona-eval-reports'),
+    personaEvalReportGet: (fileName: string): Promise<DebugPersonaEvalReport | null> =>
+      ipcRenderer.invoke('debug:persona-eval-report-get', fileName),
     llmLogsQuery: (input?: LLMCallQuery): Promise<LLMCallQueryResult> =>
       ipcRenderer.invoke('debug:llm-logs-query', input),
     llmLogGet: (id: string): Promise<LLMCallDetail | null> =>

@@ -84,11 +84,12 @@
 | Playground 多轮隔离对话 | 已落地 | `playgroundRun.history` · PromptLab transcript |
 | Playground 模型测试（烟测 + thinking.disabled 探测） | 已落地 | `model-test` tab · `debug:model-smoke` / `model-probe-thinking`；能力缓存供辅助调用 |
 | Debug 世界态透视 | 已落地 | `debug:world-snapshot` · DevPanel 世界态 tab |
-| Debug 五域诊断闭环 | 已落地 | 提示词管理器 / 上下文 / 世界态 / 运行记录 / 系统；Span 与实时事件收进运行记录内部视图 |
+| Debug 诊断闭环 | 已落地 | 提示词管理器 / 上下文 / 世界态 / 运行记录 / Eval / 系统；Span 与实时事件收进运行记录内部视图 |
 | Debug 真实请求上下文 | 已落地 | `ContextInspectorPanel` 读取持久化 `requestMessages` / `requestTools`；装配预览不声明为实发内容 |
 | Debug 全量 LLM 调用浏览 | 已落地 | 元数据筛选、分页、详情、JSONL 导出、两步清空；查询与导出共用过滤语义 |
+| Debug Persona Eval 报告查看 | 已落地 | `debug:persona-eval-reports` / `report-get` · `PersonaEvalPanel`；只读展示 CLI 真实报告与历史 evidence |
 
 ## 现状 / 缺口
 
-**现状**：Loop / Runtime / Prompt / 压缩 / 队列 / MCP / 可观测主线已落地；LLM Debug 正文通过现有 observer → tracer Span sink 持久化，侧栏可跨重启恢复；全页 Debug 已按五域收口并直接读取真实请求快照。
+**现状**：Loop / Runtime / Prompt / 压缩 / 队列 / MCP / 可观测主线已落地；LLM Debug 正文通过现有 observer → tracer Span sink 持久化，侧栏可跨重启恢复；全页 Debug 已按生产真相域收口，直接读取真实请求快照和 Persona Eval 报告。
 **缺口**：Swarm（wishlist）；更完整的子 Agent 产品化。

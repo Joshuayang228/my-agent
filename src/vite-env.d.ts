@@ -9,6 +9,8 @@ import type {
   LLMCallQuery,
   LLMCallQueryResult,
   LLMSubagentSession,
+  DebugPersonaEvalIndex,
+  DebugPersonaEvalReport,
 } from './shared/types'
 
 interface SessionSummary {
@@ -441,6 +443,8 @@ declare global {
             truncated: boolean
           }
         }>
+        personaEvalReports: () => Promise<DebugPersonaEvalIndex>
+        personaEvalReportGet: (fileName: string) => Promise<DebugPersonaEvalReport | null>
         traces: () => Promise<{
           spans: Array<{
             id: string
