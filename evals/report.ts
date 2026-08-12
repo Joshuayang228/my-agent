@@ -9,13 +9,65 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import type { PersonaEvalReport } from '../src/shared/types'
+import type { PersonaEvalAgentInputSnapshot, PersonaEvalJudgeSnapshot, PersonaEvalReport } from '../src/shared/types'
 
 export type { PersonaEvalReport } from '../src/shared/types'
 
 function mdEscape(value: string): string {
   return value.replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>')
 }
+
+function fenced(value: string): string[] {
+  return ['```text', value, '```']
+}
+
+/** 把本次 Trial 真正送入 AgentLoop 的初始输入格式化为可人工审阅的 Markdown。 */
+function formatAgentInput(input: PersonaEvalAgentInputSnapshot | undefined): string[] {
+  if (!input) return ['> 历史报告未记录本次 Agent 输入。']
+
+  const lines = [
+    `- 模型：${input.model}`,
+    `- Base URL：${input.baseUrl}`,
+    `- 执行模式：${input.executionMode}`,
+    `- 工具：${input.toolNames.length > 0 ? input.toolNames.join(', ') : '无'}`,
+    '',
+    '**用户与历史消息**',
+    '',
+  ]
+
+  if (input.messages.length === 0) {
+    lines.push('> （无初始消息）')
+  } else {
+    for (const message of input.messages) {
+      lines.push(`- **${message.role}**`, '', ...fenced(message.content), '')
+    }
+  }
+
+  lines.push(
+    '<details>',
+    '<summary>实际 System Prompt 快照</summary>',
+    '',
+    ...fenced(input.systemPrompt),
+    '',
+    '</details>',
+  )
+  return lines
+}
+
+/** Model Judge 的所有检查项在一次调用中完成；这里只展示评分计划，不暴露推理过程。 */
+function formatJudgePlan(judge: PersonaEvalJudgeSnapshot | undefined): string[] {
+  if (!judge) return ['> 本 Trial 没有 Model Judge，或历史报告未记录评分计划。']
+
+  return [
+    `- Grader：${judge.graderName}`,
+    '- 调用方式：Agent 回复完成后，将以下全部维度一次性发送给 Judge AI 判断。',
+    '',
+    `> ${judge.systemContext}`,
+    '',
+    ...judge.checks.map((check, index) => `${index + 1}. \`${check.id}\` — ${check.question}`),
+  ]
+}
+
 
 export function formatPersonaReportMarkdown(report: PersonaEvalReport): string {
   const lines = [
@@ -43,6 +95,8 @@ export function formatPersonaReportMarkdown(report: PersonaEvalReport): string {
       if (trial.error) {
         lines.push(`**Runner Error**：${trial.error}`, '')
       }
+      lines.push('**Agent 实际输入**', '', ...formatAgentInput(trial.agentInput), '')
+      lines.push('**Judge 评分标准**', '', ...formatJudgePlan(trial.judge), '')
       lines.push('**Agent 回复**', '')
       lines.push(trial.agentTexts.length > 0
         ? trial.agentTexts.map((text) => `> ${text.replace(/\r?\n/g, '\n> ')}`).join('\n>\n')

@@ -10,7 +10,7 @@
 import { mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { agentLoop } from '../electron/main/agent/loop'
+import { agentLoop, DEFAULT_SYSTEM_PROMPT } from '../electron/main/agent/loop'
 import { ToolRegistry } from '../electron/main/tools/registry'
 import { createMockStreamChat, resetMockCounter } from './mock-llm'
 import type {
@@ -19,11 +19,57 @@ import type {
   EvalReport,
   EvalContext,
 } from './types'
-import type { AgentStreamEvent } from '../src/shared/types'
+import type {
+  AgentStreamEvent,
+  PersonaEvalAgentInputSnapshot,
+  PersonaEvalJudgeSnapshot,
+} from '../src/shared/types'
 import { getEvalMode, loadEvalEnvironment } from './eval-config'
 import { collectAgentText } from './transcript'
 
 // ── 单场景运行 ──
+
+/**
+ * 生成不含凭据的 Agent 初始输入快照。
+ *
+ * 背景：报告过去只有回复，无法知道模型收到什么。这里在进入 AgentLoop 前冻结实际参数，
+ * 而不是 Debug 打开时重新组装，避免后来修改 Role Pack 后历史报告失真。
+ * 约束：只记录模型名、端点、System Prompt、初始消息和工具名；绝不读取或保存 API Key。
+ */
+function snapshotAgentInput(
+  options: {
+    config: { model: string; baseUrl: string }
+    systemPrompt?: string
+    messages: Array<{ role: 'user' | 'assistant' | 'system' | 'tool'; content: string }>
+    tools: Array<{ name: string }>
+    executionMode?: PersonaEvalAgentInputSnapshot['executionMode']
+  },
+): PersonaEvalAgentInputSnapshot {
+  return {
+    model: options.config.model,
+    baseUrl: options.config.baseUrl,
+    executionMode: options.executionMode ?? 'auto',
+    systemPrompt: options.systemPrompt ?? DEFAULT_SYSTEM_PROMPT,
+    messages: options.messages.map((message) => ({
+      role: message.role,
+      content: message.content,
+    })),
+    toolNames: options.tools.map((tool) => tool.name),
+  }
+}
+
+/** Model Judge 的所有维度在 Agent 回复后合并为一次调用；Code Grader 不进入这里。 */
+function snapshotJudgePlan(scenario: EvalScenario): PersonaEvalJudgeSnapshot | undefined {
+  const grader = scenario.graders.find((candidate) => candidate.reportPlan?.kind === 'model-judge')
+  const plan = grader?.reportPlan
+  if (!grader || !plan) return undefined
+  return {
+    graderName: grader.name,
+    invocationMode: plan.invocationMode,
+    systemContext: plan.systemContext,
+    checks: plan.checks.map((check) => ({ ...check })),
+  }
+}
 
 export async function runScenario(scenario: EvalScenario): Promise<ScenarioResult> {
   loadEvalEnvironment()
@@ -33,6 +79,8 @@ export async function runScenario(scenario: EvalScenario): Promise<ScenarioResul
   mkdirSync(workdir, { recursive: true })
 
   const transcript: AgentStreamEvent[] = []
+  let agentInput: PersonaEvalAgentInputSnapshot | undefined
+  const judge = snapshotJudgePlan(scenario)
 
   try {
     // 构建 ToolRegistry
@@ -59,6 +107,7 @@ export async function runScenario(scenario: EvalScenario): Promise<ScenarioResul
       },
       _streamChatOverride: streamChatOverride,
     }
+    agentInput = snapshotAgentInput(loopOptions)
 
     // 运行 agentLoop，收集全部事件
     for await (const ev of agentLoop(loopOptions, registry)) {
@@ -73,6 +122,8 @@ export async function runScenario(scenario: EvalScenario): Promise<ScenarioResul
       durationMs: Date.now() - start,
       graderResults: [],
       agentTexts: [],
+      agentInput,
+      judge,
       error: errorMsg,
       mode,
     }
@@ -113,6 +164,8 @@ export async function runScenario(scenario: EvalScenario): Promise<ScenarioResul
       const text = collectAgentText(transcript)
       return text ? [text] : []
     })(),
+    agentInput,
+    judge,
     mode,
   }
 }

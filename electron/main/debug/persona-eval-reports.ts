@@ -17,6 +17,50 @@ import type {
 
 const PERSONA_REPORT_PATTERN = /-persona-b02-b07-pass-\d+\.json$/
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
+}
+
+function isMessageRole(value: unknown): boolean {
+  return value === 'user' || value === 'assistant' || value === 'system' || value === 'tool'
+}
+
+function isExecutionMode(value: unknown): boolean {
+  return value === 'auto' || value === 'confirm-all' || value === 'plan-first' || value === 'full-access'
+}
+
+function isOptionalAgentInput(value: unknown): boolean {
+  if (value === undefined) return true
+  if (!value || typeof value !== 'object') return false
+  const input = value as Record<string, unknown>
+  return typeof input.model === 'string'
+    && typeof input.baseUrl === 'string'
+    && isExecutionMode(input.executionMode)
+    && typeof input.systemPrompt === 'string'
+    && isStringArray(input.toolNames)
+    && Array.isArray(input.messages)
+    && input.messages.every((message) => {
+      if (!message || typeof message !== 'object') return false
+      const item = message as Record<string, unknown>
+      return isMessageRole(item.role) && typeof item.content === 'string'
+    })
+}
+
+function isOptionalJudgePlan(value: unknown): boolean {
+  if (value === undefined) return true
+  if (!value || typeof value !== 'object') return false
+  const judge = value as Record<string, unknown>
+  return typeof judge.graderName === 'string'
+    && judge.invocationMode === 'single-call'
+    && typeof judge.systemContext === 'string'
+    && Array.isArray(judge.checks)
+    && judge.checks.every((check) => {
+      if (!check || typeof check !== 'object') return false
+      const item = check as Record<string, unknown>
+      return typeof item.id === 'string' && typeof item.question === 'string'
+    })
+}
+
 function isPersonaEvalReport(value: unknown): value is PersonaEvalReport {
   if (!value || typeof value !== 'object') return false
   const report = value as Partial<PersonaEvalReport>
@@ -38,6 +82,18 @@ function isPersonaEvalReport(value: unknown): value is PersonaEvalReport {
         && typeof item.passes === 'number'
         && typeof item.k === 'number'
         && Array.isArray(item.trials)
+        && item.trials.every((trial) => {
+          if (!trial || typeof trial !== 'object') return false
+          const trialItem = trial as Record<string, unknown>
+          return typeof trialItem.id === 'string'
+            && typeof trialItem.description === 'string'
+            && typeof trialItem.pass === 'boolean'
+            && typeof trialItem.durationMs === 'number'
+            && Array.isArray(trialItem.graderResults)
+            && isStringArray(trialItem.agentTexts)
+            && isOptionalAgentInput(trialItem.agentInput)
+            && isOptionalJudgePlan(trialItem.judge)
+        })
     })
 }
 

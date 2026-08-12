@@ -7,6 +7,7 @@ import type {
   DebugEvalRunStatus,
   DebugEvalSuite,
   PersonaEvalScenarioReport,
+  PersonaEvalTrialReport,
 } from '../../shared/types'
 
 function formatDate(value: string): string {
@@ -360,41 +361,110 @@ function ScenarioCard({ scenario }: { scenario: PersonaEvalScenarioReport }) {
       </summary>
       <div className="space-y-2 border-t px-3 py-3" style={{ borderColor: 'var(--border-subtle)' }}>
         {scenario.trials.map((trial, index) => (
-          <details key={`${scenario.id}-${index}`} className="rounded border px-2.5 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
-            <summary className="flex cursor-pointer items-center justify-between gap-2 text-[11px]">
-              <span style={{ color: 'var(--text-secondary)' }}>Trial {index + 1} · {Math.round(trial.durationMs / 1000)}s</span>
-              <span style={{ color: trial.pass ? 'var(--success)' : 'var(--danger)' }}>{trial.pass ? 'PASS' : 'FAIL'}</span>
-            </summary>
-            <div className="mt-2 space-y-3 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
-              {trial.error && <p className="text-[11px]" style={{ color: 'var(--danger)' }}>{trial.error}</p>}
-              <section>
-                <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Agent 回复</div>
-                {trial.agentTexts.length > 0 ? trial.agentTexts.map((text, textIndex) => (
-                  <div key={textIndex} className="mb-1 whitespace-pre-wrap rounded px-2 py-1.5 text-[11px] leading-5" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{text}</div>
-                )) : <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>无 text 事件</p>}
-              </section>
-              <section>
-                <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Grader</div>
-                <div className="space-y-1.5">
-                  {trial.graderResults.map((grader) => (
-                    <details key={grader.graderName} className="rounded border px-2 py-1.5" style={{ borderColor: 'var(--border-subtle)' }}>
-                      <summary className="cursor-pointer text-[11px]" style={{ color: grader.result.pass ? 'var(--text-secondary)' : 'var(--danger)' }}>
-                        {grader.graderName} · {grader.result.pass ? 'PASS' : 'FAIL'}
-                      </summary>
-                      <div className="mt-1 space-y-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>
-                        {grader.result.violations.map((item) => <p key={`v-${item}`}>Violation：{item}</p>)}
-                        {grader.result.evidence.map((item) => <p key={`e-${item}`}>Evidence：{item}</p>)}
-                      </div>
-                    </details>
-                  ))}
-                </div>
-              </section>
-            </div>
-          </details>
+          <TrialCard key={`${scenario.id}-${index}`} trial={trial} index={index} />
         ))}
       </div>
     </details>
   )
+}
+
+function TrialCard({ trial, index }: { trial: PersonaEvalTrialReport; index: number }) {
+  return (
+    <details className="rounded border px-2.5 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
+      <summary className="flex cursor-pointer items-center justify-between gap-2 text-[11px]">
+        <span style={{ color: 'var(--text-secondary)' }}>Trial {index + 1} · {Math.round(trial.durationMs / 1000)}s</span>
+        <span style={{ color: trial.pass ? 'var(--success)' : 'var(--danger)' }}>{trial.pass ? 'PASS' : 'FAIL'}</span>
+      </summary>
+      <div className="mt-2 space-y-3 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
+        {trial.error && <p className="text-[11px]" style={{ color: 'var(--danger)' }}>{trial.error}</p>}
+        <AgentInputSection trial={trial} />
+        <JudgePlanSection trial={trial} />
+        <section>
+          <SectionLabel>Agent 回复</SectionLabel>
+          {trial.agentTexts.length > 0 ? trial.agentTexts.map((text, textIndex) => (
+            <div key={textIndex} className="mb-1 whitespace-pre-wrap rounded px-2 py-1.5 text-[11px] leading-5" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{text}</div>
+          )) : <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>无 text 事件</p>}
+        </section>
+        <section>
+          <SectionLabel>Grader 结果</SectionLabel>
+          <div className="space-y-1.5">
+            {trial.graderResults.map((grader) => (
+              <details key={grader.graderName} className="rounded border px-2 py-1.5" style={{ borderColor: 'var(--border-subtle)' }}>
+                <summary className="cursor-pointer text-[11px]" style={{ color: grader.result.pass ? 'var(--text-secondary)' : 'var(--danger)' }}>
+                  {grader.graderName} · {grader.result.pass ? 'PASS' : 'FAIL'}
+                </summary>
+                <div className="mt-1 space-y-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>
+                  {grader.result.violations.map((item) => <p key={`v-${item}`}>Violation：{item}</p>)}
+                  {grader.result.evidence.map((item) => <p key={`e-${item}`}>Evidence：{item}</p>)}
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
+      </div>
+    </details>
+  )
+}
+
+function AgentInputSection({ trial }: { trial: PersonaEvalTrialReport }) {
+  const input = trial.agentInput
+  return (
+    <section>
+      <SectionLabel>Agent 实际输入</SectionLabel>
+      {!input ? (
+        <p className="rounded border px-2 py-1.5 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>历史报告未记录输入快照；重新运行 Eval 后可查看。</p>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-x-3 gap-y-1 rounded border px-2 py-1.5 font-mono text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
+            <span>模型：{input.model}</span>
+            <span>模式：{input.executionMode}</span>
+            <span>工具：{input.toolNames.length > 0 ? input.toolNames.join(', ') : '无'}</span>
+          </div>
+          <div className="space-y-1">
+            {input.messages.map((message, messageIndex) => (
+              <div key={`${message.role}-${messageIndex}`} className="rounded border px-2 py-1.5" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="mb-1 font-mono text-[9px] uppercase" style={{ color: 'var(--text-muted)' }}>{message.role}</div>
+                <div className="whitespace-pre-wrap text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}>{message.content}</div>
+              </div>
+            ))}
+          </div>
+          <details className="rounded border" style={{ borderColor: 'var(--border-subtle)' }}>
+            <summary className="cursor-pointer px-2 py-1.5 text-[10px]" style={{ color: 'var(--text-secondary)' }}>实际 System Prompt 快照</summary>
+            <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words border-t px-2 py-2 font-mono text-[10px] leading-4" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>{input.systemPrompt}</pre>
+          </details>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function JudgePlanSection({ trial }: { trial: PersonaEvalTrialReport }) {
+  const judge = trial.judge
+  return (
+    <section>
+      <SectionLabel>Judge 评分标准</SectionLabel>
+      {!judge ? (
+        <p className="rounded border px-2 py-1.5 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>本 Trial 没有 Model Judge，或历史报告未记录评分计划。</p>
+      ) : (
+        <div className="rounded border px-2 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
+          <p className="text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>Agent 回复完成后，以下 {judge.checks.length} 个维度会在一次 Judge AI 调用中逐项判断；这些标准不会发送给被测 Agent。</p>
+          <p className="mt-1 text-[10px] leading-4" style={{ color: 'var(--text-secondary)' }}>{judge.systemContext}</p>
+          <ol className="mt-2 space-y-1.5 pl-4 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>
+            {judge.checks.map((check) => (
+              <li key={check.id} className="list-decimal">
+                <code style={{ color: 'var(--text-secondary)' }}>{check.id}</code>
+                <span> — {check.question}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function SectionLabel({ children }: { children: string }) {
+  return <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{children}</div>
 }
 
 function EmptyState({ title, detail, reportDir }: { title: string; detail: string; reportDir?: string }) {

@@ -7,7 +7,12 @@
  * - GraderResult：具体问题列表，不是综合分数
  */
 
-import type { AgentLoopOptions, LLMConfig } from '../src/shared/types'
+import type {
+  AgentLoopOptions,
+  LLMConfig,
+  PersonaEvalAgentInputSnapshot,
+  PersonaEvalJudgeSnapshot,
+} from '../src/shared/types'
 import type { ToolRegistry } from '../electron/main/tools/registry'
 import { loadEvalEnvironment } from './eval-config'
 
@@ -47,8 +52,24 @@ export interface EvalContext {
   scenarioId: string
 }
 
+export interface ViolationCheck {
+  /** 便于报告和证据引用的稳定 ID。 */
+  id: string
+  /** 负向二元判断问题：是否存在某种违规。 */
+  question: string
+}
+
+export interface EvalModelJudgePlan {
+  kind: 'model-judge'
+  invocationMode: 'single-call'
+  systemContext: string
+  checks: ViolationCheck[]
+}
+
 export interface EvalGrader {
   name: string
+  /** 仅用于报告解释评分计划，不参与判定。 */
+  reportPlan?: EvalModelJudgePlan
   grade(ctx: EvalContext): GraderResult | Promise<GraderResult>
 }
 
@@ -98,6 +119,10 @@ export interface ScenarioResult {
   }>
   /** 供远程报告审阅的用户可见回复，不含 reasoning / tool 原始输出。 */
   agentTexts: string[]
+  /** 本次 Trial 实际传给 AgentLoop 的初始输入，不含 API Key。 */
+  agentInput?: PersonaEvalAgentInputSnapshot
+  /** Agent 回复后，一次性发送给 Model Judge 的全部检查项。 */
+  judge?: PersonaEvalJudgeSnapshot
   error?: string
   mode?: 'mock' | 'real'
 }

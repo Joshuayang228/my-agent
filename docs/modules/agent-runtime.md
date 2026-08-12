@@ -88,7 +88,7 @@
 | Debug 诊断闭环 | 已落地 | 提示词管理器 / 上下文 / 世界态 / 运行记录 / Eval / 系统；Span 与实时事件收进运行记录内部视图 |
 | Debug 真实请求上下文 | 已落地 | `ContextInspectorPanel` 读取持久化 `requestMessages` / `requestTools`；装配预览不声明为实发内容 |
 | Debug 全量 LLM 调用浏览 | 已落地 | 元数据筛选、分页、详情、JSONL 导出、两步清空；查询与导出共用过滤语义 |
-| Debug Persona Eval 验收台 | 已落地 | 报告读取 + `debug:eval-run-*` · `PersonaEvalPanel`；白名单 Mock/Real Runner、确认、实时进度、停止与历史 evidence |
+| Debug Persona Eval 验收台 | 已落地 | 报告读取 + `debug:eval-run-*` · `PersonaEvalPanel`；逐 Trial 展示实际 messages / System Prompt / 工具 / 配置、一次性 Judge checks、回复与 evidence；兼容旧报告 |
 
 ## 现状 / 缺口
 

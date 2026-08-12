@@ -3,6 +3,14 @@
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
 
+
+## 2026-08-12 · Persona Eval 输入与评分标准可解释
+
+- 逐 Trial 报告新增当次实际 Agent 输入快照：模型、Base URL、执行模式、初始 messages、System Prompt 与工具名，不保存 API Key。
+- Debug / Markdown 报告按“题目与环境 → 一次性 Judge 全部维度 → Agent 回复 → Grader 证据”展示；被测 Agent 看不到评分标准。
+- 旧报告继续兼容；新快照字段结构损坏时只读服务会跳过报告，避免 Debug 页面崩溃。
+- 验证通过：Unit 613/613、Mock Eval 23/23、TypeScript、Vite Build、真实 Persona `B02–B07 pass^3`；Debug 实机检查确认题目、System Prompt、全部 Judge checks 与旧报告降级态可见。
+
 ## 2026-08-12 · 自有 Prompt 全面中文化
 
 - 主 Agent、压缩/画像、Playground、子 Agent、Companion 动态注入、内置工具 schema 与 Eval Judge 已统一为简体中文。

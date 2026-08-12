@@ -194,6 +194,34 @@ export interface PersonaEvalGraderResult {
   }
 }
 
+export interface PersonaEvalMessageSnapshot {
+  role: ChatMessage['role']
+  content: string
+}
+
+/** 一次 Trial 实际交给 AgentLoop 的初始输入快照；不包含 API Key。 */
+export interface PersonaEvalAgentInputSnapshot {
+  model: string
+  baseUrl: string
+  executionMode: ExecutionMode
+  systemPrompt: string
+  messages: PersonaEvalMessageSnapshot[]
+  toolNames: string[]
+}
+
+export interface PersonaEvalJudgeCheckSnapshot {
+  id: string
+  question: string
+}
+
+/** Model Judge 在 Agent 回复后收到的评分计划；全部 checks 在一次调用中判断。 */
+export interface PersonaEvalJudgeSnapshot {
+  graderName: string
+  invocationMode: 'single-call'
+  systemContext: string
+  checks: PersonaEvalJudgeCheckSnapshot[]
+}
+
 export interface PersonaEvalTrialReport {
   id: string
   description: string
@@ -201,6 +229,10 @@ export interface PersonaEvalTrialReport {
   durationMs: number
   graderResults: PersonaEvalGraderResult[]
   agentTexts: string[]
+  /** 旧报告可能没有该字段；新报告保存本次真实 Agent 输入。 */
+  agentInput?: PersonaEvalAgentInputSnapshot
+  /** 旧报告可能没有该字段；新报告保存一次性 Judge 检查项。 */
+  judge?: PersonaEvalJudgeSnapshot
   error?: string
   mode?: 'mock' | 'real'
 }

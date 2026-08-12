@@ -14,24 +14,13 @@
  * 注意：依赖真实 LLM API，在 CI 或没有 API Key 时自动跳过（pass=true + 说明）。
  */
 
-import type { EvalGrader, GraderResult, EvalContext } from '../types'
+import type { EvalGrader, GraderResult, EvalContext, ViolationCheck } from '../types'
 import type { LLMConfig, ChatMessage } from '../../src/shared/types'
 import { chatComplete } from '../../electron/main/llm/index'
 import { makeEvalLLMConfig } from '../types'
 import { getEvalMode } from '../eval-config'
 import { collectAgentText } from '../transcript'
 
-export interface ViolationCheck {
-  /** 便于引用的短 ID（如 'cliche' / 'report'） */
-  id: string
-  /**
-   * 具体的二元判断问题。
-   * 示例：
-   *   "Does any response contain customer service clichés like '您好', '请问' or '为您服务'?"
-   * 要求：具体、可在文本里找证据，避免模糊的感受类问题。
-   */
-  question: string
-}
 
 /**
  * 创建一个 ModelBasedGrader。
@@ -49,6 +38,12 @@ export function makeModelBasedGrader(
 ): EvalGrader {
   return {
     name: graderName,
+    reportPlan: {
+      kind: 'model-judge',
+      invocationMode: 'single-call',
+      systemContext,
+      checks: checks.map((check) => ({ ...check })),
+    },
 
     async grade({ transcript }: EvalContext): Promise<GraderResult> {
       const mode = getEvalMode()

@@ -23,6 +23,8 @@
 5. 生成本地 JSON + Markdown 报告，包含：
    - 运行模式、模型、API 配置是否存在（不保存 Key）
    - 每个场景每次 trial 的 Agent 文本回复
+   - 当次实际 Agent 输入快照：模型、Base URL、执行模式、初始 messages、System Prompt、工具名（不含 API Key）
+   - Model Judge 的评分背景和全部 checks，并明确这些维度在 Agent 回复后通过一次 Judge 调用完成
    - code-based / model-based Grader 结果
    - violations、evidence、通过次数和 `pass^k`
 6. 保留 `npm run eval:run` 的现有全量 Mock / 普通模式兼容。
@@ -48,7 +50,7 @@ eval:persona
   → 写 eval-reports/*.json + *.md
 ```
 
-报告只保留用户可审阅的 Agent 文本、Grader 证据和元数据，不保存原始 API Key 或完整工具原始输出。
+报告保存当次实际 Agent 初始输入快照、用户可审阅的 Agent 文本、Judge 评分计划、Grader 证据和元数据；不保存原始 API Key、Judge 推理过程或完整工具原始输出。历史报告缺少新快照字段时继续兼容展示。
 
 ### 通过语义
 
@@ -96,5 +98,7 @@ eval:persona
   - Judge 正则使用 `\s` 跨行吞掉下一条结论，现改为逐行严格解析并兼容 Markdown。
 - 报告输出到本地忽略目录 `eval-reports/`，包含回复、Grader evidence 和 `pass^k`，不保存 API Key。
 - Debug 新增「Eval」页签：展示最新结果、历史报告、B02–B07 矩阵、逐 trial 回复和 Grader evidence。
+- Debug 的逐 Trial 详情补齐完整可解释链路：实际用户/历史消息、模型与执行模式、工具列表、可折叠 System Prompt 快照、一次性 Judge 全部检查项、Agent 回复和 Grader evidence。
+- 被测 Agent 只接收 System Prompt、初始 messages 和工具，不接收 Judge checks；多个人格维度在 Agent 回复后一次性发送给 Judge AI，B02–B07 `pass^3` 通常为 18 次 Agent 调用 + 18 次 Judge 调用。
 - Eval Runner 只映射 `npm run eval:run` / `npm run eval:persona` 两个固定 script，不接受任意命令；真实验收在确认后启动，可观察、可取消，打开页面不会隐式产生费用。
 - Playground「人格验收」保持静态设计基线，避免把理想行为样例冒充最近一次真实验收结果。
