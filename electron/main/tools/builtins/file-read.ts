@@ -10,36 +10,21 @@ const MAX_RESULT_CHARS = 50_000
 
 export const fileReadTool = buildTool({
   name: 'file_read',
-  description: `Read the contents of a file.
-
-When to use:
-- You need to view the full content of code, config, or documentation files
-- You want to check if a file contains specific content or understand its structure
-- You need to analyze implementation details or configuration values
-- You want to verify file existence (reading will tell you if the file exists or not)
-
-When NOT to use:
-- Searching for specific text patterns across many files (use code_search instead)
-- File is larger than 256KB without line range (use code_search to locate first, then read specific sections with line_start/line_end)
-- You only need to know if a file exists (just try reading it - the error message will tell you)
-
-Supports: Text files (code, config, markdown, logs, etc.)
-Returns: File content as text, truncated at 50,000 characters if too large.
-Optional: Use line_start/line_end parameters to read specific line ranges from large files.`,
+  description: "读取文件内容。\n\n适用场景：\n- 查看代码、配置或文档文件的完整内容\n- 检查文件是否包含特定内容，或理解其结构\n- 分析实现细节或配置值\n- 验证文件是否存在；读取结果会明确指出文件是否存在\n\n不适用场景：\n- 跨多个文件搜索特定文本模式（使用 code_search）\n- 文件大于 256KB 且没有指定行范围；先用 code_search 定位，再用 line_start、line_end 读取局部\n- 只想知道文件是否存在；直接尝试读取即可，错误信息会给出结论\n\n支持：代码、配置、Markdown、日志等文本文件。\n返回：文件文本；内容过大时在 50,000 个字符处截断。\n可选：使用 line_start、line_end 读取大文件的指定行范围。",
   parameters: {
     type: 'object',
     properties: {
       path: {
         type: 'string',
-        description: 'Absolute or relative file path to read.',
+        description: "要读取的绝对或相对文件路径。",
       },
       line_start: {
         type: 'string',
-        description: 'Optional start line number (1-indexed). If set, only reads from this line.',
+        description: "可选起始行号，从 1 开始；设置后从该行读取。",
       },
       line_end: {
         type: 'string',
-        description: 'Optional end line number (1-indexed, inclusive). If set, only reads up to this line.',
+        description: "可选结束行号，从 1 开始且包含该行；设置后读到该行为止。",
       },
     },
     required: ['path'],
@@ -56,7 +41,7 @@ Optional: Use line_start/line_end parameters to read specific line ranges from l
   maxResultSizeChars: Infinity,
   execute: async (args) => {
     const filePath = args.path as string
-    if (!filePath?.trim()) return 'Error: file path is required'
+    if (!filePath?.trim()) return '错误：必须提供文件路径'
 
     const resolved = path.resolve(filePath)
     log.info('Reading file', { path: resolved })
@@ -64,9 +49,9 @@ Optional: Use line_start/line_end parameters to read specific line ranges from l
     try {
       const stat = await fs.stat(resolved)
 
-      if (!stat.isFile()) return `Error: "${resolved}" is not a file`
+      if (!stat.isFile()) return `错误：“${resolved}”不是文件`
       if (stat.size > MAX_FILE_SIZE) {
-        return `Error: file too large (${(stat.size / 1024).toFixed(0)} KB, max ${MAX_FILE_SIZE / 1024} KB). Use line_start/line_end to read a portion.`
+        return `错误：文件过大（${(stat.size / 1024).toFixed(0)} KB，最大允许 ${MAX_FILE_SIZE / 1024} KB）。请使用 line_start/line_end 分段读取。`
       }
 
       let content = await fs.readFile(resolved, 'utf-8')
@@ -82,14 +67,14 @@ Optional: Use line_start/line_end parameters to read specific line ranges from l
       }
 
       if (content.length > MAX_RESULT_CHARS) {
-        content = content.slice(0, MAX_RESULT_CHARS) + `\n\n[... truncated at ${MAX_RESULT_CHARS} chars]`
+        content = content.slice(0, MAX_RESULT_CHARS) + `\n\n[... 已在 ${MAX_RESULT_CHARS} 个字符处截断]`
       }
 
       return content
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       log.error('Read failed', { path: resolved, error: message })
-      return `Error reading file: ${message}`
+      return `读取文件失败： ${message}`
     }
   },
 })

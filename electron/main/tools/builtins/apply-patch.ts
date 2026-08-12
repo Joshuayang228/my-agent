@@ -116,20 +116,17 @@ function applyHunks(original: string, hunks: PatchHunk[]): { result: string; app
 export const applyPatchTool = buildTool({
   name: 'apply_patch',
   description:
-    'Apply a unified diff patch to a file. Accepts standard unified diff format ' +
-    '(with --- a/file, +++ b/file, @@ hunk headers, and +/- lines). ' +
-    'More precise than file_write for targeted multi-location edits. ' +
-    'Supports fuzzy matching (±3 lines) for minor line offset differences.',
+    "应用 unified diff 补丁修改文件。接受标准 unified diff 格式（含 --- a/file、+++ b/file、@@ 区块头和 +/- 行）。相比 file_write 更适合多处定点修改，并支持最多 ±3 行的模糊匹配。",
   parameters: {
     type: 'object',
     properties: {
       path: {
         type: 'string',
-        description: 'Target file path. If omitted, extracted from the +++ line in the patch.',
+        description: "目标文件路径。如果省略，将从补丁的 +++ 行提取。",
       },
       patch: {
         type: 'string',
-        description: 'The unified diff content to apply.',
+        description: "要应用的 unified diff 内容。",
       },
     },
     required: ['patch'],
@@ -139,12 +136,12 @@ export const applyPatchTool = buildTool({
   },
   execute: async (args) => {
     const patchContent = args.patch as string
-    if (!patchContent?.trim()) return 'Error: patch content is required'
+    if (!patchContent?.trim()) return '错误：必须提供补丁内容'
 
     const { targetFile: parsedTarget, hunks } = parseUnifiedDiff(patchContent)
     const filePath = (args.path as string) || parsedTarget
-    if (!filePath) return 'Error: could not determine target file. Provide path parameter or include +++ line in patch.'
-    if (hunks.length === 0) return 'Error: no valid hunks found in patch.'
+    if (!filePath) return '错误：无法确定目标文件。请提供 path 参数，或在补丁中包含 +++ 行。'
+    if (hunks.length === 0) return '错误：补丁中没有找到有效区块。'
 
     const resolved = resolveToolFilePath(filePath, getWorkspaceRoot())
 
@@ -158,26 +155,26 @@ export const applyPatchTool = buildTool({
       original = await fs.readFile(resolved, 'utf-8')
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      return `Error reading file: ${message}`
+      return `读取文件失败： ${message}`
     }
 
     const { result, applied, failed } = applyHunks(original, hunks)
 
     if (applied === 0) {
-      return `Patch failed: 0/${hunks.length} hunks applied. The file content may not match the expected context lines.`
+      return `补丁应用失败：0/${hunks.length} 个区块已应用。文件内容可能与预期上下文不匹配。`
     }
 
     try {
       await fs.writeFile(resolved, result, 'utf-8')
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      return `Error writing file: ${message}`
+      return `写入文件失败： ${message}`
     }
 
     log.info('Patch applied', { path: resolved, applied, failed, totalHunks: hunks.length })
     if (failed > 0) {
-      return `Patch partially applied: ${applied}/${hunks.length} hunks succeeded, ${failed} failed. Review the file for correctness.`
+      return `补丁已部分应用： ${applied}/${hunks.length} 个区块成功，${failed} 个失败。请检查文件是否正确。`
     }
-    return `Patch applied successfully: ${applied}/${hunks.length} hunks applied to ${resolved}.`
+    return `补丁应用成功： ${applied}/${hunks.length} 个区块已应用到 ${resolved}.`
   },
 })

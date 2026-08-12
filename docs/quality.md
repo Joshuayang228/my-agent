@@ -4,6 +4,13 @@
 > 深 Why：`methodology/m17-testing-architecture.md`、`methodology/m18-eval.md`。  
 > 场景与 runner 真相以仓库代码为准：`__tests__/`、`evals/`。
 
+
+### Prompt 中文门禁
+
+- `__tests__/unit/prompt-language.test.ts` 直接验证生产主 Prompt、动态注入块、内置工具 schema / 示例与 Eval Judge 自有问题。
+- 允许工具名、JSON 字段、枚举、路径、代码和 `VIOLATION_FOUND / NOT_FOUND / UNKNOWN` 等协议 token；禁止重新引入英文自然语言指令。
+- 用户自定义 Prompt、用户安装 Skill、第三方 MCP 与外部网页/命令原始内容不属于翻译范围。
+
 ## 分层与门禁
 
 | 层 | 目的 | 命令 | 门禁 |

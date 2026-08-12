@@ -21,17 +21,17 @@ interface TavilyResponse {
 export const webSearchTool = buildTool({
   name: 'web_search',
   description:
-    'Search the web for current information. Use this when you need up-to-date information, facts, news, or anything that requires internet access. Returns search results with titles, URLs, and content snippets.',
+    "搜索互联网中的当前信息。需要最新资料、事实、新闻或其他必须联网获取的内容时使用；返回标题、URL 和内容摘要。",
   parameters: {
     type: 'object',
     properties: {
       query: {
         type: 'string',
-        description: 'The search query. Be specific for better results.',
+        description: "搜索查询；描述越具体，结果越准确。",
       },
       max_results: {
         type: 'string',
-        description: 'Maximum number of results to return (1-10). Default: 5.',
+        description: "最多返回的结果数量，范围 1–10，默认 5。",
       },
     },
     required: ['query'],
@@ -46,7 +46,7 @@ export const webSearchTool = buildTool({
     const maxResults = Math.min(Math.max(parseInt(String(args.max_results || '5'), 10) || 5, 1), 10)
 
     if (!query?.trim()) {
-      return 'Error: search query is required'
+      return '错误：必须提供搜索查询'
     }
 
     log.info('Searching', { query, maxResults })
@@ -72,9 +72,9 @@ export const webSearchTool = buildTool({
       })
 
       if (!response.ok) {
-        const errorText = await response.text().catch(() => 'unknown error')
+        const errorText = await response.text().catch(() => '未知错误')
         log.error('Tavily API error', { status: response.status, error: errorText })
-        return `Search failed (HTTP ${response.status}): ${errorText}`
+        return `搜索失败（HTTP ${response.status}）：${errorText}`
       }
 
       const data = (await response.json()) as TavilyResponse
@@ -83,15 +83,15 @@ export const webSearchTool = buildTool({
       const parts: string[] = []
 
       if (data.answer) {
-        parts.push(`**AI Summary**: ${data.answer}`)
+        parts.push(`**AI 摘要**：${data.answer}`)
         parts.push('')
       }
 
-      parts.push(`**Search results for "${query}"**:`)
+      parts.push(`**“${query}”的搜索结果**：`)
       parts.push('')
 
       if (!data.results?.length) {
-        parts.push('No results found.')
+        parts.push('未找到结果。')
         return parts.join('\n')
       }
 
@@ -107,7 +107,7 @@ export const webSearchTool = buildTool({
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       log.error('Search failed', { query, error: message })
-      return `Search failed: ${message}`
+      return `搜索失败：${message}`
     }
   },
 })

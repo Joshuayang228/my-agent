@@ -9,58 +9,29 @@ const log = createLogger('FileEdit')
 
 export const fileEditTool = buildTool({
   name: 'file_edit',
-  description: `Edit a file by replacing specific text. Much more efficient than file_write for small changes.
-
-When to use:
-- Making targeted changes to existing files (fixing bugs, updating values, modifying logic)
-- Replacing specific functions, classes, or code blocks
-- Updating configuration values or constants
-- Inserting new code after a specific location (use insert_after: true)
-- You know the exact text to replace (must match EXACTLY including whitespace)
-
-When NOT to use:
-- Creating new files (use file_write instead)
-- Rewriting entire files or making many scattered changes (use file_write - it's clearer)
-- The old_str appears many times and you only want to change one specific occurrence (use count parameter carefully, or use apply_patch for surgical edits)
-- You're not sure of the exact current content (read the file first to verify)
-
-How it works:
-- Finds old_str in the file and replaces it with new_str
-- old_str must match EXACTLY (including all whitespace, indentation, line breaks)
-- By default replaces only the FIRST occurrence (set count=-1 for all occurrences)
-- Set insert_after=true to insert new_str after old_str instead of replacing
-- Returns error if old_str is not found (helps catch mismatches early)
-
-Best practices:
-1. Read the file first to see the exact current content
-2. Copy the exact text including all whitespace for old_str
-3. If old_str appears multiple times, consider using apply_patch for more precise control
-4. Use count parameter to limit replacements (default: 1 = first occurrence only)
-
-Sandbox: Respects current sandbox mode (blocks writes outside workspace in workspace-write mode).
-Relative paths resolve against the opened workspace. Confirm dialog Allow does not bypass sandbox.`,
+  description: "通过替换指定文本来编辑文件。对小范围修改而言，比 file_write 更高效。\n\n适用场景：\n- 对现有文件做定点修改，例如修复 Bug、更新值或调整逻辑\n- 替换特定函数、类或代码块\n- 更新配置值或常量\n- 在指定位置后插入新代码（设置 insert_after=true）\n- 已知需要替换的准确文本，且能连同空白完全匹配\n\n不适用场景：\n- 创建新文件（使用 file_write）\n- 重写整个文件或进行大量分散修改（使用 file_write 或 apply_patch）\n- old_str 出现很多次，但只想修改某一个特定位置；请谨慎使用 count，或改用 apply_patch\n- 不确定文件当前的准确内容；应先读取文件确认\n\n工作方式：\n- 在文件中查找 old_str，并替换为 new_str\n- old_str 必须连同空白、缩进和换行完全匹配\n- 默认只替换第一次出现的位置；count=-1 时替换全部\n- insert_after=true 时在 old_str 后插入 new_str，而不是替换\n- 找不到 old_str 时返回错误，以便尽早发现上下文不一致\n\n最佳实践：\n1. 先读取文件，确认当前内容\n2. 让 old_str 包含足够上下文，确保定位唯一\n3. 修改后再次读取相关区域，验证结果。",
   parameters: {
     type: 'object',
     properties: {
       path: {
         type: 'string',
-        description: 'Absolute or relative file path to edit. Relative paths resolve from workspace root.',
+        description: "要编辑的绝对或相对文件路径；相对路径从工作区根目录解析。",
       },
       old_str: {
         type: 'string',
-        description: 'The exact string to find in the file. Must match exactly including whitespace.',
+        description: "要在文件中查找的精确字符串，必须连同空白完全匹配。",
       },
       new_str: {
         type: 'string',
-        description: 'The replacement string. Use empty string to delete old_str.',
+        description: "替换字符串；传空字符串可删除 old_str。",
       },
       count: {
         type: 'number',
-        description: 'How many occurrences to replace. Default: 1 (first match). Use -1 for all occurrences.',
+        description: "替换次数，默认 1（首次匹配）；设为 -1 时替换全部匹配。",
       },
       insert_after: {
         type: 'boolean',
-        description: 'If true, insert new_str after old_str instead of replacing it. Default: false.',
+        description: "设为 true 时不替换 old_str，而是在它后面插入 new_str；默认 false。",
       },
     },
     required: ['path', 'old_str', 'new_str'],
@@ -79,8 +50,8 @@ Relative paths resolve against the opened workspace. Confirm dialog Allow does n
     const count = (args.count as number) ?? 1
     const insertAfter = (args.insert_after as boolean) ?? false
 
-    if (!filePath?.trim()) return 'Error: file path is required'
-    if (!oldStr) return 'Error: old_str is required'
+    if (!filePath?.trim()) return '错误：必须提供文件路径'
+    if (!oldStr) return '错误：必须提供 old_str'
 
     const mode = await loadEffectiveSandbox()
     const wsRoot = getWorkspaceRoot()
@@ -96,13 +67,13 @@ Relative paths resolve against the opened workspace. Confirm dialog Allow does n
       original = await fs.readFile(resolved, 'utf-8')
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      return `Error reading file: ${message}`
+      return `读取文件失败： ${message}`
     }
 
     const occurrences = original.split(oldStr).length - 1
     if (occurrences === 0) {
       const preview = oldStr.length > 80 ? oldStr.slice(0, 80) + '...' : oldStr
-      return `Error: old_str not found in ${resolved}.\nSearched for: ${JSON.stringify(preview)}\nFile has ${original.split('\n').length} lines, ${original.length} characters.`
+      return `错误：在此文件中未找到 old_str： ${resolved}.\n搜索内容： ${JSON.stringify(preview)}\n文件共有 ${original.split('\n').length} 行、${original.length} 个字符。`
     }
 
     let result: string
@@ -131,19 +102,19 @@ Relative paths resolve against the opened workspace. Confirm dialog Allow does n
     }
 
     if (result === original) {
-      return 'No changes made (old_str and new_str produce identical content).'
+      return '没有发生修改（old_str 与 new_str 生成的内容相同）。'
     }
 
     try {
       await fs.writeFile(resolved, result, 'utf-8')
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      return `Error writing file: ${message}`
+      return `写入文件失败：${message}`
     }
 
     const actualReplacements = count === -1 ? occurrences : Math.min(count, occurrences)
-    const action = insertAfter ? 'inserted after' : 'replaced'
+    const action = insertAfter ? '插入' : '替换'
     log.info('File edited', { path: resolved, replacements: actualReplacements })
-    return `Successfully ${action} ${actualReplacements} occurrence(s) in ${resolved}. (${occurrences} total found)`
+    return `已${action} ${actualReplacements} 处，文件：${resolved}（共找到 ${occurrences} 处）。`
   },
 })

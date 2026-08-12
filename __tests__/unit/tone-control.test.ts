@@ -43,7 +43,7 @@ describe('resolveToneControl', () => {
       toolNames: [],
       toneControlHint: formatToneControlForPrompt(tone),
     })
-    expect(prompt).toContain('## Tone control (this turn)')
-    expect(prompt).toContain('Tone register: soft')
+    expect(prompt).toContain('## 本轮语气控制')
+    expect(prompt).toContain('语气档位：soft')
   })
 })

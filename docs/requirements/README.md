@@ -35,6 +35,7 @@
 | [companion-cast-content.md](./companion-cast-content.md) | 三角色文案定位 + 分味剧本/衣柜约定 |
 | [companion-protagonist-persona.md](./companion-protagonist-persona.md) | 主角行为人格已进入 Playground / Eval 验收；人物故事待定 |
 | [eval-remote-persona-acceptance.md](./eval-remote-persona-acceptance.md) | 已落地：真实/Mock 分层、B02–B07 pass^k 与远程报告 |
+| [prompt-chinese-unification.md](./prompt-chinese-unification.md) | 已落地：自有模型可见 Prompt、内置工具 schema 与 Eval Judge 统一为简体中文 |
 | [frontend-companion-surfaces.md](./frontend-companion-surfaces.md) | Alice 对照前端表面：生活/工具 IA、P0–P2 验收 |
 
 ---

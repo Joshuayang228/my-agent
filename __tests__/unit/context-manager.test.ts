@@ -88,7 +88,7 @@ describe('compressContext', () => {
     const messages = [system, ...old, ...recent]
     const result = await compressContext(messages, { maxTokens: 2000 })
 
-    const hasSummary = result.some(m => m.content.includes('[Context compressed'))
+    const hasSummary = result.some(m => m.content.includes('[上下文已压缩'))
     expect(hasSummary).toBe(true)
     expect(result[0].role).toBe('system')
     expect(result.length).toBeLessThan(messages.length)

@@ -98,7 +98,7 @@ describe('continue 机制', () => {
   it('continue 不存在的 agent 返回失败', async () => {
     const result = await continueSubAgent('ghost-id', 'hi')
     expect(result.success).toBe(false)
-    expect(result.content).toContain('not found')
+    expect(result.content).toContain('未找到')
   })
 })
 

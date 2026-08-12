@@ -23,44 +23,35 @@ export { setCurrentSessionId as setTaskPlanSessionId }
 
 export const taskPlanTool = buildTool({
   name: 'task_plan',
-  description: `Manage a structured task plan for complex multi-step requests.
-Plans are persisted to database and survive restarts.
-
-Actions:
-- create: Create a new plan with goal and steps. Use when a request requires 3+ distinct steps.
-- status: View current plan progress.
-- update: Mark a step as in_progress/done/skipped and optionally record its result.
-- clear: Clear the current plan when done.
-
-Always create a plan before starting complex tasks. Update step status as you work.`,
+  description: "管理复杂多步骤请求的结构化任务计划。计划会持久化到数据库，应用重启后仍然保留。\n\n操作：\n- create：使用总体目标和步骤创建计划；请求包含 3 个及以上独立步骤时使用\n- status：查看当前计划进度\n- update：把步骤标记为 in_progress、done 或 skipped，并可记录结果\n- clear：任务完成后清除当前计划\n\n开始复杂任务前必须先创建计划，并在执行过程中持续更新步骤状态。",
   parameters: {
     type: 'object',
     properties: {
       action: {
         type: 'string',
-        description: 'One of: create, status, update, clear',
+        description: "操作类型：create、status、update 或 clear。",
         enum: ['create', 'status', 'update', 'clear'],
       },
       goal: {
         type: 'string',
-        description: '[create] The overall goal of the task',
+        description: "[create] 任务的总体目标。",
       },
       steps: {
         type: 'string',
-        description: '[create] Steps as JSON array of strings, e.g. ["Step 1", "Step 2"]',
+        description: "[create] JSON 字符串数组形式的步骤，例如 [\"步骤 1\", \"步骤 2\"]。",
       },
       stepId: {
         type: 'string',
-        description: '[update] The step number (1-based)',
+        description: "[update] 步骤编号，从 1 开始。",
       },
       stepStatus: {
         type: 'string',
-        description: '[update] New status: in_progress, done, skipped',
+        description: "[update] 新状态：in_progress、done 或 skipped。",
         enum: ['in_progress', 'done', 'skipped'],
       },
       stepResult: {
         type: 'string',
-        description: '[update] Optional result/note for this step',
+        description: "[update] 此步骤的可选结果或备注。",
       },
     },
     required: ['action'],
@@ -73,14 +64,14 @@ Always create a plan before starting complex tasks. Update step status as you wo
       if (action === 'create') {
         const goal = args.goal as string
         const stepsRaw = args.steps as string
-        if (!goal) return 'Error: goal is required for create action'
+        if (!goal) return '错误：create 操作必须提供 goal'
 
         let stepDescs: string[]
         try {
           stepDescs = JSON.parse(stepsRaw || '[]')
           if (!Array.isArray(stepDescs)) throw new Error()
         } catch {
-          return 'Error: steps must be a JSON array of strings'
+          return '错误：steps 必须是 JSON 字符串数组'
         }
 
         const plan: TaskPlan = {
@@ -100,17 +91,17 @@ Always create a plan before starting complex tasks. Update step status as you wo
 
       if (action === 'status') {
         const plan = await loadPlan()
-        if (!plan) return 'No active plan. Use create to start one.'
+        if (!plan) return '当前没有活动计划，请用 create 创建。'
         return formatPlan(plan)
       }
 
       if (action === 'update') {
         const plan = await loadPlan()
-        if (!plan) return 'No active plan.'
+        if (!plan) return '当前没有活动计划。'
 
         const stepId = parseInt(args.stepId as string, 10)
         const step = plan.steps.find(s => s.id === stepId)
-        if (!step) return `Step ${stepId} not found. Valid: 1-${plan.steps.length}`
+        if (!step) return `未找到步骤 ${stepId}；有效范围：1-${plan.steps.length}`
 
         if (args.stepStatus) step.status = args.stepStatus as TaskStep['status']
         if (args.stepResult) step.result = args.stepResult as string
@@ -123,13 +114,13 @@ Always create a plan before starting complex tasks. Update step status as you wo
         const plan = await loadPlan()
         const hadPlan = !!plan
         await deletePlan()
-        return hadPlan ? 'Plan cleared.' : 'No plan was active.'
+        return hadPlan ? '计划已清除。' : '此前没有活动计划。'
       }
 
-      return `Unknown action: ${action}`
+      return `未知操作： ${action}`
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      return `Error: ${message}`
+      return `错误：${message}`
     }
   },
 })
@@ -140,21 +131,21 @@ function formatPlan(plan: TaskPlan): string {
   const total = plan.steps.length
 
   const lines = [
-    `📋 Plan: ${plan.goal}`,
-    `Progress: ${done}/${total} steps done`,
+    `📋 计划： ${plan.goal}`,
+    `进度：${done}/${total} 步已完成`,
     '',
     ...plan.steps.map(s => {
-      let line = `${statusIcon[s.status]} Step ${s.id}: ${s.description}`
+      let line = `${statusIcon[s.status]} 步骤 ${s.id}： ${s.description}`
       if (s.result) line += `\n   → ${s.result}`
       return line
     }),
   ]
 
   if (done === total && total > 0) {
-    lines.push('', '🎉 All steps complete!')
+    lines.push('', '🎉 所有步骤均已完成！')
   } else {
     const next = plan.steps.find(s => s.status === 'pending')
-    if (next) lines.push('', `Next: Step ${next.id} — ${next.description}`)
+    if (next) lines.push('', `下一步：步骤 ${next.id}—— ${next.description}`)
   }
 
   return lines.join('\n')

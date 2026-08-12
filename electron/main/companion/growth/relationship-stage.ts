@@ -167,8 +167,8 @@ export async function resolveRelationshipStageForRole(
 
 export function formatRelationshipStageForPrompt(result: RelationshipStageResult): string {
   const lines = [
-    `Relationship stage: ${result.stage}`,
-    `Guidance: ${result.guidance}`,
+    `关系阶段：${result.stage}`,
+    `行动指引：${result.guidance}`,
   ]
   if (result.mix) {
     lines.push(formatFamiliarityMixForPrompt(result.mix))

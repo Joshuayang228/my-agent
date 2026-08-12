@@ -16,43 +16,43 @@ import { addMemory, listMemories, type MemoryCategory } from '../storage/memory-
 
 const log = createLogger('ProfileExtractor')
 
-export const EXTRACTION_PROMPT = `You are a user profile analyzer. Given the recent conversation, extract any NEW, DURABLE information about the user. The guiding test: a memory should be something that "stays useful once added" — not a log of what happened.
+export const EXTRACTION_PROMPT = `你是用户画像分析器。请根据近期对话，提取关于用户的、此前尚未记录且长期有效的信息。判断标准是：一条记忆在加入后应当能持续发挥作用，而不是对已发生事情的流水账。
 
-Output a JSON array where each item has:
-- "category": one of "identity", "workflow", "voice", "preference", "fact", "feedback"
-- "content": a concise statement (one sentence max)
+输出 JSON 数组，每一项包含：
+- "category"：只能是 "identity"、"workflow"、"voice"、"preference"、"fact"、"feedback" 之一
+- "content"：简洁陈述，最多一句话
 
-Categories:
-- identity: who they are (name, role, interests, tech stack, location, etc.)
-- workflow: how they work (tools, habits, schedule, preferences for collaboration)
-- voice: communication style (formal/casual, language preferences, humor style)
-- preference: explicit preferences (likes/dislikes, preferred tools, approaches, aesthetic choices)
-- fact: durable facts about their projects, environment, or context
-- feedback: the user's corrections AND confirmations about how you should work. BOTH matter:
-  - correction ("don't auto-commit", "stop explaining so much") — what to change
-  - confirmation ("that's exactly right", "yes, keep doing it this way") — what to keep doing
-  For feedback, phrase content as "what to do/avoid + why", e.g. "Prefers concise answers without preamble (said long explanations waste time)". Confirmations are as valuable as corrections — remembering "you did that well last time" is core to being a companion, not just a tool.
+类别说明：
+- identity：用户是谁，例如姓名、角色、兴趣、技术栈、所在地等
+- workflow：用户如何工作，例如工具、习惯、日程、协作偏好
+- voice：用户的沟通风格，例如正式或随意、语言偏好、幽默风格
+- preference：用户明确表达的偏好，例如喜欢或不喜欢的工具、方法、审美选择
+- fact：关于用户项目、环境或背景的长期事实
+- feedback：用户对你工作方式的纠正与确认，两者都重要：
+  - 纠正，例如“不要自动提交”“别解释这么多”——表示需要改变什么
+  - 确认，例如“完全正确”“以后继续这样做”——表示应当保持什么
+  对 feedback，content 应写成“应该做或避免什么 + 原因”，例如“偏好省略铺垫的简洁回答，因为长篇解释浪费时间”。确认和纠正同样有价值；记住“你上次这样做得很好”是伙伴关系的一部分，而不只是工具行为。
 
-DO save (durable knowledge):
-- Stable preferences and habits ("prefers TypeScript over JS", "works late at night")
-- Identity facts (role, expertise, tech stack, location)
-- Explicit corrections about how they want you to work → category "feedback"
-- Explicit confirmations that you did something the right way → category "feedback"
-- Don't extract what the assistant (you) *should* remember about itself — only extract what the assistant should remember about the *user*
+应该保存（长期知识）：
+- 稳定的偏好和习惯，例如“偏好 TypeScript 而不是 JS”“经常深夜工作”
+- 身份事实，例如角色、专业水平、技术栈、所在地
+- 用户明确纠正你应如何工作的内容，category 使用 "feedback"
+- 用户明确确认你采用了正确工作方式的内容，category 使用 "feedback"
+- 只提取助手应该记住的用户信息；不要提取助手应该记住的自身信息
 
-Do NOT save (these are noise or belong elsewhere):
-- Transient task state ("currently debugging the login flow", "on step 3")
-- Anything derivable from the current conversation or easily re-observed
-- The assistant's own instructions, persona, or behavior rules
-- Assistant promises to remember something in the future — those are *actions* the assistant takes, not *facts* about the user
-- Overly generic statements ("uses a computer", "likes good code")
-- One-off facts that won't matter in the next conversation
+不要保存（噪声或应归入其他系统）：
+- 临时任务状态，例如“正在调试登录流程”“目前到第 3 步”
+- 可从当前对话直接推导或很容易再次观察到的信息
+- 助手自身的指令、人设或行为规则
+- 助手承诺将来记住某事；那是助手要执行的动作，不是关于用户的事实
+- 过于泛化的陈述，例如“会使用电脑”“喜欢好代码”
+- 只出现一次、下次对话不会再有价值的事实
 
-Rules:
-- Only extract facts clearly supported by the conversation
-- Skip vague or uncertain information
-- Return [] if nothing durable is found
-- Respond with ONLY the JSON array, no other text`
+规则：
+- 只提取有对话明确支持的事实
+- 跳过模糊或不确定的信息
+- 没有长期有效信息时返回 []
+- 只输出 JSON 数组，不要输出其他文字`
 
 const MIN_USER_MESSAGES = 3
 const MAX_RECENT_MESSAGES = 20
@@ -81,15 +81,15 @@ export async function maybeExtractProfile(
     const recentMessages = allMessages.slice(-MAX_RECENT_MESSAGES)
     const conversationText = recentMessages
       .filter(m => m.role === 'user' || m.role === 'assistant')
-      .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.slice(0, 500)}`)
+      .map(m => `${m.role === 'user' ? '用户' : '助手'}： ${m.content.slice(0, 500)}`)
       .join('\n\n')
 
     const existingMemories = await listMemories()
     const existingFacts = existingMemories.map(m => m.content).join('; ')
 
     const prompt = existingFacts
-      ? `Already known about this user: ${existingFacts}\n\nDo NOT repeat known facts. Only extract NEW information.\n\nRecent conversation:\n${conversationText}`
-      : `Recent conversation:\n${conversationText}`
+      ? `已知的用户信息：${existingFacts}\n\n不要重复已知事实，只提取新信息。\n\n近期对话：\n${conversationText}`
+      : `近期对话：\n${conversationText}`
 
     // 走统一路由层（chatComplete）而非直接 fetch —— 自动获得多 Provider 支持 + failover
     let text: string

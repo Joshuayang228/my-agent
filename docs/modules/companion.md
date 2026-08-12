@@ -79,6 +79,7 @@
 | 世界状态薄片（居所/时区/情境/心情/精力/当前位置与活动） | 已落地 | （隐式）Assemble L3 | schema v1 `world_json` · `## World slice` |
 | 主角候选默认世界结构 | 已落地 | Debug「世界态」/ 世界初始化 | 当前仅小航 `world.default.json`；城市、住所、地点、物品与作息均待定 |
 | 主角候选行为人格验收 | 已落地 | Playground「人格验收」/ `npm run eval:persona` | 七个中性故事格 + B02–B07 DeepSeek `pass^3`；自动门禁已过，人工语气审美待本地验收 |
+| 伙伴 Prompt 自有框架文案统一中文 | 已落地 | 人物档案 / 世界 / 关系阶段 / 里程碑 / 召唤任务工动态注入；Role Pack 原文继续作为单一事实源 |
 | Catch-up 概况 LLM + 模板回退 | 已落地 | （隐式）换角追赶 | `resolveCatchupSummary` · catchup.ts |
 | 聊圈薄一致性（近 Moment 锚点） | 已落地 | （隐式）Assemble L3 | `moment-consistency` · `## Recent moments` |
 | Moment LLM 润色（绑 event） | 已落地 | （隐式）tick 发布 | `moment-polish` · 规则回退 |

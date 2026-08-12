@@ -21,7 +21,7 @@ import { startLinkedAsyncSpan } from '../utils/tracer'
 
 const log = createLogger('PlaygroundModelTest')
 
-const SMOKE_PROMPT = 'Hello! 用一句话介绍自己。'
+const SMOKE_PROMPT = '你好！请用一句话介绍自己。'
 const PROBE_PROMPT = '用两个字回答：你好'
 
 export type ModelSmokeResult =

@@ -51,7 +51,7 @@ export function sanitizeToolCallPairs(messages: ChatMessage[]): ChatMessage[] {
             result.push({
               id: `tool-patch-${callId}`,
               role: 'tool',
-              content: `[Tool execution was interrupted — no result available for ${tc?.name ?? 'unknown'}]`,
+              content: `[工具执行被中断——${tc?.name ?? '未知工具'} 没有可用结果]`,
               timestamp: msg.timestamp,
               toolCallId: callId,
             })

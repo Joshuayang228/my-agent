@@ -82,7 +82,7 @@ describe('Companion Cast roster', () => {
       rosterLines,
     })
 
-    expect(prompt).toContain('## Cast roster')
+    expect(prompt).toContain('## 角色名册')
     expect(prompt).toContain('你与陈姐')
     expect(prompt).toContain(pack.protected.slice(0, 20))
     expect(prompt).not.toContain('CHEN_PROTECTED_FULL_BODY_MUST_NOT_APPEAR_IN_MAIN_PROMPT')

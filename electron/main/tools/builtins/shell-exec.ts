@@ -12,42 +12,17 @@ const MAX_OUTPUT_CHARS = 30_000
 
 export const shellExecTool = buildTool({
   name: 'shell_exec',
-  description: `Execute a shell command and return its output.
-
-When to use:
-- Running build scripts, tests, or compilation commands
-- Installing or managing packages (npm, pip, cargo, etc.)
-- Checking system information (disk space, processes, environment variables)
-- Running Git commands (status, diff, log, etc.)
-- File operations that are easier with shell commands (find, grep with complex patterns)
-- Executing project-specific scripts or tools
-
-When NOT to use:
-- Simple file read/write operations (use dedicated file tools - they're safer and faster)
-- Searching code (use code_search - it's optimized for this and returns structured results)
-- Commands that require interactive input (shell is non-interactive)
-- Long-running processes (commands timeout after 30 seconds)
-
-Behavior:
-- Commands timeout after 30 seconds (returns partial output + timeout indicator)
-- Sandbox mode controls what commands are allowed:
-  * read-only: blocks all write operations
-  * workspace-write: blocks dangerous commands (rm -rf, dd, format, etc.) and writes outside workspace
-  * full-access: allows all commands (use with caution)
-- Returns stdout, stderr, and exit code
-- Output truncated at 30,000 characters (use redirection to file for large outputs)
-
-Security: All commands go through the permission engine (custom rules → approval store → sandbox). Dangerous operations may be blocked. Previously denied commands are automatically blocked.`,
+  description: "执行 shell 命令并返回输出。\n\n适用场景：\n- 运行构建脚本、测试或编译命令\n- 安装或管理 npm、pip、cargo 等包\n- 检查磁盘空间、进程、环境变量等系统信息\n- 运行 Git status、diff、log 等命令\n- 执行使用 shell 更方便的文件操作，例如 find 或复杂 grep\n- 执行项目专用脚本和工具\n\n不适用场景：\n- 简单文件读写，优先使用更安全、更快的专用文件工具\n- 搜索代码，优先使用会返回结构化结果的 code_search\n- 需要交互输入的命令；shell 是非交互式的\n- 长时间运行的进程；命令在 30 秒后超时\n\n行为：\n- 命令 30 秒超时，并返回已有输出和超时标记\n- 沙箱模式控制允许的命令：\n  - read-only：阻止所有写操作\n  - workspace-write：阻止 rm -rf、dd、format 等危险命令，以及工作区外写入\n  - full-access：允许所有命令，必须谨慎使用\n- 返回 stdout、stderr 和退出码\n- 输出超过 30,000 个字符时截断；大型输出可重定向到文件\n\n安全：所有命令都经过权限引擎，包括自定义规则、审批记录与沙箱。危险操作可能被阻止；此前被拒绝的命令会自动阻止。",
   parameters: {
     type: 'object',
     properties: {
       command: {
         type: 'string',
-        description: 'The shell command to execute.',
+        description: "要执行的 shell 命令。",
       },
       cwd: {
         type: 'string',
-        description: 'Working directory for the command. Defaults to current directory.',
+        description: "命令的工作目录，默认为当前目录。",
       },
     },
     required: ['command'],
@@ -63,7 +38,7 @@ Security: All commands go through the permission engine (custom rules → approv
     const command = args.command as string
     const cwd = (args.cwd as string) || undefined
 
-    if (!command?.trim()) return 'Error: command is required'
+    if (!command?.trim()) return '错误：必须提供命令'
 
     const mode = await loadEffectiveSandbox()
     const workspaceRoot = getWorkspaceRoot()
@@ -77,7 +52,7 @@ Security: All commands go through the permission engine (custom rules → approv
         decisionType: decision.decisionType,
         chain: decision.chain,
       })
-      return `[SANDBOX BLOCKED] ${decision.reason}\n\nThe current sandbox mode is "${mode}". This command was blocked for safety reasons.`
+      return `[沙箱已阻止] ${decision.reason}\n\n当前沙箱模式为“${mode}”。出于安全原因，此命令已被阻止。`
     }
 
     if (decision.allowed === 'needs_approval') {
@@ -87,7 +62,7 @@ Security: All commands go through the permission engine (custom rules → approv
         command: command.slice(0, 100),
         reason: decision.reason,
       })
-      return `[SANDBOX BLOCKED] ${decision.reason}\n\nThis command requires approval before execution. Ask the user to confirm, or use a less privileged alternative.`
+      return `[沙箱已阻止] ${decision.reason}\n\n此命令执行前需要批准。请请求用户确认，或改用权限更低的替代方案。`
     }
 
     log.info('Executing command', {
@@ -113,7 +88,7 @@ Security: All commands go through the permission engine (custom rules → approv
         if (stdout) {
           let out = stdout.toString()
           if (out.length > MAX_OUTPUT_CHARS) {
-            out = out.slice(0, MAX_OUTPUT_CHARS) + `\n[... truncated at ${MAX_OUTPUT_CHARS} chars]`
+            out = out.slice(0, MAX_OUTPUT_CHARS) + `\n[... 已在 ${MAX_OUTPUT_CHARS} 个字符处截断]`
           }
           parts.push(out)
         }
@@ -121,21 +96,21 @@ Security: All commands go through the permission engine (custom rules → approv
         if (stderr) {
           let err = stderr.toString()
           if (err.length > MAX_OUTPUT_CHARS) {
-            err = err.slice(0, MAX_OUTPUT_CHARS) + `\n[... truncated]`
+            err = err.slice(0, MAX_OUTPUT_CHARS) + `\n[... 已截断]`
           }
-          parts.push(`[stderr]\n${err}`)
+          parts.push(`[标准错误]\n${err}`)
         }
 
         if (error) {
           const exitCode = error.code ?? 'unknown'
-          parts.push(`[exit code: ${exitCode}]`)
-          if (error.killed) parts.push('[process killed — timeout]')
+          parts.push(`[退出码：${exitCode}]`)
+          if (error.killed) parts.push('[进程因超时被终止]')
           log.warn('Command failed', { command, exitCode })
         } else {
           log.info('Command completed', { command })
         }
 
-        resolve(parts.join('\n') || '(no output)')
+        resolve(parts.join('\n') || '（无输出）')
       })
     })
   },

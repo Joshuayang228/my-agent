@@ -28,8 +28,8 @@ describe('file_delete tool', () => {
 
     const result = await fileDeleteTool.execute({ path: testFile })
 
-    expect(result).toContain('Successfully deleted')
-    expect(result).toContain('moved to trash, recoverable')
+    expect(result).toContain('删除成功')
+    expect(result).toContain('已移入回收站，可恢复')
     // 文件应该不存在了（已移到回收站）
     await expect(fs.access(testFile)).rejects.toThrow()
   })
@@ -42,8 +42,8 @@ describe('file_delete tool', () => {
 
     const result = await fileDeleteTool.execute({ path: testFile })
 
-    expect(result).toContain('Successfully deleted')
-    expect(result).not.toContain('moved to trash')
+    expect(result).toContain('删除成功')
+    expect(result).not.toContain('已移入回收站')
     // 文件应该被永久删除
     await expect(fs.access(testFile)).rejects.toThrow()
   })
@@ -56,8 +56,8 @@ describe('file_delete tool', () => {
 
     const result = await fileDeleteTool.execute({ path: pycacheDir })
 
-    expect(result).toContain('Successfully deleted')
-    expect(result).not.toContain('moved to trash')
+    expect(result).toContain('删除成功')
+    expect(result).not.toContain('已移入回收站')
     // 目录应该被永久删除
     await expect(fs.access(pycacheDir)).rejects.toThrow()
   })
@@ -70,7 +70,7 @@ describe('file_delete tool', () => {
 
     const result = await fileDeleteTool.execute({ path: tmpSubDir })
 
-    expect(result).toContain('Successfully deleted')
+    expect(result).toContain('删除成功')
     // 验证是走回收站还是永久删除（取决于路径模式匹配）
     await expect(fs.access(tmpSubDir)).rejects.toThrow()
   })
@@ -80,14 +80,14 @@ describe('file_delete tool', () => {
 
     const result = await fileDeleteTool.execute({ path: nonExistent })
 
-    expect(result).toContain('Error')
-    expect(result).toContain('does not exist')
+    expect(result).toContain('错误')
+    expect(result).toContain('路径不存在')
   })
 
   it('应该处理空路径参数', async () => {
     const result = await fileDeleteTool.execute({ path: '' })
 
-    expect(result).toBe('Error: path is required')
+    expect(result).toBe('错误：必须提供路径')
   })
 
   it('应该处理相对路径（解析为绝对路径）', async () => {
@@ -99,7 +99,7 @@ describe('file_delete tool', () => {
 
     const result = await fileDeleteTool.execute({ path: relativePath })
 
-    expect(result).toContain('Successfully deleted')
+    expect(result).toContain('删除成功')
     expect(result).toContain(absolutePath)
 
     // 清理
@@ -114,8 +114,8 @@ describe('file_delete tool', () => {
 
     const result = await fileDeleteTool.execute({ path: gitDir })
 
-    expect(result).toContain('Successfully deleted')
-    expect(result).not.toContain('moved to trash')
+    expect(result).toContain('删除成功')
+    expect(result).not.toContain('已移入回收站')
   })
 
   it('白名单应该识别 dist 和 build 目录', async () => {
@@ -125,7 +125,7 @@ describe('file_delete tool', () => {
 
     const result = await fileDeleteTool.execute({ path: distDir })
 
-    expect(result).toContain('Successfully deleted')
-    expect(result).not.toContain('moved to trash')
+    expect(result).toContain('删除成功')
+    expect(result).not.toContain('已移入回收站')
   })
 })

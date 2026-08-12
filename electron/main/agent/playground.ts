@@ -16,7 +16,7 @@ import { startLinkedAsyncSpan } from '../utils/tracer'
 const log = createLogger('Playground')
 
 export const DEFAULT_PLAYGROUND_SYSTEM =
-  'You are a helpful assistant in a developer playground. Keep replies concise. No tools.'
+  '你是开发者 Playground 中的助手。请保持回复简洁，不使用工具。'
 
 /** 试验场历史轮（不含 system） */
 export type PlaygroundTurn = { role: 'user' | 'assistant'; content: string }

@@ -13,29 +13,17 @@ import { continueSubAgent } from '../../agent/subagent-registry'
 
 export const continueTaskTool = buildTool({
   name: 'continue_task',
-  description: `Continue an existing sub-agent with a follow-up message. The sub-agent retains its full conversation history and context from the previous run.
-
-**When to use (Alice Ch.6 continue vs spawn):**
-- The sub-agent's prior context is directly relevant to the new task (e.g., it researched the files you now want it to modify)
-- Correcting a failure or extending recent work (it has the error context)
-- Giving a specific implementation spec after it finished research
-
-**When NOT to use (spawn a new delegate_task instead):**
-- The new task is unrelated to what the sub-agent did before
-- You want a fresh perspective (e.g., a verifier shouldn't carry implementation assumptions)
-- The first approach was completely wrong (wrong context pollutes retry)
-
-**Important:** Your message must be self-contained with everything the sub-agent needs — include file paths, line numbers, specific instructions. The sub-agent can see its own history but NOT your conversation with the user.`,
+  description: "向已有子 Agent 发送后续消息并继续任务。子 Agent 会保留上一次运行的完整对话历史和上下文。\n\n适用场景（Alice Ch.6：continue 与 spawn 的区别）：\n- 子 Agent 上一次的上下文与新任务直接相关，例如它已经研究过现在要修改的文件\n- 修正失败或扩展最近完成的工作，因为它已经掌握错误上下文\n- 子 Agent 完成研究后，再给出具体实现要求\n\n不适用场景（应新建 delegate_task）：\n- 新任务与子 Agent 之前完成的工作无关\n- 需要全新视角，例如验证者不应携带实现阶段的假设\n- 第一次方案完全错误，旧上下文会污染重试\n\n重要：后续消息必须自包含，提供子 Agent 所需的文件路径、行号和具体指令。子 Agent 能看到自己的历史，但看不到你与用户的对话。",
   parameters: {
     type: 'object',
     properties: {
       agent_id: {
         type: 'string',
-        description: 'The agent ID returned by a previous delegate_task call',
+        description: "上一次 delegate_task 调用返回的 Agent ID。",
       },
       message: {
         type: 'string',
-        description: 'The follow-up message/instruction to send to the sub-agent. Be specific and self-contained.',
+        description: "发送给子 Agent 的后续消息或指令；必须具体且自包含。",
       },
     },
     required: ['agent_id', 'message'],
@@ -49,16 +37,16 @@ export const continueTaskTool = buildTool({
     const agentId = args.agent_id as string
     const message = args.message as string
 
-    if (!agentId?.trim()) return '[Error] agent_id is required'
-    if (!message?.trim()) return '[Error] message is required'
+    if (!agentId?.trim()) return '[错误] 必须提供 agent_id'
+    if (!message?.trim()) return '[错误] 必须提供 message'
 
     const result = await continueSubAgent(agentId, message, toolContext?.signal)
 
-    const header = result.success ? '✅ Sub-agent continued' : '❌ Sub-agent continue failed'
+    const header = result.success ? '✅ 子 Agent 已继续执行' : '❌ 子 Agent 继续执行失败'
     const meta = result.toolsUsed.length > 0
-      ? `\nTools used: ${result.toolsUsed.join(', ')} (${result.iterations} iterations)`
+      ? `\n使用工具：${result.toolsUsed.join(', ')}（${result.iterations} 次迭代）`
       : ''
 
-    return `${header}${meta}\nAgent ID: ${agentId}\n\n${result.content}`
+    return `${header}${meta}\nAgent ID：${agentId}\n\n${result.content}`
   },
 })

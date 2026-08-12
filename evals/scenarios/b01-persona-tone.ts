@@ -60,7 +60,7 @@ export const B01: EvalScenario = {
         {
           id: 'cliche',
           question:
-            "Does the reply contain customer-service clichés like '您好', '请问有什么可以帮您', '为您服务'?",
+            "回复中是否包含“您好”“请问有什么可以帮您”“为您服务”等客服套话？",
         },
       ],
     ),

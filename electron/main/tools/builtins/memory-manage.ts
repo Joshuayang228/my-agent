@@ -19,18 +19,18 @@ const VALID_CATEGORIES = ['identity', 'preference', 'fact', 'workflow', 'voice',
 
 export const rememberTool = buildTool({
   name: 'remember',
-  description: 'Store important information about the user or their preferences into long-term memory. Use this when the user explicitly asks you to remember something, or when you notice significant facts worth preserving.',
+  description: "把关于用户及其偏好的重要信息存入长期记忆。用户明确要求记住，或发现值得长期保留的重要事实时使用。",
   parameters: {
     type: 'object',
     properties: {
       category: {
         type: 'string',
-        description: 'Category: identity (who they are), workflow (how they work), voice (communication style), preference (likes/dislikes), fact (specific facts), feedback (their corrections AND confirmations about how you should work — both what to change and what to keep doing)',
+        description: "类别：identity（身份）、workflow（工作方式）、voice（沟通风格）、preference（偏好）、fact（事实）、feedback（用户对工作方式的纠正与确认）。",
         enum: [...VALID_CATEGORIES],
       },
       content: {
         type: 'string',
-        description: 'A concise statement to remember (one sentence)',
+        description: "要记住的简洁陈述，最多一句话。",
       },
     },
     required: ['category', 'content'],
@@ -43,10 +43,10 @@ export const rememberTool = buildTool({
     const content = args.content as string
 
     if (!VALID_CATEGORIES.includes(category as MemoryCategory)) {
-      return `Error: invalid category "${category}". Use one of: ${VALID_CATEGORIES.join(', ')}`
+      return `错误：无效类别 "${category}". 可选值： ${VALID_CATEGORIES.join(', ')}`
     }
     if (!content || content.length < 2) {
-      return 'Error: content is too short'
+      return '错误：内容过短'
     }
 
     const roleId = category === 'feedback' ? ctx?.roleId?.trim() : undefined
@@ -56,25 +56,25 @@ export const rememberTool = buildTool({
       : existing
     const isDuplicate = pool.some(m => m.content.toLowerCase() === content.toLowerCase())
     if (isDuplicate) {
-      return `Already remembered: "${content}"`
+      return `已经记住： "${content}"`
     }
 
     const entry = await addMemory(category as MemoryCategory, content, { roleId })
     const sensitive = detectSensitiveKinds(content)
     const note = formatSensitiveRememberNote(sensitive)
-    return `Remembered [${category}]: "${content}" (id: ${entry.id})${note}`
+    return `已记住 [${category}]: "${content}" (id: ${entry.id})${note}`
   },
 })
 
 export const recallTool = buildTool({
   name: 'recall',
-  description: 'Search long-term memory for previously stored information about the user. Use this when you need to check what you know about the user before answering.',
+  description: "搜索关于用户的长期记忆。回答前需要确认已知用户信息时使用。",
   parameters: {
     type: 'object',
     properties: {
       category: {
         type: 'string',
-        description: 'Optional: filter by category (identity, workflow, voice, preference, fact, feedback). Omit to search all.',
+        description: "可选：按 identity、workflow、voice、preference、fact、feedback 类别过滤；省略时搜索全部。",
       },
     },
     required: [],
@@ -91,23 +91,23 @@ export const recallTool = buildTool({
 
     const memories = await listMemories(validCat)
     if (memories.length === 0) {
-      return validCat ? `No memories in category "${validCat}".` : 'No memories stored yet.'
+      return validCat ? `类别中没有记忆： "${validCat}".` : '尚未存储任何记忆。'
     }
 
     const lines = memories.map(m => `- [${m.category}] ${m.content} (id: ${m.id})`)
-    return `Found ${memories.length} memories:\n${lines.join('\n')}`
+    return `找到 ${memories.length} 条记忆：\n${lines.join('\n')}`
   },
 })
 
 export const forgetTool = buildTool({
   name: 'forget',
-  description: 'Remove a specific memory by ID. Use when the user asks you to forget something, or when information is outdated.',
+  description: "按 ID 删除一条长期记忆。用户要求忘记某事或信息已经过时时使用。",
   parameters: {
     type: 'object',
     properties: {
       id: {
         type: 'string',
-        description: 'The memory ID to delete (get it from recall results)',
+        description: "要删除的记忆 ID，可从 recall 结果中获取。",
       },
     },
     required: ['id'],
@@ -118,9 +118,9 @@ export const forgetTool = buildTool({
   },
   execute: async (args) => {
     const id = args.id as string
-    if (!id) return 'Error: memory id is required'
+    if (!id) return '错误：必须提供记忆 ID'
 
     await deleteMemory(id)
-    return `Memory ${id} has been forgotten.`
+    return `已忘记记忆 ${id}。`
   },
 })

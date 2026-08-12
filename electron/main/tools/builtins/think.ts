@@ -23,27 +23,14 @@ import { buildTool } from '../builder'
 
 export const thinkTool = buildTool({
   name: 'think',
-  description: `Use this tool to think through a problem before acting — especially when following complex rules or analyzing tool results.
-
-This tool has ZERO side effects: it does NOT read files, make network calls, or change any state. Your reasoning stays internal and is NOT shown to the user.
-
-When to use:
-- Before executing a sensitive action: verify sandbox permissions, check user preferences
-- After receiving tool results: organize findings before the next tool call
-- When policy or preferences conflict: reason through the right approach
-
-When NOT to use:
-- Simple, clear-cut actions you already know how to handle
-- When you just need to do it — don't overthink routine tasks
-
-Format: write a brief structured reasoning (what you know, what you're checking, what you'll do next).`,
+  description: "在行动前使用此工具梳理问题，尤其适合遵循复杂规则或分析工具结果。\n\n该工具零副作用：不会读取文件、访问网络或改变任何状态。推理保留在内部，不直接展示给用户。\n\n适用场景：\n- 执行敏感操作前，验证沙箱权限和用户偏好\n- 收到工具结果后，在下一次调用前整理发现\n- 策略或偏好发生冲突时，推理正确处理方式\n\n不适用场景：\n- 已经明确如何处理的简单操作\n- 只需要直接执行的常规任务，不要过度思考\n\n格式：写一段简短、结构化的推理，包括已知情况、正在验证的内容和下一步行动。",
 
   parameters: {
     type: 'object',
     properties: {
       thought: {
         type: 'string',
-        description: 'Structured reasoning: current situation, what you\'re verifying, next action.',
+        description: "结构化思考：当前情况、正在验证的内容和下一步行动。",
       },
     },
     required: ['thought'],

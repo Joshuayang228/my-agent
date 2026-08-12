@@ -44,7 +44,7 @@ describe('stripImagesForCompression G5', () => {
     })]
     const out = stripImagesForCompression(input)
     expect(out[0].images).toBeUndefined()
-    expect(out[0].content).toContain('2 image(s) stripped')
+    expect(out[0].content).toContain('压缩前已移除 2 张图片')
     expect(out[0].content).toContain('see this')
   })
 

@@ -88,7 +88,7 @@ describe('resolveRelationshipStage', () => {
       toolNames: ['remember'],
       relationshipStageHint: formatRelationshipStageForPrompt(stage),
     })
-    expect(prompt).toContain('## Relationship stage')
+    expect(prompt).toContain('## 关系阶段')
     expect(prompt).toContain('familiar')
   })
 })

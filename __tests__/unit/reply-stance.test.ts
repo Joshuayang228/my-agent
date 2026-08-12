@@ -55,8 +55,8 @@ describe('detectReplyStance', () => {
   it('format 含 stance 与 guidance', () => {
     const r = detectReplyStance('我好焦虑')
     const block = formatReplyStanceForPrompt(r)
-    expect(block).toMatch(/Suggested stance: comfort/)
-    expect(block).toMatch(/Guidance:/)
+    expect(block).toMatch(/建议立场：comfort/)
+    expect(block).toMatch(/行动指引：/)
   })
 
   it('注入 prompt-builder 出现 Reply stance 节', () => {
@@ -68,7 +68,7 @@ describe('detectReplyStance', () => {
       toolNames: ['file_read'],
       replyStanceHint: formatReplyStanceForPrompt(stance),
     })
-    expect(prompt).toContain('## Reply stance (this turn)')
-    expect(prompt).toContain('Suggested stance: act')
+    expect(prompt).toContain('## 本轮回复立场')
+    expect(prompt).toContain('建议立场：act')
   })
 })

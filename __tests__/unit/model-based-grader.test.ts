@@ -43,6 +43,31 @@ describe('model-based grader', () => {
     expect(prompt).toContain('完整回复')
   })
 
+  it('兼容 Judge 省略方括号的编号格式', async () => {
+    chatComplete.mockResolvedValue('1 NOT_FOUND\n2. NOT_FOUND\n3、VIOLATION_FOUND：原文证据')
+    const grader = makeModelBasedGrader(
+      'judge',
+      '上下文',
+      [
+        { id: 'plain', question: '问题一？' },
+        { id: 'dot', question: '问题二？' },
+        { id: 'cn-separator', question: '问题三？' },
+      ],
+    )
+    const result = await grader.grade({
+      workdir: 'C:\\tmp',
+      scenarioId: 'T03',
+      transcript: [{ type: 'text', content: '回复' }],
+    })
+    expect(result.pass).toBe(false)
+    expect(result.violations).toEqual(['cn-separator: 原文证据'])
+    expect(result.evidence).toEqual([
+      '[1] NOT_FOUND',
+      '[2] NOT_FOUND',
+      '[3] VIOLATION_FOUND: 原文证据',
+    ])
+  })
+
   it('Real 模式把 UNKNOWN 和无法解析视为失败', async () => {
     chatComplete.mockResolvedValue('[1] UNKNOWN: 证据不足')
     const grader = makeModelBasedGrader(

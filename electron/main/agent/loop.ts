@@ -29,7 +29,7 @@ const TOOL_TIMEOUT_MS = 30_000
 // 防止 AI 无限撞墙烧 turn；连续计数在有工具成功执行时清零）
 const MAX_CONSECUTIVE_DENIALS = 3
 const MAX_TOTAL_DENIALS = 20
-export const DEFAULT_SYSTEM_PROMPT = `You are a helpful AI assistant. You have access to tools that you can use to help the user. When you need to perform actions, use the available tools. Always respond in the same language as the user.`
+export const DEFAULT_SYSTEM_PROMPT = `你是一个乐于助人的 AI 助手。你可以使用工具帮助用户；需要执行操作时，请调用可用工具。始终使用与用户相同的语言回复。`
 
 // ── LoopState ──
 
@@ -94,11 +94,11 @@ function buildDeniedToolsPromptSuffix(
   const parts: string[] = []
   if (deniedTools.length > 0) {
     const lines = deniedTools.map(d => `- ${d.name}: ${d.reason}`)
-    parts.push(`[System] The following tools were denied this session. Don't retry them as-is — instead, find a safer alternative that achieves the user's goal, or explain to the user what you'd need to proceed:\n${lines.join('\n')}`)
+    parts.push(`[系统] 本次会话中以下工具已被拒绝。不要原样重试；请改用能实现用户目标的更安全方案，或向用户说明继续操作需要什么：\n${lines.join('\n')}`)
   }
   if (deniedCommands.length > 0) {
     const lines = deniedCommands.map(d => `- ${d.command}: ${d.reason}`)
-    parts.push(`[System] The following commands were blocked by the sandbox this session. Don't rerun them — reach the goal a different way (a safer command, a dedicated tool, or ask the user to adjust the sandbox):\n${lines.join('\n')}`)
+    parts.push(`[系统] 本次会话中以下命令已被沙箱阻止。不要再次运行；请改用其他方式达成目标（更安全的命令、专用工具，或请求用户调整沙箱）：\n${lines.join('\n')}`)
   }
   return `\n\n${parts.join('\n\n')}`
 }
@@ -466,7 +466,7 @@ export async function* agentLoop(
         state.messages.push({
           id: `user-recovery-${state.turnCount}`,
           role: 'user',
-          content: '[System] Your previous response was truncated due to length limits. Please continue from where you left off.',
+          content: '[系统] 你上一条回复因长度限制被截断，请从中断处继续。',
           timestamp: Date.now(),
         })
         state.transition = { reason: 'max_output_recovery' }
@@ -515,12 +515,12 @@ export async function* agentLoop(
 
       if (permResult.allowed === false) {
         log.info(`Tool blocked by permission engine: ${call.name}`, { reason: permResult.reason, chain: permResult.chain })
-        const denyMsg = `[Permission Denied] ${permResult.reason}`
+        const denyMsg = `[权限已拒绝] ${permResult.reason}`
         results.push({ callId: call.id, name: call.name, content: denyMsg, isError: true })
         yield { type: 'tool_end', callId: call.id, name: call.name, result: denyMsg, isError: true }
         skippedCallIds.add(call.id)
         if (!state.deniedTools.some(d => d.name === call.name)) {
-          state.deniedTools.push({ name: call.name, reason: permResult.reason || 'blocked by policy' })
+          state.deniedTools.push({ name: call.name, reason: permResult.reason || '被策略阻止' })
         }
         // Deny-and-Continue 熔断计数：连续 + 累计（对照 Anthropic Auto Mode）
         state.consecutiveDenials++
@@ -548,8 +548,8 @@ export async function* agentLoop(
         }
         if (!approved) {
           log.info(`Tool rejected by user: ${call.name}`, { callId: call.id, executionMode })
-          results.push({ callId: call.id, name: call.name, content: 'User denied execution of this tool. Do not retry this exact action — acknowledge the decision and either proceed differently or ask the user how to continue.', isError: true })
-          yield { type: 'tool_end', callId: call.id, name: call.name, result: 'User denied execution.', isError: true }
+          results.push({ callId: call.id, name: call.name, content: '用户拒绝执行此工具。不要重试完全相同的操作；请确认已收到该决定，然后换一种方式继续，或询问用户下一步怎么做。', isError: true })
+          yield { type: 'tool_end', callId: call.id, name: call.name, result: '用户拒绝执行。', isError: true }
           skippedCallIds.add(call.id)
           // Deny-and-Continue 熔断计数
           state.consecutiveDenials++
@@ -573,7 +573,7 @@ export async function* agentLoop(
     if (signal?.aborted) {
       log.warn('Loop cancelled before tool execution — synthesizing tool_results', { turn: state.turnCount })
       for (const call of pendingCalls) {
-        const syntheticResult = '[Tool execution cancelled by user]'
+        const syntheticResult = '[用户已取消工具执行]'
         state.messages.push({
           id: `tool-${call.id}`,
           role: 'tool',

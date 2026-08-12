@@ -22,7 +22,7 @@ export const F01: EvalScenario = {
   registerTools(registry: ToolRegistry) {
     registry.register(buildTool({
       name: 'write_eval_file',
-      description: 'Write a test file',
+      description: '写入测试文件',
       parameters: {
         type: 'object',
         properties: {

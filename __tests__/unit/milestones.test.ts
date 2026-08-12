@@ -58,7 +58,7 @@ describe('milestones', () => {
 
   it('Prompt 格式反成就绑架', () => {
     const text = formatMilestonesForPrompt(['first_rapport', 'first_reflection'])
-    expect(text).toContain('never gamify')
+    expect(text).toContain('绝不能游戏化')
     expect(text).toContain('默契')
   })
 

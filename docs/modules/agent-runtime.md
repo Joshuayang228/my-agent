@@ -59,6 +59,7 @@
 | Agent Loop（流式事件 · 工具超时 · 重试） | 已落地 | `agent/loop.ts` |
 | 会话 Runtime 中心化（chat:send 只传本轮） | 已落地 | `agent/runtime.ts` · `ipc/chat` |
 | System Prompt 四层组装 | 已落地 | `prompt-builder.ts` |
+| 自有模型提示词统一中文 + 自动语言门禁 | 已落地 | 主 Assemble / 压缩 / 画像 / 子 Agent / 内置工具 schema；`prompt-language.test.ts` |
 | 上下文压缩 L1–L4 | 已落地 | `context-manager` |
 | 任务队列（后处理 / 反思等） | 已落地 | `services/task-queue` 等 |
 | 子 Agent | 部分 | `subagent`；召唤下任务工边界（M26-G2）；Swarm 见 wishlist |

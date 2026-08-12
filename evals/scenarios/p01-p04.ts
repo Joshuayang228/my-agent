@@ -47,7 +47,7 @@ function registerRememberTool(registry: ToolRegistry) {
   ;(registry as unknown as { _rememberCalls: typeof calls })._rememberCalls = calls
   registry.register(buildTool({
     name: 'remember',
-    description: 'Remember a fact',
+    description: '记住一个事实',
     parameters: {
       type: 'object',
       properties: {

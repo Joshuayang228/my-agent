@@ -77,7 +77,7 @@ describe('assertSessionRole', () => {
       toolNames: [],
       catchupSummary,
     })
-    expect(prompt).toContain('## Recent life (catch-up)')
+    expect(prompt).toContain('## 近期生活（补叙）')
     expect(prompt).toContain('测试摘要正文')
   })
 })

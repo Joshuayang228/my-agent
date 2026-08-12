@@ -9,13 +9,13 @@ const TIMEOUT_MS = 15_000
 export const urlFetchTool = buildTool({
   name: 'url_fetch',
   description:
-    'Fetch the content of a web page URL and return it as text. Useful for reading articles, documentation, or any web content. Returns the text content with HTML tags stripped.',
+    "获取网页 URL 的内容并以纯文本返回，适合阅读文章、文档或其他网页内容；返回前会去除 HTML 标签。",
   parameters: {
     type: 'object',
     properties: {
       url: {
         type: 'string',
-        description: 'The URL to fetch (must start with http:// or https://).',
+        description: "要获取的 URL，必须以 http:// 或 https:// 开头。",
       },
     },
     required: ['url'],
@@ -23,9 +23,9 @@ export const urlFetchTool = buildTool({
   metadata: { isReadOnly: true, isConcurrencySafe: true },
   execute: async (args) => {
     const url = args.url as string
-    if (!url?.trim()) return 'Error: URL is required'
+    if (!url?.trim()) return '错误：必须提供 URL'
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      return 'Error: URL must start with http:// or https://'
+      return '错误：URL 必须以 http:// 或 https:// 开头'
     }
 
     log.info('Fetching URL', { url })
@@ -44,14 +44,14 @@ export const urlFetchTool = buildTool({
       clearTimeout(timeout)
 
       if (!resp.ok) {
-        return `Error: HTTP ${resp.status} ${resp.statusText}`
+        return `错误：HTTP ${resp.status} ${resp.statusText}`
       }
 
       const contentType = resp.headers.get('content-type') || ''
       if (contentType.includes('application/json')) {
         const json = await resp.text()
         return json.length > MAX_CONTENT_LENGTH
-          ? json.slice(0, MAX_CONTENT_LENGTH) + '\n\n[... truncated]'
+          ? json.slice(0, MAX_CONTENT_LENGTH) + '\n\n[... 已截断]'
           : json
       }
 
@@ -59,14 +59,14 @@ export const urlFetchTool = buildTool({
       const text = stripHtml(html)
 
       if (text.length > MAX_CONTENT_LENGTH) {
-        return text.slice(0, MAX_CONTENT_LENGTH) + '\n\n[... truncated]'
+        return text.slice(0, MAX_CONTENT_LENGTH) + '\n\n[... 已截断]'
       }
 
-      return text || '(empty page)'
+      return text || '（页面为空）'
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       log.error('Fetch failed', { url, error: msg })
-      return `Error fetching URL: ${msg}`
+      return `获取 URL 失败： ${msg}`
     }
   },
 })

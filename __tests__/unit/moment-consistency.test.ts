@@ -79,7 +79,7 @@ describe('Assemble Recent moments', () => {
       toolNames: ['file_read'],
       recentMomentsSlice: slice,
     })
-    expect(prompt).toContain('## Recent moments')
+    expect(prompt).toContain('## 近期动态')
     expect(prompt).toContain('咖啡馆')
   })
 })

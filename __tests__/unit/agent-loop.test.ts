@@ -191,7 +191,7 @@ describe('agentLoop', () => {
 
     const toolEnd = events.find(e => e.type === 'tool_end') as Extract<AgentStreamEvent, { type: 'tool_end' }>
     expect(toolEnd?.isError).toBe(true)
-    expect(toolEnd?.result).toContain('denied')
+    expect(toolEnd?.result).toContain('拒绝')
   })
 
   it('达到 maxIterations 上限时产出 error + done', async () => {

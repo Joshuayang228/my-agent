@@ -116,9 +116,9 @@ function pack(level: ExpertiseLevel, signals: string[]): ExpertiseLevelResult {
 
 export function formatExpertiseLevelForPrompt(result: ExpertiseLevelResult): string {
   return [
-    `User expertise (explanation grain): ${result.level}`,
-    `Signals: ${result.signals.join(', ') || 'none'}`,
-    `Guidance: ${result.guidance}`,
+    `用户专家度（解释粒度）：${result.level}`,
+    `触发信号：${result.signals.join(', ') || '无'}`,
+    `行动指引：${result.guidance}`,
   ].join('\n')
 }
 

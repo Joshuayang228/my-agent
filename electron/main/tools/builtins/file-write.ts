@@ -10,42 +10,21 @@ const log = createLogger('FileWrite')
 
 export const fileWriteTool = buildTool({
   name: 'file_write',
-  description: `Write content to a file. Creates the file if it does not exist, or overwrites if it does.
-
-When to use:
-- Creating new files (code, config, documentation)
-- Completely replacing file contents (when the entire file needs to be rewritten)
-- Appending content to existing files (use append: "true" parameter)
-- You have verified the target path and content are correct
-
-When NOT to use:
-- Making small edits to existing files (use file_edit or apply_patch instead - they're safer and more precise)
-- Modifying structured files where only specific sections need changes (use edit tools)
-- Writing to files outside the workspace in workspace-write mode (will be blocked by sandbox)
-
-Behavior:
-- Creates parent directories automatically if they don't exist
-- Default mode: overwrites existing files completely
-- Append mode: adds content to the end of existing files
-- Relative paths resolve against the opened project workspace (not a random cwd)
-- Sandbox: respects current sandbox mode (read-only blocks all writes, workspace-write blocks writes outside project)
-- User clicking Allow in the confirm dialog does NOT bypass sandbox path/mode checks
-
-CAUTION: This is a destructive operation. Double-check the path and content before executing.`,
+  description: "向文件写入内容。文件不存在时创建，存在时默认覆盖。\n\n适用场景：\n- 创建代码、配置或文档等新文件\n- 完整替换文件内容\n- 向现有文件追加内容（设置 append=\"true\"）\n- 已经确认目标路径和内容正确\n\n不适用场景：\n- 对现有文件做小范围修改（使用更安全、精确的 file_edit 或 apply_patch）\n- 只修改结构化文件中的特定部分（使用编辑工具）\n- 在 workspace-write 模式下写入工作区外部路径，沙箱会阻止\n\n行为：\n- 父目录不存在时自动创建\n- 默认模式会完全覆盖已有文件\n- 追加模式会把内容写到文件末尾\n- 成功后返回实际路径和文件大小\n- 受沙箱和用户审批规则约束。",
   parameters: {
     type: 'object',
     properties: {
       path: {
         type: 'string',
-        description: 'Absolute or relative file path to write to. Relative paths are resolved from the opened workspace root.',
+        description: "要写入的绝对或相对文件路径；相对路径从已打开的工作区根目录解析。",
       },
       content: {
         type: 'string',
-        description: 'The content to write to the file.',
+        description: "要写入文件的内容。",
       },
       append: {
         type: 'string',
-        description: 'If "true", append to the file instead of overwriting. Default: "false".',
+        description: "设为 true 时追加内容而不是覆盖；默认 false。",
       },
     },
     required: ['path', 'content'],
@@ -62,7 +41,7 @@ CAUTION: This is a destructive operation. Double-check the path and content befo
     const content = args.content as string
     const append = String(args.append || 'false').toLowerCase() === 'true'
 
-    if (!filePath?.trim()) return 'Error: file path is required'
+    if (!filePath?.trim()) return '错误：必须提供文件路径'
 
     const mode = await loadEffectiveSandbox()
     const wsRoot = getWorkspaceRoot()
@@ -85,11 +64,11 @@ CAUTION: This is a destructive operation. Double-check the path and content befo
       }
 
       const stat = await fs.stat(resolved)
-      return `File ${append ? 'appended' : 'written'} successfully: ${resolved} (${stat.size} bytes)`
+      return `文件${append ? '追加' : '写入'}成功： ${resolved} (${stat.size} bytes)`
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       log.error('Write failed', { path: resolved, error: message })
-      return `Error writing file: ${message}`
+      return `写入文件失败： ${message}`
     }
   },
 })

@@ -81,7 +81,7 @@ export async function continueSubAgent(
 ): Promise<ContinueResult> {
   const inst = instances.get(agentId)
   if (!inst) {
-    return { success: false, content: `[Error] Sub-agent "${agentId}" not found. It may have expired or the session ended.`, toolsUsed: [], iterations: 0 }
+    return { success: false, content: `[错误] 未找到子 Agent“${agentId}”。它可能已过期，或所在会话已经结束。`, toolsUsed: [], iterations: 0 }
   }
 
   // 追加用户新消息到已有历史

@@ -131,14 +131,14 @@ export const resultPersistenceMiddleware: ToolMiddleware = async (ctx, next) => 
     const filePath = await writeLargeResult(result.content, ctx.call.name, ctx.toolContext?.workdir)
     return {
       ...result,
-      content: `Result too large (${result.content.length.toLocaleString()} chars, limit: ${maxSize.toLocaleString()}).\nFull output saved to: ${filePath}\nUse file_read tool to view the complete content.`,
+      content: `结果过大（${result.content.length.toLocaleString()} 个字符，上限 ${maxSize.toLocaleString()}）。\n完整输出已保存到：${filePath}\n请使用 file_read 查看完整内容。`,
     }
   } catch (err) {
     // 写文件失败 → 降级为截断，确保工具执行不完全失败
     log.error('Failed to persist large result, falling back to truncation', { err })
     return {
       ...result,
-      content: result.content.slice(0, maxSize) + `\n\n[Result truncated at ${maxSize.toLocaleString()} characters — persistence failed]`,
+      content: result.content.slice(0, maxSize) + `\n\n[结果已在 ${maxSize.toLocaleString()} 个字符处截断——持久化失败]`,
     }
   }
 }
@@ -196,7 +196,7 @@ export const errorFormattingMiddleware: ToolMiddleware = async (ctx, next) => {
     return {
       callId: ctx.call.id,
       name: ctx.call.name,
-      content: `[Tool Error] ${ctx.call.name}: ${message}`,
+      content: `[工具错误] ${ctx.call.name}：${message}`,
       isError: true,
     }
   }
@@ -241,7 +241,7 @@ export const verifyMiddleware: ToolMiddleware = async (ctx, next) => {
         const errMsg = e instanceof Error ? e.message : String(e)
         return {
           ...result,
-          content: result.content + `\n\n⚠️ [Verify] JSON syntax error detected:\n${errMsg}\nPlease fix the JSON syntax.`,
+          content: result.content + `\n\n⚠️ [验证] 检测到 JSON 语法错误：\n${errMsg}\n请修复 JSON 语法。`,
         }
       }
     }
@@ -265,7 +265,7 @@ export const verifyMiddleware: ToolMiddleware = async (ctx, next) => {
           const truncated = errors.length > 1000 ? errors.slice(0, 1000) + '...' : errors
           return {
             ...result,
-            content: result.content + `\n\n⚠️ [Verify] Syntax/type errors detected after edit:\n${truncated}\nPlease review and fix.`,
+            content: result.content + `\n\n⚠️ [验证] 编辑后检测到语法或类型错误：\n${truncated}\n请检查并修复。`,
           }
         }
       }

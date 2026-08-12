@@ -28,7 +28,7 @@ export function createMockStreamChat(turns: MockTurn[]) {
     _options: unknown,
   ): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
     _callCounter++
-    const turn = turns[idx++] ?? { content: '[mock end]', toolCalls: [] }
+    const turn = turns[idx++] ?? { content: '[模拟结束]', toolCalls: [] }
 
     // 先 yield 文本 delta（如有）
     if (turn.content) {

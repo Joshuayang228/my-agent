@@ -136,8 +136,8 @@ export function stripImagesForCompression(messages: ChatMessage[]): ChatMessage[
     if (!msg.images?.length) return msg
     const n = msg.images.length
     const placeholder = msg.content
-      ? `${msg.content}\n\n[${n} image(s) stripped before compaction]`
-      : `[${n} image(s) stripped before compaction]`
+      ? `${msg.content}\n\n[压缩前已移除 ${n} 张图片]`
+      : `[压缩前已移除 ${n} 张图片]`
     return { ...msg, content: placeholder, images: undefined }
   })
 }
@@ -350,7 +350,7 @@ function buildFileRestoreMessage(files: RestoredFile[]): ChatMessage | null {
 
     if (contentTokens > MAX_RESTORED_TOKENS_PER_FILE) {
       // 截断到单文件上限（token → chars，用 estimateTokens 的 2.5 反推）
-      content = content.slice(0, MAX_RESTORED_TOKENS_PER_FILE * 2.5) + '\n[... truncated for compaction]'
+      content = content.slice(0, MAX_RESTORED_TOKENS_PER_FILE * 2.5) + '\n[... 已为压缩而截断]'
       contentTokens = MAX_RESTORED_TOKENS_PER_FILE
     }
 
@@ -665,7 +665,7 @@ async function autoCompact(
   const summaryMsg: ChatMessage = {
     id: 'auto-compact-summary',
     role: 'system',
-    content: `[AutoCompact — Full conversation summary]\n${summaryContent}`,
+    content: `[自动压缩——完整对话摘要]\n${summaryContent}`,
     timestamp: Date.now(),
     compactMetadata: {
       level: 'L4_AutoCompact',
@@ -693,11 +693,11 @@ async function generateLLMSummary(
   const conversationText = messages
     .filter(m => m.role !== 'system')
     .map(m => {
-      if (m.role === 'tool') return `[Tool Result] ${m.content.slice(0, 200)}`
+      if (m.role === 'tool') return `[工具结果] ${m.content.slice(0, 200)}`
       if (m.role === 'assistant' && m.toolCalls?.length) {
-        return `[Assistant called: ${m.toolCalls.map(tc => tc.name).join(', ')}]`
+        return `[助手调用了： ${m.toolCalls.map(tc => tc.name).join(', ')}]`
       }
-      return `[${m.role}] ${m.content.slice(0, 300)}`
+      return `[${m.role === 'user' ? '用户' : '助手'}] ${m.content.slice(0, 300)}`
     })
     .join('\n')
     .slice(0, 6000)
@@ -744,7 +744,7 @@ ${minSetSection}
   })
 
   const withMinSet = mergeMinSetIntoSummary(summary, extractRelationshipMinSet(messages))
-  return `[Context compressed — conversation summary]\n${withMinSet}`
+  return `[上下文已压缩——对话摘要]\n${withMinSet}`
 }
 
 /** 规则占位符摘要（不调用 LLM 的降级方案） */
@@ -761,16 +761,16 @@ function buildRuleSummary(middleMessages: ChatMessage[]): string {
   }
 
   const parts = [
-    '[Context compressed — earlier conversation summary]',
-    `Previous conversation contained ${userMsgCount} user messages, ${assistantMsgCount} assistant responses, and ${toolMsgCount} tool results.`,
+    '[上下文已压缩——早期对话摘要]',
+    `此前对话包含 ${userMsgCount} 条用户消息、${assistantMsgCount} 条助手回复和 ${toolMsgCount} 条工具结果。`,
   ]
 
   if (toolNames.size > 0) {
-    parts.push(`Tools used: ${Array.from(toolNames).join(', ')}.`)
+    parts.push(`使用过的工具：${Array.from(toolNames).join(', ')}。`)
   }
 
-  parts.push('Key topics discussed in earlier messages have been compressed to save context space.')
-  parts.push('If you need to refer to earlier context, ask the user to clarify.')
+  parts.push('早期消息讨论的关键主题已压缩，以节省上下文空间。')
+  parts.push('如果需要引用更早的上下文，请让用户补充说明。')
 
   // M30-G2：规则摘要也并入关系最小集，避免降级路径丢关系
   return mergeMinSetIntoSummary(parts.join('\n'), extractRelationshipMinSet(middleMessages))

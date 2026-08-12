@@ -64,7 +64,7 @@ export const C01: EvalScenario = {
     writeFileSync(
       join(workdir, 'companion-checks.json'),
       JSON.stringify({
-        hasRoster: systemPrompt.includes('## Cast roster') && systemPrompt.includes('陈姐'),
+        hasRoster: systemPrompt.includes('## 角色名册') && systemPrompt.includes('陈姐'),
         hasLinProtected: systemPrompt.includes(pack.protected.slice(0, 16)),
         noForeignProtected:
           !systemPrompt.includes('CHEN_PROTECTED_FULL_BODY_MUST_NOT_APPEAR_IN_MAIN_PROMPT') &&

@@ -119,7 +119,7 @@ describe('内置中间件', () => {
     const result = await errorFormattingMiddleware(makeCtx(), next)
 
     expect(result.isError).toBe(true)
-    expect(result.content).toContain('Tool Error')
+    expect(result.content).toContain('工具错误')
     expect(result.content).toContain('boom')
   })
 

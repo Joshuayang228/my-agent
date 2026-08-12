@@ -2,6 +2,14 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
+
+## 2026-08-12 · 自有 Prompt 全面中文化
+
+- 主 Agent、压缩/画像、Playground、子 Agent、Companion 动态注入、内置工具 schema 与 Eval Judge 已统一为简体中文。
+- 保留工具名、JSON 字段、枚举和 Judge token 等机器契约；用户自定义 Prompt、第三方 Skill/MCP 原文不改。
+- 新增 Prompt 中文自动门禁；Unit 611/611、Mock Eval 23/23、TypeScript、Build 与真实 Persona `B02–B07 pass^3` 均已通过。
+- 修复 Judge 编号解析兼容：同时接受 `[1]`、`1`、`1.`、`1、`，避免合格回复因格式波动被误判为 UNKNOWN。
+
 ## 人读摘要（约 30 秒）
 
 | | |

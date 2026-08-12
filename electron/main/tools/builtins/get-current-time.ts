@@ -2,13 +2,13 @@ import { buildTool } from '../builder'
 
 export const getCurrentTimeTool = buildTool({
   name: 'get_current_time',
-  description: 'Get the current date and time. Use this when the user asks about current time, date, or when you need to know the current time for any task.',
+  description: "获取当前日期和时间。用户询问当前时间、日期，或任务需要准确当前时间时使用。",
   parameters: {
     type: 'object',
     properties: {
       timezone: {
         type: 'string',
-        description: 'IANA timezone name (e.g. "Asia/Shanghai", "America/New_York"). Defaults to system timezone if not specified.',
+        description: "IANA 时区名称，例如 Asia/Shanghai 或 America/New_York；省略时使用系统时区。",
       },
     },
   },
@@ -23,9 +23,9 @@ export const getCurrentTimeTool = buildTool({
         hour: '2-digit', minute: '2-digit', second: '2-digit',
         weekday: 'long', hour12: false,
       })
-      return `Current time (${timezone}): ${formatted}`
+      return `当前时间（${timezone}）： ${formatted}`
     } catch {
-      return `Error: Invalid timezone "${timezone}"`
+      return `错误：无效时区 "${timezone}"`
     }
   },
 })

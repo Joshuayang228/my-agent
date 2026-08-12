@@ -31,9 +31,9 @@ const GUIDANCE: Record<ToneRegister, string> = {
 }
 
 const ASIDE_LINE: Record<AsidePolicy, string> = {
-  discourage: 'Aside policy: discourage（本轮优先无旁白）',
-  optional: 'Aside policy: optional（自然才写）',
-  'encourage-once': 'Aside policy: encourage-once（可一句心疼/吐槽，勿夺主答）',
+  discourage: '旁白策略：discourage（本轮优先无旁白）',
+  optional: '旁白策略：optional（自然才写）',
+  'encourage-once': '旁白策略：encourage-once（可一句心疼或吐槽，勿夺主答）',
 }
 
 export interface ResolveToneControlInput {
@@ -84,9 +84,9 @@ export function resolveToneControl(input: ResolveToneControlInput): ToneControlR
   }
 
   const guidance = [
-    `Tone register: ${register}`,
+    `语气档位：${register}`,
     ASIDE_LINE[asidePolicy],
-    `Guidance: ${GUIDANCE[register]}`,
+    `行动指引：${GUIDANCE[register]}`,
   ].join('\n')
 
   return { register, asidePolicy, signals, guidance }

@@ -84,42 +84,42 @@ describe('remember tool', () => {
 
   it('stores a new memory', async () => {
     const result = await rememberTool.execute({ category: 'fact', content: 'User likes TypeScript' })
-    expect(result).toContain('Remembered [fact]')
+    expect(result).toContain('已记住 [fact]')
     expect(result).toContain('User likes TypeScript')
   })
 
   it('rejects invalid category', async () => {
     const result = await rememberTool.execute({ category: 'invalid', content: 'test' })
-    expect(result).toContain('Error: invalid category')
+    expect(result).toContain('错误：无效类别')
   })
 
   it('G9: accepts feedback category (corrections & confirmations)', async () => {
     const result = await rememberTool.execute({ category: 'feedback', content: 'Prefers concise answers without preamble (said long explanations waste time)' })
-    expect(result).toContain('Remembered [feedback]')
+    expect(result).toContain('已记住 [feedback]')
   })
 
   it('rejects empty content', async () => {
     const result = await rememberTool.execute({ category: 'fact', content: '' })
-    expect(result).toContain('Error')
+    expect(result).toContain('错误')
   })
 })
 
 describe('recall tool', () => {
   it('returns empty state', async () => {
     const result = await recallTool.execute({})
-    expect(result).toContain('No memories')
+    expect(result).toContain('尚未存储任何记忆')
   })
 })
 
 describe('forget tool', () => {
   it('accepts an id', async () => {
     const result = await forgetTool.execute({ id: 'mem-123' })
-    expect(result).toContain('forgotten')
+    expect(result).toContain('已忘记')
   })
 
   it('rejects missing id', async () => {
     const result = await forgetTool.execute({ id: '' })
-    expect(result).toContain('Error')
+    expect(result).toContain('错误')
   })
 })
 
@@ -173,7 +173,7 @@ describe('task_plan tool', () => {
       stepId: '1',
       stepStatus: 'done',
     })
-    expect(result).toContain('All steps complete')
+    expect(result).toContain('所有步骤均已完成')
   })
 
   it('clears plan', async () => {
@@ -183,20 +183,20 @@ describe('task_plan tool', () => {
       steps: '["Step"]',
     })
     const result = await taskPlanTool.execute({ action: 'clear' })
-    expect(result).toContain('cleared')
+    expect(result).toContain('已清除')
 
     const status = await taskPlanTool.execute({ action: 'status' })
-    expect(status).toContain('No active plan')
+    expect(status).toContain('当前没有活动计划')
   })
 
   it('rejects create without goal', async () => {
     const result = await taskPlanTool.execute({ action: 'create', steps: '["A"]' })
-    expect(result).toContain('Error')
+    expect(result).toContain('错误')
   })
 
   it('handles no plan gracefully', async () => {
     await taskPlanTool.execute({ action: 'clear' })
     const result = await taskPlanTool.execute({ action: 'update', stepId: '1', stepStatus: 'done' })
-    expect(result).toContain('No active plan')
+    expect(result).toContain('当前没有活动计划')
   })
 })

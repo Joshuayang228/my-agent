@@ -115,12 +115,12 @@ function pack(primary: ReplyStance, signals: string[]): ReplyStanceResult {
 export function formatReplyStanceForPrompt(result: ReplyStanceResult): string {
   if (result.signals.includes('empty')) return ''
   const signalLine = result.signals.length
-    ? `Signals: ${result.signals.join(', ')}`
+    ? `触发信号：${result.signals.join(', ')}`
     : ''
   return [
-    `Suggested stance: ${result.primary}`,
+    `建议立场：${result.primary}`,
     signalLine,
-    `Guidance: ${result.guidance}`,
+    `行动指引：${result.guidance}`,
   ]
     .filter(Boolean)
     .join('\n')

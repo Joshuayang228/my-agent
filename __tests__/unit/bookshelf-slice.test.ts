@@ -63,7 +63,7 @@ describe('formatMomentText book ref', () => {
 })
 
 describe('Assemble Bookshelf', () => {
-  it('注入 ## Bookshelf', () => {
+  it('注入 ## 书架', () => {
     const prompt = buildSystemPrompt({
       persona: {
         id: 'lin',
@@ -75,7 +75,7 @@ describe('Assemble Bookshelf', () => {
       toolNames: [],
       bookshelfSlice: '书架上现有（已入库，勿宣称未列出的书）：\n- 《匠人》',
     })
-    expect(prompt).toContain('## Bookshelf')
+    expect(prompt).toContain('## 书架')
     expect(prompt).toContain('《匠人》')
   })
 })

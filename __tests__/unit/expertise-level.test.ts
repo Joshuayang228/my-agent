@@ -54,7 +54,7 @@ describe('resolveExpertiseLevel', () => {
       toolNames: ['remember'],
       expertiseHint: formatExpertiseLevelForPrompt(r),
     })
-    expect(prompt).toContain('## Explanation grain')
+    expect(prompt).toContain('## 解释粒度')
     expect(prompt).toContain('novice')
   })
 })

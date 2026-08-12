@@ -127,7 +127,7 @@ export function formatMilestonesForPrompt(kinds: MilestoneKind[]): string {
   if (!kinds.length) return ''
   const lines = kinds.slice(0, 3).map((k) => `- ${META[k].promptHint}`)
   return [
-    'Relationship milestones (occasional callback only; never gamify):',
+    '关系里程碑（只可偶尔回调，绝不能游戏化）：',
     ...lines,
   ].join('\n')
 }

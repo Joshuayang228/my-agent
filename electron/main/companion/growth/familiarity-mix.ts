@@ -101,8 +101,8 @@ const LEAN_GUIDANCE: Record<FamiliarityLean, string> = {
 
 export function formatFamiliarityMixForPrompt(mix: FamiliarityMixResult): string {
   return [
-    `Familiarity mix: ${mix.lean} (bond=${mix.bond}, task=${mix.task}, neutral=${mix.neutral})`,
-    `Guidance: ${LEAN_GUIDANCE[mix.lean]}`,
+    `熟悉度构成：${mix.lean}（交心=${mix.bond}，任务=${mix.task}，中性=${mix.neutral}）`,
+    `行动指引：${LEAN_GUIDANCE[mix.lean]}`,
   ].join('\n')
 }
 

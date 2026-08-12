@@ -21,7 +21,7 @@ async function runGit(args: string[], cwd?: string): Promise<string> {
     })
     const output = (stdout + (stderr ? `\n${stderr}` : '')).trim()
     if (output.length > MAX_OUTPUT) {
-      return output.slice(0, MAX_OUTPUT) + `\n\n... (truncated, ${output.length} total chars)`
+      return output.slice(0, MAX_OUTPUT) + `\n\n...（已截断，原始共 ${output.length} 个字符）`
     }
     return output
   } catch (err) {
@@ -33,14 +33,13 @@ async function runGit(args: string[], cwd?: string): Promise<string> {
 export const gitStatusTool = buildTool({
   name: 'git_status',
   description:
-    'Show the working tree status: staged, unstaged, and untracked files. ' +
-    'Returns structured output with file status codes (M=modified, A=added, D=deleted, ?=untracked).',
+    "显示 Git 工作区状态，包括已暂存、未暂存和未跟踪文件；返回 M、A、D、? 等状态码。",
   parameters: {
     type: 'object',
     properties: {
       path: {
         type: 'string',
-        description: 'Optional: limit status to a specific path.',
+        description: "可选：只查看指定路径的状态。",
       },
     },
   },
@@ -52,9 +51,9 @@ export const gitStatusTool = buildTool({
         runGit(['status', '--porcelain=v1', ...pathArgs]),
         runGit(['branch', '--show-current']),
       ])
-      return `Branch: ${branch || '(detached HEAD)'}\n\n${status || '(clean working tree)'}`
+      return `分支：${branch || '（游离 HEAD）'}\n\n${status || '（工作区干净）'}`
     } catch (err) {
-      return `Error: ${err instanceof Error ? err.message : String(err)}`
+      return `错误：${err instanceof Error ? err.message : String(err)}`
     }
   },
 })
@@ -62,27 +61,25 @@ export const gitStatusTool = buildTool({
 export const gitDiffTool = buildTool({
   name: 'git_diff',
   description:
-    'Show changes between commits, working tree, or staging area. ' +
-    'Default: unstaged changes. Use staged=true for staged changes. ' +
-    'Provide commit to diff against a specific commit (e.g. "HEAD~1", "main").',
+    "显示提交、工作区或暂存区之间的差异。默认显示未暂存修改；staged=true 查看已暂存修改；commit 可指定对比基准。",
   parameters: {
     type: 'object',
     properties: {
       staged: {
         type: 'boolean',
-        description: 'If true, show staged (cached) changes. Default: false.',
+        description: "设为 true 时显示已暂存（cached）的修改；默认 false。",
       },
       commit: {
         type: 'string',
-        description: 'Compare working tree against this commit/ref.',
+        description: "将工作区与此 commit 或 ref 进行比较。",
       },
       path: {
         type: 'string',
-        description: 'Limit diff to a specific file or directory.',
+        description: "只显示指定文件或目录的差异。",
       },
       stat_only: {
         type: 'boolean',
-        description: 'If true, show only diffstat summary instead of full diff. Default: false.',
+        description: "设为 true 时只显示 diffstat 摘要，不输出完整 diff；默认 false。",
       },
     },
   },
@@ -96,9 +93,9 @@ export const gitDiffTool = buildTool({
       if (args.path) gitArgs.push('--', args.path as string)
 
       const output = await runGit(gitArgs)
-      return output || '(no differences)'
+      return output || '（没有差异）'
     } catch (err) {
-      return `Error: ${err instanceof Error ? err.message : String(err)}`
+      return `错误：${err instanceof Error ? err.message : String(err)}`
     }
   },
 })
@@ -106,26 +103,25 @@ export const gitDiffTool = buildTool({
 export const gitLogTool = buildTool({
   name: 'git_log',
   description:
-    'Show commit log. Returns recent commits with hash, author, date, and message. ' +
-    'Default: last 10 commits in oneline format.',
+    "显示 Git 提交历史，包括 hash、作者、日期和消息；默认以单行格式显示最近 10 条。",
   parameters: {
     type: 'object',
     properties: {
       count: {
         type: 'number',
-        description: 'Number of commits to show. Default: 10.',
+        description: "要显示的提交数量，默认 10。",
       },
       oneline: {
         type: 'boolean',
-        description: 'Compact one-line format. Default: true.',
+        description: "是否使用紧凑单行格式，默认 true。",
       },
       path: {
         type: 'string',
-        description: 'Show only commits that changed this file/directory.',
+        description: "只显示修改过此文件或目录的提交。",
       },
       author: {
         type: 'string',
-        description: 'Filter by author name or email.',
+        description: "按作者姓名或邮箱过滤。",
       },
     },
   },
@@ -144,9 +140,9 @@ export const gitLogTool = buildTool({
       if (args.path) gitArgs.push('--', args.path as string)
 
       const output = await runGit(gitArgs)
-      return output || '(no commits found)'
+      return output || '（没有找到提交）'
     } catch (err) {
-      return `Error: ${err instanceof Error ? err.message : String(err)}`
+      return `错误：${err instanceof Error ? err.message : String(err)}`
     }
   },
 })
@@ -154,18 +150,17 @@ export const gitLogTool = buildTool({
 export const gitCommitTool = buildTool({
   name: 'git_commit',
   description:
-    'Stage files and create a commit. Can stage specific files or all changes. ' +
-    'This is a destructive operation that modifies git history.',
+    "暂存文件并创建 Git commit。可暂存指定文件或全部修改；这是会修改 Git 历史的破坏性操作。",
   parameters: {
     type: 'object',
     properties: {
       message: {
         type: 'string',
-        description: 'Commit message (required).',
+        description: "提交消息，必填。",
       },
       files: {
         type: 'string',
-        description: 'Space-separated list of files to stage. Use "." for all changes. Default: "." (stage all).',
+        description: "要暂存的文件列表，以空格分隔；使用 . 表示全部修改，默认 .。",
       },
     },
     required: ['message'],
@@ -173,7 +168,7 @@ export const gitCommitTool = buildTool({
   metadata: { isDestructive: true },
   execute: async (args) => {
     const message = args.message as string
-    if (!message?.trim()) return 'Error: commit message is required'
+    if (!message?.trim()) return '错误：必须提供提交消息'
 
     const files = (args.files as string) || '.'
 
@@ -184,7 +179,7 @@ export const gitCommitTool = buildTool({
       log.info('Git commit created', { message })
       return output
     } catch (err) {
-      return `Error: ${err instanceof Error ? err.message : String(err)}`
+      return `错误：${err instanceof Error ? err.message : String(err)}`
     }
   },
 })
@@ -192,18 +187,17 @@ export const gitCommitTool = buildTool({
 export const gitBranchTool = buildTool({
   name: 'git_branch',
   description:
-    'List, create, switch, or delete branches. ' +
-    'Use action: "list" (default), "create", "switch", or "delete".',
+    "列出、创建、切换或删除分支。action 可为 list、create、switch、delete，默认 list。",
   parameters: {
     type: 'object',
     properties: {
       action: {
         type: 'string',
-        description: 'One of: list, create, switch, delete. Default: list.',
+        description: "操作类型：list、create、switch 或 delete；默认 list。",
       },
       name: {
         type: 'string',
-        description: 'Branch name (required for create/switch/delete).',
+        description: "分支名称；create、switch、delete 操作时必填。",
       },
     },
   },
@@ -219,19 +213,19 @@ export const gitBranchTool = buildTool({
           return output || '(no branches)'
         }
         case 'create':
-          if (!name) return 'Error: branch name is required'
+          if (!name) return '错误：必须提供分支名称'
           return await runGit(['checkout', '-b', name])
         case 'switch':
-          if (!name) return 'Error: branch name is required'
+          if (!name) return '错误：必须提供分支名称'
           return await runGit(['checkout', name])
         case 'delete':
-          if (!name) return 'Error: branch name is required'
+          if (!name) return '错误：必须提供分支名称'
           return await runGit(['branch', '-d', name])
         default:
-          return `Error: unknown action "${action}". Use: list, create, switch, delete.`
+          return `错误：未知操作“${action}”。可用值：list、create、switch、delete。`
       }
     } catch (err) {
-      return `Error: ${err instanceof Error ? err.message : String(err)}`
+      return `错误：${err instanceof Error ? err.message : String(err)}`
     }
   },
 })

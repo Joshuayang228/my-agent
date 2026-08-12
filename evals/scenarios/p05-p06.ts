@@ -84,7 +84,7 @@ export const P06: EvalScenario = {
   registerTools(registry) {
     registry.register(buildTool({
       name: 'remember',
-      description: 'Remember a fact about the user',
+      description: '记住关于用户的事实',
       parameters: {
         type: 'object',
         properties: {
