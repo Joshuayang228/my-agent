@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Changed — Prompt 结构化资产基线写入施工合同（2026-08-13）
+
+- 明确 Prompt 注册表、稳定 key、用途 / 角色分组、来源、版本、动态插槽和 Debug 可追溯性要求。
+- 明确稳定人格与动态状态分离；当前生产只登记和运行 `zh-CN`，未来英文在同一资产 key 下独立维护并按 locale 单选。
+- 本次为合同和规则更新，尚未改变生产 Prompt 或 Debug 实现。
+
 ### Changed — Prompt 当前中文、英文后置（2026-08-13）
 
 - 明确 My Agent 当前生产 Prompt 只使用简体中文自然语言；英文 Prompt 翻译、多语言资产和按 locale 选择登记到 wishlist。
