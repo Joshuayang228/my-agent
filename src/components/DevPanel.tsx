@@ -8,8 +8,8 @@ import { LLMCallsPanel } from './debug/LLMCallsPanel'
 import { WorldStatePanel, type WorldSnapshot } from './debug/WorldStatePanel'
 import { PersonaEvalPanel } from './debug/PersonaEvalPanel'
 
-type DebugTab = 'prompt' | 'request' | 'world' | 'runtime' | 'eval' | 'system'
-type RuntimeView = 'traces' | 'events'
+type DebugTab = 'prompt' | 'request-runtime' | 'world' | 'eval' | 'system'
+type RequestRuntimeView = 'llm' | 'traces' | 'events'
 
 interface TraceSpanInfo {
   id: string
@@ -112,10 +112,9 @@ function formatUptime(seconds: number): string {
 }
 
 export const DEBUG_TABS: { id: DebugTab; label: string; icon: ReactNode }[] = [
-  { id: 'prompt', label: 'Prompt 来源', icon: <FileText size={12} /> },
-  { id: 'request', label: '请求', icon: <Layers3 size={12} /> },
+  { id: 'prompt', label: '提示词管理器', icon: <FileText size={12} /> },
+  { id: 'request-runtime', label: '请求与运行', icon: <Layers3 size={12} /> },
   { id: 'world', label: '伙伴状态', icon: <Globe size={12} /> },
-  { id: 'runtime', label: '运行', icon: <Activity size={12} /> },
   { id: 'eval', label: '质量 / Eval', icon: <FlaskConical size={12} /> },
   { id: 'system', label: '系统', icon: <BarChart3 size={12} /> },
 ]
@@ -132,7 +131,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
   const [tools, setTools] = useState<DebugToolInfo[]>([])
   const [traces, setTraces] = useState<TracesPayload | null>(null)
-  const [runtimeView, setRuntimeView] = useState<RuntimeView>('traces')
+  const [requestRuntimeView, setRequestRuntimeView] = useState<RequestRuntimeView>('llm')
   const [worldSnap, setWorldSnap] = useState<WorldSnapshot | null>(null)
   const [worldError, setWorldError] = useState('')
 
@@ -151,7 +150,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
         ])
         setSystemInfo(nextSystemInfo)
         setTools(nextTools)
-      } else if (debugTab === 'runtime' && runtimeView === 'traces') {
+      } else if (debugTab === 'request-runtime' && requestRuntimeView === 'traces') {
         const data = await window.electronAPI.debug.traces()
         setTraces({
           spans: data.spans ?? [],
@@ -165,7 +164,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
         setWorldError(e instanceof Error ? e.message : String(e))
       }
     }
-  }, [debugTab, runtimeView])
+  }, [debugTab, requestRuntimeView])
 
   useEffect(() => { void refresh() }, [refresh])
 
@@ -231,19 +230,18 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
 
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-5">
         {debugTab === 'prompt' && (
-          <PromptManagerPanel info={promptInfo} />
+          <PromptManagerPanel info={promptInfo} onRefresh={() => refresh()} />
         )}
-        {debugTab === 'request' && <LLMCallsPanel />}
-        {debugTab === 'world' && (
-          <WorldStatePanel snap={worldSnap} error={worldError} />
-        )}
-        {debugTab === 'runtime' && (
-          <RuntimePanel
-            view={runtimeView}
-            setView={setRuntimeView}
+        {debugTab === 'request-runtime' && (
+          <RequestRuntimePanel
+            view={requestRuntimeView}
+            setView={setRequestRuntimeView}
             traces={traces}
             events={eventLog}
           />
+        )}
+        {debugTab === 'world' && (
+          <WorldStatePanel snap={worldSnap} error={worldError} />
         )}
         {debugTab === 'eval' && <PersonaEvalPanel />}
         {debugTab === 'system' && <SystemTab info={systemInfo} tools={tools} />}
@@ -503,44 +501,40 @@ function ToolFlag({
   )
 }
 
-/** 运行域将两种运行观察粒度放在同一域内，避免把技术实现细节提升成一级导航。 */
-function RuntimePanel({
+/** 请求与运行共享一个诊断域；LLM 请求、调用链和事件只是三种观察粒度。 */
+function RequestRuntimePanel({
   view,
   setView,
   traces,
   events,
 }: {
-  view: RuntimeView
-  setView: (view: RuntimeView) => void
+  view: RequestRuntimeView
+  setView: (view: RequestRuntimeView) => void
   traces: TracesPayload | null
   events: Array<{ time: number; type: string; detail: string }>
 }) {
-  const views: Array<{ id: RuntimeView; label: string; icon: ReactNode }> = [
-    { id: 'traces', label: 'Span 调用链', icon: <Zap size={13} /> },
+  const views: Array<{ id: RequestRuntimeView; label: string; icon: ReactNode }> = [
+    { id: 'llm', label: 'LLM 调用', icon: <Activity size={13} /> },
+    { id: 'traces', label: '调用链', icon: <Zap size={13} /> },
     { id: 'events', label: '实时事件', icon: <ClipboardList size={13} /> },
   ]
   return (
-    <div className="space-y-4" data-testid="runtime-panel">
+    <div className="space-y-4" data-testid="request-runtime-panel">
+      <div>
+        <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>请求与运行</h2>
+        <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>从单次模型请求到整轮 Agent Loop，统一查看真实执行链路。</p>
+      </div>
       <div className="flex flex-wrap gap-1 border-b pb-2" style={{ borderColor: 'var(--border-subtle)' }}>
         {views.map((item) => {
           const active = view === item.id
           return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setView(item.id)}
-              className="inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-medium"
-              style={{
-                color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
-                background: active ? 'var(--accent-subtle)' : 'transparent',
-              }}
-            >
-              {item.icon}
-              {item.label}
+            <button key={item.id} type="button" onClick={() => setView(item.id)} className="inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-medium" style={{ color: active ? 'var(--accent-fg)' : 'var(--text-muted)', background: active ? 'var(--accent-subtle)' : 'transparent' }}>
+              {item.icon}{item.label}
             </button>
           )
         })}
       </div>
+      {view === 'llm' && <LLMCallsPanel />}
       {view === 'traces' && <TracesTab data={traces} />}
       {view === 'events' && <EventsTab events={events} />}
     </div>

@@ -103,9 +103,9 @@ IPC：`debug:world-snapshot` → `buildDebugWorldSnapshot()`（截断：记忆�
 
 | ID | 目标 | 验收 |
 |----|------|------|
-| **G9** | 顶层按诊断任务固定为「Prompt 来源 / 请求 / 伙伴状态 / 运行 / 质量·Eval / 系统」 | 请求合并真实上下文与 LLM 调用详情；Span / 实时事件并入运行内部视图 |
-| **G9a** | 上下文绑定真实 LLM 调用 | 请求域读取持久化 `requestMessages` / `requestTools`，并在同一详情中展示 System / Messages / Tools / 请求参数 / 响应 / 完整 JSON；不以重组预览冒充实发内容 |
-| **G9b** | 请求域补完整 LLM 日志 | LLM 调用列表支持状态与元数据搜索、分页、详情、JSON/JSONL 导出及 Debug 日志两步清空；Span / 实时事件保留在运行域内部视图 |
+| **G9** | 顶层按诊断任务固定为「提示词管理器 / 请求与运行 / 伙伴状态 / 质量·Eval / 系统」 | 请求与运行内部保留 LLM 调用、调用链与实时事件 |
+| **G9a** | LLM 调用绑定真实请求 | 请求与运行域读取持久化 `requestMessages` / `requestTools`，并在同一详情中展示 System / Messages / Tools / 请求参数 / 响应 / 完整 JSON；不以重组预览冒充实发内容 |
+| **G9b** | 请求与运行补完整诊断 | LLM 调用列表支持搜索、分页、详情、JSON/JSONL 导出及日志两步清空；调用链 / 实时事件保留为内部视图 |
 | **G9c** | 世界态补计划与发布状态时间线 | 同时展示今日剧本槽位与 `companion_events` 的 planned / published 状态，Moments 继续作为事件投影截面 |
 | **G9d** | 系统补真实能力清单 | 展示 Tool Registry 的名称、说明、参数与只读 / 破坏性 / 并发元数据；Skills / MCP / 权限仍复用现有系统态 |
 
@@ -117,12 +117,12 @@ IPC：`debug:world-snapshot` → `buildDebugWorldSnapshot()`（截断：记忆�
 
 | 目标 | 验收 |
 |------|------|
-| Debug 按诊断任务组织入口 | Prompt 来源 / 请求 / 伙伴状态 / 运行 / 质量·Eval / 系统；请求合并真实上下文与 LLM 调用，运行保留 Span / 实时事件 |
+| Debug 按诊断任务组织入口 | 提示词管理器 / 请求与运行 / 伙伴状态 / 质量·Eval / 系统；请求与运行内部保留 LLM 调用、调用链和实时事件 |
 | Playground 按开发者任务分组 | 设计 / Agent 实验两组；组件边缘态吸收体验夹具，模型能力与工具手测明确真实调用边界 |
-| 低频内容降噪 | 系统运行环境 / 内存折叠；静态人格场景与旧夹具源码保留但不再作为 active 一级入口 |
+| 低频内容降噪 | 系统运行环境 / 内存折叠；静态人格场景与旧夹具源码保留但不再作为 active 一级入口；提示词管理器只允许实验副本与现有 L3 设置写入 |
 | 布局可用性 | 记住 Playground 最近 active 叶子页；窄窗口导航可滚动；请求详情保留列表 / 详情结构 |
 
-不改变 Agent Loop、生产 Prompt 装配、LLM 日志生命周期、Eval 执行路径或任何生产设置写入边界。
+不改变 Agent Loop、生产 Prompt 资产、LLM 日志生命周期或 Eval 执行路径。提示词实验副本不写盘；只有二次确认后才复用现有 `settings.systemPrompt` 写入 L3 自定义补充指令。
 
 ## 3. 技术方案（How）
 
@@ -134,25 +134,24 @@ IPC：`debug:world-snapshot` → `buildDebugWorldSnapshot()`（截断：记忆�
   debug      → DevPanel surface=debug（全页）
   playground → PlaygroundPage（全页）
 
-Debug 内：     Prompt 来源 | 请求 | 伙伴状态 | 运行 | 质量 / Eval | 系统
-请求内：       System | Messages | Tools | 请求参数 | 响应 | 完整 JSON
-运行内：       Span 调用链 | 实时事件
+Debug 内：     提示词管理器 | 请求与运行 | 伙伴状态 | 质量 / Eval | 系统
+请求与运行内： LLM 调用 | 调用链 | 实时事件
+LLM 调用详情： System | Messages | Tools | 请求参数 | 响应 | 完整 JSON
 Playground 内：
   设计：       Token 与主题 | 组件 | 页面组合
   Agent 实验： 对话试验 | 模型能力 | 工具手测
 ```
 
-文案纪律：Debug Prompt 资产 =「生产来源（只读）」；即时重组结果 =「装配预览」；真实实发内容只认「请求」中的持久化请求快照；Playground =「会话覆盖，不写设置」。
+文案纪律：Debug Prompt 资产 =「生产来源（只读）」；实验副本可改可隔离试跑但不写盘；L3 保存复用现有设置并要求二次确认；真实实发内容只认「请求与运行 → LLM 调用」中的持久化请求快照；Playground =「会话覆盖，不写设置」。
 
 ### 3.1a IA 全量审计（2026-08-09）
 
 | Surface | Tab | 归属判断 | 结论 |
 |---------|-----|----------|------|
-| Debug | Prompt 来源 | 生产 Prompt 资产 + 当前组装结果 | 保留；只读展示来源与装配结构 |
-| Debug | 请求 | 最近一次真实 LLM 请求 + 用户画像 / 注入记忆 | 合并上下文与 LLM 调用详情；以持久化 requestMessages / requestTools 为事实源 |
+| Debug | 提示词管理器 | 生产 Prompt 资产 + 当前组装结果 | 生产资产只读；支持实验副本、隔离试跑和二次确认保存到现有 L3 设置 |
+| Debug | 请求与运行 | LLM 调用、调用链、实时事件 | 合并请求与运行入口；LLM 详情仍以持久化 requestMessages / requestTools 为事实源 |
 | Debug | 世界态 | 当前角色、生活、计划/发布事件真实快照 | 保留并补时间线 |
 | Debug | 系统 | 运行环境、配置、权限、Skills、MCP | 保留 |
-| Debug | 运行 | Span / 当前会话事件 | LLM 日志已并入请求；运行域只保留调用链与事件 |
 | Playground | 设计系统 | token 与基础视觉实验 | 保留 |
 | Playground | UI 控件 | 正式组件的隔离状态故事 | 保留 |
 | Playground | 页面基线 | 正式页面组合态实验 | 保留 |
@@ -208,7 +207,7 @@ Playground 内：
 ### Phase 6
 
 1. 扩展现有 LLM Debug 查询契约（筛选 / 顺序 / 存储量），不新建日志生命周期
-2. 新建上下文与 LLM 日志 UI；调用链 / 事件改为运行记录内部视图
+2. 新建请求与运行 UI；LLM 调用、调用链 / 事件统一为内部视图
 3. 世界快照增加最近事件；世界态增加计划 / 发布状态时间线
 4. 系统页接入现有 `debug:tools` 注册表只读清单
 5. 聚焦单测 + `tsc` + unit + build + UI 截图验收；更新模块卡 / progress / changelog
@@ -220,5 +219,5 @@ Playground 内：
 | 风险 | 缓解 |
 |------|------|
 | Dev 手测误伤本机 | deny 不可绕过；破坏性/ask 强制 confirmRisk；结果区展示 permission chain |
-| 用户误以为覆盖了全局 Prompt | 固定警告文案；不提供「写入设置」按钮（本 Phase） |
-| DevPanel 文件变胖 | 世界态与 LLM / Context / Prompt 面板拆入 `src/components/debug/`；主壳只保留导航与运行记录编排 |
+| 用户误以为覆盖了全局 Prompt | 固定警告文案；实验副本不写设置；只有 L3 自定义补充指令经过二次确认后写入现有设置键 |
+| DevPanel 文件变胖 | 世界态与 LLM / Context / Prompt 面板拆入 `src/components/debug/`；主壳只保留导航与请求/运行域编排 |
