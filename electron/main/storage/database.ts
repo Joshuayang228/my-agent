@@ -36,7 +36,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 11
+export const SCHEMA_VERSION = 12
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -365,6 +365,31 @@ export function runMigrations(database: SqlJsDatabase): void {
       d.run(`
         CREATE INDEX IF NOT EXISTS idx_llm_debug_subagent_main
           ON llm_debug_subagent_sessions(main_session_id, created_at DESC)
+      `)
+    },
+    // v11 → v12：Persona Eval 独立人工审阅记录，不改原始报告或自动判定
+    (d) => {
+      d.run(`
+        CREATE TABLE IF NOT EXISTS persona_eval_human_reviews (
+          report_file_name        TEXT NOT NULL,
+          scenario_id             TEXT NOT NULL,
+          trial_id                TEXT NOT NULL,
+          naturalness             INTEGER,
+          role_consistency        INTEGER,
+          emotional_attunement   INTEGER,
+          forced_optimism         TEXT,
+          plan_pushing            TEXT,
+          psychological_diagnosis TEXT,
+          templatedness           TEXT,
+          verdict                 TEXT,
+          notes                   TEXT NOT NULL DEFAULT '',
+          updated_at              INTEGER NOT NULL,
+          PRIMARY KEY (report_file_name, scenario_id, trial_id)
+        )
+      `)
+      d.run(`
+        CREATE INDEX IF NOT EXISTS idx_persona_eval_reviews_report
+          ON persona_eval_human_reviews(report_file_name, updated_at DESC)
       `)
     },
   ]

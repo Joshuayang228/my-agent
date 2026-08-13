@@ -222,6 +222,33 @@ export interface PersonaEvalJudgeSnapshot {
   checks: PersonaEvalJudgeCheckSnapshot[]
 }
 
+export type HumanReviewRating = 1 | 2 | 3 | 4 | 5
+export type HumanReviewIssueLevel = 'none' | 'minor' | 'major'
+export type HumanReviewVerdict = 'pass' | 'revise' | 'uncertain'
+
+/** 单个 Persona Eval Trial 的独立人工审阅记录；不参与自动 Eval 判定。 */
+export interface PersonaEvalHumanReview {
+  reportFileName: string
+  scenarioId: string
+  trialId: string
+  naturalness?: HumanReviewRating
+  roleConsistency?: HumanReviewRating
+  emotionalAttunement?: HumanReviewRating
+  forcedOptimism?: HumanReviewIssueLevel
+  planPushing?: HumanReviewIssueLevel
+  psychologicalDiagnosis?: HumanReviewIssueLevel
+  templatedness?: HumanReviewIssueLevel
+  verdict?: HumanReviewVerdict
+  notes: string
+  updatedAt: number
+}
+
+export type PersonaEvalHumanReviewInput = Omit<PersonaEvalHumanReview, 'updatedAt'>
+export type PersonaEvalHumanReviewDeleteInput = Pick<PersonaEvalHumanReview, 'reportFileName' | 'scenarioId' | 'trialId'>
+export type PersonaEvalHumanReviewSaveResult =
+  | { ok: true; review: PersonaEvalHumanReview }
+  | { ok: false; error: string }
+
 export interface PersonaEvalTrialReport {
   id: string
   description: string

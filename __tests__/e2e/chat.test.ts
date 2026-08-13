@@ -73,6 +73,10 @@ test.describe('My Agent UI', () => {
     await debugNav.getByRole('button', { name: '提示词管理器', exact: true }).click()
     await expect(page.locator('[data-testid="prompt-manager-panel"]')).toBeVisible()
 
+    await debugNav.getByRole('button', { name: '质量 / Eval', exact: true }).click()
+    await expect(page.locator('[data-testid="persona-eval-panel"]')).toBeVisible()
+    await expect(page.getByText('还没有 Persona Eval 报告', { exact: true })).toBeVisible()
+
     await debugNav.getByRole('button', { name: '请求与运行', exact: true }).click()
     await expect(page.locator('[data-testid="request-runtime-panel"]')).toBeVisible()
     await expect(page.locator('h2:has-text("请求与运行")')).toBeVisible()

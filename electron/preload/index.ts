@@ -11,6 +11,10 @@ import type {
   LLMSubagentSession,
   DebugPersonaEvalIndex,
   DebugPersonaEvalReport,
+  PersonaEvalHumanReview,
+  PersonaEvalHumanReviewDeleteInput,
+  PersonaEvalHumanReviewInput,
+  PersonaEvalHumanReviewSaveResult,
   DebugEvalRunEvent,
   DebugEvalRunPlan,
   DebugEvalRunStatus,
@@ -410,6 +414,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('debug:persona-eval-reports'),
     personaEvalReportGet: (fileName: string): Promise<DebugPersonaEvalReport | null> =>
       ipcRenderer.invoke('debug:persona-eval-report-get', fileName),
+    personaEvalHumanReviewsList: (fileName: string): Promise<PersonaEvalHumanReview[]> =>
+      ipcRenderer.invoke('debug:persona-eval-human-reviews-list', fileName),
+    personaEvalHumanReviewSave: (input: PersonaEvalHumanReviewInput): Promise<PersonaEvalHumanReviewSaveResult> =>
+      ipcRenderer.invoke('debug:persona-eval-human-review-save', input),
+    personaEvalHumanReviewDelete: (input: PersonaEvalHumanReviewDeleteInput): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('debug:persona-eval-human-review-delete', input),
     evalRunPlans: (): Promise<DebugEvalRunPlan[]> => ipcRenderer.invoke('debug:eval-run-plans'),
     evalRunStatus: (): Promise<DebugEvalRunStatus> => ipcRenderer.invoke('debug:eval-run-status'),
     evalRunStart: (suite: DebugEvalSuite): Promise<

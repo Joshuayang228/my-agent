@@ -11,6 +11,10 @@ import type {
   LLMSubagentSession,
   DebugPersonaEvalIndex,
   DebugPersonaEvalReport,
+  PersonaEvalHumanReview,
+  PersonaEvalHumanReviewDeleteInput,
+  PersonaEvalHumanReviewInput,
+  PersonaEvalHumanReviewSaveResult,
   DebugEvalRunEvent,
   DebugEvalRunPlan,
   DebugEvalRunStatus,
@@ -453,6 +457,9 @@ declare global {
         }>
         personaEvalReports: () => Promise<DebugPersonaEvalIndex>
         personaEvalReportGet: (fileName: string) => Promise<DebugPersonaEvalReport | null>
+        personaEvalHumanReviewsList: (fileName: string) => Promise<PersonaEvalHumanReview[]>
+        personaEvalHumanReviewSave: (input: PersonaEvalHumanReviewInput) => Promise<PersonaEvalHumanReviewSaveResult>
+        personaEvalHumanReviewDelete: (input: PersonaEvalHumanReviewDeleteInput) => Promise<{ ok: boolean; error?: string }>
         evalRunPlans: () => Promise<DebugEvalRunPlan[]>
         evalRunStatus: () => Promise<DebugEvalRunStatus>
         evalRunStart: (suite: DebugEvalSuite) => Promise<

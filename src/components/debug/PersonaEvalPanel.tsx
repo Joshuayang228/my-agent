@@ -8,7 +8,10 @@ import type {
   DebugEvalSuite,
   PersonaEvalScenarioReport,
   PersonaEvalTrialReport,
+  PersonaEvalHumanReview,
+  PersonaEvalHumanReviewInput,
 } from '../../shared/types'
+import { HumanReviewSection } from './PersonaEvalHumanReview'
 
 function formatDate(value: string): string {
   const time = Date.parse(value)
@@ -17,6 +20,23 @@ function formatDate(value: string): string {
 
 function copyText(value: string): void {
   void navigator.clipboard?.writeText(value)
+}
+
+function reviewKey(scenarioId: string, trialId: string): string {
+  return `${scenarioId}::${trialId}`
+}
+
+/** 报告旧格式没有独立 trialId；用场景 ID + 稳定序号避免同场景多次运行互相覆盖。 */
+function trialReviewId(scenarioId: string, index: number): string {
+  return `${scenarioId}-trial-${index + 1}`
+}
+
+function reviewStatusLabel(review?: PersonaEvalHumanReview): string {
+  if (!review) return '未审阅'
+  if (review.verdict === 'pass') return '已审阅 · 通过'
+  if (review.verdict === 'revise') return '已审阅 · 需要修改'
+  if (review.verdict === 'uncertain') return '已审阅 · 无法判断'
+  return '已审阅 · 未下结论'
 }
 
 /**
@@ -35,16 +55,31 @@ export function PersonaEvalPanel() {
   const [runStatus, setRunStatus] = useState<DebugEvalRunStatus>({ state: 'idle', output: '' })
   const [confirmPlan, setConfirmPlan] = useState<DebugEvalRunPlan | null>(null)
   const [runError, setRunError] = useState('')
+  const [humanReviews, setHumanReviews] = useState<Record<string, PersonaEvalHumanReview>>({})
+  const [humanReviewError, setHumanReviewError] = useState('')
   const [, setClockTick] = useState(0)
 
   const loadIndex = useCallback(async () => {
-    if (!window.electronAPI?.debug?.personaEvalReports) return
+    if (!window.electronAPI?.debug?.personaEvalReports) {
+      setLoading(false)
+      setIndex(null)
+      setReport(null)
+      setHumanReviews({})
+      return
+    }
     setLoading(true)
     setError('')
     try {
       const next = await window.electronAPI.debug.personaEvalReports()
       setIndex(next)
       setReport(next.latest)
+      setHumanReviewError('')
+      if (next.latest && window.electronAPI.debug.personaEvalHumanReviewsList) {
+        const reviews = await window.electronAPI.debug.personaEvalHumanReviewsList(next.latest.fileName)
+        setHumanReviews(Object.fromEntries(reviews.map((review) => [reviewKey(review.scenarioId, review.trialId), review])))
+      } else {
+        setHumanReviews({})
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
     } finally {
@@ -118,12 +153,62 @@ export function PersonaEvalPanel() {
       const next = await window.electronAPI.debug.personaEvalReportGet(fileName)
       if (!next) throw new Error('报告不存在或格式无法识别')
       setReport(next)
+      setHumanReviewError('')
+      if (window.electronAPI.debug.personaEvalHumanReviewsList) {
+        const reviews = await window.electronAPI.debug.personaEvalHumanReviewsList(next.fileName)
+        setHumanReviews(Object.fromEntries(reviews.map((review) => [reviewKey(review.scenarioId, review.trialId), review])))
+      } else {
+        setHumanReviews({})
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
     } finally {
       setLoading(false)
     }
   }
+
+  const saveHumanReview = async (input: PersonaEvalHumanReviewInput): Promise<boolean> => {
+    const save = window.electronAPI?.debug?.personaEvalHumanReviewSave
+    if (!save) return false
+    setHumanReviewError('')
+    const result = await save(input)
+    if (!result.ok) {
+      setHumanReviewError(result.error)
+      return false
+    }
+    setHumanReviews((previous) => ({ ...previous, [reviewKey(input.scenarioId, input.trialId)]: result.review }))
+    return true
+  }
+
+  const deleteHumanReview = async (input: Pick<PersonaEvalHumanReview, 'reportFileName' | 'scenarioId' | 'trialId'>): Promise<boolean> => {
+    const remove = window.electronAPI?.debug?.personaEvalHumanReviewDelete
+    if (!remove) return false
+    setHumanReviewError('')
+    const result = await remove(input)
+    if (!result.ok) {
+      setHumanReviewError(result.error || '清空人工审阅失败')
+      return false
+    }
+    setHumanReviews((previous) => {
+      const next = { ...previous }
+      delete next[reviewKey(input.scenarioId, input.trialId)]
+      return next
+    })
+    return true
+  }
+
+  const allTrials = report?.scenarios.flatMap((scenario) => scenario.trials) ?? []
+  const currentReviewKeys = new Set(
+    report?.scenarios.flatMap((scenario) => scenario.trials.map((_, index) => reviewKey(scenario.id, trialReviewId(scenario.id, index)))) ?? [],
+  )
+  const currentReviews = Object.values(humanReviews).filter((review) => currentReviewKeys.has(reviewKey(review.scenarioId, review.trialId)))
+  const reviewedCount = currentReviews.length
+  const verdictCounts = currentReviews.reduce((counts, review) => {
+    if (review.verdict === 'pass') counts.pass += 1
+    else if (review.verdict === 'revise') counts.revise += 1
+    else if (review.verdict === 'uncertain') counts.uncertain += 1
+    return counts
+  }, { pass: 0, revise: 0, uncertain: 0 })
 
   return (
     <div className="mx-auto max-w-5xl space-y-4" data-testid="persona-eval-panel">
@@ -134,6 +219,7 @@ export function PersonaEvalPanel() {
         onRun={requestRun}
         onCancel={() => void cancelRun()}
       />
+      {humanReviewError && <p className="rounded border px-3 py-2 text-xs" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}>{humanReviewError}</p>}
       {loading && !index ? (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>正在读取 Eval 报告…</p>
       ) : error && !report ? (
@@ -141,7 +227,7 @@ export function PersonaEvalPanel() {
       ) : !report ? (
         <EmptyState title="还没有 Persona Eval 报告" detail="可以在上方运行真实 Persona Eval；完成后报告会自动载入。" reportDir={index?.reportDir} />
       ) : (<>
-      <header className="flex flex-wrap items-start justify-between gap-3">
+      <header className="flex flex-wrap items-start justify-between gap-3" data-testid="persona-eval-report">
         <div>
           <div className="flex items-center gap-2">
             {report.pass
@@ -197,7 +283,7 @@ export function PersonaEvalPanel() {
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-        {report.scenarios.map((scenario) => <ScenarioCard key={scenario.id} scenario={scenario} />)}
+        {report.scenarios.map((scenario) => <ScenarioCard key={scenario.id} reportFileName={report.fileName} scenario={scenario} reviews={humanReviews} onSave={saveHumanReview} onDelete={deleteHumanReview} />)}
       </div>
 
       <details className="theme-card rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border-color)' }}>
@@ -344,9 +430,9 @@ function Metric({ label, value, compact = false }: { label: string; value: strin
   )
 }
 
-function ScenarioCard({ scenario }: { scenario: PersonaEvalScenarioReport }) {
+function ScenarioCard({ reportFileName, scenario, reviews, onSave, onDelete }: { reportFileName: string; scenario: PersonaEvalScenarioReport; reviews: Record<string, PersonaEvalHumanReview>; onSave: (input: PersonaEvalHumanReviewInput) => Promise<boolean>; onDelete: (input: Pick<PersonaEvalHumanReview, 'reportFileName' | 'scenarioId' | 'trialId'>) => Promise<boolean> }) {
   return (
-    <details className="theme-card rounded-lg border" style={{ borderColor: scenario.pass ? 'var(--border-color)' : 'var(--danger)' }}>
+    <details className="theme-card rounded-lg border" data-testid={`persona-eval-scenario-${scenario.id}`} style={{ borderColor: scenario.pass ? 'var(--border-color)' : 'var(--danger)' }}>
       <summary className="cursor-pointer list-none px-3 py-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -361,16 +447,16 @@ function ScenarioCard({ scenario }: { scenario: PersonaEvalScenarioReport }) {
       </summary>
       <div className="space-y-2 border-t px-3 py-3" style={{ borderColor: 'var(--border-subtle)' }}>
         {scenario.trials.map((trial, index) => (
-          <TrialCard key={`${scenario.id}-${index}`} trial={trial} index={index} />
+          <TrialCard key={`${scenario.id}-${index}`} reportFileName={reportFileName} scenarioId={scenario.id} trialId={trialReviewId(scenario.id, index)} trial={trial} index={index} review={reviews[reviewKey(scenario.id, trialReviewId(scenario.id, index))]} onSave={onSave} onDelete={onDelete} />
         ))}
       </div>
     </details>
   )
 }
 
-function TrialCard({ trial, index }: { trial: PersonaEvalTrialReport; index: number }) {
+function TrialCard({ reportFileName, scenarioId, trialId, trial, index, review, onSave, onDelete }: { reportFileName: string; scenarioId: string; trialId: string; trial: PersonaEvalTrialReport; index: number; review?: PersonaEvalHumanReview; onSave: (input: PersonaEvalHumanReviewInput) => Promise<boolean>; onDelete: (input: Pick<PersonaEvalHumanReview, 'reportFileName' | 'scenarioId' | 'trialId'>) => Promise<boolean> }) {
   return (
-    <details className="rounded border px-2.5 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
+    <details className="rounded border px-2.5 py-2" data-testid={`persona-eval-trial-${trialId}`} style={{ borderColor: 'var(--border-subtle)' }}>
       <summary className="flex cursor-pointer items-center justify-between gap-2 text-[11px]">
         <span style={{ color: 'var(--text-secondary)' }}>Trial {index + 1} · {Math.round(trial.durationMs / 1000)}s</span>
         <span style={{ color: trial.pass ? 'var(--success)' : 'var(--danger)' }}>{trial.pass ? 'PASS' : 'FAIL'}</span>
@@ -401,10 +487,20 @@ function TrialCard({ trial, index }: { trial: PersonaEvalTrialReport; index: num
             ))}
           </div>
         </section>
+        <HumanReviewSection
+          key={`${reportFileName}-${scenarioId}-${trialId}-${review?.updatedAt ?? 'empty'}`}
+          reportFileName={reportFileName}
+          scenarioId={scenarioId}
+          trialId={trialId}
+          review={review}
+          onSave={onSave}
+          onDelete={onDelete}
+        />
       </div>
     </details>
   )
 }
+
 
 function AgentInputSection({ trial }: { trial: PersonaEvalTrialReport }) {
   const input = trial.agentInput

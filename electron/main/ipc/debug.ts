@@ -20,7 +20,17 @@ import { DebugEvalRunner } from '../debug/eval-runner'
 import {
   llmDebugStore,
 } from '../storage/llm-debug-store'
-import type { DebugEvalSuite, LLMCallQuery } from '../../../src/shared/types'
+import type {
+  DebugEvalSuite,
+  LLMCallQuery,
+  PersonaEvalHumanReviewDeleteInput,
+  PersonaEvalHumanReviewInput,
+} from '../../../src/shared/types'
+import {
+  deletePersonaEvalHumanReview,
+  listPersonaEvalHumanReviews,
+  upsertPersonaEvalHumanReview,
+} from '../storage/persona-eval-review-store'
 
 const log = createLogger('DebugIPC')
 let llmDebugUnsubscribe: (() => void) | null = null
@@ -128,6 +138,34 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     if (typeof fileName !== 'string' || !fileName.trim()) return null
     const reportDir = path.join(process.env.APP_ROOT || process.cwd(), 'eval-reports')
     return getPersonaEvalReport(reportDir, fileName)
+  })
+
+  ipcMain.handle('debug:persona-eval-human-reviews-list', async (_event, fileName: string) => {
+    if (typeof fileName !== 'string' || !fileName.trim()) return []
+    return listPersonaEvalHumanReviews(fileName)
+  })
+
+  ipcMain.handle('debug:persona-eval-human-review-save', async (_event, input: PersonaEvalHumanReviewInput) => {
+    try {
+      return { ok: true, review: await upsertPersonaEvalHumanReview(input) } as const
+    } catch (error) {
+      log.warn('Failed to save Persona Eval human review', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+      return { ok: false, error: error instanceof Error ? error.message : '保存人工审阅失败' } as const
+    }
+  })
+
+  ipcMain.handle('debug:persona-eval-human-review-delete', async (_event, input: PersonaEvalHumanReviewDeleteInput) => {
+    try {
+      await deletePersonaEvalHumanReview(input)
+      return { ok: true } as const
+    } catch (error) {
+      log.warn('Failed to delete Persona Eval human review', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+      return { ok: false, error: error instanceof Error ? error.message : '清空人工审阅失败' } as const
+    }
   })
 
   ipcMain.handle('debug:eval-run-plans', () => evalRunner!.getPlans())

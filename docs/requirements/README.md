@@ -38,6 +38,7 @@
 | [prompt-chinese-unification.md](./prompt-chinese-unification.md) | 已落地：自有模型可见 Prompt、内置工具 schema 与 Eval Judge 统一为简体中文 |
 | [frontend-companion-surfaces.md](./frontend-companion-surfaces.md) | Alice 对照前端表面：生活/工具 IA、P0–P2 验收 |
 | [first-run-and-ui-e2e.md](./first-run-and-ui-e2e.md) | 首次配置旅程与 UI E2E 稳定门禁 |
+| [persona-human-review.md](./persona-human-review.md) | 已落地：Persona Eval Trial 的独立人工审阅闭环 |
 
 ---
 

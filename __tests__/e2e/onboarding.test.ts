@@ -6,7 +6,7 @@
  * 关键约束：不访问外网、不读取或覆盖用户设置；结束后关闭 Electron、HTTP 服务和临时目录。
  */
 import { createServer, type IncomingMessage } from 'node:http'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, rm, unlink, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -27,6 +27,8 @@ let userDataDir = ''
 let server: ReturnType<typeof createServer>
 let baseUrl = ''
 let capturedRequest: CapturedRequest | null = null
+const fixtureReportName = '2099-01-01T00-00-00-000Z-persona-b02-b07-pass-1.json'
+const fixtureReportPath = path.resolve(__dirname, '../../eval-reports', fixtureReportName)
 
 async function readBody(request: IncomingMessage): Promise<string> {
   const chunks: Buffer[] = []
@@ -35,6 +37,46 @@ async function readBody(request: IncomingMessage): Promise<string> {
 }
 
 test.beforeAll(async () => {
+  await mkdir(path.dirname(fixtureReportPath), { recursive: true })
+  await writeFile(fixtureReportPath, JSON.stringify({
+    timestamp: '2099-01-01T00:00:00.000Z',
+    mode: 'real',
+    model: 'fixture-model',
+    baseUrl: 'http://127.0.0.1/fixture',
+    pass: true,
+    totalScenarios: 1,
+    passedScenarios: 1,
+    k: 1,
+    scenarios: [{
+      id: 'B02',
+      description: 'E2E 人工审阅夹具',
+      pass: true,
+      passes: 1,
+      k: 1,
+      trials: [{
+        id: 'B02-trial',
+        description: 'E2E 人工审阅 Trial',
+        pass: true,
+        durationMs: 12,
+        graderResults: [],
+        agentTexts: ['先接住你的感受，再一起想下一步。'],
+        agentInput: {
+          model: 'fixture-model',
+          baseUrl: 'http://127.0.0.1/fixture',
+          executionMode: 'auto',
+          systemPrompt: 'fixture prompt',
+          messages: [{ role: 'user', content: '我今天有点累。' }],
+          toolNames: [],
+        },
+        judge: {
+          graderName: 'fixture-judge',
+          invocationMode: 'single-call',
+          systemContext: 'fixture context',
+          checks: [{ id: 'check-1', question: '是否先承接用户感受？' }],
+        },
+      }],
+    }],
+  }), 'utf8')
   server = createServer(async (request, response) => {
     if (request.method !== 'POST' || request.url !== '/v1/chat/completions') {
       response.writeHead(404).end()
@@ -82,6 +124,7 @@ test.beforeAll(async () => {
 
 test.afterAll(async () => {
   if (electronApp) await electronApp.close()
+  await unlink(fixtureReportPath).catch(() => undefined)
   if (server) await new Promise<void>((resolve) => server.close(() => resolve()))
   if (userDataDir && path.basename(userDataDir).startsWith('my-agent-onboarding-')) {
     await rm(userDataDir, { recursive: true, force: true })
@@ -125,4 +168,32 @@ test('首次进入可测试模型连接并保存后开始对话', async () => {
   await page.locator('[data-testid="save-and-start"]').click()
   await expect(page.locator('[data-testid="settings-main"]')).not.toBeVisible()
   await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
+})
+
+
+test('Debug 质量 Eval 可保存并重新载入真人格人工审阅', async () => {
+  await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Debug', exact: true }).click()
+  const debugNav = page.locator('[data-testid="dev-panel"] nav')
+  await debugNav.getByRole('button', { name: '质量 / Eval', exact: true }).click()
+  await expect(page.locator('[data-testid="persona-eval-report"]')).toBeVisible()
+  await expect(page.locator('[data-testid="persona-eval-scenario-B02"]')).toBeVisible()
+
+  await page.locator('[data-testid="persona-eval-scenario-B02"] > summary').click()
+  await page.locator('[data-testid="persona-eval-trial-B02-trial-1"] > summary').click()
+  const review = page.locator('[data-testid="persona-human-review"]')
+  await review.locator('summary').click()
+  await review.getByRole('button', { name: '活人感 / 自然度：5' }).click()
+  await review.getByRole('button', { name: '角色一致性：4' }).click()
+  await review.getByRole('button', { name: '情绪承接：5' }).click()
+  await review.getByRole('button', { name: '强行乐观：无' }).click()
+  await review.getByRole('button', { name: '立即推进计划：无' }).click()
+  await review.getByRole('button', { name: '擅自心理诊断：无' }).click()
+  await review.getByRole('button', { name: '模板化：无' }).click()
+  await review.getByRole('button', { name: '总体结论：通过' }).click()
+  await review.locator('textarea').fill('先承接疲惫，语气自然。')
+  await review.getByRole('button', { name: '保存审阅' }).click()
+  await expect(review.getByText('已审阅 · 通过', { exact: true })).toBeVisible()
+
+  await page.locator('[data-testid="dev-panel"] button[title="刷新"]').click()
+  await expect(page.locator('[data-testid="persona-human-review"] textarea')).toHaveValue('先承接疲惫，语气自然。')
 })
