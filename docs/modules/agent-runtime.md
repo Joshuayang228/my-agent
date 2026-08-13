@@ -18,7 +18,7 @@
 | 类型 | 位置 |
 |------|------|
 | 运行时 | `agent/runtime.ts` · `agent/loop.ts` |
-| Prompt | `agent/prompt-builder.ts` |
+| Prompt | `agent/prompt-builder.ts` · `agent/prompt-assets.ts` |
 | 压缩 | `agent/context-manager.ts` |
 | 队列 | `services/task-queue.ts` |
 | UI 调试 | DevPanel（Debug）· PlaygroundPage · `ConversationDebugAside` |
@@ -82,7 +82,7 @@
 | 对话 Debug 右侧栏 | 已落地 | Chat 右坞 · `ConversationDebugAside`；可盖在能力坞之上（Alice 式）；持久化 LLM 调用链 |
 | 项目文件预览 | 已落地 | `FileBrowser` · text/image/unsupported；图/文本/md；html 沙箱 iframe；pdf·Office 外开 |
 | Chat 右侧能力坞 | 已落地 | `ChatRightDock` · Tab 文件/审阅/终端；会话写文件变更账本；命令控制台（非 PTY）；可拖宽 + 内部分界 |
-| Prompt 资产目录 | 已落地 | Debug「提示词管理器」· `debug:prompt-assets` · `electron/main/agent/prompt-assets.ts`（生产代码唯一来源） |
+| Prompt 资产目录 | 已落地 | Debug「提示词管理器」· `debug:prompt-assets` · `electron/main/agent/prompt-assets.ts`（稳定 key / 用途 / 角色 / 来源 / 版本 / locale / 插槽） |
 | Prompt 受控编辑 | 已落地 | 生产资产只读；实验副本可隔离试跑；二次确认后复用 `settings.systemPrompt` 保存为 L3 自定义补充指令 |
 | Playground 多轮隔离对话 | 已落地 | `playgroundRun.history` · PromptLab transcript |
 | Playground 模型测试（烟测 + thinking.disabled 探测） | 已落地 | `设计 → Token 与主题`、`Agent 实验 → 模型能力` 等分组入口 · `debug:model-smoke` / `model-probe-thinking`；能力缓存供辅助调用 |
@@ -95,5 +95,5 @@
 
 ## 现状 / 缺口
 
-**现状**：Loop / Runtime / Prompt / 压缩 / 队列 / MCP / 可观测主线已落地；LLM Debug 正文通过现有 observer → tracer Span sink 持久化，侧栏可跨重启恢复；全页 Debug 已按开发者诊断任务收口：提示词管理器 / 请求与运行 / 伙伴状态 / 质量·Eval / 系统；请求与运行域直接读取真实请求快照并保留调用链 / 事件，质量域读取 Persona Eval 报告，并在独立本地审阅层保存真人格人工判断；原始报告和自动判定保持只读。Playground 已按设计 / Agent 实验两组收口，设计组件边缘态合并展示，旧人格验收与体验夹具源码保留但不再作为 active 入口。
+**现状**：Loop / Runtime / Prompt / 压缩 / 队列 / MCP / 可观测主线已落地；Prompt 由生产注册表统一登记稳定 key、用途 / 角色、来源、版本、`zh-CN` locale 和动态插槽，Debug 提示词管理器可查看资产元数据与当前装配追踪；LLM Debug 正文通过现有 observer → tracer Span sink 持久化，侧栏可跨重启恢复；全页 Debug 已按开发者诊断任务收口：提示词管理器 / 请求与运行 / 伙伴状态 / 质量·Eval / 系统；请求与运行域直接读取真实请求快照并保留调用链 / 事件，质量域读取 Persona Eval 报告，并在独立本地审阅层保存真人格人工判断；原始报告和自动判定保持只读。Playground 已按设计 / Agent 实验两组收口，设计组件边缘态合并展示，旧人格验收与体验夹具源码保留但不再作为 active 入口。
 **缺口**：Swarm（wishlist）；更完整的子 Agent 产品化。

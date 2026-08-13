@@ -146,6 +146,10 @@ think → act → observe → think → ...
 | L3 上下文 | 用户画像、记忆、向量检索结果、自定义指令 | 每次重建 |
 | L4 动态 | 当前时间 | 每次变化 |
 
+Prompt 资产由 `electron/main/agent/prompt-assets.ts` 统一登记。每项使用稳定 `key`，并记录用途、角色、真实来源、版本、当前 `zh-CN` locale、静态 / 动态模式和动态插槽；Debug 通过 `debug:prompt-assets` 读取目录，通过 `debug:system-prompt` 返回当前装配引用的资产追踪信息。稳定人格模板与动态状态分离，动态 Prompt 不在 Debug / Playground 复制第二份正文。
+
+未来扩展英文时，在同一资产 key 下维护独立语言版本，由运行时按 locale 单选；当前不实现英文或韩文版本。
+
 ### 5.1 伙伴与生活世界（Companion）
 
 人格化伙伴的**产品终局**（多主角同团、单活跃、生活世界、朋友圈/衣柜）挂在现有 Loop / Memory / IPC 之上，**不另起进程模型**。

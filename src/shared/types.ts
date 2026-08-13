@@ -37,16 +37,57 @@ export interface MemoryCitation {
 
 /** Prompt 资产目录的 IPC 数据契约；正文仍由主进程生产代码或 Role Pack 提供。 */
 export type PromptAssetKind = 'system' | 'context' | 'companion' | 'subagent' | 'ui'
+export type PromptAssetMode = 'static' | 'dynamic'
+
+export interface PromptSlot {
+  name: string
+  source: string
+  lifecycle: string
+}
+
+export interface PromptLocaleAsset {
+  /** 动态资产不暴露固定模板时为空；最终内容来自实际组装器。 */
+  template?: string
+}
 
 export interface PromptAsset {
+  /** 稳定语义标识；文案改动和文件移动不得随意改变。 */
+  key: string
+  /** 兼容现有 Debug UI 的展示标识；新代码应以 key 为索引。 */
   id: string
   name: string
   category: PromptAssetKind
+  purpose: string
+  role: string
   desc: string
+  /** 生产来源的可读路径或组装器标识。 */
+  source: string
+  /** 兼容现有 UI 的来源字段，与 source 保持一致。 */
   sourcePath: string
+  version: string
+  mode: PromptAssetMode
+  locale: string
+  locales: Record<string, PromptLocaleAsset>
+  slots: PromptSlot[]
   preview?: string
   content?: string
+  /** 兼容旧调用方；新代码应读取 mode。 */
   dynamic?: boolean
+}
+
+export type PromptAssetTrace = Pick<
+  PromptAsset,
+  'key' | 'purpose' | 'role' | 'source' | 'version' | 'locale' | 'mode' | 'slots'
+>
+
+export interface DebugPromptSnapshot {
+  full: string
+  layers: { l1: string; l2: string; l3: string; l4: string }
+  persona: { id: string; name: string }
+  charCount: number
+  estimatedTokens: number
+  /** 本次当前装配实际引用的 Prompt 资产，不等同于完整目录。 */
+  assets: PromptAssetTrace[]
 }
 
 /** 压缩边界元数据 — 标记一次压缩发生的位置与效果 */

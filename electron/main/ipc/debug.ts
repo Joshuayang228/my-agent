@@ -8,7 +8,7 @@ import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { ToolRegistry } from '../tools/registry'
 import { buildSystemPrompt, rolePackToPromptParts, type PromptContext } from '../agent/prompt-builder'
-import { getPromptAssets } from '../agent/prompt-assets'
+import { getPromptAssets, getRuntimePromptAssetTraces } from '../agent/prompt-assets'
 import { loadActiveAssembleInput } from '../companion/orchestrator'
 import { getAllSettings } from '../storage/settings-store'
 import { buildUserProfile } from '../storage/memory-store'
@@ -90,10 +90,18 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
         persona: { id: persona.id, name: persona.name },
         charCount: prompt.length,
         estimatedTokens: Math.ceil(prompt.length / 3.5),
+        assets: getRuntimePromptAssetTraces(persona.id),
       }
     } catch (err) {
       log.error('Failed to build debug prompt', { error: String(err) })
-      return { full: '(error)', layers: {}, persona: {}, charCount: 0, estimatedTokens: 0 }
+      return {
+        full: '(error)',
+        layers: { l1: '', l2: '', l3: '', l4: '' },
+        persona: { id: '', name: '' },
+        charCount: 0,
+        estimatedTokens: 0,
+        assets: [],
+      }
     }
   })
 

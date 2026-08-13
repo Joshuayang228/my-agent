@@ -19,6 +19,8 @@ import type {
   DebugEvalRunPlan,
   DebugEvalRunStatus,
   DebugEvalSuite,
+  DebugPromptSnapshot,
+  PromptAsset,
 } from './shared/types'
 
 interface SessionSummary {
@@ -385,23 +387,8 @@ declare global {
         openExternal: (filePath: string) => Promise<{ ok: boolean; error?: string }>
       }
       debug: {
-        systemPrompt: () => Promise<{
-          full: string
-          layers: { l1: string; l2: string; l3: string; l4: string }
-          persona: { id: string; name: string }
-          charCount: number
-          estimatedTokens: number
-        }>
-        promptAssets: () => Promise<Array<{
-          id: string
-          name: string
-          category: 'system' | 'context' | 'companion' | 'subagent' | 'ui'
-          desc: string
-          sourcePath: string
-          preview?: string
-          content?: string
-          dynamic?: boolean
-        }>>
+        systemPrompt: () => Promise<DebugPromptSnapshot>
+        promptAssets: () => Promise<PromptAsset[]>
         tools: () => Promise<Array<{
           name: string
           description: string

@@ -3,6 +3,14 @@
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
 
+## 2026-08-13 · Prompt 结构化注册表与 Debug 追踪落地
+
+- 将 `electron/main/agent/prompt-assets.ts` 从旧式展示目录升级为生产 Prompt 结构化注册表：稳定 `key`、用途、角色、来源、版本、`zh-CN` locale、静态 / 动态模式和动态插槽。
+- `debug:system-prompt` 返回当前装配的 Prompt 资产追踪信息；Debug「提示词管理器」展示 key、用途、角色、来源、版本、locale、模式和插槽。
+- 共享类型、preload / `src/vite-env.d.ts`、注册表一致性测试已同步；本轮未实现英文、韩文或多语言运行时。
+- 验证：Unit 101 文件 / 625 测试通过，TypeScript 通过，Vite Build 通过，UI E2E 6/6 通过。
+
+
 ## 2026-08-13 · Prompt 结构化资产基线补入施工合同
 
 - 将 Alice 最值得借鉴的 Prompt 管线思路正式写入 `prompt-chinese-unification.md`：结构化注册表、稳定 key、用途 / 角色分组、资产来源与版本、动态插槽、稳定人格与动态状态分离，以及 Debug 可追溯性。

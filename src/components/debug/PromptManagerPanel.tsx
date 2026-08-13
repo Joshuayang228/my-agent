@@ -8,15 +8,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Copy, RotateCcw, Save, Search } from 'lucide-react'
-import type { PromptAsset } from '../../shared/prompt-assets'
+import type { DebugPromptSnapshot, PromptAsset, PromptAssetTrace } from '../../shared/types'
 
-export interface DebugPromptInfo {
-  full: string
-  layers: { l1: string; l2: string; l3: string; l4: string }
-  persona: { id: string; name: string }
-  charCount: number
-  estimatedTokens: number
-}
+export type DebugPromptInfo = DebugPromptSnapshot
 
 type CategoryFilter = 'all' | PromptAsset['category']
 type PromptLayer = 'full' | 'l1' | 'l2' | 'l3' | 'l4'
@@ -94,7 +88,7 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
   const filteredAssets = useMemo(() => assets.filter((asset) => {
     if (category !== 'all' && asset.category !== category) return false
     if (!normalizedQuery) return true
-    return [asset.name, asset.desc, asset.sourcePath]
+    return [asset.key, asset.name, asset.purpose, asset.role, asset.desc, asset.source, asset.sourcePath]
       .some((value) => value.toLocaleLowerCase().includes(normalizedQuery))
   }), [assets, category, normalizedQuery])
 
@@ -102,14 +96,14 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
     !normalizedQuery || ['当前装配预览', 'system prompt', info?.persona.name ?? '']
       .some((value) => value.toLocaleLowerCase().includes(normalizedQuery))
   )
-  const selectedAsset = assets.find((asset) => asset.id === selectedId) ?? null
+  const selectedAsset = assets.find((asset) => asset.key === selectedId) ?? null
 
   useEffect(() => {
     const selectedVisible = selectedId === RUNTIME_ID
       ? showRuntime
-      : filteredAssets.some((asset) => asset.id === selectedId)
+      : filteredAssets.some((asset) => asset.key === selectedId)
     if (selectedVisible) return
-    setSelectedId(showRuntime ? RUNTIME_ID : filteredAssets[0]?.id ?? '')
+    setSelectedId(showRuntime ? RUNTIME_ID : filteredAssets[0]?.key ?? '')
   }, [filteredAssets, selectedId, showRuntime])
 
   const clearStatusSoon = () => window.setTimeout(() => setStatus(''), 1800)
@@ -263,7 +257,7 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
       <div className="grid min-h-[430px] gap-3 lg:grid-cols-[minmax(220px,0.42fr)_minmax(0,1fr)]">
         <div className="scrollbar-hover min-h-0 overflow-y-auto rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
           {showRuntime && <PromptListButton active={selectedId === RUNTIME_ID} name="当前装配预览" meta={info ? `${info.persona.name} · ~${info.estimatedTokens} tokens` : '加载中'} onClick={() => setSelectedId(RUNTIME_ID)} />}
-          {filteredAssets.map((asset) => <PromptListButton key={asset.id} active={selectedId === asset.id} name={asset.name} meta={`${CATEGORY_LABELS[asset.category]}${asset.dynamic ? ' · 动态' : ''}`} onClick={() => setSelectedId(asset.id)} />)}
+          {filteredAssets.map((asset) => <PromptListButton key={asset.key} active={selectedId === asset.key} name={asset.name} meta={`${asset.key} · ${CATEGORY_LABELS[asset.category]} · ${asset.mode === 'dynamic' ? '动态' : '静态'} · v${asset.version}`} onClick={() => setSelectedId(asset.key)} />)}
           {!loading && !showRuntime && filteredAssets.length === 0 && <p className="px-3 py-5 text-center text-xs" style={{ color: 'var(--text-muted)' }}>没有匹配项</p>}
           {loading && <p className="px-3 py-5 text-center text-xs" style={{ color: 'var(--text-muted)' }}>读取中…</p>}
         </div>
@@ -314,7 +308,12 @@ function RuntimePromptDetail({ info, layer, setLayer, onLoadExperiment, onCopy }
     { id: 'l4' as const, label: 'L4 动态' },
   ]
   const content = layer === 'full' ? info.full : info.layers[layer]
-  return <div className="space-y-3"><div><h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>当前装配预览</h3><p className="mt-1 font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{info.persona.name} · {info.charCount} chars · ~{info.estimatedTokens} tokens</p><p className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>按当前状态即时重组，不代表某次请求的精确实发内容。</p></div><div className="flex flex-wrap gap-1.5">{layers.map((item) => { const active = layer === item.id; return <button key={item.id} type="button" onClick={() => setLayer(item.id)} className="rounded-lg border px-2.5 py-1 text-[11px]" style={{ borderColor: active ? 'var(--accent)' : 'var(--border-color)', background: active ? 'var(--accent-subtle)' : 'transparent', color: active ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{item.label}</button> })}</div><div className="flex gap-1.5"><button type="button" onClick={() => onLoadExperiment(`当前装配 · ${layer}`, content)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>载入为实验副本</button><button type="button" onClick={() => onCopy(content)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}><Copy size={11} />复制</button></div><pre className="scrollbar-hover max-h-[52vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border p-3 font-mono text-[11px] leading-relaxed" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>{content}</pre></div>
+  return <div className="space-y-3"><div><h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>当前装配预览</h3><p className="mt-1 font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{info.persona.name} · {info.charCount} chars · ~{info.estimatedTokens} tokens</p><p className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>按当前状态即时重组，不代表某次请求的精确实发内容。</p></div><RuntimeTraceList assets={info.assets} /><div className="flex flex-wrap gap-1.5">{layers.map((item) => { const active = layer === item.id; return <button key={item.id} type="button" onClick={() => setLayer(item.id)} className="rounded-lg border px-2.5 py-1 text-[11px]" style={{ borderColor: active ? 'var(--accent)' : 'var(--border-color)', background: active ? 'var(--accent-subtle)' : 'transparent', color: active ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{item.label}</button> })}</div><div className="flex gap-1.5"><button type="button" onClick={() => onLoadExperiment(`当前装配 · ${layer}`, content)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>载入为实验副本</button><button type="button" onClick={() => onCopy(content)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}><Copy size={11} />复制</button></div><pre className="scrollbar-hover max-h-[52vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border p-3 font-mono text-[11px] leading-relaxed" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>{content}</pre></div>
+}
+
+function RuntimeTraceList({ assets }: { assets: PromptAssetTrace[] }) {
+  if (assets.length === 0) return <p className="rounded-lg border px-2.5 py-2 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>当前装配没有可追踪的注册表资产。</p>
+  return <div className="rounded-lg border p-2.5" style={{ borderColor: 'var(--border-subtle)' }}><div className="mb-1.5 text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>本次装配引用的资产</div><div className="space-y-1.5">{assets.map((asset) => <div key={asset.key} className="rounded border px-2 py-1.5" style={{ borderColor: 'var(--border-subtle)' }}><div className="flex flex-wrap items-center gap-x-2 gap-y-0.5"><span className="font-mono text-[10px]" style={{ color: 'var(--text-primary)' }}>{asset.key}</span><span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{asset.purpose} · {asset.role} · {asset.locale} · v{asset.version}</span></div><div className="mt-0.5 break-all font-mono text-[9px]" style={{ color: 'var(--text-muted)' }}>{asset.source}</div>{asset.slots.length > 0 && <SlotList slots={asset.slots} />}</div>)}</div></div>
 }
 
 function AssetPromptDetail({ asset, onLoadExperiment, onCopy }: { asset: PromptAsset; onLoadExperiment: (label: string, content: string | undefined) => void; onCopy: (value: string) => void }) {
@@ -325,10 +324,18 @@ function AssetPromptDetail({ asset, onLoadExperiment, onCopy }: { asset: PromptA
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{asset.name}</h3>
           <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{CATEGORY_LABELS[asset.category]}</span>
-          {asset.dynamic && <span className="text-[10px]" style={{ color: 'var(--accent)' }}>动态组装</span>}
+          <span className="text-[10px]" style={{ color: 'var(--accent)' }}>{asset.mode === 'dynamic' ? '动态组装' : '静态模板'}</span>
         </div>
         <p className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{asset.desc}</p>
-        <code className="mt-2 block break-all font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{asset.sourcePath}</code>
+        <div className="mt-2 grid gap-x-4 gap-y-1 rounded-lg border p-2.5 text-[10px] sm:grid-cols-2" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
+          <MetaLine label="稳定 key" value={asset.key} mono />
+          <MetaLine label="版本" value={asset.version} mono />
+          <MetaLine label="用途" value={asset.purpose} />
+          <MetaLine label="角色" value={asset.role} />
+          <MetaLine label="语言" value={asset.locale} mono />
+          <MetaLine label="来源" value={asset.source} mono />
+        </div>
+        {asset.slots.length > 0 && <SlotList slots={asset.slots} />}
       </div>
       {content ? (
         <>
@@ -345,4 +352,12 @@ function AssetPromptDetail({ asset, onLoadExperiment, onCopy }: { asset: PromptA
       )}
     </div>
   )
+}
+
+function MetaLine({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  return <div className="min-w-0"><span>{label}：</span><span className={`break-all ${mono ? 'font-mono' : ''}`} style={{ color: 'var(--text-secondary)' }}>{value}</span></div>
+}
+
+function SlotList({ slots }: { slots: PromptAsset['slots'] | PromptAssetTrace['slots'] }) {
+  return <div className="mt-2 rounded-lg border p-2.5" style={{ borderColor: 'var(--border-subtle)' }}><div className="mb-1 text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>动态插槽</div><div className="flex flex-wrap gap-1.5">{slots.map((slot) => <span key={`${slot.name}-${slot.source}`} className="rounded border px-1.5 py-1 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}><span className="font-mono">{slot.name}</span> · {slot.source} · {slot.lifecycle}</span>)}</div></div>
 }
