@@ -39,6 +39,7 @@
 | [frontend-companion-surfaces.md](./frontend-companion-surfaces.md) | Alice 对照前端表面：生活/工具 IA、P0–P2 验收 |
 | [first-run-and-ui-e2e.md](./first-run-and-ui-e2e.md) | 首次配置旅程与 UI E2E 稳定门禁 |
 | [persona-human-review.md](./persona-human-review.md) | 已落地：Persona Eval Trial 的独立人工审阅闭环 |
+| [playground-bilingual-ui-vocabulary.md](./playground-bilingual-ui-vocabulary.md) | 进行中：Playground 中文分类与常用 UI 控件中英分层文案 |
 
 ---
 
