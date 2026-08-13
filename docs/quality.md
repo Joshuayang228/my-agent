@@ -18,8 +18,8 @@
 | Unit | 确定性逻辑 | `npm test` | commit 前必过 |
 | Eval | Agent 行为场景（多 Mock LLM） | `npm run eval:run` | 行为改动时跑；不替代 unit |
 | Persona Real Eval | B02–B07 真实 LLM + Judge + pass^k | `npm run eval:persona` | 远程人格验收；需要 `.env` / `LLM_API_KEY` |
-| E2E UI | 界面冒烟 | `npm run test:e2e` | 涉 UI 时 |
-| E2E Electron | 可选真对话 | `npm run test:e2e:electron` | 需 `TEST_LLM_API_KEY`；无 key 则 skip |
+| E2E UI | 纯 Renderer 界面冒烟 | `npm run test:e2e` | 涉 UI 时；固定 Chrome + `127.0.0.1:5174`，不启动 Electron |
+| E2E Electron | 首次配置 + 可选真对话 | `npm run test:e2e:electron` | 首次配置用本地 SSE 服务必跑；真对话需 `TEST_LLM_API_KEY`，无 key 则仅 skip 真对话 |
 
 类型检查：`npx tsc --noEmit`。涉主进程/打包结构时补 `npx vite build`。
 

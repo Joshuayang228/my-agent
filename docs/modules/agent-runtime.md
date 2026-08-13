@@ -65,6 +65,7 @@
 | 子 Agent | 部分 | `subagent`；召唤下任务工边界（M26-G2）；Swarm 见 wishlist |
 | MCP Client（stdio + SSE） | 已落地 | `mcp/` · 设置页 |
 | 多 Provider LLM + Failover | 已落地 | `llm/`；配置唯一经 `loadMainLLMConfig` / `loadAuxLLMConfig` |
+| 首次模型配置旅程 | 已落地 | 无 Key 自动进入设置「模型」；Provider / Key / Base URL / 模型 → 当前配置连接测试 → 保存并开始对话；字段变化会使验证失效，测试复用统一配置工厂且不写盘 |
 | Headless 运行（定时/后台） | 已落地 | `runtime.runHeadless` |
 | Observer / DevPanel 可观测 | 已落地 | tracer / observer / DevPanel |
 | LLM Debug 调用持久化 | 已落地 | tracer sink · `llm_debug_logs` · Debug IPC；复用 `my-agent.db` |

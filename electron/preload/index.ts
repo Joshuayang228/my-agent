@@ -69,6 +69,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   settings: {
     get: (): Promise<Record<string, string>> => ipcRenderer.invoke('settings:get'),
     set: (key: string, value: string): Promise<void> => ipcRenderer.invoke('settings:set', key, value),
+    testConnection: (input: { apiKey: string; baseUrl: string; model: string }) =>
+      ipcRenderer.invoke('settings:test-connection', input),
   },
 
   memory: {

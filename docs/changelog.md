@@ -5,6 +5,13 @@
 
 ## [未发布]
 
+### Added — 首次配置与 UI E2E 稳定门禁（2026-08-13）
+
+- 首次无 API Key 时直接进入设置「模型」，展示 Provider、API Key、Base URL、模型与连续配置步骤
+- 新增不写盘的模型连接测试，复用现有 LLM 配置工厂和 `chatComplete`，失败信息不泄露 Key 或内部堆栈
+- 当前 Key / Base URL / 模型必须测试成功后才能保存并开始对话；字段变化会使旧验证失效，首次输入期间不自动保存半成品配置
+- UI E2E 改为独立纯 Renderer Vite 服务，绕开 Electron 开发插件与本机代理；Electron E2E 增加本地 SSE 首次配置闭环
+
 ### Changed — 提示词管理器与请求运行诊断（2026-08-13）
 
 - 恢复「提示词管理器」名称，生产 Prompt 资产保持只读

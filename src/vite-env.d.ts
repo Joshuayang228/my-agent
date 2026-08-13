@@ -85,6 +85,10 @@ declare global {
       settings: {
         get: () => Promise<Record<string, string>>
         set: (key: string, value: string) => Promise<void>
+        testConnection: (input: { apiKey: string; baseUrl: string; model: string }) => Promise<
+          | { ok: true; model: string; ms: number }
+          | { ok: false; error: string }
+        >
       }
       memory: {
         list: (category?: string) => Promise<Array<{ id: string; category: string; content: string; createdAt: number; updatedAt: number }>>

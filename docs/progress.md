@@ -3,6 +3,14 @@
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
 
+## 2026-08-13 · 首次配置旅程与 UI E2E 门禁
+
+- 无 API Key 时自动进入设置「模型」，新增三步配置引导、表单级连接测试和「保存并开始对话」；当前配置测试成功前保存入口保持禁用。
+- 连接测试不预先写设置，真实经过 preload → IPC → `loadMainLLMConfig` override → `chatComplete`；Key 不进入日志或错误。
+- UI E2E 使用纯 Renderer Vite + 本机 Chrome + `127.0.0.1:5174`，不再被 Electron 开发启动或代理劫持；6/6 已通过。
+- Electron E2E 使用临时 user-data-dir 和本地 OpenAI 兼容 SSE 服务验证首次配置闭环，不读取真实 API Key、不污染用户数据。
+
+
 
 ## 2026-08-13 · 提示词受控编辑与请求运行合并
 

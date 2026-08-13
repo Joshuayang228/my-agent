@@ -1,5 +1,10 @@
 import { defineConfig } from '@playwright/test'
 
+const localNoProxy = ['127.0.0.1', 'localhost']
+for (const key of ['NO_PROXY', 'no_proxy']) {
+  const existing = process.env[key]?.split(',').map((value) => value.trim()).filter(Boolean) ?? []
+  process.env[key] = [...new Set([...existing, ...localNoProxy])].join(',')
+}
 export default defineConfig({
   testDir: './__tests__/e2e',
   timeout: 60000,
@@ -9,18 +14,15 @@ export default defineConfig({
       name: 'ui',
       testMatch: 'chat.test.ts',
       use: {
-        baseURL: 'http://localhost:5173',
+        baseURL: 'http://127.0.0.1:5174',
+        channel: 'chrome',
         trace: 'on-first-retry',
       },
     },
-    {
-      name: 'electron',
-      testMatch: 'electron.test.ts',
-    },
   ],
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: 'npm run dev:ui-e2e',
+    url: 'http://127.0.0.1:5174',
     reuseExistingServer: true,
     timeout: 30000,
   },

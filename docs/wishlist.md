@@ -64,7 +64,7 @@
 - [x] ~~**M32-G7** 对话内 debugMode 叠加策略~~ — 2026-08-05：`conversationDebugMode` + 聊天 Overlay / 工具保留
 - [x] ~~**M32-G8** aside Playground 预览（与行内 aside 耦合）~~ — 2026-08-10：复用正式 MarkdownRenderer，覆盖默认与长文边缘态
 - [ ] **Playground Prompt Lab 加厚** — 从 Debug 选择资产、模拟上下文、A/B 对比、模型/参数切换；用户明确暂缓（2026-08-09）
-- [ ] **首次配置核心旅程** — 首次进入 → 配置模型/API Key → 首次对话；先在 Playground 页面基线确认，再回流正式 UI（2026-08-10）
+- [x] ~~**首次配置核心旅程**~~ — 2026-08-13 已落地：首次进入模型页、当前配置连接测试、验证后显式保存并开始对话；UI / Electron E2E 覆盖
 - [x] ~~**M32-G9** Playground 对齐 Alice（顶栏活目录 + UI 矩阵 + Prompt 目录）~~ — 2026-08-06 Phase 0；合同已落地；不装 Storybook
 - [x] ~~**M32-G9 Phase 1** 控件矩阵加厚 + 多轮隔离对话~~ — 2026-08-06：确认/芯片/状态条 + `history`
 - [x] ~~**M32 Debug 系统态补全**~~ — 2026-08-05：沙箱/权限规则/Skills + 调用链统计展示

@@ -199,6 +199,10 @@ export function SettingsPanel({
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
+  const [firstRun, setFirstRun] = useState(true)
+  const [connectionTesting, setConnectionTesting] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState<{ kind: 'success' | 'error'; text: string } | null>(null)
+  const [verifiedConnectionKey, setVerifiedConnectionKey] = useState('')
   const [protagonists, setProtagonists] = useState<RoleInfo[]>([])
   const [mutableBody, setMutableBody] = useState('')
   const [mutableLoading, setMutableLoading] = useState(false)
@@ -271,6 +275,9 @@ export function SettingsPanel({
   useEffect(() => {
     if (!window.electronAPI) return
     window.electronAPI.settings.get().then((s) => {
+      const hasApiKey = Boolean(s.llmApiKey?.trim())
+      setFirstRun(!hasApiKey)
+      if (!hasApiKey) setActiveSection('model')
       setForm({
         llmApiKey: s.llmApiKey || '',
         llmBaseUrl: s.llmBaseUrl || DEFAULTS.llmBaseUrl,
@@ -307,8 +314,8 @@ export function SettingsPanel({
     refreshMcpStatus()
   }, [loadMutable, refreshMcpStatus])
 
-  const handleSave = useCallback(async () => {
-    if (!window.electronAPI) return
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!window.electronAPI) return false
     setSaving(true)
     try {
       for (const [key, value] of Object.entries(form)) {
@@ -316,12 +323,17 @@ export function SettingsPanel({
         if (key === 'activeRoleId') continue
         await window.electronAPI.settings.set(key, value)
       }
+      setFirstRun(false)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
+      return true
+    } catch {
+      toast('设置保存失败，请重试', 'error')
+      return false
     } finally {
       setSaving(false)
     }
-  }, [form])
+  }, [form, toast])
 
   const initialLoadDone = useRef(false)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -331,6 +343,8 @@ export function SettingsPanel({
       initialLoadDone.current = true
       return
     }
+    // 首次配置必须由用户明确保存，避免输入过程中自动写入半成品配置。
+    if (firstRun) return
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     autoSaveTimer.current = setTimeout(async () => {
       if (!window.electronAPI) return
@@ -343,14 +357,65 @@ export function SettingsPanel({
       } catch { /* silent */ }
     }, 1500)
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current) }
-  }, [form, toast])
+  }, [form, firstRun, toast])
+
+  const connectionKey = `${form.llmApiKey.trim()}\n${form.llmBaseUrl.trim()}\n${form.llmModel.trim()}`
+  const canTestConnection = Boolean(form.llmApiKey.trim() && form.llmBaseUrl.trim() && form.llmModel.trim())
+  const connectionVerified = canTestConnection && verifiedConnectionKey === connectionKey
+
+  const testConnection = useCallback(async () => {
+    if (!window.electronAPI?.settings?.testConnection) {
+      setConnectionStatus({ kind: 'error', text: '当前环境不支持连接测试' })
+      return
+    }
+    if (!canTestConnection) {
+      setConnectionStatus({ kind: 'error', text: '请先填写 API Key、Base URL 和模型名' })
+      return
+    }
+    setConnectionTesting(true)
+    setConnectionStatus(null)
+    setVerifiedConnectionKey('')
+    try {
+      const result = await window.electronAPI.settings.testConnection({
+        apiKey: form.llmApiKey,
+        baseUrl: form.llmBaseUrl,
+        model: form.llmModel,
+      })
+      if (result.ok) {
+        setVerifiedConnectionKey(connectionKey)
+        setConnectionStatus({ kind: 'success', text: `连接成功 · ${result.model} · ${result.ms}ms` })
+      } else {
+        setConnectionStatus({ kind: 'error', text: result.error })
+      }
+    } catch {
+      setConnectionStatus({ kind: 'error', text: '连接测试失败，请检查网络和模型配置' })
+    } finally {
+      setConnectionTesting(false)
+    }
+  }, [canTestConnection, connectionKey, form.llmApiKey, form.llmBaseUrl, form.llmModel])
+
+  const saveAndStart = useCallback(async () => {
+    if (!connectionVerified) {
+      setConnectionStatus({ kind: 'error', text: '请先使用当前配置完成连接测试' })
+      return
+    }
+    const savedOk = await handleSave()
+    if (savedOk) onClose()
+  }, [connectionVerified, handleSave, onClose])
 
   const applyPreset = useCallback((preset: PresetItem) => {
+    setVerifiedConnectionKey('')
+    setConnectionStatus(null)
     setForm((f) => ({ ...f, llmBaseUrl: preset.baseUrl, llmModel: preset.model }))
   }, [])
 
-  const update = (key: keyof SettingsForm, value: string) =>
+  const update = (key: keyof SettingsForm, value: string) => {
+    if (key === 'llmApiKey' || key === 'llmBaseUrl' || key === 'llmModel') {
+      setVerifiedConnectionKey('')
+      setConnectionStatus(null)
+    }
     setForm((f) => ({ ...f, [key]: value }))
+  }
 
   /** 执行模式点选即落盘（与对话页同一 settings.executionMode） */
   const updateAndPersist = async (key: 'executionMode', value: string) => {
@@ -791,6 +856,51 @@ export function SettingsPanel({
     </div>
   )
 
+  /** Provider 卡片复用同一组生产预设；首次配置折叠展示，避免把核心字段推到首屏之外。 */
+  const renderProviderPresets = () => (
+    <FieldGroup label="Provider 预设" hint="选择后会一键填入 Base URL 和模型名，也可以继续手动修改。">
+      <div className="space-y-4">
+        {PRESET_GROUPS.map((group) => (
+          <div key={group.group}>
+            <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              {group.group}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {group.items.map((preset) => {
+                const selected = form.llmBaseUrl === preset.baseUrl && form.llmModel === preset.model
+                return (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => applyPreset(preset)}
+                    className="rounded-[var(--radius-lg)] border px-3 py-2.5 text-left transition"
+                    style={{
+                      borderColor: selected ? 'var(--accent)' : 'var(--border-color)',
+                      background: selected ? 'var(--accent-subtle)' : 'var(--card-bg)',
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
+                        {preset.label}
+                      </span>
+                      {selected && <Check size={14} style={{ color: 'var(--accent-fg)' }} />}
+                    </div>
+                    <div className="mt-1 font-mono text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                      {preset.model}
+                    </div>
+                    <div className="mt-0.5 truncate font-mono text-[10px]" style={{ color: 'var(--text-muted)' }} title={preset.baseUrl}>
+                      {preset.baseUrl}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </FieldGroup>
+  )
+
   const renderModel = () => (
     <div className="space-y-6">
       <div>
@@ -800,49 +910,31 @@ export function SettingsPanel({
         </p>
       </div>
 
-      <FieldGroup label="Provider 预设" hint="对齐 Alice「模型」页：分类卡片 + 一键填入 Base URL / 模型。">
-        <div className="space-y-4">
-          {PRESET_GROUPS.map((group) => (
-            <div key={group.group}>
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                {group.group}
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {group.items.map((p) => {
-                  const selected = form.llmBaseUrl === p.baseUrl && form.llmModel === p.model
-                  return (
-                    <button
-                      key={p.label}
-                      type="button"
-                      onClick={() => applyPreset(p)}
-                      className="rounded-[var(--radius-lg)] border px-3 py-2.5 text-left transition"
-                      style={{
-                        borderColor: selected ? 'var(--accent)' : 'var(--border-color)',
-                        background: selected ? 'var(--accent-subtle)' : 'var(--card-bg)',
-                      }}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                          {p.label}
-                        </span>
-                        {selected && <Check size={14} style={{ color: 'var(--accent-fg)' }} />}
-                      </div>
-                      <div className="mt-1 font-mono text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                        {p.model}
-                      </div>
-                      <div className="mt-0.5 truncate font-mono text-[10px]" style={{ color: 'var(--text-muted)' }} title={p.baseUrl}>
-                        {p.baseUrl}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </FieldGroup>
+      {firstRun && (
+        <section className="rounded-xl border p-4" style={{ borderColor: 'var(--accent)', background: 'var(--accent-subtle)' }} data-testid="first-run-setup">
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>先连接模型，再开始对话</h3>
+          <p className="mt-1 text-xs leading-5" style={{ color: 'var(--text-secondary)' }}>
+            默认已选 GPT-4o；也可以展开其它 Provider。测试不会保存配置，确认可用后再保存并进入聊天。
+          </p>
+          <ol className="mt-3 space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            <li>1. 确认 Provider、Base URL 和模型名</li>
+            <li>2. 填写 API Key 并测试连接</li>
+            <li>3. 连接成功后保存并开始对话</li>
+          </ol>
+        </section>
+      )}
 
-      <FieldGroup label="API Key" hint="存于本机安全存储；留空保存时不覆盖已有 Key。">
+      {firstRun ? (
+        <details className="rounded-xl border px-4 py-3" style={{ borderColor: 'var(--border-color)', background: 'var(--card-bg)' }}>
+          <summary className="cursor-pointer text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+            选择其它 Provider 预设
+            <span className="ml-2 font-mono text-[10px] font-normal" style={{ color: 'var(--text-muted)' }}>{form.llmModel}</span>
+          </summary>
+          <div className="mt-4">{renderProviderPresets()}</div>
+        </details>
+      ) : renderProviderPresets()}
+
+      <FieldGroup label="API Key" hint="存于本机安全存储；连接测试不会预先保存它。">
         <div className="relative">
           <input
             type={showApiKey ? 'text' : 'password'}
@@ -856,6 +948,7 @@ export function SettingsPanel({
             onClick={() => setShowApiKey(!showApiKey)}
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 transition"
             style={{ color: 'var(--text-muted)' }}
+            title={showApiKey ? '隐藏 API Key' : '显示 API Key'}
           >
             {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
           </button>
@@ -872,7 +965,7 @@ export function SettingsPanel({
         />
       </FieldGroup>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         <FieldGroup label="主模型" hint="对话主力；可手改预设模型名。">
           <input
             type="text"
@@ -891,6 +984,36 @@ export function SettingsPanel({
             className="theme-input w-full rounded-lg border px-3 py-2 font-mono text-sm outline-none transition"
           />
         </FieldGroup>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => void testConnection()}
+          disabled={connectionTesting || !canTestConnection}
+          className="rounded-lg border px-3 py-2 text-xs font-medium transition disabled:opacity-45"
+          style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+          data-testid="test-connection"
+        >
+          {connectionTesting ? '测试中…' : '测试连接'}
+        </button>
+        {firstRun && (
+          <button
+            type="button"
+            onClick={() => void saveAndStart()}
+            disabled={saving || !connectionVerified}
+            className="rounded-lg px-3 py-2 text-xs font-medium text-white transition disabled:opacity-45"
+            style={{ background: 'var(--accent-emphasis)' }}
+            data-testid="save-and-start"
+          >
+            {saving ? '保存中…' : connectionVerified ? '保存并开始对话' : '测试成功后可保存'}
+          </button>
+        )}
+        {connectionStatus && (
+          <span className="text-xs" style={{ color: connectionStatus.kind === 'success' ? 'var(--success)' : 'var(--danger)' }} role="status">
+            {connectionStatus.text}
+          </span>
+        )}
       </div>
     </div>
   )
@@ -1420,7 +1543,7 @@ export function SettingsPanel({
             <button
               type="button"
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || (firstRun && !connectionVerified)}
               className="rounded-lg px-3 py-1 text-xs font-medium text-white transition disabled:opacity-50"
               style={{ background: 'var(--accent-emphasis)' }}
             >

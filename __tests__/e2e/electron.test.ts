@@ -17,6 +17,9 @@
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test'
 import { _electron as electron } from 'playwright'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const API_KEY = process.env.TEST_LLM_API_KEY || ''
 const BASE_URL = process.env.TEST_LLM_BASE_URL || 'https://api.deepseek.com'
@@ -49,7 +52,8 @@ test.afterAll(async () => {
 
 async function configureSettings() {
   await page.click('button[title="设置"]')
-  await page.waitForSelector('text=人格模板')
+  await page.getByRole('button', { name: '模型', exact: true }).click()
+  await page.waitForSelector('input[placeholder="sk-..."]')
 
   const apiKeyInput = page.locator('input[placeholder="sk-..."]')
   await apiKeyInput.fill(API_KEY)
@@ -62,7 +66,7 @@ async function configureSettings() {
 
   await page.click('button:has-text("保存")')
   await page.waitForSelector('text=已保存')
-  await page.click('text=取消')
+  await page.locator('[data-testid="settings-back"]').click()
   await page.waitForTimeout(500)
 }
 

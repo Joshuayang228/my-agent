@@ -17,7 +17,7 @@ import type { LLMConfig } from '../../../src/shared/types'
 import * as settings from '../storage/settings-store'
 import { withAuxThinking } from './thinking'
 
-export async function loadMainLLMConfig(): Promise<LLMConfig> {
+export async function loadMainLLMConfig(overrides?: Partial<LLMConfig>): Promise<LLMConfig> {
   const s = await settings.getAllSettings()
   return {
     apiKey: s.llmApiKey || process.env.LLM_API_KEY || '',
@@ -26,6 +26,7 @@ export async function loadMainLLMConfig(): Promise<LLMConfig> {
     temperature: parseFloat(s.llmTemperature) || undefined,
     topP: parseFloat(s.llmTopP) || undefined,
     maxTokens: parseInt(s.llmMaxTokens) || undefined,
+    ...overrides,
   }
 }
 

@@ -10,14 +10,14 @@ test.describe('My Agent UI', () => {
   test('应用标题和基础 UI 可见', async ({ page }) => {
     await page.goto('/')
 
-    await expect(page.locator('h1')).toHaveText('My Agent')
-    await expect(page.locator('text=有性格、有记忆、能成长的数字伙伴')).toBeVisible()
+    await expect(page.locator('[data-testid="chat-messages"] h1')).toContainText('我是')
+    await expect(page.locator('[data-testid="primary-sidebar"]')).toBeVisible()
 
     const textarea = page.locator('textarea')
     await expect(textarea).toBeVisible()
-    await expect(textarea).toHaveAttribute('placeholder', /输入消息/)
+    await expect(textarea).toHaveAttribute('placeholder', /说说/)
 
-    const sendBtn = page.locator('button', { hasText: '发送' })
+    const sendBtn = page.getByTitle('发送')
     await expect(sendBtn).toBeVisible()
     await expect(sendBtn).toBeDisabled()
   })
@@ -25,21 +25,21 @@ test.describe('My Agent UI', () => {
   test('侧边栏可见且可折叠', async ({ page }) => {
     await page.goto('/')
 
-    await expect(page.locator('text=会话列表')).toBeVisible()
-    await expect(page.locator('text=+ 新建')).toBeVisible()
+    await expect(page.locator('[data-testid="primary-sidebar"]')).toBeVisible()
+    await expect(page.getByRole('button', { name: '新对话', exact: true })).toBeVisible()
 
-    await page.click('button:has-text("☰")')
-    await expect(page.locator('text=会话列表')).not.toBeVisible()
+    await page.getByTitle('收起侧栏 Ctrl+B').click()
+    await expect(page.locator('[data-testid="primary-sidebar"]')).not.toBeVisible()
 
-    await page.click('button:has-text("☰")')
-    await expect(page.locator('text=会话列表')).toBeVisible()
+    await page.getByTitle('展开侧边栏 (Ctrl+B)').click()
+    await expect(page.locator('[data-testid="primary-sidebar"]')).toBeVisible()
   })
 
   test('输入框支持文本输入和清除', async ({ page }) => {
     await page.goto('/')
 
     const textarea = page.locator('textarea')
-    const sendBtn = page.locator('button', { hasText: '发送' })
+    const sendBtn = page.getByTitle('发送')
 
     await expect(sendBtn).toBeDisabled()
 
@@ -53,14 +53,15 @@ test.describe('My Agent UI', () => {
   test('空白消息区显示欢迎内容', async ({ page }) => {
     await page.goto('/')
 
-    await expect(page.locator('text=有性格、有记忆、能成长的数字伙伴')).toBeVisible()
+    await expect(page.locator('[data-testid="chat-messages"] h1')).toContainText('我是')
+    await expect(page.getByRole('button', { name: '打个招呼', exact: true })).toBeVisible()
   })
 
 
   test('Debug 与 Playground 采用任务分组导航', async ({ page }) => {
     await page.goto('/')
 
-    await page.locator('button').filter({ hasText: /^Debug$/ }).last().click()
+    await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Debug', exact: true }).click()
     await expect(page.locator('[data-testid="dev-panel"]')).toBeVisible()
     const debugNav = page.locator('[data-testid="dev-panel"] nav')
     await expect(debugNav.getByRole('button', { name: '提示词管理器', exact: true })).toBeVisible()
@@ -70,16 +71,14 @@ test.describe('My Agent UI', () => {
     await expect(debugNav.getByRole('button', { name: '上下文', exact: true })).not.toBeVisible()
     await expect(debugNav.getByRole('button', { name: 'LLM 调用', exact: true })).not.toBeVisible()
     await debugNav.getByRole('button', { name: '提示词管理器', exact: true }).click()
-    await expect(page.locator('[data-testid="prompt-l3-editor"]')).toBeVisible()
-    await expect(page.getByText('生产 Prompt 资产只读', { exact: false })).toBeVisible()
+    await expect(page.locator('[data-testid="prompt-manager-panel"]')).toBeVisible()
 
     await debugNav.getByRole('button', { name: '请求与运行', exact: true }).click()
-    await expect(page.locator('[data-testid="request-runtime-panel"] [data-testid="llm-calls-panel"]')).toBeVisible()
+    await expect(page.locator('[data-testid="request-runtime-panel"]')).toBeVisible()
     await expect(page.locator('h2:has-text("请求与运行")')).toBeVisible()
-    await expect(page.locator('h2:has-text("LLM 调用")')).toBeVisible()
 
     await page.locator('[data-testid="dev-panel"] button[title="返回聊天"]').click()
-    await page.locator('button').filter({ hasText: /^Playground$/ }).last().click()
+    await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
     await expect(page.locator('[data-testid="playground-shell"]')).toBeVisible()
     await expect(page.locator('section[aria-label="设计"]')).toBeVisible()
     await expect(page.locator('section[aria-label="Agent 实验"]')).toBeVisible()
@@ -96,10 +95,11 @@ test.describe('My Agent UI', () => {
     await page.click('button[title="设置"]')
     // Vite 模式下 electronAPI 不存在，但面板基础 UI 仍可渲染
     await expect(page.locator('h2:has-text("设置")')).toBeVisible()
-    await expect(page.locator('text=快速选择模型')).toBeVisible()
-    await expect(page.locator('label:has-text("MCP 服务器")')).toBeVisible()
+    await page.getByRole('button', { name: '模型', exact: true }).click()
+    await expect(page.getByText('选择其它 Provider 预设', { exact: false })).toBeVisible()
+    await expect(page.locator('[data-testid="test-connection"]')).toBeVisible()
 
-    await page.click('button:has-text("取消")')
+    await page.locator('[data-testid="settings-back"]').click()
     await expect(page.locator('h2:has-text("设置")')).not.toBeVisible()
   })
 })

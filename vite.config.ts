@@ -4,65 +4,72 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import electron from 'vite-plugin-electron/simple'
 
-export default defineConfig({
-  resolve: {
-    alias: {
-      '@': path.join(__dirname, 'src'),
+export default defineConfig(({ mode }) => {
+  const isUiE2E = mode === 'ui-e2e'
+  return {
+    server: {
+      host: isUiE2E ? '127.0.0.1' : undefined,
+      strictPort: isUiE2E,
     },
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id: string) {
-          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
-            return 'react-vendor'
-          }
-          if (id.includes('react-markdown') || id.includes('remark-gfm')) {
-            return 'markdown'
-          }
-          if (id.includes('react-syntax-highlighter')) {
-            return 'syntax-hl'
-          }
-        },
+    resolve: {
+      alias: {
+        '@': path.join(__dirname, 'src'),
       },
     },
-  },
-  plugins: [
-    react(),
-    tailwindcss(),
-    electron({
-      main: {
-        entry: 'electron/main/index.ts',
-        vite: {
-          build: {
-            commonjsOptions: { ignoreDynamicRequires: true },
-            rollupOptions: {
-              external: [
-                'sql.js', 'vectra', 'zod',
-                /^@modelcontextprotocol\//,
-                /^vectra\//,
-                /^zod\//,
-              ],
-            },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id: string) {
+            if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
+              return 'react-vendor'
+            }
+            if (id.includes('react-markdown') || id.includes('remark-gfm')) {
+              return 'markdown'
+            }
+            if (id.includes('react-syntax-highlighter')) {
+              return 'syntax-hl'
+            }
           },
         },
       },
-      preload: {
-        input: 'electron/preload/index.ts',
-        vite: {
-          build: {
-            rollupOptions: {
-              output: {
-                // Electron preload 需 CJS；ESM .mjs 会在 sandbox:false / Node 加载时炸 require
-                format: 'cjs',
-                entryFileNames: 'index.cjs',
-                inlineDynamicImports: true,
+    },
+    plugins: [
+      react(),
+      tailwindcss(),
+      ...(isUiE2E ? [] : [electron({
+        main: {
+          entry: 'electron/main/index.ts',
+          vite: {
+            build: {
+              commonjsOptions: { ignoreDynamicRequires: true },
+              rollupOptions: {
+                external: [
+                  'sql.js', 'vectra', 'zod',
+                  /^@modelcontextprotocol\//,
+                  /^vectra\//,
+                  /^zod\//,
+                ],
               },
             },
           },
         },
-      },
-    }),
-  ],
-  clearScreen: false,
+        preload: {
+          input: 'electron/preload/index.ts',
+          vite: {
+            build: {
+              rollupOptions: {
+                output: {
+                  // Electron preload 需 CJS；ESM .mjs 会在 sandbox:false / Node 加载时炸 require
+                  format: 'cjs',
+                  entryFileNames: 'index.cjs',
+                  inlineDynamicImports: true,
+                },
+              },
+            },
+          },
+        },
+      })]),
+    ],
+    clearScreen: false,
+  }
 })

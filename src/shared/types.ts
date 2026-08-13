@@ -384,6 +384,16 @@ export type ResponseFormat =
   | { type: 'json_object' }
   | { type: 'json_schema'; json_schema: { name: string; strict?: boolean; schema: Record<string, unknown> } }
 
+export interface LLMConnectionTestInput {
+  apiKey: string
+  baseUrl: string
+  model: string
+}
+
+export type LLMConnectionTestResult =
+  | { ok: true; model: string; ms: number }
+  | { ok: false; error: string }
+
 export interface LLMConfig {
   apiKey: string
   baseUrl: string
