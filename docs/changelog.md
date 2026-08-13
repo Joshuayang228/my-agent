@@ -5,6 +5,11 @@
 
 ## [未发布]
 
+### Changed — Prompt 当前中文、英文后置（2026-08-13）
+
+- 明确 My Agent 当前生产 Prompt 只使用简体中文自然语言；英文 Prompt 翻译、多语言资产和按 locale 选择登记到 wishlist。
+- 参考 Alice 的 `*_I18N` 资产与 locale 单选装配方式，但本轮不做韩文、不做中英韩并发、不修改生产 Prompt。
+
 ### Changed — Prompt 中文优先与结构分层规则（2026-08-13）
 
 - Prompt 改为先用中文明确意图、行为边界、优先级和例外；英文只保留必要技术术语、协议 token、代码标识、canonical name 或外部原文。

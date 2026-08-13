@@ -3,6 +3,13 @@
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
 
+## 2026-08-13 · Prompt 当前中文、英文后置
+
+- 根据 Alice 源码核验结果修订规则：Alice 的 Prompt 资产按 `zh` / `en` / `ko` 维护，但运行时按 locale 选择单个版本，不是三语并发发送。
+- My Agent 当前明确只做简体中文 Prompt；英文 Prompt 翻译、多语言资产和按 locale 选择登记到 `docs/wishlist.md`，本轮不做韩文或其他语言。
+- 更新 Prompt 中文统一合同、Playground 双语文案合同和 `AGENTS.md`；本轮只改规范，不改生产 Prompt。
+
+
 ## 2026-08-13 · Prompt 中文优先与结构分层规则
 
 - 参考本地 Alice 源码分析：稳定人格模板与动态插槽分离，按角色 / 用途组织 Prompt，生活上下文和世界事实使用独立区块注入，可变人格与身份核心分离。
