@@ -1,5 +1,5 @@
 /**
- * Debug 提示词管理器。
+ * Debug Prompt 来源。
  *
  * 背景：Prompt 资产属于生产真相，按当前状态重组的 System Prompt 只能作为装配预览。
  * 设计意图：用同一主进程注册表展示资产，用 debug:system-prompt 帮助理解当前装配结构。
@@ -105,11 +105,11 @@ export function PromptManagerPanel({ info }: { info: DebugPromptInfo | null }) {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="flex items-baseline gap-2">
-            <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>提示词管理器</h2>
+            <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Prompt 来源</h2>
             <span className="font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{assets.length + 1} 项</span>
           </div>
           <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            生产 Prompt 资产只读展示；当前装配预览用于理解结构，真实实发内容请看「上下文」。
+            生产 Prompt 资产只读展示；当前装配预览用于理解结构，真实实发内容请看「请求」。
           </p>
         </div>
       </header>

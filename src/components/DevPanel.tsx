@@ -4,13 +4,12 @@ import {
   Bug, Globe, ArrowLeft, Layers3, Activity, FlaskConical,
 } from 'lucide-react'
 import { PromptManagerPanel, type DebugPromptInfo } from './debug/PromptManagerPanel'
-import { ContextInspectorPanel } from './debug/ContextInspectorPanel'
 import { LLMCallsPanel } from './debug/LLMCallsPanel'
 import { WorldStatePanel, type WorldSnapshot } from './debug/WorldStatePanel'
 import { PersonaEvalPanel } from './debug/PersonaEvalPanel'
 
-type DebugTab = 'prompt' | 'context' | 'world' | 'runtime' | 'eval' | 'system'
-type RuntimeView = 'llm' | 'traces' | 'events'
+type DebugTab = 'prompt' | 'request' | 'world' | 'runtime' | 'eval' | 'system'
+type RuntimeView = 'traces' | 'events'
 
 interface TraceSpanInfo {
   id: string
@@ -113,11 +112,11 @@ function formatUptime(seconds: number): string {
 }
 
 export const DEBUG_TABS: { id: DebugTab; label: string; icon: ReactNode }[] = [
-  { id: 'prompt', label: '提示词管理器', icon: <FileText size={12} /> },
-  { id: 'context', label: '上下文', icon: <Layers3 size={12} /> },
-  { id: 'world', label: '世界态', icon: <Globe size={12} /> },
-  { id: 'runtime', label: '运行记录', icon: <Activity size={12} /> },
-  { id: 'eval', label: 'Eval', icon: <FlaskConical size={12} /> },
+  { id: 'prompt', label: 'Prompt 来源', icon: <FileText size={12} /> },
+  { id: 'request', label: '请求', icon: <Layers3 size={12} /> },
+  { id: 'world', label: '伙伴状态', icon: <Globe size={12} /> },
+  { id: 'runtime', label: '运行', icon: <Activity size={12} /> },
+  { id: 'eval', label: '质量 / Eval', icon: <FlaskConical size={12} /> },
   { id: 'system', label: '系统', icon: <BarChart3 size={12} /> },
 ]
 
@@ -133,7 +132,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
   const [tools, setTools] = useState<DebugToolInfo[]>([])
   const [traces, setTraces] = useState<TracesPayload | null>(null)
-  const [runtimeView, setRuntimeView] = useState<RuntimeView>('llm')
+  const [runtimeView, setRuntimeView] = useState<RuntimeView>('traces')
   const [worldSnap, setWorldSnap] = useState<WorldSnapshot | null>(null)
   const [worldError, setWorldError] = useState('')
 
@@ -234,7 +233,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
         {debugTab === 'prompt' && (
           <PromptManagerPanel info={promptInfo} />
         )}
-        {debugTab === 'context' && <ContextInspectorPanel />}
+        {debugTab === 'request' && <LLMCallsPanel />}
         {debugTab === 'world' && (
           <WorldStatePanel snap={worldSnap} error={worldError} />
         )}
@@ -256,7 +255,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
 function SystemTab({ info, tools }: { info: SystemInfo | null; tools: DebugToolInfo[] }) {
   if (!info) return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载中...</div>
 
-  const sections = [
+  const detailSections = [
     {
       title: '运行环境',
       items: [
@@ -276,6 +275,9 @@ function SystemTab({ info, tools }: { info: SystemInfo | null; tools: DebugToolI
         ['利用率', `${Math.round((info.memoryUsage.heapUsed / info.memoryUsage.heapTotal) * 100)}%`],
       ],
     },
+  ]
+
+  const sections = [
     {
       title: '运行时策略',
       items: [
@@ -329,6 +331,31 @@ function SystemTab({ info, tools }: { info: SystemInfo | null; tools: DebugToolI
           </div>
         </div>
       ))}
+
+      <details className="mb-4 rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
+        <summary className="cursor-pointer px-3 py-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+          运行环境与内存
+        </summary>
+        <div className="border-t px-3 pt-3" style={{ borderColor: 'var(--border-color)' }}>
+          {detailSections.map(section => (
+            <div key={section.title} className="mb-4 last:mb-0">
+              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{section.title}</div>
+              <div className="theme-card rounded-lg border">
+                {section.items.map(([label, value], i) => (
+                  <div
+                    key={label}
+                    className={`flex justify-between px-4 py-2 text-xs ${i < section.items.length - 1 ? 'border-b' : ''}`}
+                    style={i < section.items.length - 1 ? { borderColor: 'var(--border-color)' } : undefined}
+                  >
+                    <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+                    <span className="font-mono" style={{ color: 'var(--text-primary)' }}>{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </details>
 
       <div className="mb-4">
         <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
@@ -476,7 +503,7 @@ function ToolFlag({
   )
 }
 
-/** 运行记录将三种观察粒度放在同一域内，避免把技术实现细节提升成一级导航。 */
+/** 运行域将两种运行观察粒度放在同一域内，避免把技术实现细节提升成一级导航。 */
 function RuntimePanel({
   view,
   setView,
@@ -489,7 +516,6 @@ function RuntimePanel({
   events: Array<{ time: number; type: string; detail: string }>
 }) {
   const views: Array<{ id: RuntimeView; label: string; icon: ReactNode }> = [
-    { id: 'llm', label: 'LLM 调用', icon: <Activity size={13} /> },
     { id: 'traces', label: 'Span 调用链', icon: <Zap size={13} /> },
     { id: 'events', label: '实时事件', icon: <ClipboardList size={13} /> },
   ]
@@ -515,7 +541,6 @@ function RuntimePanel({
           )
         })}
       </div>
-      {view === 'llm' && <LLMCallsPanel />}
       {view === 'traces' && <TracesTab data={traces} />}
       {view === 'events' && <EventsTab events={events} />}
     </div>

@@ -98,7 +98,7 @@ export function ToolRunPanel({ tools }: { tools: PlaygroundToolInfo[] }) {
       <div>
         <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>工具手测</h2>
         <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-          真实走 Registry + 权限引擎。硬拒绝不可绕过；破坏性 / 需审批工具必须勾选确认。
+          真实走 Registry + 权限引擎；可能产生文件、终端或网络副作用。硬拒绝不可绕过，破坏性 / 需审批工具必须二次确认。
         </p>
       </div>
       {tools.length === 0 ? (

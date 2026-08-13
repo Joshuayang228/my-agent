@@ -4,6 +4,13 @@
 
 
 
+## 2026-08-13 · Debug / Playground IA 收敛
+
+- Debug 从平铺数据类型收敛为 Prompt 来源、请求、伙伴状态、运行、质量 / Eval、系统六个清晰任务入口；请求域合并真实上下文与 LLM 调用详情，运行域保留 Span / 实时事件。
+- Playground 从八个平铺入口收敛为“设计 / Agent 实验”两组；Token、组件、状态与边缘态、页面组合归入设计，隔离对话、模型能力、工具手测归入 Agent 实验。
+- 体验夹具与静态人格验收不再作为 active 一级入口，源码保留用于兼容和后续归档；真实人格质量以 Debug「质量 / Eval」为准。
+- 已通过针对性 Debug / Playground catalog 测试与 TypeScript 检查；待完成全量 Build 和深浅主题页面验收。
+
 ## 2026-08-12 · Persona Eval 输入与评分标准可解释
 
 - 逐 Trial 报告新增当次实际 Agent 输入快照：模型、Base URL、执行模式、初始 messages、System Prompt 与工具名，不保存 API Key。
@@ -44,7 +51,7 @@
 - ✅ **旧世界状态破坏性收口**：旧三字段、坏 JSON 和缺字段 `world_json` 全局不迁移，直接按各角色当前默认值重置；仅小航新增结构化人物/世界资产，且仍未加入 `protagonistIds`。
 - ✅ **Playground 反馈 / 独白 / 记忆基线**：新增正式 Toast 四态与长文故事、MarkdownRenderer 内心独白默认/边缘态、MemoryPanel 列表/空态/敏感项/编辑态；记忆夹具只读，不碰真实数据。
 - ✅ **Playground 实验状态与审计加厚（2026-08-10）**：只给已进入正式产品的设计/控件/页面显示采用图标；壳层开关统一显隐并记住选择，无图标不分类。新增七主题同页对照、图标故事与无副作用组合实验。
-- ✅ **Debug 五域诊断闭环**：顶层收口为「提示词管理器 / 上下文 / 世界态 / 运行记录 / 系统」；真实请求快照、完整 LLM 日志、计划/发布状态时间线和 Tool Registry 清单已接入；Debug 继续只读，日志清空需两步确认。
+- ✅ **Debug 诊断闭环**：顶层收口为「Prompt 来源 / 请求 / 伙伴状态 / 运行 / 质量·Eval / 系统」；真实请求快照、完整 LLM 日志、计划/发布状态时间线和 Tool Registry 清单已接入；Debug 继续只读，日志清空需两步确认。
 - ✅ **Playground 页面基线（2026-08-09）**：新增 Chat 壳 / Primary Sidebar / Right Dock / 人物世界 / 设置组合态展厅；先确认 Alice 对齐的布局、密度与状态，再回流正式页面。
 - ✅ **Debug / Playground IA 收口（2026-08-09）**：全量审计两边 tab；Prompt 生产目录移入 Debug「提示词管理器」，Playground 只保留设计、组件/页面故事和隔离试验。目录继续由 `debug:prompt-assets` 读取主进程唯一注册表。
 - ✅ **面板可拖分界**：左栏 / 右坞 / 文件树↔预览 / 审阅列表↔diff；`layout.*` 持久化。

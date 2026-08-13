@@ -5,6 +5,13 @@
 
 ## [未发布]
 
+### Changed — Debug / Playground 信息架构收敛（2026-08-13）
+
+- Debug 入口按开发者诊断任务重组为 Prompt 来源、请求、伙伴状态、运行、质量 / Eval、系统
+- 请求域合并真实上下文与 LLM 调用详情，包含 System、Messages、Tools、请求参数、响应和完整 JSON
+- Playground 收敛为设计 / Agent 实验两组；体验夹具合并到组件边缘态，静态人格验收不再占用 active 入口
+- 系统低频的运行环境与内存信息改为折叠展示；工具手测明确标注真实权限路径和潜在副作用
+
 ### Changed — Persona Eval 展示完整题目与评分标准（2026-08-12）
 
 - 每次 Trial 保存并展示实际用户/历史消息、模型、执行模式、工具列表和 System Prompt 快照

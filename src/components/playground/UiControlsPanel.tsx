@@ -75,6 +75,19 @@ function ChatEmptyFixture({ long }: { long?: boolean }) {
   )
 }
 
+function FixtureError({ title, body, action }: { title: string; body: string; action: string }) {
+  return (
+    <div
+      className="rounded-lg border px-3 py-2.5"
+      style={{ borderColor: 'color-mix(in srgb, var(--danger) 35%, var(--border-color))', background: 'var(--bg-secondary)' }}
+    >
+      <div className="text-[12px] font-medium" style={{ color: 'var(--danger)' }}>{title}</div>
+      <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{body}</p>
+      <button type="button" className="mt-2 rounded border px-2 py-0.5 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>{action}</button>
+    </div>
+  )
+}
+
 export function UiControlsPanel() {
   const [sub, setSub] = useState<UiControlsSubId>('buttons')
   const [collapse, setCollapse] = useState<Record<string, boolean>>({})
@@ -91,10 +104,10 @@ export function UiControlsPanel() {
       <div className="w-full shrink-0 space-y-3 sm:w-[120px]">
         <div>
           <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-            UI 控件
+            组件与边缘态
           </h2>
           <p className="mt-1 text-[11px] leading-snug" style={{ color: 'var(--text-muted)' }}>
-            变体矩阵；不装 Storybook。
+            正式组件的默认态、错误态、空态与窄屏边缘态；不装 Storybook。
           </p>
         </div>
         <div className="scrollbar-hover flex gap-0.5 overflow-x-auto sm:flex-col sm:overflow-x-visible">
@@ -320,6 +333,13 @@ export function UiControlsPanel() {
       )}
       {sub === 'feedback' && (
         <div className="space-y-3">
+          <StoryBlock title="错误反馈（常用 3 态）" source="Playground fixture · merged" edge>
+            <div className="space-y-2">
+              <FixtureError title="未配置 API Key" body="请在设置 → 模型里填写密钥后再试。" action="打开设置" />
+              <FixtureError title="操作被权限策略拒绝" body="可以切换审批模式，或让 Agent 换更安全的替代方案。" action="查看权限" />
+              <FixtureError title="请求暂时失败" body="可能是限流或上游抖动。稍后再试，或检查网络 / Base URL。" action="重试" />
+            </div>
+          </StoryBlock>
           <StoryBlock title="Toast 四态" source="src/components/Toast.tsx" adopted>
             <ToastPreview items={TOAST_STORIES} />
           </StoryBlock>

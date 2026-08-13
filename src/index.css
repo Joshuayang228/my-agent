@@ -339,14 +339,15 @@ html[data-font-scale="lg"] {
     margin-bottom: 0;
   }
 
-  [data-testid="playground-shell"] > nav > div {
+  [data-testid="playground-shell"] > nav > section {
     margin: 0 0.25rem 0 0;
     flex-shrink: 0;
-    padding: 0 0.5rem;
+    min-width: 10rem;
   }
 
-  [data-testid="playground-shell"] > nav > div + button {
-    margin-left: 0;
+  [data-testid="playground-shell"] > nav > section > div:first-child,
+  [data-testid="playground-shell"] > nav > section > p {
+    white-space: nowrap;
   }
 }
 

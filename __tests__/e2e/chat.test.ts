@@ -56,6 +56,35 @@ test.describe('My Agent UI', () => {
     await expect(page.locator('text=有性格、有记忆、能成长的数字伙伴')).toBeVisible()
   })
 
+
+  test('Debug 与 Playground 采用任务分组导航', async ({ page }) => {
+    await page.goto('/')
+
+    await page.locator('button').filter({ hasText: /^Debug$/ }).last().click()
+    await expect(page.locator('[data-testid="dev-panel"]')).toBeVisible()
+    const debugNav = page.locator('[data-testid="dev-panel"] nav')
+    await expect(debugNav.getByRole('button', { name: '请求', exact: true })).toBeVisible()
+    await expect(debugNav.getByRole('button', { name: '伙伴状态', exact: true })).toBeVisible()
+    await expect(debugNav.getByRole('button', { name: '质量 / Eval', exact: true })).toBeVisible()
+    await expect(debugNav.getByRole('button', { name: '上下文', exact: true })).not.toBeVisible()
+    await expect(debugNav.getByRole('button', { name: 'LLM 调用', exact: true })).not.toBeVisible()
+
+    await debugNav.getByRole('button', { name: '请求', exact: true }).click()
+    await expect(page.locator('[data-testid="llm-calls-panel"]')).toBeVisible()
+    await expect(page.locator('h2:has-text("请求")')).toBeVisible()
+
+    await page.locator('[data-testid="dev-panel"] button[title="返回聊天"]').click()
+    await page.locator('button').filter({ hasText: /^Playground$/ }).last().click()
+    await expect(page.locator('[data-testid="playground-shell"]')).toBeVisible()
+    await expect(page.locator('section[aria-label="设计"]')).toBeVisible()
+    await expect(page.locator('section[aria-label="Agent 实验"]')).toBeVisible()
+    const playgroundNav = page.locator('[data-testid="playground-shell"] nav')
+    await expect(playgroundNav.getByRole('button', { name: 'Token 与主题', exact: true })).toBeVisible()
+    await expect(playgroundNav.getByRole('button', { name: '模型能力', exact: true })).toBeVisible()
+    await expect(playgroundNav.getByRole('button', { name: '人格场景说明', exact: true })).not.toBeVisible()
+    await expect(playgroundNav.getByRole('button', { name: '体验夹具', exact: true })).not.toBeVisible()
+  })
+
   test('设置面板可打开和关闭', async ({ page }) => {
     await page.goto('/')
 

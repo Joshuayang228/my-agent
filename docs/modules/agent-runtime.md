@@ -74,23 +74,23 @@
 | Debug / Playground 独立全页 | 已落地 | 侧栏纵向分列入口 + 各自页面壳；非双 tab / 非抽屉 |
 | 工具手测（权限门闸） | 已落地 | `debug:tool-run` · confirmRisk |
 | Prompt 会话覆盖（不写 settings） | 已落地 | 载入实装 → playgroundRun |
-| 设计 token 场 | 已落地 | Playground「设计系统」 |
+| 设计 token 场 | 已落地 | Playground「设计 → Token 与主题」 |
 | Playground 组件展厅（左侧活目录 + 故事矩阵） | 已落地 | `src/components/playground/` · M32-G9 · 左右栏 |
 | Playground UI 矩阵加厚（确认/芯片/状态条/反馈/独白） | 已落地 | M32-G9 Phase 1 · Toast / MarkdownRenderer 等正式组件故事格 |
 | Playground 已采用标记与主题对照 | 已落地 | `AdoptionMark` · 壳层开关统一显隐并持久化 · 七主题同页审计；无图标不附加实验状态 |
 | 对话 Debug 右侧栏 | 已落地 | Chat 右坞 · `ConversationDebugAside`；可盖在能力坞之上（Alice 式）；持久化 LLM 调用链 |
 | 项目文件预览 | 已落地 | `FileBrowser` · text/image/unsupported；图/文本/md；html 沙箱 iframe；pdf·Office 外开 |
 | Chat 右侧能力坞 | 已落地 | `ChatRightDock` · Tab 文件/审阅/终端；会话写文件变更账本；命令控制台（非 PTY）；可拖宽 + 内部分界 |
-| Prompt 资产目录 | 已落地 | Debug「提示词管理器」· `debug:prompt-assets` · `electron/main/agent/prompt-assets.ts`（生产代码唯一来源） |
+| Prompt 资产目录 | 已落地 | Debug「Prompt 来源」· `debug:prompt-assets` · `electron/main/agent/prompt-assets.ts`（生产代码唯一来源） |
 | Playground 多轮隔离对话 | 已落地 | `playgroundRun.history` · PromptLab transcript |
-| Playground 模型测试（烟测 + thinking.disabled 探测） | 已落地 | `model-test` tab · `debug:model-smoke` / `model-probe-thinking`；能力缓存供辅助调用 |
-| Debug 世界态透视 | 已落地 | `debug:world-snapshot` · DevPanel 世界态 tab |
-| Debug 诊断闭环 | 已落地 | 提示词管理器 / 上下文 / 世界态 / 运行记录 / Eval / 系统；Span 与实时事件收进运行记录内部视图 |
-| Debug 真实请求上下文 | 已落地 | `ContextInspectorPanel` 读取持久化 `requestMessages` / `requestTools`；装配预览不声明为实发内容 |
-| Debug 全量 LLM 调用浏览 | 已落地 | 元数据筛选、分页、详情、JSONL 导出、两步清空；查询与导出共用过滤语义 |
+| Playground 模型测试（烟测 + thinking.disabled 探测） | 已落地 | `设计 → Token 与主题`、`Agent 实验 → 模型能力` 等分组入口 · `debug:model-smoke` / `model-probe-thinking`；能力缓存供辅助调用 |
+| Debug 世界态透视 | 已落地 | `debug:world-snapshot` · DevPanel 伙伴状态域 |
+| Debug 诊断闭环 | 已落地 | Prompt 来源 / 请求 / 伙伴状态 / 运行 / 质量·Eval / 系统；Span 与实时事件收进运行域内部视图 |
+| Debug 真实请求上下文 | 已落地 | `LLMCallsPanel` 请求域读取持久化 `requestMessages` / `requestTools`，并合并 System / Messages / Tools / 参数 / 响应 / JSON；装配预览不声明为实发内容 |
+| Debug 全量 LLM 调用浏览 | 已落地 | 请求域提供元数据筛选、分页、详情、JSONL 导出、两步清空；查询与导出共用过滤语义 |
 | Debug Persona Eval 验收台 | 已落地 | 报告读取 + `debug:eval-run-*` · `PersonaEvalPanel`；逐 Trial 展示实际 messages / System Prompt / 工具 / 配置、一次性 Judge checks、回复与 evidence；兼容旧报告 |
 
 ## 现状 / 缺口
 
-**现状**：Loop / Runtime / Prompt / 压缩 / 队列 / MCP / 可观测主线已落地；LLM Debug 正文通过现有 observer → tracer Span sink 持久化，侧栏可跨重启恢复；全页 Debug 已按生产真相域收口，直接读取真实请求快照和 Persona Eval 报告。
+**现状**：Loop / Runtime / Prompt / 压缩 / 队列 / MCP / 可观测主线已落地；LLM Debug 正文通过现有 observer → tracer Span sink 持久化，侧栏可跨重启恢复；全页 Debug 已按开发者诊断任务收口：Prompt 来源 / 请求 / 伙伴状态 / 运行 / 质量·Eval / 系统；请求域直接读取真实请求快照，质量域读取 Persona Eval 报告。Playground 已按设计 / Agent 实验两组收口，设计组件边缘态合并展示，旧人格验收与体验夹具源码保留但不再作为 active 入口。
 **缺口**：Swarm（wishlist）；更完整的子 Agent 产品化。

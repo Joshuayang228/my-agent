@@ -15,7 +15,7 @@ import { formatDebugBytes, formatDebugValue, normalizeDebugMessages } from './de
 
 const PAGE_SIZE = 30
 
-type DetailView = 'messages' | 'tools' | 'response' | 'json'
+type DetailView = 'system' | 'messages' | 'tools' | 'extra' | 'response' | 'json'
 
 export function LLMCallsPanel() {
   const [records, setRecords] = useState<LLMCallSummary[]>([])
@@ -143,6 +143,7 @@ export function LLMCallsPanel() {
   }
 
   const messages = normalizeDebugMessages(detail?.requestMessages)
+  const systemMessages = messages.filter((message) => message.role === 'system')
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
@@ -150,7 +151,7 @@ export function LLMCallsPanel() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="flex items-baseline gap-2">
-            <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>LLM 调用</h2>
+            <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>请求</h2>
             <span className="font-mono text-[11px]" style={{ color: 'var(--text-muted)' }}>
               {total} 条 · {formatDebugBytes(storageBytes)}
             </span>
@@ -278,7 +279,7 @@ export function LLMCallsPanel() {
               </div>
 
               <div className="my-2 flex flex-wrap gap-1">
-                {(['messages', 'tools', 'response', 'json'] as DetailView[]).map((item) => (
+                {(['system', 'messages', 'tools', 'extra', 'response', 'json'] as DetailView[]).map((item) => (
                   <button
                     key={item}
                     type="button"
@@ -289,13 +290,15 @@ export function LLMCallsPanel() {
                       background: detailView === item ? 'var(--accent-subtle)' : 'transparent',
                     }}
                   >
-                    {{ messages: `请求消息 ${messages.length}`, tools: 'Tools', response: '响应', json: '完整 JSON' }[item]}
+                    {{ system: `System ${systemMessages.length}`, messages: `Messages ${messages.length}`, tools: 'Tools', extra: '请求参数', response: '响应', json: '完整 JSON' }[item]}
                   </button>
                 ))}
               </div>
 
+              {detailView === 'system' && <DetailMessages messages={systemMessages} />}
               {detailView === 'messages' && <DetailMessages messages={messages} />}
               {detailView === 'tools' && <CodeBlock value={detail.requestTools} />}
+              {detailView === 'extra' && <CodeBlock value={detail.requestExtra} />}
               {detailView === 'response' && (
                 <div className="space-y-2">
                   {detail.error && <ResponseBlock label="错误" value={detail.error} danger />}
