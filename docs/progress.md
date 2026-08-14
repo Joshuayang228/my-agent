@@ -4,6 +4,14 @@
 
 
 
+## 2026-08-14 · Skill 管理器 2.0
+
+- Skills 管理页已补齐主进程校验、用户 Skill 编辑、版本历史 / 历史正文查看 / 回滚、隔离试跑；保存前自动备份，最多保留 10 个历史版本。
+- Skill 激活工具会把来源、版本、正文指纹、激活原因写入当前 LLM Debug 请求的 `requestExtra.skillActivations`；不复制 Skill 正文。
+- Debug 与 Settings / Skills 边界保持分离：Debug 只读生产真相，Skills 面板编辑用户资产，隔离试跑不写设置或真实会话。
+- 当前阶段新增测试和 UI E2E；Skill Eval、差异审阅、导入导出已写入 wishlist，后续独立立项。
+
+
 
 ## 2026-08-14 · 模型可见文本统一目录与 Prompt 工程门禁
 

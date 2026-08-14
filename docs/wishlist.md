@@ -108,6 +108,7 @@
 
 ### Prompt 与国际化
 
+- [ ] **Skill Eval 与差异审阅** — 在 Skill 管理器 2.0 完成结构校验和隔离试跑后，补行为级触发验收、版本 diff 审阅和导入导出；本阶段暂缓。
 - [ ] **中文 Prompt → 英文 Prompt 多语言版本** — 当前生产只做简体中文；未来参考 Alice 的 `*_I18N` 资产组织，为稳定身份、动态上下文、行为策略、工具环境和辅助 Prompt 建立 `zh` / `en` 独立版本，运行时按 locale 单选注入；不做中英韩三语并发，不默认加入韩文。来源：Alice `SYSTEM_PROMPT_TEMPLATE_I18N`、`role-prompt-map` 与 Prompt 语言分层审计。
 
 ### 工程债 / 产品向

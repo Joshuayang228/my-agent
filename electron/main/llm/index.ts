@@ -7,6 +7,7 @@ import type {
   AgentStreamEvent,
   ResponseFormat,
   PromptAssetKeyList,
+  SkillActivationTrace,
 } from '../../../src/shared/types'
 import { detectProvider, buildAnthropicBody, buildGeminiBody } from './provider-router'
 import { createLogger } from '../utils/logger'
@@ -79,6 +80,8 @@ interface StreamChatBaseOptions {
   traceSpan?: SpanHandle
   /** Agent Loop 内部重试次数，仅写入 Debug extra，不改变 Span 生命周期 */
   retryAttempt?: number
+  /** 当前请求已激活的 Skill 元数据；不包含 Skill 正文。 */
+  skillActivations?: SkillActivationTrace[]
 }
 
 type PromptTracking =
@@ -223,6 +226,7 @@ export async function* streamChat(
         enablePromptCache: options.enablePromptCache === true,
         promptAssets: promptAssetResolution.assets,
         ...(options.promptlessReason ? { promptlessReason: options.promptlessReason } : {}),
+        ...(options.skillActivations && options.skillActivations.length > 0 ? { skillActivations: options.skillActivations } : {}),
         ...(promptAssetResolution.unknownKeys.length > 0
           ? { unknownPromptAssetKeys: promptAssetResolution.unknownKeys }
           : {}),

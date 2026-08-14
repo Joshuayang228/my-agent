@@ -150,6 +150,7 @@ export async function* agentLoop(
     toolContext,
     interactionSpanId,
     promptAssetKeys = systemPrompt === DEFAULT_SYSTEM_PROMPT ? [PROMPT_KEYS.loopDefault] : undefined,
+    skillActivations,
   } = options
 
   // 运行时有效模式可因连续拒绝自动收紧；只允许从 auto 降到 confirm-all，不提升权限。
@@ -341,6 +342,7 @@ export async function* agentLoop(
           config,
           messages: messagesWithTime,
           tools: effectiveTools,
+          skillActivations: toolContext?.skillActivations ?? skillActivations,
           signal,
           enablePromptCache: true,
           caller: 'main',

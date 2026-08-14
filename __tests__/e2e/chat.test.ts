@@ -99,6 +99,18 @@ test.describe('My Agent UI', () => {
     await expect(playgroundNav.getByRole('button', { name: '体验夹具', exact: true })).not.toBeVisible()
   })
 
+  test('Skills 管理页显示校验、版本和隔离试跑入口', async ({ page }) => {
+    await page.goto('/')
+
+    await page.click('button[title="设置"]')
+    await page.locator('[data-testid="settings-nav"] button').filter({ hasText: '工具' }).click()
+    await page.locator('[data-testid="settings-main"]').getByRole('button', { name: /打开 Skills 面板/ }).click()
+    await expect(page.locator('[data-testid="skills-panel"]')).toBeVisible()
+    await expect(page.getByText('创建、校验、回滚和隔离试跑 Skill', { exact: false })).toBeVisible()
+    await expect(page.getByRole('button', { name: '+ 新建 Skill', exact: true })).toBeVisible()
+    await expect(page.getByText('选择或新建一个 Skill', { exact: true })).toBeVisible()
+  })
+
   test('设置面板可打开和关闭', async ({ page }) => {
     await page.goto('/')
 

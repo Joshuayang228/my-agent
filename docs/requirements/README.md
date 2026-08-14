@@ -36,6 +36,7 @@
 | [companion-protagonist-persona.md](./companion-protagonist-persona.md) | 主角行为人格已进入 Playground / Eval 验收；人物故事待定 |
 | [eval-remote-persona-acceptance.md](./eval-remote-persona-acceptance.md) | 已落地：真实/Mock 分层、B02–B07 pass^k 与远程报告 |
 | [prompt-chinese-unification.md](./prompt-chinese-unification.md) | 已落地：模型可见文本中文化、结构化注册表、调用覆盖门禁、自动指纹与 Debug 统一目录 |
+| [skill-management-2.md](./skill-management-2.md) | 已落地：Skill 版本、校验、隔离试跑与激活追踪 |
 | [frontend-companion-surfaces.md](./frontend-companion-surfaces.md) | Alice 对照前端表面：生活/工具 IA、P0–P2 验收 |
 | [first-run-and-ui-e2e.md](./first-run-and-ui-e2e.md) | 首次配置旅程与 UI E2E 稳定门禁 |
 | [persona-human-review.md](./persona-human-review.md) | 已落地：Persona Eval Trial 的独立人工审阅闭环 |

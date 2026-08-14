@@ -25,7 +25,7 @@ vi.mock('electron', () => ({
 }))
 
 // 被测模块在 mock 之后 import
-import { saveSkill, listSkillVersions, rollbackSkill } from '../../electron/main/skills/loader'
+import { getSkillVersionContent, listSkillVersionInfo, listSkillVersions, rollbackSkill, saveSkill } from '../../electron/main/skills/loader'
 
 const SKILL = 'test-skill'
 
@@ -91,6 +91,16 @@ describe('Skill 版本备份 (G1)', () => {
     // 备份了 a(v1)、b(v2)
     const versions = await listSkillVersions(SKILL)
     expect(versions).toEqual([2, 1])
+  })
+
+  it('版本信息包含创建时间，且能读取历史正文', async () => {
+    await saveSkill(SKILL, 'a')
+    await saveSkill(SKILL, 'b')
+    const infos = await listSkillVersionInfo(SKILL)
+    expect(infos[0]).toMatchObject({ version: 1, current: false })
+    expect(infos[0].createdAt).toBeGreaterThan(0)
+    expect(await getSkillVersionContent(SKILL, 1)).toBe('a')
+    expect(await getSkillVersionContent(SKILL, 99)).toBeNull()
   })
 })
 

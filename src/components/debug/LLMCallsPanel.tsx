@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type
 import {
   ChevronLeft, ChevronRight, Copy, Download, RefreshCw, Search, Trash2,
 } from 'lucide-react'
-import type { LLMCallDetail, LLMCallQuery, LLMCallSummary, PromptAssetTrace } from '../../shared/types'
+import type { LLMCallDetail, LLMCallQuery, LLMCallSummary, PromptAssetTrace, SkillActivationTrace } from '../../shared/types'
 import { formatDebugBytes, formatDebugValue, normalizeDebugMessages } from './debug-format'
 
 const PAGE_SIZE = 30
@@ -301,6 +301,7 @@ export function LLMCallsPanel() {
                   assets={promptAssets}
                   unknownKeys={normalizeStringArray(detail.requestExtra.unknownPromptAssetKeys)}
                   promptlessReason={typeof detail.requestExtra.promptlessReason === 'string' ? detail.requestExtra.promptlessReason : ''}
+                  skillActivations={normalizeSkillActivations(detail.requestExtra.skillActivations)}
                 />
               )}
               {detailView === 'system' && <DetailMessages messages={systemMessages} />}
@@ -344,6 +345,29 @@ function normalizeStringArray(value: unknown): string[] {
  * 设计意图：只接受来源、版本、locale、模式和插槽完整的注册表投影。
  * 关键约束：不修补或猜测缺失元数据；异常项继续留在“完整 JSON”供诊断。
  */
+function normalizeSkillActivations(value: unknown): SkillActivationTrace[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((item) => {
+    if (!item || typeof item !== 'object') return []
+    const candidate = item as Partial<SkillActivationTrace>
+    if (typeof candidate.name !== 'string'
+      || typeof candidate.toolName !== 'string'
+      || (candidate.source !== 'builtin' && candidate.source !== 'user')
+      || typeof candidate.version !== 'string'
+      || typeof candidate.fingerprint !== 'string'
+      || typeof candidate.activatedAt !== 'number') return []
+    return [{
+      name: candidate.name,
+      toolName: candidate.toolName,
+      source: candidate.source,
+      version: candidate.version,
+      fingerprint: candidate.fingerprint,
+      ...(typeof candidate.reason === 'string' ? { reason: candidate.reason } : {}),
+      activatedAt: candidate.activatedAt,
+    } satisfies SkillActivationTrace]
+  })
+}
+
 function normalizePromptAssets(value: unknown): PromptAssetTrace[] {
   if (!Array.isArray(value)) return []
   return value.flatMap((item) => {
@@ -382,8 +406,8 @@ function normalizePromptAssets(value: unknown): PromptAssetTrace[] {
  * 设计意图：元数据卡片回答“用了哪个资产、从哪里来、什么版本”，正文仍交给 System / Messages。
  * 关键约束：未知 key 只告警，不伪造来源；动态插槽只显示名称，不展示可能含隐私的实际值。
  */
-function PromptAssetsDetail({ assets, unknownKeys, promptlessReason }: { assets: PromptAssetTrace[]; unknownKeys: string[]; promptlessReason: string }) {
-  if (assets.length === 0 && unknownKeys.length === 0 && !promptlessReason) {
+function PromptAssetsDetail({ assets, unknownKeys, promptlessReason, skillActivations }: { assets: PromptAssetTrace[]; unknownKeys: string[]; promptlessReason: string; skillActivations: SkillActivationTrace[] }) {
+  if (assets.length === 0 && unknownKeys.length === 0 && !promptlessReason && skillActivations.length === 0) {
     return <Empty text="本次调用没有声明 Prompt 资产；可查看 System / Messages 确认实发正文。" />
   }
   return (
@@ -400,6 +424,7 @@ function PromptAssetsDetail({ assets, unknownKeys, promptlessReason }: { assets:
           <div className="mt-1 break-words font-mono text-[10px]" style={{ color: 'var(--text-secondary)' }}>{unknownKeys.join(', ')}</div>
         </section>
       )}
+      {skillActivations.length > 0 && <SkillActivationsDetail items={skillActivations} />}
       {assets.map((asset) => (
         <article key={asset.key} className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
           <div className="flex flex-wrap items-start justify-between gap-2">
@@ -430,6 +455,31 @@ function PromptAssetsDetail({ assets, unknownKeys, promptlessReason }: { assets:
         </article>
       ))}
     </div>
+  )
+}
+
+function SkillActivationsDetail({ items }: { items: SkillActivationTrace[] }) {
+  return (
+    <section className="rounded-lg border p-3" style={{ borderColor: 'var(--accent)', background: 'var(--bg-primary)' }}>
+      <div className="text-[11px] font-semibold" style={{ color: 'var(--accent-fg)' }}>本次请求激活的 Skill</div>
+      <div className="mt-2 space-y-2">
+        {items.map((item, index) => (
+          <article key={`${item.name}-${item.activatedAt}-${index}`} className="rounded border p-2" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="font-mono text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>{item.name}</span>
+              <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{item.source === 'builtin' ? '内置' : '用户'} · v{item.version}</span>
+            </div>
+            <dl className="mt-1 grid gap-1 text-[10px] sm:grid-cols-[56px_minmax(0,1fr)]">
+              <dt style={{ color: 'var(--text-muted)' }}>激活工具</dt>
+              <dd className="break-all font-mono" style={{ color: 'var(--text-secondary)' }}>{item.toolName}</dd>
+              <dt style={{ color: 'var(--text-muted)' }}>指纹</dt>
+              <dd className="font-mono" style={{ color: 'var(--text-secondary)' }}>{item.fingerprint}</dd>
+              {item.reason && <><dt style={{ color: 'var(--text-muted)' }}>激活原因</dt><dd className="break-words" style={{ color: 'var(--text-secondary)' }}>{item.reason}</dd></>}
+            </dl>
+          </article>
+        ))}
+      </div>
+    </section>
   )
 }
 

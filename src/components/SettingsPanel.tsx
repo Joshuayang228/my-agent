@@ -1131,7 +1131,7 @@ export function SettingsPanel({
       <FieldGroup label="Skills" hint="按需注入的 Markdown 能力手册。">
         <button
           type="button"
-          onClick={() => { onOpenSkills?.(); onClose() }}
+          onClick={() => onOpenSkills?.()}
           className="settings-option flex w-full items-center gap-2 px-4 py-2 text-xs"
         >
           <Wrench size={14} />

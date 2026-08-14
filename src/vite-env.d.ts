@@ -22,6 +22,8 @@ import type {
   DebugPromptSnapshot,
   PromptAsset,
   ModelContextAsset,
+  SkillValidationResult,
+  SkillVersionInfo,
 } from './shared/types'
 
 interface SessionSummary {
@@ -350,11 +352,20 @@ declare global {
           filePath: string
         }>>
         get: (name: string) => Promise<string | null>
-        save: (name: string, content: string) => Promise<{ success: boolean; filePath: string }>
+        validate: (content: string) => Promise<SkillValidationResult>
+        save: (name: string, content: string) => Promise<
+          | { success: true; filePath: string; issues: SkillValidationResult['issues'] }
+          | { success: false; issues: SkillValidationResult['issues'] }
+        >
         delete: (name: string) => Promise<{ success: boolean }>
         reload: () => Promise<{ success: boolean; count: number }>
-        versions: (name: string) => Promise<number[]>
+        versions: (name: string) => Promise<SkillVersionInfo[]>
+        versionContent: (name: string, version: number) => Promise<string | null>
         rollback: (name: string, version: number) => Promise<{ success: boolean }>
+        playgroundRun: (input: { content: string; userPrompt: string }) => Promise<
+          | { ok: true; text: string; ms: number; model: string }
+          | { ok: false; error: string }
+        >
       }
       data: {
         export: () => Promise<{ success: boolean; path?: string; error?: string; stats?: { sessions: number; memories: number } }>

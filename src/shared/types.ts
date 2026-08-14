@@ -475,6 +475,8 @@ export interface ToolContext {
   roleId?: string
   /** 会话种别：召唤时子 Agent 须守 M26 任务工边界（M26-G2） */
   sessionKind?: 'main' | 'summon'
+  /** 当前请求中已激活的 Skill；只记录来源和指纹元数据，不复制正文。 */
+  skillActivations?: SkillActivationTrace[]
 }
 
 // ── LLM ──
@@ -540,6 +542,8 @@ export interface AgentLoopOptions {
   systemPrompt?: string
   /** 本次 Loop 实际使用的 Prompt 注册表稳定 key；来源与版本由 LLM 入口统一解析。 */
   promptAssetKeys?: PromptAssetKeyList
+  /** 当前 Loop 已激活的 Skill 元数据；正文仍只保留在真实请求消息中。 */
+  skillActivations?: SkillActivationTrace[]
   maxIterations?: number
   signal?: AbortSignal
   /** 破坏性工具执行前的确认回调，返回 true 允许执行 */
@@ -697,6 +701,38 @@ export interface SkillFrontmatter {
   allowed_tools?: string[]
   disable_model_invocation?: boolean
   version?: string
+}
+
+export type SkillValidationSeverity = 'error' | 'warning'
+
+export interface SkillValidationIssue {
+  severity: SkillValidationSeverity
+  code: string
+  field?: string
+  message: string
+}
+
+export interface SkillValidationResult {
+  valid: boolean
+  issues: SkillValidationIssue[]
+  name?: string
+  meta?: SkillFrontmatter
+}
+
+export interface SkillVersionInfo {
+  version: number
+  createdAt: number
+  current: boolean
+}
+
+export interface SkillActivationTrace {
+  name: string
+  toolName: string
+  source: 'builtin' | 'user'
+  version: string
+  fingerprint: string
+  reason?: string
+  activatedAt: number
 }
 
 export interface SkillDefinition {

@@ -45,7 +45,7 @@ import {
   formatRecallForInjection,
 } from '../memory/vector-store'
 import type { MemoryCitation } from '../../../src/shared/types'
-import { buildSkillSummaryForPrompt, getActiveSkill, clearActiveSkill } from '../skills/registry'
+import { buildSkillSummaryForPrompt, getActiveSkill, getActiveSkillTrace, clearActiveSkill } from '../skills/registry'
 import { setCurrentSessionId as setTaskPlanSessionId } from '../services/task-plan-service'
 import { clearSessionSubAgents } from './subagent-registry'
 import { detectReplyStance, formatReplyStanceForPrompt } from './reply-stance'
@@ -234,11 +234,13 @@ class AgentRuntime {
 
       let skillSummary: string | undefined
       let activeSkillBody: string | undefined
+      let activeSkillTrace = getActiveSkillTrace()
       try {
         skillSummary = buildSkillSummaryForPrompt() || undefined
         const active = getActiveSkill()
         if (active) {
           activeSkillBody = `Skill「${active.meta.name}」已激活，请严格遵循以下操作指南：\n\n${active.body}`
+          activeSkillTrace = getActiveSkillTrace()
         }
       } catch { /* skill system not ready */ }
 
@@ -382,6 +384,7 @@ class AgentRuntime {
         executionMode,              // 父执行模式（子 Agent 权限只降不升，G4）
         roleId: assembleRoleId,     // feedback 记忆分桶（M22-G2）
         sessionKind: isSummon ? 'summon' : 'main', // M26-G2：子 Agent 任务工边界
+        skillActivations: activeSkillTrace ? [activeSkillTrace] : [],
       }
 
       const stream = agentLoop(

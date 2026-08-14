@@ -22,6 +22,8 @@ import type {
   DebugPromptSnapshot,
   PromptAsset,
   ModelContextAsset,
+  SkillValidationResult,
+  SkillVersionInfo,
 } from '../../src/shared/types'
 
 interface SessionSummary {
@@ -348,11 +350,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   skills: {
     list: () => ipcRenderer.invoke('skills:list'),
     get: (name: string) => ipcRenderer.invoke('skills:get', name),
+    validate: (content: string): Promise<SkillValidationResult> => ipcRenderer.invoke('skills:validate', content),
     save: (name: string, content: string) => ipcRenderer.invoke('skills:save', name, content),
     delete: (name: string) => ipcRenderer.invoke('skills:delete', name),
     reload: () => ipcRenderer.invoke('skills:reload'),
-    versions: (name: string) => ipcRenderer.invoke('skills:versions', name),
+    versions: (name: string): Promise<SkillVersionInfo[]> => ipcRenderer.invoke('skills:versions', name),
+    versionContent: (name: string, version: number): Promise<string | null> => ipcRenderer.invoke('skills:version-content', name, version),
     rollback: (name: string, version: number) => ipcRenderer.invoke('skills:rollback', name, version),
+    playgroundRun: (input: { content: string; userPrompt: string }) => ipcRenderer.invoke('skills:playground-run', input),
   },
 
   data: {

@@ -115,6 +115,39 @@ describe('streamChat failover', () => {
     expect(requests[0].extra.unknownPromptAssetKeys).toEqual(['missing-prompt-key'])
   })
 
+  it('记录当前调用已激活的 Skill 元数据，但不记录正文', async () => {
+    const requests: LLMTraceRequest[] = []
+    setLLMTraceSink({
+      onLLMStart: (request) => requests.push(request),
+      onLLMEnd: () => {},
+    })
+    mockFetch.mockResolvedValueOnce(makeSSEResponse(['ok']))
+
+    await collectEvents(streamChat({
+      config: baseConfig,
+      messages: [{ id: 'skill-trace', role: 'user', content: '审阅代码', timestamp: Date.now() }],
+      caller: 'main',
+      promptAssetKeys: [PROMPT_KEYS.skillContext],
+      skillActivations: [{
+        name: 'code-review',
+        toolName: 'skill_invoke_code_review',
+        source: 'user',
+        version: '2.1',
+        fingerprint: '0123456789abcdef',
+        reason: '用户明确要求审阅',
+        activatedAt: Date.now(),
+      }],
+    }))
+
+    expect(requests[0].extra.skillActivations).toEqual([expect.objectContaining({
+      name: 'code-review',
+      toolName: 'skill_invoke_code_review',
+      version: '2.1',
+      fingerprint: '0123456789abcdef',
+    })])
+    expect(JSON.stringify(requests[0].extra.skillActivations)).not.toContain('正文')
+  })
+
   it('主模型成功时不触发降级', async () => {
     mockFetch.mockResolvedValueOnce(makeSSEResponse(['Hello']))
 

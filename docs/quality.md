@@ -22,6 +22,14 @@
 - 静态正文和动态模板使用内容指纹；只有无模板的运行时资产使用结构指纹。指纹不得包含 API Key 或动态用户插槽实际值。
 - 未来增加英文时，在同一 key 下进行独立版本等价性测试，并验证运行时按 locale 单选，不把多语言版本并发注入模型。
 
+### Skill 管理门禁
+
+- `__tests__/unit/skill-management.test.ts` 验证 Skill 名称、Frontmatter、正文、触发条件提醒和 `allowed_tools` 引用校验。
+- `__tests__/unit/skill-versioning.test.ts` 验证历史快照、时间元数据、版本正文读取、10 版上限和回滚可逆。
+- `__tests__/unit/llm-failover.test.ts` 验证真实 LLM 请求只记录 Skill 来源 / 版本 / 指纹 / 原因，不把 Skill 正文复制进激活元数据。
+- Skills 管理页的隔离试跑必须复用现有 Playground LLM 路径，不写设置、不写真实会话；生产 Skill 编辑必须先经过主进程校验。
+- 用户 Skill 和 MCP 外部内容保持原文；Debug 目录只读，Skill 管理页负责用户资产编辑。
+
 ## 分层与门禁
 
 | 层 | 目的 | 命令 | 门禁 |

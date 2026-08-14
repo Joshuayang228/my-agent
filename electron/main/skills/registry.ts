@@ -1,7 +1,8 @@
+import { createHash } from 'node:crypto'
 import { createLogger } from '../utils/logger'
 import { loadAllSkills } from './loader'
 import { ToolRegistry } from '../tools/registry'
-import type { SkillDefinition, ToolDefinition } from '../../../src/shared/types'
+import type { SkillActivationTrace, SkillDefinition, ToolDefinition } from '../../../src/shared/types'
 
 const log = createLogger('SkillRegistry')
 
@@ -20,6 +21,21 @@ export function clearActiveSkill(): void {
   activeSkill = null
 }
 
+export function getSkillActivationTrace(skill: SkillDefinition, reason?: string, activatedAt = Date.now()): SkillActivationTrace {
+  return {
+    name: skill.meta.name,
+    toolName: getSkillToolName(skill),
+    source: skill.source,
+    version: skill.meta.version || 'unversioned',
+    fingerprint: createHash('sha256').update(skill.body).digest('hex').slice(0, 16),
+    ...(reason?.trim() ? { reason: reason.trim().slice(0, 240) } : {}),
+    activatedAt,
+  }
+}
+
+export function getActiveSkillTrace(): SkillActivationTrace | null {
+  return activeSkill ? getSkillActivationTrace(activeSkill) : null
+}
 
 export function getSkillToolName(skill: SkillDefinition): string {
   return `skill_invoke_${skill.meta.name.replace(/[^a-z0-9]/g, '_')}`
@@ -45,9 +61,11 @@ function buildSkillTool(skill: SkillDefinition): ToolDefinition {
       isDestructive: false,
       isConcurrencySafe: true,
     },
-    execute: async (args) => {
+    execute: async (args, ctx) => {
       activeSkill = skill
-      log.info('Skill activated', { name: skill.meta.name, reason: args.reason })
+      const reason = typeof args.reason === 'string' ? args.reason : undefined
+      ctx?.skillActivations?.push(getSkillActivationTrace(skill, reason))
+      log.info('Skill activated', { name: skill.meta.name, reason })
 
       return [
         `✅ Skill「${skill.meta.name}」已激活。`,

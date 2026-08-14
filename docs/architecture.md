@@ -98,7 +98,7 @@ think → act → observe → think → ...
 | `ipc/mcp.ts` | MCP 服务器连接/断开/状态 |
 | `ipc/debug.ts` | DevPanel 调试数据（Prompt/工具/系统状态/Traces） |
 | `ipc/data-export.ts` | 数据导出/导入（会话+记忆+设置备份恢复） |
-| `ipc/skills.ts` | Skill CRUD + 重新加载 |
+| `ipc/skills.ts` | Skill 校验 / CRUD / 版本历史 / 回滚 / 隔离试跑 / 重新加载 |
 | `ipc/scheduler.ts` | 定时任务 CRUD |
 | `ipc/rag.ts` | RAG 文档导入/列表/删除 |
 | `ipc/project.ts` | 项目工作区（browse/list/set/get + listFiles/readFile） |
@@ -149,6 +149,8 @@ think → act → observe → think → ...
 Prompt 资产由 `electron/main/prompts/registry.ts` 统一登记；核心 key 由 `prompts/keys.ts` 类型化，Role Pack key 只能通过工厂生成。每项记录用途、角色、真实来源、人工版本、自动内容/结构指纹、当前 locale、静态 / 动态模式和动态插槽。每次 `streamChat` / `chatComplete` 必须声明非空资产 key，或显式给出 `promptlessReason`；统一入口把解析结果写入 `requestExtra.promptAssets`，未知 key 进入 `unknownPromptAssetKeys`。静态正文集中在 `prompts/texts.ts`，Eval Judge 模板集中在 `prompts/eval-judge.ts`，生产调用与目录共同引用。Debug 通过 `debug:model-context-assets` 在 IPC 高层聚合 Prompt、Tool schema、Skill、Eval Judge 和当前 MCP 工具；含用户状态的最终动态内容仍只认真实调用的 System / Messages / Tools。Playground 只接收显式实验副本，不维护第二份生产目录。
 
 未来扩展英文时，在同一资产 key 下维护独立语言版本，由运行时按 locale 单选；当前不实现英文或韩文版本。
+
+Skill 资产由 `electron/main/skills/loader.ts` 读取和保存，`registry.ts` 负责生成 Skill 激活工具、维护当前激活状态并产生不含正文的激活指纹。`SkillsPanel` 是用户资产编辑入口：保存前由主进程校验 Frontmatter、正文和工具引用，历史内容保存在用户目录 `.versions/`，隔离试跑复用 `debug:playground-run` 但不写设置或真实会话。Debug 统一目录只读展示 Skill 正文、来源、版本和指纹；真实 LLM 调用通过 `requestExtra.skillActivations` 记录激活工具、来源、版本、原因和指纹。
 
 ### 5.1 伙伴与生活世界（Companion）
 
