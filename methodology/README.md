@@ -122,6 +122,7 @@ M01–M32 按**依赖层级**从底向上排列：底层基础设施决定上层
 |------|------|------|
 | `rule-system-evolution.md` | 规则体系的进化 | ✅ |
 | `gap-audit-2026-07.md` | 方法论缺口审计（三源对照：CC / Alice / feiche）| 📋 对照+todo |
+| `asset-registration-management.md` + `-code.md` | Agent 生产资产注册与管理：身份、事实源、生命周期、运行追踪与 Debug / Playground 边界 | ✅ |
 
 ---
 
