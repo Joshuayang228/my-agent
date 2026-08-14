@@ -19,7 +19,8 @@
     "test:e2e": "npx playwright test --project=ui",
     "test:e2e:electron": "npm run build && npx playwright test --config=playwright.electron.config.ts",
     "test:all": "vitest run && npx playwright test --project=ui",
-    "dev:ui-e2e": "vite --mode ui-e2e --host 127.0.0.1 --strictPort --port 5174"
+    "dev:ui-e2e": "vite --mode ui-e2e --host 127.0.0.1 --strictPort --port 5174",
+    "eval:skill": "vitest run --config vitest.skill-eval.config.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

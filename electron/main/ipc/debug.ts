@@ -16,6 +16,7 @@ import { createLogger } from '../utils/logger'
 import { getRecentSpans, getCallerStats, getTokenLaneStats } from '../utils/tracer'
 import { getDailyUsage } from '../agent/token-budget'
 import { getPersonaEvalReport, listPersonaEvalReports } from '../debug/persona-eval-reports'
+import { getSkillEvalReport, listSkillEvalReports } from '../debug/skill-eval-reports'
 import { DebugEvalRunner } from '../debug/eval-runner'
 import { getModelContextAssets } from '../debug/model-context-assets'
 import {
@@ -150,6 +151,17 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     return getPersonaEvalReport(reportDir, fileName)
   })
 
+  ipcMain.handle('debug:skill-eval-reports', async () => {
+    const reportDir = path.join(process.env.APP_ROOT || process.cwd(), 'eval-reports')
+    return listSkillEvalReports(reportDir)
+  })
+
+  ipcMain.handle('debug:skill-eval-report-get', async (_event, fileName: string) => {
+    if (typeof fileName !== 'string' || !fileName.trim()) return null
+    const reportDir = path.join(process.env.APP_ROOT || process.cwd(), 'eval-reports')
+    return getSkillEvalReport(reportDir, fileName)
+  })
+
   ipcMain.handle('debug:persona-eval-human-reviews-list', async (_event, fileName: string) => {
     if (typeof fileName !== 'string' || !fileName.trim()) return []
     return listPersonaEvalHumanReviews(fileName)
@@ -181,7 +193,7 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
   ipcMain.handle('debug:eval-run-plans', () => evalRunner!.getPlans())
   ipcMain.handle('debug:eval-run-status', () => evalRunner!.getStatus())
   ipcMain.handle('debug:eval-run-start', (_event, suite: DebugEvalSuite) => {
-    if (suite !== 'mock' && suite !== 'persona-real') {
+    if (suite !== 'mock' && suite !== 'skill' && suite !== 'persona-real') {
       return { ok: false, error: '不支持的 Eval 套件' }
     }
     return evalRunner!.start(suite)

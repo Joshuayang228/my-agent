@@ -80,6 +80,9 @@ test.describe('My Agent UI', () => {
     await expect(contextCategories.getByRole('button', { name: '外部 / MCP', exact: true })).toBeVisible()
 
     await debugNav.getByRole('button', { name: '质量 / Eval', exact: true }).click()
+    await expect(page.locator('[data-testid="skill-eval-panel"]')).toBeVisible()
+    await expect(page.getByText('验证 Skill 的触发、指南注入、工具边界和回复约束', { exact: false })).toBeVisible()
+    await expect(page.getByText('还没有 Skill Eval 报告', { exact: true })).toBeVisible()
     await expect(page.locator('[data-testid="persona-eval-panel"]')).toBeVisible()
     await expect(page.getByText('还没有 Persona Eval 报告', { exact: true })).toBeVisible()
 

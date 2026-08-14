@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — Skill Eval 证据闭环（2026-08-14）
+
+- 新增独立 Skill Eval，可验证 Skill 是否在正确场景触发、是否误触发、激活后是否注入指南以及是否越过 `allowed_tools`。
+- Eval 报告保存实际输入、激活 Trace、工具调用、Agent 回复和逐项判定证据，同时排除 Skill 正文、API Key 与隐藏推理。
+- Debug「质量 / Eval」可运行固定 Skill Eval 套件、查看历史报告并展开每个 Case 的触发、注入、工具边界和回复结果。
+
 ### Fixed — Electron 开发模式白屏（2026-08-14）
 
 - 修复 Windows 下 `localhost` 优先解析到旧 IPv6 Vite 服务导致 Electron 加载 404 页面、窗口空白的问题。

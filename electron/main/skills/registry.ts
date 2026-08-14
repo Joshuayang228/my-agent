@@ -41,7 +41,7 @@ export function getSkillToolName(skill: SkillDefinition): string {
   return `skill_invoke_${skill.meta.name.replace(/[^a-z0-9]/g, '_')}`
 }
 
-function buildSkillTool(skill: SkillDefinition): ToolDefinition {
+export function createSkillActivationTool(skill: SkillDefinition): ToolDefinition {
   const toolName = getSkillToolName(skill)
   return {
     name: toolName,
@@ -90,7 +90,7 @@ export async function initSkillSystem(toolRegistry: ToolRegistry): Promise<void>
   for (const skill of loadedSkills) {
     if (skill.meta.disable_model_invocation) continue
 
-    const tool = buildSkillTool(skill)
+    const tool = createSkillActivationTool(skill)
     toolRegistry.register(tool)
     log.info('Skill tool registered', { name: skill.meta.name, tool: tool.name })
   }
@@ -112,11 +112,11 @@ export async function reloadSkills(toolRegistry: ToolRegistry): Promise<void> {
   await initSkillSystem(toolRegistry)
 }
 
-export function buildSkillSummaryForPrompt(): string {
-  if (loadedSkills.length === 0) return ''
+export function buildSkillSummary(skills: SkillDefinition[]): string {
+  if (skills.length === 0) return ''
 
   const lines = ['## 可用 Skill 列表', '']
-  for (const skill of loadedSkills) {
+  for (const skill of skills) {
     const invocation = skill.meta.disable_model_invocation
       ? '(仅手动调用)'
       : `调用工具 ${getSkillToolName(skill)}`
@@ -131,4 +131,8 @@ export function buildSkillSummaryForPrompt(): string {
 
   lines.push('当用户的请求匹配某个 Skill 的触发条件时，请调用对应的 skill_invoke 工具来激活它，然后严格按照 Skill 指南执行。')
   return lines.join('\n')
+}
+
+export function buildSkillSummaryForPrompt(): string {
+  return buildSkillSummary(loadedSkills)
 }

@@ -21,15 +21,16 @@ class FakeChild extends EventEmitter {
 }
 
 describe('debug eval runner', () => {
-  it('只提供两个白名单计划且不暴露 API Key', () => {
+  it('只提供三个白名单计划且不暴露 API Key', () => {
     const plans = buildDebugEvalRunPlans({
       LLM_API_KEY: 'sk-secret-value',
       LLM_MODEL: 'deepseek-test',
       LLM_BASE_URL: 'https://user:password@example.test/v1?api_key=hidden-value',
       EVAL_PASS_K: '3',
     })
-    expect(plans.map((plan) => plan.suite)).toEqual(['mock', 'persona-real'])
-    expect(plans[1]).toMatchObject({
+    expect(plans.map((plan) => plan.suite)).toEqual(['mock', 'skill', 'persona-real'])
+    expect(plans[1]).toMatchObject({ available: true, command: 'npm run eval:skill' })
+    expect(plans[2]).toMatchObject({
       available: true,
       model: 'deepseek-test',
       passK: 3,
@@ -39,6 +40,11 @@ describe('debug eval runner', () => {
     expect(JSON.stringify(plans)).not.toContain('sk-secret-value')
     expect(JSON.stringify(plans)).not.toContain('password')
     expect(JSON.stringify(plans)).not.toContain('hidden-value')
+  })
+
+  it('Skill 套件只映射到固定 eval:skill 命令', () => {
+    const spec = buildEvalSpawnSpec('skill', 'linux')
+    expect(spec).toEqual({ executable: 'npm', args: ['run', 'eval:skill'] })
   })
 
   it('解析 Persona trial 结构化进度，拒绝未知场景', () => {

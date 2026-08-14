@@ -203,6 +203,13 @@ Skill 资产由 `electron/main/skills/loader.ts` 读取和保存，`registry.ts`
 
 - querySource 互斥守卫：compact/memory/title 来源自动跳过 LLM 摘要，防递归
 
+### 9. Eval 与 Debug 证据链
+
+- Eval CLI 是判定与报告的事实源；Debug 只通过受控 IPC 读取报告、启动固定白名单脚本，不在渲染层重新评分。
+- Skill Eval 为每个 Case 创建独立临时目录和 ToolRegistry，复用生产 Skill 激活工具、Skill 摘要与 Agent Loop；Mock / Real 共用触发、指南注入、工具边界和回复约束 Grader。
+- 报告写入 `eval-reports/` 的 JSON / Markdown，只保存输入快照、Skill 元数据与指纹、激活 Trace、工具调用和 Agent 可见回复，不保存 API Key、隐藏 reasoning 或 Skill 正文。
+- `debug:skill-eval-reports` / `debug:skill-eval-report-get` 对文件名与最小结构做校验，拒绝目录穿越和损坏报告；`DebugEvalRunner` 仅映射 `eval:run`、`eval:skill`、`eval:persona`。
+
 ## 目录结构
 
 ```

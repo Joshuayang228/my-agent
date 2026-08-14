@@ -2,6 +2,13 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
+## 2026-08-14 · Skill Eval v1
+
+- 新增独立 `npm run eval:skill`，S01–S03 通过生产 Skill 激活工具、Skill 摘要和 Agent Loop 验证正确触发、不得误触发、指南注入与 `allowed_tools` 边界。
+- 每个 Case 保存用户输入、Skill 名称 / 版本 / 来源 / 指纹、激活 Trace、工具调用、注入观察、Agent 回复和触发 / 注入 / 工具边界 / 回复四类 Grader 证据；JSON / Markdown 报告不包含 Skill 正文或 API Key。
+- Debug「质量 / Eval」新增 Skill Eval 历史报告和 Case 证据视图；受控 Runner 新增 `eval:skill` 白名单，完成后自动载入最新报告。
+- Skill Diff 审阅与导入导出继续保留在 wishlist，不与本阶段混做。
+
 
 
 ## 2026-08-14 · Electron 开发模式白屏修复
@@ -16,7 +23,7 @@
 - Skills 管理页已补齐主进程校验、用户 Skill 编辑、版本历史 / 历史正文查看 / 回滚、隔离试跑；保存前自动备份，最多保留 10 个历史版本。
 - Skill 激活工具会把来源、版本、正文指纹、激活原因写入当前 LLM Debug 请求的 `requestExtra.skillActivations`；不复制 Skill 正文。
 - Debug 与 Settings / Skills 边界保持分离：Debug 只读生产真相，Skills 面板编辑用户资产，隔离试跑不写设置或真实会话。
-- 当前阶段新增测试和 UI E2E；Skill Eval、差异审阅、导入导出已写入 wishlist，后续独立立项。
+- 当时将 Skill Eval、差异审阅、导入导出写入 wishlist；Skill Eval 已于同日后续批次落地，差异审阅与导入导出继续保留。
 
 
 

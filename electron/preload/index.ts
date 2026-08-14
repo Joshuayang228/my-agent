@@ -11,6 +11,8 @@ import type {
   LLMSubagentSession,
   DebugPersonaEvalIndex,
   DebugPersonaEvalReport,
+  DebugSkillEvalIndex,
+  DebugSkillEvalReport,
   PersonaEvalHumanReview,
   PersonaEvalHumanReviewDeleteInput,
   PersonaEvalHumanReviewInput,
@@ -423,6 +425,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('debug:persona-eval-reports'),
     personaEvalReportGet: (fileName: string): Promise<DebugPersonaEvalReport | null> =>
       ipcRenderer.invoke('debug:persona-eval-report-get', fileName),
+    skillEvalReports: (): Promise<DebugSkillEvalIndex> =>
+      ipcRenderer.invoke('debug:skill-eval-reports'),
+    skillEvalReportGet: (fileName: string): Promise<DebugSkillEvalReport | null> =>
+      ipcRenderer.invoke('debug:skill-eval-report-get', fileName),
     personaEvalHumanReviewsList: (fileName: string): Promise<PersonaEvalHumanReview[]> =>
       ipcRenderer.invoke('debug:persona-eval-human-reviews-list', fileName),
     personaEvalHumanReviewSave: (input: PersonaEvalHumanReviewInput): Promise<PersonaEvalHumanReviewSaveResult> =>

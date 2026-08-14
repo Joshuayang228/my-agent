@@ -382,7 +382,73 @@ export interface DebugPersonaEvalIndex {
   skippedFiles: number
 }
 
-export type DebugEvalSuite = 'mock' | 'persona-real'
+export interface SkillEvalInputSnapshot {
+  userPrompt: string
+  model: string
+  baseUrl: string
+  skill: {
+    name: string
+    version: string
+    source: 'builtin' | 'user'
+    fingerprint: string
+    toolName: string
+  }
+  expectedActivation: boolean
+  allowedTools: string[]
+}
+
+export interface SkillEvalEvidence {
+  activations: SkillActivationTrace[]
+  toolCalls: string[]
+  injectionObserved: boolean
+  agentText: string
+}
+
+export interface SkillEvalCaseReport {
+  id: string
+  description: string
+  pass: boolean
+  durationMs: number
+  input: SkillEvalInputSnapshot
+  evidence: SkillEvalEvidence
+  graderResults: PersonaEvalGraderResult[]
+  error?: string
+}
+
+export interface SkillEvalReport {
+  timestamp: string
+  mode: 'mock' | 'real'
+  model: string
+  baseUrl: string
+  pass: boolean
+  totalCases: number
+  passedCases: number
+  cases: SkillEvalCaseReport[]
+}
+
+export interface SkillEvalReportSummary {
+  fileName: string
+  timestamp: string
+  mode: 'mock' | 'real'
+  model: string
+  baseUrl: string
+  pass: boolean
+  totalCases: number
+  passedCases: number
+}
+
+export interface DebugSkillEvalReport extends SkillEvalReport {
+  fileName: string
+}
+
+export interface DebugSkillEvalIndex {
+  reportDir: string
+  reports: SkillEvalReportSummary[]
+  latest: DebugSkillEvalReport | null
+  skippedFiles: number
+}
+
+export type DebugEvalSuite = 'mock' | 'skill' | 'persona-real'
 export type DebugEvalRunState = 'idle' | 'running' | 'succeeded' | 'failed' | 'cancelled'
 
 export interface DebugEvalRunPlan {

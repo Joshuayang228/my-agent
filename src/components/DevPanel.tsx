@@ -7,6 +7,7 @@ import { PromptManagerPanel, type DebugPromptInfo } from './debug/PromptManagerP
 import { LLMCallsPanel } from './debug/LLMCallsPanel'
 import { WorldStatePanel, type WorldSnapshot } from './debug/WorldStatePanel'
 import { PersonaEvalPanel } from './debug/PersonaEvalPanel'
+import { SkillEvalPanel } from './debug/SkillEvalPanel'
 
 type DebugTab = 'prompt' | 'request-runtime' | 'world' | 'eval' | 'system'
 type RequestRuntimeView = 'llm' | 'traces' | 'events'
@@ -243,7 +244,12 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
         {debugTab === 'world' && (
           <WorldStatePanel snap={worldSnap} error={worldError} />
         )}
-        {debugTab === 'eval' && <PersonaEvalPanel />}
+        {debugTab === 'eval' && (
+          <div className="mx-auto max-w-5xl space-y-4">
+            <SkillEvalPanel />
+            <PersonaEvalPanel />
+          </div>
+        )}
         {debugTab === 'system' && <SystemTab info={systemInfo} tools={tools} />}
       </div>
     </div>

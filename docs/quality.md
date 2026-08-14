@@ -36,6 +36,7 @@
 |----|------|------|------|
 | Unit | 确定性逻辑 | `npm test` | commit 前必过 |
 | Eval | Agent 行为场景（多 Mock LLM） | `npm run eval:run` | 行为改动时跑；不替代 unit |
+| Skill Eval | Skill 触发 / 注入 / 工具边界 / 回复证据 | `npm run eval:skill` | Skill 运行链路或契约改动时跑；默认 Mock，可显式 `EVAL_MODE=real` |
 | Persona Real Eval | B02–B07 真实 LLM + Judge + pass^k | `npm run eval:persona` | 远程人格验收；需要 `.env` / `LLM_API_KEY` |
 | E2E UI | 纯 Renderer 界面冒烟 | `npm run test:e2e` | 涉 UI 时；固定 Chrome + `127.0.0.1:5174`，不启动 Electron |
 | E2E Electron | 首次配置 + 可选真对话 | `npm run test:e2e:electron` | 首次配置用本地 SSE 服务必跑；真对话需 `TEST_LLM_API_KEY`，无 key 则仅 skip 真对话 |
@@ -46,14 +47,17 @@
 
 - 目录：`evals/`（runner、mock-llm、graders、scenarios、baseline）
 - 注入点：`AgentLoopOptions.streamChatOverride`（禁止用假 LLM 冒充产品功能，仅测试/Eval）
-- 场景标签：框架向 `f*`、伙伴向 `p*`、人格向 `b01-*` 等——**按产品关心点选题，但 Eval 本身不是产品模块**
+- 场景标签：框架向 `f*`、伙伴向 `p*`、人格向 `b01-*`、Skill 向 `s*`——**按产品关心点选题，但 Eval 本身不是产品模块**
 - `ModelBasedGrader` 只接受“是否存在违规”的负向二元问题；正向要求必须改写为“是否缺失该行为”，避免通过行为被当作违规。
 - 模块卡可链接相关场景 ID；场景正文不复制进模块卡
 - 历史规格底稿：`_archive/docs-legacy/eval-design.md`（可能过时）
 
 ```bash
 npm run eval:run
+npm run eval:skill
 ```
+
+Skill Eval 默认使用确定性 Mock LLM，S01–S03 分别验证应触发并注入指南、普通请求不得误触发、激活后只调用 `allowed_tools`。每个 Case 保存用户输入、Skill 名称 / 版本 / 来源 / 指纹、激活 Trace、工具调用、注入观察、Agent 回复和四类 Grader 证据；不保存 Skill 正文、API Key 或隐藏 reasoning。Debug「质量 / Eval」只读展示同一份 JSON 报告，并通过固定白名单命令启动运行。
 
 远程人格验收：
 

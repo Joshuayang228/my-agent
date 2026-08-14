@@ -211,7 +211,7 @@ export function PersonaEvalPanel() {
   }, { pass: 0, revise: 0, uncertain: 0 })
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4" data-testid="persona-eval-panel">
+    <div className="space-y-4" data-testid="persona-eval-panel">
       <EvalRunnerCard
         plans={plans}
         status={runStatus}
@@ -358,7 +358,7 @@ function EvalRunnerCard({
         <div className="mt-3 space-y-3 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
           <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
             <span>状态：<strong style={{ color: status.state === 'failed' ? 'var(--danger)' : status.state === 'succeeded' ? 'var(--success)' : 'var(--text-primary)' }}>{stateLabel[status.state]}</strong></span>
-            {status.suite && <span>套件：{status.suite === 'mock' ? 'Mock Eval' : '真实 Persona Eval'}</span>}
+            {status.suite && <span>套件：{status.suite === 'mock' ? 'Mock Eval' : status.suite === 'skill' ? 'Skill Eval' : '真实 Persona Eval'}</span>}
             {status.startedAt && <span>用时：{elapsed}s</span>}
             {typeof status.completedTrials === 'number' && typeof status.totalTrials === 'number' && <span>进度：{status.completedTrials}/{status.totalTrials}</span>}
             {status.cancelRequested && <span style={{ color: 'var(--warning)' }}>正在停止进程树…</span>}

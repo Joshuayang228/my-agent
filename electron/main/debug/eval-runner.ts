@@ -2,7 +2,7 @@
  * Debug Eval 受控运行器。
  *
  * 背景：Debug 已能读取真实报告，但开发者仍需切到终端运行固定 Eval script。
- * 设计意图：主进程仅暴露两个白名单 suite，通过 npm script 子进程复用 CLI 真相；结构化进度由
+ * 设计意图：主进程仅暴露三个白名单 suite，通过 npm script 子进程复用 CLI 真相；结构化进度由
  *           Persona Eval 自身输出，避免 UI 猜测日志。
  * 关键约束：不接受任意命令/参数；真实运行由 UI 二次确认；单次只允许一个进程；输出脱敏且有界；
  *           取消时终止进程树，避免 npm/vitest 孤儿进程继续消耗 API。
@@ -20,6 +20,7 @@ import type {
 } from '../../../src/shared/types'
 import { redactSensitiveText } from '../utils/text-capture'
 import { listPersonaEvalReports } from './persona-eval-reports'
+import { listSkillEvalReports } from './skill-eval-reports'
 
 const OUTPUT_LIMIT = 80_000
 const PERSONA_IDS = ['B02', 'B03', 'B04', 'B05', 'B06', 'B07'] as const
@@ -71,6 +72,14 @@ export function buildDebugEvalRunPlans(env: NodeJS.ProcessEnv = process.env): De
       requiresConfirmation: false,
       available: true,
     },
+    {
+      suite: 'skill',
+      label: 'Skill Eval',
+      command: 'npm run eval:skill',
+      requiresConfirmation: false,
+      available: true,
+    },
+
     {
       suite: 'persona-real',
       label: '真实 Persona Eval',
@@ -130,7 +139,12 @@ export function buildEvalSpawnSpec(
   platform = process.platform,
   env: NodeJS.ProcessEnv = process.env,
 ): { executable: string; args: string[] } {
-  const script = suite === 'mock' ? 'eval:run' : 'eval:persona'
+  const scripts: Record<DebugEvalSuite, string> = {
+    mock: 'eval:run',
+    skill: 'eval:skill',
+    'persona-real': 'eval:persona',
+  }
+  const script = scripts[suite]
   if (platform === 'win32') {
     return {
       executable: env.ComSpec || 'cmd.exe',
