@@ -146,7 +146,7 @@ think → act → observe → think → ...
 | L3 上下文 | 用户画像、记忆、向量检索结果、自定义指令 | 每次重建 |
 | L4 动态 | 当前时间 | 每次变化 |
 
-Prompt 资产由 `electron/main/agent/prompt-assets.ts` 统一登记。每项使用稳定 `key`，并记录用途、角色、真实来源、版本、当前 `zh-CN` locale、静态 / 动态模式和动态插槽；Debug 通过 `debug:prompt-assets` 读取目录，通过 `debug:system-prompt` 返回当前装配引用的资产追踪信息。稳定人格模板与动态状态分离，动态 Prompt 不在 Debug / Playground 复制第二份正文。
+Prompt 资产由 `electron/main/prompts/registry.ts` 统一登记。每项使用稳定 `key`，并记录用途、角色、真实来源、版本、当前 `zh-CN` locale、静态 / 动态模式和动态插槽；Debug 通过 `debug:prompt-assets` 读取目录，通过 `debug:system-prompt` 返回当前装配引用的资产追踪信息。稳定人格模板与动态状态分离，动态 Prompt 不在 Debug / Playground 复制第二份正文。每次 `streamChat` / `chatComplete` 调用只声明实际使用的稳定 key，统一入口从注册表解析为 `requestExtra.promptAssets`；未知 key 写入 `unknownPromptAssetKeys`。因此 Debug LLM 调用详情可以逐次查看 Prompt 来源与版本，而不是把当前装配预览误当成历史实发记录。静态正文集中在 `prompts/texts.ts`，生产调用与注册表共同引用，避免循环依赖和文案漂移。
 
 未来扩展英文时，在同一资产 key 下维护独立语言版本，由运行时按 locale 单选；当前不实现英文或韩文版本。
 

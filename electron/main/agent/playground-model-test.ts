@@ -82,6 +82,7 @@ async function consumeOnce(
       },
     ],
     caller,
+    promptAssetKeys: ['playground-model-test'],
   })
   let result: StreamChatResult
   while (true) {

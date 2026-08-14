@@ -11,12 +11,12 @@ import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
 import { chatComplete } from '../llm/index'
 import { loadMainLLMConfig } from '../llm/aux-config'
 import { createLogger } from '../utils/logger'
+import { DEFAULT_PLAYGROUND_SYSTEM } from '../prompts/texts'
 import { startLinkedAsyncSpan } from '../utils/tracer'
 
-const log = createLogger('Playground')
+export { DEFAULT_PLAYGROUND_SYSTEM } from '../prompts/texts'
 
-export const DEFAULT_PLAYGROUND_SYSTEM =
-  '你是开发者 Playground 中的助手。请保持回复简洁，不使用工具。'
+const log = createLogger('Playground')
 
 /** 试验场历史轮（不含 system） */
 export type PlaygroundTurn = { role: 'user' | 'assistant'; content: string }
@@ -109,6 +109,7 @@ export async function runPlayground(input: {
         content: typeof m.content === 'string' ? m.content : String(m.content),
       })),
       caller: 'playground',
+      promptAssetKeys: [(input.systemPrompt ?? '').trim() ? 'playground-draft' : 'playground-default'],
       temperature: 0.7,
       maxTokens: 1024,
     })

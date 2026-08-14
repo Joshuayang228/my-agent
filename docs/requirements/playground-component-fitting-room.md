@@ -162,7 +162,7 @@ type UiStory = {
 
 ### 3.3 Prompt 边界
 
-对齐 Alice Debug：生产目录由 `electron/main/agent/prompt-assets.ts` 运行时生成，静态正文直接引用生产常量，Role Pack 从 Identity loader 读取，动态组装项标记 `dynamic`；Debug 只读展示。Playground 的 Lab 仅保留会话级覆盖，文案：*仅当前 Playground 试验有效*。
+对齐 Alice Debug：生产目录由 `electron/main/prompts/registry.ts` 运行时生成，静态正文直接引用生产常量，Role Pack 从 Identity loader 读取，动态组装项标记 `dynamic`；Debug 只读展示。Playground 的 Lab 仅保留会话级覆盖，文案：*仅当前 Playground 试验有效*。
 
 ### 3.4 IA 映射
 

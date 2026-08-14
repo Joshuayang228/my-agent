@@ -201,6 +201,7 @@ export async function runSubAgent(
         messages,
         tools: childRegistry.getAll(),
         systemPrompt,
+        promptAssetKeys: ['subagent-system'],
         maxIterations,
         signal,
         executionMode,           // G4：只降不升后的模式

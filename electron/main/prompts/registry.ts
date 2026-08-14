@@ -13,10 +13,8 @@ import type {
   PromptAssetTrace,
   PromptSlot,
 } from '../../../src/shared/types'
-import { DEFAULT_SYSTEM_PROMPT } from './loop'
-import { DEFAULT_PLAYGROUND_SYSTEM } from './playground'
-import { EXTRACTION_PROMPT } from './profile-extractor'
-import { loadUniverseManifest, tryReadRoleText } from '../companion/identity/loader'
+import { DEFAULT_PLAYGROUND_SYSTEM, DEFAULT_SYSTEM_PROMPT, EXTRACTION_PROMPT } from './texts'
+import { listAvailableRoleIds, tryReadRoleText } from '../companion/identity/loader'
 
 const PROMPT_LOCALE = 'zh-CN'
 const DEFAULT_PROMPT_VERSION = '1.0.0'
@@ -108,7 +106,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     purpose: 'Agent Loop 兜底 System',
     role: 'system',
     desc: 'Agent Loop 未注入自定义 system 时的兜底指令。',
-    sourcePath: 'electron/main/agent/loop.ts',
+    sourcePath: 'electron/main/prompts/texts.ts',
     content: DEFAULT_SYSTEM_PROMPT,
   }),
   staticAsset({
@@ -118,8 +116,30 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     purpose: 'Playground 隔离试跑',
     role: 'playground',
     desc: '对话试验 System 为空时使用；免伴侣上下文与工具。',
-    sourcePath: 'electron/main/agent/playground.ts',
+    sourcePath: 'electron/main/prompts/texts.ts',
     content: DEFAULT_PLAYGROUND_SYSTEM,
+  }),
+  dynamicAsset({
+    id: 'playground-draft',
+    name: 'Playground 自定义草稿',
+    category: 'system',
+    purpose: 'Playground 隔离自定义 Prompt',
+    role: 'playground',
+    desc: '开发者在对话试验中临时输入的 System 草稿，不写入生产设置。',
+    sourcePath: 'electron/main/agent/playground.ts',
+    preview: '正文来自本次 Playground 输入；只在隔离试跑中生效。',
+    slots: [{ name: 'systemPrompt', source: 'Playground draft', lifecycle: '每次试跑' }],
+  }),
+  dynamicAsset({
+    id: 'playground-model-test',
+    name: 'Playground 模型能力探测',
+    category: 'ui',
+    purpose: '模型连通与 Thinking 能力探测',
+    role: 'playground-model-test',
+    desc: '模型测试页用于 smoke test 与 thinking.disabled 对比的短提示。',
+    sourcePath: 'electron/main/agent/playground-model-test.ts',
+    preview: '短文本探测，不注入主会话人格、记忆或工具。',
+    slots: [{ name: 'probePrompt', source: 'model test runner', lifecycle: '每次探测' }],
   }),
   dynamicAsset({
     id: 'l3-collapse',
@@ -150,8 +170,41 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     purpose: '用户画像提取',
     role: 'profile-extractor',
     desc: '后台从近期对话提取可长期复用的用户信息。',
-    sourcePath: 'electron/main/agent/profile-extractor.ts',
+    sourcePath: 'electron/main/prompts/texts.ts',
     content: EXTRACTION_PROMPT,
+  }),
+  dynamicAsset({
+    id: 'session-title',
+    name: '会话标题生成',
+    category: 'context',
+    purpose: '新会话标题生成',
+    role: 'session-store',
+    desc: '根据首轮用户与助手文本生成 4–10 字中文标题。',
+    sourcePath: 'electron/main/storage/session-store.ts',
+    preview: '只返回短标题，不注入完整会话历史。',
+    slots: [{ name: 'openingTurn', source: 'session messages', lifecycle: '新会话首轮' }],
+  }),
+  dynamicAsset({
+    id: 'connection-test',
+    name: '模型连接测试',
+    category: 'ui',
+    purpose: '设置页模型连接验证',
+    role: 'settings',
+    desc: '用固定短消息验证 Provider、Base URL、API Key 与模型是否可调用。',
+    sourcePath: 'electron/main/ipc/settings.ts',
+    preview: '只验证连接与最小正文返回，不进入真实会话。',
+    slots: [{ name: 'connectionProbe', source: 'settings IPC', lifecycle: '每次测试' }],
+  }),
+  dynamicAsset({
+    id: 'settings-system-prompt',
+    name: '设置中的 System 补充指令',
+    category: 'system',
+    purpose: '主对话 L3 自定义补充',
+    role: 'system',
+    desc: '用户在设置中保存的自定义 System 补充，被装配进主会话上下文。',
+    sourcePath: 'electron/main/storage/settings-store.ts',
+    preview: '正文来自 settings.systemPrompt；Debug 调用详情可查看本次实发内容。',
+    slots: [{ name: 'systemPrompt', source: 'settings.systemPrompt', lifecycle: '设置变更' }],
   }),
   dynamicAsset({
     id: 'reply-stance',
@@ -240,6 +293,17 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     ],
   }),
   dynamicAsset({
+    id: 'companion-mutable-state',
+    name: '伙伴 MUTABLE 当前状态',
+    category: 'companion',
+    purpose: '角色可成长状态注入',
+    role: 'companion-orchestrator',
+    desc: '当角色 MUTABLE 已偏离 Role Pack 默认正文时，注入当前持久化状态。',
+    sourcePath: 'electron/main/companion/growth/mutable-store.ts',
+    preview: '只记录来源与版本；实际状态正文保留在本次请求消息中。',
+    slots: [{ name: 'mutableBody', source: 'companion mutable store', lifecycle: '角色状态变化' }],
+  }),
+  dynamicAsset({
     id: 'companion-background-tasks',
     name: '伙伴后台任务 Prompt',
     category: 'companion',
@@ -249,6 +313,50 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     sourcePath: 'electron/main/companion/life/ + electron/main/companion/growth/',
     preview: '每个辅助任务在自身服务文件中组装，不复用主对话 System Prompt。',
     slots: [{ name: 'taskInput', source: 'companion background task', lifecycle: '每次后台任务' }],
+  }),
+  dynamicAsset({
+    id: 'companion-reflection',
+    name: '伙伴反思更新 Prompt',
+    category: 'companion',
+    purpose: '角色 MUTABLE 反思更新',
+    role: 'companion-background',
+    desc: '根据近期互动判断是否更新角色可成长状态。',
+    sourcePath: 'electron/main/companion/growth/reflection-service.ts',
+    preview: '输出结构化反思结果；不复用主对话 System Prompt。',
+    slots: [{ name: 'reflectionInput', source: 'recent interaction', lifecycle: '每次反思' }],
+  }),
+  dynamicAsset({
+    id: 'companion-catchup',
+    name: '伙伴生活补叙 Prompt',
+    category: 'companion',
+    purpose: '暂停期间生活补叙',
+    role: 'companion-background',
+    desc: '根据角色与暂停区间生成可校验的 Catch-up 摘要。',
+    sourcePath: 'electron/main/companion/life/catchup.ts',
+    preview: '输出暂停期间的生活摘要，不改写主会话 Prompt。',
+    slots: [{ name: 'catchupWindow', source: 'companion lifecycle', lifecycle: '恢复时' }],
+  }),
+  dynamicAsset({
+    id: 'companion-moment-polish',
+    name: '伙伴 Moment 润色 Prompt',
+    category: 'companion',
+    purpose: '已发布 Moment 文案润色',
+    role: 'companion-background',
+    desc: '在规则文案基础上按角色语气生成简短生活动态。',
+    sourcePath: 'electron/main/companion/life/moment-polish.ts',
+    preview: '只润色已有事件，不新增未发生的事实。',
+    slots: [{ name: 'momentEvent', source: 'published life event', lifecycle: '每次发布' }],
+  }),
+  dynamicAsset({
+    id: 'companion-day-script',
+    name: '伙伴日程剧本 Prompt',
+    category: 'companion',
+    purpose: '角色日程剧本生成',
+    role: 'companion-background',
+    desc: '结合人物档案与世界默认值生成结构化日程脚本。',
+    sourcePath: 'electron/main/companion/life/script-generator.ts',
+    preview: '输出结构化日程载荷，后续仍需规则校验。',
+    slots: [{ name: 'dayContext', source: 'role pack and world state', lifecycle: '每日生成' }],
   }),
   dynamicAsset({
     id: 'subagent-system',
@@ -286,15 +394,24 @@ const ROLE_PROMPT_FILES = [
   { suffix: 'scenes/execute.md', label: '执行场景' },
 ] as const
 
+let roleAssetsCache: Array<PromptAsset & { content: string }> | undefined
+
 function roleAssetKey(roleId: string, suffix: string): string {
   return `role-${roleId}-${suffix.replace(/[^a-z0-9]+/gi, '-')}`
 }
 
+/**
+ * 读取并缓存进程生命周期内的 Role Pack Prompt 资产。
+ *
+ * 背景：调用级追踪发生在每次 LLM 请求前，不能为每条辅助调用重复同步扫描全部角色文件。
+ * 设计意图：Role Pack 是随应用构建加载的生产资产，首次读取后复用不可变快照；开发热更新会重载模块。
+ * 关键约束：加载失败返回空数组，让 core 资产和真实 LLM 调用继续工作；未知角色 key 会在 Debug 显式告警。
+ */
 function loadRoleAssets(): Array<PromptAsset & { content: string }> {
+  if (roleAssetsCache) return roleAssetsCache
   try {
-    const manifest = loadUniverseManifest()
     const assets: Array<PromptAsset & { content: string }> = []
-    for (const roleId of manifest.protagonistIds) {
+    for (const roleId of listAvailableRoleIds()) {
       for (const file of ROLE_PROMPT_FILES) {
         const content = tryReadRoleText(roleId, file.suffix)
         if (!content?.trim()) continue
@@ -311,9 +428,11 @@ function loadRoleAssets(): Array<PromptAsset & { content: string }> {
         }))
       }
     }
-    return assets
+    roleAssetsCache = assets
+    return roleAssetsCache
   } catch {
-    return []
+    roleAssetsCache = []
+    return roleAssetsCache
   }
 }
 
@@ -326,23 +445,54 @@ export function getPromptAssets(): Array<PromptAsset & { content?: string }> {
  *
  * 背景：最终 Prompt 可能包含用户状态和敏感上下文，追踪信息应与正文分离。
  * 设计意图：从同一注册表投影元数据，避免 Debug 维护第二套来源 / 版本描述。
- * 关键约束：未知 key 被忽略，调用方可根据实际组装结果筛选；正文脱敏由更上层负责。
+ * 关键约束：该兼容投影只返回已登记资产；调用级未知 key 必须通过 resolvePromptAssetTraces 的 unknownKeys 显式处理。
  */
 export function getPromptAssetTraces(keys?: readonly string[]): PromptAssetTrace[] {
-  const assets = getPromptAssets()
-  const wanted = keys ? new Set(keys) : undefined
-  return assets
-    .filter((asset) => !wanted || wanted.has(asset.key))
-    .map(({ key, purpose, role, source, version, locale, mode, slots }) => ({
-      key,
-      purpose,
-      role,
-      source,
-      version,
-      locale,
-      mode,
-      slots,
-    }))
+  if (keys) return resolvePromptAssetTraces(keys).assets
+  return getPromptAssets().map(({ key, purpose, role, source, version, locale, mode, slots }) => ({
+    key,
+    purpose,
+    role,
+    source,
+    version,
+    locale,
+    mode,
+    slots,
+  }))
+}
+
+export interface PromptAssetResolution {
+  assets: PromptAssetTrace[]
+  unknownKeys: string[]
+}
+
+/**
+ * 按调用点声明顺序解析 Prompt 资产，并显式保留未知 key。
+ *
+ * 背景：真实 LLM 调用只应声明稳定 key，来源、版本和 locale 必须回到注册表解析。
+ * 设计意图：去重但保留首次出现顺序，便于 Debug 还原本次组装链；未知 key 单独返回，
+ *           避免注册表漏项被静默吞掉。
+ * 关键约束：这里只投影元数据，不复制 Prompt 正文或动态插槽值。
+ */
+export function resolvePromptAssetTraces(keys: readonly string[]): PromptAssetResolution {
+  const assetsByKey = new Map(getPromptAssets().map((asset) => [asset.key, asset]))
+  const seen = new Set<string>()
+  const assets: PromptAssetTrace[] = []
+  const unknownKeys: string[] = []
+
+  for (const key of keys) {
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    const asset = assetsByKey.get(key)
+    if (!asset) {
+      unknownKeys.push(key)
+      continue
+    }
+    const { purpose, role, source, version, locale, mode, slots } = asset
+    assets.push({ key, purpose, role, source, version, locale, mode, slots })
+  }
+
+  return { assets, unknownKeys }
 }
 
 /**

@@ -152,6 +152,7 @@ async function runReflectionCore(
       temperature: 0.7,
       maxTokens: 1500,
       caller: 'persona-reflection',
+      promptAssetKeys: ['companion-reflection'],
     })
     parsed = parseReflectionJson(raw)
   } catch (err) {

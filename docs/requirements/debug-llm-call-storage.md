@@ -21,6 +21,7 @@ Alice 的做法不是把聊天消息存储整体重做，而是单独维护一�
 1. 每个现有 `llm_request` Span 生成一条独立 Debug 记录，至少包含；Provider failover / Agent retry 仍保留在同一 Span 的 Debug extra 与调用链语义中：
    - `id`、时间、`sessionId`、`provider`、`model`、`caller`；
    - 请求 messages、tools、extra 参数；
+   - 本次调用实际使用的 Prompt 资产 key、来源、版本、locale、模式和插槽元数据；未知 key 必须显式记录；
    - 响应 content、reasoning、tool calls、error；
    - prompt / completion / total / cached tokens；
    - duration 与 `pending` / `success` / `error` 状态。
@@ -205,4 +206,4 @@ Debug 记录可能包含用户私密内容。实现中不保存凭据，并使�
 
 ## 验收结论
 
-当一次真实对话完成后，用户重启应用、重新打开该会话并打开 Debug 侧栏，仍能看到按调用顺序恢复的 LLM 调用链；展开某条记录可以查看该次调用的请求 / 响应详情，失败调用保留错误信息，子 Agent 调用能归入主会话；清空 Debug 不影响正常聊天记录。
+当一次真实对话完成后，用户重启应用、重新打开该会话并打开 Debug 侧栏，仍能看到按调用顺序恢复的 LLM 调用链；展开某条记录可以查看该次调用的 Prompt 资产、请求 / 响应详情，失败调用保留错误信息，子 Agent 调用能归入主会话；清空 Debug 不影响正常聊天记录。

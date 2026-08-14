@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getPromptAssets, getRuntimePromptAssetTraces } from '../../electron/main/agent/prompt-assets'
+import { getPromptAssets, getRuntimePromptAssetTraces, resolvePromptAssetTraces } from '../../electron/main/prompts/registry'
 
 const REQUIRED_KEYS = [
   'system-layers',
@@ -8,6 +8,13 @@ const REQUIRED_KEYS = [
   'l3-collapse',
   'l4-autocompact',
   'profile-extraction',
+  'session-title',
+  'connection-test',
+  'companion-reflection',
+  'companion-catchup',
+  'companion-moment-polish',
+  'companion-day-script',
+  'subagent-system',
 ] as const
 
 describe('debug prompt assets', () => {
@@ -37,6 +44,7 @@ describe('debug prompt assets', () => {
     for (const key of REQUIRED_KEYS) {
       expect(keys).toContain(key)
     }
+    expect(keys).toContain('role-ayu-protected-md')
   })
 
   it('静态资产把真实正文登记到当前 locale，动态资产只登记插槽', () => {
@@ -46,6 +54,22 @@ describe('debug prompt assets', () => {
     expect(loop?.locales['zh-CN'].template).toBe(loop?.content)
     expect(system?.locales['zh-CN'].template).toBeUndefined()
     expect(system?.slots.some((slot) => slot.name === 'persona')).toBe(true)
+  })
+
+  it('调用级解析保留声明顺序、去重并显式返回未知 key', () => {
+    const result = resolvePromptAssetTraces([
+      'profile-extraction',
+      'l3-collapse',
+      'profile-extraction',
+      'missing-prompt-key',
+    ])
+    expect(result.assets.map((asset) => asset.key)).toEqual(['profile-extraction', 'l3-collapse'])
+    expect(result.assets[0]).toMatchObject({
+      source: 'electron/main/prompts/texts.ts',
+      version: '1.0.0',
+      locale: 'zh-CN',
+    })
+    expect(result.unknownKeys).toEqual(['missing-prompt-key'])
   })
 
   it('当前 System 装配快照通过同一注册表返回来源与版本追踪', () => {

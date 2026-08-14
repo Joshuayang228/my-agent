@@ -10,12 +10,12 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type
 import {
   ChevronLeft, ChevronRight, Copy, Download, RefreshCw, Search, Trash2,
 } from 'lucide-react'
-import type { LLMCallDetail, LLMCallQuery, LLMCallSummary } from '../../shared/types'
+import type { LLMCallDetail, LLMCallQuery, LLMCallSummary, PromptAssetTrace } from '../../shared/types'
 import { formatDebugBytes, formatDebugValue, normalizeDebugMessages } from './debug-format'
 
 const PAGE_SIZE = 30
 
-type DetailView = 'system' | 'messages' | 'tools' | 'extra' | 'response' | 'json'
+type DetailView = 'prompts' | 'system' | 'messages' | 'tools' | 'extra' | 'response' | 'json'
 
 export function LLMCallsPanel() {
   const [records, setRecords] = useState<LLMCallSummary[]>([])
@@ -29,7 +29,7 @@ export function LLMCallsPanel() {
   const [filters, setFilters] = useState<Pick<LLMCallQuery, 'search' | 'caller' | 'model' | 'status'>>({})
   const [selectedId, setSelectedId] = useState('')
   const [detail, setDetail] = useState<LLMCallDetail | null>(null)
-  const [detailView, setDetailView] = useState<DetailView>('messages')
+  const [detailView, setDetailView] = useState<DetailView>('prompts')
   const [loading, setLoading] = useState(true)
   const [detailLoading, setDetailLoading] = useState(false)
   const [error, setError] = useState('')
@@ -144,6 +144,7 @@ export function LLMCallsPanel() {
 
   const messages = normalizeDebugMessages(detail?.requestMessages)
   const systemMessages = messages.filter((message) => message.role === 'system')
+  const promptAssets = normalizePromptAssets(detail?.requestExtra.promptAssets)
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
@@ -279,7 +280,7 @@ export function LLMCallsPanel() {
               </div>
 
               <div className="my-2 flex flex-wrap gap-1">
-                {(['system', 'messages', 'tools', 'extra', 'response', 'json'] as DetailView[]).map((item) => (
+                {(['prompts', 'system', 'messages', 'tools', 'extra', 'response', 'json'] as DetailView[]).map((item) => (
                   <button
                     key={item}
                     type="button"
@@ -290,11 +291,17 @@ export function LLMCallsPanel() {
                       background: detailView === item ? 'var(--accent-subtle)' : 'transparent',
                     }}
                   >
-                    {{ system: `System ${systemMessages.length}`, messages: `Messages ${messages.length}`, tools: 'Tools', extra: '请求参数', response: '响应', json: '完整 JSON' }[item]}
+                    {{ prompts: `Prompt 资产 ${promptAssets.length}`, system: `System ${systemMessages.length}`, messages: `Messages ${messages.length}`, tools: 'Tools', extra: '请求参数', response: '响应', json: '完整 JSON' }[item]}
                   </button>
                 ))}
               </div>
 
+              {detailView === 'prompts' && (
+                <PromptAssetsDetail
+                  assets={promptAssets}
+                  unknownKeys={normalizeStringArray(detail.requestExtra.unknownPromptAssetKeys)}
+                />
+              )}
               {detailView === 'system' && <DetailMessages messages={systemMessages} />}
               {detailView === 'messages' && <DetailMessages messages={messages} />}
               {detailView === 'tools' && <CodeBlock value={detail.requestTools} />}
@@ -321,6 +328,83 @@ export function LLMCallsPanel() {
           <IconButton title="下一页" disabled={page + 1 >= totalPages} onClick={() => setPage((value) => value + 1)}><ChevronRight size={14} /></IconButton>
         </div>
       </div>
+    </div>
+  )
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+/**
+ * 将历史 Debug JSON 收窄为当前可渲染的 Prompt 资产。
+ *
+ * 背景：旧记录和手工导入 JSON 可能缺字段，详情页不能因单条脏数据崩溃。
+ * 设计意图：只接受来源、版本、locale、模式和插槽完整的注册表投影。
+ * 关键约束：不修补或猜测缺失元数据；异常项继续留在“完整 JSON”供诊断。
+ */
+function normalizePromptAssets(value: unknown): PromptAssetTrace[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is PromptAssetTrace => {
+    if (!item || typeof item !== 'object') return false
+    const candidate = item as Partial<PromptAssetTrace>
+    return typeof candidate.key === 'string'
+      && typeof candidate.source === 'string'
+      && typeof candidate.version === 'string'
+      && typeof candidate.locale === 'string'
+      && typeof candidate.purpose === 'string'
+      && typeof candidate.role === 'string'
+      && (candidate.mode === 'static' || candidate.mode === 'dynamic')
+      && Array.isArray(candidate.slots)
+  })
+}
+
+/**
+ * 展示某次真实 LLM 调用关联的 Prompt 来源与版本。
+ *
+ * 背景：提示词管理器和当前装配预览都不是历史实发证据，调用详情必须单独呈现本次引用。
+ * 设计意图：元数据卡片回答“用了哪个资产、从哪里来、什么版本”，正文仍交给 System / Messages。
+ * 关键约束：未知 key 只告警，不伪造来源；动态插槽只显示名称，不展示可能含隐私的实际值。
+ */
+function PromptAssetsDetail({ assets, unknownKeys }: { assets: PromptAssetTrace[]; unknownKeys: string[] }) {
+  if (assets.length === 0 && unknownKeys.length === 0) {
+    return <Empty text="本次调用没有声明 Prompt 资产；可查看 System / Messages 确认实发正文。" />
+  }
+  return (
+    <div className="scrollbar-hover max-h-[52vh] space-y-2 overflow-y-auto pr-1">
+      {unknownKeys.length > 0 && (
+        <section className="rounded-lg border p-3" style={{ borderColor: 'var(--warning)', background: 'var(--bg-primary)' }}>
+          <div className="text-[11px] font-semibold" style={{ color: 'var(--warning)' }}>注册表缺失 key</div>
+          <div className="mt-1 break-words font-mono text-[10px]" style={{ color: 'var(--text-secondary)' }}>{unknownKeys.join(', ')}</div>
+        </section>
+      )}
+      {assets.map((asset) => (
+        <article key={asset.key} className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <div className="font-mono text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>{asset.key}</div>
+              <div className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{asset.purpose}</div>
+            </div>
+            <span className="rounded px-2 py-0.5 font-mono text-[10px]" style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}>
+              {asset.version} · {asset.locale} · {asset.mode}
+            </span>
+          </div>
+          <dl className="mt-3 grid gap-1.5 text-[10px] sm:grid-cols-[64px_minmax(0,1fr)]">
+            <dt style={{ color: 'var(--text-muted)' }}>来源</dt>
+            <dd className="break-all font-mono" style={{ color: 'var(--text-secondary)' }}>{asset.source}</dd>
+            <dt style={{ color: 'var(--text-muted)' }}>角色</dt>
+            <dd className="font-mono" style={{ color: 'var(--text-secondary)' }}>{asset.role}</dd>
+            {asset.slots.length > 0 && (
+              <>
+                <dt style={{ color: 'var(--text-muted)' }}>动态插槽</dt>
+                <dd className="break-words" style={{ color: 'var(--text-secondary)' }}>
+                  {asset.slots.map((slot) => slot.name).join('、')}
+                </dd>
+              </>
+            )}
+          </dl>
+        </article>
+      ))}
     </div>
   )
 }

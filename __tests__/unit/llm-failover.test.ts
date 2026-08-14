@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest'
 import type { AgentStreamEvent, LLMConfig } from '../../src/shared/types'
 
 vi.mock('../../electron/main/utils/logger', () => ({
@@ -19,6 +19,7 @@ const mockFetch = vi.fn()
 vi.stubGlobal('fetch', mockFetch)
 
 import { streamChat, chatComplete, LLMError, parseRetryAfterMs, type StreamChatOptions } from '../../electron/main/llm/index'
+import { setLLMTraceSink, type LLMTraceRequest } from '../../electron/main/utils/tracer'
 
 function makeSSEResponse(textChunks: string[], statusCode = 200) {
   const lines = textChunks.map(chunk => {
@@ -60,6 +61,37 @@ async function collectEvents(gen: AsyncGenerator<AgentStreamEvent>): Promise<Age
 describe('streamChat failover', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    setLLMTraceSink()
+  })
+
+  it('把 Prompt key 在统一入口解析为 Debug 来源与版本，并保留未知 key', async () => {
+    const requests: LLMTraceRequest[] = []
+    setLLMTraceSink({
+      onLLMStart: (request) => requests.push(request),
+      onLLMEnd: () => {},
+    })
+    mockFetch.mockResolvedValueOnce(makeSSEResponse(['ok']))
+
+    await collectEvents(streamChat({
+      config: baseConfig,
+      messages: [{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }],
+      caller: 'profile',
+      promptAssetKeys: ['profile-extraction', 'profile-extraction', 'missing-prompt-key'],
+    }))
+
+    expect(requests).toHaveLength(1)
+    expect(requests[0].extra.promptAssets).toEqual([
+      expect.objectContaining({
+        key: 'profile-extraction',
+        source: 'electron/main/prompts/texts.ts',
+        version: '1.0.0',
+        locale: 'zh-CN',
+      }),
+    ])
+    expect(requests[0].extra.unknownPromptAssetKeys).toEqual(['missing-prompt-key'])
   })
 
   it('主模型成功时不触发降级', async () => {
@@ -174,6 +206,10 @@ describe('chatComplete（非流式辅助调用入口）', () => {
     vi.clearAllMocks()
   })
 
+  afterEach(() => {
+    setLLMTraceSink()
+  })
+
   it('消费流式生成器并返回完整文本', async () => {
     // 分多个 chunk 返回，验证内部把流收敛成整段
     mockFetch.mockResolvedValueOnce(makeSSEResponse(['标', '题', '内容']))
@@ -244,6 +280,10 @@ describe('chatComplete（非流式辅助调用入口）', () => {
 describe('G2/G3：usage guard + retry-after', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    setLLMTraceSink()
   })
 
   it('G2：OpenAI usage >0 guard 防止中间 chunk 的 0 值覆盖真实统计', async () => {

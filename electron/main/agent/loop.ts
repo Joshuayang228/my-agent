@@ -17,6 +17,9 @@ import { startSpan, type SpanHandle } from '../utils/tracer'
 import { getObserver } from '../utils/observer'
 import { compressContext, emergencyTruncate, estimateTokens, DEFAULT_MAX_TOKENS } from './context-manager'
 import { sanitizeMessages } from './message-pipeline'
+import { DEFAULT_SYSTEM_PROMPT } from '../prompts/texts'
+
+export { DEFAULT_SYSTEM_PROMPT } from '../prompts/texts'
 
 const log = createLogger('AgentLoop')
 
@@ -29,7 +32,6 @@ const TOOL_TIMEOUT_MS = 30_000
 // 防止 AI 无限撞墙烧 turn；连续计数在有工具成功执行时清零）
 const MAX_CONSECUTIVE_DENIALS = 3
 const MAX_TOTAL_DENIALS = 20
-export const DEFAULT_SYSTEM_PROMPT = `你是一个乐于助人的 AI 助手。你可以使用工具帮助用户；需要执行操作时，请调用可用工具。始终使用与用户相同的语言回复。`
 
 // ── LoopState ──
 
@@ -146,6 +148,7 @@ export async function* agentLoop(
     executionMode = 'auto',
     toolContext,
     interactionSpanId,
+    promptAssetKeys = systemPrompt === DEFAULT_SYSTEM_PROMPT ? ['loop-default'] : [],
   } = options
 
   // 运行时有效模式可因连续拒绝自动收紧；只允许从 auto 降到 confirm-all，不提升权限。
@@ -344,6 +347,12 @@ export async function* agentLoop(
           parentSpanId: state.interactionSpanId,
           traceSpan: llmSpan,
           retryAttempt: attempt,
+          promptAssetKeys: [
+            ...promptAssetKeys,
+            ...(state.deniedTools.length > 0 || state.deniedCommands.length > 0
+              ? ['permission-denial']
+              : []),
+          ],
         })
 
         let streamResult = await stream.next()

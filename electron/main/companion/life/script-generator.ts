@@ -284,6 +284,7 @@ export async function generateDayScriptViaLlm(
         }),
       }],
       caller: 'day-script',
+      promptAssetKeys: ['companion-day-script'],
     })
     const parsed = parseDayScriptPayload(raw, date)
     if (!parsed) {

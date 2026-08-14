@@ -17,6 +17,7 @@ import {
   type SpanHandle,
 } from '../utils/tracer'
 import { getTraceContext } from '../utils/trace-context'
+import { resolvePromptAssetTraces } from '../prompts/registry'
 
 const llmLog = createLogger('LLM')
 
@@ -77,6 +78,8 @@ export interface StreamChatOptions {
   traceSpan?: SpanHandle
   /** Agent Loop 内部重试次数，仅写入 Debug extra，不改变 Span 生命周期 */
   retryAttempt?: number
+  /** 调用点只声明稳定 key；来源、版本和 locale 在统一入口从 Prompt 注册表解析。 */
+  promptAssetKeys?: string[]
 }
 
 export interface StreamChatResult {
@@ -179,6 +182,13 @@ export async function* streamChat(
     },
   })
   const ownsTraceSpan = !options.traceSpan
+  const promptAssetResolution = resolvePromptAssetTraces(options.promptAssetKeys ?? [])
+  if (promptAssetResolution.unknownKeys.length > 0) {
+    llmLog.warn('Unknown Prompt asset keys', {
+      caller: options.caller ?? 'unknown',
+      keys: promptAssetResolution.unknownKeys,
+    })
+  }
   const attachRequest = (activeConfig: LLMConfig, providerAttempt: number, previousError?: string) => {
     attachLLMTraceRequest(traceSpan, {
       sessionId,
@@ -199,6 +209,10 @@ export async function* streamChat(
         thinking: activeConfig.thinking,
         responseFormat: options.responseFormat,
         enablePromptCache: options.enablePromptCache === true,
+        promptAssets: promptAssetResolution.assets,
+        ...(promptAssetResolution.unknownKeys.length > 0
+          ? { unknownPromptAssetKeys: promptAssetResolution.unknownKeys }
+          : {}),
       },
     })
   }
@@ -733,6 +747,8 @@ export interface ChatCompleteOptions {
   timeoutMs?: number
   /** 外部中断信号，与超时信号合并 */
   signal?: AbortSignal
+  /** 本次辅助调用实际使用的 Prompt 注册表稳定 key。 */
+  promptAssetKeys?: string[]
 }
 
 /**
@@ -760,6 +776,7 @@ export async function chatComplete(options: ChatCompleteOptions): Promise<string
     parentSpanId,
     timeoutMs = 120_000,
     signal,
+    promptAssetKeys,
   } = options
 
   // 合并「外部中断」和「超时」两个信号
@@ -790,6 +807,7 @@ export async function chatComplete(options: ChatCompleteOptions): Promise<string
     caller,
     sessionId,
     parentSpanId,
+    promptAssetKeys,
   })
   let result: StreamChatResult
   while (true) {

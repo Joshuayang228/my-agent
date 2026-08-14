@@ -123,6 +123,7 @@ export async function polishMomentTextViaLlm(
         }),
       }],
       caller: 'moment-polish',
+      promptAssetKeys: ['companion-moment-polish'],
     })
     const ok = validatePolishedMomentText(raw, { activity, location, ruleText })
     if (!ok) {

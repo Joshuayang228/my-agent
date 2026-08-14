@@ -741,6 +741,7 @@ ${minSetSection}
     temperature: 0.2,
     maxTokens: comprehensive ? 800 : 400,
     caller: 'summary',
+    promptAssetKeys: [comprehensive ? 'l4-autocompact' : 'l3-collapse'],
   })
 
   const withMinSet = mergeMinSetIntoSummary(summary, extractRelationshipMinSet(messages))

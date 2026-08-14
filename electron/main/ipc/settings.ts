@@ -33,6 +33,7 @@ export function registerSettingsIPC(): void {
         },
         messages: CONNECTION_TEST_MESSAGES,
         caller: 'connection-test',
+        promptAssetKeys: ['connection-test'],
         timeoutMs: 15_000,
       })
       return { ok: true, model: config.model, ms: Date.now() - startedAt }

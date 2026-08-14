@@ -16,6 +16,7 @@
 - `__tests__/unit/prompt-assets.test.ts` 验证每个生产注册项都有唯一稳定 `key`、用途、角色、来源、版本、`zh-CN` locale、静态 / 动态模式和插槽数组。
 - 静态资产的 `zh-CN` 模板必须来自真实生产正文；动态资产不得伪造固定模板，必须登记实际组装器和动态插槽。
 - Debug 当前装配快照必须通过同一注册表返回资产 key、用途、角色、来源、版本、locale、模式和插槽，不得维护第二套目录文案。
+- `__tests__/unit/llm-failover.test.ts` 验证调用点 key 会在 LLM 统一入口解析进 `requestExtra.promptAssets`，重复 key 去重，未知 key 进入 `unknownPromptAssetKeys`，不得静默伪造来源。
 - 未来增加英文时，在同一 key 下进行独立版本等价性测试，并验证运行时按 locale 单选，不把多语言版本并发注入模型。
 
 ## 分层与门禁

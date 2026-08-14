@@ -3,9 +3,18 @@
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
 
+
+## 2026-08-14 · Prompt 资产进入真实 LLM 调用记录
+
+- `streamChat` / `chatComplete` 新增统一的 Prompt 资产 key 入口；主对话按本轮真实装配声明 Role Pack、动态策略、Skill、伙伴上下文等资产，L3/L4 压缩、画像、标题、连接测试、Playground、四类伙伴后台任务和子 Agent 也分别标注稳定 key。
+- LLM 统一入口从生产注册表解析 key，将来源、版本、`zh-CN` locale、模式和动态插槽写入现有 `requestExtra.promptAssets`；重复 key 去重，未知 key 写入 `unknownPromptAssetKeys` 并记录 warning，不新增数据库 schema 或 IPC。
+- Debug「请求与运行 → LLM 调用」新增默认打开的「Prompt 资产」详情页；真实正文继续以该条调用的 System / Messages 为准，提示词管理器和当前装配预览不冒充历史实发记录。
+- 三个静态 Prompt 常量集中到 `electron/main/prompts/texts.ts`，生产调用与注册表共同引用；Prompt 目录同时覆盖非主角 Role Pack，避免召唤角色资产漏登记。
+- 验证：Unit 101 文件 / 627 测试通过，TypeScript 通过，Vite Build 通过，UI E2E 6/6 通过。
+
 ## 2026-08-13 · Prompt 结构化注册表与 Debug 追踪落地
 
-- 将 `electron/main/agent/prompt-assets.ts` 从旧式展示目录升级为生产 Prompt 结构化注册表：稳定 `key`、用途、角色、来源、版本、`zh-CN` locale、静态 / 动态模式和动态插槽。
+- 将 `electron/main/prompts/registry.ts` 从旧式展示目录升级为生产 Prompt 结构化注册表：稳定 `key`、用途、角色、来源、版本、`zh-CN` locale、静态 / 动态模式和动态插槽。
 - `debug:system-prompt` 返回当前装配的 Prompt 资产追踪信息；Debug「提示词管理器」展示 key、用途、角色、来源、版本、locale、模式和插槽。
 - 共享类型、preload / `src/vite-env.d.ts`、注册表一致性测试已同步；本轮未实现英文、韩文或多语言运行时。
 - 验证：Unit 101 文件 / 625 测试通过，TypeScript 通过，Vite Build 通过，UI E2E 6/6 通过。

@@ -145,6 +145,40 @@ export function loadRoleWorldDefaults(
   return world
 }
 
+
+/**
+ * 列出宇宙目录中所有可加载 Role Pack，而不只返回已挂为主角的角色。
+ *
+ * 背景：Prompt 注册表和召唤会话需要追踪 NPC / 备用角色资产，protagonistIds 只代表主角入口，
+ *       不能作为完整资产目录。
+ * 设计意图：优先从 Vite 已打包资产键提取角色目录；测试 / 开发环境再回退文件系统扫描。
+ * 关键约束：只有存在 manifest.json 的目录才算 Role Pack，返回稳定排序且自动去重。
+ */
+export function listAvailableRoleIds(universeId: string = DEFAULT_UNIVERSE): string[] {
+  const bundledPrefix = `/universes/${universeId}/roles/`
+  const roleIds = Object.keys(bundledAssets).flatMap((key) => {
+    const normalized = key.replace(/\\/g, '/')
+    const markerIndex = normalized.indexOf(bundledPrefix)
+    if (markerIndex < 0 || !normalized.endsWith('/manifest.json')) return []
+    const relative = normalized.slice(markerIndex + bundledPrefix.length)
+    const roleId = relative.slice(0, -'/manifest.json'.length)
+    return roleId && !roleId.includes('/') ? [roleId] : []
+  })
+
+  try {
+    const rolesRoot = path.join(resolveUniversesRoot(), universeId, 'roles')
+    for (const entry of fs.readdirSync(rolesRoot, { withFileTypes: true })) {
+      if (entry.isDirectory() && fs.existsSync(path.join(rolesRoot, entry.name, 'manifest.json'))) {
+        roleIds.push(entry.name)
+      }
+    }
+  } catch {
+    // 打包环境可能没有可扫描目录；bundledAssets 已覆盖正常生产路径。
+  }
+
+  return [...new Set(roleIds)].sort()
+}
+
 /**
  * 列出宇宙中已挂上的主角（仅 protagonistIds 中的包）。
  */

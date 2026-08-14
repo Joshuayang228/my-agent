@@ -345,6 +345,29 @@ class AgentRuntime {
         expertiseHint,
       })
 
+      // 调用点只声明稳定 key；来源、版本与 locale 由 LLM 统一入口从注册表解析。
+      // Role Pack 只标注本次实际读取的文件，动态 MUTABLE 与场景 Prompt 不冒充默认正文。
+      const roleAssetPrefix = `role-${assembleRoleId}-`
+      const promptAssetKeys = [
+        'system-layers',
+        `${roleAssetPrefix}protected-md`,
+        ...(mutableBody === pack.mutableDefault
+          ? [`${roleAssetPrefix}mutable-default-md`]
+          : ['companion-mutable-state']),
+        ...(pack.voice?.trim() ? [`${roleAssetPrefix}voice-md`] : []),
+        ...(customPrompt?.trim() ? ['settings-system-prompt'] : []),
+        'reply-stance',
+        'tone-control',
+        ...(relationshipStageHint?.trim() ? ['relationship-stage'] : []),
+        ...(milestoneHint?.trim() ? ['relationship-milestones'] : []),
+        ...(expertiseHint?.trim() ? ['expertise-level'] : []),
+        ...(skillSummary?.trim() || activeSkillBody?.trim() ? ['skill-context'] : []),
+        ...(summonNote?.trim() || catchupSummary?.trim() || worldSlice?.trim()
+          || recentMomentsSlice?.trim() || bookshelfSlice?.trim() || rosterLines?.trim()
+          ? ['companion-context']
+          : []),
+      ]
+
       // ── 运行 Agent Loop ──
       const toolContext: ToolContext = {
         workdir: getWorkspaceRoot() || process.cwd(),
@@ -364,6 +387,7 @@ class AgentRuntime {
           tools: toolRegistry.getAll(),
           confirmTool,
           systemPrompt,
+          promptAssetKeys,
           signal: abortController.signal,
           executionMode,
           toolContext,

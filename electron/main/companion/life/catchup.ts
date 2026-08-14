@@ -131,6 +131,7 @@ export async function generateCatchupSummaryViaLlm(
         }),
       }],
       caller: 'catchup-summary',
+      promptAssetKeys: ['companion-catchup'],
     })
     const normalized = normalizeCatchupSummaryText(raw)
     if (!normalized) {

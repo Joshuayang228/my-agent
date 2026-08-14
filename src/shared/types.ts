@@ -504,6 +504,8 @@ export interface AgentLoopOptions {
   messages: ChatMessage[]
   tools: ToolDefinition[]
   systemPrompt?: string
+  /** 本次 Loop 实际使用的 Prompt 注册表稳定 key；来源与版本由 LLM 入口统一解析。 */
+  promptAssetKeys?: string[]
   maxIterations?: number
   signal?: AbortSignal
   /** 破坏性工具执行前的确认回调，返回 true 允许执行 */

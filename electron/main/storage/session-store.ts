@@ -388,6 +388,7 @@ export async function generateSmartTitle(
       temperature: 0.3,
       maxTokens: 64,
       caller: 'title',
+      promptAssetKeys: ['session-title'],
       sessionId,
     })).trim()
 

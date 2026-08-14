@@ -11,48 +11,13 @@
 
 import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
+import { EXTRACTION_PROMPT } from '../prompts/texts'
 import { chatComplete } from '../llm/index'
 import { addMemory, listMemories, type MemoryCategory } from '../storage/memory-store'
 
+export { EXTRACTION_PROMPT } from '../prompts/texts'
+
 const log = createLogger('ProfileExtractor')
-
-export const EXTRACTION_PROMPT = `你是用户画像分析器。请根据近期对话，提取关于用户的、此前尚未记录且长期有效的信息。判断标准是：一条记忆在加入后应当能持续发挥作用，而不是对已发生事情的流水账。
-
-输出 JSON 数组，每一项包含：
-- "category"：只能是 "identity"、"workflow"、"voice"、"preference"、"fact"、"feedback" 之一
-- "content"：简洁陈述，最多一句话
-
-类别说明：
-- identity：用户是谁，例如姓名、角色、兴趣、技术栈、所在地等
-- workflow：用户如何工作，例如工具、习惯、日程、协作偏好
-- voice：用户的沟通风格，例如正式或随意、语言偏好、幽默风格
-- preference：用户明确表达的偏好，例如喜欢或不喜欢的工具、方法、审美选择
-- fact：关于用户项目、环境或背景的长期事实
-- feedback：用户对你工作方式的纠正与确认，两者都重要：
-  - 纠正，例如“不要自动提交”“别解释这么多”——表示需要改变什么
-  - 确认，例如“完全正确”“以后继续这样做”——表示应当保持什么
-  对 feedback，content 应写成“应该做或避免什么 + 原因”，例如“偏好省略铺垫的简洁回答，因为长篇解释浪费时间”。确认和纠正同样有价值；记住“你上次这样做得很好”是伙伴关系的一部分，而不只是工具行为。
-
-应该保存（长期知识）：
-- 稳定的偏好和习惯，例如“偏好 TypeScript 而不是 JS”“经常深夜工作”
-- 身份事实，例如角色、专业水平、技术栈、所在地
-- 用户明确纠正你应如何工作的内容，category 使用 "feedback"
-- 用户明确确认你采用了正确工作方式的内容，category 使用 "feedback"
-- 只提取助手应该记住的用户信息；不要提取助手应该记住的自身信息
-
-不要保存（噪声或应归入其他系统）：
-- 临时任务状态，例如“正在调试登录流程”“目前到第 3 步”
-- 可从当前对话直接推导或很容易再次观察到的信息
-- 助手自身的指令、人设或行为规则
-- 助手承诺将来记住某事；那是助手要执行的动作，不是关于用户的事实
-- 过于泛化的陈述，例如“会使用电脑”“喜欢好代码”
-- 只出现一次、下次对话不会再有价值的事实
-
-规则：
-- 只提取有对话明确支持的事实
-- 跳过模糊或不确定的信息
-- 没有长期有效信息时返回 []
-- 只输出 JSON 数组，不要输出其他文字`
 
 const MIN_USER_MESSAGES = 3
 const MAX_RECENT_MESSAGES = 20
@@ -103,6 +68,7 @@ export async function maybeExtractProfile(
         temperature: 0.1,
         maxTokens: 500,
         caller: 'profile',
+        promptAssetKeys: ['profile-extraction'],
         sessionId: opts?.sessionId,
       })
     } catch (apiErr) {
