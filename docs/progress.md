@@ -4,6 +4,13 @@
 
 
 
+## 2026-08-14 · Electron 开发模式白屏修复
+
+- 根因：Windows `localhost` 优先走 `[::1]:5173`，而旧 Vite 进程返回 404；当前开发服务实际绑定 `127.0.0.1`，Electron 因主机名不一致加载了错误服务。
+- 修复：Vite 开发服务固定绑定 `127.0.0.1`；主进程通过 `normalizeDevServerUrl` 将 `localhost` / `::1` 规范化为 IPv4 loopback。
+- 验证：真实 `npm run dev` 下 Electron 页面加载 `http://127.0.0.1:5173/`，页面标题为 `My Agent`；Unit 105 文件 / 643 测试，TypeScript，UI E2E 7/7 通过。
+
+
 ## 2026-08-14 · Skill 管理器 2.0
 
 - Skills 管理页已补齐主进程校验、用户 Skill 编辑、版本历史 / 历史正文查看 / 回滚、隔离试跑；保存前自动备份，最多保留 10 个历史版本。

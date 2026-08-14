@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Fixed — Electron 开发模式白屏（2026-08-14）
+
+- 修复 Windows 下 `localhost` 优先解析到旧 IPv6 Vite 服务导致 Electron 加载 404 页面、窗口空白的问题。
+- 开发服务器固定绑定 `127.0.0.1`；Electron 加载开发 URL 时统一规范化 loopback 主机名。
+- 新增开发地址规范化回归测试。
+
 ### Added — Skill 管理器 2.0（2026-08-14）
 
 - Skills 管理页新增 Frontmatter / 正文 / 工具引用校验，保存前由主进程返回中文错误和提醒。

@@ -17,6 +17,7 @@ import { initSkillSystem } from './skills/registry'
 import { runtime } from './agent/runtime'
 import * as settings from './storage/settings-store'
 import { initScheduler, shutdownScheduler } from './scheduler/index'
+import { normalizeDevServerUrl } from './utils/dev-server-url'
 
 const log = createLogger('Main')
 mark('imports_done')
@@ -29,7 +30,7 @@ config({ path: path.join(process.env.APP_ROOT, '.env') })
 
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
-export const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
+export const VITE_DEV_SERVER_URL = normalizeDevServerUrl(process.env.VITE_DEV_SERVER_URL)
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? path.join(process.env.APP_ROOT, 'public')

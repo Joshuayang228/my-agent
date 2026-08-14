@@ -8,7 +8,8 @@ export default defineConfig(({ mode }) => {
   const isUiE2E = mode === 'ui-e2e'
   return {
     server: {
-      host: isUiE2E ? '127.0.0.1' : undefined,
+      // Electron 开发窗口统一走 IPv4，避免 Windows localhost 优先命中旧的 IPv6 服务。
+      host: '127.0.0.1',
       strictPort: isUiE2E,
     },
     resolve: {

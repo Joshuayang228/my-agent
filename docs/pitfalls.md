@@ -2,6 +2,14 @@
 
 > 开发过程中遇到的坑和解决方案，避免重复踩坑。
 
+## Windows `localhost` 导致 Electron 开发白屏
+
+**问题**：开发窗口显示空白，但 DevTools 只有 Electron 安全警告。
+
+**原因**：Vite 实际绑定 `127.0.0.1`，旧进程占用 `[::1]` 同一端口并返回 404；`vite-plugin-electron` 将 loopback 统一输出为 `localhost`，Chromium 优先命中 IPv6 服务。
+
+**解决**：Vite 开发服务固定绑定 `127.0.0.1`；主进程加载开发 URL 前将 `localhost` / `::1` 规范化为 `127.0.0.1`。排查时分别请求 `127.0.0.1:<port>`、`localhost:<port>` 和 `[::1]:<port>`，不要只看端口号。
+
 ## 宽泛 `skills/` 规则误伤生产源码
 
 **问题**：`.gitignore` 写成 `skills/` 时，会匹配任意层级的同名目录，导致 `electron/main/skills/` 生产源码在本地可构建、却没有进入 Git。
