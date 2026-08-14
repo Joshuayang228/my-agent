@@ -96,6 +96,11 @@ describe('模型可见文本统一目录', () => {
       assetType: 'companion-world',
       contentKind: 'data',
     })
+    expect(assets.find((asset) => asset.key === 'memory-strategy:vector-recall')).toMatchObject({
+      category: 'memory',
+      assetType: 'memory-strategy',
+      contentKind: 'data',
+    })
     expect(new Set(assets.map((asset) => asset.key)).size).toBe(assets.length)
     for (const asset of assets) {
       expect(asset.fingerprint).toMatch(/^[a-f0-9]{16}$/)

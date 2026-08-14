@@ -2,6 +2,13 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
+## 2026-08-14 · 记忆策略生产资产 v1
+
+- 新增 `memory/strategy-registry.ts`，登记用户画像提取、语义去重、伙伴反馈分桶、向量召回、向量生命周期和引用纠错策略。
+- 策略资产只保存生产参数、来源、版本、指纹和依赖，不读取或保存用户记忆正文；运行逻辑仍由 profile / memory-store / vector-store / citation-correct 原模块负责。
+- Debug「提示词管理器 → 记忆策略」可查看策略定义，Playground 和 Settings 不直接编辑记忆策略。
+- 验证：Unit 109 个文件 / 656 项通过，TypeScript、Vite Build、UI E2E 7/7 通过。
+
 ## 2026-08-14 · Agent 生产资产目录 v1
 
 - Debug「提示词管理器」扩展为生产资产目录，在原 Prompt / Tool / Skill / Eval / MCP 之外接入伙伴与人格资产。

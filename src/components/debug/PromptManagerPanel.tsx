@@ -1,7 +1,7 @@
 /**
  * Debug 提示词管理器。
  *
- * 背景：生产 Prompt、Tool schema、Skill 与 Eval 资产属于代码 / Role Pack / 运行时真相，Debug 不应绕过 Git 直接覆盖源文件。
+ * 背景：生产 Prompt、伙伴资产、记忆策略、Tool schema、Skill 与 Eval 资产属于代码 / Role Pack / 运行时真相，Debug 不应绕过 Git 直接覆盖源文件。
  * 设计意图：保留生产资产只读查看，同时提供实验副本和现有 L3 自定义补充指令的受控编辑入口。
  * 关键约束：实验副本不影响真实会话；只有用户二次确认后，L3 草稿才写入现有 settings.systemPrompt。
  */
@@ -22,6 +22,7 @@ const CATEGORY_OPTIONS: Array<{ id: CategoryFilter; label: string }> = [
   { id: 'all', label: '全部' },
   { id: 'system', label: '主对话' },
   { id: 'context', label: '上下文' },
+  { id: 'memory', label: '记忆策略' },
   { id: 'companion', label: '伙伴世界' },
   { id: 'subagent', label: '子 Agent' },
   { id: 'ui', label: '模型测试' },
@@ -34,6 +35,7 @@ const CATEGORY_OPTIONS: Array<{ id: CategoryFilter; label: string }> = [
 const CATEGORY_LABELS: Record<ModelContextAsset['category'], string> = {
   system: '主对话',
   context: '上下文',
+  memory: '记忆策略',
   companion: '伙伴世界',
   subagent: '子 Agent',
   ui: '模型测试',
@@ -54,6 +56,7 @@ const ASSET_TYPE_LABELS: Record<ModelContextAsset['assetType'], string> = {
   'companion-world': '默认世界',
   'companion-scene': '伙伴场景',
   'companion-life': '生活资产',
+  'memory-strategy': '记忆策略',
 }
 
 const OWNERSHIP_LABELS: Record<ModelContextAsset['ownership'], string> = {
@@ -238,7 +241,7 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
             <span className="font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{assets.length + 1} 项</span>
           </div>
           <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            统一查看生产 Prompt、伙伴与人格资产、Tool schema、Skill、Eval Judge 与当前 MCP 工具。资产保持只读；只有显式载入的文本实验副本和 L3 自定义补充可以编辑。
+            统一查看生产 Prompt、伙伴与人格资产、记忆策略、Tool schema、Skill、Eval Judge 与当前 MCP 工具。资产保持只读；只有显式载入的文本实验副本和 L3 自定义补充可以编辑。
           </p>
         </div>
       </header>
@@ -358,6 +361,7 @@ function AssetPromptDetail({ asset, onLoadExperiment, onCopy }: { asset: ModelCo
     && asset.assetType !== 'companion-profile'
     && asset.assetType !== 'companion-world'
     && asset.assetType !== 'companion-life'
+    && asset.assetType !== 'memory-strategy'
   return (
     <div className="space-y-3">
       <div>

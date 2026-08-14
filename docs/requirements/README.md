@@ -39,6 +39,7 @@
 | [skill-management-2.md](./skill-management-2.md) | 已落地：Skill 版本、校验、隔离试跑与激活追踪 |
 | [skill-eval-v1.md](./skill-eval-v1.md) | 已落地：Skill 触发、指南注入、工具边界、回复约束与 Debug 证据链 |
 | [agent-asset-catalog-v1.md](./agent-asset-catalog-v1.md) | 已落地：伙伴与人格生产资产的统一注册与 Debug 目录 |
+| [memory-strategy-assets-v1.md](./memory-strategy-assets-v1.md) | 已落地：记忆提取、召回、去重、生命周期与纠错策略注册 |
 | [frontend-companion-surfaces.md](./frontend-companion-surfaces.md) | Alice 对照前端表面：生活/工具 IA、P0–P2 验收 |
 | [first-run-and-ui-e2e.md](./first-run-and-ui-e2e.md) | 首次配置旅程与 UI E2E 稳定门禁 |
 | [persona-human-review.md](./persona-human-review.md) | 已落地：Persona Eval Trial 的独立人工审阅闭环 |

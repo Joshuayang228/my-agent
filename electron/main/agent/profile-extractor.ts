@@ -20,9 +20,10 @@ export { EXTRACTION_PROMPT } from '../prompts/texts'
 
 const log = createLogger('ProfileExtractor')
 
-const MIN_USER_MESSAGES = 3
-const MAX_RECENT_MESSAGES = 20
-const EXTRACT_INTERVAL_MS = 2 * 60 * 1000
+export const PROFILE_EXTRACTION_MIN_USER_MESSAGES = 3
+export const PROFILE_EXTRACTION_MAX_RECENT_MESSAGES = 20
+export const PROFILE_EXTRACTION_INTERVAL_MS = 2 * 60 * 1000
+export const PROFILE_EXTRACTION_CATEGORIES = ['identity', 'workflow', 'voice', 'preference', 'fact', 'feedback'] as const
 
 let lastExtractTime = 0
 
@@ -33,10 +34,10 @@ export async function maybeExtractProfile(
   opts?: { roleId?: string; sessionId?: string },
 ): Promise<void> {
   const now = Date.now()
-  if (now - lastExtractTime < EXTRACT_INTERVAL_MS) return
+  if (now - lastExtractTime < PROFILE_EXTRACTION_INTERVAL_MS) return
 
   const userMessages = messages.filter(m => m.role === 'user')
-  if (userMessages.length < MIN_USER_MESSAGES) return
+  if (userMessages.length < PROFILE_EXTRACTION_MIN_USER_MESSAGES) return
 
   log.info('Starting profile extraction', { userMessageCount: userMessages.length })
 
@@ -44,7 +45,7 @@ export async function maybeExtractProfile(
     const allMessages = latestAssistantContent
       ? [...messages, { id: 'latest', role: 'assistant' as const, content: latestAssistantContent, timestamp: Date.now() }]
       : messages
-    const recentMessages = allMessages.slice(-MAX_RECENT_MESSAGES)
+    const recentMessages = allMessages.slice(-PROFILE_EXTRACTION_MAX_RECENT_MESSAGES)
     const conversationText = recentMessages
       .filter(m => m.role === 'user' || m.role === 'assistant')
       .map(m => `${m.role === 'user' ? '用户' : '助手'}： ${m.content.slice(0, 500)}`)
@@ -90,7 +91,7 @@ export async function maybeExtractProfile(
       return
     }
 
-    const validCategories = new Set<string>(['identity', 'workflow', 'voice', 'preference', 'fact', 'feedback'])
+    const validCategories = new Set<string>(PROFILE_EXTRACTION_CATEGORIES)
     let added = 0
 
     for (const item of items) {

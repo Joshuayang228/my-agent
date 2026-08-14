@@ -46,6 +46,7 @@ export type PromptAssetKind =
   | 'skill'
   | 'eval'
   | 'external'
+  | 'memory'
 export type PromptAssetMode = 'static' | 'dynamic'
 export type ModelContextAssetType =
   | 'prompt'
@@ -57,6 +58,7 @@ export type ModelContextAssetType =
   | 'companion-world'
   | 'companion-scene'
   | 'companion-life'
+  | 'memory-strategy'
 export type ModelContextOwnership = 'builtin' | 'role-pack' | 'user' | 'external'
 export type ModelContextFingerprintKind = 'content' | 'structure'
 export type ModelContextContentKind = 'static' | 'template' | 'schema' | 'data' | 'runtime'

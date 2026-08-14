@@ -25,7 +25,7 @@ let index: LocalIndex | null = null
  * 只淘汰 conversation 类——结构化记忆（identity/preference/fact 等）是精心维护的
  * 高价值知识，由用户/画像提取管理，不自动淘汰。
  */
-const MAX_CONVERSATION_VECTORS = 500
+export const MAX_CONVERSATION_VECTORS = 500
 
 function getIndexPath(): string {
   const userDataPath = app?.getPath?.('userData') ?? path.join(process.cwd(), '.agent-data')
@@ -171,7 +171,7 @@ export async function searchVectorStore(
   config: LLMConfig,
   options: { topK?: number; minScore?: number; category?: string } = {},
 ): Promise<VectorSearchResult[]> {
-  const { topK = 10, minScore = 0.5, category } = options
+  const { topK = DEFAULT_VECTOR_RECALL_TOP_K, minScore = DEFAULT_VECTOR_RECALL_MIN_SCORE, category } = options
   const idx = await getIndex()
 
   if (!await idx.isIndexCreated()) return []
@@ -216,6 +216,8 @@ export function formatMemoryAge(timestamp: number, now: number = Date.now()): st
 
 /** 超过此天数的记忆，注入时追加"请以当前实际为准"的陈旧提示 */
 export const MEMORY_STALE_THRESHOLD_DAYS = 7
+export const DEFAULT_VECTOR_RECALL_TOP_K = 10
+export const DEFAULT_VECTOR_RECALL_MIN_SCORE = 0.5
 
 /**
  * 把向量召回结果加工成注入 System Prompt 的文本。

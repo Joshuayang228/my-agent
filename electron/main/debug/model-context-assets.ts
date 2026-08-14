@@ -17,6 +17,7 @@ import { isMcpTool, parseMcpToolName } from '../mcp/bridge'
 import { getAllSettings } from '../storage/settings-store'
 import { PROMPT_KEYS } from '../prompts/keys'
 import { getCompanionAssetCatalog } from '../companion/asset-registry'
+import { getMemoryStrategyAssetCatalog } from '../memory/strategy-registry'
 
 function toolSchemaContent(tool: ToolDefinition): string {
   return JSON.stringify({
@@ -141,7 +142,8 @@ export function buildModelContextAssets(input: {
   const toolAssets = input.tools.map((tool) => toolAsset(tool, input.skills))
   const skillAssets = input.skills.map(skillAsset)
   const companionAssets = getCompanionAssetCatalog()
-  return [...promptAssets, ...toolAssets, ...skillAssets, ...companionAssets]
+  const memoryStrategyAssets = getMemoryStrategyAssetCatalog()
+  return [...promptAssets, ...toolAssets, ...skillAssets, ...companionAssets, ...memoryStrategyAssets]
 }
 
 export async function getModelContextAssets(toolRegistry: ToolRegistry): Promise<ModelContextAsset[]> {

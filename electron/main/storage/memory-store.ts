@@ -5,6 +5,9 @@ import type { MemoryCategory, MemoryEntry } from '../../../src/shared/types'
 
 const log = createLogger('MemoryStore')
 
+export const MEMORY_SEMANTIC_DEDUP_THRESHOLD = 0.85
+export const FEEDBACK_MEMORY_LIMIT = 12
+
 // MemoryCategory / MemoryEntry 统一由 src/shared/types.ts 定义，此处 re-export 供本层调用方使用
 export type { MemoryCategory, MemoryEntry }
 
@@ -92,7 +95,7 @@ export async function addMemory(
   const pool = category === 'feedback' && roleId
     ? existing.filter((m) => (m.roleId || '') === roleId || !(m.roleId))
     : existing
-  const dup = pool.find(m => memoryTextSimilarity(m.content, content) >= 0.85)
+  const dup = pool.find(m => memoryTextSimilarity(m.content, content) >= MEMORY_SEMANTIC_DEDUP_THRESHOLD)
   if (dup) {
     log.info('Memory semantic dedup: skip insert', { existingId: dup.id, category, roleId })
     return dup
@@ -143,7 +146,7 @@ export async function listMemories(category?: MemoryCategory): Promise<MemoryEnt
  */
 export async function listFeedbackForRole(
   roleId: string,
-  limit = 12,
+  limit = FEEDBACK_MEMORY_LIMIT,
 ): Promise<MemoryEntry[]> {
   const id = roleId.trim()
   if (!id) return []

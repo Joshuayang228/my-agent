@@ -216,6 +216,7 @@ Skill 资产由 `electron/main/skills/loader.ts` 读取和保存，`registry.ts`
 - `companion/asset-registry.ts` 读取真实 Role Pack loader、场景 loader 和生活 starter 工厂，生成 manifest、人物档案、默认世界、伙伴场景与生活内容资产。
 - Debug 高层聚合 Prompt、伙伴资产、Tool schema、Skill、Eval Judge 与 MCP，统一展示来源、所有权、版本、指纹、状态、派生关系和依赖。
 - 用户记忆、当前世界状态和运行后 `companion_assets` 属于运行时数据，不进入静态生产资产目录；分别由记忆 / 世界态 / 请求记录查看。
+- `memory/strategy-registry.ts` 只登记记忆提取、去重、反馈分桶、向量召回、向量生命周期和引用纠错策略；策略参数由原生产模块导出，注册表不反向驱动算法。
 - Playground 不直接写生产资产；只有文本类资产可显式载入为实验副本，结构化伙伴资产保持只读。
 
 ## 目录结构
