@@ -23,6 +23,7 @@ import { formatMilestonesForPrompt } from '../../electron/main/companion/growth/
 import { summonWorkerSystemAddon } from '../../electron/main/companion/cast/summon-delegation'
 import { builtinTools } from '../../electron/main/tools/builtins/index'
 import { errorFormattingMiddleware } from '../../electron/main/tools/middleware'
+import { EVAL_JUDGE_TEMPLATE } from '../../electron/main/prompts/eval-judge'
 
 const ENGLISH_PROMPT_PATTERNS = [
   /\byou are\b/i,
@@ -111,6 +112,7 @@ describe('自有 Prompt 中文门禁', () => {
       ['Loop 默认 System', DEFAULT_SYSTEM_PROMPT],
       ['Playground 默认 System', DEFAULT_PLAYGROUND_SYSTEM],
       ['画像提取 Prompt', EXTRACTION_PROMPT],
+      ['Eval Judge Prompt', EVAL_JUDGE_TEMPLATE],
       ['主 Assemble', assembled],
       ['研究子 Agent', buildSubAgentSystemPrompt('researcher')],
       ['编码子 Agent', buildSubAgentSystemPrompt('coder')],

@@ -21,7 +21,7 @@ Alice 的做法不是把聊天消息存储整体重做，而是单独维护一�
 1. 每个现有 `llm_request` Span 生成一条独立 Debug 记录，至少包含；Provider failover / Agent retry 仍保留在同一 Span 的 Debug extra 与调用链语义中：
    - `id`、时间、`sessionId`、`provider`、`model`、`caller`；
    - 请求 messages、tools、extra 参数；
-   - 本次调用实际使用的 Prompt 资产 key、来源、版本、locale、模式和插槽元数据；未知 key 必须显式记录；
+   - 本次调用实际使用的 Prompt 资产 key、来源、版本、自动指纹、locale、模式和插槽元数据；未知 key 必须显式记录；无固定 Prompt 的调用必须保存 promptless 原因；
    - 响应 content、reasoning、tool calls、error；
    - prompt / completion / total / cached tokens；
    - duration 与 `pending` / `success` / `error` 状态。

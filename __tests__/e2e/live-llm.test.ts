@@ -12,6 +12,7 @@ const model = process.env.TEST_LLM_MODEL || process.env.LLM_MODEL || 'gpt-4o-min
 describe.skipIf(!apiKey)('M17 G3 live LLM chat', () => {
   it('最小真实对话返回非空文本', async () => {
     const content = await chatComplete({
+      promptlessReason: 'Live LLM 基础连通性测试使用测试文件内联消息',
       config: { apiKey, baseUrl, model },
       messages: [{ role: 'user', content: 'Reply with exactly: OK' }],
       caller: 'system',

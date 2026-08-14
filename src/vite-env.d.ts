@@ -21,6 +21,7 @@ import type {
   DebugEvalSuite,
   DebugPromptSnapshot,
   PromptAsset,
+  ModelContextAsset,
 } from './shared/types'
 
 interface SessionSummary {
@@ -389,6 +390,7 @@ declare global {
       debug: {
         systemPrompt: () => Promise<DebugPromptSnapshot>
         promptAssets: () => Promise<PromptAsset[]>
+        modelContextAssets: () => Promise<ModelContextAsset[]>
         tools: () => Promise<Array<{
           name: string
           description: string

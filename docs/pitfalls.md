@@ -2,6 +2,12 @@
 
 > 开发过程中遇到的坑和解决方案，避免重复踩坑。
 
+## 宽泛 `skills/` 规则误伤生产源码
+
+**问题**：`.gitignore` 写成 `skills/` 时，会匹配任意层级的同名目录，导致 `electron/main/skills/` 生产源码在本地可构建、却没有进入 Git。
+
+**解决**：保留私有 Skill 的宽泛忽略规则时，为生产路径增加精确例外（`!electron/main/skills/` 与 `!electron/main/skills/**`）；新增生产目录后用 `git check-ignore -v <path>` 确认没有被宽泛规则误伤。
+
 ## Git 推送代理
 
 **问题**：`git push` 报 `Failed to connect to 127.0.0.1 port XXXX`

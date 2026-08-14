@@ -1,18 +1,18 @@
 /**
  * Debug 提示词管理器。
  *
- * 背景：生产 Prompt 资产属于代码 / Role Pack 真相，Debug 不应绕过 Git 直接覆盖源文件。
+ * 背景：生产 Prompt、Tool schema、Skill 与 Eval 资产属于代码 / Role Pack / 运行时真相，Debug 不应绕过 Git 直接覆盖源文件。
  * 设计意图：保留生产资产只读查看，同时提供实验副本和现有 L3 自定义补充指令的受控编辑入口。
  * 关键约束：实验副本不影响真实会话；只有用户二次确认后，L3 草稿才写入现有 settings.systemPrompt。
  */
 
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Copy, RotateCcw, Save, Search } from 'lucide-react'
-import type { DebugPromptSnapshot, PromptAsset, PromptAssetTrace } from '../../shared/types'
+import type { DebugPromptSnapshot, ModelContextAsset, PromptAsset, PromptAssetTrace } from '../../shared/types'
 
 export type DebugPromptInfo = DebugPromptSnapshot
 
-type CategoryFilter = 'all' | PromptAsset['category']
+type CategoryFilter = 'all' | ModelContextAsset['category']
 type PromptLayer = 'full' | 'l1' | 'l2' | 'l3' | 'l4'
 
 const RUNTIME_ID = '__runtime-current__'
@@ -24,19 +24,49 @@ const CATEGORY_OPTIONS: Array<{ id: CategoryFilter; label: string }> = [
   { id: 'context', label: '上下文' },
   { id: 'companion', label: '伙伴世界' },
   { id: 'subagent', label: '子 Agent' },
-  { id: 'ui', label: '界面文案' },
+  { id: 'ui', label: '模型测试' },
+  { id: 'tool', label: '内置工具' },
+  { id: 'skill', label: 'Skills' },
+  { id: 'eval', label: 'Eval Judge' },
+  { id: 'external', label: '外部 / MCP' },
 ]
 
-const CATEGORY_LABELS: Record<PromptAsset['category'], string> = {
+const CATEGORY_LABELS: Record<ModelContextAsset['category'], string> = {
   system: '主对话',
   context: '上下文',
   companion: '伙伴世界',
   subagent: '子 Agent',
-  ui: '界面文案',
+  ui: '模型测试',
+  tool: '内置工具',
+  skill: 'Skills',
+  eval: 'Eval Judge',
+  external: '外部 / MCP',
+}
+
+
+const ASSET_TYPE_LABELS: Record<ModelContextAsset['assetType'], string> = {
+  prompt: '提示词',
+  'tool-schema': '工具 Schema',
+  skill: 'Skill',
+  'eval-judge': 'Eval Judge',
+}
+
+const OWNERSHIP_LABELS: Record<ModelContextAsset['ownership'], string> = {
+  builtin: '内置',
+  'role-pack': 'Role Pack',
+  user: '用户',
+  external: '外部',
+}
+
+const CONTENT_KIND_LABELS: Record<ModelContextAsset['contentKind'], string> = {
+  static: '静态正文',
+  template: '模板骨架',
+  schema: 'Schema',
+  runtime: '运行时',
 }
 
 export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo | null; onRefresh?: () => Promise<void> | void }) {
-  const [assets, setAssets] = useState<PromptAsset[]>([])
+  const [assets, setAssets] = useState<ModelContextAsset[]>([])
   const [selectedId, setSelectedId] = useState(RUNTIME_ID)
   const [category, setCategory] = useState<CategoryFilter>('all')
   const [query, setQuery] = useState('')
@@ -57,16 +87,16 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
   useEffect(() => {
     let active = true
     const load = async () => {
-      if (!window.electronAPI?.debug?.promptAssets || !window.electronAPI.settings?.get) {
+      if (!window.electronAPI?.debug?.modelContextAssets || !window.electronAPI.settings?.get) {
         if (active) {
-          setError('需要 Electron 环境才能读取生产 Prompt 目录')
+          setError('需要 Electron 环境才能读取模型可见文本目录')
           setLoading(false)
         }
         return
       }
       try {
         const [nextAssets, settings] = await Promise.all([
-          window.electronAPI.debug.promptAssets(),
+          window.electronAPI.debug.modelContextAssets(),
           window.electronAPI.settings.get(),
         ])
         if (!active) return
@@ -88,7 +118,7 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
   const filteredAssets = useMemo(() => assets.filter((asset) => {
     if (category !== 'all' && asset.category !== category) return false
     if (!normalizedQuery) return true
-    return [asset.key, asset.name, asset.purpose, asset.role, asset.desc, asset.source, asset.sourcePath]
+    return [asset.key, asset.name, asset.purpose, asset.role, asset.desc, asset.source, asset.sourcePath, asset.assetType, asset.ownership, asset.contentKind]
       .some((value) => value.toLocaleLowerCase().includes(normalizedQuery))
   }), [assets, category, normalizedQuery])
 
@@ -202,7 +232,7 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
             <span className="font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{assets.length + 1} 项</span>
           </div>
           <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            生产 Prompt 资产只读；可编辑实验副本，或把内容保存到现有 L3 自定义补充指令。生产源码仍需通过 Git 修改。
+            统一查看生产 Prompt、Tool schema、Skill、Eval Judge 与当前 MCP 工具。资产保持只读；只有显式载入的实验副本和 L3 自定义补充可以编辑。
           </p>
         </div>
       </header>
@@ -238,7 +268,7 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
 
       {(status || error) && <p className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: error ? 'var(--danger)' : 'var(--border-color)', color: error ? 'var(--danger)' : 'var(--text-secondary)' }}>{error || status}</p>}
 
-      <div className="flex flex-wrap gap-1.5" aria-label="Prompt 分类">
+      <div className="flex flex-wrap gap-1.5" aria-label="模型可见文本分类">
         {CATEGORY_OPTIONS.map((option) => {
           const active = category === option.id
           return (
@@ -257,7 +287,7 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
       <div className="grid min-h-[430px] gap-3 lg:grid-cols-[minmax(220px,0.42fr)_minmax(0,1fr)]">
         <div className="scrollbar-hover min-h-0 overflow-y-auto rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
           {showRuntime && <PromptListButton active={selectedId === RUNTIME_ID} name="当前装配预览" meta={info ? `${info.persona.name} · ~${info.estimatedTokens} tokens` : '加载中'} onClick={() => setSelectedId(RUNTIME_ID)} />}
-          {filteredAssets.map((asset) => <PromptListButton key={asset.key} active={selectedId === asset.key} name={asset.name} meta={`${asset.key} · ${CATEGORY_LABELS[asset.category]} · ${asset.mode === 'dynamic' ? '动态' : '静态'} · v${asset.version}`} onClick={() => setSelectedId(asset.key)} />)}
+          {filteredAssets.map((asset) => <PromptListButton key={asset.key} active={selectedId === asset.key} name={asset.name} meta={`${asset.key} · ${CATEGORY_LABELS[asset.category]} · ${OWNERSHIP_LABELS[asset.ownership]} · ${asset.mode === 'dynamic' ? '动态' : '静态'} · v${asset.version}`} onClick={() => setSelectedId(asset.key)} />)}
           {!loading && !showRuntime && filteredAssets.length === 0 && <p className="px-3 py-5 text-center text-xs" style={{ color: 'var(--text-muted)' }}>没有匹配项</p>}
           {loading && <p className="px-3 py-5 text-center text-xs" style={{ color: 'var(--text-muted)' }}>读取中…</p>}
         </div>
@@ -267,7 +297,7 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
             ? <RuntimePromptDetail info={info} layer={layer} setLayer={setLayer} onLoadExperiment={loadExperiment} onCopy={(value) => void copyText(value, 'System Prompt ')} />
             : selectedAsset
               ? <AssetPromptDetail asset={selectedAsset} onLoadExperiment={loadExperiment} onCopy={(value) => void copyText(value, 'Prompt ')} />
-              : <p className="text-sm" style={{ color: 'var(--text-muted)' }}>从左侧选择一个 Prompt 查看详情。</p>}
+              : <p className="text-sm" style={{ color: 'var(--text-muted)' }}>从左侧选择一个模型可见资产查看详情。</p>}
         </div>
       </div>
 
@@ -313,18 +343,19 @@ function RuntimePromptDetail({ info, layer, setLayer, onLoadExperiment, onCopy }
 
 function RuntimeTraceList({ assets }: { assets: PromptAssetTrace[] }) {
   if (assets.length === 0) return <p className="rounded-lg border px-2.5 py-2 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>当前装配没有可追踪的注册表资产。</p>
-  return <div className="rounded-lg border p-2.5" style={{ borderColor: 'var(--border-subtle)' }}><div className="mb-1.5 text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>本次装配引用的资产</div><div className="space-y-1.5">{assets.map((asset) => <div key={asset.key} className="rounded border px-2 py-1.5" style={{ borderColor: 'var(--border-subtle)' }}><div className="flex flex-wrap items-center gap-x-2 gap-y-0.5"><span className="font-mono text-[10px]" style={{ color: 'var(--text-primary)' }}>{asset.key}</span><span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{asset.purpose} · {asset.role} · {asset.locale} · v{asset.version}</span></div><div className="mt-0.5 break-all font-mono text-[9px]" style={{ color: 'var(--text-muted)' }}>{asset.source}</div>{asset.slots.length > 0 && <SlotList slots={asset.slots} />}</div>)}</div></div>
+  return <div className="rounded-lg border p-2.5" style={{ borderColor: 'var(--border-subtle)' }}><div className="mb-1.5 text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>本次装配引用的资产</div><div className="space-y-1.5">{assets.map((asset) => <div key={asset.key} className="rounded border px-2 py-1.5" style={{ borderColor: 'var(--border-subtle)' }}><div className="flex flex-wrap items-center gap-x-2 gap-y-0.5"><span className="font-mono text-[10px]" style={{ color: 'var(--text-primary)' }}>{asset.key}</span><span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{asset.purpose} · {asset.role} · {asset.locale} · v{asset.version} · {asset.fingerprint}</span></div><div className="mt-0.5 break-all font-mono text-[9px]" style={{ color: 'var(--text-muted)' }}>{asset.source}</div>{asset.slots.length > 0 && <SlotList slots={asset.slots} />}</div>)}</div></div>
 }
 
-function AssetPromptDetail({ asset, onLoadExperiment, onCopy }: { asset: PromptAsset; onLoadExperiment: (label: string, content: string | undefined) => void; onCopy: (value: string) => void }) {
-  const content = asset.content || asset.preview
+function AssetPromptDetail({ asset, onLoadExperiment, onCopy }: { asset: ModelContextAsset; onLoadExperiment: (label: string, content: string | undefined) => void; onCopy: (value: string) => void }) {
+  const content = asset.content || asset.locales[asset.locale]?.template || asset.preview
   return (
     <div className="space-y-3">
       <div>
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{asset.name}</h3>
           <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{CATEGORY_LABELS[asset.category]}</span>
-          <span className="text-[10px]" style={{ color: 'var(--accent)' }}>{asset.mode === 'dynamic' ? '动态组装' : '静态模板'}</span>
+          <span className="text-[10px]" style={{ color: 'var(--accent)' }}>{asset.mode === 'dynamic' ? '动态 / 按需注入' : '静态资产'}</span>
+          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{ASSET_TYPE_LABELS[asset.assetType]}</span>
         </div>
         <p className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{asset.desc}</p>
         <div className="mt-2 grid gap-x-4 gap-y-1 rounded-lg border p-2.5 text-[10px] sm:grid-cols-2" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
@@ -333,21 +364,24 @@ function AssetPromptDetail({ asset, onLoadExperiment, onCopy }: { asset: PromptA
           <MetaLine label="用途" value={asset.purpose} />
           <MetaLine label="角色" value={asset.role} />
           <MetaLine label="语言" value={asset.locale} mono />
+          <MetaLine label="所有权" value={OWNERSHIP_LABELS[asset.ownership]} />
+          <MetaLine label="内容形态" value={CONTENT_KIND_LABELS[asset.contentKind]} />
           <MetaLine label="来源" value={asset.source} mono />
+          <MetaLine label="自动指纹" value={`${asset.fingerprint} · ${asset.fingerprintKind === 'content' ? '内容' : '结构'}`} mono />
         </div>
         {asset.slots.length > 0 && <SlotList slots={asset.slots} />}
       </div>
       {content ? (
         <>
           <div className="flex gap-1.5">
-            {asset.content && <button type="button" onClick={() => onLoadExperiment(asset.name, asset.content)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>载入为实验副本</button>}
+            {content && <button type="button" onClick={() => onLoadExperiment(asset.name, content)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>载入为实验副本</button>}
             <button type="button" onClick={() => onCopy(content)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}><Copy size={11} />复制</button>
           </div>
           <pre className="scrollbar-hover max-h-[52vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border p-3 font-mono text-[11px] leading-relaxed" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>{content}</pre>
         </>
       ) : (
         <p className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
-          该 Prompt 按运行状态动态组装，请在「请求与运行 → LLM 调用」中查看最终实发内容。
+          该资产按运行状态动态组装；目录只展示来源和插槽，请在「请求与运行 → LLM 调用」中查看最终实发内容。
         </p>
       )}
     </div>

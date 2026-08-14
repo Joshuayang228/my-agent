@@ -4,6 +4,17 @@
 
 
 
+
+## 2026-08-14 · 模型可见文本统一目录与 Prompt 工程门禁
+
+- 核心 Prompt key 收口到 `electron/main/prompts/keys.ts`；Role Pack key 通过工厂生成。生产 `streamChat` / `chatComplete` 必须声明非空资产 key，或显式填写 `promptlessReason`，源码审计测试阻止漏接和裸字符串回归。
+- Prompt 资产新增人工版本之外的自动指纹：静态正文 / 动态模板使用内容指纹，无模板运行时资产使用结构指纹；真实 LLM 调用追踪同步保存指纹，历史旧记录兼容显示为 legacy。
+- Debug「提示词管理器」升级为模型可见文本统一目录，通过 `debug:model-context-assets` 聚合生产 Prompt、Role Pack、内置 Tool schema、记忆工具、已加载 Skill、Eval Model Judge 和当前 MCP 工具，并区分内置 / Role Pack / 用户 / 外部所有权。
+- 用户画像提取、用户画像注入、向量记忆召回和 Embedding 输入已拆分登记；Embedding 明确标为非聊天 Prompt，用户原文不进入目录。
+- Tool input examples 的 Provider 可见包装文案统一为中文；Playground 仍只接收显式载入的实验副本，没有复制生产目录。
+- 新增调用覆盖审计和统一目录聚合测试；验证通过：Unit 103 文件 / 634 测试、TypeScript、Vite Build、UI E2E 6/6。
+- 为 `.gitignore` 的宽泛 `skills/` 规则增加 `electron/main/skills/**` 精确例外，将生产必需的 `loader.ts` 与 `registry.ts` 纳入版本控制，避免干净 clone 缺失 Skill 子系统，同时继续忽略私有 Harness Skill。
+
 ## 2026-08-14 · Prompt 资产进入真实 LLM 调用记录
 
 - `streamChat` / `chatComplete` 新增统一的 Prompt 资产 key 入口；主对话按本轮真实装配声明 Role Pack、动态策略、Skill、伙伴上下文等资产，L3/L4 压缩、画像、标题、连接测试、Playground、四类伙伴后台任务和子 Agent 也分别标注稳定 key。
@@ -123,7 +134,7 @@
 - ✅ **Playground 实验状态与审计加厚（2026-08-10）**：只给已进入正式产品的设计/控件/页面显示采用图标；壳层开关统一显隐并记住选择，无图标不分类。新增七主题同页对照、图标故事与无副作用组合实验。
 - ✅ **Debug 诊断闭环**：顶层收口为「提示词管理器 / 请求与运行 / 伙伴状态 / 质量·Eval / 系统」；真实请求快照、完整 LLM 日志、计划/发布状态时间线和 Tool Registry 清单已接入；生产 Prompt 资产只读，实验副本不写盘；L3 保存与日志清空均需二次确认。
 - ✅ **Playground 页面基线（2026-08-09）**：新增 Chat 壳 / Primary Sidebar / Right Dock / 人物世界 / 设置组合态展厅；先确认 Alice 对齐的布局、密度与状态，再回流正式页面。
-- ✅ **Debug / Playground IA 收口（2026-08-09）**：全量审计两边 tab；Prompt 生产目录移入 Debug「提示词管理器」，Playground 只保留设计、组件/页面故事和隔离试验。目录继续由 `debug:prompt-assets` 读取主进程唯一注册表。
+- ✅ **Debug / Playground IA 收口（2026-08-09，2026-08-14 扩展）**：全量审计两边 tab；模型可见文本统一目录位于 Debug「提示词管理器」，通过 `debug:model-context-assets` 聚合 Prompt、Tool schema、Skill、Eval Judge 与 MCP。Playground 只保留设计、组件/页面故事和显式实验副本。
 - ✅ **面板可拖分界**：左栏 / 右坞 / 文件树↔预览 / 审阅列表↔diff；`layout.*` 持久化。
 - ✅ **Chat 右侧能力坞 Phase 1**：`ChatRightDock` 文件/审阅/终端；会话写盘变更审阅；命令控制台；Debug 覆盖。
 - ✅ **有效沙箱**：由对话页 `executionMode` 推导（完全访问 → 放开路径）；设置页已删独立沙箱开关。

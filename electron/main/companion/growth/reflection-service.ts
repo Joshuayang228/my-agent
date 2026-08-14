@@ -8,6 +8,7 @@
 
 import type { LLMConfig } from '../../../../src/shared/types'
 import { chatComplete } from '../../llm/index'
+import { PROMPT_KEYS } from '../../prompts/keys'
 import { listFeedbackForRole } from '../../storage/memory-store'
 import {
   listRecentUserMessagesForRole,
@@ -152,7 +153,7 @@ async function runReflectionCore(
       temperature: 0.7,
       maxTokens: 1500,
       caller: 'persona-reflection',
-      promptAssetKeys: ['companion-reflection'],
+      promptAssetKeys: [PROMPT_KEYS.companionReflection],
     })
     parsed = parseReflectionJson(raw)
   } catch (err) {

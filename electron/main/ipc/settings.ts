@@ -4,6 +4,7 @@ import type { AppSettings } from '../storage/settings-store'
 import { loadRules } from '../sandbox/permission-engine'
 import { chatComplete, LLMError } from '../llm/index'
 import { loadMainLLMConfig } from '../llm/aux-config'
+import { PROMPT_KEYS } from '../prompts/keys'
 import { CONNECTION_TEST_MESSAGES, validateLLMConnectionTestInput } from '../../../src/shared/llm-connection-test'
 import type { LLMConnectionTestInput, LLMConnectionTestResult } from '../../../src/shared/types'
 
@@ -33,7 +34,7 @@ export function registerSettingsIPC(): void {
         },
         messages: CONNECTION_TEST_MESSAGES,
         caller: 'connection-test',
-        promptAssetKeys: ['connection-test'],
+        promptAssetKeys: [PROMPT_KEYS.connectionTest],
         timeoutMs: 15_000,
       })
       return { ok: true, model: config.model, ms: Date.now() - startedAt }

@@ -21,6 +21,7 @@ import type {
   DebugEvalSuite,
   DebugPromptSnapshot,
   PromptAsset,
+  ModelContextAsset,
 } from '../../src/shared/types'
 
 interface SessionSummary {
@@ -409,6 +410,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   debug: {
     systemPrompt: () => ipcRenderer.invoke('debug:system-prompt'),
     promptAssets: (): Promise<PromptAsset[]> => ipcRenderer.invoke('debug:prompt-assets'),
+    modelContextAssets: (): Promise<ModelContextAsset[]> => ipcRenderer.invoke('debug:model-context-assets'),
     tools: () => ipcRenderer.invoke('debug:tools'),
     systemInfo: () => ipcRenderer.invoke('debug:system-info'),
     traces: () => ipcRenderer.invoke('debug:traces'),

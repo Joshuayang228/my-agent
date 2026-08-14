@@ -1,6 +1,7 @@
 import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
 import { chatComplete } from '../llm/index'
+import { PROMPT_KEYS } from '../prompts/keys'
 import {
   extractRelationshipMinSet,
   formatMinSetWhitelistForCompactPrompt,
@@ -741,7 +742,7 @@ ${minSetSection}
     temperature: 0.2,
     maxTokens: comprehensive ? 800 : 400,
     caller: 'summary',
-    promptAssetKeys: [comprehensive ? 'l4-autocompact' : 'l3-collapse'],
+    promptAssetKeys: [comprehensive ? PROMPT_KEYS.l4Autocompact : PROMPT_KEYS.l3Collapse],
   })
 
   const withMinSet = mergeMinSetIntoSummary(summary, extractRelationshipMinSet(messages))

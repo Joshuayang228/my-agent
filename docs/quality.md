@@ -17,6 +17,9 @@
 - 静态资产的 `zh-CN` 模板必须来自真实生产正文；动态资产不得伪造固定模板，必须登记实际组装器和动态插槽。
 - Debug 当前装配快照必须通过同一注册表返回资产 key、用途、角色、来源、版本、locale、模式和插槽，不得维护第二套目录文案。
 - `__tests__/unit/llm-failover.test.ts` 验证调用点 key 会在 LLM 统一入口解析进 `requestExtra.promptAssets`，重复 key 去重，未知 key 进入 `unknownPromptAssetKeys`，不得静默伪造来源。
+- `__tests__/unit/prompt-call-coverage.test.ts` 扫描生产 `streamChat` / `chatComplete` 调用：必须声明资产或 promptless 原因，且 `promptAssetKeys` 禁止裸字符串。
+- `__tests__/unit/model-context-assets.test.ts` 验证统一目录聚合生产 Prompt、内置/Skill/MCP Tool schema、Skill 正文、Eval Judge、用户 L3 所有权和自动指纹。
+- 静态正文和动态模板使用内容指纹；只有无模板的运行时资产使用结构指纹。指纹不得包含 API Key 或动态用户插槽实际值。
 - 未来增加英文时，在同一 key 下进行独立版本等价性测试，并验证运行时按 locale 单选，不把多语言版本并发注入模型。
 
 ## 分层与门禁

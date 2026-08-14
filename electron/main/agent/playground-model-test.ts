@@ -18,11 +18,11 @@ import {
 } from '../llm/thinking'
 import { createLogger } from '../utils/logger'
 import { startLinkedAsyncSpan } from '../utils/tracer'
+import { PROMPT_KEYS } from '../prompts/keys'
+import { MODEL_SMOKE_PROMPT, MODEL_THINKING_PROBE_PROMPT } from '../prompts/texts'
 
 const log = createLogger('PlaygroundModelTest')
 
-const SMOKE_PROMPT = '你好！请用一句话介绍自己。'
-const PROBE_PROMPT = '用两个字回答：你好'
 
 export type ModelSmokeResult =
   | {
@@ -82,7 +82,7 @@ async function consumeOnce(
       },
     ],
     caller,
-    promptAssetKeys: ['playground-model-test'],
+    promptAssetKeys: [PROMPT_KEYS.playgroundModelTest],
   })
   let result: StreamChatResult
   while (true) {
@@ -131,7 +131,7 @@ export async function runModelSmokeTest(opts?: {
     attributes: { model: config.model, playground: true },
   })
   try {
-    const out = await consumeOnce(config, SMOKE_PROMPT, 'model-smoke')
+    const out = await consumeOnce(config, MODEL_SMOKE_PROMPT, 'model-smoke')
     span.end('ok')
     if (!out.content) {
       return {
@@ -190,11 +190,11 @@ export async function probeThinkingDisable(): Promise<ThinkingProbeResult> {
       thinking: { type: 'disabled' },
     }
 
-    const def = await consumeOnce(defaultCfg, PROBE_PROMPT, 'model-probe-default')
+    const def = await consumeOnce(defaultCfg, MODEL_THINKING_PROBE_PROMPT, 'model-probe-default')
 
     let disabledOut: ThinkingProbeDisabledSide
     try {
-      const dis = await consumeOnce(disabledCfg, PROBE_PROMPT, 'model-probe-disabled')
+      const dis = await consumeOnce(disabledCfg, MODEL_THINKING_PROBE_PROMPT, 'model-probe-disabled')
       disabledOut = {
         contentLen: dis.content.length,
         reasoningLen: dis.reasoning.length,

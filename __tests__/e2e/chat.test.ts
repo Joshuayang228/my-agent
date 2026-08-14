@@ -72,6 +72,12 @@ test.describe('My Agent UI', () => {
     await expect(debugNav.getByRole('button', { name: 'LLM 调用', exact: true })).not.toBeVisible()
     await debugNav.getByRole('button', { name: '提示词管理器', exact: true }).click()
     await expect(page.locator('[data-testid="prompt-manager-panel"]')).toBeVisible()
+    await expect(page.getByText('统一查看生产 Prompt、Tool schema、Skill、Eval Judge 与当前 MCP 工具。', { exact: false })).toBeVisible()
+    const contextCategories = page.getByLabel('模型可见文本分类')
+    await expect(contextCategories.getByRole('button', { name: '内置工具', exact: true })).toBeVisible()
+    await expect(contextCategories.getByRole('button', { name: 'Skills', exact: true })).toBeVisible()
+    await expect(contextCategories.getByRole('button', { name: 'Eval Judge', exact: true })).toBeVisible()
+    await expect(contextCategories.getByRole('button', { name: '外部 / MCP', exact: true })).toBeVisible()
 
     await debugNav.getByRole('button', { name: '质量 / Eval', exact: true }).click()
     await expect(page.locator('[data-testid="persona-eval-panel"]')).toBeVisible()

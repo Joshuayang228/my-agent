@@ -8,6 +8,7 @@
 
 import type { LLMConfig } from '../../../../src/shared/types'
 import { chatComplete } from '../../llm/index'
+import { PROMPT_KEYS } from '../../prompts/keys'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
 import type { CompanionEvent } from '../types'
@@ -123,7 +124,7 @@ export async function polishMomentTextViaLlm(
         }),
       }],
       caller: 'moment-polish',
-      promptAssetKeys: ['companion-moment-polish'],
+      promptAssetKeys: [PROMPT_KEYS.companionMomentPolish],
     })
     const ok = validatePolishedMomentText(raw, { activity, location, ruleText })
     if (!ok) {

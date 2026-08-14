@@ -17,6 +17,7 @@ import { ToolRegistry } from '../tools/registry'
 import { createLogger } from '../utils/logger'
 import { startSpan } from '../utils/tracer'
 import { llmDebugStore } from '../storage/llm-debug-store'
+import { PROMPT_KEYS } from '../prompts/keys'
 import { registerSubAgent } from './subagent-registry'
 import type {
   ChatMessage,
@@ -201,7 +202,7 @@ export async function runSubAgent(
         messages,
         tools: childRegistry.getAll(),
         systemPrompt,
-        promptAssetKeys: ['subagent-system'],
+        promptAssetKeys: [PROMPT_KEYS.subagentSystem],
         maxIterations,
         signal,
         executionMode,           // G4：只降不升后的模式

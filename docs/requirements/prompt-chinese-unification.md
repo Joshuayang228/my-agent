@@ -1,4 +1,4 @@
-﻿# 提示词中文统一
+# 提示词中文统一
 
 > 状态：**进行中**（2026-08-12）
 > 对象：My Agent 自有、会进入模型上下文的自然语言提示词
@@ -150,3 +150,62 @@ Debug 展示必须来自主进程注册表和真实组装链路，不得为了�
   - 2026-08-14 已落地调用级来源追踪：主对话、L3/L4 压缩、画像、标题、连接测试、Playground、伙伴后台任务和初次子 Agent 调用均声明稳定 key；LLM Debug 详情展示注册表解析结果，历史实发正文仍以 System / Messages 为准。
 - 稳定人格模板与动态状态可以分别审阅和测试；动态插槽只能由已声明的实际组装器替换。
 - 未来增加英文时，在同一个 Prompt 资产 key 下维护独立语言版本，由运行时按 locale 单选注入，不并发注入多种语言。
+
+
+## Phase 2：模型可见文本统一目录与工程门禁（2026-08-14）
+
+### 追加背景
+
+第一阶段已经建立 Prompt 注册表和真实 LLM 调用级追踪，但“模型可见文本”不只包含聊天 Prompt：内置 Tool description / 参数 schema / input examples、Skill 摘要与正文、Eval Judge 模板，以及运行时 MCP 工具描述同样会影响模型行为。当前这些内容分散在 Prompt 管理器、Tool Registry、Skill 管理和 Eval 报告中，开发者无法在一个入口完成审阅。
+
+### 追加目标
+
+1. **Prompt key 类型化**：核心 key 由 `PROMPT_KEYS` 常量和 `PromptAssetKey` 类型统一提供；Role Pack key 只能通过工厂生成，生产调用点禁止继续手写字符串。
+2. **调用覆盖门禁**：`streamChat` / `chatComplete` 必须二选一：声明非空 Prompt 资产 key，或显式填写 `promptlessReason`；省略追踪信息不能通过 TypeScript 与单测。
+3. **版本与指纹并存**：资产同时展示人工语义版本和自动指纹。静态正文使用内容指纹；动态资产使用模板 / 结构指纹，并明确指纹依据，禁止拿包含用户隐私的最终插槽值生成目录指纹。
+4. **统一模型上下文目录**：Debug「提示词管理器」扩展为模型可见文本统一目录，覆盖：
+   - 生产 Prompt 与 Role Pack；
+   - 内置、Skill 生成和 MCP 外部 Tool schema；
+   - 已加载 Skill 的摘要、触发条件和正文；
+   - Eval Model Judge 模板；
+   - 用户 / 外部资产的来源和所有权标记。
+5. **真实正文与目录分层**：目录展示静态正文、生产模板或 schema；含用户状态的最终动态内容仍只在真实 LLM 调用的 System / Messages / Tools 中查看。
+6. **Playground 边界不变**：Playground 不复制统一目录，只接收用户显式选择的资产实验副本；外部 MCP、用户 Skill 和动态运行态默认不得回写生产源。
+
+### 统一资产最小契约
+
+每个模型可见资产至少记录：
+
+```ts
+interface ModelContextAsset extends PromptAsset {
+  assetType: 'prompt' | 'tool-schema' | 'skill' | 'eval-judge';
+  ownership: 'builtin' | 'role-pack' | 'user' | 'external';
+  fingerprint: string;
+  fingerprintKind: 'content' | 'structure';
+  contentKind: 'static' | 'template' | 'schema' | 'runtime';
+}
+```
+
+### 影响范围
+
+- 共享类型与 Debug IPC 四处同步；
+- Prompt 注册表、LLM 统一入口与所有生产 / Eval 调用点；
+- Tool Registry / builtins 来源映射、Skill Registry、MCP 运行态聚合；
+- Debug 提示词管理器的信息架构与实验副本入口；
+- Prompt、工具中文门禁、调用覆盖、指纹稳定性和 UI E2E。
+
+### 实施步骤
+
+1. 建立类型化 key、非空资产列表与显式 promptless 联合类型；迁移所有调用点。
+2. 给 Prompt 资产补版本 + 自动指纹；真实调用记录同步携带指纹。
+3. 新增统一模型上下文资产聚合器，组合 Prompt、Tool、Skill、Eval 和 MCP。
+4. 扩展 Debug 目录筛选、来源 / 所有权 / 指纹展示，并保留载入实验副本。
+5. 增加源码调用覆盖审计、资产唯一性 / 指纹测试、Tool / Skill / Eval 聚合测试与 UI E2E。
+
+### 验收补充
+
+- 任一新增生产 LLM 调用如果既没有非空 Prompt key，也没有显式 promptless 原因，门禁失败。
+- 核心 Prompt key 在调用点不出现裸字符串；Role Pack key 由统一工厂生成。
+- 修改静态正文后内容指纹变化；动态资产的模板 / 结构变化后结构指纹变化。
+- Debug 统一目录能搜索画像提取、记忆工具、Skill 正文、Eval Judge 和当前 MCP 工具，并区分“目录模板”与“历史实发”。
+- Playground 仍不存在第二份生产资产目录。

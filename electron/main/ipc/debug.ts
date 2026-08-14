@@ -17,6 +17,7 @@ import { getRecentSpans, getCallerStats, getTokenLaneStats } from '../utils/trac
 import { getDailyUsage } from '../agent/token-budget'
 import { getPersonaEvalReport, listPersonaEvalReports } from '../debug/persona-eval-reports'
 import { DebugEvalRunner } from '../debug/eval-runner'
+import { getModelContextAssets } from '../debug/model-context-assets'
 import {
   llmDebugStore,
 } from '../storage/llm-debug-store'
@@ -107,6 +108,7 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
 
   /** Prompt 资产目录：由主进程生产代码和 Role Pack 资产生成，前端不维护副本。 */
   ipcMain.handle('debug:prompt-assets', () => getPromptAssets())
+  ipcMain.handle('debug:model-context-assets', () => getModelContextAssets(toolRegistry))
 
   ipcMain.handle('debug:tools', () => {
     const tools = toolRegistry.getAll()

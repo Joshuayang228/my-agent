@@ -59,8 +59,9 @@ import {
 } from '../utils/trace-context'
 import { startSpan } from '../utils/tracer'
 import { AgentErrorCode } from '../errs'
-import type { ChatMessage, LLMConfig, ExecutionMode, AgentStreamEvent, ToolContext } from '../../../src/shared/types'
+import type { ChatMessage, LLMConfig, ExecutionMode, AgentStreamEvent, ToolContext, PromptAssetKeyList } from '../../../src/shared/types'
 import { taskQueue } from '../services/task-queue'
+import { PROMPT_KEYS, rolePromptAssetKey } from '../prompts/keys'
 
 const log = createLogger('Runtime')
 
@@ -347,24 +348,27 @@ class AgentRuntime {
 
       // 调用点只声明稳定 key；来源、版本与 locale 由 LLM 统一入口从注册表解析。
       // Role Pack 只标注本次实际读取的文件，动态 MUTABLE 与场景 Prompt 不冒充默认正文。
-      const roleAssetPrefix = `role-${assembleRoleId}-`
-      const promptAssetKeys = [
-        'system-layers',
-        `${roleAssetPrefix}protected-md`,
+      const promptAssetKeys: PromptAssetKeyList = [
+        PROMPT_KEYS.systemLayers,
+        rolePromptAssetKey(assembleRoleId, 'protected.md'),
         ...(mutableBody === pack.mutableDefault
-          ? [`${roleAssetPrefix}mutable-default-md`]
-          : ['companion-mutable-state']),
-        ...(pack.voice?.trim() ? [`${roleAssetPrefix}voice-md`] : []),
-        ...(customPrompt?.trim() ? ['settings-system-prompt'] : []),
-        'reply-stance',
-        'tone-control',
-        ...(relationshipStageHint?.trim() ? ['relationship-stage'] : []),
-        ...(milestoneHint?.trim() ? ['relationship-milestones'] : []),
-        ...(expertiseHint?.trim() ? ['expertise-level'] : []),
-        ...(skillSummary?.trim() || activeSkillBody?.trim() ? ['skill-context'] : []),
+          ? [rolePromptAssetKey(assembleRoleId, 'mutable.default.md')]
+          : [PROMPT_KEYS.companionMutableState]),
+        ...(pack.voice?.trim() ? [rolePromptAssetKey(assembleRoleId, 'voice.md')] : []),
+        ...(customPrompt?.trim() ? [PROMPT_KEYS.settingsSystemPrompt] : []),
+        ...([userProfile?.identity, userProfile?.workflow, userProfile?.voice].some((value) => value?.trim())
+          ? [PROMPT_KEYS.userProfileContext]
+          : []),
+        ...(vectorContext.trim() ? [PROMPT_KEYS.memoryRecallContext] : []),
+        PROMPT_KEYS.replyStance,
+        PROMPT_KEYS.toneControl,
+        ...(relationshipStageHint?.trim() ? [PROMPT_KEYS.relationshipStage] : []),
+        ...(milestoneHint?.trim() ? [PROMPT_KEYS.relationshipMilestones] : []),
+        ...(expertiseHint?.trim() ? [PROMPT_KEYS.expertiseLevel] : []),
+        ...(skillSummary?.trim() || activeSkillBody?.trim() ? [PROMPT_KEYS.skillContext] : []),
         ...(summonNote?.trim() || catchupSummary?.trim() || worldSlice?.trim()
           || recentMomentsSlice?.trim() || bookshelfSlice?.trim() || rosterLines?.trim()
-          ? ['companion-context']
+          ? [PROMPT_KEYS.companionContext]
           : []),
       ]
 

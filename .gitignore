@@ -25,8 +25,10 @@ release/
 *.swo
 *~
 
-# Harness 与编码规范（暂不开源）
+# Harness 与编码规范（暂不开源）；生产 Skill 子系统显式纳入版本控制
 skills/
+!electron/main/skills/
+!electron/main/skills/**
 
 # 参考资料库（第三方代码）
 _reference/

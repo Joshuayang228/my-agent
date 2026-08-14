@@ -6,6 +6,7 @@ import type {
   ToolResult,
   AgentStreamEvent,
   ResponseFormat,
+  PromptAssetKeyList,
 } from '../../../src/shared/types'
 import { detectProvider, buildAnthropicBody, buildGeminiBody } from './provider-router'
 import { createLogger } from '../utils/logger'
@@ -60,7 +61,7 @@ export function parseRetryAfterMs(response: Response): number | undefined {
 
 // ── 对外接口 ──
 
-export interface StreamChatOptions {
+interface StreamChatBaseOptions {
   config: LLMConfig
   messages: ChatMessage[]
   tools?: ToolDefinition[]
@@ -78,9 +79,13 @@ export interface StreamChatOptions {
   traceSpan?: SpanHandle
   /** Agent Loop 内部重试次数，仅写入 Debug extra，不改变 Span 生命周期 */
   retryAttempt?: number
-  /** 调用点只声明稳定 key；来源、版本和 locale 在统一入口从 Prompt 注册表解析。 */
-  promptAssetKeys?: string[]
 }
+
+type PromptTracking =
+  | { promptAssetKeys: PromptAssetKeyList; promptlessReason?: never }
+  | { promptAssetKeys?: never; promptlessReason: string }
+
+export type StreamChatOptions = StreamChatBaseOptions & PromptTracking
 
 export interface StreamChatResult {
   content: string | null
@@ -168,6 +173,13 @@ function finishLLMTrace(
 export async function* streamChat(
   options: StreamChatOptions,
 ): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
+  if (options.promptAssetKeys) {
+    if (options.promptAssetKeys.length === 0) {
+      throw new Error('LLM 调用的 promptAssetKeys 不能为空')
+    }
+  } else if (!options.promptlessReason?.trim()) {
+    throw new Error('LLM 调用必须声明 Prompt 资产，或提供非空 promptlessReason')
+  }
   const { config } = options
   const fallbacks = config.fallbackModels ?? []
   const sessionId = options.sessionId ?? getTraceContext().sessionId
@@ -210,6 +222,7 @@ export async function* streamChat(
         responseFormat: options.responseFormat,
         enablePromptCache: options.enablePromptCache === true,
         promptAssets: promptAssetResolution.assets,
+        ...(options.promptlessReason ? { promptlessReason: options.promptlessReason } : {}),
         ...(promptAssetResolution.unknownKeys.length > 0
           ? { unknownPromptAssetKeys: promptAssetResolution.unknownKeys }
           : {}),
@@ -556,9 +569,9 @@ function hasImages(messages: ChatMessage[]): boolean {
 export function appendExamplesToDescription(tool: ToolDefinition): string {
   if (!tool.inputExamples || tool.inputExamples.length === 0) return tool.description
   const examples = tool.inputExamples
-    .map((ex, i) => `Example ${i + 1}: ${JSON.stringify(ex)}`)
+    .map((ex, i) => `示例 ${i + 1}：${JSON.stringify(ex)}`)
     .join('\n')
-  return `${tool.description}\n\nExample inputs:\n${examples}`
+  return `${tool.description}\n\n输入示例：\n${examples}`
 }
 
 /** 将我们的 ToolDefinition 转为 OpenAI tools 格式 */
@@ -729,7 +742,7 @@ async function* streamChatAnthropic(
 
 // ── 非流式便捷入口 ──
 
-export interface ChatCompleteOptions {
+interface ChatCompleteBaseOptions {
   config: LLMConfig
   /** 简单的对话消息（system / user / assistant），辅助调用无需完整 ChatMessage */
   messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
@@ -747,9 +760,9 @@ export interface ChatCompleteOptions {
   timeoutMs?: number
   /** 外部中断信号，与超时信号合并 */
   signal?: AbortSignal
-  /** 本次辅助调用实际使用的 Prompt 注册表稳定 key。 */
-  promptAssetKeys?: string[]
 }
+
+export type ChatCompleteOptions = ChatCompleteBaseOptions & PromptTracking
 
 /**
  * 非流式 LLM 调用 —— 辅助场景（摘要 / 画像提取 / 标题生成）的统一入口。
@@ -777,6 +790,7 @@ export async function chatComplete(options: ChatCompleteOptions): Promise<string
     timeoutMs = 120_000,
     signal,
     promptAssetKeys,
+    promptlessReason,
   } = options
 
   // 合并「外部中断」和「超时」两个信号
@@ -808,6 +822,7 @@ export async function chatComplete(options: ChatCompleteOptions): Promise<string
     sessionId,
     parentSpanId,
     promptAssetKeys,
+    promptlessReason,
   })
   let result: StreamChatResult
   while (true) {

@@ -1,2 +1,16 @@
-/** Prompt 资产目录的跨进程数据契约；实际目录由 Electron 主进程生成。 */
-export type { PromptAsset, PromptAssetKind, PromptAssetMode, PromptAssetTrace, PromptLocaleAsset, PromptSlot } from './types'
+/** Prompt / 模型上下文资产的共享导出入口。 */
+export type {
+  ModelContextAsset,
+  ModelContextAssetType,
+  ModelContextContentKind,
+  ModelContextFingerprintKind,
+  ModelContextOwnership,
+  PromptAsset,
+  PromptAssetKey,
+  PromptAssetKeyList,
+  PromptAssetKind,
+  PromptAssetMode,
+  PromptAssetTrace,
+  PromptLocaleAsset,
+  PromptSlot,
+} from './types'

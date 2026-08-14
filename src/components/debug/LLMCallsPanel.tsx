@@ -300,6 +300,7 @@ export function LLMCallsPanel() {
                 <PromptAssetsDetail
                   assets={promptAssets}
                   unknownKeys={normalizeStringArray(detail.requestExtra.unknownPromptAssetKeys)}
+                  promptlessReason={typeof detail.requestExtra.promptlessReason === 'string' ? detail.requestExtra.promptlessReason : ''}
                 />
               )}
               {detailView === 'system' && <DetailMessages messages={systemMessages} />}
@@ -345,17 +346,32 @@ function normalizeStringArray(value: unknown): string[] {
  */
 function normalizePromptAssets(value: unknown): PromptAssetTrace[] {
   if (!Array.isArray(value)) return []
-  return value.filter((item): item is PromptAssetTrace => {
-    if (!item || typeof item !== 'object') return false
+  return value.flatMap((item) => {
+    if (!item || typeof item !== 'object') return []
     const candidate = item as Partial<PromptAssetTrace>
-    return typeof candidate.key === 'string'
-      && typeof candidate.source === 'string'
-      && typeof candidate.version === 'string'
-      && typeof candidate.locale === 'string'
-      && typeof candidate.purpose === 'string'
-      && typeof candidate.role === 'string'
-      && (candidate.mode === 'static' || candidate.mode === 'dynamic')
-      && Array.isArray(candidate.slots)
+    if (typeof candidate.key !== 'string'
+      || typeof candidate.source !== 'string'
+      || typeof candidate.version !== 'string'
+      || typeof candidate.locale !== 'string'
+      || typeof candidate.purpose !== 'string'
+      || typeof candidate.role !== 'string'
+      || (candidate.mode !== 'static' && candidate.mode !== 'dynamic')
+      || !Array.isArray(candidate.slots)) return []
+    return [{
+      ...candidate,
+      key: candidate.key,
+      source: candidate.source,
+      version: candidate.version,
+      locale: candidate.locale,
+      purpose: candidate.purpose,
+      role: candidate.role,
+      mode: candidate.mode,
+      slots: candidate.slots,
+      fingerprint: typeof candidate.fingerprint === 'string' ? candidate.fingerprint : 'legacy',
+      fingerprintKind: candidate.fingerprintKind === 'content' || candidate.fingerprintKind === 'structure'
+        ? candidate.fingerprintKind
+        : 'structure',
+    } satisfies PromptAssetTrace]
   })
 }
 
@@ -366,12 +382,18 @@ function normalizePromptAssets(value: unknown): PromptAssetTrace[] {
  * 设计意图：元数据卡片回答“用了哪个资产、从哪里来、什么版本”，正文仍交给 System / Messages。
  * 关键约束：未知 key 只告警，不伪造来源；动态插槽只显示名称，不展示可能含隐私的实际值。
  */
-function PromptAssetsDetail({ assets, unknownKeys }: { assets: PromptAssetTrace[]; unknownKeys: string[] }) {
-  if (assets.length === 0 && unknownKeys.length === 0) {
+function PromptAssetsDetail({ assets, unknownKeys, promptlessReason }: { assets: PromptAssetTrace[]; unknownKeys: string[]; promptlessReason: string }) {
+  if (assets.length === 0 && unknownKeys.length === 0 && !promptlessReason) {
     return <Empty text="本次调用没有声明 Prompt 资产；可查看 System / Messages 确认实发正文。" />
   }
   return (
     <div className="scrollbar-hover max-h-[52vh] space-y-2 overflow-y-auto pr-1">
+      {promptlessReason && (
+        <section className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
+          <div className="text-[11px] font-semibold" style={{ color: 'var(--text-secondary)' }}>本次调用显式声明为无固定 Prompt 资产</div>
+          <div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{promptlessReason}</div>
+        </section>
+      )}
       {unknownKeys.length > 0 && (
         <section className="rounded-lg border p-3" style={{ borderColor: 'var(--warning)', background: 'var(--bg-primary)' }}>
           <div className="text-[11px] font-semibold" style={{ color: 'var(--warning)' }}>注册表缺失 key</div>
@@ -394,6 +416,8 @@ function PromptAssetsDetail({ assets, unknownKeys }: { assets: PromptAssetTrace[
             <dd className="break-all font-mono" style={{ color: 'var(--text-secondary)' }}>{asset.source}</dd>
             <dt style={{ color: 'var(--text-muted)' }}>角色</dt>
             <dd className="font-mono" style={{ color: 'var(--text-secondary)' }}>{asset.role}</dd>
+            <dt style={{ color: 'var(--text-muted)' }}>指纹</dt>
+            <dd className="font-mono" style={{ color: 'var(--text-secondary)' }}>{asset.fingerprint} · {asset.fingerprintKind}</dd>
             {asset.slots.length > 0 && (
               <>
                 <dt style={{ color: 'var(--text-muted)' }}>动态插槽</dt>

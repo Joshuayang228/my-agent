@@ -136,7 +136,7 @@ src/components/playground/
   UiControlsPanel.tsx      # 故事矩阵（非 *.stories.ts）
   catalog.ts               # tab / 故事 id；只增不删
 src/components/debug/
-  PromptManagerPanel.tsx   # 生产 Prompt 目录 + 当前实装，只读
+  PromptManagerPanel.tsx   # 模型可见文本统一目录 + 当前装配；生产源只读
 DevPanel.tsx
 ```
 
@@ -211,7 +211,7 @@ type UiStory = {
 | A0 Playground 活目录 | `PlaygroundShell` + `PLAYGROUND_TABS` |
 | A1 设计系统 | `DesignSystemPanel` |
 | A2 UI 故事矩阵 | `UiControlsPanel`（按钮/输入/工具卡/空态 + 边缘格） |
-| A3 Prompt 边界 | `PromptManagerPanel` + `debug:prompt-assets`；Lab 留 Playground |
+| A3 Prompt 边界 | `PromptManagerPanel` + `debug:model-context-assets`；统一目录留 Debug，Playground 只接收显式实验副本 |
 | A4 文档 | guidelines / M32 / changelog / progress / agent-runtime |
 
 ### Phase 1 落地摘要（2026-08-06）

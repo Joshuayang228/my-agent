@@ -50,3 +50,10 @@ export const EXTRACTION_PROMPT = `你是用户画像分析器。请根据近期�
 - 跳过模糊或不确定的信息
 - 没有长期有效信息时返回 []
 - 只输出 JSON 数组，不要输出其他文字`
+
+export const SESSION_TITLE_SYSTEM_PROMPT =
+  '用极简中文为这段对话生成一个标题（4-10个字，不加引号标点）。只返回标题本身。'
+
+export const MODEL_SMOKE_PROMPT = '你好！请用一句话介绍自己。'
+
+export const MODEL_THINKING_PROBE_PROMPT = '用两个字回答：你好'

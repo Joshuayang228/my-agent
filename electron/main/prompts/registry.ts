@@ -8,19 +8,34 @@
  */
 
 import type {
+  ModelContextAssetType,
+  ModelContextContentKind,
+  ModelContextOwnership,
   PromptAsset,
+  PromptAssetKey,
   PromptAssetMode,
   PromptAssetTrace,
   PromptSlot,
 } from '../../../src/shared/types'
-import { DEFAULT_PLAYGROUND_SYSTEM, DEFAULT_SYSTEM_PROMPT, EXTRACTION_PROMPT } from './texts'
+import {
+  DEFAULT_PLAYGROUND_SYSTEM,
+  DEFAULT_SYSTEM_PROMPT,
+  EXTRACTION_PROMPT,
+  MODEL_SMOKE_PROMPT,
+  MODEL_THINKING_PROBE_PROMPT,
+  SESSION_TITLE_SYSTEM_PROMPT,
+} from './texts'
+import { EVAL_JUDGE_TEMPLATE } from './eval-judge'
+import { modelContextFingerprint } from './fingerprint'
+import { PROMPT_KEYS, rolePromptAssetKey, type RolePromptSuffix } from './keys'
+import { CONNECTION_TEST_MESSAGES } from '../../../src/shared/llm-connection-test'
 import { listAvailableRoleIds, tryReadRoleText } from '../companion/identity/loader'
 
 const PROMPT_LOCALE = 'zh-CN'
 const DEFAULT_PROMPT_VERSION = '1.0.0'
 
 type PromptAssetInput = {
-  id: string
+  id: PromptAssetKey
   name: string
   category: PromptAsset['category']
   desc: string
@@ -33,6 +48,10 @@ type PromptAssetInput = {
   slots?: PromptSlot[]
   preview?: string
   content?: string
+  template?: string
+  assetType?: ModelContextAssetType
+  ownership?: ModelContextOwnership
+  contentKind?: ModelContextContentKind
   dynamic?: boolean
 }
 
@@ -46,12 +65,20 @@ function clip(text: string, max = 420): string {
  *
  * 背景：Prompt 目录最初只有展示字段，不能让每个调用点继续手写 key、版本和 locale。
  * 设计意图：在注册表入口一次性补齐结构化元数据，避免 Debug、测试和生产目录出现分叉。
- * 关键约束：默认只注册 zh-CN；动态资产不伪造固定模板正文，静态资产才把 content 放入 locale 模板。
+ * 关键约束：默认只注册 zh-CN；动态资产可登记生产模板骨架，但最终插槽值只认真实调用记录。
  */
 function normalizeAsset(input: PromptAssetInput): PromptAsset & { content?: string } {
   const mode: PromptAssetMode = input.mode ?? (input.dynamic ? 'dynamic' : 'static')
   const locale = input.locale ?? PROMPT_LOCALE
   const content = input.content
+  const template = input.template
+  const fingerprintInput = content ?? template ?? JSON.stringify({
+    key: input.id,
+    source: input.sourcePath,
+    version: input.version ?? DEFAULT_PROMPT_VERSION,
+    preview: input.preview ?? '',
+    slots: input.slots ?? [],
+  })
   return {
     ...input,
     key: input.id,
@@ -60,11 +87,16 @@ function normalizeAsset(input: PromptAssetInput): PromptAsset & { content?: stri
     source: input.sourcePath,
     sourcePath: input.sourcePath,
     version: input.version ?? DEFAULT_PROMPT_VERSION,
+    fingerprint: modelContextFingerprint(fingerprintInput),
+    fingerprintKind: content !== undefined || template !== undefined ? 'content' : 'structure',
+    assetType: input.assetType ?? 'prompt',
+    ownership: input.ownership ?? 'builtin',
+    contentKind: input.contentKind ?? (content !== undefined ? 'static' : template !== undefined ? 'template' : 'runtime'),
     mode,
     locale,
     locales: {
       [locale]: {
-        ...(mode === 'static' && content !== undefined ? { template: content } : {}),
+        ...(content !== undefined || template !== undefined ? { template: content ?? template } : {}),
       },
     },
     slots: input.slots ?? [],
@@ -82,7 +114,7 @@ function dynamicAsset(input: PromptAssetInput): PromptAsset & { content?: string
 
 const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
-    id: 'system-layers',
+    id: PROMPT_KEYS.systemLayers,
     name: 'System Prompt 四层实装（L1–L4）',
     category: 'system',
     purpose: '主对话 System 四层组装',
@@ -100,7 +132,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     ],
   }),
   staticAsset({
-    id: 'loop-default',
+    id: PROMPT_KEYS.loopDefault,
     name: 'Loop 默认 System（无人格时）',
     category: 'system',
     purpose: 'Agent Loop 兜底 System',
@@ -110,7 +142,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     content: DEFAULT_SYSTEM_PROMPT,
   }),
   staticAsset({
-    id: 'playground-default',
+    id: PROMPT_KEYS.playgroundDefault,
     name: 'Playground 默认试验指令',
     category: 'system',
     purpose: 'Playground 隔离试跑',
@@ -120,7 +152,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     content: DEFAULT_PLAYGROUND_SYSTEM,
   }),
   dynamicAsset({
-    id: 'playground-draft',
+    id: PROMPT_KEYS.playgroundDraft,
+    ownership: 'user',
     name: 'Playground 自定义草稿',
     category: 'system',
     purpose: 'Playground 隔离自定义 Prompt',
@@ -131,7 +164,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [{ name: 'systemPrompt', source: 'Playground draft', lifecycle: '每次试跑' }],
   }),
   dynamicAsset({
-    id: 'playground-model-test',
+    id: PROMPT_KEYS.playgroundModelTest,
     name: 'Playground 模型能力探测',
     category: 'ui',
     purpose: '模型连通与 Thinking 能力探测',
@@ -139,10 +172,11 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     desc: '模型测试页用于 smoke test 与 thinking.disabled 对比的短提示。',
     sourcePath: 'electron/main/agent/playground-model-test.ts',
     preview: '短文本探测，不注入主会话人格、记忆或工具。',
+    template: `Smoke：${MODEL_SMOKE_PROMPT}\nThinking Probe：${MODEL_THINKING_PROBE_PROMPT}`,
     slots: [{ name: 'probePrompt', source: 'model test runner', lifecycle: '每次探测' }],
   }),
   dynamicAsset({
-    id: 'l3-collapse',
+    id: PROMPT_KEYS.l3Collapse,
     name: 'L3 Collapse 摘要指令',
     category: 'context',
     purpose: '中段上下文压缩',
@@ -153,7 +187,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [{ name: 'conversationWindow', source: 'context-manager', lifecycle: '每次压缩' }],
   }),
   dynamicAsset({
-    id: 'l4-autocompact',
+    id: PROMPT_KEYS.l4Autocompact,
     name: 'L4 AutoCompact 全量摘要',
     category: 'context',
     purpose: '超长上下文全量摘要',
@@ -164,7 +198,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [{ name: 'fullConversation', source: 'context-manager', lifecycle: '每次紧急压缩' }],
   }),
   staticAsset({
-    id: 'profile-extraction',
+    id: PROMPT_KEYS.profileExtraction,
     name: '用户画像提取',
     category: 'context',
     purpose: '用户画像提取',
@@ -174,29 +208,65 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     content: EXTRACTION_PROMPT,
   }),
   dynamicAsset({
-    id: 'session-title',
+    id: PROMPT_KEYS.userProfileContext,
+    name: '用户画像上下文注入',
+    category: 'context',
+    purpose: '主对话用户画像注入',
+    role: 'memory-runtime',
+    desc: '把 identity / workflow / voice 用户画像切片注入主 System Prompt。',
+    sourcePath: 'electron/main/storage/memory-store.ts',
+    preview: '按当前主角分桶读取用户画像；最终正文只在当前装配或真实 LLM 调用中显示。',
+    slots: [{ name: 'userProfile', source: 'memory-store', lifecycle: '每次主对话装配' }],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.memoryRecallContext,
+    name: '向量记忆召回上下文',
+    category: 'context',
+    purpose: '主对话相关记忆注入',
+    role: 'memory-runtime',
+    desc: '将向量检索命中的记忆片段格式化后注入主 System Prompt。',
+    sourcePath: 'electron/main/memory/vector-store.ts',
+    preview: '只在检索命中时注入；实际记忆正文与引用在真实调用和记忆引用事件中查看。',
+    slots: [{ name: 'memoryRecall', source: 'vector-store', lifecycle: '每次主对话检索' }],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.embeddingInput,
+    name: 'Embedding 输入（非聊天 Prompt）',
+    category: 'context',
+    purpose: '记忆与查询文本向量化',
+    role: 'embedding-runtime',
+    desc: '原始记忆或查询文本直接发送 Embeddings API；没有独立 System 指令。',
+    sourcePath: 'electron/main/memory/embeddings.ts',
+    preview: '这是模型输入资产而非聊天 Prompt；目录不展示用户原文。',
+    slots: [{ name: 'embeddingText', source: 'memory/query text', lifecycle: '每次向量化' }],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.sessionTitle,
     name: '会话标题生成',
     category: 'context',
     purpose: '新会话标题生成',
     role: 'session-store',
     desc: '根据首轮用户与助手文本生成 4–10 字中文标题。',
     sourcePath: 'electron/main/storage/session-store.ts',
+    template: `${SESSION_TITLE_SYSTEM_PROMPT}\n\n[用户首轮] {{userMessage}}\n[助手首轮] {{assistantReply}}`,
     preview: '只返回短标题，不注入完整会话历史。',
     slots: [{ name: 'openingTurn', source: 'session messages', lifecycle: '新会话首轮' }],
   }),
   dynamicAsset({
-    id: 'connection-test',
+    id: PROMPT_KEYS.connectionTest,
     name: '模型连接测试',
     category: 'ui',
     purpose: '设置页模型连接验证',
     role: 'settings',
     desc: '用固定短消息验证 Provider、Base URL、API Key 与模型是否可调用。',
-    sourcePath: 'electron/main/ipc/settings.ts',
+    sourcePath: 'src/shared/llm-connection-test.ts',
+    template: CONNECTION_TEST_MESSAGES.map((message) => `[${message.role}] ${message.content}`).join('\n\n'),
     preview: '只验证连接与最小正文返回，不进入真实会话。',
     slots: [{ name: 'connectionProbe', source: 'settings IPC', lifecycle: '每次测试' }],
   }),
   dynamicAsset({
-    id: 'settings-system-prompt',
+    id: PROMPT_KEYS.settingsSystemPrompt,
+    ownership: 'user',
     name: '设置中的 System 补充指令',
     category: 'system',
     purpose: '主对话 L3 自定义补充',
@@ -207,7 +277,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [{ name: 'systemPrompt', source: 'settings.systemPrompt', lifecycle: '设置变更' }],
   }),
   dynamicAsset({
-    id: 'reply-stance',
+    id: PROMPT_KEYS.replyStance,
     name: '回复立场提示',
     category: 'system',
     purpose: '本轮回复立场选择',
@@ -218,7 +288,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [{ name: 'userMessage', source: 'reply-stance', lifecycle: '每轮消息' }],
   }),
   dynamicAsset({
-    id: 'tone-control',
+    id: PROMPT_KEYS.toneControl,
     name: '语气收放提示',
     category: 'system',
     purpose: '本轮语气与 aside 策略',
@@ -229,7 +299,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [{ name: 'replyStance', source: 'reply-stance', lifecycle: '每轮消息' }],
   }),
   dynamicAsset({
-    id: 'relationship-stage',
+    id: PROMPT_KEYS.relationshipStage,
     name: '关系阶段提示',
     category: 'companion',
     purpose: '关系阶段边界注入',
@@ -240,7 +310,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [{ name: 'relationshipStage', source: 'relationship-stage', lifecycle: '关系状态变化' }],
   }),
   dynamicAsset({
-    id: 'relationship-milestones',
+    id: PROMPT_KEYS.relationshipMilestones,
     name: '关系里程碑提示',
     category: 'companion',
     purpose: '关系里程碑薄提示',
@@ -251,7 +321,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [{ name: 'milestoneHint', source: 'milestones', lifecycle: '按需注入' }],
   }),
   dynamicAsset({
-    id: 'expertise-level',
+    id: PROMPT_KEYS.expertiseLevel,
     name: '专家度 / 解释粒度提示',
     category: 'system',
     purpose: '解释粒度调整',
@@ -262,7 +332,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [{ name: 'expertiseLevel', source: 'expertise-level', lifecycle: '画像或消息变化' }],
   }),
   dynamicAsset({
-    id: 'skill-context',
+    id: PROMPT_KEYS.skillContext,
     name: 'Skill 上下文提示',
     category: 'system',
     purpose: 'Skill 能力上下文注入',
@@ -276,7 +346,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     ],
   }),
   dynamicAsset({
-    id: 'companion-context',
+    id: PROMPT_KEYS.companionContext,
     name: '伙伴世界上下文片段',
     category: 'companion',
     purpose: '伙伴生活世界上下文注入',
@@ -293,7 +363,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     ],
   }),
   dynamicAsset({
-    id: 'companion-mutable-state',
+    id: PROMPT_KEYS.companionMutableState,
     name: '伙伴 MUTABLE 当前状态',
     category: 'companion',
     purpose: '角色可成长状态注入',
@@ -304,7 +374,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [{ name: 'mutableBody', source: 'companion mutable store', lifecycle: '角色状态变化' }],
   }),
   dynamicAsset({
-    id: 'companion-background-tasks',
+    id: PROMPT_KEYS.companionBackgroundTasks,
     name: '伙伴后台任务 Prompt',
     category: 'companion',
     purpose: '伙伴后台 LLM 任务',
@@ -315,7 +385,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [{ name: 'taskInput', source: 'companion background task', lifecycle: '每次后台任务' }],
   }),
   dynamicAsset({
-    id: 'companion-reflection',
+    id: PROMPT_KEYS.companionReflection,
     name: '伙伴反思更新 Prompt',
     category: 'companion',
     purpose: '角色 MUTABLE 反思更新',
@@ -326,7 +396,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [{ name: 'reflectionInput', source: 'recent interaction', lifecycle: '每次反思' }],
   }),
   dynamicAsset({
-    id: 'companion-catchup',
+    id: PROMPT_KEYS.companionCatchup,
     name: '伙伴生活补叙 Prompt',
     category: 'companion',
     purpose: '暂停期间生活补叙',
@@ -337,7 +407,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [{ name: 'catchupWindow', source: 'companion lifecycle', lifecycle: '恢复时' }],
   }),
   dynamicAsset({
-    id: 'companion-moment-polish',
+    id: PROMPT_KEYS.companionMomentPolish,
     name: '伙伴 Moment 润色 Prompt',
     category: 'companion',
     purpose: '已发布 Moment 文案润色',
@@ -348,7 +418,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [{ name: 'momentEvent', source: 'published life event', lifecycle: '每次发布' }],
   }),
   dynamicAsset({
-    id: 'companion-day-script',
+    id: PROMPT_KEYS.companionDayScript,
     name: '伙伴日程剧本 Prompt',
     category: 'companion',
     purpose: '角色日程剧本生成',
@@ -359,7 +429,23 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [{ name: 'dayContext', source: 'role pack and world state', lifecycle: '每日生成' }],
   }),
   dynamicAsset({
-    id: 'subagent-system',
+    id: PROMPT_KEYS.evalJudge,
+    name: 'Eval Model Judge Prompt',
+    assetType: 'eval-judge',
+    category: 'eval',
+    purpose: 'Persona / 行为 Eval 单次 Judge',
+    role: 'eval-judge',
+    desc: '用陌生用户视角逐项判断违规，输出 VIOLATION_FOUND / NOT_FOUND / UNKNOWN。',
+    sourcePath: 'electron/main/prompts/eval-judge.ts',
+    template: EVAL_JUDGE_TEMPLATE,
+    slots: [
+      { name: 'systemContext', source: 'Eval scenario', lifecycle: '每次 Judge' },
+      { name: 'agentTexts', source: 'Eval transcript', lifecycle: '每次 Judge' },
+      { name: 'checkList', source: 'Violation checks', lifecycle: '每次 Judge' },
+    ],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.subagentSystem,
     name: '子 Agent System Prompt',
     category: 'subagent',
     purpose: '子 Agent 角色与边界',
@@ -373,7 +459,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     ],
   }),
   dynamicAsset({
-    id: 'permission-denial',
+    id: PROMPT_KEYS.permissionDenial,
     name: '权限拒绝后的继续策略',
     category: 'system',
     purpose: '权限拒绝后的继续策略',
@@ -396,10 +482,6 @@ const ROLE_PROMPT_FILES = [
 
 let roleAssetsCache: Array<PromptAsset & { content: string }> | undefined
 
-function roleAssetKey(roleId: string, suffix: string): string {
-  return `role-${roleId}-${suffix.replace(/[^a-z0-9]+/gi, '-')}`
-}
-
 /**
  * 读取并缓存进程生命周期内的 Role Pack Prompt 资产。
  *
@@ -416,7 +498,7 @@ function loadRoleAssets(): Array<PromptAsset & { content: string }> {
         const content = tryReadRoleText(roleId, file.suffix)
         if (!content?.trim()) continue
         assets.push(staticAsset({
-          id: roleAssetKey(roleId, file.suffix),
+          id: rolePromptAssetKey(roleId, file.suffix as RolePromptSuffix),
           name: `${roleId} · ${file.label}`,
           category: 'companion',
           purpose: `角色 Pack · ${file.label}`,
@@ -424,6 +506,7 @@ function loadRoleAssets(): Array<PromptAsset & { content: string }> {
           desc: `角色 Pack 的 ${file.label}，由 Identity loader 读取。`,
           sourcePath: `electron/main/companion/universes/default/roles/${roleId}/${file.suffix}`,
           version: 'role-pack-1.0.0',
+          ownership: 'role-pack',
           content,
         }))
       }
@@ -449,12 +532,14 @@ export function getPromptAssets(): Array<PromptAsset & { content?: string }> {
  */
 export function getPromptAssetTraces(keys?: readonly string[]): PromptAssetTrace[] {
   if (keys) return resolvePromptAssetTraces(keys).assets
-  return getPromptAssets().map(({ key, purpose, role, source, version, locale, mode, slots }) => ({
+  return getPromptAssets().map(({ key, purpose, role, source, version, fingerprint, fingerprintKind, locale, mode, slots }) => ({
     key,
     purpose,
     role,
     source,
     version,
+    fingerprint,
+    fingerprintKind,
     locale,
     mode,
     slots,
@@ -488,8 +573,8 @@ export function resolvePromptAssetTraces(keys: readonly string[]): PromptAssetRe
       unknownKeys.push(key)
       continue
     }
-    const { purpose, role, source, version, locale, mode, slots } = asset
-    assets.push({ key, purpose, role, source, version, locale, mode, slots })
+    const { purpose, role, source, version, fingerprint, fingerprintKind, locale, mode, slots } = asset
+    assets.push({ key, purpose, role, source, version, fingerprint, fingerprintKind, locale, mode, slots })
   }
 
   return { assets, unknownKeys }
@@ -505,7 +590,7 @@ export function resolvePromptAssetTraces(keys: readonly string[]): PromptAssetRe
 export function getRuntimePromptAssetTraces(personaId: string): PromptAssetTrace[] {
   const rolePrefix = `role-${personaId}-`
   const keys = getPromptAssets()
-    .filter((asset) => asset.key === 'system-layers' || asset.key.startsWith(rolePrefix))
+    .filter((asset) => asset.key === PROMPT_KEYS.systemLayers || asset.key.startsWith(rolePrefix))
     .map((asset) => asset.key)
   return getPromptAssetTraces(keys)
 }

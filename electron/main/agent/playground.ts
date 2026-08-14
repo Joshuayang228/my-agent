@@ -12,6 +12,7 @@ import { chatComplete } from '../llm/index'
 import { loadMainLLMConfig } from '../llm/aux-config'
 import { createLogger } from '../utils/logger'
 import { DEFAULT_PLAYGROUND_SYSTEM } from '../prompts/texts'
+import { PROMPT_KEYS } from '../prompts/keys'
 import { startLinkedAsyncSpan } from '../utils/tracer'
 
 export { DEFAULT_PLAYGROUND_SYSTEM } from '../prompts/texts'
@@ -109,7 +110,7 @@ export async function runPlayground(input: {
         content: typeof m.content === 'string' ? m.content : String(m.content),
       })),
       caller: 'playground',
-      promptAssetKeys: [(input.systemPrompt ?? '').trim() ? 'playground-draft' : 'playground-default'],
+      promptAssetKeys: [(input.systemPrompt ?? '').trim() ? PROMPT_KEYS.playgroundDraft : PROMPT_KEYS.playgroundDefault],
       temperature: 0.7,
       maxTokens: 1024,
     })

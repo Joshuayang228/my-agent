@@ -9,6 +9,7 @@
 import type { LLMConfig } from '../../../../src/shared/types'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { chatComplete } from '../../llm/index'
+import { PROMPT_KEYS } from '../../prompts/keys'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
 import { eachLocalDateInclusive, toLocalDateString } from './dates'
@@ -131,7 +132,7 @@ export async function generateCatchupSummaryViaLlm(
         }),
       }],
       caller: 'catchup-summary',
-      promptAssetKeys: ['companion-catchup'],
+      promptAssetKeys: [PROMPT_KEYS.companionCatchup],
     })
     const normalized = normalizeCatchupSummaryText(raw)
     if (!normalized) {

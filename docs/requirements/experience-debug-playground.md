@@ -122,7 +122,7 @@ IPC：`debug:world-snapshot` → `buildDebugWorldSnapshot()`（截断：记忆�
 | 低频内容降噪 | 系统运行环境 / 内存折叠；静态人格场景与旧夹具源码保留但不再作为 active 一级入口；提示词管理器只允许实验副本与现有 L3 设置写入 |
 | 布局可用性 | 记住 Playground 最近 active 叶子页；窄窗口导航可滚动；请求详情保留列表 / 详情结构 |
 
-不改变 Agent Loop、生产 Prompt 资产、LLM 日志生命周期或 Eval 执行路径。提示词实验副本不写盘；只有二次确认后才复用现有 `settings.systemPrompt` 写入 L3 自定义补充指令。
+不改变 Agent Loop、生产模型可见资产、LLM 日志生命周期或 Eval 执行路径。Prompt、Tool schema、Skill、Eval Judge 与 MCP 目录项都只读；实验副本不写盘，只有二次确认后才复用现有 `settings.systemPrompt` 写入 L3 自定义补充指令。
 
 ## 3. 技术方案（How）
 
@@ -148,7 +148,7 @@ Playground 内：
 
 | Surface | Tab | 归属判断 | 结论 |
 |---------|-----|----------|------|
-| Debug | 提示词管理器 | 生产 Prompt 资产 + 当前组装结果 | 生产资产只读；支持实验副本、隔离试跑和二次确认保存到现有 L3 设置 |
+| Debug | 提示词管理器 | 生产 Prompt + Tool schema + Skill + Eval Judge + MCP，以及当前组装结果 | 统一目录通过 `debug:model-context-assets` 读取生产真相；资产只读，支持实验副本、隔离试跑和二次确认保存到现有 L3 设置 |
 | Debug | 请求与运行 | LLM 调用、调用链、实时事件 | 合并请求与运行入口；LLM 详情仍以持久化 requestMessages / requestTools 为事实源 |
 | Debug | 世界态 | 当前角色、生活、计划/发布事件真实快照 | 保留并补时间线 |
 | Debug | 系统 | 运行环境、配置、权限、Skills、MCP | 保留 |

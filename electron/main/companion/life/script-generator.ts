@@ -8,6 +8,7 @@
 
 import type { LLMConfig } from '../../../../src/shared/types'
 import { chatComplete } from '../../llm/index'
+import { PROMPT_KEYS } from '../../prompts/keys'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
 import {
@@ -284,7 +285,7 @@ export async function generateDayScriptViaLlm(
         }),
       }],
       caller: 'day-script',
-      promptAssetKeys: ['companion-day-script'],
+      promptAssetKeys: [PROMPT_KEYS.companionDayScript],
     })
     const parsed = parseDayScriptPayload(raw, date)
     if (!parsed) {

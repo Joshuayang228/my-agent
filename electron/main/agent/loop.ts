@@ -18,6 +18,7 @@ import { getObserver } from '../utils/observer'
 import { compressContext, emergencyTruncate, estimateTokens, DEFAULT_MAX_TOKENS } from './context-manager'
 import { sanitizeMessages } from './message-pipeline'
 import { DEFAULT_SYSTEM_PROMPT } from '../prompts/texts'
+import { PROMPT_KEYS } from '../prompts/keys'
 
 export { DEFAULT_SYSTEM_PROMPT } from '../prompts/texts'
 
@@ -148,7 +149,7 @@ export async function* agentLoop(
     executionMode = 'auto',
     toolContext,
     interactionSpanId,
-    promptAssetKeys = systemPrompt === DEFAULT_SYSTEM_PROMPT ? ['loop-default'] : [],
+    promptAssetKeys = systemPrompt === DEFAULT_SYSTEM_PROMPT ? [PROMPT_KEYS.loopDefault] : undefined,
   } = options
 
   // 运行时有效模式可因连续拒绝自动收紧；只允许从 auto 降到 confirm-all，不提升权限。
@@ -347,12 +348,16 @@ export async function* agentLoop(
           parentSpanId: state.interactionSpanId,
           traceSpan: llmSpan,
           retryAttempt: attempt,
-          promptAssetKeys: [
-            ...promptAssetKeys,
-            ...(state.deniedTools.length > 0 || state.deniedCommands.length > 0
-              ? ['permission-denial']
-              : []),
-          ],
+          ...(promptAssetKeys
+            ? {
+                promptAssetKeys: [
+                  ...promptAssetKeys,
+                  ...(state.deniedTools.length > 0 || state.deniedCommands.length > 0
+                    ? [PROMPT_KEYS.permissionDenial]
+                    : []),
+                ],
+              }
+            : { promptlessReason: 'Agent Loop 使用调用方提供、但未登记到生产注册表的 System Prompt' }),
         })
 
         let streamResult = await stream.next()

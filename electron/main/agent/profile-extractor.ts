@@ -12,6 +12,7 @@
 import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
 import { EXTRACTION_PROMPT } from '../prompts/texts'
+import { PROMPT_KEYS } from '../prompts/keys'
 import { chatComplete } from '../llm/index'
 import { addMemory, listMemories, type MemoryCategory } from '../storage/memory-store'
 
@@ -68,7 +69,7 @@ export async function maybeExtractProfile(
         temperature: 0.1,
         maxTokens: 500,
         caller: 'profile',
-        promptAssetKeys: ['profile-extraction'],
+        promptAssetKeys: [PROMPT_KEYS.profileExtraction],
         sessionId: opts?.sessionId,
       })
     } catch (apiErr) {

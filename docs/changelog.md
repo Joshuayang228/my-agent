@@ -6,6 +6,15 @@
 ## [未发布]
 
 
+### Added — 模型可见文本统一目录与 Prompt 门禁（2026-08-14）
+
+- Debug「提示词管理器」现在统一展示生产 Prompt、Tool schema、记忆工具、Skill、Eval Judge 与当前 MCP 工具，并标记来源、所有权、版本和自动指纹。
+- Prompt key 类型化；生产 LLM 调用必须声明非空资产 key 或显式 promptless 原因，新增源码覆盖审计防止漏接。
+- 用户画像注入、向量记忆召回和 Embedding 输入获得独立资产说明；真实调用详情同步显示 Prompt 指纹并兼容旧记录。
+- Tool 输入示例包装文案改为中文；Playground 继续只使用隔离实验副本。
+
+
+
 ### Added — LLM 调用级 Prompt 资产追踪（2026-08-14）
 
 - 每次真实 LLM 调用可关联实际使用的 Prompt 稳定 key，并在统一入口解析来源、版本、locale、模式和动态插槽。

@@ -36,8 +36,25 @@ export interface MemoryCitation {
 }
 
 /** Prompt 资产目录的 IPC 数据契约；正文仍由主进程生产代码或 Role Pack 提供。 */
-export type PromptAssetKind = 'system' | 'context' | 'companion' | 'subagent' | 'ui'
+export type PromptAssetKind =
+  | 'system'
+  | 'context'
+  | 'companion'
+  | 'subagent'
+  | 'ui'
+  | 'tool'
+  | 'skill'
+  | 'eval'
+  | 'external'
 export type PromptAssetMode = 'static' | 'dynamic'
+export type ModelContextAssetType = 'prompt' | 'tool-schema' | 'skill' | 'eval-judge'
+export type ModelContextOwnership = 'builtin' | 'role-pack' | 'user' | 'external'
+export type ModelContextFingerprintKind = 'content' | 'structure'
+export type ModelContextContentKind = 'static' | 'template' | 'schema' | 'runtime'
+
+declare const promptAssetKeyBrand: unique symbol
+export type PromptAssetKey = string & { readonly [promptAssetKeyBrand]: true }
+export type PromptAssetKeyList = readonly [PromptAssetKey, ...PromptAssetKey[]]
 
 export interface PromptSlot {
   name: string
@@ -46,7 +63,7 @@ export interface PromptSlot {
 }
 
 export interface PromptLocaleAsset {
-  /** 动态资产不暴露固定模板时为空；最终内容来自实际组装器。 */
+  /** 静态正文或动态模板骨架；最终插槽值仍以真实调用记录为准。 */
   template?: string
 }
 
@@ -65,6 +82,12 @@ export interface PromptAsset {
   /** 兼容现有 UI 的来源字段，与 source 保持一致。 */
   sourcePath: string
   version: string
+  /** 自动指纹；静态资产基于正文，动态资产基于模板或结构描述。 */
+  fingerprint: string
+  fingerprintKind: ModelContextFingerprintKind
+  assetType: ModelContextAssetType
+  ownership: ModelContextOwnership
+  contentKind: ModelContextContentKind
   mode: PromptAssetMode
   locale: string
   locales: Record<string, PromptLocaleAsset>
@@ -77,8 +100,19 @@ export interface PromptAsset {
 
 export type PromptAssetTrace = Pick<
   PromptAsset,
-  'key' | 'purpose' | 'role' | 'source' | 'version' | 'locale' | 'mode' | 'slots'
+  | 'key'
+  | 'purpose'
+  | 'role'
+  | 'source'
+  | 'version'
+  | 'fingerprint'
+  | 'fingerprintKind'
+  | 'locale'
+  | 'mode'
+  | 'slots'
 >
+
+export type ModelContextAsset = PromptAsset
 
 export interface DebugPromptSnapshot {
   full: string
@@ -505,7 +539,7 @@ export interface AgentLoopOptions {
   tools: ToolDefinition[]
   systemPrompt?: string
   /** 本次 Loop 实际使用的 Prompt 注册表稳定 key；来源与版本由 LLM 入口统一解析。 */
-  promptAssetKeys?: string[]
+  promptAssetKeys?: PromptAssetKeyList
   maxIterations?: number
   signal?: AbortSignal
   /** 破坏性工具执行前的确认回调，返回 true 允许执行 */

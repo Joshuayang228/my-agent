@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from './database'
 import { createLogger } from '../utils/logger'
 import { chatComplete } from '../llm/index'
+import { PROMPT_KEYS } from '../prompts/keys'
+import { SESSION_TITLE_SYSTEM_PROMPT } from '../prompts/texts'
 import { getSetting } from './settings-store'
 import { llmDebugStore } from './llm-debug-store'
 import type { ChatMessage, ChatSession, LLMConfig, SessionKind } from '../../../src/shared/types'
@@ -380,7 +382,7 @@ export async function generateSmartTitle(
       messages: [
         {
           role: 'system',
-          content: '用极简中文为这段对话生成一个标题（4-10个字，不加引号标点）。只返回标题本身。',
+          content: SESSION_TITLE_SYSTEM_PROMPT,
         },
         { role: 'user', content: userMessage.slice(0, 200) },
         { role: 'assistant', content: assistantReply.slice(0, 200) },
@@ -388,7 +390,7 @@ export async function generateSmartTitle(
       temperature: 0.3,
       maxTokens: 64,
       caller: 'title',
-      promptAssetKeys: ['session-title'],
+      promptAssetKeys: [PROMPT_KEYS.sessionTitle],
       sessionId,
     })).trim()
 
