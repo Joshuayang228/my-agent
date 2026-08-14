@@ -82,7 +82,7 @@
 | 对话 Debug 右侧栏 | 已落地 | Chat 右坞 · `ConversationDebugAside`；可盖在能力坞之上（Alice 式）；持久化 LLM 调用链 |
 | 项目文件预览 | 已落地 | `FileBrowser` · text/image/unsupported；图/文本/md；html 沙箱 iframe；pdf·Office 外开 |
 | Chat 右侧能力坞 | 已落地 | `ChatRightDock` · Tab 文件/审阅/终端；会话写文件变更账本；命令控制台（非 PTY）；可拖宽 + 内部分界 |
-| 模型可见文本统一目录与调用级追踪 | 已落地 | Debug「提示词管理器」聚合 Prompt / Tool schema / Skill / Eval Judge / MCP；类型化 key + 非空调用门禁 + 版本 / 自动指纹；LLM 调用详情保留真实资产追踪 |
+| Agent 生产资产目录与调用级追踪 | 已落地 | Debug「提示词管理器」聚合 Prompt / 伙伴人格资产 / Tool schema / Skill / Eval Judge / MCP；稳定 key、来源、版本、自动指纹、派生与依赖；LLM 调用详情保留真实 Prompt 资产追踪 |
 | Skill 管理器 2.0 | 已落地 | `SkillsPanel` 校验 / 版本历史 / 回滚 / 隔离试跑；`skills:validate` / `skills:versions` / `skills:playground-run`；LLM Debug 展示 Skill 激活来源与指纹 |
 | Skill Eval 证据闭环 | 已落地 | `npm run eval:skill`；S01–S03 覆盖应触发 / 不触发 / `allowed_tools`；JSON + Markdown 报告；Debug「质量 / Eval」展示输入、Trace、工具、回复与四类 Grader |
 | Prompt 受控编辑 | 已落地 | 生产资产只读；实验副本可隔离试跑；二次确认后复用 `settings.systemPrompt` 保存为 L3 自定义补充指令 |

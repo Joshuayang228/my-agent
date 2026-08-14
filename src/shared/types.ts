@@ -47,10 +47,20 @@ export type PromptAssetKind =
   | 'eval'
   | 'external'
 export type PromptAssetMode = 'static' | 'dynamic'
-export type ModelContextAssetType = 'prompt' | 'tool-schema' | 'skill' | 'eval-judge'
+export type ModelContextAssetType =
+  | 'prompt'
+  | 'tool-schema'
+  | 'skill'
+  | 'eval-judge'
+  | 'companion-manifest'
+  | 'companion-profile'
+  | 'companion-world'
+  | 'companion-scene'
+  | 'companion-life'
 export type ModelContextOwnership = 'builtin' | 'role-pack' | 'user' | 'external'
 export type ModelContextFingerprintKind = 'content' | 'structure'
-export type ModelContextContentKind = 'static' | 'template' | 'schema' | 'runtime'
+export type ModelContextContentKind = 'static' | 'template' | 'schema' | 'data' | 'runtime'
+export type AgentAssetStatus = 'active' | 'disabled' | 'deprecated' | 'experimental'
 
 declare const promptAssetKeyBrand: unique symbol
 export type PromptAssetKey = string & { readonly [promptAssetKeyBrand]: true }
@@ -92,6 +102,12 @@ export interface PromptAsset {
   locale: string
   locales: Record<string, PromptLocaleAsset>
   slots: PromptSlot[]
+  /** 生产资产生命周期；旧 Prompt 资产缺省视为 active。 */
+  status?: AgentAssetStatus
+  /** 派生资产指向其稳定来源 key；只用于追踪，不复制来源正文。 */
+  derivedFrom?: string
+  /** 影响该资产生成或解释的其他稳定资产 key。 */
+  dependencies?: string[]
   preview?: string
   content?: string
   /** 兼容旧调用方；新代码应读取 mode。 */

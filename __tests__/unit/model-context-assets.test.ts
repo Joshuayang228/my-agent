@@ -86,6 +86,16 @@ describe('模型可见文本统一目录', () => {
       assetType: 'eval-judge',
       contentKind: 'template',
     })
+    expect(assets.find((asset) => asset.key === 'companion:default:hang:profile')).toMatchObject({
+      category: 'companion',
+      assetType: 'companion-profile',
+      ownership: 'role-pack',
+      status: 'active',
+    })
+    expect(assets.find((asset) => asset.key === 'companion:default:hang:world-default')).toMatchObject({
+      assetType: 'companion-world',
+      contentKind: 'data',
+    })
     expect(new Set(assets.map((asset) => asset.key)).size).toBe(assets.length)
     for (const asset of assets) {
       expect(asset.fingerprint).toMatch(/^[a-f0-9]{16}$/)

@@ -210,6 +210,14 @@ Skill 资产由 `electron/main/skills/loader.ts` 读取和保存，`registry.ts`
 - 报告写入 `eval-reports/` 的 JSON / Markdown，只保存输入快照、Skill 元数据与指纹、激活 Trace、工具调用和 Agent 可见回复，不保存 API Key、隐藏 reasoning 或 Skill 正文。
 - `debug:skill-eval-reports` / `debug:skill-eval-report-get` 对文件名与最小结构做校验，拒绝目录穿越和损坏报告；`DebugEvalRunner` 仅映射 `eval:run`、`eval:skill`、`eval:persona`。
 
+### 10. Agent 生产资产目录
+
+- Prompt 注册表仍负责模型可见 Prompt 的稳定 key、locale、模板和运行时追踪；伙伴注册表不复制 Prompt 正文。
+- `companion/asset-registry.ts` 读取真实 Role Pack loader、场景 loader 和生活 starter 工厂，生成 manifest、人物档案、默认世界、伙伴场景与生活内容资产。
+- Debug 高层聚合 Prompt、伙伴资产、Tool schema、Skill、Eval Judge 与 MCP，统一展示来源、所有权、版本、指纹、状态、派生关系和依赖。
+- 用户记忆、当前世界状态和运行后 `companion_assets` 属于运行时数据，不进入静态生产资产目录；分别由记忆 / 世界态 / 请求记录查看。
+- Playground 不直接写生产资产；只有文本类资产可显式载入为实验副本，结构化伙伴资产保持只读。
+
 ## 目录结构
 
 ```

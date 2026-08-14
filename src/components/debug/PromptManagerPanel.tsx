@@ -49,6 +49,11 @@ const ASSET_TYPE_LABELS: Record<ModelContextAsset['assetType'], string> = {
   'tool-schema': '工具 Schema',
   skill: 'Skill',
   'eval-judge': 'Eval Judge',
+  'companion-manifest': '伙伴清单',
+  'companion-profile': '人物档案',
+  'companion-world': '默认世界',
+  'companion-scene': '伙伴场景',
+  'companion-life': '生活资产',
 }
 
 const OWNERSHIP_LABELS: Record<ModelContextAsset['ownership'], string> = {
@@ -62,6 +67,7 @@ const CONTENT_KIND_LABELS: Record<ModelContextAsset['contentKind'], string> = {
   static: '静态正文',
   template: '模板骨架',
   schema: 'Schema',
+  data: '结构化数据',
   runtime: '运行时',
 }
 
@@ -89,7 +95,7 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
     const load = async () => {
       if (!window.electronAPI?.debug?.modelContextAssets || !window.electronAPI.settings?.get) {
         if (active) {
-          setError('需要 Electron 环境才能读取模型可见文本目录')
+          setError('需要 Electron 环境才能读取生产资产目录')
           setLoading(false)
         }
         return
@@ -232,7 +238,7 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
             <span className="font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{assets.length + 1} 项</span>
           </div>
           <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            统一查看生产 Prompt、Tool schema、Skill、Eval Judge 与当前 MCP 工具。资产保持只读；只有显式载入的实验副本和 L3 自定义补充可以编辑。
+            统一查看生产 Prompt、伙伴与人格资产、Tool schema、Skill、Eval Judge 与当前 MCP 工具。资产保持只读；只有显式载入的文本实验副本和 L3 自定义补充可以编辑。
           </p>
         </div>
       </header>
@@ -268,7 +274,7 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
 
       {(status || error) && <p className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: error ? 'var(--danger)' : 'var(--border-color)', color: error ? 'var(--danger)' : 'var(--text-secondary)' }}>{error || status}</p>}
 
-      <div className="flex flex-wrap gap-1.5" aria-label="模型可见文本分类">
+      <div className="flex flex-wrap gap-1.5" aria-label="生产资产分类">
         {CATEGORY_OPTIONS.map((option) => {
           const active = category === option.id
           return (
@@ -297,7 +303,7 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
             ? <RuntimePromptDetail info={info} layer={layer} setLayer={setLayer} onLoadExperiment={loadExperiment} onCopy={(value) => void copyText(value, 'System Prompt ')} />
             : selectedAsset
               ? <AssetPromptDetail asset={selectedAsset} onLoadExperiment={loadExperiment} onCopy={(value) => void copyText(value, 'Prompt ')} />
-              : <p className="text-sm" style={{ color: 'var(--text-muted)' }}>从左侧选择一个模型可见资产查看详情。</p>}
+              : <p className="text-sm" style={{ color: 'var(--text-muted)' }}>从左侧选择一个生产资产查看详情。</p>}
         </div>
       </div>
 
@@ -348,6 +354,10 @@ function RuntimeTraceList({ assets }: { assets: PromptAssetTrace[] }) {
 
 function AssetPromptDetail({ asset, onLoadExperiment, onCopy }: { asset: ModelContextAsset; onLoadExperiment: (label: string, content: string | undefined) => void; onCopy: (value: string) => void }) {
   const content = asset.content || asset.locales[asset.locale]?.template || asset.preview
+  const canLoadExperiment = asset.assetType !== 'companion-manifest'
+    && asset.assetType !== 'companion-profile'
+    && asset.assetType !== 'companion-world'
+    && asset.assetType !== 'companion-life'
   return (
     <div className="space-y-3">
       <div>
@@ -368,13 +378,16 @@ function AssetPromptDetail({ asset, onLoadExperiment, onCopy }: { asset: ModelCo
           <MetaLine label="内容形态" value={CONTENT_KIND_LABELS[asset.contentKind]} />
           <MetaLine label="来源" value={asset.source} mono />
           <MetaLine label="自动指纹" value={`${asset.fingerprint} · ${asset.fingerprintKind === 'content' ? '内容' : '结构'}`} mono />
+          <MetaLine label="状态" value={asset.status === 'disabled' ? '已停用' : asset.status === 'deprecated' ? '已废弃' : asset.status === 'experimental' ? '实验中' : '生效中'} />
+          {asset.derivedFrom && <MetaLine label="派生自" value={asset.derivedFrom} mono />}
+          {asset.dependencies && asset.dependencies.length > 0 && <MetaLine label="依赖" value={asset.dependencies.join('、')} mono />}
         </div>
         {asset.slots.length > 0 && <SlotList slots={asset.slots} />}
       </div>
       {content ? (
         <>
           <div className="flex gap-1.5">
-            {content && <button type="button" onClick={() => onLoadExperiment(asset.name, content)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>载入为实验副本</button>}
+            {content && canLoadExperiment && <button type="button" onClick={() => onLoadExperiment(asset.name, content)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>载入为实验副本</button>}
             <button type="button" onClick={() => onCopy(content)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}><Copy size={11} />复制</button>
           </div>
           <pre className="scrollbar-hover max-h-[52vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border p-3 font-mono text-[11px] leading-relaxed" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>{content}</pre>

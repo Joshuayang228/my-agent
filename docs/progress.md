@@ -2,6 +2,14 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
+## 2026-08-14 · Agent 生产资产目录 v1
+
+- Debug「提示词管理器」扩展为生产资产目录，在原 Prompt / Tool / Skill / Eval / MCP 之外接入伙伴与人格资产。
+- 新增伙伴资产注册表，为所有可加载 Role Pack 生成 manifest、profile、默认世界、文件 / 派生场景和衣柜 / 书架 starter 的稳定 key、来源、版本、指纹、状态与依赖。
+- profile / world 缺失时不虚构目录项；派生场景明确指向 Role Pack manifest；生活资产直接复用生产 starter 工厂，不读取用户运行时数据库。
+- 结构化伙伴资产在 Debug 保持只读，只有文本场景可以沿用现有实验副本；运行时世界、用户记忆和用户资产继续走各自 Debug 视图。
+- 验证：Unit 108 个文件 / 653 项通过，TypeScript、Vite Build、UI E2E 7/7 通过。
+
 ## 2026-08-14 · Skill Eval v1
 
 - 新增独立 `npm run eval:skill`，S01–S03 通过生产 Skill 激活工具、Skill 摘要和 Agent Loop 验证正确触发、不得误触发、指南注入与 `allowed_tools` 边界。

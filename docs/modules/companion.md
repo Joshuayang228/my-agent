@@ -74,6 +74,7 @@
 |------|------|----------|------|
 | Universe + Role Pack（三槽：lin / zhou / xia） | 已落地 | 角色架 / 设置 | `universes/default/` · 文案见 [companion-cast-content](../requirements/companion-cast-content.md) |
 | 主角候选结构化档案（Role Profile） | 已落地 | Debug「世界态」/ Prompt L1 | 当前仅小航 `profile.json`；行为边界与五维表达基线已定，人物故事字段待定 |
+| 伙伴生产资产目录 | 已落地 | Debug「提示词管理器 → 伙伴世界」 | `companion/asset-registry.ts`；manifest / profile / 默认世界 / 场景 / 衣柜书架 starter 使用稳定 key、版本、指纹、来源和依赖 |
 | 生活分味（剧本 / starter 衣柜） | 已落地 | 朋友圈 / 衣柜随主角 | `script-generator` · `ensureStarterWardrobe` |
 | 日剧本 LLM（当日）+ 哈希回退 | 已落地 | （隐式）Life ticker | `resolveDayScript` · aux-config |
 | 世界状态薄片（居所/时区/情境/心情/精力/当前位置与活动） | 已落地 | （隐式）Assemble L3 | schema v1 `world_json` · `## World slice` |

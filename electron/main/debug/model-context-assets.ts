@@ -1,9 +1,9 @@
 /**
- * Debug 模型可见文本统一目录。
+ * Debug 生产资产统一目录。
  *
- * 背景：Prompt、Tool schema、Skill 与外部 MCP 描述都会进入模型上下文，分散查看会漏审。
- * 设计意图：在 IPC 高层聚合各模块真实运行态，不让 Prompt 注册表反向依赖 Tool/Skill/MCP。
- * 关键约束：目录只读；外部/用户资产明确标源；动态用户状态的最终值仍去真实 LLM 调用查看。
+ * 背景：Prompt、伙伴资产、Tool schema、Skill 与外部 MCP 描述共同影响 Agent 行为，分散查看会漏审。
+ * 设计意图：在 IPC 高层聚合各模块生产事实，不让 Prompt 注册表反向依赖伙伴、Tool、Skill 或 MCP。
+ * 关键约束：目录只读；外部/用户资产明确标源；运行时世界、用户记忆与最终模型输入仍去对应 Debug 视图查看。
  */
 
 import type { ModelContextAsset, PromptAsset, SkillDefinition, ToolDefinition } from '../../../src/shared/types'
@@ -16,6 +16,7 @@ import { getLoadedSkills, getSkillToolName } from '../skills/registry'
 import { isMcpTool, parseMcpToolName } from '../mcp/bridge'
 import { getAllSettings } from '../storage/settings-store'
 import { PROMPT_KEYS } from '../prompts/keys'
+import { getCompanionAssetCatalog } from '../companion/asset-registry'
 
 function toolSchemaContent(tool: ToolDefinition): string {
   return JSON.stringify({
@@ -124,10 +125,10 @@ function withCurrentUserPrompt(assets: PromptAsset[], systemPrompt: string): Pro
 }
 
 /**
- * 聚合当前进程实际可用的全部模型上下文资产。
+ * 聚合当前进程实际可用的生产 Agent 资产。
  *
  * 背景：MCP 与用户 Skill 会热加载，不能在静态 Prompt 注册表中伪造目录项。
- * 设计意图：每次 Debug 刷新都读取 ToolRegistry、Skill Registry 和当前 L3 设置，再与生产 Prompt 合并。
+ * 设计意图：每次 Debug 刷新都读取伙伴注册表、ToolRegistry、Skill Registry 和当前 L3 设置，再与生产 Prompt 合并。
  * 关键约束：key 跨类型使用前缀避免冲突；同一工具的 schema 内容与 LLM Provider 实际序列化保持一致。
  */
 export function buildModelContextAssets(input: {
@@ -139,7 +140,8 @@ export function buildModelContextAssets(input: {
   const promptAssets = withCurrentUserPrompt(input.promptAssets, input.systemPrompt)
   const toolAssets = input.tools.map((tool) => toolAsset(tool, input.skills))
   const skillAssets = input.skills.map(skillAsset)
-  return [...promptAssets, ...toolAssets, ...skillAssets]
+  const companionAssets = getCompanionAssetCatalog()
+  return [...promptAssets, ...toolAssets, ...skillAssets, ...companionAssets]
 }
 
 export async function getModelContextAssets(toolRegistry: ToolRegistry): Promise<ModelContextAsset[]> {

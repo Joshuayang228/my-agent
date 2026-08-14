@@ -139,7 +139,14 @@ export const ASSET_KIND_BOOKSHELF = 'bookshelf'
 
 export type AssetKind = typeof ASSET_KIND_WARDROBE | typeof ASSET_KIND_BOOKSHELF
 
-type StarterItem = { key: string; name: string; payload: Record<string, unknown> }
+export interface CompanionStarterAssetDefinition {
+  key: string
+  name: string
+  kind: AssetKind
+  payload: Record<string, unknown>
+}
+
+type StarterItem = Omit<CompanionStarterAssetDefinition, 'kind'>
 
 /** 默认 starter；各主角可覆盖以体现分味（仅该 kind 空柜时播种） */
 const WARDROBE_DEFAULT: StarterItem[] = [
@@ -187,6 +194,20 @@ const BOOKSHELF_BY_ROLE: Record<string, StarterItem[]> = {
     { key: 'rain-essay', name: '雨天读本', payload: { author: '佚名', genre: '随笔', note: '窗边' } },
     { key: 'quiet-novel', name: '没有高潮的故事', payload: { author: '佚名', genre: '小说', note: '慢慢看' } },
   ],
+}
+
+/**
+ * 返回角色的静态 starter 资产定义，供生产资产目录读取。
+ *
+ * 背景：衣柜 / 书架既会被播种到运行时数据库，也需要在 Debug 中追踪其生产来源。
+ * 设计意图：复用同一份 starter 工厂，不从数据库反推目录，避免用户运行态改动污染生产资产。
+ * 关键约束：只返回定义副本；调用方不得借此写入 companion_assets。
+ */
+export function getStarterAssetDefinitions(roleId: string): CompanionStarterAssetDefinition[] {
+  return ([
+    ...startersFor(ASSET_KIND_WARDROBE, roleId).map((item) => ({ ...item, kind: ASSET_KIND_WARDROBE })),
+    ...startersFor(ASSET_KIND_BOOKSHELF, roleId).map((item) => ({ ...item, kind: ASSET_KIND_BOOKSHELF })),
+  ]).map((item) => ({ ...item, payload: structuredClone(item.payload) }))
 }
 
 function startersFor(kind: AssetKind, roleId: string): StarterItem[] {

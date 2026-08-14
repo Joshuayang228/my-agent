@@ -106,6 +106,11 @@
 
 - [x] ~~**Alice 前端走查 → P0/P1/P2**~~ — 2026-08-02：方案 `frontend-companion-surfaces.md`；含状态条/Moments/角色架/衣柜/名册/Chat 弱场景
 
+### Agent 资产目录后续
+
+- [ ] **Agent 生产资产目录 Phase 2** — 接入记忆策略、权限 / 沙箱策略、Eval Case / Grader 和模型 Provider 能力；v1 只落地伙伴与人格资产，避免一次性铺开。
+- [ ] **伙伴结构化资产 Playground 草稿** — 未来支持从 Debug 显式载入 profile / 默认世界为隔离草稿、Diff 与人工回流；不得直接写生产 Role Pack。
+
 ### Prompt 与国际化
 
 - [ ] **Skill Diff 审阅与导入导出** — Skill Eval v1 已先行；后续补版本 diff、导入导出和迁移策略。
