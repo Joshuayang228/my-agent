@@ -4,6 +4,8 @@ import { createLogger } from '../../utils/logger'
 import { checkCommandPermission } from '../../sandbox/permission-engine'
 import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from '../../agent/project-memory'
+import { PERMISSION_SANDBOX_ASSET_KEYS } from '../../sandbox/asset-keys'
+import type { ToolContext } from '../../../../src/shared/types'
 
 const log = createLogger('ShellExec')
 
@@ -34,7 +36,7 @@ export const shellExecTool = buildTool({
   metadata: {
     isDestructive: true,
   },
-  execute: async (args) => {
+  execute: async (args, ctx?: ToolContext) => {
     const command = args.command as string
     const cwd = (args.cwd as string) || undefined
 
@@ -44,6 +46,18 @@ export const shellExecTool = buildTool({
     const workspaceRoot = getWorkspaceRoot()
     // 统一走五层责任链（自定义规则 / 审批记录 / 沙箱），禁止工具内自管权限
     const decision = checkCommandPermission(command, cwd, mode, workspaceRoot)
+    const decisionValue = decision.allowed === true ? 'allow' : decision.allowed === 'needs_approval' ? 'needs_approval' : 'deny'
+    const decisionStatus = decision.allowed === true ? 'success' : 'blocked'
+    ctx?.assetUsageReporter?.({
+      assetKey: PERMISSION_SANDBOX_ASSET_KEYS.commandSafetyGrading,
+      relation: 'used', usageKind: 'permission-decision', status: decisionStatus,
+      metadata: { decision: decisionValue, decisionType: decision.decisionType, chain: decision.chain },
+    })
+    ctx?.assetUsageReporter?.({
+      assetKey: PERMISSION_SANDBOX_ASSET_KEYS.sandboxModes,
+      relation: 'used', usageKind: 'permission-decision', status: decisionStatus,
+      metadata: { sandboxMode: mode, decision: decisionValue },
+    })
 
     if (decision.allowed === false) {
       log.warn('Command blocked by permission engine', {

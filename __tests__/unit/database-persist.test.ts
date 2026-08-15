@@ -96,10 +96,10 @@ describe('schema migration', () => {
     expect(hasColumn(db, 'sessions', 'total_completion_tokens')).toBe(true)
     const tables = db.exec(
       `SELECT name FROM sqlite_master
-       WHERE type = 'table' AND name IN ('llm_debug_logs', 'llm_debug_subagent_sessions', 'persona_eval_human_reviews')
+       WHERE type = 'table' AND name IN ('agent_asset_usage', 'llm_debug_logs', 'llm_debug_subagent_sessions', 'persona_eval_human_reviews')
        ORDER BY name`,
     )[0]?.values.map((row) => row[0])
-    expect(tables).toEqual(['llm_debug_logs', 'llm_debug_subagent_sessions', 'persona_eval_human_reviews'])
+    expect(tables).toEqual(['agent_asset_usage', 'llm_debug_logs', 'llm_debug_subagent_sessions', 'persona_eval_human_reviews'])
   })
 
   it('重复跑 migration 幂等', () => {

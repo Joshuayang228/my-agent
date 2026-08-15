@@ -12,8 +12,11 @@ import { planCitationCorrection } from './citation-correct'
 import { FEEDBACK_MEMORY_LIMIT, MEMORY_SEMANTIC_DEDUP_THRESHOLD } from '../storage/memory-store'
 import { DEFAULT_VECTOR_RECALL_MIN_SCORE, DEFAULT_VECTOR_RECALL_TOP_K, MAX_CONVERSATION_VECTORS, MEMORY_STALE_THRESHOLD_DAYS } from './vector-store'
 import { modelContextFingerprint } from '../prompts/fingerprint'
+import { MEMORY_STRATEGY_ASSET_KEYS } from './asset-keys'
+export { MEMORY_STRATEGY_ASSET_KEYS } from './asset-keys'
 
 const STRATEGY_VERSION = '1.0.0'
+
 
 function jsonContent(value: unknown): string {
   return JSON.stringify(value, null, 2)
@@ -80,7 +83,7 @@ function correctionPlanSummary() {
 export function getMemoryStrategyAssetCatalog(): ModelContextAsset[] {
   return [
     strategyAsset({
-      key: 'memory-strategy:profile-extraction',
+      key: MEMORY_STRATEGY_ASSET_KEYS.profileExtraction,
       name: '记忆策略 · 用户画像提取',
       purpose: '决定何时从近期对话提取长期用户信息',
       role: 'profile-extractor',
@@ -95,7 +98,7 @@ export function getMemoryStrategyAssetCatalog(): ModelContextAsset[] {
       }),
     }),
     strategyAsset({
-      key: 'memory-strategy:semantic-deduplication',
+      key: MEMORY_STRATEGY_ASSET_KEYS.semanticDeduplication,
       name: '记忆策略 · 语义去重',
       purpose: '避免相同或近似事实重复写入记忆库',
       role: 'memory-store',
@@ -109,7 +112,7 @@ export function getMemoryStrategyAssetCatalog(): ModelContextAsset[] {
       }),
     }),
     strategyAsset({
-      key: 'memory-strategy:feedback-bucket',
+      key: MEMORY_STRATEGY_ASSET_KEYS.feedbackBucket,
       name: '记忆策略 · 伙伴反馈分桶',
       purpose: '避免对某个伙伴的反馈串入其他伙伴',
       role: 'memory-store',
@@ -123,7 +126,7 @@ export function getMemoryStrategyAssetCatalog(): ModelContextAsset[] {
       }),
     }),
     strategyAsset({
-      key: 'memory-strategy:vector-recall',
+      key: MEMORY_STRATEGY_ASSET_KEYS.vectorRecall,
       name: '记忆策略 · 向量召回',
       purpose: '决定语义检索命中哪些记忆并如何进入主 Prompt',
       role: 'vector-store',
@@ -138,7 +141,7 @@ export function getMemoryStrategyAssetCatalog(): ModelContextAsset[] {
       }),
     }),
     strategyAsset({
-      key: 'memory-strategy:vector-lifecycle',
+      key: MEMORY_STRATEGY_ASSET_KEYS.vectorLifecycle,
       name: '记忆策略 · 向量生命周期',
       purpose: '控制对话向量的容量与淘汰边界',
       role: 'vector-store',
@@ -151,7 +154,7 @@ export function getMemoryStrategyAssetCatalog(): ModelContextAsset[] {
       }),
     }),
     strategyAsset({
-      key: 'memory-strategy:citation-correction',
+      key: MEMORY_STRATEGY_ASSET_KEYS.citationCorrection,
       name: '记忆策略 · 引用纠错与删除',
       purpose: '决定用户说“记错了”时更新、替换还是删除',
       role: 'citation-correct',

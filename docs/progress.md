@@ -2,11 +2,14 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
-## 2026-08-15 · 生产资产使用证据链 v1 施工合同
+## 2026-08-15 · 生产资产使用证据链 v1 已落地
 
-- 完成真实 Electron 开发态验收：关闭自动停靠 DevTools 后，在产品实际宽度下检查浅色 / 暗色主题；模型 Provider 分类完整显示 3 个协议、5 项策略和 9 个预设，详情可复制且没有“载入为实验副本”。
-- 研究现有 tracer、`llm_debug_logs`、Prompt / Skill 调用级追踪、Tool blocked / execution Span、权限责任链和记忆调用点，并对照 Claude Code 稳定执行 ID 与 Alice Trace / 隐私默认原则。
-- 新增施工合同 `agent-asset-usage-evidence-v1.md`，方案是不重做日志系统，只建立“运行节点 ↔ 生产资产 key”的脱敏关联索引；当前状态为待确认，尚未修改生产运行链。
+- 新增 `agent_asset_usage`（schema v13）与统一 AssetUsage 分发器，把真实 LLM / Provider / Tool / Skill / Memory / Permission / Sandbox 运行节点关联到生产资产稳定 key；关系明确区分 `available / used / triggered / matched`。
+- Provider 实际适配器、自动检测、Thinking、Context、Vision、Failover；Tool schema 可用 / 执行；Skill 激活；记忆召回 / 提取 / 去重 / 生命周期 / 纠错；权限审批、命令责任链、有效沙箱与文件路径守卫均接入脱敏证据。
+- Debug「请求与运行 → LLM 调用」升级为资产证据分组；提示词管理器新增“最近使用”，支持反向查询和 LLM / Trace 跨面板跳转；旧 Prompt 资产记录继续兼容。
+- 修复真实 Electron 验收发现的 LLM Debug IPC 漏传筛选 / 排序字段问题；列表恢复最新优先，单条 JSON 与批量 JSONL 导出都会附带对应 span 的证据。
+- 隐私边界：不保存凭据、Prompt 正文副本、工具参数 / 返回正文、命令、路径 / 文件正文、用户记忆正文 / ID / 向量、用户权限规则原文或隐藏 reasoning；证据失败不阻断主链路。
+- 验证：Unit 114 文件 / 676 项、普通 Eval 23/23、Skill Eval、TypeScript、Vite / Electron Build、UI E2E 7/7、Electron onboarding 2/2；真实 Electron 完成调用证据、最近使用、跳转和浅色 / 深色检查。
 
 ## 2026-08-15 · 模型 Provider 能力生产资产 v1
 

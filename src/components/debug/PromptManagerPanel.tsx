@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Copy, RotateCcw, Save, Search } from 'lucide-react'
-import type { DebugPromptSnapshot, ModelContextAsset, PromptAsset, PromptAssetTrace } from '../../shared/types'
+import type { AgentAssetUsageEvidence, DebugPromptSnapshot, ModelContextAsset, PromptAsset, PromptAssetTrace } from '../../shared/types'
 
 export type DebugPromptInfo = DebugPromptSnapshot
 
@@ -85,7 +85,7 @@ const CONTENT_KIND_LABELS: Record<ModelContextAsset['contentKind'], string> = {
   runtime: '运行时',
 }
 
-export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo | null; onRefresh?: () => Promise<void> | void }) {
+export function PromptManagerPanel({ info, onRefresh, onOpenUsage }: { info: DebugPromptInfo | null; onRefresh?: () => Promise<void> | void; onOpenUsage?: (item: AgentAssetUsageEvidence) => void }) {
   const [assets, setAssets] = useState<ModelContextAsset[]>([])
   const [selectedId, setSelectedId] = useState(RUNTIME_ID)
   const [category, setCategory] = useState<CategoryFilter>('all')
@@ -316,7 +316,7 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
           {selectedId === RUNTIME_ID
             ? <RuntimePromptDetail info={info} layer={layer} setLayer={setLayer} onLoadExperiment={loadExperiment} onCopy={(value) => void copyText(value, 'System Prompt ')} />
             : selectedAsset
-              ? <AssetPromptDetail asset={selectedAsset} onLoadExperiment={loadExperiment} onCopy={(value) => void copyText(value, 'Prompt ')} />
+              ? <AssetPromptDetail asset={selectedAsset} onLoadExperiment={loadExperiment} onCopy={(value) => void copyText(value, 'Prompt ')} onOpenUsage={onOpenUsage} />
               : <p className="text-sm" style={{ color: 'var(--text-muted)' }}>从左侧选择一个生产资产查看详情。</p>}
         </div>
       </div>
@@ -366,7 +366,7 @@ function RuntimeTraceList({ assets }: { assets: PromptAssetTrace[] }) {
   return <div className="rounded-lg border p-2.5" style={{ borderColor: 'var(--border-subtle)' }}><div className="mb-1.5 text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>本次装配引用的资产</div><div className="space-y-1.5">{assets.map((asset) => <div key={asset.key} className="rounded border px-2 py-1.5" style={{ borderColor: 'var(--border-subtle)' }}><div className="flex flex-wrap items-center gap-x-2 gap-y-0.5"><span className="font-mono text-[10px]" style={{ color: 'var(--text-primary)' }}>{asset.key}</span><span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{asset.purpose} · {asset.role} · {asset.locale} · v{asset.version} · {asset.fingerprint}</span></div><div className="mt-0.5 break-all font-mono text-[9px]" style={{ color: 'var(--text-muted)' }}>{asset.source}</div>{asset.slots.length > 0 && <SlotList slots={asset.slots} />}</div>)}</div></div>
 }
 
-function AssetPromptDetail({ asset, onLoadExperiment, onCopy }: { asset: ModelContextAsset; onLoadExperiment: (label: string, content: string | undefined) => void; onCopy: (value: string) => void }) {
+function AssetPromptDetail({ asset, onLoadExperiment, onCopy, onOpenUsage }: { asset: ModelContextAsset; onLoadExperiment: (label: string, content: string | undefined) => void; onCopy: (value: string) => void; onOpenUsage?: (item: AgentAssetUsageEvidence) => void }) {
   const content = asset.content || asset.locales[asset.locale]?.template || asset.preview
   const canLoadExperiment = asset.assetType !== 'companion-manifest'
     && asset.assetType !== 'companion-profile'
@@ -419,7 +419,35 @@ function AssetPromptDetail({ asset, onLoadExperiment, onCopy }: { asset: ModelCo
           该资产按运行状态动态组装；目录只展示来源和插槽，请在「请求与运行 → LLM 调用」中查看最终实发内容。
         </p>
       )}
+      <AssetRecentUsage assetKey={asset.key} onOpenUsage={onOpenUsage} />
     </div>
+  )
+}
+
+function AssetRecentUsage({ assetKey, onOpenUsage }: { assetKey: string; onOpenUsage?: (item: AgentAssetUsageEvidence) => void }) {
+  const [items, setItems] = useState<AgentAssetUsageEvidence[]>([])
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    const query = window.electronAPI?.debug?.assetUsageQuery
+    if (!query) {
+      setLoading(false)
+      return () => { active = false }
+    }
+    void query({ assetKey, limit: 20 })
+      .then((result) => { if (active) setItems(result.records) })
+      .catch(() => { if (active) setItems([]) })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [assetKey])
+  return (
+    <section className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }} data-testid="asset-recent-usage">
+      <div className="text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>最近使用</div>
+      {loading ? <p className="mt-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>加载中…</p>
+        : items.length === 0 ? <p className="mt-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>尚无可证明的运行记录；这不等于从未使用。</p>
+          : <div className="mt-2 space-y-1.5">{items.map((item) => <button key={item.id} type="button" onClick={() => onOpenUsage?.(item)} className="block w-full rounded border px-2 py-1.5 text-left" style={{ borderColor: 'var(--border-subtle)' }}><div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{new Date(item.occurredAt).toLocaleString()} · {item.relation} · {item.usageKind} · {item.status}</div><div className="mt-0.5 font-mono text-[9px]" style={{ color: 'var(--text-muted)' }}>{item.spanId}</div></button>)}</div>}
+    </section>
   )
 }
 

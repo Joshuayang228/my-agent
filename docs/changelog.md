@@ -5,6 +5,14 @@
 
 ## [未发布]
 
+### Added — 生产资产使用证据链 v1（2026-08-15）
+
+- Debug 的 LLM 调用详情新增真实资产证据，按 Prompt / 伙伴、Provider、Tool schema、Skill、Memory、Permission / Sandbox 分组，并区分可用、实际使用、真实触发和仅匹配。
+- 提示词管理器的资产详情新增“最近使用”，可从生产资产反查真实调用并跳转到 LLM 或调用链；旧 Prompt 追踪继续兼容。
+- LLM Debug 的单条 JSON 与批量 JSONL 导出附带脱敏资产证据，列表筛选、排序和导出保持同一语义。
+- 证据只保存稳定 key、版本 / 指纹快照、状态和有限计数，不保存 API Key、Prompt / 工具 / 文件 / 记忆正文、命令、用户权限规则原文或隐藏 reasoning。
+
+
 ### Added — 模型 Provider 能力生产资产 v1（2026-08-15）
 
 - Debug「提示词管理器」新增“模型 Provider”分类，可查看 OpenAI Compatible、Anthropic、Gemini 三协议能力，以及自动检测、辅助 Thinking、Context Window、Vision 降级和顺序 Failover 策略。

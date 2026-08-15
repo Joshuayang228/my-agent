@@ -8,6 +8,7 @@
  */
 
 import type { LLMConfig } from '../../../src/shared/types'
+import { PROVIDER_ASSET_KEYS } from './provider-asset-keys'
 import * as settings from '../storage/settings-store'
 
 export type ThinkingDisableSupport = 'supported' | 'unsupported' | 'unknown'
@@ -130,7 +131,7 @@ export async function withAuxThinking(config: LLMConfig): Promise<LLMConfig> {
   if (config.thinking) return config
   const disable = await shouldDisableThinkingForAux(config.baseUrl, config.model)
   if (!disable) return config
-  return { ...config, thinking: { type: 'disabled' } }
+  return { ...config, thinking: { type: 'disabled' }, runtimeAssetKeys: [...(config.runtimeAssetKeys ?? []), PROVIDER_ASSET_KEYS.auxThinking] }
 }
 
 export const __test = {

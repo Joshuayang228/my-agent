@@ -36,7 +36,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 12
+export const SCHEMA_VERSION = 13
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -391,6 +391,32 @@ export function runMigrations(database: SqlJsDatabase): void {
         CREATE INDEX IF NOT EXISTS idx_persona_eval_reviews_report
           ON persona_eval_human_reviews(report_file_name, updated_at DESC)
       `)
+    },
+    // v12 → v13：生产资产与真实运行 Span 的脱敏关联索引
+    (d) => {
+      d.run(`
+        CREATE TABLE IF NOT EXISTS agent_asset_usage (
+          id                  TEXT PRIMARY KEY,
+          asset_key           TEXT NOT NULL,
+          asset_name          TEXT NOT NULL,
+          asset_type          TEXT NOT NULL,
+          relation            TEXT NOT NULL,
+          usage_kind          TEXT NOT NULL,
+          session_id          TEXT,
+          interaction_span_id TEXT,
+          span_id             TEXT NOT NULL,
+          parent_span_id      TEXT,
+          occurred_at         INTEGER NOT NULL,
+          status              TEXT NOT NULL,
+          asset_version       TEXT NOT NULL,
+          asset_fingerprint   TEXT NOT NULL,
+          metadata            TEXT NOT NULL DEFAULT '{}'
+        )
+      `)
+      d.run('CREATE INDEX IF NOT EXISTS idx_asset_usage_key_time ON agent_asset_usage(asset_key, occurred_at DESC)')
+      d.run('CREATE INDEX IF NOT EXISTS idx_asset_usage_span ON agent_asset_usage(span_id)')
+      d.run('CREATE INDEX IF NOT EXISTS idx_asset_usage_session_time ON agent_asset_usage(session_id, occurred_at DESC)')
+      d.run('CREATE INDEX IF NOT EXISTS idx_asset_usage_interaction ON agent_asset_usage(interaction_span_id)')
     },
   ]
 

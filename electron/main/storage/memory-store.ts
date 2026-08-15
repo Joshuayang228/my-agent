@@ -2,6 +2,8 @@ import { getDatabase, persist } from './database'
 import { createLogger } from '../utils/logger'
 import { addToVectorStore, removeFromVectorStore } from '../memory/vector-store'
 import type { MemoryCategory, MemoryEntry } from '../../../src/shared/types'
+import { recordAssetUsage } from '../utils/asset-usage'
+import { MEMORY_STRATEGY_ASSET_KEYS } from '../memory/asset-keys'
 
 const log = createLogger('MemoryStore')
 
@@ -98,6 +100,18 @@ export async function addMemory(
   const dup = pool.find(m => memoryTextSimilarity(m.content, content) >= MEMORY_SEMANTIC_DEDUP_THRESHOLD)
   if (dup) {
     log.info('Memory semantic dedup: skip insert', { existingId: dup.id, category, roleId })
+    void recordAssetUsage({
+      assetKey: MEMORY_STRATEGY_ASSET_KEYS.semanticDeduplication,
+      relation: 'used', usageKind: 'memory-operation', status: 'success',
+      metadata: { category, comparedCount: pool.length, duplicateCount: 1 },
+    })
+    if (category === 'feedback') {
+      void recordAssetUsage({
+        assetKey: MEMORY_STRATEGY_ASSET_KEYS.feedbackBucket,
+        relation: 'used', usageKind: 'memory-operation', status: 'success',
+        metadata: { bucketed: Boolean(roleId), acceptedCount: 0 },
+      })
+    }
     return dup
   }
 
@@ -111,6 +125,18 @@ export async function addMemory(
   )
   persist()
   log.info('Memory added', { id, category, roleId: roleId || undefined })
+  void recordAssetUsage({
+    assetKey: MEMORY_STRATEGY_ASSET_KEYS.semanticDeduplication,
+    relation: 'used', usageKind: 'memory-operation', status: 'success',
+    metadata: { category, comparedCount: pool.length, duplicateCount: 0 },
+  })
+  if (category === 'feedback') {
+    void recordAssetUsage({
+      assetKey: MEMORY_STRATEGY_ASSET_KEYS.feedbackBucket,
+      relation: 'used', usageKind: 'memory-operation', status: 'success',
+      metadata: { bucketed: Boolean(roleId), acceptedCount: 1 },
+    })
+  }
 
   getLLMConfigForSync().then(config => {
     if (!config.apiKey) return
@@ -164,6 +190,11 @@ export async function listFeedbackForRole(
     results.push(rowToEntry(stmt.getAsObject() as Record<string, unknown>))
   }
   stmt.free()
+  void recordAssetUsage({
+    assetKey: MEMORY_STRATEGY_ASSET_KEYS.feedbackBucket,
+    relation: 'used', usageKind: 'memory-operation', status: 'success',
+    metadata: { bucketed: true, resultCount: results.length, limit },
+  })
   return results
 }
 

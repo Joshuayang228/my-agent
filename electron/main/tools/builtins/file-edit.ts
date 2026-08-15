@@ -4,6 +4,8 @@ import { createLogger } from '../../utils/logger'
 import { checkFileWriteSandbox, resolveToolFilePath } from '../../sandbox/file-path-guard'
 import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from '../../agent/project-memory'
+import { PERMISSION_SANDBOX_ASSET_KEYS } from '../../sandbox/asset-keys'
+import type { ToolContext } from '../../../../src/shared/types'
 
 const log = createLogger('FileEdit')
 
@@ -43,7 +45,7 @@ export const fileEditTool = buildTool({
   metadata: {
     isDestructive: true,
   },
-  execute: async (args) => {
+  execute: async (args, ctx?: ToolContext) => {
     const filePath = args.path as string
     const oldStr = args.old_str as string
     const newStr = args.new_str as string
@@ -57,6 +59,11 @@ export const fileEditTool = buildTool({
     const wsRoot = getWorkspaceRoot()
     const resolved = resolveToolFilePath(filePath, wsRoot)
     const blocked = checkFileWriteSandbox(resolved, mode, wsRoot, { action: '编辑' })
+    ctx?.assetUsageReporter?.({
+      assetKey: PERMISSION_SANDBOX_ASSET_KEYS.pathBoundaries,
+      relation: 'used', usageKind: 'permission-decision', status: blocked ? 'blocked' : 'success',
+      metadata: { sandboxMode: mode, decision: blocked ? 'deny' : 'allow' },
+    })
     if (blocked) {
       log.warn('File edit blocked by sandbox', { path: resolved, mode })
       return blocked

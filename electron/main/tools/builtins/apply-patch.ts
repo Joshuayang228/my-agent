@@ -4,6 +4,8 @@ import { createLogger } from '../../utils/logger'
 import { checkFileWriteSandbox, resolveToolFilePath } from '../../sandbox/file-path-guard'
 import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from '../../agent/project-memory'
+import { PERMISSION_SANDBOX_ASSET_KEYS } from '../../sandbox/asset-keys'
+import type { ToolContext } from '../../../../src/shared/types'
 
 const log = createLogger('ApplyPatch')
 
@@ -134,7 +136,7 @@ export const applyPatchTool = buildTool({
   metadata: {
     isDestructive: true,
   },
-  execute: async (args) => {
+  execute: async (args, ctx?: ToolContext) => {
     const patchContent = args.patch as string
     if (!patchContent?.trim()) return '错误：必须提供补丁内容'
 
@@ -148,6 +150,11 @@ export const applyPatchTool = buildTool({
     const mode = await loadEffectiveSandbox()
     const wsRoot = getWorkspaceRoot()
     const blocked = checkFileWriteSandbox(resolved, mode, wsRoot, { action: '编辑' })
+    ctx?.assetUsageReporter?.({
+      assetKey: PERMISSION_SANDBOX_ASSET_KEYS.pathBoundaries,
+      relation: 'used', usageKind: 'permission-decision', status: blocked ? 'blocked' : 'success',
+      metadata: { sandboxMode: mode, decision: blocked ? 'deny' : 'allow' },
+    })
     if (blocked) return blocked
 
     let original: string

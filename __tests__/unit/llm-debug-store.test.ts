@@ -69,6 +69,23 @@ function createTables(database: import('sql.js').Database): void {
       parent_span_id TEXT,
       created_at INTEGER NOT NULL
     );
+    CREATE TABLE agent_asset_usage (
+      id TEXT PRIMARY KEY,
+      asset_key TEXT NOT NULL,
+      asset_name TEXT NOT NULL,
+      asset_type TEXT NOT NULL,
+      relation TEXT NOT NULL,
+      usage_kind TEXT NOT NULL,
+      session_id TEXT,
+      interaction_span_id TEXT,
+      span_id TEXT NOT NULL,
+      parent_span_id TEXT,
+      occurred_at INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      asset_version TEXT NOT NULL,
+      asset_fingerprint TEXT NOT NULL,
+      metadata TEXT NOT NULL DEFAULT '{}'
+    );
   `)
 }
 
@@ -195,6 +212,14 @@ describe('LLM Debug store', () => {
     expect(filtered.total).toBe(2)
     expect(filtered.storageBytes).toBeGreaterThan(0)
 
+    db.run(`INSERT INTO agent_asset_usage
+      (id, asset_key, asset_name, asset_type, relation, usage_kind, session_id, interaction_span_id,
+       span_id, parent_span_id, occurred_at, status, asset_version, asset_fingerprint, metadata)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+      'usage-c', 'provider-policy:auto-detection', '自动检测', 'provider-policy', 'used', 'provider-policy',
+      'session-gamma', 'interaction-c', 'span-c', null, Date.now(), 'success', '1.0.0', 'fingerprint', '{"provider":"openai"}',
+    ])
+
     const exported = await llmDebugStore.exportJsonl({
       caller: 'main',
       model: 'gpt-4o',
@@ -202,6 +227,11 @@ describe('LLM Debug store', () => {
       search: 'session-',
       order: 'desc',
     })
-    expect(exported.trim().split('\n').map((line) => JSON.parse(line).id)).toEqual(['span-c', 'span-a'])
+    const exportedRecords = exported.trim().split('\n').map((line) => JSON.parse(line))
+    expect(exportedRecords.map((record) => record.id)).toEqual(['span-c', 'span-a'])
+    expect(exportedRecords[0].assetUsage).toEqual([
+      expect.objectContaining({ assetKey: 'provider-policy:auto-detection', spanId: 'span-c' }),
+    ])
+    expect(exportedRecords[1].assetUsage).toEqual([])
   })
 })

@@ -1,6 +1,8 @@
 /// <reference types="vite/client" />
 
 import type {
+  AgentAssetUsageQuery,
+  AgentAssetUsageQueryResult,
   ChatMessage,
   ChatSession,
   AgentStreamEvent,
@@ -499,6 +501,7 @@ declare global {
           }
           dailyTokenUsage: number
         }>
+        assetUsageQuery: (input?: AgentAssetUsageQuery) => Promise<AgentAssetUsageQueryResult>
         llmLogsQuery: (input?: LLMCallQuery) => Promise<LLMCallQueryResult>
         llmLogGet: (id: string) => Promise<LLMCallDetail | null>
         llmLogExport: (id: string) => Promise<{

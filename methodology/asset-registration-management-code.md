@@ -197,3 +197,39 @@ failover.ts
 - Debug 分类和资产类型标签完整
 
 生产资产目录的测试属于 Unit；真正的行为效果仍由 Persona / Skill / Memory Eval、Permission 单测 / Eval 和真实 Eval Runner 负责，不能用目录存在替代行为验收。
+
+## 9. 生产资产运行证据链
+
+运行证据不复制资产正文，而是保存：
+
+```text
+运行节点 Span ID
+  ↕
+AgentAssetUsageEvidence
+  ↕
+生产资产稳定 key + version / fingerprint 快照
+```
+
+核心文件：
+
+```text
+electron/main/utils/asset-usage.ts
+electron/main/storage/asset-usage-store.ts
+electron/main/debug/model-context-assets.ts
+electron/main/tools/asset-keys.ts
+electron/main/llm/provider-asset-keys.ts
+electron/main/memory/asset-keys.ts
+electron/main/sandbox/asset-keys.ts
+```
+
+主进程启动时注入 Resolver 与 Sink。LLM、Agent、Memory、Tools / Sandbox 只依赖轻量分发器，不直接 import Debug IPC 或 Store。Tool Registry 把 `callId → tool span` 注入工具上下文，因此 shell 权限责任链和文件路径守卫可以报告真实 decision，而不是由外层按工具名猜测。
+
+持久化表 `agent_asset_usage` 只保存 key、运行身份、关系、状态、版本 / 指纹快照和扁平 allowlist metadata；20,000 行或约 32 MB 超限后持续删除最旧记录。LLM Debug JSON / JSONL 导出按 span 批量附加证据，避免逐条 N+1 查询。
+
+Debug 查询统一使用：
+
+```text
+debug:asset-usage-query
+```
+
+支持按 asset、span、session、interaction span 和 usage kind 查询。提示词管理器负责“资产 → 最近运行”的反向入口，请求与运行负责“运行 → 本次资产”的正向入口；两者共享同一关联索引，但不互相复制正文。

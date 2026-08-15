@@ -1,6 +1,6 @@
 # 生产资产使用证据链 v1 施工合同
 
-> 状态：待确认（2026-08-15，合同完成后等待确认再施工）
+> 状态：已落地（2026-08-15）
 > 统一称呼：施工合同
 
 ## 1. 需求背景（Why）
@@ -155,7 +155,7 @@ Provider 证据必须记录“实际适配器”和“策略是否触发”，�
 - v1 不新增“当前预设”设置字段，也不改变用户配置 schema；
 - API Key、认证 header、完整 Base URL query、Fallback 凭据不进入证据。
 
-`LLMConfig` 可携带只供本进程使用的脱敏 `runtimeAssetTrace`，但该字段不得发送给 Provider，也不得包含凭据或用户正文。
+`LLMConfig` 可携带只供本进程使用的脱敏 `runtimeAssetKeys`，但该字段不得发送给 Provider，也不得包含凭据或用户正文。
 
 ### 3.5 Tool / Permission / Sandbox 证据
 
@@ -311,13 +311,13 @@ electron/main/ipc/debug.ts
 src/vite-env.d.ts
 ```
 
-建议 IPC：
+实际 IPC：
 
 ```text
-debug:asset-usage-by-span
-debug:asset-usage-by-key
-debug:asset-usage-by-session
+debug:asset-usage-query
 ```
+
+通过白名单查询对象统一支持 `spanId / assetKey / sessionId / interactionSpanId / usageKind / limit / offset`，避免为同一关联索引维护三套接口。
 
 所有输入验证：
 
@@ -422,3 +422,12 @@ Persona Real Eval 不需要运行，除非实施中修改人格 Prompt、Judge �
 - **架构污染**：采用可选 Sink，业务层只发证据事件，不 import Storage / IPC；注册表只解析身份，不反向驱动算法。
 - **重复存储**：Prompt 旧字段为兼容保留；新索引只存稳定 key 和运行快照，不复制 Prompt / Tool / Memory 正文。
 - **范围膨胀**：v1 只覆盖有真实生产执行点的 LLM、Provider、Tool、Skill、Memory、Permission / Sandbox；目录浏览和静态模板不制造使用记录。
+
+## 8. 落地结果（2026-08-15）
+
+- 数据库升级至 schema v13，新增 `agent_asset_usage`；20,000 行与约 32 MB 双上限均会持续裁剪到边界内。
+- LLM / Provider / Tool / Skill / Memory / Permission / Sandbox 已接入真实运行证据；工具内部命令责任链与文件路径守卫通过 tool span 回调上报真实结果。
+- Debug「请求与运行 → LLM 调用」按资产类型展示调用级证据；提示词管理器支持资产反向“最近使用”和跨面板跳转。
+- 单条 JSON 与批量 JSONL 导出都附带对应 span 的资产证据；列表查询与导出保留相同筛选、排序语义。
+- 未保存 API Key、Authorization、Prompt 正文副本、工具参数 / 返回正文、shell command、文件正文、用户记忆正文 / ID / 向量、用户权限规则原文或隐藏 reasoning。
+- 验证通过：Unit 114 文件 / 676 项、普通 Eval 23/23、Skill Eval、TypeScript、Vite / Electron Build、UI E2E 7/7、Electron onboarding 2/2；真实 Electron 完成调用证据、最近使用、跨面板跳转和浅色 / 深色验收。Persona Real Eval 未运行，因为本次没有修改人格 Prompt、Judge 或评分标准。

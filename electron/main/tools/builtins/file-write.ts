@@ -5,6 +5,8 @@ import { createLogger } from '../../utils/logger'
 import { checkFileWriteSandbox, resolveToolFilePath } from '../../sandbox/file-path-guard'
 import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from '../../agent/project-memory'
+import { PERMISSION_SANDBOX_ASSET_KEYS } from '../../sandbox/asset-keys'
+import type { ToolContext } from '../../../../src/shared/types'
 
 const log = createLogger('FileWrite')
 
@@ -36,7 +38,7 @@ export const fileWriteTool = buildTool({
   metadata: {
     isDestructive: true,
   },
-  execute: async (args) => {
+  execute: async (args, ctx?: ToolContext) => {
     const filePath = args.path as string
     const content = args.content as string
     const append = String(args.append || 'false').toLowerCase() === 'true'
@@ -47,6 +49,11 @@ export const fileWriteTool = buildTool({
     const wsRoot = getWorkspaceRoot()
     const resolved = resolveToolFilePath(filePath, wsRoot)
     const blocked = checkFileWriteSandbox(resolved, mode, wsRoot, { action: '写入' })
+    ctx?.assetUsageReporter?.({
+      assetKey: PERMISSION_SANDBOX_ASSET_KEYS.pathBoundaries,
+      relation: 'used', usageKind: 'permission-decision', status: blocked ? 'blocked' : 'success',
+      metadata: { sandboxMode: mode, decision: blocked ? 'deny' : 'allow' },
+    })
     if (blocked) {
       log.warn('File write blocked by sandbox', { path: resolved, mode, wsRoot })
       return blocked

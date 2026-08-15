@@ -35,8 +35,11 @@ import {
   resolveEffectiveSandbox,
 } from './effective-sandbox'
 import { checkFileWriteSandbox, isPathInsideRoot } from './file-path-guard'
+import { PERMISSION_SANDBOX_ASSET_KEYS } from './asset-keys'
+export { PERMISSION_SANDBOX_ASSET_KEYS } from './asset-keys'
 
 const POLICY_ASSET_VERSION = '1.0.0'
+
 
 function jsonContent(value: unknown): string {
   return JSON.stringify(value, null, 2)
@@ -162,7 +165,7 @@ export function getPermissionSandboxAssetCatalog(): ModelContextAsset[] {
 
   return [
     policyAsset({
-      key: 'sandbox-policy:modes',
+      key: PERMISSION_SANDBOX_ASSET_KEYS.sandboxModes,
       name: '沙箱策略 · 档位与边界',
       purpose: '定义 read-only、workspace-write 与 full-access 的写入和网络边界',
       role: 'sandbox-policy',
@@ -171,7 +174,7 @@ export function getPermissionSandboxAssetCatalog(): ModelContextAsset[] {
       content: sandboxModeContent,
     }),
     policyAsset({
-      key: 'permission-policy:decision-chain',
+      key: PERMISSION_SANDBOX_ASSET_KEYS.decisionChain,
       name: '权限策略 · 决策责任链',
       purpose: '解释命令和工具权限按什么顺序得出允许、拒绝或需确认',
       role: 'permission-engine',
@@ -185,7 +188,7 @@ export function getPermissionSandboxAssetCatalog(): ModelContextAsset[] {
       content: decisionChainContent,
     }),
     policyAsset({
-      key: 'permission-policy:command-safety-grading',
+      key: PERMISSION_SANDBOX_ASSET_KEYS.commandSafetyGrading,
       name: '权限策略 · 命令安全分级',
       purpose: '定义 safe、dangerous 和 unknown 命令的生产匹配事实',
       role: 'exec-policy',
@@ -194,7 +197,7 @@ export function getPermissionSandboxAssetCatalog(): ModelContextAsset[] {
       content: commandSafetyContent,
     }),
     policyAsset({
-      key: 'permission-policy:path-boundaries',
+      key: PERMISSION_SANDBOX_ASSET_KEYS.pathBoundaries,
       name: '权限策略 · 文件路径边界',
       purpose: '定义工作区包含关系、受保护路径和文件写入沙箱结果',
       role: 'file-path-guard',
@@ -204,7 +207,7 @@ export function getPermissionSandboxAssetCatalog(): ModelContextAsset[] {
       content: pathBoundaryContent,
     }),
     policyAsset({
-      key: 'permission-policy:approval-flow',
+      key: PERMISSION_SANDBOX_ASSET_KEYS.approvalFlow,
       name: '权限策略 · 审批生命周期',
       purpose: '定义 once、session、persistent 审批的归一化、查询顺序和存储边界',
       role: 'approval-store',
@@ -213,7 +216,7 @@ export function getPermissionSandboxAssetCatalog(): ModelContextAsset[] {
       content: approvalFlowContent,
     }),
     policyAsset({
-      key: 'sandbox-policy:effective-mode',
+      key: PERMISSION_SANDBOX_ASSET_KEYS.effectiveMode,
       name: '沙箱策略 · 有效模式推导',
       purpose: '定义对话执行模式如何映射到工具真正使用的沙箱档位',
       role: 'effective-sandbox',

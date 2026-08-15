@@ -19,9 +19,7 @@
 
 ## 进行中
 
-| 文档 | 说明 |
-|------|------|
-| [agent-asset-usage-evidence-v1.md](./agent-asset-usage-evidence-v1.md) | 生产资产与真实 LLM / Tool / Memory / Permission 运行记录的使用证据链、反向查询与 Debug 跳转 |
+暂无。
 
 ---
 
@@ -29,6 +27,7 @@
 
 | 文档 | 说明 |
 |------|------|
+| [agent-asset-usage-evidence-v1.md](./agent-asset-usage-evidence-v1.md) | 已落地：生产资产与真实 LLM / Tool / Memory / Permission 运行记录的脱敏证据链、反向查询、导出与 Debug 跳转 |
 | [companion-character-profile-world.md](./companion-character-profile-world.md) | 小航候选：档案/世界结构已接入，人物故事内容待定；旧状态不迁移 |
 | [chat-right-dock.md](./chat-right-dock.md) | Chat 右侧能力坞 Phase 1：文件 / 审阅 / 终端；Debug 覆盖；命令控制台 |
 | [debug-llm-call-storage.md](./debug-llm-call-storage.md) | 对齐 Alice 的 LLM Debug 调用记录存储、IPC 同步与侧栏恢复 |

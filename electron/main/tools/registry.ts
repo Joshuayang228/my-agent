@@ -1,4 +1,4 @@
-import type { ToolDefinition, ToolCall, ToolResult, ToolContext } from '../../../src/shared/types'
+import type { ToolDefinition, ToolCall, ToolResult, ToolContext, ToolAssetUsageReport } from '../../../src/shared/types'
 import { ToolMiddlewarePipeline, createDefaultPipeline, type ToolMiddlewareNext } from './middleware'
 
 const TOOL_TIMEOUT_MS = 30_000
@@ -152,7 +152,19 @@ export class ToolRegistry {
       : tool
 
     const normalizedCall = call.name === canonical ? call : { ...call, name: canonical }
-    return this.executeFn({ call: normalizedCall, tool: effectiveTool, args, toolContext })
+    const toolSpanId = toolContext?.assetUsageSpanIdByCall?.[call.id]
+    const scopedToolContext = toolContext
+      ? {
+          ...toolContext,
+          assetUsageReporter: toolContext.assetUsageReporter
+            ? (report: ToolAssetUsageReport) => toolContext.assetUsageReporter?.({
+                ...report,
+                ...(report.spanId || !toolSpanId ? {} : { spanId: toolSpanId }),
+              })
+            : undefined,
+        }
+      : undefined
+    return this.executeFn({ call: normalizedCall, tool: effectiveTool, args, toolContext: scopedToolContext })
   }
 
   /** 原始执行器 — 中间件链的终点 */

@@ -7,8 +7,11 @@ import { ToolRegistry } from './tools/registry'
 import { builtinTools } from './tools/builtins/index'
 import { createLogger } from './utils/logger'
 import { mark, setLLMTraceSink } from './utils/tracer'
+import { setAssetUsageResolver, setAssetUsageSink } from './utils/asset-usage'
 import { closeDatabase } from './storage/database'
 import { llmDebugStore } from './storage/llm-debug-store'
+import { assetUsageStore } from './storage/asset-usage-store'
+import { createModelContextAssetResolver } from './debug/model-context-assets'
 import { registerAllIPC } from './ipc/index'
 import { mcpManager } from './mcp/client'
 import type { McpServerConfig } from './mcp/client'
@@ -112,6 +115,8 @@ if (delegateTool) {
 
 // Debug 正文持久化挂到现有 tracer Span；不另建 LLM 调用生命周期。
 setLLMTraceSink(llmDebugStore)
+setAssetUsageSink(assetUsageStore)
+setAssetUsageResolver(createModelContextAssetResolver(toolRegistry))
 registerAllIPC(toolRegistry)
 
 // ── 启动时恢复 MCP 连接 ──

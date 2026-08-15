@@ -15,6 +15,8 @@ import { EXTRACTION_PROMPT } from '../prompts/texts'
 import { PROMPT_KEYS } from '../prompts/keys'
 import { chatComplete } from '../llm/index'
 import { addMemory, listMemories, type MemoryCategory } from '../storage/memory-store'
+import { recordAssetUsage } from '../utils/asset-usage'
+import { MEMORY_STRATEGY_ASSET_KEYS } from '../memory/asset-keys'
 
 export { EXTRACTION_PROMPT } from '../prompts/texts'
 
@@ -40,6 +42,11 @@ export async function maybeExtractProfile(
   if (userMessages.length < PROFILE_EXTRACTION_MIN_USER_MESSAGES) return
 
   log.info('Starting profile extraction', { userMessageCount: userMessages.length })
+  void recordAssetUsage({
+    assetKey: MEMORY_STRATEGY_ASSET_KEYS.profileExtraction,
+    relation: 'triggered', usageKind: 'memory-operation', sessionId: opts?.sessionId,
+    status: 'running', metadata: { userMessageCount: userMessages.length },
+  })
 
   try {
     const allMessages = latestAssistantContent
@@ -75,11 +82,23 @@ export async function maybeExtractProfile(
       })
     } catch (apiErr) {
       log.warn('Profile extraction API failed', { error: apiErr instanceof Error ? apiErr.message : String(apiErr) })
+      void recordAssetUsage({
+        assetKey: MEMORY_STRATEGY_ASSET_KEYS.profileExtraction,
+        relation: 'used', usageKind: 'memory-operation', sessionId: opts?.sessionId,
+        status: 'error', metadata: { candidateCount: 0, writtenCount: 0 },
+      })
       return
     }
 
     const jsonMatch = /\[[\s\S]*\]/.exec(text)
-    if (!jsonMatch) return
+    if (!jsonMatch) {
+      void recordAssetUsage({
+        assetKey: MEMORY_STRATEGY_ASSET_KEYS.profileExtraction,
+        relation: 'used', usageKind: 'memory-operation', sessionId: opts?.sessionId,
+        status: 'success', metadata: { candidateCount: 0, writtenCount: 0 },
+      })
+      return
+    }
 
     const items = JSON.parse(jsonMatch[0]) as Array<{
       category: string
@@ -88,6 +107,11 @@ export async function maybeExtractProfile(
 
     if (!Array.isArray(items) || items.length === 0) {
       log.info('No new profile items extracted')
+      void recordAssetUsage({
+        assetKey: MEMORY_STRATEGY_ASSET_KEYS.profileExtraction,
+        relation: 'used', usageKind: 'memory-operation', sessionId: opts?.sessionId,
+        status: 'success', metadata: { candidateCount: 0, writtenCount: 0 },
+      })
       return
     }
 
@@ -114,7 +138,17 @@ export async function maybeExtractProfile(
     if (added > 0) {
       log.info(`Profile extraction complete: ${added} new items added`)
     }
+    void recordAssetUsage({
+      assetKey: MEMORY_STRATEGY_ASSET_KEYS.profileExtraction,
+      relation: 'used', usageKind: 'memory-operation', sessionId: opts?.sessionId,
+      status: 'success', metadata: { candidateCount: items.length, writtenCount: added },
+    })
   } catch (err) {
     log.warn('Profile extraction error', { error: err instanceof Error ? err.message : String(err) })
+    void recordAssetUsage({
+      assetKey: MEMORY_STRATEGY_ASSET_KEYS.profileExtraction,
+      relation: 'used', usageKind: 'memory-operation', sessionId: opts?.sessionId,
+      status: 'error', metadata: { candidateCount: 0, writtenCount: 0 },
+    })
   }
 }

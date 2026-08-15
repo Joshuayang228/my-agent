@@ -21,6 +21,7 @@ import { getMemoryStrategyAssetCatalog } from '../memory/strategy-registry'
 import { getPermissionSandboxAssetCatalog } from '../sandbox/asset-registry'
 import { getEvalCaseGraderAssetCatalog } from '../../../evals/asset-registry'
 import { getProviderAssetCatalog } from '../llm/provider-asset-registry'
+import { skillAssetKey, toolAssetKey } from '../tools/asset-keys'
 
 function toolSchemaContent(tool: ToolDefinition): string {
   return JSON.stringify({
@@ -44,8 +45,8 @@ function toolAsset(tool: ToolDefinition, skills: SkillDefinition[]): ModelContex
   const version = skill?.meta.version ?? (mcp ? 'runtime' : '1.0.0')
 
   return {
-    key: `tool:${tool.name}`,
-    id: `tool:${tool.name}`,
+    key: toolAssetKey(tool.name),
+    id: toolAssetKey(tool.name),
     name: `工具 · ${tool.name}`,
     category,
     purpose: skill ? 'Skill 激活工具 schema' : mcp ? 'MCP 外部工具 schema' : '内置工具 schema',
@@ -85,8 +86,8 @@ ${skill.meta.allowed_tools.join(', ')}` : '',
   ].filter(Boolean).join('\n')
   const locale = skill.source === 'builtin' ? 'zh-CN' : 'und'
   return {
-    key: `skill:${skill.meta.name}`,
-    id: `skill:${skill.meta.name}`,
+    key: skillAssetKey(skill.meta.name),
+    id: skillAssetKey(skill.meta.name),
     name: `Skill · ${skill.meta.name}`,
     category: 'skill',
     purpose: 'Skill 摘要、触发条件与激活正文',
@@ -160,4 +161,19 @@ export async function getModelContextAssets(toolRegistry: ToolRegistry): Promise
     skills: getLoadedSkills(),
     systemPrompt: settings.systemPrompt || '',
   })
+}
+
+
+/** 为运行证据提供生产资产解析；缓存避免每个 Tool schema 都重建完整目录。 */
+export function createModelContextAssetResolver(toolRegistry: ToolRegistry): (key: string) => Promise<ModelContextAsset | undefined> {
+  let expiresAt = 0
+  let cache = new Map<string, ModelContextAsset>()
+  return async (key: string) => {
+    if (Date.now() >= expiresAt || !cache.has(key)) {
+      const assets = await getModelContextAssets(toolRegistry)
+      cache = new Map(assets.map((asset) => [asset.key, asset]))
+      expiresAt = Date.now() + 10_000
+    }
+    return cache.get(key)
+  }
 }

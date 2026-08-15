@@ -14,6 +14,8 @@ import fs from 'node:fs'
 import { createEmbedding } from './embeddings'
 import { createLogger } from '../utils/logger'
 import type { LLMConfig } from '../../../src/shared/types'
+import { recordAssetUsage } from '../utils/asset-usage'
+import { MEMORY_STRATEGY_ASSET_KEYS } from './asset-keys'
 
 const log = createLogger('VectorStore')
 
@@ -65,9 +67,8 @@ export async function addToVectorStore(
   entry: VectorMemoryEntry,
   config: LLMConfig,
 ): Promise<void> {
-  const idx = await getIndex()
-
   try {
+    const idx = await getIndex()
     const { vector } = await createEmbedding(entry.text, config)
 
     await idx.insertItem({
@@ -82,6 +83,11 @@ export async function addToVectorStore(
     })
 
     log.info('Vector memory added', { id: entry.id, category: entry.category })
+    void recordAssetUsage({
+      assetKey: MEMORY_STRATEGY_ASSET_KEYS.vectorLifecycle,
+      relation: 'used', usageKind: 'memory-operation', status: 'success',
+      metadata: { operation: 'insert', category: entry.category, affectedCount: 1 },
+    })
 
     // G3：conversation 类写入后检查容量，超上限淘汰最旧的
     if (entry.category === 'conversation') {
@@ -89,6 +95,11 @@ export async function addToVectorStore(
     }
   } catch (err) {
     log.warn('Failed to add vector memory', { id: entry.id, error: String(err) })
+    void recordAssetUsage({
+      assetKey: MEMORY_STRATEGY_ASSET_KEYS.vectorLifecycle,
+      relation: 'used', usageKind: 'memory-operation', status: 'error',
+      metadata: { operation: 'insert', affectedCount: 0 },
+    })
   }
 }
 
@@ -98,8 +109,8 @@ export async function addToVectorStore(
  * 从选出待删条目到 items（纯逻辑）抽出为 selectEvictableItems 便于测试。
  */
 async function evictOldConversationVectors(): Promise<void> {
-  const idx = await getIndex()
   try {
+    const idx = await getIndex()
     const items = await idx.listItems()
     const toEvict = selectEvictableItems(
       items.map(it => ({ itemId: it.id, metadata: it.metadata as Record<string, unknown> })),
@@ -110,9 +121,19 @@ async function evictOldConversationVectors(): Promise<void> {
     }
     if (toEvict.length > 0) {
       log.info('Evicted old conversation vectors', { count: toEvict.length })
+      void recordAssetUsage({
+        assetKey: MEMORY_STRATEGY_ASSET_KEYS.vectorLifecycle,
+        relation: 'triggered', usageKind: 'memory-operation', status: 'success',
+        metadata: { operation: 'evict', affectedCount: toEvict.length },
+      })
     }
   } catch (err) {
     log.warn('Conversation vector eviction failed', { error: String(err) })
+    void recordAssetUsage({
+      assetKey: MEMORY_STRATEGY_ASSET_KEYS.vectorLifecycle,
+      relation: 'triggered', usageKind: 'memory-operation', status: 'error',
+      metadata: { operation: 'evict', affectedCount: 0 },
+    })
   }
 }
 
@@ -172,11 +193,9 @@ export async function searchVectorStore(
   options: { topK?: number; minScore?: number; category?: string } = {},
 ): Promise<VectorSearchResult[]> {
   const { topK = DEFAULT_VECTOR_RECALL_TOP_K, minScore = DEFAULT_VECTOR_RECALL_MIN_SCORE, category } = options
-  const idx = await getIndex()
-
-  if (!await idx.isIndexCreated()) return []
-
   try {
+    const idx = await getIndex()
+    if (!await idx.isIndexCreated()) return []
     const { vector } = await createEmbedding(query, config)
 
     const results = await idx.queryItems(vector, topK)
@@ -196,8 +215,9 @@ export async function searchVectorStore(
         }
       })
   } catch (err) {
+    // 由 Runtime 的 safeVectorSearch 统一记录 error 证据并保持主链路 fail-safe。
     log.warn('Vector search failed', { error: String(err) })
-    return []
+    throw err
   }
 }
 
@@ -292,16 +312,26 @@ export function formatRecallForInjection(
  * 删除指定 ID 的向量记忆。
  */
 export async function removeFromVectorStore(id: string): Promise<void> {
-  const idx = await getIndex()
   try {
+    const idx = await getIndex()
     const items = await idx.listItems()
     const target = items.find(item => (item.metadata as any).id === id)
     if (target) {
       await idx.deleteItem(target.id)
       log.info('Vector memory removed', { id })
+      void recordAssetUsage({
+        assetKey: MEMORY_STRATEGY_ASSET_KEYS.vectorLifecycle,
+        relation: 'used', usageKind: 'memory-operation', status: 'success',
+        metadata: { operation: 'remove', affectedCount: 1 },
+      })
     }
   } catch (err) {
     log.warn('Failed to remove vector memory', { id, error: String(err) })
+    void recordAssetUsage({
+      assetKey: MEMORY_STRATEGY_ASSET_KEYS.vectorLifecycle,
+      relation: 'used', usageKind: 'memory-operation', status: 'error',
+      metadata: { operation: 'remove', affectedCount: 0 },
+    })
   }
 }
 

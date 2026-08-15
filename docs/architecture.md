@@ -223,6 +223,15 @@ Skill 资产由 `electron/main/skills/loader.ts` 读取和保存，`registry.ts`
 - `llm/provider-asset-registry.ts` 从真实请求构造器、路由规则、Thinking / Context / Vision / Failover 生产事实和共享预设生成协议能力、跨 Provider 策略与内置预设资产；只保存脱敏结构，不读取用户配置或能力缓存。
 - Playground 不直接写生产资产；只有文本类资产可显式载入为实验副本，伙伴、记忆、权限与沙箱、Eval Case / Grader、Provider 等结构化资产保持只读。
 
+### 10.1 生产资产运行证据层
+
+- `utils/asset-usage.ts` 是业务层唯一证据分发入口：调用方只上报稳定 key、关系、状态和扁平 allowlist 元数据，不依赖 Storage 或 Debug IPC。
+- 主进程用 `createModelContextAssetResolver` 校验 key，并把运行时 version / fingerprint 快照写入 `agent_asset_usage`；未知 key、解析失败和写盘失败只告警，不阻断 Agent 主链路。
+- `agent_asset_usage` 只是关联索引：LLM 正文仍在 `llm_debug_logs`，Trace 仍由 tracer 管理，资产正文仍在各生产注册表；索引按 20,000 行与约 32 MB 双上限裁剪。
+- LLM 记录 Prompt、Provider 路由 / 策略、Tool availability 与 Skill；Agent / Tool 记录执行、审批、命令责任链、有效沙箱和真实路径守卫；Memory 记录召回、画像、去重、反馈分桶、向量生命周期与引用纠错。
+- Tool Registry 为每个 call 注入实际 tool span，使 `shell_exec` 和文件工具内部守卫证据精确挂到执行节点；不记录 command、路径、reason、args 或结果正文。
+- Debug 通过单一 `debug:asset-usage-query` 按 span / asset / session 查询；LLM JSON 与 JSONL 导出都附带证据，清空 LLM Debug 时同步清理对应会话关联。
+
 ## 目录结构
 
 ```

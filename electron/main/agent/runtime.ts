@@ -45,6 +45,8 @@ import {
   formatRecallForInjection,
 } from '../memory/vector-store'
 import type { MemoryCitation } from '../../../src/shared/types'
+import { recordAssetUsage } from '../utils/asset-usage'
+import { MEMORY_STRATEGY_ASSET_KEYS } from '../memory/asset-keys'
 import { buildSkillSummaryForPrompt, getActiveSkill, getActiveSkillTrace, clearActiveSkill } from '../skills/registry'
 import { setCurrentSessionId as setTaskPlanSessionId } from '../services/task-plan-service'
 import { clearSessionSubAgents } from './subagent-registry'
@@ -385,6 +387,14 @@ class AgentRuntime {
         roleId: assembleRoleId,     // feedback 记忆分桶（M22-G2）
         sessionKind: isSummon ? 'summon' : 'main', // M26-G2：子 Agent 任务工边界
         skillActivations: activeSkillTrace ? [activeSkillTrace] : [],
+        assetUsageReporter: (report) => {
+          void recordAssetUsage({
+            ...report,
+            sessionId,
+            interactionSpanId: chatSpan.id,
+            parentSpanId: chatSpan.id,
+          })
+        },
       }
 
       const stream = agentLoop(
@@ -517,6 +527,13 @@ class AgentRuntime {
     if (!query) return { citations: [] }
     try {
       const results = await searchVectorStore(query, llmConfig, { topK: 5, minScore: 0.6 })
+      void recordAssetUsage({
+        assetKey: MEMORY_STRATEGY_ASSET_KEYS.vectorRecall,
+        relation: 'used',
+        usageKind: 'memory-operation',
+        status: 'success',
+        metadata: { attempted: true, resultCount: results.length },
+      })
       // G5 去重（排除 SQLite 镜像）+ G2 老化告警，逻辑抽在 formatRecallForInjection 纯函数
       const output = formatRecallForInjection(results)
       const citations = extractMemoryCitations(results)
@@ -531,6 +548,11 @@ class AgentRuntime {
       return { citations: [] }
     } catch (err) {
       log.warn('Vector search skipped', { error: String(err) })
+      void recordAssetUsage({
+        assetKey: MEMORY_STRATEGY_ASSET_KEYS.vectorRecall,
+        relation: 'used', usageKind: 'memory-operation', status: 'error',
+        metadata: { attempted: true, resultCount: 0 },
+      })
     }
     return { citations: [] }
   }

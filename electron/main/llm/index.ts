@@ -33,6 +33,10 @@ import {
 } from '../utils/tracer'
 import { getTraceContext } from '../utils/trace-context'
 import { resolvePromptAssetTraces } from '../prompts/registry'
+import { recordAssetUsage, recordAssetUsages } from '../utils/asset-usage'
+import { PROVIDER_ASSET_KEYS } from './provider-asset-keys'
+import { PROVIDER_PRESETS } from '../../../src/shared/provider-presets'
+import { skillAssetKey, toolAssetKey } from '../tools/asset-keys'
 
 const llmLog = createLogger('LLM')
 
@@ -217,10 +221,95 @@ export async function* streamChat(
       keys: promptAssetResolution.unknownKeys,
     })
   }
+  const staticEvidence = [
+    ...promptAssetResolution.assets.map((asset) => ({
+      assetKey: asset.key,
+      relation: 'used' as const,
+      usageKind: 'llm-input' as const,
+      spanId: traceSpan.id,
+      parentSpanId: options.parentSpanId,
+      sessionId,
+      status: 'success' as const,
+      metadata: { caller: options.caller ?? 'unknown' },
+    })),
+    ...(options.tools ?? []).map((tool) => ({
+      assetKey: toolAssetKey(tool.name),
+      relation: 'available' as const,
+      usageKind: 'tool-available' as const,
+      spanId: traceSpan.id,
+      parentSpanId: options.parentSpanId,
+      sessionId,
+      status: 'success' as const,
+      metadata: { toolName: tool.name },
+    })),
+    ...(options.skillActivations ?? []).map((skill) => ({
+      assetKey: skillAssetKey(skill.name),
+      relation: 'used' as const,
+      usageKind: 'skill-activation' as const,
+      spanId: traceSpan.id,
+      parentSpanId: options.parentSpanId,
+      sessionId,
+      status: 'success' as const,
+      metadata: { skillName: skill.name, toolName: skill.toolName },
+    })),
+    ...(config.runtimeAssetKeys ?? []).map((assetKey) => ({
+      assetKey,
+      relation: 'used' as const,
+      usageKind: 'provider-policy' as const,
+      spanId: traceSpan.id,
+      parentSpanId: options.parentSpanId,
+      sessionId,
+      status: 'success' as const,
+      metadata: { caller: options.caller ?? 'unknown' },
+    })),
+  ]
+  void recordAssetUsages(staticEvidence)
   const attachRequest = (activeConfig: LLMConfig, providerAttempt: number, previousError?: string) => {
+    const provider = detectProvider(activeConfig)
+    const providerKey = provider === 'anthropic'
+      ? PROVIDER_ASSET_KEYS.anthropic
+      : provider === 'gemini'
+        ? PROVIDER_ASSET_KEYS.gemini
+        : PROVIDER_ASSET_KEYS.openai
+    const providerEvidence = [{
+      assetKey: providerKey,
+      relation: 'used' as const,
+      usageKind: 'provider-route' as const,
+      spanId: traceSpan.id,
+      parentSpanId: options.parentSpanId,
+      sessionId,
+      status: 'success' as const,
+      metadata: { provider, providerAttempt, model: activeConfig.model },
+    }]
+    if (!activeConfig.provider || activeConfig.provider === 'auto') {
+      providerEvidence.push({
+        assetKey: PROVIDER_ASSET_KEYS.autoDetection,
+        relation: 'used', usageKind: 'provider-policy', spanId: traceSpan.id,
+        parentSpanId: options.parentSpanId, sessionId, status: 'success',
+        metadata: { provider, providerAttempt, model: activeConfig.model },
+      })
+    }
+    if (providerAttempt > 0) {
+      providerEvidence.push({
+        assetKey: PROVIDER_ASSET_KEYS.sequentialFailover,
+        relation: 'triggered', usageKind: 'provider-policy', spanId: traceSpan.id,
+        parentSpanId: options.parentSpanId, sessionId, status: 'success',
+        metadata: { provider, providerAttempt, model: activeConfig.model },
+      })
+    }
+    const matchedPreset = PROVIDER_PRESETS.find((preset) => preset.baseUrl === activeConfig.baseUrl && preset.model === activeConfig.model)
+    if (matchedPreset) {
+      providerEvidence.push({
+        assetKey: matchedPreset.key,
+        relation: 'matched', usageKind: 'provider-route', spanId: traceSpan.id,
+        parentSpanId: options.parentSpanId, sessionId, status: 'success',
+        metadata: { provider, providerAttempt, model: activeConfig.model },
+      })
+    }
+    void recordAssetUsages(providerEvidence)
     attachLLMTraceRequest(traceSpan, {
       sessionId,
-      provider: detectProvider(activeConfig),
+      provider,
       model: activeConfig.model,
       caller: options.caller ?? 'unknown',
       parentSpanId: options.parentSpanId,
@@ -342,6 +431,16 @@ async function* streamChatSingle(
     if (isVisionRelatedError(error)) {
       llmLog.warn('Vision not supported, retrying without images', { model: config.model })
       markVisionDenied(config)
+      void recordAssetUsage({
+        assetKey: PROVIDER_ASSET_KEYS.visionFallback,
+        relation: 'triggered',
+        usageKind: 'provider-policy',
+        spanId: options.traceSpan?.id,
+        parentSpanId: options.parentSpanId,
+        sessionId: options.sessionId,
+        status: 'success',
+        metadata: { model: config.model },
+      })
       response = await doFetch(true)
     } else {
       throw new LLMError(`LLM API error (${response.status}): ${error}`, response.status, parseRetryAfterMs(response))

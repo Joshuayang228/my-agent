@@ -15,6 +15,10 @@ import { sanitizeError } from '../utils/sanitize-error'
 import { AgentError, AgentErrorCode, toAgentError } from '../errs/index'
 import { startSpan, type SpanHandle } from '../utils/tracer'
 import { getObserver } from '../utils/observer'
+import { recordAssetUsage, recordAssetUsages } from '../utils/asset-usage'
+import { toolAssetKey } from '../tools/asset-keys'
+import { PERMISSION_SANDBOX_ASSET_KEYS } from '../sandbox/asset-keys'
+import { resolveEffectiveSandbox } from '../sandbox/effective-sandbox'
 import { compressContext, emergencyTruncate, estimateTokens, DEFAULT_MAX_TOKENS } from './context-manager'
 import { sanitizeMessages } from './message-pipeline'
 import { DEFAULT_SYSTEM_PROMPT } from '../prompts/texts'
@@ -528,6 +532,38 @@ export async function* agentLoop(
       parsedArgs.set(call.id, args)
 
       const permResult = checkToolPermission(call.name)
+      const effectiveSandbox = resolveEffectiveSandbox(effectiveExecutionMode)
+      const permissionStatus = permResult.allowed === false
+        ? 'denied' as const
+        : permResult.allowed === 'needs_approval'
+          ? 'blocked' as const
+          : 'success' as const
+      void recordAssetUsages([
+        {
+          assetKey: PERMISSION_SANDBOX_ASSET_KEYS.decisionChain,
+          relation: 'used',
+          usageKind: 'permission-decision',
+          spanId: state.interactionSpanId,
+          sessionId: options.sessionId,
+          status: permissionStatus,
+          metadata: {
+            toolName: call.name,
+            outcome: String(permResult.allowed),
+            decisionType: permResult.decisionType,
+            chain: permResult.chain,
+            matchedUserRule: Boolean(permResult.matchedRule),
+          },
+        },
+        {
+          assetKey: PERMISSION_SANDBOX_ASSET_KEYS.effectiveMode,
+          relation: 'used',
+          usageKind: 'permission-decision',
+          spanId: state.interactionSpanId,
+          sessionId: options.sessionId,
+          status: permissionStatus,
+          metadata: { toolName: call.name, executionMode: effectiveExecutionMode, sandboxMode: effectiveSandbox },
+        },
+      ])
 
       if (permResult.allowed === false) {
         log.info(`Tool blocked by permission engine: ${call.name}`, { reason: permResult.reason, chain: permResult.chain })
@@ -553,10 +589,31 @@ export async function* agentLoop(
         // G2: blocked_on_user 独立计时 — Alice Ch.13 核心要求
         const blockedSpan = startSpan(`blocked_${call.name}`, 'tool', 'tool_blocked', state.interactionSpanId, {
           toolName: call.name,
+          assetKeys: [PERMISSION_SANDBOX_ASSET_KEYS.approvalFlow],
+        })
+        void recordAssetUsage({
+          assetKey: PERMISSION_SANDBOX_ASSET_KEYS.approvalFlow,
+          relation: 'triggered',
+          usageKind: 'permission-decision',
+          spanId: blockedSpan.id,
+          parentSpanId: state.interactionSpanId,
+          sessionId: options.sessionId,
+          status: 'blocked',
+          metadata: { toolName: call.name, executionMode: effectiveExecutionMode },
         })
         yield { type: 'tool_confirm', callId: call.id, name: call.name, args }
         const approved = await confirmTool(call.name, args)
         blockedSpan.setAttribute('decision', approved ? 'approved' : 'denied')
+        void recordAssetUsage({
+          assetKey: PERMISSION_SANDBOX_ASSET_KEYS.approvalFlow,
+          relation: 'used',
+          usageKind: 'permission-decision',
+          spanId: blockedSpan.id,
+          parentSpanId: state.interactionSpanId,
+          sessionId: options.sessionId,
+          status: approved ? 'success' : 'denied',
+          metadata: { toolName: call.name, outcome: approved ? 'approved' : 'rejected' },
+        })
         blockedSpan.end('ok')
         // shell_exec：把用户确认写入会话审批库，供 checkCommandPermission 第二层命中
         if (call.name === 'shell_exec' && typeof args.command === 'string' && args.command.trim()) {
@@ -606,8 +663,25 @@ export async function* agentLoop(
     // 为每个 pending 工具创建 tool span
     const toolSpans = new Map<string, SpanHandle>()
     for (const call of pendingCalls) {
+      const guardAssetKeys = call.name === 'shell_exec'
+        ? [PERMISSION_SANDBOX_ASSET_KEYS.commandSafetyGrading, PERMISSION_SANDBOX_ASSET_KEYS.sandboxModes]
+        : ['file_write', 'file_edit', 'apply_patch'].includes(call.name)
+          ? [PERMISSION_SANDBOX_ASSET_KEYS.pathBoundaries]
+          : []
       const toolSpan = startSpan(`tool_${call.name}`, 'tool', 'tool', state.interactionSpanId, {
         toolName: call.name,
+        assetKeys: [toolAssetKey(call.name), PERMISSION_SANDBOX_ASSET_KEYS.effectiveMode, ...guardAssetKeys],
+        sandboxMode: resolveEffectiveSandbox(effectiveExecutionMode),
+      })
+      void recordAssetUsage({
+        assetKey: toolAssetKey(call.name),
+        relation: 'used',
+        usageKind: 'tool-execution',
+        spanId: toolSpan.id,
+        parentSpanId: state.interactionSpanId,
+        sessionId: options.sessionId,
+        status: 'running',
+        metadata: { toolName: call.name },
       })
       toolSpans.set(call.id, toolSpan)
       yield { type: 'tool_start', callId: call.id, name: call.name, args: parsedArgs.get(call.id)! }
@@ -618,7 +692,15 @@ export async function* agentLoop(
       batchSize: pendingCalls.length,
       toolNames: pendingCalls.map(c => c.name).join(','),
     })
-    const batchResults = await registry.executeAll(pendingCalls, toolContext)
+    const executionToolContext = toolContext
+      ? {
+          ...toolContext,
+          assetUsageSpanIdByCall: Object.fromEntries(
+            Array.from(toolSpans.entries()).map(([callId, span]) => [callId, span.id]),
+          ),
+        }
+      : undefined
+    const batchResults = await registry.executeAll(pendingCalls, executionToolContext)
     execSpan.end('ok')
     results.push(...batchResults)
 
@@ -628,6 +710,16 @@ export async function* agentLoop(
         tSpan.setAttributes({
           isError: result.isError ?? false,
           resultLength: result.content.length,
+        })
+        void recordAssetUsage({
+          assetKey: toolAssetKey(result.name),
+          relation: 'used',
+          usageKind: 'tool-execution',
+          spanId: tSpan.id,
+          parentSpanId: state.interactionSpanId,
+          sessionId: options.sessionId,
+          status: result.isError ? 'error' : 'success',
+          metadata: { toolName: result.name, isError: Boolean(result.isError), resultLength: result.content.length },
         })
         tSpan.end(result.isError ? 'error' : 'ok')
       }

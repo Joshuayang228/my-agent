@@ -8,6 +8,8 @@
 
 import { addMemory, deleteMemory, getMemory, updateMemory } from '../storage/memory-store'
 import { removeFromVectorStore } from './vector-store'
+import { recordAssetUsage } from '../utils/asset-usage'
+import { MEMORY_STRATEGY_ASSET_KEYS } from './asset-keys'
 
 export type CitationCorrectPlan =
   | { action: 'delete'; sqlite: boolean; vector: boolean }
@@ -42,6 +44,14 @@ export interface CorrectCitationResult {
  * 执行本轮引用纠错。
  * 调用方：IPC memory:correct-citation；UI 芯片「记错了 / 改正」。
  */
+function recordCorrection(action: string): void {
+  void recordAssetUsage({
+    assetKey: MEMORY_STRATEGY_ASSET_KEYS.citationCorrection,
+    relation: 'used', usageKind: 'memory-operation', status: 'success',
+    metadata: { operation: action, checkedCount: 1, correctedCount: 1 },
+  })
+}
+
 export async function correctCitedMemory(
   id: string,
   opts?: { replacement?: string },
@@ -54,12 +64,14 @@ export async function correctCitedMemory(
 
   if (plan.action === 'update-sqlite') {
     await updateMemory(memId, opts!.replacement!.trim())
+    recordCorrection('update')
     return { ok: true, action: 'updated', id: memId }
   }
 
   if (plan.action === 'replace-as-fact') {
     await removeFromVectorStore(memId)
     const entry = await addMemory('fact', opts!.replacement!.trim())
+    recordCorrection('replace')
     return { ok: true, action: 'replaced', id: memId, newId: entry.id }
   }
 
@@ -69,6 +81,7 @@ export async function correctCitedMemory(
   } else {
     await removeFromVectorStore(memId)
   }
+  recordCorrection('delete')
   return { ok: true, action: 'deleted', id: memId }
 }
 

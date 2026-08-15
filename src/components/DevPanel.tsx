@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
+import type { AgentAssetUsageEvidence } from '../shared/types'
 import {
   FileText, BarChart3, ClipboardList, Zap, RotateCcw,
   Bug, Globe, ArrowLeft, Layers3, Activity, FlaskConical,
@@ -133,6 +134,8 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
   const [tools, setTools] = useState<DebugToolInfo[]>([])
   const [traces, setTraces] = useState<TracesPayload | null>(null)
   const [requestRuntimeView, setRequestRuntimeView] = useState<RequestRuntimeView>('llm')
+  const [focusedLLMCallId, setFocusedLLMCallId] = useState('')
+  const [focusedTraceSpanId, setFocusedTraceSpanId] = useState('')
   const [worldSnap, setWorldSnap] = useState<WorldSnapshot | null>(null)
   const [worldError, setWorldError] = useState('')
 
@@ -168,6 +171,19 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
   }, [debugTab, requestRuntimeView])
 
   useEffect(() => { void refresh() }, [refresh])
+
+  const openAssetUsage = useCallback((item: AgentAssetUsageEvidence) => {
+    setDebugTab('request-runtime')
+    if (!['llm-input', 'provider-route', 'provider-policy', 'tool-available', 'skill-activation'].includes(item.usageKind)) {
+      setRequestRuntimeView('traces')
+      setFocusedLLMCallId('')
+      setFocusedTraceSpanId(item.spanId)
+      return
+    }
+    setRequestRuntimeView('llm')
+    setFocusedTraceSpanId('')
+    setFocusedLLMCallId(item.spanId)
+  }, [])
 
   return (
     <div className="flex h-full min-h-0" data-testid="dev-panel" data-surface="debug">
@@ -231,7 +247,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
 
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-5">
         {debugTab === 'prompt' && (
-          <PromptManagerPanel info={promptInfo} onRefresh={() => refresh()} />
+          <PromptManagerPanel info={promptInfo} onRefresh={() => refresh()} onOpenUsage={openAssetUsage} />
         )}
         {debugTab === 'request-runtime' && (
           <RequestRuntimePanel
@@ -239,6 +255,8 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
             setView={setRequestRuntimeView}
             traces={traces}
             events={eventLog}
+            focusedLLMCallId={focusedLLMCallId}
+            focusedTraceSpanId={focusedTraceSpanId}
           />
         )}
         {debugTab === 'world' && (
@@ -513,11 +531,15 @@ function RequestRuntimePanel({
   setView,
   traces,
   events,
+  focusedLLMCallId,
+  focusedTraceSpanId,
 }: {
   view: RequestRuntimeView
   setView: (view: RequestRuntimeView) => void
   traces: TracesPayload | null
   events: Array<{ time: number; type: string; detail: string }>
+  focusedLLMCallId: string
+  focusedTraceSpanId: string
 }) {
   const views: Array<{ id: RequestRuntimeView; label: string; icon: ReactNode }> = [
     { id: 'llm', label: 'LLM 调用', icon: <Activity size={13} /> },
@@ -540,14 +562,24 @@ function RequestRuntimePanel({
           )
         })}
       </div>
-      {view === 'llm' && <LLMCallsPanel />}
-      {view === 'traces' && <TracesTab data={traces} />}
+      {view === 'llm' && <LLMCallsPanel focusId={focusedLLMCallId} />}
+      {view === 'traces' && <TracesTab data={traces} focusId={focusedTraceSpanId} />}
       {view === 'events' && <EventsTab events={events} />}
     </div>
   )
 }
 
-function TracesTab({ data }: { data: TracesPayload | null }) {
+function TracesTab({ data, focusId }: { data: TracesPayload | null; focusId?: string }) {
+  useEffect(() => {
+    if (!focusId) return
+    const timer = window.setTimeout(() => {
+      const target = Array.from(document.querySelectorAll<HTMLElement>('[data-trace-span-id]'))
+        .find((element) => element.dataset.traceSpanId === focusId)
+      target?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [data, focusId])
+
   if (!data) {
     return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载中…</div>
   }
@@ -556,6 +588,7 @@ function TracesTab({ data }: { data: TracesPayload | null }) {
   const callers = Object.entries(data.callerStats || {})
   const fg = data.tokenLanes?.foreground
   const bg = data.tokenLanes?.background
+  const focusedExists = Boolean(focusId && spans.some((span) => span.id === focusId))
 
   const byParent = new Map<string | undefined, TraceSpanInfo[]>()
   for (const s of spans) {
@@ -580,8 +613,14 @@ function TracesTab({ data }: { data: TracesPayload | null }) {
     return (
       <div key={span.id}>
         <div
+          data-trace-span-id={span.id}
           className="flex items-center gap-2 rounded px-2 py-1 font-mono text-[11px]"
-          style={{ paddingLeft: 8 + depth * 14, color: 'var(--text-secondary)' }}
+          style={{
+            paddingLeft: 8 + depth * 14,
+            color: 'var(--text-secondary)',
+            background: span.id === focusId ? 'var(--accent-subtle)' : 'transparent',
+            outline: span.id === focusId ? '1px solid var(--accent)' : 'none',
+          }}
         >
           <span className={span.status === 'error' ? 'text-red-400' : span.status === 'running' ? 'text-amber-400' : 'text-emerald-400'}>
             {span.status === 'ok' ? '●' : span.status === 'error' ? '✗' : '○'}
@@ -592,6 +631,13 @@ function TracesTab({ data }: { data: TracesPayload | null }) {
             {span.duration !== undefined ? `${span.duration}ms` : '…'}
           </span>
           {span.error && <span className="truncate text-red-400">{span.error}</span>}
+          {(() => {
+            const raw = span.attributes.assetKeys
+            const keys = Array.isArray(raw) ? raw.filter((item): item is string => typeof item === 'string') : typeof raw === 'string' ? [raw] : []
+            return keys.length > 0 ? <span className="truncate" style={{ color: 'var(--accent-fg)' }}>{keys.join(' · ')}</span> : null
+          })()}
+          {typeof span.attributes.decision === 'string' && <span style={{ color: 'var(--text-muted)' }}>decision={span.attributes.decision}</span>}
+          {typeof span.attributes.sandboxMode === 'string' && <span style={{ color: 'var(--text-muted)' }}>sandbox={span.attributes.sandboxMode}</span>}
         </div>
         {children.map(c => renderNode(c, depth + 1))}
       </div>
@@ -644,6 +690,11 @@ function TracesTab({ data }: { data: TracesPayload | null }) {
         <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
           Span 树（最近 {spans.length}）
         </div>
+        {focusId && !focusedExists && (
+          <p className="mb-2 rounded border px-2 py-1.5 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
+            目标 Span 不在当前内存窗口中；关联证据仍保留，可按 Span ID 在持久化记录中排查：<span className="font-mono">{focusId}</span>
+          </p>
+        )}
         {spans.length === 0 ? (
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>暂无 Span。发送消息后会出现调用链。</p>
         ) : (

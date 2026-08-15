@@ -141,6 +141,53 @@ export type PromptAssetTrace = Pick<
 
 export type ModelContextAsset = PromptAsset
 
+export type AgentAssetUsageRelation = 'used' | 'available' | 'triggered' | 'matched'
+export type AgentAssetUsageKind =
+  | 'llm-input'
+  | 'provider-route'
+  | 'provider-policy'
+  | 'tool-available'
+  | 'tool-execution'
+  | 'skill-activation'
+  | 'memory-operation'
+  | 'permission-decision'
+export type AgentAssetUsageStatus = 'running' | 'success' | 'error' | 'blocked' | 'denied'
+export type AgentAssetUsageMetadataValue = string | number | boolean | string[]
+
+/** 真实运行节点与生产资产稳定 key 的脱敏关联；不承载 Prompt、参数或用户数据正文。 */
+export interface AgentAssetUsageEvidence {
+  id: string
+  assetKey: string
+  assetName: string
+  assetType: ModelContextAssetType
+  assetVersion: string
+  assetFingerprint: string
+  relation: AgentAssetUsageRelation
+  usageKind: AgentAssetUsageKind
+  sessionId?: string
+  interactionSpanId?: string
+  spanId: string
+  parentSpanId?: string
+  occurredAt: number
+  status: AgentAssetUsageStatus
+  metadata: Record<string, AgentAssetUsageMetadataValue>
+}
+
+export interface AgentAssetUsageQuery {
+  assetKey?: string
+  spanId?: string
+  sessionId?: string
+  interactionSpanId?: string
+  usageKind?: AgentAssetUsageKind
+  limit?: number
+  offset?: number
+}
+
+export interface AgentAssetUsageQueryResult {
+  records: AgentAssetUsageEvidence[]
+  total: number
+}
+
 export interface DebugPromptSnapshot {
   full: string
   layers: { l1: string; l2: string; l3: string; l4: string }
@@ -547,6 +594,18 @@ export interface ToolMetadata {
   longRunning?: boolean
 }
 
+/** 工具内部实际触发权限 / 路径策略时上报的脱敏资产证据。 */
+export interface ToolAssetUsageReport {
+  assetKey: string
+  relation: AgentAssetUsageRelation
+  usageKind: AgentAssetUsageKind
+  status: AgentAssetUsageStatus
+  spanId?: string
+  metadata?: Record<string, unknown>
+}
+
+export type ToolAssetUsageReporter = (report: ToolAssetUsageReport) => void
+
 /** 工具执行时注入的运行时上下文 */
 export interface ToolContext {
   /** 当前工作区根目录 */
@@ -570,6 +629,10 @@ export interface ToolContext {
   sessionKind?: 'main' | 'summon'
   /** 当前请求中已激活的 Skill；只记录来源和指纹元数据，不复制正文。 */
   skillActivations?: SkillActivationTrace[]
+  /** 工具内部真实触发权限 / 路径策略时的脱敏上报回调。 */
+  assetUsageReporter?: ToolAssetUsageReporter
+  /** 当前批次 callId → tool span，用于把守卫证据精确挂到实际工具节点。 */
+  assetUsageSpanIdByCall?: Record<string, string>
 }
 
 // ── LLM ──
@@ -608,6 +671,8 @@ export interface LLMConfig {
   provider?: LLMProvider
   /** 备用模型列表，主模型失败时按序降级 */
   fallbackModels?: FallbackModelConfig[]
+  /** 仅供本进程 Debug 证据链使用；不得序列化进 Provider 请求。 */
+  runtimeAssetKeys?: string[]
 }
 
 export interface FallbackModelConfig {

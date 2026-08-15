@@ -75,6 +75,36 @@ describe('ToolRegistry', () => {
       expect(results[0].isError).toBeUndefined()
     })
 
+    it('将每个工具调用的实际 span 注入资产证据回调', async () => {
+      const reporter = vi.fn()
+      const reg = new ToolRegistry()
+      reg.register(makeTool({
+        execute: async (_args, ctx) => {
+          ctx?.assetUsageReporter?.({
+            assetKey: 'permission-policy:path-boundaries',
+            relation: 'used',
+            usageKind: 'permission-decision',
+            status: 'success',
+            metadata: { decision: 'allow' },
+          })
+          return 'ok'
+        },
+      }))
+
+      await reg.executeAll([makeCall({ id: 'call-1' })], {
+        workdir: 'D:/workspace',
+        sessionId: 'session-1',
+        assetUsageSpanIdByCall: { 'call-1': 'tool-span-1' },
+        assetUsageReporter: reporter,
+      })
+
+      expect(reporter).toHaveBeenCalledWith(expect.objectContaining({
+        assetKey: 'permission-policy:path-boundaries',
+        spanId: 'tool-span-1',
+        status: 'success',
+      }))
+    })
+
     it('未知工具返回错误结果', async () => {
       const reg = new ToolRegistry()
       const results = await reg.executeAll([makeCall({ name: 'unknown' })])

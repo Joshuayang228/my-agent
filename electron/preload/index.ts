@@ -1,5 +1,7 @@
 import { ipcRenderer, contextBridge } from 'electron'
 import type {
+  AgentAssetUsageQuery,
+  AgentAssetUsageQueryResult,
   ChatMessage,
   ChatSession,
   AgentStreamEvent,
@@ -448,6 +450,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('debug:eval-run-event', listener)
       return () => ipcRenderer.removeListener('debug:eval-run-event', listener)
     },
+    assetUsageQuery: (input?: AgentAssetUsageQuery): Promise<AgentAssetUsageQueryResult> =>
+      ipcRenderer.invoke('debug:asset-usage-query', input),
     llmLogsQuery: (input?: LLMCallQuery): Promise<LLMCallQueryResult> =>
       ipcRenderer.invoke('debug:llm-logs-query', input),
     llmLogGet: (id: string): Promise<LLMCallDetail | null> =>

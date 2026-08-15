@@ -19,10 +19,12 @@ import { getPersonaEvalReport, listPersonaEvalReports } from '../debug/persona-e
 import { getSkillEvalReport, listSkillEvalReports } from '../debug/skill-eval-reports'
 import { DebugEvalRunner } from '../debug/eval-runner'
 import { getModelContextAssets } from '../debug/model-context-assets'
+import { assetUsageStore } from '../storage/asset-usage-store'
 import {
   llmDebugStore,
 } from '../storage/llm-debug-store'
 import type {
+  AgentAssetUsageQuery,
   DebugEvalSuite,
   LLMCallQuery,
   PersonaEvalHumanReviewDeleteInput,
@@ -203,11 +205,37 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     return evalRunner!.cancel(runId)
   })
 
+  /** 生产资产使用证据：只接受有界白名单过滤字段。 */
+  ipcMain.handle('debug:asset-usage-query', async (_event, input?: AgentAssetUsageQuery) => {
+    const bounded = (value: unknown) => typeof value === 'string' && value.trim().length <= 240
+      ? value.trim()
+      : undefined
+    return assetUsageStore.query({
+      assetKey: bounded(input?.assetKey),
+      spanId: bounded(input?.spanId),
+      sessionId: bounded(input?.sessionId),
+      interactionSpanId: bounded(input?.interactionSpanId),
+      usageKind: typeof input?.usageKind === 'string' ? input.usageKind : undefined,
+      limit: typeof input?.limit === 'number' ? Math.min(100, Math.max(1, input.limit)) : undefined,
+      offset: typeof input?.offset === 'number' ? Math.max(0, input.offset) : undefined,
+    })
+  })
+
   /** LLM Debug 历史摘要：正文不随列表查询返回，避免侧栏加载大 payload。 */
   ipcMain.handle('debug:llm-logs-query', async (_event, input?: LLMCallQuery) => {
+    const bounded = (value: unknown) => typeof value === 'string' && value.trim().length <= 240
+      ? value.trim()
+      : undefined
     return llmDebugStore.query({
-      sessionId: typeof input?.sessionId === 'string' ? input.sessionId : undefined,
+      sessionId: bounded(input?.sessionId),
       includeSubagents: input?.includeSubagents === true,
+      caller: bounded(input?.caller),
+      model: bounded(input?.model),
+      status: input?.status === 'pending' || input?.status === 'success' || input?.status === 'error'
+        ? input.status
+        : undefined,
+      search: bounded(input?.search),
+      order: input?.order === 'desc' ? 'desc' : 'asc',
       limit: typeof input?.limit === 'number' ? input.limit : undefined,
       offset: typeof input?.offset === 'number' ? input.offset : undefined,
     })
@@ -223,6 +251,8 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     if (typeof id !== 'string' || !id.trim()) return { ok: false, error: '无效的 Debug 记录' }
     const record = await llmDebugStore.getById(id)
     if (!record) return { ok: false, error: 'Debug 记录不存在' }
+    const evidence = await assetUsageStore.query({ spanId: id, limit: 100 })
+    const exportRecord = { ...record, assetUsage: evidence.records }
     const owner = BrowserWindow.fromWebContents(event.sender) ?? undefined
     const result = await dialog.showSaveDialog(owner, {
       defaultPath: `my-agent-llm-debug-${id}.json`,
@@ -230,7 +260,7 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     })
     if (result.canceled || !result.filePath) return { ok: false, canceled: true }
     try {
-      await writeFile(result.filePath, JSON.stringify(record, null, 2), 'utf8')
+      await writeFile(result.filePath, JSON.stringify(exportRecord, null, 2), 'utf8')
       return { ok: true, filePath: result.filePath }
     } catch (error) {
       log.warn('Failed to export single LLM Debug log', {
@@ -251,9 +281,19 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
   })
 
   ipcMain.handle('debug:llm-logs-export', async (event, input?: LLMCallQuery) => {
+    const bounded = (value: unknown) => typeof value === 'string' && value.trim().length <= 240
+      ? value.trim()
+      : undefined
     const content = await llmDebugStore.exportJsonl({
-      sessionId: typeof input?.sessionId === 'string' ? input.sessionId : undefined,
+      sessionId: bounded(input?.sessionId),
       includeSubagents: input?.includeSubagents === true,
+      caller: bounded(input?.caller),
+      model: bounded(input?.model),
+      status: input?.status === 'pending' || input?.status === 'success' || input?.status === 'error'
+        ? input.status
+        : undefined,
+      search: bounded(input?.search),
+      order: input?.order === 'desc' ? 'desc' : 'asc',
     })
     const owner = BrowserWindow.fromWebContents(event.sender) ?? undefined
     const result = await dialog.showSaveDialog(owner, {

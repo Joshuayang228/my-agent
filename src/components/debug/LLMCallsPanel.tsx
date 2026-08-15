@@ -10,14 +10,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type
 import {
   ChevronLeft, ChevronRight, Copy, Download, RefreshCw, Search, Trash2,
 } from 'lucide-react'
-import type { LLMCallDetail, LLMCallQuery, LLMCallSummary, PromptAssetTrace, SkillActivationTrace } from '../../shared/types'
+import type { AgentAssetUsageEvidence, LLMCallDetail, LLMCallQuery, LLMCallSummary, PromptAssetTrace, SkillActivationTrace } from '../../shared/types'
 import { formatDebugBytes, formatDebugValue, normalizeDebugMessages } from './debug-format'
 
 const PAGE_SIZE = 30
 
 type DetailView = 'prompts' | 'system' | 'messages' | 'tools' | 'extra' | 'response' | 'json'
 
-export function LLMCallsPanel() {
+export function LLMCallsPanel({ focusId }: { focusId?: string } = {}) {
   const [records, setRecords] = useState<LLMCallSummary[]>([])
   const [total, setTotal] = useState(0)
   const [storageBytes, setStorageBytes] = useState(0)
@@ -29,6 +29,7 @@ export function LLMCallsPanel() {
   const [filters, setFilters] = useState<Pick<LLMCallQuery, 'search' | 'caller' | 'model' | 'status'>>({})
   const [selectedId, setSelectedId] = useState('')
   const [detail, setDetail] = useState<LLMCallDetail | null>(null)
+  const [assetEvidence, setAssetEvidence] = useState<AgentAssetUsageEvidence[]>([])
   const [detailView, setDetailView] = useState<DetailView>('prompts')
   const [loading, setLoading] = useState(true)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -55,9 +56,15 @@ export function LLMCallsPanel() {
     }
     setDetailLoading(true)
     try {
-      setDetail(await window.electronAPI.debug.llmLogGet(id))
+      const [nextDetail, evidence] = await Promise.all([
+        window.electronAPI.debug.llmLogGet(id),
+        window.electronAPI.debug.assetUsageQuery({ spanId: id, limit: 100 }),
+      ])
+      setDetail(nextDetail)
+      setAssetEvidence(evidence.records)
     } catch (cause) {
       setDetail(null)
+      setAssetEvidence([])
       setError(cause instanceof Error ? cause.message : String(cause))
     } finally {
       setDetailLoading(false)
@@ -93,6 +100,13 @@ export function LLMCallsPanel() {
   }, [loadDetail, query])
 
   useEffect(() => { void loadRecords(true) }, [loadRecords])
+
+  useEffect(() => {
+    if (!focusId?.trim()) return
+    setSelectedId(focusId)
+    setDetailView('prompts')
+    void loadDetail(focusId)
+  }, [focusId, loadDetail])
 
   useEffect(() => {
     const unsubscribe = window.electronAPI?.debug?.onLLMCallEvent((event) => {
@@ -291,17 +305,22 @@ export function LLMCallsPanel() {
                       background: detailView === item ? 'var(--accent-subtle)' : 'transparent',
                     }}
                   >
-                    {{ prompts: `Prompt 资产 ${promptAssets.length}`, system: `System ${systemMessages.length}`, messages: `Messages ${messages.length}`, tools: 'Tools', extra: '请求参数', response: '响应', json: '完整 JSON' }[item]}
+                    {{ prompts: `资产证据 ${assetEvidence.length || promptAssets.length}`, system: `System ${systemMessages.length}`, messages: `Messages ${messages.length}`, tools: 'Tools', extra: '请求参数', response: '响应', json: '完整 JSON' }[item]}
                   </button>
                 ))}
               </div>
 
               {detailView === 'prompts' && (
-                <PromptAssetsDetail
-                  assets={promptAssets}
-                  unknownKeys={normalizeStringArray(detail.requestExtra.unknownPromptAssetKeys)}
-                  promptlessReason={typeof detail.requestExtra.promptlessReason === 'string' ? detail.requestExtra.promptlessReason : ''}
-                  skillActivations={normalizeSkillActivations(detail.requestExtra.skillActivations)}
+                <AssetEvidenceDetail
+                  evidence={assetEvidence}
+                  fallback={(
+                    <PromptAssetsDetail
+                      assets={promptAssets}
+                      unknownKeys={normalizeStringArray(detail.requestExtra.unknownPromptAssetKeys)}
+                      promptlessReason={typeof detail.requestExtra.promptlessReason === 'string' ? detail.requestExtra.promptlessReason : ''}
+                      skillActivations={normalizeSkillActivations(detail.requestExtra.skillActivations)}
+                    />
+                  )}
                 />
               )}
               {detailView === 'system' && <DetailMessages messages={systemMessages} />}
@@ -330,6 +349,47 @@ export function LLMCallsPanel() {
           <IconButton title="下一页" disabled={page + 1 >= totalPages} onClick={() => setPage((value) => value + 1)}><ChevronRight size={14} /></IconButton>
         </div>
       </div>
+    </div>
+  )
+}
+
+function usageGroup(item: AgentAssetUsageEvidence): string {
+  if (item.usageKind === 'provider-route' || item.usageKind === 'provider-policy') return 'Provider'
+  if (item.usageKind === 'tool-available' || item.usageKind === 'tool-execution') return 'Tool schema'
+  if (item.usageKind === 'memory-operation') return 'Memory'
+  if (item.usageKind === 'permission-decision') return 'Permission / Sandbox'
+  if (item.usageKind === 'skill-activation') return 'Skill'
+  return 'Prompt / 伙伴'
+}
+
+/** 展示真实运行关联；旧记录没有索引时回退现有 Prompt 资产视图。 */
+function AssetEvidenceDetail({ evidence, fallback }: { evidence: AgentAssetUsageEvidence[]; fallback: ReactNode }) {
+  if (evidence.length === 0) return <>{fallback}</>
+  const groups = new Map<string, AgentAssetUsageEvidence[]>()
+  for (const item of evidence) {
+    const group = usageGroup(item)
+    groups.set(group, [...(groups.get(group) ?? []), item])
+  }
+  return (
+    <div className="scrollbar-hover max-h-[52vh] space-y-3 overflow-y-auto pr-1" data-testid="asset-evidence-detail">
+      {[...groups.entries()].map(([group, items]) => (
+        <section key={group} className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
+          <div className="mb-2 text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>{group} · {items.length}</div>
+          <div className="space-y-2">
+            {items.map((item) => (
+              <div key={item.id} className="rounded border px-2.5 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-[10px] font-semibold" style={{ color: 'var(--text-primary)' }}>{item.assetKey}</span>
+                  <span className="rounded px-1.5 py-0.5 text-[9px]" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>{item.relation}</span>
+                  <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{item.usageKind} · {item.status}</span>
+                </div>
+                <div className="mt-1 text-[10px]" style={{ color: 'var(--text-secondary)' }}>{item.assetName} · v{item.assetVersion} · {item.assetFingerprint}</div>
+                {Object.keys(item.metadata).length > 0 && <div className="mt-1 break-words font-mono text-[9px]" style={{ color: 'var(--text-muted)' }}>{formatDebugValue(item.metadata)}</div>}
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   )
 }

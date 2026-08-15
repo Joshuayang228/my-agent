@@ -11,6 +11,7 @@
 
 import { safeStorage } from 'electron'
 import { getDatabase, persist } from './database'
+import { assetUsageStore } from './asset-usage-store'
 import { createLogger, sanitizeLogData } from '../utils/logger'
 import type {
   LLMTraceRequest,
@@ -388,6 +389,7 @@ class LLMDebugStore implements LLMTraceSink {
       )
     }
     persist()
+    await assetUsageStore.clear(normalized)
     this.emit({ type: 'cleared', ...(normalized ? { sessionId: normalized } : {}) })
   }
 
@@ -450,11 +452,16 @@ class LLMDebugStore implements LLMTraceSink {
       `SELECT * FROM llm_debug_logs ${whereSql} ORDER BY started_at ${order}, id ${order}`,
     )
     stmt.bind(params)
-    const lines: string[] = []
+    const records: LLMCallDetail[] = []
     while (stmt.step()) {
-      lines.push(JSON.stringify(rowToDetail(stmt.getAsObject() as Record<string, unknown>)))
+      records.push(rowToDetail(stmt.getAsObject() as Record<string, unknown>))
     }
     stmt.free()
+    const usageBySpan = await assetUsageStore.queryForSpanIds(records.map((record) => record.id))
+    const lines = records.map((record) => JSON.stringify({
+      ...record,
+      assetUsage: usageBySpan.get(record.id) ?? [],
+    }))
     return lines.length > 0 ? `${lines.join('\n')}\n` : ''
   }
 

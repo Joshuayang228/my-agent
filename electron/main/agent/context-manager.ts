@@ -2,6 +2,8 @@ import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
 import { chatComplete } from '../llm/index'
 import { PROMPT_KEYS } from '../prompts/keys'
+import { recordAssetUsage } from '../utils/asset-usage'
+import { PROVIDER_ASSET_KEYS } from '../llm/provider-asset-keys'
 import { getEffectiveContextWindow } from './model-context-window'
 export {
   DEFAULT_MAX_TOKENS,
@@ -130,7 +132,17 @@ export async function compressContext(
 ): Promise<ChatMessage[]> {
   // C2: maxTokens 优先级 —— 显式传入 > 按模型推断 > 默认。
   // 不同模型窗口差异大，硬编码单一阈值会让大窗口模型过早压缩、小窗口模型压缩不及时。
+  const inferredContextWindow = options.maxTokens === undefined
   const maxTokens = options.maxTokens ?? getEffectiveContextWindow(options.llmConfig?.model)
+  if (inferredContextWindow) {
+    void recordAssetUsage({
+      assetKey: PROVIDER_ASSET_KEYS.contextWindow,
+      relation: 'used',
+      usageKind: 'provider-policy',
+      status: 'success',
+      metadata: { model: options.llmConfig?.model ?? 'unknown', effectiveTokens: maxTokens },
+    })
+  }
   const querySource = options.querySource ?? 'main'
   // G5: 压缩管线不携带图片二进制，避免 vision 载荷扭曲预算与摘要
   let current = stripImagesForCompression(messages)

@@ -14,6 +14,8 @@ import type {
   ToolDefinition,
 } from '../../../src/shared/types'
 import { PROVIDER_PRESETS } from '../../../src/shared/provider-presets'
+import { PROVIDER_ASSET_KEYS } from './provider-asset-keys'
+export { PROVIDER_ASSET_KEYS } from './provider-asset-keys'
 import {
   DEFAULT_MAX_TOKENS,
   MIN_EFFECTIVE_CONTEXT_TOKENS,
@@ -45,6 +47,7 @@ import {
 } from './vision'
 
 const PROVIDER_ASSET_VERSION = '1.0.0'
+
 const SYNTHETIC_SECRET = '__provider_asset_secret__'
 
 function jsonContent(value: unknown): string {
@@ -221,7 +224,7 @@ function protocolAssets(): ModelContextAsset[] {
   const contents = protocolCapabilityContents()
   return [
     providerAsset({
-      key: 'provider-capability:openai',
+      key: PROVIDER_ASSET_KEYS.openai,
       name: '模型 Provider · OpenAI Compatible',
       purpose: '描述 OpenAI Chat Completions 兼容适配器的真实请求能力',
       role: 'provider-adapter',
@@ -230,7 +233,7 @@ function protocolAssets(): ModelContextAsset[] {
       content: jsonContent(contents.openai),
     }),
     providerAsset({
-      key: 'provider-capability:anthropic',
+      key: PROVIDER_ASSET_KEYS.anthropic,
       name: '模型 Provider · Anthropic',
       purpose: '描述 Anthropic Messages 适配器的真实请求能力',
       role: 'provider-adapter',
@@ -239,7 +242,7 @@ function protocolAssets(): ModelContextAsset[] {
       content: jsonContent(contents.anthropic),
     }),
     providerAsset({
-      key: 'provider-capability:gemini',
+      key: PROVIDER_ASSET_KEYS.gemini,
       name: '模型 Provider · Gemini',
       purpose: '描述 Gemini streamGenerateContent 适配器的真实请求能力',
       role: 'provider-adapter',
@@ -253,7 +256,7 @@ function protocolAssets(): ModelContextAsset[] {
 function policyAssets(): ModelContextAsset[] {
   const policies = [
     {
-      key: 'provider-policy:auto-detection',
+      key: PROVIDER_ASSET_KEYS.autoDetection,
       name: 'Provider 策略 · 自动检测',
       purpose: '说明显式 Provider、Base URL 规则和未知端点回退顺序',
       source: 'electron/main/llm/provider-router.ts',
@@ -265,7 +268,7 @@ function policyAssets(): ModelContextAsset[] {
       },
     },
     {
-      key: 'provider-policy:aux-thinking',
+      key: PROVIDER_ASSET_KEYS.auxThinking,
       name: 'Provider 策略 · 辅助 Thinking',
       purpose: '说明辅助模型关闭 Thinking 的缓存与启发式优先级',
       source: 'electron/main/llm/thinking.ts',
@@ -280,7 +283,7 @@ function policyAssets(): ModelContextAsset[] {
       },
     },
     {
-      key: 'provider-policy:context-window',
+      key: PROVIDER_ASSET_KEYS.contextWindow,
       name: 'Provider 策略 · Context Window',
       purpose: '说明模型家族窗口、输出预留和未知模型保守回退',
       source: 'electron/main/agent/model-context-window.ts',
@@ -299,7 +302,7 @@ function policyAssets(): ModelContextAsset[] {
       },
     },
     {
-      key: 'provider-policy:vision-fallback',
+      key: PROVIDER_ASSET_KEYS.visionFallback,
       name: 'Provider 策略 · Vision 降级',
       purpose: '说明图片能力的乐观尝试、拒绝缓存和去图重试规则',
       source: 'electron/main/llm/vision.ts',
@@ -311,7 +314,7 @@ function policyAssets(): ModelContextAsset[] {
       },
     },
     {
-      key: 'provider-policy:sequential-failover',
+      key: PROVIDER_ASSET_KEYS.sequentialFailover,
       name: 'Provider 策略 · 顺序 Failover',
       purpose: '说明主模型失败后备用模型的顺序、继承和覆盖规则',
       source: 'electron/main/llm/failover.ts',
