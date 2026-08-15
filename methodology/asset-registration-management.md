@@ -1,7 +1,7 @@
 ﻿# 注册与管理：让 Agent 生产资产可追踪、可验证
 
 > 本章是 My Agent 的独立方法论沉淀。
-> 受 Alice 的结构化 Prompt 注册思路启发，但不复制外部项目的资产语义；以下规则来自本项目在 Prompt、Skill、伙伴资产、记忆策略和权限 / 沙箱策略上的实际取舍。
+> 受 Alice 的结构化 Prompt 注册思路启发，但不复制外部项目的资产语义；以下规则来自本项目在 Prompt、Skill、伙伴资产、记忆策略、权限 / 沙箱策略和 Eval Case / Grader 上的实际取舍。
 
 ## 1. 我们为什么需要注册表
 
@@ -60,6 +60,7 @@ Skill               可触发的工作能力和激活边界
 Tool schema         模型可见的工具定义
 记忆策略            提取、去重、召回、生命周期、纠错规则
 权限与沙箱策略      档位、责任链、命令分级、路径边界、审批生命周期
+Eval Case / Grader   场景、评分计划、结构化判据、Judge 检查项
 权限策略            工具执行和审批边界（后续接入）
 Eval                 Case、Grader、Fixture（后续接入）
 Provider             模型能力与连接事实（后续接入）
@@ -372,10 +373,10 @@ Prompt / 伙伴人格 / 记忆策略
 - 伙伴与人格资产目录
 - 记忆策略目录 v1
 - 权限 / 沙箱策略目录 v1
+- Eval Case / Grader 目录 v1
 
 下一步再做：
 
-- Eval Case / Grader 目录
 - Provider 能力目录
 - 伙伴结构化资产的 Playground 隔离草稿
 

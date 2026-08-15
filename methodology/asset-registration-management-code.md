@@ -20,6 +20,8 @@ companion-*
 memory-strategy
 permission-policy
 sandbox-policy
+eval-case
+eval-grader
 tool-schema
 skill
 eval-judge
@@ -48,6 +50,8 @@ electron/main/prompts/registry.ts
  electron/main/companion/asset-registry.ts
  electron/main/memory/strategy-registry.ts
  electron/main/sandbox/asset-registry.ts
+ evals/scenario-registry.ts
+ evals/asset-registry.ts
 ```
 
 Debug IPC 仍使用：
@@ -133,7 +137,19 @@ sandbox/effective-sandbox.ts
 
 当前登记沙箱档位、权限责任链、命令安全分级、路径边界、审批生命周期和有效沙箱映射。用户 permissionRules、真实审批记录和当前 executionMode 不进入 builtin 目录。
 
-## 6. 测试边界
+## 6. Eval Case / Grader
+
+普通场景唯一注册入口：
+
+```text
+evals/scenario-registry.ts
+```
+
+它统一提供 F01–F08、P01–P06、B01–B07、C01–C02，供 Vitest、CLI 和资产目录共同消费，避免平行数组漂移。`evals/asset-registry.ts` 再从真实 Scenario、`EvalGrader.assetDefinition` 和 `SKILL_EVAL_CASES` 生成 `eval-case` / `eval-grader`。
+
+静态资产只保存场景描述、套件、默认模式、required、Grader 顺序和结构化 criteria；实际初始 messages、System Prompt、Agent 回复、Judge 结论和人工审阅仍只在“质量 / Eval”报告查看。
+
+## 7. 测试边界
 
 应覆盖：
 
@@ -142,7 +158,7 @@ sandbox/effective-sandbox.ts
 - fingerprint 稳定
 - dependencies 正确
 - 缺失可选资产不虚构
-- 目录不读取用户记忆正文、用户权限规则或审批记录正文
+- 目录不读取用户记忆正文、用户权限规则、审批记录正文、Eval 运行报告或环境凭据
 - Debug 分类和资产类型标签完整
 
-生产资产目录的测试属于 Unit；真正的行为效果仍由 Persona / Skill / Memory Eval 与 Permission 单测 / Eval 负责，不能用目录存在替代行为验收。
+生产资产目录的测试属于 Unit；真正的行为效果仍由 Persona / Skill / Memory Eval、Permission 单测 / Eval 和真实 Eval Runner 负责，不能用目录存在替代行为验收。
