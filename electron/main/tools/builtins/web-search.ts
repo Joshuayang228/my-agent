@@ -1,5 +1,5 @@
 import { buildTool } from '../builder'
-import { createLogger } from '../../utils/logger'
+import { createLogger, hashForLog } from '../../utils/logger'
 
 const log = createLogger('WebSearch')
 
@@ -49,7 +49,7 @@ export const webSearchTool = buildTool({
       return '错误：必须提供搜索查询'
     }
 
-    log.info('Searching', { query, maxResults })
+    log.info('Searching', { queryHash: hashForLog(query), queryLength: query.length, maxResults })
 
     try {
       const headers: Record<string, string> = {
@@ -73,12 +73,12 @@ export const webSearchTool = buildTool({
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => '未知错误')
-        log.error('Tavily API error', { status: response.status, error: errorText })
+        log.error('Tavily API error', { status: response.status, errorLength: errorText.length })
         return `搜索失败（HTTP ${response.status}）：${errorText}`
       }
 
       const data = (await response.json()) as TavilyResponse
-      log.info('Search completed', { query, resultCount: data.results?.length ?? 0 })
+      log.info('Search completed', { queryHash: hashForLog(query), resultCount: data.results?.length ?? 0 })
 
       const parts: string[] = []
 
@@ -106,7 +106,7 @@ export const webSearchTool = buildTool({
       return parts.join('\n')
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      log.error('Search failed', { query, error: message })
+      log.error('Search failed', { queryHash: hashForLog(query), queryLength: query.length, errorType: err instanceof Error ? err.name : 'unknown' })
       return `搜索失败：${message}`
     }
   },

@@ -5,7 +5,7 @@ import path from 'node:path'
 import { config } from 'dotenv'
 import { ToolRegistry } from './tools/registry'
 import { builtinTools } from './tools/builtins/index'
-import { createLogger } from './utils/logger'
+import { createLogger, hashForLog } from './utils/logger'
 import { mark, setLLMTraceSink } from './utils/tracer'
 import { setAssetUsageResolver, setAssetUsageSink } from './utils/asset-usage'
 import { closeDatabase } from './storage/database'
@@ -40,8 +40,10 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   : RENDERER_DIST
 
 if (VITE_DEV_SERVER_URL) {
+  // 仅开发模式启用 CDP，且明确绑定本机，避免把带有 preload/调试能力的窗口暴露到局域网。
+  app.commandLine.appendSwitch('remote-debugging-address', '127.0.0.1')
   app.commandLine.appendSwitch('remote-debugging-port', '9222')
-  log.info('Remote debugging enabled on port 9222')
+  log.info('Remote debugging enabled on localhost:9222')
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -90,6 +92,19 @@ async function createWindow() {
     win.loadFile(indexHtml)
   }
 
+  // 只允许当前应用页面继续导航；否则恶意 Markdown/外部内容若触发同窗导航，
+  // 新页面可能继承 preload，从而获得全部 IPC 能力。外链统一交给系统浏览器。
+  win.webContents.on('will-navigate', (event, url) => {
+    const allowedOrigin = VITE_DEV_SERVER_URL ? new URL(VITE_DEV_SERVER_URL).origin : null
+    const sameDevOrigin = allowedOrigin ? (() => {
+      try { return new URL(url).origin === allowedOrigin } catch { return false }
+    })() : false
+    if (!sameDevOrigin) {
+      event.preventDefault()
+      log.warn('Blocked renderer navigation', { urlHash: hashForLog(url) })
+    }
+  })
+
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https:')) shell.openExternal(url)
     return { action: 'deny' }
@@ -130,13 +145,15 @@ async function restoreMcpConnections() {
       try {
         await mcpManager.connect(config)
         syncMcpToolsToRegistry(toolRegistry, config.id)
-        log.info(`MCP server restored: ${config.name}`)
+        log.info('MCP server restored', { nameHash: hashForLog(config.name), nameLength: config.name.length })
       } catch (err) {
-        log.warn(`Failed to restore MCP server: ${config.name}`, { error: String(err) })
+        const errorMessage = err instanceof Error ? err.message : String(err)
+        log.warn('Failed to restore MCP server', { nameHash: hashForLog(config.name), nameLength: config.name.length, errorType: err instanceof Error ? err.name : 'unknown', errorLength: errorMessage.length })
       }
     }
   } catch (err) {
-    log.warn('Failed to restore MCP connections', { error: String(err) })
+    const errorMessage = err instanceof Error ? err.message : String(err)
+    log.warn('Failed to restore MCP connections', { errorType: err instanceof Error ? err.name : 'unknown', errorLength: errorMessage.length })
   }
 }
 

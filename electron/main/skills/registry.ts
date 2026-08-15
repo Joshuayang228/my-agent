@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
 import { loadAllSkills } from './loader'
 import { ToolRegistry } from '../tools/registry'
 import type { SkillActivationTrace, SkillDefinition, ToolDefinition } from '../../../src/shared/types'
@@ -65,7 +65,7 @@ export function createSkillActivationTool(skill: SkillDefinition): ToolDefinitio
       activeSkill = skill
       const reason = typeof args.reason === 'string' ? args.reason : undefined
       ctx?.skillActivations?.push(getSkillActivationTrace(skill, reason))
-      log.info('Skill activated', { name: skill.meta.name, reason })
+      log.info('Skill activated', { name: skill.meta.name, reasonHash: reason ? hashForLog(reason) : undefined, reasonLength: reason?.length ?? 0 })
 
       return [
         `✅ Skill「${skill.meta.name}」已激活。`,

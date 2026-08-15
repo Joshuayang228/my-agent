@@ -16,6 +16,7 @@
 - [ ] 所有外部输入有类型校验。
 - [ ] 文件路径操作有防路径穿越检查。
 - [ ] SQL 查询使用参数化，禁止拼接用户输入。
+- [ ] 用户可控配置 / Frontmatter 只用数据解析器，禁止 `eval`、JavaScript YAML 标签或可执行模板引擎。
 
 ## 错误信息
 
@@ -36,8 +37,8 @@
 
 | 模式 | 文件读 | 文件写 | 命令执行 |
 |------|--------|--------|----------|
-| `read-only` | 允许 | 禁止 | 仅安全命令 |
-| `workspace-write` | 允许 | 工作区内 | 需审批 |
+| `read-only` | 仅当前工作区内普通文件 | 禁止 | 仅安全命令 |
+| `workspace-write` | 仅当前工作区内普通文件 | 工作区内 | 需审批 |
 | `full-access` | 允许 | 任意 | 需审批（危险命令仍 bypass-immune） |
 
 设置页不再提供独立沙箱开关。工具层须用 `loadEffectiveSandbox()`，禁止只信旧键 `settings.sandboxMode`。
@@ -51,7 +52,8 @@
 ## 路径守卫
 
 - 检查命令目标路径是否在工作区内。
-- 保护系统关键路径，例如 `/etc`、`C:\Windows`、`~/.ssh`。
+- `file_read` / `code_search` 在非 `full-access` 模式下也必须限制到当前工作区；没有项目时 fail-closed。
+- 保护系统关键路径和凭据文件，例如 `/etc`、`C:\Windows`、`~/.ssh`、`.env`、`.npmrc`、`.netrc`。
 
 ## 审批记录
 
@@ -89,5 +91,7 @@ interface PermissionRule {
 
 - [ ] 对话数据存储在本地 SQLite，不上传云端。
 - [ ] 向量数据库中的嵌入不可逆推原文。
-- [ ] 数据导出自动脱敏 API Key。
+- [x] 数据导出自动脱敏 API Key，并排除 MCP env / command、权限规则、执行模式和本机路径。
+- [x] 任意 URL 抓取阻止 SSRF、凭据 URL、重定向到私网和无界响应。
+- [x] Electron Renderer 阻止外部同窗导航，CSP 与 CDP 仅允许必要范围。
 - [ ] 依赖版本锁定，保留 `package-lock.json`。

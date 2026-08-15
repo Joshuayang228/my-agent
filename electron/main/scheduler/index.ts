@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../storage/database'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
 import { BrowserWindow, Notification } from 'electron'
 
 const log = createLogger('Scheduler')
@@ -30,13 +30,22 @@ export interface ScheduledTask {
 
 const timers = new Map<string, ReturnType<typeof setTimeout>>()
 
+export const MAX_TASK_NAME_LENGTH = 200
+export const MAX_TASK_PROMPT_LENGTH = 100_000
+export const MAX_TASK_CRON_LENGTH = 128
+export const MIN_TASK_INTERVAL_MS = 1_000
+export const MAX_TASK_INTERVAL_MS = 365 * 24 * 60 * 60 * 1_000
+
 export function parseCronNextRun(cron: string, from: number): number | null {
+  if (typeof cron !== 'string' || cron.length === 0 || cron.length > MAX_TASK_CRON_LENGTH) return null
   const parts = cron.trim().split(/\s+/)
-  if (parts.length < 5) return null
+  if (parts.length !== 5 || !Number.isFinite(from)) return null
 
   const [minStr, hourStr] = parts
-  const min = minStr === '*' ? new Date(from).getMinutes() : parseInt(minStr)
-  const hour = hourStr === '*' ? new Date(from).getHours() : parseInt(hourStr)
+  const min = minStr === '*' ? new Date(from).getMinutes() : Number(minStr)
+  const hour = hourStr === '*' ? new Date(from).getHours() : Number(hourStr)
+  if (!Number.isInteger(min) || min < 0 || min > 59) return null
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) return null
 
   const d = new Date(from)
   d.setSeconds(0, 0)
@@ -65,13 +74,13 @@ function scheduleNext(task: ScheduledTask) {
   if (!nextRun) return
 
   const delay = Math.max(nextRun - Date.now(), 1000)
-  log.info(`Task scheduled: ${task.name}`, { nextRun: new Date(nextRun).toISOString(), delayMs: delay })
+  log.info('Task scheduled', { taskNameHash: hashForLog(task.name), taskNameLength: task.name.length, nextRun: new Date(nextRun).toISOString(), delayMs: delay })
 
   updateNextRunAt(task.id, nextRun)
 
   const timer = setTimeout(async () => {
     timers.delete(task.id)
-    log.info(`Task triggered: ${task.name}`)
+    log.info('Task triggered', { taskNameHash: hashForLog(task.name), taskNameLength: task.name.length })
 
     const db = await getDatabase()
     db.run('UPDATE scheduled_tasks SET last_run_at = ? WHERE id = ?', [Date.now(), task.id])
@@ -81,17 +90,18 @@ function scheduleNext(task: ScheduledTask) {
     if (headlessRunner) {
       try {
         const result = await headlessRunner(task.prompt, task.name)
-        log.info(`Headless task completed: ${task.name}`, { resultLength: result.length })
+        log.info('Headless task completed', { taskNameHash: hashForLog(task.name), taskNameLength: task.name.length, resultLength: result.length })
 
         // Notify user via OS notification
         if (Notification.isSupported()) {
           new Notification({
-            title: `定时任务完成: ${task.name}`,
-            body: result.slice(0, 200),
+            title: '定时任务完成',
+            body: '定时任务已完成，点击查看结果。',
           }).show()
         }
       } catch (err) {
-        log.error(`Headless task failed: ${task.name}`, { error: err instanceof Error ? err.message : String(err) })
+        const errorMessage = err instanceof Error ? err.message : String(err)
+        log.error('Headless task failed', { taskNameHash: hashForLog(task.name), taskNameLength: task.name.length, errorType: err instanceof Error ? err.name : 'unknown', errorLength: errorMessage.length })
       }
     }
 
@@ -116,7 +126,42 @@ async function updateNextRunAt(taskId: string, nextRunAt: number) {
 
 // ── CRUD ──
 
+/**
+ * 校验定时任务边界，避免渲染进程把超大 Prompt、无效 cron 或极端 interval 写入持久层。
+ *
+ * 背景：任务会被持久化，并在后台 headless 调用 Agent；输入异常不仅影响 UI，还可能在
+ * 下次启动时持续触发资源消耗。设计意图：在服务层而不是仅 IPC 层校验，防止其他内部调用绕过。
+ * 关键约束：cron 当前只支持基础的「分钟 小时 * * *」形式；复杂 cron 先拒绝而不是静默产生错误时间。
+ */
+export function validateScheduledTaskInput(input: {
+  name?: unknown
+  prompt?: unknown
+  cron?: unknown
+  intervalMs?: unknown
+}): string | null {
+  if (input.name !== undefined && (typeof input.name !== 'string' || input.name.trim().length === 0 || input.name.length > MAX_TASK_NAME_LENGTH)) {
+    return '任务名称无效或过长'
+  }
+  if (input.prompt !== undefined && (typeof input.prompt !== 'string' || input.prompt.trim().length === 0 || input.prompt.length > MAX_TASK_PROMPT_LENGTH)) {
+    return '任务提示词无效或过长'
+  }
+  if (input.cron !== undefined && input.cron !== null) {
+    if (typeof input.cron !== 'string' || input.cron.length > MAX_TASK_CRON_LENGTH || parseCronNextRun(input.cron, Date.now()) === null) {
+      return 'Cron 表达式无效'
+    }
+  }
+  if (input.intervalMs !== undefined && input.intervalMs !== null) {
+    if (typeof input.intervalMs !== 'number' || !Number.isInteger(input.intervalMs)
+      || input.intervalMs < MIN_TASK_INTERVAL_MS || input.intervalMs > MAX_TASK_INTERVAL_MS) {
+      return '任务间隔无效或超出范围'
+    }
+  }
+  return null
+}
+
 export async function createTask(opts: { name: string; prompt: string; cron?: string; intervalMs?: number }): Promise<ScheduledTask> {
+  const validationError = validateScheduledTaskInput(opts)
+  if (validationError) throw new Error(validationError)
   const db = await getDatabase()
   const id = randomUUID()
   const now = Date.now()
@@ -129,7 +174,7 @@ export async function createTask(opts: { name: string; prompt: string; cron?: st
 
   const task: ScheduledTask = { id, name: opts.name, prompt: opts.prompt, cron: opts.cron, intervalMs: opts.intervalMs, enabled: true, createdAt: now }
   scheduleNext(task)
-  log.info('Task created', { id, name: opts.name })
+  log.info('Task created', { id, nameHash: hashForLog(opts.name), nameLength: opts.name.length })
   return task
 }
 
@@ -156,6 +201,8 @@ export async function getTask(id: string): Promise<ScheduledTask | null> {
 }
 
 export async function updateTask(id: string, updates: Partial<Pick<ScheduledTask, 'name' | 'prompt' | 'cron' | 'intervalMs' | 'enabled'>>): Promise<void> {
+  const validationError = validateScheduledTaskInput(updates)
+  if (validationError) throw new Error(validationError)
   const db = await getDatabase()
   const sets: string[] = []
   const vals: unknown[] = []

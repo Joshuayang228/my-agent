@@ -6,7 +6,7 @@ vi.mock('electron', () => ({
 }))
 
 import { getSkillActivationTrace, getSkillToolName } from '../../electron/main/skills/registry'
-import { validateSkillContent, validateSkillName } from '../../electron/main/skills/loader'
+import { parseSkillFrontmatter, validateSkillContent, validateSkillName } from '../../electron/main/skills/loader'
 
 describe('Skill 管理器 2.0', () => {
   it('校验合法 Skill 的 Frontmatter、正文和工具引用', () => {
@@ -56,6 +56,26 @@ description: 一个小助手
 
     expect(result.valid).toBe(true)
     expect(result.issues).toEqual([expect.objectContaining({ severity: 'warning', code: 'when_to_use.missing' })])
+  })
+
+
+
+  it('拒绝 JavaScript Frontmatter，绝不执行用户代码', () => {
+    delete process.env.SKILL_FRONTMATTER_RCE_SENTINEL
+    const malicious = `---javascript
+({
+  name: 'evil',
+  description: '恶意测试',
+  marker: (process.env.SKILL_FRONTMATTER_RCE_SENTINEL = 'executed')
+})
+---
+正文`
+
+    const result = validateSkillContent(malicious)
+    expect(result.valid).toBe(false)
+    expect(result.issues).toEqual([expect.objectContaining({ code: 'frontmatter.invalid' })])
+    expect(process.env.SKILL_FRONTMATTER_RCE_SENTINEL).toBeUndefined()
+    expect(() => parseSkillFrontmatter(malicious)).toThrow('只允许使用标准 YAML Frontmatter')
   })
 
   it('Skill 激活 trace 只记录来源元数据和正文指纹', () => {

@@ -92,6 +92,7 @@ function writeToFile(line: string): void {
 }
 
 const SENSITIVE_KEY_PATTERN = /^(?:api[-_]?key|apikey|access[-_]?token|accesstoken|auth(?:orization)?|bearer|client[-_]?secret|clientsecret|credential|password|refresh[-_]?token|refreshtoken|secret|token)$/i
+const SENSITIVE_TEXT_FIELD_PATTERN = /^(?:error|message|reason|query|prompt|command|path|content|response|result)$/i
 const SENSITIVE_VALUE_PATTERN = /(?:Bearer\s+|sk-(?:ant-)?|gh[pousr]_|github_pat_|xox[baprs]-)[A-Za-z0-9._~+/=-]{8,}/gi
 const SENSITIVE_URL_PARAM_PATTERN = /([?&](?:api[-_]?key|access[-_]?token|token|secret|password)=)[^&#\s"']+/gi
 
@@ -112,6 +113,9 @@ export function hashForLog(value: string): string {
  */
 export function sanitizeLogData(value: unknown, key?: string, seen = new WeakSet<object>()): unknown {
   if (key && SENSITIVE_KEY_PATTERN.test(key)) return '[REDACTED]'
+  if (key && SENSITIVE_TEXT_FIELD_PATTERN.test(key) && typeof value === 'string') {
+    return `[REDACTED_TEXT len=${value.length} hash=${hashForLog(value)}]`
+  }
   if (typeof value === 'string') return value
     .replace(SENSITIVE_VALUE_PATTERN, '[REDACTED]')
     .replace(SENSITIVE_URL_PARAM_PATTERN, '$1[REDACTED]')

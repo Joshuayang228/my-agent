@@ -2,13 +2,25 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
+## 2026-08-15 · 安全审计 v2：路径、SSRF、Renderer 与 Runtime 收口
+
+- 修复项目文件 IPC 的越界读取 / 系统打开：`project:readFile` 与 `project:openExternal` 统一 realpath + 当前项目根守卫，拒绝项目外路径和 symlink 越界。
+- 修复自动只读工具的文件越界读取：`file_read` / `code_search` 非 `full-access` 仅允许当前工作区，`.git`、`.env*`、`.npmrc`、`.netrc`、凭据和 SSH 私钥 fail-closed；无项目时拒绝读取。
+- 修复 `url_fetch` SSRF / 无界响应风险：阻止 loopback、私网、链路本地、元数据地址、凭据 URL 和重定向，限制响应体 256KB。
+- Electron 增加 Renderer 同窗导航阻断、CSP、localhost CDP 绑定；Scheduler 增加输入边界；日志减少搜索词、Skill reason、headless/sub-agent 错误正文。
+- 修复 Skill Frontmatter 主进程 RCE：移除 `gray-matter` 的 JavaScript `eval` 引擎，改为 `js-yaml` `JSON_SCHEMA` 只解析标准 YAML。
+- MCP 配置改用 `safeStorage` 加密并迁移旧明文；数据备份改为安全设置白名单，排除 MCP command/env、权限规则、执行模式和本机路径；桌面通知不再显示回复正文。
+- Runtime 终态修复：Loop 的真实 `TerminalReason` 不再被 finally 改写，失败/取消不保存半截 assistant、不触发成功通知或后台任务。
+- 依赖全量审计：`npm audit --registry=https://registry.npmjs.org` → 0 vulnerabilities。
+- 验证：Unit 116 文件 / 693 项、普通 Eval 23/23、Skill Eval、TypeScript、Vite / Electron Build、UI E2E 7/7、生产与 dev 依赖审计全部通过；未调用真实模型。
+
 ## 2026-08-15 · 安全审计 v1 与敏感数据边界修复
 
 - 修复数据导入 SQL 注入；导入文件增加结构、数量、长度和设置键白名单校验。
 - Terminal / shell_exec / Git / MCP stdio 使用安全子进程环境；Chat / Memory / Skill / MCP / Project / Terminal IPC 增加运行时输入校验。
 - 普通日志改为命令、路径、记忆、权限规则、反思摘要的长度 / 类型 / 短指纹；API Key 在 safeStorage 不可用时不再明文保存。
 - LLM Debug schema 升至 v14，清理旧 Prompt / 响应 / hidden reasoning 正文，今后只保存结构元数据、资产证据、计数和长度；Mermaid 使用 strict 安全级别。
-- 依赖升级：`@modelcontextprotocol/sdk` 1.30.0、`mermaid` 11.16.1；生产依赖审计仍有 4 high / 4 moderate transitive advisories，已记录待办。
+- 依赖升级：`@modelcontextprotocol/sdk` 1.30.0、`mermaid` 11.16.1；当时生产依赖审计仍有 4 high / 4 moderate transitive advisories，已在本次安全审计 v2 中升级并清零。
 - 验证：Unit 115 文件 / 682 项、TypeScript、Vite / Electron Build 通过；未调用真实模型。
 
 ## 2026-08-15 · file_delete 沙箱路径边界修复

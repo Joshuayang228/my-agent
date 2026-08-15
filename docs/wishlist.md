@@ -7,7 +7,7 @@
 
 ## 待办缺口（从方法论/审计同步，防遗忘）
 
-- [ ] **依赖漏洞升级矩阵** — 2026-08-15 `npm audit --omit=dev` 仍报告 4 high / 4 moderate 的 transitive advisory（fast-uri、ip-address、js-yaml、undici、hono 相关）；自动修复无变更，需单独验证 override / 上游升级兼容性。
+- [x] ~~**依赖漏洞升级矩阵**~~ — 2026-08-15 安全审计 v2 已完成；生产与 dev `npm audit` 均为 0 vulnerabilities，未使用 `overrides`。
 
 > Agent 在深啃或收尾时若留下「暂缓 / 占位 / 工程债」，必须同步到本节。规则见根目录 `CLAUDE.md`「wishlist 同步」。
 

@@ -5,6 +5,19 @@
 
 ## [未发布]
 
+### Fixed — 安全审计 v2（2026-08-15）
+
+- 修复 `project:readFile` / `project:openExternal` 可被 IPC 直接传入任意绝对路径的问题：统一 realpath，并限制在当前项目根内，项目外路径和 symlink 越界均拒绝。
+- `file_read` / `code_search` 在非 `full-access` 模式下限制到当前工作区，并阻止 `.git`、`.env*`、`.npmrc`、`.netrc`、凭据和 SSH 私钥文件读取；没有打开项目时 fail-closed。
+- `url_fetch` 增加 SSRF 防线：拒绝环回、私网、链路本地、云元数据地址和凭据 URL；不跟随重定向；限制响应体大小，避免内网探测和无界内存占用。
+- Electron Renderer 增加同窗导航阻断、生产 CSP 防护，并把开发 CDP 明确绑定到 `127.0.0.1:9222`。
+- Scheduler 校验任务名称、Prompt、cron 和 interval 的类型与上限，防止后台任务持久化超大输入或无效触发器。
+- 移除会执行 `---javascript` Frontmatter 的 `gray-matter`；Skill 资产改用 `js-yaml` `JSON_SCHEMA`，只接受标准 YAML 分隔格式，阻断主进程 RCE。
+- MCP 配置改用 `safeStorage` 加密保存并兼容迁移旧明文；数据导出 / 导入改为安全设置白名单，不再携带 MCP command/env、权限规则、执行模式或本机项目路径。
+- 桌面通知改为只提示“已完成”，不再把 assistant 回复或定时任务结果显示在锁屏通知正文。
+- 修复 Runtime 将 `aborted` / `max_turns` / `prompt_too_long` 等终态改写为 `completed` 的问题；`done` 去重，只有真实 `completed` 才保存完整回复、启动后台善后和桌面通知。
+- 完整 `npm audit`（含 dev）已清零；升级 Electron 42.9.1 及相关 transitive dependencies，并以 `js-yaml` 4.3.1 替换 `gray-matter`。
+
 ### Fixed — 安全审计与敏感数据边界（2026-08-15）
 
 - 修复数据导入中的 SQL 注入：备份文件中的 Session ID 改为参数化查询，并增加 JSON 结构、数量、长度和设置键白名单校验。

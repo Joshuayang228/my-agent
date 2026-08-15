@@ -4,13 +4,13 @@ import { createLogger } from '../utils/logger'
 
 const log = createLogger('SettingsStore')
 
-const ENCRYPTED_KEYS = new Set<keyof AppSettings>(['llmApiKey'])
+const ENCRYPTED_KEYS = new Set<keyof AppSettings>(['llmApiKey', 'mcpServers'])
 export const MAX_SETTING_VALUE_LENGTH = 1_000_000
 
 function encrypt(value: string): string {
   if (!value) return value
   if (!safeStorage.isEncryptionAvailable()) {
-    throw new Error('系统安全存储不可用，无法安全保存 API Key')
+    throw new Error('系统安全存储不可用，无法安全保存敏感设置')
   }
   return safeStorage.encryptString(value).toString('base64')
 }
@@ -23,6 +23,18 @@ function decrypt(encoded: string): string {
   } catch {
     return encoded
   }
+}
+
+/** 旧版本把 MCP JSON 明文写入 SQLite；读取时识别数组 JSON 并迁移为 safeStorage 密文。 */
+function decodeStoredSetting(
+  key: keyof AppSettings,
+  stored: string,
+): { value: string; migratedValue?: string } {
+  if (key === 'mcpServers' && stored.trimStart().startsWith('[')) {
+    if (!safeStorage.isEncryptionAvailable()) return { value: '' }
+    return { value: stored, migratedValue: encrypt(stored) }
+  }
+  return { value: decrypt(stored) }
 }
 
 export interface AppSettings {
@@ -159,7 +171,14 @@ export async function getSetting<K extends keyof AppSettings>(key: K): Promise<A
     const row = stmt.getAsObject() as { value: string }
     stmt.free()
     let val = row.value
-    if (val && ENCRYPTED_KEYS.has(key)) val = decrypt(val)
+    if (val && ENCRYPTED_KEYS.has(key)) {
+      const decoded = decodeStoredSetting(key, val)
+      val = decoded.value
+      if (decoded.migratedValue) {
+        db.run('UPDATE settings SET value = ? WHERE key = ?', [decoded.migratedValue, key])
+        persist()
+      }
+    }
     const defaults = getDefaults()
     return (val !== '' ? val : defaults[key]) as AppSettings[K]
   }
@@ -203,14 +222,24 @@ export async function getAllSettings(): Promise<AppSettings> {
   const stmt = db.prepare('SELECT key, value FROM settings')
 
   const result = { ...getDefaults() }
+  const migrations: Array<{ key: keyof AppSettings; value: string }> = []
   while (stmt.step()) {
     const row = stmt.getAsObject() as { key: string; value: string }
     if (row.key in result && row.value !== '') {
+      const key = row.key as keyof AppSettings
       let val = row.value
-      if (ENCRYPTED_KEYS.has(row.key as keyof AppSettings)) val = decrypt(val)
+      if (ENCRYPTED_KEYS.has(key)) {
+        const decoded = decodeStoredSetting(key, val)
+        val = decoded.value
+        if (decoded.migratedValue) migrations.push({ key, value: decoded.migratedValue })
+      }
       ;(result as Record<string, string>)[row.key] = val
     }
   }
   stmt.free()
+  for (const migration of migrations) {
+    db.run('UPDATE settings SET value = ? WHERE key = ?', [migration.value, migration.key])
+  }
+  if (migrations.length > 0) persist()
   return result
 }

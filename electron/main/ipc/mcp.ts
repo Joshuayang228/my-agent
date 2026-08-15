@@ -4,7 +4,7 @@ import { ToolRegistry } from '../tools/registry'
 import { mcpManager } from '../mcp/client'
 import type { McpServerConfig } from '../mcp/client'
 import { syncMcpToolsToRegistry, removeMcpToolsFromRegistry } from '../mcp/bridge'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
 
 const log = createLogger('McpIPC')
 
@@ -85,12 +85,12 @@ export function registerMcpIPC(toolRegistry: ToolRegistry): void {
     try {
       await mcpManager.connect(config)
       const count = syncMcpToolsToRegistry(toolRegistry, config.id)
-      log.info(`MCP server connected and ${count} tools registered: ${config.name}`)
+      log.info('MCP server connected and tools registered', { nameHash: hashForLog(config.name), nameLength: config.name.length, toolCount: count })
       return { success: true, toolCount: count }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      log.error(`MCP connect failed: ${config.name}`, { error: message })
-      return { success: false, error: message }
+      log.error('MCP connect failed', { nameHash: hashForLog(config.name), nameLength: config.name.length, errorType: err instanceof Error ? err.name : 'unknown', errorLength: message.length })
+      return { success: false, error: 'MCP 连接失败，请检查命令、参数或服务地址' }
     }
   })
 
@@ -125,7 +125,7 @@ export function registerMcpIPC(toolRegistry: ToolRegistry): void {
       const content = await mcpManager.readResource(serverId, uri)
       return { success: true, content }
     } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : String(err) }
+      return { success: false, error: '读取 MCP 资源失败' }
     }
   })
 }

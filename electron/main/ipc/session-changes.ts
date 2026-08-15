@@ -50,7 +50,7 @@ export function registerSessionChangesIPC(): void {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      log.warn('getFileChangeDiff failed', { filePathHash: hashForLog(filePath), message })
+      log.warn('getFileChangeDiff failed', { filePathHash: hashForLog(filePath), errorType: err instanceof Error ? err.name : 'unknown', errorLength: message.length })
       return { error: message }
     }
   })

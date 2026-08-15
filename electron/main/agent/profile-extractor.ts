@@ -81,7 +81,8 @@ export async function maybeExtractProfile(
         sessionId: opts?.sessionId,
       })
     } catch (apiErr) {
-      log.warn('Profile extraction API failed', { error: apiErr instanceof Error ? apiErr.message : String(apiErr) })
+      const errorMessage = apiErr instanceof Error ? apiErr.message : String(apiErr)
+      log.warn('Profile extraction API failed', { errorType: apiErr instanceof Error ? apiErr.name : 'unknown', errorLength: errorMessage.length })
       void recordAssetUsage({
         assetKey: MEMORY_STRATEGY_ASSET_KEYS.profileExtraction,
         relation: 'used', usageKind: 'memory-operation', sessionId: opts?.sessionId,
@@ -144,7 +145,8 @@ export async function maybeExtractProfile(
       status: 'success', metadata: { candidateCount: items.length, writtenCount: added },
     })
   } catch (err) {
-    log.warn('Profile extraction error', { error: err instanceof Error ? err.message : String(err) })
+    const errorMessage = err instanceof Error ? err.message : String(err)
+    log.warn('Profile extraction error', { errorType: err instanceof Error ? err.name : 'unknown', errorLength: errorMessage.length })
     void recordAssetUsage({
       assetKey: MEMORY_STRATEGY_ASSET_KEYS.profileExtraction,
       relation: 'used', usageKind: 'memory-operation', sessionId: opts?.sessionId,

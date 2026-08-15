@@ -1,7 +1,10 @@
 import { buildTool } from '../builder'
 import { promises as fs } from 'node:fs'
-import path from 'node:path'
 import { createLogger, hashForLog } from '../../utils/logger'
+import { checkFileReadSandbox, resolveToolFilePath, resolveToolReadPath } from '../../sandbox/file-path-guard'
+import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
+import { getWorkspaceRoot } from '../../agent/project-memory'
+import type { ToolContext } from '../../../../src/shared/types'
 
 const log = createLogger('FileRead')
 
@@ -10,7 +13,7 @@ const MAX_RESULT_CHARS = 50_000
 
 export const fileReadTool = buildTool({
   name: 'file_read',
-  description: "读取文件内容。\n\n适用场景：\n- 查看代码、配置或文档文件的完整内容\n- 检查文件是否包含特定内容，或理解其结构\n- 分析实现细节或配置值\n- 验证文件是否存在；读取结果会明确指出文件是否存在\n\n不适用场景：\n- 跨多个文件搜索特定文本模式（使用 code_search）\n- 文件大于 256KB 且没有指定行范围；先用 code_search 定位，再用 line_start、line_end 读取局部\n- 只想知道文件是否存在；直接尝试读取即可，错误信息会给出结论\n\n支持：代码、配置、Markdown、日志等文本文件。\n返回：文件文本；内容过大时在 50,000 个字符处截断。\n可选：使用 line_start、line_end 读取大文件的指定行范围。",
+  description: "读取当前工作区内的文件内容。非“完全访问”模式下，工作区外路径、.git 和常见凭据文件会被沙箱阻止。\n\n适用场景：\n- 查看代码、配置或文档文件的完整内容\n- 检查文件是否包含特定内容，或理解其结构\n- 分析实现细节或配置值\n- 验证文件是否存在；读取结果会明确指出文件是否存在\n\n不适用场景：\n- 跨多个文件搜索特定文本模式（使用 code_search）\n- 文件大于 256KB 且没有指定行范围；先用 code_search 定位，再用 line_start、line_end 读取局部\n- 只想知道文件是否存在；直接尝试读取即可，错误信息会给出结论\n\n支持：代码、配置、Markdown、日志等文本文件。\n返回：文件文本；内容过大时在 50,000 个字符处截断。\n可选：使用 line_start、line_end 读取大文件的指定行范围。",
   parameters: {
     type: 'object',
     properties: {
@@ -39,22 +42,31 @@ export const fileReadTool = buildTool({
   },
   // Infinity = 永不落盘，防止循环：读文件 → 写临时文件 → 读临时文件 → ...
   maxResultSizeChars: Infinity,
-  execute: async (args) => {
+  execute: async (args, ctx?: ToolContext) => {
     const filePath = args.path as string
     if (!filePath?.trim()) return '错误：必须提供文件路径'
 
-    const resolved = path.resolve(filePath)
-    log.info('Reading file', { pathHash: hashForLog(resolved) })
+    const workspaceRoot = ctx?.workdir?.trim() || getWorkspaceRoot()
+    const resolved = resolveToolFilePath(filePath, workspaceRoot)
+    const realPath = resolveToolReadPath(resolved)
+    if (!realPath) return '错误：文件不存在或无法解析'
+    const mode = await loadEffectiveSandbox()
+    const blocked = checkFileReadSandbox(realPath, mode, workspaceRoot)
+    if (blocked) {
+      log.warn('File read blocked by sandbox', { pathHash: hashForLog(realPath), mode })
+      return blocked
+    }
+    log.info('Reading file', { pathHash: hashForLog(realPath) })
 
     try {
-      const stat = await fs.stat(resolved)
+      const stat = await fs.stat(realPath)
 
       if (!stat.isFile()) return `错误：“${resolved}”不是文件`
       if (stat.size > MAX_FILE_SIZE) {
         return `错误：文件过大（${(stat.size / 1024).toFixed(0)} KB，最大允许 ${MAX_FILE_SIZE / 1024} KB）。请使用 line_start/line_end 分段读取。`
       }
 
-      let content = await fs.readFile(resolved, 'utf-8')
+      let content = await fs.readFile(realPath, 'utf-8')
 
       const lineStart = parseInt(String(args.line_start || '0'), 10)
       const lineEnd = parseInt(String(args.line_end || '0'), 10)
@@ -73,7 +85,7 @@ export const fileReadTool = buildTool({
       return content
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      log.error('Read failed', { pathHash: hashForLog(resolved), error: message })
+      log.error('Read failed', { pathHash: hashForLog(realPath), error: message })
       return `读取文件失败： ${message}`
     }
   },

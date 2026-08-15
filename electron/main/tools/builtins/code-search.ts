@@ -1,7 +1,11 @@
 import { buildTool } from '../builder'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import { createLogger } from '../../utils/logger'
+import { createLogger, hashForLog } from '../../utils/logger'
+import { checkFileReadSandbox, isPathInsideRoot, resolveToolFilePath, resolveToolReadPath } from '../../sandbox/file-path-guard'
+import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
+import { getWorkspaceRoot } from '../../agent/project-memory'
+import type { ToolContext } from '../../../../src/shared/types'
 
 const log = createLogger('CodeSearch')
 
@@ -109,7 +113,7 @@ async function searchFile(
 
 export const codeSearchTool = buildTool({
   name: 'code_search',
-  description: "在目录中的代码文件内搜索文本或正则表达式，并返回匹配行及其上下文。\n\n适用场景：\n- 查找函数、类或变量的定义位置\n- 定位某个标识符的所有用法和引用\n- 搜索 import 语句、API 调用或特定模式\n- 探索不熟悉的代码库并理解其结构\n- 查找包含特定关键词或模式的文件\n- 定位配置值、错误消息或 TODO\n\n不适用场景：\n- 读取完整文件内容（请使用 file_read）\n- 已知准确文件和行号（直接读取该文件）\n- 搜索非常大的结果集（本工具最多返回 50 个匹配；达到上限时请细化查询）\n\n特性：\n- 默认不区分大小写（需要区分时设置 case_sensitive=\"true\"）\n- 同时支持普通文本和正则表达式（正则模式设置 is_regex=\"true\"）\n- 每个匹配项显示前后各 2 行上下文\n- 自动跳过常见忽略目录（node_modules、.git、dist 等）\n- 只搜索代码、配置和文档文件\n\n返回：最多 50 个匹配项，包含文件路径、行号和上下文；超过 60,000 个字符时截断。",
+  description: "在当前工作区内的目录中搜索代码文件；非“完全访问”模式不能搜索工作区外或受保护目录。\n\n适用场景：\n- 查找函数、类或变量的定义位置\n- 定位某个标识符的所有用法和引用\n- 搜索 import 语句、API 调用或特定模式\n- 探索不熟悉的代码库并理解其结构\n- 查找包含特定关键词或模式的文件\n- 定位配置值、错误消息或 TODO\n\n不适用场景：\n- 读取完整文件内容（请使用 file_read）\n- 已知准确文件和行号（直接读取该文件）\n- 搜索非常大的结果集（本工具最多返回 50 个匹配；达到上限时请细化查询）\n\n特性：\n- 默认不区分大小写（需要区分时设置 case_sensitive=\"true\"）\n- 同时支持普通文本和正则表达式（正则模式设置 is_regex=\"true\"）\n- 每个匹配项显示前后各 2 行上下文\n- 自动跳过常见忽略目录（node_modules、.git、dist 等）\n- 只搜索代码、配置和文档文件\n\n返回：最多 50 个匹配项，包含文件路径、行号和上下文；超过 60,000 个字符时截断。",
   parameters: {
     type: 'object',
     properties: {
@@ -144,16 +148,25 @@ export const codeSearchTool = buildTool({
     isReadOnly: true,
     isConcurrencySafe: true,
   },
-  execute: async (args) => {
+  execute: async (args, ctx?: ToolContext) => {
     const query = args.query as string
     if (!query?.trim()) return '错误：必须提供搜索查询'
 
-    const dir = path.resolve((args.directory as string) || process.cwd())
+    const workspaceRoot = ctx?.workdir?.trim() || getWorkspaceRoot()
+    const dir = resolveToolFilePath((args.directory as string) || '.', workspaceRoot)
+    const realDir = resolveToolReadPath(dir)
+    if (!realDir) return '错误：搜索目录不存在或无法解析'
+    const mode = await loadEffectiveSandbox()
+    const blocked = checkFileReadSandbox(realDir, mode, workspaceRoot)
+    if (blocked) {
+      log.warn('Code search blocked by sandbox', { directoryHash: hashForLog(realDir), mode })
+      return blocked
+    }
     const fileExt = (args.file_extension as string) || undefined
     const isRegex = String(args.is_regex) === 'true'
     const caseSensitive = String(args.case_sensitive) === 'true'
 
-    log.info('Code search', { query, dir, fileExt, isRegex, caseSensitive })
+    log.info('Code search', { queryHash: hashForLog(query), queryLength: query.length, directoryHash: hashForLog(realDir), fileExt, isRegex, caseSensitive })
 
     let pattern: RegExp
     try {
@@ -163,7 +176,9 @@ export const codeSearchTool = buildTool({
       return `错误：正则表达式无效—— ${err instanceof Error ? err.message : String(err)}`
     }
 
-    const files = await walkDir(dir, fileExt)
+    const files = (await walkDir(realDir, fileExt)).map(file => resolveToolReadPath(file))
+      .filter((file): file is string => Boolean(file) && isPathInsideRoot(file, realDir))
+      .filter(file => checkFileReadSandbox(file, mode, realDir) === null)
     log.info(`Scanning ${files.length} files`)
 
     const allMatches: SearchMatch[] = []
@@ -175,13 +190,13 @@ export const codeSearchTool = buildTool({
     }
 
     if (allMatches.length === 0) {
-      return `未找到匹配项： "${query}"；已搜索 ${dir} 下的 ${files.length} 个文件`
+      return `未找到匹配项： "${query}"；已搜索 ${realDir} 下的 ${files.length} 个文件`
     }
 
     let output = `在 ${new Set(allMatches.map(m => m.file)).size} 个文件中找到 ${allMatches.length} 个匹配项：\n\n`
 
     for (const match of allMatches) {
-      const relPath = path.relative(dir, match.file)
+      const relPath = path.relative(realDir, match.file)
       output += `--- ${relPath}:${match.line} ---\n`
       output += match.context.join('\n') + '\n\n'
     }

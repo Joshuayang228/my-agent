@@ -53,7 +53,7 @@ import { clearSessionSubAgents } from './subagent-registry'
 import { detectReplyStance, formatReplyStanceForPrompt } from './reply-stance'
 import { formatToneControlForPrompt, resolveToneControl } from './tone-control'
 import { getWorkspaceRoot } from './project-memory'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
 import {
   DEFAULT_TRACE_USER_ID,
   runWithTraceContextAsyncGen,
@@ -61,11 +61,29 @@ import {
 } from '../utils/trace-context'
 import { startSpan } from '../utils/tracer'
 import { AgentErrorCode } from '../errs'
-import type { ChatMessage, LLMConfig, ExecutionMode, AgentStreamEvent, ToolContext, PromptAssetKeyList } from '../../../src/shared/types'
+import type { ChatMessage, LLMConfig, ExecutionMode, AgentStreamEvent, ToolContext, PromptAssetKeyList, TerminalReason } from '../../../src/shared/types'
 import { taskQueue } from '../services/task-queue'
 import { PROMPT_KEYS, rolePromptAssetKey } from '../prompts/keys'
 
 const log = createLogger('Runtime')
+
+/**
+ * 决定 Runtime finally 是否需要补发 done。
+ *
+ * 背景：Agent Loop 本身已经会发出带 TerminalReason 的 done；Runtime 只应在
+ * Loop 异常中断且尚未发出终态时补发一次，不能把 aborted / max_turns 改写成 completed。
+ * 设计意图：把终态去重规则提取成纯函数，避免清理逻辑再次引入重复 done。
+ * 关键约束：已有 done 永不重复发送；未收到终态的异常路径默认归为 model_error。
+ */
+export function resolveRuntimeDone(
+  doneEmitted: boolean,
+  terminalReason?: TerminalReason,
+): { emit: boolean; reason: TerminalReason } {
+  return {
+    emit: !doneEmitted,
+    reason: terminalReason ?? 'model_error',
+  }
+}
 
 class AgentRuntime {
   private activeControllers = new Map<string, AbortController>()
@@ -184,6 +202,8 @@ class AgentRuntime {
 
     let assistantContent = ''
     let assistantSaved = false
+    let terminalReason: TerminalReason | undefined
+    let doneEmitted = false
 
     try {
       // ── 构建上下文 ──
@@ -432,6 +452,10 @@ class AgentRuntime {
             reason: ev.reason,
           })
         }
+        if (ev.type === 'done') {
+          terminalReason = ev.reason
+          doneEmitted = true
+        }
         yield { ...ev, sessionId } as AgentStreamEvent & { sessionId: string }
 
         if (ev.type === 'text') {
@@ -459,7 +483,7 @@ class AgentRuntime {
             toolCallId: ev.callId,
           })
         }
-        if (ev.type === 'done' && assistantContent && !assistantSaved) {
+        if (ev.type === 'done' && ev.reason === 'completed' && assistantContent && !assistantSaved) {
           assistantSaved = true
           await store.saveMessage(sessionId, {
             id: `assistant-${Date.now()}`,
@@ -488,9 +512,11 @@ class AgentRuntime {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       if (abortController.signal.aborted) {
+        terminalReason = 'aborted'
         log.info('Chat aborted', { sessionId, assistantContentLength: assistantContent.length })
         chatSpan.end('ok')
       } else {
+        terminalReason = 'model_error'
         log.error('Chat unhandled error', { sessionId, error: message })
         chatSpan.end('error', message)
         yield { type: 'error', message, sessionId }
@@ -498,7 +524,8 @@ class AgentRuntime {
     } finally {
       this.activeControllers.delete(sessionId)
 
-      if (assistantContent && !assistantSaved) {
+      // 只在真正 completed 时保存完整 assistant 回复；取消 / 错误 / 超限不能把半截内容伪装成成功回复。
+      if (terminalReason === 'completed' && assistantContent && !assistantSaved) {
         assistantSaved = true
         await store.saveMessage(sessionId, {
           id: `assistant-${Date.now()}`,
@@ -507,12 +534,15 @@ class AgentRuntime {
           timestamp: Date.now(),
         }).catch(() => {})
       }
-      yield { type: 'done', reason: 'completed' as const, sessionId }
+      const runtimeDone = resolveRuntimeDone(doneEmitted, terminalReason)
+      if (runtimeDone.emit) {
+        yield { type: 'done', reason: runtimeDone.reason, sessionId }
+      }
       try { clearActiveSkill() } catch { /* ok */ }
       // 清理本会话的子 Agent 实例（continue 机制的实例生命周期绑定会话）
       try { clearSessionSubAgents(sessionId) } catch { /* ok */ }
 
-      this.sendDesktopNotification(assistantContent)
+      if (terminalReason === 'completed') this.sendDesktopNotification(assistantContent)
     }
   }
 
@@ -618,7 +648,7 @@ class AgentRuntime {
     if (win && !win.isFocused() && Notification.isSupported()) {
       const n = new Notification({
         title: 'My Agent',
-        body: content.slice(0, 100) + (content.length > 100 ? '...' : ''),
+        body: '回复已完成，点击查看。',
         silent: false,
       })
       n.on('click', () => { win.show(); win.focus() })
@@ -632,9 +662,10 @@ class AgentRuntime {
    */
   async runHeadless(prompt: string, taskName?: string): Promise<string> {
     const label = taskName || 'headless'
+    const labelMeta = { labelHash: hashForLog(label), labelLength: label.length }
     const session = await store.createSession()
     const sessionId = session.id
-    log.info(`Headless run starting: ${label}`, { sessionId })
+    log.info('Headless run starting', { sessionId, ...labelMeta })
 
     const userMsg: ChatMessage = {
       id: `headless-user-${Date.now()}`,
@@ -658,7 +689,7 @@ class AgentRuntime {
       const tool = toolRegistry.get(name)
       if (tool?.metadata.isReadOnly) return true
       if (HEADLESS_DENY_TOOLS.has(name)) {
-        log.warn(`Headless: denied destructive tool ${name}`)
+        log.warn('Headless denied destructive tool', { toolName: name, ...labelMeta })
         return false
       }
       return true
@@ -668,15 +699,17 @@ class AgentRuntime {
       for await (const event of this.chat(sessionId, userMsg, toolRegistry, headlessConfirm)) {
         if (event.type === 'text') resultText += event.content
         if (event.type === 'error') {
-          log.error(`Headless error: ${label}`, { message: (event as Record<string, unknown>).message })
+          const errorMessage = String((event as Record<string, unknown>).message || '')
+          log.error('Headless agent event error', { ...labelMeta, errorType: 'agent_event', errorLength: errorMessage.length })
         }
       }
     } catch (err) {
-      log.error(`Headless run failed: ${label}`, { error: err instanceof Error ? err.message : String(err) })
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      log.error('Headless run failed', { ...labelMeta, errorType: err instanceof Error ? err.name : 'unknown', errorLength: errorMessage.length })
       throw err
     }
 
-    log.info(`Headless run completed: ${label}`, { resultLength: resultText.length })
+    log.info('Headless run completed', { ...labelMeta, resultLength: resultText.length })
     return resultText
   }
 

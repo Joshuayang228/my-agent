@@ -21,6 +21,28 @@ const MAX_IMPORTED_MEMORIES = 10_000
 const MAX_IMPORTED_STRING_LENGTH = 1_000_000
 const EXPORT_MESSAGE_ROLES = new Set(['user', 'assistant', 'system', 'tool'])
 
+/**
+ * 备份只携带不会泄露凭据、不会改变执行权限、不会在下次启动执行外部命令的设置。
+ *
+ * 背景：`mcpServers` 可能含环境变量密钥和启用的 stdio command；`permissionRules`、
+ * `executionMode` 会改变权限边界；项目路径会泄露本机目录。备份文件是可分享的普通 JSON，
+ * 不能把这些控制面或本机秘密当作普通偏好一起导出 / 导入。
+ */
+const SAFE_BACKUP_SETTING_KEYS = new Set<keyof settingsStore.AppSettings>([
+  'llmBaseUrl', 'llmModel', 'llmTemperature', 'llmTopP', 'llmMaxTokens',
+  'systemPrompt', 'activeRoleId', 'universeId', 'userExpertiseLevel', 'auxModel',
+  'sessionTokenBudget', 'dailyTokenBudget',
+  'companionGrowthStartedAt', 'companionGrowthStartedAtByRole', 'companionMilestonesByRole',
+  'companionMomentTipsMuted', 'companionMomentTipsLastAt', 'companionMomentTipsQuietStart',
+  'companionMomentTipsQuietEnd', 'companionMomentTipsMaxPerDay', 'companionMomentTipsDayStats',
+  'companionProactiveGreetingEnabled', 'companionProactiveGreetingLastDay',
+  'conversationDebugMode', 'llmCapabilityCache',
+])
+
+export function isSafeBackupSettingKey(key: string): key is keyof settingsStore.AppSettings {
+  return SAFE_BACKUP_SETTING_KEYS.has(key as keyof settingsStore.AppSettings)
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value)
 }
@@ -147,10 +169,9 @@ export function registerDataExportIPC(): void {
       const memories = await memoryStore.listMemories()
       const settings = await settingsStore.getAllSettings()
 
-      const sensitiveKeys = new Set(['llmApiKey'])
       const safeSettings: Record<string, string> = {}
-      for (const [k, v] of Object.entries(settings)) {
-        if (!sensitiveKeys.has(k)) safeSettings[k] = v
+      for (const [key, value] of Object.entries(settings)) {
+        if (isSafeBackupSettingKey(key)) safeSettings[key] = value
       }
 
       const data: ExportData = {
@@ -246,13 +267,11 @@ export function registerDataExportIPC(): void {
         importedMemories++
       }
 
-      const sensitiveKeys = new Set(['llmApiKey'])
-      const allowedSettings = new Set(Object.keys(await settingsStore.getAllSettings()))
       for (const [key, value] of Object.entries(data.settings || {})) {
-        if (sensitiveKeys.has(key) || !allowedSettings.has(key)) continue
-        const current = await settingsStore.getSetting(key as keyof settingsStore.AppSettings)
+        if (!isSafeBackupSettingKey(key)) continue
+        const current = await settingsStore.getSetting(key)
         if (!current) {
-          await settingsStore.setSetting(key as keyof settingsStore.AppSettings, value)
+          await settingsStore.setSetting(key, value)
           importedSettings++
         }
       }

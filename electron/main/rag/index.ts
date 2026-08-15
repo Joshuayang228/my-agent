@@ -4,7 +4,7 @@ import path from 'node:path'
 import { LocalIndex } from 'vectra'
 import { app } from 'electron'
 import { createEmbedding } from '../memory/embeddings'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
 import { getDatabase, persist } from '../storage/database'
 import type { LLMConfig } from '../../../src/shared/types'
 
@@ -65,7 +65,7 @@ export async function ingestDocument(filePath: string, config: LLMConfig): Promi
   const docId = randomUUID()
   const chunks = chunkText(content)
 
-  log.info(`Ingesting document: ${name}`, { chunks: chunks.length, size: content.length })
+  log.info('Ingesting document', { nameHash: hashForLog(name), nameLength: name.length, chunks: chunks.length, size: content.length })
 
   const idx = await getIndex()
   let ingested = 0

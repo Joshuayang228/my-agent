@@ -566,7 +566,7 @@ export async function* agentLoop(
       ])
 
       if (permResult.allowed === false) {
-        log.info(`Tool blocked by permission engine: ${call.name}`, { reason: permResult.reason, chain: permResult.chain })
+        log.info('Tool blocked by permission engine', { toolName: call.name, reasonHash: hashForLog(permResult.reason || ''), reasonLength: permResult.reason?.length ?? 0, chain: permResult.chain })
         const denyMsg = `[权限已拒绝] ${permResult.reason}`
         results.push({ callId: call.id, name: call.name, content: denyMsg, isError: true })
         yield { type: 'tool_end', callId: call.id, name: call.name, result: denyMsg, isError: true }

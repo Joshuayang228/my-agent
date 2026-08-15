@@ -1,10 +1,11 @@
 /**
- * 文件工具路径解析与变更沙箱检查（file_write / file_edit / file_delete / apply_patch 共用）
+ * 文件工具路径解析与沙箱检查（file_read / code_search / file_write / file_edit / file_delete / apply_patch 共用）
  *
  * 注意：聊天里的「允许」只过审批层；本模块的路径/模式检查仍会执行，二者不是一回事。
  */
 
 import path from 'node:path'
+import fs from 'node:fs'
 import { buildPolicy, type SandboxMode } from './policy'
 
 export function resolveToolFilePath(filePath: string, workspaceRoot?: string): string {
@@ -20,6 +21,55 @@ export function isPathInsideRoot(child: string, parent: string): boolean {
   const resolvedParent = path.resolve(parent)
   const rel = path.relative(resolvedParent, resolvedChild)
   return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel))
+}
+
+const SENSITIVE_READ_NAMES = new Set([
+  '.npmrc', '.yarnrc', '.netrc', '.pypirc',
+  'credentials', 'id_rsa', 'id_ed25519',
+])
+
+/** 读取类工具必须先把 symlink 解析成真实路径，避免工作区内链接跳到外部。 */
+export function resolveToolReadPath(resolved: string): string | null {
+  try {
+    return fs.realpathSync(resolved)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * @returns 拦截原因字符串；null 表示允许读取
+ *
+ * 背景：file_read / code_search 是自动执行的只读工具；若允许任意绝对路径，Prompt Injection
+ * 可以直接读取用户目录、SSH 凭据或其他项目秘密。设计意图：非 full-access 只读能力也绑定
+ * 当前工作区，并额外阻止常见凭据文件。关键约束：没有打开项目时 fail-closed，不回退 process.cwd()。
+ */
+export function checkFileReadSandbox(
+  resolved: string,
+  mode: SandboxMode,
+  workspaceRoot?: string,
+): string | null {
+  if (mode === 'full-access') return null
+
+  const wsRoot = workspaceRoot?.trim() || undefined
+  if (!wsRoot) {
+    return '[SANDBOX BLOCKED] 尚未打开项目，不能读取文件。请先选择项目；只有“完全访问”会放开路径限制。'
+  }
+  if (!isPathInsideRoot(resolved, wsRoot)) {
+    return (
+      `[SANDBOX BLOCKED] 目标路径超出工作区，禁止读取。\n` +
+      `- 目标: ${resolved}\n` +
+      `- 工作区: ${wsRoot}\n` +
+      '请改用工作区内路径，或在对话页将审批改为“完全访问”。'
+    )
+  }
+
+  const segments = path.resolve(resolved).split(path.sep).map(segment => segment.toLowerCase())
+  const basename = path.basename(resolved).toLowerCase()
+  if (segments.some(segment => segment === '.git') || basename.startsWith('.env') || SENSITIVE_READ_NAMES.has(basename)) {
+    return '[SANDBOX BLOCKED] 目标是受保护的凭据或版本控制文件，非“完全访问”模式禁止读取。'
+  }
+  return null
 }
 
 /**

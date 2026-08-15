@@ -200,7 +200,10 @@ async function* agentLoop(options, registry): AsyncGenerator<AgentStreamEvent>
 | `lastPromptTokens` | 上一轮 API 返回的实际 token 数，指导压缩决策 |
 | `hasAttemptedReactiveCompact` | 413 紧急压缩是否用过，防止无限重试 |
 | `maxOutputRecoveryCount` | 截断恢复了几次，防止续写循环 |
-| `deniedTools` | 哪些工具被拒绝过，告诉 LLM 别再试 |
+| `deniedTools` / `deniedCommands` | 哪些工具或命令被拒绝过，告诉 LLM 别再试 |
+| `consecutiveDenials` / `totalDenials` | 连续 / 累计拒绝次数，防止 Deny-and-Continue 自旋 |
+| `consecutiveCompactFailures` | 连续压缩失败次数，触发压缩熔断 |
+| `interactionSpanId` | 当前交互的 Trace 父 span，串起 Loop / LLM / Tool |
 
 如果没有状态管理，这些就是散落的 `let` 变量：
 
@@ -231,7 +234,12 @@ interface LoopState {
   hasAttemptedReactiveCompact: boolean                 // 413 紧急压缩是否已用过
   maxOutputRecoveryCount: number                       // 截断恢复次数
   deniedTools: Array<{ name: string; reason: string }> // 被拒绝的工具记录
-  transition?: { reason: ContinueReason }              // 跳转信号
+  deniedCommands: Array<{ command: string; reason: string }> // 被拒绝命令（仅用于当前轮提示，不落盘正文）
+  consecutiveDenials: number                         // 连续拒绝次数
+  totalDenials: number                                // 累计拒绝次数
+  consecutiveCompactFailures: number                 // 连续压缩失败次数
+  interactionSpanId?: string                         // Trace 父 span
+  transition?: { reason: ContinueReason }             // 跳转信号
 }
 ```
 
@@ -449,7 +457,7 @@ Agent Loop 的错误分为三类，恢复策略完全不同。
 
 ## 七、终止条件
 
-### 7.1 五条终止路径
+### 7.1 六条终止路径
 
 ```typescript
 type TerminalReason =
@@ -457,10 +465,11 @@ type TerminalReason =
   | 'max_turns'       // 达到迭代上限 → 防死循环
   | 'aborted'         // AbortSignal → 用户取消
   | 'prompt_too_long' // 413 压缩后仍超限 → 建议新对话
-  | 'model_error'     // 不可恢复 LLM 错误 → 展示错误
+  | 'model_error'      // 不可恢复 LLM 错误 → 展示错误
+  | 'too_many_denials' // 连续 / 累计权限拒绝达到熔断阈值
 ```
 
-### 7.2 为什么不能少于 5 条
+### 7.2 为什么不能少于 6 条
 
 | 如果去掉 | 后果 |
 |---------|------|
@@ -468,6 +477,7 @@ type TerminalReason =
 | `aborted` | 用户点取消后循环继续执行，无法中断 |
 | `prompt_too_long` | 413 后报"未知错误"，用户不知道该怎么办 |
 | `model_error` | 与 `prompt_too_long` 混淆，无法区分"网络问题"和"上下文太长" |
+| `too_many_denials` | 权限拒绝可被模型反复重试，浪费轮次并形成自旋 |
 
 每条路径对应不同的善后逻辑——简化会漏掉边界情况。
 
@@ -484,20 +494,20 @@ type TerminalReason =
 ```
 done(reason: TerminalReason)
   ↓
-  reason === 'completed' || reason === 'max_turns'?
+  reason === 'completed'?
   ├── 是 → 异步触发后台任务
   │     ├── 记忆提取（从对话中提取值得记住的信息 → 写入项目记忆）
   │     ├── 画像更新（更新用户偏好/风格/工作流）
   │     └── 会话标题生成（用 LLM 为本次对话生成简短标题）
   │
-  └── 否（aborted / prompt_too_long / model_error）
+  └── 否（max_turns / aborted / prompt_too_long / model_error / too_many_denials）
         → 静默退出，不触发后台任务
 ```
 
 **关键设计**：
 
 1. **fire-and-forget** — 后台任务不阻塞用户下一次操作，不等待它们完成
-2. **按终止原因决定** — 用户取消或出错时不提取记忆，因为对话可能不完整
+2. **按终止原因决定** — 只有 `completed` 才提取记忆、画像和标题；超限、取消、错误或权限熔断时不把半截对话当成成功
 3. **独立的 LLM 调用** — 后台任务自己调 LLM，不共享主循环的上下文（防止压缩互斥问题）
 
 这就是为什么 `done` 事件必须携带 `TerminalReason`——不同的终止方式需要不同的善后策略。一个空的 `{ type: 'done' }` 做不到这一点。
@@ -510,9 +520,9 @@ done(reason: TerminalReason)
 
 LLM 返回 tool_calls 时附带的说明文字（"让我来看看…""我来修改…"），对下一轮推理贡献极小。50 轮长任务中这些文字浪费 30%+ token。
 
-**策略**：tool_calls 存在时丢弃伴随文字，只保留 tool_calls 本身。伴随文字写入日志（Debug Panel），不写入消息历史。
+**策略**：tool_calls 存在时丢弃伴随文字，只保留 tool_calls 本身。伴随文字不写入消息历史；Debug / 日志只允许记录长度、类型和指纹等元数据，不保存正文。
 
-> Anthropic 建议保留 planning steps 以提高透明度。我们的折中：**日志记录 + 消息不保留**。
+> Anthropic 建议保留 planning steps 以提高透明度。我们的折中：**消息不保留；日志只留脱敏元数据，不留正文**。
 
 ### 8.2 错误信息脱敏
 

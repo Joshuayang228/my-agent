@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import { readdir, readFile, stat, mkdir, writeFile, unlink } from 'fs/promises'
 import { join } from 'path'
-import matter from 'gray-matter'
+import { JSON_SCHEMA, load as loadYaml } from 'js-yaml'
 import { createLogger } from '../utils/logger'
 import type { SkillDefinition, SkillFrontmatter, SkillValidationIssue, SkillValidationResult, SkillVersionInfo } from '../../../src/shared/types'
 
@@ -29,6 +29,37 @@ function safeSkillName(name: string): string | null {
 }
 
 /**
+ * 只解析标准 YAML Frontmatter，不允许 `---javascript` 等可执行引擎。
+ *
+ * 背景：gray-matter 会根据开头语言标签选择 JavaScript 引擎，并直接 `eval` 用户可控正文；
+ * Skill 文件和编辑 IPC 都属于不可信输入，这会把资产解析升级成 Electron 主进程 RCE。
+ * 设计意图：只实现本项目需要的 `---` + YAML + `---` 契约，并用 js-yaml 的 JSON_SCHEMA
+ * 限制为普通 JSON-like 数据。关键约束：开头如果以 `---` 起始却不是独立分隔行，直接拒绝；
+ * Frontmatter 必须解析成对象，不能是数组或标量。
+ */
+export function parseSkillFrontmatter(content: string): { data: Record<string, unknown>; content: string } {
+  if (!content.startsWith('---')) return { data: {}, content }
+  const opening = /^---[ \t]*\r?\n/.exec(content)
+  if (!opening) throw new Error('只允许使用标准 YAML Frontmatter，不支持语言引擎标签')
+
+  const rest = content.slice(opening[0].length)
+  const closing = /^---[ \t]*\r?$/m.exec(rest)
+  if (!closing) throw new Error('Frontmatter 缺少结束分隔符')
+
+  const raw = rest.slice(0, closing.index)
+  let body = rest.slice(closing.index + closing[0].length)
+  if (body.startsWith('\r\n')) body = body.slice(2)
+  else if (body.startsWith('\n')) body = body.slice(1)
+
+  const parsed = loadYaml(raw, { schema: JSON_SCHEMA })
+  if (parsed == null) return { data: {}, content: body }
+  if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('Frontmatter 必须是 YAML 对象')
+  }
+  return { data: parsed as Record<string, unknown>, content: body }
+}
+
+/**
  * 校验 Skill 文件，不写盘、不加载工具，只返回可展示的结构问题。
  *
  * 背景：Skill 是会影响工具调用的生产资产，解析成功不代表配置可用。
@@ -47,7 +78,7 @@ export function validateSkillContent(content: string, availableToolNames: Readon
   let data: Record<string, unknown>
   let body = ''
   try {
-    const parsed = matter(content)
+    const parsed = parseSkillFrontmatter(content)
     data = parsed.data as Record<string, unknown>
     body = parsed.content
   } catch (error) {
@@ -114,7 +145,7 @@ async function ensureDir(dir: string): Promise<void> {
 
 function parseSkillFile(content: string, filePath: string, source: 'builtin' | 'user'): SkillDefinition | null {
   try {
-    const { data, content: body } = matter(content)
+    const { data, content: body } = parseSkillFrontmatter(content)
     const meta = data as Partial<SkillFrontmatter>
 
     if (!meta.name || !meta.description) {

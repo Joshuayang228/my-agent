@@ -82,9 +82,12 @@ declare global {
       }
       scheduler: {
         list: () => Promise<Array<{ id: string; name: string; prompt: string; cron?: string; intervalMs?: number; enabled: boolean; lastRunAt?: number; nextRunAt?: number; createdAt: number }>>
-        create: (opts: { name: string; prompt: string; cron?: string; intervalMs?: number }) => Promise<unknown>
-        update: (id: string, updates: Record<string, unknown>) => Promise<void>
-        delete: (id: string) => Promise<void>
+        create: (opts: { name: string; prompt: string; cron?: string; intervalMs?: number }) => Promise<
+          | { ok: true; task: { id: string; name: string; prompt: string; cron?: string; intervalMs?: number; enabled: boolean; createdAt: number } }
+          | { ok: false; error: string }
+        >
+        update: (id: string, updates: Record<string, unknown>) => Promise<{ ok: boolean; error?: string }>
+        delete: (id: string) => Promise<{ ok: boolean; error?: string }>
         onTriggered: (cb: (info: { taskId: string; name: string; prompt: string }) => void) => () => void
       }
       updater: {

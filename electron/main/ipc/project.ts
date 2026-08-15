@@ -44,7 +44,7 @@ async function addToRecent(dirPath: string): Promise<void> {
   await settings.setSetting('recentProjects', JSON.stringify(list))
 }
 
-function isPathInsideRoot(candidate: string, root: string): boolean {
+export function isPathInsideRoot(candidate: string, root: string): boolean {
   const relative = path.relative(path.resolve(root), path.resolve(candidate))
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative))
 }
@@ -66,6 +66,30 @@ async function getCurrentProjectRoot(): Promise<string | null> {
 function isPathAllowedInProject(filePath: string, projectRoot: string): boolean {
   const resolved = resolveExistingPath(filePath)
   return !!resolved && isPathInsideRoot(resolved, projectRoot)
+}
+
+/**
+ * 将来自渲染进程的项目文件路径解析为已存在、且仍位于当前项目根内的真实路径。
+ *
+ * 背景：渲染进程是受信任边界内的客户端，但 IPC 参数仍然是不可信输入；只检查
+ * `existsSync` 会让任意绝对路径读取或交给系统打开，路径穿越和项目内 symlink 都会绕过 UI。
+ * 设计意图：所有项目文件 IPC 在执行前统一 realpath，再用当前项目根做边界判断，避免
+ * `readFile` / `openExternal` 各自实现一套容易漏掉的守卫。
+ * 关键约束：不存在、不是文件、没有当前项目或解析到项目外时统一拒绝；调用方必须使用返回的
+ * realpath 继续 stat/read/open，不能回退到原始输入。
+ */
+async function resolveCurrentProjectFile(filePath: unknown): Promise<string | null> {
+  if (typeof filePath !== 'string' || !filePath.trim()) return null
+  const root = await getCurrentProjectRoot()
+  if (!root) return null
+  const resolved = resolveExistingPath(filePath)
+  if (!resolved || !isPathInsideRoot(resolved, root)) return null
+  try {
+    const stat = fs.statSync(resolved)
+    return stat.isFile() ? resolved : null
+  } catch {
+    return null
+  }
 }
 
 function applyProject(dirPath: string | null): void {
@@ -139,11 +163,11 @@ export function registerProjectIPC(): void {
   ipcMain.handle('project:readFile', async (_e, filePath: string) => {
     try {
       if (!filePath || typeof filePath !== 'string') return { error: 'Invalid path' }
-      if (!fs.existsSync(filePath)) return { error: 'File not found' }
-      const stat = fs.statSync(filePath)
-      if (!stat.isFile()) return { error: 'Not a file' }
+      const resolvedFile = await resolveCurrentProjectFile(filePath)
+      if (!resolvedFile) return { error: '文件不在当前项目内或不是普通文件' }
+      const stat = fs.statSync(resolvedFile)
 
-      const ext = path.extname(filePath).toLowerCase()
+      const ext = path.extname(resolvedFile).toLowerCase()
       const imageExt = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico'])
       // Office / 压缩等太重：不在内嵌预览里解，交给系统应用
       const externalOnly = new Set([
@@ -156,7 +180,7 @@ export function registerProjectIPC(): void {
       if (imageExt.has(ext)) {
         if (stat.size > 8 * 1024 * 1024) return { error: '图片过大（>8MB）', size: stat.size }
         const mime = mimeFromExt(ext)
-        const dataUrl = `data:${mime};base64,${fs.readFileSync(filePath).toString('base64')}`
+        const dataUrl = `data:${mime};base64,${fs.readFileSync(resolvedFile).toString('base64')}`
         return { kind: 'image' as const, mimeType: mime, dataUrl, size: stat.size }
       }
 
@@ -170,7 +194,7 @@ export function registerProjectIPC(): void {
 
       if (stat.size > 512 * 1024) return { error: '文件过大（>512KB）', size: stat.size }
 
-      const buf = fs.readFileSync(filePath)
+      const buf = fs.readFileSync(resolvedFile)
       if (looksBinary(buf)) {
         return {
           kind: 'unsupported' as const,
@@ -194,9 +218,10 @@ export function registerProjectIPC(): void {
   ipcMain.handle('project:openExternal', async (_e, filePath: string) => {
     try {
       if (!filePath || typeof filePath !== 'string') return { ok: false, error: 'Invalid path' }
-      if (!fs.existsSync(filePath)) return { ok: false, error: 'File not found' }
+      const resolvedFile = await resolveCurrentProjectFile(filePath)
+      if (!resolvedFile) return { ok: false, error: '文件不在当前项目内或不是普通文件' }
       const { shell } = await import('electron')
-      const err = await shell.openPath(filePath)
+      const err = await shell.openPath(resolvedFile)
       if (err) return { ok: false, error: err }
       return { ok: true }
     } catch (err) {

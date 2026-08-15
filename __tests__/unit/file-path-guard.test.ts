@@ -1,9 +1,11 @@
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
+  checkFileReadSandbox,
   checkFileWriteSandbox,
   isPathInsideRoot,
   resolveToolFilePath,
+  resolveToolReadPath,
 } from '../../electron/main/sandbox/file-path-guard'
 
 describe('file-path-guard', () => {
@@ -22,6 +24,22 @@ describe('file-path-guard', () => {
     expect(isPathInsideRoot(path.join(root, 'a.ts'), root)).toBe(true)
     expect(isPathInsideRoot(root, root)).toBe(true)
     expect(isPathInsideRoot(path.resolve(root, '..', 'other', 'a.ts'), root)).toBe(false)
+  })
+
+  it('读取路径会解析 symlink；不存在路径 fail-closed', () => {
+    expect(resolveToolReadPath(path.join(root, 'missing.txt'))).toBeNull()
+  })
+
+  it('非 full-access 的读取限制在工作区并保护凭据文件', () => {
+    expect(checkFileReadSandbox(path.join(root, 'src/a.ts'), 'read-only', root)).toBeNull()
+    expect(checkFileReadSandbox(path.resolve(root, '..', 'outside.txt'), 'workspace-write', root)).toContain('超出工作区')
+    expect(checkFileReadSandbox(path.join(root, '.env.local'), 'workspace-write', root)).toContain('受保护')
+    expect(checkFileReadSandbox(path.join(root, '.git/config'), 'workspace-write', root)).toContain('受保护')
+    expect(checkFileReadSandbox(path.resolve('/etc/passwd'), 'full-access', root)).toBeNull()
+  })
+
+  it('没有打开项目时读取 fail-closed', () => {
+    expect(checkFileReadSandbox(path.join(root, 'a.ts'), 'workspace-write')).toContain('尚未打开项目')
   })
 
   it('read-only 一律拦截，并提示确认≠绕过', () => {

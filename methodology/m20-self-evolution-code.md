@@ -15,8 +15,8 @@
 
 function parseSkillFile(content: string, filePath: string, source: 'builtin' | 'user'): SkillDefinition | null {
   try {
-    // ① gray-matter 解析 YAML frontmatter + Markdown 正文
-    const { data, content: body } = matter(content)
+    // ① 安全解析标准 YAML Frontmatter + Markdown 正文；禁止可执行语言引擎
+    const { data, content: body } = parseSkillFrontmatter(content)
     const meta = data as Partial<SkillFrontmatter>
 
     // ② name 和 description 是必填——没有就不是合法 Skill

@@ -116,7 +116,7 @@ export async function continueSubAgent(
       if (ev.type === 'text') content += ev.content
       if (ev.type === 'tool_start') { toolsUsed.push(ev.name); iterations++ }
       if (ev.type === 'error') {
-        log.warn('Sub-agent continue error', { agentId, error: ev.message })
+        log.warn('Sub-agent continue error', { agentId, errorType: 'agent_event', errorLength: ev.message.length })
         if (!content) content = `SubAgent error: ${ev.message}`
       }
     }

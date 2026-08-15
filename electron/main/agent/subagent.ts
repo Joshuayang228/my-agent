@@ -221,7 +221,7 @@ export async function runSubAgent(
         iterations++
       }
       if (ev.type === 'error') {
-        log.warn('SubAgent error', { error: ev.message })
+        log.warn('SubAgent error', { errorType: 'agent_event', errorLength: ev.message.length })
         if (!content) content = `SubAgent error: ${ev.message}`
       }
     }

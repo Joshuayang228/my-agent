@@ -150,7 +150,7 @@ Prompt 资产由 `electron/main/prompts/registry.ts` 统一登记；核心 key �
 
 未来扩展英文时，在同一资产 key 下维护独立语言版本，由运行时按 locale 单选；当前不实现英文或韩文版本。
 
-Skill 资产由 `electron/main/skills/loader.ts` 读取和保存，`registry.ts` 负责生成 Skill 激活工具、维护当前激活状态并产生不含正文的激活指纹。`SkillsPanel` 是用户资产编辑入口：保存前由主进程校验 Frontmatter、正文和工具引用，历史内容保存在用户目录 `.versions/`，隔离试跑复用 `debug:playground-run` 但不写设置或真实会话。Debug 统一目录只读展示 Skill 正文、来源、版本和指纹；真实 LLM 调用通过 `requestExtra.skillActivations` 记录激活工具、来源、版本、原因和指纹。
+Skill 资产由 `electron/main/skills/loader.ts` 读取和保存；Frontmatter 只允许标准 YAML，使用 `js-yaml` `JSON_SCHEMA`，禁止 JavaScript / 可执行语言引擎。`registry.ts` 负责生成 Skill 激活工具、维护当前激活状态并产生不含正文的激活指纹。`SkillsPanel` 是用户资产编辑入口：保存前由主进程校验 Frontmatter、正文和工具引用，历史内容保存在用户目录 `.versions/`，隔离试跑复用 `debug:playground-run` 但不写设置或真实会话。Debug 统一目录只读展示 Skill 正文、来源、版本和指纹；真实 LLM 调用通过 `requestExtra.skillActivations` 记录激活工具、来源、版本、原因和指纹。
 
 ### 5.1 伙伴与生活世界（Companion）
 

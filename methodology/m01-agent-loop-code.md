@@ -123,11 +123,16 @@ let state: State = {
 | `hasAttemptedReactiveCompact` | `hasAttemptedReactiveCompact` | 相同 |
 | `transition` | `transition` | CC 用 `Continue` 类型，我们用 `ContinueReason` |
 | `toolUseContext` | — | CC 把 DI 上下文也放状态里 |
-| `autoCompactTracking` | — | CC 跟踪压缩的连续失败次数 |
+| `autoCompactTracking` | `consecutiveCompactFailures` | 我们用显式计数器并在 3 次失败后熔断 |
 | `pendingToolUseSummary` | — | CC 有工具使用摘要功能 |
 | `stopHookActive` | — | CC 有停止钩子 |
 | — | `deniedTools` | CC 的权限拒绝不在 State 里（在 ToolUseContext 里） |
-| — | `lastPromptTokens` | CC 不在 State 里跟踪 token |
+| — | `lastPromptTokens` | 使用 Provider 返回的实际 token 指导压缩 |
+| — | `deniedCommands` | 记录被拒绝命令，注入下一轮提示；正文不落盘 |
+| — | `consecutiveDenials` / `totalDenials` | 连续 / 累计拒绝熔断，终态为 `too_many_denials` |
+| — | `interactionSpanId` | Loop 内 LLM / Tool Span 的父链 |
+
+**当前实现证据**：`electron/main/agent/loop.ts` 的 `LoopState` 还包含 `consecutiveCompactFailures`、`deniedCommands`、`consecutiveDenials`、`totalDenials` 和 `interactionSpanId`；`__tests__/unit/agent-loop.test.ts` 覆盖取消、最大轮次、错误和拒绝熔断，`__tests__/unit/runtime-terminal-reason.test.ts` 覆盖 Runtime 终态去重。
 
 **方法论对照**：→ `m01-agent-loop.md` §3.2（LoopState 设计）
 
@@ -463,9 +468,10 @@ type TerminalReason =
   | 'aborted'          // 用户点了"停止"按钮（= CC 的 AbortSignal 触发）
   | 'prompt_too_long'  // 上下文超长，压缩也救不回来（= CC 的 blocking_limit）
   | 'model_error'      // LLM API 返回了不可恢复的错误（CC 没有统一的名字）
+  | 'too_many_denials' // 连续 / 累计权限拒绝熔断
 ```
 
-**方法论对照**：→ `m01-agent-loop.md` §7.1（五条终止路径）
+**方法论对照**：→ `m01-agent-loop.md` §7.1（六条终止路径）
 
 ---
 
@@ -555,3 +561,4 @@ let taskBudgetRemaining: number | undefined = undefined
 | 2026-06-21 | 初始创建，覆盖 §1/§3/§4/§5/§6/§7/§8 的 CC 代码对照 |
 | 2026-06-22 | 全部代码块添加逐行中文注释，解释每一步在做什么 |
 | 2026-06-22 | 标注 CC 特性采纳状态：熔断器 ✅已实现、递归防护 ✅已有、Token 预算 📋待定 |
+| 2026-08-15 | 对照当前实现：补充六类 TerminalReason、拒绝熔断 / Trace 字段、Runtime done 去重与只在 completed 后台善后；日志不保存伴随正文 |

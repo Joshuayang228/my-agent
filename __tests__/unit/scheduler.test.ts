@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseCronNextRun, rowToTask } from '../../electron/main/scheduler/index'
+import { parseCronNextRun, rowToTask, validateScheduledTaskInput } from '../../electron/main/scheduler/index'
 
 describe('parseCronNextRun', () => {
   it('返回下一个匹配时间（明确分钟和小时）', () => {
@@ -25,6 +25,12 @@ describe('parseCronNextRun', () => {
   it('不合法的 cron（字段不足）返回 null', () => {
     expect(parseCronNextRun('30', Date.now())).toBeNull()
     expect(parseCronNextRun('', Date.now())).toBeNull()
+  })
+
+  it('拒绝超出范围的分钟和小时', () => {
+    expect(parseCronNextRun('60 10 * * *', Date.now())).toBeNull()
+    expect(parseCronNextRun('30 24 * * *', Date.now())).toBeNull()
+    expect(parseCronNextRun('x 10 * * *', Date.now())).toBeNull()
   })
 
   it('通配符 * * 返回合理的未来时间', () => {
@@ -80,5 +86,16 @@ describe('rowToTask', () => {
     expect(task.intervalMs).toBe(60000)
     expect(task.cron).toBeUndefined()
     expect(task.lastRunAt).toBeUndefined()
+  })
+})
+
+
+describe('validateScheduledTaskInput', () => {
+  it('限制后台任务正文和执行间隔', () => {
+    expect(validateScheduledTaskInput({ name: '提醒', prompt: '喝水', intervalMs: 1_000 })).toBeNull()
+    expect(validateScheduledTaskInput({ name: '', prompt: '喝水', intervalMs: 1_000 })).toBeTruthy()
+    expect(validateScheduledTaskInput({ name: '提醒', prompt: 'x'.repeat(100_001) })).toBeTruthy()
+    expect(validateScheduledTaskInput({ name: '提醒', prompt: '喝水', intervalMs: 500 })).toBeTruthy()
+    expect(validateScheduledTaskInput({ name: '提醒', prompt: '喝水', cron: 'bad cron' })).toBeTruthy()
   })
 })

@@ -121,7 +121,7 @@ export async function runPlayground(input: {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     span.end('error', message)
-    log.warn('Playground run failed', { error: message })
+    log.warn('Playground run failed', { errorType: error instanceof Error ? error.name : 'unknown', errorLength: message.length })
     return { ok: false, error: message }
   }
 }

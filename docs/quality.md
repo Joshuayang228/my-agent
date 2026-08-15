@@ -5,6 +5,14 @@
 > 场景与 runner 真相以仓库代码为准：`__tests__/`、`evals/`。
 
 
+### 安全审计门禁（2026-08-15）
+
+- `npm audit --registry=https://registry.npmjs.org` 与 `npm audit --omit=dev --registry=https://registry.npmjs.org` 必须为 `0 vulnerabilities`；依赖修复优先采用上游兼容升级，不用未经验证的 `overrides`。
+- `__tests__/unit/security-boundaries.test.ts` 覆盖导入结构 / 子进程环境、项目路径边界和 URL SSRF 黑名单；`__tests__/unit/file-path-guard.test.ts` 覆盖只读工具工作区边界与凭据文件保护。
+- 安全审计必须检查：IPC 输入边界、项目路径 realpath / symlink、自动只读工具读取范围、URL 抓取的 SSRF / 重定向 / 响应大小、Renderer 导航 / CSP / CDP、用户资产解析器是否执行代码、日志正文脱敏、依赖漏洞。
+- 安全修复不得用真实 API Key 或真实模型调用验证；验证顺序仍为自审 → Unit → `npx tsc --noEmit` → `npm run build` → UI E2E。
+- 数据备份安全边界必须验证：导出不含 `llmApiKey` / MCP env / command / permissionRules / executionMode / 本机路径；导入不能改变权限面或下次启动的外部执行入口。
+
 ### Prompt 中文门禁
 
 - `__tests__/unit/prompt-language.test.ts` 直接验证生产主 Prompt、动态注入块、内置工具 schema / 示例与 Eval Judge 自有问题。
@@ -35,7 +43,7 @@
 
 ### Skill 管理门禁
 
-- `__tests__/unit/skill-management.test.ts` 验证 Skill 名称、Frontmatter、正文、触发条件提醒和 `allowed_tools` 引用校验。
+- `__tests__/unit/skill-management.test.ts` 验证 Skill 名称、YAML Frontmatter、正文、触发条件提醒和 `allowed_tools` 引用校验，并证明 `---javascript` 不会执行用户代码。
 - `__tests__/unit/skill-versioning.test.ts` 验证历史快照、时间元数据、版本正文读取、10 版上限和回滚可逆。
 - `__tests__/unit/llm-failover.test.ts` 验证真实 LLM 请求只记录 Skill 来源 / 版本 / 指纹 / 原因，不把 Skill 正文复制进激活元数据。
 - Skills 管理页的隔离试跑必须复用现有 Playground LLM 路径，不写设置、不写真实会话；生产 Skill 编辑必须先经过主进程校验。
