@@ -22,6 +22,7 @@
 - `__tests__/unit/companion-asset-registry.test.ts` 验证 Role Pack 清单、可选 profile / 默认世界、文件 / 派生场景、生活 starter、稳定 key、来源、依赖和防修改副本。
 - `__tests__/unit/memory-strategy-registry.test.ts` 验证记忆策略参数来自 profile / memory-store / vector-store / citation-correct 的生产事实，不读取用户记忆正文。
 - `__tests__/unit/permission-sandbox-asset-registry.test.ts` 验证权限与沙箱资产来自 policy / permission-engine / exec-policy / approval-store / effective-sandbox 的生产事实，不读取用户规则或审批记录正文。
+- `__tests__/unit/eval-asset-registry.test.ts` 验证普通 Scenario 唯一注册表覆盖 F01–F08 / P01–P06 / B01–B07 / C01–C02，Skill Case 覆盖 S01–S03，所有 Grader 判据来自真实实例定义，且静态目录不读取报告、API Key、临时目录或 Judge 隐藏推理。
 - 静态正文和动态模板使用内容指纹；只有无模板的运行时资产使用结构指纹。指纹不得包含 API Key 或动态用户插槽实际值。
 - 未来增加英文时，在同一 key 下进行独立版本等价性测试，并验证运行时按 locale 单选，不把多语言版本并发注入模型。
 
@@ -52,6 +53,7 @@
 - 注入点：`AgentLoopOptions.streamChatOverride`（禁止用假 LLM 冒充产品功能，仅测试/Eval）
 - 场景标签：框架向 `f*`、伙伴向 `p*`、人格向 `b01-*`、Skill 向 `s*`——**按产品关心点选题，但 Eval 本身不是产品模块**
 - `ModelBasedGrader` 只接受“是否存在违规”的负向二元问题；正向要求必须改写为“是否缺失该行为”，避免通过行为被当作违规。
+- `evals/scenario-registry.ts` 是普通 Eval Scenario 唯一列表，`evals/eval.test.ts`、CLI 和生产资产目录不得再维护平行数组。
 - 模块卡可链接相关场景 ID；场景正文不复制进模块卡
 - 历史规格底稿：`_archive/docs-legacy/eval-design.md`（可能过时）
 
@@ -69,7 +71,7 @@ EVAL_PASS_K=3 npm run eval:persona
 ```
 
 该命令固定使用 `EVAL_MODE=real`，缺少 API Key、Judge 返回 `UNKNOWN` 或任何场景未达到
-`pass^k` 都会失败，并在 `eval-reports/` 生成 JSON 与 Markdown 报告。报告保存每次 Trial 的实际初始 messages、System Prompt、工具名、运行配置与 Judge checks，但不保存 API Key 或 Judge 推理过程。被测 Agent 不接收评分标准；同一场景的多个检查维度在 Agent 回复后通过一次 Judge 调用完成。Debug「质量 / Eval」展示这些真实报告，并提供受控 Runner：Mock 可直接运行；Real 必须确认模型、`pass^k`、场景和预计调用数后启动。报告中的人工审阅是独立本地注释层：按报告文件名、场景和 Trial 关联，支持 1–5 正向体验评分、风险信号、结论和备注；不改原始 JSON、不改变自动 PASS/FAIL，也不自动修改 Prompt。Runner 只允许固定 npm script，支持实时 trial 进度、停止和有限脱敏日志；打开页面不会自动产生真实模型调用。Debug 入口按诊断任务收口为提示词管理器、请求与运行、伙伴状态、质量 / Eval、系统；请求与运行内部保留 LLM 调用、Span / 调用链和实时事件。提示词管理器的实验副本不影响真实会话，只有二次确认保存到现有 L3 设置后才影响后续对话。Playground 按设计与 Agent 实验分组，设计组件边缘态不再单独占用体验夹具入口，静态人格场景不冒充真实 Eval。
+`pass^k` 都会失败，并在 `eval-reports/` 生成 JSON 与 Markdown 报告。报告保存每次 Trial 的实际初始 messages、System Prompt、工具名、运行配置与 Judge checks，但不保存 API Key 或 Judge 推理过程。被测 Agent 不接收评分标准；同一场景的多个检查维度在 Agent 回复后通过一次 Judge 调用完成。Debug「提示词管理器 → Eval Judge」只读展示静态 Case、Grader 和 Judge Prompt；Debug「质量 / Eval」展示这些真实报告，并提供受控 Runner：Mock 可直接运行；Real 必须确认模型、`pass^k`、场景和预计调用数后启动。报告中的人工审阅是独立本地注释层：按报告文件名、场景和 Trial 关联，支持 1–5 正向体验评分、风险信号、结论和备注；不改原始 JSON、不改变自动 PASS/FAIL，也不自动修改 Prompt。Runner 只允许固定 npm script，支持实时 trial 进度、停止和有限脱敏日志；打开页面不会自动产生真实模型调用。Debug 入口按诊断任务收口为提示词管理器、请求与运行、伙伴状态、质量 / Eval、系统；请求与运行内部保留 LLM 调用、Span / 调用链和实时事件。提示词管理器的实验副本不影响真实会话，只有二次确认保存到现有 L3 设置后才影响后续对话。Playground 按设计与 Agent 实验分组，设计组件边缘态不再单独占用体验夹具入口，静态人格场景不冒充真实 Eval。
 
 2026-08-12 基线：DeepSeek `deepseek-v4-flash` 的 B02–B07 全部达到 `pass^3`。该结果是自动化行为门禁，不替代用户对语气、活人感和审美的最终人工验收。
 

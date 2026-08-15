@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — Eval Case / Grader 生产资产 v1（2026-08-15）
+
+- Debug「提示词管理器 → Eval Judge」新增普通 / Skill Eval Case 和实际 Grader 实例，可查看场景来源、默认模式、required、评分顺序、结构化判据和 Model Judge 检查项。
+- 普通 Eval 改用唯一 Scenario 注册表，CLI 与 Vitest 共用 F01–F08、P01–P06、B01–B07、C01–C02，修复 CLI 遗漏 C02。
+- 静态资产与运行报告明确分离，不保存 API Key、Judge 隐藏推理、临时目录、动态回复或人工审阅。
+
 ### Added — 权限与沙箱生产资产 v1（2026-08-15）
 
 - Debug「提示词管理器」新增“权限与沙箱”分类，可查看沙箱档位、权限责任链、命令分级、路径边界、审批生命周期和有效沙箱映射。

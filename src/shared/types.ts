@@ -54,6 +54,8 @@ export type ModelContextAssetType =
   | 'tool-schema'
   | 'skill'
   | 'eval-judge'
+  | 'eval-case'
+  | 'eval-grader'
   | 'companion-manifest'
   | 'companion-profile'
   | 'companion-world'

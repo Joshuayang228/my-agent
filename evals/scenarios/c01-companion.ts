@@ -19,6 +19,14 @@ import {
 function makeCompanionChecksGrader(): EvalGrader {
   return {
     name: 'CompanionAssembleRoster',
+    assetDefinition: {
+      kind: 'companion-assemble-roster',
+      source: 'evals/scenarios/c01-companion.ts',
+      criteria: {
+        requiredChecks: ['hasRoster', 'hasLinProtected', 'noForeignProtected'],
+        evidenceFile: 'companion-checks.json',
+      },
+    },
     grade({ workdir }: EvalContext): GraderResult {
       try {
         const raw = JSON.parse(

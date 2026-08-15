@@ -21,6 +21,11 @@ import type { ChatMessage } from '../../src/shared/types'
 function makeSystemPromptContainsGrader(expected: string): EvalGrader {
   return {
     name: `SystemPromptContains[${expected.slice(0, 30)}]`,
+    assetDefinition: {
+      kind: 'system-prompt-contains',
+      source: 'evals/scenarios/p01-p04.ts',
+      criteria: { expected },
+    },
     grade({ transcript }: EvalContext): GraderResult {
       // done 前的最后一个 text 事件可以提示，但最可靠的是在场景 buildOptions 里注入断言钩子
       // 这里用一个简单约定：F06 场景在 mockResponses 完成后，loop 结束时 system prompt 的内容

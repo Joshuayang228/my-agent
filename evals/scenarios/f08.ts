@@ -26,6 +26,15 @@ const captured: { calls: CapturedLLMCall[] } = { calls: [] }
 
 const preambleGrader: EvalGrader = {
   name: 'PreamblePreservedAfterCompression',
+  assetDefinition: {
+    kind: 'preamble-preserved-after-compression',
+    source: 'evals/scenarios/f08.ts',
+    criteria: {
+      capturedCall: 'first',
+      messageRole: 'system',
+      requiredMarker: PREAMBLE_MARKER,
+    },
+  },
   grade(): GraderResult {
     if (captured.calls.length === 0) {
       return { pass: false, violations: ['没有捕获到任何 LLM 调用——压缩可能未触发'] , evidence: [] }

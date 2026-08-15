@@ -2,6 +2,14 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
+## 2026-08-15 · Eval Case / Grader 生产资产 v1
+
+- 新增 `evals/scenario-registry.ts` 作为普通 Eval 唯一场景列表，统一 F01–F08、P01–P06、B01–B07、C01–C02，CLI 与 Vitest 不再维护平行数组，并修复 CLI 漏掉 C02 的漂移。
+- `EvalGrader` 新增真实 `assetDefinition`，通用、ModelBased 和场景自定义 Grader 直接提供 kind、source 与结构化 criteria；Skill Eval 四类 Grader 名称 / 定义也由 Runner 和资产目录共享。
+- 新增 `evals/asset-registry.ts`，登记 23 个普通 Case、S01–S03 Skill Case 及每个实际 Grader 实例；Debug「提示词管理器 → Eval Judge」只读查看静态评分计划，实际输入 / 回复 / Judge 证据仍去“质量 / Eval”报告。
+- 静态目录不读取 API Key、环境变量原值、运行报告、临时 workdir、Judge 隐藏推理或人工审阅；主进程 bundle 增量约 49 KB（gzip 约 15 KB），Build 通过。
+- 验证：Unit 111 个文件 / 664 项、普通 Eval 23/23、Skill Eval、TypeScript、Vite / Electron Build、UI E2E 7/7 全部通过。
+
 ## 2026-08-15 · 权限与沙箱生产资产 v1
 
 - 新增 `sandbox/asset-registry.ts`，登记三级沙箱、权限责任链、命令安全分级、文件路径边界、审批生命周期和有效沙箱推导。

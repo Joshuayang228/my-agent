@@ -8,24 +8,7 @@
  */
 
 import { runSuite } from './runner'
-import type { EvalScenario } from './types'
-
-import { F01 } from './scenarios/f01'
-import { F02, F03, F04, F05, F06, F07 } from './scenarios/f02-f07'
-import { F08 } from './scenarios/f08'
-import { P01, P02, P03, P04 } from './scenarios/p01-p04'
-import { P05, P06 } from './scenarios/p05-p06'
-import { B01 } from './scenarios/b01-persona-tone'
-import { B02, B03, B04, B05, B06, B07 } from './scenarios/b02-protagonist-behavior'
-import { C01 } from './scenarios/c01-companion'
-
-const ALL_SCENARIOS: EvalScenario[] = [
-  F01, F02, F03, F04, F05, F06, F07, F08,
-  P01, P02, P03, P04,
-  P05, P06,
-  B01, B02, B03, B04, B05, B06, B07,
-  C01,
-]
+import { EVAL_SCENARIOS } from './scenario-registry'
 
 async function main() {
   const args = process.argv.slice(2)
@@ -33,8 +16,8 @@ async function main() {
   const verbose = args.includes('--verbose') || args.includes('-v')
 
   const scenarios = idFilter
-    ? ALL_SCENARIOS.filter((s) => s.id === idFilter)
-    : ALL_SCENARIOS
+    ? EVAL_SCENARIOS.filter((s) => s.id === idFilter)
+    : EVAL_SCENARIOS
 
   if (scenarios.length === 0) {
     console.error(`未找到场景 ID: ${idFilter}`)

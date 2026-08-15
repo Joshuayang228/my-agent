@@ -53,6 +53,8 @@ const ASSET_TYPE_LABELS: Record<ModelContextAsset['assetType'], string> = {
   'tool-schema': '工具 Schema',
   skill: 'Skill',
   'eval-judge': 'Eval Judge',
+  'eval-case': 'Eval Case',
+  'eval-grader': 'Eval Grader',
   'companion-manifest': '伙伴清单',
   'companion-profile': '人物档案',
   'companion-world': '默认世界',
@@ -245,7 +247,7 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
             <span className="font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{assets.length + 1} 项</span>
           </div>
           <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            统一查看生产 Prompt、伙伴与人格资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Judge 与当前 MCP 工具。资产保持只读；只有显式载入的文本实验副本和 L3 自定义补充可以编辑。
+            统一查看生产 Prompt、伙伴与人格资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Case / Grader、Eval Judge 与当前 MCP 工具。资产保持只读；只有显式载入的文本实验副本和 L3 自定义补充可以编辑。
           </p>
         </div>
       </header>
@@ -368,6 +370,8 @@ function AssetPromptDetail({ asset, onLoadExperiment, onCopy }: { asset: ModelCo
     && asset.assetType !== 'memory-strategy'
     && asset.assetType !== 'permission-policy'
     && asset.assetType !== 'sandbox-policy'
+    && asset.assetType !== 'eval-case'
+    && asset.assetType !== 'eval-grader'
   return (
     <div className="space-y-3">
       <div>

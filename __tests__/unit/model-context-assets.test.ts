@@ -111,6 +111,17 @@ describe('模型可见文本统一目录', () => {
       assetType: 'sandbox-policy',
       contentKind: 'data',
     })
+    expect(assets.find((asset) => asset.key === 'eval-case:C02')).toMatchObject({
+      category: 'eval',
+      assetType: 'eval-case',
+      contentKind: 'data',
+    })
+    expect(assets.find((asset) => asset.key.startsWith('eval-grader:B02:model-based:'))).toMatchObject({
+      category: 'eval',
+      assetType: 'eval-grader',
+      contentKind: 'data',
+      dependencies: ['eval-judge'],
+    })
     expect(new Set(assets.map((asset) => asset.key)).size).toBe(assets.length)
     for (const asset of assets) {
       expect(asset.fingerprint).toMatch(/^[a-f0-9]{16}$/)

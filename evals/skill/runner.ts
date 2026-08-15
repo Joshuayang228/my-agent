@@ -19,6 +19,8 @@ import { makeEvalLLMConfig, type GraderResult } from '../types'
 import { collectAgentText } from '../transcript'
 import type { SkillEvalCase } from './types'
 
+import { SKILL_EVAL_GRADER_DEFINITIONS } from './grader-definitions'
+
 function grade(pass: boolean, violation: string, evidence: string[]): GraderResult {
   return pass ? { pass: true, violations: [], evidence } : { pass: false, violations: [violation], evidence }
 }
@@ -83,10 +85,10 @@ export async function runSkillEvalCase(testCase: SkillEvalCase): Promise<SkillEv
     const injectionObserved = transcript.some((event) => event.type === 'tool_end' && event.name === skillTool.name && event.result.includes(testCase.skill.body))
     const agentText = collectAgentText(transcript)
     const graderResults = [
-      { graderName: 'SkillActivation', result: gradeSkillActivation(testCase.expectedActivation, testCase.skill.meta.name, activations) },
-      { graderName: 'SkillInjection', result: gradeSkillInjection(testCase.expectedActivation, injectionObserved, fingerprint) },
-      { graderName: 'SkillToolBoundary', result: gradeSkillToolBoundary(skillTool.name, testCase.allowedTools, toolCalls) },
-      { graderName: 'SkillResponse', result: gradeSkillResponse(agentText, testCase.requiredResponseIncludes, testCase.forbiddenResponseIncludes) },
+      { graderName: SKILL_EVAL_GRADER_DEFINITIONS.activation.name, result: gradeSkillActivation(testCase.expectedActivation, testCase.skill.meta.name, activations) },
+      { graderName: SKILL_EVAL_GRADER_DEFINITIONS.injection.name, result: gradeSkillInjection(testCase.expectedActivation, injectionObserved, fingerprint) },
+      { graderName: SKILL_EVAL_GRADER_DEFINITIONS.toolBoundary.name, result: gradeSkillToolBoundary(skillTool.name, testCase.allowedTools, toolCalls) },
+      { graderName: SKILL_EVAL_GRADER_DEFINITIONS.response.name, result: gradeSkillResponse(agentText, testCase.requiredResponseIncludes, testCase.forbiddenResponseIncludes) },
     ]
     return {
       id: testCase.id,

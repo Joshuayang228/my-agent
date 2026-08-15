@@ -146,7 +146,7 @@ think → act → observe → think → ...
 | L3 上下文 | 用户画像、记忆、向量检索结果、自定义指令 | 每次重建 |
 | L4 动态 | 当前时间 | 每次变化 |
 
-Prompt 资产由 `electron/main/prompts/registry.ts` 统一登记；核心 key 由 `prompts/keys.ts` 类型化，Role Pack key 只能通过工厂生成。每项记录用途、角色、真实来源、人工版本、自动内容/结构指纹、当前 locale、静态 / 动态模式和动态插槽。每次 `streamChat` / `chatComplete` 必须声明非空资产 key，或显式给出 `promptlessReason`；统一入口把解析结果写入 `requestExtra.promptAssets`，未知 key 进入 `unknownPromptAssetKeys`。静态正文集中在 `prompts/texts.ts`，Eval Judge 模板集中在 `prompts/eval-judge.ts`，生产调用与目录共同引用。Debug 通过 `debug:model-context-assets` 在 IPC 高层聚合 Prompt、伙伴与人格资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Judge 和当前 MCP 工具；含用户状态的最终动态内容仍只认真实调用的 System / Messages / Tools。Playground 只接收显式实验副本，不维护第二份生产目录。
+Prompt 资产由 `electron/main/prompts/registry.ts` 统一登记；核心 key 由 `prompts/keys.ts` 类型化，Role Pack key 只能通过工厂生成。每项记录用途、角色、真实来源、人工版本、自动内容/结构指纹、当前 locale、静态 / 动态模式和动态插槽。每次 `streamChat` / `chatComplete` 必须声明非空资产 key，或显式给出 `promptlessReason`；统一入口把解析结果写入 `requestExtra.promptAssets`，未知 key 进入 `unknownPromptAssetKeys`。静态正文集中在 `prompts/texts.ts`，Eval Judge 模板集中在 `prompts/eval-judge.ts`，生产调用与目录共同引用。Debug 通过 `debug:model-context-assets` 在 IPC 高层聚合 Prompt、伙伴与人格资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Case / Grader、Eval Judge 和当前 MCP 工具；含用户状态的最终动态内容仍只认真实调用的 System / Messages / Tools。Playground 只接收显式实验副本，不维护第二份生产目录。
 
 未来扩展英文时，在同一资产 key 下维护独立语言版本，由运行时按 locale 单选；当前不实现英文或韩文版本。
 
@@ -214,11 +214,12 @@ Skill 资产由 `electron/main/skills/loader.ts` 读取和保存，`registry.ts`
 
 - Prompt 注册表仍负责模型可见 Prompt 的稳定 key、locale、模板和运行时追踪；伙伴注册表不复制 Prompt 正文。
 - `companion/asset-registry.ts` 读取真实 Role Pack loader、场景 loader 和生活 starter 工厂，生成 manifest、人物档案、默认世界、伙伴场景与生活内容资产。
-- Debug 高层聚合 Prompt、伙伴资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Judge 与 MCP，统一展示来源、所有权、版本、指纹、状态、派生关系和依赖。
+- Debug 高层聚合 Prompt、伙伴资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Case / Grader、Eval Judge 与 MCP，统一展示来源、所有权、版本、指纹、状态、派生关系和依赖。
 - 用户记忆、当前世界状态和运行后 `companion_assets` 属于运行时数据，不进入静态生产资产目录；分别由记忆 / 世界态 / 请求记录查看。
 - `memory/strategy-registry.ts` 只登记记忆提取、去重、反馈分桶、向量召回、向量生命周期和引用纠错策略；策略参数由原生产模块导出，注册表不反向驱动算法。
 - `sandbox/asset-registry.ts` 从沙箱档位、命令分级、权限责任链、路径守卫、审批生命周期和有效沙箱映射生成只读资产；不读取用户规则、审批记录或当前执行模式。
-- Playground 不直接写生产资产；只有文本类资产可显式载入为实验副本，伙伴、记忆、权限与沙箱等结构化资产保持只读。
+- `evals/scenario-registry.ts` 是普通 Eval Scenario 唯一列表，CLI、Vitest 与 `evals/asset-registry.ts` 共同消费；Case / Grader 资产来自真实场景和结构化判据，不读取运行报告、环境凭据或 Judge 隐藏推理。
+- Playground 不直接写生产资产；只有文本类资产可显式载入为实验副本，伙伴、记忆、权限与沙箱、Eval Case / Grader 等结构化资产保持只读。
 
 ## 目录结构
 

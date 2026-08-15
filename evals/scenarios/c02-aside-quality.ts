@@ -14,6 +14,14 @@ import { evaluateAsideSequence, evaluateAsideTurn } from '../../src/shared/aside
 function makeAsideFixtureGrader(): EvalGrader {
   return {
     name: 'AsideQualityFixtures',
+    assetDefinition: {
+      kind: 'aside-quality-fixtures',
+      source: 'evals/scenarios/c02-aside-quality.ts',
+      criteria: {
+        requiredChecks: ['goodPass', 'oilyFail', 'hijackFail'],
+        evidenceFile: 'aside-checks.json',
+      },
+    },
     grade({ workdir }: EvalContext): GraderResult {
       try {
         const raw = JSON.parse(

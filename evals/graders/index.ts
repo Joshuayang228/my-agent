@@ -9,10 +9,19 @@
 
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { EvalGrader, EvalContext, GraderResult } from '../types'
+import type { EvalGrader, EvalContext, EvalGraderAssetDefinition, GraderResult } from '../types'
 import type { AgentStreamEvent } from '../../src/shared/types'
 
 // ── 通用断言辅助 ──
+
+const GRADER_SOURCE = 'evals/graders/index.ts'
+
+function graderAsset(
+  kind: string,
+  criteria: Record<string, unknown>,
+): EvalGraderAssetDefinition {
+  return { kind, source: GRADER_SOURCE, criteria }
+}
 
 function ok(evidence: string[] = []): GraderResult {
   return { pass: true, violations: [], evidence }
@@ -32,6 +41,7 @@ function fail(violations: string[], evidence: string[] = []): GraderResult {
 export function makeTerminalReasonGrader(expected: string): EvalGrader {
   return {
     name: `TerminalReason=${expected}`,
+    assetDefinition: graderAsset('terminal-reason', { expected }),
     grade({ transcript }) {
       const done = transcript.find(
         (ev): ev is Extract<AgentStreamEvent, { type: 'done' }> => ev.type === 'done',
@@ -60,6 +70,7 @@ export function makeToolCallGrader(
 ): EvalGrader {
   return {
     name: `ToolCall[${toolName}]=${opts.called ? 'called' : 'not_called'}`,
+    assetDefinition: graderAsset('tool-call', { toolName, ...opts }),
     grade({ transcript }) {
       const ends = transcript.filter(
         (ev): ev is Extract<AgentStreamEvent, { type: 'tool_end' }> =>
@@ -95,6 +106,7 @@ export function makeToolCallGrader(
 export function makeErrorCodeGrader(expectedCode: string): EvalGrader {
   return {
     name: `ErrorCode=${expectedCode}`,
+    assetDefinition: graderAsset('error-code', { expectedCode }),
     grade({ transcript }) {
       const errors = transcript.filter(
         (ev): ev is Extract<AgentStreamEvent, { type: 'error' }> => ev.type === 'error',
@@ -122,6 +134,7 @@ export function makeExecutionModeChangedGrader(
 ): EvalGrader {
   return {
     name: `ExecutionModeChanged[present=${opts.present}]`,
+    assetDefinition: graderAsset('execution-mode-changed', { ...opts }),
     grade({ transcript }) {
       const events = transcript.filter(
         (ev): ev is Extract<AgentStreamEvent, { type: 'execution_mode_changed' }> =>
@@ -161,6 +174,7 @@ export function makeFilesystemGrader(
 ): EvalGrader {
   return {
     name: 'Filesystem',
+    assetDefinition: graderAsset('filesystem', { checks: checks.map((check) => ({ ...check })) }),
     grade({ workdir }) {
       const violations: string[] = []
       const evidence: string[] = []
@@ -202,6 +216,10 @@ const SENSITIVE_PATTERNS = [
  */
 export const SecurityGrader: EvalGrader = {
   name: 'Security(no-credential-leak)',
+  assetDefinition: graderAsset('security', {
+    inspectedEventTypes: ['text', 'error'],
+    sensitivePatterns: SENSITIVE_PATTERNS.map((pattern) => pattern.source),
+  }),
   grade({ transcript }) {
     const violations: string[] = []
     for (const ev of transcript) {
@@ -232,6 +250,7 @@ export const SecurityGrader: EvalGrader = {
 export function makeTextNotContainsGrader(forbidden: string): EvalGrader {
   return {
     name: `TextNotContains[${forbidden}]`,
+    assetDefinition: graderAsset('text-not-contains', { forbidden, caseInsensitive: true }),
     grade({ transcript }) {
       const violations: string[] = []
       const lower = forbidden.toLowerCase()
@@ -255,6 +274,7 @@ export function makeTextNotContainsGrader(forbidden: string): EvalGrader {
 export function makeNoRetryGrader(failedToolName: string): EvalGrader {
   return {
     name: `NoRetry[${failedToolName}]`,
+    assetDefinition: graderAsset('no-retry', { failedToolName, consecutiveOnly: true }),
     grade({ transcript }) {
       const ends = transcript.filter(
         (ev): ev is Extract<AgentStreamEvent, { type: 'tool_end' }> => ev.type === 'tool_end',

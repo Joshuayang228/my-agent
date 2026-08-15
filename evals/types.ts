@@ -66,8 +66,18 @@ export interface EvalModelJudgePlan {
   checks: ViolationCheck[]
 }
 
+export interface EvalGraderAssetDefinition {
+  /** 稳定的评分器种类，用于 Case 范围内生成资产 key。 */
+  kind: string
+  /** 实际 grade 实现或工厂所在的生产源文件。 */
+  source: string
+  /** 与真实评分器实例共享的结构化判据；不得包含运行时 transcript。 */
+  criteria: Record<string, unknown>
+}
+
 export interface EvalGrader {
   name: string
+  assetDefinition: EvalGraderAssetDefinition
   /** 仅用于报告解释评分计划，不参与判定。 */
   reportPlan?: EvalModelJudgePlan
   grade(ctx: EvalContext): GraderResult | Promise<GraderResult>

@@ -40,6 +40,15 @@ export function makeModelBasedGrader(
 ): EvalGrader {
   return {
     name: graderName,
+    assetDefinition: {
+      kind: 'model-based',
+      source: 'evals/graders/model-based.ts',
+      criteria: {
+        invocationMode: 'single-call',
+        systemContext,
+        checks: checks.map((check) => ({ ...check })),
+      },
+    },
     reportPlan: {
       kind: 'model-judge',
       invocationMode: 'single-call',
