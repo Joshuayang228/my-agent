@@ -2,6 +2,15 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
+## 2026-08-15 · file_delete 沙箱路径边界修复
+
+- 修复 `file_delete` 未经过有效沙箱和工作区路径守卫、相对路径错误基于 `process.cwd()` 的安全缺口。
+- 删除操作现在与 write / edit / patch 共用 `file-path-guard`：workspace-write 只允许工作区内非受保护路径，read-only 禁止删除，full-access 才允许工作区外或受保护路径。
+- 普通删除改用 Electron 原生 `shell.trashItem`，解决第三方 `trash` 在 Electron bundle 中定位 Windows helper 失败的问题，并移除该依赖；永久删除白名单语义保持不变。
+- 路径守卫结果接入生产资产证据链，只记录 toolName / sandboxMode / decision，不保存真实路径。
+- 真实 Electron 验收：工作区内文件进入系统回收站，工作区外文件被阻止且保持存在；用户项目和审批设置已恢复。
+
+
 ## 2026-08-15 · 生产资产使用证据链 v1 已落地
 
 - 新增 `agent_asset_usage`（schema v13）与统一 AssetUsage 分发器，把真实 LLM / Provider / Tool / Skill / Memory / Permission / Sandbox 运行节点关联到生产资产稳定 key；关系明确区分 `available / used / triggered / matched`。

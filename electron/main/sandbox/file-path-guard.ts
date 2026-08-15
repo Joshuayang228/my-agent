@@ -1,5 +1,5 @@
 /**
- * 文件工具路径解析与写入沙箱检查（file_write / file_edit / apply_patch 共用）
+ * 文件工具路径解析与变更沙箱检查（file_write / file_edit / file_delete / apply_patch 共用）
  *
  * 注意：聊天里的「允许」只过审批层；本模块的路径/模式检查仍会执行，二者不是一回事。
  */
@@ -29,7 +29,7 @@ export function checkFileWriteSandbox(
   resolved: string,
   mode: SandboxMode,
   workspaceRoot?: string,
-  opts?: { action?: '写入' | '编辑' },
+  opts?: { action?: '写入' | '编辑' | '删除' },
 ): string | null {
   const action = opts?.action ?? '写入'
   if (mode === 'full-access') return null

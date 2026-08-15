@@ -28,6 +28,7 @@
 - `__tests__/unit/asset-usage.test.ts` 验证 Trace identity 继承、未知 key 拒绝、metadata 扁平 allowlist 和字符串 / 数组上限；嵌套正文对象不得进入证据。
 - `__tests__/unit/asset-usage-store.test.ts` 验证按 asset / span / session 查询、会话清理和超过 32 MB 后持续裁剪；`database-persist.test.ts` 验证 schema v13 迁移。
 - `__tests__/unit/tool-registry.test.ts` 验证工具内部守卫证据绑定实际 tool span；`llm-debug-store.test.ts` 验证 JSONL 导出保留筛选顺序并附带每条 span 的证据。
+- `__tests__/unit/file-delete.test.ts` 验证相对路径基于工作区、workspace-write 阻止越界、read-only 阻止删除、full-access 明确放行，以及路径证据不携带真实路径正文。
 - 资产证据变更必须跑 Unit、普通 Eval、Skill Eval、TypeScript、Vite Build、UI E2E，并在真实 Electron 中检查调用分组、最近使用、跨面板跳转与浅色 / 深色；未修改人格 Prompt / Judge 时不要求 Persona Real Eval。
 - 静态正文和动态模板使用内容指纹；只有无模板的运行时资产使用结构指纹。指纹不得包含 API Key 或动态用户插槽实际值。
 - 未来增加英文时，在同一 key 下进行独立版本等价性测试，并验证运行时按 locale 单选，不把多语言版本并发注入模型。

@@ -199,7 +199,7 @@ export function getPermissionSandboxAssetCatalog(): ModelContextAsset[] {
     policyAsset({
       key: PERMISSION_SANDBOX_ASSET_KEYS.pathBoundaries,
       name: '权限策略 · 文件路径边界',
-      purpose: '定义工作区包含关系、受保护路径和文件写入沙箱结果',
+      purpose: '定义工作区包含关系、受保护路径和文件写入、编辑、删除沙箱结果',
       role: 'file-path-guard',
       source: 'electron/main/sandbox/file-path-guard.ts',
       assetType: 'permission-policy',

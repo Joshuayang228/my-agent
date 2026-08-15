@@ -665,7 +665,7 @@ export async function* agentLoop(
     for (const call of pendingCalls) {
       const guardAssetKeys = call.name === 'shell_exec'
         ? [PERMISSION_SANDBOX_ASSET_KEYS.commandSafetyGrading, PERMISSION_SANDBOX_ASSET_KEYS.sandboxModes]
-        : ['file_write', 'file_edit', 'apply_patch'].includes(call.name)
+        : ['file_write', 'file_edit', 'file_delete', 'apply_patch'].includes(call.name)
           ? [PERMISSION_SANDBOX_ASSET_KEYS.pathBoundaries]
           : []
       const toolSpan = startSpan(`tool_${call.name}`, 'tool', 'tool', state.interactionSpanId, {

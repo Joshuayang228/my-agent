@@ -5,6 +5,14 @@
 
 ## [未发布]
 
+### Fixed — 文件删除沙箱路径边界（2026-08-15）
+
+- `file_delete` 现在与写入、编辑和 patch 共用工作区路径守卫；相对路径基于当前工作区，不再基于 Electron 进程目录。
+- `workspace-write` 会阻止工作区外和受保护路径删除，`read-only` 一律阻止删除；只有 `full-access` 可以删除工作区外或受保护路径。
+- 普通删除改用 Electron 原生 `shell.trashItem` 进入系统回收站，移除在 Electron bundle 中无法稳定定位 Windows helper 的 `trash` 依赖；永久删除白名单策略保持不变。
+- 删除向 Debug 证据链上报真实允许或阻止结果，但不保存路径正文。
+
+
 ### Added — 生产资产使用证据链 v1（2026-08-15）
 
 - Debug 的 LLM 调用详情新增真实资产证据，按 Prompt / 伙伴、Provider、Tool schema、Skill、Memory、Permission / Sandbox 分组，并区分可用、实际使用、真实触发和仅匹配。

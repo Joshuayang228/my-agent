@@ -1,8 +1,20 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { fileDeleteTool } from '../../electron/main/tools/builtins/file-delete'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as os from 'node:os'
+
+const sandboxState = vi.hoisted(() => ({ mode: 'workspace-write' as 'read-only' | 'workspace-write' | 'full-access', workspaceRoot: '' }))
+const electronMocks = vi.hoisted(() => ({ trashItem: vi.fn<(target: string) => Promise<void>>() }))
+
+vi.mock('electron', () => ({ shell: { trashItem: electronMocks.trashItem } }))
+
+vi.mock('../../electron/main/sandbox/effective-sandbox', () => ({
+  loadEffectiveSandbox: vi.fn(async () => sandboxState.mode),
+}))
+vi.mock('../../electron/main/agent/project-memory', () => ({
+  getWorkspaceRoot: vi.fn(() => sandboxState.workspaceRoot),
+}))
 
 describe('file_delete tool', () => {
   let testDir: string
@@ -11,6 +23,12 @@ describe('file_delete tool', () => {
     // 创建临时测试目录
     testDir = path.join(os.tmpdir(), `file-delete-test-${Date.now()}`)
     await fs.mkdir(testDir, { recursive: true })
+    sandboxState.mode = 'workspace-write'
+    sandboxState.workspaceRoot = testDir
+    electronMocks.trashItem.mockReset()
+    electronMocks.trashItem.mockImplementation(async (target) => {
+      await fs.rm(target, { recursive: true, force: true })
+    })
   })
 
   afterEach(async () => {
@@ -34,7 +52,8 @@ describe('file_delete tool', () => {
     await expect(fs.access(testFile)).rejects.toThrow()
   })
 
-  it('应该永久删除白名单路径下的文件（node_modules）', async () => {
+  it('full-access 可以永久删除白名单路径下的文件（node_modules）', async () => {
+    sandboxState.mode = 'full-access'
     const nodeModulesDir = path.join(testDir, 'node_modules')
     const testFile = path.join(nodeModulesDir, 'package.json')
     await fs.mkdir(nodeModulesDir, { recursive: true })
@@ -90,23 +109,107 @@ describe('file_delete tool', () => {
     expect(result).toBe('错误：必须提供路径')
   })
 
-  it('应该处理相对路径（解析为绝对路径）', async () => {
+  it('相对路径必须基于当前工作区解析', async () => {
     const relativePath = 'test-relative.txt'
-    const absolutePath = path.resolve(process.cwd(), relativePath)
-
-    // 创建文件
+    const absolutePath = path.join(testDir, relativePath)
     await fs.writeFile(absolutePath, 'relative test')
 
-    const result = await fileDeleteTool.execute({ path: relativePath })
+    const result = await fileDeleteTool.execute({ path: relativePath }, {
+      workdir: testDir,
+      sessionId: 'session-test',
+    })
 
     expect(result).toContain('删除成功')
     expect(result).toContain(absolutePath)
-
-    // 清理
     await expect(fs.access(absolutePath)).rejects.toThrow()
   })
 
-  it('白名单应该识别 .git 目录', async () => {
+  it('workspace-write 必须阻止删除工作区外文件，且不泄露到删除执行', async () => {
+    const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), 'file-delete-outside-'))
+    const outsideFile = path.join(outsideDir, 'outside.txt')
+    await fs.writeFile(outsideFile, 'keep')
+    try {
+      const reporter = vi.fn()
+      const result = await fileDeleteTool.execute({ path: outsideFile }, {
+        workdir: testDir,
+        sessionId: 'session-test',
+        assetUsageReporter: reporter,
+      })
+
+      expect(result).toContain('SANDBOX BLOCKED')
+      expect(result).toContain('超出工作区')
+      expect(reporter).toHaveBeenCalledWith(expect.objectContaining({
+        assetKey: 'permission-policy:path-boundaries',
+        status: 'blocked',
+        metadata: expect.objectContaining({ decision: 'deny', sandboxMode: 'workspace-write' }),
+      }))
+      expect(JSON.stringify(reporter.mock.calls)).not.toContain(outsideFile)
+      await expect(fs.access(outsideFile)).resolves.toBeUndefined()
+    } finally {
+      await fs.rm(outsideDir, { recursive: true, force: true })
+    }
+  })
+
+  it('read-only 必须阻止删除工作区内文件', async () => {
+    sandboxState.mode = 'read-only'
+    const testFile = path.join(testDir, 'read-only.txt')
+    await fs.writeFile(testFile, 'keep')
+
+    const result = await fileDeleteTool.execute({ path: testFile }, {
+      workdir: testDir,
+      sessionId: 'session-test',
+    })
+
+    expect(result).toContain('SANDBOX BLOCKED')
+    expect(result).toContain('只读模式下禁止删除文件')
+    await expect(fs.access(testFile)).resolves.toBeUndefined()
+  })
+
+  it('full-access 可以删除工作区外文件', async () => {
+    sandboxState.mode = 'full-access'
+    const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), 'file-delete-full-access-'))
+    const outsideFile = path.join(outsideDir, 'outside.txt')
+    await fs.writeFile(outsideFile, 'remove')
+    try {
+      const result = await fileDeleteTool.execute({ path: outsideFile }, {
+        workdir: testDir,
+        sessionId: 'session-test',
+      })
+
+      expect(result).toContain('删除成功')
+      await expect(fs.access(outsideFile)).rejects.toThrow()
+    } finally {
+      await fs.rm(outsideDir, { recursive: true, force: true })
+    }
+  })
+
+  it('上报真实路径守卫结果，但不携带路径正文', async () => {
+    const reporter = vi.fn()
+    const testFile = path.join(testDir, 'evidence.txt')
+    await fs.writeFile(testFile, 'keep')
+
+    await fileDeleteTool.execute({ path: testFile }, {
+      workdir: testDir,
+      sessionId: 'session-test',
+      assetUsageReporter: reporter,
+    })
+
+    expect(reporter).toHaveBeenCalledWith(expect.objectContaining({
+      assetKey: 'permission-policy:path-boundaries',
+      relation: 'used',
+      usageKind: 'permission-decision',
+      status: 'success',
+      metadata: expect.objectContaining({
+        toolName: 'file_delete',
+        sandboxMode: 'workspace-write',
+        decision: 'allow',
+      }),
+    }))
+    expect(JSON.stringify(reporter.mock.calls)).not.toContain(testDir)
+  })
+
+  it('full-access 下白名单应该识别 .git 目录', async () => {
+    sandboxState.mode = 'full-access'
     const gitDir = path.join(testDir, '.git')
     const testFile = path.join(gitDir, 'config')
     await fs.mkdir(gitDir, { recursive: true })

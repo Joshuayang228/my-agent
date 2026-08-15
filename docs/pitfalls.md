@@ -2,6 +2,14 @@
 
 > 开发过程中遇到的坑和解决方案，避免重复踩坑。
 
+## 第三方回收站二进制在 Electron bundle 中失去 file URL
+
+**问题**：`trash@10.1.1` 在 Node 单测中可以删除文件，但打进 Electron 主进程后，Windows 回收站调用报 `The URL must be of scheme file`。
+
+**原因**：该包用 `new URL('windows-trash.exe', import.meta.url)` 定位随包 helper，再调用 `fileURLToPath`；主进程 bundler 改写模块位置后，`import.meta.url` 不再保持该依赖预期的标准 `file:` URL。
+
+**解决**：主进程直接使用 Electron 原生 `shell.trashItem(path.resolve(...))`；删除不再依赖额外二进制，跨平台生命周期也与 Electron 一致。此类携带 helper binary、WASM 或 worker 的 ESM 包，不能只凭 Node 单测判定 Electron 可用，必须补真实打包运行验收。
+
 ## Windows `localhost` 导致 Electron 开发白屏
 
 **问题**：开发窗口显示空白，但 DevTools 只有 Electron 安全警告。
