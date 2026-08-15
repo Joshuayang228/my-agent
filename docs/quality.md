@@ -21,6 +21,7 @@
 - `__tests__/unit/model-context-assets.test.ts` 验证统一目录聚合生产 Prompt、伙伴人格资产、内置/Skill/MCP Tool schema、Skill 正文、Eval Judge、用户 L3 所有权和自动指纹。
 - `__tests__/unit/companion-asset-registry.test.ts` 验证 Role Pack 清单、可选 profile / 默认世界、文件 / 派生场景、生活 starter、稳定 key、来源、依赖和防修改副本。
 - `__tests__/unit/memory-strategy-registry.test.ts` 验证记忆策略参数来自 profile / memory-store / vector-store / citation-correct 的生产事实，不读取用户记忆正文。
+- `__tests__/unit/permission-sandbox-asset-registry.test.ts` 验证权限与沙箱资产来自 policy / permission-engine / exec-policy / approval-store / effective-sandbox 的生产事实，不读取用户规则或审批记录正文。
 - 静态正文和动态模板使用内容指纹；只有无模板的运行时资产使用结构指纹。指纹不得包含 API Key 或动态用户插槽实际值。
 - 未来增加英文时，在同一 key 下进行独立版本等价性测试，并验证运行时按 locale 单选，不把多语言版本并发注入模型。
 

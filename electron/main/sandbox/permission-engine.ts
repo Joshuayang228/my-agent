@@ -19,11 +19,14 @@ import { createLogger } from '../utils/logger'
 
 const log = createLogger('PermissionEngine')
 
-export type RuleAction = 'allow' | 'deny' | 'ask'
+export const PERMISSION_RULE_ACTIONS = ['allow', 'deny', 'ask'] as const
+export type RuleAction = typeof PERMISSION_RULE_ACTIONS[number]
+export const PERMISSION_RULE_TYPES = ['command', 'tool', 'path'] as const
+export type PermissionRuleType = typeof PERMISSION_RULE_TYPES[number]
 
 export interface PermissionRule {
   id: string
-  type: 'command' | 'tool' | 'path'
+  type: PermissionRuleType
   pattern: string
   action: RuleAction
   description?: string
@@ -37,6 +40,14 @@ export type DecisionType =
   | 'dangerous'        // 危险命令检测（bypass-immune）
   | 'sandbox-policy'   // 沙箱策略
   | 'default-allow'    // 默认允许（无规则命中）
+
+export const PERMISSION_DECISION_CHAIN = [
+  { id: 'custom-hard-rule', source: 'custom-rule', outcome: 'allow-or-deny' },
+  { id: 'approval-store', source: 'approval-store', outcome: 'allow-or-deny' },
+  { id: 'custom-ask-rule', source: 'custom-rule', outcome: 'needs-approval' },
+  { id: 'command-risk-and-sandbox', source: 'dangerous-or-sandbox-policy', outcome: 'allow-deny-or-needs-approval' },
+  { id: 'fallback', source: 'default-allow', outcome: 'allow' },
+] as const
 
 export interface PermissionCheckResult {
   allowed: boolean | 'needs_approval'

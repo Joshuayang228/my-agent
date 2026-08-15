@@ -15,7 +15,15 @@ import { createLogger } from '../utils/logger'
 
 const log = createLogger('ApprovalStore')
 
-export type ApprovalScope = 'once' | 'session' | 'persistent'
+export const APPROVAL_SCOPES = ['once', 'session', 'persistent'] as const
+export type ApprovalScope = typeof APPROVAL_SCOPES[number]
+export const APPROVAL_COMMAND_PREFIX_WORDS = 3
+export const APPROVAL_LOOKUP_ORDER = ['persistent', 'session'] as const
+export const APPROVAL_SCOPE_STORAGE = {
+  once: 'not-stored',
+  session: 'memory-until-session-clear-or-restart',
+  persistent: 'memory-cache-and-sqlite',
+} as const satisfies Readonly<Record<ApprovalScope, string>>
 
 interface ApprovalRecord {
   commandPattern: string
@@ -28,7 +36,7 @@ const sessionApprovals = new Map<string, ApprovalRecord>()
 const persistentApprovals = new Map<string, ApprovalRecord>()
 
 function normalizeCommand(command: string): string {
-  return command.trim().split(/\s+/).slice(0, 3).join(' ')
+  return command.trim().split(/\s+/).slice(0, APPROVAL_COMMAND_PREFIX_WORDS).join(' ')
 }
 
 /**
@@ -76,11 +84,14 @@ async function persistApprovalToDisk(record: ApprovalRecord): Promise<void> {
 export function checkApproval(command: string): boolean | null {
   const key = normalizeCommand(command)
 
-  const persistent = persistentApprovals.get(key)
-  if (persistent) return persistent.approved
-
-  const session = sessionApprovals.get(key)
-  if (session) return session.approved
+  const stores = {
+    persistent: persistentApprovals,
+    session: sessionApprovals,
+  }
+  for (const scope of APPROVAL_LOOKUP_ORDER) {
+    const record = stores[scope].get(key)
+    if (record) return record.approved
+  }
 
   return null
 }

@@ -15,16 +15,16 @@ export interface CommandAssessment {
   matchedRule?: string
 }
 
-const SAFE_COMMANDS = new Set([
+export const SAFE_COMMAND_NAMES = [
   'ls', 'dir', 'cat', 'type', 'echo', 'pwd', 'cd',
   'head', 'tail', 'wc', 'sort', 'uniq', 'grep', 'rg', 'find',
   'which', 'where', 'whoami', 'hostname', 'date',
   'node', 'python', 'python3', 'git', 'npm', 'npx', 'pnpm', 'yarn',
   'tsc', 'eslint', 'prettier', 'vitest', 'jest',
   'cargo', 'rustc', 'go', 'java', 'javac',
-])
+] as const
 
-const SAFE_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
+export const SAFE_COMMAND_PATTERNS: ReadonlyArray<{ pattern: RegExp; label: string }> = [
   { pattern: /^(node|python3?|ruby|go|java)\s+--version$/, label: 'version check' },
   { pattern: /^(npm|pnpm|yarn)\s+(list|ls|info|view|outdated|audit)/, label: 'package info' },
   { pattern: /^git\s+(status|log|diff|branch|show|tag|remote|stash list)/, label: 'git read' },
@@ -35,7 +35,7 @@ const SAFE_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /^npx\s+(tsc|vitest|jest|eslint|prettier)\s+/, label: 'dev tool via npx' },
 ]
 
-const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
+export const DANGEROUS_COMMAND_PATTERNS: ReadonlyArray<{ pattern: RegExp; label: string }> = [
   { pattern: /rm\s+(-rf?|--force|--recursive)\s+[/\\]/, label: 'recursive delete at root' },
   { pattern: /rm\s+(-rf?|--force)\s+~/, label: 'recursive delete at home' },
   { pattern: /format\s+[a-zA-Z]:/, label: 'disk format' },
@@ -58,13 +58,15 @@ const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /env\s+.*=.*\bsudo\b/, label: 'sudo via env' },
 ]
 
+const SAFE_COMMANDS = new Set<string>(SAFE_COMMAND_NAMES)
+
 export function assessCommand(command: string): CommandAssessment {
   const trimmed = command.trim()
   const firstWord = trimmed.split(/\s+/)[0]?.toLowerCase() || ''
 
-  for (const dp of DANGEROUS_PATTERNS) {
-    if (dp.pattern.test(trimmed)) {
-      return { risk: 'dangerous', reason: dp.label, matchedRule: dp.pattern.source }
+  for (const dangerPattern of DANGEROUS_COMMAND_PATTERNS) {
+    if (dangerPattern.pattern.test(trimmed)) {
+      return { risk: 'dangerous', reason: dangerPattern.label, matchedRule: dangerPattern.pattern.source }
     }
   }
 
@@ -72,9 +74,9 @@ export function assessCommand(command: string): CommandAssessment {
     return { risk: 'safe', reason: `known safe command: ${firstWord}` }
   }
 
-  for (const sp of SAFE_PATTERNS) {
-    if (sp.pattern.test(trimmed)) {
-      return { risk: 'safe', reason: sp.label, matchedRule: sp.pattern.source }
+  for (const safePattern of SAFE_COMMAND_PATTERNS) {
+    if (safePattern.pattern.test(trimmed)) {
+      return { risk: 'safe', reason: safePattern.label, matchedRule: safePattern.pattern.source }
     }
   }
 

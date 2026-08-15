@@ -2,6 +2,13 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
+## 2026-08-15 · 权限与沙箱生产资产 v1
+
+- 新增 `sandbox/asset-registry.ts`，登记三级沙箱、权限责任链、命令安全分级、文件路径边界、审批生命周期和有效沙箱推导。
+- 注册表从 policy / permission-engine / exec-policy / file-path-guard / approval-store / effective-sandbox 的生产常量和纯函数生成，不读取用户 permissionRules、审批记录正文、当前 executionMode 或真实用户路径。
+- Debug「提示词管理器 → 权限与沙箱」只读展示来源、版本、指纹、依赖和结构化规则；Playground 不允许把权限资产载入成 Prompt 实验副本。
+- 验证：Unit 110 个文件 / 659 项通过，TypeScript、Vite / Electron Build、UI E2E 7/7 通过。
+
 ## 2026-08-14 · 记忆策略生产资产 v1
 
 - 新增 `memory/strategy-registry.ts`，登记用户画像提取、语义去重、伙伴反馈分桶、向量召回、向量生命周期和引用纠错策略。

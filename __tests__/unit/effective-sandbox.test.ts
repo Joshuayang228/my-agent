@@ -12,8 +12,9 @@ describe('resolveEffectiveSandbox', () => {
     expect(resolveEffectiveSandbox('plan-first')).toBe('workspace-write')
   })
 
-  it('缺省 → workspace-write', () => {
+  it('缺省和原型属性 → workspace-write', () => {
     expect(resolveEffectiveSandbox(undefined)).toBe('workspace-write')
     expect(resolveEffectiveSandbox('')).toBe('workspace-write')
+    expect(resolveEffectiveSandbox('toString')).toBe('workspace-write')
   })
 })

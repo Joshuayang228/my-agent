@@ -18,6 +18,7 @@ import { getAllSettings } from '../storage/settings-store'
 import { PROMPT_KEYS } from '../prompts/keys'
 import { getCompanionAssetCatalog } from '../companion/asset-registry'
 import { getMemoryStrategyAssetCatalog } from '../memory/strategy-registry'
+import { getPermissionSandboxAssetCatalog } from '../sandbox/asset-registry'
 
 function toolSchemaContent(tool: ToolDefinition): string {
   return JSON.stringify({
@@ -143,7 +144,8 @@ export function buildModelContextAssets(input: {
   const skillAssets = input.skills.map(skillAsset)
   const companionAssets = getCompanionAssetCatalog()
   const memoryStrategyAssets = getMemoryStrategyAssetCatalog()
-  return [...promptAssets, ...toolAssets, ...skillAssets, ...companionAssets, ...memoryStrategyAssets]
+  const permissionSandboxAssets = getPermissionSandboxAssetCatalog()
+  return [...promptAssets, ...toolAssets, ...skillAssets, ...companionAssets, ...memoryStrategyAssets, ...permissionSandboxAssets]
 }
 
 export async function getModelContextAssets(toolRegistry: ToolRegistry): Promise<ModelContextAsset[]> {
