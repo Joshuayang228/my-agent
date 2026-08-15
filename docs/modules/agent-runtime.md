@@ -69,7 +69,7 @@
 | 多 Provider LLM + Failover | 已落地 | `llm/`；OpenAI Compatible / Anthropic / Gemini；配置唯一经 `loadMainLLMConfig` / `loadAuxLLMConfig` |
 | Provider 能力生产资产 | 已落地 | `provider-presets.ts` 唯一预设源；`provider-asset-registry.ts` 登记三协议、五项策略与 9 个预设；Debug「提示词管理器 → 模型 Provider」只读展示 |
 | 首次模型配置旅程 | 已落地 | 无 Key 自动进入设置「模型」；Provider / Key / Base URL / 模型 → 当前配置连接测试 → 保存并开始对话；字段变化会使验证失效，测试复用统一配置工厂且不写盘 |
-| Headless 运行（定时/后台） | 已落地 | `runtime.runHeadless` |
+| Headless 运行（定时/后台） | 已落地 | `runtime.runHeadless`；无交互时只自动批准明确只读工具 |
 | Observer / DevPanel 可观测 | 已落地 | tracer / observer / DevPanel |
 | LLM Debug 安全元数据持久化 | 已落地 | tracer sink · `llm_debug_logs` · Debug IPC；只保留结构元数据、正文长度和资产证据，不持久化 Prompt / 响应 / hidden reasoning |
 | Chat Callback 三通道 UI | 已落地 | `src/components/chat/callbacks/` |

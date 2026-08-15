@@ -25,7 +25,9 @@ async function getRecentProjects(): Promise<ProjectInfo[]> {
   try {
     const list = JSON.parse(raw) as string[]
     return list
-      .filter((p) => fs.existsSync(p))
+      .filter((p) => {
+        try { return fs.statSync(p).isDirectory() } catch { return false }
+      })
       .map((p) => ({ path: p, name: pathToName(p) }))
   } catch {
     return []
@@ -59,8 +61,13 @@ function resolveExistingPath(filePath: string): string | null {
 
 async function getCurrentProjectRoot(): Promise<string | null> {
   const configured = await settings.getSetting('currentProject')
-  if (!configured || !fs.existsSync(configured) || !fs.statSync(configured).isDirectory()) return null
-  return resolveExistingPath(configured)
+  if (!configured) return null
+  try {
+    if (!fs.existsSync(configured) || !fs.statSync(configured).isDirectory()) return null
+    return resolveExistingPath(configured)
+  } catch {
+    return null
+  }
 }
 
 function isPathAllowedInProject(filePath: string, projectRoot: string): boolean {
@@ -112,7 +119,8 @@ export function registerProjectIPC(): void {
 
     if (result.canceled || !result.filePaths.length) return null
 
-    const dirPath = result.filePaths[0]
+    const dirPath = resolveExistingPath(result.filePaths[0])
+    if (!dirPath || !fs.statSync(dirPath).isDirectory()) return null
     await addToRecent(dirPath)
     await settings.setSetting('currentProject', dirPath)
     applyProject(dirPath)
@@ -127,7 +135,11 @@ export function registerProjectIPC(): void {
   ipcMain.handle('project:set', async (_e, dirPath: string | null) => {
     if (dirPath !== null && typeof dirPath !== 'string') return { success: false, error: 'Invalid directory' }
     if (dirPath) {
-      if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) return { success: false, error: 'Directory not found' }
+      try {
+        if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) return { success: false, error: 'Directory not found' }
+      } catch {
+        return { success: false, error: 'Directory not found' }
+      }
       const resolvedDir = resolveExistingPath(dirPath)
       if (!resolvedDir) return { success: false, error: 'Directory not found' }
       dirPath = resolvedDir
@@ -142,10 +154,9 @@ export function registerProjectIPC(): void {
   })
 
   ipcMain.handle('project:get', async () => {
-    const dirPath = await settings.getSetting('currentProject')
+    const dirPath = await getCurrentProjectRoot()
     if (!dirPath) return null
-    if (!fs.existsSync(dirPath)) return null
-    // 启动后仅读设置不会 set workspace；这里恢复主进程工作区，避免沙箱/相对路径漂移
+    // 启动后仅读设置不会 set workspace；这里恢复真实工作区，避免 symlink / 相对路径漂移
     applyProject(dirPath)
     return { path: dirPath, name: pathToName(dirPath) }
   })
@@ -211,7 +222,8 @@ export function registerProjectIPC(): void {
         languageHint: languageHintFromExt(ext),
       }
     } catch (err) {
-      return { error: err instanceof Error ? err.message : String(err) }
+      log.warn('Project preview failed', { errorType: err instanceof Error ? err.name : 'unknown' })
+      return { error: '读取项目文件失败' }
     }
   })
 
@@ -222,10 +234,14 @@ export function registerProjectIPC(): void {
       if (!resolvedFile) return { ok: false, error: '文件不在当前项目内或不是普通文件' }
       const { shell } = await import('electron')
       const err = await shell.openPath(resolvedFile)
-      if (err) return { ok: false, error: err }
+      if (err) {
+        log.warn('Open project file rejected by shell', { errorLength: err.length })
+        return { ok: false, error: '系统应用无法打开该文件' }
+      }
       return { ok: true }
     } catch (err) {
-      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+      log.warn('Open project file failed', { errorType: err instanceof Error ? err.name : 'unknown' })
+      return { ok: false, error: '打开项目文件失败' }
     }
   })
 

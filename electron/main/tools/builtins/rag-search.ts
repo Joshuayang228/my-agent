@@ -1,6 +1,6 @@
 import { buildTool } from '../builder'
 import { searchDocuments } from '../../rag/index'
-import * as settings from '../../storage/settings-store'
+import { loadMainLLMConfig } from '../../llm/aux-config'
 
 export const ragSearchTool = buildTool({
   name: 'rag_search',
@@ -15,15 +15,13 @@ export const ragSearchTool = buildTool({
   },
   metadata: { isReadOnly: true, isConcurrencySafe: true },
   execute: async (args) => {
-    const query = args.query as string
-    const topK = parseInt(args.topK as string) || 5
+    const query = args.query
+    if (typeof query !== 'string' || !query.trim()) return '错误：必须提供搜索查询'
+    if (query.length > 10_000) return '错误：搜索查询过长'
+    const requestedTopK = parseInt(String(args.topK || '5'), 10)
+    const topK = Math.min(20, Math.max(1, Number.isFinite(requestedTopK) ? requestedTopK : 5))
 
-    const allSettings = await settings.getAllSettings()
-    const config = {
-      apiKey: allSettings.apiKey || '',
-      baseUrl: allSettings.baseUrl || 'https://api.openai.com/v1',
-      model: allSettings.model || 'gpt-4o-mini',
-    }
+    const config = await loadMainLLMConfig()
 
     if (!config.apiKey) return '❌ 未配置 API Key，无法执行向量搜索'
 

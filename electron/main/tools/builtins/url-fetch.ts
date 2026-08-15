@@ -129,7 +129,7 @@ export async function validateFetchUrl(raw: string): Promise<
   if (parsed.username || parsed.password) {
     return { ok: false, reason: '不允许携带 URL 用户名或密码' }
   }
-  const hostname = parsed.hostname.replace(/\.$/, '').toLowerCase()
+  const hostname = parsed.hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '').toLowerCase()
   if (isBlockedHostname(hostname)) {
     return { ok: false, reason: '出于安全原因，不允许访问本机或内网地址' }
   }
@@ -159,7 +159,17 @@ export function isBlockedAddress(address: string): boolean {
   if (isIP(normalized) === 6) {
     if (normalized === '::1' || normalized === '::') return true
     if (normalized.startsWith('fc') || normalized.startsWith('fd') || /^fe[89ab]/.test(normalized)) return true
-    if (normalized.startsWith('::ffff:')) return isBlockedAddress(normalized.slice(7))
+    if (normalized.startsWith('::ffff:')) {
+      const mapped = normalized.slice(7)
+      if (mapped.includes('.')) return isBlockedAddress(mapped)
+      const groups = mapped.split(':')
+      if (groups.length === 2 && groups.every((group) => /^[0-9a-f]{1,4}$/.test(group))) {
+        const high = parseInt(groups[0], 16)
+        const low = parseInt(groups[1], 16)
+        const ipv4 = `${high >> 8}.${high & 0xff}.${low >> 8}.${low & 0xff}`
+        return isBlockedAddress(ipv4)
+      }
+    }
   }
   return false
 }

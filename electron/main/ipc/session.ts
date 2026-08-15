@@ -50,7 +50,8 @@ export function registerSessionIPC(): void {
       log.info('Title regenerated', { sessionId })
       return { success: true }
     } catch (err) {
-      return { success: false, error: String(err) }
+      log.warn('Title regeneration failed', { errorType: err instanceof Error ? err.name : 'unknown' })
+      return { success: false, error: '标题生成失败，请稍后重试' }
     }
   })
 }

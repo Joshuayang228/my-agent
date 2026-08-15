@@ -168,7 +168,7 @@ export async function runDebugTool(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     span.end('error', message)
-    log.warn('Debug tool run failed', { name: pre.toolName, errorType: error instanceof Error ? error.name : 'unknown', errorLength: message.length })
+    log.warn('Debug tool run failed', { name: pre.toolName, errorType: err instanceof Error ? err.name : 'unknown', errorLength: message.length })
     return { ok: false, error: message, permission: pre.permission }
   }
 }

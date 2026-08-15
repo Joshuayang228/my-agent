@@ -19,6 +19,9 @@ export { DEFAULT_PLAYGROUND_SYSTEM } from '../prompts/texts'
 
 const log = createLogger('Playground')
 
+export const MAX_PLAYGROUND_TEXT_LENGTH = 100_000
+export const MAX_PLAYGROUND_HISTORY_TURNS = 50
+
 /** 试验场历史轮（不含 system） */
 export type PlaygroundTurn = { role: 'user' | 'assistant'; content: string }
 
@@ -83,6 +86,18 @@ export async function runPlayground(input: {
 }): Promise<PlaygroundRunResult> {
   const user = input.userPrompt?.trim() || ''
   if (!user) return { ok: false, error: '请输入用户 Prompt' }
+  if (user.length > MAX_PLAYGROUND_TEXT_LENGTH) return { ok: false, error: '用户 Prompt 过长' }
+  if (typeof input.systemPrompt === 'string' && input.systemPrompt.length > MAX_PLAYGROUND_TEXT_LENGTH) {
+    return { ok: false, error: '系统 Prompt 过长' }
+  }
+  const history = input.history ?? []
+  if (!Array.isArray(history) || history.length > MAX_PLAYGROUND_HISTORY_TURNS) {
+    return { ok: false, error: `历史轮数不能超过 ${MAX_PLAYGROUND_HISTORY_TURNS} 轮` }
+  }
+  if (history.some((turn) => !turn || (turn.role !== 'user' && turn.role !== 'assistant')
+    || typeof turn.content !== 'string' || turn.content.length > MAX_PLAYGROUND_TEXT_LENGTH)) {
+    return { ok: false, error: '历史消息参数无效或过长' }
+  }
 
   const config = await loadPlaygroundLLMConfig()
   if (!config.apiKey?.trim()) {
@@ -121,7 +136,7 @@ export async function runPlayground(input: {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     span.end('error', message)
-    log.warn('Playground run failed', { errorType: error instanceof Error ? error.name : 'unknown', errorLength: message.length })
+    log.warn('Playground run failed', { errorType: err instanceof Error ? err.name : 'unknown', errorLength: message.length })
     return { ok: false, error: message }
   }
 }

@@ -4,14 +4,13 @@
  * Alice 方法论 Ch.12：sandbox-mode → tool-allow/deny → path-guard → rate-limit → user-override
  *
  * 责任链执行顺序：
+ * 0. 不可绕过边界（危险命令、越界 cwd、Shell 控制符、显式越界路径）
  * 1. 用户自定义硬规则（allow/deny）
- * 2. 审批记录（session / persistent）— 须在 ask 之前，否则确认无效
+ * 2. 审批记录（session / persistent）
  * 3. 用户自定义 ask 规则
  * 4. 命令安全分级 + 沙箱策略（exec-policy / guardCommand）
- * 5. 默认行为（fallback，在 guard 内）
  */
 
-import { assessCommand } from './exec-policy'
 import { buildPolicy, type SandboxMode } from './policy'
 import { guardCommand, type GuardDecision } from './command-guard'
 import { checkApproval } from './approval-store'
@@ -58,16 +57,40 @@ export interface PermissionCheckResult {
 }
 
 const userRules: PermissionRule[] = []
+const compiledRulePatterns = new Map<string, RegExp>()
+const MAX_PERMISSION_RULES = 100
+const MAX_PERMISSION_PATTERN_LENGTH = 512
 
 /** 加载用户自定义规则（从设置 JSON 字符串解析） */
 export function loadRules(rulesJson: string): void {
   userRules.length = 0
+  compiledRulePatterns.clear()
   try {
     const parsed = JSON.parse(rulesJson)
     if (Array.isArray(parsed)) {
-      for (const rule of parsed) {
-        if (rule.id && rule.type && rule.pattern && rule.action) {
-          userRules.push({ ...rule, enabled: rule.enabled !== false })
+      for (const rule of parsed.slice(0, MAX_PERMISSION_RULES)) {
+        if (!rule || typeof rule !== 'object') continue
+        const candidate = rule as Record<string, unknown>
+        if (typeof candidate.id !== 'string' || candidate.id.length === 0 || candidate.id.length > 200
+          || !PERMISSION_RULE_TYPES.includes(candidate.type as PermissionRuleType)
+          || !PERMISSION_RULE_ACTIONS.includes(candidate.action as RuleAction)
+          || typeof candidate.pattern !== 'string'
+          || candidate.pattern.length === 0 || candidate.pattern.length > MAX_PERMISSION_PATTERN_LENGTH) continue
+        if (isUnsafeRegexShape(candidate.pattern)) continue
+        try {
+          const compiled = new RegExp(candidate.pattern, 'i')
+          const normalized: PermissionRule = {
+            id: candidate.id,
+            type: candidate.type as PermissionRuleType,
+            pattern: candidate.pattern,
+            action: candidate.action as RuleAction,
+            description: typeof candidate.description === 'string' ? candidate.description.slice(0, 500) : undefined,
+            enabled: candidate.enabled !== false,
+          }
+          userRules.push(normalized)
+          compiledRulePatterns.set(normalized.id, compiled)
+        } catch {
+          log.warn('Invalid rule pattern', { ruleId: hashForLog(candidate.id), patternHash: hashForLog(candidate.pattern) })
         }
       }
     }
@@ -86,7 +109,7 @@ export function getRules(): PermissionRule[] {
  * 命令权限检查 — 五层责任链
  *
  * ask 规则不能抢在审批库之前返回：否则用户确认后的 session 审批永远命不中。
- * 顺序：自定义 allow/deny → 审批库 → 自定义 ask → 沙箱。
+ * 但任何自定义规则和审批都不能绕过第 0 层的硬边界。
  */
 export function checkCommandPermission(
   command: string,
@@ -94,15 +117,17 @@ export function checkCommandPermission(
   sandboxMode: SandboxMode,
   workspaceRoot?: string,
 ): PermissionCheckResult {
+  // 先跑不可绕过的命令边界：危险命令、越界 cwd、Shell 控制符和显式越界路径
+  // 不能被自定义 allow 或历史审批覆盖。
+  const policy = buildPolicy(sandboxMode, workspaceRoot)
+  const guard = guardCommand(command, cwd, policy)
+  if (guard.allowed === false) return guardToResult(guard)
 
   // Layer 1: 用户自定义硬规则（仅 allow / deny）
   const hardCustom = matchCustomRules(command, 'command', { includeAsk: false })
-  if (hardCustom) {
-    log.debug('Custom hard rule matched', { commandHash: hashForLog(command), commandLength: command.length, ruleId: hardCustom.matchedRule })
-    return hardCustom
-  }
+  if (hardCustom) return hardCustom
 
-  // Layer 2: 历史审批记录（含对 ask 规则的会话确认）
+  // Layer 2: 历史审批记录。只对已经通过不可绕过边界的命令生效。
   const approved = checkApproval(command)
   if (approved !== null) {
     return {
@@ -113,19 +138,14 @@ export function checkCommandPermission(
     }
   }
 
-  // Layer 1b: 自定义 ask（无审批记录时才要求确认）
+  // Layer 3: 自定义 ask（无审批记录时才要求确认）
   const askCustom = matchCustomRules(command, 'command', { includeAsk: true, askOnly: true })
-  if (askCustom) {
-    log.debug('Custom ask rule matched', { commandHash: hashForLog(command), commandLength: command.length, ruleId: askCustom.matchedRule })
-    return askCustom
-  }
+  if (askCustom) return askCustom
 
-  // Layer 3-4: exec-policy + sandbox policy（委托给 guardCommand）
-  const policy = buildPolicy(sandboxMode, workspaceRoot)
-  const guard = guardCommand(command, cwd, policy)
-
+  // Layer 4-5: 沙箱策略和默认行为
   return guardToResult(guard)
 }
+
 /**
  * 工具权限检查 — 检查某工具是否允许执行
  */
@@ -150,8 +170,8 @@ function matchCustomRules(
     if (!includeAsk && rule.action === 'ask') continue
 
     try {
-      const regex = new RegExp(rule.pattern, 'i')
-      if (regex.test(target)) {
+      const regex = compiledRulePatterns.get(rule.id)
+      if (regex?.test(target)) {
         const allowed = rule.action === 'allow' ? true
           : rule.action === 'deny' ? false
           : 'needs_approval' as const
@@ -170,6 +190,11 @@ function matchCustomRules(
   }
   return null
 }
+
+function isUnsafeRegexShape(pattern: string): boolean {
+  return /(?:\([^)]*[+*][^)]*\))[+*?]|(?:\.\*|\.\+).*?(?:\.\*|\.\+)|\\[1-9]/.test(pattern)
+}
+
 function guardToResult(guard: GuardDecision): PermissionCheckResult {
   if (guard.allowed === true) {
     return { allowed: true, reason: '沙箱策略允许', decisionType: 'sandbox-policy', chain: 'sandbox-policy' }

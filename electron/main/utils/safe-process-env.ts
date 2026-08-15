@@ -8,7 +8,7 @@
  * 关键约束：只过滤继承环境，不修改 process.env；显式 overrides 代表用户主动配置。
  */
 
-const SECRET_ENV_KEY_PATTERN = /(?:API[_-]?KEY|ACCESS[_-]?TOKEN|AUTH(?:ORIZATION)?|CLIENT[_-]?SECRET|PRIVATE[_-]?KEY|PASSWORD|CREDENTIAL|^SECRET$|^TOKEN$)/i
+const SECRET_ENV_KEY_PATTERN = /(?:API[_-]?KEY|ACCESS[_-]?(?:TOKEN|KEY)|AUTH(?:ORIZATION)?|CLIENT[_-]?SECRET|PRIVATE[_-]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|DATABASE[_-]?URL|CONNECTION[_-]?STRING|COOKIE|SESSION[_-]?KEY)/i
 
 export function buildSafeChildProcessEnv(
   overrides?: Record<string, string>,

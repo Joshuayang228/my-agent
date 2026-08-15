@@ -70,7 +70,7 @@ Alice 提出五种权限模式，从最保守到最激进：
 
 **关键判据**：模式不是"开关"（开/关），而是"刻度"（1-5 级）。用户根据场景选择刻度，系统自动调整行为。
 
-**我们的实现**：三级沙箱模式（`read-only` / `workspace-write` / `full-access`）+ 三级执行模式（`auto` / `confirm-all` / `plan-first`）。沙箱模式控制"允许写哪里"，执行模式控制"是否需要确认"。两者正交，可以组合（如 `workspace-write + confirm-all`）。
+**我们的实现**：三级沙箱模式（`read-only` / `workspace-write` / `full-access`）+ `executionMode`（`auto` / `confirm-all` / `plan-first` / `full-access`）。工具实际使用的沙箱由 `resolveEffectiveSandbox` 统一推导；非 `full-access` 的硬边界先于用户规则和历史审批。
 
 ## 三、责任链：多条规则同时存在时按什么顺序匹配
 
@@ -79,25 +79,25 @@ Alice 提出五种权限模式，从最保守到最激进：
 **Alice / CC 的答案**：按优先级排序，第一个命中的规则生效：
 
 ```
-输入：工具名 + 参数
+输入：命令 + 参数 + cwd
+    ↓
+0. 不可绕过硬边界（危险命令 / Shell 控制符 / 越界路径 / 越界 cwd）
+    命中 → 拒绝；不能被规则或审批覆盖
     ↓
 1. 用户自定义硬规则（allow / deny）
-    allow → 放行，deny → 拒绝
     ↓
 2. 历史审批记录（session / persistent）
-    已允许 → 放行，已拒绝 → 拒绝
     ↓
 3. 用户自定义 ask 规则
-    命中 → needs_approval（须在审批库之后，否则「本次允许」永远命不中）
     ↓
-4. 命令安全分级 + 沙箱策略（dangerous / safe / 路径边界）
+4. 命令安全分级 + 沙箱策略（dangerous / safe / unknown）
     ↓
 5. 默认行为（fallback）
 ```
 
 **关键判据**：优先级越高的规则越精确、越接近用户意图。用户显式 **allow/deny** 最高；**ask 不能压在审批库前面**——ask 只是「还没批过时要问」，批过之后应以审批记录为准。系统推断（命令分级）更低，fallback 最低。
 
-**我们的实现**：`allow/deny → approval-store → ask → exec-policy/sandbox → fallback`，每层返回 `allow / deny / needs_approval`，第一个非 `null` 结果生效。
+**我们的实现**：`hard-boundary → allow/deny → approval-store → ask → exec-policy/sandbox → fallback`，硬边界先判定；后续每层返回 `allow / deny / needs_approval`，第一个结果生效。
 
 ---
 
@@ -110,7 +110,7 @@ Alice 提出五种权限模式，从最保守到最激进：
 CC 的核心设计：某些安全检查是 **bypass-immune** 的——即使在 `bypassPermissions` 模式下也要拦截。
 
 典型场景：
-- `.git/` `.claude/` `.vscode/` 等敏感目录（safetyCheck）
+- 危险命令、Shell 控制符、工作区外路径 / cwd，以及非 full-access 下的 `.git/`、`.env*`、`node_modules`
 - shell 配置文件（`.bashrc` `.zshrc`）
 - Windows 路径穿越（`C:\` → `\\wsl$\...`）
 

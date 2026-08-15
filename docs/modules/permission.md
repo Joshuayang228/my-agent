@@ -48,7 +48,7 @@
 
 ## 必测点
 
-- 责任链：自定义规则 → 审批库 → 分级 → 沙箱 → 默认  
+- 责任链：不可绕过硬边界（危险 / 越界路径 / 控制符 / cwd）→ 自定义规则 → 审批库 → ask 规则 → 分级 / 沙箱 → 默认
 - `resolveEffectiveSandbox`：full-access vs 其他
 - confirm 批准/拒绝/超时  
 - 单测：`permission-engine` / `effective-sandbox`；Eval：F01 等权限场景
@@ -62,8 +62,8 @@
 | PermissionEngine 责任链 | 已落地 | `sandbox/permission-engine.ts` |
 | 对话页审批模式 | 已落地 | 输入区 · `executionMode`（含 full-access） |
 | 有效沙箱（由审批模式推导） | 已落地 | `effective-sandbox.ts` · write/edit/patch/shell |
-| 命令分级 + 路径守卫 | 已落地 | `command-guard` · `shell_exec` |
-| 文件读写路径沙箱 | 已落地 | `file-path-guard`；read / search / write / edit / delete / patch 共用；非 full-access 读写均绑定工作区，凭据文件 fail-closed |
+| 命令分级 + 路径守卫 | 已落地 | `command-guard` · `shell_exec`；硬边界先于 allow / 审批 |
+| 文件读写路径沙箱 | 已落地 | `file-path-guard`；read / search / write / edit / delete / patch 共用；realpath / symlink / `ToolContext.workdir` 边界；非 full-access 读写均绑定工作区，凭据文件 fail-closed |
 | 启动恢复工作区根 | 已落地 | `project:get` → `applyProject` |
 | 用户确认 IPC + 超时拒绝 | 已落地 | tool confirm · 监听清理 |
 | 确认弹窗组件（Chat + Playground） | 已落地 | `PermissionConfirmCard` · 串行队列 |
@@ -71,10 +71,11 @@
 | `permissionRules` 热更新 | 已落地 | settings |
 | 权限规则可视化编辑器 | 已落地 | 设置「安全与权限」· `PermissionRulesEditor` |
 | 权限与沙箱生产资产目录 | 已落地 | `sandbox/asset-registry.ts` · Debug「提示词管理器 → 权限与沙箱」 |
-| 子进程环境凭据隔离 | 已落地 | `safe-process-env.ts` · Terminal / shell_exec / Git / MCP stdio |
 | 安全日志元数据化 | 已落地 | `logger.ts` · 命令 / 路径 / 记忆内容只留长度或短指纹 |
+| 子进程环境凭据隔离 | 已落地 | `safe-process-env.ts` · Terminal / shell_exec / Git / MCP stdio / Eval Runner |
+| Headless 安全批准 | 已落地 | `agent/headless-policy.ts` · 只自动批准明确只读工具，拒绝 Shell / 子 Agent / 继续任务 |
 
 ## 现状 / 缺口
 
-**现状**：五层链已接 Loop；非 `full-access` 的 `file_read` / `code_search` 也绑定当前工作区并保护常见凭据文件；子进程默认过滤主进程环境中的 API Key / Token / Secret，日志不再落盘命令正文、权限 pattern/reason、原始路径或记忆正文；文件写入、编辑、删除和 patch 统一经过有效沙箱与工作区路径守卫，用户确认不会绕过路径边界；设置页不再提供独立沙箱开关；内置策略可在 Debug 只读追踪来源、版本、指纹和依赖。
+**现状**：硬边界先于五层业务责任链，已接 Loop；非 `full-access` 的 `file_read` / `code_search` 也绑定当前工作区并保护常见凭据文件；子进程默认过滤主进程环境中的 API Key / Token / Secret，日志不再落盘命令正文、权限 pattern/reason、原始路径或记忆正文；文件写入、编辑、删除和 patch 统一经过有效沙箱与工作区路径守卫，用户确认不会绕过路径边界；Headless 无交互确认时只自动批准明确只读工具；设置页不再提供独立沙箱开关；内置策略可在 Debug 只读追踪来源、版本、指纹和依赖。
 **缺口**：更细的产品向权限说明文案；OS/嵌入级强隔离非本阶段。

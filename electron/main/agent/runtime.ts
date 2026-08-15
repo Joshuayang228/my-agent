@@ -682,17 +682,15 @@ class AgentRuntime {
 
     let resultText = ''
 
-    // Headless approval policy: auto-approve read-only and known-safe tools,
-    // deny truly dangerous operations (like shell_exec with unknown commands).
-    const HEADLESS_DENY_TOOLS = new Set(['shell_exec'])
+    // Headless 没有可交互的确认框：只放行明确只读工具，shell / 子 Agent / 继续任务
+    // 等能力即使元数据看似只读，也可能间接产生写入或扩大权限，统一拒绝。
     const headlessConfirm = async (name: string, _args: Record<string, unknown>) => {
       const tool = toolRegistry.get(name)
-      if (tool?.metadata.isReadOnly) return true
-      if (HEADLESS_DENY_TOOLS.has(name)) {
-        log.warn('Headless denied destructive tool', { toolName: name, ...labelMeta })
-        return false
+      const allowed = shouldAutoApproveHeadlessTool(name, tool)
+      if (!allowed) {
+        log.warn('Headless denied non-read-only tool', { toolName: name, ...labelMeta })
       }
-      return true
+      return allowed
     }
 
     try {
@@ -726,4 +724,5 @@ export const runtime = new AgentRuntime()
 
 // Register headless runner with Scheduler
 import { setHeadlessRunner } from '../scheduler/index'
+import { shouldAutoApproveHeadlessTool } from './headless-policy'
 setHeadlessRunner((prompt, taskName) => runtime.runHeadless(prompt, taskName))

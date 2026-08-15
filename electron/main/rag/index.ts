@@ -36,6 +36,8 @@ export interface RagDocument {
 
 const CHUNK_SIZE = 800
 const CHUNK_OVERLAP = 100
+export const MAX_RAG_DOCUMENT_BYTES = 512 * 1024
+export const MAX_RAG_CHUNKS = 200
 
 export function chunkText(text: string): string[] {
   const chunks: string[] = []
@@ -60,10 +62,17 @@ export async function ingestDocument(filePath: string, config: LLMConfig): Promi
   const absPath = path.resolve(filePath)
   if (!fs.existsSync(absPath)) throw new Error(`File not found: ${absPath}`)
 
+  const stat = fs.statSync(absPath)
+  if (!stat.isFile()) throw new Error('RAG 只支持普通文件')
+  if (stat.size > MAX_RAG_DOCUMENT_BYTES) throw new Error(`RAG 文档不能超过 ${MAX_RAG_DOCUMENT_BYTES} 字节`)
+
   const content = fs.readFileSync(absPath, 'utf-8')
   const name = path.basename(absPath)
   const docId = randomUUID()
   const chunks = chunkText(content)
+  if (chunks.length > MAX_RAG_CHUNKS) {
+    throw new Error(`RAG 文档分块过多，请拆分后导入（最多 ${MAX_RAG_CHUNKS} 块）`)
+  }
 
   log.info('Ingesting document', { nameHash: hashForLog(name), nameLength: name.length, chunks: chunks.length, size: content.length })
 

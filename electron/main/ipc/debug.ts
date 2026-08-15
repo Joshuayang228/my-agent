@@ -324,10 +324,11 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
       },
     ) => {
       const { runPlayground } = await import('../agent/playground')
+      if (!input || typeof input !== 'object') return { ok: false, error: 'Playground 参数无效' }
       return runPlayground({
-        systemPrompt: input?.systemPrompt,
-        userPrompt: input?.userPrompt ?? '',
-        history: input?.history,
+        systemPrompt: typeof input.systemPrompt === 'string' ? input.systemPrompt : undefined,
+        userPrompt: typeof input.userPrompt === 'string' ? input.userPrompt : '',
+        history: Array.isArray(input.history) ? input.history : [],
       })
     },
   )

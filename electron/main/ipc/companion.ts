@@ -36,6 +36,9 @@ import { listMomentsForRole } from '../companion/life/moments'
 import { getRoleState } from '../companion/life/store'
 import * as settings from '../storage/settings-store'
 import { loadAuxLLMConfig } from '../llm/aux-config'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('CompanionIPC')
 
 export function registerCompanionIPC(): void {
   ipcMain.handle('companion:list-protagonists', async () => {
@@ -89,7 +92,8 @@ export function registerCompanionIPC(): void {
       const { version } = await rollbackMutable(roleId.trim(), toVersion)
       return { ok: true as const, version }
     } catch (err) {
-      return { ok: false as const, error: String(err) }
+      log.warn('Mutable rollback failed', { errorType: err instanceof Error ? err.name : 'unknown' })
+      return { ok: false as const, error: '回滚失败，请稍后重试' }
     }
   })
 
@@ -176,7 +180,8 @@ export function registerCompanionIPC(): void {
       const brief = await summonCastBrief(roleId.trim())
       return { ok: true as const, brief }
     } catch (err) {
-      return { ok: false as const, error: String(err) }
+      log.warn('Summon brief failed', { errorType: err instanceof Error ? err.name : 'unknown' })
+      return { ok: false as const, error: '召唤摘要生成失败，请稍后重试' }
     }
   })
 

@@ -19,7 +19,6 @@ export const SAFE_COMMAND_NAMES = [
   'ls', 'dir', 'cat', 'type', 'echo', 'pwd', 'cd',
   'head', 'tail', 'wc', 'sort', 'uniq', 'grep', 'rg', 'find',
   'which', 'where', 'whoami', 'hostname', 'date',
-  'node', 'python', 'python3', 'git', 'npm', 'npx', 'pnpm', 'yarn',
   'tsc', 'eslint', 'prettier', 'vitest', 'jest',
   'cargo', 'rustc', 'go', 'java', 'javac',
 ] as const

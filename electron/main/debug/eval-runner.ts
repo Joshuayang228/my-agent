@@ -19,6 +19,7 @@ import type {
   DebugEvalSuite,
 } from '../../../src/shared/types'
 import { redactSensitiveText } from '../utils/text-capture'
+import { buildSafeChildProcessEnv } from '../utils/safe-process-env'
 import { listPersonaEvalReports } from './persona-eval-reports'
 import { listSkillEvalReports } from './skill-eval-reports'
 
@@ -234,7 +235,9 @@ export class DebugEvalRunner {
     try {
       this.child = this.spawnProcess(spawnSpec.executable, spawnSpec.args, {
         cwd: this.appRoot,
-        env: { ...process.env },
+        // Eval 子进程不继承主进程的全部环境变量；真实 Persona Eval 的配置由其
+        // 自己的 eval-config/.env 读取，避免 mock/skill 运行器意外暴露主进程凭据。
+        env: buildSafeChildProcessEnv(),
         windowsHide: true,
         detached: process.platform !== 'win32',
         stdio: ['ignore', 'pipe', 'pipe'],

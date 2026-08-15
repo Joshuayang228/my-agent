@@ -46,7 +46,7 @@ export const fileWriteTool = buildTool({
     if (!filePath?.trim()) return '错误：必须提供文件路径'
 
     const mode = await loadEffectiveSandbox()
-    const wsRoot = getWorkspaceRoot()
+    const wsRoot = ctx?.workdir?.trim() || getWorkspaceRoot()
     const resolved = resolveToolFilePath(filePath, wsRoot)
     const blocked = checkFileWriteSandbox(resolved, mode, wsRoot, { action: '写入' })
     ctx?.assetUsageReporter?.({

@@ -1,5 +1,6 @@
 import { buildTool } from '../builder'
 import { exec } from 'node:child_process'
+import path from 'node:path'
 import { createLogger, hashForLog } from '../../utils/logger'
 import { buildSafeChildProcessEnv } from '../../utils/safe-process-env'
 import { checkCommandPermission } from '../../sandbox/permission-engine'
@@ -12,6 +13,8 @@ const log = createLogger('ShellExec')
 
 const TIMEOUT_MS = 30_000
 const MAX_OUTPUT_CHARS = 30_000
+const MAX_COMMAND_LENGTH = 100_000
+const MAX_CWD_LENGTH = 4_096
 
 export const shellExecTool = buildTool({
   name: 'shell_exec',
@@ -38,13 +41,19 @@ export const shellExecTool = buildTool({
     isDestructive: true,
   },
   execute: async (args, ctx?: ToolContext) => {
-    const command = args.command as string
-    const cwd = (args.cwd as string) || undefined
-
-    if (!command?.trim()) return '错误：必须提供命令'
+    const command = args.command
+    const requestedCwd = args.cwd
+    if (typeof command !== 'string' || !command.trim()) return '错误：必须提供命令'
+    if (command.length > MAX_COMMAND_LENGTH) return '错误：命令过长'
+    if (requestedCwd !== undefined && (typeof requestedCwd !== 'string' || requestedCwd.length > MAX_CWD_LENGTH)) {
+      return '错误：工作目录参数无效或过长'
+    }
 
     const mode = await loadEffectiveSandbox()
-    const workspaceRoot = getWorkspaceRoot()
+    const workspaceRoot = ctx?.workdir?.trim() || getWorkspaceRoot()
+    const cwd = typeof requestedCwd === 'string' && requestedCwd.trim()
+      ? (path.isAbsolute(requestedCwd) ? path.resolve(requestedCwd) : path.resolve(workspaceRoot || process.cwd(), requestedCwd))
+      : undefined
     // 统一走五层责任链（自定义规则 / 审批记录 / 沙箱），禁止工具内自管权限
     const decision = checkCommandPermission(command, cwd, mode, workspaceRoot)
     const decisionValue = decision.allowed === true ? 'allow' : decision.allowed === 'needs_approval' ? 'needs_approval' : 'deny'

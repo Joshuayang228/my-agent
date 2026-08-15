@@ -38,6 +38,32 @@ export function resolveToolReadPath(resolved: string): string | null {
 }
 
 /**
+ * 解析写入目标及其最近存在的父目录，识别工作区内的 symlink 越界。
+ *
+ * 背景：写入新文件时目标本身可能不存在，不能只对最终文件调用 realpath；但 Node 的
+ * writeFile/mkdir 会跟随父目录 symlink，单纯的 path.relative 会把工作区内链接误判为安全。
+ * 设计意图：目标存在时解析目标；目标不存在时向上寻找最近存在的祖先，再把不存在的尾段
+ * 拼回真实祖先。调用方只把结果用于边界判断，实际写入仍使用原始解析路径。
+ * 关键约束：找不到任何可解析祖先时返回 null，非 full-access 必须 fail-closed。
+ */
+export function resolveToolWriteBoundaryPath(resolved: string): string | null {
+  let current = path.resolve(resolved)
+  const missingSegments: string[] = []
+
+  while (true) {
+    try {
+      const real = fs.realpathSync(current)
+      return path.join(real, ...missingSegments.reverse())
+    } catch {
+      const parent = path.dirname(current)
+      if (parent === current) return null
+      missingSegments.push(path.basename(current))
+      current = parent
+    }
+  }
+}
+
+/**
  * @returns 拦截原因字符串；null 表示允许读取
  *
  * 背景：file_read / code_search 是自动执行的只读工具；若允许任意绝对路径，Prompt Injection
@@ -79,7 +105,7 @@ export function checkFileWriteSandbox(
   resolved: string,
   mode: SandboxMode,
   workspaceRoot?: string,
-  opts?: { action?: '写入' | '编辑' | '删除' },
+  opts?: { action?: '写入' | '编辑' | '删除'; resolveRealPath?: boolean },
 ): string | null {
   const action = opts?.action ?? '写入'
   if (mode === 'full-access') return null
@@ -93,25 +119,29 @@ export function checkFileWriteSandbox(
 
   const wsRoot = workspaceRoot?.trim() || undefined
   const policy = buildPolicy(mode, wsRoot)
+  const resolveRealPath = opts?.resolveRealPath !== false
+  const boundaryPath = resolveRealPath ? resolveToolWriteBoundaryPath(resolved) : path.resolve(resolved)
 
-  if (wsRoot && !isPathInsideRoot(resolved, wsRoot)) {
+  // 对目标和最近存在的祖先都做 realpath，防止工作区内 symlink 把写入、编辑或删除
+  // 转发到工作区外。目标不存在时 boundaryPath 仍代表真实父目录下的候选位置。
+  if (!wsRoot || !boundaryPath) {
+    return `[SANDBOX BLOCKED] 无法确认${action}目标的真实路径，已拒绝操作。`
+  }
+  const realRoot = resolveRealPath ? resolveToolReadPath(wsRoot) : path.resolve(wsRoot)
+  if (!realRoot || !isPathInsideRoot(boundaryPath, realRoot)) {
     return (
       `[SANDBOX BLOCKED] 目标路径超出工作区，禁止${action}。\n` +
-      `- 目标: ${resolved}\n` +
-      `- 工作区: ${wsRoot}\n` +
       `说明：你点的「允许」只表示同意调用工具；工作区写入仍要求路径落在已打开的项目内。` +
       `请改用工作区内路径，或在对话页将审批改为「完全访问」。`
     )
   }
 
-  // workspace-write 但尚未打开项目：相对路径已落到 process.cwd()；给出可操作提示但不硬拦
-  // （伴侣场景可能无项目；硬拦会误伤）
-
-  for (const protPath of policy.protectedPaths) {
-    const segments = path.resolve(resolved).split(path.sep)
-    if (segments.some((s) => s === protPath)) {
+  const protectedCandidates = [path.resolve(resolved), boundaryPath]
+  for (const candidate of protectedCandidates) {
+    const segments = candidate.toLowerCase().split(path.sep)
+    if (segments.some((segment) => policy.protectedPaths.some((protectedPath) => segment === protectedPath.toLowerCase()))) {
       return (
-        `[SANDBOX BLOCKED] 目标路径包含受保护段 "${protPath}"，禁止${action}。\n` +
+        `[SANDBOX BLOCKED] 目标路径包含受保护段，禁止${action}。\n` +
         `受保护: ${policy.protectedPaths.join(', ')}`
       )
     }

@@ -11,6 +11,8 @@ const log = createLogger('CodeSearch')
 
 const MAX_RESULTS = 50
 const MAX_RESULT_CHARS = 60_000
+const MAX_QUERY_LENGTH = 2_000
+const MAX_REGEX_QUERY_LENGTH = 512
 const CONTEXT_LINES = 2
 
 const IGNORE_DIRS = new Set([
@@ -151,6 +153,13 @@ export const codeSearchTool = buildTool({
   execute: async (args, ctx?: ToolContext) => {
     const query = args.query as string
     if (!query?.trim()) return '错误：必须提供搜索查询'
+    const isRegex = String(args.is_regex) === 'true'
+    if (query.length > (isRegex ? MAX_REGEX_QUERY_LENGTH : MAX_QUERY_LENGTH)) {
+      return `错误：搜索查询过长（正则最多 ${MAX_REGEX_QUERY_LENGTH} 个字符，普通查询最多 ${MAX_QUERY_LENGTH} 个字符）`
+    }
+    if (isRegex && hasUnsafeRegexShape(query)) {
+      return '错误：正则表达式包含可能导致主进程长时间阻塞的嵌套量词或反向引用'
+    }
 
     const workspaceRoot = ctx?.workdir?.trim() || getWorkspaceRoot()
     const dir = resolveToolFilePath((args.directory as string) || '.', workspaceRoot)
@@ -163,14 +172,13 @@ export const codeSearchTool = buildTool({
       return blocked
     }
     const fileExt = (args.file_extension as string) || undefined
-    const isRegex = String(args.is_regex) === 'true'
     const caseSensitive = String(args.case_sensitive) === 'true'
 
     log.info('Code search', { queryHash: hashForLog(query), queryLength: query.length, directoryHash: hashForLog(realDir), fileExt, isRegex, caseSensitive })
 
     let pattern: RegExp
     try {
-      const flags = caseSensitive ? 'g' : 'gi'
+      const flags = caseSensitive ? '' : 'i'
       pattern = isRegex ? new RegExp(query, flags) : new RegExp(escapeRegex(query), flags)
     } catch (err) {
       return `错误：正则表达式无效—— ${err instanceof Error ? err.message : String(err)}`
@@ -208,6 +216,12 @@ export const codeSearchTool = buildTool({
     return output
   },
 })
+
+export function hasUnsafeRegexShape(pattern: string): boolean {
+  // JS RegExp 在主进程同步执行；限制最常见的灾难性回溯形状，避免模型生成的查询
+  // 长时间占住 Electron 主线程。复杂正则应拆成多次普通搜索。
+  return /(?:\([^)]*[+*][^)]*\))[+*?]|(?:\.\*|\.\+).*?(?:\.\*|\.\+)|\\[1-9]/.test(pattern)
+}
 
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')

@@ -1,6 +1,6 @@
 import { ipcMain, dialog } from 'electron'
 import * as rag from '../rag/index'
-import * as settings from '../storage/settings-store'
+import { loadMainLLMConfig } from '../llm/aux-config'
 
 export function registerRagIPC(): void {
   ipcMain.handle('rag:list', async () => rag.listDocuments())
@@ -14,13 +14,10 @@ export function registerRagIPC(): void {
       ],
     })
     if (result.canceled || result.filePaths.length === 0) return []
+    if (result.filePaths.length > 20) throw new Error('一次最多导入 20 个文档')
 
-    const allSettings = await settings.getAllSettings()
-    const config = {
-      apiKey: allSettings.apiKey || '',
-      baseUrl: allSettings.baseUrl || 'https://api.openai.com/v1',
-      model: allSettings.model || 'gpt-4o-mini',
-    }
+    const config = await loadMainLLMConfig()
+    if (!config.apiKey) throw new Error('请先配置 API Key')
 
     const docs = []
     for (const fp of result.filePaths) {
@@ -30,5 +27,8 @@ export function registerRagIPC(): void {
     return docs
   })
 
-  ipcMain.handle('rag:delete', async (_event, docId: string) => rag.deleteDocument(docId))
+  ipcMain.handle('rag:delete', async (_event, docId: string) => {
+    if (typeof docId !== 'string' || !docId.trim() || docId.length > 200) throw new Error('文档 ID 无效')
+    return rag.deleteDocument(docId)
+  })
 }

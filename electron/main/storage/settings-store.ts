@@ -5,6 +5,7 @@ import { createLogger } from '../utils/logger'
 const log = createLogger('SettingsStore')
 
 const ENCRYPTED_KEYS = new Set<keyof AppSettings>(['llmApiKey', 'mcpServers'])
+const ENCRYPTED_VALUE_PREFIX = 'enc:v1:'
 export const MAX_SETTING_VALUE_LENGTH = 1_000_000
 
 function encrypt(value: string): string {
@@ -12,30 +13,50 @@ function encrypt(value: string): string {
   if (!safeStorage.isEncryptionAvailable()) {
     throw new Error('系统安全存储不可用，无法安全保存敏感设置')
   }
-  return safeStorage.encryptString(value).toString('base64')
+  return ENCRYPTED_VALUE_PREFIX + safeStorage.encryptString(value).toString('base64')
 }
 
-function decrypt(encoded: string): string {
-  if (!encoded) return encoded
-  if (!safeStorage.isEncryptionAvailable()) return ''
+function decryptPayload(encoded: string): string | null {
+  if (!encoded || !safeStorage.isEncryptionAvailable()) return null
   try {
     return safeStorage.decryptString(Buffer.from(encoded, 'base64'))
   } catch {
-    return encoded
+    return null
   }
 }
 
-/** 旧版本把 MCP JSON 明文写入 SQLite；读取时识别数组 JSON 并迁移为 safeStorage 密文。 */
-function decodeStoredSetting(
+/**
+ * 解码敏感设置并迁移旧格式。
+ *
+ * 背景：旧版本既出现过明文 API Key / MCP JSON，也出现过没有格式前缀的 safeStorage
+ * base64；若解密失败后直接返回原字符串，会把旧明文继续留在 SQLite，甚至把损坏密文
+ * 当作 API Key 交给 Provider。
+ * 设计意图：新密文统一使用 `enc:v1:` 包络；旧密文先尝试解密，失败则按旧明文迁移。
+ * 关键约束：带新前缀的值解密失败必须 fail-closed，不能回退为原文。
+ */
+export function decodeStoredSetting(
   key: keyof AppSettings,
   stored: string,
 ): { value: string; migratedValue?: string } {
+  if (!stored || !safeStorage.isEncryptionAvailable()) return { value: '' }
+
+  if (stored.startsWith(ENCRYPTED_VALUE_PREFIX)) {
+    return { value: decryptPayload(stored.slice(ENCRYPTED_VALUE_PREFIX.length)) ?? '' }
+  }
+
   if (key === 'mcpServers' && stored.trimStart().startsWith('[')) {
-    if (!safeStorage.isEncryptionAvailable()) return { value: '' }
     return { value: stored, migratedValue: encrypt(stored) }
   }
-  return { value: decrypt(stored) }
+
+  const legacyCipher = decryptPayload(stored)
+  if (legacyCipher !== null) {
+    return { value: legacyCipher, migratedValue: encrypt(legacyCipher) }
+  }
+
+  return { value: stored, migratedValue: encrypt(stored) }
 }
+
+export const __test = { ENCRYPTED_VALUE_PREFIX }
 
 export interface AppSettings {
   llmApiKey: string

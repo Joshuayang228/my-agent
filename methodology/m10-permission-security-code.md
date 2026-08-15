@@ -8,9 +8,9 @@
 
 ## 推论组 A：怎么按场景配置信任等级
 
-### §二 模式分级 — 三级沙箱 + 三级执行模式（正交组合）
+### §二 模式分级 — 三级沙箱 + executionMode（有效沙箱映射）
 
-我们的实现是三级沙箱模式 × 三级执行模式的正交组合：
+我们的实现是三级沙箱模式；`executionMode` 提供 `auto` / `confirm-all` / `plan-first` / `full-access`，其中前 3 个映射到 `workspace-write`，`full-access` 映射到 `full-access`。它们不是“任意 3×3 组合”，而是由有效沙箱工厂统一推导。
 
 ```typescript
 // electron/main/sandbox/policy.ts
@@ -23,9 +23,10 @@ export type SandboxMode =
 
 // 执行模式：控制「是否需要确认」
 export type ExecutionMode = 
-  | 'auto'          // 自动执行，safe 命令直接放行
+  | 'auto'          // 默认确认策略；硬边界仍先执行
   | 'confirm-all'   // 全部确认，所有工具调用都弹窗
   | 'plan-first'    // 先规划，第一轮只让 AI 输出计划不执行工具
+  | 'full-access'   // 明确选择完全访问；仍受危险命令 bypass-immune 约束
 
 export interface SandboxPolicy {
   mode: SandboxMode
@@ -38,155 +39,104 @@ export function buildPolicy(mode: SandboxMode, workspaceRoot?: string): SandboxP
   return {
     mode,
     workspaceRoot,
-    protectedPaths: ALWAYS_PROTECTED,  // ['.git', '.env', 'node_modules', '.claude', '.vscode']
+    protectedPaths: ALWAYS_PROTECTED,  // ['.git', '.env', '.env.local', '.env.production', 'node_modules']
   }
 }
 ```
 
-**方法论对照 → m06 §二**：Alice 有 5 级模式（plan / default / accept_edits / dont_ask / bypass），我们简化为两个正交维度（沙箱 × 执行），两者独立配置，可以组合成 3×3=9 种策略（如 workspace-write + confirm-all）。
+**方法论对照 → m06 §二**：Alice 的模式服务于 CLI 确认体验；我们把产品入口收敛为 `executionMode`，再由 `resolveEffectiveSandbox` 统一推导工具实际使用的沙箱，避免设置页旧键与运行时分叉。
 
 ---
 
-### §三 责任链 — 五层优先级，第一个命中生效
+### §三 责任链 — 硬边界先于业务责任链
+
+当前 `electron/main/sandbox/permission-engine.ts` 不是“任意用户规则优先”。命令先经过
+`guardCommand` 的不可绕过边界，再进入用户规则、审批记录和 ask 规则：
 
 ```typescript
-// electron/main/sandbox/permission-engine.ts
-// 顺序：allow/deny → 审批库 → ask → 沙箱（ask 不能抢在审批前）
+const policy = buildPolicy(sandboxMode, workspaceRoot)
+const guard = guardCommand(command, cwd, policy)
+if (guard.allowed === false) return guardToResult(guard)
 
-export function checkCommandPermission(
-  command: string,
-  cwd: string | undefined,
-  sandboxMode: SandboxMode,
-  workspaceRoot?: string,
-): PermissionCheckResult {
+const hardCustom = matchCustomRules(command, 'command', { includeAsk: false })
+if (hardCustom) return hardCustom
 
-  // ① 用户自定义硬规则（仅 allow / deny）
-  const hardCustom = matchCustomRules(command, 'command', { includeAsk: false })
-  if (hardCustom) return hardCustom
+const approved = checkApproval(command)
+if (approved !== null) return approvalResult(approved)
 
-  // ② 历史审批（含对 ask 规则的 session 确认）
-  const approved = checkApproval(command)
-  if (approved !== null) {
-    return {
-      allowed: approved,
-      reason: approved ? '历史审批：已允许' : '历史审批：已拒绝',
-      decisionType: 'approval-store',
-      chain: 'approval-store',
-    }
-  }
+const askCustom = matchCustomRules(command, 'command', { includeAsk: true, askOnly: true })
+if (askCustom) return askCustom
 
-  // ③ 自定义 ask（无审批记录时才要求确认）
-  const askCustom = matchCustomRules(command, 'command', { includeAsk: true, askOnly: true })
-  if (askCustom) return askCustom
-
-  // ④⑤ 命令分级 + 沙箱（委托 guardCommand）
-  const policy = buildPolicy(sandboxMode, workspaceRoot)
-  return guardToResult(guardCommand(command, cwd, policy))
-}
+return guardToResult(guard)
 ```
 
-**方法论对照 → m06 §三**：责任链优先级：allow/deny > 历史审批 > ask > 命令分级/沙箱 > fallback。第一个非 null 结果即返回。
+第 0 层包括：危险命令、工作区外 cwd、Shell 控制符、受保护路径和显式工作区外路径。
+自定义 `allow`、session / persistent 审批都不能覆盖这些边界；它们只覆盖通过硬边界
+后的普通未知命令。
+
+**方法论对照 → m06 §三**：仍保留“用户显式规则优先于系统推断”的原则，但把致命安全边界
+从业务责任链中提前，避免配置错误把 `bypass-immune` 变成可绕过。
 
 ---
 
 ## 推论组 B：哪些安全边界绝不能绕过
 
-### §四 bypass-immune — 危险命令检测提前到 full-access 判断前（G1）
+### §四 bypass-immune — 危险命令与路径边界均先判定
 
-```typescript
-// electron/main/sandbox/command-guard.ts
+`command-guard.ts` 当前先做四类不可绕过检查：
 
-export function guardCommand(
-  command: string,
-  cwd: string | undefined,
-  policy: SandboxPolicy,
-): GuardDecision {
-  const assessment = assessCommand(command)  // 调用 exec-policy 分级
+1. `assessCommand()` 判定的危险命令，即使 `full-access` 也阻断；
+2. 非 `full-access` 的 cwd 必须位于当前工作区；
+3. 非 `full-access` 禁止 `;`、`&&`、管道、重定向和反引号等 Shell 控制符；
+4. 非 `full-access` 禁止受保护路径和显式工作区外路径。
 
-  // ① Bypass-immune: 危险命令无论沙箱模式如何都要阻断（包括 full-access）
-  // 原则：rm -rf /、fork bomb、磁盘格式化等绝对危险操作不受模式影响
-  if (assessment.risk === 'dangerous') {
-    log.warn('Dangerous command blocked (bypass-immune)', { command: command.slice(0, 100), reason: assessment.reason })
-    return { allowed: false, reason: `危险命令被拦截: ${assessment.reason}` }
-  }
+这次安全审计补上了一个之前容易遗漏的责任链问题：危险命令检查不能只放在
+`guardCommand` 内，还必须在自定义 `allow` 和历史审批之前调用。否则一条 `allow: rm -rf`
+规则就会抢先返回，破坏 `bypass-immune` 的设计意图。
 
-  // ② full-access 模式：放行所有非危险命令（危险命令已在上面拦截）
-  if (policy.mode === 'full-access') {
-    return { allowed: true }
-  }
-
-  // ③ 其他模式继续检查（safe 命令放行 / unknown 按沙箱策略判断 / 路径边界检查）
-  if (assessment.risk === 'safe') {
-    return { allowed: true }
-  }
-
-  // ... 后续：路径边界检查 + workspace 边界检查
-}
-```
-
-**方法论对照 → m06 §四**：G1 修复前，full-access 判断在最前面，`rm -rf /` 也会被直接放行。G1 把危险命令检测提前（1 行前移），full-access 变成「信任用户意图，但不信任极端危险操作」。
-
-**对比 Claude Code**：CC 的 `safetyCheck` 同样是 bypass-immune（检查 `.git/` `.claude/` 敏感目录），即使 `bypassPermissions` 模式也要拦截。
+**方法论对照 → m06 §四**：`full-access` 代表用户承担普通命令风险，不代表允许系统级
+不可恢复操作；非完全访问模式则把 cwd、Shell 复合语法和越界路径也纳入硬边界。
 
 ---
 
-### §五 危险命令分级 — DANGEROUS_PATTERNS 正则表
+### §五 危险命令分级 — 不再按首词放行可执行入口
 
-```typescript
-// electron/main/sandbox/exec-policy.ts
+当前 `exec-policy.ts` 的重要取舍：`node`、`python`、`npm`、`npx`、`git` 不再因为首个词
+出现在集合中就自动标记为 `safe`。只有严格的版本查询、包信息查询和 Git 只读子命令
+等模式可以进入 safe；其余命令走 unknown + 审批。
 
-// 已知安全命令（只读/查询）
-const SAFE_COMMANDS = new Set(['ls', 'cat', 'pwd', 'echo', 'which', 'git status', 'npm list', ...])
+原因是下面这些命令名本身不是安全证明：
 
-// 已知危险模式（破坏性极强）
-const DANGEROUS_PATTERNS = [
-  /rm\s+-rf\s+\/\s*$/,                    // rm -rf / — 删除根目录
-  /rm\s+-rf\s+~\s*$/,                     // rm -rf ~ — 删除用户主目录
-  /:\(\)\{.*;\};\s*:/,                    // fork bomb — :(){:|:&};:
-  /format\s+[a-z]:/i,                     // format C: — Windows 格式化磁盘
-  /dd\s+if=.*of=\/dev\/sd/,               // dd if=... of=/dev/sda — 磁盘覆写
-  /curl.*\|\s*(bash|sh|zsh)/,             // curl ... | bash — 管道到 shell（不可审计）
-  /wget.*-O-.*\|\s*(bash|sh)/,            // wget -O- ... | bash
-  /chmod\s+-R\s+777/,                     // chmod -R 777 — 递归 777 权限
-  />+\s*\/dev\/(null|zero|random)/,       // > /dev/null 重定向（覆写设备文件）
-]
-
-export function assessCommand(command: string): { risk: 'safe' | 'dangerous' | 'unknown'; reason: string } {
-  const normalized = command.trim().toLowerCase()
-
-  // ① 精确匹配 safe 命令
-  if (SAFE_COMMANDS.has(normalized.split(/\s+/)[0])) {
-    return { risk: 'safe', reason: 'Known safe command' }
-  }
-
-  // ② 正则匹配危险模式
-  for (const pattern of DANGEROUS_PATTERNS) {
-    if (pattern.test(command)) {
-      return { risk: 'dangerous', reason: `Matches dangerous pattern: ${pattern.source}` }
-    }
-  }
-
-  // ③ 未知命令（不在 safe 也不在 dangerous）
-  return { risk: 'unknown', reason: 'Unknown command, requires policy check' }
-}
+```text
+node -e "..."
+npm test                 # 可执行 package.json 生命周期
+npx <任意包>
+git -c ... / git hook  # 参数可改变行为
 ```
 
-**方法论对照 → m06 §五**：分级标准是「能否自动恢复」。删一个文件（可恢复），删根目录（不可恢复）。下载包（可审计），管道到 shell（不可审计）。
+Code Search 和权限规则还额外限制正则长度，并拒绝常见嵌套量词 / 反向引用，避免用户或
+模型生成的正则在主进程同步匹配时造成灾难性回溯。
+
+**方法论对照 → m06 §五**：安全等级不是命令名字的静态标签，而是“命令 + 参数 + cwd +
+Shell 语法”的组合判断；无法证明安全时应转为审批，而不是猜测放行。
 
 ---
 
 ### §六 路径边界 — ALWAYS_PROTECTED 数组
 
+除了逻辑路径包含关系，写入类工具还必须解析目标及最近存在的父目录 realpath。这样工作区内的 symlink 不能把 `file_write` / `file_edit` / `apply_patch` / `file_delete` 转发到工作区外；子 Agent 以 `ToolContext.workdir` 作为当前工作区，不回退到全局路径。
+
+
 ```typescript
 // electron/main/sandbox/policy.ts
 
-// 始终受保护的路径（即使 full-access 模式也不建议写）
+// 非 full-access 下受保护的路径段；full-access 由用户显式承担风险
 const ALWAYS_PROTECTED = [
-  '.git',           // 破坏后整个仓库损坏
-  '.env',           // 泄漏后密钥暴露
-  'node_modules',   // 手动修改后难以恢复
-  '.claude',        // 工具自身配置
-  '.vscode',        // IDE 配置
+  '.git',             // 破坏后整个仓库损坏
+  '.env',             // 泄漏后密钥暴露
+  '.env.local',       // 本地环境变量
+  '.env.production',  // 生产环境变量
+  'node_modules',     // 手动修改后难以恢复
 ]
 
 // electron/main/sandbox/command-guard.ts

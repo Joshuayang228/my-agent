@@ -5,6 +5,9 @@ import { describe, expect, it } from 'vitest'
 import {
   buildPlaygroundMessages,
   DEFAULT_PLAYGROUND_SYSTEM,
+  MAX_PLAYGROUND_HISTORY_TURNS,
+  MAX_PLAYGROUND_TEXT_LENGTH,
+  runPlayground,
 } from '../../electron/main/agent/playground'
 
 describe('buildPlaygroundMessages', () => {
@@ -38,5 +41,16 @@ describe('buildPlaygroundMessages', () => {
     expect(msgs[1].content).toBe('你好')
     expect(msgs[2].content).toBe('嗨')
     expect(msgs[3].content).toBe('再问一句')
+  })
+})
+
+describe('runPlayground 输入边界', () => {
+  it('在调用模型前拒绝超长 Prompt 和过多历史轮', async () => {
+    await expect(runPlayground({ userPrompt: 'x'.repeat(MAX_PLAYGROUND_TEXT_LENGTH + 1) }))
+      .resolves.toMatchObject({ ok: false, error: '用户 Prompt 过长' })
+    await expect(runPlayground({
+      userPrompt: 'test',
+      history: Array.from({ length: MAX_PLAYGROUND_HISTORY_TURNS + 1 }, () => ({ role: 'user' as const, content: 'x' })),
+    })).resolves.toMatchObject({ ok: false })
   })
 })

@@ -2,6 +2,14 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
+## 2026-08-15 · 安全审计 v3：权限、Headless、symlink 与敏感设置二次收口
+
+- 第二轮完整高风险审计完成；发现并修复命令首词自动放行、危险规则可绕过、写入 symlink 越界、Headless 自动批准副作用工具、敏感设置解密回退明文等问题。
+- 补齐 Code Search / 权限规则正则 DoS 防护、Playground / RAG / Shell 输入上限、Eval 子进程环境脱敏、IPv4-mapped IPv6 SSRF 黑名单。
+- 修复 RAG 绕过统一 LLM 配置工厂的问题；修复 Playground / Debug 工具 catch 中未定义变量。
+- 新增审计报告：`docs/security-audit-2026-08.md`。
+- 验证：Unit 120 文件 / 711 项通过；定向安全回归 61 项通过；TypeScript、依赖审计通过；未调用真实模型。
+
 ## 2026-08-15 · 安全审计 v2：路径、SSRF、Renderer 与 Runtime 收口
 
 - 修复项目文件 IPC 的越界读取 / 系统打开：`project:readFile` 与 `project:openExternal` 统一 realpath + 当前项目根守卫，拒绝项目外路径和 symlink 越界。

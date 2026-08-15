@@ -8,6 +8,7 @@
 ## 待办缺口（从方法论/审计同步，防遗忘）
 
 - [x] ~~**依赖漏洞升级矩阵**~~ — 2026-08-15 安全审计 v2 已完成；生产与 dev `npm audit` 均为 0 vulnerabilities，未使用 `overrides`。
+- [ ] **URL Fetch DNS rebinding 深度防护** — 当前已做 DNS 预解析、私网黑名单、重定向阻断和响应上限；若未来需要对抗主动竞态攻击，再引入固定地址连接器或进程级网络策略（见 `docs/security-audit-2026-08.md`）。
 
 > Agent 在深啃或收尾时若留下「暂缓 / 占位 / 工程债」，必须同步到本节。规则见根目录 `CLAUDE.md`「wishlist 同步」。
 

@@ -9,11 +9,12 @@
 - [ ] API Key、密码、token 全部走环境变量或安全存储。
 - [ ] `.env` 文件在 `.gitignore` 中。
 - [ ] 代码中无硬编码密钥或凭据。
-- [ ] 用户自定义 Key 使用 Electron `safeStorage` 加密存储，例如 `settings-store.ts` 的加密字段。
+- [ ] 用户自定义 Key 使用 Electron `safeStorage` 加密存储，例如 `settings-store.ts` 的加密字段；旧明文 / 旧密文迁移，新密文解密失败必须 fail-closed。
 
 ## 输入校验
 
 - [ ] 所有外部输入有类型校验。
+- [ ] 正则、Prompt、命令、RAG 文档和批量输入有长度 / 数量上限；用户可配置正则拒绝常见灾难性回溯形状。
 - [ ] 文件路径操作有防路径穿越检查。
 - [ ] SQL 查询使用参数化，禁止拼接用户输入。
 - [ ] 用户可控配置 / Frontmatter 只用数据解析器，禁止 `eval`、JavaScript YAML 标签或可执行模板引擎。
@@ -90,6 +91,7 @@ interface PermissionRule {
 ## 数据保护
 
 - [ ] 对话数据存储在本地 SQLite，不上传云端。
+- [ ] Headless / Scheduler 无交互确认时只自动批准明确只读工具，拒绝 Shell、子 Agent 和其他副作用工具。
 - [ ] 向量数据库中的嵌入不可逆推原文。
 - [x] 数据导出自动脱敏 API Key，并排除 MCP env / command、权限规则、执行模式和本机路径。
 - [x] 任意 URL 抓取阻止 SSRF、凭据 URL、重定向到私网和无界响应。

@@ -9,6 +9,7 @@
 import { ipcMain } from 'electron'
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
+import path from 'node:path'
 import { checkCommandPermission } from '../sandbox/permission-engine'
 import { loadEffectiveSandbox } from '../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from '../agent/project-memory'
@@ -44,7 +45,9 @@ export function registerTerminalIPC(): void {
       const workspaceRoot = getWorkspaceRoot()
       const requestedCwd = input.cwd?.trim() || ''
       if (requestedCwd.length > MAX_CWD_LENGTH) return { ok: false, error: '工作目录路径过长' }
-      const cwd = (requestedCwd || workspaceRoot || process.cwd())
+      const cwd = requestedCwd
+        ? (path.isAbsolute(requestedCwd) ? path.resolve(requestedCwd) : path.resolve(workspaceRoot || process.cwd(), requestedCwd))
+        : (workspaceRoot || process.cwd())
       const decision = checkCommandPermission(command, cwd, mode, workspaceRoot)
 
       if (decision.allowed === false) {

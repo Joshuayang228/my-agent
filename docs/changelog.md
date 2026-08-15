@@ -5,6 +5,17 @@
 
 ## [未发布]
 
+### Fixed — 安全审计 v3（2026-08-15）
+
+- 收紧命令权限：移除 `node` / `npm` / `git` 等按首词自动放行，非 `full-access` 硬拦 Shell 串联、重定向、显式工作区外路径和越界 cwd；危险命令先于自定义 allow / 历史审批判定。
+- 文件写入、编辑、patch、删除增加真实路径边界，阻止工作区内 symlink 越界；子 Agent 工具统一使用 `ToolContext.workdir`。
+- Headless 定时任务只自动批准明确只读工具，拒绝 Shell、子 Agent、继续任务和所有非只读工具。
+- 敏感设置引入 `enc:v1:` 密文包络，兼容迁移旧明文 / raw base64，并在新密文解密失败时 fail-closed。
+- Eval Runner、MCP / Terminal / Shell 子进程环境进一步收口；扩大凭据环境变量过滤范围。
+- 增加权限规则 / Code Search 正则、Playground、RAG、Shell 输入上限，补 IPv4-mapped IPv6 SSRF 黑名单和 RAG 统一 LLM 配置工厂。
+- 修复 Playground / Debug 工具异常路径中的未定义变量，并将多个 IPC 内部错误改为用户友好错误。
+- 完整报告：`docs/security-audit-2026-08.md`。
+
 ### Fixed — 安全审计 v2（2026-08-15）
 
 - 修复 `project:readFile` / `project:openExternal` 可被 IPC 直接传入任意绝对路径的问题：统一 realpath，并限制在当前项目根内，项目外路径和 symlink 越界均拒绝。

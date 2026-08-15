@@ -1,15 +1,22 @@
 import path from 'node:path'
-import { describe, expect, it } from 'vitest'
+import fs from 'node:fs'
+import os from 'node:os'
+import { beforeAll, describe, expect, it } from 'vitest'
 import {
   checkFileReadSandbox,
   checkFileWriteSandbox,
   isPathInsideRoot,
   resolveToolFilePath,
   resolveToolReadPath,
+  resolveToolWriteBoundaryPath,
 } from '../../electron/main/sandbox/file-path-guard'
 
 describe('file-path-guard', () => {
-  const root = path.resolve('/tmp/ws-root')
+  const root = path.join(os.tmpdir(), 'my-agent-file-path-guard-test')
+
+  beforeAll(() => {
+    fs.mkdirSync(path.join(root, 'src'), { recursive: true })
+  })
 
   it('resolveToolFilePath：相对路径基于工作区', () => {
     expect(resolveToolFilePath('notes/a.md', root)).toBe(path.resolve(root, 'notes/a.md'))
@@ -28,6 +35,10 @@ describe('file-path-guard', () => {
 
   it('读取路径会解析 symlink；不存在路径 fail-closed', () => {
     expect(resolveToolReadPath(path.join(root, 'missing.txt'))).toBeNull()
+  })
+
+  it('写入边界会解析已存在父目录，供新文件路径做 symlink 防护', () => {
+    expect(resolveToolWriteBoundaryPath(path.join(root, 'src', 'new.ts'))).toBe(path.join(root, 'src', 'new.ts'))
   })
 
   it('非 full-access 的读取限制在工作区并保护凭据文件', () => {

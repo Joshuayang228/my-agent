@@ -118,9 +118,9 @@ function pathBoundarySnapshot() {
     },
     writeDecisions: {
       readOnlyBlocked: checkFileWriteSandbox(childPath, 'read-only', workspaceRoot) !== null,
-      workspaceChildAllowed: checkFileWriteSandbox(childPath, 'workspace-write', workspaceRoot) === null,
-      workspaceOutsideBlocked: checkFileWriteSandbox(outsidePath, 'workspace-write', workspaceRoot) !== null,
-      protectedSegmentBlocked: checkFileWriteSandbox(protectedPath, 'workspace-write', workspaceRoot) !== null,
+      workspaceChildAllowed: checkFileWriteSandbox(childPath, 'workspace-write', workspaceRoot, { resolveRealPath: false }) === null,
+      workspaceOutsideBlocked: checkFileWriteSandbox(outsidePath, 'workspace-write', workspaceRoot, { resolveRealPath: false }) !== null,
+      protectedSegmentBlocked: checkFileWriteSandbox(protectedPath, 'workspace-write', workspaceRoot, { resolveRealPath: false }) !== null,
       fullAccessAllowed: checkFileWriteSandbox(outsidePath, 'full-access', workspaceRoot) === null,
     },
     protectedPathSegments: [...ALWAYS_PROTECTED_PATH_SEGMENTS],

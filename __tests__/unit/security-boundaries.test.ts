@@ -64,6 +64,7 @@ describe('安全边界', () => {
     expect(isBlockedAddress('127.0.0.1')).toBe(true)
     expect(isBlockedAddress('192.168.1.10')).toBe(true)
     expect(isBlockedAddress('169.254.169.254')).toBe(true)
+    expect(isBlockedAddress('::ffff:7f00:1')).toBe(true)
     expect(isBlockedAddress('8.8.8.8')).toBe(false)
     await expect(validateFetchUrl('http://127.0.0.1:9222/json')).resolves.toMatchObject({ ok: false })
     await expect(validateFetchUrl('https://user:pass@example.com')).resolves.toMatchObject({ ok: false })
@@ -73,9 +74,13 @@ describe('安全边界', () => {
     const original = process.env
     vi.stubEnv('LLM_API_KEY', 'secret-value')
     vi.stubEnv('PATH', 'safe-path')
+    vi.stubEnv('AWS_SECRET_ACCESS_KEY', 'aws-secret')
+    vi.stubEnv('DATABASE_URL', 'postgres://secret')
     const env = buildSafeChildProcessEnv({ EXPLICIT_TOKEN: 'user-supplied' })
     expect(env.LLM_API_KEY).toBeUndefined()
     expect(env.PATH).toBe('safe-path')
+    expect(env.AWS_SECRET_ACCESS_KEY).toBeUndefined()
+    expect(env.DATABASE_URL).toBeUndefined()
     expect(env.EXPLICIT_TOKEN).toBe('user-supplied')
     process.env = original
   })

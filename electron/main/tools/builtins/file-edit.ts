@@ -56,7 +56,7 @@ export const fileEditTool = buildTool({
     if (!oldStr) return '错误：必须提供 old_str'
 
     const mode = await loadEffectiveSandbox()
-    const wsRoot = getWorkspaceRoot()
+    const wsRoot = ctx?.workdir?.trim() || getWorkspaceRoot()
     const resolved = resolveToolFilePath(filePath, wsRoot)
     const blocked = checkFileWriteSandbox(resolved, mode, wsRoot, { action: '编辑' })
     ctx?.assetUsageReporter?.({

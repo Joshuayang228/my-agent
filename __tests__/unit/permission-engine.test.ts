@@ -38,6 +38,14 @@ describe('Permission Engine', () => {
       expect(getRules()).toHaveLength(0)
     })
 
+    it('拒绝不受控的超长或灾难性正则规则', () => {
+      loadRules(JSON.stringify([
+        { id: 'redos', type: 'command', pattern: '(a+)+$', action: 'deny', enabled: true },
+        { id: 'long', type: 'command', pattern: 'x'.repeat(513), action: 'deny', enabled: true },
+      ]))
+      expect(getRules()).toHaveLength(0)
+    })
+
     it('deny 规则拦截匹配命令', () => {
       loadRules(JSON.stringify([
         { id: 'r1', type: 'command', pattern: 'npm publish', action: 'deny', enabled: true },
@@ -95,6 +103,15 @@ describe('Permission Engine', () => {
       expect(result.allowed).toBe(false)
       expect(result.decisionType).toBe('dangerous')
       expect(result.reason).toContain('危险命令被拦截')
+    })
+
+    it('自定义 allow 不能绕过危险命令的 bypass-immune 边界', () => {
+      loadRules(JSON.stringify([
+        { id: 'allow-dangerous', type: 'command', pattern: 'rm -rf', action: 'allow', enabled: true },
+      ]))
+      const result = checkCommandPermission('rm -rf /', undefined, 'full-access')
+      expect(result.allowed).toBe(false)
+      expect(result.decisionType).toBe('dangerous')
     })
 
     it('危险命令在所有模式下被拦截', () => {
