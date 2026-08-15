@@ -23,6 +23,8 @@
 - `__tests__/unit/memory-strategy-registry.test.ts` 验证记忆策略参数来自 profile / memory-store / vector-store / citation-correct 的生产事实，不读取用户记忆正文。
 - `__tests__/unit/permission-sandbox-asset-registry.test.ts` 验证权限与沙箱资产来自 policy / permission-engine / exec-policy / approval-store / effective-sandbox 的生产事实，不读取用户规则或审批记录正文。
 - `__tests__/unit/eval-asset-registry.test.ts` 验证普通 Scenario 唯一注册表覆盖 F01–F08 / P01–P06 / B01–B07 / C01–C02，Skill Case 覆盖 S01–S03，所有 Grader 判据来自真实实例定义，且静态目录不读取报告、API Key、临时目录或 Judge 隐藏推理。
+- `__tests__/unit/provider-asset-registry.test.ts` 验证 Settings / Chat 共用 9 个预设的唯一注册表、4 个快切子集、三协议能力、五项 Provider 策略及脱敏边界；不得包含合成凭据、用户能力缓存或用户当前配置。
+- `__tests__/e2e/chat.test.ts` 验证 Debug「提示词管理器」可选择“模型 Provider”分类；Provider 结构化资产不能载入 Prompt 实验副本。
 - 静态正文和动态模板使用内容指纹；只有无模板的运行时资产使用结构指纹。指纹不得包含 API Key 或动态用户插槽实际值。
 - 未来增加英文时，在同一 key 下进行独立版本等价性测试，并验证运行时按 locale 单选，不把多语言版本并发注入模型。
 

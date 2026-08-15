@@ -108,7 +108,7 @@
 
 ### Agent 资产目录后续
 
-- [ ] **Agent 生产资产目录 Phase 2** — 继续接入模型 Provider 能力；伙伴资产、记忆策略、权限 / 沙箱策略、Eval Case / Grader 已落地。
+- [x] ~~**Agent 生产资产目录 Phase 2**~~ — 2026-08-15：模型 Provider 能力已接入；伙伴、记忆、权限 / 沙箱、Eval Case / Grader 与 Provider 生产资产链路全部落地。
 - [ ] **伙伴结构化资产 Playground 草稿** — 未来支持从 Debug 显式载入 profile / 默认世界为隔离草稿、Diff 与人工回流；不得直接写生产 Role Pack。
 
 ### Prompt 与国际化

@@ -1,7 +1,7 @@
 ﻿# 注册与管理：让 Agent 生产资产可追踪、可验证
 
 > 本章是 My Agent 的独立方法论沉淀。
-> 受 Alice 的结构化 Prompt 注册思路启发，但不复制外部项目的资产语义；以下规则来自本项目在 Prompt、Skill、伙伴资产、记忆策略、权限 / 沙箱策略和 Eval Case / Grader 上的实际取舍。
+> 受 Alice 的结构化 Prompt 注册思路启发，但不复制外部项目的资产语义；以下规则来自本项目在 Prompt、Skill、伙伴资产、记忆策略、权限 / 沙箱策略、Eval Case / Grader 和模型 Provider 上的实际取舍。
 
 ## 1. 我们为什么需要注册表
 
@@ -61,9 +61,7 @@ Tool schema         模型可见的工具定义
 记忆策略            提取、去重、召回、生命周期、纠错规则
 权限与沙箱策略      档位、责任链、命令分级、路径边界、审批生命周期
 Eval Case / Grader   场景、评分计划、结构化判据、Judge 检查项
-权限策略            工具执行和审批边界（后续接入）
-Eval                 Case、Grader、Fixture（后续接入）
-Provider             模型能力与连接事实（后续接入）
+Provider             协议适配能力、跨 Provider 策略和内置模型预设
 ```
 
 这不是文件目录分类，而是**行为责任分类**。
@@ -146,7 +144,9 @@ API Key、密码、token、登录 Cookie 和用户私密凭据不进入资产 ke
 - 伙伴档案仍由 Role Pack loader 提供；
 - 记忆策略参数仍由 memory / vector 模块事实提供；
 - Skill 正文仍由 Skill loader 提供；
-- 工具 schema 仍由 ToolRegistry 提供。
+- 工具 schema 仍由 ToolRegistry 提供；
+- Provider 能力仍由真实请求构造器、路由规则和运行策略常量提供；
+- 内置模型预设仍由共享 Provider Preset 注册表提供。
 
 ## 5. 统一字段和稳定身份
 
@@ -374,10 +374,10 @@ Prompt / 伙伴人格 / 记忆策略
 - 记忆策略目录 v1
 - 权限 / 沙箱策略目录 v1
 - Eval Case / Grader 目录 v1
+- Provider 能力目录 v1（三协议、五项策略、九个预设）
 
 下一步再做：
 
-- Provider 能力目录
 - 伙伴结构化资产的 Playground 隔离草稿
 
 这些后续项必须分别评估，不能因为已经有统一外壳，就一次性把所有系统配置都注册进去。

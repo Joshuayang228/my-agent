@@ -178,16 +178,17 @@ Skill 资产由 `electron/main/skills/loader.ts` 读取和保存，`registry.ts`
 
 ### 7. LLM 路由
 
-- **多 Provider 路由**：根据 baseUrl 自动检测 Provider（OpenAI / Anthropic / Gemini）
-- OpenAI 兼容格式（覆盖 DeepSeek / Groq / OpenRouter / Together 等）
+- **多 Provider 路由**：显式 Provider 优先；否则按共享 Base URL 规则检测 OpenAI / Anthropic / Gemini，未知端点回退 OpenAI Compatible
+- OpenAI Compatible 请求由 `request-builders.ts` 纯构造器生成，真实调用与 Provider 资产目录共用同一请求事实（覆盖 DeepSeek / Groq / OpenRouter / Together 等）
 - Anthropic Messages API 适配（SSE 流解析 + content_block_delta + tool_use 映射）
 - Gemini API 请求构建器（systemInstruction + functionDeclarations）
 - 流式 SSE 解析（text / reasoning / tool_calls delta）
 - **Streaming Tool Calls**：工具参数边流式边 yield `tool_call_delta` 事件
-- **Model Failover**：主模型失败按 `fallbackModels` 配置自动降级
+- **Model Failover**：主模型失败按 `fallbackModels` 顺序降级；备用配置继承采样参数并清除递归 fallback
+- **Vision 降级**：OpenAI Compatible 图片先乐观尝试，识别能力错误后进程内记忆拒绝并去图重试一次
 - **Prompt Cache**：Anthropic `cache_control` 标记 System Prompt + Tools
-- **Structured Output**：`ResponseFormat` 支持 json_object / json_schema
-- 模型快切（顶栏 UI + 5 个预设）
+- **Structured Output**：OpenAI Compatible `ResponseFormat` 支持 json_object / json_schema
+- 内置模型预设统一来自 `src/shared/provider-presets.ts`：Settings 展示 9 个，Chat 快切展示其中 4 个
 - 复用 API 进行 Embedding 调用
 
 ### 8. 上下文压缩
@@ -214,12 +215,13 @@ Skill 资产由 `electron/main/skills/loader.ts` 读取和保存，`registry.ts`
 
 - Prompt 注册表仍负责模型可见 Prompt 的稳定 key、locale、模板和运行时追踪；伙伴注册表不复制 Prompt 正文。
 - `companion/asset-registry.ts` 读取真实 Role Pack loader、场景 loader 和生活 starter 工厂，生成 manifest、人物档案、默认世界、伙伴场景与生活内容资产。
-- Debug 高层聚合 Prompt、伙伴资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Case / Grader、Eval Judge 与 MCP，统一展示来源、所有权、版本、指纹、状态、派生关系和依赖。
+- Debug 高层聚合 Prompt、伙伴资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Case / Grader、Eval Judge、模型 Provider 与 MCP，统一展示来源、所有权、版本、指纹、状态、派生关系和依赖。
 - 用户记忆、当前世界状态和运行后 `companion_assets` 属于运行时数据，不进入静态生产资产目录；分别由记忆 / 世界态 / 请求记录查看。
 - `memory/strategy-registry.ts` 只登记记忆提取、去重、反馈分桶、向量召回、向量生命周期和引用纠错策略；策略参数由原生产模块导出，注册表不反向驱动算法。
 - `sandbox/asset-registry.ts` 从沙箱档位、命令分级、权限责任链、路径守卫、审批生命周期和有效沙箱映射生成只读资产；不读取用户规则、审批记录或当前执行模式。
 - `evals/scenario-registry.ts` 是普通 Eval Scenario 唯一列表，CLI、Vitest 与 `evals/asset-registry.ts` 共同消费；Case / Grader 资产来自真实场景和结构化判据，不读取运行报告、环境凭据或 Judge 隐藏推理。
-- Playground 不直接写生产资产；只有文本类资产可显式载入为实验副本，伙伴、记忆、权限与沙箱、Eval Case / Grader 等结构化资产保持只读。
+- `llm/provider-asset-registry.ts` 从真实请求构造器、路由规则、Thinking / Context / Vision / Failover 生产事实和共享预设生成协议能力、跨 Provider 策略与内置预设资产；只保存脱敏结构，不读取用户配置或能力缓存。
+- Playground 不直接写生产资产；只有文本类资产可显式载入为实验副本，伙伴、记忆、权限与沙箱、Eval Case / Grader、Provider 等结构化资产保持只读。
 
 ## 目录结构
 

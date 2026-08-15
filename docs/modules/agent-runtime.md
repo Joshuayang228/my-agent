@@ -64,7 +64,8 @@
 | 任务队列（后处理 / 反思等） | 已落地 | `services/task-queue` 等 |
 | 子 Agent | 部分 | `subagent`；召唤下任务工边界（M26-G2）；Swarm 见 wishlist |
 | MCP Client（stdio + SSE） | 已落地 | `mcp/` · 设置页 |
-| 多 Provider LLM + Failover | 已落地 | `llm/`；配置唯一经 `loadMainLLMConfig` / `loadAuxLLMConfig` |
+| 多 Provider LLM + Failover | 已落地 | `llm/`；OpenAI Compatible / Anthropic / Gemini；配置唯一经 `loadMainLLMConfig` / `loadAuxLLMConfig` |
+| Provider 能力生产资产 | 已落地 | `provider-presets.ts` 唯一预设源；`provider-asset-registry.ts` 登记三协议、五项策略与 9 个预设；Debug「提示词管理器 → 模型 Provider」只读展示 |
 | 首次模型配置旅程 | 已落地 | 无 Key 自动进入设置「模型」；Provider / Key / Base URL / 模型 → 当前配置连接测试 → 保存并开始对话；字段变化会使验证失效，测试复用统一配置工厂且不写盘 |
 | Headless 运行（定时/后台） | 已落地 | `runtime.runHeadless` |
 | Observer / DevPanel 可观测 | 已落地 | tracer / observer / DevPanel |
@@ -82,7 +83,7 @@
 | 对话 Debug 右侧栏 | 已落地 | Chat 右坞 · `ConversationDebugAside`；可盖在能力坞之上（Alice 式）；持久化 LLM 调用链 |
 | 项目文件预览 | 已落地 | `FileBrowser` · text/image/unsupported；图/文本/md；html 沙箱 iframe；pdf·Office 外开 |
 | Chat 右侧能力坞 | 已落地 | `ChatRightDock` · Tab 文件/审阅/终端；会话写文件变更账本；命令控制台（非 PTY）；可拖宽 + 内部分界 |
-| Agent 生产资产目录与调用级追踪 | 已落地 | Debug「提示词管理器」聚合 Prompt / 伙伴人格资产 / Tool schema / Skill / Eval Judge / MCP；稳定 key、来源、版本、自动指纹、派生与依赖；LLM 调用详情保留真实 Prompt 资产追踪 |
+| Agent 生产资产目录与调用级追踪 | 已落地 | Debug「提示词管理器」聚合 Prompt / 伙伴人格 / 记忆策略 / 权限与沙箱 / Tool schema / Skill / Eval Case 与 Grader / Eval Judge / 模型 Provider / MCP；稳定 key、来源、版本、自动指纹、派生与依赖；LLM 调用详情保留真实 Prompt 资产追踪 |
 | Skill 管理器 2.0 | 已落地 | `SkillsPanel` 校验 / 版本历史 / 回滚 / 隔离试跑；`skills:validate` / `skills:versions` / `skills:playground-run`；LLM Debug 展示 Skill 激活来源与指纹 |
 | Skill Eval 证据闭环 | 已落地 | `npm run eval:skill`；S01–S03 覆盖应触发 / 不触发 / `allowed_tools`；JSON + Markdown 报告；Debug「质量 / Eval」展示输入、Trace、工具、回复与四类 Grader |
 | Prompt 受控编辑 | 已落地 | 生产资产只读；实验副本可隔离试跑；二次确认后复用 `settings.systemPrompt` 保存为 L3 自定义补充指令 |
@@ -97,5 +98,5 @@
 
 ## 现状 / 缺口
 
-**现状**：Loop / Runtime / Prompt / 压缩 / 队列 / MCP / Skill 管理 / 可观测主线已落地；Prompt 由生产注册表统一登记稳定 key、用途 / 角色、来源、版本、自动指纹、locale 和动态插槽；核心 key 已类型化，生产 LLM 调用必须声明非空 key 或显式 promptless 原因。Debug 提示词管理器已扩展为模型可见文本统一目录，覆盖 Prompt、Tool schema、Skill、Eval Judge 和 MCP；真实 LLM 调用详情逐次展示该次请求实际声明的 Prompt 资产，未知 key 不静默丢失；LLM Debug 正文通过现有 observer → tracer Span sink 持久化，侧栏可跨重启恢复；全页 Debug 已按开发者诊断任务收口：提示词管理器 / 请求与运行 / 伙伴状态 / 质量·Eval / 系统；请求与运行域直接读取真实请求快照并保留调用链 / 事件，质量域读取 Skill / Persona Eval 报告：Skill Eval 展示触发、指南注入、工具边界和回复约束证据，Persona Eval 在独立本地审阅层保存真人格人工判断；原始报告和自动判定保持只读。Playground 已按设计 / Agent 实验两组收口，设计组件边缘态合并展示，旧人格验收与体验夹具源码保留但不再作为 active 入口。
+**现状**：Loop / Runtime / Prompt / 压缩 / 队列 / MCP / Skill 管理 / 可观测主线已落地；Prompt 由生产注册表统一登记稳定 key、用途 / 角色、来源、版本、自动指纹、locale 和动态插槽；核心 key 已类型化，生产 LLM 调用必须声明非空 key 或显式 promptless 原因。Debug 提示词管理器已扩展为生产资产统一目录，覆盖 Prompt、伙伴人格、记忆策略、权限与沙箱、Tool schema、Skill、Eval Case / Grader、Eval Judge、模型 Provider 和 MCP；真实 LLM 调用详情逐次展示该次请求实际声明的 Prompt 资产，未知 key 不静默丢失；LLM Debug 正文通过现有 observer → tracer Span sink 持久化，侧栏可跨重启恢复；全页 Debug 已按开发者诊断任务收口：提示词管理器 / 请求与运行 / 伙伴状态 / 质量·Eval / 系统；请求与运行域直接读取真实请求快照并保留调用链 / 事件，质量域读取 Skill / Persona Eval 报告：Skill Eval 展示触发、指南注入、工具边界和回复约束证据，Persona Eval 在独立本地审阅层保存真人格人工判断；原始报告和自动判定保持只读。Playground 已按设计 / Agent 实验两组收口，设计组件边缘态合并展示，旧人格验收与体验夹具源码保留但不再作为 active 入口。
 **缺口**：Swarm（wishlist）；更完整的子 Agent 产品化。

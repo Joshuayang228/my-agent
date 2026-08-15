@@ -22,8 +22,13 @@ OpenAI 兼容路径覆盖 DeepSeek、Groq、OpenRouter 等。
 
 | 文件 | 职责 |
 |------|------|
-| `llm/index.ts` | `streamChat` 入口，路由到对应 Provider |
-| `llm/provider-router.ts` | `detectProvider` / `buildAnthropicBody` / `buildGeminiBody` |
+| `llm/index.ts` | `streamChat` 统一入口，执行 Provider 路由、重试与顺序 Failover |
+| `llm/provider-router.ts` | Provider 检测规则、Anthropic / Gemini 请求构造器 |
+| `llm/request-builders.ts` | OpenAI Compatible 消息、工具与请求纯构造器 |
+| `llm/thinking.ts` · `llm/vision.ts` · `llm/failover.ts` | Thinking、Vision 降级与 Failover 生产策略事实 |
+| `agent/model-context-window.ts` | Context Window 家族启发式与输出预留 |
+| `llm/provider-asset-registry.ts` | Debug 只读 Provider 能力 / 策略 / 预设资产 |
+| `src/shared/provider-presets.ts` | Settings 与 Chat 共用的内置模型预设唯一注册表 |
 | `shared/types.ts` | `LLMConfig` / `LLMProvider` 类型定义 |
 | `storage/settings-store.ts` | `AppSettings` 中的 LLM 相关字段 |
 
@@ -32,9 +37,11 @@ OpenAI 兼容路径覆盖 DeepSeek、Groq、OpenRouter 等。
 `detectProvider(config)` 优先级：
 
 1. `config.provider` 显式指定且不是 `auto`，直接使用。
-2. `baseUrl` 包含 `anthropic`，使用 `anthropic`。
-3. `baseUrl` 包含 `generativelanguage.googleapis`，使用 `gemini`。
-4. 兜底使用 `openai`。
+2. `baseUrl` 命中 `PROVIDER_DETECTION_RULES` 的 Anthropic 规则，使用 `anthropic`。
+3. `baseUrl` 命中 Gemini 规则，使用 `gemini`。
+4. 未知端点兜底使用 OpenAI Compatible。
+
+运行时检测与 Debug Provider 目录必须共用 `PROVIDER_DETECTION_RULES` / `detectProviderFromBaseUrl`，禁止在展示层复制正则。
 
 ## 双模型配置
 
@@ -71,8 +78,17 @@ Runtime 通过 `getLLMConfig()` / `getAuxLLMConfig()` 分别获取。二者必�
 | L3 Collapse | 90% | LLM 摘要，降级为规则占位符 | compact |
 | L4 AutoCompact | 95% | 全量重写 | compact |
 
-`querySource` 互斥守卫：compact、memory、title 来源调用自动跳过 LLM 摘要，防递归。
+`querySource` 互斥守卫：compact、memory、title 来源调用自动跳过 LLM 摘要，防递归。模型窗口与输出预留只从 `agent/model-context-window.ts` 读取；这些值是本项目压缩策略的保守事实，不代表厂商实时规格。
+
+## Provider 生产资产
+
+- `llm/provider-asset-registry.ts` 只登记当前代码真实实现的 OpenAI Compatible、Anthropic、Gemini 协议能力，以及自动检测、辅助 Thinking、Context Window、Vision 降级和顺序 Failover 策略。
+- 能力摘要通过脱敏合成配置调用真实请求构造器，只保留 endpoint、header 名、query 参数名和 body key；不得保存认证值。
+- 具体模型是否支持 Tool、Vision、Thinking 等能力，仍需连接测试或 Playground 探测；适配器能构造字段不等于型号能力保证。
+- `llmCapabilityCache`、Vision deny cache、用户自定义 Base URL / Model / Fallback 和 API Key 属于运行时或用户配置，不进入静态生产资产目录。
 
 ## 预设模型
 
-UI 顶栏快切提供预设模型，位置通常在 `SettingsPanel.tsx` 的 `PRESETS` 数组，可按实际实现扩展。
+- 所有内置预设统一登记在 `src/shared/provider-presets.ts`，禁止在 `SettingsPanel.tsx`、`App.tsx` 或 Debug 中复制数组。
+- Settings 展示全部 9 个预设；Chat 顶栏只过滤 `quickAccess: true` 的 4 个预设。
+- 预设只是填表模板，不是对应模型的能力或可用性承诺。

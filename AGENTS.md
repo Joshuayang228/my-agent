@@ -114,10 +114,10 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 ### Prompt 单一事实源
 
 - Prompt 正文必须跟随生产代码或 Role Pack 资产维护；禁止在 `src/components/playground/` 再复制一份 Prompt 文案作为目录真相。
-- `electron/main/prompts/registry.ts` 是 Prompt 注册表事实源；静态 Prompt 由 `electron/main/prompts/texts.ts` 等生产常量直接提供，动态 Prompt 标记为 `dynamic` 并指向实际组装器。Debug「提示词管理器」通过 `debug:model-context-assets` 在主进程聚合 Prompt、伙伴与人格资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Case / Grader、Eval Judge 和 MCP；兼容接口 `debug:prompt-assets` 不再作为统一目录入口。
+- `electron/main/prompts/registry.ts` 是 Prompt 注册表事实源；静态 Prompt 由 `electron/main/prompts/texts.ts` 等生产常量直接提供，动态 Prompt 标记为 `dynamic` 并指向实际组装器。Debug「提示词管理器」通过 `debug:model-context-assets` 在主进程聚合 Prompt、伙伴与人格资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Case / Grader、Eval Judge、模型 Provider 和 MCP；兼容接口 `debug:prompt-assets` 不再作为统一目录入口。
 - 新增或修改 Prompt 时，必须同步注册表项和对应测试；目录展示不能脱离实际运行路径单独演进。
 - 核心 Prompt key 只通过 `electron/main/prompts/keys.ts` 的 `PROMPT_KEYS` 使用，Role Pack key 通过统一工厂生成；生产 `streamChat` / `chatComplete` 必须声明非空资产 key，或显式填写 `promptlessReason`。
-- Debug「提示词管理器」是生产资产统一目录：除 Prompt 外还聚合伙伴与人格资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Case / Grader、Eval Judge 和当前 MCP 工具；资产同时显示人工版本与自动指纹。Playground 只接收显式实验副本，不复制目录。
+- Debug「提示词管理器」是生产资产统一目录：除 Prompt 外还聚合伙伴与人格资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Case / Grader、Eval Judge、模型 Provider 和当前 MCP 工具；资产同时显示人工版本与自动指纹。Playground 只接收显式实验副本，不复制目录。
 - **Prompt 当前只做中文**：先用简体中文写清意图、行为边界、优先级和例外；英文只保留必要的技术术语、工具名、JSON key、协议 token 或 canonical name。
 - 禁止中英文逐句对照或把同一条规则重复写成两种自然语言；英文不是默认翻译层，而是必要的技术契约或外部原文。
 - Prompt 结构必须分离稳定身份、动态上下文、行为策略、工具环境和协议契约；参考 Alice 的模板 + 动态插槽 + 独立上下文区块思路，但不复制其产品语义。
@@ -128,7 +128,8 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 ### 生产资产注册管理
 
 - 会影响 Agent 行为、模型输入、工具权限或 Eval 结果的生产定义，必须有稳定 key、真实 source、version、fingerprint、ownership 和 status；需要跨资产解释时补 dependencies / derivedFrom。
-- 注册表只能从生产常量、loader、ToolRegistry 或纯函数事实生成，禁止在 Debug / Playground 或 registry 文件中复制第二份 Prompt、Role Pack、记忆策略阈值或权限规则。
+- 注册表只能从生产常量、loader、ToolRegistry 或纯函数事实生成，禁止在 Debug / Playground 或 registry 文件中复制第二份 Prompt、Role Pack、记忆策略阈值、权限规则、Provider 路由或模型窗口启发式。
+- Provider 资产只登记当前代码真实支持的适配器、策略和内置预设；预设统一来自 `src/shared/provider-presets.ts`。厂商实时规格、用户 API Key / 自定义端点、Fallback 配置和能力探测缓存不得进入静态目录。
 - 用户记忆、会话历史、当前世界状态、工具原始输出和凭据是运行时 / 用户 / 外部数据，不得伪装成内置生产资产；Debug 只展示它们与生产资产的关联。
 - Debug 的生产资产目录只读；Playground 只能显式载入为隔离实验草稿，Settings 才管理用户拥有的编辑能力。结构化资产未经单独合同不得直接写入 Playground 或生产文件。
 - 新增资产类型时必须同步共享类型、生产聚合器、Debug 标签、单元测试和对应文档；资产目录的存在不能替代真实行为 Eval。

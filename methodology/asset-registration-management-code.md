@@ -22,6 +22,9 @@ permission-policy
 sandbox-policy
 eval-case
 eval-grader
+provider-capability
+provider-policy
+provider-preset
 tool-schema
 skill
 eval-judge
@@ -50,6 +53,8 @@ electron/main/prompts/registry.ts
  electron/main/companion/asset-registry.ts
  electron/main/memory/strategy-registry.ts
  electron/main/sandbox/asset-registry.ts
+ electron/main/llm/provider-asset-registry.ts
+ src/shared/provider-presets.ts
  evals/scenario-registry.ts
  evals/asset-registry.ts
 ```
@@ -149,7 +154,37 @@ evals/scenario-registry.ts
 
 静态资产只保存场景描述、套件、默认模式、required、Grader 顺序和结构化 criteria；实际初始 messages、System Prompt、Agent 回复、Judge 结论和人工审阅仍只在“质量 / Eval”报告查看。
 
-## 7. 测试边界
+## 7. 模型 Provider
+
+Provider 生产资产注册表位于：
+
+```text
+electron/main/llm/provider-asset-registry.ts
+```
+
+它登记三类协议能力：
+
+```text
+provider-capability:openai
+provider-capability:anthropic
+provider-capability:gemini
+```
+
+协议摘要不是手写厂商宣传，而是使用脱敏合成配置调用 `request-builders.ts`、`buildAnthropicBody` 和 `buildGeminiBody`，再只提取 endpoint、认证方式、header 名、query 参数名、body key 和当前构造器能表达的能力。合成 API Key 若进入序列化资产会立即抛错。
+
+跨 Provider 策略来自：
+
+```text
+provider-router.ts
+thinking.ts
+agent/model-context-window.ts
+vision.ts
+failover.ts
+```
+
+内置预设唯一注册表位于 `src/shared/provider-presets.ts`。Settings 消费全部九项，Chat 只过滤四项 `quickAccess`；Debug 为每项生成 `provider-preset`，不读取用户 API Key、自定义端点、Fallback 配置、Thinking 能力缓存或 Vision deny cache。
+
+## 8. 测试边界
 
 应覆盖：
 
@@ -158,7 +193,7 @@ evals/scenario-registry.ts
 - fingerprint 稳定
 - dependencies 正确
 - 缺失可选资产不虚构
-- 目录不读取用户记忆正文、用户权限规则、审批记录正文、Eval 运行报告或环境凭据
+- 目录不读取用户记忆正文、用户权限规则、审批记录正文、Eval 运行报告、Provider 能力缓存或环境凭据
 - Debug 分类和资产类型标签完整
 
 生产资产目录的测试属于 Unit；真正的行为效果仍由 Persona / Skill / Memory Eval、Permission 单测 / Eval 和真实 Eval Runner 负责，不能用目录存在替代行为验收。
