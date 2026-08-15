@@ -14,29 +14,34 @@ import { createLogger } from '../utils/logger'
 
 const log = createLogger('ProviderRouter')
 
-const PROVIDER_PATTERNS: Array<{ pattern: RegExp; provider: LLMProvider }> = [
+export const PROVIDER_DETECTION_RULES: ReadonlyArray<{ pattern: RegExp; provider: LLMProvider }> = [
   { pattern: /anthropic\.com|claude\.ai/, provider: 'anthropic' },
   { pattern: /googleapis\.com|generativelanguage/, provider: 'gemini' },
   { pattern: /openai\.com|deepseek\.com|api\.openai|together\.xyz|groq\.com|openrouter\.ai/, provider: 'openai' },
 ]
 
+/** 根据 Base URL 应用生产检测规则；未知端点保守回退 OpenAI Compatible。 */
+export function detectProviderFromBaseUrl(baseUrl: string): Exclude<LLMProvider, 'auto'> {
+  for (const { pattern, provider } of PROVIDER_DETECTION_RULES) {
+    if (pattern.test(baseUrl)) return provider as Exclude<LLMProvider, 'auto'>
+  }
+  return 'openai'
+}
+
 /**
- * 检测 Provider 类型
+ * 检测 Provider 类型。
+ * 显式 provider 优先；auto / 未指定时才使用 Base URL 规则。
  */
 export function detectProvider(config: LLMConfig): Exclude<LLMProvider, 'auto'> {
-  if (config.provider && config.provider !== 'auto') {
-    return config.provider
-  }
+  if (config.provider && config.provider !== 'auto') return config.provider
 
-  for (const { pattern, provider } of PROVIDER_PATTERNS) {
-    if (pattern.test(config.baseUrl)) {
-      log.debug('Provider auto-detected', { baseUrl: config.baseUrl, provider })
-      return provider as Exclude<LLMProvider, 'auto'>
-    }
+  const provider = detectProviderFromBaseUrl(config.baseUrl)
+  if (provider === 'openai' && !PROVIDER_DETECTION_RULES.some(({ pattern }) => pattern.test(config.baseUrl))) {
+    log.debug('Provider fallback to openai', { baseUrl: config.baseUrl })
+  } else {
+    log.debug('Provider auto-detected', { baseUrl: config.baseUrl, provider })
   }
-
-  log.debug('Provider fallback to openai', { baseUrl: config.baseUrl })
-  return 'openai'
+  return provider
 }
 
 /**

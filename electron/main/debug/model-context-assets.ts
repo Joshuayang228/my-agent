@@ -20,6 +20,7 @@ import { getCompanionAssetCatalog } from '../companion/asset-registry'
 import { getMemoryStrategyAssetCatalog } from '../memory/strategy-registry'
 import { getPermissionSandboxAssetCatalog } from '../sandbox/asset-registry'
 import { getEvalCaseGraderAssetCatalog } from '../../../evals/asset-registry'
+import { getProviderAssetCatalog } from '../llm/provider-asset-registry'
 
 function toolSchemaContent(tool: ToolDefinition): string {
   return JSON.stringify({
@@ -147,7 +148,8 @@ export function buildModelContextAssets(input: {
   const memoryStrategyAssets = getMemoryStrategyAssetCatalog()
   const permissionSandboxAssets = getPermissionSandboxAssetCatalog()
   const evalCaseGraderAssets = getEvalCaseGraderAssetCatalog()
-  return [...promptAssets, ...toolAssets, ...skillAssets, ...companionAssets, ...memoryStrategyAssets, ...permissionSandboxAssets, ...evalCaseGraderAssets]
+  const providerAssets = getProviderAssetCatalog()
+  return [...promptAssets, ...toolAssets, ...skillAssets, ...companionAssets, ...memoryStrategyAssets, ...permissionSandboxAssets, ...evalCaseGraderAssets, ...providerAssets]
 }
 
 export async function getModelContextAssets(toolRegistry: ToolRegistry): Promise<ModelContextAsset[]> {

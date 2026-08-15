@@ -55,6 +55,7 @@ import {
 } from './components/shell'
 import { ResizeHandle } from './components/shell/ResizeHandle'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from './shared/panel-layout'
+import { QUICK_PROVIDER_PRESETS } from './shared/provider-presets'
 
 let messageIdCounter = 0
 function genId() {
@@ -289,12 +290,7 @@ function App() {
     }
   }, [activeSessionId, conversationDebugMode])
 
-  const MODEL_PRESETS = [
-    { label: 'GPT-4o', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o' },
-    { label: 'GPT-4o-mini', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
-    { label: 'DeepSeek V3', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat' },
-    { label: 'DeepSeek V4 Flash', baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash' },
-  ]
+
 
   // ── M13：MCP Elicitation（服务端要补充信息）──
   useEffect(() => {
@@ -1653,12 +1649,12 @@ function App() {
                       onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = '')}
                     >
-                      {MODEL_PRESETS.find((p) => p.model === currentModel)?.label || currentModel}
+                      {QUICK_PROVIDER_PRESETS.find((p) => p.model === currentModel)?.label || currentModel}
                       <ChevronDown size={9} style={{ color: 'var(--text-muted)' }} />
                     </button>
                     {modelMenuOpen && (
                       <div className="absolute bottom-full right-0 z-50 mb-1 w-44 rounded-lg border py-1 shadow-lg" style={{ borderColor: 'var(--border-color)', background: 'var(--dropdown-bg)' }}>
-                        {MODEL_PRESETS.map((p) => (
+                        {QUICK_PROVIDER_PRESETS.map((p) => (
                           <button
                             key={p.model}
                             onClick={async (e) => {

@@ -48,6 +48,7 @@ export type PromptAssetKind =
   | 'external'
   | 'memory'
   | 'permission'
+  | 'provider'
 export type PromptAssetMode = 'static' | 'dynamic'
 export type ModelContextAssetType =
   | 'prompt'
@@ -64,6 +65,9 @@ export type ModelContextAssetType =
   | 'memory-strategy'
   | 'permission-policy'
   | 'sandbox-policy'
+  | 'provider-capability'
+  | 'provider-policy'
+  | 'provider-preset'
 export type ModelContextOwnership = 'builtin' | 'role-pack' | 'user' | 'external'
 export type ModelContextFingerprintKind = 'content' | 'structure'
 export type ModelContextContentKind = 'static' | 'template' | 'schema' | 'data' | 'runtime'

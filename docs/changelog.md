@@ -5,6 +5,12 @@
 
 ## [未发布]
 
+### Added — 模型 Provider 能力生产资产 v1（2026-08-15）
+
+- Debug「提示词管理器」新增“模型 Provider”分类，可查看 OpenAI Compatible、Anthropic、Gemini 三协议能力，以及自动检测、辅助 Thinking、Context Window、Vision 降级和顺序 Failover 策略。
+- Settings 与 Chat 改为共用 9 个内置模型预设的唯一注册表；Chat 快切保持原有 4 项。
+- Provider 资产只保存脱敏的请求结构与代码事实，不保存 API Key、用户当前配置、能力缓存或厂商实时宣传；具体模型能力仍需连接测试或 Playground 探测。
+
 ### Added — Eval Case / Grader 生产资产 v1（2026-08-15）
 
 - Debug「提示词管理器 → Eval Judge」新增普通 / Skill Eval Case 和实际 Grader 实例，可查看场景来源、默认模式、required、评分顺序、结构化判据和 Model Judge 检查项。

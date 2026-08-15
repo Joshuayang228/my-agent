@@ -2,6 +2,14 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
+## 2026-08-15 · 模型 Provider 能力生产资产 v1
+
+- 新增 `src/shared/provider-presets.ts` 作为 9 个内置模型预设的唯一注册表；Settings 展示全部预设，Chat 只读取 4 个 `quickAccess` 预设，不再在 JSX 维护平行数组。
+- OpenAI Compatible 请求构造、Provider 自动检测、Context Window、Thinking、Vision 降级和顺序 Failover 拆为可复用生产事实；真实运行路径继续消费同一批纯函数与常量。
+- 新增 `llm/provider-asset-registry.ts`，登记 OpenAI Compatible / Anthropic / Gemini 三协议、五项跨 Provider 策略和九个预设；Debug「提示词管理器 → 模型 Provider」只读展示，结构化资产不能载入 Prompt 实验副本。
+- 目录只提取 endpoint、认证方式、header / query / body 结构与策略摘要，不读取 API Key、用户配置、能力探测缓存、Vision deny cache 或厂商实时规格。
+- 验证：Unit 112 个文件 / 670 项、普通 Eval 23/23、Skill Eval、TypeScript、Vite / Electron Build、UI E2E 7/7 全部通过。
+
 ## 2026-08-15 · Eval Case / Grader 生产资产 v1
 
 - 新增 `evals/scenario-registry.ts` 作为普通 Eval 唯一场景列表，统一 F01–F08、P01–P06、B01–B07、C01–C02，CLI 与 Vitest 不再维护平行数组，并修复 CLI 漏掉 C02 的漂移。

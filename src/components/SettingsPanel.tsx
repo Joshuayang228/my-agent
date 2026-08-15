@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useToast } from './Toast'
 import { PermissionRulesEditor } from './PermissionRulesEditor'
+import { PROVIDER_PRESET_GROUPS, type ProviderPreset } from '../shared/provider-presets'
 import {
   Upload, Download, Settings, Shield, Cpu, Database, Code,
   ChevronRight, Eye, EyeOff, Info, Heart, Brain, Wrench, SlidersHorizontal, Link2,
@@ -85,35 +86,6 @@ interface RoleInfo {
   name: string
   description: string
 }
-
-interface PresetItem { label: string; baseUrl: string; model: string }
-
-const PRESET_GROUPS: { group: string; items: PresetItem[] }[] = [
-  {
-    group: '海外直连',
-    items: [
-      { label: 'GPT-4o', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o' },
-      { label: 'GPT-4o-mini', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
-      { label: 'Claude Sonnet', baseUrl: 'https://api.anthropic.com', model: 'claude-sonnet-4-20250514' },
-    ],
-  },
-  {
-    group: '国内服务商',
-    items: [
-      { label: 'DeepSeek V3', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat' },
-      { label: 'DeepSeek V4 Flash', baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash' },
-      { label: '通义千问 Max', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-max' },
-      { label: 'Kimi K2', baseUrl: 'https://api.moonshot.cn/v1', model: 'kimi-k2' },
-    ],
-  },
-  {
-    group: '本地 / 自定义',
-    items: [
-      { label: 'Ollama', baseUrl: 'http://localhost:11434/v1', model: 'llama3.1' },
-      { label: 'LM Studio', baseUrl: 'http://localhost:1234/v1', model: 'local-model' },
-    ],
-  },
-]
 
 type SettingsSection =
   | 'general'
@@ -403,7 +375,7 @@ export function SettingsPanel({
     if (savedOk) onClose()
   }, [connectionVerified, handleSave, onClose])
 
-  const applyPreset = useCallback((preset: PresetItem) => {
+  const applyPreset = useCallback((preset: ProviderPreset) => {
     setVerifiedConnectionKey('')
     setConnectionStatus(null)
     setForm((f) => ({ ...f, llmBaseUrl: preset.baseUrl, llmModel: preset.model }))
@@ -860,7 +832,7 @@ export function SettingsPanel({
   const renderProviderPresets = () => (
     <FieldGroup label="Provider 预设" hint="选择后会一键填入 Base URL 和模型名，也可以继续手动修改。">
       <div className="space-y-4">
-        {PRESET_GROUPS.map((group) => (
+        {PROVIDER_PRESET_GROUPS.map((group) => (
           <div key={group.group}>
             <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
               {group.group}
@@ -906,7 +878,7 @@ export function SettingsPanel({
       <div>
         <SectionTitle>模型</SectionTitle>
         <p className="mt-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
-          选择 Provider 预设，再填 API Key。底层仍是单一 OpenAI 兼容端点（Base URL + 模型名）。
+          选择 Provider 预设，再填 API Key。底层会按显式配置或 Base URL 路由到 OpenAI Compatible、Anthropic 或 Gemini 适配器。
         </p>
       </div>
 

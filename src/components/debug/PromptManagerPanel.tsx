@@ -24,6 +24,7 @@ const CATEGORY_OPTIONS: Array<{ id: CategoryFilter; label: string }> = [
   { id: 'context', label: '上下文' },
   { id: 'memory', label: '记忆策略' },
   { id: 'permission', label: '权限与沙箱' },
+  { id: 'provider', label: '模型 Provider' },
   { id: 'companion', label: '伙伴世界' },
   { id: 'subagent', label: '子 Agent' },
   { id: 'ui', label: '模型测试' },
@@ -38,6 +39,7 @@ const CATEGORY_LABELS: Record<ModelContextAsset['category'], string> = {
   context: '上下文',
   memory: '记忆策略',
   permission: '权限与沙箱',
+  provider: '模型 Provider',
   companion: '伙伴世界',
   subagent: '子 Agent',
   ui: '模型测试',
@@ -63,6 +65,9 @@ const ASSET_TYPE_LABELS: Record<ModelContextAsset['assetType'], string> = {
   'memory-strategy': '记忆策略',
   'permission-policy': '权限策略',
   'sandbox-policy': '沙箱策略',
+  'provider-capability': 'Provider 能力',
+  'provider-policy': 'Provider 策略',
+  'provider-preset': '模型预设',
 }
 
 const OWNERSHIP_LABELS: Record<ModelContextAsset['ownership'], string> = {
@@ -247,7 +252,7 @@ export function PromptManagerPanel({ info, onRefresh }: { info: DebugPromptInfo 
             <span className="font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{assets.length + 1} 项</span>
           </div>
           <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            统一查看生产 Prompt、伙伴与人格资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Case / Grader、Eval Judge 与当前 MCP 工具。资产保持只读；只有显式载入的文本实验副本和 L3 自定义补充可以编辑。
+            统一查看生产 Prompt、伙伴与人格资产、记忆策略、权限与沙箱策略、模型 Provider、Tool schema、Skill、Eval Case / Grader、Eval Judge 与当前 MCP 工具。资产保持只读；只有显式载入的文本实验副本和 L3 自定义补充可以编辑。
           </p>
         </div>
       </header>
@@ -372,6 +377,9 @@ function AssetPromptDetail({ asset, onLoadExperiment, onCopy }: { asset: ModelCo
     && asset.assetType !== 'sandbox-policy'
     && asset.assetType !== 'eval-case'
     && asset.assetType !== 'eval-grader'
+    && asset.assetType !== 'provider-capability'
+    && asset.assetType !== 'provider-policy'
+    && asset.assetType !== 'provider-preset'
   return (
     <div className="space-y-3">
       <div>

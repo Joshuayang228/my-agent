@@ -122,6 +122,16 @@ describe('模型可见文本统一目录', () => {
       contentKind: 'data',
       dependencies: ['eval-judge'],
     })
+    expect(assets.find((asset) => asset.key === 'provider-capability:openai')).toMatchObject({
+      category: 'provider',
+      assetType: 'provider-capability',
+      contentKind: 'data',
+    })
+    expect(assets.find((asset) => asset.key === 'provider-preset:anthropic:claude-sonnet')).toMatchObject({
+      category: 'provider',
+      assetType: 'provider-preset',
+      dependencies: ['provider-capability:anthropic'],
+    })
     expect(new Set(assets.map((asset) => asset.key)).size).toBe(assets.length)
     for (const asset of assets) {
       expect(asset.fingerprint).toMatch(/^[a-f0-9]{16}$/)

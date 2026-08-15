@@ -30,12 +30,30 @@ export function capabilityCacheKey(baseUrl: string, model: string): string {
  * 厂商启发式：已知默认开 thinking、且文档支持 disabled 的端点。
  * 探测结果优先于启发式。
  */
+export const THINKING_DISABLE_BASE_URL_PATTERNS = [
+  /deepseek\.com/,
+  /moonshot\.cn|moonshot\.ai/,
+] as const
+
+export const THINKING_DISABLE_MODEL_RULE = {
+  requiredMarker: 'deepseek',
+  anyVersionMarker: ['v4', 'reasoner', 'r1'],
+} as const
+
+export const AUX_THINKING_DECISION_PRIORITY = [
+  'capability-cache:supported',
+  'capability-cache:unsupported',
+  'provider-model-heuristic',
+] as const
+
 export function prefersThinkingDisabledByHeuristic(baseUrl: string, model?: string): boolean {
   const base = normalizeBaseUrl(baseUrl)
-  if (/deepseek\.com/.test(base)) return true
-  if (/moonshot\.cn|moonshot\.ai/.test(base)) return true
-  const m = (model || '').toLowerCase()
-  if (m.includes('deepseek') && (m.includes('v4') || m.includes('reasoner') || m.includes('r1'))) {
+  if (THINKING_DISABLE_BASE_URL_PATTERNS.some((pattern) => pattern.test(base))) return true
+  const normalizedModel = (model || '').toLowerCase()
+  if (
+    normalizedModel.includes(THINKING_DISABLE_MODEL_RULE.requiredMarker)
+    && THINKING_DISABLE_MODEL_RULE.anyVersionMarker.some((marker) => normalizedModel.includes(marker))
+  ) {
     return true
   }
   return false

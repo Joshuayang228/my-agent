@@ -10,6 +10,19 @@ import type {
   SkillActivationTrace,
 } from '../../../src/shared/types'
 import { detectProvider, buildAnthropicBody, buildGeminiBody } from './provider-router'
+import {
+  buildOpenAICompatibleMessages,
+  buildOpenAIRequest,
+  toOpenAITool,
+} from './request-builders'
+import {
+  hasImages,
+  isVisionDenied,
+  isVisionRelatedError,
+  markVisionDenied,
+} from './vision'
+import { buildFallbackConfig } from './failover'
+export { appendExamplesToDescription } from './request-builders'
 import { createLogger } from '../utils/logger'
 import { getObserver } from '../utils/observer'
 import {
@@ -260,14 +273,7 @@ export async function* streamChat(
       let previousError = primaryError
       for (let i = 0; i < fallbacks.length; i++) {
         const fb = fallbacks[i]
-        const fbConfig = {
-          ...config,
-          model: fb.model,
-          baseUrl: fb.baseUrl ?? config.baseUrl,
-          apiKey: fb.apiKey ?? config.apiKey,
-          provider: fb.provider ?? config.provider,
-          fallbackModels: undefined,
-        }
+        const fbConfig = buildFallbackConfig(config, fb)
         try {
           attachRequest(fbConfig, i + 1, previousError)
           llmLog.info(`Failover attempt ${i + 1}/${fallbacks.length}`, { model: fb.model })
@@ -312,36 +318,23 @@ async function* streamChatSingle(
   // OpenAI 兼容格式（也覆盖 DeepSeek / Groq / OpenRouter 等）
   const stripImages = isVisionDenied(config) || !hasImages(messages)
 
-  const buildBody = (strip: boolean) => {
-    const b: Record<string, unknown> = {
-      model: config.model,
-      messages: buildAPIMessages(messages, { stripImages: strip }),
-      stream: true,
-      stream_options: { include_usage: true },
-    }
-    if (config.temperature !== undefined) b.temperature = config.temperature
-    if (config.topP !== undefined) b.top_p = config.topP
-    if (config.maxTokens !== undefined) b.max_tokens = config.maxTokens
-    // DeepSeek V4 / Kimi 等：thinking 与 content 共用 max_tokens；辅助调用常显式 disabled
-    if (config.thinking) b.thinking = config.thinking
-    if (responseFormat && responseFormat.type !== 'text') b.response_format = responseFormat
-    if (tools && tools.length > 0) b.tools = tools.map(toOpenAITool)
-    return b
-  }
-
-  const doFetch = async (body: Record<string, unknown>) => {
-    return fetch(`${config.baseUrl}/chat/completions`, {
+  const doFetch = async (strip: boolean) => {
+    const request = buildOpenAIRequest({
+      config,
+      messages,
+      tools,
+      responseFormat,
+      stripImages: strip,
+    })
+    return fetch(request.url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.apiKey}`,
-      },
-      body: JSON.stringify(body),
+      headers: request.headers,
+      body: JSON.stringify(request.body),
       signal,
     })
   }
 
-  let response = await doFetch(buildBody(stripImages))
+  let response = await doFetch(stripImages)
 
   // Vision 动态降级：如果带图片发送失败且是 vision 相关错误，自动去图片重试
   if (!response.ok && !stripImages && hasImages(messages)) {
@@ -349,7 +342,7 @@ async function* streamChatSingle(
     if (isVisionRelatedError(error)) {
       llmLog.warn('Vision not supported, retrying without images', { model: config.model })
       markVisionDenied(config)
-      response = await doFetch(buildBody(true))
+      response = await doFetch(true)
     } else {
       throw new LLMError(`LLM API error (${response.status}): ${error}`, response.status, parseRetryAfterMs(response))
     }
@@ -473,123 +466,6 @@ async function* streamChatSingle(
 
 // ── 内部工具函数 ──
 
-/** 将 ChatMessage[] 转为 OpenAI API 格式 */
-function buildAPIMessages(
-  messages: ChatMessage[],
-  opts?: { stripImages?: boolean },
-): Record<string, unknown>[] {
-  const result: Record<string, unknown>[] = []
-  const stripImages = opts?.stripImages ?? false
-
-  for (const msg of messages) {
-    if (msg.role === 'user' || msg.role === 'system') {
-      if (msg.images && msg.images.length > 0) {
-        if (stripImages) {
-          const placeholders = msg.images.map(img => `[图片: ${img.fileName || '附件'}]`).join(' ')
-          const text = [msg.content, placeholders].filter(Boolean).join('\n')
-          result.push({ role: msg.role, content: text })
-        } else {
-          const contentParts: Record<string, unknown>[] = []
-          if (msg.content) {
-            contentParts.push({ type: 'text', text: msg.content })
-          }
-          for (const img of msg.images) {
-            contentParts.push({
-              type: 'image_url',
-              image_url: { url: img.dataUrl, detail: 'auto' },
-            })
-          }
-          result.push({ role: msg.role, content: contentParts })
-        }
-      } else {
-        result.push({ role: msg.role, content: msg.content })
-      }
-    } else if (msg.role === 'assistant') {
-      const apiMsg: Record<string, unknown> = { role: 'assistant' }
-      if (msg.content) apiMsg.content = msg.content
-      if (msg.toolCalls && msg.toolCalls.length > 0) {
-        apiMsg.tool_calls = msg.toolCalls.map((tc) => ({
-          id: tc.id,
-          type: 'function',
-          function: { name: tc.name, arguments: tc.arguments },
-        }))
-      }
-      result.push(apiMsg)
-    } else if (msg.role === 'tool') {
-      result.push({
-        role: 'tool',
-        tool_call_id: msg.toolCallId,
-        content: msg.content,
-      })
-    }
-  }
-
-  return result
-}
-
-/**
- * 动态 Vision 支持检测 — 基于缓存的乐观策略。
- *
- * 1. 默认乐观（假设支持图片）
- * 2. 首次 API 返回 image_url 相关错误时标记为不支持
- * 3. 结果按 model+baseUrl 缓存，后续直接使用
- */
-const visionDenyCache = new Set<string>()
-
-function getVisionCacheKey(config: LLMConfig): string {
-  return `${config.baseUrl}::${config.model}`
-}
-
-function isVisionDenied(config: LLMConfig): boolean {
-  return visionDenyCache.has(getVisionCacheKey(config))
-}
-
-function markVisionDenied(config: LLMConfig): void {
-  const key = getVisionCacheKey(config)
-  visionDenyCache.add(key)
-  llmLog.info('Vision support marked as denied', { model: config.model, baseUrl: config.baseUrl })
-}
-
-function isVisionRelatedError(errorText: string): boolean {
-  const lower = errorText.toLowerCase()
-  return lower.includes('image_url') ||
-    lower.includes('unknown variant') ||
-    lower.includes('invalid content type') ||
-    lower.includes('does not support image') ||
-    lower.includes('multimodal') ||
-    lower.includes('vision')
-}
-
-function hasImages(messages: ChatMessage[]): boolean {
-  return messages.some(m => m.images && m.images.length > 0)
-}
-
-/**
- * 把 inputExamples 拼到 description 末尾。
- * 拼文本对所有 provider 通用（OpenAI/Anthropic/Gemini），不依赖某 provider 的专属字段。
- * 对照 Anthropic Advanced Tool Use：展示参数示例使工具调用准确率 72%→90%。
- * 导出供单测（纯函数）。
- */
-export function appendExamplesToDescription(tool: ToolDefinition): string {
-  if (!tool.inputExamples || tool.inputExamples.length === 0) return tool.description
-  const examples = tool.inputExamples
-    .map((ex, i) => `示例 ${i + 1}：${JSON.stringify(ex)}`)
-    .join('\n')
-  return `${tool.description}\n\n输入示例：\n${examples}`
-}
-
-/** 将我们的 ToolDefinition 转为 OpenAI tools 格式 */
-function toOpenAITool(tool: ToolDefinition): Record<string, unknown> {
-  return {
-    type: 'function',
-    function: {
-      name: tool.name,
-      description: appendExamplesToDescription(tool),
-      parameters: tool.parameters,
-    },
-  }
-}
-
 /** 构建 tool_result 消息（给下一轮 LLM 调用用） */
 export function buildToolResultMessages(results: ToolResult[]): Record<string, unknown>[] {
   return results.map((r) => ({
@@ -606,7 +482,7 @@ async function* streamChatAnthropic(
 ): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
   const { config, messages, tools, signal, enablePromptCache } = options
   const stripImages = isVisionDenied(config) || !hasImages(messages)
-  const apiMessages = buildAPIMessages(messages, { stripImages })
+  const apiMessages = buildOpenAICompatibleMessages(messages, { stripImages })
   const openaiTools = tools ? tools.map(toOpenAITool) : undefined
   const { url, headers, body } = buildAnthropicBody(config, apiMessages, openaiTools, { enablePromptCache })
 
@@ -860,7 +736,7 @@ async function* streamChatGemini(
 ): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
   const { config, messages, tools, signal } = options
   const stripImages = isVisionDenied(config) || !hasImages(messages)
-  const apiMessages = buildAPIMessages(messages, { stripImages })
+  const apiMessages = buildOpenAICompatibleMessages(messages, { stripImages })
   const openaiTools = tools ? tools.map(toOpenAITool) : undefined
   const { url, headers, body } = buildGeminiBody(config, apiMessages, openaiTools)
 

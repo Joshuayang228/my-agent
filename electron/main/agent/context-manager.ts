@@ -2,6 +2,14 @@ import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
 import { chatComplete } from '../llm/index'
 import { PROMPT_KEYS } from '../prompts/keys'
+import { getEffectiveContextWindow } from './model-context-window'
+export {
+  DEFAULT_MAX_TOKENS,
+  MIN_EFFECTIVE_CONTEXT_TOKENS,
+  MODEL_CONTEXT_WINDOWS,
+  OUTPUT_RESERVE_TOKENS,
+  getEffectiveContextWindow,
+} from './model-context-window'
 import {
   extractRelationshipMinSet,
   formatMinSetWhitelistForCompactPrompt,
@@ -10,49 +18,11 @@ import {
 
 const log = createLogger('ContextManager')
 
-export const DEFAULT_MAX_TOKENS = 120_000
 const L1_THRESHOLD = 0.60
 const L2_THRESHOLD = 0.75
 const L3_THRESHOLD = 0.90
 const L4_THRESHOLD = 0.95
 const RECENT_KEEP_COUNT = 6
-
-/** 预留给模型输出的 token，压缩阈值基于「窗口 - 预留」计算 */
-const OUTPUT_RESERVE_TOKENS = 8_000
-
-/**
- * 已知模型的 context window（token）。按模型名前缀匹配。
- * 未知模型回退到 DEFAULT_MAX_TOKENS，保守但不会误判超限。
- *
- * 原则：只写「窗口长期稳定、跨代际不变」的家族。
- * - Claude 家族多代稳定 200K（3.5/3.7/opus/sonnet/haiku 一致）。
- * - Gemini 家族稳定 1M 级（1.5 起）。
- * 其余（GPT/o 系列、DeepSeek、Qwen）窗口随代际频繁变动或跨度极大，
- * 硬编码具体值迟早过时，故不列入——未知则回退 DEFAULT_MAX_TOKENS（保守，
- * 宁可压缩略早，也不误判超限触发 413）。真实窗口以 API 返回的 413 反压为准。
- */
-const MODEL_CONTEXT_WINDOWS: Array<{ prefix: string; window: number }> = [
-  // Anthropic Claude — 多代稳定 200K
-  { prefix: 'claude-', window: 200_000 },
-  // Google Gemini — 1.5 起稳定 1M 级（1.5-pro 可达 2M，保守取 1M）
-  { prefix: 'gemini-', window: 1_000_000 },
-]
-
-/**
- * 根据模型名推断有效上下文窗口（已扣除输出预留）。
- * 未知模型回退到 DEFAULT_MAX_TOKENS。
- */
-export function getEffectiveContextWindow(model?: string): number {
-  if (!model) return DEFAULT_MAX_TOKENS
-  const normalized = model.toLowerCase()
-  for (const { prefix, window } of MODEL_CONTEXT_WINDOWS) {
-    if (normalized.includes(prefix)) {
-      // 扣除输出预留；下限 16K 防止极端配置把阈值压到不可用。
-      return Math.max(window - OUTPUT_RESERVE_TOKENS, 16_000)
-    }
-  }
-  return DEFAULT_MAX_TOKENS
-}
 
 /**
  * querySource 标记 — 区分调用来源，防止压缩/记忆系统递归触发 LLM 调用。
