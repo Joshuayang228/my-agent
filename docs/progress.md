@@ -2,6 +2,12 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
+## 2026-08-15 · 生产资产使用证据链 v1 施工合同
+
+- 完成真实 Electron 开发态验收：关闭自动停靠 DevTools 后，在产品实际宽度下检查浅色 / 暗色主题；模型 Provider 分类完整显示 3 个协议、5 项策略和 9 个预设，详情可复制且没有“载入为实验副本”。
+- 研究现有 tracer、`llm_debug_logs`、Prompt / Skill 调用级追踪、Tool blocked / execution Span、权限责任链和记忆调用点，并对照 Claude Code 稳定执行 ID 与 Alice Trace / 隐私默认原则。
+- 新增施工合同 `agent-asset-usage-evidence-v1.md`，方案是不重做日志系统，只建立“运行节点 ↔ 生产资产 key”的脱敏关联索引；当前状态为待确认，尚未修改生产运行链。
+
 ## 2026-08-15 · 模型 Provider 能力生产资产 v1
 
 - 新增 `src/shared/provider-presets.ts` 作为 9 个内置模型预设的唯一注册表；Settings 展示全部预设，Chat 只读取 4 个 `quickAccess` 预设，不再在 JSX 维护平行数组。

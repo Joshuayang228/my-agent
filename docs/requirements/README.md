@@ -19,7 +19,9 @@
 
 ## 进行中
 
-当前无进行中的施工合同。
+| 文档 | 说明 |
+|------|------|
+| [agent-asset-usage-evidence-v1.md](./agent-asset-usage-evidence-v1.md) | 生产资产与真实 LLM / Tool / Memory / Permission 运行记录的使用证据链、反向查询与 Debug 跳转 |
 
 ---
 
