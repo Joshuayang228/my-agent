@@ -69,6 +69,7 @@ function useCurrentTheme() {
 function initMermaid(isDark: boolean) {
   mermaid.initialize({
     startOnLoad: false,
+    securityLevel: 'strict',
     theme: isDark ? 'dark' : 'default',
     themeVariables: isDark
       ? { darkMode: true, background: '#1e293b', primaryColor: '#06b6d4', primaryTextColor: '#e2e8f0', lineColor: '#64748b' }

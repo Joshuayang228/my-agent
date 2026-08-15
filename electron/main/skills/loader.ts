@@ -9,6 +9,7 @@ const log = createLogger('SkillLoader')
 
 /** 每个 Skill 最多保留的历史版本数（对齐 Alice Ch.10 的「保留最近 10 版」） */
 const MAX_SKILL_VERSIONS = 10
+export const MAX_SKILL_CONTENT_LENGTH = 1_000_000
 const SKILL_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/
 
 export function validateSkillName(name: string): SkillValidationIssue[] {
@@ -36,6 +37,9 @@ function safeSkillName(name: string): string | null {
  */
 export function validateSkillContent(content: string, availableToolNames: ReadonlySet<string> = new Set()): SkillValidationResult {
   const issues: SkillValidationIssue[] = []
+  if (typeof content !== 'string' || content.length > MAX_SKILL_CONTENT_LENGTH) {
+    return { valid: false, issues: [{ severity: 'error', code: 'content.too_large', message: 'Skill 正文过长，不能超过 1MB。' }] }
+  }
   if (!content.trim()) {
     return { valid: false, issues: [{ severity: 'error', code: 'content.required', message: 'Skill 正文不能为空。' }] }
   }

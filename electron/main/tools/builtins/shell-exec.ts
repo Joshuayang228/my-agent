@@ -1,6 +1,7 @@
 import { buildTool } from '../builder'
 import { exec } from 'node:child_process'
-import { createLogger } from '../../utils/logger'
+import { createLogger, hashForLog } from '../../utils/logger'
+import { buildSafeChildProcessEnv } from '../../utils/safe-process-env'
 import { checkCommandPermission } from '../../sandbox/permission-engine'
 import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from '../../agent/project-memory'
@@ -61,7 +62,8 @@ export const shellExecTool = buildTool({
 
     if (decision.allowed === false) {
       log.warn('Command blocked by permission engine', {
-        command: command.slice(0, 100),
+        commandHash: hashForLog(command),
+        commandLength: command.length,
         reason: decision.reason,
         decisionType: decision.decisionType,
         chain: decision.chain,
@@ -73,20 +75,22 @@ export const shellExecTool = buildTool({
       // 责任链已查过审批库仍为 needs_approval → 尚无允许记录。
       // Loop 在 confirmTool 通过后会 recordApproval(session)；若仍到这里说明未确认或 confirm 被跳过。
       log.warn('Command needs approval but none recorded', {
-        command: command.slice(0, 100),
+        commandHash: hashForLog(command),
+        commandLength: command.length,
         reason: decision.reason,
       })
       return `[沙箱已阻止] ${decision.reason}\n\n此命令执行前需要批准。请请求用户确认，或改用权限更低的替代方案。`
     }
 
     log.info('Executing command', {
-      command,
-      cwd,
+      commandHash: hashForLog(command),
+      commandLength: command.length,
+      cwdHash: cwd ? hashForLog(cwd) : undefined,
       effectiveSandbox: mode,
       decisionType: decision.decisionType,
     })
 
-    const sanitizedEnv = { ...process.env }
+    const sanitizedEnv = buildSafeChildProcessEnv()
     if (mode !== 'full-access') {
       delete sanitizedEnv.LD_PRELOAD
       delete sanitizedEnv.DYLD_INSERT_LIBRARIES
@@ -119,9 +123,9 @@ export const shellExecTool = buildTool({
           const exitCode = error.code ?? 'unknown'
           parts.push(`[退出码：${exitCode}]`)
           if (error.killed) parts.push('[进程因超时被终止]')
-          log.warn('Command failed', { command, exitCode })
+          log.warn('Command failed', { commandHash: hashForLog(command), commandLength: command.length, exitCode })
         } else {
-          log.info('Command completed', { command })
+          log.info('Command completed', { commandHash: hashForLog(command), commandLength: command.length })
         }
 
         resolve(parts.join('\n') || '（无输出）')

@@ -1,5 +1,5 @@
 import { buildTool } from '../builder'
-import { createLogger } from '../../utils/logger'
+import { createLogger, hashForLog } from '../../utils/logger'
 
 const log = createLogger('UrlFetch')
 
@@ -28,7 +28,7 @@ export const urlFetchTool = buildTool({
       return '错误：URL 必须以 http:// 或 https:// 开头'
     }
 
-    log.info('Fetching URL', { url })
+    log.info('Fetching URL', { urlHash: hashForLog(url) })
 
     try {
       const controller = new AbortController()
@@ -65,7 +65,7 @@ export const urlFetchTool = buildTool({
       return text || '（页面为空）'
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      log.error('Fetch failed', { url, error: msg })
+      log.error('Fetch failed', { urlHash: hashForLog(url), error: msg })
       return `获取 URL 失败： ${msg}`
     }
   },

@@ -20,7 +20,7 @@ import { createRequire } from 'node:module'
 import fs from 'node:fs'
 import path from 'node:path'
 import { app } from 'electron'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
 
 const log = createLogger('Database')
 
@@ -36,7 +36,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 13
+export const SCHEMA_VERSION = 14
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -47,7 +47,7 @@ export async function getDatabase(): Promise<SqlJsDatabase> {
   if (db) return db
 
   dbPath = path.join(app.getPath('userData'), 'my-agent.db')
-  log.info('Opening database', { path: dbPath })
+  log.info('Opening database', { pathHash: hashForLog(dbPath) })
 
   // sql.js 从 require 导入后是一个函数（default export）
   const SQL = await initSqlJs({
@@ -417,6 +417,19 @@ export function runMigrations(database: SqlJsDatabase): void {
       d.run('CREATE INDEX IF NOT EXISTS idx_asset_usage_span ON agent_asset_usage(span_id)')
       d.run('CREATE INDEX IF NOT EXISTS idx_asset_usage_session_time ON agent_asset_usage(session_id, occurred_at DESC)')
       d.run('CREATE INDEX IF NOT EXISTS idx_asset_usage_interaction ON agent_asset_usage(interaction_span_id)')
+    },
+    // v13 → v14：清理历史 LLM Debug 正文，今后只保留结构元数据与资产证据。
+    (d) => {
+      if (!tableExists(d, 'llm_debug_logs')) return
+      d.run(`
+        UPDATE llm_debug_logs
+        SET request_messages = '[]',
+            request_tools = '[]',
+            request_extra = '{}',
+            response_content = NULL,
+            response_reasoning = NULL,
+            response_tool_calls = '[]'
+      `)
     },
   ]
 

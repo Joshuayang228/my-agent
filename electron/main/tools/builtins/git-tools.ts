@@ -1,7 +1,8 @@
 import { buildTool } from '../builder'
 import { execFile } from 'node:child_process'
+import { buildSafeChildProcessEnv } from '../../utils/safe-process-env'
 import { promisify } from 'node:util'
-import { createLogger } from '../../utils/logger'
+import { createLogger, hashForLog } from '../../utils/logger'
 import { getWorkspaceRoot } from '../../agent/project-memory'
 
 const execFileAsync = promisify(execFile)
@@ -17,7 +18,7 @@ async function runGit(args: string[], cwd?: string): Promise<string> {
       cwd: workDir,
       timeout: TIMEOUT_MS,
       maxBuffer: 1024 * 1024,
-      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+      env: buildSafeChildProcessEnv({ GIT_TERMINAL_PROMPT: '0' }),
     })
     const output = (stdout + (stderr ? `\n${stderr}` : '')).trim()
     if (output.length > MAX_OUTPUT) {
@@ -176,7 +177,7 @@ export const gitCommitTool = buildTool({
       const addArgs = files === '.' ? ['add', '.'] : ['add', ...files.split(/\s+/)]
       await runGit(addArgs)
       const output = await runGit(['commit', '-m', message])
-      log.info('Git commit created', { message })
+      log.info('Git commit created', { messageHash: hashForLog(message), messageLength: message.length })
       return output
     } catch (err) {
       return `错误：${err instanceof Error ? err.message : String(err)}`

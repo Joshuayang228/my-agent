@@ -1,7 +1,7 @@
 import { buildTool } from '../builder'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import { createLogger } from '../../utils/logger'
+import { createLogger, hashForLog } from '../../utils/logger'
 
 const log = createLogger('FileRead')
 
@@ -44,7 +44,7 @@ export const fileReadTool = buildTool({
     if (!filePath?.trim()) return '错误：必须提供文件路径'
 
     const resolved = path.resolve(filePath)
-    log.info('Reading file', { path: resolved })
+    log.info('Reading file', { pathHash: hashForLog(resolved) })
 
     try {
       const stat = await fs.stat(resolved)
@@ -73,7 +73,7 @@ export const fileReadTool = buildTool({
       return content
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      log.error('Read failed', { path: resolved, error: message })
+      log.error('Read failed', { pathHash: hashForLog(resolved), error: message })
       return `读取文件失败： ${message}`
     }
   },

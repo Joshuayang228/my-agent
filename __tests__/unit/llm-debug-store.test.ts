@@ -137,12 +137,13 @@ describe('LLM Debug store', () => {
     })
 
     const detail = await llmDebugStore.getById('span-main-1')
+    expect(detail?.responseContent).toBeUndefined()
+    expect(detail?.responseReasoning).toBeUndefined()
     expect(detail).toMatchObject({
-      responseContent: 'world',
-      responseReasoning: 'short thought',
-      requestMessages: [{ role: 'user', content: 'hello' }],
+      requestMessages: [{ role: 'user', content: '（正文未持久化）', contentLength: 5 }],
       requestTools: [{ name: 'echo' }],
       requestExtra: { agentAttempt: 0 },
+      responseToolCalls: [{ id: 'call-1', name: 'echo', argumentsPresent: false }],
     })
   })
 

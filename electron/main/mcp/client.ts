@@ -11,7 +11,8 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
+import { buildSafeChildProcessEnv } from '../utils/safe-process-env'
 
 const log = createLogger('MCP')
 
@@ -98,8 +99,9 @@ class McpClientManager {
     }
 
     log.info(`Connecting to MCP server: ${config.name}`, {
-      command: config.command,
-      args: config.args,
+      commandHash: hashForLog(config.command),
+      commandLength: config.command.length,
+      argCount: config.args.length,
       transport: config.transport || 'stdio',
     })
 
@@ -139,13 +141,13 @@ class McpClientManager {
     let transport: StdioClientTransport | SSEClientTransport
 
     if (transportType === 'sse' && config.url) {
-      log.info(`Using SSE transport: ${config.url}`)
+      log.info('Using SSE transport', { urlHash: hashForLog(config.url), transport: 'sse' })
       transport = new SSEClientTransport(new URL(config.url))
     } else {
       transport = new StdioClientTransport({
         command: config.command,
         args: config.args,
-        env: config.env ? { ...process.env, ...config.env } as Record<string, string> : undefined,
+        env: buildSafeChildProcessEnv(config.env),
       })
     }
 
@@ -305,7 +307,7 @@ class McpClientManager {
     if (!conn) throw new Error(`MCP server not connected: ${serverId}`)
     if (conn.status !== 'connected') throw new Error(`MCP server not ready: ${conn.config.name} (${conn.status})`)
 
-    log.info(`MCP callTool: ${conn.config.name}/${toolName}`, { args })
+    log.info('MCP callTool', { serverId, toolName, argKeys: Object.keys(args).slice(0, 32) })
 
     try {
       const result = await conn.client.callTool({ name: toolName, arguments: args })

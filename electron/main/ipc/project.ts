@@ -3,11 +3,12 @@ import * as path from 'node:path'
 import * as fs from 'node:fs'
 import * as settings from '../storage/settings-store'
 import { setWorkspaceRoot } from '../agent/project-memory'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
 
 const log = createLogger('ProjectIPC')
 
 const MAX_RECENT = 10
+const MAX_TREE_DEPTH = 5
 
 interface ProjectInfo {
   path: string
@@ -43,11 +44,35 @@ async function addToRecent(dirPath: string): Promise<void> {
   await settings.setSetting('recentProjects', JSON.stringify(list))
 }
 
+function isPathInsideRoot(candidate: string, root: string): boolean {
+  const relative = path.relative(path.resolve(root), path.resolve(candidate))
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative))
+}
+
+function resolveExistingPath(filePath: string): string | null {
+  try {
+    return fs.realpathSync(filePath)
+  } catch {
+    return null
+  }
+}
+
+async function getCurrentProjectRoot(): Promise<string | null> {
+  const configured = await settings.getSetting('currentProject')
+  if (!configured || !fs.existsSync(configured) || !fs.statSync(configured).isDirectory()) return null
+  return resolveExistingPath(configured)
+}
+
+function isPathAllowedInProject(filePath: string, projectRoot: string): boolean {
+  const resolved = resolveExistingPath(filePath)
+  return !!resolved && isPathInsideRoot(resolved, projectRoot)
+}
+
 function applyProject(dirPath: string | null): void {
   setWorkspaceRoot(dirPath || '')
   if (dirPath) {
     process.chdir(dirPath)
-    log.info('Workspace root set', { path: dirPath })
+    log.info('Workspace root set', { pathHash: hashForLog(dirPath) })
   } else {
     log.info('Workspace root cleared')
   }
@@ -76,8 +101,12 @@ export function registerProjectIPC(): void {
   })
 
   ipcMain.handle('project:set', async (_e, dirPath: string | null) => {
+    if (dirPath !== null && typeof dirPath !== 'string') return { success: false, error: 'Invalid directory' }
     if (dirPath) {
-      if (!fs.existsSync(dirPath)) return { success: false, error: 'Directory not found' }
+      if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) return { success: false, error: 'Directory not found' }
+      const resolvedDir = resolveExistingPath(dirPath)
+      if (!resolvedDir) return { success: false, error: 'Directory not found' }
+      dirPath = resolvedDir
       await addToRecent(dirPath)
       await settings.setSetting('currentProject', dirPath)
       applyProject(dirPath)
@@ -98,8 +127,13 @@ export function registerProjectIPC(): void {
   })
 
   ipcMain.handle('project:listFiles', async (_e, dirPath: string, depth = 2) => {
-    if (!dirPath || !fs.existsSync(dirPath)) return []
-    return listDirTree(dirPath, depth)
+    if (typeof dirPath !== 'string' || !dirPath) return []
+    const root = await getCurrentProjectRoot()
+    if (!root || !isPathAllowedInProject(dirPath, root)) return []
+    const safeDepth = typeof depth === 'number' && Number.isFinite(depth)
+      ? Math.min(MAX_TREE_DEPTH, Math.max(0, Math.floor(depth)))
+      : 2
+    return listDirTree(resolveExistingPath(dirPath) || dirPath, safeDepth)
   })
 
   ipcMain.handle('project:readFile', async (_e, filePath: string) => {

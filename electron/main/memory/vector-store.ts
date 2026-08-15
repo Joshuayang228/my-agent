@@ -12,7 +12,7 @@ import { app } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 import { createEmbedding } from './embeddings'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
 import type { LLMConfig } from '../../../src/shared/types'
 import { recordAssetUsage } from '../utils/asset-usage'
 import { MEMORY_STRATEGY_ASSET_KEYS } from './asset-keys'
@@ -46,7 +46,7 @@ async function getIndex(): Promise<LocalIndex> {
 
   if (!await index.isIndexCreated()) {
     await index.createIndex()
-    log.info('Vector index created', { path: indexPath })
+    log.info('Vector index created', { pathHash: hashForLog(indexPath) })
   }
 
   return index

@@ -15,7 +15,7 @@ import { assessCommand } from './exec-policy'
 import { buildPolicy, type SandboxMode } from './policy'
 import { guardCommand, type GuardDecision } from './command-guard'
 import { checkApproval } from './approval-store'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
 
 const log = createLogger('PermissionEngine')
 
@@ -98,7 +98,7 @@ export function checkCommandPermission(
   // Layer 1: 用户自定义硬规则（仅 allow / deny）
   const hardCustom = matchCustomRules(command, 'command', { includeAsk: false })
   if (hardCustom) {
-    log.debug('Custom hard rule matched', { command: command.slice(0, 60), rule: hardCustom.matchedRule })
+    log.debug('Custom hard rule matched', { commandHash: hashForLog(command), commandLength: command.length, ruleId: hardCustom.matchedRule })
     return hardCustom
   }
 
@@ -116,7 +116,7 @@ export function checkCommandPermission(
   // Layer 1b: 自定义 ask（无审批记录时才要求确认）
   const askCustom = matchCustomRules(command, 'command', { includeAsk: true, askOnly: true })
   if (askCustom) {
-    log.debug('Custom ask rule matched', { command: command.slice(0, 60), rule: askCustom.matchedRule })
+    log.debug('Custom ask rule matched', { commandHash: hashForLog(command), commandLength: command.length, ruleId: askCustom.matchedRule })
     return askCustom
   }
 
@@ -165,7 +165,7 @@ function matchCustomRules(
         }
       }
     } catch {
-      log.warn('Invalid rule pattern', { ruleId: rule.id, pattern: rule.pattern })
+      log.warn('Invalid rule pattern', { ruleId: rule.id, patternHash: hashForLog(rule.pattern), patternLength: rule.pattern.length })
     }
   }
   return null

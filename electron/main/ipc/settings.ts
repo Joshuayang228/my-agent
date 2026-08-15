@@ -12,6 +12,12 @@ export function registerSettingsIPC(): void {
   ipcMain.handle('settings:get', async () => settings.getAllSettings())
 
   ipcMain.handle('settings:set', async (_event, key: string, value: string) => {
+    if (typeof key !== 'string' || !settings.isAppSettingKey(key)) {
+      throw new Error('无效的设置项')
+    }
+    if (typeof value !== 'string' || value.length > settings.MAX_SETTING_VALUE_LENGTH) {
+      throw new Error('设置值无效或超出长度限制')
+    }
     await settings.setSetting(key as keyof AppSettings, value)
     // 自定义权限规则热更新 → 立即刷入责任链第一层
     if (key === 'permissionRules') {

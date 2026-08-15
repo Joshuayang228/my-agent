@@ -1,4 +1,5 @@
 import { appendFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error'
@@ -93,6 +94,11 @@ function writeToFile(line: string): void {
 const SENSITIVE_KEY_PATTERN = /^(?:api[-_]?key|apikey|access[-_]?token|accesstoken|auth(?:orization)?|bearer|client[-_]?secret|clientsecret|credential|password|refresh[-_]?token|refreshtoken|secret|token)$/i
 const SENSITIVE_VALUE_PATTERN = /(?:Bearer\s+|sk-(?:ant-)?|gh[pousr]_|github_pat_|xox[baprs]-)[A-Za-z0-9._~+/=-]{8,}/gi
 const SENSITIVE_URL_PARAM_PATTERN = /([?&](?:api[-_]?key|access[-_]?token|token|secret|password)=)[^&#\s"']+/gi
+
+/** 只用于日志关联，不可逆推出原文的短指纹。 */
+export function hashForLog(value: string): string {
+  return createHash('sha256').update(value, 'utf8').digest('hex').slice(0, 16)
+}
 
 /**
  * 脱敏日志字段，避免 console 和落盘日志成为凭据泄漏路径。

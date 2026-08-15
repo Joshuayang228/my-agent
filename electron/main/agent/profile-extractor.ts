@@ -130,7 +130,7 @@ export async function maybeExtractProfile(
         roleId: item.category === 'feedback' ? opts?.roleId : undefined,
       })
       added++
-      log.info('Profile item added', { category: item.category, content: item.content })
+      log.info('Profile item added', { category: item.category, contentLength: item.content.length })
     }
 
     lastExtractTime = Date.now()

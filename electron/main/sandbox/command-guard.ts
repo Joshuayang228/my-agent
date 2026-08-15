@@ -8,7 +8,7 @@
 import * as path from 'node:path'
 import type { SandboxPolicy } from './policy'
 import { assessCommand, type CommandAssessment } from './exec-policy'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
 
 const log = createLogger('CommandGuard')
 
@@ -27,7 +27,7 @@ export function guardCommand(
   // Bypass-immune: 危险命令无论沙箱模式如何都要阻断（包括 full-access）
   // 原则：rm -rf /、fork bomb、磁盘格式化等绝对危险操作不受模式影响
   if (assessment.risk === 'dangerous') {
-    log.warn('Dangerous command blocked (bypass-immune)', { command: command.slice(0, 100), reason: assessment.reason })
+    log.warn('Dangerous command blocked (bypass-immune)', { commandHash: hashForLog(command), commandLength: command.length, reasonCode: assessment.risk })
     return { allowed: false, reason: `危险命令被拦截: ${assessment.reason}` }
   }
 

@@ -5,6 +5,14 @@
 
 ## [未发布]
 
+### Fixed — 安全审计与敏感数据边界（2026-08-15）
+
+- 修复数据导入中的 SQL 注入：备份文件中的 Session ID 改为参数化查询，并增加 JSON 结构、数量、长度和设置键白名单校验。
+- Terminal、shell_exec、Git 和 MCP stdio 子进程不再默认继承主进程 API Key / Token / Secret；MCP 配置、Memory、Chat、Skill、Terminal、Project 等 IPC 增加运行时输入边界。
+- 日志改为只记录命令 / 路径 / 记忆 / 权限规则 / 反思摘要的长度、类型或短指纹，不落盘正文；API Key 在 safeStorage 不可用时 fail-closed。
+- LLM Debug schema v14 清理历史 Prompt、响应正文和 hidden reasoning；后续仅保留结构元数据、资产证据、长度与计数。Mermaid 显式启用 strict 安全级别。
+- 依赖审计后升级 `@modelcontextprotocol/sdk` 到 1.30.0、`mermaid` 到 11.16.1；剩余 transitive 依赖风险已记录到 wishlist，未强行 override 可能破坏兼容性的包。
+
 ### Fixed — 文件删除沙箱路径边界（2026-08-15）
 
 - `file_delete` 现在与写入、编辑和 patch 共用工作区路径守卫；相对路径基于当前工作区，不再基于 Electron 进程目录。

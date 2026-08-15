@@ -1,7 +1,7 @@
 import { buildTool } from '../builder'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import { createLogger } from '../../utils/logger'
+import { createLogger, hashForLog } from '../../utils/logger'
 import { checkFileWriteSandbox, resolveToolFilePath } from '../../sandbox/file-path-guard'
 import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from '../../agent/project-memory'
@@ -55,11 +55,11 @@ export const fileWriteTool = buildTool({
       metadata: { sandboxMode: mode, decision: blocked ? 'deny' : 'allow' },
     })
     if (blocked) {
-      log.warn('File write blocked by sandbox', { path: resolved, mode, wsRoot })
+      log.warn('File write blocked by sandbox', { pathHash: hashForLog(resolved), mode, workspaceRootHash: wsRoot ? hashForLog(wsRoot) : undefined })
       return blocked
     }
 
-    log.info('Writing file', { path: resolved, append, contentLength: content.length, effectiveSandbox: mode })
+    log.info('Writing file', { pathHash: hashForLog(resolved), append, contentLength: content.length, effectiveSandbox: mode })
 
     try {
       await fs.mkdir(path.dirname(resolved), { recursive: true })
@@ -74,7 +74,7 @@ export const fileWriteTool = buildTool({
       return `文件${append ? '追加' : '写入'}成功： ${resolved} (${stat.size} bytes)`
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      log.error('Write failed', { path: resolved, error: message })
+      log.error('Write failed', { pathHash: hashForLog(resolved), error: message })
       return `写入文件失败： ${message}`
     }
   },

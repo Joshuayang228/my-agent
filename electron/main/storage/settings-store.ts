@@ -5,14 +5,19 @@ import { createLogger } from '../utils/logger'
 const log = createLogger('SettingsStore')
 
 const ENCRYPTED_KEYS = new Set<keyof AppSettings>(['llmApiKey'])
+export const MAX_SETTING_VALUE_LENGTH = 1_000_000
 
 function encrypt(value: string): string {
-  if (!value || !safeStorage.isEncryptionAvailable()) return value
+  if (!value) return value
+  if (!safeStorage.isEncryptionAvailable()) {
+    throw new Error('系统安全存储不可用，无法安全保存 API Key')
+  }
   return safeStorage.encryptString(value).toString('base64')
 }
 
 function decrypt(encoded: string): string {
-  if (!encoded || !safeStorage.isEncryptionAvailable()) return encoded
+  if (!encoded) return encoded
+  if (!safeStorage.isEncryptionAvailable()) return ''
   try {
     return safeStorage.decryptString(Buffer.from(encoded, 'base64'))
   } catch {
@@ -91,6 +96,10 @@ export interface AppSettings {
   llmCapabilityCache: string
 }
 
+export function isAppSettingKey(key: string): key is keyof AppSettings {
+  return Object.prototype.hasOwnProperty.call(getDefaults(), key)
+}
+
 function getDefaults(): AppSettings {
   return {
     llmApiKey: process.env.LLM_API_KEY || '',
@@ -163,6 +172,10 @@ export async function setSetting<K extends keyof AppSettings>(
   key: K,
   value: AppSettings[K],
 ): Promise<void> {
+  if (!isAppSettingKey(String(key))) throw new Error('无效的设置项')
+  if (typeof value !== 'string' || value.length > MAX_SETTING_VALUE_LENGTH) {
+    throw new Error('设置值无效或超出长度限制')
+  }
   await ensureTable()
   const db = await getDatabase()
 

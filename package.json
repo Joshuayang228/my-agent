@@ -23,12 +23,12 @@
     "eval:skill": "vitest run --config vitest.skill-eval.config.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "dotenv": "^17.4.2",
     "electron-updater": "^6.8.9",
     "gray-matter": "^4.0.3",
     "lucide-react": "^1.21.0",
-    "mermaid": "^11.15.0",
+    "mermaid": "^11.16.1",
     "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^16.1.1",
     "remark-gfm": "^4.0.1",

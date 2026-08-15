@@ -1,6 +1,6 @@
 import { buildTool } from '../builder'
 import { promises as fs } from 'node:fs'
-import { createLogger } from '../../utils/logger'
+import { createLogger, hashForLog } from '../../utils/logger'
 import { checkFileWriteSandbox, resolveToolFilePath } from '../../sandbox/file-path-guard'
 import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from '../../agent/project-memory'
@@ -178,7 +178,7 @@ export const applyPatchTool = buildTool({
       return `写入文件失败： ${message}`
     }
 
-    log.info('Patch applied', { path: resolved, applied, failed, totalHunks: hunks.length })
+    log.info('Patch applied', { pathHash: hashForLog(resolved), applied, failed, totalHunks: hunks.length })
     if (failed > 0) {
       return `补丁已部分应用： ${applied}/${hunks.length} 个区块成功，${failed} 个失败。请检查文件是否正确。`
     }

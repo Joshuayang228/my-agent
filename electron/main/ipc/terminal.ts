@@ -12,11 +12,14 @@ import { randomUUID } from 'node:crypto'
 import { checkCommandPermission } from '../sandbox/permission-engine'
 import { loadEffectiveSandbox } from '../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from '../agent/project-memory'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
+import { buildSafeChildProcessEnv } from '../utils/safe-process-env'
 
 const log = createLogger('TerminalIPC')
 const TIMEOUT_MS = 30_000
 const MAX_CHUNK = 8_000
+const MAX_COMMAND_LENGTH = 100_000
+const MAX_CWD_LENGTH = 4_096
 
 const runs = new Map<string, ChildProcessWithoutNullStreams>()
 
@@ -27,12 +30,21 @@ export function registerTerminalIPC(): void {
       event,
       input: { command: string; cwd?: string },
     ): Promise<{ ok: true; runId: string } | { ok: false; error: string }> => {
-      const command = (input?.command || '').trim()
+      if (!input || typeof input !== 'object' || typeof input.command !== 'string') {
+        return { ok: false, error: '命令参数无效' }
+      }
+      if (input.cwd !== undefined && typeof input.cwd !== 'string') {
+        return { ok: false, error: '工作目录参数无效' }
+      }
+      const command = input.command.trim()
       if (!command) return { ok: false, error: '命令为空' }
+      if (command.length > MAX_COMMAND_LENGTH) return { ok: false, error: '命令过长' }
 
       const mode = await loadEffectiveSandbox()
       const workspaceRoot = getWorkspaceRoot()
-      const cwd = (input.cwd?.trim() || workspaceRoot || process.cwd())
+      const requestedCwd = input.cwd?.trim() || ''
+      if (requestedCwd.length > MAX_CWD_LENGTH) return { ok: false, error: '工作目录路径过长' }
+      const cwd = (requestedCwd || workspaceRoot || process.cwd())
       const decision = checkCommandPermission(command, cwd, mode, workspaceRoot)
 
       if (decision.allowed === false) {
@@ -53,7 +65,7 @@ export function registerTerminalIPC(): void {
 
       const child = spawn(shell, shellArgs, {
         cwd,
-        env: process.env,
+        env: buildSafeChildProcessEnv(),
         windowsHide: true,
       })
       runs.set(runId, child)
@@ -92,7 +104,7 @@ export function registerTerminalIPC(): void {
         send('terminal:exit', { runId, code: -1 })
       })
 
-      log.info('terminal run', { runId, command: command.slice(0, 80), cwd, mode })
+      log.info('terminal run', { runId, commandHash: hashForLog(command), commandLength: command.length, cwdHash: hashForLog(cwd), mode })
       return { ok: true, runId }
     },
   )

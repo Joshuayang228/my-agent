@@ -10,7 +10,7 @@ import { streamChat as defaultStreamChat, LLMError } from '../llm/index'
 import { ToolRegistry } from '../tools/registry'
 import { checkToolPermission } from '../sandbox/permission-engine'
 import { recordApproval } from '../sandbox/approval-store'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
 import { sanitizeError } from '../utils/sanitize-error'
 import { AgentError, AgentErrorCode, toAgentError } from '../errs/index'
 import { startSpan, type SpanHandle } from '../utils/tracer'
@@ -753,7 +753,7 @@ export async function* agentLoop(
         const blocked = extractBlockedCommand(call, result, parsedArgs)
         if (blocked && !state.deniedCommands.some(d => d.command === blocked.command)) {
           state.deniedCommands.push(blocked)
-          log.info('Blocked command tracked for denial injection', { command: blocked.command, reason: blocked.reason })
+          log.info('Blocked command tracked for denial injection', { commandHash: hashForLog(blocked.command), commandLength: blocked.command.length, reasonCode: blocked.reason ? hashForLog(blocked.reason) : undefined })
         }
       }
     }

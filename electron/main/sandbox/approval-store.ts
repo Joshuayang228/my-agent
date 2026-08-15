@@ -11,7 +11,7 @@
  */
 
 import { getDatabase, persist } from '../storage/database'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
 
 const log = createLogger('ApprovalStore')
 
@@ -77,7 +77,7 @@ async function persistApprovalToDisk(record: ApprovalRecord): Promise<void> {
     )
     persist()
   } catch (err) {
-    log.warn('Failed to persist approval to disk', { command: record.commandPattern, error: String(err) })
+    log.warn('Failed to persist approval to disk', { commandHash: hashForLog(record.commandPattern), commandLength: record.commandPattern.length, error: String(err) })
   }
 }
 
@@ -113,11 +113,11 @@ export function recordApproval(
 
   if (scope === 'session') {
     sessionApprovals.set(key, record)
-    log.info('Session approval recorded', { command: key, approved })
+    log.info('Session approval recorded', { commandHash: hashForLog(key), commandLength: key.length, approved })
   } else if (scope === 'persistent') {
     // 内存缓存同步更新（保证 checkApproval 立即可见），SQLite 异步落盘
     persistentApprovals.set(key, record)
-    log.info('Persistent approval recorded', { command: key, approved })
+    log.info('Persistent approval recorded', { commandHash: hashForLog(key), commandLength: key.length, approved })
     void persistApprovalToDisk(record)
   }
 }

@@ -6,7 +6,7 @@
  * 意图：复用现有 my-agent.db、sql.js、persist 和 safeStorage，只新增专用表与查询
  *       API；记录 ID 直接使用 tracer Span ID，避免第二套调用生命周期。
  * 约束：所有写入串行化；写盘失败只记录 warning，不阻断 LLM；renderer 只收到
- *       summary，正文通过单条详情 IPC 懒加载。
+ *       结构元数据、资产证据和正文长度，不持久化 Prompt、响应正文或隐藏推理。
  */
 
 import { safeStorage } from 'electron'
@@ -86,6 +86,44 @@ function parseJson(value: unknown, fallback: unknown): unknown {
   }
 }
 
+
+function redactDebugMessages(value: unknown): unknown[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    if (!item || typeof item !== 'object') return { content: '（正文未持久化）' }
+    const message = item as Record<string, unknown>
+    const content = typeof message.content === 'string' ? message.content : ''
+    return {
+      role: typeof message.role === 'string' ? message.role : 'unknown',
+      content: '（正文未持久化）',
+      contentLength: content.length,
+      ...(message.images && Array.isArray(message.images)
+        ? { images: message.images.map((image) => {
+          if (!image || typeof image !== 'object') return { type: 'unknown' }
+          const item = image as Record<string, unknown>
+          return {
+            fileName: typeof item.fileName === 'string' ? item.fileName : undefined,
+            mimeType: typeof item.mimeType === 'string' ? item.mimeType : undefined,
+          }
+        }) }
+        : {}),
+    }
+  })
+}
+
+function redactDebugToolCalls(value: unknown): unknown[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    if (!item || typeof item !== 'object') return { name: 'unknown' }
+    const call = item as Record<string, unknown>
+    return {
+      id: typeof call.id === 'string' ? call.id : undefined,
+      name: typeof call.name === 'string' ? call.name : 'unknown',
+      argumentsPresent: call.arguments !== undefined,
+    }
+  })
+}
+
 function parseText(value: unknown): string | undefined {
   const raw = unprotect(value)
   if (!raw) return undefined
@@ -134,8 +172,8 @@ function rowToDetail(row: Record<string, unknown>): LLMCallDetail {
     requestExtra: requestExtra && typeof requestExtra === 'object' && !Array.isArray(requestExtra)
       ? requestExtra
       : {},
-    ...(row.response_content != null ? { responseContent: parseText(row.response_content) ?? null } : {}),
-    ...(row.response_reasoning != null ? { responseReasoning: parseText(row.response_reasoning) } : {}),
+    ...(row.response_content != null ? { responseContent: '（响应正文未持久化）' } : {}),
+    ...(row.response_reasoning != null ? { responseReasoning: '（隐藏推理未持久化）' } : {}),
     responseToolCalls: parseJson(row.response_tool_calls, []),
   }
 }
@@ -251,7 +289,7 @@ class LLMDebugStore implements LLMTraceSink {
           request.provider,
           request.model,
           request.caller,
-          protect(request.messages, '[]'),
+          protect(redactDebugMessages(request.messages), '[]'),
           protect(request.tools, '[]'),
           protect(request.extra, '{}'),
         ],
@@ -277,7 +315,7 @@ class LLMDebugStore implements LLMTraceSink {
           request.provider,
           request.model,
           request.caller,
-          protect(request.messages, '[]'),
+          protect(redactDebugMessages(request.messages), '[]'),
           protect(request.tools, '[]'),
           protect(request.extra, '{}'),
           request.spanId,
@@ -304,10 +342,10 @@ class LLMDebugStore implements LLMTraceSink {
         [
           endedAt,
           response.status,
-          protectText(response.content),
-          protectText(response.reasoning),
-          protect(response.toolCalls ?? [], '[]'),
-          response.error ? protect(response.error, '""') : null,
+          null,
+          null,
+          protect(redactDebugToolCalls(response.toolCalls), '[]'),
+          response.error ? protect('（错误正文未持久化）', '""') : null,
           usage?.promptTokens ?? 0,
           usage?.completionTokens ?? 0,
           usage?.totalTokens ?? (usage ? usage.promptTokens + usage.completionTokens : 0),

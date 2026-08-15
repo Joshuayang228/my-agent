@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 人格反思服务（对照 Alice PersonaReflectionService + runPersonaReflection）
  *
  * 背景：低频把互动默契固化进 MUTABLE，不碰 PROTECTED。
@@ -177,7 +177,7 @@ async function runReflectionCore(
       changed: false,
       summary: parsed.summary || 'no-change',
     })
-    log.info('Reflection no change', { roleId, summary: parsed.summary })
+    log.info('Reflection no change', { roleId, summaryLength: parsed.summary.length })
     return {
       skipped: false,
       changed: false,
@@ -229,7 +229,7 @@ async function runReflectionCore(
     changed: true,
     summary: parsed.summary,
   })
-  log.info('Reflection applied', { roleId, version: write.version, summary: parsed.summary })
+  log.info('Reflection applied', { roleId, version: write.version, summaryLength: parsed.summary.length })
 
   // M30-G1：第一次反思真正写入 MUTABLE
   try {

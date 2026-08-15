@@ -10,7 +10,7 @@ import {
   listSessionFileChanges,
 } from '../agent/session-file-changes'
 import { formatUnifiedDiff } from '../utils/simple-diff'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
 
 const log = createLogger('SessionChangesIPC')
 
@@ -50,7 +50,7 @@ export function registerSessionChangesIPC(): void {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      log.warn('getFileChangeDiff failed', { filePath, message })
+      log.warn('getFileChangeDiff failed', { filePathHash: hashForLog(filePath), message })
       return { error: message }
     }
   })

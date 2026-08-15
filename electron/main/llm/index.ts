@@ -144,11 +144,15 @@ function toTraceCaller(caller?: string): SpanCaller {
 
 function debugMessages(messages: ChatMessage[]): unknown[] {
   return messages.map((message) => ({
-    ...message,
+    role: message.role,
+    content: '（正文未持久化）',
+    contentLength: message.content.length,
     // 图片二进制不进入持久化 Debug，保留文件名/类型即可定位请求来源。
     ...(message.images
       ? { images: message.images.map(({ fileName, mimeType }) => ({ fileName, mimeType })) }
       : {}),
+    ...(message.toolCalls ? { toolCallCount: message.toolCalls.length } : {}),
+    ...(message.toolCallId ? { hasToolCallId: true } : {}),
   }))
 }
 

@@ -1,6 +1,6 @@
 import { buildTool } from '../builder'
 import { promises as fs } from 'node:fs'
-import { createLogger } from '../../utils/logger'
+import { createLogger, hashForLog } from '../../utils/logger'
 import { checkFileWriteSandbox, resolveToolFilePath } from '../../sandbox/file-path-guard'
 import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from '../../agent/project-memory'
@@ -65,7 +65,7 @@ export const fileEditTool = buildTool({
       metadata: { sandboxMode: mode, decision: blocked ? 'deny' : 'allow' },
     })
     if (blocked) {
-      log.warn('File edit blocked by sandbox', { path: resolved, mode })
+      log.warn('File edit blocked by sandbox', { pathHash: hashForLog(resolved), mode })
       return blocked
     }
 
@@ -121,7 +121,7 @@ export const fileEditTool = buildTool({
 
     const actualReplacements = count === -1 ? occurrences : Math.min(count, occurrences)
     const action = insertAfter ? '插入' : '替换'
-    log.info('File edited', { path: resolved, replacements: actualReplacements })
+    log.info('File edited', { pathHash: hashForLog(resolved), replacements: actualReplacements })
     return `已${action} ${actualReplacements} 处，文件：${resolved}（共找到 ${occurrences} 处）。`
   },
 })

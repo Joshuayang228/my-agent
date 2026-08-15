@@ -12,7 +12,7 @@ import { buildTool } from '../builder'
 import { shell } from 'electron'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
-import { createLogger } from '../../utils/logger'
+import { createLogger, hashForLog } from '../../utils/logger'
 import { checkFileWriteSandbox, resolveToolFilePath } from '../../sandbox/file-path-guard'
 import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from '../../agent/project-memory'
@@ -112,11 +112,11 @@ export const fileDeleteTool = buildTool({
         } else {
           await fs.unlink(absolutePath)
         }
-        log.info('File permanently deleted (whitelisted)', { path: absolutePath, isDirectory: stat.isDirectory() })
+        log.info('File permanently deleted (whitelisted)', { pathHash: hashForLog(absolutePath), isDirectory: stat.isDirectory() })
       } else {
         // 非白名单路径：移动到回收站
         await shell.trashItem(absolutePath)
-        log.info('File moved to trash (recoverable)', { path: absolutePath })
+        log.info('File moved to trash (recoverable)', { pathHash: hashForLog(absolutePath) })
       }
 
       const recoveryNote = isWhitelisted ? '' : '（已移入回收站，可恢复）'
@@ -124,7 +124,7 @@ export const fileDeleteTool = buildTool({
 
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error)
-      log.error('Delete failed', { path: absolutePath, method: deleteMethod, error: message })
+      log.error('Delete failed', { pathHash: hashForLog(absolutePath), method: deleteMethod, error: message })
       return `删除失败 ${absolutePath}: ${message}`
     }
   },

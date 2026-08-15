@@ -6,7 +6,7 @@
 
 ## 边界
 
-**做**：PermissionEngine 责任链、对话页审批模式（confirm-all / auto / full-access）、由审批模式推导的有效沙箱、命令分级与路径守卫、审批记录、确认 IPC/UI、settings 中 permissionRules 与可视化编辑器。
+**做**：PermissionEngine 责任链、对话页审批模式（confirm-all / auto / full-access）、由审批模式推导的有效沙箱、命令分级与路径守卫、审批记录、确认 IPC/UI、settings 中 permissionRules 与可视化编辑器、Terminal / shell / MCP 子进程凭据隔离和安全日志脱敏。
 **不做**：设置页独立沙箱开关（已移除）；OS 级强隔离沙箱；Python 嵌入解释器沙箱（wishlist 搁置）。
 
 ## 短 Why
@@ -71,8 +71,10 @@
 | `permissionRules` 热更新 | 已落地 | settings |
 | 权限规则可视化编辑器 | 已落地 | 设置「安全与权限」· `PermissionRulesEditor` |
 | 权限与沙箱生产资产目录 | 已落地 | `sandbox/asset-registry.ts` · Debug「提示词管理器 → 权限与沙箱」 |
+| 子进程环境凭据隔离 | 已落地 | `safe-process-env.ts` · Terminal / shell_exec / Git / MCP stdio |
+| 安全日志元数据化 | 已落地 | `logger.ts` · 命令 / 路径 / 记忆内容只留长度或短指纹 |
 
 ## 现状 / 缺口
 
-**现状**：五层链已接 Loop；文件写入、编辑、删除和 patch 统一经过有效沙箱与工作区路径守卫，用户确认不会绕过路径边界；设置页不再提供独立沙箱开关；内置策略可在 Debug 只读追踪来源、版本、指纹和依赖。
+**现状**：五层链已接 Loop；子进程默认过滤主进程环境中的 API Key / Token / Secret，日志不再落盘命令正文、权限 pattern/reason、原始路径或记忆正文；文件写入、编辑、删除和 patch 统一经过有效沙箱与工作区路径守卫，用户确认不会绕过路径边界；设置页不再提供独立沙箱开关；内置策略可在 Debug 只读追踪来源、版本、指纹和依赖。
 **缺口**：更细的产品向权限说明文案；OS/嵌入级强隔离非本阶段。

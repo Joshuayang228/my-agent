@@ -4,6 +4,7 @@ vi.mock('../../electron/main/utils/logger', () => ({
   createLogger: () => ({
     info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(),
   }),
+  hashForLog: (value: string) => `hash:${value.length}`,
 }))
 
 import {

@@ -2,6 +2,15 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
+## 2026-08-15 · 安全审计 v1 与敏感数据边界修复
+
+- 修复数据导入 SQL 注入；导入文件增加结构、数量、长度和设置键白名单校验。
+- Terminal / shell_exec / Git / MCP stdio 使用安全子进程环境；Chat / Memory / Skill / MCP / Project / Terminal IPC 增加运行时输入校验。
+- 普通日志改为命令、路径、记忆、权限规则、反思摘要的长度 / 类型 / 短指纹；API Key 在 safeStorage 不可用时不再明文保存。
+- LLM Debug schema 升至 v14，清理旧 Prompt / 响应 / hidden reasoning 正文，今后只保存结构元数据、资产证据、计数和长度；Mermaid 使用 strict 安全级别。
+- 依赖升级：`@modelcontextprotocol/sdk` 1.30.0、`mermaid` 11.16.1；生产依赖审计仍有 4 high / 4 moderate transitive advisories，已记录待办。
+- 验证：Unit 115 文件 / 682 项、TypeScript、Vite / Electron Build 通过；未调用真实模型。
+
 ## 2026-08-15 · file_delete 沙箱路径边界修复
 
 - 修复 `file_delete` 未经过有效沙箱和工作区路径守卫、相对路径错误基于 `process.cwd()` 的安全缺口。
@@ -222,7 +231,7 @@
 - ✅ **启动首帧体验**：BrowserWindow `show:false` + `ready-to-show`；入口 Splash 提前恢复主题并在 React 挂载后淡出，启动重初始化不阻塞首帧。
 - ✅ **壳层交互**：侧栏 Debug/Playground 并排；独立页返回左上；对话 Debug 右栏；preload CJS。
 - ✅ **对话 Debug 调用链收敛**：参考 Alice 的 `LLM 调用链` 侧栏，按模型调用展示状态、模型、tokens、耗时和工具摘要；`text` / `thinking` 事件继续留在全页 Debug。
-- ✅ **LLM Debug 数据持久化**：不另起独立日志库；复用 `observer → tracer` 的 `llm_request` Span，以 Span ID 作为 logId，将请求/响应正文写入 `my-agent.db` 的 `llm_debug_logs`，支持主会话/子 Agent 聚合、懒加载、清空和 JSONL 导出。
+- ✅ **LLM Debug 安全元数据持久化**：不另起独立日志库；复用 `observer → tracer` 的 `llm_request` Span，以 Span ID 作为 logId，只保存结构元数据、正文长度、资产证据、计数和 JSONL 导出所需字段；schema v14 清理历史正文，不保存 Prompt / 响应 / hidden reasoning。
 - ✅ **Debug/Playground 左右栏**：左侧纵向 tab + 右侧内容区（告别顶栏横滑）。
 - ✅ **写文件沙箱修复**：启动恢复工作区；相对路径对齐项目根；确认≠绕过文案；渲染进程 sandbox 噪声收敛。
 - ✅ **壳层 IA**：人物世界 `WorldHub`；撤顶栏状态条与侧栏主题钮；Debug/Playground 独立页壳。

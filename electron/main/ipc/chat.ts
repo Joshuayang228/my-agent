@@ -9,15 +9,33 @@ import type { ChatMessage } from '../../../src/shared/types'
 const log = createLogger('ChatIPC')
 
 const CONFIRM_TIMEOUT_MS = 60_000
+const MAX_CHAT_ID_LENGTH = 200
+const MAX_CHAT_CONTENT_LENGTH = 1_000_000
+
+function isValidChatMessage(value: unknown): value is ChatMessage {
+  if (!value || typeof value !== 'object') return false
+  const message = value as Record<string, unknown>
+  return typeof message.id === 'string'
+    && message.id.length > 0 && message.id.length <= MAX_CHAT_ID_LENGTH
+    && message.role === 'user'
+    && typeof message.content === 'string' && message.content.length <= MAX_CHAT_CONTENT_LENGTH
+    && typeof message.timestamp === 'number' && Number.isFinite(message.timestamp)
+}
 
 export function registerChatIPC(toolRegistry: ToolRegistry): void {
   ipcMain.handle('ping', () => 'pong')
 
   ipcMain.handle('chat:abort', (_event, sessionId?: string) => {
-    runtime.abort(sessionId)
+    runtime.abort(typeof sessionId === 'string' && sessionId.length <= MAX_CHAT_ID_LENGTH ? sessionId : undefined)
   })
 
   ipcMain.handle('chat:send', async (event, sessionId: string, userMessage: ChatMessage) => {
+    if (typeof sessionId !== 'string' || sessionId.length === 0 || sessionId.length > MAX_CHAT_ID_LENGTH) {
+      throw new Error('会话 ID 无效')
+    }
+    if (!isValidChatMessage(userMessage)) {
+      throw new Error('消息参数无效或内容过长')
+    }
     const emit = (ev: Record<string, unknown>) => {
       event.sender.send('chat:event', { ...ev, sessionId })
     }

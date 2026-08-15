@@ -76,7 +76,7 @@ export interface LLMTraceRequest {
   extra: Record<string, unknown>
 }
 
-/** LLM Debug 响应快照；正文只存入 Debug 专用存储，不进入普通 Span attributes。 */
+/** LLM Debug 响应快照；sink 只保留结构元数据，正文不进入持久化记录。 */
 export interface LLMTraceResponse {
   status: 'success' | 'error'
   content?: string | null

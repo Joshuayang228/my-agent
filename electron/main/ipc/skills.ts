@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { getLoadedSkills, reloadSkills } from '../skills/registry'
-import { getSkillContent, getSkillVersionContent, listSkillVersionInfo, rollbackSkill, saveSkill, validateSkillContent, deleteSkill } from '../skills/loader'
+import { getSkillContent, getSkillVersionContent, listSkillVersionInfo, rollbackSkill, saveSkill, validateSkillContent, deleteSkill, MAX_SKILL_CONTENT_LENGTH } from '../skills/loader'
 import { ToolRegistry } from '../tools/registry'
 import type { SkillValidationResult } from '../../../src/shared/types'
 
@@ -70,7 +70,13 @@ export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
   })
 
   ipcMain.handle('skills:playground-run', async (_event, input: { content: string; userPrompt: string }) => {
-    const validation = validate(input?.content ?? '')
+    if (!input || typeof input !== 'object' || typeof input.content !== 'string' || typeof input.userPrompt !== 'string') {
+      return { ok: false, error: 'Playground 参数无效' }
+    }
+    if (input.userPrompt.length > MAX_SKILL_CONTENT_LENGTH) {
+      return { ok: false, error: '用户提示词过长' }
+    }
+    const validation = validate(input.content)
     if (!validation.valid) return { ok: false, error: validation.issues.filter((issue) => issue.severity === 'error').map((issue) => issue.message).join('；') }
     const { runPlayground } = await import('../agent/playground')
     return runPlayground({ systemPrompt: input.content, userPrompt: input.userPrompt })
