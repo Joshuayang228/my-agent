@@ -18,6 +18,8 @@ dependencies
 prompt
 companion-*
 memory-strategy
+permission-policy
+sandbox-policy
 tool-schema
 skill
 eval-judge
@@ -45,6 +47,7 @@ electron/main/prompts/registry.ts
  electron/main/tools/registry.ts
  electron/main/companion/asset-registry.ts
  electron/main/memory/strategy-registry.ts
+ electron/main/sandbox/asset-registry.ts
 ```
 
 Debug IPC 仍使用：
@@ -109,7 +112,28 @@ memory-strategy:citation-correction
 
 注册表只生成展示对象，运行代码仍从原模块常量和纯函数读取事实。
 
-## 5. 测试边界
+## 5. 权限与沙箱策略
+
+权限与沙箱资产注册表位于：
+
+```text
+electron/main/sandbox/asset-registry.ts
+```
+
+它从以下生产事实生成只读资产：
+
+```text
+sandbox/policy.ts
+sandbox/permission-engine.ts
+sandbox/exec-policy.ts
+sandbox/file-path-guard.ts
+sandbox/approval-store.ts
+sandbox/effective-sandbox.ts
+```
+
+当前登记沙箱档位、权限责任链、命令安全分级、路径边界、审批生命周期和有效沙箱映射。用户 permissionRules、真实审批记录和当前 executionMode 不进入 builtin 目录。
+
+## 6. 测试边界
 
 应覆盖：
 
@@ -118,7 +142,7 @@ memory-strategy:citation-correction
 - fingerprint 稳定
 - dependencies 正确
 - 缺失可选资产不虚构
-- 目录不读取用户记忆正文
+- 目录不读取用户记忆正文、用户权限规则或审批记录正文
 - Debug 分类和资产类型标签完整
 
-生产资产目录的测试属于 Unit；真正的行为效果仍由 Persona / Skill / Memory Eval 负责，不能用目录存在替代行为验收。
+生产资产目录的测试属于 Unit；真正的行为效果仍由 Persona / Skill / Memory Eval 与 Permission 单测 / Eval 负责，不能用目录存在替代行为验收。

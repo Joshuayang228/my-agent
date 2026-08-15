@@ -114,10 +114,10 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 ### Prompt 单一事实源
 
 - Prompt 正文必须跟随生产代码或 Role Pack 资产维护；禁止在 `src/components/playground/` 再复制一份 Prompt 文案作为目录真相。
-- `electron/main/prompts/registry.ts` 是 Prompt 注册表事实源；静态 Prompt 由 `electron/main/prompts/texts.ts` 等生产常量直接提供，动态 Prompt 标记为 `dynamic` 并指向实际组装器。Debug「提示词管理器」通过 `debug:model-context-assets` 在主进程聚合 Prompt、Tool schema、Skill、Eval Judge 和 MCP；兼容接口 `debug:prompt-assets` 不再作为统一目录入口。
+- `electron/main/prompts/registry.ts` 是 Prompt 注册表事实源；静态 Prompt 由 `electron/main/prompts/texts.ts` 等生产常量直接提供，动态 Prompt 标记为 `dynamic` 并指向实际组装器。Debug「提示词管理器」通过 `debug:model-context-assets` 在主进程聚合 Prompt、伙伴与人格资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Judge 和 MCP；兼容接口 `debug:prompt-assets` 不再作为统一目录入口。
 - 新增或修改 Prompt 时，必须同步注册表项和对应测试；目录展示不能脱离实际运行路径单独演进。
 - 核心 Prompt key 只通过 `electron/main/prompts/keys.ts` 的 `PROMPT_KEYS` 使用，Role Pack key 通过统一工厂生成；生产 `streamChat` / `chatComplete` 必须声明非空资产 key，或显式填写 `promptlessReason`。
-- Debug「提示词管理器」是生产资产统一目录：除 Prompt 外还聚合伙伴与人格资产、记忆策略、Tool schema、Skill、Eval Judge 和当前 MCP 工具；资产同时显示人工版本与自动指纹。Playground 只接收显式实验副本，不复制目录。
+- Debug「提示词管理器」是生产资产统一目录：除 Prompt 外还聚合伙伴与人格资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Judge 和当前 MCP 工具；资产同时显示人工版本与自动指纹。Playground 只接收显式实验副本，不复制目录。
 - **Prompt 当前只做中文**：先用简体中文写清意图、行为边界、优先级和例外；英文只保留必要的技术术语、工具名、JSON key、协议 token 或 canonical name。
 - 禁止中英文逐句对照或把同一条规则重复写成两种自然语言；英文不是默认翻译层，而是必要的技术契约或外部原文。
 - Prompt 结构必须分离稳定身份、动态上下文、行为策略、工具环境和协议契约；参考 Alice 的模板 + 动态插槽 + 独立上下文区块思路，但不复制其产品语义。
