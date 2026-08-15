@@ -116,6 +116,10 @@ M01–M32 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 ---
 
+## 当前实现审计索引
+
+- [`current-implementation-audit-2026-08.md`](current-implementation-audit-2026-08.md)：M01–M32、Persona Eval 与独立主题的当前代码入口、测试证据和缺口矩阵。
+
 ## 独立主题（不占 mNN 编号）
 
 | 文件 | 主题 | 状态 |
@@ -141,7 +145,7 @@ M01–M32 按**依赖层级**从底向上排列：底层基础设施决定上层
 ## 写作约定
 
 - **触发写作**：告诉 AI「写方法论」或「沉淀一下 XX 的思考」
-- **写作规范 / 深啃五步**：`agent-skills/methodology-writing.md`（原 `docs/module-roadmap.md` 已并入此 skill）
+- **写作规范 / 深啃五步**：`agent-skills/methodology-writing.md`（原 `agent-skills/methodology-writing.md` 已并入此 skill）
 - **配对结构**：每章通常包含理念章（`.md`）和代码走读章（`-code.md`）；占位章节先建理念章，代码走读视实现情况补充
 - **参考源**：Alice 方法论（`_reference/framework-harness/repos/alice-methodology/`）、CC 源码（`_reference/framework-harness/repos/claude-code-sourcemap-main/`）、feiche（`_reference/feiche/`）
 - **进度时间线**：`docs/progress.md`（本 README 只维护章节状态，不写实施流水账）

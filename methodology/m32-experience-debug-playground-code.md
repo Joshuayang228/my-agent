@@ -1,7 +1,7 @@
 # M32 体验调试 — 代码走读
 
-> 对照 [`m32-experience-debug-playground.md`](m32-experience-debug-playground.md)。  
-> 本轮**无新模块**——展示 Alice 三面在源码中的落点，以及我们 DevPanel 薄实现如何对应（或尚未对应）各推论。  
+> 对照 [`m32-experience-debug-playground.md`](m32-experience-debug-playground.md)。
+> 本轮**无新模块**——展示 Alice 三面在源码中的落点，以及我们 DevPanel 薄实现如何对应（或尚未对应）各推论。
 > 源码：`_reference/framework-harness/repos/alice-source/`（asar 抽出的 renderer + 已解主进程）× `src/components/DevPanel.tsx`
 
 ---
@@ -77,7 +77,7 @@ Debug Console `ZM()` 按产品域分组（不是按「工程师喜欢的文件�
 
 ### §五 Prompt 试验：载入实装 + 会话覆盖
 
-Playground「Prompt 试验」：`载入当前实装` → 编辑 System → `playgroundRun`。  
+Playground「Prompt 试验」：`载入当前实装` → 编辑 System → `playgroundRun`。
 主进程仍走 `electron/main/agent/playground.ts`，**不写** `settings.systemPrompt`。
 
 → 理念章 §五；G3 已落地（单轮隔离；非完整多轮 PlayGround 会话）。
@@ -99,8 +99,8 @@ Playground「Prompt 试验」：`载入当前实装` → 编辑 System → `play
 
 ### §七 / §八 色板与控件场
 
-- 规范：`docs/agent-skills/frontend-guidelines.md` + CSS token（视觉语言合同已落地）  
-- 产品内场：Alice 在 Playground `design-system` / `components`；我们**尚未**有对等页  
+- 规范：`agent-skills/frontend-guidelines.md` + CSS token（视觉语言合同已落地）
+- 产品内场：Alice 在 Playground `design-system` / `components`；我们**尚未**有对等页
 
 → G5/G6；实施时施工合同应写清「只做 P0–P1 夹具，不复制狼人杀 tab」。
 
@@ -118,3 +118,7 @@ Playground「Prompt 试验」：`载入当前实装` → 编辑 System → `play
 | 我们 debug IPC | `electron/main/ipc/`（debug 相关）+ `src/vite-env.d.ts` `electronAPI.debug` |
 
 查找技巧：asar 内路径用反斜杠键（`out\\renderer\\assets\\...`）；`asar list` 看得到、`extract-file` 要用 Node API 或反斜杠形式。
+
+## 2026-08 当前实现校准
+
+Debug 的生产入口是 `electron/main/ipc/debug.ts`、`electron/main/agent/debug-tool-run.ts`、`electron/main/debug/` 与 `src/components/DevPanel.tsx`；Playground 的入口是 `src/components/playground/`，只运行隔离草稿和真实注册表的只读展示。Prompt、Role Pack、Memory Strategy、Permission/Sandbox、Tool、Skill、Eval、Provider、MCP 都从主进程注册表或 Debug 快照读取，Playground 不复制生产正文、不写真实会话、不自动调用生产工具。`debug-*.test.ts`、`playground*.test.ts` 与 UI E2E 是证据。

@@ -1,6 +1,6 @@
 # M18 Eval 体系 — 代码走读
 
-> **上下章分工**：`m12-eval.md` 讲设计原则和判断；本篇讲实际代码——我们的实现如何对应三源参考、关键代码决策背后的理由、以及我们没有的东西。
+> **上下章分工**：`m18-eval.md` 讲设计原则和判断；本篇讲实际代码——我们的实现如何对应三源参考、关键代码决策背后的理由、以及我们没有的东西。
 >
 > **参考源**：CC 的 Harness Engineering Guide（long-running-harness.md）/ feiche observability/ 源码 / Anthropic Article 4（Demystifying Evals）。CC 的 sourcemap 没有独立 eval 目录，eval 能力内嵌在框架设计里——这是我们代码对应它时"设计即可测"的核心依据。
 

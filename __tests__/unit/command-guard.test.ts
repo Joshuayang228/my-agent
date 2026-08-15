@@ -48,6 +48,13 @@ describe('command-guard', () => {
     expect(guard('rm -rf /', 'full-access').allowed).toBe(false)
   })
 
+  it('危险命令大小写不敏感', () => {
+    expect(guard('RM -RF C:\\', 'full-access').allowed).toBe(false)
+    expect(guard('PowerShell -EncodedCommand ZQ==', 'full-access').allowed).toBe(false)
+    expect(guard('SHUTDOWN /S', 'full-access').allowed).toBe(false)
+    expect(guard('Remove-Item -Recurse -Force C:\\temp', 'full-access').allowed).toBe(false)
+  })
+
   it('普通工作区内只读命令仍可自动执行', () => {
     expect(guard('git status').allowed).toBe(true)
     expect(guard('pwd').allowed).toBe(true)

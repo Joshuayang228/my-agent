@@ -1,6 +1,6 @@
 # M04 工具系统 — 代码走读
 
-> 对照 `m02-tool-system.md` 的每个章节，展示 CC（Claude Code）和 Alice 的真实代码实现。
+> 对照 `m04-tool-system.md` 的每个章节，展示 CC（Claude Code）和 Alice 的真实代码实现。
 > 
 > CC 版本：`2.1.88`，源码路径：`_reference/.../claude-code-sourcemap-main/.../restored-src/src/`
 > Alice 版本：构建后压缩 JS，位于 `_reference/.../alice-source/main-chunks/`
@@ -8,6 +8,8 @@
 ---
 
 ## §1 对照：工具定义结构
+
+> 代码块中的 CC / Alice 类型是参考，不代表当前项目的运行时类型；下方“我们的真实设计”以 `src/shared/types.ts` 和 `builder.ts` 为准。
 
 ### CC 的 ToolDef 类型
 
@@ -41,7 +43,7 @@ export type AnyToolDef = {
 }
 ```
 
-**关键设计**：元数据字段（`isConcurrencySafe` / `isReadOnly` / `isDestructive`）都是**接收输入参数的函数**，而不是固定布尔值。这样可以根据具体调用参数动态判断——比如 `bash` 工具根据命令内容判断是否只读。
+**我们的真实设计**：`ToolMetadata` 的三个核心字段默认是静态布尔值；`ToolDefinition.resolveMetadata?(args)` 是可选的动态覆盖入口。Registry 在并发分批和实际执行前分别解析这个函数，解析失败按静态元数据或不安全侧处理。当前内置工具主要使用静态 metadata，动态入口由单测覆盖，尚未有生产内置工具依赖它。
 
 ### Alice 的工具定义结构
 
@@ -79,7 +81,7 @@ ie = {
 
 **关键差异**：Alice 的大多数工具元数据是**固定布尔值**，只有 `agent` 工具例外（见 §1.3）。
 
-### Alice 的特例：agent 工具的函数式元数据
+### Alice 的特例：agent 工具的函数式元数据（与我们的可选入口对照）
 
 ```javascript
 // Alice: query-B_tFgAOJ.js L39099-39122
@@ -119,7 +121,7 @@ function xE(e) {
 
 **设计洞察**：Alice 证明了元数据函数化的价值——subagent 能否并发取决于它要做什么（只读 researcher 可以并发，写文件的 coder 不行），无法在工具定义时写死。
 
-**方法论对照**：→ `m02-tool-system.md` §二（元数据）
+**方法论对照**：→ `m04-tool-system.md` §二（元数据）
 
 ---
 
@@ -164,7 +166,7 @@ description: "写入文件（会覆盖已有内容，自动创建目录）。\n\
 
 **中文版的同等结构**：第一句说功能，"使用提示"下三条分别是前置条件（必须先读）、何时不用（优先用 edit_file）、特殊约束（不主动建文档）。虽然是中文、格式更紧凑，但本质上也是四要素：what / when to use / when NOT to use / constraints。
 
-**方法论对照**：→ `m02-tool-system.md` §三（description 是工具最重要的字段）
+**方法论对照**：→ `m04-tool-system.md` §三（description 是工具最重要的字段）
 
 ---
 
@@ -289,10 +291,10 @@ for (const e of st) {
 ```
 
 **与 CC 的差异**：
-1. Alice 兼容两种元数据形态（函数 / 布尔），CC 统一为函数
+1. Alice 兼容两种元数据形态（函数 / 布尔）；我们采用静态布尔 + 可选 `resolveMetadata`，避免每个内置工具都承担动态解析成本
 2. Alice 一批内 `Promise.all` 全量并发，**没有并发上限**；CC 用信号量限制为 10
 
-**方法论对照**：→ `m02-tool-system.md` §四（并发调度）
+**方法论对照**：→ `m04-tool-system.md` §四（并发调度）
 
 ---
 
@@ -442,7 +444,7 @@ async function maybePersistLargeToolResult(
 
 **工程洞察**：看似"空结果直接返回就好"，但实际遇到过模型 bug——空 `tool_result` 会触发某些模型的提前停止。这种边缘 case 只有在真实场景大量运行后才会暴露，纯理论设计发现不了。
 
-**方法论对照**：→ `m02-tool-system.md` §五（大结果落盘）
+**方法论对照**：→ `m04-tool-system.md` §五（大结果落盘）
 
 ---
 
@@ -521,7 +523,7 @@ createTools(e) {
 
 **对比**：Alice 是**手动 spread 基底对象**，CC 是**统一工厂函数**。工厂的优势：新增元数据字段时只需改一处（TOOL_DEFAULTS），不用改每个工具。
 
-**方法论对照**：→ `m02-tool-system.md` §六（工厂模式）
+**方法论对照**：→ `m04-tool-system.md` §六（工厂模式）
 
 ---
 

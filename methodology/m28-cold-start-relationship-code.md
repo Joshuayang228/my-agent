@@ -119,3 +119,7 @@ requestSwitch
 ```
 
 **方法论对照**：→ §七 · M28-G3
+
+## 2026-08 当前实现校准
+
+关系阶段与冷启动入口是 `relationship-stage.ts`、`reflection-gate.ts`、`orchestrator.ts` 和 `ipc/companion.ts`；阶段变化按 role 计算，切换主角不会把另一角色的成长状态混入当前 Prompt。对应测试是 `relationship-stage.test.ts` 与 `companion-session-role.test.ts`。

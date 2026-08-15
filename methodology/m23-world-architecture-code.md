@@ -83,3 +83,7 @@ moment 槽可 `pickWardrobeAssetId` 写入 payload（派生引用）。
 - Catch-up 摘要：✅ LLM 叙事 + 模板回退（M23-G3；Prompt 在 `catchup.ts`）  
 
 - 世界状态：✅ `world_json` 居所/时区/情境（M23-G2）；Assemble `## World slice` 一行
+
+## 2026-08 当前实现校准
+
+生活世界的真实边界是 `electron/main/companion/life/engine.ts`、`ticker.ts`、`catchup.ts`、`world-state.ts`、`store.ts`：按 role 保存世界状态，ticker 负责时钟，catch-up 处理离线时间，world-state 做默认值与迁移校验。测试证据是 `companion-life.test.ts`、`companion-catchup.test.ts`、`world-state.test.ts`、`world-hub.test.ts`。世界模拟不会直接改变生产会话；它通过 Runtime 的上下文装配进入 Prompt。

@@ -149,10 +149,10 @@ agentLoop catch AgentError
 | `LLM_REQUEST_FAILED` | "请求暂时失败，可以稍后重试" + 重试提示 |
 | `TOOL_TIMEOUT` | "工具执行超时，可以重试" |
 | `PERMISSION_DENIED` | "操作被权限策略拒绝，可调整审批模式或让 Agent 找替代方案" |
-| `CONFIG_MISSING_API_KEY` | 跳转设置页 |
-| `CONTEXT_TOO_LONG` | "当前对话已达上下文限制" + 建议新开对话 |
+| `CONFIG_MISSING_API_KEY` | 显示配置提示；首次配置旅程负责引导进入设置，不由此错误分支直接跳转 |
+| `CONTEXT_TOO_LONG` | 错误消息本身提示压缩后仍超限并建议新对话；当前没有独立按钮分支 |
 
-这些差异在 `App.tsx` 的 `handleEvent` 里实现，通过 `ev.code` 分派——不是正则匹配消息文本，而是精确的码匹配。
+当前已落地的差异在 `App.tsx` 的 `handleEvent` 里实现：权限拒绝和可重试错误通过 `ev.code` 分派，其余错误保留结构化 code 但走通用错误展示；不是正则匹配消息文本。
 
 **为什么这比匹配消息文本好**：消息文本会变（模型升级、错误描述改写），但错误码是我们自己控制的稳定契约。前端按码分派，对上游的消息格式变化完全绝缘。
 

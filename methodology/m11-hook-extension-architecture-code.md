@@ -10,9 +10,9 @@
 
 | 层 | 我们的代码 | 路径 |
 |----|-----------|------|
-| 观测面 | `startSpan` / Logger | `electron/main/utils/tracer.ts`、`utils/logger.ts` |
-| 控制面 | `checkToolPermission`、`confirmTool`、`filterTools`、`ToolMiddlewarePipeline` | `sandbox/permission-engine.ts`、`agent/loop.ts`、`agent/runtime.ts`、`tools/middleware.ts` |
-| 通知面 | `AgentStreamEvent` yield → IPC | `agent/loop.ts`、`ipc/chat.ts`、`src/App.tsx` |
+| 观测面 | `startSpan` / Logger | `electron/main/utils/tracer.ts`、`electron/main/utils/logger.ts` |
+| 控制面 | `checkToolPermission`、`confirmTool`、`filterTools`、`ToolMiddlewarePipeline` | `electron/main/sandbox/permission-engine.ts`、`electron/main/agent/loop.ts`、`electron/main/agent/runtime.ts`、`electron/main/tools/middleware.ts` |
+| 通知面 | `AgentStreamEvent` yield → IPC | `electron/main/agent/loop.ts`、`electron/main/ipc/chat.ts`、`src/App.tsx` |
 
 ---
 
@@ -225,3 +225,14 @@ export function checkCommandPermission(command: string): PermissionCheckResult {
 
 **发现**：我们用「权限引擎 + Middleware + 事件」拆开了 CC 揉在 hooks 里的能力；观测对齐 feiche「不可拦截」。差异是产品定位，不是实现落后。  
 **方法论对照** → m11 §一、§九。
+
+## 2026-08 当前实现校准
+
+仓库没有 `electron/main/hooks/`，这是刻意的架构边界，不是漏实现。当前扩展分层是：
+
+- Observer / Tracer：只观测，不改变业务决策；
+- Permission / Middleware：在工具执行前后做控制与验证；
+- `AgentStreamEvent` / IPC：把运行证据通知 Renderer；
+- Skill / MCP / Role Pack / Settings：面向用户的扩展通道。
+
+`shell-exec.ts`、文件工具和 `debug-tool-run.ts` 已统一走权限/沙箱链；`loadRules` 在主进程启动和设置变更时加载。当前没有用户可编程的生命周期 Hook API，因此不要把 Observer 或 Middleware 写成可由外部任意注册的 Hook 系统。

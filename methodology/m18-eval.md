@@ -2,7 +2,7 @@
 
 > 参考源：Anthropic 官方 Article 4（Demystifying Evals for AI Agents）、CC Harness Engineering Guide（long-running-harness.md / eval-awareness.md）、feiche observability/ 源码（Observer 接口 + eval 脚本）。
 >
-> **上下章分工**：上章专注框架行为的 Eval——工具选择、权限决策、错误处理、压缩保护、安全边界，这些有明确对标和确定性断言。下章专注伙伴行为的 Eval，见 `m12-eval-persona.md`。
+> **上下章分工**：上章专注框架行为的 Eval——工具选择、权限决策、错误处理、压缩保护、安全边界，这些有明确对标和确定性断言。下章专注伙伴行为的 Eval，见 `m18-eval-persona.md`。
 
 ---
 

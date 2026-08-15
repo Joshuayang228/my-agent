@@ -98,3 +98,7 @@ G3 规则码：`empty` / `too-short` / `too-long` / `protected-quote` / `protect
 
 `runtime` 组装时：`loadRoleAssembleInput` → `mutableBody` → `buildSystemPrompt` L1。  
 反思写入后，**下一轮**对话才会带上新 MUTABLE；不在当轮热更新已发出的 system prompt。
+
+## 2026-08 当前实现校准
+
+`electron/main/companion/growth/` 已形成完整闭环：`mutable-store.ts` 按 role 读写版本，`mutable-validate.ts` 拒绝越过可变区边界的内容，`reflection-gate.ts` 控制频率与最小上下文，`reflection-log.ts` 保存结构化记录。回滚与版本列表通过 `electron/main/ipc/companion.ts` 暴露，并有 `companion-mutable.test.ts`、`companion-reflection.test.ts` 覆盖。不要再把成长核描述为全局单例或只存在于 Prompt 字符串中。

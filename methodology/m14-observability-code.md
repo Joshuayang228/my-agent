@@ -1,7 +1,7 @@
 # M14 可观测性 — 代码走读
 
 > 本文档对照 [`m07-observability.md`](m07-observability.md) 的认知框架，展示真实代码实现。
-> 代码来源：my-agent `electron/main/utils/tracer.ts` × `agent/loop.ts` × `agent/runtime.ts` × `index.ts`
+> 代码来源：my-agent `electron/main/utils/tracer.ts` × `electron/main/agent/loop.ts` × `electron/main/agent/runtime.ts` × `index.ts`
 > 所有代码块逐行注释，阐释设计意图与方法论对照。
 
 ---
@@ -613,3 +613,7 @@ function cleanupOldLogs(dir: string): void {
 ---
 
 **全文完** — 对照 [`m07-observability.md`](m07-observability.md) 认知框架阅读。
+
+## 2026-08 当前实现校准
+
+Debug 不是普通日志列表，而是生产真相的只读证据面：`electron/main/ipc/debug.ts` 读取真实 Prompt/资产/Trace/LLM 摘要/运行报告；`llm-debug-store.ts` 与 `asset-usage-store.ts` 只保留结构元数据、长度、hash、状态、版本和资产关联，不保存 Prompt 正文、工具参数/返回正文、用户记忆正文、API Key 或 hidden reasoning。任何需要展示正文的能力都必须重新评估脱敏边界，不能把“Debug 可见”理解为“把数据库原文全部返回”。

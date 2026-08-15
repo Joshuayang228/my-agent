@@ -2,6 +2,14 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
+## 2026-08-15 · 安全审计 v4：危险命令大小写与验证工具联网边界
+
+- 完成从 M01 到 M32 的当前实现审计矩阵：`methodology/current-implementation-audit-2026-08.md`；补齐 M08、M09、M11、M14、M21–M32 代码走读的当前入口与测试证据。
+- 发现并修复 `full-access` 下危险命令规则区分大小写的问题：大写删除、编码 PowerShell、关机、磁盘分区和破坏性 Git 命令现在仍是 bypass-immune；新增回归测试。
+- 修复文件写入后的 TypeScript 验证使用 `npx` 可能联网安装依赖的问题，改为 `npx --no-install`。
+- 保留并明确记录的边界：开发模式 localhost CDP、URL 抓取 DNS rebinding、用户主动配置的 MCP command/SSE，以及 symlink TOCTOU 仍属于后续专项。
+- 本轮不调用真实模型、不使用真实 API Key；最终测试数字以收工门禁为准。
+
 ## 2026-08-15 · 安全审计 v3：权限、Headless、symlink 与敏感设置二次收口
 
 - 第二轮完整高风险审计完成；发现并修复命令首词自动放行、危险规则可绕过、写入 symlink 越界、Headless 自动批准副作用工具、敏感设置解密回退明文等问题。

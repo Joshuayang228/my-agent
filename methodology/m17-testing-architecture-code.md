@@ -227,3 +227,16 @@ webServer: {
 **发现**：门禁文化写在脚本名里——`test` 短、无 config 后缀；`eval:run` 显式独立。不要把 `eval:run` 塞进 `test` 的 `&&` 链除非团队明确接受变慢。
 
 **方法论对照**：→ `m17-testing-architecture.md` §四、§九
+
+
+## 2026-08 当前实现校准
+
+当前配置与本章早期描述一致的部分是“套件隔离”，但入口必须以仓库现状为准：
+
+- `npm run test` → `vitest.config.ts` → `__tests__/unit/**/*.test.ts`；
+- `npm run eval:run` → `vitest.eval.config.ts` → `evals/eval.test.ts`（普通 Eval 23 个 case）；
+- `npm run eval:skill` → `vitest.skill-eval.config.ts` → `evals/skill.test.ts`；
+- `npm run eval:persona` → `vitest.eval-persona.config.ts` → `evals/persona-real.test.ts`，真实模型需显式凭据；
+- `npm run test:e2e` 当前只跑 `playwright.config.ts` 的 `ui` 项目和 `__tests__/e2e/chat.test.ts`，不是默认 Electron E2E。
+
+`evals/mock-llm.ts` 与 `_streamChatOverride` 仍是确定性行为测试边界；真实 Provider / HTTP/SSE replay 尚未成为普通门禁。当前证据是 Unit 120 文件 / 712 项、普通 Eval 23/23、Skill Eval 1/1、UI E2E 7/7；未调用真实模型。

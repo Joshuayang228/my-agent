@@ -101,6 +101,8 @@ catchup publishAndProjectRange → 默认 false
 
 - M24-G3 生图：未做  
 - 软校验仅地点自称打脸启发式，不做完整 NLP  
-- 润色校验为规则启发式，非 embedding  
+- 润色校验为规则启发式，非 embedding
 
+## 2026-08 当前实现校准
 
+Moment 不是一张自由文本公告表。生产链路由 `moments.ts` 生成，`moment-consistency.ts` 做事实与时间校验，`moment-interactions.ts` 处理用户互动，`moment-format.ts` 负责注入格式，`moment-polish.ts` 与 `moment-tips.ts` 分别负责展示前润色和轻提示。测试覆盖 `moment-*`、`moment-tips.test.ts` 与一致性边界。

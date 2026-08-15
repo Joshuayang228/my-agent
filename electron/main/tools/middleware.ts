@@ -248,7 +248,7 @@ export const verifyMiddleware: ToolMiddleware = async (ctx, next) => {
 
     if (['ts', 'tsx'].includes(ext)) {
       verifyBin = 'npx'
-      verifyCmd = ['tsc', '--noEmit', '--pretty', 'false', '--isolatedModules', resolved]
+      verifyCmd = ['--no-install', 'tsc', '--noEmit', '--pretty', 'false', '--isolatedModules', resolved]
     } else if (ext === 'py') {
       verifyBin = 'python3'
       verifyCmd = ['-m', 'py_compile', resolved]

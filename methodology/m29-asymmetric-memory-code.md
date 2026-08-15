@@ -106,3 +106,7 @@ prompt-builder：勿存密钥 / 敏感先问
 | M29-G3 | ✅ 启发式五类；误标可忽略，非分类器 |
 
 工程细节亦见 `m08-memory-system*.md`。
+
+## 2026-08 当前实现校准
+
+信息不对称的真实边界在 `memory-store.ts`、`ipc/memory.ts` 和 `agent/runtime.ts`：用户可管理的记忆、Agent 可用的召回和 Debug 可见的结构证据是三种视图；敏感记忆不会因 Debug 或普通召回自动泄露。测试见 `citation-correct.test.ts`、`sensitive-memory.test.ts`、`memory-feedback-role.test.ts`。

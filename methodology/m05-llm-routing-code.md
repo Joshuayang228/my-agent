@@ -1,6 +1,6 @@
 # M05 LLM 路由层 — 代码走读
 
-> 配套 `m03-llm-routing.md` 的认知框架，这里是代码层面的对照与实现细节。
+> 配套 `m05-llm-routing.md` 的认知框架，这里是代码层面的对照与实现细节。
 > 对照对象：CC（Claude Code 2.1.88 源码）与 Alice（方法论 Ch.11 LLM 层）。
 > 我们的实现文件：`electron/main/llm/index.ts` 与 `electron/main/agent/loop.ts`。
 

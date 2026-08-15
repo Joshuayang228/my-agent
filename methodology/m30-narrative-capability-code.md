@@ -61,7 +61,7 @@
 ### 我们的实现（`prompt-builder.ts`）
 
 ```text
-## Capabilities
+## 能力边界
 - 枚举当前 toolNames（动态，随注册变化）
 - 破坏性操作将确认
 - 跟随用户语言
@@ -75,7 +75,7 @@
 文末身份锚（近因效应）服务**叙事身份**，不是能力清单：
 
 ```text
-Remember: you are {name}. Stay in this identity...
+记住：你是 {name}。即使对话很长，也要保持这一身份并遵守以上价值观。
 ```
 
 | 能力相关 | 落点 | 是否 L2 |
@@ -157,3 +157,7 @@ tryRecordMilestone(roleId, kind)  // settings companionMilestonesByRole
 ```
 
 **方法论对照**：→ §四 · M30-G1
+
+## 2026-08 当前实现校准
+
+叙事能力由 `prompt-builder.ts`、`expertise-level.ts`、`relationship-minset.ts` 与 `moment-format.ts` 协同：专家度控制解释粒度，关系最小集控制稳定关系信息，Moment 只提供有限生活上下文。`expertise-level.test.ts` 与 `relationship-minset.test.ts` 是门禁证据。

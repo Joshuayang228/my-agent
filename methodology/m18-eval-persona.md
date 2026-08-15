@@ -1,6 +1,6 @@
 # M18 Eval 体系工程化方法论 — 下章：伙伴 Eval
 
-> 参考源：Anthropic Article 4（Eval 任务设计原则 + LLM-as-Judge 校准）、CC Harness Engineering Guide（自我评估偏差 + Generator-Evaluator 分离）、上章 m12-eval.md（第一性原理 + 两类行为路径）。
+> 参考源：Anthropic Article 4（Eval 任务设计原则 + LLM-as-Judge 校准）、CC Harness Engineering Guide（自我评估偏差 + Generator-Evaluator 分离）、上章 m18-eval.md（第一性原理 + 两类行为路径）。
 >
 > **上下章分工**：上章讲框架行为 Eval（工具、权限、错误码），这些有明确对标，code grader 精确断言。下章讲伙伴行为 Eval，没有现成参考——这是人格化桌面伙伴独有的设计挑战。
 

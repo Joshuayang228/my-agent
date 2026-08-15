@@ -143,3 +143,15 @@ Do NOT save:
 单测 127 → 139。全程 tsc 零错误。
 
 G1（删除行为）、G4（prompt 文本）无独立单测——G1 是行为删除，由"assistant 内容不再出现在召回"隐式覆盖；G4 是 prompt 措辞，效果需真实 LLM 验证，不做 mock 断言。
+
+## 2026-08 逐章审计校准：三条记忆链必须分开
+
+当前生产边界不是“一个 MemoryManager 包打天下”，而是三条不同链路：
+
+1. **手动记忆**：`electron/main/storage/memory-store.ts` 负责用户主动保存、删除、敏感标记、`roleId` 分桶与引用纠错；
+2. **画像提取**：`electron/main/agent/profile-extractor.ts` 只从对话中提炼画像候选，并由 `electron/main/services/task-queue.ts` 以后台任务执行；
+3. **向量召回**：`electron/main/memory/vector-store.ts` / `electron/main/memory/strategy-registry.ts` 负责嵌入、索引、topK 与陈旧过滤，不等同于记忆正文持久化。
+
+`electron/main/ipc/memory.ts` 是渲染层入口，所有 LLM 辅助调用走统一的 `loadAuxLLMConfig` / `chatComplete`；`citation-correct.ts` 负责把旧引用纠正到当前 role 的记忆，而不是让召回结果直接覆盖原记忆。相关证据包括 `memory-store.test.ts`、`citation-correct.test.ts`、`sensitive-memory.test.ts`、`memory-feedback-role.test.ts` 和向量召回测试。
+
+**审计结论**：方法论中不得把“画像”“手动记忆”“向量索引”写成同一份 Memory；敏感记忆、角色隔离和不把正文写入 Debug 证据是硬约束。

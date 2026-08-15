@@ -1,6 +1,6 @@
 # M09 任务生命周期代码走读
 
-> 对应 `m11-task-lifecycle.md` 认知框架。记录 v2 SQLite 持久化实现的关键代码路径和设计决策。
+> 对应 `m09-task-lifecycle.md` 认知框架。记录 v2 SQLite 持久化实现的关键代码路径和设计决策。
 
 ---
 
@@ -9,8 +9,8 @@
 **核心模块**：
 - `electron/main/storage/database.ts`（DDL：background_tasks 表）
 - `electron/main/services/task-queue.ts`（TaskQueueManager：内存队列 + SQLite 双层）
-- `electron/main/services/runtime.ts`（启动恢复 + 函数注册）
-- `electron/main/ipc/agent.ts`（send 流程写入 pending 任务）
+- `electron/main/agent/runtime.ts`（启动恢复 + 函数注册）
+- `electron/main/ipc/chat.ts`（send 流程写入 pending 任务）
 
 **数据流**：
 ```
@@ -172,7 +172,7 @@ private async processQueue() {
 
 ## 四、崩溃恢复
 
-文件：`electron/main/services/runtime.ts`
+文件：`electron/main/agent/runtime.ts`
 
 ### 4.1 启动时恢复
 
@@ -270,7 +270,7 @@ async recoverPendingTasks(
 
 ### 5.1 agent.ts 调用入口
 
-文件：`electron/main/ipc/agent.ts`
+文件：`electron/main/ipc/chat.ts`
 
 ```typescript
 async function send(sessionId: string, userMessage: string) {
@@ -366,3 +366,15 @@ useEffect(() => {
 4. **linked span**（与可观测性一起做）
 
 v2/v3 已完成持久化、恢复、重试与基础可见性；后续在此基础上增量添加。
+
+## 2026-08 当前实现校准（以生产代码为准）
+
+本章早期伪代码曾把入队描述为“先同步落盘再入内存”，并引用 `services/runtime.ts` / `ipc/agent.ts`。当前真实链路已经改为：
+
+- `electron/main/ipc/chat.ts` 接收 `chat:send`；
+- `electron/main/agent/runtime.ts` 负责主运行时与后台任务注册；
+- `electron/main/services/task-queue.ts` 先写入内存任务并以非阻塞方式 `dbUpsertTask`，关键 `running/completed/failed/notified` 转移再 `await` 落盘；
+- `electron/main/ipc/tasks.ts` 通过 `task:list` / `task:sync` 返回断线后的快照，事件统一走 `task:event`；
+- `background_tasks` 当前包含 `checkpoint`，恢复会把 `pending/running` 重新置为 `pending`；失败最多指数退避重试 3 次；通知先持久化 `notified` 再发事件。
+
+因此“入队写库失败一定不丢任务”不是当前承诺：内存队列是当前进程真相，入队落盘失败会记录日志；只有关键状态转移和恢复路径承担可靠性门禁。测试证据：`task-queue.test.ts`、`task-lifecycle.test.ts`、`task-checkpoint.test.ts`、`tasks-ipc.test.ts`。

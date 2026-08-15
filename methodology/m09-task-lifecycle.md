@@ -2,7 +2,7 @@
 
 > 参考源：CC `tasks/` 目录（InProcessTeammateTask / DreamTask / TaskState 类型）、CC `cli/print.ts`（runHeadless + 事件流收集）、feiche `observability/` 源码（Observer 接口 + 异步 span 链接）、Anthropic learning-claude-code Ch.06（task-system）。
 >
-> **实现状态**：v2 已完成 SQLite 持久化、崩溃恢复、通知幂等落盘（2026-07-25）。代码走读见 `m11-task-lifecycle-code.md`。
+> **实现状态**：v2 已完成 SQLite 持久化、崩溃恢复、通知幂等落盘（2026-07-25）。代码走读见 `m09-task-lifecycle-code.md`。
 
 ---
 

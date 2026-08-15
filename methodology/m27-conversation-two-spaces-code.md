@@ -139,3 +139,7 @@ comfort → soft+encourage-once
 | 项 | 说明 |
 |----|------|
 | 情绪模型 | 仍关键词级（接 reply-stance），无多模态情绪 |
+
+## 2026-08 当前实现校准
+
+两空间的生产落点是 `src/shared/aside.ts`、`src/components/MarkdownRenderer.tsx`、`electron/main/agent/reply-stance.ts`、`tone-control.ts` 与 `loop.ts`。Aside 先由共享解析器拆分，再由 Markdown Renderer 展示；它不能夺取主答，也不能包含代码块或多步说明。`aside-quality.test.ts`、`conversation-debug.test.ts` 和工具解析测试是当前证据。

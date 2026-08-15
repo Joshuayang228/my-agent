@@ -146,3 +146,7 @@ ticker: tickActiveRole(...).catch(err => log.warn)
 | M31-G1 | ✅ `moment-tips` + 静音 + 冷却 |
 | M31-G2 | ✅ 勿扰小时窗 + 日预算 |
 | M31-G3 | ✅ ticker 门控问候（默认关） |
+
+## 2026-08 当前实现校准
+
+主动在场不是无条件后台发消息。`ticker.ts`、`moment-tips.ts`、`proactive-greeting.ts`、`presence.ts` 与 `runtime.ts` 共同执行冷却、勿扰、每日上限、应用在场和通知幂等；对应测试是 `moment-tips.test.ts`、`proactive-greeting.test.ts`、`companion-presence.test.ts`。默认主动问候关闭。

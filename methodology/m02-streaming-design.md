@@ -174,11 +174,11 @@ const syntheticResult = '[Tool execution cancelled by user]'
 
 这些问题存在，我们知道，暂时接受现状：
 
-**背压（Backpressure）缺失**
+**背压（Backpressure）目前依赖 AsyncGenerator 的拉取语义**
 
-`yield` 是同步的——Loop 发出事件后不等消费方处理完就继续生产下一个。如果消费方处理慢，内存中会积压未处理事件。
+`for await...of` 消费方每次请求下一个事件，Loop 会在 `yield` 处暂停，因此单个消费者不会无限制地把事件预先生产到内存。当前 IPC 仍会把事件转发给 Renderer，Renderer 自身的事件队列和 React 批处理不在 Loop 的背压协议内。
 
-当前选择接受：UI 渲染和 Eval runner 都处理很快，实际中没有观察到积压。如果未来接入慢速消费方（如写磁盘 transcript），需要在 Loop 和消费方之间加有界缓冲队列。
+当前选择接受：事件粒度有限、UI / Eval 消费速度足够；如果未来接入慢速磁盘 transcript 或多播总线，应在 IPC / 消费边界增加有界队列和丢弃策略，而不是误把“AsyncGenerator 无背压”当作事实。
 
 **并发工具的 tool_end 顺序**
 
@@ -186,11 +186,11 @@ const syntheticResult = '[Tool execution cancelled by user]'
 
 当前选择接受：消费方通过 `callId` 匹配 `tool_end` 到具体工具，不依赖顺序。
 
-**compact 后消费方消息列表失效**
+**compact 事件不携带模型上下文正文**
 
-agentLoop 内部压缩后 messages 数组已被替换，但 yield 的 `compact` 事件没有携带新的完整消息列表。UI 层维护的本地消息列表和 Loop 内部的此时已不一致。
+压缩后 Loop 内部的 `messages` 会替换为摘要上下文，但 `compact` 事件只携带等级、token 和触发来源元数据。这里不是 UI 与 Loop 的“消息列表失效”：UI 展示的是用户会话 transcript，模型上下文是主进程私有状态，两者有意分离，避免把压缩后的 Prompt 正文重新暴露给 Renderer。
 
-当前选择接受：等 M07（上下文压缩）和 IPC 层一起设计时再处理，作为已知的可观测性不完整。
+当前选择接受：Debug 只展示压缩元数据和调用链；若未来需要让开发者检查压缩结果，应提供脱敏摘要或结构化统计，而不是把完整上下文通过事件流传出。
 
 ---
 
@@ -204,7 +204,7 @@ agentLoop 内部压缩后 messages 数组已被替换，但 yield 的 `compact` 
 
 **abort 之后的 IPC 竞态**
 
-用户点停止后，agentLoop yield done 并退出，IPC 的 `invoke` resolve，cleanup 函数释放监听器。但如果 done 事件和 IPC resolve 之间还有最后一个事件（比如 usage）在途，事件会到达一个已经没有监听器的通道，被静默丢弃。添加了 50ms 兜底 `setIsStreaming(false)` 确保 UI 状态正确，作为竞态的兜底。
+用户点停止后，agentLoop yield done 并退出，IPC 的 `invoke` resolve，cleanup 函数释放监听器。当前 UI 在 `chat.send` 的 `finally` 中直接执行清理和 `setIsStreaming(false)`；因此它依赖 IPC invoke 完成作为最终收口，不声称存在固定 50ms 定时器。
 
 **`_streamChatOverride` 的 DI 设计**
 

@@ -32,6 +32,8 @@
 | SEC-10 | 中 | RAG IPC 与工具绕过唯一 LLM 配置工厂，读取已不存在的旧设置键 | 改用 `loadMainLLMConfig`，避免空配置和策略漂移 | 已修复 |
 | SEC-11 | 中 | URL 黑名单对带括号 IPv6 和 IPv4-mapped IPv6 覆盖不足 | 规范化 IPv6 hostname，补 mapped IPv6 解析与测试 | 已修复 |
 | SEC-12 | 低中 | 多个 IPC / Debug 错误路径直接把内部异常正文返回 Renderer | 改为用户友好错误；日志只保留错误类型 / 长度等诊断元数据 | 已修复 |
+| SEC-13 | 高 | 危险命令匹配区分大小写，`full-access` 下大写的删除、PowerShell 编码命令或关机命令可能绕过 bypass-immune 规则 | 统一先转小写再匹配；补 Windows 删除、PowerShell、磁盘分区、破坏性 Git 清理规则与回归测试 | 已修复 |
+| SEC-14 | 中 | 文件写入后的 TypeScript 验证使用 `npx tsc`，依赖缺失时可能触发 npx 联网安装并执行包 | 改为 `npx --no-install tsc`，验证工具缺失时只跳过验证，不触发安装 | 已修复 |
 
 ## 三、未发现但明确保留的边界
 
@@ -39,11 +41,12 @@
 2. 用户显式配置的 MCP stdio command / SSE URL 仍会按配置连接或启动；这是 MCP 集成功能本身，不由普通数据备份自动恢复。MCP Server 返回的工具默认按高风险处理。
 3. URL 抓取已做解析前 SSRF 检查、重定向阻断和响应上限；DNS 解析与实际连接之间仍存在操作系统网络层面的竞态，后续如需对抗主动 DNS rebinding，应增加固定地址连接器或进程级网络策略。
 4. Renderer 的 HTML 文件预览使用空 `sandbox` iframe；Markdown / Mermaid 仍必须保持既有严格安全配置，不应引入 raw HTML 或任意协议链接。
+5. 开发模式仍会把 CDP 绑定到 `127.0.0.1:9222` 以支持 UI 调试；生产构建不启用。若在不可信本机环境运行开发版，应关闭该开关或使用隔离账户。
 
 ## 四、验证证据
 
 - Unit：120 个测试文件，711 项通过
-- 定向安全回归：61 项通过
+- 定向安全回归：本轮新增命令安全回归 7 项通过；全量数字以最终门禁输出为准
 - TypeScript：`npx tsc --noEmit` 通过
 - 依赖：`npm audit --registry=https://registry.npmjs.org` → 0 vulnerabilities
 - 生产依赖：`npm audit --omit=dev --registry=https://registry.npmjs.org` → 0 vulnerabilities

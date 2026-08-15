@@ -70,3 +70,6 @@ shouldAttachBookshelfRef → payload.bookAssetId
   → projectMoment → 「在读{书名}」
 ```
 
+## 2026-08 当前实现校准
+
+资产真实注册与生命周期由 `electron/main/companion/life/assets.ts`、`grant-asset.ts`、`electron/main/companion/asset-registry.ts` 共同完成；注册表保存 stable key、来源、版本、可用性与 usage evidence，衣柜只是其中一个消费面。`companion-assets.test.ts` 和 `bookshelf-slice.test.ts` 证明删除 Moment 不会反向制造或删除资产。

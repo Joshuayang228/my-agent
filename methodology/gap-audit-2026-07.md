@@ -23,10 +23,10 @@
 
 ### [x] 1. Eval 评估体系 —— 最大系统性空白（Anthropic P0）
 我们有单元测试（验证代码正确），但**完全没有衡量"Agent 行为质量"的评估体系**——人格一致性、记忆有效性、对话质量都没法系统度量。Anthropic 把 eval 当开发核心驱动力（eval-driven development）。含 pass^k 一致性度量、LLM-as-Judge 校准、capability→regression eval 演进。
-**建议：独立新模块（暂记 M12 Eval），对伙伴产品极高价值。**
+**建议：独立新模块（暂记 M18 Eval），对伙伴产品极高价值。**
 
 **已完成（2026-07-25）**：
-- ✅ M12 方法论两章（m12-eval.md + m12-eval-persona.md）按第一性原理规范结构写完
+- ✅ M12 方法论两章（m18-eval.md + m18-eval-persona.md）按第一性原理规范结构写完
 - ✅ Eval Suite v1：12 个场景（F01-F08 + P01-P04），脚本 LLM，零 API 消耗，`npm run eval:run` 独立跑
 - ✅ Graders 体系（code-based：ToolTrace / Permission / ErrorCode / Filesystem / Security / 消息捕获）
 - ⏳ B 类场景（LLM judge + 真实模型）待 v2
@@ -203,7 +203,7 @@ A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、�
 
 8. **Tool Use Examples（使用示例）** -- 在工具定义中提供 `input_examples`，展示参数格式约定、可选参数组合模式、嵌套结构用法。准确率从 72% 提升到 90%。我们 M2 的 description 四要素只有文字描述，没有结构化示例。
 
-**对伙伴产品的价值**: 中-高。当前工具数量有限（约 20 个），Tool Search 暂时不急；但随着 Skill 和 MCP 生态扩展，按需加载会变得必要。Tool Use Examples 对现有工具立即有用。Programmatic Tool Calling 对数据处理类任务（如分析用户文件）非常适合。
+**对伙伴产品的价值**: 中-高。当时工具数量约 20 个；截至 2026-08 当前生产注册表为 24 个，Tool Search 暂时不急；但随着 Skill 和 MCP 生态扩展，按需加载会变得必要。Tool Use Examples 对现有工具立即有用。Programmatic Tool Calling 对数据处理类任务（如分析用户文件）非常适合。
 
 ---
 
@@ -584,3 +584,8 @@ A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、�
 
 **报告 C 一句话结论**：最该补 **M11 任务生命周期** 和 **可逆性机制**；其余多为已有模块的可靠性/安全性盲点（压缩熔断、拒绝降级、记忆排除原则、工具/服务边界），补进对应 M 即可，不必新开。
 
+
+
+## 2026-08 复核注记
+
+本次复核以当前代码为准：Prompt / Role Pack / Memory Strategy / Permission-Sandbox / Tool / Skill / Eval / Provider / MCP 注册表与 Debug 证据链已落地；旧章节编号和“尚未接入”表述只保留为历史记录，不再代表当前状态。仍未完成的工程项必须同步 `docs/wishlist.md`，不能只留在本审计文档。

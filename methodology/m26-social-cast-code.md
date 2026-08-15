@@ -100,3 +100,7 @@ runtime summonNote += formatSummonSceneBlock（互动+执行）
 ## 已知简化
 
 互动未进 Assemble 主对话薄切片；无「请 TA 帮忙」独立 UI；主角 scenes 可后补专文。
+
+## 2026-08 当前实现校准
+
+卡司入口是 `electron/main/companion/cast/` 与 `asset-registry.ts`，召唤、可用性、委派和角色边界分别由对应服务实现；`companion-cast.test.ts`、`companion-summon.test.ts`、`companion-availability.test.ts`、`summon-delegation.test.ts` 覆盖。卡司不是额外的主角 Prompt，而是通过 roster / summon brief 进入当前运行上下文。

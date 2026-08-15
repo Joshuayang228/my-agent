@@ -35,36 +35,41 @@ export const SAFE_COMMAND_PATTERNS: ReadonlyArray<{ pattern: RegExp; label: stri
 ]
 
 export const DANGEROUS_COMMAND_PATTERNS: ReadonlyArray<{ pattern: RegExp; label: string }> = [
-  { pattern: /rm\s+(-rf?|--force|--recursive)\s+[/\\]/, label: 'recursive delete at root' },
+  { pattern: /rm\s+(-rf?|--force|--recursive)\s+(?:[/\\]|[a-z]:[/\\])/, label: 'recursive delete at root' },
   { pattern: /rm\s+(-rf?|--force)\s+~/, label: 'recursive delete at home' },
-  { pattern: /format\s+[a-zA-Z]:/, label: 'disk format' },
-  { pattern: /mkfs/, label: 'filesystem format' },
+  { pattern: /(?:^|\s)format\s+[a-zA-Z]:/, label: 'disk format' },
+  { pattern: /(?:^|\s)mkfs(?:\s|$)/, label: 'filesystem format' },
   { pattern: /dd\s+if=.*of=\/dev\//, label: 'disk overwrite' },
   { pattern: />\s*\/dev\/sd[a-z]/, label: 'device write' },
   { pattern: /curl\s+.*\|\s*(bash|sh|zsh|powershell|pwsh)/, label: 'pipe to shell' },
   { pattern: /wget\s+.*\|\s*(bash|sh|zsh|powershell|pwsh)/, label: 'pipe to shell' },
-  { pattern: /powershell\s+.*-[eE]nc/, label: 'encoded PowerShell' },
+  { pattern: /(?:^|\s)(?:powershell|pwsh)(?:\.exe)?\s+.*-(?:e|encodedcommand)/, label: 'encoded PowerShell' },
   { pattern: /base64\s+-d\s*\|.*sh/, label: 'encoded shell execution' },
   { pattern: /:(){ :\|:& };:/, label: 'fork bomb' },
-  { pattern: /shutdown|reboot|halt|init\s+[06]/, label: 'system power' },
+  { pattern: /(?:^|\s)(?:shutdown|reboot|halt)(?:\s|$)|(?:^|\s)init\s+[06](?:\s|$)/, label: 'system power' },
   { pattern: /chmod\s+777\s+\//, label: 'global permission change' },
   { pattern: /chown\s+-R\s+.*\s+\//, label: 'recursive ownership at root' },
-  { pattern: /reg\s+(delete|add)\s+HKLM/, label: 'registry modification' },
-  { pattern: /net\s+user\s+.*\/add/, label: 'user creation' },
-  { pattern: /netsh\s+firewall/, label: 'firewall modification' },
-  { pattern: /iptables\s+-F/, label: 'firewall flush' },
-  { pattern: /eval\s*\(/, label: 'eval execution' },
-  { pattern: /env\s+.*=.*\bsudo\b/, label: 'sudo via env' },
+  { pattern: /(?:^|\s)reg\s+(?:delete|add)\s+hklm(?:\s|$)/, label: 'registry modification' },
+  { pattern: /(?:^|\s)net\s+user\s+.*\/add/, label: 'user creation' },
+  { pattern: /(?:^|\s)netsh\s+firewall/, label: 'firewall modification' },
+  { pattern: /(?:^|\s)iptables\s+-f(?:\s|$)/, label: 'firewall flush' },
+  { pattern: /(?:^|\s)(?:eval|invoke-expression|iex)\s*[(\s]/, label: 'eval execution' },
+  { pattern: /(?:^|\s)env\s+.*=.*\bsudo\b/, label: 'sudo via env' },
+  { pattern: /(?:^|\s)(?:del|erase|rmdir|rd)\s+/, label: 'windows delete' },
+  { pattern: /(?:^|\s)(?:remove-item|ri)\b.*(?:-recurse|-force|-literalpath)/, label: 'PowerShell delete' },
+  { pattern: /(?:^|\s)diskpart\b/, label: 'disk partitioning' },
+  { pattern: /(?:^|\s)git\s+(?:reset\s+--hard|clean\s+[^\n]*\bf)/, label: 'destructive git cleanup' },
 ]
 
 const SAFE_COMMANDS = new Set<string>(SAFE_COMMAND_NAMES)
 
 export function assessCommand(command: string): CommandAssessment {
   const trimmed = command.trim()
-  const firstWord = trimmed.split(/\s+/)[0]?.toLowerCase() || ''
+  const normalized = trimmed.toLowerCase()
+  const firstWord = normalized.split(/\s+/)[0] || ''
 
   for (const dangerPattern of DANGEROUS_COMMAND_PATTERNS) {
-    if (dangerPattern.pattern.test(trimmed)) {
+    if (dangerPattern.pattern.test(normalized)) {
       return { risk: 'dangerous', reason: dangerPattern.label, matchedRule: dangerPattern.pattern.source }
     }
   }
@@ -74,7 +79,7 @@ export function assessCommand(command: string): CommandAssessment {
   }
 
   for (const safePattern of SAFE_COMMAND_PATTERNS) {
-    if (safePattern.pattern.test(trimmed)) {
+    if (safePattern.pattern.test(normalized)) {
       return { risk: 'safe', reason: safePattern.label, matchedRule: safePattern.pattern.source }
     }
   }

@@ -318,13 +318,13 @@ case 'error':
     // ↑ 可重试错误：提示可以稍后重试（不是用户造成的，语气不同）
     setModeChangeNotice('请求暂时失败，可以稍后重试。')
   }
-  // ⑤ CONFIG_MISSING_API_KEY、CONTEXT_TOO_LONG 等目前没有专属提示（待扩展）
+  // ⑤ CONFIG_MISSING_API_KEY、CONTEXT_TOO_LONG、BUDGET_EXCEEDED 等目前没有独立 UI 分支，错误消息仍会展示
 
   setIsStreaming(false)  // ⑥ 无论什么错误，都结束流式状态
   break
 ```
 
-**发现**：当前只区分了两类错误的 UI 行为，其他码（CONTEXT_TOO_LONG、BUDGET_EXCEEDED 等）都走默认展示。这是有意识的简化——随着产品迭代，每种码可以有更精确的 UI 响应（比如 CONTEXT_TOO_LONG 应该提示"开新对话"，CONFIG_MISSING_API_KEY 应该跳转设置页）。
+**发现**：当前只区分了两类错误的 UI 行为，其他码（CONTEXT_TOO_LONG、BUDGET_EXCEEDED 等）都走默认展示。这是有意识的简化——随着产品迭代，每种码可以有更精确的 UI 响应（比如 CONTEXT_TOO_LONG 可以增加“新开对话”按钮，CONFIG_MISSING_API_KEY 可以增加显式打开设置入口）。
 
 **方法论对照**：→ `m03-error-system.md` §7（错误码驱动 UI 差异行为）
 
