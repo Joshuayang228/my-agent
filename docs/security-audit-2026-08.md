@@ -50,7 +50,7 @@
 
 ## 四、验证证据
 
-- Unit：当前门禁以最新命令输出为准；本轮修复后的最近一次结果为 129 个测试文件、754 项通过
+- Unit：当前门禁以最新命令输出为准；本轮修复后的最近一次结果为 129 个测试文件、755 项通过
 - 定向安全回归：MCP 配置/设置安全视图、命令、Git、工作区、Terminal、Markdown、Tool Result 等回归均通过；全量数字以最终门禁输出为准
 - TypeScript：`npx tsc --noEmit` 通过
 - 依赖：`npm audit --registry=https://registry.npmjs.org` → 0 vulnerabilities
