@@ -51,6 +51,8 @@
 - [ ] 涉及模块时先读对应 `docs/modules/<name>.md`；涉及安全时读 `agent-skills/security-checklist.md`。
 - [ ] 若是复杂功能，确认对应施工合同、架构和必测点是否存在。
 - [ ] 先查项目内参考实现/方法论，再做新判断；不要只凭记忆审查。
+- [ ] 同一路径连续失败两次必须切换研究/验证路径，不能第三次盲试；发现需求越界时要明确报告并停止扩 scope。
+- [ ] 新增复杂需求若缺施工合同或用户确认，不得以 Code Review 名义直接改实现；先补合同/复述边界。
 
 ### 2.3 四步追踪法
 
@@ -166,6 +168,29 @@
 - [ ] 备份 schema 与真实数据库 schema 一致，导入不能扩大权限、工作区或自动执行入口。
 - [ ] 崩溃恢复、重试、取消和通知幂等不重复执行副作用。
 
+### 4.7 Agent、LLM、记忆与产品资产
+
+安全边界之外，还要检查横向功能是否仍遵守产品不变量：
+
+- [ ] LLM 配置只通过 `loadMainLLMConfig` / `loadAuxLLMConfig` 装配；Provider、thinking、aux model、failover、timeout 和 token lane 没有在调用点漂移。
+- [ ] Agent Loop 的消息配对、工具调用/结果配对、终止原因、压缩重试和 413 降级保持一致；不能只修 UI 流程而破坏持久化或后台善后。
+- [ ] 上下文压缩保留关系最小集、系统约束、工具边界和必要状态；压缩摘要不能无意升级为长期记忆。
+- [ ] Memory 的 SQLite / 向量双写、角色分桶、敏感信息、画像提取和纠错路径一致；自动提取不能“模型说了就记”。
+- [ ] TaskQueue / Scheduler / Headless 具备恢复、取消、重试、通知幂等和无交互安全策略；后台任务不能绕过主对话权限。
+- [ ] Prompt、Skill、Role Pack、Provider、Permission/Sandbox、Tool、Eval 等生产资产有稳定 key、来源、版本和实际运行证据；动态资产不能伪造静态正文；画像提取、记忆提取、压缩和辅助任务 Prompt 不能漏出资产链路。
+- [ ] 生产 UI 文案和 Prompt 正文以简体中文为主；英文只保留技术术语、协议 token、代码、字段和用户明确要求的内容；locale 结构不能把中英韩等语言混成一份不可维护正文。
+- [ ] Debug 展示生产真相；Playground 实验隔离，不写真实会话、设置、LLM、工具或生产资产。
+- [ ] UI 改动检查默认、加载、空、错误、禁用、超长、窄窗口、深色/浅色和重复点击状态；交互必须真的可操作，不能只检查 DOM 存在。
+- [ ] UI 入口、Renderer IPC、主进程 handler、持久化和事件回传的行为一致，不能只修一个视觉层。
+
+### 4.8 Skill、伙伴与用户扩展边界
+
+- [ ] 用户 Skill 的 frontmatter 使用纯数据解析器，不执行 YAML tag、JavaScript、模板或任意代码；名称、正文、版本目录和回滚路径有边界。
+- [ ] Skill 的 `allowed_tools` 只能缩小/描述能力，不能绕过 PermissionEngine、沙箱、Headless 或主进程确认。
+- [ ] 内置 Skill、用户 Skill、MCP、Role Pack 和生产资产的来源、优先级、版本和覆盖关系明确；热加载/删除/回滚不会留下旧工具或旧 Prompt。
+- [ ] Companion 的 `roleId`、active role、universe、protected/mutable、资产和反馈记忆有隔离；跨角色读取/写入必须是明确产品行为并有 `expectedRoleId` 或等价守卫。
+- [ ] 自动反思、画像提取、Moment、成长和定时主动行为有频率/消息数/费用/敏感信息门闸；后台自动写入不能篡改 PROTECTED 或把外部内容升级为事实。
+
 ---
 
 ## 五、测试策略：必须证明“能绕过时也绕不过”
@@ -192,6 +217,8 @@
 | 页面导航、组件状态、IPC 入口 | UI E2E |
 | 主进程真实打包/窗口/preload | Electron E2E（显式启用） |
 | Provider/SSE 解析 | 本地 fixture/replay；不能用手写内部对象替代边界 |
+| UI 视觉/交互/响应式 | 真实页面 UI E2E + 截图/主题/窄窗口检查；不能只断言元素存在 |
+| Prompt/Skill/资产注册 | 注册表纯函数测试 + 真实调用覆盖 + Debug 来源/版本/指纹检查 |
 
 禁止把 UI 冒烟 E2E 描述成真实 Agent 对话质量验证。禁止为方便而 mock 掉正在审查的安全边界。
 
@@ -227,6 +254,14 @@
 - [ ] 删除代码前说明原因；删除或改变决策注释时必须同步更新。
 - [ ] 改动涉及用户可见能力、模块边界、质量门禁或安全不变量时，同轮更新对应文档。
 
+### 文档、合同与规则收工
+
+- [ ] 跨 3 个以上文件、架构变化或复杂功能先有施工合同；实施状态与代码事实一致。
+- [ ] 模块边界/入口/不变量/必测变化 → 更新对应模块卡；用户可见行为 → 更新 `docs/changelog.md`；阶段变化 → 更新 `docs/progress.md`。
+- [ ] 技术取舍 → `docs/decisions.md`；新坑 → `docs/pitfalls.md`；规则冲突/缺失 → `docs/rules-feedback.md`。
+- [ ] 暂缓、工程债、审计确认但未排期的事项 → `docs/wishlist.md`，不能只写在回复或方法论里。
+- [ ] 方法论中的历史快照必须明确标注日期/历史性质；当前测试数量和能力不能引用过时数字。
+
 ---
 
 ## 七、审查完成门禁
@@ -236,6 +271,7 @@
 - [ ] `git diff --check`
 - [ ] 相关 Unit / Eval / E2E 通过
 - [ ] `npx tsc --noEmit` 通过
+- [ ] 如果改了 `package.json` / lockfile / 构建配置：依赖锁定、安装脚本和产物入口经过审查
 - [ ] 没有新增 lint/build 错误
 
 ### L2/L3
@@ -260,8 +296,11 @@ npm audit --omit=dev --registry=https://registry.npmjs.org
 
 - [ ] 检查 `git status --short`，确认没有误加入 `.env`、凭据、报告、`dist` 或临时目录。
 - [ ] 精确 `git add <文件列表>`，不要使用 `git add .`。
+- [ ] 暂存后再次运行 `git diff --cached --check`，确认没有凭据、`.env`、临时目录、报告或无关改动。
+- [ ] 若有依赖变更，检查 lockfile、npm lifecycle script、依赖来源和 `npm audit` 结果，不用未经验证的 `overrides` 掩盖漏洞。
 - [ ] 测试失败、构建警告或剩余缺口不能用“基本没问题”掩盖。
 - [ ] 高风险暂缓项写入 `docs/wishlist.md`；用户可见能力变化同步模块卡/`docs/changelog.md`。
+- [ ] 项目规则要求推送时，commit 成功后立即 `git push`，并确认本地 HEAD 与远端分支一致。
 
 ---
 
