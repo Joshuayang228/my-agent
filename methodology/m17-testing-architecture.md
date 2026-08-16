@@ -72,9 +72,9 @@ Agent 代码里同时住着两类东西：
 
 粗规则：
 
-- 能**不跑 agentLoop** 就断言 → Unit  
-- 必须跑完一轮（或多轮）loop、靠 **transcript / workdir** 断言 → Eval  
-- 必须点 UI / 起 Electron → E2E  
+- 能**不跑 agentLoop** 就断言 → Unit
+- 必须跑完一轮（或多轮）loop、靠 **transcript / workdir** 断言 → Eval
+- 必须点 UI / 起 Electron → E2E
 
 **禁止**：在 Unit 里用真实 API；在 Eval 的 A 类场景里依赖模型随机性。
 
@@ -108,13 +108,13 @@ Agent 代码里同时住着两类东西：
 
 **为什么不满足于 `vi.mock('.../llm')`**：
 
-1. Eval runner 要在「vitest 只是宿主」的前提下工作，mock 框架不是依赖。  
-2. 整体 mock 模块时，真实模块新增 export（如 `LLMError`）会导致测试运行时才炸——已在 M05 踩过。  
+1. Eval runner 要在「vitest 只是宿主」的前提下工作，mock 框架不是依赖。
+2. 整体 mock 模块时，真实模块新增 export（如 `LLMError`）会导致测试运行时才炸——已在 M05 踩过。
 3. DI 让生产路径与测试路径共用同一段 `agentLoop` 分支，只替换叶子。
 
 **约定（对齐后生效）**：
 
-- **新写的** loop / 集成向测试：优先 `_streamChatOverride` + `evals/mock-llm`（或同等工厂）。  
+- **新写的** loop / 集成向测试：优先 `_streamChatOverride` + `evals/mock-llm.ts`（或同等工厂）。
 - **存量** `agent-loop.test.ts` 仍用 `vi.mock`：工程债，渐进迁移，不阻塞本轮沉淀。
 
 受 Alice 范式十一启发：稳定的是「stream → 事件」接口；实现（真 Provider / 脚本序列 / 将来 SSE replay）可丢弃替换。
@@ -151,22 +151,22 @@ feiche `aisdk-testing-design` 的原则：**mock 在 HTTP 边界，不在内部�
 
 `typescript-guidelines` 曾要求 E2E「必须真实对话流、禁止只测元素存在」。理想正确，但现状是：
 
-- `chat.test.ts` 偏 UI 冒烟（标题、侧边栏、输入框）。  
+- `chat.test.ts` 偏 UI 冒烟（标题、侧边栏、输入框）。
 - 真对话依赖 Key、模型、网络，不适合当默认门禁。
 
 **对齐后的诚实分层**：
 
-1. **冒烟 E2E**（当前）：验证壳子能起来、主控件可点——允许存在，且标明「冒烟」。  
-2. **可选真对话 E2E**：有 `TEST_LLM_API_KEY` 才跑；无 Key **skip 不红**。  
+1. **冒烟 E2E**（当前）：验证壳子能起来、主控件可点——允许存在，且标明「冒烟」。
+2. **真实对话验证**：目前不在默认 `test:e2e` 项目中；需要专门配置和显式 Key，不能把现有 UI E2E 写成已覆盖真实 Agent。
 3. **禁止**：把冒烟当成「对话质量已测」。
 
 伙伴体验的主战场仍在人工 + M18 B 类，不在 Playwright。
 
 ## 九、禁止项（测试栈红线）
 
-1. Unit / 默认 Eval **禁止**打真实 LLM（CLAUDE 质量底线：禁止 Mock 真 AI——此处「Mock」指用假数据冒充已测真模型；脚本 LLM 显式注入除外）。  
-2. 禁止用 Eval 替代 Unit 去测纯函数分支（慢、噪、难定位）。  
-3. 禁止 grader 偷看 `AgentLoopOptions` / system prompt（M18 Generator-Evaluator；M17 只强调分层时不要破坏这条）。  
+1. Unit / 默认 Eval **禁止**打真实 LLM（CLAUDE 质量底线：禁止 Mock 真 AI——此处「Mock」指用假数据冒充已测真模型；脚本 LLM 显式注入除外）。
+2. 禁止用 Eval 替代 Unit 去测纯函数分支（慢、噪、难定位）。
+3. 禁止 grader 偷看 `AgentLoopOptions` / system prompt（M18 Generator-Evaluator；M17 只强调分层时不要破坏这条）。
 4. 禁止把 E2E 或真 LLM Eval 绑进每次 commit 的必跑命令。
 
 ## 十、与相邻模块的交点
@@ -185,8 +185,8 @@ feiche `aisdk-testing-design` 的原则：**mock 在 HTTP 边界，不在内部�
 
 ## 这次沉淀做了什么
 
-- 对齐四层金字塔、DI 优先、门禁与 E2E 诚实分层。  
-- 纠正 Alice 映射（范式二 / 十一，非范式五）。  
+- 对齐四层金字塔、DI 优先、门禁与 E2E 诚实分层。
+- 纠正 Alice 映射（范式二 / 十一，非范式五）。
 - 无强制代码迁移；工程债进 wishlist。
 
 ## 现状对照（2026-07-26）
@@ -194,7 +194,7 @@ feiche `aisdk-testing-design` 的原则：**mock 在 HTTP 边界，不在内部�
 | 项 | 状态 |
 |----|------|
 | Unit / Eval 双 vitest 配置 | ✅ |
-| `_streamChatOverride` + `evals/mock-llm` | ✅ |
+| `_streamChatOverride` + `evals/mock-llm.ts` | ✅ |
 | 权限 / 队列 / 压缩 / 路由等 Unit 覆盖 | ✅ 较厚 |
 | `agent-loop.test` 仍 `vi.mock(llm)` | ⚠️ 存量债 |
 | SSE fixture replay | ❌ 未做 |
@@ -203,23 +203,27 @@ feiche `aisdk-testing-design` 的原则：**mock 在 HTTP 边界，不在内部�
 
 ## 弯路
 
-1. **整体 mock LLM 模块**：省事，但 export 漂移即炸 → 转向 DI。  
-2. **把 Eval 想成「高级单测」**：超时和语义都冲突 → 独立 config。  
+1. **整体 mock LLM 模块**：省事，但 export 漂移即炸 → 转向 DI。
+2. **把 Eval 想成「高级单测」**：超时和语义都冲突 → 独立 config。
 3. **E2E 规范写太满**：理想对话流写进 skill，现实只有冒烟 → 本分章改成「冒烟 + 可选真对话」，避免规范撒谎。
 
 ## 暂缓项 / 后续补齐
 
-- [ ] **G1** 将 `agent-loop.test.ts`（及同类）迁到 `_streamChatOverride`  
-- [ ] **G2** LLM 适配层 SSE 录放（参考 aisdk-testing-design）  
-- [ ] **G3** 可选真对话 E2E（无 Key skip）+ 规范与 skill 对齐  
-- [ ] **G4** IPC 主进程 handler 的可测性（与 M12 协同）  
+- [ ] **G1** 将 `agent-loop.test.ts`（及同类）迁到 `_streamChatOverride`
+- [ ] **G2** LLM 适配层 SSE 录放（参考 aisdk-testing-design）
+- [ ] **G3** 独立真实对话 E2E 配置 + 显式 Key 门禁；默认 UI E2E 不冒充真实 Agent 验证
+- [ ] **G4** IPC 主进程 handler 的可测性（与 M12 协同）
 
 ## 设计检查清单
 
-1. 新测试：失败时能立刻判断该看代码还是看场景吗？  
-2. 需要假 LLM：走了 DI 还是又 `vi.mock` 了整模块？  
-3. 改了被大量 mock 的模块的 export：扫过相关测试文件吗？  
-4. 新场景：该进 Unit、Eval，还是 E2E？  
-5. 有没有把真 LLM 或 E2E 塞进 commit 必跑？  
-6. Eval grader 是否仍只看 transcript / workdir？  
+1. 新测试：失败时能立刻判断该看代码还是看场景吗？
+2. 需要假 LLM：走了 DI 还是又 `vi.mock` 了整模块？
+3. 改了被大量 mock 的模块的 export：扫过相关测试文件吗？
+4. 新场景：该进 Unit、Eval，还是 E2E？
+5. 有没有把真 LLM 或 E2E 塞进 commit 必跑？
+6. Eval grader 是否仍只看 transcript / workdir？
 |
+
+## 2026-08 安全测试补充
+
+新增安全回归集中验证设置安全视图、MCP secret hydrate、原生高风险确认、Markdown 外链图片、Tool Result Injection、Terminal 输出和工作区边界；普通门禁不调用真实模型，真人格 Eval 保持显式付费/凭据门控。

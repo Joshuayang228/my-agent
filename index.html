@@ -4,19 +4,9 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' http: https: ws: wss:; frame-src 'self' about:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:* http://localhost:* ws://localhost:*; frame-src 'self' about:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none';" />
     <title>My Agent</title>
-    <script>
-      (function () {
-        try {
-          var savedTheme = localStorage.getItem('theme')
-          var themes = ['dark', 'light', 'mist', 'night-feast', 'green-garden', 'golden', 'blue-pool']
-          document.documentElement.dataset.theme = themes.includes(savedTheme || '') ? savedTheme : 'mist'
-        } catch {
-          document.documentElement.dataset.theme = 'mist'
-        }
-      })()
-    </script>
+    <script src="/startup.js"></script>
     <style>
       html,
       body {
@@ -137,33 +127,7 @@
       </div>
     </div>
     <div id="root"></div>
-    <script>
-      (function () {
-        var splash = document.getElementById('startup-splash')
-        var root = document.getElementById('root')
-        if (!splash || !root) return
 
-        var hide = function () {
-          if (!splash.isConnected) return
-          splash.classList.add('is-hidden')
-          window.setTimeout(function () {
-            splash.remove()
-          }, 240)
-        }
-
-        if (root.childElementCount > 0) {
-          window.requestAnimationFrame(hide)
-          return
-        }
-
-        var observer = new MutationObserver(function () {
-          if (root.childElementCount === 0) return
-          observer.disconnect()
-          window.requestAnimationFrame(hide)
-        })
-        observer.observe(root, { childList: true })
-      })()
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

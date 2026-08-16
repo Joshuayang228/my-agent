@@ -19,10 +19,27 @@ import { buildSafeChildProcessEnv } from '../utils/safe-process-env'
 const log = createLogger('TerminalIPC')
 const TIMEOUT_MS = 30_000
 const MAX_CHUNK = 8_000
+export const MAX_TERMINAL_OUTPUT_CHARS = 2 * 1024 * 1024
 const MAX_COMMAND_LENGTH = 100_000
 const MAX_CWD_LENGTH = 4_096
 
 const runs = new Map<string, ChildProcessWithoutNullStreams>()
+
+
+export function limitTerminalOutput(text: string, emittedChars: number): {
+  chunk: string
+  nextEmittedChars: number
+  limitReached: boolean
+} {
+  const remaining = Math.max(0, MAX_TERMINAL_OUTPUT_CHARS - emittedChars)
+  const accepted = text.slice(0, Math.min(MAX_CHUNK, remaining))
+  const nextEmittedChars = emittedChars + accepted.length
+  return {
+    chunk: accepted,
+    nextEmittedChars,
+    limitReached: text.length > accepted.length || nextEmittedChars >= MAX_TERMINAL_OUTPUT_CHARS,
+  }
+}
 
 export function registerTerminalIPC(): void {
   ipcMain.handle(
@@ -76,17 +93,22 @@ export function registerTerminalIPC(): void {
       const send = (channel: string, payload: Record<string, unknown>) => {
         if (!sender.isDestroyed()) sender.send(channel, payload)
       }
+      let emittedChars = 0
+      let outputLimitHit = false
+      const sendOutput = (channel: 'terminal:stdout' | 'terminal:stderr', text: string) => {
+        if (outputLimitHit) return
+        const limited = limitTerminalOutput(text, emittedChars)
+        emittedChars = limited.nextEmittedChars
+        if (limited.chunk) send(channel, { runId, chunk: limited.chunk })
+        if (limited.limitReached) {
+          outputLimitHit = true
+          send('terminal:stderr', { runId, chunk: `\n[输出超过 ${MAX_TERMINAL_OUTPUT_CHARS} 个字符，已终止进程]\n` })
+          try { child.kill() } catch { /* ignore */ }
+        }
+      }
 
-      child.stdout.on('data', (buf: Buffer) => {
-        let text = buf.toString('utf-8')
-        if (text.length > MAX_CHUNK) text = text.slice(0, MAX_CHUNK) + '\n…'
-        send('terminal:stdout', { runId, chunk: text })
-      })
-      child.stderr.on('data', (buf: Buffer) => {
-        let text = buf.toString('utf-8')
-        if (text.length > MAX_CHUNK) text = text.slice(0, MAX_CHUNK) + '\n…'
-        send('terminal:stderr', { runId, chunk: text })
-      })
+      child.stdout.on('data', (buf: Buffer) => sendOutput('terminal:stdout', buf.toString('utf-8')))
+      child.stderr.on('data', (buf: Buffer) => sendOutput('terminal:stderr', buf.toString('utf-8')))
 
       const timer = setTimeout(() => {
         try {
@@ -103,7 +125,8 @@ export function registerTerminalIPC(): void {
       child.on('error', (err) => {
         clearTimeout(timer)
         runs.delete(runId)
-        send('terminal:stderr', { runId, chunk: err.message + '\n' })
+        log.warn('Terminal process failed', { runId, errorType: err.name, errorLength: err.message.length })
+        send('terminal:stderr', { runId, chunk: '命令进程启动或执行失败。\n' })
         send('terminal:exit', { runId, code: -1 })
       })
 
@@ -112,7 +135,8 @@ export function registerTerminalIPC(): void {
     },
   )
 
-  ipcMain.handle('terminal:kill', (_e, runId: string) => {
+  ipcMain.handle('terminal:kill', (_e, runId: unknown) => {
+    if (typeof runId !== 'string' || runId.length === 0 || runId.length > 200) return { ok: false }
     const child = runs.get(runId)
     if (!child) return { ok: false }
     try {

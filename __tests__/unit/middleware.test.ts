@@ -120,7 +120,8 @@ describe('内置中间件', () => {
 
     expect(result.isError).toBe(true)
     expect(result.content).toContain('工具错误')
-    expect(result.content).toContain('boom')
+    expect(result.content).not.toContain('boom')
+    expect(result.content).toContain('执行失败')
   })
 
   it('errorFormattingMiddleware 正常时透传', async () => {

@@ -1,8 +1,11 @@
 ﻿import { describe, expect, it, vi } from 'vitest'
 import {
   PROFILE_EXTRACTION_CATEGORIES,
+  PROFILE_EXTRACTION_MAX_CONTENT_LENGTH,
+  PROFILE_EXTRACTION_MAX_ITEMS,
   PROFILE_EXTRACTION_MAX_RECENT_MESSAGES,
   PROFILE_EXTRACTION_MIN_USER_MESSAGES,
+  isSafeExtractedProfileItem,
 } from '../../electron/main/agent/profile-extractor'
 import { MEMORY_SEMANTIC_DEDUP_THRESHOLD } from '../../electron/main/storage/memory-store'
 
@@ -49,7 +52,18 @@ describe('记忆策略生产资产目录', () => {
     expect(extraction.minUserMessages).toBe(PROFILE_EXTRACTION_MIN_USER_MESSAGES)
     expect(extraction.maxRecentMessages).toBe(PROFILE_EXTRACTION_MAX_RECENT_MESSAGES)
     expect(extraction.validCategories).toEqual([...PROFILE_EXTRACTION_CATEGORIES])
+    expect(extraction.maxItemsPerRun).toBe(PROFILE_EXTRACTION_MAX_ITEMS)
+    expect(extraction.maxContentLength).toBe(PROFILE_EXTRACTION_MAX_CONTENT_LENGTH)
+    expect(extraction.sensitivePolicy).toContain('自动画像跳过')
     expect(dedupe.similarityThreshold).toBe(MEMORY_SEMANTIC_DEDUP_THRESHOLD)
+  })
+
+
+  it('自动画像拒绝敏感候选和超长/非法结构', () => {
+    expect(isSafeExtractedProfileItem({ category: 'preference', content: '喜欢深色主题' })).toBe(true)
+    expect(isSafeExtractedProfileItem({ category: 'fact', content: 'api_key=sk-secret' })).toBe(false)
+    expect(isSafeExtractedProfileItem({ category: 'identity', content: '我的家庭住址是某某路 1 号' })).toBe(false)
+    expect(isSafeExtractedProfileItem({ category: 'unknown', content: '普通内容' })).toBe(false)
   })
 
   it('统一生产目录包含记忆策略但不混入记忆正文', async () => {

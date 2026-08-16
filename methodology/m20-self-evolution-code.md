@@ -1,344 +1,130 @@
-# M20 自进化与 Skill 代码走读
+# M20 自进化与 Skill 管理 — 代码走读
 
-> 对照 m10-self-evolution.md 各章节，展示真实代码实现。
-> 代码块带逐行中文注释（教学材料，不是生产代码）。
-> 核心文件：electron/main/skills/loader.ts + registry.ts
-
----
-
-## §二 + §三：Skill 定位与按需激活 → 加载和解析
-
-→ m10 §二（Skill 定位）+ §三（when_to_use 按需激活）
-
-```typescript
-// electron/main/skills/loader.ts
-
-function parseSkillFile(content: string, filePath: string, source: 'builtin' | 'user'): SkillDefinition | null {
-  try {
-    // ① 安全解析标准 YAML Frontmatter + Markdown 正文；禁止可执行语言引擎
-    const { data, content: body } = parseSkillFrontmatter(content)
-    const meta = data as Partial<SkillFrontmatter>
-
-    // ② name 和 description 是必填——没有就不是合法 Skill
-    if (!meta.name || !meta.description) {
-      log.warn('Skill missing name or description', { filePath })
-      return null
-    }
-
-    return {
-      meta: {
-        name: meta.name,
-        description: meta.description,
-        when_to_use: meta.when_to_use,           // ③ 按需激活的路由信号（§三）
-        allowed_tools: meta.allowed_tools,       // ④ 最小权限白名单（§四）
-        disable_model_invocation: meta.disable_model_invocation ?? false,  // ⑤ 控制主动性
-        version: meta.version,
-      },
-      body: body.trim(),                         // ⑥ 正文 = 给 AI 的操作手册
-      filePath,
-      source,
-    }
-  } catch (err) {
-    log.error('Failed to parse skill', { filePath, error: String(err) })
-    return null
-  }
-}
-```
-
-**编号说明**：
-
-① **frontmatter + body 分离**：YAML 头是元数据（给系统路由用），Markdown 正文是操作指南（给 AI 执行用）
-
-③ **when_to_use**：不参与执行，只用来让模型判断"该不该激活"——是路由信号
-
-⑥ **body**：Skill 的本体，激活后作为 system 消息注入，指导 AI 后续行为
-
-**方法论对照 → m10 §二/§三**：Skill = 元数据（路由）+ 正文（手册）。工具是被调用的原子能力，Skill 是激活后指导 AI 调工具的编排层。
+> 理念章：[`m20-self-evolution.md`](./m20-self-evolution.md)
+> 最近核对：2026-08-16
+> 事实源：`electron/main/skills/loader.ts`、`skills/registry.ts`、`ipc/skills.ts`、`evals/skill/`
 
 ---
 
-## §三：按需激活 → skill_invoke 工具生成 + 注入
+## 一、当前“自进化”只落地为受控资产演进
 
-→ m10 §三：只有匹配时才注入上下文
+系统不会让模型自动改自己的主进程代码或 System Prompt。当前可变面是用户 Skill 与按角色 MUTABLE：
 
-```typescript
-// electron/main/skills/registry.ts
+- Skill 可以创建、校验、编辑、版本备份、回滚、删除和隔离试跑；
+- MUTABLE 由 M22 成长核负责；
+- PROTECTED、权限策略、工具实现和核心 Prompt 不能由普通运行自动改写。
 
-function buildSkillTool(skill: SkillDefinition): ToolDefinition {
-  // ① 每个 Skill 自动生成一个 skill_invoke_xxx 工具
-  const toolName = `skill_invoke_${skill.meta.name.replace(/[^a-z0-9]/g, '_')}`
-  return {
-    name: toolName,
-    description: `激活 Skill: ${skill.meta.description}. 调用此工具后，Skill 的操作指南将注入上下文，指导你完成任务。`,
-    // ... parameters
-    metadata: {
-      isReadOnly: true,      // ② 激活 Skill 本身是只读操作（不改任何东西）
-      isDestructive: false,
-      isConcurrencySafe: true,
-    },
-    execute: async (args) => {
-      activeSkill = skill    // ③ 标记为当前激活的 Skill
-      log.info('Skill activated', { name: skill.meta.name, reason: args.reason })
+因此本章的代码事实是“可审计的 Skill 生命周期”，不是自治代码改写系统。
 
-      // ④ 返回 Skill 正文作为操作指南（注入到对话）
-      return [
-        `✅ Skill「${skill.meta.name}」已激活。`,
-        '以下是该 Skill 的操作指南，请严格遵循：',
-        '---',
-        skill.body,        // ← 正文在这里注入
-        '---',
-        skill.meta.allowed_tools
-          ? `⚠️ 本 Skill 限定使用以下工具：${skill.meta.allowed_tools.join(', ')}`
-          : '',
-      ].filter(Boolean).join('\n')
-    },
-  }
-}
+## 二、Frontmatter 只用数据解析器
+
+`loader.ts` 使用 `js-yaml` 的 `JSON_SCHEMA` 解析 Frontmatter，不执行 JavaScript tag、模板或表达式。校验字段包括：
+
+```text
+name / description / version
+when_to_use / allowed_tools
+disable_model_invocation
 ```
 
-**编号说明**：
+名称、正文长度、字段类型和文件路径都有边界。解析失败返回结构化 issue，不把任意 YAML 当作可执行配置。
 
-① **一 Skill 一工具**：模型看到 `skill_invoke_content_creator` 这样的工具，通过调用来激活 Skill
+## 三、加载与唯一身份
 
-③ **activeSkill 状态**：记录当前激活的 Skill，供 `filterTools`（§四白名单）和 prompt 构建使用
+内置 Skill 和用户 Skill 分目录扫描，统一形成 `SkillDefinition`：
 
-④ **正文按需注入**：只有模型调了这个工具，Skill 正文才进入上下文——这就是"按需激活"，避免所有 Skill 都塞满上下文
-
-**方法论对照 → m10 §三**：按需激活的实现 = 每个 Skill 生成一个工具 + 激活时才注入正文。未激活的 Skill 只在 summary 里占一行（name/description/when_to_use）。
-
----
-
-## §四：最小权限 → allowed_tools 白名单过滤
-
-→ m10 §四：Skill 激活收窄工具范围
-
-```typescript
-// electron/main/agent/runtime.ts — filterTools 回调
-
-filterTools: (allTools) => {
-  const active = getActiveSkill()
-  // ① 激活的 Skill 有 allowed_tools 时，过滤工具集
-  if (active?.meta.allowed_tools?.length) {
-    const allowed = new Set(active.meta.allowed_tools)
-    // ② 只保留白名单内工具 + skill_invoke_ 前缀工具（允许切换 Skill）
-    return allTools.filter(t => allowed.has(t.name) || t.name.startsWith('skill_invoke_'))
-  }
-  return allTools
-},
+```text
+meta
+body
+source（builtin / user）
+filePath
 ```
 
-**方法论对照 → m10 §四**：`filterTools` 每轮 loop 动态过滤。激活带 `allowed_tools` 的 Skill 后，工具集收窄到白名单——防止写作 Skill 误调删除工具。权限"只降不升"。
+用户 Skill 可覆盖同名内置 Skill 时，来源和版本仍可在 Debug 资产目录追踪。Skill 的运行身份由 name 和激活工具名 `skill_invoke_<normalized-name>` 组成。
 
----
+## 四、按需激活
 
-## §八：版本备份与回滚 → G1 本次落地核心
+每个允许模型调用的 Skill 注册一个激活工具。激活前，System Prompt 只包含 name、description、when_to_use 和调用方式；模型调用激活工具后，正文作为 tool_result 进入上下文，并记录：
 
-→ m10 §八：改坏了能退回去（自进化的安全地基）
-
-### 备份逻辑
-
-```typescript
-// electron/main/skills/loader.ts
-
-/** 每个 Skill 最多保留的历史版本数（对齐 Alice Ch.10 的「保留最近 10 版」） */
-const MAX_SKILL_VERSIONS = 10
-
-async function backupSkillVersion(skillDir: string, oldContent: string): Promise<void> {
-  const versionsDir = join(skillDir, '.versions')
-  await ensureDir(versionsDir)
-
-  // ① 现有版本文件（v{N}.md），过滤出符合命名的
-  let existing: string[] = []
-  try {
-    existing = (await readdir(versionsDir)).filter(f => /^v\d+\.md$/.test(f))
-  } catch { /* no versions yet */ }
-
-  // ② 按序号排序（v2.md < v10.md，要按数字不是字典序）
-  const seqOf = (f: string) => parseInt(f.slice(1, -3), 10)  // "v3.md" → 3
-  existing.sort((a, b) => seqOf(a) - seqOf(b))
-
-  // ③ 新版本号 = 当前最大 + 1（不复用已删号，保证时间顺序单调递增）
-  const nextSeq = existing.length > 0 ? seqOf(existing[existing.length - 1]) + 1 : 1
-  await writeFile(join(versionsDir, `v${nextSeq}.md`), oldContent, 'utf-8')
-
-  // ④ 超出上限：删最旧的
-  const afterWrite = [...existing, `v${nextSeq}.md`]
-  const overflow = afterWrite.length - MAX_SKILL_VERSIONS
-  for (let i = 0; i < overflow; i++) {
-    await unlink(join(versionsDir, afterWrite[i])).catch(() => { /* already gone */ })
-  }
-
-  log.info('Skill version backed up', { skillDir, version: nextSeq, kept: Math.min(afterWrite.length, MAX_SKILL_VERSIONS) })
-}
+```text
+name / toolName / source / version / fingerprint
+reason（截断）/ activatedAt
 ```
 
-**编号说明**：
+普通日志只记录 reason 的 hash/长度，不落正文。
 
-② **数字排序而非字典序**：`['v10.md', 'v2.md'].sort()` 字典序会把 v10 排在 v2 前面，出错。所以提取数字比较
+## 五、工具白名单
 
-③ **序号单调递增**：新号 = 最大号 + 1，即使中间删了旧版本也不复用号。保证"版本号大 = 时间新"，这是 `listSkillVersions` 排序的前提
+激活 Skill 的 `allowed_tools` 是收窄条件，不是提权入口。Runtime 的工具解析从当前生产 Registry 中取交集；Skill 不可能声明一个系统不存在或父级不可用的工具后获得它。
 
-④ **删最旧**：existing 已按序号升序，`afterWrite[0]` 就是最旧的，删前 `overflow` 个
+Skill 激活工具本身只改变本轮 Agent 上下文，不直接写文件，因此 metadata 为只读。真正的副作用仍由后续具体工具经过权限/沙箱门闸。
 
-### saveSkill 接入备份
+## 六、保存与校验
 
-```typescript
-export async function saveSkill(name: string, content: string): Promise<string> {
-  const dir = join(getSkillsDir(), name)
-  await ensureDir(dir)
-  const filePath = join(dir, 'SKILL.md')
+`ipc/skills.ts` 在写入前调用 `validateSkillContent()`：
 
-  // ① 若已存在旧版本，先备份再覆盖
-  try {
-    const oldContent = await readFile(filePath, 'utf-8')
-    if (oldContent !== content) {       // ② 内容有变才备份（相同不产生冗余版本）
-      await backupSkillVersion(dir, oldContent)
-    }
-  } catch { /* 首次创建，无旧版本可备份 */ }  // ③ readFile 失败 = 首次创建，跳过备份
+1. 校验名称和正文长度；
+2. 解析 Frontmatter；
+3. 返回 error / warning；
+4. 只有无 error 时才保存；
+5. 保存后 reload Registry，使 Debug 和运行入口一致。
 
-  await writeFile(filePath, content, 'utf-8')
-  log.info('Skill saved', { name, filePath })
-  return filePath
-}
+Playground 的隔离试跑不把草稿自动保存为生产 Skill；保存是显式写操作。
+
+## 七、版本备份
+
+覆盖现有 `SKILL.md` 前：
+
+```text
+读取旧内容
+→ 内容变化才备份
+→ .versions/v{N}.md
+→ N 单调递增
+→ 最多保留 10 版
+→ 写入新当前版本
 ```
 
-**编号说明**：
+版本按数字排序，避免 v10 排在 v2 前。相同内容重复保存不产生无意义版本。
 
-② **内容相同不备份**：避免用户反复保存同样内容产生一堆无意义版本
+## 八、回滚
 
-③ **首次创建不备份**：`readFile` 抛错说明还没有 SKILL.md，是首次创建，无需备份
+`rollbackSkill(name, version)` 读取历史快照并复用 `saveSkill()`：当前内容会先被备份，再把目标版本写为当前，因此“回滚操作本身也可回滚”。版本列表和内容读取都校验 name 与正整数 version。
 
-### 回滚
+## 九、隔离 Eval
 
-```typescript
-/** 列出某个 Skill 的历史版本序号（新→旧） */
-export async function listSkillVersions(name: string): Promise<number[]> {
-  const versionsDir = join(getSkillsDir(), name, '.versions')
-  try {
-    const files = (await readdir(versionsDir)).filter(f => /^v\d+\.md$/.test(f))
-    return files.map(f => parseInt(f.slice(1, -3), 10)).sort((a, b) => b - a)  // ① 降序=新在前
-  } catch {
-    return []
-  }
-}
+Skill Eval 独立于普通 Eval：
 
-export async function rollbackSkill(name: string, version: number): Promise<boolean> {
-  const dir = join(getSkillsDir(), name)
-  const versionFile = join(dir, '.versions', `v${version}.md`)
-  try {
-    const versionContent = await readFile(versionFile, 'utf-8')
-    // ② 复用 saveSkill → 当前内容自动备份，所以回滚本身可再回滚
-    await saveSkill(name, versionContent)
-    log.info('Skill rolled back', { name, version })
-    return true
-  } catch (err) {
-    log.warn('Skill rollback failed', { name, version, error: String(err) })
-    return false  // ③ 版本不存在时优雅返回 false，不抛错
-  }
-}
+```text
+evals/skill/cases.ts
+evals/skill/runner.ts
+evals/skill/grader-definitions.ts
+evals/skill/report.ts
 ```
 
-**编号说明**：
+它验证触发、正文注入、allowed_tools、回复证据和报告；默认 Mock，无网络、无费用。Debug 只读展示报告和生产 Skill 资产来源。
 
-② **回滚复用 saveSkill 的巧妙**：回滚不是直接覆盖 SKILL.md，而是走 saveSkill——于是"当前内容"（回滚前的）也会被备份一版。这样"回滚错了"还能再回滚回来
+## 十、安全边界
 
-③ **优雅失败**：回滚不存在的版本返回 false 而非抛错，让调用方（IPC）能返回 `{ success: false }`
+- 不使用 eval 或可执行 YAML；
+- Skill 名称经过路径守卫，不能目录穿越；
+- 正文和 Frontmatter 有大小边界；
+- allowed_tools 只收窄；
+- 历史版本位于 Skill 自己的 `.versions`；
+- API Key、MCP env、用户记忆不进入 Skill 资产；
+- 自动运行不能自行保存或删除 Skill。
 
-**方法论对照 → m10 §八**：版本备份是自进化的安全地基。回滚复用 saveSkill 让"回滚可再回滚"，这是"任何修改都可撤销"原则的落地。
+## 十一、测试证据
 
----
+- `skill-management.test.ts`：解析、校验、保存、删除与 IPC；
+- `skill-versioning.test.ts`：备份、去重、上限、数字排序和回滚；
+- `skill-eval.test.ts`：Case、Runner、Grader 和报告；
+- `skill-eval-reports.test.ts`：Debug 报告读取边界；
+- `model-context-assets.test.ts`：Skill 注册资产来源与 fingerprint。
 
-## §八 续：IPC 三处同步
+## 十二、当前缺口
 
-→ m10 §八：暴露给前端（CLAUDE.md 硬约束：IPC 改动三处同步）
+- 没有根据运行失败自动重写 Skill；
+- 没有模型主动提出并自动应用 Skill 改进；
+- 没有代码级自修改或自动 PR；
+- 没有跨设备 Skill 分发和签名信任链。
 
-```typescript
-// 1. electron/main/ipc/skills.ts — 主进程处理器
-ipcMain.handle('skills:versions', async (_event, name: string) => {
-  return listSkillVersions(name)
-})
-ipcMain.handle('skills:rollback', async (_event, name: string, version: number) => {
-  const success = await rollbackSkill(name, version)
-  if (success) await reloadSkills(toolRegistry)  // ← 回滚后重载，让新内容生效
-  return { success }
-})
-
-// 2. electron/preload/index.ts — preload 桥接
-skills: {
-  // ...
-  versions: (name: string) => ipcRenderer.invoke('skills:versions', name),
-  rollback: (name: string, version: number) => ipcRenderer.invoke('skills:rollback', name, version),
-},
-
-// 3. src/vite-env.d.ts — 类型定义
-skills: {
-  // ...
-  versions: (name: string) => Promise<number[]>
-  rollback: (name: string, version: number) => Promise<{ success: boolean }>
-}
-```
-
-**方法论对照**：CLAUDE.md 硬约束——IPC 改动必须同步 types.ts / preload / ipc handler 三处，否则运行时报"方法未定义"。回滚后 `reloadSkills` 让改动立即生效。
-
----
-
-## §九-§十一：占位待做的自进化能力
-
-→ m10 §九（自动改进）§十（主动提案）§十一（沙盒代码生成）
-
-这三项本次未实现，但认知框架已在产品思考文档写全。代码层面它们的"接入点"是清晰的：
-
-```typescript
-// §九 自动改进闭环（占位）——接入点在 runtime.ts 的后台任务队列
-// 对话结束后（enqueuePostTasks 附近），若本轮激活过 Skill：
-//   analyzeSkillImprovement(skill, conversationSlice)  // LLM 分析
-//     → 检测到改进点 → 生成建议 → 前端确认卡片
-//     → 用户确认 → saveSkill(name, improvedContent)  // 复用 G1，自动备份
-
-// §十 主动提案（占位）——新增 propose_evolution 工具
-//   metadata: { isReadOnly: true }  // 只返回元数据，不改系统
-//   execute → 返回提案卡片数据，UI 渲染，用户确认后才触发实际操作
-
-// §十一 代码级自进化（占位）——最大工程
-//   需要：代码生成管线 + SecurityScanner + 沙盒 WebView + 白名单 Bridge + CSP
-//   Alice/Hermes 的根本分叉点，需求明确再评估
-```
-
-**方法论对照**：G1 版本备份已就位，是 G2 自动改进的安全前提。占位不写半成品代码，而是把接入点和设计写清楚——下次从这里接着做。
-
----
-
-## 关键设计总结
-
-### 1. G1 版本备份是自进化的地基
-
-```
-先做 G1（改了能退回）
-  ↓ 安全前提就位
-才敢做 G2（自动改进 Skill）
-```
-顺序不能反——没有回滚就敢自动改 = 自动搞坏。
-
-### 2. 序号单调递增保证时间顺序
-
-版本号新 = 最大 + 1，不复用已删号。于是 `listSkillVersions` 按号降序 = 按时间新→旧，无需存时间戳。
-
-### 3. 回滚复用 saveSkill → 回滚可再回滚
-
-回滚不直接覆盖，而是走 saveSkill，让当前内容也备份。"回滚错了"能再回滚回来。
-
-### 4. Skill 系统的完整度
-
-| 部分 | 状态 |
-|------|------|
-| 加载/解析/CRUD | ✅ 完整 |
-| 按需激活（skill_invoke + 正文注入）| ✅ 完整 |
-| 最小权限（allowed_tools 白名单）| ✅ 完整 |
-| 版本备份/回滚（G1）| ✅ 本次落地 |
-| 自动改进闭环（G2）| ⏸️ 占位 |
-| 代码级自进化（G3）| ⏸️ 占位 |
-| 主动提案（G4）/ 撤销栈（G5）| ⏸️ 占位 |
-
----
-
-**全文完** — 对照 m10-self-evolution.md 认知框架阅读。
+这些仍是愿景，不能写成当前已有的“自进化闭环”。

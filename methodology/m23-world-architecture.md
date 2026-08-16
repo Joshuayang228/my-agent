@@ -1,12 +1,12 @@
 # M23 生活世界架构
 
-> 这份文档沉淀我们对「对话框外，她还在过日子」的设计思考。  
-> 前半是**认知框架**——世界状态怎么建模、谁在推进、暂停与追赶。  
-> 后半是**实战记录**——LifeEngine / tick / Catch-up 怎么落地。  
+> 这份文档沉淀我们对「对话框外，她还在过日子」的设计思考。
+> 前半是**认知框架**——世界状态怎么建模、谁在推进、暂停与追赶。
+> 后半是**实战记录**——LifeEngine / tick / Catch-up 怎么落地。
 >
-> 对照源：Alice day_scripts / worldTick / ensureDayScriptsForDateRange × 我们的 `companion/life/`  
-> 上位契约：`docs/requirements/companion-architecture.md` · `companion-tech-spec.md` W2–W3  
-> 沉淀时间：2026-08-02  
+> 对照源：Alice day_scripts / worldTick / ensureDayScriptsForDateRange × 我们的 `companion/life/`
+> 上位契约：`docs/requirements/companion-architecture.md` · `companion-tech-spec.md` W2–W3
+> 沉淀时间：2026-08-02
 > **状态**：✅ 理念已沉淀（代码主线已通；剧本生成仍为确定性 mock，见 Gap）
 
 ---
@@ -19,8 +19,8 @@
 
 最容易踩的坑：
 
-1. **后台人人养成**——多主角都在 tick，电量/算力爆炸，关系也假（你没选中的人也在过完整人生）。  
-2. **只靠 Prompt 说谎**——没有剧本/事件库，只在 system 里写「你今天很忙」；换角、朋友圈、衣柜对不上。  
+1. **后台人人养成**——多主角都在 tick，电量/算力爆炸，关系也假（你没选中的人也在过完整人生）。
+2. **只靠 Prompt 说谎**——没有剧本/事件库，只在 system 里写「你今天很忙」；换角、朋友圈、衣柜对不上。
 3. **整库灌进对话**——把所有日剧本塞进 L3，拖垮上下文，也破坏「干活优先」。
 
 第一性原理：
@@ -54,14 +54,14 @@
 | Event | 槽位物化：planned → published | Tick / Catch-up |
 | Moments / Assets | 朋友圈帖、衣柜引用 | **投影**自事件，不是第二真相库 |
 
-判据：朋友圈一条删了，若事件还在，世界仍在；若只有 UI 帖没有事件，那是假世界。  
+判据：朋友圈一条删了，若事件还在，世界仍在；若只有 UI 帖没有事件，那是假世界。
 **禁止** Moments/Assets 反向发明「没发生过的生活」。
 
 ## 三、按 roleId 分桶；宇宙资产与用户态分离
 
-- 仓库资产：`universes/*/roles/*`（Identity）  
-- 用户态生活：`companion_role_state` / `day_scripts` / `events`… **一律挂 roleId**  
-- 用户全局：`activeRoleId`、记忆画像  
+- 仓库资产：`universes/*/roles/*`（Identity）
+- 用户态生活：`companion_role_state` / `day_scripts` / `events`… **一律挂 roleId**
+- 用户全局：`activeRoleId`、记忆画像
 
 换主角 = 换时间线视角，不是把三个人的日子搅进同一张表乱写。
 
@@ -73,8 +73,8 @@
 
 产品硬约束（与世界框架一致）：
 
-- 同时只有一个 `activeRoleId` 接管聊天 + 生活推进  
-- `tickActiveRole` **只**处理当前 active；非活跃写 `paused_at`，**不** `ensureDayScripts`、不发布事件  
+- 同时只有一个 `activeRoleId` 接管聊天 + 生活推进
+- `tickActiveRole` **只**处理当前 active；非活跃写 `paused_at`，**不** `ensureDayScripts`、不发布事件
 - 异常：active 仍带 `paused_at` → tick 跳过，等 resume/Catch-up（避免「半暂停还在长」）
 
 这不是省电小优化，是关系诚实：你没选中的人，时间线冻结在切走那一刻。
@@ -90,7 +90,7 @@ fineStart = max(pausedAt, now - 7×24h)
 清除 paused_at
 ```
 
-Why 7 日：细补太长贵且无感；太短则「休假一个月回来像失忆」。7 日是可测的产品冻结值。  
+Why 7 日：细补太长贵且无感；太短则「休假一个月回来像失忆」。7 日是可测的产品冻结值。
 约束：**不在打开瞬间伪造「正在发生」**——时间戳落在合理过去点；概况 **prefer LLM**（M23-G3），失败回退规则模板。
 
 ---
@@ -99,8 +99,8 @@ Why 7 日：细补太长贵且无感；太短则「休假一个月回来像失�
 
 ## 六、生活不挡 Agent Loop
 
-- Ticker：启动即 tick 一次，之后约 5 分钟间隔；失败只打日志  
-- Catch-up：挂在换角事务上，可异步；不阻塞工具执行与权限链  
+- Ticker：启动即 tick 一次，之后约 5 分钟间隔；失败只打日志
+- Catch-up：挂在换角事务上，可异步；不阻塞工具执行与权限链
 - 剧本生成：**活跃当日 prefer LLM**（M23-G1），失败/无 key → 哈希；Catch-up 细补默认哈希，避免换角连打多日 LLM
 
 干活（写代码、查文件）的优先级永远高于「她中午吃了什么」的生成精致度。
@@ -109,8 +109,8 @@ Why 7 日：细补太长贵且无感；太短则「休假一个月回来像失�
 
 组装时注入的是：
 
-- Catch-up 概况摘要（若有）  
-- 名册短句、必要在场信息  
+- Catch-up 概况摘要（若有）
+- 名册短句、必要在场信息
 
 **不是**整段 day_scripts JSON。完整事件留给 Moments UI / 调试；对话只要「她最近大概怎样」，避免上下文被生活淹没。
 
@@ -133,8 +133,8 @@ Why 7 日：细补太长贵且无感；太短则「休假一个月回来像失�
 
 ## 弯路与取舍
 
-1. **先 mock 剧本再 LLM**：没有稳定时间线纪律时，LLM 只会制造更贵的谎言。  
-2. ~~**Catch-up 概况用规则串**~~ → **已收（M23-G3）**：prefer LLM，失败回退模板。  
+1. **先 mock 剧本再 LLM**：没有稳定时间线纪律时，LLM 只会制造更贵的谎言。
+2. ~~**Catch-up 概况用规则串**~~ → **已收（M23-G3）**：prefer LLM，失败回退模板。
 3. **Life 不 import orchestrator**：active 从 settings + identity 解析，打破循环依赖。
 
 ## 与相邻章
@@ -148,13 +148,13 @@ Why 7 日：细补太长贵且无感；太短则「休假一个月回来像失�
 
 ## 自检问题
 
-1. 非活跃角色还会不会悄悄多出 script/event？  
-2. 切换后细补天数有没有超过 7？更早是不是只有概况？  
-3. Moments 能不能在没有事件的情况下「发明」动态？  
-4. tick 失败会不会拖垮主进程 / 挡工具？  
+1. 非活跃角色还会不会悄悄多出 script/event？
+2. 切换后细补天数有没有超过 7？更早是不是只有概况？
+3. Moments 能不能在没有事件的情况下「发明」动态？
+4. tick 失败会不会拖垮主进程 / 挡工具？
 5. 召唤聊天有没有误推进对方生活？
 
-## 暂缓 Gap（同步 wishlist）
+## Gap 处置
 
 | ID | 内容 | 处置 |
 |----|------|------|

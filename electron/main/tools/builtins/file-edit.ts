@@ -8,6 +8,10 @@ import { PERMISSION_SANDBOX_ASSET_KEYS } from '../../sandbox/asset-keys'
 import type { ToolContext } from '../../../../src/shared/types'
 
 const log = createLogger('FileEdit')
+const MAX_PATH_LENGTH = 4_096
+const MAX_EDIT_STRING_LENGTH = 1024 * 1024
+const MAX_EDIT_FILE_SIZE = 5 * 1024 * 1024
+const MAX_REPLACEMENTS = 100_000
 
 export const fileEditTool = buildTool({
   name: 'file_edit',
@@ -46,14 +50,19 @@ export const fileEditTool = buildTool({
     isDestructive: true,
   },
   execute: async (args, ctx?: ToolContext) => {
-    const filePath = args.path as string
-    const oldStr = args.old_str as string
-    const newStr = args.new_str as string
-    const count = (args.count as number) ?? 1
-    const insertAfter = (args.insert_after as boolean) ?? false
-
-    if (!filePath?.trim()) return '错误：必须提供文件路径'
-    if (!oldStr) return '错误：必须提供 old_str'
+    if (typeof args.path !== 'string' || !args.path.trim()) return '错误：必须提供文件路径'
+    if (args.path.length > MAX_PATH_LENGTH) return '错误：文件路径过长'
+    if (typeof args.old_str !== 'string' || !args.old_str || args.old_str.length > MAX_EDIT_STRING_LENGTH) return '错误：old_str 为空或过长'
+    if (typeof args.new_str !== 'string' || args.new_str.length > MAX_EDIT_STRING_LENGTH) return '错误：new_str 无效或过长'
+    if (args.count !== undefined && (typeof args.count !== 'number' || !Number.isInteger(args.count) || (args.count !== -1 && (args.count < 1 || args.count > MAX_REPLACEMENTS)))) {
+      return '错误：count 必须是 -1 或 1–100000 的整数'
+    }
+    if (args.insert_after !== undefined && typeof args.insert_after !== 'boolean') return '错误：insert_after 必须是布尔值'
+    const filePath = args.path
+    const oldStr = args.old_str
+    const newStr = args.new_str
+    const count = args.count ?? 1
+    const insertAfter = args.insert_after ?? false
 
     const mode = await loadEffectiveSandbox()
     const wsRoot = ctx?.workdir?.trim() || getWorkspaceRoot()
@@ -71,10 +80,13 @@ export const fileEditTool = buildTool({
 
     let original: string
     try {
+      const stat = await fs.stat(resolved)
+      if (!stat.isFile()) return '读取文件失败：目标不是普通文件。'
+      if (stat.size > MAX_EDIT_FILE_SIZE) return '读取文件失败：文件超过 5MB，请改用更小范围的补丁。'
       original = await fs.readFile(resolved, 'utf-8')
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      return `读取文件失败： ${message}`
+      log.warn('Edit target read failed', { pathHash: hashForLog(resolved), errorType: err instanceof Error ? err.name : 'unknown' })
+      return '读取编辑目标失败，请确认文件存在且可读。'
     }
 
     const occurrences = original.split(oldStr).length - 1
@@ -115,8 +127,8 @@ export const fileEditTool = buildTool({
     try {
       await fs.writeFile(resolved, result, 'utf-8')
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      return `写入文件失败：${message}`
+      log.warn('Edit target write failed', { pathHash: hashForLog(resolved), errorType: err instanceof Error ? err.name : 'unknown' })
+      return '写入编辑目标失败，请检查文件权限或磁盘状态。'
     }
 
     const actualReplacements = count === -1 ? occurrences : Math.min(count, occurrences)

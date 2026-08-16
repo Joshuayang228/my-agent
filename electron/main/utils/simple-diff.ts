@@ -7,6 +7,8 @@
  */
 
 const MAX_LINES = 4000
+const MAX_DP_CELLS = 1_000_000
+const MAX_FALLBACK_CHARS = 200_000
 
 export function formatUnifiedDiff(
   filePath: string,
@@ -14,12 +16,18 @@ export function formatUnifiedDiff(
   after: string,
 ): string {
   if (before == null) {
-    return `--- /dev/null\n+++ ${filePath}\n` + after.split('\n').map((l) => `+${l}`).join('\n')
+    const body = after.length > MAX_FALLBACK_CHARS
+      ? after.slice(0, MAX_FALLBACK_CHARS) + '\n[... 当前文件过大，已截断]'
+      : after
+    return `--- /dev/null\n+++ ${filePath}\n` + body.split('\n').map((l) => `+${l}`).join('\n')
   }
   const a = before.split('\n')
   const b = after.split('\n')
-  if (a.length + b.length > MAX_LINES) {
-    return `--- ${filePath} (before)\n+++ ${filePath} (after)\n@@ 文件过大，省略逐行 diff；下方为当前全文 @@\n` + after
+  if (a.length + b.length > MAX_LINES || a.length * b.length > MAX_DP_CELLS) {
+    const body = after.length > MAX_FALLBACK_CHARS
+      ? after.slice(0, MAX_FALLBACK_CHARS) + '\n[... 当前文件过大，已截断]'
+      : after
+    return `--- ${filePath} (before)\n+++ ${filePath} (after)\n@@ 文件过大，省略逐行 diff；下方为当前内容节选 @@\n` + body
   }
   const ops = diffLines(a, b)
   const lines: string[] = [`--- ${filePath}`, `+++ ${filePath}`, '@@']

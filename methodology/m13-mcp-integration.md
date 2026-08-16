@@ -115,7 +115,7 @@ mcp:{serverId}:{toolName}
 - 退出：`disconnectAll`
 - `disconnected` 从 Map 删除后几乎不可观测——可接受；持久真相是配置，不是瞬态
 
-传输：产品主路径是 **stdio**；代码已有 **SSE**，设置 UI 尚未暴露——先通主路径，不急着上六种传输全家桶。
+传输：产品支持 **stdio** 与 **SSE**；设置 UI、preload、IPC 和主进程校验已同步。当前不扩展更多传输。
 
 ## 六、防污染：描述截断，规模化另议
 
@@ -146,13 +146,13 @@ OpenAPI 生成的工具描述可达十几～几十 KB。我们截断 **2048** �
 
 ## 八、刻意不做 / 暂缓
 
-1. **Elicitation 完整协议**——现有 `confirmTool` 覆盖「人确认」；Server→用户表单级反问后置  
-2. **自动断线重连**——先手动重连 + 启动恢复；监听 transport close 另立项  
-3. **六种传输 / OAuth / needs-auth**——桌面伙伴以本地 stdio 为主  
-4. **Resources / Prompts / Sampling**——非本轮主路径  
-5. **元工具 / ToolSearch**——规模未到  
-6. **OS 沙箱包住 MCP 子进程**——属 M10 大项  
-7. **通用 FSM 包装连接态**——M15 已否决通用框架  
+1. **Elicitation 完整协议**——现有 `confirmTool` 覆盖「人确认」；Server→用户表单级反问后置
+2. **自动断线重连**——先手动重连 + 启动恢复；监听 transport close 另立项
+3. **六种传输 / OAuth / needs-auth**——桌面伙伴以本地 stdio 为主
+4. **Resources / Prompts / Sampling**——非本轮主路径
+5. **元工具 / ToolSearch**——规模未到
+6. **OS 沙箱包住 MCP 子进程**——属 M10 大项
+7. **通用 FSM 包装连接态**——M15 已否决通用框架
 
 ---
 
@@ -160,10 +160,10 @@ OpenAPI 生成的工具描述可达十几～几十 KB。我们截断 **2048** �
 
 ## 学 / 审（2026-07-26）
 
-- Alice：懒连接、命名空间、2048 截断、权限保守默认  
-- learning-claude-code：六传输、连接态机、Elicitation、配置原子写——完整但超出当前产品需要  
-- wps-cowork：元工具收敛解决工具爆炸——规模策略参考  
-- 我们：骨架齐全；元数据偏乐观；无重连 / Elicitation / MCP 单测；占位文案过时  
+- Alice：懒连接、命名空间、2048 截断、权限保守默认
+- learning-claude-code：六传输、连接态机、Elicitation、配置原子写——完整但超出当前产品需要
+- wps-cowork：元工具收敛解决工具爆炸——规模策略参考
+- 我们：骨架齐全；元数据偏乐观；无重连 / Elicitation / MCP 单测；占位文案过时
 
 ## 本轮改动（A+B）
 
@@ -177,7 +177,7 @@ OpenAPI 生成的工具描述可达十几～几十 KB。我们截断 **2048** �
 
 | 项 | 说明 |
 |----|------|
-| SSE UI + 类型四处同步 | 代码有 SSE，设置页未暴露 transport/url |
+| 其他远程认证传输 | stdio/SSE 已落地；OAuth/企业认证暂缓 |
 | 断线检测与自动重连 | |
 | Schema 保真（$defs/anyOf） | 现只映射 properties/required |
 | Elicitation / Resources | |
@@ -186,13 +186,13 @@ OpenAPI 生成的工具描述可达十几～几十 KB。我们截断 **2048** �
 
 ## 沉淀：MCP 设计检查清单
 
-1. 这个能力该走 MCP、Skill，还是改框架？  
-2. 进 Registry 的名字有没有命名空间？  
-3. 元数据是否按「不可信外部」保守默认？  
-4. 连接失败会不会拖垮启动 / 主对话？  
-5. 描述是否可能撑爆上下文？  
-6. Skill / 子 Agent 白名单有没有写到全名？  
-7. 是否过早上元工具或六传输？  
+1. 这个能力该走 MCP、Skill，还是改框架？
+2. 进 Registry 的名字有没有命名空间？
+3. 元数据是否按「不可信外部」保守默认？
+4. 连接失败会不会拖垮启动 / 主对话？
+5. 描述是否可能撑爆上下文？
+6. Skill / 子 Agent 白名单有没有写到全名？
+7. 是否过早上元工具或六传输？
 
 ## 决策记录
 

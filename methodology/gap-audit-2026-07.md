@@ -10,6 +10,18 @@
 
 ---
 
+## 2026-08-15 当前结论（优先于下文历史快照）
+
+下文保留 2026-07 的原始审计过程，涉及“完全没有”“待 v2”“commit 待提交”的语句只表示当时状态。当前已经落地：
+
+- 23 个普通 Mock Eval、独立 Skill Eval、B02–B07 真实 Persona pass^k、single-call Model Judge、报告输入快照和人工审阅；
+- TaskQueue 持久化、UUID、恢复、checkpoint、指数退避、通知幂等和 `task:sync`；
+- 命令/路径硬边界、动态工具 metadata、Headless 只读策略、子 Agent 权限只降不升；
+- MCP stdio/SSE、自动重连、Resources、Elicitation、safeStorage；
+- Prompt / Role Pack / Memory Strategy / Permission-Sandbox / Tool / Skill / Eval / Provider / MCP 资产注册与 Debug 证据链。
+
+仍有效的主要缺口：OS 级强隔离、输入层 Prompt Injection Probe、动态多 Agent handoff 分类、Provider HTTP/SSE replay、独立 Session Memory、自动 Skill/代码自进化和跨会话长期关系真实 Eval。它们以 `docs/wishlist.md` 为待办事实源。
+
 # 第一部分：最终汇总（三源交叉去重，按价值排序）
 
 三个源的视角互补：
@@ -379,7 +391,7 @@ A2A 分布式协议全套（AgentCard 网络发现、凭证透传、JSON-RPC、�
 先列出判断所依赖的实证，便于核对：
 
 - **可观测性是一等公民**：`observability/` 是独立包，`Observer` 接口（`observer.go`）把 AgentRun/Turn/Tool/LLM 四类生命周期钩子标准化，`OTelObserver` 全量对齐 OTel GenAI 语义约定（`gen_ai.*`），span 与 Prometheus metrics **闭环记录**（`OnLLMEnd` 里同时 `span.End()` + `recorder.Record*`）。
-- **指标体系细到桶**：`docs/metrics_references.md` 定义了 TTFB、SSE 间隔、AI Gateway 耗时、token 用量（分 prompt/completion/cache）、成本、工具耗时、JSON 修复次数等，每个都有明确 Histogram buckets 和 label 维度（model/source/agent/product_name/intention_code）。
+- **指标体系细到桶**：`_reference/feiche/feiche/feiche-agents/docs/metrics_references.md`、`_reference/feiche/feiche/feiche-env/docs/metrics_references.md`、`_reference/feiche/feiche/feiche-server/docs/metrics_references.md` 定义了 TTFB、SSE 间隔、AI Gateway 耗时、token 用量（分 prompt/completion/cache）、成本、工具耗时、JSON 修复次数等，每个都有明确 Histogram buckets 和 label 维度（model/source/agent/product_name/intention_code）。
 - **PII 脱敏内建于遥测链路**：`OTelObserver` 在 `OnLLMStart` 对 user/assistant/tool 消息做选择性脱敏（`marshalMessagesWithSelectiveSanitize`），system prompt 不脱敏；`pkg/masking/mask.go` 提供字段级掩码。
 - **大字段预算**：`WithMaxCaptureChars` — 超限文本存 `.preview/.sha256/.chars` 三件套，防 ES `_ignored`。
 - **会话级确定性采样**：`session_sampler.go` — 用 FNV-1a 哈希 conversation.id，保证一个会话的所有 span 要么全采要么全丢，rate 可热更新。

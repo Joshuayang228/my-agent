@@ -645,9 +645,19 @@ export type ResponseFormat =
   | { type: 'json_schema'; json_schema: { name: string; strict?: boolean; schema: Record<string, unknown> } }
 
 export interface LLMConnectionTestInput {
-  apiKey: string
+  /** 新输入的 Key；留空时可由主进程使用已安全保存的 Key。 */
+  apiKey?: string
+  /** 使用主进程安全存储中的已保存 Key。 */
+  useStoredApiKey?: boolean
   baseUrl: string
   model: string
+}
+
+/** Renderer 可见设置：敏感值只返回状态，不返回原文。 */
+export interface RendererSettings extends Record<string, string> {
+  llmApiKey: ''
+  llmApiKeyConfigured: 'true' | 'false'
+  mcpServers: string
 }
 
 export type LLMConnectionTestResult =

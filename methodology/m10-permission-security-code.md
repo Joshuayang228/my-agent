@@ -16,13 +16,13 @@
 // electron/main/sandbox/policy.ts
 
 // 沙箱模式：控制「允许写哪里」
-export type SandboxMode = 
+export type SandboxMode =
   | 'read-only'        // 只读，所有写操作被拦截
   | 'workspace-write'  // 允许写项目目录内，外部目录拒绝
   | 'full-access'      // 写操作不限制（但危险命令仍受 bypass-immune 拦截，→ m06 §四）
 
 // 执行模式：控制「是否需要确认」
-export type ExecutionMode = 
+export type ExecutionMode =
   | 'auto'          // 默认确认策略；硬边界仍先执行
   | 'confirm-all'   // 全部确认，所有工具调用都弹窗
   | 'plan-first'    // 先规划，第一轮只让 AI 输出计划不执行工具
@@ -181,16 +181,16 @@ function extractBlockedCommand(
 ): { command: string; reason: string } | null {
   // ⓐ 只处理错误结果 + 包含沙箱标记
   if (!result.isError || !result.content.includes(SANDBOX_BLOCK_MARKER)) return null
-  
+
   // ⓑ 从 parsedArgs 提取原始命令（不是从错误信息，因为错误信息只有 reason）
   const command = (parsedArgs.get(call.id)?.command as string) || call.name
-  
+
   // ⓒ 提取标记之后的原因文字（首行），去掉后续说明段落
   const reason = result.content
     .slice(result.content.indexOf(SANDBOX_BLOCK_MARKER) + SANDBOX_BLOCK_MARKER.length)
     .split('\n')[0]
     .trim() || 'blocked by sandbox'
-  
+
   return { command: command.slice(0, 120), reason }  // 命令截断到 120 字符（防止超长）
 }
 
@@ -200,21 +200,21 @@ function buildDeniedToolsPromptSuffix(
   deniedCommands: Array<{ command: string; reason: string }> = [],
 ): string {
   if (deniedTools.length === 0 && deniedCommands.length === 0) return ''
-  
+
   const parts: string[] = []
-  
+
   // ⓐ 工具级拒绝（如 shell_exec 整个工具被权限规则 deny）
   if (deniedTools.length > 0) {
     const lines = deniedTools.map(d => `- ${d.name}: ${d.reason}`)
     parts.push(`[System] The following tools were denied during this session. Do not attempt to call them again:\n${lines.join('\n')}`)
   }
-  
+
   // ⓑ 命令级拒绝（如某条具体命令被沙箱拦截）
   if (deniedCommands.length > 0) {
     const lines = deniedCommands.map(d => `- ${d.command}: ${d.reason}`)
     parts.push(`[System] The following commands were blocked by the sandbox this session. Do not run them again; try a different approach:\n${lines.join('\n')}`)
   }
-  
+
   return `\n\n${parts.join('\n\n')}`  // 追加到 System Prompt 末尾（对 KV Cache 友好）
 }
 
@@ -446,7 +446,7 @@ db.run(`
 app.whenReady().then(async () => {
   await createWindow()
   // ... 其他初始化 ...
-  
+
   // 加载持久审批记录（sandbox approval-store）
   const { loadPersistentApprovals } = await import('./sandbox/approval-store')
   loadPersistentApprovals().catch(err => log.warn('Persistent approvals load failed', { error: String(err) }))
@@ -510,3 +510,10 @@ UI 展示：
 ---
 
 **全文完** — 对照 [`m06-permission-security.md`](m06-permission-security.md) 认知框架阅读。
+
+## 2026-08 安全审计补充
+
+- ToolRegistry 的动态 metadata 统一用于权限、Debug 预检、并发调度、Headless 和实际执行；解析失败按可写、破坏性、不可并发处理。
+- `settings:set` 不能仅凭 Renderer 传入 `full-access` 绕过确认；主进程弹原生确认。
+- MCP 配置保存/启用同样由主进程确认；Renderer 不持有 MCP env 原文。
+- full-access 仍硬阻止文件系统根、当前工作区根和任意 `.git` 路径的永久删除。

@@ -118,9 +118,10 @@ describe('ToolRegistry', () => {
       const reg = new ToolRegistry()
       reg.register(makeTool())
 
-      const results = await reg.executeAll([makeCall({ arguments: '{broken' })])
+      const results = await reg.executeAll([makeCall({ arguments: '{broken-secret-token' })])
       expect(results[0].isError).toBe(true)
-      expect(results[0].content).toContain('Invalid JSON')
+      expect(results[0].content).toContain('不是有效 JSON')
+      expect(results[0].content).not.toContain('secret-token')
     })
 
     it('execute 抛异常时捕获为错误结果', async () => {
@@ -131,7 +132,8 @@ describe('ToolRegistry', () => {
 
       const results = await reg.executeAll([makeCall()])
       expect(results[0].isError).toBe(true)
-      expect(results[0].content).toContain('boom')
+      expect(results[0].content).not.toContain('boom')
+      expect(results[0].content).toContain('执行失败')
     })
 
     it('并发安全的工具并行执行，不安全的串行', async () => {
@@ -235,6 +237,21 @@ describe('ToolRegistry', () => {
       expect(results[0].name).toBe('file_read')
     })
 
+    it('动态 metadata 解析失败时按破坏性工具 fail-closed', () => {
+      const reg = new ToolRegistry()
+      reg.register(makeTool({
+        name: 'dyn-fail',
+        metadata: { isReadOnly: true, isDestructive: false, isConcurrencySafe: true },
+        resolveMetadata: () => { throw new Error('bad metadata') },
+      }))
+
+      expect(reg.resolveEffectiveMetadata('dyn-fail', {})).toEqual(expect.objectContaining({
+        isReadOnly: false,
+        isDestructive: true,
+        isConcurrencySafe: false,
+      }))
+    })
+
     it('resolveMetadata 可动态关闭并发安全', async () => {
       const order: string[] = []
       const reg = new ToolRegistry()
@@ -282,7 +299,7 @@ describe('ToolRegistry', () => {
         await vi.advanceTimersByTimeAsync(31_000)  // 越过 30s 超时
         const results = await promise
         expect(results[0].isError).toBe(true)
-        expect(results[0].content).toContain('timed out')
+        expect(results[0].content).toContain('执行超时')
       } finally {
         vi.useRealTimers()
       }

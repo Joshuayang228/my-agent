@@ -1,11 +1,11 @@
 # 质量总控
 
-> **质量维入口**（Unit / Eval / E2E）。  
-> 深 Why：`methodology/m17-testing-architecture.md`、`methodology/m18-eval.md`。  
+> **质量维入口**（Unit / Eval / E2E）。
+> 深 Why：`methodology/m17-testing-architecture.md`、`methodology/m18-eval.md`。
 > 场景与 runner 真相以仓库代码为准：`__tests__/`、`evals/`。
 
 
-### 安全审计门禁（2026-08-15）
+### 安全审计门禁（2026-08-16）
 
 - `npm audit --registry=https://registry.npmjs.org` 与 `npm audit --omit=dev --registry=https://registry.npmjs.org` 必须为 `0 vulnerabilities`；依赖修复优先采用上游兼容升级，不用未经验证的 `overrides`。
 - `__tests__/unit/security-boundaries.test.ts` 覆盖导入结构 / 子进程环境、项目路径边界和 URL SSRF 黑名单；`__tests__/unit/file-path-guard.test.ts` 覆盖只读工具工作区边界与凭据文件保护。
@@ -13,7 +13,7 @@
 - 安全修复不得用真实 API Key 或真实模型调用验证；验证顺序仍为自审 → Unit → `npx tsc --noEmit` → `npm run build` → UI E2E。
 - 数据备份安全边界必须验证：导出不含 `llmApiKey` / MCP env / command / permissionRules / executionMode / 本机路径；导入不能改变权限面或下次启动的外部执行入口。
 - 命令权限安全边界必须验证：危险命令先于自定义规则 / 审批，匹配不区分大小写且在 `full-access` 仍 bypass-immune；非 `full-access` 拒绝 Shell 控制符、显式越界路径、越界 cwd；Headless 只自动批准明确只读工具。
-- 写入安全边界必须验证：目标与最近存在父目录均经过 realpath；子 Agent 工具使用 `ToolContext.workdir`；敏感设置迁移和新密文解密失败都必须 fail-closed。
+- 写入安全边界必须验证：目标与最近存在父目录均经过 realpath；子 Agent 工具使用 `ToolContext.workdir`；敏感设置迁移和新密文解密失败都必须 fail-closed；`settings:get` 不得把 API Key/MCP env secret 返回 Renderer。
 - 正则 / 资源边界必须验证：权限规则、Code Search、Playground、RAG、Shell 均有输入上限或灾难性回溯防护；自动语法验证不得触发 npx 联网安装（使用 `--no-install`）。
 
 ### Prompt 中文门禁
@@ -95,20 +95,20 @@ EVAL_PASS_K=3 npm run eval:persona
 
 ## Unit 要点
 
-- 新功能 happy path；修 bug 先复现测试  
-- Mock 外部 IO；禁止 Mock 核心业务假装通过  
+- 新功能 happy path；修 bug 先复现测试
+- Mock 外部 IO；禁止 Mock 核心业务假装通过
 - 规范细节见 `agent-skills/typescript-guidelines.md`
 
 ## 与产品模块的关系
 
 质量横切所有产品模块：
 
-- 改伙伴/人格 → 看 `modules/companion.md` 必测 + 相关 Eval  
-- 改记忆 → `modules/memory.md` 必测 + memory 单测  
-- 改权限 → `modules/permission.md` 必测 + permission Eval/单测  
+- 改伙伴/人格 → 看 `modules/companion.md` 必测 + 相关 Eval
+- 改记忆 → `modules/memory.md` 必测 + memory 单测
+- 改权限 → `modules/permission.md` 必测 + permission Eval/单测
 
 ## 维护
 
-- 新增门禁或分层策略 → 更新本文  
-- 新增 Eval 场景 → 改 `evals/`，必要时在模块卡「必测」加链接  
+- 新增门禁或分层策略 → 更新本文
+- 新增 Eval 场景 → 改 `evals/`，必要时在模块卡「必测」加链接
 - 旧 `testing.md` / `eval-design.md` 已归档，勿再当权威源

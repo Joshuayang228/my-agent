@@ -154,7 +154,8 @@ describe('agentLoop', () => {
 
     const errorEvent = events.find(e => e.type === 'error') as Extract<AgentStreamEvent, { type: 'error' }>
     expect(errorEvent).toBeTruthy()
-    expect(errorEvent.message).toContain('API timeout')
+    expect(errorEvent.message).toBe('运行过程中发生错误，请稍后重试。')
+    expect(errorEvent.message).not.toContain('API timeout')
   })
 
   it('破坏性工具触发 confirmTool，拒绝后产出拒绝结果', async () => {
@@ -192,6 +193,38 @@ describe('agentLoop', () => {
     const toolEnd = events.find(e => e.type === 'tool_end') as Extract<AgentStreamEvent, { type: 'tool_end' }>
     expect(toolEnd?.isError).toBe(true)
     expect(toolEnd?.result).toContain('拒绝')
+  })
+
+  it('auto 模式按参数化 metadata 确认可写工具', async () => {
+    const dynamicTool: ToolDefinition = {
+      name: 'delegate_like',
+      description: 'dynamic risk',
+      parameters: { type: 'object', properties: {} },
+      metadata: { isReadOnly: true, isDestructive: false, isConcurrencySafe: true },
+      resolveMetadata: (args) => args.mode === 'write'
+        ? { isReadOnly: false, isDestructive: true, isConcurrencySafe: false }
+        : { isReadOnly: true, isDestructive: false, isConcurrencySafe: true },
+      execute: async () => 'ran',
+    }
+    const registry = new ToolRegistry()
+    registry.register(dynamicTool)
+    const confirmTool = vi.fn().mockResolvedValue(false)
+    let turn = 0
+
+    await collectEvents(agentLoop({
+      config: testConfig,
+      messages: [userMsg('delegate write')],
+      tools: registry.getAll(),
+      confirmTool,
+      _streamChatOverride: () => {
+        turn++
+        return turn === 1
+          ? makeMockStream([], [{ id: 'tc-dyn', name: 'delegate_like', arguments: '{"mode":"write"}' }])
+          : makeMockStream(['cancelled'])
+      },
+    }, registry))
+
+    expect(confirmTool).toHaveBeenCalledWith('delegate_like', { mode: 'write' })
   })
 
   it('达到 maxIterations 上限时产出 error + done', async () => {

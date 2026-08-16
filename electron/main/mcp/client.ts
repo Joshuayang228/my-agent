@@ -29,7 +29,7 @@ export interface McpServerConfig {
   command: string
   /** stdio: 命令参数 */
   args: string[]
-  /** stdio: 环境变量（可选，会合并到 process.env） */
+  /** stdio: 显式环境变量（可选；与过滤凭据后的安全进程环境合并） */
   env?: Record<string, string>
   /** sse: 服务器 URL（如 http://localhost:3000/sse） */
   url?: string

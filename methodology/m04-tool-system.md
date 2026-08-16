@@ -152,7 +152,7 @@ buildTool({
 
 暂缓的 3 个（按需再做）：
 
-- 元数据动态函数入口（`resolveMetadata`）已落地，但当前内置工具主要使用静态布尔值；只有确实需要按参数变化时才启用
+- 元数据动态函数入口（`resolveMetadata`）已用于 `delegate_task`；权限、Debug、并发和执行必须共用 `resolveEffectiveMetadata`，失败 fail-closed
 - 并发数上限——极端场景才需要，当前工具量级用不上
 - 工具别名——Registry 已支持，内置工具暂未大规模使用
 

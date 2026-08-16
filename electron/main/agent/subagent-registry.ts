@@ -11,7 +11,7 @@
 
 import { agentLoop } from './loop'
 import { ToolRegistry } from '../tools/registry'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
 import { startSpan } from '../utils/tracer'
 import type { ChatMessage, LLMConfig, ExecutionMode, ToolContext } from '../../../src/shared/types'
 
@@ -55,7 +55,7 @@ export function registerSubAgent(params: {
 }): string {
   const agentId = generateAgentId()
   instances.set(agentId, { agentId, createdAt: Date.now(), ...params })
-  log.info('Sub-agent registered', { agentId, role: params.role, sessionId: params.sessionId })
+  log.info('Sub-agent registered', { agentId, roleHash: hashForLog(params.role), roleLength: params.role.length, sessionId: params.sessionId })
   return agentId
 }
 
@@ -89,8 +89,10 @@ export async function continueSubAgent(
 
   const subSpan = startSpan('subagent_continue', 'subagent', 'subagent', inst.parentSpanId, {
     agentId,
-    role: inst.role.slice(0, 100),
-    message: message.slice(0, 200),
+    roleHash: hashForLog(inst.role),
+    roleLength: inst.role.length,
+    messageHash: hashForLog(message),
+    messageLength: message.length,
   })
 
   let content = ''
@@ -131,9 +133,13 @@ export async function continueSubAgent(
     return { success: true, content, toolsUsed, iterations }
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err)
-    log.error('Sub-agent continue failed', { agentId, error: errMsg })
-    subSpan.end('error', errMsg)
-    return { success: false, content: `SubAgent continue failed: ${errMsg}`, toolsUsed, iterations }
+    log.error('Sub-agent continue failed', {
+      agentId,
+      errorType: err instanceof Error ? err.name : 'unknown',
+      errorLength: errMsg.length,
+    })
+    subSpan.end('error', err instanceof Error ? err.name : 'unknown')
+    return { success: false, content: '子 Agent 继续执行失败，请检查配置或稍后重试。', toolsUsed, iterations }
   }
 }
 

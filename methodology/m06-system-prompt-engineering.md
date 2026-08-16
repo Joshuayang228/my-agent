@@ -90,7 +90,7 @@ KV Cache 是 LLM 推理的关键优化：如果这次调用的前 N 个 token �
 
 **PROTECTED 区**：核心身份——这是谁、价值观是什么、底线是什么。这部分永远不会因为用户的偏好而改变，也不会因为自进化而被覆盖。它是"忒修斯之船"问题的答案：无论 Agent 获得多少新能力、学会多少用户偏好，PROTECTED 区保证它还是那个 Agent。
 
-**MUTABLE 区**：行为规范——语言偏好、回答风格、表达习惯。这些可以根据用户反馈和使用模式逐渐调整，但调整必须在不触碰 PROTECTED 的前提下进行。M20（自进化）的 PersonaReflectionService 只能修改 MUTABLE，对 PROTECTED 是只读的。
+**MUTABLE 区**：行为规范——语言偏好、回答风格、表达习惯。这些可以根据用户反馈和使用模式逐渐调整，但调整必须在不触碰 PROTECTED 的前提下进行。M22（成长核）的 ReflectionService 只能提出并写入通过校验的 MUTABLE，对 PROTECTED 是只读的。
 
 **为什么要在 prompt 里显式标注这两个区**，而不只是内部逻辑上区分？
 

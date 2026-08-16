@@ -11,6 +11,9 @@
 import { buildTool } from '../builder'
 import { continueSubAgent } from '../../agent/subagent-registry'
 
+const MAX_AGENT_ID_LENGTH = 200
+const MAX_CONTINUE_MESSAGE_LENGTH = 100_000
+
 export const continueTaskTool = buildTool({
   name: 'continue_task',
   description: "向已有子 Agent 发送后续消息并继续任务。子 Agent 会保留上一次运行的完整对话历史和上下文。\n\n适用场景（Alice Ch.6：continue 与 spawn 的区别）：\n- 子 Agent 上一次的上下文与新任务直接相关，例如它已经研究过现在要修改的文件\n- 修正失败或扩展最近完成的工作，因为它已经掌握错误上下文\n- 子 Agent 完成研究后，再给出具体实现要求\n\n不适用场景（应新建 delegate_task）：\n- 新任务与子 Agent 之前完成的工作无关\n- 需要全新视角，例如验证者不应携带实现阶段的假设\n- 第一次方案完全错误，旧上下文会污染重试\n\n重要：后续消息必须自包含，提供子 Agent 所需的文件路径、行号和具体指令。子 Agent 能看到自己的历史，但看不到你与用户的对话。",
@@ -29,16 +32,17 @@ export const continueTaskTool = buildTool({
     required: ['agent_id', 'message'],
   },
   metadata: {
-    isReadOnly: true,
-    isConcurrencySafe: true,
+    // 已有子 Agent 可能持有编辑或 Shell 工具，无法仅凭 agent_id 证明只读，必须 fail-closed。
+    isReadOnly: false,
+    isDestructive: true,
+    isConcurrencySafe: false,
     longRunning: true,  // continue 也跑完整子 Agent 循环，跳过 30s 超时
   },
   execute: async (args, toolContext) => {
-    const agentId = args.agent_id as string
-    const message = args.message as string
-
-    if (!agentId?.trim()) return '[错误] 必须提供 agent_id'
-    if (!message?.trim()) return '[错误] 必须提供 message'
+    if (typeof args.agent_id !== 'string' || !args.agent_id.trim() || args.agent_id.length > MAX_AGENT_ID_LENGTH) return '[错误] agent_id 无效或过长'
+    if (typeof args.message !== 'string' || !args.message.trim() || args.message.length > MAX_CONTINUE_MESSAGE_LENGTH) return '[错误] message 为空或过长'
+    const agentId = args.agent_id
+    const message = args.message
 
     const result = await continueSubAgent(agentId, message, toolContext?.signal)
 

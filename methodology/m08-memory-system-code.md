@@ -1,157 +1,100 @@
 # M08 记忆系统 — 代码走读
 
-> 配套 [m05-memory-system.md](m05-memory-system.md) 的认知框架，这里记录具体代码改动。
-> 涉及文件：`electron/main/agent/runtime.ts`、`electron/main/memory/vector-store.ts`、`electron/main/agent/profile-extractor.ts`
+> 理念章：[`m08-memory-system.md`](./m08-memory-system.md)
+> 最近核对：2026-08-16
 
 ---
 
-## §1 自我强化循环修复（G1）
+## 一、三条链路
 
-### 改造前：assistant 回复被写进召回库
+当前 Memory 不是一个万能类：
 
-```ts
-// runtime.ts enqueuePostTasks
-if (assistantContent.length > 50) {
-  this.backgroundQueue.push({
-    name: 'vector-index-assistant',
-    fn: () => addToVectorStore({
-      id: `conv-assistant-${now}`,
-      text: assistantContent.slice(0, 500),
-      category: 'conversation',   // ← 下一轮会被 safeVectorSearch 当记忆召回
-      sessionId, timestamp: now,
-    }, llmConfig),
-  })
-}
+| 链路 | 入口 | 产物 |
+|---|---|---|
+| 手动记忆 | `storage/memory-store.ts`、`ipc/memory.ts` | SQLite 记忆条目 |
+| 画像提取 | `agent/profile-extractor.ts` | 经去重后写入长期记忆 |
+| 向量召回 | `memory/vector-store.ts` | 与当前请求相关的召回片段 |
+
+画像是结构化长期知识，向量索引是检索加速层；删除或纠正记忆时必须同步向量状态，不能把 embedding 当作事实源。
+
+## 二、Memory Schema 与分类
+
+分类：
+
+```text
+identity / preference / fact / workflow / voice / feedback
 ```
 
-问题：AI 自己的话被无差别写入，下一轮检索捞回来喂给自己 → 自我强化。
+条目包含 id、content、category、时间、可选 roleId 和敏感性。IPC 校验分类、ID、正文长度和 roleId；SQL 全部参数化。
 
-### 改造后：只索引用户消息
+`feedback` 表示用户对协作方式的纠正/确认，写入时要求 roleId，并在构建画像时只注入当前角色桶，避免不同主角之间串味。其他用户事实默认跨角色共享。
 
-删掉整个 `vector-index-assistant` 分支，保留 `vector-index-user`。assistant 输出的价值改由 profile-extractor 提炼成结构化记忆（走 SQLite），不再原始堆积进向量库。
+## 三、敏感记忆
 
-判据（认知框架第二节）：召回库只存"关于用户"和"用户说过的"，不存"AI 说过的"。
+健康、财务、工作场所机密等条目可标记敏感。敏感性影响 UI 和自动处理；记忆系统禁止保存密码、API Key 或原始密钥。普通日志、资产目录和 LLM Debug 不记录记忆正文。
 
----
+## 四、语义去重
 
-## §2 老化告警（G2）
+新增记忆前先做标准化与语义相似度判断，阈值来自 `MEMORY_SEMANTIC_DEDUP_THRESHOLD`。同类近重复内容更新或跳过，不能无限累积同义句。feedback 还有独立数量上限。
 
-### 相对时间格式化
+## 五、画像提取
 
-```ts
-// vector-store.ts
-export function formatMemoryAge(timestamp: number, now: number = Date.now()): string {
-  const days = Math.max(0, Math.floor((now - timestamp) / (24 * 60 * 60 * 1000)))
-  if (days === 0) return '今天'
-  if (days === 1) return '昨天'
-  return `${days} 天前`
-}
+`maybeExtractProfile()` 的门闸：
 
-export const MEMORY_STALE_THRESHOLD_DAYS = 7
+- 至少 3 条用户消息；
+- 最多读取最近 20 条消息；
+- 两次提取至少间隔 2 分钟；
+- 分类只允许固定白名单；
+- 调用统一 LLM 配置与 Prompt 资产；
+- JSON 解析、长度和内容经过校验；
+- 写入时带 roleId/sessionId 证据。
+
+它由 TaskQueue 后台执行，不阻塞主回复；失败不会把半成品画像写入。
+
+## 六、向量召回与生命周期
+
+`vector-store.ts` 负责 embedding、召回 topK、最小分数、陈旧提示和会话向量上限。真实正文仍在 SQLite/会话；向量条目只用于检索。召回结果经过时间感格式化，旧记忆会标明陈旧而不是假装刚发生。
+
+Embedding 调用使用统一模型配置，不由各调用点手拼 API Key/baseUrl/model。
+
+## 七、引用纠错
+
+UI 的“记错了/改正”走 `correctCitedMemory()`：
+
+```text
+删除：删除 SQLite 条目 + 移除向量
+更新：更新原条目 + 更新索引
+替换：删除旧条目 + 新建纠正条目
 ```
 
-`Math.max(0, ...)` clamp 防时钟偏移把未来时间戳算成负数（对照 CC memoryAge 同款处理）。
+`planCitationCorrection()` 是纯函数，先决定动作再执行；不存在的 SQLite 条目也可清理孤立向量引用。
 
-用相对时间而非 ISO 时间戳——LLM 对"47 天前"能推理陈旧性，对 `2026-05-17T...` 不能（认知框架第三节）。
+## 八、Prompt 注入
 
----
+`buildUserProfile(roleId)` 组装 identity/workflow/voice。向量召回和手动记忆作为 L3 动态上下文进入 `prompt-builder.ts`；压缩摘要不自动写成长期记忆。Session Memory 仍存在于压缩后的会话消息中，没有独立可编辑存储面。
 
-## §3 召回加工：去重 + 老化（G5 + G2）
+## 九、策略注册表
 
-抽成纯函数便于测试（见坑：可测性倒逼抽离）：
+`memory/strategy-registry.ts` 从生产常量生成只读资产：画像提取、语义去重、feedback 分桶、向量召回、向量生命周期和引用纠错。注册表不复制用户记忆，也不成为运行参数的第二事实源。
 
-```ts
-// vector-store.ts
-export function formatRecallForInjection(
-  results: VectorSearchResult[],
-  now: number = Date.now(),
-): string | null {
-  // G5：排除 mem- 前缀（SQLite 记忆已由 buildUserProfile 全量注入，避免双重注入）
-  const deduped = results.filter(r => !r.id.startsWith('mem-'))
-  if (deduped.length === 0) return null
+## 十、测试证据
 
-  // G2：每条加相对时间，超阈值标记 hasStale
-  let hasStale = false
-  const lines = deduped.map(r => {
-    const age = formatMemoryAge(r.timestamp, now)
-    const ageDays = Math.floor((now - r.timestamp) / (24 * 60 * 60 * 1000))
-    if (ageDays > MEMORY_STALE_THRESHOLD_DAYS) hasStale = true
-    return `- [${r.category}·${age}] ${r.text}`
-  })
+- `memory-dedup.test.ts`：语义去重；
+- `memory-aging.test.ts`：陈旧提示与召回；
+- `memory-feedback-role.test.ts`：roleId 分桶；
+- `sensitive-memory.test.ts`：敏感性；
+- `citation-correct.test.ts`：删除/更新/替换计划；
+- `memory-tools.test.ts`：remember/recall/forget；
+- `memory-strategy-registry.test.ts`：资产来源和参数。
 
-  let output = lines.join('\n')
-  if (hasStale) {
-    output += '\n\n（部分记忆记录较早，如与当前对话不符，请以用户当前表述为准。）'
-  }
-  return output
-}
-```
+## 十一、当前缺口
 
-### runtime 侧只做编排
+- 压缩摘要没有独立 Session Memory 面板；
+- 向量库与 SQLite 之间仍需依赖补偿逻辑保证最终一致；
+- 没有跨设备同步或服务端加密备份；
+- 画像提取仍依赖模型输出，需要持续 Eval 防止误记。
 
-```ts
-private async safeVectorSearch(query, llmConfig): Promise<string | undefined> {
-  if (!query) return undefined
-  try {
-    const results = await searchVectorStore(query, llmConfig, { topK: 5, minScore: 0.6 })
-    const output = formatRecallForInjection(results)   // 纯逻辑抽出
-    if (output) {
-      log.info('Vector recall', { query: query.slice(0, 50), resultCount: results.length })
-      return output
-    }
-  } catch (err) {
-    log.warn('Vector search skipped', { error: String(err) })
-  }
-  return undefined
-}
-```
+## 2026-08 安全校准
 
-**G5 去重的 id 约定**：SQLite 记忆双写进向量库时 id 是 `mem-{ts}-{rand}`，对话片段是 `conv-user-{ts}`。按 `mem-` 前缀过滤即可区分"已全量注入的"和"仅检索召回的"。
-
----
-
-## §4 提取判据强化（G4）
-
-`profile-extractor.ts` 的 `EXTRACTION_PROMPT` 加入"该存/不该存"清单：
-
-```
-DO save (durable knowledge):
-- Stable preferences and habits
-- Identity facts (role, expertise, tech stack, location)
-- Explicit corrections about how they want you to work
-
-Do NOT save:
-- Transient task state ("currently debugging", "on step 3")
-- Anything derivable from the current conversation
-- The assistant's own instructions, persona, or behavior rules
-- Overly generic statements
-- One-off facts that won't matter next conversation
-```
-
-核心测试：a memory should "stay useful once added" — not a log of what happened（认知框架第一节判据）。
-
----
-
-## 测试清单（M5 新增 12 个）
-
-| 测试 | 覆盖 | 文件 |
-|------|------|------|
-| G2 formatMemoryAge ×6 | 今天/昨天/N天前/未来clamp/阈值常量/陈旧判定 | memory-aging.test.ts |
-| G5 去重 ×3 | 排除 mem- / 全 mem- 返回 null / 空返回 null | memory-aging.test.ts |
-| G2 召回加工 ×3 | 带时间感 / 超阈值加提示 / 新记忆不加提示 | memory-aging.test.ts |
-
-单测 127 → 139。全程 tsc 零错误。
-
-G1（删除行为）、G4（prompt 文本）无独立单测——G1 是行为删除，由"assistant 内容不再出现在召回"隐式覆盖；G4 是 prompt 措辞，效果需真实 LLM 验证，不做 mock 断言。
-
-## 2026-08 逐章审计校准：三条记忆链必须分开
-
-当前生产边界不是“一个 MemoryManager 包打天下”，而是三条不同链路：
-
-1. **手动记忆**：`electron/main/storage/memory-store.ts` 负责用户主动保存、删除、敏感标记、`roleId` 分桶与引用纠错；
-2. **画像提取**：`electron/main/agent/profile-extractor.ts` 只从对话中提炼画像候选，并由 `electron/main/services/task-queue.ts` 以后台任务执行；
-3. **向量召回**：`electron/main/memory/vector-store.ts` / `electron/main/memory/strategy-registry.ts` 负责嵌入、索引、topK 与陈旧过滤，不等同于记忆正文持久化。
-
-`electron/main/ipc/memory.ts` 是渲染层入口，所有 LLM 辅助调用走统一的 `loadAuxLLMConfig` / `chatComplete`；`citation-correct.ts` 负责把旧引用纠正到当前 role 的记忆，而不是让召回结果直接覆盖原记忆。相关证据包括 `memory-store.test.ts`、`citation-correct.test.ts`、`sensitive-memory.test.ts`、`memory-feedback-role.test.ts` 和向量召回测试。
-
-**审计结论**：方法论中不得把“画像”“手动记忆”“向量索引”写成同一份 Memory；敏感记忆、角色隔离和不把正文写入 Debug 证据是硬约束。
+- 自动画像候选对健康、财务、凭据、精确住址等敏感类别 fail-closed，不再直接写入长期记忆。
+- `remember`、Memory IPC、导入、纠错、SQLite 存储和向量召回均以 `assertMemoryContentAllowed()` 作为最终凭据拒绝边界；旧敏感向量也不再进入 Prompt。

@@ -10,6 +10,8 @@ const log = createLogger('FileRead')
 
 const MAX_FILE_SIZE = 256 * 1024
 const MAX_RESULT_CHARS = 50_000
+const MAX_PATH_LENGTH = 4_096
+const MAX_LINE_NUMBER = 10_000_000
 
 export const fileReadTool = buildTool({
   name: 'file_read',
@@ -43,8 +45,15 @@ export const fileReadTool = buildTool({
   // Infinity = 永不落盘，防止循环：读文件 → 写临时文件 → 读临时文件 → ...
   maxResultSizeChars: Infinity,
   execute: async (args, ctx?: ToolContext) => {
-    const filePath = args.path as string
-    if (!filePath?.trim()) return '错误：必须提供文件路径'
+    if (typeof args.path !== 'string' || !args.path.trim()) return '错误：必须提供文件路径'
+    if (args.path.length > MAX_PATH_LENGTH) return '错误：文件路径过长'
+    const filePath = args.path
+    for (const key of ['line_start', 'line_end'] as const) {
+      const value = args[key]
+      if (value !== undefined && (!/^[0-9]+$/.test(String(value)) || Number(value) > MAX_LINE_NUMBER)) {
+        return `错误：${key} 必须是有界非负整数`
+      }
+    }
 
     const workspaceRoot = ctx?.workdir?.trim() || getWorkspaceRoot()
     const resolved = resolveToolFilePath(filePath, workspaceRoot)
@@ -61,7 +70,7 @@ export const fileReadTool = buildTool({
     try {
       const stat = await fs.stat(realPath)
 
-      if (!stat.isFile()) return `错误：“${resolved}”不是文件`
+      if (!stat.isFile()) return '错误：目标路径不是普通文件'
       if (stat.size > MAX_FILE_SIZE) {
         return `错误：文件过大（${(stat.size / 1024).toFixed(0)} KB，最大允许 ${MAX_FILE_SIZE / 1024} KB）。请使用 line_start/line_end 分段读取。`
       }
@@ -84,9 +93,8 @@ export const fileReadTool = buildTool({
 
       return content
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      log.error('Read failed', { pathHash: hashForLog(realPath), error: message })
-      return `读取文件失败： ${message}`
+      log.error('Read failed', { pathHash: hashForLog(realPath), errorType: err instanceof Error ? err.name : 'unknown' })
+      return '读取文件失败，请检查文件权限或编码。'
     }
   },
 })

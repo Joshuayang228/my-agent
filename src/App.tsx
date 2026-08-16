@@ -356,7 +356,7 @@ function App() {
       setConversationDebugMode(debugOn)
       conversationDebugModeRef.current = debugOn
       if (debugOn) setThinkingExpanded(true)
-      if (!s.llmApiKey) {
+      if (s.llmApiKeyConfigured !== 'true' && !s.llmApiKey) {
         setActiveView('settings')
         setTimeout(() => toast('欢迎！请先配置 API Key 以开始使用', 'warning'), 500)
       }

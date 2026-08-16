@@ -44,7 +44,7 @@ export function guardCommand(
     const cwdBoundary = checkCwdBoundary(cwd, policy.workspaceRoot)
     if (cwdBoundary) return { allowed: false, reason: cwdBoundary }
 
-    if (hasShellControlOperator(command)) {
+    if (hasShellControlOperator(command) || hasUnsafeShellExpansion(command)) {
       return {
         allowed: false,
         reason: '非“完全访问”模式禁止带管道、重定向或串联的 Shell 命令，请拆成明确的单条命令后重试。',
@@ -108,7 +108,18 @@ function isInside(child: string, parent: string): boolean {
 }
 
 function hasShellControlOperator(command: string): boolean {
-  return /[;&|<>`]/.test(command)
+  return /[;&|<>`\r\n]/.test(command)
+}
+
+/**
+ * 拒绝 Shell 在校验后再次改写命令含义。
+ *
+ * 背景：`$()`、环境变量和 `~` 会在真正执行时展开成未出现在原始字符串中的命令或路径，
+ * 从而绕过工作区绝对路径检查。设计意图是在非完全访问模式 fail-closed，而不是尝试复刻
+ * cmd / PowerShell / POSIX shell 的全部展开语义。关键约束：完全访问模式仍由用户承担该能力。
+ */
+function hasUnsafeShellExpansion(command: string): boolean {
+  return /\$\(|\$\{?[A-Za-z_][A-Za-z0-9_]*\}?|%[A-Za-z_][A-Za-z0-9_]*%|(?:^|[\s"'=])~(?:[\\/]|$)/.test(command)
 }
 
 function hasExplicitOutsideWorkspacePath(command: string, workspaceRoot?: string): boolean {
@@ -121,7 +132,7 @@ function hasExplicitOutsideWorkspacePath(command: string, workspaceRoot?: string
 
   const candidates = command.match(/(?:[A-Za-z]:[\\/][^\s"';&|<>]+|\\\\[^\s"';&|<>]+|(?:^|[\s"'=])\/[^\s"';&|<>]+)/g) || []
   for (const raw of candidates) {
-    const token = raw.trim().replace(/^['"]|['"]$/g, '').replace(/[),.:]+$/, '')
+    const token = raw.trim().replace(/^[="']+|["']+$/g, '').replace(/[),.:]+$/, '')
     if (!token) continue
     const resolved = realpathOrResolve(token)
     if (resolved && !isInside(resolved, root)) return true

@@ -1,165 +1,80 @@
 # M13 MCP 集成 — 代码走读
 
-> 对照 [`m13-mcp-integration.md`](m13-mcp-integration.md)。
-> 展示：Bridge 同构、保守元数据、连接四态、描述截断；对照 Alice/CC 概念层差异。
+> 理念章：[`m13-mcp-integration.md`](./m13-mcp-integration.md)
+> 最近核对：2026-08-16
 
 ---
 
-## §三 Bridge — 命名空间与同构注册
+## 一、配置和传输
 
-### 我们的实现
-
-```typescript
-// electron/main/mcp/bridge.ts
-
-const MCP_TOOL_PREFIX = 'mcp'
-
-/** ① 全名进 ToolRegistry / LLM tools 列表 */
-export function mcpToolFullName(serverId: string, toolName: string): string {
-  return `${MCP_TOOL_PREFIX}:${serverId}:${toolName}`
-  // ↑ 例：mcp:notes:search
-}
-
-export function syncMcpToolsToRegistry(registry: ToolRegistry, serverId: string): number {
-  // ① 先按前缀卸旧，再注册 — 处理 listTools 变化
-  removeMcpToolsFromRegistry(registry, serverId)
-  for (const tool of mcpManager.getAllTools().filter(t => t.serverId === serverId)) {
-    registry.register(mcpToolToDefinition(tool))
-  }
-  // ...
-}
-```
-
-### CC / Alice 对照
-
-| 来源 | 命名 | 说明 |
-|------|------|------|
-| CC | `mcp__server__tool` | 双下划线；权限解析专用 utils |
-| Alice | `mcp_{serverId}_{toolName}` | 特殊字符规范化 |
-| 我们 | `mcp:serverId:toolName` | 冒号；语义同构 |
-
-**发现**：分隔符是口味，**必须有命名空间**才是纪律。迁格式代价高、收益低——保持现状。  
-**方法论对照** → m13 §三。
-
----
-
-## §四 保守元数据（本轮纠偏）
-
-### 我们的实现（纠偏后）
-
-```typescript
-// electron/main/mcp/bridge.ts
-
-/**
- * ① 比 buildTool 更严：外部未知 → auto 下也要确认
- * ② isConcurrencySafe:false — 不并行陌生副作用
- * → m13 §四
- */
-export const DEFAULT_MCP_TOOL_METADATA = {
-  isReadOnly: false,
-  isDestructive: true,
-  isConcurrencySafe: false,
-} as const
-
-export function mcpToolToDefinition(tool: McpTool): ToolDefinition {
-  return {
-    name: mcpToolFullName(tool.serverId, tool.name),
-    description: truncateDescription(`[${tool.serverName}] ${tool.description}`),
-    parameters: { /* properties / required */ },
-    metadata: { ...DEFAULT_MCP_TOOL_METADATA },
-    execute: async (args) => mcpManager.callTool(tool.serverId, tool.name, args),
-  }
-}
-```
-
-### 纠偏前 vs 后
-
-| 字段 | 旧（危险） | 新（保守） |
-|------|------------|------------|
-| `isDestructive` | `false` | `true` |
-| `isConcurrencySafe` | `true` | `false` |
-
-### Alice 对照（概念）
-
-Alice：`requiresPermission: true` / `isConcurrencySafe: false`。  
-我们没有单独的 `requiresPermission` 字段——用 `isDestructive` 驱动 Loop 的 `confirmTool`（auto 模式）。
-
-**发现**：字段名不同，**「默认要人点头」** 的语义对齐了。放行靠 permissionRules，不靠改默认。  
-**方法论对照** → m13 §四。
-
-### 单测
-
-```typescript
-// __tests__/unit/mcp-bridge.test.ts
-expect(mcpToolToDefinition(tool).metadata).toEqual(DEFAULT_MCP_TOOL_METADATA)
-```
-
----
-
-## §五 连接四态与启动恢复
-
-### 我们的实现
-
-```typescript
-// electron/main/mcp/client.ts
-
-status: 'connecting' | 'connected' | 'error' | 'disconnected'
-// error 相带 connection.error 字符串
-
-// electron/main/index.ts（结构示意）
-// app ready → restoreMcpConnections(enabled configs)
-//   失败 → log.warn，不阻断启动  → m13 §五
-// before-quit → mcpManager.disconnectAll()
-```
-
-### CC 对照（概念）
-
-CC 另有 `needs-auth` / `disabled` / OAuth 缓存——远程企业场景。我们桌面本地 stdio 主路径不需要整套。
-
-**发现**：四态够用；缺的是 **transport 断开监听 + 自动重连**（暂缓），不是缺状态枚举。  
-**方法论对照** → m13 §五、§八。
-
----
-
-## §六 描述截断
-
-```typescript
-// electron/main/mcp/bridge.ts
-
-const MAX_TOOL_DESCRIPTION_LENGTH = 2048  // ↑ 对照 CC / learning-claude-code Ch.08
-
-function truncateDescription(desc: string): string {
-  if (desc.length <= MAX_TOOL_DESCRIPTION_LENGTH) return desc
-  return desc.slice(0, MAX_TOOL_DESCRIPTION_LENGTH) + '…[description truncated]'
-}
-```
-
-**发现**：与 CC 常量同量级；这是「防污染」里唯一已落地且低成本的闸门。  
-**方法论对照** → m13 §六。
-
----
-
-## 数据流总览
+`McpServerConfig` 支持：
 
 ```text
-SettingsPanel / restoreMcpConnections
-  → ipc/mcp.ts → mcpManager.connect
-  → listTools → syncMcpToolsToRegistry
-  → ToolRegistry
-  → runtime.chat → agentLoop
-       ├─ checkToolPermission
-       ├─ confirmTool（MCP 默认 isDestructive → auto 也会问）
-       └─ tool.execute → mcpManager.callTool
+stdio: command / args / env
+sse:   http(s) URL
+enabled / id / name
 ```
 
----
+Settings UI 已能选择 stdio 或 SSE；IPC 对 transport、command、args、env 和 URL 做长度/协议校验。配置通过 settings-store 的 safeStorage 加密，普通数据备份明确排除 MCP command/env。
 
-## 与理念章检查清单的代码映射
+## 二、连接生命周期
 
-| 清单问题 | 代码落点 |
-|----------|----------|
-| 命名空间？ | `mcpToolFullName` |
-| 保守元数据？ | `DEFAULT_MCP_TOOL_METADATA` |
-| 失败拖垮启动？ | `restoreMcpConnections` 吞错 |
-| 描述截断？ | `truncateDescription` 2048 |
-| Skill 全名？ | `filterTools` 精确匹配（runtime） |
+`McpManager.connect()`：
+
+1. 防止重复 ID；
+2. 创建 Client，并声明 tools/resources/elicitation capability；
+3. 注册 elicitation handler；
+4. 创建 StdioClientTransport 或 SSEClientTransport；
+5. 连接并刷新 tools/resources；
+6. 监听 onclose/onerror；
+7. 断开后指数退避重连，最大 60 秒。
+
+主动 disconnect 会关闭 allowReconnect 并清理 timer，不能被 onclose 再次拉起。
+
+## 三、子进程环境
+
+stdio 不继承主进程全部凭据。`buildSafeChildProcessEnv(config.env)` 先过滤 process.env 中常见 API Key/Token/Secret，再合并用户显式配置的 env。显式 env 代表用户主动授予该 MCP Server。
+
+## 四、Bridge
+
+MCP Tool 以 `mcp:<serverId>:<toolName>` 注册进 ToolRegistry。刷新 inventory 时先移除该 server 的旧工具再注册新列表，避免断线重连后重复或残留。
+
+外部工具默认 metadata：
+
+```text
+isReadOnly=false
+isDestructive=true
+isConcurrencySafe=false
+```
+
+Schema 尽量保留 MCP 原始 inputSchema；描述做长度限制。外部 Server 没有明确安全声明时必须确认，不能按名字猜只读。
+
+## 五、Resources 与 Elicitation
+
+Client 尝试 `listResources()`，不支持时只记录结构化错误元数据，不阻断 tools。Elicitation 请求通过主进程回调交给产品层；没有 handler 时返回 decline，而不是自动填写。
+
+## 六、启动恢复
+
+主进程启动读取加密配置，只连接 enabled Server；单个 Server 失败不阻断应用启动。关闭应用时 disconnectAll 清理进程和 timer。
+
+## 七、测试证据
+
+- `mcp-bridge.test.ts`：命名空间、Schema、描述和保守 metadata；
+- `ipc-handlers.test.ts`：重连退避纯逻辑；
+- MCP client/IPC 输入测试：transport、URL、配置边界；
+- `settings-encryption.test.ts`：safeStorage 包络、迁移和 fail-closed；
+- `security-boundaries.test.ts`：子进程环境与备份排除。
+
+## 八、当前缺口
+
+- 尚无 OAuth / needs-auth 状态和企业凭据代理；
+- SSE URL 是用户显式连接目标，不套用普通 `url_fetch` 的公网 SSRF 黑名单；
+- Tool Search/按需注入尚未针对大量 MCP 工具启用；
+- 外部 Server 的可信度仍依赖用户选择和权限确认。
+
+
+## 2026-08 安全校准
+
+- MCP env 在 Renderer 侧只显示 `__MY_AGENT_REDACTED__`，连接和启动恢复由主进程按 id/key 恢复真实值；没有旧值时拒绝启动。
+- MCP 配置保存/连接使用统一结构与资源上限；启用或修改配置需主进程原生确认。
+- 外部工具描述明确标记为不受信任数据并截断；input schema 超过 128KB 时不再展开到模型上下文，采用 fail-closed 的空参数结构。

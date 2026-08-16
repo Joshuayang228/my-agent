@@ -176,7 +176,8 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
       log.warn('Failed to save Persona Eval human review', {
         error: error instanceof Error ? error.message : String(error),
       })
-      return { ok: false, error: error instanceof Error ? error.message : '保存人工审阅失败' } as const
+      const message = error instanceof Error ? error.message : ''
+      return { ok: false, error: message.startsWith('人工审阅') ? message : '保存人工审阅失败' } as const
     }
   })
 
@@ -188,20 +189,35 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
       log.warn('Failed to delete Persona Eval human review', {
         error: error instanceof Error ? error.message : String(error),
       })
-      return { ok: false, error: error instanceof Error ? error.message : '清空人工审阅失败' } as const
+      const message = error instanceof Error ? error.message : ''
+      return { ok: false, error: message.startsWith('人工审阅') ? message : '清空人工审阅失败' } as const
     }
   })
 
   ipcMain.handle('debug:eval-run-plans', () => evalRunner!.getPlans())
   ipcMain.handle('debug:eval-run-status', () => evalRunner!.getStatus())
-  ipcMain.handle('debug:eval-run-start', (_event, suite: DebugEvalSuite) => {
+  ipcMain.handle('debug:eval-run-start', async (event, suite: DebugEvalSuite) => {
     if (suite !== 'mock' && suite !== 'skill' && suite !== 'persona-real') {
       return { ok: false, error: '不支持的 Eval 套件' }
+    }
+    if (suite === 'persona-real') {
+      const owner = BrowserWindow.fromWebContents(event.sender) ?? undefined
+      const confirmation = await dialog.showMessageBox(owner, {
+        type: 'warning',
+        title: '确认运行真人格 Eval',
+        message: '真人格 Eval 会调用真实模型并产生费用，是否继续？',
+        detail: '将运行 B02–B07 的 pass^k 场景；API Key 不会显示在 Debug 输出中。',
+        buttons: ['取消', '运行'],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
+      })
+      if (confirmation.response !== 1) return { ok: false, error: '用户取消运行' }
     }
     return evalRunner!.start(suite)
   })
   ipcMain.handle('debug:eval-run-cancel', (_event, runId: string) => {
-    if (typeof runId !== 'string' || !runId.trim()) return { ok: false, error: '无效的 Eval runId' }
+    if (typeof runId !== 'string' || !runId.trim() || runId.length > 200) return { ok: false, error: '无效的 Eval runId' }
     return evalRunner!.cancel(runId)
   })
 
@@ -243,12 +259,12 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
 
   /** 按 logId（现有 tracer Span ID）懒加载单条 Debug 正文。 */
   ipcMain.handle('debug:llm-log-get', async (_event, id: string) => {
-    if (typeof id !== 'string' || !id.trim()) return null
+    if (typeof id !== 'string' || !id.trim() || id.length > 240) return null
     return llmDebugStore.getById(id)
   })
 
   ipcMain.handle('debug:llm-log-export', async (event, id: string) => {
-    if (typeof id !== 'string' || !id.trim()) return { ok: false, error: '无效的 Debug 记录' }
+    if (typeof id !== 'string' || !id.trim() || id.length > 240) return { ok: false, error: '无效的 Debug 记录' }
     const record = await llmDebugStore.getById(id)
     if (!record) return { ok: false, error: 'Debug 记录不存在' }
     const evidence = await assetUsageStore.query({ spanId: id, limit: 100 })
@@ -271,12 +287,12 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
   })
 
   ipcMain.handle('debug:llm-subagents', async (_event, mainSessionId: string) => {
-    if (typeof mainSessionId !== 'string' || !mainSessionId.trim()) return []
+    if (typeof mainSessionId !== 'string' || !mainSessionId.trim() || mainSessionId.length > 240) return []
     return llmDebugStore.listSubagentSessions(mainSessionId)
   })
 
   ipcMain.handle('debug:llm-logs-clear', async (_event, sessionId?: string) => {
-    await llmDebugStore.clear(typeof sessionId === 'string' ? sessionId : undefined)
+    await llmDebugStore.clear(typeof sessionId === 'string' && sessionId.length <= 240 ? sessionId : undefined)
     return { ok: true }
   })
 
@@ -341,11 +357,29 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
       input: { name: string; args?: Record<string, unknown>; confirmRisk?: boolean },
     ) => {
       const { runDebugTool } = await import('../agent/debug-tool-run')
-      return runDebugTool(toolRegistry, {
-        name: input?.name ?? '',
-        args: input?.args,
-        confirmRisk: !!input?.confirmRisk,
+      const request = {
+        name: typeof input?.name === 'string' ? input.name : '',
+        args: input?.args && typeof input.args === 'object' && !Array.isArray(input.args) ? input.args : {},
+      }
+      const preview = await runDebugTool(toolRegistry, { ...request, confirmRisk: false })
+      if (preview.ok || !preview.needsConfirmation || !input?.confirmRisk) return preview
+
+      const owner = BrowserWindow.fromWebContents(_e.sender) ?? undefined
+      const argsText = JSON.stringify(request.args, null, 2).slice(0, 4_000)
+      const confirmation = await dialog.showMessageBox(owner, {
+        type: 'warning',
+        title: '确认执行高风险调试工具',
+        message: `是否执行工具“${request.name}”？`,
+        detail: `${argsText}
+
+该操作会走真实 Registry，并可能修改文件、Git、记忆或启动子进程。`,
+        buttons: ['取消', '执行'],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
       })
+      if (confirmation.response !== 1) return { ...preview, error: '用户取消执行' }
+      return runDebugTool(toolRegistry, { ...request, confirmRisk: true })
     },
   )
 

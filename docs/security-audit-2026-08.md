@@ -1,6 +1,6 @@
-# My Agent 安全审计报告（2026-08-15）
+# My Agent 安全审计报告（2026-08-16）
 
-> 本报告记录 2026 年 8 月 15 日完成的第二轮高风险安全审计。事实源是当前代码、单元测试、构建结果和依赖审计；不调用真实模型，不使用真实 API Key 做验证。
+> 本报告记录 2026 年 8 月 16 日完成的第三轮高风险安全审计。事实源是当前代码、单元测试、构建结果和依赖审计；不调用真实模型，不使用真实 API Key 做验证。
 
 ## 一、审计范围
 
@@ -34,19 +34,24 @@
 | SEC-12 | 低中 | 多个 IPC / Debug 错误路径直接把内部异常正文返回 Renderer | 改为用户友好错误；日志只保留错误类型 / 长度等诊断元数据 | 已修复 |
 | SEC-13 | 高 | 危险命令匹配区分大小写，`full-access` 下大写的删除、PowerShell 编码命令或关机命令可能绕过 bypass-immune 规则 | 统一先转小写再匹配；补 Windows 删除、PowerShell、磁盘分区、破坏性 Git 清理规则与回归测试 | 已修复 |
 | SEC-14 | 中 | 文件写入后的 TypeScript 验证使用 `npx tsc`，依赖缺失时可能触发 npx 联网安装并执行包 | 改为 `npx --no-install tsc`，验证工具缺失时只跳过验证，不触发安装 | 已修复 |
+| SEC-15 | 高 | `settings:get` 直接返回解密后的 `llmApiKey` 与 MCP `env`；Renderer 一旦被 XSS/插件污染即可读取长期凭据 | 新增 Renderer 安全设置视图；API Key 只返回 `llmApiKeyConfigured`，MCP env 只返回稳定哨兵；连接测试由主进程使用已保存 Key | 已修复 |
+| SEC-16 | 高 | Renderer 回传脱敏 MCP 配置时可能覆盖旧 secret，或通过设置持久化后在下次启动静默执行新进程/远程连接 | 主进程恢复哨兵对应的旧 secret；无旧值则拒绝；启用/修改 MCP 配置和 full-access 设置必须由主进程原生确认；启动恢复共用严格配置校验 | 已修复 |
+| SEC-17 | 中高 | MCP 配置校验、启动恢复、手动连接各自维护边界，存在校验漂移和超限配置风险 | 抽出 `mcp/config-security.ts` 统一校验、重复 ID、50 个服务、env/参数上限和 secret hydrate；补脱敏/恢复回归测试 | 已修复 |
+| SEC-18 | 中高 | API Key 脱敏后设置页仍可能把空字符串自动保存，覆盖已保存 Key，或误判首次配置 | 设置页增加 `hasStoredApiKey` / dirty 状态；未修改 Key 时跳过写入，连接测试支持 `useStoredApiKey` | 已修复 |
+| SEC-19 | 中高 | 外部 MCP 工具描述和超大 input schema 会直接进入模型上下文，既可能注入伪指令，也可能造成上下文/内存膨胀 | 工具描述增加不受信任数据边界并截断；schema 超过 128KB 时 fail-closed 为禁止展开的空参数结构；工具本身仍默认破坏性、不可并发 | 已修复 |
 
 ## 三、未发现但明确保留的边界
 
 1. `full-access` 是用户明确选择的高信任模式；除 bypass-immune 危险命令外，它允许用户主动承担工作区外命令和路径风险。
-2. 用户显式配置的 MCP stdio command / SSE URL 仍会按配置连接或启动；这是 MCP 集成功能本身，不由普通数据备份自动恢复。MCP Server 返回的工具默认按高风险处理。
+2. 用户显式配置的 MCP stdio command / SSE URL 仍会按配置连接或启动；这是 MCP 集成功能本身，但现在必须经过主进程原生确认，且普通设置视图不会暴露 env 原文。MCP Server 返回的工具默认按高风险处理。
 3. URL 抓取已做解析前 SSRF 检查、重定向阻断和响应上限；DNS 解析与实际连接之间仍存在操作系统网络层面的竞态，后续如需对抗主动 DNS rebinding，应增加固定地址连接器或进程级网络策略。
 4. Renderer 的 HTML 文件预览使用空 `sandbox` iframe；Markdown / Mermaid 仍必须保持既有严格安全配置，不应引入 raw HTML 或任意协议链接。
 5. 开发模式仍会把 CDP 绑定到 `127.0.0.1:9222` 以支持 UI 调试；生产构建不启用。若在不可信本机环境运行开发版，应关闭该开关或使用隔离账户。
 
 ## 四、验证证据
 
-- Unit：120 个测试文件，711 项通过
-- 定向安全回归：本轮新增命令安全回归 7 项通过；全量数字以最终门禁输出为准
+- Unit：当前门禁以最新命令输出为准；本轮修复后的最近一次结果为 129 个测试文件、754 项通过
+- 定向安全回归：MCP 配置/设置安全视图、命令、Git、工作区、Terminal、Markdown、Tool Result 等回归均通过；全量数字以最终门禁输出为准
 - TypeScript：`npx tsc --noEmit` 通过
 - 依赖：`npm audit --registry=https://registry.npmjs.org` → 0 vulnerabilities
 - 生产依赖：`npm audit --omit=dev --registry=https://registry.npmjs.org` → 0 vulnerabilities

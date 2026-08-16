@@ -14,8 +14,8 @@ import { assetUsageStore } from './storage/asset-usage-store'
 import { createModelContextAssetResolver } from './debug/model-context-assets'
 import { registerAllIPC } from './ipc/index'
 import { mcpManager } from './mcp/client'
-import type { McpServerConfig } from './mcp/client'
 import { syncMcpToolsToRegistry } from './mcp/bridge'
+import { parseStoredMcpConfigs } from './mcp/config-security'
 import { initSkillSystem } from './skills/registry'
 import { runtime } from './agent/runtime'
 import * as settings from './storage/settings-store'
@@ -73,7 +73,8 @@ async function createWindow() {
       preload,
       contextIsolation: true,
       nodeIntegration: false,
-      // 默认 sandbox=true；preload 已打成 CJS，与沙箱兼容
+      // 显式固定 Renderer 沙箱，避免 Electron 默认值变化导致 preload 边界回退。
+      sandbox: true,
     },
   })
 
@@ -106,7 +107,14 @@ async function createWindow() {
   })
 
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('https:')) shell.openExternal(url)
+    try {
+      const externalUrl = new URL(url)
+      if (externalUrl.protocol === 'https:' && !externalUrl.username && !externalUrl.password) {
+        void shell.openExternal(externalUrl.toString())
+      }
+    } catch {
+      log.warn('Blocked malformed external URL', { urlHash: hashForLog(url) })
+    }
     return { action: 'deny' }
   })
 }
@@ -139,7 +147,7 @@ registerAllIPC(toolRegistry)
 async function restoreMcpConnections() {
   try {
     const json = await settings.getSetting('mcpServers')
-    const configs: McpServerConfig[] = JSON.parse(json || '[]')
+    const configs = parseStoredMcpConfigs(json)
     for (const config of configs) {
       if (!config.enabled) continue
       try {

@@ -20,10 +20,11 @@ export function validateLLMConnectionTestInput(input: unknown):
   if (!input || typeof input !== 'object') return { ok: false, error: '连接测试参数无效' }
   const raw = input as Partial<LLMConnectionTestInput>
   const apiKey = typeof raw.apiKey === 'string' ? raw.apiKey.trim() : ''
+  const useStoredApiKey = raw.useStoredApiKey === true
   const baseUrl = typeof raw.baseUrl === 'string' ? raw.baseUrl.trim().replace(/\/$/, '') : ''
   const model = typeof raw.model === 'string' ? raw.model.trim() : ''
 
-  if (!apiKey) return { ok: false, error: '请先填写 API Key' }
+  if (!apiKey && !useStoredApiKey) return { ok: false, error: '请先填写 API Key' }
   if (!baseUrl) return { ok: false, error: '请先填写 Base URL' }
   if (!model) return { ok: false, error: '请先填写模型名' }
 
@@ -36,5 +37,5 @@ export function validateLLMConnectionTestInput(input: unknown):
     return { ok: false, error: 'Base URL 格式不正确' }
   }
 
-  return { ok: true, value: { apiKey, baseUrl, model } }
+  return { ok: true, value: { apiKey: apiKey || undefined, ...(useStoredApiKey ? { useStoredApiKey: true } : {}), baseUrl, model } }
 }

@@ -9,6 +9,7 @@
  * forget:   删除指定记忆
  */
 import { buildTool } from '../builder'
+import type { ToolMetadata } from '../../../../src/shared/types'
 import { addMemory, listMemories, deleteMemory, type MemoryCategory } from '../../storage/memory-store'
 import {
   detectSensitiveKinds,
@@ -16,6 +17,19 @@ import {
 } from '../../../../src/shared/sensitive-memory'
 
 const VALID_CATEGORIES = ['identity', 'preference', 'fact', 'workflow', 'voice', 'feedback'] as const
+const MAX_MEMORY_CONTENT_LENGTH = 20_000
+const MAX_MEMORY_ID_LENGTH = 200
+
+/** 普通长期记忆可自动写入；敏感候选必须进入用户确认，凭据正文在执行层硬拒绝。 */
+export function resolveRememberMetadata(args: Record<string, unknown>): Partial<ToolMetadata> {
+  const content = typeof args.content === 'string' ? args.content : ''
+  const sensitive = !content || detectSensitiveKinds(content).length > 0
+  return {
+    isReadOnly: false,
+    isDestructive: sensitive,
+    isConcurrencySafe: false,
+  }
+}
 
 export const rememberTool = buildTool({
   name: 'remember',
@@ -36,17 +50,24 @@ export const rememberTool = buildTool({
     required: ['category', 'content'],
   },
   metadata: {
-    isConcurrencySafe: true,
+    isReadOnly: false,
+    isDestructive: true,
+    isConcurrencySafe: false,
   },
+  resolveMetadata: resolveRememberMetadata,
   execute: async (args, ctx) => {
-    const category = args.category as string
-    const content = args.content as string
+    const category = typeof args.category === 'string' ? args.category : ''
+    const content = typeof args.content === 'string' ? args.content : ''
 
     if (!VALID_CATEGORIES.includes(category as MemoryCategory)) {
       return `错误：无效类别 "${category}". 可选值： ${VALID_CATEGORIES.join(', ')}`
     }
-    if (!content || content.length < 2) {
-      return '错误：内容过短'
+    if (content.length < 2 || content.length > MAX_MEMORY_CONTENT_LENGTH) {
+      return '错误：内容过短或超过长度限制'
+    }
+    const sensitive = detectSensitiveKinds(content)
+    if (sensitive.includes('credentials')) {
+      return '错误：为保护安全，密码、API Key、Token、私钥等凭据原文不会写入长期记忆。'
     }
 
     const roleId = category === 'feedback' ? ctx?.roleId?.trim() : undefined
@@ -60,7 +81,6 @@ export const rememberTool = buildTool({
     }
 
     const entry = await addMemory(category as MemoryCategory, content, { roleId })
-    const sensitive = detectSensitiveKinds(content)
     const note = formatSensitiveRememberNote(sensitive)
     return `已记住 [${category}]: "${content}" (id: ${entry.id})${note}`
   },
@@ -114,11 +134,11 @@ export const forgetTool = buildTool({
   },
   metadata: {
     isDestructive: true,
-    isConcurrencySafe: true,
+    isConcurrencySafe: false,
   },
   execute: async (args) => {
-    const id = args.id as string
-    if (!id) return '错误：必须提供记忆 ID'
+    if (typeof args.id !== 'string' || args.id.length === 0 || args.id.length > MAX_MEMORY_ID_LENGTH) return '错误：记忆 ID 无效'
+    const id = args.id
 
     await deleteMemory(id)
     return `已忘记记忆 ${id}。`

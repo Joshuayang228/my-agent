@@ -27,7 +27,7 @@ function isAction(v: unknown): v is PermissionRuleAction {
 
 export function createEmptyPermissionRule(): PermissionRuleForm {
   return {
-    id: `rule-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    id: `rule-${globalThis.crypto.randomUUID()}`,
     type: 'command',
     pattern: '',
     action: 'deny',

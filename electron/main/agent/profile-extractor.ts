@@ -17,6 +17,7 @@ import { chatComplete } from '../llm/index'
 import { addMemory, listMemories, type MemoryCategory } from '../storage/memory-store'
 import { recordAssetUsage } from '../utils/asset-usage'
 import { MEMORY_STRATEGY_ASSET_KEYS } from '../memory/asset-keys'
+import { detectSensitiveKinds } from '../../../src/shared/sensitive-memory'
 
 export { EXTRACTION_PROMPT } from '../prompts/texts'
 
@@ -26,6 +27,19 @@ export const PROFILE_EXTRACTION_MIN_USER_MESSAGES = 3
 export const PROFILE_EXTRACTION_MAX_RECENT_MESSAGES = 20
 export const PROFILE_EXTRACTION_INTERVAL_MS = 2 * 60 * 1000
 export const PROFILE_EXTRACTION_CATEGORIES = ['identity', 'workflow', 'voice', 'preference', 'fact', 'feedback'] as const
+export const PROFILE_EXTRACTION_MAX_ITEMS = 20
+export const PROFILE_EXTRACTION_MAX_CONTENT_LENGTH = 2_000
+
+export function isSafeExtractedProfileItem(value: unknown): value is { category: MemoryCategory; content: string } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const item = value as Record<string, unknown>
+  return typeof item.category === 'string'
+    && PROFILE_EXTRACTION_CATEGORIES.includes(item.category as typeof PROFILE_EXTRACTION_CATEGORIES[number])
+    && typeof item.content === 'string'
+    && item.content.length > 0
+    && item.content.length <= PROFILE_EXTRACTION_MAX_CONTENT_LENGTH
+    && detectSensitiveKinds(item.content).length === 0
+}
 
 let lastExtractTime = 0
 
@@ -59,7 +73,10 @@ export async function maybeExtractProfile(
       .join('\n\n')
 
     const existingMemories = await listMemories()
-    const existingFacts = existingMemories.map(m => m.content).join('; ')
+    const existingFacts = existingMemories
+      .filter((memory) => !detectSensitiveKinds(memory.content).includes('credentials'))
+      .map((memory) => memory.content)
+      .join('; ')
 
     const prompt = existingFacts
       ? `已知的用户信息：${existingFacts}\n\n不要重复已知事实，只提取新信息。\n\n近期对话：\n${conversationText}`
@@ -101,12 +118,9 @@ export async function maybeExtractProfile(
       return
     }
 
-    const items = JSON.parse(jsonMatch[0]) as Array<{
-      category: string
-      content: string
-    }>
+    const parsedItems: unknown = JSON.parse(jsonMatch[0])
 
-    if (!Array.isArray(items) || items.length === 0) {
+    if (!Array.isArray(parsedItems) || parsedItems.length === 0) {
       log.info('No new profile items extracted')
       void recordAssetUsage({
         assetKey: MEMORY_STRATEGY_ASSET_KEYS.profileExtraction,
@@ -116,11 +130,19 @@ export async function maybeExtractProfile(
       return
     }
 
-    const validCategories = new Set<string>(PROFILE_EXTRACTION_CATEGORIES)
+    const items = parsedItems.slice(0, PROFILE_EXTRACTION_MAX_ITEMS)
     let added = 0
+    let sensitiveSkipped = 0
 
-    for (const item of items) {
-      if (!validCategories.has(item.category) || !item.content) continue
+    for (const rawItem of items) {
+      if (!rawItem || typeof rawItem !== 'object' || Array.isArray(rawItem)) continue
+      const candidate = rawItem as Record<string, unknown>
+      if (typeof candidate.content === 'string' && detectSensitiveKinds(candidate.content).length > 0) {
+        sensitiveSkipped++
+        continue
+      }
+      if (!isSafeExtractedProfileItem(rawItem)) continue
+      const item = rawItem
 
       const isDuplicate = existingMemories.some(
         m => m.content.toLowerCase() === item.content.toLowerCase(),
@@ -142,7 +164,7 @@ export async function maybeExtractProfile(
     void recordAssetUsage({
       assetKey: MEMORY_STRATEGY_ASSET_KEYS.profileExtraction,
       relation: 'used', usageKind: 'memory-operation', sessionId: opts?.sessionId,
-      status: 'success', metadata: { candidateCount: items.length, writtenCount: added },
+      status: 'success', metadata: { candidateCount: items.length, writtenCount: added, sensitiveSkipped },
     })
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err)

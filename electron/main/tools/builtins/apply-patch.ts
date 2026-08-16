@@ -8,6 +8,8 @@ import { PERMISSION_SANDBOX_ASSET_KEYS } from '../../sandbox/asset-keys'
 import type { ToolContext } from '../../../../src/shared/types'
 
 const log = createLogger('ApplyPatch')
+const MAX_PATCH_LENGTH = 2 * 1024 * 1024
+const MAX_PATH_LENGTH = 4_096
 
 interface HunkHeader {
   oldStart: number
@@ -137,18 +139,22 @@ export const applyPatchTool = buildTool({
     isDestructive: true,
   },
   execute: async (args, ctx?: ToolContext) => {
-    const patchContent = args.patch as string
-    if (!patchContent?.trim()) return '错误：必须提供补丁内容'
+    if (typeof args.patch !== 'string' || !args.patch.trim()) return '错误：必须提供补丁内容'
+    if (args.patch.length > MAX_PATCH_LENGTH) return '错误：补丁内容过长'
+    if (args.path !== undefined && (typeof args.path !== 'string' || args.path.length > MAX_PATH_LENGTH)) {
+      return '错误：文件路径参数无效或过长'
+    }
+    const patchContent = args.patch
 
     const { targetFile: parsedTarget, hunks } = parseUnifiedDiff(patchContent)
-    const filePath = (args.path as string) || parsedTarget
+    const filePath = args.path || parsedTarget
     if (!filePath) return '错误：无法确定目标文件。请提供 path 参数，或在补丁中包含 +++ 行。'
     if (hunks.length === 0) return '错误：补丁中没有找到有效区块。'
 
-    const resolved = resolveToolFilePath(filePath, getWorkspaceRoot())
+    const wsRoot = ctx?.workdir?.trim() || getWorkspaceRoot()
+    const resolved = resolveToolFilePath(filePath, wsRoot)
 
     const mode = await loadEffectiveSandbox()
-    const wsRoot = getWorkspaceRoot()
     const blocked = checkFileWriteSandbox(resolved, mode, wsRoot, { action: '编辑' })
     ctx?.assetUsageReporter?.({
       assetKey: PERMISSION_SANDBOX_ASSET_KEYS.pathBoundaries,
@@ -161,8 +167,8 @@ export const applyPatchTool = buildTool({
     try {
       original = await fs.readFile(resolved, 'utf-8')
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      return `读取文件失败： ${message}`
+      log.warn('Patch target read failed', { pathHash: hashForLog(resolved), errorType: err instanceof Error ? err.name : 'unknown' })
+      return '读取补丁目标失败，请确认文件存在且可读。'
     }
 
     const { result, applied, failed } = applyHunks(original, hunks)
@@ -174,8 +180,8 @@ export const applyPatchTool = buildTool({
     try {
       await fs.writeFile(resolved, result, 'utf-8')
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      return `写入文件失败： ${message}`
+      log.warn('Patch target write failed', { pathHash: hashForLog(resolved), errorType: err instanceof Error ? err.name : 'unknown' })
+      return '写入补丁目标失败，请检查文件权限或磁盘状态。'
     }
 
     log.info('Patch applied', { pathHash: hashForLog(resolved), applied, failed, totalHunks: hunks.length })

@@ -9,6 +9,8 @@ import { PERMISSION_SANDBOX_ASSET_KEYS } from '../../sandbox/asset-keys'
 import type { ToolContext } from '../../../../src/shared/types'
 
 const log = createLogger('FileWrite')
+const MAX_PATH_LENGTH = 4_096
+const MAX_CONTENT_LENGTH = 2 * 1024 * 1024
 
 export const fileWriteTool = buildTool({
   name: 'file_write',
@@ -39,11 +41,13 @@ export const fileWriteTool = buildTool({
     isDestructive: true,
   },
   execute: async (args, ctx?: ToolContext) => {
-    const filePath = args.path as string
-    const content = args.content as string
+    if (typeof args.path !== 'string' || !args.path.trim()) return '错误：必须提供文件路径'
+    if (args.path.length > MAX_PATH_LENGTH) return '错误：文件路径过长'
+    if (typeof args.content !== 'string' || args.content.length > MAX_CONTENT_LENGTH) return '错误：写入内容无效或超过 2MB'
+    if (args.append !== undefined && !['true', 'false', true, false].includes(args.append as never)) return '错误：append 参数无效'
+    const filePath = args.path
+    const content = args.content
     const append = String(args.append || 'false').toLowerCase() === 'true'
-
-    if (!filePath?.trim()) return '错误：必须提供文件路径'
 
     const mode = await loadEffectiveSandbox()
     const wsRoot = ctx?.workdir?.trim() || getWorkspaceRoot()
@@ -73,9 +77,8 @@ export const fileWriteTool = buildTool({
       const stat = await fs.stat(resolved)
       return `文件${append ? '追加' : '写入'}成功： ${resolved} (${stat.size} bytes)`
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      log.error('Write failed', { pathHash: hashForLog(resolved), error: message })
-      return `写入文件失败： ${message}`
+      log.error('Write failed', { pathHash: hashForLog(resolved), errorType: err instanceof Error ? err.name : 'unknown' })
+      return '写入文件失败，请检查路径权限或磁盘状态。'
     }
   },
 })

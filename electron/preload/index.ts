@@ -28,6 +28,9 @@ import type {
   ModelContextAsset,
   SkillValidationResult,
   SkillVersionInfo,
+  RendererSettings,
+  LLMConnectionTestInput,
+  LLMConnectionTestResult,
 } from '../../src/shared/types'
 
 interface SessionSummary {
@@ -80,9 +83,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   settings: {
-    get: (): Promise<Record<string, string>> => ipcRenderer.invoke('settings:get'),
+    get: (): Promise<RendererSettings> => ipcRenderer.invoke('settings:get'),
     set: (key: string, value: string): Promise<void> => ipcRenderer.invoke('settings:set', key, value),
-    testConnection: (input: { apiKey: string; baseUrl: string; model: string }) =>
+    testConnection: (input: LLMConnectionTestInput): Promise<LLMConnectionTestResult> =>
       ipcRenderer.invoke('settings:test-connection', input),
   },
 

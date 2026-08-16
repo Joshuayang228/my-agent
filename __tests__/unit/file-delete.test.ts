@@ -100,7 +100,7 @@ describe('file_delete tool', () => {
     const result = await fileDeleteTool.execute({ path: nonExistent })
 
     expect(result).toContain('错误')
-    expect(result).toContain('路径不存在')
+    expect(result).toContain('不存在或不可访问')
   })
 
   it('应该处理空路径参数', async () => {
@@ -208,7 +208,7 @@ describe('file_delete tool', () => {
     expect(JSON.stringify(reporter.mock.calls)).not.toContain(testDir)
   })
 
-  it('full-access 下白名单应该识别 .git 目录', async () => {
+  it('full-access 也硬阻止删除 .git 目录', async () => {
     sandboxState.mode = 'full-access'
     const gitDir = path.join(testDir, '.git')
     const testFile = path.join(gitDir, 'config')
@@ -217,8 +217,15 @@ describe('file_delete tool', () => {
 
     const result = await fileDeleteTool.execute({ path: gitDir })
 
-    expect(result).toContain('删除成功')
-    expect(result).not.toContain('已移入回收站')
+    expect(result).toContain('不能删除')
+    await expect(fs.access(gitDir)).resolves.toBeUndefined()
+  })
+
+  it('full-access 也硬阻止删除当前工作区根目录', async () => {
+    sandboxState.mode = 'full-access'
+    const result = await fileDeleteTool.execute({ path: testDir }, { workdir: testDir })
+    expect(result).toContain('不能删除')
+    await expect(fs.access(testDir)).resolves.toBeUndefined()
   })
 
   it('白名单应该识别 dist 和 build 目录', async () => {

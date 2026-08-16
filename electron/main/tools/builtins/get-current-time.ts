@@ -14,7 +14,8 @@ export const getCurrentTimeTool = buildTool({
   },
   metadata: { isReadOnly: true, isConcurrencySafe: true },
   execute: async (args) => {
-    const timezone = (args.timezone as string) || Intl.DateTimeFormat().resolvedOptions().timeZone
+    if (args.timezone !== undefined && (typeof args.timezone !== 'string' || args.timezone.length > 100)) return '错误：时区参数无效或过长'
+    const timezone = args.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
     try {
       const now = new Date()
       const formatted = now.toLocaleString('zh-CN', {

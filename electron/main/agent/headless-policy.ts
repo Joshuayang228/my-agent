@@ -1,4 +1,4 @@
-import type { ToolDefinition } from '../../../src/shared/types'
+import type { ToolMetadata } from '../../../src/shared/types'
 
 const HEADLESS_BLOCKED_TOOLS = new Set(['shell_exec', 'delegate_task', 'continue_task'])
 
@@ -12,10 +12,10 @@ const HEADLESS_BLOCKED_TOOLS = new Set(['shell_exec', 'delegate_task', 'continue
  */
 export function shouldAutoApproveHeadlessTool(
   toolName: string,
-  tool: Pick<ToolDefinition, 'metadata'> | undefined,
+  metadata: ToolMetadata | undefined,
 ): boolean {
-  if (!tool || HEADLESS_BLOCKED_TOOLS.has(toolName)) return false
-  return tool.metadata.isReadOnly === true && tool.metadata.isDestructive !== true
+  if (!metadata || HEADLESS_BLOCKED_TOOLS.has(toolName)) return false
+  return metadata.isReadOnly === true && metadata.isDestructive !== true
 }
 
 export const __test = { HEADLESS_BLOCKED_TOOLS }

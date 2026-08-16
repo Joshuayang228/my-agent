@@ -27,9 +27,10 @@ describe('detectSensitiveKinds', () => {
     expect(labelSensitiveKinds(kinds)).toContain('隐私标识')
   })
 
-  it('remember 附注英文种类', () => {
+  it('remember 附注使用中文并提示可删除', () => {
     const note = formatSensitiveRememberNote(['credentials'])
-    expect(note).toContain('credentials')
-    expect(note).toContain('Memory panel')
+    expect(note).toContain('凭据')
+    expect(note).toContain('记忆面板')
+    expect(note).not.toContain('Memory panel')
   })
 })

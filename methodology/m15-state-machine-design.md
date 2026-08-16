@@ -204,3 +204,8 @@ Alice 可观测性哲学与我们 M14 合流到一条纪律：
 | 本轮是否改代码 | **不改** | 主干已在；缺文档 |
 | 通用 FSM 框架 | **不上** | 规模不匹配 |
 | 第一性原理表述 | 契约（名 / 转移 / 解释 / 存活边界） | 比「要用状态机」更可操作 |
+
+
+## 2026-08 当前实现
+
+Agent Loop 已把 ContinueReason 与六种 TerminalReason 分开；Runtime 只补发缺失 done，不覆盖真实终态。后台任务、Eval Runner、伙伴世界和关系阶段各自拥有状态 owner，不能用一个全局 loading/status 代替。

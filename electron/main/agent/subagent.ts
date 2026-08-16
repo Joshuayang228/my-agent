@@ -14,7 +14,7 @@ import { randomUUID } from 'node:crypto'
 import { agentLoop } from './loop'
 import { summonWorkerSystemAddon } from '../companion/cast/summon-delegation'
 import { ToolRegistry } from '../tools/registry'
-import { createLogger } from '../utils/logger'
+import { createLogger, hashForLog } from '../utils/logger'
 import { startSpan } from '../utils/tracer'
 import { llmDebugStore } from '../storage/llm-debug-store'
 import { PROMPT_KEYS } from '../prompts/keys'
@@ -164,8 +164,10 @@ export async function runSubAgent(
   const executionMode = resolveChildExecutionMode(config.parentExecutionMode)
 
   log.info('SubAgent started', {
-    role: config.role.slice(0, 50),
-    task: config.task.slice(0, 100),
+    roleHash: hashForLog(config.role),
+    roleLength: config.role.length,
+    taskHash: hashForLog(config.task),
+    taskLength: config.task.length,
     toolCount: childRegistry.getAll().length,
     readOnly: config.readOnly ?? false,
     executionMode,
@@ -177,8 +179,10 @@ export async function runSubAgent(
     'subagent',
     config.parentSpanId,  // G1 修复：使用父 span ID，让子 Agent 挂到调用链树
     {
-      role: config.role.slice(0, 100),
-      task: config.task.slice(0, 200),
+      roleHash: hashForLog(config.role),
+      roleLength: config.role.length,
+      taskHash: hashForLog(config.task),
+      taskLength: config.task.length,
       toolCount: childRegistry.getAll().length,
     }
   )
@@ -257,9 +261,12 @@ export async function runSubAgent(
     return { success: true, content, toolsUsed, iterations, agentId }
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err)
-    log.error('SubAgent failed', { error: errMsg })
-    subSpan.end('error', errMsg)
-    return { success: false, content: `SubAgent failed: ${errMsg}`, toolsUsed, iterations, agentId: '' }
+    log.error('SubAgent failed', {
+      errorType: err instanceof Error ? err.name : 'unknown',
+      errorLength: errMsg.length,
+    })
+    subSpan.end('error', err instanceof Error ? err.name : 'unknown')
+    return { success: false, content: '子 Agent 执行失败，请检查配置或稍后重试。', toolsUsed, iterations, agentId: '' }
   }
 }
 

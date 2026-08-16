@@ -16,6 +16,22 @@ const MAX_OUTPUT_CHARS = 30_000
 const MAX_COMMAND_LENGTH = 100_000
 const MAX_CWD_LENGTH = 4_096
 
+
+/**
+ * 解析 Shell 真正使用的工作目录。
+ *
+ * 背景：只在参数显式传 cwd 时设置 child_process cwd，会让无参数调用退回 Electron
+ * 主进程的 process.cwd()，绕过子 Agent ToolContext.workdir。设计意图：缺省也绑定有效
+ * 工作区；关键约束：没有工作区时返回 process.cwd()，随后由权限引擎在非 full-access 拒绝。
+ */
+export function resolveShellCwd(requestedCwd: unknown, workspaceRoot?: string): string {
+  const base = workspaceRoot || process.cwd()
+  if (typeof requestedCwd !== 'string' || !requestedCwd.trim()) return path.resolve(base)
+  return path.isAbsolute(requestedCwd)
+    ? path.resolve(requestedCwd)
+    : path.resolve(base, requestedCwd)
+}
+
 export const shellExecTool = buildTool({
   name: 'shell_exec',
   description: "执行 shell 命令并返回输出。\n\n适用场景：\n- 运行构建脚本、测试或编译命令\n- 安装或管理 npm、pip、cargo 等包\n- 检查磁盘空间、进程、环境变量等系统信息\n- 运行 Git status、diff、log 等命令\n- 执行使用 shell 更方便的文件操作，例如 find 或复杂 grep\n- 执行项目专用脚本和工具\n\n不适用场景：\n- 简单文件读写，优先使用更安全、更快的专用文件工具\n- 搜索代码，优先使用会返回结构化结果的 code_search\n- 需要交互输入的命令；shell 是非交互式的\n- 长时间运行的进程；命令在 30 秒后超时\n\n行为：\n- 命令 30 秒超时，并返回已有输出和超时标记\n- 沙箱模式控制允许的命令：\n  - read-only：阻止所有写操作\n  - workspace-write：阻止 rm -rf、dd、format 等危险命令，以及工作区外写入\n  - full-access：允许所有命令，必须谨慎使用\n- 返回 stdout、stderr 和退出码\n- 输出超过 30,000 个字符时截断；大型输出可重定向到文件\n\n安全：所有命令都经过权限引擎，包括自定义规则、审批记录与沙箱。危险操作可能被阻止；此前被拒绝的命令会自动阻止。",
@@ -51,9 +67,7 @@ export const shellExecTool = buildTool({
 
     const mode = await loadEffectiveSandbox()
     const workspaceRoot = ctx?.workdir?.trim() || getWorkspaceRoot()
-    const cwd = typeof requestedCwd === 'string' && requestedCwd.trim()
-      ? (path.isAbsolute(requestedCwd) ? path.resolve(requestedCwd) : path.resolve(workspaceRoot || process.cwd(), requestedCwd))
-      : undefined
+    const cwd = resolveShellCwd(requestedCwd, workspaceRoot)
     // 统一走五层责任链（自定义规则 / 审批记录 / 沙箱），禁止工具内自管权限
     const decision = checkCommandPermission(command, cwd, mode, workspaceRoot)
     const decisionValue = decision.allowed === true ? 'allow' : decision.allowed === 'needs_approval' ? 'needs_approval' : 'deny'

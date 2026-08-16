@@ -10,9 +10,11 @@ describe('normalizeDevServerUrl', () => {
     expect(normalizeDevServerUrl('http://[::1]:5173/')).toBe('http://127.0.0.1:5173/')
   })
 
-  it('不修改外部地址、无效地址和空值', () => {
-    expect(normalizeDevServerUrl('https://dev.example.com:8443/')).toBe('https://dev.example.com:8443/')
-    expect(normalizeDevServerUrl('not-a-url')).toBe('not-a-url')
+  it('外部地址、凭据 URL、非 HTTP(S) 和无效地址 fail-closed', () => {
+    expect(normalizeDevServerUrl('https://dev.example.com:8443/')).toBeUndefined()
+    expect(normalizeDevServerUrl('https://user:pass@localhost:5173/')).toBeUndefined()
+    expect(normalizeDevServerUrl('file:///tmp/index.html')).toBeUndefined()
+    expect(normalizeDevServerUrl('not-a-url')).toBeUndefined()
     expect(normalizeDevServerUrl(undefined)).toBeUndefined()
   })
 })

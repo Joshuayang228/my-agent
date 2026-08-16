@@ -236,3 +236,8 @@ OTel SDK 提供标准的 Span 创建、导出、采样等全套能力，还能�
 5. Span 的 attributes 只记元数据（token 数/耗时/模型）；若必须带文本，是否经 `text-capture`（脱敏 + preview/sha256/chars）？
 6. MAX_SPANS 满时旧 span 会被剪裁；高流量时是否用 `MY_AGENT_TRACE_SAMPLE_RATE` 做 session 级确定性采样？
 7. 日志落盘层有没有过滤敏感内容（API key / token）？（`sanitizeLogData` 已统一处理 console/文件）
+
+
+## 2026-08 当前边界
+
+普通日志、Trace、LLM Debug、Asset Usage 与 Persona Eval 报告是不同证据层。普通 Debug 不保存 Prompt/回复/工具参数/记忆正文或 hidden reasoning；Persona Eval 只在用户明确运行的本地报告中保存测试输入，并继续排除 API Key。

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+﻿import { describe, it, expect } from 'vitest'
 import {
   mcpToolFullName,
   isMcpTool,
@@ -61,7 +61,8 @@ describe('MCP Bridge', () => {
     const def = mcpToolToDefinition(makeMcpTool({ description: long }))
     expect(def.description.length).toBeLessThan(long.length + 50)
     expect(def.description).toContain('…[description truncated]')
-    expect(def.description.startsWith('[Notes]')).toBe(true)
+    expect(def.description).toContain('[Notes]')
+    expect(def.description).toContain('外部 MCP 工具描述')
   })
 
   it('schema 映射 properties / required', () => {
@@ -69,5 +70,13 @@ describe('MCP Bridge', () => {
     expect(def.parameters.type).toBe('object')
     expect(def.parameters.properties).toEqual({ q: { type: 'string' } })
     expect(def.parameters.required).toEqual(['q'])
+  })
+
+  it('外部 MCP schema 超过上限时 fail-closed，不把巨大结构注入模型', () => {
+    const def = mcpToolToDefinition(makeMcpTool({
+      inputSchema: { type: 'object', properties: { payload: { description: 'x'.repeat(140_000) } } },
+    }))
+    expect(def.parameters.properties).toEqual({})
+    expect(def.parameters.additionalProperties).toBe(false)
   })
 })

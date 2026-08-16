@@ -1,7 +1,7 @@
 /**
- * 后台任务队列服务 — M11 任务生命周期 v2（SQLite 持久化）
+ * 后台任务队列服务 — M09 任务生命周期（SQLite 持久化）
  *
- * 第一性原理（m11-task-lifecycle.md）：
+ * 第一性原理（m09-task-lifecycle.md）：
  * 伙伴的可信赖感来自可见性。用户不需要盯着它，但它必须告诉你它在做什么。
  *
  * v2 新增（对照方法论幂等性章节）：
@@ -22,6 +22,7 @@
  */
 
 import { BrowserWindow } from 'electron'
+import { randomUUID } from 'node:crypto'
 import { createLogger } from '../utils/logger'
 import { getDatabase, persist } from '../storage/database'
 import {
@@ -118,7 +119,7 @@ class TaskQueueManager {
   // ── 入队 ──
 
   enqueue(sessionId: string, name: TaskType, fn: () => Promise<void>): string {
-    const id = `task-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    const id = `task-${randomUUID()}`
     const now = Date.now()
     // 入队瞬间捕获主对话 span（任务稍后执行时 ALS 可能已空）
     const linkSpanId = getTraceContext().interactionSpanId
@@ -332,7 +333,7 @@ class TaskQueueManager {
                 await task.fn!()
                 bgSpan.end('ok')
               } catch (err) {
-                bgSpan.end('error', err instanceof Error ? err.message : String(err))
+                bgSpan.end('error', err instanceof Error ? err.name : 'unknown')
                 throw err
               }
             },
@@ -342,6 +343,8 @@ class TaskQueueManager {
           log.info(`Task completed: ${task.name}`, { taskId: id })
           await this.notify(task, { type: 'task:completed', task: this.toInfo(task) })
         } catch (err) {
+          const errorType = err instanceof Error ? err.name : 'unknown'
+          const errorLength = (err instanceof Error ? err.message : String(err)).length
           const retryCount = (task.retryCount ?? 0) + 1
           task.retryCount = retryCount
 
@@ -349,7 +352,7 @@ class TaskQueueManager {
             // 指数退避重试：1s / 2s / 4s，非阻塞（不卡主循环）
             const backoffMs = 1000 * Math.pow(2, retryCount - 1)
             log.warn(`Task failed, retry ${retryCount}/${MAX_RETRIES} in ${backoffMs}ms`, {
-              taskId: id, error: err instanceof Error ? err.message : String(err),
+              taskId: id, errorType, errorLength,
             })
             task.status = 'pending'
             task.updatedAt = Date.now()
@@ -362,10 +365,10 @@ class TaskQueueManager {
           } else {
             // 重试耗尽 → 永久失败，通知用户
             task.status = 'failed'
-            task.error = err instanceof Error ? err.message : String(err)
+            task.error = '后台任务执行失败，请检查配置或稍后重试。'
             task.updatedAt = Date.now()
             log.warn(`Task failed permanently after ${retryCount} attempts: ${task.name}`, {
-              taskId: id, error: task.error,
+              taskId: id, errorType, errorLength,
             })
             await this.notify(task, { type: 'task:failed', task: this.toInfo(task) })
           }
@@ -401,4 +404,3 @@ class TaskQueueManager {
 }
 
 export const taskQueue = new TaskQueueManager()
-

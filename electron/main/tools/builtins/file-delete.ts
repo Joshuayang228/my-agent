@@ -20,6 +20,7 @@ import { PERMISSION_SANDBOX_ASSET_KEYS } from '../../sandbox/asset-keys'
 import type { ToolContext } from '../../../../src/shared/types'
 
 const log = createLogger('FileDelete')
+const MAX_PATH_LENGTH = 4_096
 
 /**
  * 永久删除白名单（可绕过回收站直接删除的路径模式）
@@ -27,7 +28,6 @@ const log = createLogger('FileDelete')
  */
 const PERMANENT_DELETE_WHITELIST = [
   'node_modules',
-  '.git',
   '__pycache__',
   '.pytest_cache',
   '.venv',
@@ -55,6 +55,18 @@ function isWhitelistedForPermanentDelete(filePath: string): boolean {
   })
 }
 
+
+/**
+ * 永久安全边界：即使 full-access 也不允许工具删除文件系统根、当前工作区根或 .git。
+ * 用户如确需销毁整个项目/仓库，应在产品外完成，避免模型误判造成不可逆数据损失。
+ */
+export function isBypassImmuneDeleteTarget(filePath: string, workspaceRoot?: string): boolean {
+  const resolved = path.resolve(filePath)
+  if (resolved === path.parse(resolved).root) return true
+  if (workspaceRoot && resolved === path.resolve(workspaceRoot)) return true
+  return resolved.split(path.sep).some((segment) => segment.toLowerCase() === '.git')
+}
+
 export const fileDeleteTool = buildTool({
   name: 'file_delete',
   description: "通过移动到系统回收站，安全删除文件或目录。\n\n主要特性：\n- 默认安全：除非路径命中白名单，否则所有删除都会进入回收站并可恢复\n- 白名单路径：沙箱允许时，临时文件、构建产物和缓存可永久删除，例如 node_modules、.git、__pycache__、tmp、dist、build、.cache\n- 审计记录：所有删除操作都会记录，供安全复查\n\n适用场景：\n- 删除已废弃的文件或目录\n- 清理生成文件\n- 用户确认后删除其创建的内容\n\n不适用场景：\n- 文件以后可能仍有用，应改为归档而不是删除\n- 清理大型目录，可使用 shell_exec 配合精确模式提高效率\n\n安全规则：\n- workspace-write 只允许删除当前工作区内且不含受保护段的路径；read-only 一律阻止删除\n- 非白名单路径进入回收站，用户可恢复\n- 白名单中的构建产物等路径在沙箱允许时永久删除；受保护路径仍需 full-access\n- 操作会记录时间和恢复状态。",
@@ -72,15 +84,17 @@ export const fileDeleteTool = buildTool({
     isDestructive: true,
   },
   execute: async (args, ctx?: ToolContext) => {
-    const targetPath = args.path as string
-
-    if (!targetPath?.trim()) {
-      return '错误：必须提供路径'
-    }
+    if (typeof args.path !== 'string' || !args.path.trim()) return '错误：必须提供路径'
+    if (args.path.length > MAX_PATH_LENGTH) return '错误：路径过长'
+    const targetPath = args.path
 
     const mode = await loadEffectiveSandbox()
     const workspaceRoot = ctx?.workdir?.trim() || getWorkspaceRoot()
     const absolutePath = resolveToolFilePath(targetPath, workspaceRoot)
+    if (isBypassImmuneDeleteTarget(absolutePath, workspaceRoot)) {
+      log.warn('Bypass-immune delete target blocked', { pathHash: hashForLog(absolutePath) })
+      return '错误：为防止不可逆数据损失，不能删除文件系统根、当前工作区根或 .git。'
+    }
     const blocked = checkFileWriteSandbox(absolutePath, mode, workspaceRoot, { action: '删除' })
     ctx?.assetUsageReporter?.({
       assetKey: PERMISSION_SANDBOX_ASSET_KEYS.pathBoundaries,
@@ -96,7 +110,7 @@ export const fileDeleteTool = buildTool({
     try {
       await fs.access(absolutePath)
     } catch {
-      return `错误：路径不存在： ${absolutePath}`
+      return '错误：目标路径不存在或不可访问'
     }
 
     // 检查是否在白名单中
@@ -123,9 +137,8 @@ export const fileDeleteTool = buildTool({
       return `删除成功： ${absolutePath}${recoveryNote}`
 
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error)
-      log.error('Delete failed', { pathHash: hashForLog(absolutePath), method: deleteMethod, error: message })
-      return `删除失败 ${absolutePath}: ${message}`
+      log.error('Delete failed', { pathHash: hashForLog(absolutePath), method: deleteMethod, errorType: error instanceof Error ? error.name : 'unknown' })
+      return '删除失败，请检查路径权限或系统回收站状态。'
     }
   },
 })

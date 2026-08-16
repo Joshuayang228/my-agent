@@ -26,10 +26,22 @@ describe('command-guard', () => {
     expect(guard('npm test').allowed).toBe('needs_approval')
   })
 
-  it('禁止通过 Shell 控制符把多条命令拼接成一条安全命令', () => {
-    const result = guard('cat package.json && type C:\\outside\\secret.txt')
-    expect(result.allowed).toBe(false)
-    expect(result.reason).toContain('Shell')
+  it('禁止通过 Shell 控制符、换行或命令替换拼接安全命令', () => {
+    for (const command of [
+      'cat package.json && type C:\\outside\\secret.txt',
+      'echo safe\nrm local-file.txt',
+      'echo $(touch local-file.txt)',
+    ]) {
+      const result = guard(command)
+      expect(result.allowed).toBe(false)
+      expect(result.reason).toContain('Shell')
+    }
+  })
+
+  it('禁止环境变量和 home 展开绕过工作区路径边界', () => {
+    expect(guard('cat $HOME/notes.txt').allowed).toBe(false)
+    expect(guard('type %USERPROFILE%\\notes.txt').allowed).toBe(false)
+    expect(guard('cat ~/notes.txt').allowed).toBe(false)
   })
 
   it('禁止安全命令显式读取工作区外绝对路径', () => {
@@ -55,8 +67,19 @@ describe('command-guard', () => {
     expect(guard('Remove-Item -Recurse -Force C:\\temp', 'full-access').allowed).toBe(false)
   })
 
-  it('普通工作区内只读命令仍可自动执行', () => {
-    expect(guard('git status').allowed).toBe(true)
+  it('不会把带写入或任意执行能力的工具链命令误判为只读', () => {
+    expect(guard('find . -delete').allowed).toBe('needs_approval')
+    expect(guard('rg --pre dangerous pattern .').allowed).toBe('needs_approval')
+    expect(guard('prettier --write src').allowed).toBe('needs_approval')
+    expect(guard('eslint --fix src').allowed).toBe('needs_approval')
+    expect(guard('npm audit fix').allowed).toBe('needs_approval')
+    expect(guard('git branch -D old').allowed).toBe('needs_approval')
+    expect(guard('git diff --output=diff.txt').allowed).toBe('needs_approval')
+  })
+
+  it('普通工作区内严格只读命令仍可自动执行', () => {
+    expect(guard('git status --short').allowed).toBe(true)
     expect(guard('pwd').allowed).toBe(true)
+    expect(guard('cat package.json').allowed).toBe(true)
   })
 })

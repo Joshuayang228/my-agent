@@ -46,7 +46,8 @@ export const thinkTool = buildTool({
   maxResultSizeChars: Infinity,
 
   execute: async (args) => {
+    if (typeof args.thought !== 'string' || !args.thought.trim() || args.thought.length > 20_000) return '错误：思考内容为空或过长'
     // 零副作用：只把思考原文返回，loop 里的 tool_end 事件会记录它
-    return `[think] ${args.thought as string}`
+    return `[think] ${args.thought}`
   },
 })

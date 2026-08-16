@@ -2,7 +2,7 @@
 
 > 参考源：CC `tasks/` 目录（InProcessTeammateTask / DreamTask / TaskState 类型）、CC `cli/print.ts`（runHeadless + 事件流收集）、feiche `observability/` 源码（Observer 接口 + 异步 span 链接）、Anthropic learning-claude-code Ch.06（task-system）。
 >
-> **实现状态**：v2 已完成 SQLite 持久化、崩溃恢复、通知幂等落盘（2026-07-25）。代码走读见 `m09-task-lifecycle-code.md`。
+> **实现状态（2026-08-15）**：对话后置任务已具备 SQLite 恢复、checkpoint、指数退避、通知幂等和 `task:sync`；用户定时任务由独立 Scheduler 管理。代码走读见 `m09-task-lifecycle-code.md`。
 
 ---
 
@@ -101,7 +101,7 @@ M3 已经打了 `caller` 字段，M11 需要把任务的 token 消耗归入独�
 
 这是 M11 和其他框架模块关系最重要的一条。
 
-当前的记忆提取是直接嵌在 runtime 的 `enqueuePostTasks()` 里的 fire-and-forget——对话完成后，异步启动 `maybeExtractProfile()` 和 `addToVectorStore()`，没有状态管理，没有失败重试，没有对用户的通知。
+历史起点：记忆提取曾直接嵌在 Runtime 的 fire-and-forget 链路中，没有统一状态、重试和通知。当前这类对话后置工作已由 `TaskQueueManager` 承接；保留这段是为了说明为什么需要任务生命周期，而不是描述现状。
 
 从 M11 的视角看，这些任务是记忆系统的"原料到知识"转化管道：
 
@@ -171,7 +171,7 @@ isIdle: boolean
 
 `lastReportedXxx` 字段是"已同步给 UI 的状态"，`progress` 是"实际运行状态"。每次 UI 更新只同步 delta，不重发全量——这是大量频繁后台更新时的性能优化。
 
-**与我们当前实现的 gap**：我们的 `runtime.ts` 里的 `backgroundQueue` 是内存数组，没有状态持久化，没有进度追踪，没有 idle/running 状态，没有对用户的通知机制。M11 需要从这里开始系统性地重建。
+**历史 Gap（已收口）**：早期 `backgroundQueue` 只有内存数组。当前 `services/task-queue.ts` 已提供状态持久化、恢复、重试、checkpoint、通知幂等与 `task:sync`；仍未解决的是 running 任务统一取消、重试计数跨重启和所有任务类型的步骤级续接。
 
 ---
 
@@ -223,7 +223,7 @@ backgroundQueue.push({
 - `notified` 标志防止重复通知
 - 函数重新注册机制：恢复任务通过 type 查找对应实现函数
 
-**v2 已验证**：249 个测试全过（包含 7 个新增持久化测试）。
+**历史验证记录**：v2 当时通过 249 项测试。当前测试总量和门禁以 `docs/quality.md` 及最新 CI/本地运行结果为准。
 
 **v3（2026-07-25）**：在 v2 之上补齐可靠性与可见性——
 - 指数退避重试（`MAX_RETRIES=3`，1s/2s/4s，见 `task-queue.ts`）
@@ -254,7 +254,7 @@ backgroundQueue.push({
 实现 M11 时对照以下问题：
 
 - [x] 任务状态是否持久化到 SQLite？重启后能恢复状态吗？— v2 已完成
-- [x] 每个任务有唯一 ID，防止重复触发吗？— v2 使用 uuid
+- [x] 每个任务有唯一 ID，防止重复触发吗？— 当前使用 `task-${randomUUID()}`
 - [x] `notified` 标志位是否在通知发送后立即置为 true？— v2 已落盘
 - [x] 任务完成/失败是否有用户可见的状态通知？— v3 Toast + pill
 - [x] 长任务失败后是否有指数退避重试，重试耗尽后是否通知用户？— v3

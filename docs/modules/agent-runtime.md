@@ -6,7 +6,7 @@
 
 ## 边界
 
-**做**：Agent Loop（流式事件 / 工具超时 / 重试）、会话 Runtime 中心化、System Prompt 四层组装、上下文压缩、后台任务队列、子 Agent、MCP Client、多 Provider LLM、Headless、Observer/DevPanel。  
+**做**：Agent Loop（流式事件 / 工具超时 / 重试）、会话 Runtime 中心化、System Prompt 四层组装、上下文压缩、后台任务队列、子 Agent、MCP Client、多 Provider LLM、Headless、Observer/DevPanel。
 **不做**：伙伴生活世界语义（见 companion）；结构化记忆库本身（见 memory）；权限策略语义（见 permission）。
 
 ## 短 Why
@@ -26,13 +26,13 @@
 
 ## 依赖
 
-- **依赖**：llm、tools、storage、sandbox（执行前）、companion/memory（组装时注入）  
+- **依赖**：llm、tools、storage、sandbox（执行前）、companion/memory（组装时注入）
 - **被依赖**：Chat IPC、召唤/反思后台任务、Eval 框架场景
 
 ## 不变量
 
-- `chat:send` 只传本轮用户消息；历史由 session-store 加载  
-- 工具执行前走权限引擎（见 permission）  
+- `chat:send` 只传本轮用户消息；历史由 session-store 加载
+- 工具执行前走权限引擎（见 permission）
 - 主 Assemble 只在 `prompt-builder`；辅助 Prompt 不得再走一套平行组装器冒充主路径
 - Loop 的 `done` 必须保留真实 `TerminalReason` 且只发一次；只有 `completed` 才保存完整 assistant、启动后台善后和成功通知
 
@@ -47,8 +47,8 @@
 
 ## 必测点
 
-- Loop 流式事件与工具超时  
-- Runtime 中心化（乐观 UI + done 后 session 对齐）  
+- Loop 流式事件与工具超时
+- Runtime 中心化（乐观 UI + done 后 session 对齐）
 - 相关单测：`agent-loop`、`task-queue`、`observer` 等
 
 ## 已落地能力
@@ -101,4 +101,4 @@
 ## 现状 / 缺口
 
 **现状**：Loop / Runtime / Prompt / 压缩 / 队列 / MCP / Skill 管理 / 可观测主线已落地；Prompt 由生产注册表统一登记稳定 key、用途 / 角色、来源、版本、自动指纹、locale 和动态插槽；核心 key 已类型化，生产 LLM 调用必须声明非空 key 或显式 promptless 原因。Debug 提示词管理器已扩展为生产资产统一目录，覆盖 Prompt、伙伴人格、记忆策略、权限与沙箱、Tool schema、Skill、Eval Case / Grader、Eval Judge、模型 Provider 和 MCP；真实 LLM / Tool / Memory / Permission 路径写入 `available / used / triggered / matched` 四类脱敏关联，调用详情逐次展示资产证据，资产详情可反查最近使用，未知 key 不静默入库；LLM Debug 只通过现有 observer → tracer Span sink 持久化结构元数据、正文长度和资产证据；schema v14 会清理历史正文，侧栏不再读取 Prompt / 响应 / hidden reasoning；全页 Debug 已按开发者诊断任务收口：提示词管理器 / 请求与运行 / 伙伴状态 / 质量·Eval / 系统；请求与运行域直接读取真实请求快照并保留调用链 / 事件，质量域读取 Skill / Persona Eval 报告：Skill Eval 展示触发、指南注入、工具边界和回复约束证据，Persona Eval 在独立本地审阅层保存真人格人工判断；原始报告和自动判定保持只读。Playground 已按设计 / Agent 实验两组收口，设计组件边缘态合并展示，旧人格验收与体验夹具源码保留但不再作为 active 入口。
-**缺口**：Swarm（wishlist）；更完整的子 Agent 产品化。
+**缺口**：Swarm（wishlist）；更完整的子 Agent 产品化；真实 HTTP/SSE replay 与操作系统级 Shell 隔离仍未纳入默认门禁；外部 MCP 工具描述已标记为不受信任数据，超大 schema fail-closed。

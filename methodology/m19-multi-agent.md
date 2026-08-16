@@ -75,7 +75,7 @@ Alice Ch.6 提出三种模式，背后是"任务的分解方式"不同：
 | **Coordinator** | 任务分解本身需要推理，子任务有依赖顺序 | 专门的 Coordinator 负责分解和综合，Worker 负责执行 | Coordinator 需要理解任务才能做好分解 |
 | **Swarm** | 子任务边界动态出现，任务跨会话持久化 | 去中心化任务队列（SQLite），Peer 各自领取任务 | 任务依赖关系设计复杂，调试难度高 |
 
-**我们的实现**：只做了**父子模式**（Subagent），对应 `delegate_task` 工具。这是最简单的起点，覆盖大多数中等复杂度的多 Agent 需求。Coordinator 和 Swarm 留待产品需要时再引入。
+**我们的实现**：采用父子工具模式，对应 `delegate_task`；另有 `continue_task` 复用同一子 Agent 上下文，但仍是同步续跑，不是异步 Coordinator 总线。Coordinator 和 Swarm 留待产品确有并行 worker 需求时再引入。
 
 **父子模式的核心**：
 - 子 Agent 作为一个工具被调用（`delegate_task`）
@@ -266,7 +266,7 @@ CC coordinatorMode.ts 的决策框架：**子 Agent 完成研究后，下一步�
 - **G7 delegate_task 超时**（正确性 bug）：子 Agent 跑完整循环远超 registry 的 30s `TOOL_TIMEOUT_MS`，会被误杀。加 `longRunning` 元数据标记，registry 对这类工具跳过超时。同样是"修好破损后没真跑过"才没暴露的 bug。
 - **Coordinator continue**：`subagent-registry` + `continue_task` 工具。见 §九。
 
-单测 178 → 202（+24：角色/权限纯函数 + registry continue + longRunning 超时）。
+历史快照（2026-07）：单测 178 → 202（+24：角色/权限纯函数 + registry continue + longRunning 超时）；当前测试数量以最新门禁为准。
 
 **沉淀**：M8 首轮把 G4/G5/G7 列进"暂缓项"是误判——它们不是"未来增强"，是**修好 P0 破损后被掩盖的新 bug**。P0（delegate_task 完全不可用）修好前，子 Agent 根本跑不起来，所以"子 Agent 工具拿不到 context""子 Agent 会超时"这些问题都没机会暴露。**修好一个破损后，要重新审视"之前因为它坏着而没被触发的路径"——那里往往藏着下一批 bug。** 这跟 M5 feedback 锚点漏接是两类不同的疏漏：那个是"计划没执行"，这个是"bug 被更大的 bug 掩盖"。
 
@@ -287,3 +287,8 @@ CC coordinatorMode.ts 的决策框架：**子 Agent 完成研究后，下一步�
 9. **子 Agent 权限只降不升了吗？**能不能从严格的父模式逃逸到宽松？
 10. **跑完整循环的工具（delegate/continue）标了 longRunning 吗？**否则被 30s 超时误杀。
 11. 修好一个破损 bug 后，有没有回头查"之前因它坏着而没被触发的路径"？
+
+
+## 2026-08 实现校准
+
+当前权限只降不升、`ToolContext.workdir`、受限 Registry、`continue_task` 和 Headless 拒绝均已落地。委派工具自身也不能再静态冒充只读：参数化 metadata 会区分 researcher/analyst 与 coder/显式可写，`continue_task` 因无法证明旧实例只读而默认按破坏性工具确认。日志与 Trace 只保留委派文本的 hash/长度，不保存正文。

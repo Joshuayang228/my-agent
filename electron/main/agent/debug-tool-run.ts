@@ -80,9 +80,10 @@ export async function preflightDebugTool(
   }
 
   const canonical = tool.name
+  const effectiveMetadata = registry.resolveEffectiveMetadata(canonical, input.args ?? {}) ?? tool.metadata
   let permission = checkToolPermission(canonical)
   let needsConfirmation =
-    permission.allowed === 'needs_approval' || tool.metadata.isDestructive === true
+    permission.allowed === 'needs_approval' || effectiveMetadata.isDestructive === true
 
   if (canonical === 'shell_exec') {
     const command = typeof input.args?.command === 'string' ? input.args.command : ''
@@ -167,9 +168,9 @@ export async function runDebugTool(
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    span.end('error', message)
+    span.end('error', err instanceof Error ? err.name : 'unknown')
     log.warn('Debug tool run failed', { name: pre.toolName, errorType: err instanceof Error ? err.name : 'unknown', errorLength: message.length })
-    return { ok: false, error: message, permission: pre.permission }
+    return { ok: false, error: '调试工具执行失败，请检查参数或系统状态。', permission: pre.permission }
   }
 }
 

@@ -1,17 +1,17 @@
 /**
- * ModelBasedGrader — B 类伙伴行为的 LLM judge（m12-eval-persona.md §8）
+ * ModelBasedGrader — B 类伙伴行为的 LLM Judge（methodology/m18-eval-persona.md）
  *
  * 设计原则（对照方法论）：
  * 1. 不打综合分，只判断具体违规项（有/没有/无法判断）
  * 2. judge prompt 把 LLM 放在"陌生用户"位置，而非"评分员"，破解同情偏差
  * 3. 每个维度独立 + "Unknown" 退路，防止无证据时强行判断
- * 4. 无 API key 时直接跳过，不阻断 eval pipeline
+ * 4. Mock 模式跳过 Judge；Real 模式缺 API Key 必须失败，避免伪造通过
  *
  * 使用方式：
  *   import { makeModelBasedGrader } from '../graders/model-based'
  *   const toneGrader = makeModelBasedGrader('ToneCheck', context, checks)
  *
- * 注意：依赖真实 LLM API，在 CI 或没有 API Key 时自动跳过（pass=true + 说明）。
+ * 注意：依赖真实 LLM API；普通 Mock Eval 会显式跳过，Real Eval 缺 Key 会失败。
  */
 
 import type { EvalGrader, GraderResult, EvalContext, ViolationCheck } from '../types'
@@ -30,7 +30,7 @@ import { PROMPT_KEYS } from '../../electron/main/prompts/keys'
  * @param graderName   可读名字，出现在报告里
  * @param systemContext  给 judge 的背景（如"你在评估一个伙伴型 AI Agent 的回复"）
  * @param checks       违规项列表，每项只判断 FOUND / NOT_FOUND / UNKNOWN
- * @param llmConfig    可选 LLM 配置；未提供时读环境变量；没有 key 则跳过
+ * @param llmConfig    可选 LLM 配置；未提供时读环境变量；Real 模式没有 Key 则失败
  */
 export function makeModelBasedGrader(
   graderName: string,

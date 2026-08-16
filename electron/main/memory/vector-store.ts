@@ -16,6 +16,7 @@ import { createLogger, hashForLog } from '../utils/logger'
 import type { LLMConfig } from '../../../src/shared/types'
 import { recordAssetUsage } from '../utils/asset-usage'
 import { MEMORY_STRATEGY_ASSET_KEYS } from './asset-keys'
+import { detectSensitiveKinds } from '../../../src/shared/sensitive-memory'
 
 const log = createLogger('VectorStore')
 
@@ -271,6 +272,7 @@ export function extractMemoryCitations(
 ): MemoryCitationItem[] {
   return results
     .filter(r => !r.id.startsWith('mem-'))
+    .filter(r => !detectSensitiveKinds(r.text || '').includes('credentials'))
     .map(r => ({
       id: r.id,
       category: r.category || 'memory',
@@ -284,7 +286,9 @@ export function formatRecallForInjection(
   results: VectorSearchResult[],
   now: number = Date.now(),
 ): string | null {
-  const deduped = results.filter(r => !r.id.startsWith('mem-'))
+  const deduped = results
+    .filter(r => !r.id.startsWith('mem-'))
+    .filter(r => !detectSensitiveKinds(r.text || '').includes('credentials'))
   if (deduped.length === 0) return null
 
   let hasStale = false

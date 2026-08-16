@@ -68,7 +68,7 @@ export function formatSensitiveCollectionHint(kinds: SensitiveKind[]): string {
 /** 写入工具返回时的附注 */
 export function formatSensitiveRememberNote(kinds: SensitiveKind[]): string {
   if (!kinds.length) return ''
-  return ` ⚠ Sensitive (${kinds.join(', ')}): prefer not storing secrets/credentials; user can delete in Memory panel.`
+  return ` ⚠ 可能含敏感信息（${labelSensitiveKinds(kinds)}）；请仅在用户明确需要时保留，并可在记忆面板随时删除。`
 }
 
 export const __test = { PATTERNS, LABELS }

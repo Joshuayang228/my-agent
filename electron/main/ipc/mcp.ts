@@ -1,8 +1,10 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, dialog } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { ToolRegistry } from '../tools/registry'
 import { mcpManager } from '../mcp/client'
 import type { McpServerConfig } from '../mcp/client'
+import { hydrateMcpConfigSecrets, parseStoredMcpConfigs } from '../mcp/config-security'
+import * as settings from '../storage/settings-store'
 import { syncMcpToolsToRegistry, removeMcpToolsFromRegistry } from '../mcp/bridge'
 import { createLogger, hashForLog } from '../utils/logger'
 
@@ -10,45 +12,35 @@ const log = createLogger('McpIPC')
 
 const ELICIT_TIMEOUT_MS = 120_000
 const MAX_MCP_ID_LENGTH = 200
-const MAX_MCP_NAME_LENGTH = 200
-const MAX_MCP_COMMAND_LENGTH = 4_096
-const MAX_MCP_ARG_LENGTH = 8_192
-const MAX_MCP_ENV_ENTRIES = 100
-const MAX_MCP_ENV_VALUE_LENGTH = 16_384
+const MAX_ELICIT_MESSAGE_LENGTH = 20_000
+const MAX_ELICIT_SCHEMA_BYTES = 1024 * 1024
+const MAX_ELICIT_RESPONSE_BYTES = 1024 * 1024
 
 function isBoundedString(value: unknown, max: number): value is string {
   return typeof value === 'string' && value.length > 0 && value.length <= max
 }
 
-function isValidMcpConfig(value: unknown): value is McpServerConfig {
-  if (!value || typeof value !== 'object') return false
-  const config = value as Record<string, unknown>
-  const transport = config.transport ?? 'stdio'
-  if (!isBoundedString(config.id, MAX_MCP_ID_LENGTH)
-    || !isBoundedString(config.name, MAX_MCP_NAME_LENGTH)
-    || !Array.isArray(config.args)
-    || config.args.length > 128
-    || config.args.some((arg) => typeof arg !== 'string' || arg.length > MAX_MCP_ARG_LENGTH)
-    || typeof config.enabled !== 'boolean'
-    || (transport !== 'stdio' && transport !== 'sse')) return false
-  if (transport === 'stdio' && !isBoundedString(config.command, MAX_MCP_COMMAND_LENGTH)) return false
-  if (transport === 'sse') {
-    if (!isBoundedString(config.url, 4_096)) return false
-    try {
-      const url = new URL(config.url)
-      if (url.protocol !== 'http:' && url.protocol !== 'https:') return false
-    } catch {
-      return false
-    }
-  }
-  if (config.env !== undefined) {
-    if (!config.env || typeof config.env !== 'object' || Array.isArray(config.env)) return false
-    const entries = Object.entries(config.env)
-    if (entries.length > MAX_MCP_ENV_ENTRIES) return false
-    if (entries.some(([key, envValue]) => !/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)
-      || typeof envValue !== 'string' || envValue.length > MAX_MCP_ENV_VALUE_LENGTH)) return false
-  }
-  return true
+export { isValidMcpConfig } from '../mcp/config-security'
+
+async function confirmMcpConnection(config: McpServerConfig): Promise<boolean> {
+  const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0]
+  if (!win) return false
+  const target = (config.transport ?? 'stdio') === 'sse'
+    ? `远程地址：${config.url}`
+    : `启动命令：${config.command} ${config.args.join(' ')}`
+  const result = await dialog.showMessageBox(win, {
+    type: 'warning',
+    title: '确认连接 MCP 服务',
+    message: `是否连接 MCP 服务“${config.name}”？`,
+    detail: `${target}
+
+MCP 服务可能访问网络、文件或启动本地进程。仅连接你信任的配置。`,
+    buttons: ['取消', '连接'],
+    defaultId: 0,
+    cancelId: 0,
+    noLink: true,
+  })
+  return result.response === 1
 }
 
 export function registerMcpIPC(toolRegistry: ToolRegistry): void {
@@ -56,6 +48,12 @@ export function registerMcpIPC(toolRegistry: ToolRegistry): void {
   mcpManager.setElicitationHandler(async (serverId, message, schema) => {
     const win = BrowserWindow.getAllWindows()[0]
     if (!win) return null
+    let schemaBytes = 0
+    try { schemaBytes = Buffer.byteLength(JSON.stringify(schema), 'utf-8') } catch { return null }
+    if (message.length > MAX_ELICIT_MESSAGE_LENGTH || schemaBytes > MAX_ELICIT_SCHEMA_BYTES) {
+      log.warn('MCP elicitation payload rejected', { serverId, messageLength: message.length, schemaBytes })
+      return null
+    }
     const requestId = `elicit-${randomUUID()}`
     const channel = `mcp:elicit-response:${requestId}`
 
@@ -68,7 +66,14 @@ export function registerMcpIPC(toolRegistry: ToolRegistry): void {
         ipcMain.removeListener(channel, onResponse)
         resolve(values)
       }
-      function onResponse(_e: Electron.IpcMainEvent, values: Record<string, unknown> | null) {
+      function onResponse(event: Electron.IpcMainEvent, values: Record<string, unknown> | null) {
+        if (event.sender !== win.webContents) return
+        if (values !== null && (!values || typeof values !== 'object' || Array.isArray(values))) return finish(null)
+        if (values !== null) {
+          try {
+            if (Buffer.byteLength(JSON.stringify(values), 'utf-8') > MAX_ELICIT_RESPONSE_BYTES) return finish(null)
+          } catch { return finish(null) }
+        }
         finish(values)
       }
       ipcMain.once(channel, onResponse)
@@ -81,15 +86,18 @@ export function registerMcpIPC(toolRegistry: ToolRegistry): void {
   })
 
   ipcMain.handle('mcp:connect', async (_event, config: McpServerConfig) => {
-    if (!isValidMcpConfig(config)) return { success: false, error: 'MCP 配置无效' }
+    const storedConfigs = parseStoredMcpConfigs(await settings.getSetting('mcpServers'))
+    const hydratedConfig = hydrateMcpConfigSecrets(config, storedConfigs)
+    if (!hydratedConfig) return { success: false, error: 'MCP 配置无效或凭据已失效' }
+    if (!await confirmMcpConnection(hydratedConfig)) return { success: false, error: '用户取消连接' }
     try {
-      await mcpManager.connect(config)
-      const count = syncMcpToolsToRegistry(toolRegistry, config.id)
-      log.info('MCP server connected and tools registered', { nameHash: hashForLog(config.name), nameLength: config.name.length, toolCount: count })
+      await mcpManager.connect(hydratedConfig)
+      const count = syncMcpToolsToRegistry(toolRegistry, hydratedConfig.id)
+      log.info('MCP server connected and tools registered', { nameHash: hashForLog(hydratedConfig.name), nameLength: hydratedConfig.name.length, toolCount: count })
       return { success: true, toolCount: count }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      log.error('MCP connect failed', { nameHash: hashForLog(config.name), nameLength: config.name.length, errorType: err instanceof Error ? err.name : 'unknown', errorLength: message.length })
+      log.error('MCP connect failed', { nameHash: hashForLog(hydratedConfig.name), nameLength: hydratedConfig.name.length, errorType: err instanceof Error ? err.name : 'unknown', errorLength: message.length })
       return { success: false, error: 'MCP 连接失败，请检查命令、参数或服务地址' }
     }
   })

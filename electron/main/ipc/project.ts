@@ -109,6 +109,18 @@ function applyProject(dirPath: string | null): void {
   }
 }
 
+
+/** Renderer 只能切换到已由系统目录选择器写入的当前/最近项目，不能凭 IPC 扩大工作区。 */
+export function isAuthorizedProjectSelection(
+  candidate: string,
+  currentProject: string | null,
+  recentProjects: ProjectInfo[],
+): boolean {
+  const resolved = path.resolve(candidate)
+  return (currentProject ? path.resolve(currentProject) === resolved : false)
+    || recentProjects.some((project) => path.resolve(project.path) === resolved)
+}
+
 export function registerProjectIPC(): void {
   ipcMain.handle('project:browse', async () => {
     const win = BrowserWindow.getFocusedWindow()
@@ -143,7 +155,11 @@ export function registerProjectIPC(): void {
       const resolvedDir = resolveExistingPath(dirPath)
       if (!resolvedDir) return { success: false, error: 'Directory not found' }
       dirPath = resolvedDir
-      await addToRecent(dirPath)
+      const currentProject = await getCurrentProjectRoot()
+      const recentProjects = await getRecentProjects()
+      if (!isAuthorizedProjectSelection(dirPath, currentProject, recentProjects)) {
+        return { success: false, error: '该目录尚未通过系统项目选择器授权，请使用“打开项目”。' }
+      }
       await settings.setSetting('currentProject', dirPath)
       applyProject(dirPath)
     } else {

@@ -16,22 +16,18 @@ export interface CommandAssessment {
 }
 
 export const SAFE_COMMAND_NAMES = [
-  'ls', 'dir', 'cat', 'type', 'echo', 'pwd', 'cd',
-  'head', 'tail', 'wc', 'sort', 'uniq', 'grep', 'rg', 'find',
-  'which', 'where', 'whoami', 'hostname', 'date',
-  'tsc', 'eslint', 'prettier', 'vitest', 'jest',
-  'cargo', 'rustc', 'go', 'java', 'javac',
+  'ls', 'dir', 'tree', 'cat', 'type', 'echo', 'pwd', 'cd',
+  'head', 'tail', 'wc', 'grep', 'which', 'where', 'whoami', 'hostname', 'date',
 ] as const
 
 export const SAFE_COMMAND_PATTERNS: ReadonlyArray<{ pattern: RegExp; label: string }> = [
   { pattern: /^(node|python3?|ruby|go|java)\s+--version$/, label: 'version check' },
-  { pattern: /^(npm|pnpm|yarn)\s+(list|ls|info|view|outdated|audit)/, label: 'package info' },
-  { pattern: /^git\s+(status|log|diff|branch|show|tag|remote|stash list)/, label: 'git read' },
-  { pattern: /^(cat|type|head|tail|less|more)\s+/, label: 'file read' },
-  { pattern: /^(ls|dir|tree)\s*/, label: 'directory listing' },
-  { pattern: /^echo\s+/, label: 'echo' },
-  { pattern: /^(pwd|cd)\s*/, label: 'navigation' },
-  { pattern: /^npx\s+(tsc|vitest|jest|eslint|prettier)\s+/, label: 'dev tool via npx' },
+  { pattern: /^(pwd|whoami|hostname|date)\s*$/, label: 'system information' },
+  { pattern: /^(cat|type|head|tail|wc|grep|which|where)(?:\s|$)/, label: 'read-only inspection' },
+  { pattern: /^(ls|dir|tree)(?:\s|$)/, label: 'directory listing' },
+  { pattern: /^echo(?:\s|$)/, label: 'echo' },
+  { pattern: /^cd(?:\s|$)/, label: 'navigation' },
+  { pattern: /^git\s+status(?:\s+(?:--short|--branch|--show-stash|--ahead-behind|--porcelain(?:=v[12])?|--untracked-files(?:=(?:no|normal|all))?))*\s*$/, label: 'git status' },
 ]
 
 export const DANGEROUS_COMMAND_PATTERNS: ReadonlyArray<{ pattern: RegExp; label: string }> = [
@@ -61,8 +57,6 @@ export const DANGEROUS_COMMAND_PATTERNS: ReadonlyArray<{ pattern: RegExp; label:
   { pattern: /(?:^|\s)git\s+(?:reset\s+--hard|clean\s+[^\n]*\bf)/, label: 'destructive git cleanup' },
 ]
 
-const SAFE_COMMANDS = new Set<string>(SAFE_COMMAND_NAMES)
-
 export function assessCommand(command: string): CommandAssessment {
   const trimmed = command.trim()
   const normalized = trimmed.toLowerCase()
@@ -72,10 +66,6 @@ export function assessCommand(command: string): CommandAssessment {
     if (dangerPattern.pattern.test(normalized)) {
       return { risk: 'dangerous', reason: dangerPattern.label, matchedRule: dangerPattern.pattern.source }
     }
-  }
-
-  if (SAFE_COMMANDS.has(firstWord)) {
-    return { risk: 'safe', reason: `known safe command: ${firstWord}` }
   }
 
   for (const safePattern of SAFE_COMMAND_PATTERNS) {

@@ -12,6 +12,7 @@
 import type { ToolCall, ToolResult, ToolDefinition, ToolContext } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
 import { promises as fs } from 'node:fs'
+import { isPathInsideRoot, resolveToolReadPath, resolveToolWriteBoundaryPath } from '../sandbox/file-path-guard'
 import path from 'node:path'
 import os from 'node:os'
 import { randomBytes } from 'node:crypto'
@@ -168,10 +169,22 @@ function registerCleanup(filePath: string): void {
  * 写入路径优先级：workdir/.tmp/tool-results/ > os.tmpdir()
  * 调用方负责注册清理（本函数内部已注册）。
  */
+let fallbackTempDirPromise: Promise<string> | null = null
+
 async function writeLargeResult(content: string, toolName: string, workdir?: string): Promise<string> {
-  const tmpDir = workdir
-    ? path.join(workdir, '.tmp', 'tool-results')
-    : path.join(os.tmpdir(), 'my-agent-tool-results')
+  let tmpDir: string
+  if (workdir) {
+    const root = path.resolve(workdir)
+    tmpDir = path.join(root, '.tmp', 'tool-results')
+    const realRoot = resolveToolReadPath(root)
+    const boundary = resolveToolWriteBoundaryPath(tmpDir)
+    if (!realRoot || !boundary || !isPathInsideRoot(boundary, realRoot)) {
+      throw new Error('工具结果目录超出工作区或经过不安全的符号链接')
+    }
+  } else {
+    fallbackTempDirPromise ??= fs.mkdtemp(path.join(os.tmpdir(), 'my-agent-tool-results-'))
+    tmpDir = await fallbackTempDirPromise
+  }
 
   await fs.mkdir(tmpDir, { recursive: true })
 
@@ -193,10 +206,18 @@ export const errorFormattingMiddleware: ToolMiddleware = async (ctx, next) => {
     return await next(ctx)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
+    log.error('Tool execution failed', {
+      toolName: ctx.call.name,
+      errorType: err instanceof Error ? err.name : 'unknown',
+      errorLength: message.length,
+    })
+    const userMessage = /timed out after/i.test(message)
+      ? `[工具错误] ${ctx.call.name} 执行超时，请缩小任务范围后重试。`
+      : `[工具错误] ${ctx.call.name} 执行失败，请检查参数或稍后重试。`
     return {
       callId: ctx.call.id,
       name: ctx.call.name,
-      content: `[工具错误] ${ctx.call.name}：${message}`,
+      content: userMessage,
       isError: true,
     }
   }
@@ -227,7 +248,7 @@ export const verifyMiddleware: ToolMiddleware = async (ctx, next) => {
     const { promisify } = await import('node:util')
     const execAsync = promisify(execFile)
     const path = await import('node:path')
-    const resolved = path.resolve(filePath)
+    const resolved = path.resolve(ctx.toolContext?.workdir || process.cwd(), filePath)
 
     let verifyCmd: string[] | null = null
     let verifyBin = ''

@@ -1,108 +1,24 @@
-# M24 朋友圈与事件层代码走读
+# M24 Moment 与事件层 — 代码走读
 
-> 对应 `m24-moments-event-layer.md`（加厚修订版）。
+> 理念章：[`m24-moments-event-layer.md`](./m24-moments-event-layer.md)
+> 最近核对：2026-08-16
 
----
+## 一、事件到 Moment
 
-## §二 / §五 对照：投影与状态机
+`life/moments.ts` 把可公开生活事件转成 Moment；不是所有内部 tick 都可发布。`moment-consistency.ts` 校验角色、时间、事件和资产事实，拒绝从文案反推未存在的世界事实。
 
-### 我们的实现（`life/moments.ts`）
+## 二、展示与互动
 
-```text
-projectMomentFromEvent(event)
-  require status === 'published'
-  optional outfit from payload.assetId → getAsset
-  text = formatMomentText(activity, mood, location, outfit)
-  store.insertMoment({ roleId, eventId, publishedAt: scheduledAt, text, meta })
+`moment-format.ts` 生成 Prompt/列表薄片；`moment-polish.ts` 只润色展示，不改变事实；`moment-interactions.ts` 记录用户互动；`moment-tips.ts` 决定是否发送轻提示。
 
-publishAndProjectRange(roleId, from, to)
-  planned ∧ scheduledAt∈[from,to] → mark published → project
+## 三、幂等
 
-publishAndProjectDue(roleId, now) ≡ Range(0, now)
-```
+事件和 Moment 有独立 ID/状态；发布后标记，重启不会重复生成同一条。互动不会修改原 Moment 正文。
 
-| 理念约束 | 代码体现 |
-|----------|----------|
-| 无独立编造 | 无「只写 moment」的公共 API 给 UI |
-| 幂等投影 | eventId 关联；重复 project 由 store 约束 |
-| 朴素文案 | `formatMomentText` 规则拼接 |
+## 四、测试证据
 
-**方法论对照**：→ §二 §四 §五
+`moment-consistency.test.ts`、`moment-interactions.test.ts`、`moment-polish.test.ts`、`moment-tips.test.ts` 及其他 `moment-*` 测试。
 
----
+## 五、当前缺口
 
-## §六 对照：仅 active 可见
-
-```text
-ipc get-moments → 解析 activeRoleId → listMomentsForRole(roleId)
-```
-
-store 可按任意 role 查；**门控在 IPC**，防止渲染误传别人 id 刷混。
-
-**方法论对照**：→ §六
-
----
-
-## §七 对照：Catch-up
-
-`catchup.runCatchup` → `ensureDayScripts` + `publishAndProjectRange(fineStart, now)`。  
-只对该 `roleId`；细窗公式见 M23。
-
-**方法论对照**：→ §七
-
----
-
-## §九 对照：资产引用
-
-`engine.materializePlannedEvents`：moment 槽 `pickWardrobeAssetId` → payload.assetId。  
-投影时读名；资产缺失则无着装后缀。
-
-**方法论对照**：→ §九
-
----
-
-## 触发链
-
-| 触发 | 调用 |
-|------|------|
-| ticker | `tickActiveRole` → `publishAndProjectDue` |
-| 换角 | `runCatchup` → `publishAndProjectRange` |
-
-**方法论对照**：→ §五、实战记录
-
----
-
-## M24-G1 聊圈一致性
-
-```text
-loadRoleAssembleInput
-  → collectRecentMomentsSlice(limit=3)
-  → buildSystemPrompt ## Recent moments
-
-checkReplyAgainstRecentMoments(reply, moments)  # 软校验，不拦 Loop
-```
-
-模块：`life/moment-consistency.ts`。
-
-## M24-G2 润色
-
-```text
-projectMomentFromEvent(preferLlm?)
-  → resolveMomentText → polishMomentTextViaLlm | formatMomentText
-  → insertMoment(meta.textSource)
-
-publishAndProjectDue → preferLlm: true
-catchup publishAndProjectRange → 默认 false
-```
-
-模块：`moment-format.ts` · `moment-polish.ts`（Prompt 不进 prompt-builder）。
-
-## 已知简化
-
-- M24-G3 生图：未做  
-- 软校验仅地点自称打脸启发式，不做完整 NLP  
-- 润色校验为规则启发式，非 embedding
-
-## 2026-08 当前实现校准
-
-Moment 不是一张自由文本公告表。生产链路由 `moments.ts` 生成，`moment-consistency.ts` 做事实与时间校验，`moment-interactions.ts` 处理用户互动，`moment-format.ts` 负责注入格式，`moment-polish.ts` 与 `moment-tips.ts` 分别负责展示前润色和轻提示。测试覆盖 `moment-*`、`moment-tips.test.ts` 与一致性边界。
+Moment 仍由有限模板/模型润色产生；没有社交网络推荐算法或云端动态流。

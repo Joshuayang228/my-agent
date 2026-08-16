@@ -1,9 +1,11 @@
-import type { ToolDefinition, ToolCall, ToolResult, ToolContext, ToolAssetUsageReport } from '../../../src/shared/types'
+import type { ToolDefinition, ToolCall, ToolResult, ToolContext, ToolAssetUsageReport, ToolMetadata } from '../../../src/shared/types'
 import { ToolMiddlewarePipeline, createDefaultPipeline, type ToolMiddlewareNext } from './middleware'
+import { createLogger } from '../utils/logger'
 
 const TOOL_TIMEOUT_MS = 30_000
 /** 单批 concurrencySafe 工具最大并行数（M04），防止 Promise.all 打爆资源 */
 const MAX_CONCURRENT_TOOLS = 10
+const log = createLogger('ToolRegistry')
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -62,6 +64,29 @@ export class ToolRegistry {
     return Array.from(this.tools.values())
   }
 
+  /**
+   * 合并工具静态与按参数动态 metadata，供权限、并发和执行链共同使用。
+   *
+   * 背景：动态 metadata 若只在执行阶段解析，Loop 的确认门和 Debug 预检会继续读取静态值，
+   * 可写的参数化工具就可能被误判成只读。设计意图是让所有决策方共享同一解析入口。
+   * 关键约束：解析函数抛错时 fail-closed，按可写、破坏性、不可并发处理。
+   */
+  resolveEffectiveMetadata(name: string, args: Record<string, unknown>): ToolMetadata | undefined {
+    const tool = this.get(name)
+    if (!tool) return undefined
+    if (!tool.resolveMetadata) return tool.metadata
+    try {
+      return { ...tool.metadata, ...tool.resolveMetadata(args) }
+    } catch {
+      return {
+        ...tool.metadata,
+        isReadOnly: false,
+        isDestructive: true,
+        isConcurrencySafe: false,
+      }
+    }
+  }
+
   has(name: string): boolean {
     return this.tools.has(this.resolveName(name))
   }
@@ -99,15 +124,9 @@ export class ToolRegistry {
     }
 
     for (const call of calls) {
-      const tool = this.get(call.name)
-      let isSafe = tool?.metadata.isConcurrencySafe ?? false
-      if (tool?.resolveMetadata) {
-        try {
-          const args = JSON.parse(call.arguments || '{}') as Record<string, unknown>
-          const dyn = tool.resolveMetadata(args)
-          if (typeof dyn.isConcurrencySafe === 'boolean') isSafe = dyn.isConcurrencySafe
-        } catch { /* 参数非法时按静态元数据 */ }
-      }
+      let args: Record<string, unknown> = {}
+      try { args = JSON.parse(call.arguments || '{}') as Record<string, unknown> } catch { /* 执行阶段返回参数错误 */ }
+      const isSafe = this.resolveEffectiveMetadata(call.name, args)?.isConcurrencySafe ?? false
 
       if (isSafe) {
         safeBatch.push(call)
@@ -137,19 +156,18 @@ export class ToolRegistry {
     try {
       args = JSON.parse(call.arguments || '{}')
     } catch {
+      log.warn('Tool arguments JSON parse failed', { toolName: call.name, argumentLength: call.arguments?.length ?? 0 })
       return {
         callId: call.id,
         name: call.name,
-        content: `Error: Invalid JSON arguments: ${call.arguments}`,
+        content: '错误：工具参数不是有效 JSON。',
         isError: true,
       }
     }
 
-    // 元数据函数化：按参数覆盖静态 metadata（权限/并发决策方应读合并后的 tool）
-    const resolved = tool.resolveMetadata?.(args)
-    const effectiveTool: ToolDefinition = resolved
-      ? { ...tool, metadata: { ...tool.metadata, ...resolved } }
-      : tool
+    // 权限、并发和执行阶段共用同一个 fail-closed metadata 解析入口。
+    const effectiveMetadata = this.resolveEffectiveMetadata(canonical, args) ?? tool.metadata
+    const effectiveTool: ToolDefinition = { ...tool, metadata: effectiveMetadata }
 
     const normalizedCall = call.name === canonical ? call : { ...call, name: canonical }
     const toolSpanId = toolContext?.assetUsageSpanIdByCall?.[call.id]

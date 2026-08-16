@@ -154,7 +154,8 @@ M15 §五已经给出「必须落盘 vs 只活内存」的红线。M16 补上**�
 | G3 | schema_version | ✅ `meta` 表 + `runMigrations`；v0→v1 幂等补 token 列 |
 | G4 | sql.js 选型 | 只沉淀，不迁库 |
 | G5 | 存储三层 | 本章成文 |
-| G6/G7/G8 | 函数化元数据 / 并发上限 / 全局排队 | 暂缓或刻意不做 |
+| G6/G7 | 函数化 metadata / 并发上限 | ✅ `resolveEffectiveMetadata` + 单批最多 10；失败 fail-closed |
+| G8 | 全局统一排队 | 刻意不做；各子系统按资源边界局部调度 |
 
 测试：`database-persist.test.ts` 新增；全量 264 通过；`tsc --noEmit` 通过。
 
@@ -186,3 +187,8 @@ M15 §五已经给出「必须落盘 vs 只活内存」的红线。M16 补上**�
 | sql.js | 保留 | 打包成本优先；用纪律关代价 |
 | wps-cowork 排队 | 不搬 | 问题域是沙箱池不是桌面 Agent |
 | 与 M04/M09/M15 | 交叉引用，不重写 | 避免三章抢真相 |
+
+
+## 2026-08 当前实现
+
+ToolRegistry 的权限、并发和执行阶段共享动态 metadata 解析；sql.js persist 使用 dirty coalesce + 临时文件原子替换；Schema 使用版本化迁移；TaskQueue 串行，TraceContext 使用 AsyncLocalStorage 隔离并发会话。

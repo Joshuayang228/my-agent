@@ -1,7 +1,7 @@
 # M04 工具系统 — 代码走读
 
 > 对照 `m04-tool-system.md` 的每个章节，展示 CC（Claude Code）和 Alice 的真实代码实现。
-> 
+>
 > CC 版本：`2.1.88`，源码路径：`_reference/.../claude-code-sourcemap-main/.../restored-src/src/`
 > Alice 版本：构建后压缩 JS，位于 `_reference/.../alice-source/main-chunks/`
 
@@ -21,20 +21,20 @@ export type AnyToolDef = {
   description: ToolDescription
   // ↑ ToolDescription = string | (() => string)
   //    可以是固定字符串，也可以是函数（动态生成描述）
-  
+
   inputSchema: ZodObject<ZodRawShape>
   // ↑ Zod schema 定义工具的输入参数结构
-  
+
   execute: (
     input: { [key: string]: unknown },
     ctx: ToolUseContext,
   ) => Promise<ToolResult>
   // ↑ 执行函数 —— 接收解析后的参数 + 上下文，返回结果
-  
+
   maxResultSizeChars?: number
   // ↑ 结果大小上限（字符数）。超过此值时触发落盘。
   //    设为 Infinity 表示永不落盘（如 Read 工具，避免循环）
-  
+
   // 下面这些元数据字段都是可选的 —— buildTool() 会填充默认值
   isConcurrencySafe?: (input: unknown) => boolean
   isReadOnly?: (input: unknown) => boolean
@@ -43,7 +43,7 @@ export type AnyToolDef = {
 }
 ```
 
-**我们的真实设计**：`ToolMetadata` 的三个核心字段默认是静态布尔值；`ToolDefinition.resolveMetadata?(args)` 是可选的动态覆盖入口。Registry 在并发分批和实际执行前分别解析这个函数，解析失败按静态元数据或不安全侧处理。当前内置工具主要使用静态 metadata，动态入口由单测覆盖，尚未有生产内置工具依赖它。
+**我们的真实设计**：`ToolMetadata` 的三个核心字段默认是静态布尔值；`ToolDefinition.resolveMetadata?(args)` 是可选的动态覆盖入口。`ToolRegistry.resolveEffectiveMetadata()` 统一供权限、Debug 预检、并发分批和实际执行使用；解析失败按可写、破坏性、不可并发 fail-closed。`delegate_task` 已使用动态 metadata：只读研究委派可并发，coder/显式可写委派必须确认。
 
 ### Alice 的工具定义结构
 
@@ -54,25 +54,25 @@ ie = {
     name: "bash",
     description: e => `在 ${ee?"cmd":"bash"} 中执行命令...`,
     // ↑ description 也可以是函数（接收上下文参数 e，动态生成描述）
-    
+
     category: "bash",  // 工具分类（CC 没有这个字段）
     systemHint: a.yamlPtRaw("TOOL_BASH_HINT"),  // 系统提示（额外的内部指导）
-    
+
     requiresPermission: !0,  // true —— 需要用户授权
     isReadOnly: !1,          // false —— 会修改状态
     isDestructive: !0,       // true —— 破坏性操作
     isConcurrencySafe: !1,   // false —— 不能并发
     // ↑ 注意：bash 工具的元数据是布尔值，不是函数
-    
+
     maxResultSizeChars: 2e5,  // 200,000 字符上限
-    
+
     inputSchema: t.z.object({
       command: t.z.string().describe("..."),
       timeout: t.z.number().optional().describe("..."),
       background: t.z.boolean().optional().describe("..."),
       show_console: t.z.boolean().optional().describe("...")
     }),
-    
+
     async execute({ command: e, timeout: t = 120, background: s = !1 }, c) {
       // 执行逻辑...
     }
@@ -89,7 +89,7 @@ ie = {
 return {
   name: "agent",
   description: a.yamlPt("TOOL_AGENT_DESC", { roleDescriptions: l }),
-  
+
   isConcurrencySafe: e => {
     // ↑ 接收输入参数 e（包含 role / isReadOnly 字段）
     const t = e?.role,
@@ -99,16 +99,16 @@ return {
     // 2. 否则查角色表 —— 如果该角色默认只读，也返回 true
     return !0 === n || !1 !== n && !!t && xE(t)
   },
-  
+
   maxResultSizeChars: 1e5,  // 100,000
-  
+
   inputSchema: t.z.object({
     prompt: t.z.string().describe("..."),
     role: t.z.string().optional().describe("..."),
     isReadOnly: t.z.boolean().optional().describe("..."),
     run_in_background: t.z.boolean().optional().describe("...")
   }),
-  
+
   async execute({ prompt: t, role: c, isReadOnly: l }, p) { /* ... */ }
 }
 
@@ -137,17 +137,17 @@ export function getDescription(): string {
   Usage:
   - ALWAYS use ${GREP_TOOL_NAME} for search tasks. NEVER invoke \`grep\` or \`rg\` as a ${BASH_TOOL_NAME} command. The ${GREP_TOOL_NAME} tool has been optimized for correct permissions and access.
   // ↑ 第一条：强约束 —— "ALWAYS / NEVER" 引导模型选对工具
-  
+
   - Supports full regex syntax (e.g., "log.*Error", "function\\s+\\w+")
   // ↑ 功能说明
-  
+
   - Filter files with glob parameter (e.g., "*.js", "**/*.tsx") or type parameter (e.g., "js", "py", "rust")
   - Output modes: "content" shows matching lines, "files_with_matches" shows only file paths (default), "count" shows match counts
   // ↑ 使用方式
-  
+
   - Use ${AGENT_TOOL_NAME} tool for open-ended searches requiring multiple rounds
   // ↑ 何时不用（何时改用别的工具）—— 这是最容易被忽略的
-  
+
   - Pattern syntax: Uses ripgrep (not grep) - literal braces need escaping (use \`interface\\{\\}\` to find \`interface{}\` in Go code)
   - Multiline matching: By default patterns match within single lines only. For cross-line patterns like \`struct \\{[\\s\\S]*?field\`, use \`multiline: true\`
   // ↑ 边界条件和特殊情况
@@ -184,7 +184,7 @@ function partitionToolCalls(
   return toolUseMessages.reduce((acc: Batch[], toolUse) => {
     const tool = findToolByName(toolUseContext.options.tools, toolUse.name)
     const parsedInput = tool?.inputSchema.safeParse(toolUse.input)
-    
+
     // 核心判定：调用 isConcurrencySafe 函数，传入解析后的参数
     const isConcurrencySafe = parsedInput?.success
       ? (() => {
@@ -198,7 +198,7 @@ function partitionToolCalls(
           }
         })()
       : false  // 参数解析失败 → 不安全
-    
+
     // 分批逻辑：如果当前工具安全 && 上一批也是安全批 → 追加到上一批
     if (isConcurrencySafe && acc[acc.length - 1]?.isConcurrencySafe) {
       acc[acc.length - 1]!.blocks.push(toolUse)
@@ -262,20 +262,20 @@ let ct = [];    // ct = 当前批（累积中的并发安全工具）
 for (const e of it) {
   const n = t.find(t => t.name === e.function.name),  // 找工具定义
         r = n?.isConcurrencySafe;
-  
+
   let o = !1;  // o = 判定结果
-  
+
   // 关键：判断 isConcurrencySafe 是函数还是布尔
-  if ("function" == typeof r) 
+  if ("function" == typeof r)
     try {
       o = r(e.function.arguments ? JSON.parse(e.function.arguments) : {})
       // ↑ 是函数 → 调用它，传入解析后的参数
     } catch {
       o = !1  // 解析失败 → 不安全
     }
-  else 
+  else
     o = r ?? !1  // 是布尔 → 直接取值（undefined 时默认 false）
-  
+
   // 分批逻辑（与 CC 完全一致）
   o ? ct.push(e) : (ct.length > 0 && (st.push(ct), ct = []), st.push([e]))
 }
@@ -315,7 +315,7 @@ export function getPersistenceThreshold(
   if (!Number.isFinite(declaredMaxResultSizeChars)) {
     return declaredMaxResultSizeChars
   }
-  
+
   // 检查是否有工具级覆盖（feature flag）
   const overrides = getFeatureValue_CACHED_MAY_BE_STALE<Record<string, number> | null>(
     PERSIST_THRESHOLD_OVERRIDE_FLAG, {}
@@ -324,7 +324,7 @@ export function getPersistenceThreshold(
   if (typeof override === 'number' && Number.isFinite(override) && override > 0) {
     return override
   }
-  
+
   // 默认：取声明值和全局默认值的较小值
   return Math.min(declaredMaxResultSizeChars, DEFAULT_MAX_RESULT_SIZE_CHARS)
 }
@@ -342,7 +342,7 @@ export async function persistToolResult(
   toolUseId: string,
 ): Promise<PersistedToolResult | PersistToolResultError> {
   const isJson = Array.isArray(content)
-  
+
   // 只能落盘纯文本 —— 如果结果包含图片块，拒绝
   if (isJson) {
     const hasNonTextContent = content.some(block => block.type !== 'text')
@@ -350,11 +350,11 @@ export async function persistToolResult(
       return { error: 'Cannot persist tool results containing non-text content' }
     }
   }
-  
+
   await ensureToolResultsDir()  // 确保 projectDir/sessionId/tool-results/ 存在
   const filepath = getToolResultPath(toolUseId, isJson)
   const contentStr = isJson ? jsonStringify(content, null, 2) : content
-  
+
   // 关键技巧：用 'wx' flag（写时若文件已存在则失败）
   // tool_use_id 是唯一的 → 如果文件已存在，说明之前写过了（可能是 microcompact 重放消息）
   // → 跳过写入，直接用已有文件生成预览
@@ -371,10 +371,10 @@ export async function persistToolResult(
     }
     // EEXIST：之前已经写过了，fall through 到预览生成
   }
-  
+
   // 生成预览（前 2000 字节）
   const { preview, hasMore } = generatePreview(contentStr, PREVIEW_SIZE_BYTES)
-  
+
   return { filepath, originalSize: contentStr.length, isJson, preview, hasMore }
 }
 ```
@@ -424,7 +424,7 @@ async function maybePersistLargeToolResult(
   persistenceThreshold?: number,
 ): Promise<ToolResultBlockParam> {
   const content = toolResultBlock.content
-  
+
   // 空结果保护（inc-4586 bug 修复）
   // 问题：某些模型遇到空 tool_result 会提前结束回合（误以为任务完成）
   // 解法：空结果时注入占位文本 "(工具名 completed with no output)"
@@ -437,7 +437,7 @@ async function maybePersistLargeToolResult(
       content: `(${toolName} completed with no output)`,
     }
   }
-  
+
   // 后面才是正常的大小判断 + 落盘逻辑...
 }
 ```
@@ -459,7 +459,7 @@ const TOOL_DEFAULTS = {
   isConcurrencySafe: (_input?: unknown) => false,  // 默认不安全
   isReadOnly: (_input?: unknown) => false,          // 默认会写
   isDestructive: (_input?: unknown) => false,       // 默认不破坏
-  checkPermissions: (input, _ctx?) => 
+  checkPermissions: (input, _ctx?) =>
     Promise.resolve({ behavior: 'allow', updatedInput: input }),
   toAutoClassifierInput: (_input?: unknown) => '',
   userFacingName: (_input?: unknown) => '',
@@ -505,7 +505,7 @@ createTools(e) {
         isReadOnly: !0,
         isConcurrencySafe: !0
       };
-    
+
     return [{
       ...o,  // 用基底 spread
       name: "todo_plan",
@@ -537,7 +537,7 @@ createTools(e) {
 export type ContentReplacementState = {
   seenIds: Set<string>
   // ↑ 已决策的 tool_use_id 集合 —— 冻结决策，后续回合不再重新判断
-  
+
   replacements: Map<string, string>
   // ↑ 被替换结果的精确文本 —— 重放时纯 Map 查找、零 IO、字节级一致
 }

@@ -215,7 +215,7 @@ type PermissionDecisionReason =
 - **G2 deniedCommands**：`loop.ts` 新增 `state.deniedCommands` + `extractBlockedCommand()` + Observe 阶段检测 `[SANDBOX BLOCKED]`，防止 AI 反复重试被沙箱拦截的命令。
 - **G3 persistent 审批**：`approval-store.ts` 接入 SQLite（`persistent_approvals` 表），内存缓存镜像 + 异步落盘 + app.whenReady 预加载，跨会话保留用户审批决策。
 
-单测 138 → 140（+2），tsc 零错误。
+历史快照（2026-07）：单测 138 → 140（+2），tsc 零错误；当前测试数量以最新门禁为准。
 
 ## 决策：不照搬 Alice 的五模式，只吸收责任链原则
 
@@ -271,3 +271,7 @@ G2 要从 tool_result 里提取被拦截的命令，但 `[SANDBOX BLOCKED]` 后�
 4. 持久审批的边界清楚吗？哪些需要持久、哪些只需要 session？
 5. 责任链优先级对吗？allow/deny > 历史审批 > ask > 命令分级/沙箱？
 6. bypass-immune 的边界清楚吗？哪些是"致命"（必须拦），哪些是"危险"（可配置）？
+
+## 2026-08 安全审计补充
+
+权限不只保护工具调用，也保护配置变更：执行模式和 MCP 自动执行入口的高风险变更必须由主进程确认，不能信任 Renderer checkbox 或 `confirmRisk` 字段。

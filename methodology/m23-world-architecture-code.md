@@ -1,89 +1,28 @@
-# M23 生活世界代码走读
+# M23 生活世界架构 — 代码走读
 
-> 对应 `m23-world-architecture.md`。
+> 理念章：[`m23-world-architecture.md`](./m23-world-architecture.md)
+> 最近核对：2026-08-16
 
----
+## 一、角色状态
 
-## 一、模块地图
+`life/store.ts` 按 role 保存 world_json、pausedAt、lastTick、catchupSummary、DayScript、Event 和 Moment。`world-state.ts` 负责 Schema、默认值和损坏数据重置；旧三字段世界状态不迁移为虚构新事实。
 
-```
-electron/main/companion/life/
-  engine.ts            # pause / resume / ensureDayScripts / tickActiveRole
-  ticker.ts            # 启动 + 周期 tick（默认 5min）
-  script-generator.ts  # DayScript：LLM + 哈希回退（M23-G1）
-  world-codec.ts       # 世界状态编解码（无 IO）
-  world-state.ts       # ensure / 情境刷新（M23-G2）
-  catchup.ts           # ≤7×24h 细补 + 概况摘要
-  store.ts             # role_state / day_scripts / events …
-  moments.ts           # 到期发布 + 投影朋友圈
-  assets.ts            # 衣柜挂接（moment 槽）
-  dates.ts             # 本地日历日工具
-```
+## 二、时钟
 
-换角：`orchestrator.requestSwitch` → `pauseRole(旧)` → 写 `activeRoleId` → `runCatchup(新)`。  
-组装：`loadRoleAssembleInput` 带上 `catchupSummary` / `worldSlice`（若有）→ `prompt-builder` L3。
+`ticker.ts` 推进 active role 的生活时间；`engine.ts` 生成/发布到期事件；切换角色时旧角色 pause，新角色 resume。后台 tick 不直接写聊天消息。
 
----
+## 三、离线 Catch-up
 
-## 二、tick 数据流
+`catchup.ts` 根据 pausedAt 到当前时间计算离线跨度，生成有限摘要和到期事件；跨度和输出有上限，不能逐分钟模拟。结果进入世界薄片和 Moment，不修改用户会话历史。
 
-```
-startLifeTicker
-  → tickActiveRole(now)
-       resolveActiveRoleId()          # settings.activeRoleId + 校验
-       若 paused_at != null → return  # 异常半暂停
-       ensureDayScripts(today, today)
-       publishAndProjectDue(roleId, now)
-       touchLastTick
-```
+## 四、Prompt 入口
 
-`ensureDayScripts` 可对任意 role 调用（供 Catch-up）；**日常 tick 只应对 active**。
+Orchestrator 只注入当前角色的世界切片、catch-up 和近期生活证据；默认世界来自 Role Pack，当前地点/活动以运行状态为准。
 
----
+## 五、测试证据
 
-## 三、Catch-up（catchup.ts）
+`companion-life.test.ts`、`companion-catchup.test.ts`、`world-state.test.ts`、`world-hub.test.ts`。
 
-```
-CATCHUP_FINE_MS = 7 * 86400000
-fineStart = max(pausedAt, now - CATCHUP_FINE_MS)
-pausedAt < fineStart → setCatchupSummary(规则模板)
-ensureDayScripts(fineStart日 … now日)
-publishAndProjectRange(fineStart, now)
-clearPausedAt + touchLastTick
-```
+## 六、当前缺口
 
-单测应锁：天数上限、概况路径、不伪造「此刻正在发生」。
-
----
-
-## 四、剧本物化
-
-`resolveDayScript(roleId, date, { preferLlm })` → theme + slots → `insertDayScript` → 每槽 `insertEvent(planned)`；  
-moment 槽可 `pickWardrobeAssetId` 写入 payload（派生引用）。  
-`tickActiveRole`：`preferLlm: true`；`runCatchup` → `ensureDayScripts` 默认哈希。
-
----
-
-## 五、约束速查
-
-| 约束 | 代码落点 |
-|------|----------|
-| 仅 active tick | `tickActiveRole` + ticker |
-| 非活跃暂停 | `pauseRole` / `paused_at` |
-| ≤7 日细补 | `computeFineStart` / `CATCHUP_FINE_MS` |
-| 不挡主进程 | ticker `.catch` 只打日志 |
-| 无循环依赖 | life 不 import orchestrator |
-
----
-
-## 六、已知简化
-
-- 剧本文案：✅ 当日 LLM + 哈希回退（M23-G1）；Catch-up 细补仍哈希  
-
-- Catch-up 摘要：✅ LLM 叙事 + 模板回退（M23-G3；Prompt 在 `catchup.ts`）  
-
-- 世界状态：✅ `world_json` 居所/时区/情境（M23-G2）；Assemble `## World slice` 一行
-
-## 2026-08 当前实现校准
-
-生活世界的真实边界是 `electron/main/companion/life/engine.ts`、`ticker.ts`、`catchup.ts`、`world-state.ts`、`store.ts`：按 role 保存世界状态，ticker 负责时钟，catch-up 处理离线时间，world-state 做默认值与迁移校验。测试证据是 `companion-life.test.ts`、`companion-catchup.test.ts`、`world-state.test.ts`、`world-hub.test.ts`。世界模拟不会直接改变生产会话；它通过 Runtime 的上下文装配进入 Prompt。
+世界模拟是本地有限状态，不是开放式自治世界；复杂经济、多人同步和无限事件生成不在当前能力内。

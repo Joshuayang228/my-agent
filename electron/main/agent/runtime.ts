@@ -11,6 +11,7 @@
  */
 
 import { BrowserWindow, Notification } from 'electron'
+import { randomUUID } from 'node:crypto'
 import { agentLoop } from './loop'
 import { buildSystemPrompt, rolePackToPromptParts } from './prompt-builder'
 import { describeCastPresence } from '../companion/cast/availability'
@@ -467,7 +468,7 @@ class AgentRuntime {
         }
         if (ev.type === 'tool_calls') {
           await store.saveMessage(sessionId, {
-            id: `assistant-tc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            id: `assistant-tc-${randomUUID()}`,
             role: 'assistant',
             content: '',
             timestamp: Date.now(),
@@ -587,7 +588,7 @@ class AgentRuntime {
     return { citations: [] }
   }
 
-  /** 将对话完成后的后台任务加入 TaskQueue（M11 任务生命周期） */
+  /** 将对话完成后的后台任务加入 TaskQueue（M09 任务生命周期） */
   private enqueuePostTasks(
     sessionId: string,
     messages: ChatMessage[],
@@ -684,9 +685,9 @@ class AgentRuntime {
 
     // Headless 没有可交互的确认框：只放行明确只读工具，shell / 子 Agent / 继续任务
     // 等能力即使元数据看似只读，也可能间接产生写入或扩大权限，统一拒绝。
-    const headlessConfirm = async (name: string, _args: Record<string, unknown>) => {
-      const tool = toolRegistry.get(name)
-      const allowed = shouldAutoApproveHeadlessTool(name, tool)
+    const headlessConfirm = async (name: string, args: Record<string, unknown>) => {
+      const metadata = toolRegistry.resolveEffectiveMetadata(name, args)
+      const allowed = shouldAutoApproveHeadlessTool(name, metadata)
       if (!allowed) {
         log.warn('Headless denied non-read-only tool', { toolName: name, ...labelMeta })
       }

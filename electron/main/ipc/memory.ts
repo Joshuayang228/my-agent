@@ -4,7 +4,7 @@ import * as memory from '../storage/memory-store'
 import type { MemoryCategory } from '../storage/memory-store'
 
 const MEMORY_CATEGORIES = new Set<MemoryCategory>(['identity', 'preference', 'fact', 'workflow', 'voice', 'feedback'])
-const MAX_MEMORY_CONTENT_LENGTH = 1_000_000
+const MAX_MEMORY_CONTENT_LENGTH = memory.MAX_MEMORY_CONTENT_LENGTH
 const MAX_MEMORY_ID_LENGTH = 200
 
 function isMemoryCategory(value: unknown): value is MemoryCategory {

@@ -157,7 +157,7 @@ async function* agentLoop(options, registry): AsyncGenerator<AgentStreamEvent>
 |------|------|------|---------|---------|
 | **AsyncGenerator** | ✅ 消费者控制节奏 | ✅ gen.return() | ✅ | ❌ 繁琐 |
 | EventEmitter | ❌ 快速发射时积压 | ❌ 需手动清理 | ❌ | ✅ 广播 |
-| RxJS Observable | ✅ | ✅ | ✅ | ✅ 操作符丰富 | 
+| RxJS Observable | ✅ | ✅ | ✅ | ✅ 操作符丰富 |
 | 回调 | ❌ | ❌ | ❌ | ❌ |
 
 **背压**是关键：如果 LLM 快速输出 token，但 UI 来不及渲染，AsyncGenerator 自然暂停生产者。EventEmitter 则会把事件堆在内存里。
@@ -537,7 +537,7 @@ const MAX_OUTPUT_RECOVERY_LIMIT = 2   // 截断恢复
 const TOOL_TIMEOUT_MS = 30_000       // 工具超时
 ```
 
-> Token 效率的完整讨论（四层压缩策略、Prompt Cache 感知等）见 [M3 上下文管理](m03-context-management.md)。
+> Token 效率的完整讨论（四层压缩策略、Prompt Cache 感知等）见 [M07 上下文压缩](m07-context-compression.md)。
 
 ---
 
@@ -637,4 +637,4 @@ const TOOL_TIMEOUT_MS = 30_000       // 工具超时
 
 ---
 
-*下一个模块：[M2 工具系统](m02-tool-system.md) · 章节目录见 [README.md](README.md)*
+*下一个模块：[M04 工具系统](m04-tool-system.md) · 章节目录见 [README.md](README.md)*

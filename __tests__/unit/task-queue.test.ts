@@ -1,5 +1,5 @@
 /**
- * TaskQueueManager 单元测试（M11 任务生命周期）
+ * TaskQueueManager 单元测试（M09 任务生命周期）
  *
  * 测试重点：
  * - 任务状态机（pending → running → completed/failed）
@@ -59,7 +59,7 @@ describe('TaskQueueManager', () => {
     const id1 = taskQueue.enqueue('s1', 'smart-title', async () => {})
     const id2 = taskQueue.enqueue('s1', 'smart-title', async () => {})
     expect(id1).not.toBe(id2)
-    expect(id1).toMatch(/^task-/)
+    expect(id1).toMatch(/^task-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
   })
 
   it('任务完成后状态变为 completed', async () => {
@@ -103,7 +103,8 @@ describe('TaskQueueManager', () => {
 
       const task = taskQueue.getTask(id)
       expect(task?.status).toBe('failed')
-      expect(task?.error).toContain('测试失败')
+      expect(task?.error).toBe('后台任务执行失败，请检查配置或稍后重试。')
+      expect(task?.error).not.toContain('测试失败')
       expect(callCount).toBe(4) // 首次 + 3 次重试
     } finally {
       vi.useRealTimers()

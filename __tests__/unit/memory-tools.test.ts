@@ -73,7 +73,7 @@ vi.mock('../../electron/main/utils/logger', () => ({
   }),
 }))
 
-import { rememberTool, recallTool, forgetTool } from '../../electron/main/tools/builtins/memory-manage'
+import { rememberTool, recallTool, forgetTool, resolveRememberMetadata } from '../../electron/main/tools/builtins/memory-manage'
 import { taskPlanTool } from '../../electron/main/tools/builtins/task-plan'
 import { _rows } from '../../electron/main/storage/database'
 
@@ -96,6 +96,16 @@ describe('remember tool', () => {
   it('G9: accepts feedback category (corrections & confirmations)', async () => {
     const result = await rememberTool.execute({ category: 'feedback', content: 'Prefers concise answers without preamble (said long explanations waste time)' })
     expect(result).toContain('已记住 [feedback]')
+  })
+
+
+  it('敏感记忆进入确认链，凭据原文即使确认也不会入库', async () => {
+    expect(resolveRememberMetadata({ content: '我的年薪是五十万' })).toMatchObject({ isDestructive: true, isConcurrencySafe: false })
+    expect(resolveRememberMetadata({ content: '喜欢深色主题' })).toMatchObject({ isDestructive: false, isConcurrencySafe: false })
+
+    const result = await rememberTool.execute({ category: 'fact', content: 'api_key=sk-secret-value' })
+    expect(result).toContain('凭据原文不会写入')
+    expect(_rows).toHaveLength(0)
   })
 
   it('rejects empty content', async () => {

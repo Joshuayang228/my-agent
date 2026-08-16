@@ -19,8 +19,9 @@ export const sessionFileChangeMiddleware: ToolMiddleware = async (ctx, next) => 
 
   const rawPath = typeof ctx.args.path === 'string' ? ctx.args.path : ''
   const sessionId = ctx.toolContext?.sessionId || ''
+  const workspaceRoot = ctx.toolContext?.workdir?.trim() || getWorkspaceRoot()
   const resolved = rawPath
-    ? resolveToolFilePath(rawPath, getWorkspaceRoot())
+    ? resolveToolFilePath(rawPath, workspaceRoot)
     : ''
 
   let before: string | null = null

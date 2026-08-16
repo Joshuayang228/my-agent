@@ -135,9 +135,9 @@ export async function runPlayground(input: {
     return { ok: true, text: text.trim(), ms, model: config.model }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    span.end('error', message)
+    span.end('error', err instanceof Error ? err.name : 'unknown')
     log.warn('Playground run failed', { errorType: err instanceof Error ? err.name : 'unknown', errorLength: message.length })
-    return { ok: false, error: message }
+    return { ok: false, error: 'Playground 调用失败，请检查模型配置或网络后重试。' }
   }
 }
 

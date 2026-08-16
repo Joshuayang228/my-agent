@@ -105,7 +105,7 @@ export async function ingestDocument(filePath: string, config: LLMConfig): Promi
   )
   persist()
 
-  log.info(`Document ingested: ${name}`, { docId, chunks: ingested })
+  log.info('Document ingested', { nameHash: hashForLog(name), nameLength: name.length, docId, chunks: ingested })
   return { id: docId, name, filePath: absPath, chunkCount: ingested, createdAt: Date.now() }
 }
 

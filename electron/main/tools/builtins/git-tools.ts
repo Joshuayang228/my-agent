@@ -4,31 +4,83 @@ import { buildSafeChildProcessEnv } from '../../utils/safe-process-env'
 import { promisify } from 'node:util'
 import { createLogger, hashForLog } from '../../utils/logger'
 import { getWorkspaceRoot } from '../../agent/project-memory'
+import type { ToolContext, ToolMetadata } from '../../../../src/shared/types'
 
 const execFileAsync = promisify(execFile)
 const log = createLogger('GitTools')
 
 const TIMEOUT_MS = 15_000
 const MAX_OUTPUT = 50_000
+const MAX_PATH_LENGTH = 4_096
+const MAX_REVISION_LENGTH = 200
+const MAX_AUTHOR_LENGTH = 500
+const MAX_COMMIT_MESSAGE_LENGTH = 20_000
+const MAX_FILES_ARGUMENT_LENGTH = 20_000
+const MAX_FILES_COUNT = 500
+const MAX_BRANCH_NAME_LENGTH = 200
 
-async function runGit(args: string[], cwd?: string): Promise<string> {
-  const workDir = cwd || getWorkspaceRoot() || process.cwd()
+/**
+ * Git 工具始终绑定当前 Agent 的有效工作区。
+ *
+ * 背景：旧实现未接收 ToolContext，子 Agent 即使被限制到独立 workdir，Git 仍会退回主进程
+ * process.cwd()。设计意图：优先使用 ctx.workdir，其次使用当前项目；没有工作区就拒绝。
+ * 关键约束：调用方不能自行回退 process.cwd()，否则会重新扩大子 Agent 文件边界。
+ */
+export function resolveGitWorkdir(ctx?: ToolContext): string | null {
+  return ctx?.workdir?.trim() || getWorkspaceRoot() || null
+}
+
+async function runGit(args: string[], cwd: string): Promise<string> {
   try {
     const { stdout, stderr } = await execFileAsync('git', args, {
-      cwd: workDir,
+      cwd,
       timeout: TIMEOUT_MS,
       maxBuffer: 1024 * 1024,
-      env: buildSafeChildProcessEnv({ GIT_TERMINAL_PROMPT: '0' }),
+      env: buildSafeChildProcessEnv({
+        GIT_TERMINAL_PROMPT: '0',
+        GIT_PAGER: 'cat',
+        PAGER: 'cat',
+      }),
     })
     const output = (stdout + (stderr ? `\n${stderr}` : '')).trim()
     if (output.length > MAX_OUTPUT) {
       return output.slice(0, MAX_OUTPUT) + `\n\n...（已截断，原始共 ${output.length} 个字符）`
     }
     return output
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    throw new Error(message)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    log.warn('Git command failed', {
+      operation: args[0] || 'unknown',
+      errorType: error instanceof Error ? error.name : 'unknown',
+      errorLength: message.length,
+    })
+    throw new Error('Git 命令执行失败')
   }
+}
+
+function boundedString(value: unknown, max: number): value is string {
+  return typeof value === 'string' && value.length > 0 && value.length <= max && !/[\0\r\n]/.test(value)
+}
+
+/** 防止把 ref 参数解释为 git diff 选项，同时保留 HEAD~1、main..feature 等常见 revspec。 */
+export function isSafeGitRevision(value: unknown): value is string {
+  return boundedString(value, MAX_REVISION_LENGTH) && !value.startsWith('-')
+}
+
+/** Git ref 基础约束；最终创建/切换仍由 Git 自身做存在性校验。 */
+export function isSafeGitBranchName(value: unknown): value is string {
+  if (!boundedString(value, MAX_BRANCH_NAME_LENGTH) || value.startsWith('-') || value === '@') return false
+  return !value.startsWith('.')
+    && !value.endsWith('.')
+    && !value.endsWith('/')
+    && !value.includes('..')
+    && !value.includes('//')
+    && !value.includes('@{')
+    && !/[ ~^:?*[\\]/.test(value)
+}
+
+function invalidWorkdir(): string {
+  return '错误：请先打开项目，Git 工具不会退回主进程目录执行。'
 }
 
 export const gitStatusTool = buildTool({
@@ -45,16 +97,19 @@ export const gitStatusTool = buildTool({
     },
   },
   metadata: { isReadOnly: true, isConcurrencySafe: true },
-  execute: async (args) => {
+  execute: async (args, ctx?: ToolContext) => {
+    const workdir = resolveGitWorkdir(ctx)
+    if (!workdir) return invalidWorkdir()
+    if (args.path !== undefined && !boundedString(args.path, MAX_PATH_LENGTH)) return '错误：Git 路径参数无效或过长'
     try {
-      const pathArgs = args.path ? ['--', args.path as string] : []
+      const pathArgs = args.path ? ['--', args.path] : []
       const [status, branch] = await Promise.all([
-        runGit(['status', '--porcelain=v1', ...pathArgs]),
-        runGit(['branch', '--show-current']),
+        runGit(['status', '--porcelain=v1', ...pathArgs], workdir),
+        runGit(['branch', '--show-current'], workdir),
       ])
       return `分支：${branch || '（游离 HEAD）'}\n\n${status || '（工作区干净）'}`
-    } catch (err) {
-      return `错误：${err instanceof Error ? err.message : String(err)}`
+    } catch {
+      return '错误：读取 Git 状态失败，请确认当前目录是有效仓库。'
     }
   },
 })
@@ -85,18 +140,24 @@ export const gitDiffTool = buildTool({
     },
   },
   metadata: { isReadOnly: true, isConcurrencySafe: true },
-  execute: async (args) => {
+  execute: async (args, ctx?: ToolContext) => {
+    const workdir = resolveGitWorkdir(ctx)
+    if (!workdir) return invalidWorkdir()
+    if (args.staged !== undefined && typeof args.staged !== 'boolean') return '错误：staged 参数必须是布尔值'
+    if (args.stat_only !== undefined && typeof args.stat_only !== 'boolean') return '错误：stat_only 参数必须是布尔值'
+    if (args.commit !== undefined && !isSafeGitRevision(args.commit)) return '错误：commit/ref 参数无效'
+    if (args.path !== undefined && !boundedString(args.path, MAX_PATH_LENGTH)) return '错误：Git 路径参数无效或过长'
     try {
       const gitArgs = ['diff']
       if (args.staged) gitArgs.push('--cached')
       if (args.stat_only) gitArgs.push('--stat')
-      if (args.commit) gitArgs.push(args.commit as string)
-      if (args.path) gitArgs.push('--', args.path as string)
+      if (args.commit) gitArgs.push(args.commit)
+      if (args.path) gitArgs.push('--', args.path)
 
-      const output = await runGit(gitArgs)
+      const output = await runGit(gitArgs, workdir)
       return output || '（没有差异）'
-    } catch (err) {
-      return `错误：${err instanceof Error ? err.message : String(err)}`
+    } catch {
+      return '错误：读取 Git 差异失败，请检查 ref 或仓库状态。'
     }
   },
 })
@@ -110,7 +171,7 @@ export const gitLogTool = buildTool({
     properties: {
       count: {
         type: 'number',
-        description: "要显示的提交数量，默认 10。",
+        description: "要显示的提交数量，默认 10，最大 100。",
       },
       oneline: {
         type: 'boolean',
@@ -127,23 +188,26 @@ export const gitLogTool = buildTool({
     },
   },
   metadata: { isReadOnly: true, isConcurrencySafe: true },
-  execute: async (args) => {
+  execute: async (args, ctx?: ToolContext) => {
+    const workdir = resolveGitWorkdir(ctx)
+    if (!workdir) return invalidWorkdir()
+    const count = args.count === undefined ? 10 : args.count
+    if (typeof count !== 'number' || !Number.isInteger(count) || count < 1 || count > 100) return '错误：count 必须是 1–100 的整数'
+    if (args.oneline !== undefined && typeof args.oneline !== 'boolean') return '错误：oneline 参数必须是布尔值'
+    if (args.path !== undefined && !boundedString(args.path, MAX_PATH_LENGTH)) return '错误：Git 路径参数无效或过长'
+    if (args.author !== undefined && !boundedString(args.author, MAX_AUTHOR_LENGTH)) return '错误：author 参数无效或过长'
     try {
-      const count = (args.count as number) || 10
       const oneline = args.oneline !== false
       const gitArgs = ['log', `-${count}`]
-      if (oneline) {
-        gitArgs.push('--oneline', '--decorate')
-      } else {
-        gitArgs.push('--format=%H %an <%ae> %ai%n  %s')
-      }
-      if (args.author) gitArgs.push(`--author=${args.author as string}`)
-      if (args.path) gitArgs.push('--', args.path as string)
+      if (oneline) gitArgs.push('--oneline', '--decorate')
+      else gitArgs.push('--format=%H %an <%ae> %ai%n  %s')
+      if (args.author) gitArgs.push(`--author=${args.author}`)
+      if (args.path) gitArgs.push('--', args.path)
 
-      const output = await runGit(gitArgs)
+      const output = await runGit(gitArgs, workdir)
       return output || '（没有找到提交）'
-    } catch (err) {
-      return `错误：${err instanceof Error ? err.message : String(err)}`
+    } catch {
+      return '错误：读取 Git 历史失败，请检查过滤条件或仓库状态。'
     }
   },
 })
@@ -167,23 +231,38 @@ export const gitCommitTool = buildTool({
     required: ['message'],
   },
   metadata: { isDestructive: true },
-  execute: async (args) => {
-    const message = args.message as string
-    if (!message?.trim()) return '错误：必须提供提交消息'
-
-    const files = (args.files as string) || '.'
+  execute: async (args, ctx?: ToolContext) => {
+    const workdir = resolveGitWorkdir(ctx)
+    if (!workdir) return invalidWorkdir()
+    const message = args.message
+    if (!boundedString(message, MAX_COMMIT_MESSAGE_LENGTH) || !message.trim()) return '错误：提交消息为空、过长或包含控制字符'
+    const files = args.files === undefined ? '.' : args.files
+    if (!boundedString(files, MAX_FILES_ARGUMENT_LENGTH)) return '错误：文件参数无效或过长'
+    const fileArgs = files === '.' ? ['.'] : files.trim().split(/\s+/)
+    if (fileArgs.length === 0 || fileArgs.length > MAX_FILES_COUNT) return '错误：文件数量无效或过多'
 
     try {
-      const addArgs = files === '.' ? ['add', '.'] : ['add', ...files.split(/\s+/)]
-      await runGit(addArgs)
-      const output = await runGit(['commit', '-m', message])
+      // `--` 终止 option 解析，防止文件名被解释成 git add 参数。
+      await runGit(['add', '--', ...fileArgs], workdir)
+      const output = await runGit(['commit', '-m', message], workdir)
       log.info('Git commit created', { messageHash: hashForLog(message), messageLength: message.length })
       return output
-    } catch (err) {
-      return `错误：${err instanceof Error ? err.message : String(err)}`
+    } catch {
+      return '错误：Git 提交失败，请检查暂存文件和仓库状态。'
     }
   },
 })
+
+/** list 可证明只读；其它 action 与未知参数都按破坏性、不可并发处理。 */
+export function resolveGitBranchMetadata(args: Record<string, unknown>): Partial<ToolMetadata> {
+  const action = typeof args.action === 'string' ? args.action : 'list'
+  const readOnly = action === 'list'
+  return {
+    isReadOnly: readOnly,
+    isDestructive: !readOnly,
+    isConcurrencySafe: readOnly,
+  }
+}
 
 export const gitBranchTool = buildTool({
   name: 'git_branch',
@@ -202,31 +281,35 @@ export const gitBranchTool = buildTool({
       },
     },
   },
-  metadata: {},
-  execute: async (args) => {
-    const action = (args.action as string) || 'list'
-    const name = args.name as string
+  // 参数未知时 fail-closed；仅 list 由 resolveMetadata 降为只读。
+  metadata: { isReadOnly: false, isDestructive: true, isConcurrencySafe: false },
+  resolveMetadata: resolveGitBranchMetadata,
+  execute: async (args, ctx?: ToolContext) => {
+    const workdir = resolveGitWorkdir(ctx)
+    if (!workdir) return invalidWorkdir()
+    const action = typeof args.action === 'string' ? args.action : 'list'
+    const name = args.name
 
     try {
       switch (action) {
         case 'list': {
-          const output = await runGit(['branch', '-a', '--no-color'])
-          return output || '(no branches)'
+          const output = await runGit(['branch', '-a', '--no-color'], workdir)
+          return output || '（没有分支）'
         }
         case 'create':
-          if (!name) return '错误：必须提供分支名称'
-          return await runGit(['checkout', '-b', name])
+          if (!isSafeGitBranchName(name)) return '错误：分支名称无效'
+          return await runGit(['switch', '-c', name], workdir)
         case 'switch':
-          if (!name) return '错误：必须提供分支名称'
-          return await runGit(['checkout', name])
+          if (!isSafeGitBranchName(name)) return '错误：分支名称无效'
+          return await runGit(['switch', name], workdir)
         case 'delete':
-          if (!name) return '错误：必须提供分支名称'
-          return await runGit(['branch', '-d', name])
+          if (!isSafeGitBranchName(name)) return '错误：分支名称无效'
+          return await runGit(['branch', '-d', '--', name], workdir)
         default:
           return `错误：未知操作“${action}”。可用值：list、create、switch、delete。`
       }
-    } catch (err) {
-      return `错误：${err instanceof Error ? err.message : String(err)}`
+    } catch {
+      return '错误：Git 分支操作失败，请检查分支名称或仓库状态。'
     }
   },
 })

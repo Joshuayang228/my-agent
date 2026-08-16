@@ -11,6 +11,7 @@ import { ToolRegistry } from '../tools/registry'
 import { checkToolPermission } from '../sandbox/permission-engine'
 import { recordApproval } from '../sandbox/approval-store'
 import { createLogger, hashForLog } from '../utils/logger'
+import { prepareToolResultForModel } from './tool-result-safety'
 import { sanitizeError } from '../utils/sanitize-error'
 import { AgentError, AgentErrorCode, toAgentError } from '../errs/index'
 import { startSpan, type SpanHandle } from '../utils/tracer'
@@ -580,10 +581,11 @@ export async function* agentLoop(
         continue
       }
 
+      const effectiveToolMetadata = registry.resolveEffectiveMetadata(call.name, args)
       const needsConfirm =
         effectiveExecutionMode === 'confirm-all' ||
         permResult.allowed === 'needs_approval' ||
-        ((effectiveExecutionMode === 'auto' || effectiveExecutionMode === 'plan-first') && registry.get(call.name)?.metadata.isDestructive)
+        ((effectiveExecutionMode === 'auto' || effectiveExecutionMode === 'plan-first') && effectiveToolMetadata?.isDestructive)
 
       if (needsConfirm && confirmTool) {
         // G2: blocked_on_user 独立计时 — Alice Ch.13 核心要求
@@ -742,7 +744,7 @@ export async function* agentLoop(
       state.messages.push({
         id: `tool-${result.callId}`,
         role: 'tool',
-        content: result.content,
+        content: prepareToolResultForModel(result.content),
         timestamp: Date.now(),
         toolCallId: result.callId,
       })

@@ -1,7 +1,7 @@
 # M17 测试架构 — 代码走读
 
-> 理念章：`m17-testing-architecture.md`  
-> 对照源：feiche/wps-cowork aisdk-testing-design（边界 mock）× Alice Ch.15 范式二/十一 × 我们的 vitest / evals / Playwright  
+> 理念章：`m17-testing-architecture.md`
+> 对照源：feiche/wps-cowork aisdk-testing-design（边界 mock）× Alice Ch.15 范式二/十一 × 我们的 vitest / evals / Playwright
 > 沉淀时间：2026-07-26
 
 ---
@@ -239,4 +239,4 @@ webServer: {
 - `npm run eval:persona` → `vitest.eval-persona.config.ts` → `evals/persona-real.test.ts`，真实模型需显式凭据；
 - `npm run test:e2e` 当前只跑 `playwright.config.ts` 的 `ui` 项目和 `__tests__/e2e/chat.test.ts`，不是默认 Electron E2E。
 
-`evals/mock-llm.ts` 与 `_streamChatOverride` 仍是确定性行为测试边界；真实 Provider / HTTP/SSE replay 尚未成为普通门禁。当前证据是 Unit 120 文件 / 712 项、普通 Eval 23/23、Skill Eval 1/1、UI E2E 7/7；未调用真实模型。
+`evals/mock-llm.ts` 与 `_streamChatOverride` 仍是确定性行为测试边界；真实 Provider / HTTP/SSE replay 尚未成为普通门禁。当前证据以最新 Unit / 普通 Eval / Skill Eval / UI E2E 门禁输出为准；本轮未调用真实模型。

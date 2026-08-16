@@ -22,6 +22,7 @@ import cpp from 'react-syntax-highlighter/dist/esm/languages/prism/cpp'
 import diff from 'react-syntax-highlighter/dist/esm/languages/prism/diff'
 import mermaid from 'mermaid'
 import { splitAside } from '../shared/aside'
+import { isSafeMarkdownImageSource } from '../shared/markdown-security'
 
 SyntaxHighlighter.registerLanguage('tsx', tsx)
 SyntaxHighlighter.registerLanguage('typescript', typescript)
@@ -78,6 +79,26 @@ function initMermaid(isDark: boolean) {
 }
 
 initMermaid(getTheme() === 'dark')
+
+
+function MarkdownImage({ src, alt }: { src?: string; alt?: string }) {
+  if (isSafeMarkdownImageSource(src)) {
+    return <img src={src} alt={alt || '图片'} className="my-3 max-h-96 max-w-full rounded-lg" />
+  }
+  if (src) {
+    try {
+      const parsed = new URL(src)
+      if (parsed.protocol === 'https:') {
+        return (
+          <a href={parsed.toString()} target="_blank" rel="noopener noreferrer" className="text-xs underline">
+            {alt ? `外部图片：${alt}（点击打开）` : '外部图片已阻止自动加载（点击打开）'}
+          </a>
+        )
+      }
+    } catch { /* 非 URL 统一降级为文本 */ }
+  }
+  return <span className="text-xs" style={{ color: 'var(--text-muted)' }}>图片来源不受支持</span>
+}
 
 interface MarkdownRendererProps {
   content: string
@@ -139,6 +160,9 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: Mark
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
+        img({ src, alt }) {
+          return <MarkdownImage src={src} alt={alt} />
+        },
         code({ className, children, ...props }) {
           const match = /language-(\w+)/.exec(className || '')
           const codeString = String(children).replace(/\n$/, '')

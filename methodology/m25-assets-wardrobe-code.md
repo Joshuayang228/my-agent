@@ -1,75 +1,24 @@
-# M25 资产层代码走读
+# M25 资产层：衣柜与书架 — 代码走读
 
-> 对应 `m25-assets-wardrobe.md`（加厚修订版）。
+> 理念章：[`m25-assets-wardrobe.md`](./m25-assets-wardrobe.md)
+> 最近核对：2026-08-16
 
----
+## 一、资产与 Moment 分离
 
-## §五 对照：Starter 与入库
+`life/assets.ts` 定义角色资产，`grant-asset.ts` 负责授予，`companion/asset-registry.ts` 提供生产目录。Moment 可引用资产，但删除 Moment 不删除资产；删除资产后旧 Moment 只能降级展示，不能反向重建资产。
 
-```text
-ensureStarterForKind(roleId, kind)  // wardrobe | bookshelf
-  若该 kind 已有 → return
-  id = `{kind}:{roleId}:{key}`  // 稳定幂等；主角分味
-ensureStarterAssets = wardrobe + bookshelf
+## 二、Starter 与用户状态
 
-addAsset({ roleId, kind, name, payload, sourceEventId?, id? })
-maybeGrantFromEvent({ roleId, eventId, eventPayload })  // id=grant:{eventId} 幂等
-normalizeGrantAsset → grant-asset.ts（纯函数）
-```
+Role Pack/生活 starter 定义初始衣柜和书架；数据库保存当前持有状态。静态注册表展示定义、来源、版本和 fingerprint，不读取用户运行数据。
 
-**方法论对照**：→ §五 · M25-G2 · M25-G3
+## 三、Prompt 薄片
 
----
+Orchestrator 只注入有限书架/衣柜摘要，避免把完整资产库塞进 System Prompt。
 
-## §六 对照：挂到事件与投影
+## 四、测试证据
 
-```text
-materializePlannedEvents
-  slot.type === 'moment' → assetId = pickWardrobeAssetId(...)
-  slot.grantAsset? → event.payload.grantAsset
+`companion-assets.test.ts`、`bookshelf-slice.test.ts`、资产注册表测试。
 
-publishAndProjectRange
-  mark published → maybeGrantFromEvent → projectMoment
+## 五、当前缺口
 
-projectMomentFromEvent → getAsset → outfitName 进 text/meta
-```
-
-**方法论对照**：→ §六 §七
-
----
-
-## §八 对照：可见性
-
-`companion:get-assets` → active role；可按 kind 过滤。  
-`companion:update-asset` / `companion:delete-asset` → 仅 active（`expectedRoleId`）。  
-`AssetsPanel`：衣柜 / 书架分栏；编辑字段随 kind；删除确认后降级引用。
-
-**方法论对照**：→ §四 §八 · M25-G1 · M25-G3
-
----
-
-## Schema
-
-`companion_assets(id, role_id, kind, name, payload_json, acquired_at, source_event_id)`
-
-**方法论对照**：→ §二
-
----
-
-## 已知简化
-
-哈希日剧本不自动 grant。
-
-### M25 旁路：书架 → Assemble / Moment
-
-```text
-collectBookshelfSlice → loadRoleAssembleInput.bookshelfSlice
-  → buildSystemPrompt ## Bookshelf
-
-shouldAttachBookshelfRef → payload.bookAssetId
-  → projectMoment → 「在读{书名}」
-```
-
-## 2026-08 当前实现校准
-
-资产真实注册与生命周期由 `electron/main/companion/life/assets.ts`、`grant-asset.ts`、`electron/main/companion/asset-registry.ts` 共同完成；注册表保存 stable key、来源、版本、可用性与 usage evidence，衣柜只是其中一个消费面。`companion-assets.test.ts` 和 `bookshelf-slice.test.ts` 证明删除 Moment 不会反向制造或删除资产。
+没有交易、跨角色赠送、云同步或复杂库存经济。

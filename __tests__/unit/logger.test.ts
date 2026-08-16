@@ -81,6 +81,8 @@ describe('G4: createLogger 无 electron 环境降级', () => {
         authorization: 'Bearer abcdefghijklmnop',
         note: 'request failed for https://api.example.com/v1/chat?token=secret-value',
         error: 'cannot open C:/Users/demo/private.txt',
+        filePath: 'C:/Users/demo/private.txt',
+        pathHash: 'safe-hash',
       },
       values: ['ghp_1234567890abcdef', 'ordinary text'],
     }
@@ -92,6 +94,8 @@ describe('G4: createLogger 无 electron 环境降级', () => {
         authorization: '[REDACTED]',
         note: 'request failed for https://api.example.com/v1/chat?token=[REDACTED]',
         error: expect.stringMatching(/^\[REDACTED_TEXT len=37 hash=[a-f0-9]{16}\]$/),
+        filePath: expect.stringMatching(/^\[REDACTED_TEXT len=25 hash=[a-f0-9]{16}\]$/),
+        pathHash: 'safe-hash',
       },
       values: ['[REDACTED]', 'ordinary text'],
       self: '[Circular]',

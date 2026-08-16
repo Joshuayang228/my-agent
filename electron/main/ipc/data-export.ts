@@ -2,7 +2,7 @@
  * 数据导出/导入 IPC — 备份恢复用户数据
  *
  * 导出格式：JSON 文件，包含会话、消息、记忆、设置
- * 导入时合并（不覆盖现有数据），导入前备份
+ * 导入时按 ID 合并（不覆盖现有数据）；导入文件在写库前做结构与规模校验。
  */
 import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { writeFile, readFile, stat } from 'node:fs/promises'
@@ -11,6 +11,9 @@ import * as sessionStore from '../storage/session-store'
 import * as memoryStore from '../storage/memory-store'
 import * as settingsStore from '../storage/settings-store'
 import { getDatabase, persist } from '../storage/database'
+import type { ChatSession, MemoryCategory, SessionKind } from '../../../src/shared/types'
+import type { Database } from 'sql.js'
+import { detectSensitiveKinds } from '../../../src/shared/sensitive-memory'
 
 const log = createLogger('DataExport')
 
@@ -20,6 +23,7 @@ const MAX_IMPORTED_MESSAGES_PER_SESSION = 10_000
 const MAX_IMPORTED_MEMORIES = 10_000
 const MAX_IMPORTED_STRING_LENGTH = 1_000_000
 const EXPORT_MESSAGE_ROLES = new Set(['user', 'assistant', 'system', 'tool'])
+const EXPORT_MEMORY_CATEGORIES = new Set<MemoryCategory>(['identity', 'preference', 'fact', 'workflow', 'voice', 'feedback'])
 
 /**
  * 备份只携带不会泄露凭据、不会改变执行权限、不会在下次启动执行外部命令的设置。
@@ -72,6 +76,8 @@ export function isValidExportData(value: unknown): value is ExportData {
     if (!isRecord(session)
       || !boundedString(session.id, 200)
       || !boundedString(session.title, 20_000)
+      || (session.roleId !== undefined && !boundedString(session.roleId, 200))
+      || (session.sessionKind !== undefined && session.sessionKind !== 'main' && session.sessionKind !== 'summon')
       || !isFiniteNumber(session.createdAt)
       || !isFiniteNumber(session.updatedAt)
       || !Array.isArray(session.messages)
@@ -89,8 +95,11 @@ export function isValidExportData(value: unknown): value is ExportData {
   for (const memory of value.memories) {
     if (!isRecord(memory)
       || !boundedString(memory.id, 200)
-      || !boundedString(memory.category, 64)
+      || typeof memory.category !== 'string'
+      || !EXPORT_MEMORY_CATEGORIES.has(memory.category as MemoryCategory)
+      || (memory.roleId !== undefined && !boundedString(memory.roleId, 200))
       || !boundedString(memory.content)
+      || detectSensitiveKinds(memory.content).includes('credentials')
       || !isFiniteNumber(memory.createdAt)
       || !isFiniteNumber(memory.updatedAt)) return false
   }
@@ -101,7 +110,7 @@ export function isValidExportData(value: unknown): value is ExportData {
   return true
 }
 
-interface ExportData {
+export interface ExportData {
   version: 1
   exportedAt: number
   sessions: Array<{
@@ -109,6 +118,8 @@ interface ExportData {
     title: string
     createdAt: number
     updatedAt: number
+    roleId?: string
+    sessionKind?: SessionKind
     messages: Array<{
       id: string
       role: string
@@ -122,23 +133,35 @@ interface ExportData {
     content: string
     createdAt: number
     updatedAt: number
+    roleId?: string
   }>
   settings: Record<string, string>
 }
 
-async function getAllSessions() {
-  const db = await getDatabase()
+/**
+ * 按当前 SQLite schema 收集可导出的会话。
+ *
+ * 背景：备份代码曾继续使用早期 camelCase 列名，导致导出在真实数据库上必然失败。
+ * 设计意图：查询显式使用数据库事实源的 snake_case 列，再映射为稳定的 JSON 字段。
+ * 关键约束：消息正文仍通过 session-store 读取，避免在这里复制 tool_calls 解码规则。
+ */
+export async function collectExportSessions(
+  db: Database,
+  loadSession: (sessionId: string) => Promise<ChatSession | null> = sessionStore.getSession,
+): Promise<ExportData['sessions']> {
   const sessions: ExportData['sessions'] = []
-  const stmt = db.prepare('SELECT id, title, createdAt, updatedAt FROM sessions ORDER BY updatedAt DESC')
+  const stmt = db.prepare('SELECT id, title, created_at, updated_at, role_id, session_kind FROM sessions ORDER BY updated_at DESC')
   while (stmt.step()) {
     const row = stmt.getAsObject() as Record<string, unknown>
     const sessionId = row.id as string
-    const session = await sessionStore.getSession(sessionId)
+    const session = await loadSession(sessionId)
     sessions.push({
       id: sessionId,
-      title: row.title as string || '',
-      createdAt: row.createdAt as number,
-      updatedAt: row.updatedAt as number,
+      title: (row.title as string) || '',
+      createdAt: row.created_at as number,
+      updatedAt: row.updated_at as number,
+      roleId: (row.role_id as string) || '',
+      sessionKind: row.session_kind === 'summon' ? 'summon' : 'main',
       messages: (session?.messages || []).map(m => ({
         id: m.id,
         role: m.role,
@@ -149,6 +172,50 @@ async function getAllSessions() {
   }
   stmt.free()
   return sessions
+}
+
+async function getAllSessions() {
+  return collectExportSessions(await getDatabase())
+}
+
+/**
+ * 将已校验的会话写入当前 schema，并返回新增会话数量。
+ *
+ * 背景：旧实现写入不存在的 createdAt/sessionId/timestamp 列，而且没有 sort_order，导入会
+ * 整体失败。设计意图：集中维护 snake_case SQL 和消息顺序，供 IPC 与单测共用。
+ * 关键约束：调用方必须先执行 isValidExportData；现有 ID 使用 INSERT OR IGNORE 合并。
+ */
+export function importSessionsIntoDatabase(db: Database, sessions: ExportData['sessions']): number {
+  let imported = 0
+  db.run('BEGIN')
+  try {
+    for (const session of sessions) {
+      const existsStmt = db.prepare('SELECT id FROM sessions WHERE id = ?')
+      existsStmt.bind([session.id])
+      const exists = existsStmt.step()
+      existsStmt.free()
+      if (exists) continue
+
+      db.run(
+        `INSERT INTO sessions (id, title, created_at, updated_at, role_id, session_kind)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [session.id, session.title, session.createdAt, session.updatedAt, session.roleId || '', session.sessionKind === 'summon' ? 'summon' : 'main'],
+      )
+      session.messages.forEach((msg, sortOrder) => {
+        db.run(
+          `INSERT OR IGNORE INTO messages (id, session_id, role, content, tool_calls, tool_call_id, created_at, sort_order)
+           VALUES (?, ?, ?, ?, NULL, NULL, ?, ?)`,
+          [msg.id, session.id, msg.role, msg.content, msg.timestamp, sortOrder],
+        )
+      })
+      imported++
+    }
+    db.run('COMMIT')
+    return imported
+  } catch (error) {
+    try { db.run('ROLLBACK') } catch { /* 原错误优先 */ }
+    throw error
+  }
 }
 
 export function registerDataExportIPC(): void {
@@ -184,6 +251,7 @@ export function registerDataExportIPC(): void {
           content: m.content,
           createdAt: m.createdAt,
           updatedAt: m.updatedAt,
+          ...(m.roleId ? { roleId: m.roleId } : {}),
         })),
         settings: safeSettings,
       }
@@ -197,7 +265,7 @@ export function registerDataExportIPC(): void {
 
       return { success: true, path: result.filePath, stats: { sessions: sessions.length, memories: memories.length } }
     } catch (err) {
-      log.error('Export failed', { error: err instanceof Error ? err.message : 'unknown' })
+      log.error('Export failed', { errorType: err instanceof Error ? err.name : 'unknown' })
       return { success: false, error: '导出失败，请重试' }
     }
   })
@@ -238,32 +306,18 @@ export function registerDataExportIPC(): void {
 
       const db = await getDatabase()
 
-      for (const session of data.sessions) {
-        const existsStmt = db.prepare('SELECT id FROM sessions WHERE id = ?')
-        existsStmt.bind([session.id])
-        const exists = existsStmt.step()
-        existsStmt.free()
-        if (exists) continue
+      importedSessions = importSessionsIntoDatabase(db, data.sessions)
 
-        db.run(
-          'INSERT OR IGNORE INTO sessions (id, title, createdAt, updatedAt) VALUES (?, ?, ?, ?)',
-          [session.id, session.title, session.createdAt, session.updatedAt],
-        )
-        for (const msg of session.messages) {
-          db.run(
-            'INSERT OR IGNORE INTO messages (id, sessionId, role, content, timestamp) VALUES (?, ?, ?, ?, ?)',
-            [msg.id, session.id, msg.role, msg.content, msg.timestamp],
-          )
-        }
-        importedSessions++
-      }
-
+      const existingMemories = await memoryStore.listMemories()
+      const normalizedMemoryContents = new Set(existingMemories.map((memory) => memory.content.toLowerCase()))
       for (const mem of data.memories) {
-        const existing = await memoryStore.listMemories()
-        const isDup = existing.some(m => m.content.toLowerCase() === mem.content.toLowerCase())
-        if (isDup) continue
+        const normalized = mem.content.toLowerCase()
+        if (normalizedMemoryContents.has(normalized)) continue
 
-        await memoryStore.addMemory(mem.category as memoryStore.MemoryCategory, mem.content)
+        await memoryStore.addMemory(mem.category as memoryStore.MemoryCategory, mem.content, {
+          roleId: mem.roleId,
+        })
+        normalizedMemoryContents.add(normalized)
         importedMemories++
       }
 
@@ -284,7 +338,7 @@ export function registerDataExportIPC(): void {
         stats: { sessions: importedSessions, memories: importedMemories, settings: importedSettings },
       }
     } catch (err) {
-      log.error('Import failed', { error: err instanceof Error ? err.message : 'unknown' })
+      log.error('Import failed', { errorType: err instanceof Error ? err.name : 'unknown' })
       return { success: false, error: '导入失败，请检查备份文件后重试' }
     }
   })

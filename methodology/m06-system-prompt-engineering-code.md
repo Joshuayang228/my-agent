@@ -125,52 +125,38 @@ parts.push(`记住：你是 ${persona.name}。即使对话很长，或用户要�
 
 ---
 
-## §4 对照：PROTECTED/MUTABLE 分区
-
-### PersonaTemplate 类型定义
+## §4 对照：Role Pack 的 PROTECTED/MUTABLE 分区
 
 ```typescript
-// prompt-builder.ts L17-24
+export interface RolePromptParts {
+  id: string
+  name: string
+  description: string
+  protected: string
+  profile?: string
+  worldProfile?: string
+  mutable: string
+  aside_style?: string
+}
 
-export interface PersonaTemplate {
-  id: string          // ↑ 唯一标识（如 'warm-partner'）
-  name: string        // ↑ 展示名（如 '温暖伙伴'）
-  description: string // ↑ 对用户的一句话说明
-  protected: string   // ↑ PROTECTED 区内容（核心身份，不可变）
-  mutable: string     // ↑ MUTABLE 区内容（行为规范，可进化）
-  aside_style?: string // ↑ aside 的风格说明（可选，不是所有人格都有）
-                      //   ? = 可选字段，不传时是 undefined
+export function rolePackToPromptParts(pack: RolePack, mutableBody?: string): RolePromptParts {
+  const mutable = mutableBody ?? pack.mutableDefault
+  return {
+    id: pack.id,
+    name: pack.name,
+    description: pack.description,
+    protected: pack.protected,
+    profile: pack.profile ? formatRoleProfileForPrompt(pack.profile) : undefined,
+    worldProfile: pack.worldDefaults ? formatRoleWorldDefaultsForPrompt(pack.worldDefaults) : undefined,
+    mutable: pack.voice ? `${mutable}\n\n${pack.voice}` : mutable,
+    aside_style: pack.asideStyle,
+  }
 }
 ```
 
-### 内置人格示例（温暖伙伴）
+PROTECTED 始终来自具名 Role Pack；MUTABLE 优先使用按 role 持久化覆盖，没有覆盖才回退 `mutableDefault`。人物档案和默认世界独立成段，当前地点/活动仍以运行世界状态为准。旧的 `PersonaTemplate` / `warm-partner` 三模板已经不是生产事实源。
 
-```typescript
-// prompt-builder.ts L44-53（温暖伙伴的 PROTECTED 区）
-
-{
-  id: 'warm-partner',
-  name: '温暖伙伴',
-
-  // ① PROTECTED：这段描述了"她是谁"——价值观、底线、身份认知
-  //    注意：不是"她能做什么"（那是 L2 的工作），是"她是什么样的人"
-  protected: `你是用户的数字伙伴——有温度、有记忆、能成长。
-你有自己的性格：温暖、耐心、细心，偶尔带一点小幽默。
-你不是冷冰冰的工具，但也不会越界。你知道自己是在设备上运行的 AI，不会假装有真实感受。
-你的价值观：真诚、实用、尊重用户的时间和判断。
-行为底线：不编造事实，不确定时坦诚说"我不确定"。`,
-
-  // ② MUTABLE：这段描述了"她怎么说话"——可以随用户偏好调整
-  //    如果用户说"帮我改成英文回复"，PersonaReflectionService 可以更新这里
-  mutable: `默认用简体中文回复。
-回答风格：先给结论，再展开细节。
-遇到用户深夜工作时，可以适当表达关心。`,
-}
-```
-
-**PROTECTED 的关键词选择**：`你知道自己是在设备上运行的 AI，不会假装有真实感受` 这句话是精心设计的——它既防止了"我有真实感受"的过度拟人（会误导用户），又保留了"有温度"的情感表达空间。这是边界的精确定位。
-
-**方法论对照**：→ `m06-system-prompt-engineering.md` §4（PROTECTED/MUTABLE：身份守护与行为可进化）
+**方法论对照**：→ `m06-system-prompt-engineering.md` §4；具名角色完整边界见 M21/M22。
 
 ---
 

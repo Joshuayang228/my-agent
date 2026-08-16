@@ -29,9 +29,9 @@
 
 ## 不变量
 
-- 未声明安全时 **fail-closed**（偏拒绝/需确认，不偏默许）  
-- 权限只降不升（含子 Agent）  
-- 确认超时必须清理监听并默认拒绝，避免悬挂  
+- 未声明安全时 **fail-closed**（偏拒绝/需确认，不偏默许）
+- 权限只降不升（含子 Agent）
+- 确认超时必须清理监听并默认拒绝，避免悬挂
 - shell 不得绕过引擎自行放行
 - **有效沙箱由 executionMode 推导**：full-access → 放开路径；其余 → workspace-write
 
@@ -50,7 +50,7 @@
 
 - 责任链：不可绕过硬边界（危险 / 越界路径 / 控制符 / cwd）→ 自定义规则 → 审批库 → ask 规则 → 分级 / 沙箱 → 默认
 - `resolveEffectiveSandbox`：full-access vs 其他
-- confirm 批准/拒绝/超时  
+- confirm 批准/拒绝/超时
 - 单测：`permission-engine` / `effective-sandbox`；Eval：F01 等权限场景
 
 ## 已落地能力
@@ -73,9 +73,9 @@
 | 权限与沙箱生产资产目录 | 已落地 | `sandbox/asset-registry.ts` · Debug「提示词管理器 → 权限与沙箱」 |
 | 安全日志元数据化 | 已落地 | `logger.ts` · 命令 / 路径 / 记忆内容只留长度或短指纹 |
 | 子进程环境凭据隔离 | 已落地 | `safe-process-env.ts` · Terminal / shell_exec / Git / MCP stdio / Eval Runner |
-| Headless 安全批准 | 已落地 | `agent/headless-policy.ts` · 只自动批准明确只读工具，拒绝 Shell / 子 Agent / 继续任务 |
+| Headless 安全批准 | 已落地 | `agent/headless-policy.ts` · 使用运行时有效 metadata，只自动批准明确只读工具，拒绝 Shell / 子 Agent / 继续任务 |
 
 ## 现状 / 缺口
 
-**现状**：硬边界先于五层业务责任链，已接 Loop；非 `full-access` 的 `file_read` / `code_search` 也绑定当前工作区并保护常见凭据文件；子进程默认过滤主进程环境中的 API Key / Token / Secret，日志不再落盘命令正文、权限 pattern/reason、原始路径或记忆正文；文件写入、编辑、删除和 patch 统一经过有效沙箱与工作区路径守卫，用户确认不会绕过路径边界；Headless 无交互确认时只自动批准明确只读工具；设置页不再提供独立沙箱开关；内置策略可在 Debug 只读追踪来源、版本、指纹和依赖。
-**缺口**：更细的产品向权限说明文案；OS/嵌入级强隔离非本阶段。
+**现状**：工具 metadata 先经过运行时解析，再进入硬边界与五层业务责任链，已接 Loop；非 `full-access` 的 `file_read` / `code_search` 也绑定当前工作区并保护常见凭据文件；子进程默认过滤主进程环境中的 API Key / Token / Secret，日志不再落盘命令正文、权限 pattern/reason、原始路径或记忆正文；文件写入、编辑、删除和 patch 统一经过有效沙箱与工作区路径守卫，用户确认不会绕过路径边界；Headless 无交互确认时只自动批准明确只读工具；设置页不再提供独立沙箱开关；内置策略可在 Debug 只读追踪来源、版本、指纹和依赖。
+**缺口**：更细的产品向权限说明文案；OS/嵌入级强隔离非本阶段；Shell 解释器语义与 symlink TOCTOU 仍需进程级隔离才能彻底消除。

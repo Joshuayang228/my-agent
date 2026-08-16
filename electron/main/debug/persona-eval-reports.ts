@@ -6,7 +6,7 @@
  * 关键约束：只读；拒绝目录穿越；损坏或非 Persona 报告跳过，不把文件系统异常和原始内容暴露给渲染层。
  */
 
-import { readdir, readFile } from 'node:fs/promises'
+import { readdir, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
 import type {
   DebugPersonaEvalIndex,
@@ -16,6 +16,8 @@ import type {
 } from '../../../src/shared/types'
 
 const PERSONA_REPORT_PATTERN = /-persona-b02-b07-pass-\d+\.json$/
+const MAX_REPORT_BYTES = 25 * 1024 * 1024
+const MAX_REPORT_FILES = 200
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
@@ -113,7 +115,10 @@ function toSummary(fileName: string, report: PersonaEvalReport): PersonaEvalRepo
 async function readReport(reportDir: string, fileName: string): Promise<DebugPersonaEvalReport | null> {
   if (path.basename(fileName) !== fileName || !PERSONA_REPORT_PATTERN.test(fileName)) return null
   try {
-    const parsed: unknown = JSON.parse(await readFile(path.join(reportDir, fileName), 'utf8'))
+    const filePath = path.join(reportDir, fileName)
+    const fileStat = await stat(filePath)
+    if (!fileStat.isFile() || fileStat.size > MAX_REPORT_BYTES) return null
+    const parsed: unknown = JSON.parse(await readFile(filePath, 'utf8'))
     return isPersonaEvalReport(parsed) ? { ...parsed, fileName } : null
   } catch {
     return null
@@ -126,6 +131,7 @@ export async function listPersonaEvalReports(reportDir: string): Promise<DebugPe
     fileNames = (await readdir(reportDir, { withFileTypes: true }))
       .filter((entry) => entry.isFile() && PERSONA_REPORT_PATTERN.test(entry.name))
       .map((entry) => entry.name)
+      .slice(0, MAX_REPORT_FILES)
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
   }
@@ -149,4 +155,3 @@ export async function getPersonaEvalReport(
 ): Promise<DebugPersonaEvalReport | null> {
   return readReport(reportDir, fileName)
 }
-

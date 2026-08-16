@@ -134,12 +134,15 @@ export function toAgentError(err: unknown): AgentError {
   if (err instanceof Error && typeof (err as { status?: unknown }).status === 'number') {
     const status = (err as { status: number }).status
     const code = status === 429 ? AgentErrorCode.LLM_RATE_LIMITED : AgentErrorCode.LLM_REQUEST_FAILED
-    return new AgentError(code, err.message, { cause: err })
+    const message = status === 429
+      ? '模型服务请求过于频繁，请稍后重试。'
+      : '模型服务请求失败，请检查配置或网络后重试。'
+    return new AgentError(code, message, { cause: err })
   }
 
   if (err instanceof Error) {
-    return new AgentError(AgentErrorCode.UNKNOWN, err.message, { cause: err })
+    return new AgentError(AgentErrorCode.UNKNOWN, '运行过程中发生错误，请稍后重试。', { cause: err })
   }
 
-  return new AgentError(AgentErrorCode.UNKNOWN, String(err))
+  return new AgentError(AgentErrorCode.UNKNOWN, '运行过程中发生错误，请稍后重试。', { cause: err })
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest'
+﻿import { describe, expect, it, beforeEach } from 'vitest'
 import {
   _resetSessionFileChangesForTests,
   clearSessionFileChanges,
@@ -33,6 +33,15 @@ describe('formatUnifiedDiff', () => {
     const d = formatUnifiedDiff('n.md', null, 'hello')
     expect(d).toContain('+++ n.md')
     expect(d).toContain('+hello')
+  })
+
+
+  it('大行数乘积不会构造超大 LCS 矩阵，而是退化为内容节选', () => {
+    const before = Array.from({ length: 1200 }, (_, i) => `old-${i}`).join('\n')
+    const after = Array.from({ length: 1200 }, (_, i) => `new-${i}`).join('\n')
+    const d = formatUnifiedDiff('large.txt', before, after)
+    expect(d).toContain('省略逐行 diff')
+    expect(d).toContain('new-0')
   })
 
   it('简单替换', () => {

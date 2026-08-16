@@ -256,11 +256,11 @@ IPC 接口由**四处**共同定义，缺一不可：
 
 ---
 
-## 八、暂缓：IPC 层的单元测试
+## 八、IPC 层测试
 
 IPC 代码是最难测试的部分——主进程的 IPC handler 直接依赖 Electron 的 `ipcMain`，在 Vitest 环境里这个对象不存在。
 
-当前所有 IPC 相关的测试都通过 Eval（M18）做集成测试，不是单元测试。单元测试需要 mock `ipcMain` / `ipcRenderer`，这需要额外的测试框架配置，暂缓。
+当前已有 `ipc-handlers.test.ts` 和各模块 handler/纯逻辑测试；四处类型同步仍由 TypeScript + Build 兜底。尚未实现的是从单一 Schema 自动生成频道、preload 和 Window 类型。
 
 ---
 
@@ -306,7 +306,7 @@ AI 流式响应结束时，最后一个 `done` 事件和 `invoke resolve` 几乎
 | S1 流事件预缓冲 | 我们先 `onEvent` 再 `send`，当前够用 |
 | S2 stream-batch | 无性能痛点 |
 | S3 task/scheduler 广播窗口选择 | 单窗口可接受；多窗口再改为定向 sender |
-| S4 频道名类型化 / IPC 单测 | 与 §8 一并暂缓 |
+| S4 频道名生成 | 单测已落地；裸字符串频道自动生成仍暂缓 |
 | S5 feiche 通用 invoke 白名单 | 显式方法更安全，不采用 |
 
 ### 设计检查清单
@@ -317,3 +317,7 @@ AI 流式响应结束时，最后一个 `done` 事件和 `invoke resolve` 几乎
 - [ ] invoke 配合 on 使用时：在 invoke 的 finally 里加状态兜底，处理竞态
 - [ ] 需要"等待用户回应"时：用动态频道名（`channel:${requestId}`）+ UUID；超时路径必须卸掉 listener
 - [ ] 确认类 UI：若可能并发，是否已串行？否则标为已知限制
+
+## 2026-08 安全校准
+
+IPC 的“类型同步”不等于“权限授权”：敏感字段必须在主进程建立安全视图；Renderer 传来的确认字段只能表达请求，破坏性设置、MCP 连接和 Debug 高风险操作仍由主进程重新确认。

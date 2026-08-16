@@ -2,6 +2,16 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
+## 2026-08-16 · 安全审计 v5：Renderer 凭据边界与 MCP 配置恢复
+
+- 修复最高风险设置泄露：`settings:get` 改为主进程安全视图，Renderer 不再收到 API Key 原文或 MCP env 原文。
+- 连接测试支持 `useStoredApiKey`，由主进程读取安全存储；设置页未修改 API Key 时不会把空字符串自动写回覆盖已保存 Key。
+- 抽出 `electron/main/mcp/config-security.ts`，统一 MCP 配置校验、数量/参数上限、重复 ID、env 脱敏哨兵与主进程 secret 恢复。
+- MCP 启用/修改与 `full-access` 设置必须经过主进程原生确认；启动恢复、手动连接和设置持久化共用配置边界。
+- 补充 `mcp-config-security.test.ts`、`settings-security.test.ts`；最近一次 Unit 门禁为 129 个测试文件 / 754 项通过。
+- 方法论陈旧扫描已重新生成并修正无效证据路径；当前实现矩阵、权限/运行时/记忆模块卡和安全审计报告已同步。
+- 本轮不调用真实模型，不使用真实 API Key 验证；最终门禁仍需在文档收工后完整重跑。
+
 ## 2026-08-15 · 安全审计 v4：危险命令大小写与验证工具联网边界
 
 - 完成从 M01 到 M32 的当前实现审计矩阵：`methodology/current-implementation-audit-2026-08.md`；补齐 M08、M09、M11、M14、M21–M32 代码走读的当前入口与测试证据。

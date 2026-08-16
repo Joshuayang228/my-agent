@@ -1,4 +1,4 @@
-﻿# Methodology Writing
+# Methodology Writing
 
 ## 定位
 
@@ -71,15 +71,15 @@
 
 ### 待补优先序与 Gap 真相源（禁止在本 skill 维护明细表）
 
-**章节队列**以 `methodology/README.md`「待补队列 / 完整目录状态」为准。  
-**仍开着的工程/产品 Gap**以 `docs/wishlist.md`「待办缺口」为准。  
+**章节队列**以 `methodology/README.md`「待补队列 / 完整目录状态」为准。
+**仍开着的工程/产品 Gap**以 `docs/wishlist.md`「待办缺口」为准。
 **某章内部暂缓说明**以该章「实战记录 / 占位待做」为准。
 
 本 skill **不维护**「增量补洞明细表」——易与 wishlist 双真相、快速过期。深啃或补洞前：
 
-1. 打开 `methodology/README.md` 看下一章 / 状态  
-2. 打开 `docs/wishlist.md` 看未勾选项  
-3. 打开对应 `mNN-*.md` 实战记录看章内暂缓  
+1. 打开 `methodology/README.md` 看下一章 / 状态
+2. 打开 `docs/wishlist.md` 看未勾选项
+3. 打开对应 `mNN-*.md` 实战记录看章内暂缓
 
 学到但暂缓的新缺口 → **写入 wishlist**（并可选记一笔到该章实战记录），不要追加进本文件。
 
@@ -224,7 +224,7 @@ methodology/
 └── gap-audit-2026-07.md           ← 独立主题（不占编号）
 ```
 
-编号与文件名一一对应 `methodology/README.md` 的 M01–M27。占位章创建时即用 `mNN-主题.md`，不再用无编号临时名。
+编号与文件名一一对应 `methodology/README.md` 的 M01–M32。占位章创建时即用 `mNN-主题.md`，不再用无编号临时名。
 
 ---
 

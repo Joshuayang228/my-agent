@@ -1,7 +1,7 @@
 /**
  * Eval 体系核心类型
  *
- * 对应 methodology/m12-eval.md 的架构设计：
+ * 对应 methodology/m18-eval.md 与 m18-eval-persona.md 的架构设计：
  * - EvalScenario：task 的完整定义（setup / mock LLM / graders）
  * - EvalGrader：独立上下文的评估者（只看 transcript，不看推理过程）
  * - GraderResult：具体问题列表，不是综合分数

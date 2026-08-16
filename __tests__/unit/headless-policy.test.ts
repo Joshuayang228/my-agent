@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { shouldAutoApproveHeadlessTool } from '../../electron/main/agent/headless-policy'
 
-const readOnly = { metadata: { isReadOnly: true, isDestructive: false } }
-const destructive = { metadata: { isReadOnly: false, isDestructive: true } }
+const readOnly = { isReadOnly: true, isDestructive: false }
+const destructive = { isReadOnly: false, isDestructive: true }
 
 describe('headless-policy', () => {
   it('只自动批准明确只读工具', () => {

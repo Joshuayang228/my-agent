@@ -14,6 +14,9 @@ const MAX_RESULT_CHARS = 60_000
 const MAX_QUERY_LENGTH = 2_000
 const MAX_REGEX_QUERY_LENGTH = 512
 const CONTEXT_LINES = 2
+const MAX_DIRECTORY_LENGTH = 4_096
+const MAX_FILE_EXTENSION_LENGTH = 32
+const MAX_FILES_SCANNED = 20_000
 
 const IGNORE_DIRS = new Set([
   'node_modules', '.git', 'dist', 'dist-electron', 'build',
@@ -46,7 +49,7 @@ async function walkDir(dir: string, fileExt?: string): Promise<string[]> {
   const files: string[] = []
 
   async function recurse(current: string, depth: number) {
-    if (depth > 10) return
+    if (depth > 10 || files.length >= MAX_FILES_SCANNED) return
     let entries
     try {
       entries = await fs.readdir(current, { withFileTypes: true })
@@ -55,6 +58,7 @@ async function walkDir(dir: string, fileExt?: string): Promise<string[]> {
     }
 
     for (const entry of entries) {
+      if (files.length >= MAX_FILES_SCANNED) break
       if (entry.name.startsWith('.') && IGNORE_DIRS.has(entry.name)) continue
       if (IGNORE_DIRS.has(entry.name)) continue
 
@@ -151,8 +155,12 @@ export const codeSearchTool = buildTool({
     isConcurrencySafe: true,
   },
   execute: async (args, ctx?: ToolContext) => {
-    const query = args.query as string
-    if (!query?.trim()) return '错误：必须提供搜索查询'
+    if (typeof args.query !== 'string' || !args.query.trim()) return '错误：必须提供搜索查询'
+    if (args.directory !== undefined && (typeof args.directory !== 'string' || args.directory.length > MAX_DIRECTORY_LENGTH)) return '错误：搜索目录参数无效或过长'
+    if (args.file_extension !== undefined && (typeof args.file_extension !== 'string' || args.file_extension.length > MAX_FILE_EXTENSION_LENGTH)) return '错误：文件扩展名参数无效或过长'
+    if (args.is_regex !== undefined && !['true', 'false', true, false].includes(args.is_regex as never)) return '错误：is_regex 参数无效'
+    if (args.case_sensitive !== undefined && !['true', 'false', true, false].includes(args.case_sensitive as never)) return '错误：case_sensitive 参数无效'
+    const query = args.query
     const isRegex = String(args.is_regex) === 'true'
     if (query.length > (isRegex ? MAX_REGEX_QUERY_LENGTH : MAX_QUERY_LENGTH)) {
       return `错误：搜索查询过长（正则最多 ${MAX_REGEX_QUERY_LENGTH} 个字符，普通查询最多 ${MAX_QUERY_LENGTH} 个字符）`
@@ -162,7 +170,7 @@ export const codeSearchTool = buildTool({
     }
 
     const workspaceRoot = ctx?.workdir?.trim() || getWorkspaceRoot()
-    const dir = resolveToolFilePath((args.directory as string) || '.', workspaceRoot)
+    const dir = resolveToolFilePath(args.directory || '.', workspaceRoot)
     const realDir = resolveToolReadPath(dir)
     if (!realDir) return '错误：搜索目录不存在或无法解析'
     const mode = await loadEffectiveSandbox()
@@ -171,7 +179,7 @@ export const codeSearchTool = buildTool({
       log.warn('Code search blocked by sandbox', { directoryHash: hashForLog(realDir), mode })
       return blocked
     }
-    const fileExt = (args.file_extension as string) || undefined
+    const fileExt = args.file_extension || undefined
     const caseSensitive = String(args.case_sensitive) === 'true'
 
     log.info('Code search', { queryHash: hashForLog(query), queryLength: query.length, directoryHash: hashForLog(realDir), fileExt, isRegex, caseSensitive })
@@ -180,8 +188,8 @@ export const codeSearchTool = buildTool({
     try {
       const flags = caseSensitive ? '' : 'i'
       pattern = isRegex ? new RegExp(query, flags) : new RegExp(escapeRegex(query), flags)
-    } catch (err) {
-      return `错误：正则表达式无效—— ${err instanceof Error ? err.message : String(err)}`
+    } catch {
+      return '错误：正则表达式无效'
     }
 
     const files = (await walkDir(realDir, fileExt)).map(file => resolveToolReadPath(file))

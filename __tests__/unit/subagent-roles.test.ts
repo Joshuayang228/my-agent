@@ -9,6 +9,8 @@ import {
   type SubAgentConfig,
 } from '../../electron/main/agent/subagent'
 import { ToolRegistry } from '../../electron/main/tools/registry'
+import { resolveDelegateTaskMetadata } from '../../electron/main/tools/builtins/delegate-task'
+import { continueTaskTool } from '../../electron/main/tools/builtins/continue-task'
 import type { ToolDefinition } from '../../src/shared/types'
 
 function fakeTool(name: string, opts: Partial<ToolDefinition['metadata']> = {}): ToolDefinition {
@@ -132,5 +134,35 @@ describe('G6: buildChildRegistry 工具集构建', () => {
     expect(names).not.toContain('continue_task')
     expect(names).not.toContain('remember')
     expect(names).toContain('file_read')
+  })
+})
+
+describe('子 Agent 工具 metadata 权限边界', () => {
+  it('researcher/analyst 默认只读，coder 与显式可写必须确认', () => {
+    expect(resolveDelegateTaskMetadata({ role: 'researcher' })).toMatchObject({ isReadOnly: true, isDestructive: false })
+    expect(resolveDelegateTaskMetadata({ role: 'analyst' })).toMatchObject({ isReadOnly: true, isDestructive: false })
+    expect(resolveDelegateTaskMetadata({ role: 'coder' })).toMatchObject({ isReadOnly: false, isDestructive: true })
+    expect(resolveDelegateTaskMetadata({ role: 'researcher', read_only: 'false' })).toMatchObject({ isReadOnly: false, isDestructive: true })
+  })
+
+  it('自由角色显式工具列表按潜在可写处理，read_only=true 可证明只读', () => {
+    expect(resolveDelegateTaskMetadata({ role: 'tester', allowed_tools: 'file_read,file_edit' })).toMatchObject({
+      isReadOnly: false,
+      isDestructive: true,
+      isConcurrencySafe: false,
+    })
+    expect(resolveDelegateTaskMetadata({ role: 'coder', read_only: 'true' })).toMatchObject({
+      isReadOnly: true,
+      isDestructive: false,
+      isConcurrencySafe: true,
+    })
+  })
+
+  it('continue_task 无法从 agent_id 证明只读，静态 fail-closed', () => {
+    expect(continueTaskTool.metadata).toMatchObject({
+      isReadOnly: false,
+      isDestructive: true,
+      isConcurrencySafe: false,
+    })
   })
 })

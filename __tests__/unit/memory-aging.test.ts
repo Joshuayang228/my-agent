@@ -84,6 +84,13 @@ describe('G5+G2: formatRecallForInjection 召回加工', () => {
     expect(output).toContain('对话片段召回')
   })
 
+
+  it('旧向量索引里的凭据候选不会进入 Prompt 或引用芯片', () => {
+    const secret = result('vec-secret', 'api_key=sk-secret-value')
+    expect(extractMemoryCitations([secret])).toEqual([])
+    expect(formatRecallForInjection([secret], now)).toBeNull()
+  })
+
   it('G5: 全部是 mem- 镜像时返回 null', () => {
     const results = [result('mem-1', 'a'), result('mem-2', 'b')]
     expect(formatRecallForInjection(results, now)).toBeNull()

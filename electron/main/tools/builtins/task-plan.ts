@@ -21,6 +21,13 @@ import {
 
 export { setCurrentSessionId as setTaskPlanSessionId }
 
+const MAX_GOAL_LENGTH = 20_000
+const MAX_STEPS_JSON_LENGTH = 200_000
+const MAX_STEPS = 200
+const MAX_STEP_DESCRIPTION_LENGTH = 10_000
+const MAX_STEP_RESULT_LENGTH = 20_000
+const VALID_STEP_STATUSES = new Set<TaskStep['status']>(['in_progress', 'done', 'skipped'])
+
 export const taskPlanTool = buildTool({
   name: 'task_plan',
   description: "管理复杂多步骤请求的结构化任务计划。计划会持久化到数据库，应用重启后仍然保留。\n\n操作：\n- create：使用总体目标和步骤创建计划；请求包含 3 个及以上独立步骤时使用\n- status：查看当前计划进度\n- update：把步骤标记为 in_progress、done 或 skipped，并可记录结果\n- clear：任务完成后清除当前计划\n\n开始复杂任务前必须先创建计划，并在执行过程中持续更新步骤状态。",
@@ -58,18 +65,21 @@ export const taskPlanTool = buildTool({
   },
   metadata: {},
   execute: async (args) => {
-    const action = args.action as string
+    if (typeof args.action !== 'string') return '错误：必须提供有效 action'
+    const action = args.action
 
     try {
       if (action === 'create') {
-        const goal = args.goal as string
-        const stepsRaw = args.steps as string
-        if (!goal) return '错误：create 操作必须提供 goal'
+        if (typeof args.goal !== 'string' || !args.goal.trim() || args.goal.length > MAX_GOAL_LENGTH) return '错误：goal 为空或过长'
+        if (typeof args.steps !== 'string' || args.steps.length > MAX_STEPS_JSON_LENGTH) return '错误：steps 为空或过长'
+        const goal = args.goal
+        const stepsRaw = args.steps
 
         let stepDescs: string[]
         try {
           stepDescs = JSON.parse(stepsRaw || '[]')
-          if (!Array.isArray(stepDescs)) throw new Error()
+          if (!Array.isArray(stepDescs) || stepDescs.length === 0 || stepDescs.length > MAX_STEPS
+            || stepDescs.some((step) => typeof step !== 'string' || !step.trim() || step.length > MAX_STEP_DESCRIPTION_LENGTH)) throw new Error()
         } catch {
           return '错误：steps 必须是 JSON 字符串数组'
         }
@@ -99,12 +109,15 @@ export const taskPlanTool = buildTool({
         const plan = await loadPlan()
         if (!plan) return '当前没有活动计划。'
 
-        const stepId = parseInt(args.stepId as string, 10)
+        if (typeof args.stepId !== 'string' || !/^[1-9]\d*$/.test(args.stepId)) return '错误：stepId 必须是正整数'
+        if (args.stepStatus !== undefined && (typeof args.stepStatus !== 'string' || !VALID_STEP_STATUSES.has(args.stepStatus as TaskStep['status']))) return '错误：stepStatus 无效'
+        if (args.stepResult !== undefined && (typeof args.stepResult !== 'string' || args.stepResult.length > MAX_STEP_RESULT_LENGTH)) return '错误：stepResult 无效或过长'
+        const stepId = parseInt(args.stepId, 10)
         const step = plan.steps.find(s => s.id === stepId)
         if (!step) return `未找到步骤 ${stepId}；有效范围：1-${plan.steps.length}`
 
         if (args.stepStatus) step.status = args.stepStatus as TaskStep['status']
-        if (args.stepResult) step.result = args.stepResult as string
+        if (args.stepResult) step.result = args.stepResult
 
         await savePlan(plan)
         return formatPlan(plan)
@@ -118,9 +131,8 @@ export const taskPlanTool = buildTool({
       }
 
       return `未知操作： ${action}`
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      return `错误：${message}`
+    } catch {
+      return '错误：任务计划操作失败，请检查参数后重试。'
     }
   },
 })

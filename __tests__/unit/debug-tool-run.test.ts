@@ -51,10 +51,15 @@ function makeRegistry(tool: Partial<ToolDefinition> & { name: string }): ToolReg
       isDestructive: false,
       isConcurrencySafe: true,
     },
+    resolveMetadata: tool.resolveMetadata,
     execute: tool.execute ?? (async () => 'ok'),
   }
   return {
     get: (n: string) => (n === def.name ? def : undefined),
+    resolveEffectiveMetadata: (n: string, args: Record<string, unknown>) => {
+      if (n !== def.name) return undefined
+      return { ...def.metadata, ...(def.resolveMetadata?.(args) ?? {}) }
+    },
     executeAll: vi.fn(async () => [
       { callId: 'x', name: def.name, content: 'ran', isError: false },
     ]),
@@ -127,6 +132,25 @@ describe('runDebugTool', () => {
     })
     expect(r.ok).toBe(true)
     expect(registry.executeAll).toHaveBeenCalledOnce()
+  })
+
+  it('动态 metadata 判定为破坏性时要求确认', async () => {
+    vi.mocked(checkToolPermission).mockReturnValue({
+      allowed: true,
+      reason: '默认允许',
+      decisionType: 'default-allow',
+      chain: 'fallback',
+    })
+    const registry = makeRegistry({
+      name: 'delegate_like',
+      metadata: { isReadOnly: true, isDestructive: false, isConcurrencySafe: true },
+      resolveMetadata: (args) => args.write === true
+        ? { isReadOnly: false, isDestructive: true, isConcurrencySafe: false }
+        : {},
+    })
+    const r = await runDebugTool(registry, { name: 'delegate_like', args: { write: true } })
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.needsConfirmation).toBe(true)
   })
 
   it('shell_exec 命令 deny 拦截', async () => {

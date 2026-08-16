@@ -1,14 +1,27 @@
 import { getDatabase, persist } from './database'
+import { randomUUID } from 'node:crypto'
 import { createLogger } from '../utils/logger'
 import { addToVectorStore, removeFromVectorStore } from '../memory/vector-store'
 import type { MemoryCategory, MemoryEntry } from '../../../src/shared/types'
 import { recordAssetUsage } from '../utils/asset-usage'
 import { MEMORY_STRATEGY_ASSET_KEYS } from '../memory/asset-keys'
+import { detectSensitiveKinds } from '../../../src/shared/sensitive-memory'
 
 const log = createLogger('MemoryStore')
 
 export const MEMORY_SEMANTIC_DEDUP_THRESHOLD = 0.85
 export const FEEDBACK_MEMORY_LIMIT = 12
+export const MAX_MEMORY_CONTENT_LENGTH = 20_000
+
+/** 长期记忆存储层的最终安全边界：任何入口都不能落盘凭据原文。 */
+export function assertMemoryContentAllowed(content: unknown): asserts content is string {
+  if (typeof content !== 'string' || content.length < 2 || content.length > MAX_MEMORY_CONTENT_LENGTH) {
+    throw new Error('记忆内容为空或超过长度限制')
+  }
+  if (detectSensitiveKinds(content).includes('credentials')) {
+    throw new Error('密码、API Key、Token、私钥等凭据原文不会写入长期记忆')
+  }
+}
 
 // MemoryCategory / MemoryEntry 统一由 src/shared/types.ts 定义，此处 re-export 供本层调用方使用
 export type { MemoryCategory, MemoryEntry }
@@ -89,6 +102,7 @@ export async function addMemory(
   content: string,
   opts?: AddMemoryOpts,
 ): Promise<MemoryEntry> {
+  assertMemoryContentAllowed(content)
   await ensureTable()
   // feedback 必须带 role 才参与同桶去重；其它类别保持全局去重
   const roleId =
@@ -117,7 +131,7 @@ export async function addMemory(
 
   const db = await getDatabase()
   const now = Date.now()
-  const id = `mem-${now}-${Math.random().toString(36).slice(2, 8)}`
+  const id = `mem-${randomUUID()}`
 
   db.run(
     'INSERT INTO memories (id, category, content, createdAt, updatedAt, role_id) VALUES (?, ?, ?, ?, ?, ?)',
@@ -225,6 +239,7 @@ export async function deleteMemory(id: string): Promise<void> {
 }
 
 export async function updateMemory(id: string, content: string): Promise<void> {
+  assertMemoryContentAllowed(content)
   await ensureTable()
   const db = await getDatabase()
   const now = Date.now()
@@ -254,6 +269,7 @@ export async function buildUserProfile(roleId?: string): Promise<{
 
   const byCategory: Record<string, string[]> = {}
   for (const m of memories) {
+    if (detectSensitiveKinds(m.content).includes('credentials')) continue
     if (m.category === 'feedback' && roleId) {
       if ((m.roleId || '') !== roleId) continue
     }

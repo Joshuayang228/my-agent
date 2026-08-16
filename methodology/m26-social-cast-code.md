@@ -1,106 +1,24 @@
-# M26 交际圈与卡司代码走读
+# M26 交际圈与卡司 — 代码走读
 
-> 对应 `m26-social-cast.md`（加厚修订版）。
+> 理念章：[`m26-social-cast.md`](./m26-social-cast.md)
+> 最近核对：2026-08-16
 
----
+## 一、Roster 与 Role Pack
 
-## §三 对照：名册浅注入
+`companion/cast/` 从当前 universe 读取卡司，生成 roster line、availability 和 summon brief。卡司角色拥有自己的 Role Pack，但不会自动成为 active protagonist。
 
-```text
-buildRosterLines(activeRoleId)
-  边含 active → other Pack
-  text = 你与{name}（{type}）：{note||summary||description}
-  // 不读 other.protected
+## 二、召唤会话
 
-formatRosterForPrompt → prompt-builder L3 Cast roster
-```
+`startSummonSession()` 绑定目标 role，不改 activeRoleId，也不恢复对方生活时钟。召唤对话与主会话有 sessionKind 边界；匿名子 Agent 任务工不能冒充卡司朋友。
 
-Eval C01 盯「无他人 protected」。
+## 三、委派边界
 
-**方法论对照**：→ §三
+召唤会话可按规则委派任务，但子 Agent system addon 明确“任务工不是卡司人设”，最终结果由当前角色转述。
 
----
+## 四、测试证据
 
-## §五–§六 对照：召唤
+`companion-cast.test.ts`、`companion-summon.test.ts`、`companion-availability.test.ts`、`summon-delegation.test.ts`。
 
-```text
-startSummon(roleId, force?)
-  可选 checkCastAvailability；!force && !available → 婉拒+改约
-  createSession(session_kind=summon, role_id=对方)
-  不写 activeRoleId；不 pause/catchup 对方
+## 五、当前缺口
 
-runtime：assertSessionRole(会话 role) 装完整 Pack
-  summon → 跳过 catchup 注入；scheduleReflection 短接
-```
-
-**方法论对照**：→ §五 §六
-
----
-
-## §七 对照：忙闲
-
-`availability.ts`：`BUSY_PROFILES` + 可选 day_script 槽位 → presence / decline。  
-纯查询；单测可注入 `now` / `random`。
-
-**方法论对照**：→ §七
-
----
-
-## 资产
-
-`universes/default/relations.json` + 各 role Pack；NPC（chen/ayu）可非主角。
-
-**方法论对照**：→ §二 §四
-
----
-
-## §十 / M26-G1 对照：Moments 互动
-
-```text
-projectMomentFromEvent
-  deriveCastInteractions(event)  // roster 浅层 + seed；仅 moment
-  → meta.interactions: coframe | comment
-  // 不 insert 对方 moment；不 tick 对方
-
-MomentsPanel：同框角标 + 评论行
-```
-
-**方法论对照**：→ §十 · M26-G1
-
----
-
-## §九 / M26-G2 对照：召唤 × 委派
-
-```text
-runtime toolContext.sessionKind = summon|main
-summonNote += summonParentDelegationHint()
-delegate_task → canDelegateInSession
-runSubAgent systemPrompt += summonWorkerSystemAddon(summon)
-  // 任务工 ≠ 卡司；不推生活 / 不换 active
-```
-
-**方法论对照**：→ §九 · M26-G2
-
----
-
-## M26-G3 对照：多场景 Prompt
-
-```text
-roles/{id}/scenes/{display|interact|execute}.md
-loadCastScenePrompt → 文件 || defaultCastScenePrompt
-buildRosterLines → display 短句（无边 note 时）
-loadCastBrief.summonHint → interact
-runtime summonNote += formatSummonSceneBlock（互动+执行）
-```
-
-**方法论对照**：→ §三 §五 · M26-G3
-
----
-
-## 已知简化
-
-互动未进 Assemble 主对话薄切片；无「请 TA 帮忙」独立 UI；主角 scenes 可后补专文。
-
-## 2026-08 当前实现校准
-
-卡司入口是 `electron/main/companion/cast/` 与 `asset-registry.ts`，召唤、可用性、委派和角色边界分别由对应服务实现；`companion-cast.test.ts`、`companion-summon.test.ts`、`companion-availability.test.ts`、`summon-delegation.test.ts` 覆盖。卡司不是额外的主角 Prompt，而是通过 roster / summon brief 进入当前运行上下文。
+没有卡司之间自治群聊、长期多人关系图或云端共同世界。

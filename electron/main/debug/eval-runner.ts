@@ -247,15 +247,15 @@ export class DebugEvalRunner {
         ...this.status,
         state: 'failed',
         endedAt: Date.now(),
-        error: error instanceof Error ? error.message : String(error),
+        error: 'Eval 启动失败，请检查 Node/npm 环境。',
       }
       this.emit()
-      return { ok: false, error: this.status.error || 'Eval 启动失败' }
+      return { ok: false, error: this.status.error || 'Eval 启动失败，请检查 Node/npm 环境。' }
     }
 
     this.child.stdout.on('data', (chunk: Buffer | string) => this.consumeOutput(String(chunk)))
     this.child.stderr.on('data', (chunk: Buffer | string) => this.consumeOutput(String(chunk)))
-    this.child.on('error', (error) => this.finish(-1, error.message))
+    this.child.on('error', () => this.finish(-1, 'Eval 子进程运行失败。'))
     this.child.on('close', (code) => { void this.finish(code ?? -1) })
     this.emit()
     return { ok: true, status: this.getStatus() }
@@ -334,7 +334,7 @@ export class DebugEvalRunner {
       state: nextState,
       endedAt: Date.now(),
       exitCode,
-      error: processError || (nextState === 'failed' ? `Eval 退出码 ${exitCode}` : undefined),
+      error: processError ? 'Eval 子进程运行失败。' : (nextState === 'failed' ? `Eval 退出码 ${exitCode}` : undefined),
       latestReportFile: latest,
     }
     this.emit()

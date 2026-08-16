@@ -7,7 +7,7 @@
  */
 
 import type { ModelContextAsset } from '../../../src/shared/types'
-import { PROFILE_EXTRACTION_CATEGORIES, PROFILE_EXTRACTION_INTERVAL_MS, PROFILE_EXTRACTION_MAX_RECENT_MESSAGES, PROFILE_EXTRACTION_MIN_USER_MESSAGES } from '../agent/profile-extractor'
+import { PROFILE_EXTRACTION_CATEGORIES, PROFILE_EXTRACTION_INTERVAL_MS, PROFILE_EXTRACTION_MAX_CONTENT_LENGTH, PROFILE_EXTRACTION_MAX_ITEMS, PROFILE_EXTRACTION_MAX_RECENT_MESSAGES, PROFILE_EXTRACTION_MIN_USER_MESSAGES } from '../agent/profile-extractor'
 import { planCitationCorrection } from './citation-correct'
 import { FEEDBACK_MEMORY_LIMIT, MEMORY_SEMANTIC_DEDUP_THRESHOLD } from '../storage/memory-store'
 import { DEFAULT_VECTOR_RECALL_MIN_SCORE, DEFAULT_VECTOR_RECALL_TOP_K, MAX_CONVERSATION_VECTORS, MEMORY_STALE_THRESHOLD_DAYS } from './vector-store'
@@ -94,6 +94,9 @@ export function getMemoryStrategyAssetCatalog(): ModelContextAsset[] {
         maxRecentMessages: PROFILE_EXTRACTION_MAX_RECENT_MESSAGES,
         intervalMs: PROFILE_EXTRACTION_INTERVAL_MS,
         validCategories: [...PROFILE_EXTRACTION_CATEGORIES],
+        maxItemsPerRun: PROFILE_EXTRACTION_MAX_ITEMS,
+        maxContentLength: PROFILE_EXTRACTION_MAX_CONTENT_LENGTH,
+        sensitivePolicy: '自动画像跳过健康、财务、凭据、隐私标识和职场机密候选',
         duplicateCheck: '写入前按同类记忆进行文本相似度去重',
       }),
     }),

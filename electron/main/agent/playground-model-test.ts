@@ -157,8 +157,8 @@ export async function runModelSmokeTest(opts?: {
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    span.end('error', message)
-    return { ok: false, error: message, model: config.model, baseUrl: config.baseUrl }
+    span.end('error', err instanceof Error ? err.name : 'unknown')
+    return { ok: false, error: '模型测试失败，请检查网络、Base URL、模型名和 API Key。', model: config.model, baseUrl: config.baseUrl }
   }
 }
 
@@ -209,7 +209,7 @@ export async function probeThinkingDisable(): Promise<ThinkingProbeResult> {
         completionTokens: 0,
         ms: 0,
         httpOk: false,
-        error: err instanceof Error ? err.message : String(err),
+        error: '请求失败',
       }
     }
 
@@ -257,8 +257,8 @@ export async function probeThinkingDisable(): Promise<ThinkingProbeResult> {
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    span.end('error', message)
-    return { ok: false, error: message, model: base.model, baseUrl: base.baseUrl }
+    span.end('error', err instanceof Error ? err.name : 'unknown')
+    return { ok: false, error: 'Thinking 探测失败，请检查模型配置或网络。', model: base.model, baseUrl: base.baseUrl }
   }
 }
 

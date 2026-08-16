@@ -28,6 +28,9 @@ import type {
   ModelContextAsset,
   SkillValidationResult,
   SkillVersionInfo,
+  RendererSettings,
+  LLMConnectionTestInput,
+  LLMConnectionTestResult,
 } from './shared/types'
 
 interface SessionSummary {
@@ -99,12 +102,9 @@ declare global {
         onDownloaded: (cb: (info: { version: string }) => void) => () => void
       }
       settings: {
-        get: () => Promise<Record<string, string>>
+        get: () => Promise<RendererSettings>
         set: (key: string, value: string) => Promise<void>
-        testConnection: (input: { apiKey: string; baseUrl: string; model: string }) => Promise<
-          | { ok: true; model: string; ms: number }
-          | { ok: false; error: string }
-        >
+        testConnection: (input: LLMConnectionTestInput) => Promise<LLMConnectionTestResult>
       }
       memory: {
         list: (category?: string) => Promise<Array<{ id: string; category: string; content: string; createdAt: number; updatedAt: number }>>

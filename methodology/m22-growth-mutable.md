@@ -1,12 +1,12 @@
 # M22 成长核：MUTABLE 与反思演化
 
-> 这份文档沉淀我们对「人格如何随相处成长」的设计思考。  
-> 前半是**认知框架**——默契该写哪、何时写、怎样防漂。  
-> 后半是**实战记录**——门闸、Runner、版本与召唤边界怎么落地。  
+> 这份文档沉淀我们对「人格如何随相处成长」的设计思考。
+> 前半是**认知框架**——默契该写哪、何时写、怎样防漂。
+> 后半是**实战记录**——门闸、Runner、版本与召唤边界怎么落地。
 >
-> 对照源：Alice Ch.14（PROTECTED/MUTABLE）+ Ch.16（PersonaReflection）× 我们的 `companion/growth/`  
-> 上位：`methodology/m21-persona-engine.md`（分区与张力）；工程契约：`docs/requirements/companion-mutable-reflection.md`  
-> 沉淀时间：2026-08-02  
+> 对照源：Alice Ch.14（PROTECTED/MUTABLE）+ Ch.16（PersonaReflection）× 我们的 `companion/growth/`
+> 上位：`methodology/m21-persona-engine.md`（分区与张力）；工程契约：`docs/requirements/companion-mutable-reflection.md`
+> 沉淀时间：2026-08-02
 > **状态**：✅ 理念已沉淀（代码主线已通；见文末 Gap）
 
 ---
@@ -19,7 +19,7 @@ M21 说人格是「一致性 × 成长性」的张力。M22 只回答张力的�
 
 最容易踩的坑有两个：
 
-1. **把成长做成记忆**——用户说「别写太长」，系统只多了一条事实记忆，行为默认值仍是出厂模板；聊一百次还是同一个「不记得你们默契」的演员。  
+1. **把成长做成记忆**——用户说「别写太长」，系统只多了一条事实记忆，行为默认值仍是出厂模板；聊一百次还是同一个「不记得你们默契」的演员。
 2. **把成长做成每轮改人设**——每条反馈都改 MUTABLE，人设抖动、KV Cache 失效、还容易漂出 PROTECTED。
 
 第一性原理：
@@ -52,10 +52,10 @@ M21 说人格是「一致性 × 成长性」的张力。M22 只回答张力的�
 | 进 Prompt | L3 检索/画像 | L1 与 PROTECTED 同层（稳定前缀） |
 | 错了怎么办 | 删条 / forget | 版本回滚 |
 
-**判据**：这句话变了，还是不是「同一个人」？  
-- 变了就不是 → 不该进 MUTABLE（多半是身份/价值观，属 PROTECTED）  
-- 变了仍是 TA，只是更懂你 → 可以进 MUTABLE  
-- 只是一条可核对的事实 → 进记忆，不进 MUTABLE  
+**判据**：这句话变了，还是不是「同一个人」？
+- 变了就不是 → 不该进 MUTABLE（多半是身份/价值观，属 PROTECTED）
+- 变了仍是 TA，只是更懂你 → 可以进 MUTABLE
+- 只是一条可核对的事实 → 进记忆，不进 MUTABLE
 
 反思 Prompt 必须显式禁止「把流水账事实写进 MUTABLE」。否则成长核会变成第二记忆库，两边抢职责。
 
@@ -65,7 +65,7 @@ M21 说人格是「一致性 × 成长性」的张力。M22 只回答张力的�
 
 反思 Runner 额外做两件事：
 
-1. **只读** PROTECTED 摘要进 Prompt，当作防漂移锚点  
+1. **只读** PROTECTED 摘要进 Prompt，当作防漂移锚点
 2. **指令层**要求：不得发明新身份、不得改核心价值观；不确定则 `newMutable = null`
 
 防退化分两层：**Prompt 软约束**（反思 Runner）+ **结构性规则门闸**（M22-G3：`mutable-validate`，写入前拦截空/过长、PROTECTED 克隆、暴涨、事实流水账、锚点漂移）。不追求 embedding 语义审稿；失败拒绝写入并留反思摘要 `rejected:<code>`，人工仍可回滚。
@@ -90,14 +90,14 @@ M21 说人格是「一致性 × 成长性」的张力。M22 只回答张力的�
 
 ## 五、版本与回滚：成长必须可后悔
 
-每次成功写入 `setMutable` 都产生版本记录（summary 带 `reflection:` 前缀或人手说明）。  
+每次成功写入 `setMutable` 都产生版本记录（summary 带 `reflection:` 前缀或人手说明）。
 用户可以在设置里回滚——**没有回滚的成长是绑架**。
 
 实现约束：只写 SQLite 用户态，**永不改** `universes/*/mutable.default.md`。出厂默认永远是回落底。
 
 ## 六、null 是一等公民：多数时候不该改
 
-Runner 输出 JSON：`{ newMutable: string|null, summary }`。  
+Runner 输出 JSON：`{ newMutable: string|null, summary }`。
 `null` / 与当前正文相同 → **记一次 lastRun（占冷却），但不升版本**。
 
 这是成长核和「自作聪明改 prompt」产品的分水岭：系统被允许判断「现在这样就好」。失败（LLM 挂了、解析失败）同样不写版本，只记 log，避免用垃圾覆盖默契。
@@ -110,7 +110,7 @@ Runner 输出 JSON：`{ newMutable: string|null, summary }`。
 
 同团多主角下：
 
-- **活跃主角**：真实生活世界在转、主会话在聊 → 可以调度反思  
+- **活跃主角**：真实生活世界在转、主会话在聊 → 可以调度反思
 - **召唤子会话**（`session_kind=summon`）：装载对方 Pack 聊天，但不改 `activeRoleId`、不推进对方生活 → **不触发反思**
 
 理由：串门聊两句不该改写对方的长期默契；成长绑定「你正在过的那条关系」。
@@ -119,10 +119,10 @@ Runner 输出 JSON：`{ newMutable: string|null, summary }`。
 
 Alice 侧会把更多世界事实喂进反思。我们收窄为**薄信号**（M22-G4 已接）：
 
-- 近 7 日用户消息摘要  
-- `feedback` 类记忆（按 role）  
-- 当前 MUTABLE + PROTECTED 摘要  
-- Catch-up 一句 + 近 N 条 Moments 一行（`life-signals`；不灌 day_scripts / 全量 feed）  
+- 近 7 日用户消息摘要
+- `feedback` 类记忆（按 role）
+- 当前 MUTABLE + PROTECTED 摘要
+- Catch-up 一句 + 近 N 条 Moments 一行（`life-signals`；不灌 day_scripts / 全量 feed）
 
 行程事实仍不得写进 MUTABLE——生活信号只供推断相处节奏。
 
@@ -144,8 +144,8 @@ Alice 侧会把更多世界事实喂进反思。我们收窄为**薄信号**（M
 
 ## 弯路与取舍
 
-1. **曾只做手动改 MUTABLE**：有版本但无演化 → 成长性仍是假的；必须补自动反思。  
-2. **没接 Alice worldFacts**：怕第一版信号过重、难测；用消息+feedback 先闭环。  
+1. **曾只做手动改 MUTABLE**：有版本但无演化 → 成长性仍是假的；必须补自动反思。
+2. **没接 Alice worldFacts**：怕第一版信号过重、难测；用消息+feedback 先闭环。
 3. ~~**成长时钟全局一份**~~ → **已收（M22-G1）**：`companionGrowthStartedAtByRole` 按 role 分桶；旧全局键仅迁移到当前活跃主角。
 
 ## 与相邻章
@@ -159,13 +159,13 @@ Alice 侧会把更多世界事实喂进反思。我们收窄为**薄信号**（M
 
 ## 自检问题
 
-1. 这条该进记忆还是 MUTABLE？（事实 vs 行为默认值）  
-2. 现在改，门闸过了吗？还是噪声？  
-3. 召唤会话有没有误触发成长？  
-4. 写完能不能回滚？Pack 文件有没有被碰？  
+1. 这条该进记忆还是 MUTABLE？（事实 vs 行为默认值）
+2. 现在改，门闸过了吗？还是噪声？
+3. 召唤会话有没有误触发成长？
+4. 写完能不能回滚？Pack 文件有没有被碰？
 5. LLM 说「不用改」时，我们有没有老老实实 null？
 
-## 暂缓 Gap（同步 wishlist）
+## Gap 处置
 
 | ID | 内容 | 处置 |
 |----|------|------|

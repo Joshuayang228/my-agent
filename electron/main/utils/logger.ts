@@ -92,7 +92,7 @@ function writeToFile(line: string): void {
 }
 
 const SENSITIVE_KEY_PATTERN = /^(?:api[-_]?key|apikey|access[-_]?token|accesstoken|auth(?:orization)?|bearer|client[-_]?secret|clientsecret|credential|password|refresh[-_]?token|refreshtoken|secret|token)$/i
-const SENSITIVE_TEXT_FIELD_PATTERN = /^(?:error|message|reason|query|prompt|command|path|content|response|result)$/i
+const SENSITIVE_TEXT_FIELD_PATTERN = /^(?:error|message|reason|query|prompt|command|path|filePath|dirPath|workspaceRoot|cwd|url|uri|baseUrl|content|response|result)$/i
 const SENSITIVE_VALUE_PATTERN = /(?:Bearer\s+|sk-(?:ant-)?|gh[pousr]_|github_pat_|xox[baprs]-)[A-Za-z0-9._~+/=-]{8,}/gi
 const SENSITIVE_URL_PARAM_PATTERN = /([?&](?:api[-_]?key|access[-_]?token|token|secret|password)=)[^&#\s"']+/gi
 

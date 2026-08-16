@@ -55,6 +55,7 @@ describe('toAgentError', () => {
     const llmErr = Object.assign(new Error('too many requests'), { status: 429 })
     const agentErr = toAgentError(llmErr)
     expect(agentErr.code).toBe(AgentErrorCode.LLM_RATE_LIMITED)
+    expect(agentErr.message).toBe('模型服务请求过于频繁，请稍后重试。')
     expect(agentErr.retryable).toBe(true)
     expect(agentErr.cause).toBe(llmErr)
   })
@@ -69,12 +70,13 @@ describe('toAgentError', () => {
     const plain = new Error('boom')
     const agentErr = toAgentError(plain)
     expect(agentErr.code).toBe(AgentErrorCode.UNKNOWN)
+    expect(agentErr.message).toBe('运行过程中发生错误，请稍后重试。')
     expect(agentErr.cause).toBe(plain)
   })
 
   it('字符串包成 UNKNOWN', () => {
     const agentErr = toAgentError('just a string')
     expect(agentErr.code).toBe(AgentErrorCode.UNKNOWN)
-    expect(agentErr.message).toBe('just a string')
+    expect(agentErr.message).toBe('运行过程中发生错误，请稍后重试。')
   })
 })

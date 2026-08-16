@@ -171,6 +171,8 @@ export function SettingsPanel({
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
+  const [hasStoredApiKey, setHasStoredApiKey] = useState(false)
+  const [apiKeyChanged, setApiKeyChanged] = useState(false)
   const [firstRun, setFirstRun] = useState(true)
   const [connectionTesting, setConnectionTesting] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<{ kind: 'success' | 'error'; text: string } | null>(null)
@@ -247,11 +249,14 @@ export function SettingsPanel({
   useEffect(() => {
     if (!window.electronAPI) return
     window.electronAPI.settings.get().then((s) => {
-      const hasApiKey = Boolean(s.llmApiKey?.trim())
+      const hasApiKey = s.llmApiKeyConfigured === 'true' || Boolean(s.llmApiKey?.trim())
+      setHasStoredApiKey(hasApiKey)
+      setApiKeyChanged(false)
       setFirstRun(!hasApiKey)
       if (!hasApiKey) setActiveSection('model')
       setForm({
-        llmApiKey: s.llmApiKey || '',
+        // API Key 原文不从主进程下沉；输入框只承载本次新输入。
+        llmApiKey: '',
         llmBaseUrl: s.llmBaseUrl || DEFAULTS.llmBaseUrl,
         llmModel: s.llmModel || DEFAULTS.llmModel,
         llmTemperature: s.llmTemperature || DEFAULTS.llmTemperature,
@@ -293,7 +298,13 @@ export function SettingsPanel({
       for (const [key, value] of Object.entries(form)) {
         // activeRoleId 只能走 companion.requestSwitch（含 pause/catchup）
         if (key === 'activeRoleId') continue
+        // 未修改 API Key 时不能把安全视图中的空串写回去覆盖主进程密钥。
+        if (key === 'llmApiKey' && !apiKeyChanged) continue
         await window.electronAPI.settings.set(key, value)
+      }
+      if (apiKeyChanged) {
+        setHasStoredApiKey(Boolean(form.llmApiKey.trim()))
+        setApiKeyChanged(false)
       }
       setFirstRun(false)
       setSaved(true)
@@ -305,7 +316,7 @@ export function SettingsPanel({
     } finally {
       setSaving(false)
     }
-  }, [form, toast])
+  }, [apiKeyChanged, form, toast])
 
   const initialLoadDone = useRef(false)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -329,10 +340,11 @@ export function SettingsPanel({
       } catch { /* silent */ }
     }, 1500)
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current) }
-  }, [form, firstRun, toast])
+  }, [apiKeyChanged, form, firstRun, toast])
 
-  const connectionKey = `${form.llmApiKey.trim()}\n${form.llmBaseUrl.trim()}\n${form.llmModel.trim()}`
-  const canTestConnection = Boolean(form.llmApiKey.trim() && form.llmBaseUrl.trim() && form.llmModel.trim())
+  const effectiveApiKeyForTest = apiKeyChanged ? form.llmApiKey.trim() : (hasStoredApiKey ? '[stored-api-key]' : '')
+  const connectionKey = `${effectiveApiKeyForTest}\n${form.llmBaseUrl.trim()}\n${form.llmModel.trim()}`
+  const canTestConnection = Boolean(effectiveApiKeyForTest && form.llmBaseUrl.trim() && form.llmModel.trim())
   const connectionVerified = canTestConnection && verifiedConnectionKey === connectionKey
 
   const testConnection = useCallback(async () => {
@@ -349,7 +361,8 @@ export function SettingsPanel({
     setVerifiedConnectionKey('')
     try {
       const result = await window.electronAPI.settings.testConnection({
-        apiKey: form.llmApiKey,
+        apiKey: apiKeyChanged ? form.llmApiKey : undefined,
+        useStoredApiKey: !apiKeyChanged && hasStoredApiKey,
         baseUrl: form.llmBaseUrl,
         model: form.llmModel,
       })
@@ -364,7 +377,7 @@ export function SettingsPanel({
     } finally {
       setConnectionTesting(false)
     }
-  }, [canTestConnection, connectionKey, form.llmApiKey, form.llmBaseUrl, form.llmModel])
+  }, [apiKeyChanged, canTestConnection, connectionKey, form.llmApiKey, form.llmBaseUrl, form.llmModel, hasStoredApiKey])
 
   const saveAndStart = useCallback(async () => {
     if (!connectionVerified) {
@@ -382,6 +395,7 @@ export function SettingsPanel({
   }, [])
 
   const update = (key: keyof SettingsForm, value: string) => {
+    if (key === 'llmApiKey') setApiKeyChanged(true)
     if (key === 'llmApiKey' || key === 'llmBaseUrl' || key === 'llmModel') {
       setVerifiedConnectionKey('')
       setConnectionStatus(null)
@@ -398,10 +412,11 @@ export function SettingsPanel({
   }
 
   const saveMcpList = useCallback(async (servers: McpServerEntry[]) => {
-    setMcpServers(servers)
+    // 先让主进程校验/确认并持久化，成功后再更新本地列表；取消确认不能留下“假保存”状态。
     if (window.electronAPI) {
       await window.electronAPI.settings.set('mcpServers', JSON.stringify(servers))
     }
+    setMcpServers(servers)
   }, [])
 
   const handleAddMcp = useCallback(async () => {
@@ -426,37 +441,50 @@ export function SettingsPanel({
       enabled: true,
     }
     const updated = [...mcpServers, entry]
-    await saveMcpList(updated)
-    const result = await window.electronAPI?.mcp.connect(entry)
-    if (result && !result.success) {
-      toast(`MCP 连接失败: ${result.error}`, 'error')
+    try {
+      await saveMcpList(updated)
+      const result = await window.electronAPI?.mcp.connect(entry)
+      if (result && !result.success) {
+        toast(`MCP 连接失败: ${result.error}`, 'error')
+      }
+      await refreshMcpStatus()
+      setNewMcp({ name: '', transport: 'stdio', command: '', args: '', url: '', env: '' })
+      setMcpAdding(false)
+    } catch {
+      toast('MCP 配置未保存，可能是你取消了安全确认', 'warning')
     }
-    await refreshMcpStatus()
-    setNewMcp({ name: '', transport: 'stdio', command: '', args: '', url: '', env: '' })
-    setMcpAdding(false)
   }, [newMcp, mcpServers, saveMcpList, refreshMcpStatus, toast])
 
   const handleRemoveMcp = useCallback(async (id: string) => {
-    await window.electronAPI?.mcp.disconnect(id)
-    const updated = mcpServers.filter(s => s.id !== id)
-    await saveMcpList(updated)
-    await refreshMcpStatus()
-  }, [mcpServers, saveMcpList, refreshMcpStatus])
+    try {
+      await window.electronAPI?.mcp.disconnect(id)
+      const updated = mcpServers.filter(s => s.id !== id)
+      await saveMcpList(updated)
+      await refreshMcpStatus()
+    } catch {
+      toast('MCP 配置未删除，可能是你取消了安全确认', 'warning')
+    }
+  }, [mcpServers, saveMcpList, refreshMcpStatus, toast])
 
   const handleToggleMcp = useCallback(async (id: string) => {
     const server = mcpServers.find(s => s.id === id)
     if (!server) return
-    if (server.enabled) {
-      await window.electronAPI?.mcp.disconnect(id)
-      const updated = mcpServers.map(s => s.id === id ? { ...s, enabled: false } : s)
-      await saveMcpList(updated)
-    } else {
-      const updated = mcpServers.map(s => s.id === id ? { ...s, enabled: true } : s)
-      await saveMcpList(updated)
-      await window.electronAPI?.mcp.connect({ ...server, enabled: true })
+    try {
+      if (server.enabled) {
+        await window.electronAPI?.mcp.disconnect(id)
+        const updated = mcpServers.map(s => s.id === id ? { ...s, enabled: false } : s)
+        await saveMcpList(updated)
+      } else {
+        const updated = mcpServers.map(s => s.id === id ? { ...s, enabled: true } : s)
+        await saveMcpList(updated)
+        const result = await window.electronAPI?.mcp.connect({ ...server, enabled: true })
+        if (result && !result.success) toast(`MCP 连接失败: ${result.error}`, 'error')
+      }
+      await refreshMcpStatus()
+    } catch {
+      toast('MCP 状态未改变，可能是你取消了安全确认', 'warning')
     }
-    await refreshMcpStatus()
-  }, [mcpServers, saveMcpList, refreshMcpStatus])
+  }, [mcpServers, saveMcpList, refreshMcpStatus, toast])
 
   // ── 各区块渲染 ──
 
@@ -906,13 +934,13 @@ export function SettingsPanel({
         </details>
       ) : renderProviderPresets()}
 
-      <FieldGroup label="API Key" hint="存于本机安全存储；连接测试不会预先保存它。">
+      <FieldGroup label="API Key" hint="仅在输入新值时写入本机安全存储；已保存的 Key 不会回传到 Renderer。">
         <div className="relative">
           <input
             type={showApiKey ? 'text' : 'password'}
             value={form.llmApiKey}
             onChange={(e) => update('llmApiKey', e.target.value)}
-            placeholder="sk-..."
+            placeholder={hasStoredApiKey && !apiKeyChanged ? '已安全保存（输入新值可替换）' : 'sk-...'}
             className="theme-input w-full rounded-lg border px-3 py-2 pr-16 font-mono text-sm outline-none transition"
           />
           <button

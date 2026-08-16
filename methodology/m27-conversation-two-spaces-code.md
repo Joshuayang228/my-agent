@@ -1,145 +1,24 @@
-# M27 对话行为与两空间代码走读
+# M27 对话行为与两空间 — 代码走读
 
-> 对应 `m27-conversation-two-spaces.md`（加厚修订版）。
+> 理念章：[`m27-conversation-two-spaces.md`](./m27-conversation-two-spaces.md)
+> 最近核对：2026-08-16
 
----
+## 一、主答与 Aside
 
-## §二–§三 对照：aside 协议与渲染
+`src/shared/aside.ts` 解析 `<aside>...</aside>`，主答负责办事，aside 只提供一句轻量内心声。`MarkdownRenderer.tsx` 使用同一解析器展示，避免 Eval 和 UI 各写一套规则。
 
-### 我们的实现
+## 二、质量边界
 
-**Prompt（`prompt-builder.ts`）**：
+aside 有长度、频率和内容限制：不能放代码块、多步说明或替代主答；连续过多会判为“过油”。Mermaid 使用 strict securityLevel。
 
-```text
-## Response format
-1. main — professional, helpful, focused
-2. optional <aside>...</aside> — {aside_style}, one sentence, not every turn
-```
+## 三、回复立场与语气
 
-`aside_style` ← `rolePackToPromptParts` ← Pack `asideStyle`。
+`reply-stance.ts` 根据用户情绪/任务信号给启发式立场；`tone-control.ts` 调整表达收放。两者是 Prompt hint，不改变身份、工具权限或安全边界。
 
-**UI（`MarkdownRenderer.tsx`）**：
+## 四、测试证据
 
-```text
-splitAside(raw) → { main, asides[] }
-ReactMarkdown(main)
-asides → text-[11px] italic muted
-```
+`aside-quality.test.ts`、`conversation-debug.test.ts`、`resolve-tools-for-message.test.ts` 和 Renderer E2E。
 
-| 设计点 | 选择 | 原因 |
-|--------|------|------|
-| 标签名 | `<aside>` | 与 HTML 语义接近、少碰撞 |
-| 多 aside | 数组全渲染 | 容错；规范仍要求一句 |
-| 剥离失败标签 | regex 清残留 | 防半截标签进正文 |
+## 五、当前缺口
 
-**方法论对照**：→ §二 §三
-
----
-
-## §四 对照：工具轮丢弃正文
-
-### 我们的实现（`loop.ts`）
-
-```text
-if (toolCalls.length > 0) {
-  log.debug('Discarding companion text (Alice strategy)', { discardedLength })
-  messages.push({ content: '', toolCalls })
-  yield tool_calls
-} else {
-  messages.push({ content })
-  yield done
-}
-```
-
-| 层 | 是否保留陪伴字 |
-|----|----------------|
-| 流式 UI 瞬时 | 可能闪过 |
-| messages 持久 | 否（工具轮） |
-| 下一轮模型输入 | 见持久历史 |
-
-**发现**：这是行为纪律的硬闸，不依赖模型「自觉少说话」。
-
-**方法论对照**：→ §四
-
----
-
-## §五 / §十 对照：executionMode 文案
-
-```text
-plan-first → 必须先明文计划再工具
-confirm-all → 提示每步需批
-（另）task_plan + 收尾自检段落
-```
-
-无独立「行为状态机」对象；旋钮在 settings → Prompt。
-
-**方法论对照**：→ §五 §八 §十
-
----
-
-## §十 对照：召唤声明
-
-`runtime` 组装召唤会话时追加短声明：单独短聊、不推进对方生活世界。  
-与 `scheduleReflectionAfterChat` 的 summon 短接配合。
-
-**方法论对照**：→ §十
-
----
-
-## §五 / M27-G1 对照：回复立场
-
-```text
-runtime: detectReplyStance(lastUserText, executionMode)
-  → formatReplyStanceForPrompt
-  → buildSystemPrompt.replyStanceHint
-     ## Reply stance (this turn)
-```
-
-启发式优先级：推回 > 危险偏问 > 安慰 > 催办即做 > 不清则问 > 均衡。  
-不拦 Loop；高风险以 ask/pushback hint 引导。
-
-**方法论对照**：→ §五 · M27-G1
-
----
-
-## §二 / M27-G2 对照：aside 质量
-
-```text
-src/shared/aside.ts
-  splitAside / evaluateAsideTurn / evaluateAsideSequence
-  阈值：单句≤40字；连续≥3轮=过油；近5轮比例>80%=过油
-  有 aside 时主答≥4字；aside 禁代码块/多步说明夺权
-
-MarkdownRenderer → splitAside（共享）
-Eval C02 → 金样例/负样例夹具
-Unit aside-quality.test.ts
-```
-
-**方法论对照**：→ §二 判据 A/B · 检查清单 #6
-
----
-
-## §七 / M27-G3 对照：语气收放
-
-```text
-resolveToneControl({ stance, executionMode, sessionKind, userText })
-  → tight | soft | neutral + aside policy
-  → ## Tone control (this turn)
-```
-
-报错高潮 / confirm|plan / act|pushback → tight+discourage aside  
-comfort → soft+encourage-once  
-
-**方法论对照**：→ §七 · M27-G3
-
----
-
-## 已知简化
-
-| 项 | 说明 |
-|----|------|
-| 情绪模型 | 仍关键词级（接 reply-stance），无多模态情绪 |
-
-## 2026-08 当前实现校准
-
-两空间的生产落点是 `src/shared/aside.ts`、`src/components/MarkdownRenderer.tsx`、`electron/main/agent/reply-stance.ts`、`tone-control.ts` 与 `loop.ts`。Aside 先由共享解析器拆分，再由 Markdown Renderer 展示；它不能夺取主答，也不能包含代码块或多步说明。`aside-quality.test.ts`、`conversation-debug.test.ts` 和工具解析测试是当前证据。
+Aside 质量仍需真实 Persona Eval 和人工审阅持续校准。

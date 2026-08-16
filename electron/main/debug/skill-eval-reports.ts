@@ -6,7 +6,7 @@
  * 关键约束：只读；拒绝目录穿越；损坏文件静默跳过；不读取 Markdown 或任意工作区文件。
  */
 
-import { readdir, readFile } from 'node:fs/promises'
+import { readdir, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
 import type {
   DebugSkillEvalIndex,
@@ -16,6 +16,8 @@ import type {
 } from '../../../src/shared/types'
 
 const SKILL_REPORT_PATTERN = /-skill-eval-(mock|real)-(pass|fail)\.json$/
+const MAX_REPORT_BYTES = 25 * 1024 * 1024
+const MAX_REPORT_FILES = 200
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
@@ -102,7 +104,10 @@ function toSummary(fileName: string, report: SkillEvalReport): SkillEvalReportSu
 async function readReport(reportDir: string, fileName: string): Promise<DebugSkillEvalReport | null> {
   if (path.basename(fileName) !== fileName || !SKILL_REPORT_PATTERN.test(fileName)) return null
   try {
-    const parsed: unknown = JSON.parse(await readFile(path.join(reportDir, fileName), 'utf8'))
+    const filePath = path.join(reportDir, fileName)
+    const fileStat = await stat(filePath)
+    if (!fileStat.isFile() || fileStat.size > MAX_REPORT_BYTES) return null
+    const parsed: unknown = JSON.parse(await readFile(filePath, 'utf8'))
     return isSkillEvalReport(parsed) ? { ...parsed, fileName } : null
   } catch {
     return null
@@ -115,6 +120,7 @@ export async function listSkillEvalReports(reportDir: string): Promise<DebugSkil
     fileNames = (await readdir(reportDir, { withFileTypes: true }))
       .filter((entry) => entry.isFile() && SKILL_REPORT_PATTERN.test(entry.name))
       .map((entry) => entry.name)
+      .slice(0, MAX_REPORT_FILES)
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
   }

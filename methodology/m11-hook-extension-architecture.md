@@ -187,7 +187,7 @@ CC 的纪律：PreToolUse 的 `allow` **不能绕过** settings 里的 deny/ask�
 
 | 项 | 归属 | 说明 |
 |----|------|------|
-| shell 权限未统一走 `checkCommandPermission`、`loadRules` 未接线 | **M10 安全债** | 与「要不要用户 Hook」无关；不在本轮 M11 实现 |
+| shell 权限链与 `loadRules` | ✅ 已统一接入 M10 权限/沙箱；不是用户 Hook |
 | Middleware 对外注册 API / 文档化插件入口 | 内部演进 | 有第三个真实调用方再做 |
 | 压缩前后内部回调（原 G9） | M07 × 内部扩展 | 需求出现再加，默认仍走 Tracer 观测 |
 | 通用内部 Hook 总线 | 过设计风险 | 暂缓 |
@@ -209,3 +209,8 @@ CC 的纪律：PreToolUse 的 `allow` **不能绕过** settings 里的 deny/ask�
 | 本轮是否写 Hook 运行时 | **不写** | 认知地图优先；避免过设计 |
 | 三源怎么用 | CC 学纪律、feiche 学观测边界、Alice 范式一归 M04 | 三者不是同一问题 |
 | P0 权限接线 | **不并进本轮** | 安全债单独立项，避免 M11 变杂烩 |
+
+
+## 2026-08 当前边界
+
+Observer/Tracer 负责观测，Permission/Middleware 负责控制，事件流负责通知，Skill/MCP/Role Pack/Settings 负责用户扩展。仓库仍不提供用户脚本生命周期 Hook；命令权限、路径守卫和规则加载已经接通。
