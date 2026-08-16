@@ -46,6 +46,14 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 | 测试 / Eval 门禁 | `docs/quality.md` |
 | 小改（typo、单文件少量且意图明确） | 相关代码即可 |
 
+### 文档路由模型
+
+- **集合型文档**：先进入分类 README，再由 README 分发到具体文档。当前包括 [`docs/modules/README.md`](docs/modules/README.md)、[`docs/requirements/README.md`](docs/requirements/README.md)、[`docs/deferred/README.md`](docs/deferred/README.md) 和 [`methodology/README.md`](methodology/README.md)。
+- **单体型 canonical 文档**：本身就是某一职责的唯一事实源，按任务触发条件直接进入；包括 `docs/architecture.md`、`docs/quality.md`、`docs/progress.md`、`docs/changelog.md`、`docs/wishlist.md`、`docs/decisions.md`、`docs/pitfalls.md`、`docs/rules-feedback.md` 和 `docs/docs-system.md`。
+- **Skill**：按场景由本文件直接路由到具体 `agent-skills/*.md`，不要求先经过 `agent-skills/README.md`；Skill 是执行规程，不是产品文档目录。
+- **根目录 README**：面向人类 / GitHub 的公共入口，不作为 AI 必经启动入口；不能把它当作规则或事实 canonical source。
+- **README 的边界**：README 只负责导航、分发和生命周期说明，不复制子文档的事实正文，不成为第二事实源。
+
 从 summary 恢复且信息完整可跳过；summary 可能过时（如跨天）时仍应读文件确认。
 
 **决策发现**：不要求每次启动全文读取 `docs/decisions.md`。但准备改变技术栈、模块边界、安全模型、数据迁移策略、已接受风险、明确非目标或重新提出曾取消方案前，必须按关键词搜索相关 DEC；登记 code review 剩余风险前也必须先查。模块卡可只链接相关 DEC，不复制正文。

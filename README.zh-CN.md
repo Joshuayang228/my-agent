@@ -99,6 +99,8 @@ npm run dev
 | [docs/changelog.md](docs/changelog.md) | 对外变更 |
 | [docs/progress.md](docs/progress.md) | 对内进度 |
 | [docs/wishlist.md](docs/wishlist.md) | 暂缓与灵感 |
+| [docs/deferred/README.md](docs/deferred/README.md) | 暂缓能力的可行性评估 |
+| [methodology/README.md](methodology/README.md) | 深层设计理由与方法论 |
 | [docs/docs-system.md](docs/docs-system.md) | 文档体系说明 |
 
 英文 README 是 GitHub 前门；长文目前以中文为主，后续按需英文化。

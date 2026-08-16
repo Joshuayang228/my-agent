@@ -99,6 +99,8 @@ We maintain a small **four-dimension** doc system (product / architecture / qual
 | [docs/changelog.md](docs/changelog.md) | User-facing changes |
 | [docs/progress.md](docs/progress.md) | Internal progress |
 | [docs/wishlist.md](docs/wishlist.md) | Deferred ideas & gaps |
+| [docs/deferred/README.md](docs/deferred/README.md) | Feasibility evaluations currently deferred |
+| [methodology/README.md](methodology/README.md) | Deep design rationale and methodology |
 | [docs/docs-system.md](docs/docs-system.md) | How docs are organized |
 
 > Most long-form docs are currently in **Chinese** (authoring language). English READMEs are the public front door; we will bilingualize more as the repo grows.

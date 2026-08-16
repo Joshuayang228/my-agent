@@ -92,8 +92,8 @@ function markdownTargets(file) {
 
 /**
  * 背景：仅检查 README 内部索引会漏掉“索引与子文档互相可达、但 AI 启动入口不可达”的孤儿文档块。
- * 设计意图：把 AGENTS.md 视为 Bootstrap，要求 Deferred / Methodology 具备任务触发条件、直接入口和完整子文档链接。
- * 关键约束：不要求每次启动读取全部文档；只验证按任务触发的分类入口和其目录内的显式索引。
+ * 设计意图：把 AGENTS.md 视为 Bootstrap，要求集合型文档具备任务触发条件、直接入口和完整子文档链接，同时登记单体文档与 Skill 的直接路由。
+ * 关键约束：不要求每次启动读取全部文档；只验证按任务触发的分类入口、单体入口和 Skill 场景路由。
  */
 function checkDocumentRouteGraph() {
   const agentsFile = path.join(root, 'AGENTS.md')
@@ -144,6 +144,39 @@ function checkDocumentRouteGraph() {
         errors.push(`${family.label}索引未显式链接：${childName}`)
       }
     }
+  }
+
+  const routeSectionStart = agentsText.indexOf('### 文档路由模型')
+  const routeSectionEnd = routeSectionStart >= 0
+    ? agentsText.indexOf('\n## ', routeSectionStart)
+    : -1
+  const routeSection = routeSectionStart >= 0
+    ? agentsText.slice(routeSectionStart, routeSectionEnd >= 0 ? routeSectionEnd : undefined)
+    : ''
+  if (!routeSection) {
+    errors.push('AGENTS.md 缺少“文档路由模型”声明')
+    return
+  }
+
+  const singletonRoutes = [
+    'docs/architecture.md',
+    'docs/quality.md',
+    'docs/progress.md',
+    'docs/changelog.md',
+    'docs/wishlist.md',
+    'docs/decisions.md',
+    'docs/pitfalls.md',
+    'docs/rules-feedback.md',
+    'docs/docs-system.md',
+  ]
+  for (const target of singletonRoutes) {
+    if (!routeSection.includes(target)) errors.push(`单体型 canonical 文档未登记路由：${target}`)
+  }
+
+  const skillDir = path.join(root, 'agent-skills')
+  for (const name of fs.readdirSync(skillDir).filter((item) => item.endsWith('.md') && item !== 'README.md')) {
+    const target = `agent-skills/${name}`
+    if (!agentsText.includes(target)) errors.push(`Skill 未被 AGENTS.md 场景路由：${target}`)
   }
 }
 

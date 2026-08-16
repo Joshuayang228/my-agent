@@ -31,6 +31,23 @@
 - **方法论**：[`methodology/README.md`](../methodology/README.md)，记录深层认知和取舍。
 - **协作规则**：`AGENTS.md` + `agent-skills/`。
 
+## AI 路由模型
+
+文档发现不是“所有文件都先经过一个总 README”，而是按文档职责分层：
+
+```text
+AGENTS.md
+├── 集合型文档 → 分类 README → 具体文档
+├── 单体型 canonical 文档 → 按任务触发条件直接进入
+└── Skill → 场景匹配后直接进入具体 agent-skills/*.md
+```
+
+- **集合型文档**适合有多个子文档、需要状态或依赖分发的目录：模块、施工合同、Deferred、Methodology。
+- **单体型文档**本身就是唯一事实源，不为增加跳转层级再套一层 README：Architecture、Quality、Progress、Changelog、Wishlist、Decisions、Pitfalls、Rules Feedback 和本文件。
+- **Skill** 是场景化执行规程，由 `AGENTS.md` 直接点读具体文件；`agent-skills/README.md` 只做目录说明。
+- **根目录 README** 是人类 / GitHub 公共入口，不能替代 `AGENTS.md` 的 AI 启动路由。
+- **任何 README** 只负责索引、分发和边界说明，不复制子文档事实正文。
+
 ## 生命周期
 
 ### 施工合同
