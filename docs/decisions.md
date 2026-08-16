@@ -469,3 +469,18 @@
 - **决定**：选择 B。表达不采用单一热度参数，而使用五维人格基线 + 本轮 tone-control + 关系阶段；LLM `temperature` 只负责采样随机性。
 - **补充决定**：当前只施工主角候选小航；平台支持可选 `profile/world` 资产，但不扩写其他角色。先确认行为人格，再设计人物故事；姓名不得自动推导主题、职业或世界观。旧三字段 `world_json` 全局不兼容、不迁移，读取时按各角色当前默认值重置；这不代表扩写其他角色内容。
 - **影响**：小航 Role Pack、Playground 人格验收、Persona Eval、identity loader、Prompt L1、世界初始化、日剧本与 Debug 世界态；其他角色保持原状。参考审计在 `_reference/alice-persona-world-source-analysis.md`。
+
+---
+
+### DEC-037: 当前威胁模型不引入 OS 级 Shell 强隔离
+
+- **日期**：2026-08-16
+- **状态**：已决定（当前明确不做）
+- **背景**：安全审计确认应用层命令守卫、PermissionEngine、有效沙箱、工作区 realpath、`ToolContext.workdir`、主进程确认、安全子进程环境、超时和输出上限已覆盖当前个人桌面 Agent 的主要风险。继续引入 Windows Job Object / AppContainer、容器、低权限账户或嵌入 Python 沙箱，会显著破坏 Git、Node/Python、编译器、代理、证书、SSH 和跨平台兼容性，并容易制造“有 OS 沙箱就绝对安全”的错觉。
+- **选项**：
+  - A：现在建设 OS 级强隔离 — 防御更深，但跨平台成本高、产品能力损失大，且与当前单用户本机威胁模型不匹配
+  - B：维持应用层 fail-closed 安全模型，把低层剩余风险作为明确接受边界 — 与当前产品定位匹配
+  - C：继续放在 wishlist，未来不设触发条件地反复评估 — 会让后续 Agent 把已决策事项误报成安全欠债
+- **决定**：选择 B。当前明确不做 OS 级 Shell 强隔离，也不做 Python 嵌入沙箱；这不是“以后有空补”的待办，而是当前威胁模型下的非目标。
+- **重新立项触发条件**：产品转为多租户/云端执行、无人值守远程执行、默认无确认运行任意 Shell、自动执行第三方未知二进制、企业客户提出强合规要求，或威胁模型开始对抗本机恶意用户。届时应优先设计独立受限 Runner，而不是继续向现有 `shell_exec` 堆条件。
+- **影响**：`docs/modules/permission.md` 明确接受 Shell 解释器语义和 symlink TOCTOU 的剩余风险；`docs/wishlist.md` 勾掉 Shell OS 隔离与 Python 嵌入沙箱；Code Review 不得在触发条件未变化时反复把它们列为未完成漏洞。

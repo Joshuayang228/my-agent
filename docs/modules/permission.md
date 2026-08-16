@@ -7,7 +7,7 @@
 ## 边界
 
 **做**：PermissionEngine 责任链、对话页审批模式（confirm-all / auto / full-access）、由审批模式推导的有效沙箱、命令分级与路径守卫、审批记录、确认 IPC/UI、settings 中 permissionRules 与可视化编辑器、Terminal / shell / MCP 子进程凭据隔离和安全日志脱敏。
-**不做**：设置页独立沙箱开关（已移除）；OS 级强隔离沙箱；Python 嵌入解释器沙箱（wishlist 搁置）。
+**不做**：设置页独立沙箱开关（已移除）；OS 级 Shell 强隔离；Python 嵌入解释器沙箱。后两项是 DEC-037 明确非目标，不是待补工程债；只有威胁模型触发条件变化时才重新立项。
 
 ## 短 Why
 
@@ -78,4 +78,4 @@
 ## 现状 / 缺口
 
 **现状**：工具 metadata 先经过运行时解析，再进入硬边界与五层业务责任链，已接 Loop；非 `full-access` 的 `file_read` / `code_search` 也绑定当前工作区并保护常见凭据文件；子进程默认过滤主进程环境中的 API Key / Token / Secret，日志不再落盘命令正文、权限 pattern/reason、原始路径或记忆正文；文件写入、编辑、删除和 patch 统一经过有效沙箱与工作区路径守卫，用户确认不会绕过路径边界；Headless 无交互确认时只自动批准明确只读工具；设置页不再提供独立沙箱开关；内置策略可在 Debug 只读追踪来源、版本、指纹和依赖。
-**缺口**：更细的产品向权限说明文案；OS/嵌入级强隔离非本阶段；Shell 解释器语义与 symlink TOCTOU 仍需进程级隔离才能彻底消除。
+**缺口**：更细的产品向权限说明文案。Shell 解释器语义、symlink TOCTOU 和子进程派生属于当前威胁模型明确接受的剩余风险；继续维持应用层 fail-closed 防线，不把 OS/嵌入级强隔离列为待办（DEC-037）。

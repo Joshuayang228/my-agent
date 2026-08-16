@@ -15,6 +15,7 @@
 - 命令权限安全边界必须验证：危险命令先于自定义规则 / 审批，匹配不区分大小写且在 `full-access` 仍 bypass-immune；非 `full-access` 拒绝 Shell 控制符、显式越界路径、越界 cwd；Headless 只自动批准明确只读工具。
 - 写入安全边界必须验证：目标与最近存在父目录均经过 realpath；子 Agent 工具使用 `ToolContext.workdir`；敏感设置迁移和新密文解密失败都必须 fail-closed；`settings:get` 不得把 API Key/MCP env secret 返回 Renderer。
 - 正则 / 资源边界必须验证：权限规则、Code Search、Playground、RAG、Shell 均有输入上限或灾难性回溯防护；自动语法验证不得触发 npx 联网安装（使用 `--no-install`）。
+- 安全审计发现剩余风险时先查 `docs/decisions.md` 与模块卡：明确接受/不做的边界不得重复登记为 wishlist 欠债；只有威胁模型或重启条件变化时才重新立项。
 
 ### Prompt 中文门禁
 

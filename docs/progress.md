@@ -2,6 +2,12 @@
 
 > 每次对话结束时由 AI 更新此文件，记录当前进展。
 
+## 2026-08-16 · 明确不做 OS 级 Shell 强隔离
+
+- 决定当前个人桌面 Agent 威胁模型不引入 Windows Job Object / AppContainer、容器、低权限账户或 Python 嵌入沙箱；现有应用层 PermissionEngine、命令守卫、有效沙箱、工作区路径、主进程确认和安全子进程环境继续作为正式安全模型。
+- 新增 DEC-037，记录不做理由和重新立项触发条件；只有多租户/云执行、无人值守远程执行、默认无确认任意 Shell、未知二进制自动执行或企业强合规时才重新评估独立受限 Runner。
+- `docs/wishlist.md` 勾掉 Shell OS 隔离与 Python 嵌入沙箱，权限模块卡和 Code Review Skill 同步改为“已接受边界，不反复报欠债”。
+
 ## 2026-08-16 · 安全审计 v5：Renderer 凭据边界与 MCP 配置恢复
 
 - 修复最高风险设置泄露：`settings:get` 改为主进程安全视图，Renderer 不再收到 API Key 原文或 MCP env 原文。
@@ -238,7 +244,8 @@
 | **现在在哪** | 公开 alpha。壳层 IA：人物世界口袋 + Debug/Playground 独立全页；Playground Phase 0+1 已落地。 |
 | **产品怎么记** | `docs/modules/README.md` → 各卡「已落地能力」；大改先写 `docs/requirements/` **施工合同**。 |
 | **下一步可做** | 在 Debug「Eval」审阅 DeepSeek `pass^3` 的真实回复与 Judge evidence；再做 Playground 人工语气审美验收，决定是否进入人物故事设计。 |
-| **明确暂缓** | 原生语音 STT（`docs/deferred/native-voice-input.md`）；生图 Moments（M24-G3）；Python 嵌入沙箱。 |
+| **明确暂缓** | 原生语音 STT（`docs/deferred/native-voice-input.md`）；生图 Moments（M24-G3）。 |
+| **明确不做** | OS 级 Shell 强隔离、Python 嵌入沙箱（DEC-037；仅威胁模型变化时重新立项）。 |
 | **仓库** | 双语 README；Issues/PR 欢迎；见 `CONTRIBUTING.md`。 |
 
 ## 当前状态

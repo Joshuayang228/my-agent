@@ -9,7 +9,7 @@
 
 - [x] ~~**依赖漏洞升级矩阵**~~ — 2026-08-15 安全审计 v2 已完成；生产与 dev `npm audit` 均为 0 vulnerabilities，未使用 `overrides`。
 - [ ] **URL Fetch DNS rebinding 深度防护** — 当前已做 DNS 预解析、私网黑名单、重定向阻断和响应上限；若未来需要对抗主动竞态攻击，再引入固定地址连接器或进程级网络策略（见 `docs/security-audit-2026-08.md`）。
-- [ ] **Shell 进程级 OS 隔离** — 当前命令守卫、有效沙箱和安全子进程环境已覆盖常见边界，但无法从应用层彻底消除解释器语义、symlink TOCTOU 和子进程自我衍生风险；后续评估 Windows Job Object / AppContainer 或独立受限执行器。
+- [x] ~~**Shell 进程级 OS 隔离**~~ — 2026-08-16 明确不做：不属于当前个人桌面 Agent 威胁模型；保留应用层 fail-closed 边界。仅在多租户/云执行、无人值守远程执行、默认无确认任意 Shell、未知二进制自动执行或企业强合规时重新立项（DEC-037）。
 - [ ] **Tool Result Injection 结构化分类器** — 当前已有中英文启发式探针和不受信任内容边界；后续可用离线分类器/Eval 扩展，不能把工具结果当系统指令。
 
 > Agent 在深啃或收尾时若留下「暂缓 / 占位 / 工程债」，必须同步到本节。规则见根目录 `CLAUDE.md`「wishlist 同步」。
@@ -150,7 +150,7 @@
 
 ### 沙箱与安全
 
-- [ ] **Python 嵌入沙箱** — ⏸ 搁置（2026-08-03）：灵犀 CGO 嵌入 Python，与 Electron 栈不对齐；现有策略型沙箱对个人桌面够用。真要强隔离再评估 OS/容器方案。来源：灵犀 `pyairscript/cgo_sandbox/sandbox/`
+- [x] ~~**Python 嵌入沙箱**~~ — 2026-08-16 明确不做：与 Electron 栈和当前威胁模型不匹配，不作为未来待办；若 DEC-037 的威胁模型触发条件成立，统一评估独立受限 Runner。来源：灵犀 `pyairscript/cgo_sandbox/sandbox/`
 - [x] ~~**PII 脱敏 + 文本预算**~~ — 2026-08-03 已做（`text-capture.ts`；tracer attributes / error 接入）
 - [x] ~~**Session-based 采样**~~ — 2026-08-03 已做（`session-sampler.ts`；`MY_AGENT_TRACE_SAMPLE_RATE`；默认 1 全收）
 

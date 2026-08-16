@@ -10,7 +10,7 @@
 
 ---
 
-## 2026-08-15 当前结论（优先于下文历史快照）
+## 2026-08-16 当前结论（优先于下文历史快照）
 
 下文保留 2026-07 的原始审计过程，涉及“完全没有”“待 v2”“commit 待提交”的语句只表示当时状态。当前已经落地：
 
@@ -20,7 +20,7 @@
 - MCP stdio/SSE、自动重连、Resources、Elicitation、safeStorage；
 - Prompt / Role Pack / Memory Strategy / Permission-Sandbox / Tool / Skill / Eval / Provider / MCP 资产注册与 Debug 证据链。
 
-仍有效的主要缺口：OS 级强隔离、输入层 Prompt Injection Probe、动态多 Agent handoff 分类、Provider HTTP/SSE replay、独立 Session Memory、自动 Skill/代码自进化和跨会话长期关系真实 Eval。它们以 `docs/wishlist.md` 为待办事实源。
+仍有效的主要缺口：动态多 Agent handoff 分类、Provider HTTP/SSE replay、独立 Session Memory、自动 Skill/代码自进化和跨会话长期关系真实 Eval。输入层 Tool Result Prompt Injection Probe 已落地；OS 级 Shell 强隔离与 Python 嵌入沙箱由 DEC-037 明确为当前非目标，不再进入 wishlist 待办。
 
 # 第一部分：最终汇总（三源交叉去重，按价值排序）
 

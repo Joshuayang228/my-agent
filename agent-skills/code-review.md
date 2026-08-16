@@ -149,7 +149,7 @@
 - [ ] full-access 也不得永久删除文件系统根、当前工作区根或 `.git`。
 - [ ] 子进程环境不继承主进程 API Key/Token/Secret；超时、输出和派生进程有上限。
 
-已知未完全解决的低层边界（如 Shell 解释器语义、symlink TOCTOU）必须记录到 `docs/wishlist.md`，不能在审查中伪称“已彻底隔离”。
+已知低层边界（如 Shell 解释器语义、symlink TOCTOU）必须如实披露，但先检查 `docs/decisions.md` 和模块卡：若已被 DEC-037 等决策明确接受，就不能反复写成 wishlist 欠债；只有威胁模型或触发条件变化时才重新立项。
 
 ### 4.5 网络、URL、MCP 与外部内容
 
@@ -259,7 +259,7 @@
 - [ ] 跨 3 个以上文件、架构变化或复杂功能先有施工合同；实施状态与代码事实一致。
 - [ ] 模块边界/入口/不变量/必测变化 → 更新对应模块卡；用户可见行为 → 更新 `docs/changelog.md`；阶段变化 → 更新 `docs/progress.md`。
 - [ ] 技术取舍 → `docs/decisions.md`；新坑 → `docs/pitfalls.md`；规则冲突/缺失 → `docs/rules-feedback.md`。
-- [ ] 暂缓、工程债、审计确认但未排期的事项 → `docs/wishlist.md`，不能只写在回复或方法论里。
+- [ ] 暂缓、工程债、审计确认但未排期的事项 → `docs/wishlist.md`；明确取消/不做的事项应勾掉并在 `docs/decisions.md` 记录理由与重启条件，不能继续伪装成待办。
 - [ ] 方法论中的历史快照必须明确标注日期/历史性质；当前测试数量和能力不能引用过时数字。
 
 ---
@@ -299,7 +299,7 @@ npm audit --omit=dev --registry=https://registry.npmjs.org
 - [ ] 暂存后再次运行 `git diff --cached --check`，确认没有凭据、`.env`、临时目录、报告或无关改动。
 - [ ] 若有依赖变更，检查 lockfile、npm lifecycle script、依赖来源和 `npm audit` 结果，不用未经验证的 `overrides` 掩盖漏洞。
 - [ ] 测试失败、构建警告或剩余缺口不能用“基本没问题”掩盖。
-- [ ] 高风险暂缓项写入 `docs/wishlist.md`；用户可见能力变化同步模块卡/`docs/changelog.md`。
+- [ ] 高风险暂缓项写入 `docs/wishlist.md`；已决策接受的剩余风险引用对应 DEC，不重复创建待办；用户可见能力变化同步模块卡/`docs/changelog.md`。
 - [ ] 项目规则要求推送时，commit 成功后立即 `git push`，并确认本地 HEAD 与远端分支一致。
 
 ---
