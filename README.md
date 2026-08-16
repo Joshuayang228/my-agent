@@ -104,7 +104,7 @@ We maintain a small **four-dimension** doc system (product / architecture / qual
 
 - Polish companion UX and Pack content
 - Strengthen observability & eval coverage
-- Frontend visual unification (planned construction contract)
+- Continue polishing the unified frontend and companion surfaces
 - Native / reliable voice input (deferred — see `docs/deferred/`)
 - Image Moments & multi-universe (out of scope for now)
 
@@ -112,7 +112,7 @@ We maintain a small **four-dimension** doc system (product / architecture / qual
 
 See **[CONTRIBUTING.md](./CONTRIBUTING.md)**. Issues and PRs welcome.
 
-For large changes, write a **construction contract** under `docs/requirements/` first (see root `CLAUDE.md`).
+For large changes, write a **construction contract** under `docs/requirements/` first (see root `AGENTS.md`).
 
 ## License
 

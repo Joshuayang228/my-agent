@@ -116,16 +116,16 @@ M01–M32 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 ---
 
-## 当前实现审计索引
+## 历史审计索引
 
-- [`current-implementation-audit-2026-08.md`](current-implementation-audit-2026-08.md)：M01–M32、Persona Eval 与独立主题的当前代码入口、测试证据和缺口矩阵。
+- [2026-08 当前实现逐章审计](../_archive/audits/current-implementation-audit-2026-08.md)：dated snapshot，不替代代码、模块卡或本目录代码走读。
+- [2026-07 方法论缺口审计](../_archive/audits/gap-audit-2026-07.md)：原始三源报告完整保留；仍有效缺口已迁入 `docs/wishlist.md`。
 
 ## 独立主题（不占 mNN 编号）
 
 | 文件 | 主题 | 状态 |
 |------|------|------|
 | `rule-system-evolution.md` | 规则体系的进化 | ✅ |
-| `gap-audit-2026-07.md` | 方法论缺口审计（三源对照：CC / Alice / feiche）| 📋 对照+todo |
 | `asset-registration-management.md` + `-code.md` | Agent 生产资产注册与管理：身份、事实源、生命周期、运行追踪与 Debug / Playground 边界 | ✅ |
 
 ---
@@ -145,7 +145,7 @@ M01–M32 按**依赖层级**从底向上排列：底层基础设施决定上层
 ## 写作约定
 
 - **触发写作**：告诉 AI「写方法论」或「沉淀一下 XX 的思考」
-- **写作规范 / 深啃五步**：`agent-skills/methodology-writing.md`（原 `agent-skills/methodology-writing.md` 已并入此 skill）
-- **配对结构**：每章通常包含理念章（`.md`）和代码走读章（`-code.md`）；占位章节先建理念章，代码走读视实现情况补充
+- **写作规范 / 深啃五步**：`agent-skills/methodology-writing.md`
+- **配对结构**：每章通常包含理念章（`.md`）和代码走读章（`-code.md`）；代码走读是带“最近核对”日期的实现快照，不承担当前事实源
 - **参考源**：Alice 方法论（`_reference/framework-harness/repos/alice-methodology/`）、CC 源码（`_reference/framework-harness/repos/claude-code-sourcemap-main/`）、feiche（`_reference/feiche/`）
 - **进度时间线**：`docs/progress.md`（本 README 只维护章节状态，不写实施流水账）

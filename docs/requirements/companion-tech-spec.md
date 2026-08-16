@@ -1,6 +1,7 @@
 # 伙伴与生活世界 — 完整技术方案（施工合同）
 
 > 状态：**W0–W6 主线已落地**（2026-08-02）· 后续为内容 Pack / 方法论深啃  
+> 生命周期：已完成施工快照（冻结）；当前能力与行为以代码、模块卡、Architecture、Quality 和 Decisions 为准。
 > 上位文档：[产品契约](./companion-world-framework.md) · [模块架构](./companion-architecture.md) · [DEC-034](../decisions.md)  
 > 本文补齐：数据模型 · Role Pack 格式 · 关键接口 · 影响范围 · W0–W6 可验证步骤 · 风险权衡  
 

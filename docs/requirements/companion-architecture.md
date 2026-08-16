@@ -1,6 +1,7 @@
 # 伙伴与生活世界 — 模块架构详设
 
 > 状态：设计已确认（2026-08-01）· 落地后要点吸入 `architecture.md` / modules 卡  
+> 生命周期：已完成施工快照（冻结）；当前能力与行为以代码、模块卡、Architecture、Quality 和 Decisions 为准。
 > 产品契约：[`companion-world-framework.md`](./companion-world-framework.md)  
 > **施工级细节（表/IPC/验收）**：[`companion-tech-spec.md`](./companion-tech-spec.md)  
 > 与底层关系：挂在现有 Electron 主进程分层之下，**不推翻** Agent Loop / tools / memory / ipc；新增 `companion/` 域，由 Orchestrator 门控，Assemble 注入 Loop。

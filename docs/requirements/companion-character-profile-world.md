@@ -1,6 +1,7 @@
 # 主角档案与默认世界结构
 
 > 状态：**结构接入已落地，人物故事内容待定**（2026-08-11）
+> 生命周期：已完成施工快照（冻结）；当前能力与行为以代码、模块卡、Architecture、Quality 和 Decisions 为准。
 > 对象：主角候选小航（`roleId: hang`）
 > 关联：`docs/requirements/companion-protagonist-persona.md`
 

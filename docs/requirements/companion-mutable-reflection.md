@@ -1,6 +1,7 @@
 # 自动反思写 MUTABLE — 短需求
 
 > 状态：**已落地**（2026-08-02）。索引见 [README.md](./README.md)。  
+> 生命周期：已完成施工快照（冻结）；当前能力与行为以代码、模块卡、Architecture、Quality 和 Decisions 为准。
 > 对照 Alice `PersonaReflectionService` + `runPersonaReflection`，自研落地。
 
 ## Why

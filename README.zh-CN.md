@@ -104,7 +104,7 @@ npm run dev
 
 - 打磨伴侣体验与 Pack 内容
 - 加强可观测与 Eval
-- 前端视觉统一（将写施工合同）
+- 继续打磨已统一的前端视觉与伙伴表面
 - 可靠语音输入（暂缓，见 `docs/deferred/`）
 - 生图朋友圈 / 多宇宙（非本阶段）
 
@@ -112,7 +112,7 @@ npm run dev
 
 详见 **[CONTRIBUTING.md](./CONTRIBUTING.md)**。欢迎 Issue / PR。
 
-大改请先在 `docs/requirements/` 写**施工合同**（见根目录 `CLAUDE.md`）。
+大改请先在 `docs/requirements/` 写**施工合同**（见根目录 `AGENTS.md`）。
 
 ## 许可证
 

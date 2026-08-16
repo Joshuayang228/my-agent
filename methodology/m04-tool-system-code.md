@@ -484,7 +484,7 @@ export function buildTool<D extends AnyToolDef>(def: D): BuiltTool<D> {
 }
 ```
 
-**类型安全保证**：泛型 `<D extends AnyToolDef>` 确保返回类型 `BuiltTool<D>` 精确追踪用户定义的字段，TypeScript 能在编译时检查工具定义的完整性。60 多个内置工具用这个工厂，零类型错误。
+**类型安全保证**：泛型 `<D extends AnyToolDef>` 确保返回类型 `BuiltTool<D>` 精确追踪用户定义的字段，TypeScript 能在编译时检查工具定义的完整性。全部内置工具使用这个工厂，零类型错误。
 
 ### Alice 的共享元数据基底
 

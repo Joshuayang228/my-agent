@@ -1,115 +1,79 @@
 # 质量总控
 
-> **质量维入口**（Unit / Eval / E2E）。
+> 质量维入口：定义 Unit / Eval / E2E / 安全审计的分层和必跑条件。具体 Case、测试文件和当前通过数量以仓库代码及命令输出为准，不在本文维护动态总数。
 > 深 Why：`methodology/m17-testing-architecture.md`、`methodology/m18-eval.md`。
-> 场景与 runner 真相以仓库代码为准：`__tests__/`、`evals/`。
 
+## 一、完成门禁
 
-### 安全审计门禁（2026-08-16）
+所有代码任务在声称完成前按顺序执行：
 
-- `npm audit --registry=https://registry.npmjs.org` 与 `npm audit --omit=dev --registry=https://registry.npmjs.org` 必须为 `0 vulnerabilities`；依赖修复优先采用上游兼容升级，不用未经验证的 `overrides`。
-- `__tests__/unit/security-boundaries.test.ts` 覆盖导入结构 / 子进程环境、项目路径边界和 URL SSRF 黑名单；`__tests__/unit/file-path-guard.test.ts` 覆盖只读工具工作区边界与凭据文件保护。
-- 安全审计必须检查：IPC 输入边界、项目路径 realpath / symlink、自动只读工具读取范围、URL 抓取的 SSRF / 重定向 / 响应大小、Renderer 导航 / CSP / CDP、用户资产解析器是否执行代码、日志正文脱敏、依赖漏洞。
-- 安全修复不得用真实 API Key 或真实模型调用验证；验证顺序仍为自审 → Unit → `npx tsc --noEmit` → `npm run build` → UI E2E。
-- 数据备份安全边界必须验证：导出不含 `llmApiKey` / MCP env / command / permissionRules / executionMode / 本机路径；导入不能改变权限面或下次启动的外部执行入口。
-- 命令权限安全边界必须验证：危险命令先于自定义规则 / 审批，匹配不区分大小写且在 `full-access` 仍 bypass-immune；非 `full-access` 拒绝 Shell 控制符、显式越界路径、越界 cwd；Headless 只自动批准明确只读工具。
-- 写入安全边界必须验证：目标与最近存在父目录均经过 realpath；子 Agent 工具使用 `ToolContext.workdir`；敏感设置迁移和新密文解密失败都必须 fail-closed；`settings:get` 不得把 API Key/MCP env secret 返回 Renderer。
-- 正则 / 资源边界必须验证：权限规则、Code Search、Playground、RAG、Shell 均有输入上限或灾难性回溯防护；自动语法验证不得触发 npx 联网安装（使用 `--no-install`）。
-- 安全审计发现剩余风险时先查 `docs/decisions.md` 与模块卡：明确接受/不做的边界不得重复登记为 wishlist 欠债；只有威胁模型或重启条件变化时才重新立项。
+1. 对照 `agent-skills/code-review.md` 自审；
+2. `npm run test`；
+3. `npx tsc --noEmit`；
+4. 涉及 import、主进程或打包结构时运行 `npm run build`；
+5. 涉及 UI 时运行 `npm run test:e2e` 并做深色 / 浅色、溢出和主要交互检查；
+6. 涉及产品能力或横切契约时更新对应模块卡、Progress 和 Changelog；
+7. 运行 `npm run docs:check`。
 
-### Prompt 中文门禁
+真实模型、真实 API Key 和会产生费用的 Eval 不是默认门禁，只有任务明确涉及真实模型行为时才运行。
 
-- `__tests__/unit/prompt-language.test.ts` 直接验证生产主 Prompt、动态注入块、内置工具 schema / 示例与 Eval Judge 自有问题。
-- 允许工具名、JSON 字段、枚举、路径、代码和 `VIOLATION_FOUND / NOT_FOUND / UNKNOWN` 等协议 token；禁止重新引入英文自然语言指令。
-- 用户自定义 Prompt、用户安装 Skill、第三方 MCP 与外部网页/命令原始内容不属于翻译范围。
+## 二、测试分层
 
-### Prompt 资产注册表门禁
+| 层 | 证明什么 | 命令 | 触发条件 |
+|---|---|---|---|
+| Unit | 纯逻辑、状态机、边界和回归 | `npm run test` | 所有代码任务必跑 |
+| Framework Eval | Agent Loop、工具、权限、错误和伙伴行为 | `npm run eval:run` | Agent 行为契约变化时 |
+| Skill Eval | Skill 触发、指南注入、工具边界和回复证据 | `npm run eval:skill` | Skill 运行链路变化时 |
+| Persona Real Eval | 真实 LLM + Judge + pass^k | `npm run eval:persona` | 人格 Prompt、Judge 或评分标准变化且用户允许费用时 |
+| Renderer E2E | UI 页面、交互和布局 | `npm run test:e2e` | UI 变化时 |
+| Electron E2E | 首次配置和可选真对话 | `npm run test:e2e:electron` | Electron 生命周期、首次配置或真对话链路变化时 |
+| 文档一致性 | 链接、合同状态、DEC 和 canonical source | `npm run docs:check` | 文档或规则变化时 |
 
-- `__tests__/unit/prompt-assets.test.ts` 验证每个生产注册项都有唯一稳定 `key`、用途、角色、来源、版本、`zh-CN` locale、静态 / 动态模式和插槽数组。
-- 静态资产的 `zh-CN` 模板必须来自真实生产正文；动态资产不得伪造固定模板，必须登记实际组装器和动态插槽。
-- Debug 当前装配快照必须通过同一注册表返回资产 key、用途、角色、来源、版本、locale、模式和插槽，不得维护第二套目录文案。
-- `__tests__/unit/llm-failover.test.ts` 验证调用点 key 会在 LLM 统一入口解析进 `requestExtra.promptAssets`，重复 key 去重，未知 key 进入 `unknownPromptAssetKeys`，不得静默伪造来源。
-- `__tests__/unit/prompt-call-coverage.test.ts` 扫描生产 `streamChat` / `chatComplete` 调用：必须声明资产或 promptless 原因，且 `promptAssetKeys` 禁止裸字符串。
-- `__tests__/unit/model-context-assets.test.ts` 验证统一目录聚合生产 Prompt、伙伴人格资产、内置/Skill/MCP Tool schema、Skill 正文、Eval Judge、用户 L3 所有权和自动指纹。
-- `__tests__/unit/companion-asset-registry.test.ts` 验证 Role Pack 清单、可选 profile / 默认世界、文件 / 派生场景、生活 starter、稳定 key、来源、依赖和防修改副本。
-- `__tests__/unit/memory-strategy-registry.test.ts` 验证记忆策略参数来自 profile / memory-store / vector-store / citation-correct 的生产事实，不读取用户记忆正文。
-- `__tests__/unit/permission-sandbox-asset-registry.test.ts` 验证权限与沙箱资产来自 policy / permission-engine / exec-policy / approval-store / effective-sandbox 的生产事实，不读取用户规则或审批记录正文。
-- `__tests__/unit/eval-asset-registry.test.ts` 验证普通 Scenario 唯一注册表覆盖 F01–F08 / P01–P06 / B01–B07 / C01–C02，Skill Case 覆盖 S01–S03，所有 Grader 判据来自真实实例定义，且静态目录不读取报告、API Key、临时目录或 Judge 隐藏推理。
-- `__tests__/unit/provider-asset-registry.test.ts` 验证 Settings / Chat 共用 9 个预设的唯一注册表、4 个快切子集、三协议能力、五项 Provider 策略及脱敏边界；不得包含合成凭据、用户能力缓存或用户当前配置。
-- `__tests__/e2e/chat.test.ts` 验证 Debug「提示词管理器」可选择“模型 Provider”分类；Provider 结构化资产不能载入 Prompt 实验副本。
-- `__tests__/unit/asset-usage.test.ts` 验证 Trace identity 继承、未知 key 拒绝、metadata 扁平 allowlist 和字符串 / 数组上限；嵌套正文对象不得进入证据。
-- `__tests__/unit/asset-usage-store.test.ts` 验证按 asset / span / session 查询、会话清理和超过 32 MB 后持续裁剪；`database-persist.test.ts` 验证 schema v13 迁移。
-- `__tests__/unit/tool-registry.test.ts` 验证工具内部守卫证据绑定实际 tool span；`llm-debug-store.test.ts` 验证 JSONL 导出保留筛选顺序并附带每条 span 的证据。
-- `__tests__/unit/file-delete.test.ts` 验证相对路径基于工作区、workspace-write 阻止越界、read-only 阻止删除、full-access 明确放行，以及路径证据不携带真实路径正文。
-- 资产证据变更必须跑 Unit、普通 Eval、Skill Eval、TypeScript、Vite Build、UI E2E，并在真实 Electron 中检查调用分组、最近使用、跨面板跳转与浅色 / 深色；未修改人格 Prompt / Judge 时不要求 Persona Real Eval。
-- 静态正文和动态模板使用内容指纹；只有无模板的运行时资产使用结构指纹。指纹不得包含 API Key 或动态用户插槽实际值。
-- 未来增加英文时，在同一 key 下进行独立版本等价性测试，并验证运行时按 locale 单选，不把多语言版本并发注入模型。
+Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务后宣称真实产品能力通过。
 
-### Skill 管理门禁
+## 三、Eval 契约
 
-- `__tests__/unit/skill-management.test.ts` 验证 Skill 名称、YAML Frontmatter、正文、触发条件提醒和 `allowed_tools` 引用校验，并证明 `---javascript` 不会执行用户代码。
-- `__tests__/unit/skill-versioning.test.ts` 验证历史快照、时间元数据、版本正文读取、10 版上限和回滚可逆。
-- `__tests__/unit/llm-failover.test.ts` 验证真实 LLM 请求只记录 Skill 来源 / 版本 / 指纹 / 原因，不把 Skill 正文复制进激活元数据。
-- Skills 管理页的隔离试跑必须复用现有 Playground LLM 路径，不写设置、不写真实会话；生产 Skill 编辑必须先经过主进程校验。
-- 用户 Skill 和 MCP 外部内容保持原文；Debug 目录只读，Skill 管理页负责用户资产编辑。
+- 普通 Scenario 唯一列表：`evals/scenario-registry.ts`。
+- Skill Case 和 Grader 以 `evals/` 生产定义为准；Debug 只读取同一份报告，不在 Renderer 重新评分。
+- `ModelBasedGrader` 使用“是否存在违规 / 是否缺失必要行为”的可判定问题；多个维度在一次 Judge 调用中返回结构化证据。
+- Mock、Skill 和 Persona Real 必须在命令、报告和 UI 中明确区分，Mock 不能冒充真实人格通过。
+- 真实 Persona 报告可以保存 Agent 可见输入、回复、配置和 Judge checks，但不得保存 API Key 或隐藏 reasoning。
+- 人工审阅是独立注释层，不修改原始报告，也不改变自动 PASS / FAIL。
 
-## 分层与门禁
+## 四、Prompt 与生产资产门禁
 
-| 层 | 目的 | 命令 | 门禁 |
-|----|------|------|------|
-| Unit | 确定性逻辑 | `npm test` | commit 前必过 |
-| Eval | Agent 行为场景（多 Mock LLM） | `npm run eval:run` | 行为改动时跑；不替代 unit |
-| Skill Eval | Skill 触发 / 注入 / 工具边界 / 回复证据 | `npm run eval:skill` | Skill 运行链路或契约改动时跑；默认 Mock，可显式 `EVAL_MODE=real` |
-| Persona Real Eval | B02–B07 真实 LLM + Judge + pass^k | `npm run eval:persona` | 远程人格验收；需要 `.env` / `LLM_API_KEY` |
-| E2E UI | 纯 Renderer 界面冒烟 | `npm run test:e2e` | 涉 UI 时；固定 Chrome + `127.0.0.1:5174`，不启动 Electron |
-| E2E Electron | 首次配置 + 可选真对话 | `npm run test:e2e:electron` | 首次配置用本地 SSE 服务必跑；真对话需 `TEST_LLM_API_KEY`，无 key 则仅 skip 真对话 |
+- 自有模型可见自然语言保持简体中文；协议 token、代码标识、工具名、JSON key 和外部原文可保留英文。
+- 每个生产 LLM 调用必须声明稳定 Prompt 资产 key，或显式声明 promptless 原因。
+- Prompt、Role Pack、Memory Strategy、Permission / Sandbox、Tool、Skill、Eval、Provider 和 MCP 资产必须由真实生产注册表提供来源、版本和指纹；Debug 不维护第二套目录文案。
+- 用户记忆正文、API Key、MCP secret、工具参数、命令、路径和隐藏 reasoning 不得进入静态资产目录或普通日志。
+- 资产运行证据只记录稳定 key、关系、状态和允许的结构化元数据。
 
-类型检查：`npx tsc --noEmit`。涉主进程/打包结构时补 `npx vite build`。
+## 五、安全门禁
 
-## Eval（总览）
+安全任务必须先读 `agent-skills/security-checklist.md`，审查细节以 `agent-skills/code-review.md` 为准。至少覆盖：
 
-- 目录：`evals/`（runner、mock-llm、graders、scenarios、baseline）
-- 注入点：`AgentLoopOptions.streamChatOverride`（禁止用假 LLM 冒充产品功能，仅测试/Eval）
-- 场景标签：框架向 `f*`、伙伴向 `p*`、人格向 `b01-*`、Skill 向 `s*`——**按产品关心点选题，但 Eval 本身不是产品模块**
-- `ModelBasedGrader` 只接受“是否存在违规”的负向二元问题；正向要求必须改写为“是否缺失该行为”，避免通过行为被当作违规。
-- `evals/scenario-registry.ts` 是普通 Eval Scenario 唯一列表，`evals/eval.test.ts`、CLI 和生产资产目录不得再维护平行数组。
-- 模块卡可链接相关场景 ID；场景正文不复制进模块卡
-- 历史规格底稿：`_archive/docs-legacy/eval-design.md`（可能过时）
+- IPC 运行时输入边界和主进程重新确认；
+- 凭据、日志、导入导出和 Renderer 数据最小化；
+- 文件 realpath / symlink、工作区和 `ToolContext.workdir`；
+- PermissionEngine、Headless、Shell、Git 和子进程环境；
+- URL SSRF、重定向、DNS、MCP 外部内容和资源上限；
+- 正则、Prompt、RAG、报告和批量输入的 DoS 边界；
+- `npm audit` 与生产依赖审计。
 
-```bash
-npm run eval:run
-npm run eval:skill
-```
+发现剩余风险时先搜索 `docs/decisions.md` 和对应模块卡。明确接受或明确不做的边界，只有触发条件变化时才重新立项。
 
-Skill Eval 默认使用确定性 Mock LLM，S01–S03 分别验证应触发并注入指南、普通请求不得误触发、激活后只调用 `allowed_tools`。每个 Case 保存用户输入、Skill 名称 / 版本 / 来源 / 指纹、激活 Trace、工具调用、注入观察、Agent 回复和四类 Grader 证据；不保存 Skill 正文、API Key 或隐藏 reasoning。Debug「质量 / Eval」只读展示同一份 JSON 报告，并通过固定白名单命令启动运行。
+已完成安全审计快照见 [`../_archive/audits/security-audit-2026-08.md`](../_archive/audits/security-audit-2026-08.md)。
 
-远程人格验收：
+## 六、模块关系
 
-```bash
-EVAL_PASS_K=3 npm run eval:persona
-```
+- 伙伴 / 人格：`docs/modules/companion.md` 的必测点 + 相关 Persona Eval。
+- 记忆：`docs/modules/memory.md` 的必测点 + memory Unit / Eval。
+- 权限：`docs/modules/permission.md` 的必测点 + permission / security Unit。
+- Agent 运行时：`docs/modules/agent-runtime.md` 的必测点 + Loop / Context / Provider / Tool 测试。
 
-该命令固定使用 `EVAL_MODE=real`，缺少 API Key、Judge 返回 `UNKNOWN` 或任何场景未达到
-`pass^k` 都会失败，并在 `eval-reports/` 生成 JSON 与 Markdown 报告。报告保存每次 Trial 的实际初始 messages、System Prompt、工具名、运行配置与 Judge checks，但不保存 API Key 或 Judge 推理过程。被测 Agent 不接收评分标准；同一场景的多个检查维度在 Agent 回复后通过一次 Judge 调用完成。Debug「提示词管理器 → Eval Judge」只读展示静态 Case、Grader 和 Judge Prompt；Debug「质量 / Eval」展示这些真实报告，并提供受控 Runner：Mock 可直接运行；Real 必须确认模型、`pass^k`、场景和预计调用数后启动。报告中的人工审阅是独立本地注释层：按报告文件名、场景和 Trial 关联，支持 1–5 正向体验评分、风险信号、结论和备注；不改原始 JSON、不改变自动 PASS/FAIL，也不自动修改 Prompt。Runner 只允许固定 npm script，支持实时 trial 进度、停止和有限脱敏日志；打开页面不会自动产生真实模型调用。Debug 入口按诊断任务收口为提示词管理器、请求与运行、伙伴状态、质量 / Eval、系统；请求与运行内部保留 LLM 调用、Span / 调用链和实时事件。提示词管理器的实验副本不影响真实会话，只有二次确认保存到现有 L3 设置后才影响后续对话。Playground 按设计与 Agent 实验分组，设计组件边缘态不再单独占用体验夹具入口，静态人格场景不冒充真实 Eval。
+## 七、维护规则
 
-2026-08-12 基线：DeepSeek `deepseek-v4-flash` 的 B02–B07 全部达到 `pass^3`。该结果是自动化行为门禁，不替代用户对语气、活人感和审美的最终人工验收。
-
-## Unit 要点
-
-- 新功能 happy path；修 bug 先复现测试
-- Mock 外部 IO；禁止 Mock 核心业务假装通过
-- 规范细节见 `agent-skills/typescript-guidelines.md`
-
-## 与产品模块的关系
-
-质量横切所有产品模块：
-
-- 改伙伴/人格 → 看 `modules/companion.md` 必测 + 相关 Eval
-- 改记忆 → `modules/memory.md` 必测 + memory 单测
-- 改权限 → `modules/permission.md` 必测 + permission Eval/单测
-
-## 维护
-
-- 新增门禁或分层策略 → 更新本文
-- 新增 Eval 场景 → 改 `evals/`，必要时在模块卡「必测」加链接
-- 旧 `testing.md` / `eval-design.md` 已归档，勿再当权威源
+- 新增或改变质量分层、门禁条件时更新本文。
+- 新增 Case 或测试文件时只改代码注册表和测试，不在本文追加数量清单。
+- dated audit 完成后归档；有效缺口先迁入 Wishlist 或 Decisions。
+- 旧 `testing.md`、`eval-design.md` 和收口前 Quality 全文均已归档，不能作为当前门禁。

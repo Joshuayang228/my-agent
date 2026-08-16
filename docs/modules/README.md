@@ -15,14 +15,14 @@
 
 ## 模块一览
 
-| 模块 | 一句话 | 卡 | 状态 |
-|------|--------|----|------|
-| 伙伴世界 | 单活跃主角 + 生活世界 + 截面（含原「人格」） | [companion.md](./companion.md) | W0–W6 + 召唤/反思 |
-| 记忆 | 跨会话记住并召回用户信息 | [memory.md](./memory.md) | 试点 |
-| 权限 | 工具/命令能否执行、是否要问用户 | [permission.md](./permission.md) | 试点 |
-| Agent 运行时 | Loop / Prompt / 压缩 / 任务队列 | [agent-runtime.md](./agent-runtime.md) | 主线已落地 |
+| 模块 | 一句话 | 卡 |
+|------|--------|----|
+| 伙伴世界 | 单活跃主角 + 生活世界 + 截面（含原“人格”） | [companion.md](./companion.md) |
+| 记忆 | 跨会话记住并召回用户信息 | [memory.md](./memory.md) |
+| 权限 | 工具 / 命令能否执行、是否要问用户 | [permission.md](./permission.md) |
+| Agent 运行时 | Loop / Prompt / 压缩 / 任务队列 | [agent-runtime.md](./agent-runtime.md) |
 
-后续候选模块卡：MCP、Skill、RAG、项目工作区（可先挂在 agent-runtime「已落地能力」，足够厚再拆卡）。
+后续只有出现稳定产品边界时才拆卡。当前优先观察“开发者诊断与实验”（Debug / Playground / Eval / 资产证据）和“能力扩展”（Tool / Skill / MCP）；禁止为了减小单文件而建立空壳卡。
 
 ## 模块卡字段（封顶）
 

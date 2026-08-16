@@ -10,7 +10,7 @@ Thanks for interest in **My Agent**. We are in **public alpha** — small fixes 
 |-------------|------------|
 | Typo / tiny fix | PR directly |
 | User-visible behavior | Update the module card **已落地能力** section under `docs/modules/` + `docs/changelog.md` when relevant |
-| Large / multi-file feature | Write a **construction contract** in `docs/requirements/` first (see root `CLAUDE.md`) |
+| Large / multi-file feature | Write a **construction contract** in `docs/requirements/` first (see root `AGENTS.md`) |
 
 ## Dev loop
 
@@ -47,7 +47,7 @@ npm run typecheck
 |----------|--------|
 | 错别字 / 小修 | 直接 PR |
 | 用户可见行为 | 同步改 `docs/modules/` 对应卡的「已落地能力」+ 必要时 `changelog` |
-| 跨多文件大功能 | 先写 `docs/requirements/` 下的**施工合同**（见根目录 `CLAUDE.md`） |
+| 跨多文件大功能 | 先写 `docs/requirements/` 下的**施工合同**（见根目录 `AGENTS.md`） |
 
 ### 本地
 

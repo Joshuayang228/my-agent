@@ -1,6 +1,7 @@
 # 伙伴与生活世界 — 产品契约与批次
 
 > 状态：已确认（2026-08-01）  
+> 生命周期：已完成施工快照（冻结）；当前能力与行为以代码、模块卡、Architecture、Quality 和 Decisions 为准。
 > **本文职责**：Why / 硬约束 / W0–W6 施工队列（产品契约）  
 > **模块详设**：[`companion-architecture.md`](./companion-architecture.md)  
 > **完整技术方案（施工合同）**：[`companion-tech-spec.md`](./companion-tech-spec.md) ← 接口/表结构/W 验收/风险  

@@ -155,6 +155,8 @@
 
 ### 2. 代码走读文档（如 m01-agent-loop-code.md）
 
+> 代码走读是 dated snapshot：必须标“最近核对”日期；代码变化后可以更新，但它不替代代码、模块卡或 Architecture。
+
 **配对原则：每写一个理念章，必须同步写对应的 code 章。** 理念章讲"为什么"，code 章讲"代码怎么体现这个为什么"。
 
 #### 结构模式
@@ -221,7 +223,7 @@ methodology/
 ├── m01-agent-loop.md              ← 理念章
 ├── m01-agent-loop-code.md         ← 代码走读章
 ├── m11-hook-extension-architecture.md  ← 占位章也用 mNN- 前缀
-└── gap-audit-2026-07.md           ← 独立主题（不占编号）
+└── （dated audit 完成后迁入 `_archive/audits/`，不留在方法论活跃目录）
 ```
 
 编号与文件名一一对应 `methodology/README.md` 的 M01–M32。占位章创建时即用 `mNN-主题.md`，不再用无编号临时名。

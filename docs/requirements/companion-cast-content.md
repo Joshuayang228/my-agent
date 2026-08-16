@@ -1,6 +1,7 @@
 # 主角团文案（Cast Content）
 
 > 状态：已落地（2026-08-02 加厚）  
+> 生命周期：已完成施工快照（冻结）；当前能力与行为以代码、模块卡、Architecture、Quality 和 Decisions 为准。
 > 资产目录：`electron/main/companion/universes/default/`
 
 ## 三角色定位（互不抢戏）

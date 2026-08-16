@@ -1,6 +1,7 @@
 # 远程 Persona Eval 验收
 
 > 状态：**已落地**（2026-08-12）
+> 生命周期：已完成施工快照（冻结）；当前能力与行为以代码、模块卡、Architecture、Quality 和 Decisions 为准。
 > 对象：`evals/` 质量横切层，首批覆盖主角候选 `B02–B07`
 > 关联模块：[伙伴世界](../modules/companion.md)、[质量总控](../quality.md)
 

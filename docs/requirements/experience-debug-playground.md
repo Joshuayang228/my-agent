@@ -1,6 +1,7 @@
 # 施工合同：体验调试（Debug / Playground）
 
 > 状态：**已落地**（Phase 0–6 + IA 收敛：Debug 诊断域 / Playground 任务分组）
+> 生命周期：已完成施工快照（冻结）；当前能力与行为以代码、模块卡、Architecture、Quality 和 Decisions 为准。
 > 日期：2026-08-04（Phase 6：2026-08-09）
 > 上位：[`methodology/m32-experience-debug-playground.md`](../../methodology/m32-experience-debug-playground.md)  
 > 参考：Alice `/debug` · `/playground` · `enableDebugMode` / `showTokenStats` / `showToolCalls` / `showThinking`

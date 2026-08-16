@@ -1,6 +1,6 @@
 # M10 权限与安全 — 代码走读
 
-> 本文档对照 [`m06-permission-security.md`](m06-permission-security.md) 的认知框架，展示真实代码实现。
+> 本文档对照 [`m10-permission-security.md`](m10-permission-security.md) 的认知框架，展示真实代码实现。
 > 代码来源：my-agent `electron/main/sandbox/` × Claude Code `utils/permissions/` × Alice 混淆源码
 > 所有代码块逐行注释，阐释设计意图与方法论对照。
 
@@ -509,7 +509,7 @@ UI 展示：
 
 ---
 
-**全文完** — 对照 [`m06-permission-security.md`](m06-permission-security.md) 认知框架阅读。
+**全文完** — 对照 [`m10-permission-security.md`](m10-permission-security.md) 认知框架阅读。
 
 ## 2026-08 安全审计补充
 

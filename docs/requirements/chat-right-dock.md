@@ -1,6 +1,7 @@
 # 施工合同：Chat 右侧能力坞（Phase 1）
 
 > 状态：**已落地**（Phase 1：文件 / 审阅 / 终端 Tab；Debug 覆盖；命令控制台非 PTY）
+> 生命周期：已完成施工快照（冻结）；当前能力与行为以代码、模块卡、Architecture、Quality 和 Decisions 为准。
 > 日期：2026-08-08
 > 来源：wishlist「Chat 右侧工作台」· Alice/Codex 对照
 > 上位：[`docs/modules/agent-runtime.md`](../modules/agent-runtime.md) · DEC-018

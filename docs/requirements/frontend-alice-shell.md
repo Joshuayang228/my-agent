@@ -1,6 +1,7 @@
 # 施工合同：前端壳层对齐 Alice 布局（大气改造 Phase A）
 
 > 状态：**已落地 Phase A + Phase B**（Chat 大气化 + 工具调用行内附着）  
+> 生命周期：已完成施工快照（冻结）；当前能力与行为以代码、模块卡、Architecture、Quality 和 Decisions 为准。
 > 日期：2026-08-05  
 > 上位：[`frontend-visual-language.md`](./frontend-visual-language.md)（已落地语言骨架）· [`frontend-companion-surfaces.md`](./frontend-companion-surfaces.md)  
 > 参考：Alice 侧栏截图 + `_extract`（`tool_call` 跟在 assistant 后组成 agent_group）· DEC-018  

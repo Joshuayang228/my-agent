@@ -24,7 +24,7 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 
 ## 启动上下文
 
-文档分四维：**产品**（`docs/modules/`，入口 `README.md`）· **技术**（`architecture.md`）· **质量**（`quality.md`）· **账本**（progress / changelog / wishlist / pitfalls / decisions / rules-feedback）。
+文档分四维：**产品**（`docs/modules/`）· **技术**（`docs/architecture.md`）· **质量**（`docs/quality.md`）· **账本**（`docs/progress.md` / changelog / wishlist / pitfalls / decisions / rules-feedback）。
 **「有什么能力」**看对应模块卡的「已落地能力」节（导览：[`docs/modules/README.md`](docs/modules/README.md)）。
 **施工合同**（唯一称呼，勿称「需求文档 / 需求合同 / 开工合同」）索引：[`docs/requirements/README.md`](docs/requirements/README.md)。
 协作 SOP 在根目录 `agent-skills/`（与 docs 并列，见下文「agent-skills」）。深 Why 在 `methodology/`。文档四维见 `docs/docs-system.md`。
@@ -35,14 +35,18 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 
 | 任务 | 先读 |
 |------|------|
-| 落在某产品能力（伙伴/记忆/权限/运行时等） | 对应 `docs/modules/<名>.md`（含「已落地能力」）→ 其「必读文件」→ 必要时 `architecture.md` |
-| 「有没有某某能力 / Prompt 怎么组装」 | 模块卡「已落地能力」；伙伴 Prompt 管线见 `companion.md` |
-| 跨模块 / 架构 | `docs/modules/README.md` + `architecture.md` + `progress.md` |
+| 落在某产品能力（伙伴/记忆/权限/运行时等） | 对应 `docs/modules/<名>.md`（含「已落地能力」）→ 其「必读文件」→ 必要时 `docs/architecture.md` |
+| 「有没有某某能力 / Prompt 怎么组装」 | 模块卡「已落地能力」；伙伴 Prompt 管线见 `docs/modules/companion.md` |
+| 跨模块 / 架构 | `docs/modules/README.md` + `docs/architecture.md` + `docs/progress.md` |
 | 大改要对齐 / 翻施工合同 | `docs/requirements/README.md` → 对应 `docs/requirements/*.md` |
 | 测试 / Eval 门禁 | `docs/quality.md` |
 | 小改（typo、单文件少量且意图明确） | 相关代码即可 |
 
 从 summary 恢复且信息完整可跳过；summary 可能过时（如跨天）时仍应读文件确认。
+
+**决策发现**：不要求每次启动全文读取 `docs/decisions.md`。但准备改变技术栈、模块边界、安全模型、数据迁移策略、已接受风险、明确非目标或重新提出曾取消方案前，必须按关键词搜索相关 DEC；登记 code review 剩余风险前也必须先查。模块卡可只链接相关 DEC，不复制正文。
+
+**归档搜索**：普通开发、审查和全局搜索默认排除 `_archive/`；只有追溯历史取舍、迁移原因或原始记录时才读取。归档内容不得作为当前事实源。
 
 动手前若已读模块卡：用几行复述边界、拟改文件、不碰什么、必测点；越界先问用户。
 
@@ -146,7 +150,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 
 ### Debug / Playground 边界
 
-- **Debug = 生产真相**：只读展示真实 Prompt、运行状态、系统配置、调用链、事件和日志；凡是回答“系统现在实际是什么”的内容都放 Debug。
+- **Debug = 生产真相**：默认只读展示真实 Prompt、运行状态、系统配置、调用链、事件和日志；允许用户明确触发、作用域清晰、可取消、可审计、必要时二次确认的诊断动作或受控配置写入，但禁止任意命令、静默费用、绕过现有单一事实源或直接覆盖生产资产。凡是回答“系统现在实际是什么”的内容都放 Debug。
 - **Playground = 隔离实验**：只放设计系统、组件/页面故事、模拟夹具、模型/工具/对话试验；默认不写真实会话、设置或生产资产。
 - 生产资产目录不得为了方便试验复制进 Playground。Playground 需要生产数据时只允许显式“载入为实验草稿”，草稿与生产源分离；该能力可按需求后置。
 
@@ -184,6 +188,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 
 > 统一称呼：**施工合同**。落点固定为 `docs/requirements/*.md`。
 > 禁止混用「需求文档 / 需求合同 / 开工合同」等别名（避免 AI 找错目录）。
+> 生命周期只有两种活跃语义：**进行中**（仍指导施工）与**已完成施工快照（冻结）**（保留当时 Why/What/How，不再承担当前能力真相）。完工时必须先把稳定事实吸入模块卡 / Architecture / Quality / Decisions，再冻结合同。
 
 **适用场景**：跨 3 个以上文件的新功能、架构变更、复杂功能模块。这类任务**必须先写施工合同，用户确认后再动手**。
 
@@ -286,7 +291,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 | 模块合并 / 废弃 | 删旧卡；导览改指存活卡；勿留重定向文件 |
 | 分层 / 主数据流 / 目录边界 | `docs/architecture.md` |
 | 质量门禁或 Eval 分层策略 | `docs/quality.md` |
-| 施工合同状态（进行中↔已落地） | `docs/requirements/README.md`（必要时改对应文首状态） |
+| 施工合同状态（进行中 ↔ 已完成施工快照） | `docs/requirements/README.md` + 对应文首生命周期 |
 | 项目阶段 / 下一步 | `docs/progress.md`（对内，状态变化必更新） |
 | 用户可见能力或修复 | `docs/changelog.md`（对外） |
 | 暂缓 / 缺口 / 灵感 | `docs/wishlist.md`（见下方硬约束） |
@@ -294,7 +299,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 | 新坑 | `docs/pitfalls.md`（账本） |
 | 规则问题 | `docs/rules-feedback.md`（账本） |
 
-已归档（勿再当权威源，见 `_archive/docs-legacy/`）：features / api-contracts / testing / eval-design / glossary / 曾用的总 `capability-catalog`——**「有什么」改查各模块卡「已落地能力」**。类型以 `src/shared/types.ts` 为准；IPC 仍遵守「四处同步」硬约束。
+已归档（勿再当权威源，入口见 `_archive/README.md`）：features / api-contracts / testing / eval-design / glossary / dated audit / 历史账本 / 曾用的总 `capability-catalog`——**「有什么」改查各模块卡「已落地能力」**。类型以 `src/shared/types.ts` 为准；IPC 仍遵守「四处同步」硬约束。
 
 ### wishlist 同步（硬约束，防遗忘）
 
@@ -308,7 +313,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 
 - 条目用 `- [ ]` 一行描述 + 可选来源/对应章节编号（如 M07 G9）
 - **按顺序推进**时以 `methodology/README.md` 待补队列为准；wishlist 是防丢的旁路账本，不是第二套编号路线图
-- 项被完成或明确取消 → 在 wishlist 勾掉或删除，并在 `progress.md` 留痕
+- 项被完成或明确取消 → 从活跃 wishlist 移出，在 `docs/progress.md` 留痕；完整历史由归档快照保留
 - 收尾自检：若本轮新增了「以后再说」，问自己 wishlist 里有没有对应行
 
 ## 规则自进化

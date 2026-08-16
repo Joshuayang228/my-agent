@@ -1,6 +1,7 @@
 # 施工合同：前端视觉语言 + 设置补齐
 
 > 状态：**已落地**（Phase 1–3，2026-08-04）  
+> 生命周期：已完成施工快照（冻结）；当前能力与行为以代码、模块卡、Architecture、Quality 和 Decisions 为准。
 > 日期：2026-08-04  
 > 参考：Alice 方法论 Ch.19《UI/UX 设计哲学》；Alice 设置 / Chat 截图；既有 [frontend-companion-surfaces.md](./frontend-companion-surfaces.md)、DEC-018  
 > 路线（已锁定）：**C** — 同一合同，分 Phase 实现：语言骨架 → 设置 IA → Chat 气质

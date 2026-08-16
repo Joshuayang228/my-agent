@@ -1,6 +1,8 @@
 # 系统架构
 
-> 只维护稳定分层、依赖方向和主数据流。工具数、IPC 数、测试数、预设数等动态清单以代码注册表或命令输出为准。
+> **归档快照**：文档生命周期收口前的完整 Architecture。当前内容以 `docs/` 活跃文件和代码为准。
+
+> 架构变更时由 AI 更新此文件。
 
 ## 项目愿景
 
@@ -86,16 +88,22 @@ think → act → observe → think → ...
 
 ### 2. IPC 模块化
 
-主进程 IPC 按产品领域拆分在 `electron/main/ipc/`，实际 handler 清单以该目录和 `ipc/index.ts` 注册结果为准，不在本文维护数量。
+主进程 IPC 拆分为 12 个独立模块：
 
-IPC 契约必须四处同步：
-
-1. `src/shared/types.ts`：共享载荷类型；
-2. `electron/preload/index.ts`：Renderer 白名单桥接；
-3. `electron/main/ipc/*.ts`：主进程 handler；
-4. `src/vite-env.d.ts`：`window.electronAPI` 类型。
-
-Renderer 只能通过 preload 白名单访问主进程。敏感配置、文件边界、外部进程和高风险确认必须由主进程重新校验，不能信任 Renderer 传入的“已批准”状态。
+| 模块 | 职责 |
+|------|------|
+| `ipc/session.ts` | 会话 CRUD + Fork 分支 + 标题重新生成 |
+| `ipc/chat.ts` | 聊天发送 + 中断 + 向量检索注入 |
+| `ipc/settings.ts` | 设置读写 |
+| `ipc/memory.ts` | 记忆 CRUD |
+| `ipc/persona.ts` | 人格模板查询 |
+| `ipc/mcp.ts` | MCP 服务器连接/断开/状态 |
+| `ipc/debug.ts` | DevPanel 调试数据（Prompt/工具/系统状态/Traces） |
+| `ipc/data-export.ts` | 数据导出/导入（会话+记忆+设置备份恢复） |
+| `ipc/skills.ts` | Skill 校验 / CRUD / 版本历史 / 回滚 / 隔离试跑 / 重新加载 |
+| `ipc/scheduler.ts` | 定时任务 CRUD |
+| `ipc/rag.ts` | RAG 文档导入/列表/删除 |
+| `ipc/project.ts` | 项目工作区（browse/list/set/get + listFiles/readFile） |
 
 ### 3. 工具系统
 
@@ -105,6 +113,7 @@ Renderer 只能通过 preload 白名单访问主进程。敏感配置、文件�
 - 动态注册/注销：支持 MCP 工具运行时加入和移除
 - 破坏性操作前用户确认（IPC 双向通信弹窗）
 - **超时保护**：每个工具 30s 超时，超时自动返回错误
+- 13 个内置工具 + MCP 动态工具
 - **子 Agent 系统**：delegate_task 工具，独立上下文 + 受限工具集 + 权限只降不升 + 工具黑名单（禁止 delegate_task 递归 / remember / forget / task_plan）
 - **中间件管道**：ToolMiddlewarePipeline 洋葱模型（error-formatting → logging → verify → result-persistence）
 - **大结果落盘**：工具结果超过 maxResultSizeChars（默认 50,000）时写临时文件返回路径，防止上下文爆炸；file_read 设 Infinity 避免循环
@@ -125,7 +134,7 @@ Renderer 只能通过 preload 白名单访问主进程。敏感配置、文件�
 | 向量记忆 | Vectra LocalIndex | 历史对话语义检索，按相关性召回 |
 
 - 自动提取用户画像（异步 LLM 分析，每 5 分钟 + 3 条消息触发）
-- 对话后只索引用户消息；assistant 原文不写入向量库，避免自我强化循环
+- 对话自动索引（用户消息 + 助手回复写入向量库）
 - 语义检索注入 System Prompt L3 层（top-5，score > 0.6）
 
 ### 5. Prompt 分层系统
@@ -157,7 +166,7 @@ Skill 资产由 `electron/main/skills/loader.ts` 读取和保存；Frontmatter �
 | 产品模块 | [`modules/companion.md`](./modules/companion.md) |
 | 能力表 | [`modules/companion.md`](./modules/companion.md)「已落地能力」；运行时见 [`modules/agent-runtime.md`](./modules/agent-runtime.md) |
 
-目录落点：`electron/main/companion/`（identity / growth / life / cast / orchestrator）；`prompt-builder` 为组装器。  
+目录落点：`electron/main/companion/`（identity / growth / life / cast / orchestrator）；`prompt-builder` 为组装器。
 已落地：**W0–W6** + 三槽 + 召唤子会话/忙闲 + 自动反思 MUTABLE。后续：Pack 内容打磨、methodology M21–M31 深啃。
 
 ### 6. MCP 协议
@@ -232,9 +241,9 @@ my-agent/
 ├── electron/
 │   ├── main/
 │   │   ├── index.ts          # App 生命周期 + 窗口管理 + Tray + Auto Update
-│   │   ├── ipc/              # IPC 处理器（按领域拆分，清单以代码为准）
+│   │   ├── ipc/              # IPC 处理器（12 个模块）
 │   │   ├── agent/            # Agent Loop + Runtime + Prompt + Context + Pipeline + Subagent
-│   │   ├── tools/            # ToolRegistry + 内置 / Skill / MCP 工具 + Middleware
+│   │   ├── tools/            # ToolRegistry + 20 个内置工具 + Middleware
 │   │   ├── services/         # 内部服务（task-plan-service 等，工具调用的底层逻辑）
 │   │   ├── sandbox/          # 沙箱系统 + 权限引擎
 │   │   ├── mcp/              # MCP Client（stdio + SSE）+ Bridge
@@ -249,7 +258,9 @@ my-agent/
 │   ├── App.tsx               # 主 UI
 │   ├── components/           # SettingsPanel / MarkdownRenderer / DevPanel / MemoryPanel / SkillsPanel / FileBrowser / Toast
 │   └── shared/types.ts       # 共享类型定义
-├── __tests__/               # vitest Unit + Playwright E2E
+├── __tests__/
+│   ├── unit/                 # vitest 单元测试
+│   └── e2e/                  # Playwright E2E 测试
 ├── methodology/              # 设计哲学沉淀
 └── docs/                     # 项目文档
 ```
@@ -295,6 +306,6 @@ LLM 返回 tool_calls（可能多个）
 ```
 对话完成
     ├─ SQLite：保存消息（含 toolCalls + tool results）+ 累加 token 用量
-    ├─ 向量数据库：异步嵌入并索引用户消息
+    ├─ 向量数据库：嵌入并索引对话内容
     └─ 日 Token 计数器：recordDailyUsage
 ```

@@ -1,50 +1,68 @@
-# 文档体系（四维 + methodology）
+# 文档体系：当前事实与生命周期
 
-> 状态：已落地（2026-07-30）。  
-> 原路径 `docs/requirements/docs-system-restructure.md`；2026-08-03 迁出 requirements（本文件不是施工合同）。
+> 状态：已落地（2026-08-16）。本文件只定义文档职责和生命周期，不记录产品能力或施工进度。
 
-## Why
+## 当前事实矩阵
 
-缺产品横切入口；部分文档与代码双真相。`methodology/` 保留（深 Why，慢更）。
+| 事实类型 | 唯一 canonical source | 说明 |
+|---|---|---|
+| 当前代码行为 | 生产代码、共享类型、测试 | 文档与代码冲突时先核对代码和测试 |
+| 产品能力和边界 | `docs/modules/*.md` | “有什么能力”只在模块卡维护 |
+| 分层、依赖和主数据流 | `docs/architecture.md` | 不维护工具数、IPC 数、测试数等动态清单 |
+| 质量门禁 | `docs/quality.md` | 当前通过数量以命令 / CI 输出为准 |
+| 技术取舍、非目标、接受风险 | `docs/decisions.md` | 变更既有取舍前按关键词搜索 DEC |
+| 正在施工的范围和验收 | `docs/requirements/` 的进行中合同 | 完工后冻结为施工快照 |
+| 未排期缺口和灵感 | `docs/wishlist.md` | 活跃文件只保留未完成项 |
+| 当前阶段和下一步 | `docs/progress.md` | 完整历史进入 `_archive/ledgers/` |
+| 用户可见变化 | `docs/changelog.md` | 不记录内部测试流水和提交过程 |
+| 深 Why | `methodology/` | 理念章不冒充当前实现；代码章是 dated snapshot |
+| 共享规则 | 根目录 `AGENTS.md` | `CLAUDE.md` 仅为 Claude 导入入口 |
+| 场景 SOP | 根目录 `agent-skills/` | 只回答“这类活怎么干” |
+| 历史快照 | `_archive/` | 默认不读、不搜，不作为当前事实源 |
 
-## What（四维 + methodology）
+## 四维与旁路
 
-| 维 | 职责 | 落点 |
-|----|------|------|
-| 产品 | 能力边界、任务入口、横切导航、已落地能力表 | `docs/modules/README.md` + 各模块卡（卡内「已落地能力」） |
-| 技术 | 分层与连接（一张图） | `docs/architecture.md` |
-| 质量 | Unit / Eval / E2E 总控 | `docs/quality.md` |
-| 账本 | 对内进度 / 对外变更 / 缺口 / 坑 / 决策 / 规则反馈 | `progress` · `changelog` · `wishlist` · `pitfalls` · `decisions` · `rules-feedback` |
+- **产品**：`docs/modules/README.md` + 有实质边界的模块卡。
+- **技术**：`docs/architecture.md`。
+- **质量**：`docs/quality.md`。
+- **账本**：progress / changelog / wishlist / pitfalls / decisions / rules-feedback。
+- **施工合同**：`docs/requirements/`，大改开工前对齐 Why/What/How/验收。
+- **暂缓评估**：`docs/deferred/`，达到开工条件后升格为施工合同。
+- **方法论**：`methodology/`，记录深层认知和取舍。
+- **协作规则**：`AGENTS.md` + `agent-skills/`。
 
-旁路（**不是**四维之一）：
+## 生命周期
 
-| 旁路 | 职责 | 落点 |
-|------|------|------|
-| **施工合同** | 大改开工前 Why/What/How/验收（唯一称呼） | `docs/requirements/` |
-| 深 Why | 设计哲学与取舍 | `methodology/` |
-| 暂缓评估 | 未升格为施工合同的调研 | `docs/deferred/` |
-| 规则 / SOP | 协作入口 | `CLAUDE.md` · 根目录 `agent-skills/` |
+### 施工合同
 
-## 约定
+1. 开工前创建，状态为“进行中”。
+2. 验收后把稳定事实吸入模块卡、Architecture、Quality 或 Decisions。
+3. 合同改为“已完成施工快照（冻结）”，保留原始范围和验收，不再持续同步当前实现。
 
-- **术语**：`docs/requirements/` 内文件一律称**施工合同**，禁止「需求文档 / 需求合同 / 开工合同」别名
-- 产品模块导览：`docs/modules/README.md`；模块卡含「已落地能力」
-- progress 对内、changelog 对外；pitfalls / decisions 属账本
-- 真相：代码行为 > 模块卡现状 > architecture > methodology 愿景
+### 账本
 
-## 归档
+- Progress 只保留当前阶段、最近完成、下一步和阻塞。
+- Changelog 只保留用户 / 开发者可感知变化。
+- Wishlist 只保留未完成项。
+- Rules Feedback 只保留待审视项。
+- 收口前的完整原文进入 `_archive/ledgers/`。
 
-已迁入 `_archive/docs-legacy/`：
+### 审计与方法论
 
-`features.md` · `api-contracts.md` · `testing.md` · `eval-design.md` · `glossary.md`
+- dated audit 完成后进入 `_archive/audits/`；有效缺口必须先迁入 Wishlist 或 Decisions。
+- Methodology 理念章可长期演进；`*-code.md` 必须标最近核对日期，视为实现快照。
+- 普通搜索默认排除 `_archive/`，历史回溯时才读取。
 
-## 验收
+## 自动门禁
 
-- [x] modules/README（产品导览）+ companion/memory/permission/agent-runtime（persona 空壳卡已删）
-- [x] quality.md
-- [x] CLAUDE / writing-style / architecture 对齐
-- [x] 旧文档归档
-- [x] 账本含 pitfalls / decisions
-- [x] 「有什么」写入各模块卡「已落地能力」（2026-08-03 取消总 `capability-catalog`；补 features 归档缺口）
-- [x] `requirements/README.md` 只索引施工合同；元规则本文件；历史批次 `_archive/docs-legacy/`；暂缓评估 `docs/deferred/`（原 notes，2026-08-04 改名）
-- [x] progress「人读摘要」+ Cursor stop hook 提醒模块卡能力行（2026-08-04）
+运行：
+
+```bash
+npm run docs:check
+```
+
+检查活跃链接、施工合同状态、DEC 引用、文档标题、规则入口和 Architecture 易漂移数量。完整测试门禁见 `docs/quality.md`。
+
+## 历史
+
+旧文档体系和本次收口前的完整快照见 [`../_archive/README.md`](../_archive/README.md)。

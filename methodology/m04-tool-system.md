@@ -147,7 +147,7 @@ buildTool({
 |------|------|--------|
 | description 四要素 | 重写 5 个核心工具的描述（file_read/write/edit、shell_exec、code_search） | 高 |
 | 大结果落盘 | 用 `resultPersistenceMiddleware` 替换旧的截断中间件 | 高 |
-| buildTool 工厂 | 新建 `builder.ts`，迁移全部 24 个内置工具 | 中 |
+| buildTool 工厂 | 新建 `builder.ts`，迁移全部内置工具 | 中 |
 | 元数据默认值 | 通过工厂统一 fail-closed 默认值 | 中 |
 
 暂缓的 3 个（按需再做）：

@@ -1,6 +1,7 @@
 # 施工合同：Playground 对齐 Alice（组件场 + 运行时试验）
 
 > 状态：**已落地 Phase 0 + Phase 1 + 页面基线**（矩阵加厚 + 多轮试验 + Shell / Surface 组合态；未装 Storybook）
+> 生命周期：已完成施工快照（冻结）；当前能力与行为以代码、模块卡、Architecture、Quality 和 Decisions 为准。
 > 日期：2026-08-06  
 > 上位：[`methodology/m32-experience-debug-playground.md`](../../methodology/m32-experience-debug-playground.md) · [`experience-debug-playground.md`](./experience-debug-playground.md)（G1–G7 已落地）  
 > **壳与目录对照**：`_reference/framework-harness/repos/alice-source/_extract/page-playground-DH91WfGW.js`  
