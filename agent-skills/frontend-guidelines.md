@@ -8,7 +8,7 @@
 
 - 框架：React，Electron 渲染进程。
 - 样式：TailwindCSS 4 + CSS 变量，集中在 `src/index.css`。
-- 图标：**仅** `lucide-react` SVG；禁止 Emoji 当图标。
+- 图标：**仅** `lucide-react` SVG；禁止 Emoji 当图标。跨页面复用的语义图标优先登记到 `src/shared/icon-registry.ts`，不要再引入第二套生产图标库。
 - 字体：UI 用 `--font-ui`；空态问候 / 伙伴身份展示可用 `--font-display`（衬线），勿污染表单。
 
 ---

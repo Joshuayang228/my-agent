@@ -3,8 +3,8 @@
  * 渲染正式 class / ToolCallbackList；不另造皮肤。
  */
 
-import { useState } from 'react'
-import { LoaderCircle, PanelRight, Search, Send, Settings, SlidersHorizontal, Sparkles, WandSparkles } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { LoaderCircle, Search, Sparkles, WandSparkles } from 'lucide-react'
 import { ToolCallbackList } from '../chat/callbacks/ToolCallbackList'
 import type { ToolCallbackItem } from '../chat/callbacks/types'
 import { MemoryCitationChips } from '../chat/MemoryCitationChips'
@@ -14,6 +14,7 @@ import { MarkdownRenderer } from '../MarkdownRenderer'
 import { ToastPreview, type ToastPreviewItem } from '../Toast'
 import { UI_CONTROLS_SUBTABS, type UiControlsSubId } from './catalog'
 import { StoryBlock } from './StoryBlock'
+import { ICON_ASSETS, ICON_CATEGORIES, ICON_REGISTRY, type IconKey, type IconCategoryId } from '../../shared/icon-registry'
 
 const TOOL_STORIES: ToolCallbackItem[] = [
   {
@@ -91,6 +92,18 @@ function FixtureError({ title, body, action }: { title: string; body: string; ac
 export function UiControlsPanel() {
   const [sub, setSub] = useState<UiControlsSubId>('buttons')
   const [collapse, setCollapse] = useState<Record<string, boolean>>({})
+  const [iconQuery, setIconQuery] = useState('')
+  const [iconCategory, setIconCategory] = useState<IconCategoryId | 'all'>('all')
+
+  const filteredIconAssets = useMemo(() => {
+    const query = iconQuery.trim().toLocaleLowerCase('zh-CN')
+    return ICON_ASSETS.filter((asset) => {
+      const matchesCategory = iconCategory === 'all' || asset.category === iconCategory
+      if (!matchesCategory) return false
+      if (!query) return true
+      return [asset.key, asset.label, asset.english, asset.usage].some((value) => value.toLocaleLowerCase('zh-CN').includes(query))
+    })
+  }, [iconCategory, iconQuery])
 
   const tools = TOOL_STORIES.map((t) => ({
     ...t,
@@ -297,25 +310,101 @@ export function UiControlsPanel() {
       )}
 
       {sub === 'icons' && (
-        <div className="space-y-3">
+        <div className="space-y-3" data-testid="icon-inventory">
           <StoryBlock title="操作图标阶梯" source="lucide-react · 12 / 14 / 16 / 20" adopted>
             <div className="flex flex-wrap items-end gap-5">
-              {[
-                { label: '搜索', icon: Search },
-                { label: '筛选', icon: SlidersHorizontal },
-                { label: '侧栏', icon: PanelRight },
-                { label: '设置', icon: Settings },
-                { label: '发送', icon: Send },
-              ].map(({ label, icon: Icon }, index) => (
-                <div key={label} className="flex min-w-12 flex-col items-center gap-1.5">
-                  <button type="button" className="flex h-8 w-8 items-center justify-center rounded-md" style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }} title={label}>
-                    <Icon size={[12, 14, 16, 20, 16][index]} strokeWidth={1.6} />
-                  </button>
-                  <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{label}</span>
+              {(['navigation.search', 'developer.sliders', 'navigation.panel-right', 'navigation.settings', 'conversation.send'] as IconKey[]).map((key, index) => {
+                const asset = ICON_REGISTRY[key]
+                const Icon = asset.icon
+                return (
+                  <div key={asset.key} className="flex min-w-12 flex-col items-center gap-1.5">
+                    <button type="button" className="flex h-8 w-8 items-center justify-center rounded-md" style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }} title={`${asset.label} · ${asset.english}`}>
+                      <Icon size={[12, 14, 16, 20, 16][index]} strokeWidth={1.6} />
+                    </button>
+                    <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{asset.label}</span>
+                  </div>
+                )
+              })}
+            </div>
+            <p className="mt-3 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+              生产只使用 Lucide；尺寸阶梯固定为 12 / 14 / 16 / 20，语义 key 统一从图标注册表发现。
+            </p>
+          </StoryBlock>
+
+          <StoryBlock title="Lucide 语义图标目录" source="src/shared/icon-registry.ts" adopted>
+            <div className="space-y-3">
+              <div className="flex flex-col gap-2 lg:flex-row">
+                <label className="relative min-w-0 flex-1">
+                  <span className="sr-only">搜索图标</span>
+                  <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                  <input
+                    value={iconQuery}
+                    onChange={(event) => setIconQuery(event.target.value)}
+                    placeholder="搜索中文、English、语义 key 或用途"
+                    className="h-8 w-full rounded-md border pl-8 pr-2 text-xs outline-none"
+                    style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                  />
+                </label>
+                <span className="inline-flex h-8 items-center rounded-md px-2.5 text-[11px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+                  {filteredIconAssets.length} / {ICON_ASSETS.length} 个候选
+                </span>
+              </div>
+
+              <div className="scrollbar-hover flex gap-1 overflow-x-auto pb-1" aria-label="图标分类">
+                <button
+                  type="button"
+                  onClick={() => setIconCategory('all')}
+                  className="shrink-0 rounded-md px-2 py-1 text-[11px] transition"
+                  style={{ background: iconCategory === 'all' ? 'var(--accent-subtle)' : 'var(--bg-tertiary)', color: iconCategory === 'all' ? 'var(--accent-fg)' : 'var(--text-muted)' }}
+                >
+                  全部 <span className="ml-1 opacity-60">All</span>
+                </button>
+                {ICON_CATEGORIES.map((category) => {
+                  const active = iconCategory === category.id
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => setIconCategory(category.id)}
+                      className="shrink-0 rounded-md px-2 py-1 text-[11px] transition"
+                      style={{ background: active ? 'var(--accent-subtle)' : 'var(--bg-tertiary)', color: active ? 'var(--accent-fg)' : 'var(--text-muted)' }}
+                      title={category.description}
+                    >
+                      {category.label} <span className="ml-1 opacity-60">{category.english}</span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {filteredIconAssets.map((asset) => {
+                  const Icon = asset.icon
+                  return (
+                    <div key={asset.key} className="flex min-w-0 items-start gap-2.5 rounded-lg border p-2.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }} title={asset.usage}>
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                        <Icon size={18} strokeWidth={1.65} aria-hidden="true" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="truncate text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{asset.label}</span>
+                          <span className="truncate text-[10px]" style={{ color: 'var(--text-muted)' }}>{asset.english}</span>
+                          <span className="ml-auto shrink-0 text-[9px] font-mono" style={{ color: asset.priority === 'P0' ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{asset.priority}</span>
+                        </div>
+                        <code className="mt-0.5 block truncate text-[9px] font-mono" style={{ color: 'var(--text-muted)' }}>{asset.key}</code>
+                        <p className="mt-1 line-clamp-2 text-[10px] leading-4" style={{ color: 'var(--text-secondary)' }}>{asset.usage}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              {filteredIconAssets.length === 0 && (
+                <div className="rounded-lg border px-3 py-5 text-center text-xs" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
+                  没找到匹配的图标。试试中文名、英文名或 `navigation.search`。
                 </div>
-              ))}
+              )}
             </div>
           </StoryBlock>
+
           <StoryBlock title="生成动作" source="Playground story">
             <div className="flex flex-wrap gap-2">
               <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>

@@ -4,6 +4,12 @@
 
 ## [未发布]
 
+### Added — Playground Lucide 语义图标目录（2026-08-16）
+
+- Playground「组件 → 图标」现在提供可搜索、按分类筛选的 Lucide 图标目录。
+- 每个候选图标登记中文主名、灰色英文名、稳定语义 key、使用场景和 P0 / P1 优先级。
+- 生产继续只使用 `lucide-react`，Alice 的 Tabler 仅作为视觉参考，不引入第二套生产图标库。
+
 ### Added — 文档自进化复盘闭环（2026-08-16）
 
 - 新增只读 `npm run docs:self-review`，定期扫描变更同步缺口、重复真相源候选和文档维护债务。

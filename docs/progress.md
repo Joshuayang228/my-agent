@@ -15,6 +15,13 @@
 
 ## 最近完成
 
+### 2026-08-16 · Playground Lucide 语义图标目录
+
+- 保持 `lucide-react` 为生产唯一图标源，不把 Alice 的 Tabler 图标库混入产品依赖。
+- 新增 `src/shared/icon-registry.ts`：按导航、对话、开发、伙伴、资产、状态登记稳定语义 key、中文主名、灰色英文名和 P0/P1 优先级。
+- Playground「组件 → 图标」增加可搜索、按分类筛选的图标资产目录，作为后续正式 UI 采用前的统一验收面。
+- 增加注册表单测和 Playground UI 验收，避免图标 key 漂移或目录与实际组件脱节。
+
 ### 2026-08-16 · 文档自进化复盘闭环
 
 - 新增 `npm run docs:self-review`：只读扫描最近提交、变更影响、重复长句候选、活跃文档体量、施工合同、Wishlist、规则反馈和 docs:check 结果。

@@ -104,6 +104,14 @@ test.describe('My Agent UI', () => {
     await expect(playgroundNav.getByRole('button', { name: '模型能力', exact: true })).toBeVisible()
     await expect(playgroundNav.getByRole('button', { name: '人格场景说明', exact: true })).not.toBeVisible()
     await expect(playgroundNav.getByRole('button', { name: '体验夹具', exact: true })).not.toBeVisible()
+
+    await playgroundNav.getByRole('button', { name: '组件', exact: true }).click()
+    await page.getByRole('button', { name: '图标', exact: true }).click()
+    await expect(page.locator('[data-testid="icon-inventory"]')).toBeVisible()
+    await expect(page.getByPlaceholder('搜索中文、English、语义 key 或用途')).toBeVisible()
+    await expect(page.getByText('navigation.search', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: /伙伴与生活 Companion & Life/ }).click()
+    await expect(page.getByText('companion.camera', { exact: true })).toBeVisible()
   })
 
   test('Skills 管理页显示校验、版本和隔离试跑入口', async ({ page }) => {

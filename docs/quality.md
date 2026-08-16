@@ -31,6 +31,8 @@
 | 变更影响 | staged 代码与必须复核文档映射 | `npm run docs:impact` | commit 前；由 pre-commit 自动运行 |
 | 周期复盘 | 最近提交、重复真相源候选和维护债务 | `npm run docs:self-review` | 每周或重大施工后；只读生成报告 |
 
+UI 语义注册表、Playground 目录或图标故事发生变化时，至少补跑对应 Unit 与 `npm run test:e2e`；不改变 Agent 行为契约时，不要求运行真实 Persona Eval。
+
 Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务后宣称真实产品能力通过。
 
 ## 三、Eval 契约

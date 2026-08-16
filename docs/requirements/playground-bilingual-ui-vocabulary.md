@@ -127,7 +127,14 @@ UI 控件中的图标只展示“图标如何被使用”；图标体系负责�
 - 常用控件的英文辅助名使用结构化字段维护，不把中英文直接散落在 JSX 文案中。
 - 推荐字段：`labelZh`、`labelEn`、`descriptionZh`、`source`、`adopted`。
 - 生产组件仍从正式组件目录 import；Playground 不复制生产皮肤。
+- 图标生产源固定为 `lucide-react`；跨页面语义图标登记到 `src/shared/icon-registry.ts`，Playground 只展示该注册表的筛选目录，不复制 SVG 或引入第二套生产图标库。
 - Prompt 实验只允许使用生产中文 Prompt 的显式隔离副本或会话级覆盖；实验文案不得自动回写生产 Prompt。英文翻译实验需等 wishlist 项目单独开工。
+
+### 本轮落地（2026-08-16）
+
+- 新增 `src/shared/icon-registry.ts`，登记导航、对话、开发、伙伴、资产和状态六类 Lucide 语义图标。
+- Playground「组件 → 图标」提供中文主名、灰色英文名、稳定 key、用途和 P0 / P1 优先级的可搜索目录。
+- 增加注册表 Unit 与 Playground UI E2E 验收；Alice 的 Tabler 图标仅作为参考，不进入生产依赖。
 
 ### 视觉与交互
 
