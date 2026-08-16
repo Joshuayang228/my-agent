@@ -142,6 +142,12 @@
 
 召唤差异：装载对方完整 Pack；**不**改 `activeRoleId`；**不** tick / catchup 对方生活；Prompt 可带忙闲情境（`describeCastPresence`）。
 
+## 相关决策
+
+- `DEC-034`：同团多 Role Pack、单活跃角色、会话中禁止换角。
+- `DEC-035`：主角交付节奏、破坏性重置和 `activeRoleId`。
+- `DEC-036`：角色档案、默认世界与表达状态分层。
+
 ## 现状 / 缺口
 
 **现状**：W0–W6 主线已落地；深 Why：`methodology/m22`–`m31`（Part VI 收齐）；前端 P0–P2 已落地；小航 B02–B07 真实 DeepSeek `pass^3` 已通过，仍待本地人工语气审美验收；人物故事尚未确定且未激活；其他角色本轮不扩写。

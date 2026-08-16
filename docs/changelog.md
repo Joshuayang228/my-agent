@@ -4,6 +4,14 @@
 
 ## [未发布]
 
+### Added — 文档变更影响与收工闭环（2026-08-16）
+
+- Wishlist 未完成项增加稳定 `WISH-xxx` ID 和来源字段；模块卡增加相关 DEC 索引。
+- 新增 `npm run docs:impact` 与 `npm run docs:validate`，根据 staged 代码路径输出必须复核的文档。
+- `npm prepare` 自动启用仓库 Git hooks；commit 前运行文档结构与影响门禁，push 前再次检查结构。
+- GitHub Actions 在 Push / Pull Request 上自动运行文档一致性门禁。
+- 施工合同增加“稳定事实回流、缺口登记、账本更新、验证通过、生命周期冻结”的收工门禁。
+
 ### Changed — 文档真相源与生命周期（2026-08-16）
 
 - 文档入口明确区分当前能力、架构、质量、决策、施工合同、待办、进度和历史快照，降低开发者读到过时结论的风险。

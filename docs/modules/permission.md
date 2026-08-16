@@ -75,6 +75,12 @@
 | 子进程环境凭据隔离 | 已落地 | `safe-process-env.ts` · Terminal / shell_exec / Git / MCP stdio / Eval Runner |
 | Headless 安全批准 | 已落地 | `agent/headless-policy.ts` · 使用运行时有效 metadata，只自动批准明确只读工具，拒绝 Shell / 子 Agent / 继续任务 |
 
+## 相关决策
+
+- `DEC-011`：权限与沙箱参考成熟 Agent 的纵深防御原则。
+- `DEC-027`：PermissionEngine 接入 Agent Loop 主流程。
+- `DEC-037`：当前威胁模型不引入 OS 级 Shell 强隔离或 Python 嵌入沙箱。
+
 ## 现状 / 缺口
 
 **现状**：工具 metadata 先经过运行时解析，再进入硬边界与五层业务责任链，已接 Loop；非 `full-access` 的 `file_read` / `code_search` 也绑定当前工作区并保护常见凭据文件；子进程默认过滤主进程环境中的 API Key / Token / Secret，日志不再落盘命令正文、权限 pattern/reason、原始路径或记忆正文；文件写入、编辑、删除和 patch 统一经过有效沙箱与工作区路径守卫，用户确认不会绕过路径边界；Headless 无交互确认时只自动批准明确只读工具；设置页不再提供独立沙箱开关；内置策略可在 Debug 只读追踪来源、版本、指纹和依赖。

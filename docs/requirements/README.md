@@ -30,6 +30,7 @@
 | 文档 | 说明 |
 |------|------|
 | [agent-asset-usage-evidence-v1.md](./agent-asset-usage-evidence-v1.md) | 已落地：生产资产与真实 LLM / Tool / Memory / Permission 运行记录的脱敏证据链、反向查询、导出与 Debug 跳转 |
+| [docs-change-impact-closeout.md](./docs-change-impact-closeout.md) | 文档变更影响、自动触发、稳定 ID 与施工合同收工门禁 |
 | [docs-truth-source-lifecycle.md](./docs-truth-source-lifecycle.md) | 文档 canonical source、历史归档、规则路由和自动一致性门禁收口 |
 | [companion-character-profile-world.md](./companion-character-profile-world.md) | 小航候选：档案/世界结构已接入，人物故事内容待定；旧状态不迁移 |
 | [chat-right-dock.md](./chat-right-dock.md) | Chat 右侧能力坞 Phase 1：文件 / 审阅 / 终端；Debug 覆盖；命令控制台 |
@@ -63,3 +64,12 @@
 
 - 模块卡：横切边界 + 必读文件 + 当前“已落地能力”表
 - 施工合同：大改开工前对齐；完工后冻结，不再承担当前能力真相
+## 施工收工门禁
+
+施工合同从“进行中”转为“已完成施工快照（冻结）”前，必须确认：
+
+- 稳定事实已回流模块卡、`docs/architecture.md`、`docs/quality.md` 或 `docs/decisions.md`；
+- 未排期缺口已进入 `docs/wishlist.md` 并拥有 `WISH-xxx` ID；
+- `docs/progress.md` / `docs/changelog.md` 已按职责更新；
+- `npm run docs:validate` 通过；
+- 文首已加入“生命周期：已完成施工快照（冻结）”。

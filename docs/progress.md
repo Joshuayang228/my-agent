@@ -15,6 +15,15 @@
 
 ## 最近完成
 
+### 2026-08-16 · 文档变更影响与收工闭环
+
+- Wishlist 未完成项统一为 `WISH-001`～`WISH-021`，保留来源，ID 不复用。
+- 四张模块卡新增相关 DEC 薄索引；不复制决策正文。
+- 新增 `docs-impact-check`，按 staged 代码路径提醒或要求复核模块卡、Architecture、Quality、Progress 和 Changelog。
+- 新增 `docs:validate` 统一入口；`npm prepare` 启用 `.githooks/`，commit / push 自动触发文档门禁。
+- 新增 GitHub Actions 文档门禁，Pull Request 和 push 自动运行 `npm run docs:check`。
+- 施工合同增加收工门禁：稳定事实回流、Wishlist ID、账本更新、文档验证和冻结生命周期缺一不可。
+
 ### 2026-08-16 · 文档真相源与生命周期收口
 
 - 建立当前事实矩阵：代码 / 模块卡 / Architecture / Quality / Decisions / Wishlist / Progress / Changelog 各自只负责一种事实。

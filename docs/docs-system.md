@@ -58,10 +58,12 @@
 运行：
 
 ```bash
-npm run docs:check
+npm run docs:check      # 当前文档结构和事实路由
+npm run docs:impact     # staged 变更影响映射
+npm run docs:validate   # 两者合并入口
 ```
 
-检查活跃链接、施工合同状态、DEC 引用、文档标题、规则入口和 Architecture 易漂移数量。完整测试门禁见 `docs/quality.md`。
+`npm prepare` 会启用版本库内 `.githooks/`；pre-commit 运行 `docs:validate`，pre-push 再运行 `docs:check`。GitHub Actions 在 Push / Pull Request 上运行 `docs:check`。检查活跃链接、施工合同状态、DEC 引用、Wishlist ID、模块决策索引、文档标题、规则入口和 Architecture 易漂移数量。完整测试门禁见 `docs/quality.md`。
 
 ## 历史
 

@@ -124,6 +124,59 @@ function checkRequirements() {
   }
 }
 
+function checkWishlist() {
+  const file = path.join(root, 'docs', 'wishlist.md')
+  const text = read(file)
+  const seen = new Map()
+  for (const [index, line] of text.split('\n').entries()) {
+    if (!/^- \[ \]/.test(line)) continue
+    const match = line.match(/WISH-(\d{3})/)
+    if (!match) {
+      errors.push(`docs/wishlist.md:${index + 1} 未完成项缺少 WISH-xxx 稳定 ID`)
+      continue
+    }
+    if (!/来源：/.test(line)) errors.push(`docs/wishlist.md:${index + 1} ${match[0]} 缺少来源字段`)
+    const id = `WISH-${match[1]}`
+    if (seen.has(id)) errors.push(`docs/wishlist.md 重复 WISH ID：${id}（第 ${seen.get(id)} 行和第 ${index + 1} 行）`)
+    seen.set(id, index + 1)
+  }
+}
+
+function checkModuleDecisionIndexes() {
+  const decisions = read(path.join(root, 'docs', 'decisions.md'))
+  const known = new Set([...decisions.matchAll(/DEC-(\d{3})/g)].map((match) => `DEC-${match[1]}`))
+  const moduleDir = path.join(root, 'docs', 'modules')
+  for (const name of fs.readdirSync(moduleDir).filter((item) => item.endsWith('.md') && item !== 'README.md')) {
+    const file = path.join(moduleDir, name)
+    const text = read(file)
+    const sectionStart = text.indexOf('## 相关决策')
+    if (sectionStart < 0) {
+      errors.push(`docs/modules/${name} 缺少“相关决策”索引`)
+      continue
+    }
+    const afterSection = text.slice(sectionStart + '## 相关决策'.length)
+    const nextHeading = afterSection.search(/\n## /)
+    const sectionBody = nextHeading >= 0 ? afterSection.slice(0, nextHeading) : afterSection
+    const ids = [...sectionBody.matchAll(/DEC-\d{3}/g)].map((match) => match[0])
+    if (!ids.length) errors.push(`docs/modules/${name} 的“相关决策”为空`)
+    for (const id of ids) if (!known.has(id)) errors.push(`docs/modules/${name} 引用了不存在的 ${id}`)
+  }
+}
+
+function checkContractCloseout() {
+  const dir = path.join(root, 'docs', 'requirements')
+  for (const name of fs.readdirSync(dir).filter((item) => item.endsWith('.md') && item !== 'README.md')) {
+    const text = read(path.join(dir, name))
+    const isInProgress = /状态[^\n]*进行中/.test(text)
+    const isFrozen = /生命周期：已完成施工快照（冻结）/.test(text)
+    if (isInProgress) {
+      if (!/## .*实施步骤|## .*验收|## .*收工/.test(text)) errors.push(`施工合同 ${name} 进行中但缺少实施 / 验收结构`)
+    } else if (!isFrozen) {
+      errors.push(`施工合同 ${name} 不是进行中，但缺少冻结生命周期标记`)
+    }
+  }
+}
+
 function checkArchitecture() {
   const text = read(path.join(root, 'docs', 'architecture.md'))
   if (/\b\d+ 个内置工具\b/.test(text) || /\b\d+ 个独立模块\b/.test(text) || /IPC 处理器（\d+/.test(text)) {
@@ -165,6 +218,9 @@ checkLinks(files)
 checkHeadings(files)
 checkDecisions(files)
 checkRequirements()
+checkWishlist()
+checkModuleDecisionIndexes()
+checkContractCloseout()
 checkArchitecture()
 checkCurrentRuleRouting()
 checkLedgerShape()

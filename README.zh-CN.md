@@ -85,6 +85,9 @@ npm run dev
 
 ## 文档怎么读
 
+文档变更会由 `docs:check`、staged 变更影响检查和 GitHub Actions 自动复核；历史快照统一在 `_archive/`。
+
+
 仓库维护**四维文档**（产品 / 技术 / 质量 / 账本），外加旁路**施工合同**（`docs/requirements/`，统一称呼，勿称「需求文档」）。
 
 | 文档 | 用途 |

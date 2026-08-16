@@ -1,0 +1,4 @@
+#!/bin/sh
+# 防止通过 --no-verify 绕过 commit hook 后把坏文档推到远端。
+set -e
+npm run docs:check

@@ -85,6 +85,9 @@ Deeper map: [docs/architecture.md](docs/architecture.md) (Chinese technical note
 
 ## Documentation
 
+文档变更会由 `docs:check`、staged 变更影响检查和 GitHub Actions 自动复核；开发者不需要手动维护历史流水账，历史快照统一在 `_archive/`。
+
+
 We maintain a small **four-dimension** doc system (product / architecture / quality / ledgers) plus **construction contracts** under `docs/requirements/`.
 
 | Doc | Role |

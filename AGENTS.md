@@ -223,7 +223,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 2. 运行测试并展示通过结果
 3. 确认 build 通过
 4. 确认无新增 linter 报错
-5. **文档收工**：用户可见能力或横切行为变了 → 同轮更新对应模块卡「已落地能力」；必要时 changelog / progress「人读摘要」。Cursor `stop` hook（`.cursor/hooks/`）会在产品代码有改、模块卡未动时提醒。
+5. **文档收工**：用户可见能力或横切行为变了 → 同轮更新对应模块卡「已落地能力」；必要时 changelog / progress「人读摘要」；运行 `npm run docs:validate`，让 staged 变更影响检查确认必须复核的文档已收口。Cursor `stop` hook（`.cursor/hooks/`）只是额外提醒，不替代门禁。
 
 禁止未经验证就说"已完成""已修复"。
 

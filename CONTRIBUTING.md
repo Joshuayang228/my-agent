@@ -29,6 +29,10 @@ npm run typecheck
 3. Describe *why* in the PR body; link issues if any.
 4. Do not commit `.env`, keys, or personal data.
 
+## 文档闭环门禁
+
+`npm install` 会通过 `prepare` 启用仓库内 Git hooks：commit 前自动运行 `npm run docs:validate`，push 前再次运行 `npm run docs:check`。Pull Request 还会由 GitHub Actions 执行文档门禁。
+
 ## Docs map
 
 - Product modules: [`docs/modules/README.md`](docs/modules/README.md)

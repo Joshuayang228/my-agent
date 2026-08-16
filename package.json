@@ -21,7 +21,10 @@
     "test:all": "vitest run && npx playwright test --project=ui",
     "dev:ui-e2e": "vite --mode ui-e2e --host 127.0.0.1 --strictPort --port 5174",
     "eval:skill": "vitest run --config vitest.skill-eval.config.ts",
-    "docs:check": "node scripts/docs-check.mjs"
+    "docs:check": "node scripts/docs-check.mjs",
+    "docs:impact": "node scripts/docs-impact-check.mjs",
+    "docs:validate": "npm run docs:check && npm run docs:impact",
+    "prepare": "node scripts/install-git-hooks.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

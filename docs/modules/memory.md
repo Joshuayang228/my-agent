@@ -70,6 +70,12 @@
 | 记忆策略生产资产目录 | 已落地 | Debug「提示词管理器 → 记忆策略」；提取 / 去重 / 分桶 / 召回 / 生命周期 / 纠错策略有稳定 key、来源、版本、指纹和依赖 |
 | 项目文档 RAG | 不做（本模块） | 见 `rag/` |
 
+## 相关决策
+
+- `DEC-004`：SQLite + 向量数据库的双层存储选择。
+- `DEC-007`：Vectra 作为本地向量检索层。
+- `DEC-009`：Embedding 复用 LLM API，不内置本地模型。
+
 ## 现状 / 缺口
 
 **现状**：SQLite + Vectra；工具三件套；画像提取；敏感信息 fail-closed；凭据不进入长期记忆或 Prompt；语义去重；M29 芯片/纠错/敏感；体验契约见 `methodology/m29-asymmetric-memory.md`。

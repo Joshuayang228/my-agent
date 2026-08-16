@@ -13,7 +13,7 @@
 4. 涉及 import、主进程或打包结构时运行 `npm run build`；
 5. 涉及 UI 时运行 `npm run test:e2e` 并做深色 / 浅色、溢出和主要交互检查；
 6. 涉及产品能力或横切契约时更新对应模块卡、Progress 和 Changelog；
-7. 运行 `npm run docs:check`。
+7. 运行 `npm run docs:validate`，确认 staged 变更影响也已收口。
 
 真实模型、真实 API Key 和会产生费用的 Eval 不是默认门禁，只有任务明确涉及真实模型行为时才运行。
 
@@ -27,7 +27,8 @@
 | Persona Real Eval | 真实 LLM + Judge + pass^k | `npm run eval:persona` | 人格 Prompt、Judge 或评分标准变化且用户允许费用时 |
 | Renderer E2E | UI 页面、交互和布局 | `npm run test:e2e` | UI 变化时 |
 | Electron E2E | 首次配置和可选真对话 | `npm run test:e2e:electron` | Electron 生命周期、首次配置或真对话链路变化时 |
-| 文档一致性 | 链接、合同状态、DEC 和 canonical source | `npm run docs:check` | 文档或规则变化时 |
+| 文档一致性 | 链接、合同状态、DEC、Wishlist ID 和 canonical source | `npm run docs:check` | 文档或规则变化时 |
+| 变更影响 | staged 代码与必须复核文档映射 | `npm run docs:impact` | commit 前；由 pre-commit 自动运行 |
 
 Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务后宣称真实产品能力通过。
 
@@ -74,6 +75,7 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 ## 七、维护规则
 
 - 新增或改变质量分层、门禁条件时更新本文。
+- `docs:validate` 是文档收工入口；Git hook 和 GitHub Actions 负责自动触发，人工仍需判断产品语义。
 - 新增 Case 或测试文件时只改代码注册表和测试，不在本文追加数量清单。
 - dated audit 完成后归档；有效缺口先迁入 Wishlist 或 Decisions。
 - 旧 `testing.md`、`eval-design.md` 和收口前 Quality 全文均已归档，不能作为当前门禁。
