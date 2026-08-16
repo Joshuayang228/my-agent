@@ -27,7 +27,9 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 文档分四维：**产品**（`docs/modules/`）· **技术**（`docs/architecture.md`）· **质量**（`docs/quality.md`）· **账本**（`docs/progress.md` / changelog / wishlist / pitfalls / decisions / rules-feedback）。
 **「有什么能力」**看对应模块卡的「已落地能力」节（导览：[`docs/modules/README.md`](docs/modules/README.md)）。
 **施工合同**（唯一称呼，勿称「需求文档 / 需求合同 / 开工合同」）索引：[`docs/requirements/README.md`](docs/requirements/README.md)。
-协作 SOP 在根目录 `agent-skills/`（与 docs 并列，见下文「agent-skills」）。深 Why 在 `methodology/`。文档四维见 `docs/docs-system.md`。
+**暂缓 / 可行性评估**先看 [`docs/deferred/README.md`](docs/deferred/README.md)，达到开工条件后再升格为施工合同。
+**深 Why / 方法论研究**先看 [`methodology/README.md`](methodology/README.md)，再进入对应理念章和代码走读章。
+协作 SOP 在根目录 `agent-skills/`（与 docs 并列，见下文「agent-skills」）。文档四维见 [`docs/docs-system.md`](docs/docs-system.md)。
 
 **模块卡纪律**：`docs/modules/` 只放**有实质边界的模块卡** + `README` 导览。能力清单写在各卡「已落地能力」，**禁止**再维护总 `capability-catalog`；能力合并后更新导览指向存活卡，**禁止**留下仅「请改读 xxx」的重定向/空壳文档。
 
@@ -39,6 +41,8 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 | 「有没有某某能力 / Prompt 怎么组装」 | 模块卡「已落地能力」；伙伴 Prompt 管线见 `docs/modules/companion.md` |
 | 跨模块 / 架构 | `docs/modules/README.md` + `docs/architecture.md` + `docs/progress.md` |
 | 大改要对齐 / 翻施工合同 | `docs/requirements/README.md` → 对应 `docs/requirements/*.md` |
+| 暂缓能力 / 可行性评估 / 重启旧方案 | `docs/deferred/README.md` → 对应评估笔记 → 必要时 `docs/wishlist.md` / `docs/requirements/` |
+| 深层设计研究 / 方法论沉淀 / 对照参考项目 | `methodology/README.md` → 对应理念章 → 对应 `-code.md` 代码走读章 |
 | 测试 / Eval 门禁 | `docs/quality.md` |
 | 小改（typo、单文件少量且意图明确） | 相关代码即可 |
 

@@ -52,46 +52,46 @@ M01–M32 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 | 编号 | 章节 | 文件 | 状态 |
 |------|------|------|------|
-| M01 | Agent Loop | `m01-agent-loop.md` + `m01-agent-loop-code.md` | ✅ |
-| M02 | Streaming 设计范式 | `m02-streaming-design.md` + `m02-streaming-design-code.md` | ✅ |
-| M03 | 错误体系设计 | `m03-error-system.md` + `m03-error-system-code.md` | ✅ |
-| M04 | 工具系统 | `m04-tool-system.md` + `m04-tool-system-code.md` | ✅ |
-| M05 | LLM 路由与适配 | `m05-llm-routing.md` + `m05-llm-routing-code.md` | ✅ |
+| M01 | Agent Loop | [`m01-agent-loop.md`](./m01-agent-loop.md) + [`m01-agent-loop-code.md`](./m01-agent-loop-code.md) | ✅ |
+| M02 | Streaming 设计范式 | [`m02-streaming-design.md`](./m02-streaming-design.md) + [`m02-streaming-design-code.md`](./m02-streaming-design-code.md) | ✅ |
+| M03 | 错误体系设计 | [`m03-error-system.md`](./m03-error-system.md) + [`m03-error-system-code.md`](./m03-error-system-code.md) | ✅ |
+| M04 | 工具系统 | [`m04-tool-system.md`](./m04-tool-system.md) + [`m04-tool-system-code.md`](./m04-tool-system-code.md) | ✅ |
+| M05 | LLM 路由与适配 | [`m05-llm-routing.md`](./m05-llm-routing.md) + [`m05-llm-routing-code.md`](./m05-llm-routing-code.md) | ✅ |
 
 ### Part II：上下文与记忆
 
 | 编号 | 章节 | 文件 | 状态 |
 |------|------|------|------|
-| M06 | System Prompt 工程化 | `m06-system-prompt-engineering.md` + `m06-system-prompt-engineering-code.md` | ✅ |
-| M07 | 上下文压缩 | `m07-context-compression.md` + `m07-context-compression-code.md` | ✅ |
-| M08 | 记忆系统 | `m08-memory-system.md` + `m08-memory-system-code.md` | ✅ |
-| M09 | 后台任务生命周期 | `m09-task-lifecycle.md` + `m09-task-lifecycle-code.md` | ✅ |
+| M06 | System Prompt 工程化 | [`m06-system-prompt-engineering.md`](./m06-system-prompt-engineering.md) + [`m06-system-prompt-engineering-code.md`](./m06-system-prompt-engineering-code.md) | ✅ |
+| M07 | 上下文压缩 | [`m07-context-compression.md`](./m07-context-compression.md) + [`m07-context-compression-code.md`](./m07-context-compression-code.md) | ✅ |
+| M08 | 记忆系统 | [`m08-memory-system.md`](./m08-memory-system.md) + [`m08-memory-system-code.md`](./m08-memory-system-code.md) | ✅ |
+| M09 | 后台任务生命周期 | [`m09-task-lifecycle.md`](./m09-task-lifecycle.md) + [`m09-task-lifecycle-code.md`](./m09-task-lifecycle-code.md) | ✅ |
 
 ### Part III：安全与扩展
 
 | 编号 | 章节 | 文件 | 状态 |
 |------|------|------|------|
-| M10 | 权限与安全 | `m10-permission-security.md` + `m10-permission-security-code.md` | ✅ |
-| M11 | Hook / 扩展点架构 | `m11-hook-extension-architecture.md` + `m11-hook-extension-architecture-code.md` | ✅ |
-| M12 | IPC 架构 | `m12-ipc-architecture.md` + `m12-ipc-architecture-code.md` | ✅ |
-| M13 | MCP 集成 | `m13-mcp-integration.md` + `m13-mcp-integration-code.md` | ✅ |
+| M10 | 权限与安全 | [`m10-permission-security.md`](./m10-permission-security.md) + [`m10-permission-security-code.md`](./m10-permission-security-code.md) | ✅ |
+| M11 | Hook / 扩展点架构 | [`m11-hook-extension-architecture.md`](./m11-hook-extension-architecture.md) + [`m11-hook-extension-architecture-code.md`](./m11-hook-extension-architecture-code.md) | ✅ |
+| M12 | IPC 架构 | [`m12-ipc-architecture.md`](./m12-ipc-architecture.md) + [`m12-ipc-architecture-code.md`](./m12-ipc-architecture-code.md) | ✅ |
+| M13 | MCP 集成 | [`m13-mcp-integration.md`](./m13-mcp-integration.md) + [`m13-mcp-integration-code.md`](./m13-mcp-integration-code.md) | ✅ |
 
 ### Part IV：可观测与质量
 
 | 编号 | 章节 | 文件 | 状态 |
 |------|------|------|------|
-| M14 | 可观测性 | `m14-observability.md` + `m14-observability-code.md` | ✅ |
-| M15 | 状态机设计 | `m15-state-machine-design.md` + `m15-state-machine-design-code.md` | ✅ |
-| M16 | 并发与数据架构 | `m16-concurrency-data-architecture.md` + `m16-concurrency-data-architecture-code.md` | ✅ |
-| M17 | 测试架构 | `m17-testing-architecture.md` + `m17-testing-architecture-code.md` | ✅ |
-| M18 | Eval 体系（上下两章） | `m18-eval.md` + `m18-eval-persona.md` + `m18-eval-code.md` | ✅ |
+| M14 | 可观测性 | [`m14-observability.md`](./m14-observability.md) + [`m14-observability-code.md`](./m14-observability-code.md) | ✅ |
+| M15 | 状态机设计 | [`m15-state-machine-design.md`](./m15-state-machine-design.md) + [`m15-state-machine-design-code.md`](./m15-state-machine-design-code.md) | ✅ |
+| M16 | 并发与数据架构 | [`m16-concurrency-data-architecture.md`](./m16-concurrency-data-architecture.md) + [`m16-concurrency-data-architecture-code.md`](./m16-concurrency-data-architecture-code.md) | ✅ |
+| M17 | 测试架构 | [`m17-testing-architecture.md`](./m17-testing-architecture.md) + [`m17-testing-architecture-code.md`](./m17-testing-architecture-code.md) | ✅ |
+| M18 | Eval 体系（上下两章） | [`m18-eval.md`](./m18-eval.md) + [`m18-eval-persona.md`](./m18-eval-persona.md) + [`m18-eval-code.md`](./m18-eval-code.md) | ✅ |
 
 ### Part V：智能与进化
 
 | 编号 | 章节 | 文件 | 状态 |
 |------|------|------|------|
-| M19 | 多 Agent 协作 | `m19-multi-agent.md` + `m19-multi-agent-code.md` | ✅ |
-| M20 | 自进化架构 | `m20-self-evolution.md` + `m20-self-evolution-code.md` | ✅ |
+| M19 | 多 Agent 协作 | [`m19-multi-agent.md`](./m19-multi-agent.md) + [`m19-multi-agent-code.md`](./m19-multi-agent-code.md) | ✅ |
+| M20 | 自进化架构 | [`m20-self-evolution.md`](./m20-self-evolution.md) + [`m20-self-evolution-code.md`](./m20-self-evolution-code.md) | ✅ |
 
 ### Part VI：伙伴与生活世界
 
@@ -99,18 +99,18 @@ M01–M32 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 | 编号 | 章节 | 文件 | 层 | 主 W | 状态 |
 |------|------|------|----|------|------|
-| M21 | 人格引擎与设定集 | `m21-persona-engine.md` + `-code.md` | Identity | W0 | ✅（G3/G5 见 M22/W0） |
-| M22 | 成长核：MUTABLE 与反思 | `m22-growth-mutable.md` + `-code.md` | Growth | W1 | ✅ |
-| M23 | 生活世界架构 | `m23-world-architecture.md` + `-code.md` | World | W2 | ✅ |
-| M24 | 朋友圈与事件层 | `m24-moments-event-layer.md` + `-code.md` | World | W3 | ✅ |
-| M25 | 资产层（衣柜等） | `m25-assets-wardrobe.md` + `-code.md` | World | W4 | ✅ |
-| M26 | 交际圈与卡司 | `m26-social-cast.md` + `-code.md` | World | W5 | ✅ |
-| M27 | 对话行为与两空间 | `m27-conversation-two-spaces.md` + `-code.md` | 体验 | W0/W6 | ✅ |
-| M28 | 冷启动与关系阶段 | `m28-cold-start-relationship.md` + `-code.md` | 体验 | W1 | ✅ |
-| M29 | 信息不对称与记忆透明 | `m29-asymmetric-memory.md` + `-code.md` | 体验 | W1+ | ✅ |
-| M30 | 叙事连贯与能力边界 | `m30-narrative-capability.md` + `-code.md` | 体验 | W2–W4 | ✅ |
-| M31 | 主动在场设计 | `m31-proactive-presence.md` + `-code.md` | Surfaces | W3+W6 | ✅ |
-| M32 | 体验调试：Debug 与 Playground | `m32-experience-debug-playground.md` + `-code.md` | 体验 | — | ✅（工程 Gap 见章内 / wishlist） |
+| M21 | 人格引擎与设定集 | [`m21-persona-engine.md`](./m21-persona-engine.md) + [`m21-persona-engine-code.md`](./m21-persona-engine-code.md) | Identity | W0 | ✅（G3/G5 见 M22/W0） |
+| M22 | 成长核：MUTABLE 与反思 | [`m22-growth-mutable.md`](./m22-growth-mutable.md) + [`m22-growth-mutable-code.md`](./m22-growth-mutable-code.md) | Growth | W1 | ✅ |
+| M23 | 生活世界架构 | [`m23-world-architecture.md`](./m23-world-architecture.md) + [`m23-world-architecture-code.md`](./m23-world-architecture-code.md) | World | W2 | ✅ |
+| M24 | 朋友圈与事件层 | [`m24-moments-event-layer.md`](./m24-moments-event-layer.md) + [`m24-moments-event-layer-code.md`](./m24-moments-event-layer-code.md) | World | W3 | ✅ |
+| M25 | 资产层（衣柜等） | [`m25-assets-wardrobe.md`](./m25-assets-wardrobe.md) + [`m25-assets-wardrobe-code.md`](./m25-assets-wardrobe-code.md) | World | W4 | ✅ |
+| M26 | 交际圈与卡司 | [`m26-social-cast.md`](./m26-social-cast.md) + [`m26-social-cast-code.md`](./m26-social-cast-code.md) | World | W5 | ✅ |
+| M27 | 对话行为与两空间 | [`m27-conversation-two-spaces.md`](./m27-conversation-two-spaces.md) + [`m27-conversation-two-spaces-code.md`](./m27-conversation-two-spaces-code.md) | 体验 | W0/W6 | ✅ |
+| M28 | 冷启动与关系阶段 | [`m28-cold-start-relationship.md`](./m28-cold-start-relationship.md) + [`m28-cold-start-relationship-code.md`](./m28-cold-start-relationship-code.md) | 体验 | W1 | ✅ |
+| M29 | 信息不对称与记忆透明 | [`m29-asymmetric-memory.md`](./m29-asymmetric-memory.md) + [`m29-asymmetric-memory-code.md`](./m29-asymmetric-memory-code.md) | 体验 | W1+ | ✅ |
+| M30 | 叙事连贯与能力边界 | [`m30-narrative-capability.md`](./m30-narrative-capability.md) + [`m30-narrative-capability-code.md`](./m30-narrative-capability-code.md) | 体验 | W2–W4 | ✅ |
+| M31 | 主动在场设计 | [`m31-proactive-presence.md`](./m31-proactive-presence.md) + [`m31-proactive-presence-code.md`](./m31-proactive-presence-code.md) | Surfaces | W3+W6 | ✅ |
+| M32 | 体验调试：Debug 与 Playground | [`m32-experience-debug-playground.md`](./m32-experience-debug-playground.md) + [`m32-experience-debug-playground-code.md`](./m32-experience-debug-playground-code.md) | 体验 | — | ✅（工程 Gap 见章内 / wishlist） |
 
 旧文件归档：`_archive/methodology-companion-legacy/`。
 
@@ -125,8 +125,8 @@ M01–M32 按**依赖层级**从底向上排列：底层基础设施决定上层
 
 | 文件 | 主题 | 状态 |
 |------|------|------|
-| `rule-system-evolution.md` | 规则体系的进化 | ✅ |
-| `asset-registration-management.md` + `-code.md` | Agent 生产资产注册与管理：身份、事实源、生命周期、运行追踪与 Debug / Playground 边界 | ✅ |
+| [`rule-system-evolution.md`](./rule-system-evolution.md) | 规则体系的进化 | ✅ |
+| [`asset-registration-management.md`](./asset-registration-management.md) + [`asset-registration-management-code.md`](./asset-registration-management-code.md) | Agent 生产资产注册与管理：身份、事实源、生命周期、运行追踪与 Debug / Playground 边界 | ✅ |
 
 ---
 

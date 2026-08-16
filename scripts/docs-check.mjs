@@ -70,6 +70,83 @@ function checkLinks(files) {
   }
 }
 
+/**
+ * 背景：文档链接是 AI 路由图的可验证边，不能把代码样式路径误当成可点击入口。
+ * 设计意图：只返回实际存在的本地 Markdown 目标，供启动入口和分类索引检查复用。
+ * 关键约束：忽略外部链接、锚点和不存在的目标；失效链接仍由 checkLinks 统一报告。
+ */
+function markdownTargets(file) {
+  const targets = new Set()
+  const text = read(file)
+  const pattern = /(?<!!)\[[^\]]*\]\(([^)]+)\)/g
+  for (const match of text.matchAll(pattern)) {
+    const raw = match[1].trim().split(/\s+/)[0].replace(/^<|>$/g, '')
+    if (!raw || /^(?:https?:|mailto:|#|app:)/i.test(raw)) continue
+    const target = raw.split('#', 1)[0]
+    if (!target) continue
+    const resolved = path.resolve(path.dirname(file), target)
+    if (fs.existsSync(resolved)) targets.add(rel(resolved))
+  }
+  return targets
+}
+
+/**
+ * 背景：仅检查 README 内部索引会漏掉“索引与子文档互相可达、但 AI 启动入口不可达”的孤儿文档块。
+ * 设计意图：把 AGENTS.md 视为 Bootstrap，要求 Deferred / Methodology 具备任务触发条件、直接入口和完整子文档链接。
+ * 关键约束：不要求每次启动读取全部文档；只验证按任务触发的分类入口和其目录内的显式索引。
+ */
+function checkDocumentRouteGraph() {
+  const agentsFile = path.join(root, 'AGENTS.md')
+  if (!fs.existsSync(agentsFile)) {
+    errors.push('缺少根目录 AGENTS.md，无法建立 AI 文档启动入口')
+    return
+  }
+
+  const agentsText = read(agentsFile)
+  const agentsTargets = markdownTargets(agentsFile)
+  const routedFamilies = [
+    {
+      index: 'docs/deferred/README.md',
+      directory: 'docs/deferred',
+      trigger: /暂缓|可行性评估|重启旧方案/,
+      label: 'Deferred 暂缓评估',
+    },
+    {
+      index: 'methodology/README.md',
+      directory: 'methodology',
+      trigger: /深 Why|方法论研究|方法论沉淀|对照参考项目/,
+      label: 'Methodology 方法论',
+    },
+  ]
+
+  for (const family of routedFamilies) {
+    const indexFile = path.join(root, family.index)
+    const directory = path.join(root, family.directory)
+    if (!fs.existsSync(indexFile)) {
+      errors.push(`${family.label}缺少分类入口：${family.index}`)
+      continue
+    }
+    if (!agentsTargets.has(family.index)) {
+      errors.push(`${family.label}未从 AGENTS.md 直接进入：${family.index}`)
+    }
+    const routeLine = agentsText.split('\n').find((line) => line.includes(family.index))
+    if (!routeLine || !family.trigger.test(routeLine)) {
+      errors.push(`${family.label}在 AGENTS.md 缺少明确任务触发条件：${family.index}`)
+    }
+
+    const indexedTargets = markdownTargets(indexFile)
+    const children = fs.readdirSync(directory)
+      .filter((name) => name.endsWith('.md') && name !== 'README.md')
+      .map((name) => path.join(directory, name))
+    for (const child of children) {
+      const childName = rel(child)
+      if (!indexedTargets.has(childName)) {
+        errors.push(`${family.label}索引未显式链接：${childName}`)
+      }
+    }
+  }
+}
+
 function checkHeadings(files) {
   for (const file of files) {
     if (rel(file) === 'CLAUDE.md') continue
@@ -215,6 +292,7 @@ function checkLedgerShape() {
 
 const files = markdownFiles()
 checkLinks(files)
+checkDocumentRouteGraph()
 checkHeadings(files)
 checkDecisions(files)
 checkRequirements()

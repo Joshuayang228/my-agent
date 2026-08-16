@@ -108,7 +108,7 @@ npm run dev
 - 打磨伴侣体验与 Pack 内容
 - 加强可观测与 Eval
 - 继续打磨已统一的前端视觉与伙伴表面
-- 可靠语音输入（暂缓，见 `docs/deferred/`）
+- 可靠语音输入（暂缓，见 [docs/deferred/README.md](docs/deferred/README.md)）
 - 生图朋友圈 / 多宇宙（非本阶段）
 
 ## 参与贡献

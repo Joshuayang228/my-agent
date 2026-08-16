@@ -4,7 +4,7 @@
 > **只放**开工前对齐 Why/What/How/验收的合同。进行中合同指导施工；完成后冻结为历史施工快照，当前能力回到模块卡 / Architecture / Quality / Decisions。
 > **不是**能力清单——「有什么」见各 [`../modules/`](../modules/) 模块卡的「已落地能力」节。
 > **不是**文档体系说明——见 [`../docs-system.md`](../docs-system.md)。
-> **不是**暂缓评估 / 历史批次——评估见 [`../deferred/`](../deferred/)；历史快照见 [`../../_archive/README.md`](../../_archive/README.md)。
+> **不是**暂缓评估 / 历史批次——评估见 [`../deferred/README.md`](../deferred/README.md)；历史快照见 [`../../_archive/README.md`](../../_archive/README.md)。
 
 ## 怎么放文件
 

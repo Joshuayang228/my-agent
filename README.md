@@ -108,7 +108,7 @@ We maintain a small **four-dimension** doc system (product / architecture / qual
 - Polish companion UX and Pack content
 - Strengthen observability & eval coverage
 - Continue polishing the unified frontend and companion surfaces
-- Native / reliable voice input (deferred — see `docs/deferred/`)
+- Native / reliable voice input (deferred — see [docs/deferred/README.md](docs/deferred/README.md))
 - Image Moments & multi-universe (out of scope for now)
 
 ## Contributing
