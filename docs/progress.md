@@ -15,6 +15,14 @@
 
 ## 最近完成
 
+### 2026-08-16 · 文档自进化复盘闭环
+
+- 新增 `npm run docs:self-review`：只读扫描最近提交、变更影响、重复长句候选、活跃文档体量、施工合同、Wishlist、规则反馈和 docs:check 结果。
+- 新增 `npm run docs:self-review:prompt`：生成给 AI 的结构化语义复盘提示词，明确不自动修改 canonical 文档。
+- 复盘产物写入 ignored 的 `var/docs-self-review/`，不触碰用户已有 `.tmp/`、`.env`、用户数据或运行报告。
+- GitHub Actions 每周生成复盘 artifact；CI 不调用模型、不提交修复。
+- AI 复盘结论按现有账本路由到 rules-feedback / wishlist / decisions / 模块卡，不新增第二套问题系统。
+
 ### 2026-08-16 · 文档变更影响与收工闭环
 
 - Wishlist 未完成项统一为 `WISH-001`～`WISH-021`，保留来源，ID 不复用。

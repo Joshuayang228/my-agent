@@ -24,7 +24,9 @@
     "docs:check": "node scripts/docs-check.mjs",
     "docs:impact": "node scripts/docs-impact-check.mjs",
     "docs:validate": "npm run docs:check && npm run docs:impact",
-    "prepare": "node scripts/install-git-hooks.mjs"
+    "prepare": "node scripts/install-git-hooks.mjs",
+    "docs:self-review": "node scripts/docs-self-review.mjs",
+    "docs:self-review:prompt": "node scripts/docs-review-prompt.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

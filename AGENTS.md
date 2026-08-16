@@ -48,6 +48,8 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 
 **归档搜索**：普通开发、审查和全局搜索默认排除 `_archive/`；只有追溯历史取舍、迁移原因或原始记录时才读取。归档内容不得作为当前事实源。
 
+**周期复盘**：`npm run docs:self-review` 是只读证据扫描，`npm run docs:self-review:prompt` 只生成给 AI 的复盘提示词。AI 复盘不得自动修改 `AGENTS.md`、模块卡、施工合同、`docs/decisions.md`、生产 Prompt 或产品代码；确认后的问题必须路由回 `rules-feedback` / `wishlist` / `decisions` / 模块卡，历史报告进入 `_archive/audits/`。
+
 动手前若已读模块卡：用几行复述边界、拟改文件、不碰什么、必测点；越界先问用户。
 
 ## 规则冲突优先级

@@ -51,3 +51,6 @@ test-results/
 *.dmg
 *.AppImage
 *.snap
+
+# 文档自进化复盘产物（只读报告，不是 canonical source）
+var/docs-self-review/

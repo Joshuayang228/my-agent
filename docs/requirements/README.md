@@ -19,6 +19,7 @@
 
 ## 进行中
 
+
 | 文档 | 说明 |
 |------|------|
 | [playground-bilingual-ui-vocabulary.md](./playground-bilingual-ui-vocabulary.md) | Playground 中文分类与常用 UI 控件中英分层文案 |
@@ -30,6 +31,7 @@
 | 文档 | 说明 |
 |------|------|
 | [agent-asset-usage-evidence-v1.md](./agent-asset-usage-evidence-v1.md) | 已落地：生产资产与真实 LLM / Tool / Memory / Permission 运行记录的脱敏证据链、反向查询、导出与 Debug 跳转 |
+| [docs-self-evolution-review.md](./docs-self-evolution-review.md) | 文档自进化复盘、重复真相源候选检测和只读 AI 复盘提示词 |
 | [docs-change-impact-closeout.md](./docs-change-impact-closeout.md) | 文档变更影响、自动触发、稳定 ID 与施工合同收工门禁 |
 | [docs-truth-source-lifecycle.md](./docs-truth-source-lifecycle.md) | 文档 canonical source、历史归档、规则路由和自动一致性门禁收口 |
 | [companion-character-profile-world.md](./companion-character-profile-world.md) | 小航候选：档案/世界结构已接入，人物故事内容待定；旧状态不迁移 |

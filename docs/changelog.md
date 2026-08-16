@@ -4,6 +4,13 @@
 
 ## [未发布]
 
+### Added — 文档自进化复盘闭环（2026-08-16）
+
+- 新增只读 `npm run docs:self-review`，定期扫描变更同步缺口、重复真相源候选和文档维护债务。
+- 新增 `npm run docs:self-review:prompt`，生成结构化 AI 复盘任务；AI 只提出建议，不自动改规则、决策、模块卡或产品代码。
+- GitHub Actions 每周生成复盘 artifact，并保留手动触发入口。
+- 复盘问题沿用 rules-feedback / wishlist / decisions / 模块卡 / `_archive/audits/` 路由，不新增平行 backlog。
+
 ### Added — 文档变更影响与收工闭环（2026-08-16）
 
 - Wishlist 未完成项增加稳定 `WISH-xxx` ID 和来源字段；模块卡增加相关 DEC 索引。

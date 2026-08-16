@@ -65,6 +65,8 @@ npm run docs:validate   # 两者合并入口
 
 `npm prepare` 会启用版本库内 `.githooks/`；pre-commit 运行 `docs:validate`，pre-push 再运行 `docs:check`。GitHub Actions 在 Push / Pull Request 上运行 `docs:check`。检查活跃链接、施工合同状态、DEC 引用、Wishlist ID、模块决策索引、文档标题、规则入口和 Architecture 易漂移数量。完整测试门禁见 `docs/quality.md`。
 
+周期复盘：`npm run docs:self-review` 只读扫描最近提交并生成 `var/docs-self-review/latest.json` / `latest.md`；`npm run docs:self-review:prompt` 生成供 AI 阅读的语义复盘提示词。每周 GitHub Actions 只上传复盘 artifact，不调用模型、不提交修改、不写 canonical 文档。
+
 ## 历史
 
 旧文档体系和本次收口前的完整快照见 [`../_archive/README.md`](../_archive/README.md)。
