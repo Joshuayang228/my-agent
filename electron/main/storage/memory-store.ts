@@ -9,6 +9,31 @@ import { detectSensitiveKinds } from '../../../src/shared/sensitive-memory'
 
 const log = createLogger('MemoryStore')
 
+// 记忆写入返回得比向量索引快，但测试 / 应用退出前必须能等待这些后台任务，
+// 否则动态加载辅助模型配置可能在 Vitest 环境销毁后才继续执行。
+const pendingBackgroundTasks = new Set<Promise<void>>()
+
+function queueMemoryBackgroundTask(task: () => Promise<void>): void {
+  const tracked = task().catch((error) => {
+    log.warn('Memory background task failed', { error: String(error) })
+  })
+  pendingBackgroundTasks.add(tracked)
+  void tracked.then(() => pendingBackgroundTasks.delete(tracked))
+}
+
+/**
+ * 等待已经排队的记忆后台任务。
+ *
+ * 背景：结构化记忆先落 SQLite，向量索引和资产证据异步补写，避免阻塞对话工具。
+ * 设计意图：保留产品运行时的非阻塞行为，同时为 Electron 退出和测试 teardown 提供确定性边界。
+ * 关键约束：只等待调用时已经存在的任务；新任务由下一次 drain 负责，单个失败已在队列入口记录并吞掉。
+ */
+export async function drainMemoryBackgroundTasks(): Promise<void> {
+  while (pendingBackgroundTasks.size > 0) {
+    await Promise.all([...pendingBackgroundTasks])
+  }
+}
+
 export const MEMORY_SEMANTIC_DEDUP_THRESHOLD = 0.85
 export const FEEDBACK_MEMORY_LIMIT = 12
 export const MAX_MEMORY_CONTENT_LENGTH = 20_000
@@ -152,10 +177,10 @@ export async function addMemory(
     })
   }
 
-  getLLMConfigForSync().then(config => {
+  queueMemoryBackgroundTask(async () => {
+    const config = await getLLMConfigForSync()
     if (!config.apiKey) return
-    addToVectorStore({ id, text: content, category, sessionId: '', timestamp: now }, config)
-      .catch(() => {})
+    await addToVectorStore({ id, text: content, category, sessionId: '', timestamp: now }, config)
   })
 
   return { id, category, content, createdAt: now, updatedAt: now, ...(roleId ? { roleId } : {}) }
@@ -235,7 +260,7 @@ export async function deleteMemory(id: string): Promise<void> {
   persist()
   log.info('Memory deleted', { id })
 
-  removeFromVectorStore(id).catch(() => {})
+  queueMemoryBackgroundTask(() => removeFromVectorStore(id))
 }
 
 export async function updateMemory(id: string, content: string): Promise<void> {
@@ -247,11 +272,11 @@ export async function updateMemory(id: string, content: string): Promise<void> {
   persist()
   log.info('Memory updated', { id })
 
-  removeFromVectorStore(id).catch(() => {})
-  getLLMConfigForSync().then(config => {
+  queueMemoryBackgroundTask(() => removeFromVectorStore(id))
+  queueMemoryBackgroundTask(async () => {
+    const config = await getLLMConfigForSync()
     if (!config.apiKey) return
-    addToVectorStore({ id, text: content, category: 'fact', sessionId: '', timestamp: now }, config)
-      .catch(() => {})
+    await addToVectorStore({ id, text: content, category: 'fact', sessionId: '', timestamp: now }, config)
   })
 }
 

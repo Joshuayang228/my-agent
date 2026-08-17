@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('../../electron/main/storage/database', () => {
   const rows: Record<string, unknown>[] = []
@@ -75,11 +75,16 @@ vi.mock('../../electron/main/utils/logger', () => ({
 
 import { rememberTool, recallTool, forgetTool, resolveRememberMetadata } from '../../electron/main/tools/builtins/memory-manage'
 import { taskPlanTool } from '../../electron/main/tools/builtins/task-plan'
+import { drainMemoryBackgroundTasks } from '../../electron/main/storage/memory-store'
 import { _rows } from '../../electron/main/storage/database'
 
 describe('remember tool', () => {
   beforeEach(() => {
     (_rows as unknown[]).length = 0
+  })
+
+  afterEach(async () => {
+    await drainMemoryBackgroundTasks()
   })
 
   it('stores a new memory', async () => {

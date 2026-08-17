@@ -48,7 +48,7 @@
 ## 必测点
 
 - remember 后 recall 能命中；forget 后两侧干净
-- 相关单测：`memory-tools`；语义去重相关测试（若有）
+- 相关单测：`memory-tools`；语义去重相关测试（若有）；后台向量任务 teardown drain
 - 手动：MemoryPanel CRUD 与对话注入可感知
 
 ## 已落地能力
@@ -63,6 +63,7 @@
 | 对话后索引用户消息 | 已落地 | `vector-index-user`（不索引 assistant 原文） |
 | 后台画像提取 | 已落地 | `profile-extractor` · task `profile-extract` |
 | 语义去重（记忆写入） | 已落地 | M08 G6 |
+| 记忆后台向量任务生命周期 | 已落地 | `drainMemoryBackgroundTasks`；保留非阻塞写入，同时为测试 teardown / 应用退出提供 drain 边界 |
 | 本轮引用芯片（M29-G1） | 已落地 | `memory_citations` · `MemoryCitationChips`（Chat + Playground） |
 | 对话内纠错（M29-G2） | 已落地 | `correctCitedMemory` |
 | 敏感高亮与采集提示（M29-G3） | 已落地 | `sensitive-memory`；自动画像跳过敏感类别，凭据内容在存储/导入/向量召回层硬拒绝 |

@@ -2,6 +2,14 @@
 
 > 开发过程中遇到的坑和解决方案，避免重复踩坑。
 
+## fire-and-forget 动态 import 跨过测试生命周期
+
+**问题**：函数本身已经返回，但后台 Promise 仍在动态加载模块；GitHub Runner 的 Vitest 环境先 teardown，随后出现 `EnvironmentTeardownError`，本地因时序较慢不一定复现。
+
+**原因**：仅写 `void promise` 只能表达“不等待”，不能表达测试或应用退出前的生命周期边界；动态 import 尤其容易在 teardown 后才完成。
+
+**解决**：后台任务进入可追踪集合，生产调用保持非阻塞；提供 `drain...` 供测试 teardown / 应用退出等待，且任务入口统一记录失败。不要用固定 `setTimeout` 掩盖异步竞态。
+
 ## 第三方回收站二进制在 Electron bundle 中失去 file URL
 
 **问题**：`trash@10.1.1` 在 Node 单测中可以删除文件，但打进 Electron 主进程后，Windows 回收站调用报 `The URL must be of scheme file`。

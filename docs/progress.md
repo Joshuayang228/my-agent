@@ -15,6 +15,12 @@
 
 ## 最近完成
 
+### 2026-08-17 · 记忆后台任务生命周期收口
+
+- 修复 GitHub Asset registry CI 在 `memory-tools` teardown 阶段出现 `EnvironmentTeardownError` 的时序竞态。
+- 记忆向量异步写入继续保持非阻塞，但通过 `drainMemoryBackgroundTasks` 提供测试 / 退出前的生命周期边界。
+- 相关单测在关闭数据库或测试环境前 drain，避免动态加载辅助模型配置跨越 Vitest 生命周期。
+
 ### 2026-08-17 · Chat 页面组合基线与设置自动保存
 
 - Primary Sidebar 默认宽度收敛为 248px（216–320px），Debug / Playground 固定在会话列表上方，底栏只保留产品入口。

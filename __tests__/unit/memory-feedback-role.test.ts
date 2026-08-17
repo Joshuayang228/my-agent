@@ -46,6 +46,7 @@ const {
   addMemory,
   listFeedbackForRole,
   buildUserProfile,
+  drainMemoryBackgroundTasks,
 } = await import('../../electron/main/storage/memory-store')
 
 describe('memory feedback role bucket (M22-G2)', () => {
@@ -53,7 +54,8 @@ describe('memory feedback role bucket (M22-G2)', () => {
     memDb = new SQL.Database()
   })
 
-  afterEach(() => {
+  afterEach(async () => {
+    await drainMemoryBackgroundTasks()
     memDb.close()
   })
 

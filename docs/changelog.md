@@ -4,6 +4,11 @@
 
 ## [未发布]
 
+### Fixed — 记忆后台任务与 CI teardown 竞态（2026-08-17）
+
+- 记忆写入的向量索引后台任务增加可等待生命周期边界，保留正常调用的非阻塞体验。
+- GitHub Asset registry 工作流不会再因动态加载辅助模型配置跨过 Vitest teardown 而失败。
+
 ### Changed — Chat 页面布局与设置交互（2026-08-17）
 
 - Chat 主区不再重复角色名；Debug / Playground 等全页视图移除了无内容的顶部留白。
