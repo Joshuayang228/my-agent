@@ -54,3 +54,6 @@ test-results/
 
 # 文档自进化复盘产物（只读报告，不是 canonical source）
 var/docs-self-review/
+
+# 资产注册审计产物（机器快照，不是 canonical source）
+var/asset-audit/

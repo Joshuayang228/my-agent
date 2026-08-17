@@ -68,6 +68,7 @@ const ASSET_TYPE_LABELS: Record<ModelContextAsset['assetType'], string> = {
   'provider-capability': 'Provider 能力',
   'provider-policy': 'Provider 策略',
   'provider-preset': '模型预设',
+  'subagent-role': 'SubAgent 角色',
 }
 
 const OWNERSHIP_LABELS: Record<ModelContextAsset['ownership'], string> = {

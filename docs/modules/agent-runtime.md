@@ -65,6 +65,7 @@
 | 上下文压缩 L1–L4 | 已落地 | `context-manager` |
 | 任务队列（后处理 / 反思等） | 已落地 | `services/task-queue` 等 |
 | 子 Agent | 部分 | `subagent`；召唤下任务工边界（M26-G2）；Swarm 见 wishlist |
+| SubAgent 角色生产资产 | 已落地 | `agent/subagent-asset-registry.ts`；Debug 资产目录登记三个内置角色，真实运行通过 `subagent-role` usage evidence 关联 |
 | MCP Client（stdio + SSE） | 已落地 | `mcp/` · 设置页 |
 | 多 Provider LLM + Failover | 已落地 | `llm/`；OpenAI Compatible / Anthropic / Gemini；配置唯一经 `loadMainLLMConfig` / `loadAuxLLMConfig` |
 | Provider 能力生产资产 | 已落地 | `provider-presets.ts` 唯一预设源；`provider-asset-registry.ts` 登记三协议、五项策略与 9 个预设；Debug「提示词管理器 → 模型 Provider」只读展示 |

@@ -1,4 +1,5 @@
 import { memo, useState, useEffect, useRef, useId, useSyncExternalStore } from 'react'
+import { isLightTheme } from '../shared/design-asset-registry'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -50,11 +51,9 @@ SyntaxHighlighter.registerLanguage('ts', typescript)
 SyntaxHighlighter.registerLanguage('js', javascript)
 SyntaxHighlighter.registerLanguage('py', python)
 
-const LIGHT_THEMES = new Set(['light', 'mist', 'green-garden', 'golden'])
-
 function getTheme() {
   const t = document.documentElement.getAttribute('data-theme') || 'dark'
-  return LIGHT_THEMES.has(t) ? 'light' : 'dark'
+  return isLightTheme(t) ? 'light' : 'dark'
 }
 
 function subscribeTheme(cb: () => void) {

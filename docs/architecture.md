@@ -214,7 +214,10 @@ Skill 资产由 `electron/main/skills/loader.ts` 读取和保存；Frontmatter �
 - `sandbox/asset-registry.ts` 从沙箱档位、命令分级、权限责任链、路径守卫、审批生命周期和有效沙箱映射生成只读资产；不读取用户规则、审批记录或当前执行模式。
 - `evals/scenario-registry.ts` 是普通 Eval Scenario 唯一列表，CLI、Vitest 与 `evals/asset-registry.ts` 共同消费；Case / Grader 资产来自真实场景和结构化判据，不读取运行报告、环境凭据或 Judge 隐藏推理。
 - `llm/provider-asset-registry.ts` 从真实请求构造器、路由规则、Thinking / Context / Vision / Failover 生产事实和共享预设生成协议能力、跨 Provider 策略与内置预设资产；只保存脱敏结构，不读取用户配置或能力缓存。
+- `agent/subagent-asset-registry.ts` 登记 `researcher`、`coder`、`analyst` 三个 SubAgent 角色的 Prompt addon、默认工具集与只读边界；执行器和 Debug 聚合消费同一角色定义，自由字符串角色不伪造为内置资产。
+- Renderer 设计资产由 `src/shared/design-asset-registry.ts` 单一登记主题与字体比例；Settings、Playground、MarkdownRenderer 不再各自维护主题集合，设计资产不进入 ModelContext 或运行证据。
 - Playground 不直接写生产资产；只有文本类资产可显式载入为实验副本，伙伴、记忆、权限与沙箱、Eval Case / Grader、Provider 等结构化资产保持只读。
+- `scripts/asset-governance.mjs` 声明资产家族的来源、注册表、发现方式、key 规则、展示面和证据边界；`npm run assets:check` 生成机器审计快照并对静态资产执行 fail-closed staged 漏登检查。
 
 ### 10.1 生产资产运行证据层
 

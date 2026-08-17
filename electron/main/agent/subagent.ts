@@ -19,6 +19,9 @@ import { startSpan } from '../utils/tracer'
 import { llmDebugStore } from '../storage/llm-debug-store'
 import { PROMPT_KEYS } from '../prompts/keys'
 import { registerSubAgent } from './subagent-registry'
+import { AGENT_ROLES, getSubAgentRoleAsset } from './subagent-asset-registry'
+import type { AgentRole } from './subagent-asset-registry'
+import { recordAssetUsage } from '../utils/asset-usage'
 import type {
   ChatMessage,
   LLMConfig,
@@ -63,29 +66,9 @@ export interface SubAgentResult {
  * 匹配到预设时，用其默认工具集和只读性；显式 allowedTools/readOnly 仍可覆盖。
  * 不匹配预设的 role 按自由字符串处理（向后兼容）。
  */
-export interface AgentRole {
-  systemPromptAddon: string
-  defaultAllowedTools: string[]
-  defaultReadOnly: boolean
-}
+export { AGENT_ROLES }
+export type { AgentRole }
 
-export const AGENT_ROLES: Record<string, AgentRole> = {
-  researcher: {
-    systemPromptAddon: '你是研究专家。请全面收集并综合信息，使用文件路径、行号、来源等具体证据报告发现。不要修改任何内容。',
-    defaultAllowedTools: ['file_read', 'code_search', 'web_search', 'url_fetch', 'rag_search'],
-    defaultReadOnly: true,
-  },
-  coder: {
-    systemPromptAddon: '你是编码专家。请做精准、正确的修改，修复根因而不是表面症状。报告完成前，验证修改能够通过编译和测试。',
-    defaultAllowedTools: ['file_read', 'file_edit', 'file_write', 'apply_patch', 'code_search', 'shell_exec'],
-    defaultReadOnly: false,
-  },
-  analyst: {
-    systemPromptAddon: '你是数据与代码分析专家。请分析结构与模式，基于证据得出结论。不要修改任何内容。',
-    defaultAllowedTools: ['file_read', 'code_search', 'rag_search'],
-    defaultReadOnly: true,
-  },
-}
 
 /** 模式严格程度序（数字越大越严）——用于权限只降不升比较 */
 const MODE_STRICTNESS: Record<ExecutionMode, number> = {
@@ -186,6 +169,24 @@ export async function runSubAgent(
       toolCount: childRegistry.getAll().length,
     }
   )
+  if (getSubAgentRoleAsset(config.role)) {
+    void recordAssetUsage({
+      assetKey: `subagent-role:${config.role}`,
+      relation: 'used',
+      usageKind: 'subagent-role',
+      spanId: subSpan.id,
+      parentSpanId: config.parentSpanId,
+      sessionId: config.toolContext?.sessionId,
+      interactionSpanId: subSpan.id,
+      status: 'running',
+      metadata: {
+        role: config.role,
+        defaultReadOnly: AGENT_ROLES[config.role].defaultReadOnly,
+        toolCount: childRegistry.getAll().length,
+      },
+    })
+  }
+
   if (debugSessionId) {
     void llmDebugStore.registerSubagentSession(
       debugSessionId,
@@ -256,6 +257,15 @@ export async function runSubAgent(
     })
 
     subSpan.setAttributes({ agentId, iterations, toolsUsed: toolsUsed.join(','), contentLength: content.length })
+    if (getSubAgentRoleAsset(config.role)) {
+      void recordAssetUsage({
+        assetKey: `subagent-role:${config.role}`,
+        relation: 'used', usageKind: 'subagent-role', spanId: subSpan.id,
+        parentSpanId: config.parentSpanId, sessionId: config.toolContext?.sessionId,
+        interactionSpanId: subSpan.id, status: 'success',
+        metadata: { role: config.role, iterations, toolsUsed },
+      })
+    }
     subSpan.end('ok')
 
     return { success: true, content, toolsUsed, iterations, agentId }
@@ -265,6 +275,15 @@ export async function runSubAgent(
       errorType: err instanceof Error ? err.name : 'unknown',
       errorLength: errMsg.length,
     })
+    if (getSubAgentRoleAsset(config.role)) {
+      void recordAssetUsage({
+        assetKey: `subagent-role:${config.role}`,
+        relation: 'used', usageKind: 'subagent-role', spanId: subSpan.id,
+        parentSpanId: config.parentSpanId, sessionId: config.toolContext?.sessionId,
+        interactionSpanId: subSpan.id, status: 'error',
+        metadata: { role: config.role, iterations, toolsUsed },
+      })
+    }
     subSpan.end('error', err instanceof Error ? err.name : 'unknown')
     return { success: false, content: '子 Agent 执行失败，请检查配置或稍后重试。', toolsUsed, iterations, agentId: '' }
   }

@@ -484,3 +484,13 @@
 - **决定**：选择 B。当前明确不做 OS 级 Shell 强隔离，也不做 Python 嵌入沙箱；这不是“以后有空补”的待办，而是当前威胁模型下的非目标。
 - **重新立项触发条件**：产品转为多租户/云端执行、无人值守远程执行、默认无确认运行任意 Shell、自动执行第三方未知二进制、企业客户提出强合规要求，或威胁模型开始对抗本机恶意用户。届时应优先设计独立受限 Runner，而不是继续向现有 `shell_exec` 堆条件。
 - **影响**：`docs/modules/permission.md` 明确接受 Shell 解释器语义和 symlink TOCTOU 的剩余风险；`docs/wishlist.md` 勾掉 Shell OS 隔离与 Python 嵌入沙箱；Code Review 不得在触发条件未变化时反复把它们列为未完成漏洞。
+
+---
+
+### DEC-038: 生产资产采用“自动发现 + 显式语义注册 + fail-closed 门禁”
+
+- **日期**：2026-08-17
+- **状态**：已决定
+- **背景**：Tool / Skill / MCP 等运行时能力可以由 loader 自动发现；Prompt、Provider、SubAgent 角色、Theme 等静态资产若只靠目录扫描无法可靠推导稳定语义 key，容易出现 Debug 漏登和第二事实源。
+- **决定**：动态家族明确标记 runtime auto-discovered；静态家族必须由生产注册表登记；`scripts/asset-governance.mjs` 维护治理元数据，`npm run assets:check` 校验来源、类型覆盖、单一来源和 staged 同步，失败即阻断。机器报告只做 dated snapshot，不参与产品运行。
+- **影响**：新增静态资产必须同步注册表和测试；主题只在 `design-asset-registry.ts` 登记；SubAgent 执行器与 Debug 共享 `subagent-asset-registry.ts`；图标 / UI / Design 不进入 ModelContext 或 Agent 运行证据。

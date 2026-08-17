@@ -1,4 +1,4 @@
-﻿# 注册与管理：当前代码走读
+# 注册与管理：当前代码走读
 
 > 本文只记录当前实现如何落到代码；设计取舍见 [`asset-registration-management.md`](./asset-registration-management.md)。
 > 最近核对：2026-08-17。
@@ -26,6 +26,7 @@ eval-grader
 provider-capability
 provider-policy
 provider-preset
+subagent-role
 tool-schema
 skill
 eval-judge
@@ -287,3 +288,26 @@ __tests__/e2e/chat.test.ts
 ```
 
 Unit 检查稳定 key、分类覆盖、状态与来源契约；Renderer E2E 检查目录入口、筛选和中英层级。视觉与交互仍需要在深色 / 浅色、窄宽和键盘场景下人工验收，不能只以注册表测试通过代替。
+
+
+## 11. 全量审计与自动登记门禁
+
+2026-08-17 的实现新增治理清单与统一检查入口：
+
+```text
+scripts/asset-governance.mjs
+scripts/asset-registry-check.mjs
+npm run assets:check
+```
+
+治理清单覆盖 12 个资产家族：Prompt、伙伴、Memory Strategy、Permission / Sandbox、Eval、Provider、SubAgent Role、Tool、Skill、MCP、Lucide Icon、UI Component、Theme / Design。前 7 类是 Agent / ModelContext 生产资产；Tool、Skill、MCP 明确由运行时 ToolRegistry / loader 自动发现；Icon、UI、Theme 是 Renderer 设计资产，不进入 ModelContext 或 Agent usage evidence。
+
+门禁会检查：
+
+- 每个 `ModelContextAssetType` 都能回到治理清单和真实来源；
+- 静态家族注册表入口与 source path 存在；
+- Settings、Playground、MarkdownRenderer 不重复声明主题集合；
+- staged 生产来源变更必须同步注册表，未登记即失败；
+- 生成 `var/asset-audit/latest.json` 与 `.md`，报告只保存数量、入口、发现方式和缺口，不保存正文、用户数据或凭据。
+
+这套机制不是“任意代码自动猜资产”，而是用自动发现覆盖动态能力，用显式语义注册保证静态身份，再用 fail-closed 门禁阻止漏登。

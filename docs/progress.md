@@ -7,13 +7,20 @@
 | | |
 |---|---|
 | **当前阶段** | 公开 alpha；基础运行时、伙伴世界、记忆、权限、Debug / Playground、生产资产与安全边界主线已落地。 |
-| **当前施工** | 文档真相源与生命周期收口；Playground 常用控件中英分层施工合同仍在进行中。 |
+| **当前施工** | 基础设施盘点已收口；下一阶段进入 Playground 设计基线验收、正式 UI 回流与人格体验调优。 |
 | **产品主线** | 继续打磨伙伴体验、人物故事与 Pack 内容；真实 Persona Eval 结果仍需人工语气与审美验收。 |
 | **明确暂缓** | 原生语音输入、Playground Prompt Lab 加厚、生图 Moments。 |
 | **明确不做** | 当前威胁模型下不做 OS 级 Shell 强隔离和 Python 嵌入沙箱，见 DEC-037。 |
 | **历史** | 完整施工流水和旧测试数字已冻结到归档，不再由本文件重复维护。 |
 
 ## 最近完成
+
+### 2026-08-17 · 全量资产治理与自动登记施工
+
+- 新增 `src/shared/design-asset-registry.ts`，统一 Settings、Playground、MarkdownRenderer 的主题与字体比例来源。
+- 新增 `electron/main/agent/subagent-asset-registry.ts`，登记 researcher / coder / analyst 的稳定角色资产，并接入 Debug 聚合与真实运行证据。
+- 新增 `scripts/asset-governance.mjs` 与 `npm run assets:check`，维护 12 个资产家族、18 个 ModelContextAssetType 的治理覆盖，生成 `var/asset-audit/` 机器快照并对 staged 漏登 fail-closed。
+- Git hooks 与 GitHub Actions 已接入资产门禁；全量盘点快照见 `_archive/audits/asset-registry-audit-2026-08.md`。
 
 ### 2026-08-17 · UI 组件资产注册与方法论
 

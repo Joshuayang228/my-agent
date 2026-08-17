@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useToast } from './Toast'
 import { PermissionRulesEditor } from './PermissionRulesEditor'
 import { PROVIDER_PRESET_GROUPS, type ProviderPreset } from '../shared/provider-presets'
+import { DESIGN_THEME_ASSETS, FONT_SCALE_ASSETS } from '../shared/design-asset-registry'
 import {
   Upload, Download, Settings, Shield, Cpu, Database, Code,
   ChevronRight, Eye, EyeOff, Info, Heart, Brain, Wrench, SlidersHorizontal, Link2,
@@ -124,21 +125,9 @@ const NAV_ITEMS: { group: string; items: { id: SettingsSection; label: string; i
   },
 ]
 
-const FONT_SCALES: { id: string; label: string; desc: string }[] = [
-  { id: 'sm', label: '偏小', desc: '14px 基准' },
-  { id: 'md', label: '标准', desc: '15px 基准' },
-  { id: 'lg', label: '偏大', desc: '16px 基准' },
-]
+const FONT_SCALES = FONT_SCALE_ASSETS.map((asset) => ({ id: asset.id, label: asset.labelZh, desc: asset.descriptionZh }))
 
-const THEMES: { id: string; label: string; desc: string; color: string; isDark: boolean }[] = [
-  { id: 'dark', label: '暗夜', desc: '深色工具向', color: '#0d1117', isDark: true },
-  { id: 'light', label: '日光', desc: '纸感浅底，暖石', color: '#fafaf7', isDark: false },
-  { id: 'mist', label: '薄雾', desc: '暖雾纸感', color: '#efede6', isDark: false },
-  { id: 'night-feast', label: '夜宴', desc: '深紫护眼', color: '#a855f7', isDark: true },
-  { id: 'green-garden', label: '青园', desc: '青绿自然', color: '#059669', isDark: false },
-  { id: 'golden', label: '金阁', desc: '香槟纸感', color: '#b45309', isDark: false },
-  { id: 'blue-pool', label: '蓝池', desc: '深邃天蓝', color: '#38bdf8', isDark: true },
-]
+const THEMES = DESIGN_THEME_ASSETS.map((asset) => ({ id: asset.id, label: asset.labelZh, desc: asset.descriptionZh, color: asset.representativeColor, isDark: asset.isDark }))
 
 interface SettingsPanelProps {
   onClose: () => void

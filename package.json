@@ -24,6 +24,7 @@
     "docs:check": "node scripts/docs-check.mjs",
     "docs:impact": "node scripts/docs-impact-check.mjs",
     "docs:validate": "npm run docs:check && npm run docs:impact",
+    "assets:check": "node scripts/asset-registry-check.mjs && vitest run __tests__/unit/model-context-assets.test.ts __tests__/unit/icon-registry.test.ts __tests__/unit/ui-component-registry.test.ts __tests__/unit/design-asset-registry.test.ts __tests__/unit/subagent-asset-registry.test.ts",
     "prepare": "node scripts/install-git-hooks.mjs",
     "docs:self-review": "node scripts/docs-self-review.mjs",
     "docs:self-review:prompt": "node scripts/docs-review-prompt.mjs"

@@ -132,6 +132,17 @@ describe('模型可见文本统一目录', () => {
       assetType: 'provider-preset',
       dependencies: ['provider-capability:anthropic'],
     })
+    expect(assets.find((asset) => asset.key === 'subagent-role:researcher')).toMatchObject({
+      category: 'subagent',
+      assetType: 'subagent-role',
+      dependencies: expect.arrayContaining(['tool:file_read', 'tool:web_search']),
+    })
+    expect(new Set(assets.map((asset) => asset.assetType))).toEqual(new Set([
+      'prompt', 'tool-schema', 'skill', 'eval-judge', 'eval-case', 'eval-grader',
+      'companion-manifest', 'companion-profile', 'companion-world', 'companion-scene', 'companion-life',
+      'memory-strategy', 'permission-policy', 'sandbox-policy',
+      'provider-capability', 'provider-policy', 'provider-preset', 'subagent-role',
+    ]))
     expect(new Set(assets.map((asset) => asset.key)).size).toBe(assets.length)
     for (const asset of assets) {
       expect(asset.fingerprint).toMatch(/^[a-f0-9]{16}$/)

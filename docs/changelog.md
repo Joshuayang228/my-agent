@@ -4,6 +4,13 @@
 
 ## [未发布]
 
+### Added — 全量资产审计与自动登记门禁（2026-08-17）
+
+- 新增设计资产注册表，主题与字体比例由 Settings、Playground、MarkdownRenderer 共享同一生产来源。
+- SubAgent researcher / coder / analyst 现在作为可审计生产资产出现在 Debug 目录，真实命中时记录角色 usage evidence。
+- 新增 `npm run assets:check`、资产治理清单、机器审计报告和 staged 漏登 fail-closed 门禁，并接入 Git hooks 与 GitHub Actions。
+- 完成 12 个资产家族的全量盘点；审计快照归档于 `_archive/audits/asset-registry-audit-2026-08.md`。
+
 ### Added — Playground UI 组件资产目录（2026-08-17）
 
 - Playground「组件 → 组件目录」现在统一展示行为、状态、开发工具、伙伴世界和布局导航组件。

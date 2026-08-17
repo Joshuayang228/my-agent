@@ -6,6 +6,7 @@ import { useState, type CSSProperties } from 'react'
 import { MoreHorizontal, Search, SlidersHorizontal } from 'lucide-react'
 import { AdoptionMark } from './AdoptionMark'
 import { StoryBlock } from './StoryBlock'
+import { DESIGN_THEME_ASSETS } from '../../shared/design-asset-registry'
 
 const COLORS = [
   ['--bg-primary', '结构 · 主底'],
@@ -26,15 +27,7 @@ const COLORS = [
 
 const RADII = ['--radius-sm', '--radius-md', '--radius-lg', '--radius-xl'] as const
 const MOTIONS = ['--motion-fast', '--motion-normal', '--motion-slow'] as const
-const THEMES = [
-  { id: 'dark', label: '暗夜' },
-  { id: 'light', label: '日光' },
-  { id: 'mist', label: '薄雾' },
-  { id: 'night-feast', label: '夜宴' },
-  { id: 'green-garden', label: '青园' },
-  { id: 'golden', label: '金阁' },
-  { id: 'blue-pool', label: '蓝池' },
-] as const
+const THEMES = DESIGN_THEME_ASSETS.map((asset) => ({ id: asset.id, label: asset.labelZh }))
 
 const DARK_THEME_STYLE: CSSProperties = {
   '--bg-primary': '#0d1117',

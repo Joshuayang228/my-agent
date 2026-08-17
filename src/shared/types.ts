@@ -68,6 +68,7 @@ export type ModelContextAssetType =
   | 'provider-capability'
   | 'provider-policy'
   | 'provider-preset'
+  | 'subagent-role'
 export type ModelContextOwnership = 'builtin' | 'role-pack' | 'user' | 'external'
 export type ModelContextFingerprintKind = 'content' | 'structure'
 export type ModelContextContentKind = 'static' | 'template' | 'schema' | 'data' | 'runtime'
@@ -151,6 +152,7 @@ export type AgentAssetUsageKind =
   | 'skill-activation'
   | 'memory-operation'
   | 'permission-decision'
+  | 'subagent-role'
 export type AgentAssetUsageStatus = 'running' | 'success' | 'error' | 'blocked' | 'denied'
 export type AgentAssetUsageMetadataValue = string | number | boolean | string[]
 
