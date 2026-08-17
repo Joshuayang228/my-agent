@@ -4,10 +4,9 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowUp, Folder, Menu, Paperclip } from 'lucide-react'
+import { ArrowUp, ChevronDown, Folder, Paperclip, Quote, Shield } from 'lucide-react'
 import { SettingsPanel } from '../SettingsPanel'
 import { MemoryPanel } from '../MemoryPanel'
-import { CompanionStatusBar } from '../CompanionStatusBar'
 import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
 import { WorldHub } from '../shell/WorldHub'
@@ -17,7 +16,7 @@ import type { MemoryEntry } from '../../shared/types'
 type SurfaceId = 'chat' | 'sidebar' | 'dock' | 'world' | 'memory' | 'settings'
 
 const SURFACES: { id: SurfaceId; label: string; description: string; adopted: boolean; source: string }[] = [
-  { id: 'chat', label: 'Chat 壳', description: '身份、消息流与输入区的组合态', adopted: false, source: 'Playground story' },
+  { id: 'chat', label: 'Chat 壳', description: '248px Sidebar、会话标题、居中欢迎区与紧凑输入卡；主区域不重复角色名', adopted: false, source: 'src/App.tsx · src/components/shell/PrimarySidebar.tsx' },
   { id: 'sidebar', label: 'Primary Sidebar', description: '伙伴身份、会话与底栏入口', adopted: true, source: 'src/components/shell/PrimarySidebar.tsx' },
   { id: 'dock', label: 'Right Dock', description: '文件、审阅、终端与 Debug 层级', adopted: true, source: 'src/components/chat/right-dock/ChatRightDock.tsx' },
   { id: 'world', label: '人物世界', description: '生活面 tab 与内容节奏', adopted: true, source: 'src/components/shell/WorldHub.tsx' },
@@ -72,50 +71,151 @@ function SurfaceViewport({ children }: { children: ReactNode }) {
 }
 
 function ChatSurface() {
+  const sessionFilterRef = useRef<HTMLInputElement>(null)
+  const [viewport, setViewport] = useState<'standard' | 'split'>('standard')
+  const handleContextMenu = (event: MouseEvent, sessionId: string) => {
+    event.preventDefault()
+    void sessionId
+  }
+
   return (
-    <SurfaceViewport>
-      <div className="flex h-full min-h-[620px] flex-col">
-        <div
-          className="flex h-12 shrink-0 items-center justify-between border-b px-4"
-          style={{ borderColor: 'var(--border-subtle)' }}
-        >
-          <button type="button" className="rounded-md p-1.5" style={{ color: 'var(--text-muted)' }} title="展开侧边栏">
-            <Menu size={16} />
-          </button>
-          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>小林</span>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+          结构基线 · 不连接真实会话
         </div>
-        <CompanionStatusBar
-          roleName="小林"
-          roleId="surface-demo"
-          onOpenMoments={noop}
-          onOpenAssets={noop}
-          onOpenShelf={noop}
-          onOpenCast={noop}
-        />
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-8">
-          <div className="flex justify-end">
-            <div className="max-w-[72%] rounded-2xl px-4 py-2.5 text-[13px]" style={{ background: 'var(--accent-subtle)', color: 'var(--text-primary)' }}>
-              帮我把今天的事情理一下。
-            </div>
-          </div>
-          <div className="max-w-[78%] text-[14px] leading-7" style={{ color: 'var(--text-primary)' }}>
-            好。先把必须今天完成的挑出来，再看哪些可以往后放。
-          </div>
+        <div className="flex rounded-[var(--radius-md)] border p-0.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+          {([
+            { id: 'standard' as const, label: '标准宽度' },
+            { id: 'split' as const, label: '分栏窄宽' },
+          ]).map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setViewport(item.id)}
+              className="rounded px-2 py-1 text-[10px] transition"
+              style={{
+                color: viewport === item.id ? 'var(--accent-fg)' : 'var(--text-muted)',
+                background: viewport === item.id ? 'var(--accent-subtle)' : 'transparent',
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
-        <div className="mx-auto mb-5 w-[min(680px,calc(100%-32px))]">
-          <div className="rounded-[var(--radius-xl)] border px-3 py-2" style={{ borderColor: 'var(--border-color)', background: 'var(--input-bg)' }}>
-            <textarea className="w-full resize-none bg-transparent px-1 py-2 text-[13px] outline-none" rows={2} placeholder="和小林说说…" />
-            <div className="flex items-center justify-between pt-1">
-              <button type="button" className="rounded-md p-1.5" style={{ color: 'var(--text-muted)' }} title="添加附件"><Paperclip size={14} /></button>
-              <div className="flex items-center gap-1.5">
-                <span className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--text-muted)' }}><Folder size={11} /> New project</span>
-                <button type="button" className="flex h-7 w-7 items-center justify-center rounded-full text-white" style={{ background: 'var(--accent-emphasis)' }} title="发送"><ArrowUp size={14} /></button>
+      </div>
+      <div className="mx-auto w-full transition-[max-width]" style={{ maxWidth: viewport === 'split' ? 760 : 1040 }}>
+        <SurfaceViewport>
+          <div className="flex h-full min-h-[620px]">
+            <PrimarySidebar
+              personaName="小林"
+              personaBlurb="沉稳体贴的数字伙伴"
+              activeView="chat"
+              activeSessionId={null}
+              sessionGroups={[{ label: '今天', items: SAMPLE_SESSIONS }]}
+              sessionPreviews={{ 'surface-session-1': '先把必须今天完成的挑出来…' }}
+              pinnedIds={[]}
+              bgStreamingSessionId={null}
+              activeBgTaskCount={0}
+              sidebarSearchOpen={false}
+              sessionFilter=""
+              sessionFilterRef={sessionFilterRef}
+              renamingId={null}
+              renameValue=""
+              onOpenShelf={noop}
+              onCreateSession={noop}
+              onToggleSearch={noop}
+              onSessionFilterChange={noop}
+              onCloseSearch={noop}
+              onSelectSession={noop}
+              onStartRename={noop}
+              onRenameChange={noop}
+              onCommitRename={noop}
+              onCancelRename={noop}
+              onDeleteSession={noop}
+              onContextMenu={handleContextMenu}
+              onNavigate={noop}
+              onCollapse={noop}
+              width={248}
+            />
+            <div className="flex min-w-0 flex-1 flex-col" style={{ background: 'var(--bg-primary)' }}>
+              <div className="flex h-[52px] shrink-0 items-center border-b px-4" style={{ borderColor: 'var(--border-subtle)' }}>
+                <span className="truncate text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>新对话</span>
+              </div>
+              <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-6 py-8 text-center">
+                  <div className="max-w-lg pb-3">
+                    <h3 className="font-display text-[1.9rem] font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                      嗨，我是小林
+                    </h3>
+                    <p className="mt-3 text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                      沉稳体贴的数字伙伴
+                    </p>
+                    <blockquote
+                      className="mx-auto mt-3 flex max-w-sm items-start gap-2 rounded-[var(--radius-md)] px-3 py-2 text-left text-[11.5px] leading-5"
+                      style={{ color: 'var(--text-muted)', background: 'var(--bg-inset)' }}
+                    >
+                      <Quote className="mt-0.5 shrink-0" size={13} strokeWidth={1.6} aria-hidden="true" />
+                      <span>聊天、朋友圈和衣柜都跟着当前主角；对话进行中不能换人。</span>
+                    </blockquote>
+                    <div className="mt-8 flex flex-wrap justify-center gap-2">
+                      {['打个招呼', '今天想怎么过？', '看看朋友圈'].map((label, index) => (
+                        <button
+                          key={label}
+                          type="button"
+                          className="rounded-full border px-3.5 py-1.5 text-[12px]"
+                          style={{
+                            borderColor: index === 0 ? 'var(--companion-accent-warm)' : 'var(--border-color)',
+                            color: index === 0 ? 'var(--accent-fg)' : 'var(--text-secondary)',
+                            background: index === 0 ? 'var(--accent-subtle)' : 'var(--card-bg)',
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <button type="button" className="mt-3 rounded px-2 py-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                      换个主角 →
+                    </button>
+                  </div>
+                </div>
+                <div className="shrink-0 px-5 pb-5 pt-2">
+                  <div className="mx-auto max-w-[800px]">
+                    <div
+                      className="rounded-[var(--radius-xl)] border px-3 py-2 shadow-sm"
+                      style={{
+                        borderColor: 'var(--border-color)',
+                        background: 'var(--card-bg)',
+                        boxShadow: '0 6px 22px color-mix(in srgb, var(--text-primary) 5%, transparent)',
+                      }}
+                    >
+                      <textarea className="min-h-[64px] w-full resize-none bg-transparent px-1 py-2 text-[13px] outline-none" rows={2} placeholder="和小林说说…" />
+                      <div className="flex items-center justify-between pt-1">
+                        <div className="flex items-center gap-1">
+                          <button type="button" className="rounded-md p-1.5" style={{ color: 'var(--text-muted)' }} title="添加附件"><Paperclip size={14} /></button>
+                          <span className="h-4 w-px" style={{ background: 'var(--border-subtle)' }} />
+                          <button type="button" className="flex items-center gap-1 rounded-md px-2 py-1 text-[10.5px]" style={{ color: 'var(--text-secondary)' }}>
+                            <Shield size={12} />确认模式<ChevronDown size={9} />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10.5px]" style={{ color: 'var(--text-muted)' }}>GPT-4o</span>
+                          <button type="button" className="flex h-7 w-7 items-center justify-center rounded-full text-white" style={{ background: 'var(--accent-emphasis)' }} title="发送"><ArrowUp size={14} /></button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-1.5 flex items-center justify-between px-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                      <span className="flex items-center gap-1"><Folder size={11} /> 未选择项目</span>
+                      <span>结构预览</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </SurfaceViewport>
       </div>
-    </SurfaceViewport>
+    </div>
   )
 }
 

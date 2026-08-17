@@ -157,8 +157,6 @@ export function SettingsPanel({
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
   const [fontScale, setFontScale] = useState(() => localStorage.getItem('uiFontScale') || 'md')
   const [form, setForm] = useState<SettingsForm>(DEFAULTS)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
   const [hasStoredApiKey, setHasStoredApiKey] = useState(false)
   const [apiKeyChanged, setApiKeyChanged] = useState(false)
@@ -188,6 +186,9 @@ export function SettingsPanel({
     url: '',
     env: '',
   })
+  // 自动保存只处理用户真实修改：初始加载不回写；修订号用于识别保存期间发生的新编辑。
+  const settingsLoadedRef = useRef(false)
+  const settingsRevisionRef = useRef(0)
 
   const refreshMcpStatus = useCallback(async () => {
     if (!window.electronAPI) return
@@ -270,6 +271,7 @@ export function SettingsPanel({
         dailyTokenBudget: s.dailyTokenBudget || '0',
         permissionRules: s.permissionRules || DEFAULTS.permissionRules,
       })
+      settingsLoadedRef.current = true
       try {
         const servers = JSON.parse(s.mcpServers || '[]')
         setMcpServers(servers)
@@ -280,30 +282,27 @@ export function SettingsPanel({
     refreshMcpStatus()
   }, [loadMutable, refreshMcpStatus])
 
-  const handleSave = useCallback(async (): Promise<boolean> => {
-    if (!window.electronAPI) return false
-    setSaving(true)
+  const persistSettings = useCallback(async (): Promise<void> => {
+    if (!window.electronAPI || !settingsLoadedRef.current || settingsRevisionRef.current === 0) return
+    const savingRevision = settingsRevisionRef.current
     try {
       for (const [key, value] of Object.entries(form)) {
-        // activeRoleId 只能走 companion.requestSwitch（含 pause/catchup）
+        // activeRoleId 只能走 companion.requestSwitch（含 pause/catchup）。
         if (key === 'activeRoleId') continue
-        // 未修改 API Key 时不能把安全视图中的空串写回去覆盖主进程密钥。
+        // 安全视图不下沉原始 API Key；用户没有输入新值时绝不能用空串覆盖已保存密钥。
         if (key === 'llmApiKey' && !apiKeyChanged) continue
         await window.electronAPI.settings.set(key, value)
       }
       if (apiKeyChanged) {
-        setHasStoredApiKey(Boolean(form.llmApiKey.trim()))
+        const hasApiKey = Boolean(form.llmApiKey.trim())
+        setHasStoredApiKey(hasApiKey)
+        if (!hasApiKey) setFirstRun(true)
         setApiKeyChanged(false)
       }
-      setFirstRun(false)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
-      return true
+      // 保存过程中若又有编辑，保留新修订，交给下一轮防抖继续落盘。
+      if (settingsRevisionRef.current === savingRevision) settingsRevisionRef.current = 0
     } catch {
-      toast('设置保存失败，请重试', 'error')
-      return false
-    } finally {
-      setSaving(false)
+      toast('设置自动保存失败，请重试', 'error')
     }
   }, [apiKeyChanged, form, toast])
 
@@ -315,26 +314,26 @@ export function SettingsPanel({
       initialLoadDone.current = true
       return
     }
-    // 首次配置必须由用户明确保存，避免输入过程中自动写入半成品配置。
-    if (firstRun) return
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
-    autoSaveTimer.current = setTimeout(async () => {
-      if (!window.electronAPI) return
-      try {
-        for (const [key, value] of Object.entries(form)) {
-          if (key === 'activeRoleId') continue
-          await window.electronAPI.settings.set(key, value)
-        }
-        toast('设置已自动保存', 'success')
-      } catch { /* silent */ }
-    }, 1500)
+    autoSaveTimer.current = setTimeout(() => {
+      void persistSettings()
+    }, 800)
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current) }
-  }, [apiKeyChanged, form, firstRun, toast])
+  }, [persistSettings])
+
+  const persistSettingsRef = useRef(persistSettings)
+  // 直接刷新 latest ref，确保用户刚编辑就返回 / 按 Esc 时不会调用上一帧的保存闭包。
+  persistSettingsRef.current = persistSettings
+
+  useEffect(() => () => {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    // 返回、Esc 或跳转其它全页视图时，刷新尚未到防抖时间的最后一次修改。
+    void persistSettingsRef.current()
+  }, [])
 
   const effectiveApiKeyForTest = apiKeyChanged ? form.llmApiKey.trim() : (hasStoredApiKey ? '[stored-api-key]' : '')
   const connectionKey = `${effectiveApiKeyForTest}\n${form.llmBaseUrl.trim()}\n${form.llmModel.trim()}`
   const canTestConnection = Boolean(effectiveApiKeyForTest && form.llmBaseUrl.trim() && form.llmModel.trim())
-  const connectionVerified = canTestConnection && verifiedConnectionKey === connectionKey
 
   const testConnection = useCallback(async () => {
     if (!window.electronAPI?.settings?.testConnection) {
@@ -357,7 +356,8 @@ export function SettingsPanel({
       })
       if (result.ok) {
         setVerifiedConnectionKey(connectionKey)
-        setConnectionStatus({ kind: 'success', text: `连接成功 · ${result.model} · ${result.ms}ms` })
+        setFirstRun(false)
+        setConnectionStatus({ kind: 'success', text: `连接成功 · ${result.model} · ${result.ms}ms；配置会自动保存` })
       } else {
         setConnectionStatus({ kind: 'error', text: result.error })
       }
@@ -368,22 +368,15 @@ export function SettingsPanel({
     }
   }, [apiKeyChanged, canTestConnection, connectionKey, form.llmApiKey, form.llmBaseUrl, form.llmModel, hasStoredApiKey])
 
-  const saveAndStart = useCallback(async () => {
-    if (!connectionVerified) {
-      setConnectionStatus({ kind: 'error', text: '请先使用当前配置完成连接测试' })
-      return
-    }
-    const savedOk = await handleSave()
-    if (savedOk) onClose()
-  }, [connectionVerified, handleSave, onClose])
-
   const applyPreset = useCallback((preset: ProviderPreset) => {
+    settingsRevisionRef.current += 1
     setVerifiedConnectionKey('')
     setConnectionStatus(null)
     setForm((f) => ({ ...f, llmBaseUrl: preset.baseUrl, llmModel: preset.model }))
   }, [])
 
   const update = (key: keyof SettingsForm, value: string) => {
+    settingsRevisionRef.current += 1
     if (key === 'llmApiKey') setApiKeyChanged(true)
     if (key === 'llmApiKey' || key === 'llmBaseUrl' || key === 'llmModel') {
       setVerifiedConnectionKey('')
@@ -903,12 +896,12 @@ export function SettingsPanel({
         <section className="rounded-xl border p-4" style={{ borderColor: 'var(--accent)', background: 'var(--accent-subtle)' }} data-testid="first-run-setup">
           <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>先连接模型，再开始对话</h3>
           <p className="mt-1 text-xs leading-5" style={{ color: 'var(--text-secondary)' }}>
-            默认已选 GPT-4o；也可以展开其它 Provider。测试不会保存配置，确认可用后再保存并进入聊天。
+            默认已选 GPT-4o；也可以展开其它 Provider。填写内容会自动保存在本机，连接测试只负责确认当前配置可用。
           </p>
           <ol className="mt-3 space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
             <li>1. 确认 Provider、Base URL 和模型名</li>
-            <li>2. 填写 API Key 并测试连接</li>
-            <li>3. 连接成功后保存并开始对话</li>
+            <li>2. 填写 API Key，等待自动保存</li>
+            <li>3. 测试连接，成功后返回聊天</li>
           </ol>
         </section>
       )}
@@ -986,18 +979,6 @@ export function SettingsPanel({
         >
           {connectionTesting ? '测试中…' : '测试连接'}
         </button>
-        {firstRun && (
-          <button
-            type="button"
-            onClick={() => void saveAndStart()}
-            disabled={saving || !connectionVerified}
-            className="rounded-lg px-3 py-2 text-xs font-medium text-white transition disabled:opacity-45"
-            style={{ background: 'var(--accent-emphasis)' }}
-            data-testid="save-and-start"
-          >
-            {saving ? '保存中…' : connectionVerified ? '保存并开始对话' : '测试成功后可保存'}
-          </button>
-        )}
         {connectionStatus && (
           <span className="text-xs" style={{ color: connectionStatus.kind === 'success' ? 'var(--success)' : 'var(--danger)' }} role="status">
             {connectionStatus.text}
@@ -1522,27 +1503,10 @@ export function SettingsPanel({
         ))}
       </aside>
 
-      {/* 右侧内容：必须 flex-1 + min-w-0，否则整页只吃内容固有宽度，滚动条会出现在窗口中间 */}
+      {/* 右侧内容：设置项修改后自动保存，不再保留重复的标题 / 保存工具栏。 */}
       <div data-testid="settings-main" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        {/* 顶部栏 */}
-        <div className="flex shrink-0 items-center justify-between border-b px-6 py-3" style={{ borderColor: 'var(--border-color)' }}>
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>设置</h2>
-          <div className="flex items-center gap-2">
-            {saved && <span className="text-xs text-green-400">已保存</span>}
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving || (firstRun && !connectionVerified)}
-              className="rounded-lg px-3 py-1 text-xs font-medium text-white transition disabled:opacity-50"
-              style={{ background: 'var(--accent-emphasis)' }}
-            >
-              {saving ? '保存中...' : '保存'}
-            </button>
-          </div>
-        </div>
-
         {/* 内容区：铺满右栏；表单最大宽度便于阅读，但仍相对右栏居中而非整窗左贴 */}
-        <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-6 py-6">
           <div className="view-transition mx-auto w-full max-w-3xl" key={activeSection}>
             {SECTION_RENDERERS[activeSection]()}
           </div>

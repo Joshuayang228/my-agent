@@ -64,8 +64,8 @@ async function configureSettings() {
   const modelInput = page.locator('input[placeholder="gpt-4o"]')
   await modelInput.fill(MODEL)
 
-  await page.click('button:has-text("保存")')
-  await page.waitForSelector('text=已保存')
+  // 设置采用防抖自动保存；等待主进程完成落盘后返回聊天。
+  await page.waitForTimeout(1200)
   await page.locator('[data-testid="settings-back"]').click()
   await page.waitForTimeout(500)
 }

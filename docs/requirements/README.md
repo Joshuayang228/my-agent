@@ -30,6 +30,7 @@
 
 | 文档 | 说明 |
 |------|------|
+| [chat-page-baseline-v1.md](./chat-page-baseline-v1.md) | 已落地：Chat 页面组合基线、开发入口上移、非 Chat 空顶栏移除、引用式主角提示与设置自动保存 |
 | [asset-governance-audit-automation.md](./asset-governance-audit-automation.md) | 已落地：全量资产审计、设计资产 / SubAgent 角色登记、机器报告与自动漏登门禁 |
 | [agent-asset-usage-evidence-v1.md](./agent-asset-usage-evidence-v1.md) | 已落地：生产资产与真实 LLM / Tool / Memory / Permission 运行记录的脱敏证据链、反向查询、导出与 Debug 跳转 |
 | [docs-self-evolution-review.md](./docs-self-evolution-review.md) | 文档自进化复盘、重复真相源候选检测和只读 AI 复盘提示词 |

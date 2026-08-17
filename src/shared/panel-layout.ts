@@ -62,7 +62,7 @@ export const LAYOUT_KEYS = {
 } as const
 
 export const LAYOUT_BOUNDS = {
-  sidebarWidth: { min: 200, max: 420, fallback: 260 },
+  sidebarWidth: { min: 216, max: 320, fallback: 248 },
   rightDockWidth: { min: 280, max: 720, fallback: 380 },
   fileTreeRatio: { min: 0.2, max: 0.75, fallback: 0.42 },
   reviewListRatio: { min: 0.2, max: 0.75, fallback: 0.4 },

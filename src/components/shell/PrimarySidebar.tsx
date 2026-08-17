@@ -1,6 +1,6 @@
 /**
- * Primary 侧栏：品牌区 + 大号新对话 + 会话列表 + 底栏（Alice 壳）。
- * Debug / Playground 为独立全页入口（底栏并排）；生活面收进「人物世界」。
+ * Primary 侧栏：品牌区 + 大号新对话 + 开发入口 + 会话列表 + 产品底栏（Alice 壳）。
+ * Debug / Playground 固定在会话列表上方，避免窗口变矮时被底栏挤出；生活面收进「人物世界」。
  */
 
 import type { RefObject, ReactNode, MouseEvent } from 'react'
@@ -87,14 +87,14 @@ export function PrimarySidebar({
   onContextMenu: (e: MouseEvent, sessionId: string) => void
   onNavigate: (view: ShellView) => void
   onCollapse: () => void
-  /** 可拖宽度；默认 260 */
+  /** 可拖宽度；默认 248 */
   width?: number
 }) {
   return (
     <aside
       className="flex shrink-0 flex-col border-r"
       style={{
-        width: width ?? 260,
+        width: width ?? 248,
         background: 'var(--sidebar-bg)',
         borderColor: 'var(--border-color)',
       }}
@@ -180,8 +180,29 @@ export function PrimarySidebar({
         </div>
       )}
 
+      {/* 开发入口固定在上方，不受底栏和窗口高度挤压。 */}
+      <div className="mx-3 mt-2 border-b pb-2" style={{ borderColor: 'var(--border-subtle)' }} data-testid="sidebar-developer-nav">
+        <div className="px-1 pb-1 text-[9px] font-medium tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>
+          开发
+        </div>
+        <div className="grid grid-cols-2 gap-1">
+          <DockTextBtn
+            active={activeView === 'debug'}
+            onClick={() => onNavigate(activeView === 'debug' ? 'chat' : 'debug')}
+            icon={<Bug size={14} />}
+            label="Debug"
+          />
+          <DockTextBtn
+            active={activeView === 'playground'}
+            onClick={() => onNavigate(activeView === 'playground' ? 'chat' : 'playground')}
+            icon={<FlaskConical size={14} />}
+            label="Playground"
+          />
+        </div>
+      </div>
+
       {/* 会话列表 */}
-      <div className="scrollbar-thin mt-3 flex-1 overflow-y-auto px-2 pb-2">
+      <div className="scrollbar-thin mt-3 flex-1 overflow-y-auto px-2 pb-2" data-testid="sidebar-session-list">
         {sessionGroups.map((group) => (
           <div key={group.label}>
             <div
@@ -283,7 +304,7 @@ export function PrimarySidebar({
         )}
       </div>
 
-      {/* 底栏：独立全页入口 + 人物世界宫格 */}
+      {/* 底栏只保留产品入口；开发工具固定在上方。 */}
       <div className="border-t px-3 py-2.5" style={{ borderColor: 'var(--border-subtle)' }}>
         {activeBgTaskCount > 0 && (
           <div
@@ -294,19 +315,8 @@ export function PrimarySidebar({
             {activeBgTaskCount} 个后台任务
           </div>
         )}
-        <div className="mb-2 grid grid-cols-2 gap-1">
-          <DockTextBtn
-            active={activeView === 'debug'}
-            onClick={() => onNavigate(activeView === 'debug' ? 'chat' : 'debug')}
-            icon={<Bug size={14} />}
-            label="Debug"
-          />
-          <DockTextBtn
-            active={activeView === 'playground'}
-            onClick={() => onNavigate(activeView === 'playground' ? 'chat' : 'playground')}
-            icon={<FlaskConical size={14} />}
-            label="Playground"
-          />
+        <div className="px-1 pb-1 text-[9px] font-medium tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>
+          产品
         </div>
         <div className="grid grid-cols-3 gap-1">
           {DOCK.map((item) => {

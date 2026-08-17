@@ -23,7 +23,7 @@ import {
   Folder, FolderOpen, Ban,
   ChevronDown, Square,
   Copy, Check, X, Pencil, RotateCcw, GitBranch, Trash2,
-  Plus, Search, Menu, Send, File,
+  Plus, Search, Menu, Send, File, Quote,
 } from 'lucide-react'
 import { buildColdStartCopy } from './shared/companion-presence'
 import {
@@ -1068,57 +1068,58 @@ function App() {
 
       {/* ── 主区域 ── */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* 顶栏 */}
-        <div className="flex h-12 shrink-0 items-center border-b px-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
-          {!sidebarOpen && (
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="mr-3 flex h-8 w-8 items-center justify-center rounded-md transition"
-              style={{ color: 'var(--text-muted)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-              title="展开侧边栏 (Ctrl+B)"
-            >
-              <Menu size={16} />
-            </button>
-          )}
-          {/* 对齐 Alice：顶栏不放会话标题（标题只在左侧列表）；右侧留给操作与伙伴态 */}
-          <div className="flex-1" />
-          {currentProject && (
-            <button
-              onClick={() => setShowFileBrowser(v => !v)}
-              className="mr-2 flex h-7 items-center gap-1 rounded-md px-2 text-[11px] transition"
-              style={{
-                color: showFileBrowser ? 'var(--accent-fg)' : 'var(--text-muted)',
-                background: showFileBrowser ? 'var(--accent-subtle)' : undefined,
-              }}
-              onMouseEnter={(e) => { if (!showFileBrowser) e.currentTarget.style.background = 'var(--hover-overlay)' }}
-              onMouseLeave={(e) => { if (!showFileBrowser) e.currentTarget.style.background = '' }}
-              title="项目文件"
-            >
-              <Folder size={13} />
-            </button>
-          )}
-          {(() => {
-            const sess = sessions.find((s) => s.id === activeSessionId)
-            const sessRole = sess?.roleId
-            const headerRole = sessRole || activeRoleId
-            const headerName = protagonistNames[headerRole] || currentPersonaName
-            const isSummon = sess?.sessionKind === 'summon'
-            const mismatched = !!(sessRole && sessRole !== activeRoleId && !isSummon)
-            const badge = isSummon ? ' · 召唤' : mismatched ? ' · 会话' : ''
-            const title = isSummon
-              ? '召唤子会话：已装载对方人设，不推进其生活世界'
-              : mismatched
-                ? '此会话绑定旧主角；生活世界已是新活跃主角'
-                : undefined
-            return (
-              <span className="text-[11px]" style={{ color: (mismatched || isSummon) ? 'var(--warning)' : 'var(--text-muted)' }} title={title}>
-                {headerName}{badge}
+        {/* Chat 才需要会话顶栏；其它全页视图自带导航，避免留下无内容的 52px 空壳。 */}
+        {activeView === 'chat' && (
+          <div className="flex h-[52px] shrink-0 items-center border-b px-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
+            {!sidebarOpen && (
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="mr-3 flex h-8 w-8 items-center justify-center rounded-md transition"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+                title="展开侧边栏 (Ctrl+B)"
+              >
+                <Menu size={16} />
+              </button>
+            )}
+            <div className="min-w-0 flex-1">
+              <span className="block truncate text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                {sessions.find((session) => session.id === activeSessionId)?.title || '新对话'}
               </span>
-            )
-          })()}
-        </div>
+            </div>
+            {currentProject && (
+              <button
+                onClick={() => setShowFileBrowser(v => !v)}
+                className="mr-2 flex h-7 items-center gap-1 rounded-md px-2 text-[11px] transition"
+                style={{
+                  color: showFileBrowser ? 'var(--accent-fg)' : 'var(--text-muted)',
+                  background: showFileBrowser ? 'var(--accent-subtle)' : undefined,
+                }}
+                onMouseEnter={(e) => { if (!showFileBrowser) e.currentTarget.style.background = 'var(--hover-overlay)' }}
+                onMouseLeave={(e) => { if (!showFileBrowser) e.currentTarget.style.background = '' }}
+                title="项目文件"
+              >
+                <Folder size={13} />
+              </button>
+            )}
+            {(() => {
+              const session = sessions.find((item) => item.id === activeSessionId)
+              const sessionRole = session?.roleId
+              const isSummon = session?.sessionKind === 'summon'
+              const mismatched = Boolean(sessionRole && sessionRole !== activeRoleId && !isSummon)
+              if (!isSummon && !mismatched) return null
+              const title = isSummon
+                ? '召唤子会话：已装载对方人设，不推进其生活世界'
+                : '此会话绑定旧主角；生活世界已是新活跃主角'
+              return (
+                <span className="rounded-full px-2 py-1 text-[10px]" style={{ color: 'var(--warning)', background: 'color-mix(in srgb, var(--warning) 10%, transparent)' }} title={title}>
+                  {isSummon ? '召唤会话' : '会话角色已变化'}
+                </span>
+              )
+            })()}
+          </div>
+        )}
 
         {activeView !== 'chat' && (
           <div className="view-transition flex flex-1 flex-col overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
@@ -1203,7 +1204,7 @@ function App() {
           <div className="relative z-[1] mx-auto max-w-3xl px-6 py-8">
             {/* 欢迎屏 — 衬线问候 + 建议 pill（Phase 3） */}
             {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center pt-28 text-center">
+              <div className="flex min-h-[calc(100vh-13.5rem)] flex-col items-center justify-center pb-6 text-center">
                 <h1
                   className="font-display text-[1.75rem] font-medium tracking-tight sm:text-[2rem]"
                   style={{ color: 'var(--text-primary)' }}
@@ -1213,15 +1214,18 @@ function App() {
                 <p className="mt-3 max-w-md text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                   {coldStart.subtitle}
                 </p>
-                <p className="mt-2 max-w-sm text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                  {coldStart.hint}
-                </p>
-                <div className="mt-12 flex max-w-lg flex-wrap justify-center gap-2">
+                <blockquote
+                  className="mt-3 flex max-w-sm items-start gap-2 rounded-[var(--radius-md)] px-3 py-2 text-left text-[11.5px] leading-5"
+                  style={{ color: 'var(--text-muted)', background: 'var(--bg-inset)' }}
+                >
+                  <Quote className="mt-0.5 shrink-0" size={13} strokeWidth={1.6} aria-hidden="true" />
+                  <span>{coldStart.hint}</span>
+                </blockquote>
+                <div className="mt-8 flex max-w-lg flex-wrap justify-center gap-2">
                   {([
-                    { label: '打个招呼', prompt: '你好，介绍一下你自己' },
-                    { label: '今天打算怎么过', prompt: '今天打算怎么过？陪我想想。' },
+                    { label: '打个招呼', prompt: '你好，介绍一下你自己', primary: true },
+                    { label: '今天想怎么过？', prompt: '今天打算怎么过？陪我想想。' },
                     { label: '看看朋友圈', view: 'moments' as const },
-                    { label: '换个主角聊聊', view: 'shelf' as const },
                   ]).map((item) => (
                     <button
                       key={item.label}
@@ -1234,23 +1238,33 @@ function App() {
                       }}
                       className="rounded-full border px-3.5 py-1.5 text-[12.5px] transition"
                       style={{
-                        borderColor: 'var(--border-color)',
-                        color: 'var(--text-secondary)',
-                        background: 'var(--card-bg)',
+                        borderColor: item.primary ? 'var(--companion-accent-warm)' : 'var(--border-color)',
+                        color: item.primary ? 'var(--accent-fg)' : 'var(--text-secondary)',
+                        background: item.primary ? 'var(--accent-subtle)' : 'var(--card-bg)',
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.borderColor = 'var(--companion-accent-warm)'
                         e.currentTarget.style.color = 'var(--text-primary)'
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--border-color)'
-                        e.currentTarget.style.color = 'var(--text-secondary)'
+                        e.currentTarget.style.borderColor = item.primary ? 'var(--companion-accent-warm)' : 'var(--border-color)'
+                        e.currentTarget.style.color = item.primary ? 'var(--accent-fg)' : 'var(--text-secondary)'
                       }}
                     >
                       {item.label}
                     </button>
                   ))}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => { setWorldTab(worldTabFromView('shelf')); setActiveView('world') }}
+                  className="mt-3 rounded-md px-2 py-1 text-[11.5px] transition"
+                  style={{ color: 'var(--text-muted)' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+                >
+                  换个主角 →
+                </button>
               </div>
             )}
 
@@ -1434,8 +1448,8 @@ function App() {
         </div>}
 
         {/* 输入区 — Codex 风格居中卡片 */}
-        {activeView === 'chat' && <div className="relative shrink-0 px-4 pb-4 pt-2" style={{ background: 'var(--bg-primary)' }}>
-          <div className="mx-auto max-w-3xl">
+        {activeView === 'chat' && <div className="relative shrink-0 px-5 pb-5 pt-2" style={{ background: 'var(--bg-primary)' }}>
+          <div className="mx-auto max-w-[800px]">
             {/* 附件预览 */}
             {attachedFiles.length > 0 && (
               <div className="mb-1.5 flex flex-wrap gap-1">
@@ -1491,11 +1505,12 @@ function App() {
               </div>
             )}
             <div
-              className="relative border shadow-sm"
+              className="relative border shadow-sm transition-shadow focus-within:shadow-md"
               style={{
                 borderColor: 'var(--border-color)',
                 background: 'var(--card-bg)',
                 borderRadius: 'var(--radius-xl)',
+                boxShadow: '0 6px 22px color-mix(in srgb, var(--text-primary) 5%, transparent)',
               }}
             >
               {/* 引用文件标签 */}
@@ -1560,7 +1575,7 @@ function App() {
                 placeholder={attachedFiles.length > 0 ? '描述附件内容或输入问题...' : `和${currentPersonaName || '伙伴'}说说…`}
                 rows={1}
                 disabled={isStreaming}
-                className="w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[14px] outline-none disabled:opacity-50"
+                className="min-h-[64px] w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[14px] outline-none disabled:opacity-50"
                 style={{ color: 'var(--text-primary)', maxHeight: '140px' }}
                 onInput={(e) => {
                   const target = e.target as HTMLTextAreaElement
@@ -1600,7 +1615,7 @@ function App() {
                       onMouseLeave={(e) => (e.currentTarget.style.background = '')}
                     >
                       <span>{approvalMode === 'confirm-all' ? <Shield size={12} /> : approvalMode === 'auto' ? <RefreshCw size={12} /> : <Zap size={12} />}</span>
-                      <span>{approvalMode === 'confirm-all' ? '请求批准' : approvalMode === 'auto' ? '替我审批' : '完全访问'}</span>
+                      <span>{approvalMode === 'confirm-all' ? '确认模式' : approvalMode === 'auto' ? '自动审批' : '完全访问'}</span>
                       <ChevronDown size={9} style={{ color: 'var(--text-muted)' }} />
                     </button>
                     {approvalMenuOpen && (
@@ -1721,7 +1736,7 @@ function App() {
                   onMouseLeave={(e) => (e.currentTarget.style.background = '')}
                 >
                   <Folder size={12} style={{ color: 'var(--text-muted)' }} />
-                  <span>{currentProject?.name || 'New project'}</span>
+                  <span>{currentProject?.name || '未选择项目'}</span>
                   <ChevronDown size={9} style={{ color: 'var(--text-muted)' }} />
                 </button>
 
@@ -1816,7 +1831,7 @@ function App() {
                 title="对话内调试信息（与全页 Debug 无关）"
                 data-testid="conversation-debug-toggle"
               >
-                {conversationDebugMode ? 'Debug ON' : 'Debug'}
+                {conversationDebugMode ? '调试已开启' : '调试'}
               </button>
             </div>
           </div>

@@ -69,14 +69,15 @@
 | MCP Client（stdio + SSE） | 已落地 | `mcp/` · 设置页 |
 | 多 Provider LLM + Failover | 已落地 | `llm/`；OpenAI Compatible / Anthropic / Gemini；配置唯一经 `loadMainLLMConfig` / `loadAuxLLMConfig` |
 | Provider 能力生产资产 | 已落地 | `provider-presets.ts` 唯一预设源；`provider-asset-registry.ts` 登记三协议、五项策略与 9 个预设；Debug「提示词管理器 → 模型 Provider」只读展示 |
-| 首次模型配置旅程 | 已落地 | 无 Key 自动进入设置「模型」；Provider / Key / Base URL / 模型 → 当前配置连接测试 → 保存并开始对话；字段变化会使验证失效，测试复用统一配置工厂且不写盘 |
+| 首次模型配置旅程 | 已落地 | 无 Key 自动进入设置「模型」；Provider / Key / Base URL / 模型修改后防抖自动保存，当前配置可独立测试连接；未修改 API Key 不会用空值覆盖安全存储 |
 | Headless 运行（定时/后台） | 已落地 | `runtime.runHeadless`；无交互时只自动批准明确只读工具 |
 | Observer / DevPanel 可观测 | 已落地 | tracer / observer / DevPanel |
 | LLM Debug 安全元数据持久化 | 已落地 | tracer sink · `llm_debug_logs` · Debug IPC；只保留结构元数据、正文长度和资产证据，不持久化 Prompt / 响应 / hidden reasoning |
 | Chat Callback 三通道 UI | 已落地 | `src/components/chat/callbacks/` |
+| Chat 页面组合基线 | 已落地 | Sidebar 默认 248px、开发入口固定在会话列表上方、Chat 专属 52px 会话顶栏、居中欢迎区、引用式主角提示与紧凑输入卡；Playground 复用正式组件验收标准 / 窄宽 |
 | 工具卡行内附着 assistant（Alice Phase B） | 已落地 | `resolve-tools-for-message.ts` · 历史 `toolCalls`+`role=tool`；进行中挂 live host |
 | Dev Playground（无 Assemble 试跑） | 已落地 | PlaygroundPage · `debug:playground-run` |
-| Debug / Playground 独立全页 | 已落地 | 侧栏纵向分列入口 + 各自页面壳；非双 tab / 非抽屉 |
+| Debug / Playground 独立全页 | 已落地 | 入口固定在 Primary Sidebar 会话列表上方；各自页面壳直接占满主区，不继承 Chat 顶栏；非双 tab / 非抽屉 |
 | 工具手测（权限门闸） | 已落地 | `debug:tool-run` · confirmRisk |
 | Prompt 会话覆盖（不写 settings） | 已落地 | 载入实装 → playgroundRun |
 | 设计 token 场 | 已落地 | Playground「设计 → Token 与主题」 |
