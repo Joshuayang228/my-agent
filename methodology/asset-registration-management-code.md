@@ -1,6 +1,7 @@
 ﻿# 注册与管理：当前代码走读
 
 > 本文只记录当前实现如何落到代码；设计取舍见 [`asset-registration-management.md`](./asset-registration-management.md)。
+> 最近核对：2026-08-17。
 
 ## 1. 统一展示契约
 
@@ -233,3 +234,56 @@ debug:asset-usage-query
 ```
 
 支持按 asset、span、session、interaction span 和 usage kind 查询。提示词管理器负责“资产 → 最近运行”的反向入口，请求与运行负责“运行 → 本次资产”的正向入口；两者共享同一关联索引，但不互相复制正文。
+
+## 10. UI 组件与图标资产
+
+前端设计资产不进入主进程 `ModelContextAsset` 聚合，也不记录 Agent 运行证据。它们由 Renderer 侧注册表提供稳定身份，并在 Playground 做只读筛选和人工验收。
+
+图标注册表：
+
+```text
+src/shared/icon-registry.ts
+```
+
+当前登记导航、对话、开发、伙伴、文件与证据、状态与风险六类 Lucide 语义图标。每项包含稳定 key、中文名、英文术语、用途、P0 / P1 优先级和真实 `lucide-react` 组件。Playground 入口位于：
+
+```text
+Playground → 设计 → 组件 → 图标
+```
+
+UI 组件注册表：
+
+```text
+src/shared/ui-component-registry.ts
+```
+
+当前字段包括：
+
+```text
+key
+labelZh / labelEn
+descriptionZh
+category
+status
+implementation
+sourcePath / reference
+stories
+accessibilityNotes
+accessibilityStatus
+```
+
+`candidate` 项可以引用尚未安装的 Radix 或其他参考来源，但必须明确写“尚未引入依赖”；`adopted` 项必须指向真实组件源码。采用状态与无障碍验证状态彼此独立，当前未完成专项审计的组件明确标记为 `needs-review`。Playground 入口位于：
+
+```text
+Playground → 设计 → 组件 → 组件目录
+```
+
+组件目录和图标目录都只读，不会动态安装包、复制 SVG、修改生产组件或把实验状态写回正式页面。对应测试：
+
+```text
+__tests__/unit/icon-registry.test.ts
+__tests__/unit/ui-component-registry.test.ts
+__tests__/e2e/chat.test.ts
+```
+
+Unit 检查稳定 key、分类覆盖、状态与来源契约；Renderer E2E 检查目录入口、筛选和中英层级。视觉与交互仍需要在深色 / 浅色、窄宽和键盘场景下人工验收，不能只以注册表测试通过代替。
