@@ -15,6 +15,14 @@
 
 ## 最近完成
 
+### 2026-08-17 · UI 组件资产注册与方法论
+
+- 在统一资产注册方法论中补入 UI 组件 / 图标的身份、采用生命周期、Playground 验收和无障碍契约，不另造第二套管理哲学。
+- 新增 `src/shared/ui-component-registry.ts`，区分 candidate / playground / adopted / deprecated / archived，并明确 Radix 候选不等于已安装依赖。
+- Playground「组件 → 组件目录」支持按分类、采用状态和中英文 / key / 来源搜索，已采用项指向真实组件源码。
+- 增加 UI 组件注册表 Unit 与 Renderer E2E，图标分类导航恢复中文单语，英文只保留在具体常用组件 / 图标名中。
+- 已采用组件的无障碍验证状态与采用状态分离；当前专项复核登记为 WISH-022，不用“已采用”冒充“已验证”。
+
 ### 2026-08-16 · Playground Lucide 语义图标目录
 
 - 保持 `lucide-react` 为生产唯一图标源，不把 Alice 的 Tabler 图标库混入产品依赖。

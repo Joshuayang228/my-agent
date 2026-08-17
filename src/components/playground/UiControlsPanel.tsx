@@ -14,6 +14,7 @@ import { MarkdownRenderer } from '../MarkdownRenderer'
 import { ToastPreview, type ToastPreviewItem } from '../Toast'
 import { UI_CONTROLS_SUBTABS, type UiControlsSubId } from './catalog'
 import { StoryBlock } from './StoryBlock'
+import { ComponentInventoryPanel } from './ComponentInventoryPanel'
 import { ICON_ASSETS, ICON_CATEGORIES, ICON_REGISTRY, type IconKey, type IconCategoryId } from '../../shared/icon-registry'
 
 const TOOL_STORIES: ToolCallbackItem[] = [
@@ -90,7 +91,7 @@ function FixtureError({ title, body, action }: { title: string; body: string; ac
 }
 
 export function UiControlsPanel() {
-  const [sub, setSub] = useState<UiControlsSubId>('buttons')
+  const [sub, setSub] = useState<UiControlsSubId>('component-catalog')
   const [collapse, setCollapse] = useState<Record<string, boolean>>({})
   const [iconQuery, setIconQuery] = useState('')
   const [iconCategory, setIconCategory] = useState<IconCategoryId | 'all'>('all')
@@ -146,6 +147,8 @@ export function UiControlsPanel() {
       </div>
 
       <div className="min-w-0 max-w-2xl flex-1 space-y-4">
+      {sub === 'component-catalog' && <ComponentInventoryPanel />}
+
       {sub === 'buttons' && (
         <div className="space-y-3">
           <StoryBlock title="主要 / 次要" source="index.css · .settings-option" adopted>
@@ -357,7 +360,7 @@ export function UiControlsPanel() {
                   className="shrink-0 rounded-md px-2 py-1 text-[11px] transition"
                   style={{ background: iconCategory === 'all' ? 'var(--accent-subtle)' : 'var(--bg-tertiary)', color: iconCategory === 'all' ? 'var(--accent-fg)' : 'var(--text-muted)' }}
                 >
-                  全部 <span className="ml-1 opacity-60">All</span>
+                  全部
                 </button>
                 {ICON_CATEGORIES.map((category) => {
                   const active = iconCategory === category.id
@@ -370,7 +373,7 @@ export function UiControlsPanel() {
                       style={{ background: active ? 'var(--accent-subtle)' : 'var(--bg-tertiary)', color: active ? 'var(--accent-fg)' : 'var(--text-muted)' }}
                       title={category.description}
                     >
-                      {category.label} <span className="ml-1 opacity-60">{category.english}</span>
+                      {category.label}
                     </button>
                   )
                 })}

@@ -9,6 +9,7 @@
 - 框架：React，Electron 渲染进程。
 - 样式：TailwindCSS 4 + CSS 变量，集中在 `src/index.css`。
 - 图标：**仅** `lucide-react` SVG；禁止 Emoji 当图标。跨页面复用的语义图标优先登记到 `src/shared/icon-registry.ts`，不要再引入第二套生产图标库。
+- UI 组件资产：稳定语义、来源、采用状态和无障碍约束登记到 `src/shared/ui-component-registry.ts`；注册表不复制组件实现，候选外部 Primitive 不得冒充已安装依赖。
 - 字体：UI 用 `--font-ui`；空态问候 / 伙伴身份展示可用 `--font-display`（衬线），勿污染表单。
 
 ---
@@ -62,6 +63,7 @@ Main Area:
 
 - **壳**：产品内全页 + 左侧活目录（设计系统 / UI 控件 / 页面基线 / 对话试验 / 模型测试 / 工具 / 体验夹具）
 - **故事格**：一状态一格；import 正式组件/class；边缘态必有；格旁标源路径
+- **组件目录**：`candidate → playground → adopted → deprecated → archived`；已采用必须指向真实源码，候选只记录参考来源，不动态安装或写入正式页面
 - **采用标记**：已进入正式产品的 token、组件或页面故事显示统一小图标；壳层开关默认统一显示并持久化选择，不依赖逐项 hover；无图标只表示“未标记为已采用”，不得再推断或展示“实验中 / 备用 / 候选”等第二套状态
 - **纪律**：新交互/动效先建场 → 同轮同步更新 → catalog **只增不删**（可 `archived`）
 - **硬禁**：不装 `@storybook/*`，不以 `npm run storybook` / :6006 为验收

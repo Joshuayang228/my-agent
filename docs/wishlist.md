@@ -32,6 +32,7 @@
 - [ ] **WISH-013 · 伙伴结构化资产 Playground 草稿** — 支持从 Debug 显式载入 profile / 默认世界为隔离草稿、Diff 和人工回流；不得直接写生产 Role Pack。；来源：资产注册管理方法论
 - [ ] **WISH-014 · Skill Diff 审阅与导入导出** — 补版本 diff、导入导出和迁移策略。；来源：Skill 管理施工合同
 - [ ] **WISH-015 · 中文 Prompt → 英文 Prompt 多语言版本** — 当前生产只维护简体中文；未来在同一资产 key 下维护 `zh` / `en` 独立版本，运行时按 locale 单选，不做中英韩并发注入。；来源：Prompt 中文统一施工合同 / Alice 参考
+- [ ] **WISH-022 · 已采用 UI 组件无障碍专项复核** — 按组件注册表的 `needs-review` 清单复核焦点管理、键盘操作、读屏语义、颜色之外的状态表达和窄屏溢出；优先检查 ResizeHandle、Toast、Tabs 与后续 Dialog / Menu Primitive。；来源：UI 组件资产注册方法论
 
 ### 产品体验
 

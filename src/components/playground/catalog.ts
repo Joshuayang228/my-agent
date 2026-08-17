@@ -48,6 +48,7 @@ export const PLAYGROUND_TABS: readonly PlaygroundTabDef[] = [
 ] as const
 
 export type UiControlsSubId =
+  | 'component-catalog'
   | 'buttons'
   | 'inputs'
   | 'tool-cards'
@@ -59,6 +60,7 @@ export type UiControlsSubId =
   | 'feedback'
 
 export const UI_CONTROLS_SUBTABS: readonly { id: UiControlsSubId; label: string }[] = [
+  { id: 'component-catalog', label: '组件目录' },
   { id: 'buttons', label: '按钮' },
   { id: 'inputs', label: '输入' },
   { id: 'tool-cards', label: '工具卡' },

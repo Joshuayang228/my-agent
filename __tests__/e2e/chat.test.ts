@@ -106,11 +106,15 @@ test.describe('My Agent UI', () => {
     await expect(playgroundNav.getByRole('button', { name: '体验夹具', exact: true })).not.toBeVisible()
 
     await playgroundNav.getByRole('button', { name: '组件', exact: true }).click()
+    await page.getByRole('button', { name: '组件目录', exact: true }).click()
+    await expect(page.locator('[data-testid="component-inventory"]')).toBeVisible()
+    await expect(page.getByPlaceholder('搜索中文、English、语义 key 或来源')).toBeVisible()
+    await expect(page.getByText('behavior.dialog', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: '图标', exact: true }).click()
     await expect(page.locator('[data-testid="icon-inventory"]')).toBeVisible()
     await expect(page.getByPlaceholder('搜索中文、English、语义 key 或用途')).toBeVisible()
     await expect(page.getByText('navigation.search', { exact: true })).toBeVisible()
-    await page.getByRole('button', { name: /伙伴与生活 Companion & Life/ }).click()
+    await page.getByRole('button', { name: '伙伴与生活', exact: true }).click()
     await expect(page.getByText('companion.camera', { exact: true })).toBeVisible()
   })
 
