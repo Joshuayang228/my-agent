@@ -63,7 +63,7 @@
 | 对话页审批模式 | 已落地 | 输入区 · `executionMode`（含 full-access） |
 | 有效沙箱（由审批模式推导） | 已落地 | `effective-sandbox.ts` · write/edit/patch/shell |
 | 命令分级 + 路径守卫 | 已落地 | `command-guard` · `shell_exec`；硬边界先于 allow / 审批；危险规则大小写不敏感且 full-access 仍 bypass-immune |
-| 文件读写路径沙箱 | 已落地 | `file-path-guard`；read / search / write / edit / delete / patch 共用；realpath / symlink / `ToolContext.workdir` 边界；非 full-access 读写均绑定工作区，凭据文件 fail-closed |
+| 文件读写路径沙箱 | 已落地 | `file-path-guard`；read / search / write / edit / delete / patch 共用；realpath / symlink / `ToolContext.workdir` 边界；永久删除白名单只检查工作区内部相对路径，不继承系统 `/tmp` 等祖先目录；非 full-access 读写均绑定工作区，凭据文件 fail-closed |
 | 启动恢复工作区根 | 已落地 | `project:get` → `applyProject` |
 | 用户确认 IPC + 超时拒绝 | 已落地 | tool confirm · 监听清理 |
 | 确认弹窗组件（Chat + Playground） | 已落地 | `PermissionConfirmCard` · 串行队列 |

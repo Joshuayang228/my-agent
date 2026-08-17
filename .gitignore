@@ -57,3 +57,6 @@ var/docs-self-review/
 
 # 资产注册审计产物（机器快照，不是 canonical source）
 var/asset-audit/
+
+# 本地临时审计与扫描产物
+.tmp/

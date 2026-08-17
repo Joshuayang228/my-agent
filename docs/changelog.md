@@ -4,6 +4,12 @@
 
 ## [未发布]
 
+### Fixed — 跨平台删除安全与 GitHub Actions（2026-08-17）
+
+- 永久删除白名单改为只检查工作区内部相对路径，Linux 项目位于 `/tmp` 时不会再把普通文件误判为可永久删除。
+- Unit CI 不再为无界面测试下载 Electron 桌面二进制，避免慢速下载触发测试超时和连锁环境销毁报错。
+- GitHub Actions 官方组件升级到当前 v7 主版本，消除 Node 20 Action Runtime 弃用警告。
+
 ### Added — 全量资产审计与自动登记门禁（2026-08-17）
 
 - 新增设计资产注册表，主题与字体比例由 Settings、Playground、MarkdownRenderer 共享同一生产来源。

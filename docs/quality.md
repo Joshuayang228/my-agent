@@ -60,7 +60,7 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 
 - IPC 运行时输入边界和主进程重新确认；
 - 凭据、日志、导入导出和 Renderer 数据最小化；
-- 文件 realpath / symlink、工作区和 `ToolContext.workdir`；
+- 文件 realpath / symlink、工作区和 `ToolContext.workdir`；永久删除白名单必须基于工作区相对路径，并覆盖 Linux `/tmp` 工作区回归；
 - PermissionEngine、Headless、Shell、Git 和子进程环境；
 - URL SSRF、重定向、DNS、MCP 外部内容和资源上限；
 - 正则、Prompt、RAG、报告和批量输入的 DoS 边界；

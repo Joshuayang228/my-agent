@@ -46,13 +46,30 @@ const PERMANENT_DELETE_WHITELIST = [
 ]
 
 /**
- * 检查路径是否在永久删除白名单中
+ * 判断目标是否命中工作区内部的永久删除白名单。
+ *
+ * 背景：Linux 工作区常位于 `/tmp`；若扫描绝对路径的所有祖先段，整个项目都会因系统 `/tmp` 被误判为可永久删除。
+ * 设计意图：只检查相对工作区的路径段；`node_modules`、`__pycache__` 等项目内产物仍可永久清理，工作区外路径由沙箱先行拒绝。
+ * 关键约束：目标等于工作区根、越出工作区或路径只在系统祖先目录命中白名单时，一律不视为永久删除白名单。
  */
-function isWhitelistedForPermanentDelete(filePath: string): boolean {
-  const normalized = path.normalize(filePath).replace(/\\/g, '/')
-  return PERMANENT_DELETE_WHITELIST.some(pattern => {
-    return normalized.includes(`/${pattern}/`) || normalized.endsWith(`/${pattern}`)
-  })
+export function isWhitelistedForPermanentDelete(filePath: string, workspaceRoot?: string): boolean {
+  const resolvedTarget = path.resolve(filePath)
+  let candidatePath = resolvedTarget
+  if (workspaceRoot) {
+    const resolvedRoot = path.resolve(workspaceRoot)
+    const relativePath = path.relative(resolvedRoot, resolvedTarget)
+    if (!relativePath || relativePath === '..' || relativePath.startsWith(`..${path.sep}`) || path.isAbsolute(relativePath)) {
+      return false
+    }
+    candidatePath = relativePath
+  }
+
+  const segments = path.normalize(candidatePath)
+    .split(path.sep)
+    .filter(Boolean)
+    .map((segment) => segment.toLowerCase())
+  const whitelist = new Set(PERMANENT_DELETE_WHITELIST.map((pattern) => pattern.toLowerCase()))
+  return segments.some((segment) => whitelist.has(segment))
 }
 
 
@@ -114,7 +131,7 @@ export const fileDeleteTool = buildTool({
     }
 
     // 检查是否在白名单中
-    const isWhitelisted = isWhitelistedForPermanentDelete(absolutePath)
+    const isWhitelisted = isWhitelistedForPermanentDelete(absolutePath, workspaceRoot)
     const deleteMethod = isWhitelisted ? 'permanent' : 'trash'
 
     try {

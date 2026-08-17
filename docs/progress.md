@@ -15,6 +15,13 @@
 
 ## 最近完成
 
+### 2026-08-17 · GitHub Actions 与跨平台删除安全收口
+
+- 清理 `.tmp/` 临时审计报告、过期文档重构草稿和未引用 Prompt 注册表草稿，并将 `.tmp/` 纳入本地忽略。
+- 修复 Linux 工作区位于 `/tmp` 时普通文件被永久删除白名单误命中的问题；白名单现在只检查工作区内部相对路径段。
+- Unit CI 使用 Electron external 占位路径，不再下载桌面二进制；官方 Checkout / Setup Node / Upload Artifact Actions 升级到 v7。
+- GitHub 失败日志中的大量 EnvironmentTeardownError 已确认为下载超时后的连锁噪声，根因测试已补回归并在本地 CI 等价环境通过。
+
 ### 2026-08-17 · 全量资产治理与自动登记施工
 
 - 新增 `src/shared/design-asset-registry.ts`，统一 Settings、Playground、MarkdownRenderer 的主题与字体比例来源。

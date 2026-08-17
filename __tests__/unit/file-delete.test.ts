@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { fileDeleteTool } from '../../electron/main/tools/builtins/file-delete'
+import { fileDeleteTool, isWhitelistedForPermanentDelete } from '../../electron/main/tools/builtins/file-delete'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as os from 'node:os'
@@ -18,6 +18,13 @@ vi.mock('../../electron/main/agent/project-memory', () => ({
 
 describe('file_delete tool', () => {
   let testDir: string
+
+  it('永久删除白名单只检查工作区内部路径，不继承系统 /tmp 祖先', () => {
+    const workspaceRoot = path.join(os.tmpdir(), 'workspace')
+    expect(isWhitelistedForPermanentDelete(path.join(workspaceRoot, 'notes.txt'), workspaceRoot)).toBe(false)
+    expect(isWhitelistedForPermanentDelete(path.join(workspaceRoot, 'node_modules', 'pkg', 'index.js'), workspaceRoot)).toBe(true)
+    expect(isWhitelistedForPermanentDelete(path.join(workspaceRoot, '__pycache__'), workspaceRoot)).toBe(true)
+  })
 
   beforeEach(async () => {
     // 创建临时测试目录
