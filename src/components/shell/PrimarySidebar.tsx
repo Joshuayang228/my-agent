@@ -1,6 +1,6 @@
 /**
- * Primary 侧栏：品牌区 + 大号新对话 + 开发入口 + 会话列表 + 产品底栏（Alice 壳）。
- * Debug / Playground 固定在会话列表上方，避免窗口变矮时被底栏挤出；生活面收进「人物世界」。
+ * Primary 侧栏：品牌区 + 大号新对话 + 会话列表 + 底部开发 / 产品入口（Alice 壳）。
+ * Debug / Playground 位于产品入口上方；生活面收进「人物世界」。
  */
 
 import type { RefObject, ReactNode, MouseEvent } from 'react'
@@ -180,27 +180,6 @@ export function PrimarySidebar({
         </div>
       )}
 
-      {/* 开发入口固定在上方，不受底栏和窗口高度挤压。 */}
-      <div className="mx-3 mt-2 border-b pb-2" style={{ borderColor: 'var(--border-subtle)' }} data-testid="sidebar-developer-nav">
-        <div className="px-1 pb-1 text-[9px] font-medium tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>
-          开发
-        </div>
-        <div className="grid grid-cols-2 gap-1">
-          <DockTextBtn
-            active={activeView === 'debug'}
-            onClick={() => onNavigate(activeView === 'debug' ? 'chat' : 'debug')}
-            icon={<Bug size={14} />}
-            label="Debug"
-          />
-          <DockTextBtn
-            active={activeView === 'playground'}
-            onClick={() => onNavigate(activeView === 'playground' ? 'chat' : 'playground')}
-            icon={<FlaskConical size={14} />}
-            label="Playground"
-          />
-        </div>
-      </div>
-
       {/* 会话列表 */}
       <div className="scrollbar-thin mt-3 flex-1 overflow-y-auto px-2 pb-2" data-testid="sidebar-session-list">
         {sessionGroups.map((group) => (
@@ -304,7 +283,7 @@ export function PrimarySidebar({
         )}
       </div>
 
-      {/* 底栏只保留产品入口；开发工具固定在上方。 */}
+      {/* 底栏：开发入口固定在产品入口上方，两个区块共同占用稳定底部空间。 */}
       <div className="border-t px-3 py-2.5" style={{ borderColor: 'var(--border-subtle)' }}>
         {activeBgTaskCount > 0 && (
           <div
@@ -315,35 +294,56 @@ export function PrimarySidebar({
             {activeBgTaskCount} 个后台任务
           </div>
         )}
-        <div className="px-1 pb-1 text-[9px] font-medium tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>
-          产品
+        <div data-testid="sidebar-developer-nav">
+          <div className="px-1 pb-1 text-[9px] font-medium tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>
+            开发
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            <DockTextBtn
+              active={activeView === 'debug'}
+              onClick={() => onNavigate(activeView === 'debug' ? 'chat' : 'debug')}
+              icon={<Bug size={14} />}
+              label="Debug"
+            />
+            <DockTextBtn
+              active={activeView === 'playground'}
+              onClick={() => onNavigate(activeView === 'playground' ? 'chat' : 'playground')}
+              icon={<FlaskConical size={14} />}
+              label="Playground"
+            />
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-1">
-          {DOCK.map((item) => {
-            const active = item.id === 'world' ? isWorldView(activeView) : activeView === item.id
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onNavigate(item.id)}
-                className="flex flex-col items-center gap-1 rounded-[var(--radius-md)] px-1 py-2 transition"
-                style={{
-                  color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
-                  background: active ? 'var(--accent-subtle)' : 'transparent',
-                }}
-                onMouseEnter={(e) => {
-                  if (!active) e.currentTarget.style.background = 'var(--sidebar-hover)'
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) e.currentTarget.style.background = 'transparent'
-                }}
-                title={item.label}
-              >
-                {item.icon}
-                <span className="text-[10px] leading-none">{item.label}</span>
-              </button>
-            )
-          })}
+        <div className="mt-2 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
+          <div className="px-1 pb-1 text-[9px] font-medium tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>
+            产品
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            {DOCK.map((item) => {
+              const active = item.id === 'world' ? isWorldView(activeView) : activeView === item.id
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onNavigate(item.id)}
+                  className="flex flex-col items-center gap-1 rounded-[var(--radius-md)] px-1 py-2 transition"
+                  style={{
+                    color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
+                    background: active ? 'var(--accent-subtle)' : 'transparent',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) e.currentTarget.style.background = 'var(--sidebar-hover)'
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) e.currentTarget.style.background = 'transparent'
+                  }}
+                  title={item.label}
+                >
+                  {item.icon}
+                  <span className="text-[10px] leading-none">{item.label}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
     </aside>

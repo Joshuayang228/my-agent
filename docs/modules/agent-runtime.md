@@ -77,7 +77,7 @@
 | Chat 页面组合基线 | 已落地 | Sidebar 默认 248px、开发入口固定在会话列表上方、Chat 专属 52px 会话顶栏、居中欢迎区、引用式主角提示与紧凑输入卡；Playground 复用正式组件验收标准 / 窄宽 |
 | 工具卡行内附着 assistant（Alice Phase B） | 已落地 | `resolve-tools-for-message.ts` · 历史 `toolCalls`+`role=tool`；进行中挂 live host |
 | Dev Playground（无 Assemble 试跑） | 已落地 | PlaygroundPage · `debug:playground-run` |
-| Debug / Playground 独立全页 | 已落地 | 入口固定在 Primary Sidebar 会话列表上方；各自页面壳直接占满主区，不继承 Chat 顶栏；非双 tab / 非抽屉 |
+| Debug / Playground 独立全页 | 已落地 | 入口固定在 Primary Sidebar 底部产品区上方；各自页面壳直接占满主区，不继承 Chat 顶栏；非双 tab / 非抽屉 |
 | 工具手测（权限门闸） | 已落地 | `debug:tool-run` · confirmRisk |
 | Prompt 会话覆盖（不写 settings） | 已落地 | 载入实装 → playgroundRun |
 | 设计 token 场 | 已落地 | Playground「设计 → Token 与主题」 |

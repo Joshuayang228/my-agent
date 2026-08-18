@@ -90,7 +90,7 @@ test.describe('My Agent UI', () => {
     const sessionList = page.locator('[data-testid="sidebar-session-list"]')
     await expect(developerNav).toBeVisible()
     await expect(sessionList).toBeVisible()
-    expect(await developerNav.evaluate((element, list) => Boolean(element.compareDocumentPosition(list as Node) & Node.DOCUMENT_POSITION_FOLLOWING), await sessionList.elementHandle())).toBe(true)
+    expect(await sessionList.evaluate((element, dev) => Boolean(element.compareDocumentPosition(dev as Node) & Node.DOCUMENT_POSITION_FOLLOWING), await developerNav.elementHandle())).toBe(true)
 
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Debug', exact: true }).click()
     await expect(page.locator('[data-testid="dev-panel"]')).toBeVisible()

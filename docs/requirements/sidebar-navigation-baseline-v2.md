@@ -1,7 +1,7 @@
 # Sidebar 导航基线 v2 施工合同
 
 > 状态：进行中（2026-08-18）
-> 生命周期：Phase P0 只在 Playground 展示候选态；用户明确确认后才允许回流正式 UI。
+> 生命周期：Phase P0 已验收；P1 已回流开发入口位置。记忆入口归位与二级页恢复按钮仍待后续明确回流。
 > 统一称呼：施工合同
 
 ## 1. 需求背景（Why）
@@ -12,10 +12,10 @@
 
 ## 2. 功能目标（What）
 
-1. Playground 候选态中，Debug / Playground 固定在底部“产品”区上方。
+1. Debug / Playground 固定在正式 Sidebar 底部“产品”区上方；Playground 与正式页面已同步。
 2. Primary Sidebar 产品入口候选只保留“人物世界 / 设置”；记忆继续通过设置 / 工具二级导航进入。
 3. 增加“二级页面”候选场景：收起 Primary Sidebar 后，Secondary Nav 仍显示“展开主侧栏”入口，可恢复双栏。
-4. 正式 `App.tsx`、`PrimarySidebar.tsx` 默认行为在用户确认前保持不变。
+4. 正式 `App.tsx`、`PrimarySidebar.tsx` 的其它默认行为保持不变；本轮只回流开发入口位置。
 5. 把 UI 两阶段施工硬门写入 `AGENTS.md`，防止再次越过 Playground 直接改生产 UI。
 
 ## 3. 技术方案（How）
@@ -29,16 +29,17 @@
 ## 4. 影响范围
 
 - Phase P0：`AGENTS.md`、Playground 页面组合、Renderer E2E、施工合同与规则反馈。
-- Phase P1（待确认）：正式 Primary Sidebar、App 全页展开入口、设置 / 二级导航、生产 E2E 和模块卡。
+- Phase P1 已回流：正式 Primary Sidebar 的开发入口位置、生产 E2E 和模块卡。
+- Phase P1 待继续：记忆入口归位、App 全页恢复入口、二级导航收口。
 - 不改：会话、记忆数据、LLM、IPC、主进程、Prompt、真实设置写盘。
 
 ## 5. 实施步骤
 
-1. 在 Playground Chat 壳中展示底部开发入口、两项产品入口候选。
-2. 加入“二级页收起”交互，验证收起与重新展开。
-3. 运行浅色 / 深色、标准 / 窄宽截图与 Renderer E2E。
-4. 等用户明确确认候选态。
-5. 获得许可后回流正式页面，补生产测试并冻结合同。
+1. 已在 Playground Chat 壳中展示底部开发入口、产品入口候选。
+2. 已加入“二级页收起”交互并验证候选恢复入口。
+3. 已完成浅色 / 深色、标准 / 窄宽截图与 Renderer E2E。
+4. 用户已明确确认开发入口位置。
+5. 已将开发入口位置回流正式 Sidebar；剩余 IA 变化继续留在合同中，不在本轮擅自扩大。
 
 ## 6. 风险与权衡
 

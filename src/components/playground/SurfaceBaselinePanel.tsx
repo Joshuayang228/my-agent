@@ -80,18 +80,6 @@ function ChatSurface() {
   }
 
   const candidateStyle = `
-    .playground-sidebar-candidate [data-testid="primary-sidebar"] { position: relative; }
-    .playground-sidebar-candidate [data-testid="sidebar-developer-nav"] {
-      position: absolute;
-      left: 12px;
-      right: 12px;
-      bottom: 82px;
-      margin: 0;
-      border-top: 1px solid var(--border-subtle);
-      border-bottom: 0;
-      padding-top: 8px;
-    }
-    .playground-sidebar-candidate [data-testid="sidebar-session-list"] { padding-bottom: 78px; }
     .playground-sidebar-candidate [data-testid="primary-sidebar"] button[title="记忆"] { display: none; }
     .playground-sidebar-candidate [data-testid="primary-sidebar"] .grid:has(> button[title="记忆"]) {
       grid-template-columns: repeat(2, minmax(0, 1fr));
