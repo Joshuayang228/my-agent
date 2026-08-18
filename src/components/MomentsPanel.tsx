@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Newspaper, RefreshCw, X } from 'lucide-react'
 
-interface MomentItem {
+export interface MomentItem {
   id: string
   roleId: string
   eventId: string
@@ -15,8 +15,17 @@ interface MomentItem {
   meta: Record<string, unknown>
 }
 
+export interface MomentsPreviewData {
+  roleId: string
+  roleName: string
+  items: MomentItem[]
+  summary?: string
+}
+
 interface MomentsPanelProps {
   onClose: () => void
+  /** Playground / 测试专用只读朋友圈样张；存在时跳过 companion IPC。 */
+  previewData?: MomentsPreviewData
 }
 
 const TYPE_DOT: Record<string, string> = {
@@ -68,14 +77,22 @@ function parseInteractions(meta: Record<string, unknown>): MomentInteractionView
   return out
 }
 
-export function MomentsPanel({ onClose }: MomentsPanelProps) {
-  const [roleId, setRoleId] = useState('')
-  const [roleName, setRoleName] = useState('')
-  const [items, setItems] = useState<MomentItem[]>([])
-  const [summary, setSummary] = useState('')
+export function MomentsPanel({ onClose, previewData }: MomentsPanelProps) {
+  const [roleId, setRoleId] = useState(previewData?.roleId ?? '')
+  const [roleName, setRoleName] = useState(previewData?.roleName ?? '')
+  const [items, setItems] = useState<MomentItem[]>(previewData?.items ?? [])
+  const [summary, setSummary] = useState(previewData?.summary ?? '')
   const [loading, setLoading] = useState(false)
 
   const load = useCallback(async () => {
+    if (previewData) {
+      setRoleId(previewData.roleId)
+      setRoleName(previewData.roleName)
+      setItems(previewData.items)
+      setSummary(previewData.summary ?? '')
+      setLoading(false)
+      return
+    }
     if (!window.electronAPI?.companion) return
     setLoading(true)
     try {
@@ -91,18 +108,18 @@ export function MomentsPanel({ onClose }: MomentsPanelProps) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [previewData])
 
   useEffect(() => {
     load()
   }, [load])
 
   useEffect(() => {
-    if (!window.electronAPI?.companion.onRoleChanged) return
+    if (previewData || !window.electronAPI?.companion.onRoleChanged) return
     return window.electronAPI.companion.onRoleChanged(() => {
       void load()
     })
-  }, [load])
+  }, [load, previewData])
 
   return (
     <div className="flex h-full flex-col">

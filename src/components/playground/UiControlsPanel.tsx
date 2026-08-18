@@ -433,7 +433,9 @@ export function UiControlsPanel() {
             </div>
           </StoryBlock>
           <StoryBlock title="Toast 四态" source="src/components/Toast.tsx" adopted>
-            <ToastPreview items={TOAST_STORIES} />
+            <div className="playground-toast-preview w-full max-w-md">
+              <ToastPreview items={TOAST_STORIES} />
+            </div>
           </StoryBlock>
           <StoryBlock title="长文与窄宽" source="ToastBubble · responsive max-width" edge adopted>
             <div className="max-w-[280px]">

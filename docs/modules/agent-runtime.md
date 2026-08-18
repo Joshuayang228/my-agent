@@ -74,7 +74,7 @@
 | Observer / DevPanel 可观测 | 已落地 | tracer / observer / DevPanel |
 | LLM Debug 安全元数据持久化 | 已落地 | tracer sink · `llm_debug_logs` · Debug IPC；只保留结构元数据、正文长度和资产证据，不持久化 Prompt / 响应 / hidden reasoning |
 | Chat Callback 三通道 UI | 已落地 | `src/components/chat/callbacks/` |
-| Chat 页面组合基线 | 已落地 | Sidebar 默认 248px、开发入口固定在会话列表上方、Chat 专属 52px 会话顶栏、居中欢迎区、引用式主角提示与紧凑输入卡；Playground 复用正式组件验收标准 / 窄宽 |
+| Chat 页面组合基线 | 已落地 | Sidebar 默认 248px、开发入口固定在底部产品区上方、Chat 专属 52px 会话顶栏、居中欢迎区、引用式主角提示与紧凑输入卡；Playground 复用正式组件验收标准 / 窄宽 |
 | 工具卡行内附着 assistant（Alice Phase B） | 已落地 | `resolve-tools-for-message.ts` · 历史 `toolCalls`+`role=tool`；进行中挂 live host |
 | Dev Playground（无 Assemble 试跑） | 已落地 | PlaygroundPage · `debug:playground-run` |
 | Debug / Playground 独立全页 | 已落地 | 入口固定在 Primary Sidebar 底部产品区上方；各自页面壳直接占满主区，不继承 Chat 顶栏；非双 tab / 非抽屉 |
@@ -82,11 +82,11 @@
 | Prompt 会话覆盖（不写 settings） | 已落地 | 载入实装 → playgroundRun |
 | 设计 token 场 | 已落地 | Playground「设计 → Token 与主题」 |
 | Playground 组件展厅（左侧活目录 + 故事矩阵） | 已落地 | `src/components/playground/` · M32-G9 · 左右栏 |
-| Playground UI 矩阵加厚（确认/芯片/状态条/反馈/独白） | 已落地 | M32-G9 Phase 1 · Toast / MarkdownRenderer 等正式组件故事格 |
+| Playground UI 矩阵加厚（确认/芯片/状态条/反馈/独白） | 已落地 | M32-G9 Phase 1 · Toast 关闭位统一、MarkdownRenderer 等正式组件故事格 |
 | Playground 已采用标记与主题对照 | 已落地 | `AdoptionMark` · 壳层开关统一显隐并持久化 · 七主题同页审计；无图标不附加实验状态 |
 | UI 组件 / 图标语义资产目录 | 已落地 | `ui-component-registry.ts` · `icon-registry.ts` · Playground「组件目录 / 图标」；候选、实验、已采用、已弃用和归档状态分离 |
 | 对话 Debug 右侧栏 | 已落地 | Chat 右坞 · `ConversationDebugAside`；可盖在能力坞之上（Alice 式）；持久化 LLM 调用链 |
-| 项目文件预览 | 已落地 | `FileBrowser` · text/image/unsupported；图/文本/md；html 沙箱 iframe；pdf·Office 外开 |
+| 项目文件预览 | 已落地 | `FileBrowser` · text/image/unsupported；图/文本/md；html 沙箱 iframe；pdf·Office 外开；Playground 可用只读静态树 / 文件样张且跳过 IPC |
 | Chat 右侧能力坞 | 已落地 | `ChatRightDock` · Tab 文件/审阅/终端；会话写文件变更账本；命令控制台（非 PTY）；可拖宽 + 内部分界 |
 | Agent 生产资产目录与运行证据链 | 已落地 | Debug「提示词管理器」聚合 Prompt / 伙伴人格 / 记忆策略 / 权限与沙箱 / Tool schema / Skill / Eval Case 与 Grader / Eval Judge / 模型 Provider / MCP；真实 LLM / Tool / Memory / Permission 运行通过稳定 key 写入脱敏证据，支持调用级分组、资产最近使用、跨面板跳转与 JSON / JSONL 导出 |
 | GitHub Actions 质量门禁 | 已落地 | Docs / Asset 工作流；Unit 在无界面 Runner 使用 Electron external 占位路径，不下载桌面二进制；官方 Actions 使用 v7 |

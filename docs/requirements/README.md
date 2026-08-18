@@ -22,7 +22,7 @@
 
 | 文档 | 说明 |
 |------|------|
-| [sidebar-navigation-baseline-v2.md](./sidebar-navigation-baseline-v2.md) | P0 已验收、P1 部分回流：开发入口移至产品区上方；记忆入口与二级页恢复仍在施工 |
+| [playground-page-baseline-polish-v1.md](./playground-page-baseline-polish-v1.md) | P0 施工：Sidebar 底栏、Toast、Right Dock、人物世界与记忆页面样张统一精修 |
 | [playground-bilingual-ui-vocabulary.md](./playground-bilingual-ui-vocabulary.md) | Playground 中文分类与常用 UI 控件中英分层文案 |
 
 ---
@@ -31,6 +31,7 @@
 
 | 文档 | 说明 |
 |------|------|
+| [sidebar-navigation-baseline-v2.md](./sidebar-navigation-baseline-v2.md) | 已完成施工快照：开发入口位置已回流；Secondary Nav 候选被后续人工验收否决 |
 | [chat-page-baseline-v1.md](./chat-page-baseline-v1.md) | 已落地：Chat 页面组合基线、开发入口上移、非 Chat 空顶栏移除、引用式主角提示与设置自动保存 |
 | [asset-governance-audit-automation.md](./asset-governance-audit-automation.md) | 已落地：全量资产审计、设计资产 / SubAgent 角色登记、机器报告与自动漏登门禁 |
 | [agent-asset-usage-evidence-v1.md](./agent-asset-usage-evidence-v1.md) | 已落地：生产资产与真实 LLM / Tool / Memory / Permission 运行记录的脱敏证据链、反向查询、导出与 Debug 跳转 |

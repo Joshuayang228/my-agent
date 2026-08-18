@@ -58,29 +58,72 @@ test.describe('My Agent UI', () => {
   })
 
 
-  test('Playground 先验收 Sidebar 候选态与二级页恢复入口', async ({ page }) => {
+  test('Playground 页面组合展示精修后的隔离候选态', async ({ page }) => {
     await page.goto('/')
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
     await page.locator('[data-testid="playground-shell"] nav').getByRole('button', { name: '页面组合', exact: true }).click()
 
+    const surfaceTabs = page.getByRole('tablist', { name: '页面基线分区' })
     const candidate = page.locator('[data-testid="surface-sidebar-candidate"]')
     await expect(candidate).toBeVisible()
     await expect(candidate.getByRole('button', { name: '记忆', exact: true })).toHaveCount(0)
     await expect(candidate.getByRole('button', { name: '人物世界', exact: true })).toBeVisible()
     await expect(candidate.getByRole('button', { name: '设置', exact: true })).toBeVisible()
+    await expect(candidate.getByText('开发', { exact: true })).toBeHidden()
+    await expect(candidate.getByText('产品', { exact: true })).toBeHidden()
+    await expect(page.getByRole('button', { name: '二级页收起', exact: true })).toHaveCount(0)
+    await expect(page.locator('[data-testid="surface-secondary-nav"]')).toHaveCount(0)
 
     const developerNav = candidate.locator('[data-testid="sidebar-developer-nav"]')
     const developerBox = await developerNav.boundingBox()
     const productBox = await candidate.getByRole('button', { name: '人物世界', exact: true }).boundingBox()
+    const settingsBox = await candidate.getByRole('button', { name: '设置', exact: true }).boundingBox()
+    const sidebarBox = await candidate.locator('[data-testid="primary-sidebar"]').boundingBox()
+    const viewportBox = await page.locator('[data-testid="chat-surface-viewport"]').boundingBox()
     expect((developerBox?.y ?? 0) + (developerBox?.height ?? 0)).toBeLessThan(productBox?.y ?? 0)
+    expect(Math.abs((sidebarBox?.y ?? 0) + (sidebarBox?.height ?? 0) - ((viewportBox?.y ?? 0) + (viewportBox?.height ?? 0)))).toBeLessThan(2)
+    expect((settingsBox?.y ?? 0) + (settingsBox?.height ?? 0)).toBeLessThanOrEqual((sidebarBox?.y ?? 0) + (sidebarBox?.height ?? 0))
 
-    await page.getByRole('button', { name: '二级页收起', exact: true }).click()
-    await expect(page.locator('[data-testid="surface-secondary-nav"]')).toBeVisible()
     await candidate.getByTitle('收起侧栏 Ctrl+B').click()
     await expect(page.locator('[data-testid="surface-sidebar-candidate"]')).not.toBeVisible()
     await expect(page.locator('[data-testid="surface-sidebar-reopen"]')).toBeVisible()
     await page.locator('[data-testid="surface-sidebar-reopen"]').click()
-    await expect(page.locator('[data-testid="surface-sidebar-candidate"]')).toBeVisible()
+
+    await surfaceTabs.getByRole('tab', { name: '设置', exact: true }).click()
+    const settings = page.locator('[data-testid="settings-panel"]')
+    await expect(settings).toBeVisible()
+    await expect(settings.getByRole('button', { name: '记忆', exact: true })).toBeVisible()
+    await expect(settings.getByRole('button', { name: '工具', exact: true })).toBeVisible()
+
+    await surfaceTabs.getByRole('tab', { name: 'Right Dock', exact: true }).click()
+    await expect(page.locator('[data-testid="chat-right-dock"]')).toContainText('my-agent · 样张项目')
+    await expect(page.locator('[data-testid="file-browser"]')).toContainText('AppShell.tsx')
+    await expect(page.locator('[data-testid="file-browser"]')).toContainText('export function AppShell')
+
+    await surfaceTabs.getByRole('tab', { name: '人物世界', exact: true }).click()
+    await expect(page.getByText('把窗帘拉开了一点，泡了杯乌龙茶，准备先把桌面清出一块。', { exact: true })).toBeVisible()
+    await expect(page.getByText('路过河边的时候记下了一个想法：慢一点，反而能看见今天真正想做的事。', { exact: true })).toBeVisible()
+
+    await surfaceTabs.getByRole('tab', { name: '记忆', exact: true }).click()
+    const identityFilter = page.locator('[data-testid="memory-category-filters"]').getByRole('button', { name: '身份 (1)', exact: true })
+    await expect(identityFilter).toBeVisible()
+    expect(await identityFilter.evaluate((element) => ({
+      display: getComputedStyle(element).display,
+      whiteSpace: getComputedStyle(element).whiteSpace,
+    }))).toEqual({ display: 'flex', whiteSpace: 'nowrap' })
+  })
+
+  test('Playground Toast 四态关闭按钮沿统一右边界对齐', async ({ page }) => {
+    await page.goto('/')
+    await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
+    await page.locator('[data-testid="playground-shell"] nav').getByRole('button', { name: '组件', exact: true }).click()
+    await page.getByRole('button', { name: '系统反馈', exact: true }).click()
+
+    const toastStory = page.locator('section').filter({ hasText: 'Toast 四态' }).first()
+    const closeButtons = toastStory.getByRole('button', { name: '关闭通知' })
+    await expect(closeButtons).toHaveCount(4)
+    const rightEdges = await closeButtons.evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().right))
+    expect(Math.max(...rightEdges) - Math.min(...rightEdges)).toBeLessThan(1)
   })
 
   test('Debug 与 Playground 采用任务分组导航', async ({ page }) => {

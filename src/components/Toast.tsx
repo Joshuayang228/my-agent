@@ -61,7 +61,7 @@ const TYPE_ICONS: Record<ToastType, typeof Check> = {
 }
 
 export function ToastBubble({ item, onDismiss, staticPreview = false }: { item: ToastItem; onDismiss: (id: number) => void; staticPreview?: boolean }) {
-  const [visible, setVisible] = useState(false)
+  const [visible, setVisible] = useState(staticPreview)
   const Icon = TYPE_ICONS[item.type]
   const style = TYPE_STYLES[item.type]
 
@@ -77,7 +77,7 @@ export function ToastBubble({ item, onDismiss, staticPreview = false }: { item: 
 
   return (
     <div
-      className={`pointer-events-auto flex items-start gap-2 rounded-lg border px-3.5 py-2.5 shadow-lg backdrop-blur-sm transition-all duration-300 ${visible ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}
+      className={`pointer-events-auto flex items-start gap-2 rounded-lg border px-3.5 py-2.5 shadow-lg backdrop-blur-sm transition-all duration-300 ${staticPreview ? 'w-full' : ''} ${visible ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}
       style={{ borderColor: style.border, background: style.background, color: style.color }}
       role="status"
     >
@@ -86,7 +86,7 @@ export function ToastBubble({ item, onDismiss, staticPreview = false }: { item: 
       <button
         type="button"
         onClick={() => onDismiss(item.id)}
-        className="mt-0.5 shrink-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        className={`mt-0.5 shrink-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${staticPreview ? 'ml-auto' : ''}`}
         style={{ color: 'var(--text-muted)' }}
         aria-label="关闭通知"
       >
@@ -101,7 +101,7 @@ export function ToastPreview({ items }: { items: ToastPreviewItem[] }) {
   const [visibleItems, setVisibleItems] = useState(items)
 
   return (
-    <div className="flex max-w-md flex-col gap-2">
+    <div className="flex w-full max-w-md flex-col gap-2">
       {visibleItems.map((item) => (
         <ToastBubble
           key={item.id}

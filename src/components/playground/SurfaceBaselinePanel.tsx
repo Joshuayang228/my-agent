@@ -4,10 +4,12 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowUp, Brain, ChevronDown, Folder, PanelLeftOpen, Paperclip, Quote, Shield } from 'lucide-react'
+import { ArrowUp, ChevronDown, Folder, PanelLeftOpen, Paperclip, Quote, Shield } from 'lucide-react'
 import { SettingsPanel } from '../SettingsPanel'
 import { MemoryPanel } from '../MemoryPanel'
 import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
+import type { FileBrowserPreviewData } from '../FileBrowser'
+import type { MomentItem, MomentsPreviewData } from '../MomentsPanel'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
 import { WorldHub } from '../shell/WorldHub'
 import { StoryBlock } from './StoryBlock'
@@ -16,7 +18,7 @@ import type { MemoryEntry } from '../../shared/types'
 type SurfaceId = 'chat' | 'sidebar' | 'dock' | 'world' | 'memory' | 'settings'
 
 const SURFACES: { id: SurfaceId; label: string; description: string; adopted: boolean; source: string }[] = [
-  { id: 'chat', label: 'Chat 壳', description: 'Sidebar 底部开发入口候选、二级页恢复入口、会话标题、居中欢迎区与紧凑输入卡', adopted: false, source: 'src/App.tsx · src/components/shell/PrimarySidebar.tsx' },
+  { id: 'chat', label: 'Chat 壳', description: 'Sidebar 底部开发入口候选、会话标题、居中欢迎区与紧凑输入卡', adopted: false, source: 'src/App.tsx · src/components/shell/PrimarySidebar.tsx' },
   { id: 'sidebar', label: 'Primary Sidebar', description: '伙伴身份、会话与底栏入口', adopted: true, source: 'src/components/shell/PrimarySidebar.tsx' },
   { id: 'dock', label: 'Right Dock', description: '文件、审阅、终端与 Debug 层级', adopted: true, source: 'src/components/chat/right-dock/ChatRightDock.tsx' },
   { id: 'world', label: '人物世界', description: '生活面 tab 与内容节奏', adopted: true, source: 'src/components/shell/WorldHub.tsx' },
@@ -35,6 +37,78 @@ const SENSITIVE_MEMORY_FIXTURES: MemoryEntry[] = [
   { id: 'memory-sensitive', category: 'fact', content: '最近在调整睡眠和用药安排。', createdAt: NOW, updatedAt: NOW },
 ]
 const EMPTY_MEMORY_FIXTURES: MemoryEntry[] = []
+const FILE_PREVIEW_FIXTURES: FileBrowserPreviewData = {
+  projectLabel: 'my-agent · 样张项目',
+  initialPath: 'src/components/AppShell.tsx',
+  tree: [
+    {
+      name: 'src',
+      path: 'src',
+      isDir: true,
+      children: [
+        { name: 'components', path: 'src/components', isDir: true, children: [
+          { name: 'AppShell.tsx', path: 'src/components/AppShell.tsx', isDir: false },
+          { name: 'PrimarySidebar.tsx', path: 'src/components/PrimarySidebar.tsx', isDir: false },
+        ] },
+        { name: 'shared', path: 'src/shared', isDir: true, children: [
+          { name: 'types.ts', path: 'src/shared/types.ts', isDir: false },
+        ] },
+      ],
+    },
+    { name: 'AGENTS.md', path: 'AGENTS.md', isDir: false },
+    { name: 'README.md', path: 'README.md', isDir: false },
+  ],
+  files: {
+    'src/components/AppShell.tsx': {
+      path: 'src/components/AppShell.tsx',
+      kind: 'text',
+      languageHint: 'typescript',
+      content: `export function AppShell() {\n  return <div className="app-shell">{children}</div>\n}\n`,
+    },
+    'src/components/PrimarySidebar.tsx': {
+      path: 'src/components/PrimarySidebar.tsx',
+      kind: 'text',
+      languageHint: 'typescript',
+      content: `export function PrimarySidebar() {\n  return <aside data-testid="primary-sidebar" />\n}\n`,
+    },
+    'src/shared/types.ts': {
+      path: 'src/shared/types.ts',
+      kind: 'text',
+      languageHint: 'typescript',
+      content: `export type Surface = 'chat' | 'world' | 'settings'\n`,
+    },
+    'AGENTS.md': {
+      path: 'AGENTS.md',
+      kind: 'text',
+      languageHint: 'markdown',
+      content: `# AGENTS.md\n\n先在 Playground 验收 UI，再回流正式页面。\n`,
+    },
+    'README.md': {
+      path: 'README.md',
+      kind: 'text',
+      languageHint: 'markdown',
+      content: `# my-agent\n\n人格化桌面 AI Agent。\n`,
+    },
+  },
+}
+
+const MOMENTS_PREVIEW_FIXTURES: MomentsPreviewData = {
+  roleId: 'lin',
+  roleName: '小林',
+  summary: '今天的生活节奏比较松，他把下午留给了整理桌面和散步。',
+  items: [
+    {
+      id: 'playground-moment-1', roleId: 'lin', eventId: 'fixture-walk',
+      publishedAt: NOW - 35 * 60_000, text: '把窗帘拉开了一点，泡了杯乌龙茶，准备先把桌面清出一块。',
+      meta: { type: 'daily', location: '家中', interactions: [{ kind: 'comment', castName: '小航', text: '这次先别把自己排得太满。' }] },
+    },
+    {
+      id: 'playground-moment-2', roleId: 'lin', eventId: 'fixture-notes',
+      publishedAt: NOW - 3 * 3_600_000, text: '路过河边的时候记下了一个想法：慢一点，反而能看见今天真正想做的事。',
+      meta: { type: 'mood', location: '河边', interactions: [{ kind: 'coframe', castName: '阿禾' }] },
+    },
+  ] satisfies MomentItem[],
+}
 
 const SAMPLE_SESSIONS: SidebarSession[] = [
   {
@@ -59,10 +133,11 @@ const SAMPLE_SESSIONS: SidebarSession[] = [
 
 function noop() {}
 
-function SurfaceViewport({ children }: { children: ReactNode }) {
+function SurfaceViewport({ children, testId }: { children: ReactNode; testId?: string }) {
   return (
     <div
-      className="min-h-[620px] overflow-hidden rounded-xl border"
+      className="flex min-h-[620px] flex-1 flex-col overflow-hidden rounded-xl border"
+      data-testid={testId}
       style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}
     >
       {children}
@@ -70,21 +145,39 @@ function SurfaceViewport({ children }: { children: ReactNode }) {
   )
 }
 
+const PAGE_CANDIDATE_STYLE = `
+    .playground-sidebar-candidate {
+      align-self: stretch;
+      display: flex;
+      align-items: stretch;
+    }
+    .playground-sidebar-candidate > [data-testid="primary-sidebar"] {
+      flex: 1;
+    }
+    .playground-sidebar-candidate [data-testid="primary-sidebar"] button[title="记忆"] { display: none; }
+    .playground-sidebar-candidate [data-testid="primary-sidebar"] .grid:has(> button[title="记忆"]) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .playground-sidebar-candidate [data-testid="sidebar-developer-nav"] > :first-child,
+    .playground-sidebar-candidate [data-testid="sidebar-developer-nav"] + div > :first-child {
+      display: none;
+    }
+    .playground-memory-candidate [data-testid="memory-category-filters"] button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      white-space: nowrap;
+    }
+  `
+
 function ChatSurface() {
   const sessionFilterRef = useRef<HTMLInputElement>(null)
-  const [viewport, setViewport] = useState<'standard' | 'split' | 'collapsed'>('standard')
+  const [viewport, setViewport] = useState<'standard' | 'split'>('standard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const handleContextMenu = (event: MouseEvent, sessionId: string) => {
     event.preventDefault()
     void sessionId
   }
-
-  const candidateStyle = `
-    .playground-sidebar-candidate [data-testid="primary-sidebar"] button[title="记忆"] { display: none; }
-    .playground-sidebar-candidate [data-testid="primary-sidebar"] .grid:has(> button[title="记忆"]) {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  `
 
   return (
     <div className="space-y-3">
@@ -96,7 +189,6 @@ function ChatSurface() {
           {([
             { id: 'standard' as const, label: '标准宽度' },
             { id: 'split' as const, label: '分栏窄宽' },
-            { id: 'collapsed' as const, label: '二级页收起' },
           ]).map((item) => (
             <button
               key={item.id}
@@ -117,15 +209,15 @@ function ChatSurface() {
         </div>
       </div>
       <div className="mx-auto w-full transition-[max-width]" style={{ maxWidth: viewport === 'split' ? 760 : 1040 }}>
-        <SurfaceViewport>
-          <style>{candidateStyle}</style>
+        <SurfaceViewport testId="chat-surface-viewport">
+          <style>{PAGE_CANDIDATE_STYLE}</style>
           <div className="flex h-full min-h-[620px]">
             {sidebarOpen && (
               <div className="playground-sidebar-candidate shrink-0" data-testid="surface-sidebar-candidate">
                 <PrimarySidebar
                   personaName="小林"
                   personaBlurb="沉稳体贴的数字伙伴"
-                  activeView={viewport === 'collapsed' ? 'memory' : 'chat'}
+                  activeView="chat"
                   activeSessionId={null}
                   sessionGroups={[{ label: '今天', items: SAMPLE_SESSIONS }]}
                   sessionPreviews={{ 'surface-session-1': '先把必须今天完成的挑出来…' }}
@@ -156,41 +248,7 @@ function ChatSurface() {
               </div>
             )}
 
-            {viewport === 'collapsed' ? (
-              <div className="flex min-w-0 flex-1">
-                <aside
-                  className="flex w-[150px] shrink-0 flex-col border-r px-3 py-4"
-                  style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
-                  data-testid="surface-secondary-nav"
-                >
-                  {!sidebarOpen && (
-                    <button
-                      type="button"
-                      onClick={() => setSidebarOpen(true)}
-                      className="mb-4 flex items-center gap-1.5 rounded-[var(--radius-md)] px-2 py-1.5 text-[11px] transition"
-                      style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
-                      data-testid="surface-sidebar-reopen"
-                      title="重新展开主侧栏"
-                    >
-                      <PanelLeftOpen size={14} />
-                      展开主侧栏
-                    </button>
-                  )}
-                  <div className="px-2 pb-1 text-[9px] font-medium tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>
-                    工具
-                  </div>
-                  <button type="button" className="flex items-center gap-2 rounded-[var(--radius-md)] px-2 py-2 text-left text-[12px] font-medium" style={{ color: 'var(--text-primary)', background: 'var(--sidebar-active)' }}>
-                    <Brain size={14} />记忆
-                  </button>
-                  <button type="button" className="flex items-center gap-2 rounded-[var(--radius-md)] px-2 py-2 text-left text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                    Skills
-                  </button>
-                </aside>
-                <div className="min-w-0 flex-1" style={{ background: 'var(--bg-primary)' }}>
-                  <MemoryPanel onClose={noop} previewMemories={EMPTY_MEMORY_FIXTURES} readOnly />
-                </div>
-              </div>
-            ) : (
+
               <div className="relative flex min-w-0 flex-1 flex-col" style={{ background: 'var(--bg-primary)' }}>
                 {!sidebarOpen && (
                   <button
@@ -270,15 +328,14 @@ function ChatSurface() {
                         </div>
                       </div>
                       <div className="mt-1.5 flex items-center justify-between px-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                        <span className="flex items-center gap-1"><Folder size={11} /> 未选择项目</span>
+                        <span className="flex items-center gap-1"><Folder size={11} /> my-agent · 样张项目</span>
                         <span>结构预览</span>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
         </SurfaceViewport>
       </div>
     </div>
@@ -294,37 +351,40 @@ function SidebarSurface() {
 
   return (
     <SurfaceViewport>
+      <style>{PAGE_CANDIDATE_STYLE}</style>
       <div className="flex h-full min-h-[620px]">
-        <PrimarySidebar
-          personaName="小林"
-          personaBlurb="沉稳体贴的数字伙伴"
-          activeView="chat"
-          activeSessionId="surface-session-1"
-          sessionGroups={[{ label: '今天', items: SAMPLE_SESSIONS }]}
-          sessionPreviews={{ 'surface-session-1': '先把必须今天完成的挑出来…' }}
-          pinnedIds={[]}
-          bgStreamingSessionId={null}
-          activeBgTaskCount={0}
-          sidebarSearchOpen={false}
-          sessionFilter=""
-          sessionFilterRef={sessionFilterRef}
-          renamingId={null}
-          renameValue=""
-          onOpenShelf={noop}
-          onCreateSession={noop}
-          onToggleSearch={noop}
-          onSessionFilterChange={noop}
-          onCloseSearch={noop}
-          onSelectSession={noop}
-          onStartRename={noop}
-          onRenameChange={noop}
-          onCommitRename={noop}
-          onCancelRename={noop}
-          onDeleteSession={noop}
-          onContextMenu={handleContextMenu}
-          onNavigate={noop}
-          onCollapse={noop}
-        />
+        <div className="playground-sidebar-candidate shrink-0" data-testid="sidebar-surface-candidate">
+          <PrimarySidebar
+            personaName="小林"
+            personaBlurb="沉稳体贴的数字伙伴"
+            activeView="chat"
+            activeSessionId="surface-session-1"
+            sessionGroups={[{ label: '今天', items: SAMPLE_SESSIONS }]}
+            sessionPreviews={{ 'surface-session-1': '先把必须今天完成的挑出来…' }}
+            pinnedIds={[]}
+            bgStreamingSessionId={null}
+            activeBgTaskCount={0}
+            sidebarSearchOpen={false}
+            sessionFilter=""
+            sessionFilterRef={sessionFilterRef}
+            renamingId={null}
+            renameValue=""
+            onOpenShelf={noop}
+            onCreateSession={noop}
+            onToggleSearch={noop}
+            onSessionFilterChange={noop}
+            onCloseSearch={noop}
+            onSelectSession={noop}
+            onStartRename={noop}
+            onRenameChange={noop}
+            onCommitRename={noop}
+            onCancelRename={noop}
+            onDeleteSession={noop}
+            onContextMenu={handleContextMenu}
+            onNavigate={noop}
+            onCollapse={noop}
+          />
+        </div>
         <div className="flex min-w-0 flex-1 items-center justify-center text-xs" style={{ color: 'var(--text-muted)' }}>
           主内容区
         </div>
@@ -348,6 +408,7 @@ function DockSurface() {
           conversationDebug={false}
           persistedCalls={[]}
           persistedLoading={false}
+          filesPreview={FILE_PREVIEW_FIXTURES}
           onCloseFiles={noop}
           onCloseDebug={noop}
         />
@@ -366,6 +427,7 @@ function WorldSurface() {
         onOpenSession={noop}
         onSwitched={noop}
         recentByRole={{}}
+        momentsPreview={MOMENTS_PREVIEW_FIXTURES}
       />
     </SurfaceViewport>
   )
@@ -419,13 +481,16 @@ function MemorySurface() {
         })}
       </div>
       <SurfaceViewport>
-        <MemoryPanel
-          key={scenario}
-          onClose={noop}
-          previewMemories={memories}
-          previewEditingId={scenario === 'editing' ? 'memory-workflow' : undefined}
-          readOnly
-        />
+        <style>{PAGE_CANDIDATE_STYLE}</style>
+        <div className="playground-memory-candidate" data-testid="memory-surface-candidate">
+          <MemoryPanel
+            key={scenario}
+            onClose={noop}
+            previewMemories={memories}
+            previewEditingId={scenario === 'editing' ? 'memory-workflow' : undefined}
+            readOnly
+          />
+        </div>
       </SurfaceViewport>
     </div>
   )

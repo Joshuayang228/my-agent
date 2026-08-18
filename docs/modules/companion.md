@@ -96,7 +96,7 @@
 | Debug 计划 / 发布状态时间线 | 已落地 | Debug「世界态」只读视图 | `debug-world-snapshot` 有界读取 planned / published 事件；不提供生活世界写操作 |
 | Catch-up ≤7×24h | 已落地 | 朋友圈暖色条 / Prompt | `life/catchup` · `catchup-status` |
 | 此刻 presence | 已落地 | Catch-up / Prompt | `describeCastPresence` · `catchup-status.presence` |
-| Moments（朋友圈） | 已落地 | 人物世界 / 欢迎屏 → 朋友圈 | `get-moments` · MomentsPanel · 卡司互动 meta |
+| Moments（朋友圈） | 已落地 | 人物世界 / 欢迎屏 → 朋友圈 | `get-moments` · MomentsPanel · 卡司互动 meta；Playground 可用只读 Moments / Catch-up 样张且跳过 IPC |
 | Assets（物什） | 已落地 | 欢迎屏 → 物什 | wardrobe/bookshelf · `get/update/delete-asset` · AssetsPanel |
 | 名册浅注入 | 已落地 | （Prompt） | `cast/roster` |
 | CastPanel（名册 / 召唤） | 已落地 | 人物世界 / 欢迎屏 → 名册 | CastPanel · `start-summon` · 场景 prompt |

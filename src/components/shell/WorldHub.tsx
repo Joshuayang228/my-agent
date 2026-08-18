@@ -4,7 +4,7 @@
 
 import type { ReactNode } from 'react'
 import { Newspaper, Shirt, Users, LayoutGrid, X } from 'lucide-react'
-import { MomentsPanel } from '../MomentsPanel'
+import { MomentsPanel, type MomentsPreviewData } from '../MomentsPanel'
 import { AssetsPanel } from '../AssetsPanel'
 import { CastPanel } from '../CastPanel'
 import { CharacterShelfPanel } from '../CharacterShelfPanel'
@@ -35,6 +35,7 @@ export function WorldHub({
   onOpenSession,
   onSwitched,
   recentByRole,
+  momentsPreview,
 }: {
   tab: WorldTab
   onTabChange: (tab: WorldTab) => void
@@ -42,6 +43,8 @@ export function WorldHub({
   onOpenSession: (sessionId: string) => void
   onSwitched: (p: { id: string; name: string; description: string }) => void
   recentByRole: Record<string, { sessionId: string; title: string; updatedAt: number }>
+  /** Playground / 测试专用只读朋友圈样张。 */
+  momentsPreview?: MomentsPreviewData
 }) {
   return (
     <div className="flex h-full flex-col" data-testid="world-hub">
@@ -100,7 +103,7 @@ export function WorldHub({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
-        {tab === 'moments' && <MomentsPanel onClose={onClose} />}
+        {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} />}
         {tab === 'assets' && <AssetsPanel onClose={onClose} />}
         {tab === 'cast' && (
           <CastPanel

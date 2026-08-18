@@ -23,30 +23,47 @@ import { MarkdownRenderer } from './MarkdownRenderer'
 import { ResizeHandle } from './shell/ResizeHandle'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from '../shared/panel-layout'
 
-interface FileEntry {
+export interface FileBrowserPreviewEntry {
   name: string
   path: string
   isDir: boolean
-  children?: FileEntry[]
+  children?: FileBrowserPreviewEntry[]
 }
 
-type PreviewState =
+export type FileBrowserPreviewFile =
   | { path: string; kind: 'text'; content: string; languageHint?: string; size?: number }
   | { path: string; kind: 'image'; dataUrl: string; mimeType?: string; size?: number }
   | { path: string; kind: 'unsupported'; reason: string; size?: number }
   | { path: string; kind: 'error'; message: string }
+
+export interface FileBrowserPreviewData {
+  projectLabel: string
+  tree: FileBrowserPreviewEntry[]
+  files: Record<string, FileBrowserPreviewFile>
+  initialPath?: string
+}
+
+type FileEntry = FileBrowserPreviewEntry
+type PreviewState = FileBrowserPreviewFile
 
 interface FileBrowserProps {
   projectPath: string | null
   onClose: () => void
   /** 嵌在右坞 Tab 内时隐藏「项目文件」顶栏关闭钮（坞壳已有） */
   embedded?: boolean
+  /** Playground / 测试专用只读样张；存在时完全跳过 project IPC。 */
+  previewData?: FileBrowserPreviewData
 }
 
-export function FileBrowser({ projectPath, onClose, embedded = false }: FileBrowserProps) {
-  const [tree, setTree] = useState<FileEntry[]>([])
+function initialPreview(data?: FileBrowserPreviewData): PreviewState | null {
+  if (!data?.initialPath) return null
+  return data.files[data.initialPath] ?? null
+}
+
+export function FileBrowser({ projectPath, onClose, embedded = false, previewData }: FileBrowserProps) {
+  const [tree, setTree] = useState<FileEntry[]>(() => previewData?.tree ?? [])
   const [filter, setFilter] = useState('')
-  const [preview, setPreview] = useState<PreviewState | null>(null)
+  const [preview, setPreview] = useState<PreviewState | null>(() => initialPreview(previewData))
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   /** html：预览 / 源码；默认预览 */
@@ -57,8 +74,15 @@ export function FileBrowser({ projectPath, onClose, embedded = false }: FileBrow
     LAYOUT_BOUNDS.fileTreeRatio,
   )
   const splitRef = useRef<HTMLDivElement>(null)
+  const displayProjectPath = previewData?.projectLabel ?? projectPath
 
   const loadTree = useCallback(async () => {
+    if (previewData) {
+      setTree(previewData.tree)
+      setPreview(initialPreview(previewData))
+      setLoading(false)
+      return
+    }
     if (!projectPath || !window.electronAPI) return
     setLoading(true)
     try {
@@ -67,12 +91,20 @@ export function FileBrowser({ projectPath, onClose, embedded = false }: FileBrow
     } finally {
       setLoading(false)
     }
-  }, [projectPath])
+  }, [previewData, projectPath])
 
   useEffect(() => { void loadTree() }, [loadTree])
 
   const handleFileClick = async (entry: FileEntry) => {
     if (entry.isDir) return
+    if (previewData) {
+      setPreview(previewData.files[entry.path] ?? {
+        path: entry.path,
+        kind: 'error',
+        message: '样张中没有这个文件的预览内容',
+      })
+      return
+    }
     const result = await window.electronAPI?.project.readFile(entry.path)
     if (!result) {
       setPreview({ path: entry.path, kind: 'error', message: '读取失败' })
@@ -116,7 +148,7 @@ export function FileBrowser({ projectPath, onClose, embedded = false }: FileBrow
   }
 
   const openExternal = async () => {
-    if (!preview?.path) return
+    if (previewData || !preview?.path) return
     await window.electronAPI?.project.openExternal?.(preview.path)
   }
 
@@ -139,7 +171,7 @@ export function FileBrowser({ projectPath, onClose, embedded = false }: FileBrow
     <div className="flex h-full min-h-0 flex-col" data-testid="file-browser">
       {!embedded && (
         <Header
-          projectPath={projectPath}
+          projectPath={displayProjectPath}
           onClose={onClose}
           onRefresh={() => void loadTree()}
           loading={loading}
@@ -150,8 +182,8 @@ export function FileBrowser({ projectPath, onClose, embedded = false }: FileBrow
           className="flex shrink-0 items-center gap-1.5 border-b px-2 py-1"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
-          <span className="min-w-0 flex-1 truncate text-[10px]" style={{ color: 'var(--text-muted)' }} title={projectPath || undefined}>
-            {projectPath || '未选择项目'}
+          <span className="min-w-0 flex-1 truncate text-[10px]" style={{ color: 'var(--text-muted)' }} title={displayProjectPath || undefined}>
+            {displayProjectPath || '未选择项目'}
           </span>
           <button
             type="button"
@@ -165,7 +197,7 @@ export function FileBrowser({ projectPath, onClose, embedded = false }: FileBrow
         </div>
       )}
 
-      {!projectPath ? (
+      {!displayProjectPath ? (
         <div className="flex flex-1 items-center justify-center p-4 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
           请先选择一个项目目录
         </div>

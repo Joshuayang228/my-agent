@@ -4,7 +4,7 @@
 
 import { useState } from 'react'
 import { FileText, GitCompare, TerminalSquare, X } from 'lucide-react'
-import { FileBrowser } from '../../FileBrowser'
+import { FileBrowser, type FileBrowserPreviewData } from '../../FileBrowser'
 import { ReviewPanel } from './ReviewPanel'
 import { TerminalPanel } from './TerminalPanel'
 import { ConversationDebugAside } from '../ConversationDebugAside'
@@ -21,6 +21,8 @@ interface ChatRightDockProps {
   persistedLoading: boolean
   /** 可拖宽度；默认 380 */
   width?: number
+  /** Playground / 测试专用只读文件样张。 */
+  filesPreview?: FileBrowserPreviewData
   onCloseFiles: () => void
   onCloseDebug: () => void
 }
@@ -39,6 +41,7 @@ export function ChatRightDock({
   persistedCalls,
   persistedLoading,
   width = 380,
+  filesPreview,
   onCloseFiles,
   onCloseDebug,
 }: ChatRightDockProps) {
@@ -92,7 +95,7 @@ export function ChatRightDock({
 
           <div className="min-h-0 flex-1 overflow-hidden">
             {tab === 'files' && (
-              <FileBrowser projectPath={projectPath} onClose={onCloseFiles} embedded />
+              <FileBrowser projectPath={projectPath} onClose={onCloseFiles} embedded previewData={filesPreview} />
             )}
             {tab === 'review' && (
               <ReviewPanel sessionId={sessionId} />

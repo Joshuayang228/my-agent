@@ -141,7 +141,7 @@ export function MemoryPanel({ onClose, previewMemories, previewEditingId, readOn
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 border-b px-5 py-2.5" style={{ borderColor: 'var(--border-color)' }}>
+        <div className="flex flex-wrap gap-2 border-b px-5 py-2.5" style={{ borderColor: 'var(--border-color)' }} data-testid="memory-category-filters">
           <button
             onClick={() => setFilter('all')}
             className={`rounded-lg px-2.5 py-1 text-[11px] transition ${
