@@ -58,6 +58,31 @@ test.describe('My Agent UI', () => {
   })
 
 
+  test('Playground 先验收 Sidebar 候选态与二级页恢复入口', async ({ page }) => {
+    await page.goto('/')
+    await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
+    await page.locator('[data-testid="playground-shell"] nav').getByRole('button', { name: '页面组合', exact: true }).click()
+
+    const candidate = page.locator('[data-testid="surface-sidebar-candidate"]')
+    await expect(candidate).toBeVisible()
+    await expect(candidate.getByRole('button', { name: '记忆', exact: true })).toHaveCount(0)
+    await expect(candidate.getByRole('button', { name: '人物世界', exact: true })).toBeVisible()
+    await expect(candidate.getByRole('button', { name: '设置', exact: true })).toBeVisible()
+
+    const developerNav = candidate.locator('[data-testid="sidebar-developer-nav"]')
+    const developerBox = await developerNav.boundingBox()
+    const productBox = await candidate.getByRole('button', { name: '人物世界', exact: true }).boundingBox()
+    expect((developerBox?.y ?? 0) + (developerBox?.height ?? 0)).toBeLessThan(productBox?.y ?? 0)
+
+    await page.getByRole('button', { name: '二级页收起', exact: true }).click()
+    await expect(page.locator('[data-testid="surface-secondary-nav"]')).toBeVisible()
+    await candidate.getByTitle('收起侧栏 Ctrl+B').click()
+    await expect(page.locator('[data-testid="surface-sidebar-candidate"]')).not.toBeVisible()
+    await expect(page.locator('[data-testid="surface-sidebar-reopen"]')).toBeVisible()
+    await page.locator('[data-testid="surface-sidebar-reopen"]').click()
+    await expect(page.locator('[data-testid="surface-sidebar-candidate"]')).toBeVisible()
+  })
+
   test('Debug 与 Playground 采用任务分组导航', async ({ page }) => {
     await page.goto('/')
 

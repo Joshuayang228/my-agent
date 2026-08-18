@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowUp, ChevronDown, Folder, Paperclip, Quote, Shield } from 'lucide-react'
+import { ArrowUp, Brain, ChevronDown, Folder, PanelLeftOpen, Paperclip, Quote, Shield } from 'lucide-react'
 import { SettingsPanel } from '../SettingsPanel'
 import { MemoryPanel } from '../MemoryPanel'
 import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
@@ -16,7 +16,7 @@ import type { MemoryEntry } from '../../shared/types'
 type SurfaceId = 'chat' | 'sidebar' | 'dock' | 'world' | 'memory' | 'settings'
 
 const SURFACES: { id: SurfaceId; label: string; description: string; adopted: boolean; source: string }[] = [
-  { id: 'chat', label: 'Chat 壳', description: '248px Sidebar、会话标题、居中欢迎区与紧凑输入卡；主区域不重复角色名', adopted: false, source: 'src/App.tsx · src/components/shell/PrimarySidebar.tsx' },
+  { id: 'chat', label: 'Chat 壳', description: 'Sidebar 底部开发入口候选、二级页恢复入口、会话标题、居中欢迎区与紧凑输入卡', adopted: false, source: 'src/App.tsx · src/components/shell/PrimarySidebar.tsx' },
   { id: 'sidebar', label: 'Primary Sidebar', description: '伙伴身份、会话与底栏入口', adopted: true, source: 'src/components/shell/PrimarySidebar.tsx' },
   { id: 'dock', label: 'Right Dock', description: '文件、审阅、终端与 Debug 层级', adopted: true, source: 'src/components/chat/right-dock/ChatRightDock.tsx' },
   { id: 'world', label: '人物世界', description: '生活面 tab 与内容节奏', adopted: true, source: 'src/components/shell/WorldHub.tsx' },
@@ -72,27 +72,51 @@ function SurfaceViewport({ children }: { children: ReactNode }) {
 
 function ChatSurface() {
   const sessionFilterRef = useRef<HTMLInputElement>(null)
-  const [viewport, setViewport] = useState<'standard' | 'split'>('standard')
+  const [viewport, setViewport] = useState<'standard' | 'split' | 'collapsed'>('standard')
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const handleContextMenu = (event: MouseEvent, sessionId: string) => {
     event.preventDefault()
     void sessionId
   }
 
+  const candidateStyle = `
+    .playground-sidebar-candidate [data-testid="primary-sidebar"] { position: relative; }
+    .playground-sidebar-candidate [data-testid="sidebar-developer-nav"] {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 82px;
+      margin: 0;
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 0;
+      padding-top: 8px;
+    }
+    .playground-sidebar-candidate [data-testid="sidebar-session-list"] { padding-bottom: 78px; }
+    .playground-sidebar-candidate [data-testid="primary-sidebar"] button[title="记忆"] { display: none; }
+    .playground-sidebar-candidate [data-testid="primary-sidebar"] .grid:has(> button[title="记忆"]) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  `
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-          结构基线 · 不连接真实会话
+          结构基线 · Playground 候选态 · 不连接真实会话
         </div>
         <div className="flex rounded-[var(--radius-md)] border p-0.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
           {([
             { id: 'standard' as const, label: '标准宽度' },
             { id: 'split' as const, label: '分栏窄宽' },
+            { id: 'collapsed' as const, label: '二级页收起' },
           ]).map((item) => (
             <button
               key={item.id}
               type="button"
-              onClick={() => setViewport(item.id)}
+              onClick={() => {
+                setViewport(item.id)
+                setSidebarOpen(true)
+              }}
               className="rounded px-2 py-1 text-[10px] transition"
               style={{
                 color: viewport === item.id ? 'var(--accent-fg)' : 'var(--text-muted)',
@@ -106,112 +130,166 @@ function ChatSurface() {
       </div>
       <div className="mx-auto w-full transition-[max-width]" style={{ maxWidth: viewport === 'split' ? 760 : 1040 }}>
         <SurfaceViewport>
+          <style>{candidateStyle}</style>
           <div className="flex h-full min-h-[620px]">
-            <PrimarySidebar
-              personaName="小林"
-              personaBlurb="沉稳体贴的数字伙伴"
-              activeView="chat"
-              activeSessionId={null}
-              sessionGroups={[{ label: '今天', items: SAMPLE_SESSIONS }]}
-              sessionPreviews={{ 'surface-session-1': '先把必须今天完成的挑出来…' }}
-              pinnedIds={[]}
-              bgStreamingSessionId={null}
-              activeBgTaskCount={0}
-              sidebarSearchOpen={false}
-              sessionFilter=""
-              sessionFilterRef={sessionFilterRef}
-              renamingId={null}
-              renameValue=""
-              onOpenShelf={noop}
-              onCreateSession={noop}
-              onToggleSearch={noop}
-              onSessionFilterChange={noop}
-              onCloseSearch={noop}
-              onSelectSession={noop}
-              onStartRename={noop}
-              onRenameChange={noop}
-              onCommitRename={noop}
-              onCancelRename={noop}
-              onDeleteSession={noop}
-              onContextMenu={handleContextMenu}
-              onNavigate={noop}
-              onCollapse={noop}
-              width={248}
-            />
-            <div className="flex min-w-0 flex-1 flex-col" style={{ background: 'var(--bg-primary)' }}>
-              <div className="flex h-[52px] shrink-0 items-center border-b px-4" style={{ borderColor: 'var(--border-subtle)' }}>
-                <span className="truncate text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>新对话</span>
+            {sidebarOpen && (
+              <div className="playground-sidebar-candidate shrink-0" data-testid="surface-sidebar-candidate">
+                <PrimarySidebar
+                  personaName="小林"
+                  personaBlurb="沉稳体贴的数字伙伴"
+                  activeView={viewport === 'collapsed' ? 'memory' : 'chat'}
+                  activeSessionId={null}
+                  sessionGroups={[{ label: '今天', items: SAMPLE_SESSIONS }]}
+                  sessionPreviews={{ 'surface-session-1': '先把必须今天完成的挑出来…' }}
+                  pinnedIds={[]}
+                  bgStreamingSessionId={null}
+                  activeBgTaskCount={0}
+                  sidebarSearchOpen={false}
+                  sessionFilter=""
+                  sessionFilterRef={sessionFilterRef}
+                  renamingId={null}
+                  renameValue=""
+                  onOpenShelf={noop}
+                  onCreateSession={noop}
+                  onToggleSearch={noop}
+                  onSessionFilterChange={noop}
+                  onCloseSearch={noop}
+                  onSelectSession={noop}
+                  onStartRename={noop}
+                  onRenameChange={noop}
+                  onCommitRename={noop}
+                  onCancelRename={noop}
+                  onDeleteSession={noop}
+                  onContextMenu={handleContextMenu}
+                  onNavigate={noop}
+                  onCollapse={() => setSidebarOpen(false)}
+                  width={248}
+                />
               </div>
-              <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-                <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-6 py-8 text-center">
-                  <div className="max-w-lg pb-3">
-                    <h3 className="font-display text-[1.9rem] font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                      嗨，我是小林
-                    </h3>
-                    <p className="mt-3 text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                      沉稳体贴的数字伙伴
-                    </p>
-                    <blockquote
-                      className="mx-auto mt-3 flex max-w-sm items-start gap-2 rounded-[var(--radius-md)] px-3 py-2 text-left text-[11.5px] leading-5"
-                      style={{ color: 'var(--text-muted)', background: 'var(--bg-inset)' }}
+            )}
+
+            {viewport === 'collapsed' ? (
+              <div className="flex min-w-0 flex-1">
+                <aside
+                  className="flex w-[150px] shrink-0 flex-col border-r px-3 py-4"
+                  style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
+                  data-testid="surface-secondary-nav"
+                >
+                  {!sidebarOpen && (
+                    <button
+                      type="button"
+                      onClick={() => setSidebarOpen(true)}
+                      className="mb-4 flex items-center gap-1.5 rounded-[var(--radius-md)] px-2 py-1.5 text-[11px] transition"
+                      style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
+                      data-testid="surface-sidebar-reopen"
+                      title="重新展开主侧栏"
                     >
-                      <Quote className="mt-0.5 shrink-0" size={13} strokeWidth={1.6} aria-hidden="true" />
-                      <span>聊天、朋友圈和衣柜都跟着当前主角；对话进行中不能换人。</span>
-                    </blockquote>
-                    <div className="mt-8 flex flex-wrap justify-center gap-2">
-                      {['打个招呼', '今天想怎么过？', '看看朋友圈'].map((label, index) => (
-                        <button
-                          key={label}
-                          type="button"
-                          className="rounded-full border px-3.5 py-1.5 text-[12px]"
-                          style={{
-                            borderColor: index === 0 ? 'var(--companion-accent-warm)' : 'var(--border-color)',
-                            color: index === 0 ? 'var(--accent-fg)' : 'var(--text-secondary)',
-                            background: index === 0 ? 'var(--accent-subtle)' : 'var(--card-bg)',
-                          }}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                    <button type="button" className="mt-3 rounded px-2 py-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                      换个主角 →
+                      <PanelLeftOpen size={14} />
+                      展开主侧栏
                     </button>
+                  )}
+                  <div className="px-2 pb-1 text-[9px] font-medium tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>
+                    工具
                   </div>
+                  <button type="button" className="flex items-center gap-2 rounded-[var(--radius-md)] px-2 py-2 text-left text-[12px] font-medium" style={{ color: 'var(--text-primary)', background: 'var(--sidebar-active)' }}>
+                    <Brain size={14} />记忆
+                  </button>
+                  <button type="button" className="flex items-center gap-2 rounded-[var(--radius-md)] px-2 py-2 text-left text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                    Skills
+                  </button>
+                </aside>
+                <div className="min-w-0 flex-1" style={{ background: 'var(--bg-primary)' }}>
+                  <MemoryPanel onClose={noop} previewMemories={EMPTY_MEMORY_FIXTURES} readOnly />
                 </div>
-                <div className="shrink-0 px-5 pb-5 pt-2">
-                  <div className="mx-auto max-w-[800px]">
-                    <div
-                      className="rounded-[var(--radius-xl)] border px-3 py-2 shadow-sm"
-                      style={{
-                        borderColor: 'var(--border-color)',
-                        background: 'var(--card-bg)',
-                        boxShadow: '0 6px 22px color-mix(in srgb, var(--text-primary) 5%, transparent)',
-                      }}
-                    >
-                      <textarea className="min-h-[64px] w-full resize-none bg-transparent px-1 py-2 text-[13px] outline-none" rows={2} placeholder="和小林说说…" />
-                      <div className="flex items-center justify-between pt-1">
-                        <div className="flex items-center gap-1">
-                          <button type="button" className="rounded-md p-1.5" style={{ color: 'var(--text-muted)' }} title="添加附件"><Paperclip size={14} /></button>
-                          <span className="h-4 w-px" style={{ background: 'var(--border-subtle)' }} />
-                          <button type="button" className="flex items-center gap-1 rounded-md px-2 py-1 text-[10.5px]" style={{ color: 'var(--text-secondary)' }}>
-                            <Shield size={12} />确认模式<ChevronDown size={9} />
+              </div>
+            ) : (
+              <div className="relative flex min-w-0 flex-1 flex-col" style={{ background: 'var(--bg-primary)' }}>
+                {!sidebarOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setSidebarOpen(true)}
+                    className="absolute left-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] transition"
+                    style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
+                    data-testid="surface-sidebar-reopen"
+                    title="重新展开主侧栏"
+                  >
+                    <PanelLeftOpen size={15} />
+                  </button>
+                )}
+                <div className="flex h-[52px] shrink-0 items-center border-b px-4" style={{ borderColor: 'var(--border-subtle)' }}>
+                  <span className="truncate text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>新对话</span>
+                </div>
+                <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-6 py-8 text-center">
+                    <div className="max-w-lg pb-3">
+                      <h3 className="font-display text-[1.9rem] font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                        嗨，我是小林
+                      </h3>
+                      <p className="mt-3 text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                        沉稳体贴的数字伙伴
+                      </p>
+                      <blockquote
+                        className="mx-auto mt-3 flex max-w-sm items-start gap-2 rounded-[var(--radius-md)] px-3 py-2 text-left text-[11.5px] leading-5"
+                        style={{ color: 'var(--text-muted)', background: 'var(--bg-inset)' }}
+                      >
+                        <Quote className="mt-0.5 shrink-0" size={13} strokeWidth={1.6} aria-hidden="true" />
+                        <span>聊天、朋友圈和衣柜都跟着当前主角；对话进行中不能换人。</span>
+                      </blockquote>
+                      <div className="mt-8 flex flex-wrap justify-center gap-2">
+                        {['打个招呼', '今天想怎么过？', '看看朋友圈'].map((label, index) => (
+                          <button
+                            key={label}
+                            type="button"
+                            className="rounded-full border px-3.5 py-1.5 text-[12px]"
+                            style={{
+                              borderColor: index === 0 ? 'var(--companion-accent-warm)' : 'var(--border-color)',
+                              color: index === 0 ? 'var(--accent-fg)' : 'var(--text-secondary)',
+                              background: index === 0 ? 'var(--accent-subtle)' : 'var(--card-bg)',
+                            }}
+                          >
+                            {label}
                           </button>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10.5px]" style={{ color: 'var(--text-muted)' }}>GPT-4o</span>
-                          <button type="button" className="flex h-7 w-7 items-center justify-center rounded-full text-white" style={{ background: 'var(--accent-emphasis)' }} title="发送"><ArrowUp size={14} /></button>
+                        ))}
+                      </div>
+                      <button type="button" className="mt-3 rounded px-2 py-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        换个主角 →
+                      </button>
+                    </div>
+                  </div>
+                  <div className="shrink-0 px-5 pb-5 pt-2">
+                    <div className="mx-auto max-w-[800px]">
+                      <div
+                        className="rounded-[var(--radius-xl)] border px-3 py-2 shadow-sm"
+                        style={{
+                          borderColor: 'var(--border-color)',
+                          background: 'var(--card-bg)',
+                          boxShadow: '0 6px 22px color-mix(in srgb, var(--text-primary) 5%, transparent)',
+                        }}
+                      >
+                        <textarea className="min-h-[64px] w-full resize-none bg-transparent px-1 py-2 text-[13px] outline-none" rows={2} placeholder="和小林说说…" />
+                        <div className="flex items-center justify-between pt-1">
+                          <div className="flex items-center gap-1">
+                            <button type="button" className="rounded-md p-1.5" style={{ color: 'var(--text-muted)' }} title="添加附件"><Paperclip size={14} /></button>
+                            <span className="h-4 w-px" style={{ background: 'var(--border-subtle)' }} />
+                            <button type="button" className="flex items-center gap-1 rounded-md px-2 py-1 text-[10.5px]" style={{ color: 'var(--text-secondary)' }}>
+                              <Shield size={12} />确认模式<ChevronDown size={9} />
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10.5px]" style={{ color: 'var(--text-muted)' }}>GPT-4o</span>
+                            <button type="button" className="flex h-7 w-7 items-center justify-center rounded-full text-white" style={{ background: 'var(--accent-emphasis)' }} title="发送"><ArrowUp size={14} /></button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="mt-1.5 flex items-center justify-between px-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                      <span className="flex items-center gap-1"><Folder size={11} /> 未选择项目</span>
-                      <span>结构预览</span>
+                      <div className="mt-1.5 flex items-center justify-between px-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                        <span className="flex items-center gap-1"><Folder size={11} /> 未选择项目</span>
+                        <span>结构预览</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </SurfaceViewport>
       </div>

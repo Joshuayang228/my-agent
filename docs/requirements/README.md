@@ -22,6 +22,7 @@
 
 | 文档 | 说明 |
 |------|------|
+| [sidebar-navigation-baseline-v2.md](./sidebar-navigation-baseline-v2.md) | Phase P0：Sidebar 底部导航、记忆入口归位与二级页恢复按钮候选；确认前不回流生产 |
 | [playground-bilingual-ui-vocabulary.md](./playground-bilingual-ui-vocabulary.md) | Playground 中文分类与常用 UI 控件中英分层文案 |
 
 ---
