@@ -248,8 +248,7 @@ function ChatSurface() {
               </div>
             )}
 
-
-              <div className="relative flex min-w-0 flex-1 flex-col" style={{ background: 'var(--bg-primary)' }}>
+              <div className="relative flex min-w-0 flex-1 flex-col" style={{ background: 'var(--bg-primary)' }} data-testid="chat-surface-main">
                 {!sidebarOpen && (
                   <button
                     type="button"
@@ -262,9 +261,6 @@ function ChatSurface() {
                     <PanelLeftOpen size={15} />
                   </button>
                 )}
-                <div className="flex h-[52px] shrink-0 items-center border-b px-4" style={{ borderColor: 'var(--border-subtle)' }}>
-                  <span className="truncate text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>新对话</span>
-                </div>
                 <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                   <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-6 py-8 text-center">
                     <div className="max-w-lg pb-3">

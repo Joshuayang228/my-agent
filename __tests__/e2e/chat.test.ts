@@ -64,6 +64,8 @@ test.describe('My Agent UI', () => {
     await page.locator('[data-testid="playground-shell"] nav').getByRole('button', { name: '页面组合', exact: true }).click()
 
     const surfaceTabs = page.getByRole('tablist', { name: '页面基线分区' })
+    const chatMain = page.locator('[data-testid="chat-surface-main"]')
+    await expect(chatMain.getByText('新对话', { exact: true })).toHaveCount(0)
     const candidate = page.locator('[data-testid="surface-sidebar-candidate"]')
     await expect(candidate).toBeVisible()
     await expect(candidate.getByRole('button', { name: '记忆', exact: true })).toHaveCount(0)
