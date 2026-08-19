@@ -90,8 +90,9 @@ function FixtureError({ title, body, action }: { title: string; body: string; ac
   )
 }
 
-export function UiControlsPanel() {
-  const [sub, setSub] = useState<UiControlsSubId>('component-catalog')
+export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId } = {}) {
+  const [sub, setSub] = useState<UiControlsSubId>(initialSub ?? 'component-catalog')
+  const effectiveSub = initialSub ?? sub
   const [collapse, setCollapse] = useState<Record<string, boolean>>({})
   const [iconQuery, setIconQuery] = useState('')
   const [iconCategory, setIconCategory] = useState<IconCategoryId | 'all'>('all')
@@ -114,8 +115,8 @@ export function UiControlsPanel() {
   }))
 
   return (
-    <div className="flex min-h-0 flex-col gap-4 sm:flex-row" data-testid="ui-controls-panel">
-      <div className="w-full shrink-0 space-y-3 sm:w-[120px]">
+    <div className={initialSub ? 'min-h-0' : 'flex min-h-0 flex-col gap-4 sm:flex-row'} data-testid="ui-controls-panel">
+      {!initialSub && <div className="w-full shrink-0 space-y-3 sm:w-[120px]">
         <div>
           <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
             组件与边缘态
@@ -144,12 +145,12 @@ export function UiControlsPanel() {
             )
           })}
         </div>
-      </div>
+      </div>}
 
-      <div className="min-w-0 max-w-2xl flex-1 space-y-4">
-      {sub === 'component-catalog' && <ComponentInventoryPanel />}
+      <div className={initialSub ? 'min-w-0 space-y-4' : 'min-w-0 max-w-2xl flex-1 space-y-4'}>
+      {effectiveSub === 'component-catalog' && <ComponentInventoryPanel />}
 
-      {sub === 'buttons' && (
+      {effectiveSub === 'buttons' && (
         <div className="space-y-3">
           <StoryBlock title="主要 / 次要" source="index.css · .settings-option" adopted>
             <div className="flex flex-wrap items-center gap-2">
@@ -178,7 +179,7 @@ export function UiControlsPanel() {
         </div>
       )}
 
-      {sub === 'inputs' && (
+      {effectiveSub === 'inputs' && (
         <div className="space-y-3">
           <StoryBlock title="theme-input 默认" source=".theme-input" adopted>
             <input
@@ -205,7 +206,7 @@ export function UiControlsPanel() {
         </div>
       )}
 
-      {sub === 'tool-cards' && (
+      {effectiveSub === 'tool-cards' && (
         <div className="space-y-3">
           <StoryBlock title="工具卡三态" source="src/components/chat/callbacks/ToolCallbackList.tsx" adopted>
             <ToolCallbackList
@@ -229,7 +230,7 @@ export function UiControlsPanel() {
         </div>
       )}
 
-      {sub === 'empty' && (
+      {effectiveSub === 'empty' && (
         <div className="space-y-3">
           <StoryBlock title="Chat 空态" source="Chat 空态 / Fixtures 同源视觉">
             <ChatEmptyFixture />
@@ -240,7 +241,7 @@ export function UiControlsPanel() {
         </div>
       )}
 
-      {sub === 'confirm' && (
+      {effectiveSub === 'confirm' && (
         <div className="space-y-3">
           <StoryBlock title="权限确认" source="src/components/chat/PermissionConfirmCard.tsx" adopted>
             <PermissionConfirmCard
@@ -258,7 +259,7 @@ export function UiControlsPanel() {
         </div>
       )}
 
-      {sub === 'memory-chips' && (
+      {effectiveSub === 'memory-chips' && (
         <div className="space-y-3">
           <StoryBlock title="引用芯片 + 纠错" source="src/components/chat/MemoryCitationChips.tsx" adopted>
             <MemoryCitationChips
@@ -283,7 +284,7 @@ export function UiControlsPanel() {
         </div>
       )}
 
-      {sub === 'status-bar' && (
+      {effectiveSub === 'status-bar' && (
         <div className="space-y-3">
           <StoryBlock title="伴侣状态条" source="src/components/CompanionStatusBar.tsx" adopted>
             <div className="overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
@@ -312,7 +313,7 @@ export function UiControlsPanel() {
         </div>
       )}
 
-      {sub === 'icons' && (
+      {effectiveSub === 'icons' && (
         <div className="space-y-3" data-testid="icon-inventory">
           <StoryBlock title="操作图标阶梯" source="lucide-react · 12 / 14 / 16 / 20" adopted>
             <div className="flex flex-wrap items-end gap-5">
@@ -423,7 +424,7 @@ export function UiControlsPanel() {
           </StoryBlock>
         </div>
       )}
-      {sub === 'feedback' && (
+      {effectiveSub === 'feedback' && (
         <div className="space-y-3">
           <StoryBlock title="错误反馈（常用 3 态）" source="Playground fixture · merged" edge>
             <div className="space-y-2">

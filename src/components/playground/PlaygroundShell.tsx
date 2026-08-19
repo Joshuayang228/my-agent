@@ -1,12 +1,31 @@
-
 /**
- * Playground 壳：按开发者任务分组，叶子页面仍复用现有隔离实验面板。
- * 设计意图：降低入口认知负担，同时保留每个实验的独立 URL-less 状态。
+ * Playground 壳：单一侧栏 + 一级实验入口，内容区直接渲染当前故事。
+ * 设计意图：像 Settings 一样让每个可独立验收的实验成为一级目的地，避免页面内再套二级导航。
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowLeft, FlaskConical } from 'lucide-react'
-import { PLAYGROUND_GROUPS, PLAYGROUND_TABS, type PlaygroundTabId } from './catalog'
+import {
+  AlertCircle,
+  ArrowLeft,
+  Blocks,
+  CircleDot,
+  FileCode2,
+  FlaskConical,
+  Gauge,
+  Image,
+  LayoutTemplate,
+  MessageSquare,
+  MousePointer2,
+  Palette,
+  ShieldCheck,
+  SlidersHorizontal,
+  SquareDashed,
+  TerminalSquare,
+  TestTube2,
+  Wrench,
+  type LucideIcon,
+} from 'lucide-react'
+import { PLAYGROUND_GROUPS, PLAYGROUND_TABS, UI_CONTROLS_SUBTABS, type PlaygroundTabId, type UiControlsSubId } from './catalog'
 import { DesignSystemPanel } from './DesignSystemPanel'
 import { UiControlsPanel } from './UiControlsPanel'
 import { SurfaceBaselinePanel } from './SurfaceBaselinePanel'
@@ -17,10 +36,32 @@ import { AdoptionVisibilityProvider, AdoptionVisibilityToggle } from './Adoption
 
 const TAB_STORAGE_KEY = 'playground.active-tab'
 
+const ICONS: Partial<Record<PlaygroundTabId, LucideIcon>> = {
+  'design-system': Palette,
+  'component-catalog': Blocks,
+  buttons: MousePointer2,
+  inputs: SlidersHorizontal,
+  'tool-cards': Wrench,
+  empty: SquareDashed,
+  confirm: ShieldCheck,
+  'memory-chips': CircleDot,
+  'status-bar': Gauge,
+  icons: Image,
+  feedback: AlertCircle,
+  'surface-baseline': LayoutTemplate,
+  'chat-lab': MessageSquare,
+  'model-test': TestTube2,
+  tools: TerminalSquare,
+}
+
 function readInitialTab(): PlaygroundTabId {
   if (typeof window === 'undefined') return 'design-system'
   const stored = window.localStorage.getItem(TAB_STORAGE_KEY) as PlaygroundTabId | null
   return PLAYGROUND_TABS.some((tab) => tab.id === stored && tab.status !== 'archived') ? stored! : 'design-system'
+}
+
+function isUiControlTab(tab: PlaygroundTabId): tab is UiControlsSubId {
+  return UI_CONTROLS_SUBTABS.some((item) => item.id === tab)
 }
 
 export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
@@ -47,50 +88,64 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
     <AdoptionVisibilityProvider>
       <div className="flex h-full min-h-0" data-testid="playground-shell">
         <nav
-          className="flex w-[190px] shrink-0 flex-col overflow-y-auto border-r px-2 py-3"
+          className="flex w-[214px] shrink-0 flex-col overflow-y-auto border-r px-3 py-3"
           style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
-          aria-label="Playground 分组"
+          aria-label="Playground 一级导航"
+          data-testid="playground-nav"
         >
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="mb-2 flex w-full items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] transition"
-              style={{ color: 'var(--text-secondary)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-              title="返回聊天"
-            >
-              <ArrowLeft size={15} strokeWidth={1.75} />
-              返回
-            </button>
-          )}
-          <div className="mb-3 flex items-center gap-1.5 px-2.5 pb-2 text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-            <FlaskConical size={13} style={{ color: 'var(--accent)' }} />
-            Playground
+          <div className="mb-3 flex items-center justify-between gap-2 px-1">
+            {onClose ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] transition"
+                style={{ color: 'var(--text-secondary)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+                title="返回聊天"
+              >
+                <ArrowLeft size={14} strokeWidth={1.75} />
+                返回
+              </button>
+            ) : <span />}
+            <FlaskConical size={15} style={{ color: 'var(--accent)' }} aria-hidden="true" />
           </div>
-          <div className="space-y-3">
+
+          <div className="mb-4 rounded-xl border px-3 py-2.5" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
+            <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+              <FlaskConical size={14} style={{ color: 'var(--accent)' }} />
+              Playground
+            </div>
+            <p className="mt-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>
+              设计、页面和 Agent 能力的隔离实验室
+            </p>
+          </div>
+
+          <div className="space-y-5">
             {PLAYGROUND_GROUPS.map((group) => {
               const tabs = activeTabs.filter((item) => item.group === group.id)
               return (
                 <section key={group.id} aria-label={group.label}>
-                  <div className="px-2.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{group.label}</div>
-                  <p className="px-2.5 pt-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>{group.description}</p>
-                  <div className="mt-1 space-y-0.5">
+                  <div className="mb-1.5 px-1 text-[10px] font-semibold tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                    {group.label}
+                  </div>
+                  <div className="space-y-0.5">
                     {tabs.map((item) => {
                       const active = tab === item.id
+                      const Icon = ICONS[item.id] ?? FileCode2
                       return (
                         <button
                           key={item.id}
                           type="button"
                           onClick={() => setTab(item.id)}
-                          className="w-full rounded-lg px-2.5 py-1.5 text-left text-xs transition-all"
-                          style={active ? { background: 'var(--accent-subtle)', color: 'var(--accent-fg)', fontWeight: 500 } : { color: 'var(--text-muted)' }}
+                          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[12px] transition-all"
+                          style={active ? { background: 'var(--accent-subtle)', color: 'var(--accent-fg)', fontWeight: 600 } : { color: 'var(--text-secondary)' }}
                           onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'var(--sidebar-hover)' }}
                           onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent' }}
                           data-active={active ? 'true' : undefined}
                         >
-                          {item.label}
+                          <Icon size={14} strokeWidth={1.7} aria-hidden="true" />
+                          <span className="truncate">{item.label}</span>
                         </button>
                       )
                     })}
@@ -100,12 +155,13 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
             })}
           </div>
         </nav>
+
         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-6 py-6">
           <div className="mx-auto mb-4 flex max-w-5xl items-center justify-end gap-3 text-[10px]" style={{ color: 'var(--text-muted)' }}>
             <AdoptionVisibilityToggle />
           </div>
           {tab === 'design-system' && <DesignSystemPanel />}
-          {tab === 'ui-controls' && <UiControlsPanel />}
+          {isUiControlTab(tab) && <UiControlsPanel initialSub={tab} />}
           {tab === 'surface-baseline' && <SurfaceBaselinePanel />}
           {tab === 'chat-lab' && <PromptLabPanel />}
           {tab === 'model-test' && <ModelTestPanel />}

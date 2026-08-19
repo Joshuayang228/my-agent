@@ -36,6 +36,8 @@ export function WorldHub({
   onSwitched,
   recentByRole,
   momentsPreview,
+  momentsAppearance,
+  hideMomentsHeader,
 }: {
   tab: WorldTab
   onTabChange: (tab: WorldTab) => void
@@ -45,6 +47,10 @@ export function WorldHub({
   recentByRole: Record<string, { sessionId: string; title: string; updatedAt: number }>
   /** Playground / 测试专用只读朋友圈样张。 */
   momentsPreview?: MomentsPreviewData
+  /** Playground 以社交流展示验收朋友圈层级。 */
+  momentsAppearance?: 'default' | 'social-feed'
+  /** WorldHub 已有标题时隐藏 Moments 重复标题行。 */
+  hideMomentsHeader?: boolean
 }) {
   return (
     <div className="flex h-full flex-col" data-testid="world-hub">
@@ -103,7 +109,7 @@ export function WorldHub({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
-        {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} />}
+        {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} appearance={momentsAppearance} hideHeader={hideMomentsHeader} />}
         {tab === 'assets' && <AssetsPanel onClose={onClose} />}
         {tab === 'cast' && (
           <CastPanel

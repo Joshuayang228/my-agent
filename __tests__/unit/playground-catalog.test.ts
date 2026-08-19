@@ -5,7 +5,7 @@ describe('playground catalog', () => {
   it('只暴露设计与 Agent 实验两个任务域', () => {
     expect(PLAYGROUND_GROUPS.map((group) => group.id)).toEqual(['design', 'agent-experiments'])
     expect(PLAYGROUND_TABS.filter((tab) => tab.status !== 'archived').map((tab) => tab.id)).toEqual([
-      'design-system', 'ui-controls', 'surface-baseline', 'chat-lab', 'model-test', 'tools',
+      'design-system', 'component-catalog', 'buttons', 'inputs', 'tool-cards', 'empty', 'confirm', 'memory-chips', 'status-bar', 'icons', 'feedback', 'surface-baseline', 'chat-lab', 'model-test', 'tools',
     ])
     expect(PLAYGROUND_TABS.find((tab) => tab.id === 'persona-review')?.status).toBe('archived')
     expect(PLAYGROUND_TABS.find((tab) => tab.id === 'fixtures')?.status).toBe('archived')

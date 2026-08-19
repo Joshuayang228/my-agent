@@ -116,8 +116,7 @@ test.describe('My Agent UI', () => {
   test('Playground Toast 四态关闭按钮沿统一右边界对齐', async ({ page }) => {
     await page.goto('/')
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
-    await page.locator('[data-testid="playground-shell"] nav').getByRole('button', { name: '组件', exact: true }).click()
-    await page.getByRole('button', { name: '系统反馈', exact: true }).click()
+    await page.locator('[data-testid="playground-shell"] nav').getByRole('button', { name: '系统反馈', exact: true }).click()
 
     const toastStory = page.locator('section').filter({ hasText: 'Toast 四态' }).first()
     const closeButtons = toastStory.getByRole('button', { name: '关闭通知' })
@@ -126,7 +125,7 @@ test.describe('My Agent UI', () => {
     expect(Math.max(...rightEdges) - Math.min(...rightEdges)).toBeLessThan(1)
   })
 
-  test('Debug 与 Playground 采用任务分组导航', async ({ page }) => {
+  test('Debug 与 Playground 采用一级任务导航', async ({ page }) => {
     await page.goto('/')
 
     const developerNav = page.locator('[data-testid="sidebar-developer-nav"]')
@@ -182,17 +181,71 @@ test.describe('My Agent UI', () => {
     await expect(playgroundNav.getByRole('button', { name: '人格场景说明', exact: true })).not.toBeVisible()
     await expect(playgroundNav.getByRole('button', { name: '体验夹具', exact: true })).not.toBeVisible()
 
-    await playgroundNav.getByRole('button', { name: '组件', exact: true }).click()
-    await page.getByRole('button', { name: '组件目录', exact: true }).click()
+    await expect(playgroundNav.getByRole('button', { name: '组件', exact: true })).toHaveCount(0)
+    await playgroundNav.getByRole('button', { name: '组件目录', exact: true }).click()
     await expect(page.locator('[data-testid="component-inventory"]')).toBeVisible()
     await expect(page.getByPlaceholder('搜索中文、English、语义 key 或来源')).toBeVisible()
     await expect(page.getByText('behavior.dialog', { exact: true })).toBeVisible()
-    await page.getByRole('button', { name: '图标', exact: true }).click()
+    await playgroundNav.getByRole('button', { name: '图标', exact: true }).click()
     await expect(page.locator('[data-testid="icon-inventory"]')).toBeVisible()
     await expect(page.getByPlaceholder('搜索中文、English、语义 key 或用途')).toBeVisible()
     await expect(page.getByText('navigation.search', { exact: true })).toBeVisible()
-    await page.getByRole('button', { name: '伙伴与生活', exact: true }).click()
-    await expect(page.getByText('companion.camera', { exact: true })).toBeVisible()
+    await expect(page.locator('[data-testid="ui-controls-panel"] > div').first()).not.toContainText('组件与边缘态')
+  })
+
+  test('Playground 页面组合提供隔离的右坞、朋友圈和记忆样张', async ({ page }) => {
+    await page.goto('/')
+    await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
+
+    const playgroundNav = page.locator('[data-testid="playground-shell"] nav')
+    await playgroundNav.getByRole('button', { name: '页面组合', exact: true }).click()
+    const baseline = page.locator('[data-testid="surface-baseline-panel"]')
+    await expect(baseline).toBeVisible()
+
+    await baseline.getByRole('tab', { name: 'Right Dock', exact: true }).click()
+    const dock = baseline.locator('[data-testid="chat-right-dock"]')
+    await expect(dock.getByTestId('right-dock-tab-preview')).toBeVisible()
+    await expect(dock.getByTestId('right-dock-tab-files')).toHaveCount(0)
+    await expect(dock.getByTestId('right-dock-tab-review')).toHaveCount(0)
+    await expect(dock.getByTestId('right-dock-tab-terminal')).toHaveCount(0)
+    expect(await dock.getByTestId('right-dock-add-tab').evaluate((add, close) => Boolean(add.compareDocumentPosition(close as Node) & Node.DOCUMENT_POSITION_FOLLOWING), await dock.getByTestId('right-dock-close-tab').elementHandle())).toBe(true)
+
+    await dock.getByTestId('right-dock-add-tab').click()
+    const addMenu = dock.getByRole('menu', { name: '添加右坞 Tab' })
+    await expect(addMenu.getByRole('menuitem', { name: '文件', exact: true })).toBeVisible()
+    await expect(addMenu.getByRole('menuitem', { name: '审阅', exact: true })).toBeVisible()
+    await expect(addMenu.getByRole('menuitem', { name: '终端', exact: true })).toBeVisible()
+    await addMenu.getByRole('menuitem', { name: '文件', exact: true }).click()
+    await dock.getByTestId('right-dock-tab-files').click()
+    const fileTree = dock.getByTestId('file-browser-tree')
+    await fileTree.getByRole('button', { name: 'components', exact: true }).click()
+    await expect(fileTree).toContainText('AppShell.tsx')
+    await expect(dock.getByTestId('file-browser-preview')).toHaveCount(0)
+
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '审阅', exact: true }).click()
+    await expect(dock.getByTestId('dock-fixture-审阅')).toBeVisible()
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '终端', exact: true }).click()
+    await expect(dock.getByTestId('dock-fixture-终端')).toBeVisible()
+
+    await baseline.getByRole('tab', { name: '人物世界', exact: true }).click()
+    await expect(baseline.getByText('生活广播（非日志表）', { exact: false })).toHaveCount(0)
+    await expect(baseline.getByText('CATCH-UP', { exact: true })).toHaveCount(0)
+    await expect(baseline.getByText('把窗帘拉开了一点，泡了杯乌龙茶，准备先把桌面清出一块。', { exact: true })).toBeVisible()
+    await expect(baseline.getByText('路过河边的时候记下了一个想法：慢一点，反而能看见今天真正想做的事。', { exact: true })).toBeVisible()
+    await expect(baseline.getByText('仅展示近期动态 · 内容由主角的生活事件自然派生', { exact: true })).toBeVisible()
+
+    await baseline.getByRole('tab', { name: '记忆', exact: true }).click()
+    const memory = baseline.getByTestId('memory-surface-candidate')
+    await expect(memory).toBeVisible()
+    await expect(memory.getByRole('button', { name: /身份 \(1\)/ })).toBeVisible()
+    await expect(memory.getByRole('button', { name: /工作方式 \(1\)/ })).toBeVisible()
+    await expect(memory.getByRole('button', { name: /沟通风格 \(1\)/ })).toBeVisible()
+    await expect(memory.getByRole('button', { name: /事实 \(0\)/ })).toBeVisible()
+    await expect(memory.locator('[class*="bg-amber-"]')).toHaveCount(0)
+    await expect(memory.locator('[class*="bg-rose-"]')).toHaveCount(0)
+    await expect(memory.locator('[class*="bg-blue-"]')).toHaveCount(0)
   })
 
   test('Skills 管理页显示校验、版本和隔离试跑入口', async ({ page }) => {

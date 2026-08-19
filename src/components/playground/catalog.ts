@@ -14,6 +14,7 @@ export type PlaygroundTabId =
   | 'model-test'
   | 'tools'
   | 'fixtures'
+  | UiControlsSubId
 
 export type PlaygroundTabStatus = 'active' | 'archived'
 
@@ -38,12 +39,22 @@ export const PLAYGROUND_GROUPS: readonly PlaygroundGroupDef[] = [
 /** 顶层入口只展示两个任务域；人格静态验收保留源码但不再作为 active 入口。 */
 export const PLAYGROUND_TABS: readonly PlaygroundTabDef[] = [
   { id: 'design-system', label: 'Token 与主题', group: 'design' },
-  { id: 'ui-controls', label: '组件', group: 'design' },
-  { id: 'fixtures', label: '状态与边缘态', group: 'design', status: 'archived' },
+  { id: 'component-catalog', label: '组件目录', group: 'design' },
+  { id: 'buttons', label: '按钮', group: 'design' },
+  { id: 'inputs', label: '输入', group: 'design' },
+  { id: 'tool-cards', label: '工具卡', group: 'design' },
+  { id: 'empty', label: '空态', group: 'design' },
+  { id: 'confirm', label: '确认框', group: 'design' },
+  { id: 'memory-chips', label: '记忆芯片', group: 'design' },
+  { id: 'status-bar', label: '状态条', group: 'design' },
+  { id: 'icons', label: '图标', group: 'design' },
+  { id: 'feedback', label: '系统反馈', group: 'design' },
   { id: 'surface-baseline', label: '页面组合', group: 'design' },
   { id: 'chat-lab', label: '对话试验', group: 'agent-experiments' },
   { id: 'model-test', label: '模型能力', group: 'agent-experiments' },
   { id: 'tools', label: '工具手测', group: 'agent-experiments' },
+  { id: 'ui-controls', label: '组件（旧入口）', group: 'design', status: 'archived' },
+  { id: 'fixtures', label: '状态与边缘态', group: 'design', status: 'archived' },
   { id: 'persona-review', label: '人格场景说明', group: 'agent-experiments', status: 'archived' },
 ] as const
 

@@ -409,6 +409,7 @@ function DockSurface() {
           persistedCalls={[]}
           persistedLoading={false}
           filesPreview={FILE_PREVIEW_FIXTURES}
+          playgroundTabs
           onCloseFiles={noop}
           onCloseDebug={noop}
         />
@@ -428,6 +429,8 @@ function WorldSurface() {
         onSwitched={noop}
         recentByRole={{}}
         momentsPreview={MOMENTS_PREVIEW_FIXTURES}
+        momentsAppearance="social-feed"
+        hideMomentsHeader
       />
     </SurfaceViewport>
   )

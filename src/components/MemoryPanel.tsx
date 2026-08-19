@@ -20,18 +20,16 @@ const CATEGORIES: { id: MemoryCategory; label: string; icon: React.ReactNode; co
   { id: 'identity', label: '身份', icon: CATEGORY_ICONS.identity, color: 'cyan' },
   { id: 'workflow', label: '工作方式', icon: CATEGORY_ICONS.workflow, color: 'violet' },
   { id: 'voice', label: '沟通风格', icon: CATEGORY_ICONS.voice, color: 'emerald' },
-  { id: 'preference', label: '偏好', icon: CATEGORY_ICONS.preference, color: 'amber' },
-  { id: 'fact', label: '事实', icon: CATEGORY_ICONS.fact, color: 'rose' },
-  { id: 'feedback', label: '反馈', icon: CATEGORY_ICONS.feedback, color: 'blue' },
+  { id: 'preference', label: '偏好', icon: CATEGORY_ICONS.preference, color: 'muted' },
+  { id: 'fact', label: '事实', icon: CATEGORY_ICONS.fact, color: 'muted' },
+  { id: 'feedback', label: '反馈', icon: CATEGORY_ICONS.feedback, color: 'muted' },
 ]
 
 const COLOR_MAP: Record<string, { bg: string; border: string; text: string; badge: string }> = {
   cyan: { bg: 'bg-cyan-500/5', border: 'border-cyan-500/30', text: 'text-cyan-400', badge: 'bg-cyan-500/10 text-cyan-400' },
   violet: { bg: 'bg-violet-500/5', border: 'border-violet-500/30', text: 'text-violet-400', badge: 'bg-violet-500/10 text-violet-400' },
   emerald: { bg: 'bg-emerald-500/5', border: 'border-emerald-500/30', text: 'text-emerald-400', badge: 'bg-emerald-500/10 text-emerald-400' },
-  amber: { bg: 'bg-amber-500/5', border: 'border-amber-500/30', text: 'text-amber-400', badge: 'bg-amber-500/10 text-amber-400' },
-  rose: { bg: 'bg-rose-500/5', border: 'border-rose-500/30', text: 'text-rose-400', badge: 'bg-rose-500/10 text-rose-400' },
-  blue: { bg: 'bg-blue-500/5', border: 'border-blue-500/30', text: 'text-blue-400', badge: 'bg-blue-500/10 text-blue-400' },
+  muted: { bg: 'bg-slate-500/5', border: 'border-slate-500/25', text: 'text-slate-400', badge: 'bg-slate-500/10 text-slate-400' },
 }
 
 interface MemoryPanelProps {

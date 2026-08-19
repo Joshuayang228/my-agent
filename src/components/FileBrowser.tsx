@@ -53,6 +53,8 @@ interface FileBrowserProps {
   embedded?: boolean
   /** Playground / 测试专用只读样张；存在时完全跳过 project IPC。 */
   previewData?: FileBrowserPreviewData
+  /** files 只展示文件树，preview 只展示当前预览，split 保持生产双 pane。 */
+  mode?: 'files' | 'preview' | 'split'
 }
 
 function initialPreview(data?: FileBrowserPreviewData): PreviewState | null {
@@ -60,7 +62,7 @@ function initialPreview(data?: FileBrowserPreviewData): PreviewState | null {
   return data.files[data.initialPath] ?? null
 }
 
-export function FileBrowser({ projectPath, onClose, embedded = false, previewData }: FileBrowserProps) {
+export function FileBrowser({ projectPath, onClose, embedded = false, previewData, mode = 'split' }: FileBrowserProps) {
   const [tree, setTree] = useState<FileEntry[]>(() => previewData?.tree ?? [])
   const [filter, setFilter] = useState('')
   const [preview, setPreview] = useState<PreviewState | null>(() => initialPreview(previewData))
@@ -75,6 +77,8 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
   )
   const splitRef = useRef<HTMLDivElement>(null)
   const displayProjectPath = previewData?.projectLabel ?? projectPath
+  const showTree = mode !== 'preview'
+  const showPreview = mode !== 'files'
 
   const loadTree = useCallback(async () => {
     if (previewData) {
@@ -203,7 +207,7 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
         </div>
       ) : (
         <>
-          <div className="border-b px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
+          {showTree && <div className="border-b px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
             <div
               className="flex items-center gap-1.5 rounded-md border px-2 py-1"
               style={{ borderColor: 'var(--border-color)', background: 'var(--input-bg)' }}
@@ -217,13 +221,14 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                 style={{ color: 'var(--text-primary)' }}
               />
             </div>
-          </div>
+          </div>}
 
           {/* Alice 式：树上、预览下；中间可拖 */}
           <div ref={splitRef} className="flex min-h-0 flex-1 flex-col">
-            <div
-              className={`min-h-0 overflow-y-auto px-1 py-1 scrollbar-hover ${preview ? 'shrink-0' : 'flex-1'}`}
-              style={preview ? { height: `${Math.round(treeRatio * 100)}%` } : undefined}
+            {showTree && <div
+              className={`min-h-0 overflow-y-auto px-1 py-1 scrollbar-hover ${showPreview && preview ? 'shrink-0' : 'flex-1'}`}
+              style={showPreview && preview ? { height: `${Math.round(treeRatio * 100)}%` } : undefined}
+              data-testid="file-browser-tree"
             >
               {filteredTree.length === 0 && !loading && (
                 <div className="p-4 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -239,11 +244,11 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                   selectedPath={preview?.path}
                 />
               ))}
-            </div>
+            </div>}
 
-            {preview && (
+            {showPreview && preview && (
               <>
-                <ResizeHandle
+                {mode === 'split' && <ResizeHandle
                   orientation="horizontal"
                   title="拖动调整文件树 / 预览高度"
                   onDelta={(dy) => {
@@ -251,9 +256,10 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                     if (h <= 0) return
                     setTreeRatio((r) => r + dy / h)
                   }}
-                />
+                />}
               <div
                 className="flex min-h-0 flex-1 flex-col border-t"
+                data-testid="file-browser-preview"
                 style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}
               >
                 <div
