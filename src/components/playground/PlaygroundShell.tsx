@@ -5,29 +5,27 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import {
-  AlertCircle,
   ArrowLeft,
   Blocks,
-  CircleDot,
+  Brain,
+  BriefcaseBusiness,
   FileCode2,
   FlaskConical,
-  Gauge,
   Image,
-  LayoutTemplate,
   MessageSquare,
-  MousePointer2,
+  Newspaper,
   Palette,
-  ShieldCheck,
-  SlidersHorizontal,
-  SquareDashed,
+  PanelRight,
+  Settings2,
   TerminalSquare,
   TestTube2,
-  Wrench,
   type LucideIcon,
 } from 'lucide-react'
-import { PLAYGROUND_GROUPS, PLAYGROUND_TABS, UI_CONTROLS_SUBTABS, type PlaygroundTabId, type UiControlsSubId } from './catalog'
+import { PLAYGROUND_GROUPS, PLAYGROUND_TABS, type PlaygroundTabId } from './catalog'
 import { DesignSystemPanel } from './DesignSystemPanel'
 import { UiControlsPanel } from './UiControlsPanel'
+import { FoundationComponentsPanel } from './FoundationComponentsPanel'
+import { BusinessStatesPanel } from './BusinessStatesPanel'
 import { SurfaceBaselinePanel } from './SurfaceBaselinePanel'
 import { PromptLabPanel } from './PromptLabPanel'
 import { ToolRunPanel, type PlaygroundToolInfo } from './ToolRunPanel'
@@ -37,22 +35,20 @@ import { AdoptionVisibilityProvider, AdoptionVisibilityToggle } from './Adoption
 const TAB_STORAGE_KEY = 'playground.active-tab'
 
 const ICONS: Partial<Record<PlaygroundTabId, LucideIcon>> = {
-  'design-system': Palette,
-  'component-catalog': Blocks,
-  buttons: MousePointer2,
-  inputs: SlidersHorizontal,
-  'tool-cards': Wrench,
-  empty: SquareDashed,
-  confirm: ShieldCheck,
-  'memory-chips': CircleDot,
-  'status-bar': Gauge,
-  icons: Image,
-  feedback: AlertCircle,
-  'surface-baseline': LayoutTemplate,
+  'design-tokens': Palette,
+  'visual-assets': Image,
+  'foundation-components': Blocks,
+  chat: MessageSquare,
+  world: Newspaper,
+  memory: Brain,
+  settings: Settings2,
+  workspace: PanelRight,
+  'business-states': BriefcaseBusiness,
   'chat-lab': MessageSquare,
   'model-test': TestTube2,
   tools: TerminalSquare,
 }
+
 
 function readInitialTab(): PlaygroundTabId {
   if (typeof window === 'undefined') return 'design-system'
@@ -60,9 +56,7 @@ function readInitialTab(): PlaygroundTabId {
   return PLAYGROUND_TABS.some((tab) => tab.id === stored && tab.status !== 'archived') ? stored! : 'design-system'
 }
 
-function isUiControlTab(tab: PlaygroundTabId): tab is UiControlsSubId {
-  return UI_CONTROLS_SUBTABS.some((item) => item.id === tab)
-}
+
 
 export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
   const [tab, setTab] = useState<PlaygroundTabId>(readInitialTab)
@@ -117,7 +111,7 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
               Playground
             </div>
             <p className="mt-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>
-              设计、页面和 Agent 能力的隔离实验室
+              基础、产品体验和 Agent 能力的隔离实验室
             </p>
           </div>
 
@@ -160,9 +154,15 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
           <div className="mx-auto mb-4 flex max-w-5xl items-center justify-end gap-3 text-[10px]" style={{ color: 'var(--text-muted)' }}>
             <AdoptionVisibilityToggle />
           </div>
-          {tab === 'design-system' && <DesignSystemPanel />}
-          {isUiControlTab(tab) && <UiControlsPanel initialSub={tab} />}
-          {tab === 'surface-baseline' && <SurfaceBaselinePanel />}
+          {tab === 'design-tokens' && <DesignSystemPanel />}
+          {tab === 'visual-assets' && <UiControlsPanel initialSub="icons" />}
+          {tab === 'foundation-components' && <FoundationComponentsPanel />}
+          {tab === 'chat' && <SurfaceBaselinePanel initialSurface="chat" />}
+          {tab === 'world' && <SurfaceBaselinePanel initialSurface="world" />}
+          {tab === 'memory' && <SurfaceBaselinePanel initialSurface="memory" />}
+          {tab === 'settings' && <SurfaceBaselinePanel initialSurface="settings" />}
+          {tab === 'workspace' && <SurfaceBaselinePanel initialSurface="dock" />}
+          {tab === 'business-states' && <BusinessStatesPanel />}
           {tab === 'chat-lab' && <PromptLabPanel />}
           {tab === 'model-test' && <ModelTestPanel />}
           {tab === 'tools' && <ToolRunPanel tools={tools} />}

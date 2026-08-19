@@ -119,10 +119,10 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
       {!initialSub && <div className="w-full shrink-0 space-y-3 sm:w-[120px]">
         <div>
           <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-            组件与边缘态
+            基础组件样式
           </h2>
           <p className="mt-1 text-[11px] leading-snug" style={{ color: 'var(--text-muted)' }}>
-            正式组件的默认态、错误态、空态与窄屏边缘态；不装 Storybook。
+            组件索引与隔离故事：先确认基础样式，再由产品体验引用。
           </p>
         </div>
         <div className="scrollbar-hover flex gap-0.5 overflow-x-auto sm:flex-col sm:overflow-x-visible">
@@ -449,12 +449,12 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
           </StoryBlock>
           <StoryBlock title="正文与内心独白" source="src/components/MarkdownRenderer.tsx" adopted>
             <div className="max-w-xl text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>
-              <MarkdownRenderer content={'先把今天必须完成的两件事挑出来，剩下的明天再看。\n\n<aside>他看起来有点累，别一次塞太多。</aside>'} />
+              <MarkdownRenderer content={'先把今天必须完成的两件事挑出来，剩下的明天再看。<aside>他看起来有点累，别一次塞太多。</aside>'} />
             </div>
           </StoryBlock>
           <StoryBlock title="长独白边缘" source="MarkdownRenderer · aside guard" edge adopted>
             <div className="max-w-xl text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>
-              <MarkdownRenderer content={'我先给你一个可以直接执行的版本。\n\n<aside>这是一段故意拉长的内心独白，用来检查窄栏换行、正文层级和弱化后的可读性，不能盖过真正的回答。</aside>'} />
+              <MarkdownRenderer content={'我先给你一个可以直接执行的版本。<aside>这是一段故意拉长的内心独白，用来检查窄栏换行、正文层级和弱化后的可读性，不能盖过真正的回答。</aside>'} />
             </div>
           </StoryBlock>
         </div>

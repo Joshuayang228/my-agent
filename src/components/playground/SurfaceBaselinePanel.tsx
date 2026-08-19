@@ -495,8 +495,9 @@ function MemorySurface() {
   )
 }
 
-export function SurfaceBaselinePanel() {
-  const [surface, setSurface] = useState<SurfaceId>('chat')
+export function SurfaceBaselinePanel({ initialSurface }: { initialSurface?: SurfaceId } = {}) {
+  const [surface, setSurface] = useState<SurfaceId>(initialSurface ?? 'chat')
+  const fixedSurface = initialSurface !== undefined
   const active = SURFACES.find((item) => item.id === surface) ?? SURFACES[0]
 
   return (
@@ -508,7 +509,7 @@ export function SurfaceBaselinePanel() {
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-1 border-b" style={{ borderColor: 'var(--border-color)' }} role="tablist" aria-label="页面基线分区">
+      {!fixedSurface && <div className="flex flex-wrap gap-1 border-b" style={{ borderColor: 'var(--border-color)' }} role="tablist" aria-label="页面基线分区">
         {SURFACES.map((item) => {
           const selected = item.id === surface
           return (
@@ -529,7 +530,7 @@ export function SurfaceBaselinePanel() {
             </button>
           )
         })}
-      </div>
+      </div>}
 
       <StoryBlock title={active.label} source={active.source} adopted={active.adopted}>
         <p className="mb-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>{active.description}</p>
