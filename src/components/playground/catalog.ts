@@ -3,18 +3,15 @@
  * 旧面板仍保留为独立实现，目录只负责入口、分组和可见性。
  */
 
+import type { ProductExperienceTabId } from '../../shared/product-experience-registry'
+
 export type PlaygroundGroupId = 'foundation' | 'experience' | 'agent-experiments'
 
 export type PlaygroundTabId =
   | 'design-tokens'
   | 'visual-assets'
   | 'foundation-components'
-  | 'chat'
-  | 'world'
-  | 'memory'
-  | 'settings'
-  | 'workspace'
-  | 'business-states'
+  | ProductExperienceTabId
   | 'chat-lab'
   | 'model-test'
   | 'tools'

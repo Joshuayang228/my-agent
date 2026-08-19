@@ -26,6 +26,7 @@ import { DesignSystemPanel } from './DesignSystemPanel'
 import { UiControlsPanel } from './UiControlsPanel'
 import { FoundationComponentsPanel } from './FoundationComponentsPanel'
 import { BusinessStatesPanel } from './BusinessStatesPanel'
+import { ProductExperienceDependencies } from './ProductExperienceDependencies'
 import { SurfaceBaselinePanel } from './SurfaceBaselinePanel'
 import { PromptLabPanel } from './PromptLabPanel'
 import { ToolRunPanel, type PlaygroundToolInfo } from './ToolRunPanel'
@@ -157,12 +158,12 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
           {tab === 'design-tokens' && <DesignSystemPanel />}
           {tab === 'visual-assets' && <UiControlsPanel initialSub="icons" />}
           {tab === 'foundation-components' && <FoundationComponentsPanel />}
-          {tab === 'chat' && <SurfaceBaselinePanel initialSurface="chat" />}
-          {tab === 'world' && <SurfaceBaselinePanel initialSurface="world" />}
-          {tab === 'memory' && <SurfaceBaselinePanel initialSurface="memory" />}
-          {tab === 'settings' && <SurfaceBaselinePanel initialSurface="settings" />}
-          {tab === 'workspace' && <SurfaceBaselinePanel initialSurface="dock" />}
-          {tab === 'business-states' && <BusinessStatesPanel />}
+          {tab === 'chat' && <><ProductExperienceDependencies tabId="chat" /><SurfaceBaselinePanel initialSurface="chat" /></>}
+          {tab === 'world' && <><ProductExperienceDependencies tabId="world" /><SurfaceBaselinePanel initialSurface="world" /></>}
+          {tab === 'memory' && <><ProductExperienceDependencies tabId="memory" /><SurfaceBaselinePanel initialSurface="memory" /></>}
+          {tab === 'settings' && <><ProductExperienceDependencies tabId="settings" /><SurfaceBaselinePanel initialSurface="settings" /></>}
+          {tab === 'workspace' && <><ProductExperienceDependencies tabId="workspace" /><SurfaceBaselinePanel initialSurface="dock" /></>}
+          {tab === 'business-states' && <><ProductExperienceDependencies tabId="business-states" /><BusinessStatesPanel /></>}
           {tab === 'chat-lab' && <PromptLabPanel />}
           {tab === 'model-test' && <ModelTestPanel />}
           {tab === 'tools' && <ToolRunPanel tools={tools} />}

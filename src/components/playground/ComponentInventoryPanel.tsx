@@ -12,12 +12,14 @@ import {
   UI_COMPONENT_ASSETS,
   UI_COMPONENT_CATEGORIES,
   UI_COMPONENT_STATUSES,
+  isFoundationComponentAsset,
   type UiAccessibilityStatus,
   type UiComponentCategoryId,
   type UiComponentImplementation,
   type UiComponentStatus,
 } from '../../shared/ui-component-registry'
 import { StoryBlock } from './StoryBlock'
+import { productExperiencesUsingFoundation } from '../../shared/product-experience-registry'
 
 const IMPLEMENTATION_LABELS: Record<UiComponentImplementation, string> = {
   custom: '自有实现',
@@ -44,23 +46,25 @@ export function ComponentInventoryPanel() {
   const [category, setCategory] = useState<UiComponentCategoryId | 'all'>('all')
   const [status, setStatus] = useState<UiComponentStatus | 'all'>('all')
 
+  const foundationAssets = useMemo(() => UI_COMPONENT_ASSETS.filter(isFoundationComponentAsset), [])
+
   const filteredAssets = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase('zh-CN')
-    return UI_COMPONENT_ASSETS.filter((asset) => {
+    return foundationAssets.filter((asset) => {
       if (category !== 'all' && asset.category !== category) return false
       if (status !== 'all' && asset.status !== status) return false
       if (!normalized) return true
       return [asset.key, asset.labelZh, asset.labelEn, asset.descriptionZh, asset.sourcePath ?? '', asset.reference ?? '']
         .some((value) => value.toLocaleLowerCase('zh-CN').includes(normalized))
     })
-  }, [category, query, status])
+  }, [category, foundationAssets, query, status])
 
   return (
     <div className="space-y-3" data-testid="component-inventory">
       <StoryBlock title="UI 组件资产目录" source="src/shared/ui-component-registry.ts" adopted>
         <div className="space-y-3">
           <div className="rounded-lg border px-3 py-2 text-[11px] leading-5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-            目录只登记组件的语义身份、来源、状态和验收要求。候选组件不会自动安装，Playground 故事也不会自动升级为正式产品能力。
+            这里只登记基础组件的语义身份、来源、状态和验收要求。产品体验只能声明引用，不能在业务页面复制基础实现。
           </div>
 
           <div className="flex flex-col gap-2 xl:flex-row">
@@ -76,7 +80,7 @@ export function ComponentInventoryPanel() {
               />
             </label>
             <span className="inline-flex h-8 items-center rounded-md px-2.5 text-[11px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
-              {filteredAssets.length} / {UI_COMPONENT_ASSETS.length} 个组件资产
+              {filteredAssets.length} / {foundationAssets.length} 个基础组件
             </span>
           </div>
 
@@ -102,6 +106,7 @@ export function ComponentInventoryPanel() {
           <div className="grid gap-2 lg:grid-cols-2">
             {filteredAssets.map((asset) => {
               const statusDefinition = UI_COMPONENT_STATUSES.find((item) => item.id === asset.status)
+              const usedBy = productExperiencesUsingFoundation(asset.key)
               return (
                 <article key={asset.key} className="min-w-0 rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
                   <div className="flex items-start gap-3">
@@ -133,6 +138,15 @@ export function ComponentInventoryPanel() {
                       ))}
                     </div>
                   )}
+
+                  <div className="mt-2 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>被产品体验使用</div>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {usedBy.length > 0
+                        ? usedBy.map((experience) => <span key={experience.key} className="rounded px-1.5 py-0.5 text-[9px]" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>{experience.labelZh}</span>)
+                        : <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>尚未被活跃体验引用</span>}
+                    </div>
+                  </div>
                 </article>
               )
             })}

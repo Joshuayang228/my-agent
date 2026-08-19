@@ -22,6 +22,7 @@ describe('UI component asset registry', () => {
       expect(asset.labelZh).toBeTruthy()
       expect(asset.labelEn).toBeTruthy()
       expect(asset.descriptionZh).toBeTruthy()
+      expect(['foundation', 'experience']).toContain(asset.layer)
       expect(asset.stories.length).toBeGreaterThanOrEqual(0)
       expect(asset.accessibilityNotes.length).toBeGreaterThanOrEqual(1)
       expect(['verified', 'needs-review', 'not-applicable']).toContain(asset.accessibilityStatus)
@@ -43,8 +44,13 @@ describe('UI component asset registry', () => {
       'companion.status-bar',
       'layout.primary-sidebar',
       'layout.right-dock',
+      'layout.foundation-workbench',
+      'layout.business-states-workbench',
     ]) {
       expect(UI_COMPONENT_REGISTRY[key]).toBeDefined()
     }
+    expect(UI_COMPONENT_REGISTRY['layout.foundation-workbench'].layer).toBe('experience')
+    expect(UI_COMPONENT_REGISTRY['layout.business-states-workbench'].layer).toBe('experience')
+    expect(UI_COMPONENT_REGISTRY['layout.primary-sidebar'].layer).toBe('foundation')
   })
 })

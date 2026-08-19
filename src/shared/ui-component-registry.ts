@@ -9,6 +9,7 @@
 export type UiComponentCategoryId = 'behavior' | 'state' | 'developer' | 'companion' | 'layout'
 export type UiComponentStatus = 'candidate' | 'playground' | 'adopted' | 'deprecated' | 'archived'
 export type UiComponentImplementation = 'custom' | 'radix-candidate' | 'reference-only'
+export type UiComponentLayer = 'foundation' | 'experience'
 export type UiAccessibilityStatus = 'verified' | 'needs-review' | 'not-applicable'
 
 export interface UiComponentCategoryDefinition {
@@ -31,6 +32,8 @@ export interface UiComponentAssetDefinition {
   category: UiComponentCategoryId
   status: UiComponentStatus
   implementation: UiComponentImplementation
+  /** foundation 可被产品体验引用；experience 本身是成品或工作台，不能冒充基础。 */
+  layer: UiComponentLayer
   sourcePath?: string
   reference?: string
   stories: readonly string[]
@@ -54,12 +57,26 @@ export const UI_COMPONENT_STATUSES: readonly UiComponentStatusDefinition[] = [
   { id: 'archived', label: '已归档', description: '保留历史，不再推荐新代码采用' },
 ] as const
 
-const component = (definition: Omit<UiComponentAssetDefinition, 'accessibilityStatus'> & { accessibilityStatus?: UiAccessibilityStatus }): UiComponentAssetDefinition => ({
-  ...definition,
-  accessibilityStatus: definition.accessibilityStatus ?? 'needs-review',
-})
+type UiComponentInput = Omit<UiComponentAssetDefinition, 'accessibilityStatus' | 'layer'> & {
+  accessibilityStatus?: UiAccessibilityStatus
+  layer?: UiComponentLayer
+}
 
-export const UI_COMPONENT_ASSETS: readonly UiComponentAssetDefinition[] = [
+type ResolvedLayer<T extends UiComponentInput> = T extends { layer: infer L extends UiComponentLayer } ? L : 'foundation'
+
+/**
+ * 保留 key / layer 的字符串字面量类型，让产品体验依赖在 tsc 阶段即可发现拼写错误。
+ * 默认归入 foundation；只有完整页面或工作台需要显式标记 experience。
+ */
+function component<const T extends UiComponentInput>(definition: T): UiComponentAssetDefinition & T & { layer: ResolvedLayer<T> } {
+  return {
+    ...definition,
+    layer: definition.layer ?? 'foundation',
+    accessibilityStatus: definition.accessibilityStatus ?? 'needs-review',
+  } as UiComponentAssetDefinition & T & { layer: ResolvedLayer<T> }
+}
+
+export const UI_COMPONENT_ASSETS = [
   // 行为组件：先登记候选，不因为进入目录就假装已安装 Radix。
   component({ key: 'behavior.dialog', labelZh: '对话框', labelEn: 'Dialog', descriptionZh: '需要焦点陷阱和明确关闭语义的模态交互。', category: 'behavior', status: 'candidate', implementation: 'radix-candidate', reference: 'Radix Dialog 候选，尚未引入依赖', stories: ['默认态', '高风险确认', '长内容'], accessibilityNotes: ['打开后焦点进入对话框', 'Esc 与遮罩关闭策略必须显式', '关闭后焦点回到触发元素'] }),
   component({ key: 'behavior.popover', labelZh: '弹出层', labelEn: 'Popover', descriptionZh: '依附触发元素的轻量详情或筛选面板。', category: 'behavior', status: 'candidate', implementation: 'radix-candidate', reference: 'Radix Popover 候选，尚未引入依赖', stories: ['默认态', '视口边缘'], accessibilityNotes: ['触发器与内容建立语义关系', '处理视口碰撞', '键盘可关闭'] }),
@@ -101,12 +118,21 @@ export const UI_COMPONENT_ASSETS: readonly UiComponentAssetDefinition[] = [
   component({ key: 'layout.secondary-nav', labelZh: '二级导航', labelEn: 'Secondary Navigation', descriptionZh: '生活、工具和开发分组的二级入口。', category: 'layout', status: 'adopted', implementation: 'custom', sourcePath: 'src/components/shell/SecondaryNav.tsx', stories: ['生活分组', '开发分组'], accessibilityNotes: ['当前项可读', '分组标题不冒充按钮', '窄宽可滚动'] }),
   component({ key: 'layout.right-dock', labelZh: '右侧工作坞', labelEn: 'Right Dock', descriptionZh: '终端、Review 和辅助任务的侧边工作区。', category: 'layout', status: 'adopted', implementation: 'custom', sourcePath: 'src/components/chat/right-dock/ChatRightDock.tsx', stories: ['终端', 'Review', '关闭态'], accessibilityNotes: ['面板标题和关闭按钮可读', '焦点不被侧坞吞掉', '窄宽时不遮挡主操作'] }),
   component({ key: 'layout.resize-handle', labelZh: '分栏拖拽柄', labelEn: 'Resize Handle', descriptionZh: '调整主区和辅助面板宽度。', category: 'layout', status: 'adopted', implementation: 'custom', sourcePath: 'src/components/shell/ResizeHandle.tsx', stories: ['默认宽度', '最小宽度', '最大宽度'], accessibilityNotes: ['键盘可调整或提供替代设置', '暴露当前尺寸', '命中区域足够大'] }),
-  component({ key: 'layout.foundation-workbench', labelZh: '基础组件工作台', labelEn: 'Foundation Workbench', descriptionZh: '集中展示可复用基础组件与隔离故事。', category: 'layout', status: 'playground', implementation: 'custom', sourcePath: 'src/components/playground/FoundationComponentsPanel.tsx', stories: ['组件索引', '按钮', '输入', '工具卡', '记忆芯片'], accessibilityNotes: ['故事筛选状态可读', '基础层边界说明可见', '不把业务文案伪装成基础组件'] }),
-  component({ key: 'layout.business-states-workbench', labelZh: '业务状态工作台', labelEn: 'Business States Workbench', descriptionZh: '展示基础能力在产品业务状态中的组合。', category: 'layout', status: 'playground', implementation: 'custom', sourcePath: 'src/components/playground/BusinessStatesPanel.tsx', stories: ['空态', '确认', '伙伴状态', '错误与反馈'], accessibilityNotes: ['业务状态筛选状态可读', '失败与恢复操作有文本说明', '不复制基础组件来源'] }),
-] as const
+  component({ key: 'layout.foundation-workbench', layer: 'experience', labelZh: '基础组件工作台', labelEn: 'Foundation Workbench', descriptionZh: '集中展示可复用基础组件与隔离故事。', category: 'layout', status: 'playground', implementation: 'custom', sourcePath: 'src/components/playground/FoundationComponentsPanel.tsx', stories: ['组件索引', '按钮', '输入', '工具卡', '记忆芯片'], accessibilityNotes: ['故事筛选状态可读', '基础层边界说明可见', '不把业务文案伪装成基础组件'] }),
+  component({ key: 'layout.business-states-workbench', layer: 'experience', labelZh: '业务状态工作台', labelEn: 'Business States Workbench', descriptionZh: '展示基础能力在产品业务状态中的组合。', category: 'layout', status: 'playground', implementation: 'custom', sourcePath: 'src/components/playground/BusinessStatesPanel.tsx', stories: ['空态', '确认', '伙伴状态', '错误与反馈'], accessibilityNotes: ['业务状态筛选状态可读', '失败与恢复操作有文本说明', '不复制基础组件来源'] }),
+  component({ key: 'layout.product-experience-dependencies', labelZh: '体验基础依赖摘要', labelEn: 'Experience Foundation Dependencies', descriptionZh: '展示产品体验声明使用的基础组件及生命周期。', category: 'layout', status: 'playground', implementation: 'custom', sourcePath: 'src/components/playground/ProductExperienceDependencies.tsx', stories: ['基础依赖标签', '体验状态'], accessibilityNotes: ['依赖关系有可读标签', '不只依赖颜色表达状态', '来源由注册表派生'] }),
+] as const satisfies readonly UiComponentAssetDefinition[]
 
-export type UiComponentKey = (typeof UI_COMPONENT_ASSETS)[number]['key']
+export type UiComponentAsset = (typeof UI_COMPONENT_ASSETS)[number]
+export type UiComponentKey = UiComponentAsset['key']
+export type FoundationComponentAsset = Extract<UiComponentAsset, { layer: 'foundation' }>
+export type FoundationComponentKey = FoundationComponentAsset['key']
+
+/** 将注册表联合类型收窄到可被产品体验引用的基础资产，避免调用方自行断言。 */
+export function isFoundationComponentAsset(asset: UiComponentAsset): asset is FoundationComponentAsset {
+  return asset.layer === 'foundation'
+}
 
 export const UI_COMPONENT_REGISTRY = Object.fromEntries(
   UI_COMPONENT_ASSETS.map((asset) => [asset.key, asset]),
-) as Record<UiComponentKey, UiComponentAssetDefinition>
+) as unknown as Record<UiComponentKey, UiComponentAssetDefinition>

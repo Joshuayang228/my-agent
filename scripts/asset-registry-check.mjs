@@ -59,6 +59,7 @@ function declaredEntryCount(family) {
     prompt: /\n\s*key:\s*[^,\n]+/g,
     'icon': /\n\s*icon\(/g,
     'ui-component': /\n\s*component\(/g,
+    'product-experience': /\n\s*experience\(/g,
     design: /\n\s*\{ id: '/g,
     'subagent-role': /\n\s{2,}[a-z][a-z0-9-]*:\s*\{/g,
   }

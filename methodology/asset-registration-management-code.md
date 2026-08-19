@@ -271,6 +271,7 @@ sourcePath / reference
 stories
 accessibilityNotes
 accessibilityStatus
+layer: foundation / experience
 ```
 
 `candidate` 项可以引用尚未安装的 Radix 或其他参考来源，但必须明确写“尚未引入依赖”；`adopted` 项必须指向真实组件源码。采用状态与无障碍验证状态彼此独立，当前未完成专项审计的组件明确标记为 `needs-review`。Playground 入口位于：
@@ -289,6 +290,13 @@ __tests__/e2e/chat.test.ts
 
 Unit 检查稳定 key、分类覆盖、状态与来源契约；Renderer E2E 检查目录入口、筛选和中英层级。视觉与交互仍需要在深色 / 浅色、窄宽和键盘场景下人工验收，不能只以注册表测试通过代替。
 
+产品体验依赖位于 `src/shared/product-experience-registry.ts`。每项登记 `experience.*` key、Playground 入口、真实 source 和 `usesFoundation`。`FoundationComponentKey` 由 UI 组件注册表的字面量 key 与 `layer` 派生，因此拼错或引用 experience 层资产会在 TypeScript / Unit 阶段失败。`productExperiencesUsingFoundation()` 负责反向关系，Renderer 不维护 `usedBy`。对应门禁：
+
+```text
+__tests__/unit/product-experience-registry.test.ts
+npm run assets:check
+```
+
 
 ## 11. 全量审计与自动登记门禁
 
@@ -300,7 +308,7 @@ scripts/asset-registry-check.mjs
 npm run assets:check
 ```
 
-治理清单覆盖 12 个资产家族：Prompt、伙伴、Memory Strategy、Permission / Sandbox、Eval、Provider、SubAgent Role、Tool、Skill、MCP、Lucide Icon、UI Component、Theme / Design。前 7 类是 Agent / ModelContext 生产资产；Tool、Skill、MCP 明确由运行时 ToolRegistry / loader 自动发现；Icon、UI、Theme 是 Renderer 设计资产，不进入 ModelContext 或 Agent usage evidence。
+治理清单覆盖 13 个资产家族：Prompt、伙伴、Memory Strategy、Permission / Sandbox、Eval、Provider、SubAgent Role、Tool、Skill、Lucide Icon、UI Component、Product Experience、Theme / Design。前 7 类是 Agent / ModelContext 生产资产；Tool、Skill 与其 MCP bridge 明确由运行时 ToolRegistry / loader 自动发现；Icon、UI、Product Experience、Theme 是 Renderer 设计资产，不进入 ModelContext 或 Agent usage evidence。
 
 门禁会检查：
 

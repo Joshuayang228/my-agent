@@ -62,6 +62,11 @@ export const ASSET_GOVERNANCE = [
     keyRule: '<category>.<component-name>', display: 'Playground / 设计 / 组件目录', usageEvidence: '不记录 Agent 运行证据',
   },
   {
+    id: 'product-experience', labelZh: '产品体验', kind: 'static-renderer', modelContextTypes: [],
+    sourcePaths: ['src/shared/product-experience-registry.ts'], registryPaths: ['src/shared/product-experience-registry.ts'], discovery: '显式体验依赖注册表',
+    keyRule: 'experience.<stable-key>', display: 'Playground / 产品体验', usageEvidence: '基础依赖关系',
+  },
+  {
     id: 'design', labelZh: '主题与设计 Token', kind: 'static-renderer', modelContextTypes: [],
     sourcePaths: ['src/shared/design-asset-registry.ts', 'src/index.css'], registryPaths: ['src/shared/design-asset-registry.ts'], discovery: '显式设计资产注册表',
     keyRule: 'theme id / font scale id', display: 'Settings / Playground / 正式页面', usageEvidence: '不记录 Agent 运行证据',
