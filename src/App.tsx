@@ -934,7 +934,7 @@ function App() {
     }
   }, [])
 
-  /* ── 设置独立全屏 ── */
+  /* ── 设置 / Playground 独立全屏：不与产品 Primary Sidebar 叠成双层导航。 ── */
   if (activeView === 'settings') {
     return (
       <div className="app-shell view-transition flex h-screen min-w-0 select-none" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
@@ -951,6 +951,14 @@ function App() {
             onConversationDebugModeChange={(on) => { void setConversationDebug(on) }}
           />
         </div>
+      </div>
+    )
+  }
+
+  if (activeView === 'playground') {
+    return (
+      <div className="app-shell view-transition flex h-screen min-w-0 select-none" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+        <PlaygroundPage onClose={() => setActiveView('chat')} />
       </div>
     )
   }
@@ -1128,8 +1136,6 @@ function App() {
                 eventLog={eventLog}
                 onClose={() => setActiveView('chat')}
               />
-            ) : activeView === 'playground' ? (
-              <PlaygroundPage onClose={() => setActiveView('chat')} />
             ) : isWorldView(activeView) ? (
               <WorldHub
                 tab={activeView === 'world' ? worldTab : worldTabFromView(activeView)}

@@ -14,12 +14,6 @@ export function BusinessStatesPanel() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-4" data-testid="business-states-panel">
-      <div>
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>业务状态</h2>
-        <p className="mt-1 max-w-2xl text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>
-          这里展示基础能力在真实产品语义中的组合：空态、确认、伙伴状态和错误反馈。缺少基础能力时，先回到“基础组件”补齐。
-        </p>
-      </div>
       <div className="flex flex-wrap gap-1 border-b pb-2" role="tablist" aria-label="业务状态故事筛选">
         {stories.map((item) => {
           const selected = item.id === story

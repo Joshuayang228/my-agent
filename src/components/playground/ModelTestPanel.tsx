@@ -103,17 +103,6 @@ export function ModelTestPanel() {
   return (
     <div className="mx-auto flex max-w-3xl gap-4" data-testid="model-test-panel">
       <div className="min-w-0 flex-1 space-y-4">
-        <div>
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-            模型测试
-          </h2>
-          <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            对齐 Alice Playground「模型测试」：对当前设置里的模型做连通烟测，并探测
-            <code className="mx-1">thinking.disabled</code>
-            是否可用（DeepSeek V4 等）。探测结果写入能力缓存，供标题/画像等辅助调用使用。
-          </p>
-        </div>
-
         {loadError && (
           <p className="text-[12px]" style={{ color: 'var(--danger)' }}>{loadError}</p>
         )}

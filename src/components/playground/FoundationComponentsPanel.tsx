@@ -6,22 +6,14 @@ import { useState } from 'react'
 import { UI_CONTROLS_SUBTABS, type UiControlsSubId } from './catalog'
 import { UiControlsPanel } from './UiControlsPanel'
 
-const FOUNDATION_STORIES: readonly UiControlsSubId[] = [
-  'component-catalog', 'buttons', 'inputs', 'tool-cards', 'memory-chips',
-]
+const FOUNDATION_STORIES: readonly UiControlsSubId[] = ['buttons', 'inputs', 'tool-cards', 'memory-chips']
 
 export function FoundationComponentsPanel() {
-  const [story, setStory] = useState<UiControlsSubId>('component-catalog')
+  const [story, setStory] = useState<UiControlsSubId>('buttons')
   const stories = UI_CONTROLS_SUBTABS.filter((item) => FOUNDATION_STORIES.includes(item.id))
 
   return (
     <div className="mx-auto max-w-5xl space-y-4" data-testid="foundation-components-panel">
-      <div>
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>基础组件</h2>
-        <p className="mt-1 max-w-2xl text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>
-          这里生产可复用的视觉和交互基础。产品体验只能引用这些基础，不在业务页面里复制组件样式。
-        </p>
-      </div>
       <div className="flex flex-wrap gap-1 border-b pb-2" role="tablist" aria-label="基础组件故事筛选">
         {stories.map((item) => {
           const selected = item.id === story

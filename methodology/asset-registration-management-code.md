@@ -246,10 +246,10 @@ debug:asset-usage-query
 src/shared/icon-registry.ts
 ```
 
-当前登记导航、对话、开发、伙伴、文件与证据、状态与风险六类 Lucide 语义图标。每项包含稳定 key、中文名、英文术语、用途、P0 / P1 优先级和真实 `lucide-react` 组件。Playground 入口位于：
+当前登记导航、对话、开发、伙伴、文件与证据、状态与风险六类 Lucide 语义图标。每项包含稳定 key、中文名、英文术语、用途、P0 / P1 优先级和真实 `lucide-react` 组件。单项 `adoptionStatus` 由 `ADOPTED_ICON_SOURCES` 的真实 sourcePaths 派生；没有来源证据的图标保持 catalog，不给整页批量标 adopted。Playground 入口位于：
 
 ```text
-Playground → 设计 → 组件 → 图标
+Playground → 基础 → 图标与视觉
 ```
 
 UI 组件注册表：

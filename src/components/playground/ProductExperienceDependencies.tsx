@@ -11,15 +11,12 @@ export function ProductExperienceDependencies({ tabId }: { tabId: ProductExperie
   if (!experience) return null
 
   return (
-    <section className="mx-auto mb-4 max-w-5xl rounded-lg border px-3 py-2.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }} data-testid="product-experience-dependencies">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <h2 className="text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>{experience.labelZh}</h2>
-        <code className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{experience.key}</code>
-        <span className="ml-auto text-[10px]" style={{ color: 'var(--warning)' }}>产品体验 · {experience.status === 'playground' ? 'Playground' : experience.status}</span>
-      </div>
-      <p className="mt-1 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}>{experience.descriptionZh}</p>
-      <div className="mt-2 flex flex-wrap items-center gap-1" aria-label="使用的基础组件">
-        <span className="mr-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>使用的基础：</span>
+    <section className="mx-auto mb-3 flex max-w-5xl flex-wrap items-center gap-x-2 gap-y-1 border-b pb-2" style={{ borderColor: 'var(--border-subtle)' }} data-testid="product-experience-dependencies">
+      <span className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{experience.labelZh}</span>
+      <code className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{experience.key}</code>
+      <span className="text-[9px]" style={{ color: 'var(--warning)' }}>{experience.status === 'playground' ? 'Playground' : experience.status}</span>
+      <div className="flex flex-wrap items-center gap-1" aria-label="使用的基础组件">
+        <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>使用：</span>
         {experience.usesFoundation.map((key) => {
           const asset = UI_COMPONENT_REGISTRY[key]
           return (

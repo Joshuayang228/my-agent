@@ -140,6 +140,7 @@ import {
 
 export type IconCategoryId = 'navigation' | 'conversation' | 'developer' | 'companion' | 'assets' | 'status'
 export type IconPriority = 'P0' | 'P1'
+export type IconAdoptionStatus = 'catalog' | 'adopted'
 
 export interface IconCategoryDefinition {
   id: IconCategoryId
@@ -155,6 +156,8 @@ export interface IconAssetDefinition {
   english: string
   usage: string
   priority: IconPriority
+  adoptionStatus: IconAdoptionStatus
+  sourcePaths: readonly string[]
   icon: LucideIcon
 }
 
@@ -167,15 +170,50 @@ export const ICON_CATEGORIES: readonly IconCategoryDefinition[] = [
   { id: 'status', label: '状态与风险', english: 'Status & Risk', description: '成功、等待、警告、拒绝和风险等级' },
 ] as const
 
-const icon = (category: IconCategoryId, key: string, label: string, english: string, usage: string, priority: IconPriority, component: LucideIcon): IconAssetDefinition => ({
-  key,
-  category,
-  label,
-  english,
-  usage,
-  priority,
-  icon: component,
-})
+/** 只有能指向真实产品调用点的语义图标才标 adopted；其余只表示已进入候选目录。 */
+export const ADOPTED_ICON_SOURCES: Readonly<Record<string, readonly string[]>> = {
+  'navigation.menu': ['src/App.tsx'],
+  'navigation.search': ['src/App.tsx', 'src/components/shell/PrimarySidebar.tsx'],
+  'navigation.add': ['src/App.tsx', 'src/components/shell/PrimarySidebar.tsx'],
+  'navigation.close': ['src/App.tsx', 'src/components/shell/PrimarySidebar.tsx'],
+  'navigation.confirm': ['src/App.tsx'],
+  'navigation.chevron-down': ['src/App.tsx'],
+  'navigation.back': ['src/components/SettingsPanel.tsx'],
+  'navigation.settings': ['src/components/shell/PrimarySidebar.tsx'],
+  'conversation.send': ['src/App.tsx'],
+  'conversation.stop': ['src/App.tsx'],
+  'conversation.refresh': ['src/App.tsx'],
+  'conversation.copy': ['src/App.tsx'],
+  'conversation.edit': ['src/App.tsx'],
+  'conversation.delete': ['src/App.tsx'],
+  'conversation.pin': ['src/components/shell/PrimarySidebar.tsx'],
+  'conversation.attachment': ['src/App.tsx'],
+  'developer.debug': ['src/components/shell/PrimarySidebar.tsx'],
+  'developer.playground': ['src/components/shell/PrimarySidebar.tsx'],
+  'developer.activity': ['src/components/DevPanel.tsx'],
+  'developer.test': ['src/components/DevPanel.tsx'],
+  'companion.sparkles': ['src/components/shell/PrimarySidebar.tsx'],
+  'assets.folder': ['src/App.tsx'],
+  'assets.folder-open': ['src/App.tsx'],
+  'assets.shield': ['src/App.tsx'],
+  'status.blocked': ['src/App.tsx'],
+  'status.energy': ['src/App.tsx'],
+}
+
+const icon = (category: IconCategoryId, key: string, label: string, english: string, usage: string, priority: IconPriority, component: LucideIcon): IconAssetDefinition => {
+  const sourcePaths = ADOPTED_ICON_SOURCES[key] ?? []
+  return {
+    key,
+    category,
+    label,
+    english,
+    usage,
+    priority,
+    adoptionStatus: sourcePaths.length > 0 ? 'adopted' : 'catalog',
+    sourcePaths,
+    icon: component,
+  }
+}
 
 export const ICON_ASSETS: readonly IconAssetDefinition[] = [
   // 导航与操作

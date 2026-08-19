@@ -502,13 +502,6 @@ export function SurfaceBaselinePanel({ initialSurface }: { initialSurface?: Surf
 
   return (
     <div className="mx-auto max-w-5xl space-y-5" data-testid="surface-baseline-panel">
-      <div>
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>页面基线</h2>
-        <p className="mt-1 max-w-2xl text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>
-          先确认 Alice 对齐的页面骨架、密度与组合态，再把规则回流到正式页面。这里的故事格只读，不写入会话、模型或设置。
-        </p>
-      </div>
-
       {!fixedSurface && <div className="flex flex-wrap gap-1 border-b" style={{ borderColor: 'var(--border-color)' }} role="tablist" aria-label="页面基线分区">
         {SURFACES.map((item) => {
           const selected = item.id === surface

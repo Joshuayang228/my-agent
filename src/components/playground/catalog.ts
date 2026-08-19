@@ -97,7 +97,6 @@ export type UiControlsSubId =
   | 'feedback'
 
 export const UI_CONTROLS_SUBTABS: readonly { id: UiControlsSubId; label: string }[] = [
-  { id: 'component-catalog', label: '组件索引' },
   { id: 'buttons', label: '按钮' },
   { id: 'inputs', label: '输入' },
   { id: 'tool-cards', label: '工具卡' },

@@ -12,9 +12,9 @@ import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import { CompanionStatusBar } from '../CompanionStatusBar'
 import { MarkdownRenderer } from '../MarkdownRenderer'
 import { ToastPreview, type ToastPreviewItem } from '../Toast'
-import { UI_CONTROLS_SUBTABS, type UiControlsSubId } from './catalog'
+import type { UiControlsSubId } from './catalog'
 import { StoryBlock } from './StoryBlock'
-import { ComponentInventoryPanel } from './ComponentInventoryPanel'
+import { AdoptionMark } from './AdoptionMark'
 import { ICON_ASSETS, ICON_CATEGORIES, ICON_REGISTRY, type IconKey, type IconCategoryId } from '../../shared/icon-registry'
 
 const TOOL_STORIES: ToolCallbackItem[] = [
@@ -91,8 +91,7 @@ function FixtureError({ title, body, action }: { title: string; body: string; ac
 }
 
 export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId } = {}) {
-  const [sub, setSub] = useState<UiControlsSubId>(initialSub ?? 'component-catalog')
-  const effectiveSub = initialSub ?? sub
+  const effectiveSub = initialSub ?? 'buttons'
   const [collapse, setCollapse] = useState<Record<string, boolean>>({})
   const [iconQuery, setIconQuery] = useState('')
   const [iconCategory, setIconCategory] = useState<IconCategoryId | 'all'>('all')
@@ -115,40 +114,8 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
   }))
 
   return (
-    <div className={initialSub ? 'min-h-0' : 'flex min-h-0 flex-col gap-4 sm:flex-row'} data-testid="ui-controls-panel">
-      {!initialSub && <div className="w-full shrink-0 space-y-3 sm:w-[120px]">
-        <div>
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-            基础组件样式
-          </h2>
-          <p className="mt-1 text-[11px] leading-snug" style={{ color: 'var(--text-muted)' }}>
-            组件索引与隔离故事：先确认基础样式，再由产品体验引用。
-          </p>
-        </div>
-        <div className="scrollbar-hover flex gap-0.5 overflow-x-auto sm:flex-col sm:overflow-x-visible">
-          {UI_CONTROLS_SUBTABS.map((t) => {
-            const active = sub === t.id
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setSub(t.id)}
-                className="shrink-0 rounded-lg px-2.5 py-1.5 text-left text-xs transition"
-                style={{
-                  color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
-                  background: active ? 'var(--accent-subtle)' : 'transparent',
-                  fontWeight: active ? 500 : 400,
-                }}
-              >
-                {t.label}
-              </button>
-            )
-          })}
-        </div>
-      </div>}
-
-      <div className={initialSub ? 'min-w-0 space-y-4' : 'min-w-0 max-w-2xl flex-1 space-y-4'}>
-      {effectiveSub === 'component-catalog' && <ComponentInventoryPanel />}
+    <div className="min-h-0" data-testid="ui-controls-panel">
+      <div className="min-w-0 space-y-4">
 
       {effectiveSub === 'buttons' && (
         <div className="space-y-3">
@@ -315,7 +282,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
 
       {effectiveSub === 'icons' && (
         <div className="space-y-3" data-testid="icon-inventory">
-          <StoryBlock title="操作图标阶梯" source="lucide-react · 12 / 14 / 16 / 20" adopted>
+          <StoryBlock title="操作图标阶梯" source="lucide-react · 12 / 14 / 16 / 20">
             <div className="flex flex-wrap items-end gap-5">
               {(['navigation.search', 'developer.sliders', 'navigation.panel-right', 'navigation.settings', 'conversation.send'] as IconKey[]).map((key, index) => {
                 const asset = ICON_REGISTRY[key]
@@ -335,7 +302,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
             </p>
           </StoryBlock>
 
-          <StoryBlock title="Lucide 语义图标目录" source="src/shared/icon-registry.ts" adopted>
+          <StoryBlock title="Lucide 语义图标目录" source="src/shared/icon-registry.ts">
             <div className="space-y-3">
               <div className="flex flex-col gap-2 lg:flex-row">
                 <label className="relative min-w-0 flex-1">
@@ -344,13 +311,13 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
                   <input
                     value={iconQuery}
                     onChange={(event) => setIconQuery(event.target.value)}
-                    placeholder="搜索中文、English、语义 key 或用途"
+                    placeholder="搜索中文或 English"
                     className="h-8 w-full rounded-md border pl-8 pr-2 text-xs outline-none"
                     style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
                   />
                 </label>
                 <span className="inline-flex h-8 items-center rounded-md px-2.5 text-[11px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
-                  {filteredIconAssets.length} / {ICON_ASSETS.length} 个候选
+                  {filteredIconAssets.length} / {ICON_ASSETS.length} 个图标
                 </span>
               </div>
 
@@ -380,22 +347,18 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
                 })}
               </div>
 
-              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {filteredIconAssets.map((asset) => {
                   const Icon = asset.icon
                   return (
-                    <div key={asset.key} className="flex min-w-0 items-start gap-2.5 rounded-lg border p-2.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }} title={asset.usage}>
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-                        <Icon size={18} strokeWidth={1.65} aria-hidden="true" />
+                    <div key={asset.key} className="flex min-w-0 items-center gap-2 rounded-md border px-2 py-1.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                        <Icon size={15} strokeWidth={1.65} aria-hidden="true" />
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="truncate text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{asset.label}</span>
-                          <span className="truncate text-[10px]" style={{ color: 'var(--text-muted)' }}>{asset.english}</span>
-                          <span className="ml-auto shrink-0 text-[9px] font-mono" style={{ color: asset.priority === 'P0' ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{asset.priority}</span>
-                        </div>
-                        <code className="mt-0.5 block truncate text-[9px] font-mono" style={{ color: 'var(--text-muted)' }}>{asset.key}</code>
-                        <p className="mt-1 line-clamp-2 text-[10px] leading-4" style={{ color: 'var(--text-secondary)' }}>{asset.usage}</p>
+                      <div className="flex min-w-0 items-baseline gap-1.5">
+                        <span className="truncate text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{asset.label}</span>
+                        <span className="truncate text-[9px]" style={{ color: 'var(--text-muted)' }}>{asset.english}</span>
+                        {asset.adoptionStatus === 'adopted' && <AdoptionMark label="已在正式界面采用" />}
                       </div>
                     </div>
                   )
@@ -403,7 +366,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
               </div>
               {filteredIconAssets.length === 0 && (
                 <div className="rounded-lg border px-3 py-5 text-center text-xs" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
-                  没找到匹配的图标。试试中文名、英文名或 `navigation.search`。
+                  没找到匹配的图标。试试中文名或英文名。
                 </div>
               )}
             </div>

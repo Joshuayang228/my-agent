@@ -13,7 +13,7 @@ describe('playground catalog', () => {
 
   it('保留 UI 控件的细粒度状态故事', () => {
     expect(UI_CONTROLS_SUBTABS.map((tab) => tab.id)).toEqual([
-      'component-catalog', 'buttons', 'inputs', 'tool-cards', 'memory-chips', 'empty', 'confirm', 'status-bar', 'feedback', 'icons',
+      'buttons', 'inputs', 'tool-cards', 'memory-chips', 'empty', 'confirm', 'status-bar', 'feedback', 'icons',
     ])
   })
 })

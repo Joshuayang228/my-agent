@@ -95,12 +95,6 @@ export function ToolRunPanel({ tools }: { tools: PlaygroundToolInfo[] }) {
 
   return (
     <div className="mx-auto max-w-2xl space-y-3" data-testid="tool-run">
-      <div>
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>工具手测</h2>
-        <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-          真实走 Registry + 权限引擎；可能产生文件、终端或网络副作用。硬拒绝不可绕过，破坏性 / 需审批工具必须二次确认。
-        </p>
-      </div>
       {tools.length === 0 ? (
         <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载工具列表中…</div>
       ) : (

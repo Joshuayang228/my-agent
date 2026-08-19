@@ -82,16 +82,6 @@ export function PromptLabPanel({
 
   return (
     <div className="mx-auto max-w-2xl space-y-3" data-testid="prompt-lab">
-      <div>
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          对话试验
-        </h2>
-        <p className="mt-1 rounded-lg border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
-          隔离迷你对话（可多轮）：System 与 transcript 仅本页试验，
-          <strong style={{ color: 'var(--text-primary)' }}>不会写入设置 / 真会话</strong>。
-          可先「载入当前实装」再改。
-        </p>
-      </div>
       <div className="flex flex-wrap gap-2">
         <button
           type="button"

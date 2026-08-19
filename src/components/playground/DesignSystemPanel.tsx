@@ -68,14 +68,6 @@ export function DesignSystemPanel() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-5" data-testid="design-system-panel">
-      <div>
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          设计系统
-        </h2>
-        <p className="mt-1 max-w-2xl text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>
-          Token 直接读取生产 CSS；组合实验只在本页存在。只有带图标的项目已经进入正式产品。
-        </p>
-      </div>
 
       <div className="flex flex-wrap gap-1 border-b" style={{ borderColor: 'var(--border-color)' }}>
         {subs.map((item) => (
