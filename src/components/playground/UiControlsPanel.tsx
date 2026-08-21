@@ -282,13 +282,13 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
 
       {effectiveSub === 'icons' && (
         <div className="space-y-3" data-testid="icon-inventory">
-          <StoryBlock title="操作图标阶梯" source="lucide-react · 12 / 14 / 16 / 20">
-            <div className="flex flex-wrap items-end gap-5">
+          <StoryBlock title="图标尺寸" source="lucide-react · 12 / 14 / 16 / 20">
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
               {(['navigation.search', 'developer.sliders', 'navigation.panel-right', 'navigation.settings', 'conversation.send'] as IconKey[]).map((key, index) => {
                 const asset = ICON_REGISTRY[key]
                 const Icon = asset.icon
                 return (
-                  <div key={asset.key} className="flex min-w-12 flex-col items-center gap-1.5">
+                  <div key={asset.key} className="flex min-w-0 flex-col items-center gap-1.5">
                     <button type="button" className="flex h-8 w-8 items-center justify-center rounded-md" style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }} title={`${asset.label} · ${asset.english}`}>
                       <Icon size={[12, 14, 16, 20, 16][index]} strokeWidth={1.6} />
                     </button>
@@ -347,15 +347,15 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
                 })}
               </div>
 
-              <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
                 {filteredIconAssets.map((asset) => {
                   const Icon = asset.icon
                   return (
-                    <div key={asset.key} className="flex min-w-0 items-center gap-2 rounded-md border px-2 py-1.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                    <div key={asset.key} className="flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-md border px-2 py-2.5 text-center" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
                         <Icon size={15} strokeWidth={1.65} aria-hidden="true" />
                       </div>
-                      <div className="flex min-w-0 items-baseline gap-1.5">
+                      <div className="flex min-w-0 flex-col items-center gap-0.5">
                         <span className="truncate text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{asset.label}</span>
                         <span className="truncate text-[9px]" style={{ color: 'var(--text-muted)' }}>{asset.english}</span>
                         {asset.adoptionStatus === 'adopted' && <AdoptionMark label="已在正式界面采用" />}

@@ -11,7 +11,7 @@ import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
 import type { FileBrowserPreviewData } from '../FileBrowser'
 import type { MomentItem, MomentsPreviewData } from '../MomentsPanel'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
-import { WorldHub } from '../shell/WorldHub'
+import { WorldHub, type WorldTab } from '../shell/WorldHub'
 import { StoryBlock } from './StoryBlock'
 import type { MemoryEntry } from '../../shared/types'
 
@@ -181,10 +181,7 @@ function ChatSurface() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-          结构基线 · Playground 候选态 · 不连接真实会话
-        </div>
+      <div className="flex justify-end">
         <div className="flex rounded-[var(--radius-md)] border p-0.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
           {([
             { id: 'standard' as const, label: '标准宽度' },
@@ -415,11 +412,47 @@ function DockSurface() {
 }
 
 function WorldSurface() {
+  const [tab, setTab] = useState<WorldTab>('moments')
+  const previewPanels: Partial<Record<WorldTab, ReactNode>> = {
+    assets: (
+      <div className="grid gap-3 p-5 sm:grid-cols-2" data-testid="world-assets-fixture">
+        {[['深蓝帆布包', '常带着电脑和一本随手记。'], ['乌龙茶', '下午工作时会泡一壶。'], ['旧相机', '散步时偶尔带上。']].map(([name, detail]) => (
+          <article key={name} className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+            <div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{name}</div>
+            <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>{detail}</p>
+          </article>
+        ))}
+      </div>
+    ),
+    cast: (
+      <div className="space-y-2 p-5" data-testid="world-cast-fixture">
+        {[['小林', '当前主角'], ['阿遥', '偶尔联系的朋友'], ['许叔', '楼下咖啡店老板']].map(([name, relation]) => (
+          <div key={name} className="flex items-center justify-between rounded-lg border px-3 py-2.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+            <span className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{name}</span>
+            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{relation}</span>
+          </div>
+        ))}
+      </div>
+    ),
+    shelf: (
+      <div className="grid gap-3 p-5 sm:grid-cols-2" data-testid="world-shelf-fixture">
+        <article className="rounded-lg border p-4" style={{ borderColor: 'var(--companion-accent-warm)', background: 'var(--bg-secondary)' }}>
+          <div className="text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>小林</div>
+          <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>沉稳、体贴，正在陪你推进这款 Agent。</p>
+          <span className="mt-3 inline-flex rounded px-1.5 py-0.5 text-[9px]" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>当前主角</span>
+        </article>
+        <article className="rounded-lg border p-4" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+          <div className="text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>新角色占位</div>
+          <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>后续人物故事确认后再补正式角色。</p>
+        </article>
+      </div>
+    ),
+  }
   return (
     <SurfaceViewport>
       <WorldHub
-        tab="moments"
-        onTabChange={noop}
+        tab={tab}
+        onTabChange={setTab}
         onClose={noop}
         onOpenSession={noop}
         onSwitched={noop}
@@ -427,6 +460,7 @@ function WorldSurface() {
         momentsPreview={MOMENTS_PREVIEW_FIXTURES}
         momentsAppearance="social-feed"
         hideMomentsHeader
+        previewPanels={previewPanels}
       />
     </SurfaceViewport>
   )
@@ -526,7 +560,6 @@ export function SurfaceBaselinePanel({ initialSurface }: { initialSurface?: Surf
       </div>}
 
       <StoryBlock title={active.label} source={active.source} adopted={active.adopted}>
-        <p className="mb-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>{active.description}</p>
         {surface === 'chat' && <ChatSurface />}
         {surface === 'sidebar' && <SidebarSurface />}
         {surface === 'dock' && <DockSurface />}

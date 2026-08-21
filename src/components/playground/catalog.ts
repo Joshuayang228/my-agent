@@ -47,14 +47,14 @@ export interface PlaygroundGroupDef {
 }
 
 export const PLAYGROUND_GROUPS: readonly PlaygroundGroupDef[] = [
-  { id: 'foundation', label: '基础', description: '设计令牌、视觉资产与可复用基础组件' },
+  { id: 'foundation', label: '基础', description: '设计语言、视觉资产与可复用基础组件' },
   { id: 'experience', label: '产品体验', description: '页面、业务场景与状态组合' },
   { id: 'agent-experiments', label: 'Agent 实验', description: '隔离对话、模型能力与工具权限测试' },
 ] as const
 
 /** 顶层入口只表达工作域；基础故事通过工作台筛选，产品页面按场景直接进入。 */
 export const PLAYGROUND_TABS: readonly PlaygroundTabDef[] = [
-  { id: 'design-tokens', label: '设计令牌', group: 'foundation' },
+  { id: 'design-tokens', label: '设计语言', group: 'foundation' },
   { id: 'visual-assets', label: '图标与视觉', group: 'foundation' },
   { id: 'foundation-components', label: '基础组件', group: 'foundation' },
   { id: 'chat', label: 'Chat', group: 'experience' },
@@ -74,7 +74,7 @@ export const PLAYGROUND_TABS: readonly PlaygroundTabDef[] = [
   { id: 'tool-cards', label: '工具卡（旧入口）', group: 'foundation', status: 'archived' },
   { id: 'empty', label: '空态（旧入口）', group: 'experience', status: 'archived' },
   { id: 'confirm', label: '确认框（旧入口）', group: 'experience', status: 'archived' },
-  { id: 'memory-chips', label: '记忆芯片（旧入口）', group: 'foundation', status: 'archived' },
+  { id: 'memory-chips', label: '记忆引用（旧入口）', group: 'experience', status: 'archived' },
   { id: 'status-bar', label: '状态条（旧入口）', group: 'experience', status: 'archived' },
   { id: 'icons', label: '图标（旧入口）', group: 'foundation', status: 'archived' },
   { id: 'feedback', label: '系统反馈（旧入口）', group: 'experience', status: 'archived' },
@@ -100,7 +100,7 @@ export const UI_CONTROLS_SUBTABS: readonly { id: UiControlsSubId; label: string 
   { id: 'buttons', label: '按钮' },
   { id: 'inputs', label: '输入' },
   { id: 'tool-cards', label: '工具卡' },
-  { id: 'memory-chips', label: '记忆芯片' },
+  { id: 'memory-chips', label: '记忆引用' },
   { id: 'empty', label: '空态' },
   { id: 'confirm', label: '确认框' },
   { id: 'status-bar', label: '状态条' },

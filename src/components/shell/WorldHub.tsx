@@ -38,6 +38,7 @@ export function WorldHub({
   momentsPreview,
   momentsAppearance,
   hideMomentsHeader,
+  previewPanels,
 }: {
   tab: WorldTab
   onTabChange: (tab: WorldTab) => void
@@ -51,6 +52,8 @@ export function WorldHub({
   momentsAppearance?: 'default' | 'social-feed'
   /** WorldHub 已有标题时隐藏 Moments 重复标题行。 */
   hideMomentsHeader?: boolean
+  /** Playground / 测试专用业务样张；存在时替代对应真实面板，避免读取生产数据。 */
+  previewPanels?: Partial<Record<WorldTab, ReactNode>>
 }) {
   return (
     <div className="flex h-full flex-col" data-testid="world-hub">
@@ -91,8 +94,10 @@ export function WorldHub({
               type="button"
               role="tab"
               aria-selected={active}
+              aria-controls={`world-panel-${t.id}`}
               onClick={() => onTabChange(t.id)}
               className="flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-[12px] transition"
+              data-testid={`world-tab-${t.id}`}
               style={{
                 borderColor: active ? 'var(--companion-accent-warm)' : 'transparent',
                 color: active ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -108,19 +113,21 @@ export function WorldHub({
         })}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
-        {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} appearance={momentsAppearance} hideHeader={hideMomentsHeader} />}
-        {tab === 'assets' && <AssetsPanel onClose={onClose} />}
-        {tab === 'cast' && (
-          <CastPanel
-            onClose={onClose}
-            onOpenSession={onOpenSession}
-            onOpenShelf={() => onTabChange('shelf')}
-            recentByRole={recentByRole}
-          />
-        )}
-        {tab === 'shelf' && (
-          <CharacterShelfPanel onClose={onClose} onSwitched={onSwitched} />
+      <div id={`world-panel-${tab}`} role="tabpanel" className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
+        {previewPanels?.[tab] ?? (
+          <>
+            {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} appearance={momentsAppearance} hideHeader={hideMomentsHeader} />}
+            {tab === 'assets' && <AssetsPanel onClose={onClose} />}
+            {tab === 'cast' && (
+              <CastPanel
+                onClose={onClose}
+                onOpenSession={onOpenSession}
+                onOpenShelf={() => onTabChange('shelf')}
+                recentByRole={recentByRole}
+              />
+            )}
+            {tab === 'shelf' && <CharacterShelfPanel onClose={onClose} onSwitched={onSwitched} />}
+          </>
         )}
       </div>
     </div>

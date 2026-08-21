@@ -22,6 +22,7 @@ describe('product experience registry', () => {
       expect(experience.key).toMatch(/^experience\.[a-z0-9-]+$/)
       expect(PRODUCT_EXPERIENCE_REGISTRY[experience.key]).toBe(experience)
       expect(experience.sourcePaths.length).toBeGreaterThan(0)
+      expect(experience.experienceParts.length).toBeGreaterThan(0)
       expect(experience.usesFoundation.length).toBeGreaterThan(0)
       expect(new Set(experience.usesFoundation).size).toBe(experience.usesFoundation.length)
       for (const sourcePath of experience.sourcePaths) expect(existsSync(sourcePath)).toBe(true)
@@ -49,7 +50,7 @@ describe('product experience registry', () => {
 
   it('反向使用关系只从活跃体验的 usesFoundation 派生', () => {
     expect(isActiveProductExperience({ ...PRODUCT_EXPERIENCE_ASSETS[0], status: 'archived' })).toBe(false)
-    expect(productExperiencesUsingFoundation('layout.primary-sidebar').map((asset) => asset.key)).toEqual(['experience.chat'])
+    expect(productExperiencesUsingFoundation('developer.markdown').map((asset) => asset.key)).toEqual(['experience.chat'])
     expect(productExperiencesUsingFoundation('state.empty').map((asset) => asset.key)).toEqual([
       'experience.chat',
       'experience.world',

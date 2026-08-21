@@ -12,7 +12,7 @@ Playground 需要同时承担三件事：一是确认 My Agent 的 UI 设计语�
 
 ### 分类重组
 
-Playground → 设计 → UI 控件使用以下中文分类：
+Playground → 基础 → 基础组件使用以下中文分类：
 
 ```text
 按钮
@@ -111,7 +111,7 @@ Prompt 编写顺序：
 图标体系与 UI 控件并列：
 
 ```text
-Playground → 设计
+Playground → 基础
 ├── UI 控件
 └── 图标体系
 ```
@@ -133,14 +133,14 @@ UI 控件中的图标只展示“图标如何被使用”；图标体系负责�
 ### 本轮落地（2026-08-16）
 
 - 新增 `src/shared/icon-registry.ts`，登记导航、对话、开发、伙伴、资产和状态六类 Lucide 语义图标。
-- Playground「组件 → 图标」提供中文主名、灰色英文名、稳定 key、用途和 P0 / P1 优先级的可搜索目录。
+- Playground「基础 → 图标与视觉」提供中文主名、灰色英文名、稳定 key、用途和 P0 / P1 优先级的可搜索目录。
 - 增加注册表 Unit 与 Playground UI E2E 验收；Alice 的 Tabler 图标仅作为参考，不进入生产依赖。
 
 ### UI 组件资产目录落地（2026-08-17）
 
 - 新增 `src/shared/ui-component-registry.ts`，登记行为、状态、开发工具、伙伴世界和布局导航组件。
 - 采用状态固定为 candidate / playground / adopted / deprecated / archived；已采用项必须指向真实源码，Radix 等外部来源只作为未安装候选。
-- Playground「组件 → 组件目录」支持搜索、分类和采用状态筛选，并展示中文主名、灰色英文术语、故事数量与无障碍约束；无障碍验证状态独立登记，专项复核见 WISH-022。
+- Playground「基础 → 基础组件」支持搜索、分类和采用状态筛选，并展示中文主名、灰色英文术语、故事数量与无障碍约束；无障碍验证状态独立登记，专项复核见 WISH-022。
 - 图标分类导航保持中文单语；英文辅助只用于具体常用组件与图标名称。
 
 ### 视觉与交互

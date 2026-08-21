@@ -18,6 +18,8 @@ export interface ProductExperienceDefinition {
   status: ProductExperienceStatus
   playgroundTabId: ProductExperienceTabId
   sourcePaths: readonly string[]
+  /** 业务语义与页面组成；不参与 Foundation 依赖校验。 */
+  experienceParts: readonly string[]
   usesFoundation: readonly FoundationComponentKey[]
 }
 
@@ -33,7 +35,8 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     status: 'playground',
     playgroundTabId: 'chat',
     sourcePaths: ['src/components/playground/SurfaceBaselinePanel.tsx', 'src/components/shell/PrimarySidebar.tsx'],
-    usesFoundation: ['layout.primary-sidebar', 'companion.status-bar', 'developer.markdown', 'state.empty', 'state.toast'],
+    experienceParts: ['伙伴身份', '会话导航', '欢迎区', '消息流'],
+    usesFoundation: ['developer.markdown', 'state.empty', 'state.toast'],
   }),
   experience({
     key: 'experience.world',
@@ -42,7 +45,8 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     status: 'playground',
     playgroundTabId: 'world',
     sourcePaths: ['src/components/playground/SurfaceBaselinePanel.tsx', 'src/components/MomentsPanel.tsx'],
-    usesFoundation: ['companion.status-bar', 'companion.moment-card', 'companion.role-card', 'state.empty'],
+    experienceParts: ['朋友圈', '物什', '名册', '角色架'],
+    usesFoundation: ['behavior.tabs', 'state.empty'],
   }),
   experience({
     key: 'experience.memory',
@@ -51,6 +55,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     status: 'playground',
     playgroundTabId: 'memory',
     sourcePaths: ['src/components/MemoryPanel.tsx'],
+    experienceParts: ['记忆列表', '记忆筛选', '敏感项', '编辑态', '记忆引用'],
     usesFoundation: ['behavior.tabs', 'state.empty', 'state.error'],
   }),
   experience({
@@ -60,6 +65,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     status: 'playground',
     playgroundTabId: 'settings',
     sourcePaths: ['src/components/SettingsPanel.tsx'],
+    experienceParts: ['设置分组', '字段编辑', '自动保存', '失败恢复'],
     usesFoundation: ['behavior.tabs', 'state.toast', 'state.error'],
   }),
   experience({
@@ -69,7 +75,8 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     status: 'playground',
     playgroundTabId: 'workspace',
     sourcePaths: ['src/components/chat/right-dock/ChatRightDock.tsx', 'src/components/FileBrowser.tsx'],
-    usesFoundation: ['layout.right-dock', 'developer.file-tree', 'layout.resize-handle', 'behavior.tabs'],
+    experienceParts: ['文件', '预览', '审阅', '终端'],
+    usesFoundation: ['developer.file-tree', 'layout.resize-handle', 'behavior.tabs'],
   }),
   experience({
     key: 'experience.business-states',
@@ -78,7 +85,8 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     status: 'playground',
     playgroundTabId: 'business-states',
     sourcePaths: ['src/components/playground/BusinessStatesPanel.tsx'],
-    usesFoundation: ['state.empty', 'state.permission-confirm', 'companion.status-bar', 'state.error', 'state.toast'],
+    experienceParts: ['空态', '权限确认', '伙伴状态', '错误反馈'],
+    usesFoundation: ['state.empty', 'state.permission-confirm', 'state.error', 'state.toast'],
   }),
 ] as const satisfies readonly ProductExperienceDefinition[]
 

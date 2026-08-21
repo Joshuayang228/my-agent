@@ -3,7 +3,6 @@
  */
 
 import { useState, type CSSProperties } from 'react'
-import { MoreHorizontal, Search, SlidersHorizontal } from 'lucide-react'
 import { AdoptionMark } from './AdoptionMark'
 import { StoryBlock } from './StoryBlock'
 import { DESIGN_THEME_ASSETS } from '../../shared/design-asset-registry'
@@ -47,7 +46,7 @@ const DARK_THEME_STYLE: CSSProperties = {
   '--danger': '#f85149',
 } as CSSProperties
 
-type Sub = 'colors' | 'themes' | 'radius' | 'samples'
+type Sub = 'colors' | 'themes' | 'radius'
 
 export function DesignSystemPanel() {
   const [sub, setSub] = useState<Sub>('colors')
@@ -63,7 +62,6 @@ export function DesignSystemPanel() {
     { id: 'colors', label: '颜色' },
     { id: 'themes', label: '主题对照' },
     { id: 'radius', label: '圆角 / 动效' },
-    { id: 'samples', label: '组合实验' },
   ]
 
   return (
@@ -173,42 +171,7 @@ export function DesignSystemPanel() {
         </div>
       )}
 
-      {sub === 'samples' && (
-        <div className="space-y-3">
-          <StoryBlock title="设置控件组合" source=".settings-option · .theme-input" adopted>
-            <div className="flex flex-wrap items-center gap-2">
-              <button type="button" className="settings-option px-3 py-1.5 text-xs">主要按钮</button>
-              <label className="relative block min-w-52">
-                <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-                <input className="theme-input h-8 w-full border pl-8 pr-2 text-xs outline-none" placeholder="搜索" />
-              </label>
-            </div>
-          </StoryBlock>
-          <StoryBlock title="静默工具条" source="Playground story">
-            <div className="flex max-w-sm items-center justify-between border-b py-2" style={{ borderColor: 'var(--border-subtle)' }}>
-              <div>
-                <div className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>上下文摘要</div>
-                <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>最近更新于 14:32</div>
-              </div>
-              <div className="flex items-center gap-1">
-                <button type="button" className="rounded-md p-1.5" style={{ color: 'var(--text-muted)' }} title="筛选"><SlidersHorizontal size={14} /></button>
-                <button type="button" className="rounded-md p-1.5" style={{ color: 'var(--text-muted)' }} title="更多"><MoreHorizontal size={14} /></button>
-              </div>
-            </div>
-          </StoryBlock>
-          <StoryBlock title="高密度状态列表" source="Playground story" edge>
-            <div className="max-w-md divide-y rounded-md border" style={{ borderColor: 'var(--border-color)' }}>
-              {['主对话模型', '标题生成', '记忆提取'].map((label, index) => (
-                <div key={label} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 px-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-subtle)' }}>
-                  <span style={{ color: 'var(--text-primary)' }}>{label}</span>
-                  <span className="font-mono" style={{ color: 'var(--text-muted)' }}>{index === 0 ? 'qwen3.5' : 'aux'}</span>
-                  <span style={{ color: index === 2 ? 'var(--warning)' : 'var(--success)' }}>{index === 2 ? '待检查' : '可用'}</span>
-                </div>
-              ))}
-            </div>
-          </StoryBlock>
-        </div>
-      )}
+
     </div>
   )
 }

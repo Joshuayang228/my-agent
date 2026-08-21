@@ -11,21 +11,29 @@ export function ProductExperienceDependencies({ tabId }: { tabId: ProductExperie
   if (!experience) return null
 
   return (
-    <section className="mx-auto mb-3 flex max-w-5xl flex-wrap items-center gap-x-2 gap-y-1 border-b pb-2" style={{ borderColor: 'var(--border-subtle)' }} data-testid="product-experience-dependencies">
-      <span className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{experience.labelZh}</span>
-      <code className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{experience.key}</code>
-      <span className="text-[9px]" style={{ color: 'var(--warning)' }}>{experience.status === 'playground' ? 'Playground' : experience.status}</span>
-      <div className="flex flex-wrap items-center gap-1" aria-label="使用的基础组件">
-        <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>使用：</span>
-        {experience.usesFoundation.map((key) => {
-          const asset = UI_COMPONENT_REGISTRY[key]
-          return (
-            <span key={key} className="rounded px-1.5 py-0.5 text-[9px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }} title={key}>
-              {asset.labelZh}
-            </span>
-          )
-        })}
+    <section className="mx-auto mb-3 max-w-5xl border-b pb-2" style={{ borderColor: 'var(--border-subtle)' }} data-testid="product-experience-dependencies">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{experience.labelZh}</span>
+        <span className="rounded px-1.5 py-0.5 text-[9px]" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>{experience.status === 'playground' ? 'Playground' : experience.status}</span>
+      </div>
+      <div className="mt-2 grid gap-1.5 text-[10px] sm:grid-cols-[72px_1fr] sm:items-start">
+        <span style={{ color: 'var(--text-muted)' }}>体验组成</span>
+        <div className="flex flex-wrap gap-1" data-testid="experience-parts">
+          {experience.experienceParts.map((part) => (
+            <span key={part} className="rounded px-1.5 py-0.5" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{part}</span>
+          ))}
+        </div>
+        <span style={{ color: 'var(--text-muted)' }}>基础能力</span>
+        <div className="flex flex-wrap gap-1" aria-label="使用的基础组件">
+          {experience.usesFoundation.map((key) => {
+            const asset = UI_COMPONENT_REGISTRY[key]
+            return (
+              <span key={key} className="rounded px-1.5 py-0.5" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                {asset.labelZh}
+              </span>
+            )
+          })}
+        </div>
       </div>
     </section>
-  )
-}
+  )}

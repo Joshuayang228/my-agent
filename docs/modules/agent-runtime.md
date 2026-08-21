@@ -80,11 +80,11 @@
 | Debug / Playground 独立全页 | 已落地 | 入口固定在 Primary Sidebar 底部产品区上方；各自页面壳直接占满主区，不继承 Chat 顶栏；非双 tab / 非抽屉 |
 | 工具手测（权限门闸） | 已落地 | `debug:tool-run` · confirmRisk |
 | Prompt 会话覆盖（不写 settings） | 已落地 | 载入实装 → playgroundRun |
-| 设计 token 场 | 已落地 | Playground「设计 → Token 与主题」 |
-| Playground 组件展厅（左侧活目录 + 故事矩阵） | 已落地 | `src/components/playground/` · M32-G9 · 左右栏 |
+| 设计语言场 | 已落地 | Playground「基础 → 设计语言」；颜色 / 主题 / 圆角动效三组 Tab，不混入业务组合 |
+| Playground 基础 / 产品体验工作台 | 已落地 | `src/components/playground/` · 基础 → 产品体验 → Agent 实验；两层边界、Tab 事实表和体验依赖摘要见施工合同 |
 | Playground UI 矩阵加厚（确认/芯片/状态条/反馈/独白） | 已落地 | M32-G9 Phase 1 · Toast 关闭位统一、MarkdownRenderer 等正式组件故事格 |
 | Playground 单项采用标记与主题对照 | 已落地 | `AdoptionMark` 只挂具体 token / 组件 / 故事证据，不再给目录批量标记或提供全局开关；七主题同页审计 |
-| UI 组件 / 图标语义资产注册 | 已落地 | `ui-component-registry.ts` 继续承担机器门禁；Playground 基础组件按按钮 / 输入 / 工具卡 / 记忆芯片拆分展示，图标目录仅显示紧凑的图标 + 中英文名；具体 adopted 小勾来自注册表真实 sourcePaths，不给整页批量标记 |
+| UI 组件 / 图标语义资产注册 | 已落地 | `ui-component-registry.ts` 继续承担机器门禁；Foundation 只登记可复用基础能力，业务结构由产品体验注册表的 `experienceParts` 登记；图标目录仅显示紧凑的图标 + 中英文名；具体 adopted 小勾来自真实证据 |
 | 对话 Debug 右侧栏 | 已落地 | Chat 右坞 · `ConversationDebugAside`；可盖在能力坞之上（Alice 式）；持久化 LLM 调用链 |
 | 项目文件预览 | 已落地 | `FileBrowser` · text/image/unsupported；图/文本/md；html 沙箱 iframe；pdf·Office 外开；Playground 可用只读静态树 / 文件样张且跳过 IPC |
 | Chat 右侧能力坞 | 已落地 | `ChatRightDock` · Tab 文件/审阅/终端；会话写文件变更账本；命令控制台（非 PTY）；可拖宽 + 内部分界 |
@@ -94,7 +94,7 @@
 | Skill Eval 证据闭环 | 已落地 | `npm run eval:skill`；S01–S03 覆盖应触发 / 不触发 / `allowed_tools`；JSON + Markdown 报告；Debug「质量 / Eval」展示输入、Trace、工具、回复与四类 Grader |
 | Prompt 受控编辑 | 已落地 | 生产资产只读；实验副本可隔离试跑；二次确认后复用 `settings.systemPrompt` 保存为 L3 自定义补充指令 |
 | Playground 多轮隔离对话 | 已落地 | `playgroundRun.history` · PromptLab transcript |
-| Playground 模型测试（烟测 + thinking.disabled 探测） | 已落地 | `设计 → Token 与主题`、`Agent 实验 → 模型能力` 等分组入口 · `debug:model-smoke` / `model-probe-thinking`；能力缓存供辅助调用 |
+| Playground 模型测试（烟测 + thinking.disabled 探测） | 已落地 | `基础 → 设计语言`、`Agent 实验 → 模型能力` 等一级入口 · `debug:model-smoke` / `model-probe-thinking`；能力缓存供辅助调用 |
 | Debug 世界态透视 | 已落地 | `debug:world-snapshot` · DevPanel 伙伴状态域 |
 | Debug 诊断闭环 | 已落地 | 提示词管理器 / 请求与运行 / 伙伴状态 / 质量·Eval / 系统；LLM 调用、Span 与实时事件收进请求与运行内部视图 |
 | Debug 真实请求元数据 | 已落地 | `LLMCallsPanel` 在请求与运行域读取真实调用的角色 / 计数 / 长度 / 资产证据；正文不落盘，装配预览不声明为实发内容 |

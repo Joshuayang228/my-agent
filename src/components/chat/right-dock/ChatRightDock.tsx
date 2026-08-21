@@ -3,7 +3,7 @@
  * Playground 可通过显式模式验收按需添加 Tab，不改变生产默认工具可见性。
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Eye, FileCode2, FileText, GitCompare, Plus, TerminalSquare, X } from 'lucide-react'
 import { FileBrowser, type FileBrowserPreviewData } from '../../FileBrowser'
 import { ReviewPanel } from './ReviewPanel'
@@ -14,6 +14,7 @@ import type { LLMCallSummary } from '../../../shared/types'
 export type RightDockTab = 'files' | 'preview' | 'review' | 'terminal'
 
 type RightDockTabMeta = { id: RightDockTab; label: string; icon: typeof FileText }
+type RightDockTabInstance = { instanceId: string; kind: RightDockTab }
 
 interface ChatRightDockProps {
   projectPath: string | null
@@ -65,26 +66,40 @@ export function ChatRightDock({
   onCloseFiles,
   onCloseDebug,
 }: ChatRightDockProps) {
-  const [tab, setTab] = useState<RightDockTab>(playgroundTabs ? 'preview' : 'files')
-  const [openTabs, setOpenTabs] = useState<RightDockTab[]>(playgroundTabs ? ['preview'] : ['files', 'review', 'terminal'])
+  const nextInstance = useRef(2)
+  const initialInstance = (kind: RightDockTab): RightDockTabInstance => ({ instanceId: `${kind}-1`, kind })
+  const [activeTabId, setActiveTabId] = useState(playgroundTabs ? 'preview-1' : 'files-1')
+  const [openTabs, setOpenTabs] = useState<RightDockTabInstance[]>(playgroundTabs
+    ? [initialInstance('preview')]
+    : [initialInstance('files'), initialInstance('review'), initialInstance('terminal')])
   const [addMenuOpen, setAddMenuOpen] = useState(false)
   const open = showFiles || conversationDebug
   useEffect(() => {
     if (!playgroundTabs) return
-    setTab('preview')
-    setOpenTabs(['preview'])
+    nextInstance.current = 2
+    setActiveTabId('preview-1')
+    setOpenTabs([initialInstance('preview')])
     setAddMenuOpen(false)
   }, [playgroundTabs])
 
   if (!open) return null
 
   const showWorkbench = showFiles
-  const visibleTabs = playgroundTabs ? TABS.filter((item) => openTabs.includes(item.id)) : TABS.filter((item) => item.id !== 'preview')
-  const addableTabs = TABS.filter((item) => !openTabs.includes(item.id))
+  const visibleTabs = playgroundTabs
+    ? openTabs.map((instance, index) => {
+        const meta = TABS.find((item) => item.id === instance.kind)!
+        const sameKindBefore = openTabs.slice(0, index).filter((item) => item.kind === instance.kind).length
+        return { instance, meta, label: sameKindBefore > 0 ? `${meta.label} ${sameKindBefore + 1}` : meta.label }
+      })
+    : TABS.filter((item) => item.id !== 'preview').map((meta) => ({ instance: initialInstance(meta.id), meta, label: meta.label }))
+  const addableTabs = TABS
+  const activeInstance = openTabs.find((instance) => instance.instanceId === activeTabId) ?? openTabs[0]
+  const activeKind = activeInstance?.kind ?? 'preview'
 
   const addTab = (next: RightDockTab) => {
-    setOpenTabs((current) => current.includes(next) ? current : [...current, next])
-    setTab(next)
+    const instanceId = `${next}-${nextInstance.current++}`
+    setOpenTabs((current) => [...current, { instanceId, kind: next }])
+    setActiveTabId(instanceId)
     setAddMenuOpen(false)
   }
 
@@ -93,10 +108,11 @@ export function ChatRightDock({
       onCloseFiles()
       return
     }
-    const remaining = openTabs.filter((item) => item !== tab)
+    const currentIndex = openTabs.findIndex((item) => item.instanceId === activeTabId)
+    const remaining = openTabs.filter((item) => item.instanceId !== activeTabId)
     setOpenTabs(remaining)
     if (remaining.length === 0) onCloseFiles()
-    else setTab(remaining[remaining.length - 1])
+    else setActiveTabId(remaining[Math.max(0, currentIndex - 1)]?.instanceId ?? remaining[remaining.length - 1].instanceId)
   }
 
   return (
@@ -111,23 +127,24 @@ export function ChatRightDock({
             className="relative flex shrink-0 items-center gap-0.5 border-b px-1.5 py-1"
             style={{ borderColor: 'var(--border-subtle)' }}
           >
-            {visibleTabs.map((item) => {
-              const Icon = item.icon
-              const active = tab === item.id
+            {visibleTabs.map(({ instance, meta, label }) => {
+              const Icon = meta.icon
+              const active = activeTabId === instance.instanceId
               return (
                 <button
-                  key={item.id}
+                  key={instance.instanceId}
                   type="button"
                   className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition"
                   style={{
                     color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
                     background: active ? 'var(--accent-subtle)' : undefined,
                   }}
-                  onClick={() => setTab(item.id)}
-                  data-testid={`right-dock-tab-${item.id}`}
+                  onClick={() => setActiveTabId(instance.instanceId)}
+                  data-testid={`right-dock-tab-${instance.kind}`}
+                  data-instance-id={instance.instanceId}
                 >
                   <Icon size={12} />
-                  {item.label}
+                  {label}
                 </button>
               )
             })}
@@ -193,7 +210,7 @@ export function ChatRightDock({
           </div>
 
           <div className="min-h-0 flex-1 overflow-hidden">
-            {tab === 'files' && (
+            {activeKind === 'files' && (
               <FileBrowser
                 projectPath={projectPath}
                 onClose={onCloseFiles}
@@ -202,7 +219,7 @@ export function ChatRightDock({
                 mode={playgroundTabs ? 'files' : 'split'}
               />
             )}
-            {tab === 'preview' && (
+            {activeKind === 'preview' && (
               <FileBrowser
                 projectPath={projectPath}
                 onClose={onCloseFiles}
@@ -211,12 +228,12 @@ export function ChatRightDock({
                 mode="preview"
               />
             )}
-            {tab === 'review' && (
+            {activeKind === 'review' && (
               playgroundTabs
                 ? <DockFixture title="审阅" body="这里预留 Review 结果的独立工作区；正式接入前不读取真实会话。" />
                 : <ReviewPanel sessionId={sessionId} />
             )}
-            {tab === 'terminal' && (
+            {activeKind === 'terminal' && (
               playgroundTabs
                 ? <DockFixture title="终端" body="这里预留 Terminal 工具的独立工作区；正式接入前不执行命令。" />
                 : <TerminalPanel projectPath={projectPath} />

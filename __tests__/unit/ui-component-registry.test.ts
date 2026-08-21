@@ -51,6 +51,9 @@ describe('UI component asset registry', () => {
     }
     expect(UI_COMPONENT_REGISTRY['layout.foundation-workbench'].layer).toBe('experience')
     expect(UI_COMPONENT_REGISTRY['layout.business-states-workbench'].layer).toBe('experience')
-    expect(UI_COMPONENT_REGISTRY['layout.primary-sidebar'].layer).toBe('foundation')
+    expect(UI_COMPONENT_REGISTRY['layout.primary-sidebar'].layer).toBe('experience')
+    expect(UI_COMPONENT_REGISTRY['companion.status-bar'].layer).toBe('experience')
+    expect(UI_COMPONENT_REGISTRY['companion.memory-citations'].layer).toBe('experience')
+    expect(UI_COMPONENT_REGISTRY['layout.right-dock'].layer).toBe('experience')
   })
 })

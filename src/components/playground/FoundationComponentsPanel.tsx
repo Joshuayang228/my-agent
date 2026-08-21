@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { UI_CONTROLS_SUBTABS, type UiControlsSubId } from './catalog'
 import { UiControlsPanel } from './UiControlsPanel'
 
-const FOUNDATION_STORIES: readonly UiControlsSubId[] = ['buttons', 'inputs', 'tool-cards', 'memory-chips']
+const FOUNDATION_STORIES: readonly UiControlsSubId[] = ['buttons', 'inputs', 'tool-cards', 'empty', 'confirm', 'feedback']
 
 export function FoundationComponentsPanel() {
   const [story, setStory] = useState<UiControlsSubId>('buttons')
