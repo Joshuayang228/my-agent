@@ -6,6 +6,8 @@
 import { useMemo, useState } from 'react'
 import { LoaderCircle, Search, Sparkles, WandSparkles } from 'lucide-react'
 import { ToolCallbackList } from '../chat/callbacks/ToolCallbackList'
+import { FileBrowser, type FileBrowserPreviewData } from '../FileBrowser'
+import { ResizeHandle } from '../shell/ResizeHandle'
 import type { ToolCallbackItem } from '../chat/callbacks/types'
 import { MemoryCitationChips } from '../chat/MemoryCitationChips'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
@@ -50,6 +52,29 @@ const TOAST_STORIES: ToastPreviewItem[] = [
   { id: 4, type: 'error', message: '文件没有保存成功，原内容没有被覆盖。' },
 ]
 
+const FILE_TREE_FIXTURE: FileBrowserPreviewData = {
+  projectLabel: 'Foundation · 文件树样张',
+  initialPath: 'src/agent/runtime.ts',
+  tree: [
+    { name: 'src', path: 'src', isDir: true, children: [
+      { name: 'agent', path: 'src/agent', isDir: true, children: [
+        { name: 'runtime.ts', path: 'src/agent/runtime.ts', isDir: false },
+        { name: 'context.ts', path: 'src/agent/context.ts', isDir: false },
+      ] },
+      { name: 'shared', path: 'src/shared', isDir: true, children: [
+        { name: 'types.ts', path: 'src/shared/types.ts', isDir: false },
+      ] },
+    ] },
+    { name: 'AGENTS.md', path: 'AGENTS.md', isDir: false },
+  ],
+  files: {
+    'src/agent/runtime.ts': { path: 'src/agent/runtime.ts', kind: 'text', languageHint: 'typescript', content: 'export async function runAgent() {\n  return streamChat();\n}\n' },
+    'src/agent/context.ts': { path: 'src/agent/context.ts', kind: 'text', languageHint: 'typescript', content: 'export type ContextBlock = { kind: string; content: string }\n' },
+    'src/shared/types.ts': { path: 'src/shared/types.ts', kind: 'text', languageHint: 'typescript', content: 'export type AssetKey = string\n' },
+    'AGENTS.md': { path: 'AGENTS.md', kind: 'text', languageHint: 'markdown', content: '# Foundation\n\n这里是隔离样张，不读取真实项目文件。\n' },
+  },
+}
+
 function ChatEmptyFixture({ long }: { long?: boolean }) {
   return (
     <div
@@ -86,6 +111,24 @@ function FixtureError({ title, body, action }: { title: string; body: string; ac
       <div className="text-[12px] font-medium" style={{ color: 'var(--danger)' }}>{title}</div>
       <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{body}</p>
       <button type="button" className="mt-2 rounded border px-2 py-0.5 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>{action}</button>
+    </div>
+  )
+}
+
+function ResizeStory() {
+  const [width, setWidth] = useState(180)
+  return (
+    <div className="space-y-3">
+      <StoryBlock title="分栏拖拽柄" source="src/components/shell/ResizeHandle.tsx" adopted>
+        <div className="flex h-40 max-w-lg overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
+          <div className="flex items-center justify-center text-[11px]" style={{ width, color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }}>内容区</div>
+          <ResizeHandle orientation="vertical" onDelta={(delta) => setWidth((value) => Math.min(320, Math.max(120, value + delta)))} title="调整内容区宽度" />
+          <div className="flex min-w-0 flex-1 items-center justify-center text-[11px]" style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)' }}>辅助区 · {width}px</div>
+        </div>
+      </StoryBlock>
+      <StoryBlock title="最小 / 最大边界" source="ResizeHandle · LAYOUT_BOUNDS" edge adopted>
+        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>拖动中保持 120–320px 范围，键盘和窄宽验收不能让主操作消失。</p>
+      </StoryBlock>
     </div>
   )
 }
@@ -195,6 +238,95 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
             />
           </StoryBlock>
         </div>
+      )}
+
+      {effectiveSub === 'tabs' && (
+        <div className="space-y-3">
+          <StoryBlock title="标签切换" source="src/components/shell/WorldHub.tsx · role=tab" adopted>
+            <div className="max-w-md rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+              <div className="flex gap-1 border-b px-2" role="tablist" aria-label="Foundation 标签样张" style={{ borderColor: 'var(--border-subtle)' }}>
+                {['基础', '产品体验', 'Agent 实验'].map((label, index) => (
+                  <button key={label} type="button" role="tab" aria-selected={index === 0} className="border-b-2 px-2.5 py-2 text-[11px]" style={{ borderColor: index === 0 ? 'var(--accent-fg)' : 'transparent', color: index === 0 ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{label}</button>
+                ))}
+              </div>
+              <div className="p-3 text-[11px]" style={{ color: 'var(--text-secondary)' }}>同一任务域内切换内容，不承担页面级跳转。</div>
+            </div>
+          </StoryBlock>
+          <StoryBlock title="窄宽标签" source="Tabs · overflow-x-auto" edge adopted>
+            <div className="max-w-[250px] overflow-x-auto rounded-lg border p-1" style={{ borderColor: 'var(--border-color)' }}>
+              <div className="flex min-w-max gap-1">
+                {['朋友圈', '物什', '名册', '角色架'].map((label, index) => <span key={label} className="rounded px-2 py-1 text-[10px]" style={{ background: index === 0 ? 'var(--accent-subtle)' : 'var(--bg-tertiary)', color: index === 0 ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{label}</span>)}
+              </div>
+            </div>
+          </StoryBlock>
+        </div>
+      )}
+
+      {effectiveSub === 'toast' && (
+        <div className="space-y-3">
+          <StoryBlock title="提示条四态" source="src/components/Toast.tsx" adopted>
+            <div className="playground-toast-preview w-full max-w-md"><ToastPreview items={TOAST_STORIES} /></div>
+          </StoryBlock>
+          <StoryBlock title="长文与窄宽" source="ToastBubble · responsive max-width" edge adopted>
+            <div className="max-w-[280px]"><ToastPreview items={[{ id: 5, type: 'warning', message: '当前请求已完成，但有两个后台步骤仍在处理。你可以继续对话，结果回来后会再次通知。' }]} /></div>
+          </StoryBlock>
+        </div>
+      )}
+
+      {effectiveSub === 'spinner' && (
+        <div className="space-y-3">
+          <StoryBlock title="加载指示器" source="src/components/playground/UiControlsPanel.tsx · LoaderCircle" adopted>
+            <div className="flex flex-wrap items-center gap-4 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+              <span className="inline-flex items-center gap-1.5"><LoaderCircle size={16} className="animate-spin" />生成中</span>
+              <span className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[11px]" style={{ borderColor: 'var(--border-color)' }}><LoaderCircle size={14} className="animate-spin" />读取中</span>
+              <span className="inline-flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}><LoaderCircle size={12} />等待开始</span>
+            </div>
+          </StoryBlock>
+          <StoryBlock title="减少动效替代" source="Spinner · 文本状态不能省略" edge adopted>
+            <div className="rounded-md border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>正在检查模型连接，请稍候…</div>
+          </StoryBlock>
+        </div>
+      )}
+
+      {effectiveSub === 'markdown' && (
+        <div className="space-y-3">
+          <StoryBlock title="正文与代码块" source="src/components/MarkdownRenderer.tsx" adopted>
+            <div className="max-w-xl text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>
+              <MarkdownRenderer content={'## 今日计划\n\n先完成 **最重要的一件事**，再处理剩下的内容。\n\n```ts\nconst ready = true\n```'} />
+            </div>
+          </StoryBlock>
+          <StoryBlock title="内心独白与长文" source="MarkdownRenderer · aside guard" edge adopted>
+            <div className="max-w-xl text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>
+              <MarkdownRenderer content={'我先给你一个可以直接执行的版本。<aside>这是一段故意拉长的内心独白，用来检查窄栏换行、正文层级和弱化后的可读性，不能盖过真正的回答。</aside>'} />
+            </div>
+          </StoryBlock>
+        </div>
+      )}
+
+      {effectiveSub === 'asset-table' && (
+        <div className="space-y-3">
+          <StoryBlock title="资产目录表格" source="src/components/debug/PromptManagerPanel.tsx" adopted>
+            <div className="max-w-xl overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
+              <div className="grid grid-cols-[1fr_auto_auto] gap-3 border-b px-3 py-2 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}><span>资产</span><span>状态</span><span>版本</span></div>
+              {[['主对话 Prompt', '已采用', 'v3'], ['记忆策略', '实验', 'v2'], ['权限策略', '候选', 'v1']].map(([name, status, version]) => <div key={name} className="grid grid-cols-[1fr_auto_auto] gap-3 border-b px-3 py-2 text-[11px] last:border-b-0" style={{ borderColor: 'var(--border-subtle)' }}><span style={{ color: 'var(--text-primary)' }}>{name}</span><span style={{ color: status === '已采用' ? 'var(--success)' : 'var(--text-muted)' }}>{status}</span><span className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{version}</span></div>)}
+            </div>
+          </StoryBlock>
+        </div>
+      )}
+
+      {effectiveSub === 'file-tree' && (
+        <div className="space-y-3">
+          <StoryBlock title="文件树" source="src/components/FileBrowser.tsx" adopted>
+            <div className="h-[360px] max-w-md overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)' }}><FileBrowser projectPath={null} onClose={() => undefined} embedded previewData={FILE_TREE_FIXTURE} mode="files" /></div>
+          </StoryBlock>
+          <StoryBlock title="长路径与空目录" source="FileBrowser · tree fixture" edge adopted>
+            <div className="rounded-lg border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>树节点需要可展开、键盘可达，长文件名截断但保留完整提示。</div>
+          </StoryBlock>
+        </div>
+      )}
+
+      {effectiveSub === 'resize-handle' && (
+        <ResizeStory />
       )}
 
       {effectiveSub === 'empty' && (
@@ -408,16 +540,6 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
                 type: 'warning',
                 message: '当前请求已完成，但有两个后台步骤仍在处理。你可以继续对话，结果回来后会再次通知。',
               }]} />
-            </div>
-          </StoryBlock>
-          <StoryBlock title="正文与内心独白" source="src/components/MarkdownRenderer.tsx" adopted>
-            <div className="max-w-xl text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>
-              <MarkdownRenderer content={'先把今天必须完成的两件事挑出来，剩下的明天再看。<aside>他看起来有点累，别一次塞太多。</aside>'} />
-            </div>
-          </StoryBlock>
-          <StoryBlock title="长独白边缘" source="MarkdownRenderer · aside guard" edge adopted>
-            <div className="max-w-xl text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>
-              <MarkdownRenderer content={'我先给你一个可以直接执行的版本。<aside>这是一段故意拉长的内心独白，用来检查窄栏换行、正文层级和弱化后的可读性，不能盖过真正的回答。</aside>'} />
             </div>
           </StoryBlock>
         </div>

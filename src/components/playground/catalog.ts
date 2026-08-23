@@ -20,6 +20,13 @@ export type PlaygroundTabId =
   | 'buttons'
   | 'inputs'
   | 'tool-cards'
+  | 'tabs'
+  | 'toast'
+  | 'spinner'
+  | 'markdown'
+  | 'asset-table'
+  | 'file-tree'
+  | 'resize-handle'
   | 'empty'
   | 'confirm'
   | 'memory-chips'
@@ -89,6 +96,13 @@ export type UiControlsSubId =
   | 'buttons'
   | 'inputs'
   | 'tool-cards'
+  | 'tabs'
+  | 'toast'
+  | 'spinner'
+  | 'markdown'
+  | 'asset-table'
+  | 'file-tree'
+  | 'resize-handle'
   | 'empty'
   | 'confirm'
   | 'memory-chips'
@@ -105,5 +119,12 @@ export const UI_CONTROLS_SUBTABS: readonly { id: UiControlsSubId; label: string 
   { id: 'confirm', label: '确认框' },
   { id: 'status-bar', label: '状态条' },
   { id: 'feedback', label: '错误与反馈' },
+  { id: 'toast', label: '提示条' },
+  { id: 'spinner', label: '加载指示器' },
+  { id: 'tabs', label: '标签切换' },
+  { id: 'markdown', label: 'Markdown 渲染' },
+  { id: 'asset-table', label: '资产目录' },
+  { id: 'file-tree', label: '文件树' },
+  { id: 'resize-handle', label: '分栏拖拽' },
   { id: 'icons', label: '图标' },
 ] as const

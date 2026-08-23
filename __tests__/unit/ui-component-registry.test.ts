@@ -35,6 +35,8 @@ describe('UI component asset registry', () => {
 
   it('keeps the first component inventory anchors discoverable', () => {
     for (const key of [
+      'behavior.button',
+      'behavior.input',
       'behavior.dialog',
       'behavior.tabs',
       'behavior.combobox',
@@ -55,5 +57,7 @@ describe('UI component asset registry', () => {
     expect(UI_COMPONENT_REGISTRY['companion.status-bar'].layer).toBe('experience')
     expect(UI_COMPONENT_REGISTRY['companion.memory-citations'].layer).toBe('experience')
     expect(UI_COMPONENT_REGISTRY['layout.right-dock'].layer).toBe('experience')
+    expect(UI_COMPONENT_REGISTRY['behavior.button'].layer).toBe('foundation')
+    expect(UI_COMPONENT_REGISTRY['behavior.input'].layer).toBe('foundation')
   })
 })
