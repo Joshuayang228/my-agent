@@ -186,6 +186,19 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
               不可点
             </button>
           </StoryBlock>
+          <StoryBlock title="生成动作" source="Playground story">
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
+                <Sparkles size={14} />生成
+              </button>
+              <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs text-white" style={{ background: 'var(--accent-emphasis)' }}>
+                <WandSparkles size={14} />重新生成
+              </button>
+              <button type="button" disabled className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs opacity-60" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
+                <LoaderCircle size={14} className="animate-spin" />生成中
+              </button>
+            </div>
+          </StoryBlock>
         </div>
       )}
 
@@ -483,14 +496,18 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
                 {filteredIconAssets.map((asset) => {
                   const Icon = asset.icon
                   return (
-                    <div key={asset.key} className="flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-md border px-2 py-2.5 text-center" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
+                    <div key={asset.key} className="relative flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-md border px-2 py-3 text-center" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
+                      {asset.adoptionStatus === 'adopted' && (
+                        <span className="absolute right-2 top-2">
+                          <AdoptionMark label="已在正式界面采用" />
+                        </span>
+                      )}
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
                         <Icon size={15} strokeWidth={1.65} aria-hidden="true" />
                       </div>
                       <div className="flex min-w-0 flex-col items-center gap-0.5">
                         <span className="truncate text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{asset.label}</span>
                         <span className="truncate text-[9px]" style={{ color: 'var(--text-muted)' }}>{asset.english}</span>
-                        {asset.adoptionStatus === 'adopted' && <AdoptionMark label="已在正式界面采用" />}
                       </div>
                     </div>
                   )
@@ -504,19 +521,6 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
             </div>
           </StoryBlock>
 
-          <StoryBlock title="生成动作" source="Playground story">
-            <div className="flex flex-wrap gap-2">
-              <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
-                <Sparkles size={14} />生成
-              </button>
-              <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs text-white" style={{ background: 'var(--accent-emphasis)' }}>
-                <WandSparkles size={14} />重新生成
-              </button>
-              <button type="button" disabled className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs opacity-60" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
-                <LoaderCircle size={14} className="animate-spin" />生成中
-              </button>
-            </div>
-          </StoryBlock>
         </div>
       )}
       {effectiveSub === 'feedback' && (

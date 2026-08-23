@@ -77,18 +77,19 @@ test.describe('My Agent UI', () => {
     await nav.getByRole('button', { name: '基础组件', exact: true }).click()
     await expect(page.locator('[data-testid="foundation-components-panel"]')).toBeVisible()
     await expect(page.locator('[data-testid="playground-story-nav"]')).toBeVisible()
+    await expect(page.locator('[data-testid="playground-story-nav"] [role="tablist"]')).toHaveCount(1)
     await expect(page.getByRole('tab', { name: '组件索引', exact: true })).toHaveCount(0)
     await expect(page.getByRole('tab', { name: '记忆引用', exact: true })).toHaveCount(0)
     await expect(page.getByRole('tab', { name: '按钮', exact: true })).toBeVisible()
     for (const story of ['标签切换', '提示条', '加载指示器', 'Markdown 渲染', '资产目录', '文件树', '分栏拖拽']) {
       await expect(page.getByRole('tab', { name: story, exact: true })).toBeVisible()
     }
-    await expect(page.locator('[data-testid="foundation-asset-inventory"]')).toContainText('Markdown 渲染器')
-    await expect(page.locator('[data-testid="foundation-asset-inventory"]')).toContainText('对话框')
+    await expect(page.locator('[data-testid="foundation-asset-inventory"]')).toHaveCount(0)
     await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('基础控件')
     await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('状态反馈')
     await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('开发基础')
     await expect(page.getByRole('tab', { name: '输入', exact: true })).toBeVisible()
+    await expect(page.getByText('生成动作', { exact: true })).toBeVisible()
 
     await nav.getByRole('button', { name: '图标与视觉', exact: true }).click()
     await expect(page.locator('[data-testid="icon-inventory"]')).toBeVisible()
@@ -97,7 +98,17 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('菜单', { exact: true }).first()).toBeVisible()
     const menuIcon = page.locator('[data-testid="icon-inventory"] div').filter({ hasText: /^菜单Menu$/ }).first()
     await expect(menuIcon).toBeVisible()
-    await expect(menuIcon.getByTestId('adoption-mark')).toBeVisible()
+    const adoptionMark = menuIcon.getByTestId('adoption-mark')
+    await expect(adoptionMark).toBeVisible()
+    const markPosition = await menuIcon.evaluate((card) => {
+      const mark = card.querySelector('[data-testid="adoption-mark"]')
+      if (!mark) throw new Error('adoption mark missing')
+      const cardBox = card.getBoundingClientRect()
+      const markBox = mark.getBoundingClientRect()
+      return { topDelta: markBox.top - cardBox.top, rightDelta: cardBox.right - markBox.right }
+    })
+    expect(markPosition.topDelta).toBeLessThan(24)
+    expect(markPosition.rightDelta).toBeLessThan(24)
     await expect(page.getByText('Menu', { exact: true }).first()).toBeVisible()
 
     await nav.getByRole('button', { name: 'Chat', exact: true }).click()
@@ -221,11 +232,12 @@ test.describe('My Agent UI', () => {
     for (const story of ['标签切换', '提示条', '加载指示器', 'Markdown 渲染', '资产目录', '文件树', '分栏拖拽']) {
       await expect(page.getByRole('tab', { name: story, exact: true })).toBeVisible()
     }
-    await expect(page.locator('[data-testid="foundation-asset-inventory"]')).toContainText('Markdown 渲染器')
-    await expect(page.locator('[data-testid="foundation-asset-inventory"]')).toContainText('对话框')
+    await expect(page.locator('[data-testid="foundation-asset-inventory"]')).toHaveCount(0)
+    await expect(page.locator('[data-testid="playground-story-nav"] [role="tablist"]')).toHaveCount(1)
     await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('基础控件')
     await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('状态反馈')
     await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('开发基础')
+    await expect(page.getByText('生成动作', { exact: true })).toBeVisible()
     await playgroundNav.getByRole('button', { name: '图标与视觉', exact: true }).click()
     await expect(page.locator('[data-testid="icon-inventory"]')).toBeVisible()
     await expect(page.getByPlaceholder('搜索中文或 English')).toBeVisible()

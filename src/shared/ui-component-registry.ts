@@ -79,7 +79,7 @@ function component<const T extends UiComponentInput>(definition: T): UiComponent
 export const UI_COMPONENT_ASSETS = [
   // 行为组件：先登记候选，不因为进入目录就假装已安装 Radix。
   // 基础控件故事：当前以正式样式和隔离 fixture 建场，尚未回流为独立生产组件文件。
-  component({ key: 'behavior.button', labelZh: '按钮', labelEn: 'Button', descriptionZh: '触发提交、确认、导航和恢复动作的基础控件。', category: 'behavior', status: 'playground', implementation: 'custom', sourcePath: 'src/components/playground/UiControlsPanel.tsx', stories: ['主要操作', '次要操作', '禁用态', '加载态'], accessibilityNotes: ['按钮名称清楚', '禁用态不能只靠颜色', '加载时保留动作语义'] }),
+  component({ key: 'behavior.button', labelZh: '按钮', labelEn: 'Button', descriptionZh: '触发提交、确认、导航和恢复动作的基础控件。', category: 'behavior', status: 'playground', implementation: 'custom', sourcePath: 'src/components/playground/UiControlsPanel.tsx', stories: ['主要操作', '次要操作', '生成动作', '禁用态', '加载态'], accessibilityNotes: ['按钮名称清楚', '禁用态不能只靠颜色', '加载时保留动作语义'] }),
   component({ key: 'behavior.input', labelZh: '输入框', labelEn: 'Input', descriptionZh: '承载短文本、长文本和搜索输入的基础控件。', category: 'behavior', status: 'playground', implementation: 'custom', sourcePath: 'src/components/playground/UiControlsPanel.tsx', stories: ['空值', '有值', '长文', '禁用态'], accessibilityNotes: ['标签与输入关联', '长文不挤出容器', 'IME 组合输入不误提交'] }),
 
   component({ key: 'behavior.dialog', labelZh: '对话框', labelEn: 'Dialog', descriptionZh: '需要焦点陷阱和明确关闭语义的模态交互。', category: 'behavior', status: 'candidate', implementation: 'radix-candidate', reference: 'Radix Dialog 候选，尚未引入依赖', stories: ['默认态', '高风险确认', '长内容'], accessibilityNotes: ['打开后焦点进入对话框', 'Esc 与遮罩关闭策略必须显式', '关闭后焦点回到触发元素'] }),

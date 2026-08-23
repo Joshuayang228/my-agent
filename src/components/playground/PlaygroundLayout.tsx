@@ -3,6 +3,7 @@
  * 设计意图：减少每个面板自行发明 max-width、标题和 Tab 样式造成的视觉漂移。
  */
 
+import { Fragment } from 'react'
 
 export interface PlaygroundStoryGroup {
   label: string
@@ -42,35 +43,38 @@ export function PlaygroundStoryTabs({
   ariaLabel: string
 }) {
   return (
-    <div className="mb-4 space-y-1.5" data-testid="playground-story-nav">
+    <div className="mb-4 min-w-0" data-testid="playground-story-nav">
       <div className="sr-only" aria-live="polite">当前故事：{value}</div>
-      {groups.map((group) => (
-        <div key={group.label} className="flex min-w-0 items-center gap-2 overflow-x-auto pb-0.5" role="tablist" aria-label={`${ariaLabel} · ${group.label}`}>
-          <span className="w-16 shrink-0 text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>{group.label}</span>
-          <div className="flex min-w-max gap-1 rounded-lg border p-1" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
-            {group.items.map((item) => {
-              const selected = item.id === value
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={selected}
-                  onClick={() => onChange(item.id)}
-                  className="rounded-md px-2.5 py-1.5 text-[11px] transition"
-                  style={{
-                    color: selected ? 'var(--accent-fg)' : 'var(--text-secondary)',
-                    background: selected ? 'var(--accent-subtle)' : 'transparent',
-                    fontWeight: selected ? 600 : 400,
-                  }}
-                >
-                  {item.label}
-                </button>
-              )
-            })}
-          </div>
+      <div className="scrollbar-hover min-w-0 overflow-x-auto pb-1">
+        <div className="flex min-w-max items-center gap-0.5 rounded-lg border p-1" role="tablist" aria-label={ariaLabel} style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+          {groups.map((group, groupIndex) => (
+            <Fragment key={group.label}>
+              {groupIndex > 0 && <span className="mx-1 h-4 w-px shrink-0" aria-hidden="true" style={{ background: 'var(--border-subtle)' }} />}
+              <span className="shrink-0 px-1.5 text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>{group.label}</span>
+              {group.items.map((item) => {
+                const selected = item.id === value
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => onChange(item.id)}
+                    className="rounded-md px-2.5 py-1.5 text-[11px] transition"
+                    style={{
+                      color: selected ? 'var(--accent-fg)' : 'var(--text-secondary)',
+                      background: selected ? 'var(--accent-subtle)' : 'transparent',
+                      fontWeight: selected ? 600 : 400,
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                )
+              })}
+            </Fragment>
+          ))}
         </div>
-      ))}
+      </div>
     </div>
   )
 }
