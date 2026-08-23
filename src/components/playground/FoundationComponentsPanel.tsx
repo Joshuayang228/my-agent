@@ -9,22 +9,13 @@ import { useState } from 'react'
 import { UI_COMPONENT_ASSETS, UI_COMPONENT_STATUSES, isFoundationComponentAsset } from '../../shared/ui-component-registry'
 import { UI_CONTROLS_SUBTABS, type UiControlsSubId } from './catalog'
 import { UiControlsPanel } from './UiControlsPanel'
+import { PlaygroundStoryTabs } from './PlaygroundLayout'
 
-const FOUNDATION_STORIES: readonly UiControlsSubId[] = [
-  'buttons',
-  'inputs',
-  'tabs',
-  'tool-cards',
-  'empty',
-  'toast',
-  'spinner',
-  'confirm',
-  'markdown',
-  'asset-table',
-  'file-tree',
-  'resize-handle',
-  'feedback',
-]
+const FOUNDATION_STORY_GROUPS: readonly { label: string; ids: readonly UiControlsSubId[] }[] = [
+  { label: '基础控件', ids: ['buttons', 'inputs', 'tabs'] },
+  { label: '状态反馈', ids: ['empty', 'toast', 'spinner', 'confirm', 'feedback'] },
+  { label: '开发基础', ids: ['tool-cards', 'markdown', 'asset-table', 'file-tree', 'resize-handle'] },
+] as const
 
 const FOUNDATION_ASSETS = UI_COMPONENT_ASSETS.filter(isFoundationComponentAsset)
 const STATUS_LABELS = Object.fromEntries(UI_COMPONENT_STATUSES.map((item) => [item.id, item.label])) as Record<string, string>
@@ -84,22 +75,18 @@ function FoundationAssetInventory() {
 
 export function FoundationComponentsPanel() {
   const [story, setStory] = useState<UiControlsSubId>('buttons')
-  const stories = UI_CONTROLS_SUBTABS.filter((item) => FOUNDATION_STORIES.includes(item.id))
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4" data-testid="foundation-components-panel">
-      <div className="flex flex-wrap gap-1 border-b pb-2" role="tablist" aria-label="基础组件故事筛选">
-        {stories.map((item) => {
-          const selected = item.id === story
-          return (
-            <button key={item.id} type="button" role="tab" aria-selected={selected} onClick={() => setStory(item.id)}
-              className="rounded-md px-2.5 py-1.5 text-[11px] transition"
-              style={{ color: selected ? 'var(--accent-fg)' : 'var(--text-muted)', background: selected ? 'var(--accent-subtle)' : 'var(--bg-tertiary)', fontWeight: selected ? 600 : 400 }}>
-              {item.label}
-            </button>
-          )
-        })}
-      </div>
+    <div className="w-full space-y-4" data-testid="foundation-components-panel">
+      <PlaygroundStoryTabs
+        groups={FOUNDATION_STORY_GROUPS.map((group) => ({
+          label: group.label,
+          items: UI_CONTROLS_SUBTABS.filter((item) => group.ids.includes(item.id)),
+        }))}
+        value={story}
+        onChange={(value) => setStory(value as UiControlsSubId)}
+        ariaLabel="基础组件故事筛选"
+      />
       <UiControlsPanel initialSub={story} />
       <FoundationAssetInventory />
     </div>

@@ -11,12 +11,9 @@ export function ProductExperienceDependencies({ tabId }: { tabId: ProductExperie
   if (!experience) return null
 
   return (
-    <section className="mx-auto mb-3 max-w-5xl border-b pb-2" style={{ borderColor: 'var(--border-subtle)' }} data-testid="product-experience-dependencies">
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{experience.labelZh}</span>
-        <span className="rounded px-1.5 py-0.5 text-[9px]" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>{experience.status === 'playground' ? 'Playground' : experience.status}</span>
-      </div>
-      <div className="mt-2 grid gap-1.5 text-[10px] sm:grid-cols-[72px_1fr] sm:items-start">
+    <section className="mb-4 rounded-lg border px-3 py-2.5" style={{ borderColor: 'var(--border-subtle)' }} data-testid="product-experience-dependencies">
+      <div className="mb-1 text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>这页如何组成</div>
+      <div className="grid gap-1.5 text-[10px] sm:grid-cols-[72px_1fr] sm:items-start">
         <span style={{ color: 'var(--text-muted)' }}>体验组成</span>
         <div className="flex flex-wrap gap-1" data-testid="experience-parts">
           {experience.experienceParts.map((part) => (

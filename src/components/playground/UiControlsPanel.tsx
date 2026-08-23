@@ -158,7 +158,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
 
   return (
     <div className="min-h-0" data-testid="ui-controls-panel">
-      <div className="min-w-0 space-y-4">
+      <div className="w-full min-w-0 space-y-4">
 
       {effectiveSub === 'buttons' && (
         <div className="space-y-3">

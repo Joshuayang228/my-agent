@@ -12,7 +12,6 @@ import type { FileBrowserPreviewData } from '../FileBrowser'
 import type { MomentItem, MomentsPreviewData } from '../MomentsPanel'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
 import { WorldHub, type WorldTab } from '../shell/WorldHub'
-import { StoryBlock } from './StoryBlock'
 import type { MemoryEntry } from '../../shared/types'
 
 type SurfaceId = 'chat' | 'sidebar' | 'dock' | 'world' | 'memory' | 'settings'
@@ -535,7 +534,7 @@ export function SurfaceBaselinePanel({ initialSurface }: { initialSurface?: Surf
   const active = SURFACES.find((item) => item.id === surface) ?? SURFACES[0]
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5" data-testid="surface-baseline-panel">
+    <div className="w-full space-y-4" data-testid="surface-baseline-panel">
       {!fixedSurface && <div className="flex flex-wrap gap-1 border-b" style={{ borderColor: 'var(--border-color)' }} role="tablist" aria-label="页面基线分区">
         {SURFACES.map((item) => {
           const selected = item.id === surface
@@ -559,14 +558,18 @@ export function SurfaceBaselinePanel({ initialSurface }: { initialSurface?: Surf
         })}
       </div>}
 
-      <StoryBlock title={active.label} source={active.source} adopted={active.adopted}>
+      <div className="flex items-center justify-end gap-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+        <span>页面组合样张</span>
+        <code className="max-w-full truncate font-mono">{active.source}</code>
+      </div>
+      <div className="min-w-0">
         {surface === 'chat' && <ChatSurface />}
         {surface === 'sidebar' && <SidebarSurface />}
         {surface === 'dock' && <DockSurface />}
         {surface === 'world' && <WorldSurface />}
         {surface === 'memory' && <MemorySurface />}
         {surface === 'settings' && <SettingsSurface />}
-      </StoryBlock>
+      </div>
     </div>
   )
 }

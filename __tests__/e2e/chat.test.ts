@@ -76,7 +76,7 @@ test.describe('My Agent UI', () => {
 
     await nav.getByRole('button', { name: '基础组件', exact: true }).click()
     await expect(page.locator('[data-testid="foundation-components-panel"]')).toBeVisible()
-    await expect(page.getByRole('tablist', { name: '基础组件故事筛选' })).toBeVisible()
+    await expect(page.locator('[data-testid="playground-story-nav"]')).toBeVisible()
     await expect(page.getByRole('tab', { name: '组件索引', exact: true })).toHaveCount(0)
     await expect(page.getByRole('tab', { name: '记忆引用', exact: true })).toHaveCount(0)
     await expect(page.getByRole('tab', { name: '按钮', exact: true })).toBeVisible()
@@ -85,6 +85,9 @@ test.describe('My Agent UI', () => {
     }
     await expect(page.locator('[data-testid="foundation-asset-inventory"]')).toContainText('Markdown 渲染器')
     await expect(page.locator('[data-testid="foundation-asset-inventory"]')).toContainText('对话框')
+    await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('基础控件')
+    await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('状态反馈')
+    await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('开发基础')
     await expect(page.getByRole('tab', { name: '输入', exact: true })).toBeVisible()
 
     await nav.getByRole('button', { name: '图标与视觉', exact: true }).click()
@@ -210,6 +213,7 @@ test.describe('My Agent UI', () => {
     await expect(playgroundNav.getByRole('button', { name: '页面组合', exact: true })).toHaveCount(0)
 
     await playgroundNav.getByRole('button', { name: '基础组件', exact: true }).click()
+    await expect(page.locator('[data-testid="playground-page-header"]')).toContainText('基础组件')
     await expect(page.locator('[data-testid="foundation-components-panel"]')).toBeVisible()
     await expect(page.getByRole('tab', { name: '组件索引', exact: true })).toHaveCount(0)
     await expect(page.getByRole('tab', { name: '记忆引用', exact: true })).toHaveCount(0)
@@ -219,6 +223,9 @@ test.describe('My Agent UI', () => {
     }
     await expect(page.locator('[data-testid="foundation-asset-inventory"]')).toContainText('Markdown 渲染器')
     await expect(page.locator('[data-testid="foundation-asset-inventory"]')).toContainText('对话框')
+    await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('基础控件')
+    await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('状态反馈')
+    await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('开发基础')
     await playgroundNav.getByRole('button', { name: '图标与视觉', exact: true }).click()
     await expect(page.locator('[data-testid="icon-inventory"]')).toBeVisible()
     await expect(page.getByPlaceholder('搜索中文或 English')).toBeVisible()
@@ -227,11 +234,11 @@ test.describe('My Agent UI', () => {
 
     const playgroundMain = page.locator('[data-testid="playground-main"]')
     await playgroundNav.getByRole('button', { name: '模型能力', exact: true }).click()
-    await expect(playgroundMain.getByRole('heading', { name: '模型测试', exact: true })).toHaveCount(0)
+    await expect(playgroundMain.getByRole('heading', { name: '模型能力', exact: true })).toBeVisible()
     await playgroundNav.getByRole('button', { name: '对话试验', exact: true }).click()
-    await expect(playgroundMain.getByRole('heading', { name: '对话试验', exact: true })).toHaveCount(0)
+    await expect(playgroundMain.getByRole('heading', { name: '对话试验', exact: true })).toBeVisible()
     await playgroundNav.getByRole('button', { name: '工具手测', exact: true }).click()
-    await expect(playgroundMain.getByRole('heading', { name: '工具手测', exact: true })).toHaveCount(0)
+    await expect(playgroundMain.getByRole('heading', { name: '工具手测', exact: true })).toBeVisible()
   })
 
   test('Playground 产品体验页面保持基础引用边界', async ({ page }) => {

@@ -30,6 +30,7 @@ import { SurfaceBaselinePanel } from './SurfaceBaselinePanel'
 import { PromptLabPanel } from './PromptLabPanel'
 import { ToolRunPanel, type PlaygroundToolInfo } from './ToolRunPanel'
 import { ModelTestPanel } from './ModelTestPanel'
+import { PlaygroundPageHeader } from './PlaygroundLayout'
 
 const TAB_STORAGE_KEY = 'playground.active-tab'
 
@@ -73,6 +74,8 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
   }, [tab, loadTools])
 
   const activeTabs = PLAYGROUND_TABS.filter((item) => item.status !== 'archived')
+  const activeTab = activeTabs.find((item) => item.id === tab) ?? activeTabs[0]
+  const activeGroup = PLAYGROUND_GROUPS.find((item) => item.id === activeTab.group) ?? PLAYGROUND_GROUPS[0]
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1" data-testid="playground-shell">
@@ -134,20 +137,27 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
         })}
       </aside>
 
-      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6" data-testid="playground-main">
-        <div className="view-transition" key={tab}>
-          {tab === 'design-tokens' && <DesignSystemPanel />}
-          {tab === 'visual-assets' && <UiControlsPanel initialSub="icons" />}
-          {tab === 'foundation-components' && <FoundationComponentsPanel />}
-          {tab === 'chat' && <><ProductExperienceDependencies tabId="chat" /><SurfaceBaselinePanel initialSurface="chat" /></>}
-          {tab === 'world' && <><ProductExperienceDependencies tabId="world" /><SurfaceBaselinePanel initialSurface="world" /></>}
-          {tab === 'memory' && <><ProductExperienceDependencies tabId="memory" /><SurfaceBaselinePanel initialSurface="memory" /></>}
-          {tab === 'settings' && <><ProductExperienceDependencies tabId="settings" /><SurfaceBaselinePanel initialSurface="settings" /></>}
-          {tab === 'workspace' && <><ProductExperienceDependencies tabId="workspace" /><SurfaceBaselinePanel initialSurface="dock" /></>}
-          {tab === 'business-states' && <><ProductExperienceDependencies tabId="business-states" /><BusinessStatesPanel /></>}
-          {tab === 'chat-lab' && <PromptLabPanel />}
-          {tab === 'model-test' && <ModelTestPanel />}
-          {tab === 'tools' && <ToolRunPanel tools={tools} />}
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6" data-testid="playground-main">
+        <div className="mx-auto w-full max-w-6xl">
+          <PlaygroundPageHeader
+            groupLabel={activeGroup.label}
+            title={activeTab.label}
+            description={activeTab.description ?? activeGroup.description}
+          />
+          <div className="view-transition" key={tab}>
+            {tab === 'design-tokens' && <DesignSystemPanel />}
+            {tab === 'visual-assets' && <UiControlsPanel initialSub="icons" />}
+            {tab === 'foundation-components' && <FoundationComponentsPanel />}
+            {tab === 'chat' && <><ProductExperienceDependencies tabId="chat" /><SurfaceBaselinePanel initialSurface="chat" /></>}
+            {tab === 'world' && <><ProductExperienceDependencies tabId="world" /><SurfaceBaselinePanel initialSurface="world" /></>}
+            {tab === 'memory' && <><ProductExperienceDependencies tabId="memory" /><SurfaceBaselinePanel initialSurface="memory" /></>}
+            {tab === 'settings' && <><ProductExperienceDependencies tabId="settings" /><SurfaceBaselinePanel initialSurface="settings" /></>}
+            {tab === 'workspace' && <><ProductExperienceDependencies tabId="workspace" /><SurfaceBaselinePanel initialSurface="dock" /></>}
+            {tab === 'business-states' && <><ProductExperienceDependencies tabId="business-states" /><BusinessStatesPanel /></>}
+            {tab === 'chat-lab' && <PromptLabPanel />}
+            {tab === 'model-test' && <ModelTestPanel />}
+            {tab === 'tools' && <ToolRunPanel tools={tools} />}
+          </div>
         </div>
       </main>
     </div>

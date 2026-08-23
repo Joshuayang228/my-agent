@@ -10,6 +10,7 @@ describe('playground catalog', () => {
     expect(PLAYGROUND_TABS.find((tab) => tab.id === 'design-tokens')?.label).toBe('设计语言')
     expect(PLAYGROUND_TABS.find((tab) => tab.id === 'persona-review')?.status).toBe('archived')
     expect(PLAYGROUND_TABS.find((tab) => tab.id === 'fixtures')?.status).toBe('archived')
+    for (const tab of PLAYGROUND_TABS.filter((item) => item.status !== 'archived')) expect(tab.description).toBeTruthy()
   })
 
   it('保留 UI 控件的细粒度状态故事', () => {

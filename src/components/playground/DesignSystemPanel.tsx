@@ -65,7 +65,7 @@ export function DesignSystemPanel() {
   ]
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5" data-testid="design-system-panel">
+    <div className="w-full space-y-5" data-testid="design-system-panel">
 
       <div className="flex flex-wrap gap-1 border-b" style={{ borderColor: 'var(--border-color)' }}>
         {subs.map((item) => (

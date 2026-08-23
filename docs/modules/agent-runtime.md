@@ -81,7 +81,7 @@
 | 工具手测（权限门闸） | 已落地 | `debug:tool-run` · confirmRisk |
 | Prompt 会话覆盖（不写 settings） | 已落地 | 载入实装 → playgroundRun |
 | 设计语言场 | 已落地 | Playground「基础 → 设计语言」；颜色 / 主题 / 圆角动效三组 Tab，不混入业务组合 |
-| Playground 基础 / 产品体验工作台 | 已落地 | `src/components/playground/` · 基础 → 产品体验 → Agent 实验；两层边界、Tab 事实表和体验依赖摘要见施工合同 |
+| Playground 基础 / 产品体验工作台 | 已落地 | `src/components/playground/` · 基础 → 产品体验 → Agent 实验；统一页头、内容宽度、故事分组、两层边界、Tab 事实表和体验依赖摘要见施工合同 |
 | Playground UI 矩阵加厚（确认/芯片/状态条/反馈/独白） | 已落地 | M32-G9 Phase 1 · Toast 关闭位统一、MarkdownRenderer 等正式组件故事格 |
 | Playground 单项采用标记与主题对照 | 已落地 | `AdoptionMark` 只挂具体 token / 组件 / 故事证据，不再给目录批量标记或提供全局开关；七主题同页审计 |
 | UI 组件 / 图标语义资产注册 | 已落地 | `ui-component-registry.ts` 继续承担机器门禁；Foundation 只登记可复用基础能力，基础组件工作台覆盖已建故事与候选登记；业务结构由产品体验注册表的 `experienceParts` 登记；图标目录仅显示紧凑的图标 + 中英文名；具体 adopted 小勾来自真实证据 |
