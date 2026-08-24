@@ -16,7 +16,8 @@ import { MarkdownRenderer } from '../MarkdownRenderer'
 import { ToastPreview, type ToastPreviewItem } from '../Toast'
 import type { UiControlsSubId } from './catalog'
 import { StoryBlock } from './StoryBlock'
-import { FOUNDATION_ADVANCED_STORIES, FoundationAdvancedStories } from './FoundationAdvancedStories'
+import { FoundationAdvancedStories } from './FoundationAdvancedStories'
+import { getFoundationStoryByViewId } from '../../shared/foundation-story-registry'
 import { AdoptionMark } from './AdoptionMark'
 import { ICON_ASSETS, ICON_CATEGORIES, ICON_REGISTRY, type IconKey, type IconCategoryId } from '../../shared/icon-registry'
 
@@ -157,10 +158,11 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
       : t.collapsed,
   }))
 
-  if (FOUNDATION_ADVANCED_STORIES.includes(effectiveSub as (typeof FOUNDATION_ADVANCED_STORIES)[number])) {
+  const foundationStory = getFoundationStoryByViewId(effectiveSub)
+  if (foundationStory?.renderer === 'advanced') {
     return (
       <div className="min-h-0" data-testid="ui-controls-panel">
-        <FoundationAdvancedStories story={effectiveSub as (typeof FOUNDATION_ADVANCED_STORIES)[number]} />
+        <FoundationAdvancedStories story={foundationStory.key} />
       </div>
     )
   }

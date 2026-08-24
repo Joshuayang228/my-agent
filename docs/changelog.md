@@ -4,6 +4,12 @@
 
 ## [未发布]
 
+### 2026-08-24 · Foundation 故事注册架构（候选）
+
+- 新增 Foundation 故事注册表，统一连接组件资产、Playground Tab、视觉分组和预览 renderer。
+- Playground 基础组件入口不再依赖多份手写故事列表；新增故事会经过 assetKey、renderer 和 E2E 一致性门禁。
+- 本轮只改变 Playground 组织方式，不改变正式产品页面默认行为。
+
 ### 2026-08-24 · Foundation 组件故事补齐（候选）
 
 - 基础组件 Playground 新增下拉选择、表单字段、复选框、开关和差异查看器预览。

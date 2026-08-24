@@ -241,6 +241,9 @@ Playground 的导航工作域不等于产品架构层。产品设计只保留两
 - **Agent 实验** 是 Playground 的独立工作域，不是第三层产品架构；它只承载隔离试验。
 - Experience 只能通过 `src/shared/product-experience-registry.ts` 的 `usesFoundation` 引用 Foundation；发现基础能力缺失时，先在 Foundation 建故事并登记真实来源，再回到 Experience 组合。
 - Playground 的一级 Tab 事实表与当前验收边界见 [`docs/requirements/playground-navigation-world-polish-v1.md`](requirements/playground-navigation-world-polish-v1.md)；代码注册表是 key、来源、状态和依赖的事实源，文档只记录边界与原则。
+- Foundation 组件资产与 Foundation 故事是两种不同资产：`src/shared/ui-component-registry.ts` 只回答“组件是什么、来源和生命周期是什么”；`src/shared/foundation-story-registry.ts` 只回答“Playground 展示哪些故事、属于哪个组件、如何分组、由哪类 renderer 渲染”。二者通过 `assetKey` 关联，不把 React 实现导入 shared 注册表。
+- `src/components/playground/catalog.ts` 的 Foundation Tab、`FoundationComponentsPanel.tsx` 的分组和 `layout.foundation-workbench` 的故事摘要都从 Foundation 故事注册表派生；新增故事不能只改 catalog 或工作台文案。
+- `UiControlsPanel.tsx` 与 `FoundationAdvancedStories.tsx` 是 renderer 实现面：registry 的 `renderer` 决定路由，单元测试同时校验 assetKey、viewId、renderer 分支和实际源码标记；新增候选故事必须补注册、renderer、E2E 和文档。
 
 ## 目录结构
 

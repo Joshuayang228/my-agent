@@ -58,7 +58,7 @@ export const ASSET_GOVERNANCE = [
   },
   {
     id: 'ui-component', labelZh: 'UI 组件', kind: 'static-renderer', modelContextTypes: [],
-    sourcePaths: ['src/shared/ui-component-registry.ts', 'src/components'], registryPaths: ['src/shared/ui-component-registry.ts'], discovery: '组件目录显式登记',
+    sourcePaths: ['src/shared/ui-component-registry.ts', 'src/shared/foundation-story-registry.ts', 'src/components'], registryPaths: ['src/shared/ui-component-registry.ts', 'src/shared/foundation-story-registry.ts'], discovery: '组件资产 + Foundation 故事注册表显式登记',
     keyRule: '<category>.<component-name>', display: 'Playground / 设计 / 组件目录', usageEvidence: '不记录 Agent 运行证据',
   },
   {

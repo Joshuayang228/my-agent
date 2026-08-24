@@ -6,15 +6,10 @@
  */
 
 import { useState } from 'react'
-import { UI_CONTROLS_SUBTABS, type UiControlsSubId } from './catalog'
+import { type UiControlsSubId } from './catalog'
+import { FOUNDATION_STORY_GROUPS, getFoundationStoriesByGroup } from '../../shared/foundation-story-registry'
 import { UiControlsPanel } from './UiControlsPanel'
 import { PlaygroundStoryTabs } from './PlaygroundLayout'
-
-const FOUNDATION_STORY_GROUPS: readonly { label: string; ids: readonly UiControlsSubId[] }[] = [
-  { label: '基础控件', ids: ['buttons', 'inputs', 'tabs', 'select', 'combobox', 'form-field', 'checkbox', 'switch', 'dialog', 'popover', 'dropdown-menu', 'command', 'context-menu', 'tooltip'] },
-  { label: '状态反馈', ids: ['empty', 'toast', 'spinner', 'skeleton', 'progress', 'confirm', 'feedback'] },
-  { label: '开发基础', ids: ['tool-cards', 'markdown', 'asset-table', 'file-tree', 'diff-viewer', 'scroll-area', 'resize-handle'] },
-] as const
 
 export function FoundationComponentsPanel() {
   const [story, setStory] = useState<UiControlsSubId>('buttons')
@@ -24,7 +19,7 @@ export function FoundationComponentsPanel() {
       <PlaygroundStoryTabs
         groups={FOUNDATION_STORY_GROUPS.map((group) => ({
           label: group.label,
-          items: UI_CONTROLS_SUBTABS.filter((item) => group.ids.includes(item.id)),
+          items: getFoundationStoriesByGroup(group.id).map((story) => ({ id: story.viewId, label: story.labelZh })),
         }))}
         value={story}
         onChange={(value) => setStory(value as UiControlsSubId)}

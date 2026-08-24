@@ -151,6 +151,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 - 用户记忆、会话历史、当前世界状态、工具原始输出和凭据是运行时 / 用户 / 外部数据，不得伪装成内置生产资产；Debug 只展示它们与生产资产的关联。
 - Debug 的生产资产目录只读；Playground 只能显式载入为隔离实验草稿，Settings 才管理用户拥有的编辑能力。结构化资产未经单独合同不得直接写入 Playground 或生产文件。
 - 新增资产类型时必须同步共享类型、生产聚合器、Debug 标签、单元测试和对应文档；资产目录的存在不能替代真实行为 Eval。
+- Foundation 组件资产与 Playground 故事分开管理：`src/shared/ui-component-registry.ts` 只登记组件身份、来源和生命周期；`src/shared/foundation-story-registry.ts` 只登记稳定 story key、assetKey、viewId、分组和 renderer。Playground catalog、Foundation 分组和工作台摘要必须从故事注册表派生，禁止再维护完整手写故事清单；新增故事必须同时补 renderer、一致性 Unit、E2E 和文档。
 - 详细设计与当前实现见 methodology/asset-registration-management.md、methodology/asset-registration-management-code.md。
 ### UI 文案与代码语言分层
 

@@ -4,6 +4,7 @@
  */
 
 import type { ProductExperienceTabId } from '../../shared/product-experience-registry'
+import { FOUNDATION_STORIES, type FoundationStoryViewId } from '../../shared/foundation-story-registry'
 
 export type PlaygroundGroupId = 'foundation' | 'experience' | 'agent-experiments'
 
@@ -92,68 +93,17 @@ export const PLAYGROUND_TABS: readonly PlaygroundTabDef[] = [
   { id: 'persona-review', label: '人格场景说明（旧入口）', group: 'agent-experiments', status: 'archived' },
 ] as const
 
-export type UiControlsSubId =
-  | 'component-catalog'
-  | 'buttons'
-  | 'inputs'
-  | 'tool-cards'
-  | 'tabs'
-  | 'toast'
-  | 'spinner'
-  | 'markdown'
-  | 'asset-table'
-  | 'file-tree'
-  | 'resize-handle'
-  | 'empty'
-  | 'confirm'
-  | 'memory-chips'
-  | 'status-bar'
-  | 'icons'
-  | 'feedback'
-  | 'select'
-  | 'dialog'
-  | 'popover'
-  | 'dropdown-menu'
-  | 'combobox'
-  | 'command'
-  | 'context-menu'
-  | 'scroll-area'
-  | 'tooltip'
-  | 'skeleton'
-  | 'progress'
-  | 'diff-viewer'
-  | 'form-field'
-  | 'checkbox'
-  | 'switch'
+export type UiControlsSubId = FoundationStoryViewId | 'memory-chips' | 'status-bar' | 'icons'
 
-export const UI_CONTROLS_SUBTABS: readonly { id: UiControlsSubId; label: string }[] = [
-  { id: 'buttons', label: '按钮' },
-  { id: 'inputs', label: '输入' },
-  { id: 'tabs', label: '标签切换' },
-  { id: 'select', label: '下拉选择' },
-  { id: 'combobox', label: '可搜索选择' },
-  { id: 'form-field', label: '表单字段' },
-  { id: 'checkbox', label: '复选框' },
-  { id: 'switch', label: '开关' },
-  { id: 'dialog', label: '对话框' },
-  { id: 'popover', label: '弹出层' },
-  { id: 'dropdown-menu', label: '下拉菜单' },
-  { id: 'command', label: '命令面板' },
-  { id: 'context-menu', label: '右键菜单' },
-  { id: 'tooltip', label: '提示浮层' },
-  { id: 'empty', label: '空态' },
-  { id: 'confirm', label: '确认框' },
-  { id: 'feedback', label: '错误与反馈' },
-  { id: 'toast', label: '提示条' },
-  { id: 'spinner', label: '加载指示器' },
-  { id: 'skeleton', label: '骨架屏' },
-  { id: 'progress', label: '进度条' },
-  { id: 'tool-cards', label: '工具卡' },
-  { id: 'markdown', label: 'Markdown 渲染' },
-  { id: 'asset-table', label: '资产目录' },
-  { id: 'file-tree', label: '文件树' },
-  { id: 'diff-viewer', label: '差异查看器' },
-  { id: 'scroll-area', label: '滚动区域' },
-  { id: 'resize-handle', label: '分栏拖拽' },
+export interface UiControlsSubTab {
+  id: UiControlsSubId
+  label: string
+}
+
+/** Foundation Tab 由故事注册表派生；后三项是产品体验工作台仍复用的业务样张入口。 */
+export const UI_CONTROLS_SUBTABS: readonly UiControlsSubTab[] = [
+  ...FOUNDATION_STORIES.map((story) => ({ id: story.viewId, label: story.labelZh })),
+  { id: 'memory-chips', label: '记忆引用' },
+  { id: 'status-bar', label: '状态条' },
   { id: 'icons', label: '图标' },
-] as const
+]

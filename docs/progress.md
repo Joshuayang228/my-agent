@@ -15,6 +15,12 @@
 
 ## 最近完成
 
+### 2026-08-24 · Foundation 故事注册架构
+
+- 新增 `src/shared/foundation-story-registry.ts`，统一维护 Foundation story key、组件 assetKey、Tab viewId、视觉分组和 renderer 关系。
+- Foundation catalog、工作台分组和高级候选故事不再各自维护完整入口清单；一致性 Unit 会检查注册资产、renderer 分支和实际故事入口。
+- 组件资产注册表继续负责组件身份与生命周期，故事注册表负责 Playground 展示事实，二者职责分离但通过 assetKey 关联。
+
 ### 2026-08-24 · Foundation 常用与候选组件补齐
 
 - 基础组件工作台补齐下拉选择、表单字段、复选框、开关和差异查看器等已使用 / 高频控件故事。

@@ -102,10 +102,21 @@ Agent 实验（独立工作域）
 - Foundation 工作台的完整故事入口必须有可见预览；注册表继续记录稳定 key、候选来源、故事范围和无障碍约束，Debug 继续承担完整资产登记。
 - 本轮补齐完成后，后续施工转入 Foundation token、密度、焦点、禁用、错误、窄宽和深浅主题的统一样式验收，不再继续扩大基础组件目录，除非出现新的真实产品场景。
 
+## 2.5 Foundation 故事一致性架构（2026-08-24）
+
+Foundation 不再让资产注册表、Playground catalog 和渲染分支各自维护故事事实：
+
+- `src/shared/ui-component-registry.ts` 是组件资产事实源，记录组件身份、来源、采用生命周期和无障碍约束。
+- `src/shared/foundation-story-registry.ts` 是 Playground 故事事实源，记录稳定 `story key`、`viewId`、`assetKey`、视觉分组和 renderer 类型。
+- `catalog.ts`、Foundation 工作台分组和工作台资产摘要只能从故事注册表派生；不能再手写一份完整 Foundation Tab 列表。
+- `UiControlsPanel.tsx` / `FoundationAdvancedStories.tsx` 是 renderer 实现面；注册表的 renderer 类型必须能在对应源码中找到覆盖证据。
+- 一致性门禁必须阻止：不存在的 assetKey、非 Foundation assetKey、重复 story key / viewId、无 renderer 分支和工作台摘要漂移。
+
 ## 3. 技术方案（How）
 
-- `PlaygroundShell.tsx` / `catalog.ts`
+- `PlaygroundShell.tsx` / `catalog.ts` / `foundation-story-registry.ts`
   - 将导航重组为基础、产品体验、Agent 实验三个工作域；Playground 作为独立全屏 activeView，不再同时渲染产品 Primary Sidebar。
+  - Foundation Tab、分组和故事顺序从 `foundation-story-registry.ts` 派生；组件资产注册表不再承担工作台故事摘要。
   - 原“设计令牌”入口改名为“设计语言”；移除设计语言中的“组合实验”；移除基础组件“组件索引”和全局目录级采用开关。
   - 基础组件工作台覆盖所有已建立 Foundation 故事：按钮、输入、标签切换、下拉选择、可搜索选择、表单字段、复选框、开关、对话框、弹出层、下拉菜单、命令面板、右键菜单、提示浮层、生成动作、工具调用卡、提示条、空状态、加载指示器、骨架屏、进度条、权限确认、错误反馈、Markdown 渲染、资产目录、文件树、差异查看器、滚动区域和分栏拖拽；完整候选登记由注册表 / Debug 展示，不在预览页重复堆叠。记忆引用、伙伴状态条等业务结构改由产品体验或业务状态展示。
   - 产品体验依赖摘要改为“体验组成 / 基础能力”两行，全部从注册表派生，不泄漏 raw key；人物世界的四个业务 Tab 保持并列可切换。

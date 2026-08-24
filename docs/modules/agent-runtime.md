@@ -84,7 +84,7 @@
 | Playground 基础 / 产品体验工作台 | 已落地 | `src/components/playground/` · 基础 → 产品体验 → Agent 实验；统一页头、内容宽度、故事分组、两层边界、Tab 事实表和体验依赖摘要见施工合同 |
 | Playground UI 矩阵加厚（确认/芯片/状态条/反馈/独白） | 已落地 | M32-G9 Phase 1 · Toast 关闭位统一、MarkdownRenderer 等正式组件故事格 |
 | Playground 单项采用标记与主题对照 | 已落地 | `AdoptionMark` 只挂具体 token / 组件 / 故事证据，不再给目录批量标记或提供全局开关；七主题同页审计 |
-| UI 组件 / 图标语义资产注册 | 已落地 | `ui-component-registry.ts` 继续承担机器门禁；Foundation 只登记可复用基础能力，基础组件工作台优先展示已建故事的真实预览，并补齐 Select / Form Field / Checkbox / Switch 与批准候选控件的隔离故事，完整候选登记由注册表 / Debug 承担；业务结构由产品体验注册表的 `experienceParts` 登记；图标目录仅显示紧凑的图标 + 中英文名，具体 adopted 小勾位于对应图标卡右上角并来自真实证据 |
+| UI 组件 / 图标语义资产注册 | 已落地 | `ui-component-registry.ts` 继续承担组件资产身份与生命周期；`foundation-story-registry.ts` 负责 Foundation Playground 故事的 story key、assetKey、分组和 renderer 关系；基础组件工作台优先展示已建故事的真实预览，并补齐 Select / Form Field / Checkbox / Switch 与批准候选控件的隔离故事，完整候选登记由注册表 / Debug 承担；业务结构由产品体验注册表的 `experienceParts` 登记；图标目录仅显示紧凑的图标 + 中英文名，具体 adopted 小勾位于对应图标卡右上角并来自真实证据 |
 | 对话 Debug 右侧栏 | 已落地 | Chat 右坞 · `ConversationDebugAside`；可盖在能力坞之上（Alice 式）；持久化 LLM 调用链 |
 | 项目文件预览 | 已落地 | `FileBrowser` · text/image/unsupported；图/文本/md；html 沙箱 iframe；pdf·Office 外开；Playground 可用只读静态树 / 文件样张且跳过 IPC |
 | Chat 右侧能力坞 | 已落地 | `ChatRightDock` · Tab 文件/审阅/终端；会话写文件变更账本；命令控制台（非 PTY）；可拖宽 + 内部分界 |

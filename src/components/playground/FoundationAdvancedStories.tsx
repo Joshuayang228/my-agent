@@ -10,32 +10,7 @@
 import { useState } from 'react'
 import { ChevronDown, Command, MoreHorizontal, Search, X } from 'lucide-react'
 import { StoryBlock } from './StoryBlock'
-import type { UiControlsSubId } from './catalog'
-
-type AdvancedStoryId = Exclude<
-  UiControlsSubId,
-  | 'buttons'
-  | 'inputs'
-  | 'tool-cards'
-  | 'tabs'
-  | 'toast'
-  | 'spinner'
-  | 'markdown'
-  | 'asset-table'
-  | 'file-tree'
-  | 'resize-handle'
-  | 'empty'
-  | 'confirm'
-  | 'memory-chips'
-  | 'status-bar'
-  | 'icons'
-  | 'feedback'
->
-
-export const FOUNDATION_ADVANCED_STORIES: readonly AdvancedStoryId[] = [
-  'select', 'dialog', 'popover', 'dropdown-menu', 'combobox', 'command', 'context-menu', 'scroll-area',
-  'tooltip', 'skeleton', 'progress', 'diff-viewer', 'form-field', 'checkbox', 'switch',
-] as const
+import { type AdvancedFoundationStoryKey } from '../../shared/foundation-story-registry'
 
 function SelectStory() {
   return (
@@ -187,26 +162,31 @@ function FormFieldStory() {
   return <div className="grid gap-3 md:grid-cols-2"><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>显示名称</span><input className="theme-input h-9 w-full rounded-md border px-2 text-xs outline-none" defaultValue="白艾莉" aria-label="显示名称" /><small className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>辅助说明与控件保持同一组。</small></label><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>错误字段</span><input className="theme-input h-9 w-full rounded-md border px-2 text-xs outline-none" defaultValue="" aria-label="错误字段" aria-invalid="true" style={{ borderColor: 'var(--danger)' }} /><small className="block text-[10px]" style={{ color: 'var(--danger)' }}>请输入有效内容。</small></label><label className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}><input type="checkbox" defaultChecked aria-label="启用记忆" />启用记忆</label><button type="button" role="switch" aria-checked={enabled} onClick={() => setEnabled((value) => !value)} className="flex items-center gap-2 text-left text-[11px]" style={{ color: 'var(--text-secondary)' }}><span className="relative h-5 w-9 rounded-full" style={{ background: enabled ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }}><span className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition" style={{ left: enabled ? 'calc(100% - 1.125rem)' : '0.125rem' }} /></span>自动保存</button></div>
 }
 
-function storyContent(story: AdvancedStoryId) {
+function assertNever(value: never): never {
+  throw new Error(`未注册的 Foundation advanced story renderer: ${String(value)}`)
+}
+
+function storyContent(story: AdvancedFoundationStoryKey) {
   switch (story) {
-    case 'select': return <StoryBlock title="下拉选择" source="原生 select · Settings / Debug / ToolRun"><SelectStory /></StoryBlock>
-    case 'dialog': return <StoryBlock title="对话框" source="Playground fixture · Dialog candidate" edge><DialogStory /></StoryBlock>
-    case 'popover': return <StoryBlock title="弹出层" source="Playground fixture · Popover candidate" edge><PopoverStory /></StoryBlock>
-    case 'dropdown-menu': return <StoryBlock title="下拉菜单" source="ChatRightDock · add tab / candidate" edge><DropdownMenuStory /></StoryBlock>
-    case 'combobox': return <StoryBlock title="可搜索选择" source="Playground fixture · Combobox candidate" edge><ComboboxStory /></StoryBlock>
-    case 'command': return <StoryBlock title="命令面板" source="Playground fixture · Command candidate" edge><CommandStory /></StoryBlock>
-    case 'context-menu': return <StoryBlock title="右键菜单" source="Playground fixture · Context Menu candidate" edge><ContextMenuStory /></StoryBlock>
-    case 'scroll-area': return <StoryBlock title="滚动区域" source="现有 scrollbar 规则 · Scroll Area candidate" edge><ScrollAreaStory /></StoryBlock>
-    case 'tooltip': return <StoryBlock title="提示浮层" source="现有 title 语义 · Tooltip candidate" edge><TooltipStory /></StoryBlock>
-    case 'skeleton': return <StoryBlock title="骨架屏" source="Playground fixture · Skeleton candidate" edge><SkeletonStory /></StoryBlock>
-    case 'progress': return <StoryBlock title="进度条" source="Playground fixture · Progress candidate" edge><ProgressStory /></StoryBlock>
-    case 'diff-viewer': return <StoryBlock title="差异查看器" source="ReviewPanel · Diff Viewer candidate" edge><DiffViewerStory /></StoryBlock>
-    case 'form-field': return <StoryBlock title="表单字段" source="Playground fixture · Form Field" edge><FormFieldStory /></StoryBlock>
-    case 'checkbox': return <StoryBlock title="复选框" source="Settings / PermissionRulesEditor"><FormFieldStory /></StoryBlock>
-    case 'switch': return <StoryBlock title="开关" source="Settings 自动保存 · Playground fixture"><FormFieldStory /></StoryBlock>
+    case 'foundation.select': return <StoryBlock title="下拉选择" source="原生 select · Settings / Debug / ToolRun"><SelectStory /></StoryBlock>
+    case 'foundation.dialog': return <StoryBlock title="对话框" source="Playground fixture · Dialog candidate" edge><DialogStory /></StoryBlock>
+    case 'foundation.popover': return <StoryBlock title="弹出层" source="Playground fixture · Popover candidate" edge><PopoverStory /></StoryBlock>
+    case 'foundation.dropdown-menu': return <StoryBlock title="下拉菜单" source="ChatRightDock · add tab / candidate" edge><DropdownMenuStory /></StoryBlock>
+    case 'foundation.combobox': return <StoryBlock title="可搜索选择" source="Playground fixture · Combobox candidate" edge><ComboboxStory /></StoryBlock>
+    case 'foundation.command': return <StoryBlock title="命令面板" source="Playground fixture · Command candidate" edge><CommandStory /></StoryBlock>
+    case 'foundation.context-menu': return <StoryBlock title="右键菜单" source="Playground fixture · Context Menu candidate" edge><ContextMenuStory /></StoryBlock>
+    case 'foundation.scroll-area': return <StoryBlock title="滚动区域" source="现有 scrollbar 规则 · Scroll Area candidate" edge><ScrollAreaStory /></StoryBlock>
+    case 'foundation.tooltip': return <StoryBlock title="提示浮层" source="现有 title 语义 · Tooltip candidate" edge><TooltipStory /></StoryBlock>
+    case 'foundation.skeleton': return <StoryBlock title="骨架屏" source="Playground fixture · Skeleton candidate" edge><SkeletonStory /></StoryBlock>
+    case 'foundation.progress': return <StoryBlock title="进度条" source="Playground fixture · Progress candidate" edge><ProgressStory /></StoryBlock>
+    case 'foundation.diff-viewer': return <StoryBlock title="差异查看器" source="ReviewPanel · Diff Viewer candidate" edge><DiffViewerStory /></StoryBlock>
+    case 'foundation.form-field': return <StoryBlock title="表单字段" source="Playground fixture · Form Field" edge><FormFieldStory /></StoryBlock>
+    case 'foundation.checkbox': return <StoryBlock title="复选框" source="Settings / PermissionRulesEditor"><FormFieldStory /></StoryBlock>
+    case 'foundation.switch': return <StoryBlock title="开关" source="Settings 自动保存 · Playground fixture"><FormFieldStory /></StoryBlock>
+    default: return assertNever(story)
   }
 }
 
-export function FoundationAdvancedStories({ story }: { story: AdvancedStoryId }) {
-  return <div className="space-y-3" data-testid={`foundation-story-${story}`}>{storyContent(story)}</div>
+export function FoundationAdvancedStories({ story }: { story: AdvancedFoundationStoryKey }) {
+  return <div className="space-y-3" data-testid={`foundation-story-${story.replace('foundation.', '')}`}>{storyContent(story)}</div>
 }
