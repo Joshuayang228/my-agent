@@ -85,9 +85,9 @@ test.describe('My Agent UI', () => {
       await expect(page.getByRole('tab', { name: story, exact: true })).toBeVisible()
     }
     await expect(page.locator('[data-testid="foundation-asset-inventory"]')).toHaveCount(0)
-    await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('基础控件')
-    await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('状态反馈')
-    await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('开发基础')
+    await expect(page.locator('[data-testid="playground-story-nav"]')).not.toContainText('基础控件')
+    await expect(page.locator('[data-testid="playground-story-nav"]')).not.toContainText('状态反馈')
+    await expect(page.locator('[data-testid="playground-story-nav"]')).not.toContainText('开发基础')
     await expect(page.getByRole('tab', { name: '输入', exact: true })).toBeVisible()
     await expect(page.getByText('生成动作', { exact: true })).toBeVisible()
 
@@ -234,9 +234,9 @@ test.describe('My Agent UI', () => {
     }
     await expect(page.locator('[data-testid="foundation-asset-inventory"]')).toHaveCount(0)
     await expect(page.locator('[data-testid="playground-story-nav"] [role="tablist"]')).toHaveCount(1)
-    await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('基础控件')
-    await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('状态反馈')
-    await expect(page.locator('[data-testid="playground-story-nav"]')).toContainText('开发基础')
+    await expect(page.locator('[data-testid="playground-story-nav"]')).not.toContainText('基础控件')
+    await expect(page.locator('[data-testid="playground-story-nav"]')).not.toContainText('状态反馈')
+    await expect(page.locator('[data-testid="playground-story-nav"]')).not.toContainText('开发基础')
     await expect(page.getByText('生成动作', { exact: true })).toBeVisible()
     await playgroundNav.getByRole('button', { name: '图标与视觉', exact: true }).click()
     await expect(page.locator('[data-testid="icon-inventory"]')).toBeVisible()
