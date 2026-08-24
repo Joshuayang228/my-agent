@@ -15,6 +15,13 @@
 
 ## 最近完成
 
+### 2026-08-24 · Playground 基础视觉减噪
+
+- 图标尺寸改为同一语义图标的 12 / 14 / 16 / 20 真实预览，搜索默认收起为放大镜，点击后展开输入。
+- 设计语言的三档 motion token 增加可点击动画样张；页头去掉重复工作域小标题和“隔离实验”徽标。
+- 产品体验页将基础能力依赖贴近当前体验 Tab 展示，移除“这页如何组成 / 体验组成”的额外摘要层。
+- 清理 Playground 样张中的特定人物和外部参考产品名称；本轮仍只在 Playground P0，不回流正式页面。
+
 ### 2026-08-24 · Foundation 故事注册架构
 
 - 新增 `src/shared/foundation-story-registry.ts`，统一维护 Foundation story key、组件 assetKey、Tab viewId、视觉分组和 renderer 关系。

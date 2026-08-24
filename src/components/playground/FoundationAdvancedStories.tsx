@@ -51,7 +51,7 @@ function DialogStory() {
             <h5 id="playground-dialog-title" className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>确认清理样张</h5>
             <button type="button" className="ml-auto rounded p-1" aria-label="关闭对话框" onClick={() => setOpen(false)} style={{ color: 'var(--text-muted)' }}><X size={14} /></button>
           </div>
-          <p className="mt-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>这是隔离实验，不会删除真实文件或修改生产数据。</p>
+          <p className="mt-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>这里不会删除真实文件或修改生产数据。</p>
           <div className="mt-3 flex gap-2">
             <button type="button" className="rounded-md border px-2.5 py-1 text-[11px]" onClick={() => setOpen(false)} style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>取消</button>
             <button type="button" className="rounded-md px-2.5 py-1 text-[11px] text-white" onClick={() => setOpen(false)} style={{ background: 'var(--accent-emphasis)' }}>确认</button>
@@ -99,7 +99,7 @@ function DropdownMenuStory() {
 
 function ComboboxStory() {
   const [query, setQuery] = useState('')
-  const options = ['白艾莉 · 默认伙伴', '小林 · 沉稳体贴', '开发助手 · 隔离样张']
+  const options = ['小林 · 默认伙伴', '小林 · 沉稳体贴', '开发助手 · 样张']
   const filtered = options.filter((option) => option.toLocaleLowerCase('zh-CN').includes(query.toLocaleLowerCase('zh-CN')))
   return (
     <div className="max-w-sm">
@@ -159,7 +159,7 @@ function DiffViewerStory() {
 
 function FormFieldStory() {
   const [enabled, setEnabled] = useState(true)
-  return <div className="grid gap-3 md:grid-cols-2"><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>显示名称</span><input className="theme-input h-9 w-full rounded-md border px-2 text-xs outline-none" defaultValue="白艾莉" aria-label="显示名称" /><small className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>辅助说明与控件保持同一组。</small></label><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>错误字段</span><input className="theme-input h-9 w-full rounded-md border px-2 text-xs outline-none" defaultValue="" aria-label="错误字段" aria-invalid="true" style={{ borderColor: 'var(--danger)' }} /><small className="block text-[10px]" style={{ color: 'var(--danger)' }}>请输入有效内容。</small></label><label className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}><input type="checkbox" defaultChecked aria-label="启用记忆" />启用记忆</label><button type="button" role="switch" aria-checked={enabled} onClick={() => setEnabled((value) => !value)} className="flex items-center gap-2 text-left text-[11px]" style={{ color: 'var(--text-secondary)' }}><span className="relative h-5 w-9 rounded-full" style={{ background: enabled ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }}><span className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition" style={{ left: enabled ? 'calc(100% - 1.125rem)' : '0.125rem' }} /></span>自动保存</button></div>
+  return <div className="grid gap-3 md:grid-cols-2"><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>显示名称</span><input className="theme-input h-9 w-full rounded-md border px-2 text-xs outline-none" defaultValue="小林" aria-label="显示名称" /><small className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>辅助说明与控件保持同一组。</small></label><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>错误字段</span><input className="theme-input h-9 w-full rounded-md border px-2 text-xs outline-none" defaultValue="" aria-label="错误字段" aria-invalid="true" style={{ borderColor: 'var(--danger)' }} /><small className="block text-[10px]" style={{ color: 'var(--danger)' }}>请输入有效内容。</small></label><label className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}><input type="checkbox" defaultChecked aria-label="启用记忆" />启用记忆</label><button type="button" role="switch" aria-checked={enabled} onClick={() => setEnabled((value) => !value)} className="flex items-center gap-2 text-left text-[11px]" style={{ color: 'var(--text-secondary)' }}><span className="relative h-5 w-9 rounded-full" style={{ background: enabled ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }}><span className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition" style={{ left: enabled ? 'calc(100% - 1.125rem)' : '0.125rem' }} /></span>自动保存</button></div>
 }
 
 function assertNever(value: never): never {

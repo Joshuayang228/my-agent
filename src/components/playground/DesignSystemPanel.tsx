@@ -28,6 +28,36 @@ const RADII = ['--radius-sm', '--radius-md', '--radius-lg', '--radius-xl'] as co
 const MOTIONS = ['--motion-fast', '--motion-normal', '--motion-slow'] as const
 const THEMES = DESIGN_THEME_ASSETS.map((asset) => ({ id: asset.id, label: asset.labelZh }))
 
+function MotionTokenSample({ name, value }: { name: string; value: string }) {
+  const [playing, setPlaying] = useState(false)
+
+  return (
+    <button
+      type="button"
+      className="min-w-[11rem] rounded-md border px-2.5 py-2 text-left"
+      style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
+      onClick={() => setPlaying((current) => !current)}
+      aria-label={`${name} 动画示例`}
+    >
+      <span className="mb-2 block h-1.5 overflow-hidden rounded-full" style={{ background: 'var(--bg-tertiary)' }}>
+        <span
+          className="block h-full w-1/3 rounded-full"
+          style={{
+            background: 'var(--accent-emphasis)',
+            transform: playing ? 'translateX(200%)' : 'translateX(0)',
+            transition: `transform ${value || '220ms'} var(--motion-ease)`,
+          }}
+        />
+      </span>
+      <span className="block font-mono text-[10px]" style={{ color: 'var(--text-secondary)' }}>{name}</span>
+      <span className="mt-0.5 flex items-center gap-1 font-mono text-[9px]" style={{ color: 'var(--text-muted)' }}>
+        {value || '—'} <AdoptionMark />
+      </span>
+      <span className="mt-1 block text-[9px]" style={{ color: 'var(--text-muted)' }}>点击播放</span>
+    </button>
+  )
+}
+
 const DARK_THEME_STYLE: CSSProperties = {
   '--bg-primary': '#0d1117',
   '--bg-secondary': '#161b22',
@@ -161,11 +191,9 @@ export function DesignSystemPanel() {
               </div>
             ))}
           </div>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-2" data-testid="motion-samples">
             {MOTIONS.map((name) => (
-              <span key={name} className="inline-flex items-center gap-1 font-mono text-[10px]" style={{ color: 'var(--text-secondary)' }}>
-                {name} = {read(name) || '—'} <AdoptionMark />
-              </span>
+              <MotionTokenSample key={name} name={name} value={read(name)} />
             ))}
           </div>
         </div>

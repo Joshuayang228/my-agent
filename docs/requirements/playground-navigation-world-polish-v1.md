@@ -112,6 +112,14 @@ Foundation 不再让资产注册表、Playground catalog 和渲染分支各自�
 - `UiControlsPanel.tsx` / `FoundationAdvancedStories.tsx` 是 renderer 实现面；注册表的 renderer 类型必须能在对应源码中找到覆盖证据。
 - 一致性门禁必须阻止：不存在的 assetKey、非 Foundation assetKey、重复 story key / viewId、无 renderer 分支和工作台摘要漂移。
 
+## 2.6 Playground 基础视觉减噪（2026-08-24）
+
+- 一级页面页头只保留当前页面标题和用途说明，移除重复工作域标签与“隔离实验”徽标。
+- 图标尺寸故事必须把同一语义图标按 12 / 14 / 16 / 20 实际展示；搜索默认收起为图标按钮，展开后才显示输入框。
+- 设计语言的 motion token 必须提供可交互动画样张，不能只显示 CSS 变量文本。
+- 产品体验页面只就近显示当前体验声明的 Foundation 依赖；体验组成由页面自身表达，不再额外生成一层通用摘要。
+- Playground 样张不得出现特定伙伴或外部参考产品名称，避免把参考对象误读为产品事实。
+
 ## 3. 技术方案（How）
 
 - `PlaygroundShell.tsx` / `catalog.ts` / `foundation-story-registry.ts`

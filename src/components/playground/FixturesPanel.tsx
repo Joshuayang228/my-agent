@@ -30,7 +30,7 @@ export function FixturesPanel() {
       <div>
         <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>体验夹具</h2>
         <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-          P0 体验回归。改主题 / 文案时来扫一眼；不复制 Alice 错误卡博物馆。
+          P0 体验回归。改主题 / 文案时来扫一眼；这里只保留当前项目需要的错误状态。
         </p>
       </div>
 

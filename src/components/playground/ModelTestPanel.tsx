@@ -1,5 +1,5 @@
 /**
- * Playground「模型测试」— 对齐 Alice 同名 tab：烟测 + Thinking 开关探测。
+ * Playground「模型测试」：烟测 + Thinking 开关探测。
  */
 
 import { useCallback, useEffect, useState } from 'react'

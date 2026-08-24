@@ -140,7 +140,6 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6" data-testid="playground-main">
         <div className="mx-auto w-full max-w-6xl">
           <PlaygroundPageHeader
-            groupLabel={activeGroup.label}
             title={activeTab.label}
             description={activeTab.description ?? activeGroup.description}
           />

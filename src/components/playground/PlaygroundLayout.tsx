@@ -9,22 +9,18 @@ export interface PlaygroundStoryGroup {
 }
 
 export function PlaygroundPageHeader({
-  groupLabel,
   title,
   description,
 }: {
-  groupLabel: string
   title: string
   description: string
 }) {
   return (
     <header className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b pb-4" data-testid="playground-page-header">
       <div className="min-w-0">
-        <div className="mb-1 text-[10px] font-medium tracking-wide" style={{ color: 'var(--accent-fg)' }}>{groupLabel}</div>
         <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>{title}</h1>
         <p className="mt-1 max-w-2xl text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>{description}</p>
       </div>
-      <span className="rounded-full border px-2 py-1 text-[9px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>隔离实验</span>
     </header>
   )
 }

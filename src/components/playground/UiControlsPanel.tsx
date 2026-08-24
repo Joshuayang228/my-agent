@@ -1,10 +1,10 @@
 /**
- * UI 控件故事矩阵（Alice components + Storybook 隔离/边缘态思路）。
+ * UI 控件故事矩阵：复用正式样式，集中展示隔离态与边缘态。
  * 渲染正式 class / ToolCallbackList；不另造皮肤。
  */
 
 import { useMemo, useState } from 'react'
-import { LoaderCircle, Search, Sparkles, WandSparkles } from 'lucide-react'
+import { LoaderCircle, Search, Sparkles, WandSparkles, X } from 'lucide-react'
 import { ToolCallbackList } from '../chat/callbacks/ToolCallbackList'
 import { FileBrowser, type FileBrowserPreviewData } from '../FileBrowser'
 import { ResizeHandle } from '../shell/ResizeHandle'
@@ -19,7 +19,7 @@ import { StoryBlock } from './StoryBlock'
 import { FoundationAdvancedStories } from './FoundationAdvancedStories'
 import { getFoundationStoryByViewId } from '../../shared/foundation-story-registry'
 import { AdoptionMark } from './AdoptionMark'
-import { ICON_ASSETS, ICON_CATEGORIES, ICON_REGISTRY, type IconKey, type IconCategoryId } from '../../shared/icon-registry'
+import { ICON_ASSETS, ICON_CATEGORIES, ICON_REGISTRY, type IconCategoryId } from '../../shared/icon-registry'
 
 const TOOL_STORIES: ToolCallbackItem[] = [
   {
@@ -139,6 +139,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
   const effectiveSub = initialSub ?? 'buttons'
   const [collapse, setCollapse] = useState<Record<string, boolean>>({})
   const [iconQuery, setIconQuery] = useState('')
+  const [iconSearchOpen, setIconSearchOpen] = useState(false)
   const [iconCategory, setIconCategory] = useState<IconCategoryId | 'all'>('all')
 
   const filteredIconAssets = useMemo(() => {
@@ -412,7 +413,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
           <StoryBlock title="伴侣状态条" source="src/components/CompanionStatusBar.tsx" adopted>
             <div className="overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
               <CompanionStatusBar
-                roleName="白艾莉"
+                roleName="小林"
                 roleId="playground-demo"
                 onOpenMoments={() => undefined}
                 onOpenAssets={() => undefined}
@@ -439,39 +440,61 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
       {effectiveSub === 'icons' && (
         <div className="space-y-3" data-testid="icon-inventory">
           <StoryBlock title="图标尺寸" source="lucide-react · 12 / 14 / 16 / 20">
-            <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
-              {(['navigation.search', 'developer.sliders', 'navigation.panel-right', 'navigation.settings', 'conversation.send'] as IconKey[]).map((key, index) => {
-                const asset = ICON_REGISTRY[key]
-                const Icon = asset.icon
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="icon-size-samples">
+              {[12, 14, 16, 20].map((size) => {
+                const Icon = ICON_REGISTRY['navigation.search'].icon
                 return (
-                  <div key={asset.key} className="flex min-w-0 flex-col items-center gap-1.5">
-                    <button type="button" className="flex h-8 w-8 items-center justify-center rounded-md" style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }} title={`${asset.label} · ${asset.english}`}>
-                      <Icon size={[12, 14, 16, 20, 16][index]} strokeWidth={1.6} />
-                    </button>
-                    <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{asset.label}</span>
+                  <div key={size} className="flex min-w-0 flex-col items-center gap-1.5 rounded-md border px-2 py-2.5" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+                    <div className="flex h-9 w-9 items-center justify-center rounded-md" style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }}>
+                      <Icon size={size} strokeWidth={1.6} aria-hidden="true" />
+                    </div>
+                    <span className="font-mono text-[10px]" style={{ color: 'var(--text-secondary)' }}>{size}px</span>
                   </div>
                 )
               })}
             </div>
             <p className="mt-3 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-              生产只使用 Lucide；尺寸阶梯固定为 12 / 14 / 16 / 20，语义 key 统一从图标注册表发现。
+              同一语义图标按 12 / 14 / 16 / 20 展示，选择尺寸时先看实际占位和视觉重量。
             </p>
           </StoryBlock>
 
           <StoryBlock title="Lucide 语义图标目录" source="src/shared/icon-registry.ts">
             <div className="space-y-3">
-              <div className="flex flex-col gap-2 lg:flex-row">
-                <label className="relative min-w-0 flex-1">
-                  <span className="sr-only">搜索图标</span>
-                  <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-                  <input
-                    value={iconQuery}
-                    onChange={(event) => setIconQuery(event.target.value)}
-                    placeholder="搜索中文或 English"
-                    className="h-8 w-full rounded-md border pl-8 pr-2 text-xs outline-none"
-                    style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-                  />
-                </label>
+              <div className="flex items-center gap-2">
+                {iconSearchOpen ? (
+                  <label className="relative min-w-0 flex-1">
+                    <span className="sr-only">搜索图标</span>
+                    <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                    <input
+                      autoFocus
+                      value={iconQuery}
+                      onChange={(event) => setIconQuery(event.target.value)}
+                      placeholder="搜索中文或 English"
+                      className="h-8 w-full rounded-md border pl-8 pr-8 text-xs outline-none"
+                      style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center justify-center rounded p-1"
+                      aria-label="关闭图标搜索"
+                      onClick={() => { setIconSearchOpen(false); setIconQuery('') }}
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      <X size={13} />
+                    </button>
+                  </label>
+                ) : (
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                    aria-label="打开图标搜索"
+                    onClick={() => setIconSearchOpen(true)}
+                    title="搜索图标"
+                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+                  >
+                    <Search size={14} />
+                  </button>
+                )}
                 <span className="inline-flex h-8 items-center rounded-md px-2.5 text-[11px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
                   {filteredIconAssets.length} / {ICON_ASSETS.length} 个图标
                 </span>
