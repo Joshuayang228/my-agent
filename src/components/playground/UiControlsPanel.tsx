@@ -16,6 +16,7 @@ import { MarkdownRenderer } from '../MarkdownRenderer'
 import { ToastPreview, type ToastPreviewItem } from '../Toast'
 import type { UiControlsSubId } from './catalog'
 import { StoryBlock } from './StoryBlock'
+import { FOUNDATION_ADVANCED_STORIES, FoundationAdvancedStories } from './FoundationAdvancedStories'
 import { AdoptionMark } from './AdoptionMark'
 import { ICON_ASSETS, ICON_CATEGORIES, ICON_REGISTRY, type IconKey, type IconCategoryId } from '../../shared/icon-registry'
 
@@ -155,6 +156,14 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
       ? collapse[t.callId]
       : t.collapsed,
   }))
+
+  if (FOUNDATION_ADVANCED_STORIES.includes(effectiveSub as (typeof FOUNDATION_ADVANCED_STORIES)[number])) {
+    return (
+      <div className="min-h-0" data-testid="ui-controls-panel">
+        <FoundationAdvancedStories story={effectiveSub as (typeof FOUNDATION_ADVANCED_STORIES)[number]} />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-0" data-testid="ui-controls-panel">

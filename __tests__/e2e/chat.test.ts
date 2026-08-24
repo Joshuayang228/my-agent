@@ -81,7 +81,7 @@ test.describe('My Agent UI', () => {
     await expect(page.getByRole('tab', { name: '组件索引', exact: true })).toHaveCount(0)
     await expect(page.getByRole('tab', { name: '记忆引用', exact: true })).toHaveCount(0)
     await expect(page.getByRole('tab', { name: '按钮', exact: true })).toBeVisible()
-    for (const story of ['标签切换', '提示条', '加载指示器', 'Markdown 渲染', '资产目录', '文件树', '分栏拖拽']) {
+    for (const story of ['标签切换', '下拉选择', '可搜索选择', '表单字段', '复选框', '开关', '对话框', '弹出层', '下拉菜单', '命令面板', '右键菜单', '提示浮层', '提示条', '加载指示器', '骨架屏', '进度条', 'Markdown 渲染', '资产目录', '文件树', '差异查看器', '滚动区域', '分栏拖拽']) {
       await expect(page.getByRole('tab', { name: story, exact: true })).toBeVisible()
     }
     await expect(page.locator('[data-testid="foundation-asset-inventory"]')).toHaveCount(0)
@@ -90,6 +90,10 @@ test.describe('My Agent UI', () => {
     await expect(page.locator('[data-testid="playground-story-nav"]')).not.toContainText('开发基础')
     await expect(page.getByRole('tab', { name: '输入', exact: true })).toBeVisible()
     await expect(page.getByText('生成动作', { exact: true })).toBeVisible()
+    for (const [tab, story] of [['下拉选择', '下拉选择'], ['对话框', '对话框'], ['差异查看器', '差异查看器'], ['骨架屏', '骨架屏'], ['进度条', '进度条']] as const) {
+      await page.getByRole('tab', { name: tab, exact: true }).click()
+      await expect(page.getByRole('heading', { name: new RegExp(`^${story}(?:\\s|$)`) })).toBeVisible()
+    }
 
     await nav.getByRole('button', { name: '图标与视觉', exact: true }).click()
     await expect(page.locator('[data-testid="icon-inventory"]')).toBeVisible()

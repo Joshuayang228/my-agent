@@ -11,9 +11,9 @@ import { UiControlsPanel } from './UiControlsPanel'
 import { PlaygroundStoryTabs } from './PlaygroundLayout'
 
 const FOUNDATION_STORY_GROUPS: readonly { label: string; ids: readonly UiControlsSubId[] }[] = [
-  { label: '基础控件', ids: ['buttons', 'inputs', 'tabs'] },
-  { label: '状态反馈', ids: ['empty', 'toast', 'spinner', 'confirm', 'feedback'] },
-  { label: '开发基础', ids: ['tool-cards', 'markdown', 'asset-table', 'file-tree', 'resize-handle'] },
+  { label: '基础控件', ids: ['buttons', 'inputs', 'tabs', 'select', 'combobox', 'form-field', 'checkbox', 'switch', 'dialog', 'popover', 'dropdown-menu', 'command', 'context-menu', 'tooltip'] },
+  { label: '状态反馈', ids: ['empty', 'toast', 'spinner', 'skeleton', 'progress', 'confirm', 'feedback'] },
+  { label: '开发基础', ids: ['tool-cards', 'markdown', 'asset-table', 'file-tree', 'diff-viewer', 'scroll-area', 'resize-handle'] },
 ] as const
 
 export function FoundationComponentsPanel() {
