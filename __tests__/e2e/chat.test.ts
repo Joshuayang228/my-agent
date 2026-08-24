@@ -226,6 +226,7 @@ test.describe('My Agent UI', () => {
     await expect(page.locator('section[aria-label="Agent 实验"]')).toBeVisible()
     const playgroundNav = page.locator('[data-testid="playground-nav"]')
     await expect(playgroundNav.getByRole('button', { name: '设计语言', exact: true })).toBeVisible()
+    await expect(page.locator('[data-testid="design-system-panel"]').getByRole('button', { name: '重新读取', exact: true })).toHaveCount(0)
     await expect(playgroundNav.getByRole('button', { name: '基础组件', exact: true })).toBeVisible()
     await expect(playgroundNav.getByRole('button', { name: '模型能力', exact: true })).toBeVisible()
     await expect(playgroundNav.getByRole('button', { name: '组件目录', exact: true })).toHaveCount(0)

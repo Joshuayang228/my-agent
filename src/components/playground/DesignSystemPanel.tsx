@@ -80,10 +80,8 @@ type Sub = 'colors' | 'themes' | 'radius'
 
 export function DesignSystemPanel() {
   const [sub, setSub] = useState<Sub>('colors')
-  const [tick, setTick] = useState(0)
 
   const read = (name: string) => {
-    void tick
     if (typeof document === 'undefined') return ''
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
   }
@@ -113,13 +111,6 @@ export function DesignSystemPanel() {
             {item.label}
           </button>
         ))}
-        <button
-          type="button"
-          className="ml-auto settings-option mb-1 px-2 py-1 text-[10px]"
-          onClick={() => setTick((value) => value + 1)}
-        >
-          重新读取
-        </button>
       </div>
 
       {sub === 'colors' && (
