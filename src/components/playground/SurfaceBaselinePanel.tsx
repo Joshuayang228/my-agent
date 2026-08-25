@@ -182,7 +182,6 @@ function ChatSurface({ source }: { source: string }) {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2" data-testid="chat-surface-toolbar" style={{ borderColor: 'var(--border-subtle)' }}>
         <div className="flex min-w-0 items-center gap-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-          <span className="shrink-0 font-medium" style={{ color: 'var(--text-secondary)' }}>Chat 组合</span>
           <code className="truncate font-mono">{source}</code>
         </div>
         <div className="flex shrink-0 rounded-[var(--radius-md)] border p-0.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>

@@ -144,7 +144,6 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('页面组合样张', { exact: true })).toHaveCount(0)
     const chatToolbar = page.getByTestId('chat-surface-toolbar')
     await expect(chatToolbar).toBeVisible()
-    await expect(chatToolbar).toContainText('Chat 组合')
     await expect(chatToolbar).toContainText('src/App.tsx')
     await expect(page.getByText('隔离实验', { exact: true })).toHaveCount(0)
     const candidate = page.locator('[data-testid="surface-sidebar-candidate"]')
