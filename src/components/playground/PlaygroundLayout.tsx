@@ -3,6 +3,8 @@
  * 设计意图：减少每个面板自行发明 max-width、标题和 Tab 样式造成的视觉漂移。
  */
 
+import type { ReactNode } from 'react'
+
 export interface PlaygroundStoryGroup {
   label: string
   items: readonly { id: string; label: string }[]
@@ -11,15 +13,18 @@ export interface PlaygroundStoryGroup {
 export function PlaygroundPageHeader({
   title,
   description,
+  meta,
 }: {
   title: string
   description: string
+  meta?: ReactNode
 }) {
   return (
     <header className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b pb-4" data-testid="playground-page-header">
       <div className="min-w-0">
         <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>{title}</h1>
         <p className="mt-1 max-w-2xl text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>{description}</p>
+        {meta}
       </div>
     </header>
   )

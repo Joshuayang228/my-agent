@@ -1,5 +1,5 @@
 /**
- * 产品体验基础引用：把当前体验使用的基础资产贴近当前页面展示，帮助人工检查两层关系。
+ * 产品体验基础引用：把当前体验使用的基础资产放进统一页头的轻量元信息行，帮助人工检查两层关系。
  * 依赖正文来自 product-experience-registry，反向关系不在 Renderer 另存一份。
  */
 
@@ -11,17 +11,17 @@ export function ProductExperienceDependencies({ tabId }: { tabId: ProductExperie
   if (!experience) return null
 
   return (
-    <section className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }} data-testid="product-experience-dependencies" aria-label={`${experience.labelZh} 的基础引用`}>
-      <span className="shrink-0 text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>基础引用</span>
+    <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5 text-[10px]" data-testid="product-experience-dependencies" aria-label={`${experience.labelZh} 的基础引用`}>
+      <span className="shrink-0 font-medium" style={{ color: 'var(--text-muted)' }}>基础引用</span>
       <div className="flex min-w-0 flex-wrap gap-1" data-testid="experience-foundation-parts" aria-label="使用的基础组件">
         {experience.usesFoundation.map((key) => {
           const asset = UI_COMPONENT_REGISTRY[key]
           return (
-            <span key={key} className="rounded px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+            <span key={key} className="rounded px-1.5 py-0.5" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
               {asset.labelZh}
             </span>
           )
         })}
       </div>
-    </section>
+    </div>
   )}

@@ -127,6 +127,8 @@ test.describe('My Agent UI', () => {
 
     await nav.getByRole('button', { name: 'Chat', exact: true }).click()
     const chatDependencies = page.locator('[data-testid="product-experience-dependencies"]')
+    await expect(page.locator('[data-testid="playground-page-header"]').getByTestId('product-experience-dependencies')).toHaveCount(1)
+    await expect(page.locator('[data-testid="playground-main"] > div > .view-transition > [data-testid="product-experience-dependencies"]')).toHaveCount(0)
     await expect(chatDependencies).toContainText('基础引用')
     await expect(chatDependencies.getByTestId('experience-foundation-parts')).toContainText('空状态')
     await expect(chatDependencies).not.toContainText('experience.chat')
@@ -146,6 +148,8 @@ test.describe('My Agent UI', () => {
 
     await nav.getByRole('button', { name: '工作区', exact: true }).click()
     const workspaceDependencies = page.locator('[data-testid="product-experience-dependencies"]')
+    await expect(page.locator('[data-testid="playground-page-header"]').getByTestId('product-experience-dependencies')).toHaveCount(1)
+    await expect(page.locator('[data-testid="playground-main"] > div > .view-transition > [data-testid="product-experience-dependencies"]')).toHaveCount(0)
     await expect(workspaceDependencies).toContainText('基础引用')
     await expect(workspaceDependencies.getByTestId('experience-foundation-parts')).toContainText('文件树')
     await expect(workspaceDependencies).not.toContainText('experience.workspace')
@@ -276,6 +280,8 @@ test.describe('My Agent UI', () => {
 
     await nav.getByRole('button', { name: '工作区', exact: true }).click()
     const workspaceDependencies = page.locator('[data-testid="product-experience-dependencies"]')
+    await expect(page.locator('[data-testid="playground-page-header"]').getByTestId('product-experience-dependencies')).toHaveCount(1)
+    await expect(page.locator('[data-testid="playground-main"] > div > .view-transition > [data-testid="product-experience-dependencies"]')).toHaveCount(0)
     await expect(workspaceDependencies).toContainText('基础引用')
     await expect(workspaceDependencies.getByTestId('experience-foundation-parts')).toContainText('文件树')
     await expect(workspaceDependencies).not.toContainText('experience.workspace')

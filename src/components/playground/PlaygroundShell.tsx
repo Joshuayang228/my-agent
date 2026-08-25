@@ -26,6 +26,7 @@ import { UiControlsPanel } from './UiControlsPanel'
 import { FoundationComponentsPanel } from './FoundationComponentsPanel'
 import { BusinessStatesPanel } from './BusinessStatesPanel'
 import { ProductExperienceDependencies } from './ProductExperienceDependencies'
+import type { ProductExperienceTabId } from '../../shared/product-experience-registry'
 import { SurfaceBaselinePanel } from './SurfaceBaselinePanel'
 import { PromptLabPanel } from './PromptLabPanel'
 import { ToolRunPanel, type PlaygroundToolInfo } from './ToolRunPanel'
@@ -76,6 +77,20 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
   const activeTabs = PLAYGROUND_TABS.filter((item) => item.status !== 'archived')
   const activeTab = activeTabs.find((item) => item.id === tab) ?? activeTabs[0]
   const activeGroup = PLAYGROUND_GROUPS.find((item) => item.id === activeTab.group) ?? PLAYGROUND_GROUPS[0]
+
+  const experienceTabId = ((): ProductExperienceTabId | undefined => {
+    switch (tab) {
+      case 'chat':
+      case 'world':
+      case 'memory':
+      case 'settings':
+      case 'workspace':
+      case 'business-states':
+        return tab
+      default:
+        return undefined
+    }
+  })()
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1" data-testid="playground-shell">
@@ -142,17 +157,18 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
           <PlaygroundPageHeader
             title={activeTab.label}
             description={activeTab.description ?? activeGroup.description}
+            meta={experienceTabId ? <ProductExperienceDependencies tabId={experienceTabId} /> : undefined}
           />
           <div className="view-transition" key={tab}>
             {tab === 'design-tokens' && <DesignSystemPanel />}
             {tab === 'visual-assets' && <UiControlsPanel initialSub="icons" />}
             {tab === 'foundation-components' && <FoundationComponentsPanel />}
-            {tab === 'chat' && <><ProductExperienceDependencies tabId="chat" /><SurfaceBaselinePanel initialSurface="chat" /></>}
-            {tab === 'world' && <><ProductExperienceDependencies tabId="world" /><SurfaceBaselinePanel initialSurface="world" /></>}
-            {tab === 'memory' && <><ProductExperienceDependencies tabId="memory" /><SurfaceBaselinePanel initialSurface="memory" /></>}
-            {tab === 'settings' && <><ProductExperienceDependencies tabId="settings" /><SurfaceBaselinePanel initialSurface="settings" /></>}
-            {tab === 'workspace' && <><ProductExperienceDependencies tabId="workspace" /><SurfaceBaselinePanel initialSurface="dock" /></>}
-            {tab === 'business-states' && <><ProductExperienceDependencies tabId="business-states" /><BusinessStatesPanel /></>}
+            {tab === 'chat' && <SurfaceBaselinePanel initialSurface="chat" />}
+            {tab === 'world' && <SurfaceBaselinePanel initialSurface="world" />}
+            {tab === 'memory' && <SurfaceBaselinePanel initialSurface="memory" />}
+            {tab === 'settings' && <SurfaceBaselinePanel initialSurface="settings" />}
+            {tab === 'workspace' && <SurfaceBaselinePanel initialSurface="dock" />}
+            {tab === 'business-states' && <BusinessStatesPanel />}
             {tab === 'chat-lab' && <PromptLabPanel />}
             {tab === 'model-test' && <ModelTestPanel />}
             {tab === 'tools' && <ToolRunPanel tools={tools} />}
