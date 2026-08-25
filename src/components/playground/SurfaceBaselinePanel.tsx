@@ -169,7 +169,7 @@ const PAGE_CANDIDATE_STYLE = `
     }
   `
 
-function ChatSurface() {
+function ChatSurface({ source }: { source: string }) {
   const sessionFilterRef = useRef<HTMLInputElement>(null)
   const [viewport, setViewport] = useState<'standard' | 'split'>('standard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -180,8 +180,12 @@ function ChatSurface() {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
-        <div className="flex rounded-[var(--radius-md)] border p-0.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2" data-testid="chat-surface-toolbar" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div className="flex min-w-0 items-center gap-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+          <span className="shrink-0 font-medium" style={{ color: 'var(--text-secondary)' }}>Chat 组合</span>
+          <code className="truncate font-mono">{source}</code>
+        </div>
+        <div className="flex shrink-0 rounded-[var(--radius-md)] border p-0.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
           {([
             { id: 'standard' as const, label: '标准宽度' },
             { id: 'split' as const, label: '分栏窄宽' },
@@ -531,7 +535,6 @@ function MemorySurface() {
 export function SurfaceBaselinePanel({ initialSurface }: { initialSurface?: SurfaceId } = {}) {
   const [surface, setSurface] = useState<SurfaceId>(initialSurface ?? 'chat')
   const fixedSurface = initialSurface !== undefined
-  const active = SURFACES.find((item) => item.id === surface) ?? SURFACES[0]
 
   return (
     <div className="w-full space-y-4" data-testid="surface-baseline-panel">
@@ -558,12 +561,8 @@ export function SurfaceBaselinePanel({ initialSurface }: { initialSurface?: Surf
         })}
       </div>}
 
-      <div className="flex items-center justify-end gap-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-        <span>页面组合样张</span>
-        <code className="max-w-full truncate font-mono">{active.source}</code>
-      </div>
       <div className="min-w-0">
-        {surface === 'chat' && <ChatSurface />}
+        {surface === 'chat' && <ChatSurface source={SURFACES.find((item) => item.id === 'chat')?.source ?? ''} />}
         {surface === 'sidebar' && <SidebarSurface />}
         {surface === 'dock' && <DockSurface />}
         {surface === 'world' && <WorldSurface />}

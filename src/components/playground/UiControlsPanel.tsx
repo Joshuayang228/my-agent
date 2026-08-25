@@ -458,7 +458,19 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
             </p>
           </StoryBlock>
 
-          <StoryBlock title="Lucide 语义图标目录" source="src/shared/icon-registry.ts">
+          <StoryBlock
+            title="Lucide 语义图标目录"
+            source="src/shared/icon-registry.ts"
+            titleExtra={(
+              <span
+                className="inline-flex h-6 items-center rounded px-2 text-[10px] font-normal"
+                data-testid="icon-count"
+                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}
+              >
+                {filteredIconAssets.length} / {ICON_ASSETS.length} 个图标
+              </span>
+            )}
+          >
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 {iconSearchOpen ? (
@@ -495,9 +507,6 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
                     <Search size={14} />
                   </button>
                 )}
-                <span className="inline-flex h-8 items-center rounded-md px-2.5 text-[11px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
-                  {filteredIconAssets.length} / {ICON_ASSETS.length} 个图标
-                </span>
               </div>
 
               <div className="scrollbar-hover flex gap-1 overflow-x-auto pb-1" aria-label="图标分类">

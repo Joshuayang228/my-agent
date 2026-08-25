@@ -121,6 +121,12 @@ Foundation 不再让资产注册表、Playground catalog 和渲染分支各自�
 - 产品体验页面只就近显示当前体验声明的 Foundation 依赖；体验组成由页面自身表达，不再额外生成一层通用摘要。
 - Playground 样张不得出现特定伙伴或外部参考产品名称，避免把参考对象误读为产品事实。
 
+## 2.7 页面组合与图标目录减层（2026-08-25）
+
+- Chat 页面组合样张不再单独渲染“页面组合样张 + source”说明行；样张来源与“标准宽度 / 分栏窄宽”切换合并为同一条紧凑工具行。
+- 图标目录的数量统计与目录标题同行展示，不再占用搜索区域的独立高度；搜索仍默认收起为放大镜。
+- 这些调整只改变 Playground 信息层级，不改变正式 Chat、Sidebar 或图标生产使用方式。
+
 ## 3. 技术方案（How）
 
 - `PlaygroundShell.tsx` / `catalog.ts` / `foundation-story-registry.ts`

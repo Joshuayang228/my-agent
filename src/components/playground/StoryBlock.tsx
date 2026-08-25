@@ -10,12 +10,14 @@ export function StoryBlock({
   source,
   adopted,
   edge,
+  titleExtra,
   children,
 }: {
   title: string
   source: string
   adopted?: boolean
   edge?: boolean
+  titleExtra?: ReactNode
   children: ReactNode
 }) {
   return (
@@ -28,6 +30,7 @@ export function StoryBlock({
         <h4 className="flex min-w-0 items-center gap-1.5 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>
           <span className="truncate">{title}</span>
           {adopted && <AdoptionMark />}
+          {titleExtra}
           {edge && (
             <span
               className="ml-2 rounded px-1.5 py-0.5 text-[10px] font-normal"
