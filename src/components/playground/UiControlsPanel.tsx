@@ -317,7 +317,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
         <div className="space-y-3">
           <StoryBlock title="正文与代码块" source="src/components/MarkdownRenderer.tsx" adopted>
             <div className="max-w-xl text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>
-              <MarkdownRenderer content={'## 今日计划\n\n先完成 **最重要的一件事**，再处理剩下的内容。\n\n```ts\nconst ready = true\n```'} />
+              <MarkdownRenderer variant="playground" content={'## 今日计划\n\n先完成 **最重要的一件事**，再处理剩下的内容。\n\n```ts\nconst ready = true\n```'} />
             </div>
           </StoryBlock>
           <StoryBlock title="内心独白与长文" source="MarkdownRenderer · aside guard" edge adopted>

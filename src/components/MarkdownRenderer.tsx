@@ -101,6 +101,8 @@ function MarkdownImage({ src, alt }: { src?: string; alt?: string }) {
 
 interface MarkdownRendererProps {
   content: string
+  /** Playground 可用更明确的代码层级；默认值保持正式 Chat 的既有视觉。 */
+  variant?: 'default' | 'playground'
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -144,7 +146,7 @@ function MermaidBlock({ code }: { code: string }) {
   return <div ref={containerRef} className="my-3 flex justify-center overflow-x-auto rounded-lg p-4" style={{ background: 'var(--card-bg)' }} />
 }
 
-export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: MarkdownRendererProps) {
+export const MarkdownRenderer = memo(function MarkdownRenderer({ content, variant = 'default' }: MarkdownRendererProps) {
   const { main, asides } = splitAside(content)
   const theme = useCurrentTheme()
   const isDark = theme === 'dark'
@@ -172,7 +174,11 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: Mark
 
           if (match) {
             return (
-              <div className="group relative my-3 overflow-hidden rounded-lg border" style={{ borderColor: 'var(--card-border)' }}>
+              <div
+                className="group relative my-3 overflow-hidden rounded-lg border"
+                data-testid={variant === 'playground' ? 'markdown-code-block' : undefined}
+                style={{ borderColor: 'var(--card-border)' }}
+              >
                 <div className="flex items-center justify-between px-4 py-1.5 text-xs" style={{ background: 'var(--bg-tertiary)' }}>
                   <span style={{ color: 'var(--text-muted)' }}>{match[1]}</span>
                   <CopyButton text={codeString} />
@@ -184,7 +190,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: Mark
                   customStyle={{
                     margin: 0,
                     borderRadius: 0,
-                    background: 'var(--bg-inset)',
+                    background: variant === 'playground' ? 'var(--bg-tertiary)' : 'var(--bg-inset)',
                     fontSize: '0.8125rem',
                     lineHeight: '1.6',
                   }}

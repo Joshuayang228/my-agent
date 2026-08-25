@@ -90,6 +90,11 @@ test.describe('My Agent UI', () => {
     await expect(page.locator('[data-testid="playground-story-nav"]')).not.toContainText('开发基础')
     await expect(page.getByRole('tab', { name: '输入', exact: true })).toBeVisible()
     await expect(page.getByText('生成动作', { exact: true })).toBeVisible()
+    await page.getByRole('tab', { name: 'Markdown 渲染', exact: true }).click()
+    const markdownStory = page.locator('section').filter({ hasText: '正文与代码块' }).first()
+    const markdownCodeBlock = markdownStory.getByTestId('markdown-code-block')
+    await expect(markdownCodeBlock).toBeVisible()
+    await expect(markdownCodeBlock).toHaveCSS('background-color', /^(?!rgb\(255, 255, 255\)$)/)
     for (const [tab, story] of [['下拉选择', '下拉选择'], ['对话框', '对话框'], ['差异查看器', '差异查看器'], ['骨架屏', '骨架屏'], ['进度条', '进度条']] as const) {
       await page.getByRole('tab', { name: tab, exact: true }).click()
       await expect(page.getByRole('heading', { name: new RegExp(`^${story}(?:\\s|$)`) })).toBeVisible()
