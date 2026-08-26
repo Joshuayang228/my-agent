@@ -34,7 +34,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     descriptionZh: '伙伴身份、会话导航、欢迎区和消息阅读组成的主对话体验。',
     status: 'playground',
     playgroundTabId: 'chat',
-    sourcePaths: ['src/components/playground/SurfaceBaselinePanel.tsx', 'src/components/shell/PrimarySidebar.tsx'],
+    sourcePaths: ['src/App.tsx', 'src/components/shell/PrimarySidebar.tsx'],
     experienceParts: ['伙伴身份', '会话导航', '欢迎区', '消息流'],
     usesFoundation: ['developer.markdown', 'state.empty', 'state.toast'],
   }),

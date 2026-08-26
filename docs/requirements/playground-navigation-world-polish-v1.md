@@ -133,6 +133,12 @@ Foundation 不再让资产注册表、Playground catalog 和渲染分支各自�
 - Playground 图标目录不展示 `src/shared/icon-registry.ts` 路径；稳定 key、来源和采用证据继续由注册表与 Debug 保留，开发者不需要在视觉目录中承担这类实现细节。
 - `StoryBlock` 仅在确实需要定位实现时展示 source，并支持头部操作；该能力不改变其他故事格的来源证据。
 
+## 2.9 Chat 页头与来源证据归位（2026-08-26）
+
+- Chat 页头将用途说明放在 `Chat` 标题右侧，同一行表达页面名称与目的，避免标题下再单独占一层说明。
+- Chat 的实现来源路径移入页头“基础引用”行的最右侧；组合样张下方只保留标准宽度 / 分栏窄宽切换，不重复展示 `.tsx` 路径。
+- 来源仍由产品体验注册表维护并展示在 Debug / 资产治理链路中；本调整只改变 Playground 的信息分布，不改变正式页面或生产资产。
+
 ## 3. 技术方案（How）
 
 - `PlaygroundShell.tsx` / `catalog.ts` / `foundation-story-registry.ts`

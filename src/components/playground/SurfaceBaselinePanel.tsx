@@ -16,13 +16,13 @@ import type { MemoryEntry } from '../../shared/types'
 
 type SurfaceId = 'chat' | 'sidebar' | 'dock' | 'world' | 'memory' | 'settings'
 
-const SURFACES: { id: SurfaceId; label: string; description: string; adopted: boolean; source: string }[] = [
-  { id: 'chat', label: 'Chat 壳', description: 'Sidebar 底部开发入口候选、会话标题、居中欢迎区与紧凑输入卡', adopted: false, source: 'src/App.tsx · src/components/shell/PrimarySidebar.tsx' },
-  { id: 'sidebar', label: 'Primary Sidebar', description: '伙伴身份、会话与底栏入口', adopted: true, source: 'src/components/shell/PrimarySidebar.tsx' },
-  { id: 'dock', label: 'Right Dock', description: '文件、审阅、终端与 Debug 层级', adopted: true, source: 'src/components/chat/right-dock/ChatRightDock.tsx' },
-  { id: 'world', label: '人物世界', description: '生活面 tab 与内容节奏', adopted: true, source: 'src/components/shell/WorldHub.tsx' },
-  { id: 'memory', label: '记忆', description: '结构化记忆的列表、空态、敏感项与编辑态', adopted: true, source: 'src/components/MemoryPanel.tsx' },
-  { id: 'settings', label: '设置', description: '设置分组与详情区的整体密度', adopted: true, source: 'src/components/SettingsPanel.tsx' },
+const SURFACES: { id: SurfaceId; label: string; description: string; adopted: boolean }[] = [
+  { id: 'chat', label: 'Chat 壳', description: 'Sidebar 底部开发入口候选、会话标题、居中欢迎区与紧凑输入卡', adopted: false },
+  { id: 'sidebar', label: 'Primary Sidebar', description: '伙伴身份、会话与底栏入口', adopted: true },
+  { id: 'dock', label: 'Right Dock', description: '文件、审阅、终端与 Debug 层级', adopted: true },
+  { id: 'world', label: '人物世界', description: '生活面 tab 与内容节奏', adopted: true },
+  { id: 'memory', label: '记忆', description: '结构化记忆的列表、空态、敏感项与编辑态', adopted: true },
+  { id: 'settings', label: '设置', description: '设置分组与详情区的整体密度', adopted: true },
 ]
 
 const NOW = Date.now()
@@ -169,7 +169,7 @@ const PAGE_CANDIDATE_STYLE = `
     }
   `
 
-function ChatSurface({ source }: { source: string }) {
+function ChatSurface() {
   const sessionFilterRef = useRef<HTMLInputElement>(null)
   const [viewport, setViewport] = useState<'standard' | 'split'>('standard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -180,10 +180,7 @@ function ChatSurface({ source }: { source: string }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2" data-testid="chat-surface-toolbar" style={{ borderColor: 'var(--border-subtle)' }}>
-        <div className="flex min-w-0 items-center gap-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-          <code className="truncate font-mono">{source}</code>
-        </div>
+      <div className="flex justify-end border-b pb-2" data-testid="chat-surface-toolbar" style={{ borderColor: 'var(--border-subtle)' }}>
         <div className="flex shrink-0 rounded-[var(--radius-md)] border p-0.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
           {([
             { id: 'standard' as const, label: '标准宽度' },
@@ -561,7 +558,7 @@ export function SurfaceBaselinePanel({ initialSurface }: { initialSurface?: Surf
       </div>}
 
       <div className="min-w-0">
-        {surface === 'chat' && <ChatSurface source={SURFACES.find((item) => item.id === 'chat')?.source ?? ''} />}
+        {surface === 'chat' && <ChatSurface />}
         {surface === 'sidebar' && <SidebarSurface />}
         {surface === 'dock' && <DockSurface />}
         {surface === 'world' && <WorldSurface />}

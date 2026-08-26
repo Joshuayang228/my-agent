@@ -14,16 +14,25 @@ export function PlaygroundPageHeader({
   title,
   description,
   meta,
+  descriptionInline = false,
 }: {
   title: string
   description: string
   meta?: ReactNode
+  descriptionInline?: boolean
 }) {
   return (
     <header className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b pb-4" data-testid="playground-page-header">
       <div className="min-w-0">
-        <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>{title}</h1>
-        <p className="mt-1 max-w-2xl text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>{description}</p>
+        <div className={descriptionInline ? 'flex flex-wrap items-baseline gap-x-3 gap-y-1' : undefined} data-testid="playground-page-title-row">
+          <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>{title}</h1>
+          {descriptionInline && (
+            <p className="text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>{description}</p>
+          )}
+        </div>
+        {!descriptionInline && (
+          <p className="mt-1 max-w-2xl text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>{description}</p>
+        )}
         {meta}
       </div>
     </header>
