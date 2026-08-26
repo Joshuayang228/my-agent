@@ -26,7 +26,12 @@ export function ProductExperienceDependencies({ tabId, showSource = false }: { t
         </div>
       </div>
       {showSource && (
-        <code className="ml-auto max-w-full truncate font-mono" data-testid="experience-source" style={{ color: 'var(--text-muted)' }}>
+        <code
+          className="ml-auto min-w-0 max-w-full truncate font-mono"
+          data-testid="experience-source"
+          title={experience.sourcePaths.join(' · ')}
+          style={{ color: 'var(--text-muted)' }}
+        >
           {experience.sourcePaths.join(' · ')}
         </code>
       )}

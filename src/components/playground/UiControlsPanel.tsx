@@ -21,6 +21,8 @@ import { getFoundationStoryByViewId } from '../../shared/foundation-story-regist
 import { AdoptionMark } from './AdoptionMark'
 import { ICON_ASSETS, ICON_CATEGORIES, ICON_REGISTRY, type IconCategoryId } from '../../shared/icon-registry'
 
+const ICON_SIZE_PRESETS = [12, 14, 16, 20] as const
+
 const TOOL_STORIES: ToolCallbackItem[] = [
   {
     callId: 'demo-running',
@@ -141,6 +143,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
   const [iconQuery, setIconQuery] = useState('')
   const [iconSearchOpen, setIconSearchOpen] = useState(false)
   const [iconCategory, setIconCategory] = useState<IconCategoryId | 'all'>('all')
+  const [iconPreviewSize, setIconPreviewSize] = useState(15)
 
   const filteredIconAssets = useMemo(() => {
     const query = iconQuery.trim().toLocaleLowerCase('zh-CN')
@@ -439,25 +442,6 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
 
       {effectiveSub === 'icons' && (
         <div className="space-y-3" data-testid="icon-inventory">
-          <StoryBlock title="图标尺寸" source="lucide-react · 12 / 14 / 16 / 20">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="icon-size-samples">
-              {[12, 14, 16, 20].map((size) => {
-                const Icon = ICON_REGISTRY['navigation.search'].icon
-                return (
-                  <div key={size} className="flex min-w-0 flex-col items-center gap-1.5 rounded-md border px-2 py-2.5" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
-                    <div className="flex h-9 w-9 items-center justify-center rounded-md" style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }}>
-                      <Icon size={size} strokeWidth={1.6} aria-hidden="true" />
-                    </div>
-                    <span className="font-mono text-[10px]" style={{ color: 'var(--text-secondary)' }}>{size}px</span>
-                  </div>
-                )
-              })}
-            </div>
-            <p className="mt-3 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-              同一语义图标按 12 / 14 / 16 / 20 展示，选择尺寸时先看实际占位和视觉重量。
-            </p>
-          </StoryBlock>
-
           <StoryBlock
             title="Lucide 语义图标目录"
             source="src/shared/icon-registry.ts"
@@ -471,42 +455,88 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
                 {filteredIconAssets.length} / {ICON_ASSETS.length} 个图标
               </span>
             )}
-            headerActions={iconSearchOpen ? (
-              <label className="relative flex w-44 min-w-0">
-                <span className="sr-only">搜索图标</span>
-                <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-                <input
-                  autoFocus
-                  value={iconQuery}
-                  onChange={(event) => setIconQuery(event.target.value)}
-                  placeholder="搜索中文或 English"
-                  className="h-8 w-full rounded-md border pl-8 pr-8 text-xs outline-none"
-                  style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-                />
-                <button
-                  type="button"
-                  className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center justify-center rounded p-1"
-                  aria-label="关闭图标搜索"
-                  onClick={() => { setIconSearchOpen(false); setIconQuery('') }}
+            headerActions={(
+              <div className="flex min-w-0 items-center gap-2">
+                <code
+                  className="max-w-[10rem] truncate font-mono text-[10px]"
+                  title="src/shared/icon-registry.ts"
                   style={{ color: 'var(--text-muted)' }}
                 >
-                  <X size={13} />
-                </button>
-              </label>
-            ) : (
-              <button
-                type="button"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
-                aria-label="打开图标搜索"
-                onClick={() => setIconSearchOpen(true)}
-                title="搜索图标"
-                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
-              >
-                <Search size={14} />
-              </button>
+                  src/shared/icon-registry.ts
+                </code>
+                {iconSearchOpen ? (
+                  <label className="relative flex w-44 min-w-0">
+                    <span className="sr-only">搜索图标</span>
+                    <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                    <input
+                      autoFocus
+                      value={iconQuery}
+                      onChange={(event) => setIconQuery(event.target.value)}
+                      placeholder="搜索中文或 English"
+                      className="h-8 w-full rounded-md border pl-8 pr-8 text-xs outline-none"
+                      style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center justify-center rounded p-1"
+                      aria-label="关闭图标搜索"
+                      onClick={() => { setIconSearchOpen(false); setIconQuery('') }}
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      <X size={13} />
+                    </button>
+                  </label>
+                ) : (
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                    aria-label="打开图标搜索"
+                    onClick={() => setIconSearchOpen(true)}
+                    title="搜索图标"
+                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+                  >
+                    <Search size={14} />
+                  </button>
+                )}
+              </div>
             )}
           >
             <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2 rounded-md border px-2.5 py-2" data-testid="icon-size-controls" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)' }}>
+                <span className="shrink-0 text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>图标尺寸</span>
+                <div className="flex items-center gap-1">
+                  {ICON_SIZE_PRESETS.map((size) => {
+                    const selected = iconPreviewSize === size
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        className="rounded px-2 py-1 font-mono text-[10px] transition"
+                        aria-pressed={selected}
+                        onClick={() => setIconPreviewSize(size)}
+                        style={{ background: selected ? 'var(--accent-subtle)' : 'var(--bg-secondary)', color: selected ? 'var(--accent-fg)' : 'var(--text-muted)' }}
+                      >
+                        {size}px
+                      </button>
+                    )
+                  })}
+                </div>
+                <label className="ml-auto flex min-w-[11rem] flex-1 items-center gap-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                  <span className="shrink-0">自定义</span>
+                  <input
+                    type="range"
+                    min="8"
+                    max="32"
+                    step="1"
+                    value={iconPreviewSize}
+                    aria-label="自定义图标尺寸"
+                    onChange={(event) => setIconPreviewSize(Number(event.target.value))}
+                    className="min-w-0 flex-1 accent-[var(--accent-emphasis)]"
+                  />
+                  <span className="w-8 shrink-0 text-right font-mono">{iconPreviewSize}px</span>
+                </label>
+              </div>
+
               <div className="scrollbar-hover flex gap-1 overflow-x-auto pb-1" aria-label="图标分类">
                 <button
                   type="button"
@@ -544,7 +574,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
                         </span>
                       )}
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-                        <Icon size={15} strokeWidth={1.65} aria-hidden="true" />
+                        <Icon size={iconPreviewSize} strokeWidth={1.65} aria-hidden="true" />
                       </div>
                       <div className="flex min-w-0 flex-col items-center gap-0.5">
                         <span className="truncate text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{asset.label}</span>
@@ -561,7 +591,6 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
               )}
             </div>
           </StoryBlock>
-
         </div>
       )}
       {effectiveSub === 'feedback' && (

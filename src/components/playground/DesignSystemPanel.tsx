@@ -29,32 +29,26 @@ const MOTIONS = ['--motion-fast', '--motion-normal', '--motion-slow'] as const
 const THEMES = DESIGN_THEME_ASSETS.map((asset) => ({ id: asset.id, label: asset.labelZh }))
 
 function MotionTokenSample({ name, value }: { name: string; value: string }) {
-  const [playing, setPlaying] = useState(false)
-
   return (
-    <button
-      type="button"
+    <div
       className="min-w-[11rem] rounded-md border px-2.5 py-2 text-left"
+      data-testid={`motion-sample-${name.replaceAll('--', '')}`}
       style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
-      onClick={() => setPlaying((current) => !current)}
-      aria-label={`${name} 动画示例`}
     >
-      <span className="mb-2 block h-1.5 overflow-hidden rounded-full" style={{ background: 'var(--bg-tertiary)' }}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-mono text-[10px]" style={{ color: 'var(--text-secondary)' }}>{name}</span>
+        <span className="shrink-0 font-mono text-[9px]" style={{ color: 'var(--text-muted)' }}>{value || '—'}</span>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full" style={{ background: 'var(--bg-tertiary)' }}>
         <span
           className="block h-full w-1/3 rounded-full"
           style={{
             background: 'var(--accent-emphasis)',
-            transform: playing ? 'translateX(200%)' : 'translateX(0)',
-            transition: `transform ${value || '220ms'} var(--motion-ease)`,
+            animation: `playground-motion-sweep ${value || '220ms'} var(--motion-ease) infinite alternate`,
           }}
         />
-      </span>
-      <span className="block font-mono text-[10px]" style={{ color: 'var(--text-secondary)' }}>{name}</span>
-      <span className="mt-0.5 flex items-center gap-1 font-mono text-[9px]" style={{ color: 'var(--text-muted)' }}>
-        {value || '—'} <AdoptionMark />
-      </span>
-      <span className="mt-1 block text-[9px]" style={{ color: 'var(--text-muted)' }}>点击播放</span>
-    </button>
+      </div>
+    </div>
   )
 }
 
@@ -80,6 +74,7 @@ type Sub = 'colors' | 'themes' | 'radius'
 
 export function DesignSystemPanel() {
   const [sub, setSub] = useState<Sub>('colors')
+  const [customRadius, setCustomRadius] = useState(16)
 
   const read = (name: string) => {
     if (typeof document === 'undefined') return ''
@@ -171,6 +166,23 @@ export function DesignSystemPanel() {
 
       {sub === 'radius' && (
         <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3 rounded-md border px-3 py-2" data-testid="radius-controls" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+            <span className="shrink-0 text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>自定义圆角</span>
+            <input
+              type="range"
+              min="0"
+              max="32"
+              step="1"
+              value={customRadius}
+              aria-label="自定义圆角"
+              onChange={(event) => setCustomRadius(Number(event.target.value))}
+              className="min-w-[10rem] flex-1 accent-[var(--accent-emphasis)]"
+            />
+            <span className="w-10 shrink-0 text-right font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{customRadius}px</span>
+            <div className="flex h-8 w-16 items-center justify-center border text-[9px]" style={{ borderColor: 'var(--accent-fg)', background: 'var(--accent-subtle)', borderRadius: `${customRadius}px`, color: 'var(--text-secondary)' }}>
+              样张
+            </div>
+          </div>
           <div className="flex flex-wrap gap-4">
             {RADII.map((name) => (
               <div key={name} className="text-center">
@@ -183,6 +195,7 @@ export function DesignSystemPanel() {
             ))}
           </div>
           <div className="flex flex-wrap gap-2" data-testid="motion-samples">
+            <style>{'@keyframes playground-motion-sweep { from { transform: translateX(0); } to { transform: translateX(200%); } } @media (prefers-reduced-motion: reduce) { [data-testid^=\"motion-sample-\"] span { animation: none !important; } }'}</style>
             {MOTIONS.map((name) => (
               <MotionTokenSample key={name} name={name} value={read(name)} />
             ))}

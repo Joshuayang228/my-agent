@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 import {
   FOUNDATION_STORIES,
   FOUNDATION_STORY_GROUPS,
+  FOUNDATION_STORY_NAVIGATION_GROUPS,
   getFoundationStoriesByGroup,
+  getFoundationStoriesByNavigationGroup,
   getFoundationStoryByViewId,
   getFoundationStoryLifecycle,
 } from '../../src/shared/foundation-story-registry'
@@ -38,5 +40,16 @@ describe('Foundation story registry', () => {
 
   it('derives every group view without a second manual story list', () => {
     expect(FOUNDATION_STORY_GROUPS.flatMap((group) => getFoundationStoriesByGroup(group.id))).toEqual([...FOUNDATION_STORIES])
+  })
+
+  it('uses navigation groups to reduce tabs without deleting story coverage', () => {
+    const navigationGroupIds = FOUNDATION_STORY_NAVIGATION_GROUPS.map((group) => group.id)
+    expect(new Set(navigationGroupIds)).toEqual(new Set(FOUNDATION_STORIES.map((story) => story.navigationGroup)))
+    for (const story of FOUNDATION_STORIES) {
+      expect(navigationGroupIds).toContain(story.navigationGroup)
+    }
+    expect(
+      FOUNDATION_STORY_NAVIGATION_GROUPS.flatMap((group) => getFoundationStoriesByNavigationGroup(group.id)).map((story) => story.key).sort(),
+    ).toEqual(FOUNDATION_STORIES.map((story) => story.key).sort())
   })
 })

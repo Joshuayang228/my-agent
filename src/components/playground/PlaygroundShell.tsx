@@ -158,7 +158,7 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
             title={activeTab.label}
             description={activeTab.description ?? activeGroup.description}
             descriptionInline={tab === 'chat'}
-            meta={experienceTabId ? <ProductExperienceDependencies tabId={experienceTabId} showSource={tab === 'chat'} /> : undefined}
+            meta={experienceTabId ? <ProductExperienceDependencies tabId={experienceTabId} showSource /> : undefined}
           />
           <div className="view-transition" key={tab}>
             {tab === 'design-tokens' && <DesignSystemPanel />}
