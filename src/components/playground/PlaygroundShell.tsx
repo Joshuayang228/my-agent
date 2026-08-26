@@ -31,7 +31,7 @@ import { SurfaceBaselinePanel } from './SurfaceBaselinePanel'
 import { PromptLabPanel } from './PromptLabPanel'
 import { ToolRunPanel, type PlaygroundToolInfo } from './ToolRunPanel'
 import { ModelTestPanel } from './ModelTestPanel'
-import { PlaygroundPageHeader } from './PlaygroundLayout'
+import { PlaygroundPageHeader, PlaygroundSourcePath } from './PlaygroundLayout'
 
 const TAB_STORAGE_KEY = 'playground.active-tab'
 
@@ -157,8 +157,10 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
           <PlaygroundPageHeader
             title={activeTab.label}
             description={activeTab.description ?? activeGroup.description}
-            descriptionInline={tab === 'chat'}
-            meta={experienceTabId ? <ProductExperienceDependencies tabId={experienceTabId} showSource /> : undefined}
+            descriptionInline
+            meta={experienceTabId
+              ? <ProductExperienceDependencies tabId={experienceTabId} showSource />
+              : <div className="mt-2 flex min-w-0 justify-end"><PlaygroundSourcePath sourcePaths={activeTab.sourcePaths ?? []} /></div>}
           />
           <div className="view-transition" key={tab}>
             {tab === 'design-tokens' && <DesignSystemPanel />}

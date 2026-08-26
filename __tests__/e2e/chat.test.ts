@@ -105,6 +105,10 @@ test.describe('My Agent UI', () => {
     await expect(page.getByRole('heading', { name: /^进度条/ })).toBeVisible()
 
     await nav.getByRole('button', { name: '设计语言', exact: true }).click()
+    const designSource = page.getByTestId('playground-source')
+    await expect(designSource).toBeVisible()
+    await expect(designSource).toHaveAttribute('title', /DesignSystemPanel\.tsx/)
+    await expect(designSource).toHaveClass(/w-\[18rem\]/)
     await page.getByRole('button', { name: '圆角 / 动效', exact: true }).click()
     const radiusSlider = page.getByTestId('radius-controls').getByRole('slider', { name: '自定义圆角', exact: true })
     await expect(radiusSlider).toBeVisible()
@@ -115,6 +119,7 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('150ms', { exact: true })).toBeVisible()
 
     await nav.getByRole('button', { name: '图标与视觉', exact: true }).click()
+    await expect(page.getByTestId('playground-source')).toHaveAttribute('title', /UiControlsPanel\.tsx/)
     const iconInventory = page.locator('[data-testid="icon-inventory"]')
     await expect(iconInventory).toBeVisible()
     await expect(iconInventory.getByTestId('icon-count')).toBeVisible()
@@ -123,6 +128,8 @@ test.describe('My Agent UI', () => {
     const iconCount = iconStory.getByTestId('icon-count')
     await expect(iconStory.getByTestId('story-block-header').getByRole('button', { name: '打开图标搜索', exact: true })).toBeVisible()
     await expect(iconStory.locator('code')).toContainText('src/shared/icon-registry.ts')
+    await expect(iconStory.getByTestId('icon-source')).toHaveAttribute('title', /src\/shared\/icon-registry\.ts/)
+    await expect(iconStory.getByTestId('icon-source')).toHaveClass(/w-\[10rem\]/)
     const [headingBox, countBox] = await Promise.all([iconHeading.boundingBox(), iconCount.boundingBox()])
     expect(headingBox).not.toBeNull()
     expect(countBox).not.toBeNull()

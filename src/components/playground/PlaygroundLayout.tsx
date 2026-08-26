@@ -5,6 +5,27 @@
 
 import type { ReactNode } from 'react'
 
+const PLAYGROUND_SOURCE_WIDTH_CLASS = 'w-[18rem] max-w-full'
+
+/**
+ * 统一显示 Playground 来源证据：来源是给开发者定位实现的辅助信息，不应撑开页头或制造额外层级。
+ * 固定宽度让不同一级 Tab 的页头保持同一节奏；title 保留完整值，窄屏和长路径只在视觉上省略。
+ */
+export function PlaygroundSourcePath({ sourcePaths, testId = 'playground-source' }: { sourcePaths: readonly string[]; testId?: string }) {
+  if (sourcePaths.length === 0) return null
+  const source = sourcePaths.join(' · ')
+  return (
+    <code
+      className={`ml-auto block min-w-0 ${PLAYGROUND_SOURCE_WIDTH_CLASS} truncate text-right font-mono text-[10px]`}
+      data-testid={testId}
+      title={source}
+      style={{ color: 'var(--text-muted)' }}
+    >
+      {source}
+    </code>
+  )
+}
+
 export interface PlaygroundStoryGroup {
   label: string
   items: readonly { id: string; label: string }[]
@@ -14,7 +35,7 @@ export function PlaygroundPageHeader({
   title,
   description,
   meta,
-  descriptionInline = false,
+  descriptionInline = true,
 }: {
   title: string
   description: string
@@ -23,7 +44,7 @@ export function PlaygroundPageHeader({
 }) {
   return (
     <header className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b pb-4" data-testid="playground-page-header">
-      <div className="min-w-0">
+      <div className="w-full min-w-0">
         <div className={descriptionInline ? 'flex flex-wrap items-baseline gap-x-3 gap-y-1' : undefined} data-testid="playground-page-title-row">
           <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>{title}</h1>
           {descriptionInline && (

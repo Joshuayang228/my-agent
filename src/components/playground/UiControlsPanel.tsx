@@ -130,7 +130,7 @@ function ResizeStory() {
           <div className="flex min-w-0 flex-1 items-center justify-center text-[11px]" style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)' }}>辅助区 · {width}px</div>
         </div>
       </StoryBlock>
-      <StoryBlock title="最小 / 最大边界" source="ResizeHandle · LAYOUT_BOUNDS" edge adopted>
+      <StoryBlock title="最小 / 最大边界" source="src/components/shell/ResizeHandle.tsx · LAYOUT_BOUNDS" edge adopted>
         <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>拖动中保持 120–320px 范围，键盘和窄宽验收不能让主操作消失。</p>
       </StoryBlock>
     </div>
@@ -177,7 +177,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
 
       {effectiveSub === 'buttons' && (
         <div className="space-y-3">
-          <StoryBlock title="主要 / 次要" source="index.css · .settings-option" adopted>
+          <StoryBlock title="主要 / 次要" source="src/index.css · .settings-option" adopted>
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" className="settings-option px-3 py-1.5 text-xs">主要操作</button>
               <button
@@ -201,7 +201,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
               不可点
             </button>
           </StoryBlock>
-          <StoryBlock title="生成动作" source="Playground story">
+          <StoryBlock title="生成动作" source="src/components/playground/UiControlsPanel.tsx · Playground fixture">
             <div className="flex flex-wrap gap-2">
               <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
                 <Sparkles size={14} />生成
@@ -219,20 +219,20 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
 
       {effectiveSub === 'inputs' && (
         <div className="space-y-3">
-          <StoryBlock title="theme-input 默认" source=".theme-input" adopted>
+          <StoryBlock title="theme-input 默认" source="src/index.css · .theme-input" adopted>
             <input
               className="theme-input w-full max-w-sm rounded-lg border px-2 py-1.5 text-xs outline-none"
               placeholder="输入…"
               defaultValue="示例"
             />
           </StoryBlock>
-          <StoryBlock title="超长占位 / 窄宽" source=".theme-input" edge adopted>
+          <StoryBlock title="超长占位 / 窄宽" source="src/index.css · .theme-input" edge adopted>
             <input
               className="theme-input w-28 rounded-lg border px-2 py-1.5 text-xs outline-none"
               defaultValue="这是一段故意超长的输入内容用来看截断与溢出"
             />
           </StoryBlock>
-          <StoryBlock title="带图标输入" source="Playground story">
+          <StoryBlock title="带图标输入" source="src/components/playground/UiControlsPanel.tsx · Playground fixture">
             <label className="relative block max-w-sm">
               <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
               <input
@@ -259,7 +259,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
               }
             />
           </StoryBlock>
-          <StoryBlock title="错误态展开" source="ToolCallbackList · status=error" edge adopted>
+          <StoryBlock title="错误态展开" source="src/components/chat/callbacks/ToolCallbackList.tsx · status=error" edge adopted>
             <ToolCallbackList
               tools={[TOOL_STORIES[2]]}
               onToggleCollapse={() => undefined}
@@ -280,7 +280,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
               <div className="p-3 text-[11px]" style={{ color: 'var(--text-secondary)' }}>同一任务域内切换内容，不承担页面级跳转。</div>
             </div>
           </StoryBlock>
-          <StoryBlock title="窄宽标签" source="Tabs · overflow-x-auto" edge adopted>
+          <StoryBlock title="窄宽标签" source="src/components/playground/UiControlsPanel.tsx · overflow-x-auto" edge adopted>
             <div className="max-w-[250px] overflow-x-auto rounded-lg border p-1" style={{ borderColor: 'var(--border-color)' }}>
               <div className="flex min-w-max gap-1">
                 {['朋友圈', '物什', '名册', '角色架'].map((label, index) => <span key={label} className="rounded px-2 py-1 text-[10px]" style={{ background: index === 0 ? 'var(--accent-subtle)' : 'var(--bg-tertiary)', color: index === 0 ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{label}</span>)}
@@ -295,7 +295,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
           <StoryBlock title="提示条四态" source="src/components/Toast.tsx" adopted>
             <div className="playground-toast-preview w-full max-w-md"><ToastPreview items={TOAST_STORIES} /></div>
           </StoryBlock>
-          <StoryBlock title="长文与窄宽" source="ToastBubble · responsive max-width" edge adopted>
+          <StoryBlock title="长文与窄宽" source="src/components/Toast.tsx · responsive max-width" edge adopted>
             <div className="max-w-[280px]"><ToastPreview items={[{ id: 5, type: 'warning', message: '当前请求已完成，但有两个后台步骤仍在处理。你可以继续对话，结果回来后会再次通知。' }]} /></div>
           </StoryBlock>
         </div>
@@ -310,7 +310,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
               <span className="inline-flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}><LoaderCircle size={12} />等待开始</span>
             </div>
           </StoryBlock>
-          <StoryBlock title="减少动效替代" source="Spinner · 文本状态不能省略" edge adopted>
+          <StoryBlock title="减少动效替代" source="src/components/playground/UiControlsPanel.tsx · reduced-motion" edge adopted>
             <div className="rounded-md border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>正在检查模型连接，请稍候…</div>
           </StoryBlock>
         </div>
@@ -323,7 +323,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
               <MarkdownRenderer variant="playground" content={'## 今日计划\n\n先完成 **最重要的一件事**，再处理剩下的内容。\n\n```ts\nconst ready = true\n```'} />
             </div>
           </StoryBlock>
-          <StoryBlock title="内心独白与长文" source="MarkdownRenderer · aside guard" edge adopted>
+          <StoryBlock title="内心独白与长文" source="src/components/MarkdownRenderer.tsx · aside guard" edge adopted>
             <div className="max-w-xl text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>
               <MarkdownRenderer content={'我先给你一个可以直接执行的版本。<aside>这是一段故意拉长的内心独白，用来检查窄栏换行、正文层级和弱化后的可读性，不能盖过真正的回答。</aside>'} />
             </div>
@@ -347,7 +347,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
           <StoryBlock title="文件树" source="src/components/FileBrowser.tsx" adopted>
             <div className="h-[360px] max-w-md overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)' }}><FileBrowser projectPath={null} onClose={() => undefined} embedded previewData={FILE_TREE_FIXTURE} mode="files" /></div>
           </StoryBlock>
-          <StoryBlock title="长路径与空目录" source="FileBrowser · tree fixture" edge adopted>
+          <StoryBlock title="长路径与空目录" source="src/components/FileBrowser.tsx · tree fixture" edge adopted>
             <div className="rounded-lg border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>树节点需要可展开、键盘可达，长文件名截断但保留完整提示。</div>
           </StoryBlock>
         </div>
@@ -359,10 +359,10 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
 
       {effectiveSub === 'empty' && (
         <div className="space-y-3">
-          <StoryBlock title="Chat 空态" source="Chat 空态 / Fixtures 同源视觉">
+          <StoryBlock title="Chat 空态" source="src/components/playground/UiControlsPanel.tsx · Chat fixture">
             <ChatEmptyFixture />
           </StoryBlock>
-          <StoryBlock title="长说明文案" source="空态文案边缘" edge>
+          <StoryBlock title="长说明文案" source="src/components/playground/UiControlsPanel.tsx · empty-state copy" edge>
             <ChatEmptyFixture long />
           </StoryBlock>
         </div>
@@ -376,7 +376,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
               args={{ command: 'npm test' }}
             />
           </StoryBlock>
-          <StoryBlock title="队列 >1" source="PermissionConfirmCard · queueLength" edge adopted>
+          <StoryBlock title="队列 >1" source="src/components/chat/PermissionConfirmCard.tsx · queueLength" edge adopted>
             <PermissionConfirmCard
               toolName="write_file"
               args={{ path: 'a.ts', content: 'x'.repeat(80) }}
@@ -397,7 +397,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
               showActions
             />
           </StoryBlock>
-          <StoryBlock title="超长摘要截断" source="MemoryCitationChips truncate" edge adopted>
+          <StoryBlock title="超长摘要截断" source="src/components/chat/MemoryCitationChips.tsx · truncate" edge adopted>
             <MemoryCitationChips
               citations={[
                 {
@@ -425,7 +425,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
               />
             </div>
           </StoryBlock>
-          <StoryBlock title="超长角色名" source="CompanionStatusBar truncate" edge adopted>
+          <StoryBlock title="超长角色名" source="src/components/CompanionStatusBar.tsx · truncate" edge adopted>
             <div className="overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
               <CompanionStatusBar
                 roleName="这是一个故意起得很长的角色名字用来测试状态条截断表现"
@@ -458,7 +458,8 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
             headerActions={(
               <div className="flex min-w-0 items-center gap-2">
                 <code
-                  className="max-w-[10rem] truncate font-mono text-[10px]"
+                  className="block w-[10rem] max-w-full truncate text-right font-mono text-[10px]"
+                  data-testid="icon-source"
                   title="src/shared/icon-registry.ts"
                   style={{ color: 'var(--text-muted)' }}
                 >
@@ -595,7 +596,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
       )}
       {effectiveSub === 'feedback' && (
         <div className="space-y-3">
-          <StoryBlock title="错误反馈（常用 3 态）" source="Playground fixture · merged" edge>
+          <StoryBlock title="错误反馈（常用 3 态）" source="src/components/playground/UiControlsPanel.tsx · merged fixture" edge>
             <div className="space-y-2">
               <FixtureError title="未配置 API Key" body="请在设置 → 模型里填写密钥后再试。" action="打开设置" />
               <FixtureError title="操作被权限策略拒绝" body="可以切换审批模式，或让 Agent 换更安全的替代方案。" action="查看权限" />
@@ -607,7 +608,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
               <ToastPreview items={TOAST_STORIES} />
             </div>
           </StoryBlock>
-          <StoryBlock title="长文与窄宽" source="ToastBubble · responsive max-width" edge adopted>
+          <StoryBlock title="长文与窄宽" source="src/components/Toast.tsx · responsive max-width" edge adopted>
             <div className="max-w-[280px]">
               <ToastPreview items={[{
                 id: 5,

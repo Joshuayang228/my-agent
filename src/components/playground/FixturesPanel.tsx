@@ -34,7 +34,7 @@ export function FixturesPanel() {
         </p>
       </div>
 
-      <StoryBlock title="对话空态" source="Playground fixture">
+      <StoryBlock title="对话空态" source="src/components/playground/FixturesPanel.tsx · fixture">
         <div
           className="flex flex-col items-center rounded-xl border px-6 py-10 text-center"
           style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
@@ -57,7 +57,7 @@ export function FixturesPanel() {
         </div>
       </StoryBlock>
 
-      <StoryBlock title="错误卡（常用 3 态）" source="Playground fixture" edge>
+      <StoryBlock title="错误卡（常用 3 态）" source="src/components/playground/FixturesPanel.tsx · fixture" edge>
         <div className="space-y-2">
           <FixtureError
             title="未配置 API Key"

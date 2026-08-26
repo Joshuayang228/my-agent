@@ -168,21 +168,21 @@ function assertNever(value: never): never {
 
 function storyContent(story: AdvancedFoundationStoryKey) {
   switch (story) {
-    case 'foundation.select': return <StoryBlock title="下拉选择" source="原生 select · Settings / Debug / ToolRun"><SelectStory /></StoryBlock>
-    case 'foundation.dialog': return <StoryBlock title="对话框" source="Playground fixture · Dialog candidate" edge><DialogStory /></StoryBlock>
-    case 'foundation.popover': return <StoryBlock title="弹出层" source="Playground fixture · Popover candidate" edge><PopoverStory /></StoryBlock>
-    case 'foundation.dropdown-menu': return <StoryBlock title="下拉菜单" source="ChatRightDock · add tab / candidate" edge><DropdownMenuStory /></StoryBlock>
-    case 'foundation.combobox': return <StoryBlock title="可搜索选择" source="Playground fixture · Combobox candidate" edge><ComboboxStory /></StoryBlock>
-    case 'foundation.command': return <StoryBlock title="命令面板" source="Playground fixture · Command candidate" edge><CommandStory /></StoryBlock>
-    case 'foundation.context-menu': return <StoryBlock title="右键菜单" source="Playground fixture · Context Menu candidate" edge><ContextMenuStory /></StoryBlock>
-    case 'foundation.scroll-area': return <StoryBlock title="滚动区域" source="现有 scrollbar 规则 · Scroll Area candidate" edge><ScrollAreaStory /></StoryBlock>
-    case 'foundation.tooltip': return <StoryBlock title="提示浮层" source="现有 title 语义 · Tooltip candidate" edge><TooltipStory /></StoryBlock>
-    case 'foundation.skeleton': return <StoryBlock title="骨架屏" source="Playground fixture · Skeleton candidate" edge><SkeletonStory /></StoryBlock>
-    case 'foundation.progress': return <StoryBlock title="进度条" source="Playground fixture · Progress candidate" edge><ProgressStory /></StoryBlock>
-    case 'foundation.diff-viewer': return <StoryBlock title="差异查看器" source="ReviewPanel · Diff Viewer candidate" edge><DiffViewerStory /></StoryBlock>
-    case 'foundation.form-field': return <StoryBlock title="表单字段" source="Playground fixture · Form Field" edge><FormFieldStory /></StoryBlock>
+    case 'foundation.select': return <StoryBlock title="下拉选择" source="src/components/playground/FoundationAdvancedStories.tsx · native select"><SelectStory /></StoryBlock>
+    case 'foundation.dialog': return <StoryBlock title="对话框" source="src/components/playground/FoundationAdvancedStories.tsx · Dialog candidate" edge><DialogStory /></StoryBlock>
+    case 'foundation.popover': return <StoryBlock title="弹出层" source="src/components/playground/FoundationAdvancedStories.tsx · Popover candidate" edge><PopoverStory /></StoryBlock>
+    case 'foundation.dropdown-menu': return <StoryBlock title="下拉菜单" source="src/components/chat/right-dock/ChatRightDock.tsx · add tab / candidate" edge><DropdownMenuStory /></StoryBlock>
+    case 'foundation.combobox': return <StoryBlock title="可搜索选择" source="src/components/playground/FoundationAdvancedStories.tsx · Combobox candidate" edge><ComboboxStory /></StoryBlock>
+    case 'foundation.command': return <StoryBlock title="命令面板" source="src/components/playground/FoundationAdvancedStories.tsx · Command candidate" edge><CommandStory /></StoryBlock>
+    case 'foundation.context-menu': return <StoryBlock title="右键菜单" source="src/components/playground/FoundationAdvancedStories.tsx · Context Menu candidate" edge><ContextMenuStory /></StoryBlock>
+    case 'foundation.scroll-area': return <StoryBlock title="滚动区域" source="src/components/playground/FoundationAdvancedStories.tsx · Scroll Area candidate" edge><ScrollAreaStory /></StoryBlock>
+    case 'foundation.tooltip': return <StoryBlock title="提示浮层" source="src/components/playground/FoundationAdvancedStories.tsx · Tooltip candidate" edge><TooltipStory /></StoryBlock>
+    case 'foundation.skeleton': return <StoryBlock title="骨架屏" source="src/components/playground/FoundationAdvancedStories.tsx · Skeleton candidate" edge><SkeletonStory /></StoryBlock>
+    case 'foundation.progress': return <StoryBlock title="进度条" source="src/components/playground/FoundationAdvancedStories.tsx · Progress candidate" edge><ProgressStory /></StoryBlock>
+    case 'foundation.diff-viewer': return <StoryBlock title="差异查看器" source="src/components/playground/FoundationAdvancedStories.tsx · Diff Viewer candidate" edge><DiffViewerStory /></StoryBlock>
+    case 'foundation.form-field': return <StoryBlock title="表单字段" source="src/components/playground/FoundationAdvancedStories.tsx · Form Field" edge><FormFieldStory /></StoryBlock>
     case 'foundation.checkbox': return <StoryBlock title="复选框" source="Settings / PermissionRulesEditor"><FormFieldStory /></StoryBlock>
-    case 'foundation.switch': return <StoryBlock title="开关" source="Settings 自动保存 · Playground fixture"><FormFieldStory /></StoryBlock>
+    case 'foundation.switch': return <StoryBlock title="开关" source="src/components/SettingsPanel.tsx · 自动保存 · candidate"><FormFieldStory /></StoryBlock>
     default: return assertNever(story)
   }
 }

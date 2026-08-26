@@ -5,6 +5,7 @@
 
 import { PRODUCT_EXPERIENCE_ASSETS, type ProductExperienceTabId } from '../../shared/product-experience-registry'
 import { UI_COMPONENT_REGISTRY } from '../../shared/ui-component-registry'
+import { PlaygroundSourcePath } from './PlaygroundLayout'
 
 export function ProductExperienceDependencies({ tabId, showSource = false }: { tabId: ProductExperienceTabId; showSource?: boolean }) {
   const experience = PRODUCT_EXPERIENCE_ASSETS.find((asset) => asset.playgroundTabId === tabId)
@@ -26,14 +27,7 @@ export function ProductExperienceDependencies({ tabId, showSource = false }: { t
         </div>
       </div>
       {showSource && (
-        <code
-          className="ml-auto min-w-0 max-w-full truncate font-mono"
-          data-testid="experience-source"
-          title={experience.sourcePaths.join(' · ')}
-          style={{ color: 'var(--text-muted)' }}
-        >
-          {experience.sourcePaths.join(' · ')}
-        </code>
+        <PlaygroundSourcePath sourcePaths={experience.sourcePaths} testId="experience-source" />
       )}
     </div>
   )

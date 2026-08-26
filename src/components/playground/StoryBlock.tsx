@@ -48,7 +48,7 @@ export function StoryBlock({
         <div className="flex min-w-0 items-center gap-2">
           {headerActions}
           {showSource && source && (
-            <code className="max-w-full truncate font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>
+            <code className="block w-[18rem] max-w-full truncate text-right font-mono text-[10px]" title={source} data-testid="story-source" style={{ color: 'var(--text-muted)' }}>
               {source}
             </code>
           )}
