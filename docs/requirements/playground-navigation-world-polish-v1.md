@@ -127,6 +127,12 @@ Foundation 不再让资产注册表、Playground catalog 和渲染分支各自�
 - 图标目录的数量统计与目录标题同行展示，不再占用搜索区域的独立高度；搜索仍默认收起为放大镜。
 - 这些调整只改变 Playground 信息层级，不改变正式 Chat、Sidebar 或图标生产使用方式。
 
+## 2.8 图标目录头部收口（2026-08-26）
+
+- 图标搜索按钮 / 展开后的搜索框与目录标题、数量统计放在同一头部行，不再在目录内容区单独占一行。
+- Playground 图标目录不展示 `src/shared/icon-registry.ts` 路径；稳定 key、来源和采用证据继续由注册表与 Debug 保留，开发者不需要在视觉目录中承担这类实现细节。
+- `StoryBlock` 仅在确实需要定位实现时展示 source，并支持头部操作；该能力不改变其他故事格的来源证据。
+
 ## 3. 技术方案（How）
 
 - `PlaygroundShell.tsx` / `catalog.ts` / `foundation-story-registry.ts`

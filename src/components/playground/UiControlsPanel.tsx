@@ -461,6 +461,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
           <StoryBlock
             title="Lucide 语义图标目录"
             source="src/shared/icon-registry.ts"
+            showSource={false}
             titleExtra={(
               <span
                 className="inline-flex h-6 items-center rounded px-2 text-[10px] font-normal"
@@ -470,45 +471,42 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
                 {filteredIconAssets.length} / {ICON_ASSETS.length} 个图标
               </span>
             )}
+            headerActions={iconSearchOpen ? (
+              <label className="relative flex w-44 min-w-0">
+                <span className="sr-only">搜索图标</span>
+                <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                <input
+                  autoFocus
+                  value={iconQuery}
+                  onChange={(event) => setIconQuery(event.target.value)}
+                  placeholder="搜索中文或 English"
+                  className="h-8 w-full rounded-md border pl-8 pr-8 text-xs outline-none"
+                  style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                />
+                <button
+                  type="button"
+                  className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center justify-center rounded p-1"
+                  aria-label="关闭图标搜索"
+                  onClick={() => { setIconSearchOpen(false); setIconQuery('') }}
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <X size={13} />
+                </button>
+              </label>
+            ) : (
+              <button
+                type="button"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                aria-label="打开图标搜索"
+                onClick={() => setIconSearchOpen(true)}
+                title="搜索图标"
+                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+              >
+                <Search size={14} />
+              </button>
+            )}
           >
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                {iconSearchOpen ? (
-                  <label className="relative min-w-0 flex-1">
-                    <span className="sr-only">搜索图标</span>
-                    <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-                    <input
-                      autoFocus
-                      value={iconQuery}
-                      onChange={(event) => setIconQuery(event.target.value)}
-                      placeholder="搜索中文或 English"
-                      className="h-8 w-full rounded-md border pl-8 pr-8 text-xs outline-none"
-                      style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center justify-center rounded p-1"
-                      aria-label="关闭图标搜索"
-                      onClick={() => { setIconSearchOpen(false); setIconQuery('') }}
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      <X size={13} />
-                    </button>
-                  </label>
-                ) : (
-                  <button
-                    type="button"
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
-                    aria-label="打开图标搜索"
-                    onClick={() => setIconSearchOpen(true)}
-                    title="搜索图标"
-                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
-                  >
-                    <Search size={14} />
-                  </button>
-                )}
-              </div>
-
               <div className="scrollbar-hover flex gap-1 overflow-x-auto pb-1" aria-label="图标分类">
                 <button
                   type="button"

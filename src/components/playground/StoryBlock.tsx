@@ -1,5 +1,6 @@
 /**
- * 故事格外壳：标题 + 源路径 + 已采用图标 + 边缘标记 + 预览区。
+ * 故事格外壳：标题、可选头部操作、来源证据、状态标记与预览区。
+ * 来源仍由调用方保留在代码与注册资产中；仅在需要帮助开发者定位实现时展示。
  */
 
 import type { ReactNode } from 'react'
@@ -11,6 +12,8 @@ export function StoryBlock({
   adopted,
   edge,
   titleExtra,
+  headerActions,
+  showSource = true,
   children,
 }: {
   title: string
@@ -18,6 +21,8 @@ export function StoryBlock({
   adopted?: boolean
   edge?: boolean
   titleExtra?: ReactNode
+  headerActions?: ReactNode
+  showSource?: boolean
   children: ReactNode
 }) {
   return (
@@ -26,7 +31,7 @@ export function StoryBlock({
       style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
       data-edge={edge ? 'true' : undefined}
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2" data-testid="story-block-header">
         <h4 className="flex min-w-0 items-center gap-1.5 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>
           <span className="truncate">{title}</span>
           {adopted && <AdoptionMark />}
@@ -40,9 +45,14 @@ export function StoryBlock({
             </span>
           )}
         </h4>
-        <code className="max-w-full truncate font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>
-          {source}
-        </code>
+        <div className="flex min-w-0 items-center gap-2">
+          {headerActions}
+          {showSource && source && (
+            <code className="max-w-full truncate font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>
+              {source}
+            </code>
+          )}
+        </div>
       </div>
       <div>{children}</div>
     </section>
