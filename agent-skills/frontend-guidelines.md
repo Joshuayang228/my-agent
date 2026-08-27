@@ -74,6 +74,7 @@ Main Area:
 - **Tab 事实表**：设计语言只放颜色 / 主题 / 圆角动效；图标与视觉只放可复用图标；基础组件只放脱离业务的组件故事；人物世界内部并列展示朋友圈 / 物什 / 名册 / 角色架；工作区内部固定为文件 / 预览 / 审阅 / 终端；需要并行任务时允许同类型 Tab 多实例，但每个实例必须有独立稳定标识。每次新增或迁移 Tab，必须同步施工合同、对应注册表和 E2E。
 - **布局收口**：Playground 由壳统一提供页面标题、工作域、目的说明和 `max-w-6xl` 内容边界；面板不得各自再造页面级标题或使用互相冲突的 max-width。故事筛选在数据层保留“基础控件 / 状态反馈 / 开发基础”等分组归类，但界面只呈现一条无分组标题的可横向滚动状态切换行，不升级为二级页面；基础组件页优先展示可交互预览，完整资产登记由注册表 / Debug 承担；开发证据采用紧凑摘要或可展开区，不抢故事预览主层级；相近 Foundation story 可以按任务合并导航入口，但不能删除底层 story、assetKey、renderer 或可见预览，分组必须从 Foundation story 注册表派生。
 - **Foundation 补齐门**：基础组件页优先覆盖真实已用控件（Select、Form Field、Checkbox、Switch、Diff Viewer）；经确认的候选交互（Dialog、Popover、Dropdown Menu、Combobox、Command、Context Menu、Scroll Area、Tooltip、Skeleton、Progress）可以先以隔离故事进入 Playground，但必须保留 candidate 生命周期，不得把样张当成生产采用。补齐后先进入统一样式验收，除非出现新的真实场景，不继续为了目录数量扩张。
+- **参考组件边界**：对照 Alice 或其他参考 Playground 时，只迁移与当前产品有真实契约、且可脱离业务复用的基础能力；本轮 Foundation 已补 IconButton、Card、Badge、Tag、Divider，暂不因参考项目存在就引入 ToggleRow、NavItem、ThemePicker、划词工具条或 Kbd。补齐完成后转入统一样式验收，新增组件必须由真实场景触发。
 - **纪律**：新交互/动效先建场 → 同轮同步更新 → catalog **只增不删**（可 `archived`）
 - **硬禁**：不装 `@storybook/*`，不以 `npm run storybook` / :6006 为验收
 

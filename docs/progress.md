@@ -15,6 +15,14 @@
 
 ## 最近完成
 
+### 2026-08-27 · Alice 基础组件对照与 Foundation 补齐（候选）
+
+- 对照 Alice 基础组件 Playground，按当前真实产品契约补入 IconButton、Card、Badge、Tag、Divider 五类通用 Foundation 故事；暂不复制 ToggleRow、NavItem、ThemePicker、划词工具条和 Kbd。
+- Foundation 导航收敛为 13 个按任务拆分的入口，入口由 `foundation-story-registry.ts` 派生，仍保留每个底层 story 的真实预览。
+- 新增组件资产注册、隔离 renderer fixture、Unit 和 Renderer E2E 覆盖；本轮仍停留在 Playground P0，未回流正式页面。
+- 下一步从“补齐目录”切换到 Foundation 统一样式验收：颜色语义、尺寸密度、焦点 / 禁用 / 错误、窄宽和深浅主题。
+
+
 ### 2026-08-27 · Playground 来源与图标尺寸展示收口（候选）
 
 - 页头基础引用与 `.tsx` 来源统一同一行，来源固定宽度、省略并支持 hover 查看完整路径。

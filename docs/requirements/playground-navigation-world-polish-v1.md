@@ -146,6 +146,17 @@ Foundation 不再让资产注册表、Playground catalog 和渲染分支各自�
 - Foundation story 注册表增加导航分组字段；基础组件页只展示较少的任务 Tab，但每个 Tab 仍渲染其分组下全部 story，不能删掉细粒度资产或 renderer 覆盖。
 - 所有产品体验页的 sourcePaths 统一在页头基础引用行最右侧展示，过长省略并通过 hover 保留完整值；组合样张下不再重复显示来源。
 
+## 2.11 Alice 基础组件对照与本轮补齐（2026-08-27）
+
+参考 `_reference/framework-harness/repos/alice-source/_extract/page-playground.js` 的基础组件展示后，本轮只迁移与当前产品真实边界匹配的通用能力，不复制 Alice 的业务语义，也不为了目录数量引入新依赖：
+
+- **补齐到 Foundation Playground**：图标按钮 `IconButton`、通用卡片 `Card`、徽标 `Badge`、标签 `Tag`、分隔线 `Divider`。它们均以隔离 fixture 建立可见预览，当前生命周期为 `playground`。
+- **继续保留已有故事**：按钮、输入与表单、标签与选择、弹层、菜单与提示、状态反馈、加载与进度、工具卡、Markdown 与资产、文件与差异、滚动区域和分栏拖拽。
+- **暂不单独补入**：`ToggleRow`、`NavItem`、`ThemePicker`、划词工具条和 `Kbd`。这些要么属于产品体验组合，要么当前没有稳定产品契约；若未来出现跨场景复用需求，必须先重新登记为 Foundation 候选。
+- **导航原则**：13 个基础组件入口按组件数量、预览空间和开发者任务拆分；入口只是筛选，不删除底层 story。每个 story 必须同时存在于 `foundation-story-registry.ts`、对应 renderer 和 Renderer E2E 证据中。
+
+本节是本轮补齐的边界记录；后续工作转入已登记 Foundation 组件的统一样式验收（token、密度、焦点、禁用、错误、窄宽、深浅主题），除非新的真实产品场景改变范围。
+
 ## 3. 技术方案（How）
 
 - `PlaygroundShell.tsx` / `catalog.ts` / `foundation-story-registry.ts`

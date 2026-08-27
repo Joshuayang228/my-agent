@@ -19,7 +19,7 @@ describe('Foundation story registry', () => {
     const keys = FOUNDATION_STORIES.map((story) => story.key)
     const viewIds = FOUNDATION_STORIES.map((story) => story.viewId)
 
-    expect(keys.length).toBeGreaterThan(20)
+    expect(keys.length).toBeGreaterThan(30)
     expect(new Set(keys).size).toBe(keys.length)
     expect(new Set(viewIds).size).toBe(viewIds.length)
     expect(new Set(FOUNDATION_STORY_GROUPS.map((group) => group.id))).toEqual(new Set(FOUNDATION_STORIES.map((story) => story.group)))
@@ -48,6 +48,10 @@ describe('Foundation story registry', () => {
     for (const story of FOUNDATION_STORIES) {
       expect(navigationGroupIds).toContain(story.navigationGroup)
     }
+    expect(FOUNDATION_STORY_NAVIGATION_GROUPS).toHaveLength(13)
+    expect(FOUNDATION_STORY_NAVIGATION_GROUPS.map((group) => group.label)).toEqual([
+      '按钮', '输入与表单', '标签与选择', '弹层', '菜单与提示', '徽标与标签', '状态反馈', '加载与进度', '工具卡', 'Markdown 与资产', '文件与差异', '布局与滚动', '卡片',
+    ])
     expect(
       FOUNDATION_STORY_NAVIGATION_GROUPS.flatMap((group) => getFoundationStoriesByNavigationGroup(group.id)).map((story) => story.key).sort(),
     ).toEqual(FOUNDATION_STORIES.map((story) => story.key).sort())

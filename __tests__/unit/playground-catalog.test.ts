@@ -20,7 +20,7 @@ describe('playground catalog', () => {
 
   it('保留 UI 控件的细粒度状态故事', () => {
     expect(UI_CONTROLS_SUBTABS.map((tab) => tab.id)).toEqual([
-      'buttons', 'inputs', 'tabs', 'select', 'combobox', 'form-field', 'checkbox', 'switch', 'dialog', 'popover', 'dropdown-menu', 'command', 'context-menu', 'tooltip', 'empty', 'confirm', 'feedback', 'toast', 'spinner', 'skeleton', 'progress', 'tool-cards', 'markdown', 'asset-table', 'file-tree', 'diff-viewer', 'scroll-area', 'resize-handle', 'memory-chips', 'status-bar', 'icons',
+      'buttons', 'inputs', 'icon-button', 'card', 'badge', 'tag', 'tabs', 'select', 'combobox', 'form-field', 'checkbox', 'switch', 'dialog', 'popover', 'dropdown-menu', 'command', 'context-menu', 'tooltip', 'empty', 'confirm', 'feedback', 'toast', 'spinner', 'skeleton', 'progress', 'tool-cards', 'markdown', 'asset-table', 'file-tree', 'diff-viewer', 'scroll-area', 'resize-handle', 'divider', 'memory-chips', 'status-bar', 'icons',
     ])
   })
 })

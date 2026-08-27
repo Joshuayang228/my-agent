@@ -244,6 +244,7 @@ Playground 的导航工作域不等于产品架构层。产品设计只保留两
 - Foundation 组件资产与 Foundation 故事是两种不同资产：`src/shared/ui-component-registry.ts` 只回答“组件是什么、来源和生命周期是什么”；`src/shared/foundation-story-registry.ts` 只回答“Playground 展示哪些故事、属于哪个组件、如何分组、由哪类 renderer 渲染”。二者通过 `assetKey` 关联，不把 React 实现导入 shared 注册表。
 - `src/components/playground/catalog.ts` 的 Foundation Tab、`FoundationComponentsPanel.tsx` 的分组和 `layout.foundation-workbench` 的故事摘要都从 Foundation 故事注册表派生；新增故事不能只改 catalog 或工作台文案。
 - `UiControlsPanel.tsx` 与 `FoundationAdvancedStories.tsx` 是 renderer 实现面：registry 的 `renderer` 决定路由，单元测试同时校验 assetKey、viewId、renderer 分支和实际源码标记；新增候选故事必须补注册、renderer、E2E 和文档。
+- 当前 Foundation 故事筛选由注册表派生为 13 个任务入口：按钮、输入与表单、标签与选择、弹层、菜单与提示、徽标与标签、状态反馈、加载与进度、工具卡、Markdown 与资产、文件与差异、布局与滚动、卡片。入口合并只改变导航密度，不减少 story 预览。参考 Alice 后补入的 IconButton、Card、Badge、Tag、Divider 保持 `playground` 生命周期；ToggleRow、NavItem、ThemePicker、划词工具条和 Kbd 暂不登记为本项目 Foundation。
 
 ## 目录结构
 

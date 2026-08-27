@@ -4,7 +4,7 @@
  */
 
 import { useMemo, useState } from 'react'
-import { LoaderCircle, Search, Sparkles, WandSparkles, X } from 'lucide-react'
+import { Check, LoaderCircle, MoreHorizontal, Plus, Search, Sparkles, WandSparkles, X } from 'lucide-react'
 import { ToolCallbackList } from '../chat/callbacks/ToolCallbackList'
 import { FileBrowser, type FileBrowserPreviewData } from '../FileBrowser'
 import { ResizeHandle } from '../shell/ResizeHandle'
@@ -105,6 +105,95 @@ function ChatEmptyFixture({ long }: { long?: boolean }) {
             {t}
           </span>
         ))}
+      </div>
+    </div>
+  )
+}
+
+function IconButtonStory() {
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      {[
+        { label: '搜索', icon: Search },
+        { label: '新增', icon: Plus },
+        { label: '更多操作', icon: MoreHorizontal },
+      ].map(({ label, icon: Icon }) => (
+        <button
+          key={label}
+          type="button"
+          aria-label={label}
+          title={label}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border transition hover:bg-[var(--hover-overlay)]"
+          style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+        >
+          <Icon size={16} strokeWidth={1.7} aria-hidden="true" />
+        </button>
+      ))}
+      <button type="button" aria-label="禁用关闭" disabled className="inline-flex h-9 w-9 items-center justify-center rounded-md border opacity-45" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
+        <X size={16} aria-hidden="true" />
+      </button>
+      <button type="button" aria-label="删除" className="inline-flex h-9 w-9 items-center justify-center rounded-md border" style={{ borderColor: 'color-mix(in srgb, var(--danger) 40%, var(--border-color))', color: 'var(--danger)' }}>
+        <X size={16} aria-hidden="true" />
+      </button>
+    </div>
+  )
+}
+
+function CardStory() {
+  return (
+    <div className="grid gap-3 md:grid-cols-3">
+      <article className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
+        <h5 className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>静态卡片</h5>
+        <p className="mt-1 text-[11px] leading-4" style={{ color: 'var(--text-muted)' }}>只承载一组相关信息，不附加业务状态。</p>
+      </article>
+      <button type="button" className="rounded-lg border p-3 text-left transition hover:bg-[var(--hover-overlay)]" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
+        <span className="flex items-center justify-between gap-2">
+          <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>可交互卡片</span>
+          <Check size={14} style={{ color: 'var(--accent-fg)' }} aria-hidden="true" />
+        </span>
+        <span className="mt-1 block text-[11px] leading-4" style={{ color: 'var(--text-muted)' }}>整体可点击时，卡片需要有清晰名称。</span>
+      </button>
+      <article className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+        <h5 className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>长内容</h5>
+        <p className="mt-1 text-[11px] leading-4" style={{ color: 'var(--text-secondary)' }}>卡片可以容纳较长的说明，但不能依靠阴影或额外色条制造层级，内容仍应通过字重、留白和底色自然分层。</p>
+      </article>
+    </div>
+  )
+}
+
+function BadgeTagStory() {
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full px-2 py-0.5 text-[10px]" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>已采用</span>
+        <span className="rounded-full px-2 py-0.5 text-[10px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>候选</span>
+        <span className="rounded-full px-2 py-0.5 text-[10px]" style={{ background: 'color-mix(in srgb, var(--success) 15%, transparent)', color: 'var(--success)' }}>成功</span>
+        <span className="rounded-full px-2 py-0.5 text-[10px]" style={{ background: 'color-mix(in srgb, var(--danger) 15%, transparent)', color: 'var(--danger)' }}>错误</span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {['基础引用', '窄宽验收', '长内容示例'].map((label) => (
+          <span key={label} className="inline-flex max-w-[10rem] items-center gap-1 rounded-md border px-2 py-1 text-[10px]" title={label} style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
+            <span className="truncate">{label}</span>
+            <button type="button" aria-label={`移除${label}`} className="shrink-0 rounded p-0.5" style={{ color: 'var(--text-muted)' }}><X size={11} aria-hidden="true" /></button>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DividerStory() {
+  return (
+    <div className="space-y-3 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+      <div className="space-y-2">
+        <span>内容区域 A</span>
+        <div role="separator" style={{ borderTop: '1px solid var(--border-subtle)' }} />
+        <span>内容区域 B</span>
+      </div>
+      <div className="flex h-8 items-center gap-3">
+        <span>左侧</span>
+        <div role="separator" aria-orientation="vertical" className="h-full" style={{ borderLeft: '1px solid var(--border-subtle)' }} />
+        <span>右侧</span>
       </div>
     </div>
   )
@@ -217,6 +306,47 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
                 <LoaderCircle size={14} className="animate-spin" />生成中
               </button>
             </div>
+          </StoryBlock>
+        </div>
+      )}
+
+      {effectiveSub === 'icon-button' && (
+        <div className="space-y-3">
+          <StoryBlock title="图标按钮" source="src/components/playground/UiControlsPanel.tsx · IconButton fixture">
+            <IconButtonStory />
+          </StoryBlock>
+          <StoryBlock title="命名与边缘态" source="src/components/playground/UiControlsPanel.tsx · icon-only states" edge>
+            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>纯图标操作必须有 aria-label；禁用和危险状态不能只依赖颜色。</p>
+          </StoryBlock>
+        </div>
+      )}
+
+      {effectiveSub === 'card' && (
+        <div className="space-y-3">
+          <StoryBlock title="通用卡片" source="src/components/playground/UiControlsPanel.tsx · Card fixture">
+            <CardStory />
+          </StoryBlock>
+          <StoryBlock title="卡片边界" source="src/components/playground/UiControlsPanel.tsx · card hierarchy" edge>
+            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>卡片只提供容器和交互层级；朋友圈事件卡、角色卡、记忆卡等业务结构仍属于产品体验。</p>
+          </StoryBlock>
+        </div>
+      )}
+
+      {effectiveSub === 'badge' && (
+        <div className="space-y-3">
+          <StoryBlock title="徽标与标签" source="src/components/playground/UiControlsPanel.tsx · Badge / Tag fixture">
+            <BadgeTagStory />
+          </StoryBlock>
+          <StoryBlock title="长文本与颜色边界" source="src/components/playground/UiControlsPanel.tsx · badge-tag edge" edge>
+            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>短状态可以使用语义色；长文本截断时保留 title，标签不能抢占主要操作。</p>
+          </StoryBlock>
+        </div>
+      )}
+
+      {effectiveSub === 'tag' && (
+        <div className="space-y-3">
+          <StoryBlock title="标签状态" source="src/components/playground/UiControlsPanel.tsx · Tag fixture">
+            <BadgeTagStory />
           </StoryBlock>
         </div>
       )}
@@ -353,6 +483,17 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
           </StoryBlock>
           <StoryBlock title="长路径与空目录" source="src/components/FileBrowser.tsx · tree fixture" edge adopted>
             <div className="rounded-lg border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>树节点需要可展开、键盘可达，长文件名截断但保留完整提示。</div>
+          </StoryBlock>
+        </div>
+      )}
+
+      {effectiveSub === 'divider' && (
+        <div className="space-y-3">
+          <StoryBlock title="分隔线" source="src/components/playground/UiControlsPanel.tsx · Divider fixture">
+            <DividerStory />
+          </StoryBlock>
+          <StoryBlock title="分隔线的边界" source="src/components/playground/UiControlsPanel.tsx · separator edge" edge>
+            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>分隔线只建立内容区域关系，不用来代替底色、字重和留白，也不使用彩色竖线标记状态。</p>
           </StoryBlock>
         </div>
       )}
