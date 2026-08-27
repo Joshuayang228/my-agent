@@ -28,7 +28,7 @@ const RADII = ['--radius-sm', '--radius-md', '--radius-lg', '--radius-xl'] as co
 const MOTIONS = ['--motion-fast', '--motion-normal', '--motion-slow'] as const
 const THEMES = DESIGN_THEME_ASSETS.map((asset) => ({ id: asset.id, label: asset.labelZh }))
 
-function MotionTokenSample({ name, value }: { name: string; value: string }) {
+function MotionTokenSample({ name, value, playing }: { name: string; value: string; playing: boolean }) {
   return (
     <div
       className="min-w-[11rem] rounded-md border px-2.5 py-2 text-left"
@@ -42,9 +42,10 @@ function MotionTokenSample({ name, value }: { name: string; value: string }) {
       <div className="mt-2 h-1.5 overflow-hidden rounded-full" style={{ background: 'var(--bg-tertiary)' }}>
         <span
           className="block h-full w-1/3 rounded-full"
+          data-testid="motion-sample-bar"
           style={{
             background: 'var(--accent-emphasis)',
-            animation: `playground-motion-sweep ${value || '220ms'} var(--motion-ease) infinite alternate`,
+            animation: playing ? `playground-motion-sweep ${value || '220ms'} var(--motion-ease) infinite alternate` : 'none',
           }}
         />
       </div>
@@ -75,6 +76,7 @@ type Sub = 'colors' | 'themes' | 'radius'
 export function DesignSystemPanel() {
   const [sub, setSub] = useState<Sub>('colors')
   const [customRadius, setCustomRadius] = useState(16)
+  const [motionPlaying, setMotionPlaying] = useState(true)
 
   const read = (name: string) => {
     if (typeof document === 'undefined') return ''
@@ -194,10 +196,24 @@ export function DesignSystemPanel() {
               </div>
             ))}
           </div>
-          <div className="flex flex-wrap gap-2" data-testid="motion-samples">
-            <style>{'@keyframes playground-motion-sweep { from { transform: translateX(0); } to { transform: translateX(200%); } } @media (prefers-reduced-motion: reduce) { [data-testid^=\"motion-sample-\"] span { animation: none !important; } }'}</style>
+          <div className="flex flex-wrap items-center gap-2" data-testid="motion-samples">
+            <style>{'@keyframes playground-motion-sweep { from { transform: translateX(0); } to { transform: translateX(200%); } } @media (prefers-reduced-motion: reduce) { [data-testid^="motion-sample-"] span { animation: none !important; } }'}</style>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={motionPlaying}
+              aria-label="动效播放"
+              onClick={() => setMotionPlaying((playing) => !playing)}
+              className="flex min-h-[3.5rem] items-center gap-2 rounded-md border px-2.5 py-2 text-left text-[10px] transition"
+              style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+            >
+              <span className="relative h-5 w-9 rounded-full" style={{ background: motionPlaying ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }}>
+                <span className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition" style={{ left: motionPlaying ? 'calc(100% - 1.125rem)' : '0.125rem' }} />
+              </span>
+              <span>动效 {motionPlaying ? '开' : '关'}</span>
+            </button>
             {MOTIONS.map((name) => (
-              <MotionTokenSample key={name} name={name} value={read(name)} />
+              <MotionTokenSample key={name} name={name} value={read(name)} playing={motionPlaying} />
             ))}
           </div>
         </div>
