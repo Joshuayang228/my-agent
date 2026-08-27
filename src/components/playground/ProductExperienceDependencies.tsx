@@ -12,8 +12,8 @@ export function ProductExperienceDependencies({ tabId, showSource = false }: { t
   if (!experience) return null
 
   return (
-    <div className="mt-2 flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-[10px]" data-testid="product-experience-dependencies" aria-label={`${experience.labelZh} 的基础引用`}>
-      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+    <div className="mt-2 flex min-w-0 flex-nowrap items-center gap-x-3 gap-y-1.5 text-[10px]" data-testid="product-experience-dependencies" aria-label={`${experience.labelZh} 的基础引用`}>
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
         <span className="shrink-0 font-medium" style={{ color: 'var(--text-muted)' }}>基础引用</span>
         <div className="flex min-w-0 flex-wrap gap-1" data-testid="experience-foundation-parts" aria-label="使用的基础组件">
           {experience.usesFoundation.map((key) => {

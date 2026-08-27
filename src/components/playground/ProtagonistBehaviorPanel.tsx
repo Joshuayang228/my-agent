@@ -88,7 +88,7 @@ export function ProtagonistBehaviorPanel() {
 
       <div className="grid gap-4 xl:grid-cols-2">
         {SCENARIOS.map((scenario) => (
-          <StoryBlock key={scenario.title} title={scenario.title} source="主角行为验收夹具" edge>
+          <StoryBlock key={scenario.title} title={scenario.title} source="src/components/playground/ProtagonistBehaviorPanel.tsx · fixture" edge>
             <div className="space-y-3 text-sm">
               <div>
                 <div className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>用户输入</div>

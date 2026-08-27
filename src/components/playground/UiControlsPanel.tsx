@@ -22,6 +22,10 @@ import { AdoptionMark } from './AdoptionMark'
 import { ICON_ASSETS, ICON_CATEGORIES, ICON_REGISTRY, type IconCategoryId } from '../../shared/icon-registry'
 
 const ICON_SIZE_PRESETS = [12, 14, 16, 20] as const
+const ICON_SIZE_SAMPLE_KEYS = ['navigation.menu', 'navigation.search', 'navigation.confirm'] as const
+const ICON_SIZE_SAMPLE_ASSETS = ICON_SIZE_SAMPLE_KEYS
+  .map((key) => ICON_ASSETS.find((asset) => asset.key === key))
+  .filter((asset) => asset !== undefined)
 
 const TOOL_STORIES: ToolCallbackItem[] = [
   {
@@ -143,7 +147,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
   const [iconQuery, setIconQuery] = useState('')
   const [iconSearchOpen, setIconSearchOpen] = useState(false)
   const [iconCategory, setIconCategory] = useState<IconCategoryId | 'all'>('all')
-  const [iconPreviewSize, setIconPreviewSize] = useState(15)
+  const [customIconSize, setCustomIconSize] = useState(16)
 
   const filteredIconAssets = useMemo(() => {
     const query = iconQuery.trim().toLocaleLowerCase('zh-CN')
@@ -196,7 +200,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
               </button>
             </div>
           </StoryBlock>
-          <StoryBlock title="禁用" source="disabled:opacity-50" edge adopted>
+          <StoryBlock title="禁用" source="src/components/playground/UiControlsPanel.tsx · disabled state" edge adopted>
             <button type="button" disabled className="settings-option px-3 py-1.5 text-xs disabled:opacity-50">
               不可点
             </button>
@@ -443,6 +447,53 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
       {effectiveSub === 'icons' && (
         <div className="space-y-3" data-testid="icon-inventory">
           <StoryBlock
+            title="图标尺寸"
+            source="src/components/playground/UiControlsPanel.tsx · size scale"
+            showSource
+          >
+            <div className="space-y-3" data-testid="icon-size-controls">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="icon-size-scale">
+                {ICON_SIZE_PRESETS.map((size) => {
+                  const SampleIcon = ICON_SIZE_SAMPLE_ASSETS[0]?.icon
+                  return (
+                    <div key={size} className="flex items-center gap-2 rounded-md border px-2.5 py-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)' }}>
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center" style={{ color: 'var(--text-secondary)' }}>
+                        {SampleIcon && <SampleIcon size={size} strokeWidth={1.65} aria-hidden="true" />}
+                      </div>
+                      <span className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{size}px</span>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="rounded-md border px-2.5 py-2" data-testid="icon-custom-preview" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)' }}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="shrink-0 text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>自定义预览</span>
+                  <span className="shrink-0 font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{customIconSize}px</span>
+                </div>
+                <input
+                  type="range"
+                  min="8"
+                  max="32"
+                  step="1"
+                  value={customIconSize}
+                  aria-label="自定义图标尺寸"
+                  onChange={(event) => setCustomIconSize(Number(event.target.value))}
+                  className="mt-2 w-full accent-[var(--accent-emphasis)]"
+                />
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {ICON_SIZE_SAMPLE_ASSETS.map((asset) => {
+                    const Icon = asset.icon
+                    return (
+                      <div key={asset.key} className="flex items-center justify-center rounded-md border py-2" title={`${asset.label} ${asset.english}`} style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                        <Icon size={customIconSize} strokeWidth={1.65} aria-hidden="true" />
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          </StoryBlock>
+          <StoryBlock
             title="Lucide 语义图标目录"
             source="src/shared/icon-registry.ts"
             showSource={false}
@@ -458,7 +509,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
             headerActions={(
               <div className="flex min-w-0 items-center gap-2">
                 <code
-                  className="block w-[10rem] max-w-full truncate text-right font-mono text-[10px]"
+                  className="block w-[10rem] shrink-0 truncate text-right font-mono text-[10px]"
                   data-testid="icon-source"
                   title="src/shared/icon-registry.ts"
                   style={{ color: 'var(--text-muted)' }}
@@ -503,41 +554,6 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
             )}
           >
             <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2 rounded-md border px-2.5 py-2" data-testid="icon-size-controls" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)' }}>
-                <span className="shrink-0 text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>图标尺寸</span>
-                <div className="flex items-center gap-1">
-                  {ICON_SIZE_PRESETS.map((size) => {
-                    const selected = iconPreviewSize === size
-                    return (
-                      <button
-                        key={size}
-                        type="button"
-                        className="rounded px-2 py-1 font-mono text-[10px] transition"
-                        aria-pressed={selected}
-                        onClick={() => setIconPreviewSize(size)}
-                        style={{ background: selected ? 'var(--accent-subtle)' : 'var(--bg-secondary)', color: selected ? 'var(--accent-fg)' : 'var(--text-muted)' }}
-                      >
-                        {size}px
-                      </button>
-                    )
-                  })}
-                </div>
-                <label className="ml-auto flex min-w-[11rem] flex-1 items-center gap-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                  <span className="shrink-0">自定义</span>
-                  <input
-                    type="range"
-                    min="8"
-                    max="32"
-                    step="1"
-                    value={iconPreviewSize}
-                    aria-label="自定义图标尺寸"
-                    onChange={(event) => setIconPreviewSize(Number(event.target.value))}
-                    className="min-w-0 flex-1 accent-[var(--accent-emphasis)]"
-                  />
-                  <span className="w-8 shrink-0 text-right font-mono">{iconPreviewSize}px</span>
-                </label>
-              </div>
-
               <div className="scrollbar-hover flex gap-1 overflow-x-auto pb-1" aria-label="图标分类">
                 <button
                   type="button"
@@ -564,7 +580,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
                 })}
               </div>
 
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7" data-testid="icon-catalog-grid">
                 {filteredIconAssets.map((asset) => {
                   const Icon = asset.icon
                   return (
@@ -575,7 +591,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
                         </span>
                       )}
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-                        <Icon size={iconPreviewSize} strokeWidth={1.65} aria-hidden="true" />
+                        <Icon size={16} strokeWidth={1.65} aria-hidden="true" />
                       </div>
                       <div className="flex min-w-0 flex-col items-center gap-0.5">
                         <span className="truncate text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{asset.label}</span>

@@ -5,7 +5,7 @@
 
 import type { ReactNode } from 'react'
 
-const PLAYGROUND_SOURCE_WIDTH_CLASS = 'w-[18rem] max-w-full'
+const PLAYGROUND_SOURCE_WIDTH_CLASS = 'w-[18rem]'
 
 /**
  * 统一显示 Playground 来源证据：来源是给开发者定位实现的辅助信息，不应撑开页头或制造额外层级。
@@ -16,7 +16,7 @@ export function PlaygroundSourcePath({ sourcePaths, testId = 'playground-source'
   const source = sourcePaths.join(' · ')
   return (
     <code
-      className={`ml-auto block min-w-0 ${PLAYGROUND_SOURCE_WIDTH_CLASS} truncate text-right font-mono text-[10px]`}
+      className={`ml-auto block shrink-0 ${PLAYGROUND_SOURCE_WIDTH_CLASS} truncate text-right font-mono text-[10px]`}
       data-testid={testId}
       title={source}
       style={{ color: 'var(--text-muted)' }}

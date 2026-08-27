@@ -181,7 +181,7 @@ function storyContent(story: AdvancedFoundationStoryKey) {
     case 'foundation.progress': return <StoryBlock title="进度条" source="src/components/playground/FoundationAdvancedStories.tsx · Progress candidate" edge><ProgressStory /></StoryBlock>
     case 'foundation.diff-viewer': return <StoryBlock title="差异查看器" source="src/components/playground/FoundationAdvancedStories.tsx · Diff Viewer candidate" edge><DiffViewerStory /></StoryBlock>
     case 'foundation.form-field': return <StoryBlock title="表单字段" source="src/components/playground/FoundationAdvancedStories.tsx · Form Field" edge><FormFieldStory /></StoryBlock>
-    case 'foundation.checkbox': return <StoryBlock title="复选框" source="Settings / PermissionRulesEditor"><FormFieldStory /></StoryBlock>
+    case 'foundation.checkbox': return <StoryBlock title="复选框" source="src/components/SettingsPanel.tsx · PermissionRulesEditor"><FormFieldStory /></StoryBlock>
     case 'foundation.switch': return <StoryBlock title="开关" source="src/components/SettingsPanel.tsx · 自动保存 · candidate"><FormFieldStory /></StoryBlock>
     default: return assertNever(story)
   }
