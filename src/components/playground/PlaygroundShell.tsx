@@ -158,9 +158,10 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
             title={activeTab.label}
             description={activeTab.description ?? activeGroup.description}
             descriptionInline
+            metaInline={!experienceTabId}
             meta={experienceTabId
               ? <ProductExperienceDependencies tabId={experienceTabId} showSource />
-              : <div className="mt-2 flex min-w-0 justify-end"><PlaygroundSourcePath sourcePaths={activeTab.sourcePaths ?? []} /></div>}
+              : <PlaygroundSourcePath sourcePaths={activeTab.sourcePaths ?? []} />}
           />
           <div className="view-transition" key={tab}>
             {tab === 'design-tokens' && <DesignSystemPanel />}
