@@ -116,7 +116,7 @@ export function WorldHub({
       <div id={`world-panel-${tab}`} role="tabpanel" className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
         {previewPanels?.[tab] ?? (
           <>
-            {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} appearance={momentsAppearance} hideHeader={hideMomentsHeader} />}
+            {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} appearance={momentsAppearance ?? 'social-feed'} hideHeader={hideMomentsHeader ?? true} />}
             {tab === 'assets' && <AssetsPanel onClose={onClose} />}
             {tab === 'cast' && (
               <CastPanel

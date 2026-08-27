@@ -29,6 +29,12 @@ release/
 skills/
 !electron/main/skills/
 !electron/main/skills/**
+# 项目级 Codex Skill：仅纳入已审定的回流流程，避免放开所有本地 skills。
+!.agents/
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/playground-to-production/
+!.agents/skills/playground-to-production/**
 
 # 参考资料库（第三方代码）
 _reference/

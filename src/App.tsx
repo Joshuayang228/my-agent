@@ -1860,6 +1860,7 @@ function App() {
             persistedCalls={persistedDebugCalls}
             persistedLoading={persistedDebugLoading}
             width={rightDockWidth}
+            deferredTabs
             onCloseFiles={() => setShowFileBrowser(false)}
             onCloseDebug={() => { void setConversationDebug(false) }}
           />

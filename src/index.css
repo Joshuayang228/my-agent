@@ -309,6 +309,29 @@ html[data-font-scale="lg"] {
   color: var(--text-muted);
 }
 
+/* 正式记忆页沿用 Playground 的三种主色 + 灰色规则；颜色只表达分类，不承担操作语义。 */
+.memory-color-accent-bg { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.memory-color-accent-border { border-color: color-mix(in srgb, var(--accent) 36%, var(--border-color)); }
+.memory-color-accent-text { color: var(--accent-fg); }
+.memory-color-accent-badge { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent-fg); }
+.memory-color-warm-bg { background: color-mix(in srgb, var(--companion-accent-warm) 8%, transparent); }
+.memory-color-warm-border { border-color: color-mix(in srgb, var(--companion-accent-warm) 36%, var(--border-color)); }
+.memory-color-warm-text { color: var(--companion-accent-warm); }
+.memory-color-warm-badge { background: color-mix(in srgb, var(--companion-accent-warm) 14%, transparent); color: var(--companion-accent-warm); }
+.memory-color-success-bg { background: color-mix(in srgb, var(--success) 8%, transparent); }
+.memory-color-success-border { border-color: color-mix(in srgb, var(--success) 36%, var(--border-color)); }
+.memory-color-success-text { color: var(--success); }
+.memory-color-success-badge { background: color-mix(in srgb, var(--success) 14%, transparent); color: var(--success); }
+.memory-color-muted-bg { background: color-mix(in srgb, var(--text-muted) 7%, transparent); }
+.memory-color-muted-border { border-color: color-mix(in srgb, var(--text-muted) 28%, var(--border-color)); }
+.memory-color-muted-text { color: var(--text-muted); }
+.memory-color-muted-badge { background: color-mix(in srgb, var(--text-muted) 12%, transparent); color: var(--text-secondary); }
+.memory-save-button { background: var(--accent-emphasis); }
+.memory-action-button { color: var(--text-muted); }
+.memory-action-button:hover { background: var(--hover-overlay); color: var(--text-primary); }
+.memory-delete-button { color: var(--danger); }
+.memory-delete-button:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+
 /* Playground 在窄屏只保留实验室自身目录，避免主侧栏 + 实验室目录把内容压成竖排。 */
 @media (max-width: 700px) {
   body:has([data-testid="playground-page"]) [data-testid="primary-sidebar"] {

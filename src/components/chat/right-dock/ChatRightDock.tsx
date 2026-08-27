@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Eye, FileCode2, FileText, GitCompare, Plus, TerminalSquare, X } from 'lucide-react'
-import { FileBrowser, type FileBrowserPreviewData } from '../../FileBrowser'
+import { FileBrowser, type FileBrowserPreviewData, type FileBrowserPreviewState } from '../../FileBrowser'
 import { ReviewPanel } from './ReviewPanel'
 import { TerminalPanel } from './TerminalPanel'
 import { ConversationDebugAside } from '../ConversationDebugAside'
@@ -29,6 +29,8 @@ interface ChatRightDockProps {
   filesPreview?: FileBrowserPreviewData
   /** 显式启用 Playground Tab 按需添加候选；生产默认不传。 */
   playgroundTabs?: boolean
+  /** 正式工作坞采用预览默认、其余 Tab 通过 + 添加；不改变审阅 / 终端真实能力。 */
+  deferredTabs?: boolean
   onCloseFiles: () => void
   onCloseDebug: () => void
 }
@@ -63,29 +65,32 @@ export function ChatRightDock({
   width = 380,
   filesPreview,
   playgroundTabs = false,
+  deferredTabs = false,
   onCloseFiles,
   onCloseDebug,
 }: ChatRightDockProps) {
+  const [sharedPreview, setSharedPreview] = useState<FileBrowserPreviewState>(null)
+  const deferredTabMode = playgroundTabs || deferredTabs
   const nextInstance = useRef(2)
   const initialInstance = (kind: RightDockTab): RightDockTabInstance => ({ instanceId: `${kind}-1`, kind })
-  const [activeTabId, setActiveTabId] = useState(playgroundTabs ? 'preview-1' : 'files-1')
-  const [openTabs, setOpenTabs] = useState<RightDockTabInstance[]>(playgroundTabs
+  const [activeTabId, setActiveTabId] = useState(deferredTabMode ? 'preview-1' : 'files-1')
+  const [openTabs, setOpenTabs] = useState<RightDockTabInstance[]>(deferredTabMode
     ? [initialInstance('preview')]
     : [initialInstance('files'), initialInstance('review'), initialInstance('terminal')])
   const [addMenuOpen, setAddMenuOpen] = useState(false)
   const open = showFiles || conversationDebug
   useEffect(() => {
-    if (!playgroundTabs) return
+    if (!deferredTabMode) return
     nextInstance.current = 2
     setActiveTabId('preview-1')
     setOpenTabs([initialInstance('preview')])
     setAddMenuOpen(false)
-  }, [playgroundTabs])
+  }, [deferredTabMode])
 
   if (!open) return null
 
   const showWorkbench = showFiles
-  const visibleTabs = playgroundTabs
+  const visibleTabs = deferredTabMode
     ? openTabs.map((instance, index) => {
         const meta = TABS.find((item) => item.id === instance.kind)!
         const sameKindBefore = openTabs.slice(0, index).filter((item) => item.kind === instance.kind).length
@@ -104,7 +109,7 @@ export function ChatRightDock({
   }
 
   const closeTab = () => {
-    if (!playgroundTabs) {
+    if (!deferredTabMode) {
       onCloseFiles()
       return
     }
@@ -148,7 +153,7 @@ export function ChatRightDock({
                 </button>
               )
             })}
-            {playgroundTabs ? (
+            {deferredTabMode ? (
               <>
                 <button
                   type="button"
@@ -216,7 +221,9 @@ export function ChatRightDock({
                 onClose={onCloseFiles}
                 embedded
                 previewData={filesPreview}
-                mode={playgroundTabs ? 'files' : 'split'}
+                mode={deferredTabMode ? 'files' : 'split'}
+                previewState={deferredTabs && !playgroundTabs ? sharedPreview : undefined}
+                onPreviewStateChange={deferredTabs && !playgroundTabs ? setSharedPreview : undefined}
               />
             )}
             {activeKind === 'preview' && (
@@ -226,6 +233,8 @@ export function ChatRightDock({
                 embedded
                 previewData={filesPreview}
                 mode="preview"
+                previewState={deferredTabs && !playgroundTabs ? sharedPreview : undefined}
+                onPreviewStateChange={deferredTabs && !playgroundTabs ? setSharedPreview : undefined}
               />
             )}
             {activeKind === 'review' && (

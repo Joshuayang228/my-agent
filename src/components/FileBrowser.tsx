@@ -44,7 +44,7 @@ export interface FileBrowserPreviewData {
 }
 
 type FileEntry = FileBrowserPreviewEntry
-type PreviewState = FileBrowserPreviewFile
+export type FileBrowserPreviewState = FileBrowserPreviewFile | null
 
 interface FileBrowserProps {
   projectPath: string | null
@@ -55,17 +55,26 @@ interface FileBrowserProps {
   previewData?: FileBrowserPreviewData
   /** files 只展示文件树，preview 只展示当前预览，split 保持生产双 pane。 */
   mode?: 'files' | 'preview' | 'split'
+  /** 正式 Right Dock 的文件 / 预览 Tab 共用当前预览；未传入时保持内部状态。 */
+  previewState?: FileBrowserPreviewState
+  onPreviewStateChange?: (preview: FileBrowserPreviewState) => void
 }
 
-function initialPreview(data?: FileBrowserPreviewData): PreviewState | null {
+function initialPreview(data?: FileBrowserPreviewData): FileBrowserPreviewState {
   if (!data?.initialPath) return null
   return data.files[data.initialPath] ?? null
 }
 
-export function FileBrowser({ projectPath, onClose, embedded = false, previewData, mode = 'split' }: FileBrowserProps) {
+export function FileBrowser({ projectPath, onClose, embedded = false, previewData, mode = 'split', previewState, onPreviewStateChange }: FileBrowserProps) {
   const [tree, setTree] = useState<FileEntry[]>(() => previewData?.tree ?? [])
   const [filter, setFilter] = useState('')
-  const [preview, setPreview] = useState<PreviewState | null>(() => initialPreview(previewData))
+  const [internalPreview, setInternalPreview] = useState<FileBrowserPreviewState>(() => initialPreview(previewData))
+  const isPreviewControlled = previewState !== undefined
+  const preview = isPreviewControlled ? previewState : internalPreview
+  const setPreview = (next: FileBrowserPreviewState) => {
+    if (isPreviewControlled) onPreviewStateChange?.(next)
+    else setInternalPreview(next)
+  }
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   /** html：预览 / 源码；默认预览 */

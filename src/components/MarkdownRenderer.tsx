@@ -190,7 +190,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content, varian
                   customStyle={{
                     margin: 0,
                     borderRadius: 0,
-                    background: variant === 'playground' ? 'var(--bg-tertiary)' : 'var(--bg-inset)',
+                    background: 'var(--bg-tertiary)',
                     fontSize: '0.8125rem',
                     lineHeight: '1.6',
                   }}

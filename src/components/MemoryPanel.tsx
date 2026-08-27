@@ -7,6 +7,8 @@ import {
 } from '../shared/sensitive-memory'
 import { User, Settings, MessageCircle, Star, Pin, Brain, X, ThumbsUp, ShieldAlert } from 'lucide-react'
 
+type MemoryColor = 'accent' | 'warm' | 'success' | 'muted'
+
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   identity: <User size={12} />,
   workflow: <Settings size={12} />,
@@ -16,20 +18,20 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   feedback: <ThumbsUp size={12} />,
 }
 
-const CATEGORIES: { id: MemoryCategory; label: string; icon: React.ReactNode; color: string }[] = [
-  { id: 'identity', label: '身份', icon: CATEGORY_ICONS.identity, color: 'cyan' },
-  { id: 'workflow', label: '工作方式', icon: CATEGORY_ICONS.workflow, color: 'violet' },
-  { id: 'voice', label: '沟通风格', icon: CATEGORY_ICONS.voice, color: 'emerald' },
+const CATEGORIES: { id: MemoryCategory; label: string; icon: React.ReactNode; color: MemoryColor }[] = [
+  { id: 'identity', label: '身份', icon: CATEGORY_ICONS.identity, color: 'accent' },
+  { id: 'workflow', label: '工作方式', icon: CATEGORY_ICONS.workflow, color: 'warm' },
+  { id: 'voice', label: '沟通风格', icon: CATEGORY_ICONS.voice, color: 'success' },
   { id: 'preference', label: '偏好', icon: CATEGORY_ICONS.preference, color: 'muted' },
   { id: 'fact', label: '事实', icon: CATEGORY_ICONS.fact, color: 'muted' },
   { id: 'feedback', label: '反馈', icon: CATEGORY_ICONS.feedback, color: 'muted' },
 ]
 
-const COLOR_MAP: Record<string, { bg: string; border: string; text: string; badge: string }> = {
-  cyan: { bg: 'bg-cyan-500/5', border: 'border-cyan-500/30', text: 'text-cyan-400', badge: 'bg-cyan-500/10 text-cyan-400' },
-  violet: { bg: 'bg-violet-500/5', border: 'border-violet-500/30', text: 'text-violet-400', badge: 'bg-violet-500/10 text-violet-400' },
-  emerald: { bg: 'bg-emerald-500/5', border: 'border-emerald-500/30', text: 'text-emerald-400', badge: 'bg-emerald-500/10 text-emerald-400' },
-  muted: { bg: 'bg-slate-500/5', border: 'border-slate-500/25', text: 'text-slate-400', badge: 'bg-slate-500/10 text-slate-400' },
+const COLOR_MAP: Record<MemoryColor, { bg: string; border: string; text: string; badge: string }> = {
+  accent: { bg: 'memory-color-accent-bg', border: 'memory-color-accent-border', text: 'memory-color-accent-text', badge: 'memory-color-accent-badge' },
+  warm: { bg: 'memory-color-warm-bg', border: 'memory-color-warm-border', text: 'memory-color-warm-text', badge: 'memory-color-warm-badge' },
+  success: { bg: 'memory-color-success-bg', border: 'memory-color-success-border', text: 'memory-color-success-text', badge: 'memory-color-success-badge' },
+  muted: { bg: 'memory-color-muted-bg', border: 'memory-color-muted-border', text: 'memory-color-muted-text', badge: 'memory-color-muted-badge' },
 }
 
 interface MemoryPanelProps {
@@ -197,7 +199,7 @@ export function MemoryPanel({ onClose, previewMemories, previewEditingId, readOn
               <button
                 onClick={() => void handleAdd()}
                 disabled={!newContent.trim()}
-                className="rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-cyan-500 disabled:opacity-40"
+                className="memory-save-button rounded-lg px-3 py-1.5 text-xs font-medium text-white transition disabled:opacity-40"
               >
                 保存
               </button>
@@ -233,7 +235,7 @@ export function MemoryPanel({ onClose, previewMemories, previewEditingId, readOn
             <div className="space-y-2">
               {filtered.map(mem => {
                 const cat = CATEGORIES.find(c => c.id === mem.category)
-                const colors = COLOR_MAP[cat?.color || 'cyan']
+                const colors = COLOR_MAP[(cat?.color as MemoryColor) || 'accent']
                 const isEditing = editing === mem.id
                 const sensitiveKinds = detectSensitiveKinds(mem.content)
                 const isSensitive = sensitiveKinds.length > 0
@@ -277,13 +279,13 @@ export function MemoryPanel({ onClose, previewMemories, previewEditingId, readOn
                           <>
                             <button
                               onClick={() => startEdit(mem)}
-                              className="rounded px-1.5 py-0.5 text-[10px] text-slate-400 transition hover:bg-slate-700 hover:text-white"
+                              className="memory-action-button rounded px-1.5 py-0.5 text-[10px] transition"
                             >
                               编辑
                             </button>
                             <button
                               onClick={() => handleDelete(mem.id)}
-                              className="rounded px-1.5 py-0.5 text-[10px] text-red-400 transition hover:bg-red-500/10"
+                              className="memory-delete-button rounded px-1.5 py-0.5 text-[10px] transition"
                             >
                               删除
                             </button>
@@ -315,7 +317,7 @@ export function MemoryPanel({ onClose, previewMemories, previewEditingId, readOn
                         </button>
                         <button
                           onClick={() => setEditing(null)}
-                          className="rounded px-2 py-1 text-[10px] text-slate-400 hover:text-white"
+                          className="memory-action-button rounded px-2 py-1 text-[10px] transition"
                         >
                           取消
                         </button>

@@ -217,6 +217,7 @@ Skill 资产由 `electron/main/skills/loader.ts` 读取和保存；Frontmatter �
 - `agent/subagent-asset-registry.ts` 登记 `researcher`、`coder`、`analyst` 三个 SubAgent 角色的 Prompt addon、默认工具集与只读边界；执行器和 Debug 聚合消费同一角色定义，自由字符串角色不伪造为内置资产。
 - Renderer 设计资产由 `src/shared/design-asset-registry.ts` 单一登记主题与字体比例；Settings、Playground、MarkdownRenderer 不再各自维护主题集合，设计资产不进入 ModelContext 或运行证据。
 - Playground 不直接写生产资产；只有文本类资产可显式载入为实验副本，伙伴、记忆、权限与沙箱、Eval Case / Grader、Provider 等结构化资产保持只读。
+- 已确认的候选回流正式 UI 时采用选择性同步：生产只接收视觉 token、真实产品交互和真实组件组合，不接收来源路径、采用标记、目录、调试控制或隔离 fixture。正式 Right Dock 的文件与预览 Tab 通过容器级共享 `FileBrowserPreviewState` 维持选中文件上下文；审阅 / 终端仍沿真实 `session` / `terminal` IPC 路径。
 - `scripts/asset-governance.mjs` 声明资产家族的来源、注册表、发现方式、key 规则、展示面和证据边界；`npm run assets:check` 生成机器审计快照并对静态资产执行 fail-closed staged 漏登检查。
 
 ### 10.1 生产资产运行证据层

@@ -6,6 +6,52 @@
  */
 import { test, expect } from '@playwright/test'
 
+/**
+ * 正式 Chat 右坞的 UI 契约测试只替身 Electron 边界，不替身右坞本身。
+ * 这样可以验证真实 App → ChatRightDock → FileBrowser 的状态共享，同时不连接本机会话、文件系统或模型。
+ */
+async function installProductionElectronStub(page: import('@playwright/test').Page) {
+  await page.addInitScript(() => {
+    const noopCleanup = () => {}
+    ;(window as any).electronAPI = {
+      session: {
+        list: async () => [],
+        get: async () => null,
+        create: async () => ({ id: 'e2e-session' }),
+        delete: async () => ({ success: true }),
+        rename: async () => ({ success: true }),
+        onFileChange: () => noopCleanup,
+        listFileChanges: async () => [],
+        getFileChangeDiff: async () => ({ diff: '' }),
+        clearFileChanges: async () => ({ success: true }),
+      },
+      settings: {
+        get: async () => ({ llmApiKeyConfigured: 'true', llmModel: 'e2e-model', executionMode: 'confirm-all', pinnedSessions: '[]' }),
+        set: async () => ({ success: true }),
+      },
+      companion: {
+        getActive: async () => ({ id: 'lin', name: '测试伙伴', description: '测试用伙伴' }),
+        listProtagonists: async () => [],
+        getRoster: async () => ({ cast: [] }),
+      },
+      project: {
+        get: async () => ({ path: 'C:\\\\e2e-project', name: '测试项目' }),
+        list: async () => [{ path: 'C:\\\\e2e-project', name: '测试项目' }],
+        listFiles: async () => ([
+          { name: 'src', path: 'C:\\\\e2e-project\\\\src', isDir: true, children: [
+            { name: 'App.tsx', path: 'C:\\\\e2e-project\\\\src\\\\App.tsx', isDir: false },
+          ] },
+        ]),
+        readFile: async (filePath: string) => ({ kind: 'text', content: 'const ready = true', languageHint: filePath.endsWith('.tsx') ? 'typescript' : 'text', size: 18 }),
+        openExternal: async () => ({ ok: true }),
+      },
+      tasks: { sync: async () => ({ active: [], pendingNotify: [] }), onEvent: () => noopCleanup },
+      chat: { onEvent: () => noopCleanup, onConfirmRequest: () => noopCleanup },
+      mcp: {},
+    }
+  })
+}
+
 test.describe('My Agent UI', () => {
   test('应用标题和基础 UI 可见', async ({ page }) => {
     await page.goto('/')
@@ -55,6 +101,39 @@ test.describe('My Agent UI', () => {
 
     await expect(page.locator('[data-testid="chat-messages"] h1')).toContainText('我是')
     await expect(page.getByRole('button', { name: '打个招呼', exact: true })).toBeVisible()
+  })
+
+
+  test('正式右坞默认预览且文件与预览共享选中文件', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.goto('/')
+
+    await page.getByTitle('项目文件').click()
+    const dock = page.locator('[data-testid="chat-right-dock"]')
+    await expect(dock.getByTestId('right-dock-tab-preview')).toBeVisible()
+    await expect(dock.getByTestId('right-dock-tab-files')).toHaveCount(0)
+    await expect(dock).not.toContainText('隔离样张')
+
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '文件', exact: true }).click()
+    await expect(dock.getByTestId('right-dock-tab-files')).toBeVisible()
+    await dock.getByTestId('file-browser-tree').getByRole('button', { name: 'App.tsx', exact: true }).click()
+    await expect(dock.getByTestId('file-browser-tree')).toContainText('App.tsx')
+
+    await dock.getByTestId('right-dock-tab-preview').click()
+    await expect(dock.getByTestId('file-browser-preview')).toContainText('const ready = true')
+    await expect(dock.getByTestId('file-browser-preview')).toContainText('App.tsx')
+
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '审阅', exact: true }).click()
+    await expect(dock.getByText('无活跃会话', { exact: true })).toBeVisible()
+    await expect(dock).not.toContainText('隔离样张')
+
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '终端', exact: true }).click()
+    await expect(dock.getByText('命令控制台（非完整终端）', { exact: false })).toBeVisible()
+    await expect(dock.getByPlaceholder('输入命令…')).toBeVisible()
+    await expect(dock).not.toContainText('隔离样张')
   })
 
 

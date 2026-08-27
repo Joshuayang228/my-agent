@@ -263,6 +263,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 |------|----------|
 | TypeScript / 主进程 / 工具系统开发 | `agent-skills/typescript-guidelines.md` |
 | React / CSS / UI 改动 | `agent-skills/frontend-guidelines.md` |
+| Playground 候选回流正式 UI | `.agents/skills/playground-to-production/SKILL.md` |
 | Bug 修复 / 调试 | `agent-skills/debug-guide.md` |
 | 代码审查 / 自审 | `agent-skills/code-review.md` |
 | Git / commit / push / PR | `agent-skills/git-workflow.md` |
