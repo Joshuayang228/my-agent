@@ -17,6 +17,12 @@ export function FoundationComponentsPanel() {
 
   return (
     <div className="w-full space-y-4" data-testid="foundation-components-panel">
+      <div className="flex flex-wrap items-center gap-1.5 text-[10px]" data-testid="foundation-state-matrix" style={{ color: 'var(--text-muted)' }}>
+        <span className="mr-1 font-medium" style={{ color: 'var(--text-secondary)' }}>统一检查</span>
+        {['默认', 'hover', 'pressed', 'focus', '禁用', '错误 / 空态', '窄宽', '键盘 / ARIA'].map((item) => (
+          <span key={item} className="rounded-full border px-1.5 py-0.5" style={{ borderColor: 'var(--border-subtle)' }}>{item}</span>
+        ))}
+      </div>
       <PlaygroundStoryTabs
         groups={[{
           label: '基础组件',

@@ -155,6 +155,7 @@ test.describe('My Agent UI', () => {
 
     await nav.getByRole('button', { name: '基础组件', exact: true }).click()
     await expect(page.locator('[data-testid="foundation-components-panel"]')).toBeVisible()
+    await expect(page.getByTestId('foundation-state-matrix')).toContainText('键盘 / ARIA')
     await expect(page.locator('[data-testid="playground-story-nav"]')).toBeVisible()
     await expect(page.locator('[data-testid="playground-story-nav"] [role="tablist"]')).toHaveCount(1)
     await expect(page.getByRole('tab', { name: '组件索引', exact: true })).toHaveCount(0)
@@ -199,6 +200,14 @@ test.describe('My Agent UI', () => {
     await expect(designSource).toBeVisible()
     await expect(designSource).toHaveAttribute('title', /DesignSystemPanel\.tsx/)
     await expect(designSource).toHaveClass(/w-\[18rem\]/)
+    await expect(page.getByTestId('color-role-groups')).toBeVisible()
+    await expect(page.getByTestId('color-interaction-matrix')).toContainText('focus / disabled')
+    await page.getByRole('button', { name: '主题对照', exact: true }).click()
+    await expect(page.getByTestId('theme-study-grid')).toBeVisible()
+    for (const studyId of ['xuan-paper', 'yao-stone', 'song-smoke', 'bronze-print']) {
+      await expect(page.getByTestId(`theme-study-${studyId}`)).toBeVisible()
+    }
+    await expect(page.getByTestId('production-theme-strip')).toContainText('薄雾')
     await page.getByRole('button', { name: '圆角 / 动效', exact: true }).click()
     const radiusSlider = page.getByTestId('radius-controls').getByRole('slider', { name: '自定义圆角', exact: true })
     await expect(radiusSlider).toBeVisible()
@@ -208,6 +217,7 @@ test.describe('My Agent UI', () => {
     await expect(motionSamples).toBeVisible()
     await expect(page.getByText('点击播放', { exact: true })).toHaveCount(0)
     await expect(page.getByText('150ms', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: '标准', exact: true })).toBeVisible()
     const motionSwitch = motionSamples.getByRole('switch', { name: '动效播放', exact: true })
     await expect(motionSwitch).toHaveAttribute('aria-checked', 'true')
     await expect(motionSamples.getByTestId('motion-sample-motion-fast').getByTestId('motion-sample-bar')).not.toHaveCSS('animation-name', 'none')

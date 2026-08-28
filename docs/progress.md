@@ -7,7 +7,7 @@
 | | |
 |---|---|
 | **当前阶段** | 公开 alpha；基础运行时、伙伴世界、记忆、权限、Debug / Playground、生产资产与安全边界主线已落地。 |
-| **当前施工** | Playground 已完成本轮候选收口，确认内容正在回流正式 UI：Right Dock 预览默认 + 按需 Tab、朋友圈流、记忆语义色和 Markdown 代码层级。 |
+| **当前施工** | Foundation Design Language v2 正在 Playground 研究：颜色角色、4 个主题候选、圆角 / 动效角色与基础组件状态矩阵；未完成人工选择前不回流正式主题。 |
 | **产品主线** | 继续打磨伙伴体验、人物故事与 Pack 内容；真实 Persona Eval 结果仍需人工语气与审美验收。 |
 | **明确暂缓** | 原生语音输入、Playground Prompt Lab 加厚、生图 Moments。 |
 | **明确不做** | 当前威胁模型下不做 OS 级 Shell 强隔离和 Python 嵌入沙箱，见 DEC-037。 |
@@ -19,6 +19,13 @@
 - Chat 右侧工作坞进入正式模式：默认预览，文件 / 预览 / 审阅 / 终端通过“+”按需添加；文件与预览共享选中文件，审阅 / 终端保持真实组件和真实 IPC 边界。
 - Markdown 代码块改用 `--bg-tertiary`，正式人物世界默认使用朋友圈式动态流，正式记忆分类统一为四类语义色。
 - 新增 `.agents/skills/playground-to-production`，固化“候选审计 → 选择性回流 → 真实数据边界 → 文档与门禁”的执行流程。
+
+## 2026-08-28 · Foundation Design Language v2 开始施工
+
+- 补充审美判断原则：层级、对齐、留白、克制、状态可感知和动效服从任务。
+- 新增施工合同 `docs/requirements/foundation-design-language-v2.md`，记录 Radix / Ant Design / Primer / Carbon / Mantine / MUI / shadcn/ui 的研究结论与不引入整套依赖的边界。
+- Playground 设计语言开始改为颜色角色、4 个主题候选微型界面、圆角角色和 easing 动效展示；Foundation 基础组件增加统一状态检查矩阵。
+- 当前仍是 P0 候选施工，不改变正式主题、正式组件和生产页面。
 
 ## 最近完成
 

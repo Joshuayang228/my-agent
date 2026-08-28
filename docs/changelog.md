@@ -4,6 +4,13 @@
 
 ## [未发布]
 
+### 2026-08-28 · Foundation Design Language v2 Playground 研究
+
+- 设计语言 Playground 增加颜色角色、交互状态矩阵、4 个主题候选微型界面、圆角角色和动效 easing 预览。
+- 基础组件 Playground 增加统一检查维度：默认、hover、pressed、focus、禁用、错误 / 空态、窄宽、键盘 / ARIA。
+- 以上内容只用于候选研究，不改变正式主题和生产组件。
+
+
 ### 2026-08-28 · 已确认 Playground 方案回流正式 UI
 
 - Chat 右侧工作坞默认显示预览，文件、预览、审阅、终端改为通过“+”按需添加；文件与预览切换时保留当前文件上下文。
