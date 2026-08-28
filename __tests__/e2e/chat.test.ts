@@ -207,6 +207,10 @@ test.describe('My Agent UI', () => {
     for (const studyId of ['xuan-paper', 'yao-stone', 'song-smoke', 'bronze-print']) {
       await expect(page.getByTestId(`theme-study-${studyId}`)).toBeVisible()
     }
+    await expect(page.getByTestId('theme-study-selection')).toContainText('宣纸')
+    await page.getByTestId('theme-study-yao-stone').getByRole('button', { name: '比较', exact: true }).click()
+    await expect(page.getByTestId('theme-study-selection')).toContainText('曜石')
+    await expect(page.getByTestId('theme-study-yao-stone').getByRole('button', { name: '当前', exact: true })).toBeVisible()
     await expect(page.getByTestId('production-theme-strip')).toContainText('薄雾')
     await page.getByRole('button', { name: '圆角 / 动效', exact: true }).click()
     const radiusSlider = page.getByTestId('radius-controls').getByRole('slider', { name: '自定义圆角', exact: true })

@@ -87,7 +87,7 @@ function SectionHeading({ title, hint }: { title: string; hint: string }) {
   )
 }
 
-function ThemeStudyCard({ study }: { study: typeof THEME_STUDIES[number] }) {
+function ThemeStudyCard({ study, selected, onSelect }: { study: typeof THEME_STUDIES[number]; selected: boolean; onSelect: () => void }) {
   const { colors } = study
   const style = {
     '--study-app': colors.app,
@@ -104,13 +104,13 @@ function ThemeStudyCard({ study }: { study: typeof THEME_STUDIES[number] }) {
   } as CSSProperties
 
   return (
-    <article className="overflow-hidden rounded-xl border" data-testid={`theme-study-${study.id}`} style={{ ...style, borderColor: 'var(--border-color)', background: 'var(--study-app)', color: 'var(--study-text)' }}>
+    <article className="overflow-hidden rounded-xl border transition" data-testid={`theme-study-${study.id}`} style={{ ...style, borderColor: selected ? 'var(--study-accent)' : 'var(--border-color)', boxShadow: selected ? '0 0 0 1px var(--study-accent)' : undefined, background: 'var(--study-app)', color: 'var(--study-text)' }}>
       <div className="flex items-center justify-between border-b px-3 py-2" style={{ borderColor: 'var(--study-border)' }}>
         <div className="min-w-0">
           <h4 className="text-xs font-semibold">{study.label}</h4>
           <p className="truncate text-[10px]" style={{ color: 'var(--study-muted)' }}>{study.description}</p>
         </div>
-        <span className="shrink-0 rounded-full border px-1.5 py-0.5 text-[9px]" style={{ borderColor: 'var(--study-border)', color: 'var(--study-muted)' }}>{study.mode}</span>
+        <div className="flex shrink-0 items-center gap-1.5"><span className="rounded-full border px-1.5 py-0.5 text-[9px]" style={{ borderColor: 'var(--study-border)', color: 'var(--study-muted)' }}>{study.mode}</span><button type="button" aria-pressed={selected} onClick={onSelect} className="rounded-full border px-1.5 py-0.5 text-[9px] transition" style={{ borderColor: selected ? 'var(--study-accent)' : 'var(--study-border)', color: selected ? 'var(--study-accent)' : 'var(--study-muted)', background: selected ? 'color-mix(in srgb, var(--study-accent) 12%, transparent)' : undefined }}>{selected ? '当前' : '比较'}</button></div>
       </div>
       <div className="grid min-h-[10rem] grid-cols-[4.2rem_1fr]" style={{ background: 'var(--study-card)' }}>
         <div className="space-y-2 border-r p-2" style={{ background: 'var(--study-panel)', borderColor: 'var(--study-border)' }}>
@@ -164,6 +164,7 @@ export function DesignSystemPanel() {
   const [customRadius, setCustomRadius] = useState(16)
   const [motionPlaying, setMotionPlaying] = useState(true)
   const [motionEasing, setMotionEasing] = useState<MotionEasing>('standard')
+  const [selectedStudy, setSelectedStudy] = useState('xuan-paper')
 
   const read = (name: string) => {
     if (typeof document === 'undefined') return ''
@@ -214,7 +215,7 @@ export function DesignSystemPanel() {
       {sub === 'themes' && (
         <div className="space-y-4">
           <div className="flex items-end justify-between gap-3"><SectionHeading title="主题候选" hint="四个方向，共用同一套微型界面" /><span className="shrink-0 text-[10px]" style={{ color: 'var(--text-muted)' }}>只影响本页样张</span></div>
-          <div className="grid gap-3 lg:grid-cols-2" data-testid="theme-study-grid">{THEME_STUDIES.map((study) => <ThemeStudyCard key={study.id} study={study} />)}</div>
+          <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2" data-testid="theme-study-selection" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}><span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>当前比较方向</span><span className="truncate text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{THEME_STUDIES.find((study) => study.id === selectedStudy)?.label} · {THEME_STUDIES.find((study) => study.id === selectedStudy)?.description}</span></div><div className="grid gap-3 lg:grid-cols-2" data-testid="theme-study-grid">{THEME_STUDIES.map((study) => <ThemeStudyCard key={study.id} study={study} selected={study.id === selectedStudy} onSelect={() => setSelectedStudy(study.id)} />)}</div>
           <StoryBlock title="当前正式主题" source="src/shared/design-asset-registry.ts" edge>
             <div className="flex flex-wrap gap-1.5" data-testid="production-theme-strip">{PRODUCTION_THEMES.map((theme) => <span key={theme.id} className="rounded-full border px-2 py-1 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>{theme.label}</span>)}</div>
           </StoryBlock>
