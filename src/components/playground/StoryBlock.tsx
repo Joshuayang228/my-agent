@@ -27,23 +27,16 @@ export function StoryBlock({
 }) {
   return (
     <section
-      className="space-y-2 rounded-lg border p-3"
-      style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
+      className="playground-story-block space-y-3 rounded-xl border p-4 transition-colors"
+      style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}
       data-edge={edge ? 'true' : undefined}
     >
       <div className="flex flex-wrap items-center justify-between gap-2" data-testid="story-block-header">
-        <h4 className="flex min-w-0 items-center gap-1.5 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>
+        <h4 className="flex min-w-0 items-center gap-1.5 text-[12px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
           <span className="truncate">{title}</span>
           {adopted && <AdoptionMark />}
           {titleExtra}
-          {edge && (
-            <span
-              className="ml-2 rounded px-1.5 py-0.5 text-[10px] font-normal"
-              style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}
-            >
-              边缘
-            </span>
-          )}
+          {edge && <span className="sr-only">边缘态</span>}
         </h4>
         <div className="flex min-w-0 items-center gap-2">
           {headerActions}

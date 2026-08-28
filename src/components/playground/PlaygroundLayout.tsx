@@ -45,13 +45,13 @@ export function PlaygroundPageHeader({
   metaInline?: boolean
 }) {
   return (
-    <header className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b pb-4" data-testid="playground-page-header">
+    <header className="playground-page-header mb-6 flex flex-wrap items-end justify-between gap-3 border-b pb-4" data-testid="playground-page-header">
       <div className="w-full min-w-0">
         <div className="flex min-w-0 items-baseline gap-3" data-testid="playground-page-title-row">
           <div className={descriptionInline ? 'flex min-w-0 flex-1 items-baseline gap-x-3 gap-y-1' : 'min-w-0 flex-1'}>
-            <h1 className="shrink-0 text-lg font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>{title}</h1>
+            <h1 className="shrink-0 text-[1.05rem] font-semibold tracking-[-0.015em]" style={{ color: 'var(--text-primary)' }}>{title}</h1>
             {descriptionInline && (
-              <p className="min-w-0 truncate text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>{description}</p>
+              <p className="min-w-0 truncate text-[11px] leading-5 tracking-[0.01em]" style={{ color: 'var(--text-muted)' }}>{description}</p>
             )}
           </div>
           {metaInline && meta}
@@ -90,7 +90,7 @@ export function PlaygroundStoryTabs({
                 role="tab"
                 aria-selected={selected}
                 onClick={() => onChange(item.id)}
-                className="relative rounded-none px-0.5 py-2 text-[11px] transition"
+                className="relative rounded-none px-0.5 py-2 text-[11px] tracking-[0.01em] transition"
                 style={{
                   color: selected ? 'var(--text-primary)' : 'var(--text-muted)',
                   fontWeight: selected ? 600 : 400,

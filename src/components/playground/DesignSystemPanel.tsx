@@ -188,9 +188,9 @@ export function DesignSystemPanel() {
       {sub === 'colors' && (
         <div className="space-y-4">
           <SectionHeading title="颜色角色" hint="先看使用场景，再决定是否需要新 token" />
-          <div className="grid gap-3 md:grid-cols-3" data-testid="color-role-groups">
+          <div className="grid gap-2 md:grid-cols-3" data-testid="color-role-groups">
             {COLOR_ROLES.map((group) => (
-              <section key={group.id} className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+              <section key={group.id} className="rounded-xl border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
                 <h4 className="text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>{group.label}</h4>
                 <div className="mt-2 grid grid-cols-2 gap-1.5">
                   {group.items.map((item, index) => <div key={item} className="rounded-md px-2 py-2 text-[10px]" style={{ background: index === 0 ? 'var(--accent-subtle)' : 'var(--bg-tertiary)', color: index === 0 ? 'var(--accent-fg)' : 'var(--text-secondary)' }}>{item}</div>)}
@@ -201,7 +201,7 @@ export function DesignSystemPanel() {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4" data-testid="production-color-tokens">
             {COLORS.map(([name, label, usage]) => {
               const value = read(name)
-              return <div key={name} className="overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}><div className="h-8" style={{ background: `var(${name})` }} /><div className="space-y-0.5 px-2 py-1.5"><div className="flex items-center gap-1"><div className="min-w-0 truncate font-mono text-[10px]" style={{ color: 'var(--text-primary)' }}>{name}</div><AdoptionMark /></div><div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{label}</div><div className="truncate text-[9px]" style={{ color: 'var(--text-muted)' }} title={usage}>{usage} · {value || '—'}</div></div></div>
+              return <div key={name} className="playground-token-card group overflow-hidden rounded-xl border" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}><div className="playground-token-swatch h-7 group-hover:scale-[1.02]" style={{ background: `var(${name})` }} /><div className="space-y-0.5 px-2 py-1.5"><div className="flex items-center gap-1"><div className="min-w-0 truncate font-mono text-[10px]" style={{ color: 'var(--text-primary)' }}>{name}</div><AdoptionMark /></div><div className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{label}</div><div className="truncate text-[9px]" style={{ color: 'var(--text-muted)' }} title={usage}>{usage} · {value || '—'}</div></div></div>
             })}
           </div>
           <StoryBlock title="交互状态不是一套新颜色" source="Playground research fixture · Radix scale mapping" edge>

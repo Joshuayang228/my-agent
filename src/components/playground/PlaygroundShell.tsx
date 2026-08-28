@@ -95,17 +95,17 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1" data-testid="playground-shell">
       <aside
-        className="flex w-[200px] shrink-0 flex-col overflow-y-auto border-r py-4"
+        className="playground-nav flex w-[208px] shrink-0 flex-col overflow-y-auto border-r px-3 py-5"
         style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
         aria-label="Playground 一级导航"
         data-testid="playground-nav"
       >
         {onClose && (
-          <div className="mb-3 px-3">
+          <div className="mb-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] transition"
+              className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-2 text-[12px] transition"
               style={{ color: 'var(--text-secondary)' }}
               onMouseEnter={(event) => (event.currentTarget.style.background = 'var(--hover-overlay)')}
               onMouseLeave={(event) => (event.currentTarget.style.background = '')}
@@ -121,8 +121,8 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
         {PLAYGROUND_GROUPS.map((group) => {
           const tabs = activeTabs.filter((item) => item.group === group.id)
           return (
-            <section key={group.id} className="mb-3 px-3" aria-label={group.label}>
-              <div className="mb-1 text-[10px] font-semibold tracking-wide" style={{ color: 'var(--text-muted)' }}>
+            <section key={group.id} className="mb-5" aria-label={group.label}>
+              <div className="mb-2 px-2 text-[10px] font-semibold tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
                 {group.label}
               </div>
               {tabs.map((item) => {
@@ -133,7 +133,7 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
                     key={item.id}
                     type="button"
                     onClick={() => setTab(item.id)}
-                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition ${active ? 'font-medium' : ''}`}
+                    className={`group flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[12px] transition ${active ? 'font-medium' : ''}`}
                     style={{
                       color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
                       background: active ? 'var(--hover-overlay)' : undefined,
@@ -152,7 +152,7 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
         })}
       </aside>
 
-      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6" data-testid="playground-main">
+      <main className="playground-main min-h-0 min-w-0 flex-1 overflow-y-auto px-6 py-6 sm:px-10 sm:py-8" data-testid="playground-main">
         <div className="mx-auto w-full max-w-6xl">
           <PlaygroundPageHeader
             title={activeTab.label}

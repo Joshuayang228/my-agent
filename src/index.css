@@ -342,7 +342,7 @@ html[data-font-scale="lg"] {
     flex-direction: column;
   }
 
-  [data-testid="playground-shell"] > nav {
+  [data-testid="playground-shell"] > aside {
     width: 100%;
     flex-direction: row;
     align-items: center;
@@ -352,26 +352,78 @@ html[data-font-scale="lg"] {
     padding: 0.5rem;
   }
 
-  [data-testid="playground-shell"] > nav > button {
+  [data-testid="playground-shell"] > aside > button {
     width: auto;
     flex-shrink: 0;
     white-space: nowrap;
   }
 
-  [data-testid="playground-shell"] > nav > button:first-child {
+  [data-testid="playground-shell"] > aside > button:first-child {
     margin-bottom: 0;
   }
 
-  [data-testid="playground-shell"] > nav > section {
+  [data-testid="playground-shell"] > aside > section {
     margin: 0 0.25rem 0 0;
     flex-shrink: 0;
     min-width: 10rem;
   }
 
-  [data-testid="playground-shell"] > nav > section > div:first-child,
-  [data-testid="playground-shell"] > nav > section > p {
+  [data-testid="playground-shell"] > aside > section > div:first-child,
+  [data-testid="playground-shell"] > aside > section > p {
     white-space: nowrap;
   }
+}
+
+/* Playground 视觉层：让画布、导航、内容卡和证据层形成稳定的深浅节奏。 */
+.playground-main {
+  background:
+    radial-gradient(circle at 88% 0%, color-mix(in srgb, var(--accent-subtle) 42%, transparent), transparent 30rem),
+    var(--bg-primary);
+}
+
+.playground-nav {
+  background: color-mix(in srgb, var(--bg-secondary) 92%, var(--bg-primary));
+}
+
+.playground-page-header {
+  border-color: color-mix(in srgb, var(--border-subtle) 82%, transparent);
+}
+
+.playground-page-header h1 {
+  position: relative;
+}
+
+.playground-page-header h1::before {
+  content: '';
+  display: inline-block;
+  width: 0.3rem;
+  height: 0.3rem;
+  margin: 0 0.45rem 0.12rem 0;
+  border-radius: var(--radius-full);
+  background: var(--accent-emphasis);
+  box-shadow: 0 0 0 0.2rem var(--accent-subtle);
+}
+
+.playground-story-block {
+  box-shadow: 0 0.75rem 2rem color-mix(in srgb, var(--text-primary) 4%, transparent);
+}
+
+.playground-story-block:hover {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border-subtle));
+}
+
+.playground-token-swatch {
+  transition: transform var(--motion-normal) var(--motion-ease);
+}
+
+.playground-token-card {
+  box-shadow: 0 0.5rem 1.25rem color-mix(in srgb, var(--text-primary) 3%, transparent);
+  transition: border-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
+}
+
+.playground-token-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border-subtle));
+  box-shadow: 0 0.75rem 1.75rem color-mix(in srgb, var(--text-primary) 7%, transparent);
 }
 
 .theme-panel {
