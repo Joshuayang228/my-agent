@@ -26,6 +26,8 @@
 | [playground-navigation-world-polish-v1.md](./playground-navigation-world-polish-v1.md) | P0 施工：一级导航、Right Dock 四 Tab、朋友圈社交流与记忆四色语义 |
 | [playground-bilingual-ui-vocabulary.md](./playground-bilingual-ui-vocabulary.md) | Playground 中文分类与常用 UI 控件中英分层文案 |
 | [foundation-design-language-v2.md](./foundation-design-language-v2.md) | P0 施工：颜色、主题、圆角、动效与 Foundation 组件研究升级 |
+| [product-experience-journeys-v1.md](./product-experience-journeys-v1.md) | E0 / E1 施工：产品体验总图与 Chat 主旅程 Playground 候选 |
+
 
 ---
 

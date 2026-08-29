@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowUp, ChevronDown, Folder, Image, MapPin, PanelLeftOpen, Paperclip, Shield } from 'lucide-react'
+import { ArrowUp, Bot, CheckCircle2, ChevronDown, FileCode2, Folder, Image, MapPin, MessageCircle, PanelLeftOpen, Paperclip, Shield, UserRound } from 'lucide-react'
 import { SettingsPanel } from '../SettingsPanel'
 import { MemoryPanel } from '../MemoryPanel'
 import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
@@ -168,18 +168,51 @@ const PAGE_CANDIDATE_STYLE = `
     }
   `
 
+type ChatJourney = 'welcome' | 'conversation' | 'work'
+
+const CHAT_JOURNEYS: Array<{ id: ChatJourney; label: string; description: string }> = [
+  { id: 'welcome', label: '初次进入', description: '轻量欢迎，不打断主任务。' },
+  { id: 'conversation', label: '正在聊天', description: '对话成为页面的唯一主叙事。' },
+  { id: 'work', label: '处理任务', description: '需要工作区时，再让它按需出现。' },
+]
+
 function ChatSurface() {
   const sessionFilterRef = useRef<HTMLInputElement>(null)
   const [viewport, setViewport] = useState<'standard' | 'split'>('standard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [journey, setJourney] = useState<ChatJourney>('welcome')
   const handleContextMenu = (event: MouseEvent, sessionId: string) => {
     event.preventDefault()
     void sessionId
   }
+  const isWelcome = journey === 'welcome'
+  const isWork = journey === 'work'
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end border-b pb-2" data-testid="chat-surface-toolbar" style={{ borderColor: 'var(--border-subtle)' }}>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2" data-testid="chat-surface-toolbar" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div className="flex min-w-0 items-center gap-2" role="tablist" aria-label="Chat 主旅程">
+          <span className="shrink-0 text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>主旅程</span>
+          <div className="flex min-w-0 rounded-[var(--radius-md)] border p-0.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+            {CHAT_JOURNEYS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={journey === item.id}
+                onClick={() => setJourney(item.id)}
+                className="shrink-0 rounded px-2 py-1 text-[10px] transition"
+                title={item.description}
+                style={{
+                  color: journey === item.id ? 'var(--accent-fg)' : 'var(--text-muted)',
+                  background: journey === item.id ? 'var(--accent-subtle)' : 'transparent',
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="flex shrink-0 rounded-[var(--radius-md)] border p-0.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
           {([
             { id: 'standard' as const, label: '标准宽度' },
@@ -213,12 +246,12 @@ function ChatSurface() {
                   personaName="小林"
                   personaBlurb="沉稳体贴的数字伙伴"
                   activeView="chat"
-                  activeSessionId={null}
+                  activeSessionId={isWelcome ? null : 'surface-session-1'}
                   sessionGroups={[{ label: '今天', items: SAMPLE_SESSIONS }]}
                   sessionPreviews={{ 'surface-session-1': '先把必须今天完成的挑出来…' }}
                   pinnedIds={[]}
-                  bgStreamingSessionId={null}
-                  activeBgTaskCount={0}
+                  bgStreamingSessionId={isWork ? 'surface-session-1' : null}
+                  activeBgTaskCount={isWork ? 1 : 0}
                   sidebarSearchOpen={false}
                   sessionFilter=""
                   sessionFilterRef={sessionFilterRef}
@@ -243,23 +276,27 @@ function ChatSurface() {
               </div>
             )}
 
-              <div className="relative flex min-w-0 flex-1 flex-col" style={{ background: 'var(--bg-primary)' }} data-testid="chat-surface-main">
-                {!sidebarOpen && (
-                  <button
-                    type="button"
-                    onClick={() => setSidebarOpen(true)}
-                    className="absolute left-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] transition"
-                    style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
-                    data-testid="surface-sidebar-reopen"
-                    title="重新展开主侧栏"
-                  >
-                    <PanelLeftOpen size={15} />
-                  </button>
-                )}
-                <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-                  <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-6 py-8 text-center">
-                    <div className="max-w-lg pb-3">
-                      <h3 className="font-display text-[1.9rem] font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            <div className="relative flex min-w-0 flex-1 flex-col" style={{ background: 'var(--bg-primary)' }} data-testid="chat-surface-main">
+              {!sidebarOpen && (
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(true)}
+                  className="absolute left-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] transition"
+                  style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
+                  data-testid="surface-sidebar-reopen"
+                  title="重新展开主侧栏"
+                >
+                  <PanelLeftOpen size={15} />
+                </button>
+              )}
+              <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div className="flex min-h-0 flex-1 overflow-y-auto px-6 py-8">
+                  {isWelcome ? (
+                    <div className="m-auto max-w-lg text-center">
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full" style={{ background: 'var(--accent-subtle)', color: 'var(--companion-accent-warm)' }}>
+                        <Bot size={22} strokeWidth={1.5} />
+                      </div>
+                      <h3 className="mt-5 font-display text-[1.9rem] font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
                         嗨，我是小林
                       </h3>
                       <p className="mt-3 text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
@@ -270,7 +307,7 @@ function ChatSurface() {
                           <button
                             key={label}
                             type="button"
-                            className="rounded-full border px-3.5 py-1.5 text-[12px]"
+                            className="rounded-full border px-3.5 py-1.5 text-[12px] transition"
                             style={{
                               borderColor: index === 0 ? 'var(--companion-accent-warm)' : 'var(--border-color)',
                               color: index === 0 ? 'var(--accent-fg)' : 'var(--text-secondary)',
@@ -281,45 +318,52 @@ function ChatSurface() {
                           </button>
                         ))}
                       </div>
-                      <button type="button" className="mt-3 rounded px-2 py-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                        换个主角 →
-                      </button>
                     </div>
-                  </div>
-                  <div className="shrink-0 px-5 pb-5 pt-2">
-                    <div className="mx-auto max-w-[800px]">
-                      <div
-                        className="rounded-[var(--radius-xl)] border px-3 py-2 shadow-sm"
-                        style={{
-                          borderColor: 'var(--border-color)',
-                          background: 'var(--card-bg)',
-                          boxShadow: '0 6px 22px color-mix(in srgb, var(--text-primary) 5%, transparent)',
-                        }}
-                      >
-                        <textarea className="min-h-[64px] w-full resize-none bg-transparent px-1 py-2 text-[13px] outline-none" rows={2} placeholder="和小林说说…" />
-                        <div className="flex items-center justify-between pt-1">
-                          <div className="flex items-center gap-1">
-                            <button type="button" className="rounded-md p-1.5" style={{ color: 'var(--text-muted)' }} title="添加附件"><Paperclip size={14} /></button>
-                            <span className="h-4 w-px" style={{ background: 'var(--border-subtle)' }} />
-                            <button type="button" className="flex items-center gap-1 rounded-md px-2 py-1 text-[10.5px]" style={{ color: 'var(--text-secondary)' }}>
-                              <Shield size={12} />确认模式<ChevronDown size={9} />
-                            </button>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10.5px]" style={{ color: 'var(--text-muted)' }}>GPT-4o</span>
-                            <button type="button" className="flex h-7 w-7 items-center justify-center rounded-full text-white" style={{ background: 'var(--accent-emphasis)' }} title="发送"><ArrowUp size={14} /></button>
-                          </div>
+                  ) : (
+                    <div className="mx-auto w-full max-w-[800px] space-y-7 py-4" data-testid="chat-surface-message-flow">
+                      <div className="flex items-start justify-end gap-2.5">
+                        <div className="max-w-[75%] rounded-[var(--radius-lg)] px-3.5 py-2.5 text-[13px] leading-6" style={{ background: 'var(--msg-user-bg)', color: 'var(--text-primary)' }}>
+                          帮我把今天的事情理一下，先做最重要的。
+                        </div>
+                        <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}><UserRound size={14} aria-hidden="true" /></span>
+                      </div>
+                      <div className="flex items-start gap-2.5">
+                        <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: 'var(--accent-subtle)', color: 'var(--companion-accent-warm)' }}><Bot size={14} aria-hidden="true" /></span>
+                        <div className="min-w-0 max-w-[82%]">
+                          <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}><span className="font-medium" style={{ color: 'var(--text-secondary)' }}>小林</span><span>刚刚</span></div>
+                          <p className="mt-1.5 text-[14px] leading-7" style={{ color: 'var(--text-primary)' }}>可以。我们先把今天必须完成的事情挑出来，再给剩下的留一点喘息的空间。</p>
+                          <div className="mt-3 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}><MessageCircle size={12} aria-hidden="true" />上下文会跟着当前会话保留</div>
                         </div>
                       </div>
-                      <div className="mt-1.5 flex items-center justify-between px-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                        <span className="flex items-center gap-1"><Folder size={11} /> my-agent · 样张项目</span>
-                        <span>结构预览</span>
+                      {isWork && (
+                        <div className="rounded-[var(--radius-lg)] border p-3.5" data-testid="chat-surface-task-card" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-2"><FileCode2 size={15} style={{ color: 'var(--accent-fg)' }} /><span className="truncate text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>整理项目结构</span></div>
+                            <span className="flex shrink-0 items-center gap-1 text-[10px]" style={{ color: 'var(--success)' }}><CheckCircle2 size={12} />进行中</span>
+                          </div>
+                          <div className="mt-2 h-1.5 overflow-hidden rounded-full" style={{ background: 'var(--bg-tertiary)' }}><div className="h-full w-2/3 rounded-full" style={{ background: 'var(--accent-emphasis)' }} /></div>
+                          <p className="mt-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>先扫描文件，再把结果放到右侧工作区。</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="shrink-0 px-5 pb-5 pt-2">
+                  <div className="mx-auto max-w-[800px]">
+                    <div className="rounded-[var(--radius-xl)] border px-3 py-2 shadow-sm" style={{ borderColor: 'var(--border-color)', background: 'var(--card-bg)', boxShadow: '0 6px 22px color-mix(in srgb, var(--text-primary) 5%, transparent)' }}>
+                      <textarea className="min-h-[64px] w-full resize-none bg-transparent px-1 py-2 text-[13px] outline-none" rows={2} placeholder={isWelcome ? '和小林说说…' : '继续和小林聊聊…'} />
+                      <div className="flex items-center justify-between pt-1">
+                        <div className="flex items-center gap-1"><button type="button" className="rounded-md p-1.5" style={{ color: 'var(--text-muted)' }} title="添加附件"><Paperclip size={14} /></button><span className="h-4 w-px" style={{ background: 'var(--border-subtle)' }} /><button type="button" className="flex items-center gap-1 rounded-md px-2 py-1 text-[10.5px]" style={{ color: 'var(--text-secondary)' }}><Shield size={12} />确认模式<ChevronDown size={9} /></button></div>
+                        <div className="flex items-center gap-1.5"><span className="text-[10.5px]" style={{ color: 'var(--text-muted)' }}>当前模型</span><button type="button" className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: 'var(--accent-emphasis)', color: 'var(--accent-fg)' }} title="发送"><ArrowUp size={14} /></button></div>
                       </div>
                     </div>
+                    <div className="mt-1.5 flex items-center justify-between px-1 text-[10px]" style={{ color: 'var(--text-muted)' }}><span className="flex items-center gap-1"><Folder size={11} /> my-agent · 样张项目</span><span>{isWork ? '工作区已打开' : isWelcome ? '准备开始' : '对话进行中'}</span></div>
                   </div>
                 </div>
               </div>
             </div>
+            {isWork && <div className="hidden shrink-0 md:block" data-testid="chat-surface-workspace"><ChatRightDock projectPath={null} sessionId={null} showFiles filesPreview={FILE_PREVIEW_FIXTURES} playgroundTabs onCloseFiles={() => setJourney('conversation')} width={viewport === 'split' ? 290 : 360} /></div>}
+          </div>
         </SurfaceViewport>
       </div>
     </div>

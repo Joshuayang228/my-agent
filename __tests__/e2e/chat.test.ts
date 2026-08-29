@@ -366,6 +366,24 @@ test.describe('My Agent UI', () => {
     await expect(candidate.getByTitle('人物世界')).toBeVisible()
     await expect(candidate.getByTitle('设置')).toBeVisible()
     await expect(page.locator('[data-testid="chat-surface-main"]').getByText('新对话', { exact: true })).toHaveCount(0)
+    await expect(page.getByRole('tablist', { name: 'Chat 主旅程' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: '初次进入', exact: true })).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByRole('button', { name: '换个主角 →', exact: true })).toHaveCount(0)
+
+    await page.getByRole('tab', { name: '正在聊天', exact: true }).click()
+    await expect(page.getByTestId('chat-surface-message-flow')).toBeVisible()
+    await expect(page.getByText('帮我把今天的事情理一下，先做最重要的。', { exact: true })).toBeVisible()
+    await expect(page.getByTestId('chat-surface-task-card')).toHaveCount(0)
+
+    await page.getByRole('tab', { name: '处理任务', exact: true }).click()
+    await expect(page.getByTestId('chat-surface-task-card')).toBeVisible()
+    await expect(page.getByTestId('chat-surface-workspace')).toBeVisible()
+    await expect(page.getByTestId('chat-surface-workspace').getByTestId('right-dock-tab-preview')).toBeVisible()
+    await expect(page.getByTestId('chat-surface-workspace')).toContainText('my-agent · 样张项目')
+
+    await page.getByRole('tab', { name: '初次进入', exact: true }).click()
+    await expect(page.getByTestId('chat-surface-message-flow')).toHaveCount(0)
+    await expect(page.getByTestId('chat-surface-workspace')).toHaveCount(0)
 
     await nav.getByRole('button', { name: '设置', exact: true }).click()
     await expect(page.locator('[data-testid="settings-panel"]')).toBeVisible()
