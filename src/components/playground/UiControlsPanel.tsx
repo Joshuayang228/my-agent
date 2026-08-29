@@ -222,9 +222,7 @@ function ResizeStory() {
           <ResizeHandle orientation="vertical" onDelta={(delta) => setWidth((value) => Math.min(320, Math.max(120, value + delta)))} title="调整内容区宽度" />
           <div className="flex min-w-0 flex-1 items-center justify-center text-[11px]" style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)' }}>辅助区 · {width}px</div>
         </div>
-      </StoryBlock>
-      <StoryBlock title="最小 / 最大边界" source="src/components/shell/ResizeHandle.tsx · LAYOUT_BOUNDS" edge adopted>
-        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>拖动中保持 120–320px 范围，键盘和窄宽验收不能让主操作消失。</p>
+        <p className="mt-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>边界：拖动中保持 120–320px 范围，键盘和窄宽验收不能让主操作消失。</p>
       </StoryBlock>
     </div>
   )
