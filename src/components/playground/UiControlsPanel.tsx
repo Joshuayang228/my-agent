@@ -184,16 +184,26 @@ function BadgeTagStory() {
 
 function DividerStory() {
   return (
-    <div className="space-y-3 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+    <div className="space-y-4 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
       <div className="space-y-2">
         <span>内容区域 A</span>
-        <div role="separator" style={{ borderTop: '1px solid var(--border-subtle)' }} />
+        <div role="separator" aria-label="内容区域分隔线" style={{ borderTop: '1px solid var(--border-subtle)' }} />
         <span>内容区域 B</span>
       </div>
       <div className="flex h-8 items-center gap-3">
         <span>左侧</span>
-        <div role="separator" aria-orientation="vertical" className="h-full" style={{ borderLeft: '1px solid var(--border-subtle)' }} />
+        <div role="separator" aria-orientation="vertical" aria-label="左右区域分隔线" className="h-full" style={{ borderLeft: '1px solid var(--border-subtle)' }} />
         <span>右侧</span>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2" data-testid="divider-boundary-samples">
+        <div className="rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+          <div className="text-[10px] font-medium" style={{ color: 'var(--text-primary)' }}>正确：建立关系</div>
+          <div className="mt-2 space-y-1.5"><span className="block">标题</span><div aria-hidden="true" style={{ borderTop: '1px solid var(--border-subtle)' }} /><span className="block" style={{ color: 'var(--text-muted)' }}>辅助内容</span></div>
+        </div>
+        <div className="rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+          <div className="text-[10px] font-medium" style={{ color: 'var(--text-primary)' }}>不要：代替层级</div>
+          <div className="mt-2 flex items-center gap-2"><span className="h-8 w-1 rounded-full" style={{ background: 'var(--danger)' }} /><span style={{ color: 'var(--text-muted)' }}>不使用彩色竖线标记状态</span></div>
+        </div>
       </div>
     </div>
   )
@@ -495,11 +505,8 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
 
       {effectiveSub === 'divider' && (
         <div className="space-y-3">
-          <StoryBlock title="分隔线" source="src/components/playground/UiControlsPanel.tsx · Divider fixture">
+          <StoryBlock title="分隔线" source="src/components/playground/UiControlsPanel.tsx · Divider fixture" adopted>
             <DividerStory />
-          </StoryBlock>
-          <StoryBlock title="分隔线的边界" source="src/components/playground/UiControlsPanel.tsx · separator edge" edge>
-            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>分隔线只建立内容区域关系，不用来代替底色、字重和留白，也不使用彩色竖线标记状态。</p>
           </StoryBlock>
         </div>
       )}

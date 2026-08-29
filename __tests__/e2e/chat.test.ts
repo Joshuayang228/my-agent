@@ -197,7 +197,9 @@ test.describe('My Agent UI', () => {
     await page.getByRole('tab', { name: '按钮', exact: true }).click()
     await expect(page.getByRole('heading', { name: '图标按钮', exact: true })).toBeVisible()
     await page.getByRole('tab', { name: '布局与滚动', exact: true }).click()
-    await expect(page.getByRole('heading', { name: '分隔线', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /^分隔线/ })).toBeVisible()
+    await expect(page.getByTestId('divider-boundary-samples')).toBeVisible()
+    await expect(page.getByText('分隔线的边界', { exact: true })).toHaveCount(0)
 
     await nav.getByRole('button', { name: '设计语言', exact: true }).click()
     const designSource = page.getByTestId('playground-source')
