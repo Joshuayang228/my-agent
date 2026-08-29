@@ -181,7 +181,7 @@ Skill 资产由 `electron/main/skills/loader.ts` 读取和保存；Frontmatter �
 - **Vision 降级**：OpenAI Compatible 图片先乐观尝试，识别能力错误后进程内记忆拒绝并去图重试一次
 - **Prompt Cache**：Anthropic `cache_control` 标记 System Prompt + Tools
 - **Structured Output**：OpenAI Compatible `ResponseFormat` 支持 json_object / json_schema
-- 内置模型预设统一来自 `src/shared/provider-presets.ts`：Settings 展示 9 个，Chat 快切展示其中 4 个
+- 内置模型预设统一来自 `src/shared/provider-presets.ts`：按海外直连、国内服务商、编程套餐、聚合与代理、本地 / 自定义分组；当前 Settings 展示 30 个，Chat 快切展示其中 4 个。ListenHub / CLIProxy 不作为普通聊天预设。
 - 复用 API 进行 Embedding 调用
 
 ### 8. 上下文压缩

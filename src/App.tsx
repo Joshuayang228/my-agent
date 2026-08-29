@@ -23,7 +23,7 @@ import {
   Folder, FolderOpen, Ban,
   ChevronDown, Square,
   Copy, Check, X, Pencil, RotateCcw, GitBranch, Trash2,
-  Plus, Search, Menu, Send, File, Quote,
+  Plus, Search, Menu, Send, File,
 } from 'lucide-react'
 import { buildColdStartCopy } from './shared/companion-presence'
 import {
@@ -1220,13 +1220,6 @@ function App() {
                 <p className="mt-3 max-w-md text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                   {coldStart.subtitle}
                 </p>
-                <blockquote
-                  className="mt-3 flex max-w-sm items-start gap-2 rounded-[var(--radius-md)] px-3 py-2 text-left text-[11.5px] leading-5"
-                  style={{ color: 'var(--text-muted)', background: 'var(--bg-inset)' }}
-                >
-                  <Quote className="mt-0.5 shrink-0" size={13} strokeWidth={1.6} aria-hidden="true" />
-                  <span>{coldStart.hint}</span>
-                </blockquote>
                 <div className="mt-8 flex max-w-lg flex-wrap justify-center gap-2">
                   {([
                     { label: '打个招呼', prompt: '你好，介绍一下你自己', primary: true },

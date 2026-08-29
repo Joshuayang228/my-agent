@@ -494,3 +494,14 @@
 - **背景**：Tool / Skill / MCP 等运行时能力可以由 loader 自动发现；Prompt、Provider、SubAgent 角色、Theme 等静态资产若只靠目录扫描无法可靠推导稳定语义 key，容易出现 Debug 漏登和第二事实源。
 - **决定**：动态家族明确标记 runtime auto-discovered；静态家族必须由生产注册表登记；`scripts/asset-governance.mjs` 维护治理元数据，`npm run assets:check` 校验来源、类型覆盖、单一来源和 staged 同步，失败即阻断。机器报告只做 dated snapshot，不参与产品运行。
 - **影响**：新增静态资产必须同步注册表和测试；主题只在 `design-asset-registry.ts` 登记；SubAgent 执行器与 Debug 共享 `subagent-asset-registry.ts`；图标 / UI / Design 不进入 ModelContext 或 Agent 运行证据。
+### DEC-039: Provider 预设按 Alice 入口分组，协议能力仍由本项目路由事实决定
+
+- **日期**：2026-08-29
+- **状态**：已决定
+- **背景**：Alice 当前 Provider 清单覆盖官方直连、国内服务商、聚合入口、Coding Plan 和本地服务；若全部平铺，用户会把不同计费和协议入口误认为同一种模型。
+- **选项**：
+  - A：只保留少数手写模型 — 页面简单，但与 Alice 支持范围脱节，且设置 / Chat 容易再次分叉
+  - B：复制 Alice 全部 Provider 定义 — 覆盖广，但会把 TTS、订阅代理和厂商声明直接伪装成 My Agent 的真实能力
+  - C：映射 Alice 的可用聊天入口到共享预设，按入口类型分组，协议能力继续由本项目 router 决定 — 覆盖广且不越过本项目真实边界
+- **决定**：C。共享 `src/shared/provider-presets.ts` 纳入 30 个可配置聊天入口，分为海外直连、国内服务商、编程套餐、聚合与代理、本地 / 自定义；ListenHub（TTS）和 CLIProxy（本地订阅代理）不作为普通聊天预设。
+- **影响**：Settings、Chat 快切、Debug Provider 资产统一读取共享预设；Anthropic / Gemini 请求 builder 归一化版本路径，未知自定义端点仍回退 OpenAI Compatible。

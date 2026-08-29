@@ -23,15 +23,36 @@ describe('模型 Provider 生产资产目录', () => {
     expect(PROVIDER_PRESETS.map((preset) => preset.key)).toEqual([
       'provider-preset:openai:gpt-4o',
       'provider-preset:openai:gpt-4o-mini',
+      'provider-preset:openai:gpt-5.5',
       'provider-preset:anthropic:claude-sonnet',
+      'provider-preset:anthropic:claude-sonnet-4-6',
+      'provider-preset:google:gemini-3.1-flash-preview',
+      'provider-preset:xai:grok-4',
       'provider-preset:deepseek:v3',
       'provider-preset:deepseek:v4-flash',
+      'provider-preset:deepseek:reasoner',
       'provider-preset:qwen:max',
       'provider-preset:moonshot:kimi-k2',
+      'provider-preset:moonshot:kimi-k2.6',
+      'provider-preset:minimax:m2.5',
+      'provider-preset:zhipu:glm-4.5',
+      'provider-preset:siliconflow:qwen3-235b',
+      'provider-preset:xiaomi:mimo-v2.5-pro',
+      'provider-preset:volces:doubao-seed-2-pro',
+      'provider-preset:kimi-coding:kimi-for-coding',
+      'provider-preset:aliyun-coding:qwen3-coder',
+      'provider-preset:minimax-coding:m2.5',
+      'provider-preset:zhipu-coding:glm-4.5',
+      'provider-preset:volces-coding:doubao-seed-2-pro',
+      'provider-preset:xiaomi-coding:mimo-v2-pro',
+      'provider-preset:openrouter:gpt-4.1',
+      'provider-preset:pipellm:claude-sonnet-4-6',
+      'provider-preset:miyang:gemini-3-flash',
+      'provider-preset:tokendance:glm-5.1',
       'provider-preset:local:ollama',
       'provider-preset:local:lm-studio',
     ])
-    expect(PROVIDER_PRESET_GROUPS.map((group) => group.items.length)).toEqual([3, 4, 2])
+    expect(PROVIDER_PRESET_GROUPS.map((group) => group.items.length)).toEqual([7, 11, 6, 4, 2])
     expect(QUICK_PROVIDER_PRESETS.map((preset) => preset.model)).toEqual([
       'gpt-4o',
       'gpt-4o-mini',
@@ -88,7 +109,7 @@ describe('模型 Provider 生产资产目录', () => {
     expect(request.body.tools).toBeTruthy()
   })
 
-  it('登记三协议、五项跨 Provider 策略和九个预设', () => {
+  it('登记三协议、五项跨 Provider 策略和全部内置预设', () => {
     const assets = getProviderAssetCatalog()
     const keys = assets.map((asset) => asset.key)
 
@@ -104,7 +125,7 @@ describe('模型 Provider 生产资产目录', () => {
       'provider-policy:vision-fallback',
       'provider-policy:sequential-failover',
     ])
-    expect(keys.filter((key) => key.startsWith('provider-preset:'))).toHaveLength(9)
+    expect(keys.filter((key) => key.startsWith('provider-preset:'))).toHaveLength(PROVIDER_PRESETS.length)
     expect(new Set(keys).size).toBe(keys.length)
     for (const asset of assets) {
       expect(asset.category).toBe('provider')

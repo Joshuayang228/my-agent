@@ -61,10 +61,11 @@
 | [memory-strategy-assets-v1.md](./memory-strategy-assets-v1.md) | 已落地：记忆提取、召回、去重、生命周期与纠错策略注册 |
 | [permission-sandbox-assets-v1.md](./permission-sandbox-assets-v1.md) | 已落地：权限责任链、沙箱档位、命令分级、路径边界、审批生命周期与有效沙箱策略注册 |
 | [eval-case-grader-assets-v1.md](./eval-case-grader-assets-v1.md) | 已落地：普通 / Skill Eval Case、结构化 Grader 判据和统一 Scenario 注册表 |
-| [provider-capability-assets-v1.md](./provider-capability-assets-v1.md) | 已落地：Provider 预设唯一注册表、三协议适配能力和 Thinking / Context / Vision / Failover 策略资产 |
+
 | [frontend-companion-surfaces.md](./frontend-companion-surfaces.md) | Alice 对照前端表面：生活/工具 IA、P0–P2 验收 |
 | [first-run-and-ui-e2e.md](./first-run-and-ui-e2e.md) | 首次配置旅程与 UI E2E 稳定门禁 |
 | [persona-human-review.md](./persona-human-review.md) | 已落地：Persona Eval Trial 的独立人工审阅闭环 |
+| [provider-capability-assets-v1.md](./provider-capability-assets-v1.md) | 已落地：依据 Alice Provider 清单扩充共享预设、路由归一化与设置展示 |
 
 ---
 

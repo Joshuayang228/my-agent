@@ -7,7 +7,6 @@
 export interface ColdStartCopy {
   title: string
   subtitle: string
-  hint: string
 }
 
 export function buildColdStartCopy(role: {
@@ -19,7 +18,6 @@ export function buildColdStartCopy(role: {
   return {
     title: `嗨，我是${name}`,
     subtitle: description,
-    hint: '聊天、朋友圈和衣柜都跟着当前主角；对话进行中不能换人。',
   }
 }
 

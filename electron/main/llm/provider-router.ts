@@ -15,10 +15,25 @@ import { createLogger } from '../utils/logger'
 const log = createLogger('ProviderRouter')
 
 export const PROVIDER_DETECTION_RULES: ReadonlyArray<{ pattern: RegExp; provider: LLMProvider }> = [
-  { pattern: /anthropic\.com|claude\.ai/, provider: 'anthropic' },
+  // Anthropic 协议既可能来自官方域名，也可能来自 MiniMax Token Plan 这类路径型端点。
+  { pattern: /anthropic\.com|claude\.ai|\/anthropic(?:\/|$)/, provider: 'anthropic' },
   { pattern: /googleapis\.com|generativelanguage/, provider: 'gemini' },
   { pattern: /openai\.com|deepseek\.com|api\.openai|together\.xyz|groq\.com|openrouter\.ai/, provider: 'openai' },
 ]
+
+/**
+ * 将协议路径拼到 Base URL；Alice 清单有时带版本前缀，而本项目旧配置有时不带。
+ * 统一在这里消除重复的 /v1 或 /v1beta，避免一键套用预设后请求变成 /v1/v1/*。
+ */
+function appendApiPath(baseUrl: string, path: string): string {
+  const base = baseUrl.replace(/\/+$/, '')
+  const normalizedPath = path.replace(/^\/+/, '')
+  const basePath = (base.match(/^https?:\/\/[^/]+(\/.*)?$/)?.[1] ?? '').replace(/\/+$/, '')
+  const pathWithoutVersion = normalizedPath.replace(/^(?:v1|v1beta)\//, '')
+  if (basePath.endsWith('/v1') && normalizedPath.startsWith('v1/')) return `${base}/${pathWithoutVersion}`
+  if (basePath.endsWith('/v1beta') && normalizedPath.startsWith('v1beta/')) return `${base}/${pathWithoutVersion}`
+  return `${base}/${normalizedPath}`
+}
 
 /** 根据 Base URL 应用生产检测规则；未知端点保守回退 OpenAI Compatible。 */
 export function detectProviderFromBaseUrl(baseUrl: string): Exclude<LLMProvider, 'auto'> {
@@ -126,7 +141,7 @@ export function buildAnthropicBody(
   }
 
   return {
-    url: `${config.baseUrl}/v1/messages`,
+    url: appendApiPath(config.baseUrl, 'v1/messages'),
     headers,
     body,
   }
@@ -180,7 +195,7 @@ export function buildGeminiBody(
 
   const model = config.model || 'gemini-pro'
   return {
-    url: `${config.baseUrl}/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${config.apiKey}`,
+    url: `${appendApiPath(config.baseUrl, `v1beta/models/${model}:streamGenerateContent`)}?alt=sse&key=${config.apiKey}`,
     headers: { 'Content-Type': 'application/json' },
     body,
   }

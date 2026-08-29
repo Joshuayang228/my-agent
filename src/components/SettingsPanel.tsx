@@ -888,7 +888,7 @@ export function SettingsPanel({
       <div>
         <SectionTitle>模型</SectionTitle>
         <p className="mt-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
-          选择 Provider 预设，再填 API Key。底层会按显式配置或 Base URL 路由到 OpenAI Compatible、Anthropic 或 Gemini 适配器。
+          参考 Alice 的内置 Provider 入口选择预设，再填 API Key；编程套餐单独分组，ListenHub（TTS）和本地订阅代理不混入普通聊天。底层会按 Base URL 路由到 OpenAI Compatible、Anthropic 或 Gemini 适配器。
         </p>
       </div>
 

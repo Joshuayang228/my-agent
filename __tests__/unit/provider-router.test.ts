@@ -28,6 +28,10 @@ describe('detectProvider', () => {
     expect(detectProvider({ ...baseConfig, baseUrl: 'https://api.anthropic.com' })).toBe('anthropic')
   })
 
+  it('MiniMax Token Plan 路径检测为 anthropic', () => {
+    expect(detectProvider({ ...baseConfig, baseUrl: 'https://api.minimaxi.com/anthropic/v1' })).toBe('anthropic')
+  })
+
   it('Gemini baseUrl 检测为 gemini', () => {
     expect(detectProvider({ ...baseConfig, baseUrl: 'https://generativelanguage.googleapis.com' })).toBe('gemini')
   })
@@ -58,12 +62,18 @@ describe('buildAnthropicBody', () => {
     expect((body.messages as any[]).every((m: any) => m.role !== 'system')).toBe(true)
     expect(headers['x-api-key']).toBe('test-key')
     expect(headers['anthropic-version']).toBe('2023-06-01')
-    expect(url).toContain('/v1/messages')
+    expect(url).toBe('https://api.anthropic.com/v1/messages')
   })
 
   it('包含 stream: true', () => {
     const { body } = buildAnthropicBody(baseConfig, [{ role: 'user', content: 'Hi' }])
     expect(body.stream).toBe(true)
+  })
+
+  it('已带版本和协议路径的 Anthropic Base URL 不重复拼接版本', () => {
+    const config = { ...baseConfig, baseUrl: 'https://api.minimaxi.com/anthropic/v1', model: 'MiniMax-M2.5' }
+    const { url } = buildAnthropicBody(config, [{ role: 'user', content: 'Hi' }])
+    expect(url).toBe('https://api.minimaxi.com/anthropic/v1/messages')
   })
 })
 
@@ -78,8 +88,14 @@ describe('buildGeminiBody', () => {
 
     expect((body.systemInstruction as any).parts[0].text).toBe('Be helpful')
     expect((body.contents as any[]).every((c: any) => c.role !== 'system')).toBe(true)
-    expect(url).toContain('gemini-pro')
+    expect(url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent?alt=sse&key=test-key')
     expect(url).toContain('streamGenerateContent')
+  })
+
+  it('已带版本的 Gemini Base URL 不重复拼接版本', () => {
+    const config = { ...baseConfig, baseUrl: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-pro' }
+    const { url } = buildGeminiBody(config, [{ role: 'user', content: 'Hi' }])
+    expect(url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent?alt=sse&key=test-key')
   })
 
   it('assistant 角色映射为 model', () => {

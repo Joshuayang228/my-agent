@@ -1,6 +1,6 @@
 # 模型 Provider 能力资产注册 v1 施工合同
 
-> 状态：已落地（2026-08-15）
+> 状态：已落地（2026-08-29）
 > 生命周期：已完成施工快照（冻结）；当前能力与行为以代码、模块卡、Architecture、Quality 和 Decisions 为准。
 > 统一称呼：施工合同
 
@@ -16,7 +16,7 @@ Agent 生产资产目录已经覆盖 Prompt、伙伴与人格、记忆策略、�
 - Failover 发生时哪些字段会继承，哪些会被替换？
 - Settings 中的模型预设来自哪里，Chat 快切和设置页是否一致？
 
-目前模型预设分别写在 `src/components/SettingsPanel.tsx` 和 `src/App.tsx`，已经形成两个事实源；Settings 包含 9 个预设，Chat 快切只复制其中 4 个。如果继续在 Debug 再维护第三份展示清单，预设和能力会继续漂移。
+历史上模型预设分别写在 `src/components/SettingsPanel.tsx` 和 `src/App.tsx`，曾形成两个事实源；当前 Settings 与 Chat 快切只消费共享注册表；截至 2026-08-29，注册表包含 30 个预设，Chat 快切仍只展示其中 4 个。如果继续在 Debug 再维护第三份展示清单，预设和能力会继续漂移。
 
 本合同只登记 My Agent **当前代码真实实现**的 Provider 能力，不抓取或硬编码厂商官网的最新产品规格。外部模型上下文、价格、可用区域和型号更新频繁，只有进入生产适配器、预设或能力探测后，才能成为本项目的生产资产。
 
@@ -57,21 +57,19 @@ src/shared/provider-presets.ts
 }
 ```
 
-首期迁移现有预设：
+首期迁移现有预设，并按 Alice 本地 Provider 清单补齐为五组：
 
 ```text
-GPT-4o
-GPT-4o-mini
-Claude Sonnet
-DeepSeek V3
-DeepSeek V4 Flash
-通义千问 Max
-Kimi K2
-Ollama
-LM Studio
+海外直连：OpenAI、Anthropic、Google Gemini、xAI
+国内服务商：DeepSeek、Kimi、阿里云百炼、MiniMax、智谱、硅基流动、小米 MiMo、火山引擎
+编程套餐：Kimi / 阿里云 / MiniMax / 智谱 / 火山 / 小米 Coding Plan
+聚合与代理：OpenRouter、PipeLLM、米羊、观猹
+本地 / 自定义：Ollama、LM Studio
 ```
 
-`SettingsPanel.tsx` 按 group 展示全部预设；`App.tsx` 只读取 `quickAccess: true` 的子集。新增 / 修改预设时只改注册表。
+ListenHub（TTS）与 CLIProxy 订阅代理不作为普通聊天预设；它们属于不同的能力或本地运行前置条件，避免在模型选择里伪装成普通 Provider。
+
+`SettingsPanel.tsx` 按 group 展示全部预设；`App.tsx` 只读取 `quickAccess: true` 的子集。新增 / 修改预设时只改注册表。Provider 预设的公开地址只用于填充配置，API Key 仍由用户填写并由安全存储管理。
 
 预设资产 key 使用稳定语义 key，例如：
 
@@ -81,6 +79,17 @@ provider-preset:anthropic:claude-sonnet
 provider-preset:deepseek:v4-flash
 provider-preset:local:ollama
 ```
+
+
+### 3.1.1 Alice 对照与纳入边界（2026-08-29）
+
+本轮先读取仓库内 Alice 构建产物 `_reference/framework-harness/repos/alice-source/main-chunks/providers-C3aFiGCn.js` 的 `BUILTIN_PROVIDERS`，确认入口、协议和默认模型，再映射到 My Agent。不会把 Alice 的 Provider 定义复制到运行时代码，也不会把厂商实时规格当作本项目能力保证。
+
+- 纳入普通聊天选择：官方直连、国内服务商、聚合服务和本地 OpenAI Compatible 入口。
+- 单列编程套餐：Coding Plan 的计费 / 模型开放范围与普通聊天入口不同，保留独立分组。
+- 不纳入普通聊天预设：ListenHub（TTS）和 CLIProxy（本地代理账号）；前者不是聊天模型，后者需要单独的本地运行条件。
+- 适配边界：除 Anthropic / Gemini 官方协议外，其他 Alice 入口先按 OpenAI Compatible 发送；MiniMax Token Plan 通过端点路径识别 Anthropic。未知自定义地址继续保守回退 OpenAI Compatible。
+- 地址归一化：Anthropic / Gemini builder 会消除重复的 `/v1` 或 `/v1beta`，兼容旧配置和共享预设。
 
 ### 3.2 Provider 路由与协议能力
 

@@ -12,7 +12,7 @@ describe('companion presence', () => {
     })
     expect(copy.title).toBe('嗨，我是小林')
     expect(copy.subtitle).toContain('沉稳体贴')
-    expect(copy.hint).toContain('不能换人')
+    expect(copy).not.toHaveProperty('hint')
   })
 
   it('换角再认识文案：换视角非重开，且点名双方', () => {
