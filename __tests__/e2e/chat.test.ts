@@ -386,8 +386,12 @@ test.describe('My Agent UI', () => {
     await expect(dock.getByTestId('right-dock-tab-preview')).toBeVisible()
 
     await nav.getByRole('button', { name: '人物世界', exact: true }).click()
+    await expect(page.getByTestId('playground-moments-profile')).toBeVisible()
+    await expect(page.getByTestId('playground-moments-profile')).toContainText('小林')
     await expect(page.getByText('把窗帘拉开了一点，泡了杯乌龙茶，准备先把桌面清出一块。', { exact: true })).toBeVisible()
-    await expect(page.locator('.moments-social-feed')).toBeVisible()
+    await expect(page.locator('.moments-social-feed.moments-alice-feed')).toBeVisible()
+    await expect(page.getByTestId('moment-post')).toHaveCount(3)
+    await expect(page.getByTestId('moment-post').first()).toContainText('生活动态')
     await expect(page.getByText('路过河边的时候记下了一个想法：慢一点，反而能看见今天真正想做的事。', { exact: true })).toBeVisible()
 
     await nav.getByRole('button', { name: '记忆', exact: true }).click()
@@ -545,7 +549,7 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('CATCH-UP', { exact: true })).toHaveCount(0)
     await expect(page.getByText('把窗帘拉开了一点，泡了杯乌龙茶，准备先把桌面清出一块。', { exact: true })).toBeVisible()
     await expect(page.getByText('仅展示近期动态 · 内容由主角的生活事件自然派生', { exact: true })).toBeVisible()
-    await expect(page.getByTestId('moment-social-actions')).toHaveCount(2)
+    await expect(page.getByTestId('moment-social-actions')).toHaveCount(3)
     await page.getByRole('button', { name: '赞', exact: true }).first().click()
     await expect(page.getByRole('button', { name: '取消赞', exact: true }).first()).toBeVisible()
     await expect(page.getByTestId('world-tab-shelf')).toBeHidden()

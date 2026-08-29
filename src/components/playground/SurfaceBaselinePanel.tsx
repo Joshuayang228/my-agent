@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowUp, ChevronDown, Folder, PanelLeftOpen, Paperclip, Shield } from 'lucide-react'
+import { ArrowUp, ChevronDown, Folder, Image, MapPin, PanelLeftOpen, Paperclip, Shield } from 'lucide-react'
 import { SettingsPanel } from '../SettingsPanel'
 import { MemoryPanel } from '../MemoryPanel'
 import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
@@ -105,6 +105,11 @@ const MOMENTS_PREVIEW_FIXTURES: MomentsPreviewData = {
       id: 'playground-moment-2', roleId: 'lin', eventId: 'fixture-notes',
       publishedAt: NOW - 3 * 3_600_000, text: '路过河边的时候记下了一个想法：慢一点，反而能看见今天真正想做的事。',
       meta: { type: 'mood', location: '河边', interactions: [{ kind: 'coframe', castName: '阿禾' }] },
+    },
+    {
+      id: 'playground-moment-3', roleId: 'lin', eventId: 'fixture-tea',
+      publishedAt: NOW - 26 * 3_600_000, text: '下午茶时间。今天没有急着把所有事情做完，留一点空白也很好。',
+      meta: { type: 'daily', location: '窗边', interactions: [] },
     },
   ] satisfies MomentItem[],
 }
@@ -393,6 +398,33 @@ function DockSurface() {
   )
 }
 
+function MomentsProfileHero() {
+  return (
+    <section className="moments-profile-hero relative shrink-0 overflow-hidden" data-testid="playground-moments-profile">
+      <div className="moments-profile-hero-wash absolute inset-0" aria-hidden="true">
+        <div className="moments-profile-hero-orbit absolute -right-10 -top-20 h-48 w-48 rounded-full" />
+        <div className="moments-profile-hero-orbit moments-profile-hero-orbit-secondary absolute -left-16 -bottom-28 h-56 w-56 rounded-full" />
+        <div className="moments-profile-hero-vignette absolute inset-x-0 bottom-0 h-20" />
+      </div>
+      <div className="relative flex min-h-[9.5rem] items-end gap-3 px-5 pb-4 pt-8">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-lg)] border-4 text-lg font-semibold shadow-sm" style={{ borderColor: 'var(--card-bg)', background: 'var(--accent-subtle)', color: 'var(--companion-accent-warm)' }}>
+          小
+        </div>
+        <div className="min-w-0 flex-1 pb-0.5">
+          <div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>小林</div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px]" style={{ color: 'color-mix(in srgb, var(--text-primary) 78%, transparent)' }}>
+            <span>沉稳体贴的数字伙伴</span>
+            <span className="inline-flex items-center gap-1"><MapPin size={11} aria-hidden="true" />生活在此刻</span>
+          </div>
+        </div>
+        <span className="hidden shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] sm:inline-flex" style={{ borderColor: 'color-mix(in srgb, var(--text-primary) 28%, transparent)', background: 'color-mix(in srgb, var(--text-primary) 12%, transparent)', color: 'color-mix(in srgb, var(--text-primary) 86%, transparent)' }}>
+          <Image size={11} aria-hidden="true" /> 近期生活
+        </span>
+      </div>
+    </section>
+  )
+}
+
 function WorldSurface() {
   const [tab, setTab] = useState<WorldTab>('moments')
   const previewPanels: Partial<Record<WorldTab, ReactNode>> = {
@@ -419,20 +451,26 @@ function WorldSurface() {
   }
   return (
     <SurfaceViewport>
-      <WorldHub
-        tab={tab}
-        onTabChange={setTab}
-        onClose={noop}
-        onOpenSession={noop}
-        onSwitched={noop}
-        recentByRole={{}}
-        momentsPreview={MOMENTS_PREVIEW_FIXTURES}
-        momentsAppearance="social-feed"
-        showSocialActions
-        hideMomentsHeader
-        previewPanels={previewPanels}
-        hiddenTabs={['shelf']}
-      />
+      <div className="flex h-full min-h-0 flex-col" data-testid="playground-world-experience">
+        <MomentsProfileHero />
+        <div className="min-h-0 flex-1">
+          <WorldHub
+            tab={tab}
+            onTabChange={setTab}
+            onClose={noop}
+            onOpenSession={noop}
+            onSwitched={noop}
+            recentByRole={{}}
+            momentsPreview={MOMENTS_PREVIEW_FIXTURES}
+            momentsAppearance="alice-feed"
+            showSocialActions
+            hideMomentsHeader
+            previewPanels={previewPanels}
+            hiddenTabs={['shelf']}
+            hideHeader
+          />
+        </div>
+      </div>
     </SurfaceViewport>
   )
 }

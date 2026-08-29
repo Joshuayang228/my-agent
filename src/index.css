@@ -707,6 +707,47 @@ html[data-font-scale="lg"] {
   height: 0;
 }
 
+/* Playground 朋友圈样张：借 Alice 的“人物头图 + 社交流”结构，不进入正式页面。 */
+.moments-profile-hero {
+  min-height: 9.5rem;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--companion-accent-warm) 48%, var(--bg-inset)) 0%, color-mix(in srgb, var(--accent) 42%, var(--bg-inset)) 52%, color-mix(in srgb, var(--success) 28%, var(--bg-inset)) 100%);
+}
+.moments-profile-hero-wash {
+  background:
+    radial-gradient(circle at 78% 22%, color-mix(in srgb, var(--card-bg) 32%, transparent) 0 4%, transparent 5% 100%),
+    radial-gradient(circle at 62% 60%, color-mix(in srgb, var(--card-bg) 12%, transparent) 0 18%, transparent 19% 100%),
+    linear-gradient(145deg, transparent 0 42%, color-mix(in srgb, var(--bg-inset) 18%, transparent) 43% 44%, transparent 45% 100%);
+}
+.moments-profile-hero-orbit {
+  background: color-mix(in srgb, var(--card-bg) 12%, transparent);
+  filter: blur(1px);
+  opacity: .72;
+}
+.moments-profile-hero-orbit-secondary {
+  background: color-mix(in srgb, var(--companion-accent-warm) 30%, transparent);
+  opacity: .5;
+}
+.moments-profile-hero-vignette {
+  background: linear-gradient(to top, color-mix(in srgb, var(--bg-inset) 22%, transparent), transparent);
+}
+.moments-alice-feed .moments-alice-post {
+  border: 1px solid color-mix(in srgb, var(--accent) 12%, var(--border-subtle));
+  border-radius: var(--radius-lg);
+  padding: 1.15rem 1.25rem 1rem;
+  background: color-mix(in srgb, var(--accent) 7%, var(--card-bg));
+  box-shadow: 0 .45rem 1.2rem color-mix(in srgb, var(--text-primary) 4%, transparent);
+  transition: border-color var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
+}
+.moments-alice-feed .moments-alice-post:hover {
+  border-color: color-mix(in srgb, var(--accent) 26%, var(--border-subtle));
+  background: color-mix(in srgb, var(--accent) 10%, var(--card-bg));
+  transform: translateY(-1px);
+}
+.moments-alice-feed .moments-alice-post p {
+  max-width: 58rem;
+}
+
 /* 面板分界拖动手柄：热区略宽，线细；悬停显 accent */
 .resize-handle {
   flex-shrink: 0;

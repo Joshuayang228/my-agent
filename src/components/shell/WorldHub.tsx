@@ -38,6 +38,7 @@ export function WorldHub({
   momentsPreview,
   momentsAppearance,
   hideMomentsHeader,
+  hideHeader,
   showSocialActions = false,
   previewPanels,
   hiddenTabs = [],
@@ -51,9 +52,11 @@ export function WorldHub({
   /** Playground / 测试专用只读朋友圈样张。 */
   momentsPreview?: MomentsPreviewData
   /** Playground 以社交流展示验收朋友圈层级。 */
-  momentsAppearance?: 'default' | 'social-feed'
+  momentsAppearance?: 'default' | 'social-feed' | 'alice-feed'
   /** WorldHub 已有标题时隐藏 Moments 重复标题行。 */
   hideMomentsHeader?: boolean
+  /** Playground 可用自定义人物世界头图替代默认标题行。 */
+  hideHeader?: boolean
   /** Playground 专用互动样张；正式页面默认不显示无后端的假互动。 */
   showSocialActions?: boolean
   /** Playground / 测试专用业务样张；存在时替代对应真实面板，避免读取生产数据。 */
@@ -65,7 +68,7 @@ export function WorldHub({
 
   return (
     <div className="flex h-full flex-col" data-testid="world-hub">
-      <div
+      {!hideHeader && <div
         className="flex shrink-0 items-center justify-between gap-3 border-b px-5 py-3"
         style={{ borderColor: 'var(--border-subtle)' }}
       >
@@ -86,7 +89,7 @@ export function WorldHub({
         >
           <X size={14} />
         </button>
-      </div>
+      </div>}
 
       <div
         className="flex shrink-0 gap-1 overflow-x-auto border-b px-4"
