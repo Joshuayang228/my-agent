@@ -7,7 +7,7 @@
 | | |
 |---|---|
 | **当前阶段** | 公开 alpha；基础运行时、伙伴世界、记忆、权限、Debug / Playground、生产资产与安全边界主线已落地。 |
-| **当前施工** | Foundation Design Language v2 正在 Playground 研究：颜色角色、4 个主题候选、圆角 / 动效角色与基础组件状态矩阵；未完成人工选择前不回流正式主题。 |
+| **当前施工** | Foundation Design Language v2 正在 Playground 研究：颜色角色、4 个主题候选、形态 / 材质 / 动效角色与基础组件状态矩阵；未完成人工选择前不回流正式主题。 |
 | **产品主线** | 继续打磨伙伴体验、人物故事与 Pack 内容；真实 Persona Eval 结果仍需人工语气与审美验收。 |
 | **明确暂缓** | 原生语音输入、Playground Prompt Lab 加厚、生图 Moments。 |
 | **明确不做** | 当前威胁模型下不做 OS 级 Shell 强隔离和 Python 嵌入沙箱，见 DEC-037。 |
