@@ -7,7 +7,7 @@ import { UI_CONTROLS_SUBTABS, type UiControlsSubId } from './catalog'
 import { UiControlsPanel } from './UiControlsPanel'
 import { PlaygroundStoryTabs } from './PlaygroundLayout'
 
-const BUSINESS_STORIES: readonly UiControlsSubId[] = ['status-bar', 'memory-chips', 'empty', 'confirm', 'feedback']
+const BUSINESS_STORIES: readonly UiControlsSubId[] = ['memory-chips', 'empty', 'confirm', 'feedback']
 
 export function BusinessStatesPanel() {
   const [story, setStory] = useState<UiControlsSubId>('feedback')

@@ -38,7 +38,9 @@ export function WorldHub({
   momentsPreview,
   momentsAppearance,
   hideMomentsHeader,
+  showSocialActions = false,
   previewPanels,
+  hiddenTabs = [],
 }: {
   tab: WorldTab
   onTabChange: (tab: WorldTab) => void
@@ -52,9 +54,15 @@ export function WorldHub({
   momentsAppearance?: 'default' | 'social-feed'
   /** WorldHub 已有标题时隐藏 Moments 重复标题行。 */
   hideMomentsHeader?: boolean
+  /** Playground 专用互动样张；正式页面默认不显示无后端的假互动。 */
+  showSocialActions?: boolean
   /** Playground / 测试专用业务样张；存在时替代对应真实面板，避免读取生产数据。 */
   previewPanels?: Partial<Record<WorldTab, ReactNode>>
+  /** 候选组合可隐藏不属于该页面的 Tab；默认产品世界仍保留完整入口。 */
+  hiddenTabs?: readonly WorldTab[]
 }) {
+  const visibleTabs = WORLD_TABS.filter((item) => !hiddenTabs.includes(item.id))
+
   return (
     <div className="flex h-full flex-col" data-testid="world-hub">
       <div
@@ -66,7 +74,7 @@ export function WorldHub({
             人物世界
           </h1>
           <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            朋友圈、物什、名册与角色架 — 一个口袋里的生活面。
+            {visibleTabs.map((item) => item.label).join('、')} — 一个口袋里的生活面。
           </p>
         </div>
         <button
@@ -86,7 +94,7 @@ export function WorldHub({
         role="tablist"
         aria-label="人物世界分区"
       >
-        {WORLD_TABS.map((t) => {
+        {visibleTabs.map((t) => {
           const active = tab === t.id
           return (
             <button
@@ -116,7 +124,7 @@ export function WorldHub({
       <div id={`world-panel-${tab}`} role="tabpanel" className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
         {previewPanels?.[tab] ?? (
           <>
-            {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} appearance={momentsAppearance ?? 'social-feed'} hideHeader={hideMomentsHeader ?? true} />}
+            {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} appearance={momentsAppearance ?? 'social-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} />}
             {tab === 'assets' && <AssetsPanel onClose={onClose} />}
             {tab === 'cast' && (
               <CastPanel

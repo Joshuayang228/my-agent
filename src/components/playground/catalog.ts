@@ -69,7 +69,7 @@ export const PLAYGROUND_TABS: readonly PlaygroundTabDef[] = [
   { id: 'visual-assets', label: '图标与视觉', group: 'foundation', description: '统一查看可复用图标和视觉资产，确认名称、尺寸与采用证据。', sourcePaths: ['src/components/playground/UiControlsPanel.tsx', 'src/shared/icon-registry.ts'] },
   { id: 'foundation-components', label: '基础组件', group: 'foundation', description: '先验收可复用基础能力，再让产品体验引用。', sourcePaths: ['src/components/playground/FoundationComponentsPanel.tsx', 'src/components/playground/FoundationAdvancedStories.tsx', 'src/shared/foundation-story-registry.ts'] },
   { id: 'chat', label: 'Chat', group: 'experience', description: '确认伙伴身份、会话导航、欢迎区与消息流的组合关系。' },
-  { id: 'world', label: '人物世界', group: 'experience', description: '确认朋友圈、物什、名册和角色架如何组成生活面。' },
+  { id: 'world', label: '人物世界', group: 'experience', description: '确认朋友圈、物什和名册如何组成生活面；角色架归入设置。' },
   { id: 'memory', label: '记忆', group: 'experience', description: '确认记忆列表、筛选、敏感项和编辑状态的阅读顺序。' },
   { id: 'settings', label: '设置', group: 'experience', description: '确认设置分组、字段编辑、自动保存和失败恢复的密度。' },
   { id: 'workspace', label: '工作区', group: 'experience', description: '确认文件、预览、审阅和终端在右侧工作区中的组合。' },
@@ -95,7 +95,7 @@ export const PLAYGROUND_TABS: readonly PlaygroundTabDef[] = [
   { id: 'persona-review', label: '人格场景说明（旧入口）', group: 'agent-experiments', status: 'archived' },
 ] as const
 
-export type UiControlsSubId = FoundationStoryViewId | 'memory-chips' | 'status-bar' | 'icons'
+export type UiControlsSubId = FoundationStoryViewId | 'memory-chips' | 'icons'
 
 export interface UiControlsSubTab {
   id: UiControlsSubId
@@ -106,6 +106,5 @@ export interface UiControlsSubTab {
 export const UI_CONTROLS_SUBTABS: readonly UiControlsSubTab[] = [
   ...FOUNDATION_STORIES.map((story) => ({ id: story.viewId, label: story.labelZh })),
   { id: 'memory-chips', label: '记忆引用' },
-  { id: 'status-bar', label: '状态条' },
   { id: 'icons', label: '图标' },
 ]

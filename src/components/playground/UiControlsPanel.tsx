@@ -11,7 +11,6 @@ import { ResizeHandle } from '../shell/ResizeHandle'
 import type { ToolCallbackItem } from '../chat/callbacks/types'
 import { MemoryCitationChips } from '../chat/MemoryCitationChips'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
-import { CompanionStatusBar } from '../CompanionStatusBar'
 import { MarkdownRenderer } from '../MarkdownRenderer'
 import { ToastPreview, type ToastPreviewItem } from '../Toast'
 import type { UiControlsSubId } from './catalog'
@@ -433,7 +432,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
           <StoryBlock title="窄宽标签" source="src/components/playground/UiControlsPanel.tsx · overflow-x-auto" edge adopted>
             <div className="max-w-[250px] overflow-x-auto rounded-lg border p-1" style={{ borderColor: 'var(--border-color)' }}>
               <div className="flex min-w-max gap-1">
-                {['朋友圈', '物什', '名册', '角色架'].map((label, index) => <span key={label} className="rounded px-2 py-1 text-[10px]" style={{ background: index === 0 ? 'var(--accent-subtle)' : 'var(--bg-tertiary)', color: index === 0 ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{label}</span>)}
+                {['朋友圈', '物什', '名册'].map((label, index) => <span key={label} className="rounded px-2 py-1 text-[10px]" style={{ background: index === 0 ? 'var(--accent-subtle)' : 'var(--bg-tertiary)', color: index === 0 ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{label}</span>)}
               </div>
             </div>
           </StoryBlock>
@@ -565,35 +564,6 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
                 },
               ]}
             />
-          </StoryBlock>
-        </div>
-      )}
-
-      {effectiveSub === 'status-bar' && (
-        <div className="space-y-3">
-          <StoryBlock title="伴侣状态条" source="src/components/CompanionStatusBar.tsx" adopted>
-            <div className="overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
-              <CompanionStatusBar
-                roleName="小林"
-                roleId="playground-demo"
-                onOpenMoments={() => undefined}
-                onOpenAssets={() => undefined}
-                onOpenShelf={() => undefined}
-                onOpenCast={() => undefined}
-              />
-            </div>
-          </StoryBlock>
-          <StoryBlock title="超长角色名" source="src/components/CompanionStatusBar.tsx · truncate" edge adopted>
-            <div className="overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
-              <CompanionStatusBar
-                roleName="这是一个故意起得很长的角色名字用来测试状态条截断表现"
-                roleId="playground-demo-long"
-                onOpenMoments={() => undefined}
-                onOpenAssets={() => undefined}
-                onOpenShelf={() => undefined}
-                onOpenCast={() => undefined}
-              />
-            </div>
           </StoryBlock>
         </div>
       )}

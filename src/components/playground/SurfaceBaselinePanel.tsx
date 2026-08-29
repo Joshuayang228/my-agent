@@ -431,19 +431,6 @@ function WorldSurface() {
         ))}
       </div>
     ),
-    shelf: (
-      <div className="grid gap-3 p-5 sm:grid-cols-2" data-testid="world-shelf-fixture">
-        <article className="rounded-xl border p-4" style={{ borderColor: 'var(--companion-accent-warm)', background: 'var(--card-bg)' }}>
-          <div className="text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>小林</div>
-          <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>沉稳、体贴，正在陪你推进这款 Agent。</p>
-          <span className="mt-3 inline-flex rounded px-1.5 py-0.5 text-[9px]" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>当前主角</span>
-        </article>
-        <article className="rounded-xl border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
-          <div className="text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>新角色占位</div>
-          <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>后续人物故事确认后再补正式角色。</p>
-        </article>
-      </div>
-    ),
   }
   return (
     <SurfaceViewport>
@@ -456,20 +443,78 @@ function WorldSurface() {
         recentByRole={{}}
         momentsPreview={MOMENTS_PREVIEW_FIXTURES}
         momentsAppearance="social-feed"
+        showSocialActions
         hideMomentsHeader
         previewPanels={previewPanels}
+        hiddenTabs={['shelf']}
       />
     </SurfaceViewport>
   )
 }
 
 function SettingsSurface() {
+  const [scenario, setScenario] = useState<'settings' | 'role-shelf'>('settings')
+
   return (
-    <SurfaceViewport>
-      <div className="pointer-events-none" aria-label="设置静态预览">
-        <SettingsPanel onClose={noop} />
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1" role="tablist" aria-label="设置页面场景">
+        {[
+          { id: 'settings' as const, label: '设置' },
+          { id: 'role-shelf' as const, label: '角色架' },
+        ].map((item) => {
+          const active = scenario === item.id
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setScenario(item.id)}
+              className="settings-option px-2.5 py-1 text-[10px]"
+              data-selected={active ? 'true' : undefined}
+            >
+              {item.label}
+            </button>
+          )
+        })}
       </div>
-    </SurfaceViewport>
+      <SurfaceViewport>
+        {scenario === 'settings' ? (
+          <div className="pointer-events-none" aria-label="设置静态预览" data-testid="settings-surface-candidate">
+            <SettingsPanel onClose={noop} />
+          </div>
+        ) : (
+          <RoleShelfFixture />
+        )}
+      </SurfaceViewport>
+    </div>
+  )
+}
+
+/** 设置页中的角色架候选：只展示切换关系，不连接真实角色列表或写入主角状态。 */
+function RoleShelfFixture() {
+  return (
+    <div className="h-full overflow-y-auto px-5 py-5" data-testid="settings-role-shelf-fixture">
+      <div className="mb-4 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
+        <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>角色架</h2>
+        <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>管理同一生活世界中的主角，切换后朋友圈与对话一起跟随。</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <article className="rounded-xl border p-4" style={{ borderColor: 'var(--companion-accent-warm)', background: 'var(--card-bg)' }}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>小林</div>
+              <p className="mt-1 text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>沉稳、体贴，正在陪你推进这款 Agent。</p>
+            </div>
+            <span className="shrink-0 rounded-full px-2 py-0.5 text-[9px]" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>当前主角</span>
+          </div>
+        </article>
+        <article className="rounded-xl border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
+          <div className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>新角色占位</div>
+          <p className="mt-1 text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>后续人物故事确认后再补正式角色。</p>
+        </article>
+      </div>
+    </div>
   )
 }
 

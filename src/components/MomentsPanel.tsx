@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { Newspaper, RefreshCw, X } from 'lucide-react'
+import { Heart, MessageCircle, Newspaper, RefreshCw, X } from 'lucide-react'
 
 export interface MomentItem {
   id: string
@@ -30,6 +30,8 @@ interface MomentsPanelProps {
   appearance?: 'default' | 'social-feed'
   /** 页面组合里已有 WorldHub 标题时隐藏重复的 Moments 标题行。 */
   hideHeader?: boolean
+  /** Playground 专用互动样张；正式页面默认不显示无后端的假互动。 */
+  showSocialActions?: boolean
 }
 
 const TYPE_DOT: Record<string, string> = {
@@ -81,11 +83,12 @@ function parseInteractions(meta: Record<string, unknown>): MomentInteractionView
   return out
 }
 
-export function MomentsPanel({ onClose, previewData, appearance = 'default', hideHeader = false }: MomentsPanelProps) {
+export function MomentsPanel({ onClose, previewData, appearance = 'default', hideHeader = false, showSocialActions = false }: MomentsPanelProps) {
   const [roleId, setRoleId] = useState(previewData?.roleId ?? '')
   const [roleName, setRoleName] = useState(previewData?.roleName ?? '')
   const [items, setItems] = useState<MomentItem[]>(previewData?.items ?? [])
   const [summary, setSummary] = useState(previewData?.summary ?? '')
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
 
   const load = useCallback(async () => {
@@ -189,6 +192,29 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
                             {comments.map((c, idx) => <li key={`${c.castName}-${idx}`}><span style={{ color: 'var(--accent-fg)' }}>{c.castName}</span>：{c.text || '赞'}</li>)}
                           </ul>
                         ) : null}
+                        {showSocialActions && (
+                          <div className="mt-3 flex items-center justify-end gap-1 border-t pt-2" data-testid="moment-social-actions" style={{ borderColor: 'var(--border-subtle)' }}>
+                            <button
+                              type="button"
+                              aria-label={likedIds.has(m.id) ? '取消赞' : '赞'}
+                              onClick={() => setLikedIds((current) => {
+                                const next = new Set(current)
+                                if (next.has(m.id)) next.delete(m.id)
+                                else next.add(m.id)
+                                return next
+                              })}
+                              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] transition"
+                              style={{ color: likedIds.has(m.id) ? 'var(--accent-fg)' : 'var(--text-muted)', background: likedIds.has(m.id) ? 'var(--accent-subtle)' : 'transparent' }}
+                            >
+                              <Heart size={12} fill={likedIds.has(m.id) ? 'currentColor' : 'none'} aria-hidden="true" />
+                              {likedIds.has(m.id) ? '已赞' : '赞'}
+                            </button>
+                            <span className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                              <MessageCircle size={12} aria-hidden="true" />
+                              评论{comments.length ? ` · ${comments.length}` : ''}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </li>

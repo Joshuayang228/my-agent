@@ -344,6 +344,7 @@ test.describe('My Agent UI', () => {
 
     await nav.getByRole('button', { name: '人物世界', exact: true }).click()
     await expect(page.getByText('把窗帘拉开了一点，泡了杯乌龙茶，准备先把桌面清出一块。', { exact: true })).toBeVisible()
+    await expect(page.locator('.moments-social-feed')).toBeVisible()
     await expect(page.getByText('路过河边的时候记下了一个想法：慢一点，反而能看见今天真正想做的事。', { exact: true })).toBeVisible()
 
     await nav.getByRole('button', { name: '记忆', exact: true }).click()
@@ -486,11 +487,25 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('CATCH-UP', { exact: true })).toHaveCount(0)
     await expect(page.getByText('把窗帘拉开了一点，泡了杯乌龙茶，准备先把桌面清出一块。', { exact: true })).toBeVisible()
     await expect(page.getByText('仅展示近期动态 · 内容由主角的生活事件自然派生', { exact: true })).toBeVisible()
-    for (const tabId of ['moments', 'assets', 'cast', 'shelf']) {
+    await expect(page.getByTestId('moment-social-actions')).toHaveCount(2)
+    await page.getByRole('button', { name: '赞', exact: true }).first().click()
+    await expect(page.getByRole('button', { name: '取消赞', exact: true }).first()).toBeVisible()
+    await expect(page.getByTestId('world-tab-shelf')).toBeHidden()
+    for (const tabId of ['moments', 'assets', 'cast']) {
       await page.getByTestId(`world-tab-${tabId}`).click()
       await expect(page.getByTestId(`world-tab-${tabId}`)).toHaveAttribute('aria-selected', 'true')
     }
-    await expect(page.getByTestId('world-shelf-fixture')).toContainText('当前主角')
+    await expect(page.getByTestId('world-shelf-fixture')).toHaveCount(0)
+
+    await nav.getByRole('button', { name: '业务状态', exact: true }).click()
+    await expect(page.getByRole('tab', { name: '状态条', exact: true })).toHaveCount(0)
+    await expect(page.getByText('伴侣状态条', { exact: true })).toHaveCount(0)
+
+    await nav.getByRole('button', { name: '设置', exact: true }).click()
+    await expect(page.getByTestId('settings-surface-candidate')).toBeVisible()
+    await page.getByRole('tab', { name: '角色架', exact: true }).click()
+    await expect(page.getByTestId('settings-role-shelf-fixture')).toBeVisible()
+    await expect(page.getByTestId('settings-role-shelf-fixture')).toContainText('当前主角')
 
     await nav.getByRole('button', { name: '记忆', exact: true }).click()
     const memory = page.locator('[data-testid="memory-surface-candidate"]')

@@ -45,7 +45,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     status: 'playground',
     playgroundTabId: 'world',
     sourcePaths: ['src/components/playground/SurfaceBaselinePanel.tsx', 'src/components/MomentsPanel.tsx'],
-    experienceParts: ['朋友圈', '物什', '名册', '角色架'],
+    experienceParts: ['朋友圈', '物什', '名册'],
     usesFoundation: ['behavior.tabs', 'state.empty'],
   }),
   experience({
@@ -64,8 +64,8 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     descriptionZh: '配置分组、字段编辑、自动保存和失败恢复体验。',
     status: 'playground',
     playgroundTabId: 'settings',
-    sourcePaths: ['src/components/SettingsPanel.tsx'],
-    experienceParts: ['设置分组', '字段编辑', '自动保存', '失败恢复'],
+    sourcePaths: ['src/components/playground/SurfaceBaselinePanel.tsx', 'src/components/SettingsPanel.tsx'],
+    experienceParts: ['设置分组', '角色架', '字段编辑', '自动保存', '失败恢复'],
     usesFoundation: ['behavior.tabs', 'state.toast', 'state.error'],
   }),
   experience({
@@ -85,7 +85,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     status: 'playground',
     playgroundTabId: 'business-states',
     sourcePaths: ['src/components/playground/BusinessStatesPanel.tsx'],
-    experienceParts: ['空态', '权限确认', '伙伴状态', '错误反馈'],
+    experienceParts: ['空态', '权限确认', '错误反馈'],
     usesFoundation: ['state.empty', 'state.permission-confirm', 'state.error', 'state.toast'],
   }),
 ] as const satisfies readonly ProductExperienceDefinition[]
