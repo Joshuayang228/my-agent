@@ -172,9 +172,9 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
             {tab === 'visual-assets' && <UiControlsPanel initialSub="icons" />}
             {tab === 'foundation-components' && <FoundationComponentsPanel />}
             {tab === 'chat' && <SurfaceBaselinePanel initialSurface="chat" onNavigate={navigateTo} />}
-            {tab === 'world' && <SurfaceBaselinePanel initialSurface="world" />}
-            {tab === 'memory' && <SurfaceBaselinePanel initialSurface="memory" />}
-            {tab === 'settings' && <SurfaceBaselinePanel initialSurface="settings" />}
+            {tab === 'world' && <SurfaceBaselinePanel initialSurface="world" onNavigate={navigateTo} />}
+            {tab === 'memory' && <SurfaceBaselinePanel initialSurface="memory" onNavigate={navigateTo} />}
+            {tab === 'settings' && <SurfaceBaselinePanel initialSurface="settings" onNavigate={navigateTo} />}
             {tab === 'workspace' && <SurfaceBaselinePanel initialSurface="dock" />}
             {tab === 'business-states' && <BusinessStatesPanel />}
             {tab === 'chat-lab' && <PromptLabPanel />}

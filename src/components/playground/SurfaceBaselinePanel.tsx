@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowUp, Bot, CheckCircle2, ChevronDown, FileCode2, Folder, Image, MapPin, MessageCircle, PanelLeftOpen, Paperclip, Shield, UserRound } from 'lucide-react'
+import { ArrowRight, ArrowUp, Bot, CheckCircle2, ChevronDown, FileCode2, Folder, Image, MapPin, MessageCircle, PanelLeftOpen, Paperclip, Shield, UserRound } from 'lucide-react'
 import { SettingsPanel } from '../SettingsPanel'
 import { MemoryPanel } from '../MemoryPanel'
 import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
@@ -458,7 +458,7 @@ function DockSurface() {
   )
 }
 
-function MomentsProfileHero() {
+function MomentsProfileHero({ onOpenMemory }: { onOpenMemory?: () => void }) {
   return (
     <section className="moments-profile-hero relative shrink-0 overflow-hidden" data-testid="playground-moments-profile">
       <div className="moments-profile-hero-wash absolute inset-0" aria-hidden="true">
@@ -477,15 +477,28 @@ function MomentsProfileHero() {
             <span className="inline-flex items-center gap-1"><MapPin size={11} aria-hidden="true" />生活在此刻</span>
           </div>
         </div>
-        <span className="hidden shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] sm:inline-flex" style={{ borderColor: 'color-mix(in srgb, var(--text-primary) 28%, transparent)', background: 'color-mix(in srgb, var(--text-primary) 12%, transparent)', color: 'color-mix(in srgb, var(--text-primary) 86%, transparent)' }}>
-          <Image size={11} aria-hidden="true" /> 近期生活
-        </span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {onOpenMemory && (
+            <button
+              type="button"
+              onClick={onOpenMemory}
+              className="hidden items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] transition sm:inline-flex"
+              style={{ borderColor: 'color-mix(in srgb, var(--text-primary) 28%, transparent)', background: 'color-mix(in srgb, var(--text-primary) 12%, transparent)', color: 'color-mix(in srgb, var(--text-primary) 86%, transparent)' }}
+              data-testid="world-open-memory"
+            >
+              看记忆 <ArrowRight size={11} aria-hidden="true" />
+            </button>
+          )}
+          <span className="hidden items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] sm:inline-flex" style={{ borderColor: 'color-mix(in srgb, var(--text-primary) 28%, transparent)', background: 'color-mix(in srgb, var(--text-primary) 12%, transparent)', color: 'color-mix(in srgb, var(--text-primary) 86%, transparent)' }}>
+            <Image size={11} aria-hidden="true" /> 近期生活
+          </span>
+        </div>
       </div>
     </section>
   )
 }
 
-function WorldSurface() {
+function WorldSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => void }) {
   const [tab, setTab] = useState<WorldTab>('moments')
   const previewPanels: Partial<Record<WorldTab, ReactNode>> = {
     assets: (
@@ -512,7 +525,7 @@ function WorldSurface() {
   return (
     <SurfaceViewport>
       <div className="flex h-full min-h-0 flex-col" data-testid="playground-world-experience">
-        <MomentsProfileHero />
+        <MomentsProfileHero onOpenMemory={() => onNavigate?.('memory')} />
         <div className="min-h-0 flex-1">
           <WorldHub
             tab={tab}
@@ -535,7 +548,7 @@ function WorldSurface() {
   )
 }
 
-function SettingsSurface() {
+function SettingsSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => void }) {
   const [scenario, setScenario] = useState<'settings' | 'role-shelf'>('settings')
 
   return (
@@ -560,6 +573,17 @@ function SettingsSurface() {
             </button>
           )
         })}
+        {onNavigate && (
+          <button
+            type="button"
+            onClick={() => onNavigate('chat')}
+            className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] transition"
+            style={{ color: 'var(--text-muted)' }}
+            data-testid="settings-return-to-chat"
+          >
+            回到 Chat <ArrowRight size={11} aria-hidden="true" />
+          </button>
+        )}
       </div>
       <SurfaceViewport>
         {scenario === 'settings' ? (
@@ -604,7 +628,7 @@ function RoleShelfFixture() {
 type MemoryScenario = 'list' | 'empty' | 'sensitive' | 'editing'
 
 /** 静态场景只驱动正式 MemoryPanel 的 preview props，不访问 memory IPC。 */
-function MemorySurface() {
+function MemorySurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => void }) {
   const [scenario, setScenario] = useState<MemoryScenario>('list')
   const scenarios: Array<{ id: MemoryScenario; label: string }> = [
     { id: 'list', label: '列表' },
@@ -620,7 +644,8 @@ function MemorySurface() {
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-1" role="tablist" aria-label="记忆页面场景">
+      <div className="flex flex-wrap items-center justify-between gap-2" data-testid="memory-surface-toolbar">
+        <div className="flex flex-wrap gap-1" role="tablist" aria-label="记忆页面场景">
         {scenarios.map((item) => {
           const active = scenario === item.id
           return (
@@ -637,6 +662,18 @@ function MemorySurface() {
             </button>
           )
         })}
+        </div>
+        {onNavigate && (
+          <button
+            type="button"
+            onClick={() => onNavigate('settings')}
+            className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[10px] transition"
+            style={{ color: 'var(--text-muted)' }}
+            data-testid="memory-open-settings"
+          >
+            去设置 <ArrowRight size={11} aria-hidden="true" />
+          </button>
+        )}
       </div>
       <SurfaceViewport>
         <style>{PAGE_CANDIDATE_STYLE}</style>
@@ -687,9 +724,9 @@ export function SurfaceBaselinePanel({ initialSurface, onNavigate }: { initialSu
         {surface === 'chat' && <ChatSurface onNavigate={onNavigate} />}
         {surface === 'sidebar' && <SidebarSurface />}
         {surface === 'dock' && <DockSurface />}
-        {surface === 'world' && <WorldSurface />}
-        {surface === 'memory' && <MemorySurface />}
-        {surface === 'settings' && <SettingsSurface />}
+        {surface === 'world' && <WorldSurface onNavigate={onNavigate} />}
+        {surface === 'memory' && <MemorySurface onNavigate={onNavigate} />}
+        {surface === 'settings' && <SettingsSurface onNavigate={onNavigate} />}
       </div>
     </div>
   )
