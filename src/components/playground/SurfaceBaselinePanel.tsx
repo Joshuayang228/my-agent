@@ -350,6 +350,15 @@ function ChatSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => vo
                           </div>
                           <div className="mt-2 h-1.5 overflow-hidden rounded-full" style={{ background: 'var(--bg-tertiary)' }}><div className="h-full w-2/3 rounded-full" style={{ background: 'var(--accent-emphasis)' }} /></div>
                           <p className="mt-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>先扫描文件，再把结果放到右侧工作区。</p>
+                          <button
+                            type="button"
+                            onClick={() => setJourney('conversation')}
+                            className="mt-3 rounded-md px-2.5 py-1.5 text-[10px] transition"
+                            style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
+                            data-testid="chat-surface-return-to-conversation"
+                          >
+                            回到对话
+                          </button>
                         </div>
                       )}
                     </div>

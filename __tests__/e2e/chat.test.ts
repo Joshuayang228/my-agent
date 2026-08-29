@@ -386,6 +386,9 @@ test.describe('My Agent UI', () => {
     await expect(page.getByTestId('chat-surface-workspace')).toBeVisible()
     await expect(page.getByTestId('chat-surface-workspace').getByTestId('right-dock-tab-preview')).toBeVisible()
     await expect(page.getByTestId('chat-surface-workspace')).toContainText('my-agent · 样张项目')
+    await page.getByTestId('chat-surface-return-to-conversation').click()
+    await expect(page.getByTestId('chat-surface-workspace')).toHaveCount(0)
+    await expect(page.getByTestId('chat-surface-message-flow')).toBeVisible()
 
     await page.getByRole('tab', { name: '初次进入', exact: true }).click()
     await expect(page.getByTestId('chat-surface-message-flow')).toHaveCount(0)
