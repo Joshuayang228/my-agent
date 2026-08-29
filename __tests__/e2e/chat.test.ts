@@ -323,9 +323,9 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('隔离实验', { exact: true })).toHaveCount(0)
     const candidate = page.locator('[data-testid="surface-sidebar-candidate"]')
     await expect(candidate).toBeVisible()
-    await expect(candidate.getByRole('button', { name: '记忆', exact: true })).toHaveCount(0)
-    await expect(candidate.getByRole('button', { name: '人物世界', exact: true })).toBeVisible()
-    await expect(candidate.getByRole('button', { name: '设置', exact: true })).toBeVisible()
+    await expect(candidate.getByTitle('记忆')).toHaveCount(0)
+    await expect(candidate.getByTitle('人物世界')).toBeVisible()
+    await expect(candidate.getByTitle('设置')).toBeVisible()
     await expect(page.locator('[data-testid="chat-surface-main"]').getByText('新对话', { exact: true })).toHaveCount(0)
 
     await nav.getByRole('button', { name: '设置', exact: true }).click()
@@ -374,6 +374,9 @@ test.describe('My Agent UI', () => {
 
     const developerNav = page.locator('[data-testid="sidebar-developer-nav"]')
     const sessionList = page.locator('[data-testid="sidebar-session-list"]')
+    const primarySidebar = page.locator('[data-testid="primary-sidebar"]')
+    await expect(primarySidebar).not.toContainText('开发')
+    await expect(primarySidebar).not.toContainText('产品')
     await expect(developerNav).toBeVisible()
     await expect(sessionList).toBeVisible()
     expect(await sessionList.evaluate((element, dev) => Boolean(element.compareDocumentPosition(dev as Node) & Node.DOCUMENT_POSITION_FOLLOWING), await developerNav.elementHandle())).toBe(true)

@@ -16,6 +16,7 @@
 ## 2026-08-29 · 记忆与 Skills 入口收进设置
 
 - Primary Sidebar 产品区只保留人物世界与设置，不再把记忆作为独立产品宫格入口。
+- 底部开发 / 产品分组标题去除，仅保留 Debug、Playground、人物世界和设置四个实际入口。
 - 移除 Memory / Skills 的 SecondaryNav 工具列，Settings 的「记忆」与「工具」分区成为统一入口；MemoryPanel、SkillsPanel 能力本身不删除。
 
 ## 2026-08-29 · Debug 入口全局化

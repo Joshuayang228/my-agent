@@ -1,6 +1,6 @@
 /**
  * Primary 侧栏：品牌区 + 大号新对话 + 会话列表 + 底部开发 / 产品入口（Alice 壳）。
- * Debug / Playground 位于产品入口上方；生活面收进「人物世界」。
+ * Debug / Playground 与人物世界 / 设置位于底部稳定入口区；生活面收进「人物世界」。
  */
 
 import type { RefObject, ReactNode, MouseEvent } from 'react'
@@ -294,9 +294,6 @@ export function PrimarySidebar({
           </div>
         )}
         <div data-testid="sidebar-developer-nav">
-          <div className="px-1 pb-1 text-[9px] font-medium tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>
-            开发
-          </div>
           <div className="grid grid-cols-2 gap-1">
             <DockTextBtn
               active={activeView === 'debug'}
@@ -313,9 +310,6 @@ export function PrimarySidebar({
           </div>
         </div>
         <div className="mt-2 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
-          <div className="px-1 pb-1 text-[9px] font-medium tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>
-            产品
-          </div>
           <div className="grid grid-cols-2 gap-1">
             {DOCK.map((item) => {
               const active = item.id === 'world' ? isWorldView(activeView) : activeView === item.id

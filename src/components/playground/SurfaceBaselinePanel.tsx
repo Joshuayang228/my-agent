@@ -149,15 +149,11 @@ const PAGE_CANDIDATE_STYLE = `
       align-items: stretch;
     }
     .playground-sidebar-candidate > [data-testid="primary-sidebar"] {
-      flex: 1;
+      flex: 0 0 auto;
     }
     .playground-sidebar-candidate [data-testid="primary-sidebar"] button[title="记忆"] { display: none; }
     .playground-sidebar-candidate [data-testid="primary-sidebar"] .grid:has(> button[title="记忆"]) {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .playground-sidebar-candidate [data-testid="sidebar-developer-nav"] > :first-child,
-    .playground-sidebar-candidate [data-testid="sidebar-developer-nav"] + div > :first-child {
-      display: none;
     }
     .playground-memory-candidate [data-testid="memory-category-filters"] button {
       display: inline-flex;
