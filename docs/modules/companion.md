@@ -104,7 +104,7 @@
 | 召唤子会话 | 已落地 | 名册「开聊」 | 不改 active / 不 tick；可 delegate（任务工） |
 | 召唤忙闲婉拒 + force | 已落地 | 名册开聊前 | `check-cast-availability` |
 | 冷启动在场文案 | 已落地 | Chat 空态欢迎屏 | `companion-presence.ts` |
-| 角色架 UI | 已落地 | 人物世界 / 欢迎「换主角」 | CharacterShelfPanel · `shelf` |
+| 角色架 UI | 已落地 | 设置「角色架」 | CharacterShelfPanel · `shelf` |
 | 物什主视觉（衣柜穿着中 + 书架分栏） | 已落地 | 人物世界 / 欢迎屏 → 物什 | AssetsPanel · Moment.assetId/outfit |
 | 名册关系卡 + 最近召唤互动 | 已落地 | 人物世界 / 欢迎屏 → 名册 | CastPanel · sessions(summon) |
 | 场景弱背景（Chat 氛围） | 已落地 | Chat 消息区底层 | `CompanionSceneBackdrop` · `companion-scene.ts` |

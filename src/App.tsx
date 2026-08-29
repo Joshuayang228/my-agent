@@ -1183,16 +1183,6 @@ function App() {
                     </button>
                   ))}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => { setWorldTab(worldTabFromView('shelf')); setActiveView('world') }}
-                  className="mt-3 rounded-md px-2 py-1 text-[11.5px] transition"
-                  style={{ color: 'var(--text-muted)' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-                >
-                  换个主角 →
-                </button>
               </div>
             )}
 

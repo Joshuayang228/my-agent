@@ -142,6 +142,7 @@ test.describe('My Agent UI', () => {
 
     await expect(page.locator('[data-testid="chat-messages"] h1')).toContainText('我是')
     await expect(page.getByRole('button', { name: '打个招呼', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: '换个主角 →', exact: true })).toHaveCount(0)
   })
 
 
