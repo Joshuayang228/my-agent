@@ -78,7 +78,7 @@
 | Chat 右侧工作坞正式 Tab | 已落地 | `ChatRightDock` 默认预览；文件 / 预览通过 `FileBrowserPreviewState` 共享选中文件；审阅 / 终端保持真实面板与 IPC |
 | 工具卡行内附着 assistant（Alice Phase B） | 已落地 | `resolve-tools-for-message.ts` · 历史 `toolCalls`+`role=tool`；进行中挂 live host |
 | Dev Playground（无 Assemble 试跑） | 已落地 | PlaygroundPage · `debug:playground-run` |
-| Debug / Playground 独立全页 | 已落地 | 入口固定在 Primary Sidebar 底部产品区上方；各自页面壳直接占满主区，不继承 Chat 顶栏；非双 tab / 非抽屉 |
+| Debug / Playground 独立全页 | 已落地 | 入口固定在 Primary Sidebar 底部开发区；各自页面壳直接占满主区，不继承 Chat 顶栏；非双 tab / 非抽屉；记忆与 Skills 不再通过 SecondaryNav 进入 |
 | 工具手测（权限门闸） | 已落地 | `debug:tool-run` · confirmRisk |
 | Prompt 会话覆盖（不写 settings） | 已落地 | 载入实装 → playgroundRun |
 | 设计语言场 | 已落地 | Playground「基础 → 设计语言」；颜色 / 主题 / 圆角动效三组 Tab，不混入业务组合 |

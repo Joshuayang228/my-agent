@@ -5,7 +5,7 @@
 
 import type { RefObject, ReactNode, MouseEvent } from 'react'
 import {
-  Plus, Search, X, Pin, Sparkles, Brain, Settings,
+  Plus, Search, X, Pin, Sparkles, Settings,
   Bug, FlaskConical, PanelLeftClose,
 } from 'lucide-react'
 import type { ShellView } from './SecondaryNav'
@@ -24,7 +24,6 @@ export interface SidebarSession {
 
 const DOCK: { id: ShellView; label: string; icon: ReactNode }[] = [
   { id: 'world', label: '人物世界', icon: <Sparkles size={18} strokeWidth={1.5} /> },
-  { id: 'memory', label: '记忆', icon: <Brain size={18} strokeWidth={1.5} /> },
   { id: 'settings', label: '设置', icon: <Settings size={18} strokeWidth={1.5} /> },
 ]
 
@@ -317,7 +316,7 @@ export function PrimarySidebar({
           <div className="px-1 pb-1 text-[9px] font-medium tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>
             产品
           </div>
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-2 gap-1">
             {DOCK.map((item) => {
               const active = item.id === 'world' ? isWorldView(activeView) : activeView === item.id
               return (

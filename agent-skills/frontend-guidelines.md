@@ -33,20 +33,19 @@
 ## UI 架构
 
 ```text
-PrimarySidebar(260px) [+ SecondaryNav(200px)?] + Main Area
+PrimarySidebar(260px) + Main Area
 
 Primary（对齐 Alice 侧栏）:
 - 品牌/主角区 + 大号「新对话」CTA
 - 会话列表（标题 + 时间戳 + 摘要）
-- 底栏：Playground/Debug 字钮 + 生活宫格（朋友圈/物什/名册/记忆/角色架/设置）
-- Skills 不进宫格 → Secondary「工具」或设置入口
+- 底栏：Playground/Debug 字钮 + 生活宫格（人物世界/设置）
+- 记忆与 Skills 属于设置管理入口，不进入产品宫格或 SecondaryNav
 
-Secondary（非 chat / 非 settings 全屏时）:
-- 生活 | 工具 | 开发 分组导航
+Secondary：当前产品壳不挂载二级导航；需要独立生命周期的内容进入一级工作区，记忆与 Skills 由 Settings 管理
 
 Main Area:
 - chat: CompanionStatusBar + 消息流（`space-y-8`）+ 居中输入（max-w-3xl）
-- 生活面 / 工具面 / DevPanel 全页
+- 生活面 / Debug / DevPanel 全页
 - settings: 独立全屏（无 Secondary）
 ```
 

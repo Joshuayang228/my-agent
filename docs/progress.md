@@ -13,6 +13,11 @@
 | **明确不做** | 当前威胁模型下不做 OS 级 Shell 强隔离和 Python 嵌入沙箱，见 DEC-037。 |
 | **历史** | 完整施工流水和旧测试数字已冻结到归档，不再由本文件重复维护。 |
 
+## 2026-08-29 · 记忆与 Skills 入口收进设置
+
+- Primary Sidebar 产品区只保留人物世界与设置，不再把记忆作为独立产品宫格入口。
+- 移除 Memory / Skills 的 SecondaryNav 工具列，Settings 的「记忆」与「工具」分区成为统一入口；MemoryPanel、SkillsPanel 能力本身不删除。
+
 ## 2026-08-29 · Debug 入口全局化
 
 - 移除 Chat 内 `conversationDebugMode` 与右侧半屏 `ConversationDebugAside`，避免把开发诊断叠进产品对话。

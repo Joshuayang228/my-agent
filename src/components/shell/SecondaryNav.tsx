@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react'
-import { Brain, Cpu } from 'lucide-react'
 
 export type ShellView =
   | 'chat'
@@ -14,81 +12,17 @@ export type ShellView =
   | 'debug'
   | 'playground'
 
-const GROUPS: {
-  title: string
-  items: { id: ShellView; label: string; icon: ReactNode }[]
-}[] = [
-  {
-    title: '工具',
-    items: [
-      { id: 'memory', label: '记忆', icon: <Brain size={15} strokeWidth={1.5} /> },
-      { id: 'skills', label: 'Skills', icon: <Cpu size={15} strokeWidth={1.5} /> },
-    ],
-  },
-]
-
 /**
- * 独立全页（人物世界 / Debug / Playground / 设置）不再挂二级列，
- * 避免与侧栏入口或页内 tab 重复成「双 tab」感。
+ * 工具入口已收进 Settings；保留该函数和组件仅为兼容旧 import，产品壳不再挂载二级导航。
  */
-export function shouldShowSecondaryNav(view: ShellView): boolean {
-  return view === 'memory' || view === 'skills'
+export function shouldShowSecondaryNav(_view: ShellView): boolean {
+  return false
 }
 
-export function SecondaryNav({
-  activeView,
-  onNavigate,
-}: {
+/** @deprecated 记忆与 Skills 不再通过产品二级列进入。 */
+export function SecondaryNav(_props: {
   activeView: ShellView
   onNavigate: (view: ShellView) => void
 }) {
-  if (!shouldShowSecondaryNav(activeView)) return null
-
-  return (
-    <nav
-      className="flex w-[200px] shrink-0 flex-col border-r py-4"
-      style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
-      data-testid="secondary-nav"
-    >
-      {GROUPS.map((g) => (
-        <div key={g.title} className="mb-4 px-3">
-          <div
-            className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-wider"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            {g.title}
-          </div>
-          <div className="space-y-0.5">
-            {g.items.map((item) => {
-              const active = activeView === item.id
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => onNavigate(item.id)}
-                  className="flex w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-[13px] transition"
-                  style={{
-                    color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    background: active ? 'var(--sidebar-active)' : 'transparent',
-                    fontWeight: active ? 600 : 400,
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) e.currentTarget.style.background = 'var(--sidebar-hover)'
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) e.currentTarget.style.background = 'transparent'
-                  }}
-                >
-                  <span style={{ color: active ? 'var(--companion-accent-warm)' : 'var(--text-muted)' }}>
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      ))}
-    </nav>
-  )
+  return null
 }

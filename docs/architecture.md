@@ -201,6 +201,7 @@ Skill 资产由 `electron/main/skills/loader.ts` 读取和保存；Frontmatter �
 
 - Eval CLI 是判定与报告的事实源；Debug 只通过受控 IPC 读取报告、启动固定白名单脚本，不在渲染层重新评分。
 - Debug 只有一个产品入口：`activeView === 'debug'` 渲染 `DevPanel` 全页工作区；Chat 不再维护 `conversationDebugMode`，也不在 `ChatRightDock` 中叠加调试半屏。LLM 调用、Trace 和事件统一在 Debug「请求与运行」域查看。
+- 产品 Primary Sidebar 只保留人物世界与设置两个产品目的地；MemoryPanel 与 SkillsPanel 仍是独立页面能力，但入口统一由 Settings 的「记忆」与「工具」分区承载，SecondaryNav 不再挂载。
 - Skill Eval 为每个 Case 创建独立临时目录和 ToolRegistry，复用生产 Skill 激活工具、Skill 摘要与 Agent Loop；Mock / Real 共用触发、指南注入、工具边界和回复约束 Grader。
 - 报告写入 `eval-reports/` 的 JSON / Markdown，只保存输入快照、Skill 元数据与指纹、激活 Trace、工具调用和 Agent 可见回复，不保存 API Key、隐藏 reasoning 或 Skill 正文。
 - `debug:skill-eval-reports` / `debug:skill-eval-report-get` 对文件名与最小结构做校验，拒绝目录穿越和损坏报告；`DebugEvalRunner` 仅映射 `eval:run`、`eval:skill`、`eval:persona`。
@@ -239,7 +240,7 @@ Playground 的导航工作域不等于产品架构层。产品设计只保留两
 ```
 
 - **Foundation** 只登记可脱离业务复用的设计语言、图标、通用组件、状态和通用交互能力。
-- **Experience** 登记 Chat、人物世界、记忆、设置、工作区和业务状态的业务语义、页面组合与流程。伙伴状态条、生活事件卡、角色卡、记忆引用芯片和完整右侧工作坞等业务结构属于 Experience。
+- **Experience** 登记 Chat、人物世界、记忆、Skills、设置、工作区和业务状态的业务语义、页面组合与流程。伙伴状态条、生活事件卡、角色卡、记忆引用芯片和完整右侧工作坞等业务结构属于 Experience。
 - **Agent 实验** 是 Playground 的独立工作域，不是第三层产品架构；它只承载隔离试验。
 - Experience 只能通过 `src/shared/product-experience-registry.ts` 的 `usesFoundation` 引用 Foundation；发现基础能力缺失时，先在 Foundation 建故事并登记真实来源，再回到 Experience 组合。
 - Playground 的一级 Tab 事实表与当前验收边界见 [`docs/requirements/playground-navigation-world-polish-v1.md`](requirements/playground-navigation-world-polish-v1.md)；代码注册表是 key、来源、状态和依赖的事实源，文档只记录边界与原则。

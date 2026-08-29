@@ -519,3 +519,12 @@
   - C：保留两套入口但共享更多状态 — 实现复杂，仍会让产品态混入开发信息
 - **决定**：选择 B。全局 Debug 以 `activeView === 'debug'` 和 `DevPanel` 为唯一诊断工作区；Chat 只保留产品对话，ChatRightDock 只负责文件 / 预览 / 审阅 / 终端。旧 `conversationDebugMode` 设置键暂时保留在存储层以兼容既有数据，但不再驱动 UI 或运行时行为。
 - **影响**：`src/App.tsx`、`src/components/DevPanel.tsx`、`src/components/SettingsPanel.tsx`、`src/components/chat/right-dock/ChatRightDock.tsx`、Debug 系统快照类型与文档；历史施工合同中关于 Debug 覆盖的内容保留为冻结快照，不作为当前行为事实源。
+---
+
+### DEC-041：记忆与 Skills 统一归入 Settings
+
+- **日期**：2026-08-29
+- **状态**：已决定
+- **背景**：Primary Sidebar 的记忆入口、Memory 页面二级列和 Skills 入口形成重复导航；这两个能力都属于可配置 / 可管理的工具面，不应占用人物世界产品宫格。
+- **决定**：产品壳只保留人物世界与设置两个产品目的地；记忆与 Skills 从 Primary Sidebar / SecondaryNav 移除，统一由 Settings 的「记忆」与「工具」分区进入。MemoryPanel 和 SkillsPanel 继续保留为独立能力页面，不删除数据与管理功能。
+- **影响**：`PrimarySidebar`、`SecondaryNav`、`App`、Settings 入口、UI 组件注册表、Renderer E2E 与导航文档。

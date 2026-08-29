@@ -43,7 +43,6 @@ import {
 } from './components/chat/callbacks'
 import {
   PrimarySidebar,
-  SecondaryNav,
   WorldHub,
   isWorldView,
   worldTabFromView,
@@ -951,18 +950,6 @@ function App() {
           />
         </>
       )}
-
-      <SecondaryNav
-        activeView={activeView}
-        onNavigate={(view) => {
-          if (isWorldView(view) || view === 'world') {
-            setWorldTab(worldTabFromView(view === 'world' ? 'world' : view))
-            setActiveView('world')
-            return
-          }
-          setActiveView(view)
-        }}
-      />
 
       {/* 会话右键菜单 */}
       {contextMenu && (

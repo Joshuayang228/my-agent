@@ -18,7 +18,7 @@
 | 类型 | 位置 |
 |------|------|
 | UI · 生活面 | 侧栏「人物世界」口袋（`WorldHub`：朋友圈/物什/名册/角色架）；欢迎屏快捷 |
-| UI · 工具面 | 设置「伙伴」：MUTABLE/反思 + 活跃主角（次要）；侧栏记忆/设置；Skills 经二级列 |
+| UI · 工具面 | 设置「伙伴」：MUTABLE/反思 + 活跃主角（次要）；记忆与 Skills 均从 Settings 进入 |
 | IPC | `companion:*`（list / switch / moments / assets / roster / catchup-status(+presence) / start-summon / reflection…） |
 | Prompt | `prompt-builder` + `orchestrator.loadRoleAssembleInput`（管线见下方「Prompt 组装」） |
 | 资产 | `electron/main/companion/universes/default/` |
@@ -109,7 +109,7 @@
 | 名册关系卡 + 最近召唤互动 | 已落地 | 人物世界 / 欢迎屏 → 名册 | CastPanel · sessions(summon) |
 | 场景弱背景（Chat 氛围） | 已落地 | Chat 消息区底层 | `CompanionSceneBackdrop` · `companion-scene.ts` |
 | 前端视觉语言（token / 设置 IA / Chat 气质） | 已落地 | 主题·设置·侧栏身份·空态 | `frontend-visual-language` Phase1–3 |
-| Alice 壳 Phase A（大气侧栏 + Secondary） | 已落地 | Primary/底栏宫格；二级列仅工具 | `PrimarySidebar` · `SecondaryNav` · `frontend-alice-shell` |
+| Alice 壳 Phase A（大气侧栏） | 已落地 | Primary/底栏宫格只保留人物世界与设置；记忆与 Skills 从 Settings 进入 | `PrimarySidebar` · `frontend-alice-shell` |
 | Chat 消息区大气化（Phase B 留白） | 已落地 | 消息流 `space-y-8`；工具卡见 agent-runtime | `frontend-alice-shell` Phase B |
 | 人物世界口袋（对齐 Alice `/moments`） | 已落地 | 侧栏一入口 + 内页 tab | `WorldHub` |
 | 伴侣状态条（展厅故事格） | 已落地 | Playground UI · 状态条 | `CompanionStatusBar` · Chat 顶栏已撤 |

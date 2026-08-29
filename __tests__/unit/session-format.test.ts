@@ -20,14 +20,14 @@ describe('session-format', () => {
 })
 
 describe('shouldShowSecondaryNav', () => {
-  it('仅 memory / skills 显示二级列；独立全页不显示', () => {
+  it('产品壳不再显示二级列，记忆与 Skills 由设置进入', () => {
     expect(shouldShowSecondaryNav('chat')).toBe(false)
     expect(shouldShowSecondaryNav('settings')).toBe(false)
     expect(shouldShowSecondaryNav('debug')).toBe(false)
     expect(shouldShowSecondaryNav('playground')).toBe(false)
     expect(shouldShowSecondaryNav('world')).toBe(false)
     expect(shouldShowSecondaryNav('moments')).toBe(false)
-    expect(shouldShowSecondaryNav('memory')).toBe(true)
-    expect(shouldShowSecondaryNav('skills')).toBe(true)
+    expect(shouldShowSecondaryNav('memory')).toBe(false)
+    expect(shouldShowSecondaryNav('skills')).toBe(false)
   })
 })

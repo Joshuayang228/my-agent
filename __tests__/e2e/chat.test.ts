@@ -73,6 +73,8 @@ test.describe('My Agent UI', () => {
 
     await expect(page.locator('[data-testid="primary-sidebar"]')).toBeVisible()
     await expect(page.getByRole('button', { name: '新对话', exact: true })).toBeVisible()
+    await expect(page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: '记忆', exact: true })).toHaveCount(0)
+    await expect(page.locator('[data-testid="secondary-nav"]')).toHaveCount(0)
     await expect(page.getByTestId('conversation-debug-toggle')).toHaveCount(0)
 
     await page.getByTitle('收起侧栏 Ctrl+B').click()
@@ -376,6 +378,12 @@ test.describe('My Agent UI', () => {
     await expect(sessionList).toBeVisible()
     expect(await sessionList.evaluate((element, dev) => Boolean(element.compareDocumentPosition(dev as Node) & Node.DOCUMENT_POSITION_FOLLOWING), await developerNav.elementHandle())).toBe(true)
 
+    await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: '设置', exact: true }).click()
+    const settingsPanel = page.locator('[data-testid="settings-panel"]')
+    await expect(settingsPanel).toBeVisible()
+    await expect(settingsPanel.locator('[data-testid="settings-nav"]').getByRole('button', { name: '记忆', exact: true })).toBeVisible()
+    await expect(settingsPanel.locator('[data-testid="settings-nav"]').getByRole('button', { name: '工具', exact: true })).toBeVisible()
+    await page.getByTestId('settings-back').click()
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Debug', exact: true }).click()
     await expect(page.locator('[data-testid="dev-panel"]')).toBeVisible()
     const debugNav = page.locator('[data-testid="dev-panel"] nav')
