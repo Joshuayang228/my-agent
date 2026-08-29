@@ -134,12 +134,10 @@ function noop() {}
 
 function SurfaceViewport({ children, testId }: { children: ReactNode; testId?: string }) {
   return (
-    <div
-      className="flex min-h-[620px] flex-1 flex-col overflow-hidden rounded-xl border"
-      data-testid={testId}
-      style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}
-    >
-      {children}
+    <div className="playground-experience-stage flex min-h-[580px] flex-1 flex-col overflow-hidden rounded-2xl border p-2 sm:p-3" data-testid={testId} style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+      <div className="playground-experience-canvas flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl" style={{ background: 'var(--bg-primary)' }}>
+        {children}
+      </div>
     </div>
   )
 }
@@ -207,7 +205,7 @@ function ChatSurface() {
       <div className="mx-auto w-full transition-[max-width]" style={{ maxWidth: viewport === 'split' ? 760 : 1040 }}>
         <SurfaceViewport testId="chat-surface-viewport">
           <style>{PAGE_CANDIDATE_STYLE}</style>
-          <div className="flex h-full min-h-[620px]">
+          <div className="flex h-full min-h-[580px]">
             {sidebarOpen && (
               <div className="playground-sidebar-candidate shrink-0" data-testid="surface-sidebar-candidate">
                 <PrimarySidebar
@@ -416,7 +414,7 @@ function WorldSurface() {
     assets: (
       <div className="grid gap-3 p-5 sm:grid-cols-2" data-testid="world-assets-fixture">
         {[['深蓝帆布包', '常带着电脑和一本随手记。'], ['乌龙茶', '下午工作时会泡一壶。'], ['旧相机', '散步时偶尔带上。']].map(([name, detail]) => (
-          <article key={name} className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+          <article key={name} className="rounded-xl border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
             <div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{name}</div>
             <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>{detail}</p>
           </article>
@@ -426,7 +424,7 @@ function WorldSurface() {
     cast: (
       <div className="space-y-2 p-5" data-testid="world-cast-fixture">
         {[['小林', '当前主角'], ['阿遥', '偶尔联系的朋友'], ['许叔', '楼下咖啡店老板']].map(([name, relation]) => (
-          <div key={name} className="flex items-center justify-between rounded-lg border px-3 py-2.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+          <div key={name} className="flex items-center justify-between rounded-xl border px-3 py-2.5" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
             <span className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{name}</span>
             <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{relation}</span>
           </div>
@@ -435,12 +433,12 @@ function WorldSurface() {
     ),
     shelf: (
       <div className="grid gap-3 p-5 sm:grid-cols-2" data-testid="world-shelf-fixture">
-        <article className="rounded-lg border p-4" style={{ borderColor: 'var(--companion-accent-warm)', background: 'var(--bg-secondary)' }}>
+        <article className="rounded-xl border p-4" style={{ borderColor: 'var(--companion-accent-warm)', background: 'var(--card-bg)' }}>
           <div className="text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>小林</div>
           <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>沉稳、体贴，正在陪你推进这款 Agent。</p>
           <span className="mt-3 inline-flex rounded px-1.5 py-0.5 text-[9px]" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>当前主角</span>
         </article>
-        <article className="rounded-lg border p-4" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+        <article className="rounded-xl border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
           <div className="text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>新角色占位</div>
           <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>后续人物故事确认后再补正式角色。</p>
         </article>
@@ -533,7 +531,7 @@ export function SurfaceBaselinePanel({ initialSurface }: { initialSurface?: Surf
   const fixedSurface = initialSurface !== undefined
 
   return (
-    <div className="w-full space-y-4" data-testid="surface-baseline-panel">
+    <div className="playground-experience-panel w-full space-y-4" data-testid="surface-baseline-panel">
       {!fixedSurface && <div className="flex flex-wrap gap-1 border-b" style={{ borderColor: 'var(--border-color)' }} role="tablist" aria-label="页面基线分区">
         {SURFACES.map((item) => {
           const selected = item.id === surface

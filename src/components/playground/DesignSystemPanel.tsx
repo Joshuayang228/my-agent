@@ -123,15 +123,21 @@ function ThemeStudyCard({ study, selected, onSelect }: { study: typeof THEME_STU
           </div>
           <p className="mt-1 truncate text-[10px]" style={{ color: 'var(--study-muted)' }}>{study.description}</p>
         </div>
-        <button
-          type="button"
-          aria-pressed={selected}
-          onClick={onSelect}
-          className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] transition"
-          style={{ borderColor: selected ? 'var(--study-accent)' : 'var(--study-border)', color: selected ? 'var(--study-accent)' : 'var(--study-muted)', background: selected ? 'color-mix(in srgb, var(--study-accent) 12%, transparent)' : undefined }}
-        >
-          {selected ? '当前' : '比较'}
-        </button>
+        {selected ? (
+          <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px]" title="当前正在比较这套主题" style={{ borderColor: 'var(--study-accent)', color: 'var(--study-accent)', background: 'color-mix(in srgb, var(--study-accent) 12%, transparent)' }}>
+            当前比较
+          </span>
+        ) : (
+          <button
+            type="button"
+            aria-pressed={false}
+            onClick={onSelect}
+            className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] transition"
+            style={{ borderColor: 'var(--study-border)', color: 'var(--study-muted)' }}
+          >
+            设为比较
+          </button>
+        )}
       </div>
 
       <div className="flex h-1.5" aria-hidden="true">
@@ -178,6 +184,8 @@ function ThemeStudyCard({ study, selected, onSelect }: { study: typeof THEME_STU
 
 function MotionTokenSample({ name, label, usage, value, easing, playing }: { name: string; label: string; usage: string; value: string; easing: MotionEasing; playing: boolean }) {
   const easingValue = MOTION_EASINGS[easing].value
+  const tokenDuration = Number.parseInt(value, 10)
+  const demoDuration = Number.isFinite(tokenDuration) ? `${Math.max(tokenDuration * 5, 700)}ms` : '1100ms'
   return (
     <div className="min-w-[13rem] flex-1 rounded-xl border p-3" data-testid={`motion-sample-${name.replaceAll('--', '')}`} style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
       <div className="flex items-baseline justify-between gap-2">
@@ -185,8 +193,8 @@ function MotionTokenSample({ name, label, usage, value, easing, playing }: { nam
         <span className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{value || '—'}</span>
       </div>
       <div className="mt-1 text-[10px]" style={{ color: 'var(--text-secondary)' }}>{label} · {usage}</div>
-      <div className="mt-3 h-2 overflow-hidden rounded-full" style={{ background: 'var(--bg-tertiary)' }}>
-        <span className="block h-full w-1/3 rounded-full" data-testid="motion-sample-bar" style={{ background: 'var(--accent-emphasis)', animation: playing ? `playground-motion-sweep ${value || '220ms'} ${easingValue} infinite alternate` : 'none' }} />
+      <div className="relative mt-3 h-2 overflow-hidden rounded-full" style={{ background: 'var(--bg-tertiary)' }}>
+        <span className="absolute left-0 top-0 block h-full w-1/3 rounded-full" data-testid="motion-sample-bar" style={{ background: 'var(--accent-emphasis)', animation: playing ? `playground-motion-sweep ${demoDuration} ${easingValue} infinite alternate` : 'none' }} />
       </div>
     </div>
   )

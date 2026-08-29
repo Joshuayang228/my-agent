@@ -404,6 +404,21 @@ html[data-font-scale="lg"] {
   box-shadow: 0 0 0 0.2rem var(--accent-subtle);
 }
 
+.playground-experience-meta > [data-testid="experience-source"] {
+  max-width: min(18rem, 34vw);
+}
+
+.playground-experience-stage {
+  box-shadow: 0 1rem 3rem color-mix(in srgb, var(--text-primary) 5%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--card-bg) 76%, transparent), transparent 42%),
+    var(--bg-secondary);
+}
+
+.playground-experience-canvas {
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 35%, transparent);
+}
+
 .playground-story-block {
   box-shadow: 0 0.75rem 2rem color-mix(in srgb, var(--text-primary) 4%, transparent);
 }

@@ -12,23 +12,19 @@ export function ProductExperienceDependencies({ tabId, showSource = false }: { t
   if (!experience) return null
 
   return (
-    <div className="mt-2 flex min-w-0 flex-nowrap items-center gap-x-3 gap-y-1.5 text-[10px]" data-testid="product-experience-dependencies" aria-label={`${experience.labelZh} 的基础引用`}>
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-        <span className="shrink-0 font-medium" style={{ color: 'var(--text-muted)' }}>基础引用</span>
-        <div className="flex min-w-0 flex-wrap gap-1" data-testid="experience-foundation-parts" aria-label="使用的基础组件">
-          {experience.usesFoundation.map((key) => {
-            const asset = UI_COMPONENT_REGISTRY[key]
-            return (
-              <span key={key} className="rounded px-1.5 py-0.5" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-                {asset.labelZh}
-              </span>
-            )
-          })}
-        </div>
+    <div className="playground-experience-meta mt-2 flex min-w-0 items-center gap-3 border-t pt-2 text-[10px]" data-testid="product-experience-dependencies" aria-label={`${experience.labelZh} 的基础引用`}>
+      <span className="shrink-0 font-medium" style={{ color: 'var(--text-muted)' }}>基础引用</span>
+      <div className="flex min-w-0 flex-1 flex-nowrap gap-1 overflow-hidden" data-testid="experience-foundation-parts" aria-label="使用的基础组件">
+        {experience.usesFoundation.map((key) => {
+          const asset = UI_COMPONENT_REGISTRY[key]
+          return (
+            <span key={key} className="max-w-[8rem] shrink-0 truncate rounded-full border px-2 py-0.5" title={asset.labelZh} style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>
+              {asset.labelZh}
+            </span>
+          )
+        })}
       </div>
-      {showSource && (
-        <PlaygroundSourcePath sourcePaths={experience.sourcePaths} testId="experience-source" />
-      )}
+      {showSource && <PlaygroundSourcePath sourcePaths={experience.sourcePaths} testId="experience-source" />}
     </div>
   )
 }

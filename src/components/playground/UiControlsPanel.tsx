@@ -237,6 +237,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
   const [iconSearchOpen, setIconSearchOpen] = useState(false)
   const [iconCategory, setIconCategory] = useState<IconCategoryId | 'all'>('all')
   const [customIconSize, setCustomIconSize] = useState(16)
+  const [tabSample, setTabSample] = useState('基础')
 
   const filteredIconAssets = useMemo(() => {
     const query = iconQuery.trim().toLocaleLowerCase('zh-CN')
@@ -405,13 +406,20 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
       {effectiveSub === 'tabs' && (
         <div className="space-y-3">
           <StoryBlock title="标签切换" source="src/components/shell/WorldHub.tsx · role=tab" adopted>
-            <div className="max-w-md rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
-              <div className="flex gap-1 border-b px-2" role="tablist" aria-label="Foundation 标签样张" style={{ borderColor: 'var(--border-subtle)' }}>
-                {['基础', '产品体验', 'Agent 实验'].map((label, index) => (
-                  <button key={label} type="button" role="tab" aria-selected={index === 0} className="border-b-2 px-2.5 py-2 text-[11px]" style={{ borderColor: index === 0 ? 'var(--accent-fg)' : 'transparent', color: index === 0 ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{label}</button>
-                ))}
+            <div className="max-w-md rounded-xl border" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
+              <div className="flex gap-1 border-b px-3" role="tablist" aria-label="Foundation 标签样张" style={{ borderColor: 'var(--border-subtle)' }}>
+                {['基础', '产品体验', 'Agent 实验'].map((label) => {
+                  const active = tabSample === label
+                  return (
+                    <button key={label} type="button" role="tab" aria-selected={active} onClick={() => setTabSample(label)} className="border-b-2 px-2.5 py-2 text-[11px] transition" style={{ borderColor: active ? 'var(--accent-fg)' : 'transparent', color: active ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{label}</button>
+                  )
+                })}
               </div>
-              <div className="p-3 text-[11px]" style={{ color: 'var(--text-secondary)' }}>同一任务域内切换内容，不承担页面级跳转。</div>
+              <div className="p-3 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                {tabSample === '基础' && '基础能力先独立验收，再被产品体验引用。'}
+                {tabSample === '产品体验' && '产品体验只负责语义、数据和页面组合。'}
+                {tabSample === 'Agent 实验' && 'Agent 实验用于隔离验证对话、模型和工具。'}
+              </div>
             </div>
           </StoryBlock>
           <StoryBlock title="窄宽标签" source="src/components/playground/UiControlsPanel.tsx · overflow-x-auto" edge adopted>
