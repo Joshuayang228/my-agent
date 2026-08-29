@@ -56,8 +56,8 @@ const MOTION_EASINGS = {
 /** Playground-only 候选主题：统一微型界面让开发者比较层级，而不是比较孤立色块。 */
 const THEME_STUDIES = [
   {
-    id: 'xuan-paper', label: '宣纸', description: '暖白、墨色、暖石', mode: '浅色',
-    colors: { app: '#f7f4ed', panel: '#ece7dc', card: '#fbfaf6', text: '#28241f', muted: '#756e64', accent: '#8a6a45', accentHover: '#6f5236', border: '#d8d0c2', success: '#347a59', warning: '#a66b2d', danger: '#b94a42' },
+    id: 'porcelain-blue', label: '瓷青', description: '冷白、青瓷、靛蓝', mode: '浅色',
+    colors: { app: '#edf3f6', panel: '#dfe9ee', card: '#fbfcfd', text: '#182a33', muted: '#657881', accent: '#216f8b', accentHover: '#17586f', border: '#c7d8df', success: '#2b806f', warning: '#9a6b2e', danger: '#b34e58' },
   },
   {
     id: 'yao-stone', label: '曜石', description: '深墨、灰蓝、低饱和金', mode: '深色',
@@ -68,8 +68,8 @@ const THEME_STUDIES = [
     colors: { app: '#f2f5f1', panel: '#e5ece6', card: '#fafcf9', text: '#24332d', muted: '#6e7d74', accent: '#317b66', accentHover: '#256653', border: '#cbd9cf', success: '#2e8061', warning: '#a87539', danger: '#b94e48' },
   },
   {
-    id: 'bronze-print', label: '铜版', description: '象牙纸、铜棕、深褐', mode: '浅色',
-    colors: { app: '#f8f3e9', panel: '#eee5d6', card: '#fffaf0', text: '#3a2b20', muted: '#847365', accent: '#a6531d', accentHover: '#823f16', border: '#ddcdb9', success: '#587c55', warning: '#b5752c', danger: '#b94a3b' },
+    id: 'deep-plum', label: '绛紫', description: '深莓、烟紫、玫瑰铜', mode: '深色',
+    colors: { app: '#201922', panel: '#2b2130', card: '#382839', text: '#f4edf4', muted: '#bca8bc', accent: '#c26b8e', accentHover: '#dc7fa4', border: '#50384f', success: '#79b89d', warning: '#d3a163', danger: '#e4888d' },
   },
 ] as const
 
@@ -111,6 +111,12 @@ function ThemeStudyCard({ study, selected, onSelect }: { study: typeof THEME_STU
           <p className="truncate text-[10px]" style={{ color: 'var(--study-muted)' }}>{study.description}</p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5"><span className="rounded-full border px-1.5 py-0.5 text-[9px]" style={{ borderColor: 'var(--study-border)', color: 'var(--study-muted)' }}>{study.mode}</span><button type="button" aria-pressed={selected} onClick={onSelect} className="rounded-full border px-1.5 py-0.5 text-[9px] transition" style={{ borderColor: selected ? 'var(--study-accent)' : 'var(--study-border)', color: selected ? 'var(--study-accent)' : 'var(--study-muted)', background: selected ? 'color-mix(in srgb, var(--study-accent) 12%, transparent)' : undefined }}>{selected ? '当前' : '比较'}</button></div>
+      </div>
+      <div className="flex h-1.5" aria-hidden="true">
+        <span className="flex-1" style={{ background: 'var(--study-app)' }} />
+        <span className="flex-1" style={{ background: 'var(--study-panel)' }} />
+        <span className="flex-1" style={{ background: 'var(--study-card)' }} />
+        <span className="flex-1" style={{ background: 'var(--study-accent)' }} />
       </div>
       <div className="grid min-h-[10rem] grid-cols-[4.2rem_1fr]" style={{ background: 'var(--study-card)' }}>
         <div className="space-y-2 border-r p-2" style={{ background: 'var(--study-panel)', borderColor: 'var(--study-border)' }}>
@@ -164,7 +170,7 @@ export function DesignSystemPanel() {
   const [customRadius, setCustomRadius] = useState(16)
   const [motionPlaying, setMotionPlaying] = useState(true)
   const [motionEasing, setMotionEasing] = useState<MotionEasing>('standard')
-  const [selectedStudy, setSelectedStudy] = useState('xuan-paper')
+  const [selectedStudy, setSelectedStudy] = useState('porcelain-blue')
 
   const read = (name: string) => {
     if (typeof document === 'undefined') return ''

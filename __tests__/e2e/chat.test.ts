@@ -204,10 +204,10 @@ test.describe('My Agent UI', () => {
     await expect(page.getByTestId('color-interaction-matrix')).toContainText('focus / disabled')
     await page.getByRole('button', { name: '主题对照', exact: true }).click()
     await expect(page.getByTestId('theme-study-grid')).toBeVisible()
-    for (const studyId of ['xuan-paper', 'yao-stone', 'song-smoke', 'bronze-print']) {
+    for (const studyId of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
       await expect(page.getByTestId(`theme-study-${studyId}`)).toBeVisible()
     }
-    await expect(page.getByTestId('theme-study-selection')).toContainText('宣纸')
+    await expect(page.getByTestId('theme-study-selection')).toContainText('瓷青')
     await page.getByTestId('theme-study-yao-stone').getByRole('button', { name: '比较', exact: true }).click()
     await expect(page.getByTestId('theme-study-selection')).toContainText('曜石')
     await expect(page.getByTestId('theme-study-yao-stone').getByRole('button', { name: '当前', exact: true })).toBeVisible()
