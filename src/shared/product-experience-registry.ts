@@ -36,7 +36,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     playgroundTabId: 'chat',
     sourcePaths: ['src/App.tsx', 'src/components/shell/PrimarySidebar.tsx'],
     experienceParts: ['伙伴身份', '会话导航', '欢迎区', '消息流'],
-    usesFoundation: ['developer.markdown', 'state.empty', 'state.toast'],
+    usesFoundation: ['state.empty', 'state.toast'],
   }),
   experience({
     key: 'experience.world',
@@ -76,7 +76,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     playgroundTabId: 'workspace',
     sourcePaths: ['src/components/chat/right-dock/ChatRightDock.tsx', 'src/components/FileBrowser.tsx'],
     experienceParts: ['文件', '预览', '审阅', '终端'],
-    usesFoundation: ['developer.file-tree', 'layout.resize-handle', 'behavior.tabs'],
+    usesFoundation: ['developer.file-tree', 'developer.markdown', 'layout.resize-handle', 'behavior.tabs'],
   }),
   experience({
     key: 'experience.business-states',

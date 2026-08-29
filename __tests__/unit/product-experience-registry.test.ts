@@ -50,7 +50,7 @@ describe('product experience registry', () => {
 
   it('反向使用关系只从活跃体验的 usesFoundation 派生', () => {
     expect(isActiveProductExperience({ ...PRODUCT_EXPERIENCE_ASSETS[0], status: 'archived' })).toBe(false)
-    expect(productExperiencesUsingFoundation('developer.markdown').map((asset) => asset.key)).toEqual(['experience.chat'])
+    expect(productExperiencesUsingFoundation('developer.markdown').map((asset) => asset.key)).toEqual(['experience.workspace'])
     expect(productExperiencesUsingFoundation('state.empty').map((asset) => asset.key)).toEqual([
       'experience.chat',
       'experience.world',
