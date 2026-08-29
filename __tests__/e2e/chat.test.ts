@@ -369,6 +369,12 @@ test.describe('My Agent UI', () => {
     await expect(page.getByRole('tablist', { name: 'Chat 主旅程' })).toBeVisible()
     await expect(page.getByRole('tab', { name: '初次进入', exact: true })).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByRole('button', { name: '换个主角 →', exact: true })).toHaveCount(0)
+    await expect(page.getByTestId('chat-journey-quick-action')).toHaveCount(3)
+    await page.getByTestId('chat-journey-quick-action').filter({ hasText: '看看朋友圈' }).click()
+    await expect(nav.getByRole('button', { name: '人物世界', exact: true })).toHaveAttribute('data-active', 'true')
+    await expect(page.getByTestId('playground-world-experience')).toBeVisible()
+    await nav.getByRole('button', { name: 'Chat', exact: true }).click()
+    await expect(page.getByRole('tab', { name: '初次进入', exact: true })).toHaveAttribute('aria-selected', 'true')
 
     await page.getByRole('tab', { name: '正在聊天', exact: true }).click()
     await expect(page.getByTestId('chat-surface-message-flow')).toBeVisible()

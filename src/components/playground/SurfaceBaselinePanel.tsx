@@ -13,6 +13,7 @@ import type { MomentItem, MomentsPreviewData } from '../MomentsPanel'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
 import { WorldHub, type WorldTab } from '../shell/WorldHub'
 import type { MemoryEntry } from '../../shared/types'
+import type { PlaygroundTabId } from './catalog'
 
 type SurfaceId = 'chat' | 'sidebar' | 'dock' | 'world' | 'memory' | 'settings'
 
@@ -176,7 +177,7 @@ const CHAT_JOURNEYS: Array<{ id: ChatJourney; label: string; description: string
   { id: 'work', label: '处理任务', description: '需要工作区时，再让它按需出现。' },
 ]
 
-function ChatSurface() {
+function ChatSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => void }) {
   const sessionFilterRef = useRef<HTMLInputElement>(null)
   const [viewport, setViewport] = useState<'standard' | 'split'>('standard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -303,18 +304,24 @@ function ChatSurface() {
                         沉稳体贴的数字伙伴
                       </p>
                       <div className="mt-8 flex flex-wrap justify-center gap-2">
-                        {['打个招呼', '今天想怎么过？', '看看朋友圈'].map((label, index) => (
+                        {[
+                          { label: '打个招呼', action: () => setJourney('conversation') },
+                          { label: '今天想怎么过？', action: () => setJourney('conversation') },
+                          { label: '看看朋友圈', action: () => onNavigate?.('world') },
+                        ].map((item, index) => (
                           <button
-                            key={label}
+                            key={item.label}
                             type="button"
+                            onClick={item.action}
                             className="rounded-full border px-3.5 py-1.5 text-[12px] transition"
                             style={{
                               borderColor: index === 0 ? 'var(--companion-accent-warm)' : 'var(--border-color)',
                               color: index === 0 ? 'var(--accent-fg)' : 'var(--text-secondary)',
                               background: index === 0 ? 'var(--accent-subtle)' : 'var(--card-bg)',
                             }}
+                            data-testid="chat-journey-quick-action"
                           >
-                            {label}
+                            {item.label}
                           </button>
                         ))}
                       </div>
@@ -638,7 +645,7 @@ function MemorySurface() {
   )
 }
 
-export function SurfaceBaselinePanel({ initialSurface }: { initialSurface?: SurfaceId } = {}) {
+export function SurfaceBaselinePanel({ initialSurface, onNavigate }: { initialSurface?: SurfaceId; onNavigate?: (tab: PlaygroundTabId) => void } = {}) {
   const [surface, setSurface] = useState<SurfaceId>(initialSurface ?? 'chat')
   const fixedSurface = initialSurface !== undefined
 
@@ -668,7 +675,7 @@ export function SurfaceBaselinePanel({ initialSurface }: { initialSurface?: Surf
       </div>}
 
       <div className="min-w-0">
-        {surface === 'chat' && <ChatSurface />}
+        {surface === 'chat' && <ChatSurface onNavigate={onNavigate} />}
         {surface === 'sidebar' && <SidebarSurface />}
         {surface === 'dock' && <DockSurface />}
         {surface === 'world' && <WorldSurface />}

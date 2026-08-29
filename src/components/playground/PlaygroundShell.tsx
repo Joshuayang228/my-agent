@@ -60,6 +60,10 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
   const [tab, setTab] = useState<PlaygroundTabId>(readInitialTab)
   const [tools, setTools] = useState<PlaygroundToolInfo[]>([])
 
+  const navigateTo = (nextTab: PlaygroundTabId) => {
+    setTab(nextTab)
+  }
+
   const loadTools = useCallback(async () => {
     if (!window.electronAPI?.debug?.tools) return
     try {
@@ -167,7 +171,7 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
             {tab === 'design-tokens' && <DesignSystemPanel />}
             {tab === 'visual-assets' && <UiControlsPanel initialSub="icons" />}
             {tab === 'foundation-components' && <FoundationComponentsPanel />}
-            {tab === 'chat' && <SurfaceBaselinePanel initialSurface="chat" />}
+            {tab === 'chat' && <SurfaceBaselinePanel initialSurface="chat" onNavigate={navigateTo} />}
             {tab === 'world' && <SurfaceBaselinePanel initialSurface="world" />}
             {tab === 'memory' && <SurfaceBaselinePanel initialSurface="memory" />}
             {tab === 'settings' && <SurfaceBaselinePanel initialSurface="settings" />}
