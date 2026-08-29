@@ -388,13 +388,9 @@ function DockSurface() {
           projectPath={null}
           sessionId={null}
           showFiles
-          conversationDebug={false}
-          persistedCalls={[]}
-          persistedLoading={false}
           filesPreview={FILE_PREVIEW_FIXTURES}
           playgroundTabs
           onCloseFiles={noop}
-          onCloseDebug={noop}
         />
       </div>
     </SurfaceViewport>

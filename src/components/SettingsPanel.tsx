@@ -31,8 +31,6 @@ interface SettingsForm {
   companionMomentTipsMaxPerDay: string
   /** 定时主动问候（M31-G3）；默认关 */
   companionProactiveGreetingEnabled: string
-  /** 对话内 debugMode 叠加（M32-G7） */
-  conversationDebugMode: string
   auxModel: string
   sessionTokenBudget: string
   dailyTokenBudget: string
@@ -75,7 +73,6 @@ const DEFAULTS: SettingsForm = {
   companionMomentTipsQuietEnd: '8',
   companionMomentTipsMaxPerDay: '3',
   companionProactiveGreetingEnabled: 'false',
-  conversationDebugMode: 'false',
   auxModel: '',
   sessionTokenBudget: '0',
   dailyTokenBudget: '0',
@@ -137,9 +134,6 @@ interface SettingsPanelProps {
   onOpenSkills?: () => void
   currentTheme?: string
   onThemeChange?: (themeId: string) => void
-  /** 与主聊天同步的对话 debug 开关（M32-G7） */
-  conversationDebugMode?: boolean
-  onConversationDebugModeChange?: (enabled: boolean) => void
 }
 
 export function SettingsPanel({
@@ -150,8 +144,6 @@ export function SettingsPanel({
   onOpenSkills,
   currentTheme,
   onThemeChange,
-  conversationDebugMode,
-  onConversationDebugModeChange,
 }: SettingsPanelProps) {
   const { toast } = useToast()
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
@@ -265,7 +257,6 @@ export function SettingsPanel({
           s.companionMomentTipsMaxPerDay || DEFAULTS.companionMomentTipsMaxPerDay,
         companionProactiveGreetingEnabled:
           s.companionProactiveGreetingEnabled || DEFAULTS.companionProactiveGreetingEnabled,
-        conversationDebugMode: s.conversationDebugMode || DEFAULTS.conversationDebugMode,
         auxModel: s.auxModel || '',
         sessionTokenBudget: s.sessionTokenBudget || '0',
         dailyTokenBudget: s.dailyTokenBudget || '0',
@@ -1337,28 +1328,8 @@ export function SettingsPanel({
       <SectionTitle>开发者</SectionTitle>
 
       <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-        调试工具和内部状态查看
+        调试工具和内部状态查看；Debug 统一以全页工作区呈现
       </p>
-
-      <FieldGroup label="对话内调试（M32-G7）">
-        <label className="settings-option flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-xs">
-          <input
-            type="checkbox"
-            checked={
-              conversationDebugMode ?? form.conversationDebugMode === 'true'
-            }
-            onChange={(e) => {
-              const on = e.target.checked
-              update('conversationDebugMode', on ? 'true' : 'false')
-              onConversationDebugModeChange?.(on)
-            }}
-          />
-          <span>在聊天中显示调试信息</span>
-        </label>
-        <p className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-          Token 用量、工具 args/result、事件条、保留本轮工具卡。与下方全页入口是两码事。
-        </p>
-      </FieldGroup>
 
       <FieldGroup label="体验调试（全页）">
         <div className="space-y-2">

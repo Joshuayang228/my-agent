@@ -21,7 +21,7 @@
 | Prompt | `agent/prompt-builder.ts` · `prompts/registry.ts` · `prompts/texts.ts` |
 | 压缩 | `agent/context-manager.ts` |
 | 队列 | `services/task-queue.ts` |
-| UI 调试 | DevPanel（Debug）· PlaygroundPage · `ConversationDebugAside` |
+| UI 调试 | DevPanel（Debug）· PlaygroundPage |
 | 分层说明 | [`../architecture.md`](../architecture.md) |
 
 ## 依赖
@@ -86,7 +86,7 @@
 | Playground UI 矩阵加厚（确认/芯片/状态条/反馈/独白） | 已落地 | M32-G9 Phase 1 · Toast 关闭位统一、MarkdownRenderer 等正式组件故事格 |
 | Playground 单项采用标记与主题对照 | 已落地 | `AdoptionMark` 只挂具体 token / 组件 / 故事证据，不再给目录批量标记或提供全局开关；七主题同页审计 |
 | UI 组件 / 图标语义资产注册 | 已落地 | `ui-component-registry.ts` 继续承担组件资产身份与生命周期；`foundation-story-registry.ts` 负责 Foundation Playground 故事的 story key、assetKey、分组和 renderer 关系；基础组件工作台按 13 个任务入口展示全部已建故事，并补齐 Select / Form Field / Checkbox / Switch / Diff Viewer 及 IconButton / Card / Badge / Tag / Divider 隔离故事，完整候选登记由注册表 / Debug 承担；业务结构由产品体验注册表的 `experienceParts` 登记；图标目录仅显示紧凑的图标 + 中英文名，具体 adopted 小勾位于对应图标卡右上角并来自真实证据 |
-| 对话 Debug 右侧栏 | 已落地 | Chat 右坞 · `ConversationDebugAside`；可盖在能力坞之上（Alice 式）；持久化 LLM 调用链 |
+| 全局 Debug 诊断 | 已落地 | `DevPanel` 全页工作区；提示词、请求与运行、伙伴状态、质量 / Eval、系统统一从全局入口进入；Chat 不再叠加 Debug 半屏 |
 | 项目文件预览 | 已落地 | `FileBrowser` · text/image/unsupported；图/文本/md；html 沙箱 iframe；pdf·Office 外开；Playground 可用只读静态树 / 文件样张且跳过 IPC |
 | Chat 右侧能力坞 | 已落地 | `ChatRightDock` · Tab 文件/审阅/终端；会话写文件变更账本；命令控制台（非 PTY）；可拖宽 + 内部分界 |
 | Agent 生产资产目录与运行证据链 | 已落地 | Debug「提示词管理器」聚合 Prompt / 伙伴人格 / 记忆策略 / 权限与沙箱 / Tool schema / Skill / Eval Case 与 Grader / Eval Judge / 模型 Provider / MCP；真实 LLM / Tool / Memory / Permission 运行通过稳定 key 写入脱敏证据，支持调用级分组、资产最近使用、跨面板跳转与 JSON / JSONL 导出 |

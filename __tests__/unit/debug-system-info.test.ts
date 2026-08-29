@@ -12,7 +12,6 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
     llmApiKey: 'sk-test',
     systemPrompt: '',
     executionMode: 'confirm-all',
-    conversationDebugMode: 'true',
     sessionTokenBudget: '8000',
     dailyTokenBudget: '0',
   })),
@@ -61,7 +60,6 @@ describe('buildDebugSystemInfo', () => {
 
     expect(info.settings.sandboxMode).toBe('workspace-write')
     expect(info.settings.executionMode).toBe('confirm-all')
-    expect(info.settings.conversationDebugMode).toBe(true)
     expect(info.settings.hasApiKey).toBe(true)
     expect(JSON.stringify(info)).not.toContain('sk-test')
     expect(info.permissionRules.total).toBe(1)

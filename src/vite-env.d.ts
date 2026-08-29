@@ -437,7 +437,6 @@ declare global {
             hasCustomPrompt: boolean
             sandboxMode: string
             executionMode: string
-            conversationDebugMode: boolean
             sessionTokenBudget: number
             dailyTokenBudget: number
           }

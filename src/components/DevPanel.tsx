@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { AgentAssetUsageEvidence } from '../shared/types'
 import {
   FileText, BarChart3, ClipboardList, Zap, RotateCcw,
-  Bug, Globe, ArrowLeft, Layers3, Activity, FlaskConical,
+  Globe, ArrowLeft, Layers3, Activity, FlaskConical,
 } from 'lucide-react'
 import { PromptManagerPanel, type DebugPromptInfo } from './debug/PromptManagerPanel'
 import { LLMCallsPanel } from './debug/LLMCallsPanel'
@@ -44,7 +44,6 @@ interface SystemInfo {
     hasCustomPrompt: boolean
     sandboxMode?: string
     executionMode?: string
-    conversationDebugMode?: boolean
     sessionTokenBudget?: number
     dailyTokenBudget?: number
   }
@@ -190,31 +189,28 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
       <nav
         className="flex w-[156px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r px-2 py-3"
         style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
-        aria-label="Debug 分区"
+        aria-label="调试分区"
       >
-        <button
-          type="button"
-          onClick={onClose}
-          className="mb-2 flex w-full items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] transition"
-          style={{ color: 'var(--text-secondary)' }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-          title="返回聊天"
-        >
-          <ArrowLeft size={15} strokeWidth={1.75} />
-          返回
-        </button>
-        <div className="mb-1 flex items-center justify-between gap-1 px-2.5 pb-2">
-          <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-            <Bug size={13} style={{ color: 'var(--success)' }} />
-            Debug
-          </span>
+        <div className="mb-2 flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg px-2.5 py-2 text-left text-[13px] transition"
+            style={{ color: 'var(--text-secondary)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+            title="返回聊天"
+          >
+            <ArrowLeft size={15} strokeWidth={1.75} />
+            返回
+          </button>
           <button
             type="button"
             onClick={() => void refresh()}
-            className="rounded p-1 transition"
+            className="shrink-0 rounded p-2 transition"
             style={{ color: 'var(--text-muted)' }}
-            title="刷新"
+            title="刷新当前调试分区"
+            aria-label="刷新当前调试分区"
           >
             <RotateCcw size={12} />
           </button>
@@ -305,7 +301,6 @@ function SystemTab({ info, tools }: { info: SystemInfo | null; tools: DebugToolI
       items: [
         ['有效沙箱', info.settings.sandboxMode || '—'],
         ['审批模式', info.settings.executionMode || '—'],
-        ['对话 Debug', info.settings.conversationDebugMode ? '开' : '关'],
         ['会话 Token 预算', String(info.settings.sessionTokenBudget ?? 0)],
         ['日 Token 预算', String(info.settings.dailyTokenBudget ?? 0)],
       ],

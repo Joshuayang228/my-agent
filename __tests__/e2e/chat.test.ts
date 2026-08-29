@@ -73,6 +73,7 @@ test.describe('My Agent UI', () => {
 
     await expect(page.locator('[data-testid="primary-sidebar"]')).toBeVisible()
     await expect(page.getByRole('button', { name: '新对话', exact: true })).toBeVisible()
+    await expect(page.getByTestId('conversation-debug-toggle')).toHaveCount(0)
 
     await page.getByTitle('收起侧栏 Ctrl+B').click()
     await expect(page.locator('[data-testid="primary-sidebar"]')).not.toBeVisible()
@@ -379,6 +380,7 @@ test.describe('My Agent UI', () => {
     await expect(page.locator('[data-testid="dev-panel"]')).toBeVisible()
     const debugNav = page.locator('[data-testid="dev-panel"] nav')
     await expect(debugNav.getByRole('button', { name: '提示词管理器', exact: true })).toBeVisible()
+    await expect(debugNav.getByText('Debug', { exact: true })).toHaveCount(0)
     await expect(debugNav.getByRole('button', { name: '请求与运行', exact: true })).toBeVisible()
     await expect(debugNav.getByRole('button', { name: '伙伴状态', exact: true })).toBeVisible()
     await expect(debugNav.getByRole('button', { name: '质量 / Eval', exact: true })).toBeVisible()
@@ -408,6 +410,11 @@ test.describe('My Agent UI', () => {
     await expect(page.locator('[data-testid="request-runtime-panel"]')).toBeVisible()
     await expect(page.locator('h2:has-text("请求与运行")')).toBeVisible()
 
+    await page.locator('[data-testid="dev-panel"] button[title="返回聊天"]').click()
+    await expect(page.getByTestId('open-global-debug')).toBeVisible()
+    await page.getByTestId('open-global-debug').click()
+    await expect(page.locator('[data-testid="dev-panel"]')).toBeVisible()
+    await expect(page.getByTestId('conversation-debug-toggle')).toHaveCount(0)
     await page.locator('[data-testid="dev-panel"] button[title="返回聊天"]').click()
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
     const playgroundShell = page.locator('[data-testid="playground-shell"]')

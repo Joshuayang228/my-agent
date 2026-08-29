@@ -35,7 +35,6 @@ export interface DebugSystemInfo {
     hasCustomPrompt: boolean
     sandboxMode: string
     executionMode: string
-    conversationDebugMode: boolean
     sessionTokenBudget: number
     dailyTokenBudget: number
   }
@@ -104,8 +103,6 @@ export async function buildDebugSystemInfo(toolRegistry: ToolRegistry): Promise<
       /** 由对话页 executionMode 推导的有效沙箱（非独立设置项） */
       sandboxMode: resolveEffectiveSandbox(settings.executionMode),
       executionMode: settings.executionMode || 'auto',
-      conversationDebugMode:
-        settings.conversationDebugMode === 'true' || settings.conversationDebugMode === '1',
       sessionTokenBudget: Number.parseInt(settings.sessionTokenBudget || '0', 10) || 0,
       dailyTokenBudget: Number.parseInt(settings.dailyTokenBudget || '0', 10) || 0,
     },

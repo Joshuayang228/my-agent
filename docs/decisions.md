@@ -505,3 +505,17 @@
   - C：映射 Alice 的可用聊天入口到共享预设，按入口类型分组，协议能力继续由本项目 router 决定 — 覆盖广且不越过本项目真实边界
 - **决定**：C。共享 `src/shared/provider-presets.ts` 纳入 24 个 Provider 入口，分为海外直连、国内服务商、编程套餐、聚合与代理、本地 / 自定义；模型 ID 不属于入口预设，Settings 由用户按账户实际可用列表填写；ListenHub（TTS）和 CLIProxy（本地订阅代理）不作为普通聊天入口。
 - **影响**：Settings、Chat 快切、Debug Provider 资产统一读取共享预设；Anthropic / Gemini 请求 builder 归一化版本路径，未知自定义端点仍回退 OpenAI Compatible。
+
+---
+
+### DEC-040：Debug 统一为全局全页诊断工作区
+
+- **日期**：2026-08-29
+- **状态**：已决定
+- **背景**：当前同时存在全页 `DevPanel` 和 Chat 内 `conversationDebugMode` 两套调试入口。后者把调用链盖在 Chat 右坞半屏上，打断产品对话层级，也让“Debug 到底在哪里看”变得不清晰。
+- **选项**：
+  - A：保留对话内 Debug，只把右坞做得更宽 — 改善空间但继续保留两套心智模型
+  - B：让对话内开关跳转到全页 Debug，同时移除半屏覆盖和 Chat 专属持久化状态 — 入口可保留，诊断职责统一
+  - C：保留两套入口但共享更多状态 — 实现复杂，仍会让产品态混入开发信息
+- **决定**：选择 B。全局 Debug 以 `activeView === 'debug'` 和 `DevPanel` 为唯一诊断工作区；Chat 只保留产品对话，ChatRightDock 只负责文件 / 预览 / 审阅 / 终端。旧 `conversationDebugMode` 设置键暂时保留在存储层以兼容既有数据，但不再驱动 UI 或运行时行为。
+- **影响**：`src/App.tsx`、`src/components/DevPanel.tsx`、`src/components/SettingsPanel.tsx`、`src/components/chat/right-dock/ChatRightDock.tsx`、Debug 系统快照类型与文档；历史施工合同中关于 Debug 覆盖的内容保留为冻结快照，不作为当前行为事实源。

@@ -13,6 +13,12 @@
 | **明确不做** | 当前威胁模型下不做 OS 级 Shell 强隔离和 Python 嵌入沙箱，见 DEC-037。 |
 | **历史** | 完整施工流水和旧测试数字已冻结到归档，不再由本文件重复维护。 |
 
+## 2026-08-29 · Debug 入口全局化
+
+- 移除 Chat 内 `conversationDebugMode` 与右侧半屏 `ConversationDebugAside`，避免把开发诊断叠进产品对话。
+- Debug 统一由 Primary Sidebar / Settings / Chat 辅助入口进入全页 `DevPanel`；请求与运行域继续承载真实 LLM 调用、Trace 和事件。
+- Debug 内部不再显示冗余的“Debug”身份行，刷新保留为返回按钮旁的轻量操作。
+
 ## 2026-08-28 · Playground 确认内容回流正式 UI
 
 - 用户已明确授权回流；正式 UI 只接收可服务真实流程的视觉规则和交互，不复制 Playground 的来源路径、采用标记、目录、调试滑杆或隔离 fixture。

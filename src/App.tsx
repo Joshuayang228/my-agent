@@ -4,7 +4,6 @@ import type {
   AgentStreamEvent,
   ImageAttachment,
   MemoryCitation,
-  LLMCallSummary,
 } from './shared/types'
 import { MarkdownRenderer } from './components/MarkdownRenderer'
 import { SettingsPanel } from './components/SettingsPanel'
@@ -42,7 +41,6 @@ import {
   type ReasoningCallbackState,
   type ToolCallbackItem,
 } from './components/chat/callbacks'
-import { parseConversationDebugMode } from './components/chat/conversation-debug'
 import {
   PrimarySidebar,
   SecondaryNav,
@@ -140,13 +138,8 @@ function App() {
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
   const [usage, setUsage] = useState<UsageInfo | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  /** 对话内 debugMode（M32-G7）；与全页 Debug/Playground 无关 */
-  const [conversationDebugMode, setConversationDebugMode] = useState(false)
-  const conversationDebugModeRef = useRef(false)
   // showMemoryPanel / showSkillsPanel / DevPanel 已合并为 activeView
   const [eventLog, setEventLog] = useState<Array<{ time: number; type: string; detail: string }>>([])
-  const [persistedDebugCalls, setPersistedDebugCalls] = useState<LLMCallSummary[]>([])
-  const [persistedDebugLoading, setPersistedDebugLoading] = useState(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; sessionId: string } | null>(null)
@@ -241,58 +234,6 @@ function App() {
   useEffect(() => { sessionsRef.current = sessions }, [sessions])
   useEffect(() => { activeSessionIdRef.current = activeSessionId }, [activeSessionId])
 
-  /** 对话 Debug 读取现有 tracer sink 的持久化摘要，并订阅增量事件。 */
-  useEffect(() => {
-    const debug = window.electronAPI?.debug
-    if (!debug || !activeSessionId || !conversationDebugMode) {
-      setPersistedDebugCalls([])
-      setPersistedDebugLoading(false)
-      return
-    }
-
-    let disposed = false
-    const refresh = async () => {
-      setPersistedDebugLoading(true)
-      try {
-        const result = await debug.llmLogsQuery({
-          sessionId: activeSessionId,
-          includeSubagents: true,
-          limit: 300,
-        })
-        if (!disposed) setPersistedDebugCalls(result.records)
-      } catch {
-        if (!disposed) setPersistedDebugCalls([])
-      } finally {
-        if (!disposed) setPersistedDebugLoading(false)
-      }
-    }
-
-    void refresh()
-    const unsubscribe = debug.onLLMCallEvent((event) => {
-      if (disposed) return
-      if (event.type === 'cleared') {
-        if (!event.sessionId || event.sessionId === activeSessionId) setPersistedDebugCalls([])
-        return
-      }
-      if (event.record.sessionId === activeSessionId) {
-        setPersistedDebugCalls((previous) => {
-          const next = new Map(previous.map((record) => [record.id, record]))
-          next.set(event.record.id, event.record)
-          return Array.from(next.values()).sort((a, b) => a.startedAt - b.startedAt)
-        })
-      } else {
-        // 子 Agent 使用独立 Debug session；事件到达时重新按主会话聚合。
-        void refresh()
-      }
-    })
-    return () => {
-      disposed = true
-      unsubscribe()
-    }
-  }, [activeSessionId, conversationDebugMode])
-
-
-
   // ── M13：MCP Elicitation（服务端要补充信息）──
   useEffect(() => {
     if (!window.electronAPI?.mcp?.onElicitRequest) return
@@ -354,10 +295,6 @@ function App() {
       if (s.llmModel) setCurrentModel(s.llmModel)
       if (s.llmBaseUrl) setCurrentBaseUrl(s.llmBaseUrl)
       if (s.executionMode) setApprovalMode(s.executionMode as 'confirm-all' | 'auto' | 'full-access')
-      const debugOn = parseConversationDebugMode(s.conversationDebugMode)
-      setConversationDebugMode(debugOn)
-      conversationDebugModeRef.current = debugOn
-      if (debugOn) setThinkingExpanded(true)
       if (s.llmApiKeyConfigured !== 'true' && !s.llmApiKey) {
         setActiveView('settings')
         setTimeout(() => toast('欢迎！请先配置 API Key 以开始使用', 'warning'), 500)
@@ -433,7 +370,6 @@ function App() {
     setMessages([])
     setActiveTools([])
     setEventLog([])
-    setPersistedDebugCalls([])
     setInput('')
     setIsStreaming(false)
     setReasoning(resetReasoning())
@@ -445,14 +381,6 @@ function App() {
       setMessages(session.messages)
     }
   }
-
-  const setConversationDebug = useCallback(async (on: boolean) => {
-    setConversationDebugMode(on)
-    conversationDebugModeRef.current = on
-    if (on) setThinkingExpanded(true)
-    else setActiveTools([])
-    await window.electronAPI?.settings.set('conversationDebugMode', on ? 'true' : 'false')
-  }, [])
 
   const openSummonSession = async (sessionId: string) => {
     await loadSessions()
@@ -597,7 +525,7 @@ function App() {
     if (ev.type === 'tool_call_delta' || ev.type === 'tool_start' || ev.type === 'tool_end') {
       setActiveTools(
         (prev) =>
-          applyToolEvent(prev, ev, { keepExpanded: conversationDebugModeRef.current }) ?? prev,
+          applyToolEvent(prev, ev, { keepExpanded: false }) ?? prev,
       )
       if (ev.type === 'tool_end') {
         setMessages((prev) => appendToolResultMessage(prev, ev))
@@ -635,8 +563,8 @@ function App() {
 
       case 'done':
         setIsStreaming(false)
-        // 对话 debug：保留本轮工具卡；产品态：清掉以免污染伙伴感
-        if (!conversationDebugModeRef.current) setActiveTools([])
+        // 工具卡属于当前流式回合；详细调用记录统一在全页 Debug 中查看。
+        setActiveTools([])
         setReasoning((prev) => completeReasoning(prev))
         break
 
@@ -950,8 +878,6 @@ function App() {
             onOpenSkills={() => setActiveView('skills')}
             currentTheme={theme}
             onThemeChange={setTheme}
-            conversationDebugMode={conversationDebugMode}
-            onConversationDebugModeChange={(on) => { void setConversationDebug(on) }}
           />
         </div>
       </div>
@@ -1373,7 +1299,7 @@ function App() {
                             resolveToolsForAssistant(msg, messages, {
                               liveHostId: liveToolHostId,
                               liveTools: activeTools,
-                              expandHistoric: conversationDebugMode,
+                              expandHistoric: false,
                             }),
                           )
                           return turnTools.length > 0 ? (
@@ -1816,7 +1742,7 @@ function App() {
               </div>
 
               {/* Token：产品态 hover 才见；对话 debug 时由上方 Overlay 常显 */}
-              {usage && !conversationDebugMode && (
+              {usage && (
                 <div className="flex gap-2 text-[10px] opacity-0 transition-opacity hover:opacity-100" style={{ color: 'var(--text-muted)' }}>
                   <span>↑{(usage.promptTokens / 1000).toFixed(1)}k</span>
                   <span>↓{(usage.completionTokens / 1000).toFixed(1)}k</span>
@@ -1825,24 +1751,21 @@ function App() {
               )}
               <button
                 type="button"
-                onClick={() => { void setConversationDebug(!conversationDebugMode) }}
+                onClick={() => setActiveView('debug')}
                 className="rounded px-1.5 py-0.5 text-[10px] transition"
-                style={{
-                  color: conversationDebugMode ? 'var(--accent)' : 'var(--text-muted)',
-                  background: conversationDebugMode ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
-                }}
-                title="对话内调试信息（与全页 Debug 无关）"
-                data-testid="conversation-debug-toggle"
+                style={{ color: 'var(--text-muted)' }}
+                title="打开全局 Debug"
+                data-testid="open-global-debug"
               >
-                {conversationDebugMode ? '调试已开启' : '调试'}
+                Debug
               </button>
             </div>
           </div>
         </div>}
       </div>
 
-      {/* 右坞：文件/审阅/终端；Debug 调用链盖上层（Alice 式） */}
-      {(showFileBrowser || (activeView === 'chat' && conversationDebugMode)) && (
+      {/* 右坞：文件 / 审阅 / 终端；Debug 统一进入全页工作区 */}
+      {showFileBrowser && (
         <>
           <ResizeHandle
             orientation="vertical"
@@ -1853,13 +1776,9 @@ function App() {
             projectPath={currentProject?.path || null}
             sessionId={activeSessionId}
             showFiles={showFileBrowser}
-            conversationDebug={activeView === 'chat' && conversationDebugMode}
-            persistedCalls={persistedDebugCalls}
-            persistedLoading={persistedDebugLoading}
             width={rightDockWidth}
             deferredTabs
             onCloseFiles={() => setShowFileBrowser(false)}
-            onCloseDebug={() => { void setConversationDebug(false) }}
           />
         </>
       )}

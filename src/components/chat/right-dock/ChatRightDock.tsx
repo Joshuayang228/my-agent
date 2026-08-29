@@ -1,5 +1,5 @@
 /**
- * Chat 右侧能力坞 — 文件 / 预览 / 审阅 / 终端；Debug 调用链盖上层（Alice 式）。
+ * Chat 右侧能力坞 — 文件 / 预览 / 审阅 / 终端。
  * Playground 可通过显式模式验收按需添加 Tab，不改变生产默认工具可见性。
  */
 
@@ -8,8 +8,6 @@ import { Eye, FileCode2, FileText, GitCompare, Plus, TerminalSquare, X } from 'l
 import { FileBrowser, type FileBrowserPreviewData, type FileBrowserPreviewState } from '../../FileBrowser'
 import { ReviewPanel } from './ReviewPanel'
 import { TerminalPanel } from './TerminalPanel'
-import { ConversationDebugAside } from '../ConversationDebugAside'
-import type { LLMCallSummary } from '../../../shared/types'
 
 export type RightDockTab = 'files' | 'preview' | 'review' | 'terminal'
 
@@ -20,9 +18,6 @@ interface ChatRightDockProps {
   projectPath: string | null
   sessionId: string | null
   showFiles: boolean
-  conversationDebug: boolean
-  persistedCalls: LLMCallSummary[]
-  persistedLoading: boolean
   /** 可拖宽度；默认 380 */
   width?: number
   /** Playground / 测试专用只读文件样张。 */
@@ -32,7 +27,6 @@ interface ChatRightDockProps {
   /** 正式工作坞采用预览默认、其余 Tab 通过 + 添加；不改变审阅 / 终端真实能力。 */
   deferredTabs?: boolean
   onCloseFiles: () => void
-  onCloseDebug: () => void
 }
 
 const TABS: readonly RightDockTabMeta[] = [
@@ -59,15 +53,11 @@ export function ChatRightDock({
   projectPath,
   sessionId,
   showFiles,
-  conversationDebug,
-  persistedCalls,
-  persistedLoading,
   width = 380,
   filesPreview,
   playgroundTabs = false,
   deferredTabs = false,
   onCloseFiles,
-  onCloseDebug,
 }: ChatRightDockProps) {
   const [sharedPreview, setSharedPreview] = useState<FileBrowserPreviewState>(null)
   const deferredTabMode = playgroundTabs || deferredTabs
@@ -78,7 +68,7 @@ export function ChatRightDock({
     ? [initialInstance('preview')]
     : [initialInstance('files'), initialInstance('review'), initialInstance('terminal')])
   const [addMenuOpen, setAddMenuOpen] = useState(false)
-  const open = showFiles || conversationDebug
+  const open = showFiles
   useEffect(() => {
     if (!deferredTabMode) return
     nextInstance.current = 2
@@ -251,29 +241,6 @@ export function ChatRightDock({
         </div>
       )}
 
-      {conversationDebug && (
-        <div
-          className={
-            showWorkbench
-              ? 'absolute inset-0 z-20 flex flex-col border-l shadow-lg'
-              : 'flex h-full min-h-0 flex-col'
-          }
-          style={{
-            borderColor: showWorkbench ? 'var(--border-subtle)' : undefined,
-            background: showWorkbench
-              ? 'color-mix(in srgb, var(--bg-secondary) 92%, transparent)'
-              : 'var(--bg-secondary)',
-            backdropFilter: showWorkbench ? 'blur(8px)' : undefined,
-          }}
-        >
-          <ConversationDebugAside
-            sessionId={sessionId}
-            persistedCalls={persistedCalls}
-            persistedLoading={persistedLoading}
-            onClose={onCloseDebug}
-          />
-        </div>
-      )}
     </div>
   )
 }
