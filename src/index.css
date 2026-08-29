@@ -747,6 +747,27 @@ html[data-font-scale="lg"] {
 .moments-alice-feed .moments-alice-post p {
   max-width: 58rem;
 }
+.moments-alice-feed .moments-alice-actions {
+  justify-content: flex-start;
+  gap: .35rem;
+  border-color: color-mix(in srgb, var(--text-primary) 9%, var(--border-subtle));
+}
+.moments-alice-feed .moments-alice-action {
+  min-height: 1.75rem;
+  color: var(--text-muted);
+  transition: color var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
+}
+.moments-alice-feed .moments-alice-action:hover {
+  color: var(--accent-fg);
+  background: var(--accent-subtle);
+}
+.moments-alice-feed .moments-alice-action:active {
+  transform: scale(.97);
+}
+.moments-alice-feed .moments-alice-action:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-fg) 45%, transparent);
+  outline-offset: 1px;
+}
 
 /* 面板分界拖动手柄：热区略宽，线细；悬停显 accent */
 .resize-handle {

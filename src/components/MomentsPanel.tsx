@@ -102,6 +102,7 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
   const [items, setItems] = useState<MomentItem[]>(previewData?.items ?? [])
   const [summary, setSummary] = useState(previewData?.summary ?? '')
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set())
+  const [commentFocusId, setCommentFocusId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   const load = useCallback(async () => {
@@ -210,26 +211,35 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
                           </ul>
                         ) : null}
                         {showSocialActions && (
-                          <div className="mt-3 flex items-center justify-end gap-1 border-t pt-2" data-testid="moment-social-actions" style={{ borderColor: 'var(--border-subtle)' }}>
+                          <div className="moments-alice-actions mt-3 flex items-center justify-start gap-1 border-t pt-2" data-testid="moment-social-actions" style={{ borderColor: 'var(--border-subtle)' }}>
                             <button
                               type="button"
                               aria-label={likedIds.has(m.id) ? '取消赞' : '赞'}
+                              data-testid="moment-like-button"
                               onClick={() => setLikedIds((current) => {
                                 const next = new Set(current)
                                 if (next.has(m.id)) next.delete(m.id)
                                 else next.add(m.id)
                                 return next
                               })}
-                              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] transition"
+                              className="moments-alice-action inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] transition"
                               style={{ color: likedIds.has(m.id) ? 'var(--accent-fg)' : 'var(--text-muted)', background: likedIds.has(m.id) ? 'var(--accent-subtle)' : 'transparent' }}
                             >
                               <Heart size={12} fill={likedIds.has(m.id) ? 'currentColor' : 'none'} aria-hidden="true" />
-                              {likedIds.has(m.id) ? '已赞' : '赞'}
+                              <span aria-hidden="true">{likedIds.has(m.id) ? '1' : '赞'}</span>
                             </button>
-                            <span className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                            <button
+                              type="button"
+                              aria-label="评论"
+                              aria-pressed={commentFocusId === m.id}
+                              data-testid="moment-comment-button"
+                              onClick={() => setCommentFocusId((current) => current === m.id ? null : m.id)}
+                              className="moments-alice-action inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] transition"
+                              style={{ color: commentFocusId === m.id ? 'var(--accent-fg)' : 'var(--text-muted)', background: commentFocusId === m.id ? 'var(--accent-subtle)' : 'transparent' }}
+                            >
                               <MessageCircle size={12} aria-hidden="true" />
                               评论{comments.length ? ` · ${comments.length}` : ''}
-                            </span>
+                            </button>
                           </div>
                         )}
                       </div>

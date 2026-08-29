@@ -320,6 +320,10 @@
 - 当前能力清单以 [`modules/README.md`](./modules/README.md) 及各模块卡“已落地能力”为准。
 - 当前门禁以 [`quality.md`](./quality.md) 和实际命令输出为准，不在 Progress 固定测试数量。
 
+## 最近进展
+
+- Playground 人物世界朋友圈候选补齐微信式左对齐赞 / 评论互动行；评论仍是隔离样张状态，不进入正式数据链路。
+
 ## 下一步
 
 1. 完成 Playground 常用 UI 控件的中文主名与灰色英文辅助名。
