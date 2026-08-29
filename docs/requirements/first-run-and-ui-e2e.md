@@ -41,7 +41,7 @@ My Agent 已具备模型配置、Agent Loop、人格系统和 Debug / Eval，但
 ### 3.3 首次配置 UI
 
 - `SettingsPanel` 模型区增加首次配置引导卡，仅在当前设置没有 API Key 时显示。
-- Provider 预设、API Key、Base URL、主模型和连接测试形成连续步骤。
+- Provider 入口、API Key、Base URL、主模型和连接测试形成连续步骤；Provider 入口不预置模型 ID，主模型由用户按账户可用列表填写。
 - 当前 Key / Base URL / 模型测试成功后才启用“保存并开始对话”；任一字段变化都会使旧验证失效。
 - 保留已有通用保存和自动保存逻辑；不改变老用户设置行为。
 

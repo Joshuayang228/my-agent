@@ -16,27 +16,27 @@ Agent 生产资产目录已经覆盖 Prompt、伙伴与人格、记忆策略、�
 - Failover 发生时哪些字段会继承，哪些会被替换？
 - Settings 中的模型预设来自哪里，Chat 快切和设置页是否一致？
 
-历史上模型预设分别写在 `src/components/SettingsPanel.tsx` 和 `src/App.tsx`，曾形成两个事实源；当前 Settings 与 Chat 快切只消费共享注册表；截至 2026-08-29，注册表包含 30 个预设，Chat 快切仍只展示其中 4 个。如果继续在 Debug 再维护第三份展示清单，预设和能力会继续漂移。
+历史上模型预设分别写在 `src/components/SettingsPanel.tsx` 和 `src/App.tsx`，曾形成两个事实源；当前 Settings 与 Chat 快切只消费共享注册表；截至 2026-08-29，注册表包含 24 个 Provider 入口，Chat 快切展示其中 2 个入口；模型 ID 不再由入口预设提供。如果继续在 Debug 再维护第三份展示清单，预设和能力会继续漂移。
 
 本合同只登记 My Agent **当前代码真实实现**的 Provider 能力，不抓取或硬编码厂商官网的最新产品规格。外部模型上下文、价格、可用区域和型号更新频繁，只有进入生产适配器、预设或能力探测后，才能成为本项目的生产资产。
 
 ## 2. 功能目标（What）
 
-1. 建立模型预设唯一注册表，统一 Settings Provider 卡片和 Chat 模型快切，不再在 JSX 中复制 Base URL / Model。
+1. 建立 Provider 入口唯一注册表，统一 Settings Provider 卡片和 Chat 快切，不再在 JSX 中复制 Base URL；模型 ID 与 Provider 入口解耦。
 2. 登记 OpenAI Compatible、Anthropic Messages、Gemini GenerateContent 三条真实协议适配能力，展示路由方式、请求端点、认证方式摘要、Streaming、Tool、System Prompt、Response Format、Thinking、Prompt Cache 和当前 Vision 处理边界。
 3. 登记 Provider 自动检测、辅助 Thinking 策略、Context Window 启发式、Vision 动态降级和顺序 Failover 等跨 Provider 运行策略。
-4. 将每个内置模型预设登记为 `provider-preset` 资产，显示稳定 key、分组、标签、公开 Base URL、模型名、协议路由结果和是否进入 Chat 快切；不包含 API Key。
-5. Debug「提示词管理器」新增“模型 Provider”分类，Provider 能力、策略和预设保持只读，不能载入为 Prompt 实验副本。
-6. 用户当前模型、API Key、自定义 Base URL、Fallback 配置和 `llmCapabilityCache` 属于用户 / 运行时配置；静态目录只展示内置默认与生产规则，当前生效值继续由 Debug「系统 / 请求与运行」查看。
+4. 将每个内置 Provider 入口登记为 `provider-preset` 资产，显示稳定 key、Provider 身份、分组、标签、公开 Base URL、协议路由结果和是否进入 Chat 快切；不包含模型白名单或 API Key。
+5. Debug「提示词管理器」保留“模型 Provider”分类，Provider 能力、策略和入口保持只读，不能载入为 Prompt 实验副本。
+6. 用户当前模型（主模型 / 辅助模型）、API Key、自定义 Base URL、Fallback 配置和 `llmCapabilityCache` 属于用户 / 运行时配置；静态目录只展示内置默认与生产规则，当前生效值继续由 Debug「系统 / 请求与运行」查看。
 7. 资产目录明确区分：
    - **adapter capability**：当前代码适配器确实能构造 / 解析的能力；
-   - **preset**：产品提供的便捷默认值；
-   - **runtime probe**：Playground 对具体 Base URL + Model 的探测结果；
+   - **preset**：产品提供的便捷 Provider 入口默认值；
+   - **runtime probe**：Playground 或连接测试对具体 Base URL + Model 的探测结果；
    - **vendor claim**：外部厂商宣称但尚未进入代码的能力，不注册。
 
 ## 3. 技术方案（How）
 
-### 3.1 模型预设唯一注册表
+### 3.1 Provider 入口唯一注册表
 
 新增类似：
 
@@ -48,16 +48,18 @@ src/shared/provider-presets.ts
 
 ```ts
 {
+  providerId: string
   key: string
   group: string
   label: string
   baseUrl: string
-  model: string
   quickAccess: boolean
 }
 ```
 
-首期迁移现有预设，并按 Alice 本地 Provider 清单补齐为五组：
+`model` 不属于注册表。Settings 的主模型 / 辅助模型是用户针对当前 Provider 的独立配置；连接测试仍要求用户填写模型 ID。
+
+按 Alice 本地 Provider 清单收敛为五组共 24 个入口：
 
 ```text
 海外直连：OpenAI、Anthropic、Google Gemini、xAI
@@ -69,14 +71,14 @@ src/shared/provider-presets.ts
 
 ListenHub（TTS）与 CLIProxy 订阅代理不作为普通聊天预设；它们属于不同的能力或本地运行前置条件，避免在模型选择里伪装成普通 Provider。
 
-`SettingsPanel.tsx` 按 group 展示全部预设；`App.tsx` 只读取 `quickAccess: true` 的子集。新增 / 修改预设时只改注册表。Provider 预设的公开地址只用于填充配置，API Key 仍由用户填写并由安全存储管理。
+`SettingsPanel.tsx` 按 group 展示全部 Provider 入口；`App.tsx` 只读取 `quickAccess: true` 的 Provider 子集，用于切换 Base URL，不修改当前模型。新增 / 修改入口时只改注册表。公开地址只用于填充配置，API Key 仍由用户填写并由安全存储管理。
 
-预设资产 key 使用稳定语义 key，例如：
+Provider 入口资产 key 使用稳定语义 key，例如：
 
 ```text
-provider-preset:openai:gpt-4o
-provider-preset:anthropic:claude-sonnet
-provider-preset:deepseek:v4-flash
+provider-preset:openai
+provider-preset:anthropic
+provider-preset:deepseek
 provider-preset:local:ollama
 ```
 
@@ -89,7 +91,7 @@ provider-preset:local:ollama
 - 单列编程套餐：Coding Plan 的计费 / 模型开放范围与普通聊天入口不同，保留独立分组。
 - 不纳入普通聊天预设：ListenHub（TTS）和 CLIProxy（本地代理账号）；前者不是聊天模型，后者需要单独的本地运行条件。
 - 适配边界：除 Anthropic / Gemini 官方协议外，其他 Alice 入口先按 OpenAI Compatible 发送；MiniMax Token Plan 通过端点路径识别 Anthropic。未知自定义地址继续保守回退 OpenAI Compatible。
-- 地址归一化：Anthropic / Gemini builder 会消除重复的 `/v1` 或 `/v1beta`，兼容旧配置和共享预设。
+- 地址归一化：Anthropic / Gemini builder 会消除重复的 `/v1` 或 `/v1beta`，兼容旧配置和共享入口。
 
 ### 3.2 Provider 路由与协议能力
 

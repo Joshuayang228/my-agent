@@ -339,10 +339,10 @@ function presetAssets(): ModelContextAsset[] {
   return PROVIDER_PRESETS.map((preset) => {
     const provider = detectProviderFromBaseUrl(preset.baseUrl)
     const content = jsonContent({
+      providerId: preset.providerId,
       group: preset.group,
       label: preset.label,
       baseUrl: preset.baseUrl,
-      model: preset.model,
       quickAccess: preset.quickAccess,
       routedProvider: provider,
       credentialIncluded: false,
@@ -350,8 +350,8 @@ function presetAssets(): ModelContextAsset[] {
     })
     return providerAsset({
       key: preset.key,
-      name: `模型预设 · ${preset.label}`,
-      purpose: 'Settings 与 Chat 快切共享的内置模型配置模板',
+      name: `Provider 入口 · ${preset.label}`,
+      purpose: 'Settings 与 Chat 快切共享的内置 Provider 入口模板',
       role: 'provider-preset',
       source: 'src/shared/provider-presets.ts',
       assetType: 'provider-preset',

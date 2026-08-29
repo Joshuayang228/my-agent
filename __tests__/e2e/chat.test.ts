@@ -579,8 +579,16 @@ test.describe('My Agent UI', () => {
     await expect(page.locator('[data-testid="settings-main"] > div').first()).not.toHaveClass(/border-b/)
     await expect(settingsPanel.getByRole('button', { name: '保存', exact: true })).toHaveCount(0)
     await page.getByRole('button', { name: '模型', exact: true }).click()
-    await expect(page.getByText('填写内容会自动保存在本机', { exact: false })).toBeVisible()
+    await expect(page.getByText('模型名请按账户实际可用列表填写', { exact: false })).toBeVisible()
     await expect(page.locator('[data-testid="test-connection"]')).toBeVisible()
+
+    const providerDetails = page.locator('details').filter({ hasText: '选择其它 Provider 预设' })
+    await providerDetails.locator('summary').click()
+    const providerField = providerDetails.locator('[data-testid="settings-field"], .settings-field').first()
+    await expect(providerField).toContainText('Provider 预设')
+    await expect(providerDetails.getByRole('button', { name: /OpenAI https:\/\/api\.openai\.com\/v1/ })).toBeVisible()
+    await expect(providerDetails).not.toContainText('gpt-4o')
+    await expect(page.getByPlaceholder('填写 Provider 控制台中的模型 ID')).toHaveValue('gpt-4o')
 
     await page.locator('[data-testid="settings-back"]').click()
     await expect(settingsPanel).not.toBeVisible()

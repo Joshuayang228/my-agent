@@ -127,7 +127,7 @@ describe('模型可见文本统一目录', () => {
       assetType: 'provider-capability',
       contentKind: 'data',
     })
-    expect(assets.find((asset) => asset.key === 'provider-preset:anthropic:claude-sonnet')).toMatchObject({
+    expect(assets.find((asset) => asset.key === 'provider-preset:anthropic')).toMatchObject({
       category: 'provider',
       assetType: 'provider-preset',
       dependencies: ['provider-capability:anthropic'],

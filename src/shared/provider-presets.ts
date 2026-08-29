@@ -1,272 +1,225 @@
 /**
- * 内置模型 Provider 预设唯一注册表。
+ * 内置模型 Provider 入口唯一注册表。
  *
- * 背景：Settings 与 Chat 快切曾分别维护预设数组，数量和内容已经分叉；Alice 参考实现
- * 也证明 Provider 需要按「直连 / 国内服务商 / 聚合与代理 / 编程套餐 / 本地」组织，
- * 而不是把所有端点混成一组。
- * 设计意图：所有 UI 只消费同一份纯数据；quickAccess 只决定是否进入 Chat 快切。
- * 关键约束：预设不包含 API Key，不宣称厂商全部模型能力；Base URL 必须是本项目
- * 当前适配器能够直接拼接请求的地址。Coding Plan 的模型是可编辑起始值，最终以账户开放模型为准。
+ * 背景：Provider 预设曾把“供应商、端点、具体模型”捆成一张卡，模型名称很快过时，
+ * 也让 Settings 看起来像在替用户决定模型。
+ * 设计意图：注册表只描述稳定的 Provider 入口；模型由用户按账户实际开放列表填写，
+ * Chat / Settings / Debug 都从同一份 Provider 入口派生。
+ * 关键约束：不包含 API Key、模型白名单或厂商能力保证；quickAccess 只决定是否进入
+ * Chat 的 Provider 快切，不代表默认模型。
  */
 
 export interface ProviderPreset {
+  /** Provider 在 Alice 清单中的稳定身份；多个协议入口可以拥有不同身份。 */
+  providerId: string
+  /** Provider 级资产 key；不包含模型名，避免模型更新造成入口身份漂移。 */
   key: string
   group: '海外直连' | '国内服务商' | '聚合与代理' | '编程套餐' | '本地 / 自定义'
   label: string
   baseUrl: string
-  model: string
   quickAccess: boolean
 }
 
 export const PROVIDER_PRESETS: readonly ProviderPreset[] = [
-  // 海外直连：保留既有稳定 key，同时补上 Alice 清单中的当前入口。
+  // 海外直连：只登记稳定 Provider 与端点，模型由用户账户决定。
   {
-    key: 'provider-preset:openai:gpt-4o',
+    providerId: 'openai',
+    key: 'provider-preset:openai',
     group: '海外直连',
-    label: 'OpenAI · GPT-4o',
+    label: 'OpenAI',
     baseUrl: 'https://api.openai.com/v1',
-    model: 'gpt-4o',
     quickAccess: true,
   },
   {
-    key: 'provider-preset:openai:gpt-4o-mini',
+    providerId: 'anthropic',
+    key: 'provider-preset:anthropic',
     group: '海外直连',
-    label: 'OpenAI · GPT-4o-mini',
-    baseUrl: 'https://api.openai.com/v1',
-    model: 'gpt-4o-mini',
-    quickAccess: true,
-  },
-  {
-    key: 'provider-preset:openai:gpt-5.5',
-    group: '海外直连',
-    label: 'OpenAI · GPT-5.5',
-    baseUrl: 'https://api.openai.com/v1',
-    model: 'gpt-5.5',
-    quickAccess: false,
-  },
-  {
-    key: 'provider-preset:anthropic:claude-sonnet',
-    group: '海外直连',
-    label: 'Anthropic · Claude Sonnet',
+    label: 'Anthropic Claude',
     baseUrl: 'https://api.anthropic.com',
-    model: 'claude-sonnet-4-20250514',
     quickAccess: false,
   },
   {
-    key: 'provider-preset:anthropic:claude-sonnet-4-6',
+    providerId: 'google',
+    key: 'provider-preset:google',
     group: '海外直连',
-    label: 'Anthropic · Claude Sonnet 4.6',
-    baseUrl: 'https://api.anthropic.com',
-    model: 'claude-sonnet-4-6',
-    quickAccess: false,
-  },
-  {
-    key: 'provider-preset:google:gemini-3.1-flash-preview',
-    group: '海外直连',
-    label: 'Google · Gemini 3.1 Flash',
+    label: 'Google Gemini',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-    model: 'gemini-3.1-flash-preview',
     quickAccess: false,
   },
   {
-    key: 'provider-preset:xai:grok-4',
+    providerId: 'xai',
+    key: 'provider-preset:xai',
     group: '海外直连',
-    label: 'xAI · Grok 4',
+    label: 'xAI Grok',
     baseUrl: 'https://api.x.ai/v1',
-    model: 'grok-4',
     quickAccess: false,
   },
 
-  // 国内服务商：使用 Alice 当前清单中的公开 OpenAI Compatible 端点。
+  // 国内服务商：端点来自 Alice 当前 Provider 清单，不内置具体模型名。
   {
-    key: 'provider-preset:deepseek:v3',
+    providerId: 'deepseek',
+    key: 'provider-preset:deepseek',
     group: '国内服务商',
-    label: 'DeepSeek V3',
+    label: 'DeepSeek',
     baseUrl: 'https://api.deepseek.com',
-    model: 'deepseek-chat',
     quickAccess: true,
   },
   {
-    key: 'provider-preset:deepseek:v4-flash',
+    providerId: 'dashscope',
+    key: 'provider-preset:dashscope',
     group: '国内服务商',
-    label: 'DeepSeek V4 Flash',
-    baseUrl: 'https://api.deepseek.com',
-    model: 'deepseek-v4-flash',
-    quickAccess: true,
-  },
-  {
-    key: 'provider-preset:deepseek:reasoner',
-    group: '国内服务商',
-    label: 'DeepSeek · Reasoner',
-    baseUrl: 'https://api.deepseek.com',
-    model: 'deepseek-reasoner',
-    quickAccess: false,
-  },
-  {
-    key: 'provider-preset:qwen:max',
-    group: '国内服务商',
-    label: '通义千问 Max',
+    label: '阿里云百炼',
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-    model: 'qwen-max',
     quickAccess: false,
   },
   {
-    key: 'provider-preset:moonshot:kimi-k2',
+    providerId: 'moonshot',
+    key: 'provider-preset:moonshot',
     group: '国内服务商',
-    label: 'Kimi K2',
+    label: 'Kimi / Moonshot',
     baseUrl: 'https://api.moonshot.cn/v1',
-    model: 'kimi-k2',
     quickAccess: false,
   },
   {
-    key: 'provider-preset:moonshot:kimi-k2.6',
+    providerId: 'minimax',
+    key: 'provider-preset:minimax',
     group: '国内服务商',
-    label: 'Kimi · K2.6',
-    baseUrl: 'https://api.moonshot.cn/v1',
-    model: 'kimi-k2.6',
-    quickAccess: false,
-  },
-  {
-    key: 'provider-preset:minimax:m2.5',
-    group: '国内服务商',
-    label: 'MiniMax · M2.5',
+    label: 'MiniMax',
     baseUrl: 'https://api.minimaxi.com/v1',
-    model: 'MiniMax-M2.5',
     quickAccess: false,
   },
   {
-    key: 'provider-preset:zhipu:glm-4.5',
+    providerId: 'zhipu',
+    key: 'provider-preset:zhipu',
     group: '国内服务商',
-    label: '智谱 AI · GLM-4.5',
+    label: '智谱 AI',
     baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-    model: 'glm-4.5',
     quickAccess: false,
   },
   {
-    key: 'provider-preset:siliconflow:qwen3-235b',
+    providerId: 'siliconflow',
+    key: 'provider-preset:siliconflow',
     group: '国内服务商',
-    label: '硅基流动 · Qwen3 235B',
+    label: '硅基流动',
     baseUrl: 'https://api.siliconflow.cn/v1',
-    model: 'Qwen/Qwen3-235B-A22B',
     quickAccess: false,
   },
   {
-    key: 'provider-preset:xiaomi:mimo-v2.5-pro',
+    providerId: 'xiaomi',
+    key: 'provider-preset:xiaomi',
     group: '国内服务商',
-    label: '小米 MiMo · V2.5 Pro',
+    label: '小米 MiMo',
     baseUrl: 'https://api.xiaomimimo.com/v1',
-    model: 'mimo-v2.5-pro',
     quickAccess: false,
   },
   {
-    key: 'provider-preset:volces:doubao-seed-2-pro',
+    providerId: 'volces',
+    key: 'provider-preset:volces',
     group: '国内服务商',
-    label: '火山引擎 · Doubao Seed 2.0 Pro',
+    label: '火山引擎 Ark',
     baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
-    model: 'doubao-seed-2-0-pro-260215',
     quickAccess: false,
   },
 
-  // 编程套餐：与普通聊天端点分开，避免用户误以为它们是同一种计费 / 能力入口。
-  // Alice 对部分套餐不预置模型，因此这里提供可编辑的常用起始值。
+  // 编程套餐：独立展示计费 / 能力入口；模型仍由套餐账户返回或由用户填写。
   {
-    key: 'provider-preset:kimi-coding:kimi-for-coding',
+    providerId: 'kimi_coding',
+    key: 'provider-preset:kimi-coding',
     group: '编程套餐',
     label: 'Kimi Code Plan',
     baseUrl: 'https://api.kimi.com/coding/v1',
-    model: 'kimi-for-coding',
     quickAccess: false,
   },
   {
-    key: 'provider-preset:aliyun-coding:qwen3-coder',
+    providerId: 'aliyun_coding',
+    key: 'provider-preset:aliyun-coding',
     group: '编程套餐',
     label: '阿里云 Coding Plan',
     baseUrl: 'https://coding.dashscope.aliyuncs.com/v1',
-    model: 'qwen3-coder',
     quickAccess: false,
   },
   {
-    key: 'provider-preset:minimax-coding:m2.5',
+    providerId: 'minimax_coding',
+    key: 'provider-preset:minimax-coding',
     group: '编程套餐',
     label: 'MiniMax Token Plan',
     baseUrl: 'https://api.minimaxi.com/anthropic/v1',
-    model: 'MiniMax-M2.5',
     quickAccess: false,
   },
   {
-    key: 'provider-preset:zhipu-coding:glm-4.5',
+    providerId: 'zhipu_coding',
+    key: 'provider-preset:zhipu-coding',
     group: '编程套餐',
     label: '智谱 GLM Coding Plan',
     baseUrl: 'https://open.bigmodel.cn/api/coding/paas/v4',
-    model: 'glm-4.5',
     quickAccess: false,
   },
   {
-    key: 'provider-preset:volces-coding:doubao-seed-2-pro',
+    providerId: 'volces_coding',
+    key: 'provider-preset:volces-coding',
     group: '编程套餐',
     label: '火山方舟 Coding Plan',
     baseUrl: 'https://ark.cn-beijing.volces.com/api/coding/v3',
-    model: 'doubao-seed-2-0-pro-260215',
     quickAccess: false,
   },
   {
-    key: 'provider-preset:xiaomi-coding:mimo-v2-pro',
+    providerId: 'xiaomi_coding',
+    key: 'provider-preset:xiaomi-coding',
     group: '编程套餐',
     label: '小米 MiMo Token Plan',
     baseUrl: 'https://token-plan-cn.xiaomimimo.com/v1',
-    model: 'mimo-v2-pro',
     quickAccess: false,
   },
 
-  // 聚合与代理：这是 Alice 支持的入口，但不冒充底层厂商直连。
+  // 聚合与代理：明确标注入口性质，不把聚合后的模型冒充成 Provider 自有模型。
   {
-    key: 'provider-preset:openrouter:gpt-4.1',
+    providerId: 'openrouter',
+    key: 'provider-preset:openrouter',
     group: '聚合与代理',
-    label: 'OpenRouter · GPT-4.1',
+    label: 'OpenRouter',
     baseUrl: 'https://openrouter.ai/api/v1',
-    model: 'openai/gpt-4.1',
     quickAccess: false,
   },
   {
-    key: 'provider-preset:pipellm:claude-sonnet-4-6',
+    providerId: 'pipellm_claude',
+    key: 'provider-preset:pipellm',
     group: '聚合与代理',
-    label: 'PipeLLM · Claude Sonnet 4.6',
+    label: 'PipeLLM',
     baseUrl: 'https://api.pipellm.ai/openai/v1',
-    model: 'claude-sonnet-4-6',
     quickAccess: false,
   },
   {
-    key: 'provider-preset:miyang:gemini-3-flash',
+    providerId: 'miyang',
+    key: 'provider-preset:miyang',
     group: '聚合与代理',
-    label: '米羊 · Gemini 3 Flash',
+    label: '米羊',
     baseUrl: 'https://miyang.cn/api/v1',
-    model: 'openrouter/google/gemini-3-flash-preview',
     quickAccess: false,
   },
   {
-    key: 'provider-preset:tokendance:glm-5.1',
+    providerId: 'tokendance',
+    key: 'provider-preset:tokendance',
     group: '聚合与代理',
-    label: '观猹 · GLM-5.1',
+    label: '观猹 / 词元跳动',
     baseUrl: 'https://tokendance.space/gateway/v1',
-    model: 'glm-5.1',
     quickAccess: false,
   },
 
-  // 本地：无需把 Alice 的固定本地 API Key 写入注册表；用户仍可手动配置。
+  // 本地：不把 Alice 固定的本地 API Key 带进注册表。
   {
+    providerId: 'ollama',
     key: 'provider-preset:local:ollama',
     group: '本地 / 自定义',
     label: 'Ollama',
     baseUrl: 'http://localhost:11434/v1',
-    model: 'llama3.1',
     quickAccess: false,
   },
   {
+    providerId: 'lmstudio',
     key: 'provider-preset:local:lm-studio',
     group: '本地 / 自定义',
     label: 'LM Studio',
     baseUrl: 'http://localhost:1234/v1',
-    model: 'local-model',
     quickAccess: false,
   },
 ]
@@ -282,4 +235,4 @@ export const PROVIDER_PRESET_GROUPS = [
   items: PROVIDER_PRESETS.filter((preset) => preset.group === group),
 }))
 
-export const QUICK_PROVIDER_PRESETS = PROVIDER_PRESETS.filter((preset) => preset.quickAccess)
+export const QUICK_PROVIDER_ENTRIES = PROVIDER_PRESETS.filter((preset) => preset.quickAccess)

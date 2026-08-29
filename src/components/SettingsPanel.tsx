@@ -372,7 +372,7 @@ export function SettingsPanel({
     settingsRevisionRef.current += 1
     setVerifiedConnectionKey('')
     setConnectionStatus(null)
-    setForm((f) => ({ ...f, llmBaseUrl: preset.baseUrl, llmModel: preset.model }))
+    setForm((f) => ({ ...f, llmBaseUrl: preset.baseUrl }))
   }, [])
 
   const update = (key: keyof SettingsForm, value: string) => {
@@ -840,7 +840,7 @@ export function SettingsPanel({
 
   /** Provider 卡片复用同一组生产预设；首次配置折叠展示，避免把核心字段推到首屏之外。 */
   const renderProviderPresets = () => (
-    <FieldGroup label="Provider 预设" hint="选择后会一键填入 Base URL 和模型名，也可以继续手动修改。">
+    <FieldGroup label="Provider 预设" hint="选择后只填入 Provider Base URL；模型名由账户实际开放列表决定，在下方单独填写。">
       <div className="space-y-4">
         {PROVIDER_PRESET_GROUPS.map((group) => (
           <div key={group.group}>
@@ -849,7 +849,7 @@ export function SettingsPanel({
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               {group.items.map((preset) => {
-                const selected = form.llmBaseUrl === preset.baseUrl && form.llmModel === preset.model
+                const selected = form.llmBaseUrl === preset.baseUrl
                 return (
                   <button
                     key={preset.label}
@@ -867,10 +867,7 @@ export function SettingsPanel({
                       </span>
                       {selected && <Check size={14} style={{ color: 'var(--accent-fg)' }} />}
                     </div>
-                    <div className="mt-1 font-mono text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                      {preset.model}
-                    </div>
-                    <div className="mt-0.5 truncate font-mono text-[10px]" style={{ color: 'var(--text-muted)' }} title={preset.baseUrl}>
+                    <div className="mt-1 truncate font-mono text-[10px]" style={{ color: 'var(--text-muted)' }} title={preset.baseUrl}>
                       {preset.baseUrl}
                     </div>
                   </button>
@@ -888,7 +885,7 @@ export function SettingsPanel({
       <div>
         <SectionTitle>模型</SectionTitle>
         <p className="mt-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
-          参考 Alice 的内置 Provider 入口选择预设，再填 API Key；编程套餐单独分组，ListenHub（TTS）和本地订阅代理不混入普通聊天。底层会按 Base URL 路由到 OpenAI Compatible、Anthropic 或 Gemini 适配器。
+          参考 Alice 的内置 Provider 入口选择预设，再填 API Key；编程套餐单独分组，ListenHub（TTS）和本地订阅代理不混入普通聊天。Provider 只负责端点，模型名由账户实际可用列表决定。
         </p>
       </div>
 
@@ -896,10 +893,10 @@ export function SettingsPanel({
         <section className="rounded-xl border p-4" style={{ borderColor: 'var(--accent)', background: 'var(--accent-subtle)' }} data-testid="first-run-setup">
           <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>先连接模型，再开始对话</h3>
           <p className="mt-1 text-xs leading-5" style={{ color: 'var(--text-secondary)' }}>
-            默认已选 GPT-4o；也可以展开其它 Provider。填写内容会自动保存在本机，连接测试只负责确认当前配置可用。
+            默认已选 OpenAI 入口；也可以展开其它 Provider。模型名请按账户实际可用列表填写，连接测试只负责确认当前配置可用。
           </p>
           <ol className="mt-3 space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-            <li>1. 确认 Provider、Base URL 和模型名</li>
+            <li>1. 确认 Provider 和 Base URL</li>
             <li>2. 填写 API Key，等待自动保存</li>
             <li>3. 测试连接，成功后返回聊天</li>
           </ol>
@@ -910,7 +907,6 @@ export function SettingsPanel({
         <details className="rounded-xl border px-4 py-3" style={{ borderColor: 'var(--border-color)', background: 'var(--card-bg)' }}>
           <summary className="cursor-pointer text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
             选择其它 Provider 预设
-            <span className="ml-2 font-mono text-[10px] font-normal" style={{ color: 'var(--text-muted)' }}>{form.llmModel}</span>
           </summary>
           <div className="mt-4">{renderProviderPresets()}</div>
         </details>
@@ -948,12 +944,12 @@ export function SettingsPanel({
       </FieldGroup>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <FieldGroup label="主模型" hint="对话主力；可手改预设模型名。">
+        <FieldGroup label="主模型" hint="对话主力；按当前 Provider 账户实际可用列表填写，不由 Provider 预设写死。">
           <input
             type="text"
             value={form.llmModel}
             onChange={(e) => update('llmModel', e.target.value)}
-            placeholder="gpt-4o"
+            placeholder="填写 Provider 控制台中的模型 ID"
             className="theme-input w-full rounded-lg border px-3 py-2 font-mono text-sm outline-none transition"
           />
         </FieldGroup>
@@ -962,7 +958,7 @@ export function SettingsPanel({
             type="text"
             value={form.auxModel}
             onChange={(e) => update('auxModel', e.target.value)}
-            placeholder="如 gpt-4o-mini"
+            placeholder="可选：填写辅助模型 ID"
             className="theme-input w-full rounded-lg border px-3 py-2 font-mono text-sm outline-none transition"
           />
         </FieldGroup>

@@ -67,7 +67,7 @@ const ASSET_TYPE_LABELS: Record<ModelContextAsset['assetType'], string> = {
   'sandbox-policy': '沙箱策略',
   'provider-capability': 'Provider 能力',
   'provider-policy': 'Provider 策略',
-  'provider-preset': '模型预设',
+  'provider-preset': '模型 Provider',
   'subagent-role': 'SubAgent 角色',
 }
 

@@ -301,7 +301,7 @@ export async function* streamChat(
         metadata: { provider, providerAttempt, model: activeConfig.model },
       })
     }
-    const matchedPreset = PROVIDER_PRESETS.find((preset) => preset.baseUrl === activeConfig.baseUrl && preset.model === activeConfig.model)
+    const matchedPreset = PROVIDER_PRESETS.find((preset) => preset.baseUrl === activeConfig.baseUrl)
     if (matchedPreset) {
       providerEvidence.push({
         assetKey: matchedPreset.key,

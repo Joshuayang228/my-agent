@@ -503,5 +503,5 @@
   - A：只保留少数手写模型 — 页面简单，但与 Alice 支持范围脱节，且设置 / Chat 容易再次分叉
   - B：复制 Alice 全部 Provider 定义 — 覆盖广，但会把 TTS、订阅代理和厂商声明直接伪装成 My Agent 的真实能力
   - C：映射 Alice 的可用聊天入口到共享预设，按入口类型分组，协议能力继续由本项目 router 决定 — 覆盖广且不越过本项目真实边界
-- **决定**：C。共享 `src/shared/provider-presets.ts` 纳入 30 个可配置聊天入口，分为海外直连、国内服务商、编程套餐、聚合与代理、本地 / 自定义；ListenHub（TTS）和 CLIProxy（本地订阅代理）不作为普通聊天预设。
+- **决定**：C。共享 `src/shared/provider-presets.ts` 纳入 24 个 Provider 入口，分为海外直连、国内服务商、编程套餐、聚合与代理、本地 / 自定义；模型 ID 不属于入口预设，Settings 由用户按账户实际可用列表填写；ListenHub（TTS）和 CLIProxy（本地订阅代理）不作为普通聊天入口。
 - **影响**：Settings、Chat 快切、Debug Provider 资产统一读取共享预设；Anthropic / Gemini 请求 builder 归一化版本路径，未知自定义端点仍回退 OpenAI Compatible。

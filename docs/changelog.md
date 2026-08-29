@@ -4,9 +4,14 @@
 
 ## [未发布]
 
+### 2026-08-29 · Provider 入口与模型选择解耦
+
+- Provider 卡片只负责选择供应商与 Base URL，模型 ID 改为设置页独立字段，不再把过时模型写死在 Provider 注册表和卡片中。
+- Chat 底部快切改为切换 Provider 入口，保留用户当前模型；当前模型通过按钮 hover 查看。
+
 ### 2026-08-29 · Alice Provider 入口同步
 
-- 模型设置预设依据仓库内 Alice Provider 清单补齐为 30 个，分为海外直连、国内服务商、编程套餐、聚合与代理、本地 / 自定义。
+- 模型设置 Provider 入口依据仓库内 Alice Provider 清单收敛为 24 个，分为海外直连、国内服务商、编程套餐、聚合与代理、本地 / 自定义；入口不再携带固定模型。
 - 预设、Chat 快切和 Debug Provider 资产继续共享唯一注册表，不暴露 API Key。
 - 明确排除 ListenHub（TTS）与 CLIProxy 订阅代理，避免误显示为普通聊天模型。
 

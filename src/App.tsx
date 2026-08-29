@@ -55,7 +55,7 @@ import {
 } from './components/shell'
 import { ResizeHandle } from './components/shell/ResizeHandle'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from './shared/panel-layout'
-import { QUICK_PROVIDER_PRESETS } from './shared/provider-presets'
+import { QUICK_PROVIDER_ENTRIES } from './shared/provider-presets'
 
 let messageIdCounter = 0
 function genId() {
@@ -117,7 +117,8 @@ function App() {
     return localStorage.getItem('theme') || 'mist'
   })
   const [currentModel, setCurrentModel] = useState('gpt-4o')
-  const [modelMenuOpen, setModelMenuOpen] = useState(false)
+  const [currentBaseUrl, setCurrentBaseUrl] = useState('https://api.openai.com/v1')
+  const [providerMenuOpen, setProviderMenuOpen] = useState(false)
   const [approvalMode, setApprovalMode] = useState<'confirm-all' | 'auto' | 'full-access'>('confirm-all')
   const [approvalMenuOpen, setApprovalMenuOpen] = useState(false)
   const [modeChangeNotice, setModeChangeNotice] = useState<string | null>(null)
@@ -351,6 +352,7 @@ function App() {
     loadSessions()
     window.electronAPI.settings.get().then((s) => {
       if (s.llmModel) setCurrentModel(s.llmModel)
+      if (s.llmBaseUrl) setCurrentBaseUrl(s.llmBaseUrl)
       if (s.executionMode) setApprovalMode(s.executionMode as 'confirm-all' | 'auto' | 'full-access')
       const debugOn = parseConversationDebugMode(s.conversationDebugMode)
       setConversationDebugMode(debugOn)
@@ -530,11 +532,11 @@ function App() {
   }, [createNewSession, searchOpen])
 
   useEffect(() => {
-    if (!modelMenuOpen && !approvalMenuOpen && !projectMenuOpen) return
-    const handler = () => { setModelMenuOpen(false); setApprovalMenuOpen(false); setProjectMenuOpen(false) }
+    if (!providerMenuOpen && !approvalMenuOpen && !projectMenuOpen) return
+    const handler = () => { setProviderMenuOpen(false); setApprovalMenuOpen(false); setProjectMenuOpen(false) }
     document.addEventListener('click', handler)
     return () => document.removeEventListener('click', handler)
-  }, [modelMenuOpen, approvalMenuOpen, projectMenuOpen])
+  }, [providerMenuOpen, approvalMenuOpen, projectMenuOpen])
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -929,6 +931,7 @@ function App() {
       })
       window.electronAPI.settings.get().then((s) => {
         if (s.llmModel) setCurrentModel(s.llmModel)
+        if (s.llmBaseUrl) setCurrentBaseUrl(s.llmBaseUrl)
         if (s.executionMode) setApprovalMode(s.executionMode as 'confirm-all' | 'auto' | 'full-access')
       })
     }
@@ -1654,39 +1657,40 @@ function App() {
                 </div>
 
                 <div className="flex items-center gap-1">
-                  {/* 模型选择 */}
+                  {/* Provider 选择：模型仍由设置页单独填写 */}
                   <div className="relative">
                     <button
-                      onClick={(e) => { e.stopPropagation(); setModelMenuOpen(!modelMenuOpen) }}
+                      onClick={(e) => { e.stopPropagation(); setProviderMenuOpen(!providerMenuOpen) }}
+                      title={`当前 Provider：${QUICK_PROVIDER_ENTRIES.find((p) => p.baseUrl === currentBaseUrl)?.label || '自定义 Provider'}；模型：${currentModel}`}
                       className="flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] transition"
                       style={{ color: 'var(--text-secondary)' }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = '')}
                     >
-                      {QUICK_PROVIDER_PRESETS.find((p) => p.model === currentModel)?.label || currentModel}
+                      {QUICK_PROVIDER_ENTRIES.find((p) => p.baseUrl === currentBaseUrl)?.label || '自定义 Provider'}
                       <ChevronDown size={9} style={{ color: 'var(--text-muted)' }} />
                     </button>
-                    {modelMenuOpen && (
+                    {providerMenuOpen && (
                       <div className="absolute bottom-full right-0 z-50 mb-1 w-44 rounded-lg border py-1 shadow-lg" style={{ borderColor: 'var(--border-color)', background: 'var(--dropdown-bg)' }}>
-                        {QUICK_PROVIDER_PRESETS.map((p) => (
+                        {QUICK_PROVIDER_ENTRIES.map((p) => (
                           <button
-                            key={p.model}
+                            key={p.providerId}
                             onClick={async (e) => {
                               e.stopPropagation()
-                              await window.electronAPI.settings.set('llmModel', p.model)
                               await window.electronAPI.settings.set('llmBaseUrl', p.baseUrl)
-                              setCurrentModel(p.model)
-                              setModelMenuOpen(false)
+                              setCurrentBaseUrl(p.baseUrl)
+                              setProviderMenuOpen(false)
                             }}
                             className="w-full px-3 py-1.5 text-left text-[12px] transition"
                             style={{
-                              color: currentModel === p.model ? 'var(--accent-fg)' : 'var(--text-secondary)',
-                              background: currentModel === p.model ? 'var(--accent-subtle)' : undefined,
+                              color: currentBaseUrl === p.baseUrl ? 'var(--accent-fg)' : 'var(--text-secondary)',
+                              background: currentBaseUrl === p.baseUrl ? 'var(--accent-subtle)' : undefined,
                             }}
-                            onMouseEnter={(e) => { if (currentModel !== p.model) (e.currentTarget as HTMLButtonElement).style.background = 'var(--hover-overlay)' }}
-                            onMouseLeave={(e) => { if (currentModel !== p.model) (e.currentTarget as HTMLButtonElement).style.background = '' }}
+                            onMouseEnter={(e) => { if (currentBaseUrl !== p.baseUrl) (e.currentTarget as HTMLButtonElement).style.background = 'var(--hover-overlay)' }}
+                            onMouseLeave={(e) => { if (currentBaseUrl !== p.baseUrl) (e.currentTarget as HTMLButtonElement).style.background = '' }}
                           >
-                            {p.label}
+                            <span className="block truncate">{p.label}</span>
+                            <span className="mt-0.5 block truncate font-mono text-[10px]" style={{ color: 'var(--text-muted)' }} title={p.baseUrl}>{p.baseUrl}</span>
                           </button>
                         ))}
                       </div>
