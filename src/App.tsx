@@ -894,62 +894,75 @@ function App() {
   return (
     <div className="app-shell flex h-screen select-none" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       {/* ── Primary 侧栏（Alice 壳） ── */}
-      {sidebarOpen && (
-        <>
-          <PrimarySidebar
-            personaName={currentPersonaName}
-            personaBlurb={companionBlurb || '越探索，越着迷。'}
-            activeView={activeView}
-            activeSessionId={activeSessionId}
-            sessionGroups={sessionGroups}
-            sessionPreviews={sessionPreviews}
-            pinnedIds={pinnedIds}
-            bgStreamingSessionId={bgStreamingSessionId}
-            activeBgTaskCount={activeBgTaskCount}
-            sidebarSearchOpen={sidebarSearchOpen}
-            sessionFilter={sessionFilter}
-            sessionFilterRef={sessionFilterRef}
-            renamingId={renamingId}
-            renameValue={renameValue}
-            width={sidebarWidth}
-            onOpenShelf={() => {
-              setWorldTab('shelf')
+      {/*
+       * 侧栏保留在 DOM 中，只动画外层轨道的宽度和位移。
+       * 这样展开 / 收起不会靠卸载造成硬切，同时 ResizeHandle 会和侧栏一起进退。
+       */}
+      <div
+        className="sidebar-transition flex min-h-0 shrink-0 overflow-hidden"
+        style={{
+          width: sidebarOpen ? sidebarWidth + 1 : 0,
+          opacity: sidebarOpen ? 1 : 0,
+          transform: sidebarOpen ? 'translateX(0)' : 'translateX(-12px)',
+          pointerEvents: sidebarOpen ? 'auto' : 'none',
+        }}
+        aria-hidden={!sidebarOpen}
+        data-open={sidebarOpen}
+        data-testid="sidebar-transition-shell"
+      >
+        <PrimarySidebar
+          personaName={currentPersonaName}
+          personaBlurb={companionBlurb || '越探索，越着迷。'}
+          activeView={activeView}
+          activeSessionId={activeSessionId}
+          sessionGroups={sessionGroups}
+          sessionPreviews={sessionPreviews}
+          pinnedIds={pinnedIds}
+          bgStreamingSessionId={bgStreamingSessionId}
+          activeBgTaskCount={activeBgTaskCount}
+          sidebarSearchOpen={sidebarSearchOpen}
+          sessionFilter={sessionFilter}
+          sessionFilterRef={sessionFilterRef}
+          renamingId={renamingId}
+          renameValue={renameValue}
+          width={sidebarWidth}
+          onOpenShelf={() => {
+            setWorldTab('shelf')
+            setActiveView('world')
+          }}
+          onCreateSession={() => { void createNewSession() }}
+          onToggleSearch={() => {
+            setSidebarSearchOpen((v) => !v)
+            setTimeout(() => sessionFilterRef.current?.focus(), 50)
+          }}
+          onSessionFilterChange={setSessionFilter}
+          onCloseSearch={() => { setSidebarSearchOpen(false); setSessionFilter('') }}
+          onSelectSession={(id) => { setActiveView('chat'); void switchSession(id) }}
+          onStartRename={(id, title) => { setRenamingId(id); setRenameValue(title) }}
+          onRenameChange={setRenameValue}
+          onCommitRename={() => { void commitRename() }}
+          onCancelRename={() => setRenamingId(null)}
+          onDeleteSession={(id) => { void deleteSession(id) }}
+          onContextMenu={(e, sessionId) => {
+            e.preventDefault()
+            setContextMenu({ x: e.clientX, y: e.clientY, sessionId })
+          }}
+          onNavigate={(view) => {
+            if (isWorldView(view) || view === 'world') {
+              setWorldTab(worldTabFromView(view === 'world' ? 'world' : view))
               setActiveView('world')
-            }}
-            onCreateSession={() => { void createNewSession() }}
-            onToggleSearch={() => {
-              setSidebarSearchOpen((v) => !v)
-              setTimeout(() => sessionFilterRef.current?.focus(), 50)
-            }}
-            onSessionFilterChange={setSessionFilter}
-            onCloseSearch={() => { setSidebarSearchOpen(false); setSessionFilter('') }}
-            onSelectSession={(id) => { setActiveView('chat'); void switchSession(id) }}
-            onStartRename={(id, title) => { setRenamingId(id); setRenameValue(title) }}
-            onRenameChange={setRenameValue}
-            onCommitRename={() => { void commitRename() }}
-            onCancelRename={() => setRenamingId(null)}
-            onDeleteSession={(id) => { void deleteSession(id) }}
-            onContextMenu={(e, sessionId) => {
-              e.preventDefault()
-              setContextMenu({ x: e.clientX, y: e.clientY, sessionId })
-            }}
-            onNavigate={(view) => {
-              if (isWorldView(view) || view === 'world') {
-                setWorldTab(worldTabFromView(view === 'world' ? 'world' : view))
-                setActiveView('world')
-                return
-              }
-              setActiveView(view)
-            }}
-            onCollapse={() => setSidebarOpen(false)}
-          />
-          <ResizeHandle
-            orientation="vertical"
-            title="拖动调整侧栏宽度"
-            onDelta={(dx) => setSidebarWidth((w) => w + dx)}
-          />
-        </>
-      )}
+              return
+            }
+            setActiveView(view)
+          }}
+          onCollapse={() => setSidebarOpen(false)}
+        />
+        <ResizeHandle
+          orientation="vertical"
+          title="拖动调整侧栏宽度"
+          onDelta={(dx) => setSidebarWidth((w) => w + dx)}
+        />
+      </div>
 
       {/* 会话右键菜单 */}
       {contextMenu && (

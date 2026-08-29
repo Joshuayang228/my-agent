@@ -68,20 +68,58 @@ test.describe('My Agent UI', () => {
     await expect(sendBtn).toBeDisabled()
   })
 
+  test('侧边栏搜索在原入口行内展开', async ({ page }) => {
+    await page.goto('/')
+
+    const sidebar = page.locator('[data-testid="primary-sidebar"]')
+    const toolbar = sidebar.getByTestId('sidebar-toolbar')
+    await expect(sidebar.getByTitle('搜索会话')).toBeVisible()
+    await expect(sidebar.getByTestId('sidebar-session-search')).toHaveCount(0)
+
+    await sidebar.getByTitle('搜索会话').click()
+    const search = sidebar.getByTestId('sidebar-session-search')
+    await expect(search).toBeVisible()
+    await expect(sidebar.getByRole('button', { name: '新对话', exact: true })).toHaveCount(0)
+    await expect(toolbar.locator('input')).toHaveCount(1)
+    await expect.poll(async () => search.evaluate((input) => {
+      const field = input.parentElement
+      const row = field?.closest('[data-testid="sidebar-toolbar"]')
+      if (!field || !row) return null
+      return Math.abs(field.getBoundingClientRect().top - row.getBoundingClientRect().top)
+    })).toBeLessThan(1)
+
+    await search.fill('测试')
+    await expect(search).toHaveValue('测试')
+    await search.press('Escape')
+    await expect(search).toHaveCount(0)
+    await expect(sidebar.getByTitle('搜索会话')).toBeVisible()
+  })
+
   test('侧边栏可见且可折叠', async ({ page }) => {
     await page.goto('/')
 
-    await expect(page.locator('[data-testid="primary-sidebar"]')).toBeVisible()
+    const sidebar = page.locator('[data-testid="primary-sidebar"]')
+    const sidebarShell = page.getByTestId('sidebar-transition-shell')
+    await expect(sidebar).toBeVisible()
     await expect(page.getByRole('button', { name: '新对话', exact: true })).toBeVisible()
-    await expect(page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: '记忆', exact: true })).toHaveCount(0)
+    await expect(sidebar.getByRole('button', { name: '记忆', exact: true })).toHaveCount(0)
     await expect(page.locator('[data-testid="secondary-nav"]')).toHaveCount(0)
     await expect(page.getByTestId('conversation-debug-toggle')).toHaveCount(0)
+    await expect(sidebarShell).toHaveCSS('transition-property', /width/)
+    await expect(sidebarShell).toHaveCSS('transition-property', /transform/)
+    await expect(sidebarShell).toHaveCSS('transition-duration', /0.22s/)
+    await expect(sidebarShell.getByRole('separator')).toBeVisible()
 
+    const openWidth = await sidebarShell.evaluate((element) => getComputedStyle(element).width)
     await page.getByTitle('收起侧栏 Ctrl+B').click()
-    await expect(page.locator('[data-testid="primary-sidebar"]')).not.toBeVisible()
+    await expect(sidebarShell).toHaveAttribute('data-open', 'false')
+    await expect.poll(() => sidebarShell.evaluate((element) => getComputedStyle(element).width)).not.toBe(openWidth)
+    await expect.poll(() => sidebarShell.evaluate((element) => getComputedStyle(element).width)).toBe('0px')
+    await expect(sidebar).not.toBeVisible()
 
     await page.getByTitle('展开侧边栏 (Ctrl+B)').click()
-    await expect(page.locator('[data-testid="primary-sidebar"]')).toBeVisible()
+    await expect(sidebarShell).toHaveAttribute('data-open', 'true')
+    await expect(sidebar).toBeVisible()
   })
 
   test('输入框支持文本输入和清除', async ({ page }) => {

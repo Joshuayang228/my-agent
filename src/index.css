@@ -551,7 +551,15 @@ html[data-font-scale="lg"] {
 }
 
 .sidebar-transition {
-  transition: width var(--motion-normal) var(--motion-ease), opacity var(--motion-normal) var(--motion-ease);
+  transition:
+    width var(--motion-normal) var(--motion-ease),
+    opacity var(--motion-normal) var(--motion-ease),
+    transform var(--motion-normal) var(--motion-ease),
+    visibility 0s linear 0s;
+}
+.sidebar-transition[data-open="false"] {
+  transition-delay: 0s, 0s, 0s, var(--motion-normal);
+  visibility: hidden;
 }
 
 .view-transition {

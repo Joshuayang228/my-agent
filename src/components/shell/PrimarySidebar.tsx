@@ -125,32 +125,71 @@ export function PrimarySidebar({
         </span>
       </button>
 
-      {/* 新对话 CTA + 工具 */}
-      <div className="mt-3 flex items-center gap-1.5 px-3">
-        <button
-          type="button"
-          onClick={onCreateSession}
-          className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-lg)] text-[13px] font-medium transition"
-          style={{
-            background: 'var(--accent-subtle)',
-            color: 'var(--accent-fg)',
-          }}
-          title="新对话 Ctrl+N"
-        >
-          <Plus size={16} />
-          新对话
-        </button>
-        <button
-          type="button"
-          onClick={onToggleSearch}
-          className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-lg)] transition"
-          style={{ color: 'var(--text-muted)' }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-          title="搜索会话"
-        >
-          <Search size={16} />
-        </button>
+      {/* 新对话 / 搜索：搜索在同一行展开，避免把会话列表再向下挤一层。 */}
+      <div className="mt-3 flex items-center gap-1.5 px-3" data-testid="sidebar-toolbar">
+        {sidebarSearchOpen ? (
+          <div
+            className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-lg)] border px-2.5"
+            style={{
+              background: 'var(--input-bg)',
+              borderColor: 'var(--input-border)',
+            }}
+          >
+            <Search size={15} style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
+            <input
+              ref={sessionFilterRef}
+              value={sessionFilter}
+              onChange={(e) => onSessionFilterChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') onCloseSearch()
+              }}
+              placeholder="搜索对话..."
+              aria-label="搜索对话"
+              data-testid="sidebar-session-search"
+              className="min-w-0 flex-1 bg-transparent text-xs outline-none"
+            />
+            <button
+              type="button"
+              onClick={onCloseSearch}
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition"
+              style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+              title="关闭搜索"
+              aria-label="关闭搜索"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onCreateSession}
+            className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-lg)] text-[13px] font-medium transition"
+            style={{
+              background: 'var(--accent-subtle)',
+              color: 'var(--accent-fg)',
+            }}
+            title="新对话 Ctrl+N"
+          >
+            <Plus size={16} />
+            新对话
+          </button>
+        )}
+        {!sidebarSearchOpen && (
+          <button
+            type="button"
+            onClick={onToggleSearch}
+            className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-lg)] transition"
+            style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+            title="搜索会话"
+            aria-label="搜索会话"
+          >
+            <Search size={16} />
+          </button>
+        )}
         <button
           type="button"
           onClick={onCollapse}
@@ -159,25 +198,11 @@ export function PrimarySidebar({
           onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = '')}
           title="收起侧栏 Ctrl+B"
+          aria-label="收起侧栏"
         >
           <PanelLeftClose size={16} />
         </button>
       </div>
-
-      {sidebarSearchOpen && (
-        <div className="px-3 pt-2">
-          <input
-            ref={sessionFilterRef}
-            value={sessionFilter}
-            onChange={(e) => onSessionFilterChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') onCloseSearch()
-            }}
-            placeholder="搜索对话..."
-            className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-1.5 text-xs outline-none"
-          />
-        </div>
-      )}
 
       {/* 会话列表 */}
       <div className="scrollbar-thin mt-3 flex-1 overflow-y-auto px-2 pb-2" data-testid="sidebar-session-list">

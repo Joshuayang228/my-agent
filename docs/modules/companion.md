@@ -110,6 +110,7 @@
 | 场景弱背景（Chat 氛围） | 已落地 | Chat 消息区底层 | `CompanionSceneBackdrop` · `companion-scene.ts` |
 | 前端视觉语言（token / 设置 IA / Chat 气质） | 已落地 | 主题·设置·侧栏身份·空态 | `frontend-visual-language` Phase1–3 |
 | Alice 壳 Phase A（大气侧栏） | 已落地 | Primary/底栏宫格只保留人物世界与设置；记忆与 Skills 从 Settings 进入 | `PrimarySidebar` · `frontend-alice-shell` |
+| Chat 侧栏会话搜索与收起动效 | 已落地 | Primary Sidebar 顶部搜索 / Ctrl+B | `PrimarySidebar` · `App` · `sidebar-transition` |
 | Chat 消息区大气化（Phase B 留白） | 已落地 | 消息流 `space-y-8`；工具卡见 agent-runtime | `frontend-alice-shell` Phase B |
 | 人物世界口袋（对齐 Alice `/moments`） | 已落地 | 侧栏一入口 + 内页 tab | `WorldHub` |
 | 伴侣状态条（展厅故事格） | 已落地 | Playground UI · 状态条 | `CompanionStatusBar` · Chat 顶栏已撤 |
