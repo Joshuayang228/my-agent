@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowUp, ChevronDown, Folder, PanelLeftOpen, Paperclip, Quote, Shield } from 'lucide-react'
+import { ArrowUp, ChevronDown, Folder, PanelLeftOpen, Paperclip, Shield } from 'lucide-react'
 import { SettingsPanel } from '../SettingsPanel'
 import { MemoryPanel } from '../MemoryPanel'
 import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
@@ -264,13 +264,6 @@ function ChatSurface() {
                       <p className="mt-3 text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                         沉稳体贴的数字伙伴
                       </p>
-                      <blockquote
-                        className="mx-auto mt-3 flex max-w-sm items-start gap-2 rounded-[var(--radius-md)] px-3 py-2 text-left text-[11.5px] leading-5"
-                        style={{ color: 'var(--text-muted)', background: 'var(--bg-inset)' }}
-                      >
-                        <Quote className="mt-0.5 shrink-0" size={13} strokeWidth={1.6} aria-hidden="true" />
-                        <span>聊天、朋友圈和衣柜都跟着当前主角；对话进行中不能换人。</span>
-                      </blockquote>
                       <div className="mt-8 flex flex-wrap justify-center gap-2">
                         {['打个招呼', '今天想怎么过？', '看看朋友圈'].map((label, index) => (
                           <button

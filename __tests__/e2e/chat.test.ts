@@ -308,6 +308,7 @@ test.describe('My Agent UI', () => {
     const titleRow = page.getByTestId('playground-page-title-row')
     await expect(titleRow).toContainText('Chat')
     await expect(titleRow).toContainText('确认伙伴身份、会话导航、欢迎区与消息流的组合关系。')
+    await expect(page.getByText('聊天、朋友圈和衣柜都跟着当前主角；对话进行中不能换人。', { exact: true })).toHaveCount(0)
     const titleBox = await titleRow.locator('h1').boundingBox()
     const descriptionBox = await titleRow.locator('p').boundingBox()
     expect(titleBox).not.toBeNull()
