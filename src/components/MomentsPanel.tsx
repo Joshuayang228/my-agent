@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { Heart, MessageCircle, Newspaper, RefreshCw, X } from 'lucide-react'
+import { Heart, MapPin, MessageCircle, Newspaper, RefreshCw, X } from 'lucide-react'
 
 export interface MomentItem {
   id: string
@@ -206,7 +206,7 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
                           ) : null}
                         </div>
                         <div className="mt-0.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                          {isAliceFeed ? formatRelativeWhen(m.publishedAt) : formatWhen(m.publishedAt)}{location ? ` · ${location}` : ''}
+                          {isAliceFeed ? formatRelativeWhen(m.publishedAt) : formatWhen(m.publishedAt)}{!isAliceFeed && location ? ` · ${location}` : ''}
                         </div>
                         <p className="mt-2 text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>{m.text}</p>
                         {m.media?.length ? (
@@ -225,6 +225,12 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
                                 data-testid="moment-media-image"
                               />
                             ))}
+                          </div>
+                        ) : null}
+                        {isAliceFeed && location ? (
+                          <div className="moments-alice-location mt-1.5 inline-flex items-center gap-1 text-[10px]" data-testid="moment-location" style={{ color: 'var(--text-muted)' }}>
+                            <MapPin size={11} strokeWidth={1.8} aria-hidden="true" />
+                            <span>{location}</span>
                           </div>
                         ) : null}
                         {coframes.length ? <div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>与{coframes.map((c) => c.castName).join('、')}同框</div> : null}

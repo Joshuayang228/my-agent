@@ -760,6 +760,9 @@ html[data-font-scale="lg"] {
 .moments-alice-feed .moments-alice-media:has(> :only-child) .moments-alice-media-image {
   aspect-ratio: 3 / 2;
 }
+.moments-alice-feed .moments-alice-location {
+  min-height: 1rem;
+}
 .moments-alice-feed .moments-alice-actions {
   justify-content: flex-start;
   gap: .65rem;
