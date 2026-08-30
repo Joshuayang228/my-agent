@@ -434,6 +434,53 @@ test.describe('My Agent UI', () => {
     await expect(identityFilter).toBeVisible()
   })
 
+  test('Playground 角色架入口真实可达且设置预览不触发生产读取', async ({ page }) => {
+    await page.addInitScript(() => {
+      const original = window.localStorage.getItem('playground.active-tab')
+      window.localStorage.setItem('playground.active-tab', 'chat')
+      window.addEventListener('beforeunload', () => {
+        if (original === null) window.localStorage.removeItem('playground.active-tab')
+        else window.localStorage.setItem('playground.active-tab', original)
+      })
+    })
+    await page.goto('/')
+    await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
+    const nav = page.locator('[data-testid="playground-nav"]')
+    await page.locator('[data-testid="surface-sidebar-candidate"]').getByTitle('打开角色架').click()
+    await expect(nav.getByRole('button', { name: '设置', exact: true })).toHaveAttribute('data-active', 'true')
+    await expect(page.getByTestId('settings-role-shelf-fixture')).toBeVisible()
+
+    await page.getByRole('tab', { name: '设置', exact: true }).click()
+    await expect(page.getByTestId('settings-surface-candidate')).toBeVisible()
+    await expect(page.locator('[data-testid="settings-nav"]')).toBeVisible()
+    await expect(page.getByText('受 Alice 项目启发', { exact: true })).toHaveCount(0)
+  })
+
+  test('Playground 当前主角贯穿 Chat、人物世界物什与朋友圈', async ({ page }) => {
+    await page.goto('/')
+    await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
+    const nav = page.locator('[data-testid="playground-nav"]')
+
+    await nav.getByRole('button', { name: '设置', exact: true }).click()
+    await page.getByRole('tab', { name: '角色架', exact: true }).click()
+    await page.getByTestId('settings-persona-option-yao').click()
+    await expect(page.getByTestId('settings-persona-option-yao')).toHaveAttribute('aria-pressed', 'true')
+
+    await nav.getByRole('button', { name: 'Chat', exact: true }).click()
+    await expect(page.getByTestId('surface-sidebar-candidate')).toContainText('阿遥')
+    await expect(page.getByText('嗨，我是阿遥', { exact: true })).toBeVisible()
+
+    await nav.getByRole('button', { name: '人物世界', exact: true }).click()
+    await expect(page.getByTestId('playground-moments-profile')).toContainText('阿遥')
+    await expect(page.getByTestId('moment-post').first()).toContainText('阿遥')
+    await page.getByTestId('world-tab-assets').click()
+    await expect(page.getByTestId('world-assets-fixture')).toHaveAttribute('data-persona-id', 'yao')
+    await expect(page.getByTestId('world-assets-fixture')).toContainText('灰绿帆布包')
+    await page.getByTestId('world-tab-cast').click()
+    await expect(page.getByTestId('world-cast-fixture')).toHaveAttribute('data-persona-id', 'yao')
+    await expect(page.getByTestId('world-cast-fixture')).toContainText('阿遥')
+  })
+
   test('Playground Toast 四态关闭按钮沿统一右边界对齐', async ({ page }) => {
     await page.goto('/')
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()

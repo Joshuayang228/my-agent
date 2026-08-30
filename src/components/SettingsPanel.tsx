@@ -134,6 +134,8 @@ interface SettingsPanelProps {
   onOpenSkills?: () => void
   currentTheme?: string
   onThemeChange?: (themeId: string) => void
+  /** Playground 只读预览：不读取、写入或探测真实设置。 */
+  preview?: boolean
 }
 
 export function SettingsPanel({
@@ -144,6 +146,7 @@ export function SettingsPanel({
   onOpenSkills,
   currentTheme,
   onThemeChange,
+  preview = false,
 }: SettingsPanelProps) {
   const { toast } = useToast()
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
@@ -183,13 +186,13 @@ export function SettingsPanel({
   const settingsRevisionRef = useRef(0)
 
   const refreshMcpStatus = useCallback(async () => {
-    if (!window.electronAPI) return
+    if (preview || !window.electronAPI) return
     const statuses = await window.electronAPI.mcp.status()
     setMcpStatuses(statuses)
-  }, [])
+  }, [preview])
 
   const loadMutable = useCallback(async (roleId: string) => {
-    if (!window.electronAPI?.companion || !roleId) return
+    if (preview || !window.electronAPI?.companion || !roleId) return
     setMutableLoading(true)
     try {
       const [cur, versions] = await Promise.all([
@@ -221,15 +224,16 @@ export function SettingsPanel({
     } finally {
       setMutableLoading(false)
     }
-  }, [])
+  }, [preview])
 
   useEffect(() => {
+    if (preview) return
     document.documentElement.dataset.fontScale = fontScale
     localStorage.setItem('uiFontScale', fontScale)
-  }, [fontScale])
+  }, [fontScale, preview])
 
   useEffect(() => {
-    if (!window.electronAPI) return
+    if (preview || !window.electronAPI) return
     window.electronAPI.settings.get().then((s) => {
       const hasApiKey = s.llmApiKeyConfigured === 'true' || Boolean(s.llmApiKey?.trim())
       setHasStoredApiKey(hasApiKey)
@@ -271,10 +275,10 @@ export function SettingsPanel({
     })
     window.electronAPI.companion.listProtagonists().then(setProtagonists)
     refreshMcpStatus()
-  }, [loadMutable, refreshMcpStatus])
+  }, [loadMutable, preview, refreshMcpStatus])
 
   const persistSettings = useCallback(async (): Promise<void> => {
-    if (!window.electronAPI || !settingsLoadedRef.current || settingsRevisionRef.current === 0) return
+    if (preview || !window.electronAPI || !settingsLoadedRef.current || settingsRevisionRef.current === 0) return
     const savingRevision = settingsRevisionRef.current
     try {
       for (const [key, value] of Object.entries(form)) {
@@ -295,12 +299,13 @@ export function SettingsPanel({
     } catch {
       toast('设置自动保存失败，请重试', 'error')
     }
-  }, [apiKeyChanged, form, toast])
+  }, [apiKeyChanged, form, preview, toast])
 
   const initialLoadDone = useRef(false)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
+    if (preview) return
     if (!initialLoadDone.current) {
       initialLoadDone.current = true
       return
@@ -310,23 +315,31 @@ export function SettingsPanel({
       void persistSettings()
     }, 800)
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current) }
-  }, [persistSettings])
+  }, [persistSettings, preview])
 
   const persistSettingsRef = useRef(persistSettings)
   // 直接刷新 latest ref，确保用户刚编辑就返回 / 按 Esc 时不会调用上一帧的保存闭包。
   persistSettingsRef.current = persistSettings
 
-  useEffect(() => () => {
+  useEffect(() => {
+    if (preview) return
+    return () => {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     // 返回、Esc 或跳转其它全页视图时，刷新尚未到防抖时间的最后一次修改。
     void persistSettingsRef.current()
-  }, [])
+    }
+  }, [preview])
 
   const effectiveApiKeyForTest = apiKeyChanged ? form.llmApiKey.trim() : (hasStoredApiKey ? '[stored-api-key]' : '')
   const connectionKey = `${effectiveApiKeyForTest}\n${form.llmBaseUrl.trim()}\n${form.llmModel.trim()}`
   const canTestConnection = Boolean(effectiveApiKeyForTest && form.llmBaseUrl.trim() && form.llmModel.trim())
 
   const testConnection = useCallback(async () => {
+    if (preview) {
+      setVerifiedConnectionKey(connectionKey)
+      setConnectionStatus({ kind: 'success', text: 'Playground 预览 · 未连接真实模型' })
+      return
+    }
     if (!window.electronAPI?.settings?.testConnection) {
       setConnectionStatus({ kind: 'error', text: '当前环境不支持连接测试' })
       return
@@ -357,7 +370,7 @@ export function SettingsPanel({
     } finally {
       setConnectionTesting(false)
     }
-  }, [apiKeyChanged, canTestConnection, connectionKey, form.llmApiKey, form.llmBaseUrl, form.llmModel, hasStoredApiKey])
+  }, [apiKeyChanged, canTestConnection, connectionKey, form.llmApiKey, form.llmBaseUrl, form.llmModel, hasStoredApiKey, preview])
 
   const applyPreset = useCallback((preset: ProviderPreset) => {
     settingsRevisionRef.current += 1
@@ -367,6 +380,7 @@ export function SettingsPanel({
   }, [])
 
   const update = (key: keyof SettingsForm, value: string) => {
+    if (preview) return
     settingsRevisionRef.current += 1
     if (key === 'llmApiKey') setApiKeyChanged(true)
     if (key === 'llmApiKey' || key === 'llmBaseUrl' || key === 'llmModel') {
@@ -379,18 +393,22 @@ export function SettingsPanel({
   /** 执行模式点选即落盘（与对话页同一 settings.executionMode） */
   const updateAndPersist = async (key: 'executionMode', value: string) => {
     update(key, value)
-    if (!window.electronAPI) return
+    if (preview || !window.electronAPI) return
     await window.electronAPI.settings.set(key, value)
     toast('执行模式已切换', 'success')
   }
 
   const saveMcpList = useCallback(async (servers: McpServerEntry[]) => {
     // 先让主进程校验/确认并持久化，成功后再更新本地列表；取消确认不能留下“假保存”状态。
+    if (preview) {
+      setMcpServers(servers)
+      return
+    }
     if (window.electronAPI) {
       await window.electronAPI.settings.set('mcpServers', JSON.stringify(servers))
     }
     setMcpServers(servers)
-  }, [])
+  }, [preview])
 
   const handleAddMcp = useCallback(async () => {
     if (!newMcp.name) return
@@ -416,7 +434,7 @@ export function SettingsPanel({
     const updated = [...mcpServers, entry]
     try {
       await saveMcpList(updated)
-      const result = await window.electronAPI?.mcp.connect(entry)
+      const result = preview ? undefined : await window.electronAPI?.mcp.connect(entry)
       if (result && !result.success) {
         toast(`MCP 连接失败: ${result.error}`, 'error')
       }
@@ -426,38 +444,38 @@ export function SettingsPanel({
     } catch {
       toast('MCP 配置未保存，可能是你取消了安全确认', 'warning')
     }
-  }, [newMcp, mcpServers, saveMcpList, refreshMcpStatus, toast])
+  }, [newMcp, mcpServers, preview, saveMcpList, refreshMcpStatus, toast])
 
   const handleRemoveMcp = useCallback(async (id: string) => {
     try {
-      await window.electronAPI?.mcp.disconnect(id)
+      if (!preview) await window.electronAPI?.mcp.disconnect(id)
       const updated = mcpServers.filter(s => s.id !== id)
       await saveMcpList(updated)
       await refreshMcpStatus()
     } catch {
       toast('MCP 配置未删除，可能是你取消了安全确认', 'warning')
     }
-  }, [mcpServers, saveMcpList, refreshMcpStatus, toast])
+  }, [mcpServers, preview, saveMcpList, refreshMcpStatus, toast])
 
   const handleToggleMcp = useCallback(async (id: string) => {
     const server = mcpServers.find(s => s.id === id)
     if (!server) return
     try {
       if (server.enabled) {
-        await window.electronAPI?.mcp.disconnect(id)
+        if (!preview) await window.electronAPI?.mcp.disconnect(id)
         const updated = mcpServers.map(s => s.id === id ? { ...s, enabled: false } : s)
         await saveMcpList(updated)
       } else {
         const updated = mcpServers.map(s => s.id === id ? { ...s, enabled: true } : s)
         await saveMcpList(updated)
-        const result = await window.electronAPI?.mcp.connect({ ...server, enabled: true })
+        const result = preview ? undefined : await window.electronAPI?.mcp.connect({ ...server, enabled: true })
         if (result && !result.success) toast(`MCP 连接失败: ${result.error}`, 'error')
       }
       await refreshMcpStatus()
     } catch {
       toast('MCP 状态未改变，可能是你取消了安全确认', 'warning')
     }
-  }, [mcpServers, saveMcpList, refreshMcpStatus, toast])
+  }, [mcpServers, preview, saveMcpList, refreshMcpStatus, toast])
 
   // ── 各区块渲染 ──
 

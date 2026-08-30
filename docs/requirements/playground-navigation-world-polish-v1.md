@@ -170,6 +170,16 @@ Foundation 不再让资产注册表、Playground catalog 和渲染分支各自�
 
 回流验收必须覆盖：正式 Chat 右坞默认态、文件 → 预览的上下文保持、审阅 / 终端真实调用边界、Markdown 深浅主题代码块、记忆四类语义色、人物世界默认朋友圈流，以及 Playground 既有隔离行为不回归。
 
+## 2.13 产品体验主角连续性（2026-08-30）
+
+本轮继续收口产品体验主线，不新增产品页面层级，而是让“当前主角”成为 Chat、人物世界和设置角色架之间可验证的共享旅程状态：
+
+- Playground 维护独立的主角 fixture 与当前选中状态；角色架由可点击角色卡组成，不再用“新角色占位”伪造无响应入口。
+- 从 Chat 侧栏顶部的伙伴身份进入角色架时，先进入设置的角色架场景；切换角色后，Chat 欢迎区 / 侧栏身份、人物世界头图、朋友圈、物什和名册使用同一主角投影。
+- 该状态只存在于 Playground Shell 内，不读生产角色列表，不调用 `requestSwitch`，不写 `activeRoleId`，离开 Playground 后不保留实验状态。
+- 设置正式面板在 Playground 中以只读预览装载，必须阻断真实设置读取、自动保存、MCP / 连接探测和伙伴写入；角色架切换使用隔离 fixture 自己的状态。
+- 该连续性以 Renderer E2E 验证：从 Chat 点击伙伴身份可达角色架，切换到另一位 fixture 后，Chat、朋友圈、物什和名册均展示同一主角。
+
 ## 3. 技术方案（How）
 
 - `PlaygroundShell.tsx` / `catalog.ts` / `foundation-story-registry.ts`

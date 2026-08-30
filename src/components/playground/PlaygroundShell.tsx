@@ -32,6 +32,7 @@ import { PromptLabPanel } from './PromptLabPanel'
 import { ToolRunPanel, type PlaygroundToolInfo } from './ToolRunPanel'
 import { ModelTestPanel } from './ModelTestPanel'
 import { PlaygroundPageHeader, PlaygroundSourcePath } from './PlaygroundLayout'
+import { findPlaygroundPersona } from '../../shared/playground-journey-fixtures'
 
 const TAB_STORAGE_KEY = 'playground.active-tab'
 
@@ -59,8 +60,12 @@ function readInitialTab(): PlaygroundTabId {
 export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
   const [tab, setTab] = useState<PlaygroundTabId>(readInitialTab)
   const [tools, setTools] = useState<PlaygroundToolInfo[]>([])
+  const [personaId, setPersonaId] = useState('lin')
+  const [settingsScenario, setSettingsScenario] = useState<'settings' | 'role-shelf'>('settings')
+  const persona = findPlaygroundPersona(personaId)
 
   const navigateTo = (nextTab: PlaygroundTabId) => {
+    if (nextTab === 'settings') setSettingsScenario('settings')
     setTab(nextTab)
   }
 
@@ -171,10 +176,10 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
             {tab === 'design-tokens' && <DesignSystemPanel />}
             {tab === 'visual-assets' && <UiControlsPanel initialSub="icons" />}
             {tab === 'foundation-components' && <FoundationComponentsPanel />}
-            {tab === 'chat' && <SurfaceBaselinePanel initialSurface="chat" onNavigate={navigateTo} />}
-            {tab === 'world' && <SurfaceBaselinePanel initialSurface="world" onNavigate={navigateTo} />}
-            {tab === 'memory' && <SurfaceBaselinePanel initialSurface="memory" onNavigate={navigateTo} />}
-            {tab === 'settings' && <SurfaceBaselinePanel initialSurface="settings" onNavigate={navigateTo} />}
+            {tab === 'chat' && <SurfaceBaselinePanel initialSurface="chat" persona={persona} onPersonaChange={setPersonaId} settingsScenario={settingsScenario} onSettingsScenarioChange={setSettingsScenario} onNavigate={navigateTo} />}
+            {tab === 'world' && <SurfaceBaselinePanel initialSurface="world" persona={persona} onPersonaChange={setPersonaId} settingsScenario={settingsScenario} onSettingsScenarioChange={setSettingsScenario} onNavigate={navigateTo} />}
+            {tab === 'memory' && <SurfaceBaselinePanel initialSurface="memory" persona={persona} onPersonaChange={setPersonaId} settingsScenario={settingsScenario} onSettingsScenarioChange={setSettingsScenario} onNavigate={navigateTo} />}
+            {tab === 'settings' && <SurfaceBaselinePanel initialSurface="settings" persona={persona} onPersonaChange={setPersonaId} settingsScenario={settingsScenario} onSettingsScenarioChange={setSettingsScenario} onNavigate={navigateTo} />}
             {tab === 'workspace' && <SurfaceBaselinePanel initialSurface="dock" />}
             {tab === 'business-states' && <BusinessStatesPanel />}
             {tab === 'chat-lab' && <PromptLabPanel />}

@@ -14,6 +14,7 @@ import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
 import { WorldHub, type WorldTab } from '../shell/WorldHub'
 import type { MemoryEntry } from '../../shared/types'
 import type { PlaygroundTabId } from './catalog'
+import { PLAYGROUND_PERSONAS, type PlaygroundPersona } from '../../shared/playground-journey-fixtures'
 
 type SurfaceId = 'chat' | 'sidebar' | 'dock' | 'world' | 'memory' | 'settings'
 
@@ -115,6 +116,25 @@ const MOMENTS_PREVIEW_FIXTURES: MomentsPreviewData = {
   ] satisfies MomentItem[],
 }
 
+
+/**
+ * 将同一组确定性动态投影到当前实验主角，保持故事结构稳定而让跨页面身份变化可见。
+ * 背景：产品体验需要验证“当前主角”贯穿 Chat、人物世界和物什，而不是每个页面各自写死名字。
+ * 关键约束：只复制 Playground fixture，不读取生产生活事件，也不改变正式 Moments 数据。
+ */
+function momentsPreviewForPersona(persona: PlaygroundPersona): MomentsPreviewData {
+  return {
+    ...MOMENTS_PREVIEW_FIXTURES,
+    roleId: persona.id,
+    roleName: persona.name,
+    summary: `${persona.name}今天的生活节奏比较松，留了一点时间整理桌面和散步。`,
+    items: MOMENTS_PREVIEW_FIXTURES.items.map((item) => ({
+      ...item,
+      roleId: persona.id,
+    })),
+  }
+}
+
 const SAMPLE_SESSIONS: SidebarSession[] = [
   {
     id: 'surface-session-1',
@@ -177,7 +197,7 @@ const CHAT_JOURNEYS: Array<{ id: ChatJourney; label: string; description: string
   { id: 'work', label: '处理任务', description: '需要工作区时，再让它按需出现。' },
 ]
 
-function ChatSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => void }) {
+function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: PlaygroundPersona; onNavigate?: (tab: PlaygroundTabId) => void; onOpenRoleShelf?: () => void }) {
   const sessionFilterRef = useRef<HTMLInputElement>(null)
   const [viewport, setViewport] = useState<'standard' | 'split'>('standard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -244,8 +264,8 @@ function ChatSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => vo
             {sidebarOpen && (
               <div className="playground-sidebar-candidate shrink-0" data-testid="surface-sidebar-candidate">
                 <PrimarySidebar
-                  personaName="小林"
-                  personaBlurb="沉稳体贴的数字伙伴"
+                  personaName={persona.name}
+                  personaBlurb={persona.blurb}
                   activeView="chat"
                   activeSessionId={isWelcome ? null : 'surface-session-1'}
                   sessionGroups={[{ label: '今天', items: SAMPLE_SESSIONS }]}
@@ -258,7 +278,7 @@ function ChatSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => vo
                   sessionFilterRef={sessionFilterRef}
                   renamingId={null}
                   renameValue=""
-                  onOpenShelf={noop}
+                  onOpenShelf={onOpenRoleShelf ?? noop}
                   onCreateSession={noop}
                   onToggleSearch={noop}
                   onSessionFilterChange={noop}
@@ -277,7 +297,7 @@ function ChatSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => vo
               </div>
             )}
 
-            <div className="relative flex min-w-0 flex-1 flex-col" style={{ background: 'var(--bg-primary)' }} data-testid="chat-surface-main">
+            <div className="relative flex min-w-0 flex-1 flex-col" style={{ background: 'var(--bg-primary)' }} data-testid="chat-surface-main" data-persona-id={persona.id}>
               {!sidebarOpen && (
                 <button
                   type="button"
@@ -298,10 +318,10 @@ function ChatSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => vo
                         <Bot size={22} strokeWidth={1.5} />
                       </div>
                       <h3 className="mt-5 font-display text-[1.9rem] font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                        嗨，我是小林
+                        嗨，我是{persona.name}
                       </h3>
                       <p className="mt-3 text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                        沉稳体贴的数字伙伴
+                        {persona.blurb}
                       </p>
                       <div className="mt-8 flex flex-wrap justify-center gap-2">
                         {[
@@ -337,7 +357,7 @@ function ChatSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => vo
                       <div className="flex items-start gap-2.5">
                         <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: 'var(--accent-subtle)', color: 'var(--companion-accent-warm)' }}><Bot size={14} aria-hidden="true" /></span>
                         <div className="min-w-0 max-w-[82%]">
-                          <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}><span className="font-medium" style={{ color: 'var(--text-secondary)' }}>小林</span><span>刚刚</span></div>
+                          <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}><span className="font-medium" style={{ color: 'var(--text-secondary)' }}>{persona.name}</span><span>刚刚</span></div>
                           <p className="mt-1.5 text-[14px] leading-7" style={{ color: 'var(--text-primary)' }}>可以。我们先把今天必须完成的事情挑出来，再给剩下的留一点喘息的空间。</p>
                           <div className="mt-3 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}><MessageCircle size={12} aria-hidden="true" />上下文会跟着当前会话保留</div>
                         </div>
@@ -367,7 +387,7 @@ function ChatSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => vo
                 <div className="shrink-0 px-5 pb-5 pt-2">
                   <div className="mx-auto max-w-[800px]">
                     <div className="rounded-[var(--radius-xl)] border px-3 py-2 shadow-sm" style={{ borderColor: 'var(--border-color)', background: 'var(--card-bg)', boxShadow: '0 6px 22px color-mix(in srgb, var(--text-primary) 5%, transparent)' }}>
-                      <textarea className="min-h-[64px] w-full resize-none bg-transparent px-1 py-2 text-[13px] outline-none" rows={2} placeholder={isWelcome ? '和小林说说…' : '继续和小林聊聊…'} />
+                      <textarea className="min-h-[64px] w-full resize-none bg-transparent px-1 py-2 text-[13px] outline-none" rows={2} placeholder={isWelcome ? `和${persona.name}说说…` : `继续和${persona.name}聊聊…`} data-testid="chat-surface-input" />
                       <div className="flex items-center justify-between pt-1">
                         <div className="flex items-center gap-1"><button type="button" className="rounded-md p-1.5" style={{ color: 'var(--text-muted)' }} title="添加附件"><Paperclip size={14} /></button><span className="h-4 w-px" style={{ background: 'var(--border-subtle)' }} /><button type="button" className="flex items-center gap-1 rounded-md px-2 py-1 text-[10.5px]" style={{ color: 'var(--text-secondary)' }}><Shield size={12} />确认模式<ChevronDown size={9} /></button></div>
                         <div className="flex items-center gap-1.5"><span className="text-[10.5px]" style={{ color: 'var(--text-muted)' }}>当前模型</span><button type="button" className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: 'var(--accent-emphasis)', color: 'var(--accent-fg)' }} title="发送"><ArrowUp size={14} /></button></div>
@@ -458,7 +478,7 @@ function DockSurface() {
   )
 }
 
-function MomentsProfileHero({ onOpenMemory }: { onOpenMemory?: () => void }) {
+function MomentsProfileHero({ persona, onOpenMemory }: { persona: PlaygroundPersona; onOpenMemory?: () => void }) {
   return (
     <section className="moments-profile-hero relative shrink-0 overflow-hidden" data-testid="playground-moments-profile">
       <div className="moments-profile-hero-wash absolute inset-0" aria-hidden="true">
@@ -471,7 +491,7 @@ function MomentsProfileHero({ onOpenMemory }: { onOpenMemory?: () => void }) {
           小
         </div>
         <div className="min-w-0 flex-1 pb-0.5">
-          <div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>小林</div>
+          <div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{persona.name}</div>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px]" style={{ color: 'color-mix(in srgb, var(--text-primary) 78%, transparent)' }}>
             <span>沉稳体贴的数字伙伴</span>
             <span className="inline-flex items-center gap-1"><MapPin size={11} aria-hidden="true" />生活在此刻</span>
@@ -498,12 +518,18 @@ function MomentsProfileHero({ onOpenMemory }: { onOpenMemory?: () => void }) {
   )
 }
 
-function WorldSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => void }) {
+function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onNavigate?: (tab: PlaygroundTabId) => void }) {
   const [tab, setTab] = useState<WorldTab>('moments')
+  const assets = persona.id === 'lin'
+    ? [['深蓝帆布包', '常带着电脑和一本随手记。'], ['乌龙茶', '下午工作时会泡一壶。'], ['旧相机', '散步时偶尔带上。']]
+    : [['灰绿帆布包', '出门时装着耳机和一本随手记。'], ['薄荷糖盒', '思路卡住时会先停下来。'], ['折叠伞', '天气不确定时总会带上。']]
+  const cast = persona.id === 'lin'
+    ? [[persona.name, '当前主角'], ['阿遥', '偶尔联系的朋友'], ['许叔', '楼下咖啡店老板']]
+    : [[persona.name, '当前主角'], ['小林', '偶尔联系的朋友'], ['阿禾', '一起散步的朋友']]
   const previewPanels: Partial<Record<WorldTab, ReactNode>> = {
     assets: (
-      <div className="grid gap-3 p-5 sm:grid-cols-2" data-testid="world-assets-fixture">
-        {[['深蓝帆布包', '常带着电脑和一本随手记。'], ['乌龙茶', '下午工作时会泡一壶。'], ['旧相机', '散步时偶尔带上。']].map(([name, detail]) => (
+      <div className="grid gap-3 p-5 sm:grid-cols-2" data-testid="world-assets-fixture" data-persona-id={persona.id}>
+        {assets.map(([name, detail]) => (
           <article key={name} className="rounded-xl border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
             <div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{name}</div>
             <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>{detail}</p>
@@ -512,8 +538,8 @@ function WorldSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => v
       </div>
     ),
     cast: (
-      <div className="space-y-2 p-5" data-testid="world-cast-fixture">
-        {[['小林', '当前主角'], ['阿遥', '偶尔联系的朋友'], ['许叔', '楼下咖啡店老板']].map(([name, relation]) => (
+      <div className="space-y-2 p-5" data-testid="world-cast-fixture" data-persona-id={persona.id}>
+        {cast.map(([name, relation]) => (
           <div key={name} className="flex items-center justify-between rounded-xl border px-3 py-2.5" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
             <span className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{name}</span>
             <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{relation}</span>
@@ -524,8 +550,8 @@ function WorldSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => v
   }
   return (
     <SurfaceViewport>
-      <div className="flex h-full min-h-0 flex-col" data-testid="playground-world-experience">
-        <MomentsProfileHero onOpenMemory={() => onNavigate?.('memory')} />
+      <div className="flex h-full min-h-0 flex-col" data-testid="playground-world-experience" data-persona-id={persona.id}>
+        <MomentsProfileHero persona={persona} onOpenMemory={() => onNavigate?.('memory')} />
         <div className="min-h-0 flex-1">
           <WorldHub
             tab={tab}
@@ -534,7 +560,7 @@ function WorldSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => v
             onOpenSession={noop}
             onSwitched={noop}
             recentByRole={{}}
-            momentsPreview={MOMENTS_PREVIEW_FIXTURES}
+            momentsPreview={momentsPreviewForPersona(persona)}
             momentsAppearance="alice-feed"
             showSocialActions
             hideMomentsHeader
@@ -548,9 +574,7 @@ function WorldSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => v
   )
 }
 
-function SettingsSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => void }) {
-  const [scenario, setScenario] = useState<'settings' | 'role-shelf'>('settings')
-
+function SettingsSurface({ persona, onPersonaChange, scenario, onScenarioChange, onNavigate }: { persona: PlaygroundPersona; onPersonaChange: (personaId: string) => void; scenario: SettingsScenario; onScenarioChange: (scenario: SettingsScenario) => void; onNavigate?: (tab: PlaygroundTabId) => void }) {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-1" role="tablist" aria-label="设置页面场景">
@@ -565,7 +589,7 @@ function SettingsSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) =
               type="button"
               role="tab"
               aria-selected={active}
-              onClick={() => setScenario(item.id)}
+              onClick={() => onScenarioChange(item.id)}
               className="settings-option px-2.5 py-1 text-[10px]"
               data-selected={active ? 'true' : undefined}
             >
@@ -587,11 +611,11 @@ function SettingsSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) =
       </div>
       <SurfaceViewport>
         {scenario === 'settings' ? (
-          <div className="pointer-events-none" aria-label="设置静态预览" data-testid="settings-surface-candidate">
-            <SettingsPanel onClose={noop} />
+          <div aria-label="设置隔离预览" data-testid="settings-surface-candidate">
+            <SettingsPanel onClose={noop} preview />
           </div>
         ) : (
-          <RoleShelfFixture />
+          <RoleShelfFixture persona={persona} onPersonaChange={onPersonaChange} />
         )}
       </SurfaceViewport>
     </div>
@@ -599,7 +623,7 @@ function SettingsSurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) =
 }
 
 /** 设置页中的角色架候选：只展示切换关系，不连接真实角色列表或写入主角状态。 */
-function RoleShelfFixture() {
+function RoleShelfFixture({ persona, onPersonaChange }: { persona: PlaygroundPersona; onPersonaChange: (personaId: string) => void }) {
   return (
     <div className="h-full overflow-y-auto px-5 py-5" data-testid="settings-role-shelf-fixture">
       <div className="mb-4 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
@@ -607,20 +631,30 @@ function RoleShelfFixture() {
         <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>管理同一生活世界中的主角，切换后朋友圈与对话一起跟随。</p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <article className="rounded-xl border p-4" style={{ borderColor: 'var(--companion-accent-warm)', background: 'var(--card-bg)' }}>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>小林</div>
-              <p className="mt-1 text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>沉稳、体贴，正在陪你推进这款 Agent。</p>
-            </div>
-            <span className="shrink-0 rounded-full px-2 py-0.5 text-[9px]" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>当前主角</span>
-          </div>
-        </article>
-        <article className="rounded-xl border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
-          <div className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>新角色占位</div>
-          <p className="mt-1 text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>后续人物故事确认后再补正式角色。</p>
-        </article>
+        {PLAYGROUND_PERSONAS.map((option) => {
+          const active = option.id === persona.id
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => onPersonaChange(option.id)}
+              aria-pressed={active}
+              data-testid={`settings-persona-option-${option.id}`}
+              className="rounded-xl border p-4 text-left transition"
+              style={{ borderColor: active ? 'var(--companion-accent-warm)' : 'var(--border-subtle)', background: active ? 'var(--accent-subtle)' : 'var(--card-bg)' }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{option.name}</div>
+                  <p className="mt-1 text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>{option.blurb} · {option.detail}</p>
+                </div>
+                {active && <span className="shrink-0 rounded-full px-2 py-0.5 text-[9px]" style={{ background: 'var(--card-bg)', color: 'var(--accent-fg)' }}>当前主角</span>}
+              </div>
+            </button>
+          )
+        })}
       </div>
+      <p className="mt-3 text-[10px]" style={{ color: 'var(--text-muted)' }}>这是 Playground 的隔离切换；确认后，Chat 与人物世界会沿用同一位主角。</p>
     </div>
   )
 }
@@ -691,7 +725,22 @@ function MemorySurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => 
   )
 }
 
-export function SurfaceBaselinePanel({ initialSurface, onNavigate }: { initialSurface?: SurfaceId; onNavigate?: (tab: PlaygroundTabId) => void } = {}) {
+type SettingsScenario = 'settings' | 'role-shelf'
+
+interface SurfaceBaselinePanelProps {
+  initialSurface?: SurfaceId
+  persona?: PlaygroundPersona
+  onPersonaChange?: (personaId: string) => void
+  settingsScenario?: SettingsScenario
+  onSettingsScenarioChange?: (scenario: SettingsScenario) => void
+  onNavigate?: (tab: PlaygroundTabId) => void
+}
+
+export function SurfaceBaselinePanel({ initialSurface, persona, onPersonaChange, settingsScenario, onSettingsScenarioChange, onNavigate }: SurfaceBaselinePanelProps = {}) {
+  const activePersona = persona ?? PLAYGROUND_PERSONAS[0]
+  const handlePersonaChange = onPersonaChange ?? noop
+  const activeSettingsScenario = settingsScenario ?? 'settings'
+  const handleSettingsScenarioChange = onSettingsScenarioChange ?? noop
   const [surface, setSurface] = useState<SurfaceId>(initialSurface ?? 'chat')
   const fixedSurface = initialSurface !== undefined
 
@@ -721,12 +770,12 @@ export function SurfaceBaselinePanel({ initialSurface, onNavigate }: { initialSu
       </div>}
 
       <div className="min-w-0">
-        {surface === 'chat' && <ChatSurface onNavigate={onNavigate} />}
+        {surface === 'chat' && <ChatSurface persona={activePersona} onNavigate={onNavigate} onOpenRoleShelf={() => { onNavigate?.('settings'); handleSettingsScenarioChange('role-shelf') }} />}
         {surface === 'sidebar' && <SidebarSurface />}
         {surface === 'dock' && <DockSurface />}
-        {surface === 'world' && <WorldSurface onNavigate={onNavigate} />}
+        {surface === 'world' && <WorldSurface persona={activePersona} onNavigate={onNavigate} />}
         {surface === 'memory' && <MemorySurface onNavigate={onNavigate} />}
-        {surface === 'settings' && <SettingsSurface onNavigate={onNavigate} />}
+        {surface === 'settings' && <SettingsSurface persona={activePersona} onPersonaChange={handlePersonaChange} scenario={activeSettingsScenario} onScenarioChange={handleSettingsScenarioChange} onNavigate={onNavigate} />}
       </div>
     </div>
   )
