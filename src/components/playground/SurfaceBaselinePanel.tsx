@@ -4,10 +4,11 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, ArrowUp, Bot, CheckCircle2, ChevronDown, FileCode2, Folder, Image, MapPin, MessageCircle, PanelLeftOpen, Paperclip, Shield, UserRound } from 'lucide-react'
+import { ArrowRight, ArrowUp, Bot, CheckCircle2, ChevronDown, CircleAlert, CircleCheck, FileCode2, Folder, Image, MapPin, MessageCircle, PanelLeftOpen, Paperclip, RotateCcw, Shield, UserRound } from 'lucide-react'
 import { SettingsPanel } from '../SettingsPanel'
 import { MemoryPanel } from '../MemoryPanel'
 import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
+import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import type { FileBrowserPreviewData } from '../FileBrowser'
 import type { MomentItem, MomentsPreviewData } from '../MomentsPanel'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
@@ -191,13 +192,76 @@ const PAGE_CANDIDATE_STYLE = `
     }
   `
 
-type ChatJourney = 'welcome' | 'conversation' | 'work'
+type ChatJourney = 'welcome' | 'conversation' | 'work' | 'confirmation' | 'completed' | 'failed'
 
 const CHAT_JOURNEYS: Array<{ id: ChatJourney; label: string; description: string }> = [
   { id: 'welcome', label: '初次进入', description: '轻量欢迎，不打断主任务。' },
   { id: 'conversation', label: '正在聊天', description: '对话成为页面的唯一主叙事。' },
-  { id: 'work', label: '处理任务', description: '需要工作区时，再让它按需出现。' },
+  { id: 'work', label: '处理中', description: '需要工作区时，再让它按需出现。' },
+  { id: 'confirmation', label: '需确认', description: '高影响操作必须在对话中说明并等待用户决定。' },
+  { id: 'completed', label: '已完成', description: '任务结果回到对话，而不是留在工作区。' },
+  { id: 'failed', label: '未完成', description: '说明失败原因并保留重试和回到对话的路径。' },
 ]
+
+/**
+ * Playground 只模拟 Chat 任务生命周期的可见状态，不驱动真实 Prompt、工具或权限引擎。
+ * 背景：先确认用户何时需要确认、何时看到结果或失败，避免把不稳定模型输出当作 UI 验收前提。
+ * 关键约束：只有 work 状态显示隔离工作区；确认、完成和失败都留在同一段对话里并提供回返动作。
+ */
+function ChatTaskJourney({ journey, onJourneyChange }: { journey: ChatJourney; onJourneyChange: (journey: ChatJourney) => void }) {
+  if (journey === 'work') {
+    return (
+      <div className="rounded-[var(--radius-lg)] border p-3.5" data-testid="chat-surface-task-card" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2"><FileCode2 size={15} style={{ color: 'var(--accent-fg)' }} /><span className="truncate text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>整理项目结构</span></div>
+          <span className="flex shrink-0 items-center gap-1 text-[10px]" style={{ color: 'var(--success)' }}><CheckCircle2 size={12} />进行中</span>
+        </div>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full" style={{ background: 'var(--bg-tertiary)' }}><div className="h-full w-2/3 rounded-full" style={{ background: 'var(--accent-emphasis)' }} /></div>
+        <p className="mt-2 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}>正在梳理文件结构，右侧只显示这次任务需要的材料。</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => onJourneyChange('confirmation')} className="rounded-md border px-2.5 py-1.5 text-[10px] transition" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }} data-testid="chat-surface-open-confirmation">需要确认时</button>
+          <button type="button" onClick={() => onJourneyChange('completed')} className="rounded-md px-2.5 py-1.5 text-[10px] transition" style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }} data-testid="chat-surface-complete-task">标记完成</button>
+          <button type="button" onClick={() => onJourneyChange('conversation')} className="rounded-md px-2.5 py-1.5 text-[10px] transition" style={{ color: 'var(--text-muted)' }} data-testid="chat-surface-return-to-conversation">回到对话</button>
+        </div>
+      </div>
+    )
+  }
+
+  if (journey === 'confirmation') {
+    return (
+      <div className="space-y-3" data-testid="chat-surface-confirmation">
+        <p className="text-[12px] leading-5" style={{ color: 'var(--text-secondary)' }}>要继续整理前，我需要你的确认；你可以允许、拒绝，或者先回到对话。</p>
+        <PermissionConfirmCard toolName="file_write" args={{ path: 'src/components/', operation: '整理目录结构' }} onAllow={() => onJourneyChange('work')} onDeny={() => onJourneyChange('failed')} />
+        <button type="button" onClick={() => onJourneyChange('conversation')} className="rounded-md px-2.5 py-1.5 text-[10px] transition" style={{ color: 'var(--text-muted)' }} data-testid="chat-surface-return-to-conversation">暂时不处理，回到对话</button>
+      </div>
+    )
+  }
+
+  if (journey === 'completed') {
+    return (
+      <div className="rounded-[var(--radius-lg)] border p-3.5" data-testid="chat-surface-completed" style={{ borderColor: 'color-mix(in srgb, var(--success) 30%, var(--border-subtle))', background: 'var(--card-bg)' }}>
+        <div className="flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}><CircleCheck size={15} style={{ color: 'var(--success)' }} />已经整理好优先顺序</div>
+        <p className="mt-2 text-[12px] leading-5" style={{ color: 'var(--text-secondary)' }}>今天先处理最重要的三件事；剩下的我先保留在会话里，之后可以继续接着排。</p>
+        <button type="button" onClick={() => onJourneyChange('conversation')} className="mt-3 rounded-md px-2.5 py-1.5 text-[10px] transition" style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }} data-testid="chat-surface-return-to-conversation">继续聊聊</button>
+      </div>
+    )
+  }
+
+  if (journey === 'failed') {
+    return (
+      <div className="rounded-[var(--radius-lg)] border p-3.5" data-testid="chat-surface-failed" style={{ borderColor: 'color-mix(in srgb, var(--danger) 28%, var(--border-subtle))', background: 'var(--card-bg)' }}>
+        <div className="flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}><CircleAlert size={15} style={{ color: 'var(--danger)' }} />这次还没有完成</div>
+        <p className="mt-2 text-[12px] leading-5" style={{ color: 'var(--text-secondary)' }}>我没能读取目标材料，因此没有修改任何内容。你可以重试，或者先继续聊聊再决定。</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => onJourneyChange('work')} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[10px] transition" style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }} data-testid="chat-surface-retry-task"><RotateCcw size={11} />重试</button>
+          <button type="button" onClick={() => onJourneyChange('conversation')} className="rounded-md px-2.5 py-1.5 text-[10px] transition" style={{ color: 'var(--text-muted)' }} data-testid="chat-surface-return-to-conversation">回到对话</button>
+        </div>
+      </div>
+    )
+  }
+
+  return null
+}
 
 function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: PlaygroundPersona; onNavigate?: (tab: PlaygroundTabId) => void; onOpenRoleShelf?: () => void }) {
   const sessionFilterRef = useRef<HTMLInputElement>(null)
@@ -210,13 +274,14 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
   }
   const isWelcome = journey === 'welcome'
   const isWork = journey === 'work'
+  const isTaskJourney = journey === 'work' || journey === 'confirmation' || journey === 'completed' || journey === 'failed'
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2" data-testid="chat-surface-toolbar" style={{ borderColor: 'var(--border-subtle)' }}>
         <div className="flex min-w-0 items-center gap-2" role="tablist" aria-label="Chat 主旅程">
           <span className="shrink-0 text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>主旅程</span>
-          <div className="flex min-w-0 rounded-[var(--radius-md)] border p-0.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+          <div className="flex min-w-0 overflow-x-auto rounded-[var(--radius-md)] border p-0.5 scrollbar-thin" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
             {CHAT_JOURNEYS.map((item) => (
               <button
                 key={item.id}
@@ -364,25 +429,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                           <div className="mt-3 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}><MessageCircle size={12} aria-hidden="true" />上下文会跟着当前会话保留</div>
                         </div>
                       </div>
-                      {isWork && (
-                        <div className="rounded-[var(--radius-lg)] border p-3.5" data-testid="chat-surface-task-card" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex min-w-0 items-center gap-2"><FileCode2 size={15} style={{ color: 'var(--accent-fg)' }} /><span className="truncate text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>整理项目结构</span></div>
-                            <span className="flex shrink-0 items-center gap-1 text-[10px]" style={{ color: 'var(--success)' }}><CheckCircle2 size={12} />进行中</span>
-                          </div>
-                          <div className="mt-2 h-1.5 overflow-hidden rounded-full" style={{ background: 'var(--bg-tertiary)' }}><div className="h-full w-2/3 rounded-full" style={{ background: 'var(--accent-emphasis)' }} /></div>
-                          <p className="mt-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>先扫描文件，再把结果放到右侧工作区。</p>
-                          <button
-                            type="button"
-                            onClick={() => setJourney('conversation')}
-                            className="mt-3 rounded-md px-2.5 py-1.5 text-[10px] transition"
-                            style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
-                            data-testid="chat-surface-return-to-conversation"
-                          >
-                            回到对话
-                          </button>
-                        </div>
-                      )}
+                      {isTaskJourney && <ChatTaskJourney journey={journey} onJourneyChange={setJourney} />}
                     </div>
                   )}
                 </div>
@@ -395,7 +442,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                         <div className="flex items-center gap-1.5"><span className="text-[10.5px]" style={{ color: 'var(--text-muted)' }}>当前模型</span><button type="button" className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: 'var(--accent-emphasis)', color: 'var(--accent-fg)' }} title="发送"><ArrowUp size={14} /></button></div>
                       </div>
                     </div>
-                    <div className="mt-1.5 flex items-center justify-between px-1 text-[10px]" style={{ color: 'var(--text-muted)' }}><span className="flex items-center gap-1"><Folder size={11} /> my-agent · 样张项目</span><span>{isWork ? '工作区已打开' : isWelcome ? '准备开始' : '对话进行中'}</span></div>
+                    <div className="mt-1.5 flex items-center justify-between px-1 text-[10px]" style={{ color: 'var(--text-muted)' }}><span className="flex items-center gap-1"><Folder size={11} /> my-agent · 样张项目</span><span>{isWork ? '工作区已打开' : journey === 'confirmation' ? '等待确认' : journey === 'completed' ? '任务已完成' : journey === 'failed' ? '可以重试或继续聊聊' : isWelcome ? '准备开始' : '对话进行中'}</span></div>
                   </div>
                 </div>
               </div>

@@ -38,7 +38,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     playgroundTabId: 'chat',
     sourcePaths: ['src/App.tsx', 'src/components/shell/PrimarySidebar.tsx'],
     experienceParts: ['伙伴身份', '会话导航', '欢迎区', '消息流'],
-    usesFoundation: ['state.empty', 'state.toast'],
+    usesFoundation: ['state.empty', 'state.toast', 'state.permission-confirm', 'state.error'],
   }),
   experience({
     key: 'experience.world',

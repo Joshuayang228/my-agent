@@ -61,6 +61,10 @@ describe('product experience registry', () => {
       'experience.memory',
       'experience.business-states',
     ])
+    expect(productExperiencesUsingFoundation('state.permission-confirm').map((asset) => asset.key)).toEqual([
+      'experience.chat',
+      'experience.business-states',
+    ])
   })
 
   it('生命周期规则阻止正式体验依赖候选或 Playground 基础', () => {
