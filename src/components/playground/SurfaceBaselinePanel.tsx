@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, ArrowUp, Bot, CheckCircle2, ChevronDown, CircleAlert, CircleCheck, FileCode2, Folder, Image, MapPin, MessageCircle, PanelLeftOpen, Paperclip, RotateCcw, Shield, UserRound } from 'lucide-react'
+import { ArrowRight, ArrowUp, Bot, CheckCircle2, ChevronDown, CircleAlert, FileCode2, Folder, Image, MapPin, MessageCircle, PanelLeftOpen, Paperclip, RotateCcw, Shield, UserRound } from 'lucide-react'
 import { SettingsPanel } from '../SettingsPanel'
 import { MemoryPanel } from '../MemoryPanel'
 import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
@@ -206,7 +206,7 @@ const CHAT_JOURNEYS: Array<{ id: ChatJourney; label: string; description: string
 /**
  * Playground 只模拟 Chat 任务生命周期的可见状态，不驱动真实 Prompt、工具或权限引擎。
  * 背景：先确认用户何时需要确认、何时看到结果或失败，避免把不稳定模型输出当作 UI 验收前提。
- * 关键约束：只有 work 状态显示隔离工作区；确认、完成和失败都留在同一段对话里并提供回返动作。
+ * 关键约束：只有 work 状态显示隔离工作区；确认由舞台级全局层承载，完成回到普通回复，失败保留恢复动作。
  */
 function ChatTaskJourney({ journey, onJourneyChange }: { journey: ChatJourney; onJourneyChange: (journey: ChatJourney) => void }) {
   if (journey === 'work') {
@@ -227,26 +227,6 @@ function ChatTaskJourney({ journey, onJourneyChange }: { journey: ChatJourney; o
     )
   }
 
-  if (journey === 'confirmation') {
-    return (
-      <div className="space-y-3" data-testid="chat-surface-confirmation">
-        <p className="text-[12px] leading-5" style={{ color: 'var(--text-secondary)' }}>要继续整理前，我需要你的确认；你可以允许、拒绝，或者先回到对话。</p>
-        <PermissionConfirmCard toolName="file_write" args={{ path: 'src/components/', operation: '整理目录结构' }} onAllow={() => onJourneyChange('work')} onDeny={() => onJourneyChange('failed')} />
-        <button type="button" onClick={() => onJourneyChange('conversation')} className="rounded-md px-2.5 py-1.5 text-[10px] transition" style={{ color: 'var(--text-muted)' }} data-testid="chat-surface-return-to-conversation">暂时不处理，回到对话</button>
-      </div>
-    )
-  }
-
-  if (journey === 'completed') {
-    return (
-      <div className="rounded-[var(--radius-lg)] border p-3.5" data-testid="chat-surface-completed" style={{ borderColor: 'color-mix(in srgb, var(--success) 30%, var(--border-subtle))', background: 'var(--card-bg)' }}>
-        <div className="flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}><CircleCheck size={15} style={{ color: 'var(--success)' }} />已经整理好优先顺序</div>
-        <p className="mt-2 text-[12px] leading-5" style={{ color: 'var(--text-secondary)' }}>今天先处理最重要的三件事；剩下的我先保留在会话里，之后可以继续接着排。</p>
-        <button type="button" onClick={() => onJourneyChange('conversation')} className="mt-3 rounded-md px-2.5 py-1.5 text-[10px] transition" style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }} data-testid="chat-surface-return-to-conversation">继续聊聊</button>
-      </div>
-    )
-  }
-
   if (journey === 'failed') {
     return (
       <div className="rounded-[var(--radius-lg)] border p-3.5" data-testid="chat-surface-failed" style={{ borderColor: 'color-mix(in srgb, var(--danger) 28%, var(--border-subtle))', background: 'var(--card-bg)' }}>
@@ -260,6 +240,7 @@ function ChatTaskJourney({ journey, onJourneyChange }: { journey: ChatJourney; o
     )
   }
 
+  // 需确认由舞台级确认层承载，已完成由普通伙伴回复承载；两者都不再向消息流追加业务卡片。
   return null
 }
 
@@ -327,7 +308,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
       <div className="mx-auto w-full transition-[max-width]" style={{ maxWidth: viewport === 'split' ? 760 : 1040 }}>
         <SurfaceViewport testId="chat-surface-viewport">
           <style>{PAGE_CANDIDATE_STYLE}</style>
-          <div className="flex h-full min-h-[580px]">
+          <div className="relative flex h-full min-h-[580px]">
             {sidebarOpen && (
               <div className="playground-sidebar-candidate shrink-0" data-testid="surface-sidebar-candidate">
                 <PrimarySidebar
@@ -425,7 +406,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                         <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: 'var(--accent-subtle)', color: 'var(--companion-accent-warm)' }}><Bot size={14} aria-hidden="true" /></span>
                         <div className="min-w-0 max-w-[82%]">
                           <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}><span className="font-medium" style={{ color: 'var(--text-secondary)' }}>{persona.name}</span><span>刚刚</span></div>
-                          <p className="mt-1.5 text-[14px] leading-7" style={{ color: 'var(--text-primary)' }}>可以。我们先把今天必须完成的事情挑出来，再给剩下的留一点喘息的空间。</p>
+                          <p className="mt-1.5 text-[14px] leading-7" data-testid={journey === 'completed' ? 'chat-surface-completed-reply' : undefined} style={{ color: 'var(--text-primary)' }}>{journey === 'completed' ? '已经整理好优先顺序。今天先处理最重要的三件事，剩下的我先放在会话里，之后可以继续接着排。' : '可以。我们先把今天必须完成的事情挑出来，再给剩下的留一点喘息的空间。'}</p>
                           <div className="mt-3 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}><MessageCircle size={12} aria-hidden="true" />上下文会跟着当前会话保留</div>
                         </div>
                       </div>
@@ -447,6 +428,15 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                 </div>
               </div>
             </div>
+            {journey === 'confirmation' && (
+              <div className="absolute inset-0 z-30 flex items-center justify-center p-4" data-testid="chat-surface-confirmation-overlay" role="dialog" aria-modal="true" aria-label="全局操作确认" style={{ background: 'color-mix(in srgb, var(--bg-primary) 78%, transparent)', backdropFilter: 'blur(5px)' }}>
+                <div className="flex w-full max-w-md flex-col items-stretch gap-3" data-testid="chat-surface-confirmation">
+                  <p className="px-1 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}>这是应用内全局确认层，不属于 Chat 消息流；确认后任务才会继续。</p>
+                  <PermissionConfirmCard toolName="file_write" args={{ path: 'src/components/', operation: '整理目录结构' }} onAllow={() => setJourney('work')} onDeny={() => setJourney('failed')} />
+                  <button type="button" onClick={() => setJourney('conversation')} className="self-start rounded-md px-2.5 py-1.5 text-[10px] transition" style={{ color: 'var(--text-muted)' }} data-testid="chat-surface-return-to-conversation">暂时不处理，回到对话</button>
+                </div>
+              </div>
+            )}
             {isWork && <div className="hidden shrink-0 md:block" data-testid="chat-surface-workspace"><ChatRightDock projectPath={null} sessionId={null} showFiles filesPreview={FILE_PREVIEW_FIXTURES} playgroundTabs onCloseFiles={() => setJourney('conversation')} width={viewport === 'split' ? 290 : 360} /></div>}
           </div>
         </SurfaceViewport>
