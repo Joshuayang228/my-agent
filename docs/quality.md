@@ -66,11 +66,11 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 - 每次涉及生产资产的提交必须通过 `npm run assets:check`：治理清单、来源路径、ModelContextAssetType 覆盖、主题单一来源和 staged 注册同步均失败即阻断；报告写入被忽略的 `var/asset-audit/`，不作为第二事实源。
 - Provider 预设扩充必须由共享注册表驱动 Settings / Chat / Debug；Unit 同时校验入口稳定 key、Provider 身份、分组数量、Provider 快切子集、Provider 卡片不带模型白名单和 Anthropic / Gemini 地址版本归一化，避免把协议入口或非聊天能力误显示为固定模型。
 - 动态 Tool / Skill / MCP 明确依赖运行时自动发现；静态 Prompt、伙伴、Memory、Permission / Sandbox、Eval、Provider、SubAgent、Icon、UI、Design 必须有显式注册入口。
-- 每个活跃产品体验必须登记真实 source 与 `usesFoundation`；TypeScript 检查 key，Unit 检查依赖存在、foundation 层级、生命周期兼容和 Playground 入口一一对应；反向 usedBy 只能派生。
+- 每个活跃产品体验必须登记真实 source 与 `usesFoundation`；TypeScript 检查 key，Unit 检查依赖存在、foundation 层级、生命周期兼容和 Playground 入口一一对应；反向 usedBy 只能派生。新增 `src/assets/playground/` 媒体夹具时，对应体验必须在 `fixtureAssetPaths` 显式认领，并通过 `assets:check` 的 staged 漏登门禁。
 - 图标目录的 adopted 状态必须逐项提供真实 `sourcePaths`；Unit 检查来源存在和状态一致性。禁止把整页、目录或全部图标批量标成已采用。
 - Playground 回流正式 UI 必须补 UI 契约证据：正式右坞默认预览、文件 → 预览上下文保持、正式审阅 / 终端未替换为 fixture，并验证深浅主题下 Markdown 代码层级不与页面底色混淆。
 - Foundation Design Language 候选主题、圆角和动效只能在 Playground 局部生效；Unit / Renderer E2E 必须证明它们不会污染正式 `design-asset-registry`、`documentElement` 或生产默认主题。
-- Foundation Design Language 的主题选择只代表当前 Playground 比较状态；Renderer E2E 必须验证选中摘要与候选卡同步、故事 Tab 保持单行轻量导航，且不得新增持久化设置、正式主题写入或第二层导航。主题候选至少覆盖明显不同的色温与明暗方向；更换候选后 E2E 必须同步校验稳定 key 和默认选中摘要。设计语言页重构后，E2E 还必须覆盖形态 / 材质 / 动效入口、圆角滑杆、蒙版“仅浮层”边界和持续动效开关。Foundation 标签样张必须验证每个 tab 可点击并更新内容；产品体验页必须验证统一体验舞台、基础引用和来源省略布局；朋友圈互动行必须验证赞 / 评论靠左、Lucide 图标、赞状态切换和评论选中态，且不触发正式数据或 IPC。
+- Foundation Design Language 的主题选择只代表当前 Playground 比较状态；Renderer E2E 必须验证选中摘要与候选卡同步、故事 Tab 保持单行轻量导航，且不得新增持久化设置、正式主题写入或第二层导航。主题候选至少覆盖明显不同的色温与明暗方向；更换候选后 E2E 必须同步校验稳定 key 和默认选中摘要。设计语言页重构后，E2E 还必须覆盖形态 / 材质 / 动效入口、圆角滑杆、蒙版“仅浮层”边界和持续动效开关。Foundation 标签样张必须验证每个 tab 可点击并更新内容；产品体验页必须验证统一体验舞台、基础引用和来源省略布局；朋友圈互动行必须验证赞 / 评论靠左、Lucide 图标、赞状态切换和评论选中态，且不触发正式数据或 IPC。朋友圈媒体样张必须验证图片真实可见、存在有意义的 `alt`、单图尺寸受约束，并确认卡片不再显示无信息增量的“生活动态”标签。
 - 正式 Chat Sidebar 的 Renderer E2E 必须验证会话搜索在顶部入口行内展开（不得新增独立搜索行），Escape 可关闭并恢复新对话入口；侧栏收起 / 展开必须验证轨道宽度过渡与 ResizeHandle 同步隐藏，不能只验证 DOM 卸载。
 - 产品体验 Chat 候选的 Renderer E2E 必须验证初次进入 / 正在聊天 / 处理任务三种状态共享同一页面骨架；空态不出现换主角入口；欢迎快捷入口至少能把“看看朋友圈”切换到人物世界，且人物世界头图区能继续进入记忆、记忆页能进入设置、设置页能回到 Chat；处理任务才出现隔离 Right Dock，且工作区使用 Playground fixture；“回到对话”能收起候选工作区并恢复消息流。角色架入口必须可从 Chat 伙伴身份到达，切换后 Chat、人物世界朋友圈 / 物什 / 名册使用同一隔离主角。
 

@@ -13,6 +13,13 @@ export interface MomentItem {
   publishedAt: number
   text: string
   meta: Record<string, unknown>
+  /** Playground / 已解析产品数据可附带的展示图片；生产事件仍以 meta 为唯一生活事实。 */
+  media?: MomentMediaItem[]
+}
+
+export interface MomentMediaItem {
+  src: string
+  alt: string
 }
 
 export interface MomentsPreviewData {
@@ -194,16 +201,32 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
                           <div className="text-[13px] font-semibold" style={{ color: isAliceFeed ? 'var(--text-primary)' : 'var(--accent-fg)' }}>{roleName || '小林'}</div>
-                          {isAliceFeed ? (
-                            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>生活动态</span>
-                          ) : (
+                          {!isAliceFeed ? (
                             <button type="button" className="rounded px-1 text-[13px]" style={{ color: 'var(--text-muted)' }} title="动态选项">···</button>
-                          )}
+                          ) : null}
                         </div>
                         <div className="mt-0.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>
                           {isAliceFeed ? formatRelativeWhen(m.publishedAt) : formatWhen(m.publishedAt)}{location ? ` · ${location}` : ''}
                         </div>
                         <p className="mt-2 text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>{m.text}</p>
+                        {m.media?.length ? (
+                          <div
+                            className={`moments-alice-media mt-2.5 grid gap-1.5 ${m.media.length === 1 ? 'grid-cols-1' : m.media.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}
+                            data-testid="moment-media"
+                          >
+                            {m.media.slice(0, 9).map((media, index) => (
+                              <img
+                                key={`${media.src}-${index}`}
+                                src={media.src}
+                                alt={media.alt}
+                                loading="lazy"
+                                decoding="async"
+                                className="moments-alice-media-image block w-full object-cover"
+                                data-testid="moment-media-image"
+                              />
+                            ))}
+                          </div>
+                        ) : null}
                         {coframes.length ? <div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>与{coframes.map((c) => c.castName).join('、')}同框</div> : null}
                         {comments.length ? (
                           <ul className="mt-2 space-y-1 rounded-md px-2.5 py-2 text-[11px]" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>

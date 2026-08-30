@@ -15,6 +15,7 @@ import { WorldHub, type WorldTab } from '../shell/WorldHub'
 import type { MemoryEntry } from '../../shared/types'
 import type { PlaygroundTabId } from './catalog'
 import { PLAYGROUND_PERSONAS, type PlaygroundPersona } from '../../shared/playground-journey-fixtures'
+import momentTeaByWindow from '../../assets/playground/moment-tea-by-window.jpg'
 
 type SurfaceId = 'chat' | 'sidebar' | 'dock' | 'world' | 'memory' | 'settings'
 
@@ -102,6 +103,7 @@ const MOMENTS_PREVIEW_FIXTURES: MomentsPreviewData = {
       id: 'playground-moment-1', roleId: 'lin', eventId: 'fixture-walk',
       publishedAt: NOW - 35 * 60_000, text: '把窗帘拉开了一点，泡了杯乌龙茶，准备先把桌面清出一块。',
       meta: { type: 'daily', location: '家中', interactions: [{ kind: 'comment', castName: '小航', text: '这次先别把自己排得太满。' }] },
+      media: [{ src: momentTeaByWindow, alt: '窗边的乌龙茶、笔记和远处山影' }],
     },
     {
       id: 'playground-moment-2', roleId: 'lin', eventId: 'fixture-notes',

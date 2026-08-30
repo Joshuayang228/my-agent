@@ -747,6 +747,19 @@ html[data-font-scale="lg"] {
 .moments-alice-feed .moments-alice-post p {
   max-width: 58rem;
 }
+.moments-alice-feed .moments-alice-media {
+  width: min(100%, 31rem);
+}
+.moments-alice-feed .moments-alice-media-image {
+  aspect-ratio: 1;
+  min-height: 0;
+  border: 1px solid color-mix(in srgb, var(--text-primary) 8%, var(--border-subtle));
+  border-radius: calc(var(--radius-md) + 1px);
+  background: var(--bg-secondary);
+}
+.moments-alice-feed .moments-alice-media:has(> :only-child) .moments-alice-media-image {
+  aspect-ratio: 3 / 2;
+}
 .moments-alice-feed .moments-alice-actions {
   justify-content: flex-start;
   gap: .65rem;

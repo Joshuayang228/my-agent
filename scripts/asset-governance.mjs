@@ -63,7 +63,7 @@ export const ASSET_GOVERNANCE = [
   },
   {
     id: 'product-experience', labelZh: '产品体验', kind: 'static-renderer', modelContextTypes: [],
-    sourcePaths: ['src/shared/product-experience-registry.ts'], registryPaths: ['src/shared/product-experience-registry.ts'], discovery: '显式体验依赖注册表',
+    sourcePaths: ['src/shared/product-experience-registry.ts', 'src/assets/playground'], registryPaths: ['src/shared/product-experience-registry.ts'], discovery: '显式体验依赖注册表',
     keyRule: 'experience.<stable-key>', display: 'Playground / 产品体验', usageEvidence: '基础依赖关系',
   },
   {

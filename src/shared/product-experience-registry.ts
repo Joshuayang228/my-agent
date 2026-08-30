@@ -18,6 +18,8 @@ export interface ProductExperienceDefinition {
   status: ProductExperienceStatus
   playgroundTabId: ProductExperienceTabId
   sourcePaths: readonly string[]
+  /** Playground-only 媒体夹具；归属体验但不出现在开发者源码提示行。 */
+  fixtureAssetPaths?: readonly string[]
   /** 业务语义与页面组成；不参与 Foundation 依赖校验。 */
   experienceParts: readonly string[]
   usesFoundation: readonly FoundationComponentKey[]
@@ -45,6 +47,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     status: 'playground',
     playgroundTabId: 'world',
     sourcePaths: ['src/components/playground/SurfaceBaselinePanel.tsx', 'src/components/MomentsPanel.tsx'],
+    fixtureAssetPaths: ['src/assets/playground/moment-tea-by-window.jpg'],
     experienceParts: ['朋友圈', '物什', '名册'],
     usesFoundation: ['behavior.tabs', 'state.empty'],
   }),

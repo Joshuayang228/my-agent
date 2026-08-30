@@ -17,6 +17,9 @@ describe('product experience registry', () => {
 
     expect(new Set(keys).size).toBe(keys.length)
     expect(new Set(tabIds).size).toBe(tabIds.length)
+    expect(PRODUCT_EXPERIENCE_REGISTRY['experience.world'].fixtureAssetPaths).toEqual([
+      'src/assets/playground/moment-tea-by-window.jpg',
+    ])
 
     for (const experience of PRODUCT_EXPERIENCE_ASSETS) {
       expect(experience.key).toMatch(/^experience\.[a-z0-9-]+$/)
@@ -26,6 +29,7 @@ describe('product experience registry', () => {
       expect(experience.usesFoundation.length).toBeGreaterThan(0)
       expect(new Set(experience.usesFoundation).size).toBe(experience.usesFoundation.length)
       for (const sourcePath of experience.sourcePaths) expect(existsSync(sourcePath)).toBe(true)
+      for (const fixturePath of experience.fixtureAssetPaths ?? []) expect(existsSync(fixturePath)).toBe(true)
       for (const foundationKey of experience.usesFoundation) {
         const foundation = UI_COMPONENT_REGISTRY[foundationKey]
         expect(foundation, `${experience.key} 引用了不存在的基础组件 ${foundationKey}`).toBeDefined()
