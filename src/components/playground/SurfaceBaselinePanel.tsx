@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, ArrowUp, Bot, CheckCircle2, ChevronDown, CircleAlert, FileCode2, Folder, Image, MapPin, MessageCircle, PanelLeftOpen, Paperclip, RotateCcw, Shield, UserRound } from 'lucide-react'
+import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, Coffee, CheckCircle2, ChevronDown, CircleAlert, Clapperboard, FileCode2, Folder, Home, Image, Lightbulb, MapPin, MessageCircle, Music, PanelLeftOpen, Paperclip, RotateCcw, Shield, UserRound } from 'lucide-react'
 import { SettingsPanel } from '../SettingsPanel'
 import { MemoryPanel } from '../MemoryPanel'
 import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
@@ -12,7 +12,7 @@ import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import type { FileBrowserPreviewData } from '../FileBrowser'
 import type { MomentItem, MomentsPreviewData } from '../MomentsPanel'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
-import { WorldHub, type WorldTab } from '../shell/WorldHub'
+import { WorldHub, type WorldTab, type WorldTabDefinition } from '../shell/WorldHub'
 import type { MemoryEntry } from '../../shared/types'
 import type { PlaygroundTabId } from './catalog'
 import { PLAYGROUND_PERSONAS, type PlaygroundPersona } from '../../shared/playground-journey-fixtures'
@@ -122,7 +122,7 @@ const MOMENTS_PREVIEW_FIXTURES: MomentsPreviewData = {
 
 /**
  * 将同一组确定性动态投影到当前实验主角，保持故事结构稳定而让跨页面身份变化可见。
- * 背景：产品体验需要验证“当前主角”贯穿 Chat、人物世界和物什，而不是每个页面各自写死名字。
+ * 背景：产品体验需要验证“当前主角”贯穿 Chat、人物世界六个生活面，而不是每个页面各自写死名字。
  * 关键约束：只复制 Playground fixture，不读取生产生活事件，也不改变正式 Moments 数据。
  */
 function momentsPreviewForPersona(persona: PlaygroundPersona): MomentsPreviewData {
@@ -557,23 +557,82 @@ function MomentsProfileHero({ persona, onOpenMemory }: { persona: PlaygroundPers
   )
 }
 
+const PLAYGROUND_WORLD_TABS: readonly WorldTabDefinition[] = [
+  { id: 'moments', label: '朋友圈', icon: <Image size={14} strokeWidth={1.5} /> },
+  { id: 'wardrobe', label: '衣柜', icon: <Image size={14} strokeWidth={1.5} /> },
+  { id: 'culture', label: '文化角', icon: <BookOpen size={14} strokeWidth={1.5} /> },
+  { id: 'home', label: '家居', icon: <Home size={14} strokeWidth={1.5} /> },
+  { id: 'cast', label: '通讯录', icon: <UserRound size={14} strokeWidth={1.5} /> },
+  { id: 'footprints', label: '足迹', icon: <MapPin size={14} strokeWidth={1.5} /> },
+]
+
 function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onNavigate?: (tab: PlaygroundTabId) => void }) {
   const [tab, setTab] = useState<WorldTab>('moments')
-  const assets = persona.id === 'lin'
-    ? [['深蓝帆布包', '常带着电脑和一本随手记。'], ['乌龙茶', '下午工作时会泡一壶。'], ['旧相机', '散步时偶尔带上。']]
-    : [['灰绿帆布包', '出门时装着耳机和一本随手记。'], ['薄荷糖盒', '思路卡住时会先停下来。'], ['折叠伞', '天气不确定时总会带上。']]
-  const cast = persona.id === 'lin'
+  const isLin = persona.id === 'lin'
+  const wardrobe = isLin
+    ? [['灰蓝薄外套', '最近常穿 · 适合傍晚散步'], ['深蓝帆布包', '常带着电脑和一本随手记。'], ['旧相机', '散步时偶尔带上。']]
+    : [['米白针织衫', '最近常穿 · 适合安静的下午'], ['灰绿帆布包', '出门时装着耳机和一本随手记。'], ['折叠伞', '天气不确定时总会带上。']]
+  const cast = isLin
     ? [[persona.name, '当前主角'], ['阿遥', '偶尔联系的朋友'], ['许叔', '楼下咖啡店老板']]
     : [[persona.name, '当前主角'], ['小林', '偶尔联系的朋友'], ['阿禾', '一起散步的朋友']]
   const previewPanels: Partial<Record<WorldTab, ReactNode>> = {
-    assets: (
-      <div className="grid gap-3 p-5 sm:grid-cols-2" data-testid="world-assets-fixture" data-persona-id={persona.id}>
-        {assets.map(([name, detail]) => (
+    wardrobe: (
+      <div className="grid gap-3 p-5 sm:grid-cols-2" data-testid="world-wardrobe-fixture" data-persona-id={persona.id}>
+        <article className="rounded-[var(--radius-xl)] border p-4 sm:col-span-2" style={{ borderColor: 'var(--companion-accent-warm)', background: 'var(--companion-surface)' }}>
+          <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--companion-accent-warm)' }}><Image size={13} />当前穿着</div>
+          <div className="mt-2 text-[17px] font-medium" style={{ color: 'var(--text-primary)' }}>{wardrobe[0][0]}</div>
+          <p className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{wardrobe[0][1]}</p>
+        </article>
+        {wardrobe.slice(1).map(([name, detail]) => (
           <article key={name} className="rounded-xl border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
             <div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{name}</div>
             <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>{detail}</p>
           </article>
         ))}
+      </div>
+    ),
+    culture: (
+      <div className="space-y-3 p-5" data-testid="world-culture-fixture" data-persona-id={persona.id}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[
+            { label: '读书', title: '《瓦尔登湖》', detail: '正在读 · 留下 3 条笔记', icon: <BookOpen size={16} /> },
+            { label: '音乐', title: '旅行的意义', detail: '最近常听 · 傍晚散步', icon: <Music size={16} /> },
+            { label: '电影', title: '《海街日记》', detail: '喜欢的电影 · 看过两次', icon: <Clapperboard size={16} /> },
+            { label: '摄影', title: '窗边的光', detail: '自己的作品 · 2026 年 8 月', icon: <Camera size={16} /> },
+          ].map((item) => (
+            <article key={item.label} className="rounded-xl border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
+              <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--companion-accent-warm)' }}>{item.icon}{item.label}</div>
+              <div className="mt-2 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{item.title}</div>
+              <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>{item.detail}</p>
+            </article>
+          ))}
+        </div>
+        <blockquote className="rounded-xl border px-4 py-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+          <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--companion-accent-warm)' }}><BookOpen size={13} />读书笔记</div>
+          <p className="mt-2 text-[12px] leading-6" style={{ color: 'var(--text-secondary)' }}>有时候不是事情太多，而是没有给自己留下足够的空白。</p>
+        </blockquote>
+      </div>
+    ),
+    home: (
+      <div className="space-y-3 p-5" data-testid="world-home-fixture" data-persona-id={persona.id}>
+        <div className="rounded-[var(--radius-xl)] border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
+          <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--companion-accent-warm)' }}><Home size={13} />当前空间</div><span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>下午 · 家中</span></div>
+          <div className="mt-2 text-[17px] font-medium" style={{ color: 'var(--text-primary)' }}>书桌</div>
+          <p className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>窗帘拉开了一点，桌面留出了一块安静的空白。</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {[
+            { name: '台灯', detail: '暖光 · 已打开', icon: <Lightbulb size={16} /> },
+            { name: '乌龙茶', detail: '刚泡好 · 还温着', icon: <Coffee size={16} /> },
+            { name: '旧相机', detail: '放在桌角', icon: <Camera size={16} /> },
+          ].map((item) => (
+            <article key={item.name} className="rounded-xl border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
+              <span style={{ color: 'var(--companion-accent-warm)' }}>{item.icon}</span>
+              <div className="mt-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{item.name}</div>
+              <p className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{item.detail}</p>
+            </article>
+          ))}
+        </div>
       </div>
     ),
     cast: (
@@ -584,6 +643,23 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
             <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{relation}</span>
           </div>
         ))}
+      </div>
+    ),
+    footprints: (
+      <div className="space-y-3 p-5" data-testid="world-footprints-fixture" data-persona-id={persona.id}>
+        <div className="rounded-[var(--radius-xl)] border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
+          <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--companion-accent-warm)' }}><MapPin size={13} />最近去过</div>
+          <div className="mt-2 text-[17px] font-medium" style={{ color: 'var(--text-primary)' }}>杭州 · 西湖边</div>
+          <p className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>和阿遥一起散步，记下了一段慢下来的下午。</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {['楼下咖啡店', '河边步道', '想去：北海'].map((place) => (
+            <article key={place} className="rounded-xl border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
+              <MapPin size={15} style={{ color: 'var(--companion-accent-warm)' }} />
+              <div className="mt-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{place}</div>
+            </article>
+          ))}
+        </div>
       </div>
     ),
   }
@@ -604,7 +680,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
             showSocialActions
             hideMomentsHeader
             previewPanels={previewPanels}
-            hiddenTabs={['shelf']}
+            tabs={PLAYGROUND_WORLD_TABS}
             hideHeader
           />
         </div>

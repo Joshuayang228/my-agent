@@ -28,6 +28,7 @@
 | [foundation-design-language-v2.md](./foundation-design-language-v2.md) | P0 施工：颜色、主题、圆角、动效与 Foundation 组件研究升级 |
 | [product-experience-map-v1.md](./product-experience-map-v1.md) | E0 / E1 总合同：产品体验总图、正式 IA 与六条主旅程 |
 | [product-experience-journeys-v1.md](./product-experience-journeys-v1.md) | E0 / E1 子合同：Chat 主旅程 Playground 候选 |
+| [playground-world-living-dimensions-v1.md](./playground-world-living-dimensions-v1.md) | P0 施工：人物世界六个生活维度与隔离样张 |
 
 
 ---

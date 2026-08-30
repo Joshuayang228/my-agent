@@ -491,7 +491,7 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('受 Alice 项目启发', { exact: true })).toHaveCount(0)
   })
 
-  test('Playground 当前主角贯穿 Chat、人物世界物什与朋友圈', async ({ page }) => {
+  test('Playground 当前主角贯穿 Chat、人物世界六个生活面', async ({ page }) => {
     await page.goto('/')
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
     const nav = page.locator('[data-testid="playground-nav"]')
@@ -508,12 +508,28 @@ test.describe('My Agent UI', () => {
     await nav.getByRole('button', { name: '人物世界', exact: true }).click()
     await expect(page.getByTestId('playground-moments-profile')).toContainText('阿遥')
     await expect(page.getByTestId('moment-post').first()).toContainText('阿遥')
-    await page.getByTestId('world-tab-assets').click()
-    await expect(page.getByTestId('world-assets-fixture')).toHaveAttribute('data-persona-id', 'yao')
-    await expect(page.getByTestId('world-assets-fixture')).toContainText('灰绿帆布包')
+    const worldTabs = page.getByTestId('world-hub').getByRole('tab')
+    await expect(worldTabs).toHaveCount(6)
+    const worldTabLabels = await worldTabs.evaluateAll((tabs) => tabs.map((tab) => tab.textContent?.trim()))
+    expect(worldTabLabels).toEqual(['朋友圈', '衣柜', '文化角', '家居', '通讯录', '足迹'])
+    await page.getByTestId('world-tab-wardrobe').click()
+    await expect(page.getByTestId('world-wardrobe-fixture')).toHaveAttribute('data-persona-id', 'yao')
+    await expect(page.getByTestId('world-wardrobe-fixture')).toContainText('灰绿帆布包')
+    await page.getByTestId('world-tab-culture').click()
+    await expect(page.getByTestId('world-culture-fixture')).toHaveAttribute('data-persona-id', 'yao')
+    await expect(page.getByTestId('world-culture-fixture')).toContainText('《瓦尔登湖》')
+    await expect(page.getByTestId('world-culture-fixture')).toContainText('旅行的意义')
+    await expect(page.getByTestId('world-culture-fixture')).toContainText('《海街日记》')
+    await expect(page.getByTestId('world-culture-fixture')).toContainText('窗边的光')
+    await page.getByTestId('world-tab-home').click()
+    await expect(page.getByTestId('world-home-fixture')).toHaveAttribute('data-persona-id', 'yao')
+    await expect(page.getByTestId('world-home-fixture')).toContainText('当前空间')
     await page.getByTestId('world-tab-cast').click()
     await expect(page.getByTestId('world-cast-fixture')).toHaveAttribute('data-persona-id', 'yao')
     await expect(page.getByTestId('world-cast-fixture')).toContainText('阿遥')
+    await page.getByTestId('world-tab-footprints').click()
+    await expect(page.getByTestId('world-footprints-fixture')).toHaveAttribute('data-persona-id', 'yao')
+    await expect(page.getByTestId('world-footprints-fixture')).toContainText('杭州 · 西湖边')
   })
 
   test('Playground Toast 四态关闭按钮沿统一右边界对齐', async ({ page }) => {
@@ -680,8 +696,8 @@ test.describe('My Agent UI', () => {
     await expect(firstComment).toHaveAttribute('aria-pressed', 'true')
     await page.getByRole('button', { name: '赞', exact: true }).first().click()
     await expect(page.getByRole('button', { name: '取消赞', exact: true }).first()).toBeVisible()
-    await expect(page.getByTestId('world-tab-shelf')).toBeHidden()
-    for (const tabId of ['moments', 'assets', 'cast']) {
+    await expect(page.getByTestId('world-tab-shelf')).toHaveCount(0)
+    for (const tabId of ['moments', 'wardrobe', 'culture', 'home', 'cast', 'footprints']) {
       await page.getByTestId(`world-tab-${tabId}`).click()
       await expect(page.getByTestId(`world-tab-${tabId}`)).toHaveAttribute('aria-selected', 'true')
     }

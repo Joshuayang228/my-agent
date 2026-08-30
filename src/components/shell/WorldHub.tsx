@@ -10,9 +10,11 @@ import { CastPanel } from '../CastPanel'
 import { CharacterShelfPanel } from '../CharacterShelfPanel'
 import type { ShellView } from './SecondaryNav'
 
-export type WorldTab = 'moments' | 'assets' | 'cast' | 'shelf'
+export type WorldTab = 'moments' | 'assets' | 'cast' | 'shelf' | 'wardrobe' | 'culture' | 'home' | 'footprints'
 
-const WORLD_TABS: { id: WorldTab; label: string; icon: ReactNode }[] = [
+export type WorldTabDefinition = { id: WorldTab; label: string; icon: ReactNode }
+
+const WORLD_TABS: WorldTabDefinition[] = [
   { id: 'moments', label: '朋友圈', icon: <Newspaper size={14} strokeWidth={1.5} /> },
   { id: 'assets', label: '物什', icon: <Shirt size={14} strokeWidth={1.5} /> },
   { id: 'cast', label: '名册', icon: <Users size={14} strokeWidth={1.5} /> },
@@ -42,6 +44,8 @@ export function WorldHub({
   showSocialActions = false,
   previewPanels,
   hiddenTabs = [],
+  tabLabels,
+  tabs,
 }: {
   tab: WorldTab
   onTabChange: (tab: WorldTab) => void
@@ -63,8 +67,13 @@ export function WorldHub({
   previewPanels?: Partial<Record<WorldTab, ReactNode>>
   /** 候选组合可隐藏不属于该页面的 Tab；默认产品世界仍保留完整入口。 */
   hiddenTabs?: readonly WorldTab[]
+  /** Playground 可替换用户可见标签；内部 tab key 保持稳定，正式页面默认文案不变。 */
+  tabLabels?: Partial<Record<WorldTab, string>>
+  /** Playground 可提供独立的生活面 Tab 定义；不传时保持正式页面的既有入口。 */
+  tabs?: readonly WorldTabDefinition[]
 }) {
-  const visibleTabs = WORLD_TABS.filter((item) => !hiddenTabs.includes(item.id))
+  const visibleTabs = (tabs ?? WORLD_TABS).filter((item) => !hiddenTabs.includes(item.id))
+  const labelFor = (item: WorldTabDefinition) => tabLabels?.[item.id] ?? item.label
 
   return (
     <div className="flex h-full flex-col" data-testid="world-hub">
@@ -77,7 +86,7 @@ export function WorldHub({
             人物世界
           </h1>
           <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            {visibleTabs.map((item) => item.label).join('、')} — 一个口袋里的生活面。
+            {visibleTabs.map(labelFor).join('、')} — 一个口袋里的生活面。
           </p>
         </div>
         <button
@@ -118,7 +127,7 @@ export function WorldHub({
               <span style={{ color: active ? 'var(--companion-accent-warm)' : 'var(--text-muted)' }}>
                 {t.icon}
               </span>
-              {t.label}
+              {labelFor(t)}
             </button>
           )
         })}
