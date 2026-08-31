@@ -54,11 +54,11 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
   experience({
     key: 'experience.memory',
     labelZh: '记忆',
-    descriptionZh: '结构化记忆的筛选、空态、敏感项和编辑体验。',
+    descriptionZh: '关于你与关于我们的长期信息管理，以及与 Chat / Debug 的边界。',
     status: 'playground',
     playgroundTabId: 'memory',
-    sourcePaths: ['src/components/MemoryPanel.tsx'],
-    experienceParts: ['记忆列表', '记忆筛选', '敏感项', '编辑态', '记忆引用'],
+    sourcePaths: ['src/components/MemoryPanel.tsx', 'src/components/playground/SurfaceBaselinePanel.tsx'],
+    experienceParts: ['关于你', '关于我们', '长期信息', '敏感项', '纠正记忆', '记忆引用'],
     usesFoundation: ['behavior.tabs', 'state.empty', 'state.error'],
   }),
   experience({
