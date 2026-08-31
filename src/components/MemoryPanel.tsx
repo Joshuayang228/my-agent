@@ -34,15 +34,34 @@ const COLOR_MAP: Record<MemoryColor, { bg: string; border: string; text: string;
   muted: { bg: 'memory-color-muted-bg', border: 'memory-color-muted-border', text: 'memory-color-muted-text', badge: 'memory-color-muted-badge' },
 }
 
+/**
+ * Playground 中为静态记忆补充用户可理解的关系证据。
+ * 不承载提取方式、检索分数或 Prompt 等内部实现信息。
+ */
+export interface MemoryPreviewEvidence {
+  source: string
+  implication: string
+}
+
 interface MemoryPanelProps {
   onClose: () => void
   /** Playground 页面基线传入静态夹具，避免读取或写入真实记忆。 */
   previewMemories?: MemoryEntry[]
   previewEditingId?: string
+  previewEvidence?: Partial<Record<string, MemoryPreviewEvidence>>
+  /** 仅允许 Playground 夹具在 Renderer 内存中被纠正，绝不触发真实 memory IPC。 */
+  previewEditable?: boolean
   readOnly?: boolean
 }
 
-export function MemoryPanel({ onClose, previewMemories, previewEditingId, readOnly = false }: MemoryPanelProps) {
+export function MemoryPanel({
+  onClose,
+  previewMemories,
+  previewEditingId,
+  previewEvidence,
+  previewEditable = false,
+  readOnly = false,
+}: MemoryPanelProps) {
   const [memories, setMemories] = useState<MemoryEntry[]>(previewMemories ?? [])
   const [filter, setFilter] = useState<MemoryCategory | 'all'>('all')
   const [editing, setEditing] = useState<string | null>(previewEditingId ?? null)
@@ -52,6 +71,9 @@ export function MemoryPanel({ onClose, previewMemories, previewEditingId, readOn
   const [adding, setAdding] = useState(false)
   const [newCategory, setNewCategory] = useState<MemoryCategory>('fact')
   const [newContent, setNewContent] = useState('')
+  const isPreview = previewMemories !== undefined
+  const isPreviewInteractive = isPreview && previewEditable
+  const canEdit = !readOnly && (isPreviewInteractive || !isPreview)
 
   const loadMemories = useCallback(async () => {
     if (previewMemories) {
@@ -91,14 +113,29 @@ export function MemoryPanel({ onClose, previewMemories, previewEditingId, readOn
   }
 
   const handleDelete = async (id: string) => {
-    if (readOnly || !window.electronAPI) return
+    if (!canEdit) return
+    if (isPreviewInteractive) {
+      setMemories((current) => current.filter((memory) => memory.id !== id))
+      if (editing === id) setEditing(null)
+      return
+    }
+    if (!window.electronAPI) return
     await window.electronAPI.memory.delete(id)
     await loadMemories()
   }
 
   const handleSaveEdit = async (id: string) => {
-    if (readOnly || !window.electronAPI || !editContent.trim()) return
-    await window.electronAPI.memory.update(id, editContent.trim())
+    const content = editContent.trim()
+    if (!canEdit || !content) return
+    if (isPreviewInteractive) {
+      setMemories((current) => current.map((memory) => (
+        memory.id === id ? { ...memory, content, updatedAt: Date.now() } : memory
+      )))
+      setEditing(null)
+      return
+    }
+    if (!window.electronAPI) return
+    await window.electronAPI.memory.update(id, content)
     setEditing(null)
     await loadMemories()
   }
@@ -122,7 +159,7 @@ export function MemoryPanel({ onClose, previewMemories, previewEditingId, readOn
             <span className="rounded px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{memories.length}</span>
           </div>
           <div className="flex items-center gap-2">
-            {!readOnly && <button
+            {!readOnly && !isPreview && <button
               onClick={() => setAdding(!adding)}
               className="rounded-lg px-2.5 py-1 text-xs transition"
               style={{ color: 'var(--accent-fg)' }}
@@ -275,7 +312,7 @@ export function MemoryPanel({ onClose, previewMemories, previewEditingId, readOn
                         )}
                       </div>
                       <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
-                        {!readOnly && !isEditing && (
+                        {canEdit && !isEditing && (
                           <>
                             <button
                               onClick={() => startEdit(mem)}
@@ -304,12 +341,12 @@ export function MemoryPanel({ onClose, previewMemories, previewEditingId, readOn
                             if (e.key === 'Escape') setEditing(null)
                           }}
                           autoFocus
-                          readOnly={readOnly}
+                          readOnly={!canEdit}
                           className="theme-input flex-1 rounded border px-2 py-1 text-xs outline-none"
                         />
                         <button
                           onClick={() => handleSaveEdit(mem.id)}
-                          disabled={readOnly}
+                          disabled={!canEdit}
                           className="rounded px-2 py-1 text-[10px] text-white disabled:opacity-50"
                           style={{ background: 'var(--accent-emphasis)' }}
                         >
@@ -326,6 +363,17 @@ export function MemoryPanel({ onClose, previewMemories, previewEditingId, readOn
                       <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{mem.content}</p>
                     )}
 
+                    {previewEvidence?.[mem.id] && (
+                      <div
+                        className="mt-2 space-y-0.5 border-t pt-1.5 text-[10px] leading-4"
+                        style={{ borderColor: 'color-mix(in srgb, var(--border-color) 76%, transparent)', color: 'var(--text-muted)' }}
+                        data-testid={`memory-preview-evidence-${mem.id}`}
+                      >
+                        <p><span style={{ color: 'var(--text-secondary)' }}>来自：</span>{previewEvidence[mem.id]?.source}</p>
+                        <p><span style={{ color: 'var(--text-secondary)' }}>之后会：</span>{previewEvidence[mem.id]?.implication}</p>
+                      </div>
+                    )}
+
                     <div className="mt-1.5 text-[9px]" style={{ color: 'var(--text-muted)' }}>
                       {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
                       {mem.updatedAt !== mem.createdAt && ` (更新于 ${new Date(mem.updatedAt).toLocaleDateString('zh-CN')})`}
@@ -339,7 +387,9 @@ export function MemoryPanel({ onClose, previewMemories, previewEditingId, readOn
 
         {/* Footer hint */}
         <div className="border-t px-4 py-2 text-center text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
-          记忆会注入到每次对话的 System Prompt 中 · 敏感项（健康/财务/凭据等）会高亮，勿存密码原文
+          {isPreview
+            ? '这是 Playground 的隔离样张；在“纠正记忆”中试改不会保存到正式记忆。'
+            : '记忆会注入到每次对话的 System Prompt 中 · 敏感项（健康/财务/凭据等）会高亮，勿存密码原文'}
         </div>
     </div>
   )

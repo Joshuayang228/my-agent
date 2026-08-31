@@ -67,7 +67,7 @@
 | 本轮引用芯片（M29-G1） | 已落地 | `memory_citations` · `MemoryCitationChips`（Chat + Playground） |
 | 对话内纠错（M29-G2） | 已落地 | `correctCitedMemory` |
 | 敏感高亮与采集提示（M29-G3） | 已落地 | `sensitive-memory`；自动画像跳过敏感类别，凭据内容在存储/导入/向量召回层硬拒绝 |
-| MemoryPanel 页面基线 | 已落地 | Playground 静态只读夹具：列表 / 空态 / 敏感项 / 编辑态；分类图标、名称与数量在窄宽下保持同行 |
+| MemoryPanel 页面基线 | 已落地 | Playground 隔离夹具：关系证据 / 空态 / 敏感项 / 纠正记忆；证据只用用户语言说明来源与后续相处影响，纠正仅写入 Renderer 内存，不触发真实 IPC |
 | 记忆分类语义色 | 已落地 | `MemoryPanel` 使用 accent / warm / success / muted；颜色只表达分类，不改变存储与 IPC |
 | 记忆策略生产资产目录 | 已落地 | 全局 Debug「提示词管理器 → 记忆策略」；提取 / 去重 / 分桶 / 召回 / 生命周期 / 纠错策略有稳定 key、来源、版本、指纹和依赖；不再从 Chat 右侧调试半屏进入；记忆管理入口位于 Settings |
 | 项目文档 RAG | 不做（本模块） | 见 `rag/` |

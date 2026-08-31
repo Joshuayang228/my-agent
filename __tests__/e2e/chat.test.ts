@@ -465,8 +465,36 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('路过河边的时候记下了一个想法：慢一点，反而能看见今天真正想做的事。', { exact: true })).toBeVisible()
 
     await nav.getByRole('button', { name: '记忆', exact: true }).click()
+    const memorySurface = page.getByTestId('memory-surface-candidate')
     const identityFilter = page.locator('[data-testid="memory-category-filters"]').getByRole('button', { name: '身份 (1)', exact: true })
     await expect(identityFilter).toBeVisible()
+    await expect(page.getByRole('tab', { name: '关系证据', exact: true })).toHaveAttribute('aria-selected', 'true')
+    await expect(memorySurface.getByTestId('memory-preview-evidence-memory-workflow')).toContainText('来自：')
+    await expect(memorySurface.getByTestId('memory-preview-evidence-memory-workflow')).toContainText('之后会：')
+    await expect(memorySurface).not.toContainText('向量')
+    await expect(memorySurface).not.toContainText('召回分数')
+
+    await page.getByRole('tab', { name: '纠正记忆', exact: true }).click()
+    const correction = memorySurface.locator('input').first()
+    await correction.fill('先在 Playground 验证，再由用户决定是否回流正式 UI。')
+    await memorySurface.getByRole('button', { name: '保存', exact: true }).click()
+    await expect(memorySurface).toContainText('先在 Playground 验证，再由用户决定是否回流正式 UI。')
+    await expect(memorySurface).toContainText('隔离样张')
+
+    await page.getByTestId('memory-open-settings').click()
+    await expect(nav.getByRole('button', { name: '设置', exact: true })).toHaveAttribute('data-active', 'true')
+    await expect(page.getByRole('tab', { name: '记忆管理', exact: true })).toHaveAttribute('aria-selected', 'true')
+    const settingsSurface = page.getByTestId('settings-surface-candidate')
+    await expect(settingsSurface.getByTestId('settings-main')).toContainText('记忆')
+    await expect(settingsSurface).not.toContainText('向量召回')
+    await settingsSurface.getByRole('button', { name: /打开记忆面板/ }).click()
+    await expect(nav.getByRole('button', { name: '记忆', exact: true })).toHaveAttribute('data-active', 'true')
+    await expect(page.getByTestId('memory-surface-candidate')).toBeVisible()
+
+    await page.getByTestId('memory-open-settings').click()
+    await expect(page.getByTestId('settings-return-to-chat')).toBeVisible()
+    await page.getByTestId('settings-return-to-chat').click()
+    await expect(nav.getByRole('button', { name: 'Chat', exact: true })).toHaveAttribute('data-active', 'true')
   })
 
   test('Playground 角色架入口真实可达且设置预览不触发生产读取', async ({ page }) => {

@@ -85,7 +85,7 @@ interface RoleInfo {
   description: string
 }
 
-type SettingsSection =
+export type SettingsSection =
   | 'general'
   | 'companion'
   | 'model'
@@ -136,6 +136,8 @@ interface SettingsPanelProps {
   onThemeChange?: (themeId: string) => void
   /** Playground 只读预览：不读取、写入或探测真实设置。 */
   preview?: boolean
+  /** 只在 Playground preview 中生效；正式设置仍从「通用」开始。 */
+  previewInitialSection?: SettingsSection
 }
 
 export function SettingsPanel({
@@ -147,9 +149,12 @@ export function SettingsPanel({
   currentTheme,
   onThemeChange,
   preview = false,
+  previewInitialSection,
 }: SettingsPanelProps) {
   const { toast } = useToast()
-  const [activeSection, setActiveSection] = useState<SettingsSection>('general')
+  const [activeSection, setActiveSection] = useState<SettingsSection>(
+    preview && previewInitialSection ? previewInitialSection : 'general',
+  )
   const [fontScale, setFontScale] = useState(() => localStorage.getItem('uiFontScale') || 'md')
   const [form, setForm] = useState<SettingsForm>(DEFAULTS)
   const [showApiKey, setShowApiKey] = useState(false)
@@ -181,6 +186,10 @@ export function SettingsPanel({
     url: '',
     env: '',
   })
+
+  useEffect(() => {
+    if (preview) setActiveSection(previewInitialSection ?? 'general')
+  }, [preview, previewInitialSection])
   // 自动保存只处理用户真实修改：初始加载不回写；修订号用于识别保存期间发生的新编辑。
   const settingsLoadedRef = useRef(false)
   const settingsRevisionRef = useRef(0)
@@ -1057,7 +1066,9 @@ export function SettingsPanel({
     <div className="space-y-6">
       <SectionTitle>记忆</SectionTitle>
       <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-        结构化记忆与向量召回在「记忆」面板管理；此处只放解释粒度等横切开关。
+        {preview
+          ? '在这里调整长期相处方式；具体记忆可随时查看、纠正或遗忘。'
+          : '结构化记忆与向量召回在「记忆」面板管理；此处只放解释粒度等横切开关。'}
       </p>
       <FieldGroup
         label="解释粒度（专家度）"

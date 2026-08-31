@@ -61,7 +61,7 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
   const [tab, setTab] = useState<PlaygroundTabId>(readInitialTab)
   const [tools, setTools] = useState<PlaygroundToolInfo[]>([])
   const [personaId, setPersonaId] = useState('lin')
-  const [settingsScenario, setSettingsScenario] = useState<'settings' | 'role-shelf'>('settings')
+  const [settingsScenario, setSettingsScenario] = useState<'settings' | 'memory-management' | 'role-shelf'>('settings')
   const persona = findPlaygroundPersona(personaId)
 
   const navigateTo = (nextTab: PlaygroundTabId) => {

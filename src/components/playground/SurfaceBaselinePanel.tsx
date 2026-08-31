@@ -6,7 +6,7 @@
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, Coffee, CheckCircle2, ChevronDown, CircleAlert, Clapperboard, FileCode2, Folder, Home, Image, Lightbulb, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, Paperclip, RotateCcw, Shirt, Shield, UserRound, Users } from 'lucide-react'
 import { SettingsPanel } from '../SettingsPanel'
-import { MemoryPanel } from '../MemoryPanel'
+import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
 import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import type { FileBrowserPreviewData } from '../FileBrowser'
@@ -40,6 +40,24 @@ const SENSITIVE_MEMORY_FIXTURES: MemoryEntry[] = [
   { id: 'memory-sensitive', category: 'fact', content: '最近在调整睡眠和用药安排。', createdAt: NOW, updatedAt: NOW },
 ]
 const EMPTY_MEMORY_FIXTURES: MemoryEntry[] = []
+const MEMORY_PREVIEW_EVIDENCE: Partial<Record<string, MemoryPreviewEvidence>> = {
+  'memory-identity': {
+    source: '你介绍正在做的人格化桌面 Agent 时留下的背景（隔离样张）',
+    implication: '之后会用这个项目背景理解你的提问。',
+  },
+  'memory-workflow': {
+    source: '你多次确认的协作方式（隔离样张）',
+    implication: '会先在 Playground 验证，再讨论是否回流正式 UI。',
+  },
+  'memory-voice': {
+    source: '你对回复方式给出的反馈（隔离样张）',
+    implication: '会优先给直接、清楚且有判断依据的答复。',
+  },
+  'memory-sensitive': {
+    source: '你主动提到的近况（隔离样张）',
+    implication: '需要时可以改正或删除；不会把密码、凭据等内容作为记忆。',
+  },
+}
 const FILE_PREVIEW_FIXTURES: FileBrowserPreviewData = {
   projectLabel: 'my-agent · 样张项目',
   initialPath: 'src/components/AppShell.tsx',
@@ -695,6 +713,7 @@ function SettingsSurface({ persona, onPersonaChange, scenario, onScenarioChange,
       <div className="flex flex-wrap gap-1" role="tablist" aria-label="设置页面场景">
         {[
           { id: 'settings' as const, label: '设置' },
+          { id: 'memory-management' as const, label: '记忆管理' },
           { id: 'role-shelf' as const, label: '角色架' },
         ].map((item) => {
           const active = scenario === item.id
@@ -725,12 +744,17 @@ function SettingsSurface({ persona, onPersonaChange, scenario, onScenarioChange,
         )}
       </div>
       <SurfaceViewport>
-        {scenario === 'settings' ? (
-          <div aria-label="设置隔离预览" data-testid="settings-surface-candidate">
-            <SettingsPanel onClose={noop} preview />
-          </div>
-        ) : (
+        {scenario === 'role-shelf' ? (
           <RoleShelfFixture persona={persona} onPersonaChange={onPersonaChange} />
+        ) : (
+          <div aria-label="设置隔离预览" data-testid="settings-surface-candidate">
+            <SettingsPanel
+              onClose={noop}
+              preview
+              previewInitialSection={scenario === 'memory-management' ? 'memory' : undefined}
+              onOpenMemory={() => onNavigate?.('memory')}
+            />
+          </div>
         )}
       </SurfaceViewport>
     </div>
@@ -774,16 +798,16 @@ function RoleShelfFixture({ persona, onPersonaChange }: { persona: PlaygroundPer
   )
 }
 
-type MemoryScenario = 'list' | 'empty' | 'sensitive' | 'editing'
+type MemoryScenario = 'relationship' | 'empty' | 'sensitive' | 'editing'
 
 /** 静态场景只驱动正式 MemoryPanel 的 preview props，不访问 memory IPC。 */
-function MemorySurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => void }) {
-  const [scenario, setScenario] = useState<MemoryScenario>('list')
+function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab: PlaygroundTabId) => void; onOpenMemorySettings?: () => void }) {
+  const [scenario, setScenario] = useState<MemoryScenario>('relationship')
   const scenarios: Array<{ id: MemoryScenario; label: string }> = [
-    { id: 'list', label: '列表' },
+    { id: 'relationship', label: '关系证据' },
     { id: 'empty', label: '空态' },
     { id: 'sensitive', label: '敏感项' },
-    { id: 'editing', label: '编辑态' },
+    { id: 'editing', label: '纠正记忆' },
   ]
   const memories = scenario === 'empty'
     ? EMPTY_MEMORY_FIXTURES
@@ -815,7 +839,10 @@ function MemorySurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => 
         {onNavigate && (
           <button
             type="button"
-            onClick={() => onNavigate('settings')}
+            onClick={() => {
+              onNavigate('settings')
+              onOpenMemorySettings?.()
+            }}
             className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[10px] transition"
             style={{ color: 'var(--text-muted)' }}
             data-testid="memory-open-settings"
@@ -831,8 +858,10 @@ function MemorySurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => 
             key={scenario}
             onClose={noop}
             previewMemories={memories}
+            previewEvidence={MEMORY_PREVIEW_EVIDENCE}
             previewEditingId={scenario === 'editing' ? 'memory-workflow' : undefined}
-            readOnly
+            previewEditable={scenario === 'editing' || scenario === 'sensitive'}
+            readOnly={scenario !== 'editing' && scenario !== 'sensitive'}
           />
         </div>
       </SurfaceViewport>
@@ -840,7 +869,7 @@ function MemorySurface({ onNavigate }: { onNavigate?: (tab: PlaygroundTabId) => 
   )
 }
 
-type SettingsScenario = 'settings' | 'role-shelf'
+type SettingsScenario = 'settings' | 'memory-management' | 'role-shelf'
 
 interface SurfaceBaselinePanelProps {
   initialSurface?: SurfaceId
@@ -889,7 +918,7 @@ export function SurfaceBaselinePanel({ initialSurface, persona, onPersonaChange,
         {surface === 'sidebar' && <SidebarSurface />}
         {surface === 'dock' && <DockSurface />}
         {surface === 'world' && <WorldSurface persona={activePersona} onNavigate={onNavigate} />}
-        {surface === 'memory' && <MemorySurface onNavigate={onNavigate} />}
+        {surface === 'memory' && <MemorySurface onNavigate={onNavigate} onOpenMemorySettings={() => handleSettingsScenarioChange('memory-management')} />}
         {surface === 'settings' && <SettingsSurface persona={activePersona} onPersonaChange={handlePersonaChange} scenario={activeSettingsScenario} onScenarioChange={handleSettingsScenarioChange} onNavigate={onNavigate} />}
       </div>
     </div>
