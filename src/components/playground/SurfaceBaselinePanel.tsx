@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, Coffee, CheckCircle2, ChevronDown, CircleAlert, Clapperboard, FileCode2, Folder, Home, Image, Lightbulb, MapPin, MessageCircle, Music, PanelLeftOpen, Paperclip, RotateCcw, Shield, UserRound } from 'lucide-react'
+import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, Coffee, CheckCircle2, ChevronDown, CircleAlert, Clapperboard, FileCode2, Folder, Home, Image, Lightbulb, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, Paperclip, RotateCcw, Shirt, Shield, UserRound, Users } from 'lucide-react'
 import { SettingsPanel } from '../SettingsPanel'
 import { MemoryPanel } from '../MemoryPanel'
 import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
@@ -558,11 +558,11 @@ function MomentsProfileHero({ persona, onOpenMemory }: { persona: PlaygroundPers
 }
 
 const PLAYGROUND_WORLD_TABS: readonly WorldTabDefinition[] = [
-  { id: 'moments', label: '朋友圈', icon: <Image size={14} strokeWidth={1.5} /> },
-  { id: 'wardrobe', label: '衣柜', icon: <Image size={14} strokeWidth={1.5} /> },
+  { id: 'moments', label: '朋友圈', icon: <Newspaper size={14} strokeWidth={1.5} /> },
+  { id: 'wardrobe', label: '衣柜', icon: <Shirt size={14} strokeWidth={1.5} /> },
   { id: 'culture', label: '文化角', icon: <BookOpen size={14} strokeWidth={1.5} /> },
   { id: 'home', label: '家居', icon: <Home size={14} strokeWidth={1.5} /> },
-  { id: 'cast', label: '通讯录', icon: <UserRound size={14} strokeWidth={1.5} /> },
+  { id: 'cast', label: '通讯录', icon: <Users size={14} strokeWidth={1.5} /> },
   { id: 'footprints', label: '足迹', icon: <MapPin size={14} strokeWidth={1.5} /> },
 ]
 
@@ -579,7 +579,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
     wardrobe: (
       <div className="grid gap-3 p-5 sm:grid-cols-2" data-testid="world-wardrobe-fixture" data-persona-id={persona.id}>
         <article className="rounded-[var(--radius-xl)] border p-4 sm:col-span-2" style={{ borderColor: 'var(--companion-accent-warm)', background: 'var(--companion-surface)' }}>
-          <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--companion-accent-warm)' }}><Image size={13} />当前穿着</div>
+          <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--companion-accent-warm)' }}><Shirt size={13} />当前穿着</div>
           <div className="mt-2 text-[17px] font-medium" style={{ color: 'var(--text-primary)' }}>{wardrobe[0][0]}</div>
           <p className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{wardrobe[0][1]}</p>
         </article>
