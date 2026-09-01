@@ -29,16 +29,17 @@
 | [product-experience-map-v1.md](./product-experience-map-v1.md) | E0 / E1 总合同：产品体验总图、正式 IA 与六条主旅程 |
 | [product-experience-journeys-v1.md](./product-experience-journeys-v1.md) | E0 / E1 子合同：Chat 主旅程 Playground 候选 |
 | [playground-world-living-dimensions-v1.md](./playground-world-living-dimensions-v1.md) | P0 施工：人物世界六个生活维度与隔离样张 |
-| [memory-world-boundary-v2.md](./memory-world-boundary-v2.md) | P0 施工：用户 / 伙伴 / 关系 / 当前状态的记忆边界与人物世界关系 |
+
 
 
 ---
 
 ## 已完成施工快照（冻结）
 
-| [playground-memory-settings-journey-v1.md](./playground-memory-settings-journey-v1.md) | 已完成施工快照：记忆来源、纠正与设置管理的关系旅程 |
 | 文档 | 说明 |
 |------|------|
+| [playground-memory-settings-journey-v1.md](./playground-memory-settings-journey-v1.md) | 已完成施工快照：记忆来源、纠正与设置管理的关系旅程 |
+| [memory-world-boundary-v2.md](./memory-world-boundary-v2.md) | 已完成施工快照：用户 / 伙伴 / 关系 / 当前状态的记忆边界与人物世界关系 |
 | [sidebar-navigation-baseline-v2.md](./sidebar-navigation-baseline-v2.md) | 已完成施工快照：开发入口位置已回流；Secondary Nav 候选被后续人工验收否决 |
 | [chat-page-baseline-v1.md](./chat-page-baseline-v1.md) | 已落地：Chat 页面组合基线、开发入口上移、非 Chat 空顶栏移除、引用式主角提示与设置自动保存 |
 | [asset-governance-audit-automation.md](./asset-governance-audit-automation.md) | 已落地：全量资产审计、设计资产 / SubAgent 角色登记、机器报告与自动漏登门禁 |

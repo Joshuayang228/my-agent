@@ -868,7 +868,9 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
         <p className="text-[10px]" style={{ color: 'var(--text-muted)' }} data-testid="memory-boundary-note">
           这里保留会影响未来相处的长期信息；正在做什么和系统做过什么，分别留在 Chat / Debug。
         </p>
-        <div className="flex flex-wrap gap-1" role="tablist" aria-label="记忆页面场景">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>状态样张</span>
+          <div className="flex flex-wrap gap-1" role="tablist" aria-label="记忆页面场景">
           {scenarios.map((item) => {
             const active = scenario === item.id
             return (
@@ -885,6 +887,7 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
               </button>
             )
           })}
+          </div>
         </div>
       </div>
       <SurfaceViewport>
@@ -895,6 +898,11 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
             onClose={noop}
             previewMemories={memories}
             previewEvidence={MEMORY_PREVIEW_EVIDENCE}
+            previewCompact
+            previewTitle={scope === 'user' ? 'Agent 对你的记忆' : '我们共同形成的记忆'}
+            previewDescription={scope === 'user'
+              ? '这些信息帮助 Agent 更懂你，减少重复询问，也让后续协作保持连续。'
+              : '这些信息来自我们共同确认过的方式，会影响之后的协作与相处。'}
             previewEditingId={scenario === 'editing' ? editingId : undefined}
             previewEditable={scenario === 'editing' || scenario === 'sensitive'}
             readOnly={scenario !== 'editing' && scenario !== 'sensitive'}

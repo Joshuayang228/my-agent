@@ -49,6 +49,9 @@ interface MemoryPanelProps {
   previewMemories?: MemoryEntry[]
   previewEditingId?: string
   previewEvidence?: Partial<Record<string, MemoryPreviewEvidence>>
+  previewTitle?: string
+  previewDescription?: string
+  previewCompact?: boolean
   /** 仅允许 Playground 夹具在 Renderer 内存中被纠正，绝不触发真实 memory IPC。 */
   previewEditable?: boolean
   readOnly?: boolean
@@ -59,6 +62,9 @@ export function MemoryPanel({
   previewMemories,
   previewEditingId,
   previewEvidence,
+  previewTitle,
+  previewDescription,
+  previewCompact = false,
   previewEditable = false,
   readOnly = false,
 }: MemoryPanelProps) {
@@ -153,59 +159,72 @@ export function MemoryPanel({
 
   return (
     <div className="flex h-full flex-col">
-        <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border-color)' }}>
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}><Brain size={16} /> 记忆</span>
-            <span className="rounded px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{memories.length}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {!readOnly && !isPreview && <button
-              onClick={() => setAdding(!adding)}
-              className="rounded-lg px-2.5 py-1 text-xs transition"
-              style={{ color: 'var(--accent-fg)' }}
-            >
-              + 添加
-            </button>}
-            <button
-              onClick={onClose}
-              className="rounded-lg p-1.5 transition"
-              style={{ color: 'var(--text-muted)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-            >
-              <X size={16} />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 border-b px-5 py-2.5" style={{ borderColor: 'var(--border-color)' }} data-testid="memory-category-filters">
-          <button
-            onClick={() => setFilter('all')}
-            className={`rounded-lg px-2.5 py-1 text-[11px] transition ${
-              filter === 'all' ? 'font-medium' : ''
-            }`}
-            style={{ background: filter === 'all' ? 'var(--bg-tertiary)' : undefined, color: filter === 'all' ? 'var(--text-primary)' : 'var(--text-muted)' }}
-          >
-            全部 ({memories.length})
-          </button>
-          {CATEGORIES.map(cat => {
-            const count = categoryCounts[cat.id] || 0
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setFilter(cat.id)}
-                className={`rounded-lg px-2.5 py-1 text-[11px] transition ${
-                  filter === cat.id
-                    ? `${COLOR_MAP[cat.color].badge} font-medium`
-                    : ''
-                }`}
-                style={filter !== cat.id ? { color: 'var(--text-muted)' } : undefined}
+        {!previewCompact && (
+          <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border-color)' }}>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}><Brain size={16} /> 记忆</span>
+              <span className="rounded px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{memories.length}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {!readOnly && !isPreview && <button
+                onClick={() => setAdding(!adding)}
+                className="rounded-lg px-2.5 py-1 text-xs transition"
+                style={{ color: 'var(--accent-fg)' }}
               >
-                {cat.icon} {cat.label} ({count})
+                + 添加
+              </button>}
+              <button
+                onClick={onClose}
+                className="rounded-lg p-1.5 transition"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+              >
+                <X size={16} />
               </button>
-            )
-          })}
-        </div>
+            </div>
+          </div>
+        )}
+
+        {isPreview && previewTitle && (
+          <div className="px-5 pb-4 pt-5" data-testid="memory-preview-heading">
+            <h2 className="text-base font-semibold tracking-[-0.01em]" style={{ color: 'var(--text-primary)' }} data-testid="memory-preview-title">{previewTitle}</h2>
+            {previewDescription && <p className="mt-1 text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>{previewDescription}</p>}
+          </div>
+        )}
+
+        {!previewCompact && (
+          <div className="flex flex-wrap gap-2 border-b px-5 py-2.5" style={{ borderColor: 'var(--border-color)' }} data-testid="memory-category-filters">
+            <button
+              onClick={() => setFilter('all')}
+              className={`rounded-lg px-2.5 py-1 text-[11px] transition ${
+                filter === 'all' ? 'font-medium' : ''
+              }`}
+              style={{ background: filter === 'all' ? 'var(--bg-tertiary)' : undefined, color: filter === 'all' ? 'var(--text-primary)' : 'var(--text-muted)' }}
+            >
+              全部 ({memories.length})
+            </button>
+            {CATEGORIES.map(cat => {
+              const count = categoryCounts[cat.id] || 0
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setFilter(cat.id)}
+                  className={`rounded-lg px-2.5 py-1 text-[11px] transition ${
+                    filter === cat.id
+                      ? `${COLOR_MAP[cat.color].badge} font-medium`
+                      : ''
+                  }`}
+                  style={filter !== cat.id ? { color: 'var(--text-muted)' } : undefined}
+                >
+                  {cat.icon} {cat.label} ({count})
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+
 
         {/* Add Form */}
         {adding && (
@@ -269,7 +288,7 @@ export function MemoryPanel({
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className={isPreview ? 'grid gap-3 px-0.5 sm:grid-cols-2' : 'space-y-2'}>
               {filtered.map(mem => {
                 const cat = CATEGORIES.find(c => c.id === mem.category)
                 const colors = COLOR_MAP[(cat?.color as MemoryColor) || 'accent']
@@ -280,16 +299,23 @@ export function MemoryPanel({
                 return (
                   <div
                     key={mem.id}
-                    className={`group rounded-lg border px-4 py-2.5 transition hover:bg-opacity-10 ${
-                      isSensitive ? '' : `${colors.border} ${colors.bg}`
+                    className={`group rounded-xl border px-4 py-3.5 transition hover:bg-opacity-10 ${
+                      isPreview ? 'min-h-[156px]' : isSensitive ? '' : `${colors.border} ${colors.bg}`
                     }`}
                     style={
-                      isSensitive
-                        ? {
-                            borderColor: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 55%, transparent)',
-                            background: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 10%, transparent)',
-                          }
-                        : undefined
+                      isPreview
+                        ? isSensitive
+                          ? {
+                              borderColor: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 55%, transparent)',
+                              background: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 10%, transparent)',
+                            }
+                          : { borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }
+                        : isSensitive
+                          ? {
+                              borderColor: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 55%, transparent)',
+                              background: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 10%, transparent)',
+                            }
+                          : undefined
                     }
                   >
                     <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -374,7 +400,7 @@ export function MemoryPanel({
                       </div>
                     )}
 
-                    <div className="mt-1.5 text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                    <div className="mt-2 text-[9px]" style={{ color: 'var(--text-muted)' }}>
                       {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
                       {mem.updatedAt !== mem.createdAt && ` (更新于 ${new Date(mem.updatedAt).toLocaleDateString('zh-CN')})`}
                     </div>
