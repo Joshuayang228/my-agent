@@ -51,7 +51,7 @@ const MEMORY_PREVIEW_GROUPS: MemoryPreviewGroupDefinition[] = [
     memories: [
       { id: 'memory-user-identity', category: 'identity', content: '正在做一款人格化桌面 Agent。', createdAt: NOW - 12 * 86_400_000, updatedAt: NOW - 12 * 86_400_000 },
       { id: 'memory-user-background', category: 'identity', content: '既懂产品，也愿意亲自理解工程实现。', createdAt: NOW - 10 * 86_400_000, updatedAt: NOW - 10 * 86_400_000 },
-      { id: 'memory-user-aesthetic', category: 'preference', content: '在意产品是否有理念，也在意具体执行是否足够精致。', createdAt: NOW - 3 * 86_400_000, updatedAt: NOW - 3 * 86_400_000 },
+      { id: 'memory-user-focus', category: 'preference', content: '长期关注人格化体验，以及产品设计与工程落地之间的关系。', createdAt: NOW - 3 * 86_400_000, updatedAt: NOW - 3 * 86_400_000 },
     ],
   },
   {
@@ -62,6 +62,7 @@ const MEMORY_PREVIEW_GROUPS: MemoryPreviewGroupDefinition[] = [
       { id: 'memory-user-workflow', category: 'workflow', content: '先研究现有实现，再形成判断和施工方案。', createdAt: NOW - 9 * 86_400_000, updatedAt: NOW - 8 * 86_400_000 },
       { id: 'memory-user-validation', category: 'workflow', content: '复杂改动要先写施工合同，并按步骤验收。', createdAt: NOW - 7 * 86_400_000, updatedAt: NOW - 6 * 86_400_000 },
       { id: 'memory-relationship-root-cause', category: 'feedback', content: '发现问题时先定位根因，不用猜测式修改。', createdAt: NOW - 2 * 86_400_000, updatedAt: NOW - 2 * 86_400_000 },
+      { id: 'memory-user-quality', category: 'preference', content: '交付不能只做到能运行，也要达到应有的审美与完成度。', createdAt: NOW - 3 * 86_400_000, updatedAt: NOW - 3 * 86_400_000 },
     ],
   },
   {
@@ -70,8 +71,8 @@ const MEMORY_PREVIEW_GROUPS: MemoryPreviewGroupDefinition[] = [
     description: '表达、提醒与信息层级的偏好。',
     memories: [
       { id: 'memory-user-voice', category: 'voice', content: '偏好直接、清楚、有判断依据的回答。', createdAt: NOW - 5 * 86_400_000, updatedAt: NOW - 5 * 86_400_000 },
-      { id: 'memory-relationship-purpose', category: 'feedback', content: '每个卡片和入口都要先说清楚自己的目的。', createdAt: NOW - 6 * 86_400_000, updatedAt: NOW - 6 * 86_400_000 },
-      { id: 'memory-relationship-density', category: 'preference', content: '减少无意义的层级，让真正重要的内容横向展开。', createdAt: NOW - 4 * 86_400_000, updatedAt: NOW - 4 * 86_400_000 },
+      { id: 'memory-relationship-purpose', category: 'feedback', content: '希望新增卡片和入口前，先说明它解决什么问题。', createdAt: NOW - 6 * 86_400_000, updatedAt: NOW - 6 * 86_400_000 },
+      { id: 'memory-relationship-density', category: 'preference', content: '不喜欢无意义的层级、重复说明和打扰式提示。', createdAt: NOW - 4 * 86_400_000, updatedAt: NOW - 4 * 86_400_000 },
     ],
   },
   {
@@ -79,9 +80,9 @@ const MEMORY_PREVIEW_GROUPS: MemoryPreviewGroupDefinition[] = [
     label: '我们之间',
     description: '共同约定、重要纠正与持续影响未来的共识。',
     memories: [
-      { id: 'memory-relationship-research', category: 'feedback', content: '我们先参考 Alice 和项目现状，再决定是否自己设计。', createdAt: NOW - 11 * 86_400_000, updatedAt: NOW - 11 * 86_400_000 },
-      { id: 'memory-relationship-playground', category: 'workflow', content: '先在 Playground 验收候选，再考虑回流正式产品。', createdAt: NOW - 8 * 86_400_000, updatedAt: NOW - 7 * 86_400_000 },
-      { id: 'memory-relationship-boundary', category: 'fact', content: '人物世界负责呈现伙伴生活，记忆负责管理会影响未来的内容。', createdAt: NOW - 86_400_000, updatedAt: NOW - 86_400_000 },
+      { id: 'memory-relationship-research', category: 'feedback', content: '我们约定：先参考 Alice 和项目现状，再形成自己的判断。', createdAt: NOW - 11 * 86_400_000, updatedAt: NOW - 11 * 86_400_000 },
+      { id: 'memory-relationship-playground', category: 'workflow', content: '我们约定：候选先在 Playground 验收，再决定是否回流正式产品。', createdAt: NOW - 8 * 86_400_000, updatedAt: NOW - 7 * 86_400_000 },
+      { id: 'memory-relationship-boundary', category: 'fact', content: '我们共同确定：人物世界呈现伙伴生活，记忆管理长期信息。', createdAt: NOW - 86_400_000, updatedAt: NOW - 86_400_000 },
     ],
   },
 ]
@@ -97,7 +98,8 @@ const SENSITIVE_MEMORY_FIXTURE: MemoryEntry = {
 const MEMORY_PREVIEW_EVIDENCE: Partial<Record<string, MemoryPreviewEvidence>> = {
   'memory-user-identity': { source: '你介绍正在做的人格化桌面 Agent 时留下的背景（隔离样张）' },
   'memory-user-background': { source: '你长期展现出的产品与工程工作方式（隔离样张）' },
-  'memory-user-aesthetic': { source: '你对产品审美和执行质量的持续反馈（隔离样张）' },
+  'memory-user-focus': { source: '你长期关注产品与工程如何共同落地（隔离样张）' },
+  'memory-user-quality': { source: '你对交付质量提出的持续要求（隔离样张）' },
   'memory-user-workflow': { source: '你多次确认的研究与协作方式（隔离样张）' },
   'memory-user-validation': { source: '你对复杂改动的长期要求（隔离样张）' },
   'memory-relationship-root-cause': { source: '你对问题处理方式的明确要求（隔离样张）' },
