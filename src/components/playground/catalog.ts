@@ -70,7 +70,7 @@ export const PLAYGROUND_TABS: readonly PlaygroundTabDef[] = [
   { id: 'foundation-components', label: '基础组件', group: 'foundation', description: '先验收可复用基础能力，再让产品体验引用。', sourcePaths: ['src/components/playground/FoundationComponentsPanel.tsx', 'src/components/playground/FoundationAdvancedStories.tsx', 'src/shared/foundation-story-registry.ts'] },
   { id: 'chat', label: 'Chat', group: 'experience', description: '确认伙伴身份、会话导航、欢迎区与消息流的组合关系。' },
   { id: 'world', label: '人物世界', group: 'experience', description: '确认朋友圈、衣柜、文化角、家居、通讯录和足迹如何组成生活面；角色架归入设置。' },
-  { id: 'memory', label: '记忆', group: 'experience', description: '确认记忆列表、筛选、敏感项和编辑状态的阅读顺序。' },
+  { id: 'memory', label: '记忆', group: 'experience', description: '确认四类长期记忆、紧凑列表、敏感项与纠正状态的阅读顺序。' },
   { id: 'settings', label: '设置', group: 'experience', description: '确认设置分组、字段编辑、自动保存和失败恢复的密度。' },
   { id: 'workspace', label: '工作区', group: 'experience', description: '确认文件、预览、审阅和终端在右侧工作区中的组合。' },
   { id: 'business-states', label: '业务状态', group: 'experience', description: '确认基础状态如何进入具体产品语义，而不是反向污染 Foundation。' },

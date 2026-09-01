@@ -54,12 +54,12 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
   experience({
     key: 'experience.memory',
     labelZh: '记忆',
-    descriptionZh: '关于你与关于我们的长期信息管理，以及与 Chat / Debug 的边界。',
+    descriptionZh: '四类长期记忆、紧凑列表与隔离 Debug 来源查看。',
     status: 'playground',
     playgroundTabId: 'memory',
     sourcePaths: ['src/components/MemoryPanel.tsx', 'src/components/playground/SurfaceBaselinePanel.tsx'],
-    experienceParts: ['关于你', '关于我们', '长期信息', '敏感项', '纠正记忆', '记忆引用'],
-    usesFoundation: ['behavior.tabs', 'state.empty', 'state.error'],
+    experienceParts: ['身份信息', '协作习惯', '沟通偏好', '我们之间', '敏感项', '纠正记忆', 'Debug 来源'],
+    usesFoundation: ['behavior.tabs', 'behavior.switch', 'state.empty', 'state.error'],
   }),
   experience({
     key: 'experience.settings',

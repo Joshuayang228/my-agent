@@ -38,6 +38,7 @@
 
 | 文档 | 说明 |
 |------|------|
+| [playground-memory-information-architecture-v1.md](./playground-memory-information-architecture-v1.md) | 已完成施工快照：四类长期记忆导航、紧凑列表与 Debug 来源开关 |
 | [playground-memory-settings-journey-v1.md](./playground-memory-settings-journey-v1.md) | 已完成施工快照：记忆来源、纠正与设置管理的关系旅程 |
 | [memory-world-boundary-v2.md](./memory-world-boundary-v2.md) | 已完成施工快照：用户 / 伙伴 / 关系 / 当前状态的记忆边界与人物世界关系 |
 | [sidebar-navigation-baseline-v2.md](./sidebar-navigation-baseline-v2.md) | 已完成施工快照：开发入口位置已回流；Secondary Nav 候选被后续人工验收否决 |

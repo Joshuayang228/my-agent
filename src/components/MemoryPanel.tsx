@@ -40,7 +40,6 @@ const COLOR_MAP: Record<MemoryColor, { bg: string; border: string; text: string;
  */
 export interface MemoryPreviewEvidence {
   source: string
-  implication: string
 }
 
 interface MemoryPanelProps {
@@ -52,6 +51,8 @@ interface MemoryPanelProps {
   previewTitle?: string
   previewDescription?: string
   previewCompact?: boolean
+  /** Playground 的 Debug 候选已显式开启时，才允许显示来源摘要。 */
+  previewShowSource?: boolean
   /** 仅允许 Playground 夹具在 Renderer 内存中被纠正，绝不触发真实 memory IPC。 */
   previewEditable?: boolean
   readOnly?: boolean
@@ -65,6 +66,7 @@ export function MemoryPanel({
   previewTitle,
   previewDescription,
   previewCompact = false,
+  previewShowSource = false,
   previewEditable = false,
   readOnly = false,
 }: MemoryPanelProps) {
@@ -79,6 +81,7 @@ export function MemoryPanel({
   const [newContent, setNewContent] = useState('')
   const isPreview = previewMemories !== undefined
   const isPreviewInteractive = isPreview && previewEditable
+  const isCompactPreview = isPreview && previewCompact
   const canEdit = !readOnly && (isPreviewInteractive || !isPreview)
 
   const loadMemories = useCallback(async () => {
@@ -288,7 +291,10 @@ export function MemoryPanel({
               </div>
             </div>
           ) : (
-            <div className={isPreview ? 'grid gap-3 px-0.5 sm:grid-cols-2' : 'space-y-2'}>
+            <div
+              className={isCompactPreview ? 'overflow-hidden rounded-xl border' : isPreview ? 'grid gap-3 px-0.5 sm:grid-cols-2' : 'space-y-2'}
+              style={isCompactPreview ? { borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' } : undefined}
+            >
               {filtered.map(mem => {
                 const cat = CATEGORIES.find(c => c.id === mem.category)
                 const colors = COLOR_MAP[(cat?.color as MemoryColor) || 'accent']
@@ -299,30 +305,41 @@ export function MemoryPanel({
                 return (
                   <div
                     key={mem.id}
-                    className={`group rounded-xl border px-4 py-3.5 transition hover:bg-opacity-10 ${
-                      isPreview ? 'min-h-[156px]' : isSensitive ? '' : `${colors.border} ${colors.bg}`
+                    className={`group transition ${
+                      isCompactPreview
+                        ? 'border-b px-4 py-3 last:border-b-0'
+                        : `rounded-xl border px-4 py-3.5 hover:bg-opacity-10 ${isPreview ? 'min-h-[156px]' : isSensitive ? '' : `${colors.border} ${colors.bg}`}`
                     }`}
                     style={
-                      isPreview
+                      isCompactPreview
                         ? isSensitive
                           ? {
                               borderColor: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 55%, transparent)',
                               background: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 10%, transparent)',
                             }
-                          : { borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }
-                        : isSensitive
-                          ? {
-                              borderColor: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 55%, transparent)',
-                              background: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 10%, transparent)',
-                            }
-                          : undefined
+                          : { borderColor: 'var(--border-subtle)' }
+                        : isPreview
+                          ? isSensitive
+                            ? {
+                                borderColor: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 55%, transparent)',
+                                background: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 10%, transparent)',
+                              }
+                            : { borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }
+                          : isSensitive
+                            ? {
+                                borderColor: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 55%, transparent)',
+                                background: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 10%, transparent)',
+                              }
+                            : undefined
                     }
                   >
                     <div className="mb-1.5 flex items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-1">
-                        <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${colors.badge}`}>
-                          {cat?.icon} {cat?.label}
-                        </span>
+                        {!isCompactPreview && (
+                          <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${colors.badge}`}>
+                            {cat?.icon} {cat?.label}
+                          </span>
+                        )}
                         {isSensitive && (
                           <span
                             className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium"
@@ -389,18 +406,17 @@ export function MemoryPanel({
                       <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{mem.content}</p>
                     )}
 
-                    {previewEvidence?.[mem.id] && (
+                    {previewShowSource && previewEvidence?.[mem.id] && (
                       <div
-                        className="mt-2 space-y-0.5 border-t pt-1.5 text-[10px] leading-4"
+                        className="mt-2 border-t pt-1.5 text-[10px] leading-4"
                         style={{ borderColor: 'color-mix(in srgb, var(--border-color) 76%, transparent)', color: 'var(--text-muted)' }}
-                        data-testid={`memory-preview-evidence-${mem.id}`}
+                        data-testid={`memory-preview-source-${mem.id}`}
                       >
-                        <p><span style={{ color: 'var(--text-secondary)' }}>来自：</span>{previewEvidence[mem.id]?.source}</p>
-                        <p><span style={{ color: 'var(--text-secondary)' }}>之后会：</span>{previewEvidence[mem.id]?.implication}</p>
+                        <span style={{ color: 'var(--text-secondary)' }}>来自：</span>{previewEvidence[mem.id]?.source}
                       </div>
                     )}
 
-                    <div className="mt-2 text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                    <div className={`${isCompactPreview ? 'mt-1.5' : 'mt-2'} text-[9px]`} style={{ color: 'var(--text-muted)' }}>
                       {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
                       {mem.updatedAt !== mem.createdAt && ` (更新于 ${new Date(mem.updatedAt).toLocaleDateString('zh-CN')})`}
                     </div>

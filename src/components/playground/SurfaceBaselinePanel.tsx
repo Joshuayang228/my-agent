@@ -25,47 +25,91 @@ const SURFACES: { id: SurfaceId; label: string; description: string; adopted: bo
   { id: 'sidebar', label: 'Primary Sidebar', description: '伙伴身份、会话与底栏入口', adopted: true },
   { id: 'dock', label: 'Right Dock', description: '文件、审阅、终端与 Debug 层级', adopted: true },
   { id: 'world', label: '人物世界', description: '生活面 tab 与内容节奏', adopted: true },
-  { id: 'memory', label: '记忆', description: '结构化记忆的列表、空态、敏感项与编辑态', adopted: true },
+  { id: 'memory', label: '记忆', description: '四类长期记忆、紧凑列表、敏感项与编辑态', adopted: true },
   { id: 'settings', label: '设置', description: '设置分组与详情区的整体密度', adopted: true },
 ]
 
 const NOW = Date.now()
-const USER_MEMORY_FIXTURES: MemoryEntry[] = [
-  { id: 'memory-user-identity', category: 'identity', content: '正在做一款人格化桌面 Agent。', createdAt: NOW - 12 * 86_400_000, updatedAt: NOW - 12 * 86_400_000 },
-  { id: 'memory-user-background', category: 'identity', content: '既懂产品，也愿意亲自理解工程实现。', createdAt: NOW - 10 * 86_400_000, updatedAt: NOW - 10 * 86_400_000 },
-  { id: 'memory-user-workflow', category: 'workflow', content: '先研究现有实现，再形成判断和施工方案。', createdAt: NOW - 9 * 86_400_000, updatedAt: NOW - 8 * 86_400_000 },
-  { id: 'memory-user-validation', category: 'workflow', content: '复杂改动要先写施工合同，并按步骤验收。', createdAt: NOW - 7 * 86_400_000, updatedAt: NOW - 6 * 86_400_000 },
-  { id: 'memory-user-voice', category: 'voice', content: '偏好直接、清楚、有判断依据的回答。', createdAt: NOW - 5 * 86_400_000, updatedAt: NOW - 5 * 86_400_000 },
-  { id: 'memory-user-aesthetic', category: 'preference', content: '在意产品是否有理念，也在意具体执行是否足够精致。', createdAt: NOW - 3 * 86_400_000, updatedAt: NOW - 3 * 86_400_000 },
-]
-const RELATIONSHIP_MEMORY_FIXTURES: MemoryEntry[] = [
-  { id: 'memory-relationship-research', category: 'feedback', content: '我们先参考 Alice 和项目现状，再决定是否自己设计。', createdAt: NOW - 11 * 86_400_000, updatedAt: NOW - 11 * 86_400_000 },
-  { id: 'memory-relationship-playground', category: 'workflow', content: '先在 Playground 验收候选，再考虑回流正式产品。', createdAt: NOW - 8 * 86_400_000, updatedAt: NOW - 7 * 86_400_000 },
-  { id: 'memory-relationship-purpose', category: 'feedback', content: '每个卡片和入口都要先说清楚自己的目的。', createdAt: NOW - 6 * 86_400_000, updatedAt: NOW - 6 * 86_400_000 },
-  { id: 'memory-relationship-density', category: 'preference', content: '减少无意义的层级，让真正重要的内容横向展开。', createdAt: NOW - 4 * 86_400_000, updatedAt: NOW - 4 * 86_400_000 },
-  { id: 'memory-relationship-root-cause', category: 'feedback', content: '发现问题时先定位根因，不用猜测式修改。', createdAt: NOW - 2 * 86_400_000, updatedAt: NOW - 2 * 86_400_000 },
-  { id: 'memory-relationship-boundary', category: 'fact', content: '人物世界负责呈现伙伴生活，记忆负责管理会影响未来的内容。', createdAt: NOW - 86_400_000, updatedAt: NOW - 86_400_000 },
-]
-const SENSITIVE_MEMORY_FIXTURES: MemoryEntry[] = [
-  ...USER_MEMORY_FIXTURES,
-  { id: 'memory-sensitive', category: 'fact', content: '最近在调整睡眠和用药安排。', createdAt: NOW, updatedAt: NOW },
-]
-const EMPTY_MEMORY_FIXTURES: MemoryEntry[] = []
-const MEMORY_PREVIEW_EVIDENCE: Partial<Record<string, MemoryPreviewEvidence>> = {
-  'memory-user-identity': { source: '你介绍正在做的人格化桌面 Agent 时留下的背景（隔离样张）', implication: '之后会用这个项目背景理解你的提问。' },
-  'memory-user-background': { source: '你长期展现出的产品与工程工作方式（隔离样张）', implication: '会同时关注产品意义和实现边界。' },
-  'memory-user-workflow': { source: '你多次确认的研究与协作方式（隔离样张）', implication: '会先查现有实现，再给出自己的判断。' },
-  'memory-user-validation': { source: '你对复杂改动的长期要求（隔离样张）', implication: '会把方案、施工和验收拆成可检查的步骤。' },
-  'memory-user-voice': { source: '你对回复方式给出的反馈（隔离样张）', implication: '会优先给直接、清楚且有判断依据的答复。' },
-  'memory-user-aesthetic': { source: '你对产品审美和执行质量的持续反馈（隔离样张）', implication: '不会只做能运行的拼补，也会检查整体气质。' },
-  'memory-relationship-research': { source: '我们共同确认的研究顺序（隔离样张）', implication: '后续方案会先对照现有参考，再说明哪些地方坚持自己设计。' },
-  'memory-relationship-playground': { source: '我们共同确认的产品施工流程（隔离样张）', implication: '候选未验收前不会直接改变正式页面。' },
-  'memory-relationship-purpose': { source: '你对页面结构提出的持续要求（隔离样张）', implication: '新增入口前会先说明它服务的用户问题。' },
-  'memory-relationship-density': { source: '你对信息密度和层级的反馈（隔离样张）', implication: '会优先合并重复层级，让内容自然展开。' },
-  'memory-relationship-root-cause': { source: '你对问题处理方式的明确要求（隔离样张）', implication: '遇到异常会先查调用链和真实原因，再修改。' },
-  'memory-relationship-boundary': { source: '我们刚刚确定的产品边界（隔离样张）', implication: '伙伴生活留在人物世界，长期相处信息才进入记忆。' },
-  'memory-sensitive': { source: '你主动提到的近况（隔离样张）', implication: '需要时可以改正或删除；不会把密码、凭据等内容作为记忆。' },
+type MemoryPreviewGroup = 'identity' | 'collaboration' | 'communication' | 'relationship'
+
+interface MemoryPreviewGroupDefinition {
+  id: MemoryPreviewGroup
+  label: string
+  description: string
+  memories: MemoryEntry[]
 }
+
+/**
+ * 这里的展示分组是 Playground 的用户心智候选，不改变生产 MemoryCategory。
+ * 每条 fixture 只归一个主类，避免“关于你”成为无边界的兜底分类。
+ */
+const MEMORY_PREVIEW_GROUPS: MemoryPreviewGroupDefinition[] = [
+  {
+    id: 'identity',
+    label: '身份信息',
+    description: '稳定背景、角色与长期关注。',
+    memories: [
+      { id: 'memory-user-identity', category: 'identity', content: '正在做一款人格化桌面 Agent。', createdAt: NOW - 12 * 86_400_000, updatedAt: NOW - 12 * 86_400_000 },
+      { id: 'memory-user-background', category: 'identity', content: '既懂产品，也愿意亲自理解工程实现。', createdAt: NOW - 10 * 86_400_000, updatedAt: NOW - 10 * 86_400_000 },
+      { id: 'memory-user-aesthetic', category: 'preference', content: '在意产品是否有理念，也在意具体执行是否足够精致。', createdAt: NOW - 3 * 86_400_000, updatedAt: NOW - 3 * 86_400_000 },
+    ],
+  },
+  {
+    id: 'collaboration',
+    label: '协作习惯',
+    description: '推进工作、决策与验收的稳定方式。',
+    memories: [
+      { id: 'memory-user-workflow', category: 'workflow', content: '先研究现有实现，再形成判断和施工方案。', createdAt: NOW - 9 * 86_400_000, updatedAt: NOW - 8 * 86_400_000 },
+      { id: 'memory-user-validation', category: 'workflow', content: '复杂改动要先写施工合同，并按步骤验收。', createdAt: NOW - 7 * 86_400_000, updatedAt: NOW - 6 * 86_400_000 },
+      { id: 'memory-relationship-root-cause', category: 'feedback', content: '发现问题时先定位根因，不用猜测式修改。', createdAt: NOW - 2 * 86_400_000, updatedAt: NOW - 2 * 86_400_000 },
+    ],
+  },
+  {
+    id: 'communication',
+    label: '沟通偏好',
+    description: '表达、提醒与信息层级的偏好。',
+    memories: [
+      { id: 'memory-user-voice', category: 'voice', content: '偏好直接、清楚、有判断依据的回答。', createdAt: NOW - 5 * 86_400_000, updatedAt: NOW - 5 * 86_400_000 },
+      { id: 'memory-relationship-purpose', category: 'feedback', content: '每个卡片和入口都要先说清楚自己的目的。', createdAt: NOW - 6 * 86_400_000, updatedAt: NOW - 6 * 86_400_000 },
+      { id: 'memory-relationship-density', category: 'preference', content: '减少无意义的层级，让真正重要的内容横向展开。', createdAt: NOW - 4 * 86_400_000, updatedAt: NOW - 4 * 86_400_000 },
+    ],
+  },
+  {
+    id: 'relationship',
+    label: '我们之间',
+    description: '共同约定、重要纠正与持续影响未来的共识。',
+    memories: [
+      { id: 'memory-relationship-research', category: 'feedback', content: '我们先参考 Alice 和项目现状，再决定是否自己设计。', createdAt: NOW - 11 * 86_400_000, updatedAt: NOW - 11 * 86_400_000 },
+      { id: 'memory-relationship-playground', category: 'workflow', content: '先在 Playground 验收候选，再考虑回流正式产品。', createdAt: NOW - 8 * 86_400_000, updatedAt: NOW - 7 * 86_400_000 },
+      { id: 'memory-relationship-boundary', category: 'fact', content: '人物世界负责呈现伙伴生活，记忆负责管理会影响未来的内容。', createdAt: NOW - 86_400_000, updatedAt: NOW - 86_400_000 },
+    ],
+  },
+]
+
+const SENSITIVE_MEMORY_FIXTURE: MemoryEntry = {
+  id: 'memory-sensitive',
+  category: 'fact',
+  content: '最近在调整睡眠和用药安排。',
+  createdAt: NOW,
+  updatedAt: NOW,
+}
+
+const MEMORY_PREVIEW_EVIDENCE: Partial<Record<string, MemoryPreviewEvidence>> = {
+  'memory-user-identity': { source: '你介绍正在做的人格化桌面 Agent 时留下的背景（隔离样张）' },
+  'memory-user-background': { source: '你长期展现出的产品与工程工作方式（隔离样张）' },
+  'memory-user-aesthetic': { source: '你对产品审美和执行质量的持续反馈（隔离样张）' },
+  'memory-user-workflow': { source: '你多次确认的研究与协作方式（隔离样张）' },
+  'memory-user-validation': { source: '你对复杂改动的长期要求（隔离样张）' },
+  'memory-relationship-root-cause': { source: '你对问题处理方式的明确要求（隔离样张）' },
+  'memory-user-voice': { source: '你对回复方式给出的反馈（隔离样张）' },
+  'memory-relationship-purpose': { source: '你对页面结构提出的持续要求（隔离样张）' },
+  'memory-relationship-density': { source: '你对信息密度和层级的反馈（隔离样张）' },
+  'memory-relationship-research': { source: '我们共同确认的研究顺序（隔离样张）' },
+  'memory-relationship-playground': { source: '我们共同确认的产品施工流程（隔离样张）' },
+  'memory-relationship-boundary': { source: '我们共同确定的产品边界（隔离样张）' },
+  'memory-sensitive': { source: '你主动提到的近况（隔离样张）' },
+}
+
 const FILE_PREVIEW_FIXTURES: FileBrowserPreviewData = {
   projectLabel: 'my-agent · 样张项目',
   initialPath: 'src/components/AppShell.tsx',
@@ -804,105 +848,144 @@ function RoleShelfFixture({ persona, onPersonaChange }: { persona: PlaygroundPer
 }
 
 type MemoryScenario = 'list' | 'empty' | 'sensitive' | 'editing'
-type MemoryScope = 'user' | 'relationship'
 
-/** 静态场景只驱动正式 MemoryPanel 的 preview props，不访问 memory IPC。 */
+/**
+ * 预览态只演示长期记忆的用户信息架构；Debug 开关和来源全部停留在 Renderer fixture。
+ * 生产记忆仍不具备可展示 provenance，不能借这个候选伪造生产事实。
+ */
 function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab: PlaygroundTabId) => void; onOpenMemorySettings?: () => void }) {
   const [scenario, setScenario] = useState<MemoryScenario>('list')
-  const [scope, setScope] = useState<MemoryScope>('user')
+  const [group, setGroup] = useState<MemoryPreviewGroup>('identity')
+  const [debugEnabled, setDebugEnabled] = useState(false)
+  const [showSource, setShowSource] = useState(false)
   const scenarios: Array<{ id: MemoryScenario; label: string }> = [
     { id: 'list', label: '清单' },
     { id: 'empty', label: '空态' },
     { id: 'sensitive', label: '敏感项' },
     { id: 'editing', label: '纠正记忆' },
   ]
-  const scopeMemories = scope === 'user' ? USER_MEMORY_FIXTURES : RELATIONSHIP_MEMORY_FIXTURES
+  const activeGroup = MEMORY_PREVIEW_GROUPS.find((item) => item.id === group) ?? MEMORY_PREVIEW_GROUPS[0]
   const memories = scenario === 'empty'
-    ? EMPTY_MEMORY_FIXTURES
+    ? []
     : scenario === 'sensitive'
-      ? SENSITIVE_MEMORY_FIXTURES
-      : scopeMemories
-  const editingId = scope === 'user' ? 'memory-user-workflow' : 'memory-relationship-purpose'
+      ? [...activeGroup.memories, SENSITIVE_MEMORY_FIXTURE]
+      : activeGroup.memories
+  const editingId = activeGroup.memories[0]?.id
+
+  const toggleDebug = () => {
+    setDebugEnabled((enabled) => {
+      if (enabled) setShowSource(false)
+      return !enabled
+    })
+  }
 
   return (
     <div className="space-y-2">
       <div className="space-y-2" data-testid="memory-surface-toolbar">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap gap-1" role="tablist" aria-label="记忆归属" data-testid="memory-owner-tabs">
-            {[
-              { id: 'user' as const, label: '关于你', count: USER_MEMORY_FIXTURES.length },
-              { id: 'relationship' as const, label: '关于我们', count: RELATIONSHIP_MEMORY_FIXTURES.length },
-            ].map((item) => {
-              const active = scope === item.id
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="flex min-w-0 flex-wrap gap-1" role="tablist" aria-label="记忆分类" data-testid="memory-group-tabs">
+            {MEMORY_PREVIEW_GROUPS.map((item) => {
+              const active = group === item.id
               return (
                 <button
                   key={item.id}
                   type="button"
                   role="tab"
                   aria-selected={active}
-                  onClick={() => setScope(item.id)}
+                  onClick={() => setGroup(item.id)}
                   className="settings-option px-2.5 py-1 text-[10px]"
-                  data-testid={`memory-scope-${item.id}`}
+                  data-testid={`memory-group-${item.id}`}
                   data-selected={active ? 'true' : undefined}
                 >
-                  {item.label} <span className="opacity-60">{item.count}</span>
+                  {item.label} <span className="opacity-60">{item.memories.length}</span>
                 </button>
               )
             })}
           </div>
-          {onNavigate && (
-            <button
-              type="button"
-              onClick={() => {
-                onNavigate('settings')
-                onOpenMemorySettings?.()
-              }}
-              className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[10px] transition"
-              style={{ color: 'var(--text-muted)' }}
-              data-testid="memory-open-settings"
-            >
-              去设置 <ArrowRight size={11} aria-hidden="true" />
-            </button>
-          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {debugEnabled && (
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showSource}
+                aria-label="查看来源"
+                onClick={() => setShowSource((visible) => !visible)}
+                className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] transition"
+                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', background: 'var(--card-bg)' }}
+                data-testid="memory-show-source"
+              >
+                <span className="relative h-3.5 w-6 rounded-full" style={{ background: showSource ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }}>
+                  <span className="absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white transition" style={{ left: showSource ? 'calc(100% - 0.75rem)' : '0.125rem' }} />
+                </span>
+                查看来源
+              </button>
+            )}
+            {onNavigate && (
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigate('settings')
+                  onOpenMemorySettings?.()
+                }}
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] transition"
+                style={{ color: 'var(--text-muted)' }}
+                data-testid="memory-open-settings"
+              >
+                去设置 <ArrowRight size={11} aria-hidden="true" />
+              </button>
+            )}
+          </div>
         </div>
+        <p className="text-[10px]" style={{ color: 'var(--text-muted)' }} data-testid="memory-group-description">
+          {activeGroup.description}
+        </p>
         <p className="text-[10px]" style={{ color: 'var(--text-muted)' }} data-testid="memory-boundary-note">
           这里保留会影响未来相处的长期信息；正在做什么和系统做过什么，分别留在 Chat / Debug。
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>状态样张</span>
           <div className="flex flex-wrap gap-1" role="tablist" aria-label="记忆页面场景">
-          {scenarios.map((item) => {
-            const active = scenario === item.id
-            return (
-              <button
-                key={item.id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setScenario(item.id)}
-                className="settings-option px-2.5 py-1 text-[10px]"
-                data-selected={active ? 'true' : undefined}
-              >
-                {item.label}
-              </button>
-            )
-          })}
+            {scenarios.map((item) => {
+              const active = scenario === item.id
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setScenario(item.id)}
+                  className="settings-option px-2.5 py-1 text-[10px]"
+                  data-selected={active ? 'true' : undefined}
+                >
+                  {item.label}
+                </button>
+              )
+            })}
           </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={debugEnabled}
+            aria-label="Debug 模式"
+            onClick={toggleDebug}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] transition"
+            style={{ color: debugEnabled ? 'var(--accent-fg)' : 'var(--text-muted)', background: debugEnabled ? 'var(--accent-subtle)' : 'transparent' }}
+            data-testid="memory-debug-mode"
+          >
+            Debug {debugEnabled ? '开' : '关'}
+          </button>
         </div>
       </div>
       <SurfaceViewport>
         <style>{PAGE_CANDIDATE_STYLE}</style>
         <div className="playground-memory-candidate" data-testid="memory-surface-candidate">
           <MemoryPanel
-            key={`${scenario}-${scope}`}
+            key={`${scenario}-${group}`}
             onClose={noop}
             previewMemories={memories}
             previewEvidence={MEMORY_PREVIEW_EVIDENCE}
             previewCompact
-            previewTitle={scope === 'user' ? 'Agent 对你的记忆' : '我们共同形成的记忆'}
-            previewDescription={scope === 'user'
-              ? '这些信息帮助 Agent 更懂你，减少重复询问，也让后续协作保持连续。'
-              : '这些信息来自我们共同确认过的方式，会影响之后的协作与相处。'}
+            previewShowSource={debugEnabled && showSource}
             previewEditingId={scenario === 'editing' ? editingId : undefined}
             previewEditable={scenario === 'editing' || scenario === 'sensitive'}
             readOnly={scenario !== 'editing' && scenario !== 'sensitive'}
