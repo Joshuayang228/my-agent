@@ -579,6 +579,30 @@ test.describe('My Agent UI', () => {
     await candidate.getByTestId('settings-candidate-export').click()
     await expect(candidate.getByRole('status')).toContainText('已模拟导出')
   })
+  test('Playground 设置候选在窄宽下保留可滚动导航与键盘可达性', async ({ page }) => {
+    await page.setViewportSize({ width: 520, height: 900 })
+    await page.goto('/')
+    await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
+    await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
+
+    const candidate = page.getByTestId('settings-surface-candidate')
+    const mobileNav = candidate.getByTestId('settings-candidate-mobile-nav')
+    await expect(mobileNav).toBeVisible()
+    await expect(mobileNav.getByRole('tab')).toHaveCount(8)
+    await expect(mobileNav.getByRole('tab', { name: '外观与界面', exact: true })).toHaveAttribute('aria-controls', 'settings-candidate-panel-appearance')
+
+    const modelTab = mobileNav.getByRole('tab', { name: '模型', exact: true })
+    await modelTab.focus()
+    await page.keyboard.press('Enter')
+    await expect(modelTab).toHaveAttribute('aria-selected', 'true')
+    await expect(candidate.getByTestId('settings-candidate-section-model')).toBeVisible()
+    await expect(candidate.getByTestId('settings-candidate-content')).toHaveAttribute('role', 'tabpanel')
+    await expect(candidate.getByTestId('settings-candidate-content')).toHaveAttribute('aria-label', '模型')
+
+    const scrollMetrics = await mobileNav.evaluate((element) => ({ clientWidth: element.clientWidth, scrollWidth: element.scrollWidth }))
+    expect(scrollMetrics.scrollWidth).toBeGreaterThan(scrollMetrics.clientWidth)
+  })
+
   test('Playground 角色架入口真实可达且设置预览不触发生产读取', async ({ page }) => {
     await page.addInitScript(() => {
       const original = window.localStorage.getItem('playground.active-tab')
