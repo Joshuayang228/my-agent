@@ -428,8 +428,10 @@ test.describe('My Agent UI', () => {
     await expect(page.getByTestId('chat-surface-workspace')).toHaveCount(0)
 
     await nav.getByRole('button', { name: '设置', exact: true }).click()
-    await expect(page.locator('[data-testid="settings-panel"]')).toBeVisible()
-    await expect(page.locator('[data-testid="settings-panel"]').getByRole('button', { name: '记忆', exact: true })).toBeVisible()
+    const settingsCandidate = page.getByTestId('settings-surface-candidate')
+    await expect(settingsCandidate).toBeVisible()
+    await expect(settingsCandidate.getByTestId('settings-nav')).toBeVisible()
+    await expect(settingsCandidate.getByRole('button', { name: '记忆与相处', exact: true })).toBeVisible()
 
     await nav.getByRole('button', { name: '工作区', exact: true }).click()
     const workspaceDependencies = page.locator('[data-testid="product-experience-dependencies"]')
@@ -531,6 +533,52 @@ test.describe('My Agent UI', () => {
     await expect(nav.getByRole('button', { name: 'Chat', exact: true })).toHaveAttribute('data-active', 'true')
   })
 
+  test('Playground 设置候选覆盖新的信息架构与隔离交互', async ({ page }) => {
+    await page.goto('/')
+    await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
+    const nav = page.locator('[data-testid="playground-nav"]')
+    await nav.getByRole('button', { name: '设置', exact: true }).click()
+
+    const candidate = page.getByTestId('settings-surface-candidate')
+    await expect(candidate).toBeVisible()
+    await expect(candidate.getByTestId('settings-nav')).toBeVisible()
+    await expect(candidate.getByRole('button', { name: '外观与界面', exact: true })).toBeVisible()
+    await expect(candidate.getByRole('button', { name: '伙伴与相处', exact: true })).toBeVisible()
+    await expect(candidate.getByRole('button', { name: '权限与自动化', exact: true })).toBeVisible()
+    await expect(candidate.getByRole('button', { name: '扩展与工具', exact: true })).toBeVisible()
+    await expect(candidate).not.toContainText('MUTABLE')
+    await expect(candidate).not.toContainText('L3')
+    await expect(candidate.getByRole('button', { name: 'Debug', exact: true })).toHaveCount(0)
+
+    await candidate.getByRole('button', { name: '伙伴与相处', exact: true }).click()
+    const companion = candidate.getByTestId('settings-candidate-section-companion')
+    const momentTips = companion.getByTestId('settings-candidate-switch-moment-tips')
+    await expect(momentTips).toHaveAttribute('aria-checked', 'true')
+    await expect(companion.getByText('提醒节奏', { exact: true })).toBeVisible()
+    await momentTips.click()
+    await expect(momentTips).toHaveAttribute('aria-checked', 'false')
+    await expect(companion.getByText('提醒节奏', { exact: true })).toHaveCount(0)
+
+    await candidate.getByRole('button', { name: '模型', exact: true }).click()
+    await candidate.getByTestId('settings-candidate-model-advanced-toggle').click()
+    await expect(candidate.getByLabel('Temperature', { exact: true })).toBeVisible()
+    await candidate.getByTestId('settings-candidate-model-test').click()
+    await expect(candidate.getByTestId('settings-candidate-model-status')).toContainText('连接配置看起来可用')
+
+    await candidate.getByRole('button', { name: '权限与自动化', exact: true }).click()
+    await candidate.getByTestId('settings-candidate-rules-toggle').click()
+    await expect(candidate.getByText('拒绝 · 命令', { exact: true })).toBeVisible()
+
+    await candidate.getByRole('button', { name: '扩展与工具', exact: true }).click()
+    await candidate.getByTestId('settings-candidate-mcp-add').click()
+    await expect(candidate.getByTestId('settings-candidate-mcp-add-form')).toBeVisible()
+    await candidate.getByTestId('settings-candidate-mcp-connect').click()
+    await expect(candidate.getByText('文件工具 · 已连接', { exact: true })).toBeVisible()
+
+    await candidate.getByRole('button', { name: '数据与隐私', exact: true }).click()
+    await candidate.getByTestId('settings-candidate-export').click()
+    await expect(candidate.getByRole('status')).toContainText('已模拟导出')
+  })
   test('Playground 角色架入口真实可达且设置预览不触发生产读取', async ({ page }) => {
     await page.addInitScript(() => {
       const original = window.localStorage.getItem('playground.active-tab')

@@ -5,7 +5,7 @@
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, Coffee, CheckCircle2, ChevronDown, CircleAlert, Clapperboard, FileCode2, Folder, Home, Image, Lightbulb, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, Paperclip, RotateCcw, Shirt, Shield, UserRound, Users } from 'lucide-react'
-import { SettingsPanel } from '../SettingsPanel'
+import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
 import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
@@ -799,11 +799,10 @@ function SettingsSurface({ persona, onPersonaChange, scenario, onScenarioChange,
           <RoleShelfFixture persona={persona} onPersonaChange={onPersonaChange} />
         ) : (
           <div aria-label="设置隔离预览" data-testid="settings-surface-candidate">
-            <SettingsPanel
-              onClose={noop}
-              preview
-              previewInitialSection={scenario === 'memory-management' ? 'memory' : undefined}
+            <SettingsExperienceCandidate
+              initialSection={scenario === 'memory-management' ? 'memory' : undefined}
               onOpenMemory={() => onNavigate?.('memory')}
+              onOpenRoleShelf={() => onScenarioChange('role-shelf')}
             />
           </div>
         )}

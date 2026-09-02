@@ -86,8 +86,11 @@ function assertStagedRegistration(stagedEntries) {
   const staticFamilies = ASSET_GOVERNANCE.filter((family) => family.kind === 'static' || family.kind === 'static-renderer')
   for (const family of staticFamilies) {
     // 修改现有组件不代表新增资产；只有新增生产文件才需要证明它被自动发现或同步进显式注册表。
-    const addedSource = stagedEntries.some((entry) => entry.status === 'A' && family.sourcePaths.some((source) => pathMatches(entry.path, source)))
-    if (!addedSource) continue
+    const addedEntries = stagedEntries.filter((entry) => entry.status === 'A' && family.sourcePaths.some((source) => pathMatches(entry.path, source)))
+    if (addedEntries.length === 0) continue
+    // 页面级产品体验组件有自己的体验注册表，不应被误判为 Foundation 故事；
+    // 只有真正属于 UI 组件资产的新增文件才要求同时改动组件 / Foundation 注册表。
+    if (family.id === 'ui-component' && addedEntries.every((entry) => ASSET_GOVERNANCE.some((candidateFamily) => candidateFamily.id === 'product-experience' && candidateFamily.sourcePaths.some((source) => pathMatches(entry.path, source))))) continue
     const changedRegistry = stagedEntries.some((entry) => family.registryPaths.includes(entry.path))
     const addedRegistryItself = stagedEntries.some((entry) => entry.status === 'A' && family.registryPaths.includes(entry.path))
     if (!changedRegistry && !addedRegistryItself) failures.push(`staged 新文件属于「${family.labelZh}」生产来源，但没有同步注册表：${family.registryPaths.join('、')}`)
