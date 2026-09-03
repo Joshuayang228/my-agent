@@ -795,17 +795,14 @@ function SettingsSurface({ persona, onPersonaChange, scenario, onScenarioChange,
         )}
       </div>
       <SurfaceViewport>
-        {scenario === 'role-shelf' ? (
-          <RoleShelfFixture persona={persona} onPersonaChange={onPersonaChange} />
-        ) : (
-          <div aria-label="设置隔离预览" data-testid="settings-surface-candidate">
-            <SettingsExperienceCandidate
-              initialSection={scenario === 'memory-management' ? 'memory' : undefined}
-              onOpenMemory={() => onNavigate?.('memory')}
-              onOpenRoleShelf={() => onScenarioChange('role-shelf')}
-            />
-          </div>
-        )}
+        <div aria-label="设置隔离预览" data-testid="settings-surface-candidate">
+          <SettingsExperienceCandidate
+            companionDetail={scenario === 'role-shelf' ? <RoleShelfFixture persona={persona} onPersonaChange={onPersonaChange} /> : undefined}
+            initialSection={scenario === 'memory-management' ? 'memory' : scenario === 'role-shelf' ? 'companion' : undefined}
+            onOpenMemory={() => onNavigate?.('memory')}
+            onOpenRoleShelf={() => onScenarioChange('role-shelf')}
+          />
+        </div>
       </SurfaceViewport>
     </div>
   )
@@ -814,7 +811,7 @@ function SettingsSurface({ persona, onPersonaChange, scenario, onScenarioChange,
 /** 设置页中的角色架候选：只展示切换关系，不连接真实角色列表或写入主角状态。 */
 function RoleShelfFixture({ persona, onPersonaChange }: { persona: PlaygroundPersona; onPersonaChange: (personaId: string) => void }) {
   return (
-    <div className="h-full overflow-y-auto px-5 py-5" data-testid="settings-role-shelf-fixture">
+    <div className="space-y-4" data-testid="settings-role-shelf-fixture">
       <div className="mb-4 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
         <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>角色架</h2>
         <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>管理同一生活世界中的主角，切换后朋友圈与对话一起跟随。</p>

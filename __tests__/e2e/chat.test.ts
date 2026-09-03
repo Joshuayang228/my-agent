@@ -629,7 +629,11 @@ test.describe('My Agent UI', () => {
     const nav = page.locator('[data-testid="playground-nav"]')
     await page.locator('[data-testid="surface-sidebar-candidate"]').getByTitle('打开角色架').click()
     await expect(nav.getByRole('button', { name: '设置', exact: true })).toHaveAttribute('data-active', 'true')
-    await expect(page.getByTestId('settings-role-shelf-fixture')).toBeVisible()
+    const roleShelfSettings = page.getByTestId('settings-surface-candidate')
+    await expect(roleShelfSettings).toBeVisible()
+    await expect(roleShelfSettings.getByTestId('settings-nav')).toBeVisible()
+    await expect(roleShelfSettings.getByTestId('settings-candidate-nav-companion')).toHaveAttribute('aria-current', 'page')
+    await expect(roleShelfSettings.getByTestId('settings-role-shelf-fixture')).toBeVisible()
 
     await page.getByRole('tab', { name: '设置', exact: true }).click()
     await expect(page.getByTestId('settings-surface-candidate')).toBeVisible()
