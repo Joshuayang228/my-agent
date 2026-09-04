@@ -574,6 +574,12 @@ test.describe('My Agent UI', () => {
     await candidate.getByRole('button', { name: '权限与自动化', exact: true }).click()
     await candidate.getByTestId('settings-candidate-rules-toggle').click()
     await expect(candidate.getByText('拒绝 · 命令', { exact: true })).toBeVisible()
+    await expect(candidate.getByText('自己指定某类操作：允许、需要确认，或直接拒绝。', { exact: true })).toBeVisible()
+    await candidate.getByLabel('规则匹配内容', { exact: true }).fill('git push')
+    await candidate.getByLabel('规则处理方式', { exact: true }).selectOption({ label: '需要确认' })
+    await candidate.getByTestId('settings-candidate-save-rule').click()
+    await expect(candidate.getByText('需要确认 · 命令', { exact: true })).toBeVisible()
+    await expect(candidate.getByText('git push', { exact: true })).toBeVisible()
 
     await candidate.getByRole('button', { name: '扩展与工具', exact: true }).click()
     await candidate.getByTestId('settings-candidate-skills-toggle').click()
@@ -586,6 +592,16 @@ test.describe('My Agent UI', () => {
     await expect(candidate.getByTestId('settings-candidate-mcp-add-form')).toBeVisible()
     await candidate.getByTestId('settings-candidate-mcp-connect').click()
     await expect(candidate.getByText('文件工具 · 已连接', { exact: true })).toBeVisible()
+    await expect(candidate).not.toContainText('不和记忆混在一起')
+
+    await candidate.getByRole('button', { name: '记忆与相处', exact: true }).click()
+    await expect(candidate.getByText('回答方式', { exact: true })).toBeVisible()
+    await expect(candidate.getByText('例如：简单问题直接回答，复杂问题补充步骤。', { exact: true })).toBeVisible()
+
+    await candidate.getByRole('button', { name: '关于 My Agent', exact: true }).click()
+    await expect(candidate.getByText('品牌标语待定', { exact: true })).toBeVisible()
+    await expect(candidate.getByText('查看版本、运行环境和本机数据位置。', { exact: true })).toBeVisible()
+    await expect(candidate).not.toContainText('越探索，越着迷。')
 
     await candidate.getByRole('button', { name: '数据与隐私', exact: true }).click()
     await candidate.getByTestId('settings-candidate-export').click()
