@@ -35,4 +35,50 @@ describe('debug overview snapshot', () => {
       unavailable: [],
     })
   })
+
+  it('所有运行证据不可用时保留可区分的空值和事件计数', () => {
+    const snapshot = buildDebugOverviewSnapshot({
+      eventCount: 7,
+      unavailable: ['system', 'traces', 'world'],
+    })
+
+    expect(snapshot).toEqual({
+      eventCount: 7,
+      unavailable: ['system', 'traces', 'world'],
+    })
+    expect(snapshot.model).toBeUndefined()
+    expect(snapshot.roleName).toBeUndefined()
+    expect(snapshot.traceCount).toBeUndefined()
+    expect(snapshot.traceErrorCount).toBeUndefined()
+  })
+
+  it('没有 Trace 列表时不把缺失数据误报为错误', () => {
+    const snapshot = buildDebugOverviewSnapshot({
+      system: { settings: { model: 'test-model', hasApiKey: true } },
+      traces: {},
+      world: { role: { name: '测试伙伴' } },
+      eventCount: 0,
+      unavailable: [],
+    })
+
+    expect(snapshot.traceCount).toBeUndefined()
+    expect(snapshot.traceErrorCount).toBeUndefined()
+    expect(snapshot.unavailable).toEqual([])
+  })
+
+  it('只统计明确标记为 error 的 Trace 状态', () => {
+    const snapshot = buildDebugOverviewSnapshot({
+      traces: { spans: [
+        { status: 'ok' },
+        { status: 'cancelled' },
+        { status: 'failed' },
+        { status: 'error' },
+      ] },
+      eventCount: 1,
+      unavailable: [],
+    })
+
+    expect(snapshot.traceCount).toBe(4)
+    expect(snapshot.traceErrorCount).toBe(1)
+  })
 })
