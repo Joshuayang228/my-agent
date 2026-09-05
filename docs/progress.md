@@ -13,6 +13,13 @@
 | **明确不做** | 当前威胁模型下不做 OS 级 Shell 强隔离和 Python 嵌入沙箱，见 DEC-037。 |
 | **历史** | 完整施工流水和旧测试数字已冻结到归档，不再由本文件重复维护。 |
 
+## 2026-09-05 · Debug 运行概览第一阶段
+
+- 正式 Debug 新增只读“运行概览”入口，默认先进入概览，再跳转到 Prompt / 资产、请求与运行、伙伴状态、系统与工具真实证据面。
+- 复用现有 Debug 分区和 IPC，不新增诊断动作、不改变 Settings、Prompt、权限、存储或 Runtime。
+- 完整 Unit、类型检查、build 和 Debug 导航专项 E2E 已通过；完整 UI E2E 中另有 Playground 候选用例失败，未归因于本轮 Debug 改动。
+- 受控诊断动作、跨请求统一运行关联和更完整的概览指标仍属于后续施工范围。
+
 ## 2026-09-05 · DSH / CC-Switch 模型与工作区研究
 
 - 拉取官方 `deepseek-ai/deepseek-harness` 与 `farion1231/cc-switch` 到 `_reference/framework-harness/repos/`，结合 Alice 参考源码复核模型设置前端结构。

@@ -9,8 +9,9 @@ import { LLMCallsPanel } from './debug/LLMCallsPanel'
 import { WorldStatePanel, type WorldSnapshot } from './debug/WorldStatePanel'
 import { PersonaEvalPanel } from './debug/PersonaEvalPanel'
 import { SkillEvalPanel } from './debug/SkillEvalPanel'
+import { DebugOverview, type DebugOverviewTab } from './debug/DebugOverview'
 
-type DebugTab = 'prompt' | 'request-runtime' | 'world' | 'eval' | 'system'
+type DebugTab = 'overview' | DebugOverviewTab | 'eval'
 type RequestRuntimeView = 'llm' | 'traces' | 'events'
 
 interface TraceSpanInfo {
@@ -113,6 +114,7 @@ function formatUptime(seconds: number): string {
 }
 
 export const DEBUG_TABS: { id: DebugTab; label: string; icon: ReactNode }[] = [
+  { id: 'overview', label: '运行概览', icon: <Activity size={12} /> },
   { id: 'prompt', label: '提示词管理器', icon: <FileText size={12} /> },
   { id: 'request-runtime', label: '请求与运行', icon: <Layers3 size={12} /> },
   { id: 'world', label: '伙伴状态', icon: <Globe size={12} /> },
@@ -127,7 +129,7 @@ interface DevPanelProps {
 
 /** Debug 独立全页（与 Playground 分离，不再共用 surface 双页壳） */
 export function DevPanel({ onClose, eventLog }: DevPanelProps) {
-  const [debugTab, setDebugTab] = useState<DebugTab>('prompt')
+  const [debugTab, setDebugTab] = useState<DebugTab>('overview')
   const [promptInfo, setPromptInfo] = useState<DebugPromptInfo | null>(null)
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
   const [tools, setTools] = useState<DebugToolInfo[]>([])
@@ -242,6 +244,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
       </nav>
 
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-5">
+        {debugTab === 'overview' && <DebugOverview onOpen={(tab) => setDebugTab(tab)} />}
         {debugTab === 'prompt' && (
           <PromptManagerPanel info={promptInfo} onRefresh={() => refresh()} onOpenUsage={openAssetUsage} />
         )}

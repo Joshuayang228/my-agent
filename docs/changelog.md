@@ -3,6 +3,11 @@
 > 只记录用户或开发者可以感知的能力变化。完整早期施工流水见 [`../_archive/ledgers/changelog-through-2026-08-16.md`](../_archive/ledgers/changelog-through-2026-08-16.md)。
 
 ## [未发布]
+### 2026-09-05 · Debug 运行概览第一阶段
+
+- Debug 默认先展示只读运行概览，并提供 Prompt / 资产、请求与运行、伙伴状态、系统与工具的真实证据入口。
+- 本阶段复用已有 Debug IPC，不新增诊断动作，也不改变 Settings、Prompt、权限、存储或 Runtime。
+
 ### 2026-09-05 · Playground 模型与任务工作区流程候选
 
 - 模型设置候选按连接配置、模型清单和最终用途分层，覆盖空态、单 / 双配置与添加连接流程。

@@ -55,6 +55,7 @@ describe('UI component asset registry', () => {
       'developer.diff-viewer',
       'state.permission-confirm',
       'developer.asset-table',
+      'developer.debug-overview',
       'companion.status-bar',
       'layout.primary-sidebar',
       'layout.right-dock',
