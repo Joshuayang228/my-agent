@@ -9,7 +9,7 @@
 import type { FoundationComponentKey, UiComponentStatus } from './ui-component-registry'
 
 export type ProductExperienceStatus = UiComponentStatus
-export type ProductExperienceTabId = 'chat' | 'world' | 'memory' | 'settings' | 'workspace' | 'business-states'
+export type ProductExperienceTabId = 'chat' | 'world' | 'settings' | 'workspace'
 
 export interface ProductExperienceDefinition {
   key: `experience.${string}`
@@ -52,16 +52,6 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     usesFoundation: ['behavior.tabs', 'state.empty'],
   }),
   experience({
-    key: 'experience.memory',
-    labelZh: '记忆',
-    descriptionZh: '四类长期记忆、紧凑列表与隔离 Debug 来源查看。',
-    status: 'playground',
-    playgroundTabId: 'memory',
-    sourcePaths: ['src/components/MemoryPanel.tsx', 'src/components/playground/SurfaceBaselinePanel.tsx'],
-    experienceParts: ['身份信息', '协作习惯', '沟通偏好', '我们之间', '敏感项', '纠正记忆', 'Debug 来源'],
-    usesFoundation: ['behavior.tabs', 'behavior.switch', 'state.empty', 'state.error'],
-  }),
-  experience({
     key: 'experience.settings',
     labelZh: '设置',
     descriptionZh: '配置分组、字段编辑、自动保存和失败恢复体验。',
@@ -80,16 +70,6 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     sourcePaths: ['src/components/chat/right-dock/ChatRightDock.tsx', 'src/components/FileBrowser.tsx'],
     experienceParts: ['文件', '预览', '审阅', '终端'],
     usesFoundation: ['developer.file-tree', 'developer.markdown', 'layout.resize-handle', 'behavior.tabs'],
-  }),
-  experience({
-    key: 'experience.business-states',
-    labelZh: '业务状态',
-    descriptionZh: '空态、确认、伙伴状态和错误反馈在真实业务语义中的组合。',
-    status: 'playground',
-    playgroundTabId: 'business-states',
-    sourcePaths: ['src/components/playground/BusinessStatesPanel.tsx'],
-    experienceParts: ['空态', '权限确认', '错误反馈'],
-    usesFoundation: ['state.empty', 'state.permission-confirm', 'state.error', 'state.toast'],
   }),
 ] as const satisfies readonly ProductExperienceDefinition[]
 

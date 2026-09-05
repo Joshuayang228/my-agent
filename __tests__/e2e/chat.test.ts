@@ -191,7 +191,7 @@ test.describe('My Agent UI', () => {
     await expect(page.locator('section[aria-label="Agent 实验"]')).toBeVisible()
     await expect(nav.getByRole('button', { name: '基础组件', exact: true })).toBeVisible()
     await expect(nav.getByRole('button', { name: '人物世界', exact: true })).toBeVisible()
-    await expect(nav.getByRole('button', { name: '业务状态', exact: true })).toBeVisible()
+    await expect(nav.getByRole('button', { name: '业务状态', exact: true })).toHaveCount(0)
     await expect(nav.getByRole('button', { name: '组件目录', exact: true })).toHaveCount(0)
     await expect(nav.getByRole('button', { name: '页面组合', exact: true })).toHaveCount(0)
 
@@ -374,11 +374,10 @@ test.describe('My Agent UI', () => {
     await expect(nav.getByRole('button', { name: '人物世界', exact: true })).toHaveAttribute('data-active', 'true')
     await expect(page.getByTestId('playground-world-experience')).toBeVisible()
     await page.getByTestId('world-open-memory').click()
-    await expect(nav.getByRole('button', { name: '记忆', exact: true })).toHaveAttribute('data-active', 'true')
-    await expect(page.getByTestId('memory-surface-candidate')).toBeVisible()
-    await page.getByTestId('memory-open-settings').click()
     await expect(nav.getByRole('button', { name: '设置', exact: true })).toHaveAttribute('data-active', 'true')
     await expect(page.getByTestId('settings-surface-candidate')).toBeVisible()
+    await expect(page.getByTestId('settings-candidate-nav-memory')).toHaveAttribute('aria-current', 'page')
+    await expect(page.getByTestId('memory-surface-candidate')).toBeVisible()
     await page.getByTestId('settings-return-to-chat').click()
     await expect(nav.getByRole('button', { name: 'Chat', exact: true })).toHaveAttribute('data-active', 'true')
     await nav.getByRole('button', { name: 'Chat', exact: true }).click()
@@ -466,7 +465,8 @@ test.describe('My Agent UI', () => {
     expect((momentImageBox?.width ?? 0) / (momentImageBox?.height ?? 1)).toBeCloseTo(1.5, 1)
     await expect(page.getByText('路过河边的时候记下了一个想法：慢一点，反而能看见今天真正想做的事。', { exact: true })).toBeVisible()
 
-    await nav.getByRole('button', { name: '记忆', exact: true }).click()
+    await nav.getByRole('button', { name: '设置', exact: true }).click()
+    await expect(page.getByTestId('settings-candidate-nav-memory')).toHaveAttribute('aria-current', 'page')
     const memorySurface = page.getByTestId('memory-surface-candidate')
     await expect(page.getByTestId('memory-group-identity')).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByTestId('memory-group-identity')).toContainText('3')
@@ -517,18 +517,11 @@ test.describe('My Agent UI', () => {
     await expect(memorySurface).toContainText('隔离样张')
     await expect(page.getByTestId('memory-boundary-note')).toContainText('Debug')
 
-    await page.getByTestId('memory-open-settings').click()
     await expect(nav.getByRole('button', { name: '设置', exact: true })).toHaveAttribute('data-active', 'true')
-    await expect(page.getByRole('tab', { name: '记忆管理', exact: true })).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByTestId('settings-candidate-nav-memory')).toHaveAttribute('aria-current', 'page')
     const settingsSurface = page.getByTestId('settings-surface-candidate')
     await expect(settingsSurface.getByTestId('settings-main')).toContainText('记忆')
     await expect(settingsSurface).not.toContainText('向量召回')
-    await settingsSurface.getByRole('button', { name: /打开记忆面板/ }).click()
-    await expect(nav.getByRole('button', { name: '记忆', exact: true })).toHaveAttribute('data-active', 'true')
-    await expect(page.getByTestId('memory-surface-candidate')).toBeVisible()
-
-    await page.getByTestId('memory-open-settings').click()
-    await expect(page.getByTestId('settings-return-to-chat')).toBeVisible()
     await page.getByTestId('settings-return-to-chat').click()
     await expect(nav.getByRole('button', { name: 'Chat', exact: true })).toHaveAttribute('data-active', 'true')
   })
@@ -683,7 +676,8 @@ test.describe('My Agent UI', () => {
     const nav = page.locator('[data-testid="playground-nav"]')
 
     await nav.getByRole('button', { name: '设置', exact: true }).click()
-    await page.getByRole('tab', { name: '角色架', exact: true }).click()
+    await page.getByTestId('settings-candidate-nav-companion').click()
+    await page.getByTestId('settings-candidate-open-role-shelf').click()
     await page.getByTestId('settings-persona-option-yao').click()
     await expect(page.getByTestId('settings-persona-option-yao')).toHaveAttribute('aria-pressed', 'true')
 
@@ -721,8 +715,8 @@ test.describe('My Agent UI', () => {
   test('Playground Toast 四态关闭按钮沿统一右边界对齐', async ({ page }) => {
     await page.goto('/')
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
-    await page.locator('[data-testid="playground-nav"]').getByRole('button', { name: '业务状态', exact: true }).click()
-    await page.getByRole('tab', { name: '错误与反馈', exact: true }).click()
+    await page.locator('[data-testid="playground-nav"]').getByRole('button', { name: '基础组件', exact: true }).click()
+    await page.getByRole('tab', { name: '状态反馈', exact: true }).click()
 
     const toastStory = page.locator('section').filter({ hasText: 'Toast 四态' }).first()
     const closeButtons = toastStory.getByRole('button', { name: '关闭通知' })
@@ -893,17 +887,16 @@ test.describe('My Agent UI', () => {
     }
     await expect(page.getByTestId('world-shelf-fixture')).toHaveCount(0)
 
-    await nav.getByRole('button', { name: '业务状态', exact: true }).click()
-    await expect(page.getByRole('tab', { name: '状态条', exact: true })).toHaveCount(0)
-    await expect(page.getByText('伴侣状态条', { exact: true })).toHaveCount(0)
+    await expect(nav.getByRole('button', { name: '业务状态', exact: true })).toHaveCount(0)
 
     await nav.getByRole('button', { name: '设置', exact: true }).click()
     await expect(page.getByTestId('settings-surface-candidate')).toBeVisible()
-    await page.getByRole('tab', { name: '角色架', exact: true }).click()
+    await page.getByTestId('settings-candidate-nav-companion').click()
+    await page.getByTestId('settings-candidate-open-role-shelf').click()
     await expect(page.getByTestId('settings-role-shelf-fixture')).toBeVisible()
     await expect(page.getByTestId('settings-role-shelf-fixture')).toContainText('当前主角')
 
-    await nav.getByRole('button', { name: '记忆', exact: true }).click()
+    await page.getByTestId('settings-candidate-nav-memory').click()
     const memory = page.locator('[data-testid="memory-surface-candidate"]')
     await expect(memory).toBeVisible()
     await expect(page.getByTestId('memory-group-identity')).toHaveAttribute('aria-selected', 'true')

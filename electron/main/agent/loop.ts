@@ -78,6 +78,12 @@ function isRetryableError(err: unknown): boolean {
     msg.includes('429') || msg.includes('502') || msg.includes('503')
 }
 
+/**
+ * 判断请求是否因上下文或输入规模超过 Provider 限制。
+ * 背景：这类错误重复发送不会自行恢复，Loop 必须转入压缩或恢复路径。
+ * 设计意图：兼容不同 Provider 的状态码、错误文本和错误码，而不是绑定单一 SDK 类型。
+ * 关键约束：匹配必须与后续 compact 分支保持一致，不能扩大到普通参数错误。
+ */
 function is413Error(err: unknown): boolean {
   if (!(err instanceof Error)) return false
   const msg = err.message.toLowerCase()
@@ -86,6 +92,12 @@ function is413Error(err: unknown): boolean {
     msg.includes('max_tokens')
 }
 
+/**
+ * 判断模型是否因输出长度限制提前结束。
+ * 背景：输出达到上限需要走恢复路径，而不是按普通故障重试。
+ * 设计意图：兼容 Provider 的错误命名差异；放弃只依赖单一 SDK 异常类型。
+ * 关键约束：该结果会触发额外模型调用，宽泛匹配可能造成重复请求和费用。
+ */
 function isMaxOutputError(err: unknown): boolean {
   if (!(err instanceof Error)) return false
   const msg = err.message.toLowerCase()

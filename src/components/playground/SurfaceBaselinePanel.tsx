@@ -581,7 +581,7 @@ function DockSurface() {
   const isActive = state !== 'idle' && state !== 'completed'
   const stateLabel = WORKSPACE_FIXTURE_STATES.find((item) => item.id === state)?.label ?? '无任务'
   const statusCopy: Record<WorkspaceFixtureState, string> = {
-    idle: '没有正在进行的任务。任务开始后，工作区会跟随任务出现。',
+    idle: '当前没有任务；工作区只在 Chat 发起文件或项目任务后出现。',
     working: '正在整理项目结构，文件和预览会在任务需要时出现。',
     confirmation: '有一项需要你决定的操作，当前任务仍保持在原模型上。',
     review: '任务已经产生变更，先查看文件差异，再决定是否回到对话。',
@@ -600,12 +600,12 @@ function DockSurface() {
             </div>
             <div className="flex shrink-0 items-center gap-2"><span className="rounded-full border px-2.5 py-1 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: state === 'failed' ? 'var(--danger)' : 'var(--text-secondary)' }}>{stateLabel}</span><button type="button" onClick={() => setState('idle')} className="rounded-[var(--radius-sm)] border px-2.5 py-1 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>回到对话</button></div>
           </div>
-          <div className="mt-3 flex flex-wrap gap-1.5" role="tablist" aria-label="工作区状态样张">{WORKSPACE_FIXTURE_STATES.map((item) => <button key={item.id} type="button" role="tab" aria-selected={state === item.id} onClick={() => setState(item.id)} className="settings-option px-2 py-1 text-[10px]" data-testid={`workspace-state-${item.id}`} data-selected={state === item.id ? 'true' : undefined}>{item.label}</button>)}</div>
+          <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="状态样张">{WORKSPACE_FIXTURE_STATES.map((item) => <button key={item.id} type="button" aria-pressed={state === item.id} onClick={() => setState(item.id)} className="settings-option px-2 py-1 text-[10px]" data-testid={`workspace-state-${item.id}`} data-selected={state === item.id ? 'true' : undefined}>{item.label}</button>)}</div>
         </div>
         <div className="flex min-h-0 flex-1 items-stretch justify-end">
           <div className="min-w-0 flex-1 overflow-y-auto px-5 py-5"><div className="mx-auto max-w-2xl space-y-4">
             {isActive && <section className="rounded-[var(--radius-md)] border px-4 py-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }} data-testid="workspace-task-context"><div className="flex items-center justify-between gap-3"><div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>本次任务使用</div><span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>启动时固定</span></div><div className="mt-2 grid gap-2 text-[10px] sm:grid-cols-3"><div><div style={{ color: 'var(--text-muted)' }}>连接</div><div className="mt-1 truncate" title="OpenAI Compatible" style={{ color: 'var(--text-secondary)' }}>OpenAI Compatible</div></div><div><div style={{ color: 'var(--text-muted)' }}>模型</div><div className="mt-1 truncate font-mono" title="account-model-id" style={{ color: 'var(--text-secondary)' }}>account-model-id</div></div><div><div style={{ color: 'var(--text-muted)' }}>来源</div><div className="mt-1" style={{ color: 'var(--text-secondary)' }}>Chat</div></div></div></section>}
-            {state === 'idle' && <div className="flex min-h-[250px] items-center justify-center text-center"><div><div className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>还没有任务</div><p className="mt-1 max-w-sm text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>工作区只在任务需要时出现；默认模型设置仍然留在设置里。</p></div></div>}
+            {state === 'idle' && <div className="flex min-h-[250px] items-center justify-center text-center"><div><div className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>还没有进行中的任务</div><p className="mt-1 max-w-sm text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>Chat 负责沟通和进度；工作区负责文件预览、写入确认和变更审阅。</p><div className="mt-4 flex flex-wrap justify-center gap-2 text-[10px]" style={{ color: 'var(--text-secondary)' }}><span>文件预览</span><span>写入确认</span><span>变更审阅</span></div></div></div>}
             {state === 'working' && <section className="rounded-[var(--radius-md)] border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}><div className="flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}><LoaderCircle size={14} className="animate-spin" style={{ color: 'var(--accent-fg)' }} />正在处理文件</div><div className="mt-3 h-1.5 overflow-hidden rounded-full" style={{ background: 'var(--bg-tertiary)' }}><div className="h-full w-2/3 rounded-full" style={{ background: 'var(--accent-emphasis)' }} /></div><div className="mt-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>读取 3 个文件 · 已完成 2 个步骤</div></section>}
             {state === 'confirmation' && <section className="rounded-[var(--radius-md)] border p-4" style={{ borderColor: 'var(--warning)', background: 'var(--card-bg)' }}><div className="flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}><Shield size={14} style={{ color: 'var(--warning)' }} />需要你的确认</div><p className="mt-2 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}>AI 请求写入 2 个文件。模型信息保留在上方，确认内容只描述这一次具体操作。</p><div className="mt-3 flex gap-2"><button type="button" onClick={() => setState('working')} className="rounded-[var(--radius-sm)] px-2.5 py-1.5 text-[10px]" style={{ background: 'var(--accent-emphasis)', color: 'var(--accent-fg)' }}>批准</button><button type="button" onClick={() => setState('failed')} className="rounded-[var(--radius-sm)] border px-2.5 py-1.5 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>拒绝</button></div></section>}
             {state === 'review' && <section className="rounded-[var(--radius-md)] border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}><div className="flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}><FileCode2 size={14} style={{ color: 'var(--accent-fg)' }} />待审阅的变更</div><div className="mt-3 space-y-2 text-[10px]" style={{ color: 'var(--text-secondary)' }}><div className="flex justify-between"><span>src/components/</span><span>2 个文件</span></div><div className="flex justify-between"><span>新增</span><span style={{ color: 'var(--success)' }}>+18 行</span></div></div></section>}
@@ -667,7 +667,7 @@ const PLAYGROUND_WORLD_TABS: readonly WorldTabDefinition[] = [
   { id: 'footprints', label: '足迹', icon: <MapPin size={14} strokeWidth={1.5} /> },
 ]
 
-function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onNavigate?: (tab: PlaygroundTabId) => void }) {
+function WorldSurface({ persona, onNavigate, onOpenMemory }: { persona: PlaygroundPersona; onNavigate?: (tab: PlaygroundTabId) => void; onOpenMemory?: () => void }) {
   const [tab, setTab] = useState<WorldTab>('moments')
   const isLin = persona.id === 'lin'
   const wardrobe = isLin
@@ -767,7 +767,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
   return (
     <SurfaceViewport>
       <div className="flex h-full min-h-0 flex-col" data-testid="playground-world-experience" data-persona-id={persona.id}>
-        <MomentsProfileHero persona={persona} onOpenMemory={() => onNavigate?.('memory')} />
+        <MomentsProfileHero persona={persona} onOpenMemory={onOpenMemory ?? (() => onNavigate?.('settings'))} />
         <div className="min-h-0 flex-1">
           <WorldHub
             tab={tab}
@@ -793,45 +793,25 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
 function SettingsSurface({ persona, onPersonaChange, scenario, onScenarioChange, onNavigate }: { persona: PlaygroundPersona; onPersonaChange: (personaId: string) => void; scenario: SettingsScenario; onScenarioChange: (scenario: SettingsScenario) => void; onNavigate?: (tab: PlaygroundTabId) => void }) {
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-1" role="tablist" aria-label="设置页面场景">
-        {[
-          { id: 'settings' as const, label: '设置' },
-          { id: 'memory-management' as const, label: '记忆管理' },
-          { id: 'role-shelf' as const, label: '角色架' },
-        ].map((item) => {
-          const active = scenario === item.id
-          return (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => onScenarioChange(item.id)}
-              className="settings-option px-2.5 py-1 text-[10px]"
-              data-selected={active ? 'true' : undefined}
-            >
-              {item.label}
-            </button>
-          )
-        })}
+      <div className="flex justify-end" data-testid="settings-scene-actions">
         {onNavigate && (
           <button
             type="button"
             onClick={() => onNavigate('chat')}
-            className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] transition"
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] transition"
             style={{ color: 'var(--text-muted)' }}
             data-testid="settings-return-to-chat"
           >
             回到 Chat <ArrowRight size={11} aria-hidden="true" />
           </button>
         )}
-      </div>
-      <SurfaceViewport>
+      </div>      <SurfaceViewport>
         <div aria-label="设置隔离预览" data-testid="settings-surface-candidate">
           <SettingsExperienceCandidate
+            memoryDetail={<MemorySurface />}
             companionDetail={scenario === 'role-shelf' ? <RoleShelfFixture persona={persona} onPersonaChange={onPersonaChange} /> : undefined}
             initialSection={scenario === 'memory-management' ? 'memory' : scenario === 'role-shelf' ? 'companion' : undefined}
-            onOpenMemory={() => onNavigate?.('memory')}
+            onOpenMemory={() => onNavigate?.('settings')}
             onOpenRoleShelf={() => onScenarioChange('role-shelf')}
           />
         </div>
@@ -1074,7 +1054,7 @@ export function SurfaceBaselinePanel({ initialSurface, persona, onPersonaChange,
         {surface === 'chat' && <ChatSurface persona={activePersona} onNavigate={onNavigate} onOpenRoleShelf={() => { onNavigate?.('settings'); handleSettingsScenarioChange('role-shelf') }} />}
         {surface === 'sidebar' && <SidebarSurface />}
         {surface === 'dock' && <DockSurface />}
-        {surface === 'world' && <WorldSurface persona={activePersona} onNavigate={onNavigate} />}
+        {surface === 'world' && <WorldSurface persona={activePersona} onNavigate={onNavigate} onOpenMemory={() => { onNavigate?.('settings'); handleSettingsScenarioChange('memory-management') }} />}
         {surface === 'memory' && <MemorySurface onNavigate={onNavigate} onOpenMemorySettings={() => handleSettingsScenarioChange('memory-management')} />}
         {surface === 'settings' && <SettingsSurface persona={activePersona} onPersonaChange={handlePersonaChange} scenario={activeSettingsScenario} onScenarioChange={handleSettingsScenarioChange} onNavigate={onNavigate} />}
       </div>

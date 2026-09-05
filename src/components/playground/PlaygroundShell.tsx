@@ -7,8 +7,6 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   ArrowLeft,
   Blocks,
-  Brain,
-  BriefcaseBusiness,
   FileCode2,
   Image,
   MessageSquare,
@@ -24,7 +22,6 @@ import { PLAYGROUND_GROUPS, PLAYGROUND_TABS, type PlaygroundTabId } from './cata
 import { DesignSystemPanel } from './DesignSystemPanel'
 import { UiControlsPanel } from './UiControlsPanel'
 import { FoundationComponentsPanel } from './FoundationComponentsPanel'
-import { BusinessStatesPanel } from './BusinessStatesPanel'
 import { ProductExperienceDependencies } from './ProductExperienceDependencies'
 import type { ProductExperienceTabId } from '../../shared/product-experience-registry'
 import { SurfaceBaselinePanel } from './SurfaceBaselinePanel'
@@ -42,10 +39,8 @@ const ICONS: Partial<Record<PlaygroundTabId, LucideIcon>> = {
   'foundation-components': Blocks,
   chat: MessageSquare,
   world: Newspaper,
-  memory: Brain,
   settings: Settings2,
   workspace: PanelRight,
-  'business-states': BriefcaseBusiness,
   'chat-lab': MessageSquare,
   'model-test': TestTube2,
   tools: TerminalSquare,
@@ -91,10 +86,8 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
     switch (tab) {
       case 'chat':
       case 'world':
-      case 'memory':
       case 'settings':
       case 'workspace':
-      case 'business-states':
         return tab
       default:
         return undefined
@@ -178,10 +171,8 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
             {tab === 'foundation-components' && <FoundationComponentsPanel />}
             {tab === 'chat' && <SurfaceBaselinePanel initialSurface="chat" persona={persona} onPersonaChange={setPersonaId} settingsScenario={settingsScenario} onSettingsScenarioChange={setSettingsScenario} onNavigate={navigateTo} />}
             {tab === 'world' && <SurfaceBaselinePanel initialSurface="world" persona={persona} onPersonaChange={setPersonaId} settingsScenario={settingsScenario} onSettingsScenarioChange={setSettingsScenario} onNavigate={navigateTo} />}
-            {tab === 'memory' && <SurfaceBaselinePanel initialSurface="memory" persona={persona} onPersonaChange={setPersonaId} settingsScenario={settingsScenario} onSettingsScenarioChange={setSettingsScenario} onNavigate={navigateTo} />}
             {tab === 'settings' && <SurfaceBaselinePanel initialSurface="settings" persona={persona} onPersonaChange={setPersonaId} settingsScenario={settingsScenario} onSettingsScenarioChange={setSettingsScenario} onNavigate={navigateTo} />}
             {tab === 'workspace' && <SurfaceBaselinePanel initialSurface="dock" />}
-            {tab === 'business-states' && <BusinessStatesPanel />}
             {tab === 'chat-lab' && <PromptLabPanel />}
             {tab === 'model-test' && <ModelTestPanel />}
             {tab === 'tools' && <ToolRunPanel tools={tools} />}

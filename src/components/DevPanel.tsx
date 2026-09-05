@@ -9,7 +9,7 @@ import { LLMCallsPanel } from './debug/LLMCallsPanel'
 import { WorldStatePanel, type WorldSnapshot } from './debug/WorldStatePanel'
 import { PersonaEvalPanel } from './debug/PersonaEvalPanel'
 import { SkillEvalPanel } from './debug/SkillEvalPanel'
-import { DebugOverview, type DebugOverviewTab } from './debug/DebugOverview'
+import { buildDebugOverviewSnapshot, DebugOverview, type DebugOverviewEvidence, type DebugOverviewSnapshot, type DebugOverviewTab } from './debug/DebugOverview'
 
 type DebugTab = 'overview' | DebugOverviewTab | 'eval'
 type RequestRuntimeView = 'llm' | 'traces' | 'events'
@@ -139,11 +139,43 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
   const [focusedTraceSpanId, setFocusedTraceSpanId] = useState('')
   const [worldSnap, setWorldSnap] = useState<WorldSnapshot | null>(null)
   const [worldError, setWorldError] = useState('')
+  const [overviewSnapshot, setOverviewSnapshot] = useState<DebugOverviewSnapshot | null>(null)
+  const [overviewLoading, setOverviewLoading] = useState(false)
+  const [overviewError, setOverviewError] = useState('')
 
   const refresh = useCallback(async () => {
     if (!window.electronAPI?.debug) return
     try {
-      if (debugTab === 'prompt') {
+      if (debugTab === 'overview') {
+        setOverviewLoading(true)
+        setOverviewError('')
+        const [systemResult, tracesResult, worldResult] = await Promise.allSettled([
+          window.electronAPI.debug.systemInfo(),
+          window.electronAPI.debug.traces(),
+          window.electronAPI.debug.worldSnapshot(),
+        ])
+        const unavailable: DebugOverviewEvidence[] = []
+        const system = systemResult.status === 'fulfilled' ? systemResult.value : undefined
+        const traces = tracesResult.status === 'fulfilled' ? tracesResult.value : undefined
+        const world = worldResult.status === 'fulfilled' ? worldResult.value : undefined
+        if (!system) unavailable.push('system')
+        if (!traces) unavailable.push('traces')
+        if (!world) unavailable.push('world')
+        setOverviewSnapshot(buildDebugOverviewSnapshot({
+          system,
+          traces,
+          world,
+          eventCount: eventLog.length,
+          unavailable,
+        }))
+        setOverviewError(
+          unavailable.length === 3
+            ? '暂时无法读取运行概览，请稍后重试。'
+            : unavailable.length > 0
+              ? '部分运行证据不可用，请进入对应分区重试。'
+              : '',
+        )
+      } else if (debugTab === 'prompt') {
         setPromptInfo(await window.electronAPI.debug.systemPrompt())
       } else if (debugTab === 'world') {
         setWorldError('')
@@ -167,9 +199,13 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
     } catch (e) {
       if (debugTab === 'world') {
         setWorldError(e instanceof Error ? e.message : String(e))
+      } else if (debugTab === 'overview') {
+        setOverviewError('暂时无法读取运行概览，请稍后重试。')
       }
+    } finally {
+      if (debugTab === 'overview') setOverviewLoading(false)
     }
-  }, [debugTab, requestRuntimeView])
+  }, [debugTab, eventLog.length, requestRuntimeView])
 
   useEffect(() => { void refresh() }, [refresh])
 
@@ -244,7 +280,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
       </nav>
 
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-5">
-        {debugTab === 'overview' && <DebugOverview onOpen={(tab) => setDebugTab(tab)} />}
+        {debugTab === 'overview' && <DebugOverview onOpen={(tab) => setDebugTab(tab)} snapshot={overviewSnapshot} loading={overviewLoading} error={overviewError} />}
         {debugTab === 'prompt' && (
           <PromptManagerPanel info={promptInfo} onRefresh={() => refresh()} onOpenUsage={openAssetUsage} />
         )}

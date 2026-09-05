@@ -241,7 +241,7 @@ Playground 的导航工作域不等于产品架构层。产品设计只保留两
 ```
 
 - **Foundation** 只登记可脱离业务复用的设计语言、图标、通用组件、状态和通用交互能力。
-- **Experience** 登记 Chat、人物世界、记忆、Skills、设置、工作区和业务状态的业务语义、页面组合与流程。伙伴状态条、生活事件卡、角色卡、记忆引用芯片和完整右侧工作坞等业务结构属于 Experience。
+- **Experience** 登记 Chat、人物世界、设置和工作区的业务语义、页面组合与流程。记忆归入设置的“记忆与相处”分区；伙伴状态条、生活事件卡、角色卡、记忆引用芯片和完整右侧工作坞等业务结构属于 Experience。空态、确认、错误等业务状态回到各自真实上下文验收，不作为独立体验入口。
 - **Agent 实验** 是 Playground 的独立工作域，不是第三层产品架构；它只承载隔离试验。
 - Experience 只能通过 `src/shared/product-experience-registry.ts` 的 `usesFoundation` 引用 Foundation；发现基础能力缺失时，先在 Foundation 建故事并登记真实来源，再回到 Experience 组合。
 - Playground 的一级 Tab 事实表与当前验收边界见 [`docs/requirements/playground-navigation-world-polish-v1.md`](requirements/playground-navigation-world-polish-v1.md)；代码注册表是 key、来源、状态和依赖的事实源，文档只记录边界与原则。

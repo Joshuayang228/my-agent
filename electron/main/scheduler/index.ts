@@ -36,6 +36,12 @@ export const MAX_TASK_CRON_LENGTH = 128
 export const MIN_TASK_INTERVAL_MS = 1_000
 export const MAX_TASK_INTERVAL_MS = 365 * 24 * 60 * 60 * 1_000
 
+/**
+ * 计算受限五段式 Cron 的下一次本地触发时间。
+ * 背景：桌面端需要在应用内计算唤醒时间，不能依赖常驻系统 cron 服务。
+ * 设计意图：只支持当前输入校验允许的分钟/小时语义，保持跨平台行为可预测，避免引入完整解析器。
+ * 关键约束：结果不得早于 from；相等时必须顺延一天；返回值供 setTimeout 使用且必须是有限毫秒时间戳。
+ */
 export function parseCronNextRun(cron: string, from: number): number | null {
   if (typeof cron !== 'string' || cron.length === 0 || cron.length > MAX_TASK_CRON_LENGTH) return null
   const parts = cron.trim().split(/\s+/)

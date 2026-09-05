@@ -301,7 +301,11 @@ function App() {
       try {
         const pinned = JSON.parse(s.pinnedSessions || '[]')
         if (Array.isArray(pinned)) setPinnedIds(pinned)
-      } catch { /* ignore */ }
+      } catch (error) {
+        console.warn('[App] Failed to restore pinned sessions', {
+          errorType: error instanceof Error ? error.name : 'unknown',
+        })
+      }
     })
     window.electronAPI.companion.getActive().then((p) => {
       if (p?.name) setCurrentPersonaName(p.name)
