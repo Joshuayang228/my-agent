@@ -430,7 +430,7 @@ test.describe('My Agent UI', () => {
     const settingsCandidate = page.getByTestId('settings-surface-candidate')
     await expect(settingsCandidate).toBeVisible()
     await expect(settingsCandidate.getByTestId('settings-nav')).toBeVisible()
-    await expect(settingsCandidate.getByRole('button', { name: '记忆与相处', exact: true })).toBeVisible()
+    await expect(settingsCandidate.getByRole('button', { name: '记忆', exact: true })).toBeVisible()
 
     await nav.getByRole('button', { name: '工作区', exact: true }).click()
     const workspaceDependencies = page.locator('[data-testid="product-experience-dependencies"]')
@@ -565,22 +565,27 @@ test.describe('My Agent UI', () => {
     await expect(modelBudget).toContainText('当前：不限制')
     await modelBudget.getByLabel('会话预算', { exact: true }).fill('12000')
     await expect(modelBudget).toContainText('当前：12000 单位')
-    await expect(candidate.getByText('已添加的模型配置', { exact: true })).toBeVisible()
+    await expect(candidate.getByText('连接入口', { exact: true })).toBeVisible()
+    await expect(candidate.getByText('能力', { exact: true })).toHaveCount(0)
     await expect(candidate.getByText('OpenAI 主账号', { exact: true })).toBeVisible()
     await expect(candidate.getByTestId('settings-candidate-model-profile-openai')).toContainText('2 个模型')
     await candidate.getByTestId('settings-candidate-model-add').click()
     await expect(candidate.getByTestId('settings-candidate-model-add-panel')).toBeVisible()
     await candidate.getByTestId('settings-candidate-model-source-relay').click()
-    await candidate.getByTestId('settings-candidate-model-provider-openrouter').click()
+    await candidate.getByLabel('Provider', { exact: true }).selectOption('openrouter')
     await candidate.getByLabel('新配置名称', { exact: true }).fill('中转备用配置')
     await candidate.getByLabel('新模型 ID', { exact: true }).fill('relay-model-id')
     await candidate.getByTestId('settings-candidate-model-finish-add').click()
-    await expect(candidate.getByText('中转备用配置', { exact: true })).toBeVisible()
+    await expect(
+      candidate
+        .getByTestId('settings-candidate-model-profiles')
+        .getByRole('button', { name: /中转备用配置/ }),
+    ).toBeVisible()
     await expect(candidate.getByText('OpenRouter 配置', { exact: true })).toHaveCount(0)
     await candidate.getByTestId('settings-candidate-model-state-empty').click()
     await expect(candidate.getByTestId('settings-candidate-model-empty')).toBeVisible()
     await candidate.getByTestId('settings-candidate-model-state-two').click()
-    await expect(candidate.getByTestId('settings-candidate-model-profiles')).toContainText('中转备用配置')
+    await expect(candidate.getByTestId('settings-candidate-model-profiles')).toContainText('国际流动')
     await candidate.getByTestId('settings-candidate-model-state-one').click()
     await expect(candidate.getByTestId('settings-candidate-model-profiles')).toContainText('OpenRouter 主账号')
 
@@ -607,8 +612,9 @@ test.describe('My Agent UI', () => {
     await expect(candidate.getByText('文件工具 · 已连接', { exact: true })).toBeVisible()
     await expect(candidate).not.toContainText('不和记忆混在一起')
 
-    await candidate.getByRole('button', { name: '记忆与相处', exact: true }).click()
-    await expect(candidate.getByText('记忆管理', { exact: true })).toBeVisible()
+    await candidate.getByRole('button', { name: '记忆', exact: true }).click()
+    await expect(candidate.getByTestId('settings-candidate-section-memory')).toBeVisible()
+    await expect(candidate.getByTestId('memory-surface-candidate')).toBeVisible()
     await expect(candidate.getByText('回答方式', { exact: true })).toHaveCount(0)
 
     await candidate.getByRole('button', { name: '关于 My Agent', exact: true }).click()
