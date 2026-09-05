@@ -30,6 +30,7 @@
 | [product-experience-journeys-v1.md](./product-experience-journeys-v1.md) | E0 / E1 子合同：Chat 主旅程 Playground 候选 |
 | [playground-world-living-dimensions-v1.md](./playground-world-living-dimensions-v1.md) | P0 施工：人物世界六个生活维度与隔离样张 |
 | [settings-information-architecture-v1.md](./settings-information-architecture-v1.md) | P0 施工：设置体系信息架构、风险分层与隔离体验候选 |
+| [playground-model-and-workspace-v2.md](./playground-model-and-workspace-v2.md) | P0 施工：从用户故事重构模型设置与任务工作区候选 |
 
 
 
