@@ -31,6 +31,7 @@
 | [playground-world-living-dimensions-v1.md](./playground-world-living-dimensions-v1.md) | P0 施工：人物世界六个生活维度与隔离样张 |
 | [settings-information-architecture-v1.md](./settings-information-architecture-v1.md) | P0 施工：设置体系信息架构、风险分层与隔离体验候选 |
 | [playground-model-and-workspace-v2.md](./playground-model-and-workspace-v2.md) | P0 施工：从用户故事重构模型设置与任务工作区候选 |
+| [debug-ui-information-architecture-v1.md](./debug-ui-information-architecture-v1.md) | 正式 Debug UI：运行概览、真实证据与受控诊断入口 |
 
 
 
