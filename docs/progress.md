@@ -7,7 +7,7 @@
 | | |
 |---|---|
 | **当前阶段** | 公开 alpha；基础运行时、伙伴世界、记忆、权限、Debug / Playground、生产资产与安全边界主线已落地。 |
-| **当前施工** | 产品体验 E0 / E1 正在 Playground 验收；Chat 与人物世界候选已成形，当前推进记忆 / 设置关系旅程，再处理工作区。 |
+| **当前施工** | 产品体验 E0 / E1 正在 Playground 验收；模型配置解耦候选已完成，等待用户确认是否回流正式 Settings、Chat 与 Runtime。 |
 | **产品主线** | 继续打磨伙伴体验、人物故事与 Pack 内容；真实 Persona Eval 结果仍需人工语气与审美验收。 |
 | **明确暂缓** | 原生语音输入、Playground Prompt Lab 加厚、生图 Moments。 |
 | **明确不做** | 当前威胁模型下不做 OS 级 Shell 强隔离和 Python 嵌入沙箱，见 DEC-037。 |
@@ -25,6 +25,13 @@
 - 拉取官方 `deepseek-ai/deepseek-harness` 与 `farion1231/cc-switch` 到 `_reference/framework-harness/repos/`，结合 Alice 参考源码复核模型设置前端结构。
 - 新增《模型与工作区用户故事重构 v2》施工合同：连接配置、模型清单、使用安排、任务运行快照四层分离；模型设置与工作区按职责分界。
 - 下一步只在 Playground 验证空态、单 / 双连接、添加流程、模型用途和工作区状态矩阵；正式 Settings、IPC、存储与 Runtime 不变。
+
+## 2026-09-06 · Playground 模型配置解耦候选收口
+
+- 模型页已拆成上方“模型使用安排”和下方“连接与模型清单”：主对话、辅助任务、生图分别支持多模型与 fallback 优先级，连接只维护端点、适配器和模型列表。
+- 添加连接不再要求“首个模型 ID”；自定义连接使用 OpenAI Compatible、Anthropic、Gemini 适配器，中转 / 聚合 / 统一网关统一作为用户命名的连接入口。
+- Playground 已补齐按连接获取已有模型、逐项加入清单、手动添加、失败反馈，以及空态 / 单连接 / 多连接状态样张；获取交互仍是 Renderer 隔离 fixture，不调用真实 IPC 或保存真实设置。
+- 同轮更新了相处补充说明的位置和模型候选 E2E 断言；正式 Settings、Chat、Runtime、IPC、存储与真实模型连接未改变，等待用户明确回流许可。
 
 ## 2026-09-05 · Playground 设置模型与相处方式重构候选
 
