@@ -84,6 +84,7 @@
 | 设计语言场 | 已落地 | Playground「基础 → 设计语言」；颜色 / 主题 / 圆角动效三组 Tab，不混入业务组合 |
 | Playground 基础 / 产品体验工作台 | 已落地 | `src/components/playground/` · 基础 → 产品体验 → Agent 实验；统一内容宽度、单一一级入口、基础故事筛选和当前体验基础引用；图标尺寸 / 搜索 / 动效均有可见样张，边界见施工合同 | Playground Chat 已覆盖初次进入、聊天、处理中、确认、完成、失败六态；工作区只在处理中出现，确认 / 结果 / 失败均留在隔离对话流中。人物世界样张收敛为朋友圈 / 物什 / 名册，角色架改在设置样张查看；记忆作为设置中的独立入口，业务状态不再作为独立入口。
 | Playground UI 矩阵加厚（确认/芯片/状态条/反馈/独白） | 已落地 | M32-G9 Phase 1 · Toast 关闭位统一、MarkdownRenderer 等正式组件故事格 |
+| Playground 模型连接与编程套餐候选 | 部分 | `SettingsExperienceCandidate.tsx` 读取六个套餐预设，名称 / 专用地址联动；官方、套餐、聚合、本地与自定义入口分离，适配器仅自定义可选。保存连接、添加模型、上方用途引用均为隔离状态；普通 Ark 的聚合分类只作用于候选。正式多连接 / 用途路由尚未回流，套餐后端验证见 `WISH-027` |
 | Playground 单项采用标记与主题对照 | 已落地 | `AdoptionMark` 只挂具体 token / 组件 / 故事证据，不再给目录批量标记或提供全局开关；七主题同页审计 |
 | UI 组件 / 图标语义资产注册 | 已落地 | `ui-component-registry.ts` 继续承担组件资产身份与生命周期；`foundation-story-registry.ts` 负责 Foundation Playground 故事的 story key、assetKey、分组和 renderer 关系；基础组件工作台按 13 个任务入口展示全部已建故事，并补齐 Select / Form Field / Checkbox / Switch / Diff Viewer 及 IconButton / Card / Badge / Tag / Divider 隔离故事，完整候选登记由注册表 / Debug 承担；业务结构由产品体验注册表的 `experienceParts` 登记；图标目录仅显示紧凑的图标 + 中英文名，具体 adopted 小勾位于对应图标卡右上角并来自真实证据 |
 | 全局 Debug 诊断 | 已落地 | `DevPanel` 全页工作区；提示词、请求与运行、伙伴状态、质量 / Eval、系统统一从全局入口进入；Chat 不再叠加 Debug 半屏 |
