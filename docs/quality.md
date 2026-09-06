@@ -96,7 +96,7 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 
 已完成安全审计快照见 [`../_archive/audits/security-audit-2026-08.md`](../_archive/audits/security-audit-2026-08.md)。
 
-模型配置解耦候选还必须验证：三种用途各自支持多模型路由与顺序优先级；连接下可维护多个模型；“获取已有模型”成功后可逐项加入清单，添加连接使用适配器且不要求首个模型 ID；中转 / 聚合 / 统一网关作为同一连接入口。上述交互只能使用隔离 fixture，不得触发真实 Provider、凭据或 Settings IPC。`r`n`r`n## 六、模块关系
+模型配置解耦候选还必须验证：官方服务商使用官方预设和官网地址，适配器只在自定义连接中出现；三种用途各自支持多模型路由与顺序优先级；连接下可维护多个模型；“获取已有模型”成功后可逐项加入清单，添加连接使用适配器且不要求首个模型 ID；中转 / 聚合 / 统一网关作为同一连接入口。上述交互只能使用隔离 fixture，不得触发真实 Provider、凭据或 Settings IPC。`r`n`r`n## 六、模块关系
 
 - 伙伴 / 人格：`docs/modules/companion.md` 的必测点 + 相关 Persona Eval。
 - 记忆：`docs/modules/memory.md` 的必测点 + memory Unit / Eval。
