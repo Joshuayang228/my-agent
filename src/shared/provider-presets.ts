@@ -67,7 +67,7 @@ export const PROVIDER_PRESETS: readonly ProviderPreset[] = [
   {
     providerId: 'dashscope',
     key: 'provider-preset:dashscope',
-    group: '国内服务商',
+    group: '聚合与代理',
     label: '阿里云百炼',
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     quickAccess: false,
@@ -99,7 +99,7 @@ export const PROVIDER_PRESETS: readonly ProviderPreset[] = [
   {
     providerId: 'siliconflow',
     key: 'provider-preset:siliconflow',
-    group: '国内服务商',
+    group: '聚合与代理',
     label: '硅基流动',
     baseUrl: 'https://api.siliconflow.cn/v1',
     quickAccess: false,

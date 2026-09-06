@@ -63,9 +63,9 @@ src/shared/provider-presets.ts
 
 ```text
 海外直连：OpenAI、Anthropic、Google Gemini、xAI
-国内服务商：DeepSeek、Kimi、阿里云百炼、MiniMax、智谱、硅基流动、小米 MiMo、火山引擎
+国内服务商：DeepSeek、Kimi、MiniMax、智谱、小米 MiMo、火山引擎
 编程套餐：Kimi / 阿里云 / MiniMax / 智谱 / 火山 / 小米 Coding Plan
-聚合与代理：OpenRouter、PipeLLM、米羊、观猹
+聚合与代理：阿里云百炼、硅基流动、OpenRouter、PipeLLM、米羊、观猹
 本地 / 自定义：Ollama、LM Studio
 ```
 

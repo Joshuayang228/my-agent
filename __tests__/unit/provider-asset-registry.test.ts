@@ -46,7 +46,8 @@ describe('Provider 生产资产目录', () => {
       'provider-preset:local:ollama',
       'provider-preset:local:lm-studio',
     ])
-    expect(PROVIDER_PRESET_GROUPS.map((group) => group.items.length)).toEqual([4, 8, 6, 4, 2])
+    expect(PROVIDER_PRESET_GROUPS.map((group) => group.items.length)).toEqual([4, 6, 6, 6, 2])
+    expect(PROVIDER_PRESETS.filter((preset) => preset.group === '聚合与代理').map((preset) => preset.providerId)).toEqual(['dashscope', 'siliconflow', 'openrouter', 'pipellm_claude', 'miyang', 'tokendance'])
     expect(QUICK_PROVIDER_ENTRIES.map((preset) => preset.providerId)).toEqual([
       'openai',
       'deepseek',
