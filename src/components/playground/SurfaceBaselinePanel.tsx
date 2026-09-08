@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, CheckCircle2, Coffee, ChevronDown, CircleAlert, Clapperboard, FileCode2, Folder, Home, Image, Lightbulb, LoaderCircle, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, Paperclip, RotateCcw, Shirt, Shield, UserRound, Users } from 'lucide-react'
+import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, CheckCircle2, Coffee, ChevronDown, CircleAlert, Clapperboard, FileCode2, Folder, Home, Image, Lightbulb, LoaderCircle, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, Paperclip, Plus, RotateCcw, Search, Shield, Shirt, UserRound, Users } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
 import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
@@ -868,6 +868,11 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
   const [group, setGroup] = useState<MemoryPreviewGroup>('identity')
   const [debugEnabled, setDebugEnabled] = useState(false)
   const [showSource, setShowSource] = useState(false)
+  const [query, setQuery] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [newContent, setNewContent] = useState('')
+  const [newGroup, setNewGroup] = useState<MemoryPreviewGroup>('identity')
+  const [customMemories, setCustomMemories] = useState<MemoryEntry[]>([])
   const scenarios: Array<{ id: MemoryScenario; label: string }> = [
     { id: 'list', label: '清单' },
     { id: 'empty', label: '空态' },
@@ -875,12 +880,25 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
     { id: 'editing', label: '纠正记忆' },
   ]
   const activeGroup = MEMORY_PREVIEW_GROUPS.find((item) => item.id === group) ?? MEMORY_PREVIEW_GROUPS[0]
+  const allPreviewMemories = [...MEMORY_PREVIEW_GROUPS.flatMap((item) => item.memories), ...customMemories]
   const memories = scenario === 'empty'
     ? []
     : scenario === 'sensitive'
-      ? [...activeGroup.memories, SENSITIVE_MEMORY_FIXTURE]
-      : activeGroup.memories
+      ? [...activeGroup.memories, SENSITIVE_MEMORY_FIXTURE, ...customMemories.filter((item) => item.id.startsWith('memory-custom-'))]
+      : [...activeGroup.memories, ...customMemories.filter((item) => item.id.startsWith(`memory-custom-${group}-`))]
+  const visibleMemories = query.trim()
+    ? memories.filter((memory) => memory.content.toLocaleLowerCase('zh-CN').includes(query.trim().toLocaleLowerCase('zh-CN')))
+    : memories
   const editingId = activeGroup.memories[0]?.id
+
+  const addMemory = () => {
+    const content = newContent.trim()
+    if (!content) return
+    setCustomMemories((current) => [...current, { id: `memory-custom-${newGroup}-${Date.now()}`, category: newGroup === 'identity' ? 'identity' : newGroup === 'collaboration' ? 'workflow' : newGroup === 'communication' ? 'voice' : 'feedback', content, createdAt: Date.now(), updatedAt: Date.now() }])
+    setGroup(newGroup)
+    setNewContent('')
+    setAdding(false)
+  }
 
   const toggleDebug = () => {
     setDebugEnabled((enabled) => {
@@ -907,7 +925,7 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
                   data-testid={`memory-group-${item.id}`}
                   data-selected={active ? 'true' : undefined}
                 >
-                  {item.label} <span className="opacity-60">{item.memories.length}</span>
+                  {item.label} <span className="opacity-60">{item.memories.length + customMemories.filter((memory) => memory.id.startsWith(`memory-custom-${item.id}-`)).length}</span>
                 </button>
               )
             })}
@@ -949,9 +967,17 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
         <p className="text-[10px]" style={{ color: 'var(--text-muted)' }} data-testid="memory-group-description">
           {activeGroup.description}
         </p>
-        <p className="text-[10px]" style={{ color: 'var(--text-muted)' }} data-testid="memory-boundary-note">
-          这里保留会影响未来相处的长期信息；正在做什么和系统做过什么，分别留在 Chat / Debug。
-        </p>
+        <div className="grid gap-2 sm:grid-cols-3" data-testid="memory-overview">
+          <div className="rounded-md border px-3 py-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}><div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>已记住</div><div className="mt-1 text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{allPreviewMemories.length} 条</div></div>
+          <div className="rounded-md border px-3 py-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}><div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>最近更新</div><div className="mt-1 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>今天 1 条</div></div>
+          <div className="rounded-md border px-3 py-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}><div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>管理方式</div><div className="mt-1 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>可纠正、可删除</div></div>
+        </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-2" data-testid="memory-actions">
+          <label className="relative min-w-[12rem] flex-1"><Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} /><input aria-label="搜索记忆" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索记忆" className="theme-input h-8 w-full rounded-md border pl-8 pr-3 text-[11px] outline-none" /></label>
+          <button type="button" onClick={() => setAdding((visible) => !visible)} className="inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-[10px]" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="memory-add-button"><Plus size={13} />添加记忆</button>
+        </div>
+        <p className="text-[10px]" style={{ color: 'var(--text-muted)' }} data-testid="memory-boundary-note">这里保留会影响未来相处的长期信息；正在做什么和系统做过什么，分别留在 Chat / Debug。</p>
+        {adding && <div className="space-y-2 rounded-md border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} data-testid="memory-add-form"><div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>告诉伙伴一件希望长期记住的事</div><textarea aria-label="新记忆内容" value={newContent} onChange={(event) => setNewContent(event.target.value)} rows={2} placeholder="例如：我喜欢先看结论，再看详细解释。" className="theme-input w-full resize-y rounded-md border px-3 py-2 text-[11px] outline-none" /><div className="flex flex-wrap items-center justify-between gap-2"><div className="flex flex-wrap gap-1" role="radiogroup" aria-label="记忆分类">{MEMORY_PREVIEW_GROUPS.map((item) => <button key={item.id} type="button" role="radio" aria-checked={newGroup === item.id} onClick={() => setNewGroup(item.id)} className="settings-option px-2 py-1 text-[10px]" data-selected={newGroup === item.id ? 'true' : undefined}>{item.label}</button>)}</div><div className="flex gap-2"><button type="button" onClick={() => setAdding(false)} className="rounded px-2.5 py-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>取消</button><button type="button" onClick={addMemory} disabled={!newContent.trim()} className="rounded-md border px-2.5 py-1.5 text-[10px] disabled:opacity-40" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }}>保存记忆</button></div></div></div>}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>状态样张</span>
           <div className="flex flex-wrap gap-1" role="tablist" aria-label="记忆页面场景">
@@ -992,13 +1018,13 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
           <MemoryPanel
             key={`${scenario}-${group}`}
             onClose={noop}
-            previewMemories={memories}
+            previewMemories={visibleMemories}
             previewEvidence={MEMORY_PREVIEW_EVIDENCE}
             previewCompact
             previewShowSource={debugEnabled && showSource}
             previewEditingId={scenario === 'editing' ? editingId : undefined}
-            previewEditable={scenario === 'editing' || scenario === 'sensitive'}
-            readOnly={scenario !== 'editing' && scenario !== 'sensitive'}
+            previewEditable={true}
+            readOnly={false}
           />
         </div>
       </SurfaceViewport>
