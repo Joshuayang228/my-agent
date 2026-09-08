@@ -663,7 +663,7 @@ test.describe('My Agent UI', () => {
     await candidate.getByTestId('settings-candidate-skills-toggle').click()
     await expect(candidate.getByTestId('settings-candidate-skills-enabled')).toHaveAttribute('aria-checked', 'true')
     await expect(candidate.getByTestId('settings-candidate-skills-enabled').getByText('全局', { exact: true })).toBeVisible()
-    await expect(candidate.getByText('v1.2', { exact: true })).toBeVisible()
+    await expect(candidate.getByTestId('settings-candidate-skill-file-organizer').getByText('v1.2', { exact: true }).first()).toBeVisible()
     await candidate.getByTestId('settings-candidate-skills-run').click()
     await expect(candidate).toContainText('已生成隔离试跑结果')
     await candidate.getByTestId('settings-candidate-extensions-tab-mcp').click()
