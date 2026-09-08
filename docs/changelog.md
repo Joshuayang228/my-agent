@@ -3,6 +3,13 @@
 > 只记录用户或开发者可以感知的能力变化。完整早期施工流水见 [`../_archive/ledgers/changelog-through-2026-08-16.md`](../_archive/ledgers/changelog-through-2026-08-16.md)。
 
 ## [未发布]
+### 2026-09-09 · 扩展与工作坞候选收口
+
+- Playground 扩展与工具改为 Skills / 外部能力（MCP）分层管理；Skill 的版本、校验、可用工具和隔离试跑收进详情。
+- MCP 添加改为“选择来源 → 填写连接信息 → 测试并确认工具”的隔离向导，连接与允许使用的工具分开表达。
+- Playground 工作区改为右侧工作坞候选：任务状态、确认和恢复留在 Chat；工作坞按需承载文件、预览、审阅和终端，任务结果回到 Chat。
+- 本轮只更新 Playground fixture 与 UI E2E，不改变正式 Settings、Chat、MCP / Skill IPC 或任务运行链路。
+
 ### 2026-09-08 · 记忆管理候选
 
 - 设置里的“记忆”不再只是跳转说明，改为提供记忆总览、搜索、四类长期信息和添加记忆入口。
