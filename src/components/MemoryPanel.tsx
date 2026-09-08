@@ -333,7 +333,7 @@ export function MemoryPanel({
                             : undefined
                     }
                   >
-                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                    <div className="mb-1.5 flex items-center gap-1">
                       <div className="flex flex-wrap items-center gap-1">
                         {!isCompactPreview && (
                           <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${colors.badge}`}>
@@ -352,24 +352,6 @@ export function MemoryPanel({
                             <ShieldAlert size={10} />
                             敏感·{labelSensitiveKinds(sensitiveKinds)}
                           </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
-                        {canEdit && !isEditing && (
-                          <>
-                            <button
-                              onClick={() => startEdit(mem)}
-                              className="memory-action-button rounded px-1.5 py-0.5 text-[10px] transition"
-                            >
-                              编辑
-                            </button>
-                            <button
-                              onClick={() => handleDelete(mem.id)}
-                              className="memory-delete-button rounded px-1.5 py-0.5 text-[10px] transition"
-                            >
-                              删除
-                            </button>
-                          </>
                         )}
                       </div>
                     </div>
@@ -406,6 +388,21 @@ export function MemoryPanel({
                       <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{mem.content}</p>
                     )}
 
+                    {isSensitive && !isEditing && (
+                      <div
+                        className="mt-3 flex items-start gap-2 rounded-md border px-2.5 py-2 text-[10px] leading-4"
+                        data-testid={`memory-sensitive-warning-${mem.id}`}
+                        style={{
+                          borderColor: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 55%, transparent)',
+                          background: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 12%, transparent)',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        <ShieldAlert size={13} className="mt-0.5 shrink-0" style={{ color: 'var(--companion-accent-warm, #d4a574)' }} />
+                        <span><strong style={{ color: 'var(--companion-accent-warm, #d4a574)' }}>敏感信息</strong>：包含{labelSensitiveKinds(sensitiveKinds)}，请确认是否需要长期保留；你可以编辑或删除。</span>
+                      </div>
+                    )}
+
                     {previewShowSource && previewEvidence?.[mem.id] && (
                       <div
                         className="mt-2 border-t pt-1.5 text-[10px] leading-4"
@@ -416,9 +413,17 @@ export function MemoryPanel({
                       </div>
                     )}
 
-                    <div className={`${isCompactPreview ? 'mt-1.5' : 'mt-2'} text-[9px]`} style={{ color: 'var(--text-muted)' }}>
-                      {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
-                      {mem.updatedAt !== mem.createdAt && ` (更新于 ${new Date(mem.updatedAt).toLocaleDateString('zh-CN')})`}
+                    <div className={`${isCompactPreview ? 'mt-3' : 'mt-2'} flex items-center justify-between gap-3`}>
+                      <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                        {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
+                        {mem.updatedAt !== mem.createdAt && ` (更新于 ${new Date(mem.updatedAt).toLocaleDateString('zh-CN')})`}
+                      </div>
+                      {canEdit && !isEditing && (
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button aria-label={`编辑记忆 ${mem.content}`} onClick={() => startEdit(mem)} className="memory-action-button rounded px-1.5 py-0.5 text-[10px] transition">编辑</button>
+                          <button aria-label={`删除记忆 ${mem.content}`} onClick={() => handleDelete(mem.id)} className="memory-delete-button rounded px-1.5 py-0.5 text-[10px] transition">删除</button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )

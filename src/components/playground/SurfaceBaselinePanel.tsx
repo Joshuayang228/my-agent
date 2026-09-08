@@ -90,7 +90,7 @@ const MEMORY_PREVIEW_GROUPS: MemoryPreviewGroupDefinition[] = [
 const SENSITIVE_MEMORY_FIXTURE: MemoryEntry = {
   id: 'memory-sensitive',
   category: 'fact',
-  content: '最近在调整睡眠和用药安排。',
+  content: '最近在调整睡眠和处方药安排。',
   createdAt: NOW,
   updatedAt: NOW,
 }
