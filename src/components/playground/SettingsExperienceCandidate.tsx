@@ -24,7 +24,7 @@ export interface SettingsExperienceCandidateProps {
 }
 interface SettingCardProps { children: ReactNode; testId?: string }
 interface SettingRowProps { children: ReactNode; description?: string; icon?: ReactNode; label: string; scope?: string; stacked?: boolean }
-interface CandidateSwitchProps { checked: boolean; description: string; label: string; onChange: (checked: boolean) => void; scope?: string; testId: string }
+interface CandidateSwitchProps { checked: boolean; compact?: boolean; description: string; label: string; onChange: (checked: boolean) => void; scope?: string; testId: string }
 
 export const SETTINGS_CANDIDATE_NAV_GROUPS: Array<{ group: string; items: Array<{ id: SettingsCandidateSection; label: string; icon: ReactNode }> }> = [
   { group: '日常', items: [
@@ -344,8 +344,6 @@ function PermissionsPage({ mode, onModeChange }: { mode: string; onModeChange: (
 
 function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
   const [skillsEnabled, setSkillsEnabled] = useState(true)
-  const [skillsView, setSkillsView] = useState<'list' | 'detail'>('list')
-  const [selectedSkillFile, setSelectedSkillFile] = useState('SKILL.md')
   const [mcpState, setMcpState] = useState<'empty' | 'adding' | 'connected'>('empty')
   const [mcpStep, setMcpStep] = useState<'source' | 'details' | 'tools'>('source')
   const [mcpTransport, setMcpTransport] = useState<'local' | 'remote'>('local')
@@ -355,19 +353,12 @@ function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
 
   return <div className="space-y-4" data-testid={`settings-candidate-section-${mode}`}>
     <CandidatePageHeader icon={mode === 'skills' ? <Wrench size={14} /> : <Link2 size={14} />} title={mode === 'skills' ? 'Skills' : 'MCP'} description={mode === 'skills' ? '管理伙伴可以按需使用的工作方法。' : '管理伙伴可以使用的外部服务连接。'} />
-    {mode === 'skills' && (skillsView === 'list' ? <SettingCard>
-      <div className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
-        <div className="flex items-center justify-between gap-3 px-1 py-2" data-testid="settings-candidate-skill-file-organizer">
-          <button type="button" onClick={() => setSkillsView('detail')} className="text-left text-[13px] font-medium hover:underline" style={{ color: 'var(--text-primary)' }} data-testid="settings-candidate-skill-open-detail">文件整理助手</button>
-          <CandidateSwitch checked={skillsEnabled} scope="" label="启用文件整理助手" description="" onChange={setSkillsEnabled} testId="settings-candidate-skills-enabled" />
-        </div>
+    {mode === 'skills' && <SettingCard>
+      <div className="flex items-center justify-between gap-3 px-1 py-2" data-testid="settings-candidate-skill-file-organizer">
+        <span className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>文件整理助手</span>
+        <CandidateSwitch checked={skillsEnabled} compact label="启用文件整理助手" description="" onChange={setSkillsEnabled} testId="settings-candidate-skills-enabled" />
       </div>
-    </SettingCard> : <SettingCard testId="settings-candidate-skill-detail">
-      <div className="mb-4 flex items-center justify-between gap-3"><button type="button" onClick={() => setSkillsView('list')} className="inline-flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }} data-testid="settings-candidate-skill-back"><ChevronRight size={13} className="rotate-180" />返回 Skills</button><CandidateSwitch checked={skillsEnabled} scope="" label="启用文件整理助手" description="" onChange={setSkillsEnabled} testId="settings-candidate-skills-enabled" /></div>
-      <div className="mb-4"><h3 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>文件整理助手</h3><p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>帮助 Agent 归纳文件、提取重点并整理结果。</p></div>
-      <div className="grid gap-4 md:grid-cols-[180px_minmax(0,1fr)]"><div className="space-y-3"><div className="grid grid-cols-2 gap-2 text-[10px] sm:grid-cols-4 md:grid-cols-2"><div><div style={{ color: 'var(--text-muted)' }}>作者</div><div className="mt-1" style={{ color: 'var(--text-secondary)' }}>My Agent</div></div><div><div style={{ color: 'var(--text-muted)' }}>版本</div><div className="mt-1" style={{ color: 'var(--text-secondary)' }}>v1.2.0</div></div><div><div style={{ color: 'var(--text-muted)' }}>来源</div><div className="mt-1" style={{ color: 'var(--text-secondary)' }}>内置</div></div><div><div style={{ color: 'var(--text-muted)' }}>状态</div><div className="mt-1" style={{ color: 'var(--success)' }}>已启用</div></div></div><div className="border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}><div className="mb-2 text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>文件</div>{['SKILL.md', 'examples/basic.md', 'references/naming-rules.md'].map((file) => <button key={file} type="button" onClick={() => setSelectedSkillFile(file)} className="block w-full truncate px-2 py-1.5 text-left text-[10px]" style={{ color: selectedSkillFile === file ? 'var(--accent-fg)' : 'var(--text-secondary)', background: selectedSkillFile === file ? 'var(--accent-subtle)' : undefined }} data-testid={'settings-candidate-skill-file-' + file.replace(/[^a-z0-9]+/gi, '-')}>{file}</button>)}</div></div><div className="min-w-0 rounded-[var(--radius-md)] border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} data-testid="settings-candidate-skill-file-preview"><div className="mb-3 text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{selectedSkillFile}</div><pre className="whitespace-pre-wrap font-mono text-[10px] leading-5" style={{ color: 'var(--text-secondary)' }}>{selectedSkillFile === 'SKILL.md' ? '# 文件整理助手\n\n在用户要求整理文件时，先读取目录，再按主题归纳结果。' : selectedSkillFile === 'examples/basic.md' ? '# 示例\n\n按文件类型和修改时间生成清单。' : '# 命名规则\n\n输出结果使用清晰、稳定的中文名称。'}</pre></div></div>
-      <div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}><div className="mb-2 text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>使用范围</div><div className="grid gap-2 text-[10px] sm:grid-cols-3"><div><div style={{ color: 'var(--text-muted)' }}>触发场景</div><div className="mt-1" style={{ color: 'var(--text-secondary)' }}>用户请求整理文件时</div></div><div><div style={{ color: 'var(--text-muted)' }}>允许工具</div><div className="mt-1" style={{ color: 'var(--text-secondary)' }}>读取文件、写入结果</div></div><div><div style={{ color: 'var(--text-muted)' }}>确认要求</div><div className="mt-1" style={{ color: 'var(--text-secondary)' }}>写入前需要确认</div></div></div></div>
-    </SettingCard>)}
+    </SettingCard>}
     {mode === 'mcp' && <SettingCard testId="settings-candidate-mcp-card">
       <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2"><h3 className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>外部服务连接</h3><ScopeBadge label="全局" /></div><p className="mt-1 text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>连接后，伙伴可以在你允许的范围内使用这个服务提供的工具。</p></div>{mcpState === 'empty' && <button type="button" onClick={() => setMcpState('adding')} className="shrink-0 rounded-[var(--radius-md)] border px-3 py-1.5 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }} data-testid="settings-candidate-mcp-add">+ 添加连接</button>}</div>
       {mcpState === 'empty' && <div className="mt-4 rounded-[var(--radius-md)] border border-dashed p-5 text-center" style={{ borderColor: 'var(--border-color)' }}><div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>还没有连接外部服务</div><p className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>可以从常用服务开始，也可以填写自己的连接。</p></div>}
