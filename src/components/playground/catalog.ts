@@ -71,7 +71,7 @@ export const PLAYGROUND_TABS: readonly PlaygroundTabDef[] = [
   { id: 'chat', label: 'Chat', group: 'experience', description: '确认伙伴身份、会话导航、欢迎区与消息流的组合关系。' },
   { id: 'world', label: '人物世界', group: 'experience', description: '确认朋友圈、衣柜、文化角、家居、通讯录和足迹如何组成生活面；角色架归入设置。' },
   { id: 'settings', label: '设置', group: 'experience', description: '确认设置分组、字段编辑、自动保存和失败恢复的密度。' },
-  { id: 'workspace', label: '工作区', group: 'experience', description: '验证任务中按需出现的文件、预览、审阅和终端工作坞组合。' },
+  { id: 'workspace', label: '工作区', group: 'experience', description: '审阅、浏览器、文件、终端与侧边聊天的形态样张。' },
   { id: 'chat-lab', label: '对话试验', group: 'agent-experiments', description: '隔离测试对话输入、上下文和回复行为。', sourcePaths: ['src/components/playground/PromptLabPanel.tsx'] },
   { id: 'model-test', label: '模型能力', group: 'agent-experiments', description: '隔离检查模型连接、能力探测和辅助调用。', sourcePaths: ['src/components/playground/ModelTestPanel.tsx'] },
   { id: 'tools', label: '工具手测', group: 'agent-experiments', description: '隔离检查工具参数、权限边界和执行反馈。', sourcePaths: ['src/components/playground/ToolRunPanel.tsx'] },

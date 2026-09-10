@@ -440,21 +440,17 @@ test.describe('My Agent UI', () => {
     await expect(workspaceDependencies).toContainText('基础引用')
     await expect(workspaceDependencies.getByTestId('experience-foundation-parts')).toContainText('文件树')
     await expect(workspaceDependencies.getByTestId('experience-foundation-parts')).toContainText('Markdown 渲染器')
-    await expect(workspaceDependencies.getByTestId('experience-source')).toContainText('ChatRightDock.tsx')
+    await expect(workspaceDependencies.getByTestId('experience-source')).toContainText('WorkspaceExperienceCandidate.tsx')
     await expect(workspaceDependencies).not.toContainText('experience.workspace')
     await expect(workspaceDependencies).not.toContainText('右侧工作坞')
-    const dock = page.locator('[data-testid="chat-right-dock"]')
-    await expect(page.getByTestId('workspace-dock-candidate')).toContainText('任务产生的文件与工具')
-    await page.getByTestId('workspace-scenario-idle').click()
-    await expect(page.getByTestId('workspace-empty')).toBeVisible()
-    await expect(dock.getByTestId('right-dock-tab-preview')).toHaveCount(0)
-    await page.getByTestId('workspace-scenario-working').click()
-    await expect(page.getByTestId('workspace-task-context')).toContainText('Chat 正在处理文件任务')
-    await expect(dock.getByTestId('right-dock-tab-preview')).toBeVisible()
-    await expect(dock).toContainText('my-agent · 样张项目')
-    await page.getByTestId('workspace-scenario-review').click()
-    await expect(page.getByTestId('workspace-review-context')).toContainText('右侧展示变更审阅')
-    await expect(page.getByTestId('workspace-review-context')).not.toContainText('确认写入')
+    const workspace = page.getByTestId('workspace-dock-candidate')
+    await expect(workspace.getByRole('tablist', { name: '工作区功能' }).getByRole('tab')).toHaveCount(5)
+    await expect(workspace).not.toContainText('文件任务')
+    await expect(workspace).not.toContainText('完成结果')
+    await workspace.getByRole('tab', { name: '文件', exact: true }).click()
+    await expect(workspace).toContainText('notes.md')
+    await workspace.getByRole('tab', { name: '审阅', exact: true }).click()
+    await expect(workspace.getByTestId('workspace-diff')).toContainText('spacing')
 
     await nav.getByRole('button', { name: '人物世界', exact: true }).click()
     await expect(page.getByTestId('playground-moments-profile')).toBeVisible()
@@ -663,6 +659,80 @@ test.describe('My Agent UI', () => {
         await expect(preview.getByRole('status')).toHaveText('连接中')
         await preview.getByRole('button', { name: '取消', exact: true }).click()
         await expect(preview.getByRole('status')).toHaveText('已停用')
+      })
+    }
+  }
+
+  for (const theme of ['dark', 'light']) {
+    for (const width of [1166, 600]) {
+      test(`Playground 工作区五功能 ${theme} ${width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 800 })
+        await page.addInitScript((value) => localStorage.setItem('theme', value), theme)
+        await page.goto('/')
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+        await page.getByTestId('playground-nav').getByRole('button', { name: '工作区', exact: true }).click()
+        const work = page.getByTestId('workspace-dock-candidate')
+        const views = work.getByRole('tablist', { name: '工作区功能' })
+        const scenes = work.getByRole('tablist', { name: '工作区形态样张' })
+        const panel = work.getByTestId('workspace-tool-panel')
+        await expect(views.getByRole('tab')).toHaveText(['审阅', '浏览器', '文件', '终端', '侧边聊天'])
+        for (const [view, variants] of [
+          ['审阅', ['行内差异', '并排差异', '多文件', '无变更']],
+          ['浏览器', ['网页', '窄屏网页', '加载中', '加载失败']],
+          ['文件', ['Markdown', '代码', '图片', '空目录', '无法预览']],
+          ['终端', ['输出', '运行中', '报错', '多终端']],
+          ['侧边聊天', ['空态', '对话', '生成中', '发送失败']],
+        ] as const) {
+          await views.getByRole('tab', { name: view, exact: true }).click()
+          for (const scene of variants) {
+            await scenes.getByRole('tab', { name: scene, exact: true }).click()
+            await expect(scenes.getByRole('tab', { name: scene, exact: true })).toHaveAttribute('aria-selected', 'true')
+            expect(await panel.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+            if (view === '浏览器' && ['网页', '窄屏网页'].includes(scene)) {
+              const frame = page.frameLocator('iframe[title="浏览器网页样张"]')
+              await expect(frame.getByRole('heading', { name: '窗边的一杯茶' })).toBeVisible()
+              await expect.poll(() => frame.locator('img').evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0)
+            }
+            if (view === '文件' && scene === '图片') await expect.poll(() => panel.locator('img').evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0)
+            if (scene === variants[0] || scene === '并排差异' || scene === '图片') {
+              await panel.scrollIntoViewIfNeeded()
+              await page.screenshot({ path: testInfo.outputPath(`workspace-${view}-${scene}.png`), animations: 'disabled' })
+            }
+          }
+        }
+        await views.getByRole('tab', { name: '审阅', exact: true }).click()
+        await scenes.getByRole('tab', { name: '多文件', exact: true }).click()
+        await work.getByLabel('审阅文件').selectOption('notes.md')
+        await expect(work.getByTestId('workspace-diff')).toContainText('核对页面')
+        await views.getByRole('tab', { name: '终端', exact: true }).click()
+        await scenes.getByRole('tab', { name: '多终端', exact: true }).click()
+        await work.getByLabel('终端样张命令').fill('pwd')
+        await work.getByLabel('运行样张命令').click()
+        await expect(work.getByTestId('workspace-terminal-output')).toContainText('/workspace/my-agent')
+        await work.getByRole('button', { name: '终端 2', exact: true }).click()
+        await expect(work.getByTestId('workspace-terminal-output')).not.toContainText('/workspace/my-agent')
+        await scenes.getByRole('tab', { name: '运行中', exact: true }).click()
+        await work.getByLabel('停止运行').click()
+        await expect(work.getByTestId('workspace-terminal-output')).toContainText('已停止')
+        await views.getByRole('tab', { name: '侧边聊天', exact: true }).click()
+        await work.getByLabel('侧边聊天消息').fill('解释这处改动')
+        await work.getByLabel('发送消息', { exact: true }).click()
+        await expect(work.getByTestId('workspace-sidechat-messages')).toContainText('解释这处改动')
+        await scenes.getByRole('tab', { name: '发送失败', exact: true }).click()
+        await work.getByRole('button', { name: '重试', exact: true }).click()
+        await expect(panel).not.toContainText('消息未发送')
+        await scenes.getByRole('tab', { name: '生成中', exact: true }).click()
+        await work.getByLabel('停止生成').click()
+        await expect(panel).not.toContainText('正在生成')
+        await views.getByRole('tab', { name: '浏览器', exact: true }).click()
+        await scenes.getByRole('tab', { name: '加载失败', exact: true }).click()
+        await work.getByRole('button', { name: '重新加载', exact: true }).click()
+        await expect(page.frameLocator('iframe').getByRole('heading', { name: '窗边的一杯茶' })).toBeVisible()
+        await work.getByRole('button', { name: '窄栏', exact: true }).click()
+        expect((await panel.boundingBox())!.width).toBeLessThanOrEqual(380)
+        await page.screenshot({ path: testInfo.outputPath('workspace-narrow.png'), animations: 'disabled' })
+        await expect(work).not.toContainText('任务产生的文件')
+        await expect(work).not.toContainText('完成结果')
       })
     }
   }
@@ -993,7 +1063,7 @@ test.describe('My Agent UI', () => {
     const candidate = page.getByTestId('settings-surface-candidate')
     const mobileNav = candidate.getByTestId('settings-candidate-mobile-nav')
     await expect(mobileNav).toBeVisible()
-    await expect(mobileNav.getByRole('tab')).toHaveCount(8)
+    await expect(mobileNav.getByRole('tab')).toHaveText(['外观与界面', '伙伴与相处', '模型', '记忆', '数据与隐私', '权限与自动化', 'Skills', 'MCP', '关于'])
     await expect(mobileNav.getByRole('tab', { name: '外观与界面', exact: true })).toHaveAttribute('aria-controls', 'settings-candidate-panel-appearance')
 
     const modelTab = mobileNav.getByRole('tab', { name: '模型', exact: true })
@@ -1211,19 +1281,13 @@ test.describe('My Agent UI', () => {
     await expect(workspaceDependencies.getByTestId('experience-foundation-parts')).toContainText('文件树')
     await expect(workspaceDependencies).not.toContainText('experience.workspace')
     await expect(workspaceDependencies).not.toContainText('右侧工作坞')
-    const dock = page.locator('[data-testid="chat-right-dock"]')
-    await expect(dock).toContainText('my-agent · 样张项目')
-    await expect(dock.getByTestId('right-dock-tab-preview')).toBeVisible()
-    await expect(dock.getByTestId('right-dock-tab-files')).toHaveCount(0)
-    await expect(dock.getByTestId('right-dock-tab-review')).toHaveCount(0)
-    await expect(dock.getByTestId('right-dock-tab-terminal')).toHaveCount(0)
-    await dock.getByTestId('right-dock-add-tab').click()
-    await dock.getByRole('menuitem', { name: '文件', exact: true }).click()
-    await expect(dock.getByTestId('right-dock-tab-files')).toHaveCount(1)
-    await dock.getByTestId('right-dock-add-tab').click()
-    await dock.getByRole('menuitem', { name: '文件', exact: true }).click()
-    await expect(dock.getByTestId('right-dock-tab-files')).toHaveCount(2)
-    expect(await dock.getByTestId('right-dock-add-tab').evaluate((add, close) => Boolean(add.compareDocumentPosition(close as Node) & Node.DOCUMENT_POSITION_FOLLOWING), await dock.getByTestId('right-dock-close-tab').elementHandle())).toBe(true)
+    const dock = page.getByTestId('workspace-dock-candidate')
+    await expect(dock.getByRole('tablist', { name: '工作区功能' }).getByRole('tab')).toHaveText(['审阅', '浏览器', '文件', '终端', '侧边聊天'])
+    await dock.getByRole('tab', { name: '文件', exact: true }).click()
+    await expect(dock).toContainText('my-agent')
+    await expect(dock).toContainText('notes.md')
+    await expect(dock).toContainText('项目笔记')
+    await expect(dock).not.toContainText('任务产生的文件')
 
     await nav.getByRole('button', { name: '人物世界', exact: true }).click()
     await expect(page.getByText('生活广播（非日志表）', { exact: false })).toHaveCount(0)

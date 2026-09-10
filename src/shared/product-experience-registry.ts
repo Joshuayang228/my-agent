@@ -64,12 +64,13 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
   experience({
     key: 'experience.workspace',
     labelZh: '工作区',
-    descriptionZh: '文件、预览、审阅和终端组成的右侧任务工作区。',
+    descriptionZh: '审阅、浏览器、文件、终端与侧边聊天组成的右侧工具区。',
     status: 'playground',
     playgroundTabId: 'workspace',
-    sourcePaths: ['src/components/chat/right-dock/ChatRightDock.tsx', 'src/components/FileBrowser.tsx'],
-    experienceParts: ['文件', '预览', '审阅', '终端'],
-    usesFoundation: ['developer.file-tree', 'developer.markdown', 'layout.resize-handle', 'behavior.tabs'],
+    sourcePaths: ['src/components/playground/WorkspaceExperienceCandidate.tsx', 'src/components/FileBrowser.tsx', 'src/components/MarkdownRenderer.tsx'],
+    fixtureAssetPaths: ['src/assets/playground/moment-tea-by-window.jpg'],
+    experienceParts: ['审阅', '浏览器', '文件', '终端', '侧边聊天'],
+    usesFoundation: ['developer.file-tree', 'developer.markdown', 'layout.resize-handle', 'behavior.tabs', 'behavior.input', 'behavior.icon-button'],
   }),
 ] as const satisfies readonly ProductExperienceDefinition[]
 

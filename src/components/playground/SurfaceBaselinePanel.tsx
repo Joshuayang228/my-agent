@@ -6,6 +6,7 @@
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, CheckCircle2, Coffee, ChevronDown, CircleAlert, Clapperboard, FileCode2, Folder, Home, Image, Lightbulb, LoaderCircle, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, Paperclip, Plus, RotateCcw, Search, Shield, Shirt, UserRound, Users } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
+import { WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
 import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
@@ -565,46 +566,8 @@ function SidebarSurface() {
   )
 }
 
-type WorkspaceFixtureState = 'idle' | 'working' | 'review' | 'completed'
-
-const WORKSPACE_FIXTURE_STATES: Array<{ id: WorkspaceFixtureState; label: string }> = [
-  { id: 'idle', label: '默认态' },
-  { id: 'working', label: '文件任务' },
-  { id: 'review', label: '变更审阅' },
-  { id: 'completed', label: '完成结果' },
-]
-
 function DockSurface() {
-  const [state, setState] = useState<WorkspaceFixtureState>('working')
-  const isActive = state !== 'idle'
-  const statusCopy: Record<WorkspaceFixtureState, string> = {
-    idle: '没有任务时不常驻；工作坞只在 Chat 发起文件或项目任务后出现。',
-    working: 'Chat 负责说明进度；右侧工作坞只承载当前任务产生的文件和预览。',
-    review: '变更已经产生；审阅在右侧查看，确认与拒绝仍回到 Chat。',
-    completed: '任务结果回到 Chat；工作坞只保留查看文件和结果的现场。',
-  }
-  return (
-    <SurfaceViewport>
-      <div className="flex h-full min-h-[620px] flex-col" data-testid="workspace-dock-candidate">
-        <div className="border-b px-5 py-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0"><div className="flex items-center gap-2 text-[10px] font-semibold tracking-[0.14em]" style={{ color: 'var(--accent-fg)' }}><Folder size={13} />右侧工作坞</div><h3 className="mt-1 text-[16px] font-semibold" style={{ color: 'var(--text-primary)' }}>任务产生的文件与工具</h3><p className="mt-1 max-w-xl text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>{statusCopy[state]}</p></div>
-            <span className="rounded-full border px-2.5 py-1 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>{isActive ? '按需出现' : '未打开'}</span>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="工作坞候选场景" data-testid="workspace-scenarios">{WORKSPACE_FIXTURE_STATES.map((item) => <button key={item.id} type="button" aria-pressed={state === item.id} onClick={() => setState(item.id)} className="settings-option px-2 py-1 text-[10px]" data-testid={`workspace-scenario-${item.id}`} data-selected={state === item.id ? 'true' : undefined}>{item.label}</button>)}</div>
-        </div>
-        <div className="flex min-h-0 flex-1 items-stretch justify-end">
-          <div className="min-w-0 flex-1 overflow-y-auto px-5 py-5"><div className="mx-auto max-w-2xl space-y-4">
-            {state === 'idle' && <div className="flex min-h-[250px] items-center justify-center text-center" data-testid="workspace-empty"><div><div className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>工作坞在需要时出现</div><p className="mt-1 max-w-sm text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>任务状态、确认和恢复动作留在 Chat；这里只查看任务产物。</p><div className="mt-4 flex flex-wrap justify-center gap-2 text-[10px]" style={{ color: 'var(--text-secondary)' }}><span>文件树</span><span>预览</span><span>审阅</span><span>终端</span></div></div></div>}
-            {state === 'working' && <section className="rounded-[var(--radius-md)] border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }} data-testid="workspace-task-context"><div className="flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}><LoaderCircle size={14} className="animate-spin" style={{ color: 'var(--accent-fg)' }} />Chat 正在处理文件任务</div><p className="mt-2 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}>当前工作坞展示项目文件与预览；Agent 的进度和下一步说明仍在 Chat。</p><div className="mt-3 grid gap-2 text-[10px] sm:grid-cols-3"><div><div style={{ color: 'var(--text-muted)' }}>项目</div><div className="mt-1" style={{ color: 'var(--text-secondary)' }}>my-agent · 样张项目</div></div><div><div style={{ color: 'var(--text-muted)' }}>来源</div><div className="mt-1" style={{ color: 'var(--text-secondary)' }}>当前 Chat 任务</div></div><div><div style={{ color: 'var(--text-muted)' }}>确认</div><div className="mt-1" style={{ color: 'var(--text-secondary)' }}>在 Chat 中处理</div></div></div></section>}
-            {state === 'review' && <section className="rounded-[var(--radius-md)] border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }} data-testid="workspace-review-context"><div className="flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}><FileCode2 size={14} style={{ color: 'var(--accent-fg)' }} />右侧展示变更审阅</div><p className="mt-2 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}>这里查看差异和文件上下文；接受、拒绝或继续讨论由 Chat 的确认卡负责。</p><div className="mt-3 flex items-center justify-between gap-3 text-[10px]" style={{ color: 'var(--text-muted)' }}><span>src/components/ · 2 个文件</span><span style={{ color: 'var(--success)' }}>+18 行</span></div></section>}
-            {state === 'completed' && <section className="rounded-[var(--radius-md)] border p-4" style={{ borderColor: 'var(--success)', background: 'var(--card-bg)' }} data-testid="workspace-completed-context"><div className="flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}><CheckCircle2 size={14} style={{ color: 'var(--success)' }} />结果已回到 Chat</div><p className="mt-2 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}>工作坞保留文件、预览和审阅现场，用户可以继续回到对话讨论下一步。</p></section>}
-          </div></div>
-          <ChatRightDock projectPath={null} sessionId={null} showFiles={isActive} filesPreview={FILE_PREVIEW_FIXTURES} playgroundTabs onCloseFiles={() => setState('idle')} />
-        </div>
-      </div>
-    </SurfaceViewport>
-  )
+  return <WorkspaceExperienceCandidate />
 }
 function MomentsProfileHero({ persona, onOpenMemory }: { persona: PlaygroundPersona; onOpenMemory?: () => void }) {
   return (
