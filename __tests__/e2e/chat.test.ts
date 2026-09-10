@@ -585,6 +585,8 @@ test.describe('My Agent UI', () => {
           const toggle = detail.getByRole('switch')
           const titleBox = await heading.boundingBox()
           const toggleBox = await toggle.boundingBox()
+          const backBox = await detail.getByTestId('settings-candidate-skill-back').boundingBox()
+          expect(backBox!.y + backBox!.height).toBeLessThan(titleBox!.y)
           expect(Math.abs(titleBox!.y + titleBox!.height / 2 - toggleBox!.y - toggleBox!.height / 2)).toBeLessThan(2)
           await toggle.click()
           const checked = await toggle.getAttribute('aria-checked')

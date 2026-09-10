@@ -53,6 +53,8 @@
 
 ## 已落地能力
 
+- Skills 详情候选的返回图标独占一行，下方名称与启用开关同行；不改变 Skill 状态或生产管理行为。
+
 - MCP Playground 候选：顶部场景 Tab 直达未添加、1/2 服务、连接中、待确认、1/2/3 工具、无工具、已停用、连接失败和待登录。每个服务独立卡片，未知工具数不当作零；确认、启停、取消和重试仅改变隔离夹具。正式 MCP 仍为 stdio / SSE，候选中的 Streamable HTTP / OAuth 不代表后端已接入。
 
 - Skills Playground 候选：每个 Skill 独立名称与开关卡片，详情先显示源 `when_to_use` 与 `description`，再显示元信息和完整文件。仅选取内置 `code-review`、`content-creator` 的 SKILL.md 作为只读样张，独立启用状态只保存在 Renderer，不修改正式 Skill 管理。

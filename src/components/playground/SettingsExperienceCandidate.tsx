@@ -483,8 +483,10 @@ function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
         {(['单个', '多个', '详情'] as const).map((state) => <button key={state} type="button" role="tab" aria-selected={skillsState === state} onClick={() => setSkillsState(state)} className="settings-option px-2.5 py-1 text-[10px]" data-selected={skillsState === state ? 'true' : undefined}>{state}</button>)}
       </div>
       {skillsState === '详情' ? <div data-testid="settings-candidate-skill-detail">
-        <div className="mb-4 flex items-center gap-3">
+        <div className="mb-2">
           <button type="button" onClick={() => setSkillsState('多个')} aria-label="返回 Skills" title="返回 Skills" className="inline-flex h-7 w-7 shrink-0 items-center justify-center" style={{ color: 'var(--text-secondary)' }} data-testid="settings-candidate-skill-back"><ArrowLeft size={16} /></button>
+        </div>
+        <div className="mb-4 flex items-center gap-3">
           <h3 className="min-w-0 flex-1 break-words text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{skill.name}</h3>
           <CandidateSwitch checked={skillsEnabled[skill.name]} compact label={skill.name} description="" onChange={(enabled) => setSkillsEnabled((current) => ({ ...current, [skill.name]: enabled }))} testId="settings-candidate-skills-enabled" />
         </div>
