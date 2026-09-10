@@ -5,6 +5,7 @@
  * IPC/LLM 相关功能在 electron.test.ts 中测试。
  */
 import { test, expect } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 
 /**
  * 正式 Chat 右坞的 UI 契约测试只替身 Electron 边界，不替身右坞本身。
@@ -563,6 +564,47 @@ test.describe('My Agent UI', () => {
     await expect(nav.getByRole('button', { name: 'Chat', exact: true })).toHaveAttribute('data-active', 'true')
   })
 
+  for (const theme of ['dark', 'light']) {
+    for (const width of [1166, 600]) {
+      test(`Playground Skills 真实样张 ${theme} ${width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 731 })
+        await page.addInitScript((value) => localStorage.setItem('theme', value), theme)
+        await page.goto('/')
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+        await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
+        const candidate = page.getByTestId('settings-surface-candidate')
+        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /暗夜/ : /日光/ }).click()
+        await candidate.getByRole(width < 640 ? 'tab' : 'button', { name: 'Skills', exact: true }).click()
+        await candidate.getByRole('tab', { name: '多个', exact: true }).click()
+        await expect(candidate.getByRole('tab', { name: '多个', exact: true })).toHaveAttribute('aria-selected', 'true')
+        await page.screenshot({ path: testInfo.outputPath('skills-list.png'), animations: 'disabled' })
+        for (const name of ['code-review', 'content-creator']) {
+          await candidate.getByRole('button', { name, exact: true }).click()
+          const detail = candidate.getByTestId('settings-candidate-skill-detail')
+          const heading = detail.getByRole('heading', { name, exact: true })
+          const toggle = detail.getByRole('switch')
+          const titleBox = await heading.boundingBox()
+          const toggleBox = await toggle.boundingBox()
+          expect(Math.abs(titleBox!.y + titleBox!.height / 2 - toggleBox!.y - toggleBox!.height / 2)).toBeLessThan(2)
+          await toggle.click()
+          const checked = await toggle.getAttribute('aria-checked')
+          await expect(detail.getByText(checked === 'true' ? '已启用' : '未启用', { exact: true })).toBeVisible()
+          await expect(detail.getByText('未声明', { exact: true })).toBeVisible()
+          await expect(detail).not.toContainText('确认约束')
+          const raw = readFileSync(`electron/skills-builtin/${name}/SKILL.md`, 'utf8').replace(/\r\n/g, '\n')
+          expect((await detail.getByTestId('settings-candidate-skill-file-preview').textContent())?.replace(/\r\n/g, '\n')).toBe(raw)
+          const trigger = detail.locator('p').first()
+          await expect(trigger).toContainText('不适用于：')
+          expect((await trigger.boundingBox())!.y).toBeLessThan((await detail.locator('p').nth(1).boundingBox())!.y)
+          expect(await detail.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+          await page.screenshot({ path: testInfo.outputPath(`skills-${name}.png`), animations: 'disabled' })
+          await detail.getByTestId('settings-candidate-skill-back').click()
+          await expect(candidate.getByTestId(`settings-candidate-skill-card-${name}`).getByRole('switch')).toHaveAttribute('aria-checked', checked!)
+        }
+      })
+    }
+  }
+
   test('Playground 设置候选覆盖新的信息架构与隔离交互', async ({ page }) => {
     await page.goto('/')
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
@@ -664,17 +706,26 @@ test.describe('My Agent UI', () => {
     await candidate.getByRole('button', { name: 'Skills', exact: true }).click()
     await expect(candidate.getByTestId('settings-candidate-section-skills')).toContainText('Skills')
     await expect(candidate.getByTestId('settings-candidate-skills-enabled')).toHaveAttribute('aria-checked', 'true')
-    await expect(candidate.getByTestId('settings-candidate-section-skills')).toContainText('文件整理助手')
-    await expect(candidate.getByTestId('settings-candidate-section-skills')).not.toContainText('启用文件整理助手 全局')
-    await expect(candidate.getByTestId('settings-candidate-skill-file-organizer').getByText('文件整理助手', { exact: true })).toHaveCount(1)
+    await expect(candidate.getByTestId('settings-candidate-section-skills')).toContainText('code-review')
+    await expect(candidate.getByTestId('settings-candidate-section-skills')).not.toContainText('启用代码审查 全局')
+    await expect(candidate.getByTestId('settings-candidate-skill-card-code-review').getByText('code-review', { exact: true })).toHaveCount(1)
     await expect(candidate.getByTestId('settings-candidate-skills-enabled')).toHaveText('')
     const skillsStates = candidate.getByTestId('settings-candidate-skills-states')
     await skillsStates.getByRole('tab', { name: '多个', exact: true }).click()
-    await expect(candidate.getByTestId('settings-candidate-skill-card-网页研究助手')).toContainText('网页研究助手')
-    await expect(candidate.getByTestId('settings-candidate-skill-card-代码审查助手')).toContainText('代码审查助手')
+    await expect(candidate.getByTestId('settings-candidate-skill-card-content-creator')).toContainText('content-creator')
+    await candidate.getByTestId('settings-candidate-skill-toggle-content-creator').click()
+    await expect(candidate.getByTestId('settings-candidate-skill-toggle-content-creator')).toHaveAttribute('aria-checked', 'true')
+    await expect(candidate.getByTestId('settings-candidate-skills-enabled')).toHaveAttribute('aria-checked', 'true')
     await skillsStates.getByRole('tab', { name: '详情', exact: true }).click()
     await expect(candidate.getByTestId('settings-candidate-skill-detail')).toContainText('作者')
-    await expect(candidate.getByTestId('settings-candidate-skill-file-preview')).toContainText('SKILL.md')
+    const source = readFileSync('electron/skills-builtin/code-review/SKILL.md', 'utf8').replace(/\r\n/g, '\n')
+    expect((await candidate.getByTestId('settings-candidate-skill-file-preview').textContent())?.replace(/\r\n/g, '\n')).toBe(source)
+    await candidate.getByTestId('settings-candidate-skills-enabled').click()
+    await expect(candidate.getByTestId('settings-candidate-skill-detail').getByText('未启用', { exact: true })).toBeVisible()
+    await candidate.getByTestId('settings-candidate-skill-back').click()
+    await expect(candidate.getByTestId('settings-candidate-skills-enabled')).toHaveAttribute('aria-checked', 'false')
+    await candidate.getByRole('button', { name: 'content-creator', exact: true }).click()
+    expect((await candidate.getByTestId('settings-candidate-skill-file-preview').textContent())?.replace(/\r\n/g, '\n')).toBe(readFileSync('electron/skills-builtin/content-creator/SKILL.md', 'utf8').replace(/\r\n/g, '\n'))
     await skillsStates.getByRole('tab', { name: '单个', exact: true }).click()
     await candidate.getByRole('button', { name: 'MCP', exact: true }).click()
     await expect(candidate.getByTestId('settings-candidate-section-mcp')).toContainText('MCP')

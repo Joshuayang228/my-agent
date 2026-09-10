@@ -9,9 +9,36 @@
  *       所有开关、连接状态和输入都只存在于当前 Playground 会话。
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Brain, Check, ChevronRight, Circle, CircleHelp, Cloud, Database, Download, Eye, Heart, KeyRound, Link2, LockKeyhole, Palette, Plug, Save, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Upload, UserRound, Wrench, Activity, Gauge, Plus, Server, ListChecks, ArrowUp, ArrowDown, GripVertical, RefreshCw, Trash2, X } from 'lucide-react'
+import { Brain, Check, ChevronRight, Circle, CircleHelp, Cloud, Database, Download, Eye, Heart, KeyRound, Link2, LockKeyhole, Palette, Plug, Save, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Upload, UserRound, Wrench, Activity, Gauge, Plus, Server, ListChecks, ArrowLeft, ArrowUp, ArrowDown, GripVertical, RefreshCw, Trash2, X } from 'lucide-react'
 import { DESIGN_THEME_ASSETS, FONT_SCALE_ASSETS } from '../../shared/design-asset-registry'
 import { PROVIDER_PRESET_GROUPS } from '../../shared/provider-presets'
+import { JSON_SCHEMA, load } from 'js-yaml'
+import codeReview from '../../../electron/skills-builtin/code-review/SKILL.md?raw'
+import contentCreator from '../../../electron/skills-builtin/content-creator/SKILL.md?raw'
+
+/**
+ * 背景：用户要求用真实内置 Skill 验收详情，手写摘要会偏离源文件。
+ * 设计意图：仅导入明确选定的两个静态样本，用现有 YAML 库读取元信息。
+ * 关键约束：不是生产 loader，不扫描资产目录、不执行正文、不写生产启用状态。
+ */
+const skillsSamples = [codeReview, contentCreator].map((raw) => {
+  const header = /^---\s*\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(raw)
+  const parsed: unknown = header ? load(header[1], { schema: JSON_SCHEMA }) : null
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('内置 Skill 样张缺少有效元信息')
+  }
+  const data = parsed as Record<string, unknown>
+  const field = (key: string) => typeof data[key] === 'string' ? data[key].trim() : ''
+  if (!field('name') || !field('description')) throw new Error('内置 Skill 样张缺少名称或描述')
+  return {
+    name: field('name'),
+    description: field('description'),
+    trigger: field('when_to_use'),
+    author: field('author') || '未声明',
+    version: field('version') || '未声明',
+    raw,
+  }
+})
 
 export type SettingsCandidateSection = 'appearance' | 'companion' | 'model' | 'memory' | 'data' | 'permissions' | 'skills' | 'mcp' | 'about'
 
@@ -342,9 +369,10 @@ function PermissionsPage({ mode, onModeChange }: { mode: string; onModeChange: (
 }
 
 function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
-  const [skillsEnabled, setSkillsEnabled] = useState(true)
+  const [skillsEnabled, setSkillsEnabled] = useState<Record<string, boolean>>(() => Object.fromEntries(skillsSamples.map((sample, index) => [sample.name, index === 0])))
+  const [selectedSkill, setSelectedSkill] = useState(skillsSamples[0].name)
+  const skill = skillsSamples.find((sample) => sample.name === selectedSkill) ?? skillsSamples[0]
   const [skillsState, setSkillsState] = useState<'单个' | '多个' | '详情'>('单个')
-  const [skillFile, setSkillFile] = useState('SKILL.md')
   const [mcpState, setMcpState] = useState<'empty' | 'adding' | 'connected'>('empty')
   const [mcpStep, setMcpStep] = useState<'source' | 'details' | 'tools'>('source')
   const [mcpTransport, setMcpTransport] = useState<'local' | 'remote'>('local')
@@ -355,13 +383,34 @@ function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
   return <div className="space-y-4" data-testid={`settings-candidate-section-${mode}`}>
     <CandidatePageHeader icon={mode === 'skills' ? <Wrench size={14} /> : <Link2 size={14} />} title={mode === 'skills' ? 'Skills' : 'MCP'} description={mode === 'skills' ? '管理伙伴可以按需使用的工作方法。' : '管理伙伴可以使用的外部服务连接。'} />
     {mode === 'skills' && <>
-      <div className="flex items-center justify-end gap-1" role="tablist" aria-label="Skills 样张状态" data-testid="settings-candidate-skills-states">{(['单个', '多个', '详情'] as const).map((state) => <button key={state} type="button" role="tab" aria-selected={skillsState === state} onClick={() => setSkillsState(state)} className="settings-option px-2.5 py-1 text-[10px]" data-selected={skillsState === state ? 'true' : undefined}>{state}</button>)}</div>
-      {skillsState === '详情' ? <SettingCard testId="settings-candidate-skill-detail">
-        <div className="mb-4 flex items-center justify-between gap-3"><div className="flex items-center gap-3"><button type="button" onClick={() => setSkillsState('单个')} className="text-[11px]" style={{ color: 'var(--text-secondary)' }} data-testid="settings-candidate-skill-back">返回 Skills</button><h3 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>文件整理助手</h3></div><CandidateSwitch checked={skillsEnabled} compact label="启用文件整理助手" description="" onChange={setSkillsEnabled} testId="settings-candidate-skills-enabled" /></div>
-        <p className="-mt-2 mb-4 text-[11px]" style={{ color: 'var(--text-muted)' }}>帮助 Agent 归纳文件、提取重点并整理结果。</p>
-        <div className="mt-4 grid gap-4 md:grid-cols-[180px_minmax(0,1fr)]"><div><div className="grid grid-cols-2 gap-3 text-[10px]"><div><div style={{ color: 'var(--text-muted)' }}>作者</div><div className="mt-1">My Agent</div></div><div><div style={{ color: 'var(--text-muted)' }}>版本</div><div className="mt-1">v1.2.0</div></div><div><div style={{ color: 'var(--text-muted)' }}>来源</div><div className="mt-1">内置</div></div><div><div style={{ color: 'var(--text-muted)' }}>状态</div><div className="mt-1" style={{ color: 'var(--success)' }}>已启用</div></div></div><div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}><div className="mb-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>文件</div>{['SKILL.md', 'examples/basic.md', 'references/naming-rules.md'].map((file) => <button key={file} type="button" onClick={() => setSkillFile(file)} className="block w-full truncate px-2 py-1.5 text-left text-[10px]" style={{ color: skillFile === file ? 'var(--accent-fg)' : 'var(--text-secondary)', background: skillFile === file ? 'var(--accent-subtle)' : undefined }}>{file}</button>)}</div></div><div className="min-w-0 rounded-[var(--radius-md)] border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} data-testid="settings-candidate-skill-file-preview"><div className="mb-3 text-[10px] font-medium" style={{ color: 'var(--text-primary)' }}>{skillFile}</div><pre className="whitespace-pre-wrap font-mono text-[10px] leading-5" style={{ color: 'var(--text-secondary)' }}>{skillFile === 'SKILL.md' ? '# 文件整理助手\n\n先读取目录，再按主题归纳结果。' : skillFile === 'examples/basic.md' ? '# 示例\n\n按文件类型生成清单。' : '# 命名规则\n\n使用清晰稳定的中文名称。'}</pre></div></div>
-        <div className="mt-4 border-t pt-3 text-[10px]" style={{ borderColor: 'var(--border-subtle)' }}><div className="mb-2 text-[11px] font-medium">触发条件</div><div className="grid gap-2 sm:grid-cols-3"><div>用户请求整理文件时</div><div>读取文件、写入结果</div><div>写入前需要确认</div></div></div>
-      </SettingCard> : <div className="grid gap-3 sm:grid-cols-2">{(skillsState === '多个' ? ['文件整理助手', '网页研究助手', '代码审查助手'] : ['文件整理助手']).map((name) => <SettingCard key={name} testId={name === '文件整理助手' ? 'settings-candidate-skill-file-organizer' : 'settings-candidate-skill-card-' + name}><div className="flex items-center justify-between gap-3"><span className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{name}</span><CandidateSwitch checked={name === '文件整理助手' ? skillsEnabled : false} compact label={name} description="" onChange={name === '文件整理助手' ? setSkillsEnabled : () => undefined} testId={name === '文件整理助手' ? 'settings-candidate-skills-enabled' : 'settings-candidate-skill-toggle-' + name} /></div></SettingCard>)}</div>}
+      <div className="flex items-center justify-end gap-1" role="tablist" aria-label="Skills 样张状态" data-testid="settings-candidate-skills-states">
+        {(['单个', '多个', '详情'] as const).map((state) => <button key={state} type="button" role="tab" aria-selected={skillsState === state} onClick={() => setSkillsState(state)} className="settings-option px-2.5 py-1 text-[10px]" data-selected={skillsState === state ? 'true' : undefined}>{state}</button>)}
+      </div>
+      {skillsState === '详情' ? <div data-testid="settings-candidate-skill-detail">
+        <div className="mb-4 flex items-center gap-3">
+          <button type="button" onClick={() => setSkillsState('多个')} aria-label="返回 Skills" title="返回 Skills" className="inline-flex h-7 w-7 shrink-0 items-center justify-center" style={{ color: 'var(--text-secondary)' }} data-testid="settings-candidate-skill-back"><ArrowLeft size={16} /></button>
+          <h3 className="min-w-0 flex-1 break-words text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{skill.name}</h3>
+          <CandidateSwitch checked={skillsEnabled[skill.name]} compact label={skill.name} description="" onChange={(enabled) => setSkillsEnabled((current) => ({ ...current, [skill.name]: enabled }))} testId="settings-candidate-skills-enabled" />
+        </div>
+        <div className="space-y-2 text-[12px] leading-5" style={{ color: 'var(--text-secondary)' }}>
+          <p className="whitespace-pre-line"><span className="font-medium">触发条件：</span>{skill.trigger || '未单独声明'}</p>
+          <p>{skill.description}</p>
+        </div>
+        <dl className="my-5 grid grid-cols-2 gap-3 border-y py-3 text-[11px] sm:grid-cols-4" style={{ borderColor: 'var(--border-subtle)' }}>
+          {Object.entries({ 作者: skill.author, 版本: skill.version, 来源: '内置', 状态: skillsEnabled[skill.name] ? '已启用' : '未启用' }).map(([label, value]) => <div key={label}><dt style={{ color: 'var(--text-muted)' }}>{label}</dt><dd className="mt-1">{value}</dd></div>)}
+        </dl>
+        <div className="grid gap-3 md:grid-cols-[120px_minmax(0,1fr)]">
+          <div className="text-[11px]"><div className="mb-2" style={{ color: 'var(--text-muted)' }}>文件</div><span className="block px-2 py-1.5" style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}>SKILL.md</span></div>
+          <pre className="min-w-0 whitespace-pre-wrap break-words rounded-[var(--radius-md)] border p-3 font-mono text-[11px] leading-5" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }} data-testid="settings-candidate-skill-file-preview">{skill.raw}</pre>
+        </div>
+      </div> : <div className="grid gap-3 sm:grid-cols-2">
+        {(skillsState === '多个' ? skillsSamples : skillsSamples.slice(0, 1)).map((sample) => <SettingCard key={sample.name} testId={'settings-candidate-skill-card-' + sample.name}>
+          <div className="flex items-center justify-between gap-3">
+            <button type="button" className="min-w-0 break-words text-left text-[13px] font-medium" style={{ color: 'var(--text-primary)' }} onClick={() => { setSelectedSkill(sample.name); setSkillsState('详情') }}>{sample.name}</button>
+            <CandidateSwitch checked={skillsEnabled[sample.name]} compact label={sample.name} description="" onChange={(enabled) => setSkillsEnabled((current) => ({ ...current, [sample.name]: enabled }))} testId={sample.name === skillsSamples[0].name ? 'settings-candidate-skills-enabled' : 'settings-candidate-skill-toggle-' + sample.name} />
+          </div>
+        </SettingCard>)}
+      </div>}
     </>}
     {mode === 'mcp' && <SettingCard testId="settings-candidate-mcp-card">
       <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2"><h3 className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>外部服务连接</h3><ScopeBadge label="全局" /></div><p className="mt-1 text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>连接后，伙伴可以在你允许的范围内使用这个服务提供的工具。</p></div>{mcpState === 'empty' && <button type="button" onClick={() => setMcpState('adding')} className="shrink-0 rounded-[var(--radius-md)] border px-3 py-1.5 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }} data-testid="settings-candidate-mcp-add">+ 添加连接</button>}</div>

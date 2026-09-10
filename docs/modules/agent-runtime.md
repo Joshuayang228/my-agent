@@ -53,6 +53,8 @@
 
 ## 已落地能力
 
+- Skills Playground 候选：每个 Skill 独立名称与开关卡片，详情先显示源 `when_to_use` 与 `description`，再显示元信息和完整文件。仅选取内置 `code-review`、`content-creator` 的 SKILL.md 作为只读样张，独立启用状态只保存在 Renderer，不修改正式 Skill 管理。
+
 状态：`已落地` · `部分` · `缺口`。能力增删或行为变了 → **同轮改本表**。
 
 | 能力 | 状态 | 入口 / 落点 |

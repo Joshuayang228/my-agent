@@ -3,6 +3,12 @@
 > 只记录用户或开发者可以感知的能力变化。完整早期施工流水见 [`../_archive/ledgers/changelog-through-2026-08-16.md`](../_archive/ledgers/changelog-through-2026-08-16.md)。
 
 ## [未发布]
+
+### 2026-09-10 · Skills 真实样张
+
+- Skills 候选使用真实内置 code-review 和 content-creator，完整展示 SKILL.md；未声明作者不再虚构。
+- 详情先触发条件、后描述；标题开关对齐，删除工具和确认约束摘要，移除详情外层卡片。每个开关独立工作，列表与详情同步。
+
 ### 2026-09-09 · 扩展与工作坞候选收口
 
 - Playground 扩展与工具改为 Skills / 外部能力（MCP）分层管理；Skill 的版本、校验、可用工具和隔离试跑收进详情。
