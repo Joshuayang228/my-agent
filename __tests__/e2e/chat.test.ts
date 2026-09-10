@@ -605,6 +605,66 @@ test.describe('My Agent UI', () => {
     }
   }
 
+  for (const theme of ['dark', 'light']) {
+    for (const width of [1166, 600]) {
+      test(`Playground MCP 场景直达 ${theme} ${width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 731 })
+        await page.addInitScript((value) => localStorage.setItem('theme', value), theme)
+        await page.goto('/')
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+        await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
+        const candidate = page.getByTestId('settings-surface-candidate')
+        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /暗夜/ : /日光/ }).click()
+        await candidate.getByRole(width < 640 ? 'tab' : 'button', { name: 'MCP', exact: true }).click()
+        const preview = candidate.getByTestId('settings-candidate-mcp-scenes')
+        const tabs = preview.getByRole('tablist', { name: 'MCP 样张场景' })
+        await expect(tabs.getByRole('tab')).toHaveCount(12)
+        for (const [label, serverCount, toolCount] of [
+          ['未添加', 0, 0], ['1 个 MCP', 1, 3], ['2 个 MCP', 2, 4],
+          ['连接中', 1, 0], ['待确认', 1, 3], ['1 个工具', 1, 1],
+          ['2 个工具', 1, 2], ['3 个工具', 1, 3], ['无工具', 1, 0],
+          ['已停用', 1, 0], ['连接失败', 1, 0], ['待登录', 1, 0],
+        ] as const) {
+          await tabs.getByRole('tab', { name: label, exact: true }).click()
+          await expect(preview.locator('section')).toHaveCount(serverCount)
+          await expect(preview.getByTestId('mcp-tool-row')).toHaveCount(toolCount)
+          await expect(preview.locator('section section')).toHaveCount(0)
+          if (label === '连接中' || label === '待登录') await expect(preview).not.toContainText('0 个工具')
+          if (label === '无工具') await expect(preview).toContainText('已连接，服务未提供工具。')
+          expect(await preview.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+          if (['2 个 MCP', '待确认', '连接失败', '未添加'].includes(label)) {
+            await tabs.scrollIntoViewIfNeeded()
+            await page.screenshot({ path: testInfo.outputPath(`mcp-${label}.png`), animations: 'disabled' })
+            if (label === '待确认') {
+              await expect(preview).toContainText('3 个已选择')
+              await preview.getByRole('button', { name: '确认连接', exact: true }).scrollIntoViewIfNeeded()
+              await page.screenshot({ path: testInfo.outputPath('mcp-confirm-actions.png'), animations: 'disabled' })
+            }
+          }
+        }
+        await tabs.getByRole('tab', { name: '2 个 MCP', exact: true }).click()
+        await preview.getByTestId('mcp-enabled-files').click()
+        await expect(preview.getByTestId('mcp-enabled-files')).toHaveAttribute('aria-checked', 'false')
+        await expect(preview.getByTestId('mcp-enabled-docs')).toHaveAttribute('aria-checked', 'true')
+        await expect(preview.getByTestId('settings-candidate-mcp-server-docs')).toContainText('已连接')
+        await tabs.getByRole('tab', { name: '待确认', exact: true }).click()
+        await preview.getByRole('checkbox', { name: '允许读取文件', exact: true }).uncheck()
+        await preview.getByRole('button', { name: '确认连接', exact: true }).click()
+        await expect(preview).toContainText('2 个已允许')
+        await expect(preview.getByTestId('mcp-tool-row').filter({ hasText: 'read_file' })).toContainText('未允许')
+        await tabs.getByRole('tab', { name: '待确认', exact: true }).click()
+        await expect(preview.getByRole('checkbox', { name: '允许读取文件', exact: true })).toBeChecked()
+        await preview.getByRole('button', { name: '取消', exact: true }).click()
+        await expect(preview.getByTestId('settings-candidate-mcp-empty')).toBeVisible()
+        await tabs.getByRole('tab', { name: '连接失败', exact: true }).click()
+        await preview.getByRole('button', { name: '重试', exact: true }).click()
+        await expect(preview.getByRole('status')).toHaveText('连接中')
+        await preview.getByRole('button', { name: '取消', exact: true }).click()
+        await expect(preview.getByRole('status')).toHaveText('已停用')
+      })
+    }
+  }
+
   test('Playground 设置候选覆盖新的信息架构与隔离交互', async ({ page }) => {
     await page.goto('/')
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
@@ -729,14 +789,11 @@ test.describe('My Agent UI', () => {
     await skillsStates.getByRole('tab', { name: '单个', exact: true }).click()
     await candidate.getByRole('button', { name: 'MCP', exact: true }).click()
     await expect(candidate.getByTestId('settings-candidate-section-mcp')).toContainText('MCP')
-    await expect(candidate.getByTestId('settings-candidate-mcp-card')).toBeVisible()
+    await expect(candidate.getByTestId('settings-candidate-mcp-empty')).toBeVisible()
     await candidate.getByTestId('settings-candidate-mcp-add').click()
-    await expect(candidate.getByTestId('settings-candidate-mcp-add-form')).toBeVisible()
-    await candidate.getByTestId('settings-candidate-mcp-custom').click()
-    await candidate.getByTestId('settings-candidate-mcp-next').click()
-    await candidate.getByTestId('settings-candidate-mcp-connect').click()
-    await expect(candidate.getByText('文件工具 · 已连接', { exact: true })).toBeVisible()
-    await expect(candidate).toContainText('已允许的工具')
+    await expect(candidate.getByTestId('settings-candidate-mcp-server-files')).toContainText('待确认')
+    await candidate.getByRole('button', { name: '确认连接', exact: true }).click()
+    await expect(candidate.getByTestId('settings-candidate-mcp-server-files').getByRole('status')).toHaveText('已连接')
     await expect(candidate).not.toContainText('不和记忆混在一起')
 
     await candidate.getByRole('button', { name: '记忆', exact: true }).click()

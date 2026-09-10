@@ -368,17 +368,113 @@ function PermissionsPage({ mode, onModeChange }: { mode: string; onModeChange: (
   return <div className="space-y-4" data-testid="settings-candidate-section-permissions"><CandidatePageHeader icon={<ShieldCheck size={14} />} title="权限与自动化" description="让你决定 Agent 什么时候先问你、什么时候按计划推进；越高风险的能力越应该明确。" /><SettingCard><div className="mb-3"><h3 className="flex items-center gap-2 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>默认审批方式<ScopeBadge label="全局" /></h3><p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>选择一个默认方式；遇到具体操作时，你仍然可以临时调整。</p></div><div className="grid gap-2 sm:grid-cols-3">{[['auto', '自动', '只在需要时确认'], ['confirm-all', '全部确认', '每次工具调用都先问'], ['plan-first', '先计划', '先看计划再执行']].map(([value, label, description]) => { const selected = mode === value; return <button key={value} type="button" aria-pressed={selected} onClick={() => onModeChange(value)} className="rounded-[var(--radius-md)] border p-3 text-left transition" style={{ borderColor: selected ? 'var(--accent)' : 'var(--border-subtle)', background: selected ? 'var(--accent-subtle)' : 'transparent' }}><div className="flex items-center justify-between gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{label}{selected && <Check size={13} style={{ color: 'var(--accent-fg)' }} />}</div><div className="mt-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>{description}</div></button> })}</div></SettingCard><SettingCard><button type="button" onClick={() => setShowRules(!showRules)} aria-expanded={showRules} className="flex w-full items-center justify-between gap-3 text-left" data-testid="settings-candidate-rules-toggle"><span className="flex min-w-0 items-center gap-2"><Settings2 size={15} style={{ color: 'var(--accent-fg)' }} /><span className="min-w-0"><span className="block text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>自定义权限规则</span><span className="mt-1 block truncate text-[10px]" style={{ color: 'var(--text-muted)' }}>自己指定某类操作：允许、需要确认，或直接拒绝。</span></span></span><ChevronRight size={14} className={`transition ${showRules ? 'rotate-90' : ''}`} style={{ color: 'var(--text-muted)' }} /></button>{showRules && <div className="mt-4 space-y-4 border-t pt-4" style={{ borderColor: 'var(--border-subtle)' }}><div><div className="mb-2 text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>已有规则样张</div><div className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-2.5" style={{ borderColor: 'var(--border-subtle)' }}><div><div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{savedRule.action} · {savedRule.target}</div><div className="mt-1 font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{savedRule.pattern}</div></div><span className="rounded-full px-2 py-0.5 text-[10px]" style={{ background: savedRule.action === '拒绝' ? 'color-mix(in srgb, var(--danger) 10%, transparent)' : 'var(--accent-subtle)', color: savedRule.action === '拒绝' ? 'var(--danger)' : 'var(--accent-fg)' }}>{savedRule.action}</span></div></div><div className="rounded-[var(--radius-md)] border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}><div className="mb-3"><div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>新增一条规则</div><div className="mt-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>例如：拒绝发布命令；修改文件时，每次先问你。</div></div><div className="grid gap-3 sm:grid-cols-3"><label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>操作类型<select aria-label="规则操作类型" value={ruleTarget} onChange={(event) => setRuleTarget(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none"><option>命令</option><option>修改文件</option><option>删除文件</option></select></label><label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>处理方式<select aria-label="规则处理方式" value={ruleAction} onChange={(event) => setRuleAction(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none"><option>允许</option><option>需要确认</option><option>拒绝</option></select></label><label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>匹配内容<input aria-label="规则匹配内容" value={rulePattern} onChange={(event) => setRulePattern(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" placeholder="例如：npm publish" /></label></div><div className="mt-3 flex justify-end"><button type="button" onClick={() => setSavedRule({ target: ruleTarget, action: ruleAction, pattern: rulePattern || '未填写' })} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[10px] font-medium" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-save-rule">保存这条样张</button></div></div></div>}</SettingCard></div>
 }
 
+const MCP_SCENES = [
+  ['empty', '未添加'], ['one', '1 个 MCP'], ['two', '2 个 MCP'],
+  ['connecting', '连接中'], ['confirm', '待确认'],
+  ['tool-one', '1 个工具'], ['tool-two', '2 个工具'], ['tool-three', '3 个工具'],
+  ['no-tools', '无工具'], ['disabled', '已停用'], ['error', '连接失败'], ['auth', '待登录'],
+] as const
+type McpScene = typeof MCP_SCENES[number][0]
+type McpPreviewStatus = 'connected' | 'connecting' | 'confirm' | 'disabled' | 'error' | 'auth'
+interface McpPreviewServer {
+  id: string
+  name: string
+  transport: string
+  address: string
+  status: McpPreviewStatus
+  tools: Array<{ id: string; name: string; allowed: boolean }>
+}
+const MCP_STATUS_LABELS: Record<McpPreviewStatus, string> = {
+  connected: '已连接', connecting: '连接中', confirm: '待确认', disabled: '已停用', error: '连接失败', auth: '需要登录',
+}
+
+/**
+ * 背景：审阅者需要直接比较服务数、连接状态和工具数量，不应先完成添加向导。
+ * 设计意图：每个场景重新创建独立夹具，让重试/确认只改变本地预览。
+ * 关键约束：地址与工具仅供样张，不探测网络、不启动进程、不写真实配置。
+ */
+function createMcpScene(scene: McpScene): McpPreviewServer[] {
+  if (scene === 'empty') return []
+  const count = scene === 'no-tools' ? 0 : scene === 'tool-one' ? 1 : scene === 'tool-two' ? 2 : 3
+  const status: McpPreviewStatus = scene === 'connecting' || scene === 'confirm' || scene === 'disabled' || scene === 'error' || scene === 'auth' ? scene : 'connected'
+  const files: McpPreviewServer = {
+    id: 'files', name: '文件服务', transport: '本地 · stdio', address: 'npx @modelcontextprotocol/server-filesystem', status,
+    tools: [
+      { id: 'read_file', name: '读取文件', allowed: true },
+      { id: 'list_directory', name: '列出目录', allowed: true },
+      { id: 'search_files', name: '搜索文件', allowed: true },
+    ].slice(0, count),
+  }
+  const docs: McpPreviewServer = {
+    id: 'docs', name: '文档服务', transport: '远程 · Streamable HTTP', address: 'https://docs.example.com/mcp', status,
+    tools: [{ id: 'search_docs', name: '搜索文档', allowed: true }],
+  }
+  return scene === 'two' ? [files, docs] : scene === 'auth' ? [docs] : [files]
+}
+
+/**
+ * 背景：MCP 候选要能审阅多服务而不引入一套真实连接管理器。
+ * 设计意图：场景按钮直达，服务卡片只组合现有开关、文本列表和命令按钮。
+ * 关键约束：连接中保持稳定供审阅；切换场景重置交互，不把夹具状态解释为连接证据。
+ */
+function McpScenePreview() {
+  const [scene, setScene] = useState<McpScene>('empty')
+  const [servers, setServers] = useState<McpPreviewServer[]>([])
+  const chooseScene = (next: McpScene) => { setScene(next); setServers(createMcpScene(next)) }
+  const updateServer = (id: string, patch: Partial<McpPreviewServer>) => setServers((current) => current.map((server) => server.id === id ? { ...server, ...patch } : server))
+  return <div className="space-y-4" data-testid="settings-candidate-mcp-scenes">
+    <div className="flex flex-wrap gap-1" role="tablist" aria-label="MCP 样张场景">
+      {MCP_SCENES.map(([id, label]) => <button key={id} id={`mcp-scene-${id}`} type="button" role="tab" aria-selected={scene === id} aria-controls="mcp-scene-panel" onClick={() => chooseScene(id)} className="settings-option px-2.5 py-1.5 text-[11px]" data-selected={scene === id ? 'true' : undefined}>{label}</button>)}
+    </div>
+    <div id="mcp-scene-panel" role="tabpanel" aria-labelledby={`mcp-scene-${scene}`} className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{servers.length} 个服务</span>
+        <button type="button" onClick={() => chooseScene('confirm')} className="inline-flex items-center gap-1 px-2 py-1 text-[11px]" style={{ color: 'var(--accent-fg)' }} data-testid="settings-candidate-mcp-add"><Plus size={14} />添加连接</button>
+      </div>
+      {servers.length === 0 && <div className="py-10 text-center text-[12px]" style={{ color: 'var(--text-muted)' }} data-testid="settings-candidate-mcp-empty">还没有 MCP 服务</div>}
+      {servers.map((server) => {
+        const ready = server.status === 'connected'
+        const confirming = server.status === 'confirm'
+        const enabled = server.status !== 'disabled'
+        const allowedCount = server.tools.filter((tool) => tool.allowed).length
+        return <SettingCard key={server.id} testId={`settings-candidate-mcp-server-${server.id}`}>
+          <div className="flex items-center gap-3">
+            <Server size={16} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
+            <h3 className="min-w-0 flex-1 break-words text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{server.name}</h3>
+            {!confirming && <CandidateSwitch compact checked={enabled} label={`启用${server.name}`} description="" testId={`mcp-enabled-${server.id}`} onChange={(checked) => updateServer(server.id, { status: checked ? 'connected' : 'disabled' })} />}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            <span>{server.transport}</span>
+            <span className="inline-flex items-center gap-1" role="status" style={{ color: ready ? 'var(--success)' : server.status === 'error' ? 'var(--danger)' : 'var(--text-secondary)' }}>
+              {server.status === 'connecting' && <RefreshCw size={12} className="animate-spin" />}{MCP_STATUS_LABELS[server.status]}
+            </span>
+          </div>
+          {confirming && <div className="mt-4 space-y-1 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}><p>允许伙伴连接此服务，并使用选中的工具？</p><code className="block break-all text-[10px]" style={{ color: 'var(--text-muted)' }}>{server.address}</code></div>}
+          {(ready || confirming) && <div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="mb-2 flex items-center justify-between text-[11px]" style={{ color: 'var(--text-muted)' }}><span>{server.tools.length} 个工具</span>{server.tools.length > 0 && <span>{allowedCount} 个{confirming ? '已选择' : '已允许'}</span>}</div>
+            {server.tools.length === 0 ? <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>已连接，服务未提供工具。</p> : <ul className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
+              {server.tools.map((tool) => <li key={tool.id} className="flex items-center justify-between gap-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-subtle)' }} data-testid="mcp-tool-row">
+                <div className="min-w-0"><span style={{ color: 'var(--text-primary)' }}>{tool.name}</span><code className="ml-2 break-all text-[10px]" style={{ color: 'var(--text-muted)' }}>{tool.id}</code></div>
+                {confirming ? <input type="checkbox" aria-label={`允许${tool.name}`} checked={tool.allowed} onChange={() => updateServer(server.id, { tools: server.tools.map((item) => item.id === tool.id ? { ...item, allowed: !item.allowed } : item) })} /> : !tool.allowed && <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>未允许</span>}
+              </li>)}
+            </ul>}
+          </div>}
+          {server.status === 'connecting' && <div className="mt-4 flex items-center justify-between gap-3 text-[11px]"><span style={{ color: 'var(--text-muted)' }}>正在连接并获取工具清单…</span><button type="button" onClick={() => updateServer(server.id, { status: 'disabled' })}>取消</button></div>}
+          {server.status === 'error' && <div className="mt-4 flex items-center justify-between gap-3 text-[11px]"><span style={{ color: 'var(--text-secondary)' }}>连接超时，请检查服务是否正在运行。</span><button type="button" className="inline-flex shrink-0 items-center gap-1" onClick={() => updateServer(server.id, { status: 'connecting' })} style={{ color: 'var(--accent-fg)' }}><RefreshCw size={12} />重试</button></div>}
+          {server.status === 'auth' && <p className="mt-4 text-[11px]" style={{ color: 'var(--text-secondary)' }}>登录后才能获取此服务的工具清单。</p>}
+          {server.status === 'disabled' && <p className="mt-4 text-[11px]" style={{ color: 'var(--text-muted)' }}>配置已保留，伙伴暂不使用此服务。</p>}
+          {confirming && <div className="mt-4 flex justify-end gap-3 text-[11px]"><button type="button" onClick={() => chooseScene('empty')}>取消</button><button type="button" onClick={() => updateServer(server.id, { status: 'connected' })} className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border px-3 py-1.5" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }}><Check size={13} />确认连接</button></div>}
+        </SettingCard>
+      })}
+    </div>
+  </div>
+}
+
 function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
   const [skillsEnabled, setSkillsEnabled] = useState<Record<string, boolean>>(() => Object.fromEntries(skillsSamples.map((sample, index) => [sample.name, index === 0])))
   const [selectedSkill, setSelectedSkill] = useState(skillsSamples[0].name)
   const skill = skillsSamples.find((sample) => sample.name === selectedSkill) ?? skillsSamples[0]
   const [skillsState, setSkillsState] = useState<'单个' | '多个' | '详情'>('单个')
-  const [mcpState, setMcpState] = useState<'empty' | 'adding' | 'connected'>('empty')
-  const [mcpStep, setMcpStep] = useState<'source' | 'details' | 'tools'>('source')
-  const [mcpTransport, setMcpTransport] = useState<'local' | 'remote'>('local')
-  const [mcpTools, setMcpTools] = useState({ files: true, search: true, write: false })
-  const selectedToolCount = Object.values(mcpTools).filter(Boolean).length
-  const resetMcp = () => { setMcpState('empty'); setMcpStep('source'); setMcpTransport('local'); setMcpTools({ files: true, search: true, write: false }) }
 
   return <div className="space-y-4" data-testid={`settings-candidate-section-${mode}`}>
     <CandidatePageHeader icon={mode === 'skills' ? <Wrench size={14} /> : <Link2 size={14} />} title={mode === 'skills' ? 'Skills' : 'MCP'} description={mode === 'skills' ? '管理伙伴可以按需使用的工作方法。' : '管理伙伴可以使用的外部服务连接。'} />
@@ -412,16 +508,7 @@ function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
         </SettingCard>)}
       </div>}
     </>}
-    {mode === 'mcp' && <SettingCard testId="settings-candidate-mcp-card">
-      <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2"><h3 className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>外部服务连接</h3><ScopeBadge label="全局" /></div><p className="mt-1 text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>连接后，伙伴可以在你允许的范围内使用这个服务提供的工具。</p></div>{mcpState === 'empty' && <button type="button" onClick={() => setMcpState('adding')} className="shrink-0 rounded-[var(--radius-md)] border px-3 py-1.5 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }} data-testid="settings-candidate-mcp-add">+ 添加连接</button>}</div>
-      {mcpState === 'empty' && <div className="mt-4 rounded-[var(--radius-md)] border border-dashed p-5 text-center" style={{ borderColor: 'var(--border-color)' }}><div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>还没有连接外部服务</div><p className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>可以从常用服务开始，也可以填写自己的连接。</p></div>}
-      {mcpState === 'adding' && <div className="mt-4 space-y-4 rounded-[var(--radius-md)] border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} data-testid="settings-candidate-mcp-add-form"><div className="flex items-center gap-1 overflow-x-auto" role="list" aria-label="添加外部服务步骤">{(['选择来源', '填写连接信息', '确认工具'] as const).map((label, index) => <span key={label} className="flex shrink-0 items-center gap-1 text-[10px]" style={{ color: index === ({ source: 0, details: 1, tools: 2 }[mcpStep]) ? 'var(--accent-fg)' : 'var(--text-muted)' }}><span className="flex h-5 w-5 items-center justify-center rounded-full border">{index + 1}</span>{label}{index < 2 && <ChevronRight size={11} />}</span>)}</div>
-        {mcpStep === 'source' && <div className="space-y-2"><div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>从哪里添加？</div><div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => { setMcpTransport('remote'); setMcpStep('details') }} className="rounded-[var(--radius-md)] border p-3 text-left" style={{ borderColor: 'var(--border-subtle)' }} data-testid="settings-candidate-mcp-preset"><div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>常用服务</div><div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>从已有服务入口开始配置</div></button><button type="button" onClick={() => setMcpStep('details')} className="rounded-[var(--radius-md)] border p-3 text-left" style={{ borderColor: 'var(--border-subtle)' }} data-testid="settings-candidate-mcp-custom"><div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>自定义连接</div><div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>填写本地程序或远程地址</div></button></div></div>}
-        {mcpStep === 'details' && <div className="space-y-3"><div className="grid gap-3 sm:grid-cols-2"><label className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>连接名称<input aria-label="MCP 显示名称" placeholder="例如：文件工具" className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-3 py-2 text-[12px] outline-none" /></label><label className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>连接方式<select aria-label="MCP 连接方式" value={mcpTransport} onChange={(event) => setMcpTransport(event.target.value as 'local' | 'remote')} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-3 py-2 text-[12px] outline-none"><option value="local">本地程序</option><option value="remote">远程服务</option></select></label></div>{mcpTransport === 'local' ? <div className="grid gap-3 sm:grid-cols-2"><label className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>启动命令<input aria-label="MCP 启动命令" placeholder="例如：npx" className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-3 py-2 text-[12px] outline-none" /></label><label className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>命令参数<input aria-label="MCP 命令参数" placeholder="例如：-y @example/server" className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-3 py-2 text-[12px] outline-none" /></label></div> : <label className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>服务地址<input aria-label="MCP 服务地址" placeholder="https://example.com/mcp" className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-3 py-2 text-[12px] outline-none" /></label>}<div className="flex justify-between gap-2"><button type="button" onClick={() => setMcpStep('source')} className="rounded-[var(--radius-md)] px-3 py-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>上一步</button><button type="button" onClick={() => setMcpStep('tools')} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[11px]" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-mcp-next">测试并获取工具</button></div></div>}
-        {mcpStep === 'tools' && <div className="space-y-3"><div><div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>已发现 3 个工具</div><p className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>先选择允许伙伴使用的工具，之后仍可在连接详情中调整。</p></div><div className="space-y-2">{([['files', '读取文件'], ['search', '搜索内容'], ['write', '写入文件']] as const).map(([id, label]) => <label key={id} className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-subtle)' }}><span>{label}</span><input type="checkbox" aria-label={`允许使用${label}`} checked={mcpTools[id]} onChange={() => setMcpTools((current) => ({ ...current, [id]: !current[id] }))} /></label>)}</div><div className="flex items-center justify-between gap-3"><span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>已选择 {selectedToolCount} 个工具 · 仅样张状态</span><div className="flex gap-2"><button type="button" onClick={() => setMcpStep('details')} className="rounded-[var(--radius-md)] px-3 py-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>上一步</button><button type="button" onClick={() => { setMcpState('connected'); setMcpStep('source') }} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[11px]" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-mcp-connect">保存连接</button></div></div></div>}
-      </div>}
-      {mcpState === 'connected' && <div className="mt-4 space-y-3"><div className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-3" style={{ borderColor: 'color-mix(in srgb, var(--success) 40%, var(--border-color))', background: 'color-mix(in srgb, var(--success) 8%, transparent)' }}><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: 'var(--success)' }} /><div><div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>文件工具 · 已连接</div><div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>远程服务 · {selectedToolCount} 个工具</div></div></div><button type="button" onClick={resetMcp} className="rounded-[var(--radius-md)] px-2 py-1 text-[10px]" style={{ color: 'var(--danger)' }}>移除连接</button></div><div className="rounded-[var(--radius-md)] border p-3" style={{ borderColor: 'var(--border-subtle)' }}><div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>已允许的工具</div><div className="mt-2 flex flex-wrap gap-1.5 text-[10px]" style={{ color: 'var(--text-secondary)' }}><span>读取文件</span>{mcpTools.search && <span>搜索内容</span>}{mcpTools.write && <span>写入文件</span>}</div></div></div>}
-    </SettingCard>}
+    {mode === 'mcp' && <McpScenePreview />}
   </div>
 }
 function AboutPage() {
