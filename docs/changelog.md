@@ -10,7 +10,7 @@
 - Playground 工作区改为右侧工作坞候选：任务状态、确认和恢复留在 Chat；工作坞按需承载文件、预览、审阅和终端，任务结果回到 Chat。
 - 扩展设置进一步收平为直接管理 `Skills` 与 `MCP` 两个对象；Skill 主行只保留启用主动作，版本与校验降为辅助信息。`
 - Skills Playground 收敛为扁平列表行：只显示 Skill 名称和纯开关，移除重复名称、描述、标签和嵌套卡片。
-- Skills Playground 增加单个、多个和详情审阅状态，默认状态不增加额外信息层。
+- Skills Playground 增加单个、多个和详情审阅状态；Skills 详情开关与标题同行，多个状态改为独立卡片。，默认状态不增加额外信息层。
 - 本轮只更新 Playground fixture 与 UI E2E，不改变正式 Settings、Chat、MCP / Skill IPC 或任务运行链路。
 
 ### 2026-09-08 · 记忆管理候选
