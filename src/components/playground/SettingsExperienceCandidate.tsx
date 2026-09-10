@@ -482,9 +482,9 @@ function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
       <div className="flex items-center justify-end gap-1" role="tablist" aria-label="Skills 样张状态" data-testid="settings-candidate-skills-states">
         {(['单个', '多个', '详情'] as const).map((state) => <button key={state} type="button" role="tab" aria-selected={skillsState === state} onClick={() => setSkillsState(state)} className="settings-option px-2.5 py-1 text-[10px]" data-selected={skillsState === state ? 'true' : undefined}>{state}</button>)}
       </div>
-      {skillsState === '详情' ? <div data-testid="settings-candidate-skill-detail">
+      {skillsState === '详情' ? <SettingCard testId="settings-candidate-skill-detail">
         <div className="mb-2">
-          <button type="button" onClick={() => setSkillsState('多个')} aria-label="返回 Skills" title="返回 Skills" className="inline-flex h-7 w-7 shrink-0 items-center justify-center" style={{ color: 'var(--text-secondary)' }} data-testid="settings-candidate-skill-back"><ArrowLeft size={16} /></button>
+          <button type="button" onClick={() => setSkillsState('多个')} aria-label="返回 Skills" title="返回 Skills" className="inline-flex h-7 shrink-0 items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-secondary)' }} data-testid="settings-candidate-skill-back"><ArrowLeft size={16} />返回 Skills</button>
         </div>
         <div className="mb-4 flex items-center gap-3">
           <h3 className="min-w-0 flex-1 break-words text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{skill.name}</h3>
@@ -501,7 +501,7 @@ function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
           <div className="text-[11px]"><div className="mb-2" style={{ color: 'var(--text-muted)' }}>文件</div><span className="block px-2 py-1.5" style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}>SKILL.md</span></div>
           <pre className="min-w-0 whitespace-pre-wrap break-words rounded-[var(--radius-md)] border p-3 font-mono text-[11px] leading-5" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }} data-testid="settings-candidate-skill-file-preview">{skill.raw}</pre>
         </div>
-      </div> : <div className="grid gap-3 sm:grid-cols-2">
+      </SettingCard> : <div className="grid gap-3 sm:grid-cols-2">
         {(skillsState === '多个' ? skillsSamples : skillsSamples.slice(0, 1)).map((sample) => <SettingCard key={sample.name} testId={'settings-candidate-skill-card-' + sample.name}>
           <div className="flex items-center justify-between gap-3">
             <button type="button" className="min-w-0 break-words text-left text-[13px] font-medium" style={{ color: 'var(--text-primary)' }} onClick={() => { setSelectedSkill(sample.name); setSkillsState('详情') }}>{sample.name}</button>
