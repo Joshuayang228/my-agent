@@ -4,6 +4,7 @@
  */
 
 import type { ReactNode } from 'react'
+import './state-switchers.css'
 
 const PLAYGROUND_SOURCE_WIDTH_CLASS = 'w-[18rem]'
 
@@ -79,8 +80,8 @@ export function PlaygroundStoryTabs({
   return (
     <div className="mb-4 min-w-0" data-testid="playground-story-nav">
       <div className="sr-only" aria-live="polite">当前故事：{value}</div>
-      <div className="scrollbar-hover min-w-0 overflow-x-auto border-b pb-px" style={{ borderColor: 'var(--border-subtle)' }}>
-        <div className="flex min-w-max items-center gap-4" role="tablist" aria-label={ariaLabel}>
+      <div className="min-w-0">
+        <div data-playground-switcher role="tablist" aria-label={ariaLabel}>
           {groups.flatMap((group) => group.items).map((item) => {
             const selected = item.id === value
             return (
@@ -90,14 +91,8 @@ export function PlaygroundStoryTabs({
                 role="tab"
                 aria-selected={selected}
                 onClick={() => onChange(item.id)}
-                className="relative rounded-none px-0.5 py-2 text-[11px] tracking-[0.01em] transition"
-                style={{
-                  color: selected ? 'var(--text-primary)' : 'var(--text-muted)',
-                  fontWeight: selected ? 600 : 400,
-                }}
               >
                 {item.label}
-                {selected && <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full" style={{ background: 'var(--accent-emphasis)' }} />}
               </button>
             )
           })}

@@ -330,9 +330,9 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2" data-testid="chat-surface-toolbar" style={{ borderColor: 'var(--border-subtle)' }}>
-        <div className="flex min-w-0 items-center gap-2" role="tablist" aria-label="Chat 主旅程">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
           <span className="shrink-0 text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>主旅程</span>
-          <div className="flex min-w-0 overflow-x-auto rounded-[var(--radius-md)] border p-0.5 scrollbar-thin" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+          <div data-playground-switcher role="tablist" aria-label="Chat 主旅程">
             {CHAT_JOURNEYS.map((item) => (
               <button
                 key={item.id}
@@ -342,17 +342,13 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                 onClick={() => setJourney(item.id)}
                 className="shrink-0 rounded px-2 py-1 text-[10px] transition"
                 title={item.description}
-                style={{
-                  color: journey === item.id ? 'var(--accent-fg)' : 'var(--text-muted)',
-                  background: journey === item.id ? 'var(--accent-subtle)' : 'transparent',
-                }}
               >
                 {item.label}
               </button>
             ))}
           </div>
         </div>
-        <div className="flex shrink-0 rounded-[var(--radius-md)] border p-0.5" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+        <div data-playground-switcher role="group" aria-label="Chat 样张宽度">
           {([
             { id: 'standard' as const, label: '标准宽度' },
             { id: 'split' as const, label: '分栏窄宽' },
@@ -364,11 +360,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                 setViewport(item.id)
                 setSidebarOpen(true)
               }}
-              className="rounded px-2 py-1 text-[10px] transition"
-              style={{
-                color: viewport === item.id ? 'var(--accent-fg)' : 'var(--text-muted)',
-                background: viewport === item.id ? 'var(--accent-subtle)' : 'transparent',
-              }}
+              aria-pressed={viewport === item.id}
             >
               {item.label}
             </button>
@@ -862,7 +854,7 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
     <div className="space-y-2">
       <div className="space-y-2" data-testid="memory-surface-toolbar">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="flex min-w-0 flex-wrap gap-1" role="tablist" aria-label="记忆分类" data-testid="memory-group-tabs">
+          <div className="flex min-w-0 flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="记忆分类" data-testid="memory-group-tabs">
             {MEMORY_PREVIEW_GROUPS.map((item) => {
               const active = group === item.id
               return (
@@ -931,7 +923,7 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
         {adding && <div className="space-y-2 rounded-md border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} data-testid="memory-add-form"><div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>告诉伙伴一件希望长期记住的事</div><textarea aria-label="新记忆内容" value={newContent} onChange={(event) => setNewContent(event.target.value)} rows={2} placeholder="例如：我喜欢先看结论，再看详细解释。" className="theme-input w-full resize-y rounded-md border px-3 py-2 text-[11px] outline-none" /><div className="flex flex-wrap items-center justify-between gap-2"><div className="flex flex-wrap gap-1" role="radiogroup" aria-label="记忆分类">{MEMORY_PREVIEW_GROUPS.map((item) => <button key={item.id} type="button" role="radio" aria-checked={newGroup === item.id} onClick={() => setNewGroup(item.id)} className="settings-option px-2 py-1 text-[10px]" data-selected={newGroup === item.id ? 'true' : undefined}>{item.label}</button>)}</div><div className="flex gap-2"><button type="button" onClick={() => setAdding(false)} className="rounded px-2.5 py-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>取消</button><button type="button" onClick={addMemory} disabled={!newContent.trim()} className="rounded-md border px-2.5 py-1.5 text-[10px] disabled:opacity-40" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }}>保存记忆</button></div></div></div>}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>状态样张</span>
-          <div className="flex flex-wrap gap-1" role="tablist" aria-label="记忆页面场景">
+          <div className="flex flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="记忆页面场景">
             {scenarios.map((item) => {
               const active = scenario === item.id
               return (
@@ -1004,7 +996,7 @@ export function SurfaceBaselinePanel({ initialSurface, persona, onPersonaChange,
 
   return (
     <div className="playground-experience-panel w-full space-y-4" data-testid="surface-baseline-panel">
-      {!fixedSurface && <div className="flex flex-wrap gap-1 border-b" style={{ borderColor: 'var(--border-color)' }} role="tablist" aria-label="页面基线分区">
+      {!fixedSurface && <div data-playground-switcher role="tablist" aria-label="页面基线分区">
         {SURFACES.map((item) => {
           const selected = item.id === surface
           return (
@@ -1015,11 +1007,6 @@ export function SurfaceBaselinePanel({ initialSurface, persona, onPersonaChange,
               aria-selected={selected}
               onClick={() => setSurface(item.id)}
               className="rounded-t-md px-3 py-2 text-xs transition"
-              style={{
-                color: selected ? 'var(--accent-fg)' : 'var(--text-muted)',
-                background: selected ? 'var(--accent-subtle)' : 'transparent',
-                fontWeight: selected ? 600 : 400,
-              }}
             >
               {item.label}
             </button>

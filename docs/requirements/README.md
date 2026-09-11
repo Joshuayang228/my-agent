@@ -8,6 +8,7 @@
 
 ## 怎么放文件
 
+
 | 类型 | 含义 | 处置 |
 |------|------|------|
 | **进行中** | 仍指导未完成施工 | 行为或范围变化时同步合同 |
@@ -19,9 +20,9 @@
 
 ## 进行中
 
-
 | 文档 | 说明 |
 |------|------|
+| [playground-state-switchers-v1.md](./playground-state-switchers-v1.md) | P0：统一 Playground 场景、状态与宽度控制器，采用 MCP 独立选项样式 |
 | [playground-page-baseline-polish-v1.md](./playground-page-baseline-polish-v1.md) | P0 施工：Sidebar 底栏、Toast、Right Dock、人物世界与记忆页面样张统一精修 |
 | [playground-navigation-world-polish-v1.md](./playground-navigation-world-polish-v1.md) | P0 施工：一级导航、Right Dock 四 Tab、朋友圈社交流与记忆四色语义 |
 | [playground-bilingual-ui-vocabulary.md](./playground-bilingual-ui-vocabulary.md) | Playground 中文分类与常用 UI 控件中英分层文案 |

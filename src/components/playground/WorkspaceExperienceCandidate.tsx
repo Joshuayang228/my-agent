@@ -61,12 +61,12 @@ export function WorkspaceExperienceCandidate() {
   }
   return <div className="space-y-3" data-testid="workspace-dock-candidate">
     <div className="flex flex-wrap items-center gap-2">
-      <div className="flex min-w-0 flex-1 flex-wrap gap-1" role="tablist" aria-label="工作区功能">
+      <div className="flex min-w-0 flex-1 flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="工作区功能">
         {VIEWS.map(({ id, label, icon: Icon, scenes }) => <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => resetScene(id, scenes[0])} className="settings-option inline-flex items-center gap-1.5 px-3 py-2 text-[12px]" data-selected={view === id ? 'true' : undefined}><Icon size={14} />{label}</button>)}
       </div>
-      <div className="flex gap-1" role="group" aria-label="工作区宽度">{[false, true].map((value) => <button key={String(value)} type="button" aria-pressed={narrow === value} onClick={() => setNarrow(value)} className="settings-option px-2 py-1 text-[11px]" data-selected={narrow === value ? 'true' : undefined}>{value ? '窄栏' : '展开'}</button>)}</div>
+      <div className="flex gap-1" data-playground-switcher role="group" aria-label="工作区宽度">{[false, true].map((value) => <button key={String(value)} type="button" aria-pressed={narrow === value} onClick={() => setNarrow(value)} className="settings-option px-2 py-1 text-[11px]" data-selected={narrow === value ? 'true' : undefined}>{value ? '窄栏' : '展开'}</button>)}</div>
     </div>
-    <div className="flex flex-wrap items-center gap-1" role="tablist" aria-label="工作区形态样张">
+    <div className="flex flex-wrap items-center gap-1" data-playground-switcher role="tablist" aria-label="工作区形态样张">
       {selected.scenes.map((label) => <button key={label} type="button" role="tab" aria-selected={scene === label} onClick={() => resetScene(view, label)} className="settings-option px-2.5 py-1.5 text-[11px]" data-selected={scene === label ? 'true' : undefined}>{label}</button>)}
       <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>隔离样张</span>
     </div>

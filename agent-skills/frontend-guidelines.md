@@ -58,6 +58,8 @@ Main Area:
 
 ### Playground（基础 → 产品体验 → Agent 实验 · 轻量，非 Storybook）
 
+场景、状态与样张宽度控制器统一使用 `data-playground-switcher` 和 `src/components/playground/state-switchers.css`，以 MCP 独立选项为基线；不另造分段外框或局部尺寸。产品导航、可关闭内容标签、表单输入和被展示的基础控件不套此样式。
+
 施工合同：`docs/requirements/playground-navigation-world-polish-v1.md`
 
 - **三类工作域**：`基础` 生产设计语言、图标与视觉资产、基础组件；`产品体验` 组合 Chat、人物世界、记忆、设置、工作区和业务状态；`Agent 实验` 负责对话、模型和工具试验。

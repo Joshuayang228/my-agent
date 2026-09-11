@@ -839,6 +839,56 @@ test.describe('My Agent UI', () => {
     }
   }
 
+  for (const theme of ['dark', 'light']) {
+    for (const width of [1166, 600]) {
+      test(`Playground 状态切换统一 ${theme} ${width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 800 })
+        await page.addInitScript((value) => localStorage.setItem('theme', value), theme)
+        await page.goto('/')
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+        const nav = page.getByTestId('playground-nav')
+        let baseline: unknown
+        const check = async (label: string) => {
+          const controls = page.locator('[data-playground-switcher]').filter({ visible: true })
+          expect(await controls.count()).toBeGreaterThan(0)
+          for (const group of await controls.all()) {
+            await expect(group).toHaveCSS('gap', '4px')
+            await expect(group).toHaveCSS('flex-wrap', 'wrap')
+            for (const button of await group.locator(':scope > button').all()) {
+              const style = await button.evaluate((element) => {
+                const css = getComputedStyle(element)
+                return { height: css.height, font: css.fontSize, line: css.lineHeight, padding: css.padding, radius: css.borderRadius, border: css.borderTopWidth }
+              })
+              baseline ??= style
+              expect(style).toEqual(baseline)
+              expect(style.height).toBe('32px')
+              expect(style.font).toBe('11px')
+            }
+          }
+          await controls.first().scrollIntoViewIfNeeded()
+          await page.screenshot({ path: testInfo.outputPath(`switchers-${label}.png`), animations: 'disabled' })
+        }
+        await nav.getByRole('button', { name: 'Chat', exact: true }).click()
+        await page.getByRole('tab', { name: '正在聊天', exact: true }).click()
+        await expect(page.getByRole('tab', { name: '正在聊天', exact: true })).toHaveAttribute('aria-selected', 'true')
+        await check('chat')
+        await nav.getByRole('button', { name: '设置', exact: true }).click()
+        const settings = page.getByTestId('settings-surface-candidate')
+        for (const label of ['记忆', '模型', 'Skills', 'MCP']) {
+          await settings.getByRole(width < 640 ? 'tab' : 'button', { name: label, exact: true }).click()
+          await check(label)
+        }
+        await nav.getByRole('button', { name: '工作区', exact: true }).click()
+        await check('workspace')
+        await page.getByRole('tab', { name: '浏览器', exact: true }).click()
+        await expect(page.getByRole('textbox', { name: '浏览器地址' })).toBeVisible()
+        await expect(page.getByTestId('workspace-open-tab')).toHaveCSS('border-top-width', '0px')
+        await nav.getByRole('button', { name: '基础组件', exact: true }).click()
+        await check('foundation')
+      })
+    }
+  }
+
   test('Playground 设置候选覆盖新的信息架构与隔离交互', async ({ page }) => {
     await page.goto('/')
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
