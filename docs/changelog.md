@@ -534,3 +534,5 @@
 
 - [完整历史 Changelog](../_archive/ledgers/changelog-through-2026-08-16.md)
 - [完整历史 Progress](../_archive/ledgers/progress-through-2026-08-16.md)
+
+- Skills 详情现在明确标出“技能描述：”，与触发条件保持同一信息层级。

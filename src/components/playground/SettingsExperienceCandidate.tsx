@@ -559,7 +559,7 @@ function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
         </div>
         <div className="space-y-2 text-[12px] leading-5" style={{ color: 'var(--text-secondary)' }}>
           <p className="whitespace-pre-line"><span className="font-medium">触发条件：</span>{skill.trigger || '未单独声明'}</p>
-          <p>{skill.description}</p>
+          <p><span className="font-medium">技能描述：</span>{skill.description}</p>
         </div>
         <dl className="my-5 grid grid-cols-2 gap-3 border-y py-3 text-[11px] sm:grid-cols-4" style={{ borderColor: 'var(--border-subtle)' }}>
           {Object.entries({ 作者: skill.author, 版本: skill.version, 来源: '内置', 状态: skillsEnabled[skill.name] ? '已启用' : '未启用' }).map(([label, value]) => <div key={label}><dt style={{ color: 'var(--text-muted)' }}>{label}</dt><dd className="mt-1">{value}</dd></div>)}

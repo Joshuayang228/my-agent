@@ -513,3 +513,5 @@
 - [完整 Changelog 快照（截至 2026-08-16）](../_archive/ledgers/changelog-through-2026-08-16.md)
 - [2026-08 当前实现逐章审计](../_archive/audits/current-implementation-audit-2026-08.md)
 - [2026-07 方法论缺口审计](../_archive/audits/gap-audit-2026-07.md)
+
+- 2026-09-11：Skills 详情补充“技能描述：”标签，与“触发条件：”左对齐；仅为 Playground 文案层级调整。
