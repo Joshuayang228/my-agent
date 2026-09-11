@@ -815,7 +815,6 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
   const [searchOpen, setSearchOpen] = useState(false)
   const [adding, setAdding] = useState(false)
   const [newContent, setNewContent] = useState('')
-  const [newGroup, setNewGroup] = useState<MemoryPreviewGroup>('identity')
   const [customMemories, setCustomMemories] = useState<MemoryEntry[]>([])
   const scenarios: Array<{ id: MemoryScenario; label: string }> = [
     { id: 'list', label: '清单' },
@@ -838,8 +837,7 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
   const addMemory = () => {
     const content = newContent.trim()
     if (!content) return
-    setCustomMemories((current) => [...current, { id: `memory-custom-${newGroup}-${Date.now()}`, category: newGroup === 'identity' ? 'identity' : newGroup === 'collaboration' ? 'workflow' : newGroup === 'communication' ? 'voice' : 'feedback', content, createdAt: Date.now(), updatedAt: Date.now() }])
-    setGroup(newGroup)
+    setCustomMemories((current) => [...current, { id: `memory-custom-${group}-${Date.now()}`, category: group === 'identity' ? 'identity' : group === 'collaboration' ? 'workflow' : group === 'communication' ? 'voice' : 'feedback', content, createdAt: Date.now(), updatedAt: Date.now() }])
     setNewContent('')
     setAdding(false)
   }
@@ -854,25 +852,48 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
   return (
     <div className="space-y-2">
       <div className="space-y-2" data-testid="memory-surface-toolbar">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="flex min-w-0 flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="记忆分类" data-testid="memory-group-tabs">
-            {MEMORY_PREVIEW_GROUPS.map((item) => {
-              const active = group === item.id
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setGroup(item.id)}
-                  className="settings-option px-2.5 py-1 text-[10px]"
-                  data-testid={`memory-group-${item.id}`}
-                  data-selected={active ? 'true' : undefined}
-                >
-                  {item.label} <span className="opacity-60">{item.memories.length + customMemories.filter((memory) => memory.id.startsWith(`memory-custom-${item.id}-`)).length}</span>
-                </button>
-              )
-            })}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <div className="flex min-w-0 flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="记忆分类" data-testid="memory-group-tabs">
+              {MEMORY_PREVIEW_GROUPS.map((item) => {
+                const active = group === item.id
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setGroup(item.id)}
+                    className="settings-option px-2.5 py-1 text-[10px]"
+                    data-testid={`memory-group-${item.id}`}
+                    data-selected={active ? 'true' : undefined}
+                  >
+                    {item.label} <span className="opacity-60">{item.memories.length + customMemories.filter((memory) => memory.id.startsWith(`memory-custom-${item.id}-`)).length}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="ml-auto flex shrink-0 items-center gap-1" data-testid="memory-actions">
+              {searchOpen ? (
+                <input
+                  autoFocus
+                  aria-label="搜索记忆"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onBlur={() => { if (!query.trim()) setSearchOpen(false) }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                      if (!query.trim()) setSearchOpen(false)
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="搜索记忆"
+                  className="theme-input h-8 w-40 rounded-md border px-3 text-[11px] outline-none"
+                />
+              ) : (
+                <button type="button" aria-label="搜索记忆" title="搜索记忆" onClick={() => setSearchOpen(true)} className="rounded-md p-2" style={{ color: 'var(--text-muted)' }}><Search size={15} /></button>
+              )}
+            </div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             {debugEnabled && (
@@ -911,7 +932,6 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
         <p className="text-[10px]" style={{ color: 'var(--text-muted)' }} data-testid="memory-group-description">
           {activeGroup.description}
         </p>
-        <div className="flex min-w-0 items-center justify-end gap-2" data-testid="memory-actions">{searchOpen && <label className="relative min-w-0 flex-1"><Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} /><input autoFocus aria-label="搜索记忆" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索记忆" className="theme-input h-8 w-full rounded-md border pl-8 pr-3 text-[11px] outline-none" /></label>}<button type="button" aria-label="搜索记忆" title="搜索记忆" aria-pressed={searchOpen} onClick={() => setSearchOpen((open) => !open)} className="rounded-md p-2" style={{ color: searchOpen ? 'var(--accent-fg)' : 'var(--text-muted)' }}><Search size={15} /></button><button type="button" aria-label="添加记忆" title="添加记忆" className="hidden" data-testid="memory-add-button" aria-hidden="true"><Plus size={16} /></button></div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>状态样张</span>
           <div className="flex flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="记忆页面场景">
@@ -961,7 +981,7 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
             previewHideFooter
             readOnly={false}
           />
-          <div className="border-t" style={{ borderColor: 'var(--border-subtle)' }} data-testid="memory-add-row">{adding ? <div className="flex flex-wrap items-center gap-2 p-3"><select aria-label="新增记忆分类" value={newGroup} onChange={(event) => setNewGroup(event.target.value as MemoryPreviewGroup)} className="theme-input rounded-md border px-2 py-1.5 text-[11px]"><option value="identity">身份信息</option><option value="collaboration">协作习惯</option><option value="communication">沟通偏好</option><option value="relationship">我们之间</option></select><input autoFocus aria-label="新记忆内容" value={newContent} onChange={(event) => setNewContent(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') addMemory() }} placeholder="输入希望伙伴记住的内容…" className="theme-input min-w-[12rem] flex-1 rounded-md border px-3 py-1.5 text-[11px]" /><button type="button" onClick={addMemory} disabled={!newContent.trim()} className="rounded-md border px-3 py-1.5 text-[11px] disabled:opacity-40" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }}>保存</button><button type="button" onClick={() => { setAdding(false); setNewContent('') }} className="px-2 py-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>取消</button></div> : <button type="button" className="flex w-full items-center gap-2 px-4 py-3 text-left text-[11px]" style={{ color: 'var(--text-muted)' }} onClick={() => setAdding(true)}><Plus size={14} />添加一条记忆</button>}</div>
+          <div className="border-t" style={{ borderColor: 'var(--border-subtle)' }} data-testid="memory-add-row">{adding ? <div className="flex flex-wrap items-center gap-2 p-3"><input autoFocus aria-label="新记忆内容" value={newContent} onChange={(event) => setNewContent(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') addMemory() }} placeholder="输入希望伙伴记住的内容…" className="theme-input min-w-[12rem] flex-1 rounded-md border px-3 py-1.5 text-[11px]" /><button type="button" onClick={addMemory} disabled={!newContent.trim()} className="rounded-md border px-3 py-1.5 text-[11px] disabled:opacity-40" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }}>保存</button><button type="button" onClick={() => { setAdding(false); setNewContent('') }} className="px-2 py-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>取消</button></div> : <button type="button" className="flex w-full items-center gap-2 px-4 py-3 text-left text-[11px]" style={{ color: 'var(--text-muted)' }} onClick={() => setAdding(true)}><Plus size={14} />添加一条记忆</button>}</div>
         </div>
       </SurfaceViewport>
     </div>
