@@ -54,6 +54,11 @@ export function WorkspaceExperienceCandidate() {
     addButton.current?.focus()
   }
   const selected = VIEWS.find((item) => item.id === view)!
+  const closeTab = (id: number) => {
+    const remaining = tabs.filter((tab) => tab.id !== id)
+    setTabs(remaining)
+    if (active === id) setActive(remaining.at(-1)?.id ?? -1)
+  }
   return <div className="space-y-3" data-testid="workspace-dock-candidate">
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex min-w-0 flex-1 flex-wrap gap-1" role="tablist" aria-label="工作区功能">
@@ -73,13 +78,19 @@ export function WorkspaceExperienceCandidate() {
       <div className={open ? 'flex min-w-0 flex-col border-l' : 'hidden'} style={{ width: narrow ? 'min(380px, 65%)' : '100%', borderColor: 'var(--border-subtle)' }} data-testid="workspace-tool-panel">
         <div className="relative flex shrink-0 items-center gap-1 border-b p-2" style={{ borderColor: 'var(--border-subtle)' }} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setMenu(false) }} onKeyDown={(event) => { if (event.key === 'Escape' && menu) { event.stopPropagation(); setMenu(false); addButton.current?.focus() } }}>
           <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto" role="tablist" aria-label="已打开的工作区">
-            {tabs.map((tab) => { const meta = VIEWS.find((item) => item.id === tab.view)!; return <button key={tab.id} type="button" role="tab" aria-selected={active === tab.id} onClick={() => setActive(tab.id)} className="settings-option shrink-0 px-2 py-1 text-[11px]" data-selected={active === tab.id ? 'true' : undefined}>{meta.label} {tab.ordinal}</button> })}
+            {tabs.map((tab) => {
+              const meta = VIEWS.find((item) => item.id === tab.view)!
+              const Icon = meta.icon
+              const label = `${meta.label} ${tab.ordinal}`
+              return <div key={tab.id} className="flex shrink-0 items-center gap-1 rounded-md px-1 hover:bg-[var(--bg-secondary)]" style={{ background: active === tab.id ? 'var(--bg-secondary)' : undefined }} data-testid="workspace-open-tab">
+                <button type="button" role="tab" aria-selected={active === tab.id} onClick={() => setActive(tab.id)} className="inline-flex items-center gap-2 rounded px-2 py-2 text-[12px]"><Icon size={14} />{label}</button>
+                <button type="button" aria-label={`关闭${label}`} title={`关闭${label}`} className="shrink-0 rounded p-1 hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-muted)' }} onClick={() => closeTab(tab.id)}><X size={14} /></button>
+              </div>
+            })}
           </div>
           <button ref={addButton} type="button" aria-label="添加工作区内容" title="添加工作区内容" aria-haspopup="menu" aria-expanded={menu} className="shrink-0 rounded p-1" onClick={() => setMenu(!menu)}><Plus size={16} /></button>
-          <button type="button" aria-label="关闭当前标签" title="关闭当前标签" disabled={!tabs.length} className="shrink-0 rounded p-1 disabled:opacity-40" onClick={() => { const remaining = tabs.filter((tab) => tab.id !== active); setTabs(remaining); setActive(remaining.at(-1)?.id ?? -1) }}><X size={14} /></button>
-          <button type="button" aria-label="收起工作区" title="收起工作区" className="shrink-0 rounded p-1" onClick={() => { setOpen(false); setMenu(false) }}><PanelRight size={16} /></button>
           {menu && <div role="menu" aria-label="添加工作区内容" className="absolute right-2 top-full z-20 mt-1 w-40 rounded-md border p-1 shadow-lg" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} onKeyDown={(event) => { const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=menuitem]')); const index = items.indexOf(document.activeElement as HTMLButtonElement); if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); items[(index + (event.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length]?.focus() } }}>
-            {VIEWS.map(({ id, label, icon: Icon }, index) => <button key={id} autoFocus={index === 0} type="button" role="menuitem" className="settings-option flex w-full items-center gap-2 px-3 py-2 text-left text-[12px]" onClick={() => addTab(id)}><Icon size={14} />{label}</button>)}
+            {VIEWS.map(({ id, label, icon: Icon }, index) => <button key={id} autoFocus={index === 0} type="button" role="menuitem" className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-secondary)] focus-visible:bg-[var(--bg-secondary)]" onClick={() => addTab(id)}><Icon size={14} />{label}</button>)}
           </div>}
         </div>
         {!tabs.length && <p className="m-auto text-[12px]" style={{ color: 'var(--text-muted)' }}>没有打开的内容</p>}
@@ -114,9 +125,27 @@ function ReviewSample({ scene }: { scene: string }) {
 function BrowserSample({ scene }: { scene: string }) {
   const [state, setState] = useState(scene)
   const [revision, setRevision] = useState(0)
+  const [address, setAddress] = useState('https://notes.example.com/')
+  const [draft, setDraft] = useState(address)
+  const [error, setError] = useState('')
+  // 地址仅匹配本地夹具；输入不得进入 srcDoc 或触发外站导航，避免样张越过隔离边界。
+  const navigate = () => {
+    try {
+      const url = new URL(draft.includes('://') ? draft : `https://${draft}`)
+      if (!draft.trim() || !['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('invalid address')
+      setAddress(url.href); setDraft(url.href); setError('')
+      setState(url.origin === 'https://notes.example.com' && url.pathname === '/' ? '网页' : '无样张')
+      setRevision((value) => value + 1)
+    } catch { setError('请输入有效的 HTTP 或 HTTPS 地址。') }
+  }
   return <>
-    <div className="flex items-center gap-2 border-b p-2" style={{ borderColor: 'var(--border-subtle)' }}><Globe size={14} /><span className="min-w-0 flex-1 truncate text-[11px]" title="https://notes.example.com">notes.example.com</span><button type="button" aria-label="刷新页面" title="刷新页面" className="p-1" onClick={() => { setState('网页'); setRevision((value) => value + 1) }}><RefreshCw size={14} /></button></div>
-    {state === '加载中' ? <div className="m-auto flex items-center gap-2 text-[12px]" role="status"><LoaderCircle size={16} className="animate-spin" />正在加载页面</div> : state === '加载失败' ? <div className="m-auto space-y-3 text-center text-[12px]"><p>无法打开此页面</p><button type="button" onClick={() => setState('网页')} className="settings-option px-3 py-1.5">重新加载</button></div> : <iframe key={revision} title="浏览器网页样张" sandbox="" referrerPolicy="no-referrer" srcDoc={browserDocument} className="mx-auto min-h-0 w-full flex-1 border-0" style={{ maxWidth: scene === '窄屏网页' ? 320 : '100%' }} />}
+    <form className="flex items-center gap-2 border-b p-2" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); navigate() }}>
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center"><Globe size={14} /></span>
+      <input aria-label="浏览器地址" aria-invalid={Boolean(error)} value={draft} maxLength={2048} spellCheck={false} autoComplete="off" className="h-7 min-w-0 flex-1 rounded border-0 bg-transparent px-2 text-center text-[11px] focus:bg-[var(--bg-secondary)]" onFocus={(event) => event.target.select()} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); setDraft(address); setError(''); event.currentTarget.blur() } }} />
+      <button type="button" aria-label="刷新页面" title="刷新页面" className="flex h-6 w-6 shrink-0 items-center justify-center rounded" onClick={navigate}><RefreshCw size={14} /></button>
+    </form>
+    {error && <p role="alert" className="px-3 py-2 text-[11px]" style={{ color: 'var(--danger)' }}>{error}</p>}
+    {state === '无样张' ? <p className="m-auto p-4 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>此地址没有本地页面样张。</p> : state === '加载中' ? <div className="m-auto flex items-center gap-2 text-[12px]" role="status"><LoaderCircle size={16} className="animate-spin" />正在加载页面</div> : state === '加载失败' ? <div className="m-auto space-y-3 text-center text-[12px]"><p>无法打开此页面</p><button type="button" onClick={() => setState('网页')} className="settings-option px-3 py-1.5">重新加载</button></div> : <iframe key={revision} title="浏览器网页样张" sandbox="" referrerPolicy="no-referrer" srcDoc={browserDocument} className="mx-auto min-h-0 w-full flex-1 border-0" style={{ maxWidth: scene === '窄屏网页' ? 320 : '100%' }} />}
   </>
 }
 
