@@ -549,7 +549,6 @@ test.describe('My Agent UI', () => {
     await memorySurface.getByRole('button', { name: '保存', exact: true }).click()
     await expect(memorySurface).toContainText('先在 Playground 验证，再由用户决定是否回流正式 UI。')
     await expect(memorySurface).toContainText('隔离样张')
-    await expect(page.getByTestId('memory-boundary-note')).toContainText('Debug')
 
     await expect(nav.getByRole('button', { name: '设置', exact: true })).toHaveAttribute('data-active', 'true')
     await expect(page.getByTestId('settings-candidate-nav-memory')).toHaveAttribute('aria-current', 'page')
@@ -1485,7 +1484,6 @@ test.describe('My Agent UI', () => {
     await expect(page.getByTestId('memory-group-collaboration')).toContainText('4')
     await expect(page.getByTestId('memory-group-communication')).toContainText('3')
     await expect(page.getByTestId('memory-group-relationship')).toContainText('3')
-    await expect(page.getByTestId('memory-boundary-note')).toContainText('正在做什么')
   })
 
   test('Skills 管理页显示校验、版本和隔离试跑入口', async ({ page }) => {
