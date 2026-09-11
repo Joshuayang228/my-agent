@@ -548,7 +548,7 @@ test.describe('My Agent UI', () => {
     await correction.fill('先在 Playground 验证，再由用户决定是否回流正式 UI。')
     await memorySurface.getByRole('button', { name: '保存', exact: true }).click()
     await expect(memorySurface).toContainText('先在 Playground 验证，再由用户决定是否回流正式 UI。')
-    await expect(memorySurface).toContainText('隔离样张')
+    await expect(memorySurface.getByTestId('memory-add-row')).toBeVisible()
 
     await expect(nav.getByRole('button', { name: '设置', exact: true })).toHaveAttribute('data-active', 'true')
     await expect(page.getByTestId('settings-candidate-nav-memory')).toHaveAttribute('aria-current', 'page')
@@ -1564,3 +1564,4 @@ test.describe('My Agent UI', () => {
     await expect(settingsPanel).not.toBeVisible()
   })
 })
+
