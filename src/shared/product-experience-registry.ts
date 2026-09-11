@@ -59,7 +59,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     playgroundTabId: 'settings',
     sourcePaths: ['src/components/playground/SurfaceBaselinePanel.tsx', 'src/components/playground/SettingsExperienceCandidate.tsx', 'src/components/SettingsPanel.tsx'],
     experienceParts: ['设置分组', '角色架', '字段编辑', '自动保存', '失败恢复'],
-    usesFoundation: ['behavior.tabs', 'state.toast', 'state.error'],
+    usesFoundation: ['behavior.tabs', 'behavior.input', 'behavior.button', 'state.toast', 'state.error'],
   }),
   experience({
     key: 'experience.workspace',

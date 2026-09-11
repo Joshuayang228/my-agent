@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { ArrowUp, Globe, GitCompare, FileText, TerminalSquare, MessageCircle, RefreshCw, Square, LoaderCircle } from 'lucide-react'
-import { FileBrowser, type FileBrowserPreviewData } from '../FileBrowser'
+import { useRef, useState } from 'react'
+import { ArrowUp, Globe, GitCompare, FileText, TerminalSquare, MessageCircle, RefreshCw, Square, LoaderCircle, PanelRight, Plus, X } from 'lucide-react'
+import { FileBrowser, type FileBrowserPreviewData, type FileBrowserPreviewState } from '../FileBrowser'
 import { MarkdownRenderer } from '../MarkdownRenderer'
 import teaImage from '../../assets/playground/moment-tea-by-window.jpg'
 
@@ -12,6 +12,7 @@ const VIEWS = [
   { id: 'chat', label: '侧边聊天', icon: MessageCircle, scenes: ['空态', '对话', '生成中', '发送失败'] },
 ] as const
 type View = typeof VIEWS[number]['id']
+type WorkspaceTab = { id: number; view: View; scene: string; ordinal: number }
 const markdown = '# 项目笔记\n\n## 本周安排\n\n- 整理资料\n- 核对页面细节\n\n| 文件 | 内容 |\n| --- | --- |\n| notes.md | 项目说明 |\n| theme.ts | 主题配置 |'
 const fileData: FileBrowserPreviewData = {
   projectLabel: 'my-agent',
@@ -30,31 +31,65 @@ const browserDocument = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"
 /**
  * 背景：工作区用于检查内容，任务进度和结束状态不属于这五个工具的导航。
  * 设计意图：固定功能与直接场景选择分层，正式组件仅通过只读夹具参与预览。
- * 关键约束：场景切换重置本地交互；没有会话、shell、LLM 或外站请求。
+ * 关键约束：样张选择重置实例；实例切换与收起仅隐藏内容，保留本地状态；没有真实调用。
  */
 export function WorkspaceExperienceCandidate() {
   const [view, setView] = useState<View>('review')
   const [scene, setScene] = useState<string>('行内差异')
   const [narrow, setNarrow] = useState(false)
+  const [open, setOpen] = useState(true)
+  const [menu, setMenu] = useState(false)
+  const [tabs, setTabs] = useState<WorkspaceTab[]>([{ id: 0, view: 'review', scene: '行内差异', ordinal: 1 }])
+  const [active, setActive] = useState(0)
+  const nextId = useRef(1)
+  const addButton = useRef<HTMLButtonElement>(null)
+  const resetScene = (nextView: View, nextScene: string) => {
+    const id = nextId.current++
+    setView(nextView); setScene(nextScene); setTabs([{ id, view: nextView, scene: nextScene, ordinal: 1 }]); setActive(id); setOpen(true); setMenu(false)
+  }
+  const addTab = (nextView: View) => {
+    const id = nextId.current++
+    const nextScene = nextView === 'files' ? '文件列表' : VIEWS.find((item) => item.id === nextView)!.scenes[0]
+    setTabs((current) => [...current, { id, view: nextView, scene: nextScene, ordinal: Math.max(0, ...current.filter((tab) => tab.view === nextView).map((tab) => tab.ordinal)) + 1 }]); setActive(id); setMenu(false)
+    addButton.current?.focus()
+  }
   const selected = VIEWS.find((item) => item.id === view)!
   return <div className="space-y-3" data-testid="workspace-dock-candidate">
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex min-w-0 flex-1 flex-wrap gap-1" role="tablist" aria-label="工作区功能">
-        {VIEWS.map(({ id, label, icon: Icon, scenes }) => <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => { setView(id); setScene(scenes[0]) }} className="settings-option inline-flex items-center gap-1.5 px-3 py-2 text-[12px]" data-selected={view === id ? 'true' : undefined}><Icon size={14} />{label}</button>)}
+        {VIEWS.map(({ id, label, icon: Icon, scenes }) => <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => resetScene(id, scenes[0])} className="settings-option inline-flex items-center gap-1.5 px-3 py-2 text-[12px]" data-selected={view === id ? 'true' : undefined}><Icon size={14} />{label}</button>)}
       </div>
       <div className="flex gap-1" role="group" aria-label="工作区宽度">{[false, true].map((value) => <button key={String(value)} type="button" aria-pressed={narrow === value} onClick={() => setNarrow(value)} className="settings-option px-2 py-1 text-[11px]" data-selected={narrow === value ? 'true' : undefined}>{value ? '窄栏' : '展开'}</button>)}</div>
     </div>
     <div className="flex flex-wrap items-center gap-1" role="tablist" aria-label="工作区形态样张">
-      {selected.scenes.map((label) => <button key={label} type="button" role="tab" aria-selected={scene === label} onClick={() => setScene(label)} className="settings-option px-2.5 py-1.5 text-[11px]" data-selected={scene === label ? 'true' : undefined}>{label}</button>)}
+      {selected.scenes.map((label) => <button key={label} type="button" role="tab" aria-selected={scene === label} onClick={() => resetScene(view, label)} className="settings-option px-2.5 py-1.5 text-[11px]" data-selected={scene === label ? 'true' : undefined}>{label}</button>)}
       <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>隔离样张</span>
     </div>
-    <div className="ml-auto flex h-[540px] w-full min-w-0 flex-col overflow-hidden rounded-[var(--radius-md)] border" style={{ maxWidth: narrow ? 380 : '100%', borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} data-testid="workspace-tool-panel" role="tabpanel" aria-label={selected.label}>
-      <div key={`${view}-${scene}`} className="flex h-full min-h-0 min-w-0 flex-col">
-        {view === 'review' && <ReviewSample scene={scene} />}
-        {view === 'browser' && <BrowserSample scene={scene} />}
-        {view === 'files' && <FilesSample scene={scene} />}
-        {view === 'terminal' && <TerminalSample scene={scene} />}
-        {view === 'chat' && <SideChatSample scene={scene} />}
+    <div className="flex h-[580px] min-w-0 overflow-hidden rounded-[var(--radius-md)] border" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
+      <div className={narrow || !open ? 'flex min-w-0 flex-1 flex-col' : 'hidden'} data-testid="workspace-main-chat">
+        <div className="flex items-center justify-between gap-2 border-b p-3 text-[12px]" style={{ borderColor: 'var(--border-subtle)' }}><span>Chat</span><button type="button" title={open ? '收起工作区' : '打开工作区'} aria-label={open ? '收起工作区' : '打开工作区'} aria-expanded={open} onClick={() => setOpen(!open)} className="rounded p-1"><PanelRight size={16} /></button></div>
+        <WorkspaceChatShell />
+      </div>
+      <div className={open ? 'flex min-w-0 flex-col border-l' : 'hidden'} style={{ width: narrow ? 'min(380px, 65%)' : '100%', borderColor: 'var(--border-subtle)' }} data-testid="workspace-tool-panel">
+        <div className="relative flex shrink-0 items-center gap-1 border-b p-2" style={{ borderColor: 'var(--border-subtle)' }} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setMenu(false) }} onKeyDown={(event) => { if (event.key === 'Escape' && menu) { event.stopPropagation(); setMenu(false); addButton.current?.focus() } }}>
+          <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto" role="tablist" aria-label="已打开的工作区">
+            {tabs.map((tab) => { const meta = VIEWS.find((item) => item.id === tab.view)!; return <button key={tab.id} type="button" role="tab" aria-selected={active === tab.id} onClick={() => setActive(tab.id)} className="settings-option shrink-0 px-2 py-1 text-[11px]" data-selected={active === tab.id ? 'true' : undefined}>{meta.label} {tab.ordinal}</button> })}
+          </div>
+          <button ref={addButton} type="button" aria-label="添加工作区内容" title="添加工作区内容" aria-haspopup="menu" aria-expanded={menu} className="shrink-0 rounded p-1" onClick={() => setMenu(!menu)}><Plus size={16} /></button>
+          <button type="button" aria-label="关闭当前标签" title="关闭当前标签" disabled={!tabs.length} className="shrink-0 rounded p-1 disabled:opacity-40" onClick={() => { const remaining = tabs.filter((tab) => tab.id !== active); setTabs(remaining); setActive(remaining.at(-1)?.id ?? -1) }}><X size={14} /></button>
+          <button type="button" aria-label="收起工作区" title="收起工作区" className="shrink-0 rounded p-1" onClick={() => { setOpen(false); setMenu(false) }}><PanelRight size={16} /></button>
+          {menu && <div role="menu" aria-label="添加工作区内容" className="absolute right-2 top-full z-20 mt-1 w-40 rounded-md border p-1 shadow-lg" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} onKeyDown={(event) => { const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=menuitem]')); const index = items.indexOf(document.activeElement as HTMLButtonElement); if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); items[(index + (event.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length]?.focus() } }}>
+            {VIEWS.map(({ id, label, icon: Icon }, index) => <button key={id} autoFocus={index === 0} type="button" role="menuitem" className="settings-option flex w-full items-center gap-2 px-3 py-2 text-left text-[12px]" onClick={() => addTab(id)}><Icon size={14} />{label}</button>)}
+          </div>}
+        </div>
+        {!tabs.length && <p className="m-auto text-[12px]" style={{ color: 'var(--text-muted)' }}>没有打开的内容</p>}
+        {tabs.map((tab) => <div key={tab.id} role="tabpanel" aria-label={`${VIEWS.find((item) => item.id === tab.view)!.label} ${tab.ordinal}`} className={active === tab.id ? 'flex min-h-0 min-w-0 flex-1 flex-col' : 'hidden'}>
+          {tab.view === 'review' && <ReviewSample scene={tab.scene} />}
+          {tab.view === 'browser' && <BrowserSample scene={tab.scene} />}
+          {tab.view === 'files' && <FilesSample scene={tab.scene} />}
+          {tab.view === 'terminal' && <TerminalSample scene={tab.scene} />}
+          {tab.view === 'chat' && <SideChatSample scene={tab.scene} />}
+        </div>)}
       </div>
     </div>
   </div>
@@ -85,10 +120,44 @@ function BrowserSample({ scene }: { scene: string }) {
   </>
 }
 
+/**
+ * 背景：用户需要左树右预览，并在多个文件之间来回核对。
+ * 设计意图：复用正式文件树的受控选择，预览标签由候选持有，避免修改生产上下布局。
+ * 关键约束：文件路径仅索引静态夹具；重复选择不新增标签，关闭后移至剩余预览。
+ */
 function FilesSample({ scene }: { scene: string }) {
   const initialPath = ({ Markdown: 'notes.md', 代码: 'theme.ts', 图片: 'window.jpg', 无法预览: 'report.pdf' } as Record<string, string>)[scene]
-  const [preview] = useState<FileBrowserPreviewData>(() => scene === '空目录' ? { projectLabel: 'my-agent', tree: [], files: {} } : { ...fileData, initialPath })
-  return <FileBrowser projectPath={null} embedded previewData={preview} onClose={() => {}} />
+  const [data] = useState<FileBrowserPreviewData>(() => scene === '空目录' ? { projectLabel: 'my-agent', tree: [], files: {} } : { ...fileData, initialPath })
+  const [paths, setPaths] = useState<string[]>(initialPath ? [initialPath] : [])
+  const [activePath, setActivePath] = useState<string | null>(initialPath ?? null)
+  const preview = activePath ? data.files[activePath] : null
+  const openFile = (next: FileBrowserPreviewState) => {
+    if (!next) return
+    setPaths((current) => current.includes(next.path) ? current : [...current, next.path]); setActivePath(next.path)
+  }
+  return <div className="flex min-h-0 min-w-0 flex-1" data-testid="workspace-files-layout">
+    <div className="min-w-0 shrink-0 overflow-hidden border-r" style={{ width: paths.length ? '32%' : '100%', borderColor: 'var(--border-subtle)' }} data-testid="workspace-file-tree"><FileBrowser projectPath={null} embedded mode="files" previewData={data} previewState={preview} onPreviewStateChange={openFile} onClose={() => {}} /></div>
+    {paths.length > 0 && <div className="flex min-w-0 flex-1 flex-col" data-testid="workspace-file-preview">
+      <div className="flex items-center border-b p-1" style={{ borderColor: 'var(--border-subtle)' }}><div className="flex min-w-0 flex-1 gap-1 overflow-x-auto" role="tablist" aria-label="文件预览">
+        {paths.map((path) => <button key={path} type="button" role="tab" aria-selected={path === activePath} onClick={() => setActivePath(path)} className="settings-option shrink-0 px-2 py-1 text-[11px]" data-selected={path === activePath ? 'true' : undefined}>{path}</button>)}
+      </div><button type="button" title="关闭文件预览" aria-label="关闭文件预览" className="shrink-0 p-1" onClick={() => { const remaining = paths.filter((path) => path !== activePath); setPaths(remaining); setActivePath(remaining.at(-1) ?? null) }}><X size={14} /></button></div>
+      <div className="min-h-0 min-w-0 flex-1 overflow-auto p-3" role="tabpanel" aria-label={activePath ?? '文件预览'}>
+        {preview?.kind === 'text' && <MarkdownRenderer content={preview.languageHint === 'markdown' ? preview.content : '```' + (preview.languageHint ?? '') + '\n' + preview.content + '\n```'} />}
+        {preview?.kind === 'image' && <img src={preview.dataUrl} alt={preview.path} className="mx-auto max-h-full max-w-full object-contain" />}
+        {preview?.kind === 'unsupported' && <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{preview.reason}</p>}
+        {preview?.kind === 'error' && <p role="alert" className="text-[12px]">{preview.message}</p>}
+      </div>
+    </div>}
+  </div>
+}
+
+function WorkspaceChatShell() {
+  const [input, setInput] = useState('')
+  const [messages, setMessages] = useState(['帮我看看 theme.ts 的间距调整。'])
+  return <>
+    <div className="min-h-0 flex-1 space-y-4 overflow-auto p-3 text-[12px] leading-6">{messages.map((message, index) => <p key={index} className="break-words">{message}</p>)}<p style={{ color: 'var(--text-muted)' }}>可以打开右侧审阅，查看修改前后的内容。</p></div>
+    <form className="flex items-end gap-1 border-t p-2" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); if (input.trim()) { setMessages((current) => [...current, input.trim()]); setInput('') } }}><textarea aria-label="主对话样张消息" rows={3} className="theme-input min-w-0 flex-1 resize-none rounded border p-2 text-[12px]" placeholder="继续对话…" value={input} onChange={(event) => setInput(event.target.value)} /><button type="submit" aria-label="发送主对话样张" title="发送主对话样张" disabled={!input.trim()} className="p-1 disabled:opacity-40"><ArrowUp size={14} /></button></form>
+  </>
 }
 
 function TerminalSample({ scene }: { scene: string }) {

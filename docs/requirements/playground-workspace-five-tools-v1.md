@@ -22,6 +22,13 @@
 
 ## How
 
+### 本轮补充（用户已授权）
+
+- 窄栏左侧保留可输入的隔离 Chat 壳；Chat 右上角通过工作区图标打开/收起右栏，收起不丢失已打开内容。
+- 工作区内部提供加号菜单，选择五种功能后新建独立实例；可切换和关闭，多实例状态独立。顶部五功能仍为样张选择器，不替代真实入口交互。
+- 文件区替换上下布局：左侧文件树，点击后在右侧新增文件预览标签；重复点击激活已有预览，关闭后可再次打开。窄栏仍保持左右结构。
+- 本轮删除范围仅为候选的空白左侧、单内容容器和上下文件预览组合；正式 ChatRightDock / FileBrowser 默认布局不变。
+
 `WorkspaceExperienceCandidate.tsx` 仅承载隔离状态；`SurfaceBaselinePanel` 的 DockSurface 引用它。复用 FileBrowser 的 previewData、MarkdownRenderer、基础主题 class 和 Lucide 图标；同步产品体验注册表、Playground 标题与隔离 E2E。
 
 浏览器用本地静态 srcDoc 与严格 sandbox 显示实际页面样张，不导航外站。终端只处理明确的样张命令，无 shell；聊天只改变本地消息，不请求模型、不保存会话。所有模拟边界由 Playground 的“隔离样张”说明标记。
