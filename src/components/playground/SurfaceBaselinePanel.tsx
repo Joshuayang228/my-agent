@@ -812,6 +812,7 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
   const [debugEnabled, setDebugEnabled] = useState(false)
   const [showSource, setShowSource] = useState(false)
   const [query, setQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
   const [adding, setAdding] = useState(false)
   const [newContent, setNewContent] = useState('')
   const [newGroup, setNewGroup] = useState<MemoryPreviewGroup>('identity')
@@ -910,15 +911,12 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
         <p className="text-[10px]" style={{ color: 'var(--text-muted)' }} data-testid="memory-group-description">
           {activeGroup.description}
         </p>
-        <div className="grid gap-2 sm:grid-cols-3" data-testid="memory-overview">
+        <div className="grid gap-2 sm:grid-cols-2" data-testid="memory-overview">
           <div className="rounded-md border px-3 py-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}><div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>已记住</div><div className="mt-1 text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{allPreviewMemories.length} 条</div></div>
           <div className="rounded-md border px-3 py-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}><div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>最近更新</div><div className="mt-1 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>今天 1 条</div></div>
-          <div className="rounded-md border px-3 py-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}><div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>管理方式</div><div className="mt-1 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>可纠正、可删除</div></div>
+          
         </div>
-        <div className="flex min-w-0 flex-wrap items-center gap-2" data-testid="memory-actions">
-          <label className="relative min-w-[12rem] flex-1"><Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} /><input aria-label="搜索记忆" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索记忆" className="theme-input h-8 w-full rounded-md border pl-8 pr-3 text-[11px] outline-none" /></label>
-          <button type="button" onClick={() => setAdding((visible) => !visible)} className="inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-[10px]" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="memory-add-button"><Plus size={13} />添加记忆</button>
-        </div>
+        <div className="flex min-w-0 items-center justify-end gap-2" data-testid="memory-actions">{searchOpen && <label className="relative min-w-0 flex-1"><Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} /><input autoFocus aria-label="搜索记忆" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索记忆" className="theme-input h-8 w-full rounded-md border pl-8 pr-3 text-[11px] outline-none" /></label>}<button type="button" aria-label="搜索记忆" title="搜索记忆" aria-pressed={searchOpen} onClick={() => setSearchOpen((open) => !open)} className="rounded-md p-2" style={{ color: searchOpen ? 'var(--accent-fg)' : 'var(--text-muted)' }}><Search size={15} /></button><button type="button" aria-label="添加记忆" title="添加记忆" onClick={() => setAdding((visible) => !visible)} className="rounded-md p-2" style={{ color: 'var(--accent-fg)' }} data-testid="memory-add-button"><Plus size={16} /></button></div>
         <p className="text-[10px]" style={{ color: 'var(--text-muted)' }} data-testid="memory-boundary-note">这里保留会影响未来相处的长期信息；正在做什么和系统做过什么，分别留在 Chat / Debug。</p>
         {adding && <div className="space-y-2 rounded-md border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} data-testid="memory-add-form"><div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>告诉伙伴一件希望长期记住的事</div><textarea aria-label="新记忆内容" value={newContent} onChange={(event) => setNewContent(event.target.value)} rows={2} placeholder="例如：我喜欢先看结论，再看详细解释。" className="theme-input w-full resize-y rounded-md border px-3 py-2 text-[11px] outline-none" /><div className="flex flex-wrap items-center justify-between gap-2"><div className="flex flex-wrap gap-1" role="radiogroup" aria-label="记忆分类">{MEMORY_PREVIEW_GROUPS.map((item) => <button key={item.id} type="button" role="radio" aria-checked={newGroup === item.id} onClick={() => setNewGroup(item.id)} className="settings-option px-2 py-1 text-[10px]" data-selected={newGroup === item.id ? 'true' : undefined}>{item.label}</button>)}</div><div className="flex gap-2"><button type="button" onClick={() => setAdding(false)} className="rounded px-2.5 py-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>取消</button><button type="button" onClick={addMemory} disabled={!newContent.trim()} className="rounded-md border px-2.5 py-1.5 text-[10px] disabled:opacity-40" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }}>保存记忆</button></div></div></div>}
         <div className="flex flex-wrap items-center gap-2">

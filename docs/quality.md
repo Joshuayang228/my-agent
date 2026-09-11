@@ -132,3 +132,5 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 - 新增 Case 或测试文件时只改代码注册表和测试，不在本文追加数量清单。
 - dated audit 完成后归档；有效缺口先迁入 Wishlist 或 Decisions。
 - 旧 `testing.md`、`eval-design.md` 和收口前 Quality 全文均已归档，不能作为当前门禁。
+
+- 记忆页回归覆盖统计卡减法、放大镜展开搜索、搜索过滤和添加按钮可达性。

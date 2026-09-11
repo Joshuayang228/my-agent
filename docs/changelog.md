@@ -536,3 +536,5 @@
 - [完整历史 Progress](../_archive/ledgers/progress-through-2026-08-16.md)
 
 - Skills 详情现在明确标出“技能描述：”，与触发条件保持同一信息层级。
+
+- 记忆 Playground 统计仅保留已记住与最近更新；搜索改为放大镜入口，添加记忆改为紧凑图标按钮。
