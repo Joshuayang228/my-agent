@@ -490,7 +490,7 @@ test.describe('My Agent UI', () => {
     await expect(memorySurface).not.toContainText('召回分数')
     await expect(memorySurface.locator('[data-testid^="memory-sensitive-warning-"]')).toHaveCount(0)
     await expect(page.getByTestId('memory-actions')).toBeVisible()
-    await page.getByTestId('memory-add-button').click()
+    await page.getByTestId('memory-add-row').getByRole('button', { name: '添加一条记忆', exact: true }).click()
     const memoryAddForm = page.getByTestId('memory-add-row')
     await memoryAddForm.getByLabel('新记忆内容', { exact: true }).fill('我希望复杂任务先给结论，再展开步骤。')
     await memoryAddForm.getByLabel('新增记忆分类').selectOption('communication')

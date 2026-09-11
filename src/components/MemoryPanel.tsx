@@ -56,6 +56,7 @@ interface MemoryPanelProps {
   /** 仅允许 Playground 夹具在 Renderer 内存中被纠正，绝不触发真实 memory IPC。 */
   previewEditable?: boolean
   readOnly?: boolean
+  previewHideFooter?: boolean
 }
 
 export function MemoryPanel({
@@ -69,6 +70,7 @@ export function MemoryPanel({
   previewShowSource = false,
   previewEditable = false,
   readOnly = false,
+  previewHideFooter = false,
 }: MemoryPanelProps) {
   const [memories, setMemories] = useState<MemoryEntry[]>(previewMemories ?? [])
   const [filter, setFilter] = useState<MemoryCategory | 'all'>('all')
@@ -432,12 +434,11 @@ export function MemoryPanel({
           )}
         </div>
 
-        {/* Footer hint */}
-        <div className="border-t px-4 py-2 text-center text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
+        {!previewHideFooter && <div className="border-t px-4 py-2 text-center text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
           {isPreview
             ? '这是 Playground 的隔离样张；在“纠正记忆”中试改不会保存到正式记忆。'
             : '记忆会注入到每次对话的 System Prompt 中 · 敏感项（健康/财务/凭据等）会高亮，勿存密码原文'}
-        </div>
+        </div>}
     </div>
   )
 }
