@@ -26,7 +26,7 @@ const SURFACES: { id: SurfaceId; label: string; description: string; adopted: bo
   { id: 'sidebar', label: 'Primary Sidebar', description: '伙伴身份、会话与底栏入口', adopted: true },
   { id: 'dock', label: 'Right Dock', description: '文件、审阅、终端与 Debug 层级', adopted: true },
   { id: 'world', label: '人物世界', description: '生活面 tab 与内容节奏', adopted: true },
-  { id: 'memory', label: '记忆', description: '四类长期记忆、紧凑列表、敏感项与编辑态', adopted: true },
+  { id: 'memory', label: '记忆', description: '四类长期记忆、独立条目卡、敏感项与编辑态', adopted: true },
   { id: 'settings', label: '设置', description: '设置分组与详情区的整体密度', adopted: true },
 ]
 
@@ -991,7 +991,7 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
             previewHideFooter
             readOnly={false}
           />
-          <div className="border-t" style={{ borderColor: 'var(--border-subtle)' }} data-testid="memory-add-row">{adding ? <div className="flex flex-wrap items-center gap-2 p-3"><input autoFocus aria-label="新记忆内容" value={newContent} onChange={(event) => setNewContent(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') addMemory() }} placeholder="输入希望伙伴记住的内容…" className="theme-input min-w-[12rem] flex-1 rounded-md border px-3 py-1.5 text-[11px]" /><button type="button" onClick={addMemory} disabled={!newContent.trim()} className="rounded-md border px-3 py-1.5 text-[11px] disabled:opacity-40" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }}>保存</button><button type="button" onClick={() => { setAdding(false); setNewContent('') }} className="px-2 py-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>取消</button></div> : <button type="button" className="flex w-full items-center gap-2 px-4 py-3 text-left text-[11px]" style={{ color: 'var(--text-muted)' }} onClick={() => setAdding(true)}><Plus size={14} />添加一条记忆</button>}</div>
+          <div className="mt-3" data-testid="memory-add-row">{adding ? <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-lg)] border p-4" style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)' }}><input autoFocus aria-label="新记忆内容" value={newContent} onChange={(event) => setNewContent(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') addMemory() }} placeholder="输入希望伙伴记住的内容…" className="theme-input min-w-[12rem] flex-1 rounded-[var(--radius-md)] border px-3 py-1.5 text-[13px]" /><button type="button" onClick={addMemory} disabled={!newContent.trim()} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[11px] disabled:opacity-40" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }}>保存</button><button type="button" onClick={() => { setAdding(false); setNewContent('') }} className="px-2 py-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>取消</button></div> : <button type="button" className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] px-1 py-2 text-[12px]" style={{ color: 'var(--text-muted)' }} onClick={() => setAdding(true)}><Plus size={14} />添加一条记忆</button>}</div>
         </div>
       </SurfaceViewport>
     </div>

@@ -5,7 +5,7 @@ import {
   formatSensitiveCollectionHint,
   labelSensitiveKinds,
 } from '../shared/sensitive-memory'
-import { User, Settings, MessageCircle, Star, Pin, Brain, X, ThumbsUp, ShieldAlert } from 'lucide-react'
+import { User, Settings, MessageCircle, Star, Pin, Brain, X, ThumbsUp, ShieldAlert, Pencil, Trash2 } from 'lucide-react'
 
 type MemoryColor = 'accent' | 'warm' | 'success' | 'muted'
 
@@ -282,8 +282,13 @@ export function MemoryPanel({
         )}
 
         {/* Memory List */}
-        <div className="flex-1 overflow-y-auto px-5 py-3">
+        <div className={isCompactPreview ? 'flex-1 overflow-y-auto' : 'flex-1 overflow-y-auto px-5 py-3'}>
           {filtered.length === 0 ? (
+            isCompactPreview ? (
+              <div className="rounded-[var(--radius-lg)] border px-4 py-8 text-center text-[13px]" style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)', color: 'var(--text-muted)' }}>
+                {memories.length === 0 ? '还没有任何记忆。' : '该分类下暂无记忆'}
+              </div>
+            ) : (
             <div className="mt-10 text-center">
               <div className="mb-2 flex justify-center" style={{ color: 'var(--text-muted)' }}><Brain size={28} /></div>
               <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -292,10 +297,10 @@ export function MemoryPanel({
                   : '该分类下暂无记忆'}
               </div>
             </div>
+            )
           ) : (
             <div
-              className={isCompactPreview ? 'overflow-hidden rounded-xl border' : isPreview ? 'grid gap-3 px-0.5 sm:grid-cols-2' : 'space-y-2'}
-              style={isCompactPreview ? { borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' } : undefined}
+              className={isCompactPreview ? 'space-y-3' : isPreview ? 'grid gap-3 px-0.5 sm:grid-cols-2' : 'space-y-2'}
             >
               {filtered.map(mem => {
                 const cat = CATEGORIES.find(c => c.id === mem.category)
@@ -309,17 +314,17 @@ export function MemoryPanel({
                     key={mem.id}
                     className={`group transition ${
                       isCompactPreview
-                        ? 'border-b px-4 py-3 last:border-b-0'
+                        ? 'rounded-[var(--radius-lg)] border p-4'
                         : `rounded-xl border px-4 py-3.5 hover:bg-opacity-10 ${isPreview ? 'min-h-[156px]' : isSensitive ? '' : `${colors.border} ${colors.bg}`}`
                     }`}
                     style={
                       isCompactPreview
                         ? isSensitive
                           ? {
-                              borderColor: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 55%, transparent)',
-                              background: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 10%, transparent)',
+                              borderColor: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 55%, var(--card-border))',
+                              background: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 8%, var(--card-bg))',
                             }
-                          : { borderColor: 'var(--border-subtle)' }
+                          : { borderColor: 'var(--card-border)', background: 'var(--card-bg)' }
                         : isPreview
                           ? isSensitive
                             ? {
@@ -335,7 +340,7 @@ export function MemoryPanel({
                             : undefined
                     }
                   >
-                    <div className="mb-1.5 flex items-center gap-1">
+                    <div className={`${isSensitive || !isCompactPreview ? 'mb-1.5 flex items-center gap-1' : 'hidden'}`}>
                       <div className="flex flex-wrap items-center gap-1">
                         {!isCompactPreview && (
                           <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${colors.badge}`}>
@@ -387,7 +392,7 @@ export function MemoryPanel({
                         </button>
                       </div>
                     ) : (
-                      <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{mem.content}</p>
+                      <p className={isCompactPreview ? 'text-[13px] font-medium leading-6' : 'text-xs leading-relaxed'} style={{ color: isCompactPreview ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{mem.content}</p>
                     )}
 
                     {isSensitive && !isEditing && (
@@ -416,15 +421,22 @@ export function MemoryPanel({
                     )}
 
                     <div className={`${isCompactPreview ? 'mt-3' : 'mt-2'} flex items-center justify-between gap-3`}>
-                      <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                      <div className={isCompactPreview ? 'text-[11px]' : 'text-[9px]'} style={{ color: 'var(--text-muted)' }}>
                         {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
                         {mem.updatedAt !== mem.createdAt && ` (更新于 ${new Date(mem.updatedAt).toLocaleDateString('zh-CN')})`}
                       </div>
                       {canEdit && !isEditing && (
+                        isCompactPreview ? (
+                          <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+                            <button type="button" aria-label={`编辑记忆 ${mem.content}`} title="编辑" onClick={() => startEdit(mem)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><Pencil size={14} /></button>
+                            <button type="button" aria-label={`删除记忆 ${mem.content}`} title="删除" onClick={() => handleDelete(mem.id)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--danger)' }}><Trash2 size={14} /></button>
+                          </div>
+                        ) : (
                         <div className="flex shrink-0 items-center gap-1">
                           <button aria-label={`编辑记忆 ${mem.content}`} onClick={() => startEdit(mem)} className="memory-action-button rounded px-1.5 py-0.5 text-[10px] transition">编辑</button>
                           <button aria-label={`删除记忆 ${mem.content}`} onClick={() => handleDelete(mem.id)} className="memory-delete-button rounded px-1.5 py-0.5 text-[10px] transition">删除</button>
                         </div>
+                        )
                       )}
                     </div>
                   </div>
