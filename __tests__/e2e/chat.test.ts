@@ -944,6 +944,7 @@ test.describe('My Agent UI', () => {
     await expect(candidate).not.toContainText('MUTABLE')
     await expect(candidate).not.toContainText('L3')
     await expect(candidate.getByRole('button', { name: 'Debug', exact: true })).toHaveCount(0)
+    await expect(candidate).not.toContainText('Debug / Playground 使用应用全局入口，不在这里复制第二套导航。')
 
     await candidate.getByRole('button', { name: '伙伴与相处', exact: true }).click()
     const companion = candidate.getByTestId('settings-candidate-section-companion')

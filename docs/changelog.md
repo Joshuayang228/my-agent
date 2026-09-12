@@ -4,6 +4,8 @@
 
 ## [未发布]
 
+- Playground 设置侧栏不再显示 Debug / Playground 导航说明。
+
 - 记忆 Playground 新增输入焦点改为主题描边，去掉浏览器默认黑圈。
 
 - 记忆 Playground 新增行的保存/取消改为图标，与编辑态一致。
