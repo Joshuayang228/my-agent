@@ -168,8 +168,18 @@ function FilesSample({ scene }: { scene: string }) {
     <div className="min-w-0 shrink-0 overflow-hidden border-r" style={{ width: paths.length ? '32%' : '100%', borderColor: 'var(--border-subtle)' }} data-testid="workspace-file-tree"><FileBrowser projectPath={null} embedded mode="files" previewData={data} previewState={preview} onPreviewStateChange={openFile} onClose={() => {}} /></div>
     {paths.length > 0 && <div className="flex min-w-0 flex-1 flex-col" data-testid="workspace-file-preview">
       <div className="flex items-center border-b p-1" style={{ borderColor: 'var(--border-subtle)' }}><div className="flex min-w-0 flex-1 gap-1 overflow-x-auto" role="tablist" aria-label="文件预览">
-        {paths.map((path) => <button key={path} type="button" role="tab" aria-selected={path === activePath} onClick={() => setActivePath(path)} className="settings-option shrink-0 px-2 py-1 text-[11px]" data-selected={path === activePath ? 'true' : undefined}>{path}</button>)}
-      </div><button type="button" title="关闭文件预览" aria-label="关闭文件预览" className="shrink-0 p-1" onClick={() => { const remaining = paths.filter((path) => path !== activePath); setPaths(remaining); setActivePath(remaining.at(-1) ?? null) }}><X size={14} /></button></div>
+        {paths.map((path) => {
+          const closePreview = () => {
+            const remaining = paths.filter((item) => item !== path)
+            setPaths(remaining)
+            setActivePath((current) => current === path ? remaining.at(-1) ?? null : current)
+          }
+          return <div key={path} className="flex shrink-0 items-center gap-0.5 rounded-md px-1" style={{ background: path === activePath ? 'var(--bg-secondary)' : undefined }}>
+            <button type="button" role="tab" aria-selected={path === activePath} onClick={() => setActivePath(path)} className="settings-option shrink-0 px-2 py-1 text-[11px]" data-selected={path === activePath ? 'true' : undefined}>{path}</button>
+            <button type="button" title={`关闭${path}`} aria-label={`关闭${path}`} className="shrink-0 rounded p-1 hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-muted)' }} onClick={closePreview}><X size={12} /></button>
+          </div>
+        })}
+      </div></div>
       <div className="min-h-0 min-w-0 flex-1 overflow-auto p-3" role="tabpanel" aria-label={activePath ?? '文件预览'}>
         {preview?.kind === 'text' && <MarkdownRenderer content={preview.languageHint === 'markdown' ? preview.content : '```' + (preview.languageHint ?? '') + '\n' + preview.content + '\n```'} />}
         {preview?.kind === 'image' && <img src={preview.dataUrl} alt={preview.path} className="mx-auto max-h-full max-w-full object-contain" />}
