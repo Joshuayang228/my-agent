@@ -53,7 +53,7 @@ const MEMORY_PREVIEW_GROUPS: MemoryPreviewGroupDefinition[] = [
   },
   {
     id: 'collaboration',
-    label: '协作习惯',
+    label: '工作方式',
     memories: [
       { id: 'memory-user-workflow', category: 'workflow', content: '先研究现有实现，再形成判断和施工方案。', createdAt: NOW - 9 * 86_400_000, updatedAt: NOW - 8 * 86_400_000 },
       { id: 'memory-user-validation', category: 'workflow', content: '复杂改动要先写施工合同，并按步骤验收。', createdAt: NOW - 7 * 86_400_000, updatedAt: NOW - 6 * 86_400_000 },

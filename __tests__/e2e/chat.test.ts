@@ -484,7 +484,7 @@ test.describe('My Agent UI', () => {
     const memorySurface = page.getByTestId('memory-surface-candidate')
     await expect(page.getByTestId('memory-group-identity')).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByTestId('memory-group-identity')).toContainText('3')
-    await expect(page.getByTestId('memory-group-collaboration')).toContainText('协作习惯')
+    await expect(page.getByTestId('memory-group-collaboration')).toContainText('工作方式')
     await expect(page.getByTestId('memory-group-communication')).toContainText('沟通偏好')
     await expect(page.getByTestId('memory-group-relationship')).toContainText('我们之间')
     await expect(memorySurface).toContainText('正在做一款人格化桌面 Agent。')
