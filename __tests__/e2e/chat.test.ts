@@ -558,10 +558,11 @@ test.describe('My Agent UI', () => {
     await expect(page.getByTestId('memory-debug-mode')).toHaveAttribute('aria-checked', 'true')
     await expect(page.getByTestId('memory-show-source')).toHaveAttribute('aria-checked', 'false')
     await page.getByTestId('memory-show-source').click()
-    await expect(memorySurface.getByText('来自：你对回复方式给出的反馈（隔离样张）', { exact: true })).toBeVisible()
+    await expect(memorySurface.getByTestId('memory-preview-source-memory-user-voice')).toHaveText('你对回复方式给出的反馈（隔离样张）')
+    await expect(memorySurface).not.toContainText('来自：')
     await page.getByTestId('memory-debug-mode').click()
     await expect(page.getByTestId('memory-show-source')).toHaveCount(0)
-    await expect(memorySurface.getByText('来自：你对回复方式给出的反馈（隔离样张）', { exact: true })).toHaveCount(0)
+    await expect(memorySurface.getByTestId('memory-preview-source-memory-user-voice')).toHaveCount(0)
 
     await page.getByTestId('memory-group-collaboration').click()
     await expect(page.getByTestId('memory-group-collaboration')).toContainText('4')

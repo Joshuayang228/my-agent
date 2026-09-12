@@ -425,17 +425,20 @@ export function MemoryPanel({
                       </div>
                     )}
 
+                    {/* 紧凑清单里来源只是正文下一行说明；分割线和“来自：”会把它抬成第二主信息。 */}
                     {previewShowSource && previewEvidence?.[mem.id] && (
-                      <div
-                        className="mt-2 border-t pt-1.5 text-[10px] leading-4"
-                        style={{ borderColor: 'color-mix(in srgb, var(--border-color) 76%, transparent)', color: 'var(--text-muted)' }}
+                      <p
+                        className={isCompactPreview ? 'mt-1 text-[11px] leading-5' : 'mt-2 border-t pt-1.5 text-[10px] leading-4'}
+                        style={isCompactPreview
+                          ? { color: 'var(--text-muted)' }
+                          : { borderColor: 'color-mix(in srgb, var(--border-color) 76%, transparent)', color: 'var(--text-muted)' }}
                         data-testid={`memory-preview-source-${mem.id}`}
                       >
-                        <span style={{ color: 'var(--text-secondary)' }}>来自：</span>{previewEvidence[mem.id]?.source}
-                      </div>
+                        {isCompactPreview ? previewEvidence[mem.id]?.source : <><span style={{ color: 'var(--text-secondary)' }}>来自：</span>{previewEvidence[mem.id]?.source}</>}
+                      </p>
                     )}
 
-                    <div className={`${isCompactPreview ? 'mt-3' : 'mt-2'} flex items-center justify-between gap-3`}>
+                    <div className="mt-2 flex items-center justify-between gap-3">
                       <div className={isCompactPreview ? 'text-[11px]' : 'text-[9px]'} style={{ color: 'var(--text-muted)' }} data-testid={`memory-item-date-${mem.id}`}>
                         {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
                         {mem.updatedAt !== mem.createdAt && ` (更新于 ${new Date(mem.updatedAt).toLocaleDateString('zh-CN')})`}
