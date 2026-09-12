@@ -112,7 +112,7 @@ function ReviewSample({ scene }: { scene: string }) {
       <span className="ml-auto" style={{ color: 'var(--success)' }}>+{file === 'theme.ts' ? 2 : 1}</span><span style={{ color: 'var(--danger)' }}>−{file === 'theme.ts' ? 2 : 1}</span>
     </div>
     <div className="min-h-0 overflow-auto p-3" data-testid="workspace-diff">
-      {scene === '并排差异' ? <div className="grid grid-cols-2 gap-3"><div className="min-w-0"><p className="mb-2 text-[11px]">修改前</p><MarkdownRenderer content={'```typescript\n' + oldText + '\n```'} /></div><div className="min-w-0"><p className="mb-2 text-[11px]">修改后</p><MarkdownRenderer content={'```typescript\n' + newText + '\n```'} /></div></div> : <MarkdownRenderer content={'```diff\n--- ' + file + '\n+++ ' + file + '\n' + (file === 'theme.ts' ? " export const theme = {\n-  name: 'dark',\n-  spacing: 12,\n+  name: 'mist',\n+  spacing: 16,\n }" : ' # 项目笔记\n \n-整理资料。\n+整理资料，并核对页面。') + '\n```'} />}
+      {scene === '并排差异' ? <div className="grid grid-cols-2 gap-3"><div className="min-w-0"><p className="mb-2 text-[11px]">修改前</p><MarkdownRenderer content={'```typescript\n' + oldText + '\n```'} /></div><div className="min-w-0"><p className="mb-2 text-[11px]">修改后</p><MarkdownRenderer content={'```typescript\n' + newText + '\n```'} /></div></div> : <MarkdownRenderer variant="playground" content={'```diff\n--- ' + file + '\n+++ ' + file + '\n' + (file === 'theme.ts' ? " export const theme = {\n-  name: 'dark',\n-  spacing: 12,\n+  name: 'mist',\n+  spacing: 16,\n }" : ' # 项目笔记\n \n-整理资料。\n+整理资料，并核对页面。') + '\n```'} />}
     </div>
   </>
 }
@@ -135,7 +135,6 @@ function BrowserSample({ scene }: { scene: string }) {
   }
   return <>
     <form className="flex items-center gap-2 border-b p-2" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); navigate() }}>
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center"><Globe size={14} /></span>
       <input aria-label="浏览器地址" aria-invalid={Boolean(error)} value={draft} maxLength={2048} spellCheck={false} autoComplete="off" className="h-7 min-w-0 flex-1 rounded border-0 bg-transparent px-2 text-center text-[11px] focus:bg-[var(--bg-secondary)]" onFocus={(event) => event.target.select()} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); setDraft(address); setError(''); event.currentTarget.blur() } }} />
       <button type="button" aria-label="刷新页面" title="刷新页面" className="flex h-6 w-6 shrink-0 items-center justify-center rounded" onClick={navigate}><RefreshCw size={14} /></button>
     </form>

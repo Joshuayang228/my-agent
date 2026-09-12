@@ -187,10 +187,11 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content, varian
                   style={codeStyle}
                   language={match[1]}
                   PreTag="div"
+                  codeTagProps={variant === 'playground' ? { style: { background: 'transparent' } } : undefined}
                   customStyle={{
                     margin: 0,
                     borderRadius: 0,
-                    background: 'var(--bg-tertiary)',
+                    background: variant === 'playground' ? 'var(--bg-inset)' : 'var(--bg-tertiary)',
                     fontSize: '0.8125rem',
                     lineHeight: '1.6',
                   }}
@@ -204,7 +205,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content, varian
           return (
             <code
               className="rounded px-1.5 py-0.5 text-[0.8125rem]"
-              style={{ background: 'var(--bg-tertiary)', color: 'var(--accent-fg)' }}
+              style={{ background: variant === 'playground' ? 'var(--bg-inset)' : 'var(--bg-tertiary)', color: 'var(--accent-fg)' }}
               {...props}
             >
               {children}
