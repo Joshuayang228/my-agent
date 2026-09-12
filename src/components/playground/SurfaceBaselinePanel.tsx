@@ -36,7 +36,6 @@ type MemoryPreviewGroup = 'identity' | 'collaboration' | 'communication' | 'rela
 interface MemoryPreviewGroupDefinition {
   id: MemoryPreviewGroup
   label: string
-  description: string
   memories: MemoryEntry[]
 }
 
@@ -48,7 +47,6 @@ const MEMORY_PREVIEW_GROUPS: MemoryPreviewGroupDefinition[] = [
   {
     id: 'identity',
     label: '身份信息',
-    description: '稳定背景、角色与长期关注。',
     memories: [
       { id: 'memory-user-identity', category: 'identity', content: '正在做一款人格化桌面 Agent。', createdAt: NOW - 12 * 86_400_000, updatedAt: NOW - 12 * 86_400_000 },
       { id: 'memory-user-background', category: 'identity', content: '既懂产品，也愿意亲自理解工程实现。', createdAt: NOW - 10 * 86_400_000, updatedAt: NOW - 10 * 86_400_000 },
@@ -58,7 +56,6 @@ const MEMORY_PREVIEW_GROUPS: MemoryPreviewGroupDefinition[] = [
   {
     id: 'collaboration',
     label: '协作习惯',
-    description: '推进工作、决策与验收的稳定方式。',
     memories: [
       { id: 'memory-user-workflow', category: 'workflow', content: '先研究现有实现，再形成判断和施工方案。', createdAt: NOW - 9 * 86_400_000, updatedAt: NOW - 8 * 86_400_000 },
       { id: 'memory-user-validation', category: 'workflow', content: '复杂改动要先写施工合同，并按步骤验收。', createdAt: NOW - 7 * 86_400_000, updatedAt: NOW - 6 * 86_400_000 },
@@ -69,7 +66,6 @@ const MEMORY_PREVIEW_GROUPS: MemoryPreviewGroupDefinition[] = [
   {
     id: 'communication',
     label: '沟通偏好',
-    description: '表达、提醒与信息层级的偏好。',
     memories: [
       { id: 'memory-user-voice', category: 'voice', content: '偏好直接、清楚、有判断依据的回答。', createdAt: NOW - 5 * 86_400_000, updatedAt: NOW - 5 * 86_400_000 },
       { id: 'memory-relationship-purpose', category: 'feedback', content: '希望新增卡片和入口前，先说明它解决什么问题。', createdAt: NOW - 6 * 86_400_000, updatedAt: NOW - 6 * 86_400_000 },
@@ -79,7 +75,6 @@ const MEMORY_PREVIEW_GROUPS: MemoryPreviewGroupDefinition[] = [
   {
     id: 'relationship',
     label: '我们之间',
-    description: '共同约定、重要纠正与持续影响未来的共识。',
     memories: [
       { id: 'memory-relationship-research', category: 'feedback', content: '我们约定：先参考 Alice 和项目现状，再形成自己的判断。', createdAt: NOW - 11 * 86_400_000, updatedAt: NOW - 11 * 86_400_000 },
       { id: 'memory-relationship-playground', category: 'workflow', content: '我们约定：候选先在 Playground 验收，再决定是否回流正式产品。', createdAt: NOW - 8 * 86_400_000, updatedAt: NOW - 7 * 86_400_000 },
@@ -947,9 +942,6 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
             )}
           </div>
         </div>
-        <p className="text-[10px]" style={{ color: 'var(--text-muted)' }} data-testid="memory-group-description">
-          {activeGroup.description}
-        </p>
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>状态样张</span>
           <div className="flex flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="记忆页面场景">
