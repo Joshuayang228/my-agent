@@ -410,7 +410,13 @@ export function MemoryPanel({
                       </div>
                       )
                     ) : (
-                      <p className={isCompactPreview ? 'text-[13px] font-medium leading-6' : 'text-xs leading-relaxed'} style={{ color: isCompactPreview ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{mem.content}</p>
+                      <div className="flex min-w-0 items-start justify-between gap-3">
+                        <p className={`min-w-0 flex-1 ${isCompactPreview ? 'text-[13px] font-medium leading-6' : 'text-xs leading-relaxed'}`} style={{ color: isCompactPreview ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{mem.content}</p>
+                        {!isCompactPreview && <span className="shrink-0 whitespace-nowrap pt-0.5 text-[9px]" style={{ color: 'var(--text-muted)' }} data-testid={`memory-item-date-${mem.id}`}>
+                          {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
+                          {mem.updatedAt !== mem.createdAt && ` (更新于 ${new Date(mem.updatedAt).toLocaleDateString('zh-CN')})`}
+                        </span>}
+                      </div>
                     )}
 
                     {isSensitive && !isEditing && (
@@ -442,10 +448,7 @@ export function MemoryPanel({
                     )}
 
                     <div className="mt-2 flex items-center justify-between gap-3">
-                      <div className={isCompactPreview ? 'hidden' : 'text-[9px]'} style={{ color: 'var(--text-muted)' }} data-testid={`memory-item-date-${mem.id}`}>
-                        {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
-                        {mem.updatedAt !== mem.createdAt && ` (更新于 ${new Date(mem.updatedAt).toLocaleDateString('zh-CN')})`}
-                      </div>
+                      {isCompactPreview && <div className="hidden" data-testid={`memory-item-date-${mem.id}`} />}
                       {canEdit && isCompactPreview ? (
                         <div className="relative h-8 min-w-[4.5rem] shrink-0">
                           {isEditing ? (
