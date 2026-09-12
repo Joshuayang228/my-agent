@@ -33,49 +33,44 @@ const browserDocument = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"
  * 设计意图：固定功能与直接场景选择分层，正式组件仅通过只读夹具参与预览。
  * 关键约束：样张选择重置实例；实例切换与收起仅隐藏内容，保留本地状态；没有真实调用。
  */
-export function WorkspaceExperienceCandidate() {
-  const [view, setView] = useState<View>('review')
-  const [scene, setScene] = useState<string>('行内差异')
-  const [narrow, setNarrow] = useState(false)
+export function WorkspaceDock({
+  initialView = 'files',
+  initialScene = 'Markdown',
+  showChat = false,
+  compact = false,
+  onClose,
+}: {
+  initialView?: View
+  initialScene?: string
+  showChat?: boolean
+  compact?: boolean
+  onClose?: () => void
+}) {
+  const [narrow] = useState(compact || !showChat)
   const [open, setOpen] = useState(true)
   const [menu, setMenu] = useState(false)
-  const [tabs, setTabs] = useState<WorkspaceTab[]>([{ id: 0, view: 'review', scene: '行内差异', ordinal: 1 }])
+  const [tabs, setTabs] = useState<WorkspaceTab[]>([{ id: 0, view: initialView, scene: initialScene, ordinal: 1 }])
   const [active, setActive] = useState(0)
   const nextId = useRef(1)
   const addButton = useRef<HTMLButtonElement>(null)
-  const resetScene = (nextView: View, nextScene: string) => {
-    const id = nextId.current++
-    setView(nextView); setScene(nextScene); setTabs([{ id, view: nextView, scene: nextScene, ordinal: 1 }]); setActive(id); setOpen(true); setMenu(false)
-  }
   const addTab = (nextView: View) => {
     const id = nextId.current++
     const nextScene = nextView === 'files' ? '文件列表' : VIEWS.find((item) => item.id === nextView)!.scenes[0]
     setTabs((current) => [...current, { id, view: nextView, scene: nextScene, ordinal: Math.max(0, ...current.filter((tab) => tab.view === nextView).map((tab) => tab.ordinal)) + 1 }]); setActive(id); setMenu(false)
     addButton.current?.focus()
   }
-  const selected = VIEWS.find((item) => item.id === view)!
   const closeTab = (id: number) => {
     const remaining = tabs.filter((tab) => tab.id !== id)
     setTabs(remaining)
     if (active === id) setActive(remaining.at(-1)?.id ?? -1)
   }
-  return <div className="space-y-3" data-testid="workspace-dock-candidate">
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="flex min-w-0 flex-1 flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="工作区功能">
-        {VIEWS.map(({ id, label, icon: Icon, scenes }) => <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => resetScene(id, scenes[0])} className="settings-option inline-flex items-center gap-1.5 px-3 py-2 text-[12px]" data-selected={view === id ? 'true' : undefined}><Icon size={14} />{label}</button>)}
-      </div>
-      <div className="flex gap-1" data-playground-switcher role="group" aria-label="工作区宽度">{[false, true].map((value) => <button key={String(value)} type="button" aria-pressed={narrow === value} onClick={() => setNarrow(value)} className="settings-option px-2 py-1 text-[11px]" data-selected={narrow === value ? 'true' : undefined}>{value ? '窄栏' : '展开'}</button>)}</div>
-    </div>
-    <div className="flex flex-wrap items-center gap-1" data-playground-switcher role="tablist" aria-label="工作区形态样张">
-      {selected.scenes.map((label) => <button key={label} type="button" role="tab" aria-selected={scene === label} onClick={() => resetScene(view, label)} className="settings-option px-2.5 py-1.5 text-[11px]" data-selected={scene === label ? 'true' : undefined}>{label}</button>)}
-      <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>隔离样张</span>
-    </div>
-    <div className="flex h-[580px] min-w-0 overflow-hidden rounded-[var(--radius-md)] border" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
-      <div className={narrow || !open ? 'flex min-w-0 flex-1 flex-col' : 'hidden'} data-testid="workspace-main-chat">
-        <div className="flex items-center justify-between gap-2 border-b p-3 text-[12px]" style={{ borderColor: 'var(--border-subtle)' }}><span>Chat</span><button type="button" title={open ? '收起工作区' : '打开工作区'} aria-label={open ? '收起工作区' : '打开工作区'} aria-expanded={open} onClick={() => setOpen(!open)} className="rounded p-1"><PanelRight size={16} /></button></div>
+  return <div className="flex h-full min-h-0 min-w-0 flex-col" data-testid="workspace-dock-candidate">
+    <div className="flex h-full min-h-0 min-w-0 overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+      <div className={showChat && (narrow || !open) ? 'flex min-w-0 flex-1 flex-col' : 'hidden'} data-testid="workspace-main-chat">
+        <div className="flex items-center justify-between gap-2 border-b p-3 text-[12px]" style={{ borderColor: 'var(--border-subtle)' }}><span>Chat</span><button type="button" title={open ? '收起工作区' : '打开工作区'} aria-label={open ? '收起工作区' : '打开工作区'} aria-expanded={open} onClick={() => { if (open && onClose && tabs.length <= 1) onClose(); else setOpen(!open) }} className="rounded p-1"><PanelRight size={16} /></button></div>
         <WorkspaceChatShell />
       </div>
-      <div className={open ? 'flex min-w-0 flex-col border-l' : 'hidden'} style={{ width: narrow ? 'min(380px, 65%)' : '100%', borderColor: 'var(--border-subtle)' }} data-testid="workspace-tool-panel">
+      <div className={open ? `flex min-w-0 flex-col ${showChat ? 'border-l' : ''}` : 'hidden'} style={{ width: showChat && narrow ? 'min(380px, 65%)' : '100%', borderColor: 'var(--border-subtle)' }} data-testid="workspace-tool-panel">
         <div className="relative flex shrink-0 items-center gap-1 border-b p-2" style={{ borderColor: 'var(--border-subtle)' }} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setMenu(false) }} onKeyDown={(event) => { if (event.key === 'Escape' && menu) { event.stopPropagation(); setMenu(false); addButton.current?.focus() } }}>
           <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto" role="tablist" aria-label="已打开的工作区">
             {tabs.map((tab) => {
@@ -84,7 +79,7 @@ export function WorkspaceExperienceCandidate() {
               const label = `${meta.label} ${tab.ordinal}`
               return <div key={tab.id} className="flex shrink-0 items-center gap-1 rounded-md px-1 hover:bg-[var(--bg-secondary)]" style={{ background: active === tab.id ? 'var(--bg-secondary)' : undefined }} data-testid="workspace-open-tab">
                 <button type="button" role="tab" aria-selected={active === tab.id} onClick={() => setActive(tab.id)} className="inline-flex items-center gap-2 rounded px-2 py-2 text-[12px]"><Icon size={14} />{label}</button>
-                <button type="button" aria-label={`关闭${label}`} title={`关闭${label}`} className="shrink-0 rounded p-1 hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-muted)' }} onClick={() => closeTab(tab.id)}><X size={14} /></button>
+                <button type="button" aria-label={`关闭${label}`} title={`关闭${label}`} className="shrink-0 rounded p-1 hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-muted)' }} onClick={() => { if (tabs.length <= 1 && onClose) onClose(); else closeTab(tab.id) }}><X size={14} /></button>
               </div>
             })}
           </div>
@@ -238,4 +233,25 @@ function SideChatSample({ scene }: { scene: string }) {
     </div>
     <form className="flex items-end gap-2 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); send() }}><textarea aria-label="侧边聊天消息" rows={2} placeholder="继续聊聊…" className="theme-input min-w-0 flex-1 resize-none rounded border p-2 text-[12px]" value={input} onChange={(event) => setInput(event.target.value)} />{state === '生成中' ? <button type="button" aria-label="停止生成" title="停止生成" className="p-2" onClick={() => setState('对话')}><Square size={15} /></button> : <button type="submit" aria-label="发送消息" title="发送消息" disabled={!input.trim()} className="p-2 disabled:opacity-40"><ArrowUp size={16} /></button>}</form>
   </>
+}
+
+export function WorkspaceExperienceCandidate() {
+  const [view, setView] = useState<View>('review')
+  const [scene, setScene] = useState<string>('行内差异')
+  const [narrow, setNarrow] = useState(false)
+  return <div className="space-y-3" data-testid="workspace-experience-candidate">
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex min-w-0 flex-1 flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="工作区功能">
+        {VIEWS.map(({ id, label, icon: Icon, scenes }) => <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => { setView(id); setScene(scenes[0]) }} className="settings-option inline-flex items-center gap-1.5 px-3 py-2 text-[12px]" data-selected={view === id ? 'true' : undefined}><Icon size={14} />{label}</button>)}
+      </div>
+      <div className="flex gap-1" data-playground-switcher role="group" aria-label="工作区宽度">{[false, true].map((value) => <button key={String(value)} type="button" aria-pressed={narrow === value} onClick={() => setNarrow(value)} className="settings-option px-2 py-1 text-[11px]" data-selected={narrow === value ? 'true' : undefined}>{value ? '窄栏' : '展开'}</button>)}</div>
+    </div>
+    <div className="flex flex-wrap items-center gap-1" data-playground-switcher role="tablist" aria-label="工作区形态样张">
+      {VIEWS.find((item) => item.id === view)!.scenes.map((label) => <button key={label} type="button" role="tab" aria-selected={scene === label} onClick={() => setScene(label)} className="settings-option px-2.5 py-1.5 text-[11px]" data-selected={scene === label ? 'true' : undefined}>{label}</button>)}
+      <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>隔离样张</span>
+    </div>
+    <div className="h-[580px] min-w-0 overflow-hidden rounded-[var(--radius-md)] border" style={{ borderColor: 'var(--border-subtle)' }}>
+      <WorkspaceDock key={`${view}-${scene}-${narrow ? 'narrow' : 'wide'}`} initialView={view} initialScene={scene} showChat compact={narrow} />
+    </div>
+  </div>
 }

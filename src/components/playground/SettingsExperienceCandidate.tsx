@@ -9,7 +9,7 @@
  *       所有开关、连接状态和输入都只存在于当前 Playground 会话。
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Brain, Check, ChevronRight, Circle, CircleHelp, Cloud, Database, Download, Eye, Heart, KeyRound, Link2, LockKeyhole, Palette, Plug, Save, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Upload, UserRound, Wrench, Activity, Gauge, Plus, Server, ListChecks, ArrowLeft, ArrowUp, ArrowDown, GripVertical, RefreshCw, Trash2, X } from 'lucide-react'
+import { Brain, Check, ChevronRight, Circle, CircleHelp, Cloud, Database, Download, Eye, Heart, KeyRound, Link2, LockKeyhole, Palette, Plug, Save, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Upload, UserRound, Wrench, Activity, Gauge, Plus, Server, ListChecks, ArrowLeft, ArrowUp, ArrowDown, GripVertical, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
 import { DESIGN_THEME_ASSETS, FONT_SCALE_ASSETS } from '../../shared/design-asset-registry'
 import { PROVIDER_PRESET_GROUPS } from '../../shared/provider-presets'
 import { JSON_SCHEMA, load } from 'js-yaml'
@@ -160,6 +160,7 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
   const [connections, setConnections] = useState<ModelConnectionFixture[]>(() => [createConnection(firstProvider)])
   const [routes, setRoutes] = useState<Record<ModelRoutePurpose, ModelRoute[]>>({ primary: [{ connectionId: connections[0]?.id ?? '', modelId: 'gpt-4o', enabled: true }, { connectionId: connections[0]?.id ?? '', modelId: 'gpt-4o-mini', enabled: true }], auxiliary: [{ connectionId: connections[0]?.id ?? '', modelId: 'gpt-4o-mini', enabled: true }], image: [{ connectionId: connections[0]?.id ?? '', modelId: 'image-model-id', enabled: true }] })
   const [showAdd, setShowAdd] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [source, setSource] = useState<ConnectionSource>('relay')
   const [providerId, setProviderId] = useState('openrouter')
   const [adapter, setAdapter] = useState<ConnectionAdapter>('openai-compatible')
@@ -181,8 +182,28 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
   const selectedProviderConfig = allProviders.find((item) => item.providerId === providerId)
   const providerOptions = allProviders.filter((item) => providerSource(item) === source)
   const presetLabel = source === 'coding' ? '编程套餐' : source === 'relay' ? '聚合 / 中转服务' : source === 'local' ? '本地服务' : '官方服务商'
-  const closeAdd = () => { setShowAdd(false); setApiKey('') }
-  const openAdd = () => { chooseSource('relay'); setShowAdd(true); setApiKey('') }
+  const adapterFromProtocol = (protocol?: string): ConnectionAdapter => (Object.entries(CONNECTION_ADAPTER_LABELS).find(([, label]) => label === protocol)?.[0] as ConnectionAdapter | undefined) ?? 'openai-compatible'
+  const closeForm = () => { setShowAdd(false); setEditingId(null); setApiKey('') }
+  const openAdd = () => { setEditingId(null); chooseSource('relay'); setShowAdd(true); setApiKey('') }
+  /**
+   * 背景：已有连接只能看详情，改名称/地址/密钥没有入口。
+   * 设计意图：编辑复用添加表单，不另造第二套字段。
+   * 关键约束：保存只改连接身份，不重建模型清单和用途路由。
+   */
+  const openEdit = (connection: ModelConnectionFixture) => {
+    setEditingId(connection.id)
+    setSource(connection.source)
+    setName(connection.name)
+    setBaseUrl(connection.baseUrl)
+    setApiKey('')
+    if (connection.source === 'custom') {
+      setAdapter(adapterFromProtocol(connection.protocol))
+    } else {
+      const provider = allProviders.find((item) => item.label === connection.providerLabel && providerSource(item) === connection.source) ?? allProviders.find((item) => providerSource(item) === connection.source)
+      if (provider) setProviderId(provider.providerId)
+    }
+    setShowAdd(true)
+  }
   const defaultConnectionName = (provider: { label: string }, sourceType: ConnectionSource) => sourceType === 'relay' ? `${provider.label} 聚合` : sourceType === 'local' ? provider.label : `${provider.label} 连接`
   /**
    * 背景：切换来源时旧 render 的选项仍属于上一类；设计意图：按目标来源选默认预设，整组同步。
@@ -237,13 +258,17 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
    * 背景：预设不是协议或可调用性保证；设计意图：保存入口身份，仅自定义连接记录显式适配器。
    * 关键约束：连接不抢占用途路由；Key 只转换为样张状态后清空，不持久化、不发请求。
    */
-  const finishAdd = () => {
+  const finishSave = () => {
     if (!name.trim() || !baseUrl.trim()) return
     if (source !== 'custom' && (!selectedProviderConfig || providerSource(selectedProviderConfig) !== source)) return
-    const id = `connection-${crypto.randomUUID()}`
-    const connection: ModelConnectionFixture = { id, name: name.trim(), source, protocol: source === 'custom' ? CONNECTION_ADAPTER_LABELS[adapter] : undefined, providerLabel: source === 'custom' ? '自定义连接' : selectedProviderConfig!.label, baseUrl: baseUrl.trim(), credentialStatus: apiKey.trim() ? 'stored' : 'missing', status: 'untested', models: [] }
-    setConnections((items) => [...items, connection])
-    closeAdd()
+    const patch = { name: name.trim(), source, protocol: source === 'custom' ? CONNECTION_ADAPTER_LABELS[adapter] : undefined, providerLabel: source === 'custom' ? '自定义连接' : selectedProviderConfig!.label, baseUrl: baseUrl.trim() }
+    if (editingId) {
+      setConnections((items) => items.map((connection) => connection.id !== editingId ? connection : { ...connection, ...patch, credentialStatus: apiKey.trim() ? 'stored' : connection.credentialStatus, status: 'untested' }))
+    } else {
+      const id = `connection-${crypto.randomUUID()}`
+      setConnections((items) => [...items, { id, ...patch, credentialStatus: apiKey.trim() ? 'stored' : 'missing', status: 'untested', models: [] }])
+    }
+    closeForm()
   }
   const updateModel = (connectionId: string, modelIdValue: string, patch: Partial<ModelFixture>) => setConnections((items) => items.map((connection) => connection.id !== connectionId ? connection : { ...connection, models: connection.models.map((model) => model.id === modelIdValue ? { ...model, ...patch } : model) }))
   const removeModel = (connectionId: string, modelIdValue: string) => { setConnections((items) => items.map((connection) => connection.id !== connectionId ? connection : { ...connection, models: connection.models.filter((model) => model.id !== modelIdValue) })); setRoutes((current) => Object.fromEntries(Object.entries(current).map(([purpose, items]) => [purpose, items.filter((item) => !(item.connectionId === connectionId && item.modelId === modelIdValue))])) as Record<ModelRoutePurpose, ModelRoute[]>) }
@@ -254,7 +279,7 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
     setConnections((items) => items.map((item) => item.id === connectionId ? { ...item, status: valid ? 'healthy' : 'failed' } : item))
     onModelStatusChange(valid ? 'success' : 'error')
   }
-  const setPreview = (state: 'empty' | 'one' | 'two') => { fetchTimers.current.forEach((timer) => window.clearTimeout(timer)); fetchTimers.current.clear(); setFetchStates({}); setFetchedModelsByConnection({}); setModelDrafts({}); setPreviewState(state); if (state === 'empty') { setConnections([]); setRoutes({ primary: [], auxiliary: [], image: [] }); return }; const first = createConnection(firstProvider); if (state === 'one') { setConnections([first]); setRoutes({ primary: [{ connectionId: first.id, modelId: 'gpt-4o', enabled: true }, { connectionId: first.id, modelId: 'gpt-4o-mini', enabled: true }], auxiliary: [{ connectionId: first.id, modelId: 'gpt-4o-mini', enabled: true }], image: [{ connectionId: first.id, modelId: 'image-model-id', enabled: true }] }); return }; const second = createConnection(allProviders.find((item) => item.providerId === 'openrouter') ?? allProviders[1], 1); second.name = '国际流动'; second.source = 'relay'; second.models = [{ id: 'deepseek-chat', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'unknown' }, { id: 'deepseek-reasoner', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'unknown' }]; setConnections([first, second]); setRoutes({ primary: [{ connectionId: first.id, modelId: 'gpt-4o', enabled: true }, { connectionId: second.id, modelId: 'deepseek-chat', enabled: true }], auxiliary: [{ connectionId: second.id, modelId: 'deepseek-reasoner', enabled: true }], image: [{ connectionId: first.id, modelId: 'image-model-id', enabled: true }] }) }
+  const setPreview = (state: 'empty' | 'one' | 'two') => { fetchTimers.current.forEach((timer) => window.clearTimeout(timer)); fetchTimers.current.clear(); setFetchStates({}); setFetchedModelsByConnection({}); setModelDrafts({}); closeForm(); setPreviewState(state); if (state === 'empty') { setConnections([]); setRoutes({ primary: [], auxiliary: [], image: [] }); return }; const first = createConnection(firstProvider); if (state === 'one') { setConnections([first]); setRoutes({ primary: [{ connectionId: first.id, modelId: 'gpt-4o', enabled: true }, { connectionId: first.id, modelId: 'gpt-4o-mini', enabled: true }], auxiliary: [{ connectionId: first.id, modelId: 'gpt-4o-mini', enabled: true }], image: [{ connectionId: first.id, modelId: 'image-model-id', enabled: true }] }); return }; const second = createConnection(allProviders.find((item) => item.providerId === 'openrouter') ?? allProviders[1], 1); second.name = '国际流动'; second.source = 'relay'; second.models = [{ id: 'deepseek-chat', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'unknown' }, { id: 'deepseek-reasoner', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'unknown' }]; setConnections([first, second]); setRoutes({ primary: [{ connectionId: first.id, modelId: 'gpt-4o', enabled: true }, { connectionId: second.id, modelId: 'deepseek-chat', enabled: true }], auxiliary: [{ connectionId: second.id, modelId: 'deepseek-reasoner', enabled: true }], image: [{ connectionId: first.id, modelId: 'image-model-id', enabled: true }] }) }
   const availableModels = connections.flatMap((connection) => connection.models.filter((model) => model.enabled).map((model) => ({ connectionId: connection.id, connectionName: connection.name, modelId: model.id })))
   const routeLabel = (route: ModelRoute) => { const connection = connections.find((item) => item.id === route.connectionId); return connection ? `${connection.name} · ${route.modelId}` : route.modelId }
   const addRoute = (purpose: ModelRoutePurpose, key: string) => { const [connectionId, modelId] = key.split('::'); if (!connectionId || !modelId) return; setRoutes((current) => ({ ...current, [purpose]: current[purpose].some((item) => item.connectionId === connectionId && item.modelId === modelId) ? current[purpose] : [...current[purpose], { connectionId, modelId, enabled: true }] })) }
@@ -280,6 +305,7 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
                 </span>
               </div>
               <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                <button type="button" aria-label={`编辑连接 ${connection.name}`} title="编辑连接" onClick={() => openEdit(connection)} className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] border" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }} data-testid={`settings-candidate-edit-connection-${connection.id}`}><Pencil size={13} /></button>
                 <button type="button" disabled={fetchState === 'loading'} onClick={() => fetchModels(connection.id)} className="inline-flex h-8 items-center gap-1 rounded-[var(--radius-sm)] border px-2 text-[10px] disabled:opacity-50" style={{ borderColor: 'var(--border-color)', color: 'var(--accent-fg)' }} data-testid={`settings-candidate-fetch-models-${connection.id}`}><RefreshCw size={12} className={fetchState === 'loading' ? 'animate-spin' : ''} />{fetchState === 'loading' ? '正在获取…' : '获取已有模型'}</button>
                 <button type="button" onClick={() => testConnection(connection.id)} className="inline-flex h-8 items-center gap-1 rounded-[var(--radius-sm)] border px-2 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--accent-fg)' }}><Check size={12} />测试连接</button>
               </div>
@@ -315,8 +341,8 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
       </div></SettingCard>
       {showAdd && <SettingCard testId="settings-candidate-model-add-form">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>添加连接</h3>
-          <button type="button" aria-label="关闭添加连接" title="关闭添加连接" onClick={closeAdd} className="rounded p-1"><X size={14} style={{ color: 'var(--text-muted)' }} /></button>
+          <h3 className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{editingId ? '编辑连接' : '添加连接'}</h3>
+          <button type="button" aria-label={editingId ? '关闭编辑连接' : '关闭添加连接'} title={editingId ? '关闭编辑连接' : '关闭添加连接'} onClick={closeForm} className="rounded p-1"><X size={14} style={{ color: 'var(--text-muted)' }} /></button>
         </div>
         <div className="mt-4 flex flex-wrap gap-1.5" role="radiogroup" aria-label="连接入口类型">
           {CONNECTION_SOURCE_OPTIONS.map((item) => <button key={item.id} type="button" role="radio" aria-checked={source === item.id} onClick={() => chooseSource(item.id)} className="settings-option px-2.5 py-1.5 text-[10px]" data-selected={source === item.id ? 'true' : undefined}>{item.label}</button>)}
@@ -342,8 +368,8 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
           </label>
         </div>
         <div className="mt-3 flex justify-end gap-2 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
-          <button type="button" onClick={closeAdd} className="rounded px-3 py-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>取消</button>
-          <button type="button" onClick={finishAdd} disabled={!name.trim() || !baseUrl.trim()} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[10px] font-medium disabled:opacity-40" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }}>保存连接</button>
+          <button type="button" onClick={closeForm} className="rounded px-3 py-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>取消</button>
+          <button type="button" onClick={finishSave} disabled={!name.trim() || !baseUrl.trim()} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[10px] font-medium disabled:opacity-40" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }}>保存连接</button>
         </div>
       </SettingCard>}
       <SettingCard><button type="button" onClick={() => setShowAdvanced(!showAdvanced)} aria-expanded={showAdvanced} className="flex w-full items-center justify-between gap-3 text-left" data-testid="settings-candidate-model-advanced-toggle"><span><span className="block text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>高级设置</span><span className="mt-1 block text-[10px]" style={{ color: 'var(--text-muted)' }}>连接测试、预算和生成参数只在需要时查看。</span></span><ChevronRight size={14} className={`transition ${showAdvanced ? 'rotate-90' : ''}`} style={{ color: 'var(--text-muted)' }} /></button>{showAdvanced && <div className="mt-4 space-y-3 border-t pt-4" style={{ borderColor: 'var(--border-subtle)' }}><div data-testid="settings-candidate-model-budget"><div className="mb-2 flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>运行预算 <ScopeBadge label="全局" /></div><div className="mb-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>输入与输出 Token 合计；0 表示不限制。</div><div className="grid gap-2 sm:grid-cols-2"><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>会话预算（Token）<input aria-label="会话预算（Token）" value={sessionBudget} onChange={(event) => setSessionBudget(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>每日预算（Token）<input aria-label="每日预算（Token）" value={dailyBudget} onChange={(event) => setDailyBudget(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label></div><div className="mt-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>当前：{sessionBudget === '0' ? '不限制' : `${sessionBudget} Token`}</div></div><label className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>Temperature<input aria-label="Temperature" value={temperature} onChange={(event) => setTemperature(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label><button type="button" onClick={() => onModelStatusChange('success')} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-model-test">测试连接</button>{modelStatus !== 'idle' && <div role="status" className="rounded-[var(--radius-md)] px-3 py-2 text-[11px]" style={{ background: modelStatus === 'success' ? 'var(--accent-subtle)' : 'color-mix(in srgb, var(--danger) 10%, transparent)', color: modelStatus === 'success' ? 'var(--accent-fg)' : 'var(--danger)' }} data-testid="settings-candidate-model-status">{modelStatus === 'success' ? '连接配置看起来可用（仅样张反馈）' : '连接测试失败；请检查地址和凭据。'}</div>}</div>}</SettingCard>

@@ -4,13 +4,11 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, CheckCircle2, Coffee, ChevronDown, CircleAlert, Clapperboard, FileCode2, Folder, Home, Lightbulb, LoaderCircle, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, Paperclip, Plus, RotateCcw, Search, Shield, Shirt, UserRound, Users, X, Check } from 'lucide-react'
+import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, Coffee, ChevronDown, CircleAlert, Clapperboard, Folder, Home, Lightbulb, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, Paperclip, Plus, RotateCcw, Search, Shield, Shirt, UserRound, Users, X, Check } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
-import { WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
+import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
-import { ChatRightDock } from '../chat/right-dock/ChatRightDock'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
-import type { FileBrowserPreviewData } from '../FileBrowser'
 import type { MomentItem, MomentsPreviewData } from '../MomentsPanel'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
 import { WorldHub, type WorldTab, type WorldTabDefinition } from '../shell/WorldHub'
@@ -106,61 +104,6 @@ const MEMORY_PREVIEW_EVIDENCE: Partial<Record<string, MemoryPreviewEvidence>> = 
   'memory-relationship-playground': { source: '我们共同确认的产品施工流程（隔离样张）' },
   'memory-relationship-boundary': { source: '我们共同确定的产品边界（隔离样张）' },
   'memory-sensitive': { source: '你主动提到的近况（隔离样张）' },
-}
-
-const FILE_PREVIEW_FIXTURES: FileBrowserPreviewData = {
-  projectLabel: 'my-agent · 样张项目',
-  initialPath: 'src/components/AppShell.tsx',
-  tree: [
-    {
-      name: 'src',
-      path: 'src',
-      isDir: true,
-      children: [
-        { name: 'components', path: 'src/components', isDir: true, children: [
-          { name: 'AppShell.tsx', path: 'src/components/AppShell.tsx', isDir: false },
-          { name: 'PrimarySidebar.tsx', path: 'src/components/PrimarySidebar.tsx', isDir: false },
-        ] },
-        { name: 'shared', path: 'src/shared', isDir: true, children: [
-          { name: 'types.ts', path: 'src/shared/types.ts', isDir: false },
-        ] },
-      ],
-    },
-    { name: 'AGENTS.md', path: 'AGENTS.md', isDir: false },
-    { name: 'README.md', path: 'README.md', isDir: false },
-  ],
-  files: {
-    'src/components/AppShell.tsx': {
-      path: 'src/components/AppShell.tsx',
-      kind: 'text',
-      languageHint: 'typescript',
-      content: `export function AppShell() {\n  return <div className="app-shell">{children}</div>\n}\n`,
-    },
-    'src/components/PrimarySidebar.tsx': {
-      path: 'src/components/PrimarySidebar.tsx',
-      kind: 'text',
-      languageHint: 'typescript',
-      content: `export function PrimarySidebar() {\n  return <aside data-testid="primary-sidebar" />\n}\n`,
-    },
-    'src/shared/types.ts': {
-      path: 'src/shared/types.ts',
-      kind: 'text',
-      languageHint: 'typescript',
-      content: `export type Surface = 'chat' | 'world' | 'settings'\n`,
-    },
-    'AGENTS.md': {
-      path: 'AGENTS.md',
-      kind: 'text',
-      languageHint: 'markdown',
-      content: `# AGENTS.md\n\n先在 Playground 验收 UI，再回流正式页面。\n`,
-    },
-    'README.md': {
-      path: 'README.md',
-      kind: 'text',
-      languageHint: 'markdown',
-      content: `# my-agent\n\n人格化桌面 AI Agent。\n`,
-    },
-  },
 }
 
 const MOMENTS_PREVIEW_FIXTURES: MomentsPreviewData = {
@@ -271,27 +214,9 @@ const CHAT_JOURNEYS: Array<{ id: ChatJourney; label: string; description: string
 /**
  * Playground 只模拟 Chat 任务生命周期的可见状态，不驱动真实 Prompt、工具或权限引擎。
  * 背景：先确认用户何时需要确认、何时看到结果或失败，避免把不稳定模型输出当作 UI 验收前提。
- * 关键约束：只有 work 状态显示隔离工作区；确认由舞台级全局层承载，完成回到普通回复，失败保留恢复动作。
+ * 关键约束：只有 work 状态显示五功能工作区；确认由舞台级全局层承载，完成回到普通回复，失败保留恢复动作。处理中不再把任务进度卡塞进消息流。
  */
 function ChatTaskJourney({ journey, onJourneyChange }: { journey: ChatJourney; onJourneyChange: (journey: ChatJourney) => void }) {
-  if (journey === 'work') {
-    return (
-      <div className="rounded-[var(--radius-lg)] border p-3.5" data-testid="chat-surface-task-card" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2"><FileCode2 size={15} style={{ color: 'var(--accent-fg)' }} /><span className="truncate text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>整理项目结构</span></div>
-          <span className="flex shrink-0 items-center gap-1 text-[10px]" style={{ color: 'var(--success)' }}><CheckCircle2 size={12} />进行中</span>
-        </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full" style={{ background: 'var(--bg-tertiary)' }}><div className="h-full w-2/3 rounded-full" style={{ background: 'var(--accent-emphasis)' }} /></div>
-        <p className="mt-2 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}>正在梳理文件结构，右侧只显示这次任务需要的材料。</p>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => onJourneyChange('confirmation')} className="rounded-md border px-2.5 py-1.5 text-[10px] transition" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }} data-testid="chat-surface-open-confirmation">需要确认时</button>
-          <button type="button" onClick={() => onJourneyChange('completed')} className="rounded-md px-2.5 py-1.5 text-[10px] transition" style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }} data-testid="chat-surface-complete-task">标记完成</button>
-          <button type="button" onClick={() => onJourneyChange('conversation')} className="rounded-md px-2.5 py-1.5 text-[10px] transition" style={{ color: 'var(--text-muted)' }} data-testid="chat-surface-return-to-conversation">回到对话</button>
-        </div>
-      </div>
-    )
-  }
-
   if (journey === 'failed') {
     return (
       <div className="rounded-[var(--radius-lg)] border p-3.5" data-testid="chat-surface-failed" style={{ borderColor: 'color-mix(in srgb, var(--danger) 28%, var(--border-subtle))', background: 'var(--card-bg)' }}>
@@ -494,7 +419,11 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                 </div>
               </div>
             )}
-            {isWork && <div className="hidden shrink-0 md:block" data-testid="chat-surface-workspace"><ChatRightDock projectPath={null} sessionId={null} showFiles filesPreview={FILE_PREVIEW_FIXTURES} playgroundTabs onCloseFiles={() => setJourney('conversation')} width={viewport === 'split' ? 290 : 360} /></div>}
+            {isWork && (
+              <div className="hidden h-full min-w-0 shrink-0 overflow-hidden md:flex" data-testid="chat-surface-workspace" style={{ width: viewport === 'split' ? 320 : 420 }}>
+                <WorkspaceDock initialView="files" initialScene="Markdown" onClose={() => setJourney('conversation')} />
+              </div>
+            )}
           </div>
         </SurfaceViewport>
       </div>
