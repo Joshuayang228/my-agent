@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, CheckCircle2, Coffee, ChevronDown, CircleAlert, Clapperboard, FileCode2, Folder, Home, Image, Lightbulb, LoaderCircle, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, Paperclip, Plus, RotateCcw, Search, Shield, Shirt, UserRound, Users, X, Check } from 'lucide-react'
+import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, CheckCircle2, Coffee, ChevronDown, CircleAlert, Clapperboard, FileCode2, Folder, Home, Lightbulb, LoaderCircle, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, Paperclip, Plus, RotateCcw, Search, Shield, Shirt, UserRound, Users, X, Check } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
@@ -556,7 +556,7 @@ function SidebarSurface() {
 function DockSurface() {
   return <WorkspaceExperienceCandidate />
 }
-function MomentsProfileHero({ persona, onOpenMemory }: { persona: PlaygroundPersona; onOpenMemory?: () => void }) {
+function MomentsProfileHero({ persona }: { persona: PlaygroundPersona }) {
   return (
     <section className="moments-profile-hero relative shrink-0 overflow-hidden" data-testid="playground-moments-profile">
       <div className="moments-profile-hero-wash absolute inset-0" aria-hidden="true">
@@ -575,22 +575,6 @@ function MomentsProfileHero({ persona, onOpenMemory }: { persona: PlaygroundPers
             <span className="inline-flex items-center gap-1"><MapPin size={11} aria-hidden="true" />生活在此刻</span>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          {onOpenMemory && (
-            <button
-              type="button"
-              onClick={onOpenMemory}
-              className="hidden items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] transition sm:inline-flex"
-              style={{ borderColor: 'color-mix(in srgb, var(--text-primary) 28%, transparent)', background: 'color-mix(in srgb, var(--text-primary) 12%, transparent)', color: 'color-mix(in srgb, var(--text-primary) 86%, transparent)' }}
-              data-testid="world-open-memory"
-            >
-              看记忆 <ArrowRight size={11} aria-hidden="true" />
-            </button>
-          )}
-          <span className="hidden items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] sm:inline-flex" style={{ borderColor: 'color-mix(in srgb, var(--text-primary) 28%, transparent)', background: 'color-mix(in srgb, var(--text-primary) 12%, transparent)', color: 'color-mix(in srgb, var(--text-primary) 86%, transparent)' }}>
-            <Image size={11} aria-hidden="true" /> 近期生活
-          </span>
-        </div>
       </div>
     </section>
   )
@@ -605,7 +589,7 @@ const PLAYGROUND_WORLD_TABS: readonly WorldTabDefinition[] = [
   { id: 'footprints', label: '足迹', icon: <MapPin size={14} strokeWidth={1.5} /> },
 ]
 
-function WorldSurface({ persona, onNavigate, onOpenMemory }: { persona: PlaygroundPersona; onNavigate?: (tab: PlaygroundTabId) => void; onOpenMemory?: () => void }) {
+function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onNavigate?: (tab: PlaygroundTabId) => void }) {
   const [tab, setTab] = useState<WorldTab>('moments')
   const isLin = persona.id === 'lin'
   const wardrobe = isLin
@@ -705,7 +689,7 @@ function WorldSurface({ persona, onNavigate, onOpenMemory }: { persona: Playgrou
   return (
     <SurfaceViewport>
       <div className="flex h-full min-h-0 flex-col" data-testid="playground-world-experience" data-persona-id={persona.id}>
-        <MomentsProfileHero persona={persona} onOpenMemory={onOpenMemory ?? (() => onNavigate?.('settings'))} />
+        <MomentsProfileHero persona={persona} />
         <div className="min-h-0 flex-1">
           <WorldHub
             tab={tab}
@@ -737,7 +721,6 @@ function SettingsSurface({ persona, onPersonaChange, scenario, onScenarioChange,
             memoryDetail={<MemorySurface />}
             companionDetail={scenario === 'role-shelf' ? <RoleShelfFixture persona={persona} onPersonaChange={onPersonaChange} /> : undefined}
             initialSection={scenario === 'memory-management' ? 'memory' : scenario === 'role-shelf' ? 'companion' : undefined}
-            onOpenMemory={() => onNavigate?.('settings')}
             onOpenRoleShelf={() => onScenarioChange('role-shelf')}
           />
         </div>
@@ -1029,7 +1012,7 @@ export function SurfaceBaselinePanel({ initialSurface, persona, onPersonaChange,
         {surface === 'chat' && <ChatSurface persona={activePersona} onNavigate={onNavigate} onOpenRoleShelf={() => { onNavigate?.('settings'); handleSettingsScenarioChange('role-shelf') }} />}
         {surface === 'sidebar' && <SidebarSurface />}
         {surface === 'dock' && <DockSurface />}
-        {surface === 'world' && <WorldSurface persona={activePersona} onNavigate={onNavigate} onOpenMemory={() => { onNavigate?.('settings'); handleSettingsScenarioChange('memory-management') }} />}
+        {surface === 'world' && <WorldSurface persona={activePersona} onNavigate={onNavigate} />}
         {surface === 'memory' && <MemorySurface onNavigate={onNavigate} onOpenMemorySettings={() => handleSettingsScenarioChange('memory-management')} />}
         {surface === 'settings' && <SettingsSurface persona={activePersona} onPersonaChange={handlePersonaChange} scenario={activeSettingsScenario} onScenarioChange={handleSettingsScenarioChange} onNavigate={onNavigate} />}
       </div>

@@ -4,6 +4,8 @@
 
 ## [未发布]
 
+- Playground 人物世界头图不再提供「看记忆」和「近期生活」。
+
 - Playground 设置侧栏不再显示 Debug / Playground 导航说明。
 
 - 记忆 Playground 新增输入焦点改为主题描边，去掉浏览器默认黑圈。

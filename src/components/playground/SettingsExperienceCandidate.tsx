@@ -46,7 +46,6 @@ export interface SettingsExperienceCandidateProps {
   companionDetail?: ReactNode
   memoryDetail?: ReactNode
   initialSection?: SettingsCandidateSection
-  onOpenMemory?: () => void
   onOpenRoleShelf?: () => void
 }
 interface SettingCardProps { children: ReactNode; testId?: string }
@@ -623,7 +622,7 @@ function AboutPage() {
   return <div className="space-y-4" data-testid="settings-candidate-section-about"><CandidatePageHeader icon={<CircleHelp size={14} />} title="关于 My Agent" description="查看版本、运行环境和本机数据位置。" /><SettingCard><div className="flex items-start gap-3"><Sparkles size={18} style={{ color: 'var(--companion-accent-warm)' }} /><div><div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>My Agent</div><p className="mt-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>品牌标语待定</p></div></div><div className="mt-5 grid gap-3 text-[11px] sm:grid-cols-3" style={{ color: 'var(--text-secondary)' }}><div><div style={{ color: 'var(--text-muted)' }}>版本</div><div className="mt-1">0.1.0 · 开发中</div></div><div><div style={{ color: 'var(--text-muted)' }}>运行环境</div><div className="mt-1">Electron</div></div><div><div style={{ color: 'var(--text-muted)' }}>数据位置</div><div className="mt-1">本机存储</div></div></div></SettingCard></div>
 }
 
-export function SettingsExperienceCandidate({ companionDetail, memoryDetail, initialSection, onOpenMemory, onOpenRoleShelf }: SettingsExperienceCandidateProps) {
+export function SettingsExperienceCandidate({ companionDetail, memoryDetail, initialSection, onOpenRoleShelf }: SettingsExperienceCandidateProps) {
   const [activeSection, setActiveSection] = useState<SettingsCandidateSection>(initialSection ?? 'appearance')
   const [activeTheme, setActiveTheme] = useState('mist')
   const [fontScale, setFontScale] = useState('md')
