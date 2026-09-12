@@ -824,7 +824,12 @@ test.describe('My Agent UI', () => {
         expect(Math.abs(previewBox.y - treeBox.y)).toBeLessThan(2)
         await page.screenshot({ path: testInfo.outputPath('workspace-files-side-by-side.png'), animations: 'disabled' })
         await expect(filePanel.getByLabel('关闭文件预览')).toHaveCount(0)
-        await filePanel.getByLabel('关闭notes.md').click()
+        const notesTab = filePanel.getByTestId('workspace-file-preview-tab').filter({ hasText: 'notes.md' }).first()
+        const notesLabelBox = (await notesTab.getByRole('tab', { name: 'notes.md' }).boundingBox())!
+        const notesCloseBox = (await notesTab.getByLabel('关闭notes.md').boundingBox())!
+        expect(notesCloseBox.x).toBeGreaterThan(notesLabelBox.x)
+        expect(Math.abs(notesCloseBox.y - notesLabelBox.y)).toBeLessThan(6)
+        await notesTab.getByLabel('关闭notes.md').click()
         await expect(filePanel.getByRole('tab', { name: 'theme.ts' })).toHaveAttribute('aria-selected', 'true')
         await panel.getByRole('button', { name: '添加工作区内容', exact: true }).click()
         await panel.getByRole('menuitem', { name: '侧边聊天', exact: true }).click()

@@ -174,8 +174,8 @@ function FilesSample({ scene }: { scene: string }) {
             setPaths(remaining)
             setActivePath((current) => current === path ? remaining.at(-1) ?? null : current)
           }
-          return <div key={path} className="flex shrink-0 items-center gap-0.5 rounded-md px-1" style={{ background: path === activePath ? 'var(--bg-secondary)' : undefined }}>
-            <button type="button" role="tab" aria-selected={path === activePath} onClick={() => setActivePath(path)} className="settings-option shrink-0 px-2 py-1 text-[11px]" data-selected={path === activePath ? 'true' : undefined}>{path}</button>
+          return <div key={path} className="flex shrink-0 items-center gap-0.5 rounded-md px-1 hover:bg-[var(--bg-secondary)]" style={{ background: path === activePath ? 'var(--bg-secondary)' : undefined }} data-testid="workspace-file-preview-tab">
+            <button type="button" role="tab" aria-selected={path === activePath} onClick={() => setActivePath(path)} className="inline-flex items-center rounded px-2 py-1 text-[11px]">{path}</button>
             <button type="button" title={`关闭${path}`} aria-label={`关闭${path}`} className="shrink-0 rounded p-1 hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-muted)' }} onClick={closePreview}><X size={12} /></button>
           </div>
         })}
