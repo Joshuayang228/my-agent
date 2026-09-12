@@ -5,7 +5,7 @@ import {
   formatSensitiveCollectionHint,
   labelSensitiveKinds,
 } from '../shared/sensitive-memory'
-import { User, Settings, MessageCircle, Star, Pin, Brain, X, ThumbsUp, ShieldAlert, Pencil, Trash2 } from 'lucide-react'
+import { User, Settings, MessageCircle, Star, Pin, Brain, X, ThumbsUp, ShieldAlert, Pencil, Trash2, Check } from 'lucide-react'
 
 type MemoryColor = 'accent' | 'warm' | 'success' | 'muted'
 
@@ -364,6 +364,20 @@ export function MemoryPanel({
                     </div>
 
                     {isEditing ? (
+                      isCompactPreview ? (
+                        <input
+                          value={editContent}
+                          onChange={e => setEditContent(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') handleSaveEdit(mem.id)
+                            if (e.key === 'Escape') setEditing(null)
+                          }}
+                          autoFocus
+                          readOnly={!canEdit}
+                          className="theme-input w-full rounded-[var(--radius-md)] border px-3 py-1.5 text-[13px] font-medium leading-6 outline-none"
+                          style={{ color: 'var(--text-primary)' }}
+                        />
+                      ) : (
                       <div className="flex gap-2">
                         <input
                           value={editContent}
@@ -374,8 +388,7 @@ export function MemoryPanel({
                           }}
                           autoFocus
                           readOnly={!canEdit}
-                          className={isCompactPreview ? 'theme-input flex-1 rounded-[var(--radius-md)] border px-3 py-1.5 text-[13px] font-medium leading-6 outline-none' : 'theme-input flex-1 rounded border px-2 py-1 text-xs outline-none'}
-                          style={isCompactPreview ? { color: 'var(--text-primary)' } : undefined}
+                          className="theme-input flex-1 rounded border px-2 py-1 text-xs outline-none"
                         />
                         <button
                           onClick={() => handleSaveEdit(mem.id)}
@@ -392,6 +405,7 @@ export function MemoryPanel({
                           取消
                         </button>
                       </div>
+                      )
                     ) : (
                       <p className={isCompactPreview ? 'text-[13px] font-medium leading-6' : 'text-xs leading-relaxed'} style={{ color: isCompactPreview ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{mem.content}</p>
                     )}
@@ -422,17 +436,24 @@ export function MemoryPanel({
                     )}
 
                     <div className={`${isCompactPreview ? 'mt-3' : 'mt-2'} flex items-center justify-between gap-3`}>
-                      <div className={isCompactPreview ? 'text-[11px]' : 'text-[9px]'} style={{ color: 'var(--text-muted)' }}>
+                      <div className={isCompactPreview ? 'text-[11px]' : 'text-[9px]'} style={{ color: 'var(--text-muted)' }} data-testid={`memory-item-date-${mem.id}`}>
                         {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
                         {mem.updatedAt !== mem.createdAt && ` (更新于 ${new Date(mem.updatedAt).toLocaleDateString('zh-CN')})`}
                       </div>
-                      {canEdit && !isEditing && (
+                      {canEdit && (
                         isCompactPreview ? (
-                          <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+                          isEditing ? (
+                            <div className="flex h-8 shrink-0 items-center gap-1">
+                              <button type="button" aria-label={`保存记忆 ${editContent || mem.content}`} title="保存" onClick={() => handleSaveEdit(mem.id)} disabled={!editContent.trim()} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)] disabled:opacity-40" style={{ color: 'var(--accent-fg)' }}><Check size={14} /></button>
+                              <button type="button" aria-label={`取消编辑 ${mem.content}`} title="取消" onClick={() => setEditing(null)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><X size={14} /></button>
+                            </div>
+                          ) : (
+                          <div className="flex h-8 shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
                             <button type="button" aria-label={`编辑记忆 ${mem.content}`} title="编辑" onClick={() => startEdit(mem)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><Pencil size={14} /></button>
                             <button type="button" aria-label={`删除记忆 ${mem.content}`} title="删除" onClick={() => handleDelete(mem.id)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--danger)' }}><Trash2 size={14} /></button>
                           </div>
-                        ) : (
+                          )
+                        ) : !isEditing && (
                         <div className="flex shrink-0 items-center gap-1">
                           <button aria-label={`编辑记忆 ${mem.content}`} onClick={() => startEdit(mem)} className="memory-action-button rounded px-1.5 py-0.5 text-[10px] transition">编辑</button>
                           <button aria-label={`删除记忆 ${mem.content}`} onClick={() => handleDelete(mem.id)} className="memory-delete-button rounded px-1.5 py-0.5 text-[10px] transition">删除</button>
