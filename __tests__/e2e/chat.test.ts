@@ -7,6 +7,40 @@
 import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 
+for (const theme of ['light', 'dark']) {
+  for (const width of [1166, 600]) {
+    test(`记忆清单背景验收 ${theme} ${width}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 731 })
+      await page.addInitScript((value) => localStorage.setItem('theme', value), theme)
+      await page.goto('/')
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
+      await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+      await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
+      const candidate = page.getByTestId('settings-surface-candidate')
+      await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /暗夜/ : /日光/ }).click()
+      await candidate.getByRole(width < 640 ? 'tab' : 'button', { name: '记忆', exact: true }).click()
+      const memory = page.getByTestId('memory-surface-candidate')
+      await expect(memory).toContainText('正在做一款人格化桌面 Agent。')
+      await expect(memory).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+      await expect(memory).toHaveCSS('box-shadow', 'none')
+      await expect(candidate.locator('.playground-experience-stage')).toHaveCount(0)
+      expect(await memory.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
+      await memory.scrollIntoViewIfNeeded()
+      await page.screenshot({ path: testInfo.outputPath('memory-list.png'), animations: 'disabled' })
+      await memory.getByRole('button', { name: /^编辑记忆 / }).first().click()
+      await expect(memory.locator('input')).toBeVisible()
+      await page.screenshot({ path: testInfo.outputPath('memory-edit.png'), animations: 'disabled' })
+      await memory.getByRole('button', { name: /^取消编辑 / }).click()
+      await page.getByRole('tab', { name: '空态', exact: true }).click()
+      await expect(memory).toContainText('还没有任何记忆')
+      await memory.getByRole('button', { name: '添加一条记忆', exact: true }).click()
+      await expect(memory.getByLabel('新记忆内容')).toBeVisible()
+      expect(await memory.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
+      await page.screenshot({ path: testInfo.outputPath('memory-empty-add.png'), animations: 'disabled' })
+    })
+  }
+}
+
 /**
  * 正式 Chat 右坞的 UI 契约测试只替身 Electron 边界，不替身右坞本身。
  * 这样可以验证真实 App → ChatRightDock → FileBrowser 的状态共享，同时不连接本机会话、文件系统或模型。

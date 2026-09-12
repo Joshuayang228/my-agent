@@ -68,7 +68,7 @@
 | 对话内纠错（M29-G2） | 已落地 | `correctCitedMemory` |
 | 敏感高亮与采集提示（M29-G3） | 已落地 | `sensitive-memory`；自动画像跳过敏感类别，凭据内容在存储/导入/向量召回层硬拒绝 |
 | MemoryPanel 页面基线 | 已落地 | Playground 隔离夹具：身份信息 / 工作方式 / 沟通偏好 / 我们之间；伙伴生活由人物世界呈现，运行轨迹由 Debug 承载；纠正仅写入 Renderer 内存 |
-| Playground 记忆信息架构与密度基线 | 已落地 | 四类 Tab 是唯一一级导航；多条记忆使用独立条目卡；普通模式不展示来源或“之后会”，隔离 Debug 开启后才可在右上角打开“查看来源”；`previewCompact` / `previewShowSource` 不影响正式 MemoryPanel |
+| Playground 记忆信息架构与密度基线 | 已落地 | 四类 Tab 是唯一一级导航；多条记忆使用独立条目卡，清单不再嵌套带背景、阴影和固定最小高度的页面预览框；普通模式不展示来源或“之后会”，隔离 Debug 开启后才可在右上角打开“查看来源”；`previewCompact` / `previewShowSource` 不影响正式 MemoryPanel |
 | Playground 记忆管理候选 | 部分 | 设置“记忆”Tab 复用 `MemorySurface`，分类 Tab 与搜索入口同行；搜索展开后对齐对话搜索框；清单为独立条目卡，编辑/删除用图标按钮，新增行独立于列表；来源 Debug 样张仅写 Renderer 内存，正式 MemoryPanel、IPC、存储和 Prompt 不变 |
 | 记忆分类语义色 | 已落地 | `MemoryPanel` 使用 accent / warm / success / muted；颜色只表达分类，不改变存储与 IPC |
 | 记忆策略生产资产目录 | 已落地 | 全局 Debug「提示词管理器 → 记忆策略」；提取 / 去重 / 分桶 / 召回 / 生命周期 / 纠错策略有稳定 key、来源、版本、指纹和依赖；不再从 Chat 右侧调试半屏进入；记忆管理入口位于 Settings |
