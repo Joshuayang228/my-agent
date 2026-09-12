@@ -412,9 +412,8 @@ export function MemoryPanel({
                     ) : (
                       <div className="flex min-w-0 items-start justify-between gap-3">
                         <p className={`min-w-0 flex-1 ${isCompactPreview ? 'text-[13px] font-medium leading-6' : 'text-xs leading-relaxed'}`} style={{ color: isCompactPreview ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{mem.content}</p>
-                        {!isCompactPreview && <span className="shrink-0 whitespace-nowrap pt-0.5 text-[9px]" style={{ color: 'var(--text-muted)' }} data-testid={`memory-item-date-${mem.id}`}>
+                        {isCompactPreview && <span className="shrink-0 whitespace-nowrap pt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }} data-testid={`memory-item-date-${mem.id}`}>
                           {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
-                          {mem.updatedAt !== mem.createdAt && ` (更新于 ${new Date(mem.updatedAt).toLocaleDateString('zh-CN')})`}
                         </span>}
                       </div>
                     )}
@@ -448,7 +447,11 @@ export function MemoryPanel({
                     )}
 
                     <div className="mt-2 flex items-center justify-between gap-3">
-                      {isCompactPreview && <div className="hidden" data-testid={`memory-item-date-${mem.id}`} />}
+                      {!isCompactPreview && <div className="text-[9px]" style={{ color: 'var(--text-muted)' }} data-testid={`memory-item-date-${mem.id}`}>
+                        {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
+                        {mem.updatedAt !== mem.createdAt && ` (更新于 ${new Date(mem.updatedAt).toLocaleDateString('zh-CN')})`}
+                      </div>}
+
                       {canEdit && isCompactPreview ? (
                         <div className="relative h-8 min-w-[4.5rem] shrink-0">
                           {isEditing ? (
@@ -467,9 +470,7 @@ export function MemoryPanel({
                                 <button type="button" aria-label={`编辑记忆 ${mem.content}`} title="编辑" onClick={() => startEdit(mem)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><Pencil size={14} /></button>
                                 <button type="button" aria-label={`删除记忆 ${mem.content}`} title="删除" onClick={() => { setEditing(null); setPendingDelete(mem.id) }} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--danger)' }}><Trash2 size={14} /></button>
                               </div>
-                              <div className="pointer-events-none absolute inset-0 flex items-center justify-end text-[11px] opacity-100 transition group-hover:opacity-0 group-focus-within:opacity-0" style={{ color: 'var(--text-muted)' }} aria-hidden="true">
-                                {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
-                              </div>
+
                             </>
                           )}
                         </div>
