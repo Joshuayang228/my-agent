@@ -374,7 +374,8 @@ export function MemoryPanel({
                           }}
                           autoFocus
                           readOnly={!canEdit}
-                          className="theme-input flex-1 rounded border px-2 py-1 text-xs outline-none"
+                          className={isCompactPreview ? 'theme-input flex-1 rounded-[var(--radius-md)] border px-3 py-1.5 text-[13px] font-medium leading-6 outline-none' : 'theme-input flex-1 rounded border px-2 py-1 text-xs outline-none'}
+                          style={isCompactPreview ? { color: 'var(--text-primary)' } : undefined}
                         />
                         <button
                           onClick={() => handleSaveEdit(mem.id)}
