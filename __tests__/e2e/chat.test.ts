@@ -379,7 +379,7 @@ test.describe('My Agent UI', () => {
     await expect(page.getByTestId('settings-surface-candidate')).toBeVisible()
     await expect(page.getByTestId('settings-candidate-nav-memory')).toHaveAttribute('aria-current', 'page')
     await expect(page.getByTestId('memory-surface-candidate')).toBeVisible()
-    await page.getByTestId('settings-return-to-chat').click()
+    await nav.getByRole('button', { name: 'Chat', exact: true }).click()
     await expect(nav.getByRole('button', { name: 'Chat', exact: true })).toHaveAttribute('data-active', 'true')
     await nav.getByRole('button', { name: 'Chat', exact: true }).click()
     await expect(page.getByRole('tab', { name: '初次进入', exact: true })).toHaveAttribute('aria-selected', 'true')
@@ -572,7 +572,7 @@ test.describe('My Agent UI', () => {
     const settingsSurface = page.getByTestId('settings-surface-candidate')
     await expect(settingsSurface.getByTestId('settings-main')).toContainText('记忆')
     await expect(settingsSurface).not.toContainText('向量召回')
-    await page.getByTestId('settings-return-to-chat').click()
+    await nav.getByRole('button', { name: 'Chat', exact: true }).click()
     await expect(nav.getByRole('button', { name: 'Chat', exact: true })).toHaveAttribute('data-active', 'true')
   })
 

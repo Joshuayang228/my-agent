@@ -731,19 +731,7 @@ function WorldSurface({ persona, onNavigate, onOpenMemory }: { persona: Playgrou
 function SettingsSurface({ persona, onPersonaChange, scenario, onScenarioChange, onNavigate }: { persona: PlaygroundPersona; onPersonaChange: (personaId: string) => void; scenario: SettingsScenario; onScenarioChange: (scenario: SettingsScenario) => void; onNavigate?: (tab: PlaygroundTabId) => void }) {
   return (
     <div className="space-y-2">
-      <div className="flex justify-end" data-testid="settings-scene-actions">
-        {onNavigate && (
-          <button
-            type="button"
-            onClick={() => onNavigate('chat')}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] transition"
-            style={{ color: 'var(--text-muted)' }}
-            data-testid="settings-return-to-chat"
-          >
-            回到 Chat <ArrowRight size={11} aria-hidden="true" />
-          </button>
-        )}
-      </div>      <SurfaceViewport>
+      <SurfaceViewport>
         <div aria-label="设置隔离预览" data-testid="settings-surface-candidate">
           <SettingsExperienceCandidate
             memoryDetail={<MemorySurface />}
