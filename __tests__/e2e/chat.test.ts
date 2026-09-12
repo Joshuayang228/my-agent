@@ -991,7 +991,8 @@ test.describe('My Agent UI', () => {
     await expect(candidate.getByTestId('settings-candidate-model-connections')).toContainText('模型清单 · 3 个')
 
     await candidate.getByRole('button', { name: '权限与自动化', exact: true }).click()
-    await candidate.getByTestId('settings-candidate-rules-toggle').click()
+    await expect(candidate.getByTestId('settings-candidate-rules-existing')).toBeVisible()
+    await expect(candidate.getByTestId('settings-candidate-rules-create')).toBeVisible()
     await expect(candidate.getByText('拒绝 · 命令', { exact: true })).toBeVisible()
     await expect(candidate.getByText('自己指定某类操作：允许、需要确认，或直接拒绝。', { exact: true })).toBeVisible()
     await candidate.getByLabel('规则匹配内容', { exact: true }).fill('git push')

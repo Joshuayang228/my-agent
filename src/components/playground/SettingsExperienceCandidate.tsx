@@ -360,12 +360,51 @@ function DataPage({ lastAction, onAction }: { lastAction: string; onAction: (act
 }
 
 function PermissionsPage({ mode, onModeChange }: { mode: string; onModeChange: (value: string) => void }) {
-  const [showRules, setShowRules] = useState(false)
   const [ruleTarget, setRuleTarget] = useState('命令')
   const [ruleAction, setRuleAction] = useState('拒绝')
   const [rulePattern, setRulePattern] = useState('npm publish')
   const [savedRule, setSavedRule] = useState({ target: '命令', action: '拒绝', pattern: 'npm publish' })
-  return <div className="space-y-4" data-testid="settings-candidate-section-permissions"><CandidatePageHeader icon={<ShieldCheck size={14} />} title="权限与自动化" description="让你决定 Agent 什么时候先问你、什么时候按计划推进；越高风险的能力越应该明确。" /><SettingCard><div className="mb-3"><h3 className="flex items-center gap-2 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>默认审批方式<ScopeBadge label="全局" /></h3><p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>选择一个默认方式；遇到具体操作时，你仍然可以临时调整。</p></div><div className="grid gap-2 sm:grid-cols-3">{[['auto', '自动', '只在需要时确认'], ['confirm-all', '全部确认', '每次工具调用都先问'], ['plan-first', '先计划', '先看计划再执行']].map(([value, label, description]) => { const selected = mode === value; return <button key={value} type="button" aria-pressed={selected} onClick={() => onModeChange(value)} className="rounded-[var(--radius-md)] border p-3 text-left transition" style={{ borderColor: selected ? 'var(--accent)' : 'var(--border-subtle)', background: selected ? 'var(--accent-subtle)' : 'transparent' }}><div className="flex items-center justify-between gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{label}{selected && <Check size={13} style={{ color: 'var(--accent-fg)' }} />}</div><div className="mt-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>{description}</div></button> })}</div></SettingCard><SettingCard><button type="button" onClick={() => setShowRules(!showRules)} aria-expanded={showRules} className="flex w-full items-center justify-between gap-3 text-left" data-testid="settings-candidate-rules-toggle"><span className="flex min-w-0 items-center gap-2"><Settings2 size={15} style={{ color: 'var(--accent-fg)' }} /><span className="min-w-0"><span className="block text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>自定义权限规则</span><span className="mt-1 block truncate text-[10px]" style={{ color: 'var(--text-muted)' }}>自己指定某类操作：允许、需要确认，或直接拒绝。</span></span></span><ChevronRight size={14} className={`transition ${showRules ? 'rotate-90' : ''}`} style={{ color: 'var(--text-muted)' }} /></button>{showRules && <div className="mt-4 space-y-4 border-t pt-4" style={{ borderColor: 'var(--border-subtle)' }}><div><div className="mb-2 text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>已有规则样张</div><div className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-2.5" style={{ borderColor: 'var(--border-subtle)' }}><div><div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{savedRule.action} · {savedRule.target}</div><div className="mt-1 font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{savedRule.pattern}</div></div><span className="rounded-full px-2 py-0.5 text-[10px]" style={{ background: savedRule.action === '拒绝' ? 'color-mix(in srgb, var(--danger) 10%, transparent)' : 'var(--accent-subtle)', color: savedRule.action === '拒绝' ? 'var(--danger)' : 'var(--accent-fg)' }}>{savedRule.action}</span></div></div><div className="rounded-[var(--radius-md)] border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}><div className="mb-3"><div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>新增一条规则</div><div className="mt-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>例如：拒绝发布命令；修改文件时，每次先问你。</div></div><div className="grid gap-3 sm:grid-cols-3"><label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>操作类型<select aria-label="规则操作类型" value={ruleTarget} onChange={(event) => setRuleTarget(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none"><option>命令</option><option>修改文件</option><option>删除文件</option></select></label><label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>处理方式<select aria-label="规则处理方式" value={ruleAction} onChange={(event) => setRuleAction(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none"><option>允许</option><option>需要确认</option><option>拒绝</option></select></label><label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>匹配内容<input aria-label="规则匹配内容" value={rulePattern} onChange={(event) => setRulePattern(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" placeholder="例如：npm publish" /></label></div><div className="mt-3 flex justify-end"><button type="button" onClick={() => setSavedRule({ target: ruleTarget, action: ruleAction, pattern: rulePattern || '未填写' })} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[10px] font-medium" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-save-rule">保存这条样张</button></div></div></div>}</SettingCard></div>
+  return <div className="space-y-4" data-testid="settings-candidate-section-permissions">
+    <CandidatePageHeader icon={<ShieldCheck size={14} />} title="权限与自动化" description="让你决定 Agent 什么时候先问你、什么时候按计划推进；越高风险的能力越应该明确。" />
+    <SettingCard>
+      <div className="mb-3">
+        <h3 className="flex items-center gap-2 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>默认审批方式<ScopeBadge label="全局" /></h3>
+        <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>选择一个默认方式；遇到具体操作时，你仍然可以临时调整。</p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-3">{[['auto', '自动', '只在需要时确认'], ['confirm-all', '全部确认', '每次工具调用都先问'], ['plan-first', '先计划', '先看计划再执行']].map(([value, label, description]) => {
+        const selected = mode === value
+        return <button key={value} type="button" aria-pressed={selected} onClick={() => onModeChange(value)} className="rounded-[var(--radius-md)] border p-3 text-left transition" style={{ borderColor: selected ? 'var(--accent)' : 'var(--border-subtle)', background: selected ? 'var(--accent-subtle)' : 'transparent' }}>
+          <div className="flex items-center justify-between gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{label}{selected && <Check size={13} style={{ color: 'var(--accent-fg)' }} />}</div>
+          <div className="mt-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>{description}</div>
+        </button>
+      })}</div>
+    </SettingCard>
+    <SettingCard testId="settings-candidate-rules-existing">
+      <h3 className="flex items-center gap-2 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}><Settings2 size={15} style={{ color: 'var(--accent-fg)' }} />已有规则</h3>
+      <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>自己指定某类操作：允许、需要确认，或直接拒绝。</p>
+      <div className="mt-3 flex items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-2.5" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div>
+          <div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{savedRule.action} · {savedRule.target}</div>
+          <div className="mt-1 font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{savedRule.pattern}</div>
+        </div>
+        <span className="rounded-full px-2 py-0.5 text-[10px]" style={{ background: savedRule.action === '拒绝' ? 'color-mix(in srgb, var(--danger) 10%, transparent)' : 'var(--accent-subtle)', color: savedRule.action === '拒绝' ? 'var(--danger)' : 'var(--accent-fg)' }}>{savedRule.action}</span>
+      </div>
+    </SettingCard>
+    <SettingCard testId="settings-candidate-rules-create">
+      <div className="mb-3">
+        <div className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>新增一条规则</div>
+        <div className="mt-1 text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>例如：拒绝发布命令；修改文件时，每次先问你。</div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>操作类型<select aria-label="规则操作类型" value={ruleTarget} onChange={(event) => setRuleTarget(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none"><option>命令</option><option>修改文件</option><option>删除文件</option></select></label>
+        <label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>处理方式<select aria-label="规则处理方式" value={ruleAction} onChange={(event) => setRuleAction(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none"><option>允许</option><option>需要确认</option><option>拒绝</option></select></label>
+        <label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>匹配内容<input aria-label="规则匹配内容" value={rulePattern} onChange={(event) => setRulePattern(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" placeholder="例如：npm publish" /></label>
+      </div>
+      <div className="mt-3 flex justify-end">
+        <button type="button" onClick={() => setSavedRule({ target: ruleTarget, action: ruleAction, pattern: rulePattern || '未填写' })} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[10px] font-medium" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-save-rule">保存这条样张</button>
+      </div>
+    </SettingCard>
+  </div>
 }
 
 const MCP_SCENES = [
@@ -456,8 +495,8 @@ function McpScenePreview() {
           {confirming && <div className="mt-4 space-y-1 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}><p>允许伙伴连接此服务，并使用选中的工具？</p><code className="block break-all text-[10px]" style={{ color: 'var(--text-muted)' }}>{server.address}</code></div>}
           {(ready || confirming) && <div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
             <div className="mb-2 flex items-center justify-between text-[11px]" style={{ color: 'var(--text-muted)' }}><span>{server.tools.length} 个工具</span>{server.tools.length > 0 && <span>{allowedCount} 个{confirming ? '已选择' : '已允许'}</span>}</div>
-            {server.tools.length === 0 ? <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>已连接，服务未提供工具。</p> : <ul className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
-              {server.tools.map((tool) => <li key={tool.id} className="flex items-center justify-between gap-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-subtle)' }} data-testid="mcp-tool-row">
+            {server.tools.length === 0 ? <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>已连接，服务未提供工具。</p> : <ul className="space-y-2">
+              {server.tools.map((tool) => <li key={tool.id} className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} data-testid="mcp-tool-row">
                 <div className="min-w-0"><span style={{ color: 'var(--text-primary)' }}>{tool.name}</span><code className="ml-2 break-all text-[10px]" style={{ color: 'var(--text-muted)' }}>{tool.id}</code></div>
                 {confirming ? <input type="checkbox" aria-label={`允许${tool.name}`} checked={tool.allowed} onChange={() => updateServer(server.id, { tools: server.tools.map((item) => item.id === tool.id ? { ...item, allowed: !item.allowed } : item) })} /> : !tool.allowed && <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>未允许</span>}
               </li>)}
