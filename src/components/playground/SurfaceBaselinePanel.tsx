@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, CheckCircle2, Coffee, ChevronDown, CircleAlert, Clapperboard, FileCode2, Folder, Home, Image, Lightbulb, LoaderCircle, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, Paperclip, Plus, RotateCcw, Search, Shield, Shirt, UserRound, Users } from 'lucide-react'
+import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, CheckCircle2, Coffee, ChevronDown, CircleAlert, Clapperboard, FileCode2, Folder, Home, Image, Lightbulb, LoaderCircle, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, Paperclip, Plus, RotateCcw, Search, Shield, Shirt, UserRound, Users, X } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
@@ -875,21 +875,39 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-1" data-testid="memory-actions">
               {searchOpen ? (
-                <input
-                  autoFocus
-                  aria-label="搜索记忆"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  onBlur={() => { if (!query.trim()) setSearchOpen(false) }}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Escape') {
-                      if (!query.trim()) setSearchOpen(false)
-                      event.currentTarget.blur()
-                    }
-                  }}
-                  placeholder="搜索记忆"
-                  className="theme-input h-8 w-40 rounded-md border px-3 text-[11px] outline-none"
-                />
+                <div
+                  className="flex h-8 w-52 items-center gap-2 rounded-[var(--radius-lg)] border px-2.5"
+                  style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)' }}
+                >
+                  <Search size={14} style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
+                  <input
+                    autoFocus
+                    aria-label="搜索记忆"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Escape') {
+                        setQuery('')
+                        setSearchOpen(false)
+                      }
+                    }}
+                    placeholder="搜索记忆"
+                    className="min-w-0 flex-1 bg-transparent text-[11px] outline-none"
+                  />
+                  <button
+                    type="button"
+                    aria-label="清除搜索"
+                    title="清除搜索"
+                    onClick={() => {
+                      setQuery('')
+                      setSearchOpen(false)
+                    }}
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
               ) : (
                 <button type="button" aria-label="搜索记忆" title="搜索记忆" onClick={() => setSearchOpen(true)} className="rounded-md p-2" style={{ color: 'var(--text-muted)' }}><Search size={15} /></button>
               )}
