@@ -547,6 +547,10 @@ test.describe('My Agent UI', () => {
     await expect(memorySurface).toContainText('我希望复杂任务先给结论，再展开关键步骤。')
     await memorySurface.getByText('我希望复杂任务先给结论，再展开关键步骤。', { exact: true }).hover()
     await memorySurface.getByRole('button', { name: /^删除记忆 / }).last().click()
+    await expect(memorySurface).toContainText('我希望复杂任务先给结论，再展开关键步骤。')
+    await expect(memorySurface.getByRole('button', { name: /^确认删除记忆 / })).toBeVisible()
+    await expect(page.locator('[data-testid="chat-surface-confirmation-overlay"]')).toHaveCount(0)
+    await memorySurface.getByRole('button', { name: /^确认删除记忆 / }).click()
     await expect(memorySurface).not.toContainText('我希望复杂任务先给结论，再展开关键步骤。')
 
     await page.getByRole('tab', { name: '敏感项', exact: true }).click()
