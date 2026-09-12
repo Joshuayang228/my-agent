@@ -202,7 +202,7 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
       const provider = allProviders.find((item) => item.label === connection.providerLabel && providerSource(item) === connection.source) ?? allProviders.find((item) => providerSource(item) === connection.source)
       if (provider) setProviderId(provider.providerId)
     }
-    setShowAdd(true)
+    setShowAdd(false)
   }
   const defaultConnectionName = (provider: { label: string }, sourceType: ConnectionSource) => sourceType === 'relay' ? `${provider.label} 聚合` : sourceType === 'local' ? provider.label : `${provider.label} 连接`
   /**
@@ -284,6 +284,41 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
   const routeLabel = (route: ModelRoute) => { const connection = connections.find((item) => item.id === route.connectionId); return connection ? `${connection.name} · ${route.modelId}` : route.modelId }
   const addRoute = (purpose: ModelRoutePurpose, key: string) => { const [connectionId, modelId] = key.split('::'); if (!connectionId || !modelId) return; setRoutes((current) => ({ ...current, [purpose]: current[purpose].some((item) => item.connectionId === connectionId && item.modelId === modelId) ? current[purpose] : [...current[purpose], { connectionId, modelId, enabled: true }] })) }
   const moveRoute = (purpose: ModelRoutePurpose, index: number, direction: -1 | 1) => setRoutes((current) => { const next = [...current[purpose]]; const target = index + direction; if (target < 0 || target >= next.length) return current; [next[index], next[target]] = [next[target], next[index]]; return { ...current, [purpose]: next } })
+  const connectionForm = (
+    <>
+<div className="flex items-start justify-between gap-3">
+          <h3 className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{editingId ? '编辑连接' : '添加连接'}</h3>
+          <button type="button" aria-label={editingId ? '关闭编辑连接' : '关闭添加连接'} title={editingId ? '关闭编辑连接' : '关闭添加连接'} onClick={closeForm} className="rounded p-1"><X size={14} style={{ color: 'var(--text-muted)' }} /></button>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-1.5" role="radiogroup" aria-label="连接入口类型">
+          {CONNECTION_SOURCE_OPTIONS.map((item) => <button key={item.id} type="button" role="radio" aria-checked={source === item.id} onClick={() => chooseSource(item.id)} className="settings-option px-2.5 py-1.5 text-[10px]" data-selected={source === item.id ? 'true' : undefined}>{item.label}</button>)}
+        </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="min-w-0 text-[10px]" style={{ color: 'var(--text-secondary)' }}>连接名称
+            <input aria-label="连接名称" value={name} onChange={(event) => setName(event.target.value)} placeholder="连接名称" className="theme-input mt-1 w-full min-w-0 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" />
+          </label>
+          {source === 'custom' ? <label className="min-w-0 text-[10px]" style={{ color: 'var(--text-secondary)' }}>适配器
+            <select aria-label="连接适配器" value={adapter} onChange={(event) => setAdapter(event.target.value as ConnectionAdapter)} className="theme-input mt-1 w-full min-w-0 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none">
+              {Object.entries(CONNECTION_ADAPTER_LABELS).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+            </select>
+          </label> : <label className="min-w-0 text-[10px]" style={{ color: 'var(--text-secondary)' }}>{presetLabel}
+            <select aria-label={presetLabel} value={providerId} onChange={(event) => chooseProvider(event.target.value)} className="theme-input mt-1 w-full min-w-0 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none">
+              {providerOptions.map((provider) => <option key={provider.providerId} value={provider.providerId}>{provider.label}</option>)}
+            </select>
+          </label>}
+          <label className="min-w-0 text-[10px] sm:col-span-2" style={{ color: 'var(--text-secondary)' }}>Base URL
+            <input aria-label="Base URL" value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="https://..." className="theme-input mt-1 w-full min-w-0 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" />
+          </label>
+          <label className="min-w-0 text-[10px] sm:col-span-2" style={{ color: 'var(--text-secondary)' }}>API Key（仅样张状态）
+            <input aria-label="API Key" type="password" autoComplete="off" value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder="不会写入真实设置" className="theme-input mt-1 w-full min-w-0 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" />
+          </label>
+        </div>
+        <div className="mt-3 flex justify-end gap-2 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
+          <button type="button" onClick={closeForm} className="rounded px-3 py-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>取消</button>
+          <button type="button" onClick={finishSave} disabled={!name.trim() || !baseUrl.trim()} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[10px] font-medium disabled:opacity-40" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }}>保存连接</button>
+        </div>
+    </>
+  )
   return (
     <div className="space-y-4" data-testid="settings-candidate-section-model">
       <CandidatePageHeader icon={<Cloud size={14} />} title="模型" description="先安排每种用途，再管理连接和连接下的模型清单。" />
@@ -296,6 +331,7 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
           const fetchState = fetchStates[connection.id] ?? 'idle'
           const fetchedModels = fetchedModelsByConnection[connection.id] ?? []
           return <div key={connection.id} className="min-w-0 rounded-[var(--radius-md)] border" style={{ borderColor: 'var(--border-subtle)' }} data-testid={`settings-candidate-model-profile-${connection.id}`}>
+            {editingId === connection.id ? <div className="p-3" data-testid="settings-candidate-model-add-form">{connectionForm}</div> : <>
             <div className="flex flex-wrap items-center gap-2 px-3 py-3" data-testid={`settings-candidate-connection-header-${connection.id}`}>
               <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
                 <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: connection.status === 'healthy' ? 'var(--success)' : connection.status === 'failed' ? 'var(--danger)' : 'var(--text-muted)' }} />
@@ -336,42 +372,11 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
               {fetchState === 'error' && <div role="status" className="mt-3 rounded-[var(--radius-sm)] px-3 py-2 text-[10px]" style={{ background: 'color-mix(in srgb, var(--danger) 10%, transparent)', color: 'var(--danger)' }}>获取失败：请检查 Base URL 和连接凭据；仍可手动添加模型。</div>}
               {fetchState === 'unsupported' && <div role="status" className="mt-3 rounded-[var(--radius-sm)] px-3 py-2 text-[10px]" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>这个连接暂不提供模型列表；请手动添加模型 ID。</div>}
             </div>
+            </>}
           </div>
         })}
       </div></SettingCard>
-      {showAdd && <SettingCard testId="settings-candidate-model-add-form">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{editingId ? '编辑连接' : '添加连接'}</h3>
-          <button type="button" aria-label={editingId ? '关闭编辑连接' : '关闭添加连接'} title={editingId ? '关闭编辑连接' : '关闭添加连接'} onClick={closeForm} className="rounded p-1"><X size={14} style={{ color: 'var(--text-muted)' }} /></button>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-1.5" role="radiogroup" aria-label="连接入口类型">
-          {CONNECTION_SOURCE_OPTIONS.map((item) => <button key={item.id} type="button" role="radio" aria-checked={source === item.id} onClick={() => chooseSource(item.id)} className="settings-option px-2.5 py-1.5 text-[10px]" data-selected={source === item.id ? 'true' : undefined}>{item.label}</button>)}
-        </div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <label className="min-w-0 text-[10px]" style={{ color: 'var(--text-secondary)' }}>连接名称
-            <input aria-label="连接名称" value={name} onChange={(event) => setName(event.target.value)} placeholder="连接名称" className="theme-input mt-1 w-full min-w-0 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" />
-          </label>
-          {source === 'custom' ? <label className="min-w-0 text-[10px]" style={{ color: 'var(--text-secondary)' }}>适配器
-            <select aria-label="连接适配器" value={adapter} onChange={(event) => setAdapter(event.target.value as ConnectionAdapter)} className="theme-input mt-1 w-full min-w-0 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none">
-              {Object.entries(CONNECTION_ADAPTER_LABELS).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-            </select>
-          </label> : <label className="min-w-0 text-[10px]" style={{ color: 'var(--text-secondary)' }}>{presetLabel}
-            <select aria-label={presetLabel} value={providerId} onChange={(event) => chooseProvider(event.target.value)} className="theme-input mt-1 w-full min-w-0 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none">
-              {providerOptions.map((provider) => <option key={provider.providerId} value={provider.providerId}>{provider.label}</option>)}
-            </select>
-          </label>}
-          <label className="min-w-0 text-[10px] sm:col-span-2" style={{ color: 'var(--text-secondary)' }}>Base URL
-            <input aria-label="Base URL" value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="https://..." className="theme-input mt-1 w-full min-w-0 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" />
-          </label>
-          <label className="min-w-0 text-[10px] sm:col-span-2" style={{ color: 'var(--text-secondary)' }}>API Key（仅样张状态）
-            <input aria-label="API Key" type="password" autoComplete="off" value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder="不会写入真实设置" className="theme-input mt-1 w-full min-w-0 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" />
-          </label>
-        </div>
-        <div className="mt-3 flex justify-end gap-2 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
-          <button type="button" onClick={closeForm} className="rounded px-3 py-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>取消</button>
-          <button type="button" onClick={finishSave} disabled={!name.trim() || !baseUrl.trim()} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[10px] font-medium disabled:opacity-40" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }}>保存连接</button>
-        </div>
-      </SettingCard>}
+      {showAdd && !editingId && <SettingCard testId="settings-candidate-model-add-form">{connectionForm}</SettingCard>}
       <SettingCard><button type="button" onClick={() => setShowAdvanced(!showAdvanced)} aria-expanded={showAdvanced} className="flex w-full items-center justify-between gap-3 text-left" data-testid="settings-candidate-model-advanced-toggle"><span><span className="block text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>高级设置</span><span className="mt-1 block text-[10px]" style={{ color: 'var(--text-muted)' }}>连接测试、预算和生成参数只在需要时查看。</span></span><ChevronRight size={14} className={`transition ${showAdvanced ? 'rotate-90' : ''}`} style={{ color: 'var(--text-muted)' }} /></button>{showAdvanced && <div className="mt-4 space-y-3 border-t pt-4" style={{ borderColor: 'var(--border-subtle)' }}><div data-testid="settings-candidate-model-budget"><div className="mb-2 flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>运行预算 <ScopeBadge label="全局" /></div><div className="mb-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>输入与输出 Token 合计；0 表示不限制。</div><div className="grid gap-2 sm:grid-cols-2"><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>会话预算（Token）<input aria-label="会话预算（Token）" value={sessionBudget} onChange={(event) => setSessionBudget(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>每日预算（Token）<input aria-label="每日预算（Token）" value={dailyBudget} onChange={(event) => setDailyBudget(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label></div><div className="mt-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>当前：{sessionBudget === '0' ? '不限制' : `${sessionBudget} Token`}</div></div><label className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>Temperature<input aria-label="Temperature" value={temperature} onChange={(event) => setTemperature(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label><button type="button" onClick={() => onModelStatusChange('success')} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-model-test">测试连接</button>{modelStatus !== 'idle' && <div role="status" className="rounded-[var(--radius-md)] px-3 py-2 text-[11px]" style={{ background: modelStatus === 'success' ? 'var(--accent-subtle)' : 'color-mix(in srgb, var(--danger) 10%, transparent)', color: modelStatus === 'success' ? 'var(--accent-fg)' : 'var(--danger)' }} data-testid="settings-candidate-model-status">{modelStatus === 'success' ? '连接配置看起来可用（仅样张反馈）' : '连接测试失败；请检查地址和凭据。'}</div>}</div>}</SettingCard>
     </div>
   )
