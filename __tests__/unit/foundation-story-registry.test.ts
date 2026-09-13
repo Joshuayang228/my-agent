@@ -93,6 +93,15 @@ describe('Foundation story registry', () => {
     }
   })
 
+  it('SegmentedControl 的 Foundation 实现覆盖故事和正式文件预览', () => {
+    const story = readFileSync('src/components/playground/FoundationAdvancedStories.tsx', 'utf8')
+    const production = readFileSync('src/components/FileBrowser.tsx', 'utf8')
+    expect(story).toContain("from '../foundation/SegmentedControl'")
+    expect(story).toMatch(/<SegmentedControl[\s\S]*ariaLabel=/)
+    expect(production).toContain("from './foundation/SegmentedControl'")
+    expect(production).toMatch(/<SegmentedControl[\s\S]*value=\{htmlView\}/)
+  })
+
   it('keeps story keys, views, assets and groups in one consistent relation', () => {
     const keys = FOUNDATION_STORIES.map((story) => story.key)
     const viewIds = FOUNDATION_STORIES.map((story) => story.viewId)

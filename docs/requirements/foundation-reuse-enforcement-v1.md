@@ -5,6 +5,7 @@
 > 来源：用户要求统一检查 Markdown 及其他产品体验控件，用工程化方式保证产品体验来自基础层。
 
 当前进展补充：共享 TabStrip、CodeBlock、就近主题/Mermaid 与 DiffViewer 已在获批的 `playground-workspace-five-tools-v1.md` P1 范围实施。下表保留审计时证据，不作为这些片段的当前实现；整体四页面通用控件整改仍未完成，也未因共享片段回流而扩大本合同授权。
+当前进展补充：工作区输入、固定图标操作和 HTML 预览/源码模式已分别接入 `TextField`、`IconButton` 与 `SegmentedControl`；本合同仍处于进行中，不能据此宣称所有业务控件已完成 Foundation 复用。
 
 ## 1. 背景与目标
 

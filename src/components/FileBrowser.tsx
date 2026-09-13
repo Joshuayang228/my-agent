@@ -24,6 +24,7 @@ import { CodeBlock, MarkdownRenderer } from './MarkdownRenderer'
 import { ResizeHandle } from './shell/ResizeHandle'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from '../shared/panel-layout'
 import { IconButton } from './foundation/IconButton'
+import { SegmentedControl } from './foundation/SegmentedControl'
 import { TextField } from './foundation/TextField'
 
 export interface FileBrowserPreviewEntry {
@@ -272,30 +273,8 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                     {fileName}
                   </span>
                   {preview.kind === 'text' && preview.languageHint === 'html' && (
-                    <div className="flex shrink-0 rounded border text-[10px]" style={{ borderColor: 'var(--border-color)' }}>
-                      <button
-                        type="button"
-                        className="px-1.5 py-0.5"
-                        style={{
-                          background: htmlView === 'preview' ? 'var(--accent-subtle)' : undefined,
-                          color: htmlView === 'preview' ? 'var(--accent-fg)' : 'var(--text-muted)',
-                        }}
-                        onClick={() => setHtmlView('preview')}
-                      >
-                        预览
-                      </button>
-                      <button
-                        type="button"
-                        className="px-1.5 py-0.5"
-                        style={{
-                          background: htmlView === 'source' ? 'var(--accent-subtle)' : undefined,
-                          color: htmlView === 'source' ? 'var(--accent-fg)' : 'var(--text-muted)',
-                        }}
-                        onClick={() => setHtmlView('source')}
-                      >
-                        源码
-                      </button>
-                    </div>
+                    <SegmentedControl ariaLabel="HTML 文件视图" value={htmlView} onChange={(id) => setHtmlView(id as 'preview' | 'source')}
+                      items={[{ id: 'preview', label: '预览' }, { id: 'source', label: '源码' }]} />
                   )}
                   {preview.kind === 'text' && (
                     <IconButton label="复制正文" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => { void copyText() }}>

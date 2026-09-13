@@ -70,6 +70,7 @@ export const FOUNDATION_STORIES = [
   { key: 'foundation.badge', viewId: 'badge', assetKey: 'behavior.badge', labelZh: '徽标', group: 'behavior', renderer: 'ui-controls', navigationGroup: 'badge-tag' },
   { key: 'foundation.tag', viewId: 'tag', assetKey: 'behavior.tag', labelZh: '标签', group: 'behavior', renderer: 'ui-controls', navigationGroup: 'badge-tag' },
   { key: 'foundation.tabs', viewId: 'tabs', assetKey: 'behavior.tabs', labelZh: '标签切换', group: 'behavior', renderer: 'ui-controls', navigationGroup: 'tabs-selection' },
+  { key: 'foundation.segmented-control', viewId: 'segmented-control', assetKey: 'behavior.segmented-control', labelZh: '分段选择', group: 'behavior', renderer: 'advanced', navigationGroup: 'tabs-selection' },
   { key: 'foundation.select', viewId: 'select', assetKey: 'behavior.select', labelZh: '下拉选择', group: 'behavior', renderer: 'advanced', navigationGroup: 'tabs-selection' },
   { key: 'foundation.combobox', viewId: 'combobox', assetKey: 'behavior.combobox', labelZh: '可搜索选择', group: 'behavior', renderer: 'advanced', navigationGroup: 'tabs-selection' },
   { key: 'foundation.form-field', viewId: 'form-field', assetKey: 'behavior.form-field', labelZh: '表单字段', group: 'behavior', renderer: 'advanced', navigationGroup: 'input-form' },

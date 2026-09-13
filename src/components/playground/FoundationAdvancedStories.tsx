@@ -12,6 +12,7 @@ import { ChevronDown, Command, FileText, MoreHorizontal, Search, X } from 'lucid
 import { StoryBlock } from './StoryBlock'
 import { DiffViewer, DiffViewControls, type DiffViewMode } from '../foundation/DiffViewer'
 import { WorkspaceToolMenu } from '../foundation/WorkspaceToolMenu'
+import { SegmentedControl } from '../foundation/SegmentedControl'
 import { type AdvancedFoundationStoryKey } from '../../shared/foundation-story-registry'
 
 function SelectStory() {
@@ -171,6 +172,12 @@ function DiffViewerStory() {
   </div>
 }
 
+function SegmentedControlStory() {
+  const [value, setValue] = useState('preview')
+  return <SegmentedControl ariaLabel="样张视图" value={value} onChange={setValue}
+    items={[{ id: 'preview', label: '预览' }, { id: 'source', label: '源码' }, { id: 'locked', label: '锁定', disabled: true }]} />
+}
+
 function WorkspaceToolMenuStory() {
   const [selected, setSelected] = useState('尚未添加')
   return <div className="flex items-center gap-3" data-testid="foundation-workspace-tool-menu">
@@ -195,6 +202,7 @@ function storyContent(story: AdvancedFoundationStoryKey) {
     case 'foundation.popover': return <StoryBlock title="弹出层" source="src/components/playground/FoundationAdvancedStories.tsx · Popover candidate" edge><PopoverStory /></StoryBlock>
     case 'foundation.dropdown-menu': return <StoryBlock title="下拉菜单" source="src/components/chat/right-dock/ChatRightDock.tsx · add tab / candidate" edge><DropdownMenuStory /></StoryBlock>
     case 'foundation.workspace-tool-menu': return <StoryBlock title="工作区工具菜单" source="src/components/foundation/WorkspaceToolMenu.tsx" edge adopted><WorkspaceToolMenuStory /></StoryBlock>
+    case 'foundation.segmented-control': return <StoryBlock title="分段选择" source="src/components/foundation/SegmentedControl.tsx" edge adopted><SegmentedControlStory /></StoryBlock>
     case 'foundation.combobox': return <StoryBlock title="可搜索选择" source="src/components/playground/FoundationAdvancedStories.tsx · Combobox candidate" edge><ComboboxStory /></StoryBlock>
     case 'foundation.command': return <StoryBlock title="命令面板" source="src/components/playground/FoundationAdvancedStories.tsx · Command candidate" edge><CommandStory /></StoryBlock>
     case 'foundation.context-menu': return <StoryBlock title="右键菜单" source="src/components/playground/FoundationAdvancedStories.tsx · Context Menu candidate" edge><ContextMenuStory /></StoryBlock>
