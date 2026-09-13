@@ -222,6 +222,7 @@ Skill 资产由 `electron/main/skills/loader.ts` 读取和保存；Frontmatter �
 - Playground 不直接写生产资产；只有文本类资产可显式载入为实验副本，伙伴、记忆、权限与沙箱、Eval Case / Grader、Provider 等结构化资产保持只读。
 - 已确认的候选回流正式 UI 时采用选择性同步：生产只接收视觉 token、真实产品交互和真实组件组合，不接收来源路径、采用标记、目录、调试控制或隔离 fixture。正式 Right Dock 的文件工具由 `WorkspaceFilesPanel` 管理左树右多预览及每路径读取状态；审阅 / 终端仍沿真实 `session` / `terminal` IPC 路径。
 - 工作区按项目归属：App 的产品子树在设置／Playground 全屏导航时仅隐藏；其它非 Chat 页面也隐藏右坞和拖拽柄，不挤压全页。ChatRightDock 以项目路径为 key，切换项目重建，取消项目或关闭最后标签卸载。后台标签保留面板与订阅，ReviewPanel 额外以 sessionId 重建。TerminalPanel 的运行记录独立于选中态，pending 取消／卸载保留取消意图，迟到成功响应补发 kill；仅当前未卸载的运行可更新 UI。终止失败可重试，关闭后的清理失败仅记录固定告警，可靠后端回收仍待实现，不将 IPC 应答视为进程树退出证明。
+- `session:getFileChangeDiff` 的真实返回同时包含受长度上限保护的 `before` 与 `after`；Renderer 的 ReviewPanel 只在两者都存在时开放并排视图，并以请求序号隔离快速切换产生的过期响应。
 - `scripts/asset-governance.mjs` 声明资产家族的来源、注册表、发现方式、key 规则、展示面和证据边界；`npm run assets:check` 生成机器审计快照并对静态资产执行 fail-closed staged 漏登检查。`src/assets/playground/` 中的隔离媒体夹具归入产品体验家族，并必须由对应 `experience.*` 的 `fixtureAssetPaths` 显式认领，不能借 Playground 名义绕过资产登记。
 
 ### 10.1 生产资产运行证据层

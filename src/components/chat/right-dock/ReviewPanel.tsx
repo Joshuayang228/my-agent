@@ -3,7 +3,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Eraser, FileCode2, RefreshCw } from 'lucide-react'
+import { Columns2, Eraser, FileCode2, RefreshCw, Rows3 } from 'lucide-react'
 import { ResizeHandle } from '../../shell/ResizeHandle'
 import { CodeBlock } from '../../MarkdownRenderer'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from '../../../shared/panel-layout'
@@ -25,8 +25,13 @@ export function ReviewPanel({ sessionId }: ReviewPanelProps) {
   const [selected, setSelected] = useState<string | null>(null)
   const [diffText, setDiffText] = useState<string | null>(null)
   const [language, setLanguage] = useState('diff')
+  const [beforeText, setBeforeText] = useState<string | null>(null)
+  const [afterText, setAfterText] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'unified' | 'split'>('unified')
   const [loadingDiff, setLoadingDiff] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const requestRef = useRef(0)
+  const listRequestRef = useRef(0)
   const [listRatio, setListRatio] = usePersistedNumber(
     LAYOUT_KEYS.reviewListRatio,
     LAYOUT_BOUNDS.reviewListRatio.fallback,
@@ -39,8 +44,14 @@ export function ReviewPanel({ sessionId }: ReviewPanelProps) {
       setItems([])
       return
     }
-    const list = await window.electronAPI.session.listFileChanges(sessionId)
-    setItems(list)
+    const request = ++listRequestRef.current
+    setError(null)
+    try {
+      const list = await window.electronAPI.session.listFileChanges(sessionId)
+      if (request === listRequestRef.current) setItems(list)
+    } catch {
+      if (request === listRequestRef.current) setError('无法读取本会话的文件变更，请重试')
+    }
   }, [sessionId])
 
   useEffect(() => { void reload() }, [reload])
@@ -55,20 +66,28 @@ export function ReviewPanel({ sessionId }: ReviewPanelProps) {
 
   const openDiff = async (filePath: string) => {
     if (!sessionId) return
+    const request = ++requestRef.current
     setSelected(filePath)
     setLoadingDiff(true)
     setError(null)
     setDiffText(null)
+    setBeforeText(null)
+    setAfterText(null)
     try {
       const r = await window.electronAPI?.session.getFileChangeDiff(sessionId, filePath)
+      if (request !== requestRef.current) return
       if (!r || r.error) {
         setError(r?.error || '无法加载')
       } else {
         setDiffText(r.diff || r.after || '')
+        setBeforeText(r.before ?? null)
+        setAfterText(r.after ?? null)
         setLanguage(r.diff ? 'diff' : 'text')
       }
+    } catch {
+      if (request === requestRef.current) setError('读取文件变更失败，请重试')
     } finally {
-      setLoadingDiff(false)
+      if (request === requestRef.current) setLoadingDiff(false)
     }
   }
 
@@ -78,6 +97,8 @@ export function ReviewPanel({ sessionId }: ReviewPanelProps) {
     setItems([])
     setSelected(null)
     setDiffText(null)
+    setBeforeText(null)
+    setAfterText(null)
   }
 
   if (!sessionId) {
@@ -103,14 +124,29 @@ export function ReviewPanel({ sessionId }: ReviewPanelProps) {
         <button type="button" className="rounded p-0.5" style={{ color: 'var(--text-muted)' }} title="清空列表" onClick={() => { void clearAll() }}>
           <Eraser size={12} />
         </button>
+        <div className="flex shrink-0 items-center gap-0.5" role="group" aria-label="审阅视图">
+          <button type="button" aria-label="统一差异" title="统一差异" aria-pressed={viewMode === 'unified'}
+            className="flex h-6 w-6 items-center justify-center rounded" style={{ color: viewMode === 'unified' ? 'var(--accent-fg)' : 'var(--text-muted)', background: viewMode === 'unified' ? 'var(--accent-subtle)' : undefined }} onClick={() => setViewMode('unified')}>
+            <Rows3 size={13} />
+          </button>
+          <button type="button" aria-label="并排差异" title="并排差异" aria-pressed={viewMode === 'split'} disabled={!beforeText || !afterText}
+            className="flex h-6 w-6 items-center justify-center rounded disabled:opacity-40" style={{ color: viewMode === 'split' ? 'var(--accent-fg)' : 'var(--text-muted)', background: viewMode === 'split' ? 'var(--accent-subtle)' : undefined }} onClick={() => setViewMode('split')}>
+            <Columns2 size={13} />
+          </button>
+        </div>
       </div>
 
       {items.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center">
-          <FileCode2 size={20} style={{ color: 'var(--text-muted)' }} />
-          <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-            Agent 写入 / 编辑文件后，会显示在这里
-          </p>
+          {error ? <>
+            <p role="alert" className="text-[12px]" style={{ color: 'var(--danger)' }}>{error}</p>
+            <button type="button" className="rounded px-2 py-1 text-[11px]" style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }} onClick={() => { void reload() }}>重新读取</button>
+          </> : <>
+            <FileCode2 size={20} style={{ color: 'var(--text-muted)' }} />
+            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+              Agent 写入 / 编辑文件后，会显示在这里
+            </p>
+          </>}
         </div>
       ) : (
         <div ref={splitRef} className="flex min-h-0 flex-1 flex-col">
@@ -158,9 +194,11 @@ export function ReviewPanel({ sessionId }: ReviewPanelProps) {
             {error && (
               <p className="text-[11px]" style={{ color: 'var(--danger)' }}>{error}</p>
             )}
-            {diffText != null && !loadingDiff && (
-              <div className="min-w-0 text-[10px]">
-                <CodeBlock code={diffText} language={language} />
+            {diffText != null && !loadingDiff && viewMode === 'unified' && <div className="min-w-0 text-[10px]"><CodeBlock code={diffText} language={language} /></div>}
+            {diffText != null && !loadingDiff && viewMode === 'split' && beforeText != null && afterText != null && (
+              <div className="grid min-w-0 grid-cols-2 gap-2 text-[10px]">
+                <div className="min-w-0"><p className="mb-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>修改前</p><CodeBlock code={beforeText} language="text" /></div>
+                <div className="min-w-0"><p className="mb-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>修改后</p><CodeBlock code={afterText} language="text" /></div>
               </div>
             )}
             {!selected && !loadingDiff && (

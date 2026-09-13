@@ -815,6 +815,46 @@ test.describe('My Agent UI', () => {
     await expect(previews.getByRole('tab')).toHaveCount(3)
   })
 
+  test('正式审阅支持真实旧稿并排视图且忽略过期 diff 响应', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      const pending: Record<string, Array<(value: unknown) => void>> = {}
+      api.session.listFileChanges = async () => [
+        { path: 'C:/e2e-project/old.ts', toolName: 'file_edit', updatedAt: 1, hasBefore: true },
+        { path: 'C:/e2e-project/new.ts', toolName: 'file_write', updatedAt: 2, hasBefore: true },
+      ]
+      api.session.getFileChangeDiff = (sessionId: string, path: string) => new Promise((resolve) => { (pending[path] ??= []).push(resolve) })
+      ;(window as any).__reviewPending = pending
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '新对话', exact: true }).click()
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '审阅', exact: true }).click()
+    const review = dock.getByRole('tabpanel', { name: '审阅', exact: true })
+    await expect(review.getByText('old.ts', { exact: true })).toBeVisible()
+    await review.getByRole('button', { name: /old.ts/ }).click()
+    await expect(review.getByText('加载中…', { exact: true })).toBeVisible()
+    await review.getByRole('button', { name: /new.ts/ }).click()
+    await page.evaluate(() => {
+      const pending = (window as any).__reviewPending
+      pending['C:/e2e-project/new.ts'].shift()({ diff: '--- new\n+++ new\n', before: 'old new', after: 'new new', hasBefore: true })
+      pending['C:/e2e-project/old.ts'].shift()({ diff: '--- old\n+++ old\n', before: 'old old', after: 'old changed', hasBefore: true })
+    })
+    await expect(review).toContainText('new.ts')
+    await expect(review).not.toContainText('old changed')
+    await expect(review.getByRole('button', { name: '并排差异', exact: true })).toBeEnabled()
+    await review.getByRole('button', { name: '并排差异', exact: true }).click()
+    await expect(review).toContainText('修改前')
+    await expect(review).toContainText('修改后')
+    await expect(review).toContainText('old new')
+    await expect(review).toContainText('new new')
+    await expect(review).not.toContainText('old old')
+    await expect(review.getByRole('button', { name: '统一差异', exact: true })).toBeEnabled()
+  })
+
   test('正式右坞文件内部预览与折叠状态保留', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.goto('/')

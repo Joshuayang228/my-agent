@@ -68,6 +68,7 @@ declare global {
           toolName?: string
           updatedAt?: number
           beforeTruncated?: boolean
+          before?: string | null
           diff?: string
           after?: string
           hasBefore?: boolean

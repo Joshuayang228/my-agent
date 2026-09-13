@@ -59,6 +59,7 @@ export function registerSessionChangesIPC(): void {
         toolName: rec.toolName,
         updatedAt: rec.updatedAt,
         beforeTruncated: !!rec.beforeTruncated,
+        before: rec.before,
         diff,
         after,
         hasBefore: rec.before != null,
