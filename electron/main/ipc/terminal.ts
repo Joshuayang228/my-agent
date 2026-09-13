@@ -7,7 +7,7 @@
  */
 
 import { ipcMain } from 'electron'
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
+import { execFile, spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import { checkCommandPermission } from '../sandbox/permission-engine'
@@ -23,7 +23,28 @@ export const MAX_TERMINAL_OUTPUT_CHARS = 2 * 1024 * 1024
 const MAX_COMMAND_LENGTH = 100_000
 const MAX_CWD_LENGTH = 4_096
 
-const runs = new Map<string, ChildProcessWithoutNullStreams>()
+type TerminalRun = {
+  child: ChildProcessWithoutNullStreams
+  senderId: number
+}
+
+const runs = new Map<string, TerminalRun>()
+
+/**
+ * 背景：右坞“终止”面对的可能是 shell 再派生出来的编译器、脚本或包管理器进程树，单独 kill shell 会留下后台子进程。
+ * 设计意图：Windows 使用 taskkill 的树终止能力，类 Unix 保留进程组信号；不把 Renderer 的即时应答当成退出事实。
+ * 关键约束：调用方必须是发起该 run 的 webContents，runs 只在 close/error 事件中回收，否则旧进程的迟到事件和新 run 会混淆。
+ */
+function terminateProcessTree(child: ChildProcessWithoutNullStreams): Promise<void> {
+  if (!child.pid) return Promise.resolve()
+  if (process.platform === 'win32') {
+    return new Promise((resolve) => {
+      execFile('taskkill', ['/pid', String(child.pid), '/t', '/f'], { windowsHide: true }, () => resolve())
+    })
+  }
+  try { process.kill(-child.pid, 'SIGTERM') } catch { try { child.kill('SIGTERM') } catch { /* already exited */ } }
+  return Promise.resolve()
+}
 
 
 export function limitTerminalOutput(text: string, emittedChars: number): {
@@ -88,7 +109,7 @@ export function registerTerminalIPC(): void {
         env: buildSafeChildProcessEnv(),
         windowsHide: true,
       })
-      runs.set(runId, child)
+      runs.set(runId, { child, senderId: sender.id })
 
       const send = (channel: string, payload: Record<string, unknown>) => {
         if (!sender.isDestroyed()) sender.send(channel, payload)
@@ -103,7 +124,7 @@ export function registerTerminalIPC(): void {
         if (limited.limitReached) {
           outputLimitHit = true
           send('terminal:stderr', { runId, chunk: `\n[输出超过 ${MAX_TERMINAL_OUTPUT_CHARS} 个字符，已终止进程]\n` })
-          try { child.kill() } catch { /* ignore */ }
+          void terminateProcessTree(child)
         }
       }
 
@@ -135,14 +156,11 @@ export function registerTerminalIPC(): void {
     },
   )
 
-  ipcMain.handle('terminal:kill', (_e, runId: unknown) => {
+  ipcMain.handle('terminal:kill', async (event, runId: unknown) => {
     if (typeof runId !== 'string' || runId.length === 0 || runId.length > 200) return { ok: false }
-    const child = runs.get(runId)
-    if (!child) return { ok: false }
-    try {
-      child.kill()
-    } catch { /* ignore */ }
-    runs.delete(runId)
+    const run = runs.get(runId)
+    if (!run || run.senderId !== event.sender.id) return { ok: false }
+    await terminateProcessTree(run.child)
     return { ok: true }
   })
 

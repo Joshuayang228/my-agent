@@ -104,6 +104,7 @@ Renderer 只能通过 preload 白名单访问主进程。敏感配置、文件�
 - 并发安全分流：`isConcurrencySafe` → Promise.all，否则串行
 - 动态注册/注销：支持 MCP 工具运行时加入和移除
 - 破坏性操作前用户确认（IPC 双向通信弹窗）
+- 终端运行实例由发起 webContents 归属；终止只允许归属调用方，并由主进程在退出事件前保留运行记录；Windows 终止使用进程树回收。
 - **超时保护**：每个工具 30s 超时，超时自动返回错误
 - **子 Agent 系统**：delegate_task 工具，独立上下文 + 受限工具集 + 权限只降不升 + 工具黑名单（禁止 delegate_task 递归 / remember / forget / task_plan）
 - **中间件管道**：ToolMiddlewarePipeline 洋葱模型（error-formatting → logging → verify → result-persistence）
