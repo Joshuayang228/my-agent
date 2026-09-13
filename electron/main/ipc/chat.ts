@@ -4,7 +4,7 @@ import { runtime } from '../agent/runtime'
 import { ToolRegistry } from '../tools/registry'
 import { createLogger } from '../utils/logger'
 import { toAgentError } from '../errs'
-import type { ChatMessage } from '../../../src/shared/types'
+import type { ChatMessage, WorkspaceChatContext } from '../../../src/shared/types'
 
 const log = createLogger('ChatIPC')
 
@@ -22,6 +22,15 @@ function isValidChatMessage(value: unknown): value is ChatMessage {
     && typeof message.timestamp === 'number' && Number.isFinite(message.timestamp)
 }
 
+function readWorkspaceChatContext(value: unknown): WorkspaceChatContext | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const raw = value as Record<string, unknown>
+  const context: WorkspaceChatContext = {}
+  if (typeof raw.parentSessionId === 'string' && raw.parentSessionId.length > 0 && raw.parentSessionId.length <= MAX_CHAT_ID_LENGTH) context.parentSessionId = raw.parentSessionId
+  if (typeof raw.projectPath === 'string' && raw.projectPath.length > 0 && raw.projectPath.length <= 2_000) context.projectPath = raw.projectPath
+  return context.parentSessionId || context.projectPath ? context : undefined
+}
+
 export function registerChatIPC(toolRegistry: ToolRegistry): void {
   ipcMain.handle('ping', () => 'pong')
 
@@ -29,13 +38,14 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
     runtime.abort(typeof sessionId === 'string' && sessionId.length <= MAX_CHAT_ID_LENGTH ? sessionId : undefined)
   })
 
-  ipcMain.handle('chat:send', async (event, sessionId: string, userMessage: ChatMessage) => {
+  ipcMain.handle('chat:send', async (event, sessionId: string, userMessage: ChatMessage, rawContext?: unknown) => {
     if (typeof sessionId !== 'string' || sessionId.length === 0 || sessionId.length > MAX_CHAT_ID_LENGTH) {
       throw new Error('会话 ID 无效')
     }
     if (!isValidChatMessage(userMessage)) {
       throw new Error('消息参数无效或内容过长')
     }
+    const workspaceContext = readWorkspaceChatContext(rawContext)
     const emit = (ev: Record<string, unknown>) => {
       event.sender.send('chat:event', { ...ev, sessionId })
     }
@@ -72,7 +82,7 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
 
     try {
       // 会话 Runtime 中心化：只传本轮用户消息，历史由 runtime 从 store 加载
-      const stream = runtime.chat(sessionId, userMessage, toolRegistry, confirmTool)
+      const stream = runtime.chat(sessionId, userMessage, toolRegistry, confirmTool, workspaceContext)
 
       for await (const ev of stream) {
         emit(ev)

@@ -762,7 +762,7 @@ declare global {
         }>
       }
       chat: {
-        send: (sessionId: string, userMessage: ChatMessage) => Promise<void>
+        send: (sessionId: string, userMessage: ChatMessage, context?: import('./shared/types').WorkspaceChatContext) => Promise<void>
         abort: (sessionId?: string) => Promise<void>
         onEvent: (callback: (event: AgentStreamEvent) => void) => () => void
         onConfirmRequest: (callback: (data: { requestId: string; name: string; args: Record<string, unknown>; sessionId: string }) => void) => () => void

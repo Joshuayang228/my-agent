@@ -607,8 +607,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   chat: {
     /** 只传本轮用户消息；完整历史由主进程 session-store 加载 */
-    send: (sessionId: string, userMessage: ChatMessage) =>
-      ipcRenderer.invoke('chat:send', sessionId, userMessage),
+    send: (sessionId: string, userMessage: ChatMessage, context?: import('../../src/shared/types').WorkspaceChatContext) =>
+      ipcRenderer.invoke('chat:send', sessionId, userMessage, context),
     abort: (sessionId?: string) => ipcRenderer.invoke('chat:abort', sessionId),
     onEvent: (callback: (event: AgentStreamEvent) => void) => {
       const handler = (_e: Electron.IpcRendererEvent, ev: AgentStreamEvent) => callback(ev)

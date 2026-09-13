@@ -6,9 +6,10 @@ import { PermissionConfirmCard } from '../PermissionConfirmCard'
 
 interface SideChatPanelProps {
   parentSessionId: string | null
+  projectPath: string | null
 }
 
-export function SideChatPanel({ parentSessionId }: SideChatPanelProps) {
+export function SideChatPanel({ parentSessionId, projectPath }: SideChatPanelProps) {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -62,7 +63,7 @@ export function SideChatPanel({ parentSessionId }: SideChatPanelProps) {
     const message: ChatMessage = { id: crypto.randomUUID(), role: 'user', content, timestamp: Date.now() }
     setMessages((current) => [...current, message])
     setInput(''); draftRef.current = ''; setError(null); setSending(true)
-    try { await window.electronAPI.chat.send(id, message) }
+    try { await window.electronAPI.chat.send(id, message, { parentSessionId: parentSessionId || undefined, projectPath: projectPath || undefined }) }
     catch { setError('消息发送失败，请重试'); setSending(false) }
   }
 

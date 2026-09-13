@@ -26,6 +26,11 @@ export interface ChatMessage {
   memoryCitations?: MemoryCitation[]
 }
 
+export interface WorkspaceChatContext {
+  parentSessionId?: string
+  projectPath?: string
+}
+
 /** 本轮向量召回命中（注入 Prompt 的那批，已去 mem- 镜像） */
 export interface MemoryCitation {
   id: string
