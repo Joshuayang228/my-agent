@@ -1,12 +1,12 @@
 /** 正式 Chat 工作区。文件内部预览不再作为顶层工具；Debug 保持独立。 */
 import { useRef, useState } from 'react'
 import type { WorkspaceChatFocus } from '../../../shared/types'
-import { FileText, GitCompare, Globe, MessageCircle, Plus, TerminalSquare } from 'lucide-react'
+import { FileText, GitCompare, Globe, MessageCircle, TerminalSquare } from 'lucide-react'
 import { ReviewPanel } from './ReviewPanel'
 import { TerminalPanel } from './TerminalPanel'
 import { WorkspaceFilesPanel } from './WorkspaceFilesPanel'
 import { TabStrip } from '../../foundation/TabStrip'
-import { IconButton } from '../../foundation/IconButton'
+import { WorkspaceToolMenu } from '../../foundation/WorkspaceToolMenu'
 import { BrowserPanel } from './BrowserPanel'
 import { SideChatPanel } from './SideChatPanel'
 
@@ -32,10 +32,8 @@ const TABS = [
 
 export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, collapsed = false, onCloseFiles }: ChatRightDockProps) {
   const nextInstance = useRef(2)
-  const addButton = useRef<HTMLButtonElement>(null)
   const [activeTabId, setActiveTabId] = useState('files-1')
   const [openTabs, setOpenTabs] = useState<RightDockTabInstance[]>([{ instanceId: 'files-1', kind: 'files', ordinal: 1 }])
-  const [addMenuOpen, setAddMenuOpen] = useState(false)
   const [workspaceFocus, setWorkspaceFocus] = useState<WorkspaceChatFocus | undefined>()
   const visibleTabs = openTabs.map((instance) => {
     const meta = TABS.find((item) => item.id === instance.kind)!
@@ -45,8 +43,6 @@ export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, 
     const instanceId = kind + '-' + nextInstance.current++
     setOpenTabs((current) => [...current, { instanceId, kind, ordinal: Math.max(0, ...current.filter((item) => item.kind === kind).map((item) => item.ordinal)) + 1 }])
     setActiveTabId(instanceId)
-    setAddMenuOpen(false)
-    addButton.current?.focus()
   }
   const closeTab = (instanceId: string) => {
     const currentIndex = openTabs.findIndex((item) => item.instanceId === instanceId)
@@ -58,25 +54,11 @@ export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, 
 
   return <div id="chat-right-dock" className="relative flex shrink-0 flex-col overflow-hidden border-l"
     style={{ display: showFiles && !collapsed ? undefined : 'none', width, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }} data-testid="chat-right-dock">
-    <div className="relative flex shrink-0 items-center gap-1 border-b p-2" style={{ borderColor: 'var(--border-subtle)' }}
-      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setAddMenuOpen(false) }}
-      onKeyDown={(event) => { if (event.key === 'Escape' && addMenuOpen) { event.stopPropagation(); setAddMenuOpen(false); addButton.current?.focus() } }}>
+    <div className="relative flex shrink-0 items-center gap-1 border-b p-2" style={{ borderColor: 'var(--border-subtle)' }}>
       <TabStrip label="已打开的工作区" activeId={activeTabId} itemTestId="right-dock-tab-item"
         items={visibleTabs.map(({ instance, meta, label }) => { const Icon = meta.icon; return { id: instance.instanceId, label, icon: <Icon size={14} />, panelId: 'dock-panel-' + instance.instanceId, testId: 'right-dock-tab-' + instance.kind } })}
         onSelect={setActiveTabId} onClose={closeTab} />
-      <IconButton ref={addButton} label="添加工作区内容" size={28} aria-haspopup="menu" aria-expanded={addMenuOpen}
-        style={{ color: 'var(--text-secondary)' }} onClick={() => setAddMenuOpen((current) => !current)} data-testid="right-dock-add-tab"><Plus size={16} /></IconButton>
-      {addMenuOpen && <div className="absolute right-2 top-full z-30 mt-1 w-40 rounded-md border p-1 shadow-lg"
-        style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} role="menu" aria-label="添加工作区内容"
-        onKeyDown={(event) => {
-          const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=menuitem]'))
-          const index = items.indexOf(document.activeElement as HTMLButtonElement)
-          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); items[(index + (event.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length]?.focus() }
-        }}>
-        {TABS.map(({ id, label, icon: Icon }, index) => <button key={id} autoFocus={index === 0} type="button" role="menuitem"
-          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-secondary)] focus-visible:bg-[var(--bg-secondary)]"
-          onClick={() => addTab(id)}><Icon size={14} />{label}</button>)}
-      </div>}
+      <WorkspaceToolMenu testId="right-dock-add-tab" items={TABS.map(({ id, label, icon: Icon }) => ({ id, label, icon: <Icon size={14} /> }))} onSelect={(id) => addTab(id as RightDockTab)} />
     </div>
     {/* 实例在后台继续持有状态与事件订阅；关闭标签才卸载，不能把选中态当作资源生命周期。 */}
     {visibleTabs.map(({ instance, label }) => <div key={instance.instanceId} id={'dock-panel-' + instance.instanceId} role="tabpanel" aria-label={label}

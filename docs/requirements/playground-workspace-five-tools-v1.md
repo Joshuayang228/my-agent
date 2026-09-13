@@ -104,6 +104,8 @@
 
 共享 IconButton 批次：将正式 ChatRightDock、ReviewPanel 和 Playground 工作区候选中的固定图标操作槽统一接入 Foundation `IconButton`；保留业务层 label、回调、菜单焦点和资源生命周期。基础组件固定 24/28/32px 尺寸，并以 label 同时提供 aria-label 与默认 tooltip；hover、disabled 和状态文字不得改变操作槽几何。不得把业务按钮、菜单项或文字操作误归为 IconButton；真实调用和固定尺寸由符号/渲染检查及工作区 UI 回归覆盖。
 
+共享 WorkspaceToolMenu 批次：正式 ChatRightDock 与 Playground 工作区候选共用添加工具菜单的键盘导航、Escape 关闭、失焦收起和触发器焦点恢复；业务层分别传入正式/隔离的工具列表和创建回调。菜单不拥有真实 IPC、会话或实例资源，不把菜单项误登记为基础按钮组件。
+
 共享 Markdown 主题批次：在已批准的工作区主题/代码渲染范围内，修改 MarkdownRenderer、Foundation 就近主题读取及 Mermaid 串行渲染适配、现有 Markdown 故事的四主题变体、对应 Unit/浏览器夹具与 Playwright UI 匹配配置、资产来源和现状文档。替换只读 documentElement 的主题订阅、每个 Markdown 实例改写 Mermaid 全局配置以及直接展示解析异常的旧分支；语法修正原已可通过重挂载恢复，本批保留为回归项，不宣称旧实现无法恢复。主题来自真实容器的语义变量，不从 Playground 复制色板，不要求业务调用方加主题修复参数。Mermaid 的 initialize+render 必须串行，失败不堵塞后续任务，旧任务/卸载结果不得回写；保持 strict 安全策略及库的资源上限，临时测量节点必须清理。四候选主题仍只在隔离夹具/Playground 使用，不注册为生产主题，也不扩大为四页面通用控件整体重构。验收覆盖四主题同时渲染、全局/局部交叉、宽窄、语法修正、快速更新、队列失败恢复，以及实际 WorkspaceFilesPanel→MarkdownRenderer 路径。
 
 侧聊恢复与归属批次：沿用已批准的失败恢复/父会话隔离范围，允许修改 SideChatPanel、ChatRightDock、Renderer/Electron 回归与对应模块卡/质量/进展/缺口文档。创建失败的重试必须重新调用 createWorkspace，而不是对空 session 发送；父会话变化时重建侧聊实例，旧正文、草稿、确认与迟到响应不得进入新侧聊。删除仍走主进程已有取消/等待/删除链路，IPC 名称与载荷、模型配置、长期记忆行为不变；同父会话下的切换标签与折叠继续保留实例。先用故障注入验证前端状态，真实进程与存储行为保留 Electron 回归，不把替身当作后端证明。

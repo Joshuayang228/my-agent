@@ -78,6 +78,7 @@ export const FOUNDATION_STORIES = [
   { key: 'foundation.dialog', viewId: 'dialog', assetKey: 'behavior.dialog', labelZh: '对话框', group: 'behavior', renderer: 'advanced', navigationGroup: 'overlay' },
   { key: 'foundation.popover', viewId: 'popover', assetKey: 'behavior.popover', labelZh: '弹出层', group: 'behavior', renderer: 'advanced', navigationGroup: 'overlay' },
   { key: 'foundation.dropdown-menu', viewId: 'dropdown-menu', assetKey: 'behavior.dropdown-menu', labelZh: '下拉菜单', group: 'behavior', renderer: 'advanced', navigationGroup: 'menu-tooltip' },
+  { key: 'foundation.workspace-tool-menu', viewId: 'workspace-tool-menu', assetKey: 'behavior.workspace-tool-menu', labelZh: '工作区工具菜单', group: 'behavior', renderer: 'advanced', navigationGroup: 'menu-tooltip' },
   { key: 'foundation.command', viewId: 'command', assetKey: 'behavior.command', labelZh: '命令面板', group: 'behavior', renderer: 'advanced', navigationGroup: 'menu-tooltip' },
   { key: 'foundation.context-menu', viewId: 'context-menu', assetKey: 'behavior.context-menu', labelZh: '右键菜单', group: 'behavior', renderer: 'advanced', navigationGroup: 'menu-tooltip' },
   { key: 'foundation.tooltip', viewId: 'tooltip', assetKey: 'behavior.tooltip', labelZh: '提示浮层', group: 'behavior', renderer: 'advanced', navigationGroup: 'menu-tooltip' },

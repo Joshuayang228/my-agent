@@ -71,12 +71,18 @@ describe('Foundation story registry', () => {
   })
 
   it('IconButton 的真实生产调用指向 Foundation，避免工作区重新声明操作槽', () => {
-    for (const file of ['src/components/chat/right-dock/ChatRightDock.tsx', 'src/components/chat/right-dock/ReviewPanel.tsx', 'src/components/playground/WorkspaceExperienceCandidate.tsx']) {
+    for (const file of ['src/components/chat/right-dock/ReviewPanel.tsx', 'src/components/playground/WorkspaceExperienceCandidate.tsx']) {
       const source = readFileSync(file, 'utf8')
       expect(source).toContain('IconButton')
       expect(source).toContain('foundation/IconButton')
       expect(source).toMatch(/<IconButton[\s\S]*label=/)
     }
+    const dock = readFileSync('src/components/chat/right-dock/ChatRightDock.tsx', 'utf8')
+    expect(dock).toContain('foundation/WorkspaceToolMenu')
+    expect(dock).toMatch(/<WorkspaceToolMenu[\s\S]*onSelect=/)
+    const menu = readFileSync('src/components/foundation/WorkspaceToolMenu.tsx', 'utf8')
+    expect(menu).toContain("from './IconButton'")
+    expect(menu).toMatch(/<IconButton[\s\S]*label=/)
   })
 
   it('keeps story keys, views, assets and groups in one consistent relation', () => {

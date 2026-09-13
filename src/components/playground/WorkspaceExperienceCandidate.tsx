@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react'
-import { ArrowUp, Globe, GitCompare, FileText, TerminalSquare, MessageCircle, RefreshCw, Square, LoaderCircle, PanelRight, Plus } from 'lucide-react'
+import { ArrowUp, Globe, GitCompare, FileText, TerminalSquare, MessageCircle, RefreshCw, Square, LoaderCircle, PanelRight } from 'lucide-react'
 import { type FileBrowserPreviewData } from '../FileBrowser'
 import { WorkspaceFilesPanel } from '../chat/right-dock/WorkspaceFilesPanel'
 import { MarkdownRenderer } from '../MarkdownRenderer'
 import { DiffViewer, DiffViewControls, type DiffViewMode } from '../foundation/DiffViewer'
 import { TabStrip } from '../foundation/TabStrip'
 import { IconButton } from '../foundation/IconButton'
+import { WorkspaceToolMenu } from '../foundation/WorkspaceToolMenu'
 import teaImage from '../../assets/playground/moment-tea-by-window.jpg'
 
 const VIEWS = [
@@ -52,16 +53,13 @@ export function WorkspaceDock({
 }) {
   const [narrow] = useState(compact || !showChat)
   const [open, setOpen] = useState(true)
-  const [menu, setMenu] = useState(false)
   const [tabs, setTabs] = useState<WorkspaceTab[]>([{ id: 0, view: initialView, scene: initialScene, ordinal: 1 }])
   const [active, setActive] = useState(0)
   const nextId = useRef(1)
-  const addButton = useRef<HTMLButtonElement>(null)
   const addTab = (nextView: View) => {
     const id = nextId.current++
     const nextScene = nextView === 'files' ? '文件列表' : VIEWS.find((item) => item.id === nextView)!.scenes[0]
-    setTabs((current) => [...current, { id, view: nextView, scene: nextScene, ordinal: Math.max(0, ...current.filter((tab) => tab.view === nextView).map((tab) => tab.ordinal)) + 1 }]); setActive(id); setMenu(false)
-    addButton.current?.focus()
+    setTabs((current) => [...current, { id, view: nextView, scene: nextScene, ordinal: Math.max(0, ...current.filter((tab) => tab.view === nextView).map((tab) => tab.ordinal)) + 1 }]); setActive(id)
   }
   const closeTab = (id: number) => {
     const remaining = tabs.filter((tab) => tab.id !== id)
@@ -75,15 +73,12 @@ export function WorkspaceDock({
         <WorkspaceChatShell />
       </div>
       <div className={open ? `flex min-w-0 flex-col ${showChat ? 'border-l' : ''}` : 'hidden'} style={{ width: showChat && narrow ? 'min(380px, 65%)' : '100%', borderColor: 'var(--border-subtle)' }} data-testid="workspace-tool-panel">
-        <div className="relative flex shrink-0 items-center gap-1 border-b p-2" style={{ borderColor: 'var(--border-subtle)' }} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setMenu(false) }} onKeyDown={(event) => { if (event.key === 'Escape' && menu) { event.stopPropagation(); setMenu(false); addButton.current?.focus() } }}>
+        <div className="relative flex shrink-0 items-center gap-1 border-b p-2" style={{ borderColor: 'var(--border-subtle)' }}>
           <TabStrip label="已打开的工作区" itemTestId="workspace-open-tab" activeId={String(active)}
             items={tabs.map((tab) => { const meta = VIEWS.find((item) => item.id === tab.view)!; const Icon = meta.icon; return { id: String(tab.id), label: meta.label + ' ' + tab.ordinal, icon: <Icon size={14} /> } })}
             onSelect={(id) => setActive(Number(id))}
             onClose={(id) => { if (tabs.length <= 1 && onClose) onClose(); else closeTab(Number(id)) }} />
-          <IconButton ref={addButton} label="添加工作区内容" size={24} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)}><Plus size={16} /></IconButton>
-          {menu && <div role="menu" aria-label="添加工作区内容" className="absolute right-2 top-full z-20 mt-1 w-40 rounded-md border p-1 shadow-lg" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} onKeyDown={(event) => { const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=menuitem]')); const index = items.indexOf(document.activeElement as HTMLButtonElement); if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); items[(index + (event.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length]?.focus() } }}>
-            {VIEWS.map(({ id, label, icon: Icon }, index) => <button key={id} autoFocus={index === 0} type="button" role="menuitem" className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-secondary)] focus-visible:bg-[var(--bg-secondary)]" onClick={() => addTab(id)}><Icon size={14} />{label}</button>)}
-          </div>}
+          <WorkspaceToolMenu testId="workspace-add-tab" items={VIEWS.map(({ id, label, icon: Icon }) => ({ id, label, icon: <Icon size={14} /> }))} onSelect={(id) => addTab(id as View)} />
         </div>
         {!tabs.length && <p className="m-auto text-[12px]" style={{ color: 'var(--text-muted)' }}>没有打开的内容</p>}
         {tabs.map((tab) => <div key={tab.id} role="tabpanel" aria-label={`${VIEWS.find((item) => item.id === tab.view)!.label} ${tab.ordinal}`} className={active === tab.id ? 'flex min-h-0 min-w-0 flex-1 flex-col' : 'hidden'}>

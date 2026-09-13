@@ -8,9 +8,10 @@
  */
 
 import { useState } from 'react'
-import { ChevronDown, Command, MoreHorizontal, Search, X } from 'lucide-react'
+import { ChevronDown, Command, FileText, MoreHorizontal, Search, X } from 'lucide-react'
 import { StoryBlock } from './StoryBlock'
 import { DiffViewer, DiffViewControls, type DiffViewMode } from '../foundation/DiffViewer'
+import { WorkspaceToolMenu } from '../foundation/WorkspaceToolMenu'
 import { type AdvancedFoundationStoryKey } from '../../shared/foundation-story-registry'
 
 function SelectStory() {
@@ -170,6 +171,14 @@ function DiffViewerStory() {
   </div>
 }
 
+function WorkspaceToolMenuStory() {
+  const [selected, setSelected] = useState('尚未添加')
+  return <div className="flex items-center gap-3" data-testid="foundation-workspace-tool-menu">
+    <WorkspaceToolMenu items={[{ id: 'files', label: '文件', icon: <FileText size={14} /> }, { id: 'review', label: '审阅', icon: <FileText size={14} /> }]} onSelect={(id) => setSelected(id === 'files' ? '文件' : '审阅')} />
+    <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>当前：{selected}</span>
+  </div>
+}
+
 function FormFieldStory() {
   const [enabled, setEnabled] = useState(true)
   return <div className="grid gap-3 md:grid-cols-2"><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>显示名称</span><input className="theme-input h-9 w-full rounded-md border px-2 text-xs outline-none" defaultValue="小林" aria-label="显示名称" /><small className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>辅助说明与控件保持同一组。</small></label><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>错误字段</span><input className="theme-input h-9 w-full rounded-md border px-2 text-xs outline-none" defaultValue="" aria-label="错误字段" aria-invalid="true" style={{ borderColor: 'var(--danger)' }} /><small className="block text-[10px]" style={{ color: 'var(--danger)' }}>请输入有效内容。</small></label><label className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}><input type="checkbox" defaultChecked aria-label="启用记忆" />启用记忆</label><button type="button" role="switch" aria-checked={enabled} onClick={() => setEnabled((value) => !value)} className="flex items-center gap-2 text-left text-[11px]" style={{ color: 'var(--text-secondary)' }}><span className="relative h-5 w-9 rounded-full" style={{ background: enabled ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }}><span className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition" style={{ left: enabled ? 'calc(100% - 1.125rem)' : '0.125rem' }} /></span>自动保存</button></div>
@@ -185,6 +194,7 @@ function storyContent(story: AdvancedFoundationStoryKey) {
     case 'foundation.dialog': return <StoryBlock title="对话框" source="src/components/playground/FoundationAdvancedStories.tsx · Dialog candidate" edge><DialogStory /></StoryBlock>
     case 'foundation.popover': return <StoryBlock title="弹出层" source="src/components/playground/FoundationAdvancedStories.tsx · Popover candidate" edge><PopoverStory /></StoryBlock>
     case 'foundation.dropdown-menu': return <StoryBlock title="下拉菜单" source="src/components/chat/right-dock/ChatRightDock.tsx · add tab / candidate" edge><DropdownMenuStory /></StoryBlock>
+    case 'foundation.workspace-tool-menu': return <StoryBlock title="工作区工具菜单" source="src/components/foundation/WorkspaceToolMenu.tsx" edge adopted><WorkspaceToolMenuStory /></StoryBlock>
     case 'foundation.combobox': return <StoryBlock title="可搜索选择" source="src/components/playground/FoundationAdvancedStories.tsx · Combobox candidate" edge><ComboboxStory /></StoryBlock>
     case 'foundation.command': return <StoryBlock title="命令面板" source="src/components/playground/FoundationAdvancedStories.tsx · Command candidate" edge><CommandStory /></StoryBlock>
     case 'foundation.context-menu': return <StoryBlock title="右键菜单" source="src/components/playground/FoundationAdvancedStories.tsx · Context Menu candidate" edge><ContextMenuStory /></StoryBlock>
