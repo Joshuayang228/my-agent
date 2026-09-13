@@ -290,3 +290,84 @@ test('正式工作区读取真实文件，流式生成中关闭侧聊终止请�
   await dock.getByRole('button', { name: '关闭侧边聊天', exact: true }).click()
   await page.evaluate(() => (window as any).__workspaceUnsubscribe())
 })
+
+test('正式终端保留大块输出，停止与关闭回收真实进程树', async () => {
+  test.skip(process.platform !== 'win32', '此用例验证 Windows taskkill 进程树')
+  const projectPath = path.join(userDataDir, 'workspace-fixture')
+  await writeFile(path.join(projectPath, 'terminal-output.cjs'), "process.stdout.write('x'.repeat(20000) + '\\n'); process.stderr.write('stderr-marker\\n')", 'utf8')
+  // 仅运行本测试创建的进程；兜底自行退出，断言仍要求关闭后 5 秒内退出而非等兜底。
+  await writeFile(path.join(projectPath, 'terminal-tree.cjs'), `
+const { spawn } = require('node:child_process')
+if (process.argv[2] === 'child') {
+  console.log('child:' + process.pid)
+} else {
+  console.log('parent:' + process.pid)
+  spawn(process.execPath, [__filename, 'child'], { stdio: ['ignore', 'inherit', 'inherit'], windowsHide: true })
+}
+setTimeout(() => process.exit(0), 15000)
+`, 'utf8')
+  const previousRules = await page.evaluate(async () => (await window.electronAPI.settings.get()).permissionRules)
+  await page.evaluate(() => {
+    const state = { output: '', errors: '', exits: [] as string[] }
+    const off = [
+      window.electronAPI.terminal.onStdout((event) => { state.output += event.chunk }),
+      window.electronAPI.terminal.onStderr((event) => { state.errors += event.chunk }),
+      window.electronAPI.terminal.onExit((event) => { state.exits.push(event.runId) }),
+    ]
+    Object.assign(window, { __terminalObserved: state, __terminalUnsubscribe: () => off.forEach((cleanup) => cleanup()) })
+  })
+  const dock = page.getByTestId('chat-right-dock')
+  const panel = dock.getByRole('tabpanel', { name: '终端', exact: true })
+  const input = panel.getByPlaceholder('输入命令…')
+  const alive = (pid: number) => { try { process.kill(pid, 0); return true } catch { return false } }
+  const pids: number[] = []
+  try {
+    await dock.getByRole('button', { name: '添加工作区内容' }).click()
+    await dock.getByRole('menuitem', { name: '终端', exact: true }).click()
+    await input.fill('node terminal-output.cjs')
+    await panel.getByRole('button', { name: '运行', exact: true }).click()
+    await expect(panel.getByText(/SANDBOX BLOCKED/)).toBeVisible()
+    await expect(input).toHaveValue('node terminal-output.cjs')
+    // 独立测试设置中仅授权两条固定命令，权限引擎、工作区路径限制与正式 IPC 不替换。
+    await page.evaluate(async (original) => {
+      await window.electronAPI.settings.set('permissionRules', JSON.stringify([
+        ...JSON.parse(original || '[]'),
+        { id: 'electron-terminal-fixture', type: 'command', pattern: '^node terminal-(output|tree)\\.cjs$', action: 'allow', enabled: true },
+      ]))
+    }, previousRules)
+    await panel.getByRole('button', { name: '运行', exact: true }).click()
+    await expect(panel.getByText('[exit 0]', { exact: true })).toBeVisible()
+    const output = await page.evaluate(() => (window as any).__terminalObserved)
+    expect(output.output).toBe('x'.repeat(20_000) + '\n')
+    expect(output.errors).toContain('stderr-marker')
+    expect(output.exits).toHaveLength(1)
+
+    for (const action of ['终止', '关闭终端']) {
+      await page.evaluate(() => { (window as any).__terminalObserved.output = '' })
+      await input.fill('node terminal-tree.cjs')
+      await panel.getByRole('button', { name: '运行', exact: true }).click()
+      await expect.poll(() => page.evaluate(() => (window as any).__terminalObserved.output)).toMatch(/child:\d+/)
+      const text = await page.evaluate(() => (window as any).__terminalObserved.output as string)
+      const parent = Number(text.match(/parent:(\d+)/)?.[1])
+      const child = Number(text.match(/child:(\d+)/)?.[1])
+      expect(parent).toBeGreaterThan(0)
+      expect(child).toBeGreaterThan(0)
+      pids.push(parent, child)
+      expect([alive(parent), alive(child)]).toEqual([true, true])
+      if (action === '终止') await panel.getByRole('button', { name: action, exact: true }).click()
+      else await dock.getByRole('button', { name: action, exact: true }).click()
+      await expect.poll(() => [alive(parent), alive(child)], { timeout: 5_000 }).toEqual([false, false])
+      if (action === '终止') await expect(input).toBeEnabled()
+      else await expect(panel).toHaveCount(0)
+    }
+    await expect.poll(() => page.evaluate(() => (window as any).__terminalObserved.exits.length)).toBe(3)
+    await page.screenshot({ path: 'test-results/workspace-electron-terminal-closed.png', fullPage: true })
+  } finally {
+    await page.evaluate(async (original) => {
+      (window as any).__terminalUnsubscribe()
+      await window.electronAPI.settings.set('permissionRules', original || '[]')
+    }, previousRules)
+    // 失败也等待自有测试进程的退出兜底，不按模糊进程名结束用户的 Node 进程。
+    await expect.poll(() => pids.every((pid) => !alive(pid)), { timeout: 16_000 }).toBe(true)
+  }
+})

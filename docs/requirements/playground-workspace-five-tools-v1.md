@@ -63,10 +63,10 @@
 | PanelRight 打开／收起 | App.tsx 的 showFileBrowser | 已回流 | 隐藏不卸载，保留 Tab 和预览；Renderer 回归已覆盖 |
 | 文件左树右侧多文件预览 | WorkspaceFilesPanel + FileBrowser | 已回流 | 多预览去重、切换、关闭重开及乱序/错误有 Renderer 回归；真实 Electron 已验证项目授权和文件读取 |
 | 审阅 | ReviewPanel | 已回流 | 真实 before/after、并排/统一视图及错误/乱序有 Renderer 回归 |
-| 终端 | TerminalPanel | 生产改造后回流 | 保留权限、沙箱和工作区 cwd；主进程已按发起窗口校验 run 归属并回收 Windows 进程树，仍需真实 Electron 进程生命周期回归，完整 PTY 仍不在本合同范围 |
+| 终端 | TerminalPanel | 已回流（Windows 命令控制台） | 保留权限、沙箱和工作区 cwd；真实 Electron 已验证拒绝后重试、大块输出、停止/关闭标签后的父子进程退出；Unit 验证终止失败/超时、关闭去重及无握手清理。Unix 仍需实机验证，完整 PTY 不在本合同范围 |
 | 浏览器 | BrowserPanel 受限只读查看器 | 生产改造后回流 | 主进程安全抓取已接入：URL/DNS 校验、手动拒绝重定向、超时与响应上限；Renderer 使用无脚本 sandbox + CSP。仍不支持脚本、登录、站内交互和任意导航 |
 | 侧边聊天 | SideChatPanel + `workspace` 会话 | 已接入，验收未全收口 | 真实 Electron 已覆盖流中关闭、连接终止、删除和重开；Runtime 初始化取消及 IPC 等待收尾/确认取消有 Unit。仍需初始化失败重试和父会话切换状态核验 |
-| 多实例工作区 Tab | ChatRightDock + Foundation TabStrip | 已回流 | 固定关闭槽、稳定实例 ID、后台关闭和切换/折叠/一级导航保持已有 Renderer 回归；终端 OS 生命周期另验 |
+| 多实例工作区 Tab | ChatRightDock + Foundation TabStrip | 已回流 | 固定关闭槽、稳定实例 ID、后台关闭和切换/折叠/一级导航保持已有 Renderer 回归；Windows 终端关闭释放进程树已有 Electron 证据 |
 | Markdown／Diff 代码块 | MarkdownRenderer 的 CodeBlock / FileBrowser / ReviewPanel | 部分回流 | 原始代码与基础故事同源；局部四主题、Mermaid、全量基础复用仍需验收 |
 
 ### P1 技术路径与交付边界
@@ -99,6 +99,8 @@
 - 验收：真实 App Renderer＋Electron 边界替身覆盖两个文件、去重、左右位置、后台关闭、重开、错误／重试、异步乱序；既有 Playground 五功能和文件所有格式故事保持隔离。状态与数据流事实同步到模块卡；真实 Electron 文件读取安全门禁继续保留。
 
 ### P1 验收与回滚
+
+终端后端生命周期批次：在已批准的真实命令控制台范围内修改 terminal IPC、TerminalPanel（仅必要的错误/结束语义）、terminal Unit、正式 Electron E2E 与对应架构/模块卡/质量/进展/变更/缺口文档。替换吞掉 taskkill 失败、error/close 双重退出及未握手记录永久保留的旧分支；终止成功必须有关闭证据，失败保留记录供重试。普通输出块分片传输，累计达到既有 2MB 上限才终止，不将单块超过 8000 字符误判为总量超限。窗口销毁、超时、无握手与关闭标签统一触发清理；Windows 保持隐藏进程树终止，Unix 建立独立进程组。权限/沙箱决策、IPC 名称/载荷和用户配置不变，不新增依赖、不扩成 PTY。Unit 覆盖故障注入，Electron 使用临时项目和无外网子进程证明早到输出、退出去重、标签关闭及进程树释放。
 
 侧聊关闭收口批次（2026-09-13）：沿用已批准的真实后端补齐范围，修改 Runtime、chat/session IPC、SideChatPanel、对应 Unit/Renderer/Electron 测试及运行时/架构/质量/进展/变更文档。主进程在配置读取前登记会话运行，取消只发信号、不提前释放运行所有权；session:delete 阻止同会话新发送，取消工具确认并等待完整 chat:send 退出后才删除记录。Renderer 不以 abort 返回或 done 事件作为落盘完成证据。既有 IPC 名称与载荷不变，不增加模型费用、不修改用户配置。验收覆盖初始化取消、流中关闭、重复发送/删除、异窗归属、确认监听清理，以及本地 SSE + 独立数据目录下的正式 Dock 操作；不把此批标为全部回流完成。
 

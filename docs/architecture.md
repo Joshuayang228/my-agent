@@ -106,7 +106,7 @@ Renderer 只能通过 preload 白名单访问主进程。敏感配置、文件�
 - 并发安全分流：`isConcurrencySafe` → Promise.all，否则串行
 - 动态注册/注销：支持 MCP 工具运行时加入和移除
 - 破坏性操作前用户确认（IPC 双向通信弹窗）
-- 终端运行实例由发起 webContents 归属；终止只允许归属调用方，并由主进程在退出事件前保留运行记录；Windows 终止使用进程树回收。终端启动后先缓存未完成握手前的有界 stdout/stderr，Renderer 取得 runId 后通过 `terminal:ready` 确认归属并按序冲刷，避免早到输出丢失。
+- 终端运行实例由发起 webContents 归属；终止合并并发请求，必须等到 child `close` 才成功，失败或超时保留记录供重试，`error` 不代替退出。Windows 使用隐藏的 taskkill 回收进程树；Unix 使用独立进程组并在 SIGTERM 后必要时升级 SIGKILL（本机未作 Unix 实机验证）。未握手 stdout/stderr 有界缓存，Renderer 通过 `terminal:ready` 冲刷；10 秒未握手、窗口销毁/崩溃或命令超时触发清理。输出按 8000 字符分包而不是截断，累计上限仍为 2MB 字符；Renderer 拼接未完成行，不以包边界换行。
 - **超时保护**：每个工具 30s 超时，超时自动返回错误
 - **子 Agent 系统**：delegate_task 工具，独立上下文 + 受限工具集 + 权限只降不升 + 工具黑名单（禁止 delegate_task 递归 / remember / forget / task_plan）
 - **中间件管道**：ToolMiddlewarePipeline 洋葱模型（error-formatting → logging → verify → result-persistence）

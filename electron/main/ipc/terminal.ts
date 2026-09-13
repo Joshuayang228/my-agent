@@ -19,6 +19,8 @@ import { buildSafeChildProcessEnv } from '../utils/safe-process-env'
 const log = createLogger('TerminalIPC')
 const TIMEOUT_MS = 30_000
 const MAX_CHUNK = 8_000
+const HANDSHAKE_TIMEOUT_MS = 10_000
+const STOP_TIMEOUT_MS = 5_000
 export const MAX_TERMINAL_OUTPUT_CHARS = 2 * 1024 * 1024
 const MAX_COMMAND_LENGTH = 100_000
 const MAX_CWD_LENGTH = 4_096
@@ -29,6 +31,11 @@ type TerminalRun = {
   ready: boolean
   buffered: Array<{ channel: 'terminal:stdout' | 'terminal:stderr'; chunk: string }>
   bufferedExit?: number
+  closed: boolean
+  abandoned: boolean
+  stopping?: Promise<boolean>
+  release: () => void
+  onReady: () => void
 }
 
 const runs = new Map<string, TerminalRun>()
@@ -36,19 +43,52 @@ const runs = new Map<string, TerminalRun>()
 /**
  * 背景：右坞“终止”面对的可能是 shell 再派生出来的编译器、脚本或包管理器进程树，单独 kill shell 会留下后台子进程。
  * 设计意图：Windows 使用 taskkill 的树终止能力，类 Unix 保留进程组信号；不把 Renderer 的即时应答当成退出事实。
- * 关键约束：调用方必须是发起该 run 的 webContents，runs 只在 close/error 事件中回收，否则旧进程的迟到事件和新 run 会混淆。
+ * 关键约束：调用方必须是发起该 run 的 webContents；成功以 close 为准，error 不能假定进程已退出。
  */
 function terminateProcessTree(child: ChildProcessWithoutNullStreams): Promise<void> {
   if (!child.pid) return Promise.resolve()
   if (process.platform === 'win32') {
-    return new Promise((resolve) => {
-      execFile('taskkill', ['/pid', String(child.pid), '/t', '/f'], { windowsHide: true }, () => resolve())
+    return new Promise((resolve, reject) => {
+      execFile('taskkill', ['/pid', String(child.pid), '/t', '/f'], { windowsHide: true, timeout: STOP_TIMEOUT_MS }, (error) => error ? reject(error) : resolve())
     })
   }
-  try { process.kill(-child.pid, 'SIGTERM') } catch { try { child.kill('SIGTERM') } catch { /* already exited */ } }
+  process.kill(-child.pid, 'SIGTERM')
   return Promise.resolve()
 }
 
+function waitForClose(run: TerminalRun, timeoutMs: number): Promise<boolean> {
+  if (run.closed) return Promise.resolve(true)
+  return new Promise((resolve) => {
+    const finish = (closed: boolean) => {
+      clearTimeout(timer)
+      run.child.removeListener('close', onClose)
+      resolve(closed)
+    }
+    const onClose = () => finish(true)
+    const timer = setTimeout(() => finish(false), timeoutMs)
+    run.child.once('close', onClose)
+  })
+}
+
+/** 关闭、超时和手动终止共享一次停止请求；失败保留运行记录，不能用信号回执提前恢复 UI。 */
+function stopRun(run: TerminalRun): Promise<boolean> {
+  if (run.closed) return Promise.resolve(true)
+  if (run.stopping) return run.stopping
+  run.stopping = (async () => {
+    try {
+      await terminateProcessTree(run.child)
+      if (process.platform !== 'win32' && !(await waitForClose(run, 1_000)) && run.child.pid) {
+        process.kill(-run.child.pid, 'SIGKILL')
+      }
+      return await waitForClose(run, STOP_TIMEOUT_MS)
+    } catch (error) {
+      if (run.closed) return true
+      log.warn('Terminal termination failed', { errorType: error instanceof Error ? error.name : 'unknown' })
+      return false
+    }
+  })().finally(() => { run.stopping = undefined })
+  return run.stopping
+}
 
 export function limitTerminalOutput(text: string, emittedChars: number): {
   chunk: string
@@ -56,7 +96,7 @@ export function limitTerminalOutput(text: string, emittedChars: number): {
   limitReached: boolean
 } {
   const remaining = Math.max(0, MAX_TERMINAL_OUTPUT_CHARS - emittedChars)
-  const accepted = text.slice(0, Math.min(MAX_CHUNK, remaining))
+  const accepted = text.slice(0, remaining)
   const nextEmittedChars = emittedChars + accepted.length
   return {
     chunk: accepted,
@@ -103,6 +143,7 @@ export function registerTerminalIPC(): void {
 
       const runId = randomUUID()
       const sender = event.sender
+      if (sender.isDestroyed()) return { ok: false, error: '命令窗口已关闭' }
       const isWin = process.platform === 'win32'
       const shell = isWin ? 'cmd.exe' : '/bin/sh'
       const shellArgs = isWin ? ['/d', '/s', '/c', command] : ['-c', command]
@@ -111,58 +152,85 @@ export function registerTerminalIPC(): void {
         cwd,
         env: buildSafeChildProcessEnv(),
         windowsHide: true,
+        detached: !isWin,
       })
-      const run: TerminalRun = { child, senderId: sender.id, ready: false, buffered: [] }
+      const run: TerminalRun = {
+        child, senderId: sender.id, ready: false, buffered: [], closed: false, abandoned: false,
+        onReady: () => clearTimeout(readyTimer),
+        release: () => {
+          clearTimeout(timer)
+          clearTimeout(readyTimer)
+          sender.removeListener('destroyed', abandon)
+          sender.removeListener('render-process-gone', abandon)
+          runs.delete(runId)
+        },
+      }
       runs.set(runId, run)
 
       const send = (channel: string, payload: Record<string, unknown>) => {
         if (!sender.isDestroyed()) sender.send(channel, payload)
       }
+      const publishOutput = (channel: 'terminal:stdout' | 'terminal:stderr', text: string) => {
+        if (run.abandoned) return
+        for (let offset = 0; offset < text.length; offset += MAX_CHUNK) {
+          const chunk = text.slice(offset, offset + MAX_CHUNK)
+          if (run.ready) send(channel, { runId, chunk })
+          else run.buffered.push({ channel, chunk })
+        }
+      }
+      const stopAutomatically = (reason: string) => {
+        publishOutput('terminal:stderr', `\n[${reason}，正在终止进程]\n`)
+        void stopRun(run).then((stopped) => {
+          if (!stopped) publishOutput('terminal:stderr', '\n[终止失败，命令可能仍在运行，请重试]\n')
+        })
+      }
       let emittedChars = 0
       let outputLimitHit = false
       const sendOutput = (channel: 'terminal:stdout' | 'terminal:stderr', text: string) => {
-        if (outputLimitHit) return
+        if (outputLimitHit || run.abandoned) return
         const limited = limitTerminalOutput(text, emittedChars)
         emittedChars = limited.nextEmittedChars
-        if (limited.chunk) {
-          if (run.ready) send(channel, { runId, chunk: limited.chunk })
-          else run.buffered.push({ channel, chunk: limited.chunk })
-        }
+        if (limited.chunk) publishOutput(channel, limited.chunk)
         if (limited.limitReached) {
           outputLimitHit = true
-          const notice = `\n[输出超过 ${MAX_TERMINAL_OUTPUT_CHARS} 个字符，已终止进程]\n`
-          if (run.ready) send('terminal:stderr', { runId, chunk: notice })
-          else run.buffered.push({ channel: 'terminal:stderr', chunk: notice })
-          void terminateProcessTree(child)
+          stopAutomatically(`输出达到 ${MAX_TERMINAL_OUTPUT_CHARS} 个字符上限`)
         }
       }
 
-      child.stdout.on('data', (buf: Buffer) => sendOutput('terminal:stdout', buf.toString('utf-8')))
-      child.stderr.on('data', (buf: Buffer) => sendOutput('terminal:stderr', buf.toString('utf-8')))
+      child.stdout.setEncoding('utf8')
+      child.stderr.setEncoding('utf8')
+      child.stdout.on('data', (text: string) => sendOutput('terminal:stdout', text))
+      child.stderr.on('data', (text: string) => sendOutput('terminal:stderr', text))
 
       const timer = setTimeout(() => {
-        void terminateProcessTree(child)
-        const notice = `\n[超时 ${TIMEOUT_MS / 1000}s，已终止]\n`
-        if (run.ready) send('terminal:stderr', { runId, chunk: notice })
-        else run.buffered.push({ channel: 'terminal:stderr', chunk: notice })
+        stopAutomatically(`超时 ${TIMEOUT_MS / 1000}s`)
       }, TIMEOUT_MS)
 
-      child.on('close', (code) => {
+      const abandon = () => {
+        run.abandoned = true
+        run.buffered = []
+        clearTimeout(readyTimer)
+        if (run.closed) run.release()
+        else void stopRun(run).then((stopped) => {
+          if (!stopped) log.warn('Abandoned terminal still running', { runId })
+        })
+      }
+      const readyTimer = setTimeout(abandon, HANDSHAKE_TIMEOUT_MS)
+      sender.once('destroyed', abandon)
+      sender.once('render-process-gone', abandon)
+
+      child.once('close', (code) => {
+        run.closed = true
         clearTimeout(timer)
         const exitCode = code ?? -1
-        if (run.ready) {
-          runs.delete(runId)
-          send('terminal:exit', { runId, code: exitCode })
+        if (run.ready || run.abandoned) {
+          run.release()
+          if (!run.abandoned) send('terminal:exit', { runId, code: exitCode })
         } else run.bufferedExit = exitCode
       })
       child.on('error', (err) => {
-        clearTimeout(timer)
         log.warn('Terminal process failed', { runId, errorType: err.name, errorLength: err.message.length })
         sendOutput('terminal:stderr', '命令进程启动或执行失败。\n')
-        if (run.ready) {
-          runs.delete(runId)
-          send('terminal:exit', { runId, code: -1 })
-        } else run.bufferedExit = -1
       })
 
       log.info('terminal run', { runId, commandHash: hashForLog(command), commandLength: command.length, cwdHash: hashForLog(cwd), mode })
@@ -173,8 +241,9 @@ export function registerTerminalIPC(): void {
   ipcMain.handle('terminal:ready', (event, runId: unknown) => {
     if (typeof runId !== 'string' || runId.length === 0 || runId.length > 200) return { ok: false }
     const run = runs.get(runId)
-    if (!run || run.senderId !== event.sender.id) return { ok: false }
+    if (!run || run.abandoned || run.senderId !== event.sender.id) return { ok: false }
     run.ready = true
+    run.onReady()
     for (const output of run.buffered) {
       if (!event.sender.isDestroyed()) event.sender.send(output.channel, { runId, chunk: output.chunk })
     }
@@ -182,7 +251,7 @@ export function registerTerminalIPC(): void {
     if (run.bufferedExit !== undefined) {
       if (!event.sender.isDestroyed()) event.sender.send('terminal:exit', { runId, code: run.bufferedExit })
       run.bufferedExit = undefined
-      runs.delete(runId)
+      run.release()
     }
     return { ok: true }
   })
@@ -191,8 +260,7 @@ export function registerTerminalIPC(): void {
     if (typeof runId !== 'string' || runId.length === 0 || runId.length > 200) return { ok: false }
     const run = runs.get(runId)
     if (!run || run.senderId !== event.sender.id) return { ok: false }
-    await terminateProcessTree(run.child)
-    return { ok: true }
+    return { ok: await stopRun(run) }
   })
 
   log.info('Terminal IPC registered')

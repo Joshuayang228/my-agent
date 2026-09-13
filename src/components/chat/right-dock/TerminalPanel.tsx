@@ -19,6 +19,7 @@ interface RunAttempt {
 export function TerminalPanel({ projectPath }: TerminalPanelProps) {
   const [lines, setLines] = useState<string[]>([
     '命令控制台（非完整终端）。在当前工作区执行命令；受对话页审批/沙箱约束。',
+    '',
   ])
   const [cmd, setCmd] = useState('')
   const attemptRef = useRef<RunAttempt | null>(null)
@@ -35,12 +36,11 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
     if (!api) return
     const offOut = api.onStdout((ev) => {
       if (!attemptRef.current?.runId || ev.runId !== attemptRef.current.runId) return
-      setLines((prev) => [...prev, ...ev.chunk.replace(/\r\n/g, '\n').split('\n')])
+      setLines((prev) => appendTerminalOutput(prev, ev.chunk))
     })
     const offErr = api.onStderr((ev) => {
       if (!attemptRef.current?.runId || ev.runId !== attemptRef.current.runId) return
-      const parts = ev.chunk.replace(/\r\n/g, '\n').split('\n').map((l) => (l ? `[err] ${l}` : ''))
-      setLines((prev) => [...prev, ...parts])
+      setLines((prev) => appendTerminalOutput(prev, ev.chunk))
     })
     const offExit = api.onExit((ev) => {
       if (!attemptRef.current?.runId || ev.runId !== attemptRef.current.runId) return
@@ -87,7 +87,7 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
     if (!command || attemptRef.current) return
     const attempt: RunAttempt = { runId: null, cancelRequested: false, stopping: false, disposed: false }
     attemptRef.current = attempt
-    setLines((prev) => [...prev, `$ ${command}`])
+    setLines((prev) => [...prev, `$ ${command}`, ''])
     setCmd('')
     setBusy(true)
     try {
@@ -170,4 +170,10 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
       </div>
     </div>
   )
+}
+
+/** 输出块边界不代表换行；保留未完成行，避免 IPC 分片改变命令的真实输出。 */
+export function appendTerminalOutput(lines: string[], chunk: string): string[] {
+  const text = (lines[lines.length - 1] ?? '') + chunk
+  return [...lines.slice(0, -1), ...text.replace(/\r\n/g, '\n').split('\n')]
 }
