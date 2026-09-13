@@ -906,7 +906,7 @@ test.describe('My Agent UI', () => {
       api.session.createWorkspace = async () => { created++; return { id: 'workspace-session-' + created, messages: [], createdAt: Date.now(), roleId: 'lin', sessionKind: 'workspace' } }
       api.session.delete = async (id: string) => { deleted.push(id) }
       api.chat.onEvent = (listener: (event: any) => void) => { listeners.add(listener); return () => listeners.delete(listener) }
-      api.chat.send = async (id: string, message: any) => { sends++; (window as any).__sideChatMessage = { id, message } }
+      api.chat.send = async (id: string, message: any, context: any) => { sends++; (window as any).__sideChatMessage = { id, message, context } }
       api.chat.abort = async (id: string) => { (window as any).__sideChatAbort = id }
       ;(window as any).__sideChatHarness = { emit: (event: any) => listeners.forEach((listener) => listener(event)), deleted, active: () => 'workspace-session-' + created, sends: () => sends, listeners: () => listeners.size }
     })
@@ -923,6 +923,7 @@ test.describe('My Agent UI', () => {
     const initial = await action.boundingBox()
     await action.click()
     await expect(input).toBeEmpty()
+    await expect.poll(() => page.evaluate(() => (window as any).__sideChatMessage?.context)).toBeDefined()
     await expect(panel.getByRole('button', { name: '停止生成', exact: true })).toBeVisible()
     const activeSession = await page.evaluate(() => (window as any).__sideChatHarness.active())
     await page.evaluate(() => (window as any).__sideChatHarness.emit({ sessionId: 'wrong-session', type: 'text', content: '错误消息' }))
