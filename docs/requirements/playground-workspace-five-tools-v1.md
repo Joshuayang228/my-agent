@@ -67,7 +67,7 @@
 | 审阅 | ReviewPanel | 已回流 | 真实 before/after、并排/统一视图及错误/乱序有 Renderer 回归 |
 | 终端 | TerminalPanel | 已回流（Windows 命令控制台） | 保留权限、沙箱和工作区 cwd；真实 Electron 已验证拒绝后重试、大块输出、停止/关闭标签后的父子进程退出；Unit 验证终止失败/超时、关闭去重及无握手清理。Unix 仍需实机验证，完整 PTY 不在本合同范围 |
 | 浏览器 | BrowserPanel 受限只读查看器 | 已有后端但能力受限 | 主进程安全抓取已接入 URL/DNS 校验、手动拒绝重定向、超时/响应上限，并新增 requestId 归属与关闭时取消；Renderer 使用无脚本 sandbox + CSP。仍不支持脚本、登录、站内交互和任意导航 |
-| 侧边聊天 | SideChatPanel + `workspace` 会话 | 已回流，整体视觉待验收 | 创建/发送失败重试、旧草稿/确认/异步响应隔离有 Renderer 回归；真实 Electron 已验证流中关闭及切换主会话后的连接终止、存储删除和新侧聊发送；Runtime 初始化取消及 IPC 等待收尾/确认取消有 Unit |
+| 侧边聊天 | SideChatPanel + `workspace` 会话 | 已回流，正式视觉与交互已验收 | 创建/发送失败重试、旧草稿/确认/异步响应隔离有 Renderer 回归；真实 Electron 已验证流中关闭及切换主会话后的连接终止、存储删除和新侧聊发送；Runtime 初始化取消及 IPC 等待收尾/确认取消有 Unit；2026-09-13 全量 UI E2E 通过，覆盖正式入口、主题、窄宽、折叠、流式、停止、重试与父会话切换 |
 | 多实例工作区 Tab | ChatRightDock + Foundation TabStrip | 已回流 | 固定关闭槽、稳定实例 ID、后台关闭和切换/折叠/一级导航保持已有 Renderer 回归；Windows 终端关闭释放进程树已有 Electron 证据 |
 | Markdown／Diff 代码块 | MarkdownRenderer / Foundation DiffViewer / FileBrowser / ReviewPanel | 共享渲染已回流 | 原始代码、就近主题/Mermaid 与差异布局同源；空稿和缺稿回退有 Renderer 回归，其它基础控件仍需全量复用验收 |
 
