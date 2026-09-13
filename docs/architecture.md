@@ -241,7 +241,7 @@ Skill 资产由 `electron/main/skills/loader.ts` 读取和保存；Frontmatter �
 
 ## Playground 设计层与体验组合
 
-共享 UI 实现落在 src/components/foundation/，不依赖 Playground、fixture 或业务 IPC。TabStrip 是当前工作区回流的首个通用标签实现：UiControlsPanel、WorkspaceExperienceCandidate 与正式 ChatRightDock 直接 import；ui-component-registry 的 behavior.tabs 指向它。组件管理固定操作槽和键盘焦点，业务层保留实例状态、关闭选择及资源释放责任。DiffViewer / DiffViewControls 提供统一/并排内容、缺稿回退与固定尺寸模式按钮；基础故事、候选和 ReviewPanel 同源，数据仍由 session IPC 提供，不在基础层计算差异或读取文件。MarkdownRenderer/CodeBlock 通过 Foundation useSurfaceTheme 读取容器的语义变量与 color-scheme；Mermaid 的 initialize+render 由同一串行适配器管理，取消不发布结果、失败不堵队列、finally 清理测量节点，保持 strict 和资源上限。局部候选主题不进入生产主题注册表。现有其它基础故事尚不等于已提取的共享组件。
+共享 UI 实现落在 src/components/foundation/，不依赖 Playground、fixture 或业务 IPC。TabStrip 是当前工作区回流的首个通用标签实现：UiControlsPanel、WorkspaceExperienceCandidate 与正式 ChatRightDock 直接 import；ui-component-registry 的 behavior.tabs 指向它。组件管理固定操作槽和键盘焦点，业务层保留实例状态、关闭选择及资源释放责任。IconButton 提供 24/28/32px 固定图标操作槽与统一 label/tooltip/aria-label；工作区添加、审阅工具和候选工作区入口同源，hover/disabled 不改变几何。DiffViewer / DiffViewControls 提供统一/并排内容、缺稿回退与固定尺寸模式按钮；基础故事、候选和 ReviewPanel 同源，数据仍由 session IPC 提供，不在基础层计算差异或读取文件。MarkdownRenderer/CodeBlock 通过 Foundation useSurfaceTheme 读取容器的语义变量与 color-scheme；Mermaid 的 initialize+render 由同一串行适配器管理，取消不发布结果、失败不堵队列、finally 清理测量节点，保持 strict 和资源上限。局部候选主题不进入生产主题注册表。现有其它基础故事尚不等于已提取的共享组件。
 
 Playground 的导航工作域不等于产品架构层。产品设计只保留两层：
 

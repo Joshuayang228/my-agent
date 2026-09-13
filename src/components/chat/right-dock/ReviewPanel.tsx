@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Eraser, FileCode2, RefreshCw } from 'lucide-react'
 import { ResizeHandle } from '../../shell/ResizeHandle'
 import { DiffViewer, DiffViewControls, type DiffViewMode } from '../../foundation/DiffViewer'
+import { IconButton } from '../../foundation/IconButton'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from '../../../shared/panel-layout'
 import type { WorkspaceChatFocus } from '../../../shared/types'
 
@@ -121,12 +122,12 @@ export function ReviewPanel({ sessionId, onContextChange }: ReviewPanelProps) {
         <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
           本会话改动 {items.length}
         </span>
-        <button type="button" className="ml-auto rounded p-0.5" style={{ color: 'var(--text-muted)' }} title="刷新" onClick={() => { void reload() }}>
+        <IconButton label="刷新" size={24} className="ml-auto" style={{ color: 'var(--text-muted)' }} onClick={() => { void reload() }}>
           <RefreshCw size={12} />
-        </button>
-        <button type="button" className="rounded p-0.5" style={{ color: 'var(--text-muted)' }} title="清空列表" onClick={() => { void clearAll() }}>
+        </IconButton>
+        <IconButton label="清空列表" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => { void clearAll() }}>
           <Eraser size={12} />
-        </button>
+        </IconButton>
         <DiffViewControls mode={viewMode} canSplit={beforeText != null && afterText != null} onChange={setViewMode} />
       </div>
 

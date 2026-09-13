@@ -22,6 +22,7 @@
 ## 二、测试分层
 
 差异复用门禁：foundation-story-registry.test.ts 使用 TypeScript 符号检查三层消费者渲染共享 DiffViewer / DiffViewControls，并验证 DiffViewer 渲染真实 CodeBlock；未使用 import、局部同名/遮蔽和别名负例一起保留。Renderer 回归覆盖空 before/after、并排后切无旧稿回退、原文复制/溢出，以及基础长文件、键盘切换和固定尺寸按钮的深浅宽窄截图。基础层不计算 diff；真实 before/after 安全读取仍由主进程既有测试验证。
+IconButton 复用门禁检查正式右坞、正式审阅和 Playground 工作区候选的真实 Foundation 引用与渲染调用；UI 回归覆盖添加菜单、刷新/清空及开关入口，固定尺寸在 hover/disabled 状态保持不变。业务文字按钮和菜单项不纳入该门禁。
 
 共享 Markdown 的 UI 测试由 playwright.config.ts 的 UI 项目显式匹配 markdown-theme.test.ts：覆盖 Foundation 实际故事、四个局部主题同屏、根主题交叉、1166/600px、真实 WorkspaceFilesPanel 预览调用、语法恢复、快速更新与图内配置不能覆盖安全主题。Mermaid adapter Unit 覆盖配置/绘制串行、失败释放队列、取消丢弃结果和测量节点清理。该 Renderer 夹具不替代真实文件 IPC 安全测试，也不代表其它 Foundation 控件已完成复用。
 

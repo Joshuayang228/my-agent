@@ -5,6 +5,7 @@ import { WorkspaceFilesPanel } from '../chat/right-dock/WorkspaceFilesPanel'
 import { MarkdownRenderer } from '../MarkdownRenderer'
 import { DiffViewer, DiffViewControls, type DiffViewMode } from '../foundation/DiffViewer'
 import { TabStrip } from '../foundation/TabStrip'
+import { IconButton } from '../foundation/IconButton'
 import teaImage from '../../assets/playground/moment-tea-by-window.jpg'
 
 const VIEWS = [
@@ -70,7 +71,7 @@ export function WorkspaceDock({
   return <div className="flex h-full min-h-0 min-w-0 flex-col" data-testid="workspace-dock-candidate">
     <div className="flex h-full min-h-0 min-w-0 overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
       <div className={showChat && (narrow || !open) ? 'flex min-w-0 flex-1 flex-col' : 'hidden'} data-testid="workspace-main-chat">
-        <div className="flex items-center justify-between gap-2 border-b p-3 text-[12px]" style={{ borderColor: 'var(--border-subtle)' }}><span>Chat</span><button type="button" title={open ? '收起工作区' : '打开工作区'} aria-label={open ? '收起工作区' : '打开工作区'} aria-expanded={open} onClick={() => { if (open && onClose && tabs.length <= 1) onClose(); else setOpen(!open) }} className="rounded p-1"><PanelRight size={16} /></button></div>
+        <div className="flex items-center justify-between gap-2 border-b p-3 text-[12px]" style={{ borderColor: 'var(--border-subtle)' }}><span>Chat</span><IconButton label={open ? '收起工作区' : '打开工作区'} size={24} aria-expanded={open} onClick={() => { if (open && onClose && tabs.length <= 1) onClose(); else setOpen(!open) }}><PanelRight size={16} /></IconButton></div>
         <WorkspaceChatShell />
       </div>
       <div className={open ? `flex min-w-0 flex-col ${showChat ? 'border-l' : ''}` : 'hidden'} style={{ width: showChat && narrow ? 'min(380px, 65%)' : '100%', borderColor: 'var(--border-subtle)' }} data-testid="workspace-tool-panel">
@@ -79,7 +80,7 @@ export function WorkspaceDock({
             items={tabs.map((tab) => { const meta = VIEWS.find((item) => item.id === tab.view)!; const Icon = meta.icon; return { id: String(tab.id), label: meta.label + ' ' + tab.ordinal, icon: <Icon size={14} /> } })}
             onSelect={(id) => setActive(Number(id))}
             onClose={(id) => { if (tabs.length <= 1 && onClose) onClose(); else closeTab(Number(id)) }} />
-          <button ref={addButton} type="button" aria-label="添加工作区内容" title="添加工作区内容" aria-haspopup="menu" aria-expanded={menu} className="shrink-0 rounded p-1" onClick={() => setMenu(!menu)}><Plus size={16} /></button>
+          <IconButton ref={addButton} label="添加工作区内容" size={24} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)}><Plus size={16} /></IconButton>
           {menu && <div role="menu" aria-label="添加工作区内容" className="absolute right-2 top-full z-20 mt-1 w-40 rounded-md border p-1 shadow-lg" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} onKeyDown={(event) => { const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=menuitem]')); const index = items.indexOf(document.activeElement as HTMLButtonElement); if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); items[(index + (event.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length]?.focus() } }}>
             {VIEWS.map(({ id, label, icon: Icon }, index) => <button key={id} autoFocus={index === 0} type="button" role="menuitem" className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-secondary)] focus-visible:bg-[var(--bg-secondary)]" onClick={() => addTab(id)}><Icon size={14} />{label}</button>)}
           </div>}
@@ -134,7 +135,7 @@ function BrowserSample({ scene }: { scene: string }) {
   return <>
     <form className="flex items-center gap-2 border-b p-2" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); navigate() }}>
       <input aria-label="浏览器地址" aria-invalid={Boolean(error)} value={draft} maxLength={2048} spellCheck={false} autoComplete="off" className="h-7 min-w-0 flex-1 rounded border-0 bg-transparent px-2 text-center text-[11px] focus:bg-[var(--bg-secondary)]" onFocus={(event) => event.target.select()} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); setDraft(address); setError(''); event.currentTarget.blur() } }} />
-      <button type="button" aria-label="刷新页面" title="刷新页面" className="flex h-6 w-6 shrink-0 items-center justify-center rounded" onClick={navigate}><RefreshCw size={14} /></button>
+      <IconButton label="刷新页面" size={24} onClick={navigate}><RefreshCw size={14} /></IconButton>
     </form>
     {error && <p role="alert" className="px-3 py-2 text-[11px]" style={{ color: 'var(--danger)' }}>{error}</p>}
     {state === '无样张' ? <p className="m-auto p-4 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>此地址没有本地页面样张。</p> : state === '加载中' ? <div className="m-auto flex items-center gap-2 text-[12px]" role="status"><LoaderCircle size={16} className="animate-spin" />正在加载页面</div> : state === '加载失败' ? <div className="m-auto space-y-3 text-center text-[12px]"><p>无法打开此页面</p><button type="button" onClick={() => setState('网页')} className="settings-option px-3 py-1.5">重新加载</button></div> : <iframe key={revision} title="浏览器网页样张" sandbox="" referrerPolicy="no-referrer" srcDoc={browserDocument} className="mx-auto min-h-0 w-full flex-1 border-0" style={{ maxWidth: scene === '窄屏网页' ? 320 : '100%' }} />}

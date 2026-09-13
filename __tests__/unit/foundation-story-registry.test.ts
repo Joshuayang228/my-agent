@@ -70,6 +70,15 @@ describe('Foundation story registry', () => {
     expect(functions.map((node) => rendersShared(node, 'DiffViewer', diffSource))).toEqual([false, false, false, false, true])
   })
 
+  it('IconButton 的真实生产调用指向 Foundation，避免工作区重新声明操作槽', () => {
+    for (const file of ['src/components/chat/right-dock/ChatRightDock.tsx', 'src/components/chat/right-dock/ReviewPanel.tsx', 'src/components/playground/WorkspaceExperienceCandidate.tsx']) {
+      const source = readFileSync(file, 'utf8')
+      expect(source).toContain('IconButton')
+      expect(source).toContain('foundation/IconButton')
+      expect(source).toMatch(/<IconButton[\s\S]*label=/)
+    }
+  })
+
   it('keeps story keys, views, assets and groups in one consistent relation', () => {
     const keys = FOUNDATION_STORIES.map((story) => story.key)
     const viewIds = FOUNDATION_STORIES.map((story) => story.viewId)

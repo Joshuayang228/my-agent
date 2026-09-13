@@ -6,6 +6,7 @@ import { ReviewPanel } from './ReviewPanel'
 import { TerminalPanel } from './TerminalPanel'
 import { WorkspaceFilesPanel } from './WorkspaceFilesPanel'
 import { TabStrip } from '../../foundation/TabStrip'
+import { IconButton } from '../../foundation/IconButton'
 import { BrowserPanel } from './BrowserPanel'
 import { SideChatPanel } from './SideChatPanel'
 
@@ -63,9 +64,8 @@ export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, 
       <TabStrip label="已打开的工作区" activeId={activeTabId} itemTestId="right-dock-tab-item"
         items={visibleTabs.map(({ instance, meta, label }) => { const Icon = meta.icon; return { id: instance.instanceId, label, icon: <Icon size={14} />, panelId: 'dock-panel-' + instance.instanceId, testId: 'right-dock-tab-' + instance.kind } })}
         onSelect={setActiveTabId} onClose={closeTab} />
-      <button ref={addButton} type="button" className="flex h-7 w-7 shrink-0 items-center justify-center rounded"
-        style={{ color: 'var(--text-secondary)' }} title="添加工作区内容" aria-label="添加工作区内容" aria-haspopup="menu" aria-expanded={addMenuOpen}
-        onClick={() => setAddMenuOpen((current) => !current)} data-testid="right-dock-add-tab"><Plus size={16} /></button>
+      <IconButton ref={addButton} label="添加工作区内容" size={28} aria-haspopup="menu" aria-expanded={addMenuOpen}
+        style={{ color: 'var(--text-secondary)' }} onClick={() => setAddMenuOpen((current) => !current)} data-testid="right-dock-add-tab"><Plus size={16} /></IconButton>
       {addMenuOpen && <div className="absolute right-2 top-full z-30 mt-1 w-40 rounded-md border p-1 shadow-lg"
         style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} role="menu" aria-label="添加工作区内容"
         onKeyDown={(event) => {
