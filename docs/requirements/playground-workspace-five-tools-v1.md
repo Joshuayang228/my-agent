@@ -50,6 +50,8 @@
 旧任务场景及对应断言删除属于 P0 明确授权。当时正式功能不回流；2026-09-13 用户已明确批准 P1，浏览器与侧边聊天真实接入纳入下文连续施工范围，不再等待回流许可。文档更新 module/progress/changelog/quality；类型、单测、构建、资产与文档门禁通过后提交推送。
 ## P1 正式回流范围
 
+> 当前阶段：正式工作区界面统一已完成并有 Foundation / UI E2E 门禁；真实后端能力继续按下方边界推进，合同仍保持进行中。
+
 用户已明确授权启动目标模式，回流分为两个连续且各自可验收的阶段：
 
 1. **正式界面统一**：将已确认的工作区布局、五功能入口、Tab 视觉、分隔线、PanelRight 开关、主题语义、窄宽约束、长内容滚动和无障碍行为落实到正式 ChatRightDock；不把 Playground fixture、场景切换器或来源说明带入正式页面。
@@ -87,6 +89,8 @@
 补充门禁：`__tests__/unit/workspace-backend-contract.test.ts` 静态锁定五个正式面板分别引用真实 project/session/terminal/browser/chat 入口，并拒绝直接依赖 Playground fixture；它只保证调用链没有退化为纯占位，不替代真实 Electron、权限、进程和网络安全测试。
 
 ### P1 技术路径与交付边界
+
+界面统一阶段收口证据：`TabStrip`、`IconButton`、`TextField`、`ActionButton`、`SegmentedControl`、`WorkspaceToolMenu`、`CodeBlock`、`DiffViewer` 均有正式调用；正式五功能 UI E2E、Foundation 门禁、TypeScript、build、资产和文档检查通过。
 
 - 回流来源：本合同五功能候选、WorkspaceExperienceCandidate 与 Foundation 标签故事。用户授权：2026-09-13「开始回流工作区」「先把整个界面统一，然后再把后端的各项能力全部补齐」。P1 未完成，不提前冻结合同。
 - 当前落点：App 的项目工作区按钮 → ChatRightDock → FileBrowser／ReviewPanel／TerminalPanel。现有真实数据来自 project、session file changes、terminal IPC；本批折叠不改其接口，只保留已挂载子树。
