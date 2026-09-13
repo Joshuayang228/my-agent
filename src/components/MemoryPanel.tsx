@@ -370,18 +370,31 @@ export function MemoryPanel({
                     <div className={isCompactPreview ? 'grid grid-cols-[minmax(0,1fr)_5.5rem] items-start gap-3' : undefined}>
                     {isEditing ? (
                       isCompactPreview ? (
-                        <input
-                          value={editContent}
-                          onChange={e => setEditContent(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') handleSaveEdit(mem.id)
-                            if (e.key === 'Escape') setEditing(null)
-                          }}
-                          autoFocus
-                          readOnly={!canEdit}
-                          className="theme-input h-8 min-w-0 w-full rounded-[var(--radius-md)] border px-3 text-[13px] font-medium leading-6 outline-none"
-                          style={{ color: 'var(--text-primary)' }}
-                        />
+                        editContent.length > 80 ? (
+                          <textarea
+                            value={editContent}
+                            onChange={e => setEditContent(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Escape') setEditing(null) }}
+                            autoFocus
+                            readOnly={!canEdit}
+                            rows={Math.min(10, Math.max(4, Math.ceil(editContent.length / 45)))}
+                            className="theme-input min-h-24 min-w-0 w-full resize-y rounded-[var(--radius-md)] border px-3 py-2 text-[13px] font-medium leading-6 outline-none"
+                            style={{ color: 'var(--text-primary)' }}
+                          />
+                        ) : (
+                          <input
+                            value={editContent}
+                            onChange={e => setEditContent(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') handleSaveEdit(mem.id)
+                              if (e.key === 'Escape') setEditing(null)
+                            }}
+                            autoFocus
+                            readOnly={!canEdit}
+                            className="theme-input h-8 min-w-0 w-full rounded-[var(--radius-md)] border px-3 text-[13px] font-medium leading-6 outline-none"
+                            style={{ color: 'var(--text-primary)' }}
+                          />
+                        )
                       ) : (
                       <div className="flex gap-2">
                         <input

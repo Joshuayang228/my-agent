@@ -55,7 +55,7 @@ for (const theme of ['light', 'dark']) {
       await expect(actions).toHaveCSS('opacity', '1')
       await expect(date).toHaveCSS('opacity', '0')
       await memory.getByRole('button', { name: /^编辑记忆 / }).first().click()
-      await expect(memory.locator('input')).toBeVisible()
+      await expect(memory.locator('input, textarea')).toBeVisible()
       await expect(date).toHaveCSS('opacity', '0')
       await expect(controls.getByRole('button', { name: /^保存记忆 / })).toBeVisible()
       await page.screenshot({ path: testInfo.outputPath('memory-edit.png'), animations: 'disabled' })
@@ -75,6 +75,10 @@ for (const theme of ['light', 'dark']) {
       await expect(actions).toHaveCSS('opacity', '1')
       expect(await geometry()).toEqual(longLayout)
       await page.screenshot({ path: testInfo.outputPath('memory-long-hover.png'), animations: 'disabled' })
+      await item.getByRole('button', { name: /^编辑记忆 / }).click()
+      await expect(item.locator('textarea')).toBeVisible()
+      expect(await item.locator('textarea').evaluate((node) => node.getBoundingClientRect().height)).toBeGreaterThan(100)
+      await item.getByRole('button', { name: /^取消编辑 / }).click()
       await controls.getByRole('button', { name: /^删除记忆 / }).click()
       await expect(controls.getByRole('button', { name: /^确认删除记忆 / })).toBeVisible()
       expect(await geometry()).toEqual(longLayout)
@@ -1797,5 +1801,4 @@ test.describe('My Agent UI', () => {
     await expect(settingsPanel).not.toBeVisible()
   })
 })
-
 
