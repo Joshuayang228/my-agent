@@ -1,5 +1,6 @@
 /** 正式 Chat 工作区。文件内部预览不再作为顶层工具；Debug 保持独立。 */
 import { useRef, useState } from 'react'
+import type { WorkspaceChatFocus } from '../../../shared/types'
 import { FileText, GitCompare, Globe, MessageCircle, Plus, TerminalSquare } from 'lucide-react'
 import { ReviewPanel } from './ReviewPanel'
 import { TerminalPanel } from './TerminalPanel'
@@ -34,6 +35,7 @@ export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, 
   const [activeTabId, setActiveTabId] = useState('files-1')
   const [openTabs, setOpenTabs] = useState<RightDockTabInstance[]>([{ instanceId: 'files-1', kind: 'files', ordinal: 1 }])
   const [addMenuOpen, setAddMenuOpen] = useState(false)
+  const [workspaceFocus, setWorkspaceFocus] = useState<WorkspaceChatFocus | undefined>()
   const visibleTabs = openTabs.map((instance) => {
     const meta = TABS.find((item) => item.id === instance.kind)!
     return { instance, meta, label: instance.ordinal > 1 ? meta.label + ' ' + instance.ordinal : meta.label }
@@ -79,11 +81,11 @@ export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, 
     {/* 实例在后台继续持有状态与事件订阅；关闭标签才卸载，不能把选中态当作资源生命周期。 */}
     {visibleTabs.map(({ instance, label }) => <div key={instance.instanceId} id={'dock-panel-' + instance.instanceId} role="tabpanel" aria-label={label}
       hidden={activeTabId !== instance.instanceId} className={activeTabId === instance.instanceId ? 'flex min-h-0 min-w-0 flex-1 flex-col' : 'hidden'}>
-      {instance.kind === 'files' && <WorkspaceFilesPanel projectPath={projectPath} />}
-      {instance.kind === 'review' && <ReviewPanel key={sessionId} sessionId={sessionId} />}
+      {instance.kind === 'files' && <WorkspaceFilesPanel projectPath={projectPath} onContextChange={setWorkspaceFocus} />}
+      {instance.kind === 'review' && <ReviewPanel key={sessionId} sessionId={sessionId} onContextChange={setWorkspaceFocus} />}
       {instance.kind === 'terminal' && <TerminalPanel projectPath={projectPath} />}
       {instance.kind === 'browser' && <BrowserPanel />}
-      {instance.kind === 'chat' && <SideChatPanel parentSessionId={sessionId} projectPath={projectPath} />}
+      {instance.kind === 'chat' && <SideChatPanel parentSessionId={sessionId} projectPath={projectPath} workspaceFocus={workspaceFocus} />}
     </div>)}
   </div>
 }

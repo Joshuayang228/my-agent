@@ -1,10 +1,12 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import type { WorkspaceChatFocus } from '../../../shared/types'
 import { FileBrowser, readFilePreview, type FileBrowserPreviewData, type FileBrowserPreviewFile } from '../../FileBrowser'
 import { TabStrip } from '../../foundation/TabStrip'
 
 interface WorkspaceFilesPanelProps {
   projectPath: string | null
   previewData?: FileBrowserPreviewData
+  onContextChange?: (focus: WorkspaceChatFocus) => void
 }
 
 /** 项目切换建立新的文件工作区，旧请求和旧预览不能跨项目继续显示。 */
@@ -17,7 +19,7 @@ export function WorkspaceFilesPanel(props: WorkspaceFilesPanelProps) {
  * 设计意图：组合已有文件树／预览与 Foundation 标签；每路径独立读取，不维护候选专用渲染器。
  * 关键约束：读取完成只更新其文件，不能抢当前焦点；关闭或重开必须使旧请求失效。
  */
-function FilesWorkspace({ projectPath, previewData }: WorkspaceFilesPanelProps) {
+function FilesWorkspace({ projectPath, previewData, onContextChange }: WorkspaceFilesPanelProps) {
   const initial = previewData?.initialPath ? previewData.files[previewData.initialPath] : undefined
   const [files, setFiles] = useState<FileBrowserPreviewFile[]>(initial ? [initial] : [])
   const [activePath, setActivePath] = useState<string | null>(initial?.path ?? null)
@@ -28,6 +30,7 @@ function FilesWorkspace({ projectPath, previewData }: WorkspaceFilesPanelProps) 
 
   const openFile = (path: string, retry = false) => {
     setActivePath(path)
+    onContextChange?.({ kind: 'file', path, content: '正在读取文件内容。' })
     const existing = files.find((file) => file.path === path)
     if (existing && existing.kind !== 'error' && !retry) return
     const request = ++sequence.current
@@ -39,6 +42,7 @@ function FilesWorkspace({ projectPath, previewData }: WorkspaceFilesPanelProps) 
       if (requests.current.get(path) !== request) return
       requests.current.delete(path)
       setFiles((current) => current.map((file) => file.path === path ? result : file))
+      if (result.kind === 'text') onContextChange?.({ kind: 'file', path, content: result.content.slice(0, 12_000) })
     })
   }
 

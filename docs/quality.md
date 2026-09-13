@@ -29,7 +29,7 @@
 
 正式侧边聊天 Renderer/Electron E2E 必须覆盖 workspace 会话不进入主列表、发送时传递父会话/项目上下文、流式文本、错误、停止、错误 session 事件隔离、工具确认归属和卸载删除；主进程测试必须覆盖 `session_kind=workspace` 的创建、读取与列表排除、确认事件携带正确 sessionId，以及 workspace 不触发长期记忆副作用。不得用主会话复用证明侧边聊天归属正确。
 
-侧边聊天上下文回归补充：无活动主会话时父会话 ID允许缺省，但 Renderer 仍必须传递 workspace 上下文对象。
+侧边聊天上下文回归补充：无活动主会话时父会话 ID允许缺省，但 Renderer 仍必须传递 workspace 上下文对象；文件或审阅焦点只允许作为有长度上限的本轮参考内容传递，不进入 workspace 历史或长期记忆。
 
 记忆 Playground 日期同行布局由现有记忆清单背景 E2E 覆盖；正式记忆页分支保持原有日期位置。
 

@@ -307,7 +307,7 @@ my-agent/
 
 `session_kind=workspace` 仍复用人格与工具 Runtime，但跳过长期画像、向量召回、画像提取、标题、向量索引和反思任务；临时工作区对话不得改变主伙伴记忆。
 
-侧边聊天可通过 `WorkspaceChatContext` 传入父会话 ID和项目路径；Runtime 只读取父会话最近有限消息作为本轮上下文，不复制到 workspace 历史，也不把 Renderer 提供的路径当作工具工作目录或权限依据。
+侧边聊天可通过 `WorkspaceChatContext` 传入父会话 ID、项目路径和当前文件／审阅焦点；主进程限制路径与正文长度，Runtime 只读取父会话最近有限消息及焦点内容作为本轮上下文，不复制到 workspace 历史，也不把 Renderer 提供的路径当作工具工作目录或权限依据。
 ```
 
 ### 工具调用链路

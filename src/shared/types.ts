@@ -26,9 +26,16 @@ export interface ChatMessage {
   memoryCitations?: MemoryCitation[]
 }
 
+export interface WorkspaceChatFocus {
+  kind: 'file' | 'review'
+  path: string
+  content: string
+}
+
 export interface WorkspaceChatContext {
   parentSessionId?: string
   projectPath?: string
+  focus?: WorkspaceChatFocus
 }
 
 /** 本轮向量召回命中（注入 Prompt 的那批，已去 mem- 镜像） */

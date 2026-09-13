@@ -1,15 +1,16 @@
 import { ArrowUp, LoaderCircle, MessageCircle, Square } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { AgentStreamEvent, ChatMessage } from '../../../shared/types'
+import type { AgentStreamEvent, ChatMessage, WorkspaceChatFocus } from '../../../shared/types'
 import { MarkdownRenderer } from '../../MarkdownRenderer'
 import { PermissionConfirmCard } from '../PermissionConfirmCard'
 
 interface SideChatPanelProps {
   parentSessionId: string | null
   projectPath: string | null
+  workspaceFocus?: WorkspaceChatFocus
 }
 
-export function SideChatPanel({ parentSessionId, projectPath }: SideChatPanelProps) {
+export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: SideChatPanelProps) {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -63,7 +64,7 @@ export function SideChatPanel({ parentSessionId, projectPath }: SideChatPanelPro
     const message: ChatMessage = { id: crypto.randomUUID(), role: 'user', content, timestamp: Date.now() }
     setMessages((current) => [...current, message])
     setInput(''); draftRef.current = ''; setError(null); setSending(true)
-    try { await window.electronAPI.chat.send(id, message, { parentSessionId: parentSessionId || undefined, projectPath: projectPath || undefined }) }
+    try { await window.electronAPI.chat.send(id, message, { parentSessionId: parentSessionId || undefined, projectPath: projectPath || undefined, focus: workspaceFocus }) }
     catch { setError('消息发送失败，请重试'); setSending(false) }
   }
 

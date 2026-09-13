@@ -28,7 +28,13 @@ function readWorkspaceChatContext(value: unknown): WorkspaceChatContext | undefi
   const context: WorkspaceChatContext = {}
   if (typeof raw.parentSessionId === 'string' && raw.parentSessionId.length > 0 && raw.parentSessionId.length <= MAX_CHAT_ID_LENGTH) context.parentSessionId = raw.parentSessionId
   if (typeof raw.projectPath === 'string' && raw.projectPath.length > 0 && raw.projectPath.length <= 2_000) context.projectPath = raw.projectPath
-  return context.parentSessionId || context.projectPath ? context : undefined
+  if (raw.focus && typeof raw.focus === 'object') {
+    const focus = raw.focus as Record<string, unknown>
+    if ((focus.kind === 'file' || focus.kind === 'review') && typeof focus.path === 'string' && focus.path.length > 0 && focus.path.length <= 2_000 && typeof focus.content === 'string' && focus.content.length <= 12_000) {
+      context.focus = { kind: focus.kind, path: focus.path, content: focus.content }
+    }
+  }
+  return context.parentSessionId || context.projectPath || context.focus ? context : undefined
 }
 
 export function registerChatIPC(toolRegistry: ToolRegistry): void {

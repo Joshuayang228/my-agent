@@ -7,6 +7,7 @@ import { Columns2, Eraser, FileCode2, RefreshCw, Rows3 } from 'lucide-react'
 import { ResizeHandle } from '../../shell/ResizeHandle'
 import { CodeBlock } from '../../MarkdownRenderer'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from '../../../shared/panel-layout'
+import type { WorkspaceChatFocus } from '../../../shared/types'
 
 type ChangeItem = {
   path: string
@@ -18,9 +19,10 @@ type ChangeItem = {
 
 interface ReviewPanelProps {
   sessionId: string | null
+  onContextChange?: (focus: WorkspaceChatFocus) => void
 }
 
-export function ReviewPanel({ sessionId }: ReviewPanelProps) {
+export function ReviewPanel({ sessionId, onContextChange }: ReviewPanelProps) {
   const [items, setItems] = useState<ChangeItem[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [diffText, setDiffText] = useState<string | null>(null)
@@ -82,6 +84,7 @@ export function ReviewPanel({ sessionId }: ReviewPanelProps) {
         setDiffText(r.diff || r.after || '')
         setBeforeText(r.before ?? null)
         setAfterText(r.after ?? null)
+        onContextChange?.({ kind: 'review', path: filePath, content: (r.diff || r.after || '').slice(0, 12_000) })
         setLanguage(r.diff ? 'diff' : 'text')
       }
     } catch {
