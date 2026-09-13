@@ -344,14 +344,24 @@ export function MemoryPanel({
                             : undefined
                     }
                   >
-                    <div className={`${isSensitive || !isCompactPreview ? 'mb-1.5 flex items-center gap-1' : 'hidden'}`}>
+                    {isCompactPreview && isSensitive && (
+                      <div
+                        className="mb-2 flex items-start gap-2 text-[11px] leading-4"
+                        data-testid={`memory-sensitive-warning-${mem.id}`}
+                        style={{ color: 'var(--companion-accent-warm, #d4a574)' }}
+                      >
+                        <ShieldAlert size={13} className="mt-0.5 shrink-0" />
+                        <span><strong>敏感信息</strong>：涉及{labelSensitiveKinds(sensitiveKinds)}隐私，请谨慎保留。</span>
+                      </div>
+                    )}
+                    <div className={!isCompactPreview ? 'mb-1.5 flex items-center gap-1' : 'hidden'}>
                       <div className="flex flex-wrap items-center gap-1">
                         {!isCompactPreview && (
                           <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${colors.badge}`}>
                             {cat?.icon} {cat?.label}
                           </span>
                         )}
-                        {isSensitive && (
+                        {!isCompactPreview && isSensitive && (
                           <span
                             className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium"
                             title="启发式敏感标记，可删除或改正"
@@ -453,7 +463,7 @@ export function MemoryPanel({
                     </div>}
                     </div>
 
-                    {isSensitive && !isEditing && (
+                    {!isCompactPreview && isSensitive && !isEditing && (
                       <div
                         className="mt-3 flex items-start gap-2 rounded-md border px-2.5 py-2 text-[10px] leading-4"
                         data-testid={`memory-sensitive-warning-${mem.id}`}
