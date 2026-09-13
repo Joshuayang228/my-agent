@@ -48,7 +48,7 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
 const { startSummonSession, getActiveRoleId } = await import(
   '../../electron/main/companion/orchestrator'
 )
-const { getSession } = await import('../../electron/main/storage/session-store')
+const { createSession, getSession } = await import('../../electron/main/storage/session-store')
 
 describe('companion summon session', () => {
   beforeEach(() => {
@@ -106,6 +106,12 @@ describe('companion summon session', () => {
     if (!result.ok) return
     expect(result.sessionKind).toBe('main')
     expect(result.roleId).toBe('lin')
+  })
+
+  it('创建 workspace 会话时保留 workspace 类型', async () => {
+    const result = await createSession(undefined, { title: '工作区对话', sessionKind: 'workspace' })
+    expect(result.sessionKind).toBe('workspace')
+    expect((await getSession(result.id))?.sessionKind).toBe('workspace')
   })
 
   it('忙时婉拒（可 force）', async () => {

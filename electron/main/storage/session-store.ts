@@ -35,7 +35,9 @@ export async function createSession(
   const id = randomUUID()
   const now = Date.now()
   const resolvedRoleId = roleId || (await getSetting('activeRoleId'))
-  const sessionKind: SessionKind = opts?.sessionKind === 'summon' ? 'summon' : 'main'
+  const sessionKind: SessionKind = opts?.sessionKind === 'summon' || opts?.sessionKind === 'workspace'
+    ? opts.sessionKind
+    : 'main'
   const title = (opts?.title?.trim() || '新对话')
 
   db.run(
