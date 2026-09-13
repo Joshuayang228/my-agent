@@ -23,6 +23,8 @@
 
 真实 Electron 引导 E2E 必须使用当前正式设置入口和可见控件契约，覆盖连接测试自动保存、返回聊天以及 Debug 入口；测试不得依赖已移除的旧按钮或旧 placeholder。
 
+真实 Electron workspace 会话 E2E 已覆盖通过 preload 创建、确认 sessionKind=workspace 并删除清理；这只证明会话 IPC 契约，不能替代 ChatRightDock 子面板的真实进程级生命周期验证。
+
 正式工作区生命周期的 Renderer E2E 必须覆盖：后台终端独立输出、切换标签／折叠／设置与 Playground 导航保持 DOM 实例，关闭最后标签后重开、切换与取消项目释放订阅及命令；pending 关闭后的迟到响应补发终止、pending 取消、启动拒绝和业务拒绝恢复、终止拒绝／失败重试，以及旧终止响应不改变新运行。运行／终止／取消等待使用同尺寸操作槽。测试可替换 Electron IO，但不能据此声称真实进程树清理、早到事件或完整 PTY 已验证；终端主进程单测／集成测试还必须覆盖 run 发起窗口归属、Windows 进程树终止、退出事件前不提前删除运行记录和 `terminal:ready` 握手后的早到输出冲刷。
 
 正式审阅 Renderer E2E 必须覆盖真实 `before/after` 驱动的 unified／并排切换、无旧稿时禁用并排、列表与 diff 读取失败的可见重试，以及快速选择文件时过期 diff 不得覆盖当前文件。主进程测试还需覆盖旧稿与新稿长度上限；Renderer 替身不能代替文件读取安全边界验证。

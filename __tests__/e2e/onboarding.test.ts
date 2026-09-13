@@ -195,3 +195,13 @@ test('Debug 质量 Eval 可保存并重新载入真人格人工审阅', async ()
   await page.locator('[data-testid="dev-panel"] button[title="刷新当前调试分区"]').click()
   await expect(page.locator('[data-testid="persona-human-review"] textarea')).toHaveValue('先承接疲惫，语气自然。')
 })
+
+test('真实 Electron workspace 会话创建与清理', async () => {
+  const session = await page.evaluate(async () => {
+    const created = await window.electronAPI.session.createWorkspace()
+    await window.electronAPI.session.delete(created.id)
+    return created
+  })
+
+  expect(session.sessionKind).toBe('workspace')
+})
