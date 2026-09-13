@@ -84,6 +84,8 @@
 | 浏览器登录与脚本交互 | 当前主进程只返回受限 HTML/文本，Renderer 明确无脚本 | 未实现且明确排除 | 不在本合同内，不得从 Playground 浏览器样张回流 |
 | Unix 进程树实证 | 当前真实 Electron 证据为 Windows | 未完成验证 | 在 Unix 环境补实机验证，不用 Renderer 替身宣称跨平台完成 |
 
+补充门禁：`__tests__/unit/workspace-backend-contract.test.ts` 静态锁定五个正式面板分别引用真实 project/session/terminal/browser/chat 入口，并拒绝直接依赖 Playground fixture；它只保证调用链没有退化为纯占位，不替代真实 Electron、权限、进程和网络安全测试。
+
 ### P1 技术路径与交付边界
 
 - 回流来源：本合同五功能候选、WorkspaceExperienceCandidate 与 Foundation 标签故事。用户授权：2026-09-13「开始回流工作区」「先把整个界面统一，然后再把后端的各项能力全部补齐」。P1 未完成，不提前冻结合同。
