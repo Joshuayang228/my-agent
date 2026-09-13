@@ -855,6 +855,46 @@ test.describe('My Agent UI', () => {
     await expect(review.getByRole('button', { name: '统一差异', exact: true })).toBeEnabled()
   })
 
+  test('正式浏览器工作区加载失败可重试并保持地址栏布局', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      let calls = 0
+      api.browser = { load: async (url: string) => {
+        calls++
+        if (calls === 1) return { ok: false, error: '网页加载失败，请检查地址或网络连接' }
+        return { ok: true, url, contentType: 'text/html', body: '<!doctype html><html><body><h1>安全文档</h1><p>只读网页内容</p><script>window.__shouldNotRun = true</script></body></html>' }
+      } }
+      ;(window as any).__browserCalls = () => calls
+    })
+    await page.goto('/')
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '浏览器', exact: true }).click()
+    const browser = dock.getByTestId('workspace-browser-panel')
+    const address = browser.getByRole('textbox', { name: '浏览器地址' })
+    const refresh = browser.getByRole('button', { name: '刷新页面', exact: true })
+    const initial = await refresh.boundingBox()
+    await address.fill('https://example.com/docs')
+    await address.press('Enter')
+    await expect(browser.getByRole('alert')).toHaveText('网页加载失败，请检查地址或网络连接')
+    await expect(browser.getByRole('button', { name: '重新加载', exact: true })).toBeVisible()
+    await expect(address).toHaveValue('https://example.com/docs')
+    await expect(browser.getByRole('button', { name: '重新加载', exact: true })).toBeEnabled()
+    await browser.getByRole('button', { name: '重新加载', exact: true }).click()
+    await expect(browser.locator('iframe[title="网页内容"]')).toBeVisible()
+    await expect(browser.locator('iframe[title="网页内容"]').contentFrame().getByText('安全文档')).toBeVisible()
+    await expect(browser.locator('iframe[title="网页内容"]').contentFrame().locator('script')).toHaveCount(1)
+    expect(await browser.locator('iframe[title="网页内容"]').contentFrame().locator('body').evaluate(() => (window as any).__shouldNotRun)).toBeUndefined()
+    expect(await page.evaluate(() => (window as any).__browserCalls())).toBe(2)
+    await address.fill('https://example.com/changed')
+    await address.press('Escape')
+    await expect(address).toHaveValue('https://example.com/docs')
+    await refresh.hover()
+    expect(await refresh.boundingBox()).toEqual(initial)
+  })
+
   test('正式右坞文件内部预览与折叠状态保留', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.goto('/')

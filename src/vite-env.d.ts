@@ -45,6 +45,9 @@ declare global {
   interface Window {
     electronAPI: {
       ping: () => Promise<string>
+      browser: {
+        load: (url: string) => Promise<{ ok: true; url: string; contentType: string; body: string } | { ok: false; error: string }>
+      }
       session: {
         list: () => Promise<SessionSummary[]>
         create: () => Promise<ChatSession>

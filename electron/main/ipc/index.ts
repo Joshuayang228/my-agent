@@ -14,6 +14,7 @@ import { registerProjectIPC } from './project'
 import { registerTasksIPC } from './tasks'
 import { registerSessionChangesIPC } from './session-changes'
 import { registerTerminalIPC } from './terminal'
+import { registerBrowserIPC } from './browser'
 
 export function registerAllIPC(toolRegistry: ToolRegistry): void {
   registerSessionIPC()
@@ -31,4 +32,5 @@ export function registerAllIPC(toolRegistry: ToolRegistry): void {
   registerTasksIPC()
   registerSessionChangesIPC()
   registerTerminalIPC()
+  registerBrowserIPC()
 }

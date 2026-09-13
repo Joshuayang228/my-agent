@@ -52,6 +52,11 @@ interface FileEntry {
 contextBridge.exposeInMainWorld('electronAPI', {
   ping: () => ipcRenderer.invoke('ping'),
 
+  browser: {
+    load: (url: string): Promise<{ ok: true; url: string; contentType: string; body: string } | { ok: false; error: string }> =>
+      ipcRenderer.invoke('browser:load', url),
+  },
+
   session: {
     list: (): Promise<SessionSummary[]> => ipcRenderer.invoke('session:list'),
     create: (): Promise<ChatSession> => ipcRenderer.invoke('session:create'),
