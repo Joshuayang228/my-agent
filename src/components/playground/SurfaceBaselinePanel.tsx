@@ -695,7 +695,13 @@ function RoleShelfFixture({ persona, onPersonaChange }: { persona: PlaygroundPer
   )
 }
 
-type MemoryScenario = 'list' | 'empty' | 'sensitive' | 'editing'
+type MemoryScenario = 'list' | 'long' | 'empty' | 'sensitive' | 'editing'
+
+const LONG_MEMORY_CONTENT = [
+  '在讨论一款需要长期使用的产品时，我希望先把真实使用场景、用户正在完成的任务和最容易被打断的环节说清楚，再决定页面里应该出现哪些信息。不要因为某个组件已经存在，就把它放进当前页面；也不要为了让页面显得完整，添加没有明确用途的入口。对低频能力，我更偏好能在需要时找到、平时不占据注意力的安排。',
+  '当我给出截图或指出一个布局问题时，请以我指向的区域为准，先确认是内容层级、对齐、间距还是交互状态出了问题。改动前说明依据，改动后展示实际效果。如果正文很长，应允许它自然换行并保留段落，不要截断成省略号，也不要让日期和操作按钮挤占下一行。鼠标移入和移出时，正文的位置与卡片高度应保持稳定。',
+  '我关心的不只是某个静态画面是否整齐，还包括连续操作时是否顺手：阅读之后可以直接编辑，取消后能回到原来的内容，删除前能明确确认，切换主题和缩窄窗口后仍然可读。这些偏好适用于日常协作，但不应被理解为每次回答都要附上一套流程说明。',
+].join('\n\n')
 
 /**
  * 预览态只演示长期记忆的用户信息架构；Debug 开关和来源全部停留在 Renderer fixture。
@@ -713,6 +719,7 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
   const [customMemories, setCustomMemories] = useState<MemoryEntry[]>([])
   const scenarios: Array<{ id: MemoryScenario; label: string }> = [
     { id: 'list', label: '清单' },
+    { id: 'long', label: '长记忆' },
     { id: 'empty', label: '空态' },
     { id: 'sensitive', label: '敏感项' },
     { id: 'editing', label: '纠正记忆' },
@@ -723,7 +730,7 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
     ? []
     : scenario === 'sensitive'
       ? [...activeGroup.memories, SENSITIVE_MEMORY_FIXTURE, ...customMemories.filter((item) => item.id.startsWith('memory-custom-'))]
-      : [...activeGroup.memories, ...customMemories.filter((item) => item.id.startsWith(`memory-custom-${group}-`))]
+      : [...activeGroup.memories.map((memory, index) => scenario === 'long' && index === 0 ? { ...memory, content: LONG_MEMORY_CONTENT } : memory), ...customMemories.filter((item) => item.id.startsWith(`memory-custom-${group}-`))]
   const visibleMemories = query.trim()
     ? memories.filter((memory) => memory.content.toLocaleLowerCase('zh-CN').includes(query.trim().toLocaleLowerCase('zh-CN')))
     : memories

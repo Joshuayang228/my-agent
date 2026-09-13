@@ -315,7 +315,8 @@ export function MemoryPanel({
                 return (
                   <div
                     key={mem.id}
-                    className={`group transition ${
+                    data-testid={isCompactPreview ? `memory-item-${mem.id}` : undefined}
+                    className={`${isCompactPreview ? 'group/memory-item' : 'group'} transition ${
                       isCompactPreview
                         ? 'rounded-[var(--radius-lg)] border p-4'
                         : `rounded-xl border px-4 py-3.5 hover:bg-opacity-10 ${isPreview ? 'min-h-[156px]' : isSensitive ? '' : `${colors.border} ${colors.bg}`}`
@@ -366,6 +367,7 @@ export function MemoryPanel({
                       </div>
                     </div>
 
+                    <div className={isCompactPreview ? 'grid grid-cols-[minmax(0,1fr)_5.5rem] items-start gap-3' : undefined}>
                     {isEditing ? (
                       isCompactPreview ? (
                         <input
@@ -377,7 +379,7 @@ export function MemoryPanel({
                           }}
                           autoFocus
                           readOnly={!canEdit}
-                          className="theme-input w-full rounded-[var(--radius-md)] border px-3 py-1.5 text-[13px] font-medium leading-6 outline-none"
+                          className="theme-input h-8 min-w-0 w-full rounded-[var(--radius-md)] border px-3 text-[13px] font-medium leading-6 outline-none"
                           style={{ color: 'var(--text-primary)' }}
                         />
                       ) : (
@@ -411,12 +413,32 @@ export function MemoryPanel({
                       )
                     ) : (
                       <div className="flex min-w-0 items-start justify-between gap-3">
-                        <p className={`min-w-0 flex-1 ${isCompactPreview ? 'text-[13px] font-medium leading-6' : 'text-xs leading-relaxed'}`} style={{ color: isCompactPreview ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{mem.content}</p>
-                        {isCompactPreview && <span className="shrink-0 whitespace-nowrap pt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }} data-testid={`memory-item-date-${mem.id}`}>
-                          {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
-                        </span>}
+                        <p className={`min-w-0 flex-1 ${isCompactPreview ? 'whitespace-pre-wrap break-words py-1 text-[13px] font-medium leading-6 [overflow-wrap:anywhere]' : 'text-xs leading-relaxed'}`} style={{ color: isCompactPreview ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{mem.content}</p>
                       </div>
                     )}
+
+                    {isCompactPreview && <div className="relative h-8 w-full" data-testid={`memory-item-controls-${mem.id}`}>
+                      <span className={`pointer-events-none absolute inset-0 flex items-center justify-end whitespace-nowrap text-[11px] transition ${canEdit ? isEditing || pendingDelete === mem.id ? 'opacity-0' : 'group-hover/memory-item:opacity-0 group-focus-within/memory-item:opacity-0' : ''}`} style={{ color: 'var(--text-muted)' }} data-testid={`memory-item-date-${mem.id}`}>
+                        {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
+                      </span>
+                      {canEdit && (isEditing ? (
+                        <div className="absolute inset-0 flex items-center justify-end gap-1">
+                          <button type="button" aria-label={`保存记忆 ${editContent || mem.content}`} title="保存" onClick={() => handleSaveEdit(mem.id)} disabled={!editContent.trim()} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)] disabled:opacity-40" style={{ color: 'var(--accent-fg)' }}><Check size={14} /></button>
+                          <button type="button" aria-label={`取消编辑 ${mem.content}`} title="取消" onClick={() => setEditing(null)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><X size={14} /></button>
+                        </div>
+                      ) : pendingDelete === mem.id ? (
+                        <div className="absolute inset-0 flex items-center justify-end gap-1" data-testid={`memory-delete-confirm-${mem.id}`}>
+                          <button type="button" aria-label={`确认删除记忆 ${mem.content}`} title="确认删除" onClick={() => handleDelete(mem.id)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--danger)' }}><Check size={14} /></button>
+                          <button type="button" aria-label={`取消删除 ${mem.content}`} title="取消删除" onClick={() => setPendingDelete(null)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><X size={14} /></button>
+                        </div>
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-end gap-1 opacity-0 transition group-hover/memory-item:opacity-100 group-focus-within/memory-item:opacity-100" data-testid={`memory-item-actions-${mem.id}`}>
+                          <button type="button" aria-label={`编辑记忆 ${mem.content}`} title="编辑" onClick={() => startEdit(mem)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><Pencil size={14} /></button>
+                          <button type="button" aria-label={`删除记忆 ${mem.content}`} title="删除" onClick={() => { setEditing(null); setPendingDelete(mem.id) }} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--danger)' }}><Trash2 size={14} /></button>
+                        </div>
+                      ))}
+                    </div>}
+                    </div>
 
                     {isSensitive && !isEditing && (
                       <div
@@ -446,41 +468,19 @@ export function MemoryPanel({
                       </p>
                     )}
 
-                    <div className="mt-2 flex items-center justify-between gap-3">
+                    {!isCompactPreview && <div className="mt-2 flex items-center justify-between gap-3">
                       {!isCompactPreview && <div className="text-[9px]" style={{ color: 'var(--text-muted)' }} data-testid={`memory-item-date-${mem.id}`}>
                         {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
                         {mem.updatedAt !== mem.createdAt && ` (更新于 ${new Date(mem.updatedAt).toLocaleDateString('zh-CN')})`}
                       </div>}
 
-                      {canEdit && isCompactPreview ? (
-                        <div className="relative h-8 min-w-[4.5rem] shrink-0">
-                          {isEditing ? (
-                            <div className="absolute inset-0 flex items-center justify-end gap-1">
-                              <button type="button" aria-label={`保存记忆 ${editContent || mem.content}`} title="保存" onClick={() => handleSaveEdit(mem.id)} disabled={!editContent.trim()} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)] disabled:opacity-40" style={{ color: 'var(--accent-fg)' }}><Check size={14} /></button>
-                              <button type="button" aria-label={`取消编辑 ${mem.content}`} title="取消" onClick={() => setEditing(null)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><X size={14} /></button>
-                            </div>
-                          ) : pendingDelete === mem.id ? (
-                            <div className="absolute inset-0 flex items-center justify-end gap-1" data-testid={`memory-delete-confirm-${mem.id}`}>
-                              <button type="button" aria-label={`确认删除记忆 ${mem.content}`} title="确认删除" onClick={() => handleDelete(mem.id)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--danger)' }}><Check size={14} /></button>
-                              <button type="button" aria-label={`取消删除 ${mem.content}`} title="取消删除" onClick={() => setPendingDelete(null)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><X size={14} /></button>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="absolute inset-0 flex items-center justify-end gap-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
-                                <button type="button" aria-label={`编辑记忆 ${mem.content}`} title="编辑" onClick={() => startEdit(mem)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><Pencil size={14} /></button>
-                                <button type="button" aria-label={`删除记忆 ${mem.content}`} title="删除" onClick={() => { setEditing(null); setPendingDelete(mem.id) }} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--danger)' }}><Trash2 size={14} /></button>
-                              </div>
-
-                            </>
-                          )}
-                        </div>
-                      ) : canEdit && !isCompactPreview && !isEditing ? (
+                      {canEdit && !isEditing ? (
                         <div className="flex shrink-0 items-center gap-1">
                           <button aria-label={`编辑记忆 ${mem.content}`} onClick={() => startEdit(mem)} className="memory-action-button rounded px-1.5 py-0.5 text-[10px] transition">编辑</button>
                           <button aria-label={`删除记忆 ${mem.content}`} onClick={() => handleDelete(mem.id)} className="memory-delete-button rounded px-1.5 py-0.5 text-[10px] transition">删除</button>
                         </div>
                       ) : null}
-                    </div>
+                    </div>}
                   </div>
                 )
               })}
