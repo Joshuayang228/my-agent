@@ -153,19 +153,17 @@ test('首次进入可测试模型连接并保存后开始对话', async () => {
 
   await page.locator('input[placeholder="sk-..."]').fill('local-test-key')
   await page.locator('input[placeholder="https://api.openai.com/v1"]').fill(baseUrl)
-  await page.locator('input[placeholder="gpt-4o"]').fill('local-test-model')
-  await expect(page.locator('[data-testid="save-and-start"]')).toBeDisabled()
+  await page.locator('input[placeholder="填写 Provider 控制台中的模型 ID"]').fill('local-test-model')
 
   await page.locator('[data-testid="test-connection"]').click()
   await expect(page.getByText(/连接成功 · local-test-model/)).toBeVisible()
-  await expect(page.locator('[data-testid="save-and-start"]')).toBeEnabled()
   expect(capturedRequest).toMatchObject({
     url: '/v1/chat/completions',
     authorization: 'Bearer local-test-key',
     body: { model: 'local-test-model', stream: true },
   })
 
-  await page.locator('[data-testid="save-and-start"]').click()
+  await page.locator('[data-testid="settings-back"]').click()
   await expect(page.locator('[data-testid="settings-main"]')).not.toBeVisible()
   await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
 })
@@ -194,6 +192,6 @@ test('Debug 质量 Eval 可保存并重新载入真人格人工审阅', async ()
   await review.getByRole('button', { name: '保存审阅' }).click()
   await expect(review.getByText('已审阅 · 通过', { exact: true })).toBeVisible()
 
-  await page.locator('[data-testid="dev-panel"] button[title="刷新"]').click()
+  await page.locator('[data-testid="dev-panel"] button[title="刷新当前调试分区"]').click()
   await expect(page.locator('[data-testid="persona-human-review"] textarea')).toHaveValue('先承接疲惫，语气自然。')
 })
