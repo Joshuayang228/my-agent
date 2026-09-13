@@ -53,9 +53,11 @@
 
 ## 已落地能力
 
+- 原始代码共享渲染：`MarkdownRenderer.tsx` 导出的 `CodeBlock` 接收原文而不进行 Markdown／aside／Mermaid 解释；基础 Markdown／Diff 故事、候选工作区、正式文件代码预览和 ReviewPanel 共用它。代码块主题底色同源、复制保留原文，复制操作槽固定；剪贴板失败可重试。正式五功能菜单顺序已对齐，但浏览器与侧聊只有未接入壳，不是完整能力。
+
 - Playground 场景控制器统一为 MCP 风格独立选项；Chat 主旅程/宽度、记忆分类/场景、模型/Skills/MCP、工作区功能/形态/宽度与公共故事选择共享尺寸、间距和主题选中态。产品内容标签与正式 UI 不受影响。
 
-- 正式 ChatRightDock 接入 PanelRight 同页折叠保留和 Foundation TabStrip：标签内常驻固定关闭槽、左右/Home/End 切换、Delete 关闭后恢复焦点，关闭后台标签不切换当前内容或重编号其它标签。文件工具已收进 WorkspaceFilesPanel，内部左树右多预览、路径去重、关闭重开与异步读取隔离；审阅 diff 复用 MarkdownRenderer；读取与外部打开仍走现有 project IPC。五功能中的浏览器、侧边聊天尚无正式真实后端，跨项目／会话／一级页面生命周期仍待补齐。
+- 正式 ChatRightDock 接入 PanelRight 同页折叠保留和 Foundation TabStrip：标签内常驻固定关闭槽、左右/Home/End 切换、Delete 关闭后恢复焦点，关闭后台标签不切换当前内容或重编号其它标签。文件工具已收进 WorkspaceFilesPanel，内部左树右多预览、路径去重、关闭重开与异步读取隔离；审阅 diff 直接传原文给 MarkdownRenderer 模块的 CodeBlock；读取与外部打开仍走现有 project IPC。五功能中的浏览器、侧边聊天尚无正式真实后端，跨项目／会话／一级页面生命周期仍待补齐。
 
 - 工作区候选标签默认无描边，各标签内常驻关闭图标，关闭非当前标签保持当前选择；右端仅保留添加入口，收起由 Chat 侧控制。浏览器地址居中可编辑，Enter 校验并切换本地样张，Esc 恢复，未知地址明确显示无样张，不导航外站。
 
@@ -105,7 +107,7 @@
 | UI 组件 / 图标语义资产注册 | 已落地 | `ui-component-registry.ts` 继续承担组件资产身份与生命周期；`foundation-story-registry.ts` 负责 Foundation Playground 故事的 story key、assetKey、分组和 renderer 关系；基础组件工作台按 13 个任务入口展示全部已建故事，并补齐 Select / Form Field / Checkbox / Switch / Diff Viewer 及 IconButton / Card / Badge / Tag / Divider 隔离故事，完整候选登记由注册表 / Debug 承担；业务结构由产品体验注册表的 `experienceParts` 登记；图标目录仅显示紧凑的图标 + 中英文名，具体 adopted 小勾位于对应图标卡右上角并来自真实证据 |
 | 全局 Debug 诊断 | 已落地 | `DevPanel` 全页工作区；提示词、请求与运行、伙伴状态、质量 / Eval、系统统一从全局入口进入；Chat 不再叠加 Debug 半屏 |
 | 项目文件预览 | 已落地 | `FileBrowser` · text/image/unsupported；图/文本/md；html 沙箱 iframe；pdf·Office 外开；Playground 可用只读静态树 / 文件样张且跳过 IPC |
-| Chat 右侧能力坞 | 已落地 | `ChatRightDock` · Tab 文件/审阅/终端；会话写文件变更账本；命令控制台（非 PTY）；可拖宽 + 内部分界 |
+| Chat 右侧能力坞 | 部分 | `ChatRightDock` · 五入口顺序为审阅/浏览器/文件/终端/侧边聊天；文件、会话写文件审阅和命令控制台已有真实 IPC；浏览器与侧聊仅有未接入壳，尚不可用 |
 | Agent 生产资产目录与运行证据链 | 已落地 | Debug「提示词管理器」聚合 Prompt / 伙伴人格 / 记忆策略 / 权限与沙箱 / Tool schema / Skill / Eval Case 与 Grader / Eval Judge / 模型 Provider / MCP；真实 LLM / Tool / Memory / Permission 运行通过稳定 key 写入脱敏证据，支持调用级分组、资产最近使用、跨面板跳转与 JSON / JSONL 导出 |
 | GitHub Actions 质量门禁 | 已落地 | Docs / Asset 工作流；Unit 在无界面 Runner 使用 Electron external 占位路径，不下载桌面二进制；官方 Actions 使用 v7 |
 | Skill 管理器 2.0 | 已落地 | 安全 YAML Frontmatter（无 eval）· `SkillsPanel` 校验 / 版本历史 / 回滚 / 隔离试跑；`skills:validate` / `skills:versions` / `skills:playground-run`；LLM Debug 展示 Skill 激活来源与指纹 |

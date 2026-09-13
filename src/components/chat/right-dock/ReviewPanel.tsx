@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Eraser, FileCode2, RefreshCw } from 'lucide-react'
 import { ResizeHandle } from '../../shell/ResizeHandle'
-import { MarkdownRenderer } from '../../MarkdownRenderer'
+import { CodeBlock } from '../../MarkdownRenderer'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from '../../../shared/panel-layout'
 
 type ChangeItem = {
@@ -24,6 +24,7 @@ export function ReviewPanel({ sessionId }: ReviewPanelProps) {
   const [items, setItems] = useState<ChangeItem[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [diffText, setDiffText] = useState<string | null>(null)
+  const [language, setLanguage] = useState('diff')
   const [loadingDiff, setLoadingDiff] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [listRatio, setListRatio] = usePersistedNumber(
@@ -64,6 +65,7 @@ export function ReviewPanel({ sessionId }: ReviewPanelProps) {
         setError(r?.error || '无法加载')
       } else {
         setDiffText(r.diff || r.after || '')
+        setLanguage(r.diff ? 'diff' : 'text')
       }
     } finally {
       setLoadingDiff(false)
@@ -158,7 +160,7 @@ export function ReviewPanel({ sessionId }: ReviewPanelProps) {
             )}
             {diffText != null && !loadingDiff && (
               <div className="min-w-0 text-[10px]">
-                <MarkdownRenderer content={[String.fromCharCode(96).repeat(3) + 'diff', diffText, String.fromCharCode(96).repeat(3)].join('\n')} />
+                <CodeBlock code={diffText} language={language} />
               </div>
             )}
             {!selected && !loadingDiff && (

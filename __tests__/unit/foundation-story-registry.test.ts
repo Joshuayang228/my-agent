@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import {
   FOUNDATION_STORIES,
@@ -15,6 +17,47 @@ const uiControlsSource = readFileSync('src/components/playground/UiControlsPanel
 const advancedSource = readFileSync('src/components/playground/FoundationAdvancedStories.tsx', 'utf8')
 
 describe('Foundation story registry', () => {
+  it('基础故事、体验与正式文件审阅渲染同一个 CodeBlock，而不是只导入或声明同名组件', () => {
+    const consumers = [
+      'src/components/MarkdownRenderer.tsx',
+      'src/components/FileBrowser.tsx',
+      'src/components/chat/right-dock/ReviewPanel.tsx',
+      'src/components/playground/UiControlsPanel.tsx',
+      'src/components/playground/FoundationAdvancedStories.tsx',
+      'src/components/playground/WorkspaceExperienceCandidate.tsx',
+    ].map((file) => resolve(file))
+    const fixture = resolve('__tests__/fixtures/code-block-binding.tsx')
+    const source = `import { CodeBlock as Shared } from '../../src/components/MarkdownRenderer'
+      function Unused() { return <pre /> }
+      function Shadowed(Shared: any) { return <Shared /> }
+      function Used() { return <Shared code="raw" /> }`
+    const options: ts.CompilerOptions = { jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, skipLibCheck: true }
+    const host = ts.createCompilerHost(options)
+    const getSourceFile = host.getSourceFile.bind(host)
+    host.getSourceFile = (file, ...args) => resolve(file) === fixture
+      ? ts.createSourceFile(file, source, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TSX)
+      : getSourceFile(file, ...args)
+    const program = ts.createProgram([...consumers, fixture], options, host)
+    const checker = program.getTypeChecker()
+    const rendersShared = (root: ts.Node) => {
+      let found = false
+      const visit = (node: ts.Node) => {
+        if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+          let symbol = checker.getSymbolAtLocation(node.tagName)
+          if (symbol && (symbol.flags & ts.SymbolFlags.Alias)) symbol = checker.getAliasedSymbol(symbol)
+          found ||= Boolean(symbol?.name === 'CodeBlock' && symbol.declarations?.some((declaration) =>
+            resolve(declaration.getSourceFile().fileName) === consumers[0]))
+        }
+        ts.forEachChild(node, visit)
+      }
+      visit(root)
+      return found
+    }
+    for (const file of consumers) expect(rendersShared(program.getSourceFile(file)!), file).toBe(true)
+    const functions = program.getSourceFile(fixture)!.statements.filter(ts.isFunctionDeclaration)
+    expect(functions.map(rendersShared)).toEqual([false, false, true])
+  })
+
   it('keeps story keys, views, assets and groups in one consistent relation', () => {
     const keys = FOUNDATION_STORIES.map((story) => story.key)
     const viewIds = FOUNDATION_STORIES.map((story) => story.viewId)

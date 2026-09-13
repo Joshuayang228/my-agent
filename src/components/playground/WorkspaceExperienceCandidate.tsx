@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { ArrowUp, Globe, GitCompare, FileText, TerminalSquare, MessageCircle, RefreshCw, Square, LoaderCircle, PanelRight, Plus } from 'lucide-react'
 import { type FileBrowserPreviewData } from '../FileBrowser'
 import { WorkspaceFilesPanel } from '../chat/right-dock/WorkspaceFilesPanel'
-import { MarkdownRenderer } from '../MarkdownRenderer'
+import { CodeBlock, MarkdownRenderer } from '../MarkdownRenderer'
 import { TabStrip } from '../foundation/TabStrip'
 import teaImage from '../../assets/playground/moment-tea-by-window.jpg'
 
@@ -107,7 +107,10 @@ function ReviewSample({ scene }: { scene: string }) {
       <span className="ml-auto" style={{ color: 'var(--success)' }}>+{file === 'theme.ts' ? 2 : 1}</span><span style={{ color: 'var(--danger)' }}>−{file === 'theme.ts' ? 2 : 1}</span>
     </div>
     <div className="min-h-0 overflow-auto p-3" data-testid="workspace-diff">
-      {scene === '并排差异' ? <div className="grid grid-cols-2 gap-3"><div className="min-w-0"><p className="mb-2 text-[11px]">修改前</p><MarkdownRenderer content={'```typescript\n' + oldText + '\n```'} /></div><div className="min-w-0"><p className="mb-2 text-[11px]">修改后</p><MarkdownRenderer content={'```typescript\n' + newText + '\n```'} /></div></div> : <MarkdownRenderer variant="playground" content={'```diff\n--- ' + file + '\n+++ ' + file + '\n' + (file === 'theme.ts' ? " export const theme = {\n-  name: 'dark',\n-  spacing: 12,\n+  name: 'mist',\n+  spacing: 16,\n }" : ' # 项目笔记\n \n-整理资料。\n+整理资料，并核对页面。') + '\n```'} />}
+      {scene === '并排差异' ? <div className="grid grid-cols-2 gap-3">
+        <div className="min-w-0"><p className="mb-2 text-[11px]">修改前</p><CodeBlock code={oldText} language={file === 'theme.ts' ? 'typescript' : 'markdown'} /></div>
+        <div className="min-w-0"><p className="mb-2 text-[11px]">修改后</p><CodeBlock code={newText} language={file === 'theme.ts' ? 'typescript' : 'markdown'} /></div>
+      </div> : <CodeBlock language="diff" code={'--- ' + file + '\n+++ ' + file + '\n' + (file === 'theme.ts' ? " export const theme = {\n-  name: 'dark',\n-  spacing: 12,\n+  name: 'mist',\n+  spacing: 16,\n }" : ' # 项目笔记\n \n-整理资料。\n+整理资料，并核对页面。')} />}
     </div>
   </>
 }

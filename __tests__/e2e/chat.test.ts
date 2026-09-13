@@ -436,6 +436,86 @@ test.describe('My Agent UI', () => {
   }
 
 
+  test('正式五功能入口顺序与面板无转义残留', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.goto('/')
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await expect(dock.getByRole('menuitem')).toHaveText(['审阅', '浏览器', '文件', '终端', '侧边聊天'])
+    await dock.getByRole('menuitem', { name: '浏览器', exact: true }).click()
+    const browser = dock.getByRole('tabpanel', { name: '浏览器', exact: true })
+    await expect(browser).toBeVisible()
+    await expect(browser).not.toContainText('\\n')
+    await expect(browser.locator('iframe, webview')).toHaveCount(0)
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '侧边聊天', exact: true }).click()
+    const chat = dock.getByRole('tabpanel', { name: '侧边聊天', exact: true })
+    await expect(chat).not.toContainText('\\n')
+    await expect(chat).not.toContainText('样张回复')
+    await dock.getByRole('button', { name: '关闭浏览器', exact: true }).click()
+    await expect(chat).toBeVisible()
+  })
+
+  for (const theme of ['light', 'dark']) {
+    for (const width of [900, 1440]) {
+    test(`正式审阅原始代码不被 Markdown 解释 ${theme} ${width}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 731 })
+      const source = ['```', '# 原样标题', '<aside>不得移出代码的内容</aside>', '[原样链接](https://example.invalid/)', '```mermaid', 'graph TD; A-->B', '```', 'x'.repeat(500), ...Array.from({ length: 80 }, (_, i) => `line ${i}`)].join('\n')
+      await installProductionElectronStub(page)
+      await page.addInitScript(({ source, theme }) => {
+        localStorage.setItem('theme', theme)
+        const api = (window as any).electronAPI
+        api.session.listFileChanges = async () => [{ path: 'C:/e2e-project/sample.md', toolName: 'write_file', updatedAt: 1, hasBefore: false }]
+        api.session.getFileChangeDiff = async () => ({ after: source })
+      }, { source, theme })
+      await page.goto('/')
+      await page.getByTestId('primary-sidebar').getByRole('button', { name: '新对话', exact: true }).click()
+      await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+      const dock = page.getByTestId('chat-right-dock')
+      await dock.getByTestId('right-dock-add-tab').click()
+      await dock.getByRole('menuitem', { name: '审阅', exact: true }).click()
+      const review = dock.getByRole('tabpanel', { name: '审阅', exact: true })
+      await review.getByRole('button', { name: /sample.md/ }).click()
+      await expect(review.locator('code')).toHaveCount(1)
+      expect(await review.locator('code').textContent()).toBe(source)
+      await expect(review.locator('h1, a, svg[id^="mermaid"]')).toHaveCount(0)
+      const block = review.locator('[data-foundation="code-block"]')
+      await expect(block).toHaveCount(1)
+      await expect(block.locator('code')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+      await expect(block.locator('pre')).toHaveCSS('background-color', theme === 'dark' ? 'rgb(1, 4, 9)' : 'rgb(243, 240, 234)')
+      expect(await block.locator('pre').evaluate((node) => node.scrollWidth > node.clientWidth)).toBe(true)
+      expect(await dock.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
+      const scroll = block.locator('xpath=../..')
+      expect(await scroll.evaluate((node) => node.scrollHeight > node.clientHeight)).toBe(true)
+      await scroll.evaluate((node) => { node.scrollTop = node.scrollHeight })
+      expect(await scroll.evaluate((node) => node.scrollTop)).toBeGreaterThan(0)
+      await scroll.evaluate((node) => { node.scrollTop = 0 })
+      await page.evaluate(() => {
+        let attempts = 0
+        Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+          writeText: async (text: string) => {
+            if (++attempts === 1) throw new Error('clipboard denied for test')
+            ;(window as any).__copiedReview = text
+          },
+        } })
+      })
+      const copy = block.getByRole('button', { name: '复制', exact: true })
+      const initial = await copy.boundingBox()
+      await copy.hover()
+      expect(await copy.boundingBox()).toEqual(initial)
+      await copy.click()
+      await expect(block.getByRole('status')).toHaveText('复制失败，请重试')
+      expect(await copy.boundingBox()).toEqual(initial)
+      await copy.click()
+      await expect(block.getByRole('button', { name: '已复制', exact: true })).toBeVisible()
+      expect(await block.getByRole('button').boundingBox()).toEqual(initial)
+      expect(await page.evaluate(() => (window as any).__copiedReview)).toBe(source)
+      await page.screenshot({ path: testInfo.outputPath(`review-raw-${theme}.png`), animations: 'disabled' })
+    })
+    }
+  }
+
   test('正式文件多预览隔离乱序与关闭重开', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
@@ -505,6 +585,7 @@ test.describe('My Agent UI', () => {
 
     await expect(dock.getByRole('tablist', { name: '文件预览' }).getByRole('tab', { name: 'App.tsx' })).toBeVisible()
     await expect(dock.getByTestId('file-browser-preview')).toContainText('const ready = true')
+    await expect(dock.getByTestId('file-browser-preview').locator('[data-foundation="code-block"] code')).toHaveText('const ready = true')
     await expect(dock.getByTestId('file-browser-preview')).toContainText('App.tsx')
 
     const workspaceToggle = page.getByTitle('收起工作区')
@@ -599,6 +680,7 @@ test.describe('My Agent UI', () => {
     await expect(markdownCodeBlock).toHaveCSS('background-color', /^(?!rgb\(255, 255, 255\)$)/)
     await page.getByRole('tab', { name: '文件与差异', exact: true }).click()
     await expect(page.getByRole('heading', { name: /^文件树/ })).toBeVisible()
+    await expect(page.getByTestId('foundation-diff-code').locator('[data-foundation="code-block"]')).toHaveCount(2)
     await page.getByRole('tab', { name: '标签与选择', exact: true }).click()
     await expect(page.getByRole('heading', { name: /^标签切换/ })).toBeVisible()
     const foundationTabs = page.getByRole('tablist', { name: 'Foundation 标签样张' })

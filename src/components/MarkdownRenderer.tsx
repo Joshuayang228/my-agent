@@ -1,4 +1,5 @@
-import { memo, useState, useEffect, useRef, useId, useSyncExternalStore } from 'react'
+import { Children, isValidElement, memo, useState, useEffect, useRef, useId, useSyncExternalStore, type ReactNode } from 'react'
+import { Check, Copy } from 'lucide-react'
 import { isLightTheme } from '../shared/design-asset-registry'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -101,28 +102,73 @@ function MarkdownImage({ src, alt }: { src?: string; alt?: string }) {
 
 interface MarkdownRendererProps {
   content: string
-  /** Playground 可用更明确的代码层级；默认值保持正式 Chat 的既有视觉。 */
+  /** 兼容现有故事调用；代码块已统一使用相同语义主题，不再维护变体皮肤。 */
   variant?: 'default' | 'playground'
 }
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
+  const [error, setError] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const request = useRef(0)
+  useEffect(() => {
+    setCopied(false)
+    setError(false)
+    return () => { request.current++; clearTimeout(timer.current) }
+  }, [text])
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    const version = ++request.current
+    try {
+      await navigator.clipboard.writeText(text)
+      if (version !== request.current) return
+      setError(false)
+      setCopied(true)
+      clearTimeout(timer.current)
+      timer.current = setTimeout(() => setCopied(false), 2000)
+    } catch {
+      if (version !== request.current) return
+      setCopied(false)
+      setError(true)
+    }
   }
 
   return (
-    <button
+    <span className="relative flex h-7 w-7 shrink-0">
+      {error && <span role="status" className="absolute right-full top-0 flex h-7 items-center whitespace-nowrap px-2 text-xs" style={{ color: 'var(--danger)', background: 'var(--bg-tertiary)' }}>复制失败，请重试</span>}
+      <button
+      type="button"
+      aria-label={copied ? '已复制' : '复制'}
+      title={error ? '复制失败，请重试' : copied ? '已复制' : '复制'}
       onClick={handleCopy}
-      className="rounded px-2 py-0.5 text-xs transition"
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded transition"
       style={{ color: 'var(--text-muted)' }}
-    >
-      {copied ? '已复制' : '复制'}
-    </button>
+      >
+        {copied ? <Check size={14} /> : <Copy size={14} />}
+      </button>
+    </span>
   )
+}
+
+/**
+ * 背景：审阅文件可能包含 Markdown 围栏和 aside，拼进 Markdown 会改变原文。
+ * 设计意图：复用高亮与复制容器，直接接收原始代码，而不是重走正文解析器。
+ * 关键约束：不解析链接、HTML 或 Mermaid；复制内容逐字保留，主题底色由语义 token 提供。
+ */
+export function CodeBlock({ code, language = 'text' }: { code: string; language?: string }) {
+  const theme = useCurrentTheme()
+  return <div className="group relative my-3 min-w-0 overflow-hidden rounded-lg border"
+    data-testid="markdown-code-block" data-foundation="code-block" style={{ borderColor: 'var(--card-border)' }}>
+    <div className="flex items-center justify-between gap-2 px-4 py-1.5 text-xs" style={{ background: 'var(--bg-tertiary)' }}>
+      <span className="min-w-0 truncate" style={{ color: 'var(--text-muted)' }}>{language}</span>
+      <CopyButton text={code} />
+    </div>
+    <SyntaxHighlighter style={theme === 'dark' ? oneDark : oneLight} language={language}
+      tabIndex={0} aria-label="代码内容" codeTagProps={{ style: { background: 'transparent' } }}
+      customStyle={{ margin: 0, borderRadius: 0, background: 'var(--bg-inset)', fontSize: '0.8125rem', lineHeight: '1.6', overflow: 'auto' }}>
+      {code}
+    </SyntaxHighlighter>
+  </div>
 }
 
 function MermaidBlock({ code }: { code: string }) {
@@ -146,11 +192,10 @@ function MermaidBlock({ code }: { code: string }) {
   return <div ref={containerRef} className="my-3 flex justify-center overflow-x-auto rounded-lg p-4" style={{ background: 'var(--card-bg)' }} />
 }
 
-export const MarkdownRenderer = memo(function MarkdownRenderer({ content, variant = 'default' }: MarkdownRendererProps) {
+export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: MarkdownRendererProps) {
   const { main, asides } = splitAside(content)
   const theme = useCurrentTheme()
   const isDark = theme === 'dark'
-  const codeStyle = isDark ? oneDark : oneLight
 
   useEffect(() => {
     initMermaid(isDark)
@@ -164,49 +209,20 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({ content, varian
         img({ src, alt }) {
           return <MarkdownImage src={src} alt={alt} />
         },
-        code({ className, children, ...props }) {
-          const match = /language-(\w+)/.exec(className || '')
-          const codeString = String(children).replace(/\n$/, '')
-
-          if (match?.[1] === 'mermaid') {
+        pre({ children }) {
+          const child = Children.toArray(children).find(isValidElement<{ className?: string; children?: ReactNode }>)
+          const language = /language-([^\s]+)/.exec(child?.props.className ?? '')?.[1] ?? 'text'
+          const codeString = String(child?.props.children ?? '').replace(/\n$/, '')
+          if (language === 'mermaid') {
             return <MermaidBlock code={codeString} />
           }
-
-          if (match) {
-            return (
-              <div
-                className="group relative my-3 overflow-hidden rounded-lg border"
-                data-testid={variant === 'playground' ? 'markdown-code-block' : undefined}
-                style={{ borderColor: 'var(--card-border)' }}
-              >
-                <div className="flex items-center justify-between px-4 py-1.5 text-xs" style={{ background: 'var(--bg-tertiary)' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>{match[1]}</span>
-                  <CopyButton text={codeString} />
-                </div>
-                <SyntaxHighlighter
-                  style={codeStyle}
-                  language={match[1]}
-                  PreTag="div"
-                  codeTagProps={{ style: { background: 'transparent' } }}
-                  customStyle={{
-                    margin: 0,
-                    borderRadius: 0,
-                    background: 'var(--bg-inset)',
-                    fontSize: '0.8125rem',
-                    lineHeight: '1.6',
-                  }}
-                >
-                  {codeString}
-                </SyntaxHighlighter>
-              </div>
-            )
-          }
-
+          return <CodeBlock code={codeString} language={language} />
+        },
+        code({ children }) {
           return (
             <code
               className="rounded px-1.5 py-0.5 text-[0.8125rem]"
               style={{ background: 'var(--bg-inset)', color: 'var(--accent-fg)' }}
-              {...props}
             >
               {children}
             </code>

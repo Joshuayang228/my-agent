@@ -19,7 +19,7 @@ import {
   RefreshCw,
   X,
 } from 'lucide-react'
-import { MarkdownRenderer } from './MarkdownRenderer'
+import { CodeBlock, MarkdownRenderer } from './MarkdownRenderer'
 import { ResizeHandle } from './shell/ResizeHandle'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from '../shared/panel-layout'
 
@@ -355,12 +355,7 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                     </div>
                   )}
                   {preview.kind === 'text' && preview.languageHint !== 'markdown' && !(preview.languageHint === 'html' && htmlView === 'preview') && (
-                    <pre
-                      className="whitespace-pre-wrap break-all font-mono text-[11px] leading-relaxed"
-                      style={{ color: 'var(--text-secondary)' }}
-                    >
-                      {preview.content}
-                    </pre>
+                    <CodeBlock code={preview.content} language={preview.languageHint || 'text'} />
                   )}
                   {preview.kind === 'unsupported' && (
                     <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">

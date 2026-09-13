@@ -10,6 +10,7 @@
 import { useState } from 'react'
 import { ChevronDown, Command, MoreHorizontal, Search, X } from 'lucide-react'
 import { StoryBlock } from './StoryBlock'
+import { CodeBlock } from '../MarkdownRenderer'
 import { type AdvancedFoundationStoryKey } from '../../shared/foundation-story-registry'
 
 function SelectStory() {
@@ -154,7 +155,10 @@ function ProgressStory() {
 }
 
 function DiffViewerStory() {
-  return <div className="overflow-auto rounded-lg border font-mono text-[10px]" style={{ borderColor: 'var(--border-color)' }}><div className="grid min-w-[520px] grid-cols-2"><div className="border-r p-2" style={{ borderColor: 'var(--border-subtle)', background: 'color-mix(in srgb, var(--danger) 7%, var(--bg-primary))' }}><p style={{ color: 'var(--danger)' }}>- const mode = 'fast'</p><p style={{ color: 'var(--text-muted)' }}>  return streamChat()</p></div><div className="p-2" style={{ background: 'color-mix(in srgb, var(--success) 7%, var(--bg-primary))' }}><p style={{ color: 'var(--success)' }}>+ const mode = 'balanced'</p><p style={{ color: 'var(--text-muted)' }}>  return streamChat()</p></div></div></div>
+  return <div className="grid min-w-0 grid-cols-2 gap-3" data-testid="foundation-diff-code">
+    <CodeBlock language="diff" code={"- const mode = 'fast'\n  return streamChat()"} />
+    <CodeBlock language="diff" code={"+ const mode = 'balanced'\n  return streamChat()"} />
+  </div>
 }
 
 function FormFieldStory() {

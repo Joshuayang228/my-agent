@@ -12,7 +12,7 @@ import { TabStrip } from '../foundation/TabStrip'
 import type { ToolCallbackItem } from '../chat/callbacks/types'
 import { MemoryCitationChips } from '../chat/MemoryCitationChips'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
-import { MarkdownRenderer } from '../MarkdownRenderer'
+import { CodeBlock, MarkdownRenderer } from '../MarkdownRenderer'
 import { ToastPreview, type ToastPreviewItem } from '../Toast'
 import type { UiControlsSubId } from './catalog'
 import { StoryBlock } from './StoryBlock'
@@ -469,6 +469,9 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
             <div className="max-w-xl text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>
               <MarkdownRenderer variant="playground" content={'## 今日计划\n\n先完成 **最重要的一件事**，再处理剩下的内容。\n\n```ts\nconst ready = true\n```'} />
             </div>
+          </StoryBlock>
+          <StoryBlock title="原始代码与围栏" source="src/components/MarkdownRenderer.tsx · CodeBlock" edge adopted>
+            <CodeBlock language="text" code={'```markdown\n# 原样标题\n<aside>保留在文件内</aside>\n[原样链接](https://example.invalid/)\n```'} />
           </StoryBlock>
           <StoryBlock title="内心独白与长文" source="src/components/MarkdownRenderer.tsx · aside guard" edge adopted>
             <div className="max-w-xl text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>
