@@ -9,6 +9,7 @@
 import { useState, type CSSProperties } from 'react'
 import { AdoptionMark } from './AdoptionMark'
 import { DESIGN_THEME_ASSETS } from '../../shared/design-asset-registry'
+import { THEME_STUDIES } from './foundation-themes'
 
 const COLORS = [
   ['--bg-primary', '主底', '画布与页面背景'],
@@ -52,25 +53,6 @@ const MOTION_EASINGS = {
   exit: { label: '退出', value: 'cubic-bezier(0.2, 0, 1, 0.9)' },
 } as const
 
-/** 仅用于比较气质的隔离候选，不是生产主题注册表。 */
-const THEME_STUDIES = [
-  {
-    id: 'porcelain-blue', label: '瓷青', description: '冷白、青瓷、靛蓝', mode: '浅色', material: '清亮的瓷面',
-    colors: { app: '#edf3f6', panel: '#dfe9ee', card: '#fbfcfd', text: '#182a33', muted: '#657881', accent: '#216f8b', accentHover: '#17586f', border: '#c7d8df', success: '#2b806f', warning: '#9a6b2e', danger: '#b34e58' },
-  },
-  {
-    id: 'yao-stone', label: '曜石', description: '深墨、灰蓝、低饱和金', mode: '深色', material: '安静的哑光石面',
-    colors: { app: '#111318', panel: '#1a1d24', card: '#222631', text: '#f1eee8', muted: '#9b9da5', accent: '#c6a878', accentHover: '#dfc18a', border: '#343946', success: '#67b58a', warning: '#d39a57', danger: '#e27d76' },
-  },
-  {
-    id: 'song-smoke', label: '松烟', description: '灰绿、青灰、自然感', mode: '浅色', material: '有呼吸的纤维纸面',
-    colors: { app: '#f2f5f1', panel: '#e5ece6', card: '#fafcf9', text: '#24332d', muted: '#6e7d74', accent: '#317b66', accentHover: '#256653', border: '#cbd9cf', success: '#2e8061', warning: '#a87539', danger: '#b94e48' },
-  },
-  {
-    id: 'deep-plum', label: '绛紫', description: '深莓、烟紫、玫瑰铜', mode: '深色', material: '柔软的夜色绒面',
-    colors: { app: '#201922', panel: '#2b2130', card: '#382839', text: '#f4edf4', muted: '#bca8bc', accent: '#c26b8e', accentHover: '#dc7fa4', border: '#50384f', success: '#79b89d', warning: '#d3a163', danger: '#e4888d' },
-  },
-] as const
 
 const PRODUCTION_THEMES = DESIGN_THEME_ASSETS.map((asset) => ({ id: asset.id, label: asset.labelZh }))
 type Sub = 'colors' | 'themes' | 'radius'

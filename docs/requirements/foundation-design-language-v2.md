@@ -146,13 +146,17 @@
 ### 4.1 页面与状态
 
 - `DesignSystemPanel.tsx` 是本轮 Playground 视觉实验的唯一入口，内部通过轻量横向筛选切换颜色、主题、形态与动效。
-- 主题候选由本文件内的隔离 fixture 提供，不写入 `src/shared/design-asset-registry.ts`，不改 `document.documentElement`，不触发设置保存。
+- 主题候选统一来自 `src/components/playground/foundation-themes.ts`，设计语言页与设置候选共用名称、顺序及色板；不写入 `src/shared/design-asset-registry.ts`，不改 `document.documentElement`，不触发设置保存。
 - 样张统一使用 `var(--study-*)` 局部变量；生产页面仍使用全局语义 token。
+- 设置候选从同一色板派生容器级语义 token；瓷青 / 曜石 / 松烟 / 绛紫实际改变候选配色，不映射成七个旧生产主题。切换分区保留本次选择，退出不持久化。
 - `PlaygroundLayout.tsx` 和 `StoryBlock.tsx` 提供共享页头与卡片层级，其他 Playground 面板只复用，不再自行发明第二套视觉壳。
 
 ### 4.2 允许修改的文件
 
 - `src/components/playground/DesignSystemPanel.tsx`
+- `src/components/playground/foundation-themes.ts`（共享候选定义与局部 token 映射）
+- `src/components/playground/SettingsExperienceCandidate.tsx`（仅主题候选复用）
+- `scripts/asset-governance.mjs` / `scripts/asset-registry-check.mjs`（候选色板精确归属，保留静态资产门禁，不登记生产主题）
 - `src/components/playground/PlaygroundLayout.tsx`
 - `src/components/playground/StoryBlock.tsx`
 - `src/components/playground/PlaygroundShell.tsx`

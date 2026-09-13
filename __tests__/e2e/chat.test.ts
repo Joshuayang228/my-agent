@@ -7,6 +7,52 @@
 import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 
+for (const outerTheme of ['light', 'dark']) {
+  for (const width of [1166, 600]) {
+    test(`设置主题与基础四主题同源 ${outerTheme} ${width}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 731 })
+      await page.addInitScript((value) => localStorage.setItem('theme', value), outerTheme)
+      await page.goto('/')
+      await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+      const nav = page.getByTestId('playground-nav')
+      await nav.getByRole('button', { name: '设计语言', exact: true }).click()
+      await page.getByRole('button', { name: '主题对照', exact: true }).click()
+      const studies = await page.getByTestId('theme-study-grid').locator('article').evaluateAll((nodes) => nodes.map((node) => ({
+        id: node.getAttribute('data-testid')!.replace('theme-study-', ''),
+        label: node.querySelector('h4')!.textContent!,
+        app: (node as HTMLElement).style.getPropertyValue('--study-app'),
+        accent: (node as HTMLElement).style.getPropertyValue('--study-accent'),
+        text: (node as HTMLElement).style.getPropertyValue('--study-text'),
+      })))
+      expect(studies.map((study) => study.label)).toEqual(['瓷青', '曜石', '松烟', '绛紫'])
+      await nav.getByRole('button', { name: '设置', exact: true }).click()
+      const settings = page.getByTestId('settings-candidate')
+      const choices = settings.getByTestId('settings-candidate-theme-card')
+      await expect(choices.getByRole('button')).toHaveCount(4)
+      const savedBefore = await page.evaluate(() => JSON.stringify({ ...localStorage }))
+      for (const study of studies) {
+        const option = choices.getByTestId(`settings-candidate-theme-${study.id}`)
+        await expect(option).toContainText(study.label)
+        await option.focus()
+        await page.keyboard.press('Enter')
+        await expect(option).toHaveAttribute('aria-pressed', 'true')
+        await expect(settings).toHaveAttribute('data-playground-theme', study.id)
+        await expect(choices.locator('[aria-pressed="true"]')).toHaveCount(1)
+        const colors = await settings.evaluate((node) => { const style = getComputedStyle(node); return ['--bg-primary', '--accent', '--text-primary'].map((token) => style.getPropertyValue(token).trim()) })
+        expect(colors).toEqual([study.app, study.accent, study.text])
+        expect(await choices.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
+        await expect(page.locator('html')).toHaveAttribute('data-theme', outerTheme)
+        expect(await page.evaluate(() => JSON.stringify({ ...localStorage }))).toBe(savedBefore)
+        await choices.scrollIntoViewIfNeeded()
+        await page.screenshot({ path: testInfo.outputPath(`theme-${study.id}.png`), animations: 'disabled' })
+      }
+      await settings.getByRole(width < 768 ? 'tab' : 'button', { name: '权限与自动化', exact: true }).click()
+      await settings.getByRole(width < 768 ? 'tab' : 'button', { name: '外观与界面', exact: true }).click()
+      await expect(choices.getByTestId('settings-candidate-theme-deep-plum')).toHaveAttribute('aria-pressed', 'true')
+    })
+  }
+}
+
 for (const theme of ['light', 'dark']) {
   for (const width of [1166, 600]) {
     test(`记忆清单背景验收 ${theme} ${width}`, async ({ page }, testInfo) => {
@@ -17,7 +63,7 @@ for (const theme of ['light', 'dark']) {
       await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
       await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
       const candidate = page.getByTestId('settings-surface-candidate')
-      await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /暗夜/ : /日光/ }).click()
+      await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /曜石/ : /瓷青/ }).click()
       await candidate.getByRole(width < 640 ? 'tab' : 'button', { name: '记忆', exact: true }).click()
       const memory = page.getByTestId('memory-surface-candidate')
       await expect(memory).toContainText('正在做一款人格化桌面 Agent。')
@@ -118,7 +164,7 @@ for (const theme of ['light', 'dark']) {
       await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
       await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
       const candidate = page.getByTestId('settings-surface-candidate')
-      await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /暗夜/ : /日光/ }).click()
+      await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /曜石/ : /瓷青/ }).click()
       await candidate.getByRole(width < 640 ? 'tab' : 'button', { name: '权限与自动化', exact: true }).click()
       const rules = candidate.getByTestId('settings-candidate-rules-existing')
       const toggle = rules.getByTestId('settings-candidate-rules-existing-toggle')
@@ -811,7 +857,7 @@ test.describe('My Agent UI', () => {
         await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
         await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
         const candidate = page.getByTestId('settings-surface-candidate')
-        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /暗夜/ : /日光/ }).click()
+        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /曜石/ : /瓷青/ }).click()
         await candidate.getByRole(width < 640 ? 'tab' : 'button', { name: 'Skills', exact: true }).click()
         await candidate.getByRole('tab', { name: '多个', exact: true }).click()
         await expect(candidate.getByRole('tab', { name: '多个', exact: true })).toHaveAttribute('aria-selected', 'true')
@@ -854,7 +900,7 @@ test.describe('My Agent UI', () => {
         await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
         await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
         const candidate = page.getByTestId('settings-surface-candidate')
-        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /暗夜/ : /日光/ }).click()
+        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /曜石/ : /瓷青/ }).click()
         await candidate.getByRole(width < 640 ? 'tab' : 'button', { name: 'MCP', exact: true }).click()
         const preview = candidate.getByTestId('settings-candidate-mcp-scenes')
         const tabs = preview.getByRole('tablist', { name: 'MCP 样张场景' })
@@ -1307,7 +1353,7 @@ test.describe('My Agent UI', () => {
         await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
         await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
         const candidate = page.getByTestId('settings-surface-candidate')
-        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /暗夜/ : /日光/ }).click()
+        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /曜石/ : /瓷青/ }).click()
         await candidate.getByRole(width < 640 ? 'tab' : 'button', { name: '模型', exact: true }).click()
         const routes = candidate.getByTestId('settings-candidate-model-current')
         const initialRoutes = await routes.innerText()
@@ -1411,7 +1457,7 @@ test.describe('My Agent UI', () => {
         await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
         await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
         const candidate = page.getByTestId('settings-surface-candidate')
-        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /暗夜/ : /日光/ }).click()
+        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /曜石/ : /瓷青/ }).click()
         await candidate.getByRole(width < 640 ? 'tab' : 'button', { name: '模型', exact: true }).click()
         const profile = candidate.getByTestId('settings-candidate-model-profile-connection-openai-0')
         const header = profile.getByTestId('settings-candidate-connection-header-connection-openai-0')

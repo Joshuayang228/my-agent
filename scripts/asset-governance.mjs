@@ -71,4 +71,9 @@ export const ASSET_GOVERNANCE = [
     sourcePaths: ['src/shared/design-asset-registry.ts', 'src/index.css'], registryPaths: ['src/shared/design-asset-registry.ts'], discovery: '显式设计资产注册表',
     keyRule: 'theme id / font scale id', display: 'Settings / Playground / 正式页面', usageEvidence: '不记录 Agent 运行证据',
   },
+  {
+    id: 'design-study', labelZh: 'Playground 主题候选', kind: 'static-renderer', modelContextTypes: [],
+    sourcePaths: ['src/components/playground/foundation-themes.ts'], registryPaths: ['src/components/playground/foundation-themes.ts'], discovery: '共享候选色板与局部 token 派生',
+    keyRule: '稳定 study id；不作为生产 theme id', display: 'Playground / 基础主题对照 / 设置候选', usageEvidence: '同源与隔离 E2E；不记录 Agent 运行证据',
+  },
 ]

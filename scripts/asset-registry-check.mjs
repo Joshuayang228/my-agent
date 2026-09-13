@@ -61,6 +61,7 @@ function declaredEntryCount(family) {
     'ui-component': /\n\s*component\(/g,
     'product-experience': /\n\s*experience\(/g,
     design: /\n\s*\{ id: '/g,
+    'design-study': /\n\s*id: '/g,
     'subagent-role': /\n\s{2,}[a-z][a-z0-9-]*:\s*\{/g,
   }
   return patterns[family.id] ? countMatches(text, patterns[family.id]) : null
@@ -88,9 +89,9 @@ function assertStagedRegistration(stagedEntries) {
     // 修改现有组件不代表新增资产；只有新增生产文件才需要证明它被自动发现或同步进显式注册表。
     const addedEntries = stagedEntries.filter((entry) => entry.status === 'A' && family.sourcePaths.some((source) => pathMatches(entry.path, source)))
     if (addedEntries.length === 0) continue
-    // 页面级产品体验组件有自己的体验注册表，不应被误判为 Foundation 故事；
-    // 只有真正属于 UI 组件资产的新增文件才要求同时改动组件 / Foundation 注册表。
-    if (family.id === 'ui-component' && addedEntries.every((entry) => ASSET_GOVERNANCE.some((candidateFamily) => candidateFamily.id === 'product-experience' && candidateFamily.sourcePaths.some((source) => pathMatches(entry.path, source))))) continue
+    // 背景：组件目录也承载产品体验和候选色板，不能把共享数据误注册成 Foundation 控件。
+    // 按显式来源归属免去重复的组件登记；对应家族自身的注册检查仍必须执行，不能泛化为目录豁免。
+    if (family.id === 'ui-component' && addedEntries.every((entry) => ASSET_GOVERNANCE.some((candidateFamily) => ['product-experience', 'design-study'].includes(candidateFamily.id) && candidateFamily.sourcePaths.some((source) => pathMatches(entry.path, source))))) continue
     const changedRegistry = stagedEntries.some((entry) => family.registryPaths.includes(entry.path))
     const addedRegistryItself = stagedEntries.some((entry) => entry.status === 'A' && family.registryPaths.includes(entry.path))
     if (!changedRegistry && !addedRegistryItself) failures.push(`staged 新文件属于「${family.labelZh}」生产来源，但没有同步注册表：${family.registryPaths.join('、')}`)
