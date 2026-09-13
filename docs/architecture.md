@@ -85,6 +85,7 @@ think → act → observe → think → ...
 - **LLM 调用重试**：网络错误/429/5xx 自动重试，最多 2 次，指数退避
 - **工具并发执行**：按 LLM 原始顺序分批 — concurrencySafe 连续工具并行，遇到非安全工具刷新批次串行，保持 LLM 指定的执行语义
 - **ToolContext 依赖注入**：工具通过 `ctx: ToolContext` 获取 workdir / sessionId / AbortSignal，不再依赖全局 import
+- **运行证据会话归属**：Agent Loop 的权限决策与工具执行资产记录统一从 `ToolContext.sessionId` 取会话 ID，与 workspace/runtime 的工具上下文保持同源；不新增 IPC 字段，也不改变权限或工具执行契约。
 
 ### 2. IPC 模块化
 

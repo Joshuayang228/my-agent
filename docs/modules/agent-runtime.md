@@ -33,6 +33,7 @@
 
 - `chat:send` 只传本轮用户消息；历史由 session-store 加载
 - 工具执行前走权限引擎（见 permission）
+- 权限决策与工具执行的运行证据统一使用 `ToolContext.sessionId` 记录会话归属；Loop 不从不存在的顶层会话字段读取，避免 workspace/runtime 证据丢失或串会话。
 - 主 Assemble 只在 `prompt-builder`；辅助 Prompt 不得再走一套平行组装器冒充主路径
 - Loop 的 `done` 必须保留真实 `TerminalReason` 且只发一次；只有 `completed` 才保存完整 assistant、启动后台善后和成功通知
 - Runtime 从配置初始化到生成器退出持续持有会话锁，abort 只发信号；session:delete 必须等待 chat IPC 的完整收尾，再删除记录，不能以 done 或 abort 回执判断存储已无写入。

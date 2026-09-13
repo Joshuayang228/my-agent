@@ -557,7 +557,7 @@ export async function* agentLoop(
           relation: 'used',
           usageKind: 'permission-decision',
           spanId: state.interactionSpanId,
-          sessionId: options.sessionId,
+          sessionId: options.toolContext?.sessionId,
           status: permissionStatus,
           metadata: {
             toolName: call.name,
@@ -572,7 +572,7 @@ export async function* agentLoop(
           relation: 'used',
           usageKind: 'permission-decision',
           spanId: state.interactionSpanId,
-          sessionId: options.sessionId,
+          sessionId: options.toolContext?.sessionId,
           status: permissionStatus,
           metadata: { toolName: call.name, executionMode: effectiveExecutionMode, sandboxMode: effectiveSandbox },
         },
@@ -611,7 +611,7 @@ export async function* agentLoop(
           usageKind: 'permission-decision',
           spanId: blockedSpan.id,
           parentSpanId: state.interactionSpanId,
-          sessionId: options.sessionId,
+          sessionId: options.toolContext?.sessionId,
           status: 'blocked',
           metadata: { toolName: call.name, executionMode: effectiveExecutionMode },
         })
@@ -624,7 +624,7 @@ export async function* agentLoop(
           usageKind: 'permission-decision',
           spanId: blockedSpan.id,
           parentSpanId: state.interactionSpanId,
-          sessionId: options.sessionId,
+          sessionId: options.toolContext?.sessionId,
           status: approved ? 'success' : 'denied',
           metadata: { toolName: call.name, outcome: approved ? 'approved' : 'rejected' },
         })
@@ -693,7 +693,7 @@ export async function* agentLoop(
         usageKind: 'tool-execution',
         spanId: toolSpan.id,
         parentSpanId: state.interactionSpanId,
-        sessionId: options.sessionId,
+        sessionId: options.toolContext?.sessionId,
         status: 'running',
         metadata: { toolName: call.name },
       })
@@ -731,7 +731,7 @@ export async function* agentLoop(
           usageKind: 'tool-execution',
           spanId: tSpan.id,
           parentSpanId: state.interactionSpanId,
-          sessionId: options.sessionId,
+          sessionId: options.toolContext?.sessionId,
           status: result.isError ? 'error' : 'success',
           metadata: { toolName: result.name, isError: Boolean(result.isError), resultLength: result.content.length },
         })
