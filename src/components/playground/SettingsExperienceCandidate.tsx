@@ -419,7 +419,7 @@ function PermissionsPage({ mode, onModeChange }: { mode: string; onModeChange: (
       </button>
       {showCustomRules && <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
         <div className="flex justify-end">
-          {!showRuleForm && <button type="button" onClick={() => { setRuleTarget('命令'); setRuleAction('拒绝'); setRulePattern(''); setShowRuleForm(true) }} className="flex shrink-0 items-center gap-1 rounded-[var(--radius-md)] border px-2.5 py-1.5 text-[10px] font-medium" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-add-rule"><Plus size={12} />添加</button>}
+          <button type="button" aria-expanded={showRuleForm} onClick={() => { if (showRuleForm) { setShowRuleForm(false); return }; setRuleTarget('命令'); setRuleAction('拒绝'); setRulePattern(''); setShowRuleForm(true) }} className="flex h-8 w-24 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-[var(--radius-md)] border text-[10px] font-medium" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-add-rule">{showRuleForm ? <X size={12} /> : <Plus size={12} />}{showRuleForm ? '取消添加' : '添加'}</button>
         </div>
         <ul className="mt-3 space-y-3" aria-label="自定义规则列表">{savedRules.map((savedRule, index) => <li key={index} className="flex items-center justify-between gap-3 py-1">
           <div className="min-w-0"><div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{savedRule.action} · {savedRule.target}</div><div className="mt-1 break-all font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{savedRule.pattern}</div></div>
