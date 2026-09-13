@@ -2,7 +2,8 @@ import { useRef, useState } from 'react'
 import { ArrowUp, Globe, GitCompare, FileText, TerminalSquare, MessageCircle, RefreshCw, Square, LoaderCircle, PanelRight, Plus } from 'lucide-react'
 import { type FileBrowserPreviewData } from '../FileBrowser'
 import { WorkspaceFilesPanel } from '../chat/right-dock/WorkspaceFilesPanel'
-import { CodeBlock, MarkdownRenderer } from '../MarkdownRenderer'
+import { MarkdownRenderer } from '../MarkdownRenderer'
+import { DiffViewer, DiffViewControls, type DiffViewMode } from '../foundation/DiffViewer'
 import { TabStrip } from '../foundation/TabStrip'
 import teaImage from '../../assets/playground/moment-tea-by-window.jpg'
 
@@ -98,6 +99,7 @@ export function WorkspaceDock({
 
 function ReviewSample({ scene }: { scene: string }) {
   const [file, setFile] = useState('theme.ts')
+  const [mode, setMode] = useState<DiffViewMode>(scene === '并排差异' ? 'split' : 'unified')
   if (scene === '无变更') return <div className="m-auto text-[12px]" style={{ color: 'var(--text-muted)' }}>没有文件变更</div>
   const oldText = file === 'theme.ts' ? before : '# 项目笔记\n\n整理资料。'
   const newText = file === 'theme.ts' ? after : '# 项目笔记\n\n整理资料，并核对页面。'
@@ -105,12 +107,10 @@ function ReviewSample({ scene }: { scene: string }) {
     <div className="flex flex-wrap items-center gap-2 border-b p-3 text-[12px]" style={{ borderColor: 'var(--border-subtle)' }}>
       {scene === '多文件' ? <select className="theme-input min-w-0 rounded border p-1" aria-label="审阅文件" value={file} onChange={(event) => setFile(event.target.value)}><option>theme.ts</option><option>notes.md</option></select> : <span>{file}</span>}
       <span className="ml-auto" style={{ color: 'var(--success)' }}>+{file === 'theme.ts' ? 2 : 1}</span><span style={{ color: 'var(--danger)' }}>−{file === 'theme.ts' ? 2 : 1}</span>
+      <DiffViewControls mode={mode} canSplit onChange={setMode} />
     </div>
     <div className="min-h-0 overflow-auto p-3" data-testid="workspace-diff">
-      {scene === '并排差异' ? <div className="grid grid-cols-2 gap-3">
-        <div className="min-w-0"><p className="mb-2 text-[11px]">修改前</p><CodeBlock code={oldText} language={file === 'theme.ts' ? 'typescript' : 'markdown'} /></div>
-        <div className="min-w-0"><p className="mb-2 text-[11px]">修改后</p><CodeBlock code={newText} language={file === 'theme.ts' ? 'typescript' : 'markdown'} /></div>
-      </div> : <CodeBlock language="diff" code={'--- ' + file + '\n+++ ' + file + '\n' + (file === 'theme.ts' ? " export const theme = {\n-  name: 'dark',\n-  spacing: 12,\n+  name: 'mist',\n+  spacing: 16,\n }" : ' # 项目笔记\n \n-整理资料。\n+整理资料，并核对页面。')} />}
+      <DiffViewer mode={mode} before={oldText} after={newText} language={file === 'theme.ts' ? 'typescript' : 'markdown'} unified={'--- ' + file + '\n+++ ' + file + '\n' + (file === 'theme.ts' ? " export const theme = {\n-  name: 'dark',\n-  spacing: 12,\n+  name: 'mist',\n+  spacing: 16,\n }" : ' # 项目笔记\n \n-整理资料。\n+整理资料，并核对页面。')} />
     </div>
   </>
 }

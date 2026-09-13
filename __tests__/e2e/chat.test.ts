@@ -856,6 +856,72 @@ test.describe('My Agent UI', () => {
     await expect(review.getByRole('button', { name: '统一差异', exact: true })).toBeEnabled()
   })
 
+  for (const theme of ['light', 'dark']) {
+    for (const width of [1166, 600]) {
+      test(`Foundation 差异查看器真实切换与有界长文件 ${theme} ${width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 731 })
+        await page.addInitScript((value) => localStorage.setItem('theme', value), theme)
+        await page.goto('/')
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+        await page.getByTestId('playground-nav').getByRole('button', { name: '基础组件', exact: true }).click()
+        await page.getByRole('tab', { name: '文件与差异', exact: true }).click()
+        const story = page.getByTestId('foundation-diff-code')
+        const viewer = story.locator('[data-foundation="diff-viewer"]')
+        const unified = story.getByRole('button', { name: '统一差异', exact: true })
+        const split = story.getByRole('button', { name: '并排差异', exact: true })
+        await expect(viewer).toHaveAttribute('data-mode', 'split')
+        const size = await split.evaluate((node) => ({ width: node.clientWidth, height: node.clientHeight }))
+        await unified.focus()
+        await page.keyboard.press('Enter')
+        await expect(viewer).toHaveAttribute('data-mode', 'unified')
+        await split.click()
+        await story.getByRole('combobox', { name: '差异样张' }).selectOption('empty')
+        await expect(viewer.locator('pre code')).toHaveCount(2)
+        expect(await viewer.locator('pre code').first().textContent()).toBe('')
+        await story.getByRole('combobox', { name: '差异样张' }).selectOption('long')
+        const scroll = story.getByTestId('foundation-diff-scroll')
+        expect(await scroll.evaluate((node) => node.clientHeight <= 320 && node.scrollHeight > node.clientHeight)).toBe(true)
+        await scroll.evaluate((node) => { node.scrollTop = node.scrollHeight })
+        expect(await scroll.evaluate((node) => node.scrollTop)).toBeGreaterThan(0)
+        expect(await viewer.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
+        await scroll.evaluate((node) => { node.scrollTop = 0 })
+        await split.hover()
+        expect(await split.evaluate((node) => ({ width: node.clientWidth, height: node.clientHeight }))).toEqual(size)
+        await story.screenshot({ path: testInfo.outputPath('foundation-diff.png') })
+      })
+    }
+  }
+
+  test('正式审阅空稿可并排，切换无旧稿文件不会留下空白', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      api.session.listFileChanges = async () => ['empty-before.txt', 'empty-after.txt', 'new.txt'].map((name) => ({ path: `C:/e2e-project/${name}`, toolName: 'file_write', updatedAt: 1, hasBefore: name !== 'new.txt' }))
+      api.session.getFileChangeDiff = async (_session: string, path: string) => path.endsWith('empty-before.txt')
+        ? { diff: '+created', before: '', after: 'created' }
+        : path.endsWith('empty-after.txt') ? { diff: '-removed', before: 'removed', after: '' } : { after: 'new file content' }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '新对话', exact: true }).click()
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '审阅', exact: true }).click()
+    const review = dock.getByRole('tabpanel', { name: '审阅', exact: true })
+    const split = review.getByRole('button', { name: '并排差异', exact: true })
+    for (const [file, contents] of [['empty-before.txt', ['', 'created']], ['empty-after.txt', ['removed', '']]] as const) {
+      await review.getByRole('button', { name: new RegExp(file) }).click()
+      await expect(split).toBeEnabled()
+      await split.click()
+      await expect(review.locator('pre code')).toHaveCount(2)
+      expect(await review.locator('pre code').allTextContents()).toEqual(contents)
+    }
+    await review.getByRole('button', { name: /new.txt/ }).click()
+    await expect(split).toBeDisabled()
+    await expect(review.getByRole('button', { name: '统一差异', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(review.locator('pre code')).toHaveText('new file content')
+  })
+
   test('正式浏览器工作区加载失败可重试并保持地址栏布局', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {

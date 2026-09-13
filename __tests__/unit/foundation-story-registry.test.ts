@@ -17,20 +17,24 @@ const uiControlsSource = readFileSync('src/components/playground/UiControlsPanel
 const advancedSource = readFileSync('src/components/playground/FoundationAdvancedStories.tsx', 'utf8')
 
 describe('Foundation story registry', () => {
-  it('基础故事、体验与正式文件审阅渲染同一个 CodeBlock，而不是只导入或声明同名组件', () => {
+  it('基础故事、体验与正式审阅按真实符号复用 DiffViewer 和 CodeBlock', () => {
     const consumers = [
       'src/components/MarkdownRenderer.tsx',
       'src/components/FileBrowser.tsx',
-      'src/components/chat/right-dock/ReviewPanel.tsx',
       'src/components/playground/UiControlsPanel.tsx',
+      'src/components/foundation/DiffViewer.tsx',
+      'src/components/chat/right-dock/ReviewPanel.tsx',
       'src/components/playground/FoundationAdvancedStories.tsx',
       'src/components/playground/WorkspaceExperienceCandidate.tsx',
     ].map((file) => resolve(file))
     const fixture = resolve('__tests__/fixtures/code-block-binding.tsx')
     const source = `import { CodeBlock as Shared } from '../../src/components/MarkdownRenderer'
+      import { DiffViewer as SharedDiff } from '../../src/components/foundation/DiffViewer'
       function Unused() { return <pre /> }
       function Shadowed(Shared: any) { return <Shared /> }
-      function Used() { return <Shared code="raw" /> }`
+      function Used() { return <Shared code="raw" /> }
+      function ShadowedDiff(SharedDiff: any) { return <SharedDiff /> }
+      function UsedDiff() { return <SharedDiff unified="raw" /> }`
     const options: ts.CompilerOptions = { jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, skipLibCheck: true }
     const host = ts.createCompilerHost(options)
     const getSourceFile = host.getSourceFile.bind(host)
@@ -39,23 +43,31 @@ describe('Foundation story registry', () => {
       : getSourceFile(file, ...args)
     const program = ts.createProgram([...consumers, fixture], options, host)
     const checker = program.getTypeChecker()
-    const rendersShared = (root: ts.Node) => {
+    const rendersShared = (root: ts.Node, name: string, sourcePath: string) => {
       let found = false
       const visit = (node: ts.Node) => {
         if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
           let symbol = checker.getSymbolAtLocation(node.tagName)
           if (symbol && (symbol.flags & ts.SymbolFlags.Alias)) symbol = checker.getAliasedSymbol(symbol)
-          found ||= Boolean(symbol?.name === 'CodeBlock' && symbol.declarations?.some((declaration) =>
-            resolve(declaration.getSourceFile().fileName) === consumers[0]))
+          found ||= Boolean(symbol?.name === name && symbol.declarations?.some((declaration) =>
+            resolve(declaration.getSourceFile().fileName) === sourcePath))
         }
         ts.forEachChild(node, visit)
       }
       visit(root)
       return found
     }
-    for (const file of consumers) expect(rendersShared(program.getSourceFile(file)!), file).toBe(true)
+    const codeSource = consumers[0]
+    const diffSource = resolve('src/components/foundation/DiffViewer.tsx')
+    for (const file of consumers.slice(0, 4)) expect(rendersShared(program.getSourceFile(file)!, 'CodeBlock', codeSource), file).toBe(true)
+    for (const file of consumers.slice(4)) {
+      expect(rendersShared(program.getSourceFile(file)!, 'DiffViewer', diffSource), file).toBe(true)
+      expect(rendersShared(program.getSourceFile(file)!, 'DiffViewControls', diffSource), file).toBe(true)
+    }
+    expect(UI_COMPONENT_REGISTRY['developer.diff-viewer'].sourcePath).toBe('src/components/foundation/DiffViewer.tsx')
     const functions = program.getSourceFile(fixture)!.statements.filter(ts.isFunctionDeclaration)
-    expect(functions.map(rendersShared)).toEqual([false, false, true])
+    expect(functions.map((node) => rendersShared(node, 'CodeBlock', codeSource))).toEqual([false, false, true, false, false])
+    expect(functions.map((node) => rendersShared(node, 'DiffViewer', diffSource))).toEqual([false, false, false, false, true])
   })
 
   it('keeps story keys, views, assets and groups in one consistent relation', () => {

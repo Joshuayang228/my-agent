@@ -70,7 +70,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     sourcePaths: ['src/components/playground/WorkspaceExperienceCandidate.tsx', 'src/components/chat/right-dock/ChatRightDock.tsx', 'src/components/chat/right-dock/ReviewPanel.tsx', 'src/components/chat/right-dock/WorkspaceFilesPanel.tsx', 'src/components/FileBrowser.tsx', 'src/components/MarkdownRenderer.tsx'],
     fixtureAssetPaths: ['src/assets/playground/moment-tea-by-window.jpg'],
     experienceParts: ['审阅', '浏览器', '文件', '终端', '侧边聊天'],
-    usesFoundation: ['developer.file-tree', 'developer.markdown', 'layout.resize-handle', 'behavior.tabs', 'behavior.input', 'behavior.icon-button'],
+    usesFoundation: ['developer.file-tree', 'developer.markdown', 'developer.diff-viewer', 'layout.resize-handle', 'behavior.tabs', 'behavior.input', 'behavior.icon-button'],
   }),
 ] as const satisfies readonly ProductExperienceDefinition[]
 

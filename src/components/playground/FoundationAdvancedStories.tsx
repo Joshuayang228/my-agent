@@ -10,7 +10,7 @@
 import { useState } from 'react'
 import { ChevronDown, Command, MoreHorizontal, Search, X } from 'lucide-react'
 import { StoryBlock } from './StoryBlock'
-import { CodeBlock } from '../MarkdownRenderer'
+import { DiffViewer, DiffViewControls, type DiffViewMode } from '../foundation/DiffViewer'
 import { type AdvancedFoundationStoryKey } from '../../shared/foundation-story-registry'
 
 function SelectStory() {
@@ -155,9 +155,18 @@ function ProgressStory() {
 }
 
 function DiffViewerStory() {
-  return <div className="grid min-w-0 grid-cols-2 gap-3" data-testid="foundation-diff-code">
-    <CodeBlock language="diff" code={"- const mode = 'fast'\n  return streamChat()"} />
-    <CodeBlock language="diff" code={"+ const mode = 'balanced'\n  return streamChat()"} />
+  const [mode, setMode] = useState<DiffViewMode>('split')
+  const [scene, setScene] = useState('standard')
+  const before = scene === 'empty' ? '' : "const mode = 'fast'\nreturn streamChat()"
+  const after = scene === 'long' ? Array.from({ length: 100 }, (_, index) => `const item${index} = '${'long '.repeat(30)}'`).join('\n') : "const mode = 'balanced'\nreturn streamChat()"
+  return <div className="min-w-0 space-y-3" data-testid="foundation-diff-code">
+    <div className="flex items-center justify-between gap-2">
+      <select aria-label="差异样张" className="theme-input h-8 rounded border px-2 text-xs" value={scene} onChange={(event) => setScene(event.target.value)}><option value="standard">标准</option><option value="empty">空旧稿</option><option value="long">长文件</option></select>
+      <DiffViewControls mode={mode} canSplit onChange={setMode} />
+    </div>
+    <div className="max-h-80 overflow-auto overscroll-contain" data-testid="foundation-diff-scroll">
+      <DiffViewer mode={mode} before={before} after={after} language="typescript" unified={before.split('\n').map((line) => `- ${line}`).concat(after.split('\n').map((line) => `+ ${line}`)).join('\n')} />
+    </div>
   </div>
 }
 
@@ -183,7 +192,7 @@ function storyContent(story: AdvancedFoundationStoryKey) {
     case 'foundation.tooltip': return <StoryBlock title="提示浮层" source="src/components/playground/FoundationAdvancedStories.tsx · Tooltip candidate" edge><TooltipStory /></StoryBlock>
     case 'foundation.skeleton': return <StoryBlock title="骨架屏" source="src/components/playground/FoundationAdvancedStories.tsx · Skeleton candidate" edge><SkeletonStory /></StoryBlock>
     case 'foundation.progress': return <StoryBlock title="进度条" source="src/components/playground/FoundationAdvancedStories.tsx · Progress candidate" edge><ProgressStory /></StoryBlock>
-    case 'foundation.diff-viewer': return <StoryBlock title="差异查看器" source="src/components/playground/FoundationAdvancedStories.tsx · Diff Viewer candidate" edge><DiffViewerStory /></StoryBlock>
+    case 'foundation.diff-viewer': return <StoryBlock title="差异查看器" source="src/components/foundation/DiffViewer.tsx" edge adopted><DiffViewerStory /></StoryBlock>
     case 'foundation.form-field': return <StoryBlock title="表单字段" source="src/components/playground/FoundationAdvancedStories.tsx · Form Field" edge><FormFieldStory /></StoryBlock>
     case 'foundation.checkbox': return <StoryBlock title="复选框" source="src/components/SettingsPanel.tsx · PermissionRulesEditor"><FormFieldStory /></StoryBlock>
     case 'foundation.switch': return <StoryBlock title="开关" source="src/components/SettingsPanel.tsx · 自动保存 · candidate"><FormFieldStory /></StoryBlock>

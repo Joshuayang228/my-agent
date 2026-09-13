@@ -67,7 +67,7 @@
 | 浏览器 | BrowserPanel 受限只读查看器 | 生产改造后回流 | 主进程安全抓取已接入：URL/DNS 校验、手动拒绝重定向、超时与响应上限；Renderer 使用无脚本 sandbox + CSP。仍不支持脚本、登录、站内交互和任意导航 |
 | 侧边聊天 | SideChatPanel + `workspace` 会话 | 已回流，整体视觉待验收 | 创建/发送失败重试、旧草稿/确认/异步响应隔离有 Renderer 回归；真实 Electron 已验证流中关闭及切换主会话后的连接终止、存储删除和新侧聊发送；Runtime 初始化取消及 IPC 等待收尾/确认取消有 Unit |
 | 多实例工作区 Tab | ChatRightDock + Foundation TabStrip | 已回流 | 固定关闭槽、稳定实例 ID、后台关闭和切换/折叠/一级导航保持已有 Renderer 回归；Windows 终端关闭释放进程树已有 Electron 证据 |
-| Markdown／Diff 代码块 | MarkdownRenderer 的 CodeBlock / FileBrowser / ReviewPanel | 部分回流 | 原始代码与基础故事同源；局部四主题、Mermaid、全量基础复用仍需验收 |
+| Markdown／Diff 代码块 | MarkdownRenderer / Foundation DiffViewer / FileBrowser / ReviewPanel | 共享渲染已回流 | 原始代码、就近主题/Mermaid 与差异布局同源；空稿和缺稿回退有 Renderer 回归，其它基础控件仍需全量复用验收 |
 
 ### P1 技术路径与交付边界
 
@@ -99,6 +99,8 @@
 - 验收：真实 App Renderer＋Electron 边界替身覆盖两个文件、去重、左右位置、后台关闭、重开、错误／重试、异步乱序；既有 Playground 五功能和文件所有格式故事保持隔离。状态与数据流事实同步到模块卡；真实 Electron 文件读取安全门禁继续保留。
 
 ### P1 验收与回滚
+
+共享 DiffViewer 批次：沿用已批准的基础复用与审阅并排/统一视图范围，新增 Foundation DiffViewer 和固定尺寸视图切换控件，替换 FoundationAdvancedStories、WorkspaceExperienceCandidate、ReviewPanel 中重复的内容布局与视图按钮；保持 CodeBlock 原文、安全与就近主题。允许修改以上文件、基础/体验资产与故事注册测试、Renderer E2E 和本合同/架构/模块卡/质量/进展/变更/缺口文档。空字符串表示有效空稿，只有 null/undefined 表示缺失；缺少任一稿时显示 unified 内容，不能因保留 split 选择而出现空白。模式切换只影响呈现，长内容由现有有界滚动区承接。生产数据仍走已有 session IPC，不引入差异算法、依赖或用户文件写入；源代码门禁追踪真实符号绑定到 DiffViewer→CodeBlock，不能为提取组件削弱成仅检查 import 字符串。
 
 共享 Markdown 主题批次：在已批准的工作区主题/代码渲染范围内，修改 MarkdownRenderer、Foundation 就近主题读取及 Mermaid 串行渲染适配、现有 Markdown 故事的四主题变体、对应 Unit/浏览器夹具与 Playwright UI 匹配配置、资产来源和现状文档。替换只读 documentElement 的主题订阅、每个 Markdown 实例改写 Mermaid 全局配置以及直接展示解析异常的旧分支；语法修正原已可通过重挂载恢复，本批保留为回归项，不宣称旧实现无法恢复。主题来自真实容器的语义变量，不从 Playground 复制色板，不要求业务调用方加主题修复参数。Mermaid 的 initialize+render 必须串行，失败不堵塞后续任务，旧任务/卸载结果不得回写；保持 strict 安全策略及库的资源上限，临时测量节点必须清理。四候选主题仍只在隔离夹具/Playground 使用，不注册为生产主题，也不扩大为四页面通用控件整体重构。验收覆盖四主题同时渲染、全局/局部交叉、宽窄、语法修正、快速更新、队列失败恢复，以及实际 WorkspaceFilesPanel→MarkdownRenderer 路径。
 

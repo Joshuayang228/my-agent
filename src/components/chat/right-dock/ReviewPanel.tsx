@@ -3,9 +3,9 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Columns2, Eraser, FileCode2, RefreshCw, Rows3 } from 'lucide-react'
+import { Eraser, FileCode2, RefreshCw } from 'lucide-react'
 import { ResizeHandle } from '../../shell/ResizeHandle'
-import { CodeBlock } from '../../MarkdownRenderer'
+import { DiffViewer, DiffViewControls, type DiffViewMode } from '../../foundation/DiffViewer'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from '../../../shared/panel-layout'
 import type { WorkspaceChatFocus } from '../../../shared/types'
 
@@ -29,7 +29,7 @@ export function ReviewPanel({ sessionId, onContextChange }: ReviewPanelProps) {
   const [language, setLanguage] = useState('diff')
   const [beforeText, setBeforeText] = useState<string | null>(null)
   const [afterText, setAfterText] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<'unified' | 'split'>('unified')
+  const [viewMode, setViewMode] = useState<DiffViewMode>('unified')
   const [loadingDiff, setLoadingDiff] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const requestRef = useRef(0)
@@ -127,16 +127,7 @@ export function ReviewPanel({ sessionId, onContextChange }: ReviewPanelProps) {
         <button type="button" className="rounded p-0.5" style={{ color: 'var(--text-muted)' }} title="清空列表" onClick={() => { void clearAll() }}>
           <Eraser size={12} />
         </button>
-        <div className="flex shrink-0 items-center gap-0.5" role="group" aria-label="审阅视图">
-          <button type="button" aria-label="统一差异" title="统一差异" aria-pressed={viewMode === 'unified'}
-            className="flex h-6 w-6 items-center justify-center rounded" style={{ color: viewMode === 'unified' ? 'var(--accent-fg)' : 'var(--text-muted)', background: viewMode === 'unified' ? 'var(--accent-subtle)' : undefined }} onClick={() => setViewMode('unified')}>
-            <Rows3 size={13} />
-          </button>
-          <button type="button" aria-label="并排差异" title="并排差异" aria-pressed={viewMode === 'split'} disabled={!beforeText || !afterText}
-            className="flex h-6 w-6 items-center justify-center rounded disabled:opacity-40" style={{ color: viewMode === 'split' ? 'var(--accent-fg)' : 'var(--text-muted)', background: viewMode === 'split' ? 'var(--accent-subtle)' : undefined }} onClick={() => setViewMode('split')}>
-            <Columns2 size={13} />
-          </button>
-        </div>
+        <DiffViewControls mode={viewMode} canSplit={beforeText != null && afterText != null} onChange={setViewMode} />
       </div>
 
       {items.length === 0 ? (
@@ -197,13 +188,7 @@ export function ReviewPanel({ sessionId, onContextChange }: ReviewPanelProps) {
             {error && (
               <p className="text-[11px]" style={{ color: 'var(--danger)' }}>{error}</p>
             )}
-            {diffText != null && !loadingDiff && viewMode === 'unified' && <div className="min-w-0 text-[10px]"><CodeBlock code={diffText} language={language} /></div>}
-            {diffText != null && !loadingDiff && viewMode === 'split' && beforeText != null && afterText != null && (
-              <div className="grid min-w-0 grid-cols-2 gap-2 text-[10px]">
-                <div className="min-w-0"><p className="mb-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>修改前</p><CodeBlock code={beforeText} language="text" /></div>
-                <div className="min-w-0"><p className="mb-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>修改后</p><CodeBlock code={afterText} language="text" /></div>
-              </div>
-            )}
+            {diffText != null && !loadingDiff && <DiffViewer unified={diffText} unifiedLanguage={language} before={beforeText} after={afterText} mode={viewMode} />}
             {!selected && !loadingDiff && (
               <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>选择文件查看 diff</p>
             )}
