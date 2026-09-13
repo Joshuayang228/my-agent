@@ -42,6 +42,7 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
           if (streamEvent.type === 'error') {
             setError(streamEvent.message)
             setRetryMessage(lastSentRef.current)
+            setSending(false)
           }
           if (streamEvent.type === 'done') setSending(false)
         })

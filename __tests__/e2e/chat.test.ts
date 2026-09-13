@@ -895,6 +895,38 @@ test.describe('My Agent UI', () => {
     expect(await refresh.boundingBox()).toEqual(initial)
   })
 
+  test('正式侧边聊天错误后重试会再次发送消息', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      const listeners = new Set<(event: any) => void>()
+      let sends = 0
+      api.session.createWorkspace = async () => ({ id: 'workspace-retry-session', messages: [], createdAt: Date.now(), roleId: 'lin', sessionKind: 'workspace' })
+      api.session.delete = async () => {}
+      api.chat.onEvent = (listener: (event: any) => void) => { listeners.add(listener); return () => listeners.delete(listener) }
+      api.chat.send = async (id: string, message: any) => {
+        sends++
+        ;(window as any).__retrySends = sends
+        if (sends === 1) setTimeout(() => listeners.forEach((listener) => listener({ sessionId: id, type: 'error', message: '第一次发送失败' })), 0)
+        else setTimeout(() => listeners.forEach((listener) => listener({ sessionId: id, type: 'done', reason: 'completed' })), 0)
+      }
+      api.chat.abort = async () => {}
+    })
+    await page.goto('/')
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '侧边聊天', exact: true }).click()
+    const panel = dock.getByTestId('workspace-sidechat-panel')
+    const input = panel.getByRole('textbox', { name: '侧边聊天消息' })
+    await input.fill('请重试这次修改')
+    await panel.getByRole('button', { name: '发送消息', exact: true }).click()
+    await expect(panel.getByRole('alert')).toContainText('第一次发送失败')
+    await panel.getByRole('button', { name: '重试', exact: true }).click()
+    await expect.poll(() => page.evaluate(() => (window as any).__retrySends)).toBe(2)
+    await expect(panel.getByRole('button', { name: '发送消息', exact: true })).toBeVisible()
+  })
+
   test('正式侧边聊天使用独立工作区会话并支持流式回复与停止', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
