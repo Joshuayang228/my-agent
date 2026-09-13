@@ -1784,7 +1784,7 @@ function App() {
             showFiles={showFileBrowser}
             collapsed={rightDockCollapsed}
             width={rightDockWidth}
-            deferredTabs
+
             onCloseFiles={() => { setRightDockCollapsed(false); setShowFileBrowser(false) }}
           />
         </>

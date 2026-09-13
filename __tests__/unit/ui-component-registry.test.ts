@@ -35,6 +35,7 @@ describe('UI component asset registry', () => {
       'src/components/playground/UiControlsPanel.tsx',
       'src/components/playground/WorkspaceExperienceCandidate.tsx',
       'src/components/chat/right-dock/ChatRightDock.tsx',
+      'src/components/chat/right-dock/WorkspaceFilesPanel.tsx',
     ]) expect(rendersSharedTabs(readFileSync(path, 'utf8')), path).toBe(true)
     expect(rendersSharedTabs("import { TabStrip } from '../foundation/TabStrip'; const x = <div />")).toBe(false)
     expect(rendersSharedTabs("const TabStrip = () => <div />; const x = <TabStrip />")).toBe(false)

@@ -86,6 +86,15 @@
 - 回流链：Foundation 标签故事 → TabStrip 共享实现 → Playground 工作区及内部文件预览 → 正式 ChatRightDock。注册表指向实际基础文件；Unit 解析 import 与 JSX，负例覆盖未渲染的 import 和同名本地控件；E2E 验证三层真实渲染、hover 几何、键盘和后台关闭。
 - 本批不宣称完成的内容：所有控件的全量复用门禁、正式五功能及文件内部多预览、切换标签后保留后台面板、终端事件隔离、浏览器与侧聊服务。标签关闭槽回流不能替代这些能力。
 
+### P1 文件工作区批次
+
+- 目标：正式工作区仅保留文件功能，不再把预览作为独立顶层工具；内部左树右多文件预览，已打开文件去重、切换、关闭／重开，文件工具实例彼此独立。
+- 允许修改：ChatRightDock、FileBrowser、新增 WorkspaceFilesPanel、WorkspaceExperienceCandidate 的 FilesSample、相关 E2E／Unit、资产注册和本合同／architecture／模块卡／quality／progress／changelog／wishlist。App 只移除已不需要的兼容开关。保留用户临时文件，不修改 IPC、真实文件、设置或模型配置。
+- 删除与替换范围：正式 preview 顶层类型和重复面板、未被调用的旧 playgroundTabs／deferredTabs 兼容分支，以及候选 FilesSample 的重复文件预览 JSX；它们由真实共享 WorkspaceFilesPanel 替代，不删除文件格式、复制、HTML 沙箱和系统打开能力。
+- 数据流：FileBrowser 文件树 → 选择路径 → WorkspaceFilesPanel 每路径读取状态 → 现有 project.readFile → FileBrowser 受控 preview。文件树与预览的数据转换共用函数，fixture 显式传入时不调用 IPC。
+- 异步契约：每文件有独立读取标识；快速切换不让旧结果抢焦点，关闭后到达的结果不能重开标签，关闭再重开不能接收旧请求。项目切换重建文件实例，旧项目结果不能进入新项目；面板切换与同页折叠保留文件树／预览状态。
+- 验收：真实 App Renderer＋Electron 边界替身覆盖两个文件、去重、左右位置、后台关闭、重开、错误／重试、异步乱序；既有 Playground 五功能和文件所有格式故事保持隔离。状态与数据流事实同步到模块卡；真实 Electron 文件读取安全门禁继续保留。
+
 ### P1 验收与回滚
 
 1. 同页折叠：正式 App 入口验证文件预览和终端草稿保留、隐藏期间输入 DOM 不卸载、键盘恢复；深浅主题和窄宽截图检查图标尺寸与分隔线。Electron 边界替身不构成真实命令执行证据。

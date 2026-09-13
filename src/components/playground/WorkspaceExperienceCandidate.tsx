@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { ArrowUp, Globe, GitCompare, FileText, TerminalSquare, MessageCircle, RefreshCw, Square, LoaderCircle, PanelRight, Plus } from 'lucide-react'
-import { FileBrowser, type FileBrowserPreviewData, type FileBrowserPreviewState } from '../FileBrowser'
+import { type FileBrowserPreviewData } from '../FileBrowser'
+import { WorkspaceFilesPanel } from '../chat/right-dock/WorkspaceFilesPanel'
 import { MarkdownRenderer } from '../MarkdownRenderer'
 import { TabStrip } from '../foundation/TabStrip'
 import teaImage from '../../assets/playground/moment-tea-by-window.jpg'
@@ -137,37 +138,11 @@ function BrowserSample({ scene }: { scene: string }) {
   </>
 }
 
-/**
- * 背景：用户需要左树右预览，并在多个文件之间来回核对。
- * 设计意图：复用正式文件树的受控选择，预览标签由候选持有，避免修改生产上下布局。
- * 关键约束：文件路径仅索引静态夹具；重复选择不新增标签，关闭后移至剩余预览。
- */
+/** fixture 只在故事层生成；正式组合负责布局、读取状态和多预览交互。 */
 function FilesSample({ scene }: { scene: string }) {
   const initialPath = ({ Markdown: 'notes.md', 代码: 'theme.ts', 图片: 'window.jpg', 无法预览: 'report.pdf' } as Record<string, string>)[scene]
   const [data] = useState<FileBrowserPreviewData>(() => scene === '空目录' ? { projectLabel: 'my-agent', tree: [], files: {} } : { ...fileData, initialPath })
-  const [paths, setPaths] = useState<string[]>(initialPath ? [initialPath] : [])
-  const [activePath, setActivePath] = useState<string | null>(initialPath ?? null)
-  const preview = activePath ? data.files[activePath] : null
-  const openFile = (next: FileBrowserPreviewState) => {
-    if (!next) return
-    setPaths((current) => current.includes(next.path) ? current : [...current, next.path]); setActivePath(next.path)
-  }
-  return <div className="flex min-h-0 min-w-0 flex-1" data-testid="workspace-files-layout">
-    <div className="min-w-0 shrink-0 overflow-hidden border-r" style={{ width: paths.length ? '32%' : '100%', borderColor: 'var(--border-subtle)' }} data-testid="workspace-file-tree"><FileBrowser projectPath={null} embedded mode="files" previewData={data} previewState={preview} onPreviewStateChange={openFile} onClose={() => {}} /></div>
-    {paths.length > 0 && <div className="flex min-w-0 flex-1 flex-col" data-testid="workspace-file-preview">
-      <div className="flex items-center border-b p-1" style={{ borderColor: 'var(--border-subtle)' }}>
-        <TabStrip label="文件预览" itemTestId="workspace-file-preview-tab" activeId={activePath}
-          items={paths.map((path) => ({ id: path, label: path }))} onSelect={setActivePath}
-          onClose={(path) => { const remaining = paths.filter((item) => item !== path); setPaths(remaining); setActivePath((current) => current === path ? remaining.at(-1) ?? null : current) }} />
-      </div>
-      <div className="min-h-0 min-w-0 flex-1 overflow-auto p-3" role="tabpanel" aria-label={activePath ?? '文件预览'}>
-        {preview?.kind === 'text' && <MarkdownRenderer content={preview.languageHint === 'markdown' ? preview.content : '```' + (preview.languageHint ?? '') + '\n' + preview.content + '\n```'} />}
-        {preview?.kind === 'image' && <img src={preview.dataUrl} alt={preview.path} className="mx-auto max-h-full max-w-full object-contain" />}
-        {preview?.kind === 'unsupported' && <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{preview.reason}</p>}
-        {preview?.kind === 'error' && <p role="alert" className="text-[12px]">{preview.message}</p>}
-      </div>
-    </div>}
-  </div>
+  return <WorkspaceFilesPanel projectPath={null} previewData={data} />
 }
 
 function WorkspaceChatShell() {

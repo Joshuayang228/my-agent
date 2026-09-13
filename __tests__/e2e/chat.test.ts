@@ -435,23 +435,75 @@ test.describe('My Agent UI', () => {
     }
   }
 
-  test('正式右坞默认预览且文件与预览共享选中文件', async ({ page }) => {
+
+  test('正式文件多预览隔离乱序与关闭重开', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      api.project.listFiles = async () => ['a.ts', 'b.md', 'fail.txt'].map((name) => ({ name, path: name, isDir: false }))
+      const pending: Record<string, Array<(value: unknown) => void>> = {}
+      ;(window as any).__filePending = pending
+      api.project.readFile = (path: string) => new Promise((resolve) => { (pending[path] ??= []).push(resolve) })
+    })
+    await page.goto('/')
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    const tree = dock.getByTestId('file-browser-tree')
+    const previews = dock.getByRole('tablist', { name: '文件预览' })
+    const resolve = async (path: string, content: string, error = false) => page.evaluate(({ path, content, error }) => {
+      (window as any).__filePending[path].shift()(error ? { error: content } : { kind: 'text', content, languageHint: 'text' })
+    }, { path, content, error })
+    await tree.getByRole('button', { name: 'a.ts', exact: true }).click()
+    await tree.getByRole('button', { name: 'b.md', exact: true }).click()
+    await resolve('b.md', 'second file')
+    await resolve('a.ts', 'first file')
+    await expect(previews.getByRole('tab', { name: 'b.md' })).toHaveAttribute('aria-selected', 'true')
+    await expect(dock.getByRole('tabpanel', { name: 'b.md', exact: true })).toContainText('second file')
+    await tree.getByRole('button', { name: 'a.ts', exact: true }).click()
+    await expect(previews.getByRole('tab')).toHaveCount(2)
+    const left = (await dock.getByTestId('workspace-file-tree').boundingBox())!
+    const right = (await dock.getByTestId('workspace-file-preview').boundingBox())!
+    expect(right.x).toBeGreaterThanOrEqual(left.x + left.width - 1)
+    expect(Math.abs(right.y - left.y)).toBeLessThan(2)
+    await previews.getByRole('button', { name: '关闭b.md' }).click()
+    await expect(previews.getByRole('tab', { name: 'a.ts' })).toHaveAttribute('aria-selected', 'true')
+    await tree.getByRole('button', { name: 'b.md', exact: true }).click()
+    await previews.getByRole('button', { name: '关闭b.md' }).click()
+    await tree.getByRole('button', { name: 'b.md', exact: true }).click()
+    await resolve('b.md', 'stale read')
+    await expect(dock.getByRole('tabpanel', { name: 'b.md', exact: true })).not.toContainText('stale read')
+    await resolve('b.md', 'fresh read')
+    await expect(dock.getByRole('tabpanel', { name: 'b.md', exact: true })).toContainText('fresh read')
+    await tree.getByRole('button', { name: 'fail.txt', exact: true }).click()
+    await resolve('fail.txt', '读取失败', true)
+    await dock.getByRole('button', { name: '重新读取' }).click()
+    await resolve('fail.txt', 'recovered')
+    await expect(dock.getByRole('tabpanel', { name: 'fail.txt', exact: true })).toContainText('recovered')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '审阅', exact: true }).click()
+    await dock.getByRole('tab', { name: '文件', exact: true }).click()
+    await expect(previews.getByRole('tab')).toHaveCount(3)
+    await expect(previews.getByRole('tab', { name: 'fail.txt' })).toHaveAttribute('aria-selected', 'true')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '文件', exact: true }).click()
+    await expect(dock.getByRole('tabpanel', { name: '文件 2', exact: true }).getByTestId('workspace-file-preview')).toHaveCount(0)
+    await dock.getByRole('tab', { name: '文件', exact: true }).click()
+    await expect(previews.getByRole('tab')).toHaveCount(3)
+  })
+
+  test('正式右坞文件内部预览与折叠状态保留', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.goto('/')
 
     await page.getByRole('button', { name: '打开工作区', exact: true }).click()
     const dock = page.locator('[data-testid="chat-right-dock"]')
-    await expect(dock.getByTestId('right-dock-tab-preview')).toBeVisible()
-    await expect(dock.getByTestId('right-dock-tab-files')).toHaveCount(0)
+    await expect(dock.getByTestId('right-dock-tab-preview')).toHaveCount(0)
     await expect(dock).not.toContainText('隔离样张')
-
-    await dock.getByTestId('right-dock-add-tab').click()
-    await dock.getByRole('menuitem', { name: '文件', exact: true }).click()
     await expect(dock.getByTestId('right-dock-tab-files')).toBeVisible()
     await dock.getByTestId('file-browser-tree').getByRole('button', { name: 'App.tsx', exact: true }).click()
     await expect(dock.getByTestId('file-browser-tree')).toContainText('App.tsx')
 
-    await dock.getByTestId('right-dock-tab-preview').click()
+    await expect(dock.getByRole('tablist', { name: '文件预览' }).getByRole('tab', { name: 'App.tsx' })).toBeVisible()
     await expect(dock.getByTestId('file-browser-preview')).toContainText('const ready = true')
     await expect(dock.getByTestId('file-browser-preview')).toContainText('App.tsx')
 
@@ -464,7 +516,7 @@ test.describe('My Agent UI', () => {
     expect(await dock.evaluate((node) => node.getBoundingClientRect().width)).toBe(0)
     await page.getByTitle('打开工作区').click()
     await expect(page.getByTitle('收起工作区')).toBeVisible()
-    await expect(dock.getByTestId('right-dock-tab-preview')).toBeVisible()
+    await expect(dock.getByTestId('right-dock-tab-files')).toBeVisible()
     await expect(dock.getByTestId('file-browser-preview')).toContainText('App.tsx')
 
     await dock.getByTestId('right-dock-add-tab').click()
@@ -500,9 +552,6 @@ test.describe('My Agent UI', () => {
     await expect(command).toHaveValue('echo retained-draft')
     expect(await terminalInput!.evaluate((node) => node.isConnected)).toBe(true)
     await tabs.getByRole('tab', { name: '终端', exact: true }).press('Home')
-    await expect(tabs.getByRole('tab', { name: '预览', exact: true })).toBeFocused()
-    await tabs.getByRole('tab', { name: '预览', exact: true }).press('Delete')
-    await expect(tabs.getByRole('tab', { name: '预览', exact: true })).toHaveCount(0)
     await expect(tabs.getByRole('tab', { name: '审阅', exact: true })).toBeFocused()
     await dock.getByTestId('right-dock-add-tab').click()
     await dock.getByRole('menuitem', { name: '审阅', exact: true }).click()

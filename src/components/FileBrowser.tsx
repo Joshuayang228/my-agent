@@ -35,6 +35,7 @@ export type FileBrowserPreviewFile =
   | { path: string; kind: 'image'; dataUrl: string; mimeType?: string; size?: number }
   | { path: string; kind: 'unsupported'; reason: string; size?: number }
   | { path: string; kind: 'error'; message: string }
+  | { path: string; kind: 'loading' }
 
 export interface FileBrowserPreviewData {
   projectLabel: string
@@ -58,6 +59,31 @@ interface FileBrowserProps {
   /** 正式 Right Dock 的文件 / 预览 Tab 共用当前预览；未传入时保持内部状态。 */
   previewState?: FileBrowserPreviewState
   onPreviewStateChange?: (preview: FileBrowserPreviewState) => void
+  /** 多文件工作区接管读取与每路径生命周期；未传入时保持单文件行为。 */
+  onFileSelect?: (path: string) => void
+  hideProjectHeader?: boolean
+  hidePreviewClose?: boolean
+  onRetry?: () => void
+}
+
+/**
+ * 背景：单文件浏览器与多文件工作区读取相同的项目预览 IPC。
+ * 设计意图：只在此转换载荷和友好错误，不让两个入口分叉格式判断。
+ * 关键约束：fixture 完全隔离；生产路径授权与大小限制仍由主进程执行。
+ */
+export async function readFilePreview(path: string, data?: FileBrowserPreviewData): Promise<FileBrowserPreviewFile> {
+  if (data) return data.files[path] ?? { path, kind: 'error', message: '样张中没有这个文件的预览内容' }
+  try {
+    const result = await window.electronAPI?.project.readFile(path)
+    if (!result) return { path, kind: 'error', message: '读取失败，请重试' }
+    if (result.error && !result.kind) return { path, kind: 'error', message: result.error }
+    if (result.kind === 'image' && result.dataUrl) return { path, kind: 'image', dataUrl: result.dataUrl, mimeType: result.mimeType, size: result.size }
+    if (result.kind === 'unsupported') return { path, kind: 'unsupported', reason: result.reason || result.error || '无法预览', size: result.size }
+    if (result.content !== undefined) return { path, kind: 'text', content: result.content, languageHint: result.languageHint, size: result.size }
+    return { path, kind: 'error', message: result.error || '无法预览' }
+  } catch {
+    return { path, kind: 'error', message: '读取文件失败，请重试' }
+  }
 }
 
 function initialPreview(data?: FileBrowserPreviewData): FileBrowserPreviewState {
@@ -65,7 +91,7 @@ function initialPreview(data?: FileBrowserPreviewData): FileBrowserPreviewState 
   return data.files[data.initialPath] ?? null
 }
 
-export function FileBrowser({ projectPath, onClose, embedded = false, previewData, mode = 'split', previewState, onPreviewStateChange }: FileBrowserProps) {
+export function FileBrowser({ projectPath, onClose, embedded = false, previewData, mode = 'split', previewState, onPreviewStateChange, onFileSelect, hideProjectHeader = false, hidePreviewClose = false, onRetry }: FileBrowserProps) {
   const [tree, setTree] = useState<FileEntry[]>(() => previewData?.tree ?? [])
   const [filter, setFilter] = useState('')
   const [internalPreview, setInternalPreview] = useState<FileBrowserPreviewState>(() => initialPreview(previewData))
@@ -76,6 +102,9 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
     else setInternalPreview(next)
   }
   const [loading, setLoading] = useState(false)
+  const [treeError, setTreeError] = useState<string | null>(null)
+  const readVersion = useRef(0)
+  const treeVersion = useRef(0)
   const [copied, setCopied] = useState(false)
   /** html：预览 / 源码；默认预览 */
   const [htmlView, setHtmlView] = useState<'preview' | 'source'>('preview')
@@ -90,74 +119,41 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
   const showPreview = mode !== 'files'
 
   const loadTree = useCallback(async () => {
+    if (mode === 'preview') return
+    const version = ++treeVersion.current
+    setTreeError(null)
     if (previewData) {
       setTree(previewData.tree)
-      setPreview(initialPreview(previewData))
+      if (!onFileSelect) setPreview(initialPreview(previewData))
       setLoading(false)
       return
     }
-    if (!projectPath || !window.electronAPI) return
+    if (!projectPath || !window.electronAPI) { setTree([]); return }
     setLoading(true)
     try {
       const files = await window.electronAPI.project.listFiles(projectPath, 3)
-      setTree(files as FileEntry[])
+      if (version === treeVersion.current) setTree(files as FileEntry[])
+    } catch {
+      if (version === treeVersion.current) setTreeError('无法读取目录，请刷新重试')
     } finally {
-      setLoading(false)
+      if (version === treeVersion.current) setLoading(false)
     }
-  }, [previewData, projectPath])
+  }, [mode, previewData, projectPath])
 
-  useEffect(() => { void loadTree() }, [loadTree])
+  useEffect(() => {
+    void loadTree()
+    return () => { treeVersion.current++; readVersion.current++ }
+  }, [loadTree])
 
   const handleFileClick = async (entry: FileEntry) => {
     if (entry.isDir) return
-    if (previewData) {
-      setPreview(previewData.files[entry.path] ?? {
-        path: entry.path,
-        kind: 'error',
-        message: '样张中没有这个文件的预览内容',
-      })
-      return
-    }
-    const result = await window.electronAPI?.project.readFile(entry.path)
-    if (!result) {
-      setPreview({ path: entry.path, kind: 'error', message: '读取失败' })
-      return
-    }
-    if (result.error && !result.kind) {
-      setPreview({ path: entry.path, kind: 'error', message: result.error })
-      return
-    }
-    if (result.kind === 'image' && result.dataUrl) {
-      setPreview({
-        path: entry.path,
-        kind: 'image',
-        dataUrl: result.dataUrl,
-        mimeType: result.mimeType,
-        size: result.size,
-      })
-      return
-    }
-    if (result.kind === 'unsupported') {
-      setPreview({
-        path: entry.path,
-        kind: 'unsupported',
-        reason: result.reason || result.error || '无法预览',
-        size: result.size,
-      })
-      return
-    }
-    if (result.content !== undefined) {
-      setPreview({
-        path: entry.path,
-        kind: 'text',
-        content: result.content,
-        languageHint: result.languageHint,
-        size: result.size,
-      })
-      if (result.languageHint === 'html') setHtmlView('preview')
-      return
-    }
-    setPreview({ path: entry.path, kind: 'error', message: result.error || '无法预览' })
+    if (onFileSelect) { onFileSelect(entry.path); return }
+    const version = ++readVersion.current
+    setPreview({ path: entry.path, kind: 'loading' })
+    const next = await readFilePreview(entry.path, previewData)
+    if (version !== readVersion.current) return
+    setPreview(next)
+    if (next.kind === 'text' && next.languageHint === 'html') setHtmlView('preview')
   }
 
   const openExternal = async () => {
@@ -190,7 +186,7 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
           loading={loading}
         />
       )}
-      {embedded && (
+      {embedded && !hideProjectHeader && (
         <div
           className="flex shrink-0 items-center gap-1.5 border-b px-2 py-1"
           style={{ borderColor: 'var(--border-subtle)' }}
@@ -239,7 +235,8 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
               style={showPreview && preview ? { height: `${Math.round(treeRatio * 100)}%` } : undefined}
               data-testid="file-browser-tree"
             >
-              {filteredTree.length === 0 && !loading && (
+              {treeError && <p role="alert" className="p-3 text-xs" style={{ color: 'var(--danger)' }}>{treeError}</p>}
+              {filteredTree.length === 0 && !loading && !treeError && (
                 <div className="p-4 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
                   {filter ? '无匹配文件' : '目录为空'}
                 </div>
@@ -324,17 +321,18 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                   >
                     <ExternalLink size={12} />
                   </button>
-                  <button
+                  {!hidePreviewClose && <button
                     type="button"
                     className="rounded p-0.5"
                     style={{ color: 'var(--text-muted)' }}
                     onClick={() => setPreview(null)}
                   >
                     <X size={12} />
-                  </button>
+                  </button>}
                 </div>
 
                 <div className={`min-h-0 flex-1 overflow-auto scrollbar-hover select-text ${preview.kind === 'text' && preview.languageHint === 'html' && htmlView === 'preview' ? 'p-0' : 'p-3'}`}>
+                  {preview.kind === 'loading' && <p role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>正在读取文件…</p>}
                   {preview.kind === 'image' && (
                     <img
                       src={preview.dataUrl}
@@ -378,7 +376,10 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                     </div>
                   )}
                   {preview.kind === 'error' && (
-                    <p className="text-[12px]" style={{ color: 'var(--danger)' }}>{preview.message}</p>
+                    <div role="alert" className="space-y-2 text-[12px]" style={{ color: 'var(--danger)' }}>
+                      <p>{preview.message}</p>
+                      {onRetry && <button type="button" onClick={onRetry} className="settings-option px-2 py-1">重新读取</button>}
+                    </div>
                   )}
                 </div>
                 {copied && (
