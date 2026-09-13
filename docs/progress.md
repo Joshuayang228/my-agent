@@ -602,3 +602,7 @@
 - 2026-09-13：Markdown 代码块背景统一改由共享语义 token 提供，正式与 Playground 均覆盖高亮库内部背景；ReviewPanel 原始 diff 展示仍待收敛到共享渲染器。
 
 - 2026-09-13：正式 ReviewPanel 的真实 diff 内容改为复用 MarkdownRenderer，统一代码块主题、滚动和安全渲染边界；数据读取与错误恢复保持 session IPC。
+
+- 2026-09-13：正式 ChatRightDock 回流五功能入口：审阅、浏览器、文件、终端、侧边聊天。浏览器与侧边聊天仅提供真实产品空态，不带 Playground srcDoc、模拟消息或场景切换器，后端契约仍列为缺口。
+
+- 2026-09-13：浏览器与侧边聊天正式空态壳已登记为 Experience 资产，明确不代表真实后端能力；后端契约仍按工作区合同单独施工。

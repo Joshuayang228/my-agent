@@ -1,12 +1,14 @@
 /** 正式 Chat 工作区。文件内部预览不再作为顶层工具；Debug 保持独立。 */
 import { useRef, useState } from 'react'
-import { FileText, GitCompare, Plus, TerminalSquare } from 'lucide-react'
+import { FileText, GitCompare, Globe, MessageCircle, Plus, TerminalSquare } from 'lucide-react'
 import { ReviewPanel } from './ReviewPanel'
 import { TerminalPanel } from './TerminalPanel'
 import { WorkspaceFilesPanel } from './WorkspaceFilesPanel'
 import { TabStrip } from '../../foundation/TabStrip'
+import { BrowserPanel } from './BrowserPanel'
+import { SideChatPanel } from './SideChatPanel'
 
-export type RightDockTab = 'files' | 'review' | 'terminal'
+export type RightDockTab = 'files' | 'review' | 'terminal' | 'browser' | 'chat'
 type RightDockTabInstance = { instanceId: string; kind: RightDockTab; ordinal: number }
 
 interface ChatRightDockProps {
@@ -22,6 +24,8 @@ const TABS = [
   { id: 'review', label: '审阅', icon: GitCompare },
   { id: 'files', label: '文件', icon: FileText },
   { id: 'terminal', label: '终端', icon: TerminalSquare },
+  { id: 'browser', label: '浏览器', icon: Globe },
+  { id: 'chat', label: '侧边聊天', icon: MessageCircle },
 ] as const
 
 export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, collapsed = false, onCloseFiles }: ChatRightDockProps) {
@@ -77,7 +81,7 @@ export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, 
       hidden={activeTabId !== instance.instanceId} className={activeTabId === instance.instanceId ? 'flex min-h-0 min-w-0 flex-1 flex-col' : 'hidden'}>
       {instance.kind === 'files' && <WorkspaceFilesPanel projectPath={projectPath} />}
       {instance.kind === 'review' && <ReviewPanel key={sessionId} sessionId={sessionId} />}
-      {instance.kind === 'terminal' && activeTabId === instance.instanceId && <TerminalPanel projectPath={projectPath} />}
+      {instance.kind === 'terminal' && activeTabId === instance.instanceId && <TerminalPanel projectPath={projectPath} />}\n      {instance.kind === 'browser' && <BrowserPanel />}\n      {instance.kind === 'chat' && <SideChatPanel />}
     </div>)}
   </div>
 }
