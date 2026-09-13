@@ -4,6 +4,7 @@ import type { ChangeEvent, FormEvent } from 'react'
 import type { AgentStreamEvent, ChatMessage, WorkspaceChatFocus } from '../../../shared/types'
 import { MarkdownRenderer } from '../../MarkdownRenderer'
 import { PermissionConfirmCard } from '../PermissionConfirmCard'
+import { IconButton } from '../../foundation/IconButton'
 import { TextField } from '../../foundation/TextField'
 
 interface SideChatPanelProps {
@@ -110,7 +111,7 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
     </div>
     <form className="flex items-end gap-2 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event: FormEvent<HTMLFormElement>) => { event.preventDefault(); void send() }}>
       <TextField multiline aria-label="侧边聊天消息" rows={2} placeholder="继续聊聊…" className="flex-1 resize-none" value={input} disabled={loading || !sessionId} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setInput(event.target.value)} />
-      <button type="button" aria-label={sending ? '停止生成' : '发送消息'} title={sending ? '停止生成' : '发送消息'} className="flex h-7 w-7 shrink-0 items-center justify-center rounded disabled:opacity-40" style={{ color: sending ? 'var(--danger)' : 'var(--accent-fg)', background: 'var(--accent-subtle)' }} disabled={loading || !sessionId || (!sending && !input.trim())} onClick={() => { if (sending) stop(); else void send() }}>{sending ? <Square size={14} /> : <ArrowUp size={14} />}</button>
+      <IconButton type="button" label={sending ? '停止生成' : '发送消息'} size={28} className="disabled:opacity-40" style={{ color: sending ? 'var(--danger)' : 'var(--accent-fg)', background: 'var(--accent-subtle)' }} disabled={loading || !sessionId || (!sending && !input.trim())} onClick={() => { if (sending) stop(); else void send() }}>{sending ? <Square size={14} /> : <ArrowUp size={14} />}</IconButton>
     </form>
     {confirmRequest && <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/45 p-3">
       <PermissionConfirmCard

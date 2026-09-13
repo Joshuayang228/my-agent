@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, KeyboardEvent } from 'react'
 import { Play, Square } from 'lucide-react'
+import { IconButton } from '../../foundation/IconButton'
 import { TextField } from '../../foundation/TextField'
 
 interface TerminalPanelProps {
@@ -160,14 +161,14 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
             }
           }}
         />
-        <button type="button" className="flex h-6 w-6 shrink-0 items-center justify-center rounded disabled:opacity-50"
+        <IconButton type="button" size={24} className="disabled:opacity-50"
           style={{ color: busy ? 'var(--danger)' : 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
           title={stopping ? '正在终止' : busy ? '终止' : '运行'}
-          aria-label={stopping ? '正在终止' : busy ? '终止' : '运行'}
+          label={stopping ? '正在终止' : busy ? '终止' : '运行'}
           disabled={stopping || (!busy && !cmd.trim())}
           onClick={() => { if (busy) kill(); else void run() }}>
           {busy ? <Square size={12} /> : <Play size={12} />}
-        </button>
+        </IconButton>
       </div>
     </div>
   )

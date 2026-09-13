@@ -71,7 +71,7 @@ describe('Foundation story registry', () => {
   })
 
   it('IconButton 的真实生产调用指向 Foundation，避免工作区重新声明操作槽', () => {
-    for (const file of ['src/components/chat/right-dock/ReviewPanel.tsx', 'src/components/playground/WorkspaceExperienceCandidate.tsx']) {
+    for (const file of ['src/components/chat/right-dock/ReviewPanel.tsx', 'src/components/chat/right-dock/BrowserPanel.tsx', 'src/components/chat/right-dock/TerminalPanel.tsx', 'src/components/chat/right-dock/SideChatPanel.tsx', 'src/components/playground/WorkspaceExperienceCandidate.tsx']) {
       const source = readFileSync(file, 'utf8')
       expect(source).toContain('IconButton')
       expect(source).toContain('foundation/IconButton')
