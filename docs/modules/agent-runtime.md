@@ -55,7 +55,7 @@
 
 - Playground 场景控制器统一为 MCP 风格独立选项；Chat 主旅程/宽度、记忆分类/场景、模型/Skills/MCP、工作区功能/形态/宽度与公共故事选择共享尺寸、间距和主题选中态。产品内容标签与正式 UI 不受影响。
 
-- 正式 ChatRightDock 接入 PanelRight 同页折叠保留和 Foundation TabStrip：标签内常驻固定关闭槽、左右/Home/End 切换、Delete 关闭后恢复焦点，关闭后台标签不切换当前内容或重编号其它标签。文件预览与当前终端草稿在折叠时不卸载；切换 Tab／项目／会话／一级页面后的状态保留、五功能接入及文件内部多预览仍待回流。 正式文件工具已收进 WorkspaceFilesPanel，内部左树右多预览、路径去重、关闭重开与异步读取隔离；读取与外部打开仍走现有 project IPC。
+- 正式 ChatRightDock 接入 PanelRight 同页折叠保留和 Foundation TabStrip：标签内常驻固定关闭槽、左右/Home/End 切换、Delete 关闭后恢复焦点，关闭后台标签不切换当前内容或重编号其它标签。文件工具已收进 WorkspaceFilesPanel，内部左树右多预览、路径去重、关闭重开与异步读取隔离；审阅 diff 复用 MarkdownRenderer；读取与外部打开仍走现有 project IPC。五功能中的浏览器、侧边聊天尚无正式真实后端，跨项目／会话／一级页面生命周期仍待补齐。
 
 - 工作区候选标签默认无描边，各标签内常驻关闭图标，关闭非当前标签保持当前选择；右端仅保留添加入口，收起由 Chat 侧控制。浏览器地址居中可编辑，Enter 校验并切换本地样张，Esc 恢复，未知地址明确显示无样张，不导航外站。
 
