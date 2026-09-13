@@ -3,6 +3,7 @@
 > 只记录用户或开发者可以感知的能力变化。完整早期施工流水见 [`../_archive/ledgers/changelog-through-2026-08-16.md`](../_archive/ledgers/changelog-through-2026-08-16.md)。
 
 ## [未发布]
+- Playground Chat 处理中样张在对话与工作区之间增加分隔线，并提供右上角工作区开关；收起不丢失已打开内容。
 
 - Playground Skills 长详情文件改为限高内部滚动，保留完整内容；键盘可阅读首尾，滚动到底不再带动外层界面。
 

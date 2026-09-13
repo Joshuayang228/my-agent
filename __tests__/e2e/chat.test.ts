@@ -875,6 +875,65 @@ test.describe('My Agent UI', () => {
   })
 
   for (const theme of ['dark', 'light']) {
+    for (const width of [1166, 900]) {
+      test(`Chat 工作区分隔与开关 ${theme} ${width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 731 })
+        await page.addInitScript((value) => localStorage.setItem('theme', value), theme)
+        await page.goto('/')
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+        await page.getByTestId('playground-nav').getByRole('button', { name: 'Chat', exact: true }).click()
+        await page.getByRole('tab', { name: '处理中', exact: true }).click()
+        const panel = page.getByTestId('chat-surface-workspace')
+        const toggle = page.getByTestId('chat-surface-workspace-toggle')
+        const main = page.getByTestId('chat-surface-main')
+        await expect(panel).toHaveCSS('border-left-width', '1px')
+        await expect(panel).not.toHaveCSS('border-left-color', 'rgba(0, 0, 0, 0)')
+        await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+        await expect(toggle.locator('svg')).toHaveClass(/lucide-panel-right/)
+        await panel.getByLabel('添加工作区内容', { exact: true }).click()
+        await panel.getByRole('menuitem', { name: '浏览器', exact: true }).click()
+        await expect(panel.getByRole('tab', { name: '浏览器 1', exact: true })).toHaveAttribute('aria-selected', 'true')
+        // 分栏开关会改变对话宽度，因此按右上角相对坐标验证固定操作槽，不能比较绝对横坐标。
+        const geometry = () => toggle.evaluate((node) => {
+          const button = node.getBoundingClientRect()
+          const main = node.closest('[data-testid="chat-surface-main"]')!.getBoundingClientRect()
+          return { width: button.width, height: button.height, right: main.right - button.right, top: button.top - main.top }
+        })
+        const initial = await geometry()
+        expect(initial.right).toBeGreaterThanOrEqual(0)
+        expect(Math.abs((await panel.boundingBox())!.height - (await main.boundingBox())!.height)).toBeLessThan(2)
+        await toggle.hover()
+        expect(await geometry()).toEqual(initial)
+        await page.screenshot({ path: testInfo.outputPath('chat-workspace-open.png'), animations: 'disabled' })
+        await toggle.click()
+        await expect(panel).toBeHidden()
+        await expect(toggle).toHaveAccessibleName('打开工作区')
+        await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+        await expect(page.getByRole('tab', { name: '处理中', exact: true })).toHaveAttribute('aria-selected', 'true')
+        await expect(main.getByTestId('chat-surface-message-flow')).toBeVisible()
+        expect(await geometry()).toEqual(initial)
+        await page.screenshot({ path: testInfo.outputPath('chat-workspace-closed.png'), animations: 'disabled' })
+        await toggle.press('Enter')
+        await expect(panel).toBeVisible()
+        await expect(toggle).toHaveAccessibleName('收起工作区')
+        await expect(panel.getByRole('tab', { name: '浏览器 1', exact: true })).toHaveAttribute('aria-selected', 'true')
+        await expect(panel.getByRole('tab', { name: '文件 1', exact: true })).toBeVisible()
+        expect(await geometry()).toEqual(initial)
+        await page.getByRole('button', { name: '分栏窄宽', exact: true }).click()
+        await expect(toggle).toBeVisible()
+        await expect(panel).toBeVisible()
+        await toggle.click()
+        await page.getByRole('tab', { name: '已完成', exact: true }).click()
+        await expect(toggle).toHaveCount(0)
+        await expect(panel).toHaveCount(0)
+        await page.getByRole('tab', { name: '处理中', exact: true }).click()
+        await expect(panel).toBeVisible()
+        await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+      })
+    }
+  }
+
+  for (const theme of ['dark', 'light']) {
     for (const width of [1166, 600]) {
       test(`Playground Skills 真实样张 ${theme} ${width}`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 731 })

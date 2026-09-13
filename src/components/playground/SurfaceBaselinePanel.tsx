@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, Coffee, ChevronDown, CircleAlert, Clapperboard, Folder, Home, Lightbulb, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, Paperclip, Plus, RotateCcw, Search, Shield, Shirt, UserRound, Users, X, Check } from 'lucide-react'
+import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, Coffee, ChevronDown, CircleAlert, Clapperboard, Folder, Home, Lightbulb, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, PanelRight, Paperclip, Plus, RotateCcw, Search, Shield, Shirt, UserRound, Users, X, Check } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
@@ -238,7 +238,12 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
   const sessionFilterRef = useRef<HTMLInputElement>(null)
   const [viewport, setViewport] = useState<'standard' | 'split'>('standard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [journey, setJourney] = useState<ChatJourney>('welcome')
+  const [journey, setJourneyState] = useState<ChatJourney>('welcome')
+  const [workspaceOpen, setWorkspaceOpen] = useState(true)
+  const setJourney = (next: ChatJourney) => {
+    setJourneyState(next)
+    setWorkspaceOpen(true)
+  }
   const handleContextMenu = (event: MouseEvent, sessionId: string) => {
     event.preventDefault()
     void sessionId
@@ -340,6 +345,9 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                   <PanelLeftOpen size={15} />
                 </button>
               )}
+              {isWork && <div className="hidden h-12 shrink-0 items-center justify-end px-3 md:flex" data-testid="chat-surface-workspace-toolbar">
+                <button type="button" title={workspaceOpen ? '收起工作区' : '打开工作区'} aria-label={workspaceOpen ? '收起工作区' : '打开工作区'} aria-expanded={workspaceOpen} aria-controls="chat-surface-workspace-panel" onClick={() => setWorkspaceOpen((open) => !open)} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-secondary)' }} data-testid="chat-surface-workspace-toggle"><PanelRight size={16} aria-hidden="true" /></button>
+              </div>}
               <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                 <div className="flex min-h-0 flex-1 overflow-y-auto px-6 py-8">
                   {isWelcome ? (
@@ -405,7 +413,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                         <div className="flex items-center gap-1.5"><span className="text-[10.5px]" style={{ color: 'var(--text-muted)' }}>当前模型</span><button type="button" className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: 'var(--accent-emphasis)', color: 'var(--accent-fg)' }} title="发送"><ArrowUp size={14} /></button></div>
                       </div>
                     </div>
-                    <div className="mt-1.5 flex items-center justify-between px-1 text-[10px]" style={{ color: 'var(--text-muted)' }}><span className="flex items-center gap-1"><Folder size={11} /> my-agent · 样张项目</span><span>{isWork ? '工作区已打开' : journey === 'confirmation' ? '等待确认' : journey === 'completed' ? '任务已完成' : journey === 'failed' ? '可以重试或继续聊聊' : isWelcome ? '准备开始' : '对话进行中'}</span></div>
+                    <div className="mt-1.5 flex items-center justify-between px-1 text-[10px]" style={{ color: 'var(--text-muted)' }}><span className="flex items-center gap-1"><Folder size={11} /> my-agent · 样张项目</span><span>{isWork ? (workspaceOpen ? '工作区已打开' : '工作区已收起') : journey === 'confirmation' ? '等待确认' : journey === 'completed' ? '任务已完成' : journey === 'failed' ? '可以重试或继续聊聊' : isWelcome ? '准备开始' : '对话进行中'}</span></div>
                   </div>
                 </div>
               </div>
@@ -420,7 +428,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
               </div>
             )}
             {isWork && (
-              <div className="hidden h-full min-w-0 shrink-0 overflow-hidden md:flex" data-testid="chat-surface-workspace" style={{ width: viewport === 'split' ? 320 : 420 }}>
+              <div id="chat-surface-workspace-panel" className={`hidden min-w-0 self-stretch shrink-0 overflow-hidden border-l ${workspaceOpen ? 'md:flex' : ''}`} data-testid="chat-surface-workspace" style={{ width: viewport === 'split' ? 320 : 420, maxWidth: '45%', borderColor: 'var(--border-color)' }}>
                 <WorkspaceDock initialView="files" initialScene="Markdown" onClose={() => setJourney('conversation')} />
               </div>
             )}
