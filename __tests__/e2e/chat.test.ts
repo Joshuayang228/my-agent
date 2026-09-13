@@ -904,7 +904,35 @@ test.describe('My Agent UI', () => {
           await expect(detail.getByText('未声明', { exact: true })).toBeVisible()
           await expect(detail).not.toContainText('确认约束')
           const raw = readFileSync(`electron/skills-builtin/${name}/SKILL.md`, 'utf8').replace(/\r\n/g, '\n')
-          expect((await detail.getByTestId('settings-candidate-skill-file-preview').textContent())?.replace(/\r\n/g, '\n')).toBe(raw)
+          const preview = detail.getByTestId('settings-candidate-skill-file-preview')
+          expect((await preview.textContent())?.replace(/\r\n/g, '\n')).toBe(raw)
+          await expect(preview).toHaveCSS('overflow-y', 'auto')
+          await expect(preview).toHaveCSS('overscroll-behavior-y', 'contain')
+          expect(await preview.evaluate((node) => ({
+            bounded: node.getBoundingClientRect().height <= window.innerHeight * 0.48 + 1,
+            scrollable: node.scrollHeight > node.clientHeight,
+            fitsWidth: node.scrollWidth <= node.clientWidth,
+          }))).toEqual({ bounded: true, scrollable: true, fitsWidth: true })
+          await preview.scrollIntoViewIfNeeded()
+          await preview.focus()
+          const measureOuterLayout = () => detail.evaluate((node) => ({
+            height: node.getBoundingClientRect().height,
+            scrolls: Array.from((function* () {
+              for (let parent = node.parentElement; parent; parent = parent.parentElement) yield parent
+            })()).map((parent) => parent.scrollTop),
+          }))
+          const outerLayout = await measureOuterLayout()
+          await preview.press('ArrowDown')
+          await expect.poll(() => preview.evaluate((node) => node.scrollTop)).toBeGreaterThan(0)
+          await preview.press('Control+End')
+          await expect.poll(() => preview.evaluate((node) => Math.abs(node.scrollHeight - node.clientHeight - node.scrollTop))).toBeLessThan(2)
+          await preview.hover()
+          await page.mouse.wheel(0, 500)
+          // 等待浏览器处理边界滚轮，验证不能把剩余滚动量传给外层；只读正文必须完整保留。
+          await page.waitForTimeout(200)
+          expect(await measureOuterLayout()).toEqual(outerLayout)
+          await preview.press('Control+Home')
+          await expect.poll(() => preview.evaluate((node) => node.scrollTop)).toBe(0)
           const trigger = detail.locator('p').first()
           await expect(trigger).toContainText('不适用于：')
           expect((await trigger.boundingBox())!.y).toBeLessThan((await detail.locator('p').nth(1).boundingBox())!.y)

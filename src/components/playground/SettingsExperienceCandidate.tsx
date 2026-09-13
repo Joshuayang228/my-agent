@@ -637,7 +637,7 @@ function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
         </dl>
         <div className="grid gap-3 md:grid-cols-[120px_minmax(0,1fr)]">
           <div className="text-[11px]"><div className="mb-2" style={{ color: 'var(--text-muted)' }}>文件</div><span className="block px-2 py-1.5" style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}>SKILL.md</span></div>
-          <pre className="min-w-0 whitespace-pre-wrap break-words rounded-[var(--radius-md)] border p-3 font-mono text-[11px] leading-5" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }} data-testid="settings-candidate-skill-file-preview">{skill.raw}</pre>
+          <pre tabIndex={0} role="region" aria-label="SKILL.md 文件内容" className="scrollbar-thin max-h-[48vh] overflow-auto overscroll-contain [scrollbar-gutter:stable] min-w-0 whitespace-pre-wrap break-words rounded-[var(--radius-md)] border p-3 font-mono text-[11px] leading-5" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }} data-testid="settings-candidate-skill-file-preview">{skill.raw}</pre>
         </div>
       </SettingCard> : <div className="grid gap-3 sm:grid-cols-2">
         {(skillsState === '多个' ? skillsSamples : skillsSamples.slice(0, 1)).map((sample) => <SettingCard key={sample.name} testId={'settings-candidate-skill-card-' + sample.name}>
