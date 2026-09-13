@@ -34,6 +34,7 @@
 | [settings-information-architecture-v1.md](./settings-information-architecture-v1.md) | P0 施工：设置体系信息架构、风险分层与隔离体验候选 |
 | [playground-skills-detail-v1.md](./playground-skills-detail-v1.md) | P0 施工：Skills 极简列表、详情元信息、文件树与内容预览 |
 | [playground-workspace-five-tools-v1.md](./playground-workspace-five-tools-v1.md) | P1 回流进行中：先统一五功能正式工作区，再补真实后端；P0 夹具继续隔离 |
+| [terminal-pty-v1.md](./terminal-pty-v1.md) | 草案待确认：真实 PTY、跨平台进程生命周期与 IPC 契约 |
 | [playground-mcp-scenarios-v1.md](./playground-mcp-scenarios-v1.md) | P0 施工：MCP 多服务、连接状态与工具数量场景直接审阅 |
 | [playground-model-and-workspace-v2.md](./playground-model-and-workspace-v2.md) | P0 施工：从用户故事重构模型设置与任务工作区候选 |
 | [debug-ui-information-architecture-v1.md](./debug-ui-information-architecture-v1.md) | 正式 Debug UI：运行概览、真实证据与受控诊断入口 |
