@@ -91,7 +91,7 @@
 | LLM Debug 安全元数据持久化 | 已落地 | tracer sink · `llm_debug_logs` · Debug IPC；只保留结构元数据、正文长度和资产证据，不持久化 Prompt / 响应 / hidden reasoning |
 | Chat Callback 三通道 UI | 已落地 | `src/components/chat/callbacks/` |
 | Chat 页面组合基线 | 已落地 | Sidebar 默认 248px、开发入口固定在底部产品区上方、Chat 专属 52px 会话顶栏、居中欢迎区、引用式主角提示与紧凑输入卡；Playground 复用正式组件验收标准 / 窄宽 |
-| Chat 右侧工作坞正式 Tab | 已落地 | `ChatRightDock` 默认预览；文件 / 预览通过 `FileBrowserPreviewState` 共享选中文件；审阅 / 终端保持真实面板与 IPC |
+| Chat 右侧工作坞正式 Tab | 部分 | `ChatRightDock`；正式文件工具已收进 `WorkspaceFilesPanel`，内部左树右多预览；审阅 / 终端保持真实面板与 IPC，终端事件按实例 runId 过滤并在终止／卸载时清理 |
 | 工具卡行内附着 assistant（Alice Phase B） | 已落地 | `resolve-tools-for-message.ts` · 历史 `toolCalls`+`role=tool`；进行中挂 live host |
 | Dev Playground（无 Assemble 试跑） | 已落地 | PlaygroundPage · `debug:playground-run` |
 | Debug / Playground 独立全页 | 已落地 | 入口固定在 Primary Sidebar 底部开发区；各自页面壳直接占满主区，不继承 Chat 顶栏；非双 tab / 非抽屉；记忆与 Skills 不再通过 SecondaryNav 进入 |

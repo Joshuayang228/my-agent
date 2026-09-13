@@ -15,6 +15,7 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
   ])
   const [cmd, setCmd] = useState('')
   const [runId, setRunId] = useState<string | null>(null)
+  const runIdRef = useRef<string | null>(null)
   const [busy, setBusy] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -26,18 +27,19 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
     const api = window.electronAPI?.terminal
     if (!api) return
     const offOut = api.onStdout((ev) => {
-      if (runId && ev.runId !== runId) return
+      if (!runIdRef.current || ev.runId !== runIdRef.current) return
       setLines((prev) => [...prev, ...ev.chunk.replace(/\r\n/g, '\n').split('\n')])
     })
     const offErr = api.onStderr((ev) => {
-      if (runId && ev.runId !== runId) return
+      if (!runIdRef.current || ev.runId !== runIdRef.current) return
       const parts = ev.chunk.replace(/\r\n/g, '\n').split('\n').map((l) => (l ? `[err] ${l}` : ''))
       setLines((prev) => [...prev, ...parts])
     })
     const offExit = api.onExit((ev) => {
-      if (runId && ev.runId !== runId) return
+      if (!runIdRef.current || ev.runId !== runIdRef.current) return
       setLines((prev) => [...prev, `[exit ${ev.code}]`])
       setBusy(false)
+      runIdRef.current = null
       setRunId(null)
     })
     return () => {
@@ -45,7 +47,7 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
       offErr()
       offExit()
     }
-  }, [runId])
+  }, [])
 
   const run = async () => {
     const command = cmd.trim()
@@ -67,12 +69,21 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
       setBusy(false)
       return
     }
+    runIdRef.current = result.runId
     setRunId(result.runId)
   }
+
+  useEffect(() => () => {
+    const activeRunId = runIdRef.current
+    if (activeRunId) void window.electronAPI?.terminal.kill(activeRunId)
+  }, [])
 
   const kill = async () => {
     if (!runId) return
     await window.electronAPI?.terminal.kill(runId)
+    runIdRef.current = null
+    setRunId(null)
+    setBusy(false)
   }
 
   return (
