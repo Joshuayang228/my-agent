@@ -12,7 +12,7 @@ export default defineConfig({
   projects: [
     {
       name: 'ui',
-      testMatch: 'chat.test.ts',
+      testMatch: ['chat.test.ts', 'markdown-theme.test.ts'],
       use: {
         baseURL: 'http://127.0.0.1:5174',
         channel: 'chrome',

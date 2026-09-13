@@ -6,7 +6,7 @@
 
 ## 待办缺口
 
-- 工作区回流审计补充（WISH-041 / WISH-042）：仍需四个候选的就近主题／Mermaid 和全量基础控件复用核验；审阅并排/乱序与错误恢复已有 Renderer 测试，侧聊流中关闭已有真实 Electron 证据。终端 Windows 停止/关闭后的真实父子进程退出已验证，Unix 仍需实机验证，不把 Renderer 替身当作跨平台完成。
+- 工作区回流审计补充（WISH-041 / WISH-042）：共享 Markdown 的就近主题／Mermaid 已补同源实现，四主题宽窄、Foundation 故事和完整 UI/Electron 回归通过；仍需全量基础控件与 DiffViewer 复用核验。审阅并排/乱序与错误恢复已有 Renderer 测试；本轮源码复核发现并排按钮以正文 truthiness 判断可用性，空字符串旧稿会被误当作缺失，需在 DiffViewer 批次补边界回归。侧聊流中关闭已有真实 Electron 证据。终端 Windows 停止/关闭后的真实父子进程退出已验证，Unix 仍需实机验证，不把 Renderer 替身当作跨平台完成。
 
 - [ ] **WISH-043 · 主进程类型检查门禁** — 来源：正式侧聊 Electron 回归发现 runtime 的 undefined.trim 和 span 越域未被默认 tsc 检出；根配置只 include src，主进程 `tsc -p tsconfig.node.json --noEmit` 仍报告跨项目 include/composite、ImportMeta.glob 与多个存量类型错误。重启条件：当前回流质量门禁收口；明确前端/主进程检查入口，先清理真实诊断，再纳入 build/commit，不用宽泛 any 或排除文件消音。
 

@@ -1,6 +1,5 @@
-import { Children, isValidElement, memo, useState, useEffect, useRef, useId, useSyncExternalStore, type ReactNode } from 'react'
+import { Children, isValidElement, memo, useState, useEffect, useRef, type ReactNode } from 'react'
 import { Check, Copy } from 'lucide-react'
-import { isLightTheme } from '../shared/design-asset-registry'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -22,9 +21,10 @@ import java from 'react-syntax-highlighter/dist/esm/languages/prism/java'
 import c from 'react-syntax-highlighter/dist/esm/languages/prism/c'
 import cpp from 'react-syntax-highlighter/dist/esm/languages/prism/cpp'
 import diff from 'react-syntax-highlighter/dist/esm/languages/prism/diff'
-import mermaid from 'mermaid'
 import { splitAside } from '../shared/aside'
 import { isSafeMarkdownImageSource } from '../shared/markdown-security'
+import { useSurfaceTheme } from './foundation/useSurfaceTheme'
+import { renderMermaid } from './foundation/mermaid-renderer'
 
 SyntaxHighlighter.registerLanguage('tsx', tsx)
 SyntaxHighlighter.registerLanguage('typescript', typescript)
@@ -51,35 +51,6 @@ SyntaxHighlighter.registerLanguage('jsx', tsx)
 SyntaxHighlighter.registerLanguage('ts', typescript)
 SyntaxHighlighter.registerLanguage('js', javascript)
 SyntaxHighlighter.registerLanguage('py', python)
-
-function getTheme() {
-  const t = document.documentElement.getAttribute('data-theme') || 'dark'
-  return isLightTheme(t) ? 'light' : 'dark'
-}
-
-function subscribeTheme(cb: () => void) {
-  const observer = new MutationObserver(cb)
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
-  return () => observer.disconnect()
-}
-
-function useCurrentTheme() {
-  return useSyncExternalStore(subscribeTheme, getTheme)
-}
-
-function initMermaid(isDark: boolean) {
-  mermaid.initialize({
-    startOnLoad: false,
-    securityLevel: 'strict',
-    theme: isDark ? 'dark' : 'default',
-    themeVariables: isDark
-      ? { darkMode: true, background: '#1e293b', primaryColor: '#06b6d4', primaryTextColor: '#e2e8f0', lineColor: '#64748b' }
-      : { darkMode: false, background: '#ffffff', primaryColor: '#2563eb', primaryTextColor: '#1e293b', lineColor: '#94a3b8' },
-  })
-}
-
-initMermaid(getTheme() === 'dark')
-
 
 function MarkdownImage({ src, alt }: { src?: string; alt?: string }) {
   if (isSafeMarkdownImageSource(src)) {
@@ -156,14 +127,15 @@ function CopyButton({ text }: { text: string }) {
  * 关键约束：不解析链接、HTML 或 Mermaid；复制内容逐字保留，主题底色由语义 token 提供。
  */
 export function CodeBlock({ code, language = 'text' }: { code: string; language?: string }) {
-  const theme = useCurrentTheme()
-  return <div className="group relative my-3 min-w-0 overflow-hidden rounded-lg border"
+  const surfaceRef = useRef<HTMLDivElement>(null)
+  const theme = useSurfaceTheme(surfaceRef)
+  return <div ref={surfaceRef} className="group relative my-3 min-w-0 overflow-hidden rounded-lg border"
     data-testid="markdown-code-block" data-foundation="code-block" style={{ borderColor: 'var(--card-border)' }}>
     <div className="flex items-center justify-between gap-2 px-4 py-1.5 text-xs" style={{ background: 'var(--bg-tertiary)' }}>
       <span className="min-w-0 truncate" style={{ color: 'var(--text-muted)' }}>{language}</span>
       <CopyButton text={code} />
     </div>
-    <SyntaxHighlighter style={theme === 'dark' ? oneDark : oneLight} language={language}
+    <SyntaxHighlighter style={theme?.mode === 'light' ? oneLight : oneDark} language={language}
       tabIndex={0} aria-label="代码内容" codeTagProps={{ style: { background: 'transparent' } }}
       customStyle={{ margin: 0, borderRadius: 0, background: 'var(--bg-inset)', fontSize: '0.8125rem', lineHeight: '1.6', overflow: 'auto' }}>
       {code}
@@ -173,33 +145,32 @@ export function CodeBlock({ code, language = 'text' }: { code: string; language?
 
 function MermaidBlock({ code }: { code: string }) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const id = 'mermaid-' + useId().replace(/:/g, '')
-  const [error, setError] = useState<string | null>(null)
+  const theme = useSurfaceTheme(containerRef)
+  const [svg, setSvg] = useState('')
+  const [error, setError] = useState(false)
 
   useEffect(() => {
-    let cancelled = false
-    mermaid.render(id, code).then(({ svg }) => {
-      if (!cancelled && containerRef.current) {
-        containerRef.current.innerHTML = svg
-      }
-    }).catch((err) => {
-      if (!cancelled) setError(String(err))
+    if (!theme) return
+    const controller = new AbortController()
+    setError(false)
+    void renderMermaid(code, theme, controller.signal, containerRef.current?.clientWidth ?? 0).then((rendered) => {
+      if (rendered !== null && !controller.signal.aborted) setSvg(rendered)
+    }).catch(() => {
+      if (controller.signal.aborted) return
+      setSvg('')
+      setError(true)
     })
-    return () => { cancelled = true }
-  }, [code, id])
+    return () => controller.abort()
+  }, [code, theme])
 
-  if (error) return <pre className="rounded-lg bg-red-950/30 p-3 text-xs text-red-400">{error}</pre>
-  return <div ref={containerRef} className="my-3 flex justify-center overflow-x-auto rounded-lg p-4" style={{ background: 'var(--card-bg)' }} />
+  return <div ref={containerRef} className="my-3 min-w-0 overflow-x-auto rounded-lg p-4" style={{ background: 'var(--bg-inset)' }} data-foundation="mermaid">
+    {error ? <><p role="alert" className="text-xs" style={{ color: 'var(--danger)' }}>图表无法绘制，请检查语法。</p><CodeBlock code={code} language="mermaid" /></>
+      : <div className="flex justify-center" dangerouslySetInnerHTML={{ __html: svg }} />}
+  </div>
 }
 
 export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: MarkdownRendererProps) {
   const { main, asides } = splitAside(content)
-  const theme = useCurrentTheme()
-  const isDark = theme === 'dark'
-
-  useEffect(() => {
-    initMermaid(isDark)
-  }, [isDark])
 
   return (
     <div className="markdown-body">

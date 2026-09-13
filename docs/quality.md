@@ -21,6 +21,8 @@
 
 ## 二、测试分层
 
+共享 Markdown 的 UI 测试由 playwright.config.ts 的 UI 项目显式匹配 markdown-theme.test.ts：覆盖 Foundation 实际故事、四个局部主题同屏、根主题交叉、1166/600px、真实 WorkspaceFilesPanel 预览调用、语法恢复、快速更新与图内配置不能覆盖安全主题。Mermaid adapter Unit 覆盖配置/绘制串行、失败释放队列、取消丢弃结果和测量节点清理。该 Renderer 夹具不替代真实文件 IPC 安全测试，也不代表其它 Foundation 控件已完成复用。
+
 真实 Electron 引导 E2E 必须使用当前正式设置入口和可见控件契约，覆盖连接测试自动保存、返回聊天以及 Debug 入口；测试不得依赖已移除的旧按钮或旧 placeholder。
 
 真实 Electron workspace E2E 在独立 user-data-dir 和本地 SSE 服务下覆盖会话创建/列表排除/删除，以及正式 Dock 的真实文件读取、流中关闭侧聊、服务端连接终止、存储删除和重开发送。只替换系统目录选择器结果，不替换 preload、项目/聊天 IPC、Runtime 或存储；失败保留脱敏主进程日志。Windows 终端用临时脚本和仅允许两条固定命令的隔离权限规则验证拒绝后重试、2 万字符完整输出、退出去重，以及停止/关闭标签后真实父子进程在 5 秒内退出；不替换 terminal IPC，不按进程名清理用户进程。该证据不涵盖 Unix OS、完整 PTY 或外部浏览器网络。

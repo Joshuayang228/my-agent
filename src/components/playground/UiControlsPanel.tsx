@@ -13,6 +13,7 @@ import type { ToolCallbackItem } from '../chat/callbacks/types'
 import { MemoryCitationChips } from '../chat/MemoryCitationChips'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import { CodeBlock, MarkdownRenderer } from '../MarkdownRenderer'
+import { THEME_STUDIES, getThemeStudyStyle } from './foundation-themes'
 import { ToastPreview, type ToastPreviewItem } from '../Toast'
 import type { UiControlsSubId } from './catalog'
 import { StoryBlock } from './StoryBlock'
@@ -476,6 +477,14 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
           <StoryBlock title="内心独白与长文" source="src/components/MarkdownRenderer.tsx · aside guard" edge adopted>
             <div className="max-w-xl text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>
               <MarkdownRenderer content={'我先给你一个可以直接执行的版本。<aside>这是一段故意拉长的内心独白，用来检查窄栏换行、正文层级和弱化后的可读性，不能盖过真正的回答。</aside>'} />
+            </div>
+          </StoryBlock>
+          <StoryBlock title="局部四主题与图表" source="src/components/MarkdownRenderer.tsx · foundation/mermaid-renderer.ts" edge adopted>
+            <div className="grid min-w-0 gap-3 md:grid-cols-2" data-testid="foundation-markdown-themes">
+              {THEME_STUDIES.map((study) => <section key={study.id} data-testid={`foundation-markdown-${study.id}`} className="min-w-0 p-3" style={{ ...getThemeStudyStyle(study), background: study.colors.app }}>
+                <h4 className="text-xs font-medium">{study.label}</h4>
+                <MarkdownRenderer content={'```typescript\nconst ready = true\n```\n\n```mermaid\nflowchart LR\n A[检查] --> B[应用]\n```'} />
+              </section>)}
             </div>
           </StoryBlock>
         </div>
