@@ -196,12 +196,18 @@ test('Debug 质量 Eval 可保存并重新载入真人格人工审阅', async ()
   await expect(page.locator('[data-testid="persona-human-review"] textarea')).toHaveValue('先承接疲惫，语气自然。')
 })
 
-test('真实 Electron workspace 会话创建与清理', async () => {
-  const session = await page.evaluate(async () => {
+test('真实 Electron workspace 会话创建、隔离与清理', async () => {
+  const result = await page.evaluate(async () => {
     const created = await window.electronAPI.session.createWorkspace()
+    const loaded = await window.electronAPI.session.get(created.id)
+    const listed = await window.electronAPI.session.list()
     await window.electronAPI.session.delete(created.id)
-    return created
+    const afterDelete = await window.electronAPI.session.get(created.id)
+    return { created, loaded, listed, afterDelete }
   })
 
-  expect(session.sessionKind).toBe('workspace')
+  expect(result.created.sessionKind).toBe('workspace')
+  expect(result.loaded?.sessionKind).toBe('workspace')
+  expect(result.listed.some((session) => session.id === result.created.id)).toBe(false)
+  expect(result.afterDelete).toBeNull()
 })
