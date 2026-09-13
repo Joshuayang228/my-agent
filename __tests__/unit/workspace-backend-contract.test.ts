@@ -20,6 +20,7 @@ describe('正式工作区后端调用链', () => {
     expect(source.terminal).toMatch(/electronAPI\??\.terminal\??\.run/)
     expect(source.terminal).toMatch(/electronAPI\??\.terminal\??\.kill/)
     expect(source.browser).toMatch(/electronAPI\??\.browser\??\.load/)
+    expect(source.browser).toMatch(/electronAPI\??\.browser\??\.cancel/)
     expect(source.sideChat).toMatch(/electronAPI\??\.session\??\.createWorkspace/)
     expect(source.sideChat).toMatch(/electronAPI\??\.chat\??\.send/)
     expect(source.sideChat).toMatch(/electronAPI\??\.chat\??\.abort/)
@@ -30,5 +31,20 @@ describe('正式工作区后端调用链', () => {
       const source = readFileSync(path, 'utf8')
       expect(source).not.toMatch(/components\/playground|__tests__\/fixtures|WorkspaceExperienceCandidate/)
     }
+  })
+})
+
+
+describe('受限浏览器请求生命周期', () => {
+  it('preload、类型和主进程都保留 requestId/cancel 契约', () => {
+    const preload = readFileSync('electron/preload/index.ts', 'utf8')
+    const rendererTypes = readFileSync('src/vite-env.d.ts', 'utf8')
+    const main = readFileSync('electron/main/ipc/browser.ts', 'utf8')
+    expect(preload).toContain("ipcRenderer.invoke('browser:load', url, requestId)")
+    expect(preload).toContain("ipcRenderer.invoke('browser:cancel', requestId)")
+    expect(rendererTypes).toMatch(/load: \(url: string, requestId: string\)/)
+    expect(rendererTypes).toMatch(/cancel: \(requestId: string\)/)
+    expect(main).toContain("ipcMain.handle('browser:cancel'")
+    expect(main).toContain('activeRequests')
   })
 })

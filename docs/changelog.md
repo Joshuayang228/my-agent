@@ -3,6 +3,7 @@
 > 只记录用户或开发者可以感知的能力变化。完整早期施工流水见 [`../_archive/ledgers/changelog-through-2026-08-16.md`](../_archive/ledgers/changelog-through-2026-08-16.md)。
 
 ## [未发布]
+- 受限浏览器加载现在携带请求归属；关闭工作区标签或卸载面板时会取消主进程中的网页抓取，避免无主请求继续等待超时。
 - Markdown 代码块的复制操作现在共用 Foundation `IconButton`，复制失败提示和复制内容不变。
 - 工作区浏览器、审阅、侧边聊天和文件预览的文字恢复/打开动作现在共用 Foundation `ActionButton`，hover、禁用和主题状态不再由业务面板各自声明。
 - 正式浏览器刷新、终端运行/终止和侧边聊天发送/停止按钮现在共用 Foundation `IconButton`，hover、disabled 和加载状态保持固定操作槽尺寸，不再推动输入框或面板布局。

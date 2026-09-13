@@ -1,5 +1,5 @@
 import { Globe, LoaderCircle, RefreshCw } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react'
 import { IconButton } from '../../foundation/IconButton'
 import { ActionButton } from '../../foundation/ActionButton'
@@ -19,16 +19,32 @@ export function BrowserPanel() {
   const [document, setDocument] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const mountedRef = useRef(true)
+  const requestIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      const requestId = requestIdRef.current
+      if (requestId) void window.electronAPI.browser.cancel(requestId)
+    }
+  }, [])
   const load = async () => {
     const value = draft.trim()
     if (!value || loading) return
+    const requestId = crypto.randomUUID()
+    requestIdRef.current = requestId
     setLoading(true); setError(null)
     try {
-      const result = await window.electronAPI.browser.load(value)
-      if (!result.ok) { setError(result.error); return }
+      const result = await window.electronAPI.browser.load(value, requestId)
+      if (!mountedRef.current || requestIdRef.current !== requestId) return
+      if (!result.ok) { if (result.error !== '网页加载已取消') setError(result.error); return }
       setAddress(result.url); setDraft(result.url); setDocument(result.body)
-    } catch { setError('网页加载失败，请重试') }
-    finally { setLoading(false) }
+    } catch {
+      if (mountedRef.current && requestIdRef.current === requestId) setError('网页加载失败，请重试')
+    } finally {
+      if (requestIdRef.current === requestId) { requestIdRef.current = null; if (mountedRef.current) setLoading(false) }
+    }
   }
   return <div className="flex h-full min-h-0 flex-col" data-testid="workspace-browser-panel">
     <form className="flex shrink-0 items-center gap-2 border-b px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event: FormEvent<HTMLFormElement>) => { event.preventDefault(); void load() }}>

@@ -18,6 +18,12 @@ const log = createLogger('BrowserIPC')
 const MAX_URL_LENGTH = 4_096
 const MAX_RESPONSE_BYTES = 512 * 1024
 const TIMEOUT_MS = 15_000
+const MAX_REQUEST_ID_LENGTH = 200
+const activeRequests = new Map<string, AbortController>()
+
+function requestKey(senderId: number, requestId: string): string {
+  return `${senderId}:${requestId}`
+}
 
 async function readBody(response: Response): Promise<string | null> {
   if (!response.body) {
@@ -46,7 +52,10 @@ async function readBody(response: Response): Promise<string | null> {
 }
 
 export function registerBrowserIPC(): void {
-  ipcMain.handle('browser:load', async (_event, rawUrl: unknown) => {
+  ipcMain.handle('browser:load', async (event, rawUrl: unknown, rawRequestId: unknown) => {
+    if (typeof rawRequestId !== 'string' || rawRequestId.length === 0 || rawRequestId.length > MAX_REQUEST_ID_LENGTH) {
+      return { ok: false, error: '网页请求标识无效' }
+    }
     if (typeof rawUrl !== 'string' || rawUrl.trim().length === 0 || rawUrl.length > MAX_URL_LENGTH) {
       return { ok: false, error: '网页地址无效或过长' }
     }
@@ -54,6 +63,8 @@ export function registerBrowserIPC(): void {
     if (!validation.ok) return { ok: false, error: validation.reason }
 
     const controller = new AbortController()
+    const key = requestKey(event.sender.id, rawRequestId)
+    activeRequests.set(key, controller)
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
     try {
       const response = await fetch(validation.url, {
@@ -74,11 +85,21 @@ export function registerBrowserIPC(): void {
       }
       return { ok: true, url: validation.url, contentType, body }
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return { ok: false, error: '网页加载已取消' }
       log.warn('Browser load failed', { urlHash: hashForLog(validation.url), errorType: error instanceof Error ? error.name : 'unknown' })
       return { ok: false, error: '网页加载失败，请检查地址或网络连接' }
     } finally {
       clearTimeout(timer)
+      if (activeRequests.get(key) === controller) activeRequests.delete(key)
     }
+  })
+  ipcMain.handle('browser:cancel', (event, rawRequestId: unknown) => {
+    if (typeof rawRequestId !== 'string' || rawRequestId.length === 0 || rawRequestId.length > MAX_REQUEST_ID_LENGTH) return { ok: false }
+    const key = requestKey(event.sender.id, rawRequestId)
+    const controller = activeRequests.get(key)
+    if (!controller) return { ok: false }
+    controller.abort()
+    return { ok: true }
   })
   log.info('Browser IPC registered')
 }

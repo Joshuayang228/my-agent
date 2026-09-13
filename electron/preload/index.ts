@@ -53,8 +53,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ping: () => ipcRenderer.invoke('ping'),
 
   browser: {
-    load: (url: string): Promise<{ ok: true; url: string; contentType: string; body: string } | { ok: false; error: string }> =>
-      ipcRenderer.invoke('browser:load', url),
+    load: (url: string, requestId: string): Promise<{ ok: true; url: string; contentType: string; body: string } | { ok: false; error: string }> =>
+      ipcRenderer.invoke('browser:load', url, requestId),
+    cancel: (requestId: string): Promise<{ ok: boolean }> => ipcRenderer.invoke('browser:cancel', requestId),
   },
 
   session: {

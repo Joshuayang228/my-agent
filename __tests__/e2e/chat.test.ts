@@ -927,11 +927,11 @@ test.describe('My Agent UI', () => {
     await page.addInitScript(() => {
       const api = (window as any).electronAPI
       let calls = 0
-      api.browser = { load: async (url: string) => {
+      api.browser = { load: async (url: string, _requestId: string) => {
         calls++
         if (calls === 1) return { ok: false, error: '网页加载失败，请检查地址或网络连接' }
         return { ok: true, url, contentType: 'text/html', body: '<!doctype html><html><body><h1>安全文档</h1><p>只读网页内容</p><script>window.__shouldNotRun = true</script></body></html>' }
-      } }
+      }, cancel: async () => ({ ok: true }) }
       ;(window as any).__browserCalls = () => calls
     })
     await page.goto('/')

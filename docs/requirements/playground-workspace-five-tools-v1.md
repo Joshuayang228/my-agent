@@ -66,7 +66,7 @@
 | 文件左树右侧多文件预览 | WorkspaceFilesPanel + FileBrowser | 已回流 | 多预览去重、切换、关闭重开及乱序/错误有 Renderer 回归；真实 Electron 已验证项目授权和文件读取 |
 | 审阅 | ReviewPanel | 已回流 | 真实 before/after、并排/统一视图及错误/乱序有 Renderer 回归 |
 | 终端 | TerminalPanel | 已回流（Windows 命令控制台） | 保留权限、沙箱和工作区 cwd；真实 Electron 已验证拒绝后重试、大块输出、停止/关闭标签后的父子进程退出；Unit 验证终止失败/超时、关闭去重及无握手清理。Unix 仍需实机验证，完整 PTY 不在本合同范围 |
-| 浏览器 | BrowserPanel 受限只读查看器 | 生产改造后回流 | 主进程安全抓取已接入：URL/DNS 校验、手动拒绝重定向、超时与响应上限；Renderer 使用无脚本 sandbox + CSP。仍不支持脚本、登录、站内交互和任意导航 |
+| 浏览器 | BrowserPanel 受限只读查看器 | 已有后端但能力受限 | 主进程安全抓取已接入 URL/DNS 校验、手动拒绝重定向、超时/响应上限，并新增 requestId 归属与关闭时取消；Renderer 使用无脚本 sandbox + CSP。仍不支持脚本、登录、站内交互和任意导航 |
 | 侧边聊天 | SideChatPanel + `workspace` 会话 | 已回流，整体视觉待验收 | 创建/发送失败重试、旧草稿/确认/异步响应隔离有 Renderer 回归；真实 Electron 已验证流中关闭及切换主会话后的连接终止、存储删除和新侧聊发送；Runtime 初始化取消及 IPC 等待收尾/确认取消有 Unit |
 | 多实例工作区 Tab | ChatRightDock + Foundation TabStrip | 已回流 | 固定关闭槽、稳定实例 ID、后台关闭和切换/折叠/一级导航保持已有 Renderer 回归；Windows 终端关闭释放进程树已有 Electron 证据 |
 | Markdown／Diff 代码块 | MarkdownRenderer / Foundation DiffViewer / FileBrowser / ReviewPanel | 共享渲染已回流 | 原始代码、就近主题/Mermaid 与差异布局同源；空稿和缺稿回退有 Renderer 回归，其它基础控件仍需全量复用验收 |
@@ -80,7 +80,7 @@
 | 文件读取与多预览 | `project.listFiles` / `project.readFile`，路径边界和真实 Electron 读取已覆盖 | 已有后端 | 继续维护安全边界；不是本轮占位项 |
 | 审阅前后稿与差异 | `session:listFileChanges` / `session:getFileChangeDiff`，before/after、错误和过期响应已有回归 | 已有后端 | 差异算法不在 UI 层重算；补长期文件上限时继续沿主进程契约 |
 | 终端命令控制台 | 真实 terminal IPC、权限/沙箱/cwd、Windows 进程树回收已有证据 | 已有后端但能力受限 | Unix 实机证据与完整 PTY 不在当前合同；不得把命令控制台宣传为 PTY |
-| 受限网页查看 | `browser:load` 主进程 URL/DNS 校验、拒绝重定向、响应/超时上限，Renderer sandbox+CSP | 已有后端但能力受限 | 脚本、登录、表单、站内导航和任意网页交互明确不做；若要支持需另建安全施工合同 |
+| 受限网页查看 | `browser:load` / `browser:cancel` 主进程 URL/DNS 校验、拒绝重定向、响应/超时上限和请求归属，Renderer sandbox+CSP | 已有后端但能力受限 | 脚本、登录、表单、站内导航和任意网页交互明确不做；若要支持需另建安全施工合同 |
 | workspace 侧边聊天 | `session:createWorkspace` + 真实 Runtime 流式事件，主列表/长期记忆隔离，Electron 关闭与切换清理已覆盖 | 已有后端 | 继续补模型配置/工具确认等边界回归；不是静态样张 |
 | 完整终端 PTY | 正式界面没有可声称的 PTY 契约，当前实现是受权限控制的命令控制台 | 未实现 | 见 WISH-019，需单独合同、跨平台进程组和 PTY 资源/取消设计 |
 | 浏览器登录与脚本交互 | 当前主进程只返回受限 HTML/文本，Renderer 明确无脚本 | 未实现且明确排除 | 不在本合同内，不得从 Playground 浏览器样张回流 |
@@ -94,12 +94,12 @@
 
 - 回流来源：本合同五功能候选、WorkspaceExperienceCandidate 与 Foundation 标签故事。用户授权：2026-09-13「开始回流工作区」「先把整个界面统一，然后再把后端的各项能力全部补齐」。P1 未完成，不提前冻结合同。
 - 当前落点：App 的项目工作区按钮 → ChatRightDock → FileBrowser／ReviewPanel／TerminalPanel。现有真实数据来自 project、session file changes、terminal IPC；本批折叠不改其接口，只保留已挂载子树。
-- 本批允许修改：src/App.tsx、src/components/chat/right-dock/ChatRightDock.tsx、__tests__/e2e/chat.test.ts，以及本合同、合同导览、agent-runtime 模块卡、quality、progress、changelog、wishlist。其它已有工作区文件只读，用户临时文件不纳入提交。
+- 本批允许修改：src/App.tsx、src/components/chat/right-dock/ChatRightDock.tsx、src/components/chat/right-dock/BrowserPanel.tsx、electron/main/ipc/browser.ts、electron/preload/index.ts、src/vite-env.d.ts、工作区 Unit/Renderer/Electron 测试，以及本合同、合同导览、agent-runtime 模块卡、quality、progress、changelog、wishlist。其它已有工作区文件只读，用户临时文件不纳入提交。
 - 界面统一后续写入范围：共享 Foundation 控件、工作区容器、FileBrowser、MarkdownRenderer／ReviewPanel、对应 Playground renderer 与资产注册表、样张和正式 E2E。当前已补 `ActionButton`，覆盖正式恢复/打开动作；后续仍需继续审计其它局部 JSX 控件。提取真实共享实现，不把候选文件作为生产依赖。
 - 生命周期：折叠只隐藏，不取消任务；切换标签应保留实例状态，关闭才释放实例资源。会话／项目切换和一级导航的资源归属必须分别定义与验证，不把同页折叠证据外推为持久化。
 - 后端补齐前逐项补充契约：浏览器需隔离外站、导航和权限决策、关闭清理；侧聊需真实 session／runtime 归属、事件过滤、停止、错误恢复、持久化和模型配置工厂；终端需实例事件隔离、早到输出、结束和关闭清理，并审计 WISH-019 的 PTY 差距。涉及 IPC 时同步四处类型与入口，禁止复用 Playground 模拟实现。
 - 审阅真实契约：`session:getFileChangeDiff` 在原有 `diff/after` 外返回受长度上限保护的 `before`，供正式并排视图使用；列表读取和 diff 读取必须分别处理错误，按请求序号丢弃过期结果。新建文件无旧稿时仅提供 unified 视图，不以空字符串伪造旧稿。
-- 浏览器真实契约：`browser:load` 只返回通过主进程 URL/DNS 校验、未跟随重定向且未超出大小／时间上限的 HTML/XHTML/纯文本；正式 Renderer 通过 `sandbox=""` 和文档 CSP 展示，禁止脚本、插件、表单和外部资源，不承担登录态或任意网页交互。
+- 浏览器真实契约：`browser:load` 只返回通过主进程 URL/DNS 校验、未跟随重定向且未超出大小／时间上限的 HTML/XHTML/纯文本；正式 Renderer 通过 `sandbox=""` 和文档 CSP 展示，禁止脚本、插件、表单和外部资源，不承担登录态或任意网页交互；每次请求携带 Renderer 生成的 requestId，标签关闭/组件卸载调用 `browser:cancel`，主进程按 senderId + requestId 校验并终止 fetch。
 - 侧边聊天真实契约：`session:createWorkspace` 创建 `session_kind=workspace` 的临时会话；列表和主会话导览排除该类型，面板卸载调用现有 `session:delete` 清理。消息仍走现有 `chat:send`／`chat:event`／`chat:abort`，Renderer 按独立 sessionId 过滤事件；React 初始化清理产生的废弃 workspace 会话也必须删除。发送时可附带当前项目路径、父会话最近内容和当前文件／审阅焦点；主进程限制路径与正文长度，Runtime 只作为本轮参考，不写入历史或长期记忆。
 - 当前不动：生产 Prompt、人格／记忆策略、权限规则、模型配置与真实用户数据。它们不是本批视觉折叠的必要修改；后续真实能力需要改动时先把具体契约补入本合同。
 

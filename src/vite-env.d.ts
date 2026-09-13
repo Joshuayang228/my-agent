@@ -46,7 +46,8 @@ declare global {
     electronAPI: {
       ping: () => Promise<string>
       browser: {
-        load: (url: string) => Promise<{ ok: true; url: string; contentType: string; body: string } | { ok: false; error: string }>
+        load: (url: string, requestId: string) => Promise<{ ok: true; url: string; contentType: string; body: string } | { ok: false; error: string }>
+        cancel: (requestId: string) => Promise<{ ok: boolean }>
       }
       session: {
         list: () => Promise<SessionSummary[]>
