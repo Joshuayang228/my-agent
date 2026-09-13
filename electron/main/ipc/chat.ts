@@ -12,6 +12,8 @@ const CONFIRM_TIMEOUT_MS = 60_000
 const MAX_CHAT_ID_LENGTH = 200
 const MAX_CHAT_CONTENT_LENGTH = 1_000_000
 
+const activeChatSenders = new Map<string, { senderId: number; requestId: string }>()
+
 function isValidChatMessage(value: unknown): value is ChatMessage {
   if (!value || typeof value !== 'object') return false
   const message = value as Record<string, unknown>
@@ -40,8 +42,10 @@ function readWorkspaceChatContext(value: unknown): WorkspaceChatContext | undefi
 export function registerChatIPC(toolRegistry: ToolRegistry): void {
   ipcMain.handle('ping', () => 'pong')
 
-  ipcMain.handle('chat:abort', (_event, sessionId?: string) => {
-    runtime.abort(typeof sessionId === 'string' && sessionId.length <= MAX_CHAT_ID_LENGTH ? sessionId : undefined)
+  ipcMain.handle('chat:abort', (event, sessionId?: string) => {
+    const normalizedSessionId = typeof sessionId === 'string' && sessionId.length <= MAX_CHAT_ID_LENGTH ? sessionId : undefined
+    if (!normalizedSessionId || activeChatSenders.get(normalizedSessionId)?.senderId !== event.sender.id) return
+    runtime.abort(normalizedSessionId)
   })
 
   ipcMain.handle('chat:send', async (event, sessionId: string, userMessage: ChatMessage, rawContext?: unknown) => {
@@ -51,6 +55,12 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
     if (!isValidChatMessage(userMessage)) {
       throw new Error('消息参数无效或内容过长')
     }
+    const previousOwner = activeChatSenders.get(sessionId)
+    if (previousOwner !== undefined && previousOwner.senderId !== event.sender.id) {
+      throw new Error('该会话正在另一个窗口处理中')
+    }
+    const requestId = randomUUID()
+    if (previousOwner === undefined) activeChatSenders.set(sessionId, { senderId: event.sender.id, requestId })
     const workspaceContext = readWorkspaceChatContext(rawContext)
     const emit = (ev: Record<string, unknown>) => {
       event.sender.send('chat:event', { ...ev, sessionId })
@@ -99,6 +109,8 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
       const payload = agentErr.toEventPayload()
       emit({ type: 'error', message: payload.message, code: payload.code })
       emit({ type: 'done', reason: 'model_error' })
+    } finally {
+      if (activeChatSenders.get(sessionId)?.requestId === requestId) activeChatSenders.delete(sessionId)
     }
   })
 }
