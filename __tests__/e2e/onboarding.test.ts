@@ -27,6 +27,8 @@ let userDataDir = ''
 let server: ReturnType<typeof createServer>
 let baseUrl = ''
 let capturedRequest: CapturedRequest | null = null
+let heldStreamClosed = false
+let mainOutput = ''
 const fixtureReportName = '2099-01-01T00-00-00-000Z-persona-b02-b07-pass-1.json'
 const fixtureReportPath = path.resolve(__dirname, '../../eval-reports', fixtureReportName)
 
@@ -94,6 +96,13 @@ test.beforeAll(async () => {
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
     })
+    const messages = capturedRequest.body.messages as Array<{ role: string; content: unknown }> | undefined
+    if (messages?.some((message) => message.role === 'user' && JSON.stringify(message.content).includes('workspace-close-regression'))) {
+      heldStreamClosed = false
+      response.on('close', () => { heldStreamClosed = true })
+      response.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '正在等待关闭验证' }, finish_reason: null }] })}\n\n`)
+      return
+    }
     response.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '连接成功' }, finish_reason: null }] })}\n\n`)
     response.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: 'stop' }], usage: { prompt_tokens: 8, completion_tokens: 2 } })}\n\n`)
     response.end('data: [DONE]\n\n')
@@ -118,6 +127,9 @@ test.beforeAll(async () => {
       LLM_MODEL: '',
     },
   })
+  const collect = (chunk: Buffer) => { mainOutput = (mainOutput + chunk.toString()).slice(-100_000) }
+  electronApp.process().stdout?.on('data', collect)
+  electronApp.process().stderr?.on('data', collect)
   page = await electronApp.firstWindow()
   await page.waitForLoadState('domcontentloaded')
 })
@@ -125,7 +137,10 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   if (electronApp) await electronApp.close()
   await unlink(fixtureReportPath).catch(() => undefined)
-  if (server) await new Promise<void>((resolve) => server.close(() => resolve()))
+  if (server) {
+    server.closeAllConnections()
+    await new Promise<void>((resolve) => server.close(() => resolve()))
+  }
   if (userDataDir && path.basename(userDataDir).startsWith('my-agent-onboarding-')) {
     await rm(userDataDir, { recursive: true, force: true })
   }
@@ -210,4 +225,68 @@ test('真实 Electron workspace 会话创建、隔离与清理', async () => {
   expect(result.loaded?.sessionKind).toBe('workspace')
   expect(result.listed.some((session) => session.id === result.created.id)).toBe(false)
   expect(result.afterDelete).toBeNull()
+})
+
+test.afterEach(async ({}, testInfo) => {
+  if (testInfo.status !== testInfo.expectedStatus) {
+    const logPath = testInfo.outputPath('electron-main.log')
+    await writeFile(logPath, mainOutput, 'utf8')
+    await testInfo.attach('electron-main-log', { path: logPath, contentType: 'text/plain' })
+  }
+})
+
+test('正式工作区读取真实文件，流式生成中关闭侧聊终止请求并删除会话', async () => {
+  const projectPath = path.join(userDataDir, 'workspace-fixture')
+  await mkdir(projectPath)
+  await writeFile(path.join(projectPath, 'workspace.txt'), 'real workspace file content', 'utf8')
+  // 仅替换操作系统目录选择器；正式 project IPC 仍执行授权、设置与文件读取。
+  await electronApp.evaluate(({ dialog }, directory) => {
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] })
+  }, projectPath)
+  await electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.setSize(1280, 850))
+  await page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: '返回', exact: true }).click()
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: '新对话', exact: true }).click()
+  await page.getByRole('button', { name: '未选择项目', exact: true }).click()
+  await page.getByRole('button', { name: '添加新项目', exact: true }).click()
+  await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+  const dock = page.getByTestId('chat-right-dock')
+  await dock.getByText('workspace.txt', { exact: true }).click()
+  await expect(dock.getByText('real workspace file content', { exact: true })).toBeVisible()
+  await page.evaluate(() => {
+    const observed = { sessionId: '', events: [] as string[] }
+    const unsubscribe = window.electronAPI.chat.onEvent((event) => {
+      if ('sessionId' in event) observed.sessionId = String(event.sessionId)
+      observed.events.push(event.type)
+    })
+    Object.assign(window, { __workspaceObserved: observed, __workspaceUnsubscribe: unsubscribe })
+  })
+  await dock.getByRole('button', { name: '添加工作区内容' }).click()
+  await dock.getByRole('menuitem', { name: '侧边聊天', exact: true }).click()
+  const sidechat = dock.getByTestId('workspace-sidechat-panel')
+  await sidechat.getByRole('textbox', { name: '侧边聊天消息' }).fill('workspace-close-regression')
+  await sidechat.getByRole('button', { name: '发送消息', exact: true }).click()
+  await expect(sidechat.getByText('正在等待关闭验证', { exact: true }).or(sidechat.getByRole('alert'))).toBeVisible({ timeout: 30_000 })
+  await expect(sidechat.getByRole('alert')).toHaveCount(0)
+  const sessionId = await page.evaluate(() => (window as any).__workspaceObserved.sessionId as string)
+  expect(sessionId).not.toBe('')
+  expect(await page.evaluate((id) => window.electronAPI.session.get(id), sessionId)).toMatchObject({ sessionKind: 'workspace' })
+  await page.screenshot({ path: 'test-results/workspace-electron-streaming.png', fullPage: true })
+  await dock.getByRole('button', { name: '关闭侧边聊天', exact: true }).click()
+  await expect(sidechat).toHaveCount(0)
+  await expect.poll(() => heldStreamClosed).toBe(true)
+  await expect.poll(() => page.evaluate((id) => window.electronAPI.session.get(id), sessionId)).toBeNull()
+  expect(await page.evaluate(() => (window as any).__workspaceObserved.events)).toContain('done')
+  expect((await page.evaluate(() => window.electronAPI.session.list())).some((session) => session.id === sessionId)).toBe(false)
+  await expect(dock.getByText('real workspace file content', { exact: true })).toBeVisible()
+
+  await dock.getByRole('button', { name: '添加工作区内容' }).click()
+  await dock.getByRole('menuitem', { name: '侧边聊天', exact: true }).click()
+  await expect(sidechat.getByRole('textbox', { name: '侧边聊天消息' })).toBeEnabled()
+  await sidechat.getByRole('textbox', { name: '侧边聊天消息' }).fill('重新打开后继续')
+  await sidechat.getByRole('button', { name: '发送消息', exact: true }).click()
+  await expect(sidechat.getByText('连接成功', { exact: true })).toBeVisible({ timeout: 30_000 })
+  await expect(sidechat.getByRole('button', { name: '停止生成' })).toHaveCount(0)
+  await expect(sidechat.getByText('workspace-close-regression', { exact: true })).toHaveCount(0)
+  await dock.getByRole('button', { name: '关闭侧边聊天', exact: true }).click()
+  await page.evaluate(() => (window as any).__workspaceUnsubscribe())
 })

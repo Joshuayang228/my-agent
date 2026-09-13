@@ -59,7 +59,11 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
       cleanup?.()
       const id = sessionRef.current
       sessionRef.current = null
-      if (id) void window.electronAPI.session.delete(id)
+      // 卸载不能等待 React 回调；由主进程负责取消并等候完整收尾，再删除临时会话。
+      // 删除失败保留存储记录并记录诊断，不冒险在仍有写盘时强删。
+      if (id) void window.electronAPI.session.delete(id).catch(() => {
+        console.warn('侧边聊天清理失败，临时会话已保留')
+      })
     }
   }, [parentSessionId])
 

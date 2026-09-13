@@ -59,15 +59,15 @@
 
 | 候选能力 | 当前正式落点 | 当前判定 | 缺口 / 处理方式 |
 |---|---|---|---|
-| 对话与工作区分隔线 | Chat 壳 + ChatRightDock | 生产改造后回流 | 统一正式视觉和响应式布局 |
-| PanelRight 打开／收起 | App.tsx 的 showFileBrowser | 生产改造后回流 | 区分隐藏与卸载，保留 Tab、预览和任务上下文 |
-| 文件左树右侧多文件预览 | ChatRightDock + FileBrowser | 生产改造后回流 | 旧正式版文件／预览为独立顶层 Tab；目标合并为文件功能，内部多预览去重、切换、关闭与重开 |
-| 审阅 | ReviewPanel | 已有真实能力 | 回流布局和错误／空态视觉，不替换真实数据 |
+| 对话与工作区分隔线 | Chat 壳 + ChatRightDock | 已回流 | 正式布局与 Renderer 宽窄回归已覆盖 |
+| PanelRight 打开／收起 | App.tsx 的 showFileBrowser | 已回流 | 隐藏不卸载，保留 Tab 和预览；Renderer 回归已覆盖 |
+| 文件左树右侧多文件预览 | WorkspaceFilesPanel + FileBrowser | 已回流 | 多预览去重、切换、关闭重开及乱序/错误有 Renderer 回归；真实 Electron 已验证项目授权和文件读取 |
+| 审阅 | ReviewPanel | 已回流 | 真实 before/after、并排/统一视图及错误/乱序有 Renderer 回归 |
 | 终端 | TerminalPanel | 生产改造后回流 | 保留权限、沙箱和工作区 cwd；主进程已按发起窗口校验 run 归属并回收 Windows 进程树，仍需真实 Electron 进程生命周期回归，完整 PTY 仍不在本合同范围 |
 | 浏览器 | BrowserPanel 受限只读查看器 | 生产改造后回流 | 主进程安全抓取已接入：URL/DNS 校验、手动拒绝重定向、超时与响应上限；Renderer 使用无脚本 sandbox + CSP。仍不支持脚本、登录、站内交互和任意导航 |
-| 侧边聊天 | SideChatPanel + `workspace` 会话 | 生产改造后回流 | 已接真实 session/runtime、流式事件、停止和卸载清理；已补父会话/项目/当前文件或审阅焦点上下文、工具确认隔离和错误后真实重试。仍需更完整 Runtime 竞态与 Electron 边界失败回归 |
-| 多实例工作区 Tab | 正式右坞已有部分状态 | 部分已有 | 统一实例 ID、关闭策略、当前 Tab 和恢复生命周期 |
-| Markdown／Diff 代码块 | MarkdownRenderer 的 CodeBlock / FileBrowser / ReviewPanel | 部分回流 | 原始代码与基础故事同源；局部四主题、Mermaid、完整审阅模式仍需验收 |
+| 侧边聊天 | SideChatPanel + `workspace` 会话 | 已接入，验收未全收口 | 真实 Electron 已覆盖流中关闭、连接终止、删除和重开；Runtime 初始化取消及 IPC 等待收尾/确认取消有 Unit。仍需初始化失败重试和父会话切换状态核验 |
+| 多实例工作区 Tab | ChatRightDock + Foundation TabStrip | 已回流 | 固定关闭槽、稳定实例 ID、后台关闭和切换/折叠/一级导航保持已有 Renderer 回归；终端 OS 生命周期另验 |
+| Markdown／Diff 代码块 | MarkdownRenderer 的 CodeBlock / FileBrowser / ReviewPanel | 部分回流 | 原始代码与基础故事同源；局部四主题、Mermaid、全量基础复用仍需验收 |
 
 ### P1 技术路径与交付边界
 
@@ -99,6 +99,8 @@
 - 验收：真实 App Renderer＋Electron 边界替身覆盖两个文件、去重、左右位置、后台关闭、重开、错误／重试、异步乱序；既有 Playground 五功能和文件所有格式故事保持隔离。状态与数据流事实同步到模块卡；真实 Electron 文件读取安全门禁继续保留。
 
 ### P1 验收与回滚
+
+侧聊关闭收口批次（2026-09-13）：沿用已批准的真实后端补齐范围，修改 Runtime、chat/session IPC、SideChatPanel、对应 Unit/Renderer/Electron 测试及运行时/架构/质量/进展/变更文档。主进程在配置读取前登记会话运行，取消只发信号、不提前释放运行所有权；session:delete 阻止同会话新发送，取消工具确认并等待完整 chat:send 退出后才删除记录。Renderer 不以 abort 返回或 done 事件作为落盘完成证据。既有 IPC 名称与载荷不变，不增加模型费用、不修改用户配置。验收覆盖初始化取消、流中关闭、重复发送/删除、异窗归属、确认监听清理，以及本地 SSE + 独立数据目录下的正式 Dock 操作；不把此批标为全部回流完成。
 
 生命周期批次：App、ChatRightDock、TerminalPanel 与 Renderer E2E 为允许改动范围。终端和文件属于当前项目；切换标签、折叠、进入设置或 Playground 只隐藏工作区，关闭标签或切换／取消项目才释放资源。审阅仍以 sessionId 重建，不把旧会话审阅带到新会话。启动尚未返回即关闭时，Renderer 在迟到响应提供 runId 后补发清理；启动拒绝和终止失败需可恢复。此批不改变现有 IPC／权限／沙箱，也不声称解决 runId 返回前的早到输出或操作系统进程树终止；后者归后端契约批次。
 

@@ -12,7 +12,34 @@ const CONFIRM_TIMEOUT_MS = 60_000
 const MAX_CHAT_ID_LENGTH = 200
 const MAX_CHAT_CONTENT_LENGTH = 1_000_000
 
-const activeChatSenders = new Map<string, { senderId: number; requestId: string }>()
+interface ActiveChat {
+  senderId: number
+  completed: Promise<void>
+  cancel: () => void
+}
+
+const activeChatSenders = new Map<string, ActiveChat>()
+const deletingSessions = new Map<string, { senderId: number; completed: Promise<void> }>()
+
+/**
+ * 关闭侧聊时仍可能存在 Runtime 写盘与待确认工具。由主进程串行取消、等待、删除，
+ * 不把 abort 回执或 done 事件误作收尾完成；删除期间拒绝新发送，失败后释放门禁以便重试。
+ */
+export function deleteChatSession(sessionId: string, senderId: number, remove: () => Promise<void>): Promise<void> {
+  const deletion = deletingSessions.get(sessionId)
+  const active = activeChatSenders.get(sessionId)
+  if ((deletion && deletion.senderId !== senderId) || (active && active.senderId !== senderId)) {
+    return Promise.reject(new Error('该会话正在另一个窗口处理中'))
+  }
+  if (deletion) return deletion.completed
+  const completed = Promise.resolve().then(async () => {
+    active?.cancel()
+    await active?.completed
+    await remove()
+  }).finally(() => { deletingSessions.delete(sessionId) })
+  deletingSessions.set(sessionId, { senderId, completed })
+  return completed
+}
 
 function isValidChatMessage(value: unknown): value is ChatMessage {
   if (!value || typeof value !== 'object') return false
@@ -45,7 +72,7 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
   ipcMain.handle('chat:abort', (event, sessionId?: string) => {
     const normalizedSessionId = typeof sessionId === 'string' && sessionId.length <= MAX_CHAT_ID_LENGTH ? sessionId : undefined
     if (!normalizedSessionId || activeChatSenders.get(normalizedSessionId)?.senderId !== event.sender.id) return
-    runtime.abort(normalizedSessionId)
+    activeChatSenders.get(normalizedSessionId)?.cancel()
   })
 
   ipcMain.handle('chat:send', async (event, sessionId: string, userMessage: ChatMessage, rawContext?: unknown) => {
@@ -55,18 +82,29 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
     if (!isValidChatMessage(userMessage)) {
       throw new Error('消息参数无效或内容过长')
     }
-    const previousOwner = activeChatSenders.get(sessionId)
-    if (previousOwner !== undefined && previousOwner.senderId !== event.sender.id) {
-      throw new Error('该会话正在另一个窗口处理中')
+    if (deletingSessions.has(sessionId)) throw new Error('该会话正在关闭')
+    if (activeChatSenders.has(sessionId)) throw new Error('该会话正在处理中，请等待完成或先中断')
+    let finishRun!: () => void
+    let cancelled = false
+    const pendingConfirms = new Set<() => void>()
+    const active: ActiveChat = {
+      senderId: event.sender.id,
+      completed: new Promise<void>((resolve) => { finishRun = resolve }),
+      cancel: () => {
+        cancelled = true
+        runtime.abort(sessionId)
+        for (const deny of pendingConfirms) deny()
+      },
     }
-    const requestId = randomUUID()
-    if (previousOwner === undefined) activeChatSenders.set(sessionId, { senderId: event.sender.id, requestId })
+    activeChatSenders.set(sessionId, active)
+    event.sender.once('destroyed', active.cancel)
     const workspaceContext = readWorkspaceChatContext(rawContext)
     const emit = (ev: Record<string, unknown>) => {
-      event.sender.send('chat:event', { ...ev, sessionId })
+      if (!event.sender.isDestroyed()) event.sender.send('chat:event', { ...ev, sessionId })
     }
 
     const confirmTool = (name: string, args: Record<string, unknown>): Promise<boolean> => {
+      if (cancelled || event.sender.isDestroyed()) return Promise.resolve(false)
       return new Promise((resolve) => {
         // UUID 避免 Date.now() 同毫秒碰撞；动态频道靠 requestId 配对
         const requestId = `confirm-${randomUUID()}`
@@ -79,14 +117,18 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
           settled = true
           if (timer !== undefined) clearTimeout(timer)
           ipcMain.removeListener(channel, onResponse)
+          pendingConfirms.delete(deny)
           resolve(approved)
         }
 
-        function onResponse(_e: Electron.IpcMainEvent, approved: boolean) {
-          finish(approved)
+        const deny = () => finish(false)
+        pendingConfirms.add(deny)
+
+        function onResponse(responseEvent: Electron.IpcMainEvent, approved: boolean) {
+          if (responseEvent.sender.id === event.sender.id) finish(approved === true)
         }
 
-        ipcMain.once(channel, onResponse)
+        ipcMain.on(channel, onResponse)
         event.sender.send('tool:confirm-request', { requestId, name, args, sessionId })
 
         timer = setTimeout(() => {
@@ -110,7 +152,10 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
       emit({ type: 'error', message: payload.message, code: payload.code })
       emit({ type: 'done', reason: 'model_error' })
     } finally {
-      if (activeChatSenders.get(sessionId)?.requestId === requestId) activeChatSenders.delete(sessionId)
+      for (const deny of pendingConfirms) deny()
+      event.sender.removeListener('destroyed', active.cancel)
+      activeChatSenders.delete(sessionId)
+      finishRun()
     }
   })
 }

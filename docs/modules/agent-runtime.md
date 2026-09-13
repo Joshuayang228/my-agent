@@ -35,6 +35,7 @@
 - 工具执行前走权限引擎（见 permission）
 - 主 Assemble 只在 `prompt-builder`；辅助 Prompt 不得再走一套平行组装器冒充主路径
 - Loop 的 `done` 必须保留真实 `TerminalReason` 且只发一次；只有 `completed` 才保存完整 assistant、启动后台善后和成功通知
+- Runtime 从配置初始化到生成器退出持续持有会话锁，abort 只发信号；session:delete 必须等待 chat IPC 的完整收尾，再删除记录，不能以 done 或 abort 回执判断存储已无写入。
 
 ## 必读文件
 
@@ -53,11 +54,13 @@
 
 ## 已落地能力
 
-- 原始代码共享渲染：`MarkdownRenderer.tsx` 导出的 `CodeBlock` 接收原文而不进行 Markdown／aside／Mermaid 解释；基础 Markdown／Diff 故事、候选工作区、正式文件代码预览和 ReviewPanel 共用它。代码块主题底色同源、复制保留原文，复制操作槽固定；剪贴板失败可重试。正式五功能菜单顺序已对齐，但浏览器与侧聊只有未接入壳，不是完整能力。
+- 正式 workspace 侧聊已通过本地 SSE + 独立数据目录的 Electron 流程：真实项目文件读取、首段流式回复、流中关闭、服务端断连、存储删除和重开正常回复。无长期记忆召回时不再对 undefined 调用 trim；组装异常不会因 span 尚未创建而再次报错。主进程统一取消/等待/删除，删除期间拒绝新发送，工具确认校验窗口并在关闭/销毁时拒绝和清理；初始化阶段可取消且退出前保持运行锁。初始化失败重试、父会话切换状态及终端真实进程仍需核验。
+
+- 原始代码共享渲染：`MarkdownRenderer.tsx` 导出的 `CodeBlock` 接收原文而不进行 Markdown／aside／Mermaid 解释；基础 Markdown／Diff 故事、候选工作区、正式文件代码预览和 ReviewPanel 共用它。代码块主题底色同源、复制保留原文，复制操作槽固定；剪贴板失败可重试。正式五功能菜单顺序已对齐；浏览器是真实受限只读查看器，侧聊真实链路与验收见上条，不再是未接入壳。
 
 - Playground 场景控制器统一为 MCP 风格独立选项；Chat 主旅程/宽度、记忆分类/场景、模型/Skills/MCP、工作区功能/形态/宽度与公共故事选择共享尺寸、间距和主题选中态。产品内容标签与正式 UI 不受影响。
 
-- 正式 ChatRightDock 接入 PanelRight 同页折叠保留和 Foundation TabStrip：标签内常驻固定关闭槽、左右/Home/End 切换、Delete 关闭后恢复焦点，关闭后台标签不切换当前内容或重编号其它标签。文件工具已收进 WorkspaceFilesPanel，内部左树右多预览、路径去重、关闭重开与异步读取隔离；审阅 diff 直接传原文给 MarkdownRenderer 模块的 CodeBlock，真实 `before/after` 支持 unified／并排视图，列表与 diff 错误可见且过期读取结果丢弃；读取与外部打开仍走现有 project IPC。文件与终端实例切换标签、折叠及进入设置／Playground 时保留，切换项目重建，取消项目或关闭标签卸载；审阅仍按 sessionId 重建。终端 pending 关闭／取消在拿到 runId 后补发终止，启动失败保留命令可重试，终止失败保持运行态并允许重试，旧响应不能清空新运行；主进程终止现在按发起窗口校验 run 归属，并在 Windows 使用 taskkill `/t` 回收进程树，退出事件前不删除运行记录。浏览器已接入受限只读安全查看器（主进程校验 + sandbox/CSP），不支持脚本、登录或任意站内交互；侧边聊天已接入独立 `workspace` 会话、真实流式 Runtime、停止和卸载清理，但上下文关联、工具确认隔离和更完整失败恢复仍待补齐；终端早到 stdout/stderr/exit 通过 `terminal:ready` 握手缓存并按序冲刷，Windows 进程树回收已接入；完整 PTY 与真实 Electron 进程生命周期仍待验证；Renderer 边界替身不是这些能力的证据。
+- 正式 ChatRightDock 接入 PanelRight 同页折叠保留和 Foundation TabStrip：标签内常驻固定关闭槽、左右/Home/End 切换、Delete 关闭后恢复焦点，关闭后台标签不切换内容或重编号。WorkspaceFilesPanel 提供左树右多预览、去重、关闭重开与异步读取隔离；审阅真实 `before/after` 支持 unified／并排、错误重试和过期结果丢弃。文件与终端切换标签、折叠及设置／Playground 导航时保留，切换项目重建；审阅按 sessionId 重建。终端支持 pending 取消、迟到响应清理与失败重试；主进程校验窗口归属，Windows 使用 taskkill `/t` 回收进程树，退出前保留记录，`terminal:ready` 握手冲刷早到输出。上述终端 OS 行为仍需真实 Electron 验证，完整 PTY 尚未实现。浏览器是主进程校验 + sandbox/CSP 的受限只读查看器，不支持脚本、登录或任意站内交互；侧聊已接上下文、确认隔离与消息失败重试，真实关闭验证见上条。
 
 - 工作区候选标签默认无描边，各标签内常驻关闭图标，关闭非当前标签保持当前选择；右端仅保留添加入口，收起由 Chat 侧控制。浏览器地址居中可编辑，Enter 校验并切换本地样张，Esc 恢复，未知地址明确显示无样张，不导航外站。
 

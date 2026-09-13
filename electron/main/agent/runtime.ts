@@ -61,7 +61,7 @@ import {
   updateTraceContext,
 } from '../utils/trace-context'
 import { startSpan } from '../utils/tracer'
-import { AgentErrorCode } from '../errs'
+import { AgentErrorCode, toAgentError } from '../errs'
 import type { ChatMessage, LLMConfig, ExecutionMode, AgentStreamEvent, ToolContext, WorkspaceChatContext, PromptAssetKeyList, TerminalReason } from '../../../src/shared/types'
 import { taskQueue } from '../services/task-queue'
 import { PROMPT_KEYS, rolePromptAssetKey } from '../prompts/keys'
@@ -111,12 +111,10 @@ class AgentRuntime {
       if (ctrl) {
         log.info('Session aborted', { sessionId })
         ctrl.abort()
-        this.activeControllers.delete(sessionId)
       }
     } else {
       log.info('All sessions aborted', { count: this.activeControllers.size })
       for (const ctrl of this.activeControllers.values()) ctrl.abort()
-      this.activeControllers.clear()
     }
   }
 
@@ -147,35 +145,49 @@ class AgentRuntime {
     confirmTool?: (name: string, args: Record<string, unknown>) => Promise<boolean>,
     workspaceContext?: WorkspaceChatContext,
   ): AsyncGenerator<AgentStreamEvent & { sessionId: string }> {
-    const llmConfig = await this.getLLMConfig()
-
-    if (!llmConfig.apiKey) {
-      log.error('No API key configured')
-      yield { type: 'error', message: '请先在设置中配置 API Key', code: AgentErrorCode.CONFIG_MISSING_API_KEY, sessionId }
-      yield { type: 'done', reason: 'model_error', sessionId }
-      return
-    }
-
     if (this.activeControllers.has(sessionId)) {
-      log.warn('Session already processing', { sessionId })
       yield { type: 'error', message: '该会话正在处理中，请等待完成或先中断', code: AgentErrorCode.SESSION_BUSY, sessionId }
       yield { type: 'done', reason: 'model_error', sessionId }
       return
     }
+    // 初始化和收尾也会访问会话存储，因此在首次 await 前占位，并只在生成器退出后释放。
+    // 取消不能提前释放，否则新请求和删除会与尚未完成的旧请求交错。
+    const abortController = new AbortController()
+    this.activeControllers.set(sessionId, abortController)
+    try {
+      const llmConfig = await this.getLLMConfig()
+      if (abortController.signal.aborted) {
+        yield { type: 'done', reason: 'aborted', sessionId }
+        return
+      }
 
-    const budgetCheck = await checkBudget(sessionId)
-    if (!budgetCheck.allowed) {
-      log.warn('Budget exceeded', { sessionId, reason: budgetCheck.reason })
-      yield { type: 'error', message: budgetCheck.reason!, code: AgentErrorCode.BUDGET_EXCEEDED, sessionId }
-      yield { type: 'done', reason: 'model_error', sessionId }
-      return
+      if (!llmConfig.apiKey) {
+        log.error('No API key configured')
+        yield { type: 'error', message: '请先在设置中配置 API Key', code: AgentErrorCode.CONFIG_MISSING_API_KEY, sessionId }
+        yield { type: 'done', reason: 'model_error', sessionId }
+        return
+      }
+
+      const budgetCheck = await checkBudget(sessionId)
+      if (abortController.signal.aborted) {
+        yield { type: 'done', reason: 'aborted', sessionId }
+        return
+      }
+      if (!budgetCheck.allowed) {
+        log.warn('Budget exceeded', { sessionId, reason: budgetCheck.reason })
+        yield { type: 'error', message: budgetCheck.reason!, code: AgentErrorCode.BUDGET_EXCEEDED, sessionId }
+        yield { type: 'done', reason: 'model_error', sessionId }
+        return
+      }
+
+      // M14：整段对话在 TraceContext 内，子 span / Observer 自动带 sessionId·userId
+      yield* runWithTraceContextAsyncGen(
+        { sessionId, userId: DEFAULT_TRACE_USER_ID },
+        () => this.chatTracked(sessionId, userMessage, toolRegistry, abortController, llmConfig, confirmTool, workspaceContext),
+      )
+    } finally {
+      this.activeControllers.delete(sessionId)
     }
-
-    // M14：整段对话在 TraceContext 内，子 span / Observer 自动带 sessionId·userId
-    yield* runWithTraceContextAsyncGen(
-      { sessionId, userId: DEFAULT_TRACE_USER_ID },
-      () => this.chatTracked(sessionId, userMessage, toolRegistry, confirmTool, workspaceContext),
-    )
   }
 
   /** chat 主体（须在 TraceContext 内调用） */
@@ -183,13 +195,11 @@ class AgentRuntime {
     sessionId: string,
     userMessage: ChatMessage,
     toolRegistry: ToolRegistry,
+    abortController: AbortController,
+    llmConfig: LLMConfig,
     confirmTool?: (name: string, args: Record<string, unknown>) => Promise<boolean>,
     workspaceContext?: WorkspaceChatContext,
   ): AsyncGenerator<AgentStreamEvent & { sessionId: string }> {
-    const llmConfig = await this.getLLMConfig()
-    const abortController = new AbortController()
-    this.activeControllers.set(sessionId, abortController)
-
     setTaskPlanSessionId(sessionId)
 
     // 先落盘用户消息，再从 DB 组装完整历史（避免 UI 本地数组与库不一致）
@@ -207,6 +217,7 @@ class AgentRuntime {
     let assistantSaved = false
     let terminalReason: TerminalReason | undefined
     let doneEmitted = false
+    let errorSpan: ReturnType<typeof startSpan> | undefined
 
     try {
       // ── 构建上下文 ──
@@ -239,6 +250,7 @@ class AgentRuntime {
       const persona = rolePackToPromptParts(pack, mutableBody)
 
       const chatSpan = startSpan('chat', 'main', 'interaction', undefined, { sessionId, model: llmConfig.model })
+      errorSpan = chatSpan
       // 供后台 task linked span 追溯（非父子，不拉长主对话耗时）
       updateTraceContext({ interactionSpanId: chatSpan.id })
 
@@ -407,7 +419,7 @@ class AgentRuntime {
         ...([userProfile?.identity, userProfile?.workflow, userProfile?.voice].some((value) => value?.trim())
           ? [PROMPT_KEYS.userProfileContext]
           : []),
-        ...(vectorContext.trim() ? [PROMPT_KEYS.memoryRecallContext] : []),
+        ...(vectorContext?.trim() ? [PROMPT_KEYS.memoryRecallContext] : []),
         PROMPT_KEYS.replyStance,
         PROMPT_KEYS.toneControl,
         ...(relationshipStageHint?.trim() ? [PROMPT_KEYS.relationshipStage] : []),
@@ -538,16 +550,14 @@ class AgentRuntime {
       if (abortController.signal.aborted) {
         terminalReason = 'aborted'
         log.info('Chat aborted', { sessionId, assistantContentLength: assistantContent.length })
-        chatSpan.end('ok')
+        errorSpan?.end('ok')
       } else {
         terminalReason = 'model_error'
         log.error('Chat unhandled error', { sessionId, error: message })
-        chatSpan.end('error', message)
-        yield { type: 'error', message, sessionId }
+        errorSpan?.end('error', message)
+        yield { type: 'error', ...toAgentError(err).toEventPayload(), sessionId }
       }
     } finally {
-      this.activeControllers.delete(sessionId)
-
       // 只在真正 completed 时保存完整 assistant 回复；取消 / 错误 / 超限不能把半截内容伪装成成功回复。
       if (terminalReason === 'completed' && assistantContent && !assistantSaved) {
         assistantSaved = true

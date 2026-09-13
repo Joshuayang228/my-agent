@@ -23,7 +23,11 @@
 
 真实 Electron 引导 E2E 必须使用当前正式设置入口和可见控件契约，覆盖连接测试自动保存、返回聊天以及 Debug 入口；测试不得依赖已移除的旧按钮或旧 placeholder。
 
-真实 Electron workspace 会话 E2E 已覆盖通过 preload 创建、确认 sessionKind=workspace 并删除清理；这只证明会话 IPC 契约，不能替代 ChatRightDock 子面板的真实进程级生命周期验证。
+真实 Electron workspace E2E 在独立 user-data-dir 和本地 SSE 服务下覆盖会话创建/列表排除/删除，以及正式 Dock 的真实文件读取、流中关闭侧聊、服务端连接终止、存储删除和重开发送。只替换系统目录选择器结果，不替换 preload、项目/聊天 IPC、Runtime 或存储；失败保留脱敏主进程日志。该证据不涵盖终端进程树或外部浏览器网络。
+
+聊天生命周期 Unit 直接注册 chat/session handlers，覆盖 done 之后仍等待生成器收尾、重复发送/删除、异窗中断/删除/确认、待确认工具取消、销毁窗口与删除失败重试。Runtime Unit 覆盖首次配置等待期间取消，以及 span 创建前组装失败返回单一终态并释放运行锁。
+
+类型覆盖边界：根 `tsconfig.json` 的 include 仅 src；默认 `npx tsc --noEmit` 和 npm build 中的 tsc 不代表主进程检查。主进程改动需额外运行 `npx tsc --noEmit -p tsconfig.node.json` 并报告结果，当前仍有跨项目 include/composite 和存量类型错误（WISH-043），不能隐去失败或用 Renderer 测试替代。
 
 正式工作区生命周期的 Renderer E2E 必须覆盖：后台终端独立输出、切换标签／折叠／设置与 Playground 导航保持 DOM 实例，关闭最后标签后重开、切换与取消项目释放订阅及命令；pending 关闭后的迟到响应补发终止、pending 取消、启动拒绝和业务拒绝恢复、终止拒绝／失败重试，以及旧终止响应不改变新运行。运行／终止／取消等待使用同尺寸操作槽。测试可替换 Electron IO，但不能据此声称真实进程树清理、早到事件或完整 PTY 已验证；终端主进程单测／集成测试还必须覆盖 run 发起窗口归属、Windows 进程树终止、退出事件前不提前删除运行记录和 `terminal:ready` 握手后的早到输出冲刷。
 

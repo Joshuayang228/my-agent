@@ -6,16 +6,20 @@
 
 ## 待办缺口
 
-- 工作区回流审计补充（WISH-041 / WISH-042）：共享 CodeBlock 的实际调用、原文与复制边界已补测试，五入口顺序已对齐；关闭最后标签重开、终端后台实例及跨设置／Playground／项目生命周期已有 Renderer 回归。仍需验证四个候选的就近主题／Mermaid、审阅并排模式与异步错误／乱序恢复、终端早到输出和退出事件。浏览器／侧聊的正式壳不能代替真实后端，整个目标继续进行。
+- 工作区回流审计补充（WISH-041 / WISH-042）：仍需四个候选的就近主题／Mermaid 和全量基础控件复用核验；审阅并排/乱序与错误恢复已有 Renderer 测试，侧聊流中关闭已有真实 Electron 证据。终端操作系统进程生命周期仍需独立验证，不把已接 IPC 或 Renderer 替身当作完成。
+
+- [ ] **WISH-043 · 主进程类型检查门禁** — 来源：正式侧聊 Electron 回归发现 runtime 的 undefined.trim 和 span 越域未被默认 tsc 检出；根配置只 include src，主进程 `tsc -p tsconfig.node.json --noEmit` 仍报告跨项目 include/composite、ImportMeta.glob 与多个存量类型错误。重启条件：当前回流质量门禁收口；明确前端/主进程检查入口，先清理真实诊断，再纳入 build/commit，不用宽泛 any 或排除文件消音。
 
 - [ ] **WISH-042 · Foundation 真实复用与源码门禁** — 来源：2026-09-13 用户对白底、孤立控件和基础复用原则的反馈及代码审计；施工合同：`foundation-reuse-enforcement-v1.md`，范围待确认。收口四个 Playground 产品体验的 Markdown / Diff / 局部主题和通用控件，验证真实 import 与渲染使用，补违规负例和四主题视觉回归；当前注册表 key / 来源存在检查不能保证实际复用，不得只补调用参数或包装标签后宣称完成。
 
-- [ ] **WISH-041 · 工作区五功能正式回流（进行中）** — 2026-09-13 用户已授权目标模式回流；来源：`playground-workspace-five-tools-v1.md`。已接入 PanelRight、Foundation 标签和同源代码块、文件左树右多预览、审阅 unified／并排真实旧稿、受限只读浏览器，以及侧边聊天独立 workspace 会话／流式 Runtime／停止／清理、父会话/项目/当前文件或审阅焦点上下文和错误重试。终端已补调用者归属、Windows 进程树回收、早到 stdout/stderr/exit 的 `terminal:ready` 握手；仍需真实 Electron 生命周期回归、侧聊更完整 Runtime 竞态以及完整 PTY（WISH-019）；聊天 IPC 的窗口归属与缺省中断边界已补齐。Playground 形态与 Renderer IO 替身都不是完整后端证据。
+- [ ] **WISH-041 · 工作区五功能正式回流（进行中）** — 2026-09-13 用户已授权目标模式回流；来源：`playground-workspace-five-tools-v1.md`。已接入共享标签/代码块、文件左树右多预览、审阅真实旧稿、受限只读浏览器和 workspace 侧聊；侧聊流中关闭、连接终止、删除与重开已有真实 Electron 证据，主进程初始化取消/运行收尾/待确认工具取消有 Unit。仍需终端真实进程生命周期、侧聊初始化失败重试和父会话切换状态核验、Foundation/主题全量回归；完整 PTY 见 WISH-019。Debug 页点新对话仍停留 Debug 的入口行为也需核验，当前 Electron 用正式返回入口回 Chat。Playground 与 Renderer IO 替身不能替代后端证据。
 - [ ] **WISH-040 · MCP 场景正式接入** — 来源：`playground-mcp-scenarios-v1.md` 与 2026-09-10 协议/竞品复核；重启条件：MCP P0 获准回流。当前客户端只实现 stdio / SSE；补 Streamable HTTP、OAuth 登录生命周期、逐工具启用的持久化与执行侧校验、配置保存与连通性证据分离，并同步 IPC 四处、失败/取消回归。候选中的连接、确认与重试仅为隔离状态，不得当作真实认证或连接实现。
 - [ ] **WISH-027 · 编程套餐后端接入与兼容性验证** — 来源：用户批准先做前端、Alice `providers-C3aFiGCn.js` / DEC-039；重启条件：模型设置 P0 获准正式回流，并取得套餐测试授权。逐套餐核实官方使用限制、认证、协议适配器、模型发现与手动添加、流式 / 工具调用、额度和失败分类；尤其验证 MiniMax Token Plan 的 Anthropic 路径与工具差异。沿用统一配置工厂和模型调用入口，不伪装客户端身份绕过套餐限制；当前六个入口仅是 Playground 预设，未承诺通用聊天、生图或后台任务可用。
 - [ ] **WISH-028 · Vite 开发依赖扫描范围** — 来源：2026-09-06 启动日志，依赖预扫描进入 `_reference/framework-harness/repos/cc-switch`，报告缺少 Tauri 等参考仓库依赖；本项目页面与 UI E2E 仍可运行。重启条件：下一次开发启动配置维护；将扫描入口限定为应用入口并验证普通 dev / ui-e2e 冷启动，不为消除警告安装参考项目依赖。
 
 ### 安全与韧性
+
+- [ ] **WISH-044 · 当前锁定依赖安全更新** — 来源：本轮工作区收口执行 npm audit，全部依赖报告 7 项（3 high / 4 moderate），omit=dev 报告 4 项（2 high / 2 moderate）；涉及 fast-uri、hono、js-yaml、qs，以及开发依赖 @vitest/mocker/vitest、@xmldom/xmldom。未找到现有 DEC 接受这些风险。重启条件：发布前单独完成依赖升级与实际使用路径核验，运行 Unit/Eval/Electron/打包回归；本轮没有修改 package/lock，也未声称漏洞清零。
 
 - [ ] **WISH-001 · URL Fetch DNS rebinding 深度防护** — 当前已有 DNS 预解析、私网黑名单、重定向阻断和响应上限；若威胁模型需要对抗主动竞态攻击，再引入固定地址连接器或进程级网络策略。历史证据见 [`../_archive/audits/security-audit-2026-08.md`](../_archive/audits/security-audit-2026-08.md)。；来源：安全审计
 - [ ] **WISH-002 · Tool Result Injection 结构化分类器** — 当前已有中英文启发式探针和不受信任内容边界；后续可用离线分类器 / Eval 扩展。；来源：安全审计 / Gap Audit

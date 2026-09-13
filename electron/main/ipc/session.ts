@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import * as store from '../storage/session-store'
 import { createLogger } from '../utils/logger'
+import { deleteChatSession } from './chat'
 
 const log = createLogger('SessionIPC')
 const MAX_ID_LENGTH = 200
@@ -19,9 +20,16 @@ export function registerSessionIPC(): void {
   ipcMain.handle('session:get', async (_event, sessionId: unknown) =>
     validId(sessionId) ? store.getSession(sessionId) : null)
 
-  ipcMain.handle('session:delete', async (_event, sessionId: unknown) => {
+  ipcMain.handle('session:delete', async (event, sessionId: unknown) => {
     if (!validId(sessionId)) throw new Error('会话 ID 无效')
-    return store.deleteSession(sessionId)
+    return deleteChatSession(sessionId, event.sender.id, async () => {
+      try {
+        await store.deleteSession(sessionId)
+      } catch (error) {
+        log.warn('Session deletion failed', { errorType: error instanceof Error ? error.name : 'unknown' })
+        throw new Error('会话删除失败，请稍后重试')
+      }
+    })
   })
 
   ipcMain.handle('session:rename', async (_event, sessionId: unknown, title: unknown) => {
