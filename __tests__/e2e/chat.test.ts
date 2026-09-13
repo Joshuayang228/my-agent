@@ -339,6 +339,7 @@ async function installTerminalLifecycleStub(page: import('@playwright/test').Pag
         if (harness.runMode === 'pending') return new Promise((resolve) => pending.set(id, resolve))
         return { ok: true, runId: id }
       },
+      ready: async () => ({ ok: true }),
       kill: async (id: string) => {
         harness.kills.push(id)
         if (harness.killMode === 'reject') throw new Error('synthetic kill failure')

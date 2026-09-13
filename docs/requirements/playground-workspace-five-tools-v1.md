@@ -63,7 +63,7 @@
 | PanelRight 打开／收起 | App.tsx 的 showFileBrowser | 生产改造后回流 | 区分隐藏与卸载，保留 Tab、预览和任务上下文 |
 | 文件左树右侧多文件预览 | ChatRightDock + FileBrowser | 生产改造后回流 | 旧正式版文件／预览为独立顶层 Tab；目标合并为文件功能，内部多预览去重、切换、关闭与重开 |
 | 审阅 | ReviewPanel | 已有真实能力 | 回流布局和错误／空态视觉，不替换真实数据 |
-| 终端 | TerminalPanel | 生产改造后回流 | 保留权限、沙箱和工作区 cwd；主进程已按发起窗口校验 run 归属并回收 Windows 进程树，仍需真实 Electron 进程生命周期回归，早到输出与完整 PTY 仍不在本合同范围 |
+| 终端 | TerminalPanel | 生产改造后回流 | 保留权限、沙箱和工作区 cwd；主进程已按发起窗口校验 run 归属并回收 Windows 进程树，仍需真实 Electron 进程生命周期回归，完整 PTY 仍不在本合同范围 |
 | 浏览器 | BrowserPanel 受限只读查看器 | 生产改造后回流 | 主进程安全抓取已接入：URL/DNS 校验、手动拒绝重定向、超时与响应上限；Renderer 使用无脚本 sandbox + CSP。仍不支持脚本、登录、站内交互和任意导航 |
 | 侧边聊天 | SideChatPanel + `workspace` 会话 | 生产改造后回流 | 已接真实 session/runtime、流式事件、停止和卸载清理；工作区会话不进入主会话列表。仍需补上下文关联、工具确认隔离和更完整失败恢复 |
 | 多实例工作区 Tab | 正式右坞已有部分状态 | 部分已有 | 统一实例 ID、关闭策略、当前 Tab 和恢复生命周期 |
@@ -87,7 +87,7 @@
 - 允许修改：新增 src/components/foundation/TabStrip.tsx；改 UiControlsPanel、WorkspaceExperienceCandidate、ChatRightDock、ui-component-registry、对应 registry Unit 与 chat E2E，以及 architecture、模块卡、quality、progress、changelog、wishlist 和本合同。
 - 移除对象：三处重复的标签按钮结构、正式右端独立关闭当前 Tab 按钮。理由与授权：用户已确认每个标签内部常驻关闭位；只替换呈现与焦点，文件／审阅／终端 IPC 不变，fixture 仍隔离。
 - 回流链：Foundation 标签故事 → TabStrip 共享实现 → Playground 工作区及内部文件预览 → 正式 ChatRightDock。注册表指向实际基础文件；Unit 解析 import 与 JSX，负例覆盖未渲染的 import 和同名本地控件；E2E 验证三层真实渲染、hover 几何、键盘和后台关闭。
-- 本批不宣称完成的内容：所有控件的全量复用门禁、正式五功能入口、切换标签后保留后台面板、终端早到输出竞态、浏览器与侧聊服务。文件内部多预览、终端实例事件隔离与 Markdown/Diff 共享渲染已分别回流并有测试证据。
+- 本批不宣称完成的内容：所有控件的全量复用门禁、正式五功能入口、切换标签后保留后台面板、浏览器与侧聊服务。文件内部多预览、终端实例事件隔离与 Markdown/Diff 共享渲染已分别回流并有测试证据。
 
 ### P1 文件工作区批次
 

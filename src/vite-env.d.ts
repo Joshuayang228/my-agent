@@ -388,6 +388,7 @@ declare global {
           { ok: true; runId: string } | { ok: false; error: string }
         >
         kill: (runId: string) => Promise<{ ok: boolean }>
+        ready: (runId: string) => Promise<{ ok: boolean }>
         onStdout: (callback: (ev: { runId: string; chunk: string }) => void) => () => void
         onStderr: (callback: (ev: { runId: string; chunk: string }) => void) => () => void
         onExit: (callback: (ev: { runId: string; code: number }) => void) => () => void

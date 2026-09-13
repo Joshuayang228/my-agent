@@ -57,7 +57,7 @@
 
 - Playground 场景控制器统一为 MCP 风格独立选项；Chat 主旅程/宽度、记忆分类/场景、模型/Skills/MCP、工作区功能/形态/宽度与公共故事选择共享尺寸、间距和主题选中态。产品内容标签与正式 UI 不受影响。
 
-- 正式 ChatRightDock 接入 PanelRight 同页折叠保留和 Foundation TabStrip：标签内常驻固定关闭槽、左右/Home/End 切换、Delete 关闭后恢复焦点，关闭后台标签不切换当前内容或重编号其它标签。文件工具已收进 WorkspaceFilesPanel，内部左树右多预览、路径去重、关闭重开与异步读取隔离；审阅 diff 直接传原文给 MarkdownRenderer 模块的 CodeBlock，真实 `before/after` 支持 unified／并排视图，列表与 diff 错误可见且过期读取结果丢弃；读取与外部打开仍走现有 project IPC。文件与终端实例切换标签、折叠及进入设置／Playground 时保留，切换项目重建，取消项目或关闭标签卸载；审阅仍按 sessionId 重建。终端 pending 关闭／取消在拿到 runId 后补发终止，启动失败保留命令可重试，终止失败保持运行态并允许重试，旧响应不能清空新运行；主进程终止现在按发起窗口校验 run 归属，并在 Windows 使用 taskkill `/t` 回收进程树，退出事件前不删除运行记录。浏览器已接入受限只读安全查看器（主进程校验 + sandbox/CSP），不支持脚本、登录或任意站内交互；侧边聊天已接入独立 `workspace` 会话、真实流式 Runtime、停止和卸载清理，但上下文关联、工具确认隔离和更完整失败恢复仍待补齐；终端早到事件与操作系统进程树清理仍未完成；Renderer 边界替身不是这些能力的证据。
+- 正式 ChatRightDock 接入 PanelRight 同页折叠保留和 Foundation TabStrip：标签内常驻固定关闭槽、左右/Home/End 切换、Delete 关闭后恢复焦点，关闭后台标签不切换当前内容或重编号其它标签。文件工具已收进 WorkspaceFilesPanel，内部左树右多预览、路径去重、关闭重开与异步读取隔离；审阅 diff 直接传原文给 MarkdownRenderer 模块的 CodeBlock，真实 `before/after` 支持 unified／并排视图，列表与 diff 错误可见且过期读取结果丢弃；读取与外部打开仍走现有 project IPC。文件与终端实例切换标签、折叠及进入设置／Playground 时保留，切换项目重建，取消项目或关闭标签卸载；审阅仍按 sessionId 重建。终端 pending 关闭／取消在拿到 runId 后补发终止，启动失败保留命令可重试，终止失败保持运行态并允许重试，旧响应不能清空新运行；主进程终止现在按发起窗口校验 run 归属，并在 Windows 使用 taskkill `/t` 回收进程树，退出事件前不删除运行记录。浏览器已接入受限只读安全查看器（主进程校验 + sandbox/CSP），不支持脚本、登录或任意站内交互；侧边聊天已接入独立 `workspace` 会话、真实流式 Runtime、停止和卸载清理，但上下文关联、工具确认隔离和更完整失败恢复仍待补齐；终端早到 stdout/stderr/exit 通过 `terminal:ready` 握手缓存并按序冲刷，Windows 进程树回收已接入；完整 PTY 与真实 Electron 进程生命周期仍待验证；Renderer 边界替身不是这些能力的证据。
 
 - 工作区候选标签默认无描边，各标签内常驻关闭图标，关闭非当前标签保持当前选择；右端仅保留添加入口，收起由 Chat 侧控制。浏览器地址居中可编辑，Enter 校验并切换本地样张，Esc 恢复，未知地址明确显示无样张，不导航外站。
 

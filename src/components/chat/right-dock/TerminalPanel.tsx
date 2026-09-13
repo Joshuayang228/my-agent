@@ -94,6 +94,7 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
       const result = await window.electronAPI?.terminal.run({ command, cwd: projectPath || undefined })
       if (result?.ok) {
         attempt.runId = result.runId
+        void window.electronAPI?.terminal.ready(result.runId)
         // 启动 IPC 无取消句柄；不能在 pending 时忘记本次运行，拿到 ID 后仍须清理。
         if (attempt.cancelRequested || attempt.disposed) await stopAttempt(attempt)
         return

@@ -383,6 +383,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       { ok: true; runId: string } | { ok: false; error: string }
     > => ipcRenderer.invoke('terminal:run', input),
     kill: (runId: string): Promise<{ ok: boolean }> => ipcRenderer.invoke('terminal:kill', runId),
+    ready: (runId: string): Promise<{ ok: boolean }> => ipcRenderer.invoke('terminal:ready', runId),
     onStdout: (callback: (ev: { runId: string; chunk: string }) => void): (() => void) => {
       const listener = (_e: Electron.IpcRendererEvent, payload: { runId: string; chunk: string }) => callback(payload)
       ipcRenderer.on('terminal:stdout', listener)

@@ -26,6 +26,9 @@ const MAX_CWD_LENGTH = 4_096
 type TerminalRun = {
   child: ChildProcessWithoutNullStreams
   senderId: number
+  ready: boolean
+  buffered: Array<{ channel: 'terminal:stdout' | 'terminal:stderr'; chunk: string }>
+  bufferedExit?: number
 }
 
 const runs = new Map<string, TerminalRun>()
@@ -109,7 +112,8 @@ export function registerTerminalIPC(): void {
         env: buildSafeChildProcessEnv(),
         windowsHide: true,
       })
-      runs.set(runId, { child, senderId: sender.id })
+      const run: TerminalRun = { child, senderId: sender.id, ready: false, buffered: [] }
+      runs.set(runId, run)
 
       const send = (channel: string, payload: Record<string, unknown>) => {
         if (!sender.isDestroyed()) sender.send(channel, payload)
@@ -120,10 +124,15 @@ export function registerTerminalIPC(): void {
         if (outputLimitHit) return
         const limited = limitTerminalOutput(text, emittedChars)
         emittedChars = limited.nextEmittedChars
-        if (limited.chunk) send(channel, { runId, chunk: limited.chunk })
+        if (limited.chunk) {
+          if (run.ready) send(channel, { runId, chunk: limited.chunk })
+          else run.buffered.push({ channel, chunk: limited.chunk })
+        }
         if (limited.limitReached) {
           outputLimitHit = true
-          send('terminal:stderr', { runId, chunk: `\n[输出超过 ${MAX_TERMINAL_OUTPUT_CHARS} 个字符，已终止进程]\n` })
+          const notice = `\n[输出超过 ${MAX_TERMINAL_OUTPUT_CHARS} 个字符，已终止进程]\n`
+          if (run.ready) send('terminal:stderr', { runId, chunk: notice })
+          else run.buffered.push({ channel: 'terminal:stderr', chunk: notice })
           void terminateProcessTree(child)
         }
       }
@@ -132,29 +141,51 @@ export function registerTerminalIPC(): void {
       child.stderr.on('data', (buf: Buffer) => sendOutput('terminal:stderr', buf.toString('utf-8')))
 
       const timer = setTimeout(() => {
-        try {
-          child.kill()
-        } catch { /* ignore */ }
-        send('terminal:stderr', { runId, chunk: `\n[超时 ${TIMEOUT_MS / 1000}s，已终止]\n` })
+        void terminateProcessTree(child)
+        const notice = `\n[超时 ${TIMEOUT_MS / 1000}s，已终止]\n`
+        if (run.ready) send('terminal:stderr', { runId, chunk: notice })
+        else run.buffered.push({ channel: 'terminal:stderr', chunk: notice })
       }, TIMEOUT_MS)
 
       child.on('close', (code) => {
         clearTimeout(timer)
-        runs.delete(runId)
-        send('terminal:exit', { runId, code: code ?? -1 })
+        const exitCode = code ?? -1
+        if (run.ready) {
+          runs.delete(runId)
+          send('terminal:exit', { runId, code: exitCode })
+        } else run.bufferedExit = exitCode
       })
       child.on('error', (err) => {
         clearTimeout(timer)
-        runs.delete(runId)
         log.warn('Terminal process failed', { runId, errorType: err.name, errorLength: err.message.length })
-        send('terminal:stderr', { runId, chunk: '命令进程启动或执行失败。\n' })
-        send('terminal:exit', { runId, code: -1 })
+        sendOutput('terminal:stderr', '命令进程启动或执行失败。\n')
+        if (run.ready) {
+          runs.delete(runId)
+          send('terminal:exit', { runId, code: -1 })
+        } else run.bufferedExit = -1
       })
 
       log.info('terminal run', { runId, commandHash: hashForLog(command), commandLength: command.length, cwdHash: hashForLog(cwd), mode })
       return { ok: true, runId }
     },
   )
+
+  ipcMain.handle('terminal:ready', (event, runId: unknown) => {
+    if (typeof runId !== 'string' || runId.length === 0 || runId.length > 200) return { ok: false }
+    const run = runs.get(runId)
+    if (!run || run.senderId !== event.sender.id) return { ok: false }
+    run.ready = true
+    for (const output of run.buffered) {
+      if (!event.sender.isDestroyed()) event.sender.send(output.channel, { runId, chunk: output.chunk })
+    }
+    run.buffered = []
+    if (run.bufferedExit !== undefined) {
+      if (!event.sender.isDestroyed()) event.sender.send('terminal:exit', { runId, code: run.bufferedExit })
+      run.bufferedExit = undefined
+      runs.delete(runId)
+    }
+    return { ok: true }
+  })
 
   ipcMain.handle('terminal:kill', async (event, runId: unknown) => {
     if (typeof runId !== 'string' || runId.length === 0 || runId.length > 200) return { ok: false }
