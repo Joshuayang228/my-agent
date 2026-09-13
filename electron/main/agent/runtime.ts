@@ -214,6 +214,8 @@ class AgentRuntime {
       // 会话绑定 role_id 优先；与 active 不一致时仍按会话组装（禁止中途换角偷换人设）
       const sessionMeta = await store.getSession(sessionId)
       const { assembleRoleId, activeRoleId, mismatch } = await assertSessionRole(sessionMeta?.roleId)
+      const isSummon = sessionMeta?.sessionKind === 'summon'
+      const isWorkspace = sessionMeta?.sessionKind === 'workspace'
       if (mismatch) {
         log.warn('Session role differs from activeRoleId; assembling with session binding', {
           sessionId,
@@ -222,7 +224,7 @@ class AgentRuntime {
         })
       }
       // feedback 按会话主角分桶注入（M22-G2）
-      const userProfile = await memory.buildUserProfile(assembleRoleId)
+      const userProfile = isWorkspace ? null : await memory.buildUserProfile(assembleRoleId)
       const {
         pack,
         mutableBody,
@@ -233,7 +235,6 @@ class AgentRuntime {
         rosterLines,
       } = await loadRoleAssembleInput(assembleRoleId)
       const persona = rolePackToPromptParts(pack, mutableBody)
-      const isSummon = sessionMeta?.sessionKind === 'summon'
 
       const chatSpan = startSpan('chat', 'main', 'interaction', undefined, { sessionId, model: llmConfig.model })
       // 供后台 task linked span 追溯（非父子，不拉长主对话耗时）
@@ -249,9 +250,10 @@ class AgentRuntime {
         sessionKind: sessionMeta?.sessionKind || 'main',
       })
 
-      const { text: vectorContext, citations: memoryCitations } =
-        await this.safeVectorSearch(lastUserMsg?.content, llmConfig)
-      if (memoryCitations.length > 0) {
+      const { text: vectorContext, citations: memoryCitations } = isWorkspace
+        ? { text: undefined, citations: [] }
+        : await this.safeVectorSearch(lastUserMsg?.content, llmConfig)
+      if (!isWorkspace && memoryCitations.length > 0) {
         yield { type: 'memory_citations', items: memoryCitations, sessionId }
       }
 
@@ -406,7 +408,7 @@ class AgentRuntime {
         registry: toolRegistry,     // 工具注册表（delegate_task 需要）
         executionMode,              // 父执行模式（子 Agent 权限只降不升，G4）
         roleId: assembleRoleId,     // feedback 记忆分桶（M22-G2）
-        sessionKind: isSummon ? 'summon' : 'main', // M26-G2：子 Agent 任务工边界
+        sessionKind: sessionMeta?.sessionKind || 'main', // M26-G2：子 Agent 任务工边界；workspace 禁止长期记忆副作用
         skillActivations: activeSkillTrace ? [activeSkillTrace] : [],
         assetUsageReporter: (report) => {
           void recordAssetUsage({
@@ -497,7 +499,7 @@ class AgentRuntime {
           chatSpan.end('ok')
 
           const auxConfig = await this.getAuxLLMConfig()
-          this.enqueuePostTasks(
+          if (!isWorkspace) this.enqueuePostTasks(
             sessionId,
             messages,
             assistantContent,
