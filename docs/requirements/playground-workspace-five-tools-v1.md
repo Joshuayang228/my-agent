@@ -65,7 +65,7 @@
 | 审阅 | ReviewPanel | 已有真实能力 | 回流布局和错误／空态视觉，不替换真实数据 |
 | 终端 | TerminalPanel | 生产改造后回流 | 保留权限、沙箱和工作区 cwd；主进程已按发起窗口校验 run 归属并回收 Windows 进程树，仍需真实 Electron 进程生命周期回归，完整 PTY 仍不在本合同范围 |
 | 浏览器 | BrowserPanel 受限只读查看器 | 生产改造后回流 | 主进程安全抓取已接入：URL/DNS 校验、手动拒绝重定向、超时与响应上限；Renderer 使用无脚本 sandbox + CSP。仍不支持脚本、登录、站内交互和任意导航 |
-| 侧边聊天 | SideChatPanel + `workspace` 会话 | 生产改造后回流 | 已接真实 session/runtime、流式事件、停止和卸载清理；工作区会话不进入主会话列表。仍需补上下文关联、工具确认隔离和更完整失败恢复 |
+| 侧边聊天 | SideChatPanel + `workspace` 会话 | 生产改造后回流 | 已接真实 session/runtime、流式事件、停止和卸载清理；已补父会话/项目/当前文件或审阅焦点上下文、工具确认隔离和错误后真实重试。仍需更完整 Runtime 竞态与 Electron 边界失败回归 |
 | 多实例工作区 Tab | 正式右坞已有部分状态 | 部分已有 | 统一实例 ID、关闭策略、当前 Tab 和恢复生命周期 |
 | Markdown／Diff 代码块 | MarkdownRenderer 的 CodeBlock / FileBrowser / ReviewPanel | 部分回流 | 原始代码与基础故事同源；局部四主题、Mermaid、完整审阅模式仍需验收 |
 
