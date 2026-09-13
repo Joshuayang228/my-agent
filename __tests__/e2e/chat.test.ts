@@ -895,6 +895,51 @@ test.describe('My Agent UI', () => {
     expect(await refresh.boundingBox()).toEqual(initial)
   })
 
+  test('正式侧边聊天使用独立工作区会话并支持流式回复与停止', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      const listeners = new Set<(event: any) => void>()
+      const deleted: string[] = []
+      let sends = 0
+      let created = 0
+      api.session.createWorkspace = async () => { created++; return { id: 'workspace-session-' + created, messages: [], createdAt: Date.now(), roleId: 'lin', sessionKind: 'workspace' } }
+      api.session.delete = async (id: string) => { deleted.push(id) }
+      api.chat.onEvent = (listener: (event: any) => void) => { listeners.add(listener); return () => listeners.delete(listener) }
+      api.chat.send = async (id: string, message: any) => { sends++; (window as any).__sideChatMessage = { id, message } }
+      api.chat.abort = async (id: string) => { (window as any).__sideChatAbort = id }
+      ;(window as any).__sideChatHarness = { emit: (event: any) => listeners.forEach((listener) => listener(event)), deleted, active: () => 'workspace-session-' + created, sends: () => sends, listeners: () => listeners.size }
+    })
+    await page.goto('/')
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '侧边聊天', exact: true }).click()
+    const panel = dock.getByTestId('workspace-sidechat-panel')
+    await expect(panel.getByText('从当前工作区开始聊聊', { exact: true })).toBeVisible()
+    const input = panel.getByRole('textbox', { name: '侧边聊天消息' })
+    await input.fill('请解释这次修改')
+    const action = panel.getByRole('button', { name: '发送消息', exact: true })
+    const initial = await action.boundingBox()
+    await action.click()
+    await expect(input).toBeEmpty()
+    await expect(panel.getByRole('button', { name: '停止生成', exact: true })).toBeVisible()
+    const activeSession = await page.evaluate(() => (window as any).__sideChatHarness.active())
+    await page.evaluate(() => (window as any).__sideChatHarness.emit({ sessionId: 'wrong-session', type: 'text', content: '错误消息' }))
+    await expect(panel).not.toContainText('错误消息')
+    await page.evaluate((sessionId) => (window as any).__sideChatHarness.emit({ sessionId, type: 'text', content: '这是流式回复' }), activeSession)
+    await expect(panel).toContainText('这是流式回复')
+    await panel.getByRole('button', { name: '停止生成', exact: true }).click()
+    await expect.poll(() => page.evaluate(() => (window as any).__sideChatAbort)).toBe(activeSession)
+    expect(await panel.getByRole('button', { name: '停止生成', exact: true }).boundingBox()).toEqual(initial)
+    await page.evaluate((sessionId) => (window as any).__sideChatHarness.emit({ sessionId, type: 'done', reason: 'completed' }), activeSession)
+    await expect(panel.getByRole('button', { name: '发送消息', exact: true })).toBeVisible()
+    await dock.getByRole('button', { name: '关闭侧边聊天', exact: true }).click()
+    await expect.poll(() => page.evaluate(() => (window as any).__sideChatHarness.deleted)).toContain(activeSession)
+    expect(await page.evaluate(() => (window as any).__sideChatHarness.sends())).toBe(1)
+    expect(await page.evaluate(() => (window as any).__sideChatHarness.listeners())).toBe(0)
+  })
+
   test('正式右坞文件内部预览与折叠状态保留', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.goto('/')

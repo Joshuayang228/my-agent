@@ -850,7 +850,7 @@ export type TaskLifecycleEvent =
   | { type: 'task:failed';    task: BackgroundTaskInfo }
 
 /** 会话种类：main=活跃主角主线；summon=名册召唤（装载对方 Pack，不启生活世界） */
-export type SessionKind = 'main' | 'summon'
+export type SessionKind = 'main' | 'summon' | 'workspace'
 
 export interface ChatSession {
   id: string

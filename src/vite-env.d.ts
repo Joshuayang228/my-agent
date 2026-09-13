@@ -51,6 +51,7 @@ declare global {
       session: {
         list: () => Promise<SessionSummary[]>
         create: () => Promise<ChatSession>
+        createWorkspace: () => Promise<ChatSession>
         get: (id: string) => Promise<ChatSession | null>
         delete: (id: string) => Promise<void>
         rename: (id: string, title: string) => Promise<void>

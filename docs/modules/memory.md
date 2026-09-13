@@ -73,6 +73,7 @@
 | Playground 记忆管理候选 | 部分 | 设置“记忆”Tab 复用 `MemorySurface`，分类 Tab 与搜索入口同行；搜索展开后对齐对话搜索框；清单为独立条目卡，编辑/删除用图标按钮，新增行独立于列表；来源 Debug 样张仅写 Renderer 内存，正式 MemoryPanel、IPC、存储和 Prompt 不变 |
 | 记忆分类语义色 | 已落地 | `MemoryPanel` 使用 accent / warm / success / muted；颜色只表达分类，不改变存储与 IPC |
 | 记忆策略生产资产目录 | 已落地 | 全局 Debug「提示词管理器 → 记忆策略」；提取 / 去重 / 分桶 / 召回 / 生命周期 / 纠错策略有稳定 key、来源、版本、指纹和依赖；不再从 Chat 右侧调试半屏进入；记忆管理入口位于 Settings |
+| 工作区侧边聊天会话隔离 | 已落地 | `session_kind = workspace` 的临时会话不进入主会话列表，且不改变记忆存储、召回或 L3 Prompt 注入边界；面板卸载时清理 |
 | 项目文档 RAG | 不做（本模块） | 见 `rag/` |
 
 ## 相关决策

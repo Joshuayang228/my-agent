@@ -21,7 +21,8 @@ export interface SessionSummary {
 }
 
 function readSessionKind(raw: unknown): SessionKind {
-  return raw === 'summon' ? 'summon' : 'main'
+  if (raw === 'summon' || raw === 'workspace') return raw
+  return 'main'
 }
 
 // ── 会话 CRUD ──
@@ -54,6 +55,7 @@ export async function listSessions(): Promise<SessionSummary[]> {
     SELECT s.id, s.title, s.created_at, s.updated_at, s.role_id, s.session_kind,
            (SELECT COUNT(*) FROM messages m WHERE m.session_id = s.id) as message_count
     FROM sessions s
+    WHERE s.session_kind != 'workspace'
     ORDER BY s.updated_at DESC
   `)
 

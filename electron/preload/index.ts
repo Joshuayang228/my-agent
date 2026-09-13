@@ -60,6 +60,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   session: {
     list: (): Promise<SessionSummary[]> => ipcRenderer.invoke('session:list'),
     create: (): Promise<ChatSession> => ipcRenderer.invoke('session:create'),
+    createWorkspace: (): Promise<ChatSession> => ipcRenderer.invoke('session:createWorkspace'),
     get: (id: string): Promise<ChatSession | null> => ipcRenderer.invoke('session:get', id),
     delete: (id: string): Promise<void> => ipcRenderer.invoke('session:delete', id),
     rename: (id: string, title: string): Promise<void> => ipcRenderer.invoke('session:rename', id, title),

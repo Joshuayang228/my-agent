@@ -83,7 +83,7 @@ export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, 
       {instance.kind === 'review' && <ReviewPanel key={sessionId} sessionId={sessionId} />}
       {instance.kind === 'terminal' && <TerminalPanel projectPath={projectPath} />}
       {instance.kind === 'browser' && <BrowserPanel />}
-      {instance.kind === 'chat' && <SideChatPanel />}
+      {instance.kind === 'chat' && <SideChatPanel parentSessionId={sessionId} />}
     </div>)}
   </div>
 }

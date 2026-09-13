@@ -77,7 +77,7 @@ export function isValidExportData(value: unknown): value is ExportData {
       || !boundedString(session.id, 200)
       || !boundedString(session.title, 20_000)
       || (session.roleId !== undefined && !boundedString(session.roleId, 200))
-      || (session.sessionKind !== undefined && session.sessionKind !== 'main' && session.sessionKind !== 'summon')
+      || (session.sessionKind !== undefined && session.sessionKind !== 'main' && session.sessionKind !== 'summon' && session.sessionKind !== 'workspace')
       || !isFiniteNumber(session.createdAt)
       || !isFiniteNumber(session.updatedAt)
       || !Array.isArray(session.messages)
@@ -161,7 +161,7 @@ export async function collectExportSessions(
       createdAt: row.created_at as number,
       updatedAt: row.updated_at as number,
       roleId: (row.role_id as string) || '',
-      sessionKind: row.session_kind === 'summon' ? 'summon' : 'main',
+    sessionKind: row.session_kind === 'summon' ? 'summon' : row.session_kind === 'workspace' ? 'workspace' : 'main',
       messages: (session?.messages || []).map(m => ({
         id: m.id,
         role: m.role,
@@ -199,7 +199,7 @@ export function importSessionsIntoDatabase(db: Database, sessions: ExportData['s
       db.run(
         `INSERT INTO sessions (id, title, created_at, updated_at, role_id, session_kind)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [session.id, session.title, session.createdAt, session.updatedAt, session.roleId || '', session.sessionKind === 'summon' ? 'summon' : 'main'],
+        [session.id, session.title, session.createdAt, session.updatedAt, session.roleId || '', session.sessionKind === 'summon' ? 'summon' : session.sessionKind === 'workspace' ? 'workspace' : 'main'],
       )
       session.messages.forEach((msg, sortOrder) => {
         db.run(

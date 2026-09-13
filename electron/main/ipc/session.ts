@@ -14,6 +14,7 @@ export function registerSessionIPC(): void {
   ipcMain.handle('session:list', async () => store.listSessions())
 
   ipcMain.handle('session:create', async () => store.createSession())
+  ipcMain.handle('session:createWorkspace', async () => store.createSession(undefined, { title: '工作区对话', sessionKind: 'workspace' }))
 
   ipcMain.handle('session:get', async (_event, sessionId: unknown) =>
     validId(sessionId) ? store.getSession(sessionId) : null)

@@ -65,7 +65,7 @@
 | 审阅 | ReviewPanel | 已有真实能力 | 回流布局和错误／空态视觉，不替换真实数据 |
 | 终端 | TerminalPanel | 已有真实能力 | 保留权限、沙箱和工作区 cwd，回流布局 |
 | 浏览器 | BrowserPanel 受限只读查看器 | 生产改造后回流 | 主进程安全抓取已接入：URL/DNS 校验、手动拒绝重定向、超时与响应上限；Renderer 使用无脚本 sandbox + CSP。仍不支持脚本、登录、站内交互和任意导航 |
-| 侧边聊天 | SideChatPanel 未接入壳 | 后端缺口 | 入口已出现但不可发送；先确定会话、消息、取消、错误恢复和权限上下文 |
+| 侧边聊天 | SideChatPanel + `workspace` 会话 | 生产改造后回流 | 已接真实 session/runtime、流式事件、停止和卸载清理；工作区会话不进入主会话列表。仍需补上下文关联、工具确认隔离和更完整失败恢复 |
 | 多实例工作区 Tab | 正式右坞已有部分状态 | 部分已有 | 统一实例 ID、关闭策略、当前 Tab 和恢复生命周期 |
 | Markdown／Diff 代码块 | MarkdownRenderer 的 CodeBlock / FileBrowser / ReviewPanel | 部分回流 | 原始代码与基础故事同源；局部四主题、Mermaid、完整审阅模式仍需验收 |
 
@@ -79,6 +79,7 @@
 - 后端补齐前逐项补充契约：浏览器需隔离外站、导航和权限决策、关闭清理；侧聊需真实 session／runtime 归属、事件过滤、停止、错误恢复、持久化和模型配置工厂；终端需实例事件隔离、早到输出、结束和关闭清理，并审计 WISH-019 的 PTY 差距。涉及 IPC 时同步四处类型与入口，禁止复用 Playground 模拟实现。
 - 审阅真实契约：`session:getFileChangeDiff` 在原有 `diff/after` 外返回受长度上限保护的 `before`，供正式并排视图使用；列表读取和 diff 读取必须分别处理错误，按请求序号丢弃过期结果。新建文件无旧稿时仅提供 unified 视图，不以空字符串伪造旧稿。
 - 浏览器真实契约：`browser:load` 只返回通过主进程 URL/DNS 校验、未跟随重定向且未超出大小／时间上限的 HTML/XHTML/纯文本；正式 Renderer 通过 `sandbox=""` 和文档 CSP 展示，禁止脚本、插件、表单和外部资源，不承担登录态或任意网页交互。
+- 侧边聊天真实契约：`session:createWorkspace` 创建 `session_kind=workspace` 的临时会话；列表和主会话导览排除该类型，面板卸载调用现有 `session:delete` 清理。消息仍走现有 `chat:send`／`chat:event`／`chat:abort`，Renderer 按独立 sessionId 过滤事件；React 初始化清理产生的废弃 workspace 会话也必须删除。
 - 当前不动：生产 Prompt、人格／记忆策略、权限规则、模型配置与真实用户数据。它们不是本批视觉折叠的必要修改；后续真实能力需要改动时先把具体契约补入本合同。
 
 ### P1 共享标签批次
