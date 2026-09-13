@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Eraser, FileCode2, RefreshCw } from 'lucide-react'
 import { ResizeHandle } from '../../shell/ResizeHandle'
+import { MarkdownRenderer } from '../../MarkdownRenderer'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from '../../../shared/panel-layout'
 
 type ChangeItem = {
@@ -156,12 +157,9 @@ export function ReviewPanel({ sessionId }: ReviewPanelProps) {
               <p className="text-[11px]" style={{ color: 'var(--danger)' }}>{error}</p>
             )}
             {diffText != null && !loadingDiff && (
-              <pre
-                className="whitespace-pre-wrap break-all font-mono text-[10px] leading-relaxed"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                {diffText}
-              </pre>
+              <div className="min-w-0 text-[10px]">
+                <MarkdownRenderer content={[String.fromCharCode(96).repeat(3) + 'diff', diffText, String.fromCharCode(96).repeat(3)].join('\n')} />
+              </div>
             )}
             {!selected && !loadingDiff && (
               <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>选择文件查看 diff</p>
