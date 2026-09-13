@@ -3,6 +3,7 @@
 > 只记录用户或开发者可以感知的能力变化。完整早期施工流水见 [`../_archive/ledgers/changelog-through-2026-08-16.md`](../_archive/ledgers/changelog-through-2026-08-16.md)。
 
 ## [未发布]
+- 工作区浏览器、审阅、侧边聊天和文件预览的文字恢复/打开动作现在共用 Foundation `ActionButton`，hover、禁用和主题状态不再由业务面板各自声明。
 - 正式浏览器刷新、终端运行/终止和侧边聊天发送/停止按钮现在共用 Foundation `IconButton`，hover、disabled 和加载状态保持固定操作槽尺寸，不再推动输入框或面板布局。
 - 正式文件浏览器的刷新、搜索、复制、系统打开和关闭预览现在共用 Foundation 控件，固定操作槽不会因 hover 或状态变化推动文件名和预览内容布局。
 - 文件浏览器的 HTML “预览 / 源码”切换现在与 Foundation `SegmentedControl` 同源，选中态、禁用态和固定尺寸不再由文件浏览器单独维护。

@@ -63,6 +63,7 @@ export const FOUNDATION_STORY_NAVIGATION_GROUPS: readonly FoundationStoryNavigat
 ] as const
 
 export const FOUNDATION_STORIES = [
+  { key: 'foundation.action-button', viewId: 'action-button', assetKey: 'behavior.action-button', labelZh: '文字动作按钮', group: 'behavior', renderer: 'advanced', navigationGroup: 'buttons' },
   { key: 'foundation.button', viewId: 'buttons', assetKey: 'behavior.button', labelZh: '按钮', group: 'behavior', renderer: 'ui-controls', navigationGroup: 'buttons' },
   { key: 'foundation.input', viewId: 'inputs', assetKey: 'behavior.input', labelZh: '输入', group: 'behavior', renderer: 'ui-controls', navigationGroup: 'input-form' },
   { key: 'foundation.icon-button', viewId: 'icon-button', assetKey: 'behavior.icon-button', labelZh: '图标按钮', group: 'behavior', renderer: 'ui-controls', navigationGroup: 'buttons' },

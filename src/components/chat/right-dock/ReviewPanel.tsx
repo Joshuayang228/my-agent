@@ -7,6 +7,7 @@ import { Eraser, FileCode2, RefreshCw } from 'lucide-react'
 import { ResizeHandle } from '../../shell/ResizeHandle'
 import { DiffViewer, DiffViewControls, type DiffViewMode } from '../../foundation/DiffViewer'
 import { IconButton } from '../../foundation/IconButton'
+import { ActionButton } from '../../foundation/ActionButton'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from '../../../shared/panel-layout'
 import type { WorkspaceChatFocus } from '../../../shared/types'
 
@@ -135,7 +136,7 @@ export function ReviewPanel({ sessionId, onContextChange }: ReviewPanelProps) {
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center">
           {error ? <>
             <p role="alert" className="text-[12px]" style={{ color: 'var(--danger)' }}>{error}</p>
-            <button type="button" className="rounded px-2 py-1 text-[11px]" style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }} onClick={() => { void reload() }}>重新读取</button>
+            <ActionButton tone="accent" onClick={() => { void reload() }}>重新读取</ActionButton>
           </> : <>
             <FileCode2 size={20} style={{ color: 'var(--text-muted)' }} />
             <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>

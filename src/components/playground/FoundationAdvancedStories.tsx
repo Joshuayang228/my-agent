@@ -12,8 +12,18 @@ import { ChevronDown, Command, FileText, MoreHorizontal, Search, X } from 'lucid
 import { StoryBlock } from './StoryBlock'
 import { DiffViewer, DiffViewControls, type DiffViewMode } from '../foundation/DiffViewer'
 import { WorkspaceToolMenu } from '../foundation/WorkspaceToolMenu'
+import { ActionButton } from '../foundation/ActionButton'
 import { SegmentedControl } from '../foundation/SegmentedControl'
 import { type AdvancedFoundationStoryKey } from '../../shared/foundation-story-registry'
+
+function ActionButtonStory() {
+  return <div className="flex flex-wrap items-center gap-2">
+    <ActionButton tone="accent">重新读取</ActionButton>
+    <ActionButton>用系统应用打开</ActionButton>
+    <ActionButton tone="danger">删除</ActionButton>
+    <ActionButton disabled>不可用</ActionButton>
+  </div>
+}
 
 function SelectStory() {
   return (
@@ -197,6 +207,7 @@ function assertNever(value: never): never {
 
 function storyContent(story: AdvancedFoundationStoryKey) {
   switch (story) {
+    case 'foundation.action-button': return <StoryBlock title="文字动作按钮" source="src/components/foundation/ActionButton.tsx" edge adopted><ActionButtonStory /></StoryBlock>
     case 'foundation.select': return <StoryBlock title="下拉选择" source="src/components/playground/FoundationAdvancedStories.tsx · native select"><SelectStory /></StoryBlock>
     case 'foundation.dialog': return <StoryBlock title="对话框" source="src/components/playground/FoundationAdvancedStories.tsx · Dialog candidate" edge><DialogStory /></StoryBlock>
     case 'foundation.popover': return <StoryBlock title="弹出层" source="src/components/playground/FoundationAdvancedStories.tsx · Popover candidate" edge><PopoverStory /></StoryBlock>

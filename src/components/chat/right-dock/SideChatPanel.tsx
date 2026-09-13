@@ -5,6 +5,7 @@ import type { AgentStreamEvent, ChatMessage, WorkspaceChatFocus } from '../../..
 import { MarkdownRenderer } from '../../MarkdownRenderer'
 import { PermissionConfirmCard } from '../PermissionConfirmCard'
 import { IconButton } from '../../foundation/IconButton'
+import { ActionButton } from '../../foundation/ActionButton'
 import { TextField } from '../../foundation/TextField'
 
 interface SideChatPanelProps {
@@ -107,7 +108,7 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
       {!loading && messages.length === 0 && !error && <p className="py-10 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>从当前工作区开始聊聊</p>}
       {messages.map((message) => <div key={message.id} className={message.role === 'user' ? 'ml-auto max-w-[90%] rounded-lg px-3 py-2 text-[12px]' : 'text-[12px] leading-6'} style={{ background: message.role === 'user' ? 'var(--bg-tertiary)' : undefined }}><MarkdownRenderer content={message.content} /></div>)}
       {sending && <div className="flex items-center gap-2 text-[11px]" role="status"><LoaderCircle size={13} className="animate-spin" />正在生成</div>}
-      {error && <div className="flex items-center gap-2 text-[11px]" role="alert" style={{ color: 'var(--danger)' }}><span>{error}</span><button type="button" onClick={retry}>重试</button></div>}
+      {error && <div className="flex items-center gap-2 text-[11px]" role="alert" style={{ color: 'var(--danger)' }}><span>{error}</span><ActionButton tone="accent" onClick={retry}>重试</ActionButton></div>}
     </div>
     <form className="flex items-end gap-2 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event: FormEvent<HTMLFormElement>) => { event.preventDefault(); void send() }}>
       <TextField multiline aria-label="侧边聊天消息" rows={2} placeholder="继续聊聊…" className="flex-1 resize-none" value={input} disabled={loading || !sessionId} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setInput(event.target.value)} />

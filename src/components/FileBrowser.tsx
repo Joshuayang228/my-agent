@@ -24,6 +24,7 @@ import { CodeBlock, MarkdownRenderer } from './MarkdownRenderer'
 import { ResizeHandle } from './shell/ResizeHandle'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from '../shared/panel-layout'
 import { IconButton } from './foundation/IconButton'
+import { ActionButton } from './foundation/ActionButton'
 import { SegmentedControl } from './foundation/SegmentedControl'
 import { TextField } from './foundation/TextField'
 
@@ -316,20 +317,13 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                   {preview.kind === 'unsupported' && (
                     <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
                       <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{preview.reason}</p>
-                      <button
-                        type="button"
-                        className="rounded-lg border px-3 py-1.5 text-[11px]"
-                        style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                        onClick={() => { void openExternal() }}
-                      >
-                        用系统应用打开
-                      </button>
+                      <ActionButton size="md" onClick={() => { void openExternal() }}>用系统应用打开</ActionButton>
                     </div>
                   )}
                   {preview.kind === 'error' && (
                     <div role="alert" className="space-y-2 text-[12px]" style={{ color: 'var(--danger)' }}>
                       <p>{preview.message}</p>
-                      {onRetry && <button type="button" onClick={onRetry} className="settings-option px-2 py-1">重新读取</button>}
+                      {onRetry && <ActionButton tone="accent" onClick={onRetry}>重新读取</ActionButton>}
                     </div>
                   )}
                 </div>

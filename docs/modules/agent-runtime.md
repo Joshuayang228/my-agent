@@ -55,6 +55,7 @@
 ## 已落地能力
 
 - 差异内容与模式控件由 Foundation `DiffViewer` / `DiffViewControls` 统一提供，基础故事、工作区候选和正式 ReviewPanel 实际引用；底层继续复用 CodeBlock，业务只提供已有 unified/before/after，不重算差异。空字符串是有效稿件，缺稿时统一内容和按钮状态一起回退，避免并排选择导致新文件空白。模式按钮尺寸固定，长文件在所在滚动区阅读；符号绑定 Unit 和正式 Renderer 空稿/缺稿回归保护三层复用。
+- 工作区文字恢复和外部打开动作由 Foundation `ActionButton` 提供，正式浏览器、审阅、侧边聊天和 FileBrowser 共用固定高度与语义色；业务回调和真实数据路径不下沉到基础层。
 - 工作区固定图标操作由 Foundation `IconButton` 提供，正式文件浏览器刷新/复制/系统打开/关闭、右坞添加入口、审阅刷新/清空、终端运行/终止、侧边聊天发送/停止、候选工作区开关/添加和浏览器刷新均复用同一固定尺寸与无障碍 label；业务回调、菜单焦点和资源边界仍由调用方负责。
 - 正式文件浏览器的搜索输入与工作区地址栏、命令控制台、侧边聊天共用 Foundation `TextField`；文件树节点和 HTML 预览/源码切换仍属于业务组合层。
 - 文件浏览器 HTML 预览/源码模式选择由 Foundation `SegmentedControl` 提供，业务层只维护当前模式和沙箱内容切换。
