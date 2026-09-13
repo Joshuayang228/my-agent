@@ -3,10 +3,17 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { Square } from 'lucide-react'
+import { Play, Square } from 'lucide-react'
 
 interface TerminalPanelProps {
   projectPath: string | null
+}
+
+interface RunAttempt {
+  runId: string | null
+  cancelRequested: boolean
+  stopping: boolean
+  disposed: boolean
 }
 
 export function TerminalPanel({ projectPath }: TerminalPanelProps) {
@@ -14,9 +21,9 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
     '命令控制台（非完整终端）。在当前工作区执行命令；受对话页审批/沙箱约束。',
   ])
   const [cmd, setCmd] = useState('')
-  const [runId, setRunId] = useState<string | null>(null)
-  const runIdRef = useRef<string | null>(null)
+  const attemptRef = useRef<RunAttempt | null>(null)
   const [busy, setBusy] = useState(false)
+  const [stopping, setStopping] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -27,20 +34,20 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
     const api = window.electronAPI?.terminal
     if (!api) return
     const offOut = api.onStdout((ev) => {
-      if (!runIdRef.current || ev.runId !== runIdRef.current) return
+      if (!attemptRef.current?.runId || ev.runId !== attemptRef.current.runId) return
       setLines((prev) => [...prev, ...ev.chunk.replace(/\r\n/g, '\n').split('\n')])
     })
     const offErr = api.onStderr((ev) => {
-      if (!runIdRef.current || ev.runId !== runIdRef.current) return
+      if (!attemptRef.current?.runId || ev.runId !== attemptRef.current.runId) return
       const parts = ev.chunk.replace(/\r\n/g, '\n').split('\n').map((l) => (l ? `[err] ${l}` : ''))
       setLines((prev) => [...prev, ...parts])
     })
     const offExit = api.onExit((ev) => {
-      if (!runIdRef.current || ev.runId !== runIdRef.current) return
+      if (!attemptRef.current?.runId || ev.runId !== attemptRef.current.runId) return
       setLines((prev) => [...prev, `[exit ${ev.code}]`])
       setBusy(false)
-      runIdRef.current = null
-      setRunId(null)
+      attemptRef.current = null
+      setStopping(false)
     })
     return () => {
       offOut()
@@ -49,41 +56,79 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
     }
   }, [])
 
+  // 关闭面板和手动终止共用请求，但仅当前仍挂载的运行可更新 UI；迟到的旧响应不得清空新运行。
+  const stopAttempt = async (attempt: RunAttempt) => {
+    if (!attempt.runId || attempt.stopping) return
+    attempt.stopping = true
+    try {
+      const result = await window.electronAPI?.terminal.kill(attempt.runId)
+      if (!result?.ok) throw new Error('Terminal stop was not acknowledged')
+      if (!attempt.disposed && attemptRef.current === attempt) {
+        attemptRef.current = null
+        setBusy(false)
+        setStopping(false)
+        setLines((prev) => [...prev, '[已发送终止请求]'])
+      }
+    } catch {
+      if (attempt.disposed) {
+        console.warn('[TerminalPanel] 关闭后的命令清理未获确认')
+      } else if (attemptRef.current === attempt) {
+        attempt.cancelRequested = false
+        setStopping(false)
+        setLines((prev) => [...prev, '[终止失败，请重试；命令可能仍在运行]'])
+      }
+    } finally {
+      attempt.stopping = false
+    }
+  }
+
   const run = async () => {
     const command = cmd.trim()
-    if (!command || busy) return
+    if (!command || attemptRef.current) return
+    const attempt: RunAttempt = { runId: null, cancelRequested: false, stopping: false, disposed: false }
+    attemptRef.current = attempt
     setLines((prev) => [...prev, `$ ${command}`])
     setCmd('')
     setBusy(true)
-    const result = await window.electronAPI?.terminal.run({
-      command,
-      cwd: projectPath || undefined,
-    })
-    if (!result) {
-      setLines((prev) => [...prev, '[无法调用终端 IPC]'])
-      setBusy(false)
-      return
+    try {
+      const result = await window.electronAPI?.terminal.run({ command, cwd: projectPath || undefined })
+      if (result?.ok) {
+        attempt.runId = result.runId
+        // 启动 IPC 无取消句柄；不能在 pending 时忘记本次运行，拿到 ID 后仍须清理。
+        if (attempt.cancelRequested || attempt.disposed) await stopAttempt(attempt)
+        return
+      }
+      if (!attempt.disposed && attemptRef.current === attempt) {
+        setLines((prev) => [...prev, result ? result.error : '[无法连接命令服务，请重试]'])
+      }
+    } catch {
+      if (!attempt.disposed && attemptRef.current === attempt) {
+        setLines((prev) => [...prev, '[启动失败，请重试]'])
+      }
     }
-    if (!result.ok) {
-      setLines((prev) => [...prev, result.error, '[exit -1]'])
+    if (!attempt.disposed && attemptRef.current === attempt) {
+      attemptRef.current = null
       setBusy(false)
-      return
+      setStopping(false)
+      setCmd(command)
     }
-    runIdRef.current = result.runId
-    setRunId(result.runId)
   }
 
   useEffect(() => () => {
-    const activeRunId = runIdRef.current
-    if (activeRunId) void window.electronAPI?.terminal.kill(activeRunId)
+    const attempt = attemptRef.current
+    if (!attempt) return
+    attempt.disposed = true
+    attempt.cancelRequested = true
+    attemptRef.current = null
+    void stopAttempt(attempt)
   }, [])
 
-  const kill = async () => {
-    if (!runId) return
-    await window.electronAPI?.terminal.kill(runId)
-    runIdRef.current = null
-    setRunId(null)
-    setBusy(false)
+  const kill = () => {
+    const attempt = attemptRef.current
+    if (!attempt || attempt.cancelRequested) return
+    attempt.cancelRequested = true
+    setStopping(true)
+    void stopAttempt(attempt)
   }
 
   return (
@@ -113,20 +158,14 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
             }
           }}
         />
-        {busy ? (
-          <button type="button" className="rounded p-1" style={{ color: 'var(--danger)' }} title="终止" onClick={() => { void kill() }}>
-            <Square size={12} />
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="rounded px-2 py-0.5 text-[10px]"
-            style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
-            onClick={() => { void run() }}
-          >
-            运行
-          </button>
-        )}
+        <button type="button" className="flex h-6 w-6 shrink-0 items-center justify-center rounded disabled:opacity-50"
+          style={{ color: busy ? 'var(--danger)' : 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
+          title={stopping ? '正在终止' : busy ? '终止' : '运行'}
+          aria-label={stopping ? '正在终止' : busy ? '终止' : '运行'}
+          disabled={stopping || (!busy && !cmd.trim())}
+          onClick={() => { if (busy) kill(); else void run() }}>
+          {busy ? <Square size={12} /> : <Play size={12} />}
+        </button>
       </div>
     </div>
   )

@@ -869,35 +869,12 @@ function App() {
     }
   }, [])
 
-  /* ── 设置 / Playground 独立全屏：不与产品 Primary Sidebar 叠成双层导航。 ── */
-  if (activeView === 'settings') {
-    return (
-      <div className="app-shell view-transition flex h-screen min-w-0 select-none" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-        <div className="flex h-full w-full min-h-0 min-w-0 flex-1 flex-col">
-          <SettingsPanel
-            onClose={closeSettings}
-            onOpenDevPanel={() => setActiveView('debug')}
-            onOpenPlayground={() => setActiveView('playground')}
-            onOpenMemory={() => setActiveView('memory')}
-            onOpenSkills={() => setActiveView('skills')}
-            currentTheme={theme}
-            onThemeChange={setTheme}
-          />
-        </div>
-      </div>
-    )
-  }
-
-  if (activeView === 'playground') {
-    return (
-      <div className="app-shell view-transition flex h-screen min-w-0 select-none" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-        <PlaygroundPage onClose={() => setActiveView('chat')} />
-      </div>
-    )
-  }
+  // 全屏导航不能销毁项目工作区：保留固定位置的产品子树，仅隐藏；项目 key 才定义资源归属。
+  const standaloneView = activeView === 'settings' || activeView === 'playground'
 
   return (
-    <div className="app-shell flex h-screen select-none" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+    <>
+    <div className="app-shell flex h-screen select-none" style={{ display: standaloneView ? 'none' : undefined, background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       {/* ── Primary 侧栏（Alice 壳） ── */}
       {/*
        * 侧栏保留在 DOM 中，只动画外层轨道的宽度和位移。
@@ -1733,6 +1710,8 @@ function App() {
                         e.stopPropagation()
                         await window.electronAPI.project.set(null)
                         setCurrentProject(null)
+                        setRightDockCollapsed(false)
+                        setShowFileBrowser(false)
                         setProjectMenuOpen(false)
                       }}
                       className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition"
@@ -1773,16 +1752,17 @@ function App() {
       {/* 右坞：文件 / 审阅 / 终端；Debug 统一进入全页工作区 */}
       {showFileBrowser && (
         <>
-          {!rightDockCollapsed && <ResizeHandle
+          {activeView === 'chat' && !rightDockCollapsed && <ResizeHandle
             orientation="vertical"
             title="拖动调整右坞宽度"
             onDelta={(dx) => setRightDockWidth((w) => w - dx)}
           />}
           <ChatRightDock
+            key={currentProject?.path || 'no-project'}
             projectPath={currentProject?.path || null}
             sessionId={activeSessionId}
             showFiles={showFileBrowser}
-            collapsed={rightDockCollapsed}
+            collapsed={rightDockCollapsed || activeView !== 'chat'}
             width={rightDockWidth}
 
             onCloseFiles={() => { setRightDockCollapsed(false); setShowFileBrowser(false) }}
@@ -1791,6 +1771,21 @@ function App() {
       )}
 
       {/* Memory / Skills / Debug / Playground 均为主区域全页视图 */}
+    </div>
+
+      {standaloneView && <div className="app-shell view-transition flex h-screen min-w-0 select-none" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+        {activeView === 'settings' ? <div className="flex h-full w-full min-h-0 min-w-0 flex-1 flex-col">
+          <SettingsPanel
+            onClose={closeSettings}
+            onOpenDevPanel={() => setActiveView('debug')}
+            onOpenPlayground={() => setActiveView('playground')}
+            onOpenMemory={() => setActiveView('memory')}
+            onOpenSkills={() => setActiveView('skills')}
+            currentTheme={theme}
+            onThemeChange={setTheme}
+          />
+        </div> : <PlaygroundPage onClose={() => setActiveView('chat')} />}
+      </div>}
 
       {/* 确认对话框（串行队列：一次只展示队首，应答后出队） */}
       {confirmDialog && (
@@ -1810,7 +1805,7 @@ function App() {
           />
         </div>
       )}
-    </div>
+    </>
   )
 }
 

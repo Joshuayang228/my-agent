@@ -312,6 +312,49 @@ async function installProductionElectronStub(page: import('@playwright/test').Pa
   })
 }
 
+async function installTerminalLifecycleStub(page: import('@playwright/test').Page) {
+  await installProductionElectronStub(page)
+  await page.addInitScript(() => {
+    const api = (window as any).electronAPI
+    const stdout = new Set<(event: any) => void>()
+    const stderr = new Set<(event: any) => void>()
+    const exit = new Set<(event: any) => void>()
+    const pending = new Map<string, (value: any) => void>()
+    const pendingKills = new Map<string, (value: any) => void>()
+    const harness = {
+      runMode: 'normal', killMode: 'normal',
+      runs: [] as { id: string; command: string; cwd?: string }[], kills: [] as string[],
+      resolveRun: (id: string) => pending.get(id)?.({ ok: true, runId: id }),
+      resolveKill: (id: string) => pendingKills.get(id)?.({ ok: true }),
+      emit: (kind: string, event: any) => (kind === 'stdout' ? stdout : kind === 'stderr' ? stderr : exit).forEach((listener) => listener(event)),
+      listeners: () => stdout.size + stderr.size + exit.size,
+    }
+    ;(window as any).__terminalHarness = harness
+    api.terminal = {
+      run: async (input: { command: string; cwd?: string }) => {
+        const id = 'run-' + (harness.runs.length + 1)
+        harness.runs.push({ id, ...input })
+        if (harness.runMode === 'reject') throw new Error('synthetic IPC failure')
+        if (harness.runMode === 'blocked') return { ok: false, error: '命令未获批准' }
+        if (harness.runMode === 'pending') return new Promise((resolve) => pending.set(id, resolve))
+        return { ok: true, runId: id }
+      },
+      kill: async (id: string) => {
+        harness.kills.push(id)
+        if (harness.killMode === 'reject') throw new Error('synthetic kill failure')
+        if (harness.killMode === 'pending') return new Promise((resolve) => pendingKills.set(id, resolve))
+        return { ok: harness.killMode === 'normal' }
+      },
+      onStdout: (listener: (event: any) => void) => { stdout.add(listener); return () => stdout.delete(listener) },
+      onStderr: (listener: (event: any) => void) => { stderr.add(listener); return () => stderr.delete(listener) },
+      onExit: (listener: (event: any) => void) => { exit.add(listener); return () => exit.delete(listener) },
+    }
+    api.mcp.status = async () => []
+    api.project.list = async () => [{ path: 'C:\\\\e2e-project', name: '测试项目' }, { path: 'C:/second-project', name: '第二项目' }]
+    api.project.set = async () => ({ ok: true })
+  })
+}
+
 test.describe('My Agent UI', () => {
   test('应用标题和基础 UI 可见', async ({ page }) => {
     await page.goto('/')
@@ -435,6 +478,207 @@ test.describe('My Agent UI', () => {
     }
   }
 
+
+  test('正式终端切换保留多实例并在关闭时分别清理', async ({ page }) => {
+    await installTerminalLifecycleStub(page)
+    await page.goto('/')
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '终端', exact: true }).click()
+    const first = dock.getByRole('tabpanel', { name: '终端', exact: true })
+    const firstInput = first.getByPlaceholder('输入命令…')
+    await firstInput.fill('echo first')
+    await firstInput.press('Enter')
+    await expect(firstInput).toBeDisabled()
+    const node = await firstInput.elementHandle()
+    await dock.getByRole('tab', { name: '文件', exact: true }).click()
+    expect(await node!.evaluate((element) => element.isConnected)).toBe(true)
+    expect(await page.evaluate(() => (window as any).__terminalHarness.kills)).toEqual([])
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '终端', exact: true }).click()
+    const second = dock.getByRole('tabpanel', { name: '终端 2', exact: true })
+    await second.getByPlaceholder('输入命令…').fill('echo second')
+    await second.getByPlaceholder('输入命令…').press('Enter')
+    await expect(second.getByPlaceholder('输入命令…')).toBeDisabled()
+    await page.evaluate(() => {
+      const harness = (window as any).__terminalHarness
+      harness.emit('stdout', { runId: 'run-1', chunk: 'background-first' })
+      harness.emit('stdout', { runId: 'run-2', chunk: 'foreground-second' })
+    })
+    await expect(second).toContainText('foreground-second')
+    await expect(second).not.toContainText('background-first')
+    await dock.getByRole('tab', { name: '终端', exact: true }).click()
+    await expect(first).toContainText('background-first')
+    await expect(first).not.toContainText('foreground-second')
+    await dock.getByRole('button', { name: '关闭终端', exact: true }).click()
+    await expect.poll(() => page.evaluate(() => (window as any).__terminalHarness.kills)).toEqual(['run-1'])
+    await dock.getByRole('tab', { name: '终端 2', exact: true }).click()
+    await expect(second).toContainText('foreground-second')
+    await dock.getByRole('button', { name: '关闭终端 2', exact: true }).click()
+    await expect.poll(() => page.evaluate(() => (window as any).__terminalHarness.kills)).toEqual(['run-1', 'run-2'])
+    await dock.getByRole('button', { name: '关闭文件', exact: true }).click()
+    await expect(dock).toHaveCount(0)
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    await expect(dock.getByRole('tab', { name: '文件', exact: true })).toBeVisible()
+    expect(await page.evaluate(() => (window as any).__terminalHarness.listeners())).toBe(0)
+  })
+
+  test('正式工作区跨设置与 Playground 保留但项目切换清理', async ({ page }) => {
+    await installTerminalLifecycleStub(page)
+    await page.goto('/')
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '终端', exact: true }).click()
+    const input = dock.getByPlaceholder('输入命令…')
+    await input.fill('echo retain')
+    await input.press('Enter')
+    const node = await input.elementHandle()
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+    await expect(page.getByTitle('返回聊天', { exact: true })).toBeVisible()
+    await expect(dock).toBeHidden()
+    expect(await node!.evaluate((element) => element.isConnected)).toBe(true)
+    await page.getByTitle('返回聊天', { exact: true }).click()
+    await expect(input).toBeDisabled()
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+    await expect(page.getByTestId('playground-nav')).toBeVisible()
+    await expect(dock).toBeHidden()
+    expect(await node!.evaluate((element) => element.isConnected)).toBe(true)
+    await page.getByTitle('返回聊天', { exact: true }).click()
+    expect(await page.evaluate(() => (window as any).__terminalHarness.kills)).toEqual([])
+    await page.getByRole('button', { name: '测试项目', exact: true }).click()
+    await page.getByRole('button', { name: '第二项目', exact: true }).click()
+    await expect.poll(() => page.evaluate(() => (window as any).__terminalHarness.kills)).toEqual(['run-1'])
+    await expect(dock.getByRole('tab', { name: '终端', exact: true })).toHaveCount(0)
+    await expect(dock.getByRole('tab', { name: '文件', exact: true })).toBeVisible()
+  })
+
+  test('正式终端启动失败可重试且保留命令', async ({ page }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await installTerminalLifecycleStub(page)
+    await page.goto('/')
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '终端', exact: true }).click()
+    const input = dock.getByPlaceholder('输入命令…')
+    await input.fill('echo retry')
+    for (const mode of ['reject', 'blocked']) {
+      await page.evaluate((mode) => { (window as any).__terminalHarness.runMode = mode }, mode)
+      await input.press('Enter')
+      await expect(dock).toContainText(mode === 'reject' ? '启动失败，请重试' : '命令未获批准')
+      await expect(input).toBeEnabled()
+      await expect(input).toHaveValue('echo retry')
+    }
+    await page.evaluate(() => { (window as any).__terminalHarness.runMode = 'normal' })
+    await dock.getByRole('button', { name: '运行', exact: true }).click()
+    await expect(input).toBeDisabled()
+    await page.evaluate(() => (window as any).__terminalHarness.emit('exit', { runId: 'run-3', code: 0 }))
+    await expect(input).toBeEnabled()
+    await expect(dock).toContainText('[exit 0]')
+    expect(errors).toEqual([])
+  })
+
+  test('正式终端等待启动时可取消并保持操作槽尺寸', async ({ page }) => {
+    await installTerminalLifecycleStub(page)
+    await page.goto('/')
+    await page.evaluate(() => { (window as any).__terminalHarness.runMode = 'pending' })
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '终端', exact: true }).click()
+    const input = dock.getByPlaceholder('输入命令…')
+    await input.fill('echo cancel')
+    const initial = await dock.getByRole('button', { name: '运行', exact: true }).boundingBox()
+    await input.press('Enter')
+    const stop = dock.getByRole('button', { name: '终止', exact: true })
+    await stop.hover()
+    expect(await stop.boundingBox()).toEqual(initial)
+    await stop.click()
+    await expect(dock.getByRole('button', { name: '正在终止', exact: true })).toBeDisabled()
+    expect(await dock.getByRole('button', { name: '正在终止', exact: true }).boundingBox()).toEqual(initial)
+    await expect(input).toBeDisabled()
+    expect(await page.evaluate(() => (window as any).__terminalHarness.kills)).toEqual([])
+    await page.evaluate(() => (window as any).__terminalHarness.resolveRun('run-1'))
+    await expect.poll(() => page.evaluate(() => (window as any).__terminalHarness.kills)).toEqual(['run-1'])
+    await expect(input).toBeEnabled()
+    expect(await dock.getByRole('button', { name: '运行', exact: true }).boundingBox()).toEqual(initial)
+    expect(await page.evaluate(() => (window as any).__terminalHarness.runs.length)).toBe(1)
+  })
+
+  test('正式终端终止失败不伪装成功且可重试', async ({ page }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await installTerminalLifecycleStub(page)
+    await page.goto('/')
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '终端', exact: true }).click()
+    const input = dock.getByPlaceholder('输入命令…')
+    await input.fill('echo stop')
+    await input.press('Enter')
+    for (const mode of ['reject', 'failed']) {
+      await page.evaluate((mode) => { (window as any).__terminalHarness.killMode = mode }, mode)
+      await dock.getByRole('button', { name: '终止', exact: true }).click()
+      await expect(dock.getByRole('button', { name: '终止', exact: true })).toBeEnabled()
+      await expect(input).toBeDisabled()
+      await expect(dock).toContainText('终止失败，请重试')
+      await expect(dock).not.toContainText('已发送终止请求')
+    }
+    await page.evaluate(() => { (window as any).__terminalHarness.killMode = 'normal' })
+    await dock.getByRole('button', { name: '终止', exact: true }).click()
+    await expect(input).toBeEnabled()
+    expect(await page.evaluate(() => (window as any).__terminalHarness.kills)).toEqual(['run-1', 'run-1', 'run-1'])
+    expect(errors).toEqual([])
+  })
+
+  test('正式终端旧终止响应不影响新命令且取消项目会清理', async ({ page }) => {
+    await installTerminalLifecycleStub(page)
+    await page.goto('/')
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '终端', exact: true }).click()
+    const input = dock.getByPlaceholder('输入命令…')
+    await input.fill('echo old')
+    await input.press('Enter')
+    await page.evaluate(() => { (window as any).__terminalHarness.killMode = 'pending' })
+    await dock.getByRole('button', { name: '终止', exact: true }).click()
+    await page.evaluate(() => (window as any).__terminalHarness.emit('exit', { runId: 'run-1', code: 0 }))
+    await expect(input).toBeEnabled()
+    await input.fill('echo new')
+    await input.press('Enter')
+    await page.evaluate(() => (window as any).__terminalHarness.resolveKill('run-1'))
+    await expect(input).toBeDisabled()
+    await page.evaluate(() => (window as any).__terminalHarness.emit('stdout', { runId: 'run-2', chunk: 'new-output' }))
+    await expect(dock).toContainText('new-output')
+    await page.evaluate(() => { (window as any).__terminalHarness.killMode = 'normal' })
+    await page.getByRole('button', { name: '测试项目', exact: true }).click()
+    await page.getByRole('button', { name: '不使用项目', exact: true }).click()
+    await expect(dock).toHaveCount(0)
+    await expect.poll(() => page.evaluate(() => (window as any).__terminalHarness.kills)).toEqual(['run-1', 'run-2'])
+    expect(await page.evaluate(() => (window as any).__terminalHarness.listeners())).toBe(0)
+  })
+
+  test('正式终端关闭后清理迟到的启动响应', async ({ page }) => {
+    await installTerminalLifecycleStub(page)
+    await page.goto('/')
+    await page.evaluate(() => { (window as any).__terminalHarness.runMode = 'pending' })
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '终端', exact: true }).click()
+    await dock.getByPlaceholder('输入命令…').fill('echo late')
+    await dock.getByPlaceholder('输入命令…').press('Enter')
+    await expect.poll(() => page.evaluate(() => (window as any).__terminalHarness.runs.length)).toBe(1)
+    await dock.getByRole('button', { name: '关闭终端', exact: true }).click()
+    await page.evaluate(() => (window as any).__terminalHarness.resolveRun('run-1'))
+    await expect.poll(() => page.evaluate(() => (window as any).__terminalHarness.kills)).toEqual(['run-1'])
+    expect(await page.evaluate(() => (window as any).__terminalHarness.listeners())).toBe(0)
+  })
 
   test('正式五功能入口顺序与面板无转义残留', async ({ page }) => {
     await installProductionElectronStub(page)
@@ -648,7 +892,8 @@ test.describe('My Agent UI', () => {
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
 
     const nav = page.locator('[data-testid="playground-nav"]')
-    await expect(page.locator('[data-testid="primary-sidebar"]')).toHaveCount(0)
+    await expect(page.locator('[data-testid="primary-sidebar"]')).toHaveCount(1)
+    await expect(page.locator('[data-testid="primary-sidebar"]')).toBeHidden()
     await expect(page.getByRole('switch', { name: '显示已采用' })).toHaveCount(0)
     await expect(page.locator('section[aria-label="基础"]')).toBeVisible()
     await expect(page.locator('section[aria-label="产品体验"]')).toBeVisible()
@@ -2012,7 +2257,8 @@ test.describe('My Agent UI', () => {
     const playgroundBox = await playgroundShell.boundingBox()
     expect(playgroundBox?.y).toBeLessThan(4)
     expect(playgroundBox?.x).toBeLessThan(4)
-    await expect(page.locator('[data-testid="primary-sidebar"]')).toHaveCount(0)
+    await expect(page.locator('[data-testid="primary-sidebar"]')).toHaveCount(1)
+    await expect(page.locator('[data-testid="primary-sidebar"]')).toBeHidden()
     await expect(page.locator('section[aria-label="基础"]')).toBeVisible()
     await expect(page.locator('section[aria-label="产品体验"]')).toBeVisible()
     await expect(page.locator('section[aria-label="Agent 实验"]')).toBeVisible()

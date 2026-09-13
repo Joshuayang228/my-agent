@@ -76,12 +76,12 @@ export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, 
           onClick={() => addTab(id)}><Icon size={14} />{label}</button>)}
       </div>}
     </div>
-    {/* 文件是只读内容，切换工具时保留树和预览；终端生命周期由后续运行实例契约接管。 */}
+    {/* 实例在后台继续持有状态与事件订阅；关闭标签才卸载，不能把选中态当作资源生命周期。 */}
     {visibleTabs.map(({ instance, label }) => <div key={instance.instanceId} id={'dock-panel-' + instance.instanceId} role="tabpanel" aria-label={label}
       hidden={activeTabId !== instance.instanceId} className={activeTabId === instance.instanceId ? 'flex min-h-0 min-w-0 flex-1 flex-col' : 'hidden'}>
       {instance.kind === 'files' && <WorkspaceFilesPanel projectPath={projectPath} />}
       {instance.kind === 'review' && <ReviewPanel key={sessionId} sessionId={sessionId} />}
-      {instance.kind === 'terminal' && activeTabId === instance.instanceId && <TerminalPanel projectPath={projectPath} />}
+      {instance.kind === 'terminal' && <TerminalPanel projectPath={projectPath} />}
       {instance.kind === 'browser' && <BrowserPanel />}
       {instance.kind === 'chat' && <SideChatPanel />}
     </div>)}
