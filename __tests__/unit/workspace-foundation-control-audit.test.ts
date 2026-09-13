@@ -38,4 +38,21 @@ describe('正式工作区 Foundation 控件门禁', () => {
       expect(source, file).toContain('ActionButton')
     }
   })
+
+  it('formal workspace shared controls stay bound to Foundation', () => {
+    const requiredBindings = {
+      'src/components/chat/right-dock/ChatRightDock.tsx': ['TabStrip', 'WorkspaceToolMenu'],
+      'src/components/chat/right-dock/WorkspaceFilesPanel.tsx': ['TabStrip'],
+      'src/components/chat/right-dock/ReviewPanel.tsx': ['DiffViewer', 'DiffViewControls', 'IconButton', 'ActionButton'],
+      'src/components/chat/right-dock/TerminalPanel.tsx': ['IconButton', 'TextField'],
+      'src/components/chat/right-dock/BrowserPanel.tsx': ['IconButton', 'ActionButton', 'TextField'],
+      'src/components/chat/right-dock/SideChatPanel.tsx': ['IconButton', 'ActionButton', 'TextField', 'MarkdownRenderer'],
+      'src/components/FileBrowser.tsx': ['IconButton', 'ActionButton', 'SegmentedControl', 'TextField', 'MarkdownRenderer'],
+      'src/components/MarkdownRenderer.tsx': ['IconButton'],
+    }
+    for (const [file, bindings] of Object.entries(requiredBindings)) {
+      const source = readFileSync(file, 'utf8')
+      for (const binding of bindings) expect(source, file + ' -> ' + binding).toContain(binding)
+    }
+  })
 })
