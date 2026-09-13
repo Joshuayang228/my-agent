@@ -18,6 +18,8 @@ interface ChatRightDockProps {
   projectPath: string | null
   sessionId: string | null
   showFiles: boolean
+  /** 折叠只隐藏面板，不卸载右坞，以保留 Tab 与预览状态。 */
+  collapsed?: boolean
   /** 可拖宽度；默认 380 */
   width?: number
   /** Playground / 测试专用只读文件样张。 */
@@ -57,6 +59,7 @@ export function ChatRightDock({
   filesPreview,
   playgroundTabs = false,
   deferredTabs = false,
+  collapsed = false,
   onCloseFiles,
 }: ChatRightDockProps) {
   const [sharedPreview, setSharedPreview] = useState<FileBrowserPreviewState>(null)
@@ -68,7 +71,7 @@ export function ChatRightDock({
     ? [initialInstance('preview')]
     : [initialInstance('files'), initialInstance('review'), initialInstance('terminal')])
   const [addMenuOpen, setAddMenuOpen] = useState(false)
-  const open = showFiles
+  const open = showFiles && !collapsed
   useEffect(() => {
     if (!deferredTabMode) return
     nextInstance.current = 2
@@ -77,8 +80,7 @@ export function ChatRightDock({
     setAddMenuOpen(false)
   }, [deferredTabMode])
 
-  if (!open) return null
-
+  // 收起时必须保留子面板，否则终端输入、输出订阅和文件树状态会被卸载重置。
   const showWorkbench = showFiles
   const visibleTabs = deferredTabMode
     ? openTabs.map((instance, index) => {
@@ -113,7 +115,8 @@ export function ChatRightDock({
   return (
     <div
       className="relative flex shrink-0 flex-col overflow-hidden border-l"
-      style={{ width, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
+      id="chat-right-dock"
+      style={{ display: open ? undefined : 'none', width, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
       data-testid="chat-right-dock"
     >
       {showWorkbench && (

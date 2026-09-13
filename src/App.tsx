@@ -19,7 +19,7 @@ import { MemoryCitationChips } from './components/chat/MemoryCitationChips'
 import { PermissionConfirmCard } from './components/chat/PermissionConfirmCard'
 import {
   Volume2, Paperclip, Shield, RefreshCw, Zap,
-  Folder, FolderOpen, Ban,
+  Folder, FolderOpen, Ban, PanelRight,
   ChevronDown, Square,
   Copy, Check, X, Pencil, RotateCcw, GitBranch, Trash2,
   Plus, Search, Menu, Send, File,
@@ -158,6 +158,7 @@ function App() {
   const sessionFilterRef = useRef<HTMLInputElement>(null)
   const [sidebarSearchOpen, setSidebarSearchOpen] = useState(false)
   const [showFileBrowser, setShowFileBrowser] = useState(false)
+  const [rightDockCollapsed, setRightDockCollapsed] = useState(false)
   const [sidebarWidth, setSidebarWidth] = usePersistedNumber(
     LAYOUT_KEYS.sidebarWidth,
     LAYOUT_BOUNDS.sidebarWidth.fallback,
@@ -1031,17 +1032,28 @@ function App() {
             </div>
             {currentProject && (
               <button
-                onClick={() => setShowFileBrowser(v => !v)}
-                className="mr-2 flex h-7 items-center gap-1 rounded-md px-2 text-[11px] transition"
-                style={{
-                  color: showFileBrowser ? 'var(--accent-fg)' : 'var(--text-muted)',
-                  background: showFileBrowser ? 'var(--accent-subtle)' : undefined,
+                onClick={() => {
+                  if (!showFileBrowser) {
+                    setShowFileBrowser(true)
+                    setRightDockCollapsed(false)
+                  } else {
+                    setRightDockCollapsed((current) => !current)
+                  }
                 }}
-                onMouseEnter={(e) => { if (!showFileBrowser) e.currentTarget.style.background = 'var(--hover-overlay)' }}
-                onMouseLeave={(e) => { if (!showFileBrowser) e.currentTarget.style.background = '' }}
-                title="项目文件"
+                type="button"
+                className="mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition"
+                style={{
+                  color: showFileBrowser && !rightDockCollapsed ? 'var(--accent-fg)' : 'var(--text-muted)',
+                  background: showFileBrowser && !rightDockCollapsed ? 'var(--accent-subtle)' : undefined,
+                }}
+                aria-expanded={showFileBrowser && !rightDockCollapsed}
+                aria-controls="chat-right-dock"
+                onMouseEnter={(e) => { if (!showFileBrowser || rightDockCollapsed) e.currentTarget.style.background = 'var(--hover-overlay)' }}
+                onMouseLeave={(e) => { if (!showFileBrowser || rightDockCollapsed) e.currentTarget.style.background = '' }}
+                aria-label={showFileBrowser && !rightDockCollapsed ? '收起工作区' : '打开工作区'}
+                title={showFileBrowser && !rightDockCollapsed ? '收起工作区' : '打开工作区'}
               >
-                <Folder size={13} />
+                <PanelRight size={14} />
               </button>
             )}
             {(() => {
@@ -1761,18 +1773,19 @@ function App() {
       {/* 右坞：文件 / 审阅 / 终端；Debug 统一进入全页工作区 */}
       {showFileBrowser && (
         <>
-          <ResizeHandle
+          {!rightDockCollapsed && <ResizeHandle
             orientation="vertical"
             title="拖动调整右坞宽度"
             onDelta={(dx) => setRightDockWidth((w) => w - dx)}
-          />
+          />}
           <ChatRightDock
             projectPath={currentProject?.path || null}
             sessionId={activeSessionId}
             showFiles={showFileBrowser}
+            collapsed={rightDockCollapsed}
             width={rightDockWidth}
             deferredTabs
-            onCloseFiles={() => setShowFileBrowser(false)}
+            onCloseFiles={() => { setRightDockCollapsed(false); setShowFileBrowser(false) }}
           />
         </>
       )}

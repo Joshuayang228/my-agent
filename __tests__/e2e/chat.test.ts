@@ -406,11 +406,40 @@ test.describe('My Agent UI', () => {
   })
 
 
+  for (const theme of ['light', 'dark']) {
+    for (const width of [900, 1440]) {
+      test('正式工作区折叠几何与主题 ' + theme + ' ' + width, async ({ page }, testInfo) => {
+        await installProductionElectronStub(page)
+        await page.setViewportSize({ width, height: 800 })
+        await page.goto('/')
+        await page.evaluate((value) => { document.documentElement.setAttribute('data-theme', value) }, theme)
+        const toggle = page.getByRole('button', { name: '打开工作区', exact: true })
+        const before = await toggle.boundingBox()
+        await toggle.click()
+        const dock = page.getByTestId('chat-right-dock')
+        const close = page.getByRole('button', { name: '收起工作区', exact: true })
+        await expect(close).toHaveAttribute('aria-controls', 'chat-right-dock')
+        await expect(dock).toHaveCSS('border-left-width', '1px')
+        await close.hover()
+        const hover = await close.boundingBox()
+        expect(hover?.width).toBe(before?.width)
+        expect(hover?.height).toBe(before?.height)
+        await page.screenshot({ path: testInfo.outputPath('production-dock-open.png'), animations: 'disabled' })
+        await close.press('Enter')
+        await expect(dock).toBeHidden()
+        const restored = page.getByRole('button', { name: '打开工作区', exact: true })
+        await expect(restored).toBeFocused()
+        await expect(restored).toHaveAttribute('aria-expanded', 'false')
+        await page.screenshot({ path: testInfo.outputPath('production-dock-collapsed.png'), animations: 'disabled' })
+      })
+    }
+  }
+
   test('正式右坞默认预览且文件与预览共享选中文件', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.goto('/')
 
-    await page.getByTitle('项目文件').click()
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
     const dock = page.locator('[data-testid="chat-right-dock"]')
     await expect(dock.getByTestId('right-dock-tab-preview')).toBeVisible()
     await expect(dock.getByTestId('right-dock-tab-files')).toHaveCount(0)
@@ -426,6 +455,18 @@ test.describe('My Agent UI', () => {
     await expect(dock.getByTestId('file-browser-preview')).toContainText('const ready = true')
     await expect(dock.getByTestId('file-browser-preview')).toContainText('App.tsx')
 
+    const workspaceToggle = page.getByTitle('收起工作区')
+    await expect(workspaceToggle).toHaveAttribute('aria-expanded', 'true')
+    await workspaceToggle.click()
+    await expect(page.getByTitle('打开工作区')).toBeVisible()
+    await expect(dock).toHaveCount(1)
+    await expect(dock).toBeHidden()
+    expect(await dock.evaluate((node) => node.getBoundingClientRect().width)).toBe(0)
+    await page.getByTitle('打开工作区').click()
+    await expect(page.getByTitle('收起工作区')).toBeVisible()
+    await expect(dock.getByTestId('right-dock-tab-preview')).toBeVisible()
+    await expect(dock.getByTestId('file-browser-preview')).toContainText('App.tsx')
+
     await dock.getByTestId('right-dock-add-tab').click()
     await dock.getByRole('menuitem', { name: '审阅', exact: true }).click()
     await expect(dock.getByText('无活跃会话', { exact: true })).toBeVisible()
@@ -434,7 +475,18 @@ test.describe('My Agent UI', () => {
     await dock.getByTestId('right-dock-add-tab').click()
     await dock.getByRole('menuitem', { name: '终端', exact: true }).click()
     await expect(dock.getByText('命令控制台（非完整终端）', { exact: false })).toBeVisible()
-    await expect(dock.getByPlaceholder('输入命令…')).toBeVisible()
+    const command = dock.getByPlaceholder('输入命令…')
+    await expect(command).toBeVisible()
+    await command.fill('echo retained-draft')
+    const terminalInput = await command.elementHandle()
+    await page.getByRole('button', { name: '收起工作区', exact: true }).click()
+    await expect(dock).toBeHidden()
+    expect(await terminalInput!.evaluate((node) => node.isConnected)).toBe(true)
+    await expect(command).toHaveValue('echo retained-draft')
+    await page.getByRole('button', { name: '打开工作区', exact: true }).press('Enter')
+    await expect(command).toBeVisible()
+    await expect(command).toHaveValue('echo retained-draft')
+    expect(await terminalInput!.evaluate((node) => node.isConnected)).toBe(true)
     await expect(dock).not.toContainText('隔离样张')
   })
 
