@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import type { ChangeEvent } from 'react'
 import {
   ChevronRight,
   ChevronDown,
@@ -22,6 +23,8 @@ import {
 import { CodeBlock, MarkdownRenderer } from './MarkdownRenderer'
 import { ResizeHandle } from './shell/ResizeHandle'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from '../shared/panel-layout'
+import { IconButton } from './foundation/IconButton'
+import { TextField } from './foundation/TextField'
 
 export interface FileBrowserPreviewEntry {
   name: string
@@ -194,15 +197,9 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
           <span className="min-w-0 flex-1 truncate text-[10px]" style={{ color: 'var(--text-muted)' }} title={displayProjectPath || undefined}>
             {displayProjectPath || '未选择项目'}
           </span>
-          <button
-            type="button"
-            className="rounded p-0.5"
-            style={{ color: 'var(--text-muted)' }}
-            title="刷新"
-            onClick={() => { void loadTree() }}
-          >
+          <IconButton label="刷新" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => { void loadTree() }}>
             <RefreshCw size={12} className={loading ? 'animate-spin' : undefined} />
-          </button>
+          </IconButton>
         </div>
       )}
 
@@ -218,12 +215,11 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
               style={{ borderColor: 'var(--border-color)', background: 'var(--input-bg)' }}
             >
               <Search size={12} style={{ color: 'var(--text-muted)' }} />
-              <input
+              <TextField
                 value={filter}
-                onChange={(e) => setFilter(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFilter(e.target.value)}
                 placeholder="搜索文件名..."
-                className="w-full bg-transparent text-xs outline-none"
-                style={{ color: 'var(--text-primary)' }}
+                className="w-full text-xs"
               />
             </div>
           </div>}
@@ -302,33 +298,14 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                     </div>
                   )}
                   {preview.kind === 'text' && (
-                    <button
-                      type="button"
-                      className="rounded p-0.5"
-                      style={{ color: 'var(--text-muted)' }}
-                      title="复制正文"
-                      onClick={() => { void copyText() }}
-                    >
+                    <IconButton label="复制正文" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => { void copyText() }}>
                       <Copy size={12} />
-                    </button>
+                    </IconButton>
                   )}
-                  <button
-                    type="button"
-                    className="rounded p-0.5"
-                    style={{ color: 'var(--text-muted)' }}
-                    title="用系统应用打开"
-                    onClick={() => { void openExternal() }}
-                  >
+                  <IconButton label="用系统应用打开" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => { void openExternal() }}>
                     <ExternalLink size={12} />
-                  </button>
-                  {!hidePreviewClose && <button
-                    type="button"
-                    className="rounded p-0.5"
-                    style={{ color: 'var(--text-muted)' }}
-                    onClick={() => setPreview(null)}
-                  >
-                    <X size={12} />
-                  </button>}
+                  </IconButton>
+                  {!hidePreviewClose && <IconButton label="关闭预览" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => setPreview(null)}><X size={12} /></IconButton>}
                 </div>
 
                 <div className={`min-h-0 flex-1 overflow-auto scrollbar-hover select-text ${preview.kind === 'text' && preview.languageHint === 'html' && htmlView === 'preview' ? 'p-0' : 'p-3'}`}>
@@ -412,26 +389,12 @@ function Header({
         )}
       </div>
       <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={onRefresh}
-          className="rounded p-1 transition"
-          style={{ color: 'var(--text-muted)' }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-        >
+        <IconButton label="刷新" size={24} style={{ color: 'var(--text-muted)' }} onClick={onRefresh}>
           <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded p-1 transition"
-          style={{ color: 'var(--text-muted)' }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-        >
+        </IconButton>
+        <IconButton label="关闭文件浏览器" size={24} style={{ color: 'var(--text-muted)' }} onClick={onClose}>
           <X size={12} />
-        </button>
+        </IconButton>
       </div>
     </div>
   )
