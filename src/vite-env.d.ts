@@ -765,7 +765,7 @@ declare global {
         send: (sessionId: string, userMessage: ChatMessage) => Promise<void>
         abort: (sessionId?: string) => Promise<void>
         onEvent: (callback: (event: AgentStreamEvent) => void) => () => void
-        onConfirmRequest: (callback: (data: { requestId: string; name: string; args: Record<string, unknown> }) => void) => () => void
+        onConfirmRequest: (callback: (data: { requestId: string; name: string; args: Record<string, unknown>; sessionId: string }) => void) => () => void
         confirmResponse: (requestId: string, approved: boolean) => void
       }
       tasks: {

@@ -27,7 +27,7 @@
 
 正式浏览器 Renderer E2E 必须覆盖地址提交、Esc 恢复、加载中、失败重试、固定操作槽和 sandbox 脚本不执行；主进程测试必须覆盖 HTTP(S) 校验、内网/DNS 拒绝、重定向拒绝、超时和响应大小上限。该查看器不等同于完整浏览器，不能用 Renderer 替身证明网络安全边界。
 
-正式侧边聊天 Renderer/Electron E2E 必须覆盖 workspace 会话不进入主列表、发送、流式文本、错误、停止、错误 session 事件隔离和卸载删除；主进程测试必须覆盖 `session_kind=workspace` 的创建、读取与列表排除。不得用主会话复用证明侧边聊天归属正确。
+正式侧边聊天 Renderer/Electron E2E 必须覆盖 workspace 会话不进入主列表、发送、流式文本、错误、停止、错误 session 事件隔离、工具确认归属和卸载删除；主进程测试必须覆盖 `session_kind=workspace` 的创建、读取与列表排除，以及确认事件携带正确 sessionId。不得用主会话复用证明侧边聊天归属正确。
 
 记忆 Playground 日期同行布局由现有记忆清单背景 E2E 覆盖；正式记忆页分支保持原有日期位置。
 

@@ -615,8 +615,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('chat:event', handler)
       return () => ipcRenderer.off('chat:event', handler)
     },
-    onConfirmRequest: (callback: (data: { requestId: string; name: string; args: Record<string, unknown> }) => void) => {
-      const handler = (_e: Electron.IpcRendererEvent, data: { requestId: string; name: string; args: Record<string, unknown> }) => callback(data)
+    onConfirmRequest: (callback: (data: { requestId: string; name: string; args: Record<string, unknown>; sessionId: string }) => void) => {
+      const handler = (_e: Electron.IpcRendererEvent, data: { requestId: string; name: string; args: Record<string, unknown>; sessionId: string }) => callback(data)
       ipcRenderer.on('tool:confirm-request', handler)
       return () => ipcRenderer.off('tool:confirm-request', handler)
     },

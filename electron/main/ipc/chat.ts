@@ -61,7 +61,7 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
         }
 
         ipcMain.once(channel, onResponse)
-        event.sender.send('tool:confirm-request', { requestId, name, args })
+        event.sender.send('tool:confirm-request', { requestId, name, args, sessionId })
 
         timer = setTimeout(() => {
           log.warn('tool confirm timed out', { requestId, name })

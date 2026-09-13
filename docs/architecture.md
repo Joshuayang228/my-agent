@@ -300,7 +300,9 @@ my-agent/
             ├─ yield text/thinking/tool_calls 事件
             ├─ 工具调用 → Middleware Pipeline → 权限检查 → 执行
             └─ yield done → 后台任务（画像/向量索引/标题）
-    → IPC chat:event → 渲染进程流式显示
+    → IPC chat:event → 渲染进程按 sessionId 过滤后流式显示
+
+工具确认请求沿同一 IPC 边界携带 sessionId，由对应会话的确认队列承接；主 Chat 与 workspace 侧边聊天不得跨会话消费确认。
 ```
 
 ### 工具调用链路

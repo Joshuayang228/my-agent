@@ -680,6 +680,7 @@ function App() {
     })
 
     const cleanupConfirm = window.electronAPI.chat.onConfirmRequest((data) => {
+      if (data.sessionId !== sid) return
       setConfirmQueue(q => [...q, { requestId: data.requestId, name: data.name, args: data.args }])
     })
 
