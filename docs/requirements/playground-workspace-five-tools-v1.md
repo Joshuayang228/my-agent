@@ -69,7 +69,7 @@
 | 浏览器 | BrowserPanel 受限只读查看器 | 已有后端但能力受限 | 主进程安全抓取已接入 URL/DNS 校验、手动拒绝重定向、超时/响应上限，并新增 requestId 归属与关闭时取消；Renderer 使用无脚本 sandbox + CSP。仍不支持脚本、登录、站内交互和任意导航 |
 | 侧边聊天 | SideChatPanel + `workspace` 会话 | 已回流，正式视觉与交互已验收 | 创建/发送失败重试、旧草稿/确认/异步响应隔离有 Renderer 回归；真实 Electron 已验证流中关闭及切换主会话后的连接终止、存储删除和新侧聊发送；Runtime 初始化取消及 IPC 等待收尾/确认取消有 Unit；2026-09-13 全量 UI E2E 通过，覆盖正式入口、主题、窄宽、折叠、流式、停止、重试与父会话切换 |
 | 多实例工作区 Tab | ChatRightDock + Foundation TabStrip | 已回流 | 固定关闭槽、稳定实例 ID、后台关闭和切换/折叠/一级导航保持已有 Renderer 回归；Windows 终端关闭释放进程树已有 Electron 证据 |
-| Markdown／Diff 代码块 | MarkdownRenderer / Foundation DiffViewer / FileBrowser / ReviewPanel | 共享渲染已回流 | 原始代码、就近主题/Mermaid 与差异布局同源；空稿和缺稿回退有 Renderer 回归，其它基础控件仍需全量复用验收 |
+| Markdown／Diff 代码块 | MarkdownRenderer / Foundation DiffViewer / FileBrowser / ReviewPanel | 共享渲染已回流 | 原始代码、就近主题/Mermaid 与差异布局同源；空稿和缺稿回退有 Renderer 回归；正式工作区通用控件绑定由 Foundation 审计门禁锁定 |
 
 ### 当前后端能力判定
 
@@ -95,7 +95,7 @@
 - 回流来源：本合同五功能候选、WorkspaceExperienceCandidate 与 Foundation 标签故事。用户授权：2026-09-13「开始回流工作区」「先把整个界面统一，然后再把后端的各项能力全部补齐」。P1 未完成，不提前冻结合同。
 - 当前落点：App 的项目工作区按钮 → ChatRightDock → FileBrowser／ReviewPanel／TerminalPanel。现有真实数据来自 project、session file changes、terminal IPC；本批折叠不改其接口，只保留已挂载子树。
 - 本批允许修改：src/App.tsx、src/components/chat/right-dock/ChatRightDock.tsx、src/components/chat/right-dock/BrowserPanel.tsx、electron/main/ipc/browser.ts、electron/preload/index.ts、src/vite-env.d.ts、工作区 Unit/Renderer/Electron 测试，以及本合同、合同导览、agent-runtime 模块卡、quality、progress、changelog、wishlist。其它已有工作区文件只读，用户临时文件不纳入提交。
-- 界面统一后续写入范围：共享 Foundation 控件、工作区容器、FileBrowser、MarkdownRenderer／ReviewPanel、对应 Playground renderer 与资产注册表、样张和正式 E2E。当前已补 `ActionButton`，覆盖正式恢复/打开动作；后续仍需继续审计其它局部 JSX 控件。提取真实共享实现，不把候选文件作为生产依赖。
+- 界面统一后续写入范围：共享 Foundation 控件、工作区容器、FileBrowser、MarkdownRenderer／ReviewPanel、对应 Playground renderer 与资产注册表、样张和正式 E2E。当前已补 `ActionButton`，覆盖正式恢复/打开动作；Foundation 绑定清单已由审计测试锁定，新增通用控件必须先进入基础层再被正式工作区复用。提取真实共享实现，不把候选文件作为生产依赖。
 - 生命周期：折叠只隐藏，不取消任务；切换标签应保留实例状态，关闭才释放实例资源。会话／项目切换和一级导航的资源归属必须分别定义与验证，不把同页折叠证据外推为持久化。
 - 后端补齐前逐项补充契约：浏览器需隔离外站、导航和权限决策、关闭清理；侧聊需真实 session／runtime 归属、事件过滤、停止、错误恢复、持久化和模型配置工厂；终端需实例事件隔离、早到输出、结束和关闭清理，并审计 WISH-019 的 PTY 差距。涉及 IPC 时同步四处类型与入口，禁止复用 Playground 模拟实现。
 - 审阅真实契约：`session:getFileChangeDiff` 在原有 `diff/after` 外返回受长度上限保护的 `before`，供正式并排视图使用；列表读取和 diff 读取必须分别处理错误，按请求序号丢弃过期结果。新建文件无旧稿时仅提供 unified 视图，不以空字符串伪造旧稿。
