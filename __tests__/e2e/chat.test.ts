@@ -183,23 +183,46 @@ for (const theme of ['light', 'dark']) {
       await expect(list.getByRole('listitem')).toHaveCount(1)
       await expect(pattern).toHaveCount(0)
       await expect(add).toBeVisible()
-      // 表单展开可能触发页面滚动；用卡片内相对坐标隔离滚动影响，已有条目与按钮尺寸必须保持不变。
+      // 展开表单会滚动页面，故比较容器内坐标；新增规则可推低入口，但展开和取消不能改变其位置。
       const measureRuleLayout = () => rules.evaluate((node) => {
         const card = node.getBoundingClientRect()
         const item = node.querySelector('li')!.getBoundingClientRect()
         const button = node.querySelector('[data-testid="settings-candidate-add-rule"]')!.getBoundingClientRect()
         return { x: item.x - card.x, y: item.y - card.y, width: item.width, height: item.height, buttonWidth: button.width, buttonHeight: button.height }
       })
+      const measureAddPosition = () => add.evaluate((node) => {
+        const section = node.closest('[data-testid="settings-candidate-rules-existing"]')!.getBoundingClientRect()
+        const button = node.getBoundingClientRect()
+        return { x: button.x - section.x, y: button.y - section.y }
+      })
+      const expectAddBelowList = async () => {
+        expect(await rules.evaluate((node) => {
+          const list = node.querySelector('ul')!
+          const button = node.querySelector('[data-testid="settings-candidate-add-rule"]')!
+          return Boolean(list.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING)
+            && button.getBoundingClientRect().top >= list.getBoundingClientRect().bottom + 8
+        })).toBe(true)
+      }
+      await expect(rules).toHaveCSS('border-top-width', '0px')
+      await expect(rules).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+      const ruleCard = list.getByTestId('settings-candidate-rule-card').first()
+      await expect(ruleCard).toHaveCSS('border-top-width', '1px')
+      await expect(ruleCard).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+      await expect(ruleCard).not.toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)')
+      await expectAddBelowList()
       const initialLayout = await measureRuleLayout()
+      const initialAddPosition = await measureAddPosition()
       await page.screenshot({ path: testInfo.outputPath('rules-expanded.png'), animations: 'disabled' })
       await add.click()
       await expect(add).toHaveAccessibleName('取消添加')
       await expect(add).toHaveAttribute('aria-expanded', 'true')
       expect(await measureRuleLayout()).toEqual(initialLayout)
+      expect(await measureAddPosition()).toEqual(initialAddPosition)
       await add.click()
       await expect(pattern).toHaveCount(0)
       await expect(add).toHaveAccessibleName('添加')
       expect(await measureRuleLayout()).toEqual(initialLayout)
+      expect(await measureAddPosition()).toEqual(initialAddPosition)
       await add.click()
       await expect(save).toBeDisabled()
       await pattern.fill('   ')
@@ -208,6 +231,7 @@ for (const theme of ['light', 'dark']) {
       await rules.getByRole('button', { name: '取消', exact: true }).click()
       await expect(pattern).toHaveCount(0)
       expect(await measureRuleLayout()).toEqual(initialLayout)
+      expect(await measureAddPosition()).toEqual(initialAddPosition)
       await expect(list.getByRole('listitem')).toHaveCount(1)
       await add.click()
       await expect(pattern).toHaveValue('')
@@ -226,6 +250,7 @@ for (const theme of ['light', 'dark']) {
       await expect(add).toHaveAccessibleName('添加')
       expect(await measureRuleLayout()).toEqual(initialLayout)
       await expect(list.getByRole('listitem')).toHaveCount(2)
+      await expectAddBelowList()
       await expect(list).toContainText('npm publish')
       await expect(list).toContainText('git push')
       await expect(list).not.toContainText('cancelled-command')
@@ -234,6 +259,7 @@ for (const theme of ['light', 'dark']) {
       await pattern.fill(`src/${'long-path-'.repeat(24)}.ts`)
       await save.click()
       await expect(list.getByRole('listitem')).toHaveCount(3)
+      await expectAddBelowList()
       expect(await rules.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
       await page.screenshot({ path: testInfo.outputPath('rules-saved.png'), animations: 'disabled' })
     })

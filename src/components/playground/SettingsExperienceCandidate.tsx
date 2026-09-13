@@ -413,19 +413,19 @@ function PermissionsPage({ mode, onModeChange }: { mode: string; onModeChange: (
         </button>
       })}</div>
     </SettingCard>
-    <SettingCard testId="settings-candidate-rules-existing">
+    <section className="py-4 sm:py-5" data-testid="settings-candidate-rules-existing">
       <button type="button" onClick={() => { setShowCustomRules((current) => !current); setShowRuleForm(false) }} aria-expanded={showCustomRules} className="flex w-full items-center justify-between gap-3 text-left" data-testid="settings-candidate-rules-existing-toggle">
         <span><span className="flex items-center gap-2 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}><SlidersHorizontal size={15} style={{ color: 'var(--accent-fg)' }} />自定义规则</span><span className="mt-1 block text-[11px]" style={{ color: 'var(--text-muted)' }}>已保存的例外规则，优先于默认审批方式生效。</span></span>
         <span className="flex shrink-0 items-center gap-2"><span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{savedRules.length} 条</span><ChevronRight size={14} className={`transition ${showCustomRules ? 'rotate-90' : ''}`} style={{ color: 'var(--text-muted)' }} /></span>
       </button>
       {showCustomRules && <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
-        <div className="flex justify-end">
-          <button type="button" aria-expanded={showRuleForm} onClick={() => { if (showRuleForm) { setShowRuleForm(false); return }; setRuleTarget('命令'); setRuleAction('拒绝'); setRulePattern(''); setShowRuleForm(true) }} className="flex h-8 w-24 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-[var(--radius-md)] border text-[10px] font-medium" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-add-rule">{showRuleForm ? <X size={12} /> : <Plus size={12} />}{showRuleForm ? '取消添加' : '添加'}</button>
-        </div>
-        <ul className="mt-3 space-y-3" aria-label="自定义规则列表">{savedRules.map((savedRule, index) => <li key={index} className="flex items-center justify-between gap-3 py-1">
+        <ul className="space-y-3" aria-label="自定义规则列表">{savedRules.map((savedRule, index) => <li key={index}><SettingCard testId="settings-candidate-rule-card"><div className="flex items-center justify-between gap-3">
           <div className="min-w-0"><div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{savedRule.action} · {savedRule.target}</div><div className="mt-1 break-all font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{savedRule.pattern}</div></div>
           <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px]" style={{ background: savedRule.action === '拒绝' ? 'color-mix(in srgb, var(--danger) 10%, transparent)' : 'var(--accent-subtle)', color: savedRule.action === '拒绝' ? 'var(--danger)' : 'var(--accent-fg)' }}>{savedRule.action}</span>
-        </li>)}</ul>
+        </div></SettingCard></li>)}</ul>
+        <div className="mt-3 flex">
+          <button type="button" aria-expanded={showRuleForm} onClick={() => { if (showRuleForm) { setShowRuleForm(false); return }; setRuleTarget('命令'); setRuleAction('拒绝'); setRulePattern(''); setShowRuleForm(true) }} className="flex h-8 w-24 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-[var(--radius-md)] border text-[10px] font-medium" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-add-rule">{showRuleForm ? <X size={12} /> : <Plus size={12} />}{showRuleForm ? '取消添加' : '添加'}</button>
+        </div>
       </div>}
       {showCustomRules && showRuleForm && <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
         <div className="mb-3 text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>例如：拒绝发布命令；修改文件时，每次先问你。规则只匹配你填写的内容，未匹配操作仍按上面的默认审批方式处理。</div>
@@ -436,7 +436,7 @@ function PermissionsPage({ mode, onModeChange }: { mode: string; onModeChange: (
         </div>
         <div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => setShowRuleForm(false)} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[10px] font-medium" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>取消</button><button type="button" disabled={!rulePattern.trim()} onClick={() => { if (!rulePattern.trim()) return; setSavedRules((current) => [...current, { target: ruleTarget, action: ruleAction, pattern: rulePattern.trim() }]); setShowRuleForm(false) }} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[10px] font-medium disabled:cursor-not-allowed disabled:opacity-40" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-save-rule">保存这条规则</button></div>
       </div>}
-    </SettingCard>
+    </section>
   </div>
 }
 const MCP_SCENES = [
