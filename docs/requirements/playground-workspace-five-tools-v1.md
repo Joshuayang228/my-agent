@@ -69,6 +69,21 @@
 | 多实例工作区 Tab | ChatRightDock + Foundation TabStrip | 已回流 | 固定关闭槽、稳定实例 ID、后台关闭和切换/折叠/一级导航保持已有 Renderer 回归；Windows 终端关闭释放进程树已有 Electron 证据 |
 | Markdown／Diff 代码块 | MarkdownRenderer / Foundation DiffViewer / FileBrowser / ReviewPanel | 共享渲染已回流 | 原始代码、就近主题/Mermaid 与差异布局同源；空稿和缺稿回退有 Renderer 回归，其它基础控件仍需全量复用验收 |
 
+### 当前后端能力判定
+
+以下结论按正式入口的真实调用链、IPC 和 Electron 证据判定，不把“界面上有入口”当作后端已完成：
+
+| 前端入口/期待能力 | 当前证据 | 判定 | 后续后端工作 |
+|---|---|---|---|
+| 文件读取与多预览 | `project.listFiles` / `project.readFile`，路径边界和真实 Electron 读取已覆盖 | 已有后端 | 继续维护安全边界；不是本轮占位项 |
+| 审阅前后稿与差异 | `session:listFileChanges` / `session:getFileChangeDiff`，before/after、错误和过期响应已有回归 | 已有后端 | 差异算法不在 UI 层重算；补长期文件上限时继续沿主进程契约 |
+| 终端命令控制台 | 真实 terminal IPC、权限/沙箱/cwd、Windows 进程树回收已有证据 | 已有后端但能力受限 | Unix 实机证据与完整 PTY 不在当前合同；不得把命令控制台宣传为 PTY |
+| 受限网页查看 | `browser:load` 主进程 URL/DNS 校验、拒绝重定向、响应/超时上限，Renderer sandbox+CSP | 已有后端但能力受限 | 脚本、登录、表单、站内导航和任意网页交互明确不做；若要支持需另建安全施工合同 |
+| workspace 侧边聊天 | `session:createWorkspace` + 真实 Runtime 流式事件，主列表/长期记忆隔离，Electron 关闭与切换清理已覆盖 | 已有后端 | 继续补模型配置/工具确认等边界回归；不是静态样张 |
+| 完整终端 PTY | 正式界面没有可声称的 PTY 契约，当前实现是受权限控制的命令控制台 | 未实现 | 见 WISH-019，需单独合同、跨平台进程组和 PTY 资源/取消设计 |
+| 浏览器登录与脚本交互 | 当前主进程只返回受限 HTML/文本，Renderer 明确无脚本 | 未实现且明确排除 | 不在本合同内，不得从 Playground 浏览器样张回流 |
+| Unix 进程树实证 | 当前真实 Electron 证据为 Windows | 未完成验证 | 在 Unix 环境补实机验证，不用 Renderer 替身宣称跨平台完成 |
+
 ### P1 技术路径与交付边界
 
 - 回流来源：本合同五功能候选、WorkspaceExperienceCandidate 与 Foundation 标签故事。用户授权：2026-09-13「开始回流工作区」「先把整个界面统一，然后再把后端的各项能力全部补齐」。P1 未完成，不提前冻结合同。
