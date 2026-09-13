@@ -3,7 +3,9 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import type { ChangeEvent, KeyboardEvent } from 'react'
 import { Play, Square } from 'lucide-react'
+import { TextField } from '../../foundation/TextField'
 
 interface TerminalPanelProps {
   projectPath: string | null
@@ -145,14 +147,13 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
         style={{ borderColor: 'var(--border-subtle)' }}
       >
         <span className="font-mono text-[11px]" style={{ color: 'var(--text-muted)' }}>$</span>
-        <input
-          className="min-w-0 flex-1 bg-transparent font-mono text-[11px] outline-none"
-          style={{ color: 'var(--text-primary)' }}
+        <TextField
+          className="flex-1 font-mono text-[11px]"
           value={cmd}
           disabled={busy}
           placeholder={projectPath ? '输入命令…' : '未打开项目时在进程 cwd 执行'}
-          onChange={(e) => setCmd(e.target.value)}
-          onKeyDown={(e) => {
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setCmd(e.target.value)}
+          onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
             if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
               e.preventDefault()
               void run()

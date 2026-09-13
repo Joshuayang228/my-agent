@@ -1,8 +1,10 @@
 import { ArrowUp, LoaderCircle, MessageCircle, Square } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 import type { AgentStreamEvent, ChatMessage, WorkspaceChatFocus } from '../../../shared/types'
 import { MarkdownRenderer } from '../../MarkdownRenderer'
 import { PermissionConfirmCard } from '../PermissionConfirmCard'
+import { TextField } from '../../foundation/TextField'
 
 interface SideChatPanelProps {
   parentSessionId: string | null
@@ -106,8 +108,8 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
       {sending && <div className="flex items-center gap-2 text-[11px]" role="status"><LoaderCircle size={13} className="animate-spin" />正在生成</div>}
       {error && <div className="flex items-center gap-2 text-[11px]" role="alert" style={{ color: 'var(--danger)' }}><span>{error}</span><button type="button" onClick={retry}>重试</button></div>}
     </div>
-    <form className="flex items-end gap-2 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); void send() }}>
-      <textarea aria-label="侧边聊天消息" rows={2} placeholder="继续聊聊…" className="min-w-0 flex-1 resize-none bg-transparent text-[12px] outline-none" value={input} disabled={loading || !sessionId} onChange={(event) => setInput(event.target.value)} />
+    <form className="flex items-end gap-2 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event: FormEvent<HTMLFormElement>) => { event.preventDefault(); void send() }}>
+      <TextField multiline aria-label="侧边聊天消息" rows={2} placeholder="继续聊聊…" className="flex-1 resize-none" value={input} disabled={loading || !sessionId} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setInput(event.target.value)} />
       <button type="button" aria-label={sending ? '停止生成' : '发送消息'} title={sending ? '停止生成' : '发送消息'} className="flex h-7 w-7 shrink-0 items-center justify-center rounded disabled:opacity-40" style={{ color: sending ? 'var(--danger)' : 'var(--accent-fg)', background: 'var(--accent-subtle)' }} disabled={loading || !sessionId || (!sending && !input.trim())} onClick={() => { if (sending) stop(); else void send() }}>{sending ? <Square size={14} /> : <ArrowUp size={14} />}</button>
     </form>
     {confirmRequest && <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/45 p-3">

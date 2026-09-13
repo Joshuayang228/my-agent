@@ -85,6 +85,14 @@ describe('Foundation story registry', () => {
     expect(menu).toMatch(/<IconButton[\s\S]*label=/)
   })
 
+  it('TextField 的 Foundation 实现覆盖故事和正式工作区输入', () => {
+    for (const file of ['src/components/playground/UiControlsPanel.tsx', 'src/components/chat/right-dock/BrowserPanel.tsx', 'src/components/chat/right-dock/TerminalPanel.tsx', 'src/components/chat/right-dock/SideChatPanel.tsx']) {
+      const source = readFileSync(file, 'utf8')
+      expect(source).toContain('foundation/TextField')
+      expect(source).toMatch(/<TextField[\s\S]*?/)
+    }
+  })
+
   it('keeps story keys, views, assets and groups in one consistent relation', () => {
     const keys = FOUNDATION_STORIES.map((story) => story.key)
     const viewIds = FOUNDATION_STORIES.map((story) => story.viewId)

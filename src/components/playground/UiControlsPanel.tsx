@@ -13,6 +13,7 @@ import type { ToolCallbackItem } from '../chat/callbacks/types'
 import { MemoryCitationChips } from '../chat/MemoryCitationChips'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import { CodeBlock, MarkdownRenderer } from '../MarkdownRenderer'
+import { TextField } from '../foundation/TextField'
 import { THEME_STUDIES, getThemeStudyStyle } from './foundation-themes'
 import { ToastPreview, type ToastPreviewItem } from '../Toast'
 import type { UiControlsSubId } from './catalog'
@@ -364,23 +365,23 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
       {effectiveSub === 'inputs' && (
         <div className="space-y-3">
           <StoryBlock title="theme-input 默认" source="src/index.css · .theme-input" adopted>
-            <input
-              className="theme-input w-full max-w-sm rounded-lg border px-2 py-1.5 text-xs outline-none"
+            <TextField
+              className="w-full max-w-sm rounded-lg border px-2 py-1.5 text-xs"
               placeholder="输入…"
               defaultValue="示例"
             />
           </StoryBlock>
           <StoryBlock title="超长占位 / 窄宽" source="src/index.css · .theme-input" edge adopted>
-            <input
-              className="theme-input w-28 rounded-lg border px-2 py-1.5 text-xs outline-none"
+            <TextField
+              className="w-28 rounded-lg border px-2 py-1.5 text-xs"
               defaultValue="这是一段故意超长的输入内容用来看截断与溢出"
             />
           </StoryBlock>
           <StoryBlock title="带图标输入" source="src/components/playground/UiControlsPanel.tsx · Playground fixture">
             <label className="relative block max-w-sm">
               <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-              <input
-                className="theme-input h-9 w-full border pl-9 pr-3 text-xs outline-none"
+              <TextField
+                className="h-9 w-full border pl-9 pr-3 text-xs"
                 placeholder="搜索会话、文件或能力"
               />
             </label>
