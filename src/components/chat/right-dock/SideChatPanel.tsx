@@ -15,6 +15,7 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(true)
+  const [initializationAttempt, setInitializationAttempt] = useState(0)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [retryMessage, setRetryMessage] = useState<ChatMessage | null>(null)
@@ -65,7 +66,7 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
         console.warn('侧边聊天清理失败，临时会话已保留')
       })
     }
-  }, [parentSessionId])
+  }, [parentSessionId, initializationAttempt])
 
   const send = async (messageToRetry?: ChatMessage) => {
     const id = sessionRef.current
@@ -77,10 +78,22 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
     setRetryMessage(null)
     setInput(''); draftRef.current = ''; setError(null); setSending(true)
     try { await window.electronAPI.chat.send(id, message, { parentSessionId: parentSessionId || undefined, projectPath: projectPath || undefined, focus: workspaceFocus }) }
-    catch { setError('消息发送失败，请重试'); setRetryMessage(message); setSending(false) }
+    catch {
+      if (sessionRef.current !== id) return
+      setError('消息发送失败，请重试'); setRetryMessage(message); setSending(false)
+    }
   }
 
   const stop = () => { const id = sessionRef.current; if (id) void window.electronAPI.chat.abort(id) }
+
+  const retry = () => {
+    if (loading) return
+    setError(null)
+    if (!sessionRef.current) {
+      setLoading(true)
+      setInitializationAttempt((attempt) => attempt + 1)
+    } else void send(retryMessage ?? undefined)
+  }
 
   return <div className="relative flex h-full min-h-0 flex-col" data-testid="workspace-sidechat-panel">
     <div className="flex shrink-0 items-center gap-2 border-b px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
@@ -91,11 +104,11 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
       {!loading && messages.length === 0 && !error && <p className="py-10 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>从当前工作区开始聊聊</p>}
       {messages.map((message) => <div key={message.id} className={message.role === 'user' ? 'ml-auto max-w-[90%] rounded-lg px-3 py-2 text-[12px]' : 'text-[12px] leading-6'} style={{ background: message.role === 'user' ? 'var(--bg-tertiary)' : undefined }}><MarkdownRenderer content={message.content} /></div>)}
       {sending && <div className="flex items-center gap-2 text-[11px]" role="status"><LoaderCircle size={13} className="animate-spin" />正在生成</div>}
-      {error && <div className="flex items-center gap-2 text-[11px]" role="alert" style={{ color: 'var(--danger)' }}><span>{error}</span><button type="button" onClick={() => { setError(null); void send(retryMessage ?? undefined) }}>重试</button></div>}
+      {error && <div className="flex items-center gap-2 text-[11px]" role="alert" style={{ color: 'var(--danger)' }}><span>{error}</span><button type="button" onClick={retry}>重试</button></div>}
     </div>
     <form className="flex items-end gap-2 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); void send() }}>
-      <textarea aria-label="侧边聊天消息" rows={2} placeholder="继续聊聊…" className="min-w-0 flex-1 resize-none bg-transparent text-[12px] outline-none" value={input} disabled={loading} onChange={(event) => setInput(event.target.value)} />
-      <button type="button" aria-label={sending ? '停止生成' : '发送消息'} title={sending ? '停止生成' : '发送消息'} className="flex h-7 w-7 shrink-0 items-center justify-center rounded disabled:opacity-40" style={{ color: sending ? 'var(--danger)' : 'var(--accent-fg)', background: 'var(--accent-subtle)' }} disabled={loading || (!sending && !input.trim())} onClick={() => { if (sending) stop(); else void send() }}>{sending ? <Square size={14} /> : <ArrowUp size={14} />}</button>
+      <textarea aria-label="侧边聊天消息" rows={2} placeholder="继续聊聊…" className="min-w-0 flex-1 resize-none bg-transparent text-[12px] outline-none" value={input} disabled={loading || !sessionId} onChange={(event) => setInput(event.target.value)} />
+      <button type="button" aria-label={sending ? '停止生成' : '发送消息'} title={sending ? '停止生成' : '发送消息'} className="flex h-7 w-7 shrink-0 items-center justify-center rounded disabled:opacity-40" style={{ color: sending ? 'var(--danger)' : 'var(--accent-fg)', background: 'var(--accent-subtle)' }} disabled={loading || !sessionId || (!sending && !input.trim())} onClick={() => { if (sending) stop(); else void send() }}>{sending ? <Square size={14} /> : <ArrowUp size={14} />}</button>
     </form>
     {confirmRequest && <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/45 p-3">
       <PermissionConfirmCard

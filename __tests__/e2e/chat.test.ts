@@ -896,6 +896,80 @@ test.describe('My Agent UI', () => {
     expect(await refresh.boundingBox()).toEqual(initial)
   })
 
+  test('正式侧边聊天创建失败可以重新创建会话', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      let creates = 0
+      ;(window as any).__allowWorkspaceCreate = false
+      api.session.createWorkspace = async () => {
+        ;(window as any).__workspaceCreates = ++creates
+        if (!(window as any).__allowWorkspaceCreate) throw new Error('fixture creation failed')
+        return { id: 'workspace-recovered', messages: [], sessionKind: 'workspace' }
+      }
+      api.chat.send = async (id: string) => { (window as any).__recoveredSend = id }
+    })
+    await page.goto('/')
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '侧边聊天', exact: true }).click()
+    const panel = dock.getByTestId('workspace-sidechat-panel')
+    await expect(panel.getByRole('alert')).toContainText('侧边聊天暂时无法打开')
+    const attempts = await page.evaluate(() => (window as any).__workspaceCreates as number)
+    await page.evaluate(() => { (window as any).__allowWorkspaceCreate = true })
+    await panel.getByRole('button', { name: '重试', exact: true }).click()
+    await expect.poll(() => page.evaluate(() => (window as any).__workspaceCreates)).toBeGreaterThan(attempts)
+    await expect(panel.getByRole('alert')).toHaveCount(0)
+    await panel.getByRole('textbox', { name: '侧边聊天消息' }).fill('恢复后发送')
+    await panel.getByRole('button', { name: '发送消息', exact: true }).click()
+    await expect.poll(() => page.evaluate(() => (window as any).__recoveredSend)).toBe('workspace-recovered')
+  })
+
+  test('正式侧边聊天切换父会话清空旧状态并隔离迟到失败', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      let creates = 0
+      const events = new Set<(event: any) => void>()
+      const confirmations = new Set<(event: any) => void>()
+      const deleted: string[] = []
+      api.session.createWorkspace = async () => ({ id: 'workspace-parent-' + ++creates, messages: [], sessionKind: 'workspace' })
+      api.session.delete = async (id: string) => { deleted.push(id) }
+      api.chat.onEvent = (listener: (event: any) => void) => { events.add(listener); return () => events.delete(listener) }
+      api.chat.onConfirmRequest = (listener: (event: any) => void) => { confirmations.add(listener); return () => confirmations.delete(listener) }
+      api.chat.send = async () => new Promise((_resolve, reject) => { (window as any).__rejectOldSend = () => reject(new Error('old request failed')) })
+      ;(window as any).__parentHarness = { deleted, creates: () => creates, emit: (event: any) => events.forEach((listener) => listener(event)), confirm: (event: any) => confirmations.forEach((listener) => listener(event)) }
+    })
+    await page.goto('/')
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '侧边聊天', exact: true }).click()
+    const panel = dock.getByTestId('workspace-sidechat-panel')
+    const input = panel.getByRole('textbox', { name: '侧边聊天消息' })
+    await expect(input).toBeEnabled()
+    const previousCreates = await page.evaluate(() => (window as any).__parentHarness.creates() as number)
+    await input.fill('上一段侧聊消息')
+    await panel.getByRole('button', { name: '发送消息', exact: true }).click()
+    await input.fill('上一段侧聊草稿')
+    await page.evaluate((sessionId) => (window as any).__parentHarness.confirm({ sessionId, requestId: 'old-confirm', name: 'shell_exec', args: { command: 'echo old' } }), 'workspace-parent-' + previousCreates)
+    await expect(panel.getByTestId('permission-confirm-card')).toBeVisible()
+    await page.getByRole('button', { name: '新对话', exact: true }).click()
+    await expect.poll(() => page.evaluate(() => (window as any).__parentHarness.creates())).toBeGreaterThan(previousCreates)
+    await expect(panel).not.toContainText('上一段侧聊消息')
+    await expect(input).toBeEmpty()
+    await expect(panel.getByTestId('permission-confirm-card')).toHaveCount(0)
+    await expect(panel.getByRole('button', { name: '发送消息', exact: true })).toBeVisible()
+    await page.evaluate((oldId) => {
+      ;(window as any).__rejectOldSend()
+      ;(window as any).__parentHarness.emit({ sessionId: oldId, type: 'text', content: '迟到旧回复' })
+    }, 'workspace-parent-' + previousCreates)
+    await expect(panel.getByRole('alert')).toHaveCount(0)
+    await expect(panel).not.toContainText('迟到旧回复')
+    await expect.poll(() => page.evaluate(() => (window as any).__parentHarness.deleted)).toContain('workspace-parent-' + previousCreates)
+  })
+
   test('正式侧边聊天错误后重试会再次发送消息', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {

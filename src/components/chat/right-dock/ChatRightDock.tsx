@@ -85,7 +85,8 @@ export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, 
       {instance.kind === 'review' && <ReviewPanel key={sessionId} sessionId={sessionId} onContextChange={setWorkspaceFocus} />}
       {instance.kind === 'terminal' && <TerminalPanel projectPath={projectPath} />}
       {instance.kind === 'browser' && <BrowserPanel />}
-      {instance.kind === 'chat' && <SideChatPanel parentSessionId={sessionId} projectPath={projectPath} workspaceFocus={workspaceFocus} />}
+      {/* 侧聊依附主会话：与审阅一样整体重建，避免只换后端 ID 却留下旧正文/确认；同会话隐藏不重建。 */}
+      {instance.kind === 'chat' && <SideChatPanel key={sessionId} parentSessionId={sessionId} projectPath={projectPath} workspaceFocus={workspaceFocus} />}
     </div>)}
   </div>
 }

@@ -54,7 +54,7 @@
 
 ## 已落地能力
 
-- 正式 workspace 侧聊已通过本地 SSE + 独立数据目录的 Electron 流程：真实项目文件读取、首段流式回复、流中关闭、服务端断连、存储删除和重开正常回复。无长期记忆召回时不再对 undefined 调用 trim；组装异常不会因 span 尚未创建而再次报错。主进程统一取消/等待/删除，删除期间拒绝新发送，工具确认校验窗口并在关闭/销毁时拒绝和清理；初始化阶段可取消且退出前保持运行锁。初始化失败重试和父会话切换状态仍需核验。
+- 正式 workspace 侧聊已通过本地 SSE + 独立数据目录的 Electron 流程：真实项目文件读取、首段流式回复、流中关闭、服务端断连、存储删除和重开正常回复。无长期记忆召回时不再对 undefined 调用 trim；组装异常不会因 span 尚未创建而再次报错。主进程统一取消/等待/删除，删除期间拒绝新发送，工具确认校验窗口并在关闭/销毁时拒绝和清理；初始化阶段可取消且退出前保持运行锁。创建会话失败时重试重新调用 createWorkspace，未创建成功不能发送；父会话变化时整体重建侧聊，正文、草稿、确认和旧发送错误不进入新实例。同父会话切换标签/折叠保留实例；创建失败与旧状态隔离有 Renderer 故障注入回归，切换主会话后的旧流断开/存储删除及新侧聊发送有真实 Electron 证据。
 
 - 原始代码共享渲染：`MarkdownRenderer.tsx` 导出的 `CodeBlock` 接收原文而不进行 Markdown／aside／Mermaid 解释；基础 Markdown／Diff 故事、候选工作区、正式文件代码预览和 ReviewPanel 共用它。代码块主题底色同源、复制保留原文，复制操作槽固定；剪贴板失败可重试。正式五功能菜单顺序已对齐；浏览器是真实受限只读查看器，侧聊真实链路与验收见上条，不再是未接入壳。
 
@@ -110,7 +110,7 @@
 | UI 组件 / 图标语义资产注册 | 已落地 | `ui-component-registry.ts` 继续承担组件资产身份与生命周期；`foundation-story-registry.ts` 负责 Foundation Playground 故事的 story key、assetKey、分组和 renderer 关系；基础组件工作台按 13 个任务入口展示全部已建故事，并补齐 Select / Form Field / Checkbox / Switch / Diff Viewer 及 IconButton / Card / Badge / Tag / Divider 隔离故事，完整候选登记由注册表 / Debug 承担；业务结构由产品体验注册表的 `experienceParts` 登记；图标目录仅显示紧凑的图标 + 中英文名，具体 adopted 小勾位于对应图标卡右上角并来自真实证据 |
 | 全局 Debug 诊断 | 已落地 | `DevPanel` 全页工作区；提示词、请求与运行、伙伴状态、质量 / Eval、系统统一从全局入口进入；Chat 不再叠加 Debug 半屏 |
 | 项目文件预览 | 已落地 | `FileBrowser` · text/image/unsupported；图/文本/md；html 沙箱 iframe；pdf·Office 外开；Playground 可用只读静态树 / 文件样张且跳过 IPC |
-| Chat 右侧能力坞 | 部分 | `ChatRightDock` · 五入口顺序为审阅/浏览器/文件/终端/侧边聊天；文件、会话写文件审阅和命令控制台已有真实 IPC；侧聊已接入父会话/项目及当前文件/审阅焦点的受控上下文、确认事件与长期记忆副作用隔离，仍有完整失败恢复等缺口 |
+| Chat 右侧能力坞 | 部分 | `ChatRightDock` · 五入口顺序为审阅/浏览器/文件/终端/侧边聊天；五工具已有真实 IPC；侧聊支持受控上下文、确认隔离、创建/发送失败重试及父会话切换清理；四主题/Mermaid 与 Foundation 全量复用仍待验收，浏览器受限只读、终端非 PTY |
 | Agent 生产资产目录与运行证据链 | 已落地 | Debug「提示词管理器」聚合 Prompt / 伙伴人格 / 记忆策略 / 权限与沙箱 / Tool schema / Skill / Eval Case 与 Grader / Eval Judge / 模型 Provider / MCP；真实 LLM / Tool / Memory / Permission 运行通过稳定 key 写入脱敏证据，支持调用级分组、资产最近使用、跨面板跳转与 JSON / JSONL 导出 |
 | GitHub Actions 质量门禁 | 已落地 | Docs / Asset 工作流；Unit 在无界面 Runner 使用 Electron external 占位路径，不下载桌面二进制；官方 Actions 使用 v7 |
 | Skill 管理器 2.0 | 已落地 | 安全 YAML Frontmatter（无 eval）· `SkillsPanel` 校验 / 版本历史 / 回滚 / 隔离试跑；`skills:validate` / `skills:versions` / `skills:playground-run`；LLM Debug 展示 Skill 激活来源与指纹 |

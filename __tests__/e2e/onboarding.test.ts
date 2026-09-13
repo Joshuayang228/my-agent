@@ -371,3 +371,43 @@ setTimeout(() => process.exit(0), 15000)
     await expect.poll(() => pids.every((pid) => !alive(pid)), { timeout: 16_000 }).toBe(true)
   }
 })
+
+test('切换主会话清理真实侧聊流与存储，新侧聊独立发送', async () => {
+  const dock = page.getByTestId('chat-right-dock')
+  await page.evaluate(() => {
+    const observed = { sessionId: '' }
+    const off = window.electronAPI.chat.onEvent((event) => {
+      if ('sessionId' in event) observed.sessionId = String(event.sessionId)
+    })
+    Object.assign(window, { __parentSwitchObserved: observed, __parentSwitchUnsubscribe: off })
+  })
+  try {
+    await dock.getByRole('button', { name: '添加工作区内容' }).click()
+    await dock.getByRole('menuitem', { name: '侧边聊天', exact: true }).click()
+    const panel = dock.getByTestId('workspace-sidechat-panel')
+    const input = panel.getByRole('textbox', { name: '侧边聊天消息' })
+    await input.fill('workspace-close-regression')
+    await panel.getByRole('button', { name: '发送消息', exact: true }).click()
+    await expect(panel.getByText('正在等待关闭验证', { exact: true })).toBeVisible({ timeout: 30_000 })
+    const oldId = await page.evaluate(() => (window as any).__parentSwitchObserved.sessionId as string)
+    expect(oldId).not.toBe('')
+    await input.fill('旧会话未发送草稿')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '新对话', exact: true }).click()
+    await expect(input).toBeEnabled()
+    await expect(input).toBeEmpty()
+    await expect(panel.getByTestId('workspace-sidechat-messages')).not.toContainText('workspace-close-regression')
+    await expect.poll(() => heldStreamClosed).toBe(true)
+    await expect.poll(() => page.evaluate((id) => window.electronAPI.session.get(id), oldId)).toBeNull()
+    await input.fill('新主会话的侧聊')
+    await panel.getByRole('button', { name: '发送消息', exact: true }).click()
+    await expect(panel.getByText('连接成功', { exact: true })).toBeVisible({ timeout: 30_000 })
+    const newId = await page.evaluate(() => (window as any).__parentSwitchObserved.sessionId as string)
+    expect(newId).not.toBe(oldId)
+    expect(await page.evaluate((id) => window.electronAPI.session.get(id), newId)).toMatchObject({ sessionKind: 'workspace' })
+    await page.screenshot({ path: 'test-results/workspace-electron-parent-switch.png', fullPage: true })
+    await dock.getByRole('button', { name: '关闭侧边聊天', exact: true }).click()
+    await expect.poll(() => page.evaluate((id) => window.electronAPI.session.get(id), newId)).toBeNull()
+  } finally {
+    await page.evaluate(() => (window as any).__parentSwitchUnsubscribe())
+  }
+})

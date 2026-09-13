@@ -309,6 +309,8 @@ my-agent/
 
 `session_kind=workspace` 仍复用人格与工具 Runtime，但跳过长期画像、向量召回、画像提取、标题、向量索引和反思任务；临时工作区对话不得改变主伙伴记忆。
 
+正式侧聊实例以所属主会话 ID 为 React 生命周期边界：同主会话隐藏/切换标签保留，主会话变化重建并沿 session:delete 清理旧运行。创建失败重试走 createWorkspace，不能向空 session 发送；旧发送 Promise 的错误仅能更新仍归属该 session 的实例，正文、草稿和工具确认不跨主会话延续。
+
 侧边聊天可通过 `WorkspaceChatContext` 传入父会话 ID、项目路径和当前文件／审阅焦点；
 侧边聊天错误态重试复用失败消息的稳定内容重新进入同一 workspace session；侧边聊天可通过 `WorkspaceChatContext` 传入父会话 ID、项目路径和当前文件／审阅焦点；主进程限制路径与正文长度，Runtime 只读取父会话最近有限消息及焦点内容作为本轮上下文，不复制到 workspace 历史，也不把 Renderer 提供的路径当作工具工作目录或权限依据。
 ```

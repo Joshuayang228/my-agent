@@ -65,7 +65,7 @@
 | 审阅 | ReviewPanel | 已回流 | 真实 before/after、并排/统一视图及错误/乱序有 Renderer 回归 |
 | 终端 | TerminalPanel | 已回流（Windows 命令控制台） | 保留权限、沙箱和工作区 cwd；真实 Electron 已验证拒绝后重试、大块输出、停止/关闭标签后的父子进程退出；Unit 验证终止失败/超时、关闭去重及无握手清理。Unix 仍需实机验证，完整 PTY 不在本合同范围 |
 | 浏览器 | BrowserPanel 受限只读查看器 | 生产改造后回流 | 主进程安全抓取已接入：URL/DNS 校验、手动拒绝重定向、超时与响应上限；Renderer 使用无脚本 sandbox + CSP。仍不支持脚本、登录、站内交互和任意导航 |
-| 侧边聊天 | SideChatPanel + `workspace` 会话 | 已接入，验收未全收口 | 真实 Electron 已覆盖流中关闭、连接终止、删除和重开；Runtime 初始化取消及 IPC 等待收尾/确认取消有 Unit。仍需初始化失败重试和父会话切换状态核验 |
+| 侧边聊天 | SideChatPanel + `workspace` 会话 | 已回流，整体视觉待验收 | 创建/发送失败重试、旧草稿/确认/异步响应隔离有 Renderer 回归；真实 Electron 已验证流中关闭及切换主会话后的连接终止、存储删除和新侧聊发送；Runtime 初始化取消及 IPC 等待收尾/确认取消有 Unit |
 | 多实例工作区 Tab | ChatRightDock + Foundation TabStrip | 已回流 | 固定关闭槽、稳定实例 ID、后台关闭和切换/折叠/一级导航保持已有 Renderer 回归；Windows 终端关闭释放进程树已有 Electron 证据 |
 | Markdown／Diff 代码块 | MarkdownRenderer 的 CodeBlock / FileBrowser / ReviewPanel | 部分回流 | 原始代码与基础故事同源；局部四主题、Mermaid、全量基础复用仍需验收 |
 
@@ -99,6 +99,8 @@
 - 验收：真实 App Renderer＋Electron 边界替身覆盖两个文件、去重、左右位置、后台关闭、重开、错误／重试、异步乱序；既有 Playground 五功能和文件所有格式故事保持隔离。状态与数据流事实同步到模块卡；真实 Electron 文件读取安全门禁继续保留。
 
 ### P1 验收与回滚
+
+侧聊恢复与归属批次：沿用已批准的失败恢复/父会话隔离范围，允许修改 SideChatPanel、ChatRightDock、Renderer/Electron 回归与对应模块卡/质量/进展/缺口文档。创建失败的重试必须重新调用 createWorkspace，而不是对空 session 发送；父会话变化时重建侧聊实例，旧正文、草稿、确认与迟到响应不得进入新侧聊。删除仍走主进程已有取消/等待/删除链路，IPC 名称与载荷、模型配置、长期记忆行为不变；同父会话下的切换标签与折叠继续保留实例。先用故障注入验证前端状态，真实进程与存储行为保留 Electron 回归，不把替身当作后端证明。
 
 终端后端生命周期批次：在已批准的真实命令控制台范围内修改 terminal IPC、TerminalPanel（仅必要的错误/结束语义）、terminal Unit、正式 Electron E2E 与对应架构/模块卡/质量/进展/变更/缺口文档。替换吞掉 taskkill 失败、error/close 双重退出及未握手记录永久保留的旧分支；终止成功必须有关闭证据，失败保留记录供重试。普通输出块分片传输，累计达到既有 2MB 上限才终止，不将单块超过 8000 字符误判为总量超限。窗口销毁、超时、无握手与关闭标签统一触发清理；Windows 保持隐藏进程树终止，Unix 建立独立进程组。权限/沙箱决策、IPC 名称/载荷和用户配置不变，不新增依赖、不扩成 PTY。Unit 覆盖故障注入，Electron 使用临时项目和无外网子进程证明早到输出、退出去重、标签关闭及进程树释放。
 
