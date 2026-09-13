@@ -234,6 +234,8 @@ Skill 资产由 `electron/main/skills/loader.ts` 读取和保存；Frontmatter �
 
 ## Playground 设计层与体验组合
 
+共享 UI 实现落在 src/components/foundation/，不依赖 Playground、fixture 或业务 IPC。TabStrip 是当前工作区回流的首个通用标签实现：UiControlsPanel、WorkspaceExperienceCandidate 与正式 ChatRightDock 直接 import；ui-component-registry 的 behavior.tabs 指向它。组件管理固定操作槽和键盘焦点，业务层保留实例状态、关闭选择及资源释放责任。现有其它基础故事尚不等于已提取的共享组件。
+
 Playground 的导航工作域不等于产品架构层。产品设计只保留两层：
 
 ```text

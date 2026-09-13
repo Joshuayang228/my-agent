@@ -8,11 +8,12 @@ import { Eye, FileCode2, FileText, GitCompare, Plus, TerminalSquare, X } from 'l
 import { FileBrowser, type FileBrowserPreviewData, type FileBrowserPreviewState } from '../../FileBrowser'
 import { ReviewPanel } from './ReviewPanel'
 import { TerminalPanel } from './TerminalPanel'
+import { TabStrip } from '../../foundation/TabStrip'
 
 export type RightDockTab = 'files' | 'preview' | 'review' | 'terminal'
 
 type RightDockTabMeta = { id: RightDockTab; label: string; icon: typeof FileText }
-type RightDockTabInstance = { instanceId: string; kind: RightDockTab }
+type RightDockTabInstance = { instanceId: string; kind: RightDockTab; ordinal: number }
 
 interface ChatRightDockProps {
   projectPath: string | null
@@ -65,7 +66,7 @@ export function ChatRightDock({
   const [sharedPreview, setSharedPreview] = useState<FileBrowserPreviewState>(null)
   const deferredTabMode = playgroundTabs || deferredTabs
   const nextInstance = useRef(2)
-  const initialInstance = (kind: RightDockTab): RightDockTabInstance => ({ instanceId: `${kind}-1`, kind })
+  const initialInstance = (kind: RightDockTab): RightDockTabInstance => ({ instanceId: `${kind}-1`, kind, ordinal: 1 })
   const [activeTabId, setActiveTabId] = useState(deferredTabMode ? 'preview-1' : 'files-1')
   const [openTabs, setOpenTabs] = useState<RightDockTabInstance[]>(deferredTabMode
     ? [initialInstance('preview')]
@@ -83,10 +84,9 @@ export function ChatRightDock({
   // 收起时必须保留子面板，否则终端输入、输出订阅和文件树状态会被卸载重置。
   const showWorkbench = showFiles
   const visibleTabs = deferredTabMode
-    ? openTabs.map((instance, index) => {
+    ? openTabs.map((instance) => {
         const meta = TABS.find((item) => item.id === instance.kind)!
-        const sameKindBefore = openTabs.slice(0, index).filter((item) => item.kind === instance.kind).length
-        return { instance, meta, label: sameKindBefore > 0 ? `${meta.label} ${sameKindBefore + 1}` : meta.label }
+        return { instance, meta, label: instance.ordinal > 1 ? meta.label + ' ' + instance.ordinal : meta.label }
       })
     : TABS.filter((item) => item.id !== 'preview').map((meta) => ({ instance: initialInstance(meta.id), meta, label: meta.label }))
   const addableTabs = TABS
@@ -95,21 +95,21 @@ export function ChatRightDock({
 
   const addTab = (next: RightDockTab) => {
     const instanceId = `${next}-${nextInstance.current++}`
-    setOpenTabs((current) => [...current, { instanceId, kind: next }])
+    setOpenTabs((current) => [...current, { instanceId, kind: next, ordinal: Math.max(0, ...current.filter((item) => item.kind === next).map((item) => item.ordinal)) + 1 }])
     setActiveTabId(instanceId)
     setAddMenuOpen(false)
   }
 
-  const closeTab = () => {
+  const closeTab = (instanceId: string) => {
     if (!deferredTabMode) {
       onCloseFiles()
       return
     }
-    const currentIndex = openTabs.findIndex((item) => item.instanceId === activeTabId)
-    const remaining = openTabs.filter((item) => item.instanceId !== activeTabId)
+    const currentIndex = openTabs.findIndex((item) => item.instanceId === instanceId)
+    const remaining = openTabs.filter((item) => item.instanceId !== instanceId)
     setOpenTabs(remaining)
     if (remaining.length === 0) onCloseFiles()
-    else setActiveTabId(remaining[Math.max(0, currentIndex - 1)]?.instanceId ?? remaining[remaining.length - 1].instanceId)
+    else if (instanceId === activeTabId) setActiveTabId(remaining[Math.max(0, currentIndex - 1)]?.instanceId ?? remaining[remaining.length - 1].instanceId)
   }
 
   return (
@@ -125,27 +125,9 @@ export function ChatRightDock({
             className="relative flex shrink-0 items-center gap-0.5 border-b px-1.5 py-1"
             style={{ borderColor: 'var(--border-subtle)' }}
           >
-            {visibleTabs.map(({ instance, meta, label }) => {
-              const Icon = meta.icon
-              const active = activeTabId === instance.instanceId
-              return (
-                <button
-                  key={instance.instanceId}
-                  type="button"
-                  className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition"
-                  style={{
-                    color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
-                    background: active ? 'var(--accent-subtle)' : undefined,
-                  }}
-                  onClick={() => setActiveTabId(instance.instanceId)}
-                  data-testid={`right-dock-tab-${instance.kind}`}
-                  data-instance-id={instance.instanceId}
-                >
-                  <Icon size={12} />
-                  {label}
-                </button>
-              )
-            })}
+            <TabStrip label="已打开的工作区" activeId={activeTabId} itemTestId="right-dock-tab-item"
+              items={visibleTabs.map(({ instance, meta, label }) => { const Icon = meta.icon; return { id: instance.instanceId, label, icon: <Icon size={14} />, testId: 'right-dock-tab-' + instance.kind } })}
+              onSelect={setActiveTabId} onClose={deferredTabMode ? closeTab : undefined} />
             {deferredTabMode ? (
               <>
                 <button
@@ -158,16 +140,7 @@ export function ChatRightDock({
                 >
                   <Plus size={14} />
                 </button>
-                <button
-                  type="button"
-                  className="rounded p-1"
-                  style={{ color: 'var(--text-muted)' }}
-                  title="关闭当前 Tab"
-                  onClick={closeTab}
-                  data-testid="right-dock-close-tab"
-                >
-                  <X size={14} />
-                </button>
+
                 {addMenuOpen && (
                   <div
                     className="absolute right-1 top-9 z-30 min-w-[116px] rounded-lg border p-1 shadow-lg"

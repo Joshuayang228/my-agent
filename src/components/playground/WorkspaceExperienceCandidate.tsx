@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
-import { ArrowUp, Globe, GitCompare, FileText, TerminalSquare, MessageCircle, RefreshCw, Square, LoaderCircle, PanelRight, Plus, X } from 'lucide-react'
+import { ArrowUp, Globe, GitCompare, FileText, TerminalSquare, MessageCircle, RefreshCw, Square, LoaderCircle, PanelRight, Plus } from 'lucide-react'
 import { FileBrowser, type FileBrowserPreviewData, type FileBrowserPreviewState } from '../FileBrowser'
 import { MarkdownRenderer } from '../MarkdownRenderer'
+import { TabStrip } from '../foundation/TabStrip'
 import teaImage from '../../assets/playground/moment-tea-by-window.jpg'
 
 const VIEWS = [
@@ -72,17 +73,10 @@ export function WorkspaceDock({
       </div>
       <div className={open ? `flex min-w-0 flex-col ${showChat ? 'border-l' : ''}` : 'hidden'} style={{ width: showChat && narrow ? 'min(380px, 65%)' : '100%', borderColor: 'var(--border-subtle)' }} data-testid="workspace-tool-panel">
         <div className="relative flex shrink-0 items-center gap-1 border-b p-2" style={{ borderColor: 'var(--border-subtle)' }} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setMenu(false) }} onKeyDown={(event) => { if (event.key === 'Escape' && menu) { event.stopPropagation(); setMenu(false); addButton.current?.focus() } }}>
-          <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto" role="tablist" aria-label="已打开的工作区">
-            {tabs.map((tab) => {
-              const meta = VIEWS.find((item) => item.id === tab.view)!
-              const Icon = meta.icon
-              const label = `${meta.label} ${tab.ordinal}`
-              return <div key={tab.id} className="flex shrink-0 items-center gap-1 rounded-md px-1 hover:bg-[var(--bg-secondary)]" style={{ background: active === tab.id ? 'var(--bg-secondary)' : undefined }} data-testid="workspace-open-tab">
-                <button type="button" role="tab" aria-selected={active === tab.id} onClick={() => setActive(tab.id)} className="inline-flex items-center gap-2 rounded px-2 py-2 text-[12px]"><Icon size={14} />{label}</button>
-                <button type="button" aria-label={`关闭${label}`} title={`关闭${label}`} className="shrink-0 rounded p-1 hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-muted)' }} onClick={() => { if (tabs.length <= 1 && onClose) onClose(); else closeTab(tab.id) }}><X size={14} /></button>
-              </div>
-            })}
-          </div>
+          <TabStrip label="已打开的工作区" itemTestId="workspace-open-tab" activeId={String(active)}
+            items={tabs.map((tab) => { const meta = VIEWS.find((item) => item.id === tab.view)!; const Icon = meta.icon; return { id: String(tab.id), label: meta.label + ' ' + tab.ordinal, icon: <Icon size={14} /> } })}
+            onSelect={(id) => setActive(Number(id))}
+            onClose={(id) => { if (tabs.length <= 1 && onClose) onClose(); else closeTab(Number(id)) }} />
           <button ref={addButton} type="button" aria-label="添加工作区内容" title="添加工作区内容" aria-haspopup="menu" aria-expanded={menu} className="shrink-0 rounded p-1" onClick={() => setMenu(!menu)}><Plus size={16} /></button>
           {menu && <div role="menu" aria-label="添加工作区内容" className="absolute right-2 top-full z-20 mt-1 w-40 rounded-md border p-1 shadow-lg" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} onKeyDown={(event) => { const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=menuitem]')); const index = items.indexOf(document.activeElement as HTMLButtonElement); if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); items[(index + (event.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length]?.focus() } }}>
             {VIEWS.map(({ id, label, icon: Icon }, index) => <button key={id} autoFocus={index === 0} type="button" role="menuitem" className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-secondary)] focus-visible:bg-[var(--bg-secondary)]" onClick={() => addTab(id)}><Icon size={14} />{label}</button>)}
@@ -161,19 +155,11 @@ function FilesSample({ scene }: { scene: string }) {
   return <div className="flex min-h-0 min-w-0 flex-1" data-testid="workspace-files-layout">
     <div className="min-w-0 shrink-0 overflow-hidden border-r" style={{ width: paths.length ? '32%' : '100%', borderColor: 'var(--border-subtle)' }} data-testid="workspace-file-tree"><FileBrowser projectPath={null} embedded mode="files" previewData={data} previewState={preview} onPreviewStateChange={openFile} onClose={() => {}} /></div>
     {paths.length > 0 && <div className="flex min-w-0 flex-1 flex-col" data-testid="workspace-file-preview">
-      <div className="flex items-center border-b p-1" style={{ borderColor: 'var(--border-subtle)' }}><div className="flex min-w-0 flex-1 gap-1 overflow-x-auto" role="tablist" aria-label="文件预览">
-        {paths.map((path) => {
-          const closePreview = () => {
-            const remaining = paths.filter((item) => item !== path)
-            setPaths(remaining)
-            setActivePath((current) => current === path ? remaining.at(-1) ?? null : current)
-          }
-          return <div key={path} className="flex shrink-0 items-center gap-0.5 rounded-md px-1 hover:bg-[var(--bg-secondary)]" style={{ background: path === activePath ? 'var(--bg-secondary)' : undefined }} data-testid="workspace-file-preview-tab">
-            <button type="button" role="tab" aria-selected={path === activePath} onClick={() => setActivePath(path)} className="inline-flex items-center rounded px-2 py-1 text-[11px]">{path}</button>
-            <button type="button" title={`关闭${path}`} aria-label={`关闭${path}`} className="shrink-0 rounded p-1 hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-muted)' }} onClick={closePreview}><X size={12} /></button>
-          </div>
-        })}
-      </div></div>
+      <div className="flex items-center border-b p-1" style={{ borderColor: 'var(--border-subtle)' }}>
+        <TabStrip label="文件预览" itemTestId="workspace-file-preview-tab" activeId={activePath}
+          items={paths.map((path) => ({ id: path, label: path }))} onSelect={setActivePath}
+          onClose={(path) => { const remaining = paths.filter((item) => item !== path); setPaths(remaining); setActivePath((current) => current === path ? remaining.at(-1) ?? null : current) }} />
+      </div>
       <div className="min-h-0 min-w-0 flex-1 overflow-auto p-3" role="tabpanel" aria-label={activePath ?? '文件预览'}>
         {preview?.kind === 'text' && <MarkdownRenderer content={preview.languageHint === 'markdown' ? preview.content : '```' + (preview.languageHint ?? '') + '\n' + preview.content + '\n```'} />}
         {preview?.kind === 'image' && <img src={preview.dataUrl} alt={preview.path} className="mx-auto max-h-full max-w-full object-contain" />}

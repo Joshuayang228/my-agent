@@ -8,6 +8,7 @@ import { Check, LoaderCircle, MoreHorizontal, Plus, Search, Sparkles, WandSparkl
 import { ToolCallbackList } from '../chat/callbacks/ToolCallbackList'
 import { FileBrowser, type FileBrowserPreviewData } from '../FileBrowser'
 import { ResizeHandle } from '../shell/ResizeHandle'
+import { TabStrip } from '../foundation/TabStrip'
 import type { ToolCallbackItem } from '../chat/callbacks/types'
 import { MemoryCitationChips } from '../chat/MemoryCitationChips'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
@@ -412,15 +413,12 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
 
       {effectiveSub === 'tabs' && (
         <div className="space-y-3">
-          <StoryBlock title="标签切换" source="src/components/shell/WorldHub.tsx · role=tab" adopted>
+          <StoryBlock title="标签切换" source="src/components/foundation/TabStrip.tsx" adopted>
             <div className="max-w-md rounded-xl border" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
-              <div className="flex gap-1 border-b px-3" role="tablist" aria-label="Foundation 标签样张" style={{ borderColor: 'var(--border-subtle)' }}>
-                {['基础', '产品体验', 'Agent 实验'].map((label) => {
-                  const active = tabSample === label
-                  return (
-                    <button key={label} type="button" role="tab" aria-selected={active} onClick={() => setTabSample(label)} className="border-b-2 px-2.5 py-2 text-[11px] transition" style={{ borderColor: active ? 'var(--accent-fg)' : 'transparent', color: active ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{label}</button>
-                  )
-                })}
+              <div className="border-b px-3" style={{ borderColor: 'var(--border-subtle)' }}>
+                <TabStrip label="Foundation 标签样张" variant="underline"
+                  items={['基础', '产品体验', 'Agent 实验'].map((label) => ({ id: label, label }))}
+                  activeId={tabSample} onSelect={setTabSample} />
               </div>
               <div className="p-3 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                 {tabSample === '基础' && '基础能力先独立验收，再被产品体验引用。'}

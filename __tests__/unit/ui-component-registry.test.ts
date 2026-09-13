@@ -1,4 +1,5 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import {
   UI_COMPONENT_ASSETS,
@@ -7,7 +8,38 @@ import {
   UI_COMPONENT_STATUSES,
 } from '../../src/shared/ui-component-registry'
 
+/** 检查实际 JSX 使用而非仅有 import，防止注册表宣称复用但页面仍维护孤立实现。 */
+function rendersSharedTabs(source: string): boolean {
+  const file = ts.createSourceFile('surface.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  const aliases = new Set<string>()
+  for (const statement of file.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier) || !statement.moduleSpecifier.text.endsWith('/foundation/TabStrip')) continue
+    const bindings = statement.importClause?.namedBindings
+    if (bindings && ts.isNamedImports(bindings)) {
+      for (const entry of bindings.elements) if ((entry.propertyName ?? entry.name).text === 'TabStrip') aliases.add(entry.name.text)
+    }
+  }
+  let rendered = false
+  const visit = (node: ts.Node) => {
+    if ((ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) && ts.isIdentifier(node.tagName) && aliases.has(node.tagName.text)) rendered = true
+    ts.forEachChild(node, visit)
+  }
+  visit(file)
+  return rendered
+}
+
 describe('UI component asset registry', () => {
+  it('requires shared tabs to be rendered by foundation, experience and production', () => {
+    expect(UI_COMPONENT_REGISTRY['behavior.tabs'].sourcePath).toBe('src/components/foundation/TabStrip.tsx')
+    for (const path of [
+      'src/components/playground/UiControlsPanel.tsx',
+      'src/components/playground/WorkspaceExperienceCandidate.tsx',
+      'src/components/chat/right-dock/ChatRightDock.tsx',
+    ]) expect(rendersSharedTabs(readFileSync(path, 'utf8')), path).toBe(true)
+    expect(rendersSharedTabs("import { TabStrip } from '../foundation/TabStrip'; const x = <div />")).toBe(false)
+    expect(rendersSharedTabs("const TabStrip = () => <div />; const x = <TabStrip />")).toBe(false)
+    expect(rendersSharedTabs("import { TabStrip as Tabs } from '../foundation/TabStrip'; const x = <Tabs />")).toBe(true)
+  })
   it('keeps stable keys, category coverage and lifecycle metadata', () => {
     const keys = UI_COMPONENT_ASSETS.map((asset) => asset.key)
 
