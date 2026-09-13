@@ -1,5 +1,6 @@
 import { Children, isValidElement, memo, useState, useEffect, useRef, type ReactNode } from 'react'
 import { Check, Copy } from 'lucide-react'
+import { IconButton } from './foundation/IconButton'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -107,16 +108,9 @@ function CopyButton({ text }: { text: string }) {
   return (
     <span className="relative flex h-7 w-7 shrink-0">
       {error && <span role="status" className="absolute right-full top-0 flex h-7 items-center whitespace-nowrap px-2 text-xs" style={{ color: 'var(--danger)', background: 'var(--bg-tertiary)' }}>复制失败，请重试</span>}
-      <button
-      type="button"
-      aria-label={copied ? '已复制' : '复制'}
-      title={error ? '复制失败，请重试' : copied ? '已复制' : '复制'}
-      onClick={handleCopy}
-      className="flex h-7 w-7 shrink-0 items-center justify-center rounded transition"
-      style={{ color: 'var(--text-muted)' }}
-      >
+      <IconButton label={copied ? '已复制' : '复制'} title={error ? '复制失败，请重试' : undefined} size={28} onClick={handleCopy} style={{ color: 'var(--text-muted)' }}>
         {copied ? <Check size={14} /> : <Copy size={14} />}
-      </button>
+      </IconButton>
     </span>
   )
 }

@@ -85,6 +85,12 @@ describe('Foundation story registry', () => {
     expect(menu).toMatch(/<IconButton[\s\S]*label=/)
   })
 
+  it('Markdown 代码块复制槽复用 Foundation IconButton', () => {
+    const source = readFileSync('src/components/MarkdownRenderer.tsx', 'utf8')
+    expect(source).toContain("from './foundation/IconButton'")
+    expect(source).toMatch(/<IconButton[\s\S]*label=\{copied/)
+  })
+
   it('TextField 的 Foundation 实现覆盖故事和正式工作区输入', () => {
     for (const file of ['src/components/playground/UiControlsPanel.tsx', 'src/components/FileBrowser.tsx', 'src/components/chat/right-dock/BrowserPanel.tsx', 'src/components/chat/right-dock/TerminalPanel.tsx', 'src/components/chat/right-dock/SideChatPanel.tsx']) {
       const source = readFileSync(file, 'utf8')

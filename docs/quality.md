@@ -23,6 +23,7 @@
 
 差异复用门禁：foundation-story-registry.test.ts 使用 TypeScript 符号检查三层消费者渲染共享 DiffViewer / DiffViewControls，并验证 DiffViewer 渲染真实 CodeBlock；输入故事和正式工作区地址栏、命令控制台、侧边聊天必须引用同一 Foundation TextField；未使用 import、局部同名/遮蔽和别名负例一起保留。Renderer 回归覆盖空 before/after、并排后切无旧稿回退、原文复制/溢出，以及基础长文件、键盘切换和固定尺寸按钮的深浅宽窄截图。基础层不计算 diff；真实 before/after 安全读取仍由主进程既有测试验证。
 IconButton 复用门禁检查正式文件浏览器、右坞浏览器、终端、侧边聊天、正式审阅和 Playground 工作区候选的真实 Foundation 引用与渲染调用；TextField 门禁同时覆盖文件搜索；UI 回归覆盖添加菜单、刷新/运行/终止/发送/停止、复制/关闭及开关入口，固定尺寸在 hover/disabled 状态保持不变。业务文字按钮和菜单项不纳入该门禁。
+Markdown 代码块复制槽复用门禁检查 `MarkdownRenderer` 的实际 `IconButton` 渲染调用，保持复制失败提示和固定 28px 操作槽。
 ActionButton 复用门禁检查正式浏览器、审阅、侧边聊天和 FileBrowser 的真实 Foundation 引用；故事覆盖强调、中性、危险、禁用和固定高度，避免恢复动作在 hover/disabled 时改变布局。
 正式工作区后端调用链门禁由 `workspace-backend-contract.test.ts` 覆盖：文件、审阅、终端、浏览器和 workspace 侧聊必须分别绑定真实 project/session/terminal/browser/chat IPC；正式面板不得直接依赖 Playground fixture 或候选页面。该静态门禁只证明入口绑定，不替代真实 Electron 生命周期和安全边界测试。
 SegmentedControl 复用门禁检查 Foundation 故事与正式 `FileBrowser` 的真实引用和渲染调用；HTML 预览/源码的选中态必须由同一基础组件提供，不把页面级 Tabs 或 Playground fixture 带入文件预览。
