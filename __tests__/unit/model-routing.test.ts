@@ -18,6 +18,12 @@ describe('model routing', () => {
     expect(result).toMatchObject({ id: 'primary', baseUrl: 'https://example.test/v1', model: 'routed-model', apiKey: 'secret' })
   })
 
+  it('图片用途只解析 image 路由，未配置时由调用方回退主模型', () => {
+    const connections = JSON.stringify([{ id: 'vision', name: '视觉连接', baseUrl: 'https://vision.test/v1', model: 'vision-default', apiKey: 'secret', enabled: true }])
+    const routes = JSON.stringify([{ purpose: 'image', connectionId: 'vision', model: 'vision-model', enabled: true }])
+    expect(__test.resolveRoutedConfig(connections, routes, 'image')).toMatchObject({ id: 'vision', model: 'vision-model' })
+    expect(__test.resolveRoutedConfig(connections, routes, 'primary')).toBeNull()
+  })
   it('坏 JSON、缺失连接或空模型安全回退为空', () => {
     expect(__test.resolveRoutedConfig('{', '[]', 'primary')).toBeNull()
     expect(__test.resolveRoutedConfig('[]', JSON.stringify([{ purpose: 'primary', connectionId: 'missing', model: 'x', enabled: true }]), 'primary')).toBeNull()

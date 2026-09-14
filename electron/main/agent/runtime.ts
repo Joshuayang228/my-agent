@@ -118,10 +118,10 @@ class AgentRuntime {
     }
   }
 
-  /** 获取主对话 LLM 配置（唯一入口：loadMainLLMConfig） */
-  async getLLMConfig(): Promise<LLMConfig> {
-    const { loadMainLLMConfig } = await import('../llm/aux-config')
-    return loadMainLLMConfig()
+  /** 获取主对话 LLM 配置；带图片的用户消息使用已配置的图片路由。 */
+  async getLLMConfig(userMessage?: ChatMessage): Promise<LLMConfig> {
+    const { loadImageLLMConfig, loadMainLLMConfig } = await import('../llm/aux-config')
+    return userMessage?.images?.length ? loadImageLLMConfig() : loadMainLLMConfig()
   }
 
   /** 获取辅助任务 LLM 配置（唯一入口：loadAuxLLMConfig，含 thinking 策略） */
@@ -155,7 +155,7 @@ class AgentRuntime {
     const abortController = new AbortController()
     this.activeControllers.set(sessionId, abortController)
     try {
-      const llmConfig = await this.getLLMConfig()
+      const llmConfig = await this.getLLMConfig(userMessage)
       if (abortController.signal.aborted) {
         yield { type: 'done', reason: 'aborted', sessionId }
         return

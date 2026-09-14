@@ -156,3 +156,5 @@
 **缺口**：Swarm（wishlist）；更完整的子 Agent 产品化；真实 HTTP/SSE replay 与操作系统级 Shell 隔离仍未纳入默认门禁；外部 MCP 工具描述已标记为不受信任数据，超大 schema fail-closed。
 
 - 模型设置的正式展示已收敛到多连接与用途路由面板；旧单连接字段仅作为兼容回退，不再作为独立产品 UI 入口。
+
+- 主对话 Runtime 根据用户消息是否携带图片选择 primary 或 image 配置；image 路由无效时回退主配置，辅助任务仍走 auxiliary。

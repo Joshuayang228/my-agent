@@ -31,6 +31,18 @@ export async function loadMainLLMConfig(overrides?: Partial<LLMConfig>): Promise
   }
 }
 
+/**
+ * 背景：图片理解路由已经可在正式设置中配置，但主对话此前始终读取 primary，导致界面安排与真实请求脱节。
+ * 设计意图：图片请求只在显式带图片时读取 image 路由；没有图片时继续使用主模型，避免普通对话被意外切换。
+ * 关键约束：image 路由必须经过与 primary/auxiliary 相同的启用、连接存在和 Base URL 校验；无有效路由必须完整回退主模型。
+ */
+export async function loadImageLLMConfig(): Promise<LLMConfig> {
+  const main = await loadMainLLMConfig()
+  const all = await settings.getAllSettings()
+  const routed = resolveRoutedConfig(all.modelConnections, all.modelRoutes, 'image')
+  if (!routed) return main
+  return { ...main, apiKey: routed.apiKey || main.apiKey, baseUrl: routed.baseUrl, model: routed.model }
+}
 export async function loadAuxLLMConfig(): Promise<LLMConfig> {
   const main = await loadMainLLMConfig()
   const all = await settings.getAllSettings()
