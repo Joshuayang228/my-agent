@@ -5,6 +5,8 @@
 
 ## 一、完成门禁
 
+全产品回流验收要求见 [全产品回流施工合同](./requirements/product-experience-production-rollout-v1.md)：逐项区分 Playground 候选证据、正式 App 入口的 Renderer 证据和真实 Electron / 持久化证据。仅右坞、Vite HTTP 200、注册表状态或 Playground 测试通过，不得推导全产品已回流。该要求尚需随各页面实施补齐自动化测试；不能把要求本身描述为已实现门禁。
+
 记忆 Playground 的背景回归覆盖深浅主题、1166 / 600px 宽度，以及清单、编辑、空态新增截图；清单不得再嵌套独立页面预览框，内容区域保持透明且无横向溢出。
 
 所有代码任务在声称完成前按顺序执行：
