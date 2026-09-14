@@ -12,6 +12,23 @@ import { redactMcpConfigsForRenderer, hasNewOrChangedEnabledMcpConfig, mergeMcpC
 
 const RENDERER_BLOCKED_SETTING_KEYS = new Set<keyof AppSettings>(['currentProject', 'recentProjects'])
 
+function mergeModelConnectionSecrets(nextRaw: string, previousRaw: string): string {
+  let next: unknown
+  let previous: unknown
+  try { next = JSON.parse(nextRaw); previous = JSON.parse(previousRaw) } catch { throw new Error('模型连接配置无效') }
+  if (!Array.isArray(next) || !Array.isArray(previous)) throw new Error('模型连接配置无效')
+  const oldById = new Map(previous.filter((item) => item && typeof item === 'object').map((item) => [String((item as Record<string, unknown>).id), item as Record<string, unknown>]))
+  return JSON.stringify(next.map((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return item
+    const connection = item as Record<string, unknown>
+    const old = oldById.get(String(connection.id))
+    const apiKey = typeof connection.apiKey === 'string' && connection.apiKey.trim()
+      ? connection.apiKey
+      : typeof old?.apiKey === 'string' ? old.apiKey : ''
+    return { ...connection, apiKey }
+  }))
+}
+
 export function isRendererWritableSettingKey(value: unknown): value is keyof AppSettings {
   return typeof value === 'string' && settings.isAppSettingKey(value)
     && !RENDERER_BLOCKED_SETTING_KEYS.has(value as keyof AppSettings)
@@ -102,6 +119,9 @@ export function registerSettingsIPC(): void {
         throw new Error('用户取消高风险设置变更')
       }
       value = merged.json
+    }
+    if (key === 'modelConnections') {
+      value = mergeModelConnectionSecrets(value, await settings.getSetting('modelConnections'))
     }
 
     // API Key/MCP secret 只在主进程处理；Renderer 永远只能收到安全视图或脱敏哨兵。

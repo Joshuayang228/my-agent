@@ -353,3 +353,5 @@ LLM 返回 tool_calls（可能多个）
 ```
 
 - 开发者模式沿 `SettingsPanel → settings:set/get → settings-store → App → PrimarySidebar` 单一路径控制 Debug / Playground 可见性；默认关闭，关闭仅收回入口，不影响诊断服务、资产或历史数据。
+
+- 模型配置的产品入口统一由 `ModelRoutingSettings` 组合真实设置存储与路由配置工厂；旧单连接字段保留在兼容边界，不再形成第二套正式展示链。

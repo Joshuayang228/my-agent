@@ -8,11 +8,10 @@ import { ActionButton } from './foundation/ActionButton'
 import { SettingsLayout, type SettingsPageId } from './settings/SettingsLayout'
 import { CompanionSettingsContent, type CompanionExpertise } from './settings/CompanionSettingsContent'
 import { SettingCard, SettingRow, SettingsPageHeader } from './settings/SettingsFields'
-import { PROVIDER_PRESET_GROUPS, type ProviderPreset } from '../shared/provider-presets'
+import { ModelRoutingSettings } from './settings/ModelRoutingSettings'
 import { DESIGN_THEME_ASSETS, FONT_SCALE_ASSETS } from '../shared/design-asset-registry'
 import {
   Upload, Download,
-  Eye, EyeOff,
   Check, ChevronRight,
 } from 'lucide-react'
 
@@ -137,12 +136,6 @@ export function SettingsPanel({
   const [fontScale, setFontScale] = useState(() => localStorage.getItem('uiFontScale') || 'md')
   const [form, setForm] = useState<SettingsForm>(DEFAULTS)
   const [saveFailed, setSaveFailed] = useState(false)
-  const [showApiKey, setShowApiKey] = useState(false)
-  const [hasStoredApiKey, setHasStoredApiKey] = useState(false)
-  const [apiKeyChanged, setApiKeyChanged] = useState(false)
-  const [firstRun, setFirstRun] = useState(true)
-  const [connectionTesting, setConnectionTesting] = useState(false)
-  const [connectionStatus, setConnectionStatus] = useState<{ kind: 'success' | 'error'; text: string } | null>(null)
   const [showAdvancedModel, setShowAdvancedModel] = useState(false)
   const [dataBusy, setDataBusy] = useState<'export' | 'import' | null>(null)
   const [verifiedConnectionKey, setVerifiedConnectionKey] = useState('')
@@ -150,6 +143,8 @@ export function SettingsPanel({
   const [mcpServers, setMcpServers] = useState<McpServerEntry[]>([])
   const [mcpStatuses, setMcpStatuses] = useState<McpServerStatus[]>([])
   const [mcpTools, setMcpTools] = useState<McpToolEntry[]>([])
+  const [modelConnections, setModelConnections] = useState('[]')
+  const [modelRoutes, setModelRoutes] = useState('[]')
   const [mcpAdding, setMcpAdding] = useState(false)
   const [newMcp, setNewMcp] = useState({
     name: '',
@@ -184,11 +179,6 @@ export function SettingsPanel({
   useEffect(() => {
     if (preview || !window.electronAPI) return
     window.electronAPI.settings.get().then((s) => {
-      const hasApiKey = s.llmApiKeyConfigured === 'true' || Boolean(s.llmApiKey?.trim())
-      setHasStoredApiKey(hasApiKey)
-      setApiKeyChanged(false)
-      setFirstRun(!hasApiKey)
-      if (!hasApiKey) setActiveSection('model')
       setForm({
         // API Key 原文不从主进程下沉；输入框只承载本次新输入。
         llmApiKey: '',
@@ -216,6 +206,8 @@ export function SettingsPanel({
         permissionRules: s.permissionRules || DEFAULTS.permissionRules,
         developerMode: s.developerMode || DEFAULTS.developerMode,
       })
+      setModelConnections(s.modelConnections || '[]')
+      setModelRoutes(s.modelRoutes || '[]')
       settingsLoadedRef.current = true
       try {
         const servers = JSON.parse(s.mcpServers || '[]')
@@ -237,11 +229,6 @@ export function SettingsPanel({
           // 保存过程中同字段的新值不能被旧请求清掉；下一圈继续提交它。
           if (pendingSettingsRef.current.get(key) === value) {
             pendingSettingsRef.current.delete(key)
-            if (key === 'llmApiKey') {
-              setHasStoredApiKey(Boolean(value.trim()))
-              if (!value.trim()) setFirstRun(true)
-              setApiKeyChanged(false)
-            }
           }
         }
         setSaveFailed(false)
@@ -286,65 +273,10 @@ export function SettingsPanel({
     }
   }, [preview])
 
-  const effectiveApiKeyForTest = apiKeyChanged ? form.llmApiKey.trim() : (hasStoredApiKey ? '[stored-api-key]' : '')
-  const connectionKey = `${effectiveApiKeyForTest}\n${form.llmBaseUrl.trim()}\n${form.llmModel.trim()}`
-  const canTestConnection = Boolean(effectiveApiKeyForTest && form.llmBaseUrl.trim() && form.llmModel.trim())
-
-  const testConnection = useCallback(async () => {
-    if (preview) {
-      setVerifiedConnectionKey(connectionKey)
-      setConnectionStatus({ kind: 'success', text: 'Playground 预览 · 未连接真实模型' })
-      return
-    }
-    if (!window.electronAPI?.settings?.testConnection) {
-      setConnectionStatus({ kind: 'error', text: '当前环境不支持连接测试' })
-      return
-    }
-    if (!canTestConnection) {
-      setConnectionStatus({ kind: 'error', text: '请先填写 API Key、Base URL 和模型名' })
-      return
-    }
-    setConnectionTesting(true)
-    setConnectionStatus(null)
-    setVerifiedConnectionKey('')
-    try {
-      const result = await window.electronAPI.settings.testConnection({
-        apiKey: apiKeyChanged ? form.llmApiKey : undefined,
-        useStoredApiKey: !apiKeyChanged && hasStoredApiKey,
-        baseUrl: form.llmBaseUrl,
-        model: form.llmModel,
-      })
-      if (result.ok) {
-        setVerifiedConnectionKey(connectionKey)
-        setFirstRun(false)
-        setConnectionStatus({ kind: 'success', text: `连接成功 · ${result.model} · ${result.ms}ms；配置会自动保存` })
-      } else {
-        setConnectionStatus({ kind: 'error', text: result.error })
-      }
-    } catch {
-      setConnectionStatus({ kind: 'error', text: '连接测试失败，请检查网络和模型配置' })
-    } finally {
-      setConnectionTesting(false)
-    }
-  }, [apiKeyChanged, canTestConnection, connectionKey, form.llmApiKey, form.llmBaseUrl, form.llmModel, hasStoredApiKey, preview])
-
-  const applyPreset = useCallback((preset: ProviderPreset) => {
-    if (preview) return
-    pendingSettingsRef.current.set('llmBaseUrl', preset.baseUrl)
-    setVerifiedConnectionKey('')
-    setConnectionStatus(null)
-    setForm((f) => ({ ...f, llmBaseUrl: preset.baseUrl }))
-  }, [preview])
-
   const update = (key: keyof SettingsForm, value: string) => {
     if (preview) return
     if (key === 'activeRoleId') return
     pendingSettingsRef.current.set(key, value)
-    if (key === 'llmApiKey') setApiKeyChanged(true)
-    if (key === 'llmApiKey' || key === 'llmBaseUrl' || key === 'llmModel') {
-      setVerifiedConnectionKey('')
-      setConnectionStatus(null)
-    }
     setForm((f) => ({ ...f, [key]: value }))
   }
 
@@ -484,138 +416,20 @@ export function SettingsPanel({
     roleAction={<ActionButton onClick={() => setRoleShelfOpen(true)} disabled={preview} data-testid="settings-open-role-shelf">管理角色架</ActionButton>}
   />
 
-  /** Provider 卡片复用同一组生产预设；首次配置折叠展示，避免把核心字段推到首屏之外。 */
-  const renderProviderPresets = () => (
-    <FieldGroup label="Provider 预设" hint="选择后只填入 Provider Base URL；模型名由账户实际开放列表决定，在下方单独填写。">
-      <div className="space-y-4">
-        {PROVIDER_PRESET_GROUPS.map((group) => (
-          <div key={group.group}>
-            <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-              {group.group}
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {group.items.map((preset) => {
-                const selected = form.llmBaseUrl === preset.baseUrl
-                return (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    onClick={() => applyPreset(preset)}
-                    className="rounded-[var(--radius-lg)] border px-3 py-2.5 text-left transition"
-                    style={{
-                      borderColor: selected ? 'var(--accent)' : 'var(--border-color)',
-                      background: selected ? 'var(--accent-subtle)' : 'var(--card-bg)',
-                    }}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                        {preset.label}
-                      </span>
-                      {selected && <Check size={14} style={{ color: 'var(--accent-fg)' }} />}
-                    </div>
-                    <div className="mt-1 truncate font-mono text-[10px]" style={{ color: 'var(--text-muted)' }} title={preset.baseUrl}>
-                      {preset.baseUrl}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-    </FieldGroup>
-  )
-
+  // Provider 预设仍由 PROVIDER_PRESET_GROUPS 作为 Playground 与生产资产的唯一事实源；正式页不再复制旧预设卡片。
   const renderModel = () => (
     <div className="space-y-6">
-      <SettingsPageHeader title="模型" description="管理模型连接、主模型和辅助模型；密钥只保存在本机安全存储中。" />
-
-      {firstRun && (
-        <SettingCard testId="first-run-setup">
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>先连接模型，再开始对话</h3>
-          <p className="mt-1 text-xs leading-5" style={{ color: 'var(--text-secondary)' }}>
-            默认已选 OpenAI 入口；也可以展开其它 Provider。模型名请按账户实际可用列表填写，连接测试只负责确认当前配置可用。
-          </p>
-          <ol className="mt-3 space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-            <li>1. 确认 Provider 和 Base URL</li>
-            <li>2. 填写 API Key，等待自动保存</li>
-            <li>3. 测试连接，成功后返回聊天</li>
-          </ol>
-        </SettingCard>
-      )}
-
-      <SettingCard>
-        {firstRun ? (
-        <details>
-          <summary className="cursor-pointer text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
-            选择其它 Provider 预设
-          </summary>
-          <div className="mt-4">{renderProviderPresets()}</div>
-        </details>
-        ) : renderProviderPresets()}
-      </SettingCard>
-
-      <SettingCard>
-      <SettingRow label="API Key" description="仅在输入新值时写入本机安全存储；已保存的 Key 不会回传到 Renderer。" scope="本机" stacked>
-        <div className="relative">
-          <input
-            type={showApiKey ? 'text' : 'password'}
-            value={form.llmApiKey}
-            onChange={(e) => update('llmApiKey', e.target.value)}
-            placeholder={hasStoredApiKey && !apiKeyChanged ? '已安全保存（输入新值可替换）' : 'sk-...'}
-            className="theme-input w-full rounded-[var(--radius-md)] border px-3 py-2 pr-16 font-mono text-sm outline-none transition"
-          />
-          <button
-            type="button"
-            onClick={() => setShowApiKey(!showApiKey)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 transition"
-            style={{ color: 'var(--text-muted)' }}
-            title={showApiKey ? '隐藏 API Key' : '显示 API Key'}
-          >
-            {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
-          </button>
-        </div>
-      </SettingRow>
-      </SettingCard>
-
-      <SettingCard>
-      <SettingRow label="Base URL" description="模型服务商提供的 OpenAI-compatible API 地址。" scope="连接" stacked>
-        <input
-          type="text"
-          value={form.llmBaseUrl}
-          onChange={(e) => update('llmBaseUrl', e.target.value)}
-          placeholder="https://api.openai.com/v1"
-          className="theme-input w-full rounded-[var(--radius-md)] border px-3 py-2 font-mono text-sm outline-none transition"
-        />
-      </SettingRow>
-      </SettingCard>
-
-      <SettingCard>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <SettingRow label="主模型" description="对话主力；按当前 Provider 账户实际可用列表填写。" scope="对话" stacked>
-          <input
-            type="text"
-            value={form.llmModel}
-            onChange={(e) => update('llmModel', e.target.value)}
-            placeholder="填写 Provider 控制台中的模型 ID"
-          className="theme-input w-full rounded-[var(--radius-md)] border px-3 py-2 font-mono text-sm outline-none transition"
-          />
-        </SettingRow>
-        <SettingRow label="辅助模型" description="留空时沿用主模型，用于标题、压缩等轻量任务。" scope="辅助任务" stacked>
-          <input
-            type="text"
-            value={form.auxModel}
-            onChange={(e) => update('auxModel', e.target.value)}
-            placeholder="可选：填写辅助模型 ID"
-          className="theme-input w-full rounded-[var(--radius-md)] border px-3 py-2 font-mono text-sm outline-none transition"
-          />
-        </SettingRow>
-      </div>
-      </SettingCard>
-
+      <SettingsPageHeader title="模型" description="管理模型连接与用途安排；密钥只保存在本机安全存储中。" />
+      <ModelRoutingSettings connectionsRaw={modelConnections} routesRaw={modelRoutes} legacyBaseUrl={form.llmBaseUrl} legacyModel={form.llmModel} onSave={async (connections, routes) => {
+        if (preview || !window.electronAPI) return
+        await window.electronAPI.settings.set('modelConnections', connections)
+        await window.electronAPI.settings.set('modelRoutes', routes)
+        setModelConnections(connections)
+        setModelRoutes(routes)
+      }} />
       <SettingCard>
         <button type="button" onClick={() => setShowAdvancedModel((value) => !value)} aria-expanded={showAdvancedModel} className="flex w-full items-center justify-between gap-3 text-left">
-          <span><span className="block text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>高级设置</span><span className="mt-1 block text-[10px]" style={{ color: 'var(--text-muted)' }}>连接测试、预算和生成参数只在需要时查看。</span></span>
+          <span><span className="block text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>高级设置</span><span className="mt-1 block text-[10px]" style={{ color: 'var(--text-muted)' }}>预算和生成参数只在需要时查看。</span></span>
           <ChevronRight size={14} className={showAdvancedModel ? 'rotate-90 transition' : 'transition'} style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
         </button>
         {showAdvancedModel && <div className="mt-4 space-y-4 border-t pt-4" style={{ borderColor: 'var(--border-subtle)' }}>
@@ -623,29 +437,8 @@ export function SettingsPanel({
           <div className="grid gap-3 sm:grid-cols-3"><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Temperature<input aria-label="Temperature" value={form.llmTemperature} onChange={(event) => update('llmTemperature', event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Top P<input aria-label="Top P" value={form.llmTopP} onChange={(event) => update('llmTopP', event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>最大输出 Token<input aria-label="最大输出 Token" value={form.llmMaxTokens} onChange={(event) => update('llmMaxTokens', event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label></div>
         </div>}
       </SettingCard>
-
-      <SettingCard>
-      <div className="flex min-h-8 flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => void testConnection()}
-          disabled={connectionTesting || !canTestConnection}
-          className="rounded-[var(--radius-md)] border px-3 py-2 text-xs font-medium transition disabled:opacity-45"
-          style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-          data-testid="test-connection"
-        >
-          {connectionTesting ? '测试中…' : '测试连接'}
-        </button>
-        {connectionStatus && (
-          <span className="text-xs" style={{ color: connectionStatus.kind === 'success' ? 'var(--success)' : 'var(--danger)' }} role="status">
-            {connectionStatus.text}
-          </span>
-        )}
-      </div>
-      </SettingCard>
     </div>
   )
-
   const renderMemory = () => (
     <MemoryPanel onClose={() => setActiveSection('companion')} {...(preview ? { previewMemories: [], readOnly: true } : {})} />
   )
