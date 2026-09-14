@@ -43,6 +43,7 @@ interface SettingsForm {
   dailyTokenBudget: string
   /** PermissionRule[] JSON — 自定义命令/工具规则 */
   permissionRules: string
+  developerMode: string
 }
 
 interface McpServerEntry {
@@ -84,6 +85,7 @@ const DEFAULTS: SettingsForm = {
   sessionTokenBudget: '0',
   dailyTokenBudget: '0',
   permissionRules: '[]',
+  developerMode: 'false',
 }
 
 interface RoleInfo {
@@ -205,6 +207,7 @@ export function SettingsPanel({
         sessionTokenBudget: s.sessionTokenBudget || '0',
         dailyTokenBudget: s.dailyTokenBudget || '0',
         permissionRules: s.permissionRules || DEFAULTS.permissionRules,
+        developerMode: s.developerMode || DEFAULTS.developerMode,
       })
       settingsLoadedRef.current = true
       try {
@@ -886,6 +889,11 @@ export function SettingsPanel({
             <span style={{ color: 'var(--text-muted)' }}>Vectra</span>
           </div>
         </div>
+      </SettingCard>
+      <SettingCard>
+        <SettingRow label="开发者模式" description="开启后显示 Debug 与 Playground 入口；关闭不会删除任何数据或设置。" scope="本机">
+          <button type="button" role="switch" aria-checked={form.developerMode === 'true'} onClick={() => update('developerMode', form.developerMode === 'true' ? 'false' : 'true')} className="relative h-5 w-9 shrink-0 rounded-full transition" style={{ background: form.developerMode === 'true' ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }} data-testid="settings-developer-mode"><span className="absolute top-0.5 h-4 w-4 rounded-full shadow-sm transition" style={{ background: 'var(--text-primary)', left: form.developerMode === 'true' ? 'calc(100% - 1.125rem)' : '0.125rem' }} /></button>
+        </SettingRow>
       </SettingCard>
       <SettingCard>
         <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>

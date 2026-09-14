@@ -57,6 +57,7 @@ export function PrimarySidebar({
   onNavigate,
   onCollapse,
   width,
+  developerMode = false,
 }: {
   personaName: string
   personaBlurb: string
@@ -88,6 +89,7 @@ export function PrimarySidebar({
   onCollapse: () => void
   /** 可拖宽度；默认 248 */
   width?: number
+  developerMode?: boolean
 }) {
   return (
     <aside
@@ -318,7 +320,7 @@ export function PrimarySidebar({
             {activeBgTaskCount} 个后台任务
           </div>
         )}
-        <div data-testid="sidebar-developer-nav">
+        {developerMode && <div data-testid="sidebar-developer-nav">
           <div className="grid grid-cols-2 gap-1">
             <DockTextBtn
               active={activeView === 'debug'}
@@ -333,7 +335,7 @@ export function PrimarySidebar({
               label="Playground"
             />
           </div>
-        </div>
+        </div>}
         <div className="mt-2 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
           <div className="grid grid-cols-2 gap-1">
             {DOCK.map((item) => {

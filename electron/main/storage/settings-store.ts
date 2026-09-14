@@ -125,6 +125,8 @@ export interface AppSettings {
    * 为兼容既有设置导出而保留；当前 Debug 统一由全页 DevPanel 承载，不再读取此键。
    */
   conversationDebugMode: string
+  /** 普通模式隐藏 Debug / Playground；仅由关于页显式开启。 */
+  developerMode: string
   /**
    * 模型能力探测缓存（Playground「模型测试」写入）：
    * JSON Record<`${baseUrl}|${model}`, { thinkingDisable, probedAt?, note? }>
@@ -170,6 +172,7 @@ function getDefaults(): AppSettings {
     companionProactiveGreetingEnabled: 'false',
     companionProactiveGreetingLastDay: '',
     conversationDebugMode: 'false',
+    developerMode: 'false',
     llmCapabilityCache: '{}',
   }
 }

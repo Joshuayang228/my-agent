@@ -2706,16 +2706,16 @@ test.describe('My Agent UI', () => {
     await expect(page.getByTestId('memory-group-relationship')).toContainText('3')
   })
 
-  test('Skills 管理页显示校验、版本和隔离试跑入口', async ({ page }) => {
+  test('Skills 管理页统一为 Playground 列表详情样式', async ({ page }) => {
     await page.goto('/')
 
     await page.click('button[title="设置"]')
     await page.getByTestId('settings-nav-skills').click()
     await expect(page.getByTestId('settings-panel')).toBeVisible()
     await expect(page.locator('[data-testid="skills-panel"]')).toBeVisible()
-    await expect(page.getByText('创建、校验、回滚和隔离试跑 Skill', { exact: false })).toBeVisible()
-    await expect(page.getByRole('button', { name: '+ 新建 Skill', exact: true })).toBeVisible()
-    await expect(page.getByText('选择或新建一个 Skill', { exact: true })).toBeVisible()
+    await expect(page.getByText('查看已安装 Skill', { exact: false })).toBeVisible()
+    await expect(page.getByRole('button', { name: '+ 新建 Skill', exact: true })).toHaveCount(0)
+    await expect(page.getByText('选择一个 Skill', { exact: true })).toBeVisible()
   })
 
   for (const theme of ['song-smoke', 'yao-stone']) {

@@ -344,3 +344,5 @@ LLM 返回 tool_calls（可能多个）
     ├─ 向量数据库：异步嵌入并索引用户消息
     └─ 日 Token 计数器：recordDailyUsage
 ```
+
+- 开发者模式沿 `SettingsPanel → settings:set/get → settings-store → App → PrimarySidebar` 单一路径控制 Debug / Playground 可见性；默认关闭，关闭仅收回入口，不影响诊断服务、资产或历史数据。

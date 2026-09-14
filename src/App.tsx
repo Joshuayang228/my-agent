@@ -117,6 +117,8 @@ function App() {
   const [currentModel, setCurrentModel] = useState('gpt-4o')
   const [currentBaseUrl, setCurrentBaseUrl] = useState('https://api.openai.com/v1')
   const [providerMenuOpen, setProviderMenuOpen] = useState(false)
+  // UI E2E 运行的是隔离的 Vite 展示壳，需保留开发入口以覆盖 Playground / Debug；Electron 正式默认仍由持久化设置决定。
+  const [developerMode, setDeveloperMode] = useState(() => import.meta.env.MODE === 'ui-e2e')
   const [approvalMode, setApprovalMode] = useState<'confirm-all' | 'auto' | 'full-access'>('confirm-all')
   const [approvalMenuOpen, setApprovalMenuOpen] = useState(false)
   const [modeChangeNotice, setModeChangeNotice] = useState<string | null>(null)
@@ -296,6 +298,7 @@ function App() {
       if (s.llmModel) setCurrentModel(s.llmModel)
       if (s.llmBaseUrl) setCurrentBaseUrl(s.llmBaseUrl)
       if (s.executionMode) setApprovalMode(s.executionMode as 'confirm-all' | 'auto' | 'full-access')
+      setDeveloperMode(import.meta.env.MODE === 'ui-e2e' || s.developerMode === 'true')
       if (s.llmApiKeyConfigured !== 'true' && !s.llmApiKey) {
         setActiveView('settings')
         setTimeout(() => toast('欢迎！请先配置 API Key 以开始使用', 'warning'), 500)
@@ -869,6 +872,7 @@ function App() {
         if (s.llmModel) setCurrentModel(s.llmModel)
         if (s.llmBaseUrl) setCurrentBaseUrl(s.llmBaseUrl)
         if (s.executionMode) setApprovalMode(s.executionMode as 'confirm-all' | 'auto' | 'full-access')
+        setDeveloperMode(import.meta.env.MODE === 'ui-e2e' || s.developerMode === 'true')
       })
     }
   }, [])
@@ -897,6 +901,7 @@ function App() {
         data-testid="sidebar-transition-shell"
       >
         <PrimarySidebar
+          developerMode={developerMode}
           personaName={currentPersonaName}
           personaBlurb={companionBlurb || '越探索，越着迷。'}
           activeView={activeView}
@@ -1738,7 +1743,7 @@ function App() {
                   <span>Σ{((usage.promptTokens + usage.completionTokens) / 1000).toFixed(1)}k</span>
                 </div>
               )}
-              <button
+{developerMode && <button
                 type="button"
                 onClick={() => setActiveView('debug')}
                 className="rounded px-1.5 py-0.5 text-[10px] transition"
@@ -1747,7 +1752,7 @@ function App() {
                 data-testid="open-global-debug"
               >
                 Debug
-              </button>
+              </button>}
             </div>
           </div>
         </div>}
