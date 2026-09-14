@@ -420,7 +420,7 @@ export function SettingsPanel({
   const renderModel = () => (
     <div className="space-y-6">
       <SettingsPageHeader title="模型" description="管理模型连接与用途安排；密钥只保存在本机安全存储中。" />
-      <ModelRoutingSettings connectionsRaw={modelConnections} routesRaw={modelRoutes} legacyBaseUrl={form.llmBaseUrl} legacyModel={form.llmModel} onSave={async (connections, routes) => {
+      <ModelRoutingSettings connectionsRaw={modelConnections} routesRaw={modelRoutes} legacyBaseUrl={form.llmBaseUrl} legacyModel={form.llmModel} onTestConnection={async (connection) => { if (preview || !window.electronAPI) return { ok: false, error: '当前仅可在正式设置中测试' }; return window.electronAPI.settings.testConnection({ baseUrl: connection.baseUrl, model: connection.model, useStoredApiKey: true }) }} onSave={async (connections, routes) => {
         if (preview || !window.electronAPI) return
         await window.electronAPI.settings.set('modelConnections', connections)
         await window.electronAPI.settings.set('modelRoutes', routes)
