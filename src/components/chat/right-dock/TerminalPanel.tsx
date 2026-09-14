@@ -30,6 +30,7 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
   const attemptRef = useRef<RunAttempt | null>(null)
   const [busy, setBusy] = useState(false)
   const [stopping, setStopping] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'running' | 'stopping' | 'success' | 'error'>('idle')
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -49,7 +50,8 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
     })
     const offExit = api.onExit((ev) => {
       if (!attemptRef.current?.runId || ev.runId !== attemptRef.current.runId) return
-      setLines((prev) => [...prev, `[exit ${ev.code}]`])
+      setLines((prev) => [...prev, ev.code === 0 ? '[命令已完成]' : `[命令失败，退出码 ${ev.code}]`])
+      setStatus(ev.code === 0 ? 'success' : 'error')
       setBusy(false)
       attemptRef.current = null
       setStopping(false)
@@ -72,6 +74,7 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
         attemptRef.current = null
         setBusy(false)
         setStopping(false)
+        setStatus('idle')
         setLines((prev) => [...prev, '[已发送终止请求]'])
       }
     } catch {
@@ -80,6 +83,7 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
       } else if (attemptRef.current === attempt) {
         attempt.cancelRequested = false
         setStopping(false)
+        setStatus('error')
         setLines((prev) => [...prev, '[终止失败，请重试；命令可能仍在运行]'])
       }
     } finally {
@@ -97,6 +101,7 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
     setHistoryIndex(-1)
     setCmd('')
     setBusy(true)
+    setStatus('running')
     try {
       const result = await window.electronAPI?.terminal.run({ command, cwd: projectPath || undefined })
       if (result?.ok) {
@@ -108,10 +113,12 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
       }
       if (!attempt.disposed && attemptRef.current === attempt) {
         setLines((prev) => [...prev, result ? result.error : '[无法连接命令服务，请重试]'])
+        setStatus('error')
       }
     } catch {
       if (!attempt.disposed && attemptRef.current === attempt) {
         setLines((prev) => [...prev, '[启动失败，请重试]'])
+        setStatus('error')
       }
     }
     if (!attempt.disposed && attemptRef.current === attempt) {
@@ -136,11 +143,16 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
     if (!attempt || attempt.cancelRequested) return
     attempt.cancelRequested = true
     setStopping(true)
+    setStatus('stopping')
     void stopAttempt(attempt)
   }
 
   return (
     <div className="flex h-full min-h-0 flex-col" style={{ background: 'var(--bg-primary)' }}>
+      <div className="flex shrink-0 items-center justify-between border-b px-2 py-1 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
+        <span className="truncate" title={projectPath || undefined}>{projectPath || '当前进程工作目录'}</span>
+        <span data-testid="workspace-terminal-status" className="ml-2 shrink-0" style={{ color: status === 'error' ? 'var(--danger)' : status === 'success' ? 'var(--success)' : status === 'running' || status === 'stopping' ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{status === 'running' ? '运行中' : status === 'stopping' ? '正在停止' : status === 'success' ? '已完成' : status === 'error' ? '失败' : '待命'}</span>
+      </div>
       <div className="min-h-0 flex-1 overflow-auto scrollbar-hover p-2 font-mono text-[11px] leading-relaxed select-text" style={{ color: 'var(--text-secondary)' }}>
         {lines.map((l, i) => (
           <div key={`${i}-${l.slice(0, 12)}`} className="whitespace-pre-wrap break-all">{l || ' '}</div>

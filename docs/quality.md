@@ -27,7 +27,7 @@ Markdown 代码块复制槽复用门禁检查 `MarkdownRenderer` 的实际 `Icon
 ActionButton 复用门禁检查正式浏览器、审阅、侧边聊天和 FileBrowser 的真实 Foundation 引用；故事覆盖强调、中性、危险、禁用和固定高度，避免恢复动作在 hover/disabled 时改变布局。
 正式工作区 Foundation 控件审计由 `workspace-foundation-control-audit.test.ts` 覆盖：正式五功能及 Markdown/FileBrowser 不得依赖 Playground 或 `settings-option` 局部皮肤，固定操作和文字恢复动作必须绑定 Foundation；测试同时锁定 ChatRightDock、文件、审阅、终端、浏览器、侧聊、FileBrowser 和 MarkdownRenderer 的通用控件绑定清单，防止后续局部 JSX 控件漂移。
 受限浏览器生命周期门禁同时检查 `browser:load` / `browser:cancel` 的 preload、Renderer 类型和主进程实现，避免关闭面板后留下无主网络请求；该门禁不扩大为脚本或登录浏览器。
-命令控制台回归还覆盖当前实例命令历史：完成两次命令后上下键按最近优先回看，越过首尾回到空输入，运行中不响应历史导航；历史只存在 Renderer 实例，不进入会话或 Agent 上下文。
+命令控制台回归还覆盖当前实例命令历史：完成两次命令后上下键按最近优先回看，越过首尾回到空输入，运行中不响应历史导航；历史只存在 Renderer 实例，不进入会话或 Agent 上下文。 状态栏回归同时验证运行中与成功终态，退出码非零由正式面板显示为失败。
 正式工作区后端调用链门禁由 `workspace-backend-contract.test.ts` 覆盖：文件、审阅、终端、浏览器和 workspace 侧聊必须分别绑定真实 project/session/terminal/browser/chat IPC；正式面板不得直接依赖 Playground fixture 或候选页面。该静态门禁只证明入口绑定，不替代真实 Electron 生命周期和安全边界测试。
 SegmentedControl 复用门禁检查 Foundation 故事与正式 `FileBrowser` 的真实引用和渲染调用；HTML 预览/源码的选中态必须由同一基础组件提供，不把页面级 Tabs 或 Playground fixture 带入文件预览。
 WorkspaceToolMenu 复用门禁检查正式右坞和候选的共享菜单调用；UI 回归覆盖添加后实例切换、ArrowUp/Down、Escape、失焦和选择后焦点恢复，防止两层菜单行为重新分叉。

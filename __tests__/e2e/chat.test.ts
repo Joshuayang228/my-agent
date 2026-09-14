@@ -535,7 +535,9 @@ test.describe('My Agent UI', () => {
     const input = dock.getByPlaceholder('输入命令…')
     await input.fill('echo first')
     await input.press('Enter')
+    await expect(dock.getByTestId('workspace-terminal-status')).toHaveText('运行中')
     await page.evaluate(() => (window as any).__terminalHarness.emit('exit', { runId: 'run-1', code: 0 }))
+    await expect(dock.getByTestId('workspace-terminal-status')).toHaveText('已完成')
     await expect(input).toBeEnabled()
     await input.fill('echo second')
     await input.press('Enter')
@@ -603,7 +605,7 @@ test.describe('My Agent UI', () => {
     await expect(input).toBeDisabled()
     await page.evaluate(() => (window as any).__terminalHarness.emit('exit', { runId: 'run-3', code: 0 }))
     await expect(input).toBeEnabled()
-    await expect(dock).toContainText('[exit 0]')
+    await expect(dock).toContainText('[命令已完成]')
     expect(errors).toEqual([])
   })
 
