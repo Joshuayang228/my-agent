@@ -114,9 +114,27 @@ export function registerMcpIPC(toolRegistry: ToolRegistry): void {
   })
 
   ipcMain.handle('mcp:list-tools', (_event, serverId?: string) => {
-    const tools = mcpManager.getAllTools()
+    const tools = mcpManager.getAllTools().map((tool) => ({ ...tool, allowed: mcpManager.isToolAllowed(tool.serverId, tool.name) }))
     if (serverId) return tools.filter(t => t.serverId === serverId)
     return tools
+  })
+
+  ipcMain.handle('mcp:set-tool-allowed', async (_event, serverId: string, toolName: string, allowed: boolean) => {
+    if (!isBoundedString(serverId, MAX_MCP_ID_LENGTH) || !isBoundedString(toolName, MAX_MCP_ID_LENGTH) || typeof allowed !== 'boolean') {
+      return { success: false, error: 'MCP 工具参数无效' }
+    }
+    const configs = parseStoredMcpConfigs(await settings.getSetting('mcpServers'))
+    const config = configs.find((item) => item.id === serverId)
+    if (!config || !mcpManager.isConnected(serverId)) return { success: false, error: 'MCP 服务尚未连接' }
+    const knownTools = mcpManager.getAllTools().filter((tool) => tool.serverId === serverId).map((tool) => tool.name)
+    if (!knownTools.includes(toolName)) return { success: false, error: 'MCP 工具不存在' }
+    const current = config.allowedTools ?? knownTools
+    const next = allowed ? [...new Set([...current, toolName])] : current.filter((name) => name !== toolName)
+    const updated = configs.map((item) => item.id === serverId ? { ...item, allowedTools: next } : item)
+    await settings.setSetting('mcpServers', JSON.stringify(updated))
+    mcpManager.setAllowedTools(serverId, next)
+    syncMcpToolsToRegistry(toolRegistry, serverId)
+    return { success: true, allowed }
   })
 
   ipcMain.handle('mcp:list-resources', (_event, serverId?: string) => {

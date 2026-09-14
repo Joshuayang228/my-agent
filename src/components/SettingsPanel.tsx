@@ -563,7 +563,7 @@ export function SettingsPanel({
             value={form.llmApiKey}
             onChange={(e) => update('llmApiKey', e.target.value)}
             placeholder={hasStoredApiKey && !apiKeyChanged ? '已安全保存（输入新值可替换）' : 'sk-...'}
-            className="theme-input w-full rounded-lg border px-3 py-2 pr-16 font-mono text-sm outline-none transition"
+            className="theme-input w-full rounded-[var(--radius-md)] border px-3 py-2 pr-16 font-mono text-sm outline-none transition"
           />
           <button
             type="button"
@@ -585,7 +585,7 @@ export function SettingsPanel({
           value={form.llmBaseUrl}
           onChange={(e) => update('llmBaseUrl', e.target.value)}
           placeholder="https://api.openai.com/v1"
-          className="theme-input w-full rounded-lg border px-3 py-2 font-mono text-sm outline-none transition"
+          className="theme-input w-full rounded-[var(--radius-md)] border px-3 py-2 font-mono text-sm outline-none transition"
         />
       </SettingRow>
       </SettingCard>
@@ -598,7 +598,7 @@ export function SettingsPanel({
             value={form.llmModel}
             onChange={(e) => update('llmModel', e.target.value)}
             placeholder="填写 Provider 控制台中的模型 ID"
-            className="theme-input w-full rounded-lg border px-3 py-2 font-mono text-sm outline-none transition"
+          className="theme-input w-full rounded-[var(--radius-md)] border px-3 py-2 font-mono text-sm outline-none transition"
           />
         </SettingRow>
         <SettingRow label="辅助模型" description="留空时沿用主模型，用于标题、压缩等轻量任务。" scope="辅助任务" stacked>
@@ -607,7 +607,7 @@ export function SettingsPanel({
             value={form.auxModel}
             onChange={(e) => update('auxModel', e.target.value)}
             placeholder="可选：填写辅助模型 ID"
-            className="theme-input w-full rounded-lg border px-3 py-2 font-mono text-sm outline-none transition"
+          className="theme-input w-full rounded-[var(--radius-md)] border px-3 py-2 font-mono text-sm outline-none transition"
           />
         </SettingRow>
       </div>
@@ -630,7 +630,7 @@ export function SettingsPanel({
           type="button"
           onClick={() => void testConnection()}
           disabled={connectionTesting || !canTestConnection}
-          className="rounded-lg border px-3 py-2 text-xs font-medium transition disabled:opacity-45"
+          className="rounded-[var(--radius-md)] border px-3 py-2 text-xs font-medium transition disabled:opacity-45"
           style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
           data-testid="test-connection"
         >
@@ -716,12 +716,12 @@ export function SettingsPanel({
             value={newMcp.name}
             onChange={e => setNewMcp(m => ({ ...m, name: e.target.value }))}
             placeholder="名称（如 filesystem）"
-            className="theme-input mb-2 w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
+            className="theme-input mb-2 w-full rounded-[var(--radius-md)] border px-2 py-1.5 text-xs outline-none"
           />
           <select
             value={newMcp.transport}
             onChange={e => setNewMcp(m => ({ ...m, transport: e.target.value as 'stdio' | 'sse' }))}
-            className="theme-input mb-2 w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
+            className="theme-input mb-2 w-full rounded-[var(--radius-md)] border px-2 py-1.5 text-xs outline-none"
           >
             <option value="stdio">stdio（本地命令）</option>
             <option value="sse">SSE（远程 URL）</option>
@@ -732,7 +732,7 @@ export function SettingsPanel({
               value={newMcp.url}
               onChange={e => setNewMcp(m => ({ ...m, url: e.target.value }))}
               placeholder="SSE URL（如 http://localhost:3000/sse）"
-              className="theme-input mb-2 w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
+              className="theme-input mb-2 w-full rounded-[var(--radius-md)] border px-2 py-1.5 text-xs outline-none"
             />
           ) : (
             <>
@@ -741,14 +741,14 @@ export function SettingsPanel({
                 value={newMcp.command}
                 onChange={e => setNewMcp(m => ({ ...m, command: e.target.value }))}
                 placeholder="命令（如 npx, node, python3）"
-                className="theme-input mb-2 w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
+              className="theme-input mb-2 w-full rounded-[var(--radius-md)] border px-2 py-1.5 text-xs outline-none"
               />
               <input
                 type="text"
                 value={newMcp.args}
                 onChange={e => setNewMcp(m => ({ ...m, args: e.target.value }))}
                 placeholder="参数（空格分隔）"
-                className="theme-input mb-2 w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
+              className="theme-input mb-2 w-full rounded-[var(--radius-md)] border px-2 py-1.5 text-xs outline-none"
               />
             </>
           )}
@@ -757,13 +757,13 @@ export function SettingsPanel({
             onChange={e => setNewMcp(m => ({ ...m, env: e.target.value }))}
             placeholder="环境变量（每行 KEY=VALUE，可选）"
             rows={2}
-            className="theme-input mb-2 w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
+            className="theme-input mb-2 w-full rounded-[var(--radius-md)] border px-2 py-1.5 text-xs outline-none"
           />
           <button
             type="button"
             onClick={handleAddMcp}
             disabled={!newMcp.name || (newMcp.transport === 'sse' ? !newMcp.url.trim() : !newMcp.command)}
-            className="rounded-lg px-3 py-1 text-xs font-medium text-white transition disabled:opacity-40"
+            className="rounded-[var(--radius-md)] px-3 py-1 text-xs font-medium transition disabled:opacity-40"
             style={{ background: 'var(--accent-emphasis)' }}
           >
             连接
