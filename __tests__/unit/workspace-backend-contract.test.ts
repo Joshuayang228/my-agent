@@ -32,6 +32,13 @@ describe('正式工作区后端调用链', () => {
       expect(source).not.toMatch(/components\/playground|__tests__\/fixtures|WorkspaceExperienceCandidate/)
     }
   })
+
+  it('侧边聊天的工具工作目录由主进程当前项目根绑定', () => {
+    const projectIpc = readFileSync('electron/main/ipc/project.ts', 'utf8')
+    const runtime = readFileSync('electron/main/agent/runtime.ts', 'utf8')
+    expect(projectIpc).toContain('setWorkspaceRoot')
+    expect(runtime).toMatch(/workdir:\s*getWorkspaceRoot\(\)\s*\|\|\s*process\.cwd\(\)/)
+  })
 })
 
 

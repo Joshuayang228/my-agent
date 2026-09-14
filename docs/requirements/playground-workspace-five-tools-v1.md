@@ -100,7 +100,7 @@
 - 后端补齐前逐项补充契约：浏览器需隔离外站、导航和权限决策、关闭清理；侧聊需真实 session／runtime 归属、事件过滤、停止、错误恢复、持久化和模型配置工厂；终端需实例事件隔离、早到输出、结束和关闭清理，并审计 WISH-019 的 PTY 差距。涉及 IPC 时同步四处类型与入口，禁止复用 Playground 模拟实现。
 - 审阅真实契约：`session:getFileChangeDiff` 在原有 `diff/after` 外返回受长度上限保护的 `before`，供正式并排视图使用；列表读取和 diff 读取必须分别处理错误，按请求序号丢弃过期结果。新建文件无旧稿时仅提供 unified 视图，不以空字符串伪造旧稿。
 - 浏览器真实契约：`browser:load` 只返回通过主进程 URL/DNS 校验、未跟随重定向且未超出大小／时间上限的 HTML/XHTML/纯文本；正式 Renderer 通过 `sandbox=""` 和文档 CSP 展示，禁止脚本、插件、表单和外部资源，不承担登录态或任意网页交互；每次请求携带 Renderer 生成的 requestId，标签关闭/组件卸载调用 `browser:cancel`，主进程按 senderId + requestId 校验并终止 fetch。
-- 侧边聊天真实契约：`session:createWorkspace` 创建 `session_kind=workspace` 的临时会话；列表和主会话导览排除该类型，面板卸载调用现有 `session:delete` 清理。消息仍走现有 `chat:send`／`chat:event`／`chat:abort`，Renderer 按独立 sessionId 过滤事件；React 初始化清理产生的废弃 workspace 会话也必须删除。发送时可附带当前项目路径、父会话最近内容和当前文件／审阅焦点；主进程限制路径与正文长度，Runtime 只作为本轮参考，不写入历史或长期记忆。
+- 侧边聊天真实契约：`session:createWorkspace` 创建 `session_kind=workspace` 的临时会话；列表和主会话导览排除该类型，面板卸载调用现有 `session:delete` 清理。消息仍走现有 `chat:send`／`chat:event`／`chat:abort`，Renderer 按独立 sessionId 过滤事件；React 初始化清理产生的废弃 workspace 会话也必须删除。发送时可附带当前项目路径、父会话最近内容和当前文件／审阅焦点；主进程限制路径与正文长度，Runtime 只作为本轮参考，不写入历史或长期记忆。工具执行的 `ToolContext.workdir` 只取主进程由项目选择 IPC 绑定的当前工作区根，不信任 Renderer 传入路径作为执行边界。
 - 当前不动：生产 Prompt、人格／记忆策略、权限规则、模型配置与真实用户数据。它们不是本批视觉折叠的必要修改；后续真实能力需要改动时先把具体契约补入本合同。
 
 ### P1 共享标签批次
