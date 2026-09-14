@@ -2703,6 +2703,64 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('选择或新建一个 Skill', { exact: true })).toBeVisible()
   })
 
+  for (const theme of ['mist', 'dark']) {
+    for (const width of [1166, 600]) {
+      test(`正式相处偏好保存失败与恢复 ${theme} ${width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 731 })
+        await installProductionElectronStub(page)
+        await page.addInitScript((selectedTheme) => {
+          localStorage.setItem('theme', selectedTheme)
+          const api = (window as any).electronAPI
+          const stored: Record<string, string> = { llmApiKeyConfigured: 'true', llmModel: 'test', systemPrompt: '旧提示词保持不变', companionResponseNote: '' }
+          const harness = { fail: true, writes: [] as Array<[string, string]>, stored }
+          ;(window as any).__companionSettings = harness
+          api.settings.get = async () => ({ ...stored })
+          api.settings.set = async (key: string, value: string) => {
+            harness.writes.push([key, value])
+            if (harness.fail) throw new Error('测试保存失败')
+            stored[key] = value
+          }
+          api.mcp.status = async () => []
+        }, theme)
+        await page.goto('/')
+        await page.locator('button[title="设置"]').click()
+        const nav = width < 768 ? page.getByRole('tab', { name: '伙伴与相处', exact: true }) : page.getByTestId('settings-nav-companion')
+        await nav.click()
+        const note = page.getByRole('textbox', { name: '相处补充说明', exact: true })
+        await expect(note).toHaveAttribute('maxlength', '4000')
+        const status = page.getByTestId('settings-save-status')
+        const size = () => status.evaluate((node) => ({ width: node.clientWidth, height: node.clientHeight }))
+        const initialSize = await size()
+        const text = '请先给结论，再解释依据。\n'.repeat(80)
+        await note.fill(text)
+        const retry = page.getByRole('button', { name: '重试保存', exact: true })
+        await expect(retry).toBeVisible()
+        await expect(page.getByText('设置自动保存失败，修改仍保留，请重试', { exact: true })).toHaveCount(0)
+        expect(await size()).toEqual(initialSize)
+        const back = page.getByTestId(width < 768 ? 'settings-back-mobile' : 'settings-back')
+        await back.click()
+        await expect(note).toHaveValue(text)
+        await expect(page.getByTestId('settings-panel')).toBeVisible()
+        expect(await note.evaluate((node) => node.scrollHeight > node.clientHeight)).toBe(true)
+        await retry.scrollIntoViewIfNeeded()
+        await page.screenshot({ path: testInfo.outputPath('companion-save-failed.png') })
+        await page.evaluate(() => { (window as any).__companionSettings.fail = false })
+        await retry.click()
+        await expect(retry).not.toBeVisible()
+        expect(await size()).toEqual(initialSize)
+        expect(await page.evaluate(() => (window as any).__companionSettings.stored.systemPrompt)).toBe('旧提示词保持不变')
+        expect(await page.evaluate(() => (window as any).__companionSettings.writes.every(([key]: [string]) => key === 'companionResponseNote'))).toBe(true)
+        await back.click()
+        await page.locator('button[title="设置"]').click()
+        await nav.click()
+        await expect(note).toHaveValue(text)
+        await note.fill('')
+        await back.click()
+        expect(await page.evaluate(() => (window as any).__companionSettings.stored.companionResponseNote)).toBe('')
+      })
+    }
+  }
+
   test('设置自动保存覆盖防抖与立即离开场景', async ({ page }) => {
     await page.goto('/')
     await page.evaluate(() => {
@@ -2734,6 +2792,23 @@ test.describe('My Agent UI', () => {
     await baseUrl.fill('https://autosave.example/v1')
     await expect.poll(() => page.evaluate(() => (window as any).__settingsWrites.some(
       ([key, value]: [string, string]) => key === 'llmBaseUrl' && value === 'https://autosave.example/v1',
+    ))).toBe(true)
+
+    await page.evaluate(() => {
+      const state = window as any
+      const original = state.electronAPI.settings.set
+      state.electronAPI.settings.set = (key: string, value: string) => {
+        if (value !== 'https://inflight.example/v1') return original(key, value)
+        state.__settingsWrites.push([key, value])
+        return new Promise<void>((resolve) => { state.__releaseSettingsWrite = resolve })
+      }
+    })
+    await baseUrl.fill('https://inflight.example/v1')
+    await expect.poll(() => page.evaluate(() => typeof (window as any).__releaseSettingsWrite)).toBe('function')
+    await baseUrl.fill('https://newer-edit.example/v1')
+    await page.evaluate(() => (window as any).__releaseSettingsWrite())
+    await expect.poll(() => page.evaluate(() => (window as any).__settingsWrites.some(
+      ([key, value]: [string, string]) => key === 'llmBaseUrl' && value === 'https://newer-edit.example/v1',
     ))).toBe(true)
 
     await page.evaluate(() => { (window as any).__settingsWrites.length = 0 })

@@ -99,8 +99,6 @@ export const FOUNDATION_STORIES = [
   { key: 'foundation.scroll-area', viewId: 'scroll-area', assetKey: 'behavior.scroll-area', labelZh: '滚动区域', group: 'developer', renderer: 'advanced', navigationGroup: 'layout-scroll' },
   { key: 'foundation.resize-handle', viewId: 'resize-handle', assetKey: 'layout.resize-handle', labelZh: '分栏拖拽', group: 'developer', renderer: 'ui-controls', navigationGroup: 'layout-scroll' },
   { key: 'foundation.divider', viewId: 'divider', assetKey: 'layout.divider', labelZh: '分隔线', group: 'developer', renderer: 'ui-controls', navigationGroup: 'layout-scroll' },
-  { key: 'foundation.settings-layout', viewId: 'settings-layout', assetKey: 'layout.settings-layout', labelZh: '设置布局', group: 'behavior', renderer: 'advanced', navigationGroup: 'layout-scroll' },
-  { key: 'foundation.setting-card', viewId: 'setting-card', assetKey: 'behavior.setting-card', labelZh: '设置卡片', group: 'behavior', renderer: 'advanced', navigationGroup: 'cards' },
 ] as const satisfies readonly FoundationStoryRecord[]
 
 export type FoundationStoryDefinition = (typeof FOUNDATION_STORIES)[number]

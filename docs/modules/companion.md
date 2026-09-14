@@ -18,7 +18,7 @@
 | 类型 | 位置 |
 |------|------|
 | UI · 生活面 | 侧栏「人物世界」口袋（`WorldHub`：朋友圈/物什/名册/角色架）；欢迎屏快捷 |
-| UI · 工具面 | 设置「伙伴」：MUTABLE/反思 + 活跃主角（次要）；记忆与 Skills 均从 Settings 进入 |
+| UI · 工具面 | 设置「伙伴与相处」：回答方式、相处补充说明、生活提醒、主动问候、角色架；旧 MUTABLE / 反思表单不再保留为设置入口，后端服务仍保留 |
 | IPC | `companion:*`（list / switch / moments / assets / roster / catchup-status(+presence) / start-summon / reflection…） |
 | Prompt | `prompt-builder` + `orchestrator.loadRoleAssembleInput`（管线见下方「Prompt 组装」） |
 | 资产 | `electron/main/companion/universes/default/` |
@@ -34,7 +34,7 @@
 | `assets` | AssetsPanel | 衣柜（P1 加厚主视觉） |
 | `cast` | CastPanel | 名册 / 召唤（≠换活跃） |
 | `shelf` | CharacterShelfPanel | 角色架换角 |
-| `settings` | SettingsPanel | 伴侣开关 / MUTABLE / 反思 |
+| `settings` | SettingsPanel + CompanionSettingsContent | 相处偏好 / 提醒 / 角色架；与 Playground 共用业务组合，数据隔离 |
 
 ## 依赖
 
@@ -72,6 +72,7 @@
 
 | 能力 | 状态 | 用户入口 | 落点 |
 |------|------|----------|------|
+| 用户相处补充说明 | 已落地 | 设置 → 伙伴与相处 | 独立 `companionResponseNote`，默认空、最多 4000 UTF-16 代码单元；仅保存实际修改，失败保留草稿并提供固定操作槽重试。作为 L3 偏好用于下一轮主对话 / 召唤，workspace 排除；不迁移或覆盖旧 `systemPrompt`，不改变角色身份和工具权限。备份白名单包含该字段，导入前同样限长 |
 | Universe + Role Pack（三槽：lin / zhou / xia） | 已落地 | 角色架 / 设置 | `universes/default/` · 文案见 [companion-cast-content](../requirements/companion-cast-content.md) |
 | 主角候选结构化档案（Role Profile） | 已落地 | Debug「世界态」/ Prompt L1 | 当前仅小航 `profile.json`；行为边界与五维表达基线已定，人物故事字段待定 |
 | 伙伴生产资产目录 | 已落地 | Debug「提示词管理器 → 伙伴世界」 | `companion/asset-registry.ts`；manifest / profile / 默认世界 / 场景 / 衣柜书架 starter 使用稳定 key、版本、指纹、来源和依赖 |

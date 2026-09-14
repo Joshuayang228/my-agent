@@ -27,6 +27,7 @@ let userDataDir = ''
 let server: ReturnType<typeof createServer>
 let baseUrl = ''
 let capturedRequest: CapturedRequest | null = null
+const capturedRequests: CapturedRequest[] = []
 let heldStreamClosed = false
 let mainOutput = ''
 const fixtureReportName = '2099-01-01T00-00-00-000Z-persona-b02-b07-pass-1.json'
@@ -91,6 +92,7 @@ test.beforeAll(async () => {
       authorization: request.headers.authorization ?? '',
       body: JSON.parse(rawBody) as Record<string, unknown>,
     }
+    capturedRequests.push(capturedRequest)
     response.writeHead(200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache',
@@ -183,6 +185,61 @@ test('首次进入可测试模型连接并保存后开始对话', async () => {
   await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
 })
 
+
+test('正式伙伴设置经真实 IPC 保存独立偏好并在重载后恢复', async () => {
+  const previous = await page.evaluate(() => window.electronAPI.settings.get())
+  const noteText = '先给我结论，再说明依据。\n'.repeat(60)
+  try {
+    await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-companion').click()
+    const note = page.getByRole('textbox', { name: '相处补充说明', exact: true })
+    await note.fill(noteText)
+    await page.getByTestId('settings-back').click()
+    await expect.poll(async () => (await page.evaluate(() => window.electronAPI.settings.get())).companionResponseNote).toBe(noteText)
+    expect((await page.evaluate(() => window.electronAPI.settings.get())).systemPrompt).toBe(previous.systemPrompt)
+    await page.reload()
+    await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-companion').click()
+    await expect(note).toHaveValue(noteText)
+    for (const kind of ['main', 'workspace'] as const) {
+      const marker = `companion-note-runtime-${kind}`
+      await page.evaluate(async ({ kind, marker }) => {
+        const session = await (kind === 'workspace' ? window.electronAPI.session.createWorkspace() : window.electronAPI.session.create())
+        try {
+          await window.electronAPI.chat.send(session.id, { id: crypto.randomUUID(), role: 'user', content: marker, timestamp: Date.now() })
+        } finally {
+          await window.electronAPI.session.delete(session.id)
+        }
+      }, { kind, marker })
+      const request = capturedRequests.find((entry) => {
+        const messages = entry.body.messages as Array<{ role: string; content: unknown }> | undefined
+        return messages?.some((message) => message.role === 'user' && typeof message.content === 'string' && message.content.split('\n').at(-1) === marker)
+      })
+      expect(request, `${kind} 必须到达本地测试模型`).toBeDefined()
+      const messages = request!.body.messages as Array<{ role: string; content: unknown }>
+      const system = JSON.stringify(messages.filter((message) => message.role === 'system'))
+      if (kind === 'main') {
+        expect(system).toContain('## 用户相处偏好')
+        expect(system).toContain('先给我结论，再说明依据。')
+      } else {
+        expect(system).not.toContain('## 用户相处偏好')
+        expect(system).not.toContain('先给我结论，再说明依据。')
+      }
+    }
+    await note.fill('')
+    await page.getByTestId('settings-back').click()
+    await expect.poll(async () => (await page.evaluate(() => window.electronAPI.settings.get())).companionResponseNote).toBe('')
+    const rejected = await page.evaluate(async () => {
+      try {
+        await window.electronAPI.settings.set('companionResponseNote', '好'.repeat(4001))
+        return false
+      } catch { return true }
+    })
+    expect(rejected).toBe(true)
+  } finally {
+    await page.evaluate((value) => window.electronAPI.settings.set('companionResponseNote', value), previous.companionResponseNote || '')
+  }
+})
 
 test('Debug 质量 Eval 可保存并重新载入真人格人工审阅', async () => {
   await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Debug', exact: true }).click()

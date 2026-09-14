@@ -22,7 +22,7 @@ interface SettingsForm {
   llmTemperature: string
   llmTopP: string
   llmMaxTokens: string
-  systemPrompt: string
+  companionResponseNote: string
   activeRoleId: string
   executionMode: string
   /** auto | novice | intermediate | expert — 能力解释粒度（M30-G3） */
@@ -70,7 +70,7 @@ const DEFAULTS: SettingsForm = {
   llmTemperature: '0.7',
   llmTopP: '1',
   llmMaxTokens: '4096',
-  systemPrompt: '',
+  companionResponseNote: '',
   activeRoleId: 'lin',
   executionMode: 'auto',
   userExpertiseLevel: 'auto',
@@ -110,7 +110,7 @@ interface SettingsPanelProps {
   onThemeChange?: (themeId: string) => void
   /** Playground 只读预览：不读取、写入或探测真实设置。 */
   preview?: boolean
-  /** 只在 Playground preview 中生效；正式设置仍从「通用」开始。 */
+  /** 只在 Playground preview 中生效；正式设置从外观开始，未配置模型时进入模型。 */
   previewInitialSection?: SettingsSection
 }
 
@@ -126,8 +126,11 @@ export function SettingsPanel({
     preview && previewInitialSection ? previewInitialSection : 'appearance',
   )
   const [roleShelfOpen, setRoleShelfOpen] = useState(false)
+  const activeSectionRef = useRef(activeSection)
+  activeSectionRef.current = activeSection
   const [fontScale, setFontScale] = useState(() => localStorage.getItem('uiFontScale') || 'md')
   const [form, setForm] = useState<SettingsForm>(DEFAULTS)
+  const [saveFailed, setSaveFailed] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
   const [hasStoredApiKey, setHasStoredApiKey] = useState(false)
   const [apiKeyChanged, setApiKeyChanged] = useState(false)
@@ -151,9 +154,10 @@ export function SettingsPanel({
   useEffect(() => {
     if (preview) setActiveSection(previewInitialSection ?? 'appearance')
   }, [preview, previewInitialSection])
-  // 自动保存只处理用户真实修改：初始加载不回写；修订号用于识别保存期间发生的新编辑。
+  // 背景：全表保存会把未编辑的旧配置覆盖回去。只排队真实修改，串行落盘；失败项保留供重试。
   const settingsLoadedRef = useRef(false)
-  const settingsRevisionRef = useRef(0)
+  const pendingSettingsRef = useRef(new Map<keyof SettingsForm, string>())
+  const savingRef = useRef<Promise<boolean> | null>(null)
 
   const refreshMcpStatus = useCallback(async () => {
     if (preview || !window.electronAPI) return
@@ -183,7 +187,7 @@ export function SettingsPanel({
         llmTemperature: s.llmTemperature || DEFAULTS.llmTemperature,
         llmTopP: s.llmTopP || DEFAULTS.llmTopP,
         llmMaxTokens: s.llmMaxTokens || DEFAULTS.llmMaxTokens,
-        systemPrompt: s.systemPrompt || '',
+        companionResponseNote: s.companionResponseNote || '',
         activeRoleId: s.activeRoleId || DEFAULTS.activeRoleId,
         executionMode: s.executionMode || DEFAULTS.executionMode,
         userExpertiseLevel: s.userExpertiseLevel || DEFAULTS.userExpertiseLevel,
@@ -211,29 +215,36 @@ export function SettingsPanel({
     refreshMcpStatus()
   }, [preview, refreshMcpStatus])
 
-  const persistSettings = useCallback(async (): Promise<void> => {
-    if (preview || !window.electronAPI || !settingsLoadedRef.current || settingsRevisionRef.current === 0) return
-    const savingRevision = settingsRevisionRef.current
-    try {
-      for (const [key, value] of Object.entries(form)) {
-        // activeRoleId 只能走 companion.requestSwitch（含 pause/catchup）。
-        if (key === 'activeRoleId') continue
-        // 安全视图不下沉原始 API Key；用户没有输入新值时绝不能用空串覆盖已保存密钥。
-        if (key === 'llmApiKey' && !apiKeyChanged) continue
-        await window.electronAPI.settings.set(key, value)
+  const persistSettings = useCallback((): Promise<boolean> => {
+    if (savingRef.current) return savingRef.current
+    if (preview || !window.electronAPI || !settingsLoadedRef.current) return Promise.resolve(true)
+    const flush = async () => {
+      try {
+        while (pendingSettingsRef.current.size) {
+          const [key, value] = pendingSettingsRef.current.entries().next().value!
+          await window.electronAPI.settings.set(key, value)
+          // 保存过程中同字段的新值不能被旧请求清掉；下一圈继续提交它。
+          if (pendingSettingsRef.current.get(key) === value) {
+            pendingSettingsRef.current.delete(key)
+            if (key === 'llmApiKey') {
+              setHasStoredApiKey(Boolean(value.trim()))
+              if (!value.trim()) setFirstRun(true)
+              setApiKeyChanged(false)
+            }
+          }
+        }
+        setSaveFailed(false)
+        return true
+      } catch {
+        setSaveFailed(true)
+        // 伙伴页已有固定重试槽；重复 Toast 会遮挡操作，其他页仍需可见的失败通知。
+        if (activeSectionRef.current !== 'companion') toast('设置自动保存失败，修改仍保留，请重试', 'error')
+        return false
       }
-      if (apiKeyChanged) {
-        const hasApiKey = Boolean(form.llmApiKey.trim())
-        setHasStoredApiKey(hasApiKey)
-        if (!hasApiKey) setFirstRun(true)
-        setApiKeyChanged(false)
-      }
-      // 保存过程中若又有编辑，保留新修订，交给下一轮防抖继续落盘。
-      if (settingsRevisionRef.current === savingRevision) settingsRevisionRef.current = 0
-    } catch {
-      toast('设置自动保存失败，请重试', 'error')
     }
-  }, [apiKeyChanged, form, preview, toast])
+    savingRef.current = flush().finally(() => { savingRef.current = null })
+    return savingRef.current
+  }, [preview, toast])
 
   const initialLoadDone = useRef(false)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -249,7 +260,7 @@ export function SettingsPanel({
       void persistSettings()
     }, 800)
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current) }
-  }, [persistSettings, preview])
+  }, [form, persistSettings, preview])
 
   const persistSettingsRef = useRef(persistSettings)
   // 直接刷新 latest ref，确保用户刚编辑就返回 / 按 Esc 时不会调用上一帧的保存闭包。
@@ -307,15 +318,17 @@ export function SettingsPanel({
   }, [apiKeyChanged, canTestConnection, connectionKey, form.llmApiKey, form.llmBaseUrl, form.llmModel, hasStoredApiKey, preview])
 
   const applyPreset = useCallback((preset: ProviderPreset) => {
-    settingsRevisionRef.current += 1
+    if (preview) return
+    pendingSettingsRef.current.set('llmBaseUrl', preset.baseUrl)
     setVerifiedConnectionKey('')
     setConnectionStatus(null)
     setForm((f) => ({ ...f, llmBaseUrl: preset.baseUrl }))
-  }, [])
+  }, [preview])
 
   const update = (key: keyof SettingsForm, value: string) => {
     if (preview) return
-    settingsRevisionRef.current += 1
+    if (key === 'activeRoleId') return
+    pendingSettingsRef.current.set(key, value)
     if (key === 'llmApiKey') setApiKeyChanged(true)
     if (key === 'llmApiKey' || key === 'llmBaseUrl' || key === 'llmModel') {
       setVerifiedConnectionKey('')
@@ -326,10 +339,14 @@ export function SettingsPanel({
 
   /** 执行模式点选即落盘（与对话页同一 settings.executionMode） */
   const updateAndPersist = async (key: 'executionMode', value: string) => {
-    update(key, value)
     if (preview || !window.electronAPI) return
-    await window.electronAPI.settings.set(key, value)
-    toast('执行模式已切换', 'success')
+    try {
+      await window.electronAPI.settings.set(key, value)
+      setForm((current) => ({ ...current, [key]: value }))
+      toast('执行模式已切换', 'success')
+    } catch {
+      toast('执行模式未更改，请确认后重试', 'error')
+    }
   }
 
   const saveMcpList = useCallback(async (servers: McpServerEntry[]) => {
@@ -479,8 +496,10 @@ export function SettingsPanel({
     onQuietStartChange={(value) => update('companionMomentTipsQuietStart', value)}
     onQuietEndChange={(value) => update('companionMomentTipsQuietEnd', value)}
     onMaxPerDayChange={(value) => update('companionMomentTipsMaxPerDay', value)}
-    note={form.systemPrompt}
-    onNoteChange={(value) => update('systemPrompt', value)}
+    note={form.companionResponseNote}
+    onNoteChange={(value) => update('companionResponseNote', value)}
+    saveFailed={saveFailed}
+    onRetrySave={() => { void persistSettings() }}
     roleAction={<ActionButton onClick={() => setRoleShelfOpen(true)} disabled={preview} data-testid="settings-open-role-shelf">管理角色架</ActionButton>}
   />
 
@@ -916,7 +935,7 @@ export function SettingsPanel({
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1" data-testid="settings-panel">
-      <SettingsLayout activeSection={page} onClose={onClose} panelOwnsScroll={embedded}
+      <SettingsLayout activeSection={page} onClose={() => { void persistSettings().then((saved) => { if (saved) onClose() }) }} panelOwnsScroll={embedded}
         onSelect={(id) => { setRoleShelfOpen(false); setActiveSection(PAGE_SECTIONS[id]) }}>
         {activeSection === 'companion' && roleShelfOpen && !preview
           ? <CharacterShelfPanel onClose={() => setRoleShelfOpen(false)} onSwitched={(role) => {

@@ -86,6 +86,26 @@ R12 必须拆成六个独立验收面：
 - 不碰：模型 / MCP 新协议、记忆分类存储、六面数据模型、权限引擎、Prompt 与运行时。各内容页的完整视觉回流仍按对应编号推进，R02 不能代表 R03–R14 完成。
 - 验证：共享导航数据及真实渲染引用 Unit；正式入口九区导航、窄屏键盘、角色架切换失败、内嵌记忆读取 / 编辑、Skills 读取及设置保存 E2E；完整 Unit / tsc / build / docs / assets 门禁。
 
+### R04 相处说明接入边界（2026-09-14）
+
+- 复核：上次提交仅接入了共享导航和部分伙伴内容；R02–R04 尚未整体验收。设置页仍有旧内容，不能写为全页 demo 已完成。
+- 相处说明使用独立的 `companionResponseNote`，默认空、上限 4000 个 UTF-16 代码单元；不从旧 `systemPrompt` 迁移，也不覆盖它。沿既有 settings:get/set 保存，适用于本机所有伙伴的下一轮主对话与召唤；workspace 会话不注入。
+- 组装使用独立 L3 用户偏好区块，序列化为带引号的文本，不替换身份、工具权限或系统规则；主进程存储限制长度，Debug 同源展示组装结果，用户正文不作为内置资产登记。
+- 文件范围：SettingsPanel / CompanionSettingsContent / SettingsExperienceCandidate、共享设置类型、settings-store / settings IPC / preload / renderer 声明、runtime / prompt-builder / debug / Prompt 注册表、备份设置白名单及对应测试；同步伙伴模块卡与质量、进度、变更账本。
+- 验证：旧 systemPrompt 不变、空值清除、超长拒绝、重新打开恢复、保存失败重试、候选编辑不写 IPC、Prompt 身份与权限不变、真实 Electron IPC 及独立测试数据目录。不上真实付费模型，不改模型/MCP/世界状态契约。
+
+#### 当前收口记录
+
+- 本批验证：Unit 825 项通过；根 `tsc --noEmit` 与 build 通过；UI 最终串行 95 项通过；Electron 7 项通过，4 项外部模型 Key 用例按配置跳过；assets / docs 门禁通过。Electron 本地协议服务已核验偏好进入主对话实发请求、workspace 请求排除偏好；未运行付费模型服从性 Eval。
+- UI 稳定性记录：一次并行全量中记忆候选按钮在点击时被卸载并回到主界面；保持测试 / 产品代码不变，单独 trace 复核和最终串行全量均通过，根因尚未确定，不声称修复。失败现场在 `test-results`，复核 trace 在 `var/verification/memory-ui-recheck`。
+- [待确认] 全局快捷键离开设置仍由 App 直接切换视图，未统一进入本批返回按钮的保存成功门控；后续 R01/R02 需复现保存失败时的跨入口草稿行为。当前证据只保证设置内重试与返回按钮，不外推为所有离开路径均已覆盖。
+
+- 主进程独立类型诊断复核：对照上一提交的内存源文件，前后各 72 条；按文件、错误码和主错误信息比较无新增诊断（不比较行号和 import 链条明细）。这是无新增问题证据，不代表 `tsconfig.node.json` 门禁通过；历史问题仍由 WISH-043 管理。
+
+- 伙伴设置已接独立字段、串行增量保存、失败重试固定槽及备份限长校验；证据落在 `prompt-builder`、`prompt-assets`、`settings-security`、`security-boundaries` Unit 与 `chat` / `onboarding` E2E。R04 整体仍待角色架等正式流程统一验收，不将该字段闭环等同全部伙伴设置完成。
+- 修正上次误登记的 Foundation 故事：`foundation.settings-layout`、`foundation.setting-card` 没有对应基础 renderer，移除这两条错误故事记录，将实际组件登记为 Experience；组件本身保留，不删除任何已存在基础控件能力。
+- 复核确认正式 `DESIGN_THEME_ASSETS` 仍为七个旧主题，R03 四主题回流尚未完成；正式模型、记忆、Skills、MCP 等内容不能因已嵌入九区导航而标为采用完成。
+
 ## 4. 影响范围与不碰项
 
 允许按编号逐项认领：App、正式产品与 Foundation 组件、共享类型 / 资产注册、对应 Playground 故事、必要的主进程服务 / IPC / preload、测试及对应文档。不授权任意重构；每次动手前仍列精确文件范围。

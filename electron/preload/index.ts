@@ -90,6 +90,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   settings: {
+    // 共享安全视图包含 companionResponseNote；不通过额外频道读取偏好或凭据。
     get: (): Promise<RendererSettings> => ipcRenderer.invoke('settings:get'),
     set: (key: string, value: string): Promise<void> => ipcRenderer.invoke('settings:set', key, value),
     testConnection: (input: LLMConnectionTestInput): Promise<LLMConnectionTestResult> =>

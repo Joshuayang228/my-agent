@@ -79,6 +79,7 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
         toolNames,
         userProfile,
         sessionInfo: customPrompt,
+        companionResponseNote: settings.companionResponseNote,
       })
 
       return {

@@ -23,6 +23,13 @@ const REQUIRED_KEYS = [
 ] as const
 
 describe('debug prompt assets', () => {
+  it('相处偏好只登记动态来源，不复制用户正文', () => {
+    const asset = getPromptAssets().find((entry) => entry.key === PROMPT_KEYS.companionResponseNote)
+    expect(asset).toMatchObject({ ownership: 'user', mode: 'dynamic', sourcePath: 'electron/main/agent/prompt-builder.ts' })
+    expect(asset?.slots).toContainEqual(expect.objectContaining({ source: 'settings.companionResponseNote' }))
+    expect(asset?.locales['zh-CN'].template).toBeUndefined()
+  })
+
   it('目录来自生产注册表且包含静态与动态 Prompt', () => {
     const assets = getPromptAssets()
     expect(assets.length).toBeGreaterThanOrEqual(5)

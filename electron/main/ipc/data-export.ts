@@ -12,6 +12,7 @@ import * as memoryStore from '../storage/memory-store'
 import * as settingsStore from '../storage/settings-store'
 import { getDatabase, persist } from '../storage/database'
 import type { ChatSession, MemoryCategory, SessionKind } from '../../../src/shared/types'
+import { MAX_COMPANION_RESPONSE_NOTE_LENGTH } from '../../../src/shared/types'
 import type { Database } from 'sql.js'
 import { detectSensitiveKinds } from '../../../src/shared/sensitive-memory'
 
@@ -35,6 +36,7 @@ const EXPORT_MEMORY_CATEGORIES = new Set<MemoryCategory>(['identity', 'preferenc
 const SAFE_BACKUP_SETTING_KEYS = new Set<keyof settingsStore.AppSettings>([
   'llmBaseUrl', 'llmModel', 'llmTemperature', 'llmTopP', 'llmMaxTokens',
   'systemPrompt', 'activeRoleId', 'universeId', 'userExpertiseLevel', 'auxModel',
+  'companionResponseNote',
   'sessionTokenBudget', 'dailyTokenBudget',
   'companionGrowthStartedAt', 'companionGrowthStartedAtByRole', 'companionMilestonesByRole',
   'companionMomentTipsMuted', 'companionMomentTipsLastAt', 'companionMomentTipsQuietStart',
@@ -106,6 +108,7 @@ export function isValidExportData(value: unknown): value is ExportData {
 
   for (const [key, setting] of Object.entries(value.settings)) {
     if (!boundedString(key, 200) || !boundedString(setting)) return false
+    if (key === 'companionResponseNote' && setting.length > MAX_COMPANION_RESPONSE_NOTE_LENGTH) return false
   }
   return true
 }

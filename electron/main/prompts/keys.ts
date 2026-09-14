@@ -27,6 +27,7 @@ export const PROMPT_KEYS = {
   sessionTitle: promptKey('session-title'),
   connectionTest: promptKey('connection-test'),
   settingsSystemPrompt: promptKey('settings-system-prompt'),
+  companionResponseNote: promptKey('companion-response-note'),
   replyStance: promptKey('reply-stance'),
   toneControl: promptKey('tone-control'),
   relationshipStage: promptKey('relationship-stage'),

@@ -222,6 +222,7 @@ class AgentRuntime {
     try {
       // ── 构建上下文 ──
       const customPrompt = await settings.getSetting('systemPrompt')
+      const companionResponseNote = await settings.getSetting('companionResponseNote')
       const executionMode = (await settings.getSetting('executionMode') || 'auto') as ExecutionMode
       const expertiseOverride = await settings.getSetting('userExpertiseLevel')
       // 会话绑定 role_id 优先；与 active 不一致时仍按会话组装（禁止中途换角偷换人设）
@@ -404,6 +405,7 @@ class AgentRuntime {
         relationshipStageHint,
         milestoneHint,
         expertiseHint,
+        companionResponseNote: isWorkspace ? undefined : companionResponseNote,
       })
 
       // 调用点只声明稳定 key；来源、版本与 locale 由 LLM 统一入口从注册表解析。
@@ -416,6 +418,7 @@ class AgentRuntime {
           : [PROMPT_KEYS.companionMutableState]),
         ...(pack.voice?.trim() ? [rolePromptAssetKey(assembleRoleId, 'voice.md')] : []),
         ...(customPrompt?.trim() ? [PROMPT_KEYS.settingsSystemPrompt] : []),
+        ...(!isWorkspace && companionResponseNote?.trim() ? [PROMPT_KEYS.companionResponseNote] : []),
         ...([userProfile?.identity, userProfile?.workflow, userProfile?.voice].some((value) => value?.trim())
           ? [PROMPT_KEYS.userProfileContext]
           : []),

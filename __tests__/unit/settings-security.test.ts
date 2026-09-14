@@ -20,7 +20,7 @@ vi.mock('electron', () => ({
   safeStorage: { isEncryptionAvailable: () => false },
 }))
 vi.mock('../../electron/main/storage/settings-store', () => ({
-  isAppSettingKey: (key: string) => ['llmApiKey', 'mcpServers', 'executionMode', 'llmModel', 'permissionRules'].includes(key),
+  isAppSettingKey: (key: string) => ['llmApiKey', 'mcpServers', 'executionMode', 'llmModel', 'permissionRules', 'companionResponseNote'].includes(key),
   MAX_SETTING_VALUE_LENGTH: 1_000_000,
   getAllSettings,
   getSetting,
@@ -58,6 +58,17 @@ describe('设置 IPC 安全视图', () => {
     expect(view.mcpServers).toContain('__MY_AGENT_REDACTED__')
     expect(view.mcpServers).not.toContain('sk-real-secret')
     expect(view.mcpServers).not.toContain('real-secret')
+  })
+
+  it('相处偏好写入独立字段，拒绝超长输入', async () => {
+    registerSettingsIPC()
+    const handler = handlers.get('settings:set')!
+    await handler({}, 'companionResponseNote', '先说结论')
+    expect(setSetting).toHaveBeenCalledWith('companionResponseNote', '先说结论')
+    expect(setSetting).not.toHaveBeenCalledWith('systemPrompt', expect.anything())
+    setSetting.mockClear()
+    await expect(handler({}, 'companionResponseNote', '好'.repeat(4001))).rejects.toThrow()
+    expect(setSetting).not.toHaveBeenCalled()
   })
 
   it('连接测试可以由主进程使用已保存 Key，而不要求 Renderer 重新读取 Key', async () => {

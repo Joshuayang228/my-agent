@@ -108,6 +108,7 @@ declare global {
         onDownloaded: (cb: (info: { version: string }) => void) => () => void
       }
       settings: {
+        /** 包含独立的 companionResponseNote，与 preload 共用 RendererSettings。 */
         get: () => Promise<RendererSettings>
         set: (key: string, value: string) => Promise<void>
         testConnection: (input: LLMConnectionTestInput) => Promise<LLMConnectionTestResult>

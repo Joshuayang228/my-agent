@@ -1,6 +1,7 @@
 import { safeStorage } from 'electron'
 import { getDatabase, persist } from './database'
 import { createLogger } from '../utils/logger'
+import { MAX_COMPANION_RESPONSE_NOTE_LENGTH } from '../../../src/shared/types'
 
 const log = createLogger('SettingsStore')
 
@@ -66,6 +67,8 @@ export interface AppSettings {
   llmTopP: string
   llmMaxTokens: string
   systemPrompt: string
+  /** 用户在伙伴设置中填写的回应偏好，不能替代 systemPrompt 或 Role Pack。 */
+  companionResponseNote: string
   /** 当前活跃主角（Companion Role Pack id） */
   activeRoleId: string
   /** 当前宇宙 id，默认 default */
@@ -142,6 +145,7 @@ function getDefaults(): AppSettings {
     llmTopP: '1',
     llmMaxTokens: '4096',
     systemPrompt: '',
+    companionResponseNote: '',
     activeRoleId: 'lin',
     universeId: 'default',
     mcpServers: '[]',
@@ -215,6 +219,9 @@ export async function setSetting<K extends keyof AppSettings>(
   if (!isAppSettingKey(String(key))) throw new Error('无效的设置项')
   if (typeof value !== 'string' || value.length > MAX_SETTING_VALUE_LENGTH) {
     throw new Error('设置值无效或超出长度限制')
+  }
+  if (key === 'companionResponseNote' && value.length > MAX_COMPANION_RESPONSE_NOTE_LENGTH) {
+    throw new Error('相处补充说明超出长度限制')
   }
   await ensureTable()
   const db = await getDatabase()

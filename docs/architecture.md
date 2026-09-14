@@ -28,6 +28,8 @@
 
 ## 整体架构
 
+- 伙伴回应偏好沿 `SettingsPanel → settings:get/set → settings-store → Runtime → prompt-builder` 单一路径装配；共享 `CompanionSettingsContent` 只接 props，Playground 使用隔离状态。`companionResponseNote` 与旧 `systemPrompt` 分离，无隐式数据迁移，Debug 从同一组装器查看结果；该字段不是记忆库或身份资产。
+
 - chat:send 建立会话到发起 Renderer 的短生命周期归属，chat:abort 只能控制该归属；IPC 缺省会话 ID 直接返回，避免把 Renderer 输入映射为 Runtime 全局中断。
 
 ```

@@ -667,11 +667,15 @@ export interface LLMConnectionTestInput {
   model: string
 }
 
+export const MAX_COMPANION_RESPONSE_NOTE_LENGTH = 4000
+
 /** Renderer 可见设置：敏感值只返回状态，不返回原文。 */
 export interface RendererSettings extends Record<string, string> {
   llmApiKey: ''
   llmApiKeyConfigured: 'true' | 'false'
   mcpServers: string
+  /** 本机回应偏好；独立于旧 systemPrompt，不覆盖角色身份。 */
+  companionResponseNote: string
 }
 
 export type LLMConnectionTestResult =

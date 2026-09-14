@@ -7,6 +7,7 @@ import { loadMainLLMConfig } from '../llm/aux-config'
 import { PROMPT_KEYS } from '../prompts/keys'
 import { CONNECTION_TEST_MESSAGES, validateLLMConnectionTestInput } from '../../../src/shared/llm-connection-test'
 import type { LLMConnectionTestInput, LLMConnectionTestResult, RendererSettings } from '../../../src/shared/types'
+import { MAX_COMPANION_RESPONSE_NOTE_LENGTH } from '../../../src/shared/types'
 import { redactMcpConfigsForRenderer, hasNewOrChangedEnabledMcpConfig, mergeMcpConfigListSecrets, parseStoredMcpConfigs } from '../mcp/config-security'
 
 const RENDERER_BLOCKED_SETTING_KEYS = new Set<keyof AppSettings>(['currentProject', 'recentProjects'])
@@ -59,6 +60,9 @@ export function registerSettingsIPC(): void {
     }
     if (typeof value !== 'string' || value.length > settings.MAX_SETTING_VALUE_LENGTH) {
       throw new Error('设置值无效或超出长度限制')
+    }
+    if (key === 'companionResponseNote' && value.length > MAX_COMPANION_RESPONSE_NOTE_LENGTH) {
+      throw new Error('相处补充说明超出长度限制')
     }
 
     if (key === 'executionMode' && value === 'full-access') {
