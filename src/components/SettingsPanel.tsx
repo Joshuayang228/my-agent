@@ -901,12 +901,6 @@ export function SettingsPanel({
           <button type="button" role="switch" aria-checked={form.developerMode === 'true'} onClick={() => update('developerMode', form.developerMode === 'true' ? 'false' : 'true')} className="relative h-5 w-9 shrink-0 rounded-full transition" style={{ background: form.developerMode === 'true' ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }} data-testid="settings-developer-mode"><span className="absolute top-0.5 h-4 w-4 rounded-full shadow-sm transition" style={{ background: 'var(--text-primary)', left: form.developerMode === 'true' ? 'calc(100% - 1.125rem)' : '0.125rem' }} /></button>
         </SettingRow>
       </SettingCard>
-      <SettingCard>
-        <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-          受 Alice 项目启发，参考了 OpenAI Codex、Claude Desktop 等产品的设计理念。
-          感谢开源社区的贡献。
-        </p>
-      </SettingCard>
     </div>
   )
 
