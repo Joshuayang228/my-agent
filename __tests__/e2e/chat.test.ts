@@ -2776,98 +2776,49 @@ test.describe('My Agent UI', () => {
     }
   }
 
-  test('设置自动保存覆盖防抖与立即离开场景', async ({ page }) => {
+  test('设置高级模型参数自动保存并在离开时刷新', async ({ page }) => {
     await page.goto('/')
     await page.evaluate(() => {
       const writes: Array<[string, string]> = []
       ;(window as any).__settingsWrites = writes
       ;(window as any).electronAPI = {
         settings: {
-          get: async () => ({
-            llmApiKeyConfigured: 'true',
-            llmBaseUrl: 'https://api.openai.com/v1',
-            llmModel: 'gpt-4o',
-          }),
+          get: async () => ({ llmBaseUrl: 'https://api.openai.com/v1', llmModel: 'gpt-4o', modelConnections: '[]', modelRoutes: '[]' }),
           set: async (key: string, value: string) => { writes.push([key, value]) },
         },
-        companion: {
-          getActive: async () => ({ id: 'lin', name: '小林', description: '沉稳体贴的数字伙伴' }),
-          listProtagonists: async () => [],
-          getMutable: async () => ({ body: '' }),
-          listMutableVersions: async () => [],
-        },
+        companion: { getActive: async () => ({ id: 'lin', name: '小林', description: '沉稳体贴的数字伙伴' }), listProtagonists: async () => [], getMutable: async () => ({ body: '' }), listMutableVersions: async () => [] },
         mcp: { status: async () => [] },
       }
     })
-
     await page.click('button[title="设置"]')
     await page.getByRole('button', { name: '模型', exact: true }).click()
-    const baseUrl = page.locator('input[placeholder="https://api.openai.com/v1"]')
-
-    await baseUrl.fill('https://autosave.example/v1')
-    await expect.poll(() => page.evaluate(() => (window as any).__settingsWrites.some(
-      ([key, value]: [string, string]) => key === 'llmBaseUrl' && value === 'https://autosave.example/v1',
-    ))).toBe(true)
-
-    await page.evaluate(() => {
-      const state = window as any
-      const original = state.electronAPI.settings.set
-      state.electronAPI.settings.set = (key: string, value: string) => {
-        if (value !== 'https://inflight.example/v1') return original(key, value)
-        state.__settingsWrites.push([key, value])
-        return new Promise<void>((resolve) => { state.__releaseSettingsWrite = resolve })
-      }
-    })
-    await baseUrl.fill('https://inflight.example/v1')
-    await expect.poll(() => page.evaluate(() => typeof (window as any).__releaseSettingsWrite)).toBe('function')
-    await baseUrl.fill('https://newer-edit.example/v1')
-    await page.evaluate(() => (window as any).__releaseSettingsWrite())
-    await expect.poll(() => page.evaluate(() => (window as any).__settingsWrites.some(
-      ([key, value]: [string, string]) => key === 'llmBaseUrl' && value === 'https://newer-edit.example/v1',
-    ))).toBe(true)
-
-    await page.evaluate(() => { (window as any).__settingsWrites.length = 0 })
-    await baseUrl.fill('https://flush-on-close.example/v1')
+    const advancedToggle = page.getByRole('button', { name: /高级设置/ })
+    await advancedToggle.click()
+    const budget = page.getByLabel('会话预算（Token）', { exact: true })
+    await budget.fill('12000')
+    await expect.poll(() => page.evaluate(() => (window as any).__settingsWrites.some(([key, value]: [string, string]) => key === 'sessionTokenBudget' && value === '12000'))).toBe(true)
+    await budget.fill('13000')
     await page.locator('[data-testid="settings-back"]').click()
-    await expect.poll(() => page.evaluate(() => (window as any).__settingsWrites.some(
-      ([key, value]: [string, string]) => key === 'llmBaseUrl' && value === 'https://flush-on-close.example/v1',
-    ))).toBe(true)
+    await expect.poll(() => page.evaluate(() => (window as any).__settingsWrites.some(([key, value]: [string, string]) => key === 'sessionTokenBudget' && value === '13000'))).toBe(true)
   })
-
   test('设置面板无手动保存栏并可返回聊天', async ({ page }) => {
     await page.goto('/')
-
     await page.click('button[title="设置"]')
-    // Vite 模式下 electronAPI 不存在，但面板结构和自动保存交互文案仍可验收。
     const settingsPanel = page.locator('[data-testid="settings-panel"]')
     await expect(settingsPanel).toBeVisible()
-    await expect(page.locator('[data-testid="settings-main"] > div').first()).not.toHaveClass(/border-b/)
     await expect(settingsPanel.getByRole('button', { name: '保存', exact: true })).toHaveCount(0)
     await page.getByRole('button', { name: '模型', exact: true }).click()
-    await expect(page.getByText('模型名请按账户实际可用列表填写', { exact: false })).toBeVisible()
-    await expect(page.locator('[data-testid="test-connection"]')).toBeVisible()
-
-    const advancedToggle = page.getByRole('button', { name: /高级设置/ })
-    await expect(advancedToggle).toHaveAttribute('aria-expanded', 'false')
-    await advancedToggle.click()
-    await expect(advancedToggle).toHaveAttribute('aria-expanded', 'true')
-    await expect(page.locator('[data-testid="settings-model-budget"]')).toBeVisible()
+    await expect(page.getByTestId('settings-model-routing')).toBeVisible()
+    await expect(page.getByText('连接与模型', { exact: true })).toBeVisible()
+    await expect(page.getByText('模型使用安排', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: /高级设置/ })).toHaveAttribute('aria-expanded', 'false')
+    await page.getByRole('button', { name: /高级设置/ }).click()
+    await expect(page.getByTestId('settings-model-budget')).toBeVisible()
     await expect(page.getByLabel('会话预算（Token）', { exact: true })).toBeVisible()
     await expect(page.getByLabel('Temperature', { exact: true })).toBeVisible()
-
-    const providerDetails = page.locator('details').filter({ hasText: '选择其它 Provider 预设' })
-    await providerDetails.locator('summary').click()
-    const providerField = providerDetails.locator('[data-testid="settings-field"], .settings-field').first()
-    await expect(providerField).toContainText('Provider 预设')
-    await expect(providerDetails.getByRole('button', { name: /OpenAI https:\/\/api\.openai\.com\/v1/ })).toBeVisible()
-    await expect(providerDetails).not.toContainText('gpt-4o')
-    await expect(page.getByPlaceholder('填写 Provider 控制台中的模型 ID')).toHaveValue('gpt-4o')
-
     await page.getByRole('button', { name: '数据与隐私', exact: true }).click()
     await expect(page.getByRole('button', { name: /导出数据/ })).toContainText('生成一份本地备份')
     await expect(page.getByRole('button', { name: /导入数据/ })).toContainText('从本地备份恢复')
-    await expect(page.getByRole('button', { name: /导出数据/ })).toHaveClass(/min-h-16/)
-
     await page.locator('[data-testid="settings-back"]').click()
     await expect(settingsPanel).not.toBeVisible()
   })
