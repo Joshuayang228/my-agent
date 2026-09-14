@@ -51,7 +51,7 @@ export function PermissionConfirmCard({
         <button
           type="button"
           onClick={onAllow}
-          className="rounded-md px-3 py-1.5 text-[13px] font-medium text-white transition"
+          className="rounded-md px-3 py-1.5 text-[13px] font-medium transition"
           style={{ background: 'var(--warning)' }}
         >
           允许执行

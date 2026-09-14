@@ -293,8 +293,8 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
               </button>
               <button
                 type="button"
-                className="rounded-lg px-3 py-1.5 text-xs text-white"
-                style={{ background: 'var(--danger)' }}
+                className="rounded-lg px-3 py-1.5 text-xs"
+                style={{ background: 'var(--danger)', color: 'var(--text-primary)' }}
               >
                 危险
               </button>
@@ -310,7 +310,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
               <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
                 <Sparkles size={14} />生成
               </button>
-              <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs text-white" style={{ background: 'var(--accent-emphasis)' }}>
+              <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs" style={{ background: 'var(--accent-emphasis)', color: 'var(--text-primary)' }}>
                 <WandSparkles size={14} />重新生成
               </button>
               <button type="button" disabled className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs opacity-60" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>

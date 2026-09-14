@@ -836,7 +836,7 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
                 data-testid="memory-show-source"
               >
                 <span className="relative h-3.5 w-6 rounded-full" style={{ background: showSource ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }}>
-                  <span className="absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white transition" style={{ left: showSource ? 'calc(100% - 0.75rem)' : '0.125rem' }} />
+                  <span className="absolute top-0.5 h-2.5 w-2.5 rounded-full transition" style={{ background: 'var(--text-primary)', left: showSource ? 'calc(100% - 0.75rem)' : '0.125rem' }} />
                 </span>
                 查看来源
               </button>
