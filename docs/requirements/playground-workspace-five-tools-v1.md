@@ -65,7 +65,7 @@
 | PanelRight 打开／收起 | App.tsx 的 showFileBrowser | 已回流 | 隐藏不卸载，保留 Tab 和预览；Renderer 回归已覆盖 |
 | 文件左树右侧多文件预览 | WorkspaceFilesPanel + FileBrowser | 已回流 | 多预览去重、切换、关闭重开及乱序/错误有 Renderer 回归；真实 Electron 已验证项目授权和文件读取 |
 | 审阅 | ReviewPanel | 已回流 | 真实 before/after、并排/统一视图及错误/乱序有 Renderer 回归 |
-| 终端 | TerminalPanel | 已回流（Windows 命令控制台） | 保留权限、沙箱和工作区 cwd；真实 Electron 已验证拒绝后重试、大块输出、停止/关闭标签后的父子进程退出；Unit 验证终止失败/超时、关闭去重及无握手清理。Unix 仍需实机验证，完整 PTY 不在本合同范围 |
+| 终端 | TerminalPanel | 已回流（Agent 命令控制台） | 保留权限、沙箱和工作区 cwd；真实 Electron 已验证拒绝后重试、大块输出、停止/关闭标签后的父子进程退出；Unit 验证终止失败/超时、关闭去重及无握手清理。当前产品不要求完整 PTY；PTY 另有合同并已暂缓 |
 | 浏览器 | BrowserPanel 受限只读查看器 | 已有后端但能力受限 | 主进程安全抓取已接入 URL/DNS 校验、手动拒绝重定向、超时/响应上限，并新增 requestId 归属与关闭时取消；Renderer 使用无脚本 sandbox + CSP。仍不支持脚本、登录、站内交互和任意导航 |
 | 侧边聊天 | SideChatPanel + `workspace` 会话 | 已回流，正式视觉与交互已验收 | 创建/发送失败重试、旧草稿/确认/异步响应隔离有 Renderer 回归；真实 Electron 已验证流中关闭及切换主会话后的连接终止、存储删除和新侧聊发送；Runtime 初始化取消及 IPC 等待收尾/确认取消有 Unit；2026-09-13 全量 UI E2E 通过，覆盖正式入口、主题、窄宽、折叠、流式、停止、重试与父会话切换 |
 | 多实例工作区 Tab | ChatRightDock + Foundation TabStrip | 已回流 | 固定关闭槽、稳定实例 ID、后台关闭和切换/折叠/一级导航保持已有 Renderer 回归；Windows 终端关闭释放进程树已有 Electron 证据 |
@@ -82,7 +82,7 @@
 | 终端命令控制台 | 真实 terminal IPC、权限/沙箱/cwd、Windows 进程树回收已有证据 | 已有后端但能力受限 | Unix 实机证据与完整 PTY 不在当前合同；不得把命令控制台宣传为 PTY |
 | 受限网页查看 | `browser:load` / `browser:cancel` 主进程 URL/DNS 校验、拒绝重定向、响应/超时上限和请求归属，Renderer sandbox+CSP | 已有后端但能力受限 | 脚本、登录、表单、站内导航和任意网页交互明确不做；若要支持需另建安全施工合同 |
 | workspace 侧边聊天 | `session:createWorkspace` + 真实 Runtime 流式事件，主列表/长期记忆隔离，Electron 关闭与切换清理已覆盖 | 已有后端 | 继续补模型配置/工具确认等边界回归；不是静态样张 |
-| 完整终端 PTY | 正式界面没有可声称的 PTY 契约，当前实现是受权限控制的命令控制台 | 未实现 | 见 WISH-019，需单独合同、跨平台进程组和 PTY 资源/取消设计 |
+| 完整终端 PTY | 正式界面没有可声称的 PTY 契约，当前实现是受权限控制的命令控制台 | 暂缓 | 见 `terminal-pty-v1.md`；只有出现明确交互式终端需求后重新确认，不作为当前工作区回流阻塞项 |
 | 浏览器登录与脚本交互 | 当前主进程只返回受限 HTML/文本，Renderer 明确无脚本 | 未实现且明确排除 | 不在本合同内，不得从 Playground 浏览器样张回流 |
 | Unix 进程树实证 | 当前真实 Electron 证据为 Windows | 未完成验证 | 在 Unix 环境补实机验证，不用 Renderer 替身宣称跨平台完成 |
 

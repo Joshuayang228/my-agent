@@ -34,7 +34,7 @@
 | [settings-information-architecture-v1.md](./settings-information-architecture-v1.md) | P0 施工：设置体系信息架构、风险分层与隔离体验候选 |
 | [playground-skills-detail-v1.md](./playground-skills-detail-v1.md) | P0 施工：Skills 极简列表、详情元信息、文件树与内容预览 |
 | [playground-workspace-five-tools-v1.md](./playground-workspace-five-tools-v1.md) | P1 回流进行中：先统一五功能正式工作区，再补真实后端；P0 夹具继续隔离 |
-| [terminal-pty-v1.md](./terminal-pty-v1.md) | 草案待确认：真实 PTY、跨平台进程生命周期与 IPC 契约 |
+
 | [playground-mcp-scenarios-v1.md](./playground-mcp-scenarios-v1.md) | P0 施工：MCP 多服务、连接状态与工具数量场景直接审阅 |
 | [playground-model-and-workspace-v2.md](./playground-model-and-workspace-v2.md) | P0 施工：从用户故事重构模型设置与任务工作区候选 |
 | [debug-ui-information-architecture-v1.md](./debug-ui-information-architecture-v1.md) | 正式 Debug UI：运行概览、真实证据与受控诊断入口 |
@@ -59,6 +59,7 @@
 | [docs-truth-source-lifecycle.md](./docs-truth-source-lifecycle.md) | 文档 canonical source、历史归档、规则路由和自动一致性门禁收口 |
 | [companion-character-profile-world.md](./companion-character-profile-world.md) | 小航候选：档案/世界结构已接入，人物故事内容待定；旧状态不迁移 |
 | [chat-right-dock.md](./chat-right-dock.md) | Chat 右侧能力坞 Phase 1：文件 / 审阅 / 终端；Debug 覆盖；命令控制台 |
+| [terminal-pty-v1.md](./terminal-pty-v1.md) | 已冻结：完整 PTY 暂缓，保留未来重新开工条件与 IPC 草案 |
 | [debug-llm-call-storage.md](./debug-llm-call-storage.md) | 对齐 Alice 的 LLM Debug 调用记录存储、IPC 同步与侧栏恢复 |
 | [playground-component-fitting-room.md](./playground-component-fitting-room.md) | Playground：Alice 壳 + Storybook 思路（Phase 0） |
 | [frontend-alice-shell.md](./frontend-alice-shell.md) | 前端壳层对齐 Alice 布局（大气改造 Phase A） |
