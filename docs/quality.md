@@ -27,6 +27,8 @@
 
 正式数据与隐私页回归覆盖导出/导入动作卡的说明、固定高度和正式设置入口；真实 IPC 的取消、无效备份与失败恢复由 Electron 数据测试覆盖。
 
+MCP 工具许可回归覆盖旧配置兼容、工具名唯一性/长度校验、设置页真实工具清单入口以及 Registry/执行前双重过滤；真实连接、认证取消和重连仍需 Electron 服务证据。
+
 ## 二、测试分层
 
 差异复用门禁：foundation-story-registry.test.ts 使用 TypeScript 符号检查三层消费者渲染共享 DiffViewer / DiffViewControls，并验证 DiffViewer 渲染真实 CodeBlock；输入故事和正式工作区地址栏、命令控制台、侧边聊天必须引用同一 Foundation TextField；未使用 import、局部同名/遮蔽和别名负例一起保留。Renderer 回归覆盖空 before/after、并排后切无旧稿回退、原文复制/溢出，以及基础长文件、键盘切换和固定尺寸按钮的深浅宽窄截图。基础层不计算 diff；真实 before/after 安全读取仍由主进程既有测试验证。

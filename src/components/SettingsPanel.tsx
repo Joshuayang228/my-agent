@@ -55,7 +55,10 @@ interface McpServerEntry {
   env?: Record<string, string>
   url?: string
   enabled: boolean
+  allowedTools?: string[]
 }
+
+interface McpToolEntry { serverId: string; serverName: string; name: string; description: string; allowed: boolean }
 
 interface McpServerStatus {
   id: string
@@ -146,6 +149,7 @@ export function SettingsPanel({
   const [protagonists, setProtagonists] = useState<RoleInfo[]>([])
   const [mcpServers, setMcpServers] = useState<McpServerEntry[]>([])
   const [mcpStatuses, setMcpStatuses] = useState<McpServerStatus[]>([])
+  const [mcpTools, setMcpTools] = useState<McpToolEntry[]>([])
   const [mcpAdding, setMcpAdding] = useState(false)
   const [newMcp, setNewMcp] = useState({
     name: '',
@@ -168,6 +172,7 @@ export function SettingsPanel({
     if (preview || !window.electronAPI) return
     const statuses = await window.electronAPI.mcp.status()
     setMcpStatuses(statuses)
+    setMcpTools(await window.electronAPI.mcp.listTools())
   }, [preview])
 
   useEffect(() => {
@@ -801,6 +806,7 @@ export function SettingsPanel({
                 {st?.error && (
                   <div className="mt-0.5 truncate text-[10px] text-red-400">{st.error}</div>
                 )}
+                {st?.status === 'connected' && <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}><div className="mb-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>工具许可</div><div className="space-y-1.5">{mcpTools.filter((tool) => tool.serverId === server.id).map((tool) => <label key={tool.name} className="flex min-w-0 items-start justify-between gap-3 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}><span className="min-w-0"><span className="block break-words" style={{ color: 'var(--text-primary)' }}>{tool.name}</span>{tool.description && <span className="mt-0.5 block break-words text-[10px]" style={{ color: 'var(--text-muted)' }}>{tool.description}</span>}</span><input type="checkbox" aria-label={'允许 ' + tool.name} checked={tool.allowed} onChange={async (event) => { if (preview || !window.electronAPI) return; const result = await window.electronAPI.mcp.setToolAllowed(server.id, tool.name, event.target.checked); if (!result.success) toast(result.error || '工具许可未更新', 'error'); await refreshMcpStatus() }} /></label>)}</div></div>}
               </div>
               <div className="ml-2 flex shrink-0 items-center gap-1">
                 <button

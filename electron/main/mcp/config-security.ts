@@ -10,6 +10,8 @@ const MAX_MCP_ARG_LENGTH = 8_192
 const MAX_MCP_ENV_ENTRIES = 100
 const MAX_MCP_ENV_KEY_LENGTH = 256
 const MAX_MCP_ENV_VALUE_LENGTH = 16_384
+const MAX_MCP_ALLOWED_TOOL_LENGTH = 200
+const MAX_MCP_ALLOWED_TOOLS = 1_000
 
 function isBoundedString(value: unknown, max: number): value is string {
   return typeof value === 'string' && value.length > 0 && value.length <= max
@@ -33,6 +35,11 @@ export function isValidMcpConfig(value: unknown): value is McpServerConfig {
     || config.args.some((arg) => typeof arg !== 'string' || arg.length > MAX_MCP_ARG_LENGTH)
     || typeof config.enabled !== 'boolean'
     || (transport !== 'stdio' && transport !== 'sse')) return false
+  if (config.allowedTools !== undefined) {
+    if (!Array.isArray(config.allowedTools) || config.allowedTools.length > MAX_MCP_ALLOWED_TOOLS
+      || config.allowedTools.some((tool) => !isBoundedString(tool, MAX_MCP_ALLOWED_TOOL_LENGTH))
+      || new Set(config.allowedTools).size !== config.allowedTools.length) return false
+  }
   if (transport === 'stdio' && !isBoundedString(config.command, MAX_MCP_COMMAND_LENGTH)) return false
   if (transport === 'sse') {
     if (typeof config.command !== 'string') return false
@@ -136,6 +143,7 @@ function comparableMcpConfig(config: McpServerConfig): string {
     env: Object.entries(config.env ?? {}).sort(([left], [right]) => left.localeCompare(right)),
     url: config.url ?? '',
     enabled: config.enabled,
+    allowedTools: config.allowedTools ? [...config.allowedTools].sort() : [],
   })
 }
 

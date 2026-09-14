@@ -336,7 +336,8 @@ declare global {
         }) => Promise<{ success: boolean; toolCount?: number; error?: string }>
         disconnect: (serverId: string) => Promise<{ success: boolean }>
         status: () => Promise<Array<{ id: string; name: string; status: string; toolCount: number; resourceCount?: number; error?: string }>>
-        listTools: (serverId?: string) => Promise<Array<{ serverId: string; serverName: string; name: string; description: string }>>
+        listTools: (serverId?: string) => Promise<Array<{ serverId: string; serverName: string; name: string; description: string; allowed: boolean }>>
+        setToolAllowed: (serverId: string, toolName: string, allowed: boolean) => Promise<{ success: boolean; allowed?: boolean; error?: string }>
         listResources: (serverId?: string) => Promise<Array<{
           serverId: string
           serverName: string

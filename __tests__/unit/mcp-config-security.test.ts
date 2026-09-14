@@ -29,6 +29,15 @@ describe('MCP 配置安全边界', () => {
     expect(isValidMcpConfig({ id: 'x', name: 'server', command: 'x'.repeat(5000), args: [], enabled: true })).toBe(false)
   })
 
+  it('旧配置默认全部允许，新配置校验工具许可并保持排序比较', () => {
+    const base = { id: 'x', name: 'server', command: 'node', args: [], enabled: true }
+    expect(isValidMcpConfig(base)).toBe(true)
+    expect(isValidMcpConfig({ ...base, allowedTools: ['search', 'write'] })).toBe(true)
+    expect(isValidMcpConfig({ ...base, allowedTools: ['search', 'search'] })).toBe(false)
+    expect(isValidMcpConfig({ ...base, allowedTools: [''] })).toBe(false)
+    expect(hasNewOrChangedEnabledMcpConfig([{ ...base, allowedTools: ['search'] }], [{ ...base, allowedTools: ['write'] }])).toBe(true)
+  })
+
   it('Renderer 只能看到 env 哨兵，主进程可用旧配置恢复真实值', () => {
     const stored = [{ id: 'mcp-1', name: 'server', command: 'node', args: [], enabled: true, env: { TOKEN: 'real-secret' } }]
     const redacted = JSON.parse(redactMcpConfigsForRenderer(JSON.stringify(stored)))

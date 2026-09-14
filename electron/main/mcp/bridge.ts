@@ -147,7 +147,7 @@ export function syncMcpToolsToRegistry(
   registry: ToolRegistry,
   serverId: string,
 ): number {
-  const tools = mcpManager.getAllTools().filter(t => t.serverId === serverId)
+  const tools = mcpManager.getAllTools().filter(t => t.serverId === serverId && mcpManager.isToolAllowed(t.serverId, t.name))
 
   // 先移除该 server 的旧工具
   removeMcpToolsFromRegistry(registry, serverId)

@@ -55,6 +55,8 @@
 
 ## 已落地能力
 
+- MCP 工具许可由服务配置的 `allowedTools` 字段承载；旧配置未设置时兼容为全部允许。MCP Bridge 注册工具和 `McpClientManager.callTool` 执行前均再次过滤，正式设置通过 `mcp:set-tool-allowed` 更新并持久化；审批规则仍独立负责高风险确认。
+
 - 正式相处说明经 `settings.companionResponseNote` 进入 `buildSystemPrompt` 的独立 L3 区块，主对话和召唤读取，workspace 排除。空值不注入、组装侧再次限长；动态 Prompt key 只登记用户数据来源，不复制正文。该偏好不替代 Role Pack 或工具权限；产品入口与保存契约见伙伴模块卡。
 
 - 差异内容与模式控件由 Foundation `DiffViewer` / `DiffViewControls` 统一提供，基础故事、工作区候选和正式 ReviewPanel 实际引用；底层继续复用 CodeBlock，业务只提供已有 unified/before/after，不重算差异。空字符串是有效稿件，缺稿时统一内容和按钮状态一起回退，避免并排选择导致新文件空白。模式按钮尺寸固定，长文件在所在滚动区阅读；符号绑定 Unit 和正式 Renderer 空稿/缺稿回归保护三层复用。

@@ -340,6 +340,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     status: (): Promise<Array<{ id: string; name: string; status: string; toolCount: number; resourceCount?: number; error?: string }>> =>
       ipcRenderer.invoke('mcp:status'),
     listTools: (serverId?: string) => ipcRenderer.invoke('mcp:list-tools', serverId),
+    setToolAllowed: (serverId: string, toolName: string, allowed: boolean) => ipcRenderer.invoke('mcp:set-tool-allowed', serverId, toolName, allowed),
     listResources: (serverId?: string) => ipcRenderer.invoke('mcp:list-resources', serverId),
     readResource: (serverId: string, uri: string) =>
       ipcRenderer.invoke('mcp:read-resource', serverId, uri),

@@ -35,6 +35,8 @@ export interface McpServerConfig {
   url?: string
   /** 是否启用 */
   enabled: boolean
+  /** 允许注册和调用的工具名称；未配置表示兼容旧配置，默认全部允许 */
+  allowedTools?: string[]
 }
 
 export interface McpTool {
@@ -313,6 +315,9 @@ class McpClientManager {
     const conn = this.connections.get(serverId)
     if (!conn) throw new Error(`MCP server not connected: ${serverId}`)
     if (conn.status !== 'connected') throw new Error(`MCP server not ready: ${conn.config.name} (${conn.status})`)
+    if (conn.config.allowedTools && !conn.config.allowedTools.includes(toolName)) {
+      throw new Error('MCP tool is disabled by user')
+    }
 
     log.info('MCP callTool', { serverId, toolName, argKeys: Object.keys(args).slice(0, 32) })
 
@@ -358,6 +363,18 @@ class McpClientManager {
       }
     }
     return tools
+  }
+
+  isToolAllowed(serverId: string, toolName: string): boolean {
+    const config = this.connections.get(serverId)?.config
+    return !config?.allowedTools || config.allowedTools.includes(toolName)
+  }
+
+  setAllowedTools(serverId: string, allowedTools: string[]): boolean {
+    const connection = this.connections.get(serverId)
+    if (!connection) return false
+    connection.config = { ...connection.config, allowedTools: [...new Set(allowedTools)] }
+    return true
   }
 
   getAllResources(): McpResource[] {
