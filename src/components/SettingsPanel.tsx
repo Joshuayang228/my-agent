@@ -523,15 +523,10 @@ export function SettingsPanel({
 
   const renderModel = () => (
     <div className="space-y-6">
-      <div>
-        <SectionTitle>模型</SectionTitle>
-        <p className="mt-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
-          参考 Alice 的内置 Provider 入口选择预设，再填 API Key；编程套餐单独分组，ListenHub（TTS）和本地订阅代理不混入普通聊天。Provider 只负责端点，模型名由账户实际可用列表决定。
-        </p>
-      </div>
+      <SettingsPageHeader title="模型" description="管理模型连接、主模型和辅助模型；密钥只保存在本机安全存储中。" />
 
       {firstRun && (
-        <section className="rounded-xl border p-4" style={{ borderColor: 'var(--accent)', background: 'var(--accent-subtle)' }} data-testid="first-run-setup">
+        <SettingCard testId="first-run-setup">
           <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>先连接模型，再开始对话</h3>
           <p className="mt-1 text-xs leading-5" style={{ color: 'var(--text-secondary)' }}>
             默认已选 OpenAI 入口；也可以展开其它 Provider。模型名请按账户实际可用列表填写，连接测试只负责确认当前配置可用。
@@ -541,19 +536,22 @@ export function SettingsPanel({
             <li>2. 填写 API Key，等待自动保存</li>
             <li>3. 测试连接，成功后返回聊天</li>
           </ol>
-        </section>
+        </SettingCard>
       )}
 
-      {firstRun ? (
-        <details className="rounded-xl border px-4 py-3" style={{ borderColor: 'var(--border-color)', background: 'var(--card-bg)' }}>
+      <SettingCard>
+        {firstRun ? (
+        <details>
           <summary className="cursor-pointer text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
             选择其它 Provider 预设
           </summary>
           <div className="mt-4">{renderProviderPresets()}</div>
         </details>
-      ) : renderProviderPresets()}
+        ) : renderProviderPresets()}
+      </SettingCard>
 
-      <FieldGroup label="API Key" hint="仅在输入新值时写入本机安全存储；已保存的 Key 不会回传到 Renderer。">
+      <SettingCard>
+      <SettingRow label="API Key" description="仅在输入新值时写入本机安全存储；已保存的 Key 不会回传到 Renderer。" scope="本机" stacked>
         <div className="relative">
           <input
             type={showApiKey ? 'text' : 'password'}
@@ -572,9 +570,11 @@ export function SettingsPanel({
             {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
           </button>
         </div>
-      </FieldGroup>
+      </SettingRow>
+      </SettingCard>
 
-      <FieldGroup label="Base URL">
+      <SettingCard>
+      <SettingRow label="Base URL" description="模型服务商提供的 OpenAI-compatible API 地址。" scope="连接" stacked>
         <input
           type="text"
           value={form.llmBaseUrl}
@@ -582,10 +582,12 @@ export function SettingsPanel({
           placeholder="https://api.openai.com/v1"
           className="theme-input w-full rounded-lg border px-3 py-2 font-mono text-sm outline-none transition"
         />
-      </FieldGroup>
+      </SettingRow>
+      </SettingCard>
 
+      <SettingCard>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FieldGroup label="主模型" hint="对话主力；按当前 Provider 账户实际可用列表填写，不由 Provider 预设写死。">
+        <SettingRow label="主模型" description="对话主力；按当前 Provider 账户实际可用列表填写。" scope="对话" stacked>
           <input
             type="text"
             value={form.llmModel}
@@ -593,8 +595,8 @@ export function SettingsPanel({
             placeholder="填写 Provider 控制台中的模型 ID"
             className="theme-input w-full rounded-lg border px-3 py-2 font-mono text-sm outline-none transition"
           />
-        </FieldGroup>
-        <FieldGroup label="辅助模型" hint="留空沿用主模型（标题/压缩等轻量任务）。">
+        </SettingRow>
+        <SettingRow label="辅助模型" description="留空时沿用主模型，用于标题、压缩等轻量任务。" scope="辅助任务" stacked>
           <input
             type="text"
             value={form.auxModel}
@@ -602,10 +604,12 @@ export function SettingsPanel({
             placeholder="可选：填写辅助模型 ID"
             className="theme-input w-full rounded-lg border px-3 py-2 font-mono text-sm outline-none transition"
           />
-        </FieldGroup>
+        </SettingRow>
       </div>
+      </SettingCard>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <SettingCard>
+      <div className="flex min-h-8 flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => void testConnection()}
@@ -622,6 +626,7 @@ export function SettingsPanel({
           </span>
         )}
       </div>
+      </SettingCard>
     </div>
   )
 
@@ -672,23 +677,24 @@ export function SettingsPanel({
 
   const renderConnection = () => (
     <div className="space-y-6">
-      <SectionTitle>连接（MCP）</SectionTitle>
+      <SettingsPageHeader title="MCP" description="连接外部工具和服务，扩展 Agent 能力；每个服务独立管理。" />
 
-      <div className="flex items-center justify-between">
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          连接外部工具和服务，扩展 Agent 能力
-        </p>
+      <SettingCard>
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>已连接服务</div>
         <button
           onClick={() => setMcpAdding(!mcpAdding)}
-          className="rounded-lg px-2 py-0.5 text-xs transition"
-          style={{ color: 'var(--accent-fg)' }}
+          className="h-8 shrink-0 rounded-[var(--radius-md)] border px-3 text-xs transition"
+          style={{ borderColor: 'var(--border-subtle)', color: 'var(--accent-fg)' }}
         >
           {mcpAdding ? '取消' : '+ 添加'}
         </button>
       </div>
+      </SettingCard>
 
       {mcpAdding && (
-        <div className="settings-field">
+        <SettingCard>
+        <div className="space-y-2" data-testid="mcp-connection-form">
           <input
             type="text"
             value={newMcp.name}
@@ -747,19 +753,23 @@ export function SettingsPanel({
             连接
           </button>
         </div>
+        </SettingCard>
       )}
 
       {mcpServers.length === 0 && !mcpAdding && (
-        <div className="rounded-lg border border-dashed p-4 text-center text-xs" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
+        <SettingCard>
+        <div className="border-t border-dashed pt-3 text-center text-xs" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
           暂无 MCP 服务器，点击"+ 添加"连接外部能力
         </div>
+        </SettingCard>
       )}
 
       <div className="space-y-2">
         {mcpServers.map(server => {
           const st = mcpStatuses.find(s => s.id === server.id)
           return (
-            <div key={server.id} className="theme-card flex items-center justify-between rounded-lg border px-3 py-2">
+            <SettingCard key={server.id} testId={`settings-mcp-server-${server.id}`}>
+            <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className={`inline-block h-2 w-2 rounded-full ${
@@ -781,13 +791,13 @@ export function SettingsPanel({
                   <div className="mt-0.5 truncate text-[10px] text-red-400">{st.error}</div>
                 )}
               </div>
-              <div className="ml-2 flex items-center gap-1">
+              <div className="ml-2 flex shrink-0 items-center gap-1">
                 <button
                   onClick={() => handleToggleMcp(server.id)}
-                  className={`rounded px-2 py-0.5 text-[10px] transition ${
+                  className={`h-8 min-w-12 rounded-[var(--radius-md)] border px-2 text-[10px] transition ${
                     server.enabled ? 'text-yellow-400' : 'text-green-400'
                   }`}
-                  style={{ }}
+                  style={{ borderColor: 'var(--border-subtle)' }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = '')}
                 >
@@ -795,7 +805,8 @@ export function SettingsPanel({
                 </button>
                 <button
                   onClick={() => handleRemoveMcp(server.id)}
-                  className="rounded px-2 py-0.5 text-[10px] text-red-400 transition"
+                  className="h-8 min-w-12 rounded-[var(--radius-md)] border px-2 text-[10px] text-red-400 transition"
+                  style={{ borderColor: 'var(--border-subtle)' }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = '')}
                 >
@@ -803,6 +814,7 @@ export function SettingsPanel({
                 </button>
               </div>
             </div>
+            </SettingCard>
           )
         })}
       </div>
