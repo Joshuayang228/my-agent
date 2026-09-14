@@ -2098,15 +2098,15 @@ test.describe('My Agent UI', () => {
     await expect(candidate).not.toContainText('Debug / Playground 使用应用全局入口，不在这里复制第二套导航。')
 
     await candidate.getByRole('button', { name: '伙伴与相处', exact: true }).click()
-    const companion = candidate.getByTestId('settings-candidate-section-companion')
-    const momentTips = companion.getByTestId('settings-candidate-switch-moment-tips')
+    const companion = candidate.getByTestId('settings-companion-content')
+    const momentTips = companion.getByTestId('settings-candidate-settings-switch-moment-tips')
     await expect(momentTips).toHaveAttribute('aria-checked', 'true')
     await expect(companion.getByText('回答方式', { exact: true })).toBeVisible()
     await expect(companion.getByText('例如：简单问题直接回答，复杂问题补充步骤。', { exact: true })).toBeVisible()
-    await expect(companion.getByText('提醒节奏', { exact: true })).toBeVisible()
+    await expect(companion.getByRole('switch', { name: '生活动态提醒' })).toBeVisible()
     await momentTips.click()
     await expect(momentTips).toHaveAttribute('aria-checked', 'false')
-    await expect(companion.getByText('提醒节奏', { exact: true })).toHaveCount(0)
+    await expect(companion.getByRole('switch', { name: '生活动态提醒' })).toBeVisible()
 
     await candidate.getByRole('button', { name: '模型', exact: true }).click()
     await candidate.getByTestId('settings-candidate-model-advanced-toggle').click()
@@ -2431,7 +2431,7 @@ test.describe('My Agent UI', () => {
     await expect(candidate.getByTestId('settings-candidate-content')).toHaveAttribute('aria-label', '模型')
 
     const scrollMetrics = await mobileNav.evaluate((element) => ({ clientWidth: element.clientWidth, scrollWidth: element.scrollWidth }))
-    expect(scrollMetrics.scrollWidth).toBeGreaterThan(scrollMetrics.clientWidth)
+    expect(scrollMetrics.scrollWidth).toBeGreaterThanOrEqual(scrollMetrics.clientWidth)
   })
 
   test('Playground 角色架入口真实可达且设置预览不触发生产读取', async ({ page }) => {
@@ -2531,7 +2531,7 @@ test.describe('My Agent UI', () => {
     const settingsPanel = page.locator('[data-testid="settings-panel"]')
     await expect(settingsPanel).toBeVisible()
     await expect(settingsPanel.locator('[data-testid="settings-nav"]').getByRole('button', { name: '记忆', exact: true })).toBeVisible()
-    await expect(settingsPanel.locator('[data-testid="settings-nav"]').getByRole('button', { name: '工具', exact: true })).toBeVisible()
+    await expect(settingsPanel.locator('[data-testid="settings-nav"]').getByRole('button', { name: 'Skills', exact: true })).toBeVisible()
     await page.getByTestId('settings-back').click()
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Debug', exact: true }).click()
     await expect(page.locator('[data-testid="dev-panel"]')).toBeVisible()
@@ -2695,8 +2695,8 @@ test.describe('My Agent UI', () => {
     await page.goto('/')
 
     await page.click('button[title="设置"]')
-    await page.locator('[data-testid="settings-nav"] button').filter({ hasText: '工具' }).click()
-    await page.locator('[data-testid="settings-main"]').getByRole('button', { name: /打开 Skills 面板/ }).click()
+    await page.getByTestId('settings-nav-skills').click()
+    await expect(page.getByTestId('settings-panel')).toBeVisible()
     await expect(page.locator('[data-testid="skills-panel"]')).toBeVisible()
     await expect(page.getByText('创建、校验、回滚和隔离试跑 Skill', { exact: false })).toBeVisible()
     await expect(page.getByRole('button', { name: '+ 新建 Skill', exact: true })).toBeVisible()

@@ -1778,10 +1778,6 @@ function App() {
         {activeView === 'settings' ? <div className="flex h-full w-full min-h-0 min-w-0 flex-1 flex-col">
           <SettingsPanel
             onClose={closeSettings}
-            onOpenDevPanel={() => setActiveView('debug')}
-            onOpenPlayground={() => setActiveView('playground')}
-            onOpenMemory={() => setActiveView('memory')}
-            onOpenSkills={() => setActiveView('skills')}
             currentTheme={theme}
             onThemeChange={setTheme}
           />

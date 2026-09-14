@@ -11,6 +11,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Brain, Check, ChevronRight, Circle, CircleHelp, Cloud, Database, Download, Eye, Heart, KeyRound, Link2, LockKeyhole, Palette, Plug, Save, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Upload, UserRound, Wrench, Activity, Gauge, Plus, Server, ListChecks, ArrowLeft, ArrowUp, ArrowDown, GripVertical, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
 import { FONT_SCALE_ASSETS } from '../../shared/design-asset-registry'
+import { SettingsLayout, type SettingsPageId } from '../settings/SettingsLayout'
+import { CompanionSettingsContent } from '../settings/CompanionSettingsContent'
 import { THEME_STUDIES, getThemeStudyStyle, type ThemeStudyId } from './foundation-themes'
 import { PROVIDER_PRESET_GROUPS } from '../../shared/provider-presets'
 import { JSON_SCHEMA, load } from 'js-yaml'
@@ -41,7 +43,7 @@ const skillsSamples = [codeReview, contentCreator].map((raw) => {
   }
 })
 
-export type SettingsCandidateSection = 'appearance' | 'companion' | 'model' | 'memory' | 'data' | 'permissions' | 'skills' | 'mcp' | 'about'
+export type SettingsCandidateSection = SettingsPageId
 
 export interface SettingsExperienceCandidateProps {
   companionDetail?: ReactNode
@@ -53,22 +55,7 @@ interface SettingCardProps { children: ReactNode; testId?: string }
 interface SettingRowProps { children: ReactNode; description?: string; icon?: ReactNode; label: string; scope?: string; stacked?: boolean }
 interface CandidateSwitchProps { checked: boolean; compact?: boolean; description: string; label: string; onChange: (checked: boolean) => void; scope?: string; testId: string }
 
-export const SETTINGS_CANDIDATE_NAV_GROUPS: Array<{ group: string; items: Array<{ id: SettingsCandidateSection; label: string; icon: ReactNode }> }> = [
-  { group: '日常', items: [
-    { id: 'appearance' as const, label: '外观与界面', icon: <Palette size={15} strokeWidth={1.8} /> },
-    { id: 'companion' as const, label: '伙伴与相处', icon: <Heart size={15} strokeWidth={1.8} /> },
-    { id: 'model' as const, label: '模型', icon: <Cloud size={15} strokeWidth={1.8} /> },
-    { id: 'memory' as const, label: '记忆', icon: <Brain size={15} strokeWidth={1.8} /> },
-    { id: 'data' as const, label: '数据与隐私', icon: <Database size={15} strokeWidth={1.8} /> },
-  ] },
-  { group: '高级', items: [
-    { id: 'permissions' as const, label: '权限与自动化', icon: <ShieldCheck size={15} strokeWidth={1.8} /> },
-    { id: 'skills' as const, label: 'Skills', icon: <Wrench size={15} strokeWidth={1.8} /> },
-    { id: 'mcp' as const, label: 'MCP', icon: <Link2 size={15} strokeWidth={1.8} /> },
-  ] },
-]
-
-const NAV_ITEMS: Array<{ id: SettingsCandidateSection; label: string; icon: ReactNode }> = SETTINGS_CANDIDATE_NAV_GROUPS.flatMap((group) => group.items)
+export { SETTINGS_NAV_GROUPS as SETTINGS_CANDIDATE_NAV_GROUPS } from '../settings/SettingsLayout'
 
 function SettingCard({ children, testId }: SettingCardProps) {
   return <section className="rounded-[var(--radius-lg)] border p-4 sm:p-5" data-testid={testId} style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)' }}>{children}</section>
@@ -103,13 +90,24 @@ function AppearancePage({ activeTheme, fontScale, onFontScaleChange, onThemeChan
 }
 
 function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProactiveGreetingChange, proactiveGreeting, expertise, onExpertiseChange }: { momentTips: boolean; onMomentTipsChange: (value: boolean) => void; onOpenRoleShelf?: () => void; onProactiveGreetingChange: (value: boolean) => void; proactiveGreeting: boolean; expertise: string; onExpertiseChange: (value: string) => void }) {
-  const answerOptions = [
-    ['auto', '自动', '根据问题难度调整', '简单问题直接回答，复杂问题补充步骤。'],
-    ['novice', '讲清楚一些', '多补充背景和步骤', '解释为什么这样做，再带你一步步完成。'],
-    ['intermediate', '重点优先', '先结论，再补关键原因', '给出做法，同时保留必要注意事项。'],
-    ['expert', '直接一点', '默认进入细节', '省略基础介绍，直接给方案、参数和边界。'],
-  ] as const
-  return <div className="space-y-4" data-testid="settings-candidate-section-companion"><CandidatePageHeader icon={<Heart size={14} />} title="伙伴与相处" description="调整伙伴和你说话、提醒以及回应你的方式。" /><SettingCard><SettingRow scope="伙伴" label="当前伙伴" description="朋友圈、衣柜和对话都会跟随当前主角。" icon={<UserRound size={15} />}><button type="button" onClick={onOpenRoleShelf} className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[11px] transition" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }} data-testid="settings-candidate-open-role-shelf">小林 · 管理角色架 <ChevronRight size={12} /></button></SettingRow></SettingCard><SettingCard><SettingRow scope="伙伴" label="回答方式" description="你希望伙伴平时怎么回答你？" icon={<Eye size={15} />} stacked><div className="grid gap-2 sm:grid-cols-2">{answerOptions.map(([value, label, description, example]) => { const selected = expertise === value; return <button key={value} type="button" aria-pressed={selected} onClick={() => onExpertiseChange(value)} className="rounded-[var(--radius-md)] border px-3 py-2.5 text-left transition" style={{ borderColor: selected ? 'var(--accent)' : 'var(--border-subtle)', background: selected ? 'var(--accent-subtle)' : 'transparent' }}><div className="flex items-center justify-between gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{label}{selected && <Check size={13} style={{ color: 'var(--accent-fg)' }} />}</div><div className="mt-1 text-[10px]" style={{ color: 'var(--text-secondary)' }}>{description}</div><div className="mt-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>例如：{example}</div></button> })}</div></SettingRow></SettingCard><SettingCard><div className="space-y-2" data-testid="settings-candidate-companion-controls"><SettingRow label="相处补充说明" description="告诉伙伴你希望长期保持的回应方式；这是当前样张中的临时输入。" icon={<Sparkles size={15} />} stacked><textarea aria-label="相处补充说明" defaultValue="当我把事情排得太满时，提醒我留一点空白。" rows={3} className="theme-input w-full resize-y rounded-[var(--radius-md)] border px-3 py-2 text-[12px] outline-none" /></SettingRow><CandidateSwitch checked={momentTips} scope="伙伴" label="生活动态提醒" description="有新的生活动态时，在应用内轻轻提醒你。" onChange={onMomentTipsChange} testId="settings-candidate-switch-moment-tips" />{momentTips && <div className="rounded-[var(--radius-md)] border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}><div className="mb-2 text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>提醒节奏</div><div className="grid gap-2 sm:grid-cols-3">{[['勿扰开始', '22:00'], ['勿扰结束', '08:00'], ['每日最多', '3 条']].map(([label, value]) => <div key={label} className="rounded-[var(--radius-sm)] border px-2.5 py-2" style={{ borderColor: 'var(--border-subtle)' }}><div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{label}</div><div className="mt-1 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{value}</div></div>)}</div></div>}<CandidateSwitch checked={proactiveGreeting} scope="伙伴" label="主动问候" description="允许伙伴在合适的时机主动来打个招呼，默认保持关闭。" onChange={onProactiveGreetingChange} testId="settings-candidate-switch-proactive-greeting" /></div></SettingCard></div>
+  return <CompanionSettingsContent
+    expertise={expertise as 'auto' | 'novice' | 'intermediate' | 'expert'}
+    onExpertiseChange={onExpertiseChange as (value: 'auto' | 'novice' | 'intermediate' | 'expert') => void}
+    momentTipsMuted={!momentTips}
+    onMomentTipsMutedChange={(muted) => onMomentTipsChange(!muted)}
+    proactiveGreeting={proactiveGreeting}
+    onProactiveGreetingChange={onProactiveGreetingChange}
+    quietStart="22"
+    quietEnd="8"
+    maxPerDay="3"
+    onQuietStartChange={() => undefined}
+    onQuietEndChange={() => undefined}
+    onMaxPerDayChange={() => undefined}
+    note="当我把事情排得太满时，提醒我留一点空白。"
+    onNoteChange={() => undefined}
+    testIdPrefix="settings-candidate-"
+    roleAction={<button type="button" onClick={onOpenRoleShelf} className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[11px] transition" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }} data-testid="settings-candidate-open-role-shelf">小林 · 管理角色架 <ChevronRight size={12} /></button>}
+  />
 }
 
 type ModelPurpose = 'primary' | 'auxiliary' | 'image' | 'unused'
@@ -674,7 +672,11 @@ export function SettingsExperienceCandidate({ companionDetail, memoryDetail, ini
     setActiveSection(initialSection ?? 'appearance')
   }, [initialSection])
 
-  const activeSectionLabel = [...NAV_ITEMS, { id: 'about' as const, label: '关于 My Agent', icon: <CircleHelp size={15} /> }].find((item) => item.id === activeSection)?.label ?? '设置'
 
-  return <div aria-label="设置候选版" className="flex min-h-[620px] w-full min-w-0 overflow-hidden rounded-[var(--radius-lg)] border" style={{ ...getThemeStudyStyle(THEME_STUDIES.find((theme) => theme.id === activeTheme)!), borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} data-playground-theme={activeTheme} data-testid="settings-candidate"><aside className="hidden w-[198px] shrink-0 flex-col border-r px-3 py-4 md:flex" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} data-testid="settings-nav"><div className="mb-5 px-2"><div className="text-[11px] font-semibold tracking-[0.18em]" style={{ color: 'var(--text-primary)' }}>设置</div><p className="mt-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>把真正需要决定的事放在眼前。</p></div><nav className="flex-1 space-y-5" aria-label="设置候选导航">{SETTINGS_CANDIDATE_NAV_GROUPS.map((group) => <div key={group.group}><div className="mb-1 px-2 text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>{group.group}</div><div className="space-y-0.5">{group.items.map((item) => { const active = item.id === activeSection; return <button key={item.id} type="button" aria-current={active ? 'page' : undefined} aria-controls={`settings-candidate-panel-${item.id}`} title={item.label} onClick={() => setActiveSection(item.id)} className="settings-nav-item flex w-full items-center gap-2 px-2.5 py-2 text-left text-[12px] transition" style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)', background: active ? 'var(--hover-overlay)' : undefined }} data-testid={`settings-candidate-nav-${item.id}`}><span style={{ color: active ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{item.icon}</span><span className="min-w-0 truncate">{item.label}</span>{active && <ChevronRight size={12} className="ml-auto shrink-0" style={{ color: 'var(--text-muted)' }} />}</button> })}</div></div>)}</nav><div className="mt-5 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}><button type="button" onClick={() => setActiveSection('about')} aria-current={activeSection === 'about' ? 'page' : undefined} aria-controls="settings-candidate-panel-about" title="关于 My Agent" className="settings-nav-item flex w-full items-center gap-2 px-2.5 py-2 text-left text-[12px]" style={{ color: activeSection === 'about' ? 'var(--text-primary)' : 'var(--text-secondary)', background: activeSection === 'about' ? 'var(--hover-overlay)' : undefined }} data-testid="settings-candidate-nav-about"><CircleHelp size={15} style={{ color: activeSection === 'about' ? 'var(--accent-fg)' : 'var(--text-muted)' }} />关于 My Agent</button></div></aside><div className="flex min-w-0 flex-1 flex-col"><div className="min-w-0 overflow-hidden border-b px-3 py-2 md:hidden" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}><div className="flex min-w-0 w-full gap-1 overflow-x-auto" role="tablist" aria-label="设置候选导航" data-testid="settings-candidate-mobile-nav">{NAV_ITEMS.map((item) => { const active = item.id === activeSection; return <button key={item.id} type="button" role="tab" aria-selected={active} aria-controls={`settings-candidate-panel-${item.id}`} title={item.label} onClick={() => setActiveSection(item.id)} className="settings-option shrink-0 px-2.5 py-1.5 text-[10px]" data-selected={active ? 'true' : undefined}>{item.label}</button> })}<button type="button" role="tab" aria-selected={activeSection === 'about'} aria-controls="settings-candidate-panel-about" title="关于 My Agent" onClick={() => setActiveSection('about')} className="settings-option shrink-0 px-2.5 py-1.5 text-[10px]" data-selected={activeSection === 'about' ? 'true' : undefined}>关于</button></div></div><main className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6" data-testid="settings-main"><div key={activeSection} id={`settings-candidate-panel-${activeSection}`} role="tabpanel" aria-label={activeSectionLabel} className="view-transition mx-auto w-full max-w-3xl" data-testid="settings-candidate-content">{activeSection === 'appearance' && <AppearancePage activeTheme={activeTheme} fontScale={fontScale} onFontScaleChange={setFontScale} onThemeChange={setActiveTheme} />}{activeSection === 'memory' && <MemoryPage detail={memoryDetail} />}{activeSection === 'companion' && (companionDetail ?? <CompanionPage expertise={expertise} momentTips={momentTips} onExpertiseChange={setExpertise} onOpenRoleShelf={onOpenRoleShelf} onMomentTipsChange={setMomentTips} onProactiveGreetingChange={setProactiveGreeting} proactiveGreeting={proactiveGreeting} />)}{activeSection === 'model' && <ModelPage modelStatus={modelStatus} onModelStatusChange={setModelStatus} selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} />}{activeSection === 'data' && <DataPage lastAction={dataAction} onAction={setDataAction} />}{activeSection === 'permissions' && <PermissionsPage mode={permissionMode} onModeChange={setPermissionMode} />}{activeSection === 'skills' && <CapabilityPage mode="skills" />}{activeSection === 'mcp' && <CapabilityPage mode="mcp" />}{activeSection === 'about' && <AboutPage />}</div></main></div></div>
+
+  return <div aria-label="设置候选版" className="flex min-h-[620px] w-full min-w-0 overflow-hidden rounded-[var(--radius-lg)] border" style={{ ...getThemeStudyStyle(THEME_STUDIES.find((theme) => theme.id === activeTheme)!), borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} data-playground-theme={activeTheme} data-testid="settings-candidate">
+    <SettingsLayout activeSection={activeSection} onSelect={setActiveSection} prefix="settings-candidate">
+      {activeSection === 'appearance' && <AppearancePage activeTheme={activeTheme} fontScale={fontScale} onFontScaleChange={setFontScale} onThemeChange={setActiveTheme} />}{activeSection === 'memory' && <MemoryPage detail={memoryDetail} />}{activeSection === 'companion' && (companionDetail ?? <CompanionPage expertise={expertise} momentTips={momentTips} onExpertiseChange={setExpertise} onOpenRoleShelf={onOpenRoleShelf} onMomentTipsChange={setMomentTips} onProactiveGreetingChange={setProactiveGreeting} proactiveGreeting={proactiveGreeting} />)}{activeSection === 'model' && <ModelPage modelStatus={modelStatus} onModelStatusChange={setModelStatus} selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} />}{activeSection === 'data' && <DataPage lastAction={dataAction} onAction={setDataAction} />}{activeSection === 'permissions' && <PermissionsPage mode={permissionMode} onModeChange={setPermissionMode} />}{activeSection === 'skills' && <CapabilityPage mode="skills" />}{activeSection === 'mcp' && <CapabilityPage mode="mcp" />}{activeSection === 'about' && <AboutPage />}
+    </SettingsLayout>
+  </div>
 }
