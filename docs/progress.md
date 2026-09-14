@@ -3,6 +3,8 @@
 > **当前状态入口**：只记录项目现在在哪、最近完成、下一步和阻塞项。完整历史见 [`../_archive/ledgers/progress-through-2026-08-16.md`](../_archive/ledgers/progress-through-2026-08-16.md)。
 
 ## 人读摘要（约 30 秒）
+- 2026-09-15：Electron 回流回归已收口为 7 项通过、4 项按外部模型凭据跳过；测试从正式入口恢复 Chat / Debug 状态，首启模型路由、伙伴设置、Debug、workspace、终端和侧聊均通过真实 Electron。
+
 - 2026-09-15：模型设置用途选择改为替换该用途的旧兼容路由，避免 legacy-primary 优先级遮蔽用户新选择；连接密钥在提交后立即从 Renderer 状态脱敏，后续路由保存由主进程安全合并。真实 Electron 首启路由回归已通过。
 
 - 2026-09-14：MCP 工具许可链路已接入配置校验、持久化、Registry 过滤、执行前校验和正式设置工具清单；认证、连接失败恢复及真实 MCP 服务 Electron 证据仍需继续补齐。

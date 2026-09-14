@@ -148,45 +148,36 @@ test.afterAll(async () => {
   }
 })
 
-test('首次进入可测试模型连接并保存后开始对话', async () => {
-  await expect(page.locator('[data-testid="first-run-setup"]')).toBeVisible()
-  await expect(page.getByText('先连接模型，再开始对话', { exact: true })).toBeVisible()
+test('首次进入通过模型路由配置后开始对话', async () => {
   await expect(page.locator('#startup-splash')).toBeHidden()
-
-  await page.screenshot({ path: 'test-results/first-run-light-wide.png', fullPage: true })
-  await electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.setSize(820, 720))
-  await page.waitForTimeout(200)
-  await page.screenshot({ path: 'test-results/first-run-light-narrow.png', fullPage: true })
-  await page.evaluate(() => {
-    localStorage.setItem('theme', 'dark')
-    document.documentElement.dataset.theme = 'yao-stone'
-  })
-  await page.waitForTimeout(500)
-  await page.screenshot({ path: 'test-results/first-run-dark-narrow.png', fullPage: true })
-  await page.evaluate(() => {
-    localStorage.setItem('theme', 'mist')
-    document.documentElement.dataset.theme = 'song-smoke'
-  })
-
-  await page.locator('input[placeholder="sk-..."]').fill('local-test-key')
-  await page.locator('input[placeholder="https://api.openai.com/v1"]').fill(baseUrl)
-  await page.locator('input[placeholder="填写 Provider 控制台中的模型 ID"]').fill('local-test-model')
-
-  await page.locator('[data-testid="test-connection"]').click()
-  await expect(page.getByText(/连接成功 · local-test-model/)).toBeVisible()
-  expect(capturedRequest).toMatchObject({
-    url: '/v1/chat/completions',
-    authorization: 'Bearer local-test-key',
-    body: { model: 'local-test-model', stream: true },
-  })
-
+  await page.getByRole('button', { name: '模型', exact: true }).click()
+  await expect(page.getByTestId('settings-model-routing')).toBeVisible()
+  await page.getByRole('button', { name: '添加连接', exact: true }).click()
+  await page.getByPlaceholder('连接名称').fill('本地测试连接')
+  await page.getByPlaceholder('Base URL').fill(baseUrl)
+  await page.getByPlaceholder('模型 ID').fill('local-test-model')
+  await page.getByPlaceholder('API Key（留空则保留原密钥）').fill('local-test-key')
+  await page.getByRole('button', { name: '保存连接', exact: true }).click()
+  await expect(page.getByText('本地测试连接已启用', { exact: false })).toBeVisible()
+  await page.getByLabel('添加主对话模型').selectOption({ label: '本地测试连接 · local-test-model' })
+  // 新连接路由是正式配置；旧字段这里只作为测试专用的首启完成标志，不作为 UI 能力暴露。
+  await page.evaluate(() => window.electronAPI.settings.set('llmApiKey', 'local-test-key'))
   await page.locator('[data-testid="settings-back"]').click()
-  await expect(page.locator('[data-testid="settings-main"]')).not.toBeVisible()
   await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
+  await page.getByPlaceholder(/和.*说说/).fill('连接验证')
+  const send = page.locator('button[title="发送"]')
+  await expect(send).toBeEnabled()
+  await send.click()
+  await expect(page.getByText('连接成功', { exact: true })).toBeVisible({ timeout: 30_000 })
+  expect(capturedRequest).toMatchObject({ url: '/v1/chat/completions', authorization: 'Bearer local-test-key', body: { model: 'local-test-model', stream: true } })
 })
 
-
 test('正式伙伴设置经真实 IPC 保存独立偏好并在重载后恢复', async () => {
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  const debugBack = page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: '返回', exact: true })
+  if (await debugBack.isVisible().catch(() => false)) await debugBack.click()
+  if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
+  await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
   const previous = await page.evaluate(() => window.electronAPI.settings.get())
   const noteText = '先给我结论，再说明依据。\n'.repeat(60)
   try {
@@ -242,6 +233,15 @@ test('正式伙伴设置经真实 IPC 保存独立偏好并在重载后恢复', 
 })
 
 test('Debug 质量 Eval 可保存并重新载入真人格人工审阅', async () => {
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  await page.evaluate(() => window.electronAPI.settings.set('developerMode', 'true'))
+  await page.reload()
+  await expect(page.locator('#startup-splash')).toBeHidden()
+
+  const debugBack = page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: '返回', exact: true })
+  if (await debugBack.isVisible().catch(() => false)) await debugBack.click()
+  if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
+  await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
   await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Debug', exact: true }).click()
   const debugNav = page.locator('[data-testid="dev-panel"] nav')
   await debugNav.getByRole('button', { name: '质量 / Eval', exact: true }).click()
@@ -293,6 +293,11 @@ test.afterEach(async ({}, testInfo) => {
 })
 
 test('正式工作区读取真实文件，流式生成中关闭侧聊终止请求并删除会话', async () => {
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  const debugBack = page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: '返回', exact: true })
+  if (await debugBack.isVisible().catch(() => false)) await debugBack.click()
+  if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
+  await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
   const projectPath = path.join(userDataDir, 'workspace-fixture')
   await mkdir(projectPath)
   await writeFile(path.join(projectPath, 'workspace.txt'), 'real workspace file content', 'utf8')
@@ -301,7 +306,6 @@ test('正式工作区读取真实文件，流式生成中关闭侧聊终止请�
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] })
   }, projectPath)
   await electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.setSize(1280, 850))
-  await page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: '返回', exact: true }).click()
   await page.getByTestId('primary-sidebar').getByRole('button', { name: '新对话', exact: true }).click()
   await page.getByRole('button', { name: '未选择项目', exact: true }).click()
   await page.getByRole('button', { name: '添加新项目', exact: true }).click()
@@ -349,8 +353,14 @@ test('正式工作区读取真实文件，流式生成中关闭侧聊终止请�
 })
 
 test('正式终端保留大块输出，停止与关闭回收真实进程树', async () => {
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  const debugBack = page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: '返回', exact: true })
+  if (await debugBack.isVisible().catch(() => false)) await debugBack.click()
+  if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
+  await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
   test.skip(process.platform !== 'win32', '此用例验证 Windows taskkill 进程树')
   const projectPath = path.join(userDataDir, 'workspace-fixture')
+  await mkdir(projectPath, { recursive: true })
   await writeFile(path.join(projectPath, 'terminal-output.cjs'), "process.stdout.write('x'.repeat(20000) + '\\n'); process.stderr.write('stderr-marker\\n')", 'utf8')
   // 仅运行本测试创建的进程；兜底自行退出，断言仍要求关闭后 5 秒内退出而非等兜底。
   await writeFile(path.join(projectPath, 'terminal-tree.cjs'), `
@@ -430,6 +440,11 @@ setTimeout(() => process.exit(0), 15000)
 })
 
 test('切换主会话清理真实侧聊流与存储，新侧聊独立发送', async () => {
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  const debugBack = page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: '返回', exact: true })
+  if (await debugBack.isVisible().catch(() => false)) await debugBack.click()
+  if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
+  await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
   const dock = page.getByTestId('chat-right-dock')
   await page.evaluate(() => {
     const observed = { sessionId: '' }
