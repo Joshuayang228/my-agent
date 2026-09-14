@@ -437,11 +437,6 @@ export function SettingsPanel({
   const renderGeneral = () => (
     <div className="space-y-6">
       <SettingsPageHeader title="外观与界面" description="调整应用主题和界面显示；主题选项来自基础设计资产。" />
-      <SettingCard>
-        <SettingRow label="界面语言" description="当前只提供简体中文，语言切换接入前保持为说明状态。" scope="本机">
-          <span className="rounded-full border px-2.5 py-1 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>简体中文</span>
-        </SettingRow>
-      </SettingCard>
       <SettingCard testId="settings-theme-card">
         <div className="mb-3 flex items-end justify-between gap-3">
           <h3 className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>主题</h3>
@@ -873,22 +868,6 @@ export function SettingsPanel({
         <div className="flex items-start gap-3"><span className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>My Agent</span><span className="rounded-full border px-2 py-0.5 text-[9px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>开发中</span></div>
         <p className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>越探索，越着迷。</p>
         <div className="mt-4 grid gap-3 text-[11px] sm:grid-cols-3" style={{ color: 'var(--text-secondary)' }}><div><div style={{ color: 'var(--text-muted)' }}>版本</div><div className="mt-1">0.1.0</div></div><div><div style={{ color: 'var(--text-muted)' }}>运行环境</div><div className="mt-1">Electron</div></div><div><div style={{ color: 'var(--text-muted)' }}>数据位置</div><div className="mt-1">本机存储</div></div></div>
-      </SettingCard>
-      <SettingCard>
-        <div className="space-y-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-          <div className="flex justify-between">
-            <span>运行环境</span>
-            <span style={{ color: 'var(--text-muted)' }}>Electron</span>
-          </div>
-          <div className="flex justify-between">
-            <span>本地数据库</span>
-            <span style={{ color: 'var(--text-muted)' }}>SQLite (sql.js)</span>
-          </div>
-          <div className="flex justify-between">
-            <span>向量引擎</span>
-            <span style={{ color: 'var(--text-muted)' }}>Vectra</span>
-          </div>
-        </div>
       </SettingCard>
       <SettingCard>
         <SettingRow label="开发者模式" description="开启后显示 Debug 与 Playground 入口；关闭不会删除任何数据或设置。" scope="本机">
