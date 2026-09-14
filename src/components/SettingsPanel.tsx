@@ -635,14 +635,10 @@ export function SettingsPanel({
 
   const renderSecurity = () => (
     <div className="space-y-6">
-      <SectionTitle>安全与权限</SectionTitle>
-
-      <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-        文件写入边界由对话页输入区的审批模式控制（请求批准 / 替我审批 → 仅工作区内写入；完全访问 → 放开路径沙箱）。此处只管规则与默认确认策略。
-      </p>
-
-      <FieldGroup label="执行模式" hint="工具调用默认确认策略（与对话页同一设置项；完全访问请在对话页切换）">
-        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(8.5rem, 1fr))' }}>
+      <SettingsPageHeader title="权限与自动化" description="决定 Agent 何时需要确认，以及哪些明确规则可以覆盖默认策略。" />
+      <SettingCard>
+        <SettingRow label="执行模式" description="工具调用默认确认策略；完全访问仍由对话页的审批入口控制。" scope="影响后续任务" stacked>
+        <div className="grid gap-2 sm:grid-cols-3">
           {([
             { value: 'auto', label: '自动', desc: '仅破坏性操作需确认；工作区写入' },
             { value: 'confirm-all', label: '全部确认', desc: '每次工具调用都需审批；工作区写入' },
@@ -652,25 +648,25 @@ export function SettingsPanel({
               key={opt.value}
               type="button"
               onClick={() => { void updateAndPersist('executionMode', opt.value) }}
-              className="settings-option px-3 py-2 text-xs"
+              className="rounded-[var(--radius-md)] border px-3 py-3 text-left text-xs transition"
               data-selected={form.executionMode === opt.value ? 'true' : undefined}
+              style={{ borderColor: form.executionMode === opt.value ? 'var(--accent)' : 'var(--border-subtle)', background: form.executionMode === opt.value ? 'var(--accent-subtle)' : 'transparent' }}
             >
-              <div className="font-medium">{opt.label}</div>
-              <div className="mt-0.5 text-[10px] opacity-70">{opt.desc}</div>
+              <div className="font-medium" style={{ color: 'var(--text-primary)' }}>{opt.label}</div>
+              <div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{opt.desc}</div>
             </button>
           ))}
         </div>
-      </FieldGroup>
-
-      <FieldGroup
-        label="自定义权限规则"
-        hint="可视化编辑；type=命令/工具/路径，action=允许/拒绝/询问。保存后热更新到权限引擎。高级用户仍可展开 JSON。"
-      >
+        </SettingRow>
+      </SettingCard>
+      <SettingCard>
+        <SettingRow label="自定义规则" description="明确的命令、工具或路径规则可以覆盖默认审批方式；保存后立即交给权限引擎。" scope="实时生效" stacked>
         <PermissionRulesEditor
           value={form.permissionRules}
           onChange={(json) => update('permissionRules', json)}
         />
-      </FieldGroup>
+        </SettingRow>
+      </SettingCard>
     </div>
   )
 
@@ -815,14 +811,9 @@ export function SettingsPanel({
 
   const renderData = () => (
     <div className="space-y-6">
-      <SectionTitle>数据管理</SectionTitle>
-
-      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-        导出或导入你的会话历史、记忆和设置
-      </p>
-
-      <FieldGroup label="导入 / 导出">
-        <div className="flex flex-wrap gap-3">
+      <SettingsPageHeader title="数据与隐私" description="管理本地数据的迁移和备份，并明确哪些内容不会跟着备份文件离开设备。" />
+      <SettingCard>
+        <div className="grid gap-2 sm:grid-cols-2">
           <button
             type="button"
             onClick={async () => {
@@ -831,9 +822,10 @@ export function SettingsPanel({
               if (res.success) toast(`导出成功！${res.stats?.sessions} 个会话 + ${res.stats?.memories} 条记忆`, 'success')
               else if (res.error !== 'cancelled') toast(`导出失败: ${res.error}`, 'error')
             }}
-            className="settings-option flex items-center gap-2 px-4 py-2 text-xs"
+            className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-3 text-left text-xs transition"
+            style={{ borderColor: 'var(--border-subtle)' }}
           >
-            <Upload size={14} /> 导出数据
+            <span className="flex items-center gap-2"><Upload size={15} style={{ color: 'var(--accent-fg)' }} />导出数据</span>
           </button>
           <button
             type="button"
@@ -843,32 +835,31 @@ export function SettingsPanel({
               if (res.success) toast(`导入成功！${res.stats?.sessions} 个会话 + ${res.stats?.memories} 条记忆 + ${res.stats?.settings} 项设置`, 'success')
               else if (res.error !== 'cancelled') toast(`导入失败: ${res.error}`, 'error')
             }}
-            className="settings-option flex items-center gap-2 px-4 py-2 text-xs"
+            className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-3 text-left text-xs transition"
+            style={{ borderColor: 'var(--border-subtle)' }}
           >
-            <Download size={14} /> 导入数据
+            <span className="flex items-center gap-2"><Download size={15} style={{ color: 'var(--accent-fg)' }} />导入数据</span>
           </button>
         </div>
-      </FieldGroup>
+      </SettingCard>
+      <SettingCard>
+        <div className="grid gap-4 text-[11px] sm:grid-cols-2" style={{ color: 'var(--text-secondary)' }}>
+          <div><div className="mb-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>备份包含</div><p>会话与消息、记忆条目、普通模型与伙伴偏好。</p></div>
+          <div><div className="mb-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>备份不包含</div><p>API Key、MCP 密钥、权限规则与本机项目路径。</p></div>
+        </div>
+      </SettingCard>
     </div>
   )
 
   const renderAbout = () => (
     <div className="space-y-6">
-      <SectionTitle>关于</SectionTitle>
-
-      <div className="settings-field">
-        <h3 className="text-lg font-bold italic" style={{ color: 'var(--text-primary)' }}>My Agent</h3>
-        <p className="mt-1 text-xs italic" style={{ color: 'var(--text-muted)' }}>
-          "越探索，越着迷。"
-        </p>
-        <div className="mt-3 space-y-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
-          <div>Version 0.1.0 (开发中)</div>
-          <div>基于 Alice 方法论构建</div>
-          <div>Electron + React + TypeScript</div>
-        </div>
-      </div>
-
-      <FieldGroup label="项目信息">
+      <SettingsPageHeader title="关于 My Agent" description="查看版本、运行环境和本机数据位置。" />
+      <SettingCard>
+        <div className="flex items-start gap-3"><span className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>My Agent</span><span className="rounded-full border px-2 py-0.5 text-[9px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>开发中</span></div>
+        <p className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>越探索，越着迷。</p>
+        <div className="mt-4 grid gap-3 text-[11px] sm:grid-cols-3" style={{ color: 'var(--text-secondary)' }}><div><div style={{ color: 'var(--text-muted)' }}>版本</div><div className="mt-1">0.1.0</div></div><div><div style={{ color: 'var(--text-muted)' }}>运行环境</div><div className="mt-1">Electron</div></div><div><div style={{ color: 'var(--text-muted)' }}>数据位置</div><div className="mt-1">本机存储</div></div></div>
+      </SettingCard>
+      <SettingCard>
         <div className="space-y-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
           <div className="flex justify-between">
             <span>运行环境</span>
@@ -883,14 +874,13 @@ export function SettingsPanel({
             <span style={{ color: 'var(--text-muted)' }}>Vectra</span>
           </div>
         </div>
-      </FieldGroup>
-
-      <FieldGroup label="致谢">
+      </SettingCard>
+      <SettingCard>
         <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
           受 Alice 项目启发，参考了 OpenAI Codex、Claude Desktop 等产品的设计理念。
           感谢开源社区的贡献。
         </p>
-      </FieldGroup>
+      </SettingCard>
     </div>
   )
 
