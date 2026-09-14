@@ -7,7 +7,7 @@
 import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 
-for (const outerTheme of ['light', 'dark']) {
+for (const outerTheme of ['porcelain-blue', 'yao-stone']) {
   for (const width of [1166, 600]) {
     test(`设置主题与基础四主题同源 ${outerTheme} ${width}`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 731 })
@@ -53,7 +53,7 @@ for (const outerTheme of ['light', 'dark']) {
   }
 }
 
-for (const theme of ['light', 'dark']) {
+for (const theme of ['porcelain-blue', 'yao-stone']) {
   for (const width of [1166, 600]) {
     test(`记忆清单背景验收 ${theme} ${width}`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 731 })
@@ -63,7 +63,7 @@ for (const theme of ['light', 'dark']) {
       await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
       await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
       const candidate = page.getByTestId('settings-surface-candidate')
-      await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /曜石/ : /瓷青/ }).click()
+      await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'yao-stone' ? /曜石/ : /瓷青/ }).click()
       await candidate.getByRole(width < 640 ? 'tab' : 'button', { name: '记忆', exact: true }).click()
       const memory = page.getByTestId('memory-surface-candidate')
       await expect(memory).toContainText('正在做一款人格化桌面 Agent。')
@@ -155,7 +155,7 @@ for (const theme of ['light', 'dark']) {
   }
 }
 
-for (const theme of ['light', 'dark']) {
+for (const theme of ['porcelain-blue', 'yao-stone']) {
   for (const width of [1166, 600]) {
     test(`自定义规则折叠与添加 ${theme} ${width}`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 731 })
@@ -164,7 +164,7 @@ for (const theme of ['light', 'dark']) {
       await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
       await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
       const candidate = page.getByTestId('settings-surface-candidate')
-      await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /曜石/ : /瓷青/ }).click()
+      await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'yao-stone' ? /曜石/ : /瓷青/ }).click()
       await candidate.getByRole(width < 640 ? 'tab' : 'button', { name: '权限与自动化', exact: true }).click()
       const rules = candidate.getByTestId('settings-candidate-rules-existing')
       const toggle = rules.getByTestId('settings-candidate-rules-existing-toggle')
@@ -450,7 +450,7 @@ test.describe('My Agent UI', () => {
   })
 
 
-  for (const theme of ['light', 'dark']) {
+  for (const theme of ['porcelain-blue', 'yao-stone']) {
     for (const width of [900, 1440]) {
       test('正式工作区折叠几何与主题 ' + theme + ' ' + width, async ({ page }, testInfo) => {
         await installProductionElectronStub(page)
@@ -729,7 +729,7 @@ test.describe('My Agent UI', () => {
     await expect(chat).toBeVisible()
   })
 
-  for (const theme of ['light', 'dark']) {
+  for (const theme of ['porcelain-blue', 'yao-stone']) {
     for (const width of [900, 1440]) {
     test(`正式审阅原始代码不被 Markdown 解释 ${theme} ${width}`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 731 })
@@ -755,7 +755,7 @@ test.describe('My Agent UI', () => {
       const block = review.locator('[data-foundation="code-block"]')
       await expect(block).toHaveCount(1)
       await expect(block.locator('code')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
-      await expect(block.locator('pre')).toHaveCSS('background-color', theme === 'dark' ? 'rgb(1, 4, 9)' : 'rgb(243, 240, 234)')
+      await expect(block.locator('pre')).toHaveCSS('background-color', theme === 'yao-stone' ? 'rgb(17, 19, 24)' : 'rgb(237, 243, 246)')
       expect(await block.locator('pre').evaluate((node) => node.scrollWidth > node.clientWidth)).toBe(true)
       expect(await dock.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
       const scroll = block.locator('xpath=../..')
@@ -883,7 +883,7 @@ test.describe('My Agent UI', () => {
     await expect(review.getByRole('button', { name: '统一差异', exact: true })).toBeEnabled()
   })
 
-  for (const theme of ['light', 'dark']) {
+  for (const theme of ['porcelain-blue', 'yao-stone']) {
     for (const width of [1166, 600]) {
       test(`Foundation 差异查看器真实切换与有界长文件 ${theme} ${width}`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 731 })
@@ -1655,7 +1655,7 @@ test.describe('My Agent UI', () => {
     await expect(nav.getByRole('button', { name: 'Chat', exact: true })).toHaveAttribute('data-active', 'true')
   })
 
-  for (const theme of ['dark', 'light']) {
+  for (const theme of ['yao-stone', 'porcelain-blue']) {
     for (const width of [1166, 900]) {
       test(`Chat 工作区分隔与开关 ${theme} ${width}`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 731 })
@@ -1714,7 +1714,7 @@ test.describe('My Agent UI', () => {
     }
   }
 
-  for (const theme of ['dark', 'light']) {
+  for (const theme of ['yao-stone', 'porcelain-blue']) {
     for (const width of [1166, 600]) {
       test(`Playground Skills 真实样张 ${theme} ${width}`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 731 })
@@ -1723,7 +1723,7 @@ test.describe('My Agent UI', () => {
         await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
         await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
         const candidate = page.getByTestId('settings-surface-candidate')
-        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /曜石/ : /瓷青/ }).click()
+        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'yao-stone' ? /曜石/ : /瓷青/ }).click()
         await candidate.getByRole(width < 640 ? 'tab' : 'button', { name: 'Skills', exact: true }).click()
         await candidate.getByRole('tab', { name: '多个', exact: true }).click()
         await expect(candidate.getByRole('tab', { name: '多个', exact: true })).toHaveAttribute('aria-selected', 'true')
@@ -1785,7 +1785,7 @@ test.describe('My Agent UI', () => {
     }
   }
 
-  for (const theme of ['dark', 'light']) {
+  for (const theme of ['yao-stone', 'porcelain-blue']) {
     for (const width of [1166, 600]) {
       test(`Playground MCP 场景直达 ${theme} ${width}`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 731 })
@@ -1794,7 +1794,7 @@ test.describe('My Agent UI', () => {
         await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
         await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
         const candidate = page.getByTestId('settings-surface-candidate')
-        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /曜石/ : /瓷青/ }).click()
+        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'yao-stone' ? /曜石/ : /瓷青/ }).click()
         await candidate.getByRole(width < 640 ? 'tab' : 'button', { name: 'MCP', exact: true }).click()
         const preview = candidate.getByTestId('settings-candidate-mcp-scenes')
         const tabs = preview.getByRole('tablist', { name: 'MCP 样张场景' })
@@ -1884,7 +1884,7 @@ test.describe('My Agent UI', () => {
     }
   }
 
-  for (const theme of ['dark', 'light']) {
+  for (const theme of ['yao-stone', 'porcelain-blue']) {
     for (const width of [1166, 600]) {
       test(`Playground 工作区五功能 ${theme} ${width}`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 800 })
@@ -2027,7 +2027,7 @@ test.describe('My Agent UI', () => {
     }
   }
 
-  for (const theme of ['dark', 'light']) {
+  for (const theme of ['yao-stone', 'porcelain-blue']) {
     for (const width of [1166, 600]) {
       test(`Playground 状态切换统一 ${theme} ${width}`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 800 })
@@ -2238,7 +2238,7 @@ test.describe('My Agent UI', () => {
     await candidate.getByTestId('settings-candidate-export').click()
     await expect(candidate.getByRole('status')).toContainText('已模拟导出')
   })
-  for (const theme of ['dark', 'light']) {
+  for (const theme of ['yao-stone', 'porcelain-blue']) {
     for (const width of [1165, 520]) {
       test(`Playground 编程套餐完整交互 ${theme} ${width}`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 900 })
@@ -2247,7 +2247,7 @@ test.describe('My Agent UI', () => {
         await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
         await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
         const candidate = page.getByTestId('settings-surface-candidate')
-        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /曜石/ : /瓷青/ }).click()
+        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'yao-stone' ? /曜石/ : /瓷青/ }).click()
         await candidate.getByRole(width < 640 ? 'tab' : 'button', { name: '模型', exact: true }).click()
         const routes = candidate.getByTestId('settings-candidate-model-current')
         const initialRoutes = await routes.innerText()
@@ -2342,7 +2342,7 @@ test.describe('My Agent UI', () => {
     }
   }
 
-  for (const theme of ['dark', 'light']) {
+  for (const theme of ['yao-stone', 'porcelain-blue']) {
     for (const width of [1165, 520]) {
       test(`Playground 连接卡片头部操作与模型候选 ${theme} ${width}`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 730 })
@@ -2351,7 +2351,7 @@ test.describe('My Agent UI', () => {
         await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
         await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
         const candidate = page.getByTestId('settings-surface-candidate')
-        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'dark' ? /曜石/ : /瓷青/ }).click()
+        await candidate.getByTestId('settings-candidate-theme-card').getByRole('button', { name: theme === 'yao-stone' ? /曜石/ : /瓷青/ }).click()
         await candidate.getByRole(width < 640 ? 'tab' : 'button', { name: '模型', exact: true }).click()
         const profile = candidate.getByTestId('settings-candidate-model-profile-connection-openai-0')
         const header = profile.getByTestId('settings-candidate-connection-header-connection-openai-0')
@@ -2703,7 +2703,7 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('选择或新建一个 Skill', { exact: true })).toBeVisible()
   })
 
-  for (const theme of ['mist', 'dark']) {
+  for (const theme of ['song-smoke', 'yao-stone']) {
     for (const width of [1166, 600]) {
       test(`正式相处偏好保存失败与恢复 ${theme} ${width}`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 731 })

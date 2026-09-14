@@ -7,6 +7,7 @@ import { CharacterShelfPanel } from './CharacterShelfPanel'
 import { ActionButton } from './foundation/ActionButton'
 import { SettingsLayout, type SettingsPageId } from './settings/SettingsLayout'
 import { CompanionSettingsContent, type CompanionExpertise } from './settings/CompanionSettingsContent'
+import { SettingCard, SettingRow, SettingsPageHeader } from './settings/SettingsFields'
 import { PROVIDER_PRESET_GROUPS, type ProviderPreset } from '../shared/provider-presets'
 import { DESIGN_THEME_ASSETS, FONT_SCALE_ASSETS } from '../shared/design-asset-registry'
 import {
@@ -432,54 +433,29 @@ export function SettingsPanel({
 
   const renderGeneral = () => (
     <div className="space-y-6">
-      <SectionTitle>通用</SectionTitle>
-
-      <FieldGroup label="界面语言" hint="当前仅提供简体中文；其它语言未接入，不提供假选项。">
-        <button type="button" className="settings-option px-3 py-2 text-xs" data-selected="true">
-          <div className="font-medium">简体中文</div>
-          <div className="mt-0.5 text-[10px] opacity-70">默认界面语言</div>
-        </button>
-      </FieldGroup>
-
-      <FieldGroup label="外观" hint="选择界面主题风格；浅色主题为纸感暖底。">
-        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(7.5rem, 1fr))' }}>
-          {THEMES.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => onThemeChange?.(t.id)}
-              className="settings-option p-2.5 text-xs"
-              data-selected={currentTheme === t.id ? 'true' : undefined}
-            >
-              <div className="mb-1.5 flex items-center gap-1.5">
-                <span
-                  className="inline-block h-3 w-3 rounded-full border"
-                  style={{ background: t.color, borderColor: 'var(--border-color)' }}
-                />
-                <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{t.label}</span>
-              </div>
-              <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t.desc}</div>
-            </button>
-          ))}
+      <SettingsPageHeader title="外观与界面" description="调整应用主题和界面显示；主题选项来自基础设计资产。" />
+      <SettingCard>
+        <SettingRow label="界面语言" description="当前只提供简体中文，语言切换接入前保持为说明状态。" scope="本机">
+          <span className="rounded-full border px-2.5 py-1 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>简体中文</span>
+        </SettingRow>
+      </SettingCard>
+      <SettingCard testId="settings-theme-card">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <h3 className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>主题</h3>
+          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{THEMES.find((theme) => theme.id === currentTheme)?.label ?? currentTheme}</span>
         </div>
-      </FieldGroup>
-
-      <FieldGroup label="字体大小" hint="仅影响界面基准字号，保存在本机（不进云端）。">
-        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(7.5rem, 1fr))' }}>
-          {FONT_SCALES.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => setFontScale(s.id)}
-              className="settings-option px-3 py-2 text-xs"
-              data-selected={fontScale === s.id ? 'true' : undefined}
-            >
-              <div className="font-medium">{s.label}</div>
-              <div className="mt-0.5 text-[10px] opacity-70">{s.desc}</div>
-            </button>
-          ))}
+        <div className="grid gap-2 sm:grid-cols-2">
+          {THEMES.map((theme) => {
+            const selected = currentTheme === theme.id
+            return <button key={theme.id} data-testid={`settings-theme-${theme.id}`} type="button" aria-pressed={selected} onClick={() => onThemeChange?.(theme.id)} className="rounded-[var(--radius-md)] border p-3 text-left transition" data-selected={selected ? 'true' : undefined} style={{ borderColor: selected ? 'var(--accent)' : 'var(--border-subtle)', background: selected ? 'var(--accent-subtle)' : 'transparent' }}><div className="flex items-center gap-2"><span className="h-3 w-3 rounded-full border" style={{ background: theme.color, borderColor: 'var(--border-color)' }} /><span className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{theme.label}</span><Check size={13} aria-hidden="true" className={`ml-auto shrink-0 ${selected ? 'visible' : 'invisible'}`} style={{ color: 'var(--accent-fg)' }} /></div><div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{theme.desc}</div></button>
+          })}
         </div>
-      </FieldGroup>
+      </SettingCard>
+      <SettingCard>
+        <SettingRow label="字体大小" description="只影响本机界面字号；不改变内容本身。" scope="本机" stacked>
+          <div className="grid gap-2 sm:grid-cols-3">{FONT_SCALES.map((scale) => { const selected = fontScale === scale.id; return <button key={scale.id} type="button" aria-pressed={selected} onClick={() => setFontScale(scale.id)} className="rounded-[var(--radius-md)] border px-3 py-2 text-left transition" data-selected={selected ? 'true' : undefined} style={{ borderColor: selected ? 'var(--accent)' : 'var(--border-subtle)', background: selected ? 'var(--accent-subtle)' : 'transparent' }}><div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{scale.label}</div><div className="mt-0.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>{scale.desc}</div></button> })}</div>
+        </SettingRow>
+      </SettingCard>
     </div>
   )
 

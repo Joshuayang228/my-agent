@@ -159,13 +159,13 @@ test('首次进入可测试模型连接并保存后开始对话', async () => {
   await page.screenshot({ path: 'test-results/first-run-light-narrow.png', fullPage: true })
   await page.evaluate(() => {
     localStorage.setItem('theme', 'dark')
-    document.documentElement.dataset.theme = 'dark'
+    document.documentElement.dataset.theme = 'yao-stone'
   })
   await page.waitForTimeout(500)
   await page.screenshot({ path: 'test-results/first-run-dark-narrow.png', fullPage: true })
   await page.evaluate(() => {
     localStorage.setItem('theme', 'mist')
-    document.documentElement.dataset.theme = 'mist'
+    document.documentElement.dataset.theme = 'song-smoke'
   })
 
   await page.locator('input[placeholder="sk-..."]').fill('local-test-key')

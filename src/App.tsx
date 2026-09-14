@@ -53,6 +53,7 @@ import {
 import { ResizeHandle } from './components/shell/ResizeHandle'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from './shared/panel-layout'
 import { QUICK_PROVIDER_ENTRIES } from './shared/provider-presets'
+import { normalizeThemeId } from './shared/design-asset-registry'
 
 let messageIdCounter = 0
 function genId() {
@@ -111,7 +112,7 @@ function App() {
   const [activeView, setActiveView] = useState<ShellView>('chat')
   const [worldTab, setWorldTab] = useState<WorldTab>('moments')
   const [theme, setTheme] = useState<string>(() => {
-    return localStorage.getItem('theme') || 'mist'
+    return normalizeThemeId(localStorage.getItem('theme'))
   })
   const [currentModel, setCurrentModel] = useState('gpt-4o')
   const [currentBaseUrl, setCurrentBaseUrl] = useState('https://api.openai.com/v1')
@@ -477,8 +478,10 @@ function App() {
   useEffect(scrollToBottom, [messages, activeTools, scrollToBottom])
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('theme', theme)
+    const normalizedTheme = normalizeThemeId(theme)
+    if (normalizedTheme !== theme) setTheme(normalizedTheme)
+    document.documentElement.setAttribute('data-theme', normalizedTheme)
+    localStorage.setItem('theme', normalizedTheme)
     const scale = localStorage.getItem('uiFontScale') || 'md'
     document.documentElement.dataset.fontScale = scale
   }, [theme])

@@ -20,7 +20,7 @@ describe('设计资产注册表', () => {
     expect(production?.registryPaths).toEqual(['src/shared/design-asset-registry.ts'])
   })
 
-  it('基础与设置共享四个隔离候选，不替换七个生产主题', () => {
+  it('基础与设置共享同一组四个生产主题资产', () => {
     expect(THEME_STUDIES.map((theme) => theme.label)).toEqual(['瓷青', '曜石', '松烟', '绛紫'])
     expect(new Set(THEME_STUDIES.map((theme) => theme.id)).size).toBe(4)
     for (const theme of THEME_STUDIES) {
@@ -29,7 +29,7 @@ describe('设计资产注册表', () => {
       expect(style['--card-bg']).toBe(theme.colors.card)
       expect(style['--accent']).toBe(theme.colors.accent)
       expect(style.colorScheme).toBe(theme.mode === '深色' ? 'dark' : 'light')
-      expect(DESIGN_THEME_ASSETS.some((asset) => String(asset.id) === theme.id)).toBe(false)
+      expect(DESIGN_THEME_ASSETS.some((asset) => String(asset.id) === theme.id)).toBe(true)
     }
     for (const file of ['DesignSystemPanel', 'SettingsExperienceCandidate']) {
       const source = readFileSync(new URL(`../../src/components/playground/${file}.tsx`, import.meta.url), 'utf8')
@@ -39,7 +39,8 @@ describe('设计资产注册表', () => {
   })
 
   it('主题与字体比例拥有稳定唯一身份', () => {
-    expect(DESIGN_THEME_ASSETS).toHaveLength(7)
+    expect(DESIGN_THEME_ASSETS).toHaveLength(4)
+    expect(DESIGN_THEME_ASSETS.map((asset) => asset.id)).toEqual(['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum'])
     expect(new Set(DESIGN_THEME_ASSETS.map((asset) => asset.id)).size).toBe(DESIGN_THEME_ASSETS.length)
     expect(FONT_SCALE_ASSETS.map((asset) => asset.id)).toEqual(['sm', 'md', 'lg'])
     for (const asset of DESIGN_THEME_ASSETS) {
@@ -52,11 +53,10 @@ describe('设计资产注册表', () => {
   })
 
   it('明暗派生只从注册表判断', () => {
-    expect(isLightTheme('light')).toBe(true)
-    expect(isLightTheme('mist')).toBe(true)
-    expect(isLightTheme('golden')).toBe(true)
-    expect(isLightTheme('dark')).toBe(false)
-    expect(isLightTheme('night-feast')).toBe(false)
+    expect(isLightTheme('porcelain-blue')).toBe(true)
+    expect(isLightTheme('song-smoke')).toBe(true)
+    expect(isLightTheme('yao-stone')).toBe(false)
+    expect(isLightTheme('deep-plum')).toBe(false)
     expect(isLightTheme('unknown-theme')).toBe(false)
   })
 })

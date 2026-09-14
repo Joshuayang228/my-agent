@@ -9,7 +9,7 @@
  *       不在组件内重新维护主题集合。
  */
 
-export type ThemeId = 'dark' | 'light' | 'mist' | 'night-feast' | 'green-garden' | 'golden' | 'blue-pool'
+export type ThemeId = 'porcelain-blue' | 'yao-stone' | 'song-smoke' | 'deep-plum'
 export type FontScaleId = 'sm' | 'md' | 'lg'
 export type DesignTokenGroup = 'structure' | 'text' | 'accent' | 'semantic' | 'motion' | 'radius'
 
@@ -20,6 +20,11 @@ export interface DesignThemeAsset {
   representativeColor: string
   isDark: boolean
   tokenGroups: readonly DesignTokenGroup[]
+  material: string
+  colors: {
+    app: string; panel: string; card: string; text: string; muted: string; accent: string
+    accentHover: string; border: string; success: string; warning: string; danger: string
+  }
 }
 
 export interface FontScaleAsset {
@@ -28,14 +33,14 @@ export interface FontScaleAsset {
   descriptionZh: string
 }
 
+const TOKEN_GROUPS: readonly DesignTokenGroup[] = ['structure', 'text', 'accent', 'semantic', 'motion', 'radius']
+const theme = (id: ThemeId, labelZh: string, descriptionZh: string, material: string, isDark: boolean, colors: DesignThemeAsset['colors']): DesignThemeAsset => ({ id, labelZh, descriptionZh, material, isDark, representativeColor: colors.accent, colors, tokenGroups: TOKEN_GROUPS })
+
 export const DESIGN_THEME_ASSETS: readonly DesignThemeAsset[] = [
-  { id: 'dark', labelZh: '暗夜', descriptionZh: '深色工具向', representativeColor: '#0d1117', isDark: true, tokenGroups: ['structure', 'text', 'accent', 'semantic', 'motion', 'radius'] },
-  { id: 'light', labelZh: '日光', descriptionZh: '纸感浅底，暖石', representativeColor: '#fafaf7', isDark: false, tokenGroups: ['structure', 'text', 'accent', 'semantic', 'motion', 'radius'] },
-  { id: 'mist', labelZh: '薄雾', descriptionZh: '暖雾纸感', representativeColor: '#efede6', isDark: false, tokenGroups: ['structure', 'text', 'accent', 'semantic', 'motion', 'radius'] },
-  { id: 'night-feast', labelZh: '夜宴', descriptionZh: '深紫护眼', representativeColor: '#a855f7', isDark: true, tokenGroups: ['structure', 'text', 'accent', 'semantic', 'motion', 'radius'] },
-  { id: 'green-garden', labelZh: '青园', descriptionZh: '青绿自然', representativeColor: '#059669', isDark: false, tokenGroups: ['structure', 'text', 'accent', 'semantic', 'motion', 'radius'] },
-  { id: 'golden', labelZh: '金阁', descriptionZh: '香槟纸感', representativeColor: '#b45309', isDark: false, tokenGroups: ['structure', 'text', 'accent', 'semantic', 'motion', 'radius'] },
-  { id: 'blue-pool', labelZh: '蓝池', descriptionZh: '深邃天蓝', representativeColor: '#38bdf8', isDark: true, tokenGroups: ['structure', 'text', 'accent', 'semantic', 'motion', 'radius'] },
+  theme('porcelain-blue', '瓷青', '冷白、青瓷、靛蓝', '清亮的瓷面', false, { app: '#edf3f6', panel: '#dfe9ee', card: '#fbfcfd', text: '#182a33', muted: '#657881', accent: '#216f8b', accentHover: '#17586f', border: '#c7d8df', success: '#2b806f', warning: '#9a6b2e', danger: '#b34e58' }),
+  theme('yao-stone', '曜石', '深墨、灰蓝、低饱和金', '安静的哑光石面', true, { app: '#111318', panel: '#1a1d24', card: '#222631', text: '#f1eee8', muted: '#9b9da5', accent: '#c6a878', accentHover: '#dfc18a', border: '#343946', success: '#67b58a', warning: '#d39a57', danger: '#e27d76' }),
+  theme('song-smoke', '松烟', '灰绿、青灰、自然感', '有呼吸的纤维纸面', false, { app: '#f2f5f1', panel: '#e5ece6', card: '#fafcf9', text: '#24332d', muted: '#6e7d74', accent: '#317b66', accentHover: '#256653', border: '#cbd9cf', success: '#2e8061', warning: '#a87539', danger: '#b94e48' }),
+  theme('deep-plum', '绛紫', '深莓、烟紫、玫瑰铜', '柔软的夜色绒面', true, { app: '#201922', panel: '#2b2130', card: '#382839', text: '#f4edf4', muted: '#bca8bc', accent: '#c26b8e', accentHover: '#dc7fa4', border: '#50384f', success: '#79b89d', warning: '#d3a163', danger: '#e4888d' }),
 ] as const
 
 export const FONT_SCALE_ASSETS: readonly FontScaleAsset[] = [
@@ -54,4 +59,13 @@ export const FONT_SCALE_REGISTRY: Readonly<Record<FontScaleId, FontScaleAsset>> 
 
 export function isLightTheme(themeId: string): boolean {
   return DESIGN_THEME_REGISTRY[themeId as ThemeId]?.isDark === false
+}
+
+/** 将旧持久化值映射到当前四主题；未知值回退到曜石，避免根节点没有语义 token。 */
+export function normalizeThemeId(themeId: string | null | undefined): ThemeId {
+  const legacy: Record<string, ThemeId> = {
+    dark: 'yao-stone', light: 'porcelain-blue', mist: 'song-smoke',
+    'night-feast': 'deep-plum', 'green-garden': 'song-smoke', golden: 'porcelain-blue', 'blue-pool': 'yao-stone',
+  }
+  return DESIGN_THEME_REGISTRY[themeId as ThemeId] ? themeId as ThemeId : legacy[themeId ?? ''] ?? 'yao-stone'
 }

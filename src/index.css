@@ -309,6 +309,40 @@ html[data-font-scale="lg"] {
   color: var(--text-muted);
 }
 
+/* 正式主题只接受基础设计资产的四个语义 ID；旧选择由 App 在进入时归一化。 */
+[data-theme="porcelain-blue"] {
+  color-scheme: light; --bg-primary:#edf3f6; --bg-secondary:#dfe9ee; --bg-tertiary:#dfe9ee; --bg-inset:#dfe9ee;
+  --text-primary:#182a33; --text-secondary:#657881; --text-muted:#657881; --border-color:#c7d8df; --border-subtle:#c7d8df;
+  --input-bg:#fbfcfd; --input-border:#c7d8df; --accent:#216f8b; --accent-emphasis:#17586f; --accent-fg:#216f8b;
+  --accent-subtle:color-mix(in srgb,#216f8b 12%,transparent); --success:#2b806f; --warning:#9a6b2e; --danger:#b34e58;
+  --msg-user-bg:#dfe9ee; --msg-ai-bg:transparent; --sidebar-bg:#dfe9ee; --sidebar-hover:color-mix(in srgb,#182a33 7%,transparent); --sidebar-active:color-mix(in srgb,#216f8b 12%,transparent);
+  --card-bg:#fbfcfd; --card-border:#c7d8df; --dropdown-bg:#fbfcfd; --footer-bg:#edf3f6; --hover-overlay:color-mix(in srgb,#182a33 7%,transparent); --scroll-btn-bg:#fbfcfd; --role-user:#9a6b2e; --role-agent:#216f8b; --status-bar-bg:#dfe9ee; --companion-accent-warm:#9a6b2e; --companion-surface:#fbfcfd;
+}
+[data-theme="yao-stone"] {
+  color-scheme: dark; --bg-primary:#111318; --bg-secondary:#1a1d24; --bg-tertiary:#1a1d24; --bg-inset:#1a1d24;
+  --text-primary:#f1eee8; --text-secondary:#9b9da5; --text-muted:#9b9da5; --border-color:#343946; --border-subtle:#343946;
+  --input-bg:#222631; --input-border:#343946; --accent:#c6a878; --accent-emphasis:#dfc18a; --accent-fg:#c6a878;
+  --accent-subtle:color-mix(in srgb,#c6a878 12%,transparent); --success:#67b58a; --warning:#d39a57; --danger:#e27d76;
+  --msg-user-bg:#1a1d24; --msg-ai-bg:transparent; --sidebar-bg:#1a1d24; --sidebar-hover:color-mix(in srgb,#f1eee8 7%,transparent); --sidebar-active:color-mix(in srgb,#c6a878 12%,transparent);
+  --card-bg:#222631; --card-border:#343946; --dropdown-bg:#222631; --footer-bg:#111318; --hover-overlay:color-mix(in srgb,#f1eee8 7%,transparent); --scroll-btn-bg:#222631; --role-user:#d39a57; --role-agent:#c6a878; --status-bar-bg:#1a1d24; --companion-accent-warm:#d39a57; --companion-surface:#222631;
+}
+[data-theme="song-smoke"] {
+  color-scheme: light; --bg-primary:#f2f5f1; --bg-secondary:#e5ece6; --bg-tertiary:#e5ece6; --bg-inset:#e5ece6;
+  --text-primary:#24332d; --text-secondary:#6e7d74; --text-muted:#6e7d74; --border-color:#cbd9cf; --border-subtle:#cbd9cf;
+  --input-bg:#fafcf9; --input-border:#cbd9cf; --accent:#317b66; --accent-emphasis:#256653; --accent-fg:#317b66;
+  --accent-subtle:color-mix(in srgb,#317b66 12%,transparent); --success:#2e8061; --warning:#a87539; --danger:#b94e48;
+  --msg-user-bg:#e5ece6; --msg-ai-bg:transparent; --sidebar-bg:#e5ece6; --sidebar-hover:color-mix(in srgb,#24332d 7%,transparent); --sidebar-active:color-mix(in srgb,#317b66 12%,transparent);
+  --card-bg:#fafcf9; --card-border:#cbd9cf; --dropdown-bg:#fafcf9; --footer-bg:#f2f5f1; --hover-overlay:color-mix(in srgb,#24332d 7%,transparent); --scroll-btn-bg:#fafcf9; --role-user:#a87539; --role-agent:#317b66; --status-bar-bg:#e5ece6; --companion-accent-warm:#a87539; --companion-surface:#fafcf9;
+}
+[data-theme="deep-plum"] {
+  color-scheme: dark; --bg-primary:#201922; --bg-secondary:#2b2130; --bg-tertiary:#2b2130; --bg-inset:#2b2130;
+  --text-primary:#f4edf4; --text-secondary:#bca8bc; --text-muted:#bca8bc; --border-color:#50384f; --border-subtle:#50384f;
+  --input-bg:#382839; --input-border:#50384f; --accent:#c26b8e; --accent-emphasis:#dc7fa4; --accent-fg:#c26b8e;
+  --accent-subtle:color-mix(in srgb,#c26b8e 12%,transparent); --success:#79b89d; --warning:#d3a163; --danger:#e4888d;
+  --msg-user-bg:#2b2130; --msg-ai-bg:transparent; --sidebar-bg:#2b2130; --sidebar-hover:color-mix(in srgb,#f4edf4 7%,transparent); --sidebar-active:color-mix(in srgb,#c26b8e 12%,transparent);
+  --card-bg:#382839; --card-border:#50384f; --dropdown-bg:#382839; --footer-bg:#201922; --hover-overlay:color-mix(in srgb,#f4edf4 7%,transparent); --scroll-btn-bg:#382839; --role-user:#d3a163; --role-agent:#c26b8e; --status-bar-bg:#2b2130; --companion-accent-warm:#d3a163; --companion-surface:#382839;
+}
+
 /* 正式记忆页沿用 Playground 的三种主色 + 灰色规则；颜色只表达分类，不承担操作语义。 */
 .memory-color-accent-bg { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .memory-color-accent-border { border-color: color-mix(in srgb, var(--accent) 36%, var(--border-color)); }
