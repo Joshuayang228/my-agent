@@ -2847,6 +2847,14 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('模型名请按账户实际可用列表填写', { exact: false })).toBeVisible()
     await expect(page.locator('[data-testid="test-connection"]')).toBeVisible()
 
+    const advancedToggle = page.getByRole('button', { name: /高级设置/ })
+    await expect(advancedToggle).toHaveAttribute('aria-expanded', 'false')
+    await advancedToggle.click()
+    await expect(advancedToggle).toHaveAttribute('aria-expanded', 'true')
+    await expect(page.locator('[data-testid="settings-model-budget"]')).toBeVisible()
+    await expect(page.getByLabel('会话预算（Token）', { exact: true })).toBeVisible()
+    await expect(page.getByLabel('Temperature', { exact: true })).toBeVisible()
+
     const providerDetails = page.locator('details').filter({ hasText: '选择其它 Provider 预设' })
     await providerDetails.locator('summary').click()
     const providerField = providerDetails.locator('[data-testid="settings-field"], .settings-field').first()

@@ -13,7 +13,7 @@ import { DESIGN_THEME_ASSETS, FONT_SCALE_ASSETS } from '../shared/design-asset-r
 import {
   Upload, Download,
   Eye, EyeOff,
-  Check,
+  Check, ChevronRight,
 } from 'lucide-react'
 
 interface SettingsForm {
@@ -140,6 +140,7 @@ export function SettingsPanel({
   const [firstRun, setFirstRun] = useState(true)
   const [connectionTesting, setConnectionTesting] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<{ kind: 'success' | 'error'; text: string } | null>(null)
+  const [showAdvancedModel, setShowAdvancedModel] = useState(false)
   const [verifiedConnectionKey, setVerifiedConnectionKey] = useState('')
   const [protagonists, setProtagonists] = useState<RoleInfo[]>([])
   const [mcpServers, setMcpServers] = useState<McpServerEntry[]>([])
@@ -604,6 +605,17 @@ export function SettingsPanel({
           />
         </SettingRow>
       </div>
+      </SettingCard>
+
+      <SettingCard>
+        <button type="button" onClick={() => setShowAdvancedModel((value) => !value)} aria-expanded={showAdvancedModel} className="flex w-full items-center justify-between gap-3 text-left">
+          <span><span className="block text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>高级设置</span><span className="mt-1 block text-[10px]" style={{ color: 'var(--text-muted)' }}>连接测试、预算和生成参数只在需要时查看。</span></span>
+          <ChevronRight size={14} className={showAdvancedModel ? 'rotate-90 transition' : 'transition'} style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
+        </button>
+        {showAdvancedModel && <div className="mt-4 space-y-4 border-t pt-4" style={{ borderColor: 'var(--border-subtle)' }}>
+          <div data-testid="settings-model-budget"><div className="mb-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>运行预算</div><div className="mb-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>输入与输出 Token 合计；0 表示不限制。</div><div className="grid gap-2 sm:grid-cols-2"><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>会话预算（Token）<input aria-label="会话预算（Token）" value={form.sessionTokenBudget} onChange={(event) => update('sessionTokenBudget', event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>每日预算（Token）<input aria-label="每日预算（Token）" value={form.dailyTokenBudget} onChange={(event) => update('dailyTokenBudget', event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label></div></div>
+          <div className="grid gap-3 sm:grid-cols-3"><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Temperature<input aria-label="Temperature" value={form.llmTemperature} onChange={(event) => update('llmTemperature', event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Top P<input aria-label="Top P" value={form.llmTopP} onChange={(event) => update('llmTopP', event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>最大输出 Token<input aria-label="最大输出 Token" value={form.llmMaxTokens} onChange={(event) => update('llmMaxTokens', event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label></div>
+        </div>}
       </SettingCard>
 
       <SettingCard>
