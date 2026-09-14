@@ -13,16 +13,17 @@
  * - 无 apiKey 时返回空字符串，由调用方决定报错或降级，本文件不抛
  */
 
-import type { LLMConfig } from '../../../src/shared/types'
+import type { LLMConfig, ModelConnectionProfile, ModelRouteProfile, ModelRoutePurpose } from '../../../src/shared/types'
 import * as settings from '../storage/settings-store'
 import { withAuxThinking } from './thinking'
 
 export async function loadMainLLMConfig(overrides?: Partial<LLMConfig>): Promise<LLMConfig> {
   const s = await settings.getAllSettings()
+  const routed = resolveRoutedConfig(s.modelConnections, s.modelRoutes, 'primary')
   return {
-    apiKey: s.llmApiKey || process.env.LLM_API_KEY || '',
-    baseUrl: s.llmBaseUrl || process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
-    model: s.llmModel || process.env.LLM_MODEL || 'gpt-4o',
+    apiKey: routed?.apiKey || s.llmApiKey || process.env.LLM_API_KEY || '',
+    baseUrl: routed?.baseUrl || s.llmBaseUrl || process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
+    model: routed?.model || s.llmModel || process.env.LLM_MODEL || 'gpt-4o',
     temperature: parseFloat(s.llmTemperature) || undefined,
     topP: parseFloat(s.llmTopP) || undefined,
     maxTokens: parseInt(s.llmMaxTokens) || undefined,
@@ -32,10 +33,33 @@ export async function loadMainLLMConfig(overrides?: Partial<LLMConfig>): Promise
 
 export async function loadAuxLLMConfig(): Promise<LLMConfig> {
   const main = await loadMainLLMConfig()
-  const auxModel = await settings.getSetting('auxModel')
+  const all = await settings.getAllSettings()
+  const routed = resolveRoutedConfig(all.modelConnections, all.modelRoutes, 'auxiliary')
+  const auxModel = routed?.model || await settings.getSetting('auxModel')
   const base = auxModel?.trim()
-    ? { ...main, model: auxModel.trim() }
+    ? { ...main, ...(routed?.baseUrl ? { baseUrl: routed.baseUrl } : {}), ...(routed?.apiKey ? { apiKey: routed.apiKey } : {}), model: auxModel.trim() }
     : main
   // 标题/画像等：按探测缓存或启发式关闭 thinking，避免 max_tokens 被 reasoning 吃光
   return withAuxThinking(base)
 }
+
+function parseJson<T>(raw: string): T | null {
+  try { return JSON.parse(raw) as T } catch { return null }
+}
+
+function resolveRoutedConfig(connectionsRaw: string, routesRaw: string, purpose: ModelRoutePurpose): ModelConnectionProfile | null {
+  const connections = parseJson<ModelConnectionProfile[]>(connectionsRaw)
+  const routes = parseJson<ModelRouteProfile[]>(routesRaw)
+  if (!Array.isArray(connections) || !Array.isArray(routes)) return null
+  const route = routes.find((item) => {
+    if (item.purpose !== purpose || !item.enabled || !item.model.trim()) return false
+    const connection = connections.find((candidate) => candidate.id === item.connectionId && candidate.enabled && candidate.baseUrl.trim())
+    return Boolean(connection)
+  })
+  if (!route) return null
+  const connection = connections.find((item) => item.id === route.connectionId && item.enabled && item.baseUrl.trim())
+  if (!connection) return null
+  return { ...connection, model: route.model.trim() }
+}
+
+export const __test = { resolveRoutedConfig }

@@ -27,11 +27,25 @@ export function isRendererWritableSettingKey(value: unknown): value is keyof App
  */
 export async function getRendererSettings(): Promise<RendererSettings> {
   const stored = await settings.getAllSettings()
+  let modelConnections = '[]'
+  try {
+    const parsed = JSON.parse(stored.modelConnections)
+    if (Array.isArray(parsed)) {
+      modelConnections = JSON.stringify(parsed.map((item) => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return item
+        const connection = item as Record<string, unknown>
+        return { ...connection, apiKey: '' }
+      }))
+    }
+  } catch {
+    modelConnections = '[]'
+  }
   return {
     ...stored,
     llmApiKey: '',
     llmApiKeyConfigured: stored.llmApiKey.trim() ? 'true' : 'false',
     mcpServers: redactMcpConfigsForRenderer(stored.mcpServers),
+    modelConnections,
   }
 }
 

@@ -703,6 +703,25 @@ export interface LLMConfig {
   runtimeAssetKeys?: string[]
 }
 
+export type ModelRoutePurpose = 'primary' | 'auxiliary' | 'image'
+
+export interface ModelConnectionProfile {
+  id: string
+  name: string
+  baseUrl: string
+  model: string
+  apiKey?: string
+  provider?: LLMProvider
+  enabled: boolean
+}
+
+export interface ModelRouteProfile {
+  purpose: ModelRoutePurpose
+  connectionId: string
+  model: string
+  enabled: boolean
+}
+
 export interface FallbackModelConfig {
   model: string
   baseUrl?: string

@@ -42,8 +42,21 @@ const SAFE_BACKUP_SETTING_KEYS = new Set<keyof settingsStore.AppSettings>([
   'companionMomentTipsMuted', 'companionMomentTipsLastAt', 'companionMomentTipsQuietStart',
   'companionMomentTipsQuietEnd', 'companionMomentTipsMaxPerDay', 'companionMomentTipsDayStats',
   'companionProactiveGreetingEnabled', 'companionProactiveGreetingLastDay',
-  'conversationDebugMode', 'llmCapabilityCache',
+  'conversationDebugMode', 'llmCapabilityCache', 'modelConnections', 'modelRoutes',
 ])
+
+export function redactModelConnections(raw: string): string {
+  try {
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return '[]'
+    return JSON.stringify(parsed.map((item) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return item
+      return { ...(item as Record<string, unknown>), apiKey: '' }
+    }))
+  } catch {
+    return '[]'
+  }
+}
 
 export function isSafeBackupSettingKey(key: string): key is keyof settingsStore.AppSettings {
   return SAFE_BACKUP_SETTING_KEYS.has(key as keyof settingsStore.AppSettings)
@@ -241,7 +254,7 @@ export function registerDataExportIPC(): void {
 
       const safeSettings: Record<string, string> = {}
       for (const [key, value] of Object.entries(settings)) {
-        if (isSafeBackupSettingKey(key)) safeSettings[key] = value
+        if (isSafeBackupSettingKey(key)) safeSettings[key] = key === 'modelConnections' ? redactModelConnections(value) : value
       }
 
       const data: ExportData = {

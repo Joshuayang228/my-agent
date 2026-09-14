@@ -5,7 +5,7 @@ import { MAX_COMPANION_RESPONSE_NOTE_LENGTH } from '../../../src/shared/types'
 
 const log = createLogger('SettingsStore')
 
-const ENCRYPTED_KEYS = new Set<keyof AppSettings>(['llmApiKey', 'mcpServers'])
+const ENCRYPTED_KEYS = new Set<keyof AppSettings>(['llmApiKey', 'mcpServers', 'modelConnections'])
 const ENCRYPTED_VALUE_PREFIX = 'enc:v1:'
 export const MAX_SETTING_VALUE_LENGTH = 1_000_000
 
@@ -132,6 +132,10 @@ export interface AppSettings {
    * JSON Record<`${baseUrl}|${model}`, { thinkingDisable, probedAt?, note? }>
    */
   llmCapabilityCache: string
+  /** JSON ModelConnectionProfile[]；为空时沿用旧单连接字段。 */
+  modelConnections: string
+  /** JSON ModelRouteProfile[]；为空时由旧主/辅助字段生成默认路由。 */
+  modelRoutes: string
 }
 
 export function isAppSettingKey(key: string): key is keyof AppSettings {
@@ -174,6 +178,8 @@ function getDefaults(): AppSettings {
     conversationDebugMode: 'false',
     developerMode: 'false',
     llmCapabilityCache: '{}',
+    modelConnections: '[]',
+    modelRoutes: '[]',
   }
 }
 

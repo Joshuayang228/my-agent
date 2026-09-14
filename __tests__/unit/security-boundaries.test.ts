@@ -15,7 +15,7 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
 }))
 vi.mock('../../electron/main/storage/database', () => ({}))
 
-import { collectExportSessions, importSessionsIntoDatabase, isSafeBackupSettingKey, isValidExportData } from '../../electron/main/ipc/data-export'
+import { collectExportSessions, importSessionsIntoDatabase, isSafeBackupSettingKey, isValidExportData, redactModelConnections } from '../../electron/main/ipc/data-export'
 import { buildSafeChildProcessEnv } from '../../electron/main/utils/safe-process-env'
 import { isAuthorizedProjectSelection, isPathInsideRoot } from '../../electron/main/ipc/project'
 import { isRendererWritableSettingKey } from '../../electron/main/ipc/settings'
@@ -108,6 +108,9 @@ describe('安全边界', () => {
     expect(isSafeBackupSettingKey('permissionRules')).toBe(false)
     expect(isSafeBackupSettingKey('executionMode')).toBe(false)
     expect(isSafeBackupSettingKey('currentProject')).toBe(false)
+    expect(isSafeBackupSettingKey('modelConnections')).toBe(true)
+    expect(redactModelConnections(JSON.stringify([{ id: 'c', apiKey: 'secret', baseUrl: 'https://example.test', model: 'm' }]))).not.toContain('secret')
+    expect(redactModelConnections(JSON.stringify([{ id: 'c', apiKey: 'secret', baseUrl: 'https://example.test', model: 'm' }]))).toContain('"apiKey":""')
   })
 
   it('导入在写库前拒绝超长相处偏好，兼容旧备份', () => {
