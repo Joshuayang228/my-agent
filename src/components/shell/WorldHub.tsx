@@ -3,11 +3,12 @@
  */
 
 import type { ReactNode } from 'react'
-import { Newspaper, Shirt, Users, LayoutGrid, X } from 'lucide-react'
+import { Newspaper, Shirt, Users, BookOpen, Home, MapPin, LayoutGrid, X } from 'lucide-react'
 import { MomentsPanel, type MomentsPreviewData } from '../MomentsPanel'
 import { AssetsPanel } from '../AssetsPanel'
 import { CastPanel } from '../CastPanel'
 import { CharacterShelfPanel } from '../CharacterShelfPanel'
+import { WorldDetailsPanel } from '../WorldDetailsPanel'
 import type { ShellView } from './SecondaryNav'
 
 export type WorldTab = 'moments' | 'assets' | 'cast' | 'shelf' | 'wardrobe' | 'culture' | 'home' | 'footprints'
@@ -16,17 +17,20 @@ export type WorldTabDefinition = { id: WorldTab; label: string; icon: ReactNode 
 
 const WORLD_TABS: WorldTabDefinition[] = [
   { id: 'moments', label: '朋友圈', icon: <Newspaper size={14} strokeWidth={1.5} /> },
-  { id: 'assets', label: '物什', icon: <Shirt size={14} strokeWidth={1.5} /> },
-  { id: 'cast', label: '名册', icon: <Users size={14} strokeWidth={1.5} /> },
-  { id: 'shelf', label: '角色架', icon: <LayoutGrid size={14} strokeWidth={1.5} /> },
+  { id: 'wardrobe', label: '衣柜', icon: <Shirt size={14} strokeWidth={1.5} /> },
+  { id: 'culture', label: '文化角', icon: <BookOpen size={14} strokeWidth={1.5} /> },
+  { id: 'home', label: '家居', icon: <Home size={14} strokeWidth={1.5} /> },
+  { id: 'cast', label: '通讯录', icon: <Users size={14} strokeWidth={1.5} /> },
+  { id: 'footprints', label: '足迹', icon: <LayoutGrid size={14} strokeWidth={1.5} /> },
 ]
 
 export function isWorldView(view: ShellView): boolean {
-  return view === 'world' || view === 'moments' || view === 'assets' || view === 'cast' || view === 'shelf'
+  return view === 'world' || view === 'moments' || view === 'assets' || view === 'cast' || view === 'shelf' || view === 'wardrobe' || view === 'culture' || view === 'home' || view === 'footprints'
 }
 
 export function worldTabFromView(view: ShellView): WorldTab {
-  if (view === 'assets' || view === 'cast' || view === 'shelf' || view === 'moments') return view
+  if (view === 'assets') return 'wardrobe'
+  if (view === 'cast' || view === 'shelf' || view === 'moments' || view === 'wardrobe' || view === 'culture' || view === 'home' || view === 'footprints') return view
   return 'moments'
 }
 
@@ -137,7 +141,8 @@ export function WorldHub({
         {previewPanels?.[tab] ?? (
           <>
             {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} appearance={momentsAppearance ?? 'social-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} />}
-            {tab === 'assets' && <AssetsPanel onClose={onClose} />}
+            {tab === 'wardrobe' && <AssetsPanel onClose={onClose} />}
+            {(tab === 'culture' || tab === 'home' || tab === 'footprints') && <WorldDetailsPanel tab={tab} />}
             {tab === 'cast' && (
               <CastPanel
                 onClose={onClose}

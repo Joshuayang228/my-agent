@@ -7,7 +7,7 @@
 
 相处偏好回归覆盖独立字段、空值清除、输入 / IPC / 备份限长、动态资产来源和 Prompt 身份边界；正式 App Renderer 测试覆盖深浅 / 宽窄、保存失败重试固定槽、重开恢复及保存过程中继续编辑，伙伴页内联错误不重复弹出遮挡操作的 Toast。Electron 用独立数据目录验证真实 preload / settings IPC 与重载恢复，并通过本地协议服务核验主对话实发包含偏好、workspace 实发排除偏好；不把这些测试当作真实模型服从性 Eval。
 
-全产品回流验收要求见 [全产品回流施工合同](./requirements/product-experience-production-rollout-v1.md)：逐项区分 Playground 候选证据、正式 App 入口的 Renderer 证据和真实 Electron / 持久化证据。仅右坞、Vite HTTP 200、注册表状态或 Playground 测试通过，不得推导全产品已回流。正式外观、权限、数据、关于、模型、MCP 和记忆页已统一相应候选结构；记忆真实数据列表的 Electron 级几何、失败恢复证据，以及模型多连接/用途路由和人物世界仍待补齐。
+全产品回流验收要求见 [全产品回流施工合同](./requirements/product-experience-production-rollout-v1.md)：逐项区分 Playground 候选证据、正式 App 入口的 Renderer 证据和真实 Electron / 持久化证据。仅右坞、Vite HTTP 200、注册表状态或 Playground 测试通过，不得推导全产品已回流。正式外观、权限、数据、关于、模型、MCP 和记忆页已统一相应候选结构；人物世界六入口已补正式 Renderer 证据，但文化角、家居、足迹仍是基于真实状态的只读派生视图，独立数据契约和编辑证据尚未完成。
 
 记忆 Playground 的背景回归覆盖深浅主题、1166 / 600px 宽度，以及清单、编辑、空态新增截图；清单不得再嵌套独立页面预览框，内容区域保持透明且无横向溢出。
 

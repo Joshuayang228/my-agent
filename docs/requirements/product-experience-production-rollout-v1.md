@@ -26,6 +26,7 @@
 | R03 外观 / `foundation-design-language-v2.md` | 设置外观、`src/index.css`、共享设计资产 | 候选四主题与全局主题、持久化旧主题尚需映射；不得丢用户设置 | 生产改造后回流；瓷青 / 曜石 / 松烟 / 绛紫同源，重启恢复、旧值兼容、Markdown / Diff 各入口 |
 | R04 伙伴与相处 / 设置候选 | 正式伙伴设置、`CharacterShelfPanel` | 既有角色切换、提醒、反思与 settings；候选补充说明写入链路待核实 | 生产改造后回流；设置内角色架、真实偏好保存与生效、流中禁换角、跨页同一主角 |
 | R05 记忆 / `SurfaceBaselinePanel.tsx` 的 MemorySurface | `MemoryPanel`、正式设置记忆页 | `memory:*`、memory-store / vector-store；紧凑显示仅 preview，四类候选不等价于存储类别 | 生产改造后回流；四类稳定归属、搜索、真实 CRUD、长文、敏感提示、固定日期操作槽、失败不丢稿 |
+| R06 人物世界 / `SurfaceBaselinePanel.tsx` 的六生活面 | `WorldHub`、`MomentsPanel`、`AssetsPanel`、`CastPanel`、`WorldDetailsPanel` | 朋友圈 / 衣柜 / 通讯录使用现有 companion 数据；文化角、家居、足迹当前由书架资产、生活动态和在场状态派生，只读且不新增事实源 | 生产改造后回流；六个入口可达，真实角色切换跟随，派生视图不伪造编辑；独立文化 / 家居 / 地点记录需后续数据契约 |
 | R06 模型 / `playground-model-and-workspace-v2.md` | 正式模型设置、LLM 配置工厂 | 已有 settings 与连接测试；候选多连接 / 用途路由 / 模型获取含 fixture | 生产改造后回流；连接 CRUD、发现与手动模型、用途路由、凭据安全存储、旧配置迁移、真实调用与失败恢复 |
 | R07 数据与隐私 / 设置候选 | 正式设置数据页及导入导出服务 | 复核实际导入 / 导出 / 备份字段与隐私边界；不按候选文案假定已包含所有数据 | 直接回流已有流程，缺失能力改造；取消、无效备份、失败提示、实际恢复一致性 |
 | R08 权限与自动化 / 设置候选 | 正式权限设置、`PermissionRulesEditor` | 既有 executionMode / permissionRules 与执行侧规则引擎 | 直接回流既有规则能力；默认收起、独立规则卡、列表后添加、原位取消、保存及执行侧生效；硬边界优先 |

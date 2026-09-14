@@ -2515,6 +2515,21 @@ test.describe('My Agent UI', () => {
     expect(Math.max(...rightEdges) - Math.min(...rightEdges)).toBeLessThan(1)
   })
 
+  test('正式人物世界提供六个生活面入口', async ({ page }) => {
+    await page.goto('/')
+    await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: '人物世界', exact: true }).click()
+    const world = page.getByTestId('world-hub')
+    await expect(world.getByRole('tab', { name: '朋友圈', exact: true })).toBeVisible()
+    await expect(world.getByRole('tab', { name: '衣柜', exact: true })).toBeVisible()
+    await expect(world.getByRole('tab', { name: '文化角', exact: true })).toBeVisible()
+    await expect(world.getByRole('tab', { name: '家居', exact: true })).toBeVisible()
+    await expect(world.getByRole('tab', { name: '通讯录', exact: true })).toBeVisible()
+    await expect(world.getByRole('tab', { name: '足迹', exact: true })).toBeVisible()
+    for (const tab of ['衣柜', '文化角', '家居', '通讯录', '足迹']) {
+      await world.getByRole('tab', { name: tab, exact: true }).click()
+      await expect(world.getByRole('tab', { name: tab, exact: true })).toHaveAttribute('aria-selected', 'true')
+    }
+  })
   test('Debug 与 Playground 采用一级任务导航', async ({ page }) => {
     await page.goto('/')
 
