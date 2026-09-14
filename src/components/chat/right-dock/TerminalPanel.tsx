@@ -25,6 +25,8 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
     '',
   ])
   const [cmd, setCmd] = useState('')
+  const [commandHistory, setCommandHistory] = useState<string[]>([])
+  const [historyIndex, setHistoryIndex] = useState(-1)
   const attemptRef = useRef<RunAttempt | null>(null)
   const [busy, setBusy] = useState(false)
   const [stopping, setStopping] = useState(false)
@@ -91,6 +93,8 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
     const attempt: RunAttempt = { runId: null, cancelRequested: false, stopping: false, disposed: false }
     attemptRef.current = attempt
     setLines((prev) => [...prev, `$ ${command}`, ''])
+    setCommandHistory((prev) => prev[prev.length - 1] === command ? prev : [...prev, command])
+    setHistoryIndex(-1)
     setCmd('')
     setBusy(true)
     try {
@@ -153,8 +157,29 @@ export function TerminalPanel({ projectPath }: TerminalPanelProps) {
           value={cmd}
           disabled={busy}
           placeholder={projectPath ? '输入命令…' : '未打开项目时在进程 cwd 执行'}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setCmd(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            setCmd(e.target.value)
+            setHistoryIndex(-1)
+          }}
           onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+            if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !busy && commandHistory.length > 0) {
+              e.preventDefault()
+              if (e.key === 'ArrowUp') {
+                const nextIndex = historyIndex < 0 ? commandHistory.length - 1 : Math.max(0, historyIndex - 1)
+                setHistoryIndex(nextIndex)
+                setCmd(commandHistory[nextIndex])
+              } else if (historyIndex >= 0) {
+                const nextIndex = historyIndex + 1
+                if (nextIndex >= commandHistory.length) {
+                  setHistoryIndex(-1)
+                  setCmd('')
+                } else {
+                  setHistoryIndex(nextIndex)
+                  setCmd(commandHistory[nextIndex])
+                }
+              }
+              return
+            }
             if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
               e.preventDefault()
               void run()
