@@ -72,5 +72,6 @@ describe('伙伴生产资产目录', () => {
     expect(second[0].payload.color).not.toBe('被测试修改')
     expect(second.some((item) => item.kind === 'wardrobe')).toBe(true)
     expect(second.some((item) => item.kind === 'bookshelf')).toBe(true)
+    expect(second.some((item) => item.kind === 'culture')).toBe(true)
   })
 })

@@ -97,9 +97,9 @@ describe('Companion Assets', () => {
     expect(zhou.every((a) => a.roleId === 'zhou')).toBe(true)
   })
 
-  it('ensureStarterAssets 同时播种衣柜与书架', async () => {
+  it('ensureStarterAssets 同时播种衣柜、书架与文化记录', async () => {
     const r = await ensureStarterAssets('xia')
-    expect(r.created).toBe(6)
+    expect(r.created).toBe(10)
     const all = await listAssets('xia')
     expect(all.filter((a) => a.kind === 'wardrobe')).toHaveLength(3)
     expect(all.filter((a) => a.kind === 'bookshelf')).toHaveLength(3)
@@ -107,7 +107,7 @@ describe('Companion Assets', () => {
 
   it('人物故事未定时，小航不播种默认世界物品', async () => {
     const first = await ensureStarterAssets('hang')
-    expect(first.created).toBe(5)
+    expect(first.created).toBe(9)
     const seeded = (await listAssets('hang')).filter((asset) => asset.payload.seededFrom === 'world.default')
     expect(seeded).toHaveLength(0)
     const second = await ensureWorldDefaultPossessions('hang')

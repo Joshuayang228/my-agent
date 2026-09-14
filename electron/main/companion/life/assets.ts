@@ -136,8 +136,9 @@ export async function addAsset(input: {
 
 export const ASSET_KIND_WARDROBE = 'wardrobe'
 export const ASSET_KIND_BOOKSHELF = 'bookshelf'
+export const ASSET_KIND_CULTURE = 'culture'
 
-export type AssetKind = typeof ASSET_KIND_WARDROBE | typeof ASSET_KIND_BOOKSHELF
+export type AssetKind = typeof ASSET_KIND_WARDROBE | typeof ASSET_KIND_BOOKSHELF | typeof ASSET_KIND_CULTURE
 
 export interface CompanionStarterAssetDefinition {
   key: string
@@ -178,6 +179,23 @@ const BOOKSHELF_DEFAULT: StarterItem[] = [
   { key: 'novel-night', name: '夜读一本', payload: { author: '佚名', genre: '小说', note: '睡前' } },
 ]
 
+
+const CULTURE_DEFAULT: StarterItem[] = [
+  { key: 'reading-note', name: '随手读物', payload: { type: 'reading', detail: '偶尔翻两页' } },
+  { key: 'evening-music', name: '傍晚歌单', payload: { type: 'music', detail: '散步时听' } },
+  { key: 'favorite-film', name: '喜欢的电影', payload: { type: 'film', detail: '想再看一次' } },
+  { key: 'window-photo', name: '窗边的光', payload: { type: 'photography', detail: '自己的记录' } },
+]
+
+const CULTURE_BY_ROLE: Record<string, StarterItem[]> = {
+  lin: [
+    { key: 'walden-notes', name: '《瓦尔登湖》', payload: { type: 'reading', detail: '正在读 · 留下 3 条笔记', note: '给生活留一点空白' } },
+    { key: 'meaning-of-travel', name: '旅行的意义', payload: { type: 'music', detail: '最近常听 · 傍晚散步' } },
+    { key: 'little-forest', name: '《海街日记》', payload: { type: 'film', detail: '喜欢的电影 · 看过两次' } },
+    { key: 'window-light', name: '窗边的光', payload: { type: 'photography', detail: '自己的作品 · 2026 年 8 月' } },
+  ],
+}
+
 const BOOKSHELF_BY_ROLE: Record<string, StarterItem[]> = {
   lin: [
     { key: 'work-craft', name: '匠人', payload: { author: '森博嗣', genre: '随笔', note: '做事的分寸' } },
@@ -207,12 +225,16 @@ export function getStarterAssetDefinitions(roleId: string): CompanionStarterAsse
   return ([
     ...startersFor(ASSET_KIND_WARDROBE, roleId).map((item) => ({ ...item, kind: ASSET_KIND_WARDROBE })),
     ...startersFor(ASSET_KIND_BOOKSHELF, roleId).map((item) => ({ ...item, kind: ASSET_KIND_BOOKSHELF })),
+    ...startersFor(ASSET_KIND_CULTURE, roleId).map((item) => ({ ...item, kind: ASSET_KIND_CULTURE })),
   ]).map((item) => ({ ...item, payload: structuredClone(item.payload) }))
 }
 
 function startersFor(kind: AssetKind, roleId: string): StarterItem[] {
   if (kind === ASSET_KIND_BOOKSHELF) {
     return BOOKSHELF_BY_ROLE[roleId] ?? BOOKSHELF_DEFAULT
+  }
+  if (kind === ASSET_KIND_CULTURE) {
+    return CULTURE_BY_ROLE[roleId] ?? CULTURE_DEFAULT
   }
   return WARDROBE_BY_ROLE[roleId] ?? WARDROBE_DEFAULT
 }
@@ -269,6 +291,10 @@ export async function ensureStarterBookshelf(roleId: string): Promise<{ created:
  * 设计意图：以稳定 id 幂等写入，不覆盖用户已编辑或事件产生的资产。
  * 关键约束：首次整组播种；已有任一种子即不补单件，避免用户删除后复活。
  */
+export async function ensureStarterCulture(roleId: string): Promise<{ created: number }> {
+  return ensureStarterForKind(roleId, ASSET_KIND_CULTURE)
+}
+
 export async function ensureWorldDefaultPossessions(roleId: string): Promise<{ created: number }> {
   const defaults = loadRoleWorldDefaults(roleId)
   if (!defaults?.possessions.length) return { created: 0 }
@@ -310,8 +336,9 @@ export async function ensureWorldDefaultPossessions(roleId: string): Promise<{ c
 export async function ensureStarterAssets(roleId: string): Promise<{ created: number }> {
   const w = await ensureStarterWardrobe(roleId)
   const b = await ensureStarterBookshelf(roleId)
+  const c = await ensureStarterCulture(roleId)
   const p = await ensureWorldDefaultPossessions(roleId)
-  return { created: w.created + b.created + p.created }
+  return { created: w.created + b.created + c.created + p.created }
 }
 
 /** 为事件挑选一件衣柜（确定性：按 scheduledAt 取模） */
