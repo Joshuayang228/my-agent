@@ -85,6 +85,8 @@ export function MemoryPanel({
   const isPreview = previewMemories !== undefined
   const isPreviewInteractive = isPreview && previewEditable
   const isCompactPreview = isPreview && previewCompact
+  const isProductMemory = !isPreview
+  const useCompactLayout = isCompactPreview || isProductMemory
   const canEdit = !readOnly && (isPreviewInteractive || !isPreview)
 
   const loadMemories = useCallback(async () => {
@@ -315,14 +317,14 @@ export function MemoryPanel({
                 return (
                   <div
                     key={mem.id}
-                    data-testid={isCompactPreview ? `memory-item-${mem.id}` : undefined}
-                    className={`${isCompactPreview ? 'group/memory-item' : 'group'} transition ${
-                      isCompactPreview
+                    data-testid={useCompactLayout ? `memory-item-${mem.id}` : undefined}
+                    className={`${useCompactLayout ? 'group/memory-item' : 'group'} transition ${
+                      useCompactLayout
                         ? 'rounded-[var(--radius-lg)] border p-4'
                         : `rounded-xl border px-4 py-3.5 hover:bg-opacity-10 ${isPreview ? 'min-h-[156px]' : isSensitive ? '' : `${colors.border} ${colors.bg}`}`
                     }`}
                     style={
-                      isCompactPreview
+                      useCompactLayout
                         ? isSensitive
                           ? {
                               borderColor: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 55%, var(--card-border))',
@@ -344,7 +346,7 @@ export function MemoryPanel({
                             : undefined
                     }
                   >
-                    {isCompactPreview && isSensitive && (
+                    {useCompactLayout && isSensitive && (
                       <div
                         className="mb-2 flex items-start gap-2 text-[11px] leading-4"
                         data-testid={`memory-sensitive-warning-${mem.id}`}
@@ -354,14 +356,14 @@ export function MemoryPanel({
                         <span><strong>敏感信息</strong>：涉及{labelSensitiveKinds(sensitiveKinds)}隐私，请谨慎保留。</span>
                       </div>
                     )}
-                    <div className={!isCompactPreview ? 'mb-1.5 flex items-center gap-1' : 'hidden'}>
+                    <div className={!useCompactLayout ? 'mb-1.5 flex items-center gap-1' : 'hidden'}>
                       <div className="flex flex-wrap items-center gap-1">
-                        {!isCompactPreview && (
+                        {!useCompactLayout && (
                           <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${colors.badge}`}>
                             {cat?.icon} {cat?.label}
                           </span>
                         )}
-                        {!isCompactPreview && isSensitive && (
+                        {!useCompactLayout && isSensitive && (
                           <span
                             className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium"
                             title="启发式敏感标记，可删除或改正"
@@ -377,9 +379,9 @@ export function MemoryPanel({
                       </div>
                     </div>
 
-                    <div className={isCompactPreview ? 'grid grid-cols-[minmax(0,1fr)_5.5rem] items-start gap-3' : undefined}>
+                    <div className={useCompactLayout ? 'grid grid-cols-[minmax(0,1fr)_5.5rem] items-start gap-3' : undefined}>
                     {isEditing ? (
-                      isCompactPreview ? (
+                      useCompactLayout ? (
                         editContent.length > 80 ? (
                           <textarea
                             value={editContent}
@@ -436,11 +438,11 @@ export function MemoryPanel({
                       )
                     ) : (
                       <div className="flex min-w-0 items-start justify-between gap-3">
-                        <p className={`min-w-0 flex-1 ${isCompactPreview ? 'whitespace-pre-wrap break-words py-1 text-[13px] font-medium leading-6 [overflow-wrap:anywhere]' : 'text-xs leading-relaxed'}`} style={{ color: isCompactPreview ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{mem.content}</p>
+                        <p className={`min-w-0 flex-1 ${useCompactLayout ? 'whitespace-pre-wrap break-words py-1 text-[13px] font-medium leading-6 [overflow-wrap:anywhere]' : 'text-xs leading-relaxed'}`} style={{ color: useCompactLayout ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{mem.content}</p>
                       </div>
                     )}
 
-                    {isCompactPreview && <div className="relative h-8 w-full" data-testid={`memory-item-controls-${mem.id}`}>
+                    {useCompactLayout && <div className="relative h-8 w-full" data-testid={`memory-item-controls-${mem.id}`}>
                       <span className={`pointer-events-none absolute inset-0 flex items-center justify-end whitespace-nowrap text-[11px] transition ${canEdit ? isEditing || pendingDelete === mem.id ? 'opacity-0' : 'group-hover/memory-item:opacity-0 group-focus-within/memory-item:opacity-0' : ''}`} style={{ color: 'var(--text-muted)' }} data-testid={`memory-item-date-${mem.id}`}>
                         {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
                       </span>
@@ -463,7 +465,7 @@ export function MemoryPanel({
                     </div>}
                     </div>
 
-                    {!isCompactPreview && isSensitive && !isEditing && (
+                    {isPreview && !isCompactPreview && isSensitive && !isEditing && (
                       <div
                         className="mt-3 flex items-start gap-2 rounded-md border px-2.5 py-2 text-[10px] leading-4"
                         data-testid={`memory-sensitive-warning-${mem.id}`}
@@ -491,7 +493,7 @@ export function MemoryPanel({
                       </p>
                     )}
 
-                    {!isCompactPreview && <div className="mt-2 flex items-center justify-between gap-3">
+                    {isPreview && !isCompactPreview && <div className="mt-2 flex items-center justify-between gap-3">
                       {!isCompactPreview && <div className="text-[9px]" style={{ color: 'var(--text-muted)' }} data-testid={`memory-item-date-${mem.id}`}>
                         {new Date(mem.createdAt).toLocaleDateString('zh-CN')}
                         {mem.updatedAt !== mem.createdAt && ` (更新于 ${new Date(mem.updatedAt).toLocaleDateString('zh-CN')})`}
