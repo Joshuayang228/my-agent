@@ -2863,6 +2863,11 @@ test.describe('My Agent UI', () => {
     await expect(providerDetails).not.toContainText('gpt-4o')
     await expect(page.getByPlaceholder('填写 Provider 控制台中的模型 ID')).toHaveValue('gpt-4o')
 
+    await page.getByRole('button', { name: '数据与隐私', exact: true }).click()
+    await expect(page.getByRole('button', { name: /导出数据/ })).toContainText('生成一份本地备份')
+    await expect(page.getByRole('button', { name: /导入数据/ })).toContainText('从本地备份恢复')
+    await expect(page.getByRole('button', { name: /导出数据/ })).toHaveClass(/min-h-16/)
+
     await page.locator('[data-testid="settings-back"]').click()
     await expect(settingsPanel).not.toBeVisible()
   })

@@ -141,6 +141,7 @@ export function SettingsPanel({
   const [connectionTesting, setConnectionTesting] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<{ kind: 'success' | 'error'; text: string } | null>(null)
   const [showAdvancedModel, setShowAdvancedModel] = useState(false)
+  const [dataBusy, setDataBusy] = useState<'export' | 'import' | null>(null)
   const [verifiedConnectionKey, setVerifiedConnectionKey] = useState('')
   const [protagonists, setProtagonists] = useState<RoleInfo[]>([])
   const [mcpServers, setMcpServers] = useState<McpServerEntry[]>([])
@@ -838,29 +839,37 @@ export function SettingsPanel({
         <div className="grid gap-2 sm:grid-cols-2">
           <button
             type="button"
+            disabled={dataBusy !== null}
             onClick={async () => {
-              if (!window.electronAPI) return
-              const res = await window.electronAPI.data.export()
-              if (res.success) toast(`导出成功！${res.stats?.sessions} 个会话 + ${res.stats?.memories} 条记忆`, 'success')
-              else if (res.error !== 'cancelled') toast(`导出失败: ${res.error}`, 'error')
+              if (!window.electronAPI || dataBusy) return
+              setDataBusy('export')
+              try {
+                const res = await window.electronAPI.data.export()
+                if (res.success) toast(`导出成功！${res.stats?.sessions} 个会话 + ${res.stats?.memories} 条记忆`, 'success')
+                else if (res.error !== 'cancelled') toast(`导出失败: ${res.error}`, 'error')
+              } finally { setDataBusy(null) }
             }}
-            className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-3 text-left text-xs transition"
+            className="flex min-h-16 items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-55"
             style={{ borderColor: 'var(--border-subtle)' }}
           >
-            <span className="flex items-center gap-2"><Upload size={15} style={{ color: 'var(--accent-fg)' }} />导出数据</span>
+            <span className="flex min-w-0 items-center gap-2"><Upload size={15} className="shrink-0" style={{ color: 'var(--accent-fg)' }} /><span><span className="block text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>导出数据</span><span className="mt-1 block text-[10px]" style={{ color: 'var(--text-muted)' }}>生成一份本地备份</span></span></span><ChevronRight size={14} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
           </button>
           <button
             type="button"
+            disabled={dataBusy !== null}
             onClick={async () => {
-              if (!window.electronAPI) return
-              const res = await window.electronAPI.data.import()
-              if (res.success) toast(`导入成功！${res.stats?.sessions} 个会话 + ${res.stats?.memories} 条记忆 + ${res.stats?.settings} 项设置`, 'success')
-              else if (res.error !== 'cancelled') toast(`导入失败: ${res.error}`, 'error')
+              if (!window.electronAPI || dataBusy) return
+              setDataBusy('import')
+              try {
+                const res = await window.electronAPI.data.import()
+                if (res.success) toast(`导入成功！${res.stats?.sessions} 个会话 + ${res.stats?.memories} 条记忆 + ${res.stats?.settings} 项设置`, 'success')
+                else if (res.error !== 'cancelled') toast(`导入失败: ${res.error}`, 'error')
+              } finally { setDataBusy(null) }
             }}
-            className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-3 text-left text-xs transition"
+            className="flex min-h-16 items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-55"
             style={{ borderColor: 'var(--border-subtle)' }}
           >
-            <span className="flex items-center gap-2"><Download size={15} style={{ color: 'var(--accent-fg)' }} />导入数据</span>
+            <span className="flex min-w-0 items-center gap-2"><Download size={15} className="shrink-0" style={{ color: 'var(--accent-fg)' }} /><span><span className="block text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>导入数据</span><span className="mt-1 block text-[10px]" style={{ color: 'var(--text-muted)' }}>从本地备份恢复</span></span></span><ChevronRight size={14} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
           </button>
         </div>
       </SettingCard>
