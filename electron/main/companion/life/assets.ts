@@ -452,7 +452,11 @@ export function shouldAttachBookshelfRef(input: {
 
 export const BOOKSHELF_PROMPT_LIMIT = 3
 
-/** Assemble 薄切片：最多 N 本，勿编造未入库书 */
+/**
+ * 背景：文化角允许保存完整笔记，书架上下文仍是有限的生活摘要而非文档注入。
+ * 设计意图：将原短笔记的 24 字预算放在 Prompt 展示边界，正文留在资产中供界面完整读取。
+ * 关键约束：最多 N 本；不改写源资产，不因存储上限放宽而自动扩张模型输入。
+ */
 export function formatBookshelfSliceForPrompt(
   items: CompanionAsset[],
   limit = BOOKSHELF_PROMPT_LIMIT,
@@ -462,7 +466,7 @@ export function formatBookshelfSliceForPrompt(
     const name = a.name.trim()
     if (!name) continue
     const author = typeof a.payload.author === 'string' ? a.payload.author.trim() : ''
-    const note = typeof a.payload.note === 'string' ? a.payload.note.trim() : ''
+    const note = typeof a.payload.note === 'string' ? a.payload.note.trim().slice(0, 24) : ''
     const extra = [author, note].filter(Boolean).join(' · ')
     lines.push(extra ? `- 《${name}》${extra}` : `- 《${name}》`)
   }
@@ -488,8 +492,9 @@ export async function collectBookshelfSlice(
 }
 
 /**
- * 更新资产名称 / payload（合并写入）。
- * expectedRoleId：若提供则必须属于该角色（IPC 用 active）。
+ * 背景：衣柜短标签与文化 / 书架正文共用更新入口，统一截为 24 字会造成静默数据丢失。
+ * 设计意图：仅正文白名单支持完整有界文本，超限或类型错误拒绝整次更新，短标签保持兼容。
+ * 关键约束：先检查角色归属，再校验全部字段，最后一次参数化 SQL 更新；不得部分保存或记录正文日志。
  */
 export async function updateAsset(
   assetId: string,
@@ -515,6 +520,16 @@ export async function updateAsset(
     for (const [k, v] of Object.entries(patch.payload)) {
       if (v === null || v === undefined || v === '') {
         delete next[k]
+        continue
+      }
+      const isCultureText = (existing.kind === ASSET_KIND_CULTURE || existing.kind === ASSET_KIND_BOOKSHELF)
+        && ['note', 'detail', 'description'].includes(k)
+      if (isCultureText) {
+        if (typeof v !== 'string' || v.length > 4000) {
+          return { ok: false, code: 'INVALID', error: '文化正文须为文本，长度不能超过 4000 字符' }
+        }
+        if (v.trim()) next[k] = v
+        else delete next[k]
         continue
       }
       if (typeof v === 'string') {

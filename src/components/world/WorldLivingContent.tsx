@@ -1,4 +1,4 @@
-import { Home, MapPin, Package } from 'lucide-react'
+import { BookOpen, Camera, Clapperboard, Home, MapPin, Music, Package } from 'lucide-react'
 
 export interface LivingAsset {
   id: string
@@ -17,6 +17,47 @@ const cardStyle = { borderColor: 'var(--card-border)', background: 'var(--card-b
 const headingStyle = { color: 'var(--companion-accent-warm)' }
 const detailStyle = { color: 'var(--text-muted)' }
 const textField = (payload: Record<string, unknown>, key: string): string => typeof payload[key] === 'string' ? payload[key] as string : ''
+
+const cultureTypes = {
+  reading: { label: '读书', icon: BookOpen },
+  music: { label: '音乐', icon: Music },
+  film: { label: '电影', icon: Clapperboard },
+  photography: { label: '摄影', icon: Camera },
+} as const
+
+/**
+ * 背景：文化角候选已有四类内容和笔记，正式页却只显示通用资产列表，detail 还会遮掉 note。
+ * 设计意图：正式与候选共用卡片组合，书架记录作为阅读内容，笔记单独展示并保留所属作品。
+ * 关键约束：仅呈现传入的真实字段；不制造播放、观影次数或笔记数量，不按同名去重，不读取 IPC。
+ */
+export function WorldCultureContent({ assets }: { assets: readonly LivingAsset[] }) {
+  const items = assets.filter((item) => item.kind === 'culture' || item.kind === 'bookshelf')
+  const typeFor = (item: LivingAsset) => item.kind === 'bookshelf' ? 'reading' : textField(item.payload, 'type')
+  const notes = items.filter((item) => typeFor(item) === 'reading' && textField(item.payload, 'note').trim())
+  return <div className="min-w-0 space-y-3" data-world-content="culture">
+    <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+      {items.map((item) => {
+        const type = typeFor(item)
+        const category = Object.prototype.hasOwnProperty.call(cultureTypes, type) ? cultureTypes[type as keyof typeof cultureTypes] : { label: '文化记录', icon: BookOpen }
+        const Icon = category.icon
+        const detail = textField(item.payload, 'detail') || textField(item.payload, 'description')
+        return <article key={item.id} aria-label={item.name} className="min-w-0 rounded-lg border p-3 [overflow-wrap:anywhere]" style={cardStyle}>
+          <div className="flex items-center gap-2 text-[10px]" style={headingStyle}><Icon size={16} aria-hidden="true" />{category.label}</div>
+          <h3 className="mt-2 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{item.name}</h3>
+          {textField(item.payload, 'author') && <p className="mt-1 text-[11px]" style={detailStyle}>{textField(item.payload, 'author')}</p>}
+          {detail && <p className="mt-1 whitespace-pre-wrap text-[11px] leading-5" style={detailStyle}>{detail}</p>}
+          {type !== 'reading' && textField(item.payload, 'note').trim() && <p className="mt-2 whitespace-pre-wrap text-[11px] leading-5" style={detailStyle}>{textField(item.payload, 'note')}</p>}
+        </article>
+      })}
+    </div>
+    {notes.map((item) => <blockquote key={item.id} aria-label={`${item.name}的读书笔记`} className="min-w-0 rounded-lg border px-4 py-3 [overflow-wrap:anywhere]" style={{ borderColor: 'var(--card-border)', background: 'var(--bg-secondary)' }}>
+      <div className="flex items-center gap-2 text-[10px]" style={headingStyle}><BookOpen size={14} aria-hidden="true" />读书笔记</div>
+      <p className="mt-2 whitespace-pre-wrap text-[12px] leading-6" style={{ color: 'var(--text-secondary)' }}>{textField(item.payload, 'note')}</p>
+      <footer className="mt-2 text-[10px]" style={detailStyle}>{item.name}</footer>
+    </blockquote>)}
+    {!items.length && <p className="text-[11px]" style={detailStyle}>还没有记录文化生活。</p>}
+  </div>
+}
 
 /**
  * 背景：家居候选的当前空间与物件曾在正式页重新手写，逐渐丢失结构与内容。

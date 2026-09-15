@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, ChevronDown, CircleAlert, Clapperboard, Folder, Home, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, PanelRight, Paperclip, Plus, RotateCcw, Search, Shield, Shirt, UserRound, Users, X, Check } from 'lucide-react'
+import { ArrowRight, ArrowUp, BookOpen, Bot, ChevronDown, CircleAlert, Folder, Home, MapPin, MessageCircle, Newspaper, PanelLeftOpen, PanelRight, Paperclip, Plus, RotateCcw, Search, Shield, Shirt, UserRound, Users, X, Check } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
@@ -12,7 +12,7 @@ import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import type { MomentItem, MomentsPreviewData } from '../MomentsPanel'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
 import { WorldHub, type WorldTab, type WorldTabDefinition } from '../shell/WorldHub'
-import { WorldHomeContent, WorldFootprintsContent } from '../world/WorldLivingContent'
+import { WorldCultureContent, WorldHomeContent, WorldFootprintsContent } from '../world/WorldLivingContent'
 import type { MemoryEntry } from '../../shared/types'
 import type { PlaygroundTabId } from './catalog'
 import { PLAYGROUND_PERSONAS, type PlaygroundPersona } from '../../shared/playground-journey-fixtures'
@@ -554,24 +554,12 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
     ),
     culture: (
       <div className="space-y-3 p-5" data-testid="world-culture-fixture" data-persona-id={persona.id}>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {[
-            { label: '读书', title: '《瓦尔登湖》', detail: '正在读 · 留下 3 条笔记', icon: <BookOpen size={16} /> },
-            { label: '音乐', title: '旅行的意义', detail: '最近常听 · 傍晚散步', icon: <Music size={16} /> },
-            { label: '电影', title: '《海街日记》', detail: '喜欢的电影 · 看过两次', icon: <Clapperboard size={16} /> },
-            { label: '摄影', title: '窗边的光', detail: '自己的作品 · 2026 年 8 月', icon: <Camera size={16} /> },
-          ].map((item) => (
-            <article key={item.label} className="rounded-xl border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
-              <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--companion-accent-warm)' }}>{item.icon}{item.label}</div>
-              <div className="mt-2 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{item.title}</div>
-              <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>{item.detail}</p>
-            </article>
-          ))}
-        </div>
-        <blockquote className="rounded-xl border px-4 py-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
-          <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--companion-accent-warm)' }}><BookOpen size={13} />读书笔记</div>
-          <p className="mt-2 text-[12px] leading-6" style={{ color: 'var(--text-secondary)' }}>有时候不是事情太多，而是没有给自己留下足够的空白。</p>
-        </blockquote>
+        <WorldCultureContent assets={[
+          { id: 'reading-preview', kind: 'culture', name: '《瓦尔登湖》', payload: { type: 'reading', detail: '正在读', note: '有时候不是事情太多，而是没有给自己留下足够的空白。' } },
+          { id: 'music-preview', kind: 'culture', name: '旅行的意义', payload: { type: 'music', detail: '最近常听 · 傍晚散步' } },
+          { id: 'film-preview', kind: 'culture', name: '《海街日记》', payload: { type: 'film', detail: '喜欢的电影 · 看过两次' } },
+          { id: 'photo-preview', kind: 'culture', name: '窗边的光', payload: { type: 'photography', detail: '自己的作品 · 2026 年 8 月' } },
+        ]} />
       </div>
     ),
     home: (

@@ -54,6 +54,7 @@ const {
   pickWardrobeAssetId,
   maybeGrantFromEvent,
   normalizeGrantAsset,
+  formatBookshelfSliceForPrompt,
   ASSET_KIND_BOOKSHELF,
 } = await import('../../electron/main/companion/life/assets')
 
@@ -74,6 +75,34 @@ describe('Companion Assets', () => {
   afterEach(() => {
     vi.restoreAllMocks()
     memDb.close()
+  })
+
+  it('文化与书架正文保存完整，超限和错误类型不得部分更新', async () => {
+    for (const kind of ['culture', 'bookshelf']) {
+      const asset = await addAsset({ roleId: 'lin', kind, name: '原作品', payload: { type: 'reading' } })
+      const note = '长笔记。\n'.repeat(800)
+      expect(note.length).toBe(4000)
+      const saved = await updateAsset(asset.id, { payload: { note, detail: '摘要'.repeat(100) } }, { expectedRoleId: 'lin' })
+      expect(saved.ok).toBe(true)
+      expect((await listAssets('lin', { kind }))[0].payload.note).toBe(note)
+      const rejected = await updateAsset(asset.id, { name: '不得保存的新名', payload: { note: `${note}多` } }, { expectedRoleId: 'lin' })
+      expect(rejected).toMatchObject({ ok: false, code: 'INVALID' })
+      expect(await updateAsset(asset.id, { payload: { note: { invalid: true } } })).toMatchObject({ ok: false, code: 'INVALID' })
+      expect((await listAssets('lin', { kind }))[0]).toMatchObject({ name: '原作品', payload: { note } })
+      expect(await updateAsset(asset.id, { payload: { note: '跨角色覆盖' } }, { expectedRoleId: 'zhou' })).toMatchObject({ ok: false, code: 'ROLE_MISMATCH' })
+      await updateAsset(asset.id, { payload: { note: '' } })
+      expect((await listAssets('lin', { kind }))[0].payload.note).toBeUndefined()
+    }
+  })
+
+  it('书架全文存储不扩张 Prompt 摘要，衣柜短标签保持原规则', async () => {
+    const book = await addAsset({ roleId: 'lin', kind: 'bookshelf', name: '书', payload: { note: '文'.repeat(300) } })
+    const prompt = formatBookshelfSliceForPrompt([book])
+    expect(prompt).toContain('文'.repeat(24))
+    expect(prompt).not.toContain('文'.repeat(25))
+    const shirt = await addAsset({ roleId: 'lin', kind: 'wardrobe', name: '外套' })
+    await updateAsset(shirt.id, { payload: { color: '蓝'.repeat(50) } })
+    expect((await listAssets('lin', { kind: 'wardrobe' }))[0].payload.color).toBe('蓝'.repeat(24))
   })
 
   function useWorldFixture() {

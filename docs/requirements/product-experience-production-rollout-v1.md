@@ -108,6 +108,12 @@ R12 必须拆成六个独立验收面：
 
 ## 当前收口记录（2026-09-15）
 
+- R12 文化角展示回流：允许修改 `WorldLivingContent`、`WorldDetailsPanel`、`SurfaceBaselinePanel`、相关 Unit / Renderer / Electron 测试及注册说明和文档。以已确认的四类卡片和读书笔记替代正式页旧嵌套列表；候选与正式共用 `WorldCultureContent`，书架既有笔记不丢失，未知类型和同名不同资产保留。不改 IPC、存储、人物设定、Prompt 或权限，也不新增播放等候选未具备的动作。
+- 本批验收边界：Unit 验证分类、笔记、空态、异常字段和转义；Renderer 覆盖四主题宽窄长文；Electron 从正式入口验证真实资产 IPC 更新后的重载显示，不把 Renderer 重载称为完整应用重启或备份恢复。文化内容来源、生命周期、编辑流程和六面完整验收仍归 R12，不因共享展示已完成而标整个体验 adopted。
+- Electron 实测补齐范围：`updateAsset` 把长笔记截为 24 字，故本批增加 `life/assets.ts` 与 `companion-assets.test.ts` 的正文保存修复。文化 / 书架的 note、detail、description 支持最多 4000 UTF-16 代码单元，保留换行和正文；超限或类型错误在 SQL 更新前拒绝，不部分修改名称。其他短标签规则、角色归属、IPC 形状和数据库结构不变。书架注入 Prompt 时仍仅取 24 字笔记摘要，存储全文不自动扩张模型输入；不进行破坏性迁移，已截断的历史内容不能自动恢复。
+- `prompts/registry.ts` 与 `prompt-assets.test.ts` 同步书架动态插槽的真实格式化来源，不复制正文或阈值为第二事实源；这是前述不改 Prompt 范围的唯一必要补充，身份和行为文案不变。
+- 文化角最终验证：Unit 串行 144 文件 / 839 项、Renderer UI 104 项、Electron onboarding 本地回归 8 项、Eval 23 + 1 项、根 `tsc --noEmit`、build 与 assets 检查通过。Electron 覆盖真实资产读写与 Renderer 重载，不代表完整应用重启或用户备份恢复；未调用付费模型。主进程独立类型对照为前后各 71 条诊断、无新增，不等于该门禁通过。默认并发 Unit 曾触发既有 Foundation 检查超时，最终串行通过但未宣称稳定性修复（WISH-042）；依赖审计仍为全量 7 项 / 生产 4 项，未改依赖，仍由 WISH-044 管理。
+
 - R12 本批边界：`life/assets.ts` 为住所和常去地点增加真实 Role Pack 派生定义，与 `companion_asset_seeds(role_id, kind)` 同步事务初始化；无默认值不生成，已有资产优先，失败回滚且删除后不补种。默认物件初始化按稳定物件 ID 识别，避免新住所挡住原物件。
 - 家居 / 足迹正式页和 Playground 共用 `world/WorldLivingContent.tsx`；正式 `WorldDetailsPanel` 负责真实 IPC、刷新失败保留内容、重试和主角一致性校验。常去、想去展示与动态日期不混淆，不新增虚假的访问记录。文化角组合与编辑入口不在本批完成范围，仍属 R12 未完成项。
 - 证据：`companion-assets` / `companion-asset-registry` Unit 覆盖真实 sql.js 初始化与回滚；`chat` Renderer 四主题宽窄覆盖正式入口、长文、刷新失败 / 重试、两条同地点动态和角色不一致。Renderer 使用 IPC 替身，不能替代六面真实 Electron 验收。现有用户备份遗漏生活资产与初始化标记，继续在 R07 / WISH-045 内补齐。

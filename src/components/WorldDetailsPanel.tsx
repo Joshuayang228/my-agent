@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { BookOpen, RefreshCw } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { IconButton } from './foundation/IconButton'
-import { WorldHomeContent, WorldFootprintsContent } from './world/WorldLivingContent'
+import { WorldCultureContent, WorldHomeContent, WorldFootprintsContent } from './world/WorldLivingContent'
 
 type WorldDetailTab = 'culture' | 'home' | 'footprints'
 
@@ -62,12 +62,10 @@ export function WorldDetailsPanel({ tab }: WorldDetailsPanelProps) {
   if (error && !state) return <div role="alert" className="flex items-center gap-2 p-5 text-xs" style={{ color: 'var(--danger)' }}><span>{error}</span><IconButton label="重试生活面" size={32} onClick={() => void load()}><RefreshCw size={14} /></IconButton></div>
   if (!state) return null
 
-  const culture = state.assets.filter((item) => item.kind === 'culture')
-
   return <div className="min-w-0 space-y-3 p-5" data-testid="world-details">
     <div className="flex items-center justify-between gap-3"><div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{state.roleName}的{tab === 'culture' ? '文化角' : tab === 'home' ? '家居' : '足迹'}</div><IconButton label={error ? '重试生活面' : '刷新生活面'} size={32} onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton></div>
     {error && <p role="alert" className="text-[11px]" style={{ color: 'var(--danger)' }}>{error}</p>}
-    {tab === 'culture' && <section className="rounded-[var(--radius-lg)] border p-4" style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)' }}><div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--accent-fg)' }}><BookOpen size={14} />文化记录</div>{culture.length ? <div className="mt-3 grid gap-2 sm:grid-cols-2">{culture.map((item) => <div key={item.name} className="rounded-[var(--radius-md)] border px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }}><div className="flex items-center justify-between gap-2"><div className="text-[12px]" style={{ color: 'var(--text-primary)' }}>{item.name}</div><span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{typeof item.payload.type === 'string' ? item.payload.type : '记录'}</span></div><div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{typeof item.payload.detail === 'string' ? item.payload.detail : typeof item.payload.note === 'string' ? item.payload.note : '来自伙伴文化角'}</div></div>)}</div> : <p className="mt-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>还没有可展示的文化记录。</p>}</section>}
+    {tab === 'culture' && <WorldCultureContent assets={state.assets} />}
     {tab === 'home' && <WorldHomeContent assets={state.assets} presence={state.presence} />}
     {tab === 'footprints' && <WorldFootprintsContent assets={state.assets} moments={state.moments} />}
   </div>

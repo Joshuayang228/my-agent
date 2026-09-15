@@ -232,6 +232,44 @@ test('正式伙伴设置经真实 IPC 保存独立偏好并在重载后恢复', 
   }
 })
 
+test('正式文化角通过真实资产 IPC 更新并在重载后保留作品与笔记', async () => {
+  const response = await page.evaluate(() => window.electronAPI.companion.getAssets())
+  const reading = response.items.find((item) => item.kind === 'culture' && item.payload.type === 'reading')
+  expect(reading).toBeDefined()
+  const original = reading!
+  const note = '这是一条通过真实资产 IPC 保存的长笔记。\n'.repeat(40)
+  try {
+    const result = await page.evaluate(({ id, note }) => window.electronAPI.companion.updateAsset(id, {
+      name: '文化角持久化验收作品', payload: { detail: '摘要和笔记应同时可见', note },
+    }), { id: original.id, note })
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.asset.payload.note).toBe(note)
+    const oversized = await page.evaluate((id) => window.electronAPI.companion.updateAsset(id, {
+      name: '不得覆盖作品', payload: { note: '长'.repeat(4001) },
+    }), original.id)
+    expect(oversized).toMatchObject({ ok: false, code: 'INVALID' })
+    await page.reload()
+    await expect(page.locator('#startup-splash')).toBeHidden()
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    await page.getByTestId('world-tab-culture').click()
+    const culture = page.locator('[data-world-content="culture"]')
+    await expect(culture.getByRole('article', { name: '文化角持久化验收作品', exact: true })).toContainText('摘要和笔记应同时可见')
+    await expect(culture.locator('blockquote').filter({ hasText: '文化角持久化验收作品' })).toContainText(note.trim())
+    for (const label of ['读书', '音乐', '电影', '摄影']) await expect(culture).toContainText(label)
+    expect(await culture.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+    const persisted = await page.evaluate(() => window.electronAPI.companion.getAssets())
+    expect(persisted.roleId).toBe(response.roleId)
+    expect(persisted.items.find((item) => item.id === original.id)?.payload.note).toBe(note)
+    await page.screenshot({ path: 'test-results/world-culture-electron.png', fullPage: true })
+  } finally {
+    await page.evaluate((item) => window.electronAPI.companion.updateAsset(item.id, {
+      name: item.name, payload: { ...item.payload, note: item.payload.note ?? '' },
+    }), original)
+    const back = page.getByTestId('world-hub').getByRole('button', { name: '返回聊天', exact: true })
+    if (await back.isVisible()) await back.click()
+  }
+})
+
 test('Debug 质量 Eval 可保存并重新载入真人格人工审阅', async () => {
   await expect(page.locator('#startup-splash')).toBeHidden()
   await page.evaluate(() => window.electronAPI.settings.set('developerMode', 'true'))

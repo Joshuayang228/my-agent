@@ -23,6 +23,12 @@ const REQUIRED_KEYS = [
 ] as const
 
 describe('debug prompt assets', () => {
+  it('书架上下文登记实际摘要格式化入口，不复制资产正文', () => {
+    const asset = getPromptAssets().find((entry) => entry.key === PROMPT_KEYS.companionContext)
+    expect(asset?.slots).toContainEqual(expect.objectContaining({ name: 'bookshelfSlice', source: 'electron/main/companion/life/assets.ts#formatBookshelfSliceForPrompt' }))
+    expect(asset?.mode).toBe('dynamic')
+  })
+
   it('相处偏好只登记动态来源，不复制用户正文', () => {
     const asset = getPromptAssets().find((entry) => entry.key === PROMPT_KEYS.companionResponseNote)
     expect(asset).toMatchObject({ ownership: 'user', mode: 'dynamic', sourcePath: 'electron/main/agent/prompt-builder.ts' })

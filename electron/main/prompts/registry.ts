@@ -371,7 +371,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
       { name: 'catchupSummary', source: 'companion orchestrator', lifecycle: '按需注入' },
       { name: 'worldSlice', source: 'companion world state', lifecycle: '每轮装配' },
       { name: 'recentMomentsSlice', source: 'moments store', lifecycle: '按需注入' },
-      { name: 'bookshelfSlice', source: 'bookshelf store', lifecycle: '按需注入' },
+      { name: 'bookshelfSlice', source: 'electron/main/companion/life/assets.ts#formatBookshelfSliceForPrompt', lifecycle: '按需注入有界摘要，资产正文独立保存' },
       { name: 'rosterLines', source: 'cast store', lifecycle: '按需注入' },
     ],
   }),

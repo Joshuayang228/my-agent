@@ -314,7 +314,7 @@ async function installProductionElectronStub(page: import('@playwright/test').Pa
 
 for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
   for (const width of [1166, 600]) {
-    test(`正式家居足迹真实响应映射与失败恢复 ${theme} ${width}`, async ({ page }, testInfo) => {
+    test(`正式文化家居足迹响应映射与失败恢复 ${theme} ${width}`, async ({ page }, testInfo) => {
       await installProductionElectronStub(page)
       await page.addInitScript((selectedTheme) => {
         localStorage.setItem('theme', selectedTheme)
@@ -335,6 +335,8 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
             { id: 'place-a', kind: 'footprint', name: '常去图书馆', payload: { description: '只记录常去，不代表今天到访', city: '记录中的城市' } },
             { id: 'wanted-a', kind: 'footprint', name: '想去的山谷', payload: { visitStatus: 'wanted', description: '尚未去过' } },
             { id: 'clothes-a', kind: 'wardrobe', name: '不属于家居的外套', payload: {} },
+            ...['reading', 'music', 'film', 'photography'].map((type) => ({ id: type, kind: 'culture', name: `已记录作品-${type}`, payload: { type, detail: `已记录摘要-${type}`, note: type === 'reading' ? '长读书笔记。\n'.repeat(80) : '' } })),
+            { id: 'book-a', kind: 'bookshelf', name: '已有书架作品', payload: { author: '书架作者', note: '书架笔记不能丢' } },
           ] }
         }
       }, theme)
@@ -373,6 +375,18 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       await expect(details).toContainText('第二次到访，另一段经历。')
       expect(await details.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
       await page.screenshot({ path: testInfo.outputPath('world-footprints.png'), animations: 'disabled' })
+      await page.getByTestId('world-tab-culture').click()
+      const culture = details.locator('[data-world-content="culture"]')
+      await expect(culture).toBeVisible()
+      for (const label of ['读书', '音乐', '电影', '摄影', '读书笔记', '书架笔记不能丢', '已记录摘要-reading']) await expect(culture).toContainText(label)
+      await expect(culture.getByRole('article')).toHaveCount(5)
+      await expect(culture.locator('article article')).toHaveCount(0)
+      await expect(culture).not.toContainText('真实台灯')
+      expect(await culture.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
+      expect(await page.locator('#world-panel-culture').evaluate((node) => node.scrollHeight > node.clientHeight)).toBe(true)
+      expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true)
+      await page.screenshot({ path: testInfo.outputPath('world-culture.png'), animations: 'disabled' })
+      await page.getByTestId('world-tab-footprints').click()
       await page.evaluate(() => { (window as any).__worldDetailsHarness.mismatch = true })
       await details.getByRole('button', { name: '刷新生活面' }).click()
       await expect(page.getByTestId('world-details')).toHaveCount(0)
@@ -382,6 +396,9 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       await expect(details).toContainText('另一位伙伴的足迹')
       await expect(details).toContainText('还没有记录到生活地点。')
       await expect(details).not.toContainText('实际到过的公园')
+      await page.getByTestId('world-tab-culture').click()
+      await expect(details).toContainText('还没有记录文化生活。')
+      await expect(details).not.toContainText('已记录作品')
     })
   }
 }
