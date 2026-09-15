@@ -25,7 +25,7 @@ export { isValidMcpConfig } from '../mcp/config-security'
 async function confirmMcpConnection(config: McpServerConfig): Promise<boolean> {
   const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0]
   if (!win) return false
-  const target = (config.transport ?? 'stdio') === 'sse'
+  const target = (config.transport ?? 'stdio') !== 'stdio'
     ? `远程地址：${config.url}`
     : `启动命令：${config.command} ${config.args.join(' ')}`
   const result = await dialog.showMessageBox(win, {

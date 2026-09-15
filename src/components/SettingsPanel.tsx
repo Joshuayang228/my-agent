@@ -46,17 +46,7 @@ interface SettingsForm {
   developerMode: string
 }
 
-interface McpServerEntry {
-  id: string
-  name: string
-  transport?: 'stdio' | 'sse'
-  command: string
-  args: string[]
-  env?: Record<string, string>
-  url?: string
-  enabled: boolean
-  allowedTools?: string[]
-}
+type McpServerEntry = import('../shared/types').McpServerConfig
 
 interface McpToolEntry { serverId: string; serverName: string; name: string; description: string; allowed: boolean }
 
@@ -610,7 +600,7 @@ export function SettingsPanel({
           const current = mcpStatuses.find((item) => item.id === server.id)
           const status = !server.enabled ? 'disabled' : current?.status === 'connected' || current?.status === 'connecting' || current?.status === 'error' ? current.status : 'disconnected'
           return <McpServiceCard key={server.id} id={server.id} name={server.name} enabled={server.enabled}
-            transport={server.transport === 'sse' ? '远程 · SSE' : '本地 · stdio'} status={status}
+            transport={server.transport === 'streamable-http' ? '远程 · Streamable HTTP' : server.transport === 'sse' ? '远程 · SSE' : '本地 · stdio'} status={status}
             tools={mcpTools?.filter((tool) => tool.serverId === server.id).map((tool) => ({ id: tool.name, ...tool })) ?? null}
             busy={mcpBusy} testId={`settings-mcp-server-${server.id}`}
             onEnabledChange={() => void runMcpAction(() => handleToggleMcp(server.id))}

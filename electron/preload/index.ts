@@ -326,16 +326,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   mcp: {
-    connect: (config: {
-      id: string
-      name: string
-      transport?: 'stdio' | 'sse'
-      command: string
-      args: string[]
-      env?: Record<string, string>
-      url?: string
-      enabled: boolean
-    }) => ipcRenderer.invoke('mcp:connect', config),
+    connect: (config: import('../../src/shared/types').McpServerConfig) => ipcRenderer.invoke('mcp:connect', config),
     disconnect: (serverId: string) => ipcRenderer.invoke('mcp:disconnect', serverId),
     status: (): Promise<Array<{ id: string; name: string; status: string; toolCount: number; resourceCount?: number; error?: string }>> =>
       ipcRenderer.invoke('mcp:status'),

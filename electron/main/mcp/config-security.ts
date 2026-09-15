@@ -1,4 +1,5 @@
-import type { McpServerConfig } from './client'
+import type { McpServerConfig } from '../../../src/shared/types'
+import { isIP } from 'node:net'
 
 export const MCP_REDACTED_ENV_VALUE = '__MY_AGENT_REDACTED__'
 export const MAX_MCP_SERVERS = 50
@@ -22,7 +23,7 @@ function isBoundedString(value: unknown, max: number): value is string {
  *
  * 背景：MCP 配置既可能来自设置页，也可能来自被污染的 Renderer IPC。
  * 设计意图：启动恢复、手动连接和设置持久化共用同一套 fail-closed 校验。
- * 关键约束：stdio 必须有命令；SSE 只允许 http/https；env 不接受非法键名或超长值。
+ * 关键约束：stdio 必须有命令；远程仅 http/https；Bearer 仅 HTTPS / 回环 HTTP。
  */
 export function isValidMcpConfig(value: unknown): value is McpServerConfig {
   if (!value || typeof value !== 'object') return false
@@ -34,19 +35,25 @@ export function isValidMcpConfig(value: unknown): value is McpServerConfig {
     || config.args.length > 128
     || config.args.some((arg) => typeof arg !== 'string' || arg.length > MAX_MCP_ARG_LENGTH)
     || typeof config.enabled !== 'boolean'
-    || (transport !== 'stdio' && transport !== 'sse')) return false
+    || (transport !== 'stdio' && transport !== 'sse' && transport !== 'streamable-http')) return false
   if (config.allowedTools !== undefined) {
     if (!Array.isArray(config.allowedTools) || config.allowedTools.length > MAX_MCP_ALLOWED_TOOLS
       || config.allowedTools.some((tool) => !isBoundedString(tool, MAX_MCP_ALLOWED_TOOL_LENGTH))
       || new Set(config.allowedTools).size !== config.allowedTools.length) return false
   }
   if (transport === 'stdio' && !isBoundedString(config.command, MAX_MCP_COMMAND_LENGTH)) return false
-  if (transport === 'sse') {
+  if (config.bearerToken !== undefined && (transport !== 'streamable-http'
+    || !isBoundedString(config.bearerToken, 4096)
+    || !/^[A-Za-z0-9._~+/-]+=*$/.test(config.bearerToken))) return false
+  if (transport !== 'stdio') {
     if (typeof config.command !== 'string') return false
     if (!isBoundedString(config.url, 4_096)) return false
     try {
       const url = new URL(config.url)
       if ((url.protocol !== 'http:' && url.protocol !== 'https:') || url.username || url.password) return false
+      if (config.bearerToken && url.protocol !== 'https:'
+        && url.hostname !== 'localhost' && url.hostname !== '[::1]'
+        && !(isIP(url.hostname) === 4 && url.hostname.startsWith('127.'))) return false
     } catch {
       return false
     }
@@ -79,6 +86,7 @@ export function redactMcpConfigsForRenderer(raw: string): string {
   const configs = parseStoredMcpConfigs(raw)
   return JSON.stringify(configs.map(config => ({
     ...config,
+    bearerToken: config.bearerToken ? MCP_REDACTED_ENV_VALUE : undefined,
     env: config.env
       ? Object.fromEntries(Object.keys(config.env).map(key => [key, MCP_REDACTED_ENV_VALUE]))
       : undefined,
@@ -95,6 +103,13 @@ export function hydrateMcpConfigSecrets(
 ): McpServerConfig | null {
   if (!isValidMcpConfig(incoming)) return null
   const previous = storedConfigs.find(config => config.id === incoming.id)
+  let bearerToken = incoming.bearerToken
+  if (bearerToken === MCP_REDACTED_ENV_VALUE) {
+    // 已保存令牌只属于原端点；同 id 不能授权 Renderer 把凭据转发到新 URL。
+    if (!previous?.bearerToken || previous.bearerToken === MCP_REDACTED_ENV_VALUE
+      || previous.transport !== incoming.transport || previous.url !== incoming.url) return null
+    bearerToken = previous.bearerToken
+  }
   const env = incoming.env ? { ...incoming.env } : undefined
   if (env) {
     for (const [key, value] of Object.entries(env)) {
@@ -104,7 +119,7 @@ export function hydrateMcpConfigSecrets(
       env[key] = storedValue
     }
   }
-  const hydrated = { ...incoming, env }
+  const hydrated = { ...incoming, env, bearerToken }
   return isValidMcpConfig(hydrated) ? hydrated : null
 }
 
@@ -142,6 +157,7 @@ function comparableMcpConfig(config: McpServerConfig): string {
     args: config.args,
     env: Object.entries(config.env ?? {}).sort(([left], [right]) => left.localeCompare(right)),
     url: config.url ?? '',
+    bearerToken: config.bearerToken ?? '',
     enabled: config.enabled,
     allowedTools: config.allowedTools ? [...config.allowedTools].sort() : [],
   })

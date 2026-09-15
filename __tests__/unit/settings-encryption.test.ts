@@ -52,4 +52,12 @@ describe('settings-store 敏感设置迁移', () => {
     expect(decoded.value).toContain('"id":"x"')
     expect(decoded.migratedValue).toMatch(new RegExp(`^${__test.ENCRYPTED_VALUE_PREFIX}`))
   })
+
+  it('Bearer 与 MCP 配置整体经过 safeStorage，解密恢复相同载荷', () => {
+    const raw = JSON.stringify([{ id: 'remote', bearerToken: 'fixture-only-token' }])
+    const migrated = decodeStoredSetting('mcpServers', raw)
+    expect(encryptString).toHaveBeenCalledWith(raw)
+    expect(migrated.migratedValue).not.toContain('fixture-only-token')
+    expect(decodeStoredSetting('mcpServers', migrated.migratedValue!).value).toBe(raw)
+  })
 })

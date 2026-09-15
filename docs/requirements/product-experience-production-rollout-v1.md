@@ -77,6 +77,16 @@ R12 必须拆成六个独立验收面：
 
 该顺序是施工依赖，不是简版先交付。未完成项继续属于本目标，不擅自移入暂缓；每次提交必须是可独立验证的完整变更。
 
+### R10 添加向导的生产协议链路（2026-09-15）
+
+- 来源：已批准 MCP 添加候选的远程 Streamable HTTP / Bearer、本地 stdio、测试后选工具并保存。现有服务卡片共享不代表该向导完成。
+- 实施顺序：先补生产传输与凭据契约并用真实本地协议服务验证；再补独立、可取消、未保存不注册工具的测试会话；最后共用添加表单并接入主进程保存 / 激活 / 失败恢复。这是同一 R10 的施工依赖，不缩减最终范围。
+- 当前允许修改：`src/shared/types.ts`、`electron/main/mcp/client.ts` / `transport.ts` / `config-security.ts`、MCP IPC、preload / Renderer 类型声明、SettingsPanel 的类型与协议标签、对应 MCP Unit / 协议测试及模块卡、质量、进度、变更与缺口账本。保留其他存量改动。
+- 契约：新增 `streamable-http` 与可选 `bearerToken`；继续读取旧 stdio / SSE 配置，不给旧表单增加兼容入口。MCP JSON 已由 safeStorage 加密，令牌只能在主进程恢复；Renderer 仅见哨兵。同 id 但地址或传输已变时不得恢复旧 Bearer；带令牌仅允许 HTTPS 或本机回环 HTTP，拒绝 HTTP 重定向，防止凭据被转发到未确认端点。不新增依赖，不改备份白名单或权限引擎。
+- 必测：真实 SDK 初始化、工具发现 / 调用、资源读取、401 / 重定向拒绝、凭据脱敏 / 合并 / 修改地址拒绝、旧协议兼容和 IPC 类型同步。协议 fixture 证明本地互操作，不证明第三方服务认证或完整向导验收。
+- 已复现空工具故障：仅声明 resources 的真实 SDK 服务收到 tools/list 后返回 -32601，旧 refreshInventory 将其标为连接失败。仅在未声明 tools 时使用空清单；声明后发现失败继续上抛。真实 stdio 子进程同时回归敏感环境过滤与显式 env，不改变父进程环境。
+- 本批结果：Unit 147 文件 / 856 项、串行 UI 120 项（`var/verification/mcp-http-ui`）、既有 Electron onboarding 8 项、根 tsc / build、Eval 23 + 1 项通过。新增协议测试直接运行正式 Manager 与回环 SDK 服务，Renderer 新增八种主题 / 宽度展示证据；Electron 仍仅既有回归，不宣称新协议完整保存 / 重启验收。主进程独立 tsc 仍失败，同一 CompilerHost 基线对比 71 → 70、无新增且移除 MCP ProcessEnv 诊断；CLI 的诊断输出与该对比口径分开，不当作全门禁通过。无独立 lint 脚本，审计全量 7 / 生产 4 未清零；添加向导、隔离测试取消和统一保存 / 激活仍待实现。
+
 ### R02 本次施工边界（2026-09-14）
 
 - 目标：正式设置按当前 Playground demo 的页面结构、控件、文案层级和交互完整回流，不是给旧设置换导航。记忆、Skills、角色架也必须采用已验收候选形态；仅把旧面板嵌入设置不能视为完成。真实保存及必要后端按 demo 需要接入，不要求保留全部旧设置能力。

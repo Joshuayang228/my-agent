@@ -8,6 +8,8 @@ vi.mock('electron', () => ({
 }))
 
 import { isValidMcpConfig } from '../../electron/main/ipc/mcp'
+import type { McpServerConfig } from '../../src/shared/types'
+import { createMcpTransport } from '../../electron/main/mcp/transport'
 import {
   MCP_REDACTED_ENV_VALUE,
   redactMcpConfigsForRenderer,
@@ -17,6 +19,48 @@ import {
 } from '../../electron/main/mcp/config-security'
 
 describe('MCP 配置安全边界', () => {
+  const remote: McpServerConfig = { id: 'remote', name: '远程服务', command: '', args: [], enabled: true, transport: 'streamable-http', url: 'https://example.com/mcp', bearerToken: 'fixture-token' }
+
+  it('Streamable HTTP 接受有界令牌，拒绝不安全协议、Header 注入与错误传输', () => {
+    expect(isValidMcpConfig(remote)).toBe(true)
+    for (const bearerToken of ['', 'x'.repeat(4097), 'secret\r\nX-Evil: true', 'Bearer value']) {
+      expect(isValidMcpConfig({ ...remote, bearerToken })).toBe(false)
+    }
+    for (const url of ['http://example.com/mcp', 'http://127.evil.example/mcp', 'ftp://example.com/mcp', 'https://u:p@example.com/mcp']) {
+      expect(isValidMcpConfig({ ...remote, url })).toBe(false)
+    }
+    for (const url of ['http://localhost:8080/mcp', 'http://127.0.0.1/mcp', 'http://[::1]/mcp']) {
+      expect(isValidMcpConfig({ ...remote, url })).toBe(true)
+    }
+    expect(isValidMcpConfig({ ...remote, transport: 'sse' })).toBe(false)
+    expect(isValidMcpConfig({ ...remote, transport: 'stdio', command: 'node' })).toBe(false)
+    expect(isValidMcpConfig({ ...remote, bearerToken: undefined, url: 'http://example.com/mcp' })).toBe(true)
+  })
+
+  it('Bearer 经 Renderer 脱敏和保存合并恢复，换端点不能复用旧令牌', () => {
+    const raw = JSON.stringify([remote])
+    const redacted = JSON.parse(redactMcpConfigsForRenderer(raw))[0]
+    expect(redacted.bearerToken).toBe(MCP_REDACTED_ENV_VALUE)
+    expect(JSON.stringify(redacted)).not.toContain(remote.bearerToken)
+    expect(hydrateMcpConfigSecrets(redacted, [remote])).toEqual(remote)
+    expect(hydrateMcpConfigSecrets(redacted, [])).toBeNull()
+    expect(hydrateMcpConfigSecrets({ ...redacted, url: 'https://other.example/mcp' }, [remote])).toBeNull()
+    expect(hydrateMcpConfigSecrets({ ...redacted, url: `${remote.url}/other` }, [remote])).toBeNull()
+    expect(hydrateMcpConfigSecrets({ ...redacted, bearerToken: 'new-token', url: 'https://other.example/mcp' }, [remote])?.bearerToken).toBe('new-token')
+    const merged = mergeMcpConfigListSecrets(JSON.stringify([redacted]), raw)
+    expect(merged.ok && merged.configs[0].bearerToken).toBe(remote.bearerToken)
+    expect(hasNewOrChangedEnabledMcpConfig([remote], [{ ...remote, bearerToken: 'rotated-token' }])).toBe(true)
+    expect(hasNewOrChangedEnabledMcpConfig([remote], [{ ...remote, bearerToken: undefined }])).toBe(true)
+  })
+
+  it('传输工厂拒绝未恢复哨兵及未知协议，不隐式降级为本地进程', () => {
+    expect(() => createMcpTransport({ ...remote, bearerToken: MCP_REDACTED_ENV_VALUE })).toThrow('凭据尚未恢复')
+    expect(() => createMcpTransport({ ...remote, transport: 'unknown' as McpServerConfig['transport'] })).toThrow()
+    expect(createMcpTransport({ ...remote, bearerToken: undefined })).toBeDefined()
+    expect(createMcpTransport({ ...remote, transport: 'sse', bearerToken: undefined })).toBeDefined()
+    expect(createMcpTransport({ ...remote, transport: 'stdio', command: 'node', bearerToken: undefined })).toBeDefined()
+  })
+
   it('接受有界 stdio / SSE 配置', () => {
     expect(isValidMcpConfig({ id: 'x', name: 'server', command: 'npx', args: ['pkg'], enabled: true })).toBe(true)
     expect(isValidMcpConfig({ id: 'x', name: 'server', command: '', args: [], enabled: true, transport: 'sse', url: 'https://example.com/sse' })).toBe(true)

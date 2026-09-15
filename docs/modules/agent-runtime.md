@@ -57,6 +57,7 @@
 
 - MCP 服务卡片由 `settings/McpServiceCard.tsx` 同时供正式设置与 Playground 使用；服务状态、开关、工具数量、许可与重试不再各自维护 JSX。正式端继续使用既有 MCP IPC 和主进程确认；未知工具清单不展示为零，长清单内部滚动，操作期间槽位固定。列表变更在设置页内串行，禁用 / 删除先保存再断开，保存失败不提前断开；许可更新同步本地配置快照，后续启停不覆盖刚修改的许可。该共享卡片不代表添加向导、Streamable HTTP / 认证或整项 R10 已完成。
 
+- MCP 生产传输由 `mcp/transport.ts` 统一创建，支持旧 stdio / SSE 和 Streamable HTTP；配置与 connect IPC 共用 `src/shared/types.ts` 的 `McpServerConfig`。可选 Bearer 随 MCP 配置整体加密，Renderer 仅收到哨兵；复用已存令牌要求同 id、同传输、同 URL，换地址需重新提供令牌。带令牌只允许 HTTPS 或回环 HTTP，新 HTTP 传输拒绝自动重定向；手动连接仍由主进程确认，不实现隐式 OAuth。未声明 tools 的服务可连接为零工具；已声明但发现失败仍为错误，不能假装成功。正式添加向导、隔离测试与取消 / 保存生命周期仍属 R10 未完成部分。
 - MCP 工具许可由服务配置的 `allowedTools` 字段承载；旧配置未设置时兼容为全部允许。MCP Bridge 注册工具和 `McpClientManager.callTool` 执行前均再次过滤，正式设置通过 `mcp:set-tool-allowed` 更新并持久化；审批规则仍独立负责高风险确认。
 
 - 正式相处说明经 `settings.companionResponseNote` 进入 `buildSystemPrompt` 的独立 L3 区块，主对话和召唤读取，workspace 排除。空值不注入、组装侧再次限长；动态 Prompt key 只登记用户数据来源，不复制正文。该偏好不替代 Role Pack 或工具权限；产品入口与保存契约见伙伴模块卡。
@@ -87,7 +88,7 @@
 
 - Skills 详情候选由一张 SettingCard 包裹，“返回 Skills”图标与文字独占一行，下方名称与启用开关同行；不改变 Skill 状态或生产管理行为。
 
-- MCP Playground 候选：顶部场景 Tab 直达未添加、1/2 服务、连接中、待确认、1/2/3 工具、无工具、已停用、连接失败和待登录。每个服务独立卡片，未知工具数不当作零；确认、启停、取消和重试仅改变隔离夹具。正式 MCP 仍为 stdio / SSE，候选中的 Streamable HTTP / OAuth 不代表后端已接入。
+- MCP Playground 候选：顶部场景 Tab 直达未添加、1/2 服务、连接中、待确认、1/2/3 工具、无工具、已停用、连接失败和待登录。每个服务独立卡片，未知工具数不当作零；确认、启停、取消和重试仅改变隔离夹具。生产 Streamable HTTP / Bearer 已具协议链路，候选仍不调用真实服务；OAuth 与添加向导不能凭夹具认定完成。
 
 - Skills Playground 候选：每个 Skill 独立名称与开关卡片，详情先显示源 `when_to_use` 与 `description`，再显示元信息和完整文件；文件区沿用正式只读页的 48vh 高度上限，内部独立滚动、键盘可达，滚动到底不传递到外层页面。仅选取内置 `code-review`、`content-creator` 的 SKILL.md 作为只读样张，独立启用状态只保存在 Renderer，不修改正式 Skill 管理。
 
@@ -104,7 +105,7 @@
 | 任务队列（后处理 / 反思等） | 已落地 | `services/task-queue` 等 |
 | 子 Agent | 部分 | `subagent`；召唤下任务工边界（M26-G2）；Swarm 见 wishlist |
 | SubAgent 角色生产资产 | 已落地 | `agent/subagent-asset-registry.ts`；Debug 资产目录登记三个内置角色，真实运行通过 `subagent-role` usage evidence 关联 |
-| MCP Client（stdio + SSE） | 已落地 | `mcp/` · 设置页 |
+| MCP Client（stdio / SSE / Streamable HTTP） | 协议已落地，完整添加向导待回流 | `mcp/` · 设置页 |
 | 多 Provider LLM + Failover | 已落地 | `llm/`；OpenAI Compatible / Anthropic / Gemini；配置唯一经 `loadMainLLMConfig` / `loadAuxLLMConfig` |
 | Provider 能力生产资产 | 已落地 | `provider-presets.ts` 唯一预设源；依据 Alice 本地 Provider 清单登记海外直连、国内服务商、编程套餐、聚合与代理、本地 / 自定义五组共 24 个 Provider 入口；模型 ID 不写入入口预设，由用户按账户实际可用列表填写；`provider-asset-registry.ts` 派生 Provider 资产，Debug「提示词管理器 → 模型 Provider」只读展示；ListenHub / CLIProxy 不冒充普通聊天入口 |
 | 首次模型配置旅程 | 已落地 | 无 Key 自动进入设置「模型」；Provider / Key / Base URL / 模型修改后防抖自动保存，当前配置可独立测试连接；未修改 API Key 不会用空值覆盖安全存储 |

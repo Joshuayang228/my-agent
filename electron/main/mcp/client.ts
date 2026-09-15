@@ -2,42 +2,21 @@
  * MCP Client Manager
  *
  * 管理多个 MCP Server 的连接生命周期：
- *   - 按配置启动 stdio / SSE 连接
+ *   - 按配置启动 stdio / SSE / Streamable HTTP 连接
  *   - 从远端发现工具与资源
  *   - 代理 callTool / readResource
  *   - transport close 后指数退避重连（M13）
  */
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
+import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js'
+import type { McpServerConfig } from '../../../src/shared/types'
+import { createMcpTransport } from './transport'
 import { createLogger, hashForLog } from '../utils/logger'
-import { buildSafeChildProcessEnv } from '../utils/safe-process-env'
 
 const log = createLogger('MCP')
 
-export type McpTransportType = 'stdio' | 'sse'
-
-export interface McpServerConfig {
-  /** 唯一标识（自动生成或用户指定） */
-  id: string
-  /** 显示名称 */
-  name: string
-  /** 传输类型（默认 stdio） */
-  transport?: McpTransportType
-  /** stdio: 启动命令（如 npx, node, python3） */
-  command: string
-  /** stdio: 命令参数 */
-  args: string[]
-  /** stdio: 显式环境变量（可选；与过滤凭据后的安全进程环境合并） */
-  env?: Record<string, string>
-  /** sse: 服务器 URL（如 http://localhost:3000/sse） */
-  url?: string
-  /** 是否启用 */
-  enabled: boolean
-  /** 允许注册和调用的工具名称；未配置表示兼容旧配置，默认全部允许 */
-  allowedTools?: string[]
-}
+export type { McpServerConfig, McpTransportType } from '../../../src/shared/types'
 
 export interface McpTool {
   serverId: string
@@ -59,7 +38,7 @@ export interface McpResource {
 interface McpConnection {
   config: McpServerConfig
   client: Client
-  transport: StdioClientTransport | SSEClientTransport
+  transport: Transport
   tools: McpTool[]
   resources: McpResource[]
   status: 'connecting' | 'connected' | 'error' | 'disconnected'
@@ -141,19 +120,7 @@ class McpClientManager {
       log.debug('Elicitation handler setup skipped', { error: String(err) })
     }
 
-    const transportType = config.transport || 'stdio'
-    let transport: StdioClientTransport | SSEClientTransport
-
-    if (transportType === 'sse' && config.url) {
-      log.info('Using SSE transport', { urlHash: hashForLog(config.url), transport: 'sse' })
-      transport = new SSEClientTransport(new URL(config.url))
-    } else {
-      transport = new StdioClientTransport({
-        command: config.command,
-        args: config.args,
-        env: buildSafeChildProcessEnv(config.env),
-      })
-    }
+    const transport = createMcpTransport(config)
 
     const connection: McpConnection = {
       config,
@@ -257,7 +224,10 @@ class McpClientManager {
   }
 
   private async refreshInventory(connection: McpConnection): Promise<void> {
-    const toolsResult = await connection.client.listTools()
+    // 资源专用服务可以不声明 tools；仅在未声明时视为零工具，已声明后的发现失败仍上抛。
+    const toolsResult = connection.client.getServerCapabilities()?.tools
+      ? await connection.client.listTools()
+      : { tools: [] }
     connection.tools = toolsResult.tools.map(t => ({
       serverId: connection.config.id,
       serverName: connection.config.name,

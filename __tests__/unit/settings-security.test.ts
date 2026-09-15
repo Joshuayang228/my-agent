@@ -71,6 +71,24 @@ describe('设置 IPC 安全视图', () => {
     expect(setSetting).not.toHaveBeenCalled()
   })
 
+  it('Streamable HTTP Bearer 在设置读取时脱敏，回传哨兵保留原值，换地址拒绝', async () => {
+    const config = { id: 'remote', name: 'remote', command: '', args: [], enabled: true, transport: 'streamable-http', url: 'https://example.com/mcp', bearerToken: 'fixture-only-token' }
+    getAllSettings.mockResolvedValue({ llmApiKey: '', mcpServers: JSON.stringify([config]) })
+    const view = await getRendererSettings()
+    expect(view.mcpServers).not.toContain('fixture-only-token')
+    expect(view.mcpServers).toContain('__MY_AGENT_REDACTED__')
+    registerSettingsIPC()
+    getSetting.mockResolvedValue(JSON.stringify([config]))
+    await handlers.get('settings:set')!({}, 'mcpServers', view.mcpServers)
+    expect(setSetting).toHaveBeenCalledWith('mcpServers', JSON.stringify([config]))
+    expect(showMessageBox).not.toHaveBeenCalled()
+    setSetting.mockClear()
+    const redirected = JSON.parse(view.mcpServers)
+    redirected[0].url = 'https://other.example/mcp'
+    await expect(handlers.get('settings:set')!({}, 'mcpServers', JSON.stringify(redirected))).rejects.toThrow()
+    expect(setSetting).not.toHaveBeenCalled()
+  })
+
   it('连接测试可以由主进程使用已保存 Key，而不要求 Renderer 重新读取 Key', async () => {
     registerSettingsIPC()
     const handler = handlers.get('settings:test-connection')

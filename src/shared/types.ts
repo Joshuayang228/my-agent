@@ -669,6 +669,24 @@ export interface LLMConnectionTestInput {
 
 export const MAX_COMPANION_RESPONSE_NOTE_LENGTH = 4000
 
+export type McpTransportType = 'stdio' | 'sse' | 'streamable-http'
+
+/** MCP 设置及连接 IPC 共用载荷；持久化加密，Renderer 中凭据仅为脱敏哨兵。 */
+export interface McpServerConfig {
+  id: string
+  name: string
+  transport?: McpTransportType
+  command: string
+  args: string[]
+  env?: Record<string, string>
+  url?: string
+  /** 仅 Streamable HTTP；新输入可提交明文，已保存值不得回传 Renderer。 */
+  bearerToken?: string
+  enabled: boolean
+  /** 未配置表示兼容旧服务；空数组表示所有工具禁用。 */
+  allowedTools?: string[]
+}
+
 /** Renderer 可见设置：敏感值只返回状态，不返回原文。 */
 export interface RendererSettings extends Record<string, string> {
   llmApiKey: ''

@@ -389,6 +389,32 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       await expect(card).toHaveCount(0)
       expect(await page.evaluate(() => (window as any).__mcpHarness.servers)).toEqual([])
     })
+
+    test(`正式 MCP Streamable HTTP 配置展示 ${theme} ${width}`, async ({ page }, testInfo) => {
+      await installProductionElectronStub(page)
+      await page.addInitScript((selectedTheme) => {
+        localStorage.setItem('theme', selectedTheme)
+        const api = (window as any).electronAPI
+        const get = api.settings.get
+        api.settings.get = async () => ({ ...await get(), mcpServers: JSON.stringify([{
+          id: 'remote', name: '远程文档服务', command: '', args: [], enabled: true,
+          transport: 'streamable-http', url: 'https://example.com/mcp', bearerToken: '__MY_AGENT_REDACTED__',
+        }]) })
+        api.mcp.status = async () => [{ id: 'remote', name: '远程文档服务', status: 'connected', toolCount: 0 }]
+        api.mcp.listTools = async () => []
+      }, theme)
+      await page.setViewportSize({ width, height: 731 })
+      await page.goto('/')
+      await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+      await page.getByRole(width < 640 ? 'tab' : 'button', { name: 'MCP', exact: true }).click()
+      const card = page.getByTestId('settings-mcp-server-remote')
+      await expect(card.getByRole('status')).toHaveText('已连接')
+      await expect(card).toContainText('远程 · Streamable HTTP')
+      await expect(card).toContainText('0 个工具')
+      await expect(card).not.toContainText('__MY_AGENT_REDACTED__')
+      expect(await card.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
+      await page.screenshot({ path: testInfo.outputPath('mcp-streamable-http.png'), animations: 'disabled' })
+    })
   }
 }
 

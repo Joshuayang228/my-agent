@@ -32,6 +32,8 @@
 
 ## 整体架构
 
+- MCP 配置类型统一在 shared，主进程 `mcp/transport.ts` 复用 SDK 创建 stdio / SSE / Streamable HTTP。Bearer 沿既有 settings 加密与脱敏管线装配，不在 Renderer 或 Playground 创建传输；HTTP 凭据绑定原端点，禁止自动重定向。连接确认、工具注册和权限决策不属于传输工厂，仍由既有 IPC / Manager / Bridge 分层负责。
+
 - MCP 工具许可数据流：正式 Settings 读取脱敏后的服务配置与真实 `mcp:list-tools`，通过 `mcp:set-tool-allowed` 写回服务配置；主进程更新活动连接、重建 MCP Bridge 的 ToolRegistry 注册，并在 `callTool` 前再次校验。未配置 `allowedTools` 的历史配置保持全部允许，MCP 许可不替代权限引擎的审批决策。
 
 
