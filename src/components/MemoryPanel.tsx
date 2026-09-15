@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef, type ChangeEvent, type KeyboardEvent } from 'react'
 import { ActionButton } from './foundation/ActionButton'
+import { ConfirmPanel } from './foundation/ConfirmPanel'
 import { IconButton } from './foundation/IconButton'
 import { TextField } from './foundation/TextField'
 import { MemoryAddRow, MemoryToolbar } from './memory/MemoryManagementControls'
@@ -104,6 +105,7 @@ export function MemoryPanel({
   const setAdding = (open: boolean) => setAddDrafts((drafts) => ({ ...drafts, [group]: { content: drafts[group]?.content ?? '', open } }))
   const setNewContent = (content: string) => setAddDrafts((drafts) => ({ ...drafts, [group]: { open: drafts[group]?.open ?? false, content } }))
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+  const [pendingSensitiveKinds, setPendingSensitiveKinds] = useState<ReturnType<typeof detectSensitiveKinds> | null>(null)
   const newCategory = MEMORY_GROUPS.find((item) => item.id === group)!.category
   const isPreview = previewMemories !== undefined
   const isPreviewInteractive = isPreview && previewEditable
@@ -174,6 +176,24 @@ export function MemoryPanel({
     [newContent],
   )
 
+  const addMemoryAfterSensitiveCheck = async () => {
+    await mutate(async () => {
+      let roleId: string | undefined
+      if (newCategory === 'feedback') {
+        const active = await window.electronAPI!.companion.getActive()
+        roleId = active?.id
+        if (!roleId) throw new Error('Active companion unavailable')
+      }
+      const entry = await window.electronAPI!.memory.add(newCategory, newContent.trim(), roleId)
+      if (!mounted.current) return
+      setMemories((current) => [...current.filter((memory) => memory.id !== entry.id), entry as MemoryEntry])
+      setNewContent('')
+      setAdding(false)
+      setQuery('')
+      setPendingSensitiveKinds(null)
+    }, '记忆未添加，内容仍保留。请重试。')
+  }
+
   const handleAdd = async () => {
     if (!canEdit || newContent.trim().length < 2 || writing.current) return
     if (isPreviewInteractive) {
@@ -187,23 +207,10 @@ export function MemoryPanel({
     if (isPreview || !window.electronAPI) return
     const kinds = detectSensitiveKinds(newContent)
     if (kinds.length > 0) {
-      const ok = window.confirm(formatSensitiveCollectionHint(kinds))
-      if (!ok) return
+      setPendingSensitiveKinds(kinds)
+      return
     }
-    await mutate(async () => {
-      let roleId: string | undefined
-      if (newCategory === 'feedback') {
-        const active = await window.electronAPI.companion.getActive()
-        roleId = active?.id
-        if (!roleId) throw new Error('Active companion unavailable')
-      }
-      const entry = await window.electronAPI.memory.add(newCategory, newContent.trim(), roleId)
-      if (!mounted.current) return
-      setMemories((current) => [...current.filter((memory) => memory.id !== entry.id), entry as MemoryEntry])
-      setNewContent('')
-      setAdding(false)
-      setQuery('')
-    }, '记忆未添加，内容仍保留。请重试。')
+    await addMemoryAfterSensitiveCheck()
   }
 
   const handleDelete = async (id: string) => {
@@ -279,6 +286,7 @@ export function MemoryPanel({
 
   return (
     <fieldset disabled={busy} aria-busy={busy || loading} className="m-0 flex h-full min-h-0 min-w-0 flex-col border-0 p-0">
+        {pendingSensitiveKinds && <div className="px-4 pt-3"><ConfirmPanel icon={<ShieldAlert size={15} />} title="这条记忆包含敏感信息" description={`${formatSensitiveCollectionHint(pendingSensitiveKinds)}\n\n只有在你确认后，才会写入本机记忆。`} confirmLabel="确认保存" busy={busy} onCancel={() => setPendingSensitiveKinds(null)} onConfirm={() => void addMemoryAfterSensitiveCheck()} /></div>}
         {management && <MemoryToolbar group={group} counts={groupCounts} query={query} onQueryChange={setQuery} searchOpen={searchOpen} onSearchOpen={setSearchOpen}
           onGroupChange={(next) => { setSelectedGroup(next); onPreviewGroupChange?.(next); setQuery(''); setWriteError('') }} />}
         {!management && !previewCompact && (

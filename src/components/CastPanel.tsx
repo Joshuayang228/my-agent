@@ -4,7 +4,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { LayoutGrid, MessageCircle, RefreshCw, Users, X } from 'lucide-react'
+import { LayoutGrid, MessageCircle, RefreshCw, TriangleAlert, Users, X } from 'lucide-react'
+import { ConfirmPanel } from './foundation/ConfirmPanel'
 import { useToast } from './Toast'
 
 interface RosterLine {
@@ -83,6 +84,7 @@ export function CastPanel({
   const [selected, setSelected] = useState<CastBrief | null>(null)
   const [loading, setLoading] = useState(false)
   const [starting, setStarting] = useState<string | null>(null)
+  const [pendingForce, setPendingForce] = useState<{ id: string; name: string; description: string } | null>(null)
 
   const load = useCallback(async () => {
     if (!window.electronAPI?.companion.getRoster) return
@@ -137,10 +139,7 @@ export function CastPanel({
           const tip = [r.reason, r.alternative].filter(Boolean).join(' · ')
           toast(tip || `${name}现在不太方便`, 'warning')
           setStarting(null)
-          const okForce = window.confirm(
-            `${tip || `${name}现在不太方便`}\n\n仍要强行开聊吗？`,
-          )
-          if (okForce) await startChat(id, name, true)
+          setPendingForce({ id, name, description: tip || `${name}现在不太方便` })
           return
         }
         toast(r.error === 'UNKNOWN_ROLE' ? '未知角色，无法召唤' : '召唤失败', 'error')
@@ -200,7 +199,7 @@ export function CastPanel({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-thin">`r`n        {pendingForce && <div className="mb-3"><ConfirmPanel icon={<TriangleAlert size={15} />} title={`仍要强行与${pendingForce.name}开聊吗？`} description={`${pendingForce.description}\n\n强行开聊会忽略对方当前的忙碌状态，但不会切换活跃主角。`} confirmLabel="强行开聊" busy={starting === pendingForce.id} onCancel={() => setPendingForce(null)} onConfirm={() => { const target = pendingForce; setPendingForce(null); void startChat(target.id, target.name, true) }} /></div>}
         <p
           className="mb-4 rounded-lg border px-3 py-2 text-[11px] leading-relaxed"
           style={{
