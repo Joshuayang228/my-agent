@@ -2,6 +2,12 @@
 
 > 开发过程中遇到的坑和解决方案，避免重复踩坑。
 
+## Effect 阶段切换提前取消成功测试
+
+**问题**：MCP 表单以 `[phase, requestId]` 注册清理函数，`testing → ready` 触发旧 effect cleanup，导致成功测试在保存前被取消。Renderer 替身的 cancel 未清除 tested 标记，原测试未能发现问题。
+
+**解决**：只在卸载时执行资源清理，显式取消使用 requestId 和响应版本隔离；重测前确认旧连接已清理。替身取消必须使保存失败，回归明确断言成功测试未触发取消，并分别测试迟到响应与取消失败。界面测试、真实 SDK 测试和 Electron 存储测试分开记录，不能互相冒充。
+
 ## 验收 HTML 产物触发 Vite 页面重载
 
 **问题**：2026-09-15 开启 Playwright trace 后，验收页面被重载，耗时逐步增加。真实 Vite 日志连续报告 `page reload var/verification/.../traces/resources/*.html`。

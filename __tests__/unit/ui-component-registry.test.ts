@@ -29,6 +29,16 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('MCP 添加流程实际渲染共享表单，候选只注入隔离适配器', () => {
+    const usesForm = (source: string) => rendersSharedTabs(source, 'McpConnectionForm', '/settings/McpConnectionForm')
+    for (const path of ['src/components/SettingsPanel.tsx', 'src/components/playground/McpConnectionPreview.tsx']) {
+      expect(usesForm(readFileSync(path, 'utf8')), path).toBe(true)
+    }
+    expect(rendersSharedTabs(readFileSync('src/components/playground/SettingsExperienceCandidate.tsx', 'utf8'), 'McpConnectionPreview', '/McpConnectionPreview')).toBe(true)
+    expect(usesForm("import { McpConnectionForm } from './settings/McpConnectionForm'; const view = <div />")).toBe(false)
+    expect(usesForm('const McpConnectionForm = () => <div />; const view = <McpConnectionForm />')).toBe(false)
+    expect(readFileSync('src/components/settings/McpConnectionForm.tsx', 'utf8')).not.toContain('window.electronAPI')
+  })
   it('MCP 正式设置与候选实际渲染同一服务卡片，而不只是登记或 import', () => {
     const usesCard = (source: string) => rendersSharedTabs(source, 'McpServiceCard', '/settings/McpServiceCard')
     for (const path of ['src/components/SettingsPanel.tsx', 'src/components/playground/SettingsExperienceCandidate.tsx']) {

@@ -55,6 +55,8 @@
 
 ## 已落地能力
 
+- MCP 添加表单由 `settings/McpConnectionForm.tsx` 同时服务正式设置与 Playground，候选仅注入隔离 actions，不再维护重复字段与状态机。测试成功不因阶段切换被清理；取消后保留草稿，旧响应不复活；修改后必须重测，空白名单可保存；保存完成后列表刷新失败仅重试刷新。主进程取消 / 超时、资源接管、并发配置和 Electron 重启恢复的完整证据仍按 R10 继续补齐，不因表单共享宣布整项完成。
+
 - MCP 服务卡片由 `settings/McpServiceCard.tsx` 同时供正式设置与 Playground 使用；服务状态、开关、工具数量、许可与重试不再各自维护 JSX。正式端继续使用既有 MCP IPC 和主进程确认；未知工具清单不展示为零，长清单内部滚动，操作期间槽位固定。列表变更在设置页内串行，禁用 / 删除先保存再断开，保存失败不提前断开；许可更新同步本地配置快照，后续启停不覆盖刚修改的许可。该共享卡片不代表添加向导、Streamable HTTP / 认证或整项 R10 已完成。
 
 - MCP 生产传输由 `mcp/transport.ts` 统一创建，支持旧 stdio / SSE 和 Streamable HTTP；配置与 connect IPC 共用 `src/shared/types.ts` 的 `McpServerConfig`。可选 Bearer 随 MCP 配置整体加密，Renderer 仅收到哨兵；复用已存令牌要求同 id、同传输、同 URL，换地址需重新提供令牌。带令牌只允许 HTTPS 或回环 HTTP，新 HTTP 传输拒绝自动重定向；手动连接仍由主进程确认，不实现隐式 OAuth。未声明 tools 的服务可连接为零工具；已声明但发现失败仍为错误，不能假装成功。正式添加向导、隔离测试与取消 / 保存生命周期仍属 R10 未完成部分。

@@ -14,6 +14,7 @@ import { FONT_SCALE_ASSETS } from '../../shared/design-asset-registry'
 import { SettingsLayout, type SettingsPageId } from '../settings/SettingsLayout'
 import { CompanionSettingsContent } from '../settings/CompanionSettingsContent'
 import { McpServiceCard } from '../settings/McpServiceCard'
+import { McpConnectionPreview } from './McpConnectionPreview'
 import { THEME_STUDIES, getThemeStudyStyle, type ThemeStudyId } from './foundation-themes'
 import { PROVIDER_PRESET_GROUPS } from '../../shared/provider-presets'
 import { JSON_SCHEMA, load } from 'js-yaml'
@@ -501,7 +502,7 @@ function McpScenePreview() {
         <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{servers.length} 个服务</span>
         <button type="button" onClick={() => setForm('add-remote')} className="settings-option inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-[11px]" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-mcp-add"><Plus size={14} />添加连接</button>
       </div>
-      {form && <McpConnectionForm key={form} scene={form} onCancel={() => { setForm(null); if (scene.startsWith('add-')) setScene('empty') }} onSave={(server) => { setServers((current) => [...current, { ...server, id: `added-${++serial.current}` }]); setForm(null); if (scene.startsWith('add-')) setScene('one') }} />}
+      {form && <McpConnectionPreview key={form} scene={form} onCancel={() => { setForm(null); if (scene.startsWith('add-')) setScene('empty') }} onSave={(server) => { setServers((current) => [...current, { ...server, id: `added-${++serial.current}` }]); setForm(null); if (scene.startsWith('add-')) setScene('one') }} />}
       {!form && servers.length === 0 && <div className="py-10 text-center text-[12px]" style={{ color: 'var(--text-muted)' }} data-testid="settings-candidate-mcp-empty">还没有 MCP 服务</div>}
       {servers.map((server) => <McpServiceCard key={server.id} {...server} enabled={server.status !== 'disabled'} testId={`settings-candidate-mcp-server-${server.id}`}
         onEnabledChange={(checked) => updateServer(server.id, { status: checked ? 'connected' : 'disabled' })}
@@ -511,69 +512,6 @@ function McpScenePreview() {
         onConfirm={() => updateServer(server.id, { status: 'connected' })} />)}
     </div>
   </div>
-}
-
-/**
- * 背景：添加入口需要可审阅的填写、失败和工具确认过程，不能直接跳过配置。
- * 设计意图：表单只校验本地输入，用明确标注的样张结果替代网络；字段改动使旧结果失效。
- * 关键约束：不执行命令或保存令牌；取消、场景切换卸载时清除模拟计时器。
- */
-function McpConnectionForm({ scene, onCancel, onSave }: { scene: McpScene; onCancel: () => void; onSave: (server: Omit<McpPreviewServer, 'id'>) => void }) {
-  const [kind, setKind] = useState(scene === 'add-local' ? 'local' : 'remote')
-  const [name, setName] = useState(scene === 'add-invalid' ? '' : scene === 'add-local' ? '文件服务' : '文档服务')
-  const [url, setUrl] = useState('https://docs.example.com/mcp')
-  const [auth, setAuth] = useState('none')
-  const [token, setToken] = useState('')
-  const [command, setCommand] = useState('npx')
-  const [args, setArgs] = useState('-y\n@modelcontextprotocol/server-filesystem\n./workspace')
-  const [env, setEnv] = useState('')
-  const [error, setError] = useState(scene === 'add-invalid' ? '请输入连接名称。' : '')
-  const [state, setState] = useState<'editing' | 'connecting' | 'ready'>(scene === 'add-ready' ? 'ready' : scene === 'add-connecting' ? 'connecting' : 'editing')
-  const [testing, setTesting] = useState(false)
-  const [allowed, setAllowed] = useState(true)
-  const invalidate = () => { setState('editing'); setTesting(false); setError('') }
-  useEffect(() => {
-    if (!testing) return
-    const timer = window.setTimeout(() => { setState('ready'); setTesting(false); setAllowed(true) }, 650)
-    return () => window.clearTimeout(timer)
-  }, [testing])
-  const testConnection = () => {
-    let message = ''
-    if (!name.trim()) message = '请输入连接名称。'
-    else if (kind === 'remote') {
-      try { const address = new URL(url); if (!['https:', 'http:'].includes(address.protocol) || address.username || address.password) message = '请输入不含账号密码的 HTTP 或 HTTPS 地址。' }
-      catch { message = '请输入完整的服务 URL。' }
-      if (!message && auth === 'bearer' && !token.trim()) message = '请输入访问令牌，或选择无需认证。'
-    } else if (!command.trim()) message = '请输入启动命令。'
-    else if (env.split('\n').some((line) => line.trim() && !/^[A-Za-z_][A-Za-z0-9_]*=.*/.test(line.trim()))) message = '环境变量每行使用 NAME=value 格式。'
-    setError(message)
-    if (!message) { setState('connecting'); setTesting(true) }
-  }
-  const fieldClass = 'theme-input mt-1 w-full min-w-0 rounded-md border px-2 py-2 text-[12px]'
-  return <SettingCard testId="mcp-connection-form">
-    <div className="mb-4 flex items-center justify-between gap-2"><h3 className="text-[13px] font-medium">添加连接</h3><button type="button" aria-label="关闭添加连接" title="关闭添加连接" className="p-1" onClick={onCancel}><X size={14} /></button></div>
-    <div className="mb-4 flex gap-1" role="group" aria-label="MCP 连接类型">{[['remote', '远程服务'], ['local', '本地服务']].map(([id, label]) => <button key={id} type="button" aria-pressed={kind === id} disabled={state === 'connecting'} className="settings-option px-3 py-1.5 text-[12px]" data-selected={kind === id ? 'true' : undefined} onClick={() => { setKind(id); invalidate() }}>{label}</button>)}</div>
-    <form onSubmit={(event) => { event.preventDefault(); testConnection() }}>
-      <fieldset disabled={state === 'connecting'} className="grid min-w-0 gap-3 text-[11px]">
-        <label>连接名称<input className={fieldClass} value={name} maxLength={100} onChange={(event) => { setName(event.target.value); invalidate() }} /></label>
-        {kind === 'remote' ? <>
-          <label>服务 URL<input className={fieldClass} value={url} maxLength={2048} onChange={(event) => { setUrl(event.target.value); invalidate() }} /></label>
-          <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Streamable HTTP</div>
-          <label>认证方式<select className={fieldClass} value={auth} onChange={(event) => { setAuth(event.target.value); setToken(''); invalidate() }}><option value="none">无需认证</option><option value="bearer">访问令牌（Bearer）</option></select></label>
-          {auth === 'bearer' && <label>访问令牌<input type="password" autoComplete="off" className={fieldClass} value={token} maxLength={4096} onChange={(event) => { setToken(event.target.value); invalidate() }} /></label>}
-        </> : <>
-          <label>启动命令<input className={fieldClass} value={command} maxLength={500} onChange={(event) => { setCommand(event.target.value); invalidate() }} /></label>
-          <label>参数（每行一个）<textarea rows={3} className={fieldClass} value={args} maxLength={4096} onChange={(event) => { setArgs(event.target.value); invalidate() }} /></label>
-          <label>环境变量（每行 NAME=value）<textarea rows={2} className={fieldClass} value={env} maxLength={4096} onChange={(event) => { setEnv(event.target.value); invalidate() }} /></label>
-        </>}
-      </fieldset>
-      {error && <p role="alert" className="mt-3 text-[12px]" style={{ color: 'var(--danger)' }}>{error}</p>}
-      {state === 'connecting' && <div role="status" className="mt-4 flex items-center gap-2 text-[12px]"><RefreshCw size={14} className="animate-spin" />正在连接并获取工具…<button type="button" className="ml-auto" onClick={invalidate}>取消测试</button></div>}
-      {state === 'ready' && <div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}><p role="status" className="mb-2 text-[12px]" style={{ color: 'var(--success)' }}>已获取 1 个工具（样张）</p><label className="flex items-center justify-between gap-2 text-[12px]">{kind === 'remote' ? '搜索文档' : '列出目录'}<input type="checkbox" aria-label="允许使用发现的工具" checked={allowed} onChange={(event) => setAllowed(event.target.checked)} /></label></div>}
-      <p className="mt-3 text-[10px]" style={{ color: 'var(--text-muted)' }}>隔离样张，不会连接服务或保存凭据。</p>
-      <div className="mt-4 flex flex-wrap justify-end gap-2 text-[12px]"><button type="button" className="settings-option px-3 py-1.5" onClick={onCancel}>取消</button><button type="submit" disabled={state === 'connecting'} className="settings-option px-3 py-1.5 disabled:opacity-40">测试连接</button><button type="button" disabled={state !== 'ready'} className="settings-option rounded-md border px-3 py-1.5 disabled:opacity-40" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} onClick={() => onSave({ name: name.trim(), transport: kind === 'remote' ? '远程 · Streamable HTTP' : '本地 · stdio', address: kind === 'remote' ? url.trim() : command.trim(), status: 'connected', tools: [{ id: kind === 'remote' ? 'search_docs' : 'list_directory', name: kind === 'remote' ? '搜索文档' : '列出目录', allowed }] })}>保存连接</button></div>
-    </form>
-  </SettingCard>
 }
 
 function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {

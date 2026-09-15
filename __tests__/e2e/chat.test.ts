@@ -312,6 +312,118 @@ async function installProductionElectronStub(page: import('@playwright/test').Pa
   })
 }
 
+test('MCP 共享表单取消迟到结果、字段失效和重测', async ({ page }, testInfo) => {
+  await installProductionElectronStub(page)
+  await page.addInitScript(() => {
+    const state = { requests: [] as string[], cancelled: [] as string[], pending: {} as Record<string, (value: unknown) => void>, failCancel: false }
+    ;(window as any).__mcpLifecycle = state
+    const api = (window as any).electronAPI.mcp
+    api.testConnection = (id: string) => { state.requests.push(id); return new Promise((resolve) => { state.pending[id] = resolve }) }
+    api.cancelTest = async (id: string) => {
+      if (state.failCancel) { state.failCancel = false; return { ok: false } }
+      state.cancelled.push(id); return { ok: true }
+    }
+  })
+  await page.goto('/')
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+  await page.getByRole('button', { name: 'MCP', exact: true }).click()
+  await page.getByRole('button', { name: '+ 添加', exact: true }).click()
+  const form = page.getByTestId('mcp-connection-form')
+  const testButton = form.getByRole('button', { name: '测试连接', exact: true })
+  await form.getByLabel('连接名称').fill('研究资料')
+  await form.getByLabel('服务 URL').fill('https://example.com/mcp')
+  const before = await testButton.boundingBox()
+  await testButton.hover()
+  expect(await testButton.boundingBox()).toEqual(before)
+  await testButton.click()
+  await expect(form.getByRole('button', { name: '本地服务', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: '+ 添加', exact: true })).toBeDisabled()
+  const pending = await testButton.boundingBox()
+  expect({ width: pending!.width, height: pending!.height }).toEqual({ width: before!.width, height: before!.height })
+  await page.evaluate(() => { (window as any).__mcpLifecycle.failCancel = true })
+  await form.getByRole('button', { name: '取消测试', exact: true }).click()
+  await expect(form.getByRole('alert')).toContainText('未能确认测试连接关闭')
+  await expect(testButton).toBeDisabled()
+  await form.getByRole('button', { name: '取消测试', exact: true }).click()
+  await expect(testButton).toBeEnabled()
+  await expect(form.getByLabel('连接名称')).toHaveValue('研究资料')
+  await page.evaluate(() => { const s = (window as any).__mcpLifecycle; s.pending[s.requests[0]]({ ok: true, tools: [{ name: 'stale', description: '过期结果' }] }) })
+  await expect(form.getByText('过期结果')).toHaveCount(0)
+  await expect(form.getByRole('button', { name: '保存连接', exact: true })).toBeDisabled()
+  await testButton.click()
+  const resolveLatest = () => page.evaluate(() => { const s = (window as any).__mcpLifecycle; s.pending[s.requests.at(-1)]({ ok: true, tools: [{ name: 'search_docs', description: '搜索文档' }] }) })
+  await resolveLatest()
+  await expect(form.getByText('已获取 1 个工具')).toBeVisible()
+  await form.getByLabel('连接名称').fill('修改后的资料')
+  await expect(form.getByRole('button', { name: '保存连接', exact: true })).toBeDisabled()
+  await expect(testButton).toBeEnabled()
+  await testButton.click()
+  await resolveLatest()
+  await expect(form.getByText('已获取 1 个工具')).toBeVisible()
+  await testButton.click()
+  await expect(form.getByText('正在连接并获取工具…')).toBeVisible()
+  await resolveLatest()
+  await expect(form.getByText('已获取 1 个工具')).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('mcp-shared-form-ready.png'), animations: 'disabled' })
+  await form.getByRole('button', { name: '关闭添加连接', exact: true }).click()
+  await expect(form).toHaveCount(0)
+  expect(await page.evaluate(() => { const s = (window as any).__mcpLifecycle; return { requests: s.requests.length, cancelled: s.cancelled.length, unique: new Set(s.requests).size } })).toEqual({ requests: 4, cancelled: 4, unique: 4 })
+})
+
+test('MCP 重测等待清理时离开页面不会启动新连接', async ({ page }) => {
+  await installProductionElectronStub(page)
+  await page.addInitScript(() => {
+    const state = { tests: 0, pending: [] as Array<() => void> }
+    ;(window as any).__mcpUnmount = state
+    const api = (window as any).electronAPI.mcp
+    api.testConnection = async () => { state.tests++; return { ok: true, tools: [] } }
+    api.cancelTest = () => new Promise((resolve) => { state.pending.push(() => resolve({ ok: true })) })
+  })
+  await page.goto('/')
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+  await page.getByRole('button', { name: 'MCP', exact: true }).click()
+  await page.getByRole('button', { name: '+ 添加', exact: true }).click()
+  const form = page.getByTestId('mcp-connection-form')
+  await form.getByLabel('连接名称').fill('文档服务')
+  await form.getByLabel('服务 URL').fill('https://example.com/mcp')
+  await form.getByRole('button', { name: '测试连接', exact: true }).click()
+  await expect(form.getByText('已获取 0 个工具')).toBeVisible()
+  await form.getByRole('button', { name: '测试连接', exact: true }).click()
+  await expect(form.getByText('正在取消测试…')).toBeVisible()
+  await page.getByRole('button', { name: '外观与界面', exact: true }).click()
+  await expect(form).toHaveCount(0)
+  await page.evaluate(async () => { const state = (window as any).__mcpUnmount; state.pending.forEach((resolve: () => void) => resolve()); await new Promise((resolve) => setTimeout(resolve, 0)) })
+  expect(await page.evaluate(() => (window as any).__mcpUnmount.tests)).toBe(1)
+})
+
+test('MCP 已保存但刷新失败只重试刷新，不重复保存', async ({ page }) => {
+  await installProductionElectronStub(page)
+  await page.addInitScript(() => {
+    const state = { saves: 0, failRefresh: false }
+    ;(window as any).__mcpRefresh = state
+    const api = (window as any).electronAPI
+    const get = api.settings.get
+    api.settings.get = async () => { if (state.failRefresh) { state.failRefresh = false; throw new Error('fixture refresh failure') }; return get() }
+    api.mcp.testConnection = async () => ({ ok: true, tools: [] })
+    api.mcp.cancelTest = async () => ({ ok: true })
+    api.mcp.saveTested = async () => { state.saves++; state.failRefresh = true; return { ok: false, savedServerId: 'saved', error: '连接已保存，但未能启用，请在服务列表中重试。' } }
+  })
+  await page.goto('/')
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+  await page.getByRole('button', { name: 'MCP', exact: true }).click()
+  await page.getByRole('button', { name: '+ 添加', exact: true }).click()
+  const form = page.getByTestId('mcp-connection-form')
+  await form.getByLabel('连接名称').fill('零工具服务')
+  await form.getByLabel('服务 URL').fill('https://example.com/mcp')
+  await form.getByRole('button', { name: '测试连接', exact: true }).click()
+  await expect(form.getByText('已获取 0 个工具')).toBeVisible()
+  await form.getByRole('button', { name: '保存连接', exact: true }).dblclick()
+  await expect(form.getByRole('alert')).toContainText('连接已保存，但列表刷新失败')
+  await form.getByRole('button', { name: '刷新列表', exact: true }).click()
+  await expect(form).toHaveCount(0)
+  expect(await page.evaluate(() => (window as any).__mcpRefresh.saves)).toBe(1)
+})
+
 for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
   for (const width of [1166, 600]) {
     test(`正式 MCP 共享服务卡与操作恢复 ${theme} ${width}`, async ({ page }, testInfo) => {
@@ -421,11 +533,16 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       await page.addInitScript((selectedTheme) => {
         localStorage.setItem('theme', selectedTheme)
         const api = (window as any).electronAPI
-        const state = { tested: false, cancelled: false, saved: false }
+        const state = { tested: false, cancelled: false, saved: false, failSave: true }
         ;(window as any).__mcpAddHarness = state
         api.mcp.testConnection = async (_requestId: string, config: any) => { state.tested = true; return { ok: true, tools: [{ name: 'search_docs', description: '搜索文档' }] } }
-        api.mcp.cancelTest = async () => { state.cancelled = true; return { ok: true } }
-        api.mcp.saveTested = async (_requestId: string, allowed: string[]) => { state.saved = allowed.includes('search_docs'); return state.saved ? { ok: true, serverId: 'new-remote' } : { ok: false, error: '工具选择无效' } }
+        api.mcp.cancelTest = async () => { state.cancelled = true; state.tested = false; return { ok: true } }
+        api.mcp.saveTested = async (_requestId: string, allowed: string[]) => {
+          if (!state.tested) return { ok: false, error: '测试结果已失效，请重新测试连接。' }
+          if (state.failSave) { state.failSave = false; return { ok: false, error: '连接未保存，请重试；当前测试结果仍保留。' } }
+          state.saved = true
+          return { ok: true, serverId: 'new-remote' }
+        }
         const getSettings = api.settings.get
         api.settings.get = async () => ({ ...await getSettings(), mcpServers: '[]' })
       }, theme)
@@ -439,10 +556,11 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       await form.getByLabel('服务 URL').fill('https://example.com/mcp')
       await form.getByRole('button', { name: '测试连接', exact: true }).click()
       await expect(form.getByText('已获取 1 个工具')).toBeVisible()
+      expect(await page.evaluate(() => (window as any).__mcpAddHarness.cancelled)).toBe(false)
       await form.getByRole('checkbox', { name: '允许search_docs', exact: true }).uncheck()
       await form.getByRole('button', { name: '保存连接', exact: true }).click()
       expect(await page.evaluate(() => (window as any).__mcpAddHarness.saved)).toBe(false)
-      await form.getByRole('checkbox', { name: '允许search_docs', exact: true }).check()
+      await expect(form.getByRole('alert')).toContainText('连接未保存')
       await form.getByRole('button', { name: '保存连接', exact: true }).click()
       await expect(form).toHaveCount(0)
       expect(await page.evaluate(() => (window as any).__mcpAddHarness.saved)).toBe(true)
@@ -2099,7 +2217,7 @@ test.describe('My Agent UI', () => {
         await expect(form.getByRole('button', { name: '保存连接' })).toBeDisabled()
         await form.getByRole('button', { name: '测试连接', exact: true }).click()
         await expect(form.getByRole('status')).toContainText('已获取')
-        await form.getByLabel('允许使用发现的工具').uncheck()
+        await form.getByLabel('允许search_docs', { exact: true }).uncheck()
         await form.getByRole('button', { name: '保存连接' }).click()
         await expect(preview.locator('section')).toHaveCount(3)
         await expect(preview.locator('section').filter({ hasText: '研究资料' })).toContainText('未允许')

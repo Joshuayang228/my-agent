@@ -470,21 +470,23 @@ export function SettingsPanel({
       <div className="flex items-center justify-between gap-3">
         <div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>已连接服务</div>
         <button
-          onClick={() => setMcpAdding(!mcpAdding)}
+          onClick={() => setMcpAdding(true)}
+          disabled={mcpAdding}
           className="h-8 shrink-0 rounded-[var(--radius-md)] border px-3 text-xs transition"
           style={{ borderColor: 'var(--border-subtle)', color: 'var(--accent-fg)' }}
         >
-          {mcpAdding ? '取消' : '+ 添加'}
+          + 添加
         </button>
       </div>
       </SettingCard>
 
-      {mcpAdding && <McpConnectionForm onCancel={() => setMcpAdding(false)} onSaved={async () => {
-        const settings = await window.electronAPI?.settings.get()
-        if (settings) {
-          try { setMcpServers(JSON.parse(settings.mcpServers || '[]')) } catch { setMcpServers([]) }
-        }
+      {mcpAdding && !preview && <McpConnectionForm actions={window.electronAPI.mcp} onCancel={() => setMcpAdding(false)} onSaved={async (result) => {
+        const settings = await window.electronAPI.settings.get()
+        const servers = JSON.parse(settings.mcpServers || '[]')
+        if (!Array.isArray(servers)) throw new Error('MCP 配置读取失败')
+        setMcpServers(servers)
         await refreshMcpStatus()
+        if (!result.ok) toast(result.error, 'warning')
         setMcpAdding(false)
       }} />}
 
