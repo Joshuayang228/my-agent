@@ -14,7 +14,7 @@ import { McpConnectionForm } from './settings/McpConnectionForm'
 import { DESIGN_THEME_ASSETS, FONT_SCALE_ASSETS } from '../shared/design-asset-registry'
 import {
   Upload, Download,
-  Check, ChevronRight,
+  Check, ChevronRight, CircleHelp, Eye,
 } from 'lucide-react'
 
 interface SettingsForm {
@@ -348,8 +348,13 @@ export function SettingsPanel({
   // ── 各区块渲染 ──
 
   const renderGeneral = () => (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="settings-section-appearance">
       <SettingsPageHeader title="外观与界面" description="调整应用主题和界面显示；主题选项来自基础设计资产。" />
+      <SettingCard>
+        <SettingRow scope="本机" label="界面语言" description="当前只提供简体中文。" icon={<CircleHelp size={15} />}>
+          <span className="rounded-full border px-2.5 py-1 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>简体中文</span>
+        </SettingRow>
+      </SettingCard>
       <SettingCard testId="settings-theme-card">
         <div className="mb-3 flex items-end justify-between gap-3">
           <h3 className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>主题</h3>
@@ -363,7 +368,7 @@ export function SettingsPanel({
         </div>
       </SettingCard>
       <SettingCard>
-        <SettingRow label="字体大小" description="只影响本机界面字号；不改变内容本身。" scope="本机" stacked>
+        <SettingRow label="字体大小" description="只影响本机界面字号；不改变内容本身。" scope="本机" icon={<Eye size={15} />} stacked>
           <div className="grid gap-2 sm:grid-cols-3">{FONT_SCALES.map((scale) => { const selected = fontScale === scale.id; return <button key={scale.id} type="button" aria-pressed={selected} onClick={() => setFontScale(scale.id)} className="rounded-[var(--radius-md)] border px-3 py-2 text-left transition" data-selected={selected ? 'true' : undefined} style={{ borderColor: selected ? 'var(--accent)' : 'var(--border-subtle)', background: selected ? 'var(--accent-subtle)' : 'transparent' }}><div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{scale.label}</div><div className="mt-0.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>{scale.desc}</div></button> })}</div>
         </SettingRow>
       </SettingCard>
