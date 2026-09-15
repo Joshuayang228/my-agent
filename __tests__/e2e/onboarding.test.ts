@@ -532,10 +532,10 @@ test('正式记忆经真实 IPC 增改、完整重启恢复和删除', async () 
   await expect(page.locator('#startup-splash')).toBeHidden()
   await page.locator('button[title="设置"]').click()
   await page.getByTestId('settings-nav-memory').click()
-  await page.getByRole('button', { name: '+ 添加', exact: true }).click()
+  await page.getByRole('button', { name: '添加一条记忆', exact: true }).click()
   const original = '真实重启验收：讨论产品前需要确认目标与边界。'.repeat(12)
-  await page.getByPlaceholder('输入记忆内容...').fill(original)
-  await page.getByRole('button', { name: '保存', exact: true }).click()
+  await page.getByLabel('新记忆内容', { exact: true }).fill(original)
+  await page.getByRole('button', { name: '保存新记忆', exact: true }).click()
   await expect.poll(async () => (await page.evaluate(() => window.electronAPI.memory.list())).filter((memory) => memory.content === original).length).toBe(1)
   const entry = (await page.evaluate(() => window.electronAPI.memory.list())).find((memory) => memory.content === original)!
   const item = page.getByTestId(`memory-item-${entry.id}`)
@@ -546,6 +546,24 @@ test('正式记忆经真实 IPC 增改、完整重启恢复和删除', async () 
   await item.getByRole('button', { name: /^保存记忆 / }).click()
   await expect(item.locator('textarea')).toHaveCount(0)
   await expect.poll(async () => (await page.evaluate(() => window.electronAPI.memory.list())).find((memory) => memory.id === entry.id)?.content).toBe(updated)
+
+  const groupedEntries: { id: string; group: string; content: string; category: string; roleId?: string }[] = []
+  const activeRoleId = (await page.evaluate(() => window.electronAPI.companion.getActive()))?.id
+  for (const [group, category, content] of [
+    ['collaboration', 'workflow', '复杂工作先整理已知事实，再检查验收标准。'],
+    ['communication', 'voice', '沟通中先讲结论，给出必要依据，避免重复说明。'],
+    ['relationship', 'feedback', '我们约定保留共同确认的决定，不擅自改变边界。'],
+  ]) {
+    await page.getByTestId(`memory-group-${group}`).click()
+    await page.getByRole('button', { name: '添加一条记忆', exact: true }).click()
+    await page.getByLabel('新记忆内容', { exact: true }).fill(content)
+    await page.getByRole('button', { name: '保存新记忆', exact: true }).click()
+    await expect(page.getByLabel('新记忆内容', { exact: true })).toHaveCount(0)
+    const saved = (await page.evaluate(() => window.electronAPI.memory.list())).find((memory) => memory.content === content)!
+    expect(saved).toMatchObject({ category, content })
+    if (group === 'relationship') expect(saved.roleId).toBe(activeRoleId)
+    groupedEntries.push({ id: saved.id, group, category, content, ...(group === 'relationship' ? { roleId: activeRoleId } : {}) })
+  }
 
   // 此处完整退出进程后复用隔离目录，不能以 page.reload 代替磁盘恢复证据。
   await electronApp.close()
@@ -566,4 +584,15 @@ test('正式记忆经真实 IPC 增改、完整重启恢复和删除', async () 
   await restored.getByRole('button', { name: /^确认删除记忆 / }).click()
   await expect(restored).toHaveCount(0)
   expect((await page.evaluate(() => window.electronAPI.memory.list())).some((memory) => memory.id === entry.id)).toBe(false)
+  for (const saved of groupedEntries) {
+    await page.getByTestId(`memory-group-${saved.group}`).click()
+    const card = page.getByTestId(`memory-item-${saved.id}`)
+    await expect(card).toContainText(saved.content)
+    const persisted = (await page.evaluate(() => window.electronAPI.memory.list())).find((memory) => memory.id === saved.id)
+    expect(persisted).toMatchObject({ content: saved.content, category: saved.category, ...(saved.roleId ? { roleId: saved.roleId } : {}) })
+    await card.hover()
+    await card.getByRole('button', { name: /^删除记忆 / }).click()
+    await card.getByRole('button', { name: /^确认删除记忆 / }).click()
+    await expect(card).toHaveCount(0)
+  }
 })

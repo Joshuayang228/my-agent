@@ -1,6 +1,9 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, type ChangeEvent, type KeyboardEvent } from 'react'
 import { ActionButton } from './foundation/ActionButton'
 import { IconButton } from './foundation/IconButton'
+import { TextField } from './foundation/TextField'
+import { MemoryAddRow, MemoryToolbar } from './memory/MemoryManagementControls'
+import { MEMORY_CATEGORY_GROUP, MEMORY_GROUPS, type MemoryGroup } from '../shared/memory-groups'
 import type { MemoryCategory, MemoryEntry } from '../shared/types'
 import {
   detectSensitiveKinds,
@@ -59,6 +62,10 @@ interface MemoryPanelProps {
   previewEditable?: boolean
   readOnly?: boolean
   previewHideFooter?: boolean
+  /** 页面故事与正式入口复用同一管理流程，数据源仍严格隔离。 */
+  previewManagement?: boolean
+  previewGroup?: MemoryGroup
+  onPreviewGroupChange?: (group: MemoryGroup) => void
 }
 
 export function MemoryPanel({
@@ -73,9 +80,16 @@ export function MemoryPanel({
   previewEditable = false,
   readOnly = false,
   previewHideFooter = false,
+  previewManagement = false,
+  previewGroup,
+  onPreviewGroupChange,
 }: MemoryPanelProps) {
   const [memories, setMemories] = useState<MemoryEntry[]>(previewMemories ?? [])
   const [filter, setFilter] = useState<MemoryCategory | 'all'>('all')
+  const [selectedGroup, setSelectedGroup] = useState<MemoryGroup>('identity')
+  const group = previewGroup ?? selectedGroup
+  const [query, setQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
   const [editing, setEditing] = useState<string | null>(previewEditingId ?? null)
   const [editContent, setEditContent] = useState(
     previewMemories?.find((memory) => memory.id === previewEditingId)?.content ?? '',
@@ -84,14 +98,18 @@ export function MemoryPanel({
     const content = previewMemories?.find((memory) => memory.id === previewEditingId)?.content ?? ''
     return content.length > 80 || content.includes('\n')
   })
-  const [adding, setAdding] = useState(false)
+  const [addDrafts, setAddDrafts] = useState<Partial<Record<MemoryGroup, { open: boolean; content: string }>>>({})
+  const adding = addDrafts[group]?.open ?? false
+  const newContent = addDrafts[group]?.content ?? ''
+  const setAdding = (open: boolean) => setAddDrafts((drafts) => ({ ...drafts, [group]: { content: drafts[group]?.content ?? '', open } }))
+  const setNewContent = (content: string) => setAddDrafts((drafts) => ({ ...drafts, [group]: { open: drafts[group]?.open ?? false, content } }))
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
-  const [newCategory, setNewCategory] = useState<MemoryCategory>('fact')
-  const [newContent, setNewContent] = useState('')
+  const newCategory = MEMORY_GROUPS.find((item) => item.id === group)!.category
   const isPreview = previewMemories !== undefined
   const isPreviewInteractive = isPreview && previewEditable
   const isCompactPreview = isPreview && previewCompact
   const isProductMemory = !isPreview
+  const management = isProductMemory || previewManagement
   const useCompactLayout = isCompactPreview || isProductMemory
   const canEdit = !readOnly && (isPreviewInteractive || !isPreview)
   const [busy, setBusy] = useState(false)
@@ -157,7 +175,16 @@ export function MemoryPanel({
   )
 
   const handleAdd = async () => {
-    if (readOnly || isPreview || !window.electronAPI || !newContent.trim() || writing.current) return
+    if (!canEdit || newContent.trim().length < 2 || writing.current) return
+    if (isPreviewInteractive) {
+      const now = Date.now()
+      setMemories((current) => [...current, { id: `memory-custom-${crypto.randomUUID()}`, category: newCategory, content: newContent.trim(), createdAt: now, updatedAt: now }])
+      setNewContent('')
+      setAdding(false)
+      setQuery('')
+      return
+    }
+    if (isPreview || !window.electronAPI) return
     const kinds = detectSensitiveKinds(newContent)
     if (kinds.length > 0) {
       const ok = window.confirm(formatSensitiveCollectionHint(kinds))
@@ -175,6 +202,7 @@ export function MemoryPanel({
       setMemories((current) => [...current.filter((memory) => memory.id !== entry.id), entry as MemoryEntry])
       setNewContent('')
       setAdding(false)
+      setQuery('')
     }, '记忆未添加，内容仍保留。请重试。')
   }
 
@@ -224,7 +252,26 @@ export function MemoryPanel({
     setMultilineEdit(mem.content.length > 80 || mem.content.includes('\n'))
   }
 
-  const filtered = filter === 'all' ? memories : memories.filter(m => m.category === filter)
+  const handleEditKey = (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>, id: string) => {
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      event.stopPropagation()
+      if (!writing.current) { setEditing(null); setWriteError('') }
+    }
+    if (event.key === 'Enter' && (!multilineEdit || event.ctrlKey || event.metaKey)) {
+      event.preventDefault()
+      void handleSaveEdit(id)
+    }
+  }
+
+  const filtered = management
+    ? memories.filter((memory) => MEMORY_CATEGORY_GROUP[memory.category] === group && memory.content.toLocaleLowerCase('zh-CN').includes(query.trim().toLocaleLowerCase('zh-CN')))
+    : filter === 'all' ? memories : memories.filter(m => m.category === filter)
+  const groupCounts = memories.reduce((counts, memory) => {
+    counts[MEMORY_CATEGORY_GROUP[memory.category]] += 1
+    return counts
+  }, { identity: 0, collaboration: 0, communication: 0, relationship: 0 })
   const categoryCounts = memories.reduce((acc, m) => {
     acc[m.category] = (acc[m.category] || 0) + 1
     return acc
@@ -232,20 +279,15 @@ export function MemoryPanel({
 
   return (
     <fieldset disabled={busy} aria-busy={busy || loading} className="m-0 flex h-full min-h-0 min-w-0 flex-col border-0 p-0">
-        {!previewCompact && (
+        {management && <MemoryToolbar group={group} counts={groupCounts} query={query} onQueryChange={setQuery} searchOpen={searchOpen} onSearchOpen={setSearchOpen}
+          onGroupChange={(next) => { setSelectedGroup(next); onPreviewGroupChange?.(next); setQuery(''); setWriteError('') }} />}
+        {!management && !previewCompact && (
           <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border-color)' }}>
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}><Brain size={16} /> 记忆</span>
               <span className="rounded px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{memories.length}</span>
             </div>
             <div className="flex items-center gap-2">
-              {!readOnly && !isPreview && <button
-                onClick={() => setAdding(!adding)}
-                className="rounded-lg px-2.5 py-1 text-xs transition"
-                style={{ color: 'var(--accent-fg)' }}
-              >
-                + 添加
-              </button>}
               <button
                 onClick={onClose}
                 className="rounded-lg p-1.5 transition"
@@ -266,7 +308,7 @@ export function MemoryPanel({
           </div>
         )}
 
-        {!previewCompact && (
+        {!management && !previewCompact && (
           <div className="flex flex-wrap gap-2 border-b px-5 py-2.5" style={{ borderColor: 'var(--border-color)' }} data-testid="memory-category-filters">
             <button
               onClick={() => setFilter('all')}
@@ -299,55 +341,6 @@ export function MemoryPanel({
 
 
 
-        {/* Add Form */}
-        {adding && (
-          <div className="border-b px-5 py-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
-            <div className="mb-2 flex gap-2">
-              {CATEGORIES.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setNewCategory(cat.id)}
-                  className={`rounded px-2 py-0.5 text-[10px] transition ${
-                    newCategory === cat.id ? COLOR_MAP[cat.color].badge : ''
-                  }`}
-                  style={newCategory !== cat.id ? { color: 'var(--text-muted)' } : undefined}
-                >
-                  {cat.icon} {cat.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input
-                value={newContent}
-                onChange={e => setNewContent(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && void handleAdd()}
-                placeholder="输入记忆内容..."
-                autoFocus
-                className="theme-input flex-1 rounded-lg border px-3 py-1.5 text-xs outline-none"
-              />
-              <button
-                onClick={() => void handleAdd()}
-                disabled={!newContent.trim()}
-                className="memory-save-button rounded-lg px-3 py-1.5 text-xs font-medium text-white transition disabled:opacity-40"
-              >
-                保存
-              </button>
-            </div>
-            {addSensitiveKinds.length > 0 && (
-              <div
-                className="mt-2 flex items-start gap-1.5 rounded px-2 py-1.5 text-[10px] leading-snug"
-                style={{
-                  color: 'var(--companion-accent-warm, #d4a574)',
-                  background: 'color-mix(in srgb, var(--companion-accent-warm, #d4a574) 12%, transparent)',
-                  border: '1px solid color-mix(in srgb, var(--companion-accent-warm, #d4a574) 35%, transparent)',
-                }}
-              >
-                <ShieldAlert size={12} className="mt-0.5 shrink-0" />
-                <span>{formatSensitiveCollectionHint(addSensitiveKinds)}</span>
-              </div>
-            )}
-          </div>
-        )}
 
         {(readError || writeError) && <div role="alert" className="flex shrink-0 items-center gap-2 px-4 py-2 text-xs" style={{ color: 'var(--danger)' }}>
           <span className="min-w-0 flex-1">{writeError || readError}</span>
@@ -355,11 +348,11 @@ export function MemoryPanel({
         </div>}
         {loading && <div role="status" className="px-4 py-2 text-xs" style={{ color: 'var(--text-muted)' }}>正在读取记忆…</div>}
         {/* Memory List */}
-        <div className={isCompactPreview ? 'flex-1 overflow-y-auto' : 'flex-1 overflow-y-auto px-5 py-3'}>
+        <div className={management || isCompactPreview ? 'min-h-0 flex-1 overflow-y-auto' : 'flex-1 overflow-y-auto px-5 py-3'} data-testid="memory-list-scroll">
           {filtered.length === 0 && (loading || readError) ? null : filtered.length === 0 ? (
-            isCompactPreview ? (
+            management || isCompactPreview ? (
               <div className="rounded-[var(--radius-lg)] border px-4 py-8 text-center text-[13px]" style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)', color: 'var(--text-muted)' }}>
-                {memories.length === 0 ? '还没有任何记忆。' : '该分类下暂无记忆'}
+                {query.trim() ? '没有找到匹配的记忆。' : memories.length === 0 ? '还没有任何记忆。' : '该分类下暂无记忆'}
               </div>
             ) : (
             <div className="mt-10 text-center">
@@ -373,7 +366,7 @@ export function MemoryPanel({
             )
           ) : (
             <div
-              className={isCompactPreview ? 'space-y-3' : isPreview ? 'grid gap-3 px-0.5 sm:grid-cols-2' : 'space-y-2'}
+              className={management || isCompactPreview ? 'space-y-3' : isPreview ? 'grid gap-3 px-0.5 sm:grid-cols-2' : 'space-y-2'}
             >
               {filtered.map(mem => {
                 const cat = CATEGORIES.find(c => c.id === mem.category)
@@ -451,10 +444,10 @@ export function MemoryPanel({
                     {isEditing ? (
                       useCompactLayout ? (
                         multilineEdit ? (
-                          <textarea
+                          <TextField multiline
                             value={editContent}
-                            onChange={e => setEditContent(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Escape' && !writing.current) setEditing(null) }}
+                            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setEditContent(event.target.value)}
+                            onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => handleEditKey(event, mem.id)}
                             autoFocus
                             readOnly={!canEdit}
                             rows={Math.min(10, Math.max(4, Math.ceil(editContent.length / 45)))}
@@ -462,13 +455,10 @@ export function MemoryPanel({
                             style={{ color: 'var(--text-primary)' }}
                           />
                         ) : (
-                          <input
+                          <TextField
                             value={editContent}
-                            onChange={e => setEditContent(e.target.value)}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') handleSaveEdit(mem.id)
-                              if (e.key === 'Escape' && !writing.current) setEditing(null)
-                            }}
+                            onChange={(event: ChangeEvent<HTMLInputElement>) => setEditContent(event.target.value)}
+                            onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => handleEditKey(event, mem.id)}
                             autoFocus
                             readOnly={!canEdit}
                             className="theme-input h-8 min-w-0 w-full rounded-[var(--radius-md)] border px-3 text-[13px] font-medium leading-6 outline-none"
@@ -579,9 +569,13 @@ export function MemoryPanel({
               })}
             </div>
           )}
+          {management && canEdit && <MemoryAddRow open={adding} content={newContent} onContentChange={setNewContent}
+            onOpen={() => { setAdding(true); setWriteError('') }}
+            onCancel={() => { setAdding(false); setNewContent(''); setWriteError('') }} onSave={() => void handleAdd()} busy={busy}
+            sensitiveHint={addSensitiveKinds.length ? formatSensitiveCollectionHint(addSensitiveKinds) : ''} />}
         </div>
 
-        {!previewHideFooter && <div className="border-t px-4 py-2 text-center text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
+        {!management && !previewHideFooter && <div className="border-t px-4 py-2 text-center text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
           {isPreview
             ? '这是 Playground 的隔离样张；在“纠正记忆”中试改不会保存到正式记忆。'
             : '记忆会注入到每次对话的 System Prompt 中 · 敏感项（健康/财务/凭据等）会高亮，勿存密码原文'}

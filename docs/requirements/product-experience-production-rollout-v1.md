@@ -25,7 +25,7 @@
 | R02 设置骨架 / `SettingsExperienceCandidate.tsx` | `src/components/SettingsPanel.tsx` | 既有 `settings:get/set` 自动保存；正式仍为旧 IA | 生产改造后回流；日常 / 高级分组、九个内容入口、嵌入记忆 / Skills / 角色架、窄宽及返回 |
 | R03 外观 / `foundation-design-language-v2.md` | 设置外观、`src/index.css`、共享设计资产 | 候选四主题与全局主题、持久化旧主题尚需映射；不得丢用户设置 | 生产改造后回流；瓷青 / 曜石 / 松烟 / 绛紫同源，重启恢复、旧值兼容、Markdown / Diff 各入口 |
 | R04 伙伴与相处 / 设置候选 | 正式伙伴设置、`CharacterShelfPanel` | 既有角色切换、提醒、反思与 settings；候选补充说明写入链路待核实 | 生产改造后回流；设置内角色架、真实偏好保存与生效、流中禁换角、跨页同一主角 |
-| R05 记忆 / `SurfaceBaselinePanel.tsx` 的 MemorySurface | `MemoryPanel`、正式设置记忆页 | `memory:*`、memory-store / vector-store；正式卡片已共用紧凑布局；页面仍按存储类别筛选，无候选同行搜索和底部新增行 | 生产改造后回流；四类稳定归属、搜索、真实 CRUD、长文、敏感提示、固定日期操作槽、失败不丢稿 |
+| R05 记忆 / `SurfaceBaselinePanel.tsx` 的 MemorySurface | `MemoryPanel`、正式设置记忆页 | `memory:*`、memory-store / vector-store；正式与故事共用四类导航、搜索、紧凑卡片及列表后新增行；六种历史类别按共享映射唯一归属 | 整页已接入；四类真实写入与重启、搜索 / 草稿 / 几何及失败恢复证据见 R05 记录 |
 | R06 模型 / `playground-model-and-workspace-v2.md` | 正式模型设置、LLM 配置工厂 | 已有 settings 与连接测试；候选多连接 / 用途路由 / 模型获取含 fixture | 生产改造后回流；连接 CRUD、发现与手动模型、用途路由、凭据安全存储、旧配置迁移、真实调用与失败恢复 |
 | R07 数据与隐私 / 设置候选 | 正式设置数据页及导入导出服务 | 复核实际导入 / 导出 / 备份字段与隐私边界；不按候选文案假定已包含所有数据 | 直接回流已有流程，缺失能力改造；取消、无效备份、失败提示、实际恢复一致性 |
 | R08 权限与自动化 / 设置候选 | 正式权限设置、`PermissionRulesEditor` | 既有 executionMode / permissionRules 与执行侧规则引擎 | 直接回流既有规则能力；默认收起、独立规则卡、列表后添加、原位取消、保存及执行侧生效；硬边界优先 |
@@ -149,7 +149,16 @@ R12 必须拆成六个独立验收面：
 
 ### R05 编辑与异步恢复验收（2026-09-16）
 
-- 范围：`MemoryPanel` 的长文编辑器、增删改请求与读取生命周期、共享固定尺寸图标操作；不改分类存储、IPC、向量召回或敏感检测策略。旧页导航仍待回流，不以本批修复替代整页采用。
+R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` 故事共用四类导航、搜索、清单和列表后新增行，基础控件来自 TabStrip / TextField / IconButton / ActionButton。删除正式旧类别筛选、顶部表单、关闭入口和底部技术说明；不删除记忆或后端能力。展示映射由 `src/shared/memory-groups.ts` 唯一维护：identity / fact → 身份信息，workflow → 工作方式，voice / preference → 沟通偏好，feedback → 我们之间；这是既有画像语义的确定性投影，不推测文本、不做存储迁移。“我们之间”新增继续使用当前 roleId，其他分组按 identity / workflow / voice 写入。候选 fixture 的旧存储类别不是生产事实，随所属展示分组归一化，不改变样张正文。
+
+允许修改：上述共享映射、MemoryPanel、SurfaceBaselinePanel、记忆分组 Unit、正式 / 候选 UI 与 onboarding E2E、复用门禁及对应模块 / 质量 / 账本文档。明确不碰：IPC / 主进程 / Prompt / 数据结构、MCP 与其他未提交工作。分组切换保留新增与编辑草稿；搜索只筛当前分组、清除后恢复；数量来自真实列表；新增 / 删除后同步数量。四主题宽窄、IME 不误提交、搜索空态、旧六类可达、真实 IPC 重启归属及失败恢复均为必测项。
+
+- 整页验证：Unit 显式串行 152 文件 / 883 项通过；根 tsc / build、资产检查通过；Electron 9 项通过、4 项外部模型测试跳过。真实记忆用例已扩展四类写入、完整重启、category / roleId / 内容恢复和删除。源码符号门禁覆盖正式 / 故事共用管理流程及 Foundation，保留未使用导入 / 同名遮蔽负例。两轮完整 UI 各 149 通过 / 1 模型套餐样张因重载中断；独立原断言 trace 3 次通过。受控实验确认文档写入可触发 Vite full-reload，当前未改 watcher，记录于 WISH-042。
+- 最终完整 UI：停止仓库写入后原断言 150 项全部通过，证据 `var/verification/memory-management-no-writes`。R05 的正式整页回流与真实四类 CRUD / 重启恢复已验收；该结论不外推为全产品完成，不关闭文档监听重载或其他设置页面差异。
+
+首批卡片与 CRUD 历史证据（整页状态以上文为准）：
+
+- 范围：`MemoryPanel` 的长文编辑器、增删改请求与读取生命周期、共享固定尺寸图标操作；未改分类存储、IPC、向量召回或敏感检测策略。该批当时尚未回流旧页导航，不以卡片修复替代整页采用。
 - 证据：Unit 串行 150 文件 / 880 项、正式与候选 UI 全量 142 项、Electron 9 项通过（4 项外部模型测试跳过），根 tsc / build 与资产检查通过。新增 Electron 用例通过真实 preload / memory IPC，在独立数据目录完成增改、完整退出重启恢复和删除；不代表备份或向量召回验收。
 - 正式 Renderer 回归覆盖四主题、1166 / 600px、长文删短、多行焦点、hover / pending 操作槽几何、失败保留草稿、重复点击、刷新重试与离页迟到响应。截图位于 `var/verification/memory-rollout-ui`。默认并发 Unit 的既有 MCP 30ms 超时保留在 WISH-042，未修改断言掩盖。
 

@@ -3058,6 +3058,110 @@ test.describe('My Agent UI', () => {
 
   for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
     for (const width of [1166, 600]) {
+      test(`正式记忆四类搜索与独立草稿 ${theme} ${width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 731 })
+        await installProductionElectronStub(page)
+        await page.addInitScript((themeId) => {
+          localStorage.setItem('theme', themeId)
+          const state = { adds: 0, entries: ['identity', 'fact', 'workflow', 'voice', 'preference', 'feedback'].map((category) => ({
+            id: category, category, content: `旧记忆 ${category}`, createdAt: 1, updatedAt: 1,
+          })) }
+          for (let index = 0; index < 24; index++) state.entries.push({ id: `long-${index}`, category: 'identity', content: `身份背景 ${index}：${'需要保留的长记忆内容。'.repeat(10)}`, createdAt: 1, updatedAt: 1 })
+          ;(window as any).__memoryGroups = state
+          const api = (window as any).electronAPI
+          api.memory = {
+            list: async () => state.entries.map((entry) => ({ ...entry })),
+            add: async (category: string, content: string) => {
+              state.adds++
+              const entry = { id: 'group-added', category, content, createdAt: 1, updatedAt: 1 }
+              state.entries.push(entry)
+              return entry
+            },
+            update: async (id: string, content: string) => { state.entries.find((entry) => entry.id === id)!.content = content },
+            delete: async (id: string) => { state.entries = state.entries.filter((entry) => entry.id !== id) },
+          }
+          api.mcp.status = async () => []
+        }, theme)
+        await page.goto('/')
+        await page.locator('button[title="设置"]').click()
+        await (width < 768 ? page.getByRole('tab', { name: '记忆', exact: true }) : page.getByTestId('settings-nav-memory')).click()
+        const tabs = page.getByTestId('memory-group-tabs')
+        const selectGroup = async (id: string) => { await page.getByTestId(`memory-group-${id}`).click() }
+        await expect(tabs.getByRole('tab')).toHaveCount(4)
+        await expect(page.getByTestId('memory-category-filters')).toHaveCount(0)
+        await expect(page.getByRole('button', { name: '+ 添加', exact: true })).toHaveCount(0)
+        await expect(page.getByTestId('memory-group-identity')).toHaveText('身份信息 26')
+        await expect(page.getByTestId('memory-item-fact')).toBeVisible()
+        const scroll = page.getByTestId('memory-list-scroll')
+        expect(await scroll.evaluate((node) => node.scrollHeight > node.clientHeight)).toBe(true)
+        const toolbarBox = await page.getByTestId('memory-surface-toolbar').boundingBox()
+        await scroll.evaluate((node) => { node.scrollTop = node.scrollHeight })
+        expect(await page.getByTestId('memory-surface-toolbar').boundingBox()).toEqual(toolbarBox)
+        await page.getByRole('button', { name: '添加一条记忆', exact: true }).click()
+        const draft = page.getByLabel('新记忆内容', { exact: true })
+        await draft.fill('身份分组的新草稿\n保留第二行')
+        await draft.dispatchEvent('keydown', { key: 'Enter', ctrlKey: true, isComposing: true })
+        expect(await page.evaluate(() => (window as any).__memoryGroups.adds)).toBe(0)
+        await selectGroup('collaboration')
+        await expect(page.getByTestId('memory-item-workflow')).toBeVisible()
+        await page.getByRole('button', { name: '添加一条记忆', exact: true }).click()
+        await draft.fill('工作分组独立草稿')
+        await selectGroup('identity')
+        await expect(draft).toHaveValue('身份分组的新草稿\n保留第二行')
+        await page.getByRole('button', { name: '保存新记忆', exact: true }).click()
+        await expect(page.getByTestId('memory-group-identity')).toHaveText('身份信息 27')
+        await expect(page.getByTestId('memory-item-group-added')).toContainText('保留第二行')
+        await selectGroup('collaboration')
+        await expect(draft).toHaveValue('工作分组独立草稿')
+        await page.getByRole('button', { name: '取消新增记忆', exact: true }).click()
+        await selectGroup('communication')
+        await expect(page.getByTestId('memory-group-communication')).toHaveText('沟通偏好 2')
+        const tabsBox = await tabs.boundingBox()
+        await page.getByRole('button', { name: '搜索记忆', exact: true }).click()
+        expect(await tabs.boundingBox()).toEqual(tabsBox)
+        const search = page.getByRole('textbox', { name: '搜索记忆', exact: true })
+        await search.fill('PREFERENCE')
+        await expect(page.getByTestId('memory-item-preference')).toBeVisible()
+        await expect(page.getByTestId('memory-item-voice')).toHaveCount(0)
+        await expect(page.getByTestId('memory-group-communication')).toHaveText('沟通偏好 2')
+        await search.fill('不存在的记忆')
+        await expect(page.getByText('没有找到匹配的记忆。', { exact: true })).toBeVisible()
+        await search.press('Escape')
+        await expect(page.getByRole('button', { name: '搜索记忆', exact: true })).toBeFocused()
+        await expect(page.getByTestId('memory-item-voice')).toBeVisible()
+        const voice = page.getByTestId('memory-item-voice')
+        await voice.hover()
+        await voice.getByRole('button', { name: /^编辑记忆 / }).click()
+        await voice.locator('input').fill('编辑中保留的沟通草稿')
+        await voice.locator('input').dispatchEvent('keydown', { key: 'Enter', isComposing: true })
+        await expect(voice.locator('input')).toHaveValue('编辑中保留的沟通草稿')
+        await selectGroup('relationship')
+        await expect(page.getByTestId('memory-item-feedback')).toBeVisible()
+        await selectGroup('communication')
+        await expect(voice.locator('input')).toHaveValue('编辑中保留的沟通草稿')
+        await voice.locator('input').press('Escape')
+        await expect(page.getByTestId('settings-panel')).toBeVisible()
+        await expect(voice.locator('input')).toHaveCount(0)
+        await page.getByRole('button', { name: '添加一条记忆', exact: true }).click()
+        await draft.fill('取消新增不退出设置')
+        await draft.press('Escape')
+        await expect(draft).toHaveCount(0)
+        await expect(page.getByTestId('settings-panel')).toBeVisible()
+        await selectGroup('identity')
+        const added = page.getByTestId('memory-item-group-added')
+        await added.hover()
+        await added.getByRole('button', { name: /^删除记忆 / }).click()
+        await added.getByRole('button', { name: /^确认删除记忆 / }).click()
+        await expect(page.getByTestId('memory-group-identity')).toHaveText('身份信息 26')
+        await scroll.evaluate((node) => { node.scrollTop = 0 })
+        expect(await page.getByTestId('settings-panel').evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
+        await page.screenshot({ path: testInfo.outputPath('memory-management.png'), animations: 'disabled' })
+      })
+    }
+  }
+
+  for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
+    for (const width of [1166, 600]) {
       test(`正式记忆长文编辑与失败恢复 ${theme} ${width}`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 731 })
         await installProductionElectronStub(page)
@@ -3162,17 +3266,17 @@ test.describe('My Agent UI', () => {
     await page.evaluate(() => { (window as any).__memoryCrud.failRead = false })
     await page.getByRole('button', { name: '重新读取', exact: true }).click()
     await expect(page.getByRole('alert')).toHaveCount(0)
-    await page.getByRole('button', { name: '+ 添加', exact: true }).click()
-    const input = page.getByPlaceholder('输入记忆内容...')
+    await page.getByTestId('memory-group-relationship').click()
+    await page.getByRole('button', { name: '添加一条记忆', exact: true }).click()
+    const input = page.getByLabel('新记忆内容', { exact: true })
     await input.fill('每次讨论先给结论，再讲依据。')
-    const save = page.getByRole('button', { name: '保存', exact: true })
-    await page.getByRole('button', { name: '反馈', exact: true }).click()
+    const save = page.getByRole('button', { name: '保存新记忆', exact: true })
     await page.evaluate(() => { (window as any).electronAPI.companion.getActive = async () => { throw new Error('private role failure') } })
     await save.click()
     await expect(page.getByRole('alert')).toContainText('记忆未添加')
     expect(await page.evaluate(() => (window as any).__memoryCrud.adds)).toBe(0)
     await expect(input).toHaveValue('每次讨论先给结论，再讲依据。')
-    await page.getByRole('button', { name: '事实', exact: true }).click()
+    await page.evaluate(() => { (window as any).electronAPI.companion.getActive = async () => ({ id: 'lin' }) })
     await save.evaluate((node: HTMLButtonElement) => { node.click(); node.click() })
     await expect(save).toBeDisabled()
     expect(await page.evaluate(() => (window as any).__memoryCrud.adds)).toBe(1)

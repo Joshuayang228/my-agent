@@ -3,7 +3,7 @@
  * 该展厅只提供静态 props，不创建会话、不发送模型请求，也不保存设置。
  */
 
-import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
+import { useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { ArrowRight, ArrowUp, BookOpen, Bot, ChevronDown, CircleAlert, Folder, Home, MapPin, MessageCircle, Newspaper, PanelLeftOpen, PanelRight, Paperclip, Plus, RotateCcw, Search, Shield, Shirt, UserRound, Users, X, Check } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
@@ -14,6 +14,7 @@ import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
 import { WorldHub, type WorldTab, type WorldTabDefinition } from '../shell/WorldHub'
 import { WorldCultureContent, WorldHomeContent, WorldFootprintsContent } from '../world/WorldLivingContent'
 import type { MemoryEntry } from '../../shared/types'
+import { MEMORY_GROUPS } from '../../shared/memory-groups'
 import type { PlaygroundTabId } from './catalog'
 import { PLAYGROUND_PERSONAS, type PlaygroundPersona } from '../../shared/playground-journey-fixtures'
 import momentTeaByWindow from '../../assets/playground/moment-tea-by-window.jpg'
@@ -684,198 +685,51 @@ const LONG_MEMORY_CONTENT = [
 function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab: PlaygroundTabId) => void; onOpenMemorySettings?: () => void }) {
   const [scenario, setScenario] = useState<MemoryScenario>('list')
   const [group, setGroup] = useState<MemoryPreviewGroup>('identity')
+  const [scenarioGroup, setScenarioGroup] = useState<MemoryPreviewGroup>('identity')
   const [debugEnabled, setDebugEnabled] = useState(false)
   const [showSource, setShowSource] = useState(false)
-  const [query, setQuery] = useState('')
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [adding, setAdding] = useState(false)
-  const [newContent, setNewContent] = useState('')
-  const [customMemories, setCustomMemories] = useState<MemoryEntry[]>([])
   const scenarios: Array<{ id: MemoryScenario; label: string }> = [
-    { id: 'list', label: '清单' },
-    { id: 'long', label: '长记忆' },
-    { id: 'empty', label: '空态' },
-    { id: 'sensitive', label: '敏感项' },
+    { id: 'list', label: '清单' }, { id: 'long', label: '长记忆' },
+    { id: 'empty', label: '空态' }, { id: 'sensitive', label: '敏感项' },
     { id: 'editing', label: '纠正记忆' },
   ]
-  const activeGroup = MEMORY_PREVIEW_GROUPS.find((item) => item.id === group) ?? MEMORY_PREVIEW_GROUPS[0]
-  const allPreviewMemories = [...MEMORY_PREVIEW_GROUPS.flatMap((item) => item.memories), ...customMemories]
-  const memories = scenario === 'empty'
-    ? []
-    : scenario === 'sensitive'
-      ? [...activeGroup.memories, SENSITIVE_MEMORY_FIXTURE, ...customMemories.filter((item) => item.id.startsWith('memory-custom-'))]
-      : [...activeGroup.memories.map((memory, index) => scenario === 'long' && index === 0 ? { ...memory, content: LONG_MEMORY_CONTENT } : memory), ...customMemories.filter((item) => item.id.startsWith(`memory-custom-${group}-`))]
-  const visibleMemories = query.trim()
-    ? memories.filter((memory) => memory.content.toLocaleLowerCase('zh-CN').includes(query.trim().toLocaleLowerCase('zh-CN')))
-    : memories
-  const editingId = activeGroup.memories[0]?.id
+  const memories = useMemo(() => {
+    if (scenario === 'empty') return []
+    const entries = MEMORY_PREVIEW_GROUPS.flatMap((item) => item.memories.map((memory, index) => ({
+      ...memory,
+      category: MEMORY_GROUPS.find((definition) => definition.id === item.id)!.category,
+      content: scenario === 'long' && index === 0 ? LONG_MEMORY_CONTENT : memory.content,
+    })))
+    return scenario === 'sensitive'
+      ? [...entries, { ...SENSITIVE_MEMORY_FIXTURE, category: MEMORY_GROUPS.find((item) => item.id === scenarioGroup)!.category }]
+      : entries
+  }, [scenario, scenarioGroup])
+  const editingId = MEMORY_PREVIEW_GROUPS.find((item) => item.id === group)?.memories[0]?.id
 
-  const addMemory = () => {
-    const content = newContent.trim()
-    if (!content) return
-    setCustomMemories((current) => [...current, { id: `memory-custom-${group}-${Date.now()}`, category: group === 'identity' ? 'identity' : group === 'collaboration' ? 'workflow' : group === 'communication' ? 'voice' : 'feedback', content, createdAt: Date.now(), updatedAt: Date.now() }])
-    setNewContent('')
-    setAdding(false)
-  }
-
-  const toggleDebug = () => {
-    setDebugEnabled((enabled) => {
-      if (enabled) setShowSource(false)
-      return !enabled
-    })
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="space-y-2" data-testid="memory-surface-toolbar">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <div className="flex min-w-0 flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="记忆分类" data-testid="memory-group-tabs">
-              {MEMORY_PREVIEW_GROUPS.map((item) => {
-                const active = group === item.id
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    onClick={() => setGroup(item.id)}
-                    className="settings-option px-2.5 py-1 text-[10px]"
-                    data-testid={`memory-group-${item.id}`}
-                    data-selected={active ? 'true' : undefined}
-                  >
-                    {item.label} <span className="opacity-60">{item.memories.length + customMemories.filter((memory) => memory.id.startsWith(`memory-custom-${item.id}-`)).length}</span>
-                  </button>
-                )
-              })}
-            </div>
-            <div className="ml-auto flex shrink-0 items-center gap-1" data-testid="memory-actions">
-              {searchOpen ? (
-                <div
-                  className="flex h-8 w-52 items-center gap-2 rounded-[var(--radius-lg)] border px-2.5"
-                  style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)' }}
-                >
-                  <Search size={14} style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
-                  <input
-                    autoFocus
-                    aria-label="搜索记忆"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Escape') {
-                        setQuery('')
-                        setSearchOpen(false)
-                      }
-                    }}
-                    placeholder="搜索记忆"
-                    className="min-w-0 flex-1 bg-transparent text-[11px] outline-none"
-                  />
-                  <button
-                    type="button"
-                    aria-label="清除搜索"
-                    title="清除搜索"
-                    onClick={() => {
-                      setQuery('')
-                      setSearchOpen(false)
-                    }}
-                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    <X size={13} />
-                  </button>
-                </div>
-              ) : (
-                <button type="button" aria-label="搜索记忆" title="搜索记忆" onClick={() => setSearchOpen(true)} className="rounded-md p-2" style={{ color: 'var(--text-muted)' }}><Search size={15} /></button>
-              )}
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
-            {debugEnabled && (
-              <button
-                type="button"
-                role="switch"
-                aria-checked={showSource}
-                aria-label="查看来源"
-                onClick={() => setShowSource((visible) => !visible)}
-                className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] transition"
-                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', background: 'var(--card-bg)' }}
-                data-testid="memory-show-source"
-              >
-                <span className="relative h-3.5 w-6 rounded-full" style={{ background: showSource ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }}>
-                  <span className="absolute top-0.5 h-2.5 w-2.5 rounded-full transition" style={{ background: 'var(--text-primary)', left: showSource ? 'calc(100% - 0.75rem)' : '0.125rem' }} />
-                </span>
-                查看来源
-              </button>
-            )}
-            {onNavigate && (
-              <button
-                type="button"
-                onClick={() => {
-                  onNavigate('settings')
-                  onOpenMemorySettings?.()
-                }}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] transition"
-                style={{ color: 'var(--text-muted)' }}
-                data-testid="memory-open-settings"
-              >
-                去设置 <ArrowRight size={11} aria-hidden="true" />
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>状态样张</span>
-          <div className="flex flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="记忆页面场景">
-            {scenarios.map((item) => {
-              const active = scenario === item.id
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setScenario(item.id)}
-                  className="settings-option px-2.5 py-1 text-[10px]"
-                  data-selected={active ? 'true' : undefined}
-                >
-                  {item.label}
-                </button>
-              )
-            })}
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={debugEnabled}
-            aria-label="Debug 模式"
-            onClick={toggleDebug}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] transition"
-            style={{ color: debugEnabled ? 'var(--accent-fg)' : 'var(--text-muted)', background: debugEnabled ? 'var(--accent-subtle)' : 'transparent' }}
-            data-testid="memory-debug-mode"
-          >
-            Debug {debugEnabled ? '开' : '关'}
-          </button>
-        </div>
+  return <div className="space-y-2">
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>状态样张</span>
+      <div className="flex flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="记忆页面场景">
+        {scenarios.map((item) => <button key={item.id} type="button" role="tab" aria-selected={scenario === item.id}
+          onClick={() => { setScenario(item.id); setScenarioGroup(group) }} className="settings-option px-2.5 py-1 text-[10px]"
+          data-selected={scenario === item.id ? 'true' : undefined}>{item.label}</button>)}
       </div>
-      <div className="playground-memory-candidate" data-testid="memory-surface-candidate">
-          <MemoryPanel
-            key={`${scenario}-${group}`}
-            onClose={noop}
-            previewMemories={visibleMemories}
-            previewEvidence={MEMORY_PREVIEW_EVIDENCE}
-            previewCompact
-            previewShowSource={debugEnabled && showSource}
-            previewEditingId={scenario === 'editing' ? editingId : undefined}
-            previewEditable={true}
-            previewHideFooter
-            readOnly={false}
-          />
-          <div className="mt-3" data-testid="memory-add-row">{adding ? <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-lg)] border p-4" style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)' }}><input autoFocus aria-label="新记忆内容" value={newContent} onChange={(event) => setNewContent(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') addMemory(); if (event.key === 'Escape') { setAdding(false); setNewContent('') } }} placeholder="输入希望伙伴记住的内容…" className="theme-input min-w-[12rem] flex-1 rounded-[var(--radius-md)] border px-3 py-1.5 text-[13px] outline-none" /><button type="button" aria-label="保存新记忆" title="保存" onClick={addMemory} disabled={!newContent.trim()} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)] disabled:opacity-40" style={{ color: 'var(--accent-fg)' }}><Check size={14} /></button><button type="button" aria-label="取消新增记忆" title="取消" onClick={() => { setAdding(false); setNewContent('') }} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><X size={14} /></button></div> : <button type="button" className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] px-1 py-2 text-[12px]" style={{ color: 'var(--text-muted)' }} onClick={() => setAdding(true)}><Plus size={14} />添加一条记忆</button>}</div>
-      </div>
+      <button type="button" role="switch" aria-checked={debugEnabled} aria-label="Debug 模式" data-testid="memory-debug-mode"
+        onClick={() => { setDebugEnabled(!debugEnabled); setShowSource(false) }}
+        className="ml-auto rounded-md px-2 py-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>Debug {debugEnabled ? '开' : '关'}</button>
+      {debugEnabled && <button type="button" role="switch" aria-checked={showSource} aria-label="查看来源" data-testid="memory-show-source"
+        onClick={() => setShowSource(!showSource)} className="rounded-md px-2 py-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>查看来源</button>}
+      {onNavigate && <button type="button" data-testid="memory-open-settings" className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px]"
+        style={{ color: 'var(--text-muted)' }} onClick={() => { onNavigate('settings'); onOpenMemorySettings?.() }}>去设置 <ArrowRight size={11} /></button>}
     </div>
-  )
+    <div className="playground-memory-candidate" data-testid="memory-surface-candidate">
+      <MemoryPanel key={scenario} onClose={noop} previewMemories={memories} previewEvidence={MEMORY_PREVIEW_EVIDENCE}
+        previewCompact previewManagement previewGroup={group} onPreviewGroupChange={setGroup}
+        previewShowSource={debugEnabled && showSource} previewEditingId={scenario === 'editing' ? editingId : undefined}
+        previewEditable previewHideFooter />
+    </div>
+  </div>
 }
-
 type SettingsScenario = 'settings' | 'memory-management' | 'role-shelf'
 
 interface SurfaceBaselinePanelProps {
