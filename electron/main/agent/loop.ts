@@ -9,6 +9,7 @@ import type {
 import { streamChat as defaultStreamChat, LLMError } from '../llm/index'
 import { ToolRegistry } from '../tools/registry'
 import { checkToolPermission } from '../sandbox/permission-engine'
+import { checkFileToolPermission, combineFilePermission, createFilePermissionApproval } from '../sandbox/file-tool-permission'
 import { recordApproval } from '../sandbox/approval-store'
 import { createLogger, hashForLog } from '../utils/logger'
 import { prepareToolResultForModel } from './tool-result-safety'
@@ -539,13 +540,16 @@ export async function* agentLoop(
     const skippedCallIds = new Set<string>()
 
     const parsedArgs = new Map<string, Record<string, unknown>>()
+    const filePermissionApprovals: Record<string, object> = {}
     for (const call of toolCalls) {
       let args: Record<string, unknown> = {}
       try { args = JSON.parse(call.arguments || '{}') } catch { /* registry handles */ }
       parsedArgs.set(call.id, args)
 
-      const permResult = checkToolPermission(call.name)
       const effectiveSandbox = resolveEffectiveSandbox(effectiveExecutionMode)
+      const canonical = registry.resolveName(call.name)
+      const filePermission = checkFileToolPermission(canonical, args, options.toolContext, effectiveSandbox, call.id)
+      const permResult = combineFilePermission(checkToolPermission(canonical), filePermission)
       const permissionStatus = permResult.allowed === false
         ? 'denied' as const
         : permResult.allowed === 'needs_approval'
@@ -594,10 +598,10 @@ export async function* agentLoop(
       }
 
       const effectiveToolMetadata = registry.resolveEffectiveMetadata(call.name, args)
-      const needsConfirm =
+      const fileExplicitAllow = filePermission?.allowed === true && permResult.allowed === true
+      const needsConfirm = permResult.allowed === 'needs_approval' || (!fileExplicitAllow && (
         effectiveExecutionMode === 'confirm-all' ||
-        permResult.allowed === 'needs_approval' ||
-        ((effectiveExecutionMode === 'auto' || effectiveExecutionMode === 'plan-first') && effectiveToolMetadata?.isDestructive)
+        ((effectiveExecutionMode === 'auto' || effectiveExecutionMode === 'plan-first') && effectiveToolMetadata?.isDestructive)))
 
       if (needsConfirm && confirmTool) {
         // G2: blocked_on_user 独立计时 — Alice Ch.13 核心要求
@@ -617,6 +621,9 @@ export async function* agentLoop(
         })
         yield { type: 'tool_confirm', callId: call.id, name: call.name, args }
         const approved = await confirmTool(call.name, args)
+        if (approved && filePermission?.allowed === 'needs_approval') {
+          filePermissionApprovals[call.id] = createFilePermissionApproval(filePermission)
+        }
         blockedSpan.setAttribute('decision', approved ? 'approved' : 'denied')
         void recordAssetUsage({
           assetKey: PERMISSION_SANDBOX_ASSET_KEYS.approvalFlow,
@@ -709,6 +716,7 @@ export async function* agentLoop(
     const executionToolContext = toolContext
       ? {
           ...toolContext,
+          filePermissionApprovals,
           assetUsageSpanIdByCall: Object.fromEntries(
             Array.from(toolSpans.entries()).map(([callId, span]) => [callId, span.id]),
           ),

@@ -620,6 +620,10 @@ export interface ToolAssetUsageReport {
 
 export type ToolAssetUsageReporter = (report: ToolAssetUsageReport) => void
 
+/** 权限表单、生产加载器与资产目录共用枚举，防止可选项与执行侧漂移。 */
+export const PERMISSION_RULE_TYPES = ['command', 'tool', 'path', 'file-write', 'file-delete'] as const
+export const PERMISSION_RULE_ACTIONS = ['allow', 'deny', 'ask'] as const
+
 /** 工具执行时注入的运行时上下文 */
 export interface ToolContext {
   /** 当前工作区根目录 */
@@ -647,6 +651,8 @@ export interface ToolContext {
   assetUsageReporter?: ToolAssetUsageReporter
   /** 当前批次 callId → tool span，用于把守卫证据精确挂到实际工具节点。 */
   assetUsageSpanIdByCall?: Record<string, string>
+  /** 主进程内部的一次性文件规则确认凭据，按 callId 隔离；不属于 IPC 载荷。 */
+  filePermissionApprovals?: Readonly<Record<string, object>>
 }
 
 // ── LLM ──

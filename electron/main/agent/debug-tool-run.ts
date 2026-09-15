@@ -17,6 +17,7 @@ import type { SandboxMode } from '../sandbox/policy'
 import { resolveEffectiveSandbox } from '../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from './project-memory'
 import { getAllSettings } from '../storage/settings-store'
+import { checkFileToolPermission, combineFilePermission, createFilePermissionApproval, hasFilePermissionRules } from '../sandbox/file-tool-permission'
 import { createLogger } from '../utils/logger'
 import { startLinkedAsyncSpan } from '../utils/tracer'
 
@@ -82,8 +83,11 @@ export async function preflightDebugTool(
   const canonical = tool.name
   const effectiveMetadata = registry.resolveEffectiveMetadata(canonical, input.args ?? {}) ?? tool.metadata
   let permission = checkToolPermission(canonical)
+  const filePermission = hasFilePermissionRules() ? checkFileToolPermission(canonical, input.args ?? {},
+    { workdir: getWorkspaceRoot() || '', sessionId: DEBUG_TOOL_SESSION_ID }, resolveSandboxMode((await getAllSettings()).executionMode)) : null
+  permission = combineFilePermission(permission, filePermission)
   let needsConfirmation =
-    permission.allowed === 'needs_approval' || effectiveMetadata.isDestructive === true
+    permission.allowed === 'needs_approval' || (filePermission?.allowed !== true && effectiveMetadata.isDestructive === true)
 
   if (canonical === 'shell_exec') {
     const command = typeof input.args?.command === 'string' ? input.args.command : ''
@@ -145,6 +149,10 @@ export async function runDebugTool(
     arguments: JSON.stringify(args),
   }
   const workdir = getWorkspaceRoot() || process.cwd()
+  const filePermission = hasFilePermissionRules() ? checkFileToolPermission(pre.toolName, args,
+    { workdir, sessionId: DEBUG_TOOL_SESSION_ID }, resolveSandboxMode((await getAllSettings()).executionMode), call.id) : null
+  const filePermissionApprovals = input.confirmRisk && filePermission?.allowed === 'needs_approval'
+    ? { [call.id]: createFilePermissionApproval(filePermission) } : undefined
   const span = startLinkedAsyncSpan(`debug:tool:${pre.toolName}`, 'tool', {
     type: 'tool_execution',
     attributes: { toolName: pre.toolName, debugPlayground: true },
@@ -155,6 +163,7 @@ export async function runDebugTool(
       workdir,
       sessionId: DEBUG_TOOL_SESSION_ID,
       registry,
+      filePermissionApprovals,
     })
     const ms = Date.now() - t0
     span.end(result?.isError ? 'error' : 'ok', result?.isError ? result.content.slice(0, 200) : undefined)

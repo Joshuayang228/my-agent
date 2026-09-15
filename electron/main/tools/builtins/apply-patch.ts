@@ -6,6 +6,7 @@ import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
 import { getWorkspaceRoot } from '../../agent/project-memory'
 import { PERMISSION_SANDBOX_ASSET_KEYS } from '../../sandbox/asset-keys'
 import type { ToolContext } from '../../../../src/shared/types'
+import { resolvePatchTarget } from '../../utils/patch-target'
 
 const log = createLogger('ApplyPatch')
 const MAX_PATCH_LENGTH = 2 * 1024 * 1024
@@ -36,7 +37,7 @@ function parseHunkHeader(line: string): HunkHeader | null {
 
 function parseUnifiedDiff(patch: string): { targetFile: string | null; hunks: PatchHunk[] } {
   const lines = patch.split('\n')
-  let targetFile: string | null = null
+  const targetFile = resolvePatchTarget(patch)
   const hunks: PatchHunk[] = []
   let currentHunk: PatchHunk | null = null
 
@@ -45,8 +46,6 @@ function parseUnifiedDiff(patch: string): { targetFile: string | null; hunks: Pa
       continue
     }
     if (line.startsWith('+++ ')) {
-      const filePart = line.slice(4).trim()
-      targetFile = filePart.startsWith('b/') ? filePart.slice(2) : filePart
       continue
     }
 

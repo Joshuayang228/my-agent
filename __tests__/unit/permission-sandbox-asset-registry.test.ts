@@ -17,6 +17,7 @@ import {
   PERMISSION_RULE_TYPES,
 } from '../../electron/main/sandbox/permission-engine'
 import { SANDBOX_MODES, buildPolicy } from '../../electron/main/sandbox/policy'
+import { FILE_RULE_PRIORITY, FILE_RULE_TOOL_OPERATIONS } from '../../electron/main/sandbox/file-tool-permission'
 
 vi.mock('electron', () => ({
   app: { getPath: () => 'C:/tmp/my-agent-test' },
@@ -62,6 +63,9 @@ describe('权限与沙箱生产资产目录', () => {
 
     expect(sandbox.modes).toEqual(SANDBOX_MODES.map((mode) => buildPolicy(mode, '<workspaceRoot>')))
     expect(decisionChain.ruleTypes).toEqual([...PERMISSION_RULE_TYPES])
+    expect(decisionChain.fileRuleTools).toEqual(FILE_RULE_TOOL_OPERATIONS)
+    expect(decisionChain.fileRulePriority).toEqual(FILE_RULE_PRIORITY)
+    expect(assets.find(asset => asset.key === 'permission-policy:decision-chain')!.version).toBe('1.1.0')
     expect(decisionChain.ruleActions).toEqual([...PERMISSION_RULE_ACTIONS])
     expect(decisionChain.commandDecisionChain).toEqual([...PERMISSION_DECISION_CHAIN])
     expect(commandSafety.safeCommandNames).toEqual([...SAFE_COMMAND_NAMES])

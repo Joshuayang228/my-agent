@@ -6,7 +6,7 @@
  * 关键约束：不访问外网、不读取或覆盖用户设置；结束后关闭 Electron、HTTP 服务和临时目录。
  */
 import { createServer, type IncomingMessage } from 'node:http'
-import { mkdtemp, mkdir, rm, unlink, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, rm, unlink, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -519,6 +519,61 @@ test('切换主会话清理真实侧聊流与存储，新侧聊独立发送', as
     await expect.poll(() => page.evaluate((id) => window.electronAPI.session.get(id), newId)).toBeNull()
   } finally {
     await page.evaluate(() => (window as any).__parentSwitchUnsubscribe())
+  }
+})
+
+test('文件规则经真实设置 IPC 热更新、确认、重启恢复并阻止文件副作用', async () => {
+  const root = path.join(userDataDir, 'permission-files')
+  await mkdir(root, { recursive: true })
+  await writeFile(path.join(root, 'notes.txt'), 'original', 'utf8')
+  await electronApp.evaluate(({ dialog }, directory) => {
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] })
+    dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false })
+  }, root)
+  await page.evaluate(async () => {
+    const directory = await window.electronAPI.project.browse()
+    if (!directory) throw Error('未选择测试目录')
+    const selected = await window.electronAPI.project.set(directory.path)
+    if (!selected.success) throw Error('测试目录未设置')
+  })
+  const originalRules = await page.evaluate(async () => (await window.electronAPI.settings.get()).permissionRules)
+  const saveRule = async (action: string, type = 'file-write') => page.evaluate(async ({ action, type }) => {
+    await window.electronAPI.settings.set('permissionRules', JSON.stringify([{ id: 'electron-file-rule', type, pattern: 'notes[.]txt$', action, enabled: true }]))
+  }, { action, type })
+  const write = (confirmRisk = false) => page.evaluate(confirmRisk => window.electronAPI.debug.toolRun({
+    name: 'file_write', args: { path: 'notes.txt', content: 'changed' }, confirmRisk,
+  }), confirmRisk)
+  try {
+    await saveRule('deny')
+    expect((await write(true)).ok).toBe(false)
+    expect(await readFile(path.join(root, 'notes.txt'), 'utf8')).toBe('original')
+    await saveRule('ask')
+    const awaiting = await write()
+    expect(awaiting.ok).toBe(false)
+    if (!awaiting.ok) expect(awaiting.needsConfirmation).toBe(true)
+    const saved = await write(true)
+    expect(saved.ok).toBe(true)
+    if (saved.ok) expect(saved.isError).not.toBe(true)
+    expect(await readFile(path.join(root, 'notes.txt'), 'utf8')).toBe('changed')
+    await saveRule('deny', 'file-delete')
+    await electronApp.close()
+    electronApp = await electron.launch({
+      args: [path.join(__dirname, '../../dist-electron/index.js'), '--user-data-dir=' + userDataDir, '--no-sandbox'],
+      env: { ...process.env, NODE_ENV: 'production', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' },
+    })
+    page = await electronApp.firstWindow()
+    await page.waitForLoadState('domcontentloaded')
+    await expect(page.locator('#startup-splash')).toBeHidden()
+    expect(JSON.parse((await page.evaluate(() => window.electronAPI.settings.get())).permissionRules)[0].type).toBe('file-delete')
+    const deleted = await page.evaluate(() => window.electronAPI.debug.toolRun({ name: 'file_delete', args: { path: 'notes.txt' }, confirmRisk: true }))
+    expect(deleted.ok).toBe(false)
+    expect(await readFile(path.join(root, 'notes.txt'), 'utf8')).toBe('changed')
+    await saveRule('allow')
+    const allowed = await write()
+    expect(allowed.ok).toBe(true)
+    if (allowed.ok) expect(allowed.isError).not.toBe(true)
+  } finally {
+    await page.evaluate(value => window.electronAPI.settings.set('permissionRules', value || '[]'), originalRules)
   }
 })
 

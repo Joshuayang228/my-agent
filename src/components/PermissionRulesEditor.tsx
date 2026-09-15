@@ -21,6 +21,8 @@ const TYPE_LABELS: Record<PermissionRuleType, string> = {
   command: '命令',
   tool: '工具',
   path: '路径',
+  'file-write': '修改文件',
+  'file-delete': '删除文件',
 }
 
 const ACTION_LABELS: Record<PermissionRuleAction, string> = {

@@ -15,13 +15,14 @@ import { buildPolicy, type SandboxMode } from './policy'
 import { guardCommand, type GuardDecision } from './command-guard'
 import { checkApproval } from './approval-store'
 import { createLogger, hashForLog } from '../utils/logger'
+import { PERMISSION_RULE_ACTIONS, PERMISSION_RULE_TYPES } from '../../../src/shared/types'
+export { PERMISSION_RULE_ACTIONS, PERMISSION_RULE_TYPES } from '../../../src/shared/types'
 
 const log = createLogger('PermissionEngine')
 
-export const PERMISSION_RULE_ACTIONS = ['allow', 'deny', 'ask'] as const
 export type RuleAction = typeof PERMISSION_RULE_ACTIONS[number]
-export const PERMISSION_RULE_TYPES = ['command', 'tool', 'path'] as const
 export type PermissionRuleType = typeof PERMISSION_RULE_TYPES[number]
+export const FILE_RULE_PRIORITY = ['deny', 'ask', 'allow'] as const
 
 export interface PermissionRule {
   id: string
@@ -154,6 +155,26 @@ export function checkToolPermission(toolName: string): PermissionCheckResult {
   if (customResult) return customResult
 
   return { allowed: true, reason: '默认允许', decisionType: 'default-allow', chain: 'fallback' }
+}
+
+/**
+ * 文件规则需要同时检查逻辑路径与真实目标，防止 symlink 别名绕过拒绝规则。
+ * 按 deny > ask > allow 合并所有匹配，不让较宽的 allow 遮住另一个路径的限制；
+ * 调用方仍须先检查沙箱硬边界，命令规则既有审批顺序不受此函数影响。
+ */
+export function checkFilePermission(targets: readonly string[], operation: 'read' | 'write' | 'delete'): PermissionCheckResult | null {
+  const types: PermissionRuleType[] = ['path']
+  if (operation !== 'read') types.push(operation === 'write' ? 'file-write' : 'file-delete')
+  for (const action of FILE_RULE_PRIORITY) {
+    for (const rule of userRules) {
+      if (!rule.enabled || !types.includes(rule.type) || rule.action !== action) continue
+      const pattern = compiledRulePatterns.get(rule.id)
+      if (!targets.some(target => pattern?.test(target))) continue
+      return { allowed: action === 'ask' ? 'needs_approval' : action === 'allow',
+        reason: rule.description || '匹配文件操作规则', decisionType: 'custom-rule', matchedRule: rule.id, chain: 'custom-file-rule' }
+    }
+  }
+  return null
 }
 
 function matchCustomRules(

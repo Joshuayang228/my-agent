@@ -1,6 +1,8 @@
 import type { ToolDefinition, ToolCall, ToolResult, ToolContext, ToolAssetUsageReport, ToolMetadata } from '../../../src/shared/types'
 import { ToolMiddlewarePipeline, createDefaultPipeline, type ToolMiddlewareNext } from './middleware'
 import { createLogger } from '../utils/logger'
+import { checkFileToolPermission, consumeFilePermissionApproval, hasFilePermissionRules } from '../sandbox/file-tool-permission'
+import { loadEffectiveSandbox } from '../sandbox/effective-sandbox'
 
 const TOOL_TIMEOUT_MS = 30_000
 /** 单批 concurrencySafe 工具最大并行数（M04），防止 Promise.all 打爆资源 */
@@ -182,6 +184,14 @@ export class ToolRegistry {
             : undefined,
         }
       : undefined
+    if (hasFilePermissionRules()) {
+      const permission = checkFileToolPermission(canonical, args, scopedToolContext, await loadEffectiveSandbox(), call.id)
+      if (permission?.allowed === false || (permission?.allowed === 'needs_approval'
+        && !consumeFilePermissionApproval(toolContext?.filePermissionApprovals?.[call.id], permission))) {
+        return { callId: call.id, name: canonical, isError: true, content: permission.allowed === false
+          ? '[权限已拒绝] 文件操作被当前规则或安全边界阻止。' : '[需要确认] 文件规则尚未获得有效确认，请重新发起确认。' }
+      }
+    }
     return this.executeFn({ call: normalizedCall, tool: effectiveTool, args, toolContext: scopedToolContext })
   }
 

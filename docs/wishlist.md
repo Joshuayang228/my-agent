@@ -14,7 +14,7 @@
 - WISH-045 MCP 回流补充：服务卡片与添加表单已共享，生产 Streamable HTTP / Bearer 与先测试后保存已接入。R10 仍需独立 Electron 数据目录验证真实 IPC / safeStorage / 重启恢复、OAuth 和异常断开恢复；不得将 Renderer 替身或协议 Unit 当作完整验收。当前审查还发现配置锁未覆盖旧整表保存和工具许可写入、已测试连接的资源 / elicitation 接管未核验、保存响应丢失缺少幂等结果、取消 / 超时 / 保存中窗口销毁缺少完整协议回归；这些继续属于已批准回流目标，不移出范围。配置保存与停止仍是两个 IPC，不宣称原子操作。
 
 - WISH-045 设置内容复核：九区共享导航、伙伴偏好及四主题同源已接入，旧七主题描述已过时；记忆整页现已共用候选管理流程，模型、Skills、MCP、权限等仍按各编号验收，不能只把旧面板嵌入新导航后关闭缺口。
-- WISH-045 / R08 权限回流定位：正式 `PermissionRulesEditor.addRule` 直接提交空 pattern，`serializePermissionRules` 又过滤空 pattern，新规则无法进入列表；旧界面还默认展开所有规则字段。下一批应共用 demo 的规则卡片与列表后固定添加入口，将未提交表单保存在局部草稿，校验后再调用真实保存；执行侧权限与硬边界不变。当前仅完成调用链定位，未声称修复。
+- WISH-045 / R08 权限回流：文件规则的原生修改 / 删除 / 旧 path 执行链已接入，正式规则卡片与新增草稿仍未回流。`PermissionRulesEditor.addRule` 直接序列化空 pattern 而被过滤的问题仍须随共享表单修复；应保留局部草稿、校验后真实保存并覆盖失败恢复，不能把后端验收当作页面验收。
 - WISH-042 R05 文档监听子因已复现：模型套餐失败前首页再次加载，main.tsx 热更新时间与 wishlist 写入时间相差约 3ms，源码本身未修改。真实 Chrome 受控实验仅 touch `docs/wishlist.md`：TOUCH 1789491771298 → websocket `full-reload` 1789491771303 → 主框架 NAV 1789491771338，Playground 从 1 变为 0。当前 Vite 忽略规则仅覆盖验证产物、未排除产品文档；后续补文档监听隔离及真实 watcher 测试。已定位此子因，尚未改监听配置；验收期间停止文件写入不是产品修复，也不关闭其他未知重载项。
 - WISH-045 生活面 / 备份补充：文化角、家居和足迹已共用展示组件与资产链；生活资产编辑和想去写入流程仍归 R12。文化 starter 中的“留下 3 条笔记”“看过两次”等默认描述没有关联数量 / 事件证据，仍需复核角色内容来源，不能以写入数据库代替人物设定授权；本批只回流展示，不静默删除用户记录。`ipc/data-export.ts` 当前只导入导出会话、记忆和设置，未覆盖 `companion_assets` / `companion_asset_seeds`；需按 R07 补齐完整归属、恢复与失败回滚，不能将此缺口移出原目标或把数据库重载测试算成产品备份验证。
 - WISH-045 跨入口保存核验：[待确认] App 全局快捷键直接切换视图，尚未统一走设置返回按钮的异步保存门控；需复现失败时的草稿保留与恢复，不将返回按钮专项证据外推到所有导航路径。
@@ -27,7 +27,7 @@
 
 - 工作区回流审计补充（WISH-041 / WISH-042）：共享 Markdown 的就近主题／Mermaid、DiffViewer/模式控件、IconButton 和 WorkspaceToolMenu 已接入真实调用，空稿/缺稿回退、四主题、长文件和完整 UI/Electron 回归通过。仍需输入及其它基础控件全量复用核验。侧聊流中关闭已有真实 Electron 证据；终端 Windows 停止/关闭后的真实父子进程退出已验证，Unix 仍需实机验证，不把 Renderer 替身当作跨平台完成。
 
-- [ ] **WISH-043 · 主进程类型检查门禁** — 来源：正式侧聊 Electron 回归发现 runtime 的 undefined.trim 和 span 越域未被默认 tsc 检出；根配置只 include src，主进程 `tsc -p tsconfig.node.json --noEmit` 仍报告跨项目 include/composite、ImportMeta.glob 与多个存量类型错误。重启条件：当前回流质量门禁收口；明确前端/主进程检查入口，先清理真实诊断，再纳入 build/commit，不用宽泛 any 或排除文件消音。
+- [ ] **WISH-043 · 主进程类型检查门禁** — 来源：正式侧聊 Electron 回归发现 runtime 的 undefined.trim 和 span 越域未被默认 tsc 检出；根配置只 include src，主进程 `tsc -p tsconfig.node.json --noEmit` 仍报告跨项目 include/composite、ImportMeta.glob 与多个存量类型错误。重启条件：当前回流质量门禁收口；明确前端/主进程检查入口，先清理真实诊断，再纳入 build/commit，不用宽泛 any 或排除文件消音。 文件规则批次用相同 TypeScript Compiler API 对比 HEAD 覆盖前与当前工作树，均为 70 条既有诊断，无新增错误；仅排除诊断附带导入来源列表的文本变化。根 tsc 通过不代表主进程独立门禁通过，未删除检查或改用 any。
 
 - [ ] **WISH-042 · Foundation 真实复用与源码门禁** — 来源：2026-09-13 用户对白底、孤立控件和基础复用原则的反馈及代码审计；施工合同：`foundation-reuse-enforcement-v1.md`，范围待确认。收口四个 Playground 产品体验的 Markdown / Diff / 局部主题和通用控件，验证真实 import 与渲染使用，补违规负例和四主题视觉回归；当前注册表 key / 来源存在检查不能保证实际复用，不得只补调用参数或包装标签后宣称完成。
   门禁稳定性补充：Foundation 符号解析测试在默认/2-worker 全量运行中出现 5 秒超时；单独测量加载 427 个源文件（401 个来自依赖），程序构建与类型解析合计约 1 秒。单 worker、禁用文件并行后完整 803 项通过，原超时与断言未放宽；仍需稳定默认执行成本，不能把串行通过写成并发问题已修复。

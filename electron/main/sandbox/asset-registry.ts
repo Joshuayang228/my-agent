@@ -36,6 +36,7 @@ import {
 } from './effective-sandbox'
 import { checkFileWriteSandbox, isPathInsideRoot } from './file-path-guard'
 import { PERMISSION_SANDBOX_ASSET_KEYS } from './asset-keys'
+import { FILE_RULE_TOOL_OPERATIONS, FILE_RULE_PRIORITY, MAX_FILE_RULE_TARGETS } from './file-tool-permission'
 export { PERMISSION_SANDBOX_ASSET_KEYS } from './asset-keys'
 
 const POLICY_ASSET_VERSION = '1.0.0'
@@ -59,6 +60,7 @@ function policyAsset(input: {
   assetType: Extract<ModelContextAssetType, 'permission-policy' | 'sandbox-policy'>
   content: string
   dependencies?: string[]
+  version?: string
 }): ModelContextAsset {
   return {
     key: input.key,
@@ -70,7 +72,7 @@ function policyAsset(input: {
     desc: '权限与沙箱的内置生产事实；不包含用户规则、审批记录或当前会话状态。',
     source: input.source,
     sourcePath: input.source,
-    version: POLICY_ASSET_VERSION,
+    version: input.version ?? POLICY_ASSET_VERSION,
     fingerprint: modelContextFingerprint(input.content),
     fingerprintKind: 'content',
     assetType: input.assetType,
@@ -143,6 +145,10 @@ export function getPermissionSandboxAssetCatalog(): ModelContextAsset[] {
     ruleActions: [...PERMISSION_RULE_ACTIONS],
     commandDecisionChain: [...PERMISSION_DECISION_CHAIN],
     toolFallback: '无自定义工具规则命中时默认允许',
+    fileRuleTools: FILE_RULE_TOOL_OPERATIONS,
+    fileRulePriority: FILE_RULE_PRIORITY,
+    maxFileRuleTargets: MAX_FILE_RULE_TARGETS,
+    fileRuleSource: 'electron/main/sandbox/file-tool-permission.ts',
   })
   const commandSafetyContent = jsonContent({
     safeCommandNames: [...SAFE_COMMAND_NAMES],
@@ -175,6 +181,7 @@ export function getPermissionSandboxAssetCatalog(): ModelContextAsset[] {
     }),
     policyAsset({
       key: PERMISSION_SANDBOX_ASSET_KEYS.decisionChain,
+      version: '1.1.0',
       name: '权限策略 · 决策责任链',
       purpose: '解释命令和工具权限按什么顺序得出允许、拒绝或需确认',
       role: 'permission-engine',

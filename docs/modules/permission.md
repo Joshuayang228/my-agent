@@ -48,6 +48,8 @@
 
 ## 必测点
 
+- 文件规则：Loop / Debug 预检与 Registry 执行前复核；修改、删除及旧 path 规则、逻辑与真实路径、目录子项、无交互拒绝、一次性确认失效和重启载入。入口为 `sandbox/file-tool-permission.ts`，补丁目标来自 `utils/patch-target.ts`。
+
 - 责任链：不可绕过硬边界（危险 / 越界路径 / 控制符 / cwd）→ 自定义规则 → 审批库 → ask 规则 → 分级 / 沙箱 → 默认
 - `resolveEffectiveSandbox`：full-access vs 其他
 - confirm 批准/拒绝/超时
@@ -71,10 +73,18 @@
 | `permissionRules` 热更新 | 已落地 | settings |
 | 权限规则可视化编辑器 | 已落地 | 设置「安全与权限」· `PermissionRulesEditor` |
 | 自定义规则交互候选 | 已落地（仅 Playground，未回流） | `SettingsExperienceCandidate` · 默认收起；展开显示独立规则卡片，外层仅作无卡片折叠分组；添加入口位于列表下方，二次点击向下展开表单；固定尺寸入口原位切换“添加 / 取消添加”，展开与取消不改变已有规则和入口位置；保存追加到本地列表、取消不写入，空白禁存；不调用真实权限 IPC |
+| 原生文件操作规则 | 已落地 | `file-tool-permission.ts` · 修改 / 删除 / 旧 path，Loop 与 Debug 确认、Registry 执行前复核；目录扫描有界，凭据按调用一次性消费 |
 | 权限与沙箱生产资产目录 | 已落地 | `sandbox/asset-registry.ts` · Debug「提示词管理器 → 权限与沙箱」 |
 | 安全日志元数据化 | 已落地 | `logger.ts` · 命令 / 路径 / 记忆内容只留长度或短指纹 |
 | 子进程环境凭据隔离 | 已落地 | `safe-process-env.ts` · Terminal / shell_exec / Git / MCP stdio / Eval Runner |
 | Headless 安全批准 | 已落地 | `agent/headless-policy.ts` · 使用运行时有效 metadata，只自动批准明确只读工具，拒绝 Shell / 子 Agent / 继续任务 |
+
+## 文件规则执行范围
+
+`file-write` 覆盖 file_write / file_edit / apply_patch，`file-delete` 覆盖 file_delete；旧 `path` 同时覆盖这些操作与 file_read。规则优先级为 deny > ask > allow，不能覆盖工作区硬边界。目录删除检查子项，超过 1024 个目标或无法完整读取时拒绝；不跟随目录链接递归删除。Shell、MCP 和目录搜索仍由各自规则管理，不承诺用文件规则分析任意命令或第三方工具的副作用。
+
+Loop 和 Debug 命中 ask 后必须明确确认；Registry 在执行前重查目标、规则和当次参数。确认凭据仅在主进程内保有对象身份，绑定会话及规则快照且一次性消费，不接受 Renderer 提供的 JSON 授权。内置权限目录从实际工具映射和优先级常量生成，责任链版本为 1.1.0。规则卡片与添加草稿的正式 UI 回流仍在 R08 施工中。
+
 
 ## 相关决策
 

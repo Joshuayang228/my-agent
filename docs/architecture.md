@@ -128,6 +128,7 @@ Renderer 只能通过 preload 白名单访问主进程。敏感配置、文件�
 - **沙箱系统**：参考 Codex 四层纵深防御，三级沙箱模式（read-only / workspace-write / full-access）
 - **命令安全分级**：ExecPolicy 白名单/黑名单 + CommandGuard 路径边界检查 + ApprovalStore 审批记录
 - **权限规则引擎**：不可绕过硬边界（危险命令、Shell 控制符、越界路径 / cwd）先执行，再进入五层业务责任链（自定义规则 → 审批记录 → ask 规则 → 命令分级 / 沙箱 → 默认）；已接入 Agent Loop 主流程
+- **文件自定义规则**：Loop / Debug 与 Registry 共用 file-tool-permission，先验证真实路径沙箱，再按 deny > ask > allow 匹配逻辑路径、真实路径和删除目录子项。ask 的内部对象凭据绑定 callId、参数、会话、规则快照和目标，一次性消费；Registry 在实际执行前复核，不能从 IPC/JSON 伪造。此链覆盖原生文件读写、编辑、删除和补丁，不扩展到 Shell 或 MCP。
 - **工作区管理**：workspaceRoot 维护；文件工具与子 Agent 优先使用 `ToolContext.workdir`，写入前解析 realpath 防 symlink 越界；`file_delete` 的永久删除白名单只匹配工作区内部相对路径段，系统 `/tmp` 等祖先目录不能扩大永久删除范围
 - **工具 vs 服务边界**：工具（ToolDefinition）仅暴露给 LLM 的薄壳，内部逻辑下沉为独立服务（如 task-plan-service.ts），运行时/中间件/其他工具可直接调用服务而不经 LLM
 

@@ -8,6 +8,7 @@ import type { ToolRegistry } from '../../electron/main/tools/registry'
 vi.mock('../../electron/main/sandbox/permission-engine', () => ({
   checkToolPermission: vi.fn(),
   checkCommandPermission: vi.fn(),
+  getRules: () => [],
 }))
 
 vi.mock('../../electron/main/storage/settings-store', () => ({

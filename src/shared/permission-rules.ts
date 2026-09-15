@@ -2,8 +2,10 @@
  * 权限规则表单模型（渲染进程可解析；与 permission-engine.PermissionRule 字段对齐）
  */
 
-export type PermissionRuleType = 'command' | 'tool' | 'path'
-export type PermissionRuleAction = 'allow' | 'deny' | 'ask'
+import { PERMISSION_RULE_ACTIONS, PERMISSION_RULE_TYPES } from './types'
+export { PERMISSION_RULE_ACTIONS, PERMISSION_RULE_TYPES } from './types'
+export type PermissionRuleType = typeof PERMISSION_RULE_TYPES[number]
+export type PermissionRuleAction = typeof PERMISSION_RULE_ACTIONS[number]
 
 export interface PermissionRuleForm {
   id: string
@@ -14,15 +16,12 @@ export interface PermissionRuleForm {
   enabled: boolean
 }
 
-const TYPES: PermissionRuleType[] = ['command', 'tool', 'path']
-const ACTIONS: PermissionRuleAction[] = ['allow', 'deny', 'ask']
-
 function isType(v: unknown): v is PermissionRuleType {
-  return typeof v === 'string' && (TYPES as string[]).includes(v)
+  return typeof v === 'string' && (PERMISSION_RULE_TYPES as readonly string[]).includes(v)
 }
 
 function isAction(v: unknown): v is PermissionRuleAction {
-  return typeof v === 'string' && (ACTIONS as string[]).includes(v)
+  return typeof v === 'string' && (PERMISSION_RULE_ACTIONS as readonly string[]).includes(v)
 }
 
 export function createEmptyPermissionRule(): PermissionRuleForm {
