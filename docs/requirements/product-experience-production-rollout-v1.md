@@ -108,6 +108,12 @@ R12 必须拆成六个独立验收面：
 
 ## 当前收口记录（2026-09-15）
 
+- R10 当前施工：先将候选与正式的 MCP 服务卡片合并为 `settings/McpServiceCard.tsx`，正式启停、删除、重试和工具许可继续调用既有 settings / MCP IPC；未知工具清单与已知零工具分离，长清单内部滚动，忙时操作槽固定。允许修改该共享组件、SettingsPanel、SettingsExperienceCandidate、对应 Unit / E2E、组件注册及运行时模块卡、质量和账本。不改权限引擎、连接确认、安全存储或 IPC 形状；旧服务列表 JSX 由共享卡片替代，不删除后端服务。候选本地/远程添加向导、Streamable HTTP / 认证和可取消测试仍属于 R10 待补部分，不因卡片共享而宣布整项 adopted。
+- R10 已复现并修复当前页禁用 / 删除顺序：先保存配置，保存被拒绝时不得断开；保存后的停止通道若异常，明确报告配置已保存但连接状态未确认，不伪装成未发生任何变更。两次 IPC 不是原子契约，主进程统一协调与异常恢复仍由 R10 管理。
+- 验收环境补充范围：真实 Vite 日志确认 `var/verification/.../traces/resources/*.html` 引发连续 page reload，破坏正在执行的验收。允许修改 `vite.config.ts` 的 watcher 排除与 `.gitignore` 的验证产物规则，并新增读取实际配置、启动真实 watcher 的单元回归；仅忽略 `test-results` / `var/verification` 产物，不关闭源码热更新，不更改产品路由或弱化 UI 断言。该修复不外推为此前无 trace 的返回首页问题已解决。
+- Foundation 符号门禁的 5 秒超时在串行 Unit 再次复现：独立测量读取 436 文件（401 个依赖文件），实际审计仅需 7 个真实文件和 1 个负例夹具。本批允许将该测试的 TypeScript Program 限制为这些显式根文件，增加精确文件集合断言，保留全部 JSX 符号归属、别名和遮蔽负例；不增加超时，不替代完整 tsc 门禁。
+- R10 本批最终证据：默认 `npm run test` 146 文件 / 844 项通过；根 tsc / build、Eval 23 + 1 项通过；MCP 专项 12 项通过；最终串行全量 UI 112 项通过（`--trace=retain-on-failure --output=var/verification/mcp-full-ui-isolated`），Electron 现有 onboarding 回归 8 项通过。此前完整 UI 曾为 111 通过 / 1 超时，原失败用例独立 trace 连跑 3 次通过；随后另定位 trace 产物引发重载并修复，未将所有偶发退出统称已解决。依赖审计全量 7 项 / 生产 4 项未清零（WISH-044）；仓库无独立 lint 脚本，未把 tsc 称为 lint。MCP 真正外部连接、完整添加流程及停止异常恢复仍待后续验收，本合同保持进行中。
+
 - R12 文化角展示回流：允许修改 `WorldLivingContent`、`WorldDetailsPanel`、`SurfaceBaselinePanel`、相关 Unit / Renderer / Electron 测试及注册说明和文档。以已确认的四类卡片和读书笔记替代正式页旧嵌套列表；候选与正式共用 `WorldCultureContent`，书架既有笔记不丢失，未知类型和同名不同资产保留。不改 IPC、存储、人物设定、Prompt 或权限，也不新增播放等候选未具备的动作。
 - 本批验收边界：Unit 验证分类、笔记、空态、异常字段和转义；Renderer 覆盖四主题宽窄长文；Electron 从正式入口验证真实资产 IPC 更新后的重载显示，不把 Renderer 重载称为完整应用重启或备份恢复。文化内容来源、生命周期、编辑流程和六面完整验收仍归 R12，不因共享展示已完成而标整个体验 adopted。
 - Electron 实测补齐范围：`updateAsset` 把长笔记截为 24 字，故本批增加 `life/assets.ts` 与 `companion-assets.test.ts` 的正文保存修复。文化 / 书架的 note、detail、description 支持最多 4000 UTF-16 代码单元，保留换行和正文；超限或类型错误在 SQL 更新前拒绝，不部分修改名称。其他短标签规则、角色归属、IPC 形状和数据库结构不变。书架注入 Prompt 时仍仅取 24 字笔记摘要，存储全文不自动扩张模型输入；不进行破坏性迁移，已截断的历史内容不能自动恢复。

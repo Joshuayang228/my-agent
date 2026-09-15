@@ -51,6 +51,7 @@ npm-debug.log*
 # 测试覆盖率 & 测试产物
 coverage/
 test-results/
+var/verification/
 
 # Electron 打包
 *.exe

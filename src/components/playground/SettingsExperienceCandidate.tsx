@@ -9,10 +9,11 @@
  *       所有开关、连接状态和输入都只存在于当前 Playground 会话。
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Brain, Check, ChevronRight, Circle, CircleHelp, Cloud, Database, Download, Eye, Heart, KeyRound, Link2, LockKeyhole, Palette, Plug, Save, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Upload, UserRound, Wrench, Activity, Gauge, Plus, Server, ListChecks, ArrowLeft, ArrowUp, ArrowDown, GripVertical, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
+import { Brain, Check, ChevronRight, Circle, CircleHelp, Cloud, Database, Download, Eye, Heart, KeyRound, Link2, LockKeyhole, Palette, Plug, Save, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Upload, UserRound, Wrench, Activity, Gauge, Plus, ListChecks, ArrowLeft, ArrowUp, ArrowDown, GripVertical, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
 import { FONT_SCALE_ASSETS } from '../../shared/design-asset-registry'
 import { SettingsLayout, type SettingsPageId } from '../settings/SettingsLayout'
 import { CompanionSettingsContent } from '../settings/CompanionSettingsContent'
+import { McpServiceCard } from '../settings/McpServiceCard'
 import { THEME_STUDIES, getThemeStudyStyle, type ThemeStudyId } from './foundation-themes'
 import { PROVIDER_PRESET_GROUPS } from '../../shared/provider-presets'
 import { JSON_SCHEMA, load } from 'js-yaml'
@@ -454,9 +455,6 @@ interface McpPreviewServer {
   status: McpPreviewStatus
   tools: Array<{ id: string; name: string; allowed: boolean }>
 }
-const MCP_STATUS_LABELS: Record<McpPreviewStatus, string> = {
-  connected: '已连接', connecting: '连接中', confirm: '待确认', disabled: '已停用', error: '连接失败', auth: '需要登录',
-}
 
 /**
  * 背景：审阅者需要直接比较服务数、连接状态和工具数量，不应先完成添加向导。
@@ -505,40 +503,12 @@ function McpScenePreview() {
       </div>
       {form && <McpConnectionForm key={form} scene={form} onCancel={() => { setForm(null); if (scene.startsWith('add-')) setScene('empty') }} onSave={(server) => { setServers((current) => [...current, { ...server, id: `added-${++serial.current}` }]); setForm(null); if (scene.startsWith('add-')) setScene('one') }} />}
       {!form && servers.length === 0 && <div className="py-10 text-center text-[12px]" style={{ color: 'var(--text-muted)' }} data-testid="settings-candidate-mcp-empty">还没有 MCP 服务</div>}
-      {servers.map((server) => {
-        const ready = server.status === 'connected'
-        const confirming = server.status === 'confirm'
-        const enabled = server.status !== 'disabled'
-        const allowedCount = server.tools.filter((tool) => tool.allowed).length
-        return <SettingCard key={server.id} testId={`settings-candidate-mcp-server-${server.id}`}>
-          <div className="flex items-center gap-3">
-            <Server size={16} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
-            <h3 className="min-w-0 flex-1 break-words text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{server.name}</h3>
-            {!confirming && <CandidateSwitch compact checked={enabled} label={`启用${server.name}`} description="" testId={`mcp-enabled-${server.id}`} onChange={(checked) => updateServer(server.id, { status: checked ? 'connected' : 'disabled' })} />}
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            <span>{server.transport}</span>
-            <span className="inline-flex items-center gap-1" role="status" style={{ color: ready ? 'var(--success)' : server.status === 'error' ? 'var(--danger)' : 'var(--text-secondary)' }}>
-              {server.status === 'connecting' && <RefreshCw size={12} className="animate-spin" />}{MCP_STATUS_LABELS[server.status]}
-            </span>
-          </div>
-          {confirming && <div className="mt-4 space-y-1 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}><p>允许伙伴连接此服务，并使用选中的工具？</p><code className="block break-all text-[10px]" style={{ color: 'var(--text-muted)' }}>{server.address}</code></div>}
-          {(ready || confirming) && <div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
-            <div className="mb-2 flex items-center justify-between text-[11px]" style={{ color: 'var(--text-muted)' }}><span>{server.tools.length} 个工具</span>{server.tools.length > 0 && <span>{allowedCount} 个{confirming ? '已选择' : '已允许'}</span>}</div>
-            {server.tools.length === 0 ? <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>已连接，服务未提供工具。</p> : <ul className="space-y-2">
-              {server.tools.map((tool) => <li key={tool.id} className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} data-testid="mcp-tool-row">
-                <div className="min-w-0"><span style={{ color: 'var(--text-primary)' }}>{tool.name}</span><code className="ml-2 break-all text-[10px]" style={{ color: 'var(--text-muted)' }}>{tool.id}</code></div>
-                {confirming ? <input type="checkbox" aria-label={`允许${tool.name}`} checked={tool.allowed} onChange={() => updateServer(server.id, { tools: server.tools.map((item) => item.id === tool.id ? { ...item, allowed: !item.allowed } : item) })} /> : !tool.allowed && <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>未允许</span>}
-              </li>)}
-            </ul>}
-          </div>}
-          {server.status === 'connecting' && <div className="mt-4 flex items-center justify-between gap-3 text-[11px]"><span style={{ color: 'var(--text-muted)' }}>正在连接并获取工具清单…</span><button type="button" onClick={() => updateServer(server.id, { status: 'disabled' })}>取消</button></div>}
-          {server.status === 'error' && <div className="mt-4 flex items-center justify-between gap-3 text-[11px]"><span style={{ color: 'var(--text-secondary)' }}>连接超时，请检查服务是否正在运行。</span><button type="button" className="inline-flex shrink-0 items-center gap-1" onClick={() => updateServer(server.id, { status: 'connecting' })} style={{ color: 'var(--accent-fg)' }}><RefreshCw size={12} />重试</button></div>}
-          {server.status === 'auth' && <p className="mt-4 text-[11px]" style={{ color: 'var(--text-secondary)' }}>登录后才能获取此服务的工具清单。</p>}
-          {server.status === 'disabled' && <p className="mt-4 text-[11px]" style={{ color: 'var(--text-muted)' }}>配置已保留，伙伴暂不使用此服务。</p>}
-          {confirming && <div className="mt-4 flex justify-end gap-3 text-[11px]"><button type="button" onClick={() => chooseScene('empty')}>取消</button><button type="button" onClick={() => updateServer(server.id, { status: 'connected' })} className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border px-3 py-1.5" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }}><Check size={13} />确认连接</button></div>}
-        </SettingCard>
-      })}
+      {servers.map((server) => <McpServiceCard key={server.id} {...server} enabled={server.status !== 'disabled'} testId={`settings-candidate-mcp-server-${server.id}`}
+        onEnabledChange={(checked) => updateServer(server.id, { status: checked ? 'connected' : 'disabled' })}
+        onToolChange={server.status === 'confirm' ? (id, allowed) => updateServer(server.id, { tools: server.tools.map((tool) => tool.id === id ? { ...tool, allowed } : tool) }) : undefined}
+        onRetry={() => updateServer(server.id, { status: 'connecting' })}
+        onCancel={() => server.status === 'confirm' ? chooseScene('empty') : updateServer(server.id, { status: 'disabled' })}
+        onConfirm={() => updateServer(server.id, { status: 'connected' })} />)}
     </div>
   </div>
 }

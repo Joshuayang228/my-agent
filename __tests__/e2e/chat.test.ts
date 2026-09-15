@@ -314,6 +314,86 @@ async function installProductionElectronStub(page: import('@playwright/test').Pa
 
 for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
   for (const width of [1166, 600]) {
+    test(`正式 MCP 共享服务卡与操作恢复 ${theme} ${width}`, async ({ page }, testInfo) => {
+      await installProductionElectronStub(page)
+      await page.addInitScript((theme) => {
+        localStorage.setItem('theme', theme)
+        const api = (window as any).electronAPI
+        const harness = { readError: false, saveError: false, toolError: false, status: 'error', connects: 0, disconnects: 0, finish: () => {},
+          servers: [{ id: 'service', name: '测试服务', enabled: true, command: 'secret-command-not-for-card', args: ['secret-argument'], allowedTools: ['read'], env: {}, transport: 'stdio' }],
+          tools: [{ serverId: 'service', serverName: '测试服务', name: 'read', description: '工具说明'.repeat(1000), allowed: true }] }
+        ;(window as any).__mcpHarness = harness
+        const get = api.settings.get
+        api.settings.get = async () => ({ ...await get(), mcpServers: JSON.stringify(harness.servers) })
+        api.settings.set = async (key: string, value: string) => { if (key === 'mcpServers') { if (harness.saveError) throw new Error('synthetic save rejection'); harness.servers = JSON.parse(value) } }
+        api.mcp.status = async () => { if (harness.readError) throw new Error('synthetic status failure'); return [{ id: 'service', name: '测试服务', status: harness.status, toolCount: 1 }] }
+        api.mcp.listTools = async () => harness.tools
+        api.mcp.connect = async () => { harness.connects++; harness.status = 'connecting'; return new Promise((resolve) => { harness.finish = () => { harness.status = 'connected'; resolve({ success: true }) } }) }
+        api.mcp.disconnect = async () => { harness.disconnects++; harness.status = 'disconnected'; return { success: true } }
+        api.mcp.setToolAllowed = async (_id: string, name: string, allowed: boolean) => {
+          if (harness.toolError) return { success: false, error: '测试许可保存失败' }
+          harness.tools = harness.tools.map((tool) => tool.name === name ? { ...tool, allowed } : tool)
+          harness.servers[0].allowedTools = harness.tools.filter((tool) => tool.allowed).map((tool) => tool.name)
+          return { success: true }
+        }
+      }, theme)
+      await page.setViewportSize({ width, height: 731 })
+      await page.goto('/')
+      await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+      await page.getByRole(width < 640 ? 'tab' : 'button', { name: 'MCP', exact: true }).click()
+      const card = page.getByTestId('settings-mcp-server-service')
+      await expect(card.getByRole('status')).toHaveText('连接失败')
+      await expect(card).not.toContainText('secret-command')
+      const toggle = card.getByRole('switch')
+      const before = await toggle.boundingBox()
+      await card.getByRole('button', { name: '重试', exact: true }).click()
+      await expect(card.getByRole('status')).toHaveText('连接中')
+      await expect(toggle).toBeDisabled()
+      expect(await toggle.boundingBox()).toEqual(before)
+      await page.evaluate(() => (window as any).__mcpHarness.finish())
+      await expect(card.getByRole('status')).toHaveText('已连接')
+      const permission = card.getByRole('checkbox', { name: '允许read', exact: true })
+      await page.evaluate(() => { (window as any).__mcpHarness.toolError = true })
+      await permission.click()
+      await expect(permission).toBeChecked()
+      await page.evaluate(() => { (window as any).__mcpHarness.toolError = false })
+      await permission.uncheck()
+      await expect(permission).not.toBeChecked()
+      await page.evaluate(() => { (window as any).__mcpHarness.readError = true })
+      await permission.click()
+      await expect(page.getByRole('alert').filter({ hasText: '连接状态或工具清单读取失败' })).toBeVisible()
+      await expect(card).toContainText('工具清单尚未获取')
+      await expect(card).not.toContainText('0 个工具')
+      await page.evaluate(() => { (window as any).__mcpHarness.readError = false })
+      await page.getByRole('button', { name: '刷新', exact: true }).click()
+      await expect(permission).toBeChecked()
+      await permission.uncheck()
+      await expect(permission).not.toBeChecked()
+      expect(await card.locator('ul').evaluate((node) => node.scrollHeight > node.clientHeight)).toBe(true)
+      await page.screenshot({ path: testInfo.outputPath('mcp-service.png'), animations: 'disabled' })
+      await page.evaluate(() => { (window as any).__mcpHarness.saveError = true })
+      await toggle.click()
+      await expect(toggle).toHaveAttribute('aria-checked', 'true')
+      expect(await page.evaluate(() => (window as any).__mcpHarness.disconnects)).toBe(0)
+      await page.evaluate(() => { (window as any).__mcpHarness.saveError = false })
+      await toggle.click()
+      await expect(card.getByRole('status')).toHaveText('已停用')
+      expect(await page.evaluate(() => (window as any).__mcpHarness.servers[0].allowedTools)).toEqual([])
+      expect(await card.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
+      await page.evaluate(() => { (window as any).__mcpHarness.saveError = true })
+      await card.getByRole('button', { name: '删除测试服务', exact: true }).click()
+      await expect(card).toBeVisible()
+      expect(await page.evaluate(() => (window as any).__mcpHarness.disconnects)).toBe(1)
+      await page.evaluate(() => { (window as any).__mcpHarness.saveError = false })
+      await card.getByRole('button', { name: '删除测试服务', exact: true }).click()
+      await expect(card).toHaveCount(0)
+      expect(await page.evaluate(() => (window as any).__mcpHarness.servers)).toEqual([])
+    })
+  }
+}
+
+for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
+  for (const width of [1166, 600]) {
     test(`正式文化家居足迹响应映射与失败恢复 ${theme} ${width}`, async ({ page }, testInfo) => {
       await installProductionElectronStub(page)
       await page.addInitScript((selectedTheme) => {

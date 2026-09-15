@@ -9,6 +9,7 @@ import { SettingsLayout, type SettingsPageId } from './settings/SettingsLayout'
 import { CompanionSettingsContent, type CompanionExpertise } from './settings/CompanionSettingsContent'
 import { SettingCard, SettingRow, SettingsPageHeader } from './settings/SettingsFields'
 import { ModelRoutingSettings } from './settings/ModelRoutingSettings'
+import { McpServiceCard } from './settings/McpServiceCard'
 import { DESIGN_THEME_ASSETS, FONT_SCALE_ASSETS } from '../shared/design-asset-registry'
 import {
   Upload, Download,
@@ -142,7 +143,10 @@ export function SettingsPanel({
   const [protagonists, setProtagonists] = useState<RoleInfo[]>([])
   const [mcpServers, setMcpServers] = useState<McpServerEntry[]>([])
   const [mcpStatuses, setMcpStatuses] = useState<McpServerStatus[]>([])
-  const [mcpTools, setMcpTools] = useState<McpToolEntry[]>([])
+  const [mcpTools, setMcpTools] = useState<McpToolEntry[] | null>(null)
+  const [mcpBusy, setMcpBusy] = useState(false)
+  const mcpBusyRef = useRef(false)
+  const [mcpReadError, setMcpReadError] = useState('')
   const [modelConnections, setModelConnections] = useState('[]')
   const [modelRoutes, setModelRoutes] = useState('[]')
   const [mcpAdding, setMcpAdding] = useState(false)
@@ -165,10 +169,31 @@ export function SettingsPanel({
 
   const refreshMcpStatus = useCallback(async () => {
     if (preview || !window.electronAPI) return
-    const statuses = await window.electronAPI.mcp.status()
-    setMcpStatuses(statuses)
-    setMcpTools(await window.electronAPI.mcp.listTools())
+    try {
+      const statuses = await window.electronAPI.mcp.status()
+      const tools = await window.electronAPI.mcp.listTools()
+      setMcpStatuses(statuses)
+      setMcpTools(tools)
+      setMcpReadError('')
+    } catch {
+      setMcpTools(null)
+      setMcpReadError('连接状态或工具清单读取失败，请刷新重试。')
+    }
   }, [preview])
+
+  /**
+   * 背景：MCP 列表整体保存，连续操作可能用旧快照覆盖另一次修改。
+   * 设计意图：串行化当前设置页的变更，失败留在原页面，刷新重试不伪装成功。
+   * 关键约束：先同步占用再 await，固定控件不卸载；不代替主进程确认和权限检查。
+   */
+  const runMcpAction = async (action: () => Promise<void>) => {
+    if (mcpBusyRef.current || preview || !window.electronAPI) return
+    mcpBusyRef.current = true
+    setMcpBusy(true)
+    try { await action() }
+    catch { toast('MCP 操作未完成，请重试', 'error') }
+    finally { mcpBusyRef.current = false; setMcpBusy(false) }
+  }
 
   useEffect(() => {
     if (preview) return
@@ -341,33 +366,39 @@ export function SettingsPanel({
   }, [newMcp, mcpServers, preview, saveMcpList, refreshMcpStatus, toast])
 
   const handleRemoveMcp = useCallback(async (id: string) => {
+    let saved = false
     try {
-      if (!preview) await window.electronAPI?.mcp.disconnect(id)
       const updated = mcpServers.filter(s => s.id !== id)
       await saveMcpList(updated)
+      saved = true
+      if (!preview) await window.electronAPI?.mcp.disconnect(id)
       await refreshMcpStatus()
     } catch {
-      toast('MCP 配置未删除，可能是你取消了安全确认', 'warning')
+      toast(saved ? '配置已删除，但未能确认服务断开，请重启应用检查' : 'MCP 配置未删除，请重试', 'warning')
     }
   }, [mcpServers, preview, saveMcpList, refreshMcpStatus, toast])
 
   const handleToggleMcp = useCallback(async (id: string) => {
     const server = mcpServers.find(s => s.id === id)
     if (!server) return
+    let saved = false
     try {
       if (server.enabled) {
-        if (!preview) await window.electronAPI?.mcp.disconnect(id)
         const updated = mcpServers.map(s => s.id === id ? { ...s, enabled: false } : s)
+        // 保存可能失败或被取消；先保留原连接，成功后才执行禁用，避免界面与实际连接相反。
         await saveMcpList(updated)
+        saved = true
+        if (!preview) await window.electronAPI?.mcp.disconnect(id)
       } else {
         const updated = mcpServers.map(s => s.id === id ? { ...s, enabled: true } : s)
         await saveMcpList(updated)
+        saved = true
         const result = preview ? undefined : await window.electronAPI?.mcp.connect({ ...server, enabled: true })
         if (result && !result.success) toast(`MCP 连接失败: ${result.error}`, 'error')
       }
       await refreshMcpStatus()
     } catch {
-      toast('MCP 状态未改变，可能是你取消了安全确认', 'warning')
+      toast(saved ? '配置已保存，但未能确认连接状态，请重启应用检查' : 'MCP 状态未改变，请重试', 'warning')
     }
   }, [mcpServers, preview, saveMcpList, refreshMcpStatus, toast])
 
@@ -554,8 +585,8 @@ export function SettingsPanel({
           />
           <button
             type="button"
-            onClick={handleAddMcp}
-            disabled={!newMcp.name || (newMcp.transport === 'sse' ? !newMcp.url.trim() : !newMcp.command)}
+            onClick={() => void runMcpAction(handleAddMcp)}
+            disabled={mcpBusy || !newMcp.name || (newMcp.transport === 'sse' ? !newMcp.url.trim() : !newMcp.command)}
             className="rounded-[var(--radius-md)] px-3 py-1 text-xs font-medium transition disabled:opacity-40"
             style={{ background: 'var(--accent-emphasis)' }}
           >
@@ -573,59 +604,31 @@ export function SettingsPanel({
         </SettingCard>
       )}
 
-      <div className="space-y-2">
-        {mcpServers.map(server => {
-          const st = mcpStatuses.find(s => s.id === server.id)
-          return (
-            <SettingCard key={server.id} testId={`settings-mcp-server-${server.id}`}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className={`inline-block h-2 w-2 rounded-full ${
-                    st?.status === 'connected' ? 'bg-green-400' :
-                    st?.status === 'connecting' ? 'bg-yellow-400' :
-                    st?.status === 'error' ? 'bg-red-400' : 'bg-slate-500'
-                  }`} />
-                  <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{server.name}</span>
-                  {st?.toolCount ? (
-                    <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{st.toolCount} tools</span>
-                  ) : null}
-                </div>
-                <div className="mt-0.5 truncate text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                  {server.transport === 'sse'
-                    ? `SSE ${server.url ?? ''}`
-                    : `${server.command} ${server.args.join(' ')}`}
-                </div>
-                {st?.error && (
-                  <div className="mt-0.5 truncate text-[10px] text-red-400">{st.error}</div>
-                )}
-                {st?.status === 'connected' && <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}><div className="mb-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>工具许可</div><div className="space-y-1.5">{mcpTools.filter((tool) => tool.serverId === server.id).map((tool) => <label key={tool.name} className="flex min-w-0 items-start justify-between gap-3 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}><span className="min-w-0"><span className="block break-words" style={{ color: 'var(--text-primary)' }}>{tool.name}</span>{tool.description && <span className="mt-0.5 block break-words text-[10px]" style={{ color: 'var(--text-muted)' }}>{tool.description}</span>}</span><input type="checkbox" aria-label={'允许 ' + tool.name} checked={tool.allowed} onChange={async (event) => { if (preview || !window.electronAPI) return; const result = await window.electronAPI.mcp.setToolAllowed(server.id, tool.name, event.target.checked); if (!result.success) toast(result.error || '工具许可未更新', 'error'); await refreshMcpStatus() }} /></label>)}</div></div>}
-              </div>
-              <div className="ml-2 flex shrink-0 items-center gap-1">
-                <button
-                  onClick={() => handleToggleMcp(server.id)}
-                  className={`h-8 min-w-12 rounded-[var(--radius-md)] border px-2 text-[10px] transition ${
-                    server.enabled ? 'text-yellow-400' : 'text-green-400'
-                  }`}
-                  style={{ borderColor: 'var(--border-subtle)' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-                >
-                  {server.enabled ? '禁用' : '启用'}
-                </button>
-                <button
-                  onClick={() => handleRemoveMcp(server.id)}
-                  className="h-8 min-w-12 rounded-[var(--radius-md)] border px-2 text-[10px] text-red-400 transition"
-                  style={{ borderColor: 'var(--border-subtle)' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-                >
-                  删除
-                </button>
-              </div>
-            </div>
-            </SettingCard>
-          )
+      {mcpReadError && <div role="alert" className="flex items-center justify-between gap-3 text-xs" style={{ color: 'var(--danger)' }}><span>{mcpReadError}</span><ActionButton disabled={mcpBusy} onClick={() => void runMcpAction(refreshMcpStatus)}>刷新</ActionButton></div>}
+      <div className="space-y-3">
+        {mcpServers.map((server) => {
+          const current = mcpStatuses.find((item) => item.id === server.id)
+          const status = !server.enabled ? 'disabled' : current?.status === 'connected' || current?.status === 'connecting' || current?.status === 'error' ? current.status : 'disconnected'
+          return <McpServiceCard key={server.id} id={server.id} name={server.name} enabled={server.enabled}
+            transport={server.transport === 'sse' ? '远程 · SSE' : '本地 · stdio'} status={status}
+            tools={mcpTools?.filter((tool) => tool.serverId === server.id).map((tool) => ({ id: tool.name, ...tool })) ?? null}
+            busy={mcpBusy} testId={`settings-mcp-server-${server.id}`}
+            onEnabledChange={() => void runMcpAction(() => handleToggleMcp(server.id))}
+            onRemove={() => void runMcpAction(() => handleRemoveMcp(server.id))}
+            onRetry={() => void runMcpAction(async () => {
+              setMcpStatuses((items) => [...items.filter((item) => item.id !== server.id), { id: server.id, name: server.name, status: 'connecting', toolCount: 0 }])
+              try {
+                const result = await window.electronAPI.mcp.connect(server)
+                if (!result.success) toast(result.error || '连接失败，请重试', 'error')
+              } finally { await refreshMcpStatus() }
+            })}
+            onToolChange={(name, allowed) => void runMcpAction(async () => {
+              const result = await window.electronAPI.mcp.setToolAllowed(server.id, name, allowed)
+              if (!result.success) { toast(result.error || '工具许可未更新', 'error'); return }
+              const allowedTools = (mcpTools ?? []).filter((tool) => tool.serverId === server.id && (tool.name === name ? allowed : tool.allowed)).map((tool) => tool.name)
+              setMcpServers((items) => items.map((item) => item.id === server.id ? { ...item, allowedTools } : item))
+              await refreshMcpStatus()
+            })} />
         })}
       </div>
     </div>

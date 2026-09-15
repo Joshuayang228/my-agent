@@ -35,13 +35,16 @@ describe('Foundation story registry', () => {
       function Used() { return <Shared code="raw" /> }
       function ShadowedDiff(SharedDiff: any) { return <SharedDiff /> }
       function UsedDiff() { return <SharedDiff unified="raw" /> }`
-    const options: ts.CompilerOptions = { jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, skipLibCheck: true }
+    // 本检查只验证 JSX 的导入符号归属；显式载入全部调用者和定义，避免解析外部类型图。
+    // 别名和局部遮蔽仍由 TypeChecker 判定；项目完整类型检查另由 tsc 门禁负责。
+    const options: ts.CompilerOptions = { jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, skipLibCheck: true, noResolve: true, noLib: true, types: [] }
     const host = ts.createCompilerHost(options)
     const getSourceFile = host.getSourceFile.bind(host)
     host.getSourceFile = (file, ...args) => resolve(file) === fixture
       ? ts.createSourceFile(file, source, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TSX)
       : getSourceFile(file, ...args)
     const program = ts.createProgram([...consumers, fixture], options, host)
+    expect(program.getSourceFiles().map((file) => resolve(file.fileName)).sort()).toEqual([...consumers, fixture].sort())
     const checker = program.getTypeChecker()
     const rendersShared = (root: ts.Node, name: string, sourcePath: string) => {
       let found = false

@@ -9,14 +9,14 @@ import {
 } from '../../src/shared/ui-component-registry'
 
 /** 检查实际 JSX 使用而非仅有 import，防止注册表宣称复用但页面仍维护孤立实现。 */
-function rendersSharedTabs(source: string): boolean {
+function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuffix = '/foundation/TabStrip'): boolean {
   const file = ts.createSourceFile('surface.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
   const aliases = new Set<string>()
   for (const statement of file.statements) {
-    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier) || !statement.moduleSpecifier.text.endsWith('/foundation/TabStrip')) continue
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier) || !statement.moduleSpecifier.text.endsWith(moduleSuffix)) continue
     const bindings = statement.importClause?.namedBindings
     if (bindings && ts.isNamedImports(bindings)) {
-      for (const entry of bindings.elements) if ((entry.propertyName ?? entry.name).text === 'TabStrip') aliases.add(entry.name.text)
+      for (const entry of bindings.elements) if ((entry.propertyName ?? entry.name).text === componentName) aliases.add(entry.name.text)
     }
   }
   let rendered = false
@@ -29,6 +29,16 @@ function rendersSharedTabs(source: string): boolean {
 }
 
 describe('UI component asset registry', () => {
+  it('MCP 正式设置与候选实际渲染同一服务卡片，而不只是登记或 import', () => {
+    const usesCard = (source: string) => rendersSharedTabs(source, 'McpServiceCard', '/settings/McpServiceCard')
+    for (const path of ['src/components/SettingsPanel.tsx', 'src/components/playground/SettingsExperienceCandidate.tsx']) {
+      expect(usesCard(readFileSync(path, 'utf8')), path).toBe(true)
+    }
+    expect(usesCard("import { McpServiceCard } from './settings/McpServiceCard'; const view = <div />")).toBe(false)
+    expect(usesCard('const McpServiceCard = () => <div />; const view = <McpServiceCard />')).toBe(false)
+    expect(usesCard("import { McpServiceCard as Card } from './settings/McpServiceCard'; const view = <Card />")).toBe(true)
+    expect(UI_COMPONENT_REGISTRY['layout.mcp-service-card'].sourcePath).toBe('src/components/settings/McpServiceCard.tsx')
+  })
   it('requires shared tabs to be rendered by foundation, experience and production', () => {
     expect(UI_COMPONENT_REGISTRY['behavior.tabs'].sourcePath).toBe('src/components/foundation/TabStrip.tsx')
     for (const path of [

@@ -55,6 +55,8 @@
 
 ## 已落地能力
 
+- MCP 服务卡片由 `settings/McpServiceCard.tsx` 同时供正式设置与 Playground 使用；服务状态、开关、工具数量、许可与重试不再各自维护 JSX。正式端继续使用既有 MCP IPC 和主进程确认；未知工具清单不展示为零，长清单内部滚动，操作期间槽位固定。列表变更在设置页内串行，禁用 / 删除先保存再断开，保存失败不提前断开；许可更新同步本地配置快照，后续启停不覆盖刚修改的许可。该共享卡片不代表添加向导、Streamable HTTP / 认证或整项 R10 已完成。
+
 - MCP 工具许可由服务配置的 `allowedTools` 字段承载；旧配置未设置时兼容为全部允许。MCP Bridge 注册工具和 `McpClientManager.callTool` 执行前均再次过滤，正式设置通过 `mcp:set-tool-allowed` 更新并持久化；审批规则仍独立负责高风险确认。
 
 - 正式相处说明经 `settings.companionResponseNote` 进入 `buildSystemPrompt` 的独立 L3 区块，主对话和召唤读取，workspace 排除。空值不注入、组装侧再次限长；动态 Prompt key 只登记用户数据来源，不复制正文。该偏好不替代 Role Pack 或工具权限；产品入口与保存契约见伙伴模块卡。

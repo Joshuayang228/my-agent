@@ -11,6 +11,8 @@ export default defineConfig(({ mode }) => {
       // Electron 开发窗口统一走 IPv4，避免 Windows localhost 优先命中旧的 IPv6 服务。
       host: '127.0.0.1',
       strictPort: isUiE2E,
+      // 验收 trace 会生成 HTML；只排除机器产物，避免触发页面重载，同时保留源码 HMR。
+      watch: { ignored: ['**/var/verification/**', '**/test-results/**'] },
     },
     resolve: {
       alias: {

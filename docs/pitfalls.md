@@ -2,6 +2,20 @@
 
 > 开发过程中遇到的坑和解决方案，避免重复踩坑。
 
+## 验收 HTML 产物触发 Vite 页面重载
+
+**问题**：2026-09-15 开启 Playwright trace 后，验收页面被重载，耗时逐步增加。真实 Vite 日志连续报告 `page reload var/verification/.../traces/resources/*.html`。
+
+**原因**：验证产物位于项目根目录下，进入开发服务器 watcher；生成的 HTML 被当作页面变更。页面因此回到默认视图，不能用放宽 locator 或超时来修复。
+
+**解决**：`vite.config.ts` 排除 `var/verification` 和 `test-results`，验证目录同时进入 `.gitignore`；`dev-server-watch.test.ts` 读取实际配置启动真实 watcher，验证源码变更仍可见而 HTML 产物不可见。该问题有直接日志及修复前后回归证据；此前无 trace、无对应 HMR 的偶发退出仍归 WISH-042，不混为同一已修复原因。
+
+## 符号归属测试意外解析全部依赖
+
+**问题**：Foundation 的 JSX 符号归属测试在默认并发和串行运行均曾超过 5 秒；独立测量 7 个审计根文件带入 436 个文件，其中 401 个来自依赖。
+
+**解决**：该测试使用 TypeChecker 判断真实导入和局部遮蔽，但设置 `noResolve`、`noLib` 与空 `types`，显式列出全部待核验定义 / 调用者；用根文件集合断言防止隐式扩张，保留所有正反例。完整项目类型诊断仍走独立 tsc 门禁，不增加测试时限。
+
 ## fire-and-forget 动态 import 跨过测试生命周期
 
 **问题**：函数本身已经返回，但后台 Promise 仍在动态加载模块；GitHub Runner 的 Vitest 环境先 teardown，随后出现 `EnvironmentTeardownError`，本地因时序较慢不一定复现。
