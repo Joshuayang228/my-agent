@@ -1,7 +1,7 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron'
 import * as settings from '../storage/settings-store'
 import type { AppSettings } from '../storage/settings-store'
-import { loadRules } from '../sandbox/permission-engine'
+import { loadRules, validatePermissionRules } from '../sandbox/permission-engine'
 import { chatComplete, LLMError } from '../llm/index'
 import { loadMainLLMConfig } from '../llm/aux-config'
 import { PROMPT_KEYS } from '../prompts/keys'
@@ -123,6 +123,8 @@ export function registerSettingsIPC(): void {
     if (key === 'modelConnections') {
       value = mergeModelConnectionSecrets(value, await settings.getSetting('modelConnections'))
     }
+
+    if (key === 'permissionRules') validatePermissionRules(value || '[]')
 
     // API Key/MCP secret 只在主进程处理；Renderer 永远只能收到安全视图或脱敏哨兵。
     await settings.setSetting(key as keyof AppSettings, value)

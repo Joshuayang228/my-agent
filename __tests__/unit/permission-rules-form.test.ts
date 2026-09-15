@@ -32,14 +32,11 @@ describe('parsePermissionRulesJson', () => {
     expect(r.ok).toBe(false)
   })
 
-  it('跳过残缺条目', () => {
+  it('残缺条目失败且不静默丢弃已有规则', () => {
     const r = parsePermissionRulesJson(
       JSON.stringify([{ id: 'x' }, { id: 'ok', type: 'tool', pattern: 'shell_exec', action: 'ask' }]),
     )
-    expect(r.ok).toBe(true)
-    if (!r.ok) return
-    expect(r.rules).toHaveLength(1)
-    expect(r.rules[0].id).toBe('ok')
+    expect(r.ok).toBe(false)
   })
 })
 

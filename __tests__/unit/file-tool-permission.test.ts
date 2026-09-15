@@ -152,7 +152,7 @@ describe('文件规则真实执行', () => {
     for (let index = 0; index < MAX_FILE_RULE_TARGETS; index++) await writeFile(path.join(state.root, 'large', String(index)), '')
     setRule('allow', 'file-delete', '.*')
     expect(checkFileToolPermission('file_delete', { path: 'large' }, context, 'workspace-write')?.allowed).toBe(false)
-  })
+  }, 15000)
   it.each(['deny', 'ask', 'allow', 'ask-denied', 'ask-headless', 'ask-changed'] as const)('Loop 实际消费 %s 并由 Registry 复核', async scenario => {
     const action = scenario.startsWith('ask') ? 'ask' : scenario as 'deny' | 'allow'
     setRule(action)

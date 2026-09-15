@@ -236,6 +236,7 @@ Skill 资产由 `electron/main/skills/loader.ts` 读取和保存；Frontmatter �
 - 用户记忆、当前世界状态和运行后 `companion_assets` 属于运行时数据，不进入静态生产资产目录；分别由记忆 / 世界态 / 请求记录查看。
 - `memory/strategy-registry.ts` 只登记记忆提取、去重、反馈分桶、向量召回、向量生命周期和引用纠错策略；策略参数由原生产模块导出，注册表不反向驱动算法。
 - `sandbox/asset-registry.ts` 从沙箱档位、命令分级、权限责任链、路径守卫、审批生命周期和有效沙箱映射生成只读资产；不读取用户规则、审批记录或当前执行模式。
+- 正式设置权限页与 Playground 候选共用 `PermissionSettingsContent` / `PermissionRulesEditor`；Renderer 只提交规则草稿，主进程在 `settings:set` 写盘前严格校验并再热加载，执行引擎仍是权限事实源。
 - `evals/scenario-registry.ts` 是普通 Eval Scenario 唯一列表，CLI、Vitest 与 `evals/asset-registry.ts` 共同消费；Case / Grader 资产来自真实场景和结构化判据，不读取运行报告、环境凭据或 Judge 隐藏推理。
 - `llm/provider-asset-registry.ts` 从真实请求构造器、路由规则、Thinking / Context / Vision / Failover 生产事实和共享预设生成协议能力、跨 Provider 策略与内置预设资产；只保存脱敏结构，不读取用户配置或能力缓存。
 - `agent/subagent-asset-registry.ts` 登记 `researcher`、`coder`、`analyst` 三个 SubAgent 角色的 Prompt addon、默认工具集与只读边界；执行器和 Debug 聚合消费同一角色定义，自由字符串角色不伪造为内置资产。

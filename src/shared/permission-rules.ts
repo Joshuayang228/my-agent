@@ -53,12 +53,13 @@ export function parsePermissionRulesJson(
     return { ok: false, error: '权限规则必须是 JSON 数组' }
   }
   const rules: PermissionRuleForm[] = []
+  const ids = new Set<string>()
   for (const item of parsed) {
-    if (!item || typeof item !== 'object' || Array.isArray(item)) continue
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return { ok: false, error: '存在无法识别的规则' }
     const r = item as Record<string, unknown>
-    if (typeof r.id !== 'string' || !r.id.trim()) continue
-    if (!isType(r.type) || !isAction(r.action)) continue
-    if (typeof r.pattern !== 'string') continue
+    if (typeof r.id !== 'string' || !r.id.trim() || ids.has(r.id)) return { ok: false, error: '规则标识无效或重复' }
+    if (!isType(r.type) || !isAction(r.action) || typeof r.pattern !== 'string') return { ok: false, error: '存在无法识别的规则内容' }
+    ids.add(r.id)
     rules.push({
       id: r.id.trim(),
       type: r.type,

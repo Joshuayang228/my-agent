@@ -13,6 +13,7 @@ import { StoryBlock } from './StoryBlock'
 import { DiffViewer, DiffViewControls, type DiffViewMode } from '../foundation/DiffViewer'
 import { WorkspaceToolMenu } from '../foundation/WorkspaceToolMenu'
 import { ActionButton } from '../foundation/ActionButton'
+import { SelectField } from '../foundation/SelectField'
 import { SegmentedControl } from '../foundation/SegmentedControl'
 import { type AdvancedFoundationStoryKey } from '../../shared/foundation-story-registry'
 
@@ -30,24 +31,24 @@ function SelectStory() {
     <div className="grid gap-3 md:grid-cols-3">
       <label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
         <span>模型</span>
-        <select className="theme-input h-9 w-full rounded-md border px-2 text-xs outline-none" defaultValue="balanced" aria-label="模型">
+        <SelectField defaultValue="balanced" aria-label="模型">
           <option value="balanced">平衡模式</option>
           <option value="quality">高质量模式</option>
           <option value="fast">快速模式</option>
-        </select>
+        </SelectField>
       </label>
       <label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
         <span>未选择</span>
-        <select className="theme-input h-9 w-full rounded-md border px-2 text-xs outline-none" defaultValue="" aria-label="未选择">
+        <SelectField defaultValue="" aria-label="未选择">
           <option value="">请选择</option>
           <option value="one">选项一</option>
-        </select>
+        </SelectField>
       </label>
       <label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
         <span>禁用</span>
-        <select className="theme-input h-9 w-full rounded-md border px-2 text-xs opacity-50 outline-none" defaultValue="locked" disabled aria-label="禁用选择">
+        <SelectField defaultValue="locked" disabled aria-label="禁用选择">
           <option value="locked">当前不可修改</option>
-        </select>
+        </SelectField>
       </label>
     </div>
   )

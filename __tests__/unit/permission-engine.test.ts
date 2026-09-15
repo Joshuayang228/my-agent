@@ -26,6 +26,10 @@ describe('Permission Engine', () => {
 
   describe('自定义规则', () => {
     it('加载合法 JSON 规则', () => {
+    it('保存前拒绝无效规则并允许合法文件规则', () => {
+      expect(() => validatePermissionRules(JSON.stringify([{ id: 'empty', type: 'command', pattern: '', action: 'deny', enabled: true }]))).toThrow()
+      expect(() => validatePermissionRules(JSON.stringify([{ id: 'write', type: 'file-write', pattern: 'src/', action: 'ask', enabled: true }]))).not.toThrow()
+    })
       loadRules(JSON.stringify([
         { id: 'r1', type: 'command', pattern: 'rm -rf', action: 'deny', enabled: true },
         { id: 'r2', type: 'tool', pattern: 'shell_exec', action: 'ask', enabled: true },

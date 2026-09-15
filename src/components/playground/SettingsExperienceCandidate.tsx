@@ -9,6 +9,7 @@
  *       所有开关、连接状态和输入都只存在于当前 Playground 会话。
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { PermissionSettingsContent } from '../settings/PermissionSettingsContent'
 import { Brain, Check, ChevronRight, Circle, CircleHelp, Cloud, Database, Download, Eye, Heart, KeyRound, Link2, LockKeyhole, Palette, Plug, Save, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Upload, UserRound, Wrench, Activity, Gauge, Plus, ListChecks, ArrowLeft, ArrowUp, ArrowDown, GripVertical, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
 import { FONT_SCALE_ASSETS } from '../../shared/design-asset-registry'
 import { SettingsLayout, type SettingsPageId } from '../settings/SettingsLayout'
@@ -391,52 +392,10 @@ function DataPage({ lastAction, onAction }: { lastAction: string; onAction: (act
 }
 
 function PermissionsPage({ mode, onModeChange }: { mode: string; onModeChange: (value: string) => void }) {
-  const [ruleTarget, setRuleTarget] = useState('命令')
-  const [ruleAction, setRuleAction] = useState('拒绝')
-  const [rulePattern, setRulePattern] = useState('npm publish')
-  const [savedRules, setSavedRules] = useState([{ target: '命令', action: '拒绝', pattern: 'npm publish' }])
-  const [showCustomRules, setShowCustomRules] = useState(false)
-  const [showRuleForm, setShowRuleForm] = useState(false)
-
+  const [rules, setRules] = useState(JSON.stringify([{ id: 'preview-publish', type: 'command', action: 'deny', pattern: 'npm publish', enabled: true }]))
   return <div className="space-y-4" data-testid="settings-candidate-section-permissions">
     <CandidatePageHeader icon={<ShieldCheck size={14} />} title="权限与自动化" description="让你决定 Agent 什么时候先问你、什么时候按计划推进；越高风险的能力越应该明确。" />
-    <SettingCard>
-      <div className="mb-3">
-        <h3 className="flex items-center gap-2 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>默认审批方式<ScopeBadge label="全局" /></h3>
-        <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>未命中下面的自定义规则时，使用这里的默认方式；遇到具体操作时，你仍然可以临时调整。</p>
-      </div>
-      <div className="grid gap-2 sm:grid-cols-3">{[['auto', '自动', '只在需要时确认'], ['confirm-all', '全部确认', '每次工具调用都先问'], ['plan-first', '先计划', '先看计划再执行']].map(([value, label, description]) => {
-        const selected = mode === value
-        return <button key={value} type="button" aria-pressed={selected} onClick={() => onModeChange(value)} className="rounded-[var(--radius-md)] border p-3 text-left transition" style={{ borderColor: selected ? 'var(--accent)' : 'var(--border-subtle)', background: selected ? 'var(--accent-subtle)' : 'transparent' }}>
-          <div className="flex items-center justify-between gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{label}{selected && <Check size={13} style={{ color: 'var(--accent-fg)' }} />}</div>
-          <div className="mt-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>{description}</div>
-        </button>
-      })}</div>
-    </SettingCard>
-    <section className="py-4 sm:py-5" data-testid="settings-candidate-rules-existing">
-      <button type="button" onClick={() => { setShowCustomRules((current) => !current); setShowRuleForm(false) }} aria-expanded={showCustomRules} className="flex w-full items-center justify-between gap-3 text-left" data-testid="settings-candidate-rules-existing-toggle">
-        <span><span className="flex items-center gap-2 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}><SlidersHorizontal size={15} style={{ color: 'var(--accent-fg)' }} />自定义规则</span><span className="mt-1 block text-[11px]" style={{ color: 'var(--text-muted)' }}>已保存的例外规则，优先于默认审批方式生效。</span></span>
-        <span className="flex shrink-0 items-center gap-2"><span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{savedRules.length} 条</span><ChevronRight size={14} className={`transition ${showCustomRules ? 'rotate-90' : ''}`} style={{ color: 'var(--text-muted)' }} /></span>
-      </button>
-      {showCustomRules && <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
-        <ul className="space-y-3" aria-label="自定义规则列表">{savedRules.map((savedRule, index) => <li key={index}><SettingCard testId="settings-candidate-rule-card"><div className="flex items-center justify-between gap-3">
-          <div className="min-w-0"><div className="text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>{savedRule.action} · {savedRule.target}</div><div className="mt-1 break-all font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{savedRule.pattern}</div></div>
-          <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px]" style={{ background: savedRule.action === '拒绝' ? 'color-mix(in srgb, var(--danger) 10%, transparent)' : 'var(--accent-subtle)', color: savedRule.action === '拒绝' ? 'var(--danger)' : 'var(--accent-fg)' }}>{savedRule.action}</span>
-        </div></SettingCard></li>)}</ul>
-        <div className="mt-3 flex">
-          <button type="button" aria-expanded={showRuleForm} onClick={() => { if (showRuleForm) { setShowRuleForm(false); return }; setRuleTarget('命令'); setRuleAction('拒绝'); setRulePattern(''); setShowRuleForm(true) }} className="flex h-8 w-24 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-[var(--radius-md)] border text-[10px] font-medium" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-add-rule">{showRuleForm ? <X size={12} /> : <Plus size={12} />}{showRuleForm ? '取消添加' : '添加'}</button>
-        </div>
-      </div>}
-      {showCustomRules && showRuleForm && <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
-        <div className="mb-3 text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>例如：拒绝发布命令；修改文件时，每次先问你。规则只匹配你填写的内容，未匹配操作仍按上面的默认审批方式处理。</div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>操作类型<select aria-label="规则操作类型" value={ruleTarget} onChange={(event) => setRuleTarget(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none"><option>命令</option><option>修改文件</option><option>删除文件</option></select></label>
-          <label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>处理方式<select aria-label="规则处理方式" value={ruleAction} onChange={(event) => setRuleAction(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none"><option>允许</option><option>需要确认</option><option>拒绝</option></select></label>
-          <label className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>匹配内容<input aria-label="规则匹配内容" value={rulePattern} onChange={(event) => setRulePattern(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" placeholder="例如：npm publish" /></label>
-        </div>
-        <div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => setShowRuleForm(false)} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[10px] font-medium" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>取消</button><button type="button" disabled={!rulePattern.trim()} onClick={() => { if (!rulePattern.trim()) return; setSavedRules((current) => [...current, { target: ruleTarget, action: ruleAction, pattern: rulePattern.trim() }]); setShowRuleForm(false) }} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[10px] font-medium disabled:cursor-not-allowed disabled:opacity-40" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-save-rule">保存这条规则</button></div>
-      </div>}
-    </section>
+    <PermissionSettingsContent mode={mode} onModeChange={onModeChange} rules={rules} onRulesChange={setRules} prefix="settings-candidate" />
   </div>
 }
 const MCP_SCENES = [

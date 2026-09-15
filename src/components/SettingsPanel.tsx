@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useToast } from './Toast'
-import { PermissionRulesEditor } from './PermissionRulesEditor'
+import { PermissionSettingsContent } from './settings/PermissionSettingsContent'
 import { MemoryPanel } from './MemoryPanel'
 import { SkillsPanel } from './SkillsPanel'
 import { CharacterShelfPanel } from './CharacterShelfPanel'
@@ -288,16 +288,11 @@ export function SettingsPanel({
     setForm((f) => ({ ...f, [key]: value }))
   }
 
-  /** 执行模式点选即落盘（与对话页同一 settings.executionMode） */
-  const updateAndPersist = async (key: 'executionMode', value: string) => {
-    if (preview || !window.electronAPI) return
-    try {
-      await window.electronAPI.settings.set(key, value)
-      setForm((current) => ({ ...current, [key]: value }))
-      toast('执行模式已切换', 'success')
-    } catch {
-      toast('执行模式未更改，请确认后重试', 'error')
-    }
+  const savePermissionSetting = async (key: 'executionMode' | 'permissionRules', value: string) => {
+    if (preview) { setForm(current => ({ ...current, [key]: value })); return }
+    if (!window.electronAPI) throw new Error('设置服务不可用')
+    await window.electronAPI.settings.set(key, value)
+    setForm(current => ({ ...current, [key]: value }))
   }
 
   const saveMcpList = useCallback(async (servers: McpServerEntry[]) => {
@@ -426,39 +421,10 @@ export function SettingsPanel({
     : <SkillsPanel visible onClose={() => setActiveSection('about')} />
 
   const renderSecurity = () => (
-    <div className="space-y-6">
-      <SettingsPageHeader title="权限与自动化" description="决定 Agent 何时需要确认，以及哪些明确规则可以覆盖默认策略。" />
-      <SettingCard>
-        <SettingRow label="执行模式" description="工具调用默认确认策略；完全访问仍由对话页的审批入口控制。" scope="影响后续任务" stacked>
-        <div className="grid gap-2 sm:grid-cols-3">
-          {([
-            { value: 'auto', label: '自动', desc: '仅破坏性操作需确认；工作区写入' },
-            { value: 'confirm-all', label: '全部确认', desc: '每次工具调用都需审批；工作区写入' },
-            { value: 'plan-first', label: '先计划', desc: 'AI 先说计划再执行；工作区写入' },
-          ] as const).map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => { void updateAndPersist('executionMode', opt.value) }}
-              className="rounded-[var(--radius-md)] border px-3 py-3 text-left text-xs transition"
-              data-selected={form.executionMode === opt.value ? 'true' : undefined}
-              style={{ borderColor: form.executionMode === opt.value ? 'var(--accent)' : 'var(--border-subtle)', background: form.executionMode === opt.value ? 'var(--accent-subtle)' : 'transparent' }}
-            >
-              <div className="font-medium" style={{ color: 'var(--text-primary)' }}>{opt.label}</div>
-              <div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{opt.desc}</div>
-            </button>
-          ))}
-        </div>
-        </SettingRow>
-      </SettingCard>
-      <SettingCard>
-        <SettingRow label="自定义规则" description="明确的命令、工具或路径规则可以覆盖默认审批方式；保存后立即交给权限引擎。" scope="实时生效" stacked>
-        <PermissionRulesEditor
-          value={form.permissionRules}
-          onChange={(json) => update('permissionRules', json)}
-        />
-        </SettingRow>
-      </SettingCard>
+    <div className="space-y-4">
+      <SettingsPageHeader title="权限与自动化" description="让你决定 Agent 什么时候先问你、什么时候按计划推进；越高风险的能力越应该明确。" />
+      <PermissionSettingsContent mode={form.executionMode} onModeChange={value => savePermissionSetting('executionMode', value)}
+        rules={form.permissionRules} onRulesChange={value => savePermissionSetting('permissionRules', value)} />
     </div>
   )
 

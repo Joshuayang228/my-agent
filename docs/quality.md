@@ -255,3 +255,4 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 - 图片理解路由门禁：模型配置单测覆盖 image 路由解析；Runtime 仅对带图片的用户消息选择 image，普通消息和无有效 image 路由均保持 primary 回退。
 
 - UI E2E 设置契约：正式模型页断言 Playground 回流后的连接清单、用途安排和折叠高级设置，不再依赖已移除的旧 Provider / 单连接表单；全量 UI 96/96 通过。
+- 设置候选与正式页的卡片、设置行、范围徽标、标题和开关必须来自 `src/components/settings/SettingsFields.tsx`；禁止在 `src/components/playground/SettingsExperienceCandidate.tsx` 重新实现同类视觉控件。正式权限页的折叠交互使用真实 `PermissionRulesEditor`，候选 fixture 不能作为生产行为证据。

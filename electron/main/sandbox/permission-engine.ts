@@ -62,39 +62,53 @@ const compiledRulePatterns = new Map<string, RegExp>()
 const MAX_PERMISSION_RULES = 100
 const MAX_PERMISSION_PATTERN_LENGTH = 512
 
-/** 加载用户自定义规则（从设置 JSON 字符串解析） */
+/** 保存先做无副作用校验，避免写盘成功但规则被容错载入忽略；启动恢复仍保留旧容错边界。 */
+export function validatePermissionRules(rulesJson: string): void {
+  parseRules(rulesJson, true)
+}
+
+function parseRules(rulesJson: string, strict: boolean): PermissionRule[] {
+  let parsed: unknown
+  try { parsed = JSON.parse(rulesJson) } catch { throw new Error('规则格式无效，请检查后重试') }
+  if (!Array.isArray(parsed)) throw new Error('规则必须是列表')
+  if (strict && parsed.length > MAX_PERMISSION_RULES) throw new Error('最多保存 100 条规则')
+  const result: PermissionRule[] = []
+  const ids = new Set<string>()
+  for (const item of parsed.slice(0, MAX_PERMISSION_RULES)) {
+    const candidate = item as Partial<PermissionRule> | null
+    let error = ''
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)
+      || typeof candidate.id !== 'string' || !candidate.id.trim() || candidate.id.length > 200
+      || !PERMISSION_RULE_TYPES.includes(candidate.type as PermissionRuleType)
+      || !PERMISSION_RULE_ACTIONS.includes(candidate.action as RuleAction)
+      || typeof candidate.pattern !== 'string' || !candidate.pattern.trim()
+      || candidate.pattern.length > MAX_PERMISSION_PATTERN_LENGTH) error = '规则内容无效，匹配内容需为 1 至 512 个字符'
+    else if (ids.has(candidate.id)) error = '规则标识重复，请重新添加'
+    else if (isUnsafeRegexShape(candidate.pattern)) error = '匹配表达式过于复杂，请简化后重试'
+    else {
+      try { new RegExp(candidate.pattern, 'i') } catch { error = '匹配表达式无效，请检查括号和转义' }
+      if (strict && candidate.description !== undefined && (typeof candidate.description !== 'string' || candidate.description.length > 500)) error = '规则说明不能超过 500 个字符'
+      if (strict && candidate.enabled !== undefined && typeof candidate.enabled !== 'boolean') error = '规则启用状态无效'
+    }
+    if (error) {
+      if (strict) throw new Error(error)
+      continue
+    }
+    const rule = candidate as PermissionRule
+    ids.add(rule.id)
+    result.push({ id: rule.id, type: rule.type, pattern: rule.pattern, action: rule.action,
+      description: typeof rule.description === 'string' ? rule.description.slice(0, 500) : undefined, enabled: rule.enabled !== false })
+  }
+  return result
+}
+
+/** 旧配置恢复容错，写入入口先调用严格校验；两条路径使用同一规则解析，避免保存与执行漂移。 */
 export function loadRules(rulesJson: string): void {
   userRules.length = 0
   compiledRulePatterns.clear()
   try {
-    const parsed = JSON.parse(rulesJson)
-    if (Array.isArray(parsed)) {
-      for (const rule of parsed.slice(0, MAX_PERMISSION_RULES)) {
-        if (!rule || typeof rule !== 'object') continue
-        const candidate = rule as Record<string, unknown>
-        if (typeof candidate.id !== 'string' || candidate.id.length === 0 || candidate.id.length > 200
-          || !PERMISSION_RULE_TYPES.includes(candidate.type as PermissionRuleType)
-          || !PERMISSION_RULE_ACTIONS.includes(candidate.action as RuleAction)
-          || typeof candidate.pattern !== 'string'
-          || candidate.pattern.length === 0 || candidate.pattern.length > MAX_PERMISSION_PATTERN_LENGTH) continue
-        if (isUnsafeRegexShape(candidate.pattern)) continue
-        try {
-          const compiled = new RegExp(candidate.pattern, 'i')
-          const normalized: PermissionRule = {
-            id: candidate.id,
-            type: candidate.type as PermissionRuleType,
-            pattern: candidate.pattern,
-            action: candidate.action as RuleAction,
-            description: typeof candidate.description === 'string' ? candidate.description.slice(0, 500) : undefined,
-            enabled: candidate.enabled !== false,
-          }
-          userRules.push(normalized)
-          compiledRulePatterns.set(normalized.id, compiled)
-        } catch {
-          log.warn('Invalid rule pattern', { ruleId: hashForLog(candidate.id), patternHash: hashForLog(candidate.pattern) })
-        }
-      }
-    }
+    userRules.push(...parseRules(rulesJson, false))
+    for (const rule of userRules) compiledRulePatterns.set(rule.id, new RegExp(rule.pattern, 'i'))
     log.info('Permission rules loaded', { count: userRules.length })
   } catch {
     log.warn('Failed to parse permission rules')

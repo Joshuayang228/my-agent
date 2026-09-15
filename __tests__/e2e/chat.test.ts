@@ -3360,6 +3360,24 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('选择一个 Skill', { exact: true })).toBeVisible()
   })
 
+  test('正式权限页沿用 Playground 的自定义规则折叠交互', async ({ page }) => {
+    await page.goto('/')
+
+    await page.click('button[title="设置"]')
+    await page.getByTestId('settings-nav-permissions').click()
+    const toggle = page.getByTestId('settings-permission-rules-toggle')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await expect(page.getByRole('button', { name: '添加', exact: true })).toHaveCount(0)
+
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    await expect(page.getByRole('button', { name: '添加', exact: true })).toBeVisible()
+
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await expect(page.getByRole('button', { name: '添加', exact: true })).toHaveCount(0)
+  })
+
   for (const theme of ['song-smoke', 'yao-stone']) {
     for (const width of [1166, 600]) {
       test(`正式相处偏好保存失败与恢复 ${theme} ${width}`, async ({ page }, testInfo) => {

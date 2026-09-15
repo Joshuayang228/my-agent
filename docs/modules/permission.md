@@ -72,6 +72,7 @@
 | 确认 ≠ 绕过沙箱 | 已落地 | 拦截文案明示改路径或对话页「完全访问」 |
 | `permissionRules` 热更新 | 已落地 | settings |
 | 权限规则可视化编辑器 | 已落地 | 设置「安全与权限」· `PermissionRulesEditor` |
+| 权限规则 demo 回流 | 已落地 | 正式与 Playground 共用 `PermissionSettingsContent` / `PermissionRulesEditor`；草稿保存前由主进程严格校验 |
 | 自定义规则交互候选 | 已落地（仅 Playground，未回流） | `SettingsExperienceCandidate` · 默认收起；展开显示独立规则卡片，外层仅作无卡片折叠分组；添加入口位于列表下方，二次点击向下展开表单；固定尺寸入口原位切换“添加 / 取消添加”，展开与取消不改变已有规则和入口位置；保存追加到本地列表、取消不写入，空白禁存；不调用真实权限 IPC |
 | 原生文件操作规则 | 已落地 | `file-tool-permission.ts` · 修改 / 删除 / 旧 path，Loop 与 Debug 确认、Registry 执行前复核；目录扫描有界，凭据按调用一次性消费 |
 | 权限与沙箱生产资产目录 | 已落地 | `sandbox/asset-registry.ts` · Debug「提示词管理器 → 权限与沙箱」 |

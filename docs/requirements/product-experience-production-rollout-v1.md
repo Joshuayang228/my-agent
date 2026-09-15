@@ -193,3 +193,8 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 最大风险是把文档已落地、fixture 可交互、注册表标记和局部测试混为全产品完成，用逐项正式入口证据约束结论。模型 / MCP / 记忆 / 生活数据的生产契约比视觉迁移更大，保留既有安全及持久化边界，按完整业务单元补齐，不为视觉统一绕过后端。长期上下文恢复从本合同与 Progress 开始，不能只挑最近工作区提交继续。
 
 - 2026-09-14 R12 文化角批次：复用 `companion_assets` 的 `role_id` 隔离链路，新增 `culture` kind 与稳定 starter 资产（读书 / 音乐 / 电影 / 摄影），正式 `WorldDetailsPanel` 通过真实 `companion:get-assets` 读取；未新增第二份文化数据库。家居与足迹仍保留为已有世界状态 / 生活事件的只读派生面，尚未宣称独立后端完成。
+### R08 权限页面回流
+
+本批按已确认 demo 替换正式权限页：默认审批卡、自定义规则折叠、独立规则卡、列表后固定添加 / 取消槽及向下展开的草稿。正式和 Playground 共用 PermissionSettingsContent / PermissionRulesEditor；Playground 只更新本地规则。删除旧铺开字段和高级 JSON UI，不删除旧 tool / path 规则数据或执行能力。新增只提供命令 / 修改文件 / 删除文件，已有其它类型保留可编辑、停用与删除。
+
+允许修改：上述组件、SettingsPanel 和 SettingsExperienceCandidate 接入、Foundation SelectField 与既有选择故事 / 注册来源、permission-rules 表单解析、permission-engine 的纯校验 / 载入复用、settings IPC 写盘前校验、对应 Unit / UI / Electron 测试及模块 / 质量 / 账本文档。不改 IPC 形状、MCP、存储迁移或执行优先级；无新依赖。新增草稿不进入自动保存队列，保存失败保留草稿与原规则，重试不重复写入。主进程在写盘前拒绝超量、重复 ID、无效或不安全正则；旧载入仍兼容容错。验证覆盖正式入口、候选隔离、四主题宽窄、hover 几何、添加 / 取消 / 编辑 / 停用 / 删除、失败和重启恢复。
