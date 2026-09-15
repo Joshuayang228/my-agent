@@ -3056,6 +3056,194 @@ test.describe('My Agent UI', () => {
     await expect(page.getByTestId('memory-group-relationship')).toContainText('3')
   })
 
+  for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
+    for (const width of [1166, 600]) {
+      test(`正式记忆长文编辑与失败恢复 ${theme} ${width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 731 })
+        await installProductionElectronStub(page)
+        await page.addInitScript((themeId) => {
+          localStorage.setItem('theme', themeId)
+          const api = (window as any).electronAPI
+          const harness = {
+            entries: [{ id: 'long-memory', category: 'fact', content: '讨论产品时先把用户目标和真实边界讲清楚，再给建议。\n'.repeat(12), createdAt: 1788220800000, updatedAt: 1788220800000 }],
+            updates: [] as string[],
+            fail: true,
+            release: null as null | (() => void),
+          }
+          ;(window as any).__memoryTest = harness
+          api.memory = {
+            list: async () => harness.entries.map((entry) => ({ ...entry })),
+            update: async (_id: string, content: string) => {
+              harness.updates.push(content)
+              await new Promise<void>((resolve) => { harness.release = resolve })
+              if (harness.fail) throw new Error('private storage failure')
+              harness.entries[0].content = content
+            },
+          }
+          api.mcp.status = async () => []
+        }, theme)
+        await page.goto('/')
+        await page.locator('button[title="设置"]').click()
+        await (width < 768 ? page.getByRole('tab', { name: '记忆', exact: true }) : page.getByTestId('settings-nav-memory')).click()
+        const item = page.getByTestId('memory-item-long-memory')
+        const controls = item.getByTestId('memory-item-controls-long-memory')
+        const geometry = () => item.evaluate((node) => {
+          const box = node.getBoundingClientRect()
+          const slot = node.querySelector('[data-testid^="memory-item-controls-"]')!.getBoundingClientRect()
+          return { width: box.width, height: box.height, slotX: slot.x, slotY: slot.y, slotWidth: slot.width, slotHeight: slot.height }
+        })
+        await page.mouse.move(0, 0)
+        const beforeHover = await geometry()
+        await item.hover()
+        await expect(item.getByTestId('memory-item-date-long-memory')).toHaveCSS('opacity', '0')
+        expect(await geometry()).toEqual(beforeHover)
+        await item.getByRole('button', { name: /^编辑记忆 / }).click()
+        const editor = item.locator('textarea')
+        await expect(editor).toBeFocused()
+        await editor.fill('缩短之后仍然保留多行编辑。\n第二行内容。')
+        await expect(editor).toBeFocused()
+        await expect(item.locator('input')).toHaveCount(0)
+        const save = controls.getByRole('button', { name: /^保存记忆 / })
+        const controlBox = await controls.boundingBox()
+        await save.click()
+        await expect(save).toBeDisabled()
+        await expect(controls.getByRole('button', { name: /^取消编辑 / })).toBeDisabled()
+        expect(await controls.boundingBox()).toEqual(controlBox)
+        await page.evaluate(() => (window as any).__memoryTest.release())
+        await expect(page.getByRole('alert')).toContainText('记忆未保存')
+        await expect(page.getByRole('alert')).not.toContainText('private storage')
+        await expect(editor).toHaveValue('缩短之后仍然保留多行编辑。\n第二行内容。')
+        await expect(save).toBeEnabled()
+        await page.screenshot({ path: testInfo.outputPath('memory-save-failed.png'), animations: 'disabled' })
+        await page.evaluate(() => { (window as any).__memoryTest.fail = false })
+        await save.click()
+        await expect.poll(() => page.evaluate(() => (window as any).__memoryTest.updates.length)).toBe(2)
+        await page.evaluate(() => (window as any).__memoryTest.release())
+        await expect(editor).toHaveCount(0)
+        await expect(item).toContainText('第二行内容。')
+        await expect(page.getByRole('alert')).toHaveCount(0)
+        expect(await item.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
+        await page.screenshot({ path: testInfo.outputPath('memory-saved.png'), animations: 'disabled' })
+      })
+    }
+  }
+
+  test('正式记忆新增删除防重入与独立刷新', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      const state = { entries: [] as any[], failRead: true, failWrite: true, reads: 0, adds: 0, deletes: 0, release: null as null | (() => void) }
+      ;(window as any).__memoryCrud = state
+      api.memory = {
+        list: async () => { state.reads++; if (state.failRead) throw new Error('private list error'); return state.entries.map((entry) => ({ ...entry })) },
+        add: async (category: string, content: string) => {
+          state.adds++
+          await new Promise<void>((resolve) => { state.release = resolve })
+          if (state.failWrite) throw new Error('private write error')
+          const entry = { id: 'added-memory', category, content, createdAt: 1788220800000, updatedAt: 1788220800000 }
+          state.entries.push(entry)
+          state.failRead = true
+          return entry
+        },
+        delete: async () => {
+          state.deletes++
+          await new Promise<void>((resolve) => { state.release = resolve })
+          if (state.failWrite) throw new Error('private delete error')
+          state.entries = []
+        },
+      }
+      api.mcp.status = async () => []
+    })
+    await page.goto('/')
+    await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-memory').click()
+    await expect(page.getByRole('alert')).toContainText('记忆列表未能刷新')
+    await expect(page.getByText('还没有任何记忆。和 Agent 对话后会自动提取，也可以手动添加。')).toHaveCount(0)
+    await page.evaluate(() => { (window as any).__memoryCrud.failRead = false })
+    await page.getByRole('button', { name: '重新读取', exact: true }).click()
+    await expect(page.getByRole('alert')).toHaveCount(0)
+    await page.getByRole('button', { name: '+ 添加', exact: true }).click()
+    const input = page.getByPlaceholder('输入记忆内容...')
+    await input.fill('每次讨论先给结论，再讲依据。')
+    const save = page.getByRole('button', { name: '保存', exact: true })
+    await page.getByRole('button', { name: '反馈', exact: true }).click()
+    await page.evaluate(() => { (window as any).electronAPI.companion.getActive = async () => { throw new Error('private role failure') } })
+    await save.click()
+    await expect(page.getByRole('alert')).toContainText('记忆未添加')
+    expect(await page.evaluate(() => (window as any).__memoryCrud.adds)).toBe(0)
+    await expect(input).toHaveValue('每次讨论先给结论，再讲依据。')
+    await page.getByRole('button', { name: '事实', exact: true }).click()
+    await save.evaluate((node: HTMLButtonElement) => { node.click(); node.click() })
+    await expect(save).toBeDisabled()
+    expect(await page.evaluate(() => (window as any).__memoryCrud.adds)).toBe(1)
+    await page.evaluate(() => (window as any).__memoryCrud.release())
+    await expect(page.getByRole('alert')).toContainText('记忆未添加')
+    await expect(input).toHaveValue('每次讨论先给结论，再讲依据。')
+    await page.evaluate(() => { (window as any).__memoryCrud.failWrite = false })
+    await save.click()
+    await expect.poll(() => page.evaluate(() => (window as any).__memoryCrud.adds)).toBe(2)
+    await page.evaluate(() => (window as any).__memoryCrud.release())
+    const item = page.getByTestId('memory-item-added-memory')
+    await expect(item).toContainText('每次讨论先给结论')
+    await expect(page.getByRole('alert')).toContainText('记忆列表未能刷新')
+    await expect(input).toHaveCount(0)
+    await page.evaluate(() => { (window as any).__memoryCrud.failRead = false })
+    await page.getByRole('button', { name: '重新读取', exact: true }).click()
+    await expect(page.getByRole('alert')).toHaveCount(0)
+    expect(await page.evaluate(() => (window as any).__memoryCrud.adds)).toBe(2)
+    await item.hover()
+    await item.getByRole('button', { name: /^删除记忆 / }).click()
+    const remove = item.getByRole('button', { name: /^确认删除记忆 / })
+    await page.evaluate(() => { (window as any).__memoryCrud.failWrite = true })
+    await remove.evaluate((node: HTMLButtonElement) => { node.click(); node.click() })
+    await expect(remove).toBeDisabled()
+    expect(await page.evaluate(() => (window as any).__memoryCrud.deletes)).toBe(1)
+    await page.evaluate(() => (window as any).__memoryCrud.release())
+    await expect(page.getByRole('alert')).toContainText('记忆未删除')
+    await expect(item).toBeVisible()
+    await item.getByRole('button', { name: /^取消删除 / }).click()
+    await expect(page.getByRole('alert')).toHaveCount(0)
+    await item.getByRole('button', { name: /^删除记忆 / }).click()
+    await page.evaluate(() => { (window as any).__memoryCrud.failWrite = false })
+    await remove.click()
+    await expect.poll(() => page.evaluate(() => (window as any).__memoryCrud.deletes)).toBe(2)
+    await page.evaluate(() => (window as any).__memoryCrud.release())
+    await expect(item).toHaveCount(0)
+    await expect(page.getByRole('alert')).toHaveCount(0)
+  })
+
+  test('正式记忆离页后的迟到保存不清空新草稿', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      const state = { reads: 0, release: null as null | (() => void) }
+      ;(window as any).__lateMemory = state
+      api.memory = {
+        list: async () => { state.reads++; return [{ id: 'late', category: 'fact', content: '原有记忆内容', createdAt: 1, updatedAt: 1 }] },
+        update: async () => new Promise<void>((resolve) => { state.release = resolve }),
+      }
+      api.mcp.status = async () => []
+    })
+    await page.goto('/')
+    await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-memory').click()
+    const item = page.getByTestId('memory-item-late')
+    await item.hover()
+    await item.getByRole('button', { name: /^编辑记忆 / }).click()
+    await item.locator('input').fill('尚未返回的提交')
+    await item.getByRole('button', { name: /^保存记忆 / }).click()
+    await expect(item.getByRole('button', { name: /^保存记忆 / })).toBeDisabled()
+    await page.getByTestId('settings-nav-appearance').click()
+    await page.getByTestId('settings-nav-memory').click()
+    await item.hover()
+    await item.getByRole('button', { name: /^编辑记忆 / }).click()
+    await item.locator('input').fill('重新进入后尚未提交的草稿')
+    const reads = await page.evaluate(() => (window as any).__lateMemory.reads)
+    await page.evaluate(async () => { (window as any).__lateMemory.release(); await new Promise((resolve) => setTimeout(resolve, 100)) })
+    expect(await page.evaluate(() => (window as any).__lateMemory.reads)).toBe(reads)
+    await expect(item.locator('input')).toHaveValue('重新进入后尚未提交的草稿')
+  })
+
   test('Skills 管理页统一为 Playground 列表详情样式', async ({ page }) => {
     await page.goto('/')
 

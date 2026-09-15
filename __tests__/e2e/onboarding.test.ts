@@ -521,3 +521,49 @@ test('切换主会话清理真实侧聊流与存储，新侧聊独立发送', as
     await page.evaluate(() => (window as any).__parentSwitchUnsubscribe())
   }
 })
+
+test('正式记忆经真实 IPC 增改、完整重启恢复和删除', async () => {
+  await page.evaluate(async (url) => {
+    await window.electronAPI.settings.set('llmApiKey', 'local-test-key')
+    await window.electronAPI.settings.set('llmBaseUrl', url)
+    await window.electronAPI.settings.set('llmModel', 'local-test-model')
+  }, baseUrl)
+  await page.reload()
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  await page.locator('button[title="设置"]').click()
+  await page.getByTestId('settings-nav-memory').click()
+  await page.getByRole('button', { name: '+ 添加', exact: true }).click()
+  const original = '真实重启验收：讨论产品前需要确认目标与边界。'.repeat(12)
+  await page.getByPlaceholder('输入记忆内容...').fill(original)
+  await page.getByRole('button', { name: '保存', exact: true }).click()
+  await expect.poll(async () => (await page.evaluate(() => window.electronAPI.memory.list())).filter((memory) => memory.content === original).length).toBe(1)
+  const entry = (await page.evaluate(() => window.electronAPI.memory.list())).find((memory) => memory.content === original)!
+  const item = page.getByTestId(`memory-item-${entry.id}`)
+  await item.hover()
+  await item.getByRole('button', { name: /^编辑记忆 / }).click()
+  const updated = '真实重启后仍应保留这条记忆。\n并且保留第二行。'
+  await item.locator('textarea').fill(updated)
+  await item.getByRole('button', { name: /^保存记忆 / }).click()
+  await expect(item.locator('textarea')).toHaveCount(0)
+  await expect.poll(async () => (await page.evaluate(() => window.electronAPI.memory.list())).find((memory) => memory.id === entry.id)?.content).toBe(updated)
+
+  // 此处完整退出进程后复用隔离目录，不能以 page.reload 代替磁盘恢复证据。
+  await electronApp.close()
+  electronApp = await electron.launch({
+    args: [path.join(__dirname, '../../dist-electron/index.js'), `--user-data-dir=${userDataDir}`, '--no-sandbox'],
+    env: { ...process.env, NODE_ENV: 'production', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' },
+  })
+  page = await electronApp.firstWindow()
+  await page.waitForLoadState('domcontentloaded')
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  await page.locator('button[title="设置"]').click()
+  await page.getByTestId('settings-nav-memory').click()
+  const restored = page.getByTestId(`memory-item-${entry.id}`)
+  await expect(restored).toContainText('并且保留第二行。')
+  expect((await page.evaluate(() => window.electronAPI.memory.list())).find((memory) => memory.id === entry.id)?.content).toBe(updated)
+  await restored.hover()
+  await restored.getByRole('button', { name: /^删除记忆 / }).click()
+  await restored.getByRole('button', { name: /^确认删除记忆 / }).click()
+  await expect(restored).toHaveCount(0)
+  expect((await page.evaluate(() => window.electronAPI.memory.list())).some((memory) => memory.id === entry.id)).toBe(false)
+})

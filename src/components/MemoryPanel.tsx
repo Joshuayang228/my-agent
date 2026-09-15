@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { ActionButton } from './foundation/ActionButton'
+import { IconButton } from './foundation/IconButton'
 import type { MemoryCategory, MemoryEntry } from '../shared/types'
 import {
   detectSensitiveKinds,
   formatSensitiveCollectionHint,
   labelSensitiveKinds,
 } from '../shared/sensitive-memory'
-import { User, Settings, MessageCircle, Star, Pin, Brain, X, ThumbsUp, ShieldAlert, Pencil, Trash2, Check } from 'lucide-react'
+import { User, Settings, MessageCircle, Star, Pin, Brain, X, ThumbsUp, ShieldAlert, Pencil, Trash2, Check, LoaderCircle } from 'lucide-react'
 
 type MemoryColor = 'accent' | 'warm' | 'success' | 'muted'
 
@@ -78,6 +80,10 @@ export function MemoryPanel({
   const [editContent, setEditContent] = useState(
     previewMemories?.find((memory) => memory.id === previewEditingId)?.content ?? '',
   )
+  const [multilineEdit, setMultilineEdit] = useState(() => {
+    const content = previewMemories?.find((memory) => memory.id === previewEditingId)?.content ?? ''
+    return content.length > 80 || content.includes('\n')
+  })
   const [adding, setAdding] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const [newCategory, setNewCategory] = useState<MemoryCategory>('fact')
@@ -88,18 +94,62 @@ export function MemoryPanel({
   const isProductMemory = !isPreview
   const useCompactLayout = isCompactPreview || isProductMemory
   const canEdit = !readOnly && (isPreviewInteractive || !isPreview)
+  const [busy, setBusy] = useState(false)
+  const [loading, setLoading] = useState(!isPreview)
+  const [readError, setReadError] = useState('')
+  const [writeError, setWriteError] = useState('')
+  const writing = useRef(false)
+  const readVersion = useRef(0)
+  const mounted = useRef(false)
+
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false; readVersion.current += 1 }
+  }, [])
 
   const loadMemories = useCallback(async () => {
-    if (previewMemories) {
+    if (previewMemories !== undefined) {
       setMemories(previewMemories)
       return
     }
-    if (!window.electronAPI) return
-    const list = await window.electronAPI.memory.list()
-    setMemories(list as MemoryEntry[])
+    const version = ++readVersion.current
+    setLoading(true)
+    setReadError('')
+    try {
+      if (!window.electronAPI?.memory) throw new Error('Memory bridge unavailable')
+      const list = await window.electronAPI.memory.list()
+      if (mounted.current && version === readVersion.current) setMemories(list as MemoryEntry[])
+    } catch {
+      if (mounted.current && version === readVersion.current) setReadError('记忆列表未能刷新，已有内容仍保留。请重试。')
+    } finally {
+      if (mounted.current && version === readVersion.current) setLoading(false)
+    }
   }, [previewMemories])
 
-  useEffect(() => { loadMemories() }, [loadMemories])
+  useEffect(() => { void loadMemories() }, [loadMemories])
+
+  /**
+   * 背景：真实 IPC 不像样张同步结束，连点会重复写入，迟到响应可能清空新的编辑稿。
+   * 意图：写入期间锁住本面板，拒绝重入；成功后再刷新，刷新失败只允许重读。
+   * 约束：失败不退出草稿；卸载后不能刷新或修改状态，旧列表响应不能覆盖刚完成的写入。
+   */
+  const mutate = async (action: () => Promise<void>, message: string) => {
+    if (writing.current || !mounted.current) return
+    writing.current = true
+    readVersion.current += 1
+    setLoading(false)
+    setBusy(true)
+    setWriteError('')
+    try {
+      await action()
+      if (mounted.current) await loadMemories()
+    } catch {
+      if (mounted.current) setWriteError(message)
+    } finally {
+      writing.current = false
+      if (mounted.current) setBusy(false)
+    }
+  }
 
   const addSensitiveKinds = useMemo(
     () => detectSensitiveKinds(newContent),
@@ -107,27 +157,29 @@ export function MemoryPanel({
   )
 
   const handleAdd = async () => {
-    if (readOnly || !window.electronAPI || !newContent.trim()) return
+    if (readOnly || isPreview || !window.electronAPI || !newContent.trim() || writing.current) return
     const kinds = detectSensitiveKinds(newContent)
     if (kinds.length > 0) {
       const ok = window.confirm(formatSensitiveCollectionHint(kinds))
       if (!ok) return
     }
-    let roleId: string | undefined
-    if (newCategory === 'feedback' && window.electronAPI.companion?.getActive) {
-      try {
+    await mutate(async () => {
+      let roleId: string | undefined
+      if (newCategory === 'feedback') {
         const active = await window.electronAPI.companion.getActive()
         roleId = active?.id
-      } catch { /* ignore */ }
-    }
-    await window.electronAPI.memory.add(newCategory, newContent.trim(), roleId)
-    setNewContent('')
-    setAdding(false)
-    await loadMemories()
+        if (!roleId) throw new Error('Active companion unavailable')
+      }
+      const entry = await window.electronAPI.memory.add(newCategory, newContent.trim(), roleId)
+      if (!mounted.current) return
+      setMemories((current) => [...current.filter((memory) => memory.id !== entry.id), entry as MemoryEntry])
+      setNewContent('')
+      setAdding(false)
+    }, '记忆未添加，内容仍保留。请重试。')
   }
 
   const handleDelete = async (id: string) => {
-    if (!canEdit) return
+    if (!canEdit || writing.current) return
     if (isPreviewInteractive) {
       setMemories((current) => current.filter((memory) => memory.id !== id))
       if (editing === id) setEditing(null)
@@ -135,13 +187,17 @@ export function MemoryPanel({
       return
     }
     if (!window.electronAPI) return
-    await window.electronAPI.memory.delete(id)
-    await loadMemories()
+    await mutate(async () => {
+      await window.electronAPI.memory.delete(id)
+      if (!mounted.current) return
+      setMemories((current) => current.filter((memory) => memory.id !== id))
+      setPendingDelete(null)
+    }, '记忆未删除，请重试或取消。')
   }
 
   const handleSaveEdit = async (id: string) => {
     const content = editContent.trim()
-    if (!canEdit || !content) return
+    if (!canEdit || !content || writing.current) return
     if (isPreviewInteractive) {
       setMemories((current) => current.map((memory) => (
         memory.id === id ? { ...memory, content, updatedAt: Date.now() } : memory
@@ -150,15 +206,22 @@ export function MemoryPanel({
       return
     }
     if (!window.electronAPI) return
-    await window.electronAPI.memory.update(id, content)
-    setEditing(null)
-    await loadMemories()
+    await mutate(async () => {
+      await window.electronAPI.memory.update(id, content)
+      if (!mounted.current) return
+      setMemories((current) => current.map((memory) => memory.id === id ? { ...memory, content } : memory))
+      setEditing(null)
+    }, '记忆未保存，修改仍保留。请重试。')
   }
 
   const startEdit = (mem: MemoryEntry) => {
+    if (writing.current) return
+    setWriteError('')
     setPendingDelete(null)
     setEditing(mem.id)
     setEditContent(mem.content)
+    // 长文删短时保持同一编辑器，避免重新挂载 input 丢失焦点；下一次编辑才重新选择形态。
+    setMultilineEdit(mem.content.length > 80 || mem.content.includes('\n'))
   }
 
   const filtered = filter === 'all' ? memories : memories.filter(m => m.category === filter)
@@ -168,7 +231,7 @@ export function MemoryPanel({
   }, {} as Record<string, number>)
 
   return (
-    <div className="flex h-full flex-col">
+    <fieldset disabled={busy} aria-busy={busy || loading} className="m-0 flex h-full min-h-0 min-w-0 flex-col border-0 p-0">
         {!previewCompact && (
           <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border-color)' }}>
             <div className="flex items-center gap-2">
@@ -286,9 +349,14 @@ export function MemoryPanel({
           </div>
         )}
 
+        {(readError || writeError) && <div role="alert" className="flex shrink-0 items-center gap-2 px-4 py-2 text-xs" style={{ color: 'var(--danger)' }}>
+          <span className="min-w-0 flex-1">{writeError || readError}</span>
+          {readError && !writeError && <ActionButton onClick={() => void loadMemories()} disabled={loading}>重新读取</ActionButton>}
+        </div>}
+        {loading && <div role="status" className="px-4 py-2 text-xs" style={{ color: 'var(--text-muted)' }}>正在读取记忆…</div>}
         {/* Memory List */}
         <div className={isCompactPreview ? 'flex-1 overflow-y-auto' : 'flex-1 overflow-y-auto px-5 py-3'}>
-          {filtered.length === 0 ? (
+          {filtered.length === 0 && (loading || readError) ? null : filtered.length === 0 ? (
             isCompactPreview ? (
               <div className="rounded-[var(--radius-lg)] border px-4 py-8 text-center text-[13px]" style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)', color: 'var(--text-muted)' }}>
                 {memories.length === 0 ? '还没有任何记忆。' : '该分类下暂无记忆'}
@@ -382,11 +450,11 @@ export function MemoryPanel({
                     <div className={useCompactLayout ? 'grid grid-cols-[minmax(0,1fr)_5.5rem] items-start gap-3' : undefined}>
                     {isEditing ? (
                       useCompactLayout ? (
-                        editContent.length > 80 ? (
+                        multilineEdit ? (
                           <textarea
                             value={editContent}
                             onChange={e => setEditContent(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Escape') setEditing(null) }}
+                            onKeyDown={e => { if (e.key === 'Escape' && !writing.current) setEditing(null) }}
                             autoFocus
                             readOnly={!canEdit}
                             rows={Math.min(10, Math.max(4, Math.ceil(editContent.length / 45)))}
@@ -399,7 +467,7 @@ export function MemoryPanel({
                             onChange={e => setEditContent(e.target.value)}
                             onKeyDown={e => {
                               if (e.key === 'Enter') handleSaveEdit(mem.id)
-                              if (e.key === 'Escape') setEditing(null)
+                              if (e.key === 'Escape' && !writing.current) setEditing(null)
                             }}
                             autoFocus
                             readOnly={!canEdit}
@@ -448,18 +516,18 @@ export function MemoryPanel({
                       </span>
                       {canEdit && (isEditing ? (
                         <div className="absolute inset-0 flex items-center justify-end gap-1">
-                          <button type="button" aria-label={`保存记忆 ${editContent || mem.content}`} title="保存" onClick={() => handleSaveEdit(mem.id)} disabled={!editContent.trim()} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)] disabled:opacity-40" style={{ color: 'var(--accent-fg)' }}><Check size={14} /></button>
-                          <button type="button" aria-label={`取消编辑 ${mem.content}`} title="取消" onClick={() => setEditing(null)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><X size={14} /></button>
+                          <IconButton size={32} label={`保存记忆 ${editContent || mem.content}`} title={busy ? '正在保存' : '保存'} onClick={() => void handleSaveEdit(mem.id)} disabled={!editContent.trim() || busy} className="transition hover:bg-[var(--hover-overlay)] disabled:opacity-40" style={{ color: 'var(--accent-fg)' }}>{busy ? <LoaderCircle size={14} className="animate-spin" /> : <Check size={14} />}</IconButton>
+                          <IconButton size={32} label={`取消编辑 ${mem.content}`} title="取消" onClick={() => { setEditing(null); setWriteError('') }} className="transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><X size={14} /></IconButton>
                         </div>
                       ) : pendingDelete === mem.id ? (
                         <div className="absolute inset-0 flex items-center justify-end gap-1" data-testid={`memory-delete-confirm-${mem.id}`}>
-                          <button type="button" aria-label={`确认删除记忆 ${mem.content}`} title="确认删除" onClick={() => handleDelete(mem.id)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--danger)' }}><Check size={14} /></button>
-                          <button type="button" aria-label={`取消删除 ${mem.content}`} title="取消删除" onClick={() => setPendingDelete(null)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><X size={14} /></button>
+                          <IconButton size={32} label={`确认删除记忆 ${mem.content}`} title={busy ? '正在删除' : '确认删除'} onClick={() => void handleDelete(mem.id)} className="transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--danger)' }}>{busy ? <LoaderCircle size={14} className="animate-spin" /> : <Check size={14} />}</IconButton>
+                          <IconButton size={32} label={`取消删除 ${mem.content}`} title="取消删除" onClick={() => { setPendingDelete(null); setWriteError('') }} className="transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><X size={14} /></IconButton>
                         </div>
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-end gap-1 opacity-0 transition group-hover/memory-item:opacity-100 group-focus-within/memory-item:opacity-100" data-testid={`memory-item-actions-${mem.id}`}>
-                          <button type="button" aria-label={`编辑记忆 ${mem.content}`} title="编辑" onClick={() => startEdit(mem)} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><Pencil size={14} /></button>
-                          <button type="button" aria-label={`删除记忆 ${mem.content}`} title="删除" onClick={() => { setEditing(null); setPendingDelete(mem.id) }} className="inline-flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--danger)' }}><Trash2 size={14} /></button>
+                          <IconButton size={32} label={`编辑记忆 ${mem.content}`} title="编辑" onClick={() => startEdit(mem)} className="transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><Pencil size={14} /></IconButton>
+                          <IconButton size={32} label={`删除记忆 ${mem.content}`} title="删除" onClick={() => { setEditing(null); setWriteError(''); setPendingDelete(mem.id) }} className="transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--danger)' }}><Trash2 size={14} /></IconButton>
                         </div>
                       ))}
                     </div>}
@@ -518,6 +586,6 @@ export function MemoryPanel({
             ? '这是 Playground 的隔离样张；在“纠正记忆”中试改不会保存到正式记忆。'
             : '记忆会注入到每次对话的 System Prompt 中 · 敏感项（健康/财务/凭据等）会高亮，勿存密码原文'}
         </div>}
-    </div>
+    </fieldset>
   )
 }
