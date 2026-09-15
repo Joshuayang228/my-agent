@@ -11,7 +11,7 @@ MCP 传输验证使用真实 SDK 服务和正式 Manager：回环 Streamable HTT
 
 正式添加向导 Renderer 回归覆盖四主题 × 1166 / 600px：填写远程 URL、测试成功不提前取消、空白名单保存、持久化失败重试；另测取消失败恢复、迟到响应隔离、修改后失效、重新测试、固定按钮尺寸，以及已保存但刷新失败仅重试刷新。IPC 使用受控替身，不能替代真实 Electron 链路。Playground 通过 `McpConnectionPreview` 注入隔离 actions，实际渲染同一 `McpConnectionForm`；注册表测试核验 JSX 调用，未使用 import 和本地假同名组件均不能通过。
 
-`mcp-connection-form` Unit 覆盖草稿校验与本地参数 / 环境值保真；`mcp-connection-tests` 使用真实本地 SDK 服务覆盖确认拒绝、工具发现、白名单拒绝、保存失败重试、接管后调用、同窗口互斥和跨窗口取消不影响原请求。确认与持久化回调仍是测试替身，不代表原生确认、safeStorage、超时、完整重启恢复均已验收。
+`mcp-connection-form` Unit 覆盖草稿校验与本地参数 / 环境值保真；`mcp-connection-tests` 使用真实本地 SDK 服务覆盖确认拒绝、工具发现、资源发现与接管读取、白名单拒绝、保存失败重试、保存响应重放、接管失败重放、同窗口互斥、跨窗口取消、确认迟到、超时、结果过期、保存中取消、窗口销毁和 stdio elicitation 能力移交。配置并发 Unit 覆盖整表设置、向导新增和工具许可共用锁，以及写盘失败不更新活动许可。确认与持久化回调仍是测试替身，不代表原生确认、safeStorage、完整重启恢复或第三方服务认证均已验收。
 
 正式 MCP 的 Streamable HTTP 配置展示需从 App 设置入口验收四主题、1166 / 600px、零工具与令牌不出现在卡片文案中；使用 Renderer IO 替身的展示证据与上述真实协议证据分开管理。
 

@@ -37,7 +37,7 @@ export function createEmptyPermissionRule(): PermissionRuleForm {
 
 /**
  * 解析 settings.permissionRules JSON。
- * 非法条目跳过；整体非数组则失败。
+ * 不静默丢弃非法条目，避免用户编辑其他规则时覆盖未知数据。
  */
 export function parsePermissionRulesJson(
   raw: string,

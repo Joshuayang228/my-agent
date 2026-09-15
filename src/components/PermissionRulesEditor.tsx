@@ -71,7 +71,15 @@ export function PermissionRulesEditor({ value, onChange, prefix = 'settings' }: 
 
   return <section className="py-4 sm:py-5" data-testid={prefix + '-rules-existing'}>
     <ActionButton aria-expanded={expanded} aria-controls={prefix + '-rules-content'} disabled={busy}
-      onClick={() => setExpanded(current => !current)} data-testid={toggleId}
+      onClick={() => {
+        if (expanded) {
+          setDraft(null)
+          setEditingId(null)
+          setDeletingId(null)
+          setError('')
+        }
+        setExpanded(current => !current)
+      }} data-testid={toggleId}
       className="w-full justify-between gap-3 border-0 p-0 text-left">
       <span className="min-w-0"><span className="flex items-center gap-2 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}><SlidersHorizontal size={15} />自定义规则</span>
         <span className="mt-1 block text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>已保存的例外规则，优先于默认审批方式生效。</span></span>
