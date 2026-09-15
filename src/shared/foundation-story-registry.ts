@@ -86,6 +86,7 @@ export const FOUNDATION_STORIES = [
   { key: 'foundation.tooltip', viewId: 'tooltip', assetKey: 'behavior.tooltip', labelZh: '提示浮层', group: 'behavior', renderer: 'advanced', navigationGroup: 'menu-tooltip' },
   { key: 'foundation.empty', viewId: 'empty', assetKey: 'state.empty', labelZh: '空态', group: 'state', renderer: 'ui-controls', navigationGroup: 'state-feedback' },
   { key: 'foundation.confirm', viewId: 'confirm', assetKey: 'state.permission-confirm', labelZh: '确认框', group: 'state', renderer: 'ui-controls', navigationGroup: 'state-feedback' },
+  { key: 'foundation.confirm-panel', viewId: 'confirm-panel', assetKey: 'state.confirm-panel', labelZh: '应用内确认面板', group: 'state', renderer: 'ui-controls', navigationGroup: 'state-feedback' },
   { key: 'foundation.feedback', viewId: 'feedback', assetKey: 'state.error', labelZh: '错误与反馈', group: 'state', renderer: 'ui-controls', navigationGroup: 'state-feedback' },
   { key: 'foundation.toast', viewId: 'toast', assetKey: 'state.toast', labelZh: '提示条', group: 'state', renderer: 'ui-controls', navigationGroup: 'state-feedback' },
   { key: 'foundation.spinner', viewId: 'spinner', assetKey: 'state.spinner', labelZh: '加载指示器', group: 'state', renderer: 'ui-controls', navigationGroup: 'loading-progress' },

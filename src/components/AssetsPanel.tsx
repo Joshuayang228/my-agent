@@ -3,7 +3,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BookOpen, Pencil, RefreshCw, Shirt, Sparkles, Trash2, X } from 'lucide-react'
+import { BookOpen, Pencil, RefreshCw, Shirt, Sparkles, Trash2, TriangleAlert, X } from 'lucide-react'
+import { ConfirmPanel } from './foundation/ConfirmPanel'
 
 type AssetTab = 'wardrobe' | 'bookshelf'
 
@@ -50,6 +51,7 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
   const [editC, setEditC] = useState('')
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState('')
+  const [pendingDelete, setPendingDelete] = useState<AssetItem | null>(null)
 
   const load = useCallback(async () => {
     if (!window.electronAPI?.companion) return
@@ -166,7 +168,6 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
     const hint = a.kind === 'bookshelf'
       ? '删除后历史引用会降级为无书名。'
       : '历史动态里的着装引用会降级为无着装。'
-    if (!window.confirm(`删除「${a.name}」？${hint}`)) return
     setBusy(true)
     try {
       const result = await window.electronAPI.companion.deleteAsset(a.id)
@@ -272,7 +273,7 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
       <button
         type="button"
         disabled={busy}
-        onClick={() => void removeAsset(a)}
+        onClick={() => setPendingDelete(a)}
         className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px]"
         style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)' }}
         title="删除"
@@ -365,6 +366,7 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin">
+        {pendingDelete && <div className="mb-3"><ConfirmPanel icon={<TriangleAlert size={15} />} title={`删除「${pendingDelete.name}」？`} description={pendingDelete.kind === 'bookshelf' ? '删除后历史引用会降级为无书名。' : '历史动态里的着装引用会降级为无着装。'} confirmLabel="删除" busy={busy} onCancel={() => setPendingDelete(null)} onConfirm={() => { const target = pendingDelete; setPendingDelete(null); void removeAsset(target) }} /></div>}
         {tab === 'wardrobe' ? (
           <section className="mb-5">
             <div
