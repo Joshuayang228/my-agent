@@ -312,6 +312,80 @@ async function installProductionElectronStub(page: import('@playwright/test').Pa
   })
 }
 
+for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
+  for (const width of [1166, 600]) {
+    test(`正式家居足迹真实响应映射与失败恢复 ${theme} ${width}`, async ({ page }, testInfo) => {
+      await installProductionElectronStub(page)
+      await page.addInitScript((selectedTheme) => {
+        localStorage.setItem('theme', selectedTheme)
+        const harness = { fail: false, mismatch: false, roleId: 'lin', empty: false }
+        ;(window as any).__worldDetailsHarness = harness
+        const api = (window as any).electronAPI.companion
+        api.getActive = async () => ({ id: harness.roleId, name: harness.roleId === 'lin' ? '测试伙伴' : '另一位伙伴', description: '' })
+        api.catchupStatus = async () => ({ roleId: harness.roleId, presence: '正在房间读书' })
+        api.getMoments = async () => ({ roleId: harness.roleId, items: harness.empty ? [] : [
+          { id: 'visit-1', roleId: harness.roleId, publishedAt: Date.UTC(2026, 8, 1, 8), text: '记下了今天散步的经过。'.repeat(80), meta: { location: '实际到过的公园' } },
+          { id: 'visit-2', roleId: harness.roleId, publishedAt: Date.UTC(2026, 8, 2, 8), text: '第二次到访，另一段经历。', meta: { location: '实际到过的公园' } },
+        ] })
+        api.getAssets = async () => {
+          if (harness.fail) throw new Error('测试读取失败')
+          return { roleId: harness.mismatch ? 'wrong-role' : harness.roleId, items: harness.empty ? [] : [
+            { id: 'home-a', kind: 'home', name: `${harness.roleId}的住所`, payload: { residence: '真实住所描述', interior: '很长的房间描述。\n'.repeat(80) } },
+            { id: 'lamp-a', kind: 'furniture', name: '真实台灯', payload: { description: '已记录的桌上物件' } },
+            { id: 'place-a', kind: 'footprint', name: '常去图书馆', payload: { description: '只记录常去，不代表今天到访', city: '记录中的城市' } },
+            { id: 'wanted-a', kind: 'footprint', name: '想去的山谷', payload: { visitStatus: 'wanted', description: '尚未去过' } },
+            { id: 'clothes-a', kind: 'wardrobe', name: '不属于家居的外套', payload: {} },
+          ] }
+        }
+      }, theme)
+      await page.setViewportSize({ width, height: 731 })
+      await page.goto('/')
+      await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+      await page.getByTestId('world-tab-home').click()
+      const details = page.getByTestId('world-details')
+      await expect(details.locator('[data-world-content="home"]')).toBeVisible()
+      await expect(details).toContainText('lin的住所')
+      await expect(details).toContainText('真实台灯')
+      await expect(details).not.toContainText('不属于家居的外套')
+      const panel = page.locator('#world-panel-home')
+      expect(await panel.evaluate((node) => node.scrollHeight > node.clientHeight)).toBe(true)
+      expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true)
+      expect(await details.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
+      const refresh = details.getByRole('button', { name: '刷新生活面', exact: true })
+      const geometry = await refresh.boundingBox()
+      await page.evaluate(() => { (window as any).__worldDetailsHarness.fail = true })
+      await refresh.click()
+      await expect(details.getByRole('alert')).toContainText('请重试')
+      await expect(details).toContainText('真实台灯')
+      const retry = details.getByRole('button', { name: '重试生活面', exact: true })
+      expect(await retry.boundingBox()).toEqual(geometry)
+      await page.evaluate(() => { (window as any).__worldDetailsHarness.fail = false })
+      await retry.click()
+      await expect(details.getByRole('alert')).toHaveCount(0)
+      await page.screenshot({ path: testInfo.outputPath('world-home.png'), animations: 'disabled' })
+      await page.getByTestId('world-tab-footprints').click()
+      await expect(details.locator('[data-world-content="footprints"]')).toBeVisible()
+      await expect(details).toContainText('常去图书馆')
+      await expect(details.getByRole('region', { name: '想去的地方' })).toContainText('想去的山谷')
+      await expect(details.getByRole('region', { name: '常去地点' })).not.toContainText('想去的山谷')
+      await expect(details.locator('time')).toHaveCount(2)
+      await expect(details.locator('time').first()).toHaveText('2026/9/1')
+      await expect(details).toContainText('第二次到访，另一段经历。')
+      expect(await details.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
+      await page.screenshot({ path: testInfo.outputPath('world-footprints.png'), animations: 'disabled' })
+      await page.evaluate(() => { (window as any).__worldDetailsHarness.mismatch = true })
+      await details.getByRole('button', { name: '刷新生活面' }).click()
+      await expect(page.getByTestId('world-details')).toHaveCount(0)
+      await expect(page.getByRole('button', { name: '重试生活面' })).toBeVisible()
+      await page.evaluate(() => { Object.assign((window as any).__worldDetailsHarness, { mismatch: false, roleId: 'zhou', empty: true }) })
+      await page.getByRole('button', { name: '重试生活面' }).click()
+      await expect(details).toContainText('另一位伙伴的足迹')
+      await expect(details).toContainText('还没有记录到生活地点。')
+      await expect(details).not.toContainText('实际到过的公园')
+    })
+  }
+}
+
 async function installTerminalLifecycleStub(page: import('@playwright/test').Page) {
   await installProductionElectronStub(page)
   await page.addInitScript(() => {
@@ -2500,6 +2574,8 @@ test.describe('My Agent UI', () => {
     await page.getByTestId('world-tab-footprints').click()
     await expect(page.getByTestId('world-footprints-fixture')).toHaveAttribute('data-persona-id', 'yao')
     await expect(page.getByTestId('world-footprints-fixture')).toContainText('杭州 · 西湖边')
+    await expect(page.getByTestId('world-footprints-fixture').getByRole('region', { name: '想去的地方' })).toContainText('北海')
+    await expect(page.getByTestId('world-footprints-fixture').getByRole('region', { name: '常去地点' })).not.toContainText('北海')
   })
 
   test('Playground Toast 四态关闭按钮沿统一右边界对齐', async ({ page }) => {

@@ -17,7 +17,7 @@
 
 | 类型 | 位置 |
 |------|------|
-| UI · 生活面 | 侧栏「人物世界」口袋（`WorldHub`：朋友圈/物什/名册/角色架）；欢迎屏快捷 |
+| UI · 生活面 | 侧栏「人物世界」（`WorldHub`：朋友圈 / 衣柜 / 文化角 / 家居 / 通讯录 / 足迹）；角色架归设置 |
 | UI · 工具面 | 设置「伙伴与相处」：回答方式、相处补充说明、生活提醒、主动问候、角色架；旧 MUTABLE / 反思表单不再保留为设置入口，后端服务仍保留 |
 | IPC | `companion:*`（list / switch / moments / assets / roster / catchup-status(+presence) / start-summon / reflection…） |
 | Prompt | `prompt-builder` + `orchestrator.loadRoleAssembleInput`（管线见下方「Prompt 组装」） |
@@ -63,12 +63,15 @@
 ## 必测点
 
 - 换角门控、Catch-up 7 日边界、名册无他人 protected、资产按 role 隔离  
+- 住所 / 常去地点初始化并发幂等、事务失败回滚、已有资产优先、删空后重载不复活；正式列表刷新失败保留旧内容，跨主角响应不混合
 - 召唤不改 active；反思门闸 / 召唤跳过  
 - Eval：`evals/scenarios/c01-companion.ts`；语气基线 `b01-persona-tone.ts`；主角行为 `b02-protagonist-behavior.ts`（真实模型判断需 key）
 
 ## 已落地能力
 
-- 人物世界正式入口提供六个生活面：朋友圈、衣柜、文化角、家居、通讯录、足迹。朋友圈、衣柜和通讯录读取现有 companion IPC；文化角、家居和足迹由真实书架资产、当前在场状态和生活动态地点派生为只读视图，不把 Playground fixture 当作生产数据源。
+- 人物世界正式入口提供六个生活面：朋友圈、衣柜、文化角、家居、通讯录、足迹。朋友圈、衣柜和通讯录读取现有 companion IPC；文化角、家居和足迹复用按主角隔离的 `companion_assets`，其中家居与常去地点由角色世界默认资产幂等播种，生活动态地点作为足迹的近期补充，不把 Playground fixture 当作生产数据源。
+- 家居与足迹的正式页、Playground 使用同一 `WorldLivingContent` 纯展示组件；家居保留住所结构和生活物件，足迹分开常去、显式想去记录与实际动态，不用资产初始化时间伪造访问日期，同地点不同动态保留各自正文和日期。正式刷新失败保留内容并可重试，响应主角不一致则清空并提示重试。
+- 新住所 / 地点的初始化标记与资产在同一 SQLite 事务内写入 `companion_asset_seeds`；仅真实 Role Pack 提供默认数据时初始化，不覆盖已有记录，删除后重载不补种。文化角 / 衣柜 / 书架沿用既有初始化语义，不外推该删除保证。
 
 状态：`已落地` · `部分` · `缺口`。能力增删或行为变了 → **同轮改本表**。
 
@@ -158,4 +161,6 @@
 **现状**：W0–W6 主线已落地；深 Why：`methodology/m22`–`m31`（Part VI 收齐）；前端 P0–P2 已落地；小航 B02–B07 真实 DeepSeek `pass^3` 已通过，仍待本地人工语气审美验收；人物故事尚未确定且未激活；其他角色本轮不扩写。
 **缺口**：见上表「缺口」行 + wishlist；生图场景等非本阶段。
 
-- 2026-09-14：文化角正式使用 `companion_assets(kind=culture)`，按主角隔离并复用既有资产 CRUD / starter 播种；资产 payload 的 `type` 区分 reading、music、film、photography。家居与足迹仍是只读派生视图，待独立事实源合同。
+- 2026-09-14：文化角正式使用 `companion_assets(kind=culture)`，按主角隔离并复用既有资产 CRUD / starter 播种；资产 payload 的 `type` 区分 reading、music、film、photography。
+- 2026-09-15：家居与足迹接入同一 `companion_assets` 事实链，分别使用 `kind=home` 与 `kind=footprint`；家居读取住所结构，足迹读取角色常去地点，近期动态仅作为补充。
+- 全生活面回流仍未完成：文化角组合、生活资产编辑入口、想去记录写入流程，以及真实 Electron 逐面验收继续由 R12 管理。导入导出尚不包含生活资产及初始化标记，归 R07 / WISH-045；数据库重载测试不等同用户备份恢复。

@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, Coffee, ChevronDown, CircleAlert, Clapperboard, Folder, Home, Lightbulb, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, PanelRight, Paperclip, Plus, RotateCcw, Search, Shield, Shirt, UserRound, Users, X, Check } from 'lucide-react'
+import { ArrowRight, ArrowUp, BookOpen, Bot, Camera, ChevronDown, CircleAlert, Clapperboard, Folder, Home, MapPin, MessageCircle, Music, Newspaper, PanelLeftOpen, PanelRight, Paperclip, Plus, RotateCcw, Search, Shield, Shirt, UserRound, Users, X, Check } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
@@ -12,6 +12,7 @@ import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import type { MomentItem, MomentsPreviewData } from '../MomentsPanel'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
 import { WorldHub, type WorldTab, type WorldTabDefinition } from '../shell/WorldHub'
+import { WorldHomeContent, WorldFootprintsContent } from '../world/WorldLivingContent'
 import type { MemoryEntry } from '../../shared/types'
 import type { PlaygroundTabId } from './catalog'
 import { PLAYGROUND_PERSONAS, type PlaygroundPersona } from '../../shared/playground-journey-fixtures'
@@ -575,24 +576,12 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
     ),
     home: (
       <div className="space-y-3 p-5" data-testid="world-home-fixture" data-persona-id={persona.id}>
-        <div className="rounded-[var(--radius-xl)] border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
-          <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--companion-accent-warm)' }}><Home size={13} />当前空间</div><span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>下午 · 家中</span></div>
-          <div className="mt-2 text-[17px] font-medium" style={{ color: 'var(--text-primary)' }}>书桌</div>
-          <p className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>窗帘拉开了一点，桌面留出了一块安静的空白。</p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {[
-            { name: '台灯', detail: '暖光 · 已打开', icon: <Lightbulb size={16} /> },
-            { name: '乌龙茶', detail: '刚泡好 · 还温着', icon: <Coffee size={16} /> },
-            { name: '旧相机', detail: '放在桌角', icon: <Camera size={16} /> },
-          ].map((item) => (
-            <article key={item.name} className="rounded-xl border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
-              <span style={{ color: 'var(--companion-accent-warm)' }}>{item.icon}</span>
-              <div className="mt-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{item.name}</div>
-              <p className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{item.detail}</p>
-            </article>
-          ))}
-        </div>
+        <WorldHomeContent presence="下午 · 家中" assets={[
+          { id: 'home-preview', kind: 'home', name: '书桌', payload: { interior: '窗帘拉开了一点，桌面留出了一块安静的空白。' } },
+          { id: 'lamp-preview', kind: 'furniture', name: '台灯', payload: { detail: '暖光 · 已打开' } },
+          { id: 'tea-preview', kind: 'object', name: '乌龙茶', payload: { detail: '刚泡好 · 还温着' } },
+          { id: 'camera-preview', kind: 'object', name: '旧相机', payload: { detail: '放在桌角' } },
+        ]} />
       </div>
     ),
     cast: (
@@ -607,19 +596,8 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
     ),
     footprints: (
       <div className="space-y-3 p-5" data-testid="world-footprints-fixture" data-persona-id={persona.id}>
-        <div className="rounded-[var(--radius-xl)] border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
-          <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--companion-accent-warm)' }}><MapPin size={13} />最近去过</div>
-          <div className="mt-2 text-[17px] font-medium" style={{ color: 'var(--text-primary)' }}>杭州 · 西湖边</div>
-          <p className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>和阿遥一起散步，记下了一段慢下来的下午。</p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {['楼下咖啡店', '河边步道', '想去：北海'].map((place) => (
-            <article key={place} className="rounded-xl border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
-              <MapPin size={15} style={{ color: 'var(--companion-accent-warm)' }} />
-              <div className="mt-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{place}</div>
-            </article>
-          ))}
-        </div>
+        <WorldFootprintsContent assets={['楼下咖啡店', '河边步道', '北海'].map((name, index) => ({ id: `place-preview-${index}`, kind: 'footprint', name, payload: { visitStatus: index === 2 ? 'wanted' : 'favorite' } }))}
+          moments={[{ publishedAt: Date.UTC(2026, 8, 1), meta: { location: '杭州 · 西湖边' }, text: '和阿遥一起散步，记下了一段慢下来的下午。' }]} />
       </div>
     ),
   }

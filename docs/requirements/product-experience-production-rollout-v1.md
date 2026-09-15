@@ -26,14 +26,13 @@
 | R03 外观 / `foundation-design-language-v2.md` | 设置外观、`src/index.css`、共享设计资产 | 候选四主题与全局主题、持久化旧主题尚需映射；不得丢用户设置 | 生产改造后回流；瓷青 / 曜石 / 松烟 / 绛紫同源，重启恢复、旧值兼容、Markdown / Diff 各入口 |
 | R04 伙伴与相处 / 设置候选 | 正式伙伴设置、`CharacterShelfPanel` | 既有角色切换、提醒、反思与 settings；候选补充说明写入链路待核实 | 生产改造后回流；设置内角色架、真实偏好保存与生效、流中禁换角、跨页同一主角 |
 | R05 记忆 / `SurfaceBaselinePanel.tsx` 的 MemorySurface | `MemoryPanel`、正式设置记忆页 | `memory:*`、memory-store / vector-store；紧凑显示仅 preview，四类候选不等价于存储类别 | 生产改造后回流；四类稳定归属、搜索、真实 CRUD、长文、敏感提示、固定日期操作槽、失败不丢稿 |
-| R06 人物世界 / `SurfaceBaselinePanel.tsx` 的六生活面 | `WorldHub`、`MomentsPanel`、`AssetsPanel`、`CastPanel`、`WorldDetailsPanel` | 朋友圈 / 衣柜 / 通讯录使用现有 companion 数据；文化角、家居、足迹当前由书架资产、生活动态和在场状态派生，只读且不新增事实源 | 生产改造后回流；六个入口可达，真实角色切换跟随，派生视图不伪造编辑；独立文化 / 家居 / 地点记录需后续数据契约 |
 | R06 模型 / `playground-model-and-workspace-v2.md` | 正式模型设置、LLM 配置工厂 | 已有 settings 与连接测试；候选多连接 / 用途路由 / 模型获取含 fixture | 生产改造后回流；连接 CRUD、发现与手动模型、用途路由、凭据安全存储、旧配置迁移、真实调用与失败恢复 |
 | R07 数据与隐私 / 设置候选 | 正式设置数据页及导入导出服务 | 复核实际导入 / 导出 / 备份字段与隐私边界；不按候选文案假定已包含所有数据 | 直接回流已有流程，缺失能力改造；取消、无效备份、失败提示、实际恢复一致性 |
 | R08 权限与自动化 / 设置候选 | 正式权限设置、`PermissionRulesEditor` | 既有 executionMode / permissionRules 与执行侧规则引擎 | 直接回流既有规则能力；默认收起、独立规则卡、列表后添加、原位取消、保存及执行侧生效；硬边界优先 |
 | R09 Skills / `playground-skills-detail-v1.md` | 正式设置 Skills 与既有组件 | 既有 Skill 加载 / 校验 / 管理路径；逐个核实候选按钮 | 生产改造后回流；列表、启停、文件树、受限高度正文、真实错误；试跑遵循既有隔离与费用边界 |
 | R10 MCP / `playground-mcp-scenarios-v1.md` | 正式 MCP 设置、MCP 服务及 IPC | WISH-040 记录协议 / OAuth / 逐工具启停缺口；不能以保存配置当连接成功 | 生产改造后回流；连接 / 断开 / 重试 / 删除、认证取消、工具开关持久化与执行侧校验；需细化安全契约 |
 | R11 关于与开发模式 / 设置候选 | 正式关于页、开发入口、App 导航 | 核实 developer mode 配置、重启与入口门控，不仅隐藏单个按钮 | 生产改造后回流；普通模式隐藏 Debug / Playground 入口；「关于 My Agent」中的开发者模式真实持久化控制入口可达，关闭安全返回且不删除数据 |
-| R12 人物世界 / `playground-world-living-dimensions-v1.md` | `WorldHub` 及正式生活面 | 既有 moments / assets / roster、生活事件与世界状态；正式仅四旧 Tab；五候选面含 fixture | 生产改造后回流；六面逐项完成下表的数据与展示，不复制生活样张为生产事实 |
+| R12 人物世界 / `playground-world-living-dimensions-v1.md`、`SurfaceBaselinePanel.tsx` | `WorldHub`、`MomentsPanel`、`AssetsPanel`、`CastPanel`、`WorldDetailsPanel` 及共享 `WorldLivingContent` | 六生活面入口已接通；文化角 / 住所 / 常去地点复用角色隔离的 assets，足迹动态来自 moments；样张仍隔离 | 生产改造后回流；六面逐项完成下表的数据与展示、编辑及换主角隔离，不复制生活样张为生产事实；合并原重复 R06 人物世界行，R06 仅指模型 |
 | R13 工作区 / `playground-workspace-five-tools-v1.md` | `ChatRightDock` 及五工具 | 已有真实 project / session / terminal / browser / chat IPC，保留已验证实现 | 对照候选补差，不从头重写；重复图标、滚动、任务上下文、关闭 / 取消 / 失败恢复 |
 | R14 Foundation 与业务状态 / `foundation-reuse-enforcement-v1.md` | 共享基础组件及以上消费者 | 部分工作区已有符号复用检查；不能外推为所有体验覆盖 | 同源复用与门禁；加载、空、错误、确认、hover/focus、长文、禁用、深浅宽窄 |
 
@@ -105,13 +104,17 @@ R12 必须拆成六个独立验收面：
 
 - 伙伴设置已接独立字段、串行增量保存、失败重试固定槽及备份限长校验；证据落在 `prompt-builder`、`prompt-assets`、`settings-security`、`security-boundaries` Unit 与 `chat` / `onboarding` E2E。R04 整体仍待角色架等正式流程统一验收，不将该字段闭环等同全部伙伴设置完成。
 - 修正上次误登记的 Foundation 故事：`foundation.settings-layout`、`foundation.setting-card` 没有对应基础 renderer，移除这两条错误故事记录，将实际组件登记为 Experience；组件本身保留，不删除任何已存在基础控件能力。
-- 复核确认正式 `DESIGN_THEME_ASSETS` 仍为七个旧主题，R03 四主题回流尚未完成；正式模型、记忆、Skills、MCP 等内容不能因已嵌入九区导航而标为采用完成。
+- 历史定位时正式仍为七个旧主题；2026-09-15 已切为四主题同源及旧值归一化，该旧诊断不再代表当前代码。正式模型、记忆、Skills、MCP 等内容不能因已嵌入九区导航而标为采用完成。
 
 ## 当前收口记录（2026-09-15）
 
+- R12 本批边界：`life/assets.ts` 为住所和常去地点增加真实 Role Pack 派生定义，与 `companion_asset_seeds(role_id, kind)` 同步事务初始化；无默认值不生成，已有资产优先，失败回滚且删除后不补种。默认物件初始化按稳定物件 ID 识别，避免新住所挡住原物件。
+- 家居 / 足迹正式页和 Playground 共用 `world/WorldLivingContent.tsx`；正式 `WorldDetailsPanel` 负责真实 IPC、刷新失败保留内容、重试和主角一致性校验。常去、想去展示与动态日期不混淆，不新增虚假的访问记录。文化角组合与编辑入口不在本批完成范围，仍属 R12 未完成项。
+- 证据：`companion-assets` / `companion-asset-registry` Unit 覆盖真实 sql.js 初始化与回滚；`chat` Renderer 四主题宽窄覆盖正式入口、长文、刷新失败 / 重试、两条同地点动态和角色不一致。Renderer 使用 IPC 替身，不能替代六面真实 Electron 验收。现有用户备份遗漏生活资产与初始化标记，继续在 R07 / WISH-045 内补齐。
+
 - Electron 真实回归已通过 7 项：首启模型路由、伙伴设置保存/重载、Debug 质量审阅、workspace 会话、文件读取与侧聊关闭、Windows 终端进程树回收、主会话切换；4 项外部模型凭据用例明确跳过。
 - R06 已补齐真实连接 CRUD、用途路由、密钥安全存储与主对话消费；正式选择用途时替换旧兼容路由，后续路由保存不会清空已保存密钥。模型发现、认证失败恢复仍未完成。
-- R06 之外，R10 MCP 真实连接恢复、R12 家居/足迹独立事实源，以及全产品逐项 adopted 证据仍未完成；本合同继续保持进行中。
+- R06 之外，R10 MCP 真实连接恢复，以及全产品逐项 adopted 证据仍未完成；R12 家居 / 足迹已接入 `companion_assets` 事实链，但编辑体验与逐项正式验收仍需继续补证，本合同继续保持进行中。
 
 ## 4. 影响范围与不碰项
 

@@ -175,19 +175,21 @@ function buildSceneAssets(universeId: string, roleId: string, rolePack: RolePack
 function buildLifeAssets(universeId: string, roleId: string, rolePack: RolePack): ModelContextAsset[] {
   return getStarterAssetDefinitions(roleId).map((item) => {
     const content = jsonContent({ kind: item.kind, key: item.key, name: item.name, payload: item.payload })
+    const worldDerived = item.kind === 'home' || item.kind === 'footprint'
+    const label = { wardrobe: '衣柜', bookshelf: '书架', culture: '文化角', home: '住所', footprint: '常去地点' }[item.kind]
     return makeCompanionAsset({
       key: `companion:${universeId}:${roleId}:life:${item.kind}:${item.key}`,
       name: `生活资产 · ${rolePack.name} · ${item.name}`,
-      purpose: item.kind === 'wardrobe' ? '角色衣柜的生产 starter 定义' : '角色书架的生产 starter 定义',
+      purpose: `角色${label}的生产 starter 定义`,
       role: `role-pack:${roleId}`,
       description: rolePack.description,
-      source: 'electron/main/companion/life/assets.ts#starter-definitions',
+      source: worldDerived ? sourceForRole(roleId, 'world.default.json', universeId) : 'electron/main/companion/life/assets.ts#starter-definitions',
       version: 'starter-v1',
       assetType: 'companion-life',
       contentKind: 'static',
       content,
       ownership: 'builtin',
-      dependencies: [`companion:${universeId}:${roleId}:manifest`],
+      dependencies: [`companion:${universeId}:${roleId}:manifest`, ...(worldDerived ? [`companion:${universeId}:${roleId}:world-default`] : [])],
     })
   })
 }

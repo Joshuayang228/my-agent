@@ -73,5 +73,7 @@ describe('伙伴生产资产目录', () => {
     expect(second.some((item) => item.kind === 'wardrobe')).toBe(true)
     expect(second.some((item) => item.kind === 'bookshelf')).toBe(true)
     expect(second.some((item) => item.kind === 'culture')).toBe(true)
+    expect(second.some((item) => item.kind === 'home')).toBe(false)
+    expect(second.some((item) => item.kind === 'footprint')).toBe(false)
   })
 })

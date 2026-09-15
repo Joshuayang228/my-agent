@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import initSqlJs from 'sql.js'
+import * as identityLoader from '../../electron/main/companion/identity/loader'
 
 vi.mock('electron', () => ({
   app: { getPath: () => '/tmp' },
@@ -42,6 +43,9 @@ const {
   ensureStarterWardrobe,
   ensureStarterBookshelf,
   ensureStarterAssets,
+  ensureStarterHome,
+  ensureStarterFootprints,
+  getStarterAssetDefinitions,
   ensureWorldDefaultPossessions,
   listAssets,
   addAsset,
@@ -68,7 +72,54 @@ describe('Companion Assets', () => {
   })
 
   afterEach(() => {
+    vi.restoreAllMocks()
     memDb.close()
+  })
+
+  function useWorldFixture() {
+    const load = identityLoader.loadRoleWorldDefaults
+    const world = structuredClone(load('hang')!)
+    world.home = { ...world.home, shortName: '测试住所', residence: '测试房间', interior: '测试书桌' }
+    world.city.name = '测试城市'
+    world.favoritePlaces = [{ id: 'park', name: '测试公园', kind: 'park', description: '树荫下', travelMinutes: 10 }]
+    world.possessions = [{ id: 'lamp', kind: 'furniture', name: '测试台灯', description: '放在桌上', condition: '完好' }]
+    vi.spyOn(identityLoader, 'loadRoleWorldDefaults').mockImplementation((id, universe) => id.startsWith('fixture-') ? structuredClone(world) : load(id, universe))
+    return world
+  }
+
+  it('住所和常去地点不阻断物件播种，目录与数据库同源并按角色隔离', async () => {
+    useWorldFixture()
+    await ensureStarterAssets('fixture-a')
+    const assets = await listAssets('fixture-a')
+    expect(assets.filter((item) => ['home', 'footprint', 'furniture'].includes(item.kind)).map((item) => item.name).sort()).toEqual(['测试住所', '测试公园', '测试台灯'].sort())
+    expect(await listAssets('fixture-b')).toEqual([])
+    const definitions = getStarterAssetDefinitions('fixture-a').filter((item) => ['home', 'footprint'].includes(item.kind))
+    expect(definitions).toHaveLength(2)
+    for (const definition of definitions) {
+      expect(assets.find((item) => item.kind === definition.kind)).toMatchObject({ name: definition.name, payload: definition.payload })
+    }
+    definitions[0].payload.residence = '污染副本'
+    expect(getStarterAssetDefinitions('fixture-a').find((item) => item.kind === 'home')?.payload.residence).toBe('测试房间')
+  })
+
+  it('住所与地点并发播种幂等，编辑保留，全部删除重载数据库后不复活', async () => {
+    useWorldFixture()
+    await Promise.all([ensureStarterHome('fixture-a'), ensureStarterHome('fixture-a'), ensureStarterFootprints('fixture-a'), ensureStarterFootprints('fixture-a')])
+    const assets = await listAssets('fixture-a')
+    expect(assets).toHaveLength(2)
+    const home = assets.find((item) => item.kind === 'home')!
+    await updateAsset(home.id, { name: '新的住所名' }, { expectedRoleId: 'fixture-a' })
+    await ensureStarterHome('fixture-a')
+    expect((await listAssets('fixture-a', { kind: 'home' }))[0].name).toBe('新的住所名')
+    for (const asset of assets) await deleteAsset(asset.id, { expectedRoleId: 'fixture-a' })
+    const bytes = memDb.export()
+    memDb.close()
+    memDb = new SQL.Database(bytes)
+    await ensureStarterHome('fixture-a')
+    await ensureStarterFootprints('fixture-a')
+    expect(await listAssets('fixture-a')).toEqual([])
+    await ensureStarterHome('fixture-b')
+    expect(await listAssets('fixture-b')).toHaveLength(1)
   })
 
   it('ensureStarterWardrobe 播种且幂等', async () => {
@@ -103,6 +154,29 @@ describe('Companion Assets', () => {
     const all = await listAssets('xia')
     expect(all.filter((a) => a.kind === 'wardrobe')).toHaveLength(3)
     expect(all.filter((a) => a.kind === 'bookshelf')).toHaveLength(3)
+  })
+
+  it('住所事务失败不留下资产或完成标记，修复后可以重试', async () => {
+    useWorldFixture()
+    await listAssets('fixture-a')
+    memDb.run(`CREATE TRIGGER reject_home BEFORE INSERT ON companion_assets
+      WHEN NEW.kind = 'home' BEGIN SELECT RAISE(ABORT, 'fixture failure'); END`)
+    await expect(ensureStarterHome('fixture-a')).rejects.toThrow('fixture failure')
+    expect(await listAssets('fixture-a')).toEqual([])
+    expect(memDb.exec('SELECT * FROM companion_asset_seeds')).toEqual([])
+    memDb.run('DROP TRIGGER reject_home')
+    expect(await ensureStarterHome('fixture-a')).toEqual({ created: 1 })
+  })
+
+  it('无世界设定不写播种标记，已有运行态住所优先于出厂值', async () => {
+    expect(await ensureStarterHome('hang')).toEqual({ created: 0 })
+    expect(await ensureStarterFootprints('hang')).toEqual({ created: 0 })
+    useWorldFixture()
+    await addAsset({ id: 'custom-home', roleId: 'fixture-a', kind: 'home', name: '用户已有住所' })
+    expect(await ensureStarterHome('fixture-a')).toEqual({ created: 0 })
+    expect((await listAssets('fixture-a'))[0].name).toBe('用户已有住所')
+    await deleteAsset('custom-home', { expectedRoleId: 'fixture-a' })
+    expect(await ensureStarterHome('fixture-a')).toEqual({ created: 0 })
   })
 
   it('人物故事未定时，小航不播种默认世界物品', async () => {

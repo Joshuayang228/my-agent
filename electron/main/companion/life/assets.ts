@@ -137,8 +137,10 @@ export async function addAsset(input: {
 export const ASSET_KIND_WARDROBE = 'wardrobe'
 export const ASSET_KIND_BOOKSHELF = 'bookshelf'
 export const ASSET_KIND_CULTURE = 'culture'
+export const ASSET_KIND_HOME = 'home'
+export const ASSET_KIND_FOOTPRINT = 'footprint'
 
-export type AssetKind = typeof ASSET_KIND_WARDROBE | typeof ASSET_KIND_BOOKSHELF | typeof ASSET_KIND_CULTURE
+export type AssetKind = typeof ASSET_KIND_WARDROBE | typeof ASSET_KIND_BOOKSHELF | typeof ASSET_KIND_CULTURE | typeof ASSET_KIND_HOME | typeof ASSET_KIND_FOOTPRINT
 
 export interface CompanionStarterAssetDefinition {
   key: string
@@ -222,11 +224,14 @@ const BOOKSHELF_BY_ROLE: Record<string, StarterItem[]> = {
  * 关键约束：只返回定义副本；调用方不得借此写入 companion_assets。
  */
 export function getStarterAssetDefinitions(roleId: string): CompanionStarterAssetDefinition[] {
-  return ([
-    ...startersFor(ASSET_KIND_WARDROBE, roleId).map((item) => ({ ...item, kind: ASSET_KIND_WARDROBE })),
-    ...startersFor(ASSET_KIND_BOOKSHELF, roleId).map((item) => ({ ...item, kind: ASSET_KIND_BOOKSHELF })),
-    ...startersFor(ASSET_KIND_CULTURE, roleId).map((item) => ({ ...item, kind: ASSET_KIND_CULTURE })),
-  ]).map((item) => ({ ...item, payload: structuredClone(item.payload) }))
+  const definitions: CompanionStarterAssetDefinition[] = [
+    ...startersFor(ASSET_KIND_WARDROBE, roleId).map<CompanionStarterAssetDefinition>((item) => ({ ...item, kind: ASSET_KIND_WARDROBE })),
+    ...startersFor(ASSET_KIND_BOOKSHELF, roleId).map<CompanionStarterAssetDefinition>((item) => ({ ...item, kind: ASSET_KIND_BOOKSHELF })),
+    ...startersFor(ASSET_KIND_CULTURE, roleId).map<CompanionStarterAssetDefinition>((item) => ({ ...item, kind: ASSET_KIND_CULTURE })),
+    ...startersFor(ASSET_KIND_HOME, roleId).map<CompanionStarterAssetDefinition>((item) => ({ ...item, kind: ASSET_KIND_HOME })),
+    ...startersFor(ASSET_KIND_FOOTPRINT, roleId).map<CompanionStarterAssetDefinition>((item) => ({ ...item, kind: ASSET_KIND_FOOTPRINT })),
+  ]
+  return definitions.map((item) => ({ ...item, payload: structuredClone(item.payload) }))
 }
 
 function startersFor(kind: AssetKind, roleId: string): StarterItem[] {
@@ -236,6 +241,8 @@ function startersFor(kind: AssetKind, roleId: string): StarterItem[] {
   if (kind === ASSET_KIND_CULTURE) {
     return CULTURE_BY_ROLE[roleId] ?? CULTURE_DEFAULT
   }
+  if (kind === ASSET_KIND_HOME) return worldHomeStarters(roleId)
+  if (kind === ASSET_KIND_FOOTPRINT) return worldFootprintStarters(roleId)
   return WARDROBE_BY_ROLE[roleId] ?? WARDROBE_DEFAULT
 }
 
@@ -246,6 +253,7 @@ export async function ensureStarterForKind(
   roleId: string,
   kind: AssetKind,
 ): Promise<{ created: number }> {
+  if (kind === ASSET_KIND_HOME || kind === ASSET_KIND_FOOTPRINT) return ensureWorldDetailStarter(roleId, kind)
   await ensureTables()
   const existing = await listAssets(roleId, { kind })
   if (existing.length > 0) return { created: 0 }
@@ -284,23 +292,83 @@ export async function ensureStarterBookshelf(roleId: string): Promise<{ created:
   return ensureStarterForKind(roleId, ASSET_KIND_BOOKSHELF)
 }
 
-/**
- * 播种 Role Pack 默认世界声明的初始物品。
- *
- * 背景：world.default.json 负责出厂世界，但运行后物品真相必须落到 companion_assets。
- * 设计意图：以稳定 id 幂等写入，不覆盖用户已编辑或事件产生的资产。
- * 关键约束：首次整组播种；已有任一种子即不补单件，避免用户删除后复活。
- */
+function worldHomeStarters(roleId: string): StarterItem[] {
+  const world = loadRoleWorldDefaults(roleId)
+  if (!world || !world.home.shortName.trim() || world.home.shortName === '未设定') return []
+  return [{ key: 'residence', name: world.home.shortName, payload: { ...world.home, seededFrom: 'world.default' } }]
+}
+
+function worldFootprintStarters(roleId: string): StarterItem[] {
+  const world = loadRoleWorldDefaults(roleId)
+  if (!world) return []
+  return world.favoritePlaces.map((place) => ({
+    key: place.id,
+    name: place.name,
+    payload: { placeKind: place.kind, description: place.description, travelMinutes: place.travelMinutes, city: world.city.name, seededFrom: 'world.default' },
+  }))
+}
+
 export async function ensureStarterCulture(roleId: string): Promise<{ created: number }> {
   return ensureStarterForKind(roleId, ASSET_KIND_CULTURE)
 }
 
+/**
+ * 背景：住所和常去地点可被用户编辑或删空，空列表不能被当成首次启动；多面板也可能并发读取。
+ * 设计意图：同库保留按角色、种类隔离的播种标记，资产和标记在同步事务内一次写入，不复用空柜补种。
+ * 关键约束：事务内不得 await 或落盘；失败回滚，未设定的世界不写标记，已有运行态资产优先。
+ */
+async function ensureWorldDetailStarter(roleId: string, kind: typeof ASSET_KIND_HOME | typeof ASSET_KIND_FOOTPRINT): Promise<{ created: number }> {
+  const starter = startersFor(kind, roleId)
+  if (!starter.length) return { created: 0 }
+  await ensureTables()
+  const db = await getDatabase()
+  db.run(`CREATE TABLE IF NOT EXISTS companion_asset_seeds (
+    role_id TEXT NOT NULL, kind TEXT NOT NULL, PRIMARY KEY (role_id, kind)
+  )`)
+  let created = 0
+  db.run('BEGIN TRANSACTION')
+  try {
+    const seeded = db.exec('SELECT 1 FROM companion_asset_seeds WHERE role_id = ? AND kind = ?', [roleId, kind])
+    if (!seeded.length) {
+      const existing = db.exec('SELECT 1 FROM companion_assets WHERE role_id = ? AND kind = ? LIMIT 1', [roleId, kind])
+      if (!existing.length) {
+        const now = Date.now()
+        for (const [index, item] of starter.entries()) {
+          db.run(`INSERT INTO companion_assets (id, role_id, kind, name, payload_json, acquired_at, source_event_id)
+            VALUES (?, ?, ?, ?, ?, ?, NULL)`, [`${kind}:${roleId}:${item.key}`, roleId, kind, item.name, JSON.stringify(item.payload), now + index])
+          created++
+        }
+      }
+      db.run('INSERT INTO companion_asset_seeds (role_id, kind) VALUES (?, ?)', [roleId, kind])
+    }
+    db.run('COMMIT')
+  } catch (error) {
+    db.run('ROLLBACK')
+    throw error
+  }
+  persist()
+  return { created }
+}
+
+export async function ensureStarterHome(roleId: string): Promise<{ created: number }> {
+  return ensureWorldDetailStarter(roleId, ASSET_KIND_HOME)
+}
+
+export async function ensureStarterFootprints(roleId: string): Promise<{ created: number }> {
+  return ensureWorldDetailStarter(roleId, ASSET_KIND_FOOTPRINT)
+}
+
+/**
+ * 背景：默认物件、住所和地点共用 world.default 来源，但不是同一批种子。
+ * 设计意图：只按物件稳定 ID 识别已经初始化的物件，避免住所先播种时挡住整个物件组。
+ * 关键约束：不覆盖已有物件，维持原有整组初始化语义；不把其他资产当作物件标记。
+ */
 export async function ensureWorldDefaultPossessions(roleId: string): Promise<{ created: number }> {
   const defaults = loadRoleWorldDefaults(roleId)
   if (!defaults?.possessions.length) return { created: 0 }
   await ensureTables()
   const existing = await listAssets(roleId)
-  if (existing.some((asset) => asset.payload.seededFrom === 'world.default')) {
+  if (existing.some((asset) => asset.id.startsWith(`world:${roleId}:`) && asset.payload.seededFrom === 'world.default')) {
     return { created: 0 }
   }
   const db = await getDatabase()
@@ -332,13 +400,15 @@ export async function ensureWorldDefaultPossessions(roleId: string): Promise<{ c
   return { created }
 }
 
-/** 活跃主角打开物什面板时：衣柜 + 书架一并播种 */
+/** 活跃主角打开生活面时初始化已有种子；住所与地点没有设定时不生成记录。 */
 export async function ensureStarterAssets(roleId: string): Promise<{ created: number }> {
   const w = await ensureStarterWardrobe(roleId)
   const b = await ensureStarterBookshelf(roleId)
   const c = await ensureStarterCulture(roleId)
+  const h = await ensureStarterHome(roleId)
+  const f = await ensureStarterFootprints(roleId)
   const p = await ensureWorldDefaultPossessions(roleId)
-  return { created: w.created + b.created + c.created + p.created }
+  return { created: w.created + b.created + c.created + h.created + f.created + p.created }
 }
 
 /** 为事件挑选一件衣柜（确定性：按 scheduledAt 取模） */

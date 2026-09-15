@@ -46,10 +46,10 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     descriptionZh: '朋友圈、角色与生活事件组成的人格化生活面。',
     status: 'playground',
     playgroundTabId: 'world',
-    sourcePaths: ['src/components/playground/SurfaceBaselinePanel.tsx', 'src/components/MomentsPanel.tsx'],
+    sourcePaths: ['src/components/playground/SurfaceBaselinePanel.tsx', 'src/components/MomentsPanel.tsx', 'src/components/WorldDetailsPanel.tsx', 'src/components/world/WorldLivingContent.tsx'],
     fixtureAssetPaths: ['src/assets/playground/moment-tea-by-window.jpg'],
-    experienceParts: ['朋友圈', '物什', '名册'],
-    usesFoundation: ['behavior.tabs', 'state.empty'],
+    experienceParts: ['朋友圈', '衣柜', '文化角', '家居', '通讯录', '足迹'],
+    usesFoundation: ['behavior.tabs', 'state.empty', 'behavior.icon-button'],
   }),
   experience({
     key: 'experience.settings',
