@@ -13,6 +13,7 @@ import { PermissionSettingsContent } from '../settings/PermissionSettingsContent
 import { Brain, Check, ChevronRight, Circle, CircleHelp, Cloud, Database, Download, Eye, Heart, KeyRound, Link2, LockKeyhole, Palette, Plug, Save, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Upload, UserRound, Wrench, Activity, Gauge, Plus, ListChecks, ArrowLeft, ArrowUp, ArrowDown, GripVertical, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
 import { FONT_SCALE_ASSETS } from '../../shared/design-asset-registry'
 import { SettingsLayout, type SettingsPageId } from '../settings/SettingsLayout'
+import { ScopeBadge, SettingCard, SettingRow, SettingSwitch, SettingsPageHeader } from '../settings/SettingsFields'
 import { CompanionSettingsContent } from '../settings/CompanionSettingsContent'
 import { McpServiceCard } from '../settings/McpServiceCard'
 import { McpConnectionPreview } from './McpConnectionPreview'
@@ -54,38 +55,15 @@ export interface SettingsExperienceCandidateProps {
   initialSection?: SettingsCandidateSection
   onOpenRoleShelf?: () => void
 }
-interface SettingCardProps { children: ReactNode; testId?: string }
-interface SettingRowProps { children: ReactNode; description?: string; icon?: ReactNode; label: string; scope?: string; stacked?: boolean }
 interface CandidateSwitchProps { checked: boolean; compact?: boolean; description: string; label: string; onChange: (checked: boolean) => void; scope?: string; testId: string }
 
 export { SETTINGS_NAV_GROUPS as SETTINGS_CANDIDATE_NAV_GROUPS } from '../settings/SettingsLayout'
 
-function SettingCard({ children, testId }: SettingCardProps) {
-  return <section className="rounded-[var(--radius-lg)] border p-4 sm:p-5" data-testid={testId} style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)' }}>{children}</section>
-}
-
-function ScopeBadge({ label }: { label: string }) {
-  return <span className="shrink-0 rounded-full border px-2 py-0.5 text-[9px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>{label}</span>
-}
-
-function SettingRow({ children, description, icon, label, scope, stacked = false }: SettingRowProps) {
-  return <div className={`flex gap-4 ${stacked ? 'flex-col' : 'items-start justify-between'}`}>
-    <div className="flex min-w-0 gap-3">
-      {icon && <span className="mt-0.5 shrink-0" style={{ color: 'var(--accent-fg)' }} aria-hidden="true">{icon}</span>}
-      <div className="min-w-0"><div className="flex items-center gap-2 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}><span>{label}</span>{scope && <ScopeBadge label={scope} />}</div>{description && <p className="mt-1 max-w-xl text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>{description}</p>}</div>
-    </div>
-    <div className={stacked ? '' : 'shrink-0'}>{children}</div>
-  </div>
-}
-
 function CandidateSwitch({ checked, compact = false, description, label, onChange, scope, testId }: CandidateSwitchProps) {
-  if (compact) {
-    return <button type="button" role="switch" aria-checked={checked} aria-label={label} onClick={() => onChange(!checked)} className="relative h-5 w-9 shrink-0 rounded-full transition" style={{ background: checked ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }} data-testid={testId}><span className="absolute top-0.5 h-4 w-4 rounded-full shadow-sm transition" style={{ background: 'var(--text-primary)', left: checked ? 'calc(100% - 1.125rem)' : '0.125rem' }} aria-hidden="true" /></button>
-  }
-  return <button type="button" role="switch" aria-checked={checked} aria-label={label} onClick={() => onChange(!checked)} className="flex w-full items-center justify-between gap-4 rounded-[var(--radius-md)] border px-3 py-3 text-left transition" style={{ borderColor: 'var(--border-subtle)', background: checked ? 'var(--accent-subtle)' : 'transparent' }} data-testid={testId}><span className="min-w-0"><span className="flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{label}{scope && <ScopeBadge label={scope} />}</span><span className="mt-0.5 block text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>{description}</span></span><span className="relative h-5 w-9 shrink-0 rounded-full transition" style={{ background: checked ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }} aria-hidden="true"><span className="absolute top-0.5 h-4 w-4 rounded-full shadow-sm transition" style={{ background: 'var(--text-primary)', left: checked ? 'calc(100% - 1.125rem)' : '0.125rem' }} /></span></button>
+  return <SettingSwitch checked={checked} compact={compact} description={description} label={label} onChange={onChange} scope={scope} testId={testId} />
 }
 function CandidatePageHeader({ description, icon, title }: { description: string; icon: ReactNode; title: string }) {
-  return <header className="mb-5 flex items-start justify-between gap-4"><div className="min-w-0"><div className="mb-2 flex items-center gap-2 text-[10px] font-semibold tracking-[0.16em]" style={{ color: 'var(--accent-fg)' }}><span aria-hidden="true">{icon}</span>设置样张</div><h2 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>{title}</h2><p className="mt-1 max-w-2xl text-[12px] leading-5" style={{ color: 'var(--text-muted)' }}>{description}</p></div><span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>仅供预览</span></header>
+  return <SettingsPageHeader icon={icon} eyebrow="设置样张" badge="仅供预览" title={title} description={description} />
 }
 
 function AppearancePage({ activeTheme, fontScale, onFontScaleChange, onThemeChange }: { activeTheme: ThemeStudyId; fontScale: string; onFontScaleChange: (value: string) => void; onThemeChange: (value: ThemeStudyId) => void }) {

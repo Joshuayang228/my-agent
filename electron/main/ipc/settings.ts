@@ -9,6 +9,7 @@ import { CONNECTION_TEST_MESSAGES, validateLLMConnectionTestInput } from '../../
 import type { LLMConnectionTestInput, LLMConnectionTestResult, RendererSettings } from '../../../src/shared/types'
 import { MAX_COMPANION_RESPONSE_NOTE_LENGTH } from '../../../src/shared/types'
 import { redactMcpConfigsForRenderer, hasNewOrChangedEnabledMcpConfig, mergeMcpConfigListSecrets, parseStoredMcpConfigs } from '../mcp/config-security'
+import { withMcpConfigLock } from '../mcp/config-lock'
 
 const RENDERER_BLOCKED_SETTING_KEYS = new Set<keyof AppSettings>(['currentProject', 'recentProjects'])
 
@@ -107,18 +108,19 @@ export function registerSettingsIPC(): void {
     }
 
     if (key === 'mcpServers') {
-      const previousRaw = await settings.getSetting('mcpServers')
-      const merged = mergeMcpConfigListSecrets(value, previousRaw)
-      if (!merged.ok) throw new Error(merged.error)
-      const previousList = parseStoredMcpConfigs(previousRaw)
-      if (hasNewOrChangedEnabledMcpConfig(previousList, merged.configs)
-        && !await confirmHighRiskSettingChange(
-          '确认保存并启用 MCP 服务',
-          '启用的 MCP 服务可能启动本地进程、访问文件或连接远程网络。只保存并启用你信任的配置。',
-        )) {
-        throw new Error('用户取消高风险设置变更')
-      }
-      value = merged.json
+      // 整表保存与向导新增、工具许可共用锁；解密合并到写盘必须在同一临界区，旧快照冲突另行处理。
+      return withMcpConfigLock(async () => {
+        const previousRaw = await settings.getSetting('mcpServers')
+        const merged = mergeMcpConfigListSecrets(value, previousRaw)
+        if (!merged.ok) throw new Error(merged.error)
+        const previousList = parseStoredMcpConfigs(previousRaw)
+        if (hasNewOrChangedEnabledMcpConfig(previousList, merged.configs)
+          && !await confirmHighRiskSettingChange(
+            '确认保存并启用 MCP 服务',
+            '启用的 MCP 服务可能启动本地进程、访问文件或连接远程网络。只保存并启用你信任的配置。',
+          )) throw new Error('用户取消高风险设置变更')
+        await settings.setSetting('mcpServers', merged.json)
+      })
     }
     if (key === 'modelConnections') {
       value = mergeModelConnectionSecrets(value, await settings.getSetting('modelConnections'))

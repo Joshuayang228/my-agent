@@ -80,6 +80,7 @@ R12 必须拆成六个独立验收面：
 ### R10 添加向导的生产协议链路（2026-09-15）
 
 - 纠偏记录：初版 `testing → ready` 会触发 effect cleanup，测试替身未同步取消状态而漏检。本轮将清理改为卸载与显式操作，候选重复表单替换为 `McpConnectionPreview` actions 适配器；正式与样张实际渲染同一组件。新增表单校验、共享 JSX 门禁、正式取消 / 迟到 / 重测 / 刷新失败回归和真实 SDK 测试。下述全写入锁、资源接管和异常恢复是必须完成的合同要求，不表示当前已全部实现；缺口同步 WISH-045。完整 R10 和全产品目标保持进行中。
+- 2026-09-15 后端补齐：测试连接与正式 Manager 共用 MCP client capability 和 form elicitation 处理器；测试阶段请求取消，保存接管后使用正式处理器。资源清单随测试连接移交，不再在保存后丢失。保存成功 / 接管失败结果按 owner + requestId 做有界短期重放，工具选择变化不会复用旧结果；确认迟到、窗口销毁、渲染进程退出和主导航会清理测试会话。整表设置、向导新增与工具许可写入统一经过配置锁，写盘失败不更新内存许可。专项真实 SDK / 并发测试已通过；新流程真实 Electron 数据目录验收与完整重启恢复仍未完成。
 
 - 添加流程施工范围补充：新建 `mcp/connection-tests.ts` / `config-lock.ts`、`settings/McpConnectionForm.tsx` 与共享草稿解析；修改 MCP Manager 的已连接对象接管入口、MCP / settings IPC、preload、共享类型 / Renderer 声明、SettingsPanel 与 SettingsExperienceCandidate 及对应注册和测试。替换旧添加表单、旧 handleAddMcp 与候选重复表单 JSX，不删除旧配置或现有服务管理后端。
 - 测试会话按 Renderer 与 requestId 绑定，同窗口只允许一个、全局最多八个；主进程风险确认通过后连接，连接 / 发现总超时 30 秒，已测试结果保留 5 分钟。取消、页面离开、窗口销毁与超时清理连接，未保存的测试不写设置、不进入生产工具注册表、不自动重连。工具发现分页有页数、数量与累计大小上限。
@@ -162,6 +163,20 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 - 证据：Unit 串行 150 文件 / 880 项、正式与候选 UI 全量 142 项、Electron 9 项通过（4 项外部模型测试跳过），根 tsc / build 与资产检查通过。新增 Electron 用例通过真实 preload / memory IPC，在独立数据目录完成增改、完整退出重启恢复和删除；不代表备份或向量召回验收。
 - 正式 Renderer 回归覆盖四主题、1166 / 600px、长文删短、多行焦点、hover / pending 操作槽几何、失败保留草稿、重复点击、刷新重试与离页迟到响应。截图位于 `var/verification/memory-rollout-ui`。默认并发 Unit 的既有 MCP 30ms 超时保留在 WISH-042，未修改断言掩盖。
 
+### 3.1 当前回流状态快照（2026-09-15）
+
+| 回流面 | 当前状态 | 已有正式证据 | 仍缺的硬证据 |
+|---|---|---|---|
+| 对话与导航 | `production-ready`，待完整入口验收 | 正式 `App` / Sidebar / Chat / Right Dock 调用链与既有 Electron 回归 | 四主题、窄宽、跨页草稿与任务恢复的正式入口证据 |
+| 人物世界 | `production-ready`，部分 `adopted` | 角色架、文化角、家居 / 足迹真实资产链与 Renderer 覆盖 | 六面逐项 Electron 验收、通讯录和衣柜完整编辑链 |
+| 设置与人物设置 | `user-approved`，正在回流 | Playground 候选、正式 `SettingsPanel`、共享导航 / 卡片基础层 | 旧设置展示层逐页替换为候选结构；真实保存、失败和窄宽验收 |
+| 记忆 | 整页已回流 | 共享四类 / 搜索 / 新增行；正式长文、固定槽、四主题宽窄、失败恢复及真实四类重启 CRUD | 本项不替代其他设置或备份 / 向量召回的验收 |
+| 主题与基础组件 | `production-ready` | Foundation 主题资产、共享设置卡片 / 行组件、基础复用门禁 | Markdown / Diff / 工作区全部正式入口的无白底验收 |
+| 工作区工具 | `production-ready`，部分 `adopted` | 正式 Right Dock 五工具、共享面板布局与 Electron 回归 | 浏览器 / 文件 / 审阅 / 终端跨页状态和完整错误路径 |
+| MCP / 模型等后端 | `in-progress` | MCP 测试连接生命周期、资源 / elicitation 接管、配置锁专项 Unit | 独立 Electron 数据目录、safeStorage、重启恢复、OAuth、异常断开恢复 |
+
+本快照只记录当前证据，不把 `Playground` fixture、Renderer 替身或局部右坞验收升级为全产品 `adopted`。设置回流允许移除旧 UI 壳和重复入口，但必须保留真实数据、权限和安全边界；每次删除旧展示层都要在对应测试与变更记录中说明。
+
 ## 4. 影响范围与不碰项
 
 ### R08 文件规则执行链补齐
@@ -178,6 +193,13 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 
 不改用户临时文件、真实会话和私有数据、未授权人物内容、生产凭据、无关 Runtime 策略与 Prompt。旧设置入口可以依最新授权移除，不必另造兼容入口；仍需记录移除范围和回归，不顺手删除共享后端。依赖变更单独说明，破坏性数据迁移另行确认。
 
+### R08 权限页面回流
+
+本批按已确认 demo 替换正式权限页：默认审批卡、自定义规则折叠、独立规则卡、列表后固定添加 / 取消槽及向下展开的草稿。正式和 Playground 共用 PermissionSettingsContent / PermissionRulesEditor；Playground 只更新本地规则。删除旧铺开字段和高级 JSON UI，不删除旧 tool / path 规则数据或执行能力。新增只提供命令 / 修改文件 / 删除文件，已有其它类型保留可编辑、停用与删除。
+
+允许修改：上述组件、SettingsPanel 和 SettingsExperienceCandidate 接入、Foundation SelectField 与既有选择故事 / 注册来源、permission-rules 表单解析、permission-engine 的纯校验 / 载入复用、settings IPC 写盘前校验、对应 Unit / UI / Electron 测试及模块 / 质量 / 账本文档。不改 IPC 形状、MCP、存储迁移或执行优先级；无新依赖。新增草稿不进入自动保存队列，保存失败保留草稿与原规则，重试不重复写入。主进程在写盘前拒绝超量、重复 ID、无效或不安全正则；旧载入仍兼容容错。验证覆盖正式入口、候选隔离、四主题宽窄、hover 几何、添加 / 取消 / 编辑 / 停用 / 删除、失败和重启恢复。
+
+
 ## 5. 测试与完成标准
 
 - 自审先查真实调用点与数据，不只看样张或 sourcePaths 字符串。复用门禁验证实际渲染引用，并有绕过 / 未使用 import 负例。
@@ -193,8 +215,3 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 最大风险是把文档已落地、fixture 可交互、注册表标记和局部测试混为全产品完成，用逐项正式入口证据约束结论。模型 / MCP / 记忆 / 生活数据的生产契约比视觉迁移更大，保留既有安全及持久化边界，按完整业务单元补齐，不为视觉统一绕过后端。长期上下文恢复从本合同与 Progress 开始，不能只挑最近工作区提交继续。
 
 - 2026-09-14 R12 文化角批次：复用 `companion_assets` 的 `role_id` 隔离链路，新增 `culture` kind 与稳定 starter 资产（读书 / 音乐 / 电影 / 摄影），正式 `WorldDetailsPanel` 通过真实 `companion:get-assets` 读取；未新增第二份文化数据库。家居与足迹仍保留为已有世界状态 / 生活事件的只读派生面，尚未宣称独立后端完成。
-### R08 权限页面回流
-
-本批按已确认 demo 替换正式权限页：默认审批卡、自定义规则折叠、独立规则卡、列表后固定添加 / 取消槽及向下展开的草稿。正式和 Playground 共用 PermissionSettingsContent / PermissionRulesEditor；Playground 只更新本地规则。删除旧铺开字段和高级 JSON UI，不删除旧 tool / path 规则数据或执行能力。新增只提供命令 / 修改文件 / 删除文件，已有其它类型保留可编辑、停用与删除。
-
-允许修改：上述组件、SettingsPanel 和 SettingsExperienceCandidate 接入、Foundation SelectField 与既有选择故事 / 注册来源、permission-rules 表单解析、permission-engine 的纯校验 / 载入复用、settings IPC 写盘前校验、对应 Unit / UI / Electron 测试及模块 / 质量 / 账本文档。不改 IPC 形状、MCP、存储迁移或执行优先级；无新依赖。新增草稿不进入自动保存队列，保存失败保留草稿与原规则，重试不重复写入。主进程在写盘前拒绝超量、重复 ID、无效或不安全正则；旧载入仍兼容容错。验证覆盖正式入口、候选隔离、四主题宽窄、hover 几何、添加 / 取消 / 编辑 / 停用 / 删除、失败和重启恢复。

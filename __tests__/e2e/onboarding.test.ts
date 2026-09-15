@@ -6,12 +6,16 @@
  * 关键约束：不访问外网、不读取或覆盖用户设置；结束后关闭 Electron、HTTP 服务和临时目录。
  */
 import { createServer, type IncomingMessage } from 'node:http'
+import { once } from 'node:events'
+import type { AddressInfo } from 'node:net'
 import { mkdtemp, mkdir, readFile, rm, unlink, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test'
 import { _electron as electron } from 'playwright'
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 
 interface CapturedRequest {
   url: string
@@ -649,5 +653,51 @@ test('正式记忆经真实 IPC 增改、完整重启恢复和删除', async () 
     await card.getByRole('button', { name: /^删除记忆 / }).click()
     await card.getByRole('button', { name: /^确认删除记忆 / }).click()
     await expect(card).toHaveCount(0)
+  }
+})
+
+
+/**
+ * MCP 正式设置链路使用本地 SDK 服务，验证测试、保存和完整重启后的配置恢复。
+ * 不验证第三方认证；凭据恢复由已有 safeStorage 契约覆盖。
+ */
+test('正式 MCP 添加向导经真实 IPC 保存并在重启后恢复配置', async () => {
+  const mcp = new McpServer({ name: 'electron-mcp-fixture', version: '1.0.0' })
+  mcp.registerTool('search_docs', { description: '搜索文档', inputSchema: {} }, async () => ({ content: [{ type: 'text', text: 'ok' }] }))
+  const mcpHttp = createServer(async (request, response) => {
+    if (request.method !== 'POST') { response.writeHead(405).end(); return }
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true })
+    response.on('close', () => { void mcp.close() })
+    await mcp.connect(transport)
+    await transport.handleRequest(request, response)
+  })
+  await new Promise<void>((resolve) => mcpHttp.listen(0, '127.0.0.1', resolve))
+  const address = mcpHttp.address() as AddressInfo
+  const url = 'http://127.0.0.1:' + address.port + '/mcp'
+  const original = await page.evaluate(() => window.electronAPI.settings.get())
+  try {
+    await electronApp.evaluate(({ dialog }) => { dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false }) })
+    const result = await page.evaluate(async (url) => {
+      const requestId = 'electron-mcp-test'
+      const tested = await window.electronAPI.mcp.testConnection(requestId, { name: '本地 MCP 验收', transport: 'streamable-http', command: '', args: [], url })
+      if (!tested.ok) return { tested }
+      const saved = await window.electronAPI.mcp.saveTested(requestId, tested.tools.map((tool) => tool.name))
+      return { tested, saved }
+    }, url)
+    expect(result.tested.ok).toBe(true)
+    expect(result.saved?.ok).toBe(true)
+    const savedConfig = JSON.parse((await page.evaluate(() => window.electronAPI.settings.get())).mcpServers) as Array<{ name: string; url: string; enabled: boolean }>
+    expect(savedConfig).toEqual(expect.arrayContaining([expect.objectContaining({ name: '本地 MCP 验收', url, enabled: true })]))
+    await electronApp.close()
+    electronApp = await electron.launch({ args: [path.join(__dirname, '../../dist-electron/index.js'), '--user-data-dir=' + userDataDir, '--no-sandbox'], env: { ...process.env, NODE_ENV: 'production', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' } })
+    page = await electronApp.firstWindow()
+    await page.waitForLoadState('domcontentloaded')
+    await expect(page.locator('#startup-splash')).toBeHidden()
+    const restored = JSON.parse((await page.evaluate(() => window.electronAPI.settings.get())).mcpServers) as Array<{ name: string; url: string }>
+    expect(restored).toEqual(expect.arrayContaining([expect.objectContaining({ name: '本地 MCP 验收', url })]))
+  } finally {
+    await page.evaluate((value) => window.electronAPI.settings.set('mcpServers', value || '[]'), original.mcpServers || '[]').catch(() => undefined)
+    mcpHttp.closeAllConnections()
+    await new Promise<void>((resolve) => mcpHttp.close(() => resolve()))
   }
 })

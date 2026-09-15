@@ -129,6 +129,7 @@ export function SettingsPanel({
   const [form, setForm] = useState<SettingsForm>(DEFAULTS)
   const [saveFailed, setSaveFailed] = useState(false)
   const [showAdvancedModel, setShowAdvancedModel] = useState(false)
+
   const [dataBusy, setDataBusy] = useState<'export' | 'import' | null>(null)
   const [verifiedConnectionKey, setVerifiedConnectionKey] = useState('')
   const [protagonists, setProtagonists] = useState<RoleInfo[]>([])
@@ -347,7 +348,7 @@ export function SettingsPanel({
   // ── 各区块渲染 ──
 
   const renderGeneral = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <SettingsPageHeader title="外观与界面" description="调整应用主题和界面显示；主题选项来自基础设计资产。" />
       <SettingCard testId="settings-theme-card">
         <div className="mb-3 flex items-end justify-between gap-3">
@@ -391,7 +392,7 @@ export function SettingsPanel({
 
   // Provider 预设仍由 PROVIDER_PRESET_GROUPS 作为 Playground 与生产资产的唯一事实源；正式页不再复制旧预设卡片。
   const renderModel = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <SettingsPageHeader title="模型" description="管理模型连接与用途安排；密钥只保存在本机安全存储中。" />
       <ModelRoutingSettings connectionsRaw={modelConnections} routesRaw={modelRoutes} legacyBaseUrl={form.llmBaseUrl} legacyModel={form.llmModel} onTestConnection={async (connection) => { if (preview || !window.electronAPI) return { ok: false, error: '当前仅可在正式设置中测试' }; return window.electronAPI.settings.testConnection({ baseUrl: connection.baseUrl, model: connection.model, useStoredApiKey: true }) }} onSave={async (connections, routes) => {
         if (preview || !window.electronAPI) return
@@ -429,7 +430,7 @@ export function SettingsPanel({
   )
 
   const renderConnection = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <SettingsPageHeader title="MCP" description="连接外部工具和服务，扩展 Agent 能力；每个服务独立管理。" />
 
       <SettingCard>
@@ -495,7 +496,7 @@ export function SettingsPanel({
   )
 
   const renderData = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <SettingsPageHeader title="数据与隐私" description="管理本地数据的迁移和备份，并明确哪些内容不会跟着备份文件离开设备。" />
       <SettingCard>
         <div className="grid gap-2 sm:grid-cols-2">

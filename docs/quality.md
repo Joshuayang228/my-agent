@@ -1,5 +1,6 @@
 # 质量总控
 
+正式 Electron MCP 添加向导已通过本地 SDK 服务验证测试连接、工具发现、配置保存与完整重启后的配置恢复；safeStorage 凭据恢复、OAuth 与异常断开 UI 恢复仍是后续缺口。
 > 质量维入口：定义 Unit / Eval / E2E / 安全审计的分层和必跑条件。具体 Case、测试文件和当前通过数量以仓库代码及命令输出为准，不在本文维护动态总数。
 > 深 Why：`methodology/m17-testing-architecture.md`、`methodology/m18-eval.md`。
 

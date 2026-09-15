@@ -10,6 +10,7 @@
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js'
+import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js'
 import type { McpServerConfig } from '../../../src/shared/types'
 import { createMcpTransport } from './transport'
 import { createLogger, hashForLog } from '../utils/logger'
@@ -33,6 +34,17 @@ export interface McpResource {
   name: string
   description?: string
   mimeType?: string
+}
+
+/**
+ * 背景：测试连接会原样移交生产，初始化后不能重新协商缺失能力。
+ * 设计意图：测试和正式连接共用客户端能力，测试阶段明确取消补充信息请求。
+ * 关键约束：只声明 form；只有保存接管后才绑定真实 UI，不支持 URL 登录请求。
+ */
+export function createMcpClient(): Client {
+  const client = new Client({ name: 'my-agent', version: '0.1.0' }, { capabilities: { elicitation: { form: {} } } })
+  client.setRequestHandler(ElicitRequestSchema, async () => ({ action: 'cancel' as const }))
+  return client
 }
 
 interface McpConnection {
@@ -59,10 +71,11 @@ class McpClientManager {
   private connections = new Map<string, McpConnection>()
 
   /** 已通过风险确认的隔离连接在持久化后接管；不重启服务，不允许覆盖现有连接。 */
-  adoptTestedConnection(input: { config: McpServerConfig; client: Client; transport: Transport; tools: McpTool[] }): void {
+  adoptTestedConnection(input: { config: McpServerConfig; client: Client; transport: Transport; tools: McpTool[]; resources: McpResource[] }): void {
     if (this.connections.has(input.config.id)) throw new Error('MCP connection already exists')
+    this.bindElicitation(input.client, input.config.id)
     input.client.onclose = undefined
-    const connection: McpConnection = { ...input, resources: [], status: 'connected', reconnectAttempts: 0, allowReconnect: true }
+    const connection: McpConnection = { ...input, status: 'connected', reconnectAttempts: 0, allowReconnect: true }
     this.connections.set(input.config.id, connection)
     this.wireTransportClose(connection)
   }
@@ -83,6 +96,14 @@ class McpClientManager {
     this.elicitationHandler = handler
   }
 
+  private bindElicitation(client: Client, serverId: string): void {
+    client.setRequestHandler(ElicitRequestSchema, async (request) => {
+      if (request.params.mode === 'url' || !this.elicitationHandler) return { action: 'cancel' as const }
+      const values = await this.elicitationHandler(serverId, request.params.message, request.params.requestedSchema)
+      return values ? { action: 'accept' as const, content: values } : { action: 'cancel' as const }
+    })
+  }
+
   async connect(config: McpServerConfig): Promise<void> {
     if (this.connections.has(config.id)) {
       await this.disconnect(config.id)
@@ -97,37 +118,8 @@ class McpClientManager {
       transport: config.transport || 'stdio',
     })
 
-    const client = new Client(
-      { name: 'my-agent', version: '0.1.0' },
-      {
-        capabilities: {
-          // M13 Elicitation：声明支持 form 模式，服务端可向用户要补充信息
-          elicitation: {},
-        },
-      },
-    )
-
-    // 注册 elicitation 请求处理（SDK 用 setRequestHandler；失败则仅日志）
-    try {
-      const { ElicitRequestSchema } = await import('@modelcontextprotocol/sdk/types.js')
-      client.setRequestHandler(ElicitRequestSchema, async (request) => {
-        const params = request.params as {
-          message?: string
-          requestedSchema?: Record<string, unknown>
-        }
-        const message = params.message ?? 'MCP server requests input'
-        const schema = params.requestedSchema ?? { type: 'object', properties: {} }
-        if (!this.elicitationHandler) {
-          log.warn('Elicitation requested but no handler registered', { serverId: config.id })
-          return { action: 'cancel' as const }
-        }
-        const values = await this.elicitationHandler(config.id, message, schema)
-        if (!values) return { action: 'cancel' as const }
-        return { action: 'accept' as const, content: values }
-      })
-    } catch (err) {
-      log.debug('Elicitation handler setup skipped', { error: String(err) })
-    }
+    const client = createMcpClient()
+    this.bindElicitation(client, config.id)
 
     const transport = createMcpTransport(config)
 
