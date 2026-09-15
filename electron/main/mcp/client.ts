@@ -57,6 +57,15 @@ export function mcpReconnectDelayMs(attempt: number): number {
 
 class McpClientManager {
   private connections = new Map<string, McpConnection>()
+
+  /** 已通过风险确认的隔离连接在持久化后接管；不重启服务，不允许覆盖现有连接。 */
+  adoptTestedConnection(input: { config: McpServerConfig; client: Client; transport: Transport; tools: McpTool[] }): void {
+    if (this.connections.has(input.config.id)) throw new Error('MCP connection already exists')
+    input.client.onclose = undefined
+    const connection: McpConnection = { ...input, resources: [], status: 'connected', reconnectAttempts: 0, allowReconnect: true }
+    this.connections.set(input.config.id, connection)
+    this.wireTransportClose(connection)
+  }
   /** Elicitation：服务端向客户端要输入时的回调（UI/IPC 注入） */
   private elicitationHandler?: (
     serverId: string,

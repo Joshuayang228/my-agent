@@ -415,6 +415,39 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       expect(await card.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
       await page.screenshot({ path: testInfo.outputPath('mcp-streamable-http.png'), animations: 'disabled' })
     })
+
+    test(`正式 MCP 添加连接先测后存 ${theme} ${width}`, async ({ page }) => {
+      await installProductionElectronStub(page)
+      await page.addInitScript((selectedTheme) => {
+        localStorage.setItem('theme', selectedTheme)
+        const api = (window as any).electronAPI
+        const state = { tested: false, cancelled: false, saved: false }
+        ;(window as any).__mcpAddHarness = state
+        api.mcp.testConnection = async (_requestId: string, config: any) => { state.tested = true; return { ok: true, tools: [{ name: 'search_docs', description: '搜索文档' }] } }
+        api.mcp.cancelTest = async () => { state.cancelled = true; return { ok: true } }
+        api.mcp.saveTested = async (_requestId: string, allowed: string[]) => { state.saved = allowed.includes('search_docs'); return state.saved ? { ok: true, serverId: 'new-remote' } : { ok: false, error: '工具选择无效' } }
+        const getSettings = api.settings.get
+        api.settings.get = async () => ({ ...await getSettings(), mcpServers: '[]' })
+      }, theme)
+      await page.setViewportSize({ width, height: 731 })
+      await page.goto('/')
+      await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+      await page.getByRole(width < 640 ? 'tab' : 'button', { name: 'MCP', exact: true }).click()
+      await page.getByRole('button', { name: '+ 添加', exact: true }).click()
+      const form = page.getByTestId('mcp-connection-form')
+      await form.getByLabel('连接名称').fill('文档服务')
+      await form.getByLabel('服务 URL').fill('https://example.com/mcp')
+      await form.getByRole('button', { name: '测试连接', exact: true }).click()
+      await expect(form.getByText('已获取 1 个工具')).toBeVisible()
+      await form.getByRole('checkbox', { name: '允许search_docs', exact: true }).uncheck()
+      await form.getByRole('button', { name: '保存连接', exact: true }).click()
+      expect(await page.evaluate(() => (window as any).__mcpAddHarness.saved)).toBe(false)
+      await form.getByRole('checkbox', { name: '允许search_docs', exact: true }).check()
+      await form.getByRole('button', { name: '保存连接', exact: true }).click()
+      await expect(form).toHaveCount(0)
+      expect(await page.evaluate(() => (window as any).__mcpAddHarness.saved)).toBe(true)
+      await page.screenshot({ path: `var/verification/mcp-add-${theme}-${width}.png`, animations: 'disabled' })
+    })
   }
 }
 

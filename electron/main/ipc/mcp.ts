@@ -3,10 +3,12 @@ import { randomUUID } from 'node:crypto'
 import { ToolRegistry } from '../tools/registry'
 import { mcpManager } from '../mcp/client'
 import type { McpServerConfig } from '../mcp/client'
-import { hydrateMcpConfigSecrets, parseStoredMcpConfigs } from '../mcp/config-security'
+import { hydrateMcpConfigSecrets, parseStoredMcpConfigs, MAX_MCP_SERVERS } from '../mcp/config-security'
 import * as settings from '../storage/settings-store'
 import { syncMcpToolsToRegistry, removeMcpToolsFromRegistry } from '../mcp/bridge'
 import { createLogger, hashForLog } from '../utils/logger'
+import { McpConnectionTests } from '../mcp/connection-tests'
+import { withMcpConfigLock } from '../mcp/config-lock'
 
 const log = createLogger('McpIPC')
 
@@ -22,8 +24,9 @@ function isBoundedString(value: unknown, max: number): value is string {
 
 export { isValidMcpConfig } from '../mcp/config-security'
 
-async function confirmMcpConnection(config: McpServerConfig): Promise<boolean> {
-  const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0]
+async function confirmMcpConnection(config: McpServerConfig, owner?: number): Promise<boolean> {
+  const win = owner === undefined ? BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0]
+    : BrowserWindow.getAllWindows().find((window) => window.webContents.id === owner)
   if (!win) return false
   const target = (config.transport ?? 'stdio') !== 'stdio'
     ? `远程地址：${config.url}`
@@ -44,6 +47,32 @@ MCP 服务可能访问网络、文件或启动本地进程。仅连接你信任�
 }
 
 export function registerMcpIPC(toolRegistry: ToolRegistry): void {
+  const connectionTests = new McpConnectionTests({
+    confirm: confirmMcpConnection,
+    persist: async (config) => withMcpConfigLock(async () => {
+      const current = parseStoredMcpConfigs(await settings.getSetting('mcpServers'))
+      if (current.length >= MAX_MCP_SERVERS || current.some((item) => item.id === config.id)) throw new Error('MCP 服务数量超限或 ID 已存在')
+      await settings.setSetting('mcpServers', JSON.stringify([...current, config]))
+    }),
+    adopt: (connection) => {
+      mcpManager.adoptTestedConnection(connection)
+      syncMcpToolsToRegistry(toolRegistry, connection.config.id)
+    },
+  })
+
+  const observedOwners = new WeakSet<Electron.WebContents>()
+  ipcMain.handle('mcp:test-connection', async (event, requestId: string, config: unknown) => {
+    const owner = event.sender.id
+    if (!observedOwners.has(event.sender)) {
+      observedOwners.add(event.sender)
+      event.sender.once('destroyed', () => { void connectionTests.cancelOwner(owner) })
+    }
+    return connectionTests.test(owner, requestId, config)
+  })
+  ipcMain.handle('mcp:cancel-test', async (event, requestId: string) =>
+    connectionTests.cancel(event.sender.id, requestId))
+  ipcMain.handle('mcp:save-tested', async (event, requestId: string, allowedTools: unknown) =>
+    connectionTests.save(event.sender.id, requestId, allowedTools))
   // Elicitation：服务端要输入 → 推到渲染进程，等用户填表
   mcpManager.setElicitationHandler(async (serverId, message, schema) => {
     const win = BrowserWindow.getAllWindows()[0]

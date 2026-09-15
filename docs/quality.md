@@ -7,6 +7,10 @@
 
 MCP 传输验证使用真实 SDK 服务和正式 Manager：回环 Streamable HTTP 覆盖初始化、Bearer / 无认证、工具发现与调用、许可拒绝、资源读取、无工具能力、发现失败、401 和 307 不跟随；stdio 启动真实测试子进程，验证继承凭据过滤及显式 env。安全 Unit 另覆盖令牌长度 / Header 注入、HTTPS / 回环校验、脱敏、同端点恢复与换端点拒绝、设置合并及 safeStorage 包络。该证据不代表第三方认证、OAuth、隔离测试取消、真实 Electron 保存 / 重启恢复或完整添加向导验收。
 
+正式添加向导 Renderer 回归覆盖四主题 × 1166 / 600px：填写远程 URL、测试后显示工具、取消工具选择时拒绝保存、重新选择后保存成功并关闭表单。该用例替换 IPC 为受控测试替身，只证明正式组件状态和用户流程，不替代 `McpConnectionTests` 的主进程协议、取消、超时和持久化证据。
+
+正式添加向导 Renderer 回归覆盖四主题 × 1166 / 600px：填写远程 URL、测试后显示工具、取消工具选择时拒绝保存、重新选择后保存成功并关闭表单。该用例替换 IPC 为受控测试替身，只证明正式组件状态和用户流程，不替代 `McpConnectionTests` 的主进程协议、取消、超时和持久化证据。
+
 正式 MCP 的 Streamable HTTP 配置展示需从 App 设置入口验收四主题、1166 / 600px、零工具与令牌不出现在卡片文案中；使用 Renderer IO 替身的展示证据与上述真实协议证据分开管理。
 
 Vite 开发 watcher 必须排除 `var/verification` 和 `test-results`，避免截图 / trace HTML 产物触发验收页重载；不能通过关闭全部 HMR 规避。`dev-server-watch.test.ts` 读取实际 Vite 配置，在临时目录启动真实 watcher，同时验证源码事件存在、产物事件缺席。

@@ -687,6 +687,16 @@ export interface McpServerConfig {
   allowedTools?: string[]
 }
 
+export type McpConnectionInput = Omit<McpServerConfig, 'id' | 'enabled' | 'allowedTools'>
+export interface McpDiscoveredTool { name: string; description: string }
+export type McpConnectionTestResult = { ok: true; tools: McpDiscoveredTool[] } | { ok: false; error: string }
+export type McpConnectionSaveResult = { ok: true; serverId: string } | { ok: false; error: string; savedServerId?: string }
+export interface McpConnectionActions {
+  testConnection: (requestId: string, config: McpConnectionInput) => Promise<McpConnectionTestResult>
+  cancelTest: (requestId: string) => Promise<{ ok: boolean; error?: string }>
+  saveTested: (requestId: string, allowedTools: string[]) => Promise<McpConnectionSaveResult>
+}
+
 /** Renderer 可见设置：敏感值只返回状态，不返回原文。 */
 export interface RendererSettings extends Record<string, string> {
   llmApiKey: ''

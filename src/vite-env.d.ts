@@ -325,6 +325,9 @@ declare global {
       }
       mcp: {
         connect: (config: import('./shared/types').McpServerConfig) => Promise<{ success: boolean; toolCount?: number; error?: string }>
+        testConnection: (requestId: string, config: import('./shared/types').McpConnectionInput) => Promise<import('./shared/types').McpConnectionTestResult>
+        cancelTest: (requestId: string) => Promise<{ ok: boolean; error?: string }>
+        saveTested: (requestId: string, allowedTools: string[]) => Promise<import('./shared/types').McpConnectionSaveResult>
         disconnect: (serverId: string) => Promise<{ success: boolean }>
         status: () => Promise<Array<{ id: string; name: string; status: string; toolCount: number; resourceCount?: number; error?: string }>>
         listTools: (serverId?: string) => Promise<Array<{ serverId: string; serverName: string; name: string; description: string; allowed: boolean }>>

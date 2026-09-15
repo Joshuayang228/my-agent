@@ -10,6 +10,7 @@ import { CompanionSettingsContent, type CompanionExpertise } from './settings/Co
 import { SettingCard, SettingRow, SettingsPageHeader } from './settings/SettingsFields'
 import { ModelRoutingSettings } from './settings/ModelRoutingSettings'
 import { McpServiceCard } from './settings/McpServiceCard'
+import { McpConnectionForm } from './settings/McpConnectionForm'
 import { DESIGN_THEME_ASSETS, FONT_SCALE_ASSETS } from '../shared/design-asset-registry'
 import {
   Upload, Download,
@@ -140,14 +141,6 @@ export function SettingsPanel({
   const [modelConnections, setModelConnections] = useState('[]')
   const [modelRoutes, setModelRoutes] = useState('[]')
   const [mcpAdding, setMcpAdding] = useState(false)
-  const [newMcp, setNewMcp] = useState({
-    name: '',
-    transport: 'stdio' as 'stdio' | 'sse',
-    command: '',
-    args: '',
-    url: '',
-    env: '',
-  })
 
   useEffect(() => {
     if (preview) setActiveSection(previewInitialSection ?? 'appearance')
@@ -319,42 +312,6 @@ export function SettingsPanel({
     setMcpServers(servers)
   }, [preview])
 
-  const handleAddMcp = useCallback(async () => {
-    if (!newMcp.name) return
-    if (newMcp.transport === 'sse' ? !newMcp.url.trim() : !newMcp.command) return
-    let env: Record<string, string> | undefined
-    if (newMcp.env.trim()) {
-      env = {}
-      for (const line of newMcp.env.split('\n')) {
-        const eq = line.indexOf('=')
-        if (eq > 0) env[line.slice(0, eq).trim()] = line.slice(eq + 1).trim()
-      }
-    }
-    const entry: McpServerEntry = {
-      id: `mcp-${Date.now()}`,
-      name: newMcp.name,
-      transport: newMcp.transport,
-      command: newMcp.transport === 'sse' ? '' : newMcp.command,
-      args: newMcp.transport === 'sse' ? [] : newMcp.args.split(/\s+/).filter(Boolean),
-      url: newMcp.transport === 'sse' ? newMcp.url.trim() : undefined,
-      env,
-      enabled: true,
-    }
-    const updated = [...mcpServers, entry]
-    try {
-      await saveMcpList(updated)
-      const result = preview ? undefined : await window.electronAPI?.mcp.connect(entry)
-      if (result && !result.success) {
-        toast(`MCP 连接失败: ${result.error}`, 'error')
-      }
-      await refreshMcpStatus()
-      setNewMcp({ name: '', transport: 'stdio', command: '', args: '', url: '', env: '' })
-      setMcpAdding(false)
-    } catch {
-      toast('MCP 配置未保存，可能是你取消了安全确认', 'warning')
-    }
-  }, [newMcp, mcpServers, preview, saveMcpList, refreshMcpStatus, toast])
-
   const handleRemoveMcp = useCallback(async (id: string) => {
     let saved = false
     try {
@@ -522,69 +479,14 @@ export function SettingsPanel({
       </div>
       </SettingCard>
 
-      {mcpAdding && (
-        <SettingCard>
-        <div className="space-y-2" data-testid="mcp-connection-form">
-          <input
-            type="text"
-            value={newMcp.name}
-            onChange={e => setNewMcp(m => ({ ...m, name: e.target.value }))}
-            placeholder="名称（如 filesystem）"
-            className="theme-input mb-2 w-full rounded-[var(--radius-md)] border px-2 py-1.5 text-xs outline-none"
-          />
-          <select
-            value={newMcp.transport}
-            onChange={e => setNewMcp(m => ({ ...m, transport: e.target.value as 'stdio' | 'sse' }))}
-            className="theme-input mb-2 w-full rounded-[var(--radius-md)] border px-2 py-1.5 text-xs outline-none"
-          >
-            <option value="stdio">stdio（本地命令）</option>
-            <option value="sse">SSE（远程 URL）</option>
-          </select>
-          {newMcp.transport === 'sse' ? (
-            <input
-              type="text"
-              value={newMcp.url}
-              onChange={e => setNewMcp(m => ({ ...m, url: e.target.value }))}
-              placeholder="SSE URL（如 http://localhost:3000/sse）"
-              className="theme-input mb-2 w-full rounded-[var(--radius-md)] border px-2 py-1.5 text-xs outline-none"
-            />
-          ) : (
-            <>
-              <input
-                type="text"
-                value={newMcp.command}
-                onChange={e => setNewMcp(m => ({ ...m, command: e.target.value }))}
-                placeholder="命令（如 npx, node, python3）"
-              className="theme-input mb-2 w-full rounded-[var(--radius-md)] border px-2 py-1.5 text-xs outline-none"
-              />
-              <input
-                type="text"
-                value={newMcp.args}
-                onChange={e => setNewMcp(m => ({ ...m, args: e.target.value }))}
-                placeholder="参数（空格分隔）"
-              className="theme-input mb-2 w-full rounded-[var(--radius-md)] border px-2 py-1.5 text-xs outline-none"
-              />
-            </>
-          )}
-          <textarea
-            value={newMcp.env}
-            onChange={e => setNewMcp(m => ({ ...m, env: e.target.value }))}
-            placeholder="环境变量（每行 KEY=VALUE，可选）"
-            rows={2}
-            className="theme-input mb-2 w-full rounded-[var(--radius-md)] border px-2 py-1.5 text-xs outline-none"
-          />
-          <button
-            type="button"
-            onClick={() => void runMcpAction(handleAddMcp)}
-            disabled={mcpBusy || !newMcp.name || (newMcp.transport === 'sse' ? !newMcp.url.trim() : !newMcp.command)}
-            className="rounded-[var(--radius-md)] px-3 py-1 text-xs font-medium transition disabled:opacity-40"
-            style={{ background: 'var(--accent-emphasis)' }}
-          >
-            连接
-          </button>
-        </div>
-        </SettingCard>
-      )}
+      {mcpAdding && <McpConnectionForm onCancel={() => setMcpAdding(false)} onSaved={async () => {
+        const settings = await window.electronAPI?.settings.get()
+        if (settings) {
+          try { setMcpServers(JSON.parse(settings.mcpServers || '[]')) } catch { setMcpServers([]) }
+        }
+        await refreshMcpStatus()
+        setMcpAdding(false)
+      }} />}
 
       {mcpServers.length === 0 && !mcpAdding && (
         <SettingCard>
