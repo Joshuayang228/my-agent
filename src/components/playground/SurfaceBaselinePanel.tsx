@@ -12,7 +12,9 @@ import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import type { MomentItem, MomentsPreviewData } from '../MomentsPanel'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
 import { WorldHub, type WorldTab, type WorldTabDefinition } from '../shell/WorldHub'
-import { WorldCultureContent, WorldHomeContent, WorldFootprintsContent } from '../world/WorldLivingContent'
+import { AssetsPanel } from '../AssetsPanel'
+import { WorldDetailsPanel } from '../WorldDetailsPanel'
+import type { WorldAssetRecord } from '../world/WorldAssetEditor'
 import type { MemoryEntry } from '../../shared/types'
 import { MEMORY_GROUPS } from '../../shared/memory-groups'
 import type { PlaygroundTabId } from './catalog'
@@ -528,49 +530,64 @@ const PLAYGROUND_WORLD_TABS: readonly WorldTabDefinition[] = [
   { id: 'footprints', label: '足迹', icon: <MapPin size={14} strokeWidth={1.5} /> },
 ]
 
+function worldPreviewAsset(personaId: string, id: string, kind: string, name: string, payload: Record<string, unknown>, acquiredAt = 1): WorldAssetRecord {
+  return { id: `${personaId}-${id}`, roleId: personaId, kind, name, payload, acquiredAt, sourceEventId: null }
+}
+
+function worldPreviewFixtures(persona: PlaygroundPersona) {
+  const wardrobe = persona.id === 'lin'
+    ? [
+        worldPreviewAsset(persona.id, 'coat', 'wardrobe', '灰蓝薄外套', { color: '灰蓝', style: '薄外套', occasion: '傍晚散步' }),
+        worldPreviewAsset(persona.id, 'bag', 'wardrobe', '深蓝帆布包', { color: '深蓝', style: '帆布包', occasion: '常带着电脑' }, 2),
+        worldPreviewAsset(persona.id, 'camera', 'wardrobe', '旧相机', { color: '旧', style: '相机', occasion: '散步偶尔带上' }, 3),
+      ]
+    : [
+        worldPreviewAsset(persona.id, 'coat', 'wardrobe', '米白针织衫', { color: '米白', style: '针织衫', occasion: '安静的下午' }),
+        worldPreviewAsset(persona.id, 'bag', 'wardrobe', '灰绿帆布包', { color: '灰绿', style: '帆布包', occasion: '耳机和随手记' }, 2),
+        worldPreviewAsset(persona.id, 'umbrella', 'wardrobe', '折叠伞', { color: '折叠', style: '雨具', occasion: '天气不确定' }, 3),
+      ]
+  const living: WorldAssetRecord[] = [
+    worldPreviewAsset(persona.id, 'reading', 'culture', '《瓦尔登湖》', { type: 'reading', detail: '正在读', note: '有时候不是事情太多，而是没有给自己留下足够的空白。' }),
+    worldPreviewAsset(persona.id, 'music', 'culture', '旅行的意义', { type: 'music', detail: '最近常听 · 傍晚散步' }, 2),
+    worldPreviewAsset(persona.id, 'film', 'culture', '《海街日记》', { type: 'film', detail: '喜欢的电影 · 看过两次' }, 3),
+    worldPreviewAsset(persona.id, 'photo', 'culture', '窗边的光', { type: 'photography', detail: '自己的作品 · 2026 年 8 月' }, 4),
+    worldPreviewAsset(persona.id, 'desk', 'home', '书桌', { interior: '窗帘拉开了一点，桌面留出了一块安静的空白。' }, 5),
+    worldPreviewAsset(persona.id, 'lamp', 'furniture', '台灯', { description: '暖光 · 已打开' }, 6),
+    worldPreviewAsset(persona.id, 'tea', 'object', '乌龙茶', { description: '刚泡好 · 还温着' }, 7),
+    worldPreviewAsset(persona.id, 'home-camera', 'object', '旧相机', { description: '放在桌角' }, 8),
+    worldPreviewAsset(persona.id, 'cafe', 'footprint', '楼下咖啡店', { visitStatus: 'favorite' }, 9),
+    worldPreviewAsset(persona.id, 'riverside', 'footprint', '河边步道', { visitStatus: 'favorite' }, 10),
+    worldPreviewAsset(persona.id, 'beihai', 'footprint', '北海', { visitStatus: 'wanted' }, 11),
+  ]
+  return {
+    wardrobe,
+    living,
+    moments: [{ publishedAt: Date.UTC(2026, 8, 1), meta: { location: '杭州 · 西湖边' }, text: '和阿遥一起散步，记下了一段慢下来的下午。' }],
+    presence: '下午 · 家中',
+  }
+}
+
 function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onNavigate?: (tab: PlaygroundTabId) => void }) {
   const [tab, setTab] = useState<WorldTab>('moments')
+  const fixtures = useMemo(() => worldPreviewFixtures(persona), [persona])
   const isLin = persona.id === 'lin'
-  const wardrobe = isLin
-    ? [['灰蓝薄外套', '最近常穿 · 适合傍晚散步'], ['深蓝帆布包', '常带着电脑和一本随手记。'], ['旧相机', '散步时偶尔带上。']]
-    : [['米白针织衫', '最近常穿 · 适合安静的下午'], ['灰绿帆布包', '出门时装着耳机和一本随手记。'], ['折叠伞', '天气不确定时总会带上。']]
   const cast = isLin
     ? [[persona.name, '当前主角'], ['阿遥', '偶尔联系的朋友'], ['许叔', '楼下咖啡店老板']]
     : [[persona.name, '当前主角'], ['小林', '偶尔联系的朋友'], ['阿禾', '一起散步的朋友']]
   const previewPanels: Partial<Record<WorldTab, ReactNode>> = {
     wardrobe: (
-      <div className="grid gap-3 p-5 sm:grid-cols-2" data-testid="world-wardrobe-fixture" data-persona-id={persona.id}>
-        <article className="rounded-[var(--radius-xl)] border p-4 sm:col-span-2" style={{ borderColor: 'var(--companion-accent-warm)', background: 'var(--companion-surface)' }}>
-          <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--companion-accent-warm)' }}><Shirt size={13} />当前穿着</div>
-          <div className="mt-2 text-[17px] font-medium" style={{ color: 'var(--text-primary)' }}>{wardrobe[0][0]}</div>
-          <p className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{wardrobe[0][1]}</p>
-        </article>
-        {wardrobe.slice(1).map(([name, detail]) => (
-          <article key={name} className="rounded-xl border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
-            <div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{name}</div>
-            <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>{detail}</p>
-          </article>
-        ))}
+      <div data-testid="world-wardrobe-fixture" data-persona-id={persona.id}>
+        <AssetsPanel key={persona.id} onClose={noop} previewAssets={fixtures.wardrobe} previewEditable previewRoleName={persona.name} previewWearingId={fixtures.wardrobe[0]?.id} />
       </div>
     ),
     culture: (
-      <div className="space-y-3 p-5" data-testid="world-culture-fixture" data-persona-id={persona.id}>
-        <WorldCultureContent assets={[
-          { id: 'reading-preview', kind: 'culture', name: '《瓦尔登湖》', payload: { type: 'reading', detail: '正在读', note: '有时候不是事情太多，而是没有给自己留下足够的空白。' } },
-          { id: 'music-preview', kind: 'culture', name: '旅行的意义', payload: { type: 'music', detail: '最近常听 · 傍晚散步' } },
-          { id: 'film-preview', kind: 'culture', name: '《海街日记》', payload: { type: 'film', detail: '喜欢的电影 · 看过两次' } },
-          { id: 'photo-preview', kind: 'culture', name: '窗边的光', payload: { type: 'photography', detail: '自己的作品 · 2026 年 8 月' } },
-        ]} />
+      <div data-testid="world-culture-fixture" data-persona-id={persona.id}>
+        <WorldDetailsPanel key={`${persona.id}-culture`} tab="culture" previewAssets={fixtures.living} previewEditable previewRoleName={persona.name} />
       </div>
     ),
     home: (
-      <div className="space-y-3 p-5" data-testid="world-home-fixture" data-persona-id={persona.id}>
-        <WorldHomeContent presence="下午 · 家中" assets={[
-          { id: 'home-preview', kind: 'home', name: '书桌', payload: { interior: '窗帘拉开了一点，桌面留出了一块安静的空白。' } },
-          { id: 'lamp-preview', kind: 'furniture', name: '台灯', payload: { detail: '暖光 · 已打开' } },
-          { id: 'tea-preview', kind: 'object', name: '乌龙茶', payload: { detail: '刚泡好 · 还温着' } },
-          { id: 'camera-preview', kind: 'object', name: '旧相机', payload: { detail: '放在桌角' } },
-        ]} />
+      <div data-testid="world-home-fixture" data-persona-id={persona.id}>
+        <WorldDetailsPanel key={`${persona.id}-home`} tab="home" previewAssets={fixtures.living} previewMoments={fixtures.moments} previewPresence={fixtures.presence} previewEditable previewRoleName={persona.name} />
       </div>
     ),
     cast: (
@@ -584,9 +601,8 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
       </div>
     ),
     footprints: (
-      <div className="space-y-3 p-5" data-testid="world-footprints-fixture" data-persona-id={persona.id}>
-        <WorldFootprintsContent assets={['楼下咖啡店', '河边步道', '北海'].map((name, index) => ({ id: `place-preview-${index}`, kind: 'footprint', name, payload: { visitStatus: index === 2 ? 'wanted' : 'favorite' } }))}
-          moments={[{ publishedAt: Date.UTC(2026, 8, 1), meta: { location: '杭州 · 西湖边' }, text: '和阿遥一起散步，记下了一段慢下来的下午。' }]} />
+      <div data-testid="world-footprints-fixture" data-persona-id={persona.id}>
+        <WorldDetailsPanel key={`${persona.id}-footprints`} tab="footprints" previewAssets={fixtures.living} previewMoments={fixtures.moments} previewEditable previewRoleName={persona.name} />
       </div>
     ),
   }

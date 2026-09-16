@@ -72,7 +72,7 @@
 - 人物世界正式入口提供六个生活面：朋友圈、衣柜、文化角、家居、通讯录、足迹。朋友圈、衣柜和通讯录读取现有 companion IPC；文化角、家居和足迹复用按主角隔离的 `companion_assets`，其中家居与常去地点由角色世界默认资产幂等播种，生活动态地点作为足迹的近期补充，不把 Playground fixture 当作生产数据源。
 - 家居与足迹的正式页、Playground 使用同一 `WorldLivingContent` 纯展示组件；家居保留住所结构和生活物件，足迹分开常去、显式想去记录与实际动态，不用资产初始化时间伪造访问日期，同地点不同动态保留各自正文和日期。正式刷新失败保留内容并可重试，响应主角不一致则清空并提示重试。
 - 新住所 / 地点的初始化标记与资产在同一 SQLite 事务内写入 `companion_asset_seeds`；仅真实 Role Pack 提供默认数据时初始化，不覆盖已有记录，删除后重载不补种。文化角 / 衣柜 / 书架沿用既有初始化语义，不外推该删除保证。
-- 文化角通过 `WorldCultureContent` 同源展示四类文化卡片、书架阅读内容和关联读书笔记；`detail` 与 `note` 同时存在时均保留，重名作品按资产 ID 区分，未知类型保留为文化记录，空数据不生成作品。正式页沿既有资产 IPC 读取，Playground 只传隔离 props；尚未提供文化资产编辑 UI。
+- 文化角通过 `WorldCultureContent` 同源展示四类文化卡片、书架阅读内容和关联读书笔记；`detail` 与 `note` 同时存在时均保留，重名作品按资产 ID 区分，未知类型保留为文化记录，空数据不生成作品。正式页沿既有资产 IPC 读取，并通过 `companion:create-asset` 与既有 update / delete 编辑衣柜、文化、家居物件和足迹地点；Playground 只传隔离 props 并改内存预览。
 - 文化 / 书架资产更新中的 `note`、`detail`、`description` 支持最多 4000 UTF-16 代码单元，保留换行，超限或错误类型在写入前拒绝整次修改，不再按衣柜标签截为 24 字。书架进入 Prompt 仍只取 24 字笔记摘要；其余资产短标签规则不变，历史已截断正文无法自动恢复。
 
 状态：`已落地` · `部分` · `缺口`。能力增删或行为变了 → **同轮改本表**。
@@ -106,7 +106,7 @@
 | 此刻 presence | 已落地 | Catch-up / Prompt | `describeCastPresence` · `catchup-status.presence` |
 | Moments（朋友圈） | 已落地 | 人物世界 / 欢迎屏 → 朋友圈 | `get-moments` · MomentsPanel · 卡司互动 meta；Playground 可用只读 Moments / Catch-up 样张、可选本地图片内容位且跳过 IPC |
 | 正式人物世界朋友圈流默认态 | 已落地 | `WorldHub` 默认 `social-feed` 并隐藏重复标题；保留真实动态、时间 / 地点、互动和近期窗口说明 |
-| Assets（物什） | 已落地 | 欢迎屏 → 物什 | wardrobe/bookshelf · `get/update/delete-asset` · AssetsPanel |
+| Assets（物什） | 已落地 | 人物世界衣柜 / 文化角 / 家居 / 足迹 | wardrobe/bookshelf/culture/home/footprint/furniture · `get/create/update/delete-asset` · AssetsPanel / WorldDetailsPanel / WorldAssetEditor |
 | 名册浅注入 | 已落地 | （Prompt） | `cast/roster` |
 | CastPanel（名册 / 召唤） | 已落地 | 人物世界 / 欢迎屏 → 名册 | CastPanel · `start-summon` · 场景 prompt |
 | 召唤子会话 | 已落地 | 名册「开聊」 | 不改 active / 不 tick；可 delegate（任务工） |
@@ -167,4 +167,5 @@
 - 2026-09-14：文化角正式使用 `companion_assets(kind=culture)`，按主角隔离并复用既有资产 CRUD / starter 播种；资产 payload 的 `type` 区分 reading、music、film、photography。
 - 2026-09-15：家居与足迹接入同一 `companion_assets` 事实链，分别使用 `kind=home` 与 `kind=footprint`；家居读取住所结构，足迹读取角色常去地点，近期动态仅作为补充。
 - 2026-09-16：衣柜删除与通讯录强制开聊改为成功后才关闭确认；失败保留同一确认，处理中禁止取消和重复提交。不改 IPC、存储或召唤忙闲判定。该补验不关闭生活面编辑、备份或六面完整验收。
-- 全生活面回流仍未完成：生活资产编辑入口、想去记录写入流程，以及真实 Electron 逐面验收继续由 R12 管理。文化角组合已接共享展示；现有文化 starter 的作品、笔记数量与经历描述仍需复核角色来源，数据库有记录不等于已获确认的人物事实。导入导出尚不包含生活资产及初始化标记，归 R07 / WISH-045；数据库重载测试不等同用户备份恢复。
+- 2026-09-17：衣柜、文化角、家居和足迹正式页接入用户创建白名单与真实增改删；Playground 只做内存预览。Electron 覆盖文化 / 家居物件 / 想去地点的 create、重载保留、超限拒绝和删除清理。朋友圈互动、通讯录忙闲、人物 starter 来源复核和备份仍未完成。
+- 全生活面回流仍未完成：朋友圈互动后端、通讯录忙闲判定、六面完整 Electron 与用户备份继续由 R12 / R07 管理。现有文化 starter 的作品、笔记数量与经历描述仍需复核角色来源，数据库有记录不等于已获确认的人物事实。导入导出尚不包含生活资产及初始化标记，归 R07 / WISH-045；数据库重载测试不等同用户备份恢复。

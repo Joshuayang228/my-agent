@@ -27,6 +27,7 @@ import {
 } from '../companion/growth/reflection-service'
 import { describeCastPresence } from '../companion/cast/availability'
 import {
+  createAsset,
   deleteAsset,
   ensureStarterAssets,
   listAssets,
@@ -133,6 +134,31 @@ export function registerCompanionIPC(): void {
       const kind = typeof opts?.kind === 'string' ? opts.kind : undefined
       const items = await listAssets(roleId, kind ? { kind } : undefined)
       return { roleId, items }
+    },
+  )
+
+  /** 用户主动写入活跃主角生活资产；kind 白名单由 createAsset 校验 */
+  ipcMain.handle(
+    'companion:create-asset',
+    async (
+      _e,
+      input?: { kind?: string; name?: string; payload?: Record<string, unknown> },
+    ) => {
+      if (!input || typeof input !== 'object') {
+        return { ok: false as const, error: 'INVALID_INPUT' }
+      }
+      if (typeof input.kind !== 'string' || typeof input.name !== 'string') {
+        return { ok: false as const, error: 'INVALID_INPUT' }
+      }
+      const roleId = await getActiveRoleId()
+      const result = await createAsset({
+        roleId,
+        kind: input.kind,
+        name: input.name,
+        payload: input.payload,
+      })
+      if (!result.ok) return { ok: false as const, error: result.error, code: result.code }
+      return { ok: true as const, asset: result.asset }
     },
   )
 

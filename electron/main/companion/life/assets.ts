@@ -139,8 +139,113 @@ export const ASSET_KIND_BOOKSHELF = 'bookshelf'
 export const ASSET_KIND_CULTURE = 'culture'
 export const ASSET_KIND_HOME = 'home'
 export const ASSET_KIND_FOOTPRINT = 'footprint'
+export const ASSET_KIND_FURNITURE = 'furniture'
 
-export type AssetKind = typeof ASSET_KIND_WARDROBE | typeof ASSET_KIND_BOOKSHELF | typeof ASSET_KIND_CULTURE | typeof ASSET_KIND_HOME | typeof ASSET_KIND_FOOTPRINT
+export const USER_CREATABLE_ASSET_KINDS = [
+  ASSET_KIND_WARDROBE,
+  ASSET_KIND_BOOKSHELF,
+  ASSET_KIND_CULTURE,
+  ASSET_KIND_HOME,
+  ASSET_KIND_FOOTPRINT,
+  ASSET_KIND_FURNITURE,
+] as const
+
+export type UserCreatableAssetKind = (typeof USER_CREATABLE_ASSET_KINDS)[number]
+
+const LONG_TEXT_FIELDS = new Set([
+  'note',
+  'detail',
+  'description',
+  'residence',
+  'interior',
+  'layout',
+  'view',
+  'surroundings',
+])
+
+function allowsLongText(kind: string): boolean {
+  return kind === ASSET_KIND_CULTURE
+    || kind === ASSET_KIND_BOOKSHELF
+    || kind === ASSET_KIND_HOME
+    || kind === ASSET_KIND_FOOTPRINT
+    || kind === ASSET_KIND_FURNITURE
+}
+
+export function normalizeAssetName(name: unknown): { ok: true; value: string } | { ok: false; error: string } {
+  const value = typeof name === 'string' ? name.trim() : ''
+  if (!value || value.length > 40) return { ok: false, error: '名称无效（1–40 字）' }
+  return { ok: true, value }
+}
+
+/**
+ * 背景：衣柜短标签与文化 / 家居 / 足迹正文共用同一写入入口，统一截成 24 字会静默丢掉住所和地点描述。
+ * 设计意图：按资产类型识别正文白名单，超限拒绝整次写入；短标签保持兼容截断。
+ * 关键约束：先规范化全部字段再交给 SQL；不得部分保存；正文不做日志。
+ */
+export function applyAssetPayloadPatch(
+  kind: string,
+  current: Record<string, unknown>,
+  patch?: Record<string, unknown>,
+): { ok: true; payload: Record<string, unknown> } | { ok: false; error: string } {
+  if (!patch || typeof patch !== 'object') return { ok: true, payload: current }
+  const next: Record<string, unknown> = { ...current }
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === null || value === undefined || value === '') {
+      delete next[key]
+      continue
+    }
+    if (allowsLongText(kind) && LONG_TEXT_FIELDS.has(key)) {
+      if (typeof value !== 'string' || value.length > 4000) {
+        return { ok: false, error: '正文须为文本，长度不能超过 4000 字符' }
+      }
+      if (value.trim()) next[key] = value
+      else delete next[key]
+      continue
+    }
+    if (typeof value === 'string') {
+      const text = value.trim().slice(0, 24)
+      if (text) next[key] = text
+      else delete next[key]
+    } else {
+      next[key] = value
+    }
+  }
+  return { ok: true, payload: next }
+}
+
+export function isUserCreatableAssetKind(kind: string): kind is UserCreatableAssetKind {
+  return (USER_CREATABLE_ASSET_KINDS as readonly string[]).includes(kind)
+}
+
+/**
+ * 背景：生活面需要用户主动写入衣柜、文化、家居和足迹，但内部播种和事件 grant 仍走 addAsset。
+ * 设计意图：用户创建走白名单 kind 与同一套名称 / 正文校验，避免 IPC 直接插入任意类型。
+ * 关键约束：只给调用方传入的 roleId 写入；不补种、不覆盖已有 id。
+ */
+export async function createAsset(input: {
+  roleId: string
+  kind: string
+  name: string
+  payload?: Record<string, unknown>
+}): Promise<AssetMutationResult> {
+  const kind = typeof input.kind === 'string' ? input.kind.trim() : ''
+  if (!isUserCreatableAssetKind(kind)) {
+    return { ok: false, code: 'INVALID', error: '不支持的生活资产类型' }
+  }
+  const name = normalizeAssetName(input.name)
+  if (!name.ok) return { ok: false, code: 'INVALID', error: name.error }
+  const payload = applyAssetPayloadPatch(kind, {}, input.payload)
+  if (!payload.ok) return { ok: false, code: 'INVALID', error: payload.error }
+  const asset = await addAsset({
+    roleId: input.roleId,
+    kind,
+    name: name.value,
+    payload: payload.payload,
+  })
+  return { ok: true, asset }
+}
+
+export type AssetKind = typeof ASSET_KIND_WARDROBE | typeof ASSET_KIND_BOOKSHELF | typeof ASSET_KIND_CULTURE | typeof ASSET_KIND_HOME | typeof ASSET_KIND_FOOTPRINT | typeof ASSET_KIND_FURNITURE
 
 export interface CompanionStarterAssetDefinition {
   key: string
@@ -492,8 +597,8 @@ export async function collectBookshelfSlice(
 }
 
 /**
- * 背景：衣柜短标签与文化 / 书架正文共用更新入口，统一截为 24 字会造成静默数据丢失。
- * 设计意图：仅正文白名单支持完整有界文本，超限或类型错误拒绝整次更新，短标签保持兼容。
+ * 背景：衣柜短标签与文化 / 家居 / 足迹正文共用更新入口，统一截为 24 字会造成静默数据丢失。
+ * 设计意图：名称与 payload 走同一套规范化 helper，超限或类型错误拒绝整次更新，短标签保持兼容。
  * 关键约束：先检查角色归属，再校验全部字段，最后一次参数化 SQL 更新；不得部分保存或记录正文日志。
  */
 export async function updateAsset(
@@ -509,48 +614,21 @@ export async function updateAsset(
     return { ok: false, code: 'ROLE_MISMATCH', error: '只能改当前活跃主角的资产' }
   }
 
-  const name = typeof patch.name === 'string' ? patch.name.trim() : existing.name
-  if (!name || name.length > 40) {
-    return { ok: false, code: 'INVALID', error: '名称无效（1–40 字）' }
-  }
+  const name = patch.name !== undefined ? normalizeAssetName(patch.name) : { ok: true as const, value: existing.name }
+  if (!name.ok) return { ok: false, code: 'INVALID', error: name.error }
 
-  let payload = existing.payload
-  if (patch.payload && typeof patch.payload === 'object') {
-    const next: Record<string, unknown> = { ...existing.payload }
-    for (const [k, v] of Object.entries(patch.payload)) {
-      if (v === null || v === undefined || v === '') {
-        delete next[k]
-        continue
-      }
-      const isCultureText = (existing.kind === ASSET_KIND_CULTURE || existing.kind === ASSET_KIND_BOOKSHELF)
-        && ['note', 'detail', 'description'].includes(k)
-      if (isCultureText) {
-        if (typeof v !== 'string' || v.length > 4000) {
-          return { ok: false, code: 'INVALID', error: '文化正文须为文本，长度不能超过 4000 字符' }
-        }
-        if (v.trim()) next[k] = v
-        else delete next[k]
-        continue
-      }
-      if (typeof v === 'string') {
-        const t = v.trim().slice(0, 24)
-        if (t) next[k] = t
-        else delete next[k]
-      } else {
-        next[k] = v
-      }
-    }
-    payload = next
-  }
+  const payloadResult = applyAssetPayloadPatch(existing.kind, existing.payload, patch.payload)
+  if (!payloadResult.ok) return { ok: false, code: 'INVALID', error: payloadResult.error }
+  const payload = payloadResult.payload
 
   const db = await getDatabase()
   db.run(
     `UPDATE companion_assets SET name = ?, payload_json = ? WHERE id = ?`,
-    [name, JSON.stringify(payload), assetId],
+    [name.value, JSON.stringify(payload), assetId],
   )
   persist()
-  const asset: CompanionAsset = { ...existing, name, payload }
-  log.info('Asset updated', { assetId, roleId: existing.roleId, name })
+  const asset: CompanionAsset = { ...existing, name: name.value, payload }
+  log.info('Asset updated', { assetId, roleId: existing.roleId, name: name.value })
   return { ok: true, asset }
 }
 

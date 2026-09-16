@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { BookOpen, Camera, Clapperboard, Home, MapPin, Music, Package } from 'lucide-react'
 
 export interface LivingAsset {
@@ -12,6 +13,8 @@ export interface LivingMoment {
   publishedAt: number
   meta: Record<string, unknown>
 }
+
+export type LivingAssetEditor = (asset: LivingAsset) => ReactNode
 
 const cardStyle = { borderColor: 'var(--card-border)', background: 'var(--card-bg)' }
 const headingStyle = { color: 'var(--companion-accent-warm)' }
@@ -30,7 +33,7 @@ const cultureTypes = {
  * 设计意图：正式与候选共用卡片组合，书架记录作为阅读内容，笔记单独展示并保留所属作品。
  * 关键约束：仅呈现传入的真实字段；不制造播放、观影次数或笔记数量，不按同名去重，不读取 IPC。
  */
-export function WorldCultureContent({ assets }: { assets: readonly LivingAsset[] }) {
+export function WorldCultureContent({ assets, renderEditor }: { assets: readonly LivingAsset[]; renderEditor?: LivingAssetEditor }) {
   const items = assets.filter((item) => item.kind === 'culture' || item.kind === 'bookshelf')
   const typeFor = (item: LivingAsset) => item.kind === 'bookshelf' ? 'reading' : textField(item.payload, 'type')
   const notes = items.filter((item) => typeFor(item) === 'reading' && textField(item.payload, 'note').trim())
@@ -47,6 +50,7 @@ export function WorldCultureContent({ assets }: { assets: readonly LivingAsset[]
           {textField(item.payload, 'author') && <p className="mt-1 text-[11px]" style={detailStyle}>{textField(item.payload, 'author')}</p>}
           {detail && <p className="mt-1 whitespace-pre-wrap text-[11px] leading-5" style={detailStyle}>{detail}</p>}
           {type !== 'reading' && textField(item.payload, 'note').trim() && <p className="mt-2 whitespace-pre-wrap text-[11px] leading-5" style={detailStyle}>{textField(item.payload, 'note')}</p>}
+          {renderEditor?.(item)}
         </article>
       })}
     </div>
@@ -64,7 +68,7 @@ export function WorldCultureContent({ assets }: { assets: readonly LivingAsset[]
  * 设计意图：候选与正式共用纯展示组件，仅由外层提供隔离样张或真实资产。
  * 关键约束：不读取 IPC、不播种数据，不把在场活动冒充住所，也不把未设定空间填成样张。
  */
-export function WorldHomeContent({ assets, presence }: { assets: readonly LivingAsset[]; presence: string }) {
+export function WorldHomeContent({ assets, presence, renderEditor }: { assets: readonly LivingAsset[]; presence: string; renderEditor?: LivingAssetEditor }) {
   const homes = assets.filter((item) => item.kind === 'home')
   const objects = assets.filter((item) => !['home', 'footprint', 'wardrobe', 'bookshelf', 'culture'].includes(item.kind))
   return <div className="min-w-0 space-y-3" data-world-content="home">
@@ -74,6 +78,7 @@ export function WorldHomeContent({ assets, presence }: { assets: readonly Living
       {homes.map((item) => <article key={item.id} className="min-w-0 rounded-lg border p-4 [overflow-wrap:anywhere]" style={cardStyle}>
         <h3 className="text-[15px] font-medium">{item.name}</h3>
         {['residence', 'interior', 'layout', 'view', 'surroundings'].map((key) => textField(item.payload, key) && <p key={key} className="mt-1 whitespace-pre-wrap text-[11px] leading-5" style={detailStyle}>{textField(item.payload, key)}</p>)}
+        {renderEditor?.(item)}
       </article>)}
       {!homes.length && <p className="text-[11px]" style={detailStyle}>还没有记录居住空间。</p>}
     </section>
@@ -82,6 +87,7 @@ export function WorldHomeContent({ assets, presence }: { assets: readonly Living
       <div className="grid min-w-0 gap-3 sm:grid-cols-3">{objects.map((item) => <article key={item.id} className="min-w-0 rounded-lg border p-3 [overflow-wrap:anywhere]" style={cardStyle}>
         <h3 className="text-[12px] font-medium">{item.name}</h3>
         <p className="mt-1 whitespace-pre-wrap text-[11px] leading-5" style={detailStyle}>{textField(item.payload, 'description') || textField(item.payload, 'detail') || textField(item.payload, 'note')}</p>
+        {renderEditor?.(item)}
       </article>)}</div>
       {!objects.length && <p className="text-[11px]" style={detailStyle}>还没有记录生活物件。</p>}
     </section>
@@ -93,7 +99,7 @@ export function WorldHomeContent({ assets, presence }: { assets: readonly Living
  * 设计意图：按显式状态分组地点，单独呈现真实动态，沿用候选的地点、正文与右侧日期布局。
  * 关键约束：不以播种时间制造访问日期；没有地点的动态不推断位置，长文本只在内容区换行。
  */
-export function WorldFootprintsContent({ assets, moments }: { assets: readonly LivingAsset[]; moments: readonly LivingMoment[] }) {
+export function WorldFootprintsContent({ assets, moments, renderEditor }: { assets: readonly LivingAsset[]; moments: readonly LivingMoment[]; renderEditor?: LivingAssetEditor }) {
   const places = assets.filter((item) => item.kind === 'footprint')
   const visits = moments.filter((item) => textField(item.meta, 'location').trim())
   return <div className="min-w-0 space-y-4" data-world-content="footprints">
@@ -106,6 +112,7 @@ export function WorldFootprintsContent({ assets, moments }: { assets: readonly L
           <h3 className="text-[12px] font-medium">{item.name}</h3>
           <p className="mt-1 whitespace-pre-wrap text-[11px] leading-5" style={detailStyle}>{textField(item.payload, 'description')}</p>
           {textField(item.payload, 'city') && <p className="mt-1 text-[10px]" style={detailStyle}>{textField(item.payload, 'city')}</p>}
+          {renderEditor?.(item)}
         </article>)}</div>
       </section>
     })}

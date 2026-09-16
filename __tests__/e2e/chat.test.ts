@@ -2833,6 +2833,8 @@ test.describe('My Agent UI', () => {
     await page.getByTestId('world-tab-wardrobe').click()
     await expect(page.getByTestId('world-wardrobe-fixture')).toHaveAttribute('data-persona-id', 'yao')
     await expect(page.getByTestId('world-wardrobe-fixture')).toContainText('灰绿帆布包')
+    await expect(page.getByTestId('world-wardrobe-wearing')).toContainText('米白针织衫')
+    await expect(page.getByTestId('world-wardrobe-wearing')).not.toContainText('灰绿帆布包')
     await page.getByTestId('world-tab-culture').click()
     await expect(page.getByTestId('world-culture-fixture')).toHaveAttribute('data-persona-id', 'yao')
     await expect(page.getByTestId('world-culture-fixture')).toContainText('《瓦尔登湖》')
@@ -2869,15 +2871,21 @@ test.describe('My Agent UI', () => {
     await page.goto('/')
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: '人物世界', exact: true }).click()
     const world = page.getByTestId('world-hub')
-    await expect(world.getByRole('tab', { name: '朋友圈', exact: true })).toBeVisible()
-    await expect(world.getByRole('tab', { name: '衣柜', exact: true })).toBeVisible()
-    await expect(world.getByRole('tab', { name: '文化角', exact: true })).toBeVisible()
-    await expect(world.getByRole('tab', { name: '家居', exact: true })).toBeVisible()
-    await expect(world.getByRole('tab', { name: '通讯录', exact: true })).toBeVisible()
-    await expect(world.getByRole('tab', { name: '足迹', exact: true })).toBeVisible()
-    for (const tab of ['衣柜', '文化角', '家居', '通讯录', '足迹']) {
-      await world.getByRole('tab', { name: tab, exact: true }).click()
-      await expect(world.getByRole('tab', { name: tab, exact: true })).toHaveAttribute('aria-selected', 'true')
+    const tabs = [
+      ['moments', '朋友圈'],
+      ['wardrobe', '衣柜'],
+      ['culture', '文化角'],
+      ['home', '家居'],
+      ['cast', '通讯录'],
+      ['footprints', '足迹'],
+    ] as const
+    for (const [id, label] of tabs) {
+      await expect(world.getByTestId(`world-tab-${id}`)).toHaveText(label)
+    }
+    for (const [id] of tabs.slice(1)) {
+      const tab = world.getByTestId(`world-tab-${id}`)
+      await tab.click()
+      await expect(tab).toHaveAttribute('aria-selected', 'true')
     }
   })
   test('Debug 与 Playground 采用一级任务导航', async ({ page }) => {
@@ -3419,6 +3427,79 @@ test.describe('My Agent UI', () => {
     await expect(page.getByRole('group', { name: '这条记忆包含敏感信息', exact: true })).toHaveCount(0)
     await expect(memory).toContainText('最近在调整处方药安排。')
     expect(await page.evaluate(() => (window as any).__playgroundMemoryWrites)).toEqual([])
+  })
+
+  test('Playground 生活面内存增改删不走真实 IPC', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const writes: unknown[] = []
+      ;(window as any).__worldPreviewWrites = writes
+      const api = (window as any).electronAPI.companion
+      api.createAsset = async (...args: unknown[]) => { writes.push(['create', ...args]); return { ok: true, asset: { id: 'should-not-write', roleId: 'lin', kind: 'wardrobe', name: 'should-not-write', payload: {}, acquiredAt: 1, sourceEventId: null } } }
+      api.updateAsset = async (...args: unknown[]) => { writes.push(['update', ...args]); return { ok: true, asset: { id: 'should-not-write', roleId: 'lin', kind: 'wardrobe', name: 'should-not-write', payload: {}, acquiredAt: 1, sourceEventId: null } } }
+      api.deleteAsset = async (...args: unknown[]) => { writes.push(['delete', ...args]); return { ok: true } }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+    await page.getByTestId('playground-nav').getByRole('button', { name: '人物世界', exact: true }).click()
+    await page.getByTestId('world-tab-wardrobe').click()
+    const wardrobe = page.getByTestId('world-wardrobe-fixture')
+    await expect(wardrobe.getByTestId('world-wardrobe-wearing')).toContainText('灰蓝薄外套')
+    await wardrobe.getByRole('button', { name: '添加衣物', exact: true }).click()
+    await wardrobe.getByLabel('名称', { exact: true }).fill('预览新外套')
+    await wardrobe.getByRole('button', { name: '保存衣物', exact: true }).click()
+    await expect(wardrobe).toContainText('预览新外套')
+    await wardrobe.getByRole('button', { name: '编辑 预览新外套', exact: true }).click()
+    await wardrobe.getByLabel('名称', { exact: true }).fill('预览更名外套')
+    await wardrobe.getByRole('button', { name: '保存衣物', exact: true }).click()
+    await expect(wardrobe).toContainText('预览更名外套')
+    await wardrobe.getByRole('button', { name: '删除 预览更名外套', exact: true }).click()
+    await page.getByRole('button', { name: '删除', exact: true }).click()
+    await expect(wardrobe.getByText('预览更名外套', { exact: true })).toHaveCount(0)
+    await page.getByTestId('world-tab-culture').click()
+    const culture = page.getByTestId('world-culture-fixture')
+    await culture.getByRole('button', { name: '添加文化记录', exact: true }).click()
+    await culture.getByLabel('作品', { exact: true }).fill('预览新作品')
+    await culture.getByRole('button', { name: '保存文化记录', exact: true }).click()
+    await expect(culture).toContainText('预览新作品')
+    expect(await page.evaluate(() => (window as any).__worldPreviewWrites)).toEqual([])
+  })
+
+  test('正式生活资产新增失败保留草稿', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const state = { creates: [] as Array<{ kind: string; name: string }>, fail: true, items: [] as Array<{ id: string; roleId: string; kind: string; name: string; payload: Record<string, unknown>; acquiredAt: number; sourceEventId: null }> }
+      ;(window as any).__assetCreate = state
+      const api = (window as any).electronAPI.companion
+      api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
+      api.getAssets = async () => ({ roleId: 'lin', items: state.items.map((item) => ({ ...item })) })
+      api.getMoments = async () => ({ roleId: 'lin', items: [] })
+      api.catchupStatus = async () => ({ roleId: 'lin', presence: '' })
+      api.createAsset = async (input: { kind: string; name: string; payload?: Record<string, unknown> }) => {
+        state.creates.push({ kind: input.kind, name: input.name })
+        if (state.fail) return { ok: false, error: '添加失败', code: 'INVALID' }
+        const asset = { id: `created-${state.items.length + 1}`, roleId: 'lin', kind: input.kind, name: input.name, payload: input.payload ?? {}, acquiredAt: 1, sourceEventId: null }
+        state.items = [...state.items, asset]
+        return { ok: true, asset }
+      }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    await page.getByTestId('world-tab-culture').click()
+    const details = page.getByTestId('world-details')
+    await details.getByRole('button', { name: '添加文化记录', exact: true }).click()
+    await details.getByLabel('作品', { exact: true }).fill('正式新作品')
+    await details.getByRole('button', { name: '保存文化记录', exact: true }).click()
+    await expect(details.getByRole('alert')).toContainText('未添加')
+    await expect(details.getByLabel('作品', { exact: true })).toHaveValue('正式新作品')
+    await page.evaluate(() => { (window as any).__assetCreate.fail = false })
+    await details.getByRole('button', { name: '保存文化记录', exact: true }).click()
+    await expect(details).toContainText('正式新作品')
+    await expect(details.getByTestId('world-asset-form')).toHaveCount(0)
+    expect(await page.evaluate(() => (window as any).__assetCreate.creates)).toEqual([
+      { kind: 'culture', name: '正式新作品' },
+      { kind: 'culture', name: '正式新作品' },
+    ])
   })
 
   test('正式衣柜删除确认失败保留且防重入', async ({ page }) => {

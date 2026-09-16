@@ -49,6 +49,7 @@ const {
   ensureWorldDefaultPossessions,
   listAssets,
   addAsset,
+  createAsset,
   updateAsset,
   deleteAsset,
   pickWardrobeAssetId,
@@ -252,6 +253,25 @@ describe('Companion Assets', () => {
     const b = await pickWardrobeAssetId('lin', 42)
     expect(a).toBe(b)
     expect(a).toBeTruthy()
+  })
+
+  it('createAsset 只允许白名单类型，超限拒绝且按角色隔离', async () => {
+    expect(await createAsset({ roleId: 'lin', kind: 'grant', name: '非法类型' })).toMatchObject({ ok: false, code: 'INVALID' })
+    const bounded = '文'.repeat(4000)
+    const culture = await createAsset({ roleId: 'lin', kind: 'culture', name: '用户新增作品', payload: { type: 'reading', note: bounded } })
+    expect(culture.ok).toBe(true)
+    if (!culture.ok) return
+    expect(culture.asset.payload.note).toBe(bounded)
+    expect(await createAsset({ roleId: 'lin', kind: 'culture', name: '超限作品', payload: { note: `${bounded}多` } })).toMatchObject({ ok: false, code: 'INVALID' })
+    expect((await listAssets('lin', { kind: 'culture' })).some((item) => item.name === '超限作品')).toBe(false)
+    const furniture = await createAsset({ roleId: 'zhou', kind: 'furniture', name: '用户台灯', payload: { description: '桌边' } })
+    expect(furniture.ok).toBe(true)
+    expect((await listAssets('lin', { kind: 'furniture' }))).toEqual([])
+    expect((await listAssets('zhou', { kind: 'furniture' })).map((item) => item.name)).toEqual(['用户台灯'])
+    const wardrobe = await createAsset({ roleId: 'lin', kind: 'wardrobe', name: '用户外套', payload: { color: '蓝'.repeat(50) } })
+    expect(wardrobe.ok).toBe(true)
+    if (!wardrobe.ok) return
+    expect(wardrobe.asset.payload.color).toBe('蓝'.repeat(24))
   })
 
   it('updateAsset 可改名与 payload，角色不匹配则失败', async () => {

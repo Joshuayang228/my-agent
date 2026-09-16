@@ -172,6 +172,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
         sourceEventId: string | null
       }>
     }> => ipcRenderer.invoke('companion:get-assets', opts),
+    createAsset: (
+      input: { kind: string; name: string; payload?: Record<string, unknown> },
+    ): Promise<
+      | {
+          ok: true
+          asset: {
+            id: string
+            roleId: string
+            kind: string
+            name: string
+            payload: Record<string, unknown>
+            acquiredAt: number
+            sourceEventId: string | null
+          }
+        }
+      | { ok: false; error: string; code?: string }
+    > => ipcRenderer.invoke('companion:create-asset', input),
     updateAsset: (
       assetId: string,
       patch: { name?: string; payload?: Record<string, unknown> },

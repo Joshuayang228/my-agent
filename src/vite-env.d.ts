@@ -188,6 +188,23 @@ declare global {
             sourceEventId: string | null
           }>
         }>
+        createAsset: (
+          input: { kind: string; name: string; payload?: Record<string, unknown> },
+        ) => Promise<
+          | {
+              ok: true
+              asset: {
+                id: string
+                roleId: string
+                kind: string
+                name: string
+                payload: Record<string, unknown>
+                acquiredAt: number
+                sourceEventId: string | null
+              }
+            }
+          | { ok: false; error: string; code?: string }
+        >
         updateAsset: (
           assetId: string,
           patch: { name?: string; payload?: Record<string, unknown> },

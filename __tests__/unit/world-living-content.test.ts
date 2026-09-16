@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { WorldAssetActions, emptyWorldAssetDraft, fieldsFor } from '../../src/components/world/WorldAssetEditor'
 import { WorldCultureContent, type LivingAsset } from '../../src/components/world/WorldLivingContent'
 
 const render = (assets: LivingAsset[]) => renderToStaticMarkup(createElement(WorldCultureContent, { assets }))
@@ -37,5 +38,28 @@ describe('WorldCultureContent', () => {
     expect(html).toContain('还没有记录文化生活。')
     expect(html).not.toContain('<article')
     expect(html).not.toContain('瓦尔登湖')
+  })
+
+  it('renderEditor 插槽出现在对应文化卡片内', () => {
+    const html = renderToStaticMarkup(createElement(WorldCultureContent, {
+      assets: [{ id: 'reading', kind: 'culture', name: '插槽作品', payload: { type: 'reading' } }],
+      renderEditor: (asset) => createElement('div', { 'data-editor': asset.id }, asset.name),
+    }))
+    expect(html).toContain('data-editor="reading"')
+    expect(html).toContain('插槽作品')
+  })
+})
+
+describe('WorldAssetEditor', () => {
+  it('操作槽固定占位，文化字段包含长文笔记', () => {
+    const html = renderToStaticMarkup(createElement(WorldAssetActions, {
+      name: '灰蓝薄外套',
+      onEdit: () => {},
+      onDelete: () => {},
+    }))
+    expect(html).toContain('h-8')
+    expect(html).toContain('w-[68px]')
+    expect(fieldsFor('culture').some((field) => field.key === 'note' && field.maxLength === 4000)).toBe(true)
+    expect(emptyWorldAssetDraft('footprint').payload.visitStatus).toBe('favorite')
   })
 })

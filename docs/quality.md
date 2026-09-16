@@ -26,13 +26,13 @@ MCP 服务卡片 Unit 覆盖未知 / 零工具、文本转义、内部滚动和�
 
 相处偏好回归覆盖独立字段、空值清除、输入 / IPC / 备份限长、动态资产来源和 Prompt 身份边界；正式 App Renderer 测试覆盖深浅 / 宽窄、保存失败重试固定槽、重开恢复及保存过程中继续编辑，伙伴页内联错误不重复弹出遮挡操作的 Toast。Electron 用独立数据目录验证真实 preload / settings IPC 与重载恢复，并通过本地协议服务核验主对话实发包含偏好、workspace 实发排除偏好；不把这些测试当作真实模型服从性 Eval。
 
-全产品回流验收要求见 [全产品回流施工合同](./requirements/product-experience-production-rollout-v1.md)：逐项区分 Playground 候选证据、正式 App 入口的 Renderer 证据和真实 Electron / 持久化证据。仅右坞、Vite HTTP 200、注册表状态或 Playground 测试通过，不得推导全产品已回流。正式设置已接共享导航，但各内容仍按 R03–R11 单独验收；例如 MCP 服务卡片共享不代表添加向导与远程协议完成。人物世界六入口已有 Renderer 证据，文化角、家居与常去地点已接 `companion_assets`，但编辑入口和六面完整 Electron 验收仍未完成。
+全产品回流验收要求见 [全产品回流施工合同](./requirements/product-experience-production-rollout-v1.md)：逐项区分 Playground 候选证据、正式 App 入口的 Renderer 证据和真实 Electron / 持久化证据。仅右坞、Vite HTTP 200、注册表状态或 Playground 测试通过，不得推导全产品已回流。正式设置已接共享导航，但各内容仍按 R03–R11 单独验收；例如 MCP 服务卡片共享不代表添加向导与远程协议完成。人物世界六入口已有 Renderer 证据；文化角、家居与足迹已接 `companion_assets` 真实增改删，Electron 覆盖 create / 重载 / 超限拒绝 / 删除清理。朋友圈互动、通讯录忙闲和六面完整 Electron 仍未完成。
 
 家居 / 足迹的 Unit 验证同库初始化标记、并发幂等、用户修改保留、删空后数据库重载、插入失败事务回滚及角色隔离。正式 App Renderer 回归覆盖四主题 × 1166 / 600px、长文内部滚动、失败保留内容、重试固定操作槽、同地点多次访问和不同主角响应拒绝；此处 IPC 使用测试替身，不是 Electron 后端证据。Playground 与正式共用 `WorldLivingContent`，样张还需验证“想去”不会进入“常去”。用户导出 / 导入未包含生活资产，不能用 SQLite export/import 单元测试声称产品备份闭环。
 
 记忆 Playground 的背景回归覆盖深浅主题、1166 / 600px 宽度，以及清单、编辑、空态新增截图；清单不得再嵌套独立页面预览框，内容区域保持透明且无横向溢出。
 
-文化角共享展示由 `world-living-content.test.ts` 验证四类中文标签、书架兼容、同名资产不丢失、摘要与笔记并存、未知类型、错误字段和文本转义；`chat.test.ts` 从正式入口覆盖四主题宽窄及长笔记内部滚动，`onboarding.test.ts` 通过真实资产 IPC 更新后重载页面核对作品与笔记。该 Electron 测试使用独立用户目录，不覆盖整个应用重启、文化资产编辑 UI 或默认人物内容是否已获批准。
+文化角共享展示由 `world-living-content.test.ts` 验证四类中文标签、书架兼容、同名资产不丢失、摘要与笔记并存、未知类型、错误字段、文本转义和编辑插槽几何；`chat.test.ts` 从正式入口覆盖四主题宽窄、长笔记内部滚动、Playground 内存增改删不写 IPC，以及正式新增失败保留草稿。`onboarding.test.ts` 通过真实资产 IPC 更新既有作品，并新增文化 / 家居物件 / 想去地点后重载核对，超限拒绝后删除清理。该 Electron 测试使用独立用户目录，不覆盖整个应用重启、备份恢复或默认人物内容是否已获批准。
 
 文化正文持久化回归必须覆盖 4000 字符边界、4001 字符拒绝、错误类型拒绝、无部分名称更新、清空、跨角色拒绝和衣柜短字段兼容；存储全文与书架 Prompt 笔记摘要预算分开测试。Electron 必须断言真实 updateAsset 返回的完整正文及超限错误，不能只看 DOM 存在。
 

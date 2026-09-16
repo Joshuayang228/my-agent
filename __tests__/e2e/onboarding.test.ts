@@ -275,6 +275,10 @@ test('正式伙伴设置经真实 IPC 保存独立偏好并在重载后恢复', 
 })
 
 test('正式文化角通过真实资产 IPC 更新并在重载后保留作品与笔记', async () => {
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  await page.evaluate(() => window.electronAPI.settings.set('llmApiKey', 'local-test-key'))
+  if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
+  await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
   const response = await page.evaluate(() => window.electronAPI.companion.getAssets())
   const reading = response.items.find((item) => item.kind === 'culture' && item.payload.type === 'reading')
   expect(reading).toBeDefined()
@@ -292,6 +296,8 @@ test('正式文化角通过真实资产 IPC 更新并在重载后保留作品与
     expect(oversized).toMatchObject({ ok: false, code: 'INVALID' })
     await page.reload()
     await expect(page.locator('#startup-splash')).toBeHidden()
+    if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
+    await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
     await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
     await page.getByTestId('world-tab-culture').click()
     const culture = page.locator('[data-world-content="culture"]')
@@ -307,6 +313,87 @@ test('正式文化角通过真实资产 IPC 更新并在重载后保留作品与
     await page.evaluate((item) => window.electronAPI.companion.updateAsset(item.id, {
       name: item.name, payload: { ...item.payload, note: item.payload.note ?? '' },
     }), original)
+    const back = page.getByTestId('world-hub').getByRole('button', { name: '返回聊天', exact: true })
+    if (await back.isVisible()) await back.click()
+  }
+})
+
+test('正式生活资产可通过真实 IPC 新增、重载保留并拒绝超限', async () => {
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  await page.evaluate(() => window.electronAPI.settings.set('llmApiKey', 'local-test-key'))
+  if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
+  await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
+  const createdIds: string[] = []
+  const note = '这是一条通过真实资产 IPC 新增的长笔记。\n'.repeat(40)
+  const oversized = '长'.repeat(4001)
+  try {
+    const culture = await page.evaluate(({ note }) => window.electronAPI.companion.createAsset({
+      kind: 'culture',
+      name: '文化角新增验收作品',
+      payload: { type: 'reading', detail: '摘要和笔记应同时可见', note },
+    }), { note })
+    expect(culture).toMatchObject({ ok: true })
+    if (!culture.ok) return
+    createdIds.push(culture.asset.id)
+    expect(culture.asset.payload.note).toBe(note)
+
+    const furniture = await page.evaluate(() => window.electronAPI.companion.createAsset({
+      kind: 'furniture',
+      name: '家居新增验收台灯',
+      payload: { description: '桌边一盏真实台灯' },
+    }))
+    expect(furniture).toMatchObject({ ok: true })
+    if (!furniture.ok) return
+    createdIds.push(furniture.asset.id)
+
+    const footprint = await page.evaluate(() => window.electronAPI.companion.createAsset({
+      kind: 'footprint',
+      name: '足迹新增验收地点',
+      payload: { visitStatus: 'wanted', city: '北海', description: '想去但还没有去过' },
+    }))
+    expect(footprint).toMatchObject({ ok: true })
+    if (!footprint.ok) return
+    createdIds.push(footprint.asset.id)
+
+    const rejected = await page.evaluate(({ oversized }) => window.electronAPI.companion.createAsset({
+      kind: 'culture',
+      name: '不得写入超限作品',
+      payload: { note: oversized },
+    }), { oversized })
+    expect(rejected).toMatchObject({ ok: false, code: 'INVALID' })
+
+    await page.reload()
+    await expect(page.locator('#startup-splash')).toBeHidden()
+    if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
+    await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+
+    await page.getByTestId('world-tab-culture').click()
+    const cultureView = page.locator('[data-world-content="culture"]')
+    await expect(cultureView.getByRole('article', { name: '文化角新增验收作品', exact: true })).toContainText('摘要和笔记应同时可见')
+    await expect(cultureView.locator('blockquote').filter({ hasText: '文化角新增验收作品' })).toContainText(note.trim())
+
+    await page.getByTestId('world-tab-home').click()
+    const homeView = page.locator('[data-world-content="home"]')
+    await expect(homeView.getByRole('article').filter({ hasText: '家居新增验收台灯' })).toContainText('桌边一盏真实台灯')
+
+    await page.getByTestId('world-tab-footprints').click()
+    const footprintsView = page.locator('[data-world-content="footprints"]')
+    await expect(footprintsView.getByRole('region', { name: '想去的地方' })).toContainText('足迹新增验收地点')
+    await expect(footprintsView.getByRole('region', { name: '常去地点' }).getByText('足迹新增验收地点', { exact: true })).toHaveCount(0)
+
+    const persisted = await page.evaluate(() => window.electronAPI.companion.getAssets())
+    expect(persisted.items.find((item) => item.name === '文化角新增验收作品')?.payload.note).toBe(note)
+    expect(persisted.items.find((item) => item.name === '家居新增验收台灯')?.payload.description).toBe('桌边一盏真实台灯')
+    expect(persisted.items.find((item) => item.name === '足迹新增验收地点')?.payload.visitStatus).toBe('wanted')
+    expect(persisted.items.some((item) => item.name === '不得写入超限作品')).toBe(false)
+    await page.screenshot({ path: 'test-results/world-living-create-electron.png', fullPage: true })
+  } finally {
+    for (const id of createdIds) {
+      await page.evaluate((assetId) => window.electronAPI.companion.deleteAsset(assetId), id)
+    }
+    const leftover = await page.evaluate(() => window.electronAPI.companion.getAssets())
+    expect(leftover.items.some((item) => ['文化角新增验收作品', '家居新增验收台灯', '足迹新增验收地点', '不得写入超限作品'].includes(item.name))).toBe(false)
     const back = page.getByTestId('world-hub').getByRole('button', { name: '返回聊天', exact: true })
     if (await back.isVisible()) await back.click()
   }

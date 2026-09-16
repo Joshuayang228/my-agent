@@ -28,7 +28,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；自�
 ## 依赖
 
 - **依赖**：llm、tools、storage、sandbox（执行前）、companion/memory（组装时注入）
-- **被依赖**：Chat IPC、召唤/反思后台任务、Eval 框架场景
+- **被依赖**：Chat IPC、召唤/反思后台任务、Eval 框架场景；人物世界生活资产增改删走 companion IPC，不进入 Loop。
 
 ## 不变量
 
@@ -103,6 +103,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；自�
 | 能力 | 状态 | 入口 / 落点 |
 |------|------|-------------|
 | Agent Loop（流式事件 · 工具超时 · 重试） | 已落地 | `agent/loop.ts` |
+| 人物世界生活资产 IPC | 部分 | `ipc/companion.ts` · `life/assets.ts` · `companion:create-asset` / `update-asset` / `delete-asset`；用户创建白名单由 createAsset 校验，不进入 Loop |
 | 会话 Runtime 中心化（chat:send 只传本轮） | 已落地 | `agent/runtime.ts` · `ipc/chat` |
 | TerminalReason 终态传递与 Runtime 去重 | 已落地 | `agent/loop.ts` · `agent/runtime.ts` · `runtime-terminal-reason.test.ts` |
 | System Prompt 四层组装 | 已落地 | `prompt-builder.ts` |
