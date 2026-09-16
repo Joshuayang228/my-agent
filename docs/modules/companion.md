@@ -32,7 +32,7 @@
 | `world` | WorldHub | 人物世界口袋（内页 tab） |
 | `moments` | MomentsPanel（经 WorldHub） | 朋友圈卡片时间线 |
 | `assets` | AssetsPanel | 衣柜（P1 加厚主视觉） |
-| `cast` | CastPanel | 名册 / 召唤（≠换活跃） |
+| `cast` | CastPanel | 通讯录 / 召唤（≠换活跃） |
 | `shelf` | CharacterShelfPanel | 角色架换角 |
 | `settings` | SettingsPanel + CompanionSettingsContent | 相处偏好 / 提醒 / 角色架；与 Playground 共用业务组合，数据隔离 |
 
@@ -69,7 +69,7 @@
 
 ## 已落地能力
 
-- 人物世界正式入口提供六个生活面：朋友圈、衣柜、文化角、家居、通讯录、足迹。朋友圈、衣柜和通讯录读取现有 companion IPC；文化角、家居和足迹复用按主角隔离的 `companion_assets`，其中家居与常去地点由角色世界默认资产幂等播种，生活动态地点作为足迹的近期补充，不把 Playground fixture 当作生产数据源。
+- 人物世界正式入口提供六个生活面：朋友圈、衣柜、文化角、家居、通讯录、足迹。朋友圈、衣柜和通讯录读取现有 companion IPC；正式通讯录列表会先读取既有 `check-cast-availability` 展示方便 / 忙碌，开聊仍走 `startSummon` 二次判定。文化角、家居和足迹复用按主角隔离的 `companion_assets`，其中家居与常去地点由角色世界默认资产幂等播种，生活动态地点作为足迹的近期补充，不把 Playground fixture 当作生产数据源。
 - 家居与足迹的正式页、Playground 使用同一 `WorldLivingContent` 纯展示组件；家居保留住所结构和生活物件，足迹分开常去、显式想去记录与实际动态，不用资产初始化时间伪造访问日期，同地点不同动态保留各自正文和日期。正式刷新失败保留内容并可重试，响应主角不一致则清空并提示重试。
 - 新住所 / 地点的初始化标记与资产在同一 SQLite 事务内写入 `companion_asset_seeds`；仅真实 Role Pack 提供默认数据时初始化，不覆盖已有记录，删除后重载不补种。文化角 / 衣柜 / 书架沿用既有初始化语义，不外推该删除保证。
 - 文化角通过 `WorldCultureContent` 同源展示四类文化卡片、书架阅读内容和关联读书笔记；`detail` 与 `note` 同时存在时均保留，重名作品按资产 ID 区分，未知类型保留为文化记录，空数据不生成作品。正式页沿既有资产 IPC 读取，并通过 `companion:create-asset` 与既有 update / delete 编辑衣柜、文化、家居物件和足迹地点；Playground 只传隔离 props 并改内存预览。
@@ -108,14 +108,14 @@
 | 正式人物世界朋友圈流默认态 | 已落地 | `WorldHub` 默认 `social-feed` 并隐藏重复标题；保留真实动态、时间 / 地点、互动和近期窗口说明 |
 | Assets（物什） | 已落地 | 人物世界衣柜 / 文化角 / 家居 / 足迹 | wardrobe/bookshelf/culture/home/footprint/furniture · `get/create/update/delete-asset` · AssetsPanel / WorldDetailsPanel / WorldAssetEditor |
 | 名册浅注入 | 已落地 | （Prompt） | `cast/roster` |
-| CastPanel（名册 / 召唤） | 已落地 | 人物世界 / 欢迎屏 → 名册 | CastPanel · `start-summon` · 场景 prompt |
-| 召唤子会话 | 已落地 | 名册「开聊」 | 不改 active / 不 tick；可 delegate（任务工） |
-| 召唤忙闲婉拒 + force | 已落地 | 名册开聊前 | `check-cast-availability` |
+| CastPanel（通讯录 / 召唤） | 已落地 | 人物世界 → 通讯录 | CastPanel · `start-summon` · 场景 prompt |
+| 召唤子会话 | 已落地 | 通讯录「开聊」 | 不改 active / 不 tick；可 delegate（任务工） |
+| 召唤忙闲婉拒 + force | 已落地 | 通讯录列表预检 / 开聊前 | `check-cast-availability` · CastPanel 卡片展示 |
 | 衣柜删除与强制开聊确认恢复 | 已落地 | 人物世界衣柜 / 通讯录 | 复用 `ConfirmPanel`；删除物什或强制召唤在成功前不关闭确认，失败可重试，处理中禁止取消和重复提交 |
 | 冷启动在场文案 | 已落地 | Chat 空态欢迎屏 | `companion-presence.ts` |
 | 角色架 UI | 已落地 | 设置「角色架」 | CharacterShelfPanel · `shelf` |
 | 物什主视觉（衣柜穿着中 + 书架分栏） | 已落地 | 人物世界 / 欢迎屏 → 物什 | AssetsPanel · Moment.assetId/outfit |
-| 名册关系卡 + 最近召唤互动 | 已落地 | 人物世界 / 欢迎屏 → 名册 | CastPanel · sessions(summon) |
+| 名册关系卡 + 最近召唤互动 | 已落地 | 人物世界 → 通讯录 | CastPanel · sessions(summon) |
 | 场景弱背景（Chat 氛围） | 已落地 | Chat 消息区底层 | `CompanionSceneBackdrop` · `companion-scene.ts` |
 | 前端视觉语言（token / 设置 IA / Chat 气质） | 已落地 | 主题·设置·侧栏身份·空态 | `frontend-visual-language` Phase1–3 |
 | Alice 壳 Phase A（大气侧栏） | 已落地 | Primary/底栏宫格只保留人物世界与设置；记忆与 Skills 从 Settings 进入 | `PrimarySidebar` · `frontend-alice-shell` |
@@ -167,5 +167,5 @@
 - 2026-09-14：文化角正式使用 `companion_assets(kind=culture)`，按主角隔离并复用既有资产 CRUD / starter 播种；资产 payload 的 `type` 区分 reading、music、film、photography。
 - 2026-09-15：家居与足迹接入同一 `companion_assets` 事实链，分别使用 `kind=home` 与 `kind=footprint`；家居读取住所结构，足迹读取角色常去地点，近期动态仅作为补充。
 - 2026-09-16：衣柜删除与通讯录强制开聊改为成功后才关闭确认；失败保留同一确认，处理中禁止取消和重复提交。不改 IPC、存储或召唤忙闲判定。该补验不关闭生活面编辑、备份或六面完整验收。
-- 2026-09-17：衣柜、文化角、家居和足迹正式页接入用户创建白名单与真实增改删；Playground 只做内存预览。Electron 覆盖文化 / 家居物件 / 想去地点的 create、重载保留、超限拒绝和删除清理。朋友圈互动、通讯录忙闲、人物 starter 来源复核和备份仍未完成。
-- 全生活面回流仍未完成：朋友圈互动后端、通讯录忙闲判定、六面完整 Electron 与用户备份继续由 R12 / R07 管理。现有文化 starter 的作品、笔记数量与经历描述仍需复核角色来源，数据库有记录不等于已获确认的人物事实。导入导出尚不包含生活资产及初始化标记，归 R07 / WISH-045；数据库重载测试不等同用户备份恢复。
+- 2026-09-17：衣柜、文化角、家居和足迹正式页接入用户创建白名单与真实增改删；Playground 只做内存预览。Electron 覆盖文化 / 家居物件 / 想去地点的 create、重载保留、超限拒绝和删除清理。正式通讯录列表读取既有忙闲判定，忙碌仍可开聊并进入强制确认；Playground 通讯录保持静态夹具。朋友圈互动、人物 starter 来源复核和备份仍未完成。
+- 全生活面回流仍未完成：朋友圈互动后端、六面完整 Electron 与用户备份继续由 R12 / R07 管理。现有文化 starter 的作品、笔记数量与经历描述仍需复核角色来源，数据库有记录不等于已获确认的人物事实。导入导出尚不包含生活资产及初始化标记，归 R07 / WISH-045；数据库重载测试不等同用户备份恢复。

@@ -3541,6 +3541,53 @@ test.describe('My Agent UI', () => {
     await expect(confirmation).toHaveCount(0)
   })
 
+  test('正式通讯录列表先展示忙闲且忙碌仍可开聊', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const state = { availability: [] as string[], summons: [] as Array<{ id: string; force?: boolean }> }
+      ;(window as any).__castAvailability = state
+      const api = (window as any).electronAPI.companion
+      api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
+      api.getRoster = async () => ({
+        roleId: 'lin',
+        lines: [
+          { otherId: 'chen', otherName: '陈晨', relationType: 'friend', text: '经常一起讨论工作。' },
+          { otherId: 'ayu', otherName: '阿雨', relationType: 'friend', text: '周末会一起散步。' },
+        ],
+        cast: [
+          { id: 'chen', name: '陈晨', description: '朋友', summary: '朋友', canBeProtagonist: false, summonHint: '' },
+          { id: 'ayu', name: '阿雨', description: '朋友', summary: '朋友', canBeProtagonist: false, summonHint: '' },
+        ],
+      })
+      api.checkCastAvailability = async (id: string) => {
+        state.availability.push(id)
+        if (id === 'chen') {
+          return { available: false, roleId: 'chen', name: '陈晨', reason: '陈晨正在忙', alternative: '可以晚点再聊', presence: '加班' }
+        }
+        return { available: true, roleId: 'ayu', name: '阿雨', presence: '在家看书' }
+      }
+      api.startSummon = async (id: string, force?: boolean) => {
+        state.summons.push({ id, force: Boolean(force) })
+        if (id === 'chen' && !force) return { ok: false, error: 'BUSY', reason: '陈晨正在忙', alternative: '可以晚点再聊', presence: '加班' }
+        return { ok: true, sessionId: `summon-${id}`, roleId: id, name: id === 'chen' ? '陈晨' : '阿雨', sessionKind: 'summon', activeRoleId: 'lin' }
+      }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    await page.getByTestId('world-tab-cast').click()
+    const chen = page.getByTestId('world-cast-card-chen')
+    const ayu = page.getByTestId('world-cast-card-ayu')
+    await expect(chen).toHaveAttribute('data-availability', 'busy')
+    await expect(chen.getByTestId('world-cast-presence-chen')).toHaveText('现在忙碌')
+    await expect(chen).toContainText('陈晨正在忙')
+    await expect(ayu).toHaveAttribute('data-availability', 'available')
+    await expect(ayu.getByTestId('world-cast-presence-ayu')).toHaveText('方便开聊')
+    await expect.poll(() => page.evaluate(() => (window as any).__castAvailability.availability.slice().sort())).toEqual(['ayu', 'chen'])
+    await chen.getByRole('button', { name: '开聊', exact: true }).click()
+    await expect(page.getByRole('group', { name: '仍要强行与陈晨开聊吗？', exact: true })).toBeVisible()
+    expect(await page.evaluate(() => (window as any).__castAvailability.summons)).toEqual([{ id: 'chen', force: false }])
+  })
+
   test('正式通讯录强行开聊确认失败保留且防重入', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
@@ -3553,6 +3600,7 @@ test.describe('My Agent UI', () => {
         lines: [{ otherId: 'chen', otherName: '陈晨', relationType: 'friend', text: '经常一起讨论工作。' }],
         cast: [{ id: 'chen', name: '陈晨', description: '朋友', summary: '朋友', canBeProtagonist: false, summonHint: '' }],
       })
+      api.checkCastAvailability = async (id: string) => ({ available: false, roleId: id, name: '陈晨', reason: '陈晨正在忙', alternative: '可以晚点再聊' })
       api.startSummon = async (id: string, force?: boolean) => {
         state.calls.push({ id, force: Boolean(force) })
         if (!force) return { ok: false, error: 'BUSY', reason: '陈晨正在忙', alternative: '可以晚点再聊' }

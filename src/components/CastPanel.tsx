@@ -5,8 +5,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { LayoutGrid, MessageCircle, RefreshCw, TriangleAlert, Users, X } from 'lucide-react'
+import { ActionButton } from './foundation/ActionButton'
 import { ConfirmPanel } from './foundation/ConfirmPanel'
+import { IconButton } from './foundation/IconButton'
 import { useToast } from './Toast'
+import {
+  describeCastAvailabilityWhileLoading,
+  isCastAvailabilitySnapshot,
+  type CastAvailabilitySnapshot,
+} from '../shared/cast-availability-view'
 
 interface RosterLine {
   otherId: string
@@ -70,6 +77,12 @@ function initialOf(name: string): string {
   return s ? s.slice(0, 1) : '?'
 }
 
+function availabilityToneColor(tone: 'available' | 'busy' | 'unknown'): string {
+  if (tone === 'available') return 'var(--success)'
+  if (tone === 'busy') return 'var(--warning)'
+  return 'var(--text-muted)'
+}
+
 export function CastPanel({
   onClose,
   onOpenSession,
@@ -81,29 +94,72 @@ export function CastPanel({
   const [roleName, setRoleName] = useState('')
   const [lines, setLines] = useState<RosterLine[]>([])
   const [cast, setCast] = useState<CastBrief[]>([])
+  const [availabilityById, setAvailabilityById] = useState<Record<string, CastAvailabilitySnapshot | null>>({})
+  const [availabilityLoading, setAvailabilityLoading] = useState(false)
+  const [availabilityError, setAvailabilityError] = useState('')
   const [selected, setSelected] = useState<CastBrief | null>(null)
   const [loading, setLoading] = useState(false)
   const [starting, setStarting] = useState<string | null>(null)
   const [pendingForce, setPendingForce] = useState<{ id: string; name: string; description: string } | null>(null)
   const startingRef = useRef(false)
+  const loadGeneration = useRef(0)
+
+  const loadAvailability = useCallback(async (ids: string[], generation: number) => {
+    if (!window.electronAPI?.companion.checkCastAvailability || ids.length === 0) {
+      if (loadGeneration.current === generation) {
+        setAvailabilityById({})
+        setAvailabilityLoading(false)
+        setAvailabilityError(ids.length ? '当前环境还不能读取忙闲。' : '')
+      }
+      return
+    }
+    setAvailabilityLoading(true)
+    setAvailabilityError('')
+    const next: Record<string, CastAvailabilitySnapshot | null> = {}
+    const failed: string[] = []
+    await Promise.all(ids.map(async (id) => {
+      try {
+        const result = await window.electronAPI!.companion.checkCastAvailability(id)
+        next[id] = isCastAvailabilitySnapshot(result) ? result : null
+        if (!next[id]) failed.push(id)
+      } catch {
+        next[id] = null
+        failed.push(id)
+      }
+    }))
+    if (loadGeneration.current !== generation) return
+    setAvailabilityById(next)
+    setAvailabilityLoading(false)
+    setAvailabilityError(failed.length ? '部分联系人的忙闲还没读到，开聊时会再确认。' : '')
+  }, [])
 
   const load = useCallback(async () => {
     if (!window.electronAPI?.companion.getRoster) return
+    const generation = ++loadGeneration.current
     setLoading(true)
+    setAvailabilityLoading(true)
     try {
       const [data, active] = await Promise.all([
         window.electronAPI.companion.getRoster(),
         window.electronAPI.companion.getActive(),
       ])
+      if (loadGeneration.current !== generation) return
       setRoleId(data.roleId)
       setRoleName(active.name)
       setLines(data.lines)
       setCast(data.cast)
       setSelected(null)
+      setAvailabilityById({})
+      await loadAvailability([...new Set(data.lines.map((line) => line.otherId))], generation)
+    } catch {
+      if (loadGeneration.current === generation) {
+        setAvailabilityLoading(false)
+        setAvailabilityError("通讯录还没读到，请稍后重试。")
+      }
     } finally {
-      setLoading(false)
+      if (loadGeneration.current === generation) setLoading(false)
     }
-  }, [])
+  }, [loadAvailability])
 
   useEffect(() => {
     load()
@@ -120,9 +176,10 @@ export function CastPanel({
     return lines.map((line) => {
       const brief = cast.find((c) => c.id === line.otherId)
       const recent = recentByRole[line.otherId]
-      return { line, brief, recent }
+      const availability = describeCastAvailabilityWhileLoading(availabilityById[line.otherId], availabilityLoading)
+      return { line, brief, recent, availability }
     })
-  }, [lines, cast, recentByRole])
+  }, [lines, cast, recentByRole, availabilityById, availabilityLoading])
 
   const summon = async (id: string) => {
     if (!window.electronAPI?.companion.summonBrief) return
@@ -164,7 +221,7 @@ export function CastPanel({
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" data-testid="world-cast-panel">
       <div
         className="flex items-center justify-between border-b px-4 py-3"
         style={{ borderColor: 'var(--border-subtle)' }}
@@ -173,32 +230,20 @@ export function CastPanel({
           <Users size={16} style={{ color: 'var(--companion-accent-warm)' }} />
           <div>
             <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-              名册
+              通讯录
             </div>
             <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
               以 {roleName || roleId || '活跃主角'} 为视角 · 召唤 ≠ 换主角
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => load()}
-            className="rounded p-1.5 transition"
-            style={{ color: 'var(--text-muted)' }}
-            title="刷新"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded p-1.5 transition"
-            style={{ color: 'var(--text-muted)' }}
-            title="关闭"
-          >
+        <div className="flex h-8 items-center gap-1">
+          <IconButton size={32} label="刷新通讯录" onClick={() => void load()} disabled={loading}>
+            <RefreshCw size={14} className={loading ? "animate-spin" : undefined} />
+          </IconButton>
+          <IconButton size={32} label="关闭通讯录" onClick={onClose}>
             <X size={14} />
-          </button>
+          </IconButton>
         </div>
       </div>
 
@@ -215,6 +260,11 @@ export function CastPanel({
           「开聊」创建召唤子会话并装载对方人设；不会切换活跃主角，也不会推进对方生活世界。
           要换活跃主角请用角色架。
         </p>
+        {availabilityError ? (
+          <p className="mb-3 text-[11px]" style={{ color: "var(--warning)" }} data-testid="world-cast-availability-error">
+            {availabilityError}
+          </p>
+        ) : null}
 
         {cards.length === 0 && !loading ? (
           <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>
@@ -222,10 +272,12 @@ export function CastPanel({
           </p>
         ) : (
           <ul className="space-y-3">
-            {cards.map(({ line, brief, recent }) => (
+            {cards.map(({ line, brief, recent, availability }) => (
               <li
                 key={`${line.otherId}-${line.relationType}`}
                 className="companion-life-card rounded-xl border px-3.5 py-3"
+                data-testid={`world-cast-card-${line.otherId}`}
+                data-availability={availability.tone}
                 style={{
                   borderColor: 'var(--card-border)',
                   background: 'var(--card-bg)',
@@ -257,6 +309,16 @@ export function CastPanel({
                       >
                         {relationLabel(line.relationType)}
                       </span>
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px]"
+                        data-testid={`world-cast-presence-${line.otherId}`}
+                        style={{
+                          background: "var(--bg-secondary)",
+                          color: availabilityToneColor(availability.tone),
+                        }}
+                      >
+                        {availability.label}
+                      </span>
                       {brief?.canBeProtagonist ? (
                         <span className="text-[10px]" style={{ color: 'var(--companion-accent-warm)' }}>
                           可任主角
@@ -265,6 +327,9 @@ export function CastPanel({
                     </div>
                     <p className="mt-1 text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                       {line.text}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                      {availability.detail}
                     </p>
                     {recent ? (
                       <button
@@ -283,35 +348,23 @@ export function CastPanel({
                       </div>
                     )}
                     <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void summon(line.otherId)}
-                        className="rounded-md px-2 py-1 text-[11px] transition"
-                        style={{ color: 'var(--text-secondary)', background: 'var(--hover-overlay)' }}
-                      >
+                      <ActionButton onClick={() => void summon(line.otherId)}>
                         查看摘要
-                      </button>
-                      <button
-                        type="button"
+                      </ActionButton>
+                      <ActionButton
+                        className="gap-1"
+                        tone="accent"
                         disabled={starting === line.otherId}
                         onClick={() => void startChat(line.otherId, line.otherName)}
-                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition"
-                        style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
                       >
                         <MessageCircle size={11} />
-                        {starting === line.otherId ? '开启中…' : '开聊'}
-                      </button>
+                        {starting === line.otherId ? "开启中…" : "开聊"}
+                      </ActionButton>
                       {brief?.canBeProtagonist && onOpenShelf ? (
-                        <button
-                          type="button"
-                          onClick={onOpenShelf}
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition"
-                          style={{ color: 'var(--companion-accent-warm)' }}
-                          title="换活跃主角请走角色架，不是召唤"
-                        >
+                        <ActionButton className="gap-1" onClick={onOpenShelf} title="换活跃主角请走角色架，不是召唤">
                           <LayoutGrid size={11} />
                           去角色架
-                        </button>
+                        </ActionButton>
                       ) : null}
                     </div>
                   </div>
@@ -336,16 +389,15 @@ export function CastPanel({
               {selected.summonHint || selected.summary || selected.description}
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
+              <ActionButton
+                className="gap-1"
+                tone="accent"
                 disabled={starting === selected.id}
                 onClick={() => void startChat(selected.id, selected.name)}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition"
-                style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
               >
                 <MessageCircle size={11} />
-                {starting === selected.id ? '开启中…' : '开聊'}
-              </button>
+                {starting === selected.id ? "开启中…" : "开聊"}
+              </ActionButton>
               <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
                 摘要无 protected；开聊后装载完整人设
               </p>

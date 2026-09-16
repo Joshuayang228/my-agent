@@ -46,10 +46,10 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     descriptionZh: '朋友圈、角色与生活事件组成的人格化生活面。',
     status: 'playground',
     playgroundTabId: 'world',
-    sourcePaths: ['src/components/playground/SurfaceBaselinePanel.tsx', 'src/components/MomentsPanel.tsx', 'src/components/AssetsPanel.tsx', 'src/components/WorldDetailsPanel.tsx', 'src/components/world/WorldLivingContent.tsx', 'src/components/world/WorldAssetEditor.tsx'],
+    sourcePaths: ['src/components/playground/SurfaceBaselinePanel.tsx', 'src/components/MomentsPanel.tsx', 'src/components/AssetsPanel.tsx', 'src/components/CastPanel.tsx', 'src/components/WorldDetailsPanel.tsx', 'src/components/world/WorldLivingContent.tsx', 'src/components/world/WorldAssetEditor.tsx'],
     fixtureAssetPaths: ['src/assets/playground/moment-tea-by-window.jpg'],
     experienceParts: ['朋友圈', '衣柜', '文化角', '家居', '通讯录', '足迹'],
-    usesFoundation: ['behavior.tabs', 'state.empty', 'behavior.icon-button', 'behavior.input', 'behavior.select', 'state.confirm-panel'],
+    usesFoundation: ['behavior.tabs', 'state.empty', 'behavior.icon-button', 'behavior.button', 'behavior.input', 'behavior.select', 'state.confirm-panel'],
   }),
   experience({
     key: 'experience.settings',
