@@ -3,7 +3,7 @@
  * 展示活跃主角相关卡司；可看摘要或开召唤子会话（装载对方 Pack，不启生活世界）。
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { LayoutGrid, MessageCircle, RefreshCw, TriangleAlert, Users, X } from 'lucide-react'
 import { ConfirmPanel } from './foundation/ConfirmPanel'
 import { useToast } from './Toast'
@@ -85,6 +85,7 @@ export function CastPanel({
   const [loading, setLoading] = useState(false)
   const [starting, setStarting] = useState<string | null>(null)
   const [pendingForce, setPendingForce] = useState<{ id: string; name: string; description: string } | null>(null)
+  const startingRef = useRef(false)
 
   const load = useCallback(async () => {
     if (!window.electronAPI?.companion.getRoster) return
@@ -130,7 +131,8 @@ export function CastPanel({
   }
 
   const startChat = async (id: string, name: string, force = false) => {
-    if (!window.electronAPI?.companion.startSummon) return
+    if (!window.electronAPI?.companion.startSummon || startingRef.current) return
+    startingRef.current = true
     setStarting(id)
     try {
       const r = await window.electronAPI.companion.startSummon(id, force)
@@ -138,13 +140,13 @@ export function CastPanel({
         if (r.error === 'BUSY' && !force) {
           const tip = [r.reason, r.alternative].filter(Boolean).join(' · ')
           toast(tip || `${name}现在不太方便`, 'warning')
-          setStarting(null)
           setPendingForce({ id, name, description: tip || `${name}现在不太方便` })
           return
         }
         toast(r.error === 'UNKNOWN_ROLE' ? '未知角色，无法召唤' : '召唤失败', 'error')
         return
       }
+      setPendingForce(null)
       toast(
         r.sessionKind === 'summon'
           ? r.presence
@@ -156,6 +158,7 @@ export function CastPanel({
       onOpenSession?.(r.sessionId)
       onClose()
     } finally {
+      startingRef.current = false
       setStarting(null)
     }
   }
@@ -199,7 +202,8 @@ export function CastPanel({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-thin">`r`n        {pendingForce && <div className="mb-3"><ConfirmPanel icon={<TriangleAlert size={15} />} title={`仍要强行与${pendingForce.name}开聊吗？`} description={`${pendingForce.description}\n\n强行开聊会忽略对方当前的忙碌状态，但不会切换活跃主角。`} confirmLabel="强行开聊" busy={starting === pendingForce.id} onCancel={() => setPendingForce(null)} onConfirm={() => { const target = pendingForce; setPendingForce(null); void startChat(target.id, target.name, true) }} /></div>}
+      <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-thin">
+        {pendingForce && <div className="mb-3"><ConfirmPanel icon={<TriangleAlert size={15} />} title={`仍要强行与${pendingForce.name}开聊吗？`} description={`${pendingForce.description}\n\n强行开聊会忽略对方当前的忙碌状态，但不会切换活跃主角。`} confirmLabel="强行开聊" busy={starting === pendingForce.id} onCancel={() => { if (!startingRef.current) setPendingForce(null) }} onConfirm={() => { const target = pendingForce; if (target) void startChat(target.id, target.name, true) }} /></div>}
         <p
           className="mb-4 rounded-lg border px-3 py-2 text-[11px] leading-relaxed"
           style={{

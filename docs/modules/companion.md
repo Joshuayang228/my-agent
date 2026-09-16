@@ -111,6 +111,7 @@
 | CastPanel（名册 / 召唤） | 已落地 | 人物世界 / 欢迎屏 → 名册 | CastPanel · `start-summon` · 场景 prompt |
 | 召唤子会话 | 已落地 | 名册「开聊」 | 不改 active / 不 tick；可 delegate（任务工） |
 | 召唤忙闲婉拒 + force | 已落地 | 名册开聊前 | `check-cast-availability` |
+| 衣柜删除与强制开聊确认恢复 | 已落地 | 人物世界衣柜 / 通讯录 | 复用 `ConfirmPanel`；删除物什或强制召唤在成功前不关闭确认，失败可重试，处理中禁止取消和重复提交 |
 | 冷启动在场文案 | 已落地 | Chat 空态欢迎屏 | `companion-presence.ts` |
 | 角色架 UI | 已落地 | 设置「角色架」 | CharacterShelfPanel · `shelf` |
 | 物什主视觉（衣柜穿着中 + 书架分栏） | 已落地 | 人物世界 / 欢迎屏 → 物什 | AssetsPanel · Moment.assetId/outfit |
@@ -165,4 +166,5 @@
 
 - 2026-09-14：文化角正式使用 `companion_assets(kind=culture)`，按主角隔离并复用既有资产 CRUD / starter 播种；资产 payload 的 `type` 区分 reading、music、film、photography。
 - 2026-09-15：家居与足迹接入同一 `companion_assets` 事实链，分别使用 `kind=home` 与 `kind=footprint`；家居读取住所结构，足迹读取角色常去地点，近期动态仅作为补充。
+- 2026-09-16：衣柜删除与通讯录强制开聊改为成功后才关闭确认；失败保留同一确认，处理中禁止取消和重复提交。不改 IPC、存储或召唤忙闲判定。该补验不关闭生活面编辑、备份或六面完整验收。
 - 全生活面回流仍未完成：生活资产编辑入口、想去记录写入流程，以及真实 Electron 逐面验收继续由 R12 管理。文化角组合已接共享展示；现有文化 starter 的作品、笔记数量与经历描述仍需复核角色来源，数据库有记录不等于已获确认的人物事实。导入导出尚不包含生活资产及初始化标记，归 R07 / WISH-045；数据库重载测试不等同用户备份恢复。

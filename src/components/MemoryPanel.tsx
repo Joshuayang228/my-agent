@@ -10,6 +10,7 @@ import {
   detectSensitiveKinds,
   formatSensitiveCollectionHint,
   labelSensitiveKinds,
+  type SensitiveKind,
 } from '../shared/sensitive-memory'
 import { User, Settings, MessageCircle, Star, Pin, Brain, X, ThumbsUp, ShieldAlert, Pencil, Trash2, Check, LoaderCircle } from 'lucide-react'
 
@@ -102,10 +103,16 @@ export function MemoryPanel({
   const [addDrafts, setAddDrafts] = useState<Partial<Record<MemoryGroup, { open: boolean; content: string }>>>({})
   const adding = addDrafts[group]?.open ?? false
   const newContent = addDrafts[group]?.content ?? ''
-  const setAdding = (open: boolean) => setAddDrafts((drafts) => ({ ...drafts, [group]: { content: drafts[group]?.content ?? '', open } }))
-  const setNewContent = (content: string) => setAddDrafts((drafts) => ({ ...drafts, [group]: { open: drafts[group]?.open ?? false, content } }))
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
-  const [pendingSensitiveKinds, setPendingSensitiveKinds] = useState<ReturnType<typeof detectSensitiveKinds> | null>(null)
+  const [pendingSensitiveAdd, setPendingSensitiveAdd] = useState<{ content: string; category: MemoryCategory; kinds: SensitiveKind[] } | null>(null)
+  const setAdding = (open: boolean) => {
+    setAddDrafts((drafts) => ({ ...drafts, [group]: { content: drafts[group]?.content ?? '', open } }))
+    if (!open) setPendingSensitiveAdd(null)
+  }
+  const setNewContent = (content: string) => {
+    setAddDrafts((drafts) => ({ ...drafts, [group]: { open: drafts[group]?.open ?? false, content } }))
+    setPendingSensitiveAdd(null)
+  }
   const newCategory = MEMORY_GROUPS.find((item) => item.id === group)!.category
   const isPreview = previewMemories !== undefined
   const isPreviewInteractive = isPreview && previewEditable
@@ -176,41 +183,43 @@ export function MemoryPanel({
     [newContent],
   )
 
-  const addMemoryAfterSensitiveCheck = async () => {
+  const addMemory = async (draft: { content: string; category: MemoryCategory }) => {
+    const content = draft.content.trim()
+    if (!content) return
     await mutate(async () => {
       let roleId: string | undefined
-      if (newCategory === 'feedback') {
+      if (draft.category === 'feedback') {
         const active = await window.electronAPI!.companion.getActive()
         roleId = active?.id
         if (!roleId) throw new Error('Active companion unavailable')
       }
-      const entry = await window.electronAPI!.memory.add(newCategory, newContent.trim(), roleId)
+      const entry = await window.electronAPI!.memory.add(draft.category, content, roleId)
       if (!mounted.current) return
       setMemories((current) => [...current.filter((memory) => memory.id !== entry.id), entry as MemoryEntry])
-      setNewContent('')
-      setAdding(false)
+      setAddDrafts((drafts) => ({ ...drafts, [group]: { open: false, content: '' } }))
       setQuery('')
-      setPendingSensitiveKinds(null)
+      setPendingSensitiveAdd(null)
     }, '记忆未添加，内容仍保留。请重试。')
   }
 
   const handleAdd = async () => {
-    if (!canEdit || newContent.trim().length < 2 || writing.current) return
+    const content = newContent.trim()
+    if (!canEdit || content.length < 2 || writing.current) return
     if (isPreviewInteractive) {
       const now = Date.now()
-      setMemories((current) => [...current, { id: `memory-custom-${crypto.randomUUID()}`, category: newCategory, content: newContent.trim(), createdAt: now, updatedAt: now }])
-      setNewContent('')
-      setAdding(false)
+      setMemories((current) => [...current, { id: `memory-custom-${crypto.randomUUID()}`, category: newCategory, content, createdAt: now, updatedAt: now }])
+      setAddDrafts((drafts) => ({ ...drafts, [group]: { open: false, content: '' } }))
       setQuery('')
+      setPendingSensitiveAdd(null)
       return
     }
     if (isPreview || !window.electronAPI) return
-    const kinds = detectSensitiveKinds(newContent)
+    const kinds = detectSensitiveKinds(content)
     if (kinds.length > 0) {
-      setPendingSensitiveKinds(kinds)
+      setPendingSensitiveAdd({ content, category: newCategory, kinds })
       return
     }
-    await addMemoryAfterSensitiveCheck()
+    await addMemory({ content, category: newCategory })
   }
 
   const handleDelete = async (id: string) => {
@@ -286,9 +295,9 @@ export function MemoryPanel({
 
   return (
     <fieldset disabled={busy} aria-busy={busy || loading} className="m-0 flex h-full min-h-0 min-w-0 flex-col border-0 p-0">
-        {pendingSensitiveKinds && <div className="px-4 pt-3"><ConfirmPanel icon={<ShieldAlert size={15} />} title="这条记忆包含敏感信息" description={`${formatSensitiveCollectionHint(pendingSensitiveKinds)}\n\n只有在你确认后，才会写入本机记忆。`} confirmLabel="确认保存" busy={busy} onCancel={() => setPendingSensitiveKinds(null)} onConfirm={() => void addMemoryAfterSensitiveCheck()} /></div>}
+        {pendingSensitiveAdd && <div className="px-4 pt-3"><ConfirmPanel icon={<ShieldAlert size={15} />} title="这条记忆包含敏感信息" description={`${formatSensitiveCollectionHint(pendingSensitiveAdd.kinds)}\n\n只有在你确认后，才会写入本机记忆。`} confirmLabel="确认保存" busy={busy} onCancel={() => { if (!busy) setPendingSensitiveAdd(null) }} onConfirm={() => { const draft = pendingSensitiveAdd; if (draft) void addMemory(draft) }} /></div>}
         {management && <MemoryToolbar group={group} counts={groupCounts} query={query} onQueryChange={setQuery} searchOpen={searchOpen} onSearchOpen={setSearchOpen}
-          onGroupChange={(next) => { setSelectedGroup(next); onPreviewGroupChange?.(next); setQuery(''); setWriteError('') }} />}
+          onGroupChange={(next) => { setSelectedGroup(next); onPreviewGroupChange?.(next); setQuery(''); setWriteError(''); setPendingSensitiveAdd(null) }} />}
         {!management && !previewCompact && (
           <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border-color)' }}>
             <div className="flex items-center gap-2">
@@ -579,7 +588,7 @@ export function MemoryPanel({
           )}
           {management && canEdit && <MemoryAddRow open={adding} content={newContent} onContentChange={setNewContent}
             onOpen={() => { setAdding(true); setWriteError('') }}
-            onCancel={() => { setAdding(false); setNewContent(''); setWriteError('') }} onSave={() => void handleAdd()} busy={busy}
+            onCancel={() => { setAdding(false); setNewContent(''); setWriteError(''); setPendingSensitiveAdd(null) }} onSave={() => void handleAdd()} busy={busy}
             sensitiveHint={addSensitiveKinds.length ? formatSensitiveCollectionHint(addSensitiveKinds) : ''} />}
         </div>
 

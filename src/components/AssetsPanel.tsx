@@ -2,7 +2,7 @@
  * 活跃主角物什（生活面）：衣柜 + 书架分栏；编辑/删除（M25-G1·G3）
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BookOpen, Pencil, RefreshCw, Shirt, Sparkles, Trash2, TriangleAlert, X } from 'lucide-react'
 import { ConfirmPanel } from './foundation/ConfirmPanel'
 
@@ -52,6 +52,7 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState('')
   const [pendingDelete, setPendingDelete] = useState<AssetItem | null>(null)
+  const busyRef = useRef(false)
 
   const load = useCallback(async () => {
     if (!window.electronAPI?.companion) return
@@ -164,10 +165,8 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
   }
 
   const removeAsset = async (a: AssetItem) => {
-    if (!window.electronAPI?.companion?.deleteAsset) return
-    const hint = a.kind === 'bookshelf'
-      ? '删除后历史引用会降级为无书名。'
-      : '历史动态里的着装引用会降级为无着装。'
+    if (!window.electronAPI?.companion?.deleteAsset || busyRef.current) return
+    busyRef.current = true
     setBusy(true)
     try {
       const result = await window.electronAPI.companion.deleteAsset(a.id)
@@ -177,9 +176,11 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
       }
       if (editingId === a.id) setEditingId(null)
       if (wearingId === a.id) setWearingId(null)
+      setPendingDelete(null)
       flash('已删除')
       await load()
     } finally {
+      busyRef.current = false
       setBusy(false)
     }
   }
@@ -366,7 +367,7 @@ export function AssetsPanel({ onClose }: AssetsPanelProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin">
-        {pendingDelete && <div className="mb-3"><ConfirmPanel icon={<TriangleAlert size={15} />} title={`删除「${pendingDelete.name}」？`} description={pendingDelete.kind === 'bookshelf' ? '删除后历史引用会降级为无书名。' : '历史动态里的着装引用会降级为无着装。'} confirmLabel="删除" busy={busy} onCancel={() => setPendingDelete(null)} onConfirm={() => { const target = pendingDelete; setPendingDelete(null); void removeAsset(target) }} /></div>}
+        {pendingDelete && <div className="mb-3"><ConfirmPanel icon={<TriangleAlert size={15} />} title={`删除「${pendingDelete.name}」？`} description={pendingDelete.kind === 'bookshelf' ? '删除后历史引用会降级为无书名。' : '历史动态里的着装引用会降级为无着装。'} confirmLabel="删除" busy={busy} onCancel={() => { if (!busy) setPendingDelete(null) }} onConfirm={() => { const target = pendingDelete; if (target) void removeAsset(target) }} /></div>}
         {tab === 'wardrobe' ? (
           <section className="mb-5">
             <div

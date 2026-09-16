@@ -3316,6 +3316,190 @@ test.describe('My Agent UI', () => {
     await expect(page.getByRole('alert')).toHaveCount(0)
   })
 
+  test('正式敏感记忆确认随草稿修改、换组和取消失效', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const writes: unknown[] = []
+      ;(window as any).__sensitiveWrites = writes
+      ;(window as any).electronAPI.memory = {
+        list: async () => [],
+        add: async (...args: unknown[]) => { writes.push(args); return { id: 'sensitive', category: args[0], content: args[1], createdAt: 1, updatedAt: 1 } },
+      }
+    })
+    await page.goto('/')
+    await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-memory').click()
+    await page.getByRole('button', { name: '添加一条记忆', exact: true }).click()
+    const input = page.getByLabel('新记忆内容', { exact: true })
+    const save = page.getByRole('button', { name: '保存新记忆', exact: true })
+    const confirmation = page.getByRole('group', { name: '这条记忆包含敏感信息', exact: true })
+    await input.fill('最近在调整处方药安排。')
+    await save.click()
+    await expect(confirmation).toContainText('健康')
+    await input.fill('请记住银行卡相关的提醒。')
+    await expect(confirmation).toHaveCount(0)
+    await save.click()
+    await expect(confirmation).toContainText('财务')
+    await page.getByTestId('memory-group-collaboration').click()
+    await expect(confirmation).toHaveCount(0)
+    await page.getByTestId('memory-group-identity').click()
+    await expect(input).toHaveValue('请记住银行卡相关的提醒。')
+    await expect(confirmation).toHaveCount(0)
+    await save.click()
+    await page.getByRole('button', { name: '取消新增记忆', exact: true }).click()
+    await expect(confirmation).toHaveCount(0)
+    await expect(input).toHaveCount(0)
+    expect(await page.evaluate(() => (window as any).__sensitiveWrites)).toEqual([])
+  })
+
+  test('正式敏感记忆确认提交快照、失败保留并可防重入', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const state = { writes: [] as unknown[], fail: true, release: null as null | (() => void), entries: [] as any[] }
+      ;(window as any).__sensitiveConfirm = state
+      ;(window as any).electronAPI.memory = {
+        list: async () => state.entries.map((entry) => ({ ...entry })),
+        add: async (...args: unknown[]) => {
+          state.writes.push(args)
+          await new Promise<void>((resolve) => { state.release = resolve })
+          if (state.fail) throw new Error('private write error')
+          const entry = { id: 'sensitive-saved', category: args[0], content: args[1], createdAt: 1, updatedAt: 1 }
+          state.entries.push(entry)
+          return entry
+        },
+      }
+    })
+    await page.goto('/')
+    await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-memory').click()
+    await page.getByRole('button', { name: '添加一条记忆', exact: true }).click()
+    const input = page.getByLabel('新记忆内容', { exact: true })
+    await input.fill('最近在调整处方药安排。')
+    await page.getByRole('button', { name: '保存新记忆', exact: true }).click()
+    const confirmation = page.getByRole('group', { name: '这条记忆包含敏感信息', exact: true })
+    await expect(confirmation).toContainText('健康')
+    const confirm = confirmation.getByRole('button', { name: '确认保存', exact: true })
+    await confirm.evaluate((node: HTMLButtonElement) => { node.click(); node.click() })
+    await expect(confirm).toBeDisabled()
+    expect(await page.evaluate(() => (window as any).__sensitiveConfirm.writes.length)).toBe(1)
+    await page.evaluate(() => (window as any).__sensitiveConfirm.release())
+    await expect(page.getByRole('alert')).toContainText('记忆未添加')
+    await expect(confirmation).toBeVisible()
+    await expect(input).toHaveValue('最近在调整处方药安排。')
+    await page.evaluate(() => { (window as any).__sensitiveConfirm.fail = false })
+    await confirm.click()
+    await expect.poll(() => page.evaluate(() => (window as any).__sensitiveConfirm.writes.length)).toBe(2)
+    await page.evaluate(() => (window as any).__sensitiveConfirm.release())
+    await expect(page.getByTestId('memory-item-sensitive-saved')).toContainText('处方药')
+    await expect(confirmation).toHaveCount(0)
+    expect(await page.evaluate(() => (window as any).__sensitiveConfirm.writes)).toEqual([
+      ['identity', '最近在调整处方药安排。'],
+      ['identity', '最近在调整处方药安排。'],
+    ])
+  })
+
+  test('Playground 记忆候选不写真实敏感确认 IPC', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const writes: unknown[] = []
+      ;(window as any).__playgroundMemoryWrites = writes
+      ;(window as any).electronAPI.memory = {
+        list: async () => [],
+        add: async (...args: unknown[]) => { writes.push(args); return { id: 'should-not-write', category: args[0], content: args[1], createdAt: 1, updatedAt: 1 } },
+      }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+    await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
+    await page.getByTestId('settings-candidate-nav-memory').click()
+    const memory = page.getByTestId('memory-surface-candidate')
+    await memory.getByRole('button', { name: '添加一条记忆', exact: true }).click()
+    await memory.getByLabel('新记忆内容', { exact: true }).fill('最近在调整处方药安排。')
+    await memory.getByRole('button', { name: '保存新记忆', exact: true }).click()
+    await expect(page.getByRole('group', { name: '这条记忆包含敏感信息', exact: true })).toHaveCount(0)
+    await expect(memory).toContainText('最近在调整处方药安排。')
+    expect(await page.evaluate(() => (window as any).__playgroundMemoryWrites)).toEqual([])
+  })
+
+  test('正式衣柜删除确认失败保留且防重入', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const state = { deletes: [] as string[], fail: true, release: null as null | (() => void), items: [{ id: 'coat-1', roleId: 'lin', kind: 'wardrobe', name: '灰绿外套', payload: { color: '灰绿' }, acquiredAt: 1, sourceEventId: null }] }
+      ;(window as any).__assetDelete = state
+      const api = (window as any).electronAPI.companion
+      api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
+      api.getAssets = async () => ({ roleId: 'lin', items: state.items.map((item) => ({ ...item })) })
+      api.getMoments = async () => ({ roleId: 'lin', items: [] })
+      api.deleteAsset = async (id: string) => {
+        state.deletes.push(id)
+        await new Promise<void>((resolve) => { state.release = resolve })
+        if (state.fail) return { ok: false, error: '删除失败' }
+        state.items = state.items.filter((item) => item.id !== id)
+        return { ok: true }
+      }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    await page.getByTestId('world-tab-wardrobe').click()
+    await expect(page.getByText('灰绿外套', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: '删除', exact: true }).click()
+    const confirmation = page.getByRole('group', { name: '删除「灰绿外套」？', exact: true })
+    await expect(confirmation).toBeVisible()
+    const confirm = confirmation.getByRole('button', { name: '删除', exact: true })
+    await confirm.evaluate((node: HTMLButtonElement) => { node.click(); node.click() })
+    await expect(confirm).toBeDisabled()
+    expect(await page.evaluate(() => (window as any).__assetDelete.deletes)).toEqual(['coat-1'])
+    await page.evaluate(() => (window as any).__assetDelete.release())
+    await expect(page.getByText('删除失败', { exact: true })).toBeVisible()
+    await expect(confirmation).toBeVisible()
+    await page.evaluate(() => { (window as any).__assetDelete.fail = false })
+    await confirm.click()
+    await expect.poll(() => page.evaluate(() => (window as any).__assetDelete.deletes.length)).toBe(2)
+    await page.evaluate(() => (window as any).__assetDelete.release())
+    await expect(page.getByText('灰绿外套', { exact: true })).toHaveCount(0)
+    await expect(confirmation).toHaveCount(0)
+  })
+
+  test('正式通讯录强行开聊确认失败保留且防重入', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const state = { calls: [] as Array<{ id: string; force?: boolean }>, failForce: true, release: null as null | (() => void) }
+      ;(window as any).__summonForce = state
+      const api = (window as any).electronAPI.companion
+      api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
+      api.getRoster = async () => ({
+        roleId: 'lin',
+        lines: [{ otherId: 'chen', otherName: '陈晨', relationType: 'friend', text: '经常一起讨论工作。' }],
+        cast: [{ id: 'chen', name: '陈晨', description: '朋友', summary: '朋友', canBeProtagonist: false, summonHint: '' }],
+      })
+      api.startSummon = async (id: string, force?: boolean) => {
+        state.calls.push({ id, force: Boolean(force) })
+        if (!force) return { ok: false, error: 'BUSY', reason: '陈晨正在忙', alternative: '可以晚点再聊' }
+        await new Promise<void>((resolve) => { state.release = resolve })
+        if (state.failForce) return { ok: false, error: 'SUMMON_FAILED' }
+        return { ok: true, sessionId: 'summon-1', roleId: id, name: '陈晨', sessionKind: 'summon', activeRoleId: 'lin' }
+      }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    await page.getByTestId('world-tab-cast').click()
+    await page.getByRole('button', { name: '开聊', exact: true }).click()
+    const confirmation = page.getByRole('group', { name: '仍要强行与陈晨开聊吗？', exact: true })
+    await expect(confirmation).toContainText('陈晨正在忙')
+    const confirm = confirmation.getByRole('button', { name: '强行开聊', exact: true })
+    await confirm.evaluate((node: HTMLButtonElement) => { node.click(); node.click() })
+    await expect(confirm).toBeDisabled()
+    expect(await page.evaluate(() => (window as any).__summonForce.calls)).toEqual([{ id: 'chen', force: false }, { id: 'chen', force: true }])
+    await page.evaluate(() => (window as any).__summonForce.release())
+    await expect(confirmation).toBeVisible()
+    await page.evaluate(() => { (window as any).__summonForce.failForce = false })
+    await confirm.click()
+    await expect.poll(() => page.evaluate(() => (window as any).__summonForce.calls.length)).toBe(3)
+    await page.evaluate(() => (window as any).__summonForce.release())
+    await expect(confirmation).toHaveCount(0)
+  })
+
+
   test('正式记忆离页后的迟到保存不清空新草稿', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
