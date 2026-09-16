@@ -16,6 +16,8 @@ import { SettingsLayout, type SettingsPageId } from '../settings/SettingsLayout'
 import { ScopeBadge, SettingCard, SettingRow, SettingSwitch, SettingsPageHeader } from '../settings/SettingsFields'
 import { CompanionSettingsContent } from '../settings/CompanionSettingsContent'
 import { McpServiceCard } from '../settings/McpServiceCard'
+import { SkillDetail, SkillFilePreview, SkillListCard } from '../settings/SkillViews'
+import type { SkillInfo } from '../../shared/types'
 import { McpConnectionPreview } from './McpConnectionPreview'
 import { THEME_STUDIES, getThemeStudyStyle, type ThemeStudyId } from './foundation-themes'
 import { PROVIDER_PRESET_GROUPS } from '../../shared/provider-presets'
@@ -456,6 +458,8 @@ function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
   const [selectedSkill, setSelectedSkill] = useState(skillsSamples[0].name)
   const skill = skillsSamples.find((sample) => sample.name === selectedSkill) ?? skillsSamples[0]
   const [skillsState, setSkillsState] = useState<'单个' | '多个' | '详情'>('单个')
+  const viewSkill = (sample: typeof skillsSamples[number]): SkillInfo => ({ name: sample.name, description: sample.description, when_to_use: sample.trigger, author: sample.author, version: sample.version, source: 'builtin', enabled: skillsEnabled[sample.name] })
+  const toggleSkill = (name: string, enabled: boolean) => setSkillsEnabled((current) => ({ ...current, [name]: enabled }))
 
   return <div className="space-y-4" data-testid={`settings-candidate-section-${mode}`}>
     <CandidatePageHeader icon={mode === 'skills' ? <Wrench size={14} /> : <Link2 size={14} />} title={mode === 'skills' ? 'Skills' : 'MCP'} description={mode === 'skills' ? '管理伙伴可以按需使用的工作方法。' : '管理伙伴可以使用的外部服务连接。'} />
@@ -463,32 +467,8 @@ function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
       <div className="flex items-center justify-end gap-1" data-playground-switcher role="tablist" aria-label="Skills 样张状态" data-testid="settings-candidate-skills-states">
         {(['单个', '多个', '详情'] as const).map((state) => <button key={state} type="button" role="tab" aria-selected={skillsState === state} onClick={() => setSkillsState(state)} className="settings-option px-2.5 py-1 text-[10px]" data-selected={skillsState === state ? 'true' : undefined}>{state}</button>)}
       </div>
-      {skillsState === '详情' ? <SettingCard testId="settings-candidate-skill-detail">
-        <div className="mb-2">
-          <button type="button" onClick={() => setSkillsState('多个')} aria-label="返回 Skills" title="返回 Skills" className="inline-flex h-7 shrink-0 items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-secondary)' }} data-testid="settings-candidate-skill-back"><ArrowLeft size={16} />返回 Skills</button>
-        </div>
-        <div className="mb-4 flex items-center gap-3">
-          <h3 className="min-w-0 flex-1 break-words text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{skill.name}</h3>
-          <CandidateSwitch checked={skillsEnabled[skill.name]} compact label={skill.name} description="" onChange={(enabled) => setSkillsEnabled((current) => ({ ...current, [skill.name]: enabled }))} testId="settings-candidate-skills-enabled" />
-        </div>
-        <div className="space-y-2 text-[12px] leading-5" style={{ color: 'var(--text-secondary)' }}>
-          <p className="whitespace-pre-line"><span className="font-medium">触发条件：</span>{skill.trigger || '未单独声明'}</p>
-          <p><span className="font-medium">技能描述：</span>{skill.description}</p>
-        </div>
-        <dl className="my-5 grid grid-cols-2 gap-3 border-y py-3 text-[11px] sm:grid-cols-4" style={{ borderColor: 'var(--border-subtle)' }}>
-          {Object.entries({ 作者: skill.author, 版本: skill.version, 来源: '内置', 状态: skillsEnabled[skill.name] ? '已启用' : '未启用' }).map(([label, value]) => <div key={label}><dt style={{ color: 'var(--text-muted)' }}>{label}</dt><dd className="mt-1">{value}</dd></div>)}
-        </dl>
-        <div className="grid gap-3 md:grid-cols-[120px_minmax(0,1fr)]">
-          <div className="text-[11px]"><div className="mb-2" style={{ color: 'var(--text-muted)' }}>文件</div><span className="block px-2 py-1.5" style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}>SKILL.md</span></div>
-          <pre tabIndex={0} role="region" aria-label="SKILL.md 文件内容" className="scrollbar-thin max-h-[48vh] overflow-auto overscroll-contain [scrollbar-gutter:stable] min-w-0 whitespace-pre-wrap break-words rounded-[var(--radius-md)] border p-3 font-mono text-[11px] leading-5" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }} data-testid="settings-candidate-skill-file-preview">{skill.raw}</pre>
-        </div>
-      </SettingCard> : <div className="grid gap-3 sm:grid-cols-2">
-        {(skillsState === '多个' ? skillsSamples : skillsSamples.slice(0, 1)).map((sample) => <SettingCard key={sample.name} testId={'settings-candidate-skill-card-' + sample.name}>
-          <div className="flex items-center justify-between gap-3">
-            <button type="button" className="min-w-0 break-words text-left text-[13px] font-medium" style={{ color: 'var(--text-primary)' }} onClick={() => { setSelectedSkill(sample.name); setSkillsState('详情') }}>{sample.name}</button>
-            <CandidateSwitch checked={skillsEnabled[sample.name]} compact label={sample.name} description="" onChange={(enabled) => setSkillsEnabled((current) => ({ ...current, [sample.name]: enabled }))} testId={sample.name === skillsSamples[0].name ? 'settings-candidate-skills-enabled' : 'settings-candidate-skill-toggle-' + sample.name} />
-          </div>
-        </SettingCard>)}
+      {skillsState === '详情' ? <SkillDetail skill={viewSkill(skill)} testId="settings-candidate-skill-detail" toggleTestId="settings-candidate-skills-enabled" onBack={() => setSkillsState('多个')} onEnabledChange={(enabled) => toggleSkill(skill.name, enabled)} content={<SkillFilePreview content={skill.raw} testId="settings-candidate-skill-file-preview" />} /> : <div className="grid gap-3 sm:grid-cols-2">
+        {(skillsState === '多个' ? skillsSamples : skillsSamples.slice(0, 1)).map((sample) => <SkillListCard key={sample.name} skill={viewSkill(sample)} testId={'settings-candidate-skill-card-' + sample.name} toggleTestId={sample.name === skillsSamples[0].name ? 'settings-candidate-skills-enabled' : 'settings-candidate-skill-toggle-' + sample.name} onOpen={() => { setSelectedSkill(sample.name); setSkillsState('详情') }} onEnabledChange={(enabled) => toggleSkill(sample.name, enabled)} />)}
       </div>}
     </>}
     {mode === 'mcp' && <McpScenePreview />}

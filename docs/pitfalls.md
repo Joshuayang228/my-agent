@@ -2,6 +2,10 @@
 
 > 开发过程中遇到的坑和解决方案，避免重复踩坑。
 
+## Skills 样张成功不代表 Electron 加载成功
+
+2026-09-16 的真实 Electron `skills:reload` 返回 `ReferenceError: __dirname is not defined`：加载器按 CommonJS 源文件层级拼目录，主进程却是 ESM 构建；Playground 的 `?raw` 样本导入绕过了该路径。修复为主入口统一的 `APP_ROOT` 资源定位，打包清单显式包含内置目录。Unit 检查资源与打包声明，Electron 必须读取真实内置全文并完整重启验证，不能用 Renderer 替身或元素存在断言代替。
+
 ## Effect 阶段切换提前取消成功测试
 
 **问题**：MCP 表单以 `[phase, requestId]` 注册清理函数，`testing → ready` 触发旧 effect cleanup，导致成功测试在保存前被取消。Renderer 替身的 cancel 未清除 tested 标记，原测试未能发现问题。

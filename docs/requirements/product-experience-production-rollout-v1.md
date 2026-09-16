@@ -5,6 +5,7 @@
 > 建立日期：2026-09-14
 > 用户授权：重新启动目标模式，把 Playground 所有产品体验相关内容回流；缺后端就补后端，补文档，做好管理和测试。
 > 最新范围纠正（2026-09-15）：用户明确旧设置能力可以不要，正式设置统一采用当前 Playground demo 的样式与交互。不得以保留旧能力为由增加 demo 中没有的旧页面、表单或次级入口；真实后端、用户数据和安全边界继续保留，只删除旧 UI 壳、重复入口和已被 demo 取代的展示能力。
+> 最新授权（2026-09-16，覆盖上条保留要求）：当前仍在开发阶段，不需要旧界面、旧接口或旧开发数据兼容。回流以已确认 demo 为唯一产品形态；发生结构冲突时可重建相关开发数据，不为保留旧数据增加迁移层。此授权不等于批量清空无关文件、凭据或其他项目，也不取消权限、路径与凭据安全边界。
 > 上位设计：[产品体验总图](./product-experience-map-v1.md)。本合同管理正式回流；既有 P0 合同保留候选设计依据，冻结快照不改写为生产完成证明。
 
 ## 1. 背景与目标（Why / What）
@@ -23,13 +24,13 @@
 |---|---|---|---|
 | R01 Chat / `product-experience-journeys-v1.md` | `src/App.tsx`、`src/components/shell/PrimarySidebar.tsx` | 既有会话与 chat IPC；逐态对照欢迎、会话、处理、失败、导航及右坞分隔 | 直接回流已有流程，缺失行为先改造；离开 / 返回不丢会话、草稿或任务 |
 | R02 设置骨架 / `SettingsExperienceCandidate.tsx` | `src/components/SettingsPanel.tsx` | 既有 `settings:get/set` 自动保存；正式仍为旧 IA | 生产改造后回流；日常 / 高级分组、九个内容入口、嵌入记忆 / Skills / 角色架、窄宽及返回 |
-| R03 外观 / `foundation-design-language-v2.md` | 设置外观、`src/index.css`、共享设计资产 | 候选四主题与全局主题、持久化旧主题尚需映射；不得丢用户设置 | 生产改造后回流；瓷青 / 曜石 / 松烟 / 绛紫同源，重启恢复、旧值兼容、Markdown / Diff 各入口 |
+| R03 外观 / `foundation-design-language-v2.md` | 设置外观、`src/index.css`、共享设计资产 | 四主题与全局主题共用资产；旧开发主题值不要求兼容映射 | 生产改造后回流；瓷青 / 曜石 / 松烟 / 绛紫同源，当前设置重启恢复、Markdown / Diff 各入口 |
 | R04 伙伴与相处 / 设置候选 | 正式伙伴设置、`CharacterShelfPanel` | 既有角色切换、提醒、反思与 settings；候选补充说明写入链路待核实 | 生产改造后回流；设置内角色架、真实偏好保存与生效、流中禁换角、跨页同一主角 |
 | R05 记忆 / `SurfaceBaselinePanel.tsx` 的 MemorySurface | `MemoryPanel`、正式设置记忆页 | `memory:*`、memory-store / vector-store；正式与故事共用四类导航、搜索、紧凑卡片及列表后新增行；六种历史类别按共享映射唯一归属 | 整页已接入；四类真实写入与重启、搜索 / 草稿 / 几何及失败恢复证据见 R05 记录 |
 | R06 模型 / `playground-model-and-workspace-v2.md` | 正式模型设置、LLM 配置工厂 | 已有 settings 与连接测试；候选多连接 / 用途路由 / 模型获取含 fixture | 生产改造后回流；连接 CRUD、发现与手动模型、用途路由、凭据安全存储、旧配置迁移、真实调用与失败恢复 |
 | R07 数据与隐私 / 设置候选 | 正式设置数据页及导入导出服务 | 复核实际导入 / 导出 / 备份字段与隐私边界；不按候选文案假定已包含所有数据 | 直接回流已有流程，缺失能力改造；取消、无效备份、失败提示、实际恢复一致性 |
 | R08 权限与自动化 / 设置候选 | 正式权限设置、`PermissionRulesEditor` | 既有 executionMode / permissionRules 与执行侧规则引擎 | 直接回流既有规则能力；默认收起、独立规则卡、列表后添加、原位取消、保存及执行侧生效；硬边界优先 |
-| R09 Skills / `playground-skills-detail-v1.md` | 正式设置 Skills 与既有组件 | 既有 Skill 加载 / 校验 / 管理路径；逐个核实候选按钮 | 生产改造后回流；列表、启停、文件树、受限高度正文、真实错误；试跑遵循既有隔离与费用边界 |
+| R09 Skills / `playground-skills-detail-v1.md` | 正式设置 Skills、共享 `SkillViews` | 真实 list / get / validate / save / delete / set-enabled；registry 与 SQLite 启停状态 | 列表、独立详情、限高 SKILL.md 全文、真实启停与错误恢复；试跑不回流正式页，证据见 R09 执行记录 |
 | R10 MCP / `playground-mcp-scenarios-v1.md` | 正式 MCP 设置、MCP 服务及 IPC | WISH-040 记录协议 / OAuth / 逐工具启停缺口；不能以保存配置当连接成功 | 生产改造后回流；连接 / 断开 / 重试 / 删除、认证取消、工具开关持久化与执行侧校验；需细化安全契约 |
 | R11 关于与开发模式 / 设置候选 | 正式关于页、开发入口、App 导航 | 核实 developer mode 配置、重启与入口门控，不仅隐藏单个按钮 | 生产改造后回流；普通模式隐藏 Debug / Playground 入口；「关于 My Agent」中的开发者模式真实持久化控制入口可达，关闭安全返回且不删除数据 |
 | R12 人物世界 / `playground-world-living-dimensions-v1.md`、`SurfaceBaselinePanel.tsx` | `WorldHub`、`MomentsPanel`、`AssetsPanel`、`CastPanel`、`WorldDetailsPanel` 及共享 `WorldLivingContent` | 六生活面入口已接通；文化角 / 住所 / 常去地点复用角色隔离的 assets，足迹动态来自 moments；样张仍隔离 | 生产改造后回流；六面逐项完成下表的数据与展示、编辑及换主角隔离，不复制生活样张为生产事实；合并原重复 R06 人物世界行，R06 仅指模型 |
@@ -191,7 +192,7 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 
 允许按编号逐项认领：App、正式产品与 Foundation 组件、共享类型 / 资产注册、对应 Playground 故事、必要的主进程服务 / IPC / preload、测试及对应文档。不授权任意重构；每次动手前仍列精确文件范围。
 
-不改用户临时文件、真实会话和私有数据、未授权人物内容、生产凭据、无关 Runtime 策略与 Prompt。旧设置入口可以依最新授权移除，不必另造兼容入口；仍需记录移除范围和回归，不顺手删除共享后端。依赖变更单独说明，破坏性数据迁移另行确认。
+不改无关临时文件、未授权人物内容、凭据或无关 Runtime 策略与 Prompt。按 DEC-042，旧设置入口和相关开发数据可以随新结构直接替换 / 重建，不必另造兼容入口或迁移层；仍需记录具体移除范围与回归，不顺手删除其他调用方依赖的共享后端。依赖变更单独说明。
 
 ### R08 权限页面回流
 
@@ -201,6 +202,18 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 
 
 ## 5. 测试与完成标准
+
+### R09 Skills 完整回流执行边界（2026-09-16）
+
+- 来源：`playground-skills-detail-v1.md`、设置候选 Skills 单个 / 多个 / 详情故事；正式落点为 Settings → Skills。
+- 展示：提取列表和详情共享组件，正式与样张共用；名称与启停开关、触发条件、描述、作者 / 版本 / 来源 / 状态、限高文件正文。删除正式旧双栏和未使用的创建 / 历史 / 回滚 / 试跑状态，不删除其他调用方仍依赖的后端服务。
+- 数据：新增真实启停 IPC，持久化到本机 Skill 状态；禁用后从新 Prompt 摘要与可调用工具中移除，并拒绝旧工具引用再次激活。`disable_model_invocation` 仍只表示禁止模型主动调用，不冒充停用；已进入历史消息的正文不追溯擦除。
+- 边界：内置正文只读，用户正文校验后保存，不通过改名隐式另建文件；删除走应用内确认，失败保留详情与重试；迟到响应不覆盖新页面或草稿。同一变更在主进程串行，写盘失败不发布新启停状态。
+- 文件范围：`SkillsPanel`、共享 Skills 展示、设置候选、ConfirmPanel / 对应故事、Skill 共享类型 / preload / 声明 / IPC / registry / loader / 状态存储、相关 Unit / UI / Electron 测试与模块及账本。无新依赖，不修改其他存量工作。
+- 真实 Electron 验证发现 `getBuiltinSkillsDir` 在 ESM 主进程引用未定义的 `__dirname`；本批同步修复为主入口 `APP_ROOT` 资源定位，并在 `electron-builder.json` 包含内置 Skill 目录。不新增依赖或旧路径兼容层。
+- 验证：列表→详情→返回、真实内置正文、四主题宽窄和内部滚动、启停重启恢复及旧工具拒绝、取消 / 保存失败 / 删除失败 / 重试 / 重复点击 / 迟到响应、确认按钮 pending 几何。UI IPC 替身与真实主进程验证分开报告，整项未经证据不得标 adopted。
+- 本批证据：默认并发全量 Unit 155 文件 / 914 项通过；根 tsc 与 build 通过；Eval 23 + 1 项通过；全量 UI 160 项通过（`var/verification/skills-final-ui`）；Electron 12 项通过、4 项缺外部模型凭据跳过（`var/verification/skills-full-electron`）。资产检查 6 文件 / 20 项通过，新增共享符号门禁和确认故事实际交互均已运行。R09 本批列表 / 详情 / 管理与启停链路已进入正式调用链，全产品合同继续进行中。
+- 限制：主进程独立 tsc 对比 HEAD 与本批均为 70 条既有诊断，按主诊断正文比较无新增，仅附带导入来源清单变化；继续由 WISH-043 管理。仓库未配置独立 lint 命令，不将 build 当作 lint；本次未产出安装包。npm audit 两种范围请求均在 TLS 建连阶段失败，未获得本轮新审计结果，WISH-044 不关闭。
 
 - 自审先查真实调用点与数据，不只看样张或 sourcePaths 字符串。复用门禁验证实际渲染引用，并有绕过 / 未使用 import 负例。
 - Unit 覆盖转换、校验、持久化、失败与取消；Renderer E2E 从正式 App 导航进入各页，不通过 Playground 代替正式入口。

@@ -936,6 +936,7 @@ export interface ChatSession {
 export interface SkillFrontmatter {
   name: string
   description: string
+  author?: string
   when_to_use?: string
   allowed_tools?: string[]
   disable_model_invocation?: boolean
@@ -943,6 +944,13 @@ export interface SkillFrontmatter {
 }
 
 export type SkillValidationSeverity = 'error' | 'warning'
+
+export interface SkillInfo extends SkillFrontmatter {
+  source: 'builtin' | 'user'
+  enabled: boolean
+}
+
+export type SkillEnabledResult = { success: true; enabled: boolean } | { success: false; error: string }
 
 export interface SkillValidationIssue {
   severity: SkillValidationSeverity

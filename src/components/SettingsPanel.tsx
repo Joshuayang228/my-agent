@@ -424,7 +424,7 @@ export function SettingsPanel({
 
   const renderTools = () => preview
     ? <div className="text-sm" style={{ color: 'var(--text-muted)' }}>Skills 预览不读取本机文件。</div>
-    : <SkillsPanel visible onClose={() => setActiveSection('about')} />
+    : <SkillsPanel visible />
 
   const renderSecurity = () => (
     <div className="space-y-4">

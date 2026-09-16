@@ -121,6 +121,7 @@ export function validateSkillContent(content: string, availableToolNames: Readon
   const meta: SkillFrontmatter = {
     name,
     description,
+    ...(typeof data.author === 'string' ? { author: data.author } : {}),
     ...(typeof data.when_to_use === 'string' && data.when_to_use.trim() ? { when_to_use: data.when_to_use } : {}),
     ...(Array.isArray(allowedTools) && allowedTools.every((item): item is string => typeof item === 'string') ? { allowed_tools: allowedTools } : {}),
     ...(typeof data.disable_model_invocation === 'boolean' ? { disable_model_invocation: data.disable_model_invocation } : {}),
@@ -134,7 +135,9 @@ function getSkillsDir(): string {
 }
 
 function getBuiltinSkillsDir(): string {
-  return join(__dirname, '..', '..', 'skills-builtin')
+  // 主入口为开发与打包态统一设置 APP_ROOT；ESM 分块没有 __dirname，不能按源文件层级猜资源路径。
+  if (!process.env.APP_ROOT) throw new Error('应用资源目录尚未初始化。')
+  return join(process.env.APP_ROOT, 'electron', 'skills-builtin')
 }
 
 async function ensureDir(dir: string): Promise<void> {
@@ -157,6 +160,7 @@ function parseSkillFile(content: string, filePath: string, source: 'builtin' | '
       meta: {
         name: meta.name,
         description: meta.description,
+        author: typeof meta.author === 'string' ? meta.author : undefined,
         when_to_use: meta.when_to_use,
         allowed_tools: meta.allowed_tools,
         disable_model_invocation: meta.disable_model_invocation ?? false,

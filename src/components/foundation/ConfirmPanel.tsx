@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 import { ActionButton } from './ActionButton'
 
 interface ConfirmPanelProps {
@@ -18,11 +18,12 @@ interface ConfirmPanelProps {
  * Constraint: the panel must not call browser dialogs or change layout when pending; both action slots remain reserved.
  */
 export function ConfirmPanel({ title, description, confirmLabel, cancelLabel = '取消', busy = false, icon, onConfirm, onCancel }: ConfirmPanelProps) {
-  return <section role="alertdialog" aria-label={title} className="rounded-[var(--radius-md)] border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
+  const descriptionId = useId()
+  return <section role="group" aria-label={title} aria-describedby={descriptionId} aria-busy={busy} className="rounded-[var(--radius-md)] border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
     <div className="flex min-w-0 gap-3">
       {icon && <span className="mt-0.5 shrink-0" style={{ color: 'var(--danger)' }} aria-hidden="true">{icon}</span>}
-      <div className="min-w-0 flex-1"><div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{title}</div><p className="mt-1 whitespace-pre-wrap text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>{description}</p></div>
+      <div className="min-w-0 flex-1"><div className="break-words text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{title}</div><p id={descriptionId} className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>{description}</p></div>
     </div>
-    <div className="mt-3 flex justify-end gap-2"><ActionButton size="sm" onClick={onCancel} disabled={busy}>{cancelLabel}</ActionButton><ActionButton size="sm" tone="danger" onClick={onConfirm} disabled={busy}>{busy ? '处理中…' : confirmLabel}</ActionButton></div>
+    <div className="mt-3 flex flex-wrap justify-end gap-2"><ActionButton size="sm" onClick={onCancel} disabled={busy}>{cancelLabel}</ActionButton><ActionButton size="sm" tone="danger" aria-label={confirmLabel} onClick={onConfirm} disabled={busy}><span className="grid"><span className="col-start-1 row-start-1" style={{ visibility: busy ? 'hidden' : 'visible' }}>{confirmLabel}</span><span aria-hidden="true" className="col-start-1 row-start-1" style={{ visibility: busy ? 'visible' : 'hidden' }}>处理中…</span></span></ActionButton></div>
   </section>
 }

@@ -350,16 +350,8 @@ declare global {
         elicitResponse: (requestId: string, values: Record<string, unknown> | null) => void
       }
       skills: {
-        list: () => Promise<Array<{
-          name: string
-          description: string
-          when_to_use: string
-          allowed_tools: string[]
-          disable_model_invocation: boolean
-          version: string
-          source: 'builtin' | 'user'
-          filePath: string
-        }>>
+        list: () => Promise<import('./shared/types').SkillInfo[]>
+        setEnabled: (name: string, enabled: boolean) => Promise<import('./shared/types').SkillEnabledResult>
         get: (name: string) => Promise<string | null>
         validate: (content: string) => Promise<SkillValidationResult>
         save: (name: string, content: string) => Promise<

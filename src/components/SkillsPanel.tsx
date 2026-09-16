@@ -1,312 +1,166 @@
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { Pencil, RefreshCw, Trash2 } from 'lucide-react'
+import type { SkillInfo, SkillValidationIssue } from '../shared/types'
+import { ActionButton } from './foundation/ActionButton'
+import { ConfirmPanel } from './foundation/ConfirmPanel'
+import { IconButton } from './foundation/IconButton'
+import { TextField } from './foundation/TextField'
+import { SettingsPageHeader } from './settings/SettingsFields'
+import { SkillDetail, SkillFilePreview, SkillListCard } from './settings/SkillViews'
+
 /**
- * Skill 管理器。
- *
- * 背景：Skill 会影响 Agent 的工具选择和执行方式，不能只提供一个 Markdown 文本框。
- * 设计意图：正式设置只呈现 Playground 已确认的列表→详情体验；诊断和实验能力留在 Debug。
- * 关键约束：保存前必须通过主进程校验；正式页面不承载创建、版本回滚或隔离试跑入口。
+ * 背景：正式 Skills 曾保留旧双栏和不可见的历史逻辑，与候选脱节。
+ * 设计意图：共享列表 / 详情展示，控制器只负责真实 IPC、草稿和失败恢复。
+ * 关键约束：单次操作同步加锁；页面生命周期令牌屏蔽迟到结果，保存失败不清草稿。
  */
-
-import { useCallback, useEffect, useState } from 'react'
-import { useToast } from './Toast'
-import type { SkillValidationIssue, SkillVersionInfo } from '../shared/types'
-
-interface SkillInfo {
-  name: string
-  description: string
-  when_to_use: string
-  allowed_tools: string[]
-  disable_model_invocation: boolean
-  version: string
-  source: 'builtin' | 'user'
-  filePath: string
-}
-
-interface SkillsPanelProps {
-  visible: boolean
-  onClose: () => void
-}
-
-const SKILL_TEMPLATE = `---
-name: my-skill
-description: 一句话描述这个 Skill 的功能和触发时机
-when_to_use: |
-  当用户说“xxx”“yyy”时使用。
-  不适用于：zzz
-allowed_tools: []
-disable_model_invocation: false
-version: "1.0"
----
-
-# Skill 操作指南
-
-## 步骤
-
-1. 第一步：...
-2. 第二步：...
-3. 第三步：...
-
-## 注意事项
-
-- 注意点 A
-- 注意点 B
-`
-
-function issueLabel(issue: SkillValidationIssue): string {
-  return `${issue.severity === 'error' ? '错误' : '提醒'} · ${issue.message}`
-}
-
-function formatVersionDate(timestamp: number): string {
-  if (!timestamp) return '未知时间'
-  return new Date(timestamp).toLocaleString('zh-CN', { hour12: false })
-}
-
-export function SkillsPanel({ visible, onClose }: SkillsPanelProps) {
+export function SkillsPanel({ visible }: { visible: boolean }) {
   const [skills, setSkills] = useState<SkillInfo[]>([])
-  const [selectedSkill, setSelectedSkill] = useState<string | null>(null)
+  const [selected, setSelected] = useState<SkillInfo | null>(null)
+  const [content, setContent] = useState<string | null>(null)
+  const [draft, setDraft] = useState('')
   const [editing, setEditing] = useState(false)
-  const [editContent, setEditContent] = useState('')
-  const [creating, setCreating] = useState(false)
-  const [versions, setVersions] = useState<SkillVersionInfo[]>([])
-  const [selectedVersion, setSelectedVersion] = useState<number | null>(null)
-  const [versionContent, setVersionContent] = useState('')
+  const [pendingDelete, setPendingDelete] = useState(false)
   const [issues, setIssues] = useState<SkillValidationIssue[]>([])
-  const [experimentInput, setExperimentInput] = useState('请说明这个 Skill 会如何处理当前任务。')
-  const [experimentResult, setExperimentResult] = useState('')
-  const [experimentMeta, setExperimentMeta] = useState('')
-  const [experimentRunning, setExperimentRunning] = useState(false)
+  const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const { toast } = useToast()
+  const [loaded, setLoaded] = useState(false)
+  const lock = useRef(false)
+  const generation = useRef(0)
 
-  const loadSkills = useCallback(async () => {
-    if (!window.electronAPI) return
+  const run = useCallback(async (action: (current: () => boolean) => Promise<void>, failure: string) => {
+    if (lock.current) return
+    lock.current = true
+    const token = generation.current
+    const current = () => generation.current === token
+    setBusy(true)
+    setError('')
+    try {
+      if (!window.electronAPI?.skills) throw new Error('unavailable')
+      await action(current)
+    } catch {
+      if (current()) setError(failure)
+    } finally {
+      if (current()) { lock.current = false; setBusy(false) }
+    }
+  }, [])
+
+  const load = useCallback((reload = false) => run(async (current) => {
+    if (reload && !(await window.electronAPI.skills.reload()).success) throw new Error('reload')
     const list = await window.electronAPI.skills.list()
-    setSkills(list)
-  }, [])
-
-  const loadVersions = useCallback(async (name: string) => {
-    if (!window.electronAPI) return
-    const list = await window.electronAPI.skills.versions(name)
-    setVersions(list)
-    setSelectedVersion(null)
-    setVersionContent('')
-  }, [])
+    if (current()) { setSkills(list); setLoaded(true) }
+  }, '未能读取 Skills，请重试。'), [run])
 
   useEffect(() => {
-    if (visible) void loadSkills()
-  }, [visible, loadSkills])
+    generation.current += 1
+    lock.current = false
+    setBusy(false)
+    if (visible) void load()
+    return () => { generation.current += 1; lock.current = false }
+  }, [visible, load])
 
-  const handleView = async (name: string) => {
-    if (!window.electronAPI) return
-    setBusy(true)
-    setSelectedSkill(name)
-    setCreating(false)
+  const open = (skill: SkillInfo) => {
+    if (lock.current) return
+    setSelected(skill)
+    setContent(null)
+    setEditing(false)
+    setPendingDelete(false)
+    setIssues([])
+    void run(async (current) => {
+      const text = await window.electronAPI.skills.get(skill.name)
+      if (text === null) throw new Error('missing')
+      if (current()) { setContent(text); setDraft(text) }
+    }, '未能读取 Skill 正文，请重试。')
+  }
+
+  const back = () => {
+    if (lock.current) return
+    setSelected(null)
+    setPendingDelete(false)
     setEditing(false)
     setIssues([])
-    setExperimentResult('')
-    try {
-      const [content] = await Promise.all([
-        window.electronAPI.skills.get(name),
-        loadVersions(name),
-      ])
-      setEditContent(content || '')
-    } finally {
-      setBusy(false)
+    setError('')
+  }
+
+  const toggle = (skill: SkillInfo, enabled: boolean) => void run(async (current) => {
+    const result = await window.electronAPI.skills.setEnabled(skill.name, enabled)
+    if (!result.success) throw new Error('toggle')
+    if (current()) {
+      setSkills((list) => list.map((item) => item.name === skill.name ? { ...item, enabled: result.enabled } : item))
+      setSelected((item) => item?.name === skill.name ? { ...item, enabled: result.enabled } : item)
     }
-  }
+  }, '未能更新 Skill 状态，请重试。')
 
-  const validateCurrent = async (): Promise<boolean> => {
-    if (!window.electronAPI) return false
-    const result = await window.electronAPI.skills.validate(editContent)
-    setIssues(result.issues)
-    return result.valid
-  }
-
-  const handleSave = async () => {
-    if (!window.electronAPI || !editContent.trim()) return
-    setBusy(true)
-    try {
-      const validation = await window.electronAPI.skills.validate(editContent)
+  const save = () => {
+    if (!selected || selected.source !== 'user') return
+    const target = selected
+    const text = draft
+    void run(async (current) => {
+      const validation = await window.electronAPI.skills.validate(text)
+      if (!current()) return
       setIssues(validation.issues)
       if (!validation.valid) return
-      const name = validation.name || selectedSkill || 'unnamed'
-      const result = await window.electronAPI.skills.save(name, editContent)
-      if (!result.success) {
-        setIssues(result.issues)
+      if (validation.name !== target.name) {
+        setIssues([{ severity: 'error', code: 'name.mismatch', message: '编辑时不能更改 Skill 名称。' }])
         return
       }
-      toast(`Skill「${name}」已保存`, 'success')
+      const result = await window.electronAPI.skills.save(target.name, text)
+      if (!current()) return
+      setIssues(result.issues)
+      if (!result.success) { setError('未能保存 Skill，草稿已保留，请重试。'); return }
+      const updated: SkillInfo = { ...validation.meta, name: target.name, description: validation.meta?.description ?? target.description, source: target.source, enabled: target.enabled }
+      setSkills((list) => list.map((item) => item.name === target.name ? updated : item))
+      setSelected(updated)
+      setContent(text)
       setEditing(false)
-      setCreating(false)
-      setSelectedSkill(name)
-      await Promise.all([loadSkills(), loadVersions(name)])
-    } finally {
-      setBusy(false)
-    }
+    }, '未能保存 Skill，草稿已保留，请重试。')
   }
 
-  const handleDelete = async (name: string) => {
-    if (!window.electronAPI || !window.confirm(`确定删除 Skill「${name}」吗？此操作会删除当前文件，但不会影响已保存的历史 Debug 记录。`)) return
-    setBusy(true)
-    try {
-      const result = await window.electronAPI.skills.delete(name)
-      if (result.success) {
-        toast(`Skill「${name}」已删除`, 'success')
-        if (selectedSkill === name) {
-          setSelectedSkill(null)
-          setEditContent('')
-          setVersions([])
-          setVersionContent('')
-        }
-        await loadSkills()
+  const remove = () => {
+    if (!selected || !pendingDelete || selected.source !== 'user') return
+    const name = selected.name
+    void run(async (current) => {
+      if (!(await window.electronAPI.skills.delete(name)).success) throw new Error('delete')
+      if (current()) {
+        setSelected(null)
+        setPendingDelete(false)
+        setSkills((list) => list.filter((item) => item.name !== name))
+        setLoaded(false)
       }
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const handleCreate = () => {
-    setCreating(true)
-    setSelectedSkill(null)
-    setVersions([])
-    setVersionContent('')
-    setIssues([])
-    setExperimentResult('')
-    setEditContent(SKILL_TEMPLATE)
-    setEditing(true)
-  }
-
-  const handleReload = async () => {
-    if (!window.electronAPI) return
-    setBusy(true)
-    try {
-      const result = await window.electronAPI.skills.reload()
-      toast(`已重新加载 ${result.count} 个 Skill`, 'success')
-      await loadSkills()
-      if (selectedSkill) await handleView(selectedSkill)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const handleSelectVersion = async (version: number) => {
-    if (!window.electronAPI || !selectedSkill) return
-    setSelectedVersion(version)
-    setVersionContent((await window.electronAPI.skills.versionContent(selectedSkill, version)) || '')
-  }
-
-  const handleRollback = async (version: number) => {
-    if (!window.electronAPI || !selectedSkill || !window.confirm(`确定回滚到历史版本 v${version} 吗？当前内容会先自动备份。`)) return
-    setBusy(true)
-    try {
-      const result = await window.electronAPI.skills.rollback(selectedSkill, version)
-      if (!result.success) {
-        toast(`Skill「${selectedSkill}」回滚失败`, 'error')
-        return
-      }
-      toast(`已回滚到 Skill「${selectedSkill}」的 v${version}`, 'success')
-      await handleView(selectedSkill)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const handleExperiment = async () => {
-    if (!window.electronAPI || !editContent.trim() || !experimentInput.trim()) return
-    setExperimentRunning(true)
-    setExperimentResult('')
-    setExperimentMeta('')
-    const valid = await validateCurrent()
-    if (!valid) {
-      setExperimentRunning(false)
-      return
-    }
-    try {
-      const result = await window.electronAPI.skills.playgroundRun({ content: editContent, userPrompt: experimentInput.trim() })
-      if (result.ok) {
-        setExperimentResult(result.text)
-        setExperimentMeta(`隔离试跑 · ${result.model} · ${result.ms} ms · 不写设置 / 不写真实会话`)
-      } else {
-        setExperimentResult(result.error)
-        setExperimentMeta('隔离试跑失败')
-      }
-    } finally {
-      setExperimentRunning(false)
-    }
+      // 删除可能露出同名内置 Skill；只重读列表，不重复删除。
+      const list = await window.electronAPI.skills.list()
+      if (current()) { setSkills(list); setLoaded(true) }
+    }, '操作未能完成，请重试；若已返回列表，请刷新列表。')
   }
 
   if (!visible) return null
-
-  const selectedInfo = skills.find((skill) => skill.name === selectedSkill)
-
-  return (
-    <div className="flex h-full min-h-0 flex-col" data-testid="skills-panel">
-      <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border-color)' }}>
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Skills</h2>
-            <span className="rounded px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{skills.length}</span>
-          </div>
-          <p className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>查看已安装 Skill；用户 Skill 可在详情中编辑，真实模型上下文请去 Debug 查看。</p>
-        </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={() => void handleReload()} disabled={busy} className="rounded-[var(--radius-md)] px-3 py-1.5 text-xs transition disabled:opacity-40" style={{ color: 'var(--text-muted)' }}>刷新</button>
-          <button type="button" onClick={onClose} className="rounded-[var(--radius-md)] px-3 py-1.5 text-xs transition" style={{ color: 'var(--text-muted)' }}>关闭</button>
-        </div>
-      </div>
-
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="w-64 flex-shrink-0 overflow-y-auto border-r p-3" style={{ borderColor: 'var(--border-color)' }}>
-          {skills.length === 0 ? (
-            <div className="py-8 text-center text-xs" style={{ color: 'var(--text-muted)' }}>暂无可用 Skill</div>
-          ) : skills.map((skill) => (
-            <button key={skill.name} type="button" onClick={() => void handleView(skill.name)} className="mb-1 w-full rounded-[var(--radius-md)] border px-3 py-3 text-left transition" style={{ borderColor: selectedSkill === skill.name ? 'var(--accent)' : 'var(--border-subtle)', background: selectedSkill === skill.name ? 'var(--accent-subtle)' : 'transparent', color: selectedSkill === skill.name ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate text-xs font-medium">{skill.name}</span>
-                <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>v{skill.version || '—'}</span>
-              </div>
-              <p className="mt-1 line-clamp-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>{skill.description}</p>
-              <div className="mt-1 flex gap-1 text-[9px]" style={{ color: 'var(--text-muted)' }}><span>{skill.source === 'builtin' ? '内置' : '用户'}</span>{skill.disable_model_invocation && <span>· 仅手动</span>}</div>
-            </button>
-          ))}
-        </div>
-
-        <div className="min-w-0 flex-1 overflow-y-auto p-4">
-          {selectedSkill || creating ? (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{creating ? '新建 Skill' : selectedSkill}</h3>
-                  {selectedInfo && <p className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{selectedInfo.source === 'builtin' ? '内置 Skill' : '用户 Skill'} · {selectedInfo.filePath}</p>}
-                </div>
-                {selectedSkill && selectedInfo?.source === 'user' && <button type="button" onClick={() => void handleDelete(selectedSkill)} disabled={busy} className="rounded border px-2 py-1 text-[10px] disabled:opacity-40" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}>删除</button>}
-              </div>
-
-              {selectedInfo && !editing && (
-                <div className="rounded-[var(--radius-md)] border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--card-bg)' }}>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px]" style={{ color: 'var(--text-muted)' }}><span>版本：{selectedInfo.version || '未声明'}</span><span>来源：{selectedInfo.source === 'builtin' ? '内置' : '用户'}</span><span>工具：{selectedInfo.allowed_tools.length ? selectedInfo.allowed_tools.join(', ') : '未限制'}</span></div>
-                  <p className="mt-2 text-xs" style={{ color: 'var(--text-secondary)' }}>{selectedInfo.description}</p>
-                  {selectedInfo.when_to_use && <p className="mt-2 whitespace-pre-wrap text-[11px]" style={{ color: 'var(--text-secondary)' }}><strong style={{ color: 'var(--text-primary)' }}>触发条件：</strong>{selectedInfo.when_to_use}</p>}
-                </div>
-              )}
-
-              <div className="flex flex-wrap gap-2">
-                {!editing && selectedInfo?.source === 'user' && <button type="button" onClick={() => setEditing(true)} className="rounded-[var(--radius-md)] px-3 py-1.5 text-xs font-medium" style={{ background: 'var(--accent-emphasis)', color: 'var(--text-primary)' }}>编辑</button>}
-                {editing && <><button type="button" onClick={() => void handleSave()} disabled={busy} className="rounded-[var(--radius-md)] px-3 py-1.5 text-xs font-medium disabled:opacity-40" style={{ background: 'var(--accent-emphasis)', color: 'var(--text-primary)' }}>{busy ? '处理中…' : '校验并保存'}</button><button type="button" onClick={() => { setEditing(false); setIssues([]) }} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-xs" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>取消</button></>}
-                <button type="button" onClick={() => void validateCurrent()} disabled={busy} className="rounded border px-3 py-1.5 text-xs disabled:opacity-40" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>校验</button>
-              </div>
-
-              {issues.length > 0 && <div className="space-y-1 rounded-[var(--radius-md)] border p-3" style={{ borderColor: issues.some((issue) => issue.severity === 'error') ? 'var(--danger)' : 'var(--warning)', background: 'var(--card-bg)' }}><div className="text-[11px] font-semibold" style={{ color: issues.some((issue) => issue.severity === 'error') ? 'var(--danger)' : 'var(--warning)' }}>Skill 校验结果</div>{issues.map((issue, index) => <div key={`${issue.code}-${index}`} className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{issueLabel(issue)}</div>)}</div>}
-
-              {editing ? <textarea value={editContent} onChange={(event) => setEditContent(event.target.value)} className="min-h-[360px] w-full resize-y rounded-[var(--radius-md)] border p-3 font-mono text-xs leading-relaxed outline-none" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }} spellCheck={false} /> : <pre className="max-h-[48vh] overflow-auto whitespace-pre-wrap break-words rounded-[var(--radius-md)] border p-3 font-mono text-xs leading-relaxed" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>{editContent || '（暂无正文）'}</pre>}
-
-            </div>
-          ) : <div className="flex h-full items-center justify-center text-center" style={{ color: 'var(--text-muted)' }}><div><p className="mb-2 text-lg">选择一个 Skill</p><p className="text-xs">Skill 是给 Agent 的操作手册，用 Markdown 描述工作流程。</p><p className="mt-1 text-xs">用户 Skill 的编辑会经过结构校验；诊断与隔离试跑请在 Debug 中进行。</p></div></div>}
-        </div>
-      </div>
+  return <div className="min-w-0 space-y-4" data-testid="skills-panel" aria-busy={busy}>
+    <div className="flex items-start justify-between gap-3">
+      <SettingsPageHeader title="Skills" description="管理伙伴可以按需使用的工作方法。" />
+      {!selected && <IconButton label="刷新 Skills" disabled={busy} onClick={() => void load(true)}><RefreshCw size={16} /></IconButton>}
     </div>
-  )
-}
-
-function VersionHistory({ versions, selectedVersion, content, onSelect, onRollback, busy }: { versions: SkillVersionInfo[]; selectedVersion: number | null; content: string; onSelect: (version: number) => void; onRollback: (version: number) => void; busy: boolean }) {
-  return <section className="rounded-[var(--radius-md)] border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--card-bg)' }}><div className="flex items-center justify-between"><div><h4 className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>版本历史</h4><p className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>保存前自动备份，最多保留最近 10 个历史版本。</p></div><span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{versions.length} 个历史版本</span></div>{versions.length === 0 ? <p className="mt-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>还没有历史版本。</p> : <div className="mt-2 space-y-1.5">{versions.map((item) => <div key={item.version} className="flex flex-wrap items-center justify-between gap-2 rounded border px-2 py-1.5" style={{ borderColor: 'var(--border-subtle)' }}><button type="button" onClick={() => onSelect(item.version)} className="text-left text-[10px]" style={{ color: selectedVersion === item.version ? 'var(--accent)' : 'var(--text-secondary)' }}><span className="font-mono font-semibold">v{item.version}</span><span className="ml-2" style={{ color: 'var(--text-muted)' }}>{formatVersionDate(item.createdAt)}</span></button><button type="button" onClick={() => onRollback(item.version)} disabled={busy} className="rounded-[var(--radius-sm)] border px-2 py-1 text-[10px] disabled:opacity-40" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>回滚</button></div>)}</div>}{selectedVersion !== null && <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-[var(--radius-sm)] border p-2 font-mono text-[10px] leading-relaxed" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>{content || '正在读取历史正文…'}</pre>}</section>
+    {error && <div role="alert" className="flex flex-wrap items-center gap-3 text-[12px]" style={{ color: 'var(--danger)' }}>
+      <span>{error}</span>
+      {!selected && <ActionButton disabled={busy} onClick={() => void load()}>重试读取</ActionButton>}
+      {selected && content === null && <ActionButton disabled={busy} onClick={() => open(selected)}>重试读取</ActionButton>}
+    </div>}
+    {!selected && <>
+      {busy && !loaded && <p role="status" className="text-[12px]">正在读取 Skills…</p>}
+      {loaded && skills.length === 0 && <p className="py-10 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>尚未安装 Skill。</p>}
+      <div className="grid gap-3 sm:grid-cols-2">{skills.map((skill) => <SkillListCard key={skill.name} skill={skill} disabled={busy} testId={`skill-card-${skill.name}`} onOpen={() => open(skill)} onEnabledChange={(enabled) => toggle(skill, enabled)} />)}</div>
+    </>}
+    {selected && <SkillDetail skill={selected} disabled={busy || editing || pendingDelete} onBack={back} onEnabledChange={(enabled) => toggle(selected, enabled)} testId="skill-detail"
+      actions={selected.source === 'user' && content !== null && !pendingDelete ? editing ? <>
+        <ActionButton disabled={busy || !draft.trim()} tone="accent" onClick={save}>校验并保存</ActionButton>
+        <ActionButton disabled={busy} onClick={() => { setDraft(content); setEditing(false); setIssues([]); setError('') }}>取消编辑</ActionButton>
+        <span role="status" className="text-[11px]">{busy ? '正在保存…' : ''}</span>
+      </> : <>
+        <IconButton label="编辑 Skill" disabled={busy} onClick={() => { setDraft(content); setEditing(true); setError('') }}><Pencil size={14} /></IconButton>
+        <IconButton label="删除 Skill" disabled={busy} onClick={() => { setPendingDelete(true); setError(''); setIssues([]) }}><Trash2 size={14} /></IconButton>
+      </> : undefined}
+      notice={<>
+        {pendingDelete && <div className="mb-3"><ConfirmPanel title={`删除 Skill「${selected.name}」？`} description="将删除当前 Skill 文件，已保存的对话和 Debug 记录不受影响。" confirmLabel="删除 Skill" busy={busy} onConfirm={remove} onCancel={() => { setPendingDelete(false); setError('') }} /></div>}
+        {issues.length > 0 && <ul role="status" className="mb-3 space-y-1 text-[11px]" style={{ color: 'var(--danger)' }}>{issues.map((issue, index) => <li key={`${issue.code}-${index}`}>{issue.message}</li>)}</ul>}
+      </>}
+      content={content === null ? <p role="status" className="text-[12px]">{busy ? '正在读取正文…' : '正文不可用'}</p> : editing ? <TextField multiline aria-label="编辑 SKILL.md" value={draft} disabled={busy} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraft(event.target.value)} className="h-[48vh] min-h-40 w-full resize-none overflow-auto rounded border p-3 font-mono text-[11px] leading-5" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} spellCheck={false} /> : <SkillFilePreview content={content} testId="skill-file-preview" />} />}
+  </div>
 }

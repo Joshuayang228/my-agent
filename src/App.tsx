@@ -1096,7 +1096,7 @@ function App() {
             ) : (
               <div className="flex-1 overflow-y-auto scrollbar-thin">
                 {activeView === 'skills' && (
-                  <SkillsPanel visible={true} onClose={() => setActiveView('chat')} />
+                  <SkillsPanel visible={true} />
                 )}
                 {activeView === 'memory' && (
                   <MemoryPanel onClose={() => setActiveView('chat')} />

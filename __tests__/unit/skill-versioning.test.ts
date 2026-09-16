@@ -25,7 +25,7 @@ vi.mock('electron', () => ({
 }))
 
 // 被测模块在 mock 之后 import
-import { getSkillVersionContent, listSkillVersionInfo, listSkillVersions, rollbackSkill, saveSkill } from '../../electron/main/skills/loader'
+import { getSkillVersionContent, listSkillVersionInfo, listSkillVersions, loadAllSkills, rollbackSkill, saveSkill } from '../../electron/main/skills/loader'
 
 const SKILL = 'test-skill'
 
@@ -44,7 +44,17 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.unstubAllEnvs()
   rmSync(tmpUserData, { recursive: true, force: true })
+})
+
+it('内置 Skills 按主入口 APP_ROOT 定位且包含在打包清单中', async () => {
+  vi.stubEnv('APP_ROOT', process.cwd())
+  const skills = await loadAllSkills()
+  expect(skills.some((skill) => skill.source === 'builtin' && skill.meta.name === 'code-review')).toBe(true)
+  expect(skills.some((skill) => skill.source === 'builtin' && skill.meta.name === 'content-creator')).toBe(true)
+  const builder = JSON.parse(readFileSync(join(process.cwd(), 'electron-builder.json'), 'utf8'))
+  expect(builder.files).toContain('electron/skills-builtin')
 })
 
 describe('Skill 版本备份 (G1)', () => {

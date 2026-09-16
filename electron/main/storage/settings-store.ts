@@ -183,7 +183,7 @@ function getDefaults(): AppSettings {
   }
 }
 
-async function ensureTable(): Promise<void> {
+export async function ensureTable(): Promise<void> {
   const db = await getDatabase()
   db.run(`
     CREATE TABLE IF NOT EXISTS settings (

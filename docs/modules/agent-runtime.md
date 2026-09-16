@@ -137,7 +137,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；自�
 | Chat 右侧能力坞 | 部分 | `ChatRightDock` · 五入口顺序为审阅/浏览器/文件/终端/侧边聊天；五工具已有真实 IPC；侧聊支持受控上下文、确认隔离、创建/发送失败重试及父会话切换清理；四主题/Mermaid 与 Foundation 全量复用仍待验收，浏览器受限只读、终端非 PTY |
 | Agent 生产资产目录与运行证据链 | 已落地 | Debug「提示词管理器」聚合 Prompt / 伙伴人格 / 记忆策略 / 权限与沙箱 / Tool schema / Skill / Eval Case 与 Grader / Eval Judge / 模型 Provider / MCP；真实 LLM / Tool / Memory / Permission 运行通过稳定 key 写入脱敏证据，支持调用级分组、资产最近使用、跨面板跳转与 JSON / JSONL 导出 |
 | GitHub Actions 质量门禁 | 已落地 | Docs / Asset 工作流；Unit 在无界面 Runner 使用 Electron external 占位路径，不下载桌面二进制；官方 Actions 使用 v7 |
-| Skill 管理器 2.0 | 已落地 | 安全 YAML Frontmatter（无 eval）· `SkillsPanel` 校验 / 版本历史 / 回滚 / 隔离试跑；`skills:validate` / `skills:versions` / `skills:playground-run`；LLM Debug 展示 Skill 激活来源与指纹 |
+| Skills 管理 | 已落地 | 正式 Settings 与 Playground 共用 `settings/SkillViews.tsx` 的列表 / 独立详情 / 限高全文；内置正文只读，用户正文校验保存、取消与页内确认删除，失败可重试，离页迟到响应不覆盖新页面。`skills:set-enabled` 经 registry 串行持久化到 `skill-state-store`；停用从新摘要和工具注册移除，旧工具引用执行前再次校验。版本 / 回滚 / 隔离试跑后端仍供其既有调用者使用，不再是正式 Skills 页入口 |
 | Skill Eval 证据闭环 | 已落地 | `npm run eval:skill`；S01–S03 覆盖应触发 / 不触发 / `allowed_tools`；JSON + Markdown 报告；Debug「质量 / Eval」展示输入、Trace、工具、回复与四类 Grader |
 | Prompt 受控编辑 | 已落地 | 生产资产只读；实验副本可隔离试跑；二次确认后复用 `settings.systemPrompt` 保存为 L3 自定义补充指令 |
 | Playground 多轮隔离对话 | 已落地 | `playgroundRun.history` · PromptLab transcript |

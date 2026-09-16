@@ -3348,16 +3348,143 @@ test.describe('My Agent UI', () => {
     await expect(item.locator('input')).toHaveValue('重新进入后尚未提交的草稿')
   })
 
-  test('Skills 管理页统一为 Playground 列表详情样式', async ({ page }) => {
+  test('Skills 管理页没有桌面连接时展示可重试错误', async ({ page }) => {
     await page.goto('/')
 
     await page.click('button[title="设置"]')
     await page.getByTestId('settings-nav-skills').click()
     await expect(page.getByTestId('settings-panel')).toBeVisible()
     await expect(page.locator('[data-testid="skills-panel"]')).toBeVisible()
-    await expect(page.getByText('查看已安装 Skill', { exact: false })).toBeVisible()
+    await expect(page.getByText('管理伙伴可以按需使用的工作方法。', { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: '+ 新建 Skill', exact: true })).toHaveCount(0)
-    await expect(page.getByText('选择一个 Skill', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: '重试读取', exact: true })).toBeVisible()
+  })
+
+  for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
+    for (const width of [1166, 600]) {
+      test(`正式 Skills 完整管理流程 ${theme} ${width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 731 })
+        await installProductionElectronStub(page)
+        await page.addInitScript(({ theme }) => {
+          localStorage.setItem('theme', theme)
+          const api = (window as any).electronAPI
+          const body = '---\nname: local-helper\ndescription: 本机工作方法\n---\n' + '长篇工作说明，需要完整阅读与编辑。\n'.repeat(120)
+          const harness = { failSave: true, failDelete: true, failToggle: true, saves: 0, deletes: 0, toggles: 0, content: body, release: null as (() => void) | null, holdDelete: false }
+          ;(window as any).__skills = harness
+          let list = [{ name: 'local-helper', description: '本机工作方法', when_to_use: '用户请求整理时', author: '本机', version: '1.0', source: 'user', enabled: true }, { name: 'builtin-helper', description: '内置工作方法', source: 'builtin', enabled: true }]
+          api.mcp.status = async () => []
+          api.skills = {
+            list: async () => list.map((item) => ({ ...item })),
+            reload: async () => ({ success: true, count: list.length }),
+            get: async (name: string) => name === 'local-helper' ? harness.content : '内置正文',
+            validate: async () => ({ valid: true, name: 'local-helper', issues: [], meta: { name: 'local-helper', description: '本机工作方法' } }),
+            save: async (_name: string, text: string) => { harness.saves++; if (harness.failSave) return { success: false, issues: [{ code: 'save.failed', severity: 'error', message: '测试写盘失败' }] }; harness.content = text; return { success: true, issues: [] } },
+            delete: async (name: string) => { harness.deletes++; if (harness.holdDelete) await new Promise<void>((resolve) => { harness.release = resolve }); if (harness.failDelete) return { success: false }; list = list.filter((item) => item.name !== name); return { success: true } },
+            setEnabled: async (name: string, enabled: boolean) => { harness.toggles++; if (harness.failToggle) throw new Error('toggle failed'); list = list.map((item) => item.name === name ? { ...item, enabled } : item); return { success: true, enabled } },
+          }
+        }, { theme })
+        await page.goto('/')
+        await page.locator('button[title="设置"]').click()
+        await (width < 768 ? page.getByRole('tab', { name: 'Skills', exact: true }) : page.getByTestId('settings-nav-skills')).click()
+        const panel = page.getByTestId('skills-panel')
+        await expect(panel.getByTestId('skill-card-local-helper')).toBeVisible()
+        await expect(panel.getByText('选择一个 Skill', { exact: true })).toHaveCount(0)
+        await panel.getByRole('button', { name: 'builtin-helper', exact: true }).click()
+        await expect(panel.getByTestId('skill-file-preview')).toHaveText('内置正文')
+        await expect(panel.getByRole('button', { name: '删除 Skill', exact: true })).toHaveCount(0)
+        await panel.getByRole('button', { name: '返回 Skills', exact: true }).click()
+        await panel.getByRole('button', { name: 'local-helper', exact: true }).click()
+        const detail = panel.getByTestId('skill-detail')
+        const toggle = detail.getByRole('switch')
+        await toggle.click()
+        await expect(panel.getByRole('alert')).toContainText('未能更新')
+        await expect(toggle).toHaveAttribute('aria-checked', 'true')
+        await page.evaluate(() => { (window as any).__skills.failToggle = false })
+        await toggle.click()
+        await expect(toggle).toHaveAttribute('aria-checked', 'false')
+        const file = detail.getByTestId('skill-file-preview')
+        expect(await file.evaluate((node) => ({ scrolls: node.scrollHeight > node.clientHeight, bounded: node.clientHeight <= innerHeight * .48 + 1, fits: node.scrollWidth <= node.clientWidth }))).toEqual({ scrolls: true, bounded: true, fits: true })
+        await page.screenshot({ path: testInfo.outputPath('skills-detail.png'), animations: 'disabled' })
+        await detail.getByRole('button', { name: '编辑 Skill', exact: true }).click()
+        const editor = detail.getByRole('textbox', { name: '编辑 SKILL.md', exact: true })
+        expect((await editor.boundingBox())!.height).toBeGreaterThan(200)
+        await editor.fill('不应保存的草稿')
+        await detail.getByRole('button', { name: '取消编辑', exact: true }).click()
+        await expect(file).not.toContainText('不应保存的草稿')
+        await detail.getByRole('button', { name: '编辑 Skill', exact: true }).click()
+        await editor.fill('编辑后的完整草稿')
+        await detail.getByRole('button', { name: '校验并保存', exact: true }).click()
+        await expect(editor).toHaveValue('编辑后的完整草稿')
+        await expect(panel.getByRole('alert')).toContainText('草稿已保留')
+        await page.evaluate(() => { (window as any).__skills.failSave = false })
+        await detail.getByRole('button', { name: '校验并保存', exact: true }).click()
+        await expect(file).toHaveText('编辑后的完整草稿')
+        await detail.getByRole('button', { name: '删除 Skill', exact: true }).click()
+        let confirmation = panel.getByRole('group', { name: '删除 Skill「local-helper」？', exact: true })
+        await confirmation.getByRole('button', { name: '取消', exact: true }).click()
+        expect(await page.evaluate(() => (window as any).__skills.deletes)).toBe(0)
+        await detail.getByRole('button', { name: '删除 Skill', exact: true }).click()
+        confirmation = panel.getByRole('group', { name: '删除 Skill「local-helper」？', exact: true })
+        await confirmation.getByRole('button', { name: '删除 Skill', exact: true }).click()
+        await expect(panel.getByRole('alert')).toBeVisible()
+        await expect(confirmation).toBeVisible()
+        await page.evaluate(() => { Object.assign((window as any).__skills, { failDelete: false, holdDelete: true }) })
+        const confirm = confirmation.getByRole('button', { name: '删除 Skill', exact: true })
+        const size = () => confirm.evaluate((node) => ({ width: node.clientWidth, height: node.clientHeight }))
+        const before = await size()
+        await confirm.click()
+        await expect(confirm).toBeDisabled()
+        expect(await size()).toEqual(before)
+        await confirm.evaluate((node) => { (node as HTMLButtonElement).click(); (node as HTMLButtonElement).click() })
+        expect(await page.evaluate(() => (window as any).__skills.deletes)).toBe(2)
+        await page.screenshot({ path: testInfo.outputPath('skills-confirm-pending.png'), animations: 'disabled' })
+        await page.evaluate(() => (window as any).__skills.release())
+        await expect(panel.getByTestId('skill-card-local-helper')).toHaveCount(0)
+        await expect(panel.getByTestId('skill-card-builtin-helper')).toBeVisible()
+        expect(await panel.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
+      })
+    }
+  }
+
+  test('Skills 离开页面后迟到的正文不覆盖新页面', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      api.mcp.status = async () => []
+      api.skills = {
+        list: async () => [{ name: 'slow-skill', description: '慢速读取样张', source: 'builtin', enabled: true }],
+        get: async () => new Promise<string>((resolve) => { (window as any).__releaseSkill = () => resolve('迟到正文') }),
+      }
+    })
+    await page.goto('/')
+    await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-skills').click()
+    await page.getByRole('button', { name: 'slow-skill', exact: true }).click()
+    await expect(page.getByText('正在读取正文…', { exact: true })).toBeVisible()
+    await page.getByTestId('settings-nav-appearance').click()
+    await page.getByTestId('settings-nav-skills').click()
+    await expect(page.getByTestId('skill-card-slow-skill')).toBeVisible()
+    await page.evaluate(async () => { (window as any).__releaseSkill(); await new Promise((resolve) => setTimeout(resolve, 100)) })
+    await expect(page.getByTestId('skill-detail')).toHaveCount(0)
+    await expect(page.getByTestId('skill-card-slow-skill')).toBeVisible()
+  })
+
+  test('Foundation 页内确认包含可交互默认态与稳定处理中态', async ({ page }) => {
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+    await page.getByTestId('playground-nav').getByRole('button', { name: '基础组件', exact: true }).click()
+    await page.getByRole('tab', { name: '状态反馈', exact: true }).click()
+    const panels = page.getByRole('group', { name: '删除样张？', exact: true })
+    await expect(panels).toHaveCount(2)
+    const normal = panels.first().getByRole('button', { name: '删除', exact: true })
+    const pending = panels.last().getByRole('button', { name: '删除', exact: true })
+    expect(await normal.evaluate((node) => node.clientWidth)).toBe(await pending.evaluate((node) => node.clientWidth))
+    await expect(pending).toBeDisabled()
+    await panels.first().getByRole('button', { name: '取消', exact: true }).click()
+    await expect(page.getByText('已取消', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: '重置样张', exact: true }).click()
+    await normal.click()
+    await expect(page.getByText('已删除样张', { exact: true })).toBeVisible()
   })
 
   test('正式权限页沿用 Playground 的自定义规则折叠交互', async ({ page }) => {

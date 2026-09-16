@@ -359,6 +359,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   skills: {
     list: () => ipcRenderer.invoke('skills:list'),
+    setEnabled: (name: string, enabled: boolean): Promise<import('../../src/shared/types').SkillEnabledResult> => ipcRenderer.invoke('skills:set-enabled', name, enabled),
     get: (name: string) => ipcRenderer.invoke('skills:get', name),
     validate: (content: string): Promise<SkillValidationResult> => ipcRenderer.invoke('skills:validate', content),
     save: (name: string, content: string) => ipcRenderer.invoke('skills:save', name, content),

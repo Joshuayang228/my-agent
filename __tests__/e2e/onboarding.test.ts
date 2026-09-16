@@ -152,6 +152,44 @@ test.afterAll(async () => {
   }
 })
 
+test('正式 Skills 经真实 IPC 编辑启停并完整重启恢复', async () => {
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  await page.evaluate(() => window.electronAPI.skills.reload())
+  const builtins = (await page.evaluate(() => window.electronAPI.skills.list())).filter((skill) => skill.source === 'builtin')
+  expect(builtins.length, '构建后的 Electron 必须实际载入内置 Skills').toBeGreaterThan(0)
+  const builtin = builtins[0]
+  expect(await page.evaluate((name) => window.electronAPI.skills.get(name), builtin.name)).toContain(builtin.name)
+  const name = 'electron-skill-check'
+  const raw = `---\nname: ${name}\ndescription: 验收技能\nwhen_to_use: 仅验收使用\nversion: "1.0"\n---\n原始正文`
+  expect(await page.evaluate(({ name, raw }) => window.electronAPI.skills.save(name, raw), { name, raw })).toMatchObject({ success: true })
+  if (!(await page.getByTestId('settings-panel').isVisible())) await page.locator('button[title="设置"]').click()
+  await page.getByTestId('settings-nav-skills').click()
+  await page.getByRole('button', { name, exact: true }).click()
+  const panel = page.getByTestId('skills-panel')
+  await panel.getByRole('button', { name: '编辑 Skill', exact: true }).click()
+  const edited = raw.replace('原始正文', '真实编辑后的正文')
+  await panel.getByRole('textbox', { name: '编辑 SKILL.md', exact: true }).fill(edited)
+  await panel.getByRole('button', { name: '校验并保存', exact: true }).click()
+  await expect(panel.getByTestId('skill-file-preview')).toHaveText(edited)
+  await panel.getByRole('switch', { name, exact: true }).click()
+  await expect(panel.getByRole('switch', { name, exact: true })).toHaveAttribute('aria-checked', 'false')
+  expect(await page.evaluate((name) => window.electronAPI.skills.get(name), name)).toBe(edited)
+  await electronApp.close()
+  electronApp = await electron.launch({ args: [path.join(__dirname, '../../dist-electron/index.js'), '--user-data-dir=' + userDataDir, '--no-sandbox'], env: { ...process.env, NODE_ENV: 'production', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' } })
+  page = await electronApp.firstWindow()
+  await page.waitForLoadState('domcontentloaded')
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  expect((await page.evaluate(() => window.electronAPI.skills.list())).find((skill) => skill.name === name)?.enabled).toBe(false)
+  expect(await page.evaluate((name) => window.electronAPI.skills.get(name), name)).toBe(edited)
+  if (!(await page.getByTestId('settings-panel').isVisible())) await page.locator('button[title="设置"]').click()
+  await page.getByTestId('settings-nav-skills').click()
+  await page.getByRole('button', { name, exact: true }).click()
+  await page.getByTestId('skills-panel').getByRole('button', { name: '删除 Skill', exact: true }).click()
+  await page.getByRole('group', { name: `删除 Skill「${name}」？`, exact: true }).getByRole('button', { name: '删除 Skill', exact: true }).click()
+  await expect(page.getByTestId(`skill-card-${name}`)).toHaveCount(0)
+  expect((await page.evaluate(() => window.electronAPI.skills.list())).some((skill) => skill.name === name)).toBe(false)
+})
+
 test('首次进入通过模型路由配置后开始对话', async () => {
   await expect(page.locator('#startup-splash')).toBeHidden()
   await page.getByRole('button', { name: '模型', exact: true }).click()

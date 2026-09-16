@@ -48,7 +48,7 @@ export const ASSET_GOVERNANCE = [
   },
   {
     id: 'skill', labelZh: 'Skill', kind: 'runtime-auto-discovered', modelContextTypes: ['skill'],
-    sourcePaths: ['electron/main/skills/registry.ts', 'electron/main/skills'], registryPaths: ['electron/main/skills/registry.ts'], discovery: 'Skill loader 运行时加载',
+    sourcePaths: ['electron/main/skills/registry.ts', 'electron/main/skills', 'electron/main/storage/skill-state-store.ts'], registryPaths: ['electron/main/skills/registry.ts'], discovery: 'Skill loader 运行时加载',
     keyRule: 'skill:<skill name>', display: 'Debug / Skill', usageEvidence: 'skill-activation',
   },
   {

@@ -161,7 +161,9 @@ Prompt 资产由 `electron/main/prompts/registry.ts` 统一登记；核心 key �
 
 未来扩展英文时，在同一资产 key 下维护独立语言版本，由运行时按 locale 单选；当前不实现英文或韩文版本。
 
-Skill 资产由 `electron/main/skills/loader.ts` 读取和保存；Frontmatter 只允许标准 YAML，使用 `js-yaml` `JSON_SCHEMA`，禁止 JavaScript / 可执行语言引擎。`registry.ts` 负责生成 Skill 激活工具、维护当前激活状态并产生不含正文的激活指纹。`SkillsPanel` 是用户资产编辑入口：保存前由主进程校验 Frontmatter、正文和工具引用，历史内容保存在用户目录 `.versions/`，隔离试跑复用 `debug:playground-run` 但不写设置或真实会话。Debug 统一目录只读展示 Skill 正文、来源、版本和指纹；真实 LLM 调用通过 `requestExtra.skillActivations` 记录激活工具、来源、版本、原因和指纹。
+Skill 资产由 `electron/main/skills/loader.ts` 读取和保存；Frontmatter 只允许标准 YAML，使用 `js-yaml` `JSON_SCHEMA`，禁止 JavaScript / 可执行语言引擎。内置目录由主入口 `APP_ROOT/electron/skills-builtin` 定位并纳入打包清单，不依赖 ESM 中不存在的 `__dirname`。`registry.ts` 负责激活工具、当前激活状态和不含正文的指纹。正式 `SkillsPanel` 与 Playground 共用 `settings/SkillViews.tsx`，只管理列表、详情、启停及用户正文编辑 / 删除；创建、版本和试跑不作为正式页入口。保存前由主进程校验 Frontmatter、正文和工具引用，底层版本备份仍保存在用户目录 `.versions/`。
+
+Skill 启停是用户运行态，不修改内置文件或资产指纹。`skills:set-enabled` 通过 registry 串行队列，调用 `storage/skill-state-store.ts` 在 settings 表独立键 `skillDisabledNames` 保存停用名称；普通 settings 写入不开放此键。写盘成功后才替换注册状态，失败恢复数据库旧值；重载、保存和删除使用同一队列。新 Prompt 摘要过滤停用项，已捕获的生产工具执行前检查当前启用状态和定义身份，避免重载 / 删除后的旧闭包继续激活。`disable_model_invocation` 与启停独立；已写入历史消息的正文不追溯撤回。Debug 目录展示定义，真实 LLM 调用继续通过 `requestExtra.skillActivations` 记录来源和指纹；Eval 的显式隔离 Skill 不读取用户启停状态。
 
 ### 5.1 伙伴与生活世界（Companion）
 

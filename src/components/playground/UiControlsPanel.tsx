@@ -14,6 +14,7 @@ import { MemoryCitationChips } from '../chat/MemoryCitationChips'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import { CodeBlock, MarkdownRenderer } from '../MarkdownRenderer'
 import { TextField } from '../foundation/TextField'
+import { ConfirmPanel } from '../foundation/ConfirmPanel'
 import { THEME_STUDIES, getThemeStudyStyle } from './foundation-themes'
 import { ToastPreview, type ToastPreviewItem } from '../Toast'
 import type { UiControlsSubId } from './catalog'
@@ -83,6 +84,13 @@ const FILE_TREE_FIXTURE: FileBrowserPreviewData = {
     'src/shared/types.ts': { path: 'src/shared/types.ts', kind: 'text', languageHint: 'typescript', content: 'export type AssetKey = string\n' },
     'AGENTS.md': { path: 'AGENTS.md', kind: 'text', languageHint: 'markdown', content: '# Foundation\n\n这里是隔离样张，不读取真实项目文件。\n' },
   },
+}
+
+function ConfirmPanelStory() {
+  const [state, setState] = useState<'ready' | 'confirmed' | 'cancelled'>('ready')
+  return <div>
+    {state === 'ready' ? <ConfirmPanel title="删除样张？" description="仅影响当前隔离样张。" confirmLabel="删除" onConfirm={() => setState('confirmed')} onCancel={() => setState('cancelled')} /> : <div role="status"><span>{state === 'confirmed' ? '已删除样张' : '已取消'}</span><button type="button" onClick={() => setState('ready')}>重置样张</button></div>}
+  </div>
 }
 
 function ChatEmptyFixture({ long }: { long?: boolean }) {
@@ -535,6 +543,11 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
           </StoryBlock>
         </div>
       )}
+
+      {effectiveSub === 'confirm-panel' && <div className="space-y-3">
+        <StoryBlock title="页内确认" source="src/components/foundation/ConfirmPanel.tsx" adopted><ConfirmPanelStory /></StoryBlock>
+        <StoryBlock title="处理中" source="src/components/foundation/ConfirmPanel.tsx" edge><ConfirmPanel title="删除样张？" description="仅影响当前隔离样张。" confirmLabel="删除" busy onConfirm={() => {}} onCancel={() => {}} /></StoryBlock>
+      </div>}
 
       {effectiveSub === 'confirm' && (
         <div className="space-y-3">

@@ -57,9 +57,9 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     descriptionZh: '配置分组、字段编辑、自动保存和失败恢复体验。',
     status: 'playground',
     playgroundTabId: 'settings',
-    sourcePaths: ['src/components/playground/SurfaceBaselinePanel.tsx', 'src/components/playground/SettingsExperienceCandidate.tsx', 'src/components/SettingsPanel.tsx', 'src/components/settings/PermissionSettingsContent.tsx', 'src/components/PermissionRulesEditor.tsx', 'src/components/settings/SettingsLayout.tsx', 'src/components/settings/ModelRoutingSettings.tsx', 'src/components/MemoryPanel.tsx', 'src/components/memory/MemoryManagementControls.tsx'],
-    experienceParts: ['设置分组', '角色架', '记忆管理', '字段编辑', '自动保存', '失败恢复'],
-    usesFoundation: ['behavior.tabs', 'behavior.input', 'behavior.select', 'behavior.button', 'behavior.icon-button', 'state.toast', 'state.error'],
+    sourcePaths: ['src/components/playground/SurfaceBaselinePanel.tsx', 'src/components/playground/SettingsExperienceCandidate.tsx', 'src/components/SettingsPanel.tsx', 'src/components/settings/PermissionSettingsContent.tsx', 'src/components/PermissionRulesEditor.tsx', 'src/components/settings/SettingsLayout.tsx', 'src/components/settings/ModelRoutingSettings.tsx', 'src/components/MemoryPanel.tsx', 'src/components/memory/MemoryManagementControls.tsx', 'src/components/SkillsPanel.tsx', 'src/components/settings/SkillViews.tsx'],
+    experienceParts: ['设置分组', '角色架', '记忆管理', 'Skills 管理', '字段编辑', '自动保存', '失败恢复'],
+    usesFoundation: ['behavior.tabs', 'behavior.input', 'behavior.select', 'behavior.button', 'behavior.icon-button', 'state.confirm-panel', 'state.toast', 'state.error'],
   }),
   experience({
     key: 'experience.workspace',

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createLogger, hashForLog } from '../utils/logger'
 import { loadAllSkills } from './loader'
+import { loadDisabledSkills, saveDisabledSkills } from '../storage/skill-state-store'
 import { ToolRegistry } from '../tools/registry'
 import type { SkillActivationTrace, SkillDefinition, ToolDefinition } from '../../../src/shared/types'
 
@@ -8,6 +9,36 @@ const log = createLogger('SkillRegistry')
 
 let loadedSkills: SkillDefinition[] = []
 let activeSkill: SkillDefinition | null = null
+let disabledSkills = new Set<string>()
+let mutationQueue: Promise<unknown> = Promise.resolve()
+
+export function isSkillEnabled(name: string): boolean {
+  return !disabledSkills.has(name)
+}
+
+/** 同一主进程的启停、重载与文件变更串行，失败仅释放队列，不伪装成功。 */
+export function withSkillMutation<T>(action: () => Promise<T>): Promise<T> {
+  const result = mutationQueue.then(action)
+  mutationQueue = result.then(() => undefined, () => undefined)
+  return result
+}
+
+export function setSkillEnabled(toolRegistry: ToolRegistry, name: string, enabled: boolean): Promise<void> {
+  return withSkillMutation(async () => {
+    const skill = loadedSkills.find((item) => item.meta.name === name)
+    if (!skill || typeof enabled !== 'boolean') throw new Error('Skill 不存在或启停参数无效。')
+    if (isSkillEnabled(name) === enabled) return
+    if (enabled && !skill.meta.disable_model_invocation && toolRegistry.has(getSkillToolName(skill))) throw new Error('Skill 工具名称冲突，无法启用。')
+    const next = new Set(disabledSkills)
+    if (enabled) next.delete(name)
+    else next.add(name)
+    await saveDisabledSkills(next)
+    disabledSkills = next
+    if (enabled && !skill.meta.disable_model_invocation) toolRegistry.register(createSkillActivationTool(skill, () => isSkillEnabled(name) && loadedSkills.includes(skill)))
+    else if (!skill.meta.disable_model_invocation) toolRegistry.unregister(getSkillToolName(skill))
+    if (!enabled && activeSkill?.meta.name === name) activeSkill = null
+  })
+}
 
 export function getLoadedSkills(): SkillDefinition[] {
   return loadedSkills
@@ -41,7 +72,7 @@ export function getSkillToolName(skill: SkillDefinition): string {
   return `skill_invoke_${skill.meta.name.replace(/[^a-z0-9]/g, '_')}`
 }
 
-export function createSkillActivationTool(skill: SkillDefinition): ToolDefinition {
+export function createSkillActivationTool(skill: SkillDefinition, canActivate: () => boolean = () => true): ToolDefinition {
   const toolName = getSkillToolName(skill)
   return {
     name: toolName,
@@ -62,6 +93,7 @@ export function createSkillActivationTool(skill: SkillDefinition): ToolDefinitio
       isConcurrencySafe: true,
     },
     execute: async (args, ctx) => {
+      if (!canActivate()) throw new Error('此 Skill 已停用、更新或移除，请重试。')
       activeSkill = skill
       const reason = typeof args.reason === 'string' ? args.reason : undefined
       ctx?.skillActivations?.push(getSkillActivationTrace(skill, reason))
@@ -85,31 +117,37 @@ export function createSkillActivationTool(skill: SkillDefinition): ToolDefinitio
 }
 
 export async function initSkillSystem(toolRegistry: ToolRegistry): Promise<void> {
-  loadedSkills = await loadAllSkills()
+  await withSkillMutation(() => reloadSkills(toolRegistry))
+}
+
+/** 调用方必须持有 withSkillMutation；先完整读取，成功后同步替换工具，失败保持原注册。 */
+export async function reloadSkills(toolRegistry: ToolRegistry): Promise<void> {
+  const [nextSkills, nextDisabled] = await Promise.all([loadAllSkills(), loadDisabledSkills()])
+  const previousNames = new Set(loadedSkills.filter((skill) => !skill.meta.disable_model_invocation && isSkillEnabled(skill.meta.name)).map(getSkillToolName))
+  const nextNames = new Set<string>()
+  for (const skill of nextSkills) {
+    if (skill.meta.disable_model_invocation || nextDisabled.has(skill.meta.name)) continue
+    const name = getSkillToolName(skill)
+    if (nextNames.has(name) || (toolRegistry.has(name) && !previousNames.has(name))) throw new Error('Skill 工具名称冲突，无法加载。')
+    nextNames.add(name)
+  }
+  for (const name of previousNames) toolRegistry.unregister(name)
+  loadedSkills = nextSkills
+  disabledSkills = nextDisabled
+  activeSkill = null
 
   for (const skill of loadedSkills) {
-    if (skill.meta.disable_model_invocation) continue
+    if (skill.meta.disable_model_invocation || !isSkillEnabled(skill.meta.name)) continue
 
-    const tool = createSkillActivationTool(skill)
+    const tool = createSkillActivationTool(skill, () => isSkillEnabled(skill.meta.name) && loadedSkills.includes(skill))
     toolRegistry.register(tool)
     log.info('Skill tool registered', { name: skill.meta.name, tool: tool.name })
   }
 
   log.info('Skill system initialized', {
     total: loadedSkills.length,
-    autoInvocable: loadedSkills.filter(s => !s.meta.disable_model_invocation).length,
+    autoInvocable: loadedSkills.filter(s => !s.meta.disable_model_invocation && isSkillEnabled(s.meta.name)).length,
   })
-}
-
-export async function reloadSkills(toolRegistry: ToolRegistry): Promise<void> {
-  for (const skill of loadedSkills) {
-    if (!skill.meta.disable_model_invocation) {
-      const toolName = getSkillToolName(skill)
-      toolRegistry.unregister(toolName)
-    }
-  }
-
-  await initSkillSystem(toolRegistry)
 }
 
 export function buildSkillSummary(skills: SkillDefinition[]): string {
@@ -134,5 +172,5 @@ export function buildSkillSummary(skills: SkillDefinition[]): string {
 }
 
 export function buildSkillSummaryForPrompt(): string {
-  return buildSkillSummary(loadedSkills)
+  return buildSkillSummary(loadedSkills.filter((skill) => isSkillEnabled(skill.meta.name)))
 }
