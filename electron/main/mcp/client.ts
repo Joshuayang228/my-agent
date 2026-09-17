@@ -11,7 +11,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js'
 import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js'
-import type { McpServerConfig } from '../../../src/shared/types'
+import type { McpRuntimeStatus, McpServerConfig, McpServerStatus } from '../../../src/shared/types'
 import { createMcpTransport } from './transport'
 import { createLogger, hashForLog } from '../utils/logger'
 
@@ -53,8 +53,9 @@ interface McpConnection {
   transport: Transport
   tools: McpTool[]
   resources: McpResource[]
-  status: 'connecting' | 'connected' | 'error' | 'disconnected'
+  status: McpRuntimeStatus
   error?: string
+  reconnecting: boolean
   reconnectAttempts: number
   reconnectTimer?: ReturnType<typeof setTimeout>
   /** 用户主动断开时禁止自动重连 */
@@ -67,6 +68,8 @@ export function mcpReconnectDelayMs(attempt: number): number {
   return Math.min(base, 60_000)
 }
 
+export const MCP_UNEXPECTED_DISCONNECT = '服务意外断开，正在尝试重新连接。'
+
 class McpClientManager {
   private connections = new Map<string, McpConnection>()
 
@@ -75,9 +78,20 @@ class McpClientManager {
     if (this.connections.has(input.config.id)) throw new Error('MCP connection already exists')
     this.bindElicitation(input.client, input.config.id)
     input.client.onclose = undefined
-    const connection: McpConnection = { ...input, status: 'connected', reconnectAttempts: 0, allowReconnect: true }
+    const connection: McpConnection = { ...input, status: 'connected', reconnecting: false, reconnectAttempts: 0, allowReconnect: true }
     this.connections.set(input.config.id, connection)
     this.wireTransportClose(connection)
+    this.emitStatus()
+  }
+
+  private statusListener?: (snapshot: McpServerStatus[]) => void
+
+  setStatusListener(listener?: (snapshot: McpServerStatus[]) => void): void {
+    this.statusListener = listener
+  }
+
+  private emitStatus(): void {
+    this.statusListener?.(this.getStatus())
   }
   /** Elicitation：服务端向客户端要输入时的回调（UI/IPC 注入） */
   private elicitationHandler?: (
@@ -104,10 +118,17 @@ class McpClientManager {
     })
   }
 
-  async connect(config: McpServerConfig): Promise<void> {
-    if (this.connections.has(config.id)) {
-      await this.disconnect(config.id)
-    }
+  /**
+   * 连接或替换 MCP 服务时，不从状态快照中删除该服务。
+   *
+   * 背景：设置页把快照里缺失的服务映射成未连接；自动重连若先删除行，意外断开就会短暂显示成安静的未连接。
+   * 设计意图：就地关闭旧客户端，再为同一 id 发布 connecting / error。放弃先删除再 connect 的做法。
+   * 关键约束：只有 disconnect() 才允许移除快照行；preserveReconnect 必须保持可重试的意外断开错误。
+   */
+  async connect(config: McpServerConfig, options?: { preserveReconnect?: boolean }): Promise<void> {
+    const existing = this.connections.get(config.id)
+    const preserveReconnect = Boolean(options?.preserveReconnect && existing)
+    const preservedAttempts = preserveReconnect ? existing!.reconnectAttempts : 0
 
     log.info('Connecting to MCP server', {
       nameHash: hashForLog(config.name),
@@ -120,8 +141,15 @@ class McpClientManager {
 
     const client = createMcpClient()
     this.bindElicitation(client, config.id)
-
     const transport = createMcpTransport(config)
+
+    if (existing) {
+      existing.allowReconnect = false
+      if (existing.reconnectTimer) {
+        clearTimeout(existing.reconnectTimer)
+        existing.reconnectTimer = undefined
+      }
+    }
 
     const connection: McpConnection = {
       config,
@@ -129,19 +157,31 @@ class McpClientManager {
       transport,
       tools: [],
       resources: [],
-      status: 'connecting',
-      reconnectAttempts: 0,
+      status: preserveReconnect ? 'error' : 'connecting',
+      error: preserveReconnect ? MCP_UNEXPECTED_DISCONNECT : undefined,
+      reconnecting: preserveReconnect,
+      reconnectAttempts: preservedAttempts,
       allowReconnect: true,
     }
     this.connections.set(config.id, connection)
+    this.emitStatus()
 
     this.wireTransportClose(connection)
 
     try {
+      // 背景：替换期间可能收到停止或另一次重试；先占有连接槽而非等 close 后占有，且每次异步返回必须核对身份，避免迟到流程复活连接。
+      if (existing) await existing.client.close()
+      this.assertCurrentConnection(connection)
       await client.connect(transport)
-      connection.status = 'connected'
-      connection.reconnectAttempts = 0
+      this.assertCurrentConnection(connection)
       await this.refreshInventory(connection)
+      this.assertCurrentConnection(connection)
+      if (connection.reconnectTimer) throw new Error('MCP connection closed during discovery')
+      connection.status = 'connected'
+      connection.error = undefined
+      connection.reconnecting = false
+      connection.reconnectAttempts = 0
+      this.emitStatus()
       log.info('MCP server connected', {
         nameHash: hashForLog(config.name),
         nameLength: config.name.length,
@@ -150,11 +190,24 @@ class McpClientManager {
         tools: connection.tools.map(t => t.name),
       })
     } catch (err) {
+      if (this.connections.get(config.id) !== connection || !connection.allowReconnect) {
+        await client.close()
+        throw err
+      }
       const message = err instanceof Error ? err.message : String(err)
       connection.status = 'error'
-      connection.error = '连接失败，请检查 MCP 配置或服务状态'
+      connection.error = preserveReconnect ? MCP_UNEXPECTED_DISCONNECT : '连接失败，请检查 MCP 配置或服务状态'
+      connection.reconnecting = preserveReconnect
+      this.emitStatus()
+      if (preserveReconnect) this.scheduleReconnect(config.id)
       log.error('MCP server connection failed', { nameHash: hashForLog(config.name), nameLength: config.name.length, errorType: err instanceof Error ? err.name : 'unknown', errorLength: message.length })
       throw err
+    }
+  }
+
+  private assertCurrentConnection(connection: McpConnection): void {
+    if (this.connections.get(connection.config.id) !== connection || !connection.allowReconnect) {
+      throw new Error('MCP connection was cancelled or replaced')
     }
   }
 
@@ -166,10 +219,13 @@ class McpClientManager {
     const prevClose = transport.onclose
     transport.onclose = () => {
       try { prevClose?.() } catch { /* ignore */ }
-      if (!connection.allowReconnect) return
+      if (!connection.allowReconnect || this.connections.get(connection.config.id) !== connection) return
       if (connection.status === 'disconnected') return
       log.warn('MCP transport closed', { nameHash: hashForLog(connection.config.name), nameLength: connection.config.name.length })
-      connection.status = 'disconnected'
+      connection.status = 'error'
+      connection.error = MCP_UNEXPECTED_DISCONNECT
+      connection.reconnecting = true
+      this.emitStatus()
       this.scheduleReconnect(connection.config.id)
     }
     const prevErr = transport.onerror
@@ -201,26 +257,20 @@ class McpClientManager {
     const conn = this.connections.get(serverId)
     if (!conn || !conn.allowReconnect) return
     const config = { ...conn.config }
-    const attempts = conn.reconnectAttempts
     conn.allowReconnect = false
+    conn.reconnecting = true
+    conn.status = 'error'
+    conn.error = MCP_UNEXPECTED_DISCONNECT
+    this.emitStatus()
     if (conn.reconnectTimer) {
       clearTimeout(conn.reconnectTimer)
       conn.reconnectTimer = undefined
     }
-    try { await conn.client.close() } catch { /* ignore */ }
-    this.connections.delete(serverId)
-
     try {
-      await this.connect(config)
+      await this.connect(config, { preserveReconnect: true })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err)
       log.warn('MCP reconnect failed', { nameHash: hashForLog(config.name), nameLength: config.name.length, errorType: err instanceof Error ? err.name : 'unknown', errorLength: errorMessage.length })
-      const fresh = this.connections.get(serverId)
-      if (fresh) {
-        fresh.reconnectAttempts = attempts
-        fresh.allowReconnect = true
-        this.scheduleReconnect(serverId)
-      }
     }
   }
 
@@ -265,6 +315,11 @@ class McpClientManager {
       conn.reconnectTimer = undefined
     }
 
+    conn.status = 'disconnected'
+    conn.reconnecting = false
+    this.connections.delete(serverId)
+    this.emitStatus()
+
     try {
       await conn.client.close()
     } catch (err) {
@@ -272,8 +327,6 @@ class McpClientManager {
       log.warn('Error closing MCP client', { nameHash: hashForLog(conn.config.name), nameLength: conn.config.name.length, errorType: err instanceof Error ? err.name : 'unknown', errorLength: errorMessage.length })
     }
 
-    conn.status = 'disconnected'
-    this.connections.delete(serverId)
     log.info('MCP server disconnected', { nameHash: hashForLog(conn.config.name), nameLength: conn.config.name.length })
   }
 
@@ -318,7 +371,10 @@ class McpClientManager {
       if (conn.allowReconnect && conn.status === 'connected') {
         const msg = err instanceof Error ? err.message : String(err)
         if (/closed|disconnect|ECONNRESET|not connected/i.test(msg)) {
-          conn.status = 'disconnected'
+          conn.status = 'error'
+          conn.error = MCP_UNEXPECTED_DISCONNECT
+          conn.reconnecting = true
+          this.emitStatus()
           this.scheduleReconnect(serverId)
         }
       }
@@ -370,14 +426,7 @@ class McpClientManager {
       .join('\n')
   }
 
-  getStatus(): Array<{
-    id: string
-    name: string
-    status: string
-    toolCount: number
-    resourceCount: number
-    error?: string
-  }> {
+  getStatus(): McpServerStatus[] {
     return Array.from(this.connections.values()).map(c => ({
       id: c.config.id,
       name: c.config.name,
@@ -385,6 +434,7 @@ class McpClientManager {
       toolCount: c.tools.length,
       resourceCount: c.resources.length,
       error: c.error,
+      reconnecting: c.reconnecting,
     }))
   }
 

@@ -10,7 +10,8 @@ import { CompanionSettingsContent, type CompanionExpertise } from './settings/Co
 import { SettingCard, SettingRow, SettingsPageHeader } from './settings/SettingsFields'
 import { AboutSettingsContent } from './settings/AboutSettingsContent'
 import { ModelRoutingSettings } from './settings/ModelRoutingSettings'
-import { McpServiceCard } from './settings/McpServiceCard'
+import { McpServiceCard, type McpServiceState } from './settings/McpServiceCard'
+import type { McpServerStatus } from '../shared/types'
 import { McpConnectionForm } from './settings/McpConnectionForm'
 import { DESIGN_THEME_ASSETS, FONT_SCALE_ASSETS } from '../shared/design-asset-registry'
 import {
@@ -51,14 +52,6 @@ interface SettingsForm {
 type McpServerEntry = import('../shared/types').McpServerConfig
 
 interface McpToolEntry { serverId: string; serverName: string; name: string; description: string; allowed: boolean }
-
-interface McpServerStatus {
-  id: string
-  name: string
-  status: string
-  toolCount: number
-  error?: string
-}
 
 const DEFAULTS: SettingsForm = {
   llmApiKey: '',
@@ -140,6 +133,7 @@ export function SettingsPanel({
   const [mcpBusy, setMcpBusy] = useState(false)
   const mcpBusyRef = useRef(false)
   const [mcpReadError, setMcpReadError] = useState('')
+  const mcpReadGeneration = useRef(0)
   const [modelConnections, setModelConnections] = useState('[]')
   const [modelRoutes, setModelRoutes] = useState('[]')
   const [mcpAdding, setMcpAdding] = useState(false)
@@ -152,19 +146,27 @@ export function SettingsPanel({
   const pendingSettingsRef = useRef(new Map<keyof SettingsForm, string>())
   const savingRef = useRef<Promise<boolean> | null>(null)
 
+  const applyMcpStatuses = useCallback((statuses: McpServerStatus[]) => {
+    setMcpStatuses(statuses)
+  }, [])
+
   const refreshMcpStatus = useCallback(async () => {
-    if (preview || !window.electronAPI) return
+    if (preview || !window.electronAPI?.mcp?.status) return
+    const generation = ++mcpReadGeneration.current
     try {
       const statuses = await window.electronAPI.mcp.status()
-      const tools = await window.electronAPI.mcp.listTools()
-      setMcpStatuses(statuses)
+      if (generation !== mcpReadGeneration.current) return
+      const tools = window.electronAPI.mcp.listTools ? await window.electronAPI.mcp.listTools() : []
+      if (generation !== mcpReadGeneration.current) return
+      applyMcpStatuses(statuses)
       setMcpTools(tools)
       setMcpReadError('')
     } catch {
+      if (generation !== mcpReadGeneration.current) return
       setMcpTools(null)
       setMcpReadError('连接状态或工具清单读取失败，请刷新重试。')
     }
-  }, [preview])
+  }, [preview, applyMcpStatuses])
 
   /**
    * 背景：MCP 列表整体保存，连续操作可能用旧快照覆盖另一次修改。
@@ -226,7 +228,25 @@ export function SettingsPanel({
     })
     window.electronAPI.companion.listProtagonists().then(setProtagonists)
     refreshMcpStatus()
-  }, [preview, refreshMcpStatus])
+    const unsubscribe = window.electronAPI.mcp.onStatusChanged?.((snapshot) => {
+      // 背景：断开推送会与旧查询交错；新事件使旧读取失效而不等待旧请求，工具清单也必须属于同一代快照。
+      const generation = ++mcpReadGeneration.current
+      applyMcpStatuses(snapshot)
+      setMcpTools(null)
+      if (window.electronAPI.mcp.listTools) {
+        void window.electronAPI.mcp.listTools().then((tools) => {
+          if (generation !== mcpReadGeneration.current) return
+          setMcpTools(tools)
+          setMcpReadError('')
+        }).catch(() => {
+          if (generation !== mcpReadGeneration.current) return
+          setMcpTools(null)
+          setMcpReadError('连接状态或工具清单读取失败，请刷新重试。')
+        })
+      }
+    })
+    return () => { mcpReadGeneration.current++; unsubscribe?.() }
+  }, [preview, refreshMcpStatus, applyMcpStatuses])
 
   const persistSettings = useCallback((): Promise<boolean> => {
     if (savingRef.current) return savingRef.current
@@ -500,9 +520,17 @@ export function SettingsPanel({
       <div className="space-y-3">
         {mcpServers.map((server) => {
           const current = mcpStatuses.find((item) => item.id === server.id)
-          const status = !server.enabled ? 'disabled' : current?.status === 'connected' || current?.status === 'connecting' || current?.status === 'error' ? current.status : 'disconnected'
+          const status: McpServiceState = !server.enabled
+            ? 'disabled'
+            : current?.status === 'connected' || current?.status === 'connecting' || current?.status === 'error'
+              ? current.status
+              : 'disconnected'
+          const error = current?.status === 'error'
+            ? (current.error || (current.reconnecting ? '服务意外断开，正在尝试重新连接。' : '连接失败，请检查服务后重试。'))
+            : undefined
           return <McpServiceCard key={server.id} id={server.id} name={server.name} enabled={server.enabled}
             transport={server.transport === 'streamable-http' ? '远程 · Streamable HTTP' : server.transport === 'sse' ? '远程 · SSE' : '本地 · stdio'} status={status}
+            error={error}
             tools={mcpTools?.filter((tool) => tool.serverId === server.id).map((tool) => ({ id: tool.name, ...tool })) ?? null}
             busy={mcpBusy} testId={`settings-mcp-server-${server.id}`}
             onEnabledChange={() => void runMcpAction(() => handleToggleMcp(server.id))}

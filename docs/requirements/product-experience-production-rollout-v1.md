@@ -129,6 +129,15 @@ R12 必须拆成六个独立验收面：
 
 ## 当前收口记录（2026-09-15）
 
+### R10 异常恢复补验（2026-09-17）
+
+- 2026-09-18 最终验证：Unit 959、UI 186、Electron 18 通过，4 项外部模型条件跳过；根 tsc / build、资产检查、Eval 23 + 1 通过。独立主进程 TypeScript Compiler API 对照 HEAD 覆盖本批源文件，前后各 75 条，按文件 / code / 主错误信息多重集比较无新增；导入来源说明差异不算新诊断，既有错误仍由 WISH-043 管理。无独立 lint 脚本，不把 tsc 称作 lint。Electron 初次整套失败先记录实际 DOM / 调用模型 / cwd，再修正新连接表单、显式移除旧测试路由和 stdio 夹具模块解析，未跳过本地测试。
+- 范围：MCP Manager 连接生命周期、状态推送四处契约、Settings 订阅与迟到响应隔离、对应 Unit / Renderer / Electron；不改 OAuth、凭据策略、权限确认或其它 Runtime 行为。
+- 异常关闭保留 error / reconnecting 快照，手动停止撤销归属；替换流程在 await close 前占有槽位，旧握手、旧关闭与旧失败不得操作新连接。重连失败只由当前连接安排下一次重试。
+- 自审复现：停止期间旧流程仍调用 connect；Renderer 失败推送被迟到的 connected 查询覆盖。两者均先失败复现再修复，新增时序回归，保持真实协议与 stdio 子进程验证。
+- 本批附带验收修复：朋友圈共享 hover 样式移除 translateY，严格保留评论槽几何断言；衣柜测试使用真实按钮名称 / 脱敏提示，并补齐入口所需 catchupStatus 夹具。
+- Unit 161 文件 / 959 项通过；定向朋友圈、衣柜及四主题图表 3 项通过。完整 UI 前次 183 通过 / 3 失败，后续完整门禁结果以进度记录为准；图表偶发超时继续归 WISH-042。OAuth、safeStorage 凭据完整重启恢复、R13 跨页状态及全产品采用均未完成。
+
 - R10 当前施工：先将候选与正式的 MCP 服务卡片合并为 `settings/McpServiceCard.tsx`，正式启停、删除、重试和工具许可继续调用既有 settings / MCP IPC；未知工具清单与已知零工具分离，长清单内部滚动，忙时操作槽固定。允许修改该共享组件、SettingsPanel、SettingsExperienceCandidate、对应 Unit / E2E、组件注册及运行时模块卡、质量和账本。不改权限引擎、连接确认、安全存储或 IPC 形状；旧服务列表 JSX 由共享卡片替代，不删除后端服务。候选本地/远程添加向导、Streamable HTTP / 认证和可取消测试仍属于 R10 待补部分，不因卡片共享而宣布整项 adopted。
 - R10 已复现并修复当前页禁用 / 删除顺序：先保存配置，保存被拒绝时不得断开；保存后的停止通道若异常，明确报告配置已保存但连接状态未确认，不伪装成未发生任何变更。两次 IPC 不是原子契约，主进程统一协调与异常恢复仍由 R10 管理。
 - 验收环境补充范围：真实 Vite 日志确认 `var/verification/.../traces/resources/*.html` 引发连续 page reload，破坏正在执行的验收。允许修改 `vite.config.ts` 的 watcher 排除与 `.gitignore` 的验证产物规则，并新增读取实际配置、启动真实 watcher 的单元回归；仅忽略 `test-results` / `var/verification` 产物，不关闭源码热更新，不更改产品路由或弱化 UI 断言。该修复不外推为此前无 trace 的返回首页问题已解决。
@@ -213,11 +222,11 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 |---|---|---|---|
 | 对话与导航 | `production-ready`，待完整入口验收 | 正式 `App` / Sidebar / Chat / Right Dock 调用链与既有 Electron 回归 | 四主题、窄宽、跨页草稿与任务恢复的正式入口证据 |
 | 人物世界 | `production-ready`，部分 `adopted` | 角色架、文化角 / 家居 / 足迹真实资产链、正式增改删与 Electron create 覆盖、通讯录列表忙闲预检、朋友圈真实赞评、生活资产真实备份、六面正式入口 Electron、文化 starter 无证据数量文案、无 world.default 时世界态 / Catch-up / Prompt 回退为未设定 | 衣柜 / 文化分味播种仍不是已确认人物事实；全产品 adopted 仍未完成 |
-| 设置与人物设置 | `user-approved`，正在回流 | Playground 候选、正式 `SettingsPanel`、共享导航 / 卡片基础层；R11 关于页开发者模式已有正式入口与 Electron 持久化证据；R06 正式模型发现走主进程 `/v1/models` | MCP OAuth / 异常断开恢复；编程套餐真实调用仍见 WISH-027；不把 Playground 夹具当真实发现 |
+| 设置与人物设置 | `user-approved`，正在回流 | Playground 候选、正式 `SettingsPanel`、共享导航 / 卡片基础层；R11 关于页开发者模式已有正式入口与 Electron 持久化证据；R06 正式模型发现走主进程 `/v1/models`；R10 异常断开 UI 已接入设置页 | MCP OAuth 登录生命周期；编程套餐真实调用仍见 WISH-027；不把 Playground 夹具当真实发现 |
 | 记忆 | 整页已回流 | 共享四类 / 搜索 / 新增行；正式长文、固定槽、四主题宽窄、失败恢复及真实四类重启 CRUD | 本项不替代其他设置或备份 / 向量召回的验收 |
-| 主题与基础组件 | `production-ready` | Foundation 主题资产、共享设置卡片 / 行组件、基础复用门禁、共享 Prism 主题清洗 | 全产品 Markdown / Diff 仍未标 adopted；MCP OAuth / 异常断开与工作区跨页状态仍待收口 |
+| 主题与基础组件 | `production-ready` | Foundation 主题资产、共享设置卡片 / 行组件、基础复用门禁、共享 Prism 主题清洗 | 全产品 Markdown / Diff 仍未标 adopted；MCP OAuth 与工作区跨页状态仍待收口 |
 | 工作区工具 | `production-ready`，部分 `adopted` | 正式 Right Dock 五工具、共享面板布局与 Electron 回归 | 浏览器 / 文件 / 审阅 / 终端跨页状态和完整错误路径 |
-| MCP / 模型等后端 | `in-progress` | MCP 测试连接生命周期、资源 / elicitation 接管、配置锁专项 Unit | 独立 Electron 数据目录、safeStorage、重启恢复、OAuth、异常断开恢复 |
+| MCP / 模型等后端 | `in-progress` | MCP 测试连接生命周期、资源 / elicitation 接管、配置锁专项 Unit、异常断开 in-place 重连与设置页订阅 | 独立 Electron 数据目录的 OAuth / 第三方认证；不得把异常断开证据写成整项 R10 adopted |
 
 本快照只记录当前证据，不把 `Playground` fixture、Renderer 替身或局部右坞验收升级为全产品 `adopted`。设置回流允许移除旧 UI 壳和重复入口，但必须保留真实数据、权限和安全边界；每次删除旧展示层都要在对应测试与变更记录中说明。
 

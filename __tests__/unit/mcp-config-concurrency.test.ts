@@ -4,10 +4,11 @@ import type { McpServerConfig } from '../../src/shared/types'
 const mocks = vi.hoisted(() => ({
   handlers: new Map<string, (...args: any[]) => Promise<any>>(), getSetting: vi.fn(), setSetting: vi.fn(),
   setAllowedTools: vi.fn(), sync: vi.fn(), confirm: vi.fn(),
+  setStatusListener: vi.fn(), remove: vi.fn(), send: vi.fn(),
 }))
 vi.mock('electron', () => ({
   ipcMain: { handle: (name: string, handler: (...args: any[]) => Promise<any>) => mocks.handlers.set(name, handler) },
-  BrowserWindow: { getFocusedWindow: () => ({}), getAllWindows: () => [{}] }, dialog: { showMessageBox: mocks.confirm },
+  BrowserWindow: { getFocusedWindow: () => ({}), getAllWindows: () => [{ isDestroyed: () => false, webContents: { send: mocks.send } }] }, dialog: { showMessageBox: mocks.confirm },
 }))
 vi.mock('../../electron/main/storage/settings-store', () => ({
   isAppSettingKey: (key: string) => key === 'mcpServers', MAX_SETTING_VALUE_LENGTH: 1_000_000,
@@ -15,9 +16,10 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
 }))
 vi.mock('../../electron/main/mcp/client', () => ({ mcpManager: {
   setElicitationHandler: vi.fn(), isConnected: () => true, setAllowedTools: mocks.setAllowedTools,
+  setStatusListener: mocks.setStatusListener,
   getAllTools: () => ['one', 'two'].map((name) => ({ serverId: 'existing', name })),
 } }))
-vi.mock('../../electron/main/mcp/bridge', () => ({ syncMcpToolsToRegistry: mocks.sync }))
+vi.mock('../../electron/main/mcp/bridge', () => ({ syncMcpToolsToRegistry: mocks.sync, removeMcpToolsFromRegistry: mocks.remove }))
 vi.mock('../../electron/main/sandbox/permission-engine', () => ({ loadRules: vi.fn() }))
 vi.mock('../../electron/main/llm/index', () => ({ chatComplete: vi.fn(), LLMError: class extends Error {} }))
 vi.mock('../../electron/main/llm/aux-config', () => ({ loadMainLLMConfig: vi.fn() }))
@@ -46,6 +48,18 @@ beforeEach(() => {
 })
 
 describe('MCP 主进程配置写入串行', () => {
+  it('status events remove unavailable tools and restore connected tools before broadcasting', () => {
+    const listener = mocks.setStatusListener.mock.calls[0][0]
+    const failed = [{ id: 'existing', status: 'error', reconnecting: true, toolCount: 0 }]
+    listener(failed)
+    expect(mocks.remove).toHaveBeenCalledWith(expect.any(ToolRegistry), 'existing')
+    expect(mocks.send).toHaveBeenLastCalledWith('mcp:status-changed', failed)
+    const connected = [{ id: 'existing', status: 'connected', reconnecting: false, toolCount: 2 }]
+    listener(connected)
+    expect(mocks.sync).toHaveBeenCalledWith(expect.any(ToolRegistry), 'existing')
+    expect(mocks.send).toHaveBeenLastCalledWith('mcp:status-changed', connected)
+  })
+
   it('整表写盘尚未完成时工具许可不得读取旧快照', async () => {
     const started = deferred(); const release = deferred()
     mocks.setSetting.mockImplementationOnce(async (_key, value) => { started.resolve(); await release.promise; stored = value })

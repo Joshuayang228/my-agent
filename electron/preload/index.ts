@@ -349,8 +349,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     cancelTest: (requestId: string) => ipcRenderer.invoke('mcp:cancel-test', requestId),
     saveTested: (requestId: string, allowedTools: string[]) => ipcRenderer.invoke('mcp:save-tested', requestId, allowedTools),
     disconnect: (serverId: string) => ipcRenderer.invoke('mcp:disconnect', serverId),
-    status: (): Promise<Array<{ id: string; name: string; status: string; toolCount: number; resourceCount?: number; error?: string }>> =>
+    status: (): Promise<import('../../src/shared/types').McpServerStatus[]> =>
       ipcRenderer.invoke('mcp:status'),
+    onStatusChanged: (callback: (snapshot: import('../../src/shared/types').McpServerStatus[]) => void) => {
+      const handler = (_e: Electron.IpcRendererEvent, snapshot: import('../../src/shared/types').McpServerStatus[]) => callback(snapshot)
+      ipcRenderer.on('mcp:status-changed', handler)
+      return () => ipcRenderer.removeListener('mcp:status-changed', handler)
+    },
     listTools: (serverId?: string) => ipcRenderer.invoke('mcp:list-tools', serverId),
     setToolAllowed: (serverId: string, toolName: string, allowed: boolean) => ipcRenderer.invoke('mcp:set-tool-allowed', serverId, toolName, allowed),
     listResources: (serverId?: string) => ipcRenderer.invoke('mcp:list-resources', serverId),

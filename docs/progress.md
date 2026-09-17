@@ -3,8 +3,11 @@
 > **当前状态入口**：只记录项目现在在哪、最近完成、下一步和阻塞项。完整历史见 [`../_archive/ledgers/progress-through-2026-08-16.md`](../_archive/ledgers/progress-through-2026-08-16.md)。
 
 ## 人读摘要（约 30 秒）
-- 2026-09-17：共享 Prism 主题清洗已进入 CodeBlock：oneLight 容器白底去掉，内部 token 透明，Diff 语义高亮保留。正式审阅、文件预览、Foundation Markdown / Diff 与 Playground 工作区审阅共用同一入口。全产品 adopted、MCP OAuth / 异常断开和工作区跨页状态仍未完成。
 - 2026-09-18：人物世界验收修复：朋友圈共享卡片 hover 不再 translateY，评论槽严格几何断言通过；衣柜删除验收同步真实按钮名称和脱敏错误文案，补齐入口夹具。全量 Unit 959、UI 186、Electron 18（外部模型 4 项跳过）及根类型 / 构建通过；全产品目标仍进行中。
+- 2026-09-18：R10 本批验收收口：Unit 161 文件 / 959 项、完整 UI 186 项、真实 Electron 18 项通过（4 项外部模型按凭据条件跳过），根 tsc / build、资产检查、Framework Eval 23 项与 Skill Eval 1 项通过。主进程类型对照前后 75 条，无新增主诊断，不代表主进程门禁通过。Electron 首启测试按当前模型添加与路由优先级更新；stdio 夹具使用绝对模块地址，消除项目切换后的模块解析失败。OAuth、safeStorage 凭据完整重启恢复、R13 与全产品 adopted 仍未完成。
+- 2026-09-17：R10 补齐停止 / 替换连接归属保护与设置页迟到查询隔离，失败复现后修复；Unit 161 文件 / 959 项通过。朋友圈卡片 hover 位移已定位为 translateY(-1px) 并移除，衣柜删除测试按真实契约修正，连同 Foundation Markdown 定向 3 项通过。此前完整 UI 183 通过 / 3 失败；完整回归仍待本批收口，Markdown 偶发超时未因重跑通过而关闭。
+- 2026-09-17：R10 MCP 异常断开 UI 已接入：意外 transport close / 可重连 callTool 失败会保持快照行为 error + reconnecting，设置页显示连接失败和重试，不再静默变成未连接。手动断开仍移除快照。OAuth 与全产品 adopted 仍未完成。
+- 2026-09-17：共享 Prism 主题清洗已进入 CodeBlock：oneLight 容器白底去掉，内部 token 透明，Diff 语义高亮保留。正式审阅、文件预览、Foundation Markdown / Diff 与 Playground 工作区审阅共用同一入口。全产品 adopted、MCP OAuth 和工作区跨页状态仍未完成。
 - 2026-09-17：R06 正式模型发现收口主进程 `settings:fetch-models`：OpenAI Compatible / Anthropic 读 `/v1/models`，Gemini 明确不支持；无 Key 不发请求，已存 Key 只按连接注入，401 可重试且不回传凭据。Playground 获取仍是隔离 fixture。MCP OAuth / 异常断开与全产品 adopted 仍未完成。
 - 2026-09-17：R12 人物 starter 来源复核收口无 `world.default.json` 的运行态泄漏：lin / zhou / xia 默认居所和当前位置改为「未设定」，Catch-up 空居所不再写「日常住处」。衣柜 / 文化分味播种仍不是已确认人物事实。全产品目标保持进行中。
 - 2026-09-17：R11 正式关于页与 Playground 共用开发者模式开关；真实 `settings.developerMode` 控制侧栏 Debug / Playground 整组入口和 Chat 顶栏 Debug 按钮，候选只改内存样张。Electron 独立目录覆盖开关、隐藏入口和完整重启恢复。UI E2E 的 `ui-e2e` 模式仍显式保留开发入口。全产品目标保持进行中。

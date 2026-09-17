@@ -716,6 +716,19 @@ export interface McpServerConfig {
   allowedTools?: string[]
 }
 
+export type McpRuntimeStatus = 'connecting' | 'connected' | 'error' | 'disconnected'
+
+/** Renderer / Debug 可见的活动连接快照；不含命令、URL 或凭据。 */
+export interface McpServerStatus {
+  id: string
+  name: string
+  status: McpRuntimeStatus
+  toolCount: number
+  resourceCount?: number
+  error?: string
+  reconnecting?: boolean
+}
+
 export type McpConnectionInput = Omit<McpServerConfig, 'id' | 'enabled' | 'allowedTools'>
 export interface McpDiscoveredTool { name: string; description: string }
 export type McpConnectionTestResult = { ok: true; tools: McpDiscoveredTool[] } | { ok: false; error: string }

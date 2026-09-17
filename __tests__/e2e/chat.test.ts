@@ -313,6 +313,16 @@ async function installProductionElectronStub(page: import('@playwright/test').Pa
   })
 }
 
+
+test('正式 MCP 设置在缺少状态订阅时仍可打开', async ({ page }) => {
+  await installProductionElectronStub(page)
+  await page.goto('/')
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+  await page.getByRole('button', { name: 'MCP', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'MCP', exact: true })).toBeVisible()
+  await expect(page.getByText('暂无 MCP 服务器', { exact: false })).toBeVisible()
+})
+
 test('MCP 共享表单取消迟到结果、字段失效和重测', async ({ page }, testInfo) => {
   await installProductionElectronStub(page)
   await page.addInitScript(() => {
@@ -566,6 +576,93 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       await expect(form).toHaveCount(0)
       expect(await page.evaluate(() => (window as any).__mcpAddHarness.saved)).toBe(true)
       await page.screenshot({ path: `var/verification/mcp-add-${theme}-${width}.png`, animations: 'disabled' })
+    })
+
+    test(`正式 MCP 异常断开订阅恢复 ${theme} ${width}`, async ({ page }) => {
+      await installProductionElectronStub(page)
+      await page.addInitScript((selectedTheme) => {
+        localStorage.setItem('theme', selectedTheme)
+        const api = (window as any).electronAPI
+        const listeners = []
+        const harness = {
+          status: 'connected',
+          reconnecting: false,
+          error: undefined,
+          connects: 0,
+          emit() {
+            const snapshot = [{
+              id: 'service',
+              name: '文档服务',
+              status: harness.status,
+              toolCount: harness.status === 'connected' ? 1 : 0,
+              reconnecting: harness.reconnecting,
+              error: harness.error,
+            }]
+            for (const listener of listeners) listener(snapshot)
+          },
+        }
+        ;(window as any).__mcpDisconnectHarness = harness
+        harness.pendingStatus = []
+        harness.delayStatus = true
+        const getSettings = api.settings.get
+        api.settings.get = async () => ({ ...await getSettings(), mcpServers: JSON.stringify([{
+          id: 'service', name: '文档服务', enabled: true, command: 'npx', args: [], transport: 'stdio',
+        }]) })
+        api.mcp.status = async () => {
+          const snapshot = [{
+            id: 'service', name: '文档服务', status: harness.status, toolCount: harness.status === 'connected' ? 1 : 0,
+            reconnecting: harness.reconnecting, error: harness.error,
+          }]
+          return harness.delayStatus ? new Promise((resolve) => harness.pendingStatus.push(() => resolve(snapshot))) : snapshot
+        }
+        api.mcp.listTools = async () => harness.status === 'connected'
+          ? [{ serverId: 'service', serverName: '文档服务', name: 'search_docs', description: '搜索文档', allowed: true }]
+          : []
+        api.mcp.onStatusChanged = (callback) => {
+          listeners.push(callback)
+          return () => {
+            const index = listeners.indexOf(callback)
+            if (index >= 0) listeners.splice(index, 1)
+          }
+        }
+        api.mcp.connect = async () => {
+          harness.connects += 1
+          harness.status = 'connecting'
+          harness.reconnecting = false
+          harness.error = undefined
+          harness.emit()
+          harness.status = 'connected'
+          harness.emit()
+          return { success: true }
+        }
+      }, theme)
+      await page.setViewportSize({ width, height: 731 })
+      await page.goto('/')
+      await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+      await page.getByRole(width < 640 ? 'tab' : 'button', { name: 'MCP', exact: true }).click()
+      const card = page.getByTestId('settings-mcp-server-service')
+      await page.evaluate(() => (window as any).__mcpDisconnectHarness.emit())
+      await expect(card.getByRole('status')).toHaveText('已连接')
+      await page.evaluate(() => {
+        const harness = (window as any).__mcpDisconnectHarness
+        harness.status = 'error'
+        harness.reconnecting = true
+        harness.error = '服务意外断开，正在尝试重新连接。'
+        harness.emit()
+      })
+      await expect(card.getByRole('status')).toHaveText('连接失败')
+      await expect(card).toContainText('服务意外断开，正在尝试重新连接。')
+      await page.evaluate(async () => {
+        const harness = (window as any).__mcpDisconnectHarness
+        harness.delayStatus = false
+        harness.pendingStatus.forEach((resolve) => resolve())
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      })
+      await expect(card.getByRole('status')).toHaveText('连接失败')
+      await expect(card.getByRole('button', { name: '重试', exact: true })).toBeVisible()
+      await card.getByRole('button', { name: '重试', exact: true }).click()
+      await expect(card.getByRole('status')).toHaveText('已连接')
+      expect(await page.evaluate(() => (window as any).__mcpDisconnectHarness.connects)).toBe(1)
     })
   }
 }

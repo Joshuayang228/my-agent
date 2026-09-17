@@ -7,11 +7,12 @@
  */
 import { createServer, type IncomingMessage } from 'node:http'
 import { once } from 'node:events'
+import { createRequire } from 'node:module'
 import type { AddressInfo } from 'node:net'
 import { mkdtemp, mkdir, readFile, rm, unlink, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test'
 import { _electron as electron } from 'playwright'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
@@ -197,11 +198,15 @@ test('首次进入通过模型路由配置后开始对话', async () => {
   await page.getByRole('button', { name: '添加连接', exact: true }).click()
   await page.getByPlaceholder('连接名称').fill('本地测试连接')
   await page.getByPlaceholder('Base URL').fill(baseUrl)
-  await page.getByPlaceholder('模型 ID').fill('local-test-model')
-  await page.getByPlaceholder('API Key（留空则保留原密钥）').fill('local-test-key')
+  await page.getByPlaceholder('API Key', { exact: true }).fill('local-test-key')
   await page.getByRole('button', { name: '保存连接', exact: true }).click()
   await expect(page.getByText('本地测试连接已启用', { exact: false })).toBeVisible()
+  const modelInput = page.getByRole('textbox', { name: '手动添加模型 本地测试连接', exact: true })
+  await modelInput.fill('local-test-model')
+  await modelInput.press('Enter')
   await page.getByLabel('添加主对话模型').selectOption({ label: '本地测试连接 · local-test-model' })
+  await page.getByRole('button', { name: '移除 当前主连接 · gpt-4o', exact: true }).click()
+  await expect.poll(() => page.evaluate(async () => JSON.parse((await window.electronAPI.settings.get()).modelRoutes).filter((route: { purpose: string }) => route.purpose === 'primary').map((route: { model: string }) => route.model))).toEqual(['local-test-model'])
   // 新连接路由是正式配置；旧字段这里只作为测试专用的首启完成标志，不作为 UI 能力暴露。
   await page.evaluate(() => window.electronAPI.settings.set('llmApiKey', 'local-test-key'))
   await page.locator('[data-testid="settings-back"]').click()
@@ -1065,5 +1070,56 @@ test('正式 MCP 添加向导经真实 IPC 保存并在重启后恢复配置', a
     await page.evaluate((value) => window.electronAPI.settings.set('mcpServers', value || '[]'), original.mcpServers || '[]').catch(() => undefined)
     mcpHttp.closeAllConnections()
     await new Promise<void>((resolve) => mcpHttp.close(() => resolve()))
+  }
+})
+
+test('正式 MCP 异常断开后设置页显示可恢复失败', async () => {
+  const { mkdtemp, readFile, rm } = await import('node:fs/promises')
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'mcp-reconnect-e2e-'))
+  const pidFile = path.join(dir, 'pid')
+  const resolveModule = (name: string) => JSON.stringify(pathToFileURL(createRequire(import.meta.url).resolve(name)).href)
+  const script = `
+    import { writeFileSync } from 'node:fs';
+    import { McpServer } from ${resolveModule('@modelcontextprotocol/sdk/server/mcp.js')};
+    import { StdioServerTransport } from ${resolveModule('@modelcontextprotocol/sdk/server/stdio.js')};
+    if (process.env.MCP_PID_FILE) writeFileSync(process.env.MCP_PID_FILE, String(process.pid));
+    const server = new McpServer({name:'reconnect-electron',version:'1.0.0'});
+    server.registerTool('pid', {inputSchema:{}}, async () => ({content:[{type:'text',text:String(process.pid)}]}));
+    await server.connect(new StdioServerTransport());
+  `
+  const original = await page.evaluate(() => window.electronAPI.settings.get())
+  try {
+    await electronApp.evaluate(({ dialog }) => { dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false }) })
+    const result = await page.evaluate(async ({ command, script, pidFile }) => {
+      const requestId = 'electron-mcp-reconnect'
+      const tested = await window.electronAPI.mcp.testConnection(requestId, {
+        name: 'reconnect-electron', transport: 'stdio', command, args: ['--input-type=module', '-e', script],
+        env: { MCP_PID_FILE: pidFile },
+      })
+      if (!tested.ok) return { tested }
+      const saved = await window.electronAPI.mcp.saveTested(requestId, tested.tools.map((tool) => tool.name))
+      return { tested, saved }
+    }, { command: process.execPath, script, pidFile })
+    expect(result.tested, '本地 stdio 测试连接结果').toMatchObject({ ok: true })
+    expect(result.saved?.ok).toBe(true)
+    const servers = JSON.parse((await page.evaluate(() => window.electronAPI.settings.get())).mcpServers) as Array<{ id: string; name: string }>
+    const saved = servers.find((item) => item.name === 'reconnect-electron')
+    expect(saved).toBeTruthy()
+    await expect.poll(async () => (await readFile(pidFile, 'utf8')).trim(), { timeout: 10000 }).not.toBe('')
+    await page.reload()
+    await expect(page.locator('#startup-splash')).toBeHidden()
+    if (!(await page.getByTestId('settings-panel').isVisible())) await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-mcp').click()
+    const card = page.getByTestId(`settings-mcp-server-${saved!.id}`)
+    await expect(card.getByRole('status')).toHaveText('已连接')
+    const pid = Number((await readFile(pidFile, 'utf8')).trim())
+    process.kill(pid)
+    await expect(card.getByRole('status')).toHaveText('连接失败', { timeout: 15000 })
+    await expect(card).toContainText('服务意外断开，正在尝试重新连接。')
+    await expect(card.getByRole('button', { name: '重试', exact: true })).toBeVisible()
+    await expect(card.getByRole('status')).toHaveText('已连接', { timeout: 20000 })
+  } finally {
+    await page.evaluate((value) => window.electronAPI.settings.set('mcpServers', value || '[]'), original.mcpServers || '[]').catch(() => undefined)
+    await rm(dir, { recursive: true, force: true }).catch(() => undefined)
   }
 })

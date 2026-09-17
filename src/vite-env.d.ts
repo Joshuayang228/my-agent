@@ -345,7 +345,8 @@ declare global {
         cancelTest: (requestId: string) => Promise<{ ok: boolean; error?: string }>
         saveTested: (requestId: string, allowedTools: string[]) => Promise<import('./shared/types').McpConnectionSaveResult>
         disconnect: (serverId: string) => Promise<{ success: boolean }>
-        status: () => Promise<Array<{ id: string; name: string; status: string; toolCount: number; resourceCount?: number; error?: string }>>
+        status: () => Promise<import('./shared/types').McpServerStatus[]>
+        onStatusChanged: (callback: (snapshot: import('./shared/types').McpServerStatus[]) => void) => () => void
         listTools: (serverId?: string) => Promise<Array<{ serverId: string; serverName: string; name: string; description: string; allowed: boolean }>>
         setToolAllowed: (serverId: string, toolName: string, allowed: boolean) => Promise<{ success: boolean; allowed?: boolean; error?: string }>
         listResources: (serverId?: string) => Promise<Array<{

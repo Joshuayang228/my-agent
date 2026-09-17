@@ -46,7 +46,20 @@ MCP 服务可能访问网络、文件或启动本地进程。仅连接你信任�
   return result.response === 1
 }
 
+function broadcastMcpStatus(snapshot: ReturnType<typeof mcpManager.getStatus>): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) window.webContents.send('mcp:status-changed', snapshot)
+  }
+}
+
 export function registerMcpIPC(toolRegistry: ToolRegistry): void {
+  mcpManager.setStatusListener((snapshot) => {
+    for (const server of snapshot) {
+      if (server.status === 'connected') syncMcpToolsToRegistry(toolRegistry, server.id)
+      else if (server.status === 'error' || server.status === 'disconnected') removeMcpToolsFromRegistry(toolRegistry, server.id)
+    }
+    broadcastMcpStatus(snapshot)
+  })
   const connectionTests = new McpConnectionTests({
     confirm: confirmMcpConnection,
     persist: async (config) => withMcpConfigLock(async () => {

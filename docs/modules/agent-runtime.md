@@ -1,6 +1,6 @@
 # Agent 运行时
 
-MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；自动重连与工具许可仍受活动连接、Registry 和执行前校验共同约束。
+MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意外断开保持活动快照为可恢复失败，设置页跟随 `mcp:status-changed` 显示重试，自动重连与工具许可仍受活动连接、Registry 和执行前校验共同约束。
 ## 一句话
 
 对话主循环、Prompt 组装、上下文压缩、任务队列与可观测——聊天能跑起来的横切骨架。
@@ -57,12 +57,13 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；自�
 
 ## 已落地能力
 
+- MCP 替换连接在等待旧客户端关闭前确定归属，每次异步返回核对连接身份；停止立即撤销归属，旧握手或关闭回调不得复活或删除新连接。设置页的状态查询和工具清单使用同代读取，新推送及离页会使旧响应失效；不把迟到的已连接状态覆盖到异常断开卡片上。
 - 文件规则已接入 Loop 与 Debug 的真实预检：别名归一后合并工具及文件权限，命中 ask 才签发当次调用的内部确认凭据；无交互或拒绝确认时不执行。Registry 在调用前重新核验，规则或目标变化会使旧确认失效，子调用不能复用另一 callId 的授权。匹配语义和工具范围见 permission 模块，不在运行时复制策略。
 
 - MCP 添加表单由 `settings/McpConnectionForm.tsx` 同时服务正式设置与 Playground，候选仅注入隔离 actions，不再维护重复字段与状态机。测试成功不因阶段切换被清理；取消后保留草稿，旧响应不复活；修改后必须重测，空白名单可保存；保存完成后列表刷新失败仅重试刷新。主进程取消 / 超时、资源接管、并发配置和 Electron 重启恢复的完整证据仍按 R10 继续补齐，不因表单共享宣布整项完成。
-- MCP 测试连接现在与正式客户端共用能力协商和 elicitation 处理器，资源清单随同一连接接管；保存结果支持 owner/requestId 有界重放，确认迟到、窗口销毁、导航和渲染进程退出不会重新开放连接。整表 MCP 设置写入、添加向导持久化和工具许可更新共用配置锁，许可只有写盘成功后才更新活动连接。新流程真实 Electron 数据目录与重启恢复仍是缺口。
+- MCP 测试连接现在与正式客户端共用能力协商和 elicitation 处理器，资源清单随同一连接接管；保存结果支持 owner/requestId 有界重放，确认迟到、窗口销毁、导航和渲染进程退出不会重新开放连接。整表 MCP 设置写入、添加向导持久化和工具许可更新共用配置锁，许可只有写盘成功后才更新活动连接。独立 Electron 数据目录已验证本地 SDK 测试、保存及配置完整重启恢复；safeStorage 凭据完整重启恢复与 OAuth 仍是缺口。
 
-- MCP 服务卡片由 `settings/McpServiceCard.tsx` 同时供正式设置与 Playground 使用；服务状态、开关、工具数量、许可与重试不再各自维护 JSX。正式端继续使用既有 MCP IPC 和主进程确认；未知工具清单不展示为零，长清单内部滚动，操作期间槽位固定。列表变更在设置页内串行，禁用 / 删除先保存再断开，保存失败不提前断开；许可更新同步本地配置快照，后续启停不覆盖刚修改的许可。该共享卡片不代表添加向导、Streamable HTTP / 认证或整项 R10 已完成。
+- MCP 服务卡片由 `settings/McpServiceCard.tsx` 同时供正式设置与 Playground 使用；服务状态、开关、工具数量、许可与重试不再各自维护 JSX。正式设置订阅 `mcp:status-changed`：意外断开映射为连接失败和重试，缺失快照才是未连接；手动停止仍删除快照。未知工具清单不展示为零，长清单内部滚动，操作期间槽位固定。列表变更在设置页内串行，禁用 / 删除先保存再断开，保存失败不提前断开；许可更新同步本地配置快照，后续启停不覆盖刚修改的许可。OAuth 登录生命周期仍属 R10 未完成部分。
 
 - MCP 生产传输由 `mcp/transport.ts` 统一创建，支持旧 stdio / SSE 和 Streamable HTTP；配置与 connect IPC 共用 `src/shared/types.ts` 的 `McpServerConfig`。可选 Bearer 随 MCP 配置整体加密，Renderer 仅收到哨兵；复用已存令牌要求同 id、同传输、同 URL，换地址需重新提供令牌。带令牌只允许 HTTPS 或回环 HTTP，新 HTTP 传输拒绝自动重定向；手动连接仍由主进程确认，不实现隐式 OAuth。未声明 tools 的服务可连接为零工具；已声明但发现失败仍为错误，不能假装成功。正式添加向导、隔离测试与取消 / 保存生命周期仍属 R10 未完成部分。
 - MCP 工具许可由服务配置的 `allowedTools` 字段承载；旧配置未设置时兼容为全部允许。MCP Bridge 注册工具和 `McpClientManager.callTool` 执行前均再次过滤，正式设置通过 `mcp:set-tool-allowed` 更新并持久化；审批规则仍独立负责高风险确认。
@@ -114,7 +115,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；自�
 | 任务队列（后处理 / 反思等） | 已落地 | `services/task-queue` 等 |
 | 子 Agent | 部分 | `subagent`；召唤下任务工边界（M26-G2）；Swarm 见 wishlist |
 | SubAgent 角色生产资产 | 已落地 | `agent/subagent-asset-registry.ts`；Debug 资产目录登记三个内置角色，真实运行通过 `subagent-role` usage evidence 关联 |
-| MCP Client（stdio / SSE / Streamable HTTP） | 协议已落地，完整添加向导待回流 | `mcp/` · 设置页 |
+| MCP Client（stdio / SSE / Streamable HTTP） | 协议与异常断开 UI 已落地，OAuth 待回流 | `mcp/` · 设置页 |
 | 多 Provider LLM + Failover | 已落地 | `llm/`；OpenAI Compatible / Anthropic / Gemini；配置唯一经 `loadMainLLMConfig` / `loadAuxLLMConfig` |
 | Provider 能力生产资产 | 已落地 | `provider-presets.ts` 唯一预设源；依据 Alice 本地 Provider 清单登记海外直连、国内服务商、编程套餐、聚合与代理、本地 / 自定义五组共 24 个 Provider 入口；模型 ID 不写入入口预设，由用户按账户实际可用列表填写；`provider-asset-registry.ts` 派生 Provider 资产，Debug「提示词管理器 → 模型 Provider」只读展示；ListenHub / CLIProxy 不冒充普通聊天入口 |
 | 首次模型配置旅程 | 已落地 | 无 Key 自动进入设置「模型」；Provider / Key / Base URL / 模型修改后防抖自动保存，当前配置可独立测试连接；未修改 API Key 不会用空值覆盖安全存储 |
