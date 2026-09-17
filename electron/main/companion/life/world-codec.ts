@@ -3,7 +3,7 @@
  *
  * 背景：第一版人物世界资产已成为唯一真相，旧占位 world_json 不再具有保留价值。
  * 设计意图：只接受当前 schema；旧版、缺字段或坏 JSON 直接重置为 Role Pack 出厂世界。
- * 关键约束：所有数值和字符串有界；有 world.default.json 时以资产为准，未进入结构化设计的旧角色暂时保留既有中性默认值。
+ * 关键约束：所有数值和字符串有界；有 world.default.json 时以资产为准，没有该资产时不得编造住所或当前位置。
  */
 
 import { loadRoleWorldDefaults } from '../identity/loader'
@@ -11,19 +11,44 @@ import type { CompanionWorldState, RoleWorldInitialState } from '../types'
 
 export const WORLD_STATE_SCHEMA_VERSION = 1 as const
 const DEFAULT_TZ = 'Asia/Shanghai'
+const UNSET_PLACE = '未设定'
+const INVENTED_HOMES = new Set([
+  '城西小公寓',
+  '热闹街区合租',
+  '临街工作室合租',
+  '靠窗的安静小屋',
+  '安静的房间小屋',
+  '日常住处',
+])
 const DEFAULT_RUNTIME: RoleWorldInitialState = {
   mood: 60,
   energy: 70,
   socialNeed: 45,
-  currentLocation: '家',
+  currentLocation: UNSET_PLACE,
   locationDetail: '',
   currentActivity: '',
   statusTags: [],
 }
-const DEFAULT_HOME: Record<string, string> = {
-  lin: '城西小公寓',
-  zhou: '热闹街区合租',
-  xia: '靠窗的安静小屋',
+
+/**
+ * 清掉旧 codec 写进运行态的未确认住所。
+ *
+ * 背景：lin / zhou / xia 没有 world.default.json，但旧默认值曾把公寓、合租、小屋和「家」写入 world_json。
+ * 设计意图：只回收我们自己编造的那批字符串；用户后来写的居所和生活事件地点保留。
+ * 关键约束：有 Role Pack 世界默认时不改写；currentLocation 仅在旧出厂「家」且居所也是编造值时才重置。
+ */
+function sanitizeInventedWorldState(
+  roleId: string,
+  world: CompanionWorldState,
+): CompanionWorldState {
+  if (loadRoleWorldDefaults(roleId)) return world
+  const inventedHome = INVENTED_HOMES.has(world.home)
+  if (!inventedHome && world.currentLocation !== '家') return world
+  return {
+    ...world,
+    home: inventedHome ? UNSET_PLACE : world.home,
+    currentLocation: inventedHome && world.currentLocation === '家' ? UNSET_PLACE : world.currentLocation,
+  }
 }
 
 function boundedScore(value: unknown, fallback: number): number {
@@ -75,7 +100,7 @@ export function defaultWorldState(roleId: string): CompanionWorldState {
   if (!defaults) {
     return {
       schemaVersion: WORLD_STATE_SCHEMA_VERSION,
-      home: DEFAULT_HOME[roleId] || '日常住处',
+      home: UNSET_PLACE,
       timezone: DEFAULT_TZ,
       situation: '',
       ...DEFAULT_RUNTIME,
@@ -106,7 +131,7 @@ export function parseWorldJson(
   try {
     const obj = JSON.parse(raw) as unknown
     if (!isCurrentWorldState(obj)) return defaultWorldState(roleId)
-    return {
+    return sanitizeInventedWorldState(roleId, {
       schemaVersion: WORLD_STATE_SCHEMA_VERSION,
       home: shortText(obj.home, 40),
       timezone: shortText(obj.timezone, 64),
@@ -119,7 +144,7 @@ export function parseWorldJson(
       currentActivity: shortText(obj.currentActivity, 80),
       statusTags: statusTags(obj.statusTags),
       updatedAt: obj.updatedAt,
-    }
+    })
   } catch {
     return defaultWorldState(roleId)
   }

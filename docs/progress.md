@@ -3,6 +3,7 @@
 > **当前状态入口**：只记录项目现在在哪、最近完成、下一步和阻塞项。完整历史见 [`../_archive/ledgers/progress-through-2026-08-16.md`](../_archive/ledgers/progress-through-2026-08-16.md)。
 
 ## 人读摘要（约 30 秒）
+- 2026-09-17：R12 人物 starter 来源复核收口无 `world.default.json` 的运行态泄漏：lin / zhou / xia 默认居所和当前位置改为「未设定」，Catch-up 空居所不再写「日常住处」。衣柜 / 文化分味播种仍不是已确认人物事实。全产品目标保持进行中。
 - 2026-09-17：R11 正式关于页与 Playground 共用开发者模式开关；真实 `settings.developerMode` 控制侧栏 Debug / Playground 整组入口和 Chat 顶栏 Debug 按钮，候选只改内存样张。Electron 独立目录覆盖开关、隐藏入口和完整重启恢复。UI E2E 的 `ui-e2e` 模式仍显式保留开发入口。全产品目标保持进行中。
 - 2026-09-17：R12 六面正式入口 Electron 从侧栏人物世界点齐六个生活面，断言真实 companion 数据；文化 starter 去掉无证据数量，小林家居 / 常去保持空态。人物 starter 来源复核仍未完成，全产品目标保持进行中。
 - 2026-09-17：R12 正式朋友圈赞 / 评论落独立用户表，正式入口走真实 IPC，Playground 仍用本地夹具。Electron 覆盖播种、赞评、空值 / 超长拒绝和重载保留。通讯录忙闲预检与衣柜 / 文化角 / 家居 / 足迹真实增改删已落地。人物 starter 复核当时仍未完成，全产品目标保持进行中。

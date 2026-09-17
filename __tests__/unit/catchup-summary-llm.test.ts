@@ -114,3 +114,21 @@ describe('resolveCatchupSummary', () => {
     expect(r.summary).toContain('zhou')
   })
 })
+
+describe('buildCatchupLlmPrompt', () => {
+  it('没有居所时回退为未设定，不写日常住处', () => {
+    const prompt = __test.buildCatchupLlmPrompt({
+      roleName: '小林',
+      roleId: 'lin',
+      from: '2026-08-01',
+      gapEnd: '2026-08-05',
+      until: '2026-08-12',
+      gapDays: 5,
+      home: '',
+      voiceHint: '',
+    })
+    expect(prompt).toContain('居所参考：未设定')
+    expect(prompt).not.toContain('日常住处')
+    expect(prompt).not.toContain('城西小公寓')
+  })
+})

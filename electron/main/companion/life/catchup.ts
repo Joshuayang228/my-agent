@@ -64,7 +64,7 @@ function buildCatchupLlmPrompt(input: {
 - 暂停起：${input.from}
 - 概况带过：${input.from}～${input.gapEnd}（约 ${input.gapDays} 个日历日，未逐日生成）
 - 近窗已细补：${input.gapEnd}～${input.until}
-- 居所参考：${input.home || '日常住处'}
+- 居所参考：${input.home || '未设定'}
 
 人设语气参考（勿写成对白）：
 ${input.voiceHint || '（无）'}

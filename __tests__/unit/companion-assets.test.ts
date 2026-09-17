@@ -174,6 +174,13 @@ describe('Companion Assets', () => {
     expect(details.join('\n')).not.toContain('看过两次')
   })
 
+  it('小林没有 world.default.json，不播种家居或足迹', () => {
+    const definitions = getStarterAssetDefinitions('lin')
+    expect(definitions.some((item) => item.kind === 'home')).toBe(false)
+    expect(definitions.some((item) => item.kind === 'footprint')).toBe(false)
+    expect(JSON.stringify(definitions)).not.toContain('城西小公寓')
+  })
+
   it('ensureStarterBookshelf 分味播种且幂等', async () => {
     const r1 = await ensureStarterBookshelf('lin')
     expect(r1.created).toBe(3)

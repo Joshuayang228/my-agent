@@ -33,7 +33,7 @@
 | R09 Skills / `playground-skills-detail-v1.md` | 正式设置 Skills、共享 `SkillViews` | 真实 list / get / validate / save / delete / set-enabled；registry 与 SQLite 启停状态 | 列表、独立详情、限高 SKILL.md 全文、真实启停与错误恢复；试跑不回流正式页，证据见 R09 执行记录 |
 | R10 MCP / `playground-mcp-scenarios-v1.md` | 正式 MCP 设置、MCP 服务及 IPC | WISH-040 记录协议 / OAuth / 逐工具启停缺口；不能以保存配置当连接成功 | 生产改造后回流；连接 / 断开 / 重试 / 删除、认证取消、工具开关持久化与执行侧校验；需细化安全契约 |
 | R11 关于与开发模式 / 设置候选 | 正式关于页、开发入口、App 导航 | 核实 developer mode 配置、重启与入口门控，不仅隐藏单个按钮 | 生产改造后回流；正式与候选共用 `AboutSettingsContent` / `SettingSwitch`；普通模式隐藏 Debug / Playground 入口；「关于 My Agent」真实持久化控制入口可达，关闭安全返回且不删除数据。UI E2E 的 `ui-e2e` 模式仍显式保留开发入口，不能当作正式默认 |
-| R12 人物世界 / `playground-world-living-dimensions-v1.md`、`SurfaceBaselinePanel.tsx` | `WorldHub`、`MomentsPanel`、`AssetsPanel`、`CastPanel`、`WorldDetailsPanel` 及共享 `WorldLivingContent` | 六生活面入口已接通；文化角 / 家居 / 足迹正式页走真实增改删，Playground 只改内存预览；足迹动态来自 moments；正式通讯录列表读取既有 `check-cast-availability`；正式朋友圈赞 / 评论落独立用户表；六面正式入口 Electron 已覆盖真实 IPC 读取；文化 starter 已去掉无证据数量文案 | 生产改造后回流；衣柜 / 文化 / 家居 / 足迹编辑链、通讯录忙闲预检、朋友圈互动、六面正式入口 Electron 与 starter 无证据数量文案本批收口；不复制生活样张为生产事实，不把入口可见当成人物设定授权；合并原重复 R06 人物世界行，R06 仅指模型 |
+| R12 人物世界 / `playground-world-living-dimensions-v1.md`、`SurfaceBaselinePanel.tsx` | `WorldHub`、`MomentsPanel`、`AssetsPanel`、`CastPanel`、`WorldDetailsPanel` 及共享 `WorldLivingContent` | 六生活面入口已接通；文化角 / 家居 / 足迹正式页走真实增改删，Playground 只改内存预览；足迹动态来自 moments；正式通讯录列表读取既有 `check-cast-availability`；正式朋友圈赞 / 评论落独立用户表；六面正式入口 Electron 已覆盖真实 IPC 读取；文化 starter 已去掉无证据数量文案；无 world.default.json 时世界态 / Catch-up / Prompt 切片回退为「未设定」，不再写入城西小公寓等未确认住所 | 生产改造后回流；衣柜 / 文化 / 家居 / 足迹编辑链、通讯录忙闲预检、朋友圈互动、六面正式入口 Electron、文化 starter 无证据数量文案与人物 starter 来源复核本批收口；不复制生活样张为生产事实，不把入口可见当成人物设定授权；合并原重复 R06 人物世界行，R06 仅指模型 |
 | R13 工作区 / `playground-workspace-five-tools-v1.md` | `ChatRightDock` 及五工具 | 已有真实 project / session / terminal / browser / chat IPC，保留已验证实现 | 对照候选补差，不从头重写；重复图标、滚动、任务上下文、关闭 / 取消 / 失败恢复 |
 | R14 Foundation 与业务状态 / `foundation-reuse-enforcement-v1.md` | 共享基础组件及以上消费者 | 部分工作区已有符号复用检查；不能外推为所有体验覆盖 | 同源复用与门禁；加载、空、错误、确认、hover/focus、长文、禁用、深浅宽窄 |
 
@@ -152,7 +152,7 @@ R12 必须拆成六个独立验收面：
 - R12 确认流程补验：衣柜删除与通讯录强制开聊改为成功后才关闭确认；失败保留同一确认，处理中禁止取消和重复提交。CastPanel 去掉字面换行转义。不改 IPC、存储或召唤忙闲判定。正式入口覆盖失败重试和连点。该补验不关闭生活面编辑、备份或六面完整验收。
 - R12 通讯录忙闲列表预检：正式 `CastPanel` 读取既有 `companion:check-cast-availability`，卡片在开聊前展示方便 / 忙碌 / 未读到；开聊仍走 `startSummon` 二次判定和强制确认。不改忙闲算法、IPC 形状或 Playground 静态通讯录夹具。Renderer 覆盖忙碌卡可见、可用卡可见、忙碌仍可开聊进入确认。该补验不关闭六面正式入口 Electron 或备份。
 - R12 朋友圈互动后端：正式 `MomentsPanel` 无 preview 时走 `companion:toggle-moment-like` / `companion:add-moment-comment`；用户赞评写入 `companion_moment_user_interactions`，不改 `moment.text` 或 `meta.interactions`。Playground 仍用本地夹具。Renderer 覆盖正式入口赞 / 评论、IME 不误提交、失败保留草稿、pending 不双提交和评论槽几何。Electron 覆盖真实 IPC 赞评、空值 / 超长拒绝和重载保留。该补验不关闭人物 starter 来源复核、六面正式入口 Electron 或备份。
-- R06 之外，R10 MCP 真实连接恢复，以及全产品逐项 adopted 证据仍未完成；R12 衣柜 / 文化 / 家居 / 足迹编辑链已接入 `companion_assets` 并有 Electron create / 重载 / 超限拒绝证据。通讯录忙闲列表预检与朋友圈真实赞评已接入。R07 生活资产备份已收口。六面正式入口 Electron 与文化 starter 无证据数量文案本批收口；人物 starter 来源复核仍未完成，本合同继续保持进行中。
+- R06 之外，R10 MCP 真实连接恢复，以及全产品逐项 adopted 证据仍未完成；R12 衣柜 / 文化 / 家居 / 足迹编辑链已接入 `companion_assets` 并有 Electron create / 重载 / 超限拒绝证据。通讯录忙闲列表预检与朋友圈真实赞评已接入。R07 生活资产备份已收口。六面正式入口 Electron、文化 starter 无证据数量文案与人物 starter 来源复核本批收口。无 world.default.json 时不得把城西小公寓或日常住处写入世界态 / Catch-up / Prompt。本合同继续保持进行中。
 
 ### R11 关于页开发者模式门控（2026-09-17）
 
@@ -167,6 +167,13 @@ R12 必须拆成六个独立验收面：
 - 允许修改：`life/assets.ts` 文化 starter 描述、Playground 同源样张、`companion-assets` Unit、`onboarding` Electron，以及本合同 / companion 模块卡 / 质量 / 账本。
 - 明确不碰：人物 starter 来源复核、新编人物事实、MCP / OAuth、模型发现、朋友圈互动备份、凭据、权限规则、项目路径、用户旧数据兼容层。
 - 验收：Unit 锁住 `getStarterAssetDefinitions('lin')` 不再含伪计数。Electron 覆盖朋友圈真实动态、衣柜 starter 衣物、文化四类与清计数后的作品、家居空态、通讯录真实关系卡与忙闲文案、足迹动态地点不与常去混淆。该证据不把人物 starter 来源或全产品标为 adopted。
+
+### R12 人物 starter 来源复核（2026-09-17）
+
+- 本批边界：没有 `world.default.json` 的角色，`defaultWorldState` 的 home / currentLocation 使用「未设定」，不再按角色写城西小公寓、合租或小屋，也不回退成「日常住处」或「家」。读取已有 `world_json` 时回收旧 codec 编造的那批居所；用户后来写的地点保留。Catch-up 概况 Prompt 空居所同样回退为「未设定」。有 Role Pack 世界默认时仍以资产为准；小航继续保持「未设定」。
+- 允许修改：`life/world-codec.ts`、`life/catchup.ts`、world-state / catchup / companion-assets / prompt-builder Unit，以及本合同 / companion 模块卡 / 质量 / 账本。
+- 明确不碰：Role Pack 正文、新编衣服 / 书 / 电影 / 住所事实、MCP / OAuth、模型发现、朋友圈互动备份、凭据、权限规则、项目路径、用户旧数据兼容层。
+- 验收：Unit 锁住 lin / zhou / xia 默认世界不含城西小公寓；`getStarterAssetDefinitions('lin')` 的 home / footprint 为空；Catch-up 空居所写「未设定」。该证据不把衣柜分味播种当成已确认人物事实，也不把全产品标为 adopted。
 
 ### R07 生活资产真实备份（2026-09-17）
 
@@ -197,7 +204,7 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 | 回流面 | 当前状态 | 已有正式证据 | 仍缺的硬证据 |
 |---|---|---|---|
 | 对话与导航 | `production-ready`，待完整入口验收 | 正式 `App` / Sidebar / Chat / Right Dock 调用链与既有 Electron 回归 | 四主题、窄宽、跨页草稿与任务恢复的正式入口证据 |
-| 人物世界 | `production-ready`，部分 `adopted` | 角色架、文化角 / 家居 / 足迹真实资产链、正式增改删与 Electron create 覆盖、通讯录列表忙闲预检、朋友圈真实赞评、生活资产真实备份、六面正式入口 Electron、文化 starter 无证据数量文案 | 人物 starter 来源复核 |
+| 人物世界 | `production-ready`，部分 `adopted` | 角色架、文化角 / 家居 / 足迹真实资产链、正式增改删与 Electron create 覆盖、通讯录列表忙闲预检、朋友圈真实赞评、生活资产真实备份、六面正式入口 Electron、文化 starter 无证据数量文案、无 world.default 时世界态 / Catch-up / Prompt 回退为未设定 | 衣柜 / 文化分味播种仍不是已确认人物事实；全产品 adopted 仍未完成 |
 | 设置与人物设置 | `user-approved`，正在回流 | Playground 候选、正式 `SettingsPanel`、共享导航 / 卡片基础层；R11 关于页开发者模式已有正式入口与 Electron 持久化证据 | 模型发现、MCP OAuth / 异常断开恢复；旧设置其余内容页继续按编号验收 |
 | 记忆 | 整页已回流 | 共享四类 / 搜索 / 新增行；正式长文、固定槽、四主题宽窄、失败恢复及真实四类重启 CRUD | 本项不替代其他设置或备份 / 向量召回的验收 |
 | 主题与基础组件 | `production-ready` | Foundation 主题资产、共享设置卡片 / 行组件、基础复用门禁 | Markdown / Diff / 工作区全部正式入口的无白底验收 |

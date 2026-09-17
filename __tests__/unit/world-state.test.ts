@@ -47,10 +47,15 @@ const {
 const store = await import('../../electron/main/companion/life/store')
 
 describe('world-codec', () => {
-  it('主角出厂居所分味', () => {
-    expect(defaultWorldState('lin').home).toContain('公寓')
-    expect(defaultWorldState('zhou').home).toContain('合租')
-    expect(defaultWorldState('xia').home).toContain('小屋')
+  it('没有 world.default.json 时不编造住所或当前位置', () => {
+    for (const roleId of ['lin', 'zhou', 'xia', 'unknown-role']) {
+      const world = defaultWorldState(roleId)
+      expect(world.home).toBe('未设定')
+      expect(world.currentLocation).toBe('未设定')
+      expect(world.home).not.toContain('公寓')
+      expect(formatWorldSliceForPrompt(world)).not.toContain('城西小公寓')
+      expect(formatWorldSliceForPrompt(world)).not.toContain('日常住处')
+    }
   })
 
   it('有 world.default.json 时优先使用 Role Pack 默认世界', () => {
@@ -102,8 +107,46 @@ describe('world-codec', () => {
       situation: '看书@家',
       updatedAt: 3,
     }), 'lin')
-    expect(existingRole.home).toBe('城西小公寓')
+    expect(existingRole.home).toBe('未设定')
+    expect(existingRole.currentLocation).toBe('未设定')
     expect(existingRole.situation).toBe('')
+  })
+
+  it('读取时回收旧 codec 编造的居所，不改用户后来写的地点', () => {
+    const invented = parseWorldJson(JSON.stringify({
+      schemaVersion: 1,
+      home: '城西小公寓',
+      timezone: 'Asia/Shanghai',
+      situation: '午饭散步@附近街道',
+      mood: 60,
+      energy: 70,
+      socialNeed: 45,
+      currentLocation: '家',
+      locationDetail: '',
+      currentActivity: '午饭散步',
+      statusTags: [],
+      updatedAt: 9,
+    }), 'lin')
+    expect(invented.home).toBe('未设定')
+    expect(invented.currentLocation).toBe('未设定')
+    expect(invented.situation).toBe('午饭散步@附近街道')
+
+    const userEdited = parseWorldJson(JSON.stringify({
+      schemaVersion: 1,
+      home: '自己后来写的房间',
+      timezone: 'Asia/Shanghai',
+      situation: '看书@咖啡馆',
+      mood: 60,
+      energy: 70,
+      socialNeed: 45,
+      currentLocation: '咖啡馆',
+      locationDetail: '',
+      currentActivity: '看书',
+      statusTags: [],
+      updatedAt: 9,
+    }), 'lin')
+    expect(userEdited.home).toBe('自己后来写的房间')
+    expect(userEdited.currentLocation).toBe('咖啡馆')
   })
 })
 
@@ -116,11 +159,13 @@ describe('world-state store', () => {
     memDb.close()
   })
 
-  it('ensureWorldState 写入出厂居所', async () => {
+  it('ensureWorldState 写入未确认居所，不编造公寓', async () => {
     const w = await ensureWorldState('lin')
-    expect(w.home).toBe('城西小公寓')
+    expect(w.home).toBe('未设定')
+    expect(w.currentLocation).toBe('未设定')
     const again = await store.getRoleState('lin')
-    expect(again?.world.home).toBe('城西小公寓')
+    expect(again?.world.home).toBe('未设定')
+    expect(again?.world.currentLocation).toBe('未设定')
   })
 
   it('ensureWorldState 将旧 world_json 覆盖为 schemaVersion 1', async () => {

@@ -69,7 +69,7 @@
 
 ## 已落地能力
 
-- 人物世界正式入口提供六个生活面：朋友圈、衣柜、文化角、家居、通讯录、足迹。朋友圈、衣柜和通讯录读取现有 companion IPC；正式通讯录列表会先读取既有 `check-cast-availability` 展示方便 / 忙碌，开聊仍走 `startSummon` 二次判定。文化角、家居和足迹复用按主角隔离的 `companion_assets`，其中家居与常去地点仅在 Role Pack 提供真实 `world.default` 时幂等播种；小林当前没有该资产，正式家居 / 常去保持空态，不把中性居所文案写成已确认住所。生活动态地点作为足迹的近期补充，不把 Playground fixture 当作生产数据源。文化 starter 保留作品名，不再写没有事件证据的笔记数量或观影次数。
+- 人物世界正式入口提供六个生活面：朋友圈、衣柜、文化角、家居、通讯录、足迹。朋友圈、衣柜和通讯录读取现有 companion IPC；正式通讯录列表会先读取既有 `check-cast-availability` 展示方便 / 忙碌，开聊仍走 `startSummon` 二次判定。文化角、家居和足迹复用按主角隔离的 `companion_assets`，其中家居与常去地点仅在 Role Pack 提供真实 `world.default` 时幂等播种；小林当前没有该资产，正式家居 / 常去保持空态。没有 `world.default.json` 时，运行态 `world_json`、Catch-up 和 Prompt 切片的居所 / 当前位置回退为「未设定」，不再写入城西小公寓、日常住处或家。生活动态地点作为足迹的近期补充，不把 Playground fixture 当作生产数据源。文化 starter 保留作品名，不再写没有事件证据的笔记数量或观影次数。
 - 家居与足迹的正式页、Playground 使用同一 `WorldLivingContent` 纯展示组件；家居保留住所结构和生活物件，足迹分开常去、显式想去记录与实际动态，不用资产初始化时间伪造访问日期，同地点不同动态保留各自正文和日期。正式刷新失败保留内容并可重试，响应主角不一致则清空并提示重试。
 - 新住所 / 地点的初始化标记与资产在同一 SQLite 事务内写入 `companion_asset_seeds`；仅真实 Role Pack 提供默认数据时初始化，不覆盖已有记录，删除后重载不补种。文化角 / 衣柜 / 书架沿用既有初始化语义，不外推该删除保证。
 - 文化角通过 `WorldCultureContent` 同源展示四类文化卡片、书架阅读内容和关联读书笔记；`detail` 与 `note` 同时存在时均保留，重名作品按资产 ID 区分，未知类型保留为文化记录，空数据不生成作品。正式页沿既有资产 IPC 读取，并通过 `companion:create-asset` 与既有 update / delete 编辑衣柜、文化、家居物件和足迹地点；Playground 只传隔离 props 并改内存预览。
@@ -87,7 +87,7 @@
 | 伙伴生产资产目录 | 已落地 | Debug「提示词管理器 → 伙伴世界」 | `companion/asset-registry.ts`；manifest / profile / 默认世界 / 场景 / 衣柜书架 starter 使用稳定 key、版本、指纹、来源和依赖 |
 | 生活分味（剧本 / starter 衣柜） | 已落地 | 朋友圈 / 衣柜随主角 | `script-generator` · `ensureStarterWardrobe` |
 | 日剧本 LLM（当日）+ 哈希回退 | 已落地 | （隐式）Life ticker | `resolveDayScript` · aux-config |
-| 世界状态薄片（居所/时区/情境/心情/精力/当前位置与活动） | 已落地 | （隐式）Assemble L3 | schema v1 `world_json` · `## World slice` |
+| 世界状态薄片（居所/时区/情境/心情/精力/当前位置与活动） | 已落地 | （隐式）Assemble L3 | schema v1 `world_json` · `## World slice`；无 Role Pack 世界默认时 home / currentLocation 为「未设定」 |
 | 主角候选默认世界结构 | 已落地 | Debug「世界态」/ 世界初始化 | 当前仅小航 `world.default.json`；城市、住所、地点、物品与作息均待定 |
 | 主角候选行为人格验收 | 已落地 | Playground「人格验收」/ `npm run eval:persona` | 七个中性故事格 + B02–B07 DeepSeek `pass^3`；自动门禁已过，人工语气审美待本地验收 |
 | 伙伴 Prompt 自有框架文案统一中文 | 已落地 | 人物档案 / 世界 / 关系阶段 / 里程碑 / 召唤任务工动态注入；Role Pack 原文继续作为单一事实源 |
@@ -172,3 +172,4 @@
 - 2026-09-17：衣柜、文化角、家居和足迹正式页接入用户创建白名单与真实增改删；Playground 只做内存预览。Electron 覆盖文化 / 家居物件 / 想去地点的 create、重载保留、超限拒绝和删除清理。正式通讯录列表读取既有忙闲判定，忙碌仍可开聊并进入强制确认；Playground 通讯录保持静态夹具。正式朋友圈赞 / 评论落独立用户表，重载后保留，不改动态正文或卡司投影。人物 starter 来源复核仍未完成。
 - 2026-09-17：正式备份覆盖生活资产与播种标记；按 id 合并、失败回滚，旧备份缺字段仍可导入。Electron 覆盖独立目录真实导出导入往返与二次导入不覆盖。朋友圈互动仍不进入备份。人物 starter 来源复核仍未完成。
 - 2026-09-17：正式人物世界六面可从侧栏入口点开并读取真实 companion 数据；Electron 覆盖朋友圈、衣柜 starter、文化四类、家居空态、通讯录关系卡 / 忙闲和足迹动态地点。文化 starter 去掉无证据数量文案，不新编人物故事。人物 starter 来源复核仍未完成，数据库有记录不等于已获确认的人物事实。
+- 2026-09-17：人物 starter 来源复核收口无 `world.default.json` 的运行态泄漏：lin / zhou / xia 的默认居所和当前位置改为「未设定」，Catch-up 空居所不再写「日常住处」。衣柜 / 文化分味播种仍不是已确认人物事实。

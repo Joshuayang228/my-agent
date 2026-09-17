@@ -99,10 +99,10 @@ describe('buildSystemPrompt', () => {
 
   it('L3 注入世界薄片（M23-G2）', () => {
     const prompt = buildSystemPrompt(makeCtx({
-      worldSlice: '居所城西小公寓 · 时区Asia/Shanghai · 近况午饭散步@附近街道',
+      worldSlice: '居所未设定 · 时区Asia/Shanghai · 近况午饭散步@附近街道',
     }))
     expect(prompt).toContain('## 世界状态切片')
-    expect(prompt).toContain('居所城西小公寓')
+    expect(prompt).toContain('居所未设定')
     expect(prompt).toContain('勿编造额外行程')
   })
 
