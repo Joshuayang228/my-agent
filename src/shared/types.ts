@@ -852,6 +852,45 @@ export interface RoleSummary {
 /** @deprecated 使用 RoleSummary */
 export type PersonaConfig = RoleSummary
 
+export type MomentUserInteractionKind = 'like' | 'comment'
+
+export interface MomentUserLikeView {
+  id: string
+  createdAt: number
+}
+
+export interface MomentUserCommentView {
+  id: string
+  actorName: string
+  text: string
+  createdAt: number
+}
+
+export interface MomentSocialView {
+  liked: boolean
+  likeCount: number
+  like?: MomentUserLikeView
+  comments: MomentUserCommentView[]
+  commentCount: number
+}
+
+export interface MomentListResult {
+  roleId: string
+  items: Array<{
+    id: string
+    roleId: string
+    eventId: string
+    publishedAt: number
+    text: string
+    meta: Record<string, unknown>
+  }>
+  socialByMomentId: Record<string, MomentSocialView>
+}
+
+export type MomentSocialMutationResult =
+  | { ok: true; social: MomentSocialView }
+  | { ok: false; error: string; code?: string }
+
 // ── 记忆 ──
 
 export type MemoryCategory = 'identity' | 'preference' | 'fact' | 'workflow' | 'voice' | 'feedback'

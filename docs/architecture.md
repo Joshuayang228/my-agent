@@ -180,7 +180,7 @@ Skill 启停是用户运行态，不修改内置文件或资产指纹。`skills:
 目录落点：`electron/main/companion/`（identity / growth / life / cast / orchestrator）；`prompt-builder` 为组装器。  
 已落地：**W0–W6** + 三槽 + 召唤子会话/忙闲 + 自动反思 MUTABLE。后续：Pack 内容打磨、methodology M21–M31 深啃。
 
-生活面数据沿 `Role Pack world.default → life/assets → companion_assets → companion IPC → WorldDetailsPanel / AssetsPanel → WorldLivingContent / WorldAssetEditor` 流转。正式通讯录沿 `get-roster` + 既有 `check-cast-availability` 进入 `CastPanel` 列表预检，开聊仍走 `start-summon` 二次判定；Playground 通讯录保持静态夹具。住所和常去地点分别为 `home` / `footprint`，不另建第二份世界内容库；运行后以角色隔离的资产为准。用户新增走 `companion:create-asset`，由 `createAsset` 校验白名单 kind 后写入活跃主角；更新 / 删除沿既有 IPC。`companion_asset_seeds(role_id, kind)` 与新资产同事务写入，事务内无异步等待或落盘；默认世界未设定不生成，已有记录优先，删空后不重新初始化。动态足迹继续来自 Moments，不把资产创建日期当成访问日期。
+生活面数据沿 `Role Pack world.default → life/assets → companion_assets → companion IPC → WorldDetailsPanel / AssetsPanel → WorldLivingContent / WorldAssetEditor` 流转。正式通讯录沿 `get-roster` + 既有 `check-cast-availability` 进入 `CastPanel` 列表预检，开聊仍走 `start-summon` 二次判定；Playground 通讯录保持静态夹具。住所和常去地点分别为 `home` / `footprint`，不另建第二份世界内容库；运行后以角色隔离的资产为准。用户新增走 `companion:create-asset`，由 `createAsset` 校验白名单 kind 后写入活跃主角；更新 / 删除沿既有 IPC。`companion_asset_seeds(role_id, kind)` 与新资产同事务写入，事务内无异步等待或落盘；默认世界未设定不生成，已有记录优先，删空后不重新初始化。动态足迹继续来自 Moments，不把资产创建日期当成访问日期。正式朋友圈沿 `companion:get-moments` 读取动态；用户赞 / 评论写入独立表 `companion_moment_user_interactions`，不改 `moment.text` 或卡司 `meta.interactions`。Playground 朋友圈仍用本地夹具。
 
 `WorldLivingContent` 是正式家居 / 足迹与 Playground 共用的纯展示层，只接收 props；真实 IPC 和加载 / 错误处理属于正式面板，隔离样张属于 Playground。现有用户导入导出尚未覆盖生活资产和初始化标记，该缺口由全产品回流合同 R07 管理。
 

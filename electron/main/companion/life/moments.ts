@@ -9,6 +9,13 @@
 import type { LLMConfig } from '../../../../src/shared/types'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import type { CompanionEvent, CompanionMoment } from '../types'
+import {
+  MOMENT_USER_ACTOR_ID,
+  describeMomentSocial,
+  normalizeMomentCommentText,
+  type MomentSocialView,
+  type MomentUserInteraction,
+} from '../../../../src/shared/moment-user-interactions'
 import { getAsset, maybeGrantFromEvent } from './assets'
 import { formatMomentText } from './moment-format'
 import { deriveCastInteractions } from './moment-interactions'
@@ -124,4 +131,77 @@ export async function listMomentsForRole(
   opts?: { limit?: number; offset?: number },
 ): Promise<CompanionMoment[]> {
   return store.listMoments(roleId, opts)
+}
+
+
+type MomentSocialMutationResult =
+  | { ok: true; social: MomentSocialView }
+  | { ok: false; error: string; code: 'NOT_FOUND' | 'ROLE_MISMATCH' | 'INVALID' }
+
+export async function listMomentUserInteractionsForRole(
+  roleId: string,
+): Promise<MomentUserInteraction[]> {
+  return store.listMomentUserInteractions(roleId)
+}
+
+/**
+ * 切换当前用户对一条动态的赞。
+ *
+ * 背景：Playground 赞只改本地 Set；正式页需要角色隔离的真实落库，但不能改动态正文或卡司投影。
+ * 设计意图：用户赞单独成行，同一 actor 对同一动态最多一条；取消赞只删用户行。
+ * 关键约束：动态必须属于传入 roleId；不写 meta.interactions；不改 moment.text。
+ */
+export async function toggleMomentLikeForRole(
+  roleId: string,
+  momentId: string,
+): Promise<MomentSocialMutationResult> {
+  const id = typeof momentId === 'string' ? momentId.trim() : ''
+  if (!id) return { ok: false, code: 'INVALID', error: '动态不存在' }
+  const moment = await store.getMomentById(id)
+  if (!moment) return { ok: false, code: 'NOT_FOUND', error: '动态不存在' }
+  if (moment.roleId !== roleId) return { ok: false, code: 'ROLE_MISMATCH', error: '只能互动当前主角的动态' }
+  const existing = await store.findMomentUserLike(id, MOMENT_USER_ACTOR_ID)
+  if (existing) {
+    await store.deleteMomentUserInteraction(existing.id, roleId)
+  } else {
+    await store.insertMomentUserInteraction({
+      momentId: id,
+      roleId,
+      kind: 'like',
+      actorId: MOMENT_USER_ACTOR_ID,
+      text: null,
+    })
+  }
+  const rows = await store.listMomentUserInteractions(roleId)
+  return { ok: true, social: describeMomentSocial(id, rows) }
+}
+
+/**
+ * 给一条动态追加用户评论。
+ *
+ * 背景：卡司评论已经投影进 meta.interactions，用户评论不能覆盖那份生活事实。
+ * 设计意图：评论先规范化再落库；空值和超长在写入前拒绝，避免半截文本。
+ * 关键约束：评论按创建时间追加；展示时卡司评论仍排在用户评论前面。
+ */
+export async function addMomentCommentForRole(
+  roleId: string,
+  momentId: string,
+  text: unknown,
+): Promise<MomentSocialMutationResult> {
+  const id = typeof momentId === 'string' ? momentId.trim() : ''
+  if (!id) return { ok: false, code: 'INVALID', error: '动态不存在' }
+  const normalized = normalizeMomentCommentText(text)
+  if (!normalized.ok) return { ok: false, code: 'INVALID', error: normalized.error }
+  const moment = await store.getMomentById(id)
+  if (!moment) return { ok: false, code: 'NOT_FOUND', error: '动态不存在' }
+  if (moment.roleId !== roleId) return { ok: false, code: 'ROLE_MISMATCH', error: '只能互动当前主角的动态' }
+  await store.insertMomentUserInteraction({
+    momentId: id,
+    roleId,
+    kind: 'comment',
+    actorId: MOMENT_USER_ACTOR_ID,
+    text: normalized.text,
+  })
+  const rows = await store.listMomentUserInteractions(roleId)
+  return { ok: true, social: describeMomentSocial(id, rows) }
 }

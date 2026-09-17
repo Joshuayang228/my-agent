@@ -28,7 +28,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；自�
 ## 依赖
 
 - **依赖**：llm、tools、storage、sandbox（执行前）、companion/memory（组装时注入）
-- **被依赖**：Chat IPC、召唤/反思后台任务、Eval 框架场景；人物世界生活资产增改删走 companion IPC，不进入 Loop。
+- **被依赖**：Chat IPC、召唤/反思后台任务、Eval 框架场景；人物世界生活资产增改删和朋友圈用户赞评走 companion IPC，不进入 Loop。
 
 ## 不变量
 

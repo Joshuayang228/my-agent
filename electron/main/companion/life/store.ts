@@ -17,6 +17,7 @@ import type {
   DayScriptPayload,
   DayScriptRow,
 } from '../types'
+import type { MomentUserInteraction, MomentUserInteractionKind } from '../../../../src/shared/moment-user-interactions'
 import { defaultWorldState, parseWorldJson, serializeWorldState } from './world-codec'
 
 async function ensureTables(): Promise<void> {
@@ -83,6 +84,26 @@ async function ensureTables(): Promise<void> {
   db.run(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_moments_event
       ON companion_moments(event_id)
+  `)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS companion_moment_user_interactions (
+      id         TEXT PRIMARY KEY,
+      moment_id  TEXT NOT NULL,
+      role_id    TEXT NOT NULL,
+      kind       TEXT NOT NULL,
+      actor_id   TEXT NOT NULL,
+      text       TEXT,
+      created_at INTEGER NOT NULL
+    )
+  `)
+  db.run(`
+    CREATE INDEX IF NOT EXISTS idx_companion_moment_user_role_moment
+      ON companion_moment_user_interactions(role_id, moment_id, created_at)
+  `)
+  db.run(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_moment_user_like
+      ON companion_moment_user_interactions(moment_id, actor_id)
+      WHERE kind = 'like'
   `)
 }
 
@@ -527,4 +548,139 @@ export async function countMoments(roleId: string): Promise<number> {
   const c = (stmt.getAsObject() as { c: number }).c
   stmt.free()
   return c
+}
+
+
+function mapMomentUserInteraction(row: Record<string, unknown>): MomentUserInteraction {
+  const kind: MomentUserInteractionKind = row.kind === 'comment' ? 'comment' : 'like'
+  return {
+    id: row.id as string,
+    momentId: row.moment_id as string,
+    roleId: row.role_id as string,
+    kind,
+    actorId: row.actor_id as string,
+    text: typeof row.text === 'string' ? row.text : null,
+    createdAt: Number(row.created_at) || 0,
+  }
+}
+
+export async function getMomentById(momentId: string): Promise<CompanionMoment | null> {
+  await ensureTables()
+  const db = await getDatabase()
+  const stmt = db.prepare(
+    `SELECT id, role_id, event_id, published_at, text, meta_json
+     FROM companion_moments WHERE id = ?`,
+  )
+  stmt.bind([momentId])
+  if (!stmt.step()) {
+    stmt.free()
+    return null
+  }
+  const r = stmt.getAsObject() as Record<string, unknown>
+  stmt.free()
+  return {
+    id: r.id as string,
+    roleId: r.role_id as string,
+    eventId: r.event_id as string,
+    publishedAt: r.published_at as number,
+    text: r.text as string,
+    meta: JSON.parse((r.meta_json as string) || '{}') as Record<string, unknown>,
+  }
+}
+
+export async function listMomentUserInteractions(
+  roleId: string,
+): Promise<MomentUserInteraction[]> {
+  await ensureTables()
+  const db = await getDatabase()
+  const stmt = db.prepare(
+    `SELECT id, moment_id, role_id, kind, actor_id, text, created_at
+     FROM companion_moment_user_interactions
+     WHERE role_id = ?
+     ORDER BY created_at ASC`,
+  )
+  stmt.bind([roleId])
+  const out: MomentUserInteraction[] = []
+  while (stmt.step()) {
+    out.push(mapMomentUserInteraction(stmt.getAsObject() as Record<string, unknown>))
+  }
+  stmt.free()
+  return out
+}
+
+export async function findMomentUserLike(
+  momentId: string,
+  actorId: string,
+): Promise<MomentUserInteraction | null> {
+  await ensureTables()
+  const db = await getDatabase()
+  const stmt = db.prepare(
+    `SELECT id, moment_id, role_id, kind, actor_id, text, created_at
+     FROM companion_moment_user_interactions
+     WHERE moment_id = ? AND actor_id = ? AND kind = 'like'
+     LIMIT 1`,
+  )
+  stmt.bind([momentId, actorId])
+  if (!stmt.step()) {
+    stmt.free()
+    return null
+  }
+  const row = mapMomentUserInteraction(stmt.getAsObject() as Record<string, unknown>)
+  stmt.free()
+  return row
+}
+
+export async function insertMomentUserInteraction(input: {
+  momentId: string
+  roleId: string
+  kind: MomentUserInteractionKind
+  actorId: string
+  text?: string | null
+}): Promise<MomentUserInteraction> {
+  await ensureTables()
+  const db = await getDatabase()
+  const id = randomUUID()
+  const createdAt = Date.now()
+  db.run(
+    `INSERT INTO companion_moment_user_interactions
+       (id, moment_id, role_id, kind, actor_id, text, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      input.momentId,
+      input.roleId,
+      input.kind,
+      input.actorId,
+      input.text ?? null,
+      createdAt,
+    ],
+  )
+  persist()
+  return {
+    id,
+    momentId: input.momentId,
+    roleId: input.roleId,
+    kind: input.kind,
+    actorId: input.actorId,
+    text: input.text ?? null,
+    createdAt,
+  }
+}
+
+export async function deleteMomentUserInteraction(
+  id: string,
+  roleId: string,
+): Promise<boolean> {
+  await ensureTables()
+  const db = await getDatabase()
+  const existing = db.prepare(
+    'SELECT id FROM companion_moment_user_interactions WHERE id = ? AND role_id = ? LIMIT 1',
+  )
+  existing.bind([id, roleId])
+  const found = existing.step()
+  existing.free()
+  if (!found) return false
+  db.run('DELETE FROM companion_moment_user_interactions WHERE id = ? AND role_id = ?', [id, roleId])
+  persist()
+  return true
 }

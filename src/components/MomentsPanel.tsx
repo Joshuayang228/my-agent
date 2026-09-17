@@ -3,8 +3,17 @@
  * 仅展示当前 activeRole 的 moments；切换主角后列表随 IPC 变。
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import { Heart, MapPin, MessageCircle, Newspaper, RefreshCw, X } from 'lucide-react'
+import { ActionButton } from './foundation/ActionButton'
+import { TextField } from './foundation/TextField'
+import {
+  emptyMomentSocial,
+  mergeMomentComments,
+  normalizeMomentCommentText,
+  parseCastInteractions,
+  type MomentSocialView,
+} from '../shared/moment-user-interactions'
 
 export interface MomentItem {
   id: string
@@ -37,7 +46,7 @@ interface MomentsPanelProps {
   appearance?: 'default' | 'social-feed' | 'alice-feed'
   /** 页面组合里已有 WorldHub 标题时隐藏重复的 Moments 标题行。 */
   hideHeader?: boolean
-  /** Playground 专用互动样张；正式页面默认不显示无后端的假互动。 */
+  /** Playground 仍用本地夹具互动；正式页只要没有 previewData 就走真实赞 / 评论。 */
   showSocialActions?: boolean
 }
 
@@ -76,30 +85,6 @@ function typeColor(type: unknown): string {
   return TYPE_DOT[key] || 'var(--companion-accent-warm)'
 }
 
-interface MomentInteractionView {
-  kind: string
-  castName: string
-  text?: string
-}
-
-function parseInteractions(meta: Record<string, unknown>): MomentInteractionView[] {
-  const raw = meta.interactions
-  if (!Array.isArray(raw)) return []
-  const out: MomentInteractionView[] = []
-  for (const item of raw) {
-    if (!item || typeof item !== 'object') continue
-    const r = item as Record<string, unknown>
-    const castName = typeof r.castName === 'string' ? r.castName : ''
-    const kind = typeof r.kind === 'string' ? r.kind : ''
-    if (!castName || (kind !== 'coframe' && kind !== 'comment')) continue
-    out.push({
-      kind,
-      castName,
-      text: typeof r.text === 'string' ? r.text : undefined,
-    })
-  }
-  return out
-}
 
 export function MomentsPanel({ onClose, previewData, appearance = 'default', hideHeader = false, showSocialActions = false }: MomentsPanelProps) {
   const isSocialFeed = appearance === 'social-feed' || appearance === 'alice-feed'
@@ -108,9 +93,16 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
   const [roleName, setRoleName] = useState(previewData?.roleName ?? '')
   const [items, setItems] = useState<MomentItem[]>(previewData?.items ?? [])
   const [summary, setSummary] = useState(previewData?.summary ?? '')
-  const [likedIds, setLikedIds] = useState<Set<string>>(new Set())
+  const [socialByMomentId, setSocialByMomentId] = useState<Record<string, MomentSocialView>>({})
   const [commentFocusId, setCommentFocusId] = useState<string | null>(null)
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({})
+  const [commentErrors, setCommentErrors] = useState<Record<string, string>>({})
+  const [pendingLikeIds, setPendingLikeIds] = useState<Set<string>>(new Set())
+  const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(new Set())
+  const pendingLikeLock = useRef(new Set<string>())
+  const pendingCommentLock = useRef(new Set<string>())
   const [loading, setLoading] = useState(false)
+  const socialEnabled = previewData ? showSocialActions : true
 
   const load = useCallback(async () => {
     if (previewData) {
@@ -118,6 +110,7 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
       setRoleName(previewData.roleName)
       setItems(previewData.items)
       setSummary(previewData.summary ?? '')
+      setSocialByMomentId(Object.fromEntries(previewData.items.map((item) => [item.id, emptyMomentSocial()])))
       setLoading(false)
       return
     }
@@ -133,6 +126,7 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
       setRoleName(active.name)
       setItems(moments.items)
       setSummary(status.catchupSummary || '')
+      setSocialByMomentId(moments.socialByMomentId ?? {})
     } finally {
       setLoading(false)
     }
@@ -148,6 +142,97 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
       void load()
     })
   }, [load, previewData])
+
+  const patchSocial = useCallback((momentId: string, social: MomentSocialView) => {
+    setSocialByMomentId((current) => ({ ...current, [momentId]: social }))
+  }, [])
+
+  const handleToggleLike = useCallback(async (momentId: string) => {
+    if (!socialEnabled || pendingLikeLock.current.has(momentId)) return
+    if (previewData) {
+      setSocialByMomentId((current) => {
+        const prev = current[momentId] ?? emptyMomentSocial()
+        const liked = !prev.liked
+        return {
+          ...current,
+          [momentId]: {
+            ...prev,
+            liked,
+            likeCount: liked ? 1 : 0,
+            like: liked ? { id: `preview-like-${momentId}`, createdAt: Date.now() } : undefined,
+          },
+        }
+      })
+      return
+    }
+    if (!window.electronAPI?.companion.toggleMomentLike) return
+    pendingLikeLock.current.add(momentId)
+    setPendingLikeIds((current) => new Set(current).add(momentId))
+    try {
+      const result = await window.electronAPI.companion.toggleMomentLike(momentId)
+      if (!result.ok) {
+        setCommentErrors((current) => ({ ...current, [momentId]: result.error }))
+        return
+      }
+      setCommentErrors((current) => ({ ...current, [momentId]: '' }))
+      patchSocial(momentId, result.social)
+    } finally {
+      pendingLikeLock.current.delete(momentId)
+      setPendingLikeIds((current) => {
+        const next = new Set(current)
+        next.delete(momentId)
+        return next
+      })
+    }
+  }, [patchSocial, previewData, socialEnabled])
+
+  const handleSubmitComment = useCallback(async (momentId: string) => {
+    if (!socialEnabled || pendingCommentLock.current.has(momentId)) return
+    const draft = commentDrafts[momentId] ?? ''
+    if (previewData) {
+      const normalized = normalizeMomentCommentText(draft)
+      if (!normalized.ok) {
+        setCommentErrors((current) => ({ ...current, [momentId]: normalized.error }))
+        return
+      }
+      const text = normalized.text
+      setSocialByMomentId((current) => {
+        const prev = current[momentId] ?? emptyMomentSocial()
+        const comments = [...prev.comments, { id: `preview-comment-${Date.now()}`, actorName: '我', text, createdAt: Date.now() }]
+        return { ...current, [momentId]: { ...prev, comments, commentCount: comments.length } }
+      })
+      setCommentDrafts((current) => ({ ...current, [momentId]: '' }))
+      setCommentErrors((current) => ({ ...current, [momentId]: '' }))
+      return
+    }
+    if (!window.electronAPI?.companion.addMomentComment) return
+    pendingCommentLock.current.add(momentId)
+    setPendingCommentIds((current) => new Set(current).add(momentId))
+    try {
+      const result = await window.electronAPI.companion.addMomentComment(momentId, draft)
+      if (!result.ok) {
+        setCommentErrors((current) => ({ ...current, [momentId]: result.error }))
+        return
+      }
+      patchSocial(momentId, result.social)
+      setCommentDrafts((current) => ({ ...current, [momentId]: '' }))
+      setCommentErrors((current) => ({ ...current, [momentId]: '' }))
+    } finally {
+      pendingCommentLock.current.delete(momentId)
+      setPendingCommentIds((current) => {
+        const next = new Set(current)
+        next.delete(momentId)
+        return next
+      })
+    }
+  }, [commentDrafts, patchSocial, previewData, socialEnabled])
+
+  const handleCommentKey = useCallback((event: KeyboardEvent<HTMLInputElement>, momentId: string) => {
+    if (event.key !== 'Enter' || event.shiftKey) return
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return
+    event.preventDefault()
+    void handleSubmitComment(momentId)
+  }, [handleSubmitComment])
 
   return (
     <div className={`flex h-full flex-col ${isSocialFeed ? 'moments-social-feed' : ''} ${isAliceFeed ? 'moments-alice-feed' : ''}`} data-testid="moments-panel">
@@ -188,9 +273,13 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
             {items.map((m) => {
               const type = typeof m.meta?.type === 'string' ? m.meta.type : ''
               const location = typeof m.meta?.location === 'string' ? m.meta.location : ''
-              const interactions = parseInteractions(m.meta || {})
+              const interactions = parseCastInteractions(m.meta || {})
               const coframes = interactions.filter((i) => i.kind === 'coframe')
-              const comments = interactions.filter((i) => i.kind === 'comment')
+              const social = socialByMomentId[m.id] ?? emptyMomentSocial()
+              const comments = mergeMomentComments(interactions, social.comments)
+              const commentOpen = commentFocusId === m.id
+              const likePending = pendingLikeIds.has(m.id)
+              const commentPending = pendingCommentIds.has(m.id)
               if (isSocialFeed) {
                 return (
                   <li key={m.id} data-testid={isAliceFeed ? 'moment-post' : undefined} className={isAliceFeed ? 'moments-alice-post' : 'border-b pb-5'} style={isAliceFeed ? undefined : { borderColor: 'var(--border-subtle)' }}>
@@ -236,39 +325,60 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
                         {coframes.length ? <div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>与{coframes.map((c) => c.castName).join('、')}同框</div> : null}
                         {comments.length ? (
                           <ul className="mt-2 space-y-1 rounded-md px-2.5 py-2 text-[11px]" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                            {comments.map((c, idx) => <li key={`${c.castName}-${idx}`}><span style={{ color: 'var(--accent-fg)' }}>{c.castName}</span>：{c.text || '赞'}</li>)}
+                            {comments.map((c) => <li key={c.key} data-testid="moment-comment" data-comment-source={c.source}><span style={{ color: 'var(--accent-fg)' }}>{c.actorName}</span>：{c.text || '赞'}</li>)}
                           </ul>
                         ) : null}
-                        {showSocialActions && (
-                          <div className="moments-alice-actions mt-3 flex items-center justify-start border-t pt-2" data-testid="moment-social-actions" style={{ borderColor: 'var(--border-subtle)' }}>
-                            <button
-                              type="button"
-                              aria-label={likedIds.has(m.id) ? '取消赞' : '赞'}
-                              data-testid="moment-like-button"
-                              onClick={() => setLikedIds((current) => {
-                                const next = new Set(current)
-                                if (next.has(m.id)) next.delete(m.id)
-                                else next.add(m.id)
-                                return next
-                              })}
-                              className="moments-alice-action inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[10px] transition"
-                              style={{ color: likedIds.has(m.id) ? 'var(--accent-fg)' : 'var(--text-muted)', background: likedIds.has(m.id) ? 'var(--accent-subtle)' : 'transparent' }}
-                            >
-                              <Heart size={13} fill={likedIds.has(m.id) ? 'currentColor' : 'none'} aria-hidden="true" />
-                              <span aria-hidden="true">{likedIds.has(m.id) ? '1' : '赞'}</span>
-                            </button>
-                            <button
-                              type="button"
-                              aria-label="评论"
-                              aria-pressed={commentFocusId === m.id}
-                              data-testid="moment-comment-button"
-                              onClick={() => setCommentFocusId((current) => current === m.id ? null : m.id)}
-                              className="moments-alice-action inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[10px] transition"
-                              style={{ color: commentFocusId === m.id ? 'var(--accent-fg)' : 'var(--text-muted)', background: commentFocusId === m.id ? 'var(--accent-subtle)' : 'transparent' }}
-                            >
-                              <MessageCircle size={13} aria-hidden="true" />
-                              <span aria-hidden="true">{comments.length || '评论'}</span>
-                            </button>
+                        {socialEnabled && (
+                          <div className="moments-alice-actions mt-3 border-t pt-2" data-testid="moment-social-actions" style={{ borderColor: 'var(--border-subtle)' }}>
+                            <div className="flex items-center justify-start">
+                              <ActionButton
+                                aria-label={social.liked ? '取消赞' : '赞'}
+                                data-testid="moment-like-button"
+                                disabled={likePending}
+                                onClick={() => void handleToggleLike(m.id)}
+                                className="moments-alice-action gap-1.5"
+                                style={{ color: social.liked ? 'var(--accent-fg)' : 'var(--text-muted)', background: social.liked ? 'var(--accent-subtle)' : 'transparent', borderColor: 'transparent' }}
+                              >
+                                <Heart size={13} fill={social.liked ? 'currentColor' : 'none'} aria-hidden="true" />
+                                <span aria-hidden="true">{social.liked ? '1' : '赞'}</span>
+                              </ActionButton>
+                              <ActionButton
+                                aria-label="评论"
+                                aria-pressed={commentOpen}
+                                data-testid="moment-comment-button"
+                                onClick={() => setCommentFocusId((current) => current === m.id ? null : m.id)}
+                                className="moments-alice-action gap-1.5"
+                                style={{ color: commentOpen ? 'var(--accent-fg)' : 'var(--text-muted)', background: commentOpen ? 'var(--accent-subtle)' : 'transparent', borderColor: 'transparent' }}
+                              >
+                                <MessageCircle size={13} aria-hidden="true" />
+                                <span aria-hidden="true">{comments.length || '评论'}</span>
+                              </ActionButton>
+                            </div>
+                            <div className="mt-2 grid h-8 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" data-testid="moment-comment-composer">
+                              <TextField
+                                value={commentDrafts[m.id] ?? ''}
+                                onChange={(event: ChangeEvent<HTMLInputElement>) => setCommentDrafts((current) => ({ ...current, [m.id]: event.target.value }))}
+                                onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => handleCommentKey(event, m.id)}
+                                placeholder="写评论"
+                                disabled={commentPending}
+                                aria-hidden={!commentOpen}
+                                tabIndex={commentOpen ? 0 : -1}
+                                data-testid="moment-comment-input"
+                                className="theme-input h-8 min-w-0 rounded-[var(--radius-md)] border px-3"
+                                style={{ visibility: commentOpen ? 'visible' : 'hidden', pointerEvents: commentOpen ? 'auto' : 'none' }}
+                              />
+                              <ActionButton
+                                onClick={() => void handleSubmitComment(m.id)}
+                                disabled={commentPending || !(commentDrafts[m.id] ?? '').trim()}
+                                aria-hidden={!commentOpen}
+                                tabIndex={commentOpen ? 0 : -1}
+                                data-testid="moment-comment-submit"
+                                style={{ visibility: commentOpen ? 'visible' : 'hidden', pointerEvents: commentOpen ? 'auto' : 'none' }}
+                              >
+                                发送
+                              </ActionButton>
+                            </div>
+                            <p className="min-h-4 text-[10px]" data-testid="moment-comment-error" style={{ color: 'var(--danger)' }}>{commentErrors[m.id] || '\u00a0'}</p>
                           </div>
                         )}
                       </div>
@@ -288,7 +398,7 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
                   <div className="text-[13px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>{m.text}</div>
                   {comments.length ? (
                     <ul className="mt-2 space-y-1 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
-                      {comments.map((c, idx) => <li key={`${c.castName}-${idx}`} className="text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}><span style={{ color: 'var(--companion-accent-warm)' }}>{c.castName}</span>：{c.text || '赞'}</li>)}
+                      {comments.map((c) => <li key={c.key} data-testid="moment-comment" data-comment-source={c.source} className="text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}><span style={{ color: 'var(--companion-accent-warm)' }}>{c.actorName}</span>：{c.text || '赞'}</li>)}
                     </ul>
                   ) : null}
                 </li>

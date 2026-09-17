@@ -19,7 +19,7 @@
 |------|------|
 | UI · 生活面 | 侧栏「人物世界」（`WorldHub`：朋友圈 / 衣柜 / 文化角 / 家居 / 通讯录 / 足迹）；角色架归设置 |
 | UI · 工具面 | 设置「伙伴与相处」：回答方式、相处补充说明、生活提醒、主动问候、角色架；旧 MUTABLE / 反思表单不再保留为设置入口，后端服务仍保留 |
-| IPC | `companion:*`（list / switch / moments / assets / roster / catchup-status(+presence) / start-summon / reflection…） |
+| IPC | `companion:*`（list / switch / moments / toggle-moment-like / add-moment-comment / assets / roster / catchup-status(+presence) / start-summon / reflection…） |
 | Prompt | `prompt-builder` + `orchestrator.loadRoleAssembleInput`（管线见下方「Prompt 组装」） |
 | 资产 | `electron/main/companion/universes/default/` |
 | 契约 | `docs/requirements/companion-*.md`；前端方案 [frontend-companion-surfaces.md](../requirements/frontend-companion-surfaces.md) |
@@ -104,8 +104,8 @@
 | Debug 计划 / 发布状态时间线 | 已落地 | Debug「世界态」只读视图 | `debug-world-snapshot` 有界读取 planned / published 事件；不提供生活世界写操作 |
 | Catch-up ≤7×24h | 已落地 | 朋友圈暖色条 / Prompt | `life/catchup` · `catchup-status` |
 | 此刻 presence | 已落地 | Catch-up / Prompt | `describeCastPresence` · `catchup-status.presence` |
-| Moments（朋友圈） | 已落地 | 人物世界 / 欢迎屏 → 朋友圈 | `get-moments` · MomentsPanel · 卡司互动 meta；Playground 可用只读 Moments / Catch-up 样张、可选本地图片内容位且跳过 IPC |
-| 正式人物世界朋友圈流默认态 | 已落地 | `WorldHub` 默认 `social-feed` 并隐藏重复标题；保留真实动态、时间 / 地点、互动和近期窗口说明 |
+| Moments（朋友圈） | 已落地 | 人物世界 / 欢迎屏 → 朋友圈 | `get-moments` · `toggle-moment-like` · `add-moment-comment` · MomentsPanel · 卡司互动 meta；正式页真实赞 / 评论落独立用户表，不改 moment.text；Playground 可用只读 Moments / Catch-up 样张、可选本地图片内容位且跳过 IPC |
+| 正式人物世界朋友圈流默认态 | 已落地 | `WorldHub` 默认 `alice-feed` 并隐藏重复标题；保留真实动态、时间 / 地点、真实赞评和近期窗口说明 |
 | Assets（物什） | 已落地 | 人物世界衣柜 / 文化角 / 家居 / 足迹 | wardrobe/bookshelf/culture/home/footprint/furniture · `get/create/update/delete-asset` · AssetsPanel / WorldDetailsPanel / WorldAssetEditor |
 | 名册浅注入 | 已落地 | （Prompt） | `cast/roster` |
 | CastPanel（通讯录 / 召唤） | 已落地 | 人物世界 → 通讯录 | CastPanel · `start-summon` · 场景 prompt |
@@ -167,5 +167,5 @@
 - 2026-09-14：文化角正式使用 `companion_assets(kind=culture)`，按主角隔离并复用既有资产 CRUD / starter 播种；资产 payload 的 `type` 区分 reading、music、film、photography。
 - 2026-09-15：家居与足迹接入同一 `companion_assets` 事实链，分别使用 `kind=home` 与 `kind=footprint`；家居读取住所结构，足迹读取角色常去地点，近期动态仅作为补充。
 - 2026-09-16：衣柜删除与通讯录强制开聊改为成功后才关闭确认；失败保留同一确认，处理中禁止取消和重复提交。不改 IPC、存储或召唤忙闲判定。该补验不关闭生活面编辑、备份或六面完整验收。
-- 2026-09-17：衣柜、文化角、家居和足迹正式页接入用户创建白名单与真实增改删；Playground 只做内存预览。Electron 覆盖文化 / 家居物件 / 想去地点的 create、重载保留、超限拒绝和删除清理。正式通讯录列表读取既有忙闲判定，忙碌仍可开聊并进入强制确认；Playground 通讯录保持静态夹具。朋友圈互动、人物 starter 来源复核和备份仍未完成。
-- 全生活面回流仍未完成：朋友圈互动后端、六面完整 Electron 与用户备份继续由 R12 / R07 管理。现有文化 starter 的作品、笔记数量与经历描述仍需复核角色来源，数据库有记录不等于已获确认的人物事实。导入导出尚不包含生活资产及初始化标记，归 R07 / WISH-045；数据库重载测试不等同用户备份恢复。
+- 2026-09-17：衣柜、文化角、家居和足迹正式页接入用户创建白名单与真实增改删；Playground 只做内存预览。Electron 覆盖文化 / 家居物件 / 想去地点的 create、重载保留、超限拒绝和删除清理。正式通讯录列表读取既有忙闲判定，忙碌仍可开聊并进入强制确认；Playground 通讯录保持静态夹具。正式朋友圈赞 / 评论落独立用户表，重载后保留，不改动态正文或卡司投影。人物 starter 来源复核和备份仍未完成。
+- 全生活面回流仍未完成：六面完整 Electron 与用户备份继续由 R12 / R07 管理。现有文化 starter 的作品、笔记数量与经历描述仍需复核角色来源，数据库有记录不等于已获确认的人物事实。导入导出尚不包含生活资产及初始化标记，归 R07 / WISH-045；数据库重载测试不等同用户备份恢复。

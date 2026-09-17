@@ -31,6 +31,8 @@ import type {
   RendererSettings,
   LLMConnectionTestInput,
   LLMConnectionTestResult,
+  MomentListResult,
+  MomentSocialMutationResult,
 } from './shared/types'
 
 interface SessionSummary {
@@ -158,17 +160,9 @@ declare global {
           roleId: string,
           toVersion: number,
         ) => Promise<{ ok: true; version: number } | { ok: false; error: string }>
-        getMoments: (opts?: { limit?: number; offset?: number }) => Promise<{
-          roleId: string
-          items: Array<{
-            id: string
-            roleId: string
-            eventId: string
-            publishedAt: number
-            text: string
-            meta: Record<string, unknown>
-          }>
-        }>
+        getMoments: (opts?: { limit?: number; offset?: number }) => Promise<MomentListResult>
+        toggleMomentLike: (momentId: string) => Promise<MomentSocialMutationResult>
+        addMomentComment: (momentId: string, text: string) => Promise<MomentSocialMutationResult>
         catchupStatus: () => Promise<{
           roleId: string
           pausedAt: number | null

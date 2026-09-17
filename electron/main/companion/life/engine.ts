@@ -183,6 +183,11 @@ export async function tickActiveRole(now: number): Promise<{
 }
 
 /** 供单测 / IPC 调试读取 */
+/**
+ * 背景：Electron 朋友圈互动验收需要在独立 userData 里插入动态，但不能新增调试 IPC。
+ * 设计意图：把既有 store.insertMoment 挂到主进程 __lifeStore，测试用 evaluate 播种；Renderer 仍只走正式 companion IPC。
+ * 关键约束：不暴露给 preload / Renderer；不改 moment 正文或卡司投影写入路径。
+ */
 export const __lifeStore = {
   getRoleState: store.getRoleState,
   getDayScript: store.getDayScript,
@@ -192,4 +197,7 @@ export const __lifeStore = {
   countMoments: store.countMoments,
   listMoments: store.listMoments,
   insertEvent: store.insertEvent,
+  insertMoment: store.insertMoment,
 }
+
+;(globalThis as { __lifeStore?: typeof __lifeStore }).__lifeStore = __lifeStore

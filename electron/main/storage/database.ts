@@ -36,7 +36,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 14
+export const SCHEMA_VERSION = 15
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -429,6 +429,29 @@ export function runMigrations(database: SqlJsDatabase): void {
             response_content = NULL,
             response_reasoning = NULL,
             response_tool_calls = '[]'
+      `)
+    },
+    // v14 -> v15: persist user likes/comments for moments without mutating moment body or cast meta.interactions.
+    (d) => {
+      d.run(`
+        CREATE TABLE IF NOT EXISTS companion_moment_user_interactions (
+          id         TEXT PRIMARY KEY,
+          moment_id  TEXT NOT NULL,
+          role_id    TEXT NOT NULL,
+          kind       TEXT NOT NULL,
+          actor_id   TEXT NOT NULL,
+          text       TEXT,
+          created_at INTEGER NOT NULL
+        )
+      `)
+      d.run(`
+        CREATE INDEX IF NOT EXISTS idx_companion_moment_user_role_moment
+          ON companion_moment_user_interactions(role_id, moment_id, created_at)
+      `)
+      d.run(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_moment_user_like
+          ON companion_moment_user_interactions(moment_id, actor_id)
+          WHERE kind = 'like'
       `)
     },
   ]

@@ -33,7 +33,13 @@ import {
   listAssets,
   updateAsset,
 } from '../companion/life/assets'
-import { listMomentsForRole } from '../companion/life/moments'
+import {
+  addMomentCommentForRole,
+  listMomentUserInteractionsForRole,
+  listMomentsForRole,
+  toggleMomentLikeForRole,
+} from '../companion/life/moments'
+import { describeMomentSocial } from '../../../src/shared/moment-user-interactions'
 import { getRoleState } from '../companion/life/store'
 import * as settings from '../storage/settings-store'
 import { loadAuxLLMConfig } from '../llm/aux-config'
@@ -98,7 +104,7 @@ export function registerCompanionIPC(): void {
     }
   })
 
-  /** 朋友圈：仅返回当前活跃主角 */
+  /** 朋友圈：仅返回当前活跃主角；用户赞 / 评论不写回动态正文 */
   ipcMain.handle(
     'companion:get-moments',
     async (_e, opts?: { limit?: number; offset?: number }) => {
@@ -106,7 +112,30 @@ export function registerCompanionIPC(): void {
       const limit = typeof opts?.limit === 'number' ? opts.limit : 50
       const offset = typeof opts?.offset === 'number' ? opts.offset : 0
       const items = await listMomentsForRole(roleId, { limit, offset })
-      return { roleId, items }
+      const interactions = await listMomentUserInteractionsForRole(roleId)
+      const socialByMomentId = Object.fromEntries(
+        items.map((item) => [item.id, describeMomentSocial(item.id, interactions)]),
+      )
+      return { roleId, items, socialByMomentId }
+    },
+  )
+
+  ipcMain.handle('companion:toggle-moment-like', async (_e, momentId: string) => {
+    if (typeof momentId !== 'string' || !momentId.trim()) {
+      return { ok: false as const, error: '动态不存在', code: 'INVALID' }
+    }
+    const roleId = await getActiveRoleId()
+    return toggleMomentLikeForRole(roleId, momentId.trim())
+  })
+
+  ipcMain.handle(
+    'companion:add-moment-comment',
+    async (_e, momentId: string, text?: string) => {
+      if (typeof momentId !== 'string' || !momentId.trim()) {
+        return { ok: false as const, error: '动态不存在', code: 'INVALID' }
+      }
+      const roleId = await getActiveRoleId()
+      return addMomentCommentForRole(roleId, momentId.trim(), text)
     },
   )
 

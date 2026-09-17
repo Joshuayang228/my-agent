@@ -399,6 +399,67 @@ test('正式生活资产可通过真实 IPC 新增、重载保留并拒绝超限
   }
 })
 
+test('正式朋友圈赞评经真实 IPC 重载保留并拒绝空值超长', async () => {
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  await page.evaluate(() => window.electronAPI.settings.set('llmApiKey', 'local-test-key'))
+  if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
+  await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
+  const seeded = await electronApp.evaluate(async () => {
+    const store = (globalThis as { __lifeStore?: { insertMoment: Function } }).__lifeStore
+    if (!store) throw new Error('__lifeStore missing')
+    const moment = await store.insertMoment({
+      roleId: 'lin',
+      eventId: `e2e-moment-${Date.now()}`,
+      publishedAt: Date.now(),
+      text: '今天把书桌收拾出来了。',
+      meta: {
+        location: '家中',
+        interactions: [
+          { kind: 'comment', castId: 'chen', castName: '陈晨', text: '这桌面终于能看见了' },
+          { kind: 'coframe', castId: 'ayu', castName: '阿雨' },
+        ],
+      },
+    })
+    if (!moment) throw new Error('seed moment failed')
+    return moment
+  })
+  try {
+    const listed = await page.evaluate(() => window.electronAPI.companion.getMoments({ limit: 80 }))
+    expect(listed.roleId).toBe('lin')
+    expect(listed.items.some((item) => item.id === seeded.id && item.text === '今天把书桌收拾出来了。')).toBe(true)
+    const empty = await page.evaluate((momentId) => window.electronAPI.companion.addMomentComment(momentId, '   '), seeded.id)
+    expect(empty).toMatchObject({ ok: false, code: 'INVALID' })
+    const oversized = await page.evaluate((momentId) => window.electronAPI.companion.addMomentComment(momentId, '评'.repeat(281)), seeded.id)
+    expect(oversized).toMatchObject({ ok: false, code: 'INVALID' })
+    const liked = await page.evaluate((momentId) => window.electronAPI.companion.toggleMomentLike(momentId), seeded.id)
+    expect(liked).toMatchObject({ ok: true, social: { liked: true, likeCount: 1 } })
+    const commented = await page.evaluate((momentId) => window.electronAPI.companion.addMomentComment(momentId, '  先把窗帘拉开  '), seeded.id)
+    expect(commented).toMatchObject({ ok: true })
+    if (!commented.ok) return
+    expect(commented.social.comments.map((item) => item.text)).toEqual(['先把窗帘拉开'])
+    await page.reload()
+    await expect(page.locator('#startup-splash')).toBeHidden()
+    if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
+    await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
+    const persisted = await page.evaluate(() => window.electronAPI.companion.getMoments({ limit: 80 }))
+    const social = persisted.socialByMomentId[seeded.id]
+    expect(social).toMatchObject({ liked: true, likeCount: 1 })
+    expect(social.comments.map((item) => item.text)).toEqual(['先把窗帘拉开'])
+    expect(persisted.items.find((item) => item.id === seeded.id)?.text).toBe('今天把书桌收拾出来了。')
+    expect(persisted.items.find((item) => item.id === seeded.id)?.meta.interactions).toEqual([
+      { kind: 'comment', castId: 'chen', castName: '陈晨', text: '这桌面终于能看见了' },
+      { kind: 'coframe', castId: 'ayu', castName: '阿雨' },
+    ])
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    const post = page.getByTestId('moment-post').filter({ hasText: '今天把书桌收拾出来了。' }).first()
+    await expect(post.getByTestId('moment-like-button')).toHaveAttribute('aria-label', '取消赞')
+    await expect(post.getByTestId('moment-comment')).toHaveText(['陈晨：这桌面终于能看见了', '我：先把窗帘拉开'])
+  } finally {
+    const back = page.getByTestId('world-hub').getByRole('button', { name: '返回聊天', exact: true })
+    if (await back.isVisible().catch(() => false)) await back.click()
+  }
+})
+
 test('Debug 质量 Eval 可保存并重新载入真人格人工审阅', async () => {
   await expect(page.locator('#startup-splash')).toBeHidden()
   await page.evaluate(() => window.electronAPI.settings.set('developerMode', 'true'))

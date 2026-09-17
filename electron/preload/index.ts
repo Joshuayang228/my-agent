@@ -31,6 +31,8 @@ import type {
   RendererSettings,
   LLMConnectionTestInput,
   LLMConnectionTestResult,
+  MomentListResult,
+  MomentSocialMutationResult,
 } from '../../src/shared/types'
 
 interface SessionSummary {
@@ -142,17 +144,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
       toVersion: number,
     ): Promise<{ ok: true; version: number } | { ok: false; error: string }> =>
       ipcRenderer.invoke('companion:rollback-mutable', roleId, toVersion),
-    getMoments: (opts?: { limit?: number; offset?: number }): Promise<{
-      roleId: string
-      items: Array<{
-        id: string
-        roleId: string
-        eventId: string
-        publishedAt: number
-        text: string
-        meta: Record<string, unknown>
-      }>
-    }> => ipcRenderer.invoke('companion:get-moments', opts),
+    getMoments: (opts?: { limit?: number; offset?: number }): Promise<MomentListResult> =>
+      ipcRenderer.invoke('companion:get-moments', opts),
+    toggleMomentLike: (momentId: string): Promise<MomentSocialMutationResult> =>
+      ipcRenderer.invoke('companion:toggle-moment-like', momentId),
+    addMomentComment: (momentId: string, text: string): Promise<MomentSocialMutationResult> =>
+      ipcRenderer.invoke('companion:add-moment-comment', momentId, text),
     catchupStatus: (): Promise<{
       roleId: string
       pausedAt: number | null

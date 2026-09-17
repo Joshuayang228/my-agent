@@ -59,13 +59,13 @@ export function WorldHub({
   recentByRole: Record<string, { sessionId: string; title: string; updatedAt: number }>
   /** Playground / 测试专用只读朋友圈样张。 */
   momentsPreview?: MomentsPreviewData
-  /** Playground 以社交流展示验收朋友圈层级。 */
+  /** 正式页默认 Alice 流；Playground 可显式覆盖。 */
   momentsAppearance?: 'default' | 'social-feed' | 'alice-feed'
   /** WorldHub 已有标题时隐藏 Moments 重复标题行。 */
   hideMomentsHeader?: boolean
   /** Playground 可用自定义人物世界头图替代默认标题行。 */
   hideHeader?: boolean
-  /** Playground 专用互动样张；正式页面默认不显示无后端的假互动。 */
+  /** Playground 夹具才需要这个开关；正式页只要没有 previewData 就走真实赞 / 评论。 */
   showSocialActions?: boolean
   /** Playground / 测试专用业务样张；存在时替代对应真实面板，避免读取生产数据。 */
   previewPanels?: Partial<Record<WorldTab, ReactNode>>
@@ -140,7 +140,7 @@ export function WorldHub({
       <div id={`world-panel-${tab}`} role="tabpanel" className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
         {previewPanels?.[tab] ?? (
           <>
-            {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} appearance={momentsAppearance ?? 'social-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} />}
+            {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} appearance={momentsAppearance ?? 'alice-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} />}
             {tab === 'wardrobe' && <AssetsPanel onClose={onClose} />}
             {(tab === 'culture' || tab === 'home' || tab === 'footprints') && <WorldDetailsPanel tab={tab} />}
             {tab === 'cast' && (

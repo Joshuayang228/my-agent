@@ -2888,6 +2888,95 @@ test.describe('My Agent UI', () => {
       await expect(tab).toHaveAttribute('aria-selected', 'true')
     }
   })
+  test('正式朋友圈赞评走真实 IPC 替身且评论槽几何不变', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const moment = {
+        id: 'moment-desk',
+        roleId: 'lin',
+        eventId: 'event-desk',
+        publishedAt: Date.UTC(2026, 8, 1, 8),
+        text: '今天把书桌收拾出来了。',
+        meta: {
+          location: '家中',
+          interactions: [
+            { kind: 'comment', castId: 'chen', castName: '陈晨', text: '这桌面终于能看见了' },
+            { kind: 'coframe', castId: 'ayu', castName: '阿雨' },
+          ],
+        },
+      }
+      const state = {
+        liked: false,
+        comments: [] as Array<{ id: string; actorName: string; text: string; createdAt: number }>,
+        commentCalls: [] as string[],
+        failComment: false,
+        release: null as null | (() => void),
+      }
+      const social = () => ({
+        liked: state.liked,
+        likeCount: state.liked ? 1 : 0,
+        comments: state.comments.map((item) => ({ ...item })),
+        commentCount: state.comments.length,
+      })
+      ;(window as any).__momentSocial = state
+      const api = (window as any).electronAPI.companion
+      api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
+      api.catchupStatus = async () => ({ roleId: 'lin', presence: '', catchupSummary: '' })
+      api.getMoments = async () => ({
+        roleId: 'lin',
+        items: [{ ...moment, meta: { ...moment.meta, interactions: [...moment.meta.interactions] } }],
+        socialByMomentId: { [moment.id]: social() },
+      })
+      api.toggleMomentLike = async (momentId: string) => {
+        if (momentId !== moment.id) return { ok: false, error: '动态不存在', code: 'NOT_FOUND' }
+        state.liked = !state.liked
+        return { ok: true, social: social() }
+      }
+      api.addMomentComment = async (momentId: string, text: string) => {
+        state.commentCalls.push(text)
+        await new Promise<void>((resolve) => { state.release = resolve })
+        if (state.failComment) return { ok: false, error: '评论不能为空', code: 'INVALID' }
+        const normalized = String(text).replace(/\r\n/g, '\n').trim()
+        if (!normalized) return { ok: false, error: '评论不能为空', code: 'INVALID' }
+        const comment = { id: `user-${state.comments.length + 1}`, actorName: '我', text: normalized, createdAt: Date.now() }
+        state.comments = [...state.comments, comment]
+        return { ok: true, social: social() }
+      }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    const post = page.getByTestId('moment-post').first()
+    await expect(post).toContainText('今天把书桌收拾出来了。')
+    await expect(post.getByTestId('moment-comment')).toHaveText(['陈晨：这桌面终于能看见了'])
+    const composer = post.getByTestId('moment-comment-composer')
+    const closedBox = await composer.boundingBox()
+    await post.getByTestId('moment-comment-button').click()
+    await expect(post.getByTestId('moment-comment-button')).toHaveAttribute('aria-pressed', 'true')
+    expect(await composer.boundingBox()).toEqual(closedBox)
+    const input = post.getByTestId('moment-comment-input')
+    await expect(input).toBeVisible()
+    await input.fill('  先把窗帘拉开  ')
+    await input.dispatchEvent('keydown', { key: 'Enter', isComposing: true, keyCode: 229 })
+    expect(await page.evaluate(() => (window as any).__momentSocial.commentCalls)).toEqual([])
+    await page.evaluate(() => { (window as any).__momentSocial.failComment = true })
+    await post.getByTestId('moment-comment-submit').evaluate((node: HTMLButtonElement) => { node.click(); node.click() })
+    await expect(post.getByTestId('moment-comment-submit')).toBeDisabled()
+    expect(await page.evaluate(() => (window as any).__momentSocial.commentCalls)).toEqual(['  先把窗帘拉开  '])
+    await page.evaluate(() => (window as any).__momentSocial.release())
+    await expect(post.getByTestId('moment-comment-error')).toContainText('评论不能为空')
+    await expect(input).toHaveValue('  先把窗帘拉开  ')
+    await page.evaluate(() => { (window as any).__momentSocial.failComment = false })
+    await post.getByTestId('moment-comment-submit').click()
+    await expect.poll(() => page.evaluate(() => (window as any).__momentSocial.commentCalls.length)).toBe(2)
+    await page.evaluate(() => (window as any).__momentSocial.release())
+    await expect(post.getByTestId('moment-comment')).toHaveText(['陈晨：这桌面终于能看见了', '我：先把窗帘拉开'])
+    await expect(input).toHaveValue('')
+    await post.getByTestId('moment-like-button').click()
+    await expect(post.getByTestId('moment-like-button')).toHaveAttribute('aria-label', '取消赞')
+    await post.getByTestId('moment-like-button').click()
+    await expect(post.getByTestId('moment-like-button')).toHaveAttribute('aria-label', '赞')
+  })
+
   test('Debug 与 Playground 采用一级任务导航', async ({ page }) => {
     await page.goto('/')
 
