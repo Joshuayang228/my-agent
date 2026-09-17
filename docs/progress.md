@@ -4,6 +4,7 @@
 
 ## 人读摘要（约 30 秒）
 - 2026-09-17：共享 Prism 主题清洗已进入 CodeBlock：oneLight 容器白底去掉，内部 token 透明，Diff 语义高亮保留。正式审阅、文件预览、Foundation Markdown / Diff 与 Playground 工作区审阅共用同一入口。全产品 adopted、MCP OAuth / 异常断开和工作区跨页状态仍未完成。
+- 2026-09-18：人物世界验收修复：朋友圈共享卡片 hover 不再 translateY，评论槽严格几何断言通过；衣柜删除验收同步真实按钮名称和脱敏错误文案，补齐入口夹具。全量 Unit 959、UI 186、Electron 18（外部模型 4 项跳过）及根类型 / 构建通过；全产品目标仍进行中。
 - 2026-09-17：R06 正式模型发现收口主进程 `settings:fetch-models`：OpenAI Compatible / Anthropic 读 `/v1/models`，Gemini 明确不支持；无 Key 不发请求，已存 Key 只按连接注入，401 可重试且不回传凭据。Playground 获取仍是隔离 fixture。MCP OAuth / 异常断开与全产品 adopted 仍未完成。
 - 2026-09-17：R12 人物 starter 来源复核收口无 `world.default.json` 的运行态泄漏：lin / zhou / xia 默认居所和当前位置改为「未设定」，Catch-up 空居所不再写「日常住处」。衣柜 / 文化分味播种仍不是已确认人物事实。全产品目标保持进行中。
 - 2026-09-17：R11 正式关于页与 Playground 共用开发者模式开关；真实 `settings.developerMode` 控制侧栏 Debug / Playground 整组入口和 Chat 顶栏 Debug 按钮，候选只改内存样张。Electron 独立目录覆盖开关、隐藏入口和完整重启恢复。UI E2E 的 `ui-e2e` 模式仍显式保留开发入口。全产品目标保持进行中。

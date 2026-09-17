@@ -3655,6 +3655,7 @@ test.describe('My Agent UI', () => {
       const state = { deletes: [] as string[], fail: true, release: null as null | (() => void), items: [{ id: 'coat-1', roleId: 'lin', kind: 'wardrobe', name: '灰绿外套', payload: { color: '灰绿' }, acquiredAt: 1, sourceEventId: null }] }
       ;(window as any).__assetDelete = state
       const api = (window as any).electronAPI.companion
+      api.catchupStatus = async () => ({ roleId: 'lin' })
       api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
       api.getAssets = async () => ({ roleId: 'lin', items: state.items.map((item) => ({ ...item })) })
       api.getMoments = async () => ({ roleId: 'lin', items: [] })
@@ -3670,7 +3671,7 @@ test.describe('My Agent UI', () => {
     await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
     await page.getByTestId('world-tab-wardrobe').click()
     await expect(page.getByText('灰绿外套', { exact: true })).toBeVisible()
-    await page.getByRole('button', { name: '删除', exact: true }).click()
+    await page.getByRole('button', { name: '删除 灰绿外套', exact: true }).click()
     const confirmation = page.getByRole('group', { name: '删除「灰绿外套」？', exact: true })
     await expect(confirmation).toBeVisible()
     const confirm = confirmation.getByRole('button', { name: '删除', exact: true })
@@ -3678,7 +3679,7 @@ test.describe('My Agent UI', () => {
     await expect(confirm).toBeDisabled()
     expect(await page.evaluate(() => (window as any).__assetDelete.deletes)).toEqual(['coat-1'])
     await page.evaluate(() => (window as any).__assetDelete.release())
-    await expect(page.getByText('删除失败', { exact: true })).toBeVisible()
+    await expect(page.getByRole('alert').getByText('未删除，请重试或取消。', { exact: true })).toBeVisible()
     await expect(confirmation).toBeVisible()
     await page.evaluate(() => { (window as any).__assetDelete.fail = false })
     await confirm.click()

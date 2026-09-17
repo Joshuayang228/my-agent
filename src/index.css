@@ -771,12 +771,11 @@ html[data-font-scale="lg"] {
   padding: 1.15rem 1.25rem 1rem;
   background: color-mix(in srgb, var(--accent) 7%, var(--card-bg));
   box-shadow: 0 .45rem 1.2rem color-mix(in srgb, var(--text-primary) 4%, transparent);
-  transition: border-color var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
+  transition: border-color var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease);
 }
 .moments-alice-feed .moments-alice-post:hover {
   border-color: color-mix(in srgb, var(--accent) 26%, var(--border-subtle));
   background: color-mix(in srgb, var(--accent) 10%, var(--card-bg));
-  transform: translateY(-1px);
 }
 .moments-alice-feed .moments-alice-post p {
   max-width: 58rem;

@@ -1,6 +1,7 @@
 # 质量总控
 
 正式 Electron MCP 添加向导已通过本地 SDK 服务验证测试连接、工具发现、配置保存与完整重启后的配置恢复；safeStorage 凭据恢复、OAuth 与异常断开 UI 恢复仍是后续缺口。
+人物世界布局验收保持评论槽完整 boundingBox 相等断言，移除共享卡片 hover 位移而不增加容差；衣柜删除从具体条目的无障碍按钮进入，验证脱敏错误、确认保留、防重入与重试成功。Renderer 夹具补齐人物世界初始挂载的 catchupStatus 接口，不改生产调用。
 > 质量维入口：定义 Unit / Eval / E2E / 安全审计的分层和必跑条件。具体 Case、测试文件和当前通过数量以仓库代码及命令输出为准，不在本文维护动态总数。
 > 深 Why：`methodology/m17-testing-architecture.md`、`methodology/m18-eval.md`。
 
