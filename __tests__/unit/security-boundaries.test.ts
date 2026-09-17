@@ -15,7 +15,7 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
 }))
 vi.mock('../../electron/main/storage/database', () => ({}))
 
-import { collectExportSessions, importSessionsIntoDatabase, isSafeBackupSettingKey, isValidExportData, redactModelConnections } from '../../electron/main/ipc/data-export'
+import { collectExportLivingAssets, collectExportLivingAssetSeeds, collectExportSessions, importBackupPayload, importLivingAssetsIntoDatabase, importSessionsIntoDatabase, isSafeBackupSettingKey, isValidExportData, redactModelConnections } from '../../electron/main/ipc/data-export'
 import { buildSafeChildProcessEnv } from '../../electron/main/utils/safe-process-env'
 import { isAuthorizedProjectSelection, isPathInsideRoot } from '../../electron/main/ipc/project'
 import { isRendererWritableSettingKey } from '../../electron/main/ipc/settings'
@@ -42,16 +42,103 @@ const validExport = {
   settings: { llmModel: 'test-model' },
 }
 
+const livingAsset = {
+  id: 'culture:lin:backup-book',
+  roleId: 'lin',
+  kind: 'culture',
+  name: '备份验收作品',
+  payload: { type: 'reading', note: '真实备份应带回这条笔记' },
+  acquiredAt: 1,
+  sourceEventId: null,
+}
+
 describe('安全边界', () => {
   it('导入校验允许普通文本 ID，但拒绝错误结构', () => {
     expect(isValidExportData(validExport)).toBe(true)
+    expect(isValidExportData({ ...validExport, livingAssets: undefined, livingAssetSeeds: undefined })).toBe(true)
     expect(isValidExportData({ ...validExport, sessions: 'not-an-array' })).toBe(false)
     expect(isValidExportData({ ...validExport, settings: { llmModel: 'x'.repeat(1_000_001) } })).toBe(false)
     expect(isValidExportData({ ...validExport, memories: [{ id: 'm1', category: 'arbitrary', content: 'x', createdAt: 1, updatedAt: 1 }] })).toBe(false)
     expect(isValidExportData({ ...validExport, memories: [{ id: 'm1', category: 'fact', content: 'api_key=sk-secret-value', createdAt: 1, updatedAt: 1 }] })).toBe(false)
+    expect(isValidExportData({ ...validExport, livingAssets: [{ ...livingAsset, kind: 'secret' }] })).toBe(false)
+    expect(isValidExportData({ ...validExport, livingAssets: [{ ...livingAsset, name: '超长'.repeat(30) }] })).toBe(false)
   })
 
 
+
+  it('生活资产备份按 id 合并，失败时会话与资产一起回滚', async () => {
+    const SQL = await initSqlJs()
+    const db = new SQL.Database()
+    db.run(`
+      CREATE TABLE sessions (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        role_id TEXT NOT NULL DEFAULT '',
+        session_kind TEXT NOT NULL DEFAULT 'main'
+      );
+      CREATE TABLE messages (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        tool_calls TEXT,
+        tool_call_id TEXT,
+        created_at INTEGER NOT NULL,
+        sort_order INTEGER NOT NULL
+      );
+    `)
+    db.run(`
+      CREATE TABLE companion_assets (
+        id TEXT PRIMARY KEY,
+        role_id TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        name TEXT NOT NULL,
+        payload_json TEXT NOT NULL DEFAULT '{}',
+        acquired_at INTEGER NOT NULL,
+        source_event_id TEXT
+      );
+      CREATE TABLE companion_asset_seeds (
+        role_id TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        PRIMARY KEY (role_id, kind)
+      );
+    `)
+    db.run(
+      `INSERT INTO companion_assets (id, role_id, kind, name, payload_json, acquired_at, source_event_id)
+       VALUES (?, ?, ?, ?, ?, ?, NULL)`,
+      [livingAsset.id, livingAsset.roleId, livingAsset.kind, '已有作品', JSON.stringify({ type: 'reading' }), 9],
+    )
+
+    const first = importLivingAssetsIntoDatabase(db, [livingAsset, {
+      ...livingAsset,
+      id: 'furniture:lin:lamp',
+      kind: 'furniture',
+      name: '备份台灯',
+      payload: { description: '桌边一盏灯' },
+    }], [{ roleId: 'lin', kind: 'home' }])
+    expect(first).toEqual({ assets: 1, seeds: 1 })
+    expect(importLivingAssetsIntoDatabase(db, [livingAsset], [{ roleId: 'lin', kind: 'home' }])).toEqual({ assets: 0, seeds: 0 })
+    expect(db.exec("SELECT name FROM companion_assets WHERE id = 'culture:lin:backup-book'")[0]?.values).toEqual([['已有作品']])
+
+    db.run(`CREATE TRIGGER reject_bad_asset BEFORE INSERT ON companion_assets
+      BEGIN SELECT RAISE(ABORT, 'fixture failure'); END`)
+    expect(() => importBackupPayload(db, {
+      sessions: [{ ...validExport.sessions[0], id: 'session-rollback' }],
+      livingAssets: [{ ...livingAsset, id: 'furniture:lin:rollback-lamp', kind: 'furniture', name: '回滚台灯' }],
+      livingAssetSeeds: [{ roleId: 'lin', kind: 'footprint' }],
+    })).toThrow()
+    db.run('DROP TRIGGER reject_bad_asset')
+    expect(db.exec("SELECT id FROM sessions WHERE id = 'session-rollback'")).toEqual([])
+    expect(db.exec("SELECT id FROM companion_assets WHERE id = 'furniture:lin:rollback-lamp'")).toEqual([])
+    expect(db.exec("SELECT kind FROM companion_asset_seeds WHERE kind = 'footprint'")).toEqual([])
+
+    const collected = collectExportLivingAssets(db)
+    expect(collected.find((item) => item.id === 'furniture:lin:lamp')?.payload).toEqual({ description: '桌边一盏灯' })
+    expect(collectExportLivingAssetSeeds(db)).toEqual([{ roleId: 'lin', kind: 'home' }])
+    db.close()
+  })
 
   it('备份导出/导入 SQL 与当前 snake_case schema 一致，并保留消息顺序', async () => {
     const SQL = await initSqlJs()

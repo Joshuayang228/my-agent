@@ -4008,6 +4008,8 @@ test.describe('My Agent UI', () => {
     await page.getByRole('button', { name: '数据与隐私', exact: true }).click()
     await expect(page.getByRole('button', { name: /导出数据/ })).toContainText('生成一份本地备份')
     await expect(page.getByRole('button', { name: /导入数据/ })).toContainText('从本地备份恢复')
+    await expect(page.getByText('生活资产与播种标记')).toBeVisible()
+    await expect(page.getByText('API Key、MCP 密钥、权限规则与本机项目路径。')).toBeVisible()
     await page.locator('[data-testid="settings-back"]').click()
     await expect(settingsPanel).not.toBeVisible()
   })

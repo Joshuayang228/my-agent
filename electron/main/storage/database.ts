@@ -36,7 +36,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 15
+export const SCHEMA_VERSION = 16
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -452,6 +452,16 @@ export function runMigrations(database: SqlJsDatabase): void {
         CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_moment_user_like
           ON companion_moment_user_interactions(moment_id, actor_id)
           WHERE kind = 'like'
+      `)
+    },
+    // v15 -> v16: persist living-asset seed markers in schema so backups can restore home/footprint init state.
+    (d) => {
+      d.run(`
+        CREATE TABLE IF NOT EXISTS companion_asset_seeds (
+          role_id TEXT NOT NULL,
+          kind    TEXT NOT NULL,
+          PRIMARY KEY (role_id, kind)
+        )
       `)
     },
   ]

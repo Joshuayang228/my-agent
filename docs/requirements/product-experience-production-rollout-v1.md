@@ -152,7 +152,14 @@ R12 必须拆成六个独立验收面：
 - R12 确认流程补验：衣柜删除与通讯录强制开聊改为成功后才关闭确认；失败保留同一确认，处理中禁止取消和重复提交。CastPanel 去掉字面换行转义。不改 IPC、存储或召唤忙闲判定。正式入口覆盖失败重试和连点。该补验不关闭生活面编辑、备份或六面完整验收。
 - R12 通讯录忙闲列表预检：正式 `CastPanel` 读取既有 `companion:check-cast-availability`，卡片在开聊前展示方便 / 忙碌 / 未读到；开聊仍走 `startSummon` 二次判定和强制确认。不改忙闲算法、IPC 形状或 Playground 静态通讯录夹具。Renderer 覆盖忙碌卡可见、可用卡可见、忙碌仍可开聊进入确认。该补验不关闭六面完整 Electron 或备份。
 - R12 朋友圈互动后端：正式 `MomentsPanel` 无 preview 时走 `companion:toggle-moment-like` / `companion:add-moment-comment`；用户赞评写入 `companion_moment_user_interactions`，不改 `moment.text` 或 `meta.interactions`。Playground 仍用本地夹具。Renderer 覆盖正式入口赞 / 评论、IME 不误提交、失败保留草稿、pending 不双提交和评论槽几何。Electron 覆盖真实 IPC 赞评、空值 / 超长拒绝和重载保留。该补验不关闭人物 starter 来源复核、六面完整 Electron 或备份。
-- R06 之外，R10 MCP 真实连接恢复，以及全产品逐项 adopted 证据仍未完成；R12 衣柜 / 文化 / 家居 / 足迹编辑链已接入 `companion_assets` 并有 Electron create / 重载 / 超限拒绝证据。通讯录忙闲列表预检与朋友圈真实赞评已接入。人物 starter 来源复核与备份仍未完成，本合同继续保持进行中。
+- R06 之外，R10 MCP 真实连接恢复，以及全产品逐项 adopted 证据仍未完成；R12 衣柜 / 文化 / 家居 / 足迹编辑链已接入 `companion_assets` 并有 Electron create / 重载 / 超限拒绝证据。通讯录忙闲列表预检与朋友圈真实赞评已接入。R07 生活资产备份本批收口，人物 starter 来源复核与六面完整 Electron 仍未完成，本合同继续保持进行中。
+
+### R07 生活资产真实备份（2026-09-17）
+
+- 本批边界：正式 `data:export` / `data:import` 覆盖 `companion_assets` 与 `companion_asset_seeds`。按稳定 id / 播种键合并，不覆盖现有记录。会话与生活资产同一事务，失败整笔回滚。旧备份缺这两项仍视为空数组，必须通过 `isValidExportData`。记忆继续走 `memoryStore.addMemory`，设置继续走 settings-store。
+- 允许修改：共享备份类型、database schema v16、`ipc/data-export.ts`、正式设置与 Playground 数据页说明、Renderer 声明、`security-boundaries` Unit 与 `onboarding` Electron 测试，以及对应模块 / 质量 / 账本文档。
+- 明确不碰：人物 starter 来源复核、六面完整 Electron、MCP / OAuth、Playground fixture、凭据、权限规则、项目路径、朋友圈互动备份、用户旧数据兼容层。
+- 验收：Unit 覆盖旧备份兼容、非法 kind / 超长名拒绝、id 合并和 trigger 失败回滚；Electron 在独立数据目录验证真实导出导入往返、二次导入不覆盖。该证据不把 R07 整项或全产品标为 adopted。
 
 ### R05 编辑与异步恢复验收（2026-09-16）
 
@@ -176,7 +183,7 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 | 回流面 | 当前状态 | 已有正式证据 | 仍缺的硬证据 |
 |---|---|---|---|
 | 对话与导航 | `production-ready`，待完整入口验收 | 正式 `App` / Sidebar / Chat / Right Dock 调用链与既有 Electron 回归 | 四主题、窄宽、跨页草稿与任务恢复的正式入口证据 |
-| 人物世界 | `production-ready`，部分 `adopted` | 角色架、文化角 / 家居 / 足迹真实资产链、正式增改删与 Electron create 覆盖、通讯录列表忙闲预检、朋友圈真实赞评 | 六面完整 Electron 与备份、人物 starter 来源复核 |
+| 人物世界 | `production-ready`，部分 `adopted` | 角色架、文化角 / 家居 / 足迹真实资产链、正式增改删与 Electron create 覆盖、通讯录列表忙闲预检、朋友圈真实赞评、生活资产真实备份 | 六面完整 Electron、人物 starter 来源复核 |
 | 设置与人物设置 | `user-approved`，正在回流 | Playground 候选、正式 `SettingsPanel`、共享导航 / 卡片基础层 | 旧设置展示层逐页替换为候选结构；真实保存、失败和窄宽验收 |
 | 记忆 | 整页已回流 | 共享四类 / 搜索 / 新增行；正式长文、固定槽、四主题宽窄、失败恢复及真实四类重启 CRUD | 本项不替代其他设置或备份 / 向量召回的验收 |
 | 主题与基础组件 | `production-ready` | Foundation 主题资产、共享设置卡片 / 行组件、基础复用门禁 | Markdown / Diff / 工作区全部正式入口的无白底验收 |

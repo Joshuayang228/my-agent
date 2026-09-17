@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import initSqlJs from 'sql.js'
+import { BACKUP_LIVING_ASSET_KINDS } from '../../src/shared/types'
 import * as identityLoader from '../../electron/main/companion/identity/loader'
 
 vi.mock('electron', () => ({
@@ -57,6 +58,7 @@ const {
   normalizeGrantAsset,
   formatBookshelfSliceForPrompt,
   ASSET_KIND_BOOKSHELF,
+  USER_CREATABLE_ASSET_KINDS,
 } = await import('../../electron/main/companion/life/assets')
 
 const { ensureDayScripts, __lifeStore } =
@@ -253,6 +255,10 @@ describe('Companion Assets', () => {
     const b = await pickWardrobeAssetId('lin', 42)
     expect(a).toBe(b)
     expect(a).toBeTruthy()
+  })
+
+  it('createAsset 与备份使用同一生活资产白名单', () => {
+    expect(USER_CREATABLE_ASSET_KINDS).toEqual(BACKUP_LIVING_ASSET_KINDS)
   })
 
   it('createAsset 只允许白名单类型，超限拒绝且按角色隔离', async () => {

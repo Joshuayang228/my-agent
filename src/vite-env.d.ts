@@ -33,6 +33,8 @@ import type {
   LLMConnectionTestResult,
   MomentListResult,
   MomentSocialMutationResult,
+  DataExportStats,
+  DataImportStats,
 } from './shared/types'
 
 interface SessionSummary {
@@ -380,8 +382,8 @@ declare global {
         >
       }
       data: {
-        export: () => Promise<{ success: boolean; path?: string; error?: string; stats?: { sessions: number; memories: number } }>
-        import: () => Promise<{ success: boolean; error?: string; stats?: { sessions: number; memories: number; settings: number } }>
+        export: () => Promise<{ success: boolean; path?: string; error?: string; stats?: DataExportStats }>
+        import: () => Promise<{ success: boolean; error?: string; stats?: DataImportStats }>
       }
       terminal: {
         run: (input: { command: string; cwd?: string }) => Promise<

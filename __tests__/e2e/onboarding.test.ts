@@ -399,6 +399,61 @@ test('正式生活资产可通过真实 IPC 新增、重载保留并拒绝超限
   }
 })
 
+test('正式生活资产经真实备份导出导入后保留且不覆盖现有记录', async () => {
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  await page.evaluate(() => window.electronAPI.settings.set('llmApiKey', 'local-test-key'))
+  if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
+  await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
+  const note = '这是一条通过真实备份往返的长笔记。\n'.repeat(20)
+  const created = await page.evaluate(({ note }) => window.electronAPI.companion.createAsset({
+    kind: 'culture',
+    name: '备份往返验收作品',
+    payload: { type: 'reading', detail: '备份应带回摘要', note },
+  }), { note })
+  expect(created).toMatchObject({ ok: true })
+  if (!created.ok) return
+  const exportPath = path.join(userDataDir, 'living-asset-backup.json')
+  const importDir = await mkdtemp(path.join(os.tmpdir(), 'my-agent-backup-import-'))
+  let importApp: ElectronApplication | undefined
+  try {
+    await electronApp.evaluate(({ dialog }, filePath) => {
+      dialog.showSaveDialog = async () => ({ canceled: false, filePath })
+    }, exportPath)
+    const exported = await page.evaluate(() => window.electronAPI.data.export())
+    expect(exported).toMatchObject({ success: true })
+    expect(exported.stats?.livingAssets).toBeGreaterThan(0)
+    const raw = JSON.parse(await readFile(exportPath, 'utf8')) as { livingAssets?: Array<{ name: string }>; livingAssetSeeds?: unknown[] }
+    expect(raw.livingAssets?.some((item) => item.name === '备份往返验收作品')).toBe(true)
+    expect(Array.isArray(raw.livingAssetSeeds)).toBe(true)
+
+    importApp = await electron.launch({
+      args: [path.join(__dirname, '../../dist-electron/index.js'), `--user-data-dir=${importDir}`, '--no-sandbox'],
+      env: { ...process.env, NODE_ENV: 'production', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' },
+    })
+    const importPage = await importApp.firstWindow()
+    await importPage.waitForLoadState('domcontentloaded')
+    await expect(importPage.locator('#startup-splash')).toBeHidden()
+    await importApp.evaluate(({ dialog }, filePath) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] })
+    }, exportPath)
+    const imported = await importPage.evaluate(() => window.electronAPI.data.import())
+    expect(imported).toMatchObject({ success: true })
+    expect(imported.stats?.livingAssets).toBeGreaterThan(0)
+    const restored = await importPage.evaluate(() => window.electronAPI.companion.getAssets())
+    const item = restored.items.find((entry) => entry.name === '备份往返验收作品')
+    expect(item?.payload.note).toBe(note)
+    const again = await importPage.evaluate(() => window.electronAPI.data.import())
+    expect(again).toMatchObject({ success: true })
+    expect(again.stats?.livingAssets).toBe(0)
+    const afterMerge = await importPage.evaluate(() => window.electronAPI.companion.getAssets())
+    expect(afterMerge.items.filter((entry) => entry.name === '备份往返验收作品')).toHaveLength(1)
+  } finally {
+    await page.evaluate((assetId) => window.electronAPI.companion.deleteAsset(assetId), created.asset.id)
+    if (importApp) await importApp.close()
+    await rm(importDir, { recursive: true, force: true })
+  }
+})
+
 test('正式朋友圈赞评经真实 IPC 重载保留并拒绝空值超长', async () => {
   await expect(page.locator('#startup-splash')).toBeHidden()
   await page.evaluate(() => window.electronAPI.settings.set('llmApiKey', 'local-test-key'))

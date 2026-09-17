@@ -10,6 +10,7 @@ import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
 import type { CompanionAsset, GrantAssetSpec } from '../types'
+import { BACKUP_LIVING_ASSET_KINDS } from '../../../../src/shared/types'
 import { loadRoleWorldDefaults } from '../identity/loader'
 import { normalizeGrantAsset } from './grant-asset'
 
@@ -141,14 +142,7 @@ export const ASSET_KIND_HOME = 'home'
 export const ASSET_KIND_FOOTPRINT = 'footprint'
 export const ASSET_KIND_FURNITURE = 'furniture'
 
-export const USER_CREATABLE_ASSET_KINDS = [
-  ASSET_KIND_WARDROBE,
-  ASSET_KIND_BOOKSHELF,
-  ASSET_KIND_CULTURE,
-  ASSET_KIND_HOME,
-  ASSET_KIND_FOOTPRINT,
-  ASSET_KIND_FURNITURE,
-] as const
+export const USER_CREATABLE_ASSET_KINDS = BACKUP_LIVING_ASSET_KINDS
 
 export type UserCreatableAssetKind = (typeof USER_CREATABLE_ASSET_KINDS)[number]
 

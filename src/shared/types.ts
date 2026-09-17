@@ -891,6 +891,47 @@ export type MomentSocialMutationResult =
   | { ok: true; social: MomentSocialView }
   | { ok: false; error: string; code?: string }
 
+/** 用户可创建、也可经备份往返的生活资产类型；createAsset 与 data-export 共用此白名单。 */
+export const BACKUP_LIVING_ASSET_KINDS = [
+  'wardrobe',
+  'bookshelf',
+  'culture',
+  'home',
+  'footprint',
+  'furniture',
+] as const
+
+export type BackupLivingAssetKind = (typeof BACKUP_LIVING_ASSET_KINDS)[number]
+
+export interface BackupLivingAsset {
+  id: string
+  roleId: string
+  kind: string
+  name: string
+  payload: Record<string, unknown>
+  acquiredAt: number
+  sourceEventId: string | null
+}
+
+export interface BackupLivingAssetSeed {
+  roleId: string
+  kind: string
+}
+
+export interface DataExportStats {
+  sessions: number
+  memories: number
+  livingAssets: number
+}
+
+export interface DataImportStats {
+  sessions: number
+  memories: number
+  settings: number
+  livingAssets: number
+  livingAssetSeeds: number
+}
+
 // ── 记忆 ──
 
 export type MemoryCategory = 'identity' | 'preference' | 'fact' | 'workflow' | 'voice' | 'feedback'

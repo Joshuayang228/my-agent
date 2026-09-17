@@ -513,7 +513,7 @@ export function SettingsPanel({
               setDataBusy('export')
               try {
                 const res = await window.electronAPI.data.export()
-                if (res.success) toast(`导出成功！${res.stats?.sessions} 个会话 + ${res.stats?.memories} 条记忆`, 'success')
+                if (res.success) toast(`导出成功！${res.stats?.sessions ?? 0} 个会话 + ${res.stats?.memories ?? 0} 条记忆 + ${res.stats?.livingAssets ?? 0} 条生活记录`, 'success')
                 else if (res.error !== 'cancelled') toast(`导出失败: ${res.error}`, 'error')
               } finally { setDataBusy(null) }
             }}
@@ -530,7 +530,7 @@ export function SettingsPanel({
               setDataBusy('import')
               try {
                 const res = await window.electronAPI.data.import()
-                if (res.success) toast(`导入成功！${res.stats?.sessions} 个会话 + ${res.stats?.memories} 条记忆 + ${res.stats?.settings} 项设置`, 'success')
+                if (res.success) toast(`导入成功！${res.stats?.sessions ?? 0} 个会话 + ${res.stats?.memories ?? 0} 条记忆 + ${res.stats?.livingAssets ?? 0} 条生活记录 + ${res.stats?.settings ?? 0} 项设置`, 'success')
                 else if (res.error !== 'cancelled') toast(`导入失败: ${res.error}`, 'error')
               } finally { setDataBusy(null) }
             }}
@@ -543,7 +543,7 @@ export function SettingsPanel({
       </SettingCard>
       <SettingCard>
         <div className="grid gap-4 text-[11px] sm:grid-cols-2" style={{ color: 'var(--text-secondary)' }}>
-          <div><div className="mb-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>备份包含</div><p>会话与消息、记忆条目、普通模型与伙伴偏好。</p></div>
+          <div><div className="mb-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>备份包含</div><p>会话与消息、记忆条目、生活资产与播种标记、普通模型与伙伴偏好。</p></div>
           <div><div className="mb-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>备份不包含</div><p>API Key、MCP 密钥、权限规则与本机项目路径。</p></div>
         </div>
       </SettingCard>
