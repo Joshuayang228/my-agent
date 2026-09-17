@@ -3936,23 +3936,130 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('已删除样张', { exact: true })).toBeVisible()
   })
 
-  test('正式权限页沿用 Playground 的自定义规则折叠交互', async ({ page }) => {
-    await page.goto('/')
-
-    await page.click('button[title="设置"]')
-    await page.getByTestId('settings-nav-permissions').click()
-    const toggle = page.getByTestId('settings-permission-rules-toggle')
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
-    await expect(page.getByRole('button', { name: '添加', exact: true })).toHaveCount(0)
-
-    await toggle.click()
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
-    await expect(page.getByRole('button', { name: '添加', exact: true })).toBeVisible()
-
-    await toggle.click()
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
-    await expect(page.getByRole('button', { name: '添加', exact: true })).toHaveCount(0)
-  })
+  for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
+    for (const width of [1166, 600]) {
+      test(`正式权限页规则卡片与新增草稿 ${theme} ${width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 731 })
+        await installProductionElectronStub(page)
+        await page.addInitScript((themeId) => {
+          localStorage.setItem('theme', themeId)
+          const api = (window as any).electronAPI
+          const stored: Record<string, string> = {
+            llmApiKeyConfigured: 'true',
+            llmModel: 'e2e-model',
+            executionMode: 'confirm-all',
+            permissionRules: JSON.stringify([
+              { id: 'preview-publish', type: 'command', action: 'deny', pattern: 'npm publish', enabled: true },
+            ]),
+          }
+          const harness = { fail: true, writes: [] as Array<[string, string]>, stored }
+          ;(window as any).__permissionSettings = harness
+          api.settings.get = async () => ({ ...stored })
+          api.settings.set = async (key: string, value: string) => {
+            harness.writes.push([key, value])
+            if (key === 'permissionRules' && harness.fail) throw new Error('fixture save failure')
+            stored[key] = value
+          }
+          api.mcp.status = async () => []
+        }, theme)
+        await page.goto('/')
+        await page.locator('button[title="设置"]').click()
+        await (width < 768 ? page.getByRole('tab', { name: '权限与自动化', exact: true }) : page.getByTestId('settings-nav-permissions')).click()
+        const rules = page.getByTestId('settings-rules-existing')
+        const toggle = page.getByTestId('settings-permission-rules-toggle')
+        const add = page.getByTestId('settings-add-rule')
+        const pattern = rules.getByLabel('规则匹配内容', { exact: true })
+        const save = rules.getByTestId('settings-save-rule')
+        const list = rules.getByRole('list', { name: '自定义规则列表' })
+        await expect(toggle).toContainText('自定义规则')
+        await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+        await expect(add).toHaveCount(0)
+        await expect(list).toHaveCount(0)
+        await toggle.click()
+        await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+        await expect(list.getByRole('listitem')).toHaveCount(1)
+        await expect(pattern).toHaveCount(0)
+        await expect(add).toBeVisible()
+        const measureRuleLayout = () => rules.evaluate((node) => {
+          const card = node.getBoundingClientRect()
+          const item = node.querySelector('li')!.getBoundingClientRect()
+          const button = node.querySelector('[data-testid="settings-add-rule"]')!.getBoundingClientRect()
+          return { x: item.x - card.x, y: item.y - card.y, width: item.width, height: item.height, buttonWidth: button.width, buttonHeight: button.height }
+        })
+        const measureAddPosition = () => add.evaluate((node) => {
+          const section = node.closest('[data-testid="settings-rules-existing"]')!.getBoundingClientRect()
+          const button = node.getBoundingClientRect()
+          return { x: button.x - section.x, y: button.y - section.y }
+        })
+        const expectAddBelowList = async () => {
+          expect(await rules.evaluate((node) => {
+            const listNode = node.querySelector('ul')!
+            const button = node.querySelector('[data-testid="settings-add-rule"]')!
+            return Boolean(listNode.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING)
+              && button.getBoundingClientRect().top >= listNode.getBoundingClientRect().bottom + 8
+          })).toBe(true)
+        }
+        await expect(rules).toHaveCSS('border-top-width', '0px')
+        await expect(rules).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+        const ruleCard = list.getByTestId('settings-rule-card').first()
+        await expect(ruleCard).toHaveCSS('border-top-width', '1px')
+        await expect(ruleCard).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+        await expectAddBelowList()
+        const initialLayout = await measureRuleLayout()
+        const initialAddPosition = await measureAddPosition()
+        const cardBox = () => ruleCard.evaluate((node) => {
+          const box = node.getBoundingClientRect()
+          return { width: box.width, height: box.height }
+        })
+        const beforeHover = await cardBox()
+        await ruleCard.hover()
+        expect(await cardBox()).toEqual(beforeHover)
+        await page.mouse.move(0, 0)
+        expect(await measureRuleLayout()).toEqual(initialLayout)
+        await add.click()
+        await expect(add).toHaveAccessibleName('取消添加')
+        await expect(add).toHaveAttribute('aria-expanded', 'true')
+        expect(await measureRuleLayout()).toEqual(initialLayout)
+        expect(await measureAddPosition()).toEqual(initialAddPosition)
+        await expect(save).toBeDisabled()
+        await pattern.fill('   ')
+        await expect(save).toBeDisabled()
+        await pattern.fill('cancelled-command')
+        await rules.getByRole('button', { name: '取消', exact: true }).click()
+        await expect(pattern).toHaveCount(0)
+        expect(await page.evaluate(() => (window as any).__permissionSettings.writes)).toEqual([])
+        expect(await measureRuleLayout()).toEqual(initialLayout)
+        expect(await measureAddPosition()).toEqual(initialAddPosition)
+        await add.click()
+        await pattern.fill('git push')
+        await rules.getByLabel('规则处理方式', { exact: true }).selectOption('需要确认')
+        await save.click()
+        await expect(page.getByRole('alert')).toContainText('规则未保存')
+        await expect(pattern).toHaveValue('git push')
+        await expect(list.getByRole('listitem')).toHaveCount(1)
+        expect(await page.evaluate(() => (window as any).__permissionSettings.stored.permissionRules)).toContain('npm publish')
+        expect(await page.evaluate(() => (window as any).__permissionSettings.writes)).toHaveLength(1)
+        await save.click()
+        await expect(page.getByRole('alert')).toContainText('规则未保存')
+        expect(await page.evaluate(() => (window as any).__permissionSettings.writes)).toHaveLength(2)
+        expect(JSON.parse(await page.evaluate(() => (window as any).__permissionSettings.stored.permissionRules))).toHaveLength(1)
+        await page.evaluate(() => { (window as any).__permissionSettings.fail = false })
+        await save.click()
+        await expect(toggle).toContainText('2 条')
+        await expect(pattern).toHaveCount(0)
+        await expect(add).toHaveAccessibleName('添加')
+        await expect(list.getByRole('listitem')).toHaveCount(2)
+        await expect(list).toContainText('git push')
+        await expect(list).not.toContainText('cancelled-command')
+        expect(JSON.parse(await page.evaluate(() => (window as any).__permissionSettings.stored.permissionRules))).toHaveLength(2)
+        expect(await page.evaluate(() => (window as any).__permissionSettings.writes.every(([key]: [string]) => key === 'permissionRules'))).toBe(true)
+        expect(await measureRuleLayout()).toEqual(initialLayout)
+        await expectAddBelowList()
+        expect(await rules.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
+        await page.screenshot({ path: testInfo.outputPath('permission-rules.png'), animations: 'disabled' })
+      })
+    }
+  }
 
   for (const theme of ['song-smoke', 'yao-stone']) {
     for (const width of [1166, 600]) {

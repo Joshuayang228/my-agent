@@ -239,7 +239,7 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 
 ### R08 权限页面回流
 
-本批按已确认 demo 替换正式权限页：默认审批卡、自定义规则折叠、独立规则卡、列表后固定添加 / 取消槽及向下展开的草稿。正式和 Playground 共用 PermissionSettingsContent / PermissionRulesEditor；Playground 只更新本地规则。删除旧铺开字段和高级 JSON UI，不删除旧 tool / path 规则数据或执行能力。新增只提供命令 / 修改文件 / 删除文件，已有其它类型保留可编辑、停用与删除。
+本批按已确认 demo 替换正式权限页：默认审批卡、自定义规则折叠、独立规则卡、列表后固定添加 / 取消槽及向下展开的草稿。正式和 Playground 共用 PermissionSettingsContent / PermissionRulesEditor；Playground 只更新本地规则。删除旧铺开字段和高级 JSON UI，不删除旧 tool / path 规则数据或执行能力。新增只提供命令 / 修改文件 / 删除文件，已有其它类型保留可编辑、停用与删除。正式入口已覆盖添加 / 取消 / 保存、保存失败保留草稿和原规则、重试不重复写入，以及四主题宽窄与 hover / 取消几何不跳。
 
 允许修改：上述组件、SettingsPanel 和 SettingsExperienceCandidate 接入、Foundation SelectField 与既有选择故事 / 注册来源、permission-rules 表单解析、permission-engine 的纯校验 / 载入复用、settings IPC 写盘前校验、对应 Unit / UI / Electron 测试及模块 / 质量 / 账本文档。不改 IPC 形状、MCP、存储迁移或执行优先级；无新依赖。新增草稿不进入自动保存队列，保存失败保留草稿与原规则，重试不重复写入。主进程在写盘前拒绝超量、重复 ID、无效或不安全正则；旧载入仍兼容容错。验证覆盖正式入口、候选隔离、四主题宽窄、hover 几何、添加 / 取消 / 编辑 / 停用 / 删除、失败和重启恢复。
 
