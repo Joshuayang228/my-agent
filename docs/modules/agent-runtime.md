@@ -53,6 +53,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；自�
 - Loop 流式事件与工具超时
 - Runtime 中心化（乐观 UI + done 后 session 对齐）
 - 相关单测：`agent-loop`、`task-queue`、`observer` 等
+- 开发者模式：正式关于页与候选共用 `AboutSettingsContent`；Electron 独立目录覆盖开关、入口隐藏与完整重启恢复。UI E2E 的 `ui-e2e` 模式显式保留开发入口，不能当作正式默认
 
 ## 已落地能力
 
@@ -126,6 +127,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；自�
 | 工具卡行内附着 assistant（Alice Phase B） | 已落地 | `resolve-tools-for-message.ts` · 历史 `toolCalls`+`role=tool`；进行中挂 live host |
 | Dev Playground（无 Assemble 试跑） | 已落地 | PlaygroundPage · `debug:playground-run` |
 | Debug / Playground 独立全页 | 已落地 | 入口固定在 Primary Sidebar 底部开发区；各自页面壳直接占满主区，不继承 Chat 顶栏；非双 tab / 非抽屉；记忆与 Skills 不再通过 SecondaryNav 进入 |
+| 开发者模式门控 | 已落地 | 正式关于页与 Playground 共用 `AboutSettingsContent` / `SettingSwitch`；`settings.developerMode` 真实持久化；普通模式隐藏侧栏 Debug / Playground 整组入口和 Chat 顶栏 Debug 按钮；关闭只收回入口，不删除诊断数据。UI E2E 的 `ui-e2e` 模式仍显式保留开发入口 |
 | 工具手测（权限门闸） | 已落地 | `debug:tool-run` · confirmRisk |
 | Prompt 会话覆盖（不写 settings） | 已落地 | 载入实装 → playgroundRun |
 | 设计语言场 | 已落地 | Playground「基础 → 设计语言」；颜色 / 主题 / 圆角动效三组 Tab，不混入业务组合 |
@@ -167,6 +169,8 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；自�
 **缺口**：Swarm（wishlist）；更完整的子 Agent 产品化；真实 HTTP/SSE replay 与操作系统级 Shell 隔离仍未纳入默认门禁；外部 MCP 工具描述已标记为不受信任数据，超大 schema fail-closed。
 
 - 2026-09-17：复核生活资产备份 IPC。`data:export` / `data:import` 覆盖生活资产与播种标记，失败与会话同一事务回滚；记忆导入仍走 `memoryStore.addMemory`。该链路不进入 Loop，也不把朋友圈互动、MCP、权限、凭据或项目路径纳入备份。
+
+- 2026-09-17：复核开发者模式门控。正式关于页与候选共用同一内容组件；Electron 独立目录覆盖开关、入口隐藏和完整重启恢复。该证据不把全产品回流标为 adopted。
 
 - 模型设置的正式展示已收敛到多连接与用途路由面板；旧单连接字段仅作为兼容回退，不再作为独立产品 UI 入口。
 

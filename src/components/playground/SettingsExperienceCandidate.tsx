@@ -10,11 +10,12 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { PermissionSettingsContent } from '../settings/PermissionSettingsContent'
-import { Brain, Check, ChevronRight, Circle, CircleHelp, Cloud, Database, Download, Eye, Heart, KeyRound, Link2, LockKeyhole, Palette, Plug, Save, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Upload, UserRound, Wrench, Activity, Gauge, Plus, ListChecks, ArrowLeft, ArrowUp, ArrowDown, GripVertical, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
+import { Brain, Check, ChevronRight, Circle, CircleHelp, Cloud, Database, Download, Eye, Heart, KeyRound, Link2, LockKeyhole, Palette, Plug, Save, Settings2, ShieldCheck, SlidersHorizontal, Upload, UserRound, Wrench, Activity, Gauge, Plus, ListChecks, ArrowLeft, ArrowUp, ArrowDown, GripVertical, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
 import { FONT_SCALE_ASSETS } from '../../shared/design-asset-registry'
 import { SettingsLayout, type SettingsPageId } from '../settings/SettingsLayout'
 import { ScopeBadge, SettingCard, SettingRow, SettingSwitch, SettingsPageHeader } from '../settings/SettingsFields'
 import { CompanionSettingsContent } from '../settings/CompanionSettingsContent'
+import { AboutSettingsContent } from '../settings/AboutSettingsContent'
 import { McpServiceCard } from '../settings/McpServiceCard'
 import { SkillDetail, SkillFilePreview, SkillListCard } from '../settings/SkillViews'
 import type { SkillInfo } from '../../shared/types'
@@ -474,8 +475,11 @@ function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
     {mode === 'mcp' && <McpScenePreview />}
   </div>
 }
-function AboutPage() {
-  return <div className="space-y-4" data-testid="settings-candidate-section-about"><CandidatePageHeader icon={<CircleHelp size={14} />} title="关于 My Agent" description="查看版本、运行环境和本机数据位置。" /><SettingCard><div className="flex items-start gap-3"><Sparkles size={18} style={{ color: 'var(--companion-accent-warm)' }} /><div><div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>My Agent</div><p className="mt-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>品牌标语待定</p></div></div><div className="mt-5 grid gap-3 text-[11px] sm:grid-cols-3" style={{ color: 'var(--text-secondary)' }}><div><div style={{ color: 'var(--text-muted)' }}>版本</div><div className="mt-1">0.1.0 · 开发中</div></div><div><div style={{ color: 'var(--text-muted)' }}>运行环境</div><div className="mt-1">Electron</div></div><div><div style={{ color: 'var(--text-muted)' }}>数据位置</div><div className="mt-1">本机存储</div></div></div></SettingCard></div>
+function AboutPage({ developerMode, onDeveloperModeChange }: { developerMode: boolean; onDeveloperModeChange: (enabled: boolean) => void }) {
+  return <div className="space-y-4" data-testid="settings-candidate-section-about">
+    <CandidatePageHeader icon={<CircleHelp size={14} />} title="关于 My Agent" description="查看版本、运行环境和本机数据位置。" />
+    <AboutSettingsContent developerMode={developerMode} onDeveloperModeChange={onDeveloperModeChange} showHeader={false} testIdPrefix="settings-candidate-" />
+  </div>
 }
 
 export function SettingsExperienceCandidate({ companionDetail, memoryDetail, initialSection, onOpenRoleShelf }: SettingsExperienceCandidateProps) {
@@ -489,6 +493,7 @@ export function SettingsExperienceCandidate({ companionDetail, memoryDetail, ini
   const [expertise, setExpertise] = useState('auto')
   const [dataAction, setDataAction] = useState('')
   const [permissionMode, setPermissionMode] = useState('auto')
+  const [developerMode, setDeveloperMode] = useState(false)
 
   useEffect(() => {
     // 背景：记忆页和设置页共用候选壳层，切换场景时可能保留上一次的设置分区。
@@ -501,7 +506,7 @@ export function SettingsExperienceCandidate({ companionDetail, memoryDetail, ini
 
   return <div aria-label="设置候选版" className="flex min-h-[620px] w-full min-w-0 overflow-hidden rounded-[var(--radius-lg)] border" style={{ ...getThemeStudyStyle(THEME_STUDIES.find((theme) => theme.id === activeTheme)!), borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} data-playground-theme={activeTheme} data-testid="settings-candidate">
     <SettingsLayout activeSection={activeSection} onSelect={setActiveSection} prefix="settings-candidate">
-      {activeSection === 'appearance' && <AppearancePage activeTheme={activeTheme} fontScale={fontScale} onFontScaleChange={setFontScale} onThemeChange={setActiveTheme} />}{activeSection === 'memory' && <MemoryPage detail={memoryDetail} />}{activeSection === 'companion' && (companionDetail ?? <CompanionPage expertise={expertise} momentTips={momentTips} onExpertiseChange={setExpertise} onOpenRoleShelf={onOpenRoleShelf} onMomentTipsChange={setMomentTips} onProactiveGreetingChange={setProactiveGreeting} proactiveGreeting={proactiveGreeting} />)}{activeSection === 'model' && <ModelPage modelStatus={modelStatus} onModelStatusChange={setModelStatus} selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} />}{activeSection === 'data' && <DataPage lastAction={dataAction} onAction={setDataAction} />}{activeSection === 'permissions' && <PermissionsPage mode={permissionMode} onModeChange={setPermissionMode} />}{activeSection === 'skills' && <CapabilityPage mode="skills" />}{activeSection === 'mcp' && <CapabilityPage mode="mcp" />}{activeSection === 'about' && <AboutPage />}
+      {activeSection === 'appearance' && <AppearancePage activeTheme={activeTheme} fontScale={fontScale} onFontScaleChange={setFontScale} onThemeChange={setActiveTheme} />}{activeSection === 'memory' && <MemoryPage detail={memoryDetail} />}{activeSection === 'companion' && (companionDetail ?? <CompanionPage expertise={expertise} momentTips={momentTips} onExpertiseChange={setExpertise} onOpenRoleShelf={onOpenRoleShelf} onMomentTipsChange={setMomentTips} onProactiveGreetingChange={setProactiveGreeting} proactiveGreeting={proactiveGreeting} />)}{activeSection === 'model' && <ModelPage modelStatus={modelStatus} onModelStatusChange={setModelStatus} selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} />}{activeSection === 'data' && <DataPage lastAction={dataAction} onAction={setDataAction} />}{activeSection === 'permissions' && <PermissionsPage mode={permissionMode} onModeChange={setPermissionMode} />}{activeSection === 'skills' && <CapabilityPage mode="skills" />}{activeSection === 'mcp' && <CapabilityPage mode="mcp" />}{activeSection === 'about' && <AboutPage developerMode={developerMode} onDeveloperModeChange={setDeveloperMode} />}
     </SettingsLayout>
   </div>
 }

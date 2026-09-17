@@ -39,6 +39,20 @@ describe('UI component asset registry', () => {
     expect(usesForm('const McpConnectionForm = () => <div />; const view = <McpConnectionForm />')).toBe(false)
     expect(readFileSync('src/components/settings/McpConnectionForm.tsx', 'utf8')).not.toContain('window.electronAPI')
   })
+  it('正式关于页与候选实际渲染共享开发者模式开关', () => {
+    const usesAbout = (source: string) => rendersSharedTabs(source, 'AboutSettingsContent', '/settings/AboutSettingsContent')
+    const usesSwitch = (source: string) => rendersSharedTabs(source, 'SettingSwitch', '/SettingsFields')
+    for (const path of ['src/components/SettingsPanel.tsx', 'src/components/playground/SettingsExperienceCandidate.tsx']) {
+      expect(usesAbout(readFileSync(path, 'utf8')), path).toBe(true)
+    }
+    expect(usesSwitch(readFileSync('src/components/settings/AboutSettingsContent.tsx', 'utf8'))).toBe(true)
+    expect(readFileSync('src/components/SettingsPanel.tsx', 'utf8')).not.toContain('role="switch"')
+    expect(readFileSync('src/components/settings/AboutSettingsContent.tsx', 'utf8')).not.toContain('window.electronAPI')
+    expect(usesAbout("import { AboutSettingsContent } from './settings/AboutSettingsContent'; const view = <div />")).toBe(false)
+    expect(usesAbout('const AboutSettingsContent = () => <div />; const view = <AboutSettingsContent />')).toBe(false)
+    expect(UI_COMPONENT_REGISTRY['layout.about-settings-content'].sourcePath).toBe('src/components/settings/AboutSettingsContent.tsx')
+  })
+
   it('MCP 正式设置与候选实际渲染同一服务卡片，而不只是登记或 import', () => {
     const usesCard = (source: string) => rendersSharedTabs(source, 'McpServiceCard', '/settings/McpServiceCard')
     for (const path of ['src/components/SettingsPanel.tsx', 'src/components/playground/SettingsExperienceCandidate.tsx']) {

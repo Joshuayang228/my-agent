@@ -2581,6 +2581,10 @@ test.describe('My Agent UI', () => {
     await expect(candidate.getByText('品牌标语待定', { exact: true })).toBeVisible()
     await expect(candidate.getByText('查看版本、运行环境和本机数据位置。', { exact: true })).toBeVisible()
     await expect(candidate).not.toContainText('越探索，越着迷。')
+    const candidateSwitch = candidate.getByTestId('settings-candidate-settings-developer-mode')
+    await expect(candidateSwitch).toHaveAttribute('aria-checked', 'false')
+    await candidateSwitch.click()
+    await expect(candidateSwitch).toHaveAttribute('aria-checked', 'true')
 
     await candidate.getByRole('button', { name: '数据与隐私', exact: true }).click()
     await candidate.getByTestId('settings-candidate-export').click()
@@ -2975,6 +2979,49 @@ test.describe('My Agent UI', () => {
     await expect(post.getByTestId('moment-like-button')).toHaveAttribute('aria-label', '取消赞')
     await post.getByTestId('moment-like-button').click()
     await expect(post.getByTestId('moment-like-button')).toHaveAttribute('aria-label', '赞')
+  })
+
+  test('正式关于页开发者模式开关控制侧栏入口，候选不写生产设置', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      const stored: Record<string, string> = { llmApiKeyConfigured: 'true', llmModel: 'e2e-model', executionMode: 'confirm-all', pinnedSessions: '[]', developerMode: 'false' }
+      const harness = { writes: [] as Array<[string, string]>, stored }
+      ;(window as any).__developerModeSettings = harness
+      api.settings.get = async () => ({ ...stored })
+      api.settings.set = async (key: string, value: string) => {
+        harness.writes.push([key, value])
+        stored[key] = value
+      }
+    })
+    await page.goto('/')
+    await expect(page.getByTestId('sidebar-developer-nav')).toBeVisible()
+    await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-about').click()
+    const productionSwitch = page.getByTestId('settings-developer-mode')
+    await expect(productionSwitch).toHaveAttribute('aria-checked', 'false')
+    await productionSwitch.click()
+    await expect.poll(async () => page.evaluate(() => (window as any).__developerModeSettings.stored.developerMode)).toBe('true')
+    await expect.poll(async () => page.evaluate(() => (window as any).__developerModeSettings.writes)).toEqual([['developerMode', 'true']])
+    await page.getByTestId('settings-back').click()
+    await expect(page.getByTestId('sidebar-developer-nav')).toBeVisible()
+    await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-about').click()
+    await expect(page.getByTestId('settings-developer-mode')).toHaveAttribute('aria-checked', 'true')
+    await page.getByTestId('settings-developer-mode').click()
+    await expect.poll(async () => page.evaluate(() => (window as any).__developerModeSettings.stored.developerMode)).toBe('false')
+    await page.getByTestId('settings-back').click()
+    await expect(page.getByTestId('sidebar-developer-nav')).toBeVisible()
+    await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
+    await page.locator('[data-testid="playground-nav"]').getByRole('button', { name: '设置', exact: true }).click()
+    const candidate = page.getByTestId('settings-surface-candidate')
+    await candidate.getByRole('button', { name: '关于 My Agent', exact: true }).click()
+    const candidateSwitch = candidate.getByTestId('settings-candidate-settings-developer-mode')
+    await expect(candidateSwitch).toHaveAttribute('aria-checked', 'false')
+    await candidateSwitch.click()
+    await expect(candidateSwitch).toHaveAttribute('aria-checked', 'true')
+    expect(await page.evaluate(() => (window as any).__developerModeSettings.stored.developerMode)).toBe('false')
+    expect(await page.evaluate(() => (window as any).__developerModeSettings.writes.filter(([key]: [string]) => key === 'developerMode'))).toEqual([['developerMode', 'true'], ['developerMode', 'false']])
   })
 
   test('Debug 与 Playground 采用一级任务导航', async ({ page }) => {

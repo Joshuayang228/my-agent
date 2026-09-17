@@ -32,7 +32,7 @@
 | R08 权限与自动化 / 设置候选 | 正式权限设置、`PermissionRulesEditor` | 既有 executionMode / permissionRules 与执行侧规则引擎 | 直接回流既有规则能力；默认收起、独立规则卡、列表后添加、原位取消、保存及执行侧生效；硬边界优先 |
 | R09 Skills / `playground-skills-detail-v1.md` | 正式设置 Skills、共享 `SkillViews` | 真实 list / get / validate / save / delete / set-enabled；registry 与 SQLite 启停状态 | 列表、独立详情、限高 SKILL.md 全文、真实启停与错误恢复；试跑不回流正式页，证据见 R09 执行记录 |
 | R10 MCP / `playground-mcp-scenarios-v1.md` | 正式 MCP 设置、MCP 服务及 IPC | WISH-040 记录协议 / OAuth / 逐工具启停缺口；不能以保存配置当连接成功 | 生产改造后回流；连接 / 断开 / 重试 / 删除、认证取消、工具开关持久化与执行侧校验；需细化安全契约 |
-| R11 关于与开发模式 / 设置候选 | 正式关于页、开发入口、App 导航 | 核实 developer mode 配置、重启与入口门控，不仅隐藏单个按钮 | 生产改造后回流；普通模式隐藏 Debug / Playground 入口；「关于 My Agent」中的开发者模式真实持久化控制入口可达，关闭安全返回且不删除数据 |
+| R11 关于与开发模式 / 设置候选 | 正式关于页、开发入口、App 导航 | 核实 developer mode 配置、重启与入口门控，不仅隐藏单个按钮 | 生产改造后回流；正式与候选共用 `AboutSettingsContent` / `SettingSwitch`；普通模式隐藏 Debug / Playground 入口；「关于 My Agent」真实持久化控制入口可达，关闭安全返回且不删除数据。UI E2E 的 `ui-e2e` 模式仍显式保留开发入口，不能当作正式默认 |
 | R12 人物世界 / `playground-world-living-dimensions-v1.md`、`SurfaceBaselinePanel.tsx` | `WorldHub`、`MomentsPanel`、`AssetsPanel`、`CastPanel`、`WorldDetailsPanel` 及共享 `WorldLivingContent` | 六生活面入口已接通；文化角 / 家居 / 足迹正式页走真实增改删，Playground 只改内存预览；足迹动态来自 moments；正式通讯录列表读取既有 `check-cast-availability`；正式朋友圈赞 / 评论落独立用户表；六面正式入口 Electron 已覆盖真实 IPC 读取；文化 starter 已去掉无证据数量文案 | 生产改造后回流；衣柜 / 文化 / 家居 / 足迹编辑链、通讯录忙闲预检、朋友圈互动、六面正式入口 Electron 与 starter 无证据数量文案本批收口；不复制生活样张为生产事实，不把入口可见当成人物设定授权；合并原重复 R06 人物世界行，R06 仅指模型 |
 | R13 工作区 / `playground-workspace-five-tools-v1.md` | `ChatRightDock` 及五工具 | 已有真实 project / session / terminal / browser / chat IPC，保留已验证实现 | 对照候选补差，不从头重写；重复图标、滚动、任务上下文、关闭 / 取消 / 失败恢复 |
 | R14 Foundation 与业务状态 / `foundation-reuse-enforcement-v1.md` | 共享基础组件及以上消费者 | 部分工作区已有符号复用检查；不能外推为所有体验覆盖 | 同源复用与门禁；加载、空、错误、确认、hover/focus、长文、禁用、深浅宽窄 |
@@ -154,11 +154,18 @@ R12 必须拆成六个独立验收面：
 - R12 朋友圈互动后端：正式 `MomentsPanel` 无 preview 时走 `companion:toggle-moment-like` / `companion:add-moment-comment`；用户赞评写入 `companion_moment_user_interactions`，不改 `moment.text` 或 `meta.interactions`。Playground 仍用本地夹具。Renderer 覆盖正式入口赞 / 评论、IME 不误提交、失败保留草稿、pending 不双提交和评论槽几何。Electron 覆盖真实 IPC 赞评、空值 / 超长拒绝和重载保留。该补验不关闭人物 starter 来源复核、六面正式入口 Electron 或备份。
 - R06 之外，R10 MCP 真实连接恢复，以及全产品逐项 adopted 证据仍未完成；R12 衣柜 / 文化 / 家居 / 足迹编辑链已接入 `companion_assets` 并有 Electron create / 重载 / 超限拒绝证据。通讯录忙闲列表预检与朋友圈真实赞评已接入。R07 生活资产备份已收口。六面正式入口 Electron 与文化 starter 无证据数量文案本批收口；人物 starter 来源复核仍未完成，本合同继续保持进行中。
 
+### R11 关于页开发者模式门控（2026-09-17）
+
+- 本批边界：正式「关于 My Agent」与 Playground 候选共用 `AboutSettingsContent` 和共享 `SettingSwitch`。正式开关走既有 `settings:set('developerMode')` 自动保存；候选只改内存样张，不写 IPC。普通模式隐藏侧栏 Debug / Playground 整组入口和 Chat 顶栏 Debug 按钮，不只隐藏单个按钮。关闭仅收回入口，不删除诊断数据、资产或后台服务。
+- 允许修改：共享关于页、SettingsPanel / SettingsExperienceCandidate 接入、UI 组件与产品体验注册表、Renderer / Electron 测试，以及本合同 / agent-runtime / 质量 / 账本。`src/App.tsx` 保持 assume-unchanged，不把无关脏改动带进本批。
+- 明确不碰：人物 starter 来源复核、MCP OAuth、模型发现、朋友圈互动备份、凭据、权限引擎、项目路径、用户旧数据兼容层、Playground 夹具当生产事实。
+- 验收：Unit 锁住正式与候选实际渲染共享关于页 / `SettingSwitch`。Renderer 覆盖正式关于页开关写入、关闭设置后入口刷新，以及候选开关不写生产。Electron 独立数据目录从关于页打开开发者模式，入口出现，关闭后隐藏，完整重启后仍恢复，数据不丢。无 API Key 时完整重启会打开设置全屏并隐藏产品壳，必须先返回 Chat 再断言侧栏入口。UI E2E 默认开发入口可见是 `ui-e2e` 模式特例，不能当作正式默认。该证据不把全产品标为 adopted。
+
 ### R12 六面正式入口 Electron 与 starter 无证据数量文案（2026-09-17）
 
 - 本批边界：从正式 `primary-sidebar` → `人物世界` 点齐六个生活面，断言真实 companion IPC 数据，不走 Playground 或 Renderer 替身。文化 starter 去掉“留下 3 条笔记”“看过两次”等无证据数量，保留作品名。小林没有 `world.default.json`，家居 / 常去保持真实空态，不把 `world-codec` 的中性居所文案写成已确认住所。
 - 允许修改：`life/assets.ts` 文化 starter 描述、Playground 同源样张、`companion-assets` Unit、`onboarding` Electron，以及本合同 / companion 模块卡 / 质量 / 账本。
-- 明确不碰：人物 starter 来源复核、新编人物事实、MCP / OAuth、模型发现、开发者模式门控、朋友圈互动备份、凭据、权限规则、项目路径、用户旧数据兼容层。
+- 明确不碰：人物 starter 来源复核、新编人物事实、MCP / OAuth、模型发现、朋友圈互动备份、凭据、权限规则、项目路径、用户旧数据兼容层。
 - 验收：Unit 锁住 `getStarterAssetDefinitions('lin')` 不再含伪计数。Electron 覆盖朋友圈真实动态、衣柜 starter 衣物、文化四类与清计数后的作品、家居空态、通讯录真实关系卡与忙闲文案、足迹动态地点不与常去混淆。该证据不把人物 starter 来源或全产品标为 adopted。
 
 ### R07 生活资产真实备份（2026-09-17）
@@ -191,7 +198,7 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 |---|---|---|---|
 | 对话与导航 | `production-ready`，待完整入口验收 | 正式 `App` / Sidebar / Chat / Right Dock 调用链与既有 Electron 回归 | 四主题、窄宽、跨页草稿与任务恢复的正式入口证据 |
 | 人物世界 | `production-ready`，部分 `adopted` | 角色架、文化角 / 家居 / 足迹真实资产链、正式增改删与 Electron create 覆盖、通讯录列表忙闲预检、朋友圈真实赞评、生活资产真实备份、六面正式入口 Electron、文化 starter 无证据数量文案 | 人物 starter 来源复核 |
-| 设置与人物设置 | `user-approved`，正在回流 | Playground 候选、正式 `SettingsPanel`、共享导航 / 卡片基础层 | 旧设置展示层逐页替换为候选结构；真实保存、失败和窄宽验收 |
+| 设置与人物设置 | `user-approved`，正在回流 | Playground 候选、正式 `SettingsPanel`、共享导航 / 卡片基础层；R11 关于页开发者模式已有正式入口与 Electron 持久化证据 | 模型发现、MCP OAuth / 异常断开恢复；旧设置其余内容页继续按编号验收 |
 | 记忆 | 整页已回流 | 共享四类 / 搜索 / 新增行；正式长文、固定槽、四主题宽窄、失败恢复及真实四类重启 CRUD | 本项不替代其他设置或备份 / 向量召回的验收 |
 | 主题与基础组件 | `production-ready` | Foundation 主题资产、共享设置卡片 / 行组件、基础复用门禁 | Markdown / Diff / 工作区全部正式入口的无白底验收 |
 | 工作区工具 | `production-ready`，部分 `adopted` | 正式 Right Dock 五工具、共享面板布局与 Electron 回归 | 浏览器 / 文件 / 审阅 / 终端跨页状态和完整错误路径 |

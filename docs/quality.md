@@ -26,7 +26,7 @@ MCP 服务卡片 Unit 覆盖未知 / 零工具、文本转义、内部滚动和�
 
 相处偏好回归覆盖独立字段、空值清除、输入 / IPC / 备份限长、动态资产来源和 Prompt 身份边界；正式 App Renderer 测试覆盖深浅 / 宽窄、保存失败重试固定槽、重开恢复及保存过程中继续编辑，伙伴页内联错误不重复弹出遮挡操作的 Toast。Electron 用独立数据目录验证真实 preload / settings IPC 与重载恢复，并通过本地协议服务核验主对话实发包含偏好、workspace 实发排除偏好；不把这些测试当作真实模型服从性 Eval。
 
-全产品回流验收要求见 [全产品回流施工合同](./requirements/product-experience-production-rollout-v1.md)：逐项区分 Playground 候选证据、正式 App 入口的 Renderer 证据和真实 Electron / 持久化证据。仅右坞、Vite HTTP 200、注册表状态或 Playground 测试通过，不得推导全产品已回流。正式设置已接共享导航，但各内容仍按 R03–R11 单独验收；例如 MCP 服务卡片共享不代表添加向导与远程协议完成。人物世界六入口已有 Renderer 证据；文化角、家居与足迹已接 `companion_assets` 真实增改删，Electron 覆盖 create / 重载 / 超限拒绝 / 删除清理。正式通讯录列表读取既有忙闲 IPC，忙碌卡在开聊前可见且仍可进入强制确认。正式朋友圈赞 / 评论已落独立用户表，Renderer 覆盖正式入口互动、IME / 失败保留草稿和评论槽几何；Electron 覆盖真实 IPC 重载保留与空值 / 超长拒绝。生活资产备份已有独立目录真实导出导入证据；六面正式入口 Electron 已覆盖真实 IPC 读取与文化 starter 无证据数量文案。人物 starter 来源复核仍未完成，不能把入口可见当成人物设定授权。
+全产品回流验收要求见 [全产品回流施工合同](./requirements/product-experience-production-rollout-v1.md)：逐项区分 Playground 候选证据、正式 App 入口的 Renderer 证据和真实 Electron / 持久化证据。仅右坞、Vite HTTP 200、注册表状态或 Playground 测试通过，不得推导全产品已回流。正式设置已接共享导航，但各内容仍按 R03–R11 单独验收；例如 MCP 服务卡片共享不代表添加向导与远程协议完成。人物世界六入口已有 Renderer 证据；文化角、家居与足迹已接 `companion_assets` 真实增改删，Electron 覆盖 create / 重载 / 超限拒绝 / 删除清理。正式通讯录列表读取既有忙闲 IPC，忙碌卡在开聊前可见且仍可进入强制确认。正式朋友圈赞 / 评论已落独立用户表，Renderer 覆盖正式入口互动、IME / 失败保留草稿和评论槽几何；Electron 覆盖真实 IPC 重载保留与空值 / 超长拒绝。生活资产备份已有独立目录真实导出导入证据；六面正式入口 Electron 已覆盖真实 IPC 读取与文化 starter 无证据数量文案。R11 关于页开发者模式已有正式入口、候选隔离与 Electron 独立目录开关 / 隐藏入口 / 完整重启证据；UI E2E 的 `ui-e2e` 模式仍显式保留开发入口，不能当作正式默认。人物 starter 来源复核仍未完成，不能把入口可见当成人物设定授权。
 
 家居 / 足迹的 Unit 验证同库初始化标记、并发幂等、用户修改保留、删空后数据库重载、插入失败事务回滚及角色隔离。正式 App Renderer 回归覆盖四主题 × 1166 / 600px、长文内部滚动、失败保留内容、重试固定操作槽、同地点多次访问和不同主角响应拒绝；此处 IPC 使用测试替身，不是 Electron 后端证据。Playground 与正式共用 `WorldLivingContent`，样张还需验证“想去”不会进入“常去”。生活资产备份由 `security-boundaries` Unit 覆盖旧备份兼容、非法 kind / 超长名拒绝、id 合并和失败回滚；`onboarding.test.ts` 用独立数据目录验证真实 `data:export` / `data:import` 往返与二次导入不覆盖。该证据不覆盖朋友圈互动、MCP、凭据或项目路径备份。
 
@@ -251,6 +251,8 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 - 2026-09-14：设置回流门禁新增正式导航断言：只能出现九个 demo 入口，不得恢复旧参数、工具、开发者等入口；伙伴页正式与候选共用内容组件，E2E 同时覆盖候选隔离 test id、返回行为和窄宽导航。
 
 - 2026-09-14：开发者模式门控新增 UI E2E 回归边界；正式入口默认隐藏 Debug / Playground，UI E2E 通过隔离模式显式开启开发入口。
+
+- 2026-09-17：R11 关于页开发者模式补齐共享内容组件证据。Unit 锁住正式设置与候选实际渲染 `AboutSettingsContent` / `SettingSwitch`；Renderer 覆盖正式开关写入、关闭设置后入口刷新，以及候选开关不写生产。Electron 独立数据目录覆盖开启后入口出现、关闭后隐藏、完整重启恢复且不删除数据。无 API Key 时完整重启会打开设置全屏，必须先返回 Chat 再断言侧栏入口。UI E2E 默认开发入口可见仍是 `ui-e2e` 模式特例。
 
 - 2026-09-14：R12 文化角新增资产播种与注册表回归覆盖；测试验证角色隔离、稳定 starter 类型和防修改副本。
 模型连接与用途路由的质量门禁：路由配置必须只选择启用且字段完整的连接，按顺序跳过无效项；旧单连接字段为空路由时保持原行为；Renderer 和备份不得包含连接密钥。相关纯函数、设置安全视图和备份边界必须有 Unit 覆盖。

@@ -8,6 +8,7 @@ import { ActionButton } from './foundation/ActionButton'
 import { SettingsLayout, type SettingsPageId } from './settings/SettingsLayout'
 import { CompanionSettingsContent, type CompanionExpertise } from './settings/CompanionSettingsContent'
 import { SettingCard, SettingRow, SettingsPageHeader } from './settings/SettingsFields'
+import { AboutSettingsContent } from './settings/AboutSettingsContent'
 import { ModelRoutingSettings } from './settings/ModelRoutingSettings'
 import { McpServiceCard } from './settings/McpServiceCard'
 import { McpConnectionForm } from './settings/McpConnectionForm'
@@ -551,19 +552,10 @@ export function SettingsPanel({
   )
 
   const renderAbout = () => (
-    <div className="space-y-6">
-      <SettingsPageHeader title="关于 My Agent" description="查看版本、运行环境和本机数据位置。" />
-      <SettingCard>
-        <div className="flex items-start gap-3"><span className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>My Agent</span><span className="rounded-full border px-2 py-0.5 text-[9px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>开发中</span></div>
-        <p className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>越探索，越着迷。</p>
-        <div className="mt-4 grid gap-3 text-[11px] sm:grid-cols-3" style={{ color: 'var(--text-secondary)' }}><div><div style={{ color: 'var(--text-muted)' }}>版本</div><div className="mt-1">0.1.0</div></div><div><div style={{ color: 'var(--text-muted)' }}>运行环境</div><div className="mt-1">Electron</div></div><div><div style={{ color: 'var(--text-muted)' }}>数据位置</div><div className="mt-1">本机存储</div></div></div>
-      </SettingCard>
-      <SettingCard>
-        <SettingRow label="开发者模式" description="开启后显示 Debug 与 Playground 入口；关闭不会删除任何数据或设置。" scope="本机">
-          <button type="button" role="switch" aria-checked={form.developerMode === 'true'} onClick={() => update('developerMode', form.developerMode === 'true' ? 'false' : 'true')} className="relative h-5 w-9 shrink-0 rounded-full transition" style={{ background: form.developerMode === 'true' ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }} data-testid="settings-developer-mode"><span className="absolute top-0.5 h-4 w-4 rounded-full shadow-sm transition" style={{ background: 'var(--text-primary)', left: form.developerMode === 'true' ? 'calc(100% - 1.125rem)' : '0.125rem' }} /></button>
-        </SettingRow>
-      </SettingCard>
-    </div>
+    <AboutSettingsContent
+      developerMode={form.developerMode === 'true'}
+      onDeveloperModeChange={(enabled) => update('developerMode', enabled ? 'true' : 'false')}
+    />
   )
 
   const SECTION_RENDERERS: Record<SettingsSection, () => React.ReactNode> = {
