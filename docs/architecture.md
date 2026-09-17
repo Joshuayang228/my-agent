@@ -9,7 +9,7 @@ MCP 启动恢复在主进程阶段读取已启用配置并建立真实连接，�
 
 正式设置的 UI 只承载已验收的 Playground 体验；生产数据、IPC 与安全边界仍由正式调用链负责，Playground 不成为第二事实源。
 
-模型连接配置由设置存储加密保存，配置工厂在主进程按用途路由解析为 LLMConfig；Renderer 只读取脱敏结构，数据备份只保留连接元数据，不携带密钥。
+模型连接配置由设置存储加密保存，配置工厂在主进程按用途路由解析为 LLMConfig；Renderer 只读取脱敏结构，数据备份只保留连接元数据，不携带密钥。正式模型发现只走主进程 `settings:fetch-models`，不允许 Renderer 直连供应商。
 
 不只是一个工具，而是一个有性格、有记忆、能成长的数字伙伴：
 - **人格化交互** — 有一致的性格特征和交流风格，不是冰冷的 Q&A 机器
@@ -366,6 +366,6 @@ LLM 返回 tool_calls（可能多个）
 
 - 开发者模式沿 `SettingsPanel → settings:set/get → settings-store → App → PrimarySidebar` 单一路径控制 Debug / Playground 可见性；默认关闭，关闭仅收回入口，不影响诊断服务、资产或历史数据。
 
-- 模型配置的产品入口统一由 `ModelRoutingSettings` 组合真实设置存储与路由配置工厂；旧单连接字段保留在兼容边界，不再形成第二套正式展示链。
+- 模型配置的产品入口统一由 `ModelRoutingSettings` 组合真实设置存储、路由配置工厂与主进程模型发现；旧单连接字段保留在空清单兼容边界，不再形成第二套正式展示链。Playground 获取仍是隔离 fixture。
 
 - LLM 配置工厂现在同时提供主对话、辅助任务和图片理解用途的路由解析；Runtime 仅按实际消息载荷选择 image 路由。

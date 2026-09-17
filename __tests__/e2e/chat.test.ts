@@ -4045,7 +4045,7 @@ test.describe('My Agent UI', () => {
     await expect(settingsPanel.getByRole('button', { name: '保存', exact: true })).toHaveCount(0)
     await page.getByRole('button', { name: '模型', exact: true }).click()
     await expect(page.getByTestId('settings-model-routing')).toBeVisible()
-    await expect(page.getByText('连接与模型', { exact: true })).toBeVisible()
+    await expect(page.getByText('连接与模型清单', { exact: true })).toBeVisible()
     await expect(page.getByText('模型使用安排', { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: /高级设置/ })).toHaveAttribute('aria-expanded', 'false')
     await page.getByRole('button', { name: /高级设置/ }).click()

@@ -31,6 +31,8 @@ import type {
   RendererSettings,
   LLMConnectionTestInput,
   LLMConnectionTestResult,
+  LLMModelFetchInput,
+  LLMModelFetchResult,
   MomentListResult,
   MomentSocialMutationResult,
   DataExportStats,
@@ -116,6 +118,7 @@ declare global {
         get: () => Promise<RendererSettings>
         set: (key: string, value: string) => Promise<void>
         testConnection: (input: LLMConnectionTestInput) => Promise<LLMConnectionTestResult>
+        fetchModels: (input: LLMModelFetchInput) => Promise<LLMModelFetchResult>
       }
       memory: {
         list: (category?: string) => Promise<Array<{ id: string; category: string; content: string; createdAt: number; updatedAt: number }>>

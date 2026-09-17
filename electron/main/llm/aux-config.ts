@@ -66,7 +66,10 @@ function resolveRoutedConfig(connectionsRaw: string, routesRaw: string, purpose:
   const route = routes.find((item) => {
     if (item.purpose !== purpose || !item.enabled || !item.model.trim()) return false
     const connection = connections.find((candidate) => candidate.id === item.connectionId && candidate.enabled && candidate.baseUrl.trim())
-    return Boolean(connection)
+    if (!connection) return false
+    const models = Array.isArray(connection.models) ? connection.models : []
+    if (models.length === 0) return true
+    return models.some((model) => model.id === item.model.trim() && model.enabled !== false)
   })
   if (!route) return null
   const connection = connections.find((item) => item.id === route.connectionId && item.enabled && item.baseUrl.trim())

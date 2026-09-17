@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { getAllSettings, getSetting, setSetting, handlers, showMessageBox, loadMainLLMConfig, chatComplete, browserState } = vi.hoisted(() => ({
+const { getAllSettings, getSetting, setSetting, handlers, showMessageBox, loadMainLLMConfig, chatComplete, fetchRemoteModels, browserState } = vi.hoisted(() => ({
   getAllSettings: vi.fn(),
   getSetting: vi.fn(),
   setSetting: vi.fn(),
@@ -8,6 +8,7 @@ const { getAllSettings, getSetting, setSetting, handlers, showMessageBox, loadMa
   showMessageBox: vi.fn(),
   loadMainLLMConfig: vi.fn(),
   chatComplete: vi.fn(),
+  fetchRemoteModels: vi.fn(),
   browserState: { window: {} as object | null },
 }))
 
@@ -29,6 +30,7 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
 vi.mock('../../electron/main/sandbox/permission-engine', () => ({ loadRules: vi.fn() }))
 vi.mock('../../electron/main/llm/index', () => ({ chatComplete, LLMError: class LLMError extends Error {} }))
 vi.mock('../../electron/main/llm/aux-config', () => ({ loadMainLLMConfig }))
+vi.mock('../../electron/main/llm/model-discovery', () => ({ fetchRemoteModels }))
 vi.mock('../../electron/main/prompts/keys', () => ({ PROMPT_KEYS: { connectionTest: 'test' } }))
 
 import { getRendererSettings, registerSettingsIPC } from '../../electron/main/ipc/settings'
@@ -41,12 +43,26 @@ describe('设置 IPC 安全视图', () => {
       llmApiKey: 'sk-real-secret',
       llmBaseUrl: 'https://api.example.com/v1',
       llmModel: 'model',
+      modelConnections: JSON.stringify([{
+        id: 'conn-1',
+        name: 'primary',
+        baseUrl: 'https://api.example.com/v1',
+        model: 'model',
+        apiKey: 'sk-connection-secret',
+        enabled: true,
+      }]),
       mcpServers: JSON.stringify([{ id: 'mcp-1', name: 'server', command: 'node', args: [], enabled: true, env: { TOKEN: 'real-secret' } }]),
       executionMode: 'auto',
     })
     getSetting.mockResolvedValue('[]')
-    loadMainLLMConfig.mockResolvedValue({ apiKey: 'sk-stored-secret', baseUrl: 'https://api.example.com/v1', model: 'model' })
+    loadMainLLMConfig.mockImplementation(async (overrides?: { apiKey?: string; baseUrl?: string; model?: string }) => ({
+      apiKey: 'sk-stored-secret',
+      baseUrl: 'https://api.example.com/v1',
+      model: 'model',
+      ...overrides,
+    }))
     chatComplete.mockResolvedValue({ content: '连接成功' })
+    fetchRemoteModels.mockResolvedValue({ ok: true, models: ['gpt-4o'] })
     showMessageBox.mockResolvedValue({ response: 1 })
     browserState.window = {}
   })
@@ -58,6 +74,8 @@ describe('设置 IPC 安全视图', () => {
     expect(view.mcpServers).toContain('__MY_AGENT_REDACTED__')
     expect(view.mcpServers).not.toContain('sk-real-secret')
     expect(view.mcpServers).not.toContain('real-secret')
+    expect(view.modelConnections).not.toContain('sk-connection-secret')
+    expect(JSON.parse(view.modelConnections)[0]).toMatchObject({ apiKey: '', hasApiKey: true })
   })
 
   it('相处偏好写入独立字段，拒绝超长输入', async () => {
@@ -93,10 +111,18 @@ describe('设置 IPC 安全视图', () => {
     registerSettingsIPC()
     const handler = handlers.get('settings:test-connection')
     expect(handler).toBeDefined()
-    const result = await handler?.({}, { useStoredApiKey: true, baseUrl: 'https://api.example.com/v1', model: 'model' })
+    const result = await handler?.({}, { useStoredApiKey: true, connectionId: 'conn-1', baseUrl: 'https://api.example.com/v1', model: 'model' })
     expect(result).toMatchObject({ ok: true })
-    expect(loadMainLLMConfig).toHaveBeenCalledWith({ baseUrl: 'https://api.example.com/v1', model: 'model' })
+    expect(loadMainLLMConfig).toHaveBeenCalledWith({ apiKey: 'sk-connection-secret', baseUrl: 'https://api.example.com/v1', model: 'model' })
     expect(chatComplete).toHaveBeenCalled()
+  })
+
+  it('draft key tests do not read stored connection secrets', async () => {
+    registerSettingsIPC()
+    const handler = handlers.get('settings:test-connection')
+    const result = await handler?.({}, { apiKey: 'sk-draft-secret', baseUrl: 'https://api.example.com/v1', model: 'model' })
+    expect(result).toMatchObject({ ok: true })
+    expect(loadMainLLMConfig).toHaveBeenCalledWith({ apiKey: 'sk-draft-secret', baseUrl: 'https://api.example.com/v1', model: 'model' })
   })
 
   it('Renderer 不能仅靠传入 full-access 绕过主进程确认', async () => {
@@ -116,5 +142,49 @@ describe('设置 IPC 安全视图', () => {
     await handler?.({}, 'mcpServers', redacted)
     expect(setSetting).toHaveBeenCalledWith('mcpServers', expect.stringContaining('real-secret'))
     expect(setSetting).toHaveBeenCalledWith('mcpServers', expect.not.stringContaining('__MY_AGENT_REDACTED__'))
+  })
+
+  it('settings:fetch-models does not send a request without an API key', async () => {
+    registerSettingsIPC()
+    const handler = handlers.get('settings:fetch-models')
+    const result = await handler?.({}, { apiKey: '', baseUrl: 'https://api.example.com/v1' })
+    expect(result).toMatchObject({ ok: false, reason: 'missing-key', retryable: false })
+    expect(fetchRemoteModels).not.toHaveBeenCalled()
+    expect(loadMainLLMConfig).not.toHaveBeenCalled()
+  })
+
+  it('settings:fetch-models injects the stored connection key by connectionId', async () => {
+    registerSettingsIPC()
+    const handler = handlers.get('settings:fetch-models')
+    const result = await handler?.({}, { useStoredApiKey: true, connectionId: 'conn-1', baseUrl: 'https://api.example.com/v1' })
+    expect(result).toEqual({ ok: true, models: ['gpt-4o'] })
+    expect(loadMainLLMConfig).toHaveBeenCalledWith({ apiKey: 'sk-connection-secret', baseUrl: 'https://api.example.com/v1' })
+    expect(fetchRemoteModels).toHaveBeenCalled()
+  })
+
+  it('settings:fetch-models uses a draft key without reading stored secrets', async () => {
+    registerSettingsIPC()
+    const handler = handlers.get('settings:fetch-models')
+    fetchRemoteModels.mockResolvedValueOnce({ ok: false, error: 'API Key invalid', reason: 'auth', retryable: true })
+    const result = await handler?.({}, { apiKey: 'sk-draft-secret', baseUrl: 'https://api.example.com/v1' })
+    expect(result).toEqual({ ok: false, error: 'API Key invalid', reason: 'auth', retryable: true })
+    expect(loadMainLLMConfig).toHaveBeenCalledWith({ apiKey: 'sk-draft-secret', baseUrl: 'https://api.example.com/v1' })
+    expect(JSON.stringify(result)).not.toContain('sk-connection-secret')
+    expect(JSON.stringify(result)).not.toContain('sk-draft-secret')
+  })
+
+  it('useStoredApiKey without connectionId does not fall back to the global key', async () => {
+    registerSettingsIPC()
+    const testResult = await handlers.get('settings:test-connection')?.({}, { useStoredApiKey: true, baseUrl: 'https://api.example.com/v1', model: 'model' })
+    expect(loadMainLLMConfig).toHaveBeenCalledWith({ apiKey: '', baseUrl: 'https://api.example.com/v1', model: 'model' })
+    expect(testResult).toEqual({ ok: false, error: '\u8bf7\u5148\u914d\u7f6e API Key' })
+    expect(chatComplete).not.toHaveBeenCalled()
+    loadMainLLMConfig.mockClear()
+    const fetchResult = await handlers.get('settings:fetch-models')?.({}, { useStoredApiKey: true, baseUrl: 'https://api.example.com/v1' })
+    expect(loadMainLLMConfig).toHaveBeenCalledWith({ apiKey: '', baseUrl: 'https://api.example.com/v1' })
+    expect(fetchResult).toMatchObject({ ok: false, reason: 'missing-key', retryable: false })
+    expect(fetchRemoteModels).not.toHaveBeenCalled()
+    expect(JSON.stringify(fetchResult)).not.toContain('sk-connection-secret')
+    expect(JSON.stringify(fetchResult)).not.toContain('sk-real-secret')
   })
 })

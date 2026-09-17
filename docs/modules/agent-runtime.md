@@ -7,7 +7,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；自�
 
 ## 边界
 
-**做**：Agent Loop（流式事件 / 工具超时 / 重试）、会话 Runtime 中心化、System Prompt 四层组装、上下文压缩、后台任务队列、子 Agent、MCP Client、多 Provider LLM、模型连接与用途路由、Headless、Observer/DevPanel。MCP 工具许可由配置、活动连接、Registry 注册和执行前调用共同约束；模型连接密钥由主进程解密装配，Renderer 与备份只接触脱敏结构。
+**做**：Agent Loop（流式事件 / 工具超时 / 重试）、会话 Runtime 中心化、System Prompt 四层组装、上下文压缩、后台任务队列、子 Agent、MCP Client、多 Provider LLM、模型连接 / 用途路由 / 主进程模型发现、Headless、Observer/DevPanel。MCP 工具许可由配置、活动连接、Registry 注册和执行前调用共同约束；模型连接密钥由主进程解密装配，Renderer 与备份只接触脱敏结构。
 **不做**：伙伴生活世界语义（见 companion）；结构化记忆库本身（见 memory）；权限策略语义（见 permission）。
 
 ## 短 Why
@@ -118,6 +118,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；自�
 | 多 Provider LLM + Failover | 已落地 | `llm/`；OpenAI Compatible / Anthropic / Gemini；配置唯一经 `loadMainLLMConfig` / `loadAuxLLMConfig` |
 | Provider 能力生产资产 | 已落地 | `provider-presets.ts` 唯一预设源；依据 Alice 本地 Provider 清单登记海外直连、国内服务商、编程套餐、聚合与代理、本地 / 自定义五组共 24 个 Provider 入口；模型 ID 不写入入口预设，由用户按账户实际可用列表填写；`provider-asset-registry.ts` 派生 Provider 资产，Debug「提示词管理器 → 模型 Provider」只读展示；ListenHub / CLIProxy 不冒充普通聊天入口 |
 | 首次模型配置旅程 | 已落地 | 无 Key 自动进入设置「模型」；Provider / Key / Base URL / 模型修改后防抖自动保存，当前配置可独立测试连接；未修改 API Key 不会用空值覆盖安全存储 |
+| 正式模型发现 | 已落地 | `settings:fetch-models` 只走主进程；OpenAI Compatible / Anthropic 读 `/v1/models`，Gemini 明确不支持。无 Key 不发请求；已存 Key 按 `connectionId` 注入，草稿 Key 不读已存密钥。成功列表点选后才写入连接清单，手动添加去重；有清单时路由只选已启用模型 |
 | Headless 运行（定时/后台） | 已落地 | `runtime.runHeadless`；无交互时只自动批准明确只读工具 |
 | Observer / DevPanel 可观测 | 已落地 | tracer / observer / DevPanel |
 | LLM Debug 安全元数据持久化 | 已落地 | tracer sink · `llm_debug_logs` · Debug IPC；只保留结构元数据、正文长度和资产证据，不持久化 Prompt / 响应 / hidden reasoning |
@@ -133,7 +134,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；自�
 | 设计语言场 | 已落地 | Playground「基础 → 设计语言」；颜色 / 主题 / 圆角动效三组 Tab，不混入业务组合 |
 | Playground 基础 / 产品体验工作台 | 已落地 | `src/components/playground/` · 基础 → 产品体验 → Agent 实验；统一内容宽度、单一一级入口、基础故事筛选和当前体验基础引用；图标尺寸 / 搜索 / 动效均有可见样张，边界见施工合同 | Playground Chat 已覆盖初次进入、聊天、处理中、确认、完成、失败六态；处理中嵌入五功能工作区，确认 / 结果 / 失败留在对话里，不再使用旧任务进度卡或预览坞。人物世界样张收敛为朋友圈 / 物什 / 名册，角色架改在设置样张查看；记忆作为设置中的独立入口，业务状态不再作为独立入口。
 | Playground UI 矩阵加厚（确认/芯片/状态条/反馈/独白） | 已落地 | M32-G9 Phase 1 · Toast 关闭位统一、MarkdownRenderer 等正式组件故事格 |
-| Playground 模型连接与编程套餐候选 | 部分 | `SettingsExperienceCandidate.tsx` 读取六个套餐预设，名称 / 专用地址联动；官方、套餐、聚合、本地与自定义入口分离，适配器仅自定义可选。连接详情常驻，右上获取 / 测试；获取成功后展示可直接加入的候选项，模型状态只用勾选 / 空心圆表达，草稿与候选按连接隔离、重复模型不可添加。保存连接、添加模型、上方用途引用均为隔离状态；普通 Ark 的聚合分类只作用于候选。正式多连接 / 用途路由尚未回流，套餐后端验证见 `WISH-027` |
+| Playground 模型连接与编程套餐候选 | 部分 | `SettingsExperienceCandidate.tsx` 读取六个套餐预设，名称 / 专用地址联动；官方、套餐、聚合、本地与自定义入口分离，适配器仅自定义可选。连接详情常驻，右上获取 / 测试；获取成功后展示可直接加入的候选项，模型状态只用勾选 / 空心圆表达，草稿与候选按连接隔离、重复模型不可添加。保存连接、添加模型、上方用途引用均为隔离状态；普通 Ark 的聚合分类只作用于候选。正式多连接 / 用途路由 / 主进程发现已回流，Playground 获取仍是隔离 fixture；套餐真实调用见 `WISH-027` |
 | Playground 单项采用标记与主题对照 | 已落地 | `AdoptionMark` 只挂具体 token / 组件 / 故事证据，不再给目录批量标记或提供全局开关；七主题同页审计 |
 | UI 组件 / 图标语义资产注册 | 已落地 | `ui-component-registry.ts` 继续承担组件资产身份与生命周期；`foundation-story-registry.ts` 负责 Foundation Playground 故事的 story key、assetKey、分组和 renderer 关系；基础组件工作台按 13 个任务入口展示全部已建故事，并补齐 Select / Form Field / Checkbox / Switch / Diff Viewer 及 IconButton / Card / Badge / Tag / Divider 隔离故事，完整候选登记由注册表 / Debug 承担；业务结构由产品体验注册表的 `experienceParts` 登记；图标目录仅显示紧凑的图标 + 中英文名，具体 adopted 小勾位于对应图标卡右上角并来自真实证据 |
 | 全局 Debug 诊断 | 已落地 | `DevPanel` 全页工作区；提示词、请求与运行、伙伴状态、质量 / Eval、系统统一从全局入口进入；Chat 不再叠加 Debug 半屏 |
@@ -172,6 +173,6 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；自�
 
 - 2026-09-17：复核开发者模式门控。正式关于页与候选共用同一内容组件；Electron 独立目录覆盖开关、入口隐藏和完整重启恢复。该证据不把全产品回流标为 adopted。
 
-- 模型设置的正式展示已收敛到多连接与用途路由面板；旧单连接字段仅作为兼容回退，不再作为独立产品 UI 入口。
+- 模型设置的正式展示已收敛到多连接、用途路由与连接清单面板；正式获取走主进程，Playground 仍用隔离 fixture。旧单连接字段仅作为空清单兼容回退，不再作为独立产品 UI 入口。
 
 - 主对话 Runtime 根据用户消息是否携带图片选择 primary 或 image 配置；image 路由无效时回退主配置，辅助任务仍走 auxiliary。

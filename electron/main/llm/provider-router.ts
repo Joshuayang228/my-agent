@@ -25,7 +25,7 @@ export const PROVIDER_DETECTION_RULES: ReadonlyArray<{ pattern: RegExp; provider
  * 将协议路径拼到 Base URL；Alice 清单有时带版本前缀，而本项目旧配置有时不带。
  * 统一在这里消除重复的 /v1 或 /v1beta，避免一键套用预设后请求变成 /v1/v1/*。
  */
-function appendApiPath(baseUrl: string, path: string): string {
+export function appendApiPath(baseUrl: string, path: string): string {
   const base = baseUrl.replace(/\/+$/, '')
   const normalizedPath = path.replace(/^\/+/, '')
   const basePath = (base.match(/^https?:\/\/[^/]+(\/.*)?$/)?.[1] ?? '').replace(/\/+$/, '')

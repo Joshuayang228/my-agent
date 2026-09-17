@@ -27,7 +27,7 @@
 | R03 外观 / `foundation-design-language-v2.md` | 设置外观、`src/index.css`、共享设计资产 | 四主题与全局主题共用资产；旧开发主题值不要求兼容映射 | 生产改造后回流；瓷青 / 曜石 / 松烟 / 绛紫同源，当前设置重启恢复、Markdown / Diff 各入口 |
 | R04 伙伴与相处 / 设置候选 | 正式伙伴设置、`CharacterShelfPanel` | 既有角色切换、提醒、反思与 settings；候选补充说明写入链路待核实 | 生产改造后回流；设置内角色架、真实偏好保存与生效、流中禁换角、跨页同一主角 |
 | R05 记忆 / `SurfaceBaselinePanel.tsx` 的 MemorySurface | `MemoryPanel`、正式设置记忆页 | `memory:*`、memory-store / vector-store；正式与故事共用四类导航、搜索、紧凑卡片及列表后新增行；六种历史类别按共享映射唯一归属 | 整页已接入；四类真实写入与重启、搜索 / 草稿 / 几何及失败恢复证据见 R05 记录 |
-| R06 模型 / `playground-model-and-workspace-v2.md` | 正式模型设置、LLM 配置工厂 | 已有 settings 与连接测试；候选多连接 / 用途路由 / 模型获取含 fixture | 生产改造后回流；连接 CRUD、发现与手动模型、用途路由、凭据安全存储、旧配置迁移、真实调用与失败恢复 |
+| R06 模型 / `playground-model-and-workspace-v2.md` | 正式模型设置、LLM 配置工厂 | 已有 settings、连接 CRUD、用途路由与 `settings:fetch-models`；Playground 获取仍是隔离 fixture | 生产改造后回流；连接 CRUD、发现与手动模型、用途路由、凭据安全存储、旧配置迁移、真实调用与失败恢复。本批收口主进程发现与认证失败恢复；不把 Playground 夹具当真实请求，也不把全产品标 adopted |
 | R07 数据与隐私 / 设置候选 | 正式设置数据页及导入导出服务 | 复核实际导入 / 导出 / 备份字段与隐私边界；不按候选文案假定已包含所有数据 | 直接回流已有流程，缺失能力改造；取消、无效备份、失败提示、实际恢复一致性 |
 | R08 权限与自动化 / 设置候选 | 正式权限设置、`PermissionRulesEditor` | 既有 executionMode / permissionRules 与执行侧规则引擎 | 直接回流既有规则能力；默认收起、独立规则卡、列表后添加、原位取消、保存及执行侧生效；硬边界优先 |
 | R09 Skills / `playground-skills-detail-v1.md` | 正式设置 Skills、共享 `SkillViews` | 真实 list / get / validate / save / delete / set-enabled；registry 与 SQLite 启停状态 | 列表、独立详情、限高 SKILL.md 全文、真实启停与错误恢复；试跑不回流正式页，证据见 R09 执行记录 |
@@ -146,13 +146,21 @@ R12 必须拆成六个独立验收面：
 - 证据：`companion-assets` / `companion-asset-registry` Unit 覆盖真实 sql.js 初始化与回滚；`chat` Renderer 四主题宽窄覆盖正式入口、长文、刷新失败 / 重试、两条同地点动态和角色不一致。Renderer 使用 IPC 替身，不能替代六面真实 Electron 验收。现有用户备份遗漏生活资产与初始化标记，继续在 R07 / WISH-045 内补齐。
 
 - Electron 真实回归已通过 7 项：首启模型路由、伙伴设置保存/重载、Debug 质量审阅、workspace 会话、文件读取与侧聊关闭、Windows 终端进程树回收、主会话切换；4 项外部模型凭据用例明确跳过。
-- R06 已补齐真实连接 CRUD、用途路由、密钥安全存储与主对话消费；正式选择用途时替换旧兼容路由，后续路由保存不会清空已保存密钥。模型发现、认证失败恢复仍未完成。
+- R06 已补齐真实连接 CRUD、用途路由、密钥安全存储与主对话消费；正式选择用途时替换旧兼容路由，后续路由保存不会清空已保存密钥。
 - R12 生活资产真实增改删：允许修改 `life/assets.ts` 的用户创建白名单、companion IPC / preload / Renderer 声明、`AssetsPanel`、`WorldDetailsPanel`、共享 `WorldAssetEditor`、Playground `previewEditable` 内存预览及对应 Unit / Renderer / Electron 测试。正式页走 `companion:create-asset` / 既有 update / delete；Playground 只改内存夹具，不写 IPC。家居新增默认 `furniture`，足迹新增默认 `footprint` 并支持常去 / 想去。不改朋友圈互动、地图、设备控制、人物 starter 故事或备份白名单。
 - 本批验收边界：Unit 覆盖 create 白名单、超限拒绝和角色隔离；Renderer 覆盖 Playground 穿着夹具、内存增改删不写 IPC、正式新增失败保留草稿；Electron 在独立数据目录用真实 IPC 新增文化 / 家居物件 / 想去地点，重载后仍可见，超限拒绝，最后删除清理。不把 Renderer 替身或页面 reload 称为完整应用重启 / 备份恢复。`experience.world` 保持 playground；编辑器与详情 / 衣柜面板可 adopted。
 - R12 确认流程补验：衣柜删除与通讯录强制开聊改为成功后才关闭确认；失败保留同一确认，处理中禁止取消和重复提交。CastPanel 去掉字面换行转义。不改 IPC、存储或召唤忙闲判定。正式入口覆盖失败重试和连点。该补验不关闭生活面编辑、备份或六面完整验收。
 - R12 通讯录忙闲列表预检：正式 `CastPanel` 读取既有 `companion:check-cast-availability`，卡片在开聊前展示方便 / 忙碌 / 未读到；开聊仍走 `startSummon` 二次判定和强制确认。不改忙闲算法、IPC 形状或 Playground 静态通讯录夹具。Renderer 覆盖忙碌卡可见、可用卡可见、忙碌仍可开聊进入确认。该补验不关闭六面正式入口 Electron 或备份。
 - R12 朋友圈互动后端：正式 `MomentsPanel` 无 preview 时走 `companion:toggle-moment-like` / `companion:add-moment-comment`；用户赞评写入 `companion_moment_user_interactions`，不改 `moment.text` 或 `meta.interactions`。Playground 仍用本地夹具。Renderer 覆盖正式入口赞 / 评论、IME 不误提交、失败保留草稿、pending 不双提交和评论槽几何。Electron 覆盖真实 IPC 赞评、空值 / 超长拒绝和重载保留。该补验不关闭人物 starter 来源复核、六面正式入口 Electron 或备份。
 - R06 之外，R10 MCP 真实连接恢复，以及全产品逐项 adopted 证据仍未完成；R12 衣柜 / 文化 / 家居 / 足迹编辑链已接入 `companion_assets` 并有 Electron create / 重载 / 超限拒绝证据。通讯录忙闲列表预检与朋友圈真实赞评已接入。R07 生活资产备份已收口。六面正式入口 Electron、文化 starter 无证据数量文案与人物 starter 来源复核本批收口。无 world.default.json 时不得把城西小公寓或日常住处写入世界态 / Catch-up / Prompt。本合同继续保持进行中。
+
+### R06 模型发现 / 认证失败恢复（2026-09-17）
+
+- 本批边界：正式模型页的「获取已有模型」走主进程 `settings:fetch-models`，Renderer 不直连供应商、不读回已存密钥。OpenAI Compatible / Anthropic 用 `appendApiPath(baseUrl, 'v1/models')`；Gemini 明确不支持并提示手动添加。成功列表需要用户点选后才写入连接清单；手动添加走同一清单并去重。认证失败可重试，404 / 不支持不假装成可重试网络错误。
+- 密钥契约：草稿 Key 优先；`useStoredApiKey` 只按 `connectionId` 取已存连接密钥，不再用全局 `llmApiKey` 冒充。读取连接时去密钥并加 `hasApiKey`；保存时丢掉 `hasApiKey` 并归一 `models[]`。有清单时路由只能选已启用模型；空清单仍兼容旧单 `model` 字段。
+- 允许修改：共享校验 / 清单纯函数、主进程发现、settings IPC / preload / Renderer 声明、正式 `ModelRoutingSettings` / `SettingsPanel`、路由工厂，以及对应 Unit / E2E 和本合同 / 运行时模块卡 / 质量 / 账本。
+- 明确不碰：Playground 获取仍是隔离延时夹具；MCP OAuth / 异常断开、完整 PTY、新编人物故事、Alice TokenDance / MiniMax 硬编码清单、全产品 adopted、`src/App.tsx` 无关脏改动。
+- 验收：Unit 覆盖输入校验、远程列表解析、Gemini 不支持、401 不泄密、空列表、无 Key 不发请求、已存 Key 按连接注入、草稿 Key 不读已存密钥、清单存在时停用模型不能被路由选中。Renderer 正式页文案改为「连接与模型清单」。该证据不把编程套餐真实调用或全产品标为 adopted。
 
 ### R11 关于页开发者模式门控（2026-09-17）
 
@@ -205,7 +213,7 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 |---|---|---|---|
 | 对话与导航 | `production-ready`，待完整入口验收 | 正式 `App` / Sidebar / Chat / Right Dock 调用链与既有 Electron 回归 | 四主题、窄宽、跨页草稿与任务恢复的正式入口证据 |
 | 人物世界 | `production-ready`，部分 `adopted` | 角色架、文化角 / 家居 / 足迹真实资产链、正式增改删与 Electron create 覆盖、通讯录列表忙闲预检、朋友圈真实赞评、生活资产真实备份、六面正式入口 Electron、文化 starter 无证据数量文案、无 world.default 时世界态 / Catch-up / Prompt 回退为未设定 | 衣柜 / 文化分味播种仍不是已确认人物事实；全产品 adopted 仍未完成 |
-| 设置与人物设置 | `user-approved`，正在回流 | Playground 候选、正式 `SettingsPanel`、共享导航 / 卡片基础层；R11 关于页开发者模式已有正式入口与 Electron 持久化证据 | 模型发现、MCP OAuth / 异常断开恢复；旧设置其余内容页继续按编号验收 |
+| 设置与人物设置 | `user-approved`，正在回流 | Playground 候选、正式 `SettingsPanel`、共享导航 / 卡片基础层；R11 关于页开发者模式已有正式入口与 Electron 持久化证据；R06 正式模型发现走主进程 `/v1/models` | MCP OAuth / 异常断开恢复；编程套餐真实调用仍见 WISH-027；不把 Playground 夹具当真实发现 |
 | 记忆 | 整页已回流 | 共享四类 / 搜索 / 新增行；正式长文、固定槽、四主题宽窄、失败恢复及真实四类重启 CRUD | 本项不替代其他设置或备份 / 向量召回的验收 |
 | 主题与基础组件 | `production-ready` | Foundation 主题资产、共享设置卡片 / 行组件、基础复用门禁 | Markdown / Diff / 工作区全部正式入口的无白底验收 |
 | 工作区工具 | `production-ready`，部分 `adopted` | 正式 Right Dock 五工具、共享面板布局与 Electron 回归 | 浏览器 / 文件 / 审阅 / 终端跨页状态和完整错误路径 |

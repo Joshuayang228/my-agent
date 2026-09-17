@@ -29,4 +29,33 @@ describe('model routing', () => {
     expect(__test.resolveRoutedConfig('[]', JSON.stringify([{ purpose: 'primary', connectionId: 'missing', model: 'x', enabled: true }]), 'primary')).toBeNull()
     expect(__test.resolveRoutedConfig(JSON.stringify([{ id: 'c', baseUrl: 'https://example.test', enabled: true }]), JSON.stringify([{ purpose: 'primary', connectionId: 'c', model: ' ', enabled: true }]), 'primary')).toBeNull()
   })
+
+  it('清单存在时只接受已启用模型，空清单仍兼容旧单模型字段', () => {
+    const connections = JSON.stringify([{
+      id: 'primary',
+      name: '主连接',
+      baseUrl: 'https://example.test/v1',
+      model: 'legacy-model',
+      models: [
+        { id: 'gpt-4o', enabled: true },
+        { id: 'gpt-4o-mini', enabled: false },
+      ],
+      enabled: true,
+    }])
+    expect(__test.resolveRoutedConfig(
+      connections,
+      JSON.stringify([{ purpose: 'primary', connectionId: 'primary', model: 'gpt-4o-mini', enabled: true }]),
+      'primary',
+    )).toBeNull()
+    expect(__test.resolveRoutedConfig(
+      connections,
+      JSON.stringify([{ purpose: 'primary', connectionId: 'primary', model: 'gpt-4o', enabled: true }]),
+      'primary',
+    )).toMatchObject({ id: 'primary', model: 'gpt-4o' })
+    expect(__test.resolveRoutedConfig(
+      JSON.stringify([{ id: 'legacy', baseUrl: 'https://legacy.test/v1', model: 'legacy-model', enabled: true }]),
+      JSON.stringify([{ purpose: 'primary', connectionId: 'legacy', model: 'legacy-model', enabled: true }]),
+      'primary',
+    )).toMatchObject({ id: 'legacy', model: 'legacy-model' })
+  })
 })

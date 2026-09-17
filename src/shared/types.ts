@@ -669,9 +669,32 @@ export interface LLMConnectionTestInput {
   apiKey?: string
   /** 使用主进程安全存储中的已保存 Key。 */
   useStoredApiKey?: boolean
+  /** 已保存连接；主进程只在需要已存 Key 时按它取值，不把密钥回传 Renderer。 */
+  connectionId?: string
   baseUrl: string
   model: string
 }
+
+export type LLMModelFetchReason =
+  | 'missing-key'
+  | 'unsupported'
+  | 'auth'
+  | 'not-found'
+  | 'timeout'
+  | 'network'
+  | 'invalid-response'
+
+export interface LLMModelFetchInput {
+  apiKey?: string
+  useStoredApiKey?: boolean
+  connectionId?: string
+  baseUrl: string
+  provider?: LLMProvider
+}
+
+export type LLMModelFetchResult =
+  | { ok: true; models: string[] }
+  | { ok: false; error: string; reason: LLMModelFetchReason; retryable: boolean }
 
 export const MAX_COMPANION_RESPONSE_NOTE_LENGTH = 4000
 
@@ -739,12 +762,20 @@ export interface LLMConfig {
 
 export type ModelRoutePurpose = 'primary' | 'auxiliary' | 'image'
 
+export interface ModelConnectionModel {
+  id: string
+  enabled: boolean
+}
+
 export interface ModelConnectionProfile {
   id: string
   name: string
   baseUrl: string
   model: string
+  models?: ModelConnectionModel[]
   apiKey?: string
+  /** Renderer 安全视图：是否已有本机密钥；正式保存时由主进程忽略。 */
+  hasApiKey?: boolean
   provider?: LLMProvider
   enabled: boolean
 }

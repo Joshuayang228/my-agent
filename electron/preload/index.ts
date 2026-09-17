@@ -31,6 +31,8 @@ import type {
   RendererSettings,
   LLMConnectionTestInput,
   LLMConnectionTestResult,
+  LLMModelFetchInput,
+  LLMModelFetchResult,
   MomentListResult,
   MomentSocialMutationResult,
 } from '../../src/shared/types'
@@ -97,6 +99,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     set: (key: string, value: string): Promise<void> => ipcRenderer.invoke('settings:set', key, value),
     testConnection: (input: LLMConnectionTestInput): Promise<LLMConnectionTestResult> =>
       ipcRenderer.invoke('settings:test-connection', input),
+    fetchModels: (input: LLMModelFetchInput): Promise<LLMModelFetchResult> =>
+      ipcRenderer.invoke('settings:fetch-models', input),
   },
 
   memory: {

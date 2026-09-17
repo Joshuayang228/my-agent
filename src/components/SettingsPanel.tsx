@@ -400,11 +400,36 @@ export function SettingsPanel({
   const renderModel = () => (
     <div className="space-y-4">
       <SettingsPageHeader title="模型" description="管理模型连接与用途安排；密钥只保存在本机安全存储中。" />
-      <ModelRoutingSettings connectionsRaw={modelConnections} routesRaw={modelRoutes} legacyBaseUrl={form.llmBaseUrl} legacyModel={form.llmModel} onTestConnection={async (connection) => { if (preview || !window.electronAPI) return { ok: false, error: '当前仅可在正式设置中测试' }; return window.electronAPI.settings.testConnection({ baseUrl: connection.baseUrl, model: connection.model, useStoredApiKey: true }) }} onSave={async (connections, routes) => {
+      <ModelRoutingSettings connectionsRaw={modelConnections} routesRaw={modelRoutes} legacyBaseUrl={form.llmBaseUrl} legacyModel={form.llmModel} onTestConnection={async (connection, draftApiKey) => {
+        if (preview || !window.electronAPI) return { ok: false, error: '当前仅可在正式设置中测试' }
+        const apiKey = draftApiKey?.trim()
+        return window.electronAPI.settings.testConnection({
+          baseUrl: connection.baseUrl,
+          model: connection.model,
+          ...(apiKey ? { apiKey } : { useStoredApiKey: true, connectionId: connection.id }),
+        })
+      }} onFetchModels={async (connection, draftApiKey) => {
+        if (preview || !window.electronAPI) return { ok: false, error: '当前仅可在正式设置中获取模型', reason: 'network', retryable: false }
+        const apiKey = draftApiKey?.trim()
+        return window.electronAPI.settings.fetchModels({
+          baseUrl: connection.baseUrl,
+          provider: connection.provider,
+          ...(apiKey ? { apiKey } : { useStoredApiKey: true, connectionId: connection.id }),
+        })
+      }} onSave={async (connections, routes) => {
         if (preview || !window.electronAPI) return
         await window.electronAPI.settings.set('modelConnections', connections)
         await window.electronAPI.settings.set('modelRoutes', routes)
-        setModelConnections(connections)
+        try {
+          const parsed = JSON.parse(connections)
+          setModelConnections(JSON.stringify(Array.isArray(parsed) ? parsed.map((item) => {
+            if (!item || typeof item !== 'object') return item
+            const connection = item as Record<string, unknown>
+            return { ...connection, apiKey: '', hasApiKey: Boolean(typeof connection.apiKey === 'string' && connection.apiKey.trim()) || connection.hasApiKey === true }
+          }) : []))
+        } catch {
+          setModelConnections('[]')
+        }
         setModelRoutes(routes)
       }} />
       <SettingCard>

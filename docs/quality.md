@@ -255,9 +255,11 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 - 2026-09-17：R11 关于页开发者模式补齐共享内容组件证据。Unit 锁住正式设置与候选实际渲染 `AboutSettingsContent` / `SettingSwitch`；Renderer 覆盖正式开关写入、关闭设置后入口刷新，以及候选开关不写生产。Electron 独立数据目录覆盖开启后入口出现、关闭后隐藏、完整重启恢复且不删除数据。无 API Key 时完整重启会打开设置全屏，必须先返回 Chat 再断言侧栏入口。UI E2E 默认开发入口可见仍是 `ui-e2e` 模式特例。
 
 - 2026-09-14：R12 文化角新增资产播种与注册表回归覆盖；测试验证角色隔离、稳定 starter 类型和防修改副本。
-模型连接与用途路由的质量门禁：路由配置必须只选择启用且字段完整的连接，按顺序跳过无效项；旧单连接字段为空路由时保持原行为；Renderer 和备份不得包含连接密钥。相关纯函数、设置安全视图和备份边界必须有 Unit 覆盖。
+模型连接与用途路由的质量门禁：路由配置必须只选择启用且字段完整的连接，按顺序跳过无效项；连接已有 `models[]` 时只能选已启用模型，空清单仍兼容旧单 `model` 字段；Renderer 和备份不得包含连接密钥，但可以带 `hasApiKey`。相关纯函数、设置安全视图和备份边界必须有 Unit 覆盖。
+
+- 正式模型发现门禁：`settings:fetch-models` 必须在主进程校验并发请求；无 Key 不发请求；已存 Key 只按 `connectionId` 注入，不能用全局 `llmApiKey` 冒充该连接；401 / 空列表 / Gemini 不支持 / 超时只返回结构化原因，不回传凭据或堆栈。Playground 获取仍是隔离 fixture，不能当作真实发现证据。
 
 - 图片理解路由门禁：模型配置单测覆盖 image 路由解析；Runtime 仅对带图片的用户消息选择 image，普通消息和无有效 image 路由均保持 primary 回退。
 
-- UI E2E 设置契约：正式模型页断言 Playground 回流后的连接清单、用途安排和折叠高级设置，不再依赖已移除的旧 Provider / 单连接表单；全量 UI 96/96 通过。
+- UI E2E 设置契约：正式模型页断言 Playground 回流后的「连接与模型清单」、用途安排和折叠高级设置，不再依赖已移除的旧 Provider / 单连接表单。
 - 设置候选与正式页的卡片、设置行、范围徽标、标题和开关必须来自 `src/components/settings/SettingsFields.tsx`；禁止在 `src/components/playground/SettingsExperienceCandidate.tsx` 重新实现同类视觉控件。正式权限页的折叠交互使用真实 `PermissionRulesEditor`，候选 fixture 不能作为生产行为证据。

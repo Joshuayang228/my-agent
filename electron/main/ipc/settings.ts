@@ -6,7 +6,9 @@ import { chatComplete, LLMError } from '../llm/index'
 import { loadMainLLMConfig } from '../llm/aux-config'
 import { PROMPT_KEYS } from '../prompts/keys'
 import { CONNECTION_TEST_MESSAGES, validateLLMConnectionTestInput } from '../../../src/shared/llm-connection-test'
-import type { LLMConnectionTestInput, LLMConnectionTestResult, RendererSettings } from '../../../src/shared/types'
+import { MODEL_FETCH_MESSAGES, normalizeConnectionModels, validateLLMModelFetchInput } from '../../../src/shared/llm-model-fetch'
+import { fetchRemoteModels } from '../llm/model-discovery'
+import type { LLMConnectionTestInput, LLMConnectionTestResult, LLMModelFetchInput, LLMModelFetchResult, RendererSettings } from '../../../src/shared/types'
 import { MAX_COMPANION_RESPONSE_NOTE_LENGTH } from '../../../src/shared/types'
 import { redactMcpConfigsForRenderer, hasNewOrChangedEnabledMcpConfig, mergeMcpConfigListSecrets, parseStoredMcpConfigs } from '../mcp/config-security'
 import { withMcpConfigLock } from '../mcp/config-lock'
@@ -26,7 +28,9 @@ function mergeModelConnectionSecrets(nextRaw: string, previousRaw: string): stri
     const apiKey = typeof connection.apiKey === 'string' && connection.apiKey.trim()
       ? connection.apiKey
       : typeof old?.apiKey === 'string' ? old.apiKey : ''
-    return { ...connection, apiKey }
+    const { hasApiKey: _hasApiKey, ...rest } = connection
+    const models = normalizeConnectionModels({ model: typeof rest.model === 'string' ? rest.model : '', models: Array.isArray(rest.models) ? rest.models as Array<{ id?: string; enabled?: boolean }> : [] })
+    return { ...rest, apiKey, models, model: models[0]?.id ?? (typeof rest.model === 'string' ? rest.model : '') }
   }))
 }
 
@@ -52,7 +56,8 @@ export async function getRendererSettings(): Promise<RendererSettings> {
       modelConnections = JSON.stringify(parsed.map((item) => {
         if (!item || typeof item !== 'object' || Array.isArray(item)) return item
         const connection = item as Record<string, unknown>
-        return { ...connection, apiKey: '' }
+        const hasApiKey = typeof connection.apiKey === 'string' && Boolean(connection.apiKey.trim())
+        return { ...connection, apiKey: '', hasApiKey }
       }))
     }
   } catch {
@@ -142,8 +147,11 @@ export function registerSettingsIPC(): void {
 
     const startedAt = Date.now()
     try {
+      const storedKey = validated.value.useStoredApiKey
+        ? await resolveStoredConnectionApiKey(validated.value.connectionId)
+        : ''
       const config = await loadMainLLMConfig({
-        ...(validated.value.apiKey ? { apiKey: validated.value.apiKey } : {}),
+        apiKey: validated.value.apiKey || storedKey,
         baseUrl: validated.value.baseUrl,
         model: validated.value.model,
       })
@@ -164,6 +172,41 @@ export function registerSettingsIPC(): void {
       return { ok: false, error: connectionTestError(error) }
     }
   })
+
+  ipcMain.handle('settings:fetch-models', async (_event, input: LLMModelFetchInput): Promise<LLMModelFetchResult> => {
+    const validated = validateLLMModelFetchInput(input)
+    if (!validated.ok) return { ok: false, error: validated.error, reason: validated.reason, retryable: validated.reason !== 'missing-key' }
+    const storedKey = validated.value.useStoredApiKey
+      ? await resolveStoredConnectionApiKey(validated.value.connectionId)
+      : ''
+    const config = await loadMainLLMConfig({
+      apiKey: validated.value.apiKey || storedKey,
+      ...(validated.value.provider ? { provider: validated.value.provider } : {}),
+      baseUrl: validated.value.baseUrl,
+    })
+    if (!config.apiKey) return { ok: false, error: MODEL_FETCH_MESSAGES.missingKey, reason: 'missing-key', retryable: false }
+    return fetchRemoteModels(config)
+  })
+}
+
+/**
+ * 按连接读取已存密钥，供测试连接和模型发现使用。
+ *
+ * 背景：Renderer 只能看到 hasApiKey，不能拿回密钥原文；正式页又必须能测未保存草稿和已保存连接。
+ * 设计意图：草稿 Key 优先由调用方传入；已存 Key 只按 connectionId 取值，不用全局 llmApiKey 冒充该连接。
+ * 关键约束：没有 connectionId 或找不到该连接时返回空串，让上层明确报缺密钥，而不是静默借用别的凭据。
+ */
+async function resolveStoredConnectionApiKey(connectionId?: string): Promise<string> {
+  if (!connectionId) return ''
+  const stored = await settings.getAllSettings()
+  try {
+    const parsed = JSON.parse(stored.modelConnections)
+    if (!Array.isArray(parsed)) return ''
+    const match = parsed.find((item) => item && typeof item === 'object' && String((item as Record<string, unknown>).id) === connectionId)
+    return typeof match?.apiKey === 'string' ? match.apiKey.trim() : ''
+  } catch {
+    return ''
+  }
 }
 
 export function connectionTestError(error: unknown): string {

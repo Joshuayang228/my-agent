@@ -27,4 +27,21 @@ describe('LLM connection test input', () => {
     expect(result).toEqual({ ok: false, error: 'Base URL 格式不正确' })
     expect(JSON.stringify(result)).not.toContain('do-not-leak')
   })
+
+  it('keeps useStoredApiKey and connectionId without requiring a draft key', () => {
+    expect(validateLLMConnectionTestInput({
+      useStoredApiKey: true,
+      connectionId: 'conn-1',
+      baseUrl: 'https://example.com/v1/',
+      model: 'demo-model',
+    })).toEqual({
+      ok: true,
+      value: {
+        useStoredApiKey: true,
+        connectionId: 'conn-1',
+        baseUrl: 'https://example.com/v1',
+        model: 'demo-model',
+      },
+    })
+  })
 })

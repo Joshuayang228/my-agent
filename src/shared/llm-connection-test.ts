@@ -21,6 +21,7 @@ export function validateLLMConnectionTestInput(input: unknown):
   const raw = input as Partial<LLMConnectionTestInput>
   const apiKey = typeof raw.apiKey === 'string' ? raw.apiKey.trim() : ''
   const useStoredApiKey = raw.useStoredApiKey === true
+  const connectionId = typeof raw.connectionId === 'string' ? raw.connectionId.trim() : ''
   const baseUrl = typeof raw.baseUrl === 'string' ? raw.baseUrl.trim().replace(/\/$/, '') : ''
   const model = typeof raw.model === 'string' ? raw.model.trim() : ''
 
@@ -37,5 +38,14 @@ export function validateLLMConnectionTestInput(input: unknown):
     return { ok: false, error: 'Base URL 格式不正确' }
   }
 
-  return { ok: true, value: { apiKey: apiKey || undefined, ...(useStoredApiKey ? { useStoredApiKey: true } : {}), baseUrl, model } }
+  return {
+    ok: true,
+    value: {
+      apiKey: apiKey || undefined,
+      ...(useStoredApiKey ? { useStoredApiKey: true } : {}),
+      ...(connectionId ? { connectionId } : {}),
+      baseUrl,
+      model,
+    },
+  }
 }
