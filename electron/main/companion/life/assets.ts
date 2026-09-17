@@ -290,9 +290,9 @@ const CULTURE_DEFAULT: StarterItem[] = [
 
 const CULTURE_BY_ROLE: Record<string, StarterItem[]> = {
   lin: [
-    { key: 'walden-notes', name: '《瓦尔登湖》', payload: { type: 'reading', detail: '正在读 · 留下 3 条笔记', note: '给生活留一点空白' } },
+    { key: 'walden-notes', name: '《瓦尔登湖》', payload: { type: 'reading', detail: '正在读', note: '给生活留一点空白' } },
     { key: 'meaning-of-travel', name: '旅行的意义', payload: { type: 'music', detail: '最近常听 · 傍晚散步' } },
-    { key: 'little-forest', name: '《海街日记》', payload: { type: 'film', detail: '喜欢的电影 · 看过两次' } },
+    { key: 'little-forest', name: '《海街日记》', payload: { type: 'film', detail: '喜欢的电影' } },
     { key: 'window-light', name: '窗边的光', payload: { type: 'photography', detail: '自己的作品 · 2026 年 8 月' } },
   ],
 }

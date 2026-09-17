@@ -164,6 +164,16 @@ describe('Companion Assets', () => {
     expect(items.every((a) => a.roleId === 'lin')).toBe(true)
   })
 
+  it('小林文化 starter 保留作品名，不写无证据数量', () => {
+    const culture = getStarterAssetDefinitions('lin').filter((item) => item.kind === 'culture')
+    const details = culture.map((item) => String(item.payload.detail ?? ''))
+    expect(culture.map((item) => item.name)).toEqual(['《瓦尔登湖》', '旅行的意义', '《海街日记》', '窗边的光'])
+    expect(details).toContain('正在读')
+    expect(details).toContain('喜欢的电影')
+    expect(details.join('\n')).not.toContain('3 条笔记')
+    expect(details.join('\n')).not.toContain('看过两次')
+  })
+
   it('ensureStarterBookshelf 分味播种且幂等', async () => {
     const r1 = await ensureStarterBookshelf('lin')
     expect(r1.created).toBe(3)

@@ -515,6 +515,77 @@ test('正式朋友圈赞评经真实 IPC 重载保留并拒绝空值超长', asy
   }
 })
 
+test('正式人物世界六面从正式入口读取真实伙伴数据', async () => {
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  await page.evaluate(() => window.electronAPI.settings.set('llmApiKey', 'local-test-key'))
+  if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
+  await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
+  const seeded = await electronApp.evaluate(async () => {
+    const store = (globalThis as { __lifeStore?: { insertMoment: Function } }).__lifeStore
+    if (!store) throw new Error('__lifeStore missing')
+    const moment = await store.insertMoment({
+      roleId: 'lin',
+      eventId: `e2e-world-surfaces-${Date.now()}`,
+      publishedAt: Date.now(),
+      text: '六面入口验收：今天把书桌收拾出来了。',
+      meta: { location: '家中' },
+    })
+    if (!moment) throw new Error('seed moment failed')
+    return moment
+  })
+  try {
+    const listed = await page.evaluate(() => window.electronAPI.companion.getMoments({ limit: 80 }))
+    expect(listed.roleId).toBe('lin')
+    expect(listed.items.some((item) => item.id === seeded.id && item.text === '六面入口验收：今天把书桌收拾出来了。')).toBe(true)
+
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    const world = page.getByTestId('world-hub')
+    await expect(world).toBeVisible()
+
+    await expect(page.getByTestId('moments-panel')).toBeVisible()
+    const post = page.getByTestId('moment-post').filter({ hasText: '六面入口验收：今天把书桌收拾出来了。' }).first()
+    await expect(post).toBeVisible()
+    await expect(post.getByTestId('moment-location')).toContainText('家中')
+
+    await page.getByTestId('world-tab-wardrobe').click()
+    const wardrobe = page.getByTestId('world-assets-panel')
+    await expect(wardrobe).toBeVisible()
+    for (const name of ['藏青衬衫', '米色针织开衫', '棕色乐福鞋']) {
+      await expect(wardrobe.getByText(name, { exact: true })).toBeVisible()
+    }
+
+    await page.getByTestId('world-tab-culture').click()
+    const culture = page.locator('[data-world-content="culture"]')
+    for (const label of ['读书', '音乐', '电影', '摄影']) await expect(culture).toContainText(label)
+    await expect(culture.getByRole('article', { name: '《瓦尔登湖》', exact: true })).toContainText('正在读')
+    await expect(culture.getByRole('article', { name: '《海街日记》', exact: true })).toContainText('喜欢的电影')
+    await expect(culture).not.toContainText('3 条笔记')
+    await expect(culture).not.toContainText('看过两次')
+
+    await page.getByTestId('world-tab-home').click()
+    const home = page.locator('[data-world-content="home"]')
+    await expect(home.getByRole('region', { name: '当前空间' })).toContainText('还没有记录居住空间。')
+    await expect(home).not.toContainText('城西小公寓')
+
+    await page.getByTestId('world-tab-cast').click()
+    const contacts = page.getByTestId('world-cast-panel')
+    await expect(contacts.getByTestId('world-cast-card-chen')).toContainText('陈姐')
+    await expect(contacts.getByTestId('world-cast-card-ayu')).toContainText('阿雨')
+    await expect(contacts.getByTestId('world-cast-presence-chen')).toHaveText(/方便开聊|现在忙碌|状态未读到|正在查看忙闲/)
+    await expect(contacts.getByTestId('world-cast-presence-ayu')).toHaveText(/方便开聊|现在忙碌|状态未读到|正在查看忙闲/)
+
+    await page.getByTestId('world-tab-footprints').click()
+    const footprints = page.locator('[data-world-content="footprints"]')
+    await expect(footprints.getByRole('region', { name: '生活足迹' })).toContainText('家中')
+    await expect(footprints.getByRole('region', { name: '生活足迹' })).toContainText('六面入口验收：今天把书桌收拾出来了。')
+    await expect(footprints.getByRole('region', { name: '常去地点' })).toHaveCount(0)
+    await expect(footprints).not.toContainText('城西小公寓')
+  } finally {
+    const back = page.getByTestId('world-hub').getByRole('button', { name: '返回聊天', exact: true })
+    if (await back.isVisible().catch(() => false)) await back.click()
+  }
+})
+
 test('Debug 质量 Eval 可保存并重新载入真人格人工审阅', async () => {
   await expect(page.locator('#startup-splash')).toBeHidden()
   await page.evaluate(() => window.electronAPI.settings.set('developerMode', 'true'))

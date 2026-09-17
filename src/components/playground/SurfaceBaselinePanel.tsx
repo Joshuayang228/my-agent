@@ -549,7 +549,7 @@ function worldPreviewFixtures(persona: PlaygroundPersona) {
   const living: WorldAssetRecord[] = [
     worldPreviewAsset(persona.id, 'reading', 'culture', '《瓦尔登湖》', { type: 'reading', detail: '正在读', note: '有时候不是事情太多，而是没有给自己留下足够的空白。' }),
     worldPreviewAsset(persona.id, 'music', 'culture', '旅行的意义', { type: 'music', detail: '最近常听 · 傍晚散步' }, 2),
-    worldPreviewAsset(persona.id, 'film', 'culture', '《海街日记》', { type: 'film', detail: '喜欢的电影 · 看过两次' }, 3),
+    worldPreviewAsset(persona.id, 'film', 'culture', '《海街日记》', { type: 'film', detail: '喜欢的电影' }, 3),
     worldPreviewAsset(persona.id, 'photo', 'culture', '窗边的光', { type: 'photography', detail: '自己的作品 · 2026 年 8 月' }, 4),
     worldPreviewAsset(persona.id, 'desk', 'home', '书桌', { interior: '窗帘拉开了一点，桌面留出了一块安静的空白。' }, 5),
     worldPreviewAsset(persona.id, 'lamp', 'furniture', '台灯', { description: '暖光 · 已打开' }, 6),
