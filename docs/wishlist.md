@@ -19,7 +19,7 @@
 - WISH-045 MCP 回流补充：服务卡片与添加表单已共享，生产 Streamable HTTP / Bearer 与先测试后保存已接入。R10 仍需独立 Electron 数据目录验证真实 IPC / safeStorage / 重启恢复、OAuth 和异常断开恢复；不得将 Renderer 替身或协议 Unit 当作完整验收。当前审查还发现配置锁未覆盖旧整表保存和工具许可写入、已测试连接的资源 / elicitation 接管未核验、保存响应丢失缺少幂等结果、取消 / 超时 / 保存中窗口销毁缺少完整协议回归；这些继续属于已批准回流目标，不移出范围。配置保存与停止仍是两个 IPC，不宣称原子操作。
 
 - WISH-045 设置内容复核：九区共享导航、伙伴偏好、四主题同源及关于页开发者模式已接入，旧七主题描述已过时；记忆整页现已共用候选管理流程，R06 正式模型发现已走主进程；MCP OAuth / 异常断开恢复等仍按各编号验收，不能只把旧面板嵌入新导航后关闭缺口。
-- WISH-045 / R08 权限回流：文件规则执行链和正式规则卡片 / 新增草稿已接入共享编辑器；空 pattern 不提交，保存失败保留草稿和原规则。MCP OAuth / 异常断开恢复、Markdown / Diff 全入口无白底，以及工作区跨页状态仍待收口，不能把单项页面证据当成全产品完成。
+- WISH-045 / R08 权限回流：文件规则执行链和正式规则卡片 / 新增草稿已接入共享编辑器；空 pattern 不提交，保存失败保留草稿和原规则。共享 Prism 主题清洗已去掉容器独立白底；MCP OAuth / 异常断开恢复、工作区跨页状态和全产品 adopted 仍待收口，不能把单项页面证据当成全产品完成。
 - WISH-042 R05 文档监听子因已复现：模型套餐失败前首页再次加载，main.tsx 热更新时间与 wishlist 写入时间相差约 3ms，源码本身未修改。真实 Chrome 受控实验仅 touch `docs/wishlist.md`：TOUCH 1789491771298 → websocket `full-reload` 1789491771303 → 主框架 NAV 1789491771338，Playground 从 1 变为 0。当前 Vite 忽略规则仅覆盖验证产物、未排除产品文档；后续补文档监听隔离及真实 watcher 测试。已定位此子因，尚未改监听配置；验收期间停止文件写入不是产品修复，也不关闭其他未知重载项。
 - WISH-045 生活面 / 备份补充：文化角、家居和足迹已共用展示组件与真实增改删；想去地点可按 footprint 写入。生活资产与播种标记已进入正式 `data:export` / `data:import`，按 id 合并并失败回滚。文化 starter 已去掉“留下 3 条笔记”“看过两次”等无证据数量；无 `world.default.json` 时运行态居所回退为「未设定」，不再把城西小公寓写进世界态 / Catch-up / Prompt。衣柜 / 文化分味播种仍不是已确认人物事实；不能以写入数据库、备份往返或六面入口可见代替人物设定授权。朋友圈互动仍不进入备份。
 - WISH-045 跨入口保存核验：[待确认] App 全局快捷键直接切换视图，尚未统一走设置返回按钮的异步保存门控；需复现失败时的草稿保留与恢复，不将返回按钮专项证据外推到所有导航路径。
@@ -34,7 +34,7 @@
 
 - [ ] **WISH-043 · 主进程类型检查门禁** — 来源：正式侧聊 Electron 回归发现 runtime 的 undefined.trim 和 span 越域未被默认 tsc 检出；根配置只 include src，主进程 `tsc -p tsconfig.node.json --noEmit` 仍报告跨项目 include/composite、ImportMeta.glob 与多个存量类型错误。重启条件：当前回流质量门禁收口；明确前端/主进程检查入口，先清理真实诊断，再纳入 build/commit，不用宽泛 any 或排除文件消音。 文件规则批次用相同 TypeScript Compiler API 对比 HEAD 覆盖前与当前工作树，均为 70 条既有诊断，无新增错误；仅排除诊断附带导入来源列表的文本变化。根 tsc 通过不代表主进程独立门禁通过，未删除检查或改用 any。
 
-- [ ] **WISH-042 · Foundation 真实复用与源码门禁** — 来源：2026-09-13 用户对白底、孤立控件和基础复用原则的反馈及代码审计；施工合同：`foundation-reuse-enforcement-v1.md`，范围待确认。收口四个 Playground 产品体验的 Markdown / Diff / 局部主题和通用控件，验证真实 import 与渲染使用，补违规负例和四主题视觉回归；当前注册表 key / 来源存在检查不能保证实际复用，不得只补调用参数或包装标签后宣称完成。
+- [ ] **WISH-042 · Foundation 真实复用与源码门禁** — 来源：2026-09-13 用户对白底、孤立控件和基础复用原则的反馈及代码审计；施工合同：`foundation-reuse-enforcement-v1.md`，范围待确认。共享 Prism 主题清洗已去掉容器独立白底，并有正式审阅 / 文件预览 / Foundation / 工作区审阅证据；四个 Playground 产品体验的通用控件真实复用和源码门禁仍待收口，不得只补调用参数或包装标签后宣称完成。
   门禁稳定性补充：Foundation 符号解析测试在默认/2-worker 全量运行中出现 5 秒超时；单独测量加载 427 个源文件（401 个来自依赖），程序构建与类型解析合计约 1 秒。单 worker、禁用文件并行后完整 803 项通过，原超时与断言未放宽；仍需稳定默认执行成本，不能把串行通过写成并发问题已修复。
 
 - [ ] **WISH-041 · 工作区五功能正式回流（进行中）** — 2026-09-13 用户已授权目标模式回流；来源：`playground-workspace-five-tools-v1.md`。正式 ChatRightDock 已接入共享标签、代码块、Markdown/Mermaid、DiffViewer、IconButton、WorkspaceToolMenu、TextField，以及文件左树右多预览、审阅真实旧稿、受限只读浏览器和 workspace 侧聊；文件浏览器、浏览器、终端和侧聊的通用操作槽已统一到 Foundation。新增 `workspace-backend-contract.test.ts` 锁定五功能真实 project/session/terminal/browser/chat IPC，禁止正式面板依赖 Playground fixture。侧聊关闭及切换主会话后的连接终止、删除与新侧聊发送已有真实 Electron 证据，创建失败重试、旧草稿/确认/迟到错误隔离有 Renderer 回归，主进程初始化取消/运行收尾/待确认工具取消有 Unit。Windows 终端已用真实 Electron 验证大块输出和停止/关闭后的父子进程退出。当前剩余：正式工作区 Foundation 复用已由审计门禁覆盖（本轮补充统一扫描）；剩余后端能力、Unix 终端实机验证；完整 PTY 已按 2026-09-14 产品决策暂缓，浏览器脚本/登录交互明确不在本合同。Debug 页点新对话仍停留 Debug 的入口行为也需核验，当前 Electron 用正式返回入口回 Chat。Debug 与 Playground 一级入口、返回聊天及新对话后的工作区入口已由 UI/Electron 回归覆盖；Playground 与 Renderer IO 替身不能替代后端证据。

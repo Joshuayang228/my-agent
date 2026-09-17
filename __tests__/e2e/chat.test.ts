@@ -6,6 +6,7 @@
  */
 import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
+import { expectSharedCodeSurface } from './shared-code-surface'
 
 for (const outerTheme of ['porcelain-blue', 'yao-stone']) {
   for (const width of [1166, 600]) {
@@ -1102,6 +1103,7 @@ test.describe('My Agent UI', () => {
       await expect(review.locator('h1, a, svg[id^="mermaid"]')).toHaveCount(0)
       const block = review.locator('[data-foundation="code-block"]')
       await expect(block).toHaveCount(1)
+      await expectSharedCodeSurface(block)
       await expect(block.locator('code')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
       await expect(block.locator('pre')).toHaveCSS('background-color', theme === 'yao-stone' ? 'rgb(26, 29, 36)' : 'rgb(223, 233, 238)')
       expect(await block.locator('pre').evaluate((node) => node.scrollWidth > node.clientWidth)).toBe(true)
@@ -1504,6 +1506,7 @@ test.describe('My Agent UI', () => {
     await expect(dock.getByRole('tablist', { name: '文件预览' }).getByRole('tab', { name: 'App.tsx' })).toBeVisible()
     await expect(dock.getByTestId('file-browser-preview')).toContainText('const ready = true')
     await expect(dock.getByTestId('file-browser-preview').locator('[data-foundation="code-block"] code')).toHaveText('const ready = true')
+    await expectSharedCodeSurface(dock.getByTestId('file-browser-preview'))
     await expect(dock.getByTestId('file-browser-preview')).toContainText('App.tsx')
 
     const workspaceToggle = page.getByTitle('收起工作区')
@@ -1596,10 +1599,13 @@ test.describe('My Agent UI', () => {
     const markdownStory = page.locator('section').filter({ hasText: '正文与代码块' }).first()
     const markdownCodeBlock = markdownStory.getByTestId('markdown-code-block')
     await expect(markdownCodeBlock).toBeVisible()
+    await expectSharedCodeSurface(markdownCodeBlock)
     await expect(markdownCodeBlock).toHaveCSS('background-color', /^(?!rgb\(255, 255, 255\)$)/)
     await page.getByRole('tab', { name: '文件与差异', exact: true }).click()
     await expect(page.getByRole('heading', { name: /^文件树/ })).toBeVisible()
-    await expect(page.getByTestId('foundation-diff-code').locator('[data-foundation="code-block"]')).toHaveCount(2)
+    const foundationDiff = page.getByTestId('foundation-diff-code')
+    await expect(foundationDiff.locator('[data-foundation="code-block"]')).toHaveCount(2)
+    await expectSharedCodeSurface(foundationDiff)
     await page.getByRole('tab', { name: '标签与选择', exact: true }).click()
     await expect(page.getByRole('heading', { name: /^标签切换/ })).toBeVisible()
     const foundationTabs = page.getByRole('tablist', { name: 'Foundation 标签样张' })
@@ -2270,9 +2276,14 @@ test.describe('My Agent UI', () => {
           }
         }
         await views.getByRole('tab', { name: '审阅', exact: true }).click()
+        await scenes.getByRole('tab', { name: '行内差异', exact: true }).click()
+        await expectSharedCodeSurface(work.getByTestId('workspace-diff'))
+        await scenes.getByRole('tab', { name: '并排差异', exact: true }).click()
+        await expectSharedCodeSurface(work.getByTestId('workspace-diff'))
         await scenes.getByRole('tab', { name: '多文件', exact: true }).click()
         await work.getByLabel('审阅文件').selectOption('notes.md')
         await expect(work.getByTestId('workspace-diff')).toContainText('核对页面')
+        await expectSharedCodeSurface(work.getByTestId('workspace-diff'))
         await views.getByRole('tab', { name: '终端', exact: true }).click()
         await scenes.getByRole('tab', { name: '多终端', exact: true }).click()
         await work.getByLabel('终端样张命令').fill('pwd')

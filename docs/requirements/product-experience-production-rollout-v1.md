@@ -215,7 +215,7 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 | 人物世界 | `production-ready`，部分 `adopted` | 角色架、文化角 / 家居 / 足迹真实资产链、正式增改删与 Electron create 覆盖、通讯录列表忙闲预检、朋友圈真实赞评、生活资产真实备份、六面正式入口 Electron、文化 starter 无证据数量文案、无 world.default 时世界态 / Catch-up / Prompt 回退为未设定 | 衣柜 / 文化分味播种仍不是已确认人物事实；全产品 adopted 仍未完成 |
 | 设置与人物设置 | `user-approved`，正在回流 | Playground 候选、正式 `SettingsPanel`、共享导航 / 卡片基础层；R11 关于页开发者模式已有正式入口与 Electron 持久化证据；R06 正式模型发现走主进程 `/v1/models` | MCP OAuth / 异常断开恢复；编程套餐真实调用仍见 WISH-027；不把 Playground 夹具当真实发现 |
 | 记忆 | 整页已回流 | 共享四类 / 搜索 / 新增行；正式长文、固定槽、四主题宽窄、失败恢复及真实四类重启 CRUD | 本项不替代其他设置或备份 / 向量召回的验收 |
-| 主题与基础组件 | `production-ready` | Foundation 主题资产、共享设置卡片 / 行组件、基础复用门禁 | Markdown / Diff / 工作区全部正式入口的无白底验收 |
+| 主题与基础组件 | `production-ready` | Foundation 主题资产、共享设置卡片 / 行组件、基础复用门禁、共享 Prism 主题清洗 | 全产品 Markdown / Diff 仍未标 adopted；MCP OAuth / 异常断开与工作区跨页状态仍待收口 |
 | 工作区工具 | `production-ready`，部分 `adopted` | 正式 Right Dock 五工具、共享面板布局与 Electron 回归 | 浏览器 / 文件 / 审阅 / 终端跨页状态和完整错误路径 |
 | MCP / 模型等后端 | `in-progress` | MCP 测试连接生命周期、资源 / elicitation 接管、配置锁专项 Unit | 独立 Electron 数据目录、safeStorage、重启恢复、OAuth、异常断开恢复 |
 
@@ -236,6 +236,10 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 允许按编号逐项认领：App、正式产品与 Foundation 组件、共享类型 / 资产注册、对应 Playground 故事、必要的主进程服务 / IPC / preload、测试及对应文档。不授权任意重构；每次动手前仍列精确文件范围。
 
 不改无关临时文件、未授权人物内容、凭据或无关 Runtime 策略与 Prompt。按 DEC-042，旧设置入口和相关开发数据可以随新结构直接替换 / 重建，不必另造兼容入口或迁移层；仍需记录具体移除范围与回归，不顺手删除其他调用方依赖的共享后端。依赖变更单独说明。
+
+### R14 Markdown / Diff 共享主题清洗
+
+共享 `CodeBlock` 现在只消费清洗后的 Prism 主题：容器级 `code[class*="language-"]` / `pre[class*="language-"]` 不再携带 oneLight 白底，内部 token 透明，Diff 的 inserted / deleted / selection 高亮保留。正式审阅、文件预览、Foundation Markdown / Diff 与 Playground 工作区审阅共用同一入口；本批不把全产品标 adopted。
 
 ### R08 权限页面回流
 

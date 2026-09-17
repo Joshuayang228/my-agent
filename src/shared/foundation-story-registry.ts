@@ -56,7 +56,7 @@ export const FOUNDATION_STORY_NAVIGATION_GROUPS: readonly FoundationStoryNavigat
   { id: 'state-feedback', label: '状态反馈', description: '空态、确认、错误和提示反馈' },
   { id: 'loading-progress', label: '加载与进度', description: '加载指示器、骨架屏和任务进度' },
   { id: 'tool-card', label: '工具卡', description: '工具调用过程、参数、结果和错误状态' },
-  { id: 'content-assets', label: 'Markdown 与资产', description: '正文、代码、表格和资产信息展示' },
+  { id: 'content-assets', label: 'Markdown 与资产', description: '正文、代码、表格和资产信息展示；代码块走清洗后的共享 Prism 主题' },
   { id: 'file-diff', label: '文件与差异', description: '文件树和版本差异查看' },
   { id: 'layout-scroll', label: '布局与滚动', description: '滚动区域、分隔线和分栏拖拽' },
   { id: 'cards', label: '卡片', description: '静态、可交互和长内容通用卡片' },

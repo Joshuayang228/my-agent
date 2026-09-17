@@ -93,7 +93,7 @@ WorkspaceToolMenu 复用门禁检查正式右坞和候选的共享菜单调用�
 
 记忆整页回流门禁：`memory-groups` Unit 覆盖六种历史类别唯一归属和四类新增后的重新读取归属；`memory-foundation-reuse` 按 TypeScript 实际 JSX 符号检查 Settings / Playground → MemoryPanel → 管理控件 → Foundation，含只导入未使用、同名遮蔽与导入别名正反例。正式四主题宽窄 E2E 覆盖分类计数、搜索空态、大小写匹配、Escape 不退出设置、搜索开关几何、IME 防误提交、分组独立草稿、真实长度清单滚动与新增删除计数。Electron 通过正式 UI 新增四类并完整退出重启，复核 category / roleId / 内容后删除；不替换 memory IPC。
 
-工作区代码渲染回归：Foundation story Unit 通过 TypeScript symbol 解析检查 Markdown、文件预览、正式审阅和 Playground renderer 实际调用共享 CodeBlock，含只导入未渲染、同名参数遮蔽及导入别名正反例。正式审阅 E2E 使用 session IPC 替身返回包含围栏、aside、链接与长行的文件，逐字检查 DOM 与复制结果、错误重试、固定操作槽、内部横纵滚动；覆盖 light/dark 和 900/1440 宽度并保存截图。此证据不代表浏览器、侧聊和真实 Electron 命令已可用，也不替代四个候选局部主题及 Mermaid 的完整验收。
+工作区代码渲染回归：Foundation story Unit 通过 TypeScript symbol 解析检查 Markdown、文件预览、正式审阅和 Playground renderer 实际调用共享 CodeBlock，含只导入未渲染、同名参数遮蔽及导入别名正反例。`syntax-highlight-theme` Unit 锁住 oneLight 容器底被清掉、inserted / deleted / selection 保留，以及 CodeBlock 不得直接消费未清洗主题。正式审阅、文件预览、Foundation Markdown / Diff 与 Playground 工作区审阅 E2E 断言 `pre` 跟随 `--bg-inset`、`code` / `.token` 不是 `rgb(250, 250, 250)` / `rgb(255, 255, 255)`。此证据不把全产品标 adopted，也不替代 MCP OAuth / 工作区跨页状态。
 
 Playground 状态切换回归逐页比较共享控制器的计算样式（高度、字号、行高、内边距、圆角和描边），验证可换行与选中反馈；深浅主题、1166/600 宽度覆盖 Chat、记忆、模型、Skills、MCP、工作区和基础故事，并确认可关闭工作区标签仍无常驻描边。
 

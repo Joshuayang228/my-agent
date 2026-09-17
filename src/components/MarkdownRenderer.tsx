@@ -4,8 +4,6 @@ import { IconButton } from './foundation/IconButton'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import tsx from 'react-syntax-highlighter/dist/esm/languages/prism/tsx'
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
 import javascript from 'react-syntax-highlighter/dist/esm/languages/prism/javascript'
@@ -26,6 +24,7 @@ import { splitAside } from '../shared/aside'
 import { isSafeMarkdownImageSource } from '../shared/markdown-security'
 import { useSurfaceTheme } from './foundation/useSurfaceTheme'
 import { renderMermaid } from './foundation/mermaid-renderer'
+import { SYNTAX_HIGHLIGHT_THEMES } from './foundation/syntax-highlight-theme'
 
 SyntaxHighlighter.registerLanguage('tsx', tsx)
 SyntaxHighlighter.registerLanguage('typescript', typescript)
@@ -129,7 +128,7 @@ export function CodeBlock({ code, language = 'text' }: { code: string; language?
       <span className="min-w-0 truncate" style={{ color: 'var(--text-muted)' }}>{language}</span>
       <CopyButton text={code} />
     </div>
-    <SyntaxHighlighter style={theme?.mode === 'light' ? oneLight : oneDark} language={language}
+    <SyntaxHighlighter style={theme?.mode === 'light' ? SYNTAX_HIGHLIGHT_THEMES.light : SYNTAX_HIGHLIGHT_THEMES.dark} language={language}
       tabIndex={0} aria-label="代码内容" codeTagProps={{ style: { background: 'transparent' } }}
       customStyle={{ margin: 0, borderRadius: 0, background: 'var(--bg-inset)', fontSize: '0.8125rem', lineHeight: '1.6', overflow: 'auto' }}>
       {code}

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { THEME_STUDIES } from '../../src/components/playground/foundation-themes'
+import { expectSharedCodeSurface } from './shared-code-surface'
 
 const rgb = (hex: string) => `rgb(${[1, 3, 5].map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16)).join(', ')})`
 
@@ -25,6 +26,7 @@ test('Foundation Markdown 故事真实展示四主题共享图表', async ({ pag
     const scope = gallery.getByTestId(`foundation-markdown-${study.id}`)
     await expect(scope.locator('svg.flowchart')).toHaveCount(1)
     await expect(scope.locator('svg .node rect').first()).toHaveCSS('fill', rgb(study.colors.panel))
+    await expectSharedCodeSurface(scope)
     await expect(scope.locator('pre').first()).toHaveCSS('background-color', rgb(study.colors.panel))
   }
   await gallery.screenshot({ path: testInfo.outputPath('foundation-markdown.png') })
@@ -40,6 +42,7 @@ for (const width of [1166, 600]) {
       await expect(scope.locator('svg.flowchart')).toHaveCount(1)
       colors.push(await scope.locator('pre .token').first().evaluate((node) => getComputedStyle(node).color))
       await expect(scope.locator('svg .node rect').first()).toHaveCSS('fill', rgb(study.colors.panel))
+      await expectSharedCodeSurface(scope)
       await expect(scope.locator('pre').first()).toHaveCSS('background-color', rgb(study.colors.panel))
       await expect(scope.locator('pre code').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
       expect(await scope.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
@@ -48,6 +51,7 @@ for (const width of [1166, 600]) {
     expect(colors[0]).toBe(colors[2])
     expect(colors[1]).toBe(colors[3])
     const file = page.getByTestId('file-theme')
+    await expectSharedCodeSurface(file)
     await expect(file.locator('svg .node rect').first()).toHaveCSS('fill', rgb(THEME_STUDIES[1].colors.panel))
     expect(await file.locator('pre .token').first().evaluate((node) => getComputedStyle(node).color)).toBe(colors[1])
     await page.screenshot({ path: testInfo.outputPath('four-local-themes.png'), fullPage: true })

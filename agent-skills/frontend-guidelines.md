@@ -67,6 +67,7 @@ Main Area:
 - **先基础后体验**：开发产品体验前必须先检查基础资产；基础能力缺失时，先在“基础组件”建立故事、登记来源并完成 Playground 验收，再回到产品体验引用。
 - **依赖登记门禁**：每个活跃产品体验必须在 `src/shared/product-experience-registry.ts` 声明 `usesFoundation`；依赖 key 必须存在、属于 `foundation` 层且生命周期兼容。反向“被哪些体验使用”只能自动派生，禁止手工维护第二份。
 - **禁止重复实现**：产品体验层不得直接新造通用按钮、Dialog、Toast、颜色语义、图标语义或基础交互；允许在业务层组合已有基础并注入业务文案、数据和行为。
+- **代码块表面来自 Foundation**：Markdown / Diff 只能走共享 `CodeBlock`；容器背景用语义 token，内部 `code` / `.token` 不得继承 Prism 库的独立白底。禁止给单个页面打 CSS 补丁，也不得清掉 Diff 的 inserted / deleted / selection 高亮。
 - **反向升级**：仅一个业务场景需要的结构留在产品体验；多个场景反复需要且可脱离业务复用的能力，先回流基础侧再登记。Experience 只能引用注册表中 `layer: foundation` 的资产；缺失依赖不得在产品页临时造一个同名组件。
 - **壳**：Playground 与 Settings 一样独立全屏，只显示自身单一侧栏 + 内容区；禁止与产品 Primary Sidebar 同时出现形成双层侧栏。工作台内部只允许筛选和状态切换，不再嵌套承担页面跳转职责的二级导航。
 - **故事格**：一状态一格；import 正式组件/class；边缘态必有；格旁标源路径。所有一级 Playground Tab 使用统一页头：标题与用途说明同行，真实 `.tsx` 来源放第二行右侧，固定宽度省略并通过 hover/title 查看完整路径。
