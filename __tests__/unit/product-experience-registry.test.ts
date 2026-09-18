@@ -25,10 +25,26 @@ describe('product experience registry', () => {
       expect(experience.key).toMatch(/^experience\.[a-z0-9-]+$/)
       expect(PRODUCT_EXPERIENCE_REGISTRY[experience.key]).toBe(experience)
       expect(experience.sourcePaths.length).toBeGreaterThan(0)
+      expect(experience.formalEntryPaths.length).toBeGreaterThan(0)
+      expect(experience.realDataPaths.length).toBeGreaterThan(0)
+      expect(experience.evidencePaths.length).toBeGreaterThan(0)
       expect(experience.experienceParts.length).toBeGreaterThan(0)
       expect(experience.usesFoundation.length).toBeGreaterThan(0)
       expect(new Set(experience.usesFoundation).size).toBe(experience.usesFoundation.length)
       for (const sourcePath of experience.sourcePaths) expect(existsSync(sourcePath)).toBe(true)
+      for (const formalPath of experience.formalEntryPaths) {
+        expect(formalPath).toMatch(/^src\//)
+        expect(formalPath).not.toMatch(/playground|__tests__|fixtures/)
+        expect(existsSync(formalPath), `${experience.key}: ${formalPath}`).toBe(true)
+      }
+      for (const dataPath of experience.realDataPaths) {
+        expect(dataPath).toMatch(/^electron\/main\//)
+        expect(existsSync(dataPath), `${experience.key}: ${dataPath}`).toBe(true)
+      }
+      for (const evidencePath of experience.evidencePaths) {
+        expect(evidencePath).toMatch(/^__tests__\/(unit|e2e)\/.*\.test\.ts$/)
+        expect(existsSync(evidencePath), `${experience.key}: ${evidencePath}`).toBe(true)
+      }
       for (const fixturePath of experience.fixtureAssetPaths ?? []) expect(existsSync(fixturePath)).toBe(true)
       for (const foundationKey of experience.usesFoundation) {
         const foundation = UI_COMPONENT_REGISTRY[foundationKey]

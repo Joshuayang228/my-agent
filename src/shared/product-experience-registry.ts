@@ -18,6 +18,12 @@ export interface ProductExperienceDefinition {
   status: ProductExperienceStatus
   playgroundTabId: ProductExperienceTabId
   sourcePaths: readonly string[]
+  /** 正式产品入口；不能只登记 Playground 来源。 */
+  formalEntryPaths: readonly string[]
+  /** 正式页面实际读取或写入的 IPC / service / storage 边界。 */
+  realDataPaths: readonly string[]
+  /** 验收测试导航；文件存在不代表测试已运行或整项已采用。 */
+  evidencePaths: readonly string[]
   /** Playground-only 媒体夹具；归属体验但不出现在开发者源码提示行。 */
   fixtureAssetPaths?: readonly string[]
   /** 业务语义与页面组成；不参与 Foundation 依赖校验。 */
@@ -37,6 +43,9 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     status: 'playground',
     playgroundTabId: 'chat',
     sourcePaths: ['src/App.tsx', 'src/components/shell/PrimarySidebar.tsx'],
+    formalEntryPaths: ['src/App.tsx', 'src/components/shell/PrimarySidebar.tsx'],
+    realDataPaths: ['electron/main/ipc/session.ts', 'electron/main/ipc/chat.ts', 'electron/main/agent/runtime.ts'],
+    evidencePaths: ['__tests__/e2e/chat.test.ts', '__tests__/unit/chat-session-lifecycle.test.ts'],
     experienceParts: ['伙伴身份', '会话导航', '欢迎区', '消息流'],
     usesFoundation: ['state.empty', 'state.toast', 'state.permission-confirm', 'state.error'],
   }),
@@ -47,6 +56,9 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     status: 'playground',
     playgroundTabId: 'world',
     sourcePaths: ['src/components/playground/SurfaceBaselinePanel.tsx', 'src/components/MomentsPanel.tsx', 'src/components/AssetsPanel.tsx', 'src/components/CastPanel.tsx', 'src/components/WorldDetailsPanel.tsx', 'src/components/world/WorldLivingContent.tsx', 'src/components/world/WorldAssetEditor.tsx'],
+    formalEntryPaths: ['src/App.tsx', 'src/components/MomentsPanel.tsx', 'src/components/AssetsPanel.tsx', 'src/components/CastPanel.tsx', 'src/components/WorldDetailsPanel.tsx'],
+    realDataPaths: ['electron/main/ipc/companion.ts', 'electron/main/companion/life/assets.ts', 'electron/main/companion/life/moments.ts', 'electron/main/companion/life/store.ts'],
+    evidencePaths: ['__tests__/e2e/onboarding.test.ts', '__tests__/unit/world-hub.test.ts', '__tests__/unit/world-living-content.test.ts'],
     fixtureAssetPaths: ['src/assets/playground/moment-tea-by-window.jpg'],
     experienceParts: ['朋友圈', '衣柜', '文化角', '家居', '通讯录', '足迹'],
     usesFoundation: ['behavior.tabs', 'state.empty', 'behavior.icon-button', 'behavior.button', 'behavior.input', 'behavior.select', 'state.confirm-panel'],
@@ -58,6 +70,9 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     status: 'playground',
     playgroundTabId: 'settings',
     sourcePaths: ['src/components/playground/SurfaceBaselinePanel.tsx', 'src/components/playground/SettingsExperienceCandidate.tsx', 'src/components/SettingsPanel.tsx', 'src/components/settings/PermissionSettingsContent.tsx', 'src/components/PermissionRulesEditor.tsx', 'src/components/settings/SettingsLayout.tsx', 'src/components/settings/ModelRoutingSettings.tsx', 'src/components/settings/AboutSettingsContent.tsx', 'src/components/MemoryPanel.tsx', 'src/components/memory/MemoryManagementControls.tsx', 'src/components/SkillsPanel.tsx', 'src/components/settings/SkillViews.tsx'],
+    formalEntryPaths: ['src/components/SettingsPanel.tsx', 'src/components/settings/SettingsLayout.tsx', 'src/components/MemoryPanel.tsx', 'src/components/SkillsPanel.tsx'],
+    realDataPaths: ['electron/main/ipc/settings.ts', 'electron/main/ipc/memory.ts', 'electron/main/ipc/skills.ts', 'electron/main/ipc/companion.ts', 'electron/main/ipc/mcp.ts', 'electron/main/ipc/data-export.ts'],
+    evidencePaths: ['__tests__/e2e/onboarding.test.ts', '__tests__/e2e/chat.test.ts', '__tests__/unit/settings-security.test.ts', '__tests__/unit/memory-foundation-reuse.test.ts'],
     experienceParts: ['设置分组', '角色架', '记忆管理', 'Skills 管理', '字段编辑', '自动保存', '失败恢复'],
     usesFoundation: ['behavior.tabs', 'behavior.input', 'behavior.select', 'behavior.button', 'behavior.icon-button', 'state.confirm-panel', 'state.toast', 'state.error'],
   }),
@@ -68,6 +83,9 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     status: 'playground',
     playgroundTabId: 'workspace',
     sourcePaths: ['src/components/playground/WorkspaceExperienceCandidate.tsx', 'src/components/chat/right-dock/ChatRightDock.tsx', 'src/components/chat/right-dock/ReviewPanel.tsx', 'src/components/chat/right-dock/WorkspaceFilesPanel.tsx', 'src/components/FileBrowser.tsx', 'src/components/MarkdownRenderer.tsx'],
+    formalEntryPaths: ['src/components/chat/right-dock/ChatRightDock.tsx', 'src/components/chat/right-dock/ReviewPanel.tsx', 'src/components/chat/right-dock/WorkspaceFilesPanel.tsx', 'src/components/FileBrowser.tsx'],
+    realDataPaths: ['electron/main/ipc/project.ts', 'electron/main/ipc/session.ts', 'electron/main/ipc/chat.ts', 'electron/main/ipc/browser.ts', 'electron/main/ipc/session-changes.ts', 'electron/main/ipc/terminal.ts'],
+    evidencePaths: ['__tests__/e2e/chat.test.ts', '__tests__/e2e/onboarding.test.ts', '__tests__/unit/workspace-backend-contract.test.ts', '__tests__/unit/workspace-foundation-control-audit.test.ts'],
     fixtureAssetPaths: ['src/assets/playground/moment-tea-by-window.jpg'],
     experienceParts: ['审阅', '浏览器', '文件', '终端', '侧边聊天'],
     usesFoundation: ['developer.file-tree', 'developer.markdown', 'developer.diff-viewer', 'layout.resize-handle', 'behavior.tabs', 'behavior.input', 'behavior.icon-button'],
