@@ -1,5 +1,9 @@
 # 系统架构
 
+类型检查按进程独立运行：Renderer 根配置不再引用主进程 composite 工程，避免共享源码被当成尚未生成的声明产物而报 TS6305；主进程配置和独立诊断检查保留。这不改变运行时依赖方向，也不解决主进程存量类型债。
+
+`ModelAdvancedSettings` 组合 Foundation ActionButton / TextField，只管理展开和测试展示生命周期，参数值、保存重试及测试实现均由调用方注入。正式通过既有 settings:set 保存，通过既有 settings:test-connection 测试已保存主用途首选；Playground 只改内存与返回隔离结果。`src/shared/model-routing.ts` 是用途顺序 / 启用 / 模型清单筛选的纯函数事实源，Renderer 传脱敏快照，主进程传解密快照，不把凭据处理下沉前端。`src/shared/model-parameters.ts` 统一界面、IPC 与 Temperature 装配的数字边界；同端点换 Key 后的测试失效由成功保存版本号保证，不比较密钥原文。新增共享文件显式列入主进程 composite 清单。
+
 ModelConnectionCard 是正式模型页与候选共用的纯受控 Experience，组合 Foundation ActionButton / IconButton / TextField。调用方持有请求令牌、草稿与保存状态，只传脱敏展示属性和动作回调；组件不读取 IPC、密钥或存储。正式注入删除与真实请求，候选注入隔离适配器；共享展示不改变后端保存或请求生命周期。
 
 连接认证与协议自动检测共用 `src/shared/llm-connection-test.ts`，主进程 Provider Router 引用并重导出规则，不复制第二份。只有 HTTP(S) 回环 OpenAI 兼容端点可无 Key；Runtime、测试 / 发现和已有辅助调用按同一规则预检。主进程 `settings:get` 经唯一配置工厂派生就绪状态和实际主模型 / 地址，Renderer 不再用全局 Key 推断主用途配置；原密钥配置标志仍只表达密钥存在，不被改写为连接可用性。

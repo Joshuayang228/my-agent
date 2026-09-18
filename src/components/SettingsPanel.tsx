@@ -10,6 +10,9 @@ import { CompanionSettingsContent, type CompanionExpertise } from './settings/Co
 import { SettingCard, SettingRow, SettingsPageHeader } from './settings/SettingsFields'
 import { AboutSettingsContent } from './settings/AboutSettingsContent'
 import { ModelRoutingSettings } from './settings/ModelRoutingSettings'
+import { ModelAdvancedSettings } from './settings/ModelAdvancedSettings'
+import { modelParameterError } from '../shared/model-parameters'
+import { resolveRoutedConfigs } from '../shared/model-routing'
 import { McpServiceCard, type McpServiceState } from './settings/McpServiceCard'
 import type { McpServerStatus } from '../shared/types'
 import { McpConnectionForm } from './settings/McpConnectionForm'
@@ -21,8 +24,6 @@ import {
 
 interface SettingsForm {
   llmTemperature: string
-  llmTopP: string
-  llmMaxTokens: string
   companionResponseNote: string
   activeRoleId: string
   executionMode: string
@@ -51,8 +52,6 @@ interface McpToolEntry { serverId: string; serverName: string; name: string; des
 
 const DEFAULTS: SettingsForm = {
   llmTemperature: '0.7',
-  llmTopP: '1',
-  llmMaxTokens: '4096',
   companionResponseNote: '',
   activeRoleId: 'lin',
   executionMode: 'auto',
@@ -116,7 +115,6 @@ export function SettingsPanel({
   const [fontScale, setFontScale] = useState(() => localStorage.getItem('uiFontScale') || 'md')
   const [form, setForm] = useState<SettingsForm>(DEFAULTS)
   const [saveFailed, setSaveFailed] = useState(false)
-  const [showAdvancedModel, setShowAdvancedModel] = useState(false)
 
   const [dataBusy, setDataBusy] = useState<'export' | 'import' | null>(null)
   const [verifiedConnectionKey, setVerifiedConnectionKey] = useState('')
@@ -129,6 +127,7 @@ export function SettingsPanel({
   const [mcpReadError, setMcpReadError] = useState('')
   const mcpReadGeneration = useRef(0)
   const [modelConnections, setModelConnections] = useState('[]')
+  const [modelConfigurationRevision, setModelConfigurationRevision] = useState(0)
   const [modelRoutes, setModelRoutes] = useState('[]')
   const modelBeforeLeaveRef = useRef<(() => boolean) | null>(null)
   const [mcpAdding, setMcpAdding] = useState(false)
@@ -188,8 +187,6 @@ export function SettingsPanel({
     window.electronAPI.settings.get().then((s) => {
       setForm({
         llmTemperature: s.llmTemperature || DEFAULTS.llmTemperature,
-        llmTopP: s.llmTopP || DEFAULTS.llmTopP,
-        llmMaxTokens: s.llmMaxTokens || DEFAULTS.llmMaxTokens,
         companionResponseNote: s.companionResponseNote || '',
         activeRoleId: s.activeRoleId || DEFAULTS.activeRoleId,
         executionMode: s.executionMode || DEFAULTS.executionMode,
@@ -245,6 +242,12 @@ export function SettingsPanel({
       try {
         while (pendingSettingsRef.current.size) {
           const [key, value] = pendingSettingsRef.current.entries().next().value!
+          const parameterError = modelParameterError(key, value)
+          if (parameterError) {
+            setSaveFailed(true)
+            if (activeSectionRef.current !== 'model') toast(parameterError, 'error')
+            return false
+          }
           await window.electronAPI.settings.set(key, value)
           // 保存过程中同字段的新值不能被旧请求清掉；下一圈继续提交它。
           if (pendingSettingsRef.current.get(key) === value) {
@@ -255,8 +258,8 @@ export function SettingsPanel({
         return true
       } catch {
         setSaveFailed(true)
-        // 伙伴页已有固定重试槽；重复 Toast 会遮挡操作，其他页仍需可见的失败通知。
-        if (activeSectionRef.current !== 'companion') toast('设置自动保存失败，修改仍保留，请重试', 'error')
+        // 伙伴和模型页已有行内重试入口；重复 Toast 会遮挡草稿，其他页仍需失败通知。
+        if (activeSectionRef.current !== 'companion' && activeSectionRef.current !== 'model') toast('设置自动保存失败，修改仍保留，请重试', 'error')
         return false
       }
     }
@@ -414,6 +417,7 @@ export function SettingsPanel({
     roleAction={<ActionButton onClick={() => setRoleShelfOpen(true)} disabled={preview} data-testid="settings-open-role-shelf">管理角色架</ActionButton>}
   />
 
+  const primaryTestTarget = resolveRoutedConfigs(modelConnections, modelRoutes, 'primary')[0]
   // Provider 预设仍由 PROVIDER_PRESET_GROUPS 作为 Playground 与生产资产的唯一事实源；正式页不再复制旧预设卡片。
   const renderModel = () => (
     <div className="space-y-4">
@@ -449,17 +453,17 @@ export function SettingsPanel({
           setModelConnections('[]')
         }
         setModelRoutes(routes)
+        // 相同端点换 Key 后脱敏快照可能不变；成功写入仍让旧测试失效，不用密钥原文作比较。
+        setModelConfigurationRevision(revision => revision + 1)
       }} />
-      <SettingCard>
-        <button type="button" onClick={() => setShowAdvancedModel((value) => !value)} aria-expanded={showAdvancedModel} className="flex w-full items-center justify-between gap-3 text-left">
-          <span><span className="block text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>高级设置</span><span className="mt-1 block text-[10px]" style={{ color: 'var(--text-muted)' }}>预算和生成参数只在需要时查看。</span></span>
-          <ChevronRight size={14} className={showAdvancedModel ? 'rotate-90 transition' : 'transition'} style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
-        </button>
-        {showAdvancedModel && <div className="mt-4 space-y-4 border-t pt-4" style={{ borderColor: 'var(--border-subtle)' }}>
-          <div data-testid="settings-model-budget"><div className="mb-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>运行预算</div><div className="mb-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>输入与输出 Token 合计；0 表示不限制。</div><div className="grid gap-2 sm:grid-cols-2"><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>会话预算（Token）<input aria-label="会话预算（Token）" value={form.sessionTokenBudget} onChange={(event) => update('sessionTokenBudget', event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>每日预算（Token）<input aria-label="每日预算（Token）" value={form.dailyTokenBudget} onChange={(event) => update('dailyTokenBudget', event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label></div></div>
-          <div className="grid gap-3 sm:grid-cols-3"><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Temperature<input aria-label="Temperature" value={form.llmTemperature} onChange={(event) => update('llmTemperature', event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Top P<input aria-label="Top P" value={form.llmTopP} onChange={(event) => update('llmTopP', event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>最大输出 Token<input aria-label="最大输出 Token" value={form.llmMaxTokens} onChange={(event) => update('llmMaxTokens', event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label></div>
-        </div>}
-      </SettingCard>
+      <ModelAdvancedSettings values={form} onChange={update} saveFailed={saveFailed} onRetrySave={() => { void persistSettings() }}
+        testIdentity={JSON.stringify([modelConnections, modelRoutes, modelConfigurationRevision])}
+        testTarget={primaryTestTarget ? `${primaryTestTarget.name} · ${primaryTestTarget.model}` : undefined}
+        onTest={async () => {
+          if (preview || !window.electronAPI || !primaryTestTarget) return { ok: false, error: '请先为主对话安排可用模型。' }
+          return window.electronAPI.settings.testConnection({ connectionId: primaryTestTarget.id, useStoredApiKey: true,
+            baseUrl: primaryTestTarget.baseUrl, model: primaryTestTarget.model, provider: primaryTestTarget.provider })
+        }} />
     </div>
   )
   const renderMemory = () => (

@@ -34,6 +34,7 @@ describe('UI component asset registry', () => {
     const expectedFields = [
       ['src/components/settings/ModelRoutingSettings.tsx', []],
       ['src/components/settings/ModelConnectionCard.tsx', ['TextField']],
+      ['src/components/settings/ModelAdvancedSettings.tsx', ['TextField']],
       ['src/components/settings/ModelUsageArrangements.tsx', ['SelectField']],
       ['src/components/settings/ModelConnectionForm.tsx', ['SelectField', 'TextField']],
       ['src/components/settings/McpConnectionForm.tsx', ['SelectField', 'TextField']],
@@ -85,10 +86,10 @@ describe('UI component asset registry', () => {
       { bindings: ['SelectField'], nativeFields: [] },
     ])
   })
-  it.each(['ModelUsageArrangements', 'ModelConnectionCard', 'ModelConnectionList'] as const)('%s 正式与候选真实绑定，操作来自 Foundation 且没有 IPC', (componentName) => {
-    const files = ['src/components/settings/ModelRoutingSettings.tsx', 'src/components/playground/SettingsExperienceCandidate.tsx'].map(file => resolve(file))
+  it.each(['ModelUsageArrangements', 'ModelConnectionCard', 'ModelConnectionList', 'ModelAdvancedSettings'] as const)('%s 正式与候选真实绑定，操作来自 Foundation 且没有 IPC', (componentName) => {
+    const files = [componentName === 'ModelAdvancedSettings' ? 'src/components/SettingsPanel.tsx' : 'src/components/settings/ModelRoutingSettings.tsx', 'src/components/playground/SettingsExperienceCandidate.tsx'].map(file => resolve(file))
     const shared = resolve(`src/components/settings/${componentName}.tsx`)
-    const controls = (componentName === 'ModelConnectionList' ? ['ActionButton'] : ['ActionButton', 'IconButton', componentName === 'ModelUsageArrangements' ? 'SelectField' : 'TextField']).map(name => resolve(`src/components/foundation/${name}.tsx`))
+    const controls = (componentName === 'ModelAdvancedSettings' ? ['ActionButton', 'TextField'] : componentName === 'ModelConnectionList' ? ['ActionButton'] : ['ActionButton', 'IconButton', componentName === 'ModelUsageArrangements' ? 'SelectField' : 'TextField']).map(name => resolve(`src/components/foundation/${name}.tsx`))
     const fixture = resolve('__tests__/fixtures/usage-binding.tsx')
     const options: ts.CompilerOptions = { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, noResolve: true, noLib: true, types: [] }
     const host = ts.createCompilerHost(options)
@@ -118,7 +119,7 @@ describe('UI component asset registry', () => {
     const source = readFileSync(shared, 'utf8')
     expect(source).not.toContain('window.electronAPI')
     expect(source).not.toMatch(/<(button|select|input)\b/)
-    const key = componentName === 'ModelUsageArrangements' ? 'layout.model-usage-arrangements' : componentName === 'ModelConnectionCard' ? 'layout.model-connection-card' : 'layout.model-connection-list'
+    const key = componentName === 'ModelAdvancedSettings' ? 'layout.model-advanced-settings' : componentName === 'ModelUsageArrangements' ? 'layout.model-usage-arrangements' : componentName === 'ModelConnectionCard' ? 'layout.model-connection-card' : 'layout.model-connection-list'
     expect(UI_COMPONENT_REGISTRY[key].sourcePath).toBe(`src/components/settings/${componentName}.tsx`)
   })
   it('MCP 添加流程实际渲染共享表单，候选只注入隔离适配器', () => {

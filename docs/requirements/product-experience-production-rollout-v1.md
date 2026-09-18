@@ -298,6 +298,10 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 
 ### R06 连接配置装配边界
 
+本批高级区验收：Unit 1054、完整 UI 229、Electron 20（4 个外部模型用例条件跳过）、资产 27、Eval 23 + 1 通过。UI 证据 `var/verification/model-advanced-ui-full`，Electron 证据 `var/verification/model-advanced-electron`。主进程同编译器对照 75 → 75 无新增。最后复跑发现根 project reference 对新增 composite 共享文件要求声明产物，已移除根到主进程的引用，保留各自源码检查及主进程独立入口；不得把此调整当作 WISH-043 已完成。依赖未改，审计仍全量 7 / 生产 4。
+
+高级设置回流范围：候选预算 / Temperature / 连接测试抽为共享 ModelAdvancedSettings，正式与候选统一使用 Foundation ActionButton / TextField；折叠默认关闭，结果不改变测试按钮尺寸。正式旧 Top P / 最大输出控件及其隐藏表单同步移除，存储与运行时字段不在本次删除范围。高级测试明确指向已保存主对话首选连接，复用现有 settings:test-connection，不创建第二套请求协议；把配置工厂的纯用途筛选提到 shared，供正式选择测试目标与主进程同源使用。候选仍使用隔离目标与测试结果，不触达 IPC。参数输入允许临时无效草稿，但无效 Temperature / 预算不得自动保存或离页丢失，主进程重复校验；Temperature=0 必须进入配置而非被 || 丢弃。测试结果绑定配置身份，配置变化 / 卸载不发布旧结果；保存失败保留草稿与重试入口。允许修改共享组件 / 纯函数、两处调用方、配置工厂与 settings 校验、注册表及 Unit / UI / Electron / 文档；不改 IPC 形状、权限、MCP、生图或多窗口契约。必测四主题宽窄、默认折叠、hover / pending 操作槽、参数非法值与零值、真实保存重启和请求参数、主用途目标与失败重试、迟到隔离、候选零写入。此为已批准回流的候选复用及必要后端补齐，不将本项等同于 R06 整页完成。
+
 空配置批次验收：Unit 1038、完整 UI 221、独立目录 Electron 20 通过（4 外部模型条件跳过）、根 tsc / build、Eval 23 + 1、资产 26 通过；证据 `var/verification/model-empty-ui-verified`、`model-empty-electron-verified`。真实错误诊断证据保留于 `model-empty-event-order`，临时日志已移除。主进程 Compiler API 对照仍为 75 条存量诊断，无新增；审计全量 7 / 生产 4 未清零，无独立 lint 命令。外部模型脚本仍需更新旧选择器及数据隔离，已记 WISH-042；此批不代表模型整页或全产品 adopted。
 
 空配置审计同步 Debug 系统快照：`debug-system-info.ts` 的 model / baseUrl / hasApiKey 改从配置工厂读取，保持既有脱敏字段形状，不新增 IPC；对应 Unit 覆盖真实路由身份和空配置不显示旧全局身份。否则删除连接后的 Debug 会继续呈现已失效配置，违背生产真相边界。
@@ -326,6 +330,7 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 | 用途安排布局与基础复用 | 正式与候选实际渲染 ModelUsageArrangements；数据和保存适配器保持各自边界 | TypeChecker 真实绑定与负例；四主题宽窄、长名 / hover / pending 几何、保存失败重试、候选零写入 UI |
 | 连接卡片布局与操作槽 | 正式与候选实际渲染 ModelConnectionCard；正式保留删除及真实请求，候选注入隔离状态 | TypeChecker 真实绑定与负例；四主题宽窄、长名称、全请求状态头部几何、手动与发现模型增删启停、候选零真实调用 |
 | 连接清单标题、添加与空态 | 正式与候选实际渲染 ModelConnectionList；新增 / 编辑中禁用重复添加；不合成旧连接 | TypeChecker 基础按钮绑定；四主题宽窄同排、固定几何、添加取消与删除到空态；Electron 完整重启仍为空、未配置无请求及重新配置对话 |
+| 高级设置、预算与连接测试 | 正式与候选实际渲染 ModelAdvancedSettings；只保留候选参数，测试正式主用途首选 | TypeChecker 基础绑定；四主题宽窄 / 校验 / 失败恢复 / 迟到隔离；Electron 真实保存重启、主用途测试与 temperature=0 请求 |
 | 保存 / 离页 / 发现迟到 | 整组保存失败恢复、请求结果归属隔离及应用内草稿离页保护已接通；关窗 / 崩溃与多窗口冲突未覆盖 | SQLite 故障 / 重开与正式入口 Electron；受控请求逆序、换 Key、取消 / 保存失败及离页结果隔离 UI；宽窄导航拦截与 Electron 草稿未写入检查 |
 
 多连接表单回流前，先保证 `aux-config.ts` 的主 / 辅助 / 图片理解用途都将端点、密钥、协议、模型作为同一连接的配置传递。合成配置红测已确认：目标连接缺密钥时会借用全局 / 主连接密钥，显式 provider 也会丢失。移除这种字段级凭据回退；有路由时保留目标连接的空密钥与显式协议，无协议则按目标端点自动检测，没有有效用途路由时才整体回退主模型。一次性测试更换端点也不得继承主连接密钥和协议。

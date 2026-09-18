@@ -13,7 +13,9 @@
  * - 无 apiKey 时返回空字符串，由调用方决定报错或降级，本文件不抛
  */
 
-import type { LLMConfig, ModelConnectionProfile, ModelRouteProfile, ModelRoutePurpose } from '../../../src/shared/types'
+import type { LLMConfig, ModelConnectionProfile, ModelRoutePurpose } from '../../../src/shared/types'
+import { resolveRoutedConfigs } from '../../../src/shared/model-routing'
+import { readModelParameter } from '../../../src/shared/model-parameters'
 import * as settings from '../storage/settings-store'
 import { withAuxThinking } from './thinking'
 
@@ -27,7 +29,7 @@ export async function loadMainLLMConfig(overrides?: Partial<LLMConfig>): Promise
     baseUrl: routed?.baseUrl || '',
     model: routed?.model || '',
     provider: routed?.provider || 'auto',
-    temperature: parseFloat(s.llmTemperature) || undefined,
+    temperature: readModelParameter('llmTemperature', s.llmTemperature),
     topP: parseFloat(s.llmTopP) || undefined,
     maxTokens: parseInt(s.llmMaxTokens) || undefined,
     fallbackModels: chain.length > 1 ? chain.slice(1).map(connectionConfig) : undefined,
@@ -82,32 +84,8 @@ function connectionConfig(connection: ModelConnectionProfile): Pick<LLMConfig, '
   return { apiKey: connection.apiKey || '', baseUrl: connection.baseUrl, model: connection.model, provider: connection.provider || 'auto' }
 }
 
-function parseJson<T>(raw: string): T | null {
-  try { return JSON.parse(raw) as T } catch { return null }
-}
-
 function resolveRoutedConfig(connectionsRaw: string, routesRaw: string, purpose: ModelRoutePurpose): ModelConnectionProfile | null {
   return resolveRoutedConfigs(connectionsRaw, routesRaw, purpose)[0] ?? null
-}
-
-function resolveRoutedConfigs(connectionsRaw: string, routesRaw: string, purpose: ModelRoutePurpose): ModelConnectionProfile[] {
-  const connections = parseJson<ModelConnectionProfile[]>(connectionsRaw)
-  const routes = parseJson<ModelRouteProfile[]>(routesRaw)
-  if (!Array.isArray(connections) || !Array.isArray(routes)) return []
-  const result: ModelConnectionProfile[] = []
-  const seen = new Set<string>()
-  for (const item of routes) {
-    if (item.purpose !== purpose || !item.enabled || !item.model.trim()) continue
-    const connection = connections.find((candidate) => candidate.id === item.connectionId && candidate.enabled && candidate.baseUrl.trim())
-    if (!connection) continue
-    const models = Array.isArray(connection.models) ? connection.models : []
-    if (models.length && !models.some((model) => model.id === item.model.trim() && model.enabled !== false)) continue
-    const key = JSON.stringify([connection.id, item.model.trim()])
-    if (seen.has(key)) continue
-    seen.add(key)
-    result.push({ ...connection, model: item.model.trim() })
-  }
-  return result
 }
 
 export const __test = { resolveRoutedConfig }

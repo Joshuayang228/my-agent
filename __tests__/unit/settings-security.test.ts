@@ -22,7 +22,7 @@ vi.mock('electron', () => ({
   safeStorage: { isEncryptionAvailable: () => false },
 }))
 vi.mock('../../electron/main/storage/settings-store', () => ({
-  isAppSettingKey: (key: string) => ['llmApiKey', 'mcpServers', 'modelConnections', 'executionMode', 'llmModel', 'permissionRules', 'companionResponseNote'].includes(key),
+  isAppSettingKey: (key: string) => ['llmTemperature', 'sessionTokenBudget', 'dailyTokenBudget', 'llmApiKey', 'mcpServers', 'modelConnections', 'executionMode', 'llmModel', 'permissionRules', 'companionResponseNote'].includes(key),
   MAX_SETTING_VALUE_LENGTH: 1_000_000,
   getAllSettings,
   getSetting,
@@ -79,6 +79,21 @@ describe('设置 IPC 安全视图', () => {
     expect(view.mcpServers).not.toContain('real-secret')
     expect(view.modelConnections).not.toContain('sk-connection-secret')
     expect(JSON.parse(view.modelConnections)[0]).toMatchObject({ apiKey: '', hasApiKey: true })
+  })
+
+  it.each([
+    ['llmTemperature', ''], ['llmTemperature', 'NaN'], ['llmTemperature', 'Infinity'], ['llmTemperature', '-1'], ['llmTemperature', '2.01'],
+    ['sessionTokenBudget', '-1'], ['dailyTokenBudget', '1.5'], ['dailyTokenBudget', '9007199254740992'], ['sessionTokenBudget', '12abc'],
+  ])('拒绝非法模型参数 %s=%s 且不写盘', async (key, value) => {
+    registerSettingsIPC()
+    await expect(handlers.get('settings:set')!({}, key, value)).rejects.toThrow()
+    expect(setSetting).not.toHaveBeenCalled()
+  })
+
+  it.each([['llmTemperature', '0'], ['llmTemperature', '0.75'], ['llmTemperature', '2'], ['sessionTokenBudget', '0'], ['dailyTokenBudget', '10000']])('合法模型参数 %s=%s 进入真实保存接口', async (key, value) => {
+    registerSettingsIPC()
+    await handlers.get('settings:set')!({}, key, value)
+    expect(setSetting).toHaveBeenCalledWith(key, value)
   })
 
   it('就绪状态按真实主连接计算，不按全局 Key 状态推断', async () => {

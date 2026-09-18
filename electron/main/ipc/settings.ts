@@ -14,6 +14,7 @@ import { redactMcpConfigsForRenderer, hasNewOrChangedEnabledMcpConfig, mergeMcpC
 import { withMcpConfigLock } from '../mcp/config-lock'
 import { z } from 'zod'
 import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
+import { modelParameterError } from '../../../src/shared/model-parameters'
 
 const modelConfigurationSchema = z.object({
   connections: z.string().max(settings.MAX_SETTING_VALUE_LENGTH),
@@ -146,6 +147,8 @@ export function registerSettingsIPC(): void {
     if (typeof value !== 'string' || value.length > settings.MAX_SETTING_VALUE_LENGTH) {
       throw new Error('设置值无效或超出长度限制')
     }
+    const parameterError = modelParameterError(key, value)
+    if (parameterError) throw new Error(parameterError)
     if (key === 'companionResponseNote' && value.length > MAX_COMPANION_RESPONSE_NOTE_LENGTH) {
       throw new Error('相处补充说明超出长度限制')
     }

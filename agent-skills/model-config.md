@@ -23,6 +23,8 @@ OpenAI 兼容路径覆盖 DeepSeek、Groq、OpenRouter 等。
 | 文件 | 职责 |
 |------|------|
 | `llm/index.ts` | `streamChat` 统一入口，执行 Provider 路由、重试与顺序 Failover |
+| `src/shared/model-routing.ts` | 配置工厂与正式高级测试共用的纯用途筛选，不读取存储或解密 |
+| `src/shared/model-parameters.ts` | Temperature / 预算的 UI 与 IPC 校验边界，保留零值 |
 | `llm/provider-router.ts` | Provider 检测规则、Anthropic / Gemini 请求构造器 |
 | `llm/request-builders.ts` | OpenAI Compatible 消息、工具与请求纯构造器 |
 | `llm/thinking.ts` · `llm/vision.ts` · `llm/failover.ts` | Thinking、Vision 降级与 Failover 生产策略事实 |

@@ -1,5 +1,11 @@
 # 质量总控
 
+根 `tsconfig.json` 直接检查 Renderer 及其引用的共享源码，不再引用需要预生成声明产物的主进程 composite 工程；构建仍先执行 `tsc --noEmit`。主进程独立检查入口仍是 `tsc -p tsconfig.node.json --noEmit`，本批共享文件显式纳入该工程；不能用根检查通过代替主进程检查，存量诊断继续由 WISH-043 管理。
+
+模型高级区门禁：TypeChecker 校验正式与候选实际绑定 ModelAdvancedSettings，其输入和按钮实际绑定 Foundation，未使用 import / 遮蔽不能通过。四主题宽窄覆盖默认折叠、三个候选字段、旧 Top P / 最大输出 UI 不存在、非法值不保存且离页保留、保存失败与重试、测试目标载荷、hover / pending / 成功失败尺寸相等，以及换 Key / 停用路由后的迟到结果隔离。候选修改预算 / Temperature 和测试连接均不得触发真实 settings / 模型调用。截图确认移除重复 Toast 后控件不被遮挡。
+
+参数链路门禁：工厂红测证明 Temperature='0' 原来变为 undefined，修复后保留零值；settings IPC 对空串、非数、无穷、越界、小数预算和超过安全整数的值在写盘前拒绝，合法零值和小数 Temperature 可保存。独立目录 Electron 经正式高级区填写预算 / Temperature、触发主用途测试，重启恢复后检查真实本地协议对话请求中的 temperature=0；越界 IPC 被拒绝。此为本地协议证据，不保证每个外部型号接受所有生成参数。
+
 外部模型条件测试限制：`electron.test.ts` 的四项测试目前因无测试凭据跳过，且源码仍依赖旧表单 / 消息选择器、未隔离数据目录，已记入 WISH-042；不能把跳过表述为真实供应商已验收。当前独立目录的本地协议 Electron 用例证明生产 IPC、配置、存储和流处理，不证明外部型号兼容性。
 
 连接清单门禁：正式与候选必须真实绑定 `ModelConnectionList`，添加操作来自 Foundation。四主题宽窄检查添加与清单标题同排，hover / 新增禁用时按钮 boundingBox 严格不变；编辑中禁止再次添加，取消恢复；删除最后一项检查持久化空数组、空态、再次添加入口及切页重挂载仍为空。UI 替身在 reload 时会重新安装初始数据，不能把 reload 冒充真实存储重启。

@@ -8,6 +8,10 @@ const { getAllSettings, getSetting } = vi.hoisted(() => ({ getAllSettings: vi.fn
 vi.mock('../../electron/main/storage/settings-store', () => ({ getAllSettings, getSetting }))
 
 describe('model configuration factories', () => {
+  it('Temperature 零值必须原样传入模型配置', async () => {
+    getAllSettings.mockResolvedValue({ llmTemperature: '0', modelConnections: '[]', modelRoutes: '[]' })
+    expect((await loadMainLLMConfig()).temperature).toBe(0)
+  })
   const loaders = { primary: loadMainLLMConfig, auxiliary: loadAuxLLMConfig, image: loadImageLLMConfig }
   const legacy = { llmApiKey: 'test-global-key', llmBaseUrl: 'https://legacy.test/v1', llmModel: 'legacy-model', auxModel: '' }
   function configure(purpose: ModelRoutePurpose, connection: Partial<ModelConnectionProfile> = {}) {

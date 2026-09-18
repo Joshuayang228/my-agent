@@ -65,6 +65,23 @@ test('无 Key 本地连接从正式设置发现、测试、重启并流式对话
     await page.getByLabel('添加主对话模型').selectOption({ label: '无密钥本地连接 · local-fixture' })
     await expect(page.getByText('当前主连接', { exact: true })).toHaveCount(0)
     await expect.poll(() => page.evaluate(async () => (await window.electronAPI.settings.get()).llmConnectionReady)).toBe('true')
+    await page.getByTestId('settings-model-advanced-toggle').click()
+    const advanced = page.getByTestId('settings-model-advanced')
+    await advanced.getByLabel('Temperature', { exact: true }).fill('0')
+    await advanced.getByLabel('会话预算（Token）', { exact: true }).fill('12000')
+    await advanced.getByLabel('每日预算（Token）', { exact: true }).fill('50000')
+    await expect.poll(() => page.evaluate(async () => {
+      const current = await window.electronAPI.settings.get()
+      return [current.llmTemperature, current.sessionTokenBudget, current.dailyTokenBudget]
+    })).toEqual(['0', '12000', '50000'])
+    const beforeAdvancedTest = requests.length
+    await advanced.getByTestId('settings-model-test').click()
+    await expect(advanced.getByRole('status')).toContainText('连接测试通过：local-fixture')
+    expect(requests.slice(beforeAdvancedTest).some(item => item.url === '/v1/chat/completions' && item.body.model === 'local-fixture' && item.authorization === undefined)).toBe(true)
+    const rejected = await page.evaluate(async () => {
+      try { await window.electronAPI.settings.set('llmTemperature', '3'); return false } catch { return true }
+    })
+    expect(rejected).toBe(true)
     const settings = await page.evaluate(() => window.electronAPI.settings.get())
     // 旧字段因启动环境存在密钥，但本地用途仍必须不带认证头，不能借用它。
     expect(settings.llmApiKeyConfigured).toBe('true')
@@ -75,11 +92,15 @@ test('无 Key 本地连接从正式设置发现、测试、重启并流式对话
     await expect(page.getByTestId('chat-messages')).toBeVisible()
     await expect(page.getByTestId('settings-panel')).toHaveCount(0)
     await expect(page.getByTestId('chat-current-model')).toHaveText('local-fixture')
+    const restoredParameters = await page.evaluate(() => window.electronAPI.settings.get())
+    expect([restoredParameters.llmTemperature, restoredParameters.sessionTokenBudget, restoredParameters.dailyTokenBudget]).toEqual(['0', '12000', '50000'])
+    const beforeFirstChat = requests.length
     await page.getByPlaceholder(/和.*说说/).fill('无密钥本地对话验收')
     await page.getByRole('button', { name: '发送', exact: true }).click()
     await expect(page.getByText('本地连接验证成功', { exact: true })).toBeVisible()
     expect(requests.some((item) => item.url === '/v1/models')).toBe(true)
     expect(requests.some((item) => item.url === '/v1/chat/completions' && item.body.model === 'local-fixture')).toBe(true)
+    expect(requests.slice(beforeFirstChat).some(item => item.url === '/v1/chat/completions' && item.body.model === 'local-fixture' && item.body.temperature === 0)).toBe(true)
     expect(requests.filter((item) => item.authorization !== undefined).map((item) => ({ url: item.url, emptyBearer: item.authorization?.trim() === 'Bearer' }))).toEqual([])
 
     await page.locator('button[title="设置"]').click()

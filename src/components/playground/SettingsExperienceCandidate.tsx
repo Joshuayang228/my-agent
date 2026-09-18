@@ -21,6 +21,8 @@ import { ModelConnectionForm } from '../settings/ModelConnectionForm'
 import { ModelConnectionCard } from '../settings/ModelConnectionCard'
 import { ModelConnectionList } from '../settings/ModelConnectionList'
 import { ModelUsageArrangements } from '../settings/ModelUsageArrangements'
+import { ModelAdvancedSettings } from '../settings/ModelAdvancedSettings'
+import { resolveRoutedConfigs } from '../../shared/model-routing'
 import { connectionCredentialLabel } from '../../shared/model-connection-form'
 import { CONNECTION_ADAPTERS, CONNECTION_PRESETS, CONNECTION_SOURCE_OPTIONS, connectionDraftForSource, providerSource, sameConnectionEndpoint } from '../../shared/model-connection-form'
 import { SkillDetail, SkillFilePreview, SkillListCard } from '../settings/SkillViews'
@@ -124,7 +126,7 @@ function createConnection(provider: { providerId: string; label: string; baseUrl
   return { id: `connection-${provider.providerId}-${index}`, name: index === 0 ? `${provider.label} 主账号` : `${provider.label} 连接`, source: providerSource(provider), providerLabel: provider.label, baseUrl: provider.baseUrl, credentialStatus: 'stored', status: 'untested', models: index === 0 ? [{ id: 'gpt-4o', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'unknown' }, { id: 'gpt-4o-mini', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'unknown' }, { id: 'image-model-id', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'unknown' }] : [] }
 }
 
-function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { modelStatus: 'idle' | 'success' | 'error'; onModelStatusChange: (status: 'idle' | 'success' | 'error') => void; selectedProvider: string; onProviderChange: (provider: string) => void }) {
+function ModelPage({ selectedProvider }: { selectedProvider: string; onProviderChange: (provider: string) => void }) {
   const allProviders = CONNECTION_PRESETS
   const firstProvider = allProviders.find((provider) => provider.providerId === selectedProvider) ?? allProviders[0]
   const [previewState, setPreviewState] = useState<'empty' | 'one' | 'two'>('one')
@@ -146,10 +148,9 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
     const timers = fetchTimers.current
     return () => { timers.forEach((timer) => window.clearTimeout(timer)); timers.clear() }
   }, [])
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const [sessionBudget, setSessionBudget] = useState('0')
-  const [dailyBudget, setDailyBudget] = useState('0')
-  const [temperature, setTemperature] = useState('0.7')
+  const [parameters, setParameters] = useState({ sessionTokenBudget: '0', dailyTokenBudget: '0', llmTemperature: '0.7' })
+  const primaryTarget = resolveRoutedConfigs(JSON.stringify(connections.map(connection => ({ ...connection, enabled: true }))),
+    JSON.stringify(routes.primary.map(route => ({ ...route, purpose: 'primary', model: route.modelId }))), 'primary')[0]
   const selectedProviderConfig = allProviders.find((item) => item.providerId === providerId)
   const adapterFromProtocol = (protocol?: string): ConnectionAdapter => (Object.entries(CONNECTION_ADAPTER_LABELS).find(([, label]) => label === protocol)?.[0] as ConnectionAdapter | undefined) ?? 'openai-compatible'
   const closeForm = () => { setShowAdd(false); setEditingId(null); setApiKey('') }
@@ -236,7 +237,6 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
     if (!connection) return
     const valid = Boolean(connection.baseUrl.trim()) && fixtureCredentialLabel(connection) !== '未配置'
     setConnections((items) => items.map((item) => item.id === connectionId ? { ...item, status: valid ? 'healthy' : 'failed' } : item))
-    onModelStatusChange(valid ? 'success' : 'error')
   }
   const setPreview = (state: 'empty' | 'one' | 'two') => { fetchTimers.current.forEach((timer) => window.clearTimeout(timer)); fetchTimers.current.clear(); setFetchStates({}); setFetchedModelsByConnection({}); setModelDrafts({}); closeForm(); setPreviewState(state); if (state === 'empty') { setConnections([]); setRoutes({ primary: [], auxiliary: [], image: [] }); return }; const first = createConnection(firstProvider); if (state === 'one') { setConnections([first]); setRoutes({ primary: [{ connectionId: first.id, modelId: 'gpt-4o', enabled: true }, { connectionId: first.id, modelId: 'gpt-4o-mini', enabled: true }], auxiliary: [{ connectionId: first.id, modelId: 'gpt-4o-mini', enabled: true }], image: [{ connectionId: first.id, modelId: 'image-model-id', enabled: true }] }); return }; const second = createConnection(allProviders.find((item) => item.providerId === 'openrouter') ?? allProviders[1], 1); second.name = '国际流动'; second.source = 'relay'; second.models = [{ id: 'deepseek-chat', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'unknown' }, { id: 'deepseek-reasoner', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'unknown' }]; setConnections([first, second]); setRoutes({ primary: [{ connectionId: first.id, modelId: 'gpt-4o', enabled: true }, { connectionId: second.id, modelId: 'deepseek-chat', enabled: true }], auxiliary: [{ connectionId: second.id, modelId: 'deepseek-reasoner', enabled: true }], image: [{ connectionId: first.id, modelId: 'image-model-id', enabled: true }] }) }
   const availableModels = connections.flatMap((connection) => connection.models.filter((model) => model.enabled).map((model) => ({ connectionId: connection.id, connectionName: connection.name, modelId: model.id })))
@@ -273,7 +273,12 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
           editing={editingId === connection.id ? connectionForm : undefined} editingTestId="settings-candidate-model-add-form" />)}
       </ModelConnectionList>
       {showAdd && !editingId && <SettingCard testId="settings-candidate-model-add-form">{connectionForm}</SettingCard>}
-      <SettingCard><button type="button" onClick={() => setShowAdvanced(!showAdvanced)} aria-expanded={showAdvanced} className="flex w-full items-center justify-between gap-3 text-left" data-testid="settings-candidate-model-advanced-toggle"><span><span className="block text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>高级设置</span><span className="mt-1 block text-[10px]" style={{ color: 'var(--text-muted)' }}>连接测试、预算和生成参数只在需要时查看。</span></span><ChevronRight size={14} className={`transition ${showAdvanced ? 'rotate-90' : ''}`} style={{ color: 'var(--text-muted)' }} /></button>{showAdvanced && <div className="mt-4 space-y-3 border-t pt-4" style={{ borderColor: 'var(--border-subtle)' }}><div data-testid="settings-candidate-model-budget"><div className="mb-2 flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>运行预算 <ScopeBadge label="全局" /></div><div className="mb-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>输入与输出 Token 合计；0 表示不限制。</div><div className="grid gap-2 sm:grid-cols-2"><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>会话预算（Token）<input aria-label="会话预算（Token）" value={sessionBudget} onChange={(event) => setSessionBudget(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>每日预算（Token）<input aria-label="每日预算（Token）" value={dailyBudget} onChange={(event) => setDailyBudget(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label></div><div className="mt-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>当前：{sessionBudget === '0' ? '不限制' : `${sessionBudget} Token`}</div></div><label className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>Temperature<input aria-label="Temperature" value={temperature} onChange={(event) => setTemperature(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label><button type="button" onClick={() => onModelStatusChange('success')} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-model-test">测试连接</button>{modelStatus !== 'idle' && <div role="status" className="rounded-[var(--radius-md)] px-3 py-2 text-[11px]" style={{ background: modelStatus === 'success' ? 'var(--accent-subtle)' : 'color-mix(in srgb, var(--danger) 10%, transparent)', color: modelStatus === 'success' ? 'var(--accent-fg)' : 'var(--danger)' }} data-testid="settings-candidate-model-status">{modelStatus === 'success' ? '连接配置看起来可用（仅样张反馈）' : '连接测试失败；请检查地址和凭据。'}</div>}</div>}</SettingCard>
+      <ModelAdvancedSettings values={parameters} onChange={(key, value) => setParameters(current => ({ ...current, [key]: value }))}
+        testIdPrefix="settings-candidate-" testIdentity={JSON.stringify([connections, routes])}
+        testTarget={primaryTarget ? `${primaryTarget.name} · ${primaryTarget.model}` : undefined}
+        onTest={async () => primaryTarget && connections.find(connection => connection.id === primaryTarget.id)?.credentialStatus === 'stored'
+          ? { ok: true, model: `${primaryTarget.model}（样张）`, ms: 0 }
+          : { ok: false, error: '连接测试失败（样张）：请检查地址和凭据。' }} />
     </div>
   )
 }
@@ -401,7 +406,6 @@ export function SettingsExperienceCandidate({ companionDetail, memoryDetail, ini
   const [fontScale, setFontScale] = useState('md')
   const [momentTips, setMomentTips] = useState(true)
   const [proactiveGreeting, setProactiveGreeting] = useState(false)
-  const [modelStatus, setModelStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [selectedProvider, setSelectedProvider] = useState('openai')
   const [expertise, setExpertise] = useState('auto')
   const [dataAction, setDataAction] = useState('')
@@ -419,7 +423,7 @@ export function SettingsExperienceCandidate({ companionDetail, memoryDetail, ini
 
   return <div aria-label="设置候选版" className="flex min-h-[620px] w-full min-w-0 overflow-hidden rounded-[var(--radius-lg)] border" style={{ ...getThemeStudyStyle(THEME_STUDIES.find((theme) => theme.id === activeTheme)!), borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} data-playground-theme={activeTheme} data-testid="settings-candidate">
     <SettingsLayout activeSection={activeSection} onSelect={setActiveSection} prefix="settings-candidate">
-      {activeSection === 'appearance' && <AppearancePage activeTheme={activeTheme} fontScale={fontScale} onFontScaleChange={setFontScale} onThemeChange={setActiveTheme} />}{activeSection === 'memory' && <MemoryPage detail={memoryDetail} />}{activeSection === 'companion' && (companionDetail ?? <CompanionPage expertise={expertise} momentTips={momentTips} onExpertiseChange={setExpertise} onOpenRoleShelf={onOpenRoleShelf} onMomentTipsChange={setMomentTips} onProactiveGreetingChange={setProactiveGreeting} proactiveGreeting={proactiveGreeting} />)}{activeSection === 'model' && <ModelPage modelStatus={modelStatus} onModelStatusChange={setModelStatus} selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} />}{activeSection === 'data' && <DataPage lastAction={dataAction} onAction={setDataAction} />}{activeSection === 'permissions' && <PermissionsPage mode={permissionMode} onModeChange={setPermissionMode} />}{activeSection === 'skills' && <CapabilityPage mode="skills" />}{activeSection === 'mcp' && <CapabilityPage mode="mcp" />}{activeSection === 'about' && <AboutPage developerMode={developerMode} onDeveloperModeChange={setDeveloperMode} />}
+      {activeSection === 'appearance' && <AppearancePage activeTheme={activeTheme} fontScale={fontScale} onFontScaleChange={setFontScale} onThemeChange={setActiveTheme} />}{activeSection === 'memory' && <MemoryPage detail={memoryDetail} />}{activeSection === 'companion' && (companionDetail ?? <CompanionPage expertise={expertise} momentTips={momentTips} onExpertiseChange={setExpertise} onOpenRoleShelf={onOpenRoleShelf} onMomentTipsChange={setMomentTips} onProactiveGreetingChange={setProactiveGreeting} proactiveGreeting={proactiveGreeting} />)}{activeSection === 'model' && <ModelPage selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} />}{activeSection === 'data' && <DataPage lastAction={dataAction} onAction={setDataAction} />}{activeSection === 'permissions' && <PermissionsPage mode={permissionMode} onModeChange={setPermissionMode} />}{activeSection === 'skills' && <CapabilityPage mode="skills" />}{activeSection === 'mcp' && <CapabilityPage mode="mcp" />}{activeSection === 'about' && <AboutPage developerMode={developerMode} onDeveloperModeChange={setDeveloperMode} />}
     </SettingsLayout>
   </div>
 }
