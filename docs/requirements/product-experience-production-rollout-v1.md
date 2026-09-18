@@ -18,6 +18,10 @@
 
 ## 2. 回流映射与验收单位
 
+R10 复选框验收记录：Unit 1056、完整 UI 241、资产 29、根 tsc / build 通过；最终 UI 证据 `var/verification/checkbox-ui-full`。定向初测证明 h-4 在根字号 15px 下不是 16px，基础组件改为明确 16px；两处测试问题分别为错误导航路径、Playwright 拒绝对 disabled label 作普通点击，均按现场修正，禁用状态改为真实鼠标位置点击后断言不变。原始现场保留在 `checkbox-focused` / `checkbox-focused-verified`，不将中止批次记为通过。新 `checkbox.test.ts` 已显式纳入 Playwright UI project，避免只新增文件却未执行。
+
+R10 复选框同源边界：把 FoundationAdvancedStories 内已有的原生复选框提取为 Foundation CheckboxField，基础故事、McpServiceCard 与 McpConnectionForm 实际消费同一控件。保留原生 input checkbox 的键盘、label、disabled 和表单语义，统一 16px 操作槽与主题强调色；不改变业务默认选中、工具许可保存、主进程执行前校验或 IPC。基础故事补已选 / 未选 / 禁用，既有 story key 保持不变；注册表 source 指向真实组件并在验证后更新状态。允许修改上述组件、UI / 产品体验注册表、绑定门禁与 Unit / UI 测试、运行时模块卡和文档。必须验收四主题宽窄、点击标签、Space 切换、disabled 不可操作、hover / 选中 / 保存中尺寸不变、许可失败保留及空许可准确提交；候选继续隔离。OAuth 与其他 MCP 能力不因控件统一而宣称完成。
+
 R04 本批证据：绑定 Unit 新增检查先红后绿，完整 Unit 1055、UI 233、资产 28、根 tsc / build 通过；浅色宽屏与深色窄屏截图无控件溢出。首次 Electron 16 通过 / 4 失败 / 4 跳过，原码原断言带 trace 串行复核 20 通过 / 4 跳过，失败仍归 WISH-042。证据目录分别为 `var/verification/companion-foundation-ui-full`、`companion-foundation-electron`、`companion-foundation-electron-repeat`。无主进程 / IPC / 依赖变化，不扩称提醒后端或外部供应商验收。
 
 R04 基础控件收口：CompanionSettingsContent 已被正式 SettingsPanel 与候选共同调用，但回答方式按钮、勿扰开始 / 结束与每日次数仍直接渲染原生控件。本批复用 Foundation ActionButton / TextField，保留候选卡片、字段和真实 settings 保存语义，候选只改内存；不改 Prompt、IPC、提醒策略或权限。不再保留该组件中的孤立按钮 / 输入实现，同时让候选角色架入口复用已有 ActionButton。检查还发现候选数字字段及补充说明为空回调，本批改为隔离本地状态，允许实际编辑但不持久化。允许修改上述两处 UI、组件注册 / 绑定门禁、正式入口 E2E 及对应文档。验收四主题宽窄、选中与键盘、hover 几何、保存失败恢复、候选隔离；不能以这些 UI 证据替代提醒调度后端验收或全产品完成。

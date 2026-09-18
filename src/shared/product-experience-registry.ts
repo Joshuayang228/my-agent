@@ -74,7 +74,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     realDataPaths: ['electron/main/ipc/settings.ts', 'electron/main/ipc/memory.ts', 'electron/main/ipc/skills.ts', 'electron/main/ipc/companion.ts', 'electron/main/ipc/mcp.ts', 'electron/main/ipc/data-export.ts'],
     evidencePaths: ['__tests__/e2e/onboarding.test.ts', '__tests__/e2e/chat.test.ts', '__tests__/unit/settings-security.test.ts', '__tests__/unit/memory-foundation-reuse.test.ts'],
     experienceParts: ['设置分组', '角色架', '记忆管理', 'Skills 管理', '字段编辑', '自动保存', '失败恢复'],
-    usesFoundation: ['behavior.tabs', 'behavior.input', 'behavior.select', 'behavior.button', 'behavior.icon-button', 'state.confirm-panel', 'state.toast', 'state.error'],
+    usesFoundation: ['behavior.tabs', 'behavior.input', 'behavior.select', 'behavior.button', 'behavior.icon-button', 'behavior.checkbox', 'state.confirm-panel', 'state.toast', 'state.error'],
   }),
   experience({
     key: 'experience.workspace',

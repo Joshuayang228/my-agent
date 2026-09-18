@@ -14,6 +14,7 @@ import { DiffViewer, DiffViewControls, type DiffViewMode } from '../foundation/D
 import { WorkspaceToolMenu } from '../foundation/WorkspaceToolMenu'
 import { ActionButton } from '../foundation/ActionButton'
 import { SelectField } from '../foundation/SelectField'
+import { CheckboxField } from '../foundation/CheckboxField'
 import { SegmentedControl } from '../foundation/SegmentedControl'
 import { type AdvancedFoundationStoryKey } from '../../shared/foundation-story-registry'
 
@@ -197,9 +198,19 @@ function WorkspaceToolMenuStory() {
   </div>
 }
 
+function CheckboxStory() {
+  const [checked, setChecked] = useState(true)
+  return <div className="flex flex-wrap gap-4 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+    <label className="flex items-center gap-2"><CheckboxField checked={checked} onChange={(event) => setChecked(event.target.checked)} />启用记忆</label>
+    <label className="flex items-center gap-2"><CheckboxField defaultChecked={false} />允许提醒</label>
+    <label className="flex items-center gap-2"><CheckboxField disabled defaultChecked />已锁定</label>
+    <label className="flex items-center gap-2"><CheckboxField disabled />不可用</label>
+  </div>
+}
+
 function FormFieldStory() {
   const [enabled, setEnabled] = useState(true)
-  return <div className="grid gap-3 md:grid-cols-2"><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>显示名称</span><input className="theme-input h-9 w-full rounded-md border px-2 text-xs outline-none" defaultValue="小林" aria-label="显示名称" /><small className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>辅助说明与控件保持同一组。</small></label><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>错误字段</span><input className="theme-input h-9 w-full rounded-md border px-2 text-xs outline-none" defaultValue="" aria-label="错误字段" aria-invalid="true" style={{ borderColor: 'var(--danger)' }} /><small className="block text-[10px]" style={{ color: 'var(--danger)' }}>请输入有效内容。</small></label><label className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}><input type="checkbox" defaultChecked aria-label="启用记忆" />启用记忆</label><button type="button" role="switch" aria-checked={enabled} onClick={() => setEnabled((value) => !value)} className="flex items-center gap-2 text-left text-[11px]" style={{ color: 'var(--text-secondary)' }}><span className="relative h-5 w-9 rounded-full" style={{ background: enabled ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }}><span className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition" style={{ left: enabled ? 'calc(100% - 1.125rem)' : '0.125rem' }} /></span>自动保存</button></div>
+  return <div className="grid gap-3 md:grid-cols-2"><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>显示名称</span><input className="theme-input h-9 w-full rounded-md border px-2 text-xs outline-none" defaultValue="小林" aria-label="显示名称" /><small className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>辅助说明与控件保持同一组。</small></label><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>错误字段</span><input className="theme-input h-9 w-full rounded-md border px-2 text-xs outline-none" defaultValue="" aria-label="错误字段" aria-invalid="true" style={{ borderColor: 'var(--danger)' }} /><small className="block text-[10px]" style={{ color: 'var(--danger)' }}>请输入有效内容。</small></label><label className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}><CheckboxField defaultChecked aria-label="启用记忆" />启用记忆</label><button type="button" role="switch" aria-checked={enabled} onClick={() => setEnabled((value) => !value)} className="flex items-center gap-2 text-left text-[11px]" style={{ color: 'var(--text-secondary)' }}><span className="relative h-5 w-9 rounded-full" style={{ background: enabled ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }}><span className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition" style={{ left: enabled ? 'calc(100% - 1.125rem)' : '0.125rem' }} /></span>自动保存</button></div>
 }
 
 function assertNever(value: never): never {
@@ -224,7 +235,7 @@ function storyContent(story: AdvancedFoundationStoryKey) {
     case 'foundation.progress': return <StoryBlock title="进度条" source="src/components/playground/FoundationAdvancedStories.tsx · Progress candidate" edge><ProgressStory /></StoryBlock>
     case 'foundation.diff-viewer': return <StoryBlock title="差异查看器" source="src/components/foundation/DiffViewer.tsx" edge adopted><DiffViewerStory /></StoryBlock>
     case 'foundation.form-field': return <StoryBlock title="表单字段" source="src/components/playground/FoundationAdvancedStories.tsx · Form Field" edge><FormFieldStory /></StoryBlock>
-    case 'foundation.checkbox': return <StoryBlock title="复选框" source="src/components/SettingsPanel.tsx · PermissionRulesEditor"><FormFieldStory /></StoryBlock>
+    case 'foundation.checkbox': return <StoryBlock title="复选框" source="src/components/foundation/CheckboxField.tsx" edge adopted><CheckboxStory /></StoryBlock>
     case 'foundation.switch': return <StoryBlock title="开关" source="src/components/SettingsPanel.tsx · 自动保存 · candidate"><FormFieldStory /></StoryBlock>
     default: return assertNever(story)
   }

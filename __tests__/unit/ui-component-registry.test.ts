@@ -30,6 +30,15 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('复选框基础故事与 MCP 复用真实组件，注册表不再指向样张实现', () => {
+    for (const file of ['src/components/playground/FoundationAdvancedStories.tsx', 'src/components/settings/McpServiceCard.tsx', 'src/components/settings/McpConnectionForm.tsx']) {
+      const source = readFileSync(file, 'utf8')
+      expect(rendersSharedTabs(source, 'CheckboxField', '/foundation/CheckboxField'), file).toBe(true)
+      expect(source, file).not.toMatch(/<input\b[^>]*type="checkbox"/)
+    }
+    expect(UI_COMPONENT_REGISTRY['behavior.checkbox'].sourcePath).toBe('src/components/foundation/CheckboxField.tsx')
+    expect(UI_COMPONENT_REGISTRY['behavior.checkbox'].status).toBe('adopted')
+  })
   it('模型与 MCP 表单实际绑定 Foundation 输入和选择控件，未使用导入与同名遮蔽不算复用', () => {
     const expectedFields = [
       ['src/components/settings/ModelRoutingSettings.tsx', []],
@@ -38,10 +47,11 @@ describe('UI component asset registry', () => {
       ['src/components/settings/CompanionSettingsContent.tsx', ['TextField']],
       ['src/components/settings/ModelUsageArrangements.tsx', ['SelectField']],
       ['src/components/settings/ModelConnectionForm.tsx', ['SelectField', 'TextField']],
-      ['src/components/settings/McpConnectionForm.tsx', ['SelectField', 'TextField']],
+      ['src/components/settings/McpConnectionForm.tsx', ['CheckboxField', 'SelectField', 'TextField']],
+      ['src/components/settings/McpServiceCard.tsx', ['CheckboxField']],
     ] as const
     const consumers = expectedFields.map(([file]) => resolve(file))
-    const fields = ['TextField', 'SelectField'].map((name) => resolve(`src/components/foundation/${name}.tsx`))
+    const fields = ['TextField', 'SelectField', 'CheckboxField'].map((name) => resolve(`src/components/foundation/${name}.tsx`))
     const fixture = resolve('__tests__/fixtures/settings-field-binding.tsx')
     const fixtureSource = `import { SelectField as Shared } from '../../src/components/foundation/SelectField'
       function Unused() { return <select /> }
@@ -67,9 +77,7 @@ describe('UI component asset registry', () => {
           }
           if (ts.isIdentifier(node.tagName)) {
             const name = node.tagName.text
-            const checkbox = node.attributes.properties.some((prop) => ts.isJsxAttribute(prop)
-              && prop.name.getText() === 'type' && prop.initializer && ts.isStringLiteral(prop.initializer) && prop.initializer.text === 'checkbox')
-            if (name === 'select' || name === 'textarea' || (name === 'input' && !checkbox)) nativeFields.push(name)
+            if (name === 'select' || name === 'textarea' || name === 'input') nativeFields.push(name)
           }
         }
         ts.forEachChild(node, visit)

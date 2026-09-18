@@ -5,6 +5,7 @@ import { IconButton } from '../foundation/IconButton'
 import { SegmentedControl } from '../foundation/SegmentedControl'
 import { TextField } from '../foundation/TextField'
 import { SelectField } from '../foundation/SelectField'
+import { CheckboxField } from '../foundation/CheckboxField'
 import { SettingCard } from './SettingsFields'
 import type { McpConnectionActions, McpConnectionInput, McpConnectionSaveResult, McpDiscoveredTool } from '../../shared/types'
 
@@ -199,7 +200,7 @@ export function McpConnectionForm({ actions, onCancel, onSaved, initialDraft, pr
         <p role="status" className="mb-2 text-[12px]" style={{ color: 'var(--success)' }}>已获取 {tools.length} 个工具{preview ? '（样张）' : ''}</p>
         <div className="max-h-64 overflow-y-auto">{tools.map((tool) => <label key={tool.name} className="flex min-h-8 items-center justify-between gap-3 py-1 text-[12px]">
           <span className="min-w-0 [overflow-wrap:anywhere]">{tool.name}<small className="ml-2" style={{ color: 'var(--text-muted)' }}>{tool.description}</small></span>
-          <input type="checkbox" className="h-4 w-4 shrink-0" disabled={phase !== 'ready'} aria-label={`允许${tool.name}`} checked={allowed.includes(tool.name)}
+          <CheckboxField disabled={phase !== 'ready'} aria-label={`允许${tool.name}`} checked={allowed.includes(tool.name)}
             onChange={(event) => setAllowed((current) => event.target.checked ? [...current, tool.name] : current.filter((name) => name !== tool.name))} />
         </label>)}</div>
       </div>}

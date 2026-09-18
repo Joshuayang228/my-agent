@@ -1,5 +1,7 @@
 # 系统架构
 
+`CheckboxField` 是 Foundation 的原生复选框封装，只集中主题强调色、焦点及固定尺寸，不持有业务许可状态。MCP 服务卡、添加向导和基础故事共同消费；工具选择与存储仍分别归受控调用方和主进程，不通过基础组件访问 IPC。
+
 类型检查按进程独立运行：Renderer 根配置不再引用主进程 composite 工程，避免共享源码被当成尚未生成的声明产物而报 TS6305；主进程配置和独立诊断检查保留。这不改变运行时依赖方向，也不解决主进程存量类型债。
 
 `ModelAdvancedSettings` 组合 Foundation ActionButton / TextField，只管理展开和测试展示生命周期，参数值、保存重试及测试实现均由调用方注入。正式通过既有 settings:set 保存，通过既有 settings:test-connection 测试已保存主用途首选；Playground 只改内存与返回隔离结果。`src/shared/model-routing.ts` 是用途顺序 / 启用 / 模型清单筛选的纯函数事实源，Renderer 传脱敏快照，主进程传解密快照，不把凭据处理下沉前端。`src/shared/model-parameters.ts` 统一界面、IPC 与 Temperature 装配的数字边界；同端点换 Key 后的测试失效由成功保存版本号保证，不比较密钥原文。新增共享文件显式列入主进程 composite 清单。

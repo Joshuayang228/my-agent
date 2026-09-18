@@ -1,0 +1,41 @@
+import { expect, test } from '@playwright/test'
+
+for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
+  for (const width of [1166, 600]) {
+    test(`Foundation 复选框标签键盘与固定操作槽 ${theme} ${width}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 731 })
+      await page.addInitScript((value) => localStorage.setItem('theme', value), theme)
+      await page.goto('/')
+      await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+      await page.getByTestId('playground-nav').getByRole('button', { name: '基础组件', exact: true }).click()
+      await page.getByRole('tab', { name: '输入与表单', exact: true }).click()
+      const story = page.getByTestId('foundation-story-checkbox')
+      const field = story.getByRole('checkbox', { name: '启用记忆', exact: true })
+      await expect(field).toBeChecked()
+      await field.scrollIntoViewIfNeeded()
+      const box = await field.boundingBox()
+      expect(box).toMatchObject({ width: 16, height: 16 })
+      await field.hover()
+      expect(await field.boundingBox()).toEqual(box)
+      await story.getByText('启用记忆', { exact: true }).click()
+      await expect(field).not.toBeChecked()
+      expect(await field.boundingBox()).toEqual(box)
+      await field.focus()
+      await page.keyboard.press('Space')
+      await expect(field).toBeChecked()
+      expect(await field.boundingBox()).toEqual(box)
+      await expect(story.getByRole('checkbox', { name: '允许提醒', exact: true })).not.toBeChecked()
+      const locked = story.getByRole('checkbox', { name: '已锁定', exact: true })
+      await expect(locked).toBeDisabled()
+      await expect(locked).toBeChecked()
+      const lockedLabel = await story.getByText('已锁定', { exact: true }).boundingBox()
+      expect(lockedLabel).not.toBeNull()
+      await page.mouse.click(lockedLabel!.x + lockedLabel!.width - 4, lockedLabel!.y + lockedLabel!.height / 2)
+      await expect(locked).toBeChecked()
+      await expect(story.getByRole('checkbox', { name: '不可用', exact: true })).toBeDisabled()
+      await expect(story.getByRole('checkbox', { name: '不可用', exact: true })).not.toBeChecked()
+      expect(await story.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
+      await page.screenshot({ path: testInfo.outputPath('checkbox.png'), animations: 'disabled' })
+    })
+  }
+}

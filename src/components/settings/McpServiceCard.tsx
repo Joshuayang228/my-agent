@@ -1,6 +1,7 @@
 import { Check, RefreshCw, Server, Trash2 } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
+import { CheckboxField } from '../foundation/CheckboxField'
 import { SettingCard, SettingSwitch } from './SettingsFields'
 
 export type McpServiceState = 'connected' | 'connecting' | 'confirm' | 'disabled' | 'error' | 'auth' | 'disconnected'
@@ -46,7 +47,7 @@ export function McpServiceCard({ id, name, transport, status, enabled, tools, ad
         {tools.length === 0 ? <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>已连接，服务未提供工具。</p> : <ul className="scrollbar-thin max-h-80 space-y-2 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
           {tools.map((tool) => <li key={tool.id} className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} data-testid="mcp-tool-row">
             <div className="min-w-0 [overflow-wrap:anywhere]"><span style={{ color: 'var(--text-primary)' }}>{tool.name}</span>{tool.id !== tool.name && <code className="ml-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>{tool.id}</code>}{tool.description && <p className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{tool.description}</p>}</div>
-            {onToolChange ? <input type="checkbox" className="h-4 w-4 shrink-0" aria-label={`允许${tool.name}`} disabled={busy} checked={tool.allowed} onChange={(event) => onToolChange(tool.id, event.target.checked)} /> : !tool.allowed && <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>未允许</span>}
+            {onToolChange ? <CheckboxField aria-label={`允许${tool.name}`} disabled={busy} checked={tool.allowed} onChange={(event) => onToolChange(tool.id, event.target.checked)} /> : !tool.allowed && <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>未允许</span>}
           </li>)}
         </ul>}
       </>}

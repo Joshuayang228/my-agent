@@ -54,7 +54,7 @@
 
 - [ ] **WISH-045 · 全产品体验正式回流遗漏（已开工）** — 来源：2026-09-14 用户核验发现正式设置、人物世界、记忆等仍停留旧实现；右坞完成不能代表全部回流。用户已授权原目标和必要后端补齐，施工入口：`docs/requirements/product-experience-production-rollout-v1.md`。该合同统一管理页面映射及后端验收，WISH-027 / WISH-040 / WISH-042 / WISH-043 保留各自细节，不将缺失能力静默移出目标。
 
-- 伙伴基础控件回流已消除 CompanionSettingsContent 的原生回答按钮和三个数字输入；MCP 的工具许可复选框仍直接存在于 McpServiceCard / McpConnectionForm，Foundation checkbox 目前也只定义在 FoundationAdvancedStories，需提取真实基础组件后统一消费，不能把 settings 整体标为已采用。Electron 本批首次回归 16 通过 / 4 失败 / 4 跳过：onboarding:737 第二次 Playground 快捷键未返回 Chat，后续侧聊出现 alert、两个工作区测试缺添加入口；现场 `var/verification/companion-foundation-electron`。保留原断言复核，不将偶发重跑通过当作 WISH-042 已修复。
+- 伙伴基础控件回流已消除 CompanionSettingsContent 的原生回答按钮和三个数字输入；MCP 工具许可复选框已提取为 CheckboxField，由 McpServiceCard / McpConnectionForm 和 Foundation 故事共同消费，不能据此把 settings 整体标为已采用。伙伴批次 Electron 首次回归 16 通过 / 4 失败 / 4 跳过：onboarding:737 第二次 Playground 快捷键未返回 Chat，后续侧聊出现 alert、两个工作区测试缺添加入口；现场 `var/verification/companion-foundation-electron`。原码原断言完整复核 20 通过 / 4 跳过，不将偶发重跑通过当作 WISH-042 已修复。
 
 - 工作区回流审计补充（WISH-041 / WISH-042）：共享 Markdown 的就近主题／Mermaid、DiffViewer/模式控件、IconButton 和 WorkspaceToolMenu 已接入真实调用，空稿/缺稿回退、四主题、长文件和完整 UI/Electron 回归通过。仍需输入及其它基础控件全量复用核验。侧聊流中关闭已有真实 Electron 证据；终端 Windows 停止/关闭后的真实父子进程退出已验证，Unix 仍需实机验证，不把 Renderer 替身当作跨平台完成。
 

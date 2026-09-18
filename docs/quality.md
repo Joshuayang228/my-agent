@@ -1,5 +1,7 @@
 # 质量总控
 
+复选框门禁：McpServiceCard / McpConnectionForm 通过 TypeChecker 绑定到 Foundation CheckboxField，输入扫描不再豁免原生 checkbox；基础故事也检查真实引用。`checkbox.test.ts` 显式纳入 UI project，四主题宽窄覆盖已选 / 未选 / 禁用、点击标签、Space、16px 固定尺寸与 hover / 切换无位移。MCP 正式服务卡补键盘切换，向导补保存失败保留、保存中禁用和空 allowedTools 准确传递；这些 Renderer 替身证据不替代真实 MCP 授权链测试。
+
 伙伴设置基础绑定门禁：CompanionSettingsContent 纳入 TypeChecker 的正式 / 候选实际调用与 Foundation ActionButton / TextField 绑定检查，禁止重新出现原生 button / input / select。正式四主题宽窄验证键盘选中、hover 前后 boundingBox 不变、三个提醒数字字段保存及重新进入恢复，原有长文失败保留 / 重试继续覆盖。候选字段可编辑且 settings.set 观察器无写入；普通浏览器候选没有 preload，测试需显式提供观察器而非假定 electronAPI 存在。
 
 根 `tsconfig.json` 直接检查 Renderer 及其引用的共享源码，不再引用需要预生成声明产物的主进程 composite 工程；构建仍先执行 `tsc --noEmit`。主进程独立检查入口仍是 `tsc -p tsconfig.node.json --noEmit`，本批共享文件显式纳入该工程；不能用根检查通过代替主进程检查，存量诊断继续由 WISH-043 管理。

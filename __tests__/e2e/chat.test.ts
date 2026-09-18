@@ -1152,10 +1152,20 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       await page.evaluate(() => (window as any).__mcpHarness.finish())
       await expect(card.getByRole('status')).toHaveText('已连接')
       const permission = card.getByRole('checkbox', { name: '允许read', exact: true })
+      await permission.scrollIntoViewIfNeeded()
+      const permissionBox = await permission.boundingBox()
+      expect(permissionBox).toMatchObject({ width: 16, height: 16 })
+      await permission.hover()
+      expect(await permission.boundingBox()).toEqual(permissionBox)
       await page.evaluate(() => { (window as any).__mcpHarness.toolError = true })
       await permission.click()
       await expect(permission).toBeChecked()
       await page.evaluate(() => { (window as any).__mcpHarness.toolError = false })
+      await permission.uncheck()
+      await expect(permission).not.toBeChecked()
+      await permission.focus()
+      await page.keyboard.press('Space')
+      await expect(permission).toBeChecked()
       await permission.uncheck()
       await expect(permission).not.toBeChecked()
       await page.evaluate(() => { (window as any).__mcpHarness.readError = true })
@@ -1220,13 +1230,15 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       await page.addInitScript((selectedTheme) => {
         localStorage.setItem('theme', selectedTheme)
         const api = (window as any).electronAPI
-        const state = { tested: false, cancelled: false, saved: false, failSave: true, input: null as any }
+        const state = { tested: false, cancelled: false, saved: false, failSave: true, input: null as any, allowed: [] as string[], finishSave: () => {} }
         ;(window as any).__mcpAddHarness = state
         api.mcp.testConnection = async (_requestId: string, config: any) => { state.tested = true; state.input = config; return { ok: true, tools: [{ name: 'search_docs', description: '搜索文档' }] } }
         api.mcp.cancelTest = async () => { state.cancelled = true; state.tested = false; return { ok: true } }
         api.mcp.saveTested = async (_requestId: string, allowed: string[]) => {
+          state.allowed = allowed
           if (!state.tested) return { ok: false, error: '测试结果已失效，请重新测试连接。' }
           if (state.failSave) { state.failSave = false; return { ok: false, error: '连接未保存，请重试；当前测试结果仍保留。' } }
+          await new Promise<void>((resolve) => { state.finishSave = resolve })
           state.saved = true
           return { ok: true, serverId: 'new-remote' }
         }
@@ -1253,11 +1265,17 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       await expect(form.getByText('已获取 1 个工具')).toBeVisible()
       expect(await page.evaluate(() => (window as any).__mcpAddHarness.input)).toMatchObject({ transport: 'streamable-http', bearerToken: 'fixture-bearer' })
       expect(await page.evaluate(() => (window as any).__mcpAddHarness.cancelled)).toBe(false)
-      await form.getByRole('checkbox', { name: '允许search_docs', exact: true }).uncheck()
+      const toolPermission = form.getByRole('checkbox', { name: '允许search_docs', exact: true })
+      await toolPermission.uncheck()
       await form.getByRole('button', { name: '保存连接', exact: true }).click()
       expect(await page.evaluate(() => (window as any).__mcpAddHarness.saved)).toBe(false)
       await expect(form.getByRole('alert')).toContainText('连接未保存')
+      await expect(toolPermission).not.toBeChecked()
       await form.getByRole('button', { name: '保存连接', exact: true }).click()
+      await expect(toolPermission).toBeDisabled()
+      expect(await toolPermission.boundingBox()).toMatchObject({ width: 16, height: 16 })
+      expect(await page.evaluate(() => (window as any).__mcpAddHarness.allowed)).toEqual([])
+      await page.evaluate(() => (window as any).__mcpAddHarness.finishSave())
       await expect(form).toHaveCount(0)
       expect(await page.evaluate(() => (window as any).__mcpAddHarness.saved)).toBe(true)
       await page.screenshot({ path: `var/verification/mcp-add-${theme}-${width}.png`, animations: 'disabled' })
