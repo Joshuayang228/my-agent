@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import { useEffect, useImperativeHandle, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent, type Ref } from 'react'
 import { ArrowDown, ArrowUp, Check, CheckCircle2, Circle, LoaderCircle, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import type { LLMModelFetchResult, ModelConnectionProfile, ModelRouteProfile, ModelRoutePurpose } from '../../shared/types'
 import { addConnectionModel, enabledConnectionModelIds, normalizeConnectionModels, removeConnectionModel, setConnectionModelEnabled } from '../../shared/llm-model-fetch'
@@ -23,7 +23,8 @@ function withModels(connection: ModelConnectionProfile): ModelConnectionProfile 
   return { ...connection, models, model: models[0]?.id ?? connection.model ?? '' }
 }
 
-export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl, legacyModel, onSave, onTestConnection, onFetchModels }: {
+export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl, legacyModel, onSave, onTestConnection, onFetchModels, beforeLeaveRef }: {
+  beforeLeaveRef?: Ref<() => boolean>
   connectionsRaw: string
   routesRaw: string
   legacyBaseUrl: string
@@ -55,6 +56,21 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
   const [fetchError, setFetchError] = useState<Record<string, { message: string; retryable: boolean }>>({})
   const [fetchedModels, setFetchedModels] = useState<Record<string, string[]>>({})
   const [modelDrafts, setModelDrafts] = useState<Record<string, string>>({})
+  // 背景：连接草稿不在父级自动保存队列；意图：导航先检查，不静默写入半填配置；约束：忙碌时也必须留页，普通防抖保存不调用此检查。
+  useImperativeHandle(beforeLeaveRef, () => () => {
+    if (saving.current) {
+      toast('模型设置正在保存，请稍后再离开。', 'warning')
+      return false
+    }
+    const original = connections.find((item) => item.id === editing)
+    const changed = editing !== null && (editing === 'new' || !original
+      || JSON.stringify(modelConnectionDraft(draft)) !== JSON.stringify(modelConnectionDraft(original)) || Boolean(draft.apiKey))
+    if (changed || connections.some((connection) => modelDrafts[connection.id]?.trim())) {
+      toast('模型设置有未保存内容，请先保存、取消编辑或清空模型输入。', 'warning')
+      return false
+    }
+    return true
+  }, [connections, draft, editing, modelDrafts, toast])
   // 背景：同 id 可换端点或凭据；意图：保存成功后撤销旧请求和缓存；约束：失败保存及仅改名 / 用途不得误清理结果。
   const invalidateConnectionResults = (id: string, discovery = true) => {
     testRequests.current.delete(id)

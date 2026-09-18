@@ -244,6 +244,12 @@ test('正式自定义模型连接保存协议并在重载后通过真实协议�
   await form.getByLabel('连接适配器', { exact: true }).selectOption('anthropic')
   await form.getByLabel('Base URL', { exact: true }).fill(baseUrl)
   await form.getByLabel('API Key', { exact: true }).fill('local-anthropic-fixture')
+  const beforeDraftLeave = (await page.evaluate(() => window.electronAPI.settings.get())).modelConnections
+  await page.getByTestId('settings-nav-appearance').click()
+  await expect(form.getByLabel('连接名称', { exact: true })).toHaveValue('协议本地验收')
+  await page.keyboard.press('Escape')
+  await expect(form.getByLabel('API Key', { exact: true })).toHaveValue('local-anthropic-fixture')
+  expect((await page.evaluate(() => window.electronAPI.settings.get())).modelConnections).toBe(beforeDraftLeave)
   await form.getByRole('button', { name: '保存连接', exact: true }).click()
   const profile = models.locator('[data-testid^="settings-model-profile-"]').filter({ hasText: '协议本地验收' })
   await expect(profile).toContainText('自定义连接 · Anthropic')

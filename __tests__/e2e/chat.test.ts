@@ -491,6 +491,80 @@ test('正式模型请求结果跟随连接身份，拒绝迟到结果并恢复�
   await expect(profile).not.toContainText('left-page-model')
 })
 
+for (const width of [1166, 600]) {
+  test(`正式模型草稿离页保护 ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 731 })
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      const state = { values: { llmApiKeyConfigured: 'true', llmModel: 'fixture', modelConnections: '[]', modelRoutes: '[]' }, fail: false, hold: false, release: null as null | (() => void), writes: 0, creates: 0 }
+      ;(window as any).__modelLeave = state
+      api.settings.get = async () => ({ ...state.values })
+      api.settings.saveModelConfiguration = async (input: { connections: string; routes: string }) => {
+        state.writes++
+        if (state.hold) await new Promise<void>((resolve) => { state.release = resolve })
+        if (state.fail) throw new Error('fixture-save-failure')
+        state.values.modelConnections = input.connections
+        state.values.modelRoutes = input.routes
+      }
+      api.session.create = async () => { state.creates++; return { id: 'created' } }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+    const settings = page.getByTestId('settings-panel')
+    const nav = (name: string) => settings.getByRole(width < 768 ? 'tab' : 'button', { name, exact: true })
+    const back = settings.getByTestId(width < 768 ? 'settings-back-mobile' : 'settings-back')
+    await nav('模型').click()
+    const models = page.getByTestId('settings-model-routing')
+    await models.getByRole('button', { name: '添加连接', exact: true }).click()
+    const form = models.getByTestId('model-connection-form')
+    const name = form.getByLabel('连接名称', { exact: true })
+    await name.fill('离页保护连接')
+    await form.getByLabel('API Key', { exact: true }).fill('fixture-draft-key')
+    await nav('外观与界面').click()
+    await expect(name).toHaveValue('离页保护连接')
+    await back.click()
+    await expect(name).toHaveValue('离页保护连接')
+    const creates = await page.evaluate(() => (window as any).__modelLeave.creates)
+    for (const shortcut of ['Escape', 'Control+,', 'Control+n', 'Control+Shift+D', 'Control+Shift+P']) {
+      await page.keyboard.press(shortcut)
+      await expect(name).toHaveValue('离页保护连接')
+      await expect(form.getByLabel('API Key', { exact: true })).toHaveValue('fixture-draft-key')
+    }
+    expect(await page.evaluate(() => (window as any).__modelLeave.creates)).toBe(creates)
+    expect(await page.evaluate(() => (window as any).__modelLeave.writes)).toBe(0)
+    await page.evaluate(() => { (window as any).__modelLeave.fail = true })
+    await form.getByRole('button', { name: '保存连接', exact: true }).click()
+    await expect(page.getByText('模型设置保存未完成，当前编辑内容已保留，请重试。', { exact: true })).toBeVisible()
+    await nav('外观与界面').click()
+    await expect(name).toHaveValue('离页保护连接')
+    await page.evaluate(() => { const state = (window as any).__modelLeave; state.fail = false; state.hold = true })
+    await form.getByRole('button', { name: '保存连接', exact: true }).click()
+    await expect.poll(() => page.evaluate(() => Boolean((window as any).__modelLeave.release))).toBe(true)
+    await nav('外观与界面').click()
+    await expect(name).toBeDisabled()
+    await page.evaluate(() => { const state = (window as any).__modelLeave; state.hold = false; state.release() })
+    await expect(form).toHaveCount(0)
+    const profile = models.locator('[data-testid^="settings-model-profile-"]').filter({ hasText: '离页保护连接' })
+    const manual = profile.getByRole('textbox', { name: '手动添加模型 离页保护连接', exact: true })
+    await manual.fill('unsaved-model-id')
+    await nav('外观与界面').click()
+    await expect(manual).toHaveValue('unsaved-model-id')
+    await manual.fill('')
+    await profile.getByRole('button', { name: '编辑', exact: true }).click()
+    await nav('外观与界面').click()
+    await expect(models).toHaveCount(0)
+    await nav('模型').click()
+    await profile.getByRole('button', { name: '编辑', exact: true }).click()
+    await name.fill('尚未保存的改名')
+    await page.keyboard.press('Escape')
+    await expect(name).toHaveValue('尚未保存的改名')
+    await form.getByRole('button', { name: '取消', exact: true }).click()
+    await back.click()
+    await expect(page.getByTestId('chat-messages')).toBeVisible()
+  })
+}
+
 test('正式模型保存失败保留草稿和清单，重试后才应用', async ({ page }) => {
   await installProductionElectronStub(page)
   await page.addInitScript(() => {

@@ -138,6 +138,7 @@ export function SettingsPanel({
   const mcpReadGeneration = useRef(0)
   const [modelConnections, setModelConnections] = useState('[]')
   const [modelRoutes, setModelRoutes] = useState('[]')
+  const modelBeforeLeaveRef = useRef<(() => boolean) | null>(null)
   const [mcpAdding, setMcpAdding] = useState(false)
 
   useEffect(() => {
@@ -276,8 +277,13 @@ export function SettingsPanel({
     return savingRef.current
   }, [preview, toast])
 
-  // 全局导航必须等待同一保存队列；失败时保留挂载的草稿，不另建异步卸载保存通道。
-  useImperativeHandle(saveBeforeLeaveRef, () => persistSettings, [persistSettings])
+  // 背景：子页草稿不属于自动保存字段；意图：所有导航先检查再清空保存队列；约束：防抖仍只调用 persistSettings，不能自动提交连接草稿。
+  const prepareToLeave = useCallback(async () => {
+    if (modelBeforeLeaveRef.current && !modelBeforeLeaveRef.current()) return false
+    if (!(await persistSettings())) return false
+    return modelBeforeLeaveRef.current?.() ?? true
+  }, [persistSettings])
+  useImperativeHandle(saveBeforeLeaveRef, () => prepareToLeave, [prepareToLeave])
 
   const initialLoadDone = useRef(false)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -425,7 +431,7 @@ export function SettingsPanel({
   const renderModel = () => (
     <div className="space-y-4">
       <SettingsPageHeader title="模型" description="管理模型连接与用途安排；密钥只保存在本机安全存储中。" />
-      <ModelRoutingSettings connectionsRaw={modelConnections} routesRaw={modelRoutes} legacyBaseUrl={form.llmBaseUrl} legacyModel={form.llmModel} onTestConnection={async (connection, draftApiKey) => {
+      <ModelRoutingSettings beforeLeaveRef={modelBeforeLeaveRef} connectionsRaw={modelConnections} routesRaw={modelRoutes} legacyBaseUrl={form.llmBaseUrl} legacyModel={form.llmModel} onTestConnection={async (connection, draftApiKey) => {
         if (preview || !window.electronAPI) return { ok: false, error: '当前仅可在正式设置中测试' }
         const apiKey = draftApiKey?.trim()
         return window.electronAPI.settings.testConnection({
@@ -633,8 +639,11 @@ export function SettingsPanel({
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1" data-testid="settings-panel">
-      <SettingsLayout activeSection={page} onClose={() => { void persistSettings().then((saved) => { if (saved) onClose() }) }} panelOwnsScroll={embedded}
-        onSelect={(id) => { setRoleShelfOpen(false); setActiveSection(PAGE_SECTIONS[id]) }}>
+      <SettingsLayout activeSection={page} onClose={() => { void prepareToLeave().then((saved) => { if (saved) onClose() }) }} panelOwnsScroll={embedded}
+        onSelect={(id) => {
+          if (id === page) return
+          void prepareToLeave().then((allowed) => { if (allowed) { setRoleShelfOpen(false); setActiveSection(PAGE_SECTIONS[id]) } })
+        }}>
         {activeSection === 'companion' && roleShelfOpen && !preview
           ? <CharacterShelfPanel onClose={() => setRoleShelfOpen(false)} onSwitched={(role) => {
               setForm((current) => ({ ...current, activeRoleId: role.id }))
