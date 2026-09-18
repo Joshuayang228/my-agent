@@ -319,6 +319,7 @@ function policyAssets(): ModelContextAsset[] {
     },
     {
       key: PROVIDER_ASSET_KEYS.sequentialFailover,
+      version: '1.1.0',
       name: 'Provider 策略 · 顺序 Failover',
       purpose: '说明主模型失败后备用模型的顺序、继承和覆盖规则',
       source: 'electron/main/llm/failover.ts',

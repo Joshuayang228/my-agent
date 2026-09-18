@@ -21,7 +21,7 @@ MCP 运行状态由 Manager 生成不含凭据的共享快照，经 IPC 同步 R
 
 ModelConnectionForm 为纯受控业务 UI，由正式设置和候选共用；来源分类与预设默认值从共享 Provider 注册表派生。source / presetId 是连接元数据，不授予权限；provider 是实际协议选择，测试与生产装配共用 LLMProvider。主进程保存 / 读取旧密钥时除连接 id 外还核对端点与协议，身份变化必须使用新输入的 Key；候选只模拟凭据状态，不能读取真实存储。
 
-用途路由选定连接后，端点、密钥、模型和 provider 整体装配；目标连接未填 Key 时保持空值，不能借用全局、环境或主连接凭据。辅助 / 图片理解未指定 provider 时按目标端点自动检测，不继承主连接协议。没有有效用途路由才整体回退；一次性测试覆盖端点时也需携带自己的凭据和协议。后续备用用途路由接入 failover 时必须保持同一绑定约束。
+用途路由由唯一配置工厂按同用途顺序装配首选及 fallbackModels，过滤停用项和缺失引用、去重相同连接模型；每项端点、密钥、模型和 provider 整体绑定，空 Key 不借用全局、环境或其他连接凭据。独立辅助 / 图片理解用途不继承主用途备用池，辅助 thinking 和运行资产证据按目标装配。没有有效用途路由才整体回退；一次性身份覆盖不继承已保存备用链。就绪检查允许链内存在有效认证目标，但统一调用入口仍逐目标认证，远程缺 Key 不发请求。
 
 不只是一个工具，而是一个有性格、有记忆、能成长的数字伙伴：
 - **人格化交互** — 有一致的性格特征和交流风格，不是冰冷的 Q&A 机器
@@ -213,7 +213,7 @@ Skill 启停是用户运行态，不修改内置文件或资产指纹。`skills:
 - Gemini API 请求构建器（systemInstruction + functionDeclarations）
 - 流式 SSE 解析（text / reasoning / tool_calls delta）
 - **Streaming Tool Calls**：工具参数边流式边 yield `tool_call_delta` 事件
-- **Model Failover**：主模型失败按 `fallbackModels` 顺序降级；备用配置继承采样参数并清除递归 fallback
+- **Model Failover**：未输出时按 `fallbackModels` 顺序尝试；备用配置继承采样参数、可显式覆盖或清空 thinking / 运行资产证据，并清除递归 fallback。取消或向消费者交付模型事件后停止切换，所有目标失败仍返回失败。切换提示不算模型事件；`chatComplete` 丢弃流式事件，只消费最终返回值。
 - **Vision 降级**：OpenAI Compatible 图片先乐观尝试，识别能力错误后进程内记忆拒绝并去图重试一次
 - **Prompt Cache**：Anthropic `cache_control` 标记 System Prompt + Tools
 - **Structured Output**：OpenAI Compatible `ResponseFormat` 支持 json_object / json_schema

@@ -19,7 +19,8 @@ import { withAuxThinking } from './thinking'
 
 export async function loadMainLLMConfig(overrides?: Partial<LLMConfig>): Promise<LLMConfig> {
   const s = await settings.getAllSettings()
-  const routed = resolveRoutedConfig(s.modelConnections, s.modelRoutes, 'primary')
+  const chain = resolveRoutedConfigs(s.modelConnections, s.modelRoutes, 'primary')
+  const routed = chain[0]
   return {
     // 背景：独立连接可能未填密钥；意图：禁止向其端点借发全局凭据；约束：只有无路由才整体回退。
     apiKey: routed ? routed.apiKey || '' : s.llmApiKey || process.env.LLM_API_KEY || '',
@@ -29,11 +30,14 @@ export async function loadMainLLMConfig(overrides?: Partial<LLMConfig>): Promise
     temperature: parseFloat(s.llmTemperature) || undefined,
     topP: parseFloat(s.llmTopP) || undefined,
     maxTokens: parseInt(s.llmMaxTokens) || undefined,
+    fallbackModels: chain.length > 1 ? chain.slice(1).map(connectionConfig) : undefined,
     ...overrides,
     ...(overrides?.baseUrl !== undefined ? {
       apiKey: overrides.apiKey || '',
       provider: overrides.provider || 'auto',
     } : {}),
+    ...(overrides && ['baseUrl', 'apiKey', 'provider', 'model'].some(key => key in overrides)
+      ? { fallbackModels: overrides.fallbackModels } : {}),
   }
 }
 
@@ -45,20 +49,29 @@ export async function loadMainLLMConfig(overrides?: Partial<LLMConfig>): Promise
 export async function loadImageLLMConfig(): Promise<LLMConfig> {
   const main = await loadMainLLMConfig()
   const all = await settings.getAllSettings()
-  const routed = resolveRoutedConfig(all.modelConnections, all.modelRoutes, 'image')
+  const chain = resolveRoutedConfigs(all.modelConnections, all.modelRoutes, 'image')
+  const routed = chain[0]
   if (!routed) return main
-  return { ...main, ...connectionConfig(routed) }
+  return { ...main, ...connectionConfig(routed), fallbackModels: chain.length > 1 ? chain.slice(1).map(connectionConfig) : undefined }
 }
 export async function loadAuxLLMConfig(): Promise<LLMConfig> {
   const main = await loadMainLLMConfig()
   const all = await settings.getAllSettings()
-  const routed = resolveRoutedConfig(all.modelConnections, all.modelRoutes, 'auxiliary')
+  const chain = resolveRoutedConfigs(all.modelConnections, all.modelRoutes, 'auxiliary')
+  const routed = chain[0]
   const auxModel = routed?.model || await settings.getSetting('auxModel')
   const base = routed
-    ? { ...main, ...connectionConfig(routed) }
-    : auxModel?.trim() ? { ...main, model: auxModel.trim() } : main
+    ? { ...main, ...connectionConfig(routed), fallbackModels: chain.length > 1 ? chain.slice(1).map(connectionConfig) : undefined }
+    : auxModel?.trim() ? { ...main, model: auxModel.trim(), fallbackModels: undefined } : main
   // 标题/画像等：按探测缓存或启发式关闭 thinking，避免 max_tokens 被 reasoning 吃光
-  return withAuxThinking(base)
+  const configured = await withAuxThinking(base)
+  if (!base.fallbackModels?.length) return configured
+  // 背景：备用端点可能不支持首模型的 thinking 策略；意图：逐目标装配；约束：显式清空首模型的策略与资产证据。
+  configured.fallbackModels = await Promise.all(base.fallbackModels.map(async target => {
+    const result = await withAuxThinking({ ...base, ...target, fallbackModels: undefined })
+    return { ...target, thinking: result.thinking, runtimeAssetKeys: result.runtimeAssetKeys }
+  }))
+  return configured
 }
 
 /**
@@ -75,21 +88,27 @@ function parseJson<T>(raw: string): T | null {
 }
 
 function resolveRoutedConfig(connectionsRaw: string, routesRaw: string, purpose: ModelRoutePurpose): ModelConnectionProfile | null {
+  return resolveRoutedConfigs(connectionsRaw, routesRaw, purpose)[0] ?? null
+}
+
+function resolveRoutedConfigs(connectionsRaw: string, routesRaw: string, purpose: ModelRoutePurpose): ModelConnectionProfile[] {
   const connections = parseJson<ModelConnectionProfile[]>(connectionsRaw)
   const routes = parseJson<ModelRouteProfile[]>(routesRaw)
-  if (!Array.isArray(connections) || !Array.isArray(routes)) return null
-  const route = routes.find((item) => {
-    if (item.purpose !== purpose || !item.enabled || !item.model.trim()) return false
+  if (!Array.isArray(connections) || !Array.isArray(routes)) return []
+  const result: ModelConnectionProfile[] = []
+  const seen = new Set<string>()
+  for (const item of routes) {
+    if (item.purpose !== purpose || !item.enabled || !item.model.trim()) continue
     const connection = connections.find((candidate) => candidate.id === item.connectionId && candidate.enabled && candidate.baseUrl.trim())
-    if (!connection) return false
+    if (!connection) continue
     const models = Array.isArray(connection.models) ? connection.models : []
-    if (models.length === 0) return true
-    return models.some((model) => model.id === item.model.trim() && model.enabled !== false)
-  })
-  if (!route) return null
-  const connection = connections.find((item) => item.id === route.connectionId && item.enabled && item.baseUrl.trim())
-  if (!connection) return null
-  return { ...connection, model: route.model.trim() }
+    if (models.length && !models.some((model) => model.id === item.model.trim() && model.enabled !== false)) continue
+    const key = JSON.stringify([connection.id, item.model.trim()])
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push({ ...connection, model: item.model.trim() })
+  }
+  return result
 }
 
 export const __test = { resolveRoutedConfig }

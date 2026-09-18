@@ -32,8 +32,15 @@ export function allowsKeylessConnection(config: ConnectionIdentity): boolean {
   } catch { return false }
 }
 
-export function hasLLMAuthentication(config?: ConnectionIdentity & { apiKey?: string }): boolean {
-  return Boolean(config && (config.apiKey?.trim() || allowsKeylessConnection(config)))
+/** 背景：首选未配 Key 也可能有可用备用；意图：就绪检查整条链；约束：发请求前须去掉备用列表，重新校验当前目标。 */
+export function hasLLMAuthentication(config?: ConnectionIdentity & { apiKey?: string; fallbackModels?: Array<ConnectionIdentity & { apiKey?: string }> }): boolean {
+  if (!config) return false
+  const authenticated = (target: ConnectionIdentity & { apiKey?: string }) => Boolean(target.apiKey?.trim() || allowsKeylessConnection(target))
+  return authenticated(config) || Boolean(config.fallbackModels?.some(target => authenticated({
+    baseUrl: target.baseUrl ?? config.baseUrl,
+    provider: target.provider ?? config.provider,
+    apiKey: target.apiKey ?? config.apiKey,
+  })))
 }
 
 export const CONNECTION_TEST_MESSAGES = [

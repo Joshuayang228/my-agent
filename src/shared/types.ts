@@ -820,6 +820,8 @@ export interface FallbackModelConfig {
   baseUrl?: string
   apiKey?: string
   provider?: LLMProvider
+  thinking?: LLMConfig['thinking']
+  runtimeAssetKeys?: string[]
 }
 
 /** LLM 单轮返回的结构化结果 */

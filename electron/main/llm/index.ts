@@ -22,6 +22,7 @@ import {
   markVisionDenied,
 } from './vision'
 import { buildFallbackConfig } from './failover'
+import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 export { appendExamplesToDescription } from './request-builders'
 import { createLogger } from '../utils/logger'
 import { getObserver } from '../utils/observer'
@@ -349,13 +350,33 @@ export async function* streamChat(
     toolCount: options.tools?.length ?? 0,
   })
 
+  let modelOutputStarted = false
+  const cannotFallback = (error: unknown) => modelOutputStarted || options.signal?.aborted
+    || (error instanceof Error && error.name === 'AbortError')
+  // 背景：流已交给调用方后无法撤回；意图：禁止拼接两次模型输出；约束：切换提示不算模型输出，所有模型事件都算。
+  async function* attempt(attemptOptions: StreamChatOptions): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
+    attemptOptions.signal?.throwIfAborted()
+    if (!hasLLMAuthentication({ ...attemptOptions.config, fallbackModels: undefined })) {
+      throw new Error('当前模型连接缺少 API Key')
+    }
+    const stream = streamChatSingle(attemptOptions)
+    try {
+      while (true) {
+        const next = await stream.next()
+        if (next.done) return next.value
+        modelOutputStarted = true
+        yield next.value
+      }
+    } finally { await stream.return(undefined as never) }
+  }
+
   try {
     try {
-      const result = yield* streamChatSingle(options)
+      const result = yield* attempt(options)
       finishLLMTrace(traceSpan, ownsTraceSpan, true, result)
       return result
     } catch (err) {
-      if (fallbacks.length === 0) throw err
+      if (fallbacks.length === 0 || cannotFallback(err)) throw err
       llmLog.warn('Primary model failed, attempting failover', {
         caller: options.caller ?? 'unknown',
         model: config.model,
@@ -365,16 +386,18 @@ export async function* streamChat(
       const primaryError = err instanceof Error ? err.message : String(err)
       let previousError = primaryError
       for (let i = 0; i < fallbacks.length; i++) {
+        options.signal?.throwIfAborted()
         const fb = fallbacks[i]
         const fbConfig = buildFallbackConfig(config, fb)
         try {
           attachRequest(fbConfig, i + 1, previousError)
           llmLog.info(`Failover attempt ${i + 1}/${fallbacks.length}`, { model: fb.model })
           yield { type: 'text', content: `\n\n> ⚡ 主模型不可用，已切换到 ${fb.model}\n\n` }
-          const result = yield* streamChatSingle({ ...options, config: fbConfig })
+          const result = yield* attempt({ ...options, config: fbConfig })
           finishLLMTrace(traceSpan, ownsTraceSpan, true, result)
           return result
         } catch (fbErr) {
+          if (cannotFallback(fbErr)) throw fbErr
           previousError = fbErr instanceof Error ? fbErr.message : String(fbErr)
           llmLog.warn(`Failover model failed: ${fb.model}`, {
             error: previousError,

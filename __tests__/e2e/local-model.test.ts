@@ -15,6 +15,10 @@ test('无 Key 本地连接从正式设置发现、测试、重启并流式对话
     const text = Buffer.concat(chunks).toString('utf8')
     const entry = { url: request.url ?? '', authorization: request.headers.authorization, body: text ? JSON.parse(text) : {} }
     requests.push(entry)
+    if (entry.url.startsWith('/failed/') && entry.url.endsWith('/chat/completions')) {
+      response.writeHead(503, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: { message: 'fixture unavailable' } }))
+      return
+    }
     if (entry.url.startsWith('/protected/') && entry.authorization !== 'Bearer fixture-local-key') {
       response.writeHead(401, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: { message: 'authentication required' } }))
       return
@@ -96,6 +100,31 @@ test('无 Key 本地连接从正式设置发现、测试、重启并流式对话
     await profile.getByRole('button', { name: '获取 无密钥本地连接 已有模型', exact: true }).click()
     await expect(profile.locator('[data-testid^="settings-fetched-models-"]')).toBeVisible()
     expect(requests.some((item) => item.url === '/protected/v1/models' && item.authorization === 'Bearer fixture-local-key')).toBe(true)
+    await page.getByRole('button', { name: '添加连接', exact: true }).click()
+    form = page.getByTestId('model-connection-form')
+    await form.getByRole('radio', { name: '本地模型', exact: true }).click()
+    await form.getByLabel('连接名称', { exact: true }).fill('故障首选')
+    await form.getByLabel('Base URL', { exact: true }).fill(baseUrl.replace('/v1', '/failed/v1'))
+    await form.getByRole('button', { name: '保存连接', exact: true }).click()
+    const failedProfile = page.locator('[data-testid^="settings-model-profile-"]').filter({ hasText: '故障首选' })
+    await failedProfile.getByRole('button', { name: '获取 故障首选 已有模型', exact: true }).click()
+    await failedProfile.getByRole('button', { name: 'local-fixture', exact: true }).click()
+    await page.getByLabel('添加主对话模型').selectOption({ label: '故障首选 · local-fixture' })
+    await page.getByRole('button', { name: '上移 故障首选 · local-fixture', exact: true }).click()
+    await expect.poll(() => page.evaluate(async () => JSON.parse((await window.electronAPI.settings.get()).modelRoutes)[0].connectionId)).toBe(await failedProfile.getAttribute('data-testid').then(id => id!.replace('settings-model-profile-', '')))
+    await app.close()
+    app = await launch()
+    page = await app.firstWindow()
+    await expect(page.getByTestId('chat-messages')).toBeVisible()
+    const beforeFallback = requests.length
+    await page.getByPlaceholder(/和.*说说/).fill('请验证已保存的用途备用链')
+    await page.getByRole('button', { name: '发送', exact: true }).click()
+    await expect(page.getByTestId('chat-messages')).toContainText('已切换到 local-fixture')
+    await expect.poll(() => requests.slice(beforeFallback).filter(item => item.url.endsWith('/chat/completions')).length).toBeGreaterThanOrEqual(2)
+    const attempts = requests.slice(beforeFallback).filter(item => item.url.endsWith('/chat/completions'))
+    expect(attempts.slice(0, 2).map(item => item.url)).toEqual(['/failed/v1/chat/completions', '/protected/v1/chat/completions'])
+    expect(attempts[0].authorization).toBeUndefined()
+    expect(attempts[1].authorization).toBe('Bearer fixture-local-key')
     await page.screenshot({ path: 'var/verification/local-model-electron.png', fullPage: true })
   } finally {
     await app?.close()

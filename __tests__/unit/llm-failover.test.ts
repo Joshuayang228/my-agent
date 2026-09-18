@@ -70,6 +70,52 @@ describe('streamChat failover', () => {
     setLLMTraceSink()
   })
 
+  it('取消主请求后不尝试备用模型', async () => {
+    const controller = new AbortController()
+    mockFetch.mockImplementationOnce(async () => {
+      controller.abort()
+      throw new DOMException('aborted', 'AbortError')
+    })
+    await expect(collectEvents(streamChat({
+      config: { ...baseConfig, fallbackModels: [{ model: 'backup' }] }, messages: [],
+      signal: controller.signal, promptlessReason: TEST_PROMPTLESS_REASON,
+    }))).rejects.toThrow('aborted')
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it.each(['content', 'reasoning_content', 'tool_calls'])('已发送 %s 后断流不拼接备用输出', async (field) => {
+    const delta = field === 'tool_calls'
+      ? { tool_calls: [{ index: 0, id: 'call1', function: { name: 'read', arguments: '{' } }] }
+      : { [field]: 'partial' }
+    let reads = 0
+    mockFetch.mockResolvedValueOnce(new Response(new ReadableStream({
+      pull(controller) {
+        if (reads++ === 0) controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ choices: [{ delta }] })}\n\n`))
+        else controller.error(new Error('stream interrupted'))
+      },
+    })))
+    const events: AgentStreamEvent[] = []
+    const consume = async () => {
+      for await (const event of streamChat({ config: { ...baseConfig, fallbackModels: [{ model: 'backup' }] }, messages: [], promptlessReason: TEST_PROMPTLESS_REASON })) events.push(event)
+    }
+    await expect(consume()).rejects.toThrow('stream interrupted')
+    expect(events.length).toBeGreaterThan(0)
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('缺密钥的远程主连接不发请求，备用本机连接保留空 Key', async () => {
+    mockFetch.mockResolvedValueOnce(makeSSEResponse(['local ok']))
+    const result = await chatComplete({
+      config: { ...baseConfig, apiKey: '', fallbackModels: [{ model: 'local', baseUrl: 'http://127.0.0.1:1234/v1', apiKey: '', provider: 'openai' }] },
+      messages: [], promptlessReason: TEST_PROMPTLESS_REASON,
+    })
+    expect(result).toBe('local ok')
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    const [url, request] = mockFetch.mock.calls[0]
+    expect(url).toBe('http://127.0.0.1:1234/v1/chat/completions')
+    expect(new Headers(request.headers).get('authorization')).toBeNull()
+  })
+
   it('拒绝既未声明 Prompt 资产也未说明 promptless 原因的调用', async () => {
     await expect(collectEvents(streamChat({
       config: baseConfig,

@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { __test, loadAuxLLMConfig, loadImageLLMConfig, loadMainLLMConfig } from '../../electron/main/llm/aux-config'
 import type { ModelConnectionProfile, ModelRoutePurpose } from '../../src/shared/types'
+import { buildFallbackConfig } from '../../electron/main/llm/failover'
+import { hasLLMAuthentication } from '../../src/shared/llm-connection-test'
 
 const { getAllSettings, getSetting } = vi.hoisted(() => ({ getAllSettings: vi.fn(), getSetting: vi.fn() }))
 vi.mock('../../electron/main/storage/settings-store', () => ({ getAllSettings, getSetting }))
@@ -22,6 +24,69 @@ describe('model configuration factories', () => {
     })
   }
   beforeEach(() => { vi.clearAllMocks(); getSetting.mockResolvedValue('') })
+
+  it('辅助链按每个目标计算 thinking，不把首选策略带给备用', async () => {
+    getAllSettings.mockResolvedValue({ ...legacy,
+      modelConnections: JSON.stringify([
+        { id: 'a', baseUrl: 'https://api.deepseek.com/v1', apiKey: 'a-key', enabled: true },
+        { id: 'b', baseUrl: 'https://b.test/v1', apiKey: 'b-key', enabled: true },
+      ]),
+      modelRoutes: JSON.stringify([
+        { purpose: 'auxiliary', connectionId: 'a', model: 'deepseek-reasoner', enabled: true },
+        { purpose: 'auxiliary', connectionId: 'b', model: 'plain', enabled: true },
+      ]),
+    })
+    const config = await loadAuxLLMConfig()
+    expect(config.thinking).toEqual({ type: 'disabled' })
+    const fallback = buildFallbackConfig(config, config.fallbackModels![0])
+    expect(fallback.thinking).toBeUndefined()
+    expect(fallback.runtimeAssetKeys).toBeUndefined()
+    expect(fallback.apiKey).toBe('b-key')
+  })
+
+  it('首连接未配 Key 但独立备用有凭据时用途可启动', () => {
+    expect(hasLLMAuthentication({ baseUrl: 'https://a.test', apiKey: '', fallbackModels: [{ baseUrl: 'https://b.test', apiKey: 'b-key' }] })).toBe(true)
+    expect(hasLLMAuthentication({ baseUrl: 'https://a.test', apiKey: '', fallbackModels: [{ baseUrl: 'https://b.test', apiKey: '' }] })).toBe(false)
+  })
+
+  it.each(['auxiliary', 'image'] as const)('%s 独立用途不继承主用途备用列表', async (purpose) => {
+    getAllSettings.mockResolvedValue({ ...legacy,
+      modelConnections: JSON.stringify([{ id: 'a', baseUrl: 'https://a.test', apiKey: 'a-key', enabled: true }]),
+      modelRoutes: JSON.stringify([
+        { purpose: 'primary', connectionId: 'a', model: 'main', enabled: true },
+        { purpose: 'primary', connectionId: 'a', model: 'main-backup', enabled: true },
+        { purpose, connectionId: 'a', model: 'independent', enabled: true },
+      ]),
+    })
+    expect((await loadMainLLMConfig()).fallbackModels).toHaveLength(1)
+    expect((await loaders[purpose]()).fallbackModels).toBeUndefined()
+    for (const override of [{ model: 'probe' }, { apiKey: 'probe-key' }, { provider: 'openai' as const }]) {
+      expect((await loadMainLLMConfig(override)).fallbackModels).toBeUndefined()
+    }
+  })
+
+  it.each(['primary', 'auxiliary', 'image'] as const)('%s 按用途顺序装配独立凭据备用链并过滤停用项', async (purpose) => {
+    getAllSettings.mockResolvedValue({ ...legacy,
+      modelConnections: JSON.stringify([
+        { id: 'a', baseUrl: 'https://a.test/v1', apiKey: 'a-key', provider: 'anthropic', enabled: true },
+        { id: 'b', baseUrl: 'http://127.0.0.1:1234/v1', apiKey: '', provider: 'openai', enabled: true },
+        { id: 'off', baseUrl: 'https://off.test', enabled: false },
+      ]),
+      modelRoutes: JSON.stringify([
+        { purpose, connectionId: 'off', model: 'off', enabled: true },
+        { purpose, connectionId: 'a', model: 'first', enabled: true },
+        { purpose, connectionId: 'a', model: 'disabled', enabled: false },
+        { purpose, connectionId: 'missing', model: 'missing', enabled: true },
+        { purpose, connectionId: 'b', model: 'second', enabled: true },
+        { purpose, connectionId: 'b', model: 'second', enabled: true },
+      ]),
+    })
+    const config = await loaders[purpose]()
+    expect(config).toMatchObject({ model: 'first', apiKey: 'a-key', provider: 'anthropic' })
+    expect(config.fallbackModels).toHaveLength(1)
+    expect(config.fallbackModels?.[0]).toMatchObject({ model: 'second', baseUrl: 'http://127.0.0.1:1234/v1', apiKey: '', provider: 'openai' })
+    expect((await loadMainLLMConfig({ baseUrl: 'https://test-only.test', model: 'probe' })).fallbackModels).toBeUndefined()
+  })
 
   it.each(['primary', 'auxiliary', 'image'] as const)('%s 路由缺少密钥时不借用主连接、全局或环境密钥', async (purpose) => {
     configure(purpose)

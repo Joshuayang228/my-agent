@@ -12,7 +12,10 @@ export const SEQUENTIAL_FAILOVER_POLICY = {
   mode: 'sequential',
   primaryFirst: true,
   overrideFields: ['model', 'baseUrl', 'apiKey', 'provider'],
-  inheritedFields: ['temperature', 'topP', 'maxTokens', 'thinking'],
+  inheritedFields: ['temperature', 'topP', 'maxTokens'],
+  optionalOverrideFields: ['thinking', 'runtimeAssetKeys'],
+  stopOnAbort: true,
+  stopAfterModelOutput: true,
   recursiveFallbackDisabled: true,
 } as const
 
@@ -26,6 +29,8 @@ export function buildFallbackConfig(
     baseUrl: fallback.baseUrl ?? primary.baseUrl,
     apiKey: fallback.apiKey ?? primary.apiKey,
     provider: fallback.provider ?? primary.provider,
+    ...('thinking' in fallback ? { thinking: fallback.thinking } : {}),
+    ...('runtimeAssetKeys' in fallback ? { runtimeAssetKeys: fallback.runtimeAssetKeys } : {}),
     fallbackModels: undefined,
   }
 }
