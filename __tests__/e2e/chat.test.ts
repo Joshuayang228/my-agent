@@ -3382,6 +3382,18 @@ test.describe('My Agent UI', () => {
     await expect(momentTips).toHaveAttribute('aria-checked', 'true')
     await expect(companion.getByText('回答方式', { exact: true })).toBeVisible()
     await expect(companion.getByText('例如：简单问题直接回答，复杂问题补充步骤。', { exact: true })).toBeVisible()
+    await page.evaluate(() => {
+      ;(window as any).__candidateCompanionWrites = []
+      ;(window as any).electronAPI = { settings: { set: async (...args: unknown[]) => { (window as any).__candidateCompanionWrites.push(args) } } }
+    })
+    await companion.getByRole('spinbutton', { name: '勿扰开始', exact: true }).fill('20')
+    await companion.getByRole('spinbutton', { name: '勿扰结束', exact: true }).fill('7')
+    await companion.getByRole('spinbutton', { name: '每日最多', exact: true }).fill('5')
+    await companion.getByRole('textbox', { name: '相处补充说明', exact: true }).fill('隔离偏好样张')
+    await expect(companion.getByRole('spinbutton', { name: '勿扰开始', exact: true })).toHaveValue('20')
+    await expect(companion.getByRole('textbox', { name: '相处补充说明', exact: true })).toHaveValue('隔离偏好样张')
+    expect(await page.evaluate(() => (window as any).__candidateCompanionWrites)).toEqual([])
+    await page.evaluate(() => { delete (window as any).electronAPI })
     await expect(companion.getByRole('switch', { name: '生活动态提醒' })).toBeVisible()
     await momentTips.click()
     await expect(momentTips).toHaveAttribute('aria-checked', 'false')
@@ -4993,7 +5005,7 @@ test.describe('My Agent UI', () => {
     }
   }
 
-  for (const theme of ['song-smoke', 'yao-stone']) {
+  for (const theme of ['porcelain-blue', 'song-smoke', 'yao-stone', 'deep-plum']) {
     for (const width of [1166, 600]) {
       test(`正式相处偏好保存失败与恢复 ${theme} ${width}`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 731 })
@@ -5045,8 +5057,30 @@ test.describe('My Agent UI', () => {
         await nav.click()
         await expect(note).toHaveValue(text)
         await note.fill('')
+        const answer = page.getByRole('button', { name: /^直接一点/ })
+        await answer.scrollIntoViewIfNeeded()
+        const beforeHover = await answer.boundingBox()
+        await answer.hover()
+        expect(await answer.boundingBox()).toEqual(beforeHover)
+        await answer.focus()
+        await page.keyboard.press('Enter')
+        await expect(answer).toHaveAttribute('aria-pressed', 'true')
+        for (const [label, value] of [['勿扰开始', '21'], ['勿扰结束', '9'], ['每日最多', '4']]) {
+          const field = page.getByRole('spinbutton', { name: label, exact: true })
+          await field.fill(value)
+          await expect(field).toHaveValue(value)
+        }
+        await page.getByRole('spinbutton', { name: '每日最多', exact: true }).scrollIntoViewIfNeeded()
+        await page.screenshot({ path: testInfo.outputPath('companion-foundation-fields.png'), animations: 'disabled' })
         await back.click()
         expect(await page.evaluate(() => (window as any).__companionSettings.stored.companionResponseNote)).toBe('')
+        expect(await page.evaluate(() => (window as any).__companionSettings.stored)).toMatchObject({
+          userExpertiseLevel: 'expert', companionMomentTipsQuietStart: '21', companionMomentTipsQuietEnd: '9', companionMomentTipsMaxPerDay: '4',
+        })
+        await page.locator('button[title="设置"]').click()
+        await nav.click()
+        await expect(answer).toHaveAttribute('aria-pressed', 'true')
+        await expect(page.getByRole('spinbutton', { name: '勿扰开始', exact: true })).toHaveValue('21')
       })
     }
   }

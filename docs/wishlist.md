@@ -54,6 +54,8 @@
 
 - [ ] **WISH-045 · 全产品体验正式回流遗漏（已开工）** — 来源：2026-09-14 用户核验发现正式设置、人物世界、记忆等仍停留旧实现；右坞完成不能代表全部回流。用户已授权原目标和必要后端补齐，施工入口：`docs/requirements/product-experience-production-rollout-v1.md`。该合同统一管理页面映射及后端验收，WISH-027 / WISH-040 / WISH-042 / WISH-043 保留各自细节，不将缺失能力静默移出目标。
 
+- 伙伴基础控件回流已消除 CompanionSettingsContent 的原生回答按钮和三个数字输入；MCP 的工具许可复选框仍直接存在于 McpServiceCard / McpConnectionForm，Foundation checkbox 目前也只定义在 FoundationAdvancedStories，需提取真实基础组件后统一消费，不能把 settings 整体标为已采用。Electron 本批首次回归 16 通过 / 4 失败 / 4 跳过：onboarding:737 第二次 Playground 快捷键未返回 Chat，后续侧聊出现 alert、两个工作区测试缺添加入口；现场 `var/verification/companion-foundation-electron`。保留原断言复核，不将偶发重跑通过当作 WISH-042 已修复。
+
 - 工作区回流审计补充（WISH-041 / WISH-042）：共享 Markdown 的就近主题／Mermaid、DiffViewer/模式控件、IconButton 和 WorkspaceToolMenu 已接入真实调用，空稿/缺稿回退、四主题、长文件和完整 UI/Electron 回归通过。仍需输入及其它基础控件全量复用核验。侧聊流中关闭已有真实 Electron 证据；终端 Windows 停止/关闭后的真实父子进程退出已验证，Unix 仍需实机验证，不把 Renderer 替身当作跨平台完成。
 
 - [ ] **WISH-043 · 主进程类型检查门禁** — 来源：正式侧聊 Electron 回归发现 runtime 的 undefined.trim 和 span 越域未被默认 tsc 检出；根配置只 include src，主进程 `tsc -p tsconfig.node.json --noEmit` 仍报告跨项目 include/composite、ImportMeta.glob 与多个存量类型错误。重启条件：当前回流质量门禁收口；明确前端/主进程检查入口，先清理真实诊断，再纳入 build/commit，不用宽泛 any 或排除文件消音。 文件规则批次用相同 TypeScript Compiler API 对比 HEAD 覆盖前与当前工作树，均为 70 条既有诊断，无新增错误；仅排除诊断附带导入来源列表的文本变化。根 tsc 通过不代表主进程独立门禁通过，未删除检查或改用 any。

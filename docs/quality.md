@@ -1,5 +1,7 @@
 # 质量总控
 
+伙伴设置基础绑定门禁：CompanionSettingsContent 纳入 TypeChecker 的正式 / 候选实际调用与 Foundation ActionButton / TextField 绑定检查，禁止重新出现原生 button / input / select。正式四主题宽窄验证键盘选中、hover 前后 boundingBox 不变、三个提醒数字字段保存及重新进入恢复，原有长文失败保留 / 重试继续覆盖。候选字段可编辑且 settings.set 观察器无写入；普通浏览器候选没有 preload，测试需显式提供观察器而非假定 electronAPI 存在。
+
 根 `tsconfig.json` 直接检查 Renderer 及其引用的共享源码，不再引用需要预生成声明产物的主进程 composite 工程；构建仍先执行 `tsc --noEmit`。主进程独立检查入口仍是 `tsc -p tsconfig.node.json --noEmit`，本批共享文件显式纳入该工程；不能用根检查通过代替主进程检查，存量诊断继续由 WISH-043 管理。
 
 模型高级区门禁：TypeChecker 校验正式与候选实际绑定 ModelAdvancedSettings，其输入和按钮实际绑定 Foundation，未使用 import / 遮蔽不能通过。四主题宽窄覆盖默认折叠、三个候选字段、旧 Top P / 最大输出 UI 不存在、非法值不保存且离页保留、保存失败与重试、测试目标载荷、hover / pending / 成功失败尺寸相等，以及换 Key / 停用路由后的迟到结果隔离。候选修改预算 / Temperature 和测试连接均不得触发真实 settings / 模型调用。截图确认移除重复 Toast 后控件不被遮挡。

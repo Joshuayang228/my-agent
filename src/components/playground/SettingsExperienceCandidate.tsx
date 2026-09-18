@@ -15,6 +15,7 @@ import { FONT_SCALE_ASSETS } from '../../shared/design-asset-registry'
 import { SettingsLayout, type SettingsPageId } from '../settings/SettingsLayout'
 import { ScopeBadge, SettingCard, SettingRow, SettingSwitch, SettingsPageHeader } from '../settings/SettingsFields'
 import { CompanionSettingsContent } from '../settings/CompanionSettingsContent'
+import { ActionButton } from '../foundation/ActionButton'
 import { AboutSettingsContent } from '../settings/AboutSettingsContent'
 import { McpServiceCard } from '../settings/McpServiceCard'
 import { ModelConnectionForm } from '../settings/ModelConnectionForm'
@@ -81,6 +82,10 @@ function AppearancePage({ activeTheme, fontScale, onFontScaleChange, onThemeChan
 }
 
 function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProactiveGreetingChange, proactiveGreeting, expertise, onExpertiseChange }: { momentTips: boolean; onMomentTipsChange: (value: boolean) => void; onOpenRoleShelf?: () => void; onProactiveGreetingChange: (value: boolean) => void; proactiveGreeting: boolean; expertise: string; onExpertiseChange: (value: string) => void }) {
+  const [quietStart, setQuietStart] = useState('22')
+  const [quietEnd, setQuietEnd] = useState('8')
+  const [maxPerDay, setMaxPerDay] = useState('3')
+  const [note, setNote] = useState('当我把事情排得太满时，提醒我留一点空白。')
   return <CompanionSettingsContent
     expertise={expertise as 'auto' | 'novice' | 'intermediate' | 'expert'}
     onExpertiseChange={onExpertiseChange as (value: 'auto' | 'novice' | 'intermediate' | 'expert') => void}
@@ -88,16 +93,16 @@ function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProa
     onMomentTipsMutedChange={(muted) => onMomentTipsChange(!muted)}
     proactiveGreeting={proactiveGreeting}
     onProactiveGreetingChange={onProactiveGreetingChange}
-    quietStart="22"
-    quietEnd="8"
-    maxPerDay="3"
-    onQuietStartChange={() => undefined}
-    onQuietEndChange={() => undefined}
-    onMaxPerDayChange={() => undefined}
-    note="当我把事情排得太满时，提醒我留一点空白。"
-    onNoteChange={() => undefined}
+    quietStart={quietStart}
+    quietEnd={quietEnd}
+    maxPerDay={maxPerDay}
+    onQuietStartChange={setQuietStart}
+    onQuietEndChange={setQuietEnd}
+    onMaxPerDayChange={setMaxPerDay}
+    note={note}
+    onNoteChange={setNote}
     testIdPrefix="settings-candidate-"
-    roleAction={<button type="button" onClick={onOpenRoleShelf} className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[11px] transition" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }} data-testid="settings-candidate-open-role-shelf">小林 · 管理角色架 <ChevronRight size={12} /></button>}
+    roleAction={<ActionButton onClick={onOpenRoleShelf} className="gap-1" data-testid="settings-candidate-open-role-shelf">小林 · 管理角色架 <ChevronRight size={12} /></ActionButton>}
   />
 }
 

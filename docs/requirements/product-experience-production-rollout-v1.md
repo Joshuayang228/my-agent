@@ -18,6 +18,10 @@
 
 ## 2. 回流映射与验收单位
 
+R04 本批证据：绑定 Unit 新增检查先红后绿，完整 Unit 1055、UI 233、资产 28、根 tsc / build 通过；浅色宽屏与深色窄屏截图无控件溢出。首次 Electron 16 通过 / 4 失败 / 4 跳过，原码原断言带 trace 串行复核 20 通过 / 4 跳过，失败仍归 WISH-042。证据目录分别为 `var/verification/companion-foundation-ui-full`、`companion-foundation-electron`、`companion-foundation-electron-repeat`。无主进程 / IPC / 依赖变化，不扩称提醒后端或外部供应商验收。
+
+R04 基础控件收口：CompanionSettingsContent 已被正式 SettingsPanel 与候选共同调用，但回答方式按钮、勿扰开始 / 结束与每日次数仍直接渲染原生控件。本批复用 Foundation ActionButton / TextField，保留候选卡片、字段和真实 settings 保存语义，候选只改内存；不改 Prompt、IPC、提醒策略或权限。不再保留该组件中的孤立按钮 / 输入实现，同时让候选角色架入口复用已有 ActionButton。检查还发现候选数字字段及补充说明为空回调，本批改为隔离本地状态，允许实际编辑但不持久化。允许修改上述两处 UI、组件注册 / 绑定门禁、正式入口 E2E 及对应文档。验收四主题宽窄、选中与键盘、hover 几何、保存失败恢复、候选隔离；不能以这些 UI 证据替代提醒调度后端验收或全产品完成。
+
 下表是施工范围，不是已落地能力目录。所有行初始结论为**待正式验收**；部分已有真实实现需保留。每行施工前继续细化到具体控件、动作与数据字段，记录生产调用点和测试文件后才能推进状态。
 
 | 编号 / 候选来源 | 正式落点 | 数据路径与已知差异 | 迁移分类 / 必须验收 |
