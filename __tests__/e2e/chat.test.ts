@@ -392,6 +392,107 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
   }
 }
 
+for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
+  for (const width of [1166, 600]) {
+    test(`正式用途安排共享布局与保存边界 ${theme} ${width}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 731 })
+      await installProductionElectronStub(page)
+      await page.addInitScript(theme => {
+        localStorage.setItem('theme', theme)
+        const values = {
+          llmConnectionReady: 'true', llmModel: 'first',
+          modelConnections: JSON.stringify([{ id: 'a', name: '长连接名称'.repeat(20), baseUrl: 'https://fixture.test', enabled: true, models: [{ id: 'first', enabled: true }, { id: 'second', enabled: true }], model: 'first' }]),
+          modelRoutes: JSON.stringify(['first', 'second'].map(model => ({ purpose: 'primary', connectionId: 'a', model, enabled: true }))),
+        }
+        const state = { values, fail: false, hold: false, release: null as null | (() => void), saves: 0 }
+        ;(window as any).__routeLayout = state
+        const api = (window as any).electronAPI
+        api.settings.get = async () => ({ ...values })
+        api.settings.saveModelConfiguration = async (input: { connections: string; routes: string }) => {
+          state.saves++
+          if (state.hold) await new Promise<void>(resolve => { state.release = resolve })
+          if (state.fail) throw new Error('fixture route save failure')
+          values.modelConnections = input.connections; values.modelRoutes = input.routes
+        }
+      }, theme)
+      await page.goto('/')
+      await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+      const settings = page.getByTestId('settings-panel')
+      await settings.getByRole(width < 768 ? 'tab' : 'button', { name: '模型', exact: true }).click()
+      const card = page.getByTestId('settings-model-current')
+      const section = page.getByTestId('settings-route-primary')
+      const rows = section.locator('[data-model-route-row]')
+      await expect(rows).toHaveCount(2)
+      await rows.first().scrollIntoViewIfNeeded()
+      expect(await card.evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true)
+      const toggle = rows.first().getByRole('switch')
+      const geometry = await toggle.boundingBox()
+      await toggle.hover()
+      expect(await toggle.boundingBox()).toEqual(geometry)
+      await card.screenshot({ path: testInfo.outputPath('usage-arrangements.png') })
+      await page.evaluate(() => { (window as any).__routeLayout.hold = true })
+      await toggle.click()
+      await expect(page.getByTestId('settings-model-routing')).toHaveAttribute('aria-busy', 'true')
+      await expect(toggle).toBeDisabled()
+      await expect(toggle).toHaveAttribute('aria-checked', 'true')
+      await expect(section.getByLabel('添加主对话模型')).toBeDisabled()
+      expect(await toggle.boundingBox()).toEqual(geometry)
+      await page.evaluate(() => { const state = (window as any).__routeLayout; state.hold = false; state.release() })
+      await expect(toggle).toHaveAttribute('aria-checked', 'false')
+      expect(await toggle.boundingBox()).toEqual(geometry)
+      await rows.nth(1).getByRole('button', { name: /^上移 / }).click()
+      await expect(rows.first()).toContainText('second')
+      await page.evaluate(() => { (window as any).__routeLayout.fail = true })
+      await rows.first().getByRole('button', { name: /^移除 / }).click()
+      await expect(page.getByTestId('settings-model-routing')).toHaveAttribute('aria-busy', 'false')
+      await expect(rows).toHaveCount(2)
+      await page.evaluate(() => { (window as any).__routeLayout.fail = false })
+      await rows.first().getByRole('button', { name: /^移除 / }).click()
+      await expect(rows).toHaveCount(1)
+      await rows.first().getByRole('button', { name: /^移除 / }).click()
+      await expect(section).toContainText('还没有安排模型')
+      await section.getByLabel('添加主对话模型').selectOption('a::second')
+      await expect(rows).toHaveCount(1)
+      await expect(rows.first()).toContainText('second')
+      await settings.getByRole(width < 768 ? 'tab' : 'button', { name: '外观与界面', exact: true }).click()
+      await settings.getByRole(width < 768 ? 'tab' : 'button', { name: '模型', exact: true }).click()
+      await expect(rows).toHaveCount(1)
+      await expect(rows.first()).toContainText('second')
+      expect(await page.evaluate(() => (window as any).__routeLayout.saves)).toBe(6)
+    })
+  }
+}
+
+test('候选用途安排排序启停与移除只修改隔离状态', async ({ page }) => {
+  await installProductionElectronStub(page)
+  await page.addInitScript(() => {
+    const api = (window as any).electronAPI
+    const get = api.settings.get
+    api.settings.get = async () => ({ ...await get(), developerMode: 'true' })
+    ;(window as any).__candidateRouteWrites = 0
+    api.settings.saveModelConfiguration = async () => { (window as any).__candidateRouteWrites++ }
+    api.settings.set = async () => { (window as any).__candidateRouteWrites++ }
+  })
+  await page.goto('/')
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+  await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
+  const candidate = page.getByTestId('settings-surface-candidate')
+  await candidate.getByRole('button', { name: '模型', exact: true }).click()
+  await candidate.getByTestId('settings-candidate-model-state-one').click()
+  const section = candidate.getByTestId('settings-candidate-route-primary')
+  const rows = section.locator('[data-model-route-row]')
+  await expect(rows).toHaveCount(2)
+  await rows.nth(1).getByRole('button', { name: /^上移 / }).click()
+  await expect(rows.first()).toContainText('gpt-4o-mini')
+  await rows.first().getByRole('switch').click()
+  await expect(rows.first().getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+  await rows.first().getByRole('button', { name: /^移除 / }).click()
+  await expect(rows).toHaveCount(1)
+  await section.getByLabel('添加主对话模型').selectOption({ label: 'OpenAI 主账号 · gpt-4o-mini' })
+  await expect(rows).toHaveCount(2)
+  expect(await page.evaluate(() => (window as any).__candidateRouteWrites)).toBe(0)
+})
+
 test('正式模型请求结果跟随连接身份，拒绝迟到结果并恢复异常', async ({ page }) => {
   await installProductionElectronStub(page)
   await page.addInitScript(() => {

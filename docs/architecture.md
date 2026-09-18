@@ -21,6 +21,8 @@ MCP 运行状态由 Manager 生成不含凭据的共享快照，经 IPC 同步 R
 
 ModelConnectionForm 为纯受控业务 UI，由正式设置和候选共用；来源分类与预设默认值从共享 Provider 注册表派生。source / presetId 是连接元数据，不授予权限；provider 是实际协议选择，测试与生产装配共用 LLMProvider。主进程保存 / 读取旧密钥时除连接 id 外还核对端点与协议，身份变化必须使用新输入的 Key；候选只模拟凭据状态，不能读取真实存储。
 
+ModelUsageArrangements 同样属于纯受控 Experience，组合 Foundation SelectField / ActionButton / IconButton。正式 ModelRoutingSettings 注入真实路由及整组保存回调，候选只将自己的 modelId 夹具适配为展示载荷并操作内存；共享组件没有 IPC，也不决定用途的后端语义。候选的生图与正式图片理解仍是显式未决差异，不能由相同 image key 推断等价。
+
 用途路由由唯一配置工厂按同用途顺序装配首选及 fallbackModels，过滤停用项和缺失引用、去重相同连接模型；每项端点、密钥、模型和 provider 整体绑定，空 Key 不借用全局、环境或其他连接凭据。独立辅助 / 图片理解用途不继承主用途备用池，辅助 thinking 和运行资产证据按目标装配。没有有效用途路由才整体回退；一次性身份覆盖不继承已保存备用链。就绪检查允许链内存在有效认证目标，但统一调用入口仍逐目标认证，远程缺 Key 不发请求。
 
 不只是一个工具，而是一个有性格、有记忆、能成长的数字伙伴：

@@ -1,11 +1,11 @@
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent, type Ref } from 'react'
-import { ArrowDown, ArrowUp, Check, CheckCircle2, Circle, LoaderCircle, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { Check, CheckCircle2, Circle, LoaderCircle, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { connectionCredentialLabel } from '../../shared/model-connection-form'
 import type { LLMModelFetchResult, ModelConnectionProfile, ModelRouteProfile, ModelRoutePurpose } from '../../shared/types'
 import { addConnectionModel, enabledConnectionModelIds, normalizeConnectionModels, removeConnectionModel, setConnectionModelEnabled } from '../../shared/llm-model-fetch'
 import { ActionButton } from '../foundation/ActionButton'
 import { TextField } from '../foundation/TextField'
-import { SelectField } from '../foundation/SelectField'
+import { ModelUsageArrangements } from './ModelUsageArrangements'
 import { useToast } from '../Toast'
 import { SettingCard, SettingRow } from './SettingsFields'
 import { ModelConnectionForm } from './ModelConnectionForm'
@@ -221,36 +221,13 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
     onCancel={() => { setEditing(null); setDraft({ id: '', name: '', baseUrl: '', model: '', apiKey: '', enabled: true }) }} onSave={() => void saveDraft()} />
 
   return <fieldset disabled={busy} className="m-0 min-w-0 space-y-4 border-0 p-0" data-testid="settings-model-routing" aria-busy={busy}>
-    <SettingCard>
-      <SettingRow label="模型使用安排" description="从已添加的连接模型中选择；顺序就是优先级，第一项失败时按顺序尝试下一项。" scope="影响后续任务" stacked>
-        <div className="space-y-3">{PURPOSES.map((purpose) => {
-          const purposeRoutes = routes.filter((item) => item.purpose === purpose.id)
-          return <div key={purpose.id} className="border-t pt-3 first:border-t-0 first:pt-0" style={{ borderColor: 'var(--border-subtle)' }}>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div><div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{purpose.label}</div><div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{purpose.description}</div></div>
-              <SelectField aria-label={`添加${purpose.label}模型`} value="" onChange={(event) => void addRoute(purpose.id, event.target.value)} className="max-w-[13rem]">
-                <option value="">添加模型</option>
-                {available.map(({ connection, value, model }) => <option key={`${purpose.id}-${value}`} value={value}>{connection.name} · {model}</option>)}
-              </SelectField>
-            </div>
-            {purposeRoutes.length === 0
-              ? <div className="mt-3 rounded-[var(--radius-md)] border border-dashed px-3 py-3 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>还没有安排模型；请从已添加的模型中选择。</div>
-              : <div className="mt-2 space-y-1">{purposeRoutes.map((route, index) => {
-                const connection = connections.find((item) => item.id === route.connectionId)
-                const label = `${connection?.name || route.connectionId} · ${route.model}`
-                return <div key={`${route.connectionId}-${route.model}`} className="flex min-w-0 items-center gap-2 rounded-[var(--radius-sm)] border px-2 py-1.5 text-[10px]" style={{ borderColor: 'var(--border-subtle)', opacity: route.enabled ? 1 : 0.58 }}>
-                  <span className="w-4 text-center" style={{ color: 'var(--accent-fg)' }}>{index + 1}</span>
-                  <span className="min-w-0 flex-1 truncate" title={label} style={{ color: 'var(--text-primary)' }}>{label}</span>
-                  <ActionButton size="sm" className="min-h-7 w-12 px-0" onClick={() => { const next = routes.map((item) => item === route ? { ...item, enabled: !item.enabled } : item); void persist(connections, next) }}>{route.enabled ? '启用' : '停用'}</ActionButton>
-                  <ActionButton size="sm" className="min-h-7 w-7 px-0" aria-label={`上移 ${label}`} disabled={index === 0} onClick={() => void moveRoute(purpose.id, index, -1)}><ArrowUp size={12} /></ActionButton>
-                  <ActionButton size="sm" className="min-h-7 w-7 px-0" aria-label={`下移 ${label}`} disabled={index === purposeRoutes.length - 1} onClick={() => void moveRoute(purpose.id, index, 1)}><ArrowDown size={12} /></ActionButton>
-                  <ActionButton size="sm" className="min-h-7 w-7 px-0" aria-label={`移除 ${label}`} onClick={() => { const next = routes.filter((item) => item !== route); void persist(connections, next) }}><Trash2 size={12} /></ActionButton>
-                </div>
-              })}</div>}
-          </div>
-        })}</div>
-      </SettingRow>
-    </SettingCard>
+    <ModelUsageArrangements purposes={PURPOSES} routes={routes} disabled={busy}
+      options={available.map(({ connection, value, model }) => ({ value, label: `${connection.name} · ${model}` }))}
+      routeLabel={route => `${connections.find(item => item.id === route.connectionId)?.name || route.connectionId} · ${route.model}`}
+      onAdd={(purpose, value) => { void addRoute(purpose, value) }}
+      onMove={(purpose, index, direction) => { void moveRoute(purpose, index, direction) }}
+      onToggle={route => { void persist(connections, routes.map(item => item === route ? { ...item, enabled: !item.enabled } : item)) }}
+      onRemove={route => { void persist(connections, routes.filter(item => item !== route)) }} />
     <SettingCard>
       <SettingRow label="连接与模型清单" description="连接信息保存在本机；密钥不会回传到界面或写入备份文件。获取到的模型需要点选后才会加入清单。" scope="本机" stacked>
         <div className="space-y-2">

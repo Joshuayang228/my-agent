@@ -1,5 +1,7 @@
 # 质量总控
 
+用途安排共享门禁：TypeChecker 检查正式与候选 JSX 实际绑定 `ModelUsageArrangements`，以及该组合实际绑定三个 Foundation 控件；未使用导入和同名参数遮蔽为负例。四主题 1166 / 600 宽度覆盖长连接名、无横向溢出、hover / pending / 启停操作槽严格 boundingBox 相等、排序、删除失败保留、重试、空态再添加和切页恢复；候选排序启停删除后设置写入次数必须为零。Renderer 替身只证明交互与载荷边界，真实保存及失败转移仍由独立 Electron 回归覆盖。
+
 用途备用链门禁：`model-routing` 覆盖三用途顺序、停用与缺失引用过滤、去重、独立凭据 / 协议、独立用途不继承主备用池、一次性覆盖隔离和逐目标 thinking；`llm-failover` 覆盖取消、文本 / 思考 / 工具增量后断流不切换、远程缺 Key 跳过且本机备用不带空认证头。`local-model.test.ts` 从正式表单添加连接并排序，完整重启后让首选服务返回 503，断言后续备用端点及其独立认证头，并检查聊天切换提示；协议服务是本地测试替身，不代表真实供应商可用性。当前主进程 Compiler API 相对 HEAD 对照 75 → 75，无新增诊断，仍不代表独立主进程类型门禁通过。
 
 本地模型无 Key 门禁：生产校验红测覆盖 localhost / IPv4 / IPv6 回环，负例包含域名后缀伪装、userinfo、非 HTTP(S)、局域网与非兼容协议。`llm-auth`、`settings-security`、`model-discovery` 和 `embedding-auth` 验证认证头、省略空 Key、凭据不借用以及设置就绪状态。`local-model.test.ts` 使用独立 Electron 数据目录和本地协议服务，从正式表单保存无 Key 连接，发现 / 添加模型、测试、选择主用途，完整重启后检查聊天顶栏实际模型并发送流式对话；401 后编辑 Key 可重试。首次执行发现 `/v1/embeddings` 带空 Bearer，保留路径和布尔诊断后修复，未放宽断言。此测试不证明真实型号的工具、图片、结构化输出或默认 Embedding 模型兼容性。UI 替身显式提供 `llmConnectionReady`，不再伪造旧全局 Key 作为就绪证据。
