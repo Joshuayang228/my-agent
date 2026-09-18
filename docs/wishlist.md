@@ -10,7 +10,8 @@
 
 - WISH-042 2026-09-19 复现补充：模型生命周期批次完整 Electron 两次均在 `onboarding.test.ts:731` 从 Playground 快捷键返回失败，后续 worker 重建导致侧聊缺 Key / 工作区入口缺失。保留 `var/verification/model-lifecycle-electron-repeat` trace：Playground 可见后约 1ms 发出返回按键，页面仍停留原页；尚无处理器状态证据，不能断言旧闭包。原码定向 trace 及临时导航探针完整回归通过；探针已移除，不将偶发通过视为修复，后续需可靠捕获事件与状态顺序并解除跨测试前置依赖。
 
-- WISH-045 R06 调用链剩余缺口：本地无 Key 在 localhost / IPv4 / IPv6 回环输入下均被生产共享测试 / 发现校验拒绝；主进程、发现服务、Runtime 亦拦截空 Key，App 首启只检查全局 Key，不能只放开按钮。完整边界见回流合同 R06 本地连接全链验收。用途列表宣称顺序重试，但配置工厂只取第一有效路由，未装配 fallbackModels。五类来源、共享新增 / 编辑及协议测试已接通，不代表整页完成；其余连接卡片结构、真实厂商与编程套餐调用仍需验收。
+- WISH-045 R06 调用链剩余缺口：本机回环兼容连接的无 Key 发现 / 测试 / 对话与启动判断已接通；用途列表宣称顺序重试，但配置工厂只取第一有效路由，未装配 fallbackModels。五类来源、共享新增 / 编辑及协议测试已接通，不代表整页完成；其余连接卡片结构、真实厂商与编程套餐调用仍需验收。
+- WISH-045 本地向量能力：对话中的 Embedding 请求已不发空 Bearer，但默认 `text-embedding-3-small` 不能视为任意本地服务支持；RAG 与手动记忆向量同步仍用空 Key 门控，单进程 embeddingUnavailable 也未按连接隔离。需独立核验嵌入模型配置、能力失败恢复与连接切换；不能把本地聊天协议验收当作向量能力完成。
 - WISH-045 R06 语义差异：SettingsExperienceCandidate 的 image 用途标为生图，正式 ModelRoutingSettings 标为图片理解，`loadImageLLMConfig` 实际仅为带图片输入选择路由。未找到将生图等同图片理解的决策；需核对已批准候选并明确独立能力边界，不以相同 key 或文案替换认定完成，也不把 WISH-017 的人物生图暂缓自动扩大为整个模型设置排除。
 - WISH-045 R06 生命周期：正式模型连接 / 路由整组保存、失败恢复、测试 / 发现结果归属隔离及应用内草稿离页保护已接通；剩余关窗 / 崩溃草稿保护和多窗口旧快照冲突检测。Renderer 令牌失效不等于取消底层网络请求；应用内导航拦截不等于关窗或崩溃恢复，不自动持久化未保存凭据。
 - WISH-042 2026-09-18 设置字段回归：Electron 首轮在开启开发模式后从 Playground 快捷键返回聊天超时；失败后新 worker 的独立目录没有前置模型配置，后续侧聊报无 API Key，后续终端 / 侧聊也未找到工作区入口。原代码带 trace 定向 1 项及完整复跑 18 项通过（4 条件跳过），首个快捷键失败根因未明，需补事件 / 导航生命周期证据并解除测试间前置依赖。证据 `var/verification/settings-fields-electron`、`settings-fields-shortcut-trace`、`settings-fields-electron-repeat`；不放宽断言或超时。

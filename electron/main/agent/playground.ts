@@ -8,6 +8,7 @@
  */
 
 import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
+import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import { chatComplete } from '../llm/index'
 import { loadMainLLMConfig } from '../llm/aux-config'
 import { createLogger } from '../utils/logger'
@@ -100,7 +101,7 @@ export async function runPlayground(input: {
   }
 
   const config = await loadPlaygroundLLMConfig()
-  if (!config.apiKey?.trim()) {
+  if (!hasLLMAuthentication(config)) {
     return { ok: false, error: '请先在设置中配置 API Key' }
   }
 

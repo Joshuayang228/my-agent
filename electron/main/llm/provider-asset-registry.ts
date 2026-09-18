@@ -14,6 +14,7 @@ import type {
   ToolDefinition,
 } from '../../../src/shared/types'
 import { PROVIDER_PRESETS } from '../../../src/shared/provider-presets'
+import { allowsKeylessConnection } from '../../../src/shared/llm-connection-test'
 import { PROVIDER_ASSET_KEYS } from './provider-asset-keys'
 export { PROVIDER_ASSET_KEYS } from './provider-asset-keys'
 import {
@@ -68,6 +69,7 @@ function providerAsset(input: {
   assetType: Extract<ModelContextAssetType, 'provider-capability' | 'provider-policy' | 'provider-preset'>
   content: string
   dependencies?: string[]
+  version?: string
 }): ModelContextAsset {
   return {
     key: input.key,
@@ -79,7 +81,7 @@ function providerAsset(input: {
     desc: '模型 Provider 的内置适配器、策略或预设事实；不包含用户配置与凭据。',
     source: input.source,
     sourcePath: input.source,
-    version: PROVIDER_ASSET_VERSION,
+    version: input.version ?? PROVIDER_ASSET_VERSION,
     fingerprint: modelContextFingerprint(input.content),
     fingerprintKind: 'content',
     assetType: input.assetType,
@@ -257,14 +259,16 @@ function policyAssets(): ModelContextAsset[] {
   const policies = [
     {
       key: PROVIDER_ASSET_KEYS.autoDetection,
+      version: '1.1.0',
       name: 'Provider 策略 · 自动检测',
       purpose: '说明显式 Provider、Base URL 规则和未知端点回退顺序',
-      source: 'electron/main/llm/provider-router.ts',
+      source: 'src/shared/llm-connection-test.ts',
       dependencies: ['provider-capability:openai', 'provider-capability:anthropic', 'provider-capability:gemini'],
       content: {
         explicitProviderPriority: true,
         rules: PROVIDER_DETECTION_RULES.map(({ pattern, provider }) => ({ pattern: pattern.source, provider })),
         fallback: 'openai',
+        keylessExamples: ['http://localhost:11434/v1', 'http://127.0.0.1:1234/v1', 'http://[::1]/v1', 'https://remote.invalid/v1', 'http://localhost/anthropic'].map((baseUrl) => ({ baseUrl, allowed: allowsKeylessConnection({ baseUrl }) })),
       },
     },
     {
@@ -325,6 +329,7 @@ function policyAssets(): ModelContextAsset[] {
 
   return policies.map((policy) => providerAsset({
     key: policy.key,
+    version: 'version' in policy ? policy.version : undefined,
     name: policy.name,
     purpose: policy.purpose,
     role: 'provider-policy',

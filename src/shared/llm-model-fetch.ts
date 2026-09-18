@@ -1,4 +1,5 @@
 import type { LLMModelFetchInput } from './types'
+import { allowsKeylessConnection } from './llm-connection-test'
 
 export const MODEL_FETCH_TIMEOUT_MS = 15_000
 
@@ -26,7 +27,7 @@ function normalizeBaseUrl(value: string): string {
  *
  * 背景：正式设置需要从连接端点读取模型清单，但不能让 Renderer 直连供应商或读回已存密钥。
  * 设计意图：把 URL、凭据来源和适配器字段放进共享纯函数；主进程只负责安全取钥和发请求。
- * 关键约束：没有草稿 Key 且未声明使用已存 Key 时不得发起请求；返回值不包含凭据加工。
+ * 关键约束：只有回环兼容服务可无 Key；远程仍须草稿或已存 Key，返回值不包含凭据加工。
  */
 export function validateLLMModelFetchInput(input: unknown):
   | { ok: true; value: ValidatedLLMModelFetchInput }
@@ -43,7 +44,8 @@ export function validateLLMModelFetchInput(input: unknown):
     ? raw.provider
     : undefined
 
-  if (!apiKey && !useStoredApiKey) return { ok: false, error: MODEL_FETCH_MESSAGES.missingKey, reason: 'missing-key' }
+  if (raw.provider !== undefined && !provider) return { ok: false, error: '请选择有效的连接适配器', reason: 'network' }
+  if (!apiKey && !useStoredApiKey && !allowsKeylessConnection({ baseUrl, provider })) return { ok: false, error: MODEL_FETCH_MESSAGES.missingKey, reason: 'missing-key' }
   if (!baseUrl) return { ok: false, error: MODEL_FETCH_MESSAGES.missingBaseUrl, reason: 'network' }
 
   try {

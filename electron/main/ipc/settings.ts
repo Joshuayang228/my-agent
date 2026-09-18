@@ -13,6 +13,7 @@ import { MAX_COMPANION_RESPONSE_NOTE_LENGTH } from '../../../src/shared/types'
 import { redactMcpConfigsForRenderer, hasNewOrChangedEnabledMcpConfig, mergeMcpConfigListSecrets, parseStoredMcpConfigs } from '../mcp/config-security'
 import { withMcpConfigLock } from '../mcp/config-lock'
 import { z } from 'zod'
+import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 
 const modelConfigurationSchema = z.object({
   connections: z.string().max(settings.MAX_SETTING_VALUE_LENGTH),
@@ -74,6 +75,7 @@ export function isRendererWritableSettingKey(value: unknown): value is keyof App
  */
 export async function getRendererSettings(): Promise<RendererSettings> {
   const stored = await settings.getAllSettings()
+  const mainConfig = await loadMainLLMConfig()
   let modelConnections = '[]'
   try {
     const parsed = JSON.parse(stored.modelConnections)
@@ -92,6 +94,9 @@ export async function getRendererSettings(): Promise<RendererSettings> {
     ...stored,
     llmApiKey: '',
     llmApiKeyConfigured: stored.llmApiKey.trim() ? 'true' : 'false',
+    llmConnectionReady: hasLLMAuthentication(mainConfig) && Boolean(mainConfig.model?.trim()) ? 'true' : 'false',
+    llmEffectiveModel: mainConfig.model,
+    llmEffectiveBaseUrl: mainConfig.baseUrl,
     mcpServers: redactMcpConfigsForRenderer(stored.mcpServers),
     modelConnections,
   }
@@ -202,7 +207,7 @@ export function registerSettingsIPC(): void {
         model: validated.value.model,
         ...(validated.value.provider ? { provider: validated.value.provider } : {}),
       })
-      if (!config.apiKey) return { ok: false, error: '请先配置 API Key' }
+      if (!hasLLMAuthentication(config)) return { ok: false, error: '请先配置 API Key' }
       await chatComplete({
         config: {
           ...config,
@@ -231,7 +236,7 @@ export function registerSettingsIPC(): void {
       ...(validated.value.provider ? { provider: validated.value.provider } : {}),
       baseUrl: validated.value.baseUrl,
     })
-    if (!config.apiKey) return { ok: false, error: MODEL_FETCH_MESSAGES.missingKey, reason: 'missing-key', retryable: false }
+    if (!hasLLMAuthentication(config)) return { ok: false, error: MODEL_FETCH_MESSAGES.missingKey, reason: 'missing-key', retryable: false }
     return fetchRemoteModels(config)
   })
 }

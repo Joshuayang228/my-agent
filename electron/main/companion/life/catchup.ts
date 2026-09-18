@@ -7,6 +7,7 @@
  */
 
 import type { LLMConfig } from '../../../../src/shared/types'
+import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { chatComplete } from '../../llm/index'
 import { PROMPT_KEYS } from '../../prompts/keys'
@@ -103,7 +104,7 @@ export async function generateCatchupSummaryViaLlm(
   llmConfig: LLMConfig,
   opts?: { universeId?: string },
 ): Promise<string | null> {
-  if (!llmConfig.apiKey?.trim()) return null
+  if (!hasLLMAuthentication(llmConfig)) return null
   try {
     const pack = loadRolePack(roleId, opts?.universeId ?? 'default')
     const world = await ensureWorldState(roleId)
@@ -162,7 +163,7 @@ export async function resolveCatchupSummary(
       llmConfig = undefined
     }
   }
-  if (preferLlm && llmConfig?.apiKey?.trim()) {
+  if (preferLlm && llmConfig && hasLLMAuthentication(llmConfig)) {
     const llm = await generateCatchupSummaryViaLlm(
       roleId,
       pausedAt,

@@ -114,7 +114,7 @@ declare global {
         onDownloaded: (cb: (info: { version: string }) => void) => () => void
       }
       settings: {
-        /** 包含独立的 companionResponseNote，与 preload 共用 RendererSettings。 */
+        /** 包含主连接就绪状态、生效模型 / 地址与 companionResponseNote，与 preload 共用安全视图。 */
         get: () => Promise<RendererSettings>
         set: (key: string, value: string) => Promise<void>
         saveModelConfiguration: (input: import('./shared/types').ModelConfigurationInput) => Promise<void>

@@ -1,5 +1,6 @@
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent, type Ref } from 'react'
 import { ArrowDown, ArrowUp, Check, CheckCircle2, Circle, LoaderCircle, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { connectionCredentialLabel } from '../../shared/model-connection-form'
 import type { LLMModelFetchResult, ModelConnectionProfile, ModelRouteProfile, ModelRoutePurpose } from '../../shared/types'
 import { addConnectionModel, enabledConnectionModelIds, normalizeConnectionModels, removeConnectionModel, setConnectionModelEnabled } from '../../shared/llm-model-fetch'
 import { ActionButton } from '../foundation/ActionButton'
@@ -255,6 +256,7 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
         <div className="space-y-2">
           <div className="flex justify-end"><ActionButton size="sm" onClick={openAdd} disabled={busy || editing !== null}><Plus size={13} />添加连接</ActionButton></div>
           {connections.map((connection) => {
+            const credentialLabel = connectionCredentialLabel(connection)
             const models = normalizeConnectionModels(connection)
             const draftModel = modelDrafts[connection.id] ?? ''
             const duplicate = models.some((item) => item.id === draftModel.trim())
@@ -278,7 +280,7 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
                 <div className="border-t px-3 py-3" style={{ borderColor: 'var(--border-subtle)' }}>
                   <div className="grid gap-2 text-[10px] sm:grid-cols-3">
                     <div className="min-w-0"><span style={{ color: 'var(--text-muted)' }}>Base URL</span><div className="mt-1 truncate font-mono" title={connection.baseUrl} style={{ color: 'var(--text-secondary)' }}>{connection.baseUrl}</div></div>
-                    <div><span style={{ color: 'var(--text-muted)' }}>密钥状态</span><div className="mt-1 font-medium" style={{ color: connection.hasApiKey ? 'var(--success)' : 'var(--danger)' }}>{connection.hasApiKey ? '已配置' : '未配置'}</div></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>密钥状态</span><div className="mt-1 font-medium" style={{ color: connection.hasApiKey ? 'var(--success)' : credentialLabel === '未配置' ? 'var(--danger)' : 'var(--text-secondary)' }}>{credentialLabel}</div></div>
                     <div><span style={{ color: 'var(--text-muted)' }}>测试状态</span><div className="mt-1" style={{ color: testState[connection.id] === 'success' ? 'var(--success)' : testState[connection.id] === 'error' ? 'var(--danger)' : 'var(--text-muted)' }}>{testState[connection.id] === 'success' ? '连接测试通过' : testState[connection.id] === 'error' ? (testError[connection.id] || '连接测试失败') : '尚未测试'}</div></div>
                   </div>
                   <div className="mt-4 text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>模型清单 · {models.length} 个</div>

@@ -12,6 +12,7 @@
 
 import { BrowserWindow, Notification } from 'electron'
 import { randomUUID } from 'node:crypto'
+import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import { agentLoop } from './loop'
 import { buildSystemPrompt, rolePackToPromptParts } from './prompt-builder'
 import { describeCastPresence } from '../companion/cast/availability'
@@ -161,7 +162,7 @@ class AgentRuntime {
         return
       }
 
-      if (!llmConfig.apiKey) {
+      if (!hasLLMAuthentication(llmConfig)) {
         log.error('No API key configured')
         yield { type: 'error', message: '请先在设置中配置 API Key', code: AgentErrorCode.CONFIG_MISSING_API_KEY, sessionId }
         yield { type: 'done', reason: 'model_error', sessionId }

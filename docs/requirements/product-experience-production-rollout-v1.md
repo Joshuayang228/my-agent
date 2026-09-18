@@ -309,7 +309,7 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 | 五类来源、服务商预设与自定义协议 | 已共用来源纯函数与 ModelConnectionForm，source / presetId 随连接保存 | shared 注册表为唯一预设源；正式 UI 四主题宽窄与 Electron 保存 / 重载，不复制 fixture |
 | 新增独立卡片、原位编辑同一表单 | 已删除两套正式简化字段和候选重复 JSX，正式 / 候选同时渲染共享表单 | Foundation 字段与共享表单真实符号门禁；编辑保留模型和用途，失败保留草稿 |
 | 自定义 Anthropic / Gemini / OpenAI Compatible | provider 已经过共享校验 / preload / handler 到配置工厂 | Unit 三协议校验与主进程透传；Electron 本地 Anthropic 请求验证，真实厂商及其余协议组合仍按全链验收 |
-| 本地模型 | 共享测试 / 发现校验、主进程二次校验、发现服务及主对话 Runtime 均拒绝空 Key；App 首启也会误导回设置 | 本地端点认证策略必须贯穿配置可用性、首次启动、发现、测试和真实流式对话；真实本地服务请求与失败测试，不伪造 Key 绕过 |
+| 本地模型 | 本机回环兼容无 Key 校验、主进程测试 / 发现、Runtime 与实际主用途启动判断已接通 | 独立 Electron 正式配置、发现、测试、完整重启后的真实流式对话和 401 后补 Key；不外推为实际型号 / 默认嵌入模型兼容 |
 | 用途优先级 | 工厂仅 find 第一有效路由，尚未将后续项映射 fallbackModels | 接入已有 failover 执行链；每个备用连接独立凭据 / 协议，实际失败转移顺序验收 |
 | 保存 / 离页 / 发现迟到 | 整组保存失败恢复、请求结果归属隔离及应用内草稿离页保护已接通；关窗 / 崩溃与多窗口冲突未覆盖 | SQLite 故障 / 重开与正式入口 Electron；受控请求逆序、换 Key、取消 / 保存失败及离页结果隔离 UI；宽窄导航拦截与 Electron 草稿未写入检查 |
 
@@ -318,6 +318,8 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 允许修改配置工厂及 `model-routing` 单测，不新增 IPC、存储字段、依赖或外部请求。必测主 / 辅助 / 图片三个用途的空密钥隔离、显式协议、无协议与整体回退，以及一次性配置覆盖。此为 R06 真实调用链必要修复，不等于五类连接表单、协议选择 IPC、生图能力或整页回流完成。
 
 ### R06 本地连接全链验收边界
+
+落地记录：认证判断和 Provider 自动检测归 `src/shared/llm-connection-test.ts`，原 Router 重导出同一规则；候选与正式表单共用可留空状态。Settings 安全视图新增主配置工厂派生的就绪状态与实际模型 / 地址，四处契约同步，App 首启和顶栏读取派生值。Runtime、标题重生成、已有生活辅助调用和 Playground 真实试验共用判断；不改触发时机与回退。OpenAI 对话、发现及单条 / 批量嵌入不发空 Bearer。独立 Electron 目录已经覆盖无 Key 全链与认证失败恢复；实际型号兼容、嵌入模型选择及 RAG / 手动记忆向量门控另列 WISH-045。Provider 自动检测资产更新为 1.1.0，认证样例从生产纯函数派生。下段保留修复前定位证据。
 
 当前证据：直接调用生产 `validateLLMConnectionTestInput` 与 `validateLLMModelFetchInput`，对 `http://localhost:11434/v1`、`http://127.0.0.1:1234/v1`、`http://[::1]:11434/v1` 输入空 Key，三者均返回「请先填写 API Key」，发现原因均为 `missing-key`。继续沿调用链读取确认 `settings.ts` 两个 handler、`model-discovery.ts`、`AgentRuntime.chat` 仍有空 Key 拦截；`App.tsx` 首启只按全局密钥存在与否跳设置，没有判断实际主用途连接是否可用。OpenAI 请求构造器和发现请求还会无条件拼接 Bearer。不能以测试 / 发现按钮单独成功作为本地模型完成证据。
 

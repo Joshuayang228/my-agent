@@ -5,6 +5,7 @@
  */
 
 import { ipcMain } from 'electron'
+import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import {
   getActiveRole,
   getActiveRoleId,
@@ -271,7 +272,7 @@ export function registerCompanionIPC(): void {
     async (_e, roleId?: string, force?: boolean) => {
       const id = (typeof roleId === 'string' && roleId.trim()) || (await getActiveRoleId())
       const llm = await loadAuxLLMConfig()
-      if (!llm.apiKey) {
+      if (!hasLLMAuthentication(llm)) {
         return { skipped: true, changed: false, summary: 'NO_API_KEY', reason: 'NO_API_KEY' }
       }
       return runReflectionNow(id, llm, { force: !!force })

@@ -94,7 +94,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   settings: {
-    // 共享安全视图包含 companionResponseNote；不通过额外频道读取偏好或凭据。
+    // 共享安全视图包含主连接就绪状态与生效模型 / 地址；不传凭据。
     get: (): Promise<RendererSettings> => ipcRenderer.invoke('settings:get'),
     set: (key: string, value: string): Promise<void> => ipcRenderer.invoke('settings:set', key, value),
     saveModelConfiguration: (input: import('../../src/shared/types').ModelConfigurationInput): Promise<void> =>

@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron'
+import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import * as store from '../storage/session-store'
 import { createLogger } from '../utils/logger'
 import { deleteChatSession } from './chat'
@@ -61,7 +62,7 @@ export function registerSessionIPC(): void {
 
       const { loadAuxLLMConfig } = await import('../llm/aux-config')
       const llmConfig = await loadAuxLLMConfig()
-      if (!llmConfig.apiKey) return { success: false, error: 'API Key not configured' }
+      if (!hasLLMAuthentication(llmConfig)) return { success: false, error: 'API Key not configured' }
 
       // force：显式重生成，绕过「仅默认标题才调用」门闸
       await store.generateSmartTitle(

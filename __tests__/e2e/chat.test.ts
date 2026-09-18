@@ -287,7 +287,7 @@ async function installProductionElectronStub(page: import('@playwright/test').Pa
         clearFileChanges: async () => ({ success: true }),
       },
       settings: {
-        get: async () => ({ llmApiKeyConfigured: 'true', llmModel: 'e2e-model', executionMode: 'confirm-all', pinnedSessions: '[]' }),
+        get: async () => ({ llmApiKeyConfigured: 'true', llmConnectionReady: 'true', llmModel: 'e2e-model', executionMode: 'confirm-all', pinnedSessions: '[]' }),
         set: async () => ({ success: true }),
         saveModelConfiguration: async () => {},
       },
@@ -323,7 +323,7 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       await page.addInitScript((theme) => {
         localStorage.setItem('theme', theme)
         const api = (window as any).electronAPI
-        const values: Record<string, string> = { llmApiKeyConfigured: 'true', llmModel: 'fixture', modelConnections: '[]', modelRoutes: '[]' }
+        const values: Record<string, string> = { llmApiKeyConfigured: 'true', llmConnectionReady: 'true', llmModel: 'fixture', modelConnections: '[]', modelRoutes: '[]' }
         const state = { values, tested: null as unknown }
         ;(window as any).__modelForm = state
         api.settings.get = async () => ({ ...values })
@@ -397,7 +397,7 @@ test('正式模型请求结果跟随连接身份，拒绝迟到结果并恢复�
   await page.addInitScript(() => {
     const api = (window as any).electronAPI
     const values = {
-      llmApiKeyConfigured: 'true', llmModel: 'fixture',
+      llmApiKeyConfigured: 'true', llmConnectionReady: 'true', llmModel: 'fixture',
       modelConnections: JSON.stringify([{ id: 'request-owner', name: '请求归属连接', source: 'custom', provider: 'openai', baseUrl: 'https://before.test/v1', model: 'fixture', models: [{ id: 'fixture', enabled: true }], enabled: true, hasApiKey: true }]),
       modelRoutes: '[]',
     }
@@ -497,7 +497,7 @@ for (const width of [1166, 600]) {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
       const api = (window as any).electronAPI
-      const state = { values: { llmApiKeyConfigured: 'true', llmModel: 'fixture', modelConnections: '[]', modelRoutes: '[]' }, fail: false, hold: false, release: null as null | (() => void), writes: 0, creates: 0 }
+      const state = { values: { llmApiKeyConfigured: 'true', llmConnectionReady: 'true', llmModel: 'fixture', modelConnections: '[]', modelRoutes: '[]' }, fail: false, hold: false, release: null as null | (() => void), writes: 0, creates: 0 }
       ;(window as any).__modelLeave = state
       api.settings.get = async () => ({ ...state.values })
       api.settings.saveModelConfiguration = async (input: { connections: string; routes: string }) => {
@@ -570,7 +570,7 @@ test('正式模型保存失败保留草稿和清单，重试后才应用', async
   await page.addInitScript(() => {
     const api = (window as any).electronAPI
     const values: Record<string, string> = {
-      llmApiKeyConfigured: 'true', llmModel: 'fixture-model',
+      llmApiKeyConfigured: 'true', llmConnectionReady: 'true', llmModel: 'fixture-model',
       modelConnections: JSON.stringify([{ id: 'saved', name: '已保存连接', baseUrl: 'https://example.com/v1', model: 'fixture-model', enabled: true, hasApiKey: true }]),
       modelRoutes: JSON.stringify([{ purpose: 'primary', connectionId: 'saved', model: 'fixture-model', enabled: true }]),
     }
@@ -3556,7 +3556,7 @@ test.describe('My Agent UI', () => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
       const api = (window as any).electronAPI
-      const stored: Record<string, string> = { llmApiKeyConfigured: 'true', llmModel: 'e2e-model', executionMode: 'confirm-all', pinnedSessions: '[]', developerMode: 'false' }
+      const stored: Record<string, string> = { llmApiKeyConfigured: 'true', llmConnectionReady: 'true', llmModel: 'e2e-model', executionMode: 'confirm-all', pinnedSessions: '[]', developerMode: 'false' }
       const harness = { writes: [] as Array<[string, string]>, stored }
       ;(window as any).__developerModeSettings = harness
       api.settings.get = async () => ({ ...stored })
@@ -4517,7 +4517,7 @@ test.describe('My Agent UI', () => {
           localStorage.setItem('theme', themeId)
           const api = (window as any).electronAPI
           const stored: Record<string, string> = {
-            llmApiKeyConfigured: 'true',
+            llmApiKeyConfigured: 'true', llmConnectionReady: 'true',
             llmModel: 'e2e-model',
             executionMode: 'confirm-all',
             permissionRules: JSON.stringify([
@@ -4641,7 +4641,7 @@ test.describe('My Agent UI', () => {
         await page.addInitScript((selectedTheme) => {
           localStorage.setItem('theme', selectedTheme)
           const api = (window as any).electronAPI
-          const stored: Record<string, string> = { llmApiKeyConfigured: 'true', llmModel: 'test', systemPrompt: '旧提示词保持不变', companionResponseNote: '' }
+          const stored: Record<string, string> = { llmApiKeyConfigured: 'true', llmConnectionReady: 'true', llmModel: 'test', systemPrompt: '旧提示词保持不变', companionResponseNote: '' }
           const harness = { fail: true, writes: [] as Array<[string, string]>, stored }
           ;(window as any).__companionSettings = harness
           api.settings.get = async () => ({ ...stored })
@@ -4695,7 +4695,7 @@ test.describe('My Agent UI', () => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
       const api = (window as any).electronAPI
-      const state = { fail: true, created: 0, stored: { llmApiKeyConfigured: 'true', companionResponseNote: '' } as Record<string, string> }
+      const state = { fail: true, created: 0, stored: { llmApiKeyConfigured: 'true', llmConnectionReady: 'true', companionResponseNote: '' } as Record<string, string> }
       ;(window as any).__settingsExit = state
       api.settings.get = async () => ({ ...state.stored })
       api.settings.set = async (key: string, value: string) => {

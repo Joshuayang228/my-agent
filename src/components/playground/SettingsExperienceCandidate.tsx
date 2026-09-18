@@ -18,6 +18,7 @@ import { CompanionSettingsContent } from '../settings/CompanionSettingsContent'
 import { AboutSettingsContent } from '../settings/AboutSettingsContent'
 import { McpServiceCard } from '../settings/McpServiceCard'
 import { ModelConnectionForm } from '../settings/ModelConnectionForm'
+import { connectionCredentialLabel } from '../../shared/model-connection-form'
 import { CONNECTION_ADAPTERS, CONNECTION_PRESETS, CONNECTION_SOURCE_OPTIONS, connectionDraftForSource, providerSource, sameConnectionEndpoint } from '../../shared/model-connection-form'
 import { SkillDetail, SkillFilePreview, SkillListCard } from '../settings/SkillViews'
 import type { SkillInfo, ModelConnectionSource as ConnectionSource } from '../../shared/types'
@@ -100,6 +101,8 @@ type CapabilityState = 'supported' | 'unknown' | 'unsupported'
 type ModelFixture = { id: string; enabled: boolean; visibleInPicker: boolean; purpose: ModelPurpose; image: CapabilityState; tools: CapabilityState }
 type ConnectionAdapter = 'openai-compatible' | 'anthropic' | 'google'
 type ModelConnectionFixture = { id: string; name: string; source: ConnectionSource; protocol?: string; providerLabel: string; baseUrl: string; credentialStatus: 'missing' | 'stored'; status: 'untested' | 'healthy' | 'failed'; models: ModelFixture[] }
+
+const fixtureCredentialLabel = (connection: ModelConnectionFixture) => connectionCredentialLabel({ baseUrl: connection.baseUrl, provider: CONNECTION_ADAPTERS.find((item) => item.label === connection.protocol)?.provider ?? 'auto', hasApiKey: connection.credentialStatus === 'stored' })
 type ModelRoutePurpose = 'primary' | 'auxiliary' | 'image'
 type ModelRoute = { connectionId: string; modelId: string; enabled: boolean }
 type ModelFetchState = 'idle' | 'loading' | 'success' | 'empty' | 'unsupported' | 'error'
@@ -191,7 +194,7 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
     setFetchStates((current) => ({ ...current, [connectionId]: 'loading' }))
     const timer = window.setTimeout(() => {
       fetchTimers.current.delete(connectionId)
-      if (!connection.baseUrl.trim() || connection.credentialStatus === 'missing') {
+      if (!connection.baseUrl.trim() || fixtureCredentialLabel(connection) === '未配置') {
         setFetchStates((current) => ({ ...current, [connectionId]: 'error' }))
         return
       }
@@ -227,7 +230,7 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
   const testConnection = (connectionId: string) => {
     const connection = connections.find((item) => item.id === connectionId)
     if (!connection) return
-    const valid = Boolean(connection.baseUrl.trim()) && connection.credentialStatus === 'stored'
+    const valid = Boolean(connection.baseUrl.trim()) && fixtureCredentialLabel(connection) !== '未配置'
     setConnections((items) => items.map((item) => item.id === connectionId ? { ...item, status: valid ? 'healthy' : 'failed' } : item))
     onModelStatusChange(valid ? 'success' : 'error')
   }
@@ -273,7 +276,7 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
               <div className="grid gap-2 text-[10px] sm:grid-cols-3">
                 <div className="min-w-0"><span style={{ color: 'var(--text-muted)' }}>{connection.source === 'custom' ? '适配器' : '服务入口'}</span><div className="mt-1 truncate font-medium" title={connection.protocol ?? connection.providerLabel} style={{ color: 'var(--text-secondary)' }}>{connection.protocol ?? connection.providerLabel}</div></div>
                 <div className="min-w-0"><span style={{ color: 'var(--text-muted)' }}>Base URL</span><div className="mt-1 truncate font-mono" title={connection.baseUrl} style={{ color: 'var(--text-secondary)' }}>{connection.baseUrl}</div></div>
-                <div><span style={{ color: 'var(--text-muted)' }}>密钥状态</span><div className="mt-1 font-medium" style={{ color: connection.credentialStatus === 'stored' ? 'var(--success)' : 'var(--danger)' }}>{connection.credentialStatus === 'stored' ? '已配置' : '未配置'}</div></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>密钥状态</span><div className="mt-1 font-medium" style={{ color: connection.credentialStatus === 'stored' ? 'var(--success)' : fixtureCredentialLabel(connection) === '未配置' ? 'var(--danger)' : 'var(--text-secondary)' }}>{fixtureCredentialLabel(connection)}</div></div>
               </div>
               {connection.status !== 'untested' && <div role="status" className="mt-2 text-[10px]" style={{ color: connection.status === 'healthy' ? 'var(--success)' : 'var(--danger)' }}>{connection.status === 'healthy' ? '连接测试通过（样张）' : '连接测试失败（样张）：请检查地址和凭据。'}</div>}
               <div className="mt-4 text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>模型清单 · {connection.models.length} 个</div>

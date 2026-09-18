@@ -1,6 +1,11 @@
 import { PROVIDER_PRESETS, type ProviderPreset } from './provider-presets'
 import type { LLMProvider, ModelConnectionProfile, ModelConnectionSource } from './types'
+import { allowsKeylessConnection } from './llm-connection-test'
 export { sameConnectionEndpoint } from './llm-connection-test'
+
+export function connectionCredentialLabel(connection: { baseUrl: string; provider?: LLMProvider; hasApiKey?: boolean }): string {
+  return connection.hasApiKey ? '已配置' : allowsKeylessConnection(connection) ? '可留空' : '未配置'
+}
 
 export const CONNECTION_SOURCE_OPTIONS: ReadonlyArray<{ id: ModelConnectionSource; label: string }> = [
   { id: 'official', label: '官方服务商' },

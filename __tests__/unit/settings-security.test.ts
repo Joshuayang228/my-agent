@@ -73,11 +73,29 @@ describe('设置 IPC 安全视图', () => {
     const view = await getRendererSettings()
     expect(view.llmApiKey).toBe('')
     expect(view.llmApiKeyConfigured).toBe('true')
+    expect(view.llmConnectionReady).toBe('true')
     expect(view.mcpServers).toContain('__MY_AGENT_REDACTED__')
     expect(view.mcpServers).not.toContain('sk-real-secret')
     expect(view.mcpServers).not.toContain('real-secret')
     expect(view.modelConnections).not.toContain('sk-connection-secret')
     expect(JSON.parse(view.modelConnections)[0]).toMatchObject({ apiKey: '', hasApiKey: true })
+  })
+
+  it('就绪状态按真实主连接计算，不按全局 Key 状态推断', async () => {
+    loadMainLLMConfig.mockResolvedValueOnce({ apiKey: '', baseUrl: 'http://127.0.0.1:11434/v1', model: 'local' })
+    expect(await getRendererSettings()).toMatchObject({ llmConnectionReady: 'true', llmEffectiveModel: 'local', llmEffectiveBaseUrl: 'http://127.0.0.1:11434/v1' })
+    loadMainLLMConfig.mockResolvedValueOnce({ apiKey: '', baseUrl: 'https://remote.test/v1', model: 'remote' })
+    const remote = await getRendererSettings()
+    expect(remote.llmApiKeyConfigured).toBe('true')
+    expect(remote.llmConnectionReady).toBe('false')
+  })
+
+  it.each(['settings:test-connection', 'settings:fetch-models'])('%s 放行回环无 Key，且不借用全局凭据', async (channel) => {
+    registerSettingsIPC()
+    expect(await handlers.get(channel)!({}, { baseUrl: 'http://127.0.0.1:11434/v1', model: 'local', provider: 'openai' })).toMatchObject({ ok: true })
+    const config = channel === 'settings:test-connection' ? chatComplete.mock.calls[0][0].config : fetchRemoteModels.mock.calls[0][0]
+    expect(config.apiKey).toBe('')
+    expect(config.provider).toBe('openai')
   })
 
   it('整组保存先验证两个字段，再合并密钥并只调用一次专用存储', async () => {

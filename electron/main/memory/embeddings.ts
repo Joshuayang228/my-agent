@@ -36,7 +36,7 @@ export async function createEmbedding(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.apiKey}`,
+      ...(config.apiKey.trim() ? { Authorization: `Bearer ${config.apiKey}` } : {}),
     },
     body: JSON.stringify({
       model,
@@ -85,7 +85,7 @@ export async function createEmbeddings(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.apiKey}`,
+      ...(config.apiKey.trim() ? { Authorization: `Bearer ${config.apiKey}` } : {}),
     },
     body: JSON.stringify({
       model,

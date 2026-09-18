@@ -212,7 +212,7 @@ test('首次进入通过模型路由配置后开始对话', async () => {
   await page.getByRole('button', { name: '添加连接', exact: true }).click()
   await page.getByPlaceholder('连接名称').fill('本地测试连接')
   await page.getByPlaceholder('Base URL').fill(baseUrl)
-  await page.getByPlaceholder('API Key', { exact: true }).fill('local-test-key')
+  await page.getByLabel('API Key', { exact: true }).fill('local-test-key')
   await page.getByRole('button', { name: '保存连接', exact: true }).click()
   await expect(page.getByText('本地测试连接已启用', { exact: false })).toBeVisible()
   const modelInput = page.getByRole('textbox', { name: '手动添加模型 本地测试连接', exact: true })
@@ -221,8 +221,7 @@ test('首次进入通过模型路由配置后开始对话', async () => {
   await page.getByLabel('添加主对话模型').selectOption({ label: '本地测试连接 · local-test-model' })
   await page.getByRole('button', { name: '移除 当前主连接 · gpt-4o', exact: true }).click()
   await expect.poll(() => page.evaluate(async () => JSON.parse((await window.electronAPI.settings.get()).modelRoutes).filter((route: { purpose: string }) => route.purpose === 'primary').map((route: { model: string }) => route.model))).toEqual(['local-test-model'])
-  // 新连接路由是正式配置；旧字段这里只作为测试专用的首启完成标志，不作为 UI 能力暴露。
-  await page.evaluate(() => window.electronAPI.settings.set('llmApiKey', 'local-test-key'))
+  expect((await page.evaluate(() => window.electronAPI.settings.get())).llmConnectionReady).toBe('true')
   await page.locator('[data-testid="settings-back"]').click()
   await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
   await page.getByPlaceholder(/和.*说说/).fill('连接验证')

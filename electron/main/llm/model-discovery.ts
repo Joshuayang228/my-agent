@@ -1,4 +1,5 @@
 import { appendApiPath, detectProvider } from './provider-router'
+import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import { MODEL_FETCH_MESSAGES, MODEL_FETCH_TIMEOUT_MS, parseRemoteModelList } from '../../../src/shared/llm-model-fetch'
 import type { LLMConfig, LLMModelFetchReason, LLMModelFetchResult } from '../../../src/shared/types'
 
@@ -35,7 +36,7 @@ function buildModelListRequest(config: LLMConfig): { url: string; headers: Recor
     url: appendApiPath(config.baseUrl, 'v1/models'),
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.apiKey}`,
+      ...(config.apiKey.trim() ? { Authorization: `Bearer ${config.apiKey}` } : {}),
     },
   }
 }
@@ -45,13 +46,13 @@ function buildModelListRequest(config: LLMConfig): { url: string; headers: Recor
  *
  * 背景：正式设置需要“获取已有模型”，但不能让 Renderer 直连供应商或读回已存密钥。
  * 设计意图：复用现有 Provider 检测和路径拼接；OpenAI Compatible / Anthropic 走 /v1/models，Gemini 明确不支持。
- * 关键约束：没有 API Key 不发请求；错误只返回结构化原因，不回传凭据、响应正文或堆栈。
+ * 关键约束：远程无 API Key 不发请求，本机兼容服务不发送空认证头；错误不回传凭据或正文。
  */
 export async function fetchRemoteModels(
   config: LLMConfig,
   options?: { fetchImpl?: typeof fetch; timeoutMs?: number },
 ): Promise<LLMModelFetchResult> {
-  if (!config.apiKey.trim()) {
+  if (!hasLLMAuthentication(config)) {
     return { ok: false, error: MODEL_FETCH_MESSAGES.missingKey, reason: 'missing-key', retryable: false }
   }
   const request = buildModelListRequest(config)

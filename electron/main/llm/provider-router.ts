@@ -11,15 +11,10 @@
 
 import type { LLMConfig, LLMProvider } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
+import { PROVIDER_DETECTION_RULES, detectProviderFromBaseUrl } from '../../../src/shared/llm-connection-test'
+export { PROVIDER_DETECTION_RULES, detectProviderFromBaseUrl } from '../../../src/shared/llm-connection-test'
 
 const log = createLogger('ProviderRouter')
-
-export const PROVIDER_DETECTION_RULES: ReadonlyArray<{ pattern: RegExp; provider: LLMProvider }> = [
-  // Anthropic 协议既可能来自官方域名，也可能来自 MiniMax Token Plan 这类路径型端点。
-  { pattern: /anthropic\.com|claude\.ai|\/anthropic(?:\/|$)/, provider: 'anthropic' },
-  { pattern: /googleapis\.com|generativelanguage/, provider: 'gemini' },
-  { pattern: /openai\.com|deepseek\.com|api\.openai|together\.xyz|groq\.com|openrouter\.ai/, provider: 'openai' },
-]
 
 /**
  * 将协议路径拼到 Base URL；Alice 清单有时带版本前缀，而本项目旧配置有时不带。
@@ -33,14 +28,6 @@ export function appendApiPath(baseUrl: string, path: string): string {
   if (basePath.endsWith('/v1') && normalizedPath.startsWith('v1/')) return `${base}/${pathWithoutVersion}`
   if (basePath.endsWith('/v1beta') && normalizedPath.startsWith('v1beta/')) return `${base}/${pathWithoutVersion}`
   return `${base}/${normalizedPath}`
-}
-
-/** 根据 Base URL 应用生产检测规则；未知端点保守回退 OpenAI Compatible。 */
-export function detectProviderFromBaseUrl(baseUrl: string): Exclude<LLMProvider, 'auto'> {
-  for (const { pattern, provider } of PROVIDER_DETECTION_RULES) {
-    if (pattern.test(baseUrl)) return provider as Exclude<LLMProvider, 'auto'>
-  }
-  return 'openai'
 }
 
 /**

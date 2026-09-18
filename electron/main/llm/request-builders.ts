@@ -91,7 +91,7 @@ export function toOpenAITool(tool: ToolDefinition): Record<string, unknown> {
  *
  * 背景：运行时需要在 Vision 首次失败后用同一参数去图重试。
  * 设计意图：把 URL、认证方式和 body 放进同一纯函数，首次请求与降级请求只改变 stripImages。
- * 关键约束：返回值包含 Authorization；只允许交给 fetch，Debug 资产必须自行脱敏摘要。
+ * 关键约束：有密钥才带 Authorization；只允许交给 fetch，Debug 资产必须自行脱敏摘要。
  */
 export function buildOpenAIRequest(input: {
   config: LLMConfig
@@ -118,7 +118,7 @@ export function buildOpenAIRequest(input: {
     url: `${config.baseUrl}/chat/completions`,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.apiKey}`,
+      ...(config.apiKey.trim() ? { Authorization: `Bearer ${config.apiKey}` } : {}),
     },
     body,
   }

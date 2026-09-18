@@ -19,6 +19,12 @@ vi.mock('electron', () => ({
 const { getProviderAssetCatalog } = await import('../../electron/main/llm/provider-asset-registry')
 
 describe('Provider 生产资产目录', () => {
+  it('本地无 Key 认证边界由生产纯函数派生到版本化目录', () => {
+    const asset = getProviderAssetCatalog().find((item) => item.key === 'provider-policy:auto-detection')!
+    expect(asset.version).toBe('1.1.0')
+    expect(asset.source).toBe('src/shared/llm-connection-test.ts')
+    expect(JSON.parse(asset.content!).keylessExamples.map((item: { allowed: boolean }) => item.allowed)).toEqual([true, true, true, false, false])
+  })
   it('Provider 入口使用唯一注册表，Settings 与 Chat 不再维护平行数组', () => {
     expect(PROVIDER_PRESETS.map((preset) => preset.key)).toEqual([
       'provider-preset:openai',

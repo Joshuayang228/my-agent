@@ -13,6 +13,11 @@ const anthropic: LLMConfig = { apiKey: 'sk-test', baseUrl: 'https://api.anthropi
 const gemini: LLMConfig = { apiKey: 'sk-test', baseUrl: 'https://generativelanguage.googleapis.com', model: 'gemini-pro', provider: 'gemini' }
 
 describe('model discovery requests', () => {
+  it('discovers from a keyless loopback without an empty authorization header', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ data: [{ id: 'local-model' }] })))
+    expect(await fetchRemoteModels({ ...openai, baseUrl: 'http://127.0.0.1:11434/v1', apiKey: '' }, { fetchImpl })).toEqual({ ok: true, models: ['local-model'] })
+    expect(fetchImpl.mock.calls[0]?.[1]?.headers).not.toHaveProperty('Authorization')
+  })
   it('builds OpenAI Compatible and Anthropic /v1/models requests, and marks Gemini unsupported', () => {
     expect(__test.buildModelListRequest(openai)).toEqual({
       url: 'https://api.openai.com/v1/models',

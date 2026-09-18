@@ -744,6 +744,10 @@ export interface McpConnectionActions {
 export interface RendererSettings extends Record<string, string> {
   llmApiKey: ''
   llmApiKeyConfigured: 'true' | 'false'
+  /** 主进程按有效主用途连接计算配置就绪，不代表远端可达或型号兼容。 */
+  llmConnectionReady: 'true' | 'false'
+  llmEffectiveModel: string
+  llmEffectiveBaseUrl: string
   mcpServers: string
   /** 本机回应偏好；独立于旧 systemPrompt，不覆盖角色身份。 */
   companionResponseNote: string

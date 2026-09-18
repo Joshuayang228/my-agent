@@ -2,11 +2,12 @@
  * 日剧本生成器（M23-G1：LLM 优先 + 哈希回退）
  *
  * 背景：ensureDayScripts 缺页时需要 theme/slots；纯哈希可测但文案重复。
- * 意图：有 aux 配置时用 LLM 按角色分味生成；失败/无 key/解析坏 → 确定性哈希。
+ * 意图：有可用 aux 配置时用 LLM 按角色分味生成；失败/缺配置/解析坏 → 确定性哈希。
  * 约束：输出必须通过结构校验；Catch-up 细补默认不用 LLM（见 engine opts）。
  */
 
 import type { LLMConfig } from '../../../../src/shared/types'
+import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm/index'
 import { PROMPT_KEYS } from '../../prompts/keys'
 import { createLogger } from '../../utils/logger'
@@ -259,7 +260,7 @@ export async function generateDayScriptViaLlm(
   llmConfig: LLMConfig,
   opts?: { universeId?: string },
 ): Promise<DayScriptPayload | null> {
-  if (!llmConfig.apiKey?.trim()) return null
+  if (!hasLLMAuthentication(llmConfig)) return null
   try {
     const pack = loadRolePack(roleId, opts?.universeId ?? 'default')
     const voiceHint = (pack.voice || pack.summary || pack.protected).slice(0, 280)
@@ -313,7 +314,7 @@ export async function resolveDayScript(
   date: string,
   opts?: ResolveDayScriptOpts,
 ): Promise<{ payload: DayScriptPayload; source: 'llm' | 'hash' }> {
-  if (opts?.preferLlm && opts.llmConfig?.apiKey?.trim()) {
+  if (opts?.preferLlm && opts.llmConfig && hasLLMAuthentication(opts.llmConfig)) {
     const llm = await generateDayScriptViaLlm(roleId, date, opts.llmConfig, {
       universeId: opts.universeId,
     })

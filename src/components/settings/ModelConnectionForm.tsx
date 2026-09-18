@@ -1,4 +1,5 @@
 import { X } from 'lucide-react'
+import { allowsKeylessConnection } from '../../shared/llm-connection-test'
 import type { ChangeEvent } from 'react'
 import { ActionButton } from '../foundation/ActionButton'
 import { TextField } from '../foundation/TextField'
@@ -51,7 +52,7 @@ export function ModelConnectionForm({ value, onChange, onSave, onCancel, editing
         <TextField aria-label="Base URL" placeholder="Base URL" value={value.baseUrl} onChange={(event: ChangeEvent<HTMLInputElement>) => onChange({ ...value, baseUrl: event.target.value, apiKey: '' })} className={fieldClass} />
       </label>
       <label className="min-w-0 text-[10px] sm:col-span-2" style={{ color: 'var(--text-secondary)' }}>{preview ? 'API Key（仅样张状态）' : 'API Key'}
-        <TextField aria-label="API Key" type="password" autoComplete="off" placeholder={preview ? '不会写入真实设置' : hasApiKey ? 'API Key（留空则保留原密钥）' : 'API Key'}
+        <TextField aria-label="API Key" type="password" autoComplete="off" placeholder={preview ? '不会写入真实设置' : hasApiKey ? 'API Key（留空则保留原密钥）' : allowsKeylessConnection(value) ? '本地服务未启用认证时可留空' : 'API Key'}
           value={value.apiKey} onChange={(event: ChangeEvent<HTMLInputElement>) => onChange({ ...value, apiKey: event.target.value })} className={fieldClass} />
       </label>
     </div>

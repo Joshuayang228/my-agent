@@ -8,6 +8,7 @@
  */
 
 import type { LLMConfig } from '../../../src/shared/types'
+import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import { streamChat, type StreamChatResult } from '../llm/index'
 import { loadMainLLMConfig } from '../llm/aux-config'
 import {
@@ -108,7 +109,7 @@ export async function runModelSmokeTest(opts?: {
   disableThinking?: boolean
 }): Promise<ModelSmokeResult> {
   const base = await loadMainLLMConfig()
-  if (!base.apiKey?.trim()) {
+  if (!hasLLMAuthentication(base)) {
     return { ok: false, error: '请先在设置中配置 API Key', model: base.model, baseUrl: base.baseUrl }
   }
 
@@ -168,7 +169,7 @@ export async function runModelSmokeTest(opts?: {
  */
 export async function probeThinkingDisable(): Promise<ThinkingProbeResult> {
   const base = await loadMainLLMConfig()
-  if (!base.apiKey?.trim()) {
+  if (!hasLLMAuthentication(base)) {
     return { ok: false, error: '请先在设置中配置 API Key', model: base.model, baseUrl: base.baseUrl }
   }
 

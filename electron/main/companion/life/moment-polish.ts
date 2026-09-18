@@ -2,11 +2,12 @@
  * Moment 文案润色（M24-G2）
  *
  * 背景：规则拼接同源但干；华丽文案若脱离 event 会造双真相。
- * 意图：在已有 event 事实上可选 LLM 润色；失败/无 key → formatMomentText。
+ * 意图：在已有 event 事实上可选 LLM 润色；失败/缺配置 → formatMomentText。
  * 约束：必须绑定 event；禁止发明新地点/行程；辅任务 Prompt 留本文件。
  */
 
 import type { LLMConfig } from '../../../../src/shared/types'
+import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm/index'
 import { PROMPT_KEYS } from '../../prompts/keys'
 import { createLogger } from '../../utils/logger'
@@ -92,7 +93,7 @@ export async function polishMomentTextViaLlm(
     universeId?: string
   },
 ): Promise<string | null> {
-  if (!opts.llmConfig.apiKey?.trim()) return null
+  if (!hasLLMAuthentication(opts.llmConfig)) return null
   if (event.status !== 'published') return null
 
   const activity = String(event.payload.activity ?? event.type)
@@ -153,7 +154,7 @@ export async function resolveMomentText(
 ): Promise<{ text: string; source: 'llm' | 'rule' }> {
   const refs = { outfitName: opts?.outfitName, bookName: opts?.bookName }
   const ruleText = formatMomentText(event, refs)
-  if (opts?.preferLlm && opts.llmConfig?.apiKey?.trim()) {
+  if (opts?.preferLlm && opts.llmConfig && hasLLMAuthentication(opts.llmConfig)) {
     const polished = await polishMomentTextViaLlm(event, {
       llmConfig: opts.llmConfig,
       outfitName: opts.outfitName,

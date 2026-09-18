@@ -1,5 +1,7 @@
 # 系统架构
 
+连接认证与协议自动检测共用 `src/shared/llm-connection-test.ts`，主进程 Provider Router 引用并重导出规则，不复制第二份。只有 HTTP(S) 回环 OpenAI 兼容端点可无 Key；Runtime、测试 / 发现和已有辅助调用按同一规则预检。主进程 `settings:get` 经唯一配置工厂派生就绪状态和实际主模型 / 地址，Renderer 不再用全局 Key 推断主用途配置；原密钥配置标志仍只表达密钥存在，不被改写为连接可用性。
+
 正式模型设置通过专用 `settings:save-model-configuration` 一次提交连接与用途路由。主进程限制 JSON 长度、数组数量及字段枚举，串行合并同身份密钥后调用 settings-store 双键保存；密文准备完成后在无 await 的同步段更新并一次落盘，失败恢复已写键的原始值。通用 settings:set 的模型键与专用入口共用写队列，但仍是单键接口，不对外承诺整组语义。未实现多窗口旧快照版本冲突检测。
 
 SQLite 快照通过同目录临时文件写入后 rename 替换；替换失败禁止退回 copy 覆盖旧库，失败保留原文件并向调用方抛出友好错误。这只是单进程文件替换保障，不代表多字段业务事务或断电耐久性；sql.js 的 export 不得发生在尚未提交的业务事务内。

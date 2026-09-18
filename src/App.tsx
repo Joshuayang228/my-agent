@@ -297,13 +297,13 @@ function App() {
     if (!window.electronAPI) return
     loadSessions()
     window.electronAPI.settings.get().then((s) => {
-      if (s.llmModel) setCurrentModel(s.llmModel)
-      if (s.llmBaseUrl) setCurrentBaseUrl(s.llmBaseUrl)
+      if (s.llmEffectiveModel) setCurrentModel(s.llmEffectiveModel)
+      if (s.llmEffectiveBaseUrl) setCurrentBaseUrl(s.llmEffectiveBaseUrl)
       if (s.executionMode) setApprovalMode(s.executionMode as 'confirm-all' | 'auto' | 'full-access')
       setDeveloperMode(import.meta.env.MODE === 'ui-e2e' || s.developerMode === 'true')
-      if (s.llmApiKeyConfigured !== 'true' && !s.llmApiKey) {
+      if (s.llmConnectionReady !== 'true') {
         setActiveView('settings')
-        setTimeout(() => toast('欢迎！请先配置 API Key 以开始使用', 'warning'), 500)
+        setTimeout(() => toast('欢迎！请先配置模型连接以开始使用', 'warning'), 500)
       }
       try {
         const pinned = JSON.parse(s.pinnedSessions || '[]')
@@ -431,8 +431,8 @@ function App() {
         setProtagonistNames(map)
       })
       window.electronAPI.settings.get().then((s) => {
-        if (s.llmModel) setCurrentModel(s.llmModel)
-        if (s.llmBaseUrl) setCurrentBaseUrl(s.llmBaseUrl)
+        if (s.llmEffectiveModel) setCurrentModel(s.llmEffectiveModel)
+        if (s.llmEffectiveBaseUrl) setCurrentBaseUrl(s.llmEffectiveBaseUrl)
         if (s.executionMode) setApprovalMode(s.executionMode as 'confirm-all' | 'auto' | 'full-access')
         setDeveloperMode(import.meta.env.MODE === 'ui-e2e' || s.developerMode === 'true')
       })
