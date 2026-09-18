@@ -21,7 +21,7 @@ type ChangeItem = {
 
 interface ReviewPanelProps {
   sessionId: string | null
-  onContextChange?: (focus: WorkspaceChatFocus) => void
+  onContextChange?: (focus: WorkspaceChatFocus | undefined) => void
 }
 
 export function ReviewPanel({ sessionId, onContextChange }: ReviewPanelProps) {
@@ -68,6 +68,22 @@ export function ReviewPanel({ sessionId, onContextChange }: ReviewPanelProps) {
     })
   }, [sessionId, reload])
 
+  // 背景：审阅请求可能失败、被清空或在切换文件后迟到；只有当前可见且成功的 diff 才能进入侧聊。
+  // 设计意图：从渲染状态派生上下文，而不是让异步回调直接写入外部状态，避免旧响应绕过当前选择。
+  // 关键约束：loading、error、未加载内容和无选中项必须清除焦点；成功的空稿仍是有效审阅。
+  useEffect(() => {
+    if (!selected || loadingDiff || error || diffText == null) {
+      onContextChange?.(undefined)
+      return
+    }
+    onContextChange?.({ kind: 'review', path: selected, content: diffText.slice(0, 12_000) })
+  }, [diffText, error, loadingDiff, onContextChange, selected])
+
+  useEffect(() => () => {
+    requestRef.current += 1
+    listRequestRef.current += 1
+  }, [])
+
   const openDiff = async (filePath: string) => {
     if (!sessionId) return
     const request = ++requestRef.current
@@ -86,7 +102,6 @@ export function ReviewPanel({ sessionId, onContextChange }: ReviewPanelProps) {
         setDiffText(r.diff || r.after || '')
         setBeforeText(r.before ?? null)
         setAfterText(r.after ?? null)
-        onContextChange?.({ kind: 'review', path: filePath, content: (r.diff || r.after || '').slice(0, 12_000) })
         setLanguage(r.diff ? 'diff' : 'text')
       }
     } catch {
@@ -98,12 +113,21 @@ export function ReviewPanel({ sessionId, onContextChange }: ReviewPanelProps) {
 
   const clearAll = async () => {
     if (!sessionId) return
-    await window.electronAPI?.session.clearFileChanges(sessionId)
-    setItems([])
-    setSelected(null)
-    setDiffText(null)
-    setBeforeText(null)
-    setAfterText(null)
+    try {
+      await window.electronAPI?.session.clearFileChanges(sessionId)
+      // 清空成功才丢弃当前内容；同时失效在清空期间发出的读取，防止列表或 diff 被迟到结果复活。
+      ++requestRef.current
+      ++listRequestRef.current
+      setLoadingDiff(false)
+      setError(null)
+      setItems([])
+      setSelected(null)
+      setDiffText(null)
+      setBeforeText(null)
+      setAfterText(null)
+    } catch {
+      setError('清空文件变更失败，请重试')
+    }
   }
 
   if (!sessionId) {

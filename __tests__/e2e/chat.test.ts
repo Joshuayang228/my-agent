@@ -1235,6 +1235,56 @@ test.describe('My Agent UI', () => {
     }
   }
 
+  test('正式工作区侧聊上下文跟随选中文件且清理已关闭来源', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      const listeners = new Set<(event: unknown) => void>()
+      const state = { pending: {} as Record<string, (value: unknown) => void>, sent: [] as unknown[] }
+      ;(window as any).__focusHarness = state
+      api.project.listFiles = async () => ['a.ts', 'b.ts'].map((name) => ({ name, path: name, isDir: false }))
+      api.project.readFile = (path: string) => new Promise((resolve) => { state.pending[path] = resolve })
+      api.session.createWorkspace = async () => ({ id: 'focus-sidechat' })
+      api.chat.onEvent = (listener) => { listeners.add(listener); return () => listeners.delete(listener) }
+      api.chat.send = async (id, _message, context) => {
+        state.sent.push(context.focus ?? null)
+        listeners.forEach((listener) => listener({ type: 'done', sessionId: id }))
+      }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '新对话', exact: true }).click()
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    const tree = dock.getByTestId('file-browser-tree')
+    await tree.getByRole('button', { name: 'a.ts', exact: true }).click()
+    await tree.getByRole('button', { name: 'b.ts', exact: true }).click()
+    await page.evaluate(() => {
+      const pending = (window as any).__focusHarness.pending
+      pending['b.ts']({ kind: 'text', content: 'selected B', languageHint: 'text' })
+      pending['a.ts']({ kind: 'text', content: 'background A', languageHint: 'text' })
+    })
+    await expect(dock.getByRole('tabpanel', { name: 'b.ts', exact: true })).toContainText('selected B')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '侧边聊天', exact: true }).click()
+    const sendFocus = async (expected: unknown) => {
+      const chat = dock.getByTestId('workspace-sidechat-panel')
+      await chat.getByRole('textbox', { name: '侧边聊天消息' }).fill('检查当前文件')
+      await chat.getByRole('button', { name: '发送消息', exact: true }).click()
+      await expect.poll(() => page.evaluate(() => (window as any).__focusHarness.sent.at(-1))).toEqual(expected)
+    }
+    await sendFocus({ kind: 'file', path: 'b.ts', content: 'selected B' })
+    await dock.getByRole('tab', { name: '文件', exact: true }).click()
+    await dock.getByRole('tablist', { name: '文件预览' }).getByRole('tab', { name: 'a.ts' }).click()
+    await dock.getByRole('tab', { name: '侧边聊天', exact: true }).click()
+    await sendFocus({ kind: 'file', path: 'a.ts', content: 'background A' })
+    await dock.getByRole('tab', { name: '文件', exact: true }).click()
+    await tree.getByRole('button', { name: 'b.ts', exact: true }).click()
+    await dock.getByRole('tab', { name: '侧边聊天', exact: true }).click()
+    await sendFocus({ kind: 'file', path: 'b.ts', content: 'selected B' })
+    await dock.getByRole('button', { name: '关闭文件', exact: true }).click()
+    await sendFocus(null)
+  })
+
   test('正式文件多预览隔离乱序与关闭重开', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
@@ -1328,6 +1378,94 @@ test.describe('My Agent UI', () => {
     await expect(review).toContainText('new new')
     await expect(review).not.toContainText('old old')
     await expect(review.getByRole('button', { name: '统一差异', exact: true })).toBeEnabled()
+  })
+
+  test('正式审阅失败和清空后不再把旧内容发送给侧聊', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      const listeners = new Set<(event: unknown) => void>()
+      const state = { sent: [] as unknown[], failClear: true, delayDiff: false, resolveDiff: null as null | ((value: unknown) => void) }
+      ;(window as any).__reviewFocusHarness = state
+      let parentSequence = 0
+      api.session.create = async () => ({ id: `review-parent-${++parentSequence}` })
+      api.session.listFileChanges = async () => [
+        { path: 'C:/e2e-project/ok.ts', toolName: 'file_edit', updatedAt: 1, hasBefore: true },
+        { path: 'C:/e2e-project/fail.ts', toolName: 'file_edit', updatedAt: 2, hasBefore: true },
+      ]
+      api.session.getFileChangeDiff = async (_session: string, path: string) => state.delayDiff
+        ? new Promise((resolve) => { state.resolveDiff = resolve })
+        : path.endsWith('fail.ts')
+        ? { error: '读取失败' }
+        : { diff: '--- ok\n+++ ok\n@@\n+selected review', before: 'before', after: 'selected review', hasBefore: true }
+      api.session.clearFileChanges = async () => {
+        if (state.failClear) { state.failClear = false; throw new Error('test clear failure') }
+      }
+      api.session.onFileChange = () => () => undefined
+      api.session.createWorkspace = async () => ({ id: 'review-sidechat' })
+      api.chat.onEvent = (listener) => { listeners.add(listener); return () => listeners.delete(listener) }
+      api.chat.send = async (id: string, _message: string, context: { focus?: unknown }) => {
+        state.sent.push(context.focus ?? null)
+        listeners.forEach((listener) => listener({ type: 'done', sessionId: id }))
+      }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '新对话', exact: true }).click()
+    await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+    const dock = page.getByTestId('chat-right-dock')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '审阅', exact: true }).click()
+    const review = dock.getByRole('tabpanel', { name: '审阅', exact: true })
+    await review.getByRole('button', { name: /ok\.ts/ }).click()
+    await expect(review).toContainText('selected review')
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '侧边聊天', exact: true }).click()
+    const chat = dock.getByTestId('workspace-sidechat-panel')
+    const send = async (expected: unknown) => {
+      await chat.getByRole('textbox', { name: '侧边聊天消息' }).fill('检查审阅上下文')
+      await chat.getByRole('button', { name: '发送消息', exact: true }).click()
+      await expect.poll(() => page.evaluate(() => (window as any).__reviewFocusHarness.sent.at(-1))).toEqual(expected)
+    }
+    await send({ kind: 'review', path: 'C:/e2e-project/ok.ts', content: '--- ok\n+++ ok\n@@\n+selected review' })
+    await dock.getByTestId('right-dock-add-tab').click()
+    await dock.getByRole('menuitem', { name: '审阅', exact: true }).click()
+    await expect(dock.getByRole('tabpanel', { name: '审阅 2', exact: true })).toContainText('选择文件查看 diff')
+    await dock.getByRole('tab', { name: '侧边聊天', exact: true }).click()
+    await send(null)
+    await dock.getByRole('tab', { name: '审阅', exact: true }).click()
+    await dock.getByRole('tab', { name: '侧边聊天', exact: true }).click()
+    await send({ kind: 'review', path: 'C:/e2e-project/ok.ts', content: '--- ok\n+++ ok\n@@\n+selected review' })
+    await dock.getByRole('button', { name: '关闭审阅 2', exact: true }).click()
+    await dock.getByRole('tab', { name: '审阅', exact: true }).click()
+    await review.getByRole('button', { name: /fail\.ts/ }).click()
+    await expect(review.getByText('读取失败', { exact: true })).toBeVisible()
+    await dock.getByRole('tab', { name: '侧边聊天', exact: true }).click()
+    await send(null)
+    await dock.getByRole('tab', { name: '审阅', exact: true }).click()
+    await review.getByRole('button', { name: /ok\.ts/ }).click()
+    await expect(review).toContainText('selected review')
+    await review.getByRole('button', { name: '清空列表', exact: true }).click()
+    await expect(review).toContainText('清空文件变更失败，请重试')
+    await expect(review.getByRole('button', { name: /ok\.ts/ })).toBeVisible()
+    await expect(review).toContainText('selected review')
+    await page.evaluate(() => { (window as any).__reviewFocusHarness.delayDiff = true })
+    await review.getByRole('button', { name: /ok\.ts/ }).click()
+    await expect(review.getByText('加载中…', { exact: true })).toBeVisible()
+    await review.getByRole('button', { name: '清空列表', exact: true }).click()
+    await expect(review).toContainText('Agent 写入 / 编辑文件后，会显示在这里')
+    await page.evaluate(() => { (window as any).__reviewFocusHarness.resolveDiff({ after: 'late cleared diff' }) })
+    await dock.getByRole('tab', { name: '侧边聊天', exact: true }).click()
+    await send(null)
+    await dock.getByRole('tab', { name: '审阅', exact: true }).click()
+    await expect(review).not.toContainText('late cleared diff')
+    await page.evaluate(() => { (window as any).__reviewFocusHarness.delayDiff = false })
+    await review.getByRole('button', { name: '刷新', exact: true }).click()
+    await review.getByRole('button', { name: /ok\.ts/ }).click()
+    await expect(review).toContainText('selected review')
+    await dock.getByRole('tab', { name: '侧边聊天', exact: true }).click()
+    await send({ kind: 'review', path: 'C:/e2e-project/ok.ts', content: '--- ok\n+++ ok\n@@\n+selected review' })
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '新对话', exact: true }).click()
+    await send(null)
   })
 
   for (const theme of ['porcelain-blue', 'yao-stone']) {

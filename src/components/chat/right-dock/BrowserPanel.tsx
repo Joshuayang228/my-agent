@@ -1,4 +1,4 @@
-import { Globe, LoaderCircle, RefreshCw } from 'lucide-react'
+import { LoaderCircle, RefreshCw } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react'
 import { IconButton } from '../../foundation/IconButton'
@@ -48,7 +48,6 @@ export function BrowserPanel() {
   }
   return <div className="flex h-full min-h-0 flex-col" data-testid="workspace-browser-panel">
     <form className="flex shrink-0 items-center gap-2 border-b px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event: FormEvent<HTMLFormElement>) => { event.preventDefault(); void load() }}>
-      <Globe size={14} style={{ color: 'var(--text-muted)' }} />
       <TextField aria-label="浏览器地址" value={draft} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft(event.target.value)} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => { if (event.key === 'Escape') { setDraft(address); event.currentTarget.blur() } }} className="flex-1 text-center text-[11px]" />
       <IconButton type="submit" label={loading ? '正在加载' : '刷新页面'} size={24} disabled={loading} className="disabled:opacity-50" style={{ color: 'var(--text-muted)' }}>{loading ? <LoaderCircle size={13} className="animate-spin" /> : <RefreshCw size={13} />}</IconButton>
     </form>

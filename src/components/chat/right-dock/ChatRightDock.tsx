@@ -1,5 +1,5 @@
 /** 正式 Chat 工作区。文件内部预览不再作为顶层工具；Debug 保持独立。 */
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { WorkspaceChatFocus } from '../../../shared/types'
 import { FileText, GitCompare, Globe, MessageCircle, TerminalSquare } from 'lucide-react'
 import { ReviewPanel } from './ReviewPanel'
@@ -34,7 +34,19 @@ export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, 
   const nextInstance = useRef(2)
   const [activeTabId, setActiveTabId] = useState('files-1')
   const [openTabs, setOpenTabs] = useState<RightDockTabInstance[]>([{ instanceId: 'files-1', kind: 'files', ordinal: 1 }])
-  const [workspaceFocus, setWorkspaceFocus] = useState<WorkspaceChatFocus | undefined>()
+  const [contextTabId, setContextTabId] = useState<string | null>('files-1')
+  const [contexts, setContexts] = useState<Record<string, { sessionId: string | null; focus?: WorkspaceChatFocus }>>({})
+  // 背景：隐藏面板仍接收异步结果；按实例保存但只使用最后选中的来源，避免后台响应抢焦点；审阅上下文还必须匹配当前会话。
+  const contextCallbacks = useMemo(() => Object.fromEntries(openTabs.map(({ instanceId }) => [instanceId,
+    (focus: WorkspaceChatFocus | undefined) => setContexts((current) => ({ ...current, [instanceId]: { sessionId, focus } })),
+  ])), [openTabs, sessionId])
+  const context = contextTabId ? contexts[contextTabId] : undefined
+  const workspaceFocus = context?.focus?.kind === 'review' && context.sessionId !== sessionId ? undefined : context?.focus
+  const selectTab = (id: string) => {
+    setActiveTabId(id)
+    const tab = openTabs.find((item) => item.instanceId === id)
+    if (tab?.kind === 'files' || tab?.kind === 'review') setContextTabId(id)
+  }
   const visibleTabs = openTabs.map((instance) => {
     const meta = TABS.find((item) => item.id === instance.kind)!
     return { instance, meta, label: instance.ordinal > 1 ? meta.label + ' ' + instance.ordinal : meta.label }
@@ -43,13 +55,20 @@ export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, 
     const instanceId = kind + '-' + nextInstance.current++
     setOpenTabs((current) => [...current, { instanceId, kind, ordinal: Math.max(0, ...current.filter((item) => item.kind === kind).map((item) => item.ordinal)) + 1 }])
     setActiveTabId(instanceId)
+    if (kind === 'files' || kind === 'review') setContextTabId(instanceId)
   }
   const closeTab = (instanceId: string) => {
     const currentIndex = openTabs.findIndex((item) => item.instanceId === instanceId)
     const remaining = openTabs.filter((item) => item.instanceId !== instanceId)
     setOpenTabs(remaining)
+    setContexts((current) => { const next = { ...current }; delete next[instanceId]; return next })
+    if (contextTabId === instanceId) setContextTabId(null)
     if (!remaining.length) onCloseFiles()
-    else if (instanceId === activeTabId) setActiveTabId(remaining[Math.max(0, currentIndex - 1)].instanceId)
+    else if (instanceId === activeTabId) {
+      const next = remaining[Math.max(0, currentIndex - 1)]
+      setActiveTabId(next.instanceId)
+      if (next.kind === 'files' || next.kind === 'review') setContextTabId(next.instanceId)
+    }
   }
 
   return <div id="chat-right-dock" className="relative flex shrink-0 flex-col overflow-hidden border-l"
@@ -57,14 +76,14 @@ export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, 
     <div className="relative flex shrink-0 items-center gap-1 border-b p-2" style={{ borderColor: 'var(--border-subtle)' }}>
       <TabStrip label="已打开的工作区" activeId={activeTabId} itemTestId="right-dock-tab-item"
         items={visibleTabs.map(({ instance, meta, label }) => { const Icon = meta.icon; return { id: instance.instanceId, label, icon: <Icon size={14} />, panelId: 'dock-panel-' + instance.instanceId, testId: 'right-dock-tab-' + instance.kind } })}
-        onSelect={setActiveTabId} onClose={closeTab} />
+        onSelect={selectTab} onClose={closeTab} />
       <WorkspaceToolMenu testId="right-dock-add-tab" items={TABS.map(({ id, label, icon: Icon }) => ({ id, label, icon: <Icon size={14} /> }))} onSelect={(id) => addTab(id as RightDockTab)} />
     </div>
     {/* 实例在后台继续持有状态与事件订阅；关闭标签才卸载，不能把选中态当作资源生命周期。 */}
     {visibleTabs.map(({ instance, label }) => <div key={instance.instanceId} id={'dock-panel-' + instance.instanceId} role="tabpanel" aria-label={label}
       hidden={activeTabId !== instance.instanceId} className={activeTabId === instance.instanceId ? 'flex min-h-0 min-w-0 flex-1 flex-col' : 'hidden'}>
-      {instance.kind === 'files' && <WorkspaceFilesPanel projectPath={projectPath} onContextChange={setWorkspaceFocus} />}
-      {instance.kind === 'review' && <ReviewPanel key={sessionId} sessionId={sessionId} onContextChange={setWorkspaceFocus} />}
+      {instance.kind === 'files' && <WorkspaceFilesPanel projectPath={projectPath} onContextChange={contextCallbacks[instance.instanceId]} />}
+      {instance.kind === 'review' && <ReviewPanel key={sessionId} sessionId={sessionId} onContextChange={contextCallbacks[instance.instanceId]} />}
       {instance.kind === 'terminal' && <TerminalPanel projectPath={projectPath} />}
       {instance.kind === 'browser' && <BrowserPanel />}
       {/* 侧聊依附主会话：与审阅一样整体重建，避免只换后端 ID 却留下旧正文/确认；同会话隐藏不重建。 */}

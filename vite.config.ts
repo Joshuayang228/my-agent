@@ -21,6 +21,7 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       rollupOptions: {
+        ...(isUiE2E ? { input: { app: path.resolve(__dirname, 'index.html'), markdownTheme: path.resolve(__dirname, '__tests__/fixtures/markdown-theme.html') } } : {}),
         output: {
           manualChunks(id: string) {
             if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {

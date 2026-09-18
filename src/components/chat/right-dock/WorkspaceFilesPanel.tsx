@@ -6,7 +6,7 @@ import { TabStrip } from '../../foundation/TabStrip'
 interface WorkspaceFilesPanelProps {
   projectPath: string | null
   previewData?: FileBrowserPreviewData
-  onContextChange?: (focus: WorkspaceChatFocus) => void
+  onContextChange?: (focus: WorkspaceChatFocus | undefined) => void
 }
 
 /** 项目切换建立新的文件工作区，旧请求和旧预览不能跨项目继续显示。 */
@@ -30,7 +30,6 @@ function FilesWorkspace({ projectPath, previewData, onContextChange }: Workspace
 
   const openFile = (path: string, retry = false) => {
     setActivePath(path)
-    onContextChange?.({ kind: 'file', path, content: '正在读取文件内容。' })
     const existing = files.find((file) => file.path === path)
     if (existing && existing.kind !== 'error' && !retry) return
     const request = ++sequence.current
@@ -42,7 +41,6 @@ function FilesWorkspace({ projectPath, previewData, onContextChange }: Workspace
       if (requests.current.get(path) !== request) return
       requests.current.delete(path)
       setFiles((current) => current.map((file) => file.path === path ? result : file))
-      if (result.kind === 'text') onContextChange?.({ kind: 'file', path, content: result.content.slice(0, 12_000) })
     })
   }
 
@@ -53,6 +51,10 @@ function FilesWorkspace({ projectPath, previewData, onContextChange }: Workspace
     setActivePath((current) => current === path ? remaining.at(-1)?.path ?? null : current)
   }
   const activeFile = files.find((file) => file.path === activePath) ?? null
+  // 背景：后台读取可能晚于当前文件完成；由选中项派生而非由每次完成回调发布，缓存切换与关闭也必须同步上下文。
+  useEffect(() => {
+    onContextChange?.(activeFile ? { kind: 'file', path: activeFile.path, content: activeFile.kind === 'text' ? activeFile.content.slice(0, 12_000) : '' } : undefined)
+  }, [activeFile, onContextChange])
   return <div className="flex h-full min-h-0 min-w-0 flex-1" data-testid="workspace-files-layout">
     <div className="min-w-0 shrink-0 overflow-hidden border-r"
       style={{ width: files.length ? '32%' : '100%', borderColor: 'var(--border-subtle)' }} data-testid="workspace-file-tree">

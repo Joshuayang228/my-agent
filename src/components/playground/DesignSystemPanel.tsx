@@ -166,13 +166,14 @@ function ThemeStudyCard({ study, selected, onSelect }: { study: typeof THEME_STU
 
 function MotionTokenSample({ name, label, usage, value, easing, playing }: { name: string; label: string; usage: string; value: string; easing: MotionEasing; playing: boolean }) {
   const easingValue = MOTION_EASINGS[easing].value
-  const tokenDuration = Number.parseInt(value, 10)
+  // 构建压缩可将 150ms 改为 .15s；展示和放慢演示都按毫秒换算，不能把小数秒截断为整数。
+  const tokenDuration = Number.parseFloat(value) * (value.trim().endsWith('ms') ? 1 : 1000)
   const demoDuration = Number.isFinite(tokenDuration) ? `${Math.max(tokenDuration * 5, 700)}ms` : '1100ms'
   return (
     <div className="min-w-[13rem] flex-1 rounded-xl border p-3" data-testid={`motion-sample-${name.replaceAll('--', '')}`} style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-mono text-[10px]" style={{ color: 'var(--text-primary)' }}>{name}</span>
-        <span className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{value || '—'}</span>
+        <span className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{Number.isFinite(tokenDuration) ? `${Math.round(tokenDuration)}ms` : value || '—'}</span>
       </div>
       <div className="mt-1 text-[10px]" style={{ color: 'var(--text-secondary)' }}>{label} · {usage}</div>
       <div className="relative mt-3 h-2 overflow-hidden rounded-full" style={{ background: 'var(--bg-tertiary)' }}>
