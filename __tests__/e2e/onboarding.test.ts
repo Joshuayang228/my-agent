@@ -785,6 +785,15 @@ test('真实 Electron workspace 会话创建、隔离与清理', async () => {
 
 test.afterEach(async ({}, testInfo) => {
   if (testInfo.status !== testInfo.expectedStatus) {
+    const rendererState = await page.evaluate(() => {
+      const terminal = (window as unknown as { __terminalObserved?: { output: string; errors: string; exits: string[] } }).__terminalObserved
+      return {
+        chat: Boolean(document.querySelector('[data-testid="chat-messages"]')),
+        playground: Boolean(document.querySelector('[data-testid="playground-page"]')),
+        terminal: terminal ? { outputLength: terminal.output.length, errorLength: terminal.errors.length, exitCount: terminal.exits.length } : null,
+      }
+    }).catch(() => ({ unavailable: true }))
+    await testInfo.attach('renderer-failure-state', { body: JSON.stringify(rendererState), contentType: 'application/json' })
     const logPath = testInfo.outputPath('electron-main.log')
     await writeFile(logPath, mainOutput, 'utf8')
     await testInfo.attach('electron-main-log', { path: logPath, contentType: 'text/plain' })

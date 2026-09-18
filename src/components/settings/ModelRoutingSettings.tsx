@@ -42,10 +42,12 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
   const [busy, setBusy] = useState(false)
   const saving = useRef(false)
   const mounted = useRef(false)
+  const testRequests = useRef(new Map<string, symbol>())
+  const fetchRequests = useRef(new Map<string, symbol>())
   const { toast } = useToast()
   useEffect(() => {
     mounted.current = true
-    return () => { mounted.current = false }
+    return () => { mounted.current = false; testRequests.current.clear(); fetchRequests.current.clear() }
   }, [])
   const [testState, setTestState] = useState<Record<string, 'idle' | 'testing' | 'success' | 'error'>>({})
   const [testError, setTestError] = useState<Record<string, string>>({})
@@ -53,6 +55,17 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
   const [fetchError, setFetchError] = useState<Record<string, { message: string; retryable: boolean }>>({})
   const [fetchedModels, setFetchedModels] = useState<Record<string, string[]>>({})
   const [modelDrafts, setModelDrafts] = useState<Record<string, string>>({})
+  // 背景：同 id 可换端点或凭据；意图：保存成功后撤销旧请求和缓存；约束：失败保存及仅改名 / 用途不得误清理结果。
+  const invalidateConnectionResults = (id: string, discovery = true) => {
+    testRequests.current.delete(id)
+    setTestState((current) => ({ ...current, [id]: 'idle' }))
+    setTestError((current) => ({ ...current, [id]: '' }))
+    if (!discovery) return
+    fetchRequests.current.delete(id)
+    setFetchState((current) => ({ ...current, [id]: 'idle' }))
+    setFetchError((current) => { const next = { ...current }; delete next[id]; return next })
+    setFetchedModels((current) => { const next = { ...current }; delete next[id]; return next })
+  }
   const available = useMemo(() => connections.flatMap((connection) => connection.enabled
     ? enabledConnectionModelIds(connection).map((model) => ({ connection, value: `${connection.id}::${model}`, model }))
     : []), [connections])
@@ -64,6 +77,14 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
     try {
       await onSave(JSON.stringify(nextConnections), JSON.stringify(nextRoutes))
       if (!mounted.current) return false
+      for (const previous of connections) {
+        const next = nextConnections.find((item) => item.id === previous.id)
+        if (!next || !sameConnectionEndpoint(previous, next) || Boolean(next.apiKey?.trim()) || previous.enabled !== next.enabled) {
+          invalidateConnectionResults(previous.id)
+        } else if ((enabledConnectionModelIds(previous)[0] || previous.model) !== (enabledConnectionModelIds(next)[0] || next.model)) {
+          invalidateConnectionResults(previous.id, false)
+        }
+      }
       setConnections(nextConnections.map(({ apiKey, ...connection }) => ({
         ...connection, apiKey: '', hasApiKey: Boolean(apiKey?.trim() || connection.hasApiKey),
       })))
@@ -114,6 +135,7 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
     return persist(next, nextRoutes)
   }
   const testConnection = async (connection: ModelConnectionProfile, draftApiKey?: string) => {
+    if (testRequests.current.has(connection.id)) return
     const model = enabledConnectionModelIds(connection)[0] || connection.model
     if (!model) {
       setTestState((current) => ({ ...current, [connection.id]: 'error' }))
@@ -122,7 +144,12 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
     }
     setTestState((current) => ({ ...current, [connection.id]: 'testing' }))
     setTestError((current) => ({ ...current, [connection.id]: '' }))
+    const token = Symbol()
+    testRequests.current.set(connection.id, token)
     const result = await onTestConnection({ ...connection, model }, draftApiKey)
+      .catch(() => ({ ok: false as const, error: '连接测试未完成，请重试' }))
+    if (!mounted.current || testRequests.current.get(connection.id) !== token) return
+    testRequests.current.delete(connection.id)
     if (result.ok) setTestState((current) => ({ ...current, [connection.id]: 'success' }))
     else {
       setTestState((current) => ({ ...current, [connection.id]: 'error' }))
@@ -130,10 +157,15 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
     }
   }
   const fetchModels = async (connection: ModelConnectionProfile, draftApiKey?: string) => {
-    if (fetchState[connection.id] === 'loading') return
+    if (fetchRequests.current.has(connection.id)) return
     setFetchState((current) => ({ ...current, [connection.id]: 'loading' }))
     setFetchError((current) => { const next = { ...current }; delete next[connection.id]; return next })
+    const token = Symbol()
+    fetchRequests.current.set(connection.id, token)
     const result = await onFetchModels(connection, draftApiKey)
+      .catch(() => ({ ok: false as const, error: '模型列表获取未完成，请重试', reason: 'network' as const, retryable: true }))
+    if (!mounted.current || fetchRequests.current.get(connection.id) !== token) return
+    fetchRequests.current.delete(connection.id)
     if (result.ok) {
       setFetchedModels((current) => ({ ...current, [connection.id]: result.models }))
       setFetchState((current) => ({ ...current, [connection.id]: 'success' }))

@@ -392,6 +392,105 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
   }
 }
 
+test('正式模型请求结果跟随连接身份，拒绝迟到结果并恢复异常', async ({ page }) => {
+  await installProductionElectronStub(page)
+  await page.addInitScript(() => {
+    const api = (window as any).electronAPI
+    const values = {
+      llmApiKeyConfigured: 'true', llmModel: 'fixture',
+      modelConnections: JSON.stringify([{ id: 'request-owner', name: '请求归属连接', source: 'custom', provider: 'openai', baseUrl: 'https://before.test/v1', model: 'fixture', models: [{ id: 'fixture', enabled: true }], enabled: true, hasApiKey: true }]),
+      modelRoutes: '[]',
+    }
+    const state = { values, failSave: false, test: [] as Array<{ resolve: (value: unknown) => void; reject: (error: Error) => void }>, fetch: [] as Array<{ resolve: (value: unknown) => void; reject: (error: Error) => void }> }
+    ;(window as any).__modelRequests = state
+    api.settings.get = async () => ({ ...values })
+    api.settings.saveModelConfiguration = async (input: { connections: string; routes: string }) => {
+      if (state.failSave) throw new Error('fixture-save-failed')
+      values.modelConnections = input.connections; values.modelRoutes = input.routes
+    }
+    api.settings.testConnection = () => new Promise((resolve, reject) => state.test.push({ resolve, reject }))
+    api.settings.fetchModels = () => new Promise((resolve, reject) => state.fetch.push({ resolve, reject }))
+  })
+  await page.goto('/')
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+  await page.getByTestId('settings-nav-model').click()
+  const profile = page.getByTestId('settings-model-profile-request-owner')
+  const testButton = profile.getByRole('button', { name: '测试连接 请求归属连接', exact: true })
+  const fetchButton = profile.getByTestId('settings-fetch-models-request-owner')
+  await testButton.click()
+  await fetchButton.click()
+  await profile.getByRole('button', { name: '编辑', exact: true }).click()
+  const form = page.getByTestId('model-connection-form')
+  await form.getByLabel('Base URL', { exact: true }).fill('https://after.test/v1')
+  await form.getByLabel('API Key', { exact: true }).fill('fixture-new-key')
+  await form.getByRole('button', { name: '保存连接', exact: true }).click()
+  await expect(form).toHaveCount(0)
+  await expect(testButton).toBeEnabled()
+  await expect(fetchButton).toBeEnabled()
+  await testButton.click()
+  await fetchButton.click()
+  await expect.poll(() => page.evaluate(() => [(window as any).__modelRequests.test.length, (window as any).__modelRequests.fetch.length])).toEqual([2, 2])
+  await page.evaluate(() => {
+    const state = (window as any).__modelRequests
+    state.test[1].resolve({ ok: true, model: 'fixture', ms: 1 })
+    state.fetch[1].resolve({ ok: true, models: ['current-model', 'second-model'] })
+    state.test[0].resolve({ ok: false, error: '旧连接错误' })
+    state.fetch[0].resolve({ ok: true, models: ['stale-model'] })
+  })
+  await expect(profile).toContainText('连接测试通过')
+  await expect(profile).toContainText('current-model')
+  await expect(profile).not.toContainText('stale-model')
+  await expect(profile).not.toContainText('旧连接错误')
+  const discovered = page.getByTestId('settings-fetched-models-request-owner')
+  await discovered.getByRole('button', { name: 'current-model', exact: true }).click()
+  await expect(discovered).toContainText('second-model')
+  await discovered.getByRole('button', { name: 'second-model', exact: true }).click()
+  await expect(profile).toContainText('模型清单 · 3 个')
+  await expect(discovered.getByRole('button', { name: /current-model/ })).toBeDisabled()
+  await expect(profile).toContainText('连接测试通过')
+  await profile.getByRole('button', { name: '编辑', exact: true }).click()
+  await form.getByLabel('Base URL', { exact: true }).fill('https://cancelled.test/v1')
+  await form.getByRole('button', { name: '取消', exact: true }).click()
+  await expect(profile).toContainText('current-model')
+  await page.evaluate(() => { (window as any).__modelRequests.failSave = true })
+  await profile.getByRole('button', { name: '编辑', exact: true }).click()
+  await form.getByLabel('API Key', { exact: true }).fill('fixture-replacement')
+  await form.getByRole('button', { name: '保存连接', exact: true }).click()
+  await expect(page.getByText('模型设置保存未完成，当前编辑内容已保留，请重试。', { exact: true })).toBeVisible()
+  await form.getByRole('button', { name: '取消', exact: true }).click()
+  await expect(profile).toContainText('连接测试通过')
+  await expect(profile).toContainText('current-model')
+  await page.evaluate(() => { (window as any).__modelRequests.failSave = false })
+  await profile.getByRole('button', { name: '编辑', exact: true }).click()
+  await form.getByLabel('API Key', { exact: true }).fill('fixture-replacement')
+  await form.getByRole('button', { name: '保存连接', exact: true }).click()
+  await expect(profile).toContainText('尚未测试')
+  await expect(discovered).toHaveCount(0)
+  await testButton.click()
+  await fetchButton.click()
+  await page.evaluate(() => {
+    const state = (window as any).__modelRequests
+    state.test[2].reject(new Error('fixture-internal-secret'))
+    state.fetch[2].reject(new Error('fixture-internal-secret'))
+  })
+  await expect(profile).toContainText('连接测试未完成，请重试')
+  await expect(profile).toContainText('模型列表获取未完成，请重试')
+  await expect(profile).not.toContainText('fixture-internal-secret')
+  await expect(testButton).toBeEnabled()
+  await expect(fetchButton).toBeEnabled()
+  await testButton.click()
+  await fetchButton.click()
+  await page.getByTestId('settings-nav-appearance').click()
+  await page.getByTestId('settings-nav-model').click()
+  await page.evaluate(() => {
+    const state = (window as any).__modelRequests
+    state.test[3].resolve({ ok: true, model: 'fixture', ms: 1 })
+    state.fetch[3].resolve({ ok: true, models: ['left-page-model'] })
+  })
+  await expect(profile).toContainText('尚未测试')
+  await expect(profile).not.toContainText('left-page-model')
+})
+
 test('正式模型保存失败保留草稿和清单，重试后才应用', async ({ page }) => {
   await installProductionElectronStub(page)
   await page.addInitScript(() => {
