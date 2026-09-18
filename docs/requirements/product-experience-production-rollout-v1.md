@@ -187,6 +187,7 @@ R12 必须拆成六个独立验收面：
 
 ### R11 关于页开发者模式门控（2026-09-17）
 
+- 2026-09-18 补充入口反证：原实现只隐藏可见入口，真实 Electron 在 `developerMode=false` 时按 Ctrl+Shift+D 仍离开聊天进入 Debug。全局快捷键改为读取已保存配置，从设置离开先走同一保存队列；读取失败留页并提示，迟到读取不抢回页面。关闭态覆盖设置内和聊天中 D/P，开启态完整重启后覆盖 D/P 进入与返回。该入口修复不代表 R11 或全产品已 adopted。
 - 本批边界：正式「关于 My Agent」与 Playground 候选共用 `AboutSettingsContent` 和共享 `SettingSwitch`。正式开关走既有 `settings:set('developerMode')` 自动保存；候选只改内存样张，不写 IPC。普通模式隐藏侧栏 Debug / Playground 整组入口和 Chat 顶栏 Debug 按钮，不只隐藏单个按钮。关闭仅收回入口，不删除诊断数据、资产或后台服务。
 - 允许修改：共享关于页、SettingsPanel / SettingsExperienceCandidate 接入、UI 组件与产品体验注册表、Renderer / Electron 测试，以及本合同 / agent-runtime / 质量 / 账本。`src/App.tsx` 保持 assume-unchanged，不把无关脏改动带进本批。
 - 明确不碰：人物 starter 来源复核、MCP OAuth、模型发现、朋友圈互动备份、凭据、权限引擎、项目路径、用户旧数据兼容层、Playground 夹具当生产事实。

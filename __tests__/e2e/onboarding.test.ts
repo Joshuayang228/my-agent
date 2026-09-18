@@ -618,9 +618,20 @@ test('正式关于页开发者模式经真实 IPC 开关、隐藏入口并完整
   await expect(page.getByTestId('settings-developer-mode')).toHaveAttribute('aria-checked', 'true')
   await page.getByTestId('settings-developer-mode').click()
   await expect.poll(async () => (await page.evaluate(() => window.electronAPI.settings.get())).developerMode).toBe('false')
+  for (const shortcut of ['Control+Shift+D', 'Control+Shift+P']) {
+    await page.keyboard.press(shortcut)
+    await expect(page.getByTestId('settings-panel')).toBeVisible()
+    await expect(page.getByTestId('settings-developer-mode')).toHaveAttribute('aria-checked', 'false')
+  }
   await page.getByTestId('settings-back').click()
   await expect(page.getByTestId('sidebar-developer-nav')).toHaveCount(0)
   expect((await page.evaluate(() => window.electronAPI.settings.get())).developerMode).toBe('false')
+  for (const shortcut of ['Control+Shift+D', 'Control+Shift+P']) {
+    await page.keyboard.press(shortcut)
+    await expect(page.getByTestId('chat-messages')).toBeVisible()
+    await expect(page.getByTestId('dev-panel')).toHaveCount(0)
+    await expect(page.getByTestId('playground-page')).toHaveCount(0)
+  }
   await electronApp.close()
   electronApp = await electron.launch({ args: [path.join(__dirname, '../../dist-electron/index.js'), '--user-data-dir=' + userDataDir, '--no-sandbox'], env: { ...process.env, NODE_ENV: 'production', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' } })
   page = await electronApp.firstWindow()
@@ -644,6 +655,14 @@ test('正式关于页开发者模式经真实 IPC 开关、隐藏入口并完整
   if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
   await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
   await expect(page.getByTestId('sidebar-developer-nav')).toBeVisible()
+  await page.keyboard.press('Control+Shift+D')
+  await expect(page.getByTestId('dev-panel')).toBeVisible()
+  await page.keyboard.press('Control+Shift+D')
+  await expect(page.getByTestId('chat-messages')).toBeVisible()
+  await page.keyboard.press('Control+Shift+P')
+  await expect(page.getByTestId('playground-page')).toBeVisible()
+  await page.keyboard.press('Control+Shift+P')
+  await expect(page.getByTestId('chat-messages')).toBeVisible()
 })
 
 test('Debug 质量 Eval 可保存并重新载入真人格人工审阅', async () => {

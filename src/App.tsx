@@ -440,18 +440,34 @@ function App() {
   }, [])
 
   useEffect(() => {
+    let navigationActive = true
+    const canNavigate = async (target: ShellView) => {
+      if (target !== 'debug' && target !== 'playground') return true
+      if (import.meta.env.MODE === 'ui-e2e') return true
+      try {
+        const enabled = (await window.electronAPI.settings.get()).developerMode === 'true'
+        if (!navigationActive) return false
+        setDeveloperMode(enabled)
+        return enabled
+      } catch {
+        if (navigationActive) toast('无法读取开发者模式，请稍后重试', 'error')
+        return false
+      }
+    }
     const navigate = async (target: ShellView, after?: () => void) => {
       if (activeView === 'settings') {
         if (settingsNavigationPending.current) return
         settingsNavigationPending.current = true
         try {
           if (!settingsSaveBeforeLeave.current || !(await settingsSaveBeforeLeave.current())) return
+          if (!(await canNavigate(target)) || !navigationActive) return
           closeSettings(target)
           after?.()
         } finally {
           settingsNavigationPending.current = false
         }
       } else {
+        if (!(await canNavigate(target)) || !navigationActive) return
         setActiveView(target)
         after?.()
       }
@@ -503,8 +519,11 @@ function App() {
       }
     }
     window.addEventListener('keydown', handleGlobalKey)
-    return () => window.removeEventListener('keydown', handleGlobalKey)
-  }, [activeView, closeSettings, createNewSession, searchOpen])
+    return () => {
+      navigationActive = false
+      window.removeEventListener('keydown', handleGlobalKey)
+    }
+  }, [activeView, closeSettings, createNewSession, searchOpen, toast])
 
   useEffect(() => {
     if (!providerMenuOpen && !approvalMenuOpen && !projectMenuOpen) return
