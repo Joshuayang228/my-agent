@@ -444,8 +444,7 @@ export function SettingsPanel({
         })
       }} onSave={async (connections, routes) => {
         if (preview || !window.electronAPI) return
-        await window.electronAPI.settings.set('modelConnections', connections)
-        await window.electronAPI.settings.set('modelRoutes', routes)
+        await window.electronAPI.settings.saveModelConfiguration({ connections, routes })
         try {
           const parsed = JSON.parse(connections)
           setModelConnections(JSON.stringify(Array.isArray(parsed) ? parsed.map((item) => {

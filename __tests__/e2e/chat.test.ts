@@ -289,6 +289,7 @@ async function installProductionElectronStub(page: import('@playwright/test').Pa
       settings: {
         get: async () => ({ llmApiKeyConfigured: 'true', llmModel: 'e2e-model', executionMode: 'confirm-all', pinnedSessions: '[]' }),
         set: async () => ({ success: true }),
+        saveModelConfiguration: async () => {},
       },
       companion: {
         getActive: async () => ({ id: 'lin', name: '测试伙伴', description: '测试用伙伴' }),
@@ -327,6 +328,10 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
         ;(window as any).__modelForm = state
         api.settings.get = async () => ({ ...values })
         api.settings.set = async (key: string, value: string) => { values[key] = value }
+        api.settings.saveModelConfiguration = async (input: { connections: string; routes: string }) => {
+          values.modelConnections = input.connections
+          values.modelRoutes = input.routes
+        }
         api.settings.testConnection = async (input: unknown) => { state.tested = input; return { ok: true, model: 'fixture', ms: 1 } }
       }, theme)
       await page.goto('/')
@@ -400,12 +405,15 @@ test('正式模型保存失败保留草稿和清单，重试后才应用', async
     ;(window as any).__modelSave = state
     api.settings.get = async () => ({ ...values })
     api.settings.set = async (key: string, value: string) => {
-      if (key === 'modelConnections') {
-        state.writes++
-        if (state.hold) await new Promise<void>((resolve) => { state.release = resolve })
-      }
-      if (state.fail && ['modelConnections', 'modelRoutes'].includes(key)) throw new Error('fixture-save-failed')
+      if (['modelConnections', 'modelRoutes'].includes(key)) throw new Error('模型页面不得分两次保存')
       values[key] = value
+    }
+    api.settings.saveModelConfiguration = async (input: { connections: string; routes: string }) => {
+      state.writes++
+      if (state.hold) await new Promise<void>((resolve) => { state.release = resolve })
+      if (state.fail) throw new Error('fixture-save-failed')
+      values.modelConnections = input.connections
+      values.modelRoutes = input.routes
     }
   })
   await page.goto('/')

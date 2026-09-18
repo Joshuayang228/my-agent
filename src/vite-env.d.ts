@@ -117,6 +117,7 @@ declare global {
         /** 包含独立的 companionResponseNote，与 preload 共用 RendererSettings。 */
         get: () => Promise<RendererSettings>
         set: (key: string, value: string) => Promise<void>
+        saveModelConfiguration: (input: import('./shared/types').ModelConfigurationInput) => Promise<void>
         /** 连接测试包含显式 provider；协议与生产配置使用同一共享类型。 */
         testConnection: (input: LLMConnectionTestInput) => Promise<LLMConnectionTestResult>
         fetchModels: (input: LLMModelFetchInput) => Promise<LLMModelFetchResult>

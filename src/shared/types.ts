@@ -776,6 +776,12 @@ export interface LLMConfig {
 
 export type ModelRoutePurpose = 'primary' | 'auxiliary' | 'image'
 
+/** 专用模型配置整组保存载荷；JSON 在主进程校验，凭据不回传。 */
+export interface ModelConfigurationInput {
+  connections: string
+  routes: string
+}
+
 export interface ModelConnectionModel {
   id: string
   enabled: boolean

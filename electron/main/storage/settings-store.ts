@@ -2,6 +2,7 @@ import { safeStorage } from 'electron'
 import { getDatabase, persist } from './database'
 import { createLogger } from '../utils/logger'
 import { MAX_COMPANION_RESPONSE_NOTE_LENGTH } from '../../../src/shared/types'
+import type { ModelConfigurationInput } from '../../../src/shared/types'
 
 const log = createLogger('SettingsStore')
 
@@ -251,6 +252,42 @@ export async function setSetting<K extends keyof AppSettings>(
 
   persist()
   log.info(`Setting updated: ${key}`)
+}
+
+/**
+ * 背景：模型连接与用途路由分开写盘会在失败时留下半套配置。
+ * 设计意图：沿用 Skill 状态的同步写入及失败补偿，仅处理这两个设置键。
+ * 关键约束：密文先准备；读旧值、两次 SQL、persist 与恢复之间不得 await；sql.js export 不能置于未提交事务内。
+ */
+export async function saveModelConfiguration(input: ModelConfigurationInput): Promise<void> {
+  if ([input.connections, input.routes].some((value) => typeof value !== 'string' || value.length > MAX_SETTING_VALUE_LENGTH)) {
+    throw new Error('模型配置无效或超出长度限制')
+  }
+  const values = [encrypt(input.connections), input.routes]
+  await ensureTable()
+  const db = await getDatabase()
+  const keys = ['modelConnections', 'modelRoutes'] as const
+  const previous = keys.map((key) => db.exec('SELECT value FROM settings WHERE key = ?', [key])[0]?.values[0]?.[0])
+  const write = (key: string, value: string | number | Uint8Array | null) => db.run(
+    'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value', [key, value],
+  )
+  let written = 0
+  try {
+    keys.forEach((key, index) => { write(key, values[index]); written++ })
+    persist()
+  } catch {
+    try {
+      for (let index = written - 1; index >= 0; index--) {
+        const value = previous[index]
+        if (value === undefined) db.run('DELETE FROM settings WHERE key = ?', [keys[index]])
+        else write(keys[index], value)
+      }
+    } catch {
+      log.error('Model configuration rollback failed')
+      throw new Error('模型配置恢复失败，请重启应用后重试')
+    }
+    throw new Error('模型配置保存失败，原配置已保留，请重试')
+  }
 }
 
 export async function getAllSettings(): Promise<AppSettings> {

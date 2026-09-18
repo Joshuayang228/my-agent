@@ -97,6 +97,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 共享安全视图包含 companionResponseNote；不通过额外频道读取偏好或凭据。
     get: (): Promise<RendererSettings> => ipcRenderer.invoke('settings:get'),
     set: (key: string, value: string): Promise<void> => ipcRenderer.invoke('settings:set', key, value),
+    saveModelConfiguration: (input: import('../../src/shared/types').ModelConfigurationInput): Promise<void> =>
+      ipcRenderer.invoke('settings:save-model-configuration', input),
     // provider 与连接身份一起透传；主进程校验协议及已存密钥归属，不在桥接层推断。
     testConnection: (input: LLMConnectionTestInput): Promise<LLMConnectionTestResult> =>
       ipcRenderer.invoke('settings:test-connection', input),

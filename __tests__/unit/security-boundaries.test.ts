@@ -11,6 +11,7 @@ vi.mock('electron', () => ({
 vi.mock('../../electron/main/storage/session-store', () => ({}))
 vi.mock('../../electron/main/storage/memory-store', () => ({}))
 vi.mock('../../electron/main/storage/settings-store', () => ({
+  MAX_SETTING_VALUE_LENGTH: 1_000_000,
   isAppSettingKey: (key: string) => ['currentProject', 'recentProjects', 'llmModel'].includes(key),
 }))
 vi.mock('../../electron/main/storage/database', () => ({}))

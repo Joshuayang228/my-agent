@@ -12,6 +12,31 @@ import type { LLMConnectionTestInput, LLMConnectionTestResult, LLMModelFetchInpu
 import { MAX_COMPANION_RESPONSE_NOTE_LENGTH } from '../../../src/shared/types'
 import { redactMcpConfigsForRenderer, hasNewOrChangedEnabledMcpConfig, mergeMcpConfigListSecrets, parseStoredMcpConfigs } from '../mcp/config-security'
 import { withMcpConfigLock } from '../mcp/config-lock'
+import { z } from 'zod'
+
+const modelConfigurationSchema = z.object({
+  connections: z.string().max(settings.MAX_SETTING_VALUE_LENGTH),
+  routes: z.string().max(settings.MAX_SETTING_VALUE_LENGTH),
+})
+const connectionListSchema = z.array(z.object({
+  id: z.string().min(1).max(256), name: z.string().max(1024), baseUrl: z.string().max(8192),
+  model: z.string().max(1024), enabled: z.boolean(), apiKey: z.string().max(65536).optional(),
+  models: z.array(z.object({ id: z.string().min(1).max(1024), enabled: z.boolean() })).max(2000).optional(),
+  provider: z.enum(['auto', 'openai', 'anthropic', 'gemini']).optional(),
+  source: z.enum(['official', 'coding', 'relay', 'local', 'custom']).optional(), presetId: z.string().max(256).optional(),
+})).max(1000)
+const routeListSchema = z.array(z.object({
+  purpose: z.enum(['primary', 'auxiliary', 'image']), connectionId: z.string().min(1).max(256),
+  model: z.string().max(1024), enabled: z.boolean(),
+})).max(3000)
+let modelConfigurationWrites: Promise<void> = Promise.resolve()
+
+/** 同组配置包含凭据读改写；按请求顺序串行且失败释放，错误仍通过原 Promise 返回调用方。 */
+function withModelConfigurationWrite(action: () => Promise<void>): Promise<void> {
+  const next = modelConfigurationWrites.then(action)
+  modelConfigurationWrites = next.then(() => undefined, () => undefined)
+  return next
+}
 
 const RENDERER_BLOCKED_SETTING_KEYS = new Set<keyof AppSettings>(['currentProject', 'recentProjects'])
 
@@ -91,6 +116,24 @@ async function confirmHighRiskSettingChange(title: string, detail: string): Prom
 export function registerSettingsIPC(): void {
   ipcMain.handle('settings:get', async () => getRendererSettings())
 
+  ipcMain.handle('settings:save-model-configuration', async (_event, input: unknown) => {
+    const parsed = modelConfigurationSchema.safeParse(input)
+    if (!parsed.success) throw new Error('模型配置无效或超出长度限制')
+    let connections: unknown, routes: unknown
+    try { connections = JSON.parse(parsed.data.connections); routes = JSON.parse(parsed.data.routes) }
+    catch { throw new Error('模型配置格式无效') }
+    const checkedConnections = connectionListSchema.safeParse(connections)
+    const checkedRoutes = routeListSchema.safeParse(routes)
+    if (!checkedConnections.success || !checkedRoutes.success
+      || new Set(checkedConnections.data.map((item) => item.id)).size !== checkedConnections.data.length) {
+      throw new Error('模型连接或用途路由无效')
+    }
+    return withModelConfigurationWrite(async () => {
+      const merged = mergeModelConnectionSecrets(JSON.stringify(checkedConnections.data), await settings.getSetting('modelConnections'))
+      await settings.saveModelConfiguration({ connections: merged, routes: JSON.stringify(checkedRoutes.data) })
+    })
+  })
+
   ipcMain.handle('settings:set', async (_event, key: string, value: string) => {
     if (!isRendererWritableSettingKey(key)) {
       throw new Error('无效的设置项')
@@ -127,8 +170,11 @@ export function registerSettingsIPC(): void {
         await settings.setSetting('mcpServers', merged.json)
       })
     }
-    if (key === 'modelConnections') {
-      value = mergeModelConnectionSecrets(value, await settings.getSetting('modelConnections'))
+    if (key === 'modelConnections' || key === 'modelRoutes') {
+      return withModelConfigurationWrite(async () => {
+        if (key === 'modelConnections') value = mergeModelConnectionSecrets(value, await settings.getSetting('modelConnections'))
+        await settings.setSetting(key, value)
+      })
     }
 
     if (key === 'permissionRules') validatePermissionRules(value || '[]')

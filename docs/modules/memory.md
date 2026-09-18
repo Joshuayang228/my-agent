@@ -8,6 +8,8 @@
 
 记忆相关辅助模型仍统一通过 LLM 配置工厂读取；模型连接与用途路由变化不改变记忆存储、召回和分类语义，相关密钥不进入 Renderer 或备份。
 
+正式模型配置现经专用双键保存及失败恢复；该补偿仅作用于 modelConnections / modelRoutes，不改变记忆 CRUD 或向量同步的事务边界。
+
 **做**：用户与关系的结构化长期记忆（画像/偏好/事实/约定）、向量语义召回、remember/recall/forget 工具、MemoryPanel、对话索引、注入 L3。
 **不做**：Agent 生活世界的原始事件（朋友圈、衣柜、文化角、家居、通讯录、足迹由伙伴世界承载；schema v15 的 `companion_moment_user_interactions` 也属于生活面用户态，不进入记忆存储、召回或画像）；当前任务 / 工具动作 / 运行轨迹（由 Chat、工作区和 Debug 承载）；项目文档 RAG 库（见 rag）；Skill 手册；会话内短期上下文压缩（见 context-manager，属运行时）。
 

@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { getAllSettings, getSetting, setSetting, handlers, showMessageBox, loadMainLLMConfig, chatComplete, fetchRemoteModels, browserState } = vi.hoisted(() => ({
+const { getAllSettings, getSetting, setSetting, saveModelConfiguration, handlers, showMessageBox, loadMainLLMConfig, chatComplete, fetchRemoteModels, browserState } = vi.hoisted(() => ({
   getAllSettings: vi.fn(),
   getSetting: vi.fn(),
   setSetting: vi.fn(),
+  saveModelConfiguration: vi.fn(),
   handlers: new Map<string, (...args: any[]) => any>(),
   showMessageBox: vi.fn(),
   loadMainLLMConfig: vi.fn(),
@@ -26,6 +27,7 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
   getAllSettings,
   getSetting,
   setSetting,
+  saveModelConfiguration,
 }))
 vi.mock('../../electron/main/sandbox/permission-engine', () => ({ loadRules: vi.fn() }))
 vi.mock('../../electron/main/llm/index', () => ({ chatComplete, LLMError: class LLMError extends Error {} }))
@@ -76,6 +78,42 @@ describe('设置 IPC 安全视图', () => {
     expect(view.mcpServers).not.toContain('real-secret')
     expect(view.modelConnections).not.toContain('sk-connection-secret')
     expect(JSON.parse(view.modelConnections)[0]).toMatchObject({ apiKey: '', hasApiKey: true })
+  })
+
+  it('整组保存先验证两个字段，再合并密钥并只调用一次专用存储', async () => {
+    registerSettingsIPC()
+    const connection = { id: 'c', name: 'test', baseUrl: 'https://example.test/v1', model: 'm', enabled: true }
+    getSetting.mockResolvedValue(JSON.stringify([{ ...connection, apiKey: 'fixture-stored' }]))
+    const routes = JSON.stringify([{ purpose: 'primary', connectionId: 'c', model: 'm', enabled: true }])
+    const call = handlers.get('settings:save-model-configuration')!
+    for (const invalid of [null, { connections: '[]', routes: '{}' }, { connections: '[null]', routes }, { connections: JSON.stringify([connection, connection]), routes }]) {
+      await expect(call({}, invalid)).rejects.toThrow()
+    }
+    expect(saveModelConfiguration).not.toHaveBeenCalled()
+    await call({}, { connections: JSON.stringify([connection]), routes })
+    expect(saveModelConfiguration).toHaveBeenCalledTimes(1)
+    const saved = saveModelConfiguration.mock.calls[0][0]
+    expect(JSON.parse(saved.connections)[0]).toMatchObject({ id: 'c', apiKey: 'fixture-stored' })
+    expect(saved.routes).toBe(routes)
+    expect(setSetting).not.toHaveBeenCalled()
+  })
+
+  it('整组写入串行，失败释放队列且下一次读取最新密钥', async () => {
+    registerSettingsIPC()
+    let release!: () => void
+    saveModelConfiguration.mockImplementationOnce(() => new Promise<void>((_resolve, reject) => { release = () => reject(new Error('fixture-write-failed')) }))
+    const input = { connections: '[]', routes: '[]' }
+    const call = handlers.get('settings:save-model-configuration')!
+    const first = call({}, input)
+    const rejected = expect(first).rejects.toThrow('fixture-write-failed')
+    const second = call({}, input)
+    await vi.waitFor(() => expect(saveModelConfiguration).toHaveBeenCalledTimes(1))
+    expect(getSetting).toHaveBeenCalledTimes(1)
+    release()
+    await rejected
+    await second
+    expect(saveModelConfiguration).toHaveBeenCalledTimes(2)
+    expect(getSetting).toHaveBeenCalledTimes(2)
   })
   it('显式协议经连接测试进入唯一配置工厂', async () => {
     registerSettingsIPC()
