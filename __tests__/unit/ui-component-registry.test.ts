@@ -32,7 +32,8 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 describe('UI component asset registry', () => {
   it('模型与 MCP 表单实际绑定 Foundation 输入和选择控件，未使用导入与同名遮蔽不算复用', () => {
     const expectedFields = [
-      ['src/components/settings/ModelRoutingSettings.tsx', ['TextField']],
+      ['src/components/settings/ModelRoutingSettings.tsx', []],
+      ['src/components/settings/ModelConnectionCard.tsx', ['TextField']],
       ['src/components/settings/ModelUsageArrangements.tsx', ['SelectField']],
       ['src/components/settings/ModelConnectionForm.tsx', ['SelectField', 'TextField']],
       ['src/components/settings/McpConnectionForm.tsx', ['SelectField', 'TextField']],
@@ -84,16 +85,16 @@ describe('UI component asset registry', () => {
       { bindings: ['SelectField'], nativeFields: [] },
     ])
   })
-  it('正式与候选实际渲染共享用途安排，操作来自 Foundation 且组件没有 IPC', () => {
+  it.each(['ModelUsageArrangements', 'ModelConnectionCard'] as const)('%s 正式与候选真实绑定，操作来自 Foundation 且没有 IPC', (componentName) => {
     const files = ['src/components/settings/ModelRoutingSettings.tsx', 'src/components/playground/SettingsExperienceCandidate.tsx'].map(file => resolve(file))
-    const shared = resolve('src/components/settings/ModelUsageArrangements.tsx')
-    const controls = ['ActionButton', 'IconButton', 'SelectField'].map(name => resolve(`src/components/foundation/${name}.tsx`))
+    const shared = resolve(`src/components/settings/${componentName}.tsx`)
+    const controls = ['ActionButton', 'IconButton', componentName === 'ModelUsageArrangements' ? 'SelectField' : 'TextField'].map(name => resolve(`src/components/foundation/${name}.tsx`))
     const fixture = resolve('__tests__/fixtures/usage-binding.tsx')
     const options: ts.CompilerOptions = { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, noResolve: true, noLib: true, types: [] }
     const host = ts.createCompilerHost(options)
     const original = host.getSourceFile.bind(host)
     host.getSourceFile = (file, ...args) => resolve(file) === fixture
-      ? ts.createSourceFile(file, `import { ModelUsageArrangements as Shared } from '../../src/components/settings/ModelUsageArrangements'; function Unused() { return <div /> } function Shadowed(Shared: any) { return <Shared /> } function Real() { return <Shared /> }`, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+      ? ts.createSourceFile(file, `import { ${componentName} as Shared } from '../../src/components/settings/${componentName}'; function Unused() { return <div /> } function Shadowed(Shared: any) { return <Shared /> } function Real() { return <Shared /> }`, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
       : original(file, ...args)
     const program = ts.createProgram([...files, shared, ...controls, fixture], options, host)
     const checker = program.getTypeChecker()
@@ -117,7 +118,8 @@ describe('UI component asset registry', () => {
     const source = readFileSync(shared, 'utf8')
     expect(source).not.toContain('window.electronAPI')
     expect(source).not.toMatch(/<(button|select|input)\b/)
-    expect(UI_COMPONENT_REGISTRY['layout.model-usage-arrangements'].sourcePath).toBe('src/components/settings/ModelUsageArrangements.tsx')
+    const key = componentName === 'ModelUsageArrangements' ? 'layout.model-usage-arrangements' : 'layout.model-connection-card'
+    expect(UI_COMPONENT_REGISTRY[key].sourcePath).toBe(`src/components/settings/${componentName}.tsx`)
   })
   it('MCP 添加流程实际渲染共享表单，候选只注入隔离适配器', () => {
     const usesForm = (source: string) => rendersSharedTabs(source, 'McpConnectionForm', '/settings/McpConnectionForm')

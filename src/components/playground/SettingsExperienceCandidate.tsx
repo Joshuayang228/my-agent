@@ -10,7 +10,7 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { PermissionSettingsContent } from '../settings/PermissionSettingsContent'
-import { Brain, Check, ChevronRight, Circle, CircleHelp, Cloud, Database, Download, Eye, Heart, KeyRound, Link2, LockKeyhole, Palette, Plug, Save, Settings2, ShieldCheck, SlidersHorizontal, Upload, UserRound, Wrench, Activity, Gauge, Plus, ListChecks, ArrowLeft, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
+import { Brain, Check, ChevronRight, CircleHelp, Cloud, Database, Download, Eye, Heart, KeyRound, Link2, LockKeyhole, Palette, Plug, Save, Settings2, ShieldCheck, SlidersHorizontal, Upload, UserRound, Wrench, Activity, Gauge, Plus, ListChecks, ArrowLeft } from 'lucide-react'
 import { FONT_SCALE_ASSETS } from '../../shared/design-asset-registry'
 import { SettingsLayout, type SettingsPageId } from '../settings/SettingsLayout'
 import { ScopeBadge, SettingCard, SettingRow, SettingSwitch, SettingsPageHeader } from '../settings/SettingsFields'
@@ -18,6 +18,7 @@ import { CompanionSettingsContent } from '../settings/CompanionSettingsContent'
 import { AboutSettingsContent } from '../settings/AboutSettingsContent'
 import { McpServiceCard } from '../settings/McpServiceCard'
 import { ModelConnectionForm } from '../settings/ModelConnectionForm'
+import { ModelConnectionCard } from '../settings/ModelConnectionCard'
 import { ModelUsageArrangements } from '../settings/ModelUsageArrangements'
 import { connectionCredentialLabel } from '../../shared/model-connection-form'
 import { CONNECTION_ADAPTERS, CONNECTION_PRESETS, CONNECTION_SOURCE_OPTIONS, connectionDraftForSource, providerSource, sameConnectionEndpoint } from '../../shared/model-connection-form'
@@ -107,6 +108,7 @@ const fixtureCredentialLabel = (connection: ModelConnectionFixture) => connectio
 type ModelRoutePurpose = 'primary' | 'auxiliary' | 'image'
 type ModelRoute = { connectionId: string; modelId: string; enabled: boolean }
 type ModelFetchState = 'idle' | 'loading' | 'success' | 'empty' | 'unsupported' | 'error'
+const connectionCardFetchState = (state: ModelFetchState = 'idle') => state === 'empty' ? 'success' : state
 
 const ROUTE_PURPOSES: Array<{ id: ModelRoutePurpose; label: string; description: string }> = [
   { id: 'primary', label: '主对话', description: '普通聊天和连续对话' },
@@ -257,56 +259,17 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
         onToggle={route => setRoutes(current => ({ ...current, [route.purpose]: current[route.purpose].map(item => item.connectionId === route.connectionId && item.modelId === route.model ? { ...item, enabled: !item.enabled } : item) }))}
         onRemove={route => setRoutes(current => ({ ...current, [route.purpose]: current[route.purpose].filter(item => item.connectionId !== route.connectionId || item.modelId !== route.model) }))} />
       <SettingCard testId="settings-candidate-model-connections"><div className="flex items-start justify-between gap-3"><div><h3 className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>连接与模型清单</h3><p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>{connections.length ? `${connections.length} 个连接入口；模型用途在上方单独安排。` : '还没有连接，添加后再维护模型清单。'}</p></div><button type="button" onClick={openAdd} className="inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-md)] border px-3 py-1.5 text-[11px] font-medium" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-model-add"><Plus size={13} />添加连接</button></div>{connections.length === 0 && <div data-testid="settings-candidate-model-empty" className="mt-5 border-t pt-5 text-center" style={{ borderColor: 'var(--border-subtle)' }}><div className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>还没有连接入口</div><p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>添加连接后，在连接下维护多个模型，再到上方安排用途。</p></div>}<div className="mt-4 space-y-2">
-        {connections.map((connection) => {
-          const draft = modelDrafts[connection.id] ?? ''
-          const duplicate = connection.models.some((model) => model.id === draft.trim())
-          const fetchState = fetchStates[connection.id] ?? 'idle'
-          const fetchedModels = fetchedModelsByConnection[connection.id] ?? []
-          return <div key={connection.id} className="min-w-0 rounded-[var(--radius-md)] border" style={{ borderColor: 'var(--border-subtle)' }} data-testid={`settings-candidate-model-profile-${connection.id}`}>
-            {editingId === connection.id ? <div className="p-3" data-testid="settings-candidate-model-add-form">{connectionForm}</div> : <>
-            <div className="flex flex-wrap items-center gap-2 px-3 py-3" data-testid={`settings-candidate-connection-header-${connection.id}`}>
-              <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
-                <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: connection.status === 'healthy' ? 'var(--success)' : connection.status === 'failed' ? 'var(--danger)' : 'var(--text-muted)' }} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[12px] font-medium" title={connection.name} style={{ color: 'var(--text-primary)' }}>{connection.name}</span>
-                  <span className="mt-1 block truncate text-[10px]" style={{ color: 'var(--text-muted)' }}>{sourceLabel(connection.source)} · {connection.protocol ?? connection.providerLabel} · {connection.models.length} 个模型</span>
-                </span>
-              </div>
-              <div className="ml-auto flex shrink-0 items-center gap-1.5">
-                <button type="button" aria-label={`编辑连接 ${connection.name}`} title="编辑连接" onClick={() => openEdit(connection)} className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] border" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }} data-testid={`settings-candidate-edit-connection-${connection.id}`}><Pencil size={13} /></button>
-                <button type="button" disabled={fetchState === 'loading'} onClick={() => fetchModels(connection.id)} className="inline-flex h-8 items-center gap-1 rounded-[var(--radius-sm)] border px-2 text-[10px] disabled:opacity-50" style={{ borderColor: 'var(--border-color)', color: 'var(--accent-fg)' }} data-testid={`settings-candidate-fetch-models-${connection.id}`}><RefreshCw size={12} className={fetchState === 'loading' ? 'animate-spin' : ''} />{fetchState === 'loading' ? '正在获取…' : '获取已有模型'}</button>
-                <button type="button" onClick={() => testConnection(connection.id)} className="inline-flex h-8 items-center gap-1 rounded-[var(--radius-sm)] border px-2 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--accent-fg)' }}><Check size={12} />测试连接</button>
-              </div>
-            </div>
-            <div id={`connection-details-${connection.id}`} className="border-t px-3 py-3" style={{ borderColor: 'var(--border-subtle)' }}>
-              <div className="grid gap-2 text-[10px] sm:grid-cols-3">
-                <div className="min-w-0"><span style={{ color: 'var(--text-muted)' }}>{connection.source === 'custom' ? '适配器' : '服务入口'}</span><div className="mt-1 truncate font-medium" title={connection.protocol ?? connection.providerLabel} style={{ color: 'var(--text-secondary)' }}>{connection.protocol ?? connection.providerLabel}</div></div>
-                <div className="min-w-0"><span style={{ color: 'var(--text-muted)' }}>Base URL</span><div className="mt-1 truncate font-mono" title={connection.baseUrl} style={{ color: 'var(--text-secondary)' }}>{connection.baseUrl}</div></div>
-                <div><span style={{ color: 'var(--text-muted)' }}>密钥状态</span><div className="mt-1 font-medium" style={{ color: connection.credentialStatus === 'stored' ? 'var(--success)' : fixtureCredentialLabel(connection) === '未配置' ? 'var(--danger)' : 'var(--text-secondary)' }}>{fixtureCredentialLabel(connection)}</div></div>
-              </div>
-              {connection.status !== 'untested' && <div role="status" className="mt-2 text-[10px]" style={{ color: connection.status === 'healthy' ? 'var(--success)' : 'var(--danger)' }}>{connection.status === 'healthy' ? '连接测试通过（样张）' : '连接测试失败（样张）：请检查地址和凭据。'}</div>}
-              <div className="mt-4 text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>模型清单 · {connection.models.length} 个</div>
-              <div className="mt-3 space-y-2">
-                {connection.models.length === 0 && <div className="rounded-[var(--radius-sm)] border border-dashed px-3 py-3 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>这个连接还没有添加模型。</div>}
-                {connection.models.map((model) => <div key={model.id} className="flex min-w-0 items-center gap-2 rounded-[var(--radius-sm)] border px-2.5 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
-                  <span className="min-w-0 flex-1 truncate font-mono text-[11px]" title={model.id} style={{ color: 'var(--text-primary)' }}>{model.id}</span>
-                  <button type="button" role="switch" aria-checked={model.enabled} aria-label={`${model.id}${model.enabled ? '已启用' : '未启用'}`} title={model.enabled ? '已启用' : '未启用'} onClick={() => updateModel(connection.id, model.id, { enabled: !model.enabled })} className="rounded p-1"><span className="sr-only">{model.enabled ? '已启用' : '未启用'}</span>{model.enabled ? <Check size={14} style={{ color: 'var(--success)' }} /> : <Circle size={12} style={{ color: 'var(--text-muted)' }} />}</button>
-                  <button type="button" aria-label={`移除模型 ${model.id}`} title="移除模型" onClick={() => removeModel(connection.id, model.id)} className="rounded p-1"><Trash2 size={12} style={{ color: 'var(--danger)' }} /></button>
-                </div>)}
-              </div>
-              <div className="mt-3 flex min-w-0 items-center gap-2">
-                <input aria-label={`手动添加模型 ${connection.name}`} value={draft} onChange={(event) => setModelDrafts((current) => ({ ...current, [connection.id]: event.target.value }))} onKeyDown={(event) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); submitModelDraft(connection) } }} placeholder="填写模型 ID" className="theme-input h-8 min-w-0 flex-1 rounded-[var(--radius-sm)] border px-2.5 text-[10px] outline-none" />
-                <button type="button" aria-label="手动添加模型" title={duplicate ? '模型已添加' : '添加模型'} disabled={!draft.trim() || duplicate} onClick={() => submitModelDraft(connection)} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border disabled:opacity-40" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}><Plus size={14} /></button>
-              </div>
-              {fetchState === 'success' && fetchedModels.length > 0 && <div className="mt-3 space-y-2" data-testid={`settings-candidate-fetched-models-${connection.id}`}><div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>获取到的模型 · 点击加入清单</div><div className="flex flex-wrap gap-1.5">{fetchedModels.map((modelId) => { const alreadyAdded = connection.models.some((model) => model.id === modelId); return <button key={modelId} type="button" disabled={alreadyAdded} onClick={() => { if (alreadyAdded) return; addModelToConnection(connection.id, modelId); setModelDrafts((current) => ({ ...current, [connection.id]: '' })) }} className="inline-flex max-w-full items-center gap-1 rounded-[var(--radius-sm)] border px-2 py-1.5 text-[10px] disabled:opacity-50" title={alreadyAdded ? '已添加' : `添加 ${modelId}`} style={{ borderColor: alreadyAdded ? 'var(--success)' : 'var(--border-color)', color: alreadyAdded ? 'var(--success)' : 'var(--text-secondary)' }}><span className="max-w-[16rem] truncate" title={modelId}>{modelId}</span>{alreadyAdded ? <Check size={12} /> : <Plus size={12} />}</button> })}</div></div>}
-              {duplicate && <div className="mt-2 text-[10px]" role="status" style={{ color: 'var(--text-muted)' }}>这个模型已在清单中。</div>}
-              {fetchState === 'success' && fetchedModels.length === 0 && <div className="mt-2 text-[10px]" role="status" style={{ color: 'var(--text-muted)' }}>没有获取到模型，可手动添加模型 ID。</div>}
-              {fetchState === 'error' && <div role="status" className="mt-3 rounded-[var(--radius-sm)] px-3 py-2 text-[10px]" style={{ background: 'color-mix(in srgb, var(--danger) 10%, transparent)', color: 'var(--danger)' }}>获取失败：请检查 Base URL 和连接凭据；仍可手动添加模型。</div>}
-              {fetchState === 'unsupported' && <div role="status" className="mt-3 rounded-[var(--radius-sm)] px-3 py-2 text-[10px]" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>这个连接暂不提供模型列表；请手动添加模型 ID。</div>}
-            </div>
-            </>}
-          </div>
-        })}
+        {connections.map(connection => <ModelConnectionCard key={connection.id} testIdPrefix="settings-candidate" id={connection.id} name={connection.name}
+          sourceLabel={sourceLabel(connection.source)} providerLabel={connection.protocol ?? connection.providerLabel} custom={connection.source === 'custom'}
+          baseUrl={connection.baseUrl} credentialLabel={fixtureCredentialLabel(connection)} hasApiKey={connection.credentialStatus === 'stored'} models={connection.models}
+          draft={modelDrafts[connection.id] ?? ''} onDraftChange={value => setModelDrafts(current => ({ ...current, [connection.id]: value }))}
+          onSubmitModel={() => submitModelDraft(connection)} onAddModel={modelId => { addModelToConnection(connection.id, modelId); setModelDrafts(current => ({ ...current, [connection.id]: '' })) }}
+          onToggleModel={model => updateModel(connection.id, model.id, { enabled: !model.enabled })} onRemoveModel={modelId => removeModel(connection.id, modelId)}
+          onEdit={() => openEdit(connection)} onTest={() => testConnection(connection.id)} onFetch={() => fetchModels(connection.id)}
+          testState={connection.status === 'healthy' ? 'success' : connection.status === 'failed' ? 'error' : 'idle'}
+          testMessage={connection.status === 'healthy' ? '连接测试通过（样张）' : connection.status === 'failed' ? '连接测试失败（样张）：请检查地址和凭据。' : undefined}
+          fetchState={connectionCardFetchState(fetchStates[connection.id])} fetchedModels={fetchedModelsByConnection[connection.id] ?? []}
+          editing={editingId === connection.id ? connectionForm : undefined} editingTestId="settings-candidate-model-add-form" />)}
       </div></SettingCard>
       {showAdd && !editingId && <SettingCard testId="settings-candidate-model-add-form">{connectionForm}</SettingCard>}
       <SettingCard><button type="button" onClick={() => setShowAdvanced(!showAdvanced)} aria-expanded={showAdvanced} className="flex w-full items-center justify-between gap-3 text-left" data-testid="settings-candidate-model-advanced-toggle"><span><span className="block text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>高级设置</span><span className="mt-1 block text-[10px]" style={{ color: 'var(--text-muted)' }}>连接测试、预算和生成参数只在需要时查看。</span></span><ChevronRight size={14} className={`transition ${showAdvanced ? 'rotate-90' : ''}`} style={{ color: 'var(--text-muted)' }} /></button>{showAdvanced && <div className="mt-4 space-y-3 border-t pt-4" style={{ borderColor: 'var(--border-subtle)' }}><div data-testid="settings-candidate-model-budget"><div className="mb-2 flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>运行预算 <ScopeBadge label="全局" /></div><div className="mb-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>输入与输出 Token 合计；0 表示不限制。</div><div className="grid gap-2 sm:grid-cols-2"><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>会话预算（Token）<input aria-label="会话预算（Token）" value={sessionBudget} onChange={(event) => setSessionBudget(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>每日预算（Token）<input aria-label="每日预算（Token）" value={dailyBudget} onChange={(event) => setDailyBudget(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label></div><div className="mt-2 text-[10px]" style={{ color: 'var(--text-muted)' }}>当前：{sessionBudget === '0' ? '不限制' : `${sessionBudget} Token`}</div></div><label className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>Temperature<input aria-label="Temperature" value={temperature} onChange={(event) => setTemperature(event.target.value)} className="theme-input mt-1 w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" /></label><button type="button" onClick={() => onModelStatusChange('success')} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-model-test">测试连接</button>{modelStatus !== 'idle' && <div role="status" className="rounded-[var(--radius-md)] px-3 py-2 text-[11px]" style={{ background: modelStatus === 'success' ? 'var(--accent-subtle)' : 'color-mix(in srgb, var(--danger) 10%, transparent)', color: modelStatus === 'success' ? 'var(--accent-fg)' : 'var(--danger)' }} data-testid="settings-candidate-model-status">{modelStatus === 'success' ? '连接配置看起来可用（仅样张反馈）' : '连接测试失败；请检查地址和凭据。'}</div>}</div>}</SettingCard>
