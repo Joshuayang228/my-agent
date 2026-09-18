@@ -314,6 +314,68 @@ async function installProductionElectronStub(page: import('@playwright/test').Pa
 }
 
 
+test('正式模型保存失败保留草稿和清单，重试后才应用', async ({ page }) => {
+  await installProductionElectronStub(page)
+  await page.addInitScript(() => {
+    const api = (window as any).electronAPI
+    const values: Record<string, string> = {
+      llmApiKeyConfigured: 'true', llmModel: 'fixture-model',
+      modelConnections: JSON.stringify([{ id: 'saved', name: '已保存连接', baseUrl: 'https://example.com/v1', model: 'fixture-model', enabled: true, hasApiKey: true }]),
+      modelRoutes: JSON.stringify([{ purpose: 'primary', connectionId: 'saved', model: 'fixture-model', enabled: true }]),
+    }
+    const state = { fail: true, values, hold: false, release: null as null | (() => void), writes: 0 }
+    ;(window as any).__modelSave = state
+    api.settings.get = async () => ({ ...values })
+    api.settings.set = async (key: string, value: string) => {
+      if (key === 'modelConnections') {
+        state.writes++
+        if (state.hold) await new Promise<void>((resolve) => { state.release = resolve })
+      }
+      if (state.fail && ['modelConnections', 'modelRoutes'].includes(key)) throw new Error('fixture-save-failed')
+      values[key] = value
+    }
+  })
+  await page.goto('/')
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+  await page.getByTestId('settings-nav-model').click()
+  const models = page.getByTestId('settings-model-routing')
+  await models.getByRole('button', { name: '添加连接', exact: true }).click()
+  await models.getByPlaceholder('连接名称', { exact: true }).fill('新连接')
+  await models.getByPlaceholder('API Key', { exact: true }).fill('fixture-secret')
+  await models.getByRole('button', { name: '保存连接', exact: true }).click()
+  await expect(models.getByPlaceholder('连接名称', { exact: true })).toHaveValue('新连接')
+  await expect(models.getByPlaceholder('API Key', { exact: true })).toHaveValue('fixture-secret')
+  await expect(page.getByText('模型设置保存未完成，当前编辑内容已保留，请重试。', { exact: true })).toBeVisible()
+  await expect(models.locator('[data-testid^="settings-model-profile-"]')).toHaveCount(1)
+  await page.evaluate(() => { (window as any).__modelSave.fail = false; (window as any).__modelSave.hold = true })
+  await models.getByRole('button', { name: '保存连接', exact: true }).click()
+  await expect(models.getByRole('button', { name: '取消', exact: true })).toBeDisabled()
+  await expect(models.getByPlaceholder('连接名称', { exact: true })).toBeDisabled()
+  await expect(models.getByRole('button', { name: '删除 已保存连接', exact: true })).toBeDisabled()
+  await page.evaluate(() => { (window as any).__modelSave.hold = false; (window as any).__modelSave.release() })
+  await expect(models.getByPlaceholder('连接名称', { exact: true })).toHaveCount(0)
+  await expect(models.locator('[data-testid^="settings-model-profile-"]')).toHaveCount(2)
+  await page.evaluate(() => { (window as any).__modelSave.fail = true })
+  const manual = models.getByRole('textbox', { name: '手动添加模型 已保存连接', exact: true })
+  await manual.fill('another-model')
+  await manual.press('Enter')
+  await expect(manual).toBeEnabled()
+  await expect(manual).toHaveValue('another-model')
+  await expect(models.getByTestId('settings-model-profile-saved')).toContainText('模型清单 · 1 个')
+  await models.getByRole('button', { name: '移除 已保存连接 · fixture-model', exact: true }).click()
+  await expect(models.getByRole('button', { name: '移除 已保存连接 · fixture-model', exact: true })).toBeEnabled()
+  await page.evaluate(() => { (window as any).__modelSave.fail = false })
+  await manual.press('Enter')
+  await expect(manual).toHaveValue('')
+  await expect(models.getByTestId('settings-model-profile-saved')).toContainText('模型清单 · 2 个')
+  await page.evaluate(() => { (window as any).__modelSave.fail = true })
+  await models.getByRole('button', { name: '删除 已保存连接', exact: true }).click()
+  await expect(models.getByTestId('settings-model-profile-saved')).toBeVisible()
+  await page.evaluate(() => { (window as any).__modelSave.fail = false })
+  await models.getByRole('button', { name: '删除 已保存连接', exact: true }).click()
+  await expect(models.getByTestId('settings-model-profile-saved')).toHaveCount(0)
+})
+
 test('正式 MCP 设置在缺少状态订阅时仍可打开', async ({ page }) => {
   await installProductionElectronStub(page)
   await page.goto('/')

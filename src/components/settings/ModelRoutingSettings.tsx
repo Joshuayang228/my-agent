@@ -1,10 +1,11 @@
-import { useMemo, useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import { ArrowDown, ArrowUp, Check, CheckCircle2, Circle, LoaderCircle, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import type { LLMModelFetchResult, ModelConnectionProfile, ModelRouteProfile, ModelRoutePurpose } from '../../shared/types'
 import { addConnectionModel, enabledConnectionModelIds, normalizeConnectionModels, removeConnectionModel, setConnectionModelEnabled } from '../../shared/llm-model-fetch'
 import { ActionButton } from '../foundation/ActionButton'
 import { TextField } from '../foundation/TextField'
 import { SelectField } from '../foundation/SelectField'
+import { useToast } from '../Toast'
 import { SettingCard, SettingRow } from './SettingsFields'
 
 const PURPOSES: Array<{ id: ModelRoutePurpose; label: string; description: string }> = [
@@ -37,6 +38,13 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
   const [editing, setEditing] = useState<string | null>(null)
   const [draft, setDraft] = useState<ModelConnectionProfile>({ id: '', name: '', baseUrl: '', model: '', apiKey: '', enabled: true, models: [] })
   const [busy, setBusy] = useState(false)
+  const saving = useRef(false)
+  const mounted = useRef(false)
+  const { toast } = useToast()
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false }
+  }, [])
   const [testState, setTestState] = useState<Record<string, 'idle' | 'testing' | 'success' | 'error'>>({})
   const [testError, setTestError] = useState<Record<string, string>>({})
   const [fetchState, setFetchState] = useState<Record<string, 'idle' | 'loading' | 'success' | 'error' | 'unsupported'>>({})
@@ -48,9 +56,24 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
     : []), [connections])
 
   const persist = async (nextConnections: ModelConnectionProfile[], nextRoutes: ModelRouteProfile[]) => {
+    if (saving.current) return false
+    saving.current = true
     setBusy(true)
-    try { await onSave(JSON.stringify(nextConnections), JSON.stringify(nextRoutes)) }
-    finally { setBusy(false) }
+    try {
+      await onSave(JSON.stringify(nextConnections), JSON.stringify(nextRoutes))
+      if (!mounted.current) return false
+      setConnections(nextConnections.map(({ apiKey, ...connection }) => ({
+        ...connection, apiKey: '', hasApiKey: Boolean(apiKey?.trim() || connection.hasApiKey),
+      })))
+      setRoutes(nextRoutes)
+      return true
+    } catch {
+      if (mounted.current) toast('模型设置保存未完成，当前编辑内容已保留，请重试。', 'error')
+      return false
+    } finally {
+      saving.current = false
+      if (mounted.current) setBusy(false)
+    }
   }
   const openAdd = () => { setEditing('new'); setDraft({ id: `connection-${Date.now()}`, name: '', baseUrl: 'https://api.openai.com/v1', model: '', apiKey: '', enabled: true, models: [] }) }
   const openEdit = (connection: ModelConnectionProfile) => { setEditing(connection.id); setDraft({ ...connection, apiKey: '' }) }
@@ -67,20 +90,14 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
             baseUrl: draft.baseUrl.trim(),
           })
         : item)
-    const sanitized = next.map(({ apiKey, ...connection }) => ({
-      ...connection,
-      apiKey: '',
-      hasApiKey: Boolean((typeof apiKey === 'string' && apiKey.trim()) || connection.hasApiKey),
-    }))
-    setConnections(sanitized)
-    setEditing(null)
-    await persist(next, routes)
+    if (await persist(next, routes)) {
+      setEditing(null)
+      setDraft({ id: '', name: '', baseUrl: '', model: '', apiKey: '', enabled: true, models: [] })
+    }
   }
   const remove = async (id: string) => {
     const next = connections.filter((item) => item.id !== id)
     const nextRoutes = routes.filter((item) => item.connectionId !== id)
-    setConnections(next)
-    setRoutes(nextRoutes)
     await persist(next, nextRoutes)
   }
   const persistModels = async (connectionId: string, updater: (connection: ModelConnectionProfile) => ModelConnectionProfile) => {
@@ -89,9 +106,7 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
       const connection = next.find((item) => item.id === route.connectionId)
       return Boolean(connection && enabledConnectionModelIds(connection).includes(route.model))
     })
-    setConnections(next)
-    setRoutes(nextRoutes)
-    await persist(next, nextRoutes)
+    return persist(next, nextRoutes)
   }
   const testConnection = async (connection: ModelConnectionProfile, draftApiKey?: string) => {
     const model = enabledConnectionModelIds(connection)[0] || connection.model
@@ -125,8 +140,9 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
   const submitModelDraft = async (connection: ModelConnectionProfile) => {
     const modelId = (modelDrafts[connection.id] ?? '').trim()
     if (!modelId || enabledConnectionModelIds(connection).includes(modelId) || normalizeConnectionModels(connection).some((item) => item.id === modelId)) return
-    setModelDrafts((current) => ({ ...current, [connection.id]: '' }))
-    await persistModels(connection.id, (item) => ({ ...item, ...addConnectionModel(item, modelId) }))
+    if (await persistModels(connection.id, (item) => ({ ...item, ...addConnectionModel(item, modelId) }))) {
+      setModelDrafts((current) => ({ ...current, [connection.id]: '' }))
+    }
   }
   const addRoute = async (purpose: ModelRoutePurpose, value: string) => {
     if (!value) return
@@ -134,7 +150,6 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
     if (!connectionId || !model) return
     if (routes.some((item) => item.purpose === purpose && item.connectionId === connectionId && item.model === model)) return
     const next = [...routes, { purpose, connectionId, model, enabled: true }]
-    setRoutes(next)
     await persist(connections, next)
   }
   const moveRoute = async (purpose: ModelRoutePurpose, index: number, direction: -1 | 1) => {
@@ -144,11 +159,10 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
     const nextPurpose = [...current]
     ;[nextPurpose[index], nextPurpose[target]] = [nextPurpose[target], nextPurpose[index]]
     const next = [...routes.filter((item) => item.purpose !== purpose), ...nextPurpose]
-    setRoutes(next)
     await persist(connections, next)
   }
 
-  return <div className="space-y-4" data-testid="settings-model-routing">
+  return <fieldset disabled={busy} className="m-0 min-w-0 space-y-4 border-0 p-0" data-testid="settings-model-routing" aria-busy={busy}>
     <SettingCard>
       <SettingRow label="模型使用安排" description="从已添加的连接模型中选择；顺序就是优先级，第一项失败时按顺序尝试下一项。" scope="影响后续任务" stacked>
         <div className="space-y-3">{PURPOSES.map((purpose) => {
@@ -169,10 +183,10 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
                 return <div key={`${route.connectionId}-${route.model}`} className="flex min-w-0 items-center gap-2 rounded-[var(--radius-sm)] border px-2 py-1.5 text-[10px]" style={{ borderColor: 'var(--border-subtle)', opacity: route.enabled ? 1 : 0.58 }}>
                   <span className="w-4 text-center" style={{ color: 'var(--accent-fg)' }}>{index + 1}</span>
                   <span className="min-w-0 flex-1 truncate" title={label} style={{ color: 'var(--text-primary)' }}>{label}</span>
-                  <ActionButton size="sm" className="min-h-7 w-12 px-0" onClick={() => { const next = routes.map((item) => item === route ? { ...item, enabled: !item.enabled } : item); setRoutes(next); void persist(connections, next) }}>{route.enabled ? '启用' : '停用'}</ActionButton>
+                  <ActionButton size="sm" className="min-h-7 w-12 px-0" onClick={() => { const next = routes.map((item) => item === route ? { ...item, enabled: !item.enabled } : item); void persist(connections, next) }}>{route.enabled ? '启用' : '停用'}</ActionButton>
                   <ActionButton size="sm" className="min-h-7 w-7 px-0" aria-label={`上移 ${label}`} disabled={index === 0} onClick={() => void moveRoute(purpose.id, index, -1)}><ArrowUp size={12} /></ActionButton>
                   <ActionButton size="sm" className="min-h-7 w-7 px-0" aria-label={`下移 ${label}`} disabled={index === purposeRoutes.length - 1} onClick={() => void moveRoute(purpose.id, index, 1)}><ArrowDown size={12} /></ActionButton>
-                  <ActionButton size="sm" className="min-h-7 w-7 px-0" aria-label={`移除 ${label}`} onClick={() => { const next = routes.filter((item) => item !== route); setRoutes(next); void persist(connections, next) }}><Trash2 size={12} /></ActionButton>
+                  <ActionButton size="sm" className="min-h-7 w-7 px-0" aria-label={`移除 ${label}`} onClick={() => { const next = routes.filter((item) => item !== route); void persist(connections, next) }}><Trash2 size={12} /></ActionButton>
                 </div>
               })}</div>}
           </div>
@@ -257,5 +271,5 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
         </div>
       </SettingRow>
     </SettingCard>
-  </div>
+  </fieldset>
 }
