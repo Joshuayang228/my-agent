@@ -1,5 +1,7 @@
 # 质量总控
 
+快捷键导航门禁：`chat.test.ts` 使用受控 settings.set Promise，先发 Ctrl+n，再用 Ctrl+b 触发 App 重渲染并重复 Ctrl+n；释放保存后必须离开设置、保留写入值且只创建一次会话。原实现该用例先红，修复后转绿；既有保存失败保留草稿测试继续执行。另覆盖连续五次 Playground 往返和搜索 Escape 关闭 / 清空，不能用固定等待代替视图断言。UI-e2e 跳过开发者权限读取，正式 gating 仍由独立 Electron 的关于页开关与重启恢复验证；不得将这个已复现竞态等同于全部历史偶发失败。
+
 复选框门禁：McpServiceCard / McpConnectionForm 通过 TypeChecker 绑定到 Foundation CheckboxField，输入扫描不再豁免原生 checkbox；基础故事也检查真实引用。`checkbox.test.ts` 显式纳入 UI project，四主题宽窄覆盖已选 / 未选 / 禁用、点击标签、Space、16px 固定尺寸与 hover / 切换无位移。MCP 正式服务卡补键盘切换，向导补保存失败保留、保存中禁用和空 allowedTools 准确传递；这些 Renderer 替身证据不替代真实 MCP 授权链测试。
 
 伙伴设置基础绑定门禁：CompanionSettingsContent 纳入 TypeChecker 的正式 / 候选实际调用与 Foundation ActionButton / TextField 绑定检查，禁止重新出现原生 button / input / select。正式四主题宽窄验证键盘选中、hover 前后 boundingBox 不变、三个提醒数字字段保存及重新进入恢复，原有长文失败保留 / 重试继续覆盖。候选字段可编辑且 settings.set 观察器无写入；普通浏览器候选没有 preload，测试需显式提供观察器而非假定 electronAPI 存在。

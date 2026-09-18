@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
 import type {
   ChatMessage,
   AgentStreamEvent,
@@ -434,7 +434,14 @@ function App() {
     }
   }, [])
 
-  useEffect(() => {
+  // 保存等待期间普通渲染不能撤销离页；只读取已提交回调，视图切换/卸载仍取消旧导航。
+  // 用 layout effect 在页面可交互前更新，避免冻结会话状态或保留上一视图的快捷键。
+  const shortcutContext = useRef({ createNewSession, searchOpen, toast })
+  useLayoutEffect(() => {
+    shortcutContext.current = { createNewSession, searchOpen, toast }
+  })
+
+  useLayoutEffect(() => {
     let navigationActive = true
     const canNavigate = async (target: ShellView) => {
       if (target !== 'debug' && target !== 'playground') return true
@@ -445,7 +452,7 @@ function App() {
         setDeveloperMode(enabled)
         return enabled
       } catch {
-        if (navigationActive) toast('无法读取开发者模式，请稍后重试', 'error')
+        if (navigationActive) shortcutContext.current.toast('无法读取开发者模式，请稍后重试', 'error')
         return false
       }
     }
@@ -478,7 +485,7 @@ function App() {
       }
       if (e.ctrlKey && !e.shiftKey && e.key === 'n') {
         e.preventDefault()
-        void navigate('chat', () => { void createNewSession() })
+        void navigate('chat', () => { void shortcutContext.current.createNewSession() })
       }
       if (e.ctrlKey && e.key === ',') {
         e.preventDefault()
@@ -509,7 +516,7 @@ function App() {
         setSidebarOpen(v => !v)
       }
       if (e.key === 'Escape') {
-        if (searchOpen) { setSearchOpen(false); setSearchQuery('') }
+        if (shortcutContext.current.searchOpen) { setSearchOpen(false); setSearchQuery('') }
         else if (activeView !== 'chat') { void navigate('chat') }
       }
     }
@@ -518,7 +525,7 @@ function App() {
       navigationActive = false
       window.removeEventListener('keydown', handleGlobalKey)
     }
-  }, [activeView, closeSettings, createNewSession, searchOpen, toast])
+  }, [activeView, closeSettings])
 
   useEffect(() => {
     if (!approvalMenuOpen && !projectMenuOpen) return

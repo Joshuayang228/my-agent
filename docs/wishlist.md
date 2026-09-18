@@ -6,6 +6,8 @@
 
 ## 待办缺口
 
+- WISH-042 导航竞态已取得独立复现：设置保存 pending 时 Ctrl+b 重渲染会清理快捷键 effect，保存成功仍不离页；本批改为按已提交视图维护监听并通过同一红绿用例。此前 Electron 从 Playground 返回的失败缺少当时监听器状态，不能据此归因为同一问题或关闭；跨测试前置依赖与终端偶发失败仍需分别验证。红测现场保留在 `var/verification/navigation-red`。
+
 - WISH-042 外部模型验收脚本失配：`__tests__/e2e/electron.test.ts` 的四项条件测试仍引用旧单连接表单和 bg-slate 消息选择器，启动也未使用独立数据目录。缺 TEST_LLM_API_KEY 时全部跳过，不能计作生产对话通过；需改用正式连接 / 用途入口、稳定消息断言与隔离目录，在明确费用及凭据授权后做真实供应商验收。本地协议 Electron 回归不能替代此证据。
 
 - WISH-042 清单回流回归补充：`connection-list-electron` 首次完整运行仍在 Playground 可见后立即按返回快捷键时停留原页，`onboarding.test.ts:737` 超时；后续 worker 重建导致三项工作区测试缺前置。代码和断言不变的完整重跑 `connection-list-electron-repeat` 为 20 通过 / 4 条件跳过，未关闭此问题；需捕获按键时处理器安装和导航生命周期状态，不能仅凭页面可见推定监听器已更新。

@@ -18,6 +18,10 @@
 
 ## 2. 回流映射与验收单位
 
+R01 / R14 本批验收：受控红测中保存值已写入但设置面板仍为 1，修复后同一用例及保存失败回归通过；新增连续五次 Playground 往返与搜索关闭 / 清空测试。Unit 1056、完整 UI 243、独立 Electron 20 通过 / 4 外部模型条件跳过、资产 29、根 tsc / build 通过。证据目录 `navigation-red`、`navigation-focused`、`navigation-ui-full`、`navigation-electron` 均位于 `var/verification/`。无视觉样式变化；本批只证明该保存期间竞态及当前回归通过，不关闭历史稳定性缺口，不推进整个体验为 adopted。
+
+R01 / R14 导航生命周期修复边界：UI 受控保存测试已复现保存落盘后 Ctrl+b 触发 App 重渲染，待执行 Ctrl+n 被监听器清理取消，设置未离开且未新建会话。允许修改 App 全局快捷键监听、正式入口 E2E、模块卡与本合同 / 进度 / 日志 / 缺口记录；采用已提交状态引用，普通重渲染不取消导航，真实视图切换与卸载仍失效旧请求。保持保存失败拦截、开发者模式真实读取、重复离页锁；不修改 UI 形态、IPC、会话逻辑或依赖。这是已批准正式回流的缺陷修复，不新增候选。此前 Electron Playground 返回偶发失败尚无同一根因证据，WISH-042 不因此关闭。必测保存成功 / 失败、等待中重渲染与重复按键、完整 UI 及独立 Electron。
+
 R10 复选框验收记录：Unit 1056、完整 UI 241、资产 29、根 tsc / build 通过；最终 UI 证据 `var/verification/checkbox-ui-full`。定向初测证明 h-4 在根字号 15px 下不是 16px，基础组件改为明确 16px；两处测试问题分别为错误导航路径、Playwright 拒绝对 disabled label 作普通点击，均按现场修正，禁用状态改为真实鼠标位置点击后断言不变。原始现场保留在 `checkbox-focused` / `checkbox-focused-verified`，不将中止批次记为通过。新 `checkbox.test.ts` 已显式纳入 Playwright UI project，避免只新增文件却未执行。
 
 R10 复选框同源边界：把 FoundationAdvancedStories 内已有的原生复选框提取为 Foundation CheckboxField，基础故事、McpServiceCard 与 McpConnectionForm 实际消费同一控件。保留原生 input checkbox 的键盘、label、disabled 和表单语义，统一 16px 操作槽与主题强调色；不改变业务默认选中、工具许可保存、主进程执行前校验或 IPC。基础故事补已选 / 未选 / 禁用，既有 story key 保持不变；注册表 source 指向真实组件并在验证后更新状态。允许修改上述组件、UI / 产品体验注册表、绑定门禁与 Unit / UI 测试、运行时模块卡和文档。必须验收四主题宽窄、点击标签、Space 切换、disabled 不可操作、hover / 选中 / 保存中尺寸不变、许可失败保留及空许可准确提交；候选继续隔离。OAuth 与其他 MCP 能力不因控件统一而宣称完成。

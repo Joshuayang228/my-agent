@@ -5138,6 +5138,53 @@ test.describe('My Agent UI', () => {
     await expect(note).toHaveValue('保存失败时不要丢弃这条草稿')
   })
 
+  test('导航提交后快捷键读取当前视图和搜索状态', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.goto('/')
+    for (let index = 0; index < 5; index++) {
+      await page.keyboard.press('Control+Shift+P')
+      await expect(page.getByTestId('playground-page')).toBeVisible()
+      await page.keyboard.press('Control+Shift+P')
+      await expect(page.getByTestId('playground-page')).toHaveCount(0)
+    }
+    await page.keyboard.press('Control+f')
+    const search = page.getByPlaceholder('搜索消息...')
+    await expect(search).toBeVisible()
+    await search.fill('搜索状态不能被旧闭包冻结')
+    await page.keyboard.press('Escape')
+    await expect(search).toHaveCount(0)
+    await page.keyboard.press('Control+f')
+    await expect(search).toHaveValue('')
+  })
+
+  test('设置等待保存时侧栏重渲染不取消快捷键离开', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      const state = { created: 0, release: null as null | (() => void), stored: { llmApiKeyConfigured: 'true', llmConnectionReady: 'true', companionResponseNote: '' } as Record<string, string> }
+      ;(window as any).__pendingSettingsExit = state
+      api.settings.get = async () => ({ ...state.stored })
+      api.settings.set = async (key: string, value: string) => {
+        await new Promise<void>((resolve) => { state.release = resolve })
+        state.stored[key] = value
+      }
+      api.session.create = async () => ({ id: `pending-exit-${++state.created}` })
+    })
+    await page.goto('/')
+    await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-companion').click()
+    await page.getByRole('textbox', { name: '相处补充说明', exact: true }).fill('等待保存的草稿')
+    await expect.poll(() => page.evaluate(() => Boolean((window as any).__pendingSettingsExit.release))).toBe(true)
+    await page.keyboard.press('Control+n')
+    await page.keyboard.press('Control+b')
+    await page.keyboard.press('Control+n')
+    expect(await page.evaluate(() => (window as any).__pendingSettingsExit.created)).toBe(0)
+    await page.evaluate(() => (window as any).__pendingSettingsExit.release())
+    await expect.poll(() => page.evaluate(() => (window as any).__pendingSettingsExit.stored.companionResponseNote)).toBe('等待保存的草稿')
+    await expect(page.getByTestId('settings-panel')).toHaveCount(0)
+    await expect.poll(() => page.evaluate(() => (window as any).__pendingSettingsExit.created)).toBe(1)
+  })
+
   test('设置高级模型参数自动保存并在离开时刷新', async ({ page }) => {
     await page.goto('/')
     await page.evaluate(() => {
