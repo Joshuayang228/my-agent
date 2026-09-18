@@ -431,6 +431,7 @@ export function SettingsPanel({
         return window.electronAPI.settings.testConnection({
           baseUrl: connection.baseUrl,
           model: connection.model,
+          provider: connection.provider,
           ...(apiKey ? { apiKey } : { useStoredApiKey: true, connectionId: connection.id }),
         })
       }} onFetchModels={async (connection, draftApiKey) => {

@@ -87,6 +87,19 @@ test.beforeAll(async () => {
     }],
   }), 'utf8')
   server = createServer(async (request, response) => {
+    if (request.method === 'POST' && request.url === '/v1/messages') {
+      capturedRequest = { url: request.url, authorization: String(request.headers['x-api-key'] ?? ''), body: JSON.parse(await readBody(request)) }
+      capturedRequests.push(capturedRequest)
+      response.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' })
+      for (const event of [
+        { type: 'message_start', message: { usage: { input_tokens: 1, output_tokens: 0 } } },
+        { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: '连接成功' } },
+        { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 2 } },
+        { type: 'message_stop' },
+      ]) response.write(`data: ${JSON.stringify(event)}\n\n`)
+      response.end()
+      return
+    }
     if (request.method !== 'POST' || request.url !== '/v1/chat/completions') {
       response.writeHead(404).end()
       return
@@ -218,6 +231,41 @@ test('首次进入通过模型路由配置后开始对话', async () => {
   await send.click()
   await expect(page.getByText('连接成功', { exact: true })).toBeVisible({ timeout: 30_000 })
   expect(capturedRequest).toMatchObject({ url: '/v1/chat/completions', authorization: 'Bearer local-test-key', body: { model: 'local-test-model', stream: true } })
+})
+
+test('正式自定义模型连接保存协议并在重载后通过真实协议测试', async () => {
+  await page.locator('button[title="设置"]').click()
+  await page.getByTestId('settings-nav-model').click()
+  const models = page.getByTestId('settings-model-routing')
+  await models.getByRole('button', { name: '添加连接', exact: true }).click()
+  const form = models.getByTestId('model-connection-form')
+  await form.getByRole('radio', { name: '自定义连接', exact: true }).click()
+  await form.getByLabel('连接名称', { exact: true }).fill('协议本地验收')
+  await form.getByLabel('连接适配器', { exact: true }).selectOption('anthropic')
+  await form.getByLabel('Base URL', { exact: true }).fill(baseUrl)
+  await form.getByLabel('API Key', { exact: true }).fill('local-anthropic-fixture')
+  await form.getByRole('button', { name: '保存连接', exact: true }).click()
+  const profile = models.locator('[data-testid^="settings-model-profile-"]').filter({ hasText: '协议本地验收' })
+  await expect(profile).toContainText('自定义连接 · Anthropic')
+  const manual = profile.getByRole('textbox', { name: '手动添加模型 协议本地验收', exact: true })
+  await manual.fill('protocol-fixture-model')
+  await manual.press('Enter')
+  const saved = JSON.parse((await page.evaluate(() => window.electronAPI.settings.get())).modelConnections).find((item: { name: string }) => item.name === '协议本地验收')
+  expect(saved).toMatchObject({ source: 'custom', provider: 'anthropic', apiKey: '', hasApiKey: true })
+  await page.reload()
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  if (!(await page.getByTestId('settings-panel').isVisible())) await page.locator('button[title="设置"]').click()
+  await page.getByTestId('settings-nav-model').click()
+  await profile.getByRole('button', { name: '编辑', exact: true }).click()
+  await expect(form.getByLabel('连接适配器', { exact: true })).toHaveValue('anthropic')
+  await expect(form.getByLabel('API Key', { exact: true })).toHaveValue('')
+  await form.getByRole('button', { name: '取消', exact: true }).click()
+  await profile.getByRole('button', { name: '测试连接 协议本地验收', exact: true }).click()
+  await expect.poll(() => capturedRequests.some((entry) => entry.url === '/v1/messages' && entry.authorization === 'local-anthropic-fixture' && entry.body.model === 'protocol-fixture-model')).toBe(true)
+  await expect(profile.getByRole('status')).toBeVisible()
+  await profile.getByRole('button', { name: '删除 协议本地验收', exact: true }).click()
+  await expect(profile).toHaveCount(0)
+  await page.getByTestId('settings-back').click()
 })
 
 test('正式伙伴设置经真实 IPC 保存独立偏好并在重载后恢复', async () => {

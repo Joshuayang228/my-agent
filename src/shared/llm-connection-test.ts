@@ -7,6 +7,13 @@ export const CONNECTION_TEST_MESSAGES = [
 
 export type ValidatedLLMConnectionTestInput = LLMConnectionTestInput
 
+/** 背景：编辑可更换供应商；意图：旧凭据仅在同端点同协议留用；约束：不按连接 id 单独授权，不忽略路径与大小写差异。 */
+export function sameConnectionEndpoint(a: { baseUrl?: unknown; provider?: unknown }, b: { baseUrl?: unknown; provider?: unknown }): boolean {
+  return typeof a.baseUrl === 'string' && typeof b.baseUrl === 'string'
+    && a.baseUrl.trim().replace(/\/$/, '') === b.baseUrl.trim().replace(/\/$/, '')
+    && (a.provider || 'auto') === (b.provider || 'auto')
+}
+
 /**
  * 校验一次性模型连接测试的输入。
  *
@@ -24,6 +31,9 @@ export function validateLLMConnectionTestInput(input: unknown):
   const connectionId = typeof raw.connectionId === 'string' ? raw.connectionId.trim() : ''
   const baseUrl = typeof raw.baseUrl === 'string' ? raw.baseUrl.trim().replace(/\/$/, '') : ''
   const model = typeof raw.model === 'string' ? raw.model.trim() : ''
+  if (raw.provider !== undefined && !['openai', 'anthropic', 'gemini', 'auto'].includes(raw.provider)) {
+    return { ok: false, error: '请选择有效的连接适配器' }
+  }
 
   if (!apiKey && !useStoredApiKey) return { ok: false, error: '请先填写 API Key' }
   if (!baseUrl) return { ok: false, error: '请先填写 Base URL' }
@@ -46,6 +56,7 @@ export function validateLLMConnectionTestInput(input: unknown):
       ...(connectionId ? { connectionId } : {}),
       baseUrl,
       model,
+      ...(raw.provider ? { provider: raw.provider } : {}),
     },
   }
 }

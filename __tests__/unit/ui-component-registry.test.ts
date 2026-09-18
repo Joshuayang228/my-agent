@@ -31,7 +31,7 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 
 describe('UI component asset registry', () => {
   it('模型与 MCP 表单实际绑定 Foundation 输入和选择控件，未使用导入与同名遮蔽不算复用', () => {
-    const consumers = ['src/components/settings/ModelRoutingSettings.tsx', 'src/components/settings/McpConnectionForm.tsx'].map((file) => resolve(file))
+    const consumers = ['src/components/settings/ModelRoutingSettings.tsx', 'src/components/settings/ModelConnectionForm.tsx', 'src/components/settings/McpConnectionForm.tsx'].map((file) => resolve(file))
     const fields = ['TextField', 'SelectField'].map((name) => resolve(`src/components/foundation/${name}.tsx`))
     const fixture = resolve('__tests__/fixtures/settings-field-binding.tsx')
     const fixtureSource = `import { SelectField as Shared } from '../../src/components/foundation/SelectField'
@@ -87,6 +87,27 @@ describe('UI component asset registry', () => {
     expect(usesForm("import { McpConnectionForm } from './settings/McpConnectionForm'; const view = <div />")).toBe(false)
     expect(usesForm('const McpConnectionForm = () => <div />; const view = <McpConnectionForm />')).toBe(false)
     expect(readFileSync('src/components/settings/McpConnectionForm.tsx', 'utf8')).not.toContain('window.electronAPI')
+  })
+  it('模型新增与编辑在正式和候选实际复用同一表单', () => {
+    const files = ['src/components/settings/ModelRoutingSettings.tsx', 'src/components/playground/SettingsExperienceCandidate.tsx'].map((file) => resolve(file))
+    const form = resolve('src/components/settings/ModelConnectionForm.tsx')
+    const program = ts.createProgram([...files, form], { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, skipLibCheck: true })
+    const checker = program.getTypeChecker()
+    for (const file of files) {
+      let rendered = false
+      const visit = (node: ts.Node) => {
+        if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+          let symbol = checker.getSymbolAtLocation(node.tagName)
+          if (symbol && (symbol.flags & ts.SymbolFlags.Alias)) symbol = checker.getAliasedSymbol(symbol)
+          if (symbol?.declarations?.some((declaration) => resolve(declaration.getSourceFile().fileName) === form)) rendered = true
+        }
+        ts.forEachChild(node, visit)
+      }
+      visit(program.getSourceFile(file)!)
+      expect(rendered, file).toBe(true)
+    }
+    expect(readFileSync('src/components/settings/ModelConnectionForm.tsx', 'utf8')).not.toContain('window.electronAPI')
+    expect(UI_COMPONENT_REGISTRY['layout.model-connection-form'].sourcePath).toBe('src/components/settings/ModelConnectionForm.tsx')
   })
   it('正式关于页与候选实际渲染共享开发者模式开关', () => {
     const usesAbout = (source: string) => rendersSharedTabs(source, 'AboutSettingsContent', '/settings/AboutSettingsContent')

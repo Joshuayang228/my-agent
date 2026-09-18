@@ -673,6 +673,7 @@ export interface LLMConnectionTestInput {
   connectionId?: string
   baseUrl: string
   model: string
+  provider?: LLMProvider
 }
 
 export type LLMModelFetchReason =
@@ -790,8 +791,12 @@ export interface ModelConnectionProfile {
   /** Renderer 安全视图：是否已有本机密钥；正式保存时由主进程忽略。 */
   hasApiKey?: boolean
   provider?: LLMProvider
+  source?: ModelConnectionSource
+  presetId?: string
   enabled: boolean
 }
+
+export type ModelConnectionSource = 'official' | 'coding' | 'relay' | 'local' | 'custom'
 
 export interface ModelRouteProfile {
   purpose: ModelRoutePurpose

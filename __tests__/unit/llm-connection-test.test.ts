@@ -2,6 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { validateLLMConnectionTestInput } from '../../src/shared/llm-connection-test'
 
 describe('LLM connection test input', () => {
+  it('preserves explicit adapters and rejects unknown protocols', () => {
+    for (const provider of ['openai', 'anthropic', 'gemini', 'auto']) {
+      expect(validateLLMConnectionTestInput({ provider, apiKey: 'fixture', baseUrl: 'https://example.test', model: 'model' })).toMatchObject({ ok: true, value: { provider } })
+    }
+    expect(validateLLMConnectionTestInput({ provider: 'invalid', apiKey: 'fixture', baseUrl: 'https://example.test', model: 'model' })).toEqual({ ok: false, error: '请选择有效的连接适配器' })
+  })
   it('accepts a valid http configuration and normalizes the trailing slash', () => {
     expect(validateLLMConnectionTestInput({
       apiKey: 'secret',

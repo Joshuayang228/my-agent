@@ -314,6 +314,79 @@ async function installProductionElectronStub(page: import('@playwright/test').Pa
 }
 
 
+for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
+  for (const width of [1166, 600]) {
+    test(`正式模型共享连接表单与协议 ${theme} ${width}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 731 })
+      await installProductionElectronStub(page)
+      await page.addInitScript((theme) => {
+        localStorage.setItem('theme', theme)
+        const api = (window as any).electronAPI
+        const values: Record<string, string> = { llmApiKeyConfigured: 'true', llmModel: 'fixture', modelConnections: '[]', modelRoutes: '[]' }
+        const state = { values, tested: null as unknown }
+        ;(window as any).__modelForm = state
+        api.settings.get = async () => ({ ...values })
+        api.settings.set = async (key: string, value: string) => { values[key] = value }
+        api.settings.testConnection = async (input: unknown) => { state.tested = input; return { ok: true, model: 'fixture', ms: 1 } }
+      }, theme)
+      await page.goto('/')
+      await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+      const settings = page.getByTestId('settings-panel')
+      await settings.getByRole(width < 768 ? 'tab' : 'button', { name: '模型', exact: true }).click()
+      const models = page.getByTestId('settings-model-routing')
+      await models.getByRole('button', { name: '添加连接', exact: true }).click()
+      const form = models.getByTestId('model-connection-form')
+      await expect(form.getByLabel('连接名称', { exact: true })).toHaveValue('OpenRouter 聚合')
+      await form.getByLabel('API Key', { exact: true }).fill('fixture-temporary')
+      for (const label of ['官方服务商', '编程套餐', '本地模型', '聚合 / 中转']) {
+        const option = form.getByRole('radio', { name: label, exact: true })
+        await option.scrollIntoViewIfNeeded()
+        const before = await option.boundingBox()
+        await option.hover()
+        expect(await option.boundingBox()).toEqual(before)
+        await option.click()
+        await expect(option).toHaveAttribute('aria-checked', 'true')
+        await expect(form.getByLabel('API Key', { exact: true })).toHaveValue('')
+      }
+      await form.getByRole('radio', { name: '自定义连接', exact: true }).click()
+      await expect(form.getByRole('button', { name: '保存连接', exact: true })).toBeDisabled()
+      await form.getByLabel('连接名称', { exact: true }).fill('协议验收连接')
+      await form.getByLabel('连接适配器', { exact: true }).selectOption('anthropic')
+      await form.getByLabel('Base URL', { exact: true }).fill('https://custom.example.test/v1')
+      await form.getByLabel('API Key', { exact: true }).fill('fixture-synthetic-key')
+      expect(await form.evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true)
+      await form.screenshot({ path: testInfo.outputPath('connection-form.png') })
+      await form.getByRole('button', { name: '保存连接', exact: true }).click()
+      await expect(form).toHaveCount(0)
+      const profile = models.locator('[data-testid^="settings-model-profile-"]').filter({ hasText: '协议验收连接' })
+      await expect(profile).toContainText('自定义连接 · Anthropic')
+      const manual = profile.getByRole('textbox', { name: '手动添加模型 协议验收连接', exact: true })
+      await manual.fill('fixture-model')
+      await manual.press('Enter')
+      await models.getByLabel('添加主对话模型', { exact: true }).selectOption({ label: '协议验收连接 · fixture-model' })
+      await profile.getByRole('button', { name: '测试连接 协议验收连接', exact: true }).click()
+      await expect.poll(() => page.evaluate(() => (window as any).__modelForm.tested)).toMatchObject({ provider: 'anthropic', useStoredApiKey: true, baseUrl: 'https://custom.example.test/v1', model: 'fixture-model' })
+      const routes = await page.evaluate(() => (window as any).__modelForm.values.modelRoutes)
+      await profile.getByRole('button', { name: '编辑', exact: true }).click()
+      await expect(form.getByLabel('连接适配器', { exact: true })).toHaveValue('anthropic')
+      await expect(form.getByLabel('API Key', { exact: true })).toHaveValue('')
+      await form.getByLabel('连接名称', { exact: true }).fill('协议验收连接改名')
+      await form.getByRole('button', { name: '保存连接', exact: true }).click()
+      await expect(form).toHaveCount(0)
+      expect(await page.evaluate(() => (window as any).__modelForm.values.modelRoutes)).toBe(routes)
+      await settings.getByRole(width < 768 ? 'tab' : 'button', { name: '外观与界面', exact: true }).click()
+      await settings.getByRole(width < 768 ? 'tab' : 'button', { name: '模型', exact: true }).click()
+      await expect(profile).toContainText('模型清单 · 1 个')
+      await profile.getByRole('button', { name: '编辑', exact: true }).click()
+      await expect(form.getByRole('radio', { name: '自定义连接', exact: true })).toHaveAttribute('aria-checked', 'true')
+      await expect(form.getByLabel('连接适配器', { exact: true })).toHaveValue('anthropic')
+      await form.getByLabel('Base URL', { exact: true }).fill('https://another.example.test/v1')
+      await expect(form.getByLabel('API Key', { exact: true })).toHaveAttribute('placeholder', 'API Key')
+      await form.getByRole('button', { name: '取消', exact: true }).click()
+    })
+  }
+}
+
 test('正式模型保存失败保留草稿和清单，重试后才应用', async ({ page }) => {
   await installProductionElectronStub(page)
   await page.addInitScript(() => {

@@ -17,11 +17,12 @@ import { ScopeBadge, SettingCard, SettingRow, SettingSwitch, SettingsPageHeader 
 import { CompanionSettingsContent } from '../settings/CompanionSettingsContent'
 import { AboutSettingsContent } from '../settings/AboutSettingsContent'
 import { McpServiceCard } from '../settings/McpServiceCard'
+import { ModelConnectionForm } from '../settings/ModelConnectionForm'
+import { CONNECTION_ADAPTERS, CONNECTION_PRESETS, CONNECTION_SOURCE_OPTIONS, connectionDraftForSource, providerSource, sameConnectionEndpoint } from '../../shared/model-connection-form'
 import { SkillDetail, SkillFilePreview, SkillListCard } from '../settings/SkillViews'
-import type { SkillInfo } from '../../shared/types'
+import type { SkillInfo, ModelConnectionSource as ConnectionSource } from '../../shared/types'
 import { McpConnectionPreview } from './McpConnectionPreview'
 import { THEME_STUDIES, getThemeStudyStyle, type ThemeStudyId } from './foundation-themes'
-import { PROVIDER_PRESET_GROUPS } from '../../shared/provider-presets'
 import { JSON_SCHEMA, load } from 'js-yaml'
 import codeReview from '../../../electron/skills-builtin/code-review/SKILL.md?raw'
 import contentCreator from '../../../electron/skills-builtin/content-creator/SKILL.md?raw'
@@ -96,7 +97,6 @@ function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProa
 
 type ModelPurpose = 'primary' | 'auxiliary' | 'image' | 'unused'
 type CapabilityState = 'supported' | 'unknown' | 'unsupported'
-type ConnectionSource = 'official' | 'coding' | 'relay' | 'local' | 'custom'
 type ModelFixture = { id: string; enabled: boolean; visibleInPicker: boolean; purpose: ModelPurpose; image: CapabilityState; tools: CapabilityState }
 type ConnectionAdapter = 'openai-compatible' | 'anthropic' | 'google'
 type ModelConnectionFixture = { id: string; name: string; source: ConnectionSource; protocol?: string; providerLabel: string; baseUrl: string; credentialStatus: 'missing' | 'stored'; status: 'untested' | 'healthy' | 'failed'; models: ModelFixture[] }
@@ -104,13 +104,6 @@ type ModelRoutePurpose = 'primary' | 'auxiliary' | 'image'
 type ModelRoute = { connectionId: string; modelId: string; enabled: boolean }
 type ModelFetchState = 'idle' | 'loading' | 'success' | 'empty' | 'unsupported' | 'error'
 
-const CONNECTION_SOURCE_OPTIONS: Array<{ id: ConnectionSource; label: string; description: string }> = [
-  { id: 'official', label: '官方服务商', description: '官方 API 入口' },
-  { id: 'coding', label: '编程套餐', description: '面向编程工具的独立套餐入口' },
-  { id: 'relay', label: '聚合 / 中转', description: '聚合平台、中转站和统一网关' },
-  { id: 'local', label: '本地模型', description: 'Ollama、LM Studio 等本机服务' },
-  { id: 'custom', label: '自定义连接', description: '填写协议适配器和 Base URL' },
-]
 const ROUTE_PURPOSES: Array<{ id: ModelRoutePurpose; label: string; description: string }> = [
   { id: 'primary', label: '主对话', description: '普通聊天和连续对话' },
   { id: 'auxiliary', label: '辅助任务', description: '标题、整理和轻量后台任务' },
@@ -119,25 +112,13 @@ const ROUTE_PURPOSES: Array<{ id: ModelRoutePurpose; label: string; description:
 const FETCHED_MODEL_FIXTURES = ['gpt-4o', 'gpt-4o-mini', 'o3-mini', 'text-embedding-3-small']
 
 function sourceLabel(value: ConnectionSource) { return CONNECTION_SOURCE_OPTIONS.find((item) => item.id === value)?.label ?? '自定义连接' }
-const CONNECTION_ADAPTER_LABELS: Record<ConnectionAdapter, string> = { 'openai-compatible': 'OpenAI Compatible', anthropic: 'Anthropic', google: 'Gemini' }
-type CandidateProvider = { providerId: string; label: string; baseUrl: string; group?: string }
-
-/**
- * 背景：候选分类要合并聚合入口，同时保留独立套餐；设计意图：只映射展示来源，不改生产预设。
- * 关键约束：普通 Ark 归聚合，volces_coding 仍按套餐分组；地址和身份继续读取共享注册表。
- */
-function providerSource(provider: CandidateProvider): ConnectionSource {
-  if (provider.group === '编程套餐') return 'coding'
-  if (provider.group === '聚合与代理' || provider.providerId === 'volces') return 'relay'
-  if (provider.group === '本地 / 自定义') return 'local'
-  return 'official'
-}
+const CONNECTION_ADAPTER_LABELS = Object.fromEntries(CONNECTION_ADAPTERS.map((item) => [item.id, item.label])) as Record<ConnectionAdapter, string>
 function createConnection(provider: { providerId: string; label: string; baseUrl: string; group?: string }, index = 0): ModelConnectionFixture {
   return { id: `connection-${provider.providerId}-${index}`, name: index === 0 ? `${provider.label} 主账号` : `${provider.label} 连接`, source: providerSource(provider), providerLabel: provider.label, baseUrl: provider.baseUrl, credentialStatus: 'stored', status: 'untested', models: index === 0 ? [{ id: 'gpt-4o', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'unknown' }, { id: 'gpt-4o-mini', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'unknown' }, { id: 'image-model-id', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'unknown' }] : [] }
 }
 
 function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { modelStatus: 'idle' | 'success' | 'error'; onModelStatusChange: (status: 'idle' | 'success' | 'error') => void; selectedProvider: string; onProviderChange: (provider: string) => void }) {
-  const allProviders = PROVIDER_PRESET_GROUPS.flatMap((group) => group.items).filter((provider) => provider.providerId !== 'miyang')
+  const allProviders = CONNECTION_PRESETS
   const firstProvider = allProviders.find((provider) => provider.providerId === selectedProvider) ?? allProviders[0]
   const [previewState, setPreviewState] = useState<'empty' | 'one' | 'two'>('one')
   const [connections, setConnections] = useState<ModelConnectionFixture[]>(() => [createConnection(firstProvider)])
@@ -163,8 +144,6 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
   const [dailyBudget, setDailyBudget] = useState('0')
   const [temperature, setTemperature] = useState('0.7')
   const selectedProviderConfig = allProviders.find((item) => item.providerId === providerId)
-  const providerOptions = allProviders.filter((item) => providerSource(item) === source)
-  const presetLabel = source === 'coding' ? '编程套餐' : source === 'relay' ? '聚合 / 中转服务' : source === 'local' ? '本地服务' : '官方服务商'
   const adapterFromProtocol = (protocol?: string): ConnectionAdapter => (Object.entries(CONNECTION_ADAPTER_LABELS).find(([, label]) => label === protocol)?.[0] as ConnectionAdapter | undefined) ?? 'openai-compatible'
   const closeForm = () => { setShowAdd(false); setEditingId(null); setApiKey('') }
   const openAdd = () => { setEditingId(null); chooseSource('relay'); setShowAdd(true); setApiKey('') }
@@ -187,28 +166,18 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
     }
     setShowAdd(false)
   }
-  const defaultConnectionName = (provider: { label: string }, sourceType: ConnectionSource) => sourceType === 'relay' ? `${provider.label} 聚合` : sourceType === 'local' ? provider.label : `${provider.label} 连接`
   /**
    * 背景：切换来源时旧 render 的选项仍属于上一类；设计意图：按目标来源选默认预设，整组同步。
    * 关键约束：不调用父级 Provider 选择，不改变已有样张或用途；换渠道清除临时 Key，自定义适配器独立保存。
    */
   const chooseSource = (next: ConnectionSource) => {
+    const draft = connectionDraftForSource(next)
     setSource(next)
     setApiKey('')
-    if (next === 'custom') { setName(''); setBaseUrl(''); setAdapter('openai-compatible'); return }
-    const provider = next === 'relay' ? allProviders.find((item) => item.providerId === 'openrouter') : allProviders.find((item) => providerSource(item) === next)
-    if (!provider) return
-    setProviderId(provider.providerId)
-    setName(defaultConnectionName(provider, next))
-    setBaseUrl(provider.baseUrl)
-  }
-  const chooseProvider = (next: string) => {
-    const provider = providerOptions.find((item) => item.providerId === next)
-    if (!provider) return
-    setProviderId(next)
-    setName(defaultConnectionName(provider, source))
-    setBaseUrl(provider.baseUrl)
-    setApiKey('')
+    setProviderId(draft.presetId)
+    setName(draft.name)
+    setBaseUrl(draft.baseUrl)
+    setAdapter('openai-compatible')
   }
   const addModelToConnection = (connectionId: string, nextModelId: string) => { const id = nextModelId.trim(); if (!id) return; setConnections((items) => items.map((connection) => connection.id !== connectionId || connection.models.some((model) => model.id === id) ? connection : { ...connection, models: [...connection.models, { id, enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'unknown' }] })) }
   /**
@@ -246,7 +215,7 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
     if (source !== 'custom' && (!selectedProviderConfig || providerSource(selectedProviderConfig) !== source)) return
     const patch = { name: name.trim(), source, protocol: source === 'custom' ? CONNECTION_ADAPTER_LABELS[adapter] : undefined, providerLabel: source === 'custom' ? '自定义连接' : selectedProviderConfig!.label, baseUrl: baseUrl.trim() }
     if (editingId) {
-      setConnections((items) => items.map((connection) => connection.id !== editingId ? connection : { ...connection, ...patch, credentialStatus: apiKey.trim() ? 'stored' : connection.credentialStatus, status: 'untested' }))
+      setConnections((items) => items.map((connection) => connection.id !== editingId ? connection : { ...connection, ...patch, credentialStatus: apiKey.trim() ? 'stored' : sameConnectionEndpoint({ baseUrl: connection.baseUrl, provider: connection.protocol }, { baseUrl: patch.baseUrl, provider: patch.protocol }) ? connection.credentialStatus : 'missing', status: 'untested' }))
     } else {
       const id = `connection-${crypto.randomUUID()}`
       setConnections((items) => [...items, { id, ...patch, credentialStatus: apiKey.trim() ? 'stored' : 'missing', status: 'untested', models: [] }])
@@ -267,41 +236,12 @@ function ModelPage({ modelStatus, onModelStatusChange, selectedProvider }: { mod
   const routeLabel = (route: ModelRoute) => { const connection = connections.find((item) => item.id === route.connectionId); return connection ? `${connection.name} · ${route.modelId}` : route.modelId }
   const addRoute = (purpose: ModelRoutePurpose, key: string) => { const [connectionId, modelId] = key.split('::'); if (!connectionId || !modelId) return; setRoutes((current) => ({ ...current, [purpose]: current[purpose].some((item) => item.connectionId === connectionId && item.modelId === modelId) ? current[purpose] : [...current[purpose], { connectionId, modelId, enabled: true }] })) }
   const moveRoute = (purpose: ModelRoutePurpose, index: number, direction: -1 | 1) => setRoutes((current) => { const next = [...current[purpose]]; const target = index + direction; if (target < 0 || target >= next.length) return current; [next[index], next[target]] = [next[target], next[index]]; return { ...current, [purpose]: next } })
-  const connectionForm = (
-    <>
-<div className="flex items-start justify-between gap-3">
-          <h3 className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{editingId ? '编辑连接' : '添加连接'}</h3>
-          <button type="button" aria-label={editingId ? '关闭编辑连接' : '关闭添加连接'} title={editingId ? '关闭编辑连接' : '关闭添加连接'} onClick={closeForm} className="rounded p-1"><X size={14} style={{ color: 'var(--text-muted)' }} /></button>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-1.5" role="radiogroup" aria-label="连接入口类型">
-          {CONNECTION_SOURCE_OPTIONS.map((item) => <button key={item.id} type="button" role="radio" aria-checked={source === item.id} onClick={() => chooseSource(item.id)} className="settings-option px-2.5 py-1.5 text-[10px]" data-selected={source === item.id ? 'true' : undefined}>{item.label}</button>)}
-        </div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <label className="min-w-0 text-[10px]" style={{ color: 'var(--text-secondary)' }}>连接名称
-            <input aria-label="连接名称" value={name} onChange={(event) => setName(event.target.value)} placeholder="连接名称" className="theme-input mt-1 w-full min-w-0 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" />
-          </label>
-          {source === 'custom' ? <label className="min-w-0 text-[10px]" style={{ color: 'var(--text-secondary)' }}>适配器
-            <select aria-label="连接适配器" value={adapter} onChange={(event) => setAdapter(event.target.value as ConnectionAdapter)} className="theme-input mt-1 w-full min-w-0 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none">
-              {Object.entries(CONNECTION_ADAPTER_LABELS).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-            </select>
-          </label> : <label className="min-w-0 text-[10px]" style={{ color: 'var(--text-secondary)' }}>{presetLabel}
-            <select aria-label={presetLabel} value={providerId} onChange={(event) => chooseProvider(event.target.value)} className="theme-input mt-1 w-full min-w-0 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none">
-              {providerOptions.map((provider) => <option key={provider.providerId} value={provider.providerId}>{provider.label}</option>)}
-            </select>
-          </label>}
-          <label className="min-w-0 text-[10px] sm:col-span-2" style={{ color: 'var(--text-secondary)' }}>Base URL
-            <input aria-label="Base URL" value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="https://..." className="theme-input mt-1 w-full min-w-0 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" />
-          </label>
-          <label className="min-w-0 text-[10px] sm:col-span-2" style={{ color: 'var(--text-secondary)' }}>API Key（仅样张状态）
-            <input aria-label="API Key" type="password" autoComplete="off" value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder="不会写入真实设置" className="theme-input mt-1 w-full min-w-0 rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px] outline-none" />
-          </label>
-        </div>
-        <div className="mt-3 flex justify-end gap-2 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
-          <button type="button" onClick={closeForm} className="rounded px-3 py-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>取消</button>
-          <button type="button" onClick={finishSave} disabled={!name.trim() || !baseUrl.trim()} className="rounded-[var(--radius-md)] border px-3 py-1.5 text-[10px] font-medium disabled:opacity-40" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }}>保存连接</button>
-        </div>
-    </>
-  )
+  const connectionForm = <ModelConnectionForm preview editing={Boolean(editingId)}
+    value={{ name, source, presetId: providerId, provider: CONNECTION_ADAPTERS.find((item) => item.id === adapter)!.provider, baseUrl, apiKey }}
+    onChange={(next) => {
+      setName(next.name); setSource(next.source); setProviderId(next.presetId); setBaseUrl(next.baseUrl); setApiKey(next.apiKey)
+      setAdapter(CONNECTION_ADAPTERS.find((item) => item.provider === next.provider)?.id ?? 'openai-compatible')
+    }} onCancel={closeForm} onSave={finishSave} />
   return (
     <div className="space-y-4" data-testid="settings-candidate-section-model">
       <CandidatePageHeader icon={<Cloud size={14} />} title="模型" description="先安排每种用途，再管理连接和连接下的模型清单。" />

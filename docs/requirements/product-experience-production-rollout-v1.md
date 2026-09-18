@@ -298,13 +298,17 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 
 ### R06 连接配置装配边界
 
-下一步整页回流核对表（以下为当前缺口，不是新的排除项）：
+共享连接表单实施范围：从已确认候选抽取 `ModelConnectionForm`，新增 / 编辑复用同一 Foundation 字段与操作控件；来源分类、预设默认值与协议映射放共享纯函数。ModelConnectionProfile 增加可选 source / presetId，原 JSON 存储承载字段，不做旧数据迁移；LLMConnectionTestInput 补 provider 并同步 preload、Renderer 类型及主进程验证。更换端点 / 协议时不继承旧密钥，保存与读取已存 Key 都核对连接身份。候选只持有内存草稿，不触发 IPC。
+
+允许修改共享类型 / 表单纯函数、共享业务表单、正式 ModelRoutingSettings / SettingsPanel、候选 ModelPage、settings IPC / preload / Renderer 声明、组件注册表、对应 Unit / UI / Electron 及文档。删除两套正式简化表单和候选重复字段，正式新增改为候选的独立卡片；测试 / 获取模型保留在已保存连接卡片，不再留旧新增表单内的重复入口。验证来源切换清空临时 Key、自定义协议、保存失败保留、原位编辑保留模型 / 用途、正式重开与协议请求。原子保存、备用路由、生图、本地无 Key 请求及其余卡片结构仍按上表继续，不以本表单完成关闭 R06。
+
+整页回流核对表（逐项保留完成证据与剩余缺口，不是新的排除项）：
 
 | 候选动作 / 内容 | 当前正式差异 | 必须接通的事实源 / 证据 |
 |---|---|---|
-| 五类来源、服务商预设与自定义协议 | 正式只有名称 / 地址 / Key；ModelConnectionProfile 无来源与预设身份 | Provider 预设仍唯一来自 shared 注册表；共享业务表单、类型及保存 / 重开证据，不复制 fixture |
-| 新增独立卡片、原位编辑同一表单 | 正式新增 / 编辑为两套简化字段 | 抽取候选业务 UI 到正式共享组件，Foundation 控件实际引用门禁，正式 / 候选同时消费 |
-| 自定义 Anthropic / Gemini / OpenAI Compatible | 已有 provider 字段，但连接测试输入与 SettingsPanel 调用未传递 | 协议字段经过共享校验 / preload / handler 到唯一工厂，测试与真实聊天使用同一选择 |
+| 五类来源、服务商预设与自定义协议 | 已共用来源纯函数与 ModelConnectionForm，source / presetId 随连接保存 | shared 注册表为唯一预设源；正式 UI 四主题宽窄与 Electron 保存 / 重载，不复制 fixture |
+| 新增独立卡片、原位编辑同一表单 | 已删除两套正式简化字段和候选重复 JSX，正式 / 候选同时渲染共享表单 | Foundation 字段与共享表单真实符号门禁；编辑保留模型和用途，失败保留草稿 |
+| 自定义 Anthropic / Gemini / OpenAI Compatible | provider 已经过共享校验 / preload / handler 到配置工厂 | Unit 三协议校验与主进程透传；Electron 本地 Anthropic 请求验证，真实厂商及其余协议组合仍按全链验收 |
 | 本地模型 | 测试和发现校验无 Key 即拒绝 | 明确本地端点无认证契约，真实本地服务请求与失败测试；不伪造 Key 绕过 |
 | 用途优先级 | 工厂仅 find 第一有效路由，尚未将后续项映射 fallbackModels | 接入已有 failover 执行链；每个备用连接独立凭据 / 协议，实际失败转移顺序验收 |
 | 保存 / 离页 / 发现迟到 | 连接和路由分两次写；独立草稿与迟到响应未完整保护 | 原子持久化与回滚、取消 / 重试、修改端点使旧结果失效、正式入口与 Electron 证据 |
@@ -315,7 +319,7 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 
 ### R06 保存反馈修复边界
 
-正式 ModelRoutingSettings 的保存回调失败前已关闭草稿、清空手动输入并更新连接 / 路由列表，正式入口红测确认。移除这些提前更新分支，统一等待 persist 成功；失败保留草稿并通过共享 Toast 提示，保存中阻止重复写入和编辑，卸载后不回写组件。本批只修 Renderer 保存反馈，不冒充连接与路由的后端原子保存，也不涵盖离页草稿保护及模型发现迟到响应。模型来源分类与添加表单仍须按已确认 Playground 对照回流，原子持久化须补主进程合同与失败恢复证据；R06 保持未完成。
+正式 ModelRoutingSettings 的保存回调失败前已关闭草稿、清空手动输入并更新连接 / 路由列表，正式入口红测确认。移除这些提前更新分支，统一等待 persist 成功；失败保留草稿并通过共享 Toast 提示，保存中阻止重复写入和编辑，卸载后不回写组件。此修复只涵盖 Renderer 保存反馈，不冒充连接与路由的后端原子保存，也不涵盖离页草稿保护及模型发现迟到响应。模型来源分类与添加表单回流见上方核对表，原子持久化须补主进程合同与失败恢复证据；R06 保持未完成。
 
 ### R06 / R10 基础输入复用核验
 

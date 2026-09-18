@@ -6,9 +6,9 @@
 
 ## 待办缺口
 
-- WISH-045 R06 调用链核验：五类来源和共享添加 / 编辑表单仍待回流；连接类型缺 source / preset 身份，连接测试 IPC 未接 provider，本地无 Key 仍被测试 / 发现入口拒绝。用途列表宣称顺序重试，但配置工厂只取第一有效路由，未装配 fallbackModels。修复工厂凭据隔离与 provider 传递不能替代这些能力；必须在整页回流内补齐正式保存、重开与真实请求证据。
+- WISH-045 R06 调用链剩余缺口：本地无 Key 仍被测试 / 发现入口拒绝；用途列表宣称顺序重试，但配置工厂只取第一有效路由，未装配 fallbackModels。五类来源、共享新增 / 编辑及协议测试已接通，不代表整页完成；其余连接卡片结构、真实厂商与编程套餐调用仍需验收。
 - WISH-045 R06 语义差异：SettingsExperienceCandidate 的 image 用途标为生图，正式 ModelRoutingSettings 标为图片理解，`loadImageLLMConfig` 实际仅为带图片输入选择路由。未找到将生图等同图片理解的决策；需核对已批准候选并明确独立能力边界，不以相同 key 或文案替换认定完成，也不把 WISH-017 的人物生图暂缓自动扩大为整个模型设置排除。
-- WISH-045 R06 核验：正式模型页面仍缺候选的连接来源分类与对应添加表单；不能因 TextField / SelectField 共用就宣称模型页面已回流。SettingsPanel 的 modelConnections / modelRoutes 仍分两次写入，需原子更新及失败恢复；离页草稿和模型发现迟到响应也需完整生命周期验收。本批仅修保存回调失败时 Renderer 丢草稿和清单提前变化。
+- WISH-045 R06 生命周期：SettingsPanel 的 modelConnections / modelRoutes 仍分两次写入，需原子更新及失败恢复；离页草稿和模型发现迟到响应仍需完整验收，修改端点后也应使旧测试 / 发现结果失效。保存失败保留与共享表单不能替代这些边界。
 - WISH-042 2026-09-18 设置字段回归：Electron 首轮在开启开发模式后从 Playground 快捷键返回聊天超时；失败后新 worker 的独立目录没有前置模型配置，后续侧聊报无 API Key，后续终端 / 侧聊也未找到工作区入口。原代码带 trace 定向 1 项及完整复跑 18 项通过（4 条件跳过），首个快捷键失败根因未明，需补事件 / 导航生命周期证据并解除测试间前置依赖。证据 `var/verification/settings-fields-electron`、`settings-fields-shortcut-trace`、`settings-fields-electron-repeat`；不放宽断言或超时。
 - WISH-042 设置复用核验：模型与 MCP 的文本输入 / 下拉选择已接已有 Foundation；MCP 工具复选框、伙伴回答方式选项及提醒数字输入仍有局部原生实现。继续沿同一回流目标核验，不把业务表单共享当作其内部控件已全部同源。
 - WISH-040 OAuth 已完成代码缺口定位，补齐方案见全产品回流合同 R10 OAuth 节；系统浏览器授权、回环回调和新凭据生命周期待用户确认。当前仍未实现，不因 Bearer 测试或注册表路径齐全而关闭。

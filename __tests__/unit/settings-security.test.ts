@@ -21,7 +21,7 @@ vi.mock('electron', () => ({
   safeStorage: { isEncryptionAvailable: () => false },
 }))
 vi.mock('../../electron/main/storage/settings-store', () => ({
-  isAppSettingKey: (key: string) => ['llmApiKey', 'mcpServers', 'executionMode', 'llmModel', 'permissionRules', 'companionResponseNote'].includes(key),
+  isAppSettingKey: (key: string) => ['llmApiKey', 'mcpServers', 'modelConnections', 'executionMode', 'llmModel', 'permissionRules', 'companionResponseNote'].includes(key),
   MAX_SETTING_VALUE_LENGTH: 1_000_000,
   getAllSettings,
   getSetting,
@@ -76,6 +76,37 @@ describe('设置 IPC 安全视图', () => {
     expect(view.mcpServers).not.toContain('real-secret')
     expect(view.modelConnections).not.toContain('sk-connection-secret')
     expect(JSON.parse(view.modelConnections)[0]).toMatchObject({ apiKey: '', hasApiKey: true })
+  })
+  it('显式协议经连接测试进入唯一配置工厂', async () => {
+    registerSettingsIPC()
+    const result = await handlers.get('settings:test-connection')!({}, { apiKey: 'fixture-draft', baseUrl: 'https://custom.test/v1', model: 'fixture-model', provider: 'anthropic' })
+    expect(result).toMatchObject({ ok: true })
+    expect(loadMainLLMConfig).toHaveBeenCalledWith({ apiKey: 'fixture-draft', baseUrl: 'https://custom.test/v1', model: 'fixture-model', provider: 'anthropic' })
+    expect(chatComplete.mock.calls[0][0].config.provider).toBe('anthropic')
+  })
+
+  it.each(['settings:test-connection', 'settings:fetch-models'])('%s 不因 id 相同而把已存 Key 发往不同端点或协议', async (channel) => {
+    registerSettingsIPC()
+    for (const change of [{ baseUrl: 'https://other.test/v1' }, { provider: 'anthropic' }]) {
+      const result = await handlers.get(channel)!({}, { useStoredApiKey: true, connectionId: 'conn-1', baseUrl: 'https://api.example.com/v1', model: 'model', ...change })
+      expect(result.ok).toBe(false)
+    }
+    expect(chatComplete).not.toHaveBeenCalled()
+    expect(fetchRemoteModels).not.toHaveBeenCalled()
+  })
+
+  it('编辑保存只在同端点同协议时保留已存密钥，来源和预设身份正常保存', async () => {
+    registerSettingsIPC()
+    const previous = { id: 'conn-1', name: 'before', baseUrl: 'https://api.example.com/v1', provider: 'openai', model: 'model', apiKey: 'fixture-stored', enabled: true }
+    getSetting.mockResolvedValue(JSON.stringify([previous]))
+    const save = async (patch: object) => {
+      await handlers.get('settings:set')!({}, 'modelConnections', JSON.stringify([{ ...previous, apiKey: '', ...patch }]))
+      return JSON.parse(setSetting.mock.calls.at(-1)![1])[0]
+    }
+    expect(await save({ name: 'renamed', source: 'custom', presetId: '' })).toMatchObject({ name: 'renamed', apiKey: 'fixture-stored', source: 'custom', provider: 'openai' })
+    expect((await save({ baseUrl: 'https://other.test/v1' })).apiKey).toBe('')
+    expect((await save({ provider: 'anthropic' })).apiKey).toBe('')
+    expect((await save({ baseUrl: 'https://other.test/v1', apiKey: 'fixture-new' })).apiKey).toBe('fixture-new')
   })
 
   it('相处偏好写入独立字段，拒绝超长输入', async () => {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
-import { ArrowDown, ArrowUp, Check, CheckCircle2, Circle, LoaderCircle, Plus, RefreshCw, Trash2, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, CheckCircle2, Circle, LoaderCircle, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import type { LLMModelFetchResult, ModelConnectionProfile, ModelRouteProfile, ModelRoutePurpose } from '../../shared/types'
 import { addConnectionModel, enabledConnectionModelIds, normalizeConnectionModels, removeConnectionModel, setConnectionModelEnabled } from '../../shared/llm-model-fetch'
 import { ActionButton } from '../foundation/ActionButton'
@@ -7,6 +7,8 @@ import { TextField } from '../foundation/TextField'
 import { SelectField } from '../foundation/SelectField'
 import { useToast } from '../Toast'
 import { SettingCard, SettingRow } from './SettingsFields'
+import { ModelConnectionForm } from './ModelConnectionForm'
+import { CONNECTION_ADAPTERS, CONNECTION_PRESETS, CONNECTION_SOURCE_OPTIONS, connectionDraftForSource, modelConnectionDraft, sameConnectionEndpoint, validConnectionDraft, type ModelConnectionDraft } from '../../shared/model-connection-form'
 
 const PURPOSES: Array<{ id: ModelRoutePurpose; label: string; description: string }> = [
   { id: 'primary', label: '主对话', description: '聊天和主要 Agent 任务的优先模型。' },
@@ -75,17 +77,20 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
       if (mounted.current) setBusy(false)
     }
   }
-  const openAdd = () => { setEditing('new'); setDraft({ id: `connection-${Date.now()}`, name: '', baseUrl: 'https://api.openai.com/v1', model: '', apiKey: '', enabled: true, models: [] }) }
+  const openAdd = () => { setEditing('new'); setDraft({ ...connectionDraftForSource('relay'), id: `connection-${crypto.randomUUID()}`, model: '', enabled: true, models: [] }) }
   const openEdit = (connection: ModelConnectionProfile) => { setEditing(connection.id); setDraft({ ...connection, apiKey: '' }) }
+  const changeDraft = (value: ModelConnectionDraft) => {
+    const saved = connections.find((item) => item.id === draft.id)
+    setDraft({ ...draft, ...value, hasApiKey: Boolean(saved?.hasApiKey && sameConnectionEndpoint(saved, value)) })
+  }
   const saveDraft = async () => {
-    if (!draft.name.trim() || !draft.baseUrl.trim()) return
+    if (!validConnectionDraft({ ...modelConnectionDraft(draft), apiKey: draft.apiKey ?? '' })) return
     const next = editing === 'new'
       ? [...connections, withModels({ ...draft, name: draft.name.trim(), baseUrl: draft.baseUrl.trim() })]
       : connections.map((item) => item.id === draft.id
         ? withModels({
             ...item,
             ...draft,
-            ...(draft.apiKey?.trim() ? { apiKey: draft.apiKey } : { apiKey: item.apiKey }),
             name: draft.name.trim(),
             baseUrl: draft.baseUrl.trim(),
           })
@@ -162,6 +167,10 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
     await persist(connections, next)
   }
 
+  const connectionForm = <ModelConnectionForm value={{ ...modelConnectionDraft(draft), apiKey: draft.apiKey ?? '' }}
+    editing={editing !== 'new'} busy={busy} hasApiKey={draft.hasApiKey} onChange={changeDraft}
+    onCancel={() => { setEditing(null); setDraft({ id: '', name: '', baseUrl: '', model: '', apiKey: '', enabled: true }) }} onSave={() => void saveDraft()} />
+
   return <fieldset disabled={busy} className="m-0 min-w-0 space-y-4 border-0 p-0" data-testid="settings-model-routing" aria-busy={busy}>
     <SettingCard>
       <SettingRow label="模型使用安排" description="从已添加的连接模型中选择；顺序就是优先级，第一项失败时按顺序尝试下一项。" scope="影响后续任务" stacked>
@@ -196,6 +205,7 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
     <SettingCard>
       <SettingRow label="连接与模型清单" description="连接信息保存在本机；密钥不会回传到界面或写入备份文件。获取到的模型需要点选后才会加入清单。" scope="本机" stacked>
         <div className="space-y-2">
+          <div className="flex justify-end"><ActionButton size="sm" onClick={openAdd} disabled={busy || editing !== null}><Plus size={13} />添加连接</ActionButton></div>
           {connections.map((connection) => {
             const models = normalizeConnectionModels(connection)
             const draftModel = modelDrafts[connection.id] ?? ''
@@ -204,19 +214,11 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
             const currentFetched = fetchedModels[connection.id] ?? []
             const editingThis = editing === connection.id
             return <div key={connection.id} className="min-w-0 rounded-[var(--radius-md)] border" style={{ borderColor: 'var(--border-subtle)' }} data-testid={`settings-model-profile-${connection.id}`}>
-              {editingThis ? <div className="space-y-2 p-3">
-                <TextField className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" placeholder="连接名称" value={draft.name} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, name: event.target.value })} />
-                <TextField className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" placeholder="Base URL" value={draft.baseUrl} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, baseUrl: event.target.value })} />
-                <TextField className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" type="password" placeholder={connection.hasApiKey ? 'API Key（留空则保留原密钥）' : 'API Key'} value={draft.apiKey || ''} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, apiKey: event.target.value })} />
-                <div className="flex justify-end gap-2">
-                  <ActionButton size="sm" onClick={() => setEditing(null)}><X size={13} />取消</ActionButton>
-                  <ActionButton size="sm" onClick={() => void saveDraft()} disabled={busy} tone="accent">保存连接</ActionButton>
-                </div>
-              </div> : <>
+              {editingThis ? <div className="p-3">{connectionForm}</div> : <>
                 <div className="flex flex-wrap items-center gap-2 px-3 py-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{connection.name}<span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{connection.enabled ? '已启用' : '已停用'}</span></div>
-                    <div className="mt-1 truncate text-[10px]" style={{ color: 'var(--text-muted)' }}>{connection.baseUrl} · {models.length} 个模型</div>
+                    <div className="mt-1 truncate text-[10px]" style={{ color: 'var(--text-muted)' }}>{CONNECTION_SOURCE_OPTIONS.find((item) => item.id === connection.source)?.label ?? '自定义连接'} · {CONNECTION_PRESETS.find((item) => item.providerId === connection.presetId)?.label ?? CONNECTION_ADAPTERS.find((item) => item.provider === connection.provider)?.label ?? '自动识别'} · {models.length} 个模型</div>
                   </div>
                   {testState[connection.id] === 'success' && <div role="status" className="shrink-0 text-[10px]" style={{ color: 'var(--success)' }}><CheckCircle2 size={12} /></div>}
                   {testState[connection.id] === 'error' && <ActionButton size="sm" className="min-h-7" onClick={() => void testConnection(connection)}>重试</ActionButton>}
@@ -253,23 +255,9 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
               </>}
             </div>
           })}
-          {editing === 'new' ? <div className="space-y-2 rounded-[var(--radius-md)] border p-3" style={{ borderColor: 'var(--accent)' }}>
-            <TextField className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" placeholder="连接名称" value={draft.name} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, name: event.target.value })} />
-            <TextField className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" placeholder="Base URL" value={draft.baseUrl} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, baseUrl: event.target.value })} />
-            <TextField className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" type="password" placeholder="API Key" value={draft.apiKey || ''} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, apiKey: event.target.value })} />
-            <div className="flex flex-wrap justify-end gap-2">
-              <ActionButton size="sm" onClick={() => { if (!draft.baseUrl.trim()) return; void testConnection(withModels(draft), draft.apiKey) }} disabled={busy || !draft.baseUrl.trim()}>测试连接</ActionButton>
-              <ActionButton size="sm" onClick={() => { if (!draft.baseUrl.trim()) return; void fetchModels(withModels(draft), draft.apiKey) }} disabled={busy || !draft.baseUrl.trim()}>获取已有模型</ActionButton>
-              <ActionButton size="sm" onClick={() => setEditing(null)}><X size={13} />取消</ActionButton>
-              <ActionButton size="sm" onClick={() => void saveDraft()} disabled={busy} tone="accent">保存连接</ActionButton>
-            </div>
-            {fetchState[draft.id] === 'success' && (fetchedModels[draft.id] ?? []).length > 0 && <div className="space-y-2"><div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>获取到的模型 · 点击加入清单</div><div className="flex flex-wrap gap-1.5">{(fetchedModels[draft.id] ?? []).map((modelId) => { const alreadyAdded = normalizeConnectionModels(draft).some((model) => model.id === modelId); return <ActionButton key={modelId} size="sm" disabled={alreadyAdded} onClick={() => setDraft((current) => ({ ...current, ...addConnectionModel(current, modelId) }))}><span className="max-w-[16rem] truncate">{modelId}</span>{alreadyAdded ? <Check size={12} /> : <Plus size={12} />}</ActionButton> })}</div></div>}
-            {testState[draft.id] === 'error' && <div role="status" className="text-[10px]" style={{ color: 'var(--danger)' }}>{testError[draft.id]}</div>}
-            {fetchState[draft.id] === 'error' && <div role="status" className="text-[10px]" style={{ color: 'var(--danger)' }}>{fetchError[draft.id]?.message}</div>}
-            {fetchState[draft.id] === 'unsupported' && <div role="status" className="text-[10px]" style={{ color: 'var(--accent-fg)' }}>{fetchError[draft.id]?.message}</div>}
-          </div> : <ActionButton size="sm" onClick={openAdd} disabled={busy}><Plus size={13} />添加连接</ActionButton>}
         </div>
       </SettingRow>
     </SettingCard>
+    {editing === 'new' && <SettingCard>{connectionForm}</SettingCard>}
   </fieldset>
 }
