@@ -1,5 +1,7 @@
 # 质量总控
 
+连接清单门禁：正式与候选必须真实绑定 `ModelConnectionList`，添加操作来自 Foundation。四主题宽窄检查添加与清单标题同排，hover / 新增禁用时按钮 boundingBox 严格不变；编辑中禁止再次添加，取消恢复；删除最后一项检查持久化空数组、空态以及再次添加入口。此检查不替代关闭重开后的空配置与 Runtime 行为验收。
+
 连接卡片共享门禁：TypeChecker 检查正式与候选实际绑定 `ModelConnectionCard` 及其 Foundation 控件，不接受未使用导入或同名遮蔽。四主题 1166 / 600 宽度覆盖超长名称、输入边框、按根字号计算的按钮间距，以及 hover、测试等待 / 成功 / 失败、模型发现等待 / 失败 / 成功时所有头部按钮 boundingBox 严格相等。候选获取、测试、手动添加、启停与移除不得调用真实 settings 保存或模型接口。
 
 用途安排共享门禁：TypeChecker 检查正式与候选 JSX 实际绑定 `ModelUsageArrangements`，以及该组合实际绑定三个 Foundation 控件；未使用导入和同名参数遮蔽为负例。四主题 1166 / 600 宽度覆盖长连接名、无横向溢出、hover / pending / 启停操作槽严格 boundingBox 相等、排序、删除失败保留、重试、空态再添加和切页恢复；候选排序启停删除后设置写入次数必须为零。Renderer 替身只证明交互与载荷边界，真实保存及失败转移仍由独立 Electron 回归覆盖。

@@ -1,13 +1,12 @@
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react'
-import { Plus } from 'lucide-react'
 import { connectionCredentialLabel } from '../../shared/model-connection-form'
 import type { LLMModelFetchResult, ModelConnectionProfile, ModelRouteProfile, ModelRoutePurpose } from '../../shared/types'
 import { addConnectionModel, enabledConnectionModelIds, normalizeConnectionModels, removeConnectionModel, setConnectionModelEnabled } from '../../shared/llm-model-fetch'
-import { ActionButton } from '../foundation/ActionButton'
 import { ModelConnectionCard } from './ModelConnectionCard'
+import { ModelConnectionList } from './ModelConnectionList'
 import { ModelUsageArrangements } from './ModelUsageArrangements'
 import { useToast } from '../Toast'
-import { SettingCard, SettingRow } from './SettingsFields'
+import { SettingCard } from './SettingsFields'
 import { ModelConnectionForm } from './ModelConnectionForm'
 import { CONNECTION_ADAPTERS, CONNECTION_PRESETS, CONNECTION_SOURCE_OPTIONS, connectionDraftForSource, modelConnectionDraft, sameConnectionEndpoint, validConnectionDraft, type ModelConnectionDraft } from '../../shared/model-connection-form'
 
@@ -228,10 +227,7 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
       onMove={(purpose, index, direction) => { void moveRoute(purpose, index, direction) }}
       onToggle={route => { void persist(connections, routes.map(item => item === route ? { ...item, enabled: !item.enabled } : item)) }}
       onRemove={route => { void persist(connections, routes.filter(item => item !== route)) }} />
-    <SettingCard>
-      <SettingRow label="连接与模型清单" description="连接信息保存在本机；密钥不会回传到界面或写入备份文件。获取到的模型需要点选后才会加入清单。" scope="本机" stacked>
-        <div className="space-y-2">
-          <div className="flex justify-end"><ActionButton size="sm" onClick={openAdd} disabled={busy || editing !== null}><Plus size={13} />添加连接</ActionButton></div>
+    <ModelConnectionList count={connections.length} onAdd={openAdd} disabled={busy || editing !== null}>
           {connections.map(connection => <ModelConnectionCard key={connection.id} id={connection.id} name={connection.name}
             sourceLabel={CONNECTION_SOURCE_OPTIONS.find(item => item.id === connection.source)?.label ?? '自定义连接'}
             providerLabel={CONNECTION_PRESETS.find(item => item.providerId === connection.presetId)?.label ?? CONNECTION_ADAPTERS.find(item => item.provider === connection.provider)?.label ?? '自动识别'}
@@ -247,9 +243,7 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
             testState={testState[connection.id] ?? 'idle'} testMessage={testState[connection.id] === 'error' ? testError[connection.id] : undefined}
             fetchState={fetchState[connection.id] ?? 'idle'} fetchMessage={fetchError[connection.id]?.message} fetchRetryable={fetchError[connection.id]?.retryable}
             fetchedModels={fetchedModels[connection.id] ?? []} busy={busy} editing={editing === connection.id ? connectionForm : undefined} />)}
-        </div>
-      </SettingRow>
-    </SettingCard>
+    </ModelConnectionList>
     {editing === 'new' && <SettingCard>{connectionForm}</SettingCard>}
   </fieldset>
 }

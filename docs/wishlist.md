@@ -6,6 +6,10 @@
 
 ## 待办缺口
 
+- WISH-042 清单回流回归补充：`connection-list-electron` 首次完整运行仍在 Playground 可见后立即按返回快捷键时停留原页，`onboarding.test.ts:737` 超时；后续 worker 重建导致三项工作区测试缺前置。代码和断言不变的完整重跑 `connection-list-electron-repeat` 为 20 通过 / 4 条件跳过，未关闭此问题；需捕获按键时处理器安装和导航生命周期状态，不能仅凭页面可见推定监听器已更新。
+
+- WISH-045 模型空态旧回退：`ModelRoutingSettings` 对持久化空数组仍生成 `legacy-primary` 和默认主用途；`loadMainLLMConfig` 在无有效路由时仍回退旧全局字段及环境变量。用户已要求不保留旧兼容能力，需按 R06 统一明确“未配置 / 已清空 / 无可用用途”的生产行为，补正式重开、Runtime 无意外请求与辅助 / 图片用途验证；清单外层共享仅覆盖当前页面删除到空态，不表示此链已修复。
+
 - WISH-042 连接卡片回归补充：首次 Electron 的旧拼接文案断言失败，使首次模型配置未完成，后续自定义连接与伙伴设置仍停在设置页、工作区侧聊等待输出超时，worker 重建后终端 / 侧聊缺前置入口。将首项改为连接标题与真实持久化启用状态双断言后，完整 20 项通过、4 条件跳过；未改其余失败路径、未放宽超时。保留 `var/verification/connection-card-electron` 与 `connection-card-electron-verified`；跨测试前置依赖和既有偶发问题继续管理，不宣称本批解决稳定性。
 
 - WISH-042 终端完整回归补充（2026-09-19）：移除导航探针后完整 Electron 在 `onboarding.test.ts` 的大输出重试处等待完成标记失败，快照为新命令运行中、尚无输出；后续新 worker 的侧聊缺前置状态。证据 `var/verification/model-lifecycle-electron-final`。带首次配置 / 工作区前置的 3 项定向通过，不视为修复；失败附件现增加 Renderer 视图和终端事件长度 / 数量，不记录输出正文，继续区分启动延迟、握手和事件消费。
