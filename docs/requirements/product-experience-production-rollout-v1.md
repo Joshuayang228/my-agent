@@ -143,6 +143,8 @@ R12 必须拆成六个独立验收面：
 
 ### R10 异常恢复补验（2026-09-17）
 
+- 凭据专项最终验证：定向 Electron 1 项及完整 Electron 18 项通过，4 项外部模型条件跳过；Unit 959、根 tsc / build 通过。未改生产代码或依赖，不重复 Renderer UI，不将旧 UI 数量当本批新结果；无独立 lint 脚本，diff 检查通过。
+- 2026-09-18 凭据专项：扩展 onboarding.test.ts 的真实 MCP 保存 / 重启用例，使用随机临时 Bearer、本地认证服务和独立 userData；检查无认证 401、系统 safeStorage 可用、SQLite 密文和无 Token 原文、Renderer 哨兵，以及完整重启后新认证请求和 connected / 工具清单。只改验收及文档，不改生产存储或 IPC，不将该证据外推为 OAuth、第三方认证或其他凭据类型；原生确认仍沿既有测试替身批准。
 - 2026-09-18 最终验证：Unit 959、UI 186、Electron 18 通过，4 项外部模型条件跳过；根 tsc / build、资产检查、Eval 23 + 1 通过。独立主进程 TypeScript Compiler API 对照 HEAD 覆盖本批源文件，前后各 75 条，按文件 / code / 主错误信息多重集比较无新增；导入来源说明差异不算新诊断，既有错误仍由 WISH-043 管理。无独立 lint 脚本，不把 tsc 称作 lint。Electron 初次整套失败先记录实际 DOM / 调用模型 / cwd，再修正新连接表单、显式移除旧测试路由和 stdio 夹具模块解析，未跳过本地测试。
 - 范围：MCP Manager 连接生命周期、状态推送四处契约、Settings 订阅与迟到响应隔离、对应 Unit / Renderer / Electron；不改 OAuth、凭据策略、权限确认或其它 Runtime 行为。
 - 异常关闭保留 error / reconnecting 快照，手动停止撤销归属；替换流程在 await close 前占有槽位，旧握手、旧关闭与旧失败不得操作新连接。重连失败只由当前连接安排下一次重试。

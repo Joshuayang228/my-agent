@@ -6,6 +6,7 @@
  * 关键约束：不访问外网、不读取或覆盖用户设置；结束后关闭 Electron、HTTP 服务和临时目录。
  */
 import { createServer, type IncomingMessage } from 'node:http'
+import { randomUUID } from 'node:crypto'
 import { once } from 'node:events'
 import { createRequire } from 'node:module'
 import type { AddressInfo } from 'node:net'
@@ -1029,13 +1030,17 @@ test('正式记忆经真实 IPC 增改、完整重启恢复和删除', async () 
 
 
 /**
- * MCP 正式设置链路使用本地 SDK 服务，验证测试、保存和完整重启后的配置恢复。
- * 不验证第三方认证；凭据恢复由已有 safeStorage 契约覆盖。
+ * MCP 使用临时随机凭据和独立数据目录，验证密文落盘、Renderer 脱敏及完整重启后真实认证。
+ * 本地 Bearer 服务不等于第三方 OAuth；安全存储不可用时必须失败，不能跳过认证断言。
  */
-test('正式 MCP 添加向导经真实 IPC 保存并在重启后恢复配置', async () => {
+test('正式 MCP 凭据加密脱敏并在完整重启后恢复认证', async () => {
+  const bearerToken = randomUUID()
+  let authenticatedRequests = 0
   const mcp = new McpServer({ name: 'electron-mcp-fixture', version: '1.0.0' })
   mcp.registerTool('search_docs', { description: '搜索文档', inputSchema: {} }, async () => ({ content: [{ type: 'text', text: 'ok' }] }))
   const mcpHttp = createServer(async (request, response) => {
+    if (request.headers.authorization !== `Bearer ${bearerToken}`) { response.writeHead(401).end(); return }
+    authenticatedRequests++
     if (request.method !== 'POST') { response.writeHead(405).end(); return }
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true })
     response.on('close', () => { void mcp.close() })
@@ -1047,25 +1052,47 @@ test('正式 MCP 添加向导经真实 IPC 保存并在重启后恢复配置', a
   const url = 'http://127.0.0.1:' + address.port + '/mcp'
   const original = await page.evaluate(() => window.electronAPI.settings.get())
   try {
+    expect(await electronApp.evaluate(({ safeStorage }) => safeStorage.isEncryptionAvailable())).toBe(true)
+    expect((await fetch(url, { method: 'POST' })).status).toBe(401)
     await electronApp.evaluate(({ dialog }) => { dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false }) })
-    const result = await page.evaluate(async (url) => {
+    const result = await page.evaluate(async ({ url, bearerToken }) => {
       const requestId = 'electron-mcp-test'
-      const tested = await window.electronAPI.mcp.testConnection(requestId, { name: '本地 MCP 验收', transport: 'streamable-http', command: '', args: [], url })
+      const tested = await window.electronAPI.mcp.testConnection(requestId, { name: '本地 MCP 验收', transport: 'streamable-http', command: '', args: [], url, bearerToken })
       if (!tested.ok) return { tested }
       const saved = await window.electronAPI.mcp.saveTested(requestId, tested.tools.map((tool) => tool.name))
       return { tested, saved }
-    }, url)
+    }, { url, bearerToken })
     expect(result.tested.ok).toBe(true)
     expect(result.saved?.ok).toBe(true)
     const savedConfig = JSON.parse((await page.evaluate(() => window.electronAPI.settings.get())).mcpServers) as Array<{ name: string; url: string; enabled: boolean }>
     expect(savedConfig).toEqual(expect.arrayContaining([expect.objectContaining({ name: '本地 MCP 验收', url, enabled: true })]))
+    expect(JSON.stringify(savedConfig)).not.toContain(bearerToken)
+    expect(savedConfig).toEqual(expect.arrayContaining([expect.objectContaining({ bearerToken: '__MY_AGENT_REDACTED__' })]))
     await electronApp.close()
+    const authenticatedBeforeRestart = authenticatedRequests
+    const databaseBytes = await readFile(path.join(userDataDir, 'my-agent.db'))
+    expect(databaseBytes.includes(Buffer.from(bearerToken))).toBe(false)
+    const initSqlJs = (await import('sql.js')).default
+    const SQL = await initSqlJs({ locateFile: () => createRequire(import.meta.url).resolve('sql.js/dist/sql-wasm.wasm') })
+    const database = new SQL.Database(databaseBytes)
+    try {
+      const statement = database.prepare('SELECT value FROM settings WHERE key = ?')
+      try {
+        statement.bind(['mcpServers'])
+        expect(statement.step()).toBe(true)
+        expect(statement.getAsObject().value).toMatch(/^enc:v1:/)
+      } finally { statement.free() }
+    } finally { database.close() }
     electronApp = await electron.launch({ args: [path.join(__dirname, '../../dist-electron/index.js'), '--user-data-dir=' + userDataDir, '--no-sandbox'], env: { ...process.env, NODE_ENV: 'production', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' } })
     page = await electronApp.firstWindow()
     await page.waitForLoadState('domcontentloaded')
     await expect(page.locator('#startup-splash')).toBeHidden()
     const restored = JSON.parse((await page.evaluate(() => window.electronAPI.settings.get())).mcpServers) as Array<{ name: string; url: string }>
     expect(restored).toEqual(expect.arrayContaining([expect.objectContaining({ name: '本地 MCP 验收', url })]))
+    expect(JSON.stringify(restored)).not.toContain(bearerToken)
+    expect(restored).toEqual(expect.arrayContaining([expect.objectContaining({ bearerToken: '__MY_AGENT_REDACTED__' })]))
+    await expect.poll(() => authenticatedRequests).toBeGreaterThan(authenticatedBeforeRestart)
+    await expect.poll(async () => (await page.evaluate(() => window.electronAPI.mcp.status())).find((entry) => entry.name === '本地 MCP 验收')).toMatchObject({ status: 'connected', toolCount: 1 })
   } finally {
     await page.evaluate((value) => window.electronAPI.settings.set('mcpServers', value || '[]'), original.mcpServers || '[]').catch(() => undefined)
     mcpHttp.closeAllConnections()
