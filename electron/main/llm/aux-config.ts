@@ -21,13 +21,19 @@ export async function loadMainLLMConfig(overrides?: Partial<LLMConfig>): Promise
   const s = await settings.getAllSettings()
   const routed = resolveRoutedConfig(s.modelConnections, s.modelRoutes, 'primary')
   return {
-    apiKey: routed?.apiKey || s.llmApiKey || process.env.LLM_API_KEY || '',
+    // 背景：独立连接可能未填密钥；意图：禁止向其端点借发全局凭据；约束：只有无路由才整体回退。
+    apiKey: routed ? routed.apiKey || '' : s.llmApiKey || process.env.LLM_API_KEY || '',
     baseUrl: routed?.baseUrl || s.llmBaseUrl || process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
     model: routed?.model || s.llmModel || process.env.LLM_MODEL || 'gpt-4o',
+    provider: routed?.provider || 'auto',
     temperature: parseFloat(s.llmTemperature) || undefined,
     topP: parseFloat(s.llmTopP) || undefined,
     maxTokens: parseInt(s.llmMaxTokens) || undefined,
     ...overrides,
+    ...(overrides?.baseUrl !== undefined ? {
+      apiKey: overrides.apiKey || '',
+      provider: overrides.provider || 'auto',
+    } : {}),
   }
 }
 
@@ -41,18 +47,27 @@ export async function loadImageLLMConfig(): Promise<LLMConfig> {
   const all = await settings.getAllSettings()
   const routed = resolveRoutedConfig(all.modelConnections, all.modelRoutes, 'image')
   if (!routed) return main
-  return { ...main, apiKey: routed.apiKey || main.apiKey, baseUrl: routed.baseUrl, model: routed.model }
+  return { ...main, ...connectionConfig(routed) }
 }
 export async function loadAuxLLMConfig(): Promise<LLMConfig> {
   const main = await loadMainLLMConfig()
   const all = await settings.getAllSettings()
   const routed = resolveRoutedConfig(all.modelConnections, all.modelRoutes, 'auxiliary')
   const auxModel = routed?.model || await settings.getSetting('auxModel')
-  const base = auxModel?.trim()
-    ? { ...main, ...(routed?.baseUrl ? { baseUrl: routed.baseUrl } : {}), ...(routed?.apiKey ? { apiKey: routed.apiKey } : {}), model: auxModel.trim() }
-    : main
+  const base = routed
+    ? { ...main, ...connectionConfig(routed) }
+    : auxModel?.trim() ? { ...main, model: auxModel.trim() } : main
   // 标题/画像等：按探测缓存或启发式关闭 thinking，避免 max_tokens 被 reasoning 吃光
   return withAuxThinking(base)
+}
+
+/**
+ * 背景：辅助 / 图片用途可能选择与主模型不同的连接。
+ * 设计意图：整体替换连接身份，不按字段借用主连接凭据或协议。
+ * 关键约束：空密钥保持为空；未指定协议时按目标地址检测，不能继承主连接的显式协议。
+ */
+function connectionConfig(connection: ModelConnectionProfile): Pick<LLMConfig, 'apiKey' | 'baseUrl' | 'model' | 'provider'> {
+  return { apiKey: connection.apiKey || '', baseUrl: connection.baseUrl, model: connection.model, provider: connection.provider || 'auto' }
 }
 
 function parseJson<T>(raw: string): T | null {
