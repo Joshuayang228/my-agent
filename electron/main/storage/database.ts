@@ -549,26 +549,23 @@ function tableExists(database: SqlJsDatabase, table: string): boolean {
  * 原子写盘（G9）。
  *
  * 背景：直写 db 文件时若进程崩溃，可能留下半截文件，下次启动 sql.js 打不开。
- * 意图：先写唯一临时文件，再替换目标；Windows 上 rename 不能覆盖已存在文件，走 copy+unlink。
- * 约束：仍非跨进程安全；仅降低单进程崩溃损坏概率。
+ * 意图：先写同目录临时文件，再通过 rename 替换目标；替换失败时报错，不退回复制覆盖旧库。
+ * 约束：仍非跨进程安全，也不保证断电耐久性；失败不得触碰旧快照，临时文件清理失败不能掩盖原错误。
  */
 export function atomicWriteFileSync(filePath: string, data: Uint8Array): void {
   const dir = path.dirname(filePath)
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-
   const tmpPath = `${filePath}.${process.pid}.tmp`
-  fs.writeFileSync(tmpPath, Buffer.from(data))
-
   try {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(tmpPath, Buffer.from(data))
     fs.renameSync(tmpPath, filePath)
   } catch {
-    // Windows：目标已存在时 rename 失败 → 覆盖复制后删临时文件
-    fs.copyFileSync(tmpPath, filePath)
     try {
-      fs.unlinkSync(tmpPath)
+      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath)
     } catch {
-      // 临时文件残留不致命
+      log.warn('Database temporary file cleanup failed')
     }
+    throw new Error('数据库保存失败，请检查磁盘空间或文件占用后重试')
   }
 }
 

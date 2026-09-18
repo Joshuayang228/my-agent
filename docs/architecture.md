@@ -1,5 +1,7 @@
 # 系统架构
 
+SQLite 快照通过同目录临时文件写入后 rename 替换；替换失败禁止退回 copy 覆盖旧库，失败保留原文件并向调用方抛出友好错误。这只是单进程文件替换保障，不代表多字段业务事务或断电耐久性；sql.js 的 export 不得发生在尚未提交的业务事务内。
+
 MCP 启动恢复在主进程阶段读取已启用配置并建立真实连接，恢复失败记录受控错误且不阻塞主窗口；工具许可仍由配置、活动连接、Registry 注册和执行前调用共同约束。
 
 MCP 运行状态由 Manager 生成不含凭据的共享快照，经 IPC 同步 Registry 后广播 `mcp:status-changed`；preload 提供可取消订阅，Settings 对状态与工具读取做代际隔离。意外断开保留 error / reconnecting 行，手动停止撤销连接归属；旧 close / connect 回调不得覆盖新连接。生产与 Playground 共用服务卡片，后者仍只注入隔离状态，不订阅生产。

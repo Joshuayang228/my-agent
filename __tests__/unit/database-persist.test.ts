@@ -38,6 +38,7 @@ describe('atomicWriteFileSync', () => {
   })
 
   afterEach(() => {
+    vi.restoreAllMocks()
     fs.rmSync(tmpDir, { recursive: true, force: true })
   })
 
@@ -59,6 +60,42 @@ describe('atomicWriteFileSync', () => {
     atomicWriteFileSync(filePath, Buffer.from('data'))
     const leftovers = fs.readdirSync(tmpDir).filter((f) => f.endsWith('.tmp'))
     expect(leftovers).toEqual([])
+  })
+
+  it('替换失败不得退回复制覆盖旧库，失败后可重试', () => {
+    const filePath = path.join(tmpDir, 'test.db')
+    fs.writeFileSync(filePath, 'old-snapshot')
+    const rename = vi.spyOn(fs, 'renameSync').mockImplementationOnce(() => { throw new Error('fixture-rename-failed') })
+    const copy = vi.spyOn(fs, 'copyFileSync')
+    expect(() => atomicWriteFileSync(filePath, Buffer.from('new-snapshot'))).toThrow('数据库保存失败')
+    expect(copy).not.toHaveBeenCalled()
+    expect(fs.readFileSync(filePath, 'utf-8')).toBe('old-snapshot')
+    expect(fs.readdirSync(tmpDir)).toEqual(['test.db'])
+    rename.mockRestore()
+    atomicWriteFileSync(filePath, Buffer.from('new-snapshot'))
+    expect(fs.readFileSync(filePath, 'utf-8')).toBe('new-snapshot')
+  })
+
+  it('临时文件只写入一部分时保留旧库并清理临时文件', () => {
+    const filePath = path.join(tmpDir, 'test.db')
+    fs.writeFileSync(filePath, 'old-snapshot')
+    const write = fs.writeFileSync
+    vi.spyOn(fs, 'writeFileSync').mockImplementationOnce((target) => {
+      write(target, 'partial')
+      throw new Error('fixture-disk-full')
+    })
+    expect(() => atomicWriteFileSync(filePath, Buffer.from('new-snapshot'))).toThrow('数据库保存失败')
+    expect(fs.readFileSync(filePath, 'utf-8')).toBe('old-snapshot')
+    expect(fs.readdirSync(tmpDir)).toEqual(['test.db'])
+  })
+
+  it('清理失败不能覆盖保存错误或触碰旧库', () => {
+    const filePath = path.join(tmpDir, 'test.db')
+    fs.writeFileSync(filePath, 'old-snapshot')
+    vi.spyOn(fs, 'renameSync').mockImplementationOnce(() => { throw new Error('fixture-rename-failed') })
+    vi.spyOn(fs, 'unlinkSync').mockImplementationOnce(() => { throw new Error('fixture-cleanup-failed') })
+    expect(() => atomicWriteFileSync(filePath, Buffer.from('new-snapshot'))).toThrow('数据库保存失败')
+    expect(fs.readFileSync(filePath, 'utf-8')).toBe('old-snapshot')
   })
 })
 
