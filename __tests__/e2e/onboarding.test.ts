@@ -220,7 +220,7 @@ test('首次进入通过模型路由配置后开始对话', async () => {
   await modelInput.fill('local-test-model')
   await modelInput.press('Enter')
   await page.getByLabel('添加主对话模型').selectOption({ label: '本地测试连接 · local-test-model' })
-  await page.getByRole('button', { name: '移除 当前主连接 · gpt-4o', exact: true }).click()
+  await expect(page.getByText('当前主连接', { exact: true })).toHaveCount(0)
   await expect.poll(() => page.evaluate(async () => JSON.parse((await window.electronAPI.settings.get()).modelRoutes).filter((route: { purpose: string }) => route.purpose === 'primary').map((route: { model: string }) => route.model))).toEqual(['local-test-model'])
   expect((await page.evaluate(() => window.electronAPI.settings.get())).llmConnectionReady).toBe('true')
   await page.locator('[data-testid="settings-back"]').click()
@@ -791,15 +791,18 @@ test('真实 Electron workspace 会话创建、隔离与清理', async () => {
 
 test.afterEach(async ({}, testInfo) => {
   if (testInfo.status !== testInfo.expectedStatus) {
-    const rendererState = await page.evaluate(() => {
+    const rendererState = await page.evaluate(async () => {
       const terminal = (window as unknown as { __terminalObserved?: { output: string; errors: string; exits: string[] } }).__terminalObserved
+      const settings = await window.electronAPI.settings.get()
       return {
         chat: Boolean(document.querySelector('[data-testid="chat-messages"]')),
         playground: Boolean(document.querySelector('[data-testid="playground-page"]')),
+        model: { ready: settings.llmConnectionReady, connectionCount: JSON.parse(settings.modelConnections || '[]').length, routeCount: JSON.parse(settings.modelRoutes || '[]').length, modelLength: settings.llmEffectiveModel?.length ?? 0 },
         terminal: terminal ? { outputLength: terminal.output.length, errorLength: terminal.errors.length, exitCount: terminal.exits.length } : null,
       }
     }).catch(() => ({ unavailable: true }))
     await testInfo.attach('renderer-failure-state', { body: JSON.stringify(rendererState), contentType: 'application/json' })
+    await testInfo.attach('model-request-count', { body: JSON.stringify({ count: capturedRequests.length }), contentType: 'application/json' })
     const logPath = testInfo.outputPath('electron-main.log')
     await writeFile(logPath, mainOutput, 'utf8')
     await testInfo.attach('electron-main-log', { path: logPath, contentType: 'text/plain' })
@@ -1055,9 +1058,10 @@ test('文件规则经真实设置 IPC 热更新、确认、重启恢复并阻止
 
 test('正式记忆经真实 IPC 增改、完整重启恢复和删除', async () => {
   await page.evaluate(async (url) => {
-    await window.electronAPI.settings.set('llmApiKey', 'local-test-key')
-    await window.electronAPI.settings.set('llmBaseUrl', url)
-    await window.electronAPI.settings.set('llmModel', 'local-test-model')
+    await window.electronAPI.settings.saveModelConfiguration({
+      connections: JSON.stringify([{ id: 'memory-test', name: '记忆测试连接', baseUrl: url, apiKey: 'local-test-key', model: 'local-test-model', enabled: true }]),
+      routes: JSON.stringify([{ purpose: 'primary', connectionId: 'memory-test', model: 'local-test-model', enabled: true }]),
+    })
   }, baseUrl)
   await page.reload()
   await expect(page.locator('#startup-splash')).toBeHidden()

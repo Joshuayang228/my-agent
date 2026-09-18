@@ -52,7 +52,6 @@ import {
 } from './components/shell'
 import { ResizeHandle } from './components/shell/ResizeHandle'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from './shared/panel-layout'
-import { QUICK_PROVIDER_ENTRIES } from './shared/provider-presets'
 import { normalizeThemeId } from './shared/design-asset-registry'
 
 let messageIdCounter = 0
@@ -116,9 +115,7 @@ function App() {
   const [theme, setTheme] = useState<string>(() => {
     return normalizeThemeId(localStorage.getItem('theme'))
   })
-  const [currentModel, setCurrentModel] = useState('gpt-4o')
-  const [currentBaseUrl, setCurrentBaseUrl] = useState('https://api.openai.com/v1')
-  const [providerMenuOpen, setProviderMenuOpen] = useState(false)
+  const [currentModel, setCurrentModel] = useState('')
   // UI E2E 运行的是隔离的 Vite 展示壳，需保留开发入口以覆盖 Playground / Debug；Electron 正式默认仍由持久化设置决定。
   const [developerMode, setDeveloperMode] = useState(() => import.meta.env.MODE === 'ui-e2e')
   const [approvalMode, setApprovalMode] = useState<'confirm-all' | 'auto' | 'full-access'>('confirm-all')
@@ -297,8 +294,7 @@ function App() {
     if (!window.electronAPI) return
     loadSessions()
     window.electronAPI.settings.get().then((s) => {
-      if (s.llmEffectiveModel) setCurrentModel(s.llmEffectiveModel)
-      if (s.llmEffectiveBaseUrl) setCurrentBaseUrl(s.llmEffectiveBaseUrl)
+      setCurrentModel(s.llmEffectiveModel || '')
       if (s.executionMode) setApprovalMode(s.executionMode as 'confirm-all' | 'auto' | 'full-access')
       setDeveloperMode(import.meta.env.MODE === 'ui-e2e' || s.developerMode === 'true')
       if (s.llmConnectionReady !== 'true') {
@@ -431,8 +427,7 @@ function App() {
         setProtagonistNames(map)
       })
       window.electronAPI.settings.get().then((s) => {
-        if (s.llmEffectiveModel) setCurrentModel(s.llmEffectiveModel)
-        if (s.llmEffectiveBaseUrl) setCurrentBaseUrl(s.llmEffectiveBaseUrl)
+        setCurrentModel(s.llmEffectiveModel || '')
         if (s.executionMode) setApprovalMode(s.executionMode as 'confirm-all' | 'auto' | 'full-access')
         setDeveloperMode(import.meta.env.MODE === 'ui-e2e' || s.developerMode === 'true')
       })
@@ -526,11 +521,11 @@ function App() {
   }, [activeView, closeSettings, createNewSession, searchOpen, toast])
 
   useEffect(() => {
-    if (!providerMenuOpen && !approvalMenuOpen && !projectMenuOpen) return
-    const handler = () => { setProviderMenuOpen(false); setApprovalMenuOpen(false); setProjectMenuOpen(false) }
+    if (!approvalMenuOpen && !projectMenuOpen) return
+    const handler = () => { setApprovalMenuOpen(false); setProjectMenuOpen(false) }
     document.addEventListener('click', handler)
     return () => document.removeEventListener('click', handler)
-  }, [providerMenuOpen, approvalMenuOpen, projectMenuOpen])
+  }, [approvalMenuOpen, projectMenuOpen])
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -619,7 +614,6 @@ function App() {
         } else if (ev.code === 'LLM_RATE_LIMITED' || ev.code === 'LLM_REQUEST_FAILED' || ev.code === 'TOOL_TIMEOUT') {
           setModeChangeNotice('请求暂时失败，可以稍后重试。')
         }
-        setIsStreaming(false)
         setReasoning((prev) => completeReasoning(prev))
         break
 
@@ -630,7 +624,6 @@ function App() {
         break
 
       case 'done':
-        setIsStreaming(false)
         // 工具卡属于当前流式回合；详细调用记录统一在全页 Debug 中查看。
         setActiveTools([])
         setReasoning((prev) => completeReasoning(prev))
@@ -714,33 +707,16 @@ function App() {
     setUsage(null)
     setThinkingExpanded(false)
 
+    let finishEvents!: () => void
+    const eventsCompleted = new Promise<void>((resolve) => { finishEvents = resolve })
+    let turnFailed = false
     const cleanup = window.electronAPI.chat.onEvent((ev) => {
       const evSessionId = (ev as AgentStreamEvent & { sessionId?: string }).sessionId
-      if (evSessionId && evSessionId !== streamingSessionRef.current) return
+      if (evSessionId && evSessionId !== sid) return
+      if (ev.type === 'done') finishEvents()
+      if (streamingSessionRef.current !== sid) return
+      if (ev.type === 'error') turnFailed = true
       handleEvent(ev)
-      if (ev.type === 'done') {
-        streamingSessionRef.current = null
-        setBgStreamingSessionId(null)
-        loadSessions()
-        // 与主进程会话对齐，避免本地流式状态与库不一致
-        void window.electronAPI.session.get(sid).then((session) => {
-          if (session && streamingSessionRef.current === null) {
-            const cites = turnCitationsRef.current
-            if (!cites.length) {
-              setMessages(session.messages)
-              return
-            }
-            const msgs = session.messages.map(m => ({ ...m }))
-            for (let i = msgs.length - 1; i >= 0; i--) {
-              if (msgs[i].role === 'assistant') {
-                msgs[i] = { ...msgs[i], memoryCitations: cites }
-                break
-              }
-            }
-            setMessages(msgs)
-          }
-        })
-      }
     })
 
     const cleanupConfirm = window.electronAPI.chat.onConfirmRequest((data) => {
@@ -750,13 +726,36 @@ function App() {
 
     try {
       await window.electronAPI.chat.send(sid, userMsg)
+      // 快速拒绝时 invoke 回执先于流事件；两者都完成后才解除监听和发送锁。
+      // error 不一定写入会话库，不能用空历史覆盖；invoke 拒绝则不等待不会产生的 done。
+      await eventsCompleted
+      if (!turnFailed && streamingSessionRef.current === sid) {
+        const session = await window.electronAPI.session.get(sid)
+        if (session && streamingSessionRef.current === sid) {
+          const cites = turnCitationsRef.current
+          const msgs = session.messages.map(m => ({ ...m }))
+          for (let i = msgs.length - 1; cites.length && i >= 0; i--) {
+            if (msgs[i].role === 'assistant') {
+              msgs[i] = { ...msgs[i], memoryCitations: cites }
+              break
+            }
+          }
+          setMessages(msgs)
+        }
+      }
+    } catch {
+      if (streamingSessionRef.current === sid) {
+        handleEvent({ type: 'error', message: '发送未完成，请稍后重试。' })
+      }
     } finally {
       cleanup()
       cleanupConfirm()
-      // IPC 竞态兜底：invoke resolve 可能先于最后一个 send 事件到达
-      setIsStreaming(false)
-      streamingSessionRef.current = null
-      setBgStreamingSessionId(null)
+      if (streamingSessionRef.current === sid) {
+        setIsStreaming(false)
+        streamingSessionRef.current = null
+        setBgStreamingSessionId(null)
+      }
+      void loadSessions()
     }
   }
 
@@ -1611,45 +1610,7 @@ function App() {
                 </div>
 
                 <div className="flex items-center gap-1">
-                  {/* Provider 选择：模型仍由设置页单独填写 */}
-                  <div className="relative">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setProviderMenuOpen(!providerMenuOpen) }}
-                      title={`当前 Provider：${QUICK_PROVIDER_ENTRIES.find((p) => p.baseUrl === currentBaseUrl)?.label || '自定义 Provider'}；模型：${currentModel}`}
-                      className="flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] transition"
-                      style={{ color: 'var(--text-secondary)' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-                    >
-                      {QUICK_PROVIDER_ENTRIES.find((p) => p.baseUrl === currentBaseUrl)?.label || '自定义 Provider'}
-                      <ChevronDown size={9} style={{ color: 'var(--text-muted)' }} />
-                    </button>
-                    {providerMenuOpen && (
-                      <div className="absolute bottom-full right-0 z-50 mb-1 w-44 rounded-lg border py-1 shadow-lg" style={{ borderColor: 'var(--border-color)', background: 'var(--dropdown-bg)' }}>
-                        {QUICK_PROVIDER_ENTRIES.map((p) => (
-                          <button
-                            key={p.providerId}
-                            onClick={async (e) => {
-                              e.stopPropagation()
-                              await window.electronAPI.settings.set('llmBaseUrl', p.baseUrl)
-                              setCurrentBaseUrl(p.baseUrl)
-                              setProviderMenuOpen(false)
-                            }}
-                            className="w-full px-3 py-1.5 text-left text-[12px] transition"
-                            style={{
-                              color: currentBaseUrl === p.baseUrl ? 'var(--accent-fg)' : 'var(--text-secondary)',
-                              background: currentBaseUrl === p.baseUrl ? 'var(--accent-subtle)' : undefined,
-                            }}
-                            onMouseEnter={(e) => { if (currentBaseUrl !== p.baseUrl) (e.currentTarget as HTMLButtonElement).style.background = 'var(--hover-overlay)' }}
-                            onMouseLeave={(e) => { if (currentBaseUrl !== p.baseUrl) (e.currentTarget as HTMLButtonElement).style.background = '' }}
-                          >
-                            <span className="block truncate">{p.label}</span>
-                            <span className="mt-0.5 block truncate font-mono text-[10px]" style={{ color: 'var(--text-muted)' }} title={p.baseUrl}>{p.baseUrl}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <span data-testid="chat-current-model" className="max-w-40 truncate text-[10.5px]" style={{ color: 'var(--text-muted)' }} title={currentModel || '未配置模型'}>{currentModel || '未配置模型'}</span>
 
                   {/* 发送/停止 */}
                   {isStreaming ? (

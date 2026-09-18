@@ -315,6 +315,58 @@ async function installProductionElectronStub(page: import('@playwright/test').Pa
 }
 
 
+for (const order of ['invoke-first', 'events-first', 'rejected'] as const) {
+  test(`正式聊天终止事件与调用回执 ${order}`, async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript((order) => {
+      const api = (window as any).electronAPI
+      const listeners = new Set<(event: unknown) => void>()
+      const state = { emit: () => {}, resolve: () => {}, sends: 0, listeners: 0 }
+      ;(window as any).__chatCompletion = state
+      api.session.get = async () => ({ id: 'e2e-session', messages: [] })
+      api.chat.onEvent = (listener) => {
+        listeners.add(listener)
+        state.listeners = listeners.size
+        return () => { listeners.delete(listener); state.listeners = listeners.size }
+      }
+      api.chat.send = async (sessionId) => {
+        state.sends++
+        if (order === 'rejected') throw new Error('private IPC error')
+        state.emit = () => {
+          listeners.forEach(listener => listener({ sessionId, type: 'error', message: '请配置模型后重试' }))
+          listeners.forEach(listener => listener({ sessionId, type: 'done', reason: 'model_error' }))
+        }
+        if (order === 'events-first') {
+          state.emit()
+          await new Promise<void>(resolve => { state.resolve = resolve })
+        }
+      }
+    }, order)
+    await page.goto('/')
+    await page.getByPlaceholder(/和.*说说/).fill('未配置时发送')
+    await page.getByRole('button', { name: '发送', exact: true }).click()
+    await expect.poll(() => page.evaluate(() => (window as any).__chatCompletion.sends)).toBe(1)
+    if (order !== 'rejected') {
+      await expect(page.getByRole('button', { name: '停止', exact: true })).toBeVisible()
+      await expect.poll(() => page.evaluate(() => (window as any).__chatCompletion.listeners)).toBe(1)
+      await page.evaluate((order) => {
+        const state = (window as any).__chatCompletion
+        if (order === 'invoke-first') state.emit()
+        else state.resolve()
+      }, order)
+    }
+    await expect(page.getByTestId('chat-messages')).toContainText(order === 'rejected' ? '发送未完成，请稍后重试。' : '请配置模型后重试')
+    await expect(page.getByTestId('chat-messages')).not.toContainText('private IPC error')
+    await expect(page.getByRole('button', { name: '停止', exact: true })).toHaveCount(0)
+    await expect.poll(() => page.evaluate(() => (window as any).__chatCompletion.listeners)).toBe(0)
+    await page.getByPlaceholder(/和.*说说/).fill('再次发送')
+    await page.getByRole('button', { name: '发送', exact: true }).click()
+    await expect.poll(() => page.evaluate(() => (window as any).__chatCompletion.sends)).toBe(2)
+    await page.evaluate(() => { const state = (window as any).__chatCompletion; state.emit(); state.resolve() })
+    await expect(page.getByRole('button', { name: '停止', exact: true })).toHaveCount(0)
+  })
+}
+
 for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
   for (const width of [1166, 600]) {
     test(`正式模型共享连接表单与协议 ${theme} ${width}`, async ({ page }, testInfo) => {
@@ -555,6 +607,10 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       await expect(page.getByTestId('model-connection-form')).toBeVisible()
       await page.getByTestId('model-connection-form').getByRole('button', { name: '取消', exact: true }).click()
       await list.screenshot({ path: testInfo.outputPath('connection-list-empty.png') })
+      await page.getByTestId('settings-panel').getByRole(width < 768 ? 'tab' : 'button', { name: '外观与界面', exact: true }).click()
+      await page.getByTestId('settings-panel').getByRole(width < 768 ? 'tab' : 'button', { name: '模型', exact: true }).click()
+      await expect(page.getByTestId('settings-model-empty')).toBeVisible()
+      await expect(page.locator('[data-testid^="settings-model-profile-"]')).toHaveCount(0)
     })
   }
 }

@@ -25,7 +25,7 @@ ModelConnectionForm 为纯受控业务 UI，由正式设置和候选共用；来
 
 ModelUsageArrangements 同样属于纯受控 Experience，组合 Foundation SelectField / ActionButton / IconButton。正式 ModelRoutingSettings 注入真实路由及整组保存回调，候选只将自己的 modelId 夹具适配为展示载荷并操作内存；共享组件没有 IPC，也不决定用途的后端语义。候选的生图与正式图片理解仍是显式未决差异，不能由相同 image key 推断等价。
 
-用途路由由唯一配置工厂按同用途顺序装配首选及 fallbackModels，过滤停用项和缺失引用、去重相同连接模型；每项端点、密钥、模型和 provider 整体绑定，空 Key 不借用全局、环境或其他连接凭据。独立辅助 / 图片理解用途不继承主用途备用池，辅助 thinking 和运行资产证据按目标装配。没有有效用途路由才整体回退；一次性身份覆盖不继承已保存备用链。就绪检查允许链内存在有效认证目标，但统一调用入口仍逐目标认证，远程缺 Key 不发请求。
+用途路由由唯一配置工厂按同用途顺序装配首选及 fallbackModels，过滤停用项和缺失引用、去重相同连接模型；每项端点、密钥、模型和 provider 整体绑定，空 Key 不借用全局、环境或其他连接凭据。独立辅助 / 图片理解用途不继承主用途备用池，辅助 thinking 和运行资产证据按目标装配。仅辅助 / 图片无有效用途时整体沿用新主配置；主用途不存在时身份为空，不读取旧全局字段或 LLM_* 环境变量。一次性身份覆盖不继承已保存备用链。就绪检查允许链内存在有效认证目标，但统一调用入口仍逐目标认证，远程缺 Key 不发请求。Debug 系统快照也从主配置工厂读取脱敏身份。
 
 不只是一个工具，而是一个有性格、有记忆、能成长的数字伙伴：
 - **人格化交互** — 有一致的性格特征和交流风格，不是冰冷的 Q&A 机器
@@ -382,6 +382,6 @@ LLM 返回 tool_calls（可能多个）
 
 - 开发者模式沿 `SettingsPanel → settings:set/get → settings-store → App → PrimarySidebar` 单一路径控制 Debug / Playground 可见性；默认关闭，关闭仅收回入口，不影响诊断服务、资产或历史数据。
 
-- 模型配置的产品入口统一由 `ModelRoutingSettings` 组合真实设置存储、路由配置工厂与主进程模型发现；旧单连接字段保留在空清单兼容边界，不再形成第二套正式展示链。Playground 获取仍是隔离 fixture。
+- 模型配置的产品入口统一由 `ModelRoutingSettings` 组合真实设置存储、路由配置工厂与主进程模型发现；空清单不合成连接或用途，不恢复旧单连接身份。Chat 仅展示实际主模型，配置在正式模型页管理；Playground 获取仍是隔离 fixture。
 
 - LLM 配置工厂现在同时提供主对话、辅助任务和图片理解用途的路由解析；Runtime 仅按实际消息载荷选择 image 路由。

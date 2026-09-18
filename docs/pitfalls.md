@@ -2,6 +2,12 @@
 
 > 开发过程中遇到的坑和解决方案，避免重复踩坑。
 
+## Chat 调用回执不等于流事件已消费
+
+**问题**：空模型配置在 Runtime 初始化阶段产生 error / done，但真实 Electron 中 invoke 的 finally 先执行并移除了订阅；另一个独立订阅能收到两个事件，正式聊天却只显示乐观用户消息。数据库此时没有该轮消息，即使收到 error，随后无条件回填历史也会擦掉提示。
+
+**解决**：发送流程等待 invoke 回执与 done 都完成后再取消订阅和解除发送状态；invoke 拒绝直接展示安全错误并清理，不等待不存在的 done。失败轮保留当前错误，成功轮才同步历史。受控 UI 分别验证两种完成顺序、拒绝与重试，真实 Electron 验证删空配置重启后提示可见、无网络请求和重新配置恢复；临时日志不留在生产。
+
 ## Skills 样张成功不代表 Electron 加载成功
 
 2026-09-16 的真实 Electron `skills:reload` 返回 `ReferenceError: __dirname is not defined`：加载器按 CommonJS 源文件层级拼目录，主进程却是 ESM 构建；Playground 的 `?raw` 样本导入绕过了该路径。修复为主入口统一的 `APP_ROOT` 资源定位，打包清单显式包含内置目录。Unit 检查资源与打包声明，Electron 必须读取真实内置全文并完整重启验证，不能用 Renderer 替身或元素存在断言代替。

@@ -9,6 +9,7 @@
 
 import type { ToolRegistry } from '../tools/registry'
 import { getAllSettings } from '../storage/settings-store'
+import { loadMainLLMConfig } from '../llm/aux-config'
 import { getRules } from '../sandbox/permission-engine'
 import { resolveEffectiveSandbox } from '../sandbox/effective-sandbox'
 import { getLoadedSkills } from '../skills/registry'
@@ -62,6 +63,7 @@ export interface DebugSystemInfo {
 
 export async function buildDebugSystemInfo(toolRegistry: ToolRegistry): Promise<DebugSystemInfo> {
   const settings = await getAllSettings()
+  const model = await loadMainLLMConfig()
   const rules = getRules()
   const skills = getLoadedSkills()
   const mcpStatuses = mcpManager.getStatus()
@@ -95,10 +97,10 @@ export async function buildDebugSystemInfo(toolRegistry: ToolRegistry): Promise<
       heapTotal: process.memoryUsage().heapTotal,
     },
     settings: {
-      model: settings.llmModel,
-      baseUrl: settings.llmBaseUrl,
+      model: model.model,
+      baseUrl: model.baseUrl,
       activeRoleId: settings.activeRoleId,
-      hasApiKey: !!settings.llmApiKey,
+      hasApiKey: Boolean(model.apiKey),
       hasCustomPrompt: !!settings.systemPrompt,
       /** 由对话页 executionMode 推导的有效沙箱（非独立设置项） */
       sandboxMode: resolveEffectiveSandbox(settings.executionMode),

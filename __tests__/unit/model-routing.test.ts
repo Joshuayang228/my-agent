@@ -110,12 +110,37 @@ describe('model configuration factories', () => {
     expect((await loaders[purpose]()).provider).toBe('auto')
   })
 
-  it('没有用途路由时仍完整回退原有主模型配置', async () => {
+  it.each(['primary', 'auxiliary', 'image'] as const)('%s 空配置不读取旧身份或环境变量', async purpose => {
+    getAllSettings.mockResolvedValue({ ...legacy, auxModel: 'old-aux', modelConnections: '[]', modelRoutes: '[]' })
+    getSetting.mockImplementation(async key => key === 'auxModel' ? 'old-aux' : '')
+    vi.stubEnv('LLM_API_KEY', 'test-environment-key')
+    vi.stubEnv('LLM_BASE_URL', 'http://127.0.0.1:1234/v1')
+    vi.stubEnv('LLM_MODEL', 'environment-model')
+    try {
+      const config = await loaders[purpose]()
+      expect(config).toMatchObject({ apiKey: '', baseUrl: '', model: '' })
+      expect(hasLLMAuthentication(config)).toBe(false)
+      expect(config.fallbackModels).toBeUndefined()
+    } finally { vi.unstubAllEnvs() }
+  })
+
+  it.each(['auxiliary', 'image'] as const)('%s 未单独安排时沿用新主用途，不读取旧辅助型号', async purpose => {
+    configure('primary', { apiKey: 'main-key', provider: 'openai' })
+    getSetting.mockImplementation(async key => key === 'auxModel' ? 'old-aux' : '')
+    expect(await loaders[purpose]()).toMatchObject({ model: 'selected-model', baseUrl: 'https://target.test/v1', apiKey: 'main-key' })
+  })
+
+  it('空配置仍允许显式完整的一次性测试', async () => {
     getAllSettings.mockResolvedValue({ ...legacy, modelConnections: '[]', modelRoutes: '[]' })
-    const main = await loadMainLLMConfig()
-    expect(main).toMatchObject({ apiKey: legacy.llmApiKey, baseUrl: legacy.llmBaseUrl, model: legacy.llmModel })
-    expect(await loadImageLLMConfig()).toEqual(main)
-    expect(await loadAuxLLMConfig()).toEqual(main)
+    expect(await loadMainLLMConfig({ apiKey: 'probe-key', baseUrl: 'https://probe.test', model: 'probe', provider: 'gemini' })).toMatchObject({ apiKey: 'probe-key', baseUrl: 'https://probe.test', model: 'probe', provider: 'gemini' })
+  })
+
+  it.each(['disabled-route', 'disabled-connection', 'missing-connection', 'malformed'] as const)('%s 不触发旧主配置回退', async state => {
+    getAllSettings.mockResolvedValue({ ...legacy,
+      modelConnections: state === 'malformed' ? '{' : JSON.stringify([{ id: 'a', baseUrl: 'https://route.test', apiKey: 'route-key', enabled: state !== 'disabled-connection' }]),
+      modelRoutes: JSON.stringify([{ purpose: 'primary', connectionId: state === 'missing-connection' ? 'missing' : 'a', model: 'route-model', enabled: state !== 'disabled-route' }]),
+    })
+    expect(await loadMainLLMConfig()).toMatchObject({ baseUrl: '', model: '', apiKey: '' })
   })
 
   it('一次性测试指定新地址时不继承已保存主路由的协议', async () => {

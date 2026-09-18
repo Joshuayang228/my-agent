@@ -28,7 +28,7 @@ OpenAI 兼容路径覆盖 DeepSeek、Groq、OpenRouter 等。
 | `llm/thinking.ts` · `llm/vision.ts` · `llm/failover.ts` | Thinking、Vision 降级与 Failover 生产策略事实 |
 | `agent/model-context-window.ts` | Context Window 家族启发式与输出预留 |
 | `llm/provider-asset-registry.ts` | Debug 只读 Provider 能力 / 策略 / 预设资产 |
-| `src/shared/provider-presets.ts` | Settings 与 Chat 共用的内置模型预设唯一注册表 |
+| `src/shared/provider-presets.ts` | 连接表单与 Debug 共用的内置模型预设唯一注册表 |
 | `shared/types.ts` | `LLMConfig` / `LLMProvider` 类型定义 |
 | `storage/settings-store.ts` | `AppSettings` 中的 LLM 相关字段 |
 
@@ -43,12 +43,15 @@ OpenAI 兼容路径覆盖 DeepSeek、Groq、OpenRouter 等。
 
 运行时检测与 Debug Provider 目录必须共用 `PROVIDER_DETECTION_RULES` / `detectProviderFromBaseUrl`，禁止在展示层复制正则。
 
-## 双模型配置
+## 用途配置
 
-| 字段 | 用途 | 默认值 |
-|------|------|--------|
-| `llmModel` | 主对话模型 | `gpt-4o` |
-| `auxModel` | 辅助任务模型，标题、画像、压缩摘要 | 留空时沿用主模型 |
+| 用途 | 来源 | 无有效路由时 |
+|------|------|------------|
+| `primary` | 已保存 modelConnections / modelRoutes | 空身份，提示配置，不请求旧端点 |
+| `auxiliary` | 独立辅助用途及同用途备用链 | 沿用新主配置及其备用链 |
+| `image` | 独立图片理解用途及同用途备用链 | 沿用新主配置及其备用链 |
+
+旧 llmApiKey / llmBaseUrl / llmModel / auxModel 和 LLM_* 环境变量不参与配置工厂身份装配；开发期不做兼容迁移。显式一次性测试可传完整身份覆盖，不借用已保存备用链。生图不等同于 image 图片理解用途。
 
 Runtime 通过 `getLLMConfig()` / `getAuxLLMConfig()` 分别获取。二者必须委托 `llm/aux-config.ts` 的 `loadMainLLMConfig` / `loadAuxLLMConfig`——**禁止**在 ipc / storage / tools / playground 手拼 `apiKey`+`baseUrl`+`model`。`loadAuxLLMConfig` 会按能力缓存或启发式挂上 `thinking: { type: 'disabled' }`（DeepSeek / Moonshot 等）。
 
@@ -90,5 +93,5 @@ Runtime 通过 `getLLMConfig()` / `getAuxLLMConfig()` 分别获取。二者必�
 ## 预设模型
 
 - 所有内置预设统一登记在 `src/shared/provider-presets.ts`，禁止在 `SettingsPanel.tsx`、`App.tsx` 或 Debug 中复制数组。
-- Settings 展示全部 9 个预设；Chat 顶栏只过滤 `quickAccess: true` 的 4 个预设。
+- 正式与候选连接表单按共享来源分组展示预设；Chat 顶栏只读展示当前实际模型，不用预设快选写入旧地址字段。
 - 预设只是填表模板，不是对应模型的能力或可用性承诺。

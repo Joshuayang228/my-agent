@@ -23,21 +23,18 @@ function withModels(connection: ModelConnectionProfile): ModelConnectionProfile 
   return { ...connection, models, model: models[0]?.id ?? connection.model ?? '' }
 }
 
-export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl, legacyModel, onSave, onTestConnection, onFetchModels, beforeLeaveRef }: {
+export function ModelRoutingSettings({ connectionsRaw, routesRaw, onSave, onTestConnection, onFetchModels, beforeLeaveRef }: {
   beforeLeaveRef?: Ref<() => boolean>
   connectionsRaw: string
   routesRaw: string
-  legacyBaseUrl: string
-  legacyModel: string
   onSave: (connections: string, routes: string) => Promise<void>
   onTestConnection: (connection: ModelConnectionProfile, draftApiKey?: string) => Promise<{ ok: true; model: string; ms: number } | { ok: false; error: string }>
   onFetchModels: (connection: ModelConnectionProfile, draftApiKey?: string) => Promise<LLMModelFetchResult>
 }) {
-  const legacyConnection = withModels({ id: 'legacy-primary', name: '当前主连接', baseUrl: legacyBaseUrl, model: legacyModel, enabled: true })
   const initialConnections = parse<ModelConnectionProfile[]>(connectionsRaw, []).map(withModels)
   const initialRoutes = parse<ModelRouteProfile[]>(routesRaw, [])
-  const [connections, setConnections] = useState<ModelConnectionProfile[]>(() => initialConnections.length > 0 ? initialConnections : [legacyConnection])
-  const [routes, setRoutes] = useState<ModelRouteProfile[]>(() => initialRoutes.length > 0 ? initialRoutes : [{ purpose: 'primary', connectionId: legacyConnection.id, model: legacyConnection.model, enabled: true }])
+  const [connections, setConnections] = useState<ModelConnectionProfile[]>(initialConnections)
+  const [routes, setRoutes] = useState<ModelRouteProfile[]>(initialRoutes)
   const [editing, setEditing] = useState<string | null>(null)
   const [draft, setDraft] = useState<ModelConnectionProfile>({ id: '', name: '', baseUrl: '', model: '', apiKey: '', enabled: true, models: [] })
   const [busy, setBusy] = useState(false)

@@ -22,10 +22,10 @@ export async function loadMainLLMConfig(overrides?: Partial<LLMConfig>): Promise
   const chain = resolveRoutedConfigs(s.modelConnections, s.modelRoutes, 'primary')
   const routed = chain[0]
   return {
-    // 背景：独立连接可能未填密钥；意图：禁止向其端点借发全局凭据；约束：只有无路由才整体回退。
-    apiKey: routed ? routed.apiKey || '' : s.llmApiKey || process.env.LLM_API_KEY || '',
-    baseUrl: routed?.baseUrl || s.llmBaseUrl || process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
-    model: routed?.model || s.llmModel || process.env.LLM_MODEL || 'gpt-4o',
+    // 背景：清空连接必须真正停止旧配置生效；意图：只读取用途路由；约束：空态不借用全局或环境身份，显式测试覆盖仍由调用方传入。
+    apiKey: routed?.apiKey || '',
+    baseUrl: routed?.baseUrl || '',
+    model: routed?.model || '',
     provider: routed?.provider || 'auto',
     temperature: parseFloat(s.llmTemperature) || undefined,
     topP: parseFloat(s.llmTopP) || undefined,
@@ -59,10 +59,9 @@ export async function loadAuxLLMConfig(): Promise<LLMConfig> {
   const all = await settings.getAllSettings()
   const chain = resolveRoutedConfigs(all.modelConnections, all.modelRoutes, 'auxiliary')
   const routed = chain[0]
-  const auxModel = routed?.model || await settings.getSetting('auxModel')
   const base = routed
     ? { ...main, ...connectionConfig(routed), fallbackModels: chain.length > 1 ? chain.slice(1).map(connectionConfig) : undefined }
-    : auxModel?.trim() ? { ...main, model: auxModel.trim(), fallbackModels: undefined } : main
+    : main
   // 标题/画像等：按探测缓存或启发式关闭 thinking，避免 max_tokens 被 reasoning 吃光
   const configured = await withAuxThinking(base)
   if (!base.fallbackModels?.length) return configured

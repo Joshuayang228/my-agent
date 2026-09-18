@@ -163,8 +163,8 @@ class AgentRuntime {
       }
 
       if (!hasLLMAuthentication(llmConfig)) {
-        log.error('No API key configured')
-        yield { type: 'error', message: '请先在设置中配置 API Key', code: AgentErrorCode.CONFIG_MISSING_API_KEY, sessionId }
+        log.error('No authenticated model route configured')
+        yield { type: 'error', message: '请先在设置中添加可用连接，并为主对话安排模型。', code: AgentErrorCode.CONFIG_MISSING_API_KEY, sessionId }
         yield { type: 'done', reason: 'model_error', sessionId }
         return
       }

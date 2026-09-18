@@ -47,6 +47,9 @@ vi.mock('../../electron/main/mcp/client', () => ({
 }))
 
 import { buildDebugSystemInfo } from '../../electron/main/agent/debug-system-info'
+import { loadMainLLMConfig } from '../../electron/main/llm/aux-config'
+
+vi.mock('../../electron/main/llm/aux-config', () => ({ loadMainLLMConfig: vi.fn(async () => ({ model: 'routed-model', baseUrl: 'https://route.test', apiKey: 'routed-secret' })) }))
 
 describe('buildDebugSystemInfo', () => {
   beforeEach(() => {
@@ -61,6 +64,9 @@ describe('buildDebugSystemInfo', () => {
     expect(info.settings.sandboxMode).toBe('workspace-write')
     expect(info.settings.executionMode).toBe('confirm-all')
     expect(info.settings.hasApiKey).toBe(true)
+    expect(info.settings.model).toBe('routed-model')
+    expect(info.settings.baseUrl).toBe('https://route.test')
+    expect(JSON.stringify(info)).not.toContain('routed-secret')
     expect(JSON.stringify(info)).not.toContain('sk-test')
     expect(info.permissionRules.total).toBe(1)
     expect(info.permissionRules.items[0].action).toBe('deny')
@@ -68,5 +74,11 @@ describe('buildDebugSystemInfo', () => {
     expect(info.skills.items[0].name).toBe('demo')
     expect(info.toolCount).toBe(2)
     expect(info.mcp[0].status).toBe('connected')
+  })
+
+  it('空用途不展示旧全局模型与凭据状态', async () => {
+    vi.mocked(loadMainLLMConfig).mockResolvedValueOnce({ model: '', baseUrl: '', apiKey: '' })
+    const info = await buildDebugSystemInfo({ getAll: () => [] } as never)
+    expect(info.settings).toMatchObject({ model: '', baseUrl: '', hasApiKey: false })
   })
 })

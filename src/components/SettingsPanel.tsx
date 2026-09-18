@@ -20,9 +20,6 @@ import {
 } from 'lucide-react'
 
 interface SettingsForm {
-  llmApiKey: string
-  llmBaseUrl: string
-  llmModel: string
   llmTemperature: string
   llmTopP: string
   llmMaxTokens: string
@@ -41,7 +38,6 @@ interface SettingsForm {
   companionMomentTipsMaxPerDay: string
   /** 定时主动问候（M31-G3）；默认关 */
   companionProactiveGreetingEnabled: string
-  auxModel: string
   sessionTokenBudget: string
   dailyTokenBudget: string
   /** PermissionRule[] JSON — 自定义命令/工具规则 */
@@ -54,9 +50,6 @@ type McpServerEntry = import('../shared/types').McpServerConfig
 interface McpToolEntry { serverId: string; serverName: string; name: string; description: string; allowed: boolean }
 
 const DEFAULTS: SettingsForm = {
-  llmApiKey: '',
-  llmBaseUrl: 'https://api.openai.com/v1',
-  llmModel: 'gpt-4o',
   llmTemperature: '0.7',
   llmTopP: '1',
   llmMaxTokens: '4096',
@@ -69,7 +62,6 @@ const DEFAULTS: SettingsForm = {
   companionMomentTipsQuietEnd: '8',
   companionMomentTipsMaxPerDay: '3',
   companionProactiveGreetingEnabled: 'false',
-  auxModel: '',
   sessionTokenBudget: '0',
   dailyTokenBudget: '0',
   permissionRules: '[]',
@@ -195,10 +187,6 @@ export function SettingsPanel({
     if (preview || !window.electronAPI) return
     window.electronAPI.settings.get().then((s) => {
       setForm({
-        // API Key 原文不从主进程下沉；输入框只承载本次新输入。
-        llmApiKey: '',
-        llmBaseUrl: s.llmBaseUrl || DEFAULTS.llmBaseUrl,
-        llmModel: s.llmModel || DEFAULTS.llmModel,
         llmTemperature: s.llmTemperature || DEFAULTS.llmTemperature,
         llmTopP: s.llmTopP || DEFAULTS.llmTopP,
         llmMaxTokens: s.llmMaxTokens || DEFAULTS.llmMaxTokens,
@@ -215,7 +203,6 @@ export function SettingsPanel({
           s.companionMomentTipsMaxPerDay || DEFAULTS.companionMomentTipsMaxPerDay,
         companionProactiveGreetingEnabled:
           s.companionProactiveGreetingEnabled || DEFAULTS.companionProactiveGreetingEnabled,
-        auxModel: s.auxModel || '',
         sessionTokenBudget: s.sessionTokenBudget || '0',
         dailyTokenBudget: s.dailyTokenBudget || '0',
         permissionRules: s.permissionRules || DEFAULTS.permissionRules,
@@ -431,7 +418,7 @@ export function SettingsPanel({
   const renderModel = () => (
     <div className="space-y-4">
       <SettingsPageHeader title="模型" description="管理模型连接与用途安排；密钥只保存在本机安全存储中。" />
-      <ModelRoutingSettings beforeLeaveRef={modelBeforeLeaveRef} connectionsRaw={modelConnections} routesRaw={modelRoutes} legacyBaseUrl={form.llmBaseUrl} legacyModel={form.llmModel} onTestConnection={async (connection, draftApiKey) => {
+      <ModelRoutingSettings beforeLeaveRef={modelBeforeLeaveRef} connectionsRaw={modelConnections} routesRaw={modelRoutes} onTestConnection={async (connection, draftApiKey) => {
         if (preview || !window.electronAPI) return { ok: false, error: '当前仅可在正式设置中测试' }
         const apiKey = draftApiKey?.trim()
         return window.electronAPI.settings.testConnection({
