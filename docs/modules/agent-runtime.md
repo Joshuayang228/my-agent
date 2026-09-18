@@ -120,6 +120,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 | 多 Provider LLM + Failover | 已落地 | `llm/`；OpenAI Compatible / Anthropic / Gemini；配置唯一经 `loadMainLLMConfig` / `loadAuxLLMConfig` |
 | Provider 能力生产资产 | 已落地 | `provider-presets.ts` 唯一预设源；依据 Alice 本地 Provider 清单登记海外直连、国内服务商、编程套餐、聚合与代理、本地 / 自定义五组共 24 个 Provider 入口；模型 ID 不写入入口预设，由用户按账户实际可用列表填写；`provider-asset-registry.ts` 派生 Provider 资产，Debug「提示词管理器 → 模型 Provider」只读展示；ListenHub / CLIProxy 不冒充普通聊天入口 |
 | 首次模型配置旅程 | 已落地 | 无 Key 自动进入设置「模型」；Provider / Key / Base URL / 模型修改后防抖自动保存，当前配置可独立测试连接；未修改 API Key 不会用空值覆盖安全存储 |
+| 设置离开保存门控 | 已落地 | 返回按钮与全局离开快捷键共用 SettingsPanel 增量保存队列；保存失败留页并保留草稿，成功才切页或新建会话，并刷新外层模型 / 伙伴 / 开发者模式状态；处理中重复快捷键不重复执行。不涵盖窗口强制退出及独立编辑器草稿 |
 | 正式模型发现 | 已落地 | `settings:fetch-models` 只走主进程；OpenAI Compatible / Anthropic 读 `/v1/models`，Gemini 明确不支持。无 Key 不发请求；已存 Key 按 `connectionId` 注入，草稿 Key 不读已存密钥。成功列表点选后才写入连接清单，手动添加去重；有清单时路由只选已启用模型 |
 | Headless 运行（定时/后台） | 已落地 | `runtime.runHeadless`；无交互时只自动批准明确只读工具 |
 | Observer / DevPanel 可观测 | 已落地 | tracer / observer / DevPanel |

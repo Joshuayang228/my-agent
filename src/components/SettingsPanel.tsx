@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useImperativeHandle, type Ref } from 'react'
 import { useToast } from './Toast'
 import { PermissionSettingsContent } from './settings/PermissionSettingsContent'
 import { MemoryPanel } from './MemoryPanel'
@@ -97,6 +97,7 @@ const THEMES = DESIGN_THEME_ASSETS.map((asset) => ({ id: asset.id, label: asset.
 
 interface SettingsPanelProps {
   onClose: () => void
+  saveBeforeLeaveRef?: Ref<() => Promise<boolean>>
   currentTheme?: string
   onThemeChange?: (themeId: string) => void
   /** Playground 只读预览：不读取、写入或探测真实设置。 */
@@ -107,6 +108,7 @@ interface SettingsPanelProps {
 
 export function SettingsPanel({
   onClose,
+  saveBeforeLeaveRef,
   currentTheme,
   onThemeChange,
   preview = false,
@@ -273,6 +275,9 @@ export function SettingsPanel({
     savingRef.current = flush().finally(() => { savingRef.current = null })
     return savingRef.current
   }, [preview, toast])
+
+  // 全局导航必须等待同一保存队列；失败时保留挂载的草稿，不另建异步卸载保存通道。
+  useImperativeHandle(saveBeforeLeaveRef, () => persistSettings, [persistSettings])
 
   const initialLoadDone = useRef(false)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)

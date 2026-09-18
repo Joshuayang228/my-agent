@@ -4366,6 +4366,41 @@ test.describe('My Agent UI', () => {
     }
   }
 
+  test('设置快捷键离开失败保留草稿且保存成功后才新建会话', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      const state = { fail: true, created: 0, stored: { llmApiKeyConfigured: 'true', companionResponseNote: '' } as Record<string, string> }
+      ;(window as any).__settingsExit = state
+      api.settings.get = async () => ({ ...state.stored })
+      api.settings.set = async (key: string, value: string) => {
+        if (state.fail) throw new Error('test save failure')
+        state.stored[key] = value
+      }
+      api.session.create = async () => ({ id: `exit-session-${++state.created}` })
+    })
+    await page.goto('/')
+    await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-companion').click()
+    const note = page.getByRole('textbox', { name: '相处补充说明', exact: true })
+    await note.fill('保存失败时不要丢弃这条草稿')
+    await expect(page.getByRole('button', { name: '重试保存', exact: true })).toBeVisible()
+    for (const shortcut of ['Control+,', 'Control+Shift+P', 'Control+n', 'Escape', 'Control+Shift+M', 'Control+Shift+F', 'Control+Shift+K', 'Control+Shift+D']) {
+      await page.keyboard.press(shortcut)
+      await expect(page.getByTestId('settings-panel')).toBeVisible()
+      await expect(note).toHaveValue('保存失败时不要丢弃这条草稿')
+    }
+    expect(await page.evaluate(() => (window as any).__settingsExit.created)).toBe(0)
+    await page.evaluate(() => { (window as any).__settingsExit.fail = false })
+    await page.keyboard.press('Control+n')
+    await expect(page.getByTestId('settings-panel')).toHaveCount(0)
+    await expect.poll(() => page.evaluate(() => (window as any).__settingsExit.created)).toBe(1)
+    expect(await page.evaluate(() => (window as any).__settingsExit.stored.companionResponseNote)).toBe('保存失败时不要丢弃这条草稿')
+    await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-companion').click()
+    await expect(note).toHaveValue('保存失败时不要丢弃这条草稿')
+  })
+
   test('设置高级模型参数自动保存并在离开时刷新', async ({ page }) => {
     await page.goto('/')
     await page.evaluate(() => {

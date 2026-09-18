@@ -1,5 +1,7 @@
 # 质量总控
 
+设置离开回归从正式 App 输入相处说明并让 settings.set 失败，逐个触发设置切换、Playground、Debug、记忆、朋友圈、Skills、新对话和 Escape，检查设置仍挂载、草稿不变且没有新建会话；恢复保存后验证新建一次和重开恢复。测试与已有返回按钮 / 高级参数自动保存一起运行，不将此证据外推为窗口关闭保护。
+
 Renderer UI 回归使用独立 `ui-e2e` 构建与 5175 静态预览，不复用 5174 开发服务器，不连接 HMR；构建产物位于 `var/verification/ui-dist`。`retries: 0` 配合 `retain-on-failure` 保留真实失败 trace。此隔离防止开发源码变化打断测试，不代表已修复开发服务器重载来源；生产 Electron 验证仍单独运行。
 
 R13 最终静态 Renderer 回归 188 项通过；此前开发服务器回归的失败记录继续保留。Markdown 独立 HTML 夹具作为 ui-e2e 专用构建入口，正式 dist 不包含；动效样张的时长读取兼容压缩后的 `.15s`，不依赖开发 CSS 原文恰好是 `150ms`。

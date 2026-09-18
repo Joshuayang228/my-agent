@@ -110,6 +110,8 @@ function App() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [activeTools, setActiveTools] = useState<ToolCallbackItem[]>([])
   const [activeView, setActiveView] = useState<ShellView>('chat')
+  const settingsSaveBeforeLeave = useRef<(() => Promise<boolean>) | null>(null)
+  const settingsNavigationPending = useRef(false)
   const [worldTab, setWorldTab] = useState<WorldTab>('moments')
   const [theme, setTheme] = useState<string>(() => {
     return normalizeThemeId(localStorage.getItem('theme'))
@@ -415,36 +417,73 @@ function App() {
     await loadSessions()
   }
 
+  const closeSettings = useCallback((nextView: ShellView = 'chat') => {
+    setActiveView(nextView)
+    if (window.electronAPI) {
+      window.electronAPI.companion.getActive().then((p) => {
+        if (p?.name) setCurrentPersonaName(p.name)
+        if (p?.description) setCompanionBlurb(p.description)
+        if (p?.id) setActiveRoleId(p.id)
+      })
+      window.electronAPI.companion.listProtagonists().then((list) => {
+        const map: Record<string, string> = {}
+        for (const p of list) map[p.id] = p.name
+        setProtagonistNames(map)
+      })
+      window.electronAPI.settings.get().then((s) => {
+        if (s.llmModel) setCurrentModel(s.llmModel)
+        if (s.llmBaseUrl) setCurrentBaseUrl(s.llmBaseUrl)
+        if (s.executionMode) setApprovalMode(s.executionMode as 'confirm-all' | 'auto' | 'full-access')
+        setDeveloperMode(import.meta.env.MODE === 'ui-e2e' || s.developerMode === 'true')
+      })
+    }
+  }, [])
+
   useEffect(() => {
+    const navigate = async (target: ShellView, after?: () => void) => {
+      if (activeView === 'settings') {
+        if (settingsNavigationPending.current) return
+        settingsNavigationPending.current = true
+        try {
+          if (!settingsSaveBeforeLeave.current || !(await settingsSaveBeforeLeave.current())) return
+          closeSettings(target)
+          after?.()
+        } finally {
+          settingsNavigationPending.current = false
+        }
+      } else {
+        setActiveView(target)
+        after?.()
+      }
+    }
     const handleGlobalKey = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'D') {
         e.preventDefault()
-        setActiveView(v => v === 'debug' ? 'chat' : 'debug')
+        void navigate(activeView === 'debug' ? 'chat' : 'debug')
       }
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'p') {
         e.preventDefault()
-        setActiveView(v => v === 'playground' ? 'chat' : 'playground')
+        void navigate(activeView === 'playground' ? 'chat' : 'playground')
       }
       if (e.ctrlKey && !e.shiftKey && e.key === 'n') {
         e.preventDefault()
-        setActiveView('chat')
-        createNewSession()
+        void navigate('chat', () => { void createNewSession() })
       }
       if (e.ctrlKey && e.key === ',') {
         e.preventDefault()
-        setActiveView(v => v === 'settings' ? 'chat' : 'settings')
+        void navigate(activeView === 'settings' ? 'chat' : 'settings')
       }
       if (e.ctrlKey && e.shiftKey && e.key === 'M') {
         e.preventDefault()
-        setActiveView(v => v === 'memory' ? 'chat' : 'memory')
+        void navigate(activeView === 'memory' ? 'chat' : 'memory')
       }
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'f') {
         e.preventDefault()
-        setActiveView(v => v === 'moments' ? 'chat' : 'moments')
+        void navigate(activeView === 'moments' ? 'chat' : 'moments')
       }
       if (e.ctrlKey && e.shiftKey && e.key === 'K') {
         e.preventDefault()
-        setActiveView(v => v === 'skills' ? 'chat' : 'skills')
+        void navigate(activeView === 'skills' ? 'chat' : 'skills')
       }
       if (e.ctrlKey && !e.shiftKey && e.key === 'f') {
         e.preventDefault()
@@ -460,12 +499,12 @@ function App() {
       }
       if (e.key === 'Escape') {
         if (searchOpen) { setSearchOpen(false); setSearchQuery('') }
-        else if (activeView !== 'chat') { setActiveView('chat') }
+        else if (activeView !== 'chat') { void navigate('chat') }
       }
     }
     window.addEventListener('keydown', handleGlobalKey)
     return () => window.removeEventListener('keydown', handleGlobalKey)
-  }, [createNewSession, searchOpen])
+  }, [activeView, closeSettings, createNewSession, searchOpen])
 
   useEffect(() => {
     if (!providerMenuOpen && !approvalMenuOpen && !projectMenuOpen) return
@@ -854,28 +893,6 @@ function App() {
     name: currentPersonaName,
     description: companionBlurb,
   })
-
-  const closeSettings = useCallback(() => {
-    setActiveView('chat')
-    if (window.electronAPI) {
-      window.electronAPI.companion.getActive().then((p) => {
-        if (p?.name) setCurrentPersonaName(p.name)
-        if (p?.description) setCompanionBlurb(p.description)
-        if (p?.id) setActiveRoleId(p.id)
-      })
-      window.electronAPI.companion.listProtagonists().then((list) => {
-        const map: Record<string, string> = {}
-        for (const p of list) map[p.id] = p.name
-        setProtagonistNames(map)
-      })
-      window.electronAPI.settings.get().then((s) => {
-        if (s.llmModel) setCurrentModel(s.llmModel)
-        if (s.llmBaseUrl) setCurrentBaseUrl(s.llmBaseUrl)
-        if (s.executionMode) setApprovalMode(s.executionMode as 'confirm-all' | 'auto' | 'full-access')
-        setDeveloperMode(import.meta.env.MODE === 'ui-e2e' || s.developerMode === 'true')
-      })
-    }
-  }, [])
 
   // 全屏导航不能销毁项目工作区：保留固定位置的产品子树，仅隐藏；项目 key 才定义资源归属。
   const standaloneView = activeView === 'settings' || activeView === 'playground'
@@ -1786,6 +1803,7 @@ function App() {
         {activeView === 'settings' ? <div className="flex h-full w-full min-h-0 min-w-0 flex-1 flex-col">
           <SettingsPanel
             onClose={closeSettings}
+            saveBeforeLeaveRef={settingsSaveBeforeLeave}
             currentTheme={theme}
             onThemeChange={setTheme}
           />
