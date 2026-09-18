@@ -296,6 +296,10 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 
 ## 6. 风险与权衡
 
+### R06 / R10 基础输入复用核验
+
+替换 `ModelRoutingSettings` 的原生文本输入 / 用途选择及 `McpConnectionForm` 的原生认证选择为已有 TextField / SelectField；保留业务回调、输入类型、模型路由及测试后保存契约。正式与候选共用这些业务组件，未新增独立皮肤或修改基础组件默认行为。Unit 使用真实 JSX 符号检查并覆盖未使用导入与同名遮蔽，正式 MCP 增加 Bearer 输入 / 载荷 / hover 几何证据。此边界不包含复选框、回答方式选项与其余设置控件，不能据此认定全产品 Foundation 审计完成。
+
 ### R10 OAuth 补齐方案（待用户确认）
 
 现状依据：共享表单只接受 none / bearer，运行状态没有 auth；候选服务卡已有待登录展示但没有真实登录动作。Bearer 完整重启证据不覆盖 OAuth。参考本地 CC `services/mcp/auth.ts`、`services/oauth/auth-code-listener.ts` 与已安装 MCP SDK 的 `OAuthClientProvider`；Alice 的 MCP 章节不能证明其登录生命周期。本轮外部规范页面未返回可用内容，不据此宣称已完成最新规范复核。

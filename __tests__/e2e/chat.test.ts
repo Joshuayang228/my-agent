@@ -544,9 +544,9 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       await page.addInitScript((selectedTheme) => {
         localStorage.setItem('theme', selectedTheme)
         const api = (window as any).electronAPI
-        const state = { tested: false, cancelled: false, saved: false, failSave: true }
+        const state = { tested: false, cancelled: false, saved: false, failSave: true, input: null as any }
         ;(window as any).__mcpAddHarness = state
-        api.mcp.testConnection = async (_requestId: string, config: any) => { state.tested = true; return { ok: true, tools: [{ name: 'search_docs', description: '搜索文档' }] } }
+        api.mcp.testConnection = async (_requestId: string, config: any) => { state.tested = true; state.input = config; return { ok: true, tools: [{ name: 'search_docs', description: '搜索文档' }] } }
         api.mcp.cancelTest = async () => { state.cancelled = true; state.tested = false; return { ok: true } }
         api.mcp.saveTested = async (_requestId: string, allowed: string[]) => {
           if (!state.tested) return { ok: false, error: '测试结果已失效，请重新测试连接。' }
@@ -565,8 +565,17 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       const form = page.getByTestId('mcp-connection-form')
       await form.getByLabel('连接名称').fill('文档服务')
       await form.getByLabel('服务 URL').fill('https://example.com/mcp')
+      const auth = form.getByLabel('认证方式')
+      await auth.selectOption('bearer')
+      await form.getByLabel('访问令牌', { exact: true }).fill('fixture-bearer')
+      await expect(form.getByLabel('访问令牌', { exact: true })).toHaveAttribute('type', 'password')
+      const authBox = await auth.boundingBox()
+      await auth.hover()
+      expect(await auth.boundingBox()).toEqual(authBox)
+      await page.screenshot({ path: `var/verification/mcp-fields-${theme}-${width}.png`, animations: 'disabled' })
       await form.getByRole('button', { name: '测试连接', exact: true }).click()
       await expect(form.getByText('已获取 1 个工具')).toBeVisible()
+      expect(await page.evaluate(() => (window as any).__mcpAddHarness.input)).toMatchObject({ transport: 'streamable-http', bearerToken: 'fixture-bearer' })
       expect(await page.evaluate(() => (window as any).__mcpAddHarness.cancelled)).toBe(false)
       await form.getByRole('checkbox', { name: '允许search_docs', exact: true }).uncheck()
       await form.getByRole('button', { name: '保存连接', exact: true }).click()

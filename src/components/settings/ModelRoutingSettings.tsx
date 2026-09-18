@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import { ArrowDown, ArrowUp, Check, CheckCircle2, Circle, LoaderCircle, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import type { LLMModelFetchResult, ModelConnectionProfile, ModelRouteProfile, ModelRoutePurpose } from '../../shared/types'
 import { addConnectionModel, enabledConnectionModelIds, normalizeConnectionModels, removeConnectionModel, setConnectionModelEnabled } from '../../shared/llm-model-fetch'
 import { ActionButton } from '../foundation/ActionButton'
+import { TextField } from '../foundation/TextField'
+import { SelectField } from '../foundation/SelectField'
 import { SettingCard, SettingRow } from './SettingsFields'
 
 const PURPOSES: Array<{ id: ModelRoutePurpose; label: string; description: string }> = [
@@ -154,10 +156,10 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
           return <div key={purpose.id} className="border-t pt-3 first:border-t-0 first:pt-0" style={{ borderColor: 'var(--border-subtle)' }}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div><div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{purpose.label}</div><div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{purpose.description}</div></div>
-              <select aria-label={`添加${purpose.label}模型`} value="" onChange={(event) => void addRoute(purpose.id, event.target.value)} className="theme-input max-w-[13rem] rounded-[var(--radius-md)] border px-2 py-1.5 text-[10px]">
+              <SelectField aria-label={`添加${purpose.label}模型`} value="" onChange={(event) => void addRoute(purpose.id, event.target.value)} className="max-w-[13rem]">
                 <option value="">添加模型</option>
                 {available.map(({ connection, value, model }) => <option key={`${purpose.id}-${value}`} value={value}>{connection.name} · {model}</option>)}
-              </select>
+              </SelectField>
             </div>
             {purposeRoutes.length === 0
               ? <div className="mt-3 rounded-[var(--radius-md)] border border-dashed px-3 py-3 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>还没有安排模型；请从已添加的模型中选择。</div>
@@ -189,9 +191,9 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
             const editingThis = editing === connection.id
             return <div key={connection.id} className="min-w-0 rounded-[var(--radius-md)] border" style={{ borderColor: 'var(--border-subtle)' }} data-testid={`settings-model-profile-${connection.id}`}>
               {editingThis ? <div className="space-y-2 p-3">
-                <input className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" placeholder="连接名称" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
-                <input className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" placeholder="Base URL" value={draft.baseUrl} onChange={(event) => setDraft({ ...draft, baseUrl: event.target.value })} />
-                <input className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" type="password" placeholder={connection.hasApiKey ? 'API Key（留空则保留原密钥）' : 'API Key'} value={draft.apiKey || ''} onChange={(event) => setDraft({ ...draft, apiKey: event.target.value })} />
+                <TextField className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" placeholder="连接名称" value={draft.name} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, name: event.target.value })} />
+                <TextField className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" placeholder="Base URL" value={draft.baseUrl} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, baseUrl: event.target.value })} />
+                <TextField className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" type="password" placeholder={connection.hasApiKey ? 'API Key（留空则保留原密钥）' : 'API Key'} value={draft.apiKey || ''} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, apiKey: event.target.value })} />
                 <div className="flex justify-end gap-2">
                   <ActionButton size="sm" onClick={() => setEditing(null)}><X size={13} />取消</ActionButton>
                   <ActionButton size="sm" onClick={() => void saveDraft()} disabled={busy} tone="accent">保存连接</ActionButton>
@@ -225,7 +227,7 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
                     </div>)}
                   </div>
                   <div className="mt-3 flex min-w-0 items-center gap-2">
-                    <input aria-label={`手动添加模型 ${connection.name}`} value={draftModel} onChange={(event) => setModelDrafts((current) => ({ ...current, [connection.id]: event.target.value }))} onKeyDown={(event) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); void submitModelDraft(connection) } }} placeholder="填写模型 ID" className="theme-input h-8 min-w-0 flex-1 rounded-[var(--radius-sm)] border px-2.5 text-[10px] outline-none" />
+                    <TextField aria-label={`手动添加模型 ${connection.name}`} value={draftModel} onChange={(event: ChangeEvent<HTMLInputElement>) => setModelDrafts((current) => ({ ...current, [connection.id]: event.target.value }))} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); void submitModelDraft(connection) } }} placeholder="填写模型 ID" className="theme-input h-8 min-w-0 flex-1 rounded-[var(--radius-sm)] border px-2.5 text-[10px] outline-none" />
                     <ActionButton size="sm" className="h-8 w-8 min-h-0 px-0" aria-label="手动添加模型" disabled={!draftModel.trim() || duplicate} onClick={() => void submitModelDraft(connection)}><Plus size={14} /></ActionButton>
                   </div>
                   {duplicate && <div className="mt-2 text-[10px]" role="status" style={{ color: 'var(--text-muted)' }}>这个模型已在清单中。</div>}
@@ -238,9 +240,9 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, legacyBaseUrl,
             </div>
           })}
           {editing === 'new' ? <div className="space-y-2 rounded-[var(--radius-md)] border p-3" style={{ borderColor: 'var(--accent)' }}>
-            <input className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" placeholder="连接名称" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
-            <input className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" placeholder="Base URL" value={draft.baseUrl} onChange={(event) => setDraft({ ...draft, baseUrl: event.target.value })} />
-            <input className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" type="password" placeholder="API Key" value={draft.apiKey || ''} onChange={(event) => setDraft({ ...draft, apiKey: event.target.value })} />
+            <TextField className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" placeholder="连接名称" value={draft.name} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, name: event.target.value })} />
+            <TextField className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" placeholder="Base URL" value={draft.baseUrl} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, baseUrl: event.target.value })} />
+            <TextField className="theme-input w-full rounded-[var(--radius-md)] border px-2.5 py-2 text-[11px]" type="password" placeholder="API Key" value={draft.apiKey || ''} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, apiKey: event.target.value })} />
             <div className="flex flex-wrap justify-end gap-2">
               <ActionButton size="sm" onClick={() => { if (!draft.baseUrl.trim()) return; void testConnection(withModels(draft), draft.apiKey) }} disabled={busy || !draft.baseUrl.trim()}>测试连接</ActionButton>
               <ActionButton size="sm" onClick={() => { if (!draft.baseUrl.trim()) return; void fetchModels(withModels(draft), draft.apiKey) }} disabled={busy || !draft.baseUrl.trim()}>获取已有模型</ActionButton>

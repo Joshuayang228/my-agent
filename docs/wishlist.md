@@ -6,6 +6,8 @@
 
 ## 待办缺口
 
+- WISH-042 2026-09-18 设置字段回归：Electron 首轮在开启开发模式后从 Playground 快捷键返回聊天超时；失败后新 worker 的独立目录没有前置模型配置，后续侧聊报无 API Key，后续终端 / 侧聊也未找到工作区入口。原代码带 trace 定向 1 项及完整复跑 18 项通过（4 条件跳过），首个快捷键失败根因未明，需补事件 / 导航生命周期证据并解除测试间前置依赖。证据 `var/verification/settings-fields-electron`、`settings-fields-shortcut-trace`、`settings-fields-electron-repeat`；不放宽断言或超时。
+- WISH-042 设置复用核验：模型与 MCP 的文本输入 / 下拉选择已接已有 Foundation；MCP 工具复选框、伙伴回答方式选项及提醒数字输入仍有局部原生实现。继续沿同一回流目标核验，不把业务表单共享当作其内部控件已全部同源。
 - WISH-040 OAuth 已完成代码缺口定位，补齐方案见全产品回流合同 R10 OAuth 节；系统浏览器授权、回环回调和新凭据生命周期待用户确认。当前仍未实现，不因 Bearer 测试或注册表路径齐全而关闭。
 - WISH-042 R10 验收：完整 UI 曾为 183 通过 / 3 失败。朋友圈 hover 的 translateY 位移已通过严格几何回归修复，衣柜删除的旧选择器 / 错误文案与缺失夹具已修正；Foundation Markdown 图表曾在 5 秒内未出现，未改代码的定向复跑通过，原因未确定，不能把复跑成功当作稳定性修复。
 - WISH-045 R10 仍需 OAuth / 第三方认证证据；本地 MCP Bearer 的 safeStorage 落盘、脱敏和完整重启认证已补真实 Electron 证据，不代表模型连接或 stdio env 凭据也完成独立重启验收。全产品采用核验继续进行。

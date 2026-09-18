@@ -4,6 +4,7 @@ import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { SegmentedControl } from '../foundation/SegmentedControl'
 import { TextField } from '../foundation/TextField'
+import { SelectField } from '../foundation/SelectField'
 import { SettingCard } from './SettingsFields'
 import type { McpConnectionActions, McpConnectionInput, McpConnectionSaveResult, McpDiscoveredTool } from '../../shared/types'
 
@@ -181,7 +182,7 @@ export function McpConnectionForm({ actions, onCancel, onSaved, initialDraft, pr
         {draft.kind === 'remote' ? <>
           {field('url', '服务 URL', 4096)}
           <span style={{ color: 'var(--text-muted)' }}>Streamable HTTP</span>
-          <label>认证方式<select className={fieldClass} value={draft.auth} onChange={(event) => change('auth', event.target.value as McpConnectionDraft['auth'])}><option value="none">无需认证</option><option value="bearer">访问令牌（Bearer）</option></select></label>
+          <label>认证方式<SelectField className="mt-1" value={draft.auth} onChange={(event) => change('auth', event.target.value as McpConnectionDraft['auth'])}><option value="none">无需认证</option><option value="bearer">访问令牌（Bearer）</option></SelectField></label>
           {draft.auth === 'bearer' && field('token', '访问令牌', 4096)}
         </> : <>
           {field('command', '启动命令', 4096)}

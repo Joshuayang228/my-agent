@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import {
@@ -29,6 +30,54 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('模型与 MCP 表单实际绑定 Foundation 输入和选择控件，未使用导入与同名遮蔽不算复用', () => {
+    const consumers = ['src/components/settings/ModelRoutingSettings.tsx', 'src/components/settings/McpConnectionForm.tsx'].map((file) => resolve(file))
+    const fields = ['TextField', 'SelectField'].map((name) => resolve(`src/components/foundation/${name}.tsx`))
+    const fixture = resolve('__tests__/fixtures/settings-field-binding.tsx')
+    const fixtureSource = `import { SelectField as Shared } from '../../src/components/foundation/SelectField'
+      function Unused() { return <select /> }
+      function Shadowed(Shared: any) { return <Shared /> }
+      function Real() { return <Shared /> }`
+    const options: ts.CompilerOptions = { jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, noResolve: true, noLib: true, types: [] }
+    const host = ts.createCompilerHost(options)
+    const original = host.getSourceFile.bind(host)
+    host.getSourceFile = (file, ...args) => resolve(file) === fixture
+      ? ts.createSourceFile(file, fixtureSource, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TSX)
+      : original(file, ...args)
+    const program = ts.createProgram([...consumers, ...fields, fixture], options, host)
+    const checker = program.getTypeChecker()
+    const inspect = (root: ts.Node) => {
+      const bindings = new Set<string>()
+      const nativeFields: string[] = []
+      const visit = (node: ts.Node) => {
+        if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+          let symbol = checker.getSymbolAtLocation(node.tagName)
+          if (symbol && (symbol.flags & ts.SymbolFlags.Alias)) symbol = checker.getAliasedSymbol(symbol)
+          for (const declaration of symbol?.declarations ?? []) {
+            if (fields.includes(resolve(declaration.getSourceFile().fileName))) bindings.add(symbol!.name)
+          }
+          if (ts.isIdentifier(node.tagName)) {
+            const name = node.tagName.text
+            const checkbox = node.attributes.properties.some((prop) => ts.isJsxAttribute(prop)
+              && prop.name.getText() === 'type' && prop.initializer && ts.isStringLiteral(prop.initializer) && prop.initializer.text === 'checkbox')
+            if (name === 'select' || name === 'textarea' || (name === 'input' && !checkbox)) nativeFields.push(name)
+          }
+        }
+        ts.forEachChild(node, visit)
+      }
+      visit(root)
+      return { bindings: [...bindings].sort(), nativeFields }
+    }
+    for (const file of consumers) {
+      expect(inspect(program.getSourceFile(file)!), file).toEqual({ bindings: ['SelectField', 'TextField'], nativeFields: [] })
+    }
+    const functions = program.getSourceFile(fixture)!.statements.filter(ts.isFunctionDeclaration)
+    expect(functions.map((fn) => inspect(fn))).toEqual([
+      { bindings: [], nativeFields: ['select'] },
+      { bindings: [], nativeFields: [] },
+      { bindings: ['SelectField'], nativeFields: [] },
+    ])
+  })
   it('MCP 添加流程实际渲染共享表单，候选只注入隔离适配器', () => {
     const usesForm = (source: string) => rendersSharedTabs(source, 'McpConnectionForm', '/settings/McpConnectionForm')
     for (const path of ['src/components/SettingsPanel.tsx', 'src/components/playground/McpConnectionPreview.tsx']) {
