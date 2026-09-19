@@ -154,7 +154,7 @@ export function getMemoryStrategyAssetCatalog(): ModelContextAsset[] {
     }),
     strategyAsset({
       key: MEMORY_STRATEGY_ASSET_KEYS.vectorLifecycle,
-      version: '1.2.0',
+      version: '1.3.0',
       name: '记忆策略 · 向量生命周期',
       purpose: '控制对话向量的容量与淘汰边界',
       role: 'vector-store',

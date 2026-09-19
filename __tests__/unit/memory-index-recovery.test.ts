@@ -5,8 +5,10 @@ import initSqlJs from 'sql.js'
 import 'vectra'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
-const state = vi.hoisted(() => ({ root: '', db: null as any, apiKey: 'test', embedding: vi.fn(), persist: vi.fn() }))
-vi.mock('electron', () => ({ app: { getPath: () => state.root } }))
+const state = vi.hoisted(() => ({ root: '', db: null as any, apiKey: 'test', baseUrl: 'http://localhost/v1', embedding: vi.fn(), persist: vi.fn() }))
+vi.mock('electron', () => ({ app: { getPath: () => state.root }, safeStorage: {
+  isEncryptionAvailable: () => true, encryptString: (value: string) => Buffer.from(value), decryptString: (value: Buffer) => value.toString(),
+} }))
 // 保留真实包导出并在收集阶段加载，避免每次重置业务模块时重复承担依赖初始化成本。
 vi.mock('vectra', async importOriginal => await importOriginal())
 vi.mock('../../electron/main/storage/database', async importOriginal => ({
@@ -16,7 +18,7 @@ vi.mock('../../electron/main/storage/database', async importOriginal => ({
 vi.mock('../../electron/main/memory/embeddings', async importOriginal => ({
   ...await importOriginal<typeof import('../../electron/main/memory/embeddings')>(), createEmbedding: state.embedding,
 }))
-vi.mock('../../electron/main/llm/aux-config', () => ({ loadMainLLMConfig: async () => ({ apiKey: state.apiKey, baseUrl: 'http://localhost/v1', model: 'test' }) }))
+vi.mock('../../electron/main/llm/aux-config', () => ({ loadMainLLMConfig: async () => ({ apiKey: state.apiKey, baseUrl: state.baseUrl, model: 'test' }) }))
 vi.mock('../../electron/main/utils/asset-usage', () => ({ recordAssetUsage: vi.fn() }))
 vi.mock('../../electron/main/utils/logger', () => ({ hashForLog: () => 'test', createLogger: () => ({ info: vi.fn(), warn: vi.fn(), debug: vi.fn() }) }))
 
@@ -25,6 +27,7 @@ let stop: (() => void) | undefined
 beforeEach(async () => {
   vi.resetModules()
   state.apiKey = 'test'
+  state.baseUrl = 'http://localhost/v1'
   state.root = fs.mkdtempSync(path.join(os.tmpdir(), 'memory-index-'))
   const SQL = await initSqlJs()
   state.db = new SQL.Database()
@@ -74,6 +77,48 @@ async function startSync() {
   await sync.ready
   return sync
 }
+
+it('保存模型配置后立即重建，无需重启或再次修改记忆；停止后不再接收提交', async () => {
+  const store = await import('../../electron/main/storage/memory-store')
+  const settings = await import('../../electron/main/storage/settings-store')
+  const memory = await store.addMemory('fact', '配置保存唤醒样本')
+  const sync = await startSync()
+  const vectors = await import('../../electron/main/memory/vector-store')
+  state.baseUrl = 'http://second.local/v1'
+  await settings.saveModelConfiguration({ connections: '[]', routes: '[]' })
+  await vi.waitFor(() => expect(state.embedding.mock.calls.some(call => call[1].baseUrl === state.baseUrl)).toBe(true))
+  await vi.waitFor(async () => expect(await vectors.searchVectorStore('样本', { ...config, baseUrl: state.baseUrl })).toEqual([expect.objectContaining({ id: memory.id })]))
+  sync.stop()
+  state.embedding.mockClear()
+  await settings.saveModelConfiguration({ connections: '[]', routes: '[]' })
+  await new Promise<void>(resolve => setImmediate(resolve))
+  expect(state.embedding).not.toHaveBeenCalled()
+})
+
+it('保存新配置取消旧端点的在途重建，迟到结果不发布', async () => {
+  const store = await import('../../electron/main/storage/memory-store')
+  const settings = await import('../../electron/main/storage/settings-store')
+  await store.addMemory('fact', '取消旧配置请求样本')
+  let oldSignal: AbortSignal | undefined
+  let release!: (value: unknown) => void
+  state.embedding.mockImplementationOnce((_text, _config, _model, signal: AbortSignal) => {
+    oldSignal = signal
+    return new Promise(resolve => { release = resolve })
+  })
+  const sync = (await import('../../electron/main/memory/index-sync')).startMemoryIndexSync()
+  stop = sync.stop
+  await vi.waitFor(() => expect(oldSignal).toBeDefined())
+  try {
+    state.baseUrl = 'http://second.local/v1'
+    await settings.saveModelConfiguration({ connections: '[]', routes: '[]' })
+    expect(oldSignal!.aborted).toBe(true)
+  } finally { release({ vector: [1, 0, 0], model: 'test', tokenCount: 1 }) }
+  await sync.ready
+  const disk = JSON.parse(fs.readFileSync(path.join(state.root, 'vector-index/index.json'), 'utf8'))
+  const { getEmbeddingSpaceKey } = await import('../../electron/main/memory/embeddings')
+  expect(disk.items).toHaveLength(1)
+  expect(disk.items[0].metadata.embeddingSpace).toBe(getEmbeddingSpaceKey({ ...config, baseUrl: state.baseUrl }))
+})
 
 it('切换端点不召回旧空间，核对后重建结构化记忆并保留旧对话', async () => {
   const store = await import('../../electron/main/storage/memory-store')

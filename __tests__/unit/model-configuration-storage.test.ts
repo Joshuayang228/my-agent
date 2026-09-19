@@ -33,6 +33,52 @@ const read = async () => [await settings.getSetting('modelConnections'), await s
 const save = (connections: string, routes: string) => settings.saveModelConfiguration({ connections, routes })
 
 describe('模型配置整组真实 SQLite 持久化', () => {
+  it('只在模型设置成功落盘后通知，失败及无关设置不通知，取消订阅生效', async () => {
+    const notify = vi.fn()
+    const unsubscribe = settings.subscribeModelConfigurationCommitted(notify)
+    try {
+      const realPersist = database.persist
+      vi.spyOn(database, 'persist').mockImplementationOnce(() => { expect(notify).not.toHaveBeenCalled(); realPersist() })
+      await save(oldConnections, oldRoutes)
+      expect(notify).toHaveBeenCalledTimes(1)
+      notify.mockClear()
+      vi.spyOn(database, 'persist').mockImplementationOnce(() => { throw new Error('fixture-failed') })
+      await expect(save(newConnections, newRoutes)).rejects.toThrow()
+      await settings.setSetting('companionResponseNote', '无关设置')
+      expect(notify).not.toHaveBeenCalled()
+      await settings.setSetting('modelRoutes', newRoutes)
+      expect(notify).toHaveBeenCalledTimes(1)
+      notify.mockClear()
+      vi.spyOn(database, 'persist').mockImplementationOnce(() => { throw new Error('fixture-failed') })
+      await expect(settings.setSetting('modelRoutes', oldRoutes)).rejects.toThrow()
+      expect(notify).not.toHaveBeenCalled()
+      unsubscribe()
+      await save(newConnections, newRoutes)
+      expect(notify).not.toHaveBeenCalled()
+    } finally { unsubscribe() }
+  })
+
+  it('后台监听失败不把已提交保存变成失败，也不阻塞其他监听', async () => {
+    const stopThrowing = settings.subscribeModelConfigurationCommitted(() => { throw new Error('observer') })
+    const stopRejecting = settings.subscribeModelConfigurationCommitted(async () => { throw new Error('observer') })
+    const notify = vi.fn()
+    const stop = settings.subscribeModelConfigurationCommitted(notify)
+    try {
+      await expect(save(oldConnections, oldRoutes)).resolves.toBeUndefined()
+      expect(await read()).toEqual([oldConnections, oldRoutes])
+      expect(notify).toHaveBeenCalledTimes(1)
+    } finally { stopThrowing(); stopRejecting(); stop() }
+  })
+
+  it.each(['modelConnections', 'modelRoutes'] as const)('单键 %s 写盘失败也恢复内存和磁盘原值', async key => {
+    await save(oldConnections, oldRoutes)
+    const before = fs.readFileSync(path.join(fixture.directory, 'my-agent.db'))
+    vi.spyOn(database, 'persist').mockImplementationOnce(() => { throw new Error('fixture-disk-failed') })
+    await expect(settings.setSetting(key, key === 'modelConnections' ? newConnections : newRoutes)).rejects.toThrow()
+    expect(await read()).toEqual([oldConnections, oldRoutes])
+    expect(fs.readFileSync(path.join(fixture.directory, 'my-agent.db'))).toEqual(before)
+  })
+
   it('两个字段一次落盘，密文存储且重新打开恢复同一组', async () => {
     const persist = vi.spyOn(database, 'persist')
     await save(oldConnections, oldRoutes)

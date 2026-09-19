@@ -20,6 +20,7 @@ vi.mock('../../electron/main/utils/asset-usage', () => ({ recordAssetUsage: vi.f
 import { isValidExportData, registerDataExportIPC } from '../../electron/main/ipc/data-export'
 import { drainMemoryBackgroundTasks } from '../../electron/main/storage/memory-store'
 import { atomicWriteFileSync } from '../../electron/main/storage/database'
+import { subscribeModelConfigurationCommitted } from '../../electron/main/storage/settings-store'
 
 const SQL = await initSqlJs()
 let db: InstanceType<typeof SQL.Database>
@@ -66,6 +67,28 @@ function counts(database = db) {
   return ['sessions', 'messages', 'memories', 'settings', 'companion_assets', 'companion_asset_seeds']
     .map(table => database.exec(`SELECT COUNT(*) FROM ${table}`)[0].values[0][0])
 }
+
+it('只恢复模型设置也通知索引，失败与没有实际写入的重复导入不通知', async () => {
+  const data = JSON.parse(fs.readFileSync(backupPath, 'utf8'))
+  data.memories = []
+  data.settings = { modelRoutes: '[]' }
+  fs.writeFileSync(backupPath, JSON.stringify(data))
+  const notify = vi.fn()
+  const unsubscribe = subscribeModelConfigurationCommitted(notify)
+  try {
+    vi.spyOn(fs, 'renameSync').mockImplementationOnce(() => { throw new Error('fixture-file-locked') })
+    expect(await invoke()).toMatchObject({ success: false })
+    expect(notify).not.toHaveBeenCalled()
+    state.persist.mockImplementationOnce(() => {
+      expect(notify).not.toHaveBeenCalled()
+      atomicWriteFileSync(databasePath, db.export())
+    })
+    expect(await invoke()).toMatchObject({ success: true, stats: { memories: 0, settings: 1 } })
+    expect(notify).toHaveBeenCalledTimes(1)
+    expect(await invoke()).toMatchObject({ success: true, stats: { settings: 0 } })
+    expect(notify).toHaveBeenCalledTimes(1)
+  } finally { unsubscribe() }
+})
 
 it('设置写入失败时会话、记忆、生活资产和磁盘均不留下部分导入，向量任务不提前发布', async () => {
   db.run("CREATE TRIGGER reject_import_setting BEFORE INSERT ON settings BEGIN SELECT RAISE(ABORT, 'test failure'); END")

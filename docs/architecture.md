@@ -1,5 +1,7 @@
 # 系统架构
 
+模型配置提交事件由 storage/settings-store 发布无载荷通知，memory/index-sync 订阅后重读统一配置工厂。双键 / 单键保存及备份实际写入模型键均须完整持久化成功后发布；失败补偿且不通知。恢复 worker 合并请求、取消过期尝试并以修订号阻止旧结果发布，停止时解除订阅。存储层不反向依赖 memory 或 llm。
+
 模型诊断 IPC 使用 `model-diagnostic-operation.ts` 持有单次主框架请求的 AbortController 与事件监听；它不持有设置写入锁，也不下沉到 LLM 层。settings handler 在每个准备阶段 await 后复核归属，向 `chatComplete` / `fetchRemoteModels` 传信号并在 finally 释放监听。模型发现组合 owner 与超时信号；配置仍由 aux-config 唯一工厂装配，未改变 IPC 载荷或凭据存储。
 
 `storage/moment-backup.ts` 从既有生活表收集已发布事件、动态快照和独立用户赞评，校验角色 / 事件 / 动态关联及规模；`ipc/data-export.ts` 在整份导入的同一 SQLite 事务和失败补偿中恢复。历史事件不关联日剧本，不创建 planned 事件，不调用世界推进、奖励或 LLM。稳定身份冲突拒绝整份导入，相同归属的现有内容不覆盖。

@@ -16,7 +16,7 @@ vi.mock('../../electron/main/storage/memory-store', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../electron/main/storage/memory-store')>()
   return { listMemories: async () => [], addMemory: state.memoryAdd, assertMemoryContentAllowed: actual.assertMemoryContentAllowed }
 })
-vi.mock('../../electron/main/storage/settings-store', () => ({ getAllSettings: async () => ({}), getSetting: async () => '', setSetting: vi.fn() }))
+vi.mock('../../electron/main/storage/settings-store', () => ({ getAllSettings: async () => ({}), getSetting: async () => '', setSetting: vi.fn(), publishModelConfigurationCommitted: vi.fn() }))
 vi.mock('../../electron/main/storage/database', () => ({ getDatabase: state.database, persist: state.persist }))
 vi.mock('../../electron/main/utils/logger', () => ({ createLogger: () => ({ info: vi.fn(), error: vi.fn() }), hashForLog: () => 'hash' }))
 

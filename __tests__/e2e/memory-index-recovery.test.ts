@@ -10,13 +10,15 @@ for (const apiKey of ['fixture-key', '']) {
 test('正式备份提交后强退，向量服务失败后重启补齐真实索引且不重复' + (apiKey ? '（有 Key）' : '（无 Key）'), async ({}, testInfo) => {
   let fail = true
   const requests: string[] = []
+  const requestPaths: string[] = []
   const authorization: Array<string | undefined> = []
   const server = createServer(async (request, response) => {
     const chunks: Buffer[] = []
     for await (const chunk of request) chunks.push(Buffer.from(chunk))
     const body = JSON.parse(Buffer.concat(chunks).toString() || '{}')
-    if (request.url === '/v1/embeddings') {
+    if (request.url === '/v1/embeddings' || request.url === '/next/v1/embeddings') {
       requests.push(body.input)
+      requestPaths.push(request.url)
       authorization.push(request.headers.authorization)
       response.writeHead(fail ? 503 : 200, { 'Content-Type': 'application/json' }).end(JSON.stringify(fail
         ? { error: { message: 'temporary failure' } }
@@ -116,7 +118,24 @@ test('正式备份提交后强退，向量服务失败后重启补齐真实索�
     expect(await mirrors()).toHaveLength(2)
     expect(requests).toHaveLength(count)
     expect(authorization).toEqual(Array(count).fill(apiKey ? 'Bearer fixture-key' : undefined))
-    await testInfo.attach('memory-index-recovery', { contentType: 'application/json', body: JSON.stringify({ mirrors: 2, sourceRetainedOnFailure: true, phase: 'committed-before-index', requests: count }) })
+    await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-model').click()
+    await page.getByRole('button', { name: '编辑连接 索引恢复验收', exact: true }).click()
+    await page.getByLabel('Base URL', { exact: true }).fill(baseUrl.replace('/v1', '/next/v1'))
+    await expect(page.getByLabel('API Key', { exact: true })).toHaveValue('')
+    if (apiKey) await page.getByLabel('API Key', { exact: true }).fill(apiKey)
+    await page.getByRole('button', { name: '保存连接', exact: true }).click()
+    await expect.poll(() => requests.length).toBe(count + 2)
+    const previousSpace = rows[0].metadata.embeddingSpace
+    expect(previousSpace).toEqual(expect.any(String))
+    await expect.poll(async () => {
+      const current = await mirrors()
+      return current.length === 2 && current.every(row => typeof row.metadata.embeddingSpace === 'string' && row.metadata.embeddingSpace !== previousSpace)
+    }).toBe(true)
+    expect(requestPaths.slice(count)).toEqual(['/next/v1/embeddings', '/next/v1/embeddings'])
+    expect((await mirrors()).map(row => row.metadata.id).sort()).toEqual(rows.map(row => row.metadata.id).sort())
+    expect(authorization.slice(count)).toEqual(Array(2).fill(apiKey ? 'Bearer fixture-key' : undefined))
+    await testInfo.attach('memory-index-recovery', { contentType: 'application/json', body: JSON.stringify({ mirrors: 2, sourceRetainedOnFailure: true, phase: 'committed-before-index', requests: requests.length, rebuiltAfterSettingsSave: true }) })
   } finally {
     if (app && !closed) await app.close()
     server.closeAllConnections()

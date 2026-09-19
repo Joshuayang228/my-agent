@@ -6,6 +6,26 @@ import type { ModelConfigurationInput } from '../../../src/shared/types'
 import type { Database } from 'sql.js'
 
 const log = createLogger('SettingsStore')
+const modelConfigurationListeners = new Set<() => void | Promise<void>>()
+
+export function subscribeModelConfigurationCommitted(listener: () => void | Promise<void>): () => void {
+  modelConfigurationListeners.add(listener)
+  return () => { modelConfigurationListeners.delete(listener) }
+}
+
+/**
+ * 背景：配置保存及备份导入成功后，派生索引需要读取新身份，不能继续等待记忆被编辑。
+ * 意图：存储只发布无凭据的提交通知，由上层服务订阅，不反向 import 记忆或模型模块。
+ * 约束：仅在整次持久化成功后调用；监听失败不反转已成功的保存，通知不等待网络。
+ */
+export function publishModelConfigurationCommitted(keys: readonly string[]): void {
+  if (!keys.some(key => key === 'modelConnections' || key === 'modelRoutes')) return
+  for (const listener of [...modelConfigurationListeners]) {
+    try {
+      void Promise.resolve(listener()).catch(() => log.warn('Model configuration observer failed'))
+    } catch { log.warn('Model configuration observer failed') }
+  }
+}
 
 const ENCRYPTED_KEYS = new Set<keyof AppSettings>(['llmApiKey', 'mcpServers', 'modelConnections'])
 const ENCRYPTED_VALUE_PREFIX = 'enc:v1:'
@@ -230,8 +250,24 @@ export async function setSetting<K extends keyof AppSettings>(
   const prepared = prepareSettingWrite(key, value)
   await ensureTable()
   const db = await getDatabase()
-  writePreparedSetting(db, prepared)
-  persist()
+  // 模型单键入口也会被配置工厂读取；持久化失败必须恢复内存，不能通知后端使用失败配置。
+  const modelKey = key === 'modelConnections' || key === 'modelRoutes'
+  const previous = modelKey ? db.exec('SELECT value FROM settings WHERE key = ?', [key])[0]?.values[0]?.[0] : undefined
+  try {
+    writePreparedSetting(db, prepared)
+    persist()
+  } catch (error) {
+    if (!modelKey) throw error
+    try {
+      if (previous === undefined) db.run('DELETE FROM settings WHERE key = ?', [key])
+      else db.run('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value', [key, previous])
+    } catch {
+      log.error('Model setting rollback failed')
+      throw new Error('模型配置恢复失败，请重启应用后重试')
+    }
+    throw new Error('模型配置保存失败，原配置已保留，请重试')
+  }
+  publishModelConfigurationCommitted([key])
   log.info(`Setting updated: ${key}`)
 }
 
@@ -299,6 +335,7 @@ export async function saveModelConfiguration(input: ModelConfigurationInput): Pr
     }
     throw new Error('模型配置保存失败，原配置已保留，请重试')
   }
+  publishModelConfigurationCommitted(keys)
 }
 
 export async function getAllSettings(): Promise<AppSettings> {

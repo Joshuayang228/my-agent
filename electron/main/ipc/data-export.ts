@@ -569,6 +569,7 @@ export function importBackupPayload(
   for (const publish of afterCommit) {
     try { publish() } catch { log.warn('Committed backup background notification failed') }
   }
+  settingsStore.publishModelConfigurationCommitted((payload.settings ?? []).map(setting => setting.key))
   return {
     sessions: importedSessions,
     memories: importedMemories,

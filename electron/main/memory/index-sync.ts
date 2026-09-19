@@ -1,4 +1,5 @@
 import { listMemories, setMemoryIndexSync } from '../storage/memory-store'
+import { subscribeModelConfigurationCommitted } from '../storage/settings-store'
 import { loadMainLLMConfig } from '../llm/aux-config'
 import { reconcileMemoryIndex, VECTOR_EMBEDDING_TIMEOUT_MS } from './vector-store'
 import { createLogger } from '../utils/logger'
@@ -9,14 +10,14 @@ export const MEMORY_INDEX_SYNC_POLICY = {
   sourceOfTruth: 'SQLite memories',
   retryDelayMs: 30_000,
   requestTimeoutMs: VECTOR_EMBEDDING_TIMEOUT_MS,
-  triggers: ['startup', 'committed-mutation', 'retry'],
+  triggers: ['startup', 'committed-mutation', 'committed-model-configuration', 'retry'],
 } as const
 
 /**
  * 背景：恢复不能依赖上次进程来得及发布任务，必须从 SQLite 与磁盘镜像重算差异。
- * 意图：启动扫描 + 提交唤醒 + 失败退避，共用一个 worker；SQLite 本身就是持久恢复依据。
+ * 意图：启动扫描 + 记忆 / 配置提交唤醒 + 失败退避，共用一个 worker；SQLite 是持久恢复依据。
  * 约束：无端点配置不发请求；本地端点可以没有 API Key；失败不丢源数据；关闭中止请求；
- *       重入合并但必须重新读最新源。
+ *       重入取消旧请求并重新读最新源与配置；停止后解除两类提交订阅。
  */
 export function startMemoryIndexSync() {
   let stopped = false
@@ -25,11 +26,13 @@ export function startMemoryIndexSync() {
   let running: Promise<void> | undefined
   let timer: ReturnType<typeof setTimeout> | undefined
   const controller = new AbortController()
+  let attempt: AbortController | undefined
 
   function request(): Promise<void> {
     if (stopped) return Promise.resolve()
     revision++
     dirty = true
+    attempt?.abort()
     clearTimeout(timer)
     if (running) return running
     running = run().finally(() => {
@@ -44,12 +47,13 @@ export function startMemoryIndexSync() {
     do {
       dirty = false
       const currentRevision = revision
+      attempt = new AbortController()
       try {
         const memories = await listMemories()
         const config = await loadMainLLMConfig()
         complete = await reconcileMemoryIndex(memories, config.baseUrl.trim() ? config : undefined,
           () => !stopped && currentRevision === revision,
-          AbortSignal.any([controller.signal, AbortSignal.timeout(MEMORY_INDEX_SYNC_POLICY.requestTimeoutMs)]))
+          AbortSignal.any([controller.signal, attempt.signal, AbortSignal.timeout(MEMORY_INDEX_SYNC_POLICY.requestTimeoutMs)]))
       } catch {
         complete = false
         if (!stopped) log.warn('Memory index reconciliation deferred; source retained')
@@ -62,9 +66,10 @@ export function startMemoryIndexSync() {
   }
 
   const unsubscribe = setMemoryIndexSync(request)
+  const unsubscribeSettings = subscribeModelConfigurationCommitted(request)
   const ready = request()
   return {
     ready, request,
-    stop() { stopped = true; unsubscribe(); clearTimeout(timer); controller.abort() },
+    stop() { stopped = true; unsubscribe(); unsubscribeSettings(); clearTimeout(timer); controller.abort() },
   }
 }

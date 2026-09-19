@@ -1,5 +1,13 @@
 # 质量总控
 
+本批提交前完整 Renderer UI 回归 267 项通过（7.6 分钟），资产审计及注册表测试 31 项通过；Renderer IO 替身证据不替代上述两项真实 Electron 索引恢复证据，也不关闭全产品 S6 验收。
+
+S2 配置提交批次未变更依赖；全量与生产范围 npm audit 均因审计端点 HTTP 400（Invalid package tree）未取得结果，不能据此更新漏洞数量或声称审计通过；既有依赖风险仍见 WISH-044。
+
+本批主进程 Compiler API 对照在同一工作树中仅替换本批四个生产文件：基线与当前均 72 条诊断，新增 0；根 tsc 通过不代表主进程全绿。
+
+模型配置提交恢复回归：真实 SQLite / Vectra Unit 覆盖保存后唤醒、旧请求取消与迟到结果隔离、失败单键回滚、观察者异常隔离，以及零记忆备份只在成功落盘后通知。独立 Electron 在正式模型页切换端点并显式填写该端点 Key，验证无需重启重建两个镜像；有 Key / 无 Key 两项均通过。证据 `var/verification/s2-model-save-index-electron`；本批 Unit 1222、Eval 23 + 1、根 tsc / build 通过，无独立 lint 脚本。
+
 向量空间隔离门禁：真实 Vectra 红测证明跨端点和不同维度仍可能返回相似度 1；修复后按生产身份过滤。memory-index-recovery 覆盖切换端点重建结构化源、保留旧对话、未知身份拒绝、无配置不清理、不同维度 / 返回模型拒绝及重复核对零生成；rag-search 覆盖文档端点 / 维度隔离和源记录保留。embedding-auth 验证身份不含凭据 / 端点原文、不受聊天模型或密钥轮换影响。全量 Unit 1215、Eval 23 + 1、根 tsc / build 通过，主进程对照 71 → 71 无新增；既有 Electron 有 Key / 无 Key恢复 2 项通过（s2-vector-space-electron），不以此代替新配置 UI 或跨模型切换正式验收。
 
 RAG 检索回归：rag-search 使用真实 SQLite 表与磁盘 Vectra，仅替换 Embedding 服务和配置工厂；导入两份文档后验证 topK、正文、模块重载后重新打开磁盘索引，以及无 Key 工具调用。空端点 / 模型拒绝且零嵌入请求；服务失败仍沿既有空结果行为。4 条测试先红后绿，全量 Unit 1210 条通过；不证明外部服务兼容、向量模型切换或整应用重启。

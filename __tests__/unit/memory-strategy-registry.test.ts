@@ -58,7 +58,7 @@ describe('记忆策略生产资产目录', () => {
     expect(extraction.sensitivePolicy).toContain('自动画像跳过')
     expect(dedupe.similarityThreshold).toBe(MEMORY_SEMANTIC_DEDUP_THRESHOLD)
     const lifecycle = assets.find(asset => asset.key === 'memory-strategy:vector-lifecycle')!
-    expect(lifecycle.version).toBe('1.2.0')
+    expect(lifecycle.version).toBe('1.3.0')
     expect(JSON.parse(lifecycle.content!).structuredMemoryRecovery).toEqual(MEMORY_INDEX_SYNC_POLICY)
     const recall = assets.find(asset => asset.key === 'memory-strategy:vector-recall')!
     expect(recall.version).toBe('1.1.0')
