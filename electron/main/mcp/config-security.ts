@@ -45,13 +45,18 @@ export function isValidMcpConfig(value: unknown): value is McpServerConfig {
   if (config.bearerToken !== undefined && (transport !== 'streamable-http'
     || !isBoundedString(config.bearerToken, 4096)
     || !/^[A-Za-z0-9._~+/-]+=*$/.test(config.bearerToken))) return false
+  if (config.oauth !== undefined) {
+    if (transport !== 'streamable-http' || config.bearerToken !== undefined || !config.oauth || typeof config.oauth !== 'object' || Array.isArray(config.oauth)) return false
+    const oauth = config.oauth as Record<string, unknown>
+    if (Object.keys(oauth).some(key => key !== 'clientId') || oauth.clientId !== undefined && !isBoundedString(oauth.clientId, 2048)) return false
+  }
   if (transport !== 'stdio') {
     if (typeof config.command !== 'string') return false
     if (!isBoundedString(config.url, 4_096)) return false
     try {
       const url = new URL(config.url)
       if ((url.protocol !== 'http:' && url.protocol !== 'https:') || url.username || url.password) return false
-      if (config.bearerToken && url.protocol !== 'https:'
+      if ((config.bearerToken || config.oauth) && url.protocol !== 'https:'
         && url.hostname !== 'localhost' && url.hostname !== '[::1]'
         && !(isIP(url.hostname) === 4 && url.hostname.startsWith('127.'))) return false
     } catch {
@@ -158,6 +163,7 @@ function comparableMcpConfig(config: McpServerConfig): string {
     env: Object.entries(config.env ?? {}).sort(([left], [right]) => left.localeCompare(right)),
     url: config.url ?? '',
     bearerToken: config.bearerToken ?? '',
+    oauth: config.oauth ?? null,
     enabled: config.enabled,
     allowedTools: config.allowedTools ? [...config.allowedTools].sort() : [],
   })

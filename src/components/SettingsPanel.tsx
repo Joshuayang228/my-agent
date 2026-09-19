@@ -118,6 +118,11 @@ export function SettingsPanel({
   const [mcpTools, setMcpTools] = useState<McpToolEntry[] | null>(null)
   const [mcpBusy, setMcpBusy] = useState(false)
   const mcpBusyRef = useRef(false)
+  const mcpLoginRef = useRef<string | null>(null)
+  useEffect(() => () => {
+    const id = mcpLoginRef.current
+    if (id) void window.electronAPI?.mcp.cancelLogin(id).catch(() => toast('登录取消状态未确认，主进程将在超时后清理。', 'warning'))
+  }, [activeSection, toast])
   const [mcpReadError, setMcpReadError] = useState('')
   const mcpReadGeneration = useRef(0)
   const [modelConnections, setModelConnections] = useState('[]')
@@ -352,13 +357,15 @@ export function SettingsPanel({
         const updated = mcpServers.map(s => s.id === id ? { ...s, enabled: true } : s)
         await saveMcpList(updated)
         saved = true
+        if (server.oauth) mcpLoginRef.current = server.id
         const result = preview ? undefined : await window.electronAPI?.mcp.connect({ ...server, enabled: true })
+        if (mcpLoginRef.current === server.id) mcpLoginRef.current = null
         if (result && !result.success) toast(`MCP 连接失败: ${result.error}`, 'error')
       }
       await refreshMcpStatus()
     } catch {
       toast(saved ? '配置已保存，但未能确认连接状态，请重启应用检查' : 'MCP 状态未改变，请重试', 'warning')
-    }
+    } finally { if (mcpLoginRef.current === id) mcpLoginRef.current = null }
   }, [mcpServers, preview, saveMcpList, refreshMcpStatus, toast])
 
   // ── 各区块渲染 ──
@@ -492,9 +499,9 @@ export function SettingsPanel({
           const current = mcpStatuses.find((item) => item.id === server.id)
           const status: McpServiceState = !server.enabled
             ? 'disabled'
-            : current?.status === 'connected' || current?.status === 'connecting' || current?.status === 'error'
+            : current?.status === 'connected' || current?.status === 'connecting' || current?.status === 'error' || current?.status === 'auth'
               ? current.status
-              : 'disconnected'
+              : server.oauth ? 'auth' : 'disconnected'
           const error = current?.status === 'error'
             ? (current.error || (current.reconnecting ? '服务意外断开，正在尝试重新连接。' : '连接失败，请检查服务后重试。'))
             : undefined
@@ -505,12 +512,14 @@ export function SettingsPanel({
             busy={mcpBusy} testId={`settings-mcp-server-${server.id}`}
             onEnabledChange={() => void runMcpAction(() => handleToggleMcp(server.id))}
             onRemove={() => void runMcpAction(() => handleRemoveMcp(server.id))}
+            onCancel={server.oauth ? () => { void window.electronAPI.mcp.cancelLogin(server.id).catch(() => toast('取消状态未确认，请重试。', 'warning')) } : undefined}
             onRetry={() => void runMcpAction(async () => {
               setMcpStatuses((items) => [...items.filter((item) => item.id !== server.id), { id: server.id, name: server.name, status: 'connecting', toolCount: 0 }])
               try {
+                if (server.oauth) mcpLoginRef.current = server.id
                 const result = await window.electronAPI.mcp.connect(server)
                 if (!result.success) toast(result.error || '连接失败，请重试', 'error')
-              } finally { await refreshMcpStatus() }
+              } finally { if (mcpLoginRef.current === server.id) mcpLoginRef.current = null; await refreshMcpStatus() }
             })}
             onToolChange={(name, allowed) => void runMcpAction(async () => {
               const result = await window.electronAPI.mcp.setToolAllowed(server.id, name, allowed)

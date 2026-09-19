@@ -712,12 +712,14 @@ export interface McpServerConfig {
   url?: string
   /** 仅 Streamable HTTP；新输入可提交明文，已保存值不得回传 Renderer。 */
   bearerToken?: string
+  /** Streamable HTTP 浏览器登录；只有公共客户端 ID 可落盘，令牌仅在主进程内存。 */
+  oauth?: { clientId?: string }
   enabled: boolean
   /** 未配置表示兼容旧服务；空数组表示所有工具禁用。 */
   allowedTools?: string[]
 }
 
-export type McpRuntimeStatus = 'connecting' | 'connected' | 'error' | 'disconnected'
+export type McpRuntimeStatus = 'connecting' | 'connected' | 'error' | 'disconnected' | 'auth'
 
 /** Renderer / Debug 可见的活动连接快照；不含命令、URL 或凭据。 */
 export interface McpServerStatus {
@@ -734,6 +736,7 @@ export type McpConnectionInput = Omit<McpServerConfig, 'id' | 'enabled' | 'allow
 export interface McpDiscoveredTool { name: string; description: string }
 export type McpConnectionTestResult = { ok: true; tools: McpDiscoveredTool[] } | { ok: false; error: string }
 export type McpConnectionSaveResult = { ok: true; serverId: string } | { ok: false; error: string; savedServerId?: string }
+export interface McpLoginCancelResult { success: boolean }
 export interface McpConnectionActions {
   testConnection: (requestId: string, config: McpConnectionInput) => Promise<McpConnectionTestResult>
   cancelTest: (requestId: string) => Promise<{ ok: boolean; error?: string }>

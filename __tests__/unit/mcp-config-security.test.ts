@@ -21,6 +21,17 @@ import {
 describe('MCP 配置安全边界', () => {
   const remote: McpServerConfig = { id: 'remote', name: '远程服务', command: '', args: [], enabled: true, transport: 'streamable-http', url: 'https://example.com/mcp', bearerToken: 'fixture-token' }
 
+  it('OAuth 配置只允许公共客户端身份，不允许凭据混用或持久化 token', () => {
+    const config = { ...remote, bearerToken: undefined, oauth: {} }
+    expect(isValidMcpConfig(config)).toBe(true)
+    expect(isValidMcpConfig({ ...config, oauth: { clientId: 'public-client' } })).toBe(true)
+    for (const oauth of [{ access_token: 'secret' }, { client_secret: 'secret' }, { clientId: '' }, { clientId: 'a'.repeat(2049) }, [], null]) expect(isValidMcpConfig({ ...config, oauth })).toBe(false)
+    expect(isValidMcpConfig({ ...remote, oauth: {} })).toBe(false)
+    expect(isValidMcpConfig({ ...config, transport: 'sse' })).toBe(false)
+    expect(isValidMcpConfig({ ...config, url: 'http://example.com' })).toBe(false)
+    expect(hasNewOrChangedEnabledMcpConfig([config], [{ ...config, oauth: { clientId: 'new-client' } }])).toBe(true)
+  })
+
   it('Streamable HTTP 接受有界令牌，拒绝不安全协议、Header 注入与错误传输', () => {
     expect(isValidMcpConfig(remote)).toBe(true)
     for (const bearerToken of ['', 'x'.repeat(4097), 'secret\r\nX-Evil: true', 'Bearer value']) {

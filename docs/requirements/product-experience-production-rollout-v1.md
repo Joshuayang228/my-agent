@@ -49,7 +49,7 @@ R04 基础控件收口：CompanionSettingsContent 已被正式 SettingsPanel 与
 | 编号 / 候选来源 | 正式落点 | 数据路径与已知差异 | 迁移分类 / 必须验收 |
 |---|---|---|---|
 | R01 Chat / `product-experience-journeys-v1.md` | `src/App.tsx`、`src/components/shell/PrimarySidebar.tsx` | 既有会话与 chat IPC；逐态对照欢迎、会话、处理、失败、导航及右坞分隔 | 直接回流已有流程，缺失行为先改造；离开 / 返回不丢会话、草稿或任务 |
-| R02 设置骨架 / `SettingsExperienceCandidate.tsx` | `src/components/SettingsPanel.tsx` | 既有 `settings:get/set` 自动保存；正式仍为旧 IA | 生产改造后回流；日常 / 高级分组、九个内容入口、嵌入记忆 / Skills / 角色架、窄宽及返回 |
+| R02 设置骨架 / `SettingsExperienceCandidate.tsx` | `src/components/SettingsPanel.tsx` | 正式与候选共用 SettingsLayout 九区导航；各业务页连接真实设置与独立 IPC | 生产改造后回流；日常 / 高级分组、九个内容入口、嵌入记忆 / Skills / 角色架、窄宽及返回 |
 | R03 外观 / `foundation-design-language-v2.md` | 设置外观、`src/index.css`、共享设计资产 | 四主题与全局主题共用资产；旧开发主题值不要求兼容映射 | 生产改造后回流；瓷青 / 曜石 / 松烟 / 绛紫同源，当前设置重启恢复、Markdown / Diff 各入口 |
 | R04 伙伴与相处 / 设置候选 | 正式伙伴设置、`CharacterShelfPanel` | 既有角色切换、提醒、反思与 settings；候选补充说明写入链路待核实 | 生产改造后回流；设置内角色架、真实偏好保存与生效、流中禁换角、跨页同一主角 |
 | R05 记忆 / `SurfaceBaselinePanel.tsx` 的 MemorySurface | `MemoryPanel`、正式设置记忆页 | `memory:*`、memory-store / vector-store；正式与故事共用四类导航、搜索、紧凑卡片及列表后新增行；六种历史类别按共享映射唯一归属 | 整页已接入；四类真实写入与重启、搜索 / 草稿 / 几何及失败恢复证据见 R05 记录 |
@@ -57,7 +57,7 @@ R04 基础控件收口：CompanionSettingsContent 已被正式 SettingsPanel 与
 | R07 数据与隐私 / 设置候选 | 正式设置数据页及导入导出服务 | 复核实际导入 / 导出 / 备份字段与隐私边界；不按候选文案假定已包含所有数据 | 直接回流已有流程，缺失能力改造；取消、无效备份、失败提示、实际恢复一致性 |
 | R08 权限与自动化 / 设置候选 | 正式权限设置、`PermissionRulesEditor` | 既有 executionMode / permissionRules 与执行侧规则引擎 | 直接回流既有规则能力；默认收起、独立规则卡、列表后添加、原位取消、保存及执行侧生效；硬边界优先 |
 | R09 Skills / `playground-skills-detail-v1.md` | 正式设置 Skills、共享 `SkillViews` | 真实 list / get / validate / save / delete / set-enabled；registry 与 SQLite 启停状态 | 列表、独立详情、限高 SKILL.md 全文、真实启停与错误恢复；试跑不回流正式页，证据见 R09 执行记录 |
-| R10 MCP / `playground-mcp-scenarios-v1.md` | 正式 MCP 设置、MCP 服务及 IPC | WISH-040 记录协议 / OAuth / 逐工具启停缺口；不能以保存配置当连接成功 | 生产改造后回流；连接 / 断开 / 重试 / 删除、认证取消、工具开关持久化与执行侧校验；需细化安全契约 |
+| R10 MCP / `playground-mcp-scenarios-v1.md` | 正式 MCP 设置、MCP 服务及 IPC | 真实协议 / Bearer / 首次 OAuth / 逐工具许可已接入；长登录与刷新后置，不以保存配置当连接成功 | 生产改造后回流；连接 / 断开 / 重试 / 删除、认证取消、工具开关持久化与执行侧校验；需细化安全契约 |
 | R11 关于与开发模式 / 设置候选 | 正式关于页、开发入口、App 导航 | 核实 developer mode 配置、重启与入口门控，不仅隐藏单个按钮 | 生产改造后回流；正式与候选共用 `AboutSettingsContent` / `SettingSwitch`；普通模式隐藏 Debug / Playground 入口；「关于 My Agent」真实持久化控制入口可达，关闭安全返回且不删除数据。UI E2E 的 `ui-e2e` 模式仍显式保留开发入口，不能当作正式默认 |
 | R12 人物世界 / `playground-world-living-dimensions-v1.md`、`SurfaceBaselinePanel.tsx` | `WorldHub`、`MomentsPanel`、`AssetsPanel`、`CastPanel`、`WorldDetailsPanel` 及共享 `WorldLivingContent` | 六生活面入口已接通；文化角 / 家居 / 足迹正式页走真实增改删，Playground 只改内存预览；足迹动态来自 moments；正式通讯录列表读取既有 `check-cast-availability`；正式朋友圈赞 / 评论落独立用户表；六面正式入口 Electron 已覆盖真实 IPC 读取；文化 starter 已去掉无证据数量文案；无 world.default.json 时世界态 / Catch-up / Prompt 切片回退为「未设定」，不再写入城西小公寓等未确认住所 | 生产改造后回流；衣柜 / 文化 / 家居 / 足迹编辑链、通讯录忙闲预检、朋友圈互动、六面正式入口 Electron、文化 starter 无证据数量文案与人物 starter 来源复核本批收口；不复制生活样张为生产事实，不把入口可见当成人物设定授权；合并原重复 R06 人物世界行，R06 仅指模型 |
 | R13 工作区 / `playground-workspace-five-tools-v1.md` | `ChatRightDock` 及五工具 | 已有真实 project / session / terminal / browser / chat IPC，保留已验证实现 | 对照候选补差，不从头重写；重复图标、滚动、任务上下文、关闭 / 取消 / 失败恢复 |
@@ -263,11 +263,11 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 |---|---|---|---|
 | 对话与导航 | `production-ready`，待完整入口验收 | 正式 `App` / Sidebar / Chat / Right Dock 调用链与既有 Electron 回归 | 四主题、窄宽、跨页草稿与任务恢复的正式入口证据 |
 | 人物世界 | `production-ready`，部分 `adopted` | 角色架、文化角 / 家居 / 足迹真实资产链、正式增改删与 Electron create 覆盖、通讯录列表忙闲预检、朋友圈真实赞评、生活资产真实备份、六面正式入口 Electron、文化 starter 无证据数量文案、无 world.default 时世界态 / Catch-up / Prompt 回退为未设定 | 衣柜 / 文化分味播种仍不是已确认人物事实；全产品 adopted 仍未完成 |
-| 设置与人物设置 | `user-approved`，正在回流 | Playground 候选、正式 `SettingsPanel`、共享导航 / 卡片基础层；R11 关于页开发者模式已有正式入口与 Electron 持久化证据；R06 正式模型发现走主进程 `/v1/models`；R10 异常断开 UI 已接入设置页 | MCP OAuth 登录生命周期；编程套餐真实调用仍见 WISH-027；不把 Playground 夹具当真实发现 |
+| 设置与人物设置 | `user-approved`，正在回流 | Playground 候选、正式 `SettingsPanel`、共享导航 / 卡片基础层；R11 关于页开发者模式已有正式入口与 Electron 持久化证据；R06 正式模型发现走主进程 `/v1/models`；R10 异常断开 UI 已接入设置页 | OAuth 首次登录已有独立 Electron 流程；后续登录保持见 WISH-045；编程套餐真实调用仍见 WISH-027；不把 Playground 夹具当真实发现 |
 | 记忆 | 整页已回流 | 共享四类 / 搜索 / 新增行；正式长文、固定槽、四主题宽窄、失败恢复及真实四类重启 CRUD | 本项不替代其他设置或备份 / 向量召回的验收 |
-| 主题与基础组件 | `production-ready` | Foundation 主题资产、共享设置卡片 / 行组件、基础复用门禁、共享 Prism 主题清洗 | 全产品 Markdown / Diff 仍未标 adopted；MCP OAuth 与工作区跨页状态仍待收口 |
+| 主题与基础组件 | `production-ready` | Foundation 主题资产、共享设置卡片 / 行组件、基础复用门禁、共享 Prism 主题清洗 | 全产品 Markdown / Diff 仍未标 adopted；OAuth 后续生命周期已明确后置，工作区跨页状态仍待收口 |
 | 工作区工具 | `production-ready`，部分 `adopted` | 正式 Right Dock 五工具、共享面板布局与 Electron 回归 | 浏览器 / 文件 / 审阅 / 终端跨页状态和完整错误路径 |
-| MCP / 模型等后端 | `in-progress` | MCP 测试连接生命周期、资源 / elicitation 接管、配置锁专项 Unit、异常断开 in-place 重连与设置页订阅 | 独立 Electron 数据目录的 OAuth / 第三方认证；不得把异常断开证据写成整项 R10 adopted |
+| MCP / 模型等后端 | `in-progress` | MCP 测试连接生命周期、资源 / elicitation 接管、配置锁专项 Unit、异常断开 in-place 重连与设置页订阅 | 首次 OAuth 已有独立 Electron 数据目录证据；第三方兼容按需验证，真实生图及全产品最终验收仍未完成 |
 
 本快照只记录当前证据，不把 `Playground` fixture、Renderer 替身或局部右坞验收升级为全产品 `adopted`。设置回流允许移除旧 UI 壳和重复入口，但必须保留真实数据、权限和安全边界；每次删除旧展示层都要在对应测试与变更记录中说明。
 
@@ -409,9 +409,11 @@ Alice 参考结论：本地 alice-source/package.json 为 0.3.168；query-B_tFgA
 
 以下执行约束已按首次登录范围更新；后续生命周期以 WISH-045 为准：
 
-现状依据：共享表单只接受 none / bearer，运行状态没有 auth；候选服务卡已有待登录展示但没有真实登录动作。Bearer 完整重启证据不覆盖 OAuth。参考本地 CC `services/mcp/auth.ts`、`services/oauth/auth-code-listener.ts` 与已安装 MCP SDK 的 `OAuthClientProvider`；Alice 的 MCP 章节不能证明其登录生命周期。本轮外部规范页面未返回可用内容，不据此宣称已完成最新规范复核。
+开工前依据：共享表单仅有 none / bearer，候选待登录没有真实动作。现已接入共享 OAuth 入口、auth 状态、真实浏览器回调及主进程连接，本地协议与正式 Electron 已有证据。Bearer 完整重启证据不覆盖 OAuth。参考本地 CC `services/mcp/auth.ts`、`services/oauth/auth-code-listener.ts` 与已安装 MCP SDK 的 `OAuthClientProvider`；Alice 的 MCP 章节不能证明其登录生命周期。本轮外部规范页面未返回可用内容，不据此宣称已完成最新规范复核。
 
-原研究目标为登录、取消、保存、重新登录和重启恢复的完整生命周期；现按用户缩小范围，只实现首次登录闭环。复用 SDK 的发现、PKCE 与授权码交换，不自行编写 OAuth 协议。R10 首次登录尚未实现，后续生命周期不再阻塞本次回流验收。
+原研究目标为登录、取消、保存、重新登录和重启恢复的完整生命周期；现按用户缩小范围，只实现首次登录闭环。复用 SDK 的发现、PKCE 与授权码交换，不自行编写 OAuth 协议。R10 首次登录已经实现，后续生命周期不再阻塞本次回流验收。
+
+2026-09-19 验收记录：Unit 169 文件 / 1096 项、完整 UI 258 项、Electron 21 通过 / 4 外部模型条件跳过、框架 Eval 23 与 Skill Eval 1、资产检查 31、根 tsc / build 通过。主进程 Compiler API 与 HEAD 对照 75 → 75 无新增诊断，仍非全绿；无独立 lint，未改依赖。最终证据 `var/verification/mcp-oauth-ui-full`、`mcp-oauth-electron-full`；已检查深色窄屏与浅色宽屏截图。Electron 使用真实本地 OAuth / MCP 服务、IPC、存储及工具注册调用，只替换系统浏览器启动与原生确认入口，不使用第三方账户或付费模型。首次定向 Electron 测试的窗口获取顺序修正后通过，最终完整回归通过。登录保持与第三方互操作仍按上述后续计划管理，整个产品体验合同不因此冻结。
 
 - 交互：远程连接支持浏览器登录；明确点击才打开系统浏览器，展示服务及授权站点。应用启动、后台重连和工具执行不得自行弹浏览器。待登录、登录中、取消、拒绝、超时和失效后重新登录共用正式与候选服务卡，新增状态先在 Playground 验收。
 - 回调：主进程短期回环监听，绑定窗口、服务、端点和请求；随机 state 与 PKCE verifier 只归属当前尝试。严格校验路径、方法、state、单次 code 和请求大小；拒绝重复参数及跨请求回调。取消、超时、导航、窗口销毁、删除服务均撤销归属并关闭监听，迟到回调不能写盘或注册工具。

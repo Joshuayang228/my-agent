@@ -13,7 +13,8 @@ export interface McpConnectionDraft {
   kind: 'remote' | 'local'
   name: string
   url: string
-  auth: 'none' | 'bearer'
+  auth: 'none' | 'bearer' | 'oauth'
+  clientId?: string
   token: string
   command: string
   args: string
@@ -28,7 +29,7 @@ interface Props {
   /** 仅隔离故事使用显式初始态；正式入口必须通过 actions 获取结果。 */
   preview?: { phase: 'editing' | 'testing' | 'ready'; tools?: McpDiscoveredTool[]; error?: string }
 }
-const EMPTY: McpConnectionDraft = { kind: 'remote', name: '', url: '', auth: 'none', token: '', command: '', args: '', env: '' }
+const EMPTY: McpConnectionDraft = { kind: 'remote', name: '', url: '', auth: 'none', clientId: '', token: '', command: '', args: '', env: '' }
 
 /**
  * 背景：本地命令可能使用带空格路径或包含等号的环境值。
@@ -44,7 +45,8 @@ export function parseMcpConnectionDraft(draft: McpConnectionDraft): McpConnectio
     } catch { throw new Error('请输入不含账号密码的 HTTP 或 HTTPS 地址。') }
     if (draft.auth === 'bearer' && !draft.token.trim()) throw new Error('请输入访问令牌，或选择无需认证。')
     return { name: draft.name.trim(), transport: 'streamable-http', command: '', args: [], url: draft.url.trim(),
-      ...(draft.auth === 'bearer' ? { bearerToken: draft.token } : {}) }
+      ...(draft.auth === 'bearer' ? { bearerToken: draft.token } : {}),
+      ...(draft.auth === 'oauth' ? { oauth: draft.clientId?.trim() ? { clientId: draft.clientId.trim() } : {} } : {}) }
   }
   if (!draft.command.trim()) throw new Error('请输入启动命令。')
   const entries: Array<[string, string]> = []
@@ -168,9 +170,9 @@ export function McpConnectionForm({ actions, onCancel, onSaved, initialDraft, pr
   const editable = phase === 'editing' || phase === 'ready'
   const closingDisabled = phase === 'saving' || phase === 'cancelling' || refreshBusy
   const fieldClass = 'theme-input mt-1 w-full min-w-0 rounded-md border px-2 py-2 text-[12px]'
-  const field = (key: 'name' | 'url' | 'token' | 'command' | 'args' | 'env', label: string, maxLength: number, rows?: number) => <label>{label}<TextField
+  const field = (key: 'name' | 'url' | 'token' | 'command' | 'args' | 'env' | 'clientId', label: string, maxLength: number, rows?: number) => <label>{label}<TextField
     multiline={Boolean(rows)} rows={rows} type={key === 'token' ? 'password' : 'text'} autoComplete="off"
-    value={draft[key]} maxLength={maxLength} disabled={!editable} className={fieldClass}
+    value={draft[key] ?? ''} maxLength={maxLength} disabled={!editable} className={fieldClass}
     onChange={(event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => change(key, event.target.value)} /></label>
 
   return <SettingCard testId="mcp-connection-form">
@@ -183,8 +185,9 @@ export function McpConnectionForm({ actions, onCancel, onSaved, initialDraft, pr
         {draft.kind === 'remote' ? <>
           {field('url', '服务 URL', 4096)}
           <span style={{ color: 'var(--text-muted)' }}>Streamable HTTP</span>
-          <label>认证方式<SelectField className="mt-1" value={draft.auth} onChange={(event) => change('auth', event.target.value as McpConnectionDraft['auth'])}><option value="none">无需认证</option><option value="bearer">访问令牌（Bearer）</option></SelectField></label>
+          <label>认证方式<SelectField className="mt-1" value={draft.auth} onChange={(event) => change('auth', event.target.value as McpConnectionDraft['auth'])}><option value="none">无需认证</option><option value="bearer">访问令牌（Bearer）</option><option value="oauth">浏览器登录（OAuth）</option></SelectField></label>
           {draft.auth === 'bearer' && field('token', '访问令牌', 4096)}
+          {draft.auth === 'oauth' && field('clientId', '公共客户端 ID（可选）', 2048)}
         </> : <>
           {field('command', '启动命令', 4096)}
           {field('args', '参数（每行一个）', 8192, 3)}
@@ -193,7 +196,7 @@ export function McpConnectionForm({ actions, onCancel, onSaved, initialDraft, pr
       </fieldset>
       {error && <p role="alert" className="mt-3 text-[12px]" style={{ color: 'var(--danger)' }}>{error}</p>}
       {['testing', 'cancelling', 'cleanup-error'].includes(phase) && <div role="status" className="mt-4 flex min-h-8 items-center gap-2 text-[12px]">
-        <RefreshCw size={14} className={phase === 'cleanup-error' ? '' : 'animate-spin'} />{phase === 'testing' ? '正在连接并获取工具…' : phase === 'cancelling' ? '正在取消测试…' : '测试关闭状态未确认'}
+        <RefreshCw size={14} className={phase === 'cleanup-error' ? '' : 'animate-spin'} />{phase === 'testing' ? draft.kind === 'remote' && draft.auth === 'oauth' ? '正在等待浏览器授权并连接…' : '正在连接并获取工具…' : phase === 'cancelling' ? '正在取消测试…' : '测试关闭状态未确认'}
         <ActionButton className="ml-auto h-8 w-24" disabled={phase === 'cancelling'} onClick={() => void cleanup(false)}>取消测试</ActionButton>
       </div>}
       {(phase === 'ready' || phase === 'saving') && <div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
@@ -207,7 +210,7 @@ export function McpConnectionForm({ actions, onCancel, onSaved, initialDraft, pr
       {preview && <p className="mt-3 text-[10px]" style={{ color: 'var(--text-muted)' }}>隔离样张，不会连接服务或保存凭据。</p>}
       <div className="mt-4 flex min-h-8 flex-wrap justify-end gap-2">
         <ActionButton className="h-8 w-16" disabled={closingDisabled} onClick={() => void cleanup(true)}>取消</ActionButton>
-        <ActionButton className="h-8 w-24" type="submit" disabled={!editable} >测试连接</ActionButton>
+        <ActionButton className="h-8 w-24" type="submit" disabled={!editable} >{draft.kind === 'remote' && draft.auth === 'oauth' ? '登录并连接' : '测试连接'}</ActionButton>
         <ActionButton className="h-8 w-24" tone="accent" disabled={phase !== 'ready' && !(phase === 'saved' && !refreshBusy)}
           onClick={() => { if (phase === 'saved' && saved.current) void refresh(saved.current); else void save() }}>
           {phase === 'saved' ? '刷新列表' : phase === 'saving' ? '正在保存' : '保存连接'}

@@ -14,6 +14,7 @@ import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js'
 import type { McpRuntimeStatus, McpServerConfig, McpServerStatus } from '../../../src/shared/types'
 import { createMcpTransport } from './transport'
 import { createLogger, hashForLog } from '../utils/logger'
+import { McpLoginRequiredError, mcpOAuthSessions } from './oauth'
 
 const log = createLogger('MCP')
 
@@ -125,7 +126,7 @@ class McpClientManager {
    * 设计意图：就地关闭旧客户端，再为同一 id 发布 connecting / error。放弃先删除再 connect 的做法。
    * 关键约束：只有 disconnect() 才允许移除快照行；preserveReconnect 必须保持可重试的意外断开错误。
    */
-  async connect(config: McpServerConfig, options?: { preserveReconnect?: boolean }): Promise<void> {
+  async connect(config: McpServerConfig, options?: { preserveReconnect?: boolean; signal?: AbortSignal }): Promise<void> {
     const existing = this.connections.get(config.id)
     const preserveReconnect = Boolean(options?.preserveReconnect && existing)
     const preservedAttempts = preserveReconnect ? existing!.reconnectAttempts : 0
@@ -171,10 +172,13 @@ class McpClientManager {
     try {
       // 背景：替换期间可能收到停止或另一次重试；先占有连接槽而非等 close 后占有，且每次异步返回必须核对身份，避免迟到流程复活连接。
       if (existing) await existing.client.close()
+      options?.signal?.throwIfAborted()
       this.assertCurrentConnection(connection)
-      await client.connect(transport)
+      await client.connect(transport, { signal: options?.signal })
+      options?.signal?.throwIfAborted()
       this.assertCurrentConnection(connection)
-      await this.refreshInventory(connection)
+      await this.refreshInventory(connection, options?.signal)
+      options?.signal?.throwIfAborted()
       this.assertCurrentConnection(connection)
       if (connection.reconnectTimer) throw new Error('MCP connection closed during discovery')
       connection.status = 'connected'
@@ -195,11 +199,18 @@ class McpClientManager {
         throw err
       }
       const message = err instanceof Error ? err.message : String(err)
-      connection.status = 'error'
-      connection.error = preserveReconnect ? MCP_UNEXPECTED_DISCONNECT : '连接失败，请检查 MCP 配置或服务状态'
-      connection.reconnecting = preserveReconnect
+      const loginRequired = err instanceof McpLoginRequiredError
+      connection.status = loginRequired ? 'auth' : 'error'
+      connection.error = loginRequired ? '请重新登录此服务。' : preserveReconnect ? MCP_UNEXPECTED_DISCONNECT : '连接失败，请检查 MCP 配置或服务状态'
+      connection.reconnecting = preserveReconnect && !loginRequired
+      if (loginRequired || options?.signal?.aborted) {
+        connection.allowReconnect = false
+        if (connection.reconnectTimer) clearTimeout(connection.reconnectTimer)
+        connection.reconnectTimer = undefined
+        await client.close()
+      }
       this.emitStatus()
-      if (preserveReconnect) this.scheduleReconnect(config.id)
+      if (connection.reconnecting) this.scheduleReconnect(config.id)
       log.error('MCP server connection failed', { nameHash: hashForLog(config.name), nameLength: config.name.length, errorType: err instanceof Error ? err.name : 'unknown', errorLength: message.length })
       throw err
     }
@@ -232,6 +243,15 @@ class McpClientManager {
     transport.onerror = (err: Error) => {
       try { prevErr?.(err) } catch { /* ignore */ }
       log.warn('MCP transport error', { nameHash: hashForLog(connection.config.name), nameLength: connection.config.name.length, errorType: err.name, errorLength: err.message.length })
+      if (err instanceof McpLoginRequiredError && this.connections.get(connection.config.id) === connection) {
+        connection.status = 'auth'
+        connection.error = '请重新登录此服务。'
+        connection.allowReconnect = false
+        connection.reconnecting = false
+        if (connection.reconnectTimer) clearTimeout(connection.reconnectTimer)
+        connection.reconnectTimer = undefined
+        this.emitStatus()
+      }
     }
   }
 
@@ -274,10 +294,10 @@ class McpClientManager {
     }
   }
 
-  private async refreshInventory(connection: McpConnection): Promise<void> {
+  private async refreshInventory(connection: McpConnection, signal?: AbortSignal): Promise<void> {
     // 资源专用服务可以不声明 tools；仅在未声明时视为零工具，已声明后的发现失败仍上抛。
     const toolsResult = connection.client.getServerCapabilities()?.tools
-      ? await connection.client.listTools()
+      ? await connection.client.listTools(undefined, { signal })
       : { tools: [] }
     connection.tools = toolsResult.tools.map(t => ({
       serverId: connection.config.id,
@@ -288,7 +308,7 @@ class McpClientManager {
     }))
 
     try {
-      const res = await connection.client.listResources()
+      const res = await connection.client.listResources(undefined, { signal })
       connection.resources = (res.resources ?? []).map(r => ({
         serverId: connection.config.id,
         serverName: connection.config.name,
@@ -298,6 +318,7 @@ class McpClientManager {
         mimeType: r.mimeType,
       }))
     } catch (err) {
+      if (signal?.aborted || err instanceof McpLoginRequiredError) throw err
       // 服务端可不支持 resources
       connection.resources = []
       const errorMessage = err instanceof Error ? err.message : String(err)
@@ -306,6 +327,7 @@ class McpClientManager {
   }
 
   async disconnect(serverId: string): Promise<void> {
+    mcpOAuthSessions.clear(serverId)
     const conn = this.connections.get(serverId)
     if (!conn) return
 

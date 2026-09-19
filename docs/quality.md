@@ -1,5 +1,7 @@
 # 质量总控
 
+MCP OAuth 门禁：`mcp-oauth.test.ts` Unit 使用真实本地授权与 MCP 服务校验 PKCE、state、单次回调、拒绝 / 取消 / 超时、端点绑定、注册方式、过期 / 401、受限发现与响应大小；`mcp-oauth-ipc.test.ts` 验证主框架 / owner、原生确认等待取消、销毁 / 导航 / 配置变化的迟到结果。独立 Electron `mcp-oauth.test.ts` 仅替换系统浏览器启动器与原生确认，授权页在独立 Chromium 操作，经真实 preload / IPC / SDK / 存储 / Registry 调用工具；验证空许可拒绝、开启后调用、取消重试、失效不自动弹窗、重启要求登录及配置不含 token。候选 UI 深浅宽窄检查同一表单、固定槽、无生产副作用，不能替代协议证据或第三方账户授权。
+
 外观同源门禁：ui-component-registry 的 TypeChecker 断言正式 SettingsPanel 与候选实际渲染 AppearanceSettingsContent，后者实际渲染 Foundation ActionButton；未使用导入和局部同名遮蔽不得通过。正式入口 UI 在 1166 / 600px 切换四主题，验证键盘、选中唯一性、hover / 选中前后几何、无横向溢出、三档字号与重载恢复；候选主题 / 字号操作前后 localStorage 不变。截图由 appearance-shared-focused 与 appearance-shared-ui 保存，不代替全产品逐页最终验收。
 
 备份记忆预检门禁：security-boundaries Unit 使用真实存储断言核验 0 / 1 / 2 / 20,000 / 20,001 字符及凭据拒绝；data-export-ipc 验证有效与非法记忆混在同份备份时，数据库获取、SQL、addMemory 与 persist 均未调用，且租约释放可重试。onboarding Electron 从正式数据页依次导入三份非法正文备份，比较会话、记忆、生活资产与相处说明前后完全一致，然后完成合法导入及重复合并。该证据证明非法输入零业务写入，不证明合法输入落盘故障的原子恢复。

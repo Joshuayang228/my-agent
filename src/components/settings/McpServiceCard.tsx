@@ -1,4 +1,4 @@
-import { Check, RefreshCw, Server, Trash2 } from 'lucide-react'
+import { Check, LogIn, RefreshCw, Server, Trash2 } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { CheckboxField } from '../foundation/CheckboxField'
@@ -56,7 +56,7 @@ export function McpServiceCard({ id, name, transport, status, enabled, tools, ad
       <span className="min-w-0 [overflow-wrap:anywhere]" style={{ color: 'var(--text-secondary)' }}>{status === 'connecting' ? '正在连接并获取工具清单…' : error || (status === 'error' ? '连接失败，请检查服务后重试。' : '配置已保留，服务尚未连接。')}</span>
       {status === 'connecting' ? onCancel && <ActionButton onClick={onCancel}>取消</ActionButton> : onRetry && <ActionButton disabled={busy} className="gap-1" onClick={onRetry}><RefreshCw size={12} />重试</ActionButton>}
     </div>}
-    {status === 'auth' && <p className="mt-4 text-[11px]" style={{ color: 'var(--text-secondary)' }}>登录后才能获取此服务的工具清单。</p>}
+    {status === 'auth' && <div className="mt-4 flex items-center justify-between gap-3 text-[11px]" style={{ color: 'var(--text-secondary)' }}><p className="min-w-0">登录后才能获取此服务的工具清单。</p>{onRetry && <ActionButton disabled={busy} className="h-8 w-24 shrink-0 gap-1" onClick={onRetry}><LogIn size={12} />登录</ActionButton>}</div>}
     {status === 'disabled' && <p className="mt-4 text-[11px]" style={{ color: 'var(--text-muted)' }}>配置已保留，伙伴暂不使用此服务。</p>}
     {confirming && <div className="mt-4 flex justify-end gap-3">{onCancel && <ActionButton disabled={busy} onClick={onCancel}>取消</ActionButton>}{onConfirm && <ActionButton disabled={busy} onClick={onConfirm} className="gap-1"><Check size={13} />确认连接</ActionButton>}</div>}
   </SettingCard>

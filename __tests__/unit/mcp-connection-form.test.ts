@@ -4,6 +4,13 @@ import { parseMcpConnectionDraft, type McpConnectionDraft } from '../../src/comp
 const draft: McpConnectionDraft = { kind: 'remote', name: '文档服务', url: 'https://example.com/mcp', auth: 'none', token: '', command: '', args: '', env: '' }
 
 describe('MCP 共享表单草稿解析', () => {
+  it('浏览器登录只提交 OAuth 公共配置，不混入令牌和环境变量', () => {
+    const input = parseMcpConnectionDraft({ ...draft, auth: 'oauth', clientId: ' public ', token: 'must-not-leak', env: 'SECRET=value' })
+    expect(input.oauth).toEqual({ clientId: 'public' })
+    expect(input).not.toHaveProperty('bearerToken')
+    expect(input).not.toHaveProperty('env')
+    expect(parseMcpConnectionDraft({ ...draft, auth: 'oauth' }).oauth).toEqual({})
+  })
   it('远程只输出当前模式字段，不带本地环境或未选择的令牌', () => {
     expect(parseMcpConnectionDraft({ ...draft, token: 'fixture-only', env: 'LOCAL=value' })).toEqual({
       name: '文档服务', transport: 'streamable-http', command: '', args: [], url: 'https://example.com/mcp',

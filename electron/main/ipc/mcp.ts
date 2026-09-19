@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, dialog } from 'electron'
+import { ipcMain, BrowserWindow, dialog, shell } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { ToolRegistry } from '../tools/registry'
 import { mcpManager } from '../mcp/client'
@@ -9,6 +9,8 @@ import { syncMcpToolsToRegistry, removeMcpToolsFromRegistry } from '../mcp/bridg
 import { createLogger, hashForLog } from '../utils/logger'
 import { McpConnectionTests } from '../mcp/connection-tests'
 import { withMcpConfigLock } from '../mcp/config-lock'
+import { McpOAuthRegistrationError, mcpOAuthSessions, type McpOAuthHost } from '../mcp/oauth'
+import { withOAuthAbort } from '../mcp/oauth-network'
 
 const log = createLogger('McpIPC')
 
@@ -53,14 +55,30 @@ function broadcastMcpStatus(snapshot: ReturnType<typeof mcpManager.getStatus>): 
 }
 
 export function registerMcpIPC(toolRegistry: ToolRegistry): void {
+  const pendingLogins = new Map<string, { owner: number; controller: AbortController }>()
+  const oauthHost: McpOAuthHost = {
+    openBrowser: async (url, owner) => {
+      const win = BrowserWindow.getAllWindows().find(window => !window.isDestroyed() && window.webContents.id === owner)
+      if (!win) throw new Error('OAuth owner closed')
+      await shell.openExternal(url)
+    },
+    returnToApp: owner => {
+      const win = BrowserWindow.getAllWindows().find(window => !window.isDestroyed() && window.webContents.id === owner)
+      if (!win) throw new Error('OAuth owner closed')
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+    },
+  }
   mcpManager.setStatusListener((snapshot) => {
     for (const server of snapshot) {
       if (server.status === 'connected') syncMcpToolsToRegistry(toolRegistry, server.id)
-      else if (server.status === 'error' || server.status === 'disconnected') removeMcpToolsFromRegistry(toolRegistry, server.id)
+      else if (server.status === 'error' || server.status === 'disconnected' || server.status === 'auth') removeMcpToolsFromRegistry(toolRegistry, server.id)
     }
     broadcastMcpStatus(snapshot)
   })
   const connectionTests = new McpConnectionTests({
+    authorize: (config, owner, signal) => mcpOAuthSessions.authorize(config, owner, oauthHost, signal),
     confirm: confirmMcpConnection,
     persist: async (config) => withMcpConfigLock(async () => {
       const current = parseStoredMcpConfigs(await settings.getSetting('mcpServers'))
@@ -74,22 +92,39 @@ export function registerMcpIPC(toolRegistry: ToolRegistry): void {
   })
 
   const observedOwners = new WeakSet<Electron.WebContents>()
-  ipcMain.handle('mcp:test-connection', async (event, requestId: string, config: unknown) => {
+  const isMainFrame = (event: Electron.IpcMainInvokeEvent) => !event.sender.isDestroyed() && Boolean(event.senderFrame) && event.senderFrame === event.sender.mainFrame
+  const observeOwner = (event: Electron.IpcMainInvokeEvent) => {
     const owner = event.sender.id
     if (!observedOwners.has(event.sender)) {
       observedOwners.add(event.sender)
-      event.sender.once('destroyed', () => { void connectionTests.cancelOwner(owner) })
-      event.sender.on('render-process-gone', () => { void connectionTests.cancelOwner(owner) })
+      const cancel = () => {
+        void connectionTests.cancelOwner(owner)
+        mcpOAuthSessions.cancelOwner(owner)
+        for (const login of pendingLogins.values()) if (login.owner === owner) login.controller.abort()
+      }
+      event.sender.once('destroyed', cancel)
+      event.sender.on('render-process-gone', cancel)
       event.sender.on('did-start-navigation', (_event, _url, inPlace, isMainFrame) => {
-        if (isMainFrame && !inPlace) void connectionTests.cancelOwner(owner)
+        if (isMainFrame && !inPlace) cancel()
       })
     }
-    return connectionTests.test(owner, requestId, config)
+  }
+  ipcMain.handle('mcp:test-connection', async (event, requestId: string, config: unknown) => {
+    if (!isMainFrame(event)) return { ok: false, error: '请从应用主窗口连接服务。' }
+    observeOwner(event)
+    return connectionTests.test(event.sender.id, requestId, config)
   })
   ipcMain.handle('mcp:cancel-test', async (event, requestId: string) =>
-    connectionTests.cancel(event.sender.id, requestId))
+    isMainFrame(event) ? connectionTests.cancel(event.sender.id, requestId) : { ok: false, error: '无效的请求窗口。' })
   ipcMain.handle('mcp:save-tested', async (event, requestId: string, allowedTools: unknown) =>
-    connectionTests.save(event.sender.id, requestId, allowedTools))
+    isMainFrame(event) ? connectionTests.save(event.sender.id, requestId, allowedTools) : { ok: false, error: '无效的请求窗口。' })
+  ipcMain.handle('mcp:cancel-login', async (event, serverId: string) => {
+    if (!isMainFrame(event) || !isBoundedString(serverId, MAX_MCP_ID_LENGTH)) return { success: false }
+    const pending = pendingLogins.get(serverId)
+    if (pending && pending.owner !== event.sender.id) return { success: false }
+    pending?.controller.abort()
+    return { success: true }
+  })
   // Elicitation：服务端要输入 → 推到渲染进程，等用户填表
   mcpManager.setElicitationHandler(async (serverId, message, schema) => {
     const win = BrowserWindow.getAllWindows()[0]
@@ -131,10 +166,39 @@ export function registerMcpIPC(toolRegistry: ToolRegistry): void {
     })
   })
 
-  ipcMain.handle('mcp:connect', async (_event, config: McpServerConfig) => {
+  ipcMain.handle('mcp:connect', async (event, config: McpServerConfig) => {
+    if (!isMainFrame(event)) return { success: false, error: '请从应用主窗口连接服务。' }
+    observeOwner(event)
     const storedConfigs = parseStoredMcpConfigs(await settings.getSetting('mcpServers'))
     const hydratedConfig = hydrateMcpConfigSecrets(config, storedConfigs)
     if (!hydratedConfig) return { success: false, error: 'MCP 配置无效或凭据已失效' }
+    if (hydratedConfig.oauth) {
+      const owner = event.sender.id
+      if (pendingLogins.has(hydratedConfig.id) || [...pendingLogins.values()].some(login => login.owner === owner)) return { success: false, error: '请先结束当前登录。' }
+      const login = { owner, controller: new AbortController() }
+      pendingLogins.set(hydratedConfig.id, login)
+      const signal = AbortSignal.any([login.controller.signal, AbortSignal.timeout(180_000)])
+      try {
+        if (!await withOAuthAbort(confirmMcpConnection(hydratedConfig, owner), signal)) return { success: false, error: '已取消登录。' }
+        signal.throwIfAborted()
+        await mcpOAuthSessions.authorize(hydratedConfig, owner, oauthHost, signal)
+        signal.throwIfAborted()
+        // 授权窗口可能停留数分钟；接管前重读正式配置，锁住连接期间的删除 / 停用与许可修改。
+        return await withMcpConfigLock(async () => {
+          signal.throwIfAborted()
+          const current = parseStoredMcpConfigs(await settings.getSetting('mcpServers')).find(item => item.id === hydratedConfig.id)
+          if (!current?.enabled || current.url !== hydratedConfig.url || current.transport !== hydratedConfig.transport || JSON.stringify(current.oauth) !== JSON.stringify(hydratedConfig.oauth)) throw new Error('OAuth config changed')
+          await mcpManager.connect(current, { signal: AbortSignal.any([signal, AbortSignal.timeout(30_000)]) })
+          signal.throwIfAborted()
+          return { success: true, toolCount: syncMcpToolsToRegistry(toolRegistry, current.id) }
+        })
+      } catch (error) {
+        mcpOAuthSessions.clear(hydratedConfig.id)
+        await mcpManager.disconnect(hydratedConfig.id)
+        log.warn('MCP login failed', { errorType: error instanceof Error ? error.name : 'unknown' })
+        return { success: false, error: signal.aborted ? '登录已取消或超时，请重试。' : error instanceof McpOAuthRegistrationError ? error.message : '登录或连接失败，请检查服务与授权后重试。' }
+      } finally { if (pendingLogins.get(hydratedConfig.id) === login) pendingLogins.delete(hydratedConfig.id) }
+    }
     if (!await confirmMcpConnection(hydratedConfig)) return { success: false, error: '用户取消连接' }
     try {
       await mcpManager.connect(hydratedConfig)
@@ -150,6 +214,7 @@ export function registerMcpIPC(toolRegistry: ToolRegistry): void {
 
   ipcMain.handle('mcp:disconnect', async (_event, serverId: string) => {
     if (!isBoundedString(serverId, MAX_MCP_ID_LENGTH)) return { success: false, error: 'MCP 服务 ID 无效' }
+    pendingLogins.get(serverId)?.controller.abort()
     removeMcpToolsFromRegistry(toolRegistry, serverId)
     await mcpManager.disconnect(serverId)
     return { success: true }

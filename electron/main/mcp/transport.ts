@@ -5,6 +5,7 @@ import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js'
 import type { McpServerConfig } from '../../../src/shared/types'
 import { isValidMcpConfig, MCP_REDACTED_ENV_VALUE } from './config-security'
 import { buildSafeChildProcessEnv } from '../utils/safe-process-env'
+import { McpLoginRequiredError, mcpOAuthSessions } from './oauth'
 
 /**
  * 背景：已保存服务与添加向导需要同一套协议及凭据发送边界。
@@ -17,7 +18,10 @@ export function createMcpTransport(config: McpServerConfig): Transport {
     throw new Error('MCP 配置无效或凭据尚未恢复')
   }
   if (config.transport === 'streamable-http') {
+    const session = config.oauth ? mcpOAuthSessions.get(config) : undefined
     return new StreamableHTTPClientTransport(new URL(config.url!), {
+      authProvider: session?.provider,
+      fetch: config.oauth ? (session?.fetch ?? (async () => { throw new McpLoginRequiredError() })) : undefined,
       requestInit: {
         redirect: 'error',
         headers: config.bearerToken ? { Authorization: `Bearer ${config.bearerToken}` } : undefined,

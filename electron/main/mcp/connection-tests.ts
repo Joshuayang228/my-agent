@@ -6,6 +6,7 @@ import { createMcpClient, type McpTool, type McpResource } from './client'
 import { hydrateMcpConfigSecrets } from './config-security'
 import { createMcpTransport } from './transport'
 import { createLogger } from '../utils/logger'
+import { McpOAuthRegistrationError, mcpOAuthSessions } from './oauth'
 
 const log = createLogger('McpConnectionTests')
 const MAX_TOOLS = 1000
@@ -31,6 +32,7 @@ interface Entry extends Partial<TestedMcpConnection> {
 }
 interface SavedResult { owner: number; allowedTools: string[]; result: McpConnectionSaveResult; expiresAt: number }
 interface Dependencies {
+  authorize?: (config: McpServerConfig, owner: number, signal: AbortSignal) => Promise<void>
   confirm: (config: McpServerConfig, owner: number) => Promise<boolean>
   persist: (config: McpServerConfig) => Promise<void>
   adopt: (connection: TestedMcpConnection) => void
@@ -55,6 +57,7 @@ export class McpConnectionTests {
     clearTimeout(entry.timer)
     entry.alive = false
     entry.controller.abort()
+    if (entry.config?.oauth) mcpOAuthSessions.clear(entry.config.id)
     const key = this.key(entry.owner, entry.requestId)
     if (this.entries.get(key) === entry) this.entries.delete(key)
     entry.closing = (async () => {
@@ -116,7 +119,7 @@ export class McpConnectionTests {
     const value = input as Record<string, unknown>
     const config = hydrateMcpConfigSecrets({ id: randomUUID(), enabled: true, allowedTools: [],
       name: value.name, transport: value.transport, command: value.command, args: value.args,
-      env: value.env, url: value.url, bearerToken: value.bearerToken }, [])
+      env: value.env, url: value.url, bearerToken: value.bearerToken, oauth: value.oauth }, [])
     if (!config) return { ok: false, error: '连接配置无效，请检查地址、命令或凭据。' }
     const entry: Entry = { owner, requestId, phase: 'confirming', controller: new AbortController(), alive: false, config }
     this.entries.set(this.key(owner, requestId), entry)
@@ -126,6 +129,13 @@ export class McpConnectionTests {
       this.assertActive(entry)
       entry.phase = 'testing'
       clearTimeout(entry.timer)
+      if (config.oauth) {
+        if (!this.dependencies.authorize) throw new Error('OAuth host unavailable')
+        entry.timer = setTimeout(() => { void this.close(entry) }, 180_000)
+        await this.dependencies.authorize(config, owner, entry.controller.signal)
+        this.assertActive(entry)
+        clearTimeout(entry.timer)
+      }
       entry.timer = setTimeout(() => { void this.close(entry) }, this.dependencies.timeoutMs ?? 30_000)
       const client = createMcpClient()
       const transport = createMcpTransport(config)
@@ -147,7 +157,7 @@ export class McpConnectionTests {
       const cancelled = entry.controller.signal.aborted
       await this.close(entry)
       log.warn('MCP connection test failed', { errorType: error instanceof Error ? error.name : 'unknown' })
-      return { ok: false, error: cancelled ? '连接测试已取消或超时，请重试。' : '连接测试失败，请检查服务、命令或认证信息。' }
+      return { ok: false, error: cancelled ? '连接测试已取消或超时，请重试。' : error instanceof McpOAuthRegistrationError ? error.message : '连接测试失败，请检查服务、命令或认证信息。' }
     }
   }
 
