@@ -3,6 +3,7 @@
 > **当前状态入口**：只记录项目现在在哪、最近完成、下一步和阻塞项。完整历史见 [`../_archive/ledgers/progress-through-2026-08-16.md`](../_archive/ledgers/progress-through-2026-08-16.md)。
 
 ## 人读摘要（约 30 秒）
+- R06 生图跨层审计已完成，代码尚未实现：image 当前实际绑定附图理解；工具 execute / ToolResult / tool_end 都只传文本，不能承载持久化生成图片。本地 Alice 已核对真实 images 请求、参考图、结果展示与落盘，同时确认其免确认只读声明不能直接照搬。已在全产品施工合同固定配置、生成协议、权限、结构化结果、存储和正式展示的完整交付边界；下一步按此链路施工，不以改标签或新增单个请求函数冒充生图完成。
 - 本轮依赖审计重新取得结果：全部依赖 7 项、生产依赖 4 项漏洞，继续登记 WISH-044；没有修改依赖或宣称发布门禁全绿。前端 5174 返回 HTTP 200。
 - R10 MCP 首次 OAuth 登录闭环已接通：正式共享表单主动打开浏览器，授权回调后返回发起窗口，连接发现工具并按许可保存；取消、超时、拒绝、窗口失效和凭据过期均可恢复。SDK 处理协议，令牌仅主进程内存，重启需主动重新登录，后续持久化 / 自动刷新 / 账户管理见 WISH-045 与 DEC-043。Unit 1096、完整 UI 258、Electron 21 通过 / 4 外部模型条件跳过、Eval 23 + 1、资产 31、根 tsc / build 通过；主进程类型对照 75 → 75 无新增，非全绿。证据 `var/verification/mcp-oauth-ui-full` 与 `mcp-oauth-electron-full`，深浅宽窄截图已检查；本地协议证据不等于所有第三方服务兼容。未改依赖，无独立 lint；真实生图、备份跨存储恢复与全产品回流验收仍未完成。
 - R03 / R14 外观共享收口：正式设置与候选共用 AppearanceSettingsContent，主题 / 字号来自设计资产并组合 Foundation ActionButton；选中图标始终占位，候选仅改内存。Unit 1078、完整 UI 254、根 tsc / build 通过，宽窄深浅截图已检查。Electron 首轮 19 通过 / 1 本地模型发现超时 / 4 外部模型条件跳过；原码原断言开启 trace 完整复核 20 通过 / 4 跳过，不据此关闭 WISH-042。证据 `var/verification/appearance-shared-ui`、`appearance-shared-electron`、`appearance-shared-electron-trace`。未改主进程 / IPC / 依赖，未重跑 Eval 或主进程类型对照；无独立 lint。OAuth 仅首次登录闭环的范围已确认并登记后续计划，尚未实现；全产品目标继续。
