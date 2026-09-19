@@ -115,7 +115,7 @@ export async function searchDocuments(query: string, config: LLMConfig, topK = 5
 
   try {
     const { vector } = await createEmbedding(query, config)
-    const results = await idx.queryItems(vector, topK)
+    const results = await idx.queryItems(vector, query, topK)
 
     return results
       .filter(r => r.score >= 0.4)

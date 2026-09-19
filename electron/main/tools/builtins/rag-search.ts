@@ -25,7 +25,7 @@ export const ragSearchTool = buildTool({
 
     const config = await loadMainLLMConfig()
 
-    if (!config.apiKey) return '❌ 未配置 API Key，无法执行向量搜索'
+    if (!config.baseUrl.trim() || !config.model.trim()) return '请先配置可用的模型连接'
 
     const results = await searchDocuments(query, config, topK)
 
