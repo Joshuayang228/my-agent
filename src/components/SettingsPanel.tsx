@@ -15,6 +15,7 @@ import { ModelRoutingSettings } from './settings/ModelRoutingSettings'
 import { ModelAdvancedSettings } from './settings/ModelAdvancedSettings'
 import { modelParameterError } from '../shared/model-parameters'
 import { resolveRoutedConfigs } from '../shared/model-routing'
+import { backupFailureMessage } from '../shared/backup-errors'
 import { McpServiceCard, type McpServiceState } from './settings/McpServiceCard'
 import type { McpServerStatus } from '../shared/types'
 import { McpConnectionForm } from './settings/McpConnectionForm'
@@ -545,7 +546,7 @@ export function SettingsPanel({
         if (!result.success && result.error === 'busy') return { error: true, message: '另一个备份操作正在进行，请完成后重试。' }
         if (!result.success) return result.error === 'cancelled' ? null : {
           error: true,
-          message: action === 'export' ? '导出失败，请检查保存位置后重试。' : '导入失败，请检查备份文件后重试。',
+          message: backupFailureMessage(action, result.error),
         }
         return { message: `${action === 'export' ? '导出' : '导入'}成功：${result.stats?.sessions ?? 0} 个会话、${result.stats?.memories ?? 0} 条记忆、${result.stats?.livingAssets ?? 0} 条生活记录。` }
       } finally {

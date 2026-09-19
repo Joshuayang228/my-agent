@@ -1,8 +1,9 @@
-import { ipcMain } from 'electron'
+import { ipcMain, shell } from 'electron'
 import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import * as store from '../storage/session-store'
 import { createLogger } from '../utils/logger'
 import { deleteChatSession } from './chat'
+import { loadGeneratedImageFile, readGeneratedImage } from '../storage/generated-images'
 
 const log = createLogger('SessionIPC')
 const MAX_ID_LENGTH = 200
@@ -13,6 +14,23 @@ function validId(value: unknown): value is string {
 }
 
 export function registerSessionIPC(): void {
+  ipcMain.handle('session:revealGeneratedImage', async (event, sessionId: unknown, imageId: unknown) => {
+    try {
+      const frame = event.senderFrame
+      if (event.sender.isDestroyed() || !frame || frame !== event.sender.mainFrame) return { ok: false, error: '当前页面不能定位会话图片。' }
+      const url = frame.url
+      const result = await loadGeneratedImageFile(sessionId, imageId)
+      if (result.ok === false) return { ok: false, error: result.error }
+      // 校验会等待存储；窗口关闭或导航后不得由迟到请求唤起系统文件管理器。
+      if (event.sender.isDestroyed() || frame.detached || frame !== event.sender.mainFrame || frame.url !== url) return { ok: false, error: '页面已变化，未定位图片。' }
+      shell.showItemInFolder(result.filePath)
+      return { ok: true }
+    } catch { return { ok: false, error: '无法定位图片，请稍后重试。' } }
+  })
+  ipcMain.handle('session:readGeneratedImage', async (event, sessionId: unknown, imageId: unknown) => {
+    if (event.sender.isDestroyed() || !event.senderFrame || event.senderFrame !== event.sender.mainFrame) return { ok: false, error: '当前页面不能读取会话图片。' }
+    return readGeneratedImage(sessionId, imageId)
+  })
   ipcMain.handle('session:list', async () => store.listSessions())
 
   ipcMain.handle('session:create', async () => store.createSession())

@@ -132,7 +132,9 @@ export function applyToolEvent(
   opts?: { keepExpanded?: boolean },
 ): ToolCallbackItem[] | null {
   if (ev.type === 'tool_call_delta') {
-    const existing = tools[ev.index]
+    // 每批工具的流索引会重置；只匹配未执行的参数流，不能覆盖之前已完成的结果。
+    const existingIndex = tools.findIndex((tool) => tool.status === 'pending' && tool.streamIndex === ev.index)
+    const existing = tools[existingIndex]
     if (!existing) {
       return [
         ...tools,
@@ -142,12 +144,13 @@ export function applyToolEvent(
           args: {},
           status: 'pending',
           streamingArgs: ev.argumentsDelta,
+          streamIndex: ev.index,
           collapsed: opts?.keepExpanded ? false : undefined,
         },
       ]
     }
     return tools.map((t, i) =>
-      i === ev.index
+      i === existingIndex
         ? {
             ...t,
             streamingArgs: (t.streamingArgs || '') + ev.argumentsDelta,
@@ -178,6 +181,7 @@ export function applyToolEvent(
             ...t,
             status: ev.isError ? 'error' : 'done',
             result: ev.result,
+            ...(ev.generatedImages?.length ? { generatedImages: ev.generatedImages } : {}),
             // 产品态：完成后折叠；对话 debug：保持展开便于审计
             collapsed: opts?.keepExpanded ? false : true,
           }
@@ -201,6 +205,7 @@ export function appendToolResultMessage(
       content: ev.result,
       timestamp: Date.now(),
       toolCallId: ev.callId,
+      ...(ev.generatedImages?.length ? { generatedImages: ev.generatedImages } : {}),
     },
   ]
 }

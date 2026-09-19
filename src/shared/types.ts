@@ -20,6 +20,8 @@ export interface ChatMessage {
   toolCallId?: string
   /** 图片附件（多模态消息） */
   images?: ImageAttachment[]
+  /** 工具生成的本地媒体引用；不把图片字节注入模型文本。 */
+  generatedImages?: GeneratedImageReference[]
   /** 压缩边界标记元数据（由上下文压缩系统写入，供调试/可观测性使用） */
   compactMetadata?: CompactMetadata
   /** 本轮注入的记忆引用芯片（M29-G1；会话持久化可选，UI 可先挂本地） */
@@ -234,7 +236,25 @@ export interface ToolCall {
   arguments: string
 }
 
-export interface ToolResult {
+export interface GeneratedImageReference {
+  id: string
+  path: string
+  mimeType: 'image/png' | 'image/jpeg' | 'image/webp'
+  width: number
+  height: number
+  byteLength: number
+}
+
+export type GeneratedImageReadResult = { ok: true; dataUrl: string; fileName: string } | { ok: false; error: string }
+export type GeneratedImageRevealResult = { ok: true } | { ok: false; error: string }
+
+export interface ToolOutput {
+  content: string
+  isError?: boolean
+  generatedImages?: GeneratedImageReference[]
+}
+
+export interface ToolResult extends ToolOutput {
   callId: string
   name: string
   content: string
@@ -258,7 +278,7 @@ export interface ToolDefinition {
     required?: string[]
   }
   metadata: ToolMetadata
-  execute: (args: Record<string, unknown>, ctx?: ToolContext) => Promise<string>
+  execute: (args: Record<string, unknown>, ctx?: ToolContext) => Promise<string | ToolOutput>
   /**
    * 工具结果大小上限（字符数）。超过此值时，结果将被写入临时文件，返回文件路径。
    *
@@ -628,6 +648,8 @@ export const PERMISSION_RULE_ACTIONS = ['allow', 'deny', 'ask'] as const
 export interface ToolContext {
   /** 当前工作区根目录 */
   workdir: string
+  /** 用户明确选中的工作区；区别于 workdir 在无项目时的进程目录回退，仅由主进程注入。 */
+  workspaceRoot?: string
   /** 当前会话 ID */
   sessionId: string
   /** 取消信号 */
@@ -883,7 +905,7 @@ export type AgentStreamEvent =
   | { type: 'tool_calls'; calls: ToolCall[] }
   | { type: 'tool_call_delta'; index: number; id?: string; name?: string; argumentsDelta: string }
   | { type: 'tool_start'; callId: string; name: string; args: Record<string, unknown> }
-  | { type: 'tool_end'; callId: string; name: string; result: string; isError?: boolean }
+  | { type: 'tool_end'; callId: string; name: string; result: string; isError?: boolean; generatedImages?: GeneratedImageReference[] }
   | { type: 'tool_confirm'; callId: string; name: string; args: Record<string, unknown> }
   | { type: 'usage'; promptTokens: number; completionTokens: number }
   | { type: 'error'; message: string; code?: string }

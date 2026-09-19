@@ -1,5 +1,9 @@
 # 质量总控
 
+用户主动生图门禁：image-generation / generated-image-codec / image-generate-tool 覆盖真实本地协议、受限下载、完整解码、规模上限、取消、项目路径与请求前 / 提交前权限复核；并发出现目标文件不得覆盖。generated-image-session / generated-image-ipc / runtime-tool-persistence 覆盖持久化后才发布、归属 / 摘要 / 主框架校验及异步窗口失效。generated-image-backup 使用真实 SQLite 与文件覆盖媒体导出、删除原图后恢复、重开再导出、重复导入、伪造 / 损坏 / 超限及事务失败清理；不证明跨存储原子恢复。
+
+共享图片 UI 回归覆盖固定尺寸、读取重试、会话迟到隔离和主 / 侧聊天。Electron image-generation 从正式设置、审批前零请求、生成 PNG、重启显示 / 定位、侧聊天到正式数据页备份恢复；新增审批后在途请求的 Stop 验证，要求关闭网络连接、不落图且不自动重试。相同测试支持 TEST_PACKAGED_APP，Windows 未签名目录产物已运行真实 sharp native 模块；本地协议图片不证明外部付费模型质量、第三方互操作或安装向导 / 签名发布。根类型检查通过不代表主进程存量类型债已清零。
+
 MCP OAuth 门禁：`mcp-oauth.test.ts` Unit 使用真实本地授权与 MCP 服务校验 PKCE、state、单次回调、拒绝 / 取消 / 超时、端点绑定、注册方式、过期 / 401、受限发现与响应大小；`mcp-oauth-ipc.test.ts` 验证主框架 / owner、原生确认等待取消、销毁 / 导航 / 配置变化的迟到结果。独立 Electron `mcp-oauth.test.ts` 仅替换系统浏览器启动器与原生确认，授权页在独立 Chromium 操作，经真实 preload / IPC / SDK / 存储 / Registry 调用工具；验证空许可拒绝、开启后调用、取消重试、失效不自动弹窗、重启要求登录及配置不含 token。候选 UI 深浅宽窄检查同一表单、固定槽、无生产副作用，不能替代协议证据或第三方账户授权。
 
 外观同源门禁：ui-component-registry 的 TypeChecker 断言正式 SettingsPanel 与候选实际渲染 AppearanceSettingsContent，后者实际渲染 Foundation ActionButton；未使用导入和局部同名遮蔽不得通过。正式入口 UI 在 1166 / 600px 切换四主题，验证键盘、选中唯一性、hover / 选中前后几何、无横向溢出、三档字号与重载恢复；候选主题 / 字号操作前后 localStorage 不变。截图由 appearance-shared-focused 与 appearance-shared-ui 保存，不代替全产品逐页最终验收。

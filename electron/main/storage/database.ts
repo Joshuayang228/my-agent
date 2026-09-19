@@ -36,7 +36,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 16
+export const SCHEMA_VERSION = 17
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -463,6 +463,10 @@ export function runMigrations(database: SqlJsDatabase): void {
           PRIMARY KEY (role_id, kind)
         )
       `)
+    },
+    // v16 -> v17: generated media references belong to tool messages, never to their model-visible text.
+    (d) => {
+      if (tableExists(d, 'messages')) addColumnIfMissing(d, 'messages', 'generated_images', 'TEXT')
     },
   ]
 

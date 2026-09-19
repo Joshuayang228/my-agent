@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { __test, loadAuxLLMConfig, loadImageLLMConfig, loadMainLLMConfig } from '../../electron/main/llm/aux-config'
+import { __test, loadAuxLLMConfig, loadImageGenerationConfig, loadMainLLMConfig } from '../../electron/main/llm/aux-config'
 import type { ModelConnectionProfile, ModelRoutePurpose } from '../../src/shared/types'
 import { buildFallbackConfig } from '../../electron/main/llm/failover'
 import { hasLLMAuthentication } from '../../src/shared/llm-connection-test'
@@ -8,11 +8,17 @@ const { getAllSettings, getSetting } = vi.hoisted(() => ({ getAllSettings: vi.fn
 vi.mock('../../electron/main/storage/settings-store', () => ({ getAllSettings, getSetting }))
 
 describe('model configuration factories', () => {
+  it('生成配置缺少安排时不回退聊天，独立身份不继承聊天参数和备用请求', async () => {
+    configure('primary', { apiKey: 'main-key' })
+    expect(await loadImageGenerationConfig()).toBeNull()
+    configure('image', { provider: 'gemini' })
+    expect(await loadImageGenerationConfig()).toEqual({ apiKey: '', baseUrl: 'https://target.test/v1', model: 'selected-model', provider: 'gemini' })
+  })
   it('Temperature 零值必须原样传入模型配置', async () => {
     getAllSettings.mockResolvedValue({ llmTemperature: '0', modelConnections: '[]', modelRoutes: '[]' })
     expect((await loadMainLLMConfig()).temperature).toBe(0)
   })
-  const loaders = { primary: loadMainLLMConfig, auxiliary: loadAuxLLMConfig, image: loadImageLLMConfig }
+  const loaders = { primary: loadMainLLMConfig, auxiliary: loadAuxLLMConfig, image: loadImageGenerationConfig }
   const legacy = { llmApiKey: 'test-global-key', llmBaseUrl: 'https://legacy.test/v1', llmModel: 'legacy-model', auxModel: '' }
   function configure(purpose: ModelRoutePurpose, connection: Partial<ModelConnectionProfile> = {}) {
     getAllSettings.mockResolvedValue({
@@ -63,7 +69,7 @@ describe('model configuration factories', () => {
       ]),
     })
     expect((await loadMainLLMConfig()).fallbackModels).toHaveLength(1)
-    expect((await loaders[purpose]()).fallbackModels).toBeUndefined()
+    expect((await loaders[purpose]())?.fallbackModels).toBeUndefined()
     for (const override of [{ model: 'probe' }, { apiKey: 'probe-key' }, { provider: 'openai' as const }]) {
       expect((await loadMainLLMConfig(override)).fallbackModels).toBeUndefined()
     }
@@ -87,8 +93,12 @@ describe('model configuration factories', () => {
     })
     const config = await loaders[purpose]()
     expect(config).toMatchObject({ model: 'first', apiKey: 'a-key', provider: 'anthropic' })
-    expect(config.fallbackModels).toHaveLength(1)
-    expect(config.fallbackModels?.[0]).toMatchObject({ model: 'second', baseUrl: 'http://127.0.0.1:1234/v1', apiKey: '', provider: 'openai' })
+    if (purpose === 'image') {
+      expect(config?.fallbackModels).toBeUndefined()
+    } else {
+      expect(config?.fallbackModels).toHaveLength(1)
+      expect(config?.fallbackModels?.[0]).toMatchObject({ model: 'second', baseUrl: 'http://127.0.0.1:1234/v1', apiKey: '', provider: 'openai' })
+    }
     expect((await loadMainLLMConfig({ baseUrl: 'https://test-only.test', model: 'probe' })).fallbackModels).toBeUndefined()
   })
 
@@ -97,8 +107,8 @@ describe('model configuration factories', () => {
     vi.stubEnv('LLM_API_KEY', 'test-environment-key')
     try {
       const config = await loaders[purpose]()
-      expect(config.baseUrl).toBe('https://target.test/v1')
-      expect(config.apiKey).toBe('')
+      expect(config?.baseUrl).toBe('https://target.test/v1')
+      expect(config?.apiKey).toBe('')
     } finally { vi.unstubAllEnvs() }
   })
 
@@ -111,7 +121,7 @@ describe('model configuration factories', () => {
 
   it.each(['auxiliary', 'image'] as const)('%s 未指定协议时按目标地址推断，不继承主连接的协议', async (purpose) => {
     configure(purpose)
-    expect((await loaders[purpose]()).provider).toBe('auto')
+    expect((await loaders[purpose]())?.provider).toBe('auto')
   })
 
   it.each(['primary', 'auxiliary', 'image'] as const)('%s 空配置不读取旧身份或环境变量', async purpose => {
@@ -122,13 +132,14 @@ describe('model configuration factories', () => {
     vi.stubEnv('LLM_MODEL', 'environment-model')
     try {
       const config = await loaders[purpose]()
+      if (purpose === 'image') { expect(config).toBeNull(); return }
       expect(config).toMatchObject({ apiKey: '', baseUrl: '', model: '' })
-      expect(hasLLMAuthentication(config)).toBe(false)
-      expect(config.fallbackModels).toBeUndefined()
+      expect(hasLLMAuthentication(config!)).toBe(false)
+      expect(config?.fallbackModels).toBeUndefined()
     } finally { vi.unstubAllEnvs() }
   })
 
-  it.each(['auxiliary', 'image'] as const)('%s 未单独安排时沿用新主用途，不读取旧辅助型号', async purpose => {
+  it.each(['auxiliary'] as const)('%s 未单独安排时沿用新主用途，不读取旧辅助型号', async purpose => {
     configure('primary', { apiKey: 'main-key', provider: 'openai' })
     getSetting.mockImplementation(async key => key === 'auxModel' ? 'old-aux' : '')
     expect(await loaders[purpose]()).toMatchObject({ model: 'selected-model', baseUrl: 'https://target.test/v1', apiKey: 'main-key' })

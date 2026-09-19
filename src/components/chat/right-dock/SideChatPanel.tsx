@@ -7,6 +7,7 @@ import { PermissionConfirmCard } from '../PermissionConfirmCard'
 import { IconButton } from '../../foundation/IconButton'
 import { ActionButton } from '../../foundation/ActionButton'
 import { TextField } from '../../foundation/TextField'
+import { applyContentEvent, applyToolEvent, appendToolResultMessage, findLiveToolHostId, resolveToolsForAssistant, ToolCallbackList, type ToolCallbackItem } from '../callbacks'
 
 interface SideChatPanelProps {
   parentSessionId: string | null
@@ -17,6 +18,8 @@ interface SideChatPanelProps {
 export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: SideChatPanelProps) {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [activeTools, setActiveTools] = useState<ToolCallbackItem[]>([])
+  const [toolCollapse, setToolCollapse] = useState<Record<string, boolean>>({})
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(true)
   const [initializationAttempt, setInitializationAttempt] = useState(0)
@@ -42,8 +45,11 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
         setLoading(false)
         cleanup = window.electronAPI.chat.onEvent((event) => {
           const streamEvent = event as AgentStreamEvent & { sessionId?: string }
-          if (streamEvent.sessionId !== session.id) return
-          if (streamEvent.type === 'text') setMessages((current) => appendAssistant(current, streamEvent.content))
+          if (disposed || streamEvent.sessionId !== session.id) return
+          setMessages(current => streamEvent.type === 'tool_end'
+            ? appendToolResultMessage(current, streamEvent)
+            : applyContentEvent(current, streamEvent, { genId: () => crypto.randomUUID(), citations: [] }) ?? current)
+          setActiveTools(current => applyToolEvent(current, streamEvent) ?? current)
           if (streamEvent.type === 'error') {
             setError(streamEvent.message)
             setRetryMessage(lastSentRef.current)
@@ -52,7 +58,7 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
           if (streamEvent.type === 'done') setSending(false)
         })
         const cleanupConfirm = window.electronAPI.chat.onConfirmRequest((data) => {
-          if (data.sessionId === session.id) setConfirmRequest({ requestId: data.requestId, name: data.name, args: data.args })
+          if (!disposed && data.sessionId === session.id) setConfirmRequest({ requestId: data.requestId, name: data.name, args: data.args })
         })
         const eventCleanup = cleanup
         cleanup = () => { eventCleanup?.(); cleanupConfirm() }
@@ -78,6 +84,7 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
     if (!id || !content || sending) return
     const message = messageToRetry ?? { id: crypto.randomUUID(), role: 'user' as const, content, timestamp: Date.now() }
     lastSentRef.current = message
+    setActiveTools([])
     if (!messageToRetry) setMessages((current) => [...current, message])
     setRetryMessage(null)
     setInput(''); draftRef.current = ''; setError(null); setSending(true)
@@ -99,6 +106,15 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
     } else void send(retryMessage ?? undefined)
   }
 
+  const liveHostId = findLiveToolHostId(messages, activeTools, sending)
+  const renderTools = (tools: ToolCallbackItem[]) => {
+    const displayed = tools.map(tool => Object.prototype.hasOwnProperty.call(toolCollapse, tool.callId) ? { ...tool, collapsed: toolCollapse[tool.callId] } : tool)
+    return <ToolCallbackList tools={displayed} sessionId={sessionId} onToggleCollapse={id => {
+      const current = displayed.find(tool => tool.callId === id)
+      setToolCollapse(previous => ({ ...previous, [id]: current?.collapsed === false }))
+    }} />
+  }
+
   return <div className="relative flex h-full min-h-0 flex-col" data-testid="workspace-sidechat-panel">
     <div className="flex shrink-0 items-center gap-2 border-b px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
       <MessageCircle size={14} style={{ color: 'var(--text-muted)' }} /><span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>关于当前工作区</span>
@@ -106,7 +122,11 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
     <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3" data-testid="workspace-sidechat-messages">
       {loading && <div className="flex items-center gap-2 text-[11px]" role="status"><LoaderCircle size={13} className="animate-spin" />正在打开侧边聊天</div>}
       {!loading && messages.length === 0 && !error && <p className="py-10 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>从当前工作区开始聊聊</p>}
-      {messages.map((message) => <div key={message.id} className={message.role === 'user' ? 'ml-auto max-w-[90%] rounded-lg px-3 py-2 text-[12px]' : 'text-[12px] leading-6'} style={{ background: message.role === 'user' ? 'var(--bg-tertiary)' : undefined }}><MarkdownRenderer content={message.content} /></div>)}
+      {messages.filter(message => message.role !== 'tool').map(message => <div key={message.id} className={message.role === 'user' ? 'ml-auto max-w-[90%] rounded-lg px-3 py-2 text-[12px]' : 'min-w-0 text-[12px] leading-6'} style={{ background: message.role === 'user' ? 'var(--bg-tertiary)' : undefined }}>
+        {message.content && <MarkdownRenderer content={message.content} />}
+        {message.role === 'assistant' && renderTools(resolveToolsForAssistant(message, messages, { liveHostId, liveTools: activeTools }))}
+      </div>)}
+      {!liveHostId && activeTools.length > 0 && renderTools(activeTools)}
       {sending && <div className="flex items-center gap-2 text-[11px]" role="status"><LoaderCircle size={13} className="animate-spin" />正在生成</div>}
       {error && <div className="flex items-center gap-2 text-[11px]" role="alert" style={{ color: 'var(--danger)' }}><span>{error}</span><ActionButton tone="accent" onClick={retry}>重试</ActionButton></div>}
     </div>
@@ -124,10 +144,4 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
       />
     </div>}
   </div>
-}
-
-function appendAssistant(messages: ChatMessage[], content: string): ChatMessage[] {
-  const last = messages[messages.length - 1]
-  if (last?.role === 'assistant') return [...messages.slice(0, -1), { ...last, content: last.content + content }]
-  return [...messages, { id: crypto.randomUUID(), role: 'assistant', content, timestamp: Date.now() }]
 }

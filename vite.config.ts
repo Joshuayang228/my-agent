@@ -46,9 +46,10 @@ export default defineConfig(({ mode }) => {
           vite: {
             build: {
               commonjsOptions: { ignoreDynamicRequires: true },
-              rollupOptions: {
+              // Vite 8 的 Electron 插件预置 rolldownOptions；旧键会被预置项遮蔽，导致原生依赖误打包。
+              rolldownOptions: {
                 external: [
-                  'sql.js', 'vectra', 'zod',
+                  'sql.js', 'vectra', 'zod', 'sharp',
                   /^@modelcontextprotocol\//,
                   /^vectra\//,
                   /^zod\//,

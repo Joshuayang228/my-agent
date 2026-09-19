@@ -3,8 +3,8 @@
  *
  * 背景：历史上 IPC、Playground、memory、delegate 等各自拼 settings，
  *       导致 thinking / auxModel 等策略漏挂（如右键「重新生成标题」仍开 thinking）。
- * 设计意图：所有需要 LLMConfig 的调用只走本文件的两个 loader；
- *           真正打模型仍统一经 streamChat / chatComplete。
+ * 设计意图：所有需要 LLMConfig 的调用只走本文件的用途 loader；
+ *           聊天统一经 streamChat / chatComplete，生图由独立协议适配器发起。
  *           放弃「每个调用点自己记得关 thinking」——那必然漏网。
  * 关键约束：
  * - 主对话用 loadMainLLMConfig（保留厂商默认 thinking）
@@ -43,19 +43,6 @@ export async function loadMainLLMConfig(overrides?: Partial<LLMConfig>): Promise
   }
 }
 
-/**
- * 背景：图片理解路由已经可在正式设置中配置，但主对话此前始终读取 primary，导致界面安排与真实请求脱节。
- * 设计意图：图片请求只在显式带图片时读取 image 路由；没有图片时继续使用主模型，避免普通对话被意外切换。
- * 关键约束：image 路由必须经过与 primary/auxiliary 相同的启用、连接存在和 Base URL 校验；无有效路由必须完整回退主模型。
- */
-export async function loadImageLLMConfig(): Promise<LLMConfig> {
-  const main = await loadMainLLMConfig()
-  const all = await settings.getAllSettings()
-  const chain = resolveRoutedConfigs(all.modelConnections, all.modelRoutes, 'image')
-  const routed = chain[0]
-  if (!routed) return main
-  return { ...main, ...connectionConfig(routed), fallbackModels: chain.length > 1 ? chain.slice(1).map(connectionConfig) : undefined }
-}
 export async function loadAuxLLMConfig(): Promise<LLMConfig> {
   const main = await loadMainLLMConfig()
   const all = await settings.getAllSettings()
@@ -73,6 +60,17 @@ export async function loadAuxLLMConfig(): Promise<LLMConfig> {
     return { ...target, thinking: result.thinking, runtimeAssetKeys: result.runtimeAssetKeys }
   }))
   return configured
+}
+
+/**
+ * 背景：生成模型与聊天模型使用不同协议，缺少生成安排时借用主模型会发送错误请求。
+ * 意图：只读取 image 用途的首个有效连接，保留完整身份，不继承聊天参数或备用重试。
+ * 约束：本工厂不发请求；空安排返回 null，由生图入口解释配置缺失，不能自动回退聊天。
+ */
+export async function loadImageGenerationConfig(): Promise<LLMConfig | null> {
+  const all = await settings.getAllSettings()
+  const connection = resolveRoutedConfigs(all.modelConnections, all.modelRoutes, 'image')[0]
+  return connection ? connectionConfig(connection) : null
 }
 
 /**

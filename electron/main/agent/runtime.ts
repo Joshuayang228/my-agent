@@ -119,10 +119,10 @@ class AgentRuntime {
     }
   }
 
-  /** 获取主对话 LLM 配置；带图片的用户消息使用已配置的图片路由。 */
-  async getLLMConfig(userMessage?: ChatMessage): Promise<LLMConfig> {
-    const { loadImageLLMConfig, loadMainLLMConfig } = await import('../llm/aux-config')
-    return userMessage?.images?.length ? loadImageLLMConfig() : loadMainLLMConfig()
+  /** 附图理解与普通对话均使用主用途；image 用途只供独立生图工具使用。 */
+  async getLLMConfig(): Promise<LLMConfig> {
+    const { loadMainLLMConfig } = await import('../llm/aux-config')
+    return loadMainLLMConfig()
   }
 
   /** 获取辅助任务 LLM 配置（唯一入口：loadAuxLLMConfig，含 thinking 策略） */
@@ -156,7 +156,7 @@ class AgentRuntime {
     const abortController = new AbortController()
     this.activeControllers.set(sessionId, abortController)
     try {
-      const llmConfig = await this.getLLMConfig(userMessage)
+      const llmConfig = await this.getLLMConfig()
       if (abortController.signal.aborted) {
         yield { type: 'done', reason: 'aborted', sessionId }
         return
@@ -439,6 +439,7 @@ class AgentRuntime {
       // ── 运行 Agent Loop ──
       const toolContext: ToolContext = {
         workdir: getWorkspaceRoot() || process.cwd(),
+        workspaceRoot: getWorkspaceRoot(),
         sessionId,
         signal: abortController.signal,
         parentSpanId: chatSpan.id,  // 调用链嵌套（子 Agent span 可挂到父 span）
@@ -496,6 +497,18 @@ class AgentRuntime {
           terminalReason = ev.reason
           doneEmitted = true
         }
+        // 生图预览收到 tool_end 就会按会话读取图片引用；先发布会读到尚未保存的记录。
+        // 因此工具消息必须保存成功后才能发布；失败交给外层错误通道，不能展示成功结果。
+        if (ev.type === 'tool_end') {
+          await store.saveMessage(sessionId, {
+            id: `tool-${ev.callId}`,
+            role: 'tool',
+            content: ev.result,
+            timestamp: Date.now(),
+            toolCallId: ev.callId,
+            ...(ev.generatedImages?.length ? { generatedImages: ev.generatedImages } : {}),
+          })
+        }
         yield { ...ev, sessionId } as AgentStreamEvent & { sessionId: string }
 
         if (ev.type === 'text') {
@@ -512,15 +525,6 @@ class AgentRuntime {
             content: '',
             timestamp: Date.now(),
             toolCalls: ev.calls,
-          })
-        }
-        if (ev.type === 'tool_end') {
-          await store.saveMessage(sessionId, {
-            id: `tool-${ev.callId}`,
-            role: 'tool',
-            content: ev.result,
-            timestamp: Date.now(),
-            toolCallId: ev.callId,
           })
         }
         if (ev.type === 'done' && ev.reason === 'completed' && assistantContent && !assistantSaved) {

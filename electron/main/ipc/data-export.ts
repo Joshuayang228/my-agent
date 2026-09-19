@@ -4,7 +4,7 @@
  * 导出格式：JSON 文件，包含会话、消息、记忆、设置、生活资产和播种标记。
  * 导入时按 ID 合并（不覆盖现有数据）；导入文件在写库前做结构与规模校验。
  */
-import { ipcMain, dialog } from 'electron'
+import { app, ipcMain, dialog } from 'electron'
 import { createBackupOperationGuard } from './backup-operation'
 import { writeFile, readFile, stat } from 'node:fs/promises'
 import { createLogger, hashForLog } from '../utils/logger'
@@ -12,6 +12,7 @@ import * as sessionStore from '../storage/session-store'
 import * as memoryStore from '../storage/memory-store'
 import * as settingsStore from '../storage/settings-store'
 import { getDatabase, persist } from '../storage/database'
+import { BackupImageError, collectBackupImageMedia, isValidBackupImageBundle, prepareBackupImages, restoreBackupImages, toBackupImageReference, type BackupImageMedia, type BackupImageReference } from '../storage/generated-image-backup'
 import type {
   BackupLivingAsset,
   BackupLivingAssetSeed,
@@ -20,12 +21,15 @@ import type {
   DataImportStats,
   MemoryCategory,
   SessionKind,
+  ToolCall,
+  GeneratedImageReference,
 } from '../../../src/shared/types'
 import {
   BACKUP_LIVING_ASSET_KINDS,
   MAX_COMPANION_RESPONSE_NOTE_LENGTH,
 } from '../../../src/shared/types'
 import type { Database } from 'sql.js'
+import { BACKUP_IMAGE_ERRORS } from '../../../src/shared/backup-errors'
 
 const log = createLogger('DataExport')
 
@@ -133,9 +137,11 @@ export function isValidExportData(value: unknown): value is ExportData {
   if (!Array.isArray(livingAssets) || livingAssets.length > MAX_IMPORTED_LIVING_ASSETS) return false
   if (!Array.isArray(livingAssetSeeds) || livingAssetSeeds.length > MAX_IMPORTED_LIVING_ASSET_SEEDS) return false
 
+  const sessionIds = new Set<string>()
+  const messageIds = new Set<string>()
   for (const session of value.sessions) {
     if (!isRecord(session)
-      || !boundedString(session.id, 200)
+      || !boundedString(session.id, 200) || !session.id || sessionIds.has(session.id)
       || !boundedString(session.title, 20_000)
       || (session.roleId !== undefined && !boundedString(session.roleId, 200))
       || (session.sessionKind !== undefined && session.sessionKind !== 'main' && session.sessionKind !== 'summon' && session.sessionKind !== 'workspace')
@@ -143,13 +149,20 @@ export function isValidExportData(value: unknown): value is ExportData {
       || !isFiniteNumber(session.updatedAt)
       || !Array.isArray(session.messages)
       || session.messages.length > MAX_IMPORTED_MESSAGES_PER_SESSION) return false
+    sessionIds.add(session.id)
     for (const message of session.messages) {
       if (!isRecord(message)
-        || !boundedString(message.id, 200)
+        || !boundedString(message.id, 200) || !message.id || messageIds.has(message.id)
         || typeof message.role !== 'string'
         || !EXPORT_MESSAGE_ROLES.has(message.role)
         || !boundedString(message.content)
         || !isFiniteNumber(message.timestamp)) return false
+      messageIds.add(message.id)
+      if (message.toolCalls !== undefined && (message.role !== 'assistant' || !Array.isArray(message.toolCalls)
+        || message.toolCalls.length > 256 || message.toolCalls.some(call => !isRecord(call)
+          || !boundedString(call.id, 200) || !call.id || !boundedString(call.name, 200) || !call.name
+          || !boundedString(call.arguments)))) return false
+      if (message.toolCallId !== undefined && (message.role !== 'tool' || !boundedString(message.toolCallId, 200) || !message.toolCallId)) return false
     }
   }
 
@@ -187,7 +200,7 @@ export function isValidExportData(value: unknown): value is ExportData {
     if (seenSeeds.has(key)) return false
     seenSeeds.add(key)
   }
-  return true
+  return isValidBackupImageBundle(value.sessions, value.generatedImageMedia)
 }
 
 export interface ExportData {
@@ -205,6 +218,9 @@ export interface ExportData {
       role: string
       content: string
       timestamp: number
+      toolCalls?: ToolCall[]
+      toolCallId?: string
+      generatedImages?: BackupImageReference[]
     }>
   }>
   memories: Array<{
@@ -218,6 +234,7 @@ export interface ExportData {
   settings: Record<string, string>
   livingAssets?: BackupLivingAsset[]
   livingAssetSeeds?: BackupLivingAssetSeed[]
+  generatedImageMedia?: BackupImageMedia[]
 }
 
 /**
@@ -243,12 +260,15 @@ export async function collectExportSessions(
       createdAt: row.created_at as number,
       updatedAt: row.updated_at as number,
       roleId: (row.role_id as string) || '',
-    sessionKind: row.session_kind === 'summon' ? 'summon' : row.session_kind === 'workspace' ? 'workspace' : 'main',
+      sessionKind: row.session_kind === 'summon' ? 'summon' : row.session_kind === 'workspace' ? 'workspace' : 'main',
       messages: (session?.messages || []).map(m => ({
         id: m.id,
         role: m.role,
         content: m.content,
         timestamp: m.timestamp,
+        ...(m.role === 'assistant' && m.toolCalls?.length ? { toolCalls: m.toolCalls } : {}),
+        ...(m.role === 'tool' && m.toolCallId ? { toolCallId: m.toolCallId } : {}),
+        ...(m.role === 'tool' && m.generatedImages?.length ? { generatedImages: m.generatedImages.map(toBackupImageReference) } : {}),
       })),
     })
   }
@@ -408,12 +428,12 @@ export function importLivingAssetsIntoDatabase(
  *
  * 背景：旧实现写入不存在的 createdAt/sessionId/timestamp 列，而且没有 sort_order，导入会
  * 整体失败。设计意图：集中维护 snake_case SQL 和消息顺序，供 IPC 与单测共用。
- * 关键约束：调用方必须先执行 isValidExportData；现有 ID 使用 INSERT OR IGNORE 合并。
+ * 关键约束：调用方必须先执行 isValidExportData；现有会话跳过，新会话消息 ID 冲突则整笔失败，不能静默丢失工具配对。
  */
 export function importSessionsIntoDatabase(
   db: Database,
   sessions: ExportData['sessions'],
-  opts?: { transact?: boolean },
+  opts?: { transact?: boolean; imageReferences?: ReadonlyMap<string, GeneratedImageReference> },
 ): number {
   const transact = opts?.transact !== false
   let imported = 0
@@ -432,10 +452,15 @@ export function importSessionsIntoDatabase(
         [session.id, session.title, session.createdAt, session.updatedAt, session.roleId || '', session.sessionKind === 'summon' ? 'summon' : session.sessionKind === 'workspace' ? 'workspace' : 'main'],
       )
       session.messages.forEach((msg, sortOrder) => {
+        const images = msg.generatedImages?.map(image => {
+          const restored = opts?.imageReferences?.get(image.id)
+          if (!restored) throw new BackupImageError(BACKUP_IMAGE_ERRORS.incomplete)
+          return restored
+        })
         db.run(
-          `INSERT OR IGNORE INTO messages (id, session_id, role, content, tool_calls, tool_call_id, created_at, sort_order)
-           VALUES (?, ?, ?, ?, NULL, NULL, ?, ?)`,
-          [msg.id, session.id, msg.role, msg.content, msg.timestamp, sortOrder],
+          `INSERT INTO messages (id, session_id, role, content, tool_calls, tool_call_id, generated_images, created_at, sort_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [msg.id, session.id, msg.role, msg.content, msg.toolCalls ? JSON.stringify(msg.toolCalls) : null, msg.toolCallId ?? null, images?.length ? JSON.stringify(images) : null, msg.timestamp, sortOrder],
         )
       })
       imported++
@@ -463,13 +488,14 @@ export function importBackupPayload(
     sessions: ExportData['sessions']
     livingAssets: BackupLivingAsset[]
     livingAssetSeeds: BackupLivingAssetSeed[]
+    imageReferences?: ReadonlyMap<string, GeneratedImageReference>
   },
 ): Pick<DataImportStats, 'sessions' | 'livingAssets' | 'livingAssetSeeds'> {
   let importedSessions = 0
   let importedLiving = { assets: 0, seeds: 0 }
   db.run('BEGIN')
   try {
-    importedSessions = importSessionsIntoDatabase(db, payload.sessions, { transact: false })
+    importedSessions = importSessionsIntoDatabase(db, payload.sessions, { transact: false, imageReferences: payload.imageReferences })
     importedLiving = importLivingAssetsIntoDatabase(db, payload.livingAssets, payload.livingAssetSeeds)
     db.run('COMMIT')
   } catch (error) {
@@ -499,6 +525,7 @@ export function registerDataExportIPC(): void {
 
       const db = await getDatabase()
       const sessions = await collectExportSessions(db)
+      const generatedImageMedia = await collectBackupImageMedia(sessions)
       const memories = await memoryStore.listMemories()
       const settings = await settingsStore.getAllSettings()
       const livingAssets = collectExportLivingAssets(db)
@@ -524,10 +551,14 @@ export function registerDataExportIPC(): void {
         settings: safeSettings,
         livingAssets,
         livingAssetSeeds,
+        ...(generatedImageMedia.length ? { generatedImageMedia } : {}),
       }
 
+      if (!isValidExportData(data)) throw new BackupImageError(BACKUP_IMAGE_ERRORS.export)
+      const serialized = JSON.stringify(data, null, 2)
+      if (Buffer.byteLength(serialized, 'utf8') > MAX_IMPORT_BYTES) throw new BackupImageError(BACKUP_IMAGE_ERRORS.size)
       if (!operation.beginCommit()) return { success: false, error: 'cancelled' }
-      await writeFile(result.filePath, JSON.stringify(data, null, 2), 'utf-8')
+      await writeFile(result.filePath, serialized, 'utf-8')
       const stats: DataExportStats = {
         sessions: sessions.length,
         memories: memories.length,
@@ -542,7 +573,7 @@ export function registerDataExportIPC(): void {
       return { success: true, path: result.filePath, stats }
     } catch (err) {
       log.error('Export failed', { errorType: err instanceof Error ? err.name : 'unknown' })
-      return { success: false, error: '导出失败，请重试' }
+      return { success: false, error: err instanceof BackupImageError ? err.message : '导出失败，请重试' }
     } finally {
       operation.finish()
     }
@@ -577,6 +608,8 @@ export function registerDataExportIPC(): void {
         return { success: false, error: '备份文件格式无效或包含超限数据' }
       }
       const data = parsed
+      const preparedImages = await prepareBackupImages(data.generatedImageMedia ?? [])
+      if (!operation.isActive()) return { success: false, error: 'cancelled' }
 
       const db = await getDatabase()
       const existingMemories = await memoryStore.listMemories()
@@ -595,11 +628,20 @@ export function registerDataExportIPC(): void {
       }
 
       if (!operation.beginCommit()) return { success: false, error: 'cancelled' }
-      const importedCore = importBackupPayload(db, {
-        sessions: data.sessions,
-        livingAssets: data.livingAssets ?? [],
-        livingAssetSeeds: data.livingAssetSeeds ?? [],
+      const newSessions = data.sessions.filter(session => {
+        const statement = db.prepare('SELECT id FROM sessions WHERE id = ?')
+        try { statement.bind([session.id]); return !statement.step() } finally { statement.free() }
       })
+      const restored = restoreBackupImages(preparedImages, newSessions, preparedImages.length ? app.getPath('userData') : '')
+      let importedCore: ReturnType<typeof importBackupPayload>
+      try {
+        importedCore = importBackupPayload(db, {
+          sessions: newSessions,
+          livingAssets: data.livingAssets ?? [],
+          livingAssetSeeds: data.livingAssetSeeds ?? [],
+          imageReferences: restored.references,
+        })
+      } catch (error) { restored.rollback(); throw error }
       let importedMemories = 0
       for (const mem of pendingMemories) {
         await memoryStore.addMemory(mem.category as memoryStore.MemoryCategory, mem.content, {
@@ -622,7 +664,7 @@ export function registerDataExportIPC(): void {
       return { success: true, stats }
     } catch (err) {
       log.error('Import failed', { errorType: err instanceof Error ? err.name : 'unknown' })
-      return { success: false, error: '导入失败，请检查备份文件后重试' }
+      return { success: false, error: err instanceof BackupImageError ? err.message : '导入失败，请检查备份文件后重试' }
     } finally {
       operation.finish()
     }

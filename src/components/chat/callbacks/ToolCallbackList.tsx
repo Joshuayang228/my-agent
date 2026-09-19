@@ -3,6 +3,8 @@
  */
 
 import { ChevronRight, Wrench } from 'lucide-react'
+import { useCallback } from 'react'
+import { GeneratedImageResult, type GeneratedImageReader, type GeneratedImageRevealer } from './GeneratedImageResult'
 import type { ToolCallbackItem } from './types'
 import { toolItemPhase } from './types'
 
@@ -17,11 +19,27 @@ export function ToolCallbackList({
   tools,
   onToggleCollapse,
   className = '',
+  sessionId,
+  readGeneratedImage,
+  revealGeneratedImage,
 }: {
   tools: ToolCallbackItem[]
   onToggleCollapse: (callId: string) => void
   className?: string
+  sessionId?: string | null
+  readGeneratedImage?: GeneratedImageReader
+  revealGeneratedImage?: GeneratedImageRevealer
 }) {
+  const readImage = useCallback<GeneratedImageReader>(async imageId => {
+    if (readGeneratedImage) return readGeneratedImage(imageId)
+    if (!sessionId || !window.electronAPI?.session.readGeneratedImage) return { ok: false, error: '当前会话无法读取图片。' }
+    return window.electronAPI.session.readGeneratedImage(sessionId, imageId)
+  }, [sessionId, readGeneratedImage])
+  const revealImage = useCallback<GeneratedImageRevealer>(async imageId => {
+    if (revealGeneratedImage) return revealGeneratedImage(imageId)
+    if (!sessionId || !window.electronAPI?.session.revealGeneratedImage) return { ok: false, error: '当前会话无法定位图片。' }
+    return window.electronAPI.session.revealGeneratedImage(sessionId, imageId)
+  }, [sessionId, revealGeneratedImage])
   if (tools.length === 0) return null
 
   return (
@@ -98,6 +116,7 @@ export function ToolCallbackList({
                 )}
               </div>
             )}
+            {tool.generatedImages?.map(image => <GeneratedImageResult key={image.id} image={image} readImage={readImage} revealImage={sessionId || revealGeneratedImage ? revealImage : undefined} scope={sessionId ?? 'preview'} />)}
           </div>
         )
       })}

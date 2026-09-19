@@ -1,5 +1,11 @@
 import type { ModelConnectionProfile, ModelRouteProfile, ModelRoutePurpose } from './types'
 
+export const MODEL_ROUTE_PURPOSES: Array<{ id: ModelRoutePurpose; label: string; description: string }> = [
+  { id: 'primary', label: '主对话', description: '聊天、图片理解和主要 Agent 任务。' },
+  { id: 'auxiliary', label: '辅助任务', description: '标题、压缩、画像和生活脚本等轻量任务。' },
+  { id: 'image', label: '生图', description: '生成新图片；使用首个启用的模型，不自动重试。' },
+]
+
 /**
  * 正式测试目标与主进程装配必须选中同一用途，不能各自实现一套筛选。
  * 这里只解析传入快照并过滤，不读取存储或解密；Renderer 传脱敏连接，主进程传真实连接。

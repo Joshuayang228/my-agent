@@ -161,6 +161,7 @@ export async function runDebugTool(
   try {
     const [result] = await registry.executeAll([call], {
       workdir,
+      workspaceRoot: getWorkspaceRoot(),
       sessionId: DEBUG_TOOL_SESSION_ID,
       registry,
       filePermissionApprovals,

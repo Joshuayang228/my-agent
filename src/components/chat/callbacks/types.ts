@@ -5,6 +5,8 @@
  * UI 与 apply 函数共用此相位，避免 App 里一个大 switch 搅在一起。
  */
 
+import type { GeneratedImageReference } from '../../../shared/types'
+
 export type CallbackPhase = 'idle' | 'active' | 'complete'
 
 export interface ReasoningChunk {
@@ -23,7 +25,9 @@ export interface ToolCallbackItem {
   /** pending=Start(解析参数) running=Progress done|error=Complete */
   status: 'pending' | 'running' | 'done' | 'error'
   result?: string
+  generatedImages?: GeneratedImageReference[]
   streamingArgs?: string
+  streamIndex?: number
   collapsed?: boolean
 }
 

@@ -5,16 +5,11 @@ import { addConnectionModel, enabledConnectionModelIds, normalizeConnectionModel
 import { ModelConnectionCard } from './ModelConnectionCard'
 import { ModelConnectionList } from './ModelConnectionList'
 import { ModelUsageArrangements } from './ModelUsageArrangements'
+import { MODEL_ROUTE_PURPOSES as PURPOSES } from '../../shared/model-routing'
 import { useToast } from '../Toast'
 import { SettingCard } from './SettingsFields'
 import { ModelConnectionForm } from './ModelConnectionForm'
 import { CONNECTION_ADAPTERS, CONNECTION_PRESETS, CONNECTION_SOURCE_OPTIONS, connectionDraftForSource, modelConnectionDraft, sameConnectionEndpoint, validConnectionDraft, type ModelConnectionDraft } from '../../shared/model-connection-form'
-
-const PURPOSES: Array<{ id: ModelRoutePurpose; label: string; description: string }> = [
-  { id: 'primary', label: '主对话', description: '聊天和主要 Agent 任务的优先模型。' },
-  { id: 'auxiliary', label: '辅助任务', description: '标题、压缩、画像和生活脚本等轻量任务。' },
-  { id: 'image', label: '图片理解', description: '需要图片输入时使用的模型入口。' },
-]
 
 function parse<T>(raw: string, fallback: T): T { try { return JSON.parse(raw) as T } catch { return fallback } }
 

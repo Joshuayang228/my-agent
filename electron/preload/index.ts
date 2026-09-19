@@ -4,6 +4,8 @@ import type {
   AgentAssetUsageQueryResult,
   ChatMessage,
   ChatSession,
+  GeneratedImageReadResult,
+  GeneratedImageRevealResult,
   AgentStreamEvent,
   TaskLifecycleEvent,
   LLMCallDetail,
@@ -63,6 +65,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   session: {
+    revealGeneratedImage: (sessionId: string, imageId: string): Promise<GeneratedImageRevealResult> => ipcRenderer.invoke('session:revealGeneratedImage', sessionId, imageId),
+    readGeneratedImage: (sessionId: string, imageId: string): Promise<GeneratedImageReadResult> => ipcRenderer.invoke('session:readGeneratedImage', sessionId, imageId),
     list: (): Promise<SessionSummary[]> => ipcRenderer.invoke('session:list'),
     create: (): Promise<ChatSession> => ipcRenderer.invoke('session:create'),
     createWorkspace: (): Promise<ChatSession> => ipcRenderer.invoke('session:createWorkspace'),

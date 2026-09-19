@@ -58,6 +58,24 @@ const livingAsset = {
 }
 
 describe('安全边界', () => {
+  it('备份保留工具调用配对，恢复后可以还原图片所属的工具卡', async () => {
+    const SQL = await initSqlJs()
+    const db = new SQL.Database()
+    db.run(`CREATE TABLE sessions (id TEXT PRIMARY KEY, title TEXT, created_at INTEGER, updated_at INTEGER, role_id TEXT, session_kind TEXT);
+      CREATE TABLE messages (id TEXT PRIMARY KEY, session_id TEXT, role TEXT, content TEXT, tool_calls TEXT, tool_call_id TEXT, generated_images TEXT, created_at INTEGER, sort_order INTEGER);
+      INSERT INTO sessions VALUES ('source', '图片', 1, 1, '', 'main');`)
+    const toolCalls = [{ id: 'call', name: 'image_generate', arguments: '{"prompt":"测试","path":"images/test.png"}' }]
+    const sessions = await collectExportSessions(db, async id => ({ id, createdAt: 1, messages: [
+      { id: 'assistant', role: 'assistant', content: '', timestamp: 1, toolCalls },
+      { id: 'result', role: 'tool', content: '已生成', timestamp: 2, toolCallId: 'call' },
+    ] }))
+    expect(sessions[0].messages[0]).toMatchObject({ toolCalls })
+    expect(sessions[0].messages[1]).toMatchObject({ toolCallId: 'call' })
+    db.run('DELETE FROM sessions')
+    expect(importSessionsIntoDatabase(db, sessions)).toBe(1)
+    expect(db.exec('SELECT tool_calls, tool_call_id FROM messages ORDER BY sort_order')[0].values).toEqual([[JSON.stringify(toolCalls), null], [null, 'call']])
+    db.close()
+  })
   it.each([0, 1, 2, 20_000, 20_001])('备份记忆长度 %i 与真实存储校验一致', (length) => {
     const content = '文'.repeat(length)
     const valid = length >= 2 && length <= 20_000
@@ -102,6 +120,7 @@ describe('安全边界', () => {
         content TEXT NOT NULL,
         tool_calls TEXT,
         tool_call_id TEXT,
+        generated_images TEXT,
         created_at INTEGER NOT NULL,
         sort_order INTEGER NOT NULL
       );
@@ -176,6 +195,7 @@ describe('安全边界', () => {
         content TEXT NOT NULL,
         tool_calls TEXT,
         tool_call_id TEXT,
+        generated_images TEXT,
         created_at INTEGER NOT NULL,
         sort_order INTEGER NOT NULL
       );

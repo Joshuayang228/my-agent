@@ -31,9 +31,13 @@ MCP 运行状态由 Manager 生成不含凭据的共享快照，经 IPC 同步 R
 
 ModelConnectionForm 为纯受控业务 UI，由正式设置和候选共用；来源分类与预设默认值从共享 Provider 注册表派生。source / presetId 是连接元数据，不授予权限；provider 是实际协议选择，测试与生产装配共用 LLMProvider。主进程保存 / 读取旧密钥时除连接 id 外还核对端点与协议，身份变化必须使用新输入的 Key；候选只模拟凭据状态，不能读取真实存储。
 
-ModelUsageArrangements 同样属于纯受控 Experience，组合 Foundation SelectField / ActionButton / IconButton。正式 ModelRoutingSettings 注入真实路由及整组保存回调，候选只将自己的 modelId 夹具适配为展示载荷并操作内存；共享组件没有 IPC，也不决定用途的后端语义。候选的生图与正式图片理解仍是显式未决差异，不能由相同 image key 推断等价。
+ModelUsageArrangements 同样属于纯受控 Experience，组合 Foundation SelectField / ActionButton / IconButton。正式 ModelRoutingSettings 注入真实路由及整组保存回调，候选只操作内存；共享组件没有 IPC。image 用途统一为生图，由独立配置工厂装配；用户附图理解使用主对话模型，不再切换到 image 路由。
 
-用途路由由唯一配置工厂按同用途顺序装配首选及 fallbackModels，过滤停用项和缺失引用、去重相同连接模型；每项端点、密钥、模型和 provider 整体绑定，空 Key 不借用全局、环境或其他连接凭据。独立辅助 / 图片理解用途不继承主用途备用池，辅助 thinking 和运行资产证据按目标装配。仅辅助 / 图片无有效用途时整体沿用新主配置；主用途不存在时身份为空，不读取旧全局字段或 LLM_* 环境变量。一次性身份覆盖不继承已保存备用链。就绪检查允许链内存在有效认证目标，但统一调用入口仍逐目标认证，远程缺 Key 不发请求。Debug 系统快照也从主配置工厂读取脱敏身份。
+主对话与辅助用途由唯一配置工厂按同用途顺序装配首选及 fallbackModels，过滤停用项和缺失引用、去重相同连接模型；每项端点、密钥、模型和 provider 整体绑定，空 Key 不借用其他连接凭据。独立辅助用途不继承主用途备用池，无有效辅助用途时整体沿用主配置。生图必须显式配置，只取首个有效目标，不回退主模型、不自动重试或跨供应商重发。主用途不存在时身份为空，不读取旧全局字段或 LLM_* 环境变量。一次性身份覆盖不继承已保存备用链。统一调用入口逐目标认证，远程缺 Key 不发请求；Debug 从主配置工厂读取脱敏身份。
+
+用户主动生图沿 image_generate → loadImageGenerationConfig → Images / Gemini 适配器 → sharp 完整解码并归一化 PNG → 项目 images 目录独占提交执行。主进程注入 workspaceRoot，收费请求前及提交前复核权限与真实路径；restricted-fetch 同时服务生成下载及 OAuth 网络封装，限制目标、DNS、重定向和响应规模。结构化图片引用经 Registry / Loop 写入 schema 17 工具消息后才发布 tool_end；模型仅接收文字摘要，主聊天、侧边聊天和基础故事共用 GeneratedImageResult。读取与文件定位 IPC 仅接受会话和图片身份，主进程校验工具归属、文件摘要及路径，不接受 Renderer 任意路径。
+
+媒体备份保存工具调用配对、图片摘要和受限 PNG 字节，不保存恢复用绝对路径。导入经完整校验后写 userData 独立目录，数据库事务失败清理本次媒体，重复导入不覆盖已有会话。会话事务提交后若记忆 / 设置失败，不删除已被引用的图片；跨存储原子恢复及崩溃清理仍属于 R07 未完成边界。
 
 不只是一个工具，而是一个有性格、有记忆、能成长的数字伙伴：
 - **人格化交互** — 有一致的性格特征和交流风格，不是冰冷的 Q&A 机器
@@ -396,4 +400,4 @@ LLM 返回 tool_calls（可能多个）
 
 - 模型配置的产品入口统一由 `ModelRoutingSettings` 组合真实设置存储、路由配置工厂与主进程模型发现；空清单不合成连接或用途，不恢复旧单连接身份。Chat 仅展示实际主模型，配置在正式模型页管理；Playground 获取仍是隔离 fixture。
 
-- LLM 配置工厂现在同时提供主对话、辅助任务和图片理解用途的路由解析；Runtime 仅按实际消息载荷选择 image 路由。
+- LLM 配置工厂提供主对话、辅助任务和独立生图配置；Runtime 的图片输入仍使用主对话配置，image_generate 才调用生图配置。

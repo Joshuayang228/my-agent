@@ -1339,6 +1339,7 @@ function App() {
                           return turnTools.length > 0 ? (
                             <ToolCallbackList
                               tools={turnTools}
+                              sessionId={activeSessionId}
                               onToggleCollapse={toggleToolCollapse}
                               className="mt-1"
                             />

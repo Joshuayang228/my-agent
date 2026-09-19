@@ -8,6 +8,104 @@ import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { expectSharedCodeSurface } from './shared-code-surface'
 
+for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
+  for (const width of [1166, 600]) {
+    test(`生图共享预览固定尺寸与读取重试 ${theme} ${width}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 731 })
+      await page.addInitScript(value => localStorage.setItem('theme', value), theme)
+      await page.goto('/')
+      await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+      await page.getByTestId('playground-nav').getByRole('button', { name: '基础组件', exact: true }).click()
+      await page.getByRole('tab', { name: '工具卡', exact: true }).click()
+      const stories = page.getByTestId('generated-image-stories')
+      const result = stories.getByTestId('generated-image-result').first()
+      const image = result.getByRole('img', { name: '生成的图片' })
+      await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth)).toBe(1200)
+      const zoom = result.getByRole('button', { name: '查看原图' })
+      await zoom.scrollIntoViewIfNeeded()
+      const before = await zoom.boundingBox()
+      await zoom.hover()
+      expect(await zoom.boundingBox()).toEqual(before)
+      const viewport = result.getByTestId('generated-image-viewport')
+      const initial = await viewport.boundingBox()
+      await zoom.click()
+      expect(await viewport.boundingBox()).toEqual(initial)
+      expect(await viewport.evaluate(node => node.scrollWidth > node.clientWidth)).toBe(true)
+      await result.getByRole('button', { name: '适应窗口' }).click()
+      const reveal = result.getByRole('button', { name: '在文件夹中定位' })
+      const revealSize = await reveal.boundingBox()
+      await reveal.hover()
+      expect(await reveal.boundingBox()).toEqual(revealSize)
+      await reveal.click()
+      await expect(result.getByRole('status')).toContainText('这是隔离样张，没有本地文件')
+      expect(await reveal.boundingBox()).toEqual(revealSize)
+      const retryResult = stories.getByTestId('generated-image-result').nth(1)
+      await expect(retryResult.getByRole('alert')).toContainText('图片暂时无法读取')
+      const retryViewport = retryResult.getByTestId('generated-image-viewport')
+      await retryViewport.scrollIntoViewIfNeeded()
+      const errorSize = await retryViewport.boundingBox()
+      await retryResult.getByRole('button', { name: '重新读取' }).click()
+      await expect(retryResult.getByRole('button', { name: '查看原图' })).toBeEnabled()
+      expect(await retryViewport.boundingBox()).toEqual(errorSize)
+      expect(await stories.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+      await page.screenshot({ path: testInfo.outputPath(`image-${theme}-${width}.png`), animations: 'disabled' })
+    })
+  }
+}
+
+test('正式历史生图会话隔离、迟到读取与失败重试', async ({ page }) => {
+  await installProductionElectronStub(page)
+  const dataUrl = `data:image/jpeg;base64,${readFileSync('src/assets/playground/moment-tea-by-window.jpg').toString('base64')}`
+  await page.addInitScript(dataUrl => {
+    const api = (window as any).electronAPI
+    const state = { calls: [] as string[], release: () => {}, failures: 1, reveals: [] as string[], finishReveal: (_value: any) => {} }
+    ;(window as any).__generatedImages = state
+    api.session.list = async () => ['first', 'second'].map(id => ({ id, title: `图片会话-${id}`, createdAt: 1, updatedAt: 1 }))
+    api.session.get = async id => ({ id, createdAt: 1, messages: [
+      { id: `assistant-${id}`, role: 'assistant', content: '图片已经生成。', timestamp: 1, toolCalls: [{ id: `call-${id}`, name: 'image_generate', arguments: JSON.stringify({ prompt: '茶', path: 'images/tea.png' }) }] },
+      { id: `tool-${id}`, role: 'tool', content: '已保存', timestamp: 2, toolCallId: `call-${id}`, generatedImages: [{ id: 'a'.repeat(64), path: 'images/tea.png', mimeType: 'image/png', width: 1200, height: 800, byteLength: 1000 }] },
+    ] })
+    api.session.readGeneratedImage = async sessionId => {
+      state.calls.push(sessionId)
+      if (sessionId === 'first') return new Promise(resolve => { state.release = () => resolve({ ok: true, dataUrl, fileName: 'first.png' }) })
+      if (state.failures-- > 0) return { ok: false, error: '文件读取失败。' }
+      return { ok: true, dataUrl, fileName: 'second.png' }
+    }
+    api.session.revealGeneratedImage = async sessionId => {
+      state.reveals.push(sessionId)
+      return new Promise(resolve => { state.finishReveal = resolve })
+    }
+  }, dataUrl)
+  await page.goto('/')
+  await page.getByText('图片会话-first', { exact: true }).click()
+  await expect.poll(() => page.evaluate(() => (window as any).__generatedImages.calls)).toEqual(['first'])
+  await expect(page.getByTestId('generated-image-result').getByRole('status')).toContainText('正在读取')
+  await page.getByText('图片会话-second', { exact: true }).click()
+  await expect(page.getByTestId('generated-image-result').getByRole('alert')).toContainText('文件读取失败')
+  await page.evaluate(() => (window as any).__generatedImages.release())
+  await expect(page.getByTestId('generated-image-result').getByRole('img')).toHaveCount(0)
+  await page.getByRole('button', { name: '重新读取', exact: true }).click()
+  await expect(page.getByRole('button', { name: '查看原图' })).toBeEnabled()
+  await expect(page.getByTestId('generated-image-result')).toContainText('second.png')
+  await expect(page.getByTestId('generated-image-result')).not.toContainText('first.png')
+  expect(await page.evaluate(() => (window as any).__generatedImages.calls)).toEqual(['first', 'second', 'second'])
+  const reveal = page.getByRole('button', { name: '在文件夹中定位' })
+  const before = await reveal.boundingBox()
+  await reveal.click()
+  await expect(reveal).toBeDisabled()
+  expect(await reveal.boundingBox()).toEqual(before)
+  await page.evaluate(() => (window as any).__generatedImages.finishReveal({ ok: false, error: '定位失败，请重试。' }))
+  await expect(page.getByTestId('generated-image-result').getByRole('status')).toContainText('定位失败')
+  await reveal.click()
+  await page.evaluate(() => (window as any).__generatedImages.finishReveal({ ok: true }))
+  await expect(page.getByTestId('generated-image-result').getByRole('status')).toContainText('已请求在文件夹中定位')
+  expect(await page.evaluate(() => (window as any).__generatedImages.reveals)).toEqual(['second', 'second'])
+  await reveal.click()
+  await page.getByText('图片会话-first', { exact: true }).click()
+  await page.evaluate(() => (window as any).__generatedImages.finishReveal({ ok: false, error: '不应出现在新会话' }))
+  await expect(page.getByTestId('generated-image-result')).not.toContainText('不应出现在新会话')
+})
+
 for (const width of [1166, 600]) {
   test(`正式共享外观主题字号持久化与操作槽 ${width}`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 731 })
@@ -5300,10 +5398,13 @@ test.describe('My Agent UI', () => {
         await imp.click()
         await page.evaluate(() => (window as any).__backup.resolve({ success: false, error: 'busy' }))
         await expect(content.getByRole('alert')).toHaveText('另一个备份操作正在进行，请完成后重试。')
+        await exp.click()
+        await page.evaluate(() => (window as any).__backup.resolve({ success: false, error: '备份包含无法读取的生成图片，请恢复图片文件后重试。' }))
+        await expect(content.getByRole('alert')).toHaveText('备份包含无法读取的生成图片，请恢复图片文件后重试。')
         await imp.click()
         await page.evaluate(() => (window as any).__backup.resolve({ success: true, stats: { sessions: 2, memories: 3, livingAssets: 4 } }))
         await expect(content.getByRole('status')).toHaveText('导入成功：2 个会话、3 条记忆、4 条生活记录。')
-        expect(await page.evaluate(() => (window as any).__backup.calls)).toEqual(['export', 'import', 'import', 'import', 'import'])
+        expect(await page.evaluate(() => (window as any).__backup.calls)).toEqual(['export', 'import', 'import', 'import', 'export', 'import'])
         await page.screenshot({ path: testInfo.outputPath('data-settings.png'), fullPage: true })
       })
     }

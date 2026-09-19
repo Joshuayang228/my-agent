@@ -8,7 +8,7 @@ import { checkFileReadSandbox, checkFileWriteSandbox, resolveToolFilePath, resol
 import type { SandboxMode } from './policy'
 
 export const FILE_RULE_TOOL_OPERATIONS = {
-  file_read: 'read', file_write: 'write', file_edit: 'write', apply_patch: 'write', file_delete: 'delete',
+  file_read: 'read', file_write: 'write', file_edit: 'write', apply_patch: 'write', file_delete: 'delete', image_generate: 'write',
 } as const
 export { FILE_RULE_PRIORITY } from './permission-engine'
 export const MAX_FILE_RULE_TARGETS = 1024

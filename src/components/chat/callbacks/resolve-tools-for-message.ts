@@ -6,7 +6,7 @@
  * 进行中：调用方传入 liveTools 覆盖。
  */
 
-import type { ChatMessage } from '../../../shared/types'
+import type { ChatMessage, GeneratedImageReference } from '../../../shared/types'
 import type { ToolCallbackItem } from './types'
 
 function parseArgs(raw: string | undefined): Record<string, unknown> {
@@ -27,8 +27,8 @@ function parseArgs(raw: string | undefined): Record<string, unknown> {
 export function collectToolResultsAfter(
   messages: ChatMessage[],
   assistantId: string,
-): Map<string, { content: string; isError?: boolean }> {
-  const map = new Map<string, { content: string; isError?: boolean }>()
+): Map<string, { content: string; isError?: boolean; generatedImages?: GeneratedImageReference[] }> {
+  const map = new Map<string, { content: string; isError?: boolean; generatedImages?: GeneratedImageReference[] }>()
   const start = messages.findIndex((m) => m.id === assistantId)
   if (start < 0) return map
 
@@ -38,7 +38,7 @@ export function collectToolResultsAfter(
     if (m.role === 'assistant') break
     if (m.role === 'tool' && m.toolCallId) {
       const isError = m.content.startsWith('⚠️') || m.content.startsWith('Error')
-      map.set(m.toolCallId, { content: m.content, isError })
+      map.set(m.toolCallId, { content: m.content, isError, ...(m.generatedImages?.length ? { generatedImages: m.generatedImages } : {}) })
     }
   }
   return map
@@ -63,6 +63,7 @@ export function resolveHistoricTools(
       args: parseArgs(c.arguments),
       status: (hit?.isError ? 'error' : 'done') as ToolCallbackItem['status'],
       result: hit?.content,
+      ...(hit?.generatedImages?.length ? { generatedImages: hit.generatedImages } : {}),
       collapsed: !expand,
     }
   })
@@ -108,7 +109,10 @@ export function resolveToolsForAssistant(
   },
 ): ToolCallbackItem[] {
   if (opts.liveHostId === assistant.id && opts.liveTools.length > 0) {
-    return opts.liveTools
+    const calls = assistant.toolCalls
+    if (!calls?.length) return opts.liveTools
+    const callIds = new Set(calls.map((call) => call.id))
+    return opts.liveTools.filter((tool) => callIds.has(tool.callId))
   }
   return resolveHistoricTools(assistant, messages, { expand: opts.expandHistoric })
 }

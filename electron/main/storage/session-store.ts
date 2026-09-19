@@ -105,6 +105,7 @@ export async function getSession(sessionId: string): Promise<ChatSession | null>
       timestamp: r.created_at as number,
       ...(r.tool_calls ? { toolCalls: JSON.parse(r.tool_calls as string) } : {}),
       ...(r.tool_call_id ? { toolCallId: r.tool_call_id as string } : {}),
+      ...(r.generated_images ? { generatedImages: JSON.parse(r.generated_images as string) } : {}),
     })
   }
   msgStmt.free()
@@ -148,8 +149,8 @@ export async function saveMessage(sessionId: string, message: ChatMessage): Prom
   stmt.free()
 
   db.run(`
-    INSERT INTO messages (id, session_id, role, content, tool_calls, tool_call_id, created_at, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO messages (id, session_id, role, content, tool_calls, tool_call_id, created_at, sort_order, generated_images)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     message.id,
     sessionId,
@@ -159,6 +160,7 @@ export async function saveMessage(sessionId: string, message: ChatMessage): Prom
     message.toolCallId || null,
     message.timestamp,
     maxOrder + 1,
+    message.role === 'tool' && message.generatedImages?.length ? JSON.stringify(message.generatedImages) : null,
   ])
 
   db.run('UPDATE sessions SET updated_at = ? WHERE id = ?', [Date.now(), sessionId])
@@ -216,9 +218,9 @@ export async function forkSession(sourceSessionId: string, upToMessageId: string
     const r = msgStmt.getAsObject() as Record<string, unknown>
     const msgId = randomUUID()
     db.run(`
-      INSERT INTO messages (id, session_id, role, content, tool_calls, tool_call_id, created_at, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [msgId, newId, r.role, r.content, r.tool_calls, r.tool_call_id, r.created_at, order])
+      INSERT INTO messages (id, session_id, role, content, tool_calls, tool_call_id, created_at, sort_order, generated_images)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [msgId, newId, r.role, r.content, r.tool_calls, r.tool_call_id, r.created_at, order, typeof r.generated_images === 'string' ? r.generated_images : null])
 
     messages.push({
       id: msgId,
@@ -227,6 +229,7 @@ export async function forkSession(sourceSessionId: string, upToMessageId: string
       timestamp: r.created_at as number,
       ...(r.tool_calls ? { toolCalls: JSON.parse(r.tool_calls as string) } : {}),
       ...(r.tool_call_id ? { toolCallId: r.tool_call_id as string } : {}),
+      ...(r.generated_images ? { generatedImages: JSON.parse(r.generated_images as string) } : {}),
     })
     order++
   }

@@ -5,6 +5,8 @@ import type {
   AgentAssetUsageQueryResult,
   ChatMessage,
   ChatSession,
+  GeneratedImageReadResult,
+  GeneratedImageRevealResult,
   AgentStreamEvent,
   LLMCallDetail,
   LLMCallEvent,
@@ -56,6 +58,8 @@ declare global {
         cancel: (requestId: string) => Promise<{ ok: boolean }>
       }
       session: {
+        revealGeneratedImage: (sessionId: string, imageId: string) => Promise<GeneratedImageRevealResult>
+        readGeneratedImage: (sessionId: string, imageId: string) => Promise<GeneratedImageReadResult>
         list: () => Promise<SessionSummary[]>
         create: () => Promise<ChatSession>
         createWorkspace: () => Promise<ChatSession>

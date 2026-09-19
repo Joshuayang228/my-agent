@@ -3,9 +3,11 @@
  * 渲染正式 class / ToolCallbackList；不另造皮肤。
  */
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { Check, LoaderCircle, MoreHorizontal, Plus, Search, Sparkles, WandSparkles, X } from 'lucide-react'
 import { ToolCallbackList } from '../chat/callbacks/ToolCallbackList'
+import type { GeneratedImageReader, GeneratedImageRevealer } from '../chat/callbacks/GeneratedImageResult'
+import imagePreview from '../../assets/playground/moment-tea-by-window.jpg'
 import { FileBrowser, type FileBrowserPreviewData } from '../FileBrowser'
 import { ResizeHandle } from '../shell/ResizeHandle'
 import { TabStrip } from '../foundation/TabStrip'
@@ -55,6 +57,27 @@ const TOOL_STORIES: ToolCallbackItem[] = [
     collapsed: false,
   },
 ]
+
+const GENERATED_IMAGE_STORY: ToolCallbackItem = {
+  callId: 'demo-image', name: 'image_generate', args: { prompt: '窗边的茶', path: 'images/tea.png' },
+  status: 'done', collapsed: true, result: '图片已保存。',
+  generatedImages: [{ id: 'a'.repeat(64), path: 'images/tea.png', mimeType: 'image/png', width: 1200, height: 800, byteLength: 1000 }],
+}
+const readPreviewImage: GeneratedImageReader = async () => ({ ok: true, dataUrl: imagePreview, fileName: 'tea.png' })
+const revealPreviewImage: GeneratedImageRevealer = async () => ({ ok: false, error: '这是隔离样张，没有本地文件。' })
+function GeneratedImageStories() {
+  const [collapsed, setCollapsed] = useState(true)
+  const failed = useRef(false)
+  const [retryCollapsed, setRetryCollapsed] = useState(true)
+  const readRetryImage = useCallback<GeneratedImageReader>(async () => {
+    if (!failed.current) { failed.current = true; return { ok: false, error: '图片暂时无法读取，文件可能已移动或删除。' } }
+    return readPreviewImage('preview')
+  }, [])
+  return <div className="space-y-3" data-testid="generated-image-stories">
+    <ToolCallbackList tools={[{ ...GENERATED_IMAGE_STORY, collapsed }]} onToggleCollapse={() => setCollapsed(value => !value)} readGeneratedImage={readPreviewImage} revealGeneratedImage={revealPreviewImage} />
+    <ToolCallbackList tools={[{ ...GENERATED_IMAGE_STORY, callId: 'demo-image-retry', collapsed: retryCollapsed }]} onToggleCollapse={() => setRetryCollapsed(value => !value)} readGeneratedImage={readRetryImage} />
+  </div>
+}
 
 const TOAST_STORIES: ToastPreviewItem[] = [
   { id: 1, type: 'info', message: '后台任务已开始，完成后会在这里告诉你。' },
@@ -399,6 +422,9 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
 
       {effectiveSub === 'tool-cards' && (
         <div className="space-y-3">
+          <StoryBlock title="生成图片与读取失败" source="src/components/chat/callbacks/GeneratedImageResult.tsx" edge>
+            <GeneratedImageStories />
+          </StoryBlock>
           <StoryBlock title="工具卡三态" source="src/components/chat/callbacks/ToolCallbackList.tsx" adopted>
             <ToolCallbackList
               tools={tools}

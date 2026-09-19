@@ -756,6 +756,7 @@ export async function* agentLoop(
         name: result.name,
         result: result.content,
         isError: result.isError,
+        ...(result.generatedImages?.length ? { generatedImages: result.generatedImages } : {}),
       }
     }
 
@@ -767,6 +768,7 @@ export async function* agentLoop(
         content: prepareToolResultForModel(result.content),
         timestamp: Date.now(),
         toolCallId: result.callId,
+        ...(result.generatedImages?.length ? { generatedImages: result.generatedImages } : {}),
       })
 
       // G2: 追踪被沙箱拦截的命令，避免 LLM 反复重试同一条被拦命令

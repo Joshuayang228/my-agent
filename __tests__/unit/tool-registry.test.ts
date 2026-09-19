@@ -65,6 +65,12 @@ describe('ToolRegistry', () => {
   })
 
   describe('executeAll', () => {
+    it('结构化图片引用贯穿工具执行，保持文本摘要与真实调用身份', async () => {
+      const reg = new ToolRegistry()
+      const generatedImages = [{ id: 'image-1', path: 'images/result.png', mimeType: 'image/png' as const, width: 1, height: 1, byteLength: 68 }]
+      reg.register(makeTool({ execute: async () => ({ content: '已生成图片', generatedImages }) }))
+      expect(await reg.executeAll([makeCall()])).toEqual([{ callId: 'call-1', name: 'echo', content: '已生成图片', generatedImages }])
+    })
     it('执行单个工具调用', async () => {
       const reg = new ToolRegistry()
       reg.register(makeTool({ execute: async () => 'hello' }))

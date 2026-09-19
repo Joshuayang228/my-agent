@@ -24,7 +24,7 @@ import { ModelConnectionCard } from '../settings/ModelConnectionCard'
 import { ModelConnectionList } from '../settings/ModelConnectionList'
 import { ModelUsageArrangements } from '../settings/ModelUsageArrangements'
 import { ModelAdvancedSettings } from '../settings/ModelAdvancedSettings'
-import { resolveRoutedConfigs } from '../../shared/model-routing'
+import { resolveRoutedConfigs, MODEL_ROUTE_PURPOSES as ROUTE_PURPOSES } from '../../shared/model-routing'
 import { connectionCredentialLabel } from '../../shared/model-connection-form'
 import { CONNECTION_ADAPTERS, CONNECTION_PRESETS, CONNECTION_SOURCE_OPTIONS, connectionDraftForSource, providerSource, sameConnectionEndpoint } from '../../shared/model-connection-form'
 import { SkillDetail, SkillFilePreview, SkillListCard } from '../settings/SkillViews'
@@ -119,11 +119,6 @@ type ModelRoute = { connectionId: string; modelId: string; enabled: boolean }
 type ModelFetchState = 'idle' | 'loading' | 'success' | 'empty' | 'unsupported' | 'error'
 const connectionCardFetchState = (state: ModelFetchState = 'idle') => state === 'empty' ? 'success' : state
 
-const ROUTE_PURPOSES: Array<{ id: ModelRoutePurpose; label: string; description: string }> = [
-  { id: 'primary', label: '主对话', description: '普通聊天和连续对话' },
-  { id: 'auxiliary', label: '辅助任务', description: '标题、整理和轻量后台任务' },
-  { id: 'image', label: '生图', description: '图像生成调用' },
-]
 const FETCHED_MODEL_FIXTURES = ['gpt-4o', 'gpt-4o-mini', 'o3-mini', 'text-embedding-3-small']
 
 function sourceLabel(value: ConnectionSource) { return CONNECTION_SOURCE_OPTIONS.find((item) => item.id === value)?.label ?? '自定义连接' }
