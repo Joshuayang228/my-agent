@@ -494,6 +494,19 @@ test('正式生活资产经真实备份导出导入后保留且不覆盖现有�
   const importDir = await mkdtemp(path.join(os.tmpdir(), 'my-agent-backup-import-'))
   let importApp: ElectronApplication | undefined
   try {
+    await electronApp.evaluate(({ dialog }) => {
+      dialog.showSaveDialog = () => new Promise(resolve => {
+        ;(globalThis as any).__backupRelease = () => resolve({ canceled: true, filePath: '' })
+      })
+    })
+    await page.evaluate(() => { (window as any).__pendingBackup = window.electronAPI.data.export() })
+    await expect.poll(() => electronApp.evaluate(() => typeof (globalThis as any).__backupRelease)).toBe('function')
+    expect(await page.evaluate(() => window.electronAPI.data.import())).toEqual({ success: false, error: 'busy' })
+    await electronApp.evaluate(() => {
+      ;(globalThis as any).__backupRelease()
+      delete (globalThis as any).__backupRelease
+    })
+    expect(await page.evaluate(() => (window as any).__pendingBackup)).toEqual({ success: false, error: 'cancelled' })
     await electronApp.evaluate(({ dialog }, filePath) => {
       dialog.showSaveDialog = async () => ({ canceled: false, filePath })
     }, exportPath)

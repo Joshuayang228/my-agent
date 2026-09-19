@@ -135,6 +135,8 @@ IPC 契约必须四处同步：
 
 Renderer 只能通过 preload 白名单访问主进程。敏感配置、文件边界、外部进程和高风险确认必须由主进程重新校验，不能信任 Renderer 传入的“已批准”状态。
 
+备份 IPC 的交互生命周期由 `ipc/backup-operation.ts` 管理：`data:export` 与 `data:import` 共用进程内互斥租约，绑定请求主框架及其 BrowserWindow，不依赖当前聚焦窗口。准备阶段监听窗口销毁、Renderer 退出与主文档导航，失效后迟到结果不得开始写入；进入 commit 后保持锁直至 handler finally 收尾。该锁只互斥备份请求，不锁住其他存储服务；会话 / 生活资产事务与后续记忆 / 设置写入仍非跨存储原子事务。
+
 ### 3. 工具系统
 
 - 声明式注册（ToolDefinition + ToolMetadata）

@@ -5254,9 +5254,12 @@ test.describe('My Agent UI', () => {
         await page.evaluate(() => (window as any).__backup.resolve({ success: false, error: 'private-path-secret' }))
         await expect(content.getByRole('alert')).toHaveText('导入失败，请检查备份文件后重试。')
         await imp.click()
+        await page.evaluate(() => (window as any).__backup.resolve({ success: false, error: 'busy' }))
+        await expect(content.getByRole('alert')).toHaveText('另一个备份操作正在进行，请完成后重试。')
+        await imp.click()
         await page.evaluate(() => (window as any).__backup.resolve({ success: true, stats: { sessions: 2, memories: 3, livingAssets: 4 } }))
         await expect(content.getByRole('status')).toHaveText('导入成功：2 个会话、3 条记忆、4 条生活记录。')
-        expect(await page.evaluate(() => (window as any).__backup.calls)).toEqual(['export', 'import', 'import', 'import'])
+        expect(await page.evaluate(() => (window as any).__backup.calls)).toEqual(['export', 'import', 'import', 'import', 'import'])
         await page.screenshot({ path: testInfo.outputPath('data-settings.png'), fullPage: true })
       })
     }

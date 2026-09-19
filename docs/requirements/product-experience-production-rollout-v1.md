@@ -18,6 +18,10 @@
 
 ## 2. 回流映射与验收单位
 
+R07 owner / 租约验收：handler 5 项受控红测先复现，首次测试夹具缺少 session-store 默认 loader，补齐后得到真实成功写入 / 并发进入的红测，再实施修复。最终新增 12 项 Unit 覆盖归属 / 互斥 / 失效 / 异常，全部 Unit 1069、完整 UI 252、独立 Electron 20 通过 / 4 外部模型条件跳过、Eval 23 + 1、根 tsc / build 通过；主进程同编译器对照 75 → 75 无新增。Electron 真实 invoke 在对话框 pending 时返回 busy，取消后正式页面备份往返成功。证据 `var/verification/backup-ownership-ui` / `backup-ownership-electron`；不声称主进程类型全绿、不声称备份跨存储原子性，不关闭 R07 与全产品目标。
+
+R07 主进程生命周期边界：既有 data:export/import 使用 getFocusedWindow 且无统一锁，改为绑定 invoke.sender 对应窗口并在打开系统对话框前同步取得跨导入 / 导出的单操作租约；重复请求立即返回 busy，不排队打开迟到对话框。参考现有 MCP owner 失效监听与 config-lock，备份含交互对话框不能直接复用配置写队列。窗口销毁、渲染进程退出或主框架非原地导航使准备阶段失效，迟到对话框 / 文件读取不得进入写入；旧 finally 不得释放新租约。写入开始后保持互斥直到完成或失败，不声称能撤回已经开始的文件 / 数据库写入。继续使用既有 schema、安全过滤与合并策略，不声称导入所有存储已原子化或具备崩溃回滚。允许修改 data-export handler、专用备份操作租约模块、正式数据页 busy 文案适配、对应 Unit / UI / Electron 与模块 / 质量 / 账本文档；不新增外部依赖、IPC 频道或载荷字段。必测同窗 / 跨窗并发、取消与抛错释放、owner 非聚焦、无窗口 / 子框架拒绝、关闭 / 导航迟到、commit 中保持锁及真实 Electron 回归。数据库完整原子导入另按 R07 后续收口，不能因本锁上线关闭总目标。
+
 R07 本批验收：Unit 1057、完整 UI 最终 252、Electron 最终 20 通过 / 4 外部模型条件跳过、资产 30、根 tsc / build 通过。真实 Electron 改为正式设置按钮发起导入导出，系统文件选择仅返回测试路径，实际 JSON / IPC / 独立目录存储恢复及重复合并均真实执行。四主题宽窄、同步锁、取消 / 错误 / 重试和跨子页 busy / 迟到隔离已覆盖；浅色宽屏与深色窄屏截图已检查。首次 UI 为 251 通过 / 1 旧整段文案断言失配，改为候选逐项列表断言；首次 Electron 为 16 通过 / 4 失败 / 4 条件跳过，导入新目录自动进入设置导致隐藏侧栏点击超时，后续 worker 重建缺前置，纠正首个初始化断言后整套通过。证据 `data-settings-ui-full` / `data-settings-ui-verified` / `data-settings-electron` / `data-settings-electron-verified` 位于 `var/verification/`。仅共享组件采用状态更新为 adopted，整项设置体验仍未完成；主进程全局备份锁与窗口生命周期继续归 R07 / WISH-045，不把本轮 UI 锁说成后端原子性。
 
 R07 数据页同源边界：正式 renderData 与候选 DataPage 仍各自维护按钮和备份说明，正式对 IPC rejection 没有 catch。本批提取 DataSettingsContent，共用候选两列操作、逐项备份说明与页内反馈；按钮从 Foundation ActionButton 提供。删除两套重复 JSX；同步点击锁与迟到结果隔离归共享组件，正式 SettingsPanel 继续持有跨设置页的忙碌状态与入口锁，真实 export/import 仍由正式适配器注入，候选只模拟反馈。不改备份 schema、过滤、合并及恢复策略。允许修改共享组件、正式 / 候选调用、注册表、Unit / UI 测试及对应模块 / 质量 / 进度文档。必测四主题宽窄、hover / pending 几何、重复点击、取消、结构失败与 Promise rejection、失败重试、离页迟到隔离、候选零 IPC；已有真实 Electron 备份恢复继续回归。实现基于仓库现有组件，属于已批准 UI 回流，无需新增依赖或外部研究。

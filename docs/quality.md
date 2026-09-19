@@ -1,5 +1,7 @@
 # 质量总控
 
+备份 owner / 并发门禁：backup-operation Unit 覆盖发起窗口、子框架拒绝、同文档 / 子框架导航不误取消、销毁 / Renderer 退出 / 主框架导航取消准备、旧 finally 与新租约隔离、commit 后持锁。data-export-ipc 受控 Promise 先红后绿覆盖跨请求对话框互斥、迟到导入不写库、迟到导出不写文件、写文件与对话框异常释放及非法 JSON 无事务。Electron 用真实 preload / handler 在导出对话框 pending 时发起导入，断言 busy，取消后从正式页完成真实文件往返。四主题 UI 检查 busy 的中文可重试提示；不能把上述互斥证据当作完整导入事务或其他写入服务的全局锁。
+
 备份正式入口证据：Electron 生活资产往返测试从 Settings → 数据与隐私实际点击导出 / 导入，仅替换系统文件选择框的返回路径，不替换备份 IPC；检查真实 JSON 中的生活资产及播种标记、独立目录恢复正文，并再次导入确认不重复。此测试不证明跨窗口并发或崩溃时的原子性。
 
 数据页门禁：TypeChecker 验证正式 SettingsPanel 与候选实际渲染 DataSettingsContent，并验证其操作来自 Foundation ActionButton；未使用 import 和同名遮蔽不能通过。UI 四主题宽窄覆盖重复点击只有一次调用、处理中两个操作禁用且按钮几何不变、取消无错误、IPC rejection / 结构失败的安全提示与重试、成功数量，以及跨设置子页 pending 保留、迟到结果隔离、候选零正式备份调用。真实备份格式和恢复仍由既有 data-export Unit 与独立 Electron 生活资产备份往返验证，不能以 Renderer 替身代替数据库证据。

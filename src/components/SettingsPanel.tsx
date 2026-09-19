@@ -566,6 +566,7 @@ export function SettingsPanel({
       setDataBusy(action)
       try {
         const result = await window.electronAPI.data[action]()
+        if (!result.success && result.error === 'busy') return { error: true, message: '另一个备份操作正在进行，请完成后重试。' }
         if (!result.success) return result.error === 'cancelled' ? null : {
           error: true,
           message: action === 'export' ? '导出失败，请检查保存位置后重试。' : '导入失败，请检查备份文件后重试。',

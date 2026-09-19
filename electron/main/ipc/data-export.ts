@@ -4,7 +4,8 @@
  * 导出格式：JSON 文件，包含会话、消息、记忆、设置、生活资产和播种标记。
  * 导入时按 ID 合并（不覆盖现有数据）；导入文件在写库前做结构与规模校验。
  */
-import { ipcMain, dialog, BrowserWindow } from 'electron'
+import { ipcMain, dialog } from 'electron'
+import { createBackupOperationGuard } from './backup-operation'
 import { writeFile, readFile, stat } from 'node:fs/promises'
 import { createLogger, hashForLog } from '../utils/logger'
 import * as sessionStore from '../storage/session-store'
@@ -479,18 +480,18 @@ export function importBackupPayload(
 }
 
 export function registerDataExportIPC(): void {
-  ipcMain.handle('data:export', async () => {
+  const operations = createBackupOperationGuard()
+  ipcMain.handle('data:export', async (event) => {
+    const operation = operations.begin(event)
+    if (!operation.ok) return { success: false, error: operation.error }
     try {
-      const win = BrowserWindow.getFocusedWindow()
-      if (!win) return { success: false, error: 'No window' }
-
-      const result = await dialog.showSaveDialog(win, {
+      const result = await dialog.showSaveDialog(operation.window, {
         title: '导出数据',
         defaultPath: `my-agent-backup-${new Date().toISOString().slice(0, 10)}.json`,
         filters: [{ name: 'JSON', extensions: ['json'] }],
       })
 
-      if (result.canceled || !result.filePath) return { success: false, error: 'cancelled' }
+      if (!operation.isActive() || result.canceled || !result.filePath) return { success: false, error: 'cancelled' }
 
       const db = await getDatabase()
       const sessions = await collectExportSessions(db)
@@ -521,6 +522,7 @@ export function registerDataExportIPC(): void {
         livingAssetSeeds,
       }
 
+      if (!operation.beginCommit()) return { success: false, error: 'cancelled' }
       await writeFile(result.filePath, JSON.stringify(data, null, 2), 'utf-8')
       const stats: DataExportStats = {
         sessions: sessions.length,
@@ -537,21 +539,22 @@ export function registerDataExportIPC(): void {
     } catch (err) {
       log.error('Export failed', { errorType: err instanceof Error ? err.name : 'unknown' })
       return { success: false, error: '导出失败，请重试' }
+    } finally {
+      operation.finish()
     }
   })
 
-  ipcMain.handle('data:import', async () => {
+  ipcMain.handle('data:import', async (event) => {
+    const operation = operations.begin(event)
+    if (!operation.ok) return { success: false, error: operation.error }
     try {
-      const win = BrowserWindow.getFocusedWindow()
-      if (!win) return { success: false, error: 'No window' }
-
-      const result = await dialog.showOpenDialog(win, {
+      const result = await dialog.showOpenDialog(operation.window, {
         title: '导入数据',
         filters: [{ name: 'JSON', extensions: ['json'] }],
         properties: ['openFile'],
       })
 
-      if (result.canceled || !result.filePaths[0]) return { success: false, error: 'cancelled' }
+      if (!operation.isActive() || result.canceled || !result.filePaths[0]) return { success: false, error: 'cancelled' }
 
       const importPath = result.filePaths[0]
       const fileStat = await stat(importPath)
@@ -559,6 +562,7 @@ export function registerDataExportIPC(): void {
         return { success: false, error: '备份文件过大，无法导入' }
       }
       const raw = await readFile(importPath, 'utf-8')
+      if (!operation.isActive()) return { success: false, error: 'cancelled' }
       let parsed: unknown
       try {
         parsed = JSON.parse(raw)
@@ -586,6 +590,7 @@ export function registerDataExportIPC(): void {
         if (!current) pendingSettings.push([key, value])
       }
 
+      if (!operation.beginCommit()) return { success: false, error: 'cancelled' }
       const importedCore = importBackupPayload(db, {
         sessions: data.sessions,
         livingAssets: data.livingAssets ?? [],
@@ -614,6 +619,8 @@ export function registerDataExportIPC(): void {
     } catch (err) {
       log.error('Import failed', { errorType: err instanceof Error ? err.name : 'unknown' })
       return { success: false, error: '导入失败，请检查备份文件后重试' }
+    } finally {
+      operation.finish()
     }
   })
 
