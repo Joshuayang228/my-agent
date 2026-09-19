@@ -5,6 +5,7 @@
  * 仅适用于提供兼容 /embeddings 端点且支持所选嵌入模型的服务。
  */
 
+import { createHash } from 'node:crypto'
 import type { LLMConfig } from '../../../src/shared/types'
 
 const DEFAULT_MODEL = 'text-embedding-3-small'
@@ -17,6 +18,30 @@ export interface EmbeddingResult {
   vector: number[]
   model: string
   tokenCount: number
+}
+
+/**
+ * 背景：不同端点 / 模型生成的向量不可直接比较，聊天模型名也不等于嵌入模型名。
+ * 意图：从实际请求端点与嵌入模型生成空间指纹，不在索引里保存端点或凭据。
+ * 约束：默认模型与请求共用常量；密钥轮换不改变空间，服务暗中换模型仍需独立重建。
+ */
+export function getEmbeddingSpaceKey(config: LLMConfig, embeddingModel?: string): string {
+  return createHash('sha256').update(JSON.stringify([
+    config.baseUrl.replace(/\/+$/, ''), embeddingModel || DEFAULT_MODEL,
+  ])).digest('hex')
+}
+
+/**
+ * 背景：同一请求模型别名也可能返回不同模型或维度。
+ * 意图：索引写入和查询共用同一身份字段，交给 Vectra 在相似度计算前过滤。
+ * 约束：缺少身份的旧索引不得猜测兼容；响应未报告模型时使用实际请求模型。
+ */
+export function getEmbeddingMetadata(config: LLMConfig, result: EmbeddingResult, embeddingModel?: string) {
+  return {
+    embeddingSpace: getEmbeddingSpaceKey(config, embeddingModel),
+    embeddingModel: result.model || embeddingModel || DEFAULT_MODEL,
+    embeddingDimensions: result.vector.length,
+  }
 }
 
 export async function createEmbedding(

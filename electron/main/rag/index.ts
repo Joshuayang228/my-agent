@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { LocalIndex } from 'vectra'
 import { app } from 'electron'
-import { createEmbedding } from '../memory/embeddings'
+import { createEmbedding, getEmbeddingMetadata } from '../memory/embeddings'
 import { createLogger, hashForLog } from '../utils/logger'
 import { getDatabase, persist } from '../storage/database'
 import type { LLMConfig } from '../../../src/shared/types'
@@ -81,10 +81,11 @@ export async function ingestDocument(filePath: string, config: LLMConfig): Promi
 
   for (let i = 0; i < chunks.length; i++) {
     try {
-      const { vector } = await createEmbedding(chunks[i], config)
+      const embedding = await createEmbedding(chunks[i], config)
       await idx.insertItem({
-        vector,
+        vector: embedding.vector,
         metadata: {
+          ...getEmbeddingMetadata(config, embedding),
           docId,
           docName: name,
           chunkIndex: i,
@@ -114,8 +115,8 @@ export async function searchDocuments(query: string, config: LLMConfig, topK = 5
   if (!await idx.isIndexCreated()) return []
 
   try {
-    const { vector } = await createEmbedding(query, config)
-    const results = await idx.queryItems(vector, query, topK)
+    const embedding = await createEmbedding(query, config)
+    const results = await idx.queryItems(embedding.vector, query, topK, getEmbeddingMetadata(config, embedding))
 
     return results
       .filter(r => r.score >= 0.4)

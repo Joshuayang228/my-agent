@@ -9,7 +9,9 @@ const state = vi.hoisted(() => ({ root: '', db: null as any, embedding: vi.fn(),
 vi.mock('electron', () => ({ app: { getPath: () => state.root } }))
 vi.mock('vectra', async importOriginal => await importOriginal())
 vi.mock('../../electron/main/storage/database', () => ({ getDatabase: async () => state.db, persist: vi.fn() }))
-vi.mock('../../electron/main/memory/embeddings', () => ({ createEmbedding: state.embedding }))
+vi.mock('../../electron/main/memory/embeddings', async importOriginal => ({
+  ...await importOriginal<typeof import('../../electron/main/memory/embeddings')>(), createEmbedding: state.embedding,
+}))
 vi.mock('../../electron/main/llm/aux-config', () => ({ loadMainLLMConfig: async () => state.config }))
 vi.mock('../../electron/main/utils/logger', () => ({ hashForLog: () => 'test', createLogger: () => ({ info: vi.fn(), warn: vi.fn() }) }))
 
@@ -45,6 +47,19 @@ it('真实导入后查询命中，遵守 topK，重开索引后仍可通过无 K
   expect(result).toContain('[用户文档内容]')
   expect(result).toContain('清晨散步计划')
   expect(result).not.toContain('[2]')
+})
+
+it('不同端点与维度的文档不参与查询，同端点重开仍可检索', async () => {
+  const rag = await import('../../electron/main/rag/index')
+  const file = path.join(state.root, 'space.txt')
+  fs.writeFileSync(file, '向量空间隔离样本')
+  await rag.ingestDocument(file, state.config)
+  const next = { ...state.config, baseUrl: 'http://other.local/v1' }
+  expect(await rag.searchDocuments('样本', next)).toEqual([])
+  state.embedding.mockResolvedValueOnce({ vector: [1, 0], model: 'embedding', tokenCount: 1 })
+  expect(await rag.searchDocuments('样本', state.config)).toEqual([])
+  expect(await rag.searchDocuments('样本', state.config)).toHaveLength(1)
+  expect(await rag.listDocuments()).toHaveLength(1)
 })
 
 it.each(['baseUrl', 'model'] as const)('工具拒绝空 %s，即使存在残留 Key', async key => {

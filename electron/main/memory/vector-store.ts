@@ -11,7 +11,7 @@ import { LocalIndex, LocalFileStorage } from 'vectra'
 import { app } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
-import { createEmbedding } from './embeddings'
+import { createEmbedding, getEmbeddingMetadata, getEmbeddingSpaceKey } from './embeddings'
 import { createLogger, hashForLog } from '../utils/logger'
 import type { LLMConfig, MemoryEntry } from '../../../src/shared/types'
 import { recordAssetUsage } from '../utils/asset-usage'
@@ -97,10 +97,11 @@ export async function addToVectorStore(
   try {
     await serializeVectorWrite(async () => {
       const idx = await getIndex()
-      const { vector } = await createEmbedding(entry.text, config, undefined, AbortSignal.timeout(VECTOR_EMBEDDING_TIMEOUT_MS))
+      const embedding = await createEmbedding(entry.text, config, undefined, AbortSignal.timeout(VECTOR_EMBEDDING_TIMEOUT_MS))
       await idx.insertItem({
-        vector,
+        vector: embedding.vector,
         metadata: {
+          ...getEmbeddingMetadata(config, embedding),
           id: entry.id, text: entry.text, category: entry.category,
           sessionId: entry.sessionId ?? '', timestamp: entry.timestamp,
         },
@@ -217,9 +218,9 @@ export async function searchVectorStore(
   try {
     const idx = await getIndex()
     if (!await idx.isIndexCreated()) return []
-    const { vector } = await createEmbedding(query, config)
+    const embedding = await createEmbedding(query, config)
 
-    const results = await idx.queryItems(vector, query, topK)
+    const results = await idx.queryItems(embedding.vector, query, topK, getEmbeddingMetadata(config, embedding))
 
     return results
       .filter(r => r.score >= minScore)
@@ -363,7 +364,7 @@ export async function removeFromVectorStore(id: string): Promise<void> {
 
 /**
  * 背景：SQLite 提交后的异步镜像可能因退出或网络失败缺失，不能把内存任务当恢复凭据。
- * 意图：按持久源核对镜像，旧 / 删除 / 重复项先清理，缺项使用稳定 id 重建；不改对话向量。
+ * 意图：按持久源及请求空间核对镜像，旧 / 删除 / 重复项清理，缺项使用稳定 id 重建；不改对话向量。
  * 约束：与普通向量写串行；异步期间源变化或停止后不得继续发布旧快照；错误向上传递以便重试。
  */
 export async function reconcileMemoryIndex(
@@ -381,6 +382,7 @@ export async function reconcileMemoryIndex(
       const source = desired.get(meta.id)
       const matches = source && meta.text === source.content && meta.category === source.category
         && meta.timestamp === source.updatedAt && (meta.roleId || '') === (source.roleId || '')
+        && (!config || meta.embeddingSpace === getEmbeddingSpaceKey(config))
       if (!matches || present.has(meta.id)) await idx.deleteItem(item.id)
       else present.add(meta.id)
     }
@@ -388,9 +390,10 @@ export async function reconcileMemoryIndex(
       if (!isCurrent() || signal.aborted) return false
       if (present.has(source.id)) continue
       if (!config) return false
-      const { vector } = await createEmbedding(source.content, config, undefined, signal)
+      const embedding = await createEmbedding(source.content, config, undefined, signal)
       if (!isCurrent() || signal.aborted) return false
-      await idx.upsertItem({ id: source.id, vector, metadata: {
+      await idx.upsertItem({ id: source.id, vector: embedding.vector, metadata: {
+        ...getEmbeddingMetadata(config, embedding),
         id: source.id, text: source.content, category: source.category,
         roleId: source.roleId || '', sessionId: '', timestamp: source.updatedAt,
       } })

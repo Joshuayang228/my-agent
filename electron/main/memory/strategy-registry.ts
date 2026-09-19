@@ -14,9 +14,14 @@ import { DEFAULT_VECTOR_RECALL_MIN_SCORE, DEFAULT_VECTOR_RECALL_TOP_K, MAX_CONVE
 import { modelContextFingerprint } from '../prompts/fingerprint'
 import { MEMORY_STRATEGY_ASSET_KEYS } from './asset-keys'
 import { MEMORY_INDEX_SYNC_POLICY } from './index-sync'
+import { getEmbeddingMetadata } from './embeddings'
 export { MEMORY_STRATEGY_ASSET_KEYS } from './asset-keys'
 
 const STRATEGY_VERSION = '1.0.0'
+const embeddingIdentityFields = Object.keys(getEmbeddingMetadata(
+  { apiKey: '', baseUrl: 'https://example.invalid/v1', model: 'chat' },
+  { vector: [1], model: 'embedding', tokenCount: 0 },
+))
 
 
 function jsonContent(value: unknown): string {
@@ -132,6 +137,7 @@ export function getMemoryStrategyAssetCatalog(): ModelContextAsset[] {
     }),
     strategyAsset({
       key: MEMORY_STRATEGY_ASSET_KEYS.vectorRecall,
+      version: '1.1.0',
       name: '记忆策略 · 向量召回',
       purpose: '决定语义检索命中哪些记忆并如何进入主 Prompt',
       role: 'vector-store',
@@ -140,6 +146,7 @@ export function getMemoryStrategyAssetCatalog(): ModelContextAsset[] {
       content: jsonContent({
         topK: DEFAULT_VECTOR_RECALL_TOP_K,
         minScore: DEFAULT_VECTOR_RECALL_MIN_SCORE,
+        embeddingIdentityFields,
         excludeSqliteMirrorIds: 'mem-*',
         staleThresholdDays: MEMORY_STALE_THRESHOLD_DAYS,
         filePathMemory: '使用前必须通过 file_read 或 code_search 验证路径仍存在',
@@ -147,7 +154,7 @@ export function getMemoryStrategyAssetCatalog(): ModelContextAsset[] {
     }),
     strategyAsset({
       key: MEMORY_STRATEGY_ASSET_KEYS.vectorLifecycle,
-      version: '1.1.0',
+      version: '1.2.0',
       name: '记忆策略 · 向量生命周期',
       purpose: '控制对话向量的容量与淘汰边界',
       role: 'vector-store',
@@ -156,6 +163,7 @@ export function getMemoryStrategyAssetCatalog(): ModelContextAsset[] {
       content: jsonContent({
         conversationVectorLimit: MAX_CONVERSATION_VECTORS,
         structuredMemoryRecovery: MEMORY_INDEX_SYNC_POLICY,
+        embeddingIdentityFields,
         eviction: '只淘汰 conversation 类，按 timestamp 从旧到新淘汰',
         structuredMemoryEviction: 'identity / preference / fact / workflow / voice 不自动淘汰',
       }),

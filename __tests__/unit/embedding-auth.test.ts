@@ -1,9 +1,22 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createEmbedding, createEmbeddings } from '../../electron/main/memory/embeddings'
+import { createEmbedding, createEmbeddings, getEmbeddingMetadata, getEmbeddingSpaceKey } from '../../electron/main/memory/embeddings'
 
 afterEach(() => vi.unstubAllGlobals())
 
 describe('embedding authentication headers', () => {
+  it('空间身份由实际嵌入请求决定，不受聊天模型和密钥轮换影响', () => {
+    const config = { apiKey: 'secret-fixture', baseUrl: 'http://localhost/v1/', model: 'chat-a' }
+    const key = getEmbeddingSpaceKey(config)
+    expect(key).toMatch(/^[a-f0-9]{64}$/)
+    expect(getEmbeddingSpaceKey({ ...config, apiKey: 'rotated', baseUrl: 'http://localhost/v1', model: 'chat-b' })).toBe(key)
+    expect(getEmbeddingSpaceKey(config, 'different-embedding')).not.toBe(key)
+    expect(getEmbeddingSpaceKey({ ...config, baseUrl: 'http://other.local/v1' })).not.toBe(key)
+    const metadata = getEmbeddingMetadata(config, { vector: [1, 0], model: 'reported-model', tokenCount: 1 })
+    expect(metadata).toEqual({ embeddingSpace: key, embeddingModel: 'reported-model', embeddingDimensions: 2 })
+    expect(JSON.stringify(metadata)).not.toContain(config.apiKey)
+    expect(JSON.stringify(metadata)).not.toContain(config.baseUrl)
+  })
+
   it.each(['', 'fixture-key'])('single and batch keep optional credentials: %s', async (apiKey) => {
     const fetchMock = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ data: [{ embedding: [1, 0], index: 0 }], model: 'test-embedding', usage: { total_tokens: 1 } })))
     vi.stubGlobal('fetch', fetchMock)

@@ -13,7 +13,9 @@ vi.mock('../../electron/main/storage/database', async importOriginal => ({
   ...await importOriginal<typeof import('../../electron/main/storage/database')>(),
   getDatabase: async () => state.db, persist: state.persist,
 }))
-vi.mock('../../electron/main/memory/embeddings', () => ({ createEmbedding: state.embedding }))
+vi.mock('../../electron/main/memory/embeddings', async importOriginal => ({
+  ...await importOriginal<typeof import('../../electron/main/memory/embeddings')>(), createEmbedding: state.embedding,
+}))
 vi.mock('../../electron/main/llm/aux-config', () => ({ loadMainLLMConfig: async () => ({ apiKey: state.apiKey, baseUrl: 'http://localhost/v1', model: 'test' }) }))
 vi.mock('../../electron/main/utils/asset-usage', () => ({ recordAssetUsage: vi.fn() }))
 vi.mock('../../electron/main/utils/logger', () => ({ hashForLog: () => 'test', createLogger: () => ({ info: vi.fn(), warn: vi.fn(), debug: vi.fn() }) }))
@@ -72,6 +74,50 @@ async function startSync() {
   await sync.ready
   return sync
 }
+
+it('切换端点不召回旧空间，核对后重建结构化记忆并保留旧对话', async () => {
+  const store = await import('../../electron/main/storage/memory-store')
+  const vectors = await import('../../electron/main/memory/vector-store')
+  const memory = await store.addMemory('fact', '独立向量空间样本')
+  const source = await store.listMemories()
+  const reconcile = (target: typeof config) => vectors.reconcileMemoryIndex(source, target, () => true, new AbortController().signal)
+  await reconcile(config)
+  await vectors.addToVectorStore({ id: 'conversation-a', text: '旧端点对话', category: 'conversation', timestamp: 1 }, config)
+  const next = { ...config, baseUrl: 'http://other.local/v1' }
+  expect(await vectors.searchVectorStore('样本', next)).toEqual([])
+  expect(await reconcile(next)).toBe(true)
+  expect(await vectors.searchVectorStore('样本', next)).toEqual([expect.objectContaining({ id: memory.id })])
+  expect(await vectors.searchVectorStore('样本', config)).toEqual([expect.objectContaining({ id: 'conversation-a' })])
+  const calls = state.embedding.mock.calls.length
+  await reconcile(next)
+  expect(state.embedding).toHaveBeenCalledTimes(calls)
+  expect(await vectors.getVectorStoreStats()).toMatchObject({ count: 2 })
+})
+
+it('没有空间标识的旧向量不召回；结构化源可重建，未配置时不破坏已有镜像', async () => {
+  const store = await import('../../electron/main/storage/memory-store')
+  const memory = await store.addMemory('fact', '旧格式结构化源')
+  const { LocalIndex } = await import('vectra')
+  const legacy = new LocalIndex(path.join(state.root, 'vector-index'))
+  await legacy.createIndex()
+  await legacy.insertItem({ vector: [1, 0, 0], metadata: { id: memory.id, text: memory.content, category: memory.category, timestamp: memory.updatedAt } })
+  const vectors = await import('../../electron/main/memory/vector-store')
+  expect(await vectors.searchVectorStore('旧格式', config)).toEqual([])
+  const source = await store.listMemories()
+  await vectors.reconcileMemoryIndex(source, undefined, () => true, new AbortController().signal)
+  expect(await vectors.getVectorStoreStats()).toMatchObject({ count: 1 })
+  await vectors.reconcileMemoryIndex(source, config, () => true, new AbortController().signal)
+  expect(await vectors.searchVectorStore('旧格式', config)).toEqual([expect.objectContaining({ id: memory.id })])
+})
+
+it('同端点返回不同维度时不比较不兼容向量', async () => {
+  const vectors = await import('../../electron/main/memory/vector-store')
+  await vectors.addToVectorStore({ id: 'conversation-dimension', text: '三维样本', category: 'conversation', timestamp: 1 }, config)
+  state.embedding.mockResolvedValueOnce({ vector: [1, 0], model: 'test', tokenCount: 1 })
+  expect(await vectors.searchVectorStore('二维查询', config)).toEqual([])
+  state.embedding.mockResolvedValueOnce({ vector: [1, 0, 0], model: 'different-response-model', tokenCount: 1 })
+  expect(await vectors.searchVectorStore('同维度不同模型', config)).toEqual([])
+})
 
 it('首次读取与写入并发时，迟到的磁盘旧快照不能覆盖新索引', async () => {
   const { LocalIndex, LocalFileStorage } = await import('vectra')

@@ -243,7 +243,7 @@ Skill 启停是用户运行态，不修改内置文件或资产指纹。`skills:
 - **Structured Output**：OpenAI Compatible `ResponseFormat` 支持 json_object / json_schema
 - 内置 Provider 入口统一来自 `src/shared/provider-presets.ts`：按海外直连、国内服务商、编程套餐、聚合与代理、本地 / 自定义分组；当前 Settings 展示 24 个入口，Chat 快切展示其中 2 个 Provider。模型 ID 不进入 Provider 预设，来自用户账户实际可用列表。ListenHub / CLIProxy 不作为普通聊天入口。
 - RAG 文档查询通过 rag_search → searchDocuments → Vectra queryItems(vector, query, topK)，配置仍由 loadMainLLMConfig 装配；入口校验端点和模型，不将 Key 非空作为本地连接必要条件。不改变分层、索引格式或 IPC。
-- Embedding 当前仍复用主用途端点与默认嵌入模型。index-sync 与 RAG IPC 从唯一配置工厂装配，入口不以 Key 非空替代配置就绪；适配器仅在 Key 非空时发送认证头，不持有进程级永久失败缓存。结构化索引恢复的退避 / 取消仍归既有 worker，不新增调度层；独立嵌入配置和向量空间身份仍是 S2 缺口。
+- Embedding 当前仍复用主用途端点与默认嵌入模型。index-sync 与 RAG IPC 从唯一配置工厂装配，入口不以 Key 非空替代配置就绪；适配器仅在 Key 非空时发送认证头，不持有进程级永久失败缓存。结构化索引恢复的退避 / 取消仍归既有 worker，不新增调度层。embeddings 统一生成请求空间指纹、返回模型和维度元数据，记忆 / RAG 在计算相似度前过滤；结构化源在核对时按请求空间重建。独立嵌入配置、配置保存后的唤醒及文档 / 对话重建仍是 S2 缺口。
 
 ### 8. 上下文压缩
 
