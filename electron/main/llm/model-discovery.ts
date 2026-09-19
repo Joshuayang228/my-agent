@@ -50,7 +50,7 @@ function buildModelListRequest(config: LLMConfig): { url: string; headers: Recor
  */
 export async function fetchRemoteModels(
   config: LLMConfig,
-  options?: { fetchImpl?: typeof fetch; timeoutMs?: number },
+  options?: { fetchImpl?: typeof fetch; timeoutMs?: number; signal?: AbortSignal },
 ): Promise<LLMModelFetchResult> {
   if (!hasLLMAuthentication(config)) {
     return { ok: false, error: MODEL_FETCH_MESSAGES.missingKey, reason: 'missing-key', retryable: false }
@@ -63,10 +63,11 @@ export async function fetchRemoteModels(
   const timeoutMs = options?.timeoutMs ?? MODEL_FETCH_TIMEOUT_MS
   const fetchImpl = options?.fetchImpl ?? fetch
   try {
+    options?.signal?.throwIfAborted()
     const response = await fetchImpl(request.url, {
       method: 'GET',
       headers: request.headers,
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: options?.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
     })
     if (!response.ok) {
       const classified = classifyHttpStatus(response.status)

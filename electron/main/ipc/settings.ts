@@ -15,6 +15,7 @@ import { withMcpConfigLock } from '../mcp/config-lock'
 import { z } from 'zod'
 import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import { modelParameterError } from '../../../src/shared/model-parameters'
+import { beginModelDiagnostic } from './model-diagnostic-operation'
 
 const modelConfigurationSchema = z.object({
   connections: z.string().max(settings.MAX_SETTING_VALUE_LENGTH),
@@ -195,21 +196,26 @@ export function registerSettingsIPC(): void {
     }
   })
 
-  ipcMain.handle('settings:test-connection', async (_event, input: LLMConnectionTestInput): Promise<LLMConnectionTestResult> => {
+  ipcMain.handle('settings:test-connection', async (event, input: LLMConnectionTestInput): Promise<LLMConnectionTestResult> => {
     const validated = validateLLMConnectionTestInput(input)
     if (!validated.ok) return validated
 
+    const cancelled = { ok: false as const, error: '连接测试已取消，请重新发起' }
+    const operation = beginModelDiagnostic(event)
+    if (!operation) return cancelled
     const startedAt = Date.now()
     try {
       const storedKey = validated.value.useStoredApiKey
         ? await resolveStoredConnectionApiKey(validated.value)
         : ''
+      if (!operation.isActive()) return cancelled
       const config = await loadMainLLMConfig({
         apiKey: validated.value.apiKey || storedKey,
         baseUrl: validated.value.baseUrl,
         model: validated.value.model,
         ...(validated.value.provider ? { provider: validated.value.provider } : {}),
       })
+      if (!operation.isActive()) return cancelled
       if (!hasLLMAuthentication(config)) return { ok: false, error: '请先配置 API Key' }
       await chatComplete({
         config: {
@@ -221,26 +227,43 @@ export function registerSettingsIPC(): void {
         caller: 'connection-test',
         promptAssetKeys: [PROMPT_KEYS.connectionTest],
         timeoutMs: 15_000,
+        signal: operation.signal,
       })
+      if (!operation.isActive()) return cancelled
       return { ok: true, model: config.model, ms: Date.now() - startedAt }
     } catch (error) {
+      if (!operation.isActive()) return cancelled
       return { ok: false, error: connectionTestError(error) }
+    } finally {
+      operation.finish()
     }
   })
 
-  ipcMain.handle('settings:fetch-models', async (_event, input: LLMModelFetchInput): Promise<LLMModelFetchResult> => {
+  ipcMain.handle('settings:fetch-models', async (event, input: LLMModelFetchInput): Promise<LLMModelFetchResult> => {
     const validated = validateLLMModelFetchInput(input)
     if (!validated.ok) return { ok: false, error: validated.error, reason: validated.reason, retryable: validated.reason !== 'missing-key' }
-    const storedKey = validated.value.useStoredApiKey
-      ? await resolveStoredConnectionApiKey(validated.value)
-      : ''
-    const config = await loadMainLLMConfig({
-      apiKey: validated.value.apiKey || storedKey,
-      ...(validated.value.provider ? { provider: validated.value.provider } : {}),
-      baseUrl: validated.value.baseUrl,
-    })
-    if (!hasLLMAuthentication(config)) return { ok: false, error: MODEL_FETCH_MESSAGES.missingKey, reason: 'missing-key', retryable: false }
-    return fetchRemoteModels(config)
+    const cancelled: LLMModelFetchResult = { ok: false, error: '获取模型已取消，请重新发起', reason: 'network', retryable: true }
+    const operation = beginModelDiagnostic(event)
+    if (!operation) return cancelled
+    try {
+      const storedKey = validated.value.useStoredApiKey
+        ? await resolveStoredConnectionApiKey(validated.value)
+        : ''
+      if (!operation.isActive()) return cancelled
+      const config = await loadMainLLMConfig({
+        apiKey: validated.value.apiKey || storedKey,
+        ...(validated.value.provider ? { provider: validated.value.provider } : {}),
+        baseUrl: validated.value.baseUrl,
+      })
+      if (!operation.isActive()) return cancelled
+      if (!hasLLMAuthentication(config)) return { ok: false, error: MODEL_FETCH_MESSAGES.missingKey, reason: 'missing-key', retryable: false }
+      const result = await fetchRemoteModels(config, { signal: operation.signal })
+      return operation.isActive() ? result : cancelled
+    } catch {
+      return operation.isActive() ? { ok: false, error: MODEL_FETCH_MESSAGES.network, reason: 'network', retryable: true } : cancelled
+    } finally {
+      operation.finish()
+    }
   })
 }
 

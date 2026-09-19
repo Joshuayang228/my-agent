@@ -13,6 +13,17 @@ const anthropic: LLMConfig = { apiKey: 'sk-test', baseUrl: 'https://api.anthropi
 const gemini: LLMConfig = { apiKey: 'sk-test', baseUrl: 'https://generativelanguage.googleapis.com', model: 'gemini-pro', provider: 'gemini' }
 
 describe('model discovery requests', () => {
+  it('owner 取消在途请求且已取消时不发起网络请求', async () => {
+    const controller = new AbortController()
+    const fetchImpl = vi.fn<typeof fetch>(async (_url, options) => new Promise((_resolve, reject) => {
+      options!.signal!.addEventListener('abort', () => reject(options!.signal!.reason), { once: true })
+    }))
+    const pending = fetchRemoteModels(openai, { fetchImpl, signal: controller.signal })
+    controller.abort()
+    expect((await pending).ok).toBe(false)
+    expect((await fetchRemoteModels(openai, { fetchImpl, signal: controller.signal })).ok).toBe(false)
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
   it('discovers from a keyless loopback without an empty authorization header', async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ data: [{ id: 'local-model' }] })))
     expect(await fetchRemoteModels({ ...openai, baseUrl: 'http://127.0.0.1:11434/v1', apiKey: '' }, { fetchImpl })).toEqual({ ok: true, models: ['local-model'] })

@@ -78,6 +78,12 @@ R12 必须拆成六个独立验收面：
 
 ## 3. 技术与管理方案（How）
 
+### R06 模型诊断窗口生命周期（2026-09-19，已验证子项）
+
+验证：两条装配等待导航用例先红后绿；Unit 1191、根 tsc / build、Eval 23 + 1、资产 31 通过，主进程诊断 74 → 74 无新增。真实 Electron 专项从正式表单创建连接，模型发现与测试等待时重载均关闭服务端 HTTP，再次进入可重试；完整 Electron 26 通过 / 4 外部模型条件跳过。没有 UI 视觉变更，未重跑纯 UI 套件。此子项不替代关窗草稿保护、多窗口冲突或全产品回流验收。
+
+正式 Renderer 已按请求身份丢弃迟到结果，但主进程 settings:test-connection / settings:fetch-models 未绑定 sender，重载或关闭窗口后仍可能发起 / 等待网络调用。本子项沿现有 backup-operation 的主框架归属与事件清理模式，增加只读诊断请求作用域；在读凭据、装配配置之后复核存活，在途网络接入 AbortSignal，成功与失败均释放监听。只接受存活窗口的主框架，主文档导航、渲染进程退出和窗口销毁撤销操作；同页导航不撤销。不更改配置格式、IPC 载荷、模型工厂、页面布局或 OAuth 范围；普通 React 子页切换继续由既有请求身份隔离，不声称新增页面级网络取消。允许修改 settings IPC、诊断作用域 helper、model-discovery、对应 Unit / Electron 与文档。先受控复现配置等待时窗口失效后仍发请求，再验证在途取消、子框架拒绝、成功失败监听清理及真实本地 HTTP 断开。
+
 ### 单一实现与证据链
 
 沿 `候选故事 → 正式组件 → App 导航 → preload → handler → 服务 / 存储 → UI 反馈` 审核每个动作。基础控件由 Foundation 提供，业务布局和状态由正式组件持有，Playground 通过 props / 隔离数据复用。禁止生产 import `SettingsExperienceCandidate` 或 `SurfaceBaselinePanel` 来快速得到假页面。

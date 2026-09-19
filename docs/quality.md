@@ -1,5 +1,7 @@
 # 质量总控
 
+模型诊断生命周期门禁：settings-security 受控暂停配置装配，先红后绿验证主文档导航后零网络调用；覆盖子框架零凭据读取、在途取消信号、迟到成功拒绝及成功 / 异常监听清理。model-discovery 覆盖取消传播与预先取消零请求。独立 Electron `model-diagnostic-lifecycle` 从正式模型表单保存本地连接，分别在真实 GET / POST 等待中重载，服务端观察 HTTP 关闭，再从正式入口成功重试；不使用外部付费服务，不证明普通 React 子页卸载已取消网络。
+
 朋友圈备份门禁：moment-backup Unit 使用真实 SQLite 与生活服务，覆盖导出 / 清空 / 导入 / 重开、重复导入不覆盖、关联与规模拒绝、SQL 和落盘失败回滚。独立 Electron 从正式数据页导出真实赞评，在新目录恢复并完整重启，检查正式人物世界中的动态、点赞和两条用户评论；重复导入保留恢复后新增评论。此次完整 Electron 25 通过 / 4 外部模型条件跳过，UI 落盘结果 passed；不将本地协议测试等同于外部服务验收。
 
 整份备份恢复门禁：backup-atomicity 使用真实 SQLite / 临时文件与生产原子写入函数，设置 trigger 失败和快照 rename 失败时内存各表、重开快照保持原样，向量不提前发布，重试一次落盘；同时覆盖语义去重、设置密文及重复导入不覆盖。generated-image-backup 验证最终 persist 失败撤销会话和本批媒体。backup-recovery Unit 核验提交前 / 后目录、管理标记、链接与损坏引用。独立 Electron 从正式数据页导入，在 my-agent.db 替换前 / 后 SIGKILL 主进程，再真实重启验证核心数据和媒体全无 / 全有。首轮动态 import 与 process 句柄不适配当前驱动，后改退出事件；process.exit 未稳定停在注入点，最终使用 SIGKILL 并留下证据标记，不调整产品断言。此测试不证明断电或向量异步索引补偿。
