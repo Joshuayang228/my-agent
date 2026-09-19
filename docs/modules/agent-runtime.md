@@ -136,7 +136,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 |------|------|-------------|
 | Agent Loop（流式事件 · 工具超时 · 重试） | 已落地 | `agent/loop.ts` |
 | 人物世界生活资产 IPC | 部分 | `ipc/companion.ts` · `life/assets.ts` · `companion:create-asset` / `update-asset` / `delete-asset`；用户创建白名单由 createAsset 校验，不进入 Loop |
-| 生活资产备份 IPC | 已落地 | `ipc/data-export.ts` · `data:export` / `data:import`；覆盖 `companion_assets` 与 `companion_asset_seeds`，按 id / 播种键合并，会话与资产同一事务失败回滚。旧备份缺字段仍可导入。记忆继续走 `memoryStore.addMemory`，不进入 Loop |
+| 生活资产备份 IPC | 已落地 | `ipc/data-export.ts` · `data:export` / `data:import`；覆盖 `companion_assets` 与 `companion_asset_seeds`，按 id / 播种键合并，会话与资产同一事务失败回滚。旧备份缺字段仍可导入。整份预检共用记忆存储正文断言，非法记忆不得在会话 / 资产写入后才被拒绝；通过后记忆继续走 `memoryStore.addMemory`，不进入 Loop；合法输入的跨存储原子导入仍未实现 |
 | 会话 Runtime 中心化（chat:send 只传本轮） | 已落地 | `agent/runtime.ts` · `ipc/chat` |
 | TerminalReason 终态传递与 Runtime 去重 | 已落地 | `agent/loop.ts` · `agent/runtime.ts` · `runtime-terminal-reason.test.ts` |
 | System Prompt 四层组装 | 已落地 | `prompt-builder.ts` |

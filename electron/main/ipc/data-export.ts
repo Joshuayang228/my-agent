@@ -26,7 +26,6 @@ import {
   MAX_COMPANION_RESPONSE_NOTE_LENGTH,
 } from '../../../src/shared/types'
 import type { Database } from 'sql.js'
-import { detectSensitiveKinds } from '../../../src/shared/sensitive-memory'
 
 const log = createLogger('DataExport')
 
@@ -160,10 +159,15 @@ export function isValidExportData(value: unknown): value is ExportData {
       || typeof memory.category !== 'string'
       || !EXPORT_MEMORY_CATEGORIES.has(memory.category as MemoryCategory)
       || (memory.roleId !== undefined && !boundedString(memory.roleId, 200))
-      || !boundedString(memory.content)
-      || detectSensitiveKinds(memory.content).includes('credentials')
       || !isFiniteNumber(memory.createdAt)
       || !isFiniteNumber(memory.updatedAt)) return false
+    // 导入会先写会话再写记忆，因此必须在整份预检复用存储约束；
+    // 不另设宽松长度上限，任何正文不合法都应在首次写入前拒绝。
+    try {
+      memoryStore.assertMemoryContentAllowed(memory.content)
+    } catch {
+      return false
+    }
   }
 
   for (const [key, setting] of Object.entries(value.settings)) {

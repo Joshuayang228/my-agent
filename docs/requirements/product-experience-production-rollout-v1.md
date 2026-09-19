@@ -18,6 +18,8 @@
 
 ## 2. 回流映射与验收单位
 
+R07 记忆预检一致性子项（2026-09-19）：已复现备份预检接受长度 0 / 1 / 20,001 的正文，而 memory-store 的权威校验拒绝这些值；旧 handler 会在调用记忆存储前提交会话 / 生活资产。此子项完整边界是“整份备份的正文校验与真实记忆存储同源，非法输入在任何业务写入前拒绝”。删除 data-export 内重复的正文长度 / 凭据判断，直接调用 assertMemoryContentAllowed；不改变存储类别、去重、向量索引、合并规则或 IPC 形状。允许修改 data-export、security-boundaries / data-export-ipc Unit、onboarding Electron 及记忆模块卡 / 进度 / 缺口记录；不改其他 UI、schema 或外部依赖。验收覆盖 0 / 1 / 2 / 20,000 / 20,001 边界、凭据拒绝、整份混合数据零写入、拒绝后合法导入重试。此项不代替合法输入的写盘失败补偿、跨存储原子性或崩溃恢复，R07 与总目标保持进行中。
+
 R07 owner / 租约验收：handler 5 项受控红测先复现，首次测试夹具缺少 session-store 默认 loader，补齐后得到真实成功写入 / 并发进入的红测，再实施修复。最终新增 12 项 Unit 覆盖归属 / 互斥 / 失效 / 异常，全部 Unit 1069、完整 UI 252、独立 Electron 20 通过 / 4 外部模型条件跳过、Eval 23 + 1、根 tsc / build 通过；主进程同编译器对照 75 → 75 无新增。Electron 真实 invoke 在对话框 pending 时返回 busy，取消后正式页面备份往返成功。证据 `var/verification/backup-ownership-ui` / `backup-ownership-electron`；不声称主进程类型全绿、不声称备份跨存储原子性，不关闭 R07 与全产品目标。
 
 R07 主进程生命周期边界：既有 data:export/import 使用 getFocusedWindow 且无统一锁，改为绑定 invoke.sender 对应窗口并在打开系统对话框前同步取得跨导入 / 导出的单操作租约；重复请求立即返回 busy，不排队打开迟到对话框。参考现有 MCP owner 失效监听与 config-lock，备份含交互对话框不能直接复用配置写队列。窗口销毁、渲染进程退出或主框架非原地导航使准备阶段失效，迟到对话框 / 文件读取不得进入写入；旧 finally 不得释放新租约。写入开始后保持互斥直到完成或失败，不声称能撤回已经开始的文件 / 数据库写入。继续使用既有 schema、安全过滤与合并策略，不声称导入所有存储已原子化或具备崩溃回滚。允许修改 data-export handler、专用备份操作租约模块、正式数据页 busy 文案适配、对应 Unit / UI / Electron 与模块 / 质量 / 账本文档；不新增外部依赖、IPC 频道或载荷字段。必测同窗 / 跨窗并发、取消与抛错释放、owner 非聚焦、无窗口 / 子框架拒绝、关闭 / 导航迟到、commit 中保持锁及真实 Electron 回归。数据库完整原子导入另按 R07 后续收口，不能因本锁上线关闭总目标。

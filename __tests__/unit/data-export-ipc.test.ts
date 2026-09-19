@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const state = vi.hoisted(() => ({
   handlers: new Map<string, Function>(), save: vi.fn(), open: vi.fn(), write: vi.fn(), read: vi.fn(), stat: vi.fn(),
-  prepare: vi.fn(), run: vi.fn(), persist: vi.fn(), database: vi.fn(), focused: {},
+  prepare: vi.fn(), run: vi.fn(), persist: vi.fn(), database: vi.fn(), memoryAdd: vi.fn(), focused: {},
 }))
 vi.mock('electron', () => ({
   ipcMain: { handle: (name: string, handler: Function) => state.handlers.set(name, handler) },
@@ -12,7 +12,10 @@ vi.mock('electron', () => ({
 }))
 vi.mock('node:fs/promises', () => ({ writeFile: state.write, readFile: state.read, stat: state.stat }))
 vi.mock('../../electron/main/storage/session-store', () => ({ getSession: vi.fn() }))
-vi.mock('../../electron/main/storage/memory-store', () => ({ listMemories: async () => [], addMemory: vi.fn() }))
+vi.mock('../../electron/main/storage/memory-store', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../electron/main/storage/memory-store')>()
+  return { listMemories: async () => [], addMemory: state.memoryAdd, assertMemoryContentAllowed: actual.assertMemoryContentAllowed }
+})
 vi.mock('../../electron/main/storage/settings-store', () => ({ getAllSettings: async () => ({}), getSetting: async () => '', setSetting: vi.fn() }))
 vi.mock('../../electron/main/storage/database', () => ({ getDatabase: state.database, persist: state.persist }))
 vi.mock('../../electron/main/utils/logger', () => ({ createLogger: () => ({ info: vi.fn(), error: vi.fn() }), hashForLog: () => 'hash' }))
@@ -106,6 +109,24 @@ describe('backup IPC lifecycle', () => {
     state.read.mockResolvedValueOnce('not json')
     expect(await invoke('import')).toEqual({ success: false, error: '备份文件不是有效的 JSON' })
     expect(state.run).not.toHaveBeenCalled()
+    expect(await invoke('export')).toEqual({ success: false, error: 'cancelled' })
+  })
+
+  it.each(['', '文', '文'.repeat(20_001)])('rejects invalid memory before importing any other data (%#)', async (content) => {
+    state.open.mockResolvedValueOnce({ canceled: false, filePaths: ['backup.json'] })
+    state.read.mockResolvedValueOnce(JSON.stringify({
+      ...emptyBackup,
+      sessions: [{ id: 'session-import', title: 'Backup', createdAt: 1, updatedAt: 1, messages: [] }],
+      memories: [
+        { id: 'valid', category: 'fact', content: '有效的记忆内容', createdAt: 1, updatedAt: 1 },
+        { id: 'invalid', category: 'fact', content, createdAt: 1, updatedAt: 1 },
+      ],
+    }))
+    expect(await invoke('import')).toEqual({ success: false, error: '备份文件格式无效或包含超限数据' })
+    expect(state.database).not.toHaveBeenCalled()
+    expect(state.run).not.toHaveBeenCalled()
+    expect(state.memoryAdd).not.toHaveBeenCalled()
+    expect(state.persist).not.toHaveBeenCalled()
     expect(await invoke('export')).toEqual({ success: false, error: 'cancelled' })
   })
 })

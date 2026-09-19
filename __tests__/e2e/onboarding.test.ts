@@ -526,11 +526,35 @@ test('正式生活资产经真实备份导出导入后保留且不覆盖现有�
     const importPage = await importApp.firstWindow()
     await importPage.waitForLoadState('domcontentloaded')
     await expect(importPage.locator('#startup-splash')).toBeHidden()
+    await expect(importPage.getByTestId('settings-panel')).toBeVisible()
+    await importPage.getByTestId('settings-nav-data').click()
+    const readImportState = () => importPage.evaluate(async () => ({
+      sessions: await window.electronAPI.session.list(),
+      memories: await window.electronAPI.memory.list(),
+      assets: await window.electronAPI.companion.getAssets(),
+      responseNote: (await window.electronAPI.settings.get()).companionResponseNote,
+    }))
+    const beforeInvalidImport = await readImportState()
+    for (const length of [0, 1, 20_001]) {
+      const invalidPath = path.join(importDir, `invalid-memory-${length}.json`)
+      await writeFile(invalidPath, JSON.stringify({
+        ...raw,
+        memories: [
+          { id: 'valid', category: 'fact', content: '这条有效记忆也不应在整份备份被拒绝时写入。', createdAt: 1, updatedAt: 1 },
+          { id: 'invalid', category: 'fact', content: '文'.repeat(length), createdAt: 1, updatedAt: 1 },
+        ],
+        settings: { companionResponseNote: '非法备份不应修改相处说明。' },
+      }), 'utf8')
+      await importApp.evaluate(({ dialog }, filePath) => {
+        dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] })
+      }, invalidPath)
+      await importPage.getByTestId('section-data').getByTestId('import').click()
+      await expect(importPage.getByTestId('section-data').getByRole('alert')).toContainText('导入失败')
+      expect(await readImportState()).toEqual(beforeInvalidImport)
+    }
     await importApp.evaluate(({ dialog }, filePath) => {
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] })
     }, exportPath)
-    await expect(importPage.getByTestId('settings-panel')).toBeVisible()
-    await importPage.getByTestId('settings-nav-data').click()
     await importPage.getByTestId('section-data').getByTestId('import').click()
     await expect(importPage.getByTestId('section-data').getByRole('status')).toContainText('导入成功')
     const restored = await importPage.evaluate(() => window.electronAPI.companion.getAssets())

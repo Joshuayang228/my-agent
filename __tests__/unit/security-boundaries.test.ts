@@ -9,7 +9,10 @@ vi.mock('electron', () => ({
 }))
 
 vi.mock('../../electron/main/storage/session-store', () => ({}))
-vi.mock('../../electron/main/storage/memory-store', () => ({}))
+vi.mock('../../electron/main/storage/memory-store', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../electron/main/storage/memory-store')>()
+  return { assertMemoryContentAllowed: actual.assertMemoryContentAllowed }
+})
 vi.mock('../../electron/main/storage/settings-store', () => ({
   MAX_SETTING_VALUE_LENGTH: 1_000_000,
   isAppSettingKey: (key: string) => ['currentProject', 'recentProjects', 'llmModel'].includes(key),
@@ -21,6 +24,7 @@ import { buildSafeChildProcessEnv } from '../../electron/main/utils/safe-process
 import { isAuthorizedProjectSelection, isPathInsideRoot } from '../../electron/main/ipc/project'
 import { isRendererWritableSettingKey } from '../../electron/main/ipc/settings'
 import { isBlockedAddress, validateFetchUrl } from '../../electron/main/tools/builtins/url-fetch'
+import { assertMemoryContentAllowed } from '../../electron/main/storage/memory-store'
 
 const validExport = {
   version: 1 as const,
@@ -54,6 +58,18 @@ const livingAsset = {
 }
 
 describe('安全边界', () => {
+  it.each([0, 1, 2, 20_000, 20_001])('备份记忆长度 %i 与真实存储校验一致', (length) => {
+    const content = '文'.repeat(length)
+    const valid = length >= 2 && length <= 20_000
+    const payload = {
+      ...validExport,
+      memories: [{ id: 'm1', category: 'fact', content, createdAt: 1, updatedAt: 1 }],
+    }
+    if (valid) expect(() => assertMemoryContentAllowed(content)).not.toThrow()
+    else expect(() => assertMemoryContentAllowed(content)).toThrow()
+    expect(isValidExportData(payload)).toBe(valid)
+  })
+
   it('导入校验允许普通文本 ID，但拒绝错误结构', () => {
     expect(isValidExportData(validExport)).toBe(true)
     expect(isValidExportData({ ...validExport, livingAssets: undefined, livingAssetSeeds: undefined })).toBe(true)

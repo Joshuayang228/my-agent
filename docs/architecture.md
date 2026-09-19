@@ -137,6 +137,8 @@ Renderer 只能通过 preload 白名单访问主进程。敏感配置、文件�
 
 备份 IPC 的交互生命周期由 `ipc/backup-operation.ts` 管理：`data:export` 与 `data:import` 共用进程内互斥租约，绑定请求主框架及其 BrowserWindow，不依赖当前聚焦窗口。准备阶段监听窗口销毁、Renderer 退出与主文档导航，失效后迟到结果不得开始写入；进入 commit 后保持锁直至 handler finally 收尾。该锁只互斥备份请求，不锁住其他存储服务；会话 / 生活资产事务与后续记忆 / 设置写入仍非跨存储原子事务。
 
+备份正文的业务约束不在 IPC 复制：`isValidExportData` 在整份预检阶段调用 `memoryStore.assertMemoryContentAllowed`，与实际记忆写入共用长度与凭据拒绝规则。任何一条不合法都在首次业务写入前拒绝；预检不能替代后续合法数据写入的事务与失败恢复。
+
 ### 3. 工具系统
 
 - 声明式注册（ToolDefinition + ToolMetadata）
