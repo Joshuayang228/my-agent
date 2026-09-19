@@ -8,6 +8,47 @@ import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { expectSharedCodeSurface } from './shared-code-surface'
 
+for (const width of [1166, 600]) {
+  test(`正式共享外观主题字号持久化与操作槽 ${width}`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 731 })
+    await page.goto('/')
+    await page.locator('button[title="设置"]').click()
+    const settings = page.getByTestId('settings-panel')
+    await settings.getByRole(width < 768 ? 'tab' : 'button', { name: '外观与界面', exact: true }).click()
+    const appearance = page.getByTestId('settings-section-appearance')
+    await expect(appearance.getByTestId('settings-theme-card').getByRole('button')).toHaveCount(4)
+    for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
+      const option = appearance.getByTestId(`settings-theme-${theme}`)
+      await option.scrollIntoViewIfNeeded()
+      await page.mouse.move(0, 0)
+      const before = await option.boundingBox()
+      await option.hover()
+      expect(await option.boundingBox()).toEqual(before)
+      await option.focus()
+      await page.keyboard.press('Enter')
+      await expect(option).toHaveAttribute('aria-pressed', 'true')
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
+      expect(await option.boundingBox()).toEqual(before)
+      expect(await appearance.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+      await page.screenshot({ path: testInfo.outputPath(`appearance-${theme}.png`), animations: 'disabled' })
+    }
+    for (const scale of ['sm', 'md', 'lg']) {
+      const option = appearance.getByTestId(`settings-font-${scale}`)
+      await option.focus()
+      await page.keyboard.press('Space')
+      await expect(option).toHaveAttribute('aria-pressed', 'true')
+      await expect(page.locator('html')).toHaveAttribute('data-font-scale', scale)
+    }
+    await page.reload()
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'deep-plum')
+    await expect(page.locator('html')).toHaveAttribute('data-font-scale', 'lg')
+    await page.locator('button[title="设置"]').click()
+    await settings.getByRole(width < 768 ? 'tab' : 'button', { name: '外观与界面', exact: true }).click()
+    await expect(appearance.getByTestId('settings-font-lg')).toHaveAttribute('aria-pressed', 'true')
+    await expect(appearance.getByTestId('settings-theme-deep-plum')).toHaveAttribute('aria-pressed', 'true')
+  })
+}
+
 for (const outerTheme of ['porcelain-blue', 'yao-stone']) {
   for (const width of [1166, 600]) {
     test(`设置主题与基础四主题同源 ${outerTheme} ${width}`, async ({ page }, testInfo) => {
@@ -50,6 +91,9 @@ for (const outerTheme of ['porcelain-blue', 'yao-stone']) {
       await settings.getByRole(width < 768 ? 'tab' : 'button', { name: '权限与自动化', exact: true }).click()
       await settings.getByRole(width < 768 ? 'tab' : 'button', { name: '外观与界面', exact: true }).click()
       await expect(choices.getByTestId('settings-candidate-theme-deep-plum')).toHaveAttribute('aria-pressed', 'true')
+      await settings.getByTestId('settings-candidate-font-lg').click()
+      await expect(settings.getByTestId('settings-candidate-font-lg')).toHaveAttribute('aria-pressed', 'true')
+      expect(await page.evaluate(() => JSON.stringify({ ...localStorage }))).toBe(savedBefore)
     })
   }
 }

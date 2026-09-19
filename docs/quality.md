@@ -1,5 +1,7 @@
 # 质量总控
 
+外观同源门禁：ui-component-registry 的 TypeChecker 断言正式 SettingsPanel 与候选实际渲染 AppearanceSettingsContent，后者实际渲染 Foundation ActionButton；未使用导入和局部同名遮蔽不得通过。正式入口 UI 在 1166 / 600px 切换四主题，验证键盘、选中唯一性、hover / 选中前后几何、无横向溢出、三档字号与重载恢复；候选主题 / 字号操作前后 localStorage 不变。截图由 appearance-shared-focused 与 appearance-shared-ui 保存，不代替全产品逐页最终验收。
+
 备份记忆预检门禁：security-boundaries Unit 使用真实存储断言核验 0 / 1 / 2 / 20,000 / 20,001 字符及凭据拒绝；data-export-ipc 验证有效与非法记忆混在同份备份时，数据库获取、SQL、addMemory 与 persist 均未调用，且租约释放可重试。onboarding Electron 从正式数据页依次导入三份非法正文备份，比较会话、记忆、生活资产与相处说明前后完全一致，然后完成合法导入及重复合并。该证据证明非法输入零业务写入，不证明合法输入落盘故障的原子恢复。
 
 备份 owner / 并发门禁：backup-operation Unit 覆盖发起窗口、子框架拒绝、同文档 / 子框架导航不误取消、销毁 / Renderer 退出 / 主框架导航取消准备、旧 finally 与新租约隔离、commit 后持锁。data-export-ipc 受控 Promise 先红后绿覆盖跨请求对话框互斥、迟到导入不写库、迟到导出不写文件、写文件与对话框异常释放及非法 JSON 无事务。Electron 用真实 preload / handler 在导出对话框 pending 时发起导入，断言 busy，取消后从正式页完成真实文件往返。四主题 UI 检查 busy 的中文可重试提示；不能把上述互斥证据当作完整导入事务或其他写入服务的全局锁。
