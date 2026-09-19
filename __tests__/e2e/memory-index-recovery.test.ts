@@ -6,15 +6,18 @@ import { fileURLToPath } from 'node:url'
 import { test, expect, type ElectronApplication } from '@playwright/test'
 import { _electron as electron } from 'playwright'
 
-test('正式备份提交后强退，向量服务失败后重启补齐真实索引且不重复', async ({}, testInfo) => {
+for (const apiKey of ['fixture-key', '']) {
+test('正式备份提交后强退，向量服务失败后重启补齐真实索引且不重复' + (apiKey ? '（有 Key）' : '（无 Key）'), async ({}, testInfo) => {
   let fail = true
   const requests: string[] = []
+  const authorization: Array<string | undefined> = []
   const server = createServer(async (request, response) => {
     const chunks: Buffer[] = []
     for await (const chunk of request) chunks.push(Buffer.from(chunk))
     const body = JSON.parse(Buffer.concat(chunks).toString() || '{}')
     if (request.url === '/v1/embeddings') {
       requests.push(body.input)
+      authorization.push(request.headers.authorization)
       response.writeHead(fail ? 503 : 200, { 'Content-Type': 'application/json' }).end(JSON.stringify(fail
         ? { error: { message: 'temporary failure' } }
         : { data: [{ embedding: [1, 0, 0], index: 0 }], model: 'fixture', usage: { total_tokens: 1 } }))
@@ -54,7 +57,7 @@ test('正式备份提交后强退，向量服务失败后重启补齐真实索�
     await form.getByRole('radio', { name: '本地模型', exact: true }).click()
     await form.getByLabel('连接名称', { exact: true }).fill('索引恢复验收')
     await form.getByLabel('Base URL', { exact: true }).fill(baseUrl)
-    await form.getByLabel('API Key', { exact: true }).fill('fixture-key')
+    await form.getByLabel('API Key', { exact: true }).fill(apiKey)
     await form.getByRole('button', { name: '保存连接', exact: true }).click()
     const profile = page.locator('[data-testid^="settings-model-profile-"]').filter({ hasText: '索引恢复验收' })
     await profile.getByRole('button', { name: '获取 索引恢复验收 已有模型', exact: true }).click()
@@ -66,7 +69,7 @@ test('正式备份提交后强退，向量服务失败后重启补齐真实索�
     page = await launch()
     await expect(page.getByTestId('chat-messages')).toBeVisible()
     expect(await page.evaluate(async () => JSON.parse((await window.electronAPI.settings.get()).modelConnections))).toEqual([
-      expect.objectContaining({ name: '索引恢复验收', hasApiKey: true }),
+      expect.objectContaining({ name: '索引恢复验收', hasApiKey: Boolean(apiKey) }),
     ])
     await page.locator('button[title="设置"]').click()
     await page.getByTestId('settings-nav-data').click()
@@ -112,6 +115,7 @@ test('正式备份提交后强退，向量服务失败后重启补齐真实索�
     await expect(page.getByTestId('chat-messages')).toBeVisible()
     expect(await mirrors()).toHaveLength(2)
     expect(requests).toHaveLength(count)
+    expect(authorization).toEqual(Array(count).fill(apiKey ? 'Bearer fixture-key' : undefined))
     await testInfo.attach('memory-index-recovery', { contentType: 'application/json', body: JSON.stringify({ mirrors: 2, sourceRetainedOnFailure: true, phase: 'committed-before-index', requests: count }) })
   } finally {
     if (app && !closed) await app.close()
@@ -120,3 +124,4 @@ test('正式备份提交后强退，向量服务失败后重启补齐真实索�
     await rm(root, { recursive: true, force: true })
   }
 })
+}

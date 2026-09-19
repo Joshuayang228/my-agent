@@ -2,18 +2,16 @@
  * Embedding 适配器
  *
  * 复用用户已配置的 OpenAI 兼容 API 来生成文本向量。
- * 支持 OpenAI / DeepSeek / 任何兼容 /v1/embeddings 端点的服务。
+ * 仅适用于提供兼容 /embeddings 端点且支持所选嵌入模型的服务。
  */
 
-import { createLogger } from '../utils/logger'
 import type { LLMConfig } from '../../../src/shared/types'
-
-const log = createLogger('Embeddings')
 
 const DEFAULT_MODEL = 'text-embedding-3-small'
 const DEFAULT_DIMENSIONS = 1536
 
-let embeddingUnavailable = false
+// 端点失败可能临时发生，也不能封禁其他连接；每次调用独立请求，
+// 重试节奏由索引 worker 等调用方控制，适配器不缓存永久不可用状态。
 
 export interface EmbeddingResult {
   vector: number[]
@@ -27,9 +25,6 @@ export async function createEmbedding(
   embeddingModel?: string,
   signal?: AbortSignal,
 ): Promise<EmbeddingResult> {
-  if (embeddingUnavailable) {
-    throw new Error('Embedding API previously unavailable, skipping')
-  }
   const model = embeddingModel || DEFAULT_MODEL
   const baseUrl = config.baseUrl.replace(/\/+$/, '')
 
@@ -47,10 +42,6 @@ export async function createEmbedding(
   })
 
   if (!response.ok) {
-    if (response.status === 404) {
-      embeddingUnavailable = true
-      log.info('Embedding endpoint not available for this provider, vector features disabled')
-    }
     const error = await response.text()
     throw new Error(`Embedding API error (${response.status}): ${error}`)
   }
@@ -77,9 +68,6 @@ export async function createEmbeddings(
   config: LLMConfig,
   embeddingModel?: string,
 ): Promise<EmbeddingResult[]> {
-  if (embeddingUnavailable) {
-    throw new Error('Embedding API previously unavailable, skipping')
-  }
   const model = embeddingModel || DEFAULT_MODEL
   const baseUrl = config.baseUrl.replace(/\/+$/, '')
 

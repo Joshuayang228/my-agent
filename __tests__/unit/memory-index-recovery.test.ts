@@ -5,7 +5,7 @@ import initSqlJs from 'sql.js'
 import 'vectra'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
-const state = vi.hoisted(() => ({ root: '', db: null as any, embedding: vi.fn(), persist: vi.fn() }))
+const state = vi.hoisted(() => ({ root: '', db: null as any, apiKey: 'test', embedding: vi.fn(), persist: vi.fn() }))
 vi.mock('electron', () => ({ app: { getPath: () => state.root } }))
 // 保留真实包导出并在收集阶段加载，避免每次重置业务模块时重复承担依赖初始化成本。
 vi.mock('vectra', async importOriginal => await importOriginal())
@@ -14,7 +14,7 @@ vi.mock('../../electron/main/storage/database', async importOriginal => ({
   getDatabase: async () => state.db, persist: state.persist,
 }))
 vi.mock('../../electron/main/memory/embeddings', () => ({ createEmbedding: state.embedding }))
-vi.mock('../../electron/main/llm/aux-config', () => ({ loadMainLLMConfig: async () => ({ apiKey: 'test', baseUrl: 'http://localhost/v1', model: 'test' }) }))
+vi.mock('../../electron/main/llm/aux-config', () => ({ loadMainLLMConfig: async () => ({ apiKey: state.apiKey, baseUrl: 'http://localhost/v1', model: 'test' }) }))
 vi.mock('../../electron/main/utils/asset-usage', () => ({ recordAssetUsage: vi.fn() }))
 vi.mock('../../electron/main/utils/logger', () => ({ hashForLog: () => 'test', createLogger: () => ({ info: vi.fn(), warn: vi.fn(), debug: vi.fn() }) }))
 
@@ -22,6 +22,7 @@ const config = { apiKey: 'test', baseUrl: 'http://localhost/v1', model: 'test' }
 let stop: (() => void) | undefined
 beforeEach(async () => {
   vi.resetModules()
+  state.apiKey = 'test'
   state.root = fs.mkdtempSync(path.join(os.tmpdir(), 'memory-index-'))
   const SQL = await initSqlJs()
   state.db = new SQL.Database()
@@ -47,6 +48,22 @@ it('真实 Vectra 写入后按当前 API 检索命中', async () => {
   // 原两参数调用把 topK 放到 query 位置；真实包返回空结果，不能用模拟索引掩盖。
   expect(await (legacy.queryItems as any)([1, 0, 0], 10)).toEqual([])
   expect(await vectors.searchVectorStore('散步', config)).toEqual([expect.objectContaining({ id: 'mem-source', text: '清晨散步' })])
+})
+
+it('本地 Embedding 端点没有 API Key 时仍会同步记忆镜像', async () => {
+  state.apiKey = ''
+  const store = await import('../../electron/main/storage/memory-store')
+  await startSync()
+  await store.addMemory('fact', '本地模型也可以保存记忆')
+  await store.drainMemoryBackgroundTasks()
+  expect(state.embedding).toHaveBeenCalledWith(
+    '本地模型也可以保存记忆',
+    expect.objectContaining({ apiKey: '', baseUrl: 'http://localhost/v1' }),
+    undefined,
+    expect.any(AbortSignal),
+  )
+  const vectors = await import('../../electron/main/memory/vector-store')
+  expect(await vectors.getVectorStoreStats()).toMatchObject({ count: 1 })
 })
 
 async function startSync() {

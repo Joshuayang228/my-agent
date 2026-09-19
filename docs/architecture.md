@@ -242,7 +242,7 @@ Skill 启停是用户运行态，不修改内置文件或资产指纹。`skills:
 - **Prompt Cache**：Anthropic `cache_control` 标记 System Prompt + Tools
 - **Structured Output**：OpenAI Compatible `ResponseFormat` 支持 json_object / json_schema
 - 内置 Provider 入口统一来自 `src/shared/provider-presets.ts`：按海外直连、国内服务商、编程套餐、聚合与代理、本地 / 自定义分组；当前 Settings 展示 24 个入口，Chat 快切展示其中 2 个 Provider。模型 ID 不进入 Provider 预设，来自用户账户实际可用列表。ListenHub / CLIProxy 不作为普通聊天入口。
-- 复用 API 进行 Embedding 调用
+- Embedding 当前仍复用主用途端点与默认嵌入模型。index-sync 与 RAG IPC 从唯一配置工厂装配，入口不以 Key 非空替代配置就绪；适配器仅在 Key 非空时发送认证头，不持有进程级永久失败缓存。结构化索引恢复的退避 / 取消仍归既有 worker，不新增调度层；独立嵌入配置和向量空间身份仍是 S2 缺口。
 
 ### 8. 上下文压缩
 

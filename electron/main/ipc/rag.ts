@@ -17,7 +17,7 @@ export function registerRagIPC(): void {
     if (result.filePaths.length > 20) throw new Error('一次最多导入 20 个文档')
 
     const config = await loadMainLLMConfig()
-    if (!config.apiKey) throw new Error('请先配置 API Key')
+    if (!config.baseUrl.trim() || !config.model.trim()) throw new Error('请先配置可用的模型连接')
 
     const docs = []
     for (const fp of result.filePaths) {
