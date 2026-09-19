@@ -18,6 +18,10 @@
 
 ## 2. 回流映射与验收单位
 
+R07 本批验收：Unit 1057、完整 UI 最终 252、Electron 最终 20 通过 / 4 外部模型条件跳过、资产 30、根 tsc / build 通过。真实 Electron 改为正式设置按钮发起导入导出，系统文件选择仅返回测试路径，实际 JSON / IPC / 独立目录存储恢复及重复合并均真实执行。四主题宽窄、同步锁、取消 / 错误 / 重试和跨子页 busy / 迟到隔离已覆盖；浅色宽屏与深色窄屏截图已检查。首次 UI 为 251 通过 / 1 旧整段文案断言失配，改为候选逐项列表断言；首次 Electron 为 16 通过 / 4 失败 / 4 条件跳过，导入新目录自动进入设置导致隐藏侧栏点击超时，后续 worker 重建缺前置，纠正首个初始化断言后整套通过。证据 `data-settings-ui-full` / `data-settings-ui-verified` / `data-settings-electron` / `data-settings-electron-verified` 位于 `var/verification/`。仅共享组件采用状态更新为 adopted，整项设置体验仍未完成；主进程全局备份锁与窗口生命周期继续归 R07 / WISH-045，不把本轮 UI 锁说成后端原子性。
+
+R07 数据页同源边界：正式 renderData 与候选 DataPage 仍各自维护按钮和备份说明，正式对 IPC rejection 没有 catch。本批提取 DataSettingsContent，共用候选两列操作、逐项备份说明与页内反馈；按钮从 Foundation ActionButton 提供。删除两套重复 JSX；同步点击锁与迟到结果隔离归共享组件，正式 SettingsPanel 继续持有跨设置页的忙碌状态与入口锁，真实 export/import 仍由正式适配器注入，候选只模拟反馈。不改备份 schema、过滤、合并及恢复策略。允许修改共享组件、正式 / 候选调用、注册表、Unit / UI 测试及对应模块 / 质量 / 进度文档。必测四主题宽窄、hover / pending 几何、重复点击、取消、结构失败与 Promise rejection、失败重试、离页迟到隔离、候选零 IPC；已有真实 Electron 备份恢复继续回归。实现基于仓库现有组件，属于已批准 UI 回流，无需新增依赖或外部研究。
+
 R01 / R14 本批验收：受控红测中保存值已写入但设置面板仍为 1，修复后同一用例及保存失败回归通过；新增连续五次 Playground 往返与搜索关闭 / 清空测试。Unit 1056、完整 UI 243、独立 Electron 20 通过 / 4 外部模型条件跳过、资产 29、根 tsc / build 通过。证据目录 `navigation-red`、`navigation-focused`、`navigation-ui-full`、`navigation-electron` 均位于 `var/verification/`。无视觉样式变化；本批只证明该保存期间竞态及当前回归通过，不关闭历史稳定性缺口，不推进整个体验为 adopted。
 
 R01 / R14 导航生命周期修复边界：UI 受控保存测试已复现保存落盘后 Ctrl+b 触发 App 重渲染，待执行 Ctrl+n 被监听器清理取消，设置未离开且未新建会话。允许修改 App 全局快捷键监听、正式入口 E2E、模块卡与本合同 / 进度 / 日志 / 缺口记录；采用已提交状态引用，普通重渲染不取消导航，真实视图切换与卸载仍失效旧请求。保持保存失败拦截、开发者模式真实读取、重复离页锁；不修改 UI 形态、IPC、会话逻辑或依赖。这是已批准正式回流的缺陷修复，不新增候选。此前 Electron Playground 返回偶发失败尚无同一根因证据，WISH-042 不因此关闭。必测保存成功 / 失败、等待中重渲染与重复按键、完整 UI 及独立 Electron。

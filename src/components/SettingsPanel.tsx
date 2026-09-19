@@ -9,6 +9,7 @@ import { SettingsLayout, type SettingsPageId } from './settings/SettingsLayout'
 import { CompanionSettingsContent, type CompanionExpertise } from './settings/CompanionSettingsContent'
 import { SettingCard, SettingRow, SettingsPageHeader } from './settings/SettingsFields'
 import { AboutSettingsContent } from './settings/AboutSettingsContent'
+import { DataSettingsContent, type DataSettingsAction } from './settings/DataSettingsContent'
 import { ModelRoutingSettings } from './settings/ModelRoutingSettings'
 import { ModelAdvancedSettings } from './settings/ModelAdvancedSettings'
 import { modelParameterError } from '../shared/model-parameters'
@@ -18,8 +19,7 @@ import type { McpServerStatus } from '../shared/types'
 import { McpConnectionForm } from './settings/McpConnectionForm'
 import { DESIGN_THEME_ASSETS, FONT_SCALE_ASSETS } from '../shared/design-asset-registry'
 import {
-  Upload, Download,
-  Check, ChevronRight, CircleHelp, Eye,
+  Check, CircleHelp, Eye,
 } from 'lucide-react'
 
 interface SettingsForm {
@@ -116,7 +116,8 @@ export function SettingsPanel({
   const [form, setForm] = useState<SettingsForm>(DEFAULTS)
   const [saveFailed, setSaveFailed] = useState(false)
 
-  const [dataBusy, setDataBusy] = useState<'export' | 'import' | null>(null)
+  const [dataBusy, setDataBusy] = useState<DataSettingsAction | null>(null)
+  const dataBusyRef = useRef(false)
   const [verifiedConnectionKey, setVerifiedConnectionKey] = useState('')
   const [protagonists, setProtagonists] = useState<RoleInfo[]>([])
   const [mcpServers, setMcpServers] = useState<McpServerEntry[]>([])
@@ -557,53 +558,24 @@ export function SettingsPanel({
   )
 
   const renderData = () => (
-    <div className="space-y-4">
-      <SettingsPageHeader title="数据与隐私" description="管理本地数据的迁移和备份，并明确哪些内容不会跟着备份文件离开设备。" />
-      <SettingCard>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <button
-            type="button"
-            disabled={dataBusy !== null}
-            onClick={async () => {
-              if (!window.electronAPI || dataBusy) return
-              setDataBusy('export')
-              try {
-                const res = await window.electronAPI.data.export()
-                if (res.success) toast(`导出成功！${res.stats?.sessions ?? 0} 个会话 + ${res.stats?.memories ?? 0} 条记忆 + ${res.stats?.livingAssets ?? 0} 条生活记录`, 'success')
-                else if (res.error !== 'cancelled') toast(`导出失败: ${res.error}`, 'error')
-              } finally { setDataBusy(null) }
-            }}
-            className="flex min-h-16 items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-55"
-            style={{ borderColor: 'var(--border-subtle)' }}
-          >
-            <span className="flex min-w-0 items-center gap-2"><Upload size={15} className="shrink-0" style={{ color: 'var(--accent-fg)' }} /><span><span className="block text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>导出数据</span><span className="mt-1 block text-[10px]" style={{ color: 'var(--text-muted)' }}>生成一份本地备份</span></span></span><ChevronRight size={14} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
-          </button>
-          <button
-            type="button"
-            disabled={dataBusy !== null}
-            onClick={async () => {
-              if (!window.electronAPI || dataBusy) return
-              setDataBusy('import')
-              try {
-                const res = await window.electronAPI.data.import()
-                if (res.success) toast(`导入成功！${res.stats?.sessions ?? 0} 个会话 + ${res.stats?.memories ?? 0} 条记忆 + ${res.stats?.livingAssets ?? 0} 条生活记录 + ${res.stats?.settings ?? 0} 项设置`, 'success')
-                else if (res.error !== 'cancelled') toast(`导入失败: ${res.error}`, 'error')
-              } finally { setDataBusy(null) }
-            }}
-            className="flex min-h-16 items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-55"
-            style={{ borderColor: 'var(--border-subtle)' }}
-          >
-            <span className="flex min-w-0 items-center gap-2"><Download size={15} className="shrink-0" style={{ color: 'var(--accent-fg)' }} /><span><span className="block text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>导入数据</span><span className="mt-1 block text-[10px]" style={{ color: 'var(--text-muted)' }}>从本地备份恢复</span></span></span><ChevronRight size={14} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
-          </button>
-        </div>
-      </SettingCard>
-      <SettingCard>
-        <div className="grid gap-4 text-[11px] sm:grid-cols-2" style={{ color: 'var(--text-secondary)' }}>
-          <div><div className="mb-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>备份包含</div><p>会话与消息、记忆条目、生活资产与播种标记、普通模型与伙伴偏好。</p></div>
-          <div><div className="mb-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>备份不包含</div><p>API Key、MCP 密钥、权限规则与本机项目路径。</p></div>
-        </div>
-      </SettingCard>
-    </div>
+    <DataSettingsContent activeAction={dataBusy} onAction={async (action) => {
+      if (preview) return { message: `已模拟${action === 'export' ? '导出' : '导入'}（仅样张反馈）` }
+      if (!window.electronAPI) return { error: true, message: '请在桌面应用中管理备份。' }
+      if (dataBusyRef.current) return null
+      dataBusyRef.current = true
+      setDataBusy(action)
+      try {
+        const result = await window.electronAPI.data[action]()
+        if (!result.success) return result.error === 'cancelled' ? null : {
+          error: true,
+          message: action === 'export' ? '导出失败，请检查保存位置后重试。' : '导入失败，请检查备份文件后重试。',
+        }
+        return { message: `${action === 'export' ? '导出' : '导入'}成功：${result.stats?.sessions ?? 0} 个会话、${result.stats?.memories ?? 0} 条记忆、${result.stats?.livingAssets ?? 0} 条生活记录。` }
+      } finally {
+        dataBusyRef.current = false
+        setDataBusy(null)
+      }
+    }} />
   )
 
   const renderAbout = () => (

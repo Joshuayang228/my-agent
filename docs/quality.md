@@ -1,5 +1,9 @@
 # 质量总控
 
+备份正式入口证据：Electron 生活资产往返测试从 Settings → 数据与隐私实际点击导出 / 导入，仅替换系统文件选择框的返回路径，不替换备份 IPC；检查真实 JSON 中的生活资产及播种标记、独立目录恢复正文，并再次导入确认不重复。此测试不证明跨窗口并发或崩溃时的原子性。
+
+数据页门禁：TypeChecker 验证正式 SettingsPanel 与候选实际渲染 DataSettingsContent，并验证其操作来自 Foundation ActionButton；未使用 import 和同名遮蔽不能通过。UI 四主题宽窄覆盖重复点击只有一次调用、处理中两个操作禁用且按钮几何不变、取消无错误、IPC rejection / 结构失败的安全提示与重试、成功数量，以及跨设置子页 pending 保留、迟到结果隔离、候选零正式备份调用。真实备份格式和恢复仍由既有 data-export Unit 与独立 Electron 生活资产备份往返验证，不能以 Renderer 替身代替数据库证据。
+
 快捷键导航门禁：`chat.test.ts` 使用受控 settings.set Promise，先发 Ctrl+n，再用 Ctrl+b 触发 App 重渲染并重复 Ctrl+n；释放保存后必须离开设置、保留写入值且只创建一次会话。原实现该用例先红，修复后转绿；既有保存失败保留草稿测试继续执行。另覆盖连续五次 Playground 往返和搜索 Escape 关闭 / 清空，不能用固定等待代替视图断言。UI-e2e 跳过开发者权限读取，正式 gating 仍由独立 Electron 的关于页开关与重启恢复验证；不得将这个已复现竞态等同于全部历史偶发失败。
 
 复选框门禁：McpServiceCard / McpConnectionForm 通过 TypeChecker 绑定到 Foundation CheckboxField，输入扫描不再豁免原生 checkbox；基础故事也检查真实引用。`checkbox.test.ts` 显式纳入 UI project，四主题宽窄覆盖已选 / 未选 / 禁用、点击标签、Space、16px 固定尺寸与 hover / 切换无位移。MCP 正式服务卡补键盘切换，向导补保存失败保留、保存中禁用和空 allowedTools 准确传递；这些 Renderer 替身证据不替代真实 MCP 授权链测试。

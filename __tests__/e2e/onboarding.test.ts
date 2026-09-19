@@ -497,12 +497,14 @@ test('正式生活资产经真实备份导出导入后保留且不覆盖现有�
     await electronApp.evaluate(({ dialog }, filePath) => {
       dialog.showSaveDialog = async () => ({ canceled: false, filePath })
     }, exportPath)
-    const exported = await page.evaluate(() => window.electronAPI.data.export())
-    expect(exported).toMatchObject({ success: true })
-    expect(exported.stats?.livingAssets).toBeGreaterThan(0)
+    await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-data').click()
+    await page.getByTestId('section-data').getByTestId('export').click()
+    await expect(page.getByTestId('section-data').getByRole('status')).toContainText('导出成功')
     const raw = JSON.parse(await readFile(exportPath, 'utf8')) as { livingAssets?: Array<{ name: string }>; livingAssetSeeds?: unknown[] }
     expect(raw.livingAssets?.some((item) => item.name === '备份往返验收作品')).toBe(true)
     expect(Array.isArray(raw.livingAssetSeeds)).toBe(true)
+    await page.getByTestId('settings-back').click()
 
     importApp = await electron.launch({
       args: [path.join(__dirname, '../../dist-electron/index.js'), `--user-data-dir=${importDir}`, '--no-sandbox'],
@@ -514,9 +516,10 @@ test('正式生活资产经真实备份导出导入后保留且不覆盖现有�
     await importApp.evaluate(({ dialog }, filePath) => {
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] })
     }, exportPath)
-    const imported = await importPage.evaluate(() => window.electronAPI.data.import())
-    expect(imported).toMatchObject({ success: true })
-    expect(imported.stats?.livingAssets).toBeGreaterThan(0)
+    await expect(importPage.getByTestId('settings-panel')).toBeVisible()
+    await importPage.getByTestId('settings-nav-data').click()
+    await importPage.getByTestId('section-data').getByTestId('import').click()
+    await expect(importPage.getByTestId('section-data').getByRole('status')).toContainText('导入成功')
     const restored = await importPage.evaluate(() => window.electronAPI.companion.getAssets())
     const item = restored.items.find((entry) => entry.name === '备份往返验收作品')
     expect(item?.payload.note).toBe(note)

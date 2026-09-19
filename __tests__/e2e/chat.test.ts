@@ -5210,6 +5210,91 @@ test.describe('My Agent UI', () => {
     await page.locator('[data-testid="settings-back"]').click()
     await expect.poll(() => page.evaluate(() => (window as any).__settingsWrites.some(([key, value]: [string, string]) => key === 'sessionTokenBudget' && value === '13000'))).toBe(true)
   })
+  for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
+    for (const width of [1166, 600]) {
+      test(`正式备份共享页面取消失败重试与固定操作槽 ${theme} ${width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 731 })
+        await installProductionElectronStub(page)
+        await page.addInitScript((theme) => {
+          localStorage.setItem('theme', theme)
+          const state = { calls: [] as string[], resolve: null as null | ((result: unknown) => void), reject: null as null | ((error: Error) => void) }
+          ;(window as any).__backup = state
+          ;(window as any).electronAPI.data = Object.fromEntries(['export', 'import'].map(action => [action, () => {
+            state.calls.push(action)
+            return new Promise((resolve, reject) => { state.resolve = resolve; state.reject = reject })
+          }]))
+        }, theme)
+        await page.goto('/')
+        await page.locator('button[title="设置"]').click()
+        await (width < 768 ? page.getByRole('tab', { name: '数据与隐私', exact: true }) : page.getByTestId('settings-nav-data')).click()
+        const content = page.getByTestId('section-data')
+        const exp = content.getByTestId('export')
+        const imp = content.getByTestId('import')
+        await expect(content).toContainText('权限规则与执行模式')
+        await exp.focus()
+        const before = await exp.boundingBox()
+        await exp.hover()
+        expect(await exp.boundingBox()).toEqual(before)
+        await exp.evaluate((node: HTMLButtonElement) => { node.click(); node.click() })
+        await expect(exp).toBeDisabled()
+        await expect(imp).toBeDisabled()
+        await expect(exp).toHaveAttribute('aria-busy', 'true')
+        expect(await exp.boundingBox()).toEqual(before)
+        expect(await page.evaluate(() => (window as any).__backup.calls)).toEqual(['export'])
+        await page.evaluate(() => (window as any).__backup.resolve({ success: false, error: 'cancelled' }))
+        await expect(exp).toBeEnabled()
+        await expect(content.getByRole('status')).toHaveCount(0)
+        await expect(content.getByRole('alert')).toHaveCount(0)
+        await imp.click()
+        await page.evaluate(() => (window as any).__backup.reject(new Error('private-path-secret')))
+        await expect(content.getByRole('alert')).toHaveText('导入失败，请重试。')
+        await expect(content).not.toContainText('private-path-secret')
+        await expect(imp).toBeEnabled()
+        await imp.click()
+        await page.evaluate(() => (window as any).__backup.resolve({ success: false, error: 'private-path-secret' }))
+        await expect(content.getByRole('alert')).toHaveText('导入失败，请检查备份文件后重试。')
+        await imp.click()
+        await page.evaluate(() => (window as any).__backup.resolve({ success: true, stats: { sessions: 2, memories: 3, livingAssets: 4 } }))
+        await expect(content.getByRole('status')).toHaveText('导入成功：2 个会话、3 条记忆、4 条生活记录。')
+        expect(await page.evaluate(() => (window as any).__backup.calls)).toEqual(['export', 'import', 'import', 'import'])
+        await page.screenshot({ path: testInfo.outputPath('data-settings.png'), fullPage: true })
+      })
+    }
+  }
+
+  test('备份离页不接收迟到结果且 Playground 不调用正式备份', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const state = { calls: 0, resolve: null as null | ((result: unknown) => void) }
+      ;(window as any).__lateBackup = state
+      ;(window as any).electronAPI.data = {
+        export: () => { state.calls++; return new Promise(resolve => { state.resolve = resolve }) },
+        import: async () => { state.calls++; return { success: true } },
+      }
+    })
+    await page.goto('/')
+    await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-data').click()
+    await page.getByTestId('export').click()
+    await page.getByTestId('settings-nav-about').click()
+    await page.getByTestId('settings-nav-data').click()
+    await expect(page.getByTestId('export')).toBeDisabled()
+    await expect(page.getByTestId('import')).toBeDisabled()
+    await expect(page.getByTestId('section-data').getByRole('status')).toContainText('正在导出')
+    await page.evaluate(() => (window as any).__lateBackup.resolve({ success: true, stats: { sessions: 999 } }))
+    await expect(page.getByTestId('section-data').getByRole('status')).toHaveCount(0)
+    await expect(page.getByTestId('export')).toBeEnabled()
+    await page.keyboard.press('Control+Shift+P')
+    await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
+    const candidate = page.getByTestId('settings-surface-candidate')
+    await candidate.getByRole('button', { name: '数据与隐私', exact: true }).click()
+    await candidate.getByTestId('settings-candidate-export').click()
+    await expect(candidate.getByRole('status')).toContainText('已模拟导出')
+    await candidate.getByTestId('settings-candidate-import').click()
+    await expect(candidate.getByRole('status')).toContainText('已模拟导入')
+    expect(await page.evaluate(() => (window as any).__lateBackup.calls)).toBe(1)
+  })
+
   test('设置面板无手动保存栏并可返回聊天', async ({ page }) => {
     await page.goto('/')
     await page.click('button[title="设置"]')
@@ -5229,7 +5314,9 @@ test.describe('My Agent UI', () => {
     await expect(page.getByRole('button', { name: /导出数据/ })).toContainText('生成一份本地备份')
     await expect(page.getByRole('button', { name: /导入数据/ })).toContainText('从本地备份恢复')
     await expect(page.getByText('生活资产与播种标记')).toBeVisible()
-    await expect(page.getByText('API Key、MCP 密钥、权限规则与本机项目路径。')).toBeVisible()
+    await expect(page.getByText('API Key 和 MCP 密钥', { exact: true })).toBeVisible()
+    await expect(page.getByText('权限规则与执行模式', { exact: true })).toBeVisible()
+    await expect(page.getByText('本机项目路径', { exact: true })).toBeVisible()
     await page.locator('[data-testid="settings-back"]').click()
     await expect(settingsPanel).not.toBeVisible()
   })

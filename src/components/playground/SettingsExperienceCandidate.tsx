@@ -10,13 +10,14 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { PermissionSettingsContent } from '../settings/PermissionSettingsContent'
-import { Brain, Check, ChevronRight, CircleHelp, Cloud, Database, Download, Eye, Heart, KeyRound, Link2, LockKeyhole, Palette, Plug, Save, Settings2, ShieldCheck, SlidersHorizontal, Upload, UserRound, Wrench, Activity, Gauge, Plus, ListChecks, ArrowLeft } from 'lucide-react'
+import { Brain, Check, ChevronRight, CircleHelp, Cloud, Eye, Heart, KeyRound, Link2, Palette, Plug, Settings2, ShieldCheck, SlidersHorizontal, UserRound, Wrench, Activity, Gauge, Plus, ListChecks, ArrowLeft } from 'lucide-react'
 import { FONT_SCALE_ASSETS } from '../../shared/design-asset-registry'
 import { SettingsLayout, type SettingsPageId } from '../settings/SettingsLayout'
 import { ScopeBadge, SettingCard, SettingRow, SettingSwitch, SettingsPageHeader } from '../settings/SettingsFields'
 import { CompanionSettingsContent } from '../settings/CompanionSettingsContent'
 import { ActionButton } from '../foundation/ActionButton'
 import { AboutSettingsContent } from '../settings/AboutSettingsContent'
+import { DataSettingsContent } from '../settings/DataSettingsContent'
 import { McpServiceCard } from '../settings/McpServiceCard'
 import { ModelConnectionForm } from '../settings/ModelConnectionForm'
 import { ModelConnectionCard } from '../settings/ModelConnectionCard'
@@ -291,8 +292,8 @@ function MemoryPage({ detail }: { detail?: ReactNode }) {
   return <div className="space-y-4" data-testid="settings-candidate-section-memory"><CandidatePageHeader icon={<Brain size={14} />} title="记忆" description="查看和管理会影响未来相处的长期信息。" />{detail ?? <SettingCard><div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>记忆内容由产品体验页统一管理。</div></SettingCard>}</div>
 }
 
-function DataPage({ lastAction, onAction }: { lastAction: string; onAction: (action: string) => void }) {
-  return <div className="space-y-4" data-testid="settings-candidate-section-data"><CandidatePageHeader icon={<Database size={14} />} title="数据与隐私" description="管理本地数据的迁移和备份，并明确哪些内容不会跟着备份文件离开设备。" /><SettingCard><div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => onAction('已模拟导出')} className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-3 text-left transition" style={{ borderColor: 'var(--border-subtle)' }} data-testid="settings-candidate-export"><span className="flex items-center gap-2"><Upload size={15} style={{ color: 'var(--accent-fg)' }} /><span><span className="block text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>导出数据</span><span className="mt-1 block text-[10px]" style={{ color: 'var(--text-muted)' }}>生成一份本地备份</span></span></span><ChevronRight size={14} style={{ color: 'var(--text-muted)' }} /></button><button type="button" onClick={() => onAction('已模拟导入')} className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-3 text-left transition" style={{ borderColor: 'var(--border-subtle)' }} data-testid="settings-candidate-import"><span className="flex items-center gap-2"><Download size={15} style={{ color: 'var(--accent-fg)' }} /><span><span className="block text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>导入数据</span><span className="mt-1 block text-[10px]" style={{ color: 'var(--text-muted)' }}>从本地备份恢复</span></span></span><ChevronRight size={14} style={{ color: 'var(--text-muted)' }} /></button></div>{lastAction && <div className="mt-3 rounded-[var(--radius-md)] px-3 py-2 text-[11px]" role="status" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>{lastAction}（仅样张反馈）</div>}</SettingCard><SettingCard><div className="grid gap-4 sm:grid-cols-2"><div><div className="mb-2 flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}><Save size={14} style={{ color: 'var(--accent-fg)' }} />备份包含</div><ul className="space-y-1 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}><li>会话与消息</li><li>记忆条目</li><li>普通模型与伙伴偏好</li><li>生活资产与播种标记</li></ul></div><div><div className="mb-2 flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}><LockKeyhole size={14} style={{ color: 'var(--accent-fg)' }} />备份不包含</div><ul className="space-y-1 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}><li>API Key 和 MCP 密钥</li><li>权限规则与执行模式</li><li>本机项目路径</li></ul></div></div></SettingCard></div>
+function DataPage() {
+  return <DataSettingsContent testIdPrefix="settings-candidate-" onAction={async action => ({ message: `已模拟${action === 'export' ? '导出' : '导入'}（仅样张反馈）` })} />
 }
 
 function PermissionsPage({ mode, onModeChange }: { mode: string; onModeChange: (value: string) => void }) {
@@ -413,7 +414,6 @@ export function SettingsExperienceCandidate({ companionDetail, memoryDetail, ini
   const [proactiveGreeting, setProactiveGreeting] = useState(false)
   const [selectedProvider, setSelectedProvider] = useState('openai')
   const [expertise, setExpertise] = useState('auto')
-  const [dataAction, setDataAction] = useState('')
   const [permissionMode, setPermissionMode] = useState('auto')
   const [developerMode, setDeveloperMode] = useState(false)
 
@@ -428,7 +428,7 @@ export function SettingsExperienceCandidate({ companionDetail, memoryDetail, ini
 
   return <div aria-label="设置候选版" className="flex min-h-[620px] w-full min-w-0 overflow-hidden rounded-[var(--radius-lg)] border" style={{ ...getThemeStudyStyle(THEME_STUDIES.find((theme) => theme.id === activeTheme)!), borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} data-playground-theme={activeTheme} data-testid="settings-candidate">
     <SettingsLayout activeSection={activeSection} onSelect={setActiveSection} prefix="settings-candidate">
-      {activeSection === 'appearance' && <AppearancePage activeTheme={activeTheme} fontScale={fontScale} onFontScaleChange={setFontScale} onThemeChange={setActiveTheme} />}{activeSection === 'memory' && <MemoryPage detail={memoryDetail} />}{activeSection === 'companion' && (companionDetail ?? <CompanionPage expertise={expertise} momentTips={momentTips} onExpertiseChange={setExpertise} onOpenRoleShelf={onOpenRoleShelf} onMomentTipsChange={setMomentTips} onProactiveGreetingChange={setProactiveGreeting} proactiveGreeting={proactiveGreeting} />)}{activeSection === 'model' && <ModelPage selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} />}{activeSection === 'data' && <DataPage lastAction={dataAction} onAction={setDataAction} />}{activeSection === 'permissions' && <PermissionsPage mode={permissionMode} onModeChange={setPermissionMode} />}{activeSection === 'skills' && <CapabilityPage mode="skills" />}{activeSection === 'mcp' && <CapabilityPage mode="mcp" />}{activeSection === 'about' && <AboutPage developerMode={developerMode} onDeveloperModeChange={setDeveloperMode} />}
+      {activeSection === 'appearance' && <AppearancePage activeTheme={activeTheme} fontScale={fontScale} onFontScaleChange={setFontScale} onThemeChange={setActiveTheme} />}{activeSection === 'memory' && <MemoryPage detail={memoryDetail} />}{activeSection === 'companion' && (companionDetail ?? <CompanionPage expertise={expertise} momentTips={momentTips} onExpertiseChange={setExpertise} onOpenRoleShelf={onOpenRoleShelf} onMomentTipsChange={setMomentTips} onProactiveGreetingChange={setProactiveGreeting} proactiveGreeting={proactiveGreeting} />)}{activeSection === 'model' && <ModelPage selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} />}{activeSection === 'data' && <DataPage />}{activeSection === 'permissions' && <PermissionsPage mode={permissionMode} onModeChange={setPermissionMode} />}{activeSection === 'skills' && <CapabilityPage mode="skills" />}{activeSection === 'mcp' && <CapabilityPage mode="mcp" />}{activeSection === 'about' && <AboutPage developerMode={developerMode} onDeveloperModeChange={setDeveloperMode} />}
     </SettingsLayout>
   </div>
 }
