@@ -69,7 +69,7 @@ export function DataSettingsContent({ onAction, testIdPrefix = '', activeAction 
     <SettingCard>
       <div className="grid gap-4 sm:grid-cols-2">
         <div><div className="mb-2 flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}><Save size={14} aria-hidden="true" style={{ color: 'var(--accent-fg)' }} />备份包含</div>
-          <ul className="space-y-1 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}><li>会话与消息</li><li>记忆条目</li><li>普通模型与伙伴偏好</li><li>生活资产与播种标记</li></ul></div>
+          <ul className="space-y-1 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}><li>会话、消息与生成图片</li><li>记忆条目</li><li>普通模型与伙伴偏好</li><li>生活资产与播种标记</li><li>朋友圈历史、点赞与评论</li></ul></div>
         <div><div className="mb-2 flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}><LockKeyhole size={14} aria-hidden="true" style={{ color: 'var(--accent-fg)' }} />备份不包含</div>
           <ul className="space-y-1 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}><li>API Key 和 MCP 密钥</li><li>权限规则与执行模式</li><li>本机项目路径</li></ul></div>
       </div>

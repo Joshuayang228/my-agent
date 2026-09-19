@@ -30,6 +30,7 @@ import {
 } from '../../../src/shared/types'
 import type { Database } from 'sql.js'
 import { BACKUP_IMAGE_ERRORS } from '../../../src/shared/backup-errors'
+import { collectMomentBackup, importMomentBackup, isValidMomentBackup, type MomentBackup } from '../storage/moment-backup'
 
 const log = createLogger('DataExport')
 
@@ -132,6 +133,7 @@ export function isValidExportData(value: unknown): value is ExportData {
   if (!Array.isArray(value.sessions) || value.sessions.length > MAX_IMPORTED_SESSIONS) return false
   if (!Array.isArray(value.memories) || value.memories.length > MAX_IMPORTED_MEMORIES) return false
   if (!isRecord(value.settings)) return false
+  if (value.momentHistory !== undefined && !isValidMomentBackup(value.momentHistory)) return false
   const livingAssets = value.livingAssets === undefined ? [] : value.livingAssets
   const livingAssetSeeds = value.livingAssetSeeds === undefined ? [] : value.livingAssetSeeds
   if (!Array.isArray(livingAssets) || livingAssets.length > MAX_IMPORTED_LIVING_ASSETS) return false
@@ -235,6 +237,7 @@ export interface ExportData {
   livingAssets?: BackupLivingAsset[]
   livingAssetSeeds?: BackupLivingAssetSeed[]
   generatedImageMedia?: BackupImageMedia[]
+  momentHistory?: MomentBackup
 }
 
 /**
@@ -492,6 +495,7 @@ export function importBackupPayload(
     memories?: ExportData['memories']
     settings?: ReturnType<typeof settingsStore.prepareSettingWrite>[]
     persist?: () => void
+    momentHistory?: MomentBackup
   },
 ): DataImportStats {
   let importedSessions = 0
@@ -525,6 +529,7 @@ export function importBackupPayload(
     }
     importedSessions = importSessionsIntoDatabase(db, payload.sessions, { transact: false, imageReferences: payload.imageReferences })
     importedLiving = importLivingAssetsIntoDatabase(db, payload.livingAssets, payload.livingAssetSeeds)
+    if (payload.momentHistory) importMomentBackup(db, payload.momentHistory, undo)
     for (const memory of payload.memories ?? []) {
       const result = memoryStore.writeMemoryToDatabase(db, memory.category as MemoryCategory, memory.content, { roleId: memory.roleId })
       if (result.inserted) {
@@ -594,6 +599,7 @@ export function registerDataExportIPC(): void {
       const settings = await settingsStore.getAllSettings()
       const livingAssets = collectExportLivingAssets(db)
       const livingAssetSeeds = collectExportLivingAssetSeeds(db)
+      const momentHistory = collectMomentBackup(db)
 
       const safeSettings: Record<string, string> = {}
       for (const [key, value] of Object.entries(settings)) {
@@ -615,6 +621,7 @@ export function registerDataExportIPC(): void {
         settings: safeSettings,
         livingAssets,
         livingAssetSeeds,
+        momentHistory,
         ...(generatedImageMedia.length ? { generatedImageMedia } : {}),
       }
 
@@ -712,6 +719,7 @@ export function registerDataExportIPC(): void {
           memories: pendingMemories,
           settings: pendingSettings,
           persist,
+          momentHistory: data.momentHistory,
         })
       } catch (error) { restored.rollback(); throw error }
       restored.finish()

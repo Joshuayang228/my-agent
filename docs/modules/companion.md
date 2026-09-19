@@ -86,7 +86,7 @@
 | 能力 | 状态 | 用户入口 | 落点 |
 |------|------|----------|------|
 | 用户相处补充说明 | 已落地 | 设置 → 伙伴与相处 | 独立 `companionResponseNote`，默认空、最多 4000 UTF-16 代码单元；仅保存实际修改，失败保留草稿并提供固定操作槽重试。作为 L3 偏好用于下一轮主对话 / 召唤，workspace 排除；不迁移或覆盖旧 `systemPrompt`，不改变角色身份和工具权限。备份白名单包含该字段，导入前同样限长 |
-| 生活资产备份往返 | 已落地 | 设置 → 数据与隐私 | `data:export` / `data:import` 覆盖 `companion_assets` 与 `companion_asset_seeds`；按 id / 播种键合并，会话与资产同一事务失败回滚。旧备份缺字段仍可导入。不包含朋友圈互动、MCP、权限、凭据和项目路径 |
+| 生活资产与朋友圈备份往返 | 已落地 | 设置 → 数据与隐私 | `data:export` / `data:import` 覆盖生活资产、播种标记、已发布事件、动态快照及用户赞评；按稳定身份合并，同一事务失败回滚。旧备份缺字段仍可导入。不包含未来事件、日剧本、当前世界态、MCP、权限、凭据和项目路径；恢复历史不重放奖励 |
 | Universe + Role Pack（三槽：lin / zhou / xia） | 已落地 | 角色架 / 设置 | `universes/default/` · 文案见 [companion-cast-content](../requirements/companion-cast-content.md) |
 | 主角候选结构化档案（Role Profile） | 已落地 | Debug「世界态」/ Prompt L1 | 当前仅小航 `profile.json`；行为边界与五维表达基线已定，人物故事字段待定 |
 | 伙伴生产资产目录 | 已落地 | Debug「提示词管理器 → 伙伴世界」 | `companion/asset-registry.ts`；manifest / profile / 默认世界 / 场景 / 衣柜书架 starter 使用稳定 key、版本、指纹、来源和依赖 |

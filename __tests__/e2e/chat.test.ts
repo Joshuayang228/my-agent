@@ -5462,6 +5462,8 @@ test.describe('My Agent UI', () => {
     await expect(page.getByRole('button', { name: /导出数据/ })).toContainText('生成一份本地备份')
     await expect(page.getByRole('button', { name: /导入数据/ })).toContainText('从本地备份恢复')
     await expect(page.getByText('生活资产与播种标记')).toBeVisible()
+    await expect(page.getByText('朋友圈历史、点赞与评论')).toBeVisible()
+    await expect(page.getByText('会话、消息与生成图片')).toBeVisible()
     await expect(page.getByText('API Key 和 MCP 密钥', { exact: true })).toBeVisible()
     await expect(page.getByText('权限规则与执行模式', { exact: true })).toBeVisible()
     await expect(page.getByText('本机项目路径', { exact: true })).toBeVisible()
