@@ -10,6 +10,7 @@ import { mark, setLLMTraceSink } from './utils/tracer'
 import { setAssetUsageResolver, setAssetUsageSink } from './utils/asset-usage'
 import { closeDatabase, getDatabase } from './storage/database'
 import { recoverPendingBackupMedia } from './storage/backup-recovery'
+import { startMemoryIndexSync } from './memory/index-sync'
 import { llmDebugStore } from './storage/llm-debug-store'
 import { assetUsageStore } from './storage/asset-usage-store'
 import { createModelContextAssetResolver } from './debug/model-context-assets'
@@ -216,6 +217,7 @@ function showWindow() {
 }
 
 let isQuitting = false
+let memoryIndexSync: ReturnType<typeof startMemoryIndexSync> | undefined
 
 // ── Auto Update ──
 
@@ -270,6 +272,7 @@ app.whenReady().then(async () => {
   const database = await getDatabase()
   try { recoverPendingBackupMedia(database, app.getPath('userData')) }
   catch { log.warn('Backup media startup reconciliation deferred') }
+  memoryIndexSync = startMemoryIndexSync()
   await createWindow()
   createTray()
   setupAutoUpdater()
@@ -316,6 +319,7 @@ app.whenReady().then(async () => {
 
 app.on('before-quit', () => {
   isQuitting = true
+  memoryIndexSync?.stop()
 })
 
 app.on('will-quit', async () => {

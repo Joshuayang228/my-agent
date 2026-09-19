@@ -41,7 +41,7 @@ ModelUsageArrangements 同样属于纯受控 Experience，组合 Foundation Sele
 
 用户主动生图沿 image_generate → loadImageGenerationConfig → Images / Gemini 适配器 → sharp 完整解码并归一化 PNG → 项目 images 目录独占提交执行。主进程注入 workspaceRoot，收费请求前及提交前复核权限与真实路径；restricted-fetch 同时服务生成下载及 OAuth 网络封装，限制目标、DNS、重定向和响应规模。结构化图片引用经 Registry / Loop 写入 schema 17 工具消息后才发布 tool_end；模型仅接收文字摘要，主聊天、侧边聊天和基础故事共用 GeneratedImageResult。读取与文件定位 IPC 仅接受会话和图片身份，主进程校验工具归属、文件摘要及路径，不接受 Renderer 任意路径。
 
-媒体备份保存工具调用配对、图片摘要和受限 PNG 字节，不保存恢复用绝对路径。导入经完整校验后写 userData 带管理标记的独立目录。会话、生活资产、记忆和设置在同一同步事务中写入，记忆去重和设置加密复用存储原语；COMMIT 后一次 persist，替换失败同步补偿本批写入并清理媒体，不更换数据库实例。成功落盘后才发布派生向量任务与移除媒体标记。启动先读取持久数据库并核对待恢复目录，未引用才清理，已引用则保留；解析失败 / 链接目录不清理。该保障覆盖进程崩溃前后核心数据一致性，不承诺断电耐久性或向量索引崩溃重建。
+媒体备份保存工具调用配对、图片摘要和受限 PNG 字节，不保存恢复用绝对路径。导入经完整校验后写 userData 带管理标记的独立目录。会话、生活资产、记忆和设置在同一同步事务中写入，记忆去重和设置加密复用存储原语；COMMIT 后一次 persist，替换失败同步补偿本批写入并清理媒体，不更换数据库实例。成功落盘后才通知 `memory/index-sync` 核对派生索引并移除媒体标记。启动先读取持久数据库并核对待恢复目录，未引用才清理，已引用则保留；解析失败 / 链接目录不清理。SQLite 是结构化记忆事实源，Vectra 镜像由启动、成功提交和失败退避 worker 按稳定 id 重建 / 清理；不承诺断电耐久性、外部 Embedding 可用性或未保存凭据的强退恢复。
 
 不只是一个工具，而是一个有性格、有记忆、能成长的数字伙伴：
 - **人格化交互** — 有一致的性格特征和交流风格，不是冰冷的 Q&A 机器
@@ -145,7 +145,7 @@ IPC 契约必须四处同步：
 
 Renderer 只能通过 preload 白名单访问主进程。敏感配置、文件边界、外部进程和高风险确认必须由主进程重新校验，不能信任 Renderer 传入的“已批准”状态。
 
-备份 IPC 的交互生命周期由 `ipc/backup-operation.ts` 管理：`data:export` 与 `data:import` 共用进程内互斥租约，绑定请求主框架及其 BrowserWindow，不依赖当前聚焦窗口。准备阶段监听窗口销毁、Renderer 退出与主文档导航，失效后迟到结果不得开始写入；进入 commit 后保持锁直至 handler finally 收尾。该锁只互斥备份请求，不锁住其他存储服务；会话 / 生活资产事务与后续记忆 / 设置写入仍非跨存储原子事务。
+备份 IPC 的交互生命周期由 `ipc/backup-operation.ts` 管理：`data:export` 与 `data:import` 共用进程内互斥租约，绑定请求主框架及其 BrowserWindow，不依赖当前聚焦窗口。准备阶段监听窗口销毁、Renderer 退出与主文档导航，失效后迟到结果不得开始写入；进入 commit 后保持锁直至 handler finally 收尾。该锁只互斥备份请求；核心会话 / 生活资产 / 记忆 / 设置由同步 SQLite 事务和一次快照替换提交，派生向量不属于同一事务。
 
 备份正文的业务约束不在 IPC 复制：`isValidExportData` 在整份预检阶段调用 `memoryStore.assertMemoryContentAllowed`，与实际记忆写入共用长度与凭据拒绝规则。任何一条不合法都在首次业务写入前拒绝；预检不能替代后续合法数据写入的事务与失败恢复。
 

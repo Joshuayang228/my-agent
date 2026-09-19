@@ -1,7 +1,6 @@
 import { getDatabase, persist } from './database'
 import { randomUUID } from 'node:crypto'
 import { createLogger } from '../utils/logger'
-import { addToVectorStore, removeFromVectorStore } from '../memory/vector-store'
 import type { MemoryCategory, MemoryEntry } from '../../../src/shared/types'
 import { recordAssetUsage } from '../utils/asset-usage'
 import { MEMORY_STRATEGY_ASSET_KEYS } from '../memory/asset-keys'
@@ -10,9 +9,20 @@ import type { Database } from 'sql.js'
 
 const log = createLogger('MemoryStore')
 
-// 记忆写入返回得比向量索引快，但测试 / 应用退出前必须能等待这些后台任务，
-// 否则动态加载辅助模型配置可能在 Vitest 环境销毁后才继续执行。
+// 记忆先落盘，索引服务异步核对；跟踪提交触发的任务，供退出和测试清理等待，
+// 不把进程内队列当作恢复依据，崩溃后的恢复由服务重新扫描 SQLite 负责。
 const pendingBackgroundTasks = new Set<Promise<void>>()
+let indexSync: (() => Promise<void>) | undefined
+
+/** 存储只发成功提交通知；索引服务由应用入口注入，不从 storage 反向加载模型配置。 */
+export function setMemoryIndexSync(sync: () => Promise<void>): () => void {
+  indexSync = sync
+  return () => { if (indexSync === sync) indexSync = undefined }
+}
+
+function notifyMemoryCommitted(): void {
+  if (indexSync) queueMemoryBackgroundTask(indexSync)
+}
 
 function queueMemoryBackgroundTask(task: () => Promise<void>): void {
   const tracked = task().catch((error) => {
@@ -55,11 +65,6 @@ export type { MemoryCategory, MemoryEntry }
 export interface AddMemoryOpts {
   /** feedback 等应按主角分桶；其它类别可省略（全局） */
   roleId?: string
-}
-
-async function getLLMConfigForSync() {
-  const { loadMainLLMConfig } = await import('../llm/aux-config')
-  return loadMainLLMConfig()
 }
 
 async function ensureTable(): Promise<void> {
@@ -132,7 +137,13 @@ export async function addMemory(
   await ensureTable()
   const db = await getDatabase()
   const result = writeMemoryToDatabase(db, category, content, opts)
-  if (result.inserted) persist()
+  if (result.inserted) {
+    try { persist() }
+    catch (error) {
+      db.run('DELETE FROM memories WHERE id = ?', [result.entry.id])
+      throw error
+    }
+  }
   result.afterCommit()
   return result.entry
 }
@@ -160,6 +171,7 @@ export function writeMemoryToDatabase(db: Database, category: MemoryCategory, co
   if (dup) {
     return { entry: dup, inserted: false, afterCommit: () => {
       log.info('Memory semantic dedup: skip insert', { existingId: dup.id, category, roleId })
+      notifyMemoryCommitted()
       void recordAssetUsage({
         assetKey: MEMORY_STRATEGY_ASSET_KEYS.semanticDeduplication,
         relation: 'used', usageKind: 'memory-operation', status: 'success',
@@ -197,11 +209,7 @@ export function writeMemoryToDatabase(db: Database, category: MemoryCategory, co
         metadata: { bucketed: Boolean(roleId), acceptedCount: 1 },
       })
     }
-    queueMemoryBackgroundTask(async () => {
-      const config = await getLLMConfigForSync()
-      if (!config.apiKey) return
-      await addToVectorStore({ id, text: content, category, sessionId: '', timestamp: now }, config)
-    })
+    notifyMemoryCommitted()
   } }
 }
 
@@ -262,6 +270,10 @@ export async function getMemory(id: string): Promise<MemoryEntry | null> {
   if (!key) return null
   await ensureTable()
   const db = await getDatabase()
+  return readMemoryFromDatabase(db, key)
+}
+
+function readMemoryFromDatabase(db: Database, key: string): MemoryEntry | null {
   const stmt = db.prepare('SELECT * FROM memories WHERE id = ? LIMIT 1')
   stmt.bind([key])
   let entry: MemoryEntry | null = null
@@ -275,28 +287,34 @@ export async function getMemory(id: string): Promise<MemoryEntry | null> {
 export async function deleteMemory(id: string): Promise<void> {
   await ensureTable()
   const db = await getDatabase()
+  const before = readMemoryFromDatabase(db, id)
   db.run('DELETE FROM memories WHERE id = ?', [id])
-  persist()
+  try { persist() }
+  catch (error) {
+    if (before) db.run('INSERT INTO memories (id, category, content, createdAt, updatedAt, role_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [before.id, before.category, before.content, before.createdAt, before.updatedAt, before.roleId || ''])
+    throw error
+  }
   log.info('Memory deleted', { id })
-
-  queueMemoryBackgroundTask(() => removeFromVectorStore(id))
+  notifyMemoryCommitted()
 }
 
 export async function updateMemory(id: string, content: string): Promise<void> {
   assertMemoryContentAllowed(content)
   await ensureTable()
   const db = await getDatabase()
+  const before = readMemoryFromDatabase(db, id)
+  if (!before) return
   const now = Date.now()
   db.run('UPDATE memories SET content = ?, updatedAt = ? WHERE id = ?', [content, now, id])
-  persist()
+  try { persist() }
+  catch (error) {
+    db.run('UPDATE memories SET content = ?, updatedAt = ? WHERE id = ?', [before.content, before.updatedAt, id])
+    throw error
+  }
   log.info('Memory updated', { id })
 
-  queueMemoryBackgroundTask(() => removeFromVectorStore(id))
-  queueMemoryBackgroundTask(async () => {
-    const config = await getLLMConfigForSync()
-    if (!config.apiKey) return
-    await addToVectorStore({ id, text: content, category: 'fact', sessionId: '', timestamp: now }, config)
-  })
+  notifyMemoryCommitted()
 }
 
 /**

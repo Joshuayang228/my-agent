@@ -13,6 +13,7 @@ import { FEEDBACK_MEMORY_LIMIT, MEMORY_SEMANTIC_DEDUP_THRESHOLD } from '../stora
 import { DEFAULT_VECTOR_RECALL_MIN_SCORE, DEFAULT_VECTOR_RECALL_TOP_K, MAX_CONVERSATION_VECTORS, MEMORY_STALE_THRESHOLD_DAYS } from './vector-store'
 import { modelContextFingerprint } from '../prompts/fingerprint'
 import { MEMORY_STRATEGY_ASSET_KEYS } from './asset-keys'
+import { MEMORY_INDEX_SYNC_POLICY } from './index-sync'
 export { MEMORY_STRATEGY_ASSET_KEYS } from './asset-keys'
 
 const STRATEGY_VERSION = '1.0.0'
@@ -35,6 +36,7 @@ function strategyAsset(input: {
   source: string
   content: string
   dependencies: string[]
+  version?: string
 }): ModelContextAsset {
   return {
     key: input.key,
@@ -46,7 +48,7 @@ function strategyAsset(input: {
     desc: '记忆策略的生产事实与边界；不包含用户记忆正文。',
     source: input.source,
     sourcePath: input.source,
-    version: STRATEGY_VERSION,
+    version: input.version || STRATEGY_VERSION,
     fingerprint: modelContextFingerprint(input.content),
     fingerprintKind: 'content',
     assetType: 'memory-strategy',
@@ -145,6 +147,7 @@ export function getMemoryStrategyAssetCatalog(): ModelContextAsset[] {
     }),
     strategyAsset({
       key: MEMORY_STRATEGY_ASSET_KEYS.vectorLifecycle,
+      version: '1.1.0',
       name: '记忆策略 · 向量生命周期',
       purpose: '控制对话向量的容量与淘汰边界',
       role: 'vector-store',
@@ -152,6 +155,7 @@ export function getMemoryStrategyAssetCatalog(): ModelContextAsset[] {
       dependencies: ['embedding-input'],
       content: jsonContent({
         conversationVectorLimit: MAX_CONVERSATION_VECTORS,
+        structuredMemoryRecovery: MEMORY_INDEX_SYNC_POLICY,
         eviction: '只淘汰 conversation 类，按 timestamp 从旧到新淘汰',
         structuredMemoryEviction: 'identity / preference / fact / workflow / voice 不自动淘汰',
       }),

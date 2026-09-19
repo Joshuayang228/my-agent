@@ -7,20 +7,34 @@
  * 存储路径：userData/vector-index/
  */
 
-import { LocalIndex } from 'vectra'
+import { LocalIndex, LocalFileStorage } from 'vectra'
 import { app } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 import { createEmbedding } from './embeddings'
 import { createLogger, hashForLog } from '../utils/logger'
-import type { LLMConfig } from '../../../src/shared/types'
+import type { LLMConfig, MemoryEntry } from '../../../src/shared/types'
 import { recordAssetUsage } from '../utils/asset-usage'
 import { MEMORY_STRATEGY_ASSET_KEYS } from './asset-keys'
 import { detectSensitiveKinds } from '../../../src/shared/sensitive-memory'
+import { atomicWriteFileSync } from '../storage/database'
 
 const log = createLogger('VectorStore')
 
 let index: LocalIndex | null = null
+let indexReady: Promise<LocalIndex> | undefined
+let writeTail: Promise<unknown> = Promise.resolve()
+
+/** Vectra 的更新事务是实例共享状态；所有写入串行，失败不阻断后续恢复。 */
+function serializeVectorWrite<T>(work: () => Promise<T>): Promise<T> {
+  const result = writeTail.then(work)
+  writeTail = result.catch(() => {
+    index?.cancelUpdate()
+    index = null
+    indexReady = undefined
+  })
+  return result
+}
 
 /**
  * G3 记忆生命周期：conversation 类向量只增不减会无限膨胀。
@@ -29,6 +43,14 @@ let index: LocalIndex | null = null
  * 高价值知识，由用户/画像提取管理，不自动淘汰。
  */
 export const MAX_CONVERSATION_VECTORS = 500
+export const VECTOR_EMBEDDING_TIMEOUT_MS = 30_000
+
+/** Vectra 默认截断覆盖索引；复用原子快照写盘，避免进程退出留下半份派生索引。 */
+class AtomicVectorStorage extends LocalFileStorage {
+  override async upsertFile(filePath: string, content: Buffer | string): Promise<void> {
+    atomicWriteFileSync(filePath, typeof content === 'string' ? Buffer.from(content) : content)
+  }
+}
 
 function getIndexPath(): string {
   const userDataPath = app?.getPath?.('userData') ?? path.join(process.cwd(), '.agent-data')
@@ -40,17 +62,21 @@ function getIndexPath(): string {
 }
 
 async function getIndex(): Promise<LocalIndex> {
-  if (index) return index
-
-  const indexPath = getIndexPath()
-  index = new LocalIndex(indexPath)
-
-  if (!await index.isIndexCreated()) {
-    await index.createIndex()
-    log.info('Vector index created', { pathHash: hashForLog(indexPath) })
+  if (!indexReady) {
+    indexReady = (async () => {
+      const indexPath = getIndexPath()
+      index = new LocalIndex(indexPath, undefined, new AtomicVectorStorage())
+      if (!await index.isIndexCreated()) {
+        await index.createIndex()
+        log.info('Vector index created', { pathHash: hashForLog(indexPath) })
+      }
+      // Vectra 首次加载不合并并发读；共享初始化必须包含加载完成，
+      // 否则迟到的旧快照会覆盖已写入的内存索引。不得提前暴露实例。
+      await index.getIndexStats()
+      return index
+    })().catch(error => { indexReady = undefined; throw error })
   }
-
-  return index
+  return indexReady
 }
 
 export interface VectorMemoryEntry {
@@ -69,31 +95,25 @@ export async function addToVectorStore(
   config: LLMConfig,
 ): Promise<void> {
   try {
-    const idx = await getIndex()
-    const { vector } = await createEmbedding(entry.text, config)
-
-    await idx.insertItem({
-      vector,
-      metadata: {
-        id: entry.id,
-        text: entry.text,
-        category: entry.category,
-        sessionId: entry.sessionId ?? '',
-        timestamp: entry.timestamp,
-      },
+    await serializeVectorWrite(async () => {
+      const idx = await getIndex()
+      const { vector } = await createEmbedding(entry.text, config, undefined, AbortSignal.timeout(VECTOR_EMBEDDING_TIMEOUT_MS))
+      await idx.insertItem({
+        vector,
+        metadata: {
+          id: entry.id, text: entry.text, category: entry.category,
+          sessionId: entry.sessionId ?? '', timestamp: entry.timestamp,
+        },
+      })
+      log.info('Vector memory added', { id: entry.id, category: entry.category })
+      void recordAssetUsage({
+        assetKey: MEMORY_STRATEGY_ASSET_KEYS.vectorLifecycle,
+        relation: 'used', usageKind: 'memory-operation', status: 'success',
+        metadata: { operation: 'insert', category: entry.category, affectedCount: 1 },
+      })
+      // G3：conversation 类写入后检查容量，超上限淘汰最旧的
+      if (entry.category === 'conversation') await evictOldConversationVectors()
     })
-
-    log.info('Vector memory added', { id: entry.id, category: entry.category })
-    void recordAssetUsage({
-      assetKey: MEMORY_STRATEGY_ASSET_KEYS.vectorLifecycle,
-      relation: 'used', usageKind: 'memory-operation', status: 'success',
-      metadata: { operation: 'insert', category: entry.category, affectedCount: 1 },
-    })
-
-    // G3：conversation 类写入后检查容量，超上限淘汰最旧的
-    if (entry.category === 'conversation') {
-      await evictOldConversationVectors()
-    }
   } catch (err) {
     log.warn('Failed to add vector memory', { id: entry.id, error: String(err) })
     void recordAssetUsage({
@@ -199,7 +219,7 @@ export async function searchVectorStore(
     if (!await idx.isIndexCreated()) return []
     const { vector } = await createEmbedding(query, config)
 
-    const results = await idx.queryItems(vector, topK)
+    const results = await idx.queryItems(vector, query, topK)
 
     return results
       .filter(r => r.score >= minScore)
@@ -317,18 +337,20 @@ export function formatRecallForInjection(
  */
 export async function removeFromVectorStore(id: string): Promise<void> {
   try {
-    const idx = await getIndex()
-    const items = await idx.listItems()
-    const target = items.find(item => (item.metadata as any).id === id)
-    if (target) {
-      await idx.deleteItem(target.id)
-      log.info('Vector memory removed', { id })
-      void recordAssetUsage({
-        assetKey: MEMORY_STRATEGY_ASSET_KEYS.vectorLifecycle,
-        relation: 'used', usageKind: 'memory-operation', status: 'success',
-        metadata: { operation: 'remove', affectedCount: 1 },
-      })
-    }
+    await serializeVectorWrite(async () => {
+      const idx = await getIndex()
+      const items = await idx.listItems()
+      const target = items.find(item => (item.metadata as any).id === id)
+      if (target) {
+        await idx.deleteItem(target.id)
+        log.info('Vector memory removed', { id })
+        void recordAssetUsage({
+          assetKey: MEMORY_STRATEGY_ASSET_KEYS.vectorLifecycle,
+          relation: 'used', usageKind: 'memory-operation', status: 'success',
+          metadata: { operation: 'remove', affectedCount: 1 },
+        })
+      }
+    })
   } catch (err) {
     log.warn('Failed to remove vector memory', { id, error: String(err) })
     void recordAssetUsage({
@@ -337,6 +359,48 @@ export async function removeFromVectorStore(id: string): Promise<void> {
       metadata: { operation: 'remove', affectedCount: 0 },
     })
   }
+}
+
+/**
+ * 背景：SQLite 提交后的异步镜像可能因退出或网络失败缺失，不能把内存任务当恢复凭据。
+ * 意图：按持久源核对镜像，旧 / 删除 / 重复项先清理，缺项使用稳定 id 重建；不改对话向量。
+ * 约束：与普通向量写串行；异步期间源变化或停止后不得继续发布旧快照；错误向上传递以便重试。
+ */
+export async function reconcileMemoryIndex(
+  memories: MemoryEntry[], config: LLMConfig | undefined, isCurrent: () => boolean, signal: AbortSignal,
+): Promise<boolean> {
+  return serializeVectorWrite(async () => {
+    const idx = await getIndex()
+    const desired = new Map(memories.filter(entry => !detectSensitiveKinds(entry.content).includes('credentials')).map(entry => [entry.id, entry]))
+    const present = new Set<string>()
+    const items = await idx.listItems()
+    for (const item of items) {
+      if (!isCurrent() || signal.aborted) return false
+      const meta = item.metadata
+      if (typeof meta.id !== 'string' || !meta.id.startsWith('mem-')) continue
+      const source = desired.get(meta.id)
+      const matches = source && meta.text === source.content && meta.category === source.category
+        && meta.timestamp === source.updatedAt && (meta.roleId || '') === (source.roleId || '')
+      if (!matches || present.has(meta.id)) await idx.deleteItem(item.id)
+      else present.add(meta.id)
+    }
+    for (const source of desired.values()) {
+      if (!isCurrent() || signal.aborted) return false
+      if (present.has(source.id)) continue
+      if (!config) return false
+      const { vector } = await createEmbedding(source.content, config, undefined, signal)
+      if (!isCurrent() || signal.aborted) return false
+      await idx.upsertItem({ id: source.id, vector, metadata: {
+        id: source.id, text: source.content, category: source.category,
+        roleId: source.roleId || '', sessionId: '', timestamp: source.updatedAt,
+      } })
+      if (!isCurrent() || signal.aborted) {
+        await idx.deleteItem(source.id)
+        return false
+      }
+    }
+    return true
+  })
 }
 
 /**

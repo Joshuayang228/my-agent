@@ -8,6 +8,7 @@ import {
   isSafeExtractedProfileItem,
 } from '../../electron/main/agent/profile-extractor'
 import { MEMORY_SEMANTIC_DEDUP_THRESHOLD } from '../../electron/main/storage/memory-store'
+import { MEMORY_INDEX_SYNC_POLICY } from '../../electron/main/memory/index-sync'
 
 vi.mock('electron', () => ({
   app: { getPath: () => 'C:/tmp/my-agent-test' },
@@ -56,6 +57,9 @@ describe('记忆策略生产资产目录', () => {
     expect(extraction.maxContentLength).toBe(PROFILE_EXTRACTION_MAX_CONTENT_LENGTH)
     expect(extraction.sensitivePolicy).toContain('自动画像跳过')
     expect(dedupe.similarityThreshold).toBe(MEMORY_SEMANTIC_DEDUP_THRESHOLD)
+    const lifecycle = assets.find(asset => asset.key === 'memory-strategy:vector-lifecycle')!
+    expect(lifecycle.version).toBe('1.1.0')
+    expect(JSON.parse(lifecycle.content!).structuredMemoryRecovery).toEqual(MEMORY_INDEX_SYNC_POLICY)
   })
 
 

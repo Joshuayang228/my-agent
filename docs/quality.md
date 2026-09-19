@@ -4,7 +4,7 @@
 
 朋友圈备份门禁：moment-backup Unit 使用真实 SQLite 与生活服务，覆盖导出 / 清空 / 导入 / 重开、重复导入不覆盖、关联与规模拒绝、SQL 和落盘失败回滚。独立 Electron 从正式数据页导出真实赞评，在新目录恢复并完整重启，检查正式人物世界中的动态、点赞和两条用户评论；重复导入保留恢复后新增评论。此次完整 Electron 25 通过 / 4 外部模型条件跳过，UI 落盘结果 passed；不将本地协议测试等同于外部服务验收。
 
-整份备份恢复门禁：backup-atomicity 使用真实 SQLite / 临时文件与生产原子写入函数，设置 trigger 失败和快照 rename 失败时内存各表、重开快照保持原样，向量不提前发布，重试一次落盘；同时覆盖语义去重、设置密文及重复导入不覆盖。generated-image-backup 验证最终 persist 失败撤销会话和本批媒体。backup-recovery Unit 核验提交前 / 后目录、管理标记、链接与损坏引用。独立 Electron 从正式数据页导入，在 my-agent.db 替换前 / 后 SIGKILL 主进程，再真实重启验证核心数据和媒体全无 / 全有。首轮动态 import 与 process 句柄不适配当前驱动，后改退出事件；process.exit 未稳定停在注入点，最终使用 SIGKILL 并留下证据标记，不调整产品断言。此测试不证明断电或向量异步索引补偿。
+整份备份恢复门禁：backup-atomicity 使用真实 SQLite / 临时文件与生产原子写入函数，设置 trigger 失败和快照 rename 失败时内存各表、重开快照保持原样，向量不提前发布，重试一次落盘；同时覆盖语义去重、设置密文及重复导入不覆盖。generated-image-backup 验证最终 persist 失败撤销会话和本批媒体。backup-recovery Unit 核验提交前 / 后目录、管理标记、链接与损坏引用。独立 Electron 从正式数据页导入，在 my-agent.db 替换前 / 后 SIGKILL 主进程，再真实重启验证核心数据和媒体全无 / 全有。memory-index-recovery 使用真实 SQLite / Vectra 与本地 HTTP Embedding 服务，验证未发通知的源恢复、失败退避、删除 / 改写竞态、稳定 id、分类 / 角色、原子索引快照和实际检索；独立 Electron 在备份提交点强退，服务先 503 后恢复，验证镜像补齐且第二次启动不重复请求。首轮动态 import 与 process 句柄不适配当前驱动，后改退出事件；process.exit 未稳定停在注入点，最终使用 SIGKILL 并留下证据标记，不调整产品断言。此测试不证明断电耐久性、外部供应商 Embedding 或未保存凭据强退恢复。
 
 用户主动生图门禁：image-generation / generated-image-codec / image-generate-tool 覆盖真实本地协议、受限下载、完整解码、规模上限、取消、项目路径与请求前 / 提交前权限复核；并发出现目标文件不得覆盖。generated-image-session / generated-image-ipc / runtime-tool-persistence 覆盖持久化后才发布、归属 / 摘要 / 主框架校验及异步窗口失效。generated-image-backup 使用真实 SQLite 与文件覆盖媒体导出、删除原图后恢复、重开再导出、重复导入、伪造 / 损坏 / 超限及事务失败清理；不证明跨存储原子恢复。
 

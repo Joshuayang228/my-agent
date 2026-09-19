@@ -25,6 +25,7 @@ export async function createEmbedding(
   text: string,
   config: LLMConfig,
   embeddingModel?: string,
+  signal?: AbortSignal,
 ): Promise<EmbeddingResult> {
   if (embeddingUnavailable) {
     throw new Error('Embedding API previously unavailable, skipping')
@@ -33,6 +34,7 @@ export async function createEmbedding(
   const baseUrl = config.baseUrl.replace(/\/+$/, '')
 
   const response = await fetch(`${baseUrl}/embeddings`, {
+    signal,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
