@@ -8,7 +8,8 @@ import { builtinTools } from './tools/builtins/index'
 import { createLogger, hashForLog } from './utils/logger'
 import { mark, setLLMTraceSink } from './utils/tracer'
 import { setAssetUsageResolver, setAssetUsageSink } from './utils/asset-usage'
-import { closeDatabase } from './storage/database'
+import { closeDatabase, getDatabase } from './storage/database'
+import { recoverPendingBackupMedia } from './storage/backup-recovery'
 import { llmDebugStore } from './storage/llm-debug-store'
 import { assetUsageStore } from './storage/asset-usage-store'
 import { createModelContextAssetResolver } from './debug/model-context-assets'
@@ -266,6 +267,9 @@ function setupAutoUpdater() {
 // ── App 生命周期 ──
 
 app.whenReady().then(async () => {
+  const database = await getDatabase()
+  try { recoverPendingBackupMedia(database, app.getPath('userData')) }
+  catch { log.warn('Backup media startup reconciliation deferred') }
   await createWindow()
   createTray()
   setupAutoUpdater()

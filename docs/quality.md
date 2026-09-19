@@ -1,5 +1,7 @@
 # 质量总控
 
+整份备份恢复门禁：backup-atomicity 使用真实 SQLite / 临时文件与生产原子写入函数，设置 trigger 失败和快照 rename 失败时内存各表、重开快照保持原样，向量不提前发布，重试一次落盘；同时覆盖语义去重、设置密文及重复导入不覆盖。generated-image-backup 验证最终 persist 失败撤销会话和本批媒体。backup-recovery Unit 核验提交前 / 后目录、管理标记、链接与损坏引用。独立 Electron 从正式数据页导入，在 my-agent.db 替换前 / 后 SIGKILL 主进程，再真实重启验证核心数据和媒体全无 / 全有。首轮动态 import 与 process 句柄不适配当前驱动，后改退出事件；process.exit 未稳定停在注入点，最终使用 SIGKILL 并留下证据标记，不调整产品断言。此测试不证明断电或向量异步索引补偿。
+
 用户主动生图门禁：image-generation / generated-image-codec / image-generate-tool 覆盖真实本地协议、受限下载、完整解码、规模上限、取消、项目路径与请求前 / 提交前权限复核；并发出现目标文件不得覆盖。generated-image-session / generated-image-ipc / runtime-tool-persistence 覆盖持久化后才发布、归属 / 摘要 / 主框架校验及异步窗口失效。generated-image-backup 使用真实 SQLite 与文件覆盖媒体导出、删除原图后恢复、重开再导出、重复导入、伪造 / 损坏 / 超限及事务失败清理；不证明跨存储原子恢复。
 
 共享图片 UI 回归覆盖固定尺寸、读取重试、会话迟到隔离和主 / 侧聊天。Electron image-generation 从正式设置、审批前零请求、生成 PNG、重启显示 / 定位、侧聊天到正式数据页备份恢复；新增审批后在途请求的 Stop 验证，要求关闭网络连接、不落图且不自动重试。相同测试支持 TEST_PACKAGED_APP，Windows 未签名目录产物已运行真实 sharp native 模块；本地协议图片不证明外部付费模型质量、第三方互操作或安装向导 / 签名发布。根类型检查通过不代表主进程存量类型债已清零。

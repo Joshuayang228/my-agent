@@ -479,8 +479,8 @@ export function importSessionsIntoDatabase(
  * 把已校验的会话和生活资产写入当前库；失败时整笔回滚。
  *
  * 背景：生活资产与播种标记必须一起恢复，半份写入会让删空后的家居 / 足迹被再次补种。
- * 设计意图：会话和生活资产走同一事务；记忆和设置仍走既有 store，以保留语义去重、向量和加密迁移。
- * 关键约束：现有 ID / 播种标记跳过，不覆盖用户当前数据。
+ * 设计意图：所有表使用同一同步事务，记忆和设置调用共享写入原语，成功落盘后才发出副作用。
+ * 关键约束：禁止 await；COMMIT 后 persist 失败须同步补偿内存，不替换全局数据库对象。
  */
 export function importBackupPayload(
   db: Database,
@@ -489,21 +489,85 @@ export function importBackupPayload(
     livingAssets: BackupLivingAsset[]
     livingAssetSeeds: BackupLivingAssetSeed[]
     imageReferences?: ReadonlyMap<string, GeneratedImageReference>
+    memories?: ExportData['memories']
+    settings?: ReturnType<typeof settingsStore.prepareSettingWrite>[]
+    persist?: () => void
   },
-): Pick<DataImportStats, 'sessions' | 'livingAssets' | 'livingAssetSeeds'> {
+): DataImportStats {
   let importedSessions = 0
   let importedLiving = { assets: 0, seeds: 0 }
+  const undo: Array<() => void> = []
+  const afterCommit: Array<() => void> = []
+  let importedMemories = 0
+  let committed = false
+  const exists = (sql: string, values: string[]) => {
+    const statement = db.prepare(sql)
+    try { statement.bind(values); return statement.step() } finally { statement.free() }
+  }
   db.run('BEGIN')
   try {
+    for (const session of payload.sessions) {
+      if (!exists('SELECT id FROM sessions WHERE id = ?', [session.id])) {
+        undo.push(() => {
+          db.run('DELETE FROM messages WHERE session_id = ?', [session.id])
+          db.run('DELETE FROM sessions WHERE id = ?', [session.id])
+        })
+      }
+    }
+    ensureLivingAssetTables(db)
+    for (const asset of payload.livingAssets) {
+      if (!exists('SELECT id FROM companion_assets WHERE id = ?', [asset.id])) undo.push(() => { db.run('DELETE FROM companion_assets WHERE id = ?', [asset.id]) })
+    }
+    for (const seed of payload.livingAssetSeeds) {
+      if (!exists('SELECT 1 FROM companion_asset_seeds WHERE role_id = ? AND kind = ?', [seed.roleId, seed.kind])) {
+        undo.push(() => { db.run('DELETE FROM companion_asset_seeds WHERE role_id = ? AND kind = ?', [seed.roleId, seed.kind]) })
+      }
+    }
     importedSessions = importSessionsIntoDatabase(db, payload.sessions, { transact: false, imageReferences: payload.imageReferences })
     importedLiving = importLivingAssetsIntoDatabase(db, payload.livingAssets, payload.livingAssetSeeds)
+    for (const memory of payload.memories ?? []) {
+      const result = memoryStore.writeMemoryToDatabase(db, memory.category as MemoryCategory, memory.content, { roleId: memory.roleId })
+      if (result.inserted) {
+        importedMemories++
+        undo.push(() => { db.run('DELETE FROM memories WHERE id = ?', [result.entry.id]) })
+      }
+      afterCommit.push(result.afterCommit)
+    }
+    for (const setting of payload.settings ?? []) {
+      const statement = db.prepare('SELECT value FROM settings WHERE key = ?')
+      let previous: string | undefined
+      try { statement.bind([setting.key]); if (statement.step()) previous = statement.getAsObject().value as string } finally { statement.free() }
+      undo.push(() => {
+        if (previous === undefined) db.run('DELETE FROM settings WHERE key = ?', [setting.key])
+        else db.run('UPDATE settings SET value = ? WHERE key = ?', [previous, setting.key])
+      })
+      settingsStore.writePreparedSetting(db, setting)
+    }
     db.run('COMMIT')
+    committed = true
+    payload.persist?.()
   } catch (error) {
-    try { db.run('ROLLBACK') } catch { /* 原错误优先 */ }
+    if (committed) {
+      db.run('BEGIN')
+      try {
+        for (const revert of undo.reverse()) revert()
+        db.run('COMMIT')
+      } catch {
+        log.error('Backup in-memory compensation failed')
+        throw new Error('导入恢复失败，请重启应用后重试')
+      }
+    } else {
+      try { db.run('ROLLBACK') } catch { log.error('Backup transaction rollback failed') }
+    }
     throw error
+  }
+  for (const publish of afterCommit) {
+    try { publish() } catch { log.warn('Committed backup background notification failed') }
   }
   return {
     sessions: importedSessions,
+    memories: importedMemories,
+    settings: payload.settings?.length ?? 0,
     livingAssets: importedLiving.assets,
     livingAssetSeeds: importedLiving.seeds,
   }
@@ -620,11 +684,16 @@ export function registerDataExportIPC(): void {
         normalizedMemoryContents.add(normalized)
         return true
       })
-      const pendingSettings: Array<[string, string]> = []
-      for (const [key, value] of Object.entries(data.settings || {})) {
+      const pendingSettings: ReturnType<typeof settingsStore.prepareSettingWrite>[] = []
+      const settingEntries = Object.entries(data.settings || {}).filter(([key]) => isSafeBackupSettingKey(key))
+      if (settingEntries.length) await settingsStore.ensureTable()
+      for (const [key, value] of settingEntries) {
         if (!isSafeBackupSettingKey(key)) continue
-        const current = await settingsStore.getSetting(key)
-        if (!current) pendingSettings.push([key, value])
+        const statement = db.prepare('SELECT value FROM settings WHERE key = ?')
+        let current: unknown
+        try { statement.bind([key]); if (statement.step()) current = statement.getAsObject().value } finally { statement.free() }
+        // 默认值不是用户写入，不能让空库的 [] / false 阻断备份恢复；已有密文也不解密或覆盖。
+        if (!current) pendingSettings.push(settingsStore.prepareSettingWrite(key, value))
       }
 
       if (!operation.beginCommit()) return { success: false, error: 'cancelled' }
@@ -640,26 +709,13 @@ export function registerDataExportIPC(): void {
           livingAssets: data.livingAssets ?? [],
           livingAssetSeeds: data.livingAssetSeeds ?? [],
           imageReferences: restored.references,
+          memories: pendingMemories,
+          settings: pendingSettings,
+          persist,
         })
       } catch (error) { restored.rollback(); throw error }
-      let importedMemories = 0
-      for (const mem of pendingMemories) {
-        await memoryStore.addMemory(mem.category as memoryStore.MemoryCategory, mem.content, {
-          roleId: mem.roleId,
-        })
-        importedMemories++
-      }
-      for (const [key, value] of pendingSettings) {
-        await settingsStore.setSetting(key, value)
-      }
-      persist()
-      const stats: DataImportStats = {
-        sessions: importedCore.sessions,
-        memories: importedMemories,
-        settings: pendingSettings.length,
-        livingAssets: importedCore.livingAssets,
-        livingAssetSeeds: importedCore.livingAssetSeeds,
-      }
+      restored.finish()
+      const stats: DataImportStats = importedCore
       log.info('Data imported', stats)
       return { success: true, stats }
     } catch (err) {

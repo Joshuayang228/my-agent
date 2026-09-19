@@ -167,6 +167,18 @@ it('新会话与已有消息 ID 冲突时不静默丢消息，也不留下未引
   expect(restoredDirectories()).toEqual([])
 })
 
+it('最终数据库快照失败时撤销新会话与媒体，重试仍能恢复', async () => {
+  const { session } = await fixture()
+  expect(await invoke('export')).toMatchObject({ success: true })
+  await deleteSession(session.id)
+  state.persist.mockImplementationOnce(() => { throw new Error('fixture persist failure') })
+  expect(await invoke('import')).toMatchObject({ success: false })
+  expect(await getSession(session.id)).toBeNull()
+  expect(restoredDirectories()).toEqual([])
+  expect(await invoke('import')).toMatchObject({ success: true })
+  expect(await getSession(session.id)).not.toBeNull()
+})
+
 it('拒绝超过 16MB 的媒体总量及重复消息 ID', async () => {
   await fixture()
   expect(await invoke('export')).toMatchObject({ success: true })

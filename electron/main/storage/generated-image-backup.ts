@@ -5,6 +5,7 @@ import type { GeneratedImageReference } from '../../../src/shared/types'
 import { BACKUP_IMAGE_ERRORS } from '../../../src/shared/backup-errors'
 import { GENERATED_IMAGE_LIMITS, normalizeGeneratedImage } from '../utils/generated-image-codec'
 import { loadGeneratedImageFile } from './generated-images'
+import { finishBackupMedia, markPendingBackupMedia } from './backup-recovery'
 
 export type BackupImageReference = Omit<GeneratedImageReference, 'path'> & { fileName: string }
 export type BackupImageMedia = Omit<GeneratedImageReference, 'path'> & { data: string }
@@ -134,7 +135,7 @@ export async function prepareBackupImages(images: BackupImageMedia[]): Promise<P
 /**
  * 背景：原项目可能已不存在，备份也可能来自另一台机器，不能向其声明的路径写入。
  * 意图：在主进程指定的 userData 下排他创建一批媒体，再把本地引用交给会话事务。
- * 约束：仅恢复待新增会话使用的图片；失败只清理本批目录，事务成功后不得调用 rollback。
+ * 约束：仅恢复待新增会话使用的图片；失败只清理本批目录，快照成功落盘后只调用 finish。
  */
 export function restoreBackupImages(images: PreparedBackupImage[], sessions: ImageSession[], userData: string) {
   const needed = new Map<string, string>()
@@ -143,7 +144,7 @@ export function restoreBackupImages(images: PreparedBackupImage[], sessions: Ima
     needed.set(image.id, image.fileName)
   }
   const references = new Map<string, GeneratedImageReference>()
-  if (needed.size === 0) return { references, rollback: () => {} }
+  if (needed.size === 0) return { references, rollback: () => {}, finish: () => {} }
   const root = fs.realpathSync(userData)
   const directory = fs.mkdtempSync(path.join(root, 'restored-images-'))
   const rollback = () => {
@@ -152,6 +153,7 @@ export function restoreBackupImages(images: PreparedBackupImage[], sessions: Ima
     fs.rmSync(directory, { recursive: true, force: true })
   }
   try {
+    markPendingBackupMedia(directory)
     for (const image of images) {
       const fileName = needed.get(image.sourceId)
       if (!fileName) continue
@@ -163,6 +165,6 @@ export function restoreBackupImages(images: PreparedBackupImage[], sessions: Ima
       references.set(image.sourceId, { ...image.reference, path: target })
     }
     if (references.size !== needed.size) throw new BackupImageError(BACKUP_IMAGE_ERRORS.incomplete)
-    return { references, rollback }
+    return { references, rollback, finish: () => finishBackupMedia(directory) }
   } catch (error) { rollback(); throw error }
 }

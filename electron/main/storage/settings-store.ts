@@ -3,6 +3,7 @@ import { getDatabase, persist } from './database'
 import { createLogger } from '../utils/logger'
 import { MAX_COMPANION_RESPONSE_NOTE_LENGTH } from '../../../src/shared/types'
 import type { ModelConfigurationInput } from '../../../src/shared/types'
+import type { Database } from 'sql.js'
 
 const log = createLogger('SettingsStore')
 
@@ -226,6 +227,20 @@ export async function setSetting<K extends keyof AppSettings>(
   key: K,
   value: AppSettings[K],
 ): Promise<void> {
+  const prepared = prepareSettingWrite(key, value)
+  await ensureTable()
+  const db = await getDatabase()
+  writePreparedSetting(db, prepared)
+  persist()
+  log.info(`Setting updated: ${key}`)
+}
+
+/**
+ * 背景：备份不能在写入其他表后才发现密钥加密失败。
+ * 意图：普通保存与批量导入共用准备逻辑，不复制校验或密文格式。
+ * 约束：此函数不写库，prepared 值只供主进程同步提交，不向 Renderer 暴露。
+ */
+export function prepareSettingWrite<K extends keyof AppSettings>(key: K, value: AppSettings[K]) {
   if (!isAppSettingKey(String(key))) throw new Error('无效的设置项')
   if (typeof value !== 'string' || value.length > MAX_SETTING_VALUE_LENGTH) {
     throw new Error('设置值无效或超出长度限制')
@@ -233,25 +248,21 @@ export async function setSetting<K extends keyof AppSettings>(
   if (key === 'companionResponseNote' && value.length > MAX_COMPANION_RESPONSE_NOTE_LENGTH) {
     throw new Error('相处补充说明超出长度限制')
   }
-  await ensureTable()
-  const db = await getDatabase()
+  const stored = ENCRYPTED_KEYS.has(key) && value ? encrypt(String(value)) : String(value)
+  return { key, stored }
+}
 
+export function writePreparedSetting(db: Database, { key, stored }: ReturnType<typeof prepareSettingWrite>): void {
   const existing = db.prepare('SELECT 1 FROM settings WHERE key = ?')
   existing.bind([key])
   const exists = existing.step()
   existing.free()
-
-  let stored = String(value)
-  if (ENCRYPTED_KEYS.has(key) && stored) stored = encrypt(stored)
 
   if (exists) {
     db.run('UPDATE settings SET value = ? WHERE key = ?', [stored, key])
   } else {
     db.run('INSERT INTO settings (key, value) VALUES (?, ?)', [key, stored])
   }
-
-  persist()
-  log.info(`Setting updated: ${key}`)
 }
 
 /**

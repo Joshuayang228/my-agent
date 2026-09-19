@@ -6,6 +6,7 @@ import type { MemoryCategory, MemoryEntry } from '../../../src/shared/types'
 import { recordAssetUsage } from '../utils/asset-usage'
 import { MEMORY_STRATEGY_ASSET_KEYS } from '../memory/asset-keys'
 import { detectSensitiveKinds } from '../../../src/shared/sensitive-memory'
+import type { Database } from 'sql.js'
 
 const log = createLogger('MemoryStore')
 
@@ -129,32 +130,51 @@ export async function addMemory(
 ): Promise<MemoryEntry> {
   assertMemoryContentAllowed(content)
   await ensureTable()
+  const db = await getDatabase()
+  const result = writeMemoryToDatabase(db, category, content, opts)
+  if (result.inserted) persist()
+  result.afterCommit()
+  return result.entry
+}
+
+/**
+ * 背景：备份须把记忆和其他表一起提交，逐条调用异步 addMemory 会提前落盘及发出向量任务。
+ * 意图：普通新增与备份共用去重和写入，调用方成功落盘后才调用 afterCommit。
+ * 约束：本函数不 await、不 persist、不发布副作用；调用方负责事务和失败恢复。
+ */
+export function writeMemoryToDatabase(db: Database, category: MemoryCategory, content: string, opts?: AddMemoryOpts) {
+  assertMemoryContentAllowed(content)
   // feedback 必须带 role 才参与同桶去重；其它类别保持全局去重
   const roleId =
     category === 'feedback' && opts?.roleId?.trim() ? opts.roleId.trim() : ''
-  const existing = await listMemories(category)
+  const statement = db.prepare('SELECT * FROM memories WHERE category = ? ORDER BY updatedAt DESC')
+  const existing: MemoryEntry[] = []
+  try {
+    statement.bind([category])
+    while (statement.step()) existing.push(rowToEntry(statement.getAsObject()))
+  } finally { statement.free() }
   const pool = category === 'feedback' && roleId
     ? existing.filter((m) => (m.roleId || '') === roleId || !(m.roleId))
     : existing
   const dup = pool.find(m => memoryTextSimilarity(m.content, content) >= MEMORY_SEMANTIC_DEDUP_THRESHOLD)
   if (dup) {
-    log.info('Memory semantic dedup: skip insert', { existingId: dup.id, category, roleId })
-    void recordAssetUsage({
-      assetKey: MEMORY_STRATEGY_ASSET_KEYS.semanticDeduplication,
-      relation: 'used', usageKind: 'memory-operation', status: 'success',
-      metadata: { category, comparedCount: pool.length, duplicateCount: 1 },
-    })
-    if (category === 'feedback') {
+    return { entry: dup, inserted: false, afterCommit: () => {
+      log.info('Memory semantic dedup: skip insert', { existingId: dup.id, category, roleId })
       void recordAssetUsage({
-        assetKey: MEMORY_STRATEGY_ASSET_KEYS.feedbackBucket,
+        assetKey: MEMORY_STRATEGY_ASSET_KEYS.semanticDeduplication,
         relation: 'used', usageKind: 'memory-operation', status: 'success',
-        metadata: { bucketed: Boolean(roleId), acceptedCount: 0 },
+        metadata: { category, comparedCount: pool.length, duplicateCount: 1 },
       })
-    }
-    return dup
+      if (category === 'feedback') {
+        void recordAssetUsage({
+          assetKey: MEMORY_STRATEGY_ASSET_KEYS.feedbackBucket,
+          relation: 'used', usageKind: 'memory-operation', status: 'success',
+          metadata: { bucketed: Boolean(roleId), acceptedCount: 0 },
+        })
+      }
+    } }
   }
 
-  const db = await getDatabase()
   const now = Date.now()
   const id = `mem-${randomUUID()}`
 
@@ -162,28 +182,27 @@ export async function addMemory(
     'INSERT INTO memories (id, category, content, createdAt, updatedAt, role_id) VALUES (?, ?, ?, ?, ?, ?)',
     [id, category, content, now, now, roleId],
   )
-  persist()
-  log.info('Memory added', { id, category, roleId: roleId || undefined })
-  void recordAssetUsage({
-    assetKey: MEMORY_STRATEGY_ASSET_KEYS.semanticDeduplication,
-    relation: 'used', usageKind: 'memory-operation', status: 'success',
-    metadata: { category, comparedCount: pool.length, duplicateCount: 0 },
-  })
-  if (category === 'feedback') {
+  const entry: MemoryEntry = { id, category, content, createdAt: now, updatedAt: now, ...(roleId ? { roleId } : {}) }
+  return { entry, inserted: true, afterCommit: () => {
+    log.info('Memory added', { id, category, roleId: roleId || undefined })
     void recordAssetUsage({
-      assetKey: MEMORY_STRATEGY_ASSET_KEYS.feedbackBucket,
+      assetKey: MEMORY_STRATEGY_ASSET_KEYS.semanticDeduplication,
       relation: 'used', usageKind: 'memory-operation', status: 'success',
-      metadata: { bucketed: Boolean(roleId), acceptedCount: 1 },
+      metadata: { category, comparedCount: pool.length, duplicateCount: 0 },
     })
-  }
-
-  queueMemoryBackgroundTask(async () => {
-    const config = await getLLMConfigForSync()
-    if (!config.apiKey) return
-    await addToVectorStore({ id, text: content, category, sessionId: '', timestamp: now }, config)
-  })
-
-  return { id, category, content, createdAt: now, updatedAt: now, ...(roleId ? { roleId } : {}) }
+    if (category === 'feedback') {
+      void recordAssetUsage({
+        assetKey: MEMORY_STRATEGY_ASSET_KEYS.feedbackBucket,
+        relation: 'used', usageKind: 'memory-operation', status: 'success',
+        metadata: { bucketed: Boolean(roleId), acceptedCount: 1 },
+      })
+    }
+    queueMemoryBackgroundTask(async () => {
+      const config = await getLLMConfigForSync()
+      if (!config.apiKey) return
+      await addToVectorStore({ id, text: content, category, sessionId: '', timestamp: now }, config)
+    })
+  } }
 }
 
 export async function listMemories(category?: MemoryCategory): Promise<MemoryEntry[]> {
