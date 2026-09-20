@@ -1,5 +1,7 @@
 # 质量总控
 
+2026-09-20 全产品 UI 组合回归（代码 18230aa）：完整 ui 项目 337 项通过，7.7 分钟，无重试，证据 var/verification/rollout-ui-profile-current。覆盖正式与候选、Markdown 主题、基础 Checkbox、既有 OAuth UI 基线；不恢复 OAuth 后续施工。此证据替代旧 331 项作为当前 Renderer 回归锚点，不替代真实 Electron / 外部模型验收，也不证明所有合同剩余项已关闭。设置主要业务内容已沿实际 JSX 调用确认复用共享组件。
+
 R12 身份区共享回流（2026-09-20）：新增 WorldProfileHeader，App 将当前角色名称 / 简介传给 WorldHub；Playground 同组件只传隔离 persona。删除候选重复头部 JSX、写死头像字符和固定人设，使用姓名首字占位与语义底色，不复制装饰圆形或假地点。返回按钮保持 Foundation 固定尺寸；四主题宽窄、真实入口身份与候选切角 9 项 UI 通过，深浅截图已检查，Unit 1237 通过。仅修改 Renderer，不新增后端 / IPC / 上传功能；全产品 S6 仍进行中。 证据：var/verification/world-profile-shared；Renderer 正式入口使用测试 IPC，不冒充本批 Electron 实测。
 
 R12 六标签定义统一（2026-09-20）：候选独立 PLAYGROUND_WORLD_TABS 已删除，直接采用 WorldHub 默认定义；足迹图标从正式宫格对齐候选 MapPin。未改数据 / IPC / 依赖。四主题宽窄导航与候选切角 9 项通过，查看浅色宽屏和深色窄屏截图，Unit 1237 通过。人物头部仍未回流：候选 MomentsProfileHero 的写死头像 / 人设文案不能进入生产，需共享结构并接真实角色字段；该项继续归 S6，不提升 adopted。 证据目录：var/verification/world-tabs-single-source。
