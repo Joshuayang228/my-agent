@@ -1,5 +1,7 @@
 # 质量总控
 
+全产品组合复核（2026-09-20，代码 dc6a47f）：chat / markdown-theme / checkbox 三组 UI 共 363 项通过（8.2 分钟、无重试），证据 var/verification/production-rollout-combined-ui；排除 mcp-oauth-ui 专项。正式 Electron onboarding 21 项通过（1.8 分钟、无重试），证据 var/verification/production-rollout-onboarding，覆盖真实配置、Skills、六面资产 / 赞评、角色隔离、文件 / 终端 / 侧聊、权限、记忆重启和普通 MCP。未运行 OAuth / RAG 专项或付费外部模型，不冒充全部 Electron 文件通过。合同当前清单已按代码修正 starter、watcher、外部模型测试入口等旧描述；onboarding 共用 beforeAll 的前置依赖仍需收口，整体验证与 adopted 状态尚未关闭。
+
 R01 审批本批收口：定向 UI 17、Unit 1241、根 tsc / vite build 通过；资产与文档按提交门禁复核。Renderer 证据见 var/verification/chat-approval-verified，保留首次红测和外部点击坐标纠正记录。构建保留既有 chunk / dynamic import / inlineDynamicImports 警告，无独立 lint 脚本；未跑本批全量 UI / Electron，不代替全产品最终验收。
 
 R01 审批入口共享（2026-09-20）：ChatApprovalControl 组合 Foundation ActionButton，App 与 ChatSurface 同源，候选仍禁用且零生产 API。正式 settings.set 成功后才更新模式；拒绝 / 取消保留旧值、显示通用错误并可重试，在途同步锁拒绝重复写入，关闭菜单后响应不抢焦点。定向 UI 17 项通过，Unit 单独重跑 1241 项通过，根 tsc 通过。首轮 UI 14 通过 / 2 外部点击坐标落入菜单，改点真实外部区域后全绿；首次 Unit 与 UI 并行时文件扫描一项超时，未改阈值和业务，独立全量通过。证据 var/verification/chat-approval-verified，深浅宽窄截图已检查。未改 IPC / 主进程 / 权限策略，不代替真实 Electron 高风险确认验收；全产品组合验收仍进行中，RAG / OAuth 后续暂缓。
