@@ -5,6 +5,7 @@
  */
 
 import { ipcMain } from 'electron'
+import type { CompanionAssetCreateInput } from '../../../src/shared/types'
 import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import {
   getActiveRole,
@@ -172,7 +173,7 @@ export function registerCompanionIPC(): void {
     'companion:create-asset',
     async (
       _e,
-      input?: { kind?: string; name?: string; payload?: Record<string, unknown> },
+      input?: CompanionAssetCreateInput,
     ) => {
       if (!input || typeof input !== 'object') {
         return { ok: false as const, error: 'INVALID_INPUT' }
@@ -180,7 +181,15 @@ export function registerCompanionIPC(): void {
       if (typeof input.kind !== 'string' || typeof input.name !== 'string') {
         return { ok: false as const, error: 'INVALID_INPUT' }
       }
+      if (typeof input.roleId !== 'string' || !input.roleId.trim() || input.roleId.length > 128) {
+        return { ok: false as const, code: 'INVALID', error: '请刷新人物页面后重试。' }
+      }
+      // 切角通知可能迟到；先核对页面归属，拒绝替用户把旧草稿写给新角色。
+      // 受理后固定使用此次核验的 roleId，后续切角不能改变这次写入归属。
       const roleId = await getActiveRoleId()
+      if (input.roleId !== roleId) {
+        return { ok: false as const, code: 'ROLE_MISMATCH', error: '伙伴已切换，请刷新人物页面后重试。' }
+      }
       const result = await createAsset({
         roleId,
         kind: input.kind,

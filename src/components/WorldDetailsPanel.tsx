@@ -29,6 +29,7 @@ interface WorldDetailsPanelProps {
 }
 
 interface WorldDetailsState {
+  roleId: string
   roleName: string
   presence: string
   moments: Array<{ text: string; publishedAt: number; meta: Record<string, unknown> }>
@@ -63,6 +64,7 @@ export function WorldDetailsPanel({
   const isPreview = previewAssets !== undefined
   const canEdit = !isPreview || previewEditable
   const [state, setState] = useState<WorldDetailsState | null>(isPreview ? {
+    roleId: 'preview',
     roleName: previewRoleName,
     presence: previewPresence,
     moments: previewMoments ?? [],
@@ -92,6 +94,7 @@ export function WorldDetailsPanel({
   const load = useCallback(async () => {
     if (isPreview) {
       setState({
+        roleId: 'preview',
         roleName: previewRoleName,
         presence: previewPresence,
         moments: previewMoments ?? [],
@@ -118,7 +121,7 @@ export function WorldDetailsPanel({
         setState(null)
         throw new Error('ROLE_CHANGED')
       }
-      setState({ roleName: active.name, presence: presence.presence, moments: moments.items, assets: assets.items })
+      setState({ roleId: active.id, roleName: active.name, presence: presence.presence, moments: moments.items, assets: assets.items })
     } catch {
       if (requestId.current === currentRequest && mounted.current) setError('生活面暂时无法加载，请重试。')
     } finally {
@@ -217,6 +220,7 @@ export function WorldDetailsPanel({
     }
     await mutate(async (isCurrent) => {
       const result = await window.electronAPI!.companion.createAsset({
+        roleId: state?.roleId ?? '',
         kind: addDraft.kind,
         name: addDraft.name,
         payload: payloadFromDraft(addDraft),

@@ -1,5 +1,7 @@
 # 质量总控
 
+S6 资产角色绑定验证：s6-stale-role-red 仅延迟测试窗口 role-changed 通知，真实主进程 Asset added 日志与正式列表均显示旧 lin 草稿写到 zhou。修复后 s6-stale-role-fixed 独立用例、s6-stale-role-onboarding 完整 21 项通过；同用例覆盖四类过期表单零新增、8 类无效 / 错误角色、通知恢复后正常写入及重载、跨角色编辑删除拒绝。测试不替换写入 IPC / SQLite，finally 恢复通知并清理自身资产。UI 时序与新增失败 40 项通过（s6-stale-role-ui），Unit 1236、Eval 23 + 1、根 tsc / build 通过。主进程同树对照 72 → 72，唯一诊断文本差异是既有 TS6307 的引用链增加 companion IPC，错误本身未新增但仍非全绿。无独立 lint 脚本，已有构建警告保留；不将本批当作总体验采用或其他设置竞争验收。
+
 S6 生活资产写入隔离门禁：旧代码四个正式页面在切角后添加按钮仍 disabled，红测 s6-role-write-red。新增 / 编辑 / 删除 × 成功 / 失败 / 新写入 pending × 四页共 36 项，加既有切角读取 3 项，最终 39 通过（s6-role-write-themes）；成功场景浅色 1166，失败与 pending 深色 600，人工检查文化角窄屏及衣柜宽屏截图。Unit 首跑 dev-server-watch:35 多收到一次 full-reload，1235 通过；不改代码断言复核 1236 通过，尚未定位监听测试根因。根 tsc / build 通过；无独立 lint 脚本，已有构建警告保留。本批未改主进程 / IPC，不宣称后端受理切角竞争或全产品验收完成。
 
 S4 模型草稿保护修复验证：旧代码真实重载时 will-prevent-unload 计数为 0，预期 1，已取得红测。修复后生命周期与 onboarding 共 22 项通过（s4-draft-unload-complete）；UI 宽窄草稿、保存中、手动模型输入和失败重试 3 项通过（s4-draft-unload-ui）。首次修复回归遇 Playwright 自动关闭不存在的原生对话框，测试增加只观察 dialog 的监听后通过，不绕过生产保护。Unit 183 文件 / 1236 项、根 tsc / build、Eval 23 + 1、资产 31 项通过。主进程同树类型对照 72 → 72 无新增，非全绿；没有独立 lint 脚本，既有构建警告保留。下方草稿取证是修复前历史，不再代表当前能力。

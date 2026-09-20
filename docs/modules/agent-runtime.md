@@ -8,7 +8,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 ## 边界
 
 **做**：Agent Loop（流式事件 / 工具超时 / 重试）、会话 Runtime 中心化、System Prompt 四层组装、上下文压缩、后台任务队列、子 Agent、MCP Client、多 Provider LLM、模型连接 / 用途路由 / 主进程模型发现、Headless、Observer/DevPanel。MCP 工具许可由配置、活动连接、Registry 注册和执行前调用共同约束；模型连接密钥由主进程解密装配，Renderer 与备份只接触脱敏结构。
-**不做**：伙伴生活世界语义（见 companion）；结构化记忆库本身（见 memory）；权限策略语义（见 permission）。
+**不做**：伙伴生活世界语义及生活资产角色绑定（见 [companion](companion.md)）；结构化记忆库本身（见 memory）；权限策略语义（见 permission）。生活资产创建的角色校验属于 Companion IPC，不进入 Agent Loop、ToolRegistry 或模型输入。
 
 ## 短 Why
 

@@ -233,6 +233,7 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
     }
     await mutate(async (isCurrent) => {
       const result = await window.electronAPI!.companion.createAsset({
+        roleId,
         kind: addDraft.kind,
         name: addDraft.name,
         payload: payloadFromDraft(addDraft),

@@ -1,5 +1,6 @@
 import { ipcRenderer, contextBridge } from 'electron'
 import type {
+  CompanionAssetCreateInput,
   AgentAssetUsageQuery,
   AgentAssetUsageQueryResult,
   ChatMessage,
@@ -181,7 +182,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       }>
     }> => ipcRenderer.invoke('companion:get-assets', opts),
     createAsset: (
-      input: { kind: string; name: string; payload?: Record<string, unknown> },
+      input: CompanionAssetCreateInput,
     ): Promise<
       | {
           ok: true

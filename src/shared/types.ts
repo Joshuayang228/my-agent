@@ -938,6 +938,14 @@ export interface RoleSummary {
 /** @deprecated 使用 RoleSummary */
 export type PersonaConfig = RoleSummary
 
+/** 新增绑定页面已展示的角色；主进程必须核对，不能用当前角色替换过期归属。 */
+export interface CompanionAssetCreateInput {
+  roleId: string
+  kind: string
+  name: string
+  payload?: Record<string, unknown>
+}
+
 export type MomentUserInteractionKind = 'like' | 'comment'
 
 export interface MomentUserLikeView {

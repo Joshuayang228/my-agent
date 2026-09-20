@@ -1,5 +1,7 @@
 # 系统架构
 
+生活资产创建 IPC 使用共享 CompanionAssetCreateInput：Renderer 从已校验的资产快照发送 roleId，主进程进行运行时类型 / 长度与活跃角色一致性校验，再将固定 roleId 交给资产服务；角色变化不能把请求重定向给另一伙伴。无角色旧调用直接拒绝，不作兼容回退；preload / vite-env 共用输入类型。编辑删除的资产 ID 与 expectedRoleId 校验不变，不新增数据库锁或迁移。
+
 模型草稿离页判定由 ModelRoutingSettings 统一提供给内部 beforeLeave 和桌面 beforeunload。主窗口 will-prevent-unload 恢复 isQuitting=false 并显示原窗口，不强行放行卸载；memoryIndexSync.stop 位于最终 will-quit，不能在可取消的 before-quit 停止后台索引。无新增 IPC 或持久化路径。
 
 Agent Loop 的模型流读取异常边界先核验当次 AbortSignal：已取消时结束观察 span 并复用 terminateLoop(aborted)，未取消才进入重试 / 压缩 / model_error。Runtime 继续保留 Loop 已发布终态，不补发或改写取消；不通过异常名字推断用户取消。

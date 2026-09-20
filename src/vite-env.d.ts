@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 import type {
+  CompanionAssetCreateInput,
   AgentAssetUsageQuery,
   AgentAssetUsageQueryResult,
   ChatMessage,
@@ -194,7 +195,7 @@ declare global {
           }>
         }>
         createAsset: (
-          input: { kind: string; name: string; payload?: Record<string, unknown> },
+          input: CompanionAssetCreateInput,
         ) => Promise<
           | {
               ok: true
