@@ -1,5 +1,7 @@
 # 全产品体验正式回流 v1 施工合同
 
+S4 首次凭据强退定位（2026-09-20，Electron 42.9.1 / Windows）：独立临时 userData 经真实 saveModelConfiguration 保存随机测试凭据，返回成功后 Local State 仍不存在；立即 taskkill 自有 Electron 进程树，重启读取到 connections=0、routes=1、llmConnectionReady=false。另一个全新实例验证 safeStorage 可用，但 session.defaultSession.flushStorageData() 后 Local State 仍不存在，约启动 10855ms 后才出现；这是单次观测，不是可硬编码的等待时长。当前版本 browser_process_impl.cc 在退出主消息循环时提交 Local State；同步 encryptString 不构成持久化确认。修复必须保证敏感配置成功应答前具备可重启解密的系统状态；不得以固定 sleep、正常退出一次、明文降级、直接覆写 Chromium Local State 或只刷新 Session 替代。生产代码尚未修改，S4 未完成；下一步验证可用的系统状态持久化完成信号及失败时不提交配置的统一保存边界。
+
 S5 工作区前置子项（2026-09-20）：仅修改 onboarding 三个工作区用例的准备流程及文档，保留首次模型配置的 UI 验收、终端拒绝 / 进程退出和侧聊流清理断言。复用已有真实设置 IPC；每项新建独立项目并走正式选择入口，不修改生产实现或新增依赖。红测证明单跑缺少模型 / 项目 / 右坞；三项独立通过，完整 onboarding 19、Unit 1227、根 tsc / build 通过。不关闭其余 S5 或 S6。
 
 S5 文档监听子项（2026-09-20）：仅修改 Vite watcher 和既有真实服务回归，排除项目文档 / 方法论 / 协作规则目录，保留源码更新；真实红测到绿测验证 watcher 与 WebSocket，Unit 1227、根 tsc / build 通过。未修改体验注册状态、用户配置、IPC 或依赖，onboarding 前置依赖和外部脚本仍未收口，不关闭整个 S5。

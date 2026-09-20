@@ -1,5 +1,7 @@
 # 项目进度
 
+- S4 首次凭据强退缺口已独立复现：真实保存成功但 Local State 未落盘，强退后连接 0 / 路由 1 / 未就绪；Session flush 实测不能立即写出系统加密状态，排除该修复路径。当前仅定位与记录，未改生产代码；后续需在统一保存边界确认系统密钥可持久恢复，不能硬编码约 10 秒等待或明文降级。RAG / OAuth 继续暂缓。
+
 - S5 工作区验收前置已解除：三项用例显式准备真实模型配置、独立项目及右坞，不再依赖先前测试成功。原侧聊用例独立运行失败，修复后三项分别单跑通过，完整 onboarding 19、Unit 1227、根 tsc / build 通过。未改正式产品行为；其余套件独立性、外部脚本和 S6 继续，RAG / OAuth 仍暂缓。
 
 - S5 文档监听子项收口：Vite 不再监听 docs / methodology / agent-skills / .agents/skills，保留原验收产物排除及源码更新。真实 Vite 红测捕获四类文档 HTML 事件，修复后文档无 watcher / WebSocket 重载通知，入口 HTML 与源码 Markdown 仍可更新。Unit 1227、根 tsc / build 通过。未改正式 UI 或体验采用状态；onboarding 前置依赖与其余 S5 / S6 项仍待完成。
