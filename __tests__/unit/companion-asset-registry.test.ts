@@ -24,7 +24,7 @@ describe('伙伴生产资产目录', () => {
     expect(keys).toContain('companion:default:hang:profile')
     expect(keys).toContain('companion:default:hang:world-default')
     expect(keys).toContain('companion:default:ayu:scene:display')
-    expect(keys.some((key) => key.startsWith('companion:default:lin:life:wardrobe:'))).toBe(true)
+    expect(keys.some((key) => key.startsWith('companion:default:lin:life:wardrobe:'))).toBe(false)
 
     for (const asset of assets) {
       expect(asset.category).toBe('companion')
@@ -64,16 +64,10 @@ describe('伙伴生产资产目录', () => {
     expect(derivedScene?.dependencies).toContain('companion:default:hang:manifest')
   })
 
-  it('生活 starter 目录复用生产常量且返回防修改副本', () => {
-    const first = getStarterAssetDefinitions('lin')
-    first[0].payload.color = '被测试修改'
-    const second = getStarterAssetDefinitions('lin')
-
-    expect(second[0].payload.color).not.toBe('被测试修改')
-    expect(second.some((item) => item.kind === 'wardrobe')).toBe(true)
-    expect(second.some((item) => item.kind === 'bookshelf')).toBe(true)
-    expect(second.some((item) => item.kind === 'culture')).toBe(true)
-    expect(second.some((item) => item.kind === 'home')).toBe(false)
-    expect(second.some((item) => item.kind === 'footprint')).toBe(false)
+  it('未确认生活设定不生成生产资产，目录与初始化定义一致', () => {
+    for (const role of ['lin', 'zhou', 'xia', 'hang', 'ayu']) {
+      expect(getStarterAssetDefinitions(role)).toEqual([])
+      expect(getCompanionAssetCatalog().some(asset => asset.key.startsWith('companion:default:' + role + ':life:'))).toBe(false)
+    }
   })
 })

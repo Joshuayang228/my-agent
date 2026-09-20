@@ -69,12 +69,14 @@
 
 ## 已落地能力
 
+- 生产初始化不再生成服务内置的衣物、书籍、歌单、电影与摄影记录；当前角色未定义这些初始资产时展示真实空态。Role Pack 世界默认、用户创建和已发布事件资产不受影响；Playground 样张仍隔离。此次不批量删除旧数据库中的历史记录，不把已有记录当成角色设定已确认的证据。
+
 - 伙伴设置的回答方式、相处补充说明和提醒数字输入均组合 Foundation ActionButton / TextField；正式与 Playground 使用同一 CompanionSettingsContent，不再在业务组合中复制原生按钮 / 数字输入。候选的勿扰时段、次数及补充说明可在隔离内存中编辑，不再使用空回调；正式保存链路不变。绑定门禁检查真实 JSX 符号而非 import 声明，正式入口覆盖四主题宽窄、键盘选中、hover 尺寸与保存失败恢复。
 
 - 生活剧本、朋友圈润色、Catch-up 摘要与显式反思入口用共享连接认证判断，允许已配置的本机兼容无 Key 辅助模型；仍保留原有 preferLlm、数据校验和失败回退，不更改主动调用时机、反思门闸或角色隔离。协议可连接不代表任意本地型号能正确生成结构化生活内容。
 
 - 朋友圈正式页与 Playground 共用卡片样式，hover 只改变颜色，不再通过 translateY 移动整张卡片；评论槽在展开前后保持相同尺寸与位置。衣柜删除失败保留确认、原条目与重试入口，测试按真实无障碍按钮名称及脱敏错误提示验收。
-- 人物世界正式入口提供六个生活面：朋友圈、衣柜、文化角、家居、通讯录、足迹。朋友圈、衣柜和通讯录读取现有 companion IPC；正式通讯录列表会先读取既有 `check-cast-availability` 展示方便 / 忙碌，开聊仍走 `startSummon` 二次判定。文化角、家居和足迹复用按主角隔离的 `companion_assets`，其中家居与常去地点仅在 Role Pack 提供真实 `world.default` 时幂等播种；小林当前没有该资产，正式家居 / 常去保持空态。没有 `world.default.json` 时，运行态 `world_json`、Catch-up 和 Prompt 切片的居所 / 当前位置回退为「未设定」，不再写入城西小公寓、日常住处或家。生活动态地点作为足迹的近期补充，不把 Playground fixture 当作生产数据源。文化 starter 保留作品名，不再写没有事件证据的笔记数量或观影次数。
+- 人物世界正式入口提供六个生活面：朋友圈、衣柜、文化角、家居、通讯录、足迹。朋友圈、衣柜和通讯录读取现有 companion IPC；正式通讯录列表会先读取既有 `check-cast-availability` 展示方便 / 忙碌，开聊仍走 `startSummon` 二次判定。文化角、家居和足迹复用按主角隔离的 `companion_assets`，其中家居与常去地点仅在 Role Pack 提供真实 `world.default` 时幂等播种；小林当前没有该资产，正式家居 / 常去保持空态。没有 `world.default.json` 时，运行态 `world_json`、Catch-up 和 Prompt 切片的居所 / 当前位置回退为「未设定」，不再写入城西小公寓、日常住处或家。生活动态地点作为足迹的近期补充，不把 Playground fixture 当作生产数据源。衣柜、书架和文化角不再从服务硬编码默认值生成作品、穿着或阅读经历；无 Role Pack 定义时为空。
 - 家居与足迹的正式页、Playground 使用同一 `WorldLivingContent` 纯展示组件；家居保留住所结构和生活物件，足迹分开常去、显式想去记录与实际动态，不用资产初始化时间伪造访问日期，同地点不同动态保留各自正文和日期。正式刷新失败保留内容并可重试，响应主角不一致则清空并提示重试。
 - 新住所 / 地点的初始化标记与资产在同一 SQLite 事务内写入 `companion_asset_seeds`；仅真实 Role Pack 提供默认数据时初始化，不覆盖已有记录，删除后重载不补种。文化角 / 衣柜 / 书架沿用既有初始化语义，不外推该删除保证。
 - 文化角通过 `WorldCultureContent` 同源展示四类文化卡片、书架阅读内容和关联读书笔记；`detail` 与 `note` 同时存在时均保留，重名作品按资产 ID 区分，未知类型保留为文化记录，空数据不生成作品。正式页沿既有资产 IPC 读取，并通过 `companion:create-asset` 与既有 update / delete 编辑衣柜、文化、家居物件和足迹地点；Playground 只传隔离 props 并改内存预览。
@@ -90,7 +92,7 @@
 | Universe + Role Pack（三槽：lin / zhou / xia） | 已落地 | 角色架 / 设置 | `universes/default/` · 文案见 [companion-cast-content](../requirements/companion-cast-content.md) |
 | 主角候选结构化档案（Role Profile） | 已落地 | Debug「世界态」/ Prompt L1 | 当前仅小航 `profile.json`；行为边界与五维表达基线已定，人物故事字段待定 |
 | 伙伴生产资产目录 | 已落地 | Debug「提示词管理器 → 伙伴世界」 | `companion/asset-registry.ts`；manifest / profile / 默认世界 / 场景 / 衣柜书架 starter 使用稳定 key、版本、指纹、来源和依赖 |
-| 生活分味（剧本 / starter 衣柜） | 已落地 | 朋友圈 / 衣柜随主角 | `script-generator` · `ensureStarterWardrobe` |
+| 生活资产来源边界 | 已落地 | 衣柜 / 文化角 / 家居 / 足迹 | 衣柜、书架、文化默认样张不再播种；住所 / 地点 / 物件沿用真实 world.default，用户 CRUD 与已发布事件授予保留。已有数据库不批量清空 |
 | 日剧本 LLM（当日）+ 哈希回退 | 已落地 | （隐式）Life ticker | `resolveDayScript` · aux-config |
 | 世界状态薄片（居所/时区/情境/心情/精力/当前位置与活动） | 已落地 | （隐式）Assemble L3 | schema v1 `world_json` · `## World slice`；无 Role Pack 世界默认时 home / currentLocation 为「未设定」 |
 | 主角候选默认世界结构 | 已落地 | Debug「世界态」/ 世界初始化 | 当前仅小航 `world.default.json`；城市、住所、地点、物品与作息均待定 |

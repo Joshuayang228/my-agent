@@ -71,6 +71,13 @@ const { parseDayScriptPayload } =
   await import('../../electron/main/companion/life/script-generator')
 
 describe('Companion Assets', () => {
+  it.each(['lin', 'zhou', 'xia', 'hang', 'unknown-role'])('未定义生活资产的 %s 不从服务默认值生成衣物或文化记录', async roleId => {
+    expect(getStarterAssetDefinitions(roleId)).toEqual([])
+    expect(await ensureStarterAssets(roleId)).toEqual({ created: 0 })
+    expect(await listAssets(roleId)).toEqual([])
+    expect(await pickWardrobeAssetId(roleId, 42)).toBeNull()
+  })
+
   beforeEach(() => {
     memDb = new SQL.Database()
   })
@@ -154,24 +161,18 @@ describe('Companion Assets', () => {
     expect(await listAssets('fixture-b')).toHaveLength(1)
   })
 
-  it('ensureStarterWardrobe 播种且幂等', async () => {
-    const r1 = await ensureStarterWardrobe('lin')
-    expect(r1.created).toBe(3)
-    const r2 = await ensureStarterWardrobe('lin')
-    expect(r2.created).toBe(0)
-    const items = await listAssets('lin', { kind: 'wardrobe' })
-    expect(items).toHaveLength(3)
-    expect(items.every((a) => a.roleId === 'lin')).toBe(true)
+  it('衣柜读取不补种，用户创建和删除后保持真实状态', async () => {
+    expect(await ensureStarterWardrobe('lin')).toEqual({ created: 0 })
+    const item = await addAsset({ roleId: 'lin', kind: 'wardrobe', name: '用户外套' })
+    expect(await ensureStarterWardrobe('lin')).toEqual({ created: 0 })
+    expect(await listAssets('lin', { kind: 'wardrobe' })).toHaveLength(1)
+    await deleteAsset(item.id, { expectedRoleId: 'lin' })
+    await ensureStarterWardrobe('lin')
+    expect(await listAssets('lin', { kind: 'wardrobe' })).toEqual([])
   })
 
-  it('小林文化 starter 保留作品名，不写无证据数量', () => {
-    const culture = getStarterAssetDefinitions('lin').filter((item) => item.kind === 'culture')
-    const details = culture.map((item) => String(item.payload.detail ?? ''))
-    expect(culture.map((item) => item.name)).toEqual(['《瓦尔登湖》', '旅行的意义', '《海街日记》', '窗边的光'])
-    expect(details).toContain('正在读')
-    expect(details).toContain('喜欢的电影')
-    expect(details.join('\n')).not.toContain('3 条笔记')
-    expect(details.join('\n')).not.toContain('看过两次')
+  it('小林未确认的阅读、音乐与影像经历不进入生产目录', () => {
+    expect(getStarterAssetDefinitions('lin').filter(item => item.kind === 'culture')).toEqual([])
   })
 
   it('小林没有 world.default.json，不播种家居或足迹', () => {
@@ -181,28 +182,17 @@ describe('Companion Assets', () => {
     expect(JSON.stringify(definitions)).not.toContain('城西小公寓')
   })
 
-  it('ensureStarterBookshelf 分味播种且幂等', async () => {
-    const r1 = await ensureStarterBookshelf('lin')
-    expect(r1.created).toBe(3)
-    const r2 = await ensureStarterBookshelf('lin')
-    expect(r2.created).toBe(0)
-    const books = await listAssets('lin', { kind: ASSET_KIND_BOOKSHELF })
-    expect(books).toHaveLength(3)
-    expect(books.every((a) => a.kind === 'bookshelf' && a.id.startsWith('bookshelf:lin:'))).toBe(true)
-    expect(books.some((a) => a.name === '匠人')).toBe(true)
-
-    await ensureStarterBookshelf('zhou')
-    const zhou = await listAssets('zhou', { kind: 'bookshelf' })
-    expect(zhou.some((a) => a.name === '设计中的设计')).toBe(true)
-    expect(zhou.every((a) => a.roleId === 'zhou')).toBe(true)
+  it('书架只保留真实写入，初始化不补书且角色隔离', async () => {
+    await addAsset({ roleId: 'lin', kind: ASSET_KIND_BOOKSHELF, name: '用户读物' })
+    expect(await ensureStarterBookshelf('lin')).toEqual({ created: 0 })
+    expect(await ensureStarterBookshelf('zhou')).toEqual({ created: 0 })
+    expect((await listAssets('lin', { kind: ASSET_KIND_BOOKSHELF })).map(item => item.name)).toEqual(['用户读物'])
+    expect(await listAssets('zhou', { kind: ASSET_KIND_BOOKSHELF })).toEqual([])
   })
 
-  it('ensureStarterAssets 同时播种衣柜、书架与文化记录', async () => {
-    const r = await ensureStarterAssets('xia')
-    expect(r.created).toBe(10)
-    const all = await listAssets('xia')
-    expect(all.filter((a) => a.kind === 'wardrobe')).toHaveLength(3)
-    expect(all.filter((a) => a.kind === 'bookshelf')).toHaveLength(3)
+  it('打开生活面不凭空填充衣柜、书架与文化记录', async () => {
+    expect(await ensureStarterAssets('xia')).toEqual({ created: 0 })
+    expect(await listAssets('xia')).toEqual([])
   })
 
   it('住所事务失败不留下资产或完成标记，修复后可以重试', async () => {
@@ -230,7 +220,7 @@ describe('Companion Assets', () => {
 
   it('人物故事未定时，小航不播种默认世界物品', async () => {
     const first = await ensureStarterAssets('hang')
-    expect(first.created).toBe(9)
+    expect(first.created).toBe(0)
     const seeded = (await listAssets('hang')).filter((asset) => asset.payload.seededFrom === 'world.default')
     expect(seeded).toHaveLength(0)
     const second = await ensureWorldDefaultPossessions('hang')
@@ -255,7 +245,8 @@ describe('Companion Assets', () => {
     expect(lin.some((a) => a.name === '专属外套')).toBe(false)
   })
 
-  it('日剧本 moment 事件 payload 含 assetId', async () => {
+  it('日剧本 moment 仅引用已入库衣物', async () => {
+    await addAsset({ roleId: 'lin', kind: 'wardrobe', name: '测试衣物' })
     await ensureDayScripts('lin', '2026-08-10', '2026-08-10')
     const events = await __lifeStore.listEvents('lin')
     const moments = events.filter((e) => e.type === 'moment')
@@ -268,6 +259,7 @@ describe('Companion Assets', () => {
   })
 
   it('pickWardrobeAssetId 同 seed 稳定', async () => {
+    await addAsset({ roleId: 'lin', kind: 'wardrobe', name: '测试衣物' })
     const a = await pickWardrobeAssetId('lin', 42)
     const b = await pickWardrobeAssetId('lin', 42)
     expect(a).toBe(b)

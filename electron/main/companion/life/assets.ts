@@ -250,70 +250,6 @@ export interface CompanionStarterAssetDefinition {
 
 type StarterItem = Omit<CompanionStarterAssetDefinition, 'kind'>
 
-/** 默认 starter；各主角可覆盖以体现分味（仅该 kind 空柜时播种） */
-const WARDROBE_DEFAULT: StarterItem[] = [
-  { key: 'tee-white', name: '白 T 恤', payload: { color: '白', style: '休闲' } },
-  { key: 'hoodie-gray', name: '灰色连帽衫', payload: { color: '灰', style: '日常' } },
-  { key: 'sneakers', name: '运动鞋', payload: { color: '白', style: '出行' } },
-]
-
-const WARDROBE_BY_ROLE: Record<string, StarterItem[]> = {
-  lin: [
-    { key: 'shirt-navy', name: '藏青衬衫', payload: { color: '深蓝', style: '通勤', occasion: '工位' } },
-    { key: 'cardigan-beige', name: '米色针织开衫', payload: { color: '米', style: '日常', occasion: '家' } },
-    { key: 'loafers', name: '棕色乐福鞋', payload: { color: '棕', style: '出行', occasion: '路上' } },
-  ],
-  zhou: [
-    { key: 'tee-graphic', name: '印花短袖', payload: { color: '白', style: '街头', occasion: '户外' } },
-    { key: 'denim-jacket', name: '浅色牛仔外套', payload: { color: '浅蓝', style: '轻快', occasion: '咖啡馆' } },
-    { key: 'sneakers-color', name: '撞色运动鞋', payload: { color: '彩', style: '出行', occasion: '路上' } },
-  ],
-  xia: [
-    { key: 'linen-shirt', name: '亚麻衬衫', payload: { color: '浅灰', style: '安静', occasion: '家' } },
-    { key: 'soft-hoodie', name: '软乎乎连帽衫', payload: { color: '雾蓝', style: '宅家', occasion: '家' } },
-    { key: 'quiet-sneakers', name: '低饱和运动鞋', payload: { color: '灰白', style: '散步', occasion: '户外' } },
-  ],
-}
-
-const BOOKSHELF_DEFAULT: StarterItem[] = [
-  { key: 'essay-quiet', name: '小闲笔', payload: { author: '佚名', genre: '随笔', note: '翻两页就够' } },
-  { key: 'novel-night', name: '夜读一本', payload: { author: '佚名', genre: '小说', note: '睡前' } },
-]
-
-
-const CULTURE_DEFAULT: StarterItem[] = [
-  { key: 'reading-note', name: '随手读物', payload: { type: 'reading', detail: '偶尔翻两页' } },
-  { key: 'evening-music', name: '傍晚歌单', payload: { type: 'music', detail: '散步时听' } },
-  { key: 'favorite-film', name: '喜欢的电影', payload: { type: 'film', detail: '想再看一次' } },
-  { key: 'window-photo', name: '窗边的光', payload: { type: 'photography', detail: '自己的记录' } },
-]
-
-const CULTURE_BY_ROLE: Record<string, StarterItem[]> = {
-  lin: [
-    { key: 'walden-notes', name: '《瓦尔登湖》', payload: { type: 'reading', detail: '正在读', note: '给生活留一点空白' } },
-    { key: 'meaning-of-travel', name: '旅行的意义', payload: { type: 'music', detail: '最近常听 · 傍晚散步' } },
-    { key: 'little-forest', name: '《海街日记》', payload: { type: 'film', detail: '喜欢的电影' } },
-    { key: 'window-light', name: '窗边的光', payload: { type: 'photography', detail: '自己的作品 · 2026 年 8 月' } },
-  ],
-}
-
-const BOOKSHELF_BY_ROLE: Record<string, StarterItem[]> = {
-  lin: [
-    { key: 'work-craft', name: '匠人', payload: { author: '森博嗣', genre: '随笔', note: '做事的分寸' } },
-    { key: 'midnight-lib', name: '午夜图书馆', payload: { author: '马特·海格', genre: '小说', note: '如果换一条路' } },
-    { key: 'notes-desk', name: '工位边的笔记', payload: { author: '自用', genre: '手记', note: '备忘' } },
-  ],
-  zhou: [
-    { key: 'design-eye', name: '设计中的设计', payload: { author: '原研哉', genre: '设计', note: '看世界的角度' } },
-    { key: 'manga-slice', name: '四格日常', payload: { author: '合集', genre: '漫画', note: '咖啡馆翻' } },
-    { key: 'city-walk', name: '走街的理由', payload: { author: '佚名', genre: '随笔', note: '出门灵感' } },
-  ],
-  xia: [
-    { key: 'poetry-soft', name: '柔软的句子', payload: { author: '合集', genre: '诗', note: '很小声' } },
-    { key: 'rain-essay', name: '雨天读本', payload: { author: '佚名', genre: '随笔', note: '窗边' } },
-    { key: 'quiet-novel', name: '没有高潮的故事', payload: { author: '佚名', genre: '小说', note: '慢慢看' } },
-  ],
-}
 
 /**
  * 返回角色的静态 starter 资产定义，供生产资产目录读取。
@@ -334,15 +270,10 @@ export function getStarterAssetDefinitions(roleId: string): CompanionStarterAsse
 }
 
 function startersFor(kind: AssetKind, roleId: string): StarterItem[] {
-  if (kind === ASSET_KIND_BOOKSHELF) {
-    return BOOKSHELF_BY_ROLE[roleId] ?? BOOKSHELF_DEFAULT
-  }
-  if (kind === ASSET_KIND_CULTURE) {
-    return CULTURE_BY_ROLE[roleId] ?? CULTURE_DEFAULT
-  }
   if (kind === ASSET_KIND_HOME) return worldHomeStarters(roleId)
   if (kind === ASSET_KIND_FOOTPRINT) return worldFootprintStarters(roleId)
-  return WARDROBE_BY_ROLE[roleId] ?? WARDROBE_DEFAULT
+  // 无已确认 Role Pack 来源时保持空态；衣物、作品与阅读经历不能由服务默认值编造。
+  return []
 }
 
 /**

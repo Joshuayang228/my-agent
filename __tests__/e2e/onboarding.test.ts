@@ -358,9 +358,12 @@ test('正式文化角通过真实资产 IPC 更新并在重载后保留作品与
   if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
   await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
   const response = await page.evaluate(() => window.electronAPI.companion.getAssets())
-  const reading = response.items.find((item) => item.kind === 'culture' && item.payload.type === 'reading')
-  expect(reading).toBeDefined()
-  const original = reading!
+  const created = await page.evaluate(() => window.electronAPI.companion.createAsset({
+    kind: 'culture', name: '文化更新测试读物', payload: { type: 'reading' },
+  }))
+  expect(created.ok).toBe(true)
+  if (!created.ok) throw new Error('culture fixture creation failed')
+  const original = created.asset
   const note = '这是一条通过真实资产 IPC 保存的长笔记。\n'.repeat(40)
   try {
     const result = await page.evaluate(({ id, note }) => window.electronAPI.companion.updateAsset(id, {
@@ -381,16 +384,15 @@ test('正式文化角通过真实资产 IPC 更新并在重载后保留作品与
     const culture = page.locator('[data-world-content="culture"]')
     await expect(culture.getByRole('article', { name: '文化角持久化验收作品', exact: true })).toContainText('摘要和笔记应同时可见')
     await expect(culture.locator('blockquote').filter({ hasText: '文化角持久化验收作品' })).toContainText(note.trim())
-    for (const label of ['读书', '音乐', '电影', '摄影']) await expect(culture).toContainText(label)
+    await expect(culture).toContainText('读书')
+    await expect(culture.getByRole('article')).toHaveCount(1)
     expect(await culture.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
     const persisted = await page.evaluate(() => window.electronAPI.companion.getAssets())
     expect(persisted.roleId).toBe(response.roleId)
     expect(persisted.items.find((item) => item.id === original.id)?.payload.note).toBe(note)
     await page.screenshot({ path: 'test-results/world-culture-electron.png', fullPage: true })
   } finally {
-    await page.evaluate((item) => window.electronAPI.companion.updateAsset(item.id, {
-      name: item.name, payload: { ...item.payload, note: item.payload.note ?? '' },
-    }), original)
+    await page.evaluate((id) => window.electronAPI.companion.deleteAsset(id), original.id)
     const back = page.getByTestId('world-hub').getByRole('button', { name: '返回聊天', exact: true })
     if (await back.isVisible()) await back.click()
   }
@@ -668,17 +670,26 @@ test('正式人物世界六面从正式入口读取真实伙伴数据', async ()
     await page.getByTestId('world-tab-wardrobe').click()
     const wardrobe = page.getByTestId('world-assets-panel')
     await expect(wardrobe).toBeVisible()
-    for (const name of ['藏青衬衫', '米色针织开衫', '棕色乐福鞋']) {
-      await expect(wardrobe.getByText(name, { exact: true })).toBeVisible()
-    }
+    await expect(wardrobe).toContainText('衣柜还是空的。')
+    const initial = await page.evaluate(() => window.electronAPI.companion.getAssets())
+    expect(initial.items.filter(item => ['wardrobe', 'bookshelf', 'culture'].includes(item.kind))).toEqual([])
 
     await page.getByTestId('world-tab-culture').click()
     const culture = page.locator('[data-world-content="culture"]')
-    for (const label of ['读书', '音乐', '电影', '摄影']) await expect(culture).toContainText(label)
-    await expect(culture.getByRole('article', { name: '《瓦尔登湖》', exact: true })).toContainText('正在读')
-    await expect(culture.getByRole('article', { name: '《海街日记》', exact: true })).toContainText('喜欢的电影')
-    await expect(culture).not.toContainText('3 条笔记')
-    await expect(culture).not.toContainText('看过两次')
+    await expect(culture.getByRole('article')).toHaveCount(0)
+    const created = await page.evaluate(async () => {
+      const clothing = await window.electronAPI.companion.createAsset({ kind: 'wardrobe', name: '用户验收外套', payload: { color: '蓝' } })
+      const reading = await window.electronAPI.companion.createAsset({ kind: 'culture', name: '用户验收读物', payload: { type: 'reading', note: '用户记录的读书笔记' } })
+      return { clothing, reading }
+    })
+    expect(created.clothing.ok).toBe(true)
+    expect(created.reading.ok).toBe(true)
+    await page.getByTestId('world-tab-wardrobe').click()
+    await expect(wardrobe.getByText('用户验收外套', { exact: true })).toBeVisible()
+    await page.getByTestId('world-tab-culture').click()
+    await expect(culture.getByRole('article', { name: '用户验收读物', exact: true })).toBeVisible()
+    await expect(culture.locator('blockquote').filter({ hasText: '用户验收读物' })).toContainText('用户记录的读书笔记')
+    await expect(culture).not.toContainText('《瓦尔登湖》')
 
     await page.getByTestId('world-tab-home').click()
     const home = page.locator('[data-world-content="home"]')

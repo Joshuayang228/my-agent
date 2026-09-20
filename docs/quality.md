@@ -1,5 +1,7 @@
 # 质量总控
 
+S3 生活资产来源回归：lin / zhou / xia / hang / 未知角色无定义时保持空态，真实 SQLite 验证初始化不写样张；衣物引用测试显式创建资产，世界默认与用户 CRUD / 事件授予仍覆盖。Unit 1227、Eval 23 + 1、根 tsc / build 通过，主进程仅替换本批 assets.ts 对照 72 → 72 无新增，非全绿；未改 UI / 依赖，无独立 lint。正式 Electron 文化更新及六面定向 2 项、最终 onboarding 19 项通过，证据 `var/verification/s3-living-source-focused` 与 `s3-living-source-final`，文化长笔记截图已检查。前两轮 14/19、15/19 的失败保留，分别暴露默认作品依赖、笔记定位与空类型断言；后续工作区失败随 worker 重建失去前置，套件独立性仍归 S5，不能以最终通过关闭稳定性问题。
+
 本批提交前完整 Renderer UI 回归 267 项通过（7.6 分钟），资产审计及注册表测试 31 项通过；Renderer IO 替身证据不替代上述两项真实 Electron 索引恢复证据，也不关闭全产品 S6 验收。
 
 S2 配置提交批次未变更依赖；全量与生产范围 npm audit 均因审计端点 HTTP 400（Invalid package tree）未取得结果，不能据此更新漏洞数量或声称审计通过；既有依赖风险仍见 WISH-044。

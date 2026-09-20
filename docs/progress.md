@@ -1,5 +1,7 @@
 # 项目进度
 
+- S3 无来源生活默认值已移除：正式初始化不再为角色自动编造衣柜、书架及文化作品，用户 / 事件 / world.default 路径保留，Playground 样张不变。5 条角色空态红测转绿；Unit 1227、Eval 23 + 1、根 tsc / build、onboarding Electron 最终 19 项通过，主进程 72 → 72 无新增。证据 `var/verification/s3-living-source-final`；旧开发库残留未批量清理，人物世界总验收及其他收尾包仍进行中。RAG / OAuth 后续继续暂缓。
+
 - 2026-09-20 用户调整优先级：RAG 与 MCP OAuth 后续工作暂缓，待共同研究并明确恢复后再做。已撤回本轮未提交的 RAG 代码与测试，保留已提交能力；暂缓不等于完成，也不继续追加相关实现或测试。其余 Playground 正式回流继续；范围与重启条件见 `docs/deferred/rag-mcp-oauth.md`。
 
 - S2 配置提交唤醒已接通：模型双键保存、单键保存和实际写入模型设置的备份导入，仅成功落盘后通知索引 worker；取消旧请求、重读配置，失败保存恢复原值且不通知。Unit 182 文件 / 1222 项、Eval 23 + 1、根 tsc / build、正式 Electron 有 Key / 无 Key 2 项通过。证据 `var/verification/s2-model-save-index-electron`。独立嵌入配置、RAG 重建及 S3–S6 仍未完成。

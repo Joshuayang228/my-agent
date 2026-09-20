@@ -139,7 +139,7 @@ describe('模型可见文本统一目录', () => {
     })
     expect(new Set(assets.map((asset) => asset.assetType))).toEqual(new Set([
       'prompt', 'tool-schema', 'skill', 'eval-judge', 'eval-case', 'eval-grader',
-      'companion-manifest', 'companion-profile', 'companion-world', 'companion-scene', 'companion-life',
+      'companion-manifest', 'companion-profile', 'companion-world', 'companion-scene',
       'memory-strategy', 'permission-policy', 'sandbox-policy',
       'provider-capability', 'provider-policy', 'provider-preset', 'subagent-role',
     ]))
