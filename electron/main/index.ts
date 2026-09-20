@@ -81,6 +81,12 @@ async function createWindow() {
   })
 
   const currentWindow = win
+  // 模型草稿可取消退出；恢复托盘关闭语义并显示已有留页提示，不能强制放行卸载。
+  // 后台停止必须等 will-quit，before-quit 并不表示应用最终会退出。
+  currentWindow.webContents.on('will-prevent-unload', () => {
+    isQuitting = false
+    showWindow()
+  })
   currentWindow.once('ready-to-show', () => {
     if (currentWindow.isDestroyed() || win !== currentWindow) return
     windowReady = true
@@ -319,10 +325,10 @@ app.whenReady().then(async () => {
 
 app.on('before-quit', () => {
   isQuitting = true
-  memoryIndexSync?.stop()
 })
 
 app.on('will-quit', async () => {
+  memoryIndexSync?.stop()
   globalShortcut.unregisterAll()
   shutdownScheduler()
   const { stopLifeTicker } = await import('./companion/life/ticker')

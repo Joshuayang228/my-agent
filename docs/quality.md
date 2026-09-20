@@ -1,5 +1,7 @@
 # 质量总控
 
+S4 模型草稿保护修复验证：旧代码真实重载时 will-prevent-unload 计数为 0，预期 1，已取得红测。修复后生命周期与 onboarding 共 22 项通过（s4-draft-unload-complete）；UI 宽窄草稿、保存中、手动模型输入和失败重试 3 项通过（s4-draft-unload-ui）。首次修复回归遇 Playwright 自动关闭不存在的原生对话框，测试增加只观察 dialog 的监听后通过，不绕过生产保护。Unit 183 文件 / 1236 项、根 tsc / build、Eval 23 + 1、资产 31 项通过。主进程同树类型对照 72 → 72 无新增，非全绿；没有独立 lint 脚本，既有构建警告保留。下方草稿取证是修复前历史，不再代表当前能力。
+
 S4 窗口草稿取证：model-diagnostic-lifecycle 在独立目录真实执行 BrowserWindow.close / show、正式设置返回、page.reload、app.quit 和重新启动。断言隐藏后窗口保留、名称与测试 Key 不丢、内部返回拦截、模型连接未提交；重载 / 退出是否恢复草稿只记录观测，不将当前缺失保护写成必须保留的行为。实际均未恢复且没有产品离开提醒。最终 2 项 Electron 通过（s4-draft-lifecycle-final，含既有重载取消真实 HTTP），Unit 1236、根 tsc / build 通过。本批没有生产代码、依赖或 UI 改动，不重跑纯 UI；无独立 lint，已有构建警告保留。该证据关闭“普通关窗是否丢模型草稿”的疑问，不关闭显式离开保护或 S4 总项。
 
 S6 生活面切角门禁：Renderer 三用例持有旧读取和新增草稿，广播切角后要求三页展示新角色、草稿清空，释放旧请求后不能回退；四主题宽窄与新增失败回归合计 12 项通过（s6-living-role-final）。首次定位错用“名称”标签的批次已中止；更正为真实作品 / 物件 / 地点标签后取得三条红测（s6-living-role-red-verified）。真实 Electron 新用例不借用前序数据：主动提交本地模型配置，在独立临时 userData 创建两个角色各四类资产，调用真实 requestSwitch、接收广播、从正式四页检查更新，重载后核对资产 ID，清理自身数据并恢复原角色。独立 1 项、完整 onboarding 20 项通过；Unit 1236、根 tsc / build 通过。无 IPC / 依赖变更，无独立 lint 脚本，已有构建警告保留；不宣称主进程类型全绿或资产在途写入竞争已验收。

@@ -1,4 +1,4 @@
-import { useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react'
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react'
 import { connectionCredentialLabel } from '../../shared/model-connection-form'
 import type { LLMModelFetchResult, ModelConnectionProfile, ModelRouteProfile, ModelRoutePurpose } from '../../shared/types'
 import { addConnectionModel, enabledConnectionModelIds, normalizeConnectionModels, removeConnectionModel, setConnectionModelEnabled } from '../../shared/llm-model-fetch'
@@ -49,7 +49,7 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, onSave, onTest
   const [fetchedModels, setFetchedModels] = useState<Record<string, string[]>>({})
   const [modelDrafts, setModelDrafts] = useState<Record<string, string>>({})
   // 背景：连接草稿不在父级自动保存队列；意图：导航先检查，不静默写入半填配置；约束：忙碌时也必须留页，普通防抖保存不调用此检查。
-  useImperativeHandle(beforeLeaveRef, () => () => {
+  const canLeave = useCallback(() => {
     if (saving.current) {
       toast('模型设置正在保存，请稍后再离开。', 'warning')
       return false
@@ -63,6 +63,19 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, onSave, onTest
     }
     return true
   }, [connections, draft, editing, modelDrafts, toast])
+  useImperativeHandle(beforeLeaveRef, () => canLeave, [canLeave])
+  useEffect(() => {
+    if (!window.electronAPI) return
+    // 桌面重载和退出不经过应用导航；沿用同一留页判定，避免悄悄写入未确认凭据。
+    // Electron 默认尊重取消卸载；主进程不能在 will-prevent-unload 中强行放行。
+    const preventDraftLoss = (event: BeforeUnloadEvent) => {
+      if (canLeave()) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', preventDraftLoss)
+    return () => window.removeEventListener('beforeunload', preventDraftLoss)
+  }, [canLeave])
   // 背景：同 id 可换端点或凭据；意图：保存成功后撤销旧请求和缓存；约束：失败保存及仅改名 / 用途不得误清理结果。
   const invalidateConnectionResults = (id: string, discovery = true) => {
     testRequests.current.delete(id)

@@ -3,6 +3,10 @@
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
 
+S4 模型草稿离开保护已落地（2026-09-20）：同一判定保护内部导航、桌面重载和显式退出；取消退出恢复普通关窗隐藏，后台索引只在最终退出停止。未提交凭据不写盘，强杀 / 崩溃不保证恢复。真实 Electron 生命周期及 onboarding 共 22 项、UI 保存中 / 手动输入 / 保存失败回归 3 项通过；其他设置队列及在途写入竞争仍未关闭，RAG / OAuth 后续保持暂缓。 Unit 1236、根 tsc / build、Eval 23 + 1、资产 31 通过；主进程同树类型 72 → 72 无新增但非全绿。不提升体验资产采用状态，合同继续施工。
+
+S4 模型草稿离开保护实施边界：复用 ModelRoutingSettings 既有同步 beforeLeave 判定与 Toast，接入桌面 beforeunload；未提交连接 / 手动模型输入及保存中拒绝重载和显式退出，用户保存或取消后可正常离开。不新增弹窗样式、自动保存、IPC、依赖或未提交密钥持久化；普通关窗仍隐藏。主进程 will-prevent-unload 只恢复退出标记并显示原窗口，不调用 preventDefault 放行；memoryIndexSync.stop 从可取消的 before-quit 移到最终 will-quit，避免取消退出后索引被停止。允许修改模型页、主进程生命周期接线、既有生命周期测试及相关文档；必测真实重载 / quit 被阻止、取消编辑后重载 / 退出成功、取消退出后普通 close 仍隐藏，以及既有模型诊断重载取消。强杀 / 崩溃 / 系统强制结束不承诺保留草稿；其他设置队列与在途竞争仍按原 S4 另行核实。
+
 S4 草稿生命周期取证（2026-09-20）：真实 Electron 新数据目录的模型草稿，BrowserWindow.close 后窗口数仍为 1 且不可见；show 后名称与未保存 Key 完整保留。正式返回按钮被现有 beforeLeave 门控拦截，已保存连接未变。实际 page.reload 和 app.quit / 重启后草稿消失，配置仍未新增该连接：隐私边界成立，但重载 / 显式退出没有未保存提醒，离开保护尚未完成。只新增既有 model-diagnostic-lifecycle 套件的隔离测试，不改产品或安全策略；不得将观察到的草稿消失固化为必须保持的断言，不通过自动持久化未保存密钥绕过。Unit 1236、根 tsc / build、生命周期与既有真实 HTTP 取消共 2 项通过；证据 var/verification/s4-draft-lifecycle-final。后续仍需补明确的离开保护并核实配置写入竞争，不关闭 S4。
 
 S6 生活面角色通知（2026-09-20）：正式 culture / home / footprints 三条受控红测证明 App 已收到 zhou 切角通知，共享 WorldDetailsPanel 仍显示 lin 内容与草稿；根因是没有订阅既有 onRoleChanged。仅在共享组件增加生产通知订阅，切角清展示 / 编辑 / 删除确认 / 新增草稿并重读；沿用请求序号拒绝旧响应，Playground 不订阅。不修改 UI 形态、IPC、后端或依赖。Unit 1236、根 tsc / build、四主题宽窄及失败恢复定向 UI 12 项通过。新增独立 Electron 用例实际创建 lin / zhou 的衣柜、文化、家具、足迹资产，走 requestSwitch 与真实广播验证四页就地更新及重载归属，单跑通过；完整 onboarding 20 项通过。证据 s6-living-role-red-verified / final / electron / onboarding 位于 var/verification。首次红测因表单标签误写“名称”而中止，不作产品失败证据。资产写入跨切角竞争与其余 S4–S6 仍未以本批证据关闭，RAG / OAuth 后续保持暂缓。

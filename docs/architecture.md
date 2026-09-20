@@ -1,5 +1,7 @@
 # 系统架构
 
+模型草稿离页判定由 ModelRoutingSettings 统一提供给内部 beforeLeave 和桌面 beforeunload。主窗口 will-prevent-unload 恢复 isQuitting=false 并显示原窗口，不强行放行卸载；memoryIndexSync.stop 位于最终 will-quit，不能在可取消的 before-quit 停止后台索引。无新增 IPC 或持久化路径。
+
 Agent Loop 的模型流读取异常边界先核验当次 AbortSignal：已取消时结束观察 span 并复用 terminateLoop(aborted)，未取消才进入重试 / 压缩 / model_error。Runtime 继续保留 Loop 已发布终态，不补发或改写取消；不通过异常名字推断用户取消。
 
 敏感设置持久化经 `storage/encryption-persistence.ts` 前置保护：Windows 在保存快照之前只读检查 userData/Local State 的 os_crypt.encrypted_key（DPAPI 包络）；缺失时合并异步等待，15 秒上限失败且不提交。`settings-store` 双键 / 单键入口等待后同步复核，备份在业务快照与 beginCommit 前准备，并复核请求归属。只读系统状态，不改写 Chromium 文件、不另存密钥、不明文降级；当前格式绑定 Electron 42 Windows，升级须跑首次保存强退回归。保护针对进程异常退出，不承诺磁盘损坏、系统账户变化或断电恢复。
