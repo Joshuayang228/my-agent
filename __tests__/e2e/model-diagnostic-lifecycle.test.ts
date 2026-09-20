@@ -6,6 +6,58 @@ import { fileURLToPath } from 'node:url'
 import { test, expect, type ElectronApplication } from '@playwright/test'
 import { _electron as electron } from 'playwright'
 
+test('正式模型草稿隐藏恢复与重载退出的保存边界', async ({}, testInfo) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'my-agent-draft-lifecycle-'))
+  let app: ElectronApplication | undefined
+  const launch = () => electron.launch({ args: [fileURLToPath(new URL('../../dist-electron/index.js', import.meta.url)), '--user-data-dir=' + directory, '--no-sandbox'], env: { ...process.env, NODE_ENV: 'production', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' } })
+  const draftName = '尚未保存的连接'
+  const draftKey = 'synthetic-unsaved-key'
+  try {
+    app = await launch()
+    let page = await app.firstWindow()
+    const edit = async () => {
+      await expect(page.getByTestId('settings-panel')).toBeVisible()
+      await page.getByTestId('settings-nav-model').click()
+      await page.getByRole('button', { name: '添加连接', exact: true }).click()
+      const form = page.getByTestId('model-connection-form')
+      await form.getByRole('radio', { name: '本地模型', exact: true }).click()
+      await form.getByLabel('连接名称', { exact: true }).fill(draftName)
+      await form.getByLabel('API Key', { exact: true }).fill(draftKey)
+      return form
+    }
+    const savedBefore = await page.evaluate(() => window.electronAPI.settings.get())
+    const form = await edit()
+    await app.evaluate(({ BrowserWindow }) => { BrowserWindow.getAllWindows()[0].close() })
+    await expect.poll(() => app!.evaluate(({ BrowserWindow }) => ({ count: BrowserWindow.getAllWindows().length, visible: BrowserWindow.getAllWindows()[0]?.isVisible() }))).toEqual({ count: 1, visible: false })
+    await app.evaluate(({ BrowserWindow }) => { BrowserWindow.getAllWindows()[0].show() })
+    await expect(form.getByLabel('连接名称', { exact: true })).toHaveValue(draftName)
+    await expect(form.getByLabel('API Key', { exact: true })).toHaveValue(draftKey)
+    await page.getByTestId('settings-back').click()
+    await expect(page.getByText('模型设置有未保存内容，请先保存、取消编辑或清空模型输入。', { exact: true })).toBeVisible()
+    await expect(form).toBeVisible()
+    expect((await page.evaluate(() => window.electronAPI.settings.get())).modelConnections).toBe(savedBefore.modelConnections)
+    // 重载与退出只核验隐私边界，不把草稿消失当作已实现的离开保护。
+    await page.reload()
+    await expect(page.getByTestId('settings-panel')).toBeVisible()
+    await page.getByTestId('settings-nav-model').click()
+    const reloadDraftRestored = await form.count() > 0
+    expect((await page.evaluate(() => window.electronAPI.settings.get())).modelConnections).toBe(savedBefore.modelConnections)
+    if (!reloadDraftRestored) await edit()
+    await app.close()
+    app = undefined
+    app = await launch()
+    page = await app.firstWindow()
+    await expect(page.getByTestId('settings-panel')).toBeVisible()
+    await page.getByTestId('settings-nav-model').click()
+    const quitDraftRestored = await page.getByTestId('model-connection-form').count() > 0
+    expect((await page.evaluate(() => window.electronAPI.settings.get())).modelConnections).toBe(savedBefore.modelConnections)
+    await testInfo.attach('draft-lifecycle-boundary', { body: JSON.stringify({ closeHidesWindow: true, hiddenDraftRetained: true, internalNavigationBlocked: true, reloadDraftRestored, quitDraftRestored, unsavedConnectionCommitted: false }), contentType: 'application/json' })
+  } finally {
+    await app?.close()
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test('正式模型诊断重载取消真实 HTTP，重新进入可发现与测试', async () => {
   let hang = true
   const received: string[] = []
