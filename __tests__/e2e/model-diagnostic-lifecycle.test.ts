@@ -5,6 +5,91 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test, expect, type ElectronApplication } from '@playwright/test'
 import { _electron as electron } from 'playwright'
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
+
+test('正式 MCP 新增向导保存期间拒绝重载退出，重启恢复连接与工具许可', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'my-agent-mcp-wizard-'))
+  let requests = 0
+  const server = createServer(async (request, response) => {
+    if (request.method !== 'POST') { response.writeHead(405).end(); return }
+    requests++
+    const mcp = new McpServer({ name: 'wizard-fixture', version: '1.0.0' })
+    mcp.registerTool('read_note', { description: '读取笔记', inputSchema: {} }, async () => ({ content: [{ type: 'text', text: 'note' }] }))
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true })
+    response.on('close', () => { void mcp.close() })
+    await mcp.connect(transport)
+    await transport.handleRequest(request, response)
+  })
+  let app: ElectronApplication | undefined
+  const launch = () => electron.launch({ args: [fileURLToPath(new URL('../../dist-electron/index.js', import.meta.url)), '--user-data-dir=' + directory, '--no-sandbox'], env: { ...process.env, NODE_ENV: 'production', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' } })
+  try {
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
+    const address = server.address()
+    if (!address || typeof address === 'string') throw new Error('Fixture address unavailable')
+    const url = 'http://127.0.0.1:' + address.port + '/mcp'
+    app = await launch()
+    let page = await app.firstWindow()
+    page.on('dialog', () => {})
+    await expect(page.getByTestId('settings-panel')).toBeVisible()
+    // 背景：保存中离页曾只由 Renderer 夹具覆盖；这里仅延迟独占进程的原 handler。
+    // 保留真实协议、校验和落盘；内部映射不可用必须失败，不能替换为假成功。
+    await app.evaluate(({ ipcMain, BrowserWindow, dialog }) => {
+      dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false })
+      const original = (ipcMain as any)._invokeHandlers?.get('mcp:save-tested')
+      if (!original) throw new Error('mcp:save-tested handler unavailable')
+      const state = { blocked: 0, release: null as null | (() => void) }
+      ;(globalThis as any).__wizardLifecycle = state
+      ipcMain.removeHandler('mcp:save-tested')
+      ipcMain.handle('mcp:save-tested', async (...args) => {
+        await new Promise<void>(resolve => { state.release = resolve })
+        return original(...args)
+      })
+      BrowserWindow.getAllWindows()[0].webContents.on('will-prevent-unload', () => { state.blocked++ })
+    })
+    await page.getByTestId('settings-nav-mcp').click()
+    await page.getByRole('button', { name: '+ 添加', exact: true }).click()
+    const form = page.getByTestId('mcp-connection-form')
+    await form.getByLabel('连接名称', { exact: true }).fill('向导真实连接')
+    await form.getByLabel('服务 URL').fill(url)
+    await form.getByRole('button', { name: '测试连接', exact: true }).click()
+    await expect(form.getByRole('status')).toContainText('已获取 1 个工具')
+    await form.getByRole('checkbox', { name: '允许read_note' }).uncheck()
+    await form.getByRole('button', { name: '保存连接', exact: true }).click()
+    await expect.poll(() => app!.evaluate(() => Boolean((globalThis as any).__wizardLifecycle.release))).toBe(true)
+    expect(JSON.parse((await page.evaluate(() => window.electronAPI.settings.get())).mcpServers)).toEqual([])
+    await app.evaluate(({ BrowserWindow }) => { BrowserWindow.getAllWindows()[0].webContents.reload() })
+    await expect.poll(() => app!.evaluate(() => (globalThis as any).__wizardLifecycle.blocked)).toBe(1)
+    await app.evaluate(({ app }) => { app.quit() })
+    await expect.poll(() => app!.evaluate(() => (globalThis as any).__wizardLifecycle.blocked)).toBe(2)
+    await expect(form).toBeVisible()
+    await app.evaluate(() => { (globalThis as any).__wizardLifecycle.release() })
+    const card = () => page.locator('[data-testid^="settings-mcp-server-"]').filter({ hasText: '向导真实连接' })
+    await expect(card().getByRole('status')).toHaveText('已连接', { timeout: 20_000 })
+    await expect(form).toHaveCount(0)
+    await page.reload()
+    await page.getByTestId('settings-nav-mcp').click()
+    await expect(card().getByRole('status')).toHaveText('已连接')
+    await app.close(); app = undefined
+    const beforeRestart = requests
+    app = await launch()
+    page = await app.firstWindow()
+    await expect(page.getByTestId('settings-panel')).toBeVisible()
+    await page.getByTestId('settings-nav-mcp').click()
+    await expect(card().getByRole('status')).toHaveText('已连接')
+    await expect(card().getByRole('checkbox', { name: '允许read_note' })).not.toBeChecked()
+    const saved = JSON.parse((await page.evaluate(() => window.electronAPI.settings.get())).mcpServers)
+    expect(saved).toHaveLength(1)
+    expect(saved[0]).toMatchObject({ name: '向导真实连接', url, enabled: true, allowedTools: [] })
+    expect(requests).toBeGreaterThan(beforeRestart)
+  } finally {
+    if (app && app.process().exitCode === null) await app.evaluate(({ BrowserWindow }) => { for (const window of BrowserWindow.getAllWindows()) window.destroy() }).catch(() => {})
+    await app?.close()
+    server.closeAllConnections()
+    await new Promise<void>(resolve => server.close(() => resolve()))
+    await rm(directory, { recursive: true, force: true })
+  }
+})
 
 test('正式模型草稿隐藏恢复与重载退出的保存边界', async ({}, testInfo) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'my-agent-draft-lifecycle-'))

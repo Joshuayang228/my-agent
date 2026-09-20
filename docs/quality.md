@@ -1,5 +1,7 @@
 # 质量总控
 
+S4 普通 MCP 新增向导桌面验收（2026-09-20）：独立 Electron 用户目录与本地 SDK 服务，从正式向导测试工具、取消单工具许可并保存；仅延迟原 mcp:save-tested handler 验证 reload / quit 被拒绝，释放后真实落盘、重载及完整重启恢复连接和 allowedTools。专项 mcp-wizard-desktop 1 项通过（13.8 秒），Unit 1237 通过。无生产代码 / IPC / 依赖变更，不覆盖跨入口写入竞争或未提交草稿，不恢复 RAG / OAuth 后续，S4 / S6 总项仍进行中。
+
 2026-09-20 正式 Electron 组合回归：`rollout-electron-current` 排除 RAG / OAuth 名称用例，33 通过、4 外部模型条件跳过、1 失败。朋友圈备份新目录导入在 5 秒断言期限内未完成；临时 IPC 计时复现实际 8521ms 后成功，最终 UI 显示导入成功，导出配置包含 modelConnections。生产加密持久化等待上限为 15 秒，故只将该新目录导入成功断言预算设为 20 秒，不改生产等待或其他断言；`moment-import-budget` 完整用例通过（15.6 秒），验证重启后的赞评与重复导入保护。临时日志和诊断等待均已移除。Unit 183 文件 / 1237 项通过；组合套件尚未按最终测试文件全量重跑，不将专项通过写成全量绿灯，不恢复 RAG / OAuth 后续。
 
 S4 MCP 向导：s4-mcp-wizard-red 在点击保存后 beforeunload 返回放行，修复为同步 phaseRef / refreshing 判定。初版误拦 cancelling 导致既有重测离页测试失败，已按原契约撤掉取消阶段拦截，不改断言。s4-mcp-wizard-final 12 项通过，含保存失败重试、刷新失败只刷新、保存 / 刷新期间内部导航和卸载保护、四主题先测后存及取消迟到隔离。Unit 1237、根 tsc / build 通过，无独立 lint，既有构建警告保留。本批为 Renderer 受控时序证据，不替代新增向导真实 Electron 持久化验收。
