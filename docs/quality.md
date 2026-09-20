@@ -1,5 +1,9 @@
 # 质量总控
 
+R01 输入区最终验证（2026-09-20）：完整 UI 352 项通过（8.1 分钟、无重试），含新增图片粘贴载荷断言；证据 var/verification/chat-composer-full-ui。Unit 1239、根 tsc / vite build、资产 33 项与文档门禁通过。只证明本批共享呈现及 Renderer 回归，不替代真实 Electron / 外部模型验收，不提升整个 Chat 或全产品采用状态。
+
+R01 共享输入区验证（2026-09-20）：新增正式四主题 × 1166 / 600 宽的长文、长模型名、IME、Shift+Enter、发送 / 停止固定尺寸与取消后可再输入测试；覆盖附件文件读取、粘贴文件 / 图片和引用文件进入发送载荷，以及候选零生产 API。Unit 门禁检查两处真实 JSX 引用 ChatComposer，内部复用 Foundation；Provider 原内联标签断言迁移到调用方当前模型值与共享标签。定向首轮 14 项通过（图片粘贴补充前），证据 var/verification/chat-composer-focused；Unit 1239、根 tsc / vite build 通过。IPC 使用 Renderer 替身，不宣称真实供应商验证；无主进程 / IPC / 依赖变更。构建保留既有 chunk / dynamic import 警告，无独立 lint 脚本。
+
 2026-09-20 本批最终完整 UI 回归：342 项通过（8.0 分钟，无重试），证据 var/verification/chat-welcome-full-ui（npm 脚本未透传 output 参数，结果从 test-results 复制留存）。覆盖当前欢迎区共享和此前 MCP 管理互斥后的代码；不替代 Electron / 外部模型验收，不关闭全产品合同。
 
 R01 欢迎区共享验收（2026-09-20）：ui-component-registry Unit 校验 App / ChatSurface 实际 JSX 引用 ChatWelcome，内部动作使用 Foundation ActionButton 且没有 IPC。UI 定向 7 项通过，覆盖深浅主题、1166 / 600 宽、长角色名与简介、hover 几何、正式快捷发送失败反馈、朋友圈导航和候选场景 / 切角。截图目录 var/verification/chat-welcome-shared，已检查浅色宽屏及深色窄屏。Unit 1238、根 tsc / vite build、资产 32 项通过；没有独立 lint 脚本，构建保留既有 chunk / dynamic import 警告。未改 IPC / 主进程，此轮未新增真实 Electron 或外部模型验收；不能用 Renderer 替身证明模型生成质量。

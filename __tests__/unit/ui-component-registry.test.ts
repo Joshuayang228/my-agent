@@ -30,6 +30,16 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('Chat 输入区正式与候选复用 Foundation 且不绑定 IPC', () => {
+    for (const file of ['src/App.tsx', 'src/components/playground/SurfaceBaselinePanel.tsx']) {
+      expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'ChatComposer', '/chat/ChatComposer'), file).toBe(true)
+    }
+    const source = readFileSync('src/components/chat/ChatComposer.tsx', 'utf8')
+    for (const control of ['TextField', 'IconButton']) expect(rendersSharedTabs(source, control, '/foundation/' + control)).toBe(true)
+    expect(source).not.toContain('electronAPI')
+    expect(source).not.toMatch(/<(button|textarea)\b/)
+    expect(UI_COMPONENT_REGISTRY['layout.chat-composer'].sourcePath).toBe('src/components/chat/ChatComposer.tsx')
+  })
   it('欢迎区正式与候选共享呈现及 Foundation 操作，不绑定 IPC', () => {
     for (const file of ['src/App.tsx', 'src/components/playground/SurfaceBaselinePanel.tsx']) {
       expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'ChatWelcome', '/chat/ChatWelcome'), file).toBe(true)

@@ -8,6 +8,124 @@ import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { expectSharedCodeSurface } from './shared-code-surface'
 
+for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
+  for (const width of [1166, 600]) {
+    test('正式共享输入区长文输入法与停止 ' + theme + ' ' + width, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 731 })
+      await installProductionElectronStub(page)
+      await page.addInitScript(theme => {
+        localStorage.setItem('theme', theme)
+        const api = (window as any).electronAPI
+        const state = { sends: [] as any[], aborts: [] as string[], emit: (_event: any) => {} }
+        ;(window as any).__composer = state
+        const get = api.settings.get
+        api.settings.get = async () => ({ ...await get(), llmEffectiveModel: 'very-long-model-name-'.repeat(20) })
+        api.chat.onEvent = (listener: any) => { state.emit = listener; return () => {} }
+        api.chat.send = async (_id: string, message: any) => { state.sends.push(message) }
+        api.chat.abort = async (id: string) => { state.aborts.push(id); state.emit({ sessionId: id, type: 'done', reason: 'cancelled' }) }
+        api.session.get = async () => ({ id: 'e2e-session', messages: state.sends })
+      }, theme)
+      await page.goto('/')
+      const composer = page.getByTestId('chat-composer')
+      const input = composer.getByRole('textbox', { name: '消息', exact: true })
+      const send = composer.getByRole('button', { name: '发送', exact: true })
+      await expect(send).toBeDisabled()
+      await input.fill('长内容\n'.repeat(80))
+      expect((await input.boundingBox())!.height).toBeLessThanOrEqual(120)
+      expect(await input.evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true)
+      await input.fill('第一行')
+      await input.press('Shift+Enter')
+      await expect(input).toHaveValue('第一行\n')
+      await input.dispatchEvent('keydown', { key: 'Enter', code: 'Enter', isComposing: true, bubbles: true })
+      expect(await page.evaluate(() => (window as any).__composer.sends.length)).toBe(0)
+      const box = await composer.boundingBox()
+      const buttonBox = await send.boundingBox()
+      await send.hover()
+      expect(await composer.boundingBox()).toEqual(box)
+      expect(await send.boundingBox()).toEqual(buttonBox)
+      expect(await composer.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+      await page.screenshot({ path: testInfo.outputPath('composer-ready.png'), animations: 'disabled' })
+      await input.press('Enter')
+      await expect.poll(() => page.evaluate(() => (window as any).__composer.sends.length)).toBe(1)
+      const stop = composer.getByRole('button', { name: '停止', exact: true })
+      await expect(input).toBeDisabled()
+      const stopBox = await stop.boundingBox()
+      expect(stopBox!.width).toBe(buttonBox!.width)
+      expect(stopBox!.height).toBe(buttonBox!.height)
+      expect(stopBox!.x).toBe(buttonBox!.x)
+      await stop.click()
+      await expect(input).toBeEnabled()
+      await expect(send).toBeDisabled()
+      expect(await page.evaluate(() => (window as any).__composer.aborts)).toEqual(['e2e-session'])
+      await expect(page.getByTestId('chat-messages')).toContainText('第一行')
+    })
+  }
+}
+
+test('共享输入区保留附件粘贴与文件引用载荷', async ({ page }) => {
+  await installProductionElectronStub(page)
+  await page.addInitScript(() => {
+    const api = (window as any).electronAPI
+    ;(window as any).__composerPayloads = []
+    api.chat.send = async (_id: string, message: any) => { (window as any).__composerPayloads.push(message); throw new Error('controlled-failure') }
+  })
+  await page.goto('/')
+  const composer = page.getByTestId('chat-composer')
+  const input = composer.getByRole('textbox', { name: '消息', exact: true })
+  const chooser = page.waitForEvent('filechooser')
+  await composer.getByRole('button', { name: '添加附件', exact: true }).click()
+  await (await chooser).setFiles({ name: 'note.txt', mimeType: 'text/plain', buffer: Buffer.from('附件真实读取') })
+  await expect(input).toHaveAttribute('placeholder', '描述附件内容或输入问题...')
+  await input.fill('检查\n@')
+  await page.getByRole('button', { name: 'src/App.tsx', exact: true }).click()
+  await expect(composer).toContainText('src/App.tsx')
+  await input.evaluate(node => {
+    const clipboard = new DataTransfer()
+    clipboard.items.add(new File(['粘贴文件内容'], 'pasted.txt', { type: 'text/plain' }))
+    node.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, clipboardData: clipboard }))
+  })
+  await expect(page.getByText('pasted.txt', { exact: true })).toBeVisible()
+  await input.evaluate(node => {
+    const clipboard = new DataTransfer()
+    const bytes = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6VbQAAAAASUVORK5CYII='), value => value.charCodeAt(0))
+    clipboard.items.add(new File([bytes], 'pasted.png', { type: 'image/png' }))
+    node.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, clipboardData: clipboard }))
+  })
+  await expect(page.getByRole('img', { name: 'pasted.png', exact: true })).toBeVisible()
+  await composer.getByRole('button', { name: '发送', exact: true }).click()
+  await expect(page.getByTestId('chat-messages')).toContainText('发送未完成，请稍后重试。')
+  const payloads = await page.evaluate(() => (window as any).__composerPayloads)
+  expect(payloads).toHaveLength(1)
+  expect(payloads[0].content).toContain('<file path="src/App.tsx">')
+  expect(payloads[0].content).toContain('const ready = true')
+  expect(payloads[0].content).toContain('附件真实读取')
+  expect(payloads[0].content).toContain('粘贴文件内容')
+  expect(payloads[0].images).toHaveLength(1)
+  expect(payloads[0].images[0]).toMatchObject({ fileName: 'pasted.png', mimeType: 'image/png' })
+  expect(payloads[0].images[0].dataUrl).toMatch(/^data:image\/png;base64,/)
+})
+
+test('候选共享输入区发送与附件保持隔离', async ({ page }) => {
+  await page.goto('/')
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+  await page.getByTestId('playground-nav').getByRole('button', { name: 'Chat', exact: true }).click()
+  await page.evaluate(() => {
+    ;(window as any).__previewCalls = 0
+    ;(window as any).electronAPI = new Proxy({}, { get() { (window as any).__previewCalls++; throw new Error('preview must stay isolated') } })
+  })
+  const main = page.getByTestId('chat-surface-main')
+  const input = main.getByTestId('chat-surface-input')
+  await main.getByTestId('chat-preview-file-input').setInputFiles({ name: 'preview.txt', mimeType: 'text/plain', buffer: Buffer.from('不得上传') })
+  await expect(main.getByTestId('chat-preview-attachments')).toContainText('preview.txt')
+  await main.getByRole('button', { name: '移除preview.txt', exact: true }).click()
+  await expect(main.getByTestId('chat-preview-attachments')).toHaveCount(0)
+  await input.fill('仅保留在样张的消息')
+  await input.press('Enter')
+  await expect(main.getByTestId('chat-surface-message-flow')).toContainText('仅保留在样张的消息')
+  await expect(input).toHaveValue('')
+  expect(await page.evaluate(() => (window as any).__previewCalls)).toBe(0)
+})
+
 for (const theme of ['porcelain-blue', 'deep-plum']) {
   for (const width of [1166, 600]) {
     test(`正式欢迎区共享布局与快捷操作 ${theme} ${width}`, async ({ page }, testInfo) => {

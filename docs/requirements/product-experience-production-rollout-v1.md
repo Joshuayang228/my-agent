@@ -3,6 +3,10 @@
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
 
+R01 输入区最终验证（2026-09-20）：完整 UI 352 项通过（8.1 分钟、无重试），含新增图片粘贴载荷断言；证据 var/verification/chat-composer-full-ui。Unit 1239、根 tsc / vite build、资产 33 项与文档门禁通过。只证明本批共享呈现及 Renderer 回归，不替代真实 Electron / 外部模型验收，不提升整个 Chat 或全产品采用状态。
+
+R01 / R14 输入区共享边界（2026-09-20）：提取 ChatComposer 组合 Foundation TextField / IconButton，统一候选卡片、输入字号、附件图标与发送 / 停止固定操作槽；正式 App 注入原有输入法、文件引用、粘贴、附件、发送和取消回调，审批菜单 / 设置写入仍归正式调用方，不变更权限语义。候选附件只保留文件名，发送只更新内存样张；原无动作审批按钮改为明确禁用，不写真实会话。允许修改上述组件、两处消费者、UI / 体验注册表、共享 Unit、正式与隔离 UI 测试以及模块 / 质量 / 账本；删除范围只限重复卡片渲染和失去引用的图标导入，不删正式操作或后端能力。不改 IPC、依赖、RAG 或 OAuth；消息流仍须另行共享，不能提升整体 experience 状态。
+
 R01 / R14 欢迎区共享（2026-09-20）：审计 App 与 ChatSurface 发现两份欢迎 JSX，图标、字号与按钮样式分叉。按既有全产品回流授权，提取 ChatWelcome 并组合 Foundation ActionButton；正式沿用 buildColdStartCopy / sendMessage / world 导航，候选仅注入 persona 和隔离回调。删除范围只限两份重复欢迎渲染；不改消息流、输入区、IPC、权限或模型调用。允许修改共享组件、两处消费者、组件登记、复用 Unit、正式入口 UI 及本合同 / 伙伴模块 / 进度 / 日志。7 项定向 UI 与 Unit 1238 已通过，证据 var/verification/chat-welcome-shared；UI 发送失败由 Renderer 替身控制，不外推真实模型质量。输入区与消息流仍有独立 JSX，须继续核验适合共享的业务边界；四个 experience 资产保持原状态，RAG / OAuth 后续继续暂缓。
 
 S4 MCP 向导与管理互斥（2026-09-20）：受控 Renderer 红测复现新连接已提交、向导响应未返回时删除旧服务，实际 settings.set 载荷 [] 将 old / new 一起清空。SettingsPanel 在 mcpAdding 期间拒绝 runMcpAction 并禁用服务卡，mcpBusy 期间禁止打开向导；刷新完成或取消后释放。红测转绿，双向入口互斥、保存失败重试及四主题卡片共 10 项通过，Unit 1237、根 tsc / build 通过。未改主进程 / IPC / 配置格式或 OAuth 登录逻辑；这是当前正式设置路径证据，不外推所有配置写入。

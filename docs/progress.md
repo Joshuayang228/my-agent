@@ -1,5 +1,9 @@
 # 项目进度
 
+R01 输入区最终验证（2026-09-20）：完整 UI 352 项通过（8.1 分钟、无重试），含新增图片粘贴载荷断言；证据 var/verification/chat-composer-full-ui。Unit 1239、根 tsc / vite build、资产 33 项与文档门禁通过。只证明本批共享呈现及 Renderer 回归，不替代真实 Electron / 外部模型验收，不提升整个 Chat 或全产品采用状态。
+
+- R01 输入区共享回流（2026-09-20）：ChatComposer 统一正式与候选的输入卡片、Foundation 输入及附件 / 发送 / 停止按钮，正式回调和审批契约保持原入口。候选发送仅更新内存，附件只读文件名，无动作审批项明确禁用。定向 UI 14 项通过、四主题宽窄截图已检查；Unit 首轮发现 Provider 测试仍要求标签内联 App，调整为调用方传值与共享组件展示双断言后 1239 项通过，根 tsc / build 通过。消息流和审批菜单仍待复用核验，整体体验不提升 adopted；RAG / OAuth 后续保持暂缓。
+
 2026-09-20 本批最终完整 UI 回归：342 项通过（8.0 分钟，无重试），证据 var/verification/chat-welcome-full-ui（npm 脚本未透传 output 参数，结果从 test-results 复制留存）。覆盖当前欢迎区共享和此前 MCP 管理互斥后的代码；不替代 Electron / 外部模型验收，不关闭全产品合同。
 
 - R01 欢迎区共享回流（2026-09-20）：App 与 Playground 现在实际调用 ChatWelcome，统一候选图标、字号和 Foundation 快捷按钮，正式仍注入当前角色文案及真实发送 / 世界入口。7 项 UI 定向回归、Unit 1238 通过，深浅宽窄长文截图已检查。证据 var/verification/chat-welcome-shared；输入区与消息流仍有独立渲染，下一步沿实际状态和回调核验共享范围，不把欢迎区完成等同 Chat 或全产品完成。RAG / OAuth 后续仍暂缓。

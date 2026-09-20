@@ -18,12 +18,13 @@ import MentionPopup from './components/MentionPopup'
 import { MemoryCitationChips } from './components/chat/MemoryCitationChips'
 import { PermissionConfirmCard } from './components/chat/PermissionConfirmCard'
 import { ChatWelcome } from './components/chat/ChatWelcome'
+import { ChatComposer } from './components/chat/ChatComposer'
 import {
   Volume2, Paperclip, Shield, RefreshCw, Zap,
   Folder, FolderOpen, Ban, PanelRight,
-  ChevronDown, Square,
+  ChevronDown,
   Copy, Check, X, Pencil, RotateCcw, GitBranch, Trash2,
-  Plus, Search, Menu, Send, File,
+  Search, Menu, File,
 } from 'lucide-react'
 import { buildColdStartCopy } from './shared/companion-presence'
 import {
@@ -1430,41 +1431,11 @@ function App() {
                 <button onClick={() => setModeChangeNotice(null)} title="关闭提示" style={{ color: 'var(--text-muted)' }}><X size={13} /></button>
               </div>
             )}
-            <div
-              className="relative border shadow-sm transition-shadow focus-within:shadow-md"
-              style={{
-                borderColor: 'var(--border-color)',
-                background: 'var(--card-bg)',
-                borderRadius: 'var(--radius-xl)',
-                boxShadow: '0 6px 22px color-mix(in srgb, var(--text-primary) 5%, transparent)',
-              }}
-            >
-              {/* 引用文件标签 */}
-              {mentionedFiles.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 px-3 pt-2">
-                  {mentionedFiles.map(f => (
-                    <span
-                      key={f.path}
-                      className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px]"
-                      style={{ background: 'var(--hover-bg)', color: 'var(--accent-color)' }}
-                    >
-                      <File size={11} />
-                      {f.name}
-                      <button
-                        onClick={() => setMentionedFiles(prev => prev.filter(x => x.path !== f.path))}
-                        className="ml-0.5 opacity-60 hover:opacity-100"
-                      >
-                        <X size={10} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-              {/* 文本输入区 */}
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => {
+            <ChatComposer
+              inputRef={inputRef}
+              inputProps={{
+                value: input,
+                onChange: (e) => {
                   const val = e.target.value
                   setInput(val)
                   const pos = e.target.selectionStart ?? val.length
@@ -1485,9 +1456,9 @@ function App() {
                       setMentionQuery(query)
                     }
                   }
-                }}
-                onKeyDown={handleKeyDown}
-                onPaste={(e) => {
+                },
+                onKeyDown: handleKeyDown,
+                onPaste: (e) => {
                   handlePaste(e)
                   const files = e.clipboardData?.files
                   if (files && files.length > 0) {
@@ -1497,41 +1468,43 @@ function App() {
                       handleFileAttach(Array.from(files).filter(f => !f.type.startsWith('image/')))
                     }
                   }
-                }}
-                placeholder={attachedFiles.length > 0 ? '描述附件内容或输入问题...' : `和${currentPersonaName || '伙伴'}说说…`}
-                rows={1}
-                disabled={isStreaming}
-                className="min-h-[64px] w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[14px] outline-none disabled:opacity-50"
-                style={{ color: 'var(--text-primary)', maxHeight: '140px' }}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement
-                  target.style.height = 'auto'
-                  target.style.height = `${Math.min(target.scrollHeight, 120)}px`
-                }}
-              />
-
-              {/* 工具栏 */}
-              <div className="flex items-center justify-between px-3 pb-2 pt-0.5">
-                <div className="flex items-center gap-1">
-                  {/* 附件 */}
-                  <button
-                    onClick={() => {
-                      const inp = document.createElement('input')
-                      inp.type = 'file'
-                      inp.multiple = true
-                      inp.onchange = () => { if (inp.files) handleFileAttach(inp.files) }
-                      inp.click()
-                    }}
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-sm transition"
-                    style={{ color: 'var(--text-muted)' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-                    title="添加附件"
-                    ><Plus size={14} /></button>
-
-                  <span className="mx-0.5 h-4 w-px" style={{ background: 'var(--border-subtle)' }} />
-
-                  {/* 审批模式：同时决定「问不问」与有效沙箱（full-access → 放开路径限制） */}
+                },
+                placeholder: attachedFiles.length > 0 ? '描述附件内容或输入问题...' : `和${currentPersonaName || '伙伴'}说说…`,
+              }}
+              streaming={isStreaming}
+              sendDisabled={!input.trim()}
+              modelLabel={currentModel || '未配置模型'}
+              onSend={() => { void sendMessage() }}
+              onStop={() => { void window.electronAPI.chat.abort(activeSessionId || undefined) }}
+              onAttach={() => {
+                const inp = document.createElement('input')
+                inp.type = 'file'
+                inp.multiple = true
+                inp.onchange = () => { if (inp.files) void handleFileAttach(inp.files) }
+                inp.click()
+              }}
+              prefix={mentionedFiles.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 px-3 pt-2">
+                  {mentionedFiles.map(f => (
+                    <span
+                      key={f.path}
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px]"
+                      style={{ background: 'var(--hover-bg)', color: 'var(--accent-color)' }}
+                    >
+                      <File size={11} />
+                      {f.name}
+                      <button
+                        onClick={() => setMentionedFiles(prev => prev.filter(x => x.path !== f.path))}
+                        className="ml-0.5 opacity-60 hover:opacity-100"
+                      >
+                        <X size={10} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              approvalControl={
+                  // 审批模式同时决定「问不问」与有效沙箱（full-access 放开路径限制）；共享输入区不能改写此业务契约。
                   <div className="relative">
                     <button
                       onClick={(e) => { e.stopPropagation(); setApprovalMenuOpen(!approvalMenuOpen) }}
@@ -1578,33 +1551,8 @@ function App() {
                       </div>
                     )}
                   </div>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <span data-testid="chat-current-model" className="max-w-40 truncate text-[10.5px]" style={{ color: 'var(--text-muted)' }} title={currentModel || '未配置模型'}>{currentModel || '未配置模型'}</span>
-
-                  {/* 发送/停止 */}
-                  {isStreaming ? (
-                    <button
-                      onClick={() => window.electronAPI.chat.abort(activeSessionId || undefined)}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white transition"
-                      style={{ background: 'var(--danger)' }}
-                      title="停止"
-                    ><Square size={10} fill="currentColor" /></button>
-                  ) : (
-                    <button
-                      onClick={() => sendMessage()}
-                      disabled={!input.trim()}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-xs text-white transition disabled:cursor-not-allowed disabled:opacity-30"
-                      style={{ background: 'var(--accent-emphasis)' }}
-                      title="发送"
-                    >
-                      <Send size={15} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+              }
+            />
 
             {/* 输入框下方信息栏：项目选择器 + Token 用量 */}
             <div className="mt-1.5 flex items-center justify-between px-1">

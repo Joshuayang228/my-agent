@@ -4,12 +4,15 @@
  */
 
 import { useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, ArrowUp, Bot, ChevronDown, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, Paperclip, Plus, RotateCcw, Search, Shield, UserRound, X, Check } from 'lucide-react'
+import { ArrowRight, Bot, ChevronDown, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, Shield, UserRound, X, Check } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import { ChatWelcome } from '../chat/ChatWelcome'
+import { ChatComposer } from '../chat/ChatComposer'
+import { ActionButton } from '../foundation/ActionButton'
+import { IconButton } from '../foundation/IconButton'
 import type { MomentItem, MomentsPreviewData } from '../MomentsPanel'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
 import { WorldHub, type WorldTab } from '../shell/WorldHub'
@@ -246,6 +249,10 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
   const [viewport, setViewport] = useState<'standard' | 'split'>('standard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [journey, setJourneyState] = useState<ChatJourney>('welcome')
+  const [previewInput, setPreviewInput] = useState('')
+  const [previewFiles, setPreviewFiles] = useState<string[]>([])
+  const [previewMessage, setPreviewMessage] = useState('')
+  const previewFileRef = useRef<HTMLInputElement>(null)
   const [workspaceOpen, setWorkspaceOpen] = useState(true)
   const setJourney = (next: ChatJourney) => {
     setJourneyState(next)
@@ -254,6 +261,13 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
   const handleContextMenu = (event: MouseEvent, sessionId: string) => {
     event.preventDefault()
     void sessionId
+  }
+  const sendPreview = () => {
+    if (!previewInput.trim()) return
+    setPreviewMessage(previewInput.trim() + (previewFiles.length ? '\n附件：' + previewFiles.join('、') : ''))
+    setPreviewInput('')
+    setPreviewFiles([])
+    setJourney('conversation')
   }
   const isWelcome = journey === 'welcome'
   const isWork = journey === 'work'
@@ -367,7 +381,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                     <div className="mx-auto w-full max-w-[800px] space-y-7 py-4" data-testid="chat-surface-message-flow">
                       <div className="flex items-start justify-end gap-2.5">
                         <div className="max-w-[75%] rounded-[var(--radius-lg)] px-3.5 py-2.5 text-[13px] leading-6" style={{ background: 'var(--msg-user-bg)', color: 'var(--text-primary)' }}>
-                          帮我把今天的事情理一下，先做最重要的。
+                          <span className="whitespace-pre-wrap break-words">{previewMessage || '帮我把今天的事情理一下，先做最重要的。'}</span>
                         </div>
                         <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}><UserRound size={14} aria-hidden="true" /></span>
                       </div>
@@ -385,13 +399,21 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                 </div>
                 <div className="shrink-0 px-5 pb-5 pt-2">
                   <div className="mx-auto max-w-[800px]">
-                    <div className="rounded-[var(--radius-xl)] border px-3 py-2 shadow-sm" style={{ borderColor: 'var(--border-color)', background: 'var(--card-bg)', boxShadow: '0 6px 22px color-mix(in srgb, var(--text-primary) 5%, transparent)' }}>
-                      <textarea className="min-h-[64px] w-full resize-none bg-transparent px-1 py-2 text-[13px] outline-none" rows={2} placeholder={isWelcome ? `和${persona.name}说说…` : `继续和${persona.name}聊聊…`} data-testid="chat-surface-input" />
-                      <div className="flex items-center justify-between pt-1">
-                        <div className="flex items-center gap-1"><button type="button" className="rounded-md p-1.5" style={{ color: 'var(--text-muted)' }} title="添加附件"><Paperclip size={14} /></button><span className="h-4 w-px" style={{ background: 'var(--border-subtle)' }} /><button type="button" className="flex items-center gap-1 rounded-md px-2 py-1 text-[10.5px]" style={{ color: 'var(--text-secondary)' }}><Shield size={12} />确认模式<ChevronDown size={9} /></button></div>
-                        <div className="flex items-center gap-1.5"><span className="text-[10.5px]" style={{ color: 'var(--text-muted)' }}>当前模型</span><button type="button" className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: 'var(--accent-emphasis)', color: 'var(--accent-fg)' }} title="发送"><ArrowUp size={14} /></button></div>
-                      </div>
-                    </div>
+                    <input ref={previewFileRef} type="file" multiple hidden data-testid="chat-preview-file-input"
+                      onChange={(event) => { setPreviewFiles(Array.from(event.target.files ?? []).map(file => file.name)); event.target.value = '' }} />
+                    <ChatComposer
+                      inputProps={{ value: previewInput, onChange: event => setPreviewInput(event.target.value),
+                        placeholder: isWelcome ? `和${persona.name}说说…` : `继续和${persona.name}聊聊…`, 'data-testid': 'chat-surface-input',
+                        onKeyDown: event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); sendPreview() } } }}
+                      modelLabel="样张模型" sendDisabled={!previewInput.trim()} onSend={sendPreview}
+                      onAttach={() => previewFileRef.current?.click()}
+                      prefix={previewFiles.length > 0 && <div className="flex flex-wrap gap-1" data-testid="chat-preview-attachments">
+                        {previewFiles.map((name, index) => <span key={index} className="inline-flex max-w-full items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                          <span className="min-w-0 truncate">{name}</span><IconButton label={`移除${name}`} size={24} onClick={() => setPreviewFiles(files => files.filter((_, item) => item !== index))}><X size={12} /></IconButton>
+                        </span>)}
+                      </div>}
+                      approvalControl={<ActionButton disabled title="审批设置在此样张中不可修改" className="gap-1 !border-0 !px-2 !text-[10.5px]"><Shield size={12} />确认模式<ChevronDown size={9} /></ActionButton>}
+                    />
                     <div className="mt-1.5 flex items-center justify-between px-1 text-[10px]" style={{ color: 'var(--text-muted)' }}><span className="flex items-center gap-1"><Folder size={11} /> my-agent · 样张项目</span><span>{isWork ? (workspaceOpen ? '工作区已打开' : '工作区已收起') : journey === 'confirmation' ? '等待确认' : journey === 'completed' ? '任务已完成' : journey === 'failed' ? '可以重试或继续聊聊' : isWelcome ? '准备开始' : '对话进行中'}</span></div>
                   </div>
                 </div>

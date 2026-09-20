@@ -71,6 +71,8 @@
 
 ## 已落地能力
 
+- Chat 输入卡片由 ChatComposer 共享，内部使用 Foundation TextField / IconButton；正式 App 保留附件读取、图片粘贴、文件引用、中文输入法、发送和停止回调。输入高度 64–120px、长模型名截断、发送与停止共用 28px 操作槽；候选只保留选中文件名和内存消息，不调用生产 API。审批菜单及其写入契约仍由 App 持有，消息流尚未统一。
+
 - Chat 欢迎区由 ChatWelcome 共享呈现，正式 App 使用 buildColdStartCopy 的当前角色文案及原有 sendMessage / 人物世界导航，候选仅传 persona 与内存场景回调。三个动作复用 Foundation ActionButton，长名称 / 简介换行，hover 不改尺寸；不将输入区、消息流或整项 Chat 体验一并宣称完成。
 
 - 通讯录产品体验样张复用正式 CastPanel，不再维护独立姓名行；previewData 显式提供隔离名册与忙闲，摘要在内存查看、刷新恢复样张，开聊禁用且处理器二次阻断。预览不读取名册、不订阅真实切角、不创建会话；正式 roster / availability / summon 链路保留。共享呈现不等于通讯录最终视觉验收完成。
