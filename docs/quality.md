@@ -1,5 +1,7 @@
 # 质量总控
 
+S6 衣柜读取门禁：chat E2E 从正式人物世界衣柜入口注入确定性读取拒绝、角色不一致及挂起的旧请求；旧实现三条失败，late 场景先显示 zhou 再被 lin 覆盖。修复后两主题 × 两宽度 × 三场景，以及既有删除失败 / 候选隔离共 14 项通过（s6-wardrobe-read-themes）；错误 / 重试按钮几何相同，深色窄屏截图保留旧内容与错误提示，已人工检查。Unit 1236、根 tsc / build 通过，无主进程 / IPC / 依赖变化；无独立 lint 脚本，已有构建警告未改变。此为 Renderer 读取时序证据，不宣称真实后端切角、写入竞态或总体验完成。
+
 S6 正式外观文案门禁：现有四主题宽窄外观回归增加正式标题可见、无“基础设计资产 / 隔离样张 / 候选”说明断言。旧组件在正式入口确定失败；从共享外观组件移除开发说明后，正式持久化与候选隔离共 6 项通过（s6-appearance-copy-final），检查浅色宽屏与深色窄屏截图。改动前 chat / Markdown / checkbox 共 263 项通过（s6-formal-ui-audit，未运行 OAuth 专项）；改动后 Unit 1236、根 tsc / build、资产 31 通过。仅修改 Renderer 文案及共享页头可选说明，无 IPC / 依赖变化；没有独立 lint 脚本，既有构建体积与拆包警告保留。此次不重复声明主进程类型全绿，也不以 Renderer 替身证明 Electron 持久化或全产品采用。
 
 S5 外部模型脚本已改走正式连接 / 模型清单 / 主用途入口，每项新建独立 userData；移除旧表单、bg-slate 选择器和固定等待。工具用真实 tool_end 验证，多轮仅匹配助手 text 事件，停止要求 done(aborted)。本地回环 SSE 驱动四项通过（`var/verification/s5-external-script-final`），无 Key 四项明确跳过（`s5-external-script-no-key`）；没有外部付费请求，不证明供应商质量。首轮本地 Stop 暴露 model_error，Unit 在 signal.aborted=true 时复现，修复 Loop 异常分支后通过。Unit 1236、Eval 23 + 1、根 tsc / build 通过；主进程同树替换 loop.ts 对照 71 → 71 无新增，非全绿。未改 UI / 依赖，无独立 lint，构建已有警告保留。

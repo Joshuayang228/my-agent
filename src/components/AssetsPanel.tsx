@@ -50,6 +50,8 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
   const [wearingId, setWearingId] = useState<string | null>(null)
   const [wearingHint, setWearingHint] = useState('')
   const [loading, setLoading] = useState(!isPreview)
+  const [readError, setReadError] = useState('')
+  const requestId = useRef(0)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState<WorldAssetDraft>(emptyWorldAssetDraft('wardrobe'))
   const [addDrafts, setAddDrafts] = useState<Partial<Record<AssetTab, { open: boolean; draft: WorldAssetDraft }>>>({})
@@ -61,13 +63,16 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
 
   useEffect(() => {
     mounted.current = true
-    return () => { mounted.current = false }
+    return () => { mounted.current = false; requestId.current++ }
   }, [])
 
   const adding = addDrafts[tab]?.open ?? false
   const addDraft = addDrafts[tab]?.draft ?? emptyWorldAssetDraft(tab)
 
   const load = useCallback(async () => {
+    // 切角和刷新可能交错返回；只发布最新读取，避免旧角色覆盖当前衣柜。
+    // 请求序号也约束失败与收尾，卸载后不得重新发布状态。
+    const currentRequest = ++requestId.current
     if (isPreview) {
       setItems(previewAssets ?? [])
       setRoleName(previewRoleName)
@@ -75,15 +80,31 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
       setWearingHint('')
       return
     }
-    if (!window.electronAPI?.companion) return
+    if (!window.electronAPI?.companion) {
+      setReadError('物什需要桌面连接，请重新打开应用后重试。')
+      setLoading(false)
+      return
+    }
     setLoading(true)
+    setReadError('')
     try {
       const [active, assets, moments] = await Promise.all([
         window.electronAPI.companion.getActive(),
         window.electronAPI.companion.getAssets(),
         window.electronAPI.companion.getMoments({ limit: 20 }),
       ])
-      if (!mounted.current) return
+      if (!mounted.current || currentRequest !== requestId.current) return
+      if (assets.roleId !== active.id || moments.roleId !== active.id) {
+        setItems([])
+        setRoleId('')
+        setRoleName('')
+        setWearingId(null)
+        setWearingHint('')
+        setEditingId(null)
+        setPendingDelete(null)
+        setAddDrafts({})
+        throw new Error('ROLE_CHANGED')
+      }
       setRoleId(assets.roleId)
       setRoleName(active.name)
       setItems(assets.items)
@@ -111,8 +132,10 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
       }
       setWearingId(foundId)
       setWearingHint(hint)
+    } catch {
+      if (mounted.current && currentRequest === requestId.current) setReadError('物什暂时无法加载，请重试。')
     } finally {
-      if (mounted.current) setLoading(false)
+      if (mounted.current && currentRequest === requestId.current) setLoading(false)
     }
   }, [isPreview, previewAssets, previewRoleName, previewWearingId])
 
@@ -121,6 +144,12 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
   useEffect(() => {
     if (isPreview || !window.electronAPI?.companion.onRoleChanged) return
     return window.electronAPI.companion.onRoleChanged(() => {
+      setItems([])
+      setRoleId('')
+      setRoleName('')
+      setWearingId(null)
+      setWearingHint('')
+      setWriteError('')
       setEditingId(null)
       setPendingDelete(null)
       setAddDrafts({})
@@ -237,7 +266,7 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
           </div>
         </div>
         <div className="flex h-8 items-center gap-1">
-          {!isPreview && <IconButton size={32} label="刷新物什" onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>}
+          {!isPreview && <IconButton size={32} label={readError ? '重试物什' : '刷新物什'} onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>}
           <IconButton size={32} label="关闭物什" onClick={onClose}><X size={14} /></IconButton>
         </div>
       </div>
@@ -260,6 +289,7 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin">
+        <WorldWriteError message={readError} />
         {pendingDelete && (
           <WorldAssetDeleteConfirm
             asset={pendingDelete}

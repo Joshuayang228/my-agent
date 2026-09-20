@@ -1605,6 +1605,64 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
   }
 }
 
+for (const theme of ['porcelain-blue', 'yao-stone']) {
+for (const width of [1166, 600]) {
+for (const scenario of ['failure', 'mismatch', 'late'] as const) {
+  test('正式衣柜读取隔离与恢复 ' + scenario + ' ' + theme + ' ' + width, async ({ page }, testInfo) => {
+    await installProductionElectronStub(page)
+    await page.setViewportSize({ width, height: 731 })
+    await page.addInitScript(value => localStorage.setItem('theme', value), theme)
+    await page.addInitScript(() => {
+      const listeners = new Set<(value: any) => void>()
+      const harness = { role: 'lin', fail: false, mismatch: false, hold: false, pending: [] as Array<() => void>,
+        switchRole: () => { harness.role = 'zhou'; listeners.forEach(listener => listener({ roleId: 'zhou' })) } }
+      ;(window as any).__wardrobeRead = harness
+      const api = (window as any).electronAPI.companion
+      api.onRoleChanged = (listener: (value: any) => void) => { listeners.add(listener); return () => listeners.delete(listener) }
+      api.getActive = async () => ({ id: harness.role, name: harness.role, description: '' })
+      api.getMoments = async () => ({ roleId: harness.role, items: [] })
+      api.getAssets = async () => {
+        const role = harness.role
+        const result = { roleId: harness.mismatch ? 'other' : role, items: [{ id: role + '-coat', roleId: role, kind: 'wardrobe', name: role + '的外套', payload: {}, acquiredAt: 1, sourceEventId: null }] }
+        if (harness.fail) throw new Error('synthetic wardrobe read failure')
+        if (harness.hold) return new Promise(resolve => harness.pending.push(() => resolve(result)))
+        return result
+      }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    await page.getByTestId('world-tab-wardrobe').click()
+    const panel = page.getByTestId('world-assets-panel')
+    await expect(panel).toContainText('lin的外套')
+    const refresh = panel.getByRole('button', { name: '刷新物什', exact: true })
+    const refreshBox = await refresh.boundingBox()
+    if (scenario === 'late') {
+      await page.evaluate(() => { (window as any).__wardrobeRead.hold = true })
+      await refresh.click()
+      await expect.poll(() => page.evaluate(() => (window as any).__wardrobeRead.pending.length)).toBe(1)
+      await page.evaluate(() => { const h = (window as any).__wardrobeRead; h.hold = false; h.switchRole() })
+      await expect(panel).toContainText('zhou的外套')
+      await page.evaluate(() => { (window as any).__wardrobeRead.pending.forEach((resolve: () => void) => resolve()) })
+      await expect(panel).not.toContainText('lin的外套')
+      await expect(panel).toContainText('zhou的外套')
+    } else {
+      await page.evaluate((mode) => { (window as any).__wardrobeRead[mode === 'failure' ? 'fail' : 'mismatch'] = true }, scenario)
+      await refresh.click()
+      await expect(panel.getByRole('alert')).toContainText('请重试')
+      expect(await panel.getByRole('button', { name: '重试物什', exact: true }).boundingBox()).toEqual(refreshBox)
+      await page.screenshot({ path: testInfo.outputPath('wardrobe-read-error.png'), animations: 'disabled' })
+      if (scenario === 'failure') await expect(panel).toContainText('lin的外套')
+      else await expect(panel).not.toContainText('lin的外套')
+      await page.evaluate(() => { Object.assign((window as any).__wardrobeRead, { fail: false, mismatch: false }) })
+      await panel.getByRole('button', { name: '重试物什', exact: true }).click()
+      await expect(panel.getByRole('alert')).toHaveCount(0)
+      await expect(panel).toContainText('lin的外套')
+    }
+  })
+}
+}
+}
+
 async function installTerminalLifecycleStub(page: import('@playwright/test').Page) {
   await installProductionElectronStub(page)
   await page.addInitScript(() => {
