@@ -9,6 +9,7 @@ import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
+import { ChatWelcome } from '../chat/ChatWelcome'
 import type { MomentItem, MomentsPreviewData } from '../MomentsPanel'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
 import { WorldHub, type WorldTab } from '../shell/WorldHub'
@@ -357,39 +358,11 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
               <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                 <div className="flex min-h-0 flex-1 overflow-y-auto px-6 py-8">
                   {isWelcome ? (
-                    <div className="m-auto max-w-lg text-center">
-                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full" style={{ background: 'var(--accent-subtle)', color: 'var(--companion-accent-warm)' }}>
-                        <Bot size={22} strokeWidth={1.5} />
-                      </div>
-                      <h3 className="mt-5 font-display text-[1.9rem] font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                        嗨，我是{persona.name}
-                      </h3>
-                      <p className="mt-3 text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                        {persona.blurb}
-                      </p>
-                      <div className="mt-8 flex flex-wrap justify-center gap-2">
-                        {[
-                          { label: '打个招呼', action: () => setJourney('conversation') },
-                          { label: '今天想怎么过？', action: () => setJourney('conversation') },
-                          { label: '看看朋友圈', action: () => onNavigate?.('world') },
-                        ].map((item, index) => (
-                          <button
-                            key={item.label}
-                            type="button"
-                            onClick={item.action}
-                            className="rounded-full border px-3.5 py-1.5 text-[12px] transition"
-                            style={{
-                              borderColor: index === 0 ? 'var(--companion-accent-warm)' : 'var(--border-color)',
-                              color: index === 0 ? 'var(--accent-fg)' : 'var(--text-secondary)',
-                              background: index === 0 ? 'var(--accent-subtle)' : 'var(--card-bg)',
-                            }}
-                            data-testid="chat-journey-quick-action"
-                          >
-                            {item.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    <ChatWelcome title={`嗨，我是${persona.name}`} subtitle={persona.blurb}
+                      onGreet={() => setJourney('conversation')}
+                      onPlanDay={() => setJourney('conversation')}
+                      onOpenWorld={() => onNavigate?.('world')}
+                      actionTestId="chat-journey-quick-action" />
                   ) : (
                     <div className="mx-auto w-full max-w-[800px] space-y-7 py-4" data-testid="chat-surface-message-flow">
                       <div className="flex items-start justify-end gap-2.5">

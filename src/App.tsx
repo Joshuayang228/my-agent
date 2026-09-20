@@ -17,6 +17,7 @@ import { ChatRightDock } from './components/chat/right-dock/ChatRightDock'
 import MentionPopup from './components/MentionPopup'
 import { MemoryCitationChips } from './components/chat/MemoryCitationChips'
 import { PermissionConfirmCard } from './components/chat/PermissionConfirmCard'
+import { ChatWelcome } from './components/chat/ChatWelcome'
 import {
   Volume2, Paperclip, Shield, RefreshCw, Zap,
   Folder, FolderOpen, Ban, PanelRight,
@@ -1184,50 +1185,11 @@ function App() {
           <div className="relative z-[1] mx-auto max-w-3xl px-6 py-8">
             {/* 欢迎屏 — 衬线问候 + 建议 pill（Phase 3） */}
             {messages.length === 0 && (
-              <div className="flex min-h-[calc(100vh-13.5rem)] flex-col items-center justify-center pb-6 text-center">
-                <h1
-                  className="font-display text-[1.75rem] font-medium tracking-tight sm:text-[2rem]"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  {coldStart.title}
-                </h1>
-                <p className="mt-3 max-w-md text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                  {coldStart.subtitle}
-                </p>
-                <div className="mt-8 flex max-w-lg flex-wrap justify-center gap-2">
-                  {([
-                    { label: '打个招呼', prompt: '你好，介绍一下你自己', primary: true },
-                    { label: '今天想怎么过？', prompt: '今天打算怎么过？陪我想想。' },
-                    { label: '看看朋友圈', view: 'moments' as const },
-                  ]).map((item) => (
-                    <button
-                      key={item.label}
-                      type="button"
-                      onClick={() => {
-                        if ('view' in item && item.view) {
-                          setWorldTab(worldTabFromView(item.view))
-                          setActiveView('world')
-                        } else if ('prompt' in item && item.prompt) void sendMessage(item.prompt)
-                      }}
-                      className="rounded-full border px-3.5 py-1.5 text-[12.5px] transition"
-                      style={{
-                        borderColor: item.primary ? 'var(--companion-accent-warm)' : 'var(--border-color)',
-                        color: item.primary ? 'var(--accent-fg)' : 'var(--text-secondary)',
-                        background: item.primary ? 'var(--accent-subtle)' : 'var(--card-bg)',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--companion-accent-warm)'
-                        e.currentTarget.style.color = 'var(--text-primary)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = item.primary ? 'var(--companion-accent-warm)' : 'var(--border-color)'
-                        e.currentTarget.style.color = item.primary ? 'var(--accent-fg)' : 'var(--text-secondary)'
-                      }}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex min-h-[calc(100vh-13.5rem)] flex-col items-center justify-center pb-6">
+                <ChatWelcome title={coldStart.title} subtitle={coldStart.subtitle}
+                  onGreet={() => { void sendMessage('你好，介绍一下你自己') }}
+                  onPlanDay={() => { void sendMessage('今天打算怎么过？陪我想想。') }}
+                  onOpenWorld={() => { setWorldTab('moments'); setActiveView('world') }} />
               </div>
             )}
 

@@ -8,6 +8,44 @@ import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { expectSharedCodeSurface } from './shared-code-surface'
 
+for (const theme of ['porcelain-blue', 'deep-plum']) {
+  for (const width of [1166, 600]) {
+    test(`正式欢迎区共享布局与快捷操作 ${theme} ${width}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 731 })
+      await installProductionElectronStub(page)
+      await page.addInitScript((theme) => {
+        localStorage.setItem('theme', theme)
+        const api = (window as any).electronAPI
+        ;(window as any).__welcomeSends = []
+        api.companion.getActive = async () => ({ id: 'lin', name: '很长的伙伴名称'.repeat(8), description: '这是由当前角色提供的简介，保留长文换行。'.repeat(20) })
+        api.session.get = async () => ({ id: 'e2e-session', messages: [] })
+        api.chat.send = async (id: string, message: unknown) => { (window as any).__welcomeSends.push({ id, message }); throw new Error('controlled-failure') }
+        api.companion.getMoments = async () => []
+      }, theme)
+      await page.goto('/')
+      const welcome = page.getByTestId('chat-welcome')
+      await expect(welcome.getByRole('heading')).toContainText('很长的伙伴名称')
+      expect(await welcome.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+      const greet = welcome.getByRole('button', { name: '打个招呼', exact: true })
+      await greet.scrollIntoViewIfNeeded()
+      const bounds = await greet.boundingBox()
+      await greet.hover()
+      expect(await greet.boundingBox()).toEqual(bounds)
+      await page.screenshot({ path: testInfo.outputPath('welcome-long.png'), animations: 'disabled' })
+      await greet.click()
+      await expect(page.getByTestId('chat-messages')).toContainText('你好，介绍一下你自己')
+      await expect(page.getByTestId('chat-messages')).toContainText('发送未完成，请稍后重试。')
+      await page.reload()
+      await welcome.getByRole('button', { name: '今天想怎么过？', exact: true }).click()
+      await expect(page.getByTestId('chat-messages')).toContainText('今天打算怎么过？陪我想想。')
+      await page.reload()
+      await welcome.getByRole('button', { name: '看看朋友圈', exact: true }).click()
+      await expect(page.getByRole('tab', { name: '朋友圈', exact: true })).toHaveAttribute('aria-selected', 'true')
+      expect(await page.evaluate(() => (window as any).__welcomeSends.length)).toBe(0)
+    })
+  }
+}
+
 for (const operation of ['disable', 'remove', 'tool']) {
   test(`正式 MCP 普通操作在途不允许离页 ${operation}`, async ({ page }) => {
     await installProductionElectronStub(page)

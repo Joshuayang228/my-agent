@@ -30,6 +30,16 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('欢迎区正式与候选共享呈现及 Foundation 操作，不绑定 IPC', () => {
+    for (const file of ['src/App.tsx', 'src/components/playground/SurfaceBaselinePanel.tsx']) {
+      expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'ChatWelcome', '/chat/ChatWelcome'), file).toBe(true)
+    }
+    const source = readFileSync('src/components/chat/ChatWelcome.tsx', 'utf8')
+    expect(rendersSharedTabs(source, 'ActionButton', '/foundation/ActionButton')).toBe(true)
+    expect(source).not.toContain('electronAPI')
+    expect(source).not.toMatch(/<button\b/)
+    expect(UI_COMPONENT_REGISTRY['layout.chat-welcome'].sourcePath).toBe('src/components/chat/ChatWelcome.tsx')
+  })
   it('复选框基础故事与 MCP 复用真实组件，注册表不再指向样张实现', () => {
     for (const file of ['src/components/playground/FoundationAdvancedStories.tsx', 'src/components/settings/McpServiceCard.tsx', 'src/components/settings/McpConnectionForm.tsx']) {
       const source = readFileSync(file, 'utf8')

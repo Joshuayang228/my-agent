@@ -1,5 +1,9 @@
 # 质量总控
 
+2026-09-20 本批最终完整 UI 回归：342 项通过（8.0 分钟，无重试），证据 var/verification/chat-welcome-full-ui（npm 脚本未透传 output 参数，结果从 test-results 复制留存）。覆盖当前欢迎区共享和此前 MCP 管理互斥后的代码；不替代 Electron / 外部模型验收，不关闭全产品合同。
+
+R01 欢迎区共享验收（2026-09-20）：ui-component-registry Unit 校验 App / ChatSurface 实际 JSX 引用 ChatWelcome，内部动作使用 Foundation ActionButton 且没有 IPC。UI 定向 7 项通过，覆盖深浅主题、1166 / 600 宽、长角色名与简介、hover 几何、正式快捷发送失败反馈、朋友圈导航和候选场景 / 切角。截图目录 var/verification/chat-welcome-shared，已检查浅色宽屏及深色窄屏。Unit 1238、根 tsc / vite build、资产 32 项通过；没有独立 lint 脚本，构建保留既有 chunk / dynamic import 警告。未改 IPC / 主进程，此轮未新增真实 Electron 或外部模型验收；不能用 Renderer 替身证明模型生成质量。
+
 S5 协议验收入口独立化（2026-09-20）：单独运行 onboarding 自定义协议用例时，首屏已在设置，旧首句点击隐藏侧栏按钮超时。现等待启动后按设置实际可见性进入；首次保存等待遵循生产安全存储 15 秒上限，局部断言预算 20 秒。失败清理仅销毁独占测试 Electron 窗口，避免草稿保护导致 teardown 超时，不改产品 beforeunload。单独完整重启协议用例通过（11.7 秒），整组 onboarding 21 项通过（57 秒），Unit 1237 通过。electron.test.ts 已使用新连接表单和逐例独立目录，旧清单中的旧 UI 描述不再成立；本批不调用外部模型，不把其余 onboarding 用例宣称为全部独立。 证据：var/verification/onboarding-entry-red、onboarding-entry-fixed、onboarding-entry-final、onboarding-entry-suite。
 
 S4 MCP 向导与管理互斥（2026-09-20）：受控 Renderer 红测复现新连接已提交、向导响应未返回时删除旧服务，实际 settings.set 载荷 [] 将 old / new 一起清空。SettingsPanel 在 mcpAdding 期间拒绝 runMcpAction 并禁用服务卡，mcpBusy 期间禁止打开向导；刷新完成或取消后释放。红测转绿，双向入口互斥、保存失败重试及四主题卡片共 10 项通过，Unit 1237、根 tsc / build 通过。未改主进程 / IPC / 配置格式或 OAuth 登录逻辑；这是当前正式设置路径证据，不外推所有配置写入。 证据：var/verification/mcp-overlap-red、mcp-overlap-final。此前 337 项全量 UI 是修复前基线，本批未重跑全量。

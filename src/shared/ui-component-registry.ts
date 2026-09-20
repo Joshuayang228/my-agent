@@ -78,6 +78,7 @@ function component<const T extends UiComponentInput>(definition: T): UiComponent
 
 export const UI_COMPONENT_ASSETS = [
   component({ key: 'layout.world-profile-header', layer: 'experience', labelZh: '人物世界身份区', labelEn: 'World Profile Header', descriptionZh: '正式人物世界与候选共用名称、简介及姓名首字占位，身份数据由调用方提供。', category: 'layout', status: 'adopted', implementation: 'custom', sourcePath: 'src/components/world/WorldProfileHeader.tsx', stories: ['当前角色身份', '候选切角', '窄宽布局'], accessibilityNotes: ['名称使用标题语义', '空简介不编造内容', '长文本可换行', '返回按钮保持固定尺寸'] }),
+  component({ key: 'layout.chat-welcome', layer: 'experience', labelZh: '对话欢迎区', labelEn: 'Chat Welcome', descriptionZh: '正式 Chat 与候选共享欢迎布局和基础动作按钮，角色文案与操作由调用方注入。', category: 'layout', status: 'adopted', implementation: 'custom', sourcePath: 'src/components/chat/ChatWelcome.tsx', stories: ['角色欢迎', '长名称与简介', '隔离快捷操作'], accessibilityNotes: ['标题可换行', '按钮可键盘访问', 'hover 不改变尺寸'] }),
   // 行为组件：先登记候选，不因为进入目录就假装已安装 Radix。
   // 基础控件故事：当前以正式样式和隔离 fixture 建场，尚未回流为独立生产组件文件。
   component({ key: 'behavior.action-button', labelZh: '文字动作按钮', labelEn: 'ActionButton', descriptionZh: '用于恢复、打开和确认等带文字的紧凑动作；固定操作槽并复用语义色。', category: 'behavior', status: 'adopted', implementation: 'custom', sourcePath: 'src/components/foundation/ActionButton.tsx', stories: ['强调动作', '中性动作', '禁用态', '窄宽与固定高度'], accessibilityNotes: ['按钮名称直接可见', 'hover/focus/disabled 不改变尺寸', '危险色必须由调用方明确选择'] }),

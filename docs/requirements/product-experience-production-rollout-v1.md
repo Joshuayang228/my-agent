@@ -3,6 +3,8 @@
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
 
+R01 / R14 欢迎区共享（2026-09-20）：审计 App 与 ChatSurface 发现两份欢迎 JSX，图标、字号与按钮样式分叉。按既有全产品回流授权，提取 ChatWelcome 并组合 Foundation ActionButton；正式沿用 buildColdStartCopy / sendMessage / world 导航，候选仅注入 persona 和隔离回调。删除范围只限两份重复欢迎渲染；不改消息流、输入区、IPC、权限或模型调用。允许修改共享组件、两处消费者、组件登记、复用 Unit、正式入口 UI 及本合同 / 伙伴模块 / 进度 / 日志。7 项定向 UI 与 Unit 1238 已通过，证据 var/verification/chat-welcome-shared；UI 发送失败由 Renderer 替身控制，不外推真实模型质量。输入区与消息流仍有独立 JSX，须继续核验适合共享的业务边界；四个 experience 资产保持原状态，RAG / OAuth 后续继续暂缓。
+
 S4 MCP 向导与管理互斥（2026-09-20）：受控 Renderer 红测复现新连接已提交、向导响应未返回时删除旧服务，实际 settings.set 载荷 [] 将 old / new 一起清空。SettingsPanel 在 mcpAdding 期间拒绝 runMcpAction 并禁用服务卡，mcpBusy 期间禁止打开向导；刷新完成或取消后释放。红测转绿，双向入口互斥、保存失败重试及四主题卡片共 10 项通过，Unit 1237、根 tsc / build 通过。未改主进程 / IPC / 配置格式或 OAuth 登录逻辑；这是当前正式设置路径证据，不外推所有配置写入。
 
 R12 身份区共享回流（2026-09-20）：新增 WorldProfileHeader，App 将当前角色名称 / 简介传给 WorldHub；Playground 同组件只传隔离 persona。删除候选重复头部 JSX、写死头像字符和固定人设，使用姓名首字占位与语义底色，不复制装饰圆形或假地点。返回按钮保持 Foundation 固定尺寸；四主题宽窄、真实入口身份与候选切角 9 项 UI 通过，深浅截图已检查，Unit 1237 通过。仅修改 Renderer，不新增后端 / IPC / 上传功能；全产品 S6 仍进行中。
