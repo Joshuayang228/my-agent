@@ -3,6 +3,10 @@
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
 
+R12 / R14 人物世界基础导航复用完成（2026-09-20）：WorldHub 手写 Tab 与返回按钮替换为已验收 Foundation TabStrip underline / IconButton，正式与候选同轮生效，体验注册表补真实 WorldHub source / formal 路径。四主题宽窄、键盘、hover 尺寸、溢出和返回 8 项通过，候选隔离与六面正式入口 3 项通过；已查看浅色宽屏与深色窄屏截图。Unit 1236、根 tsc / build 通过；通讯录呈现差异及内部术语已记录，不提升 adopted、不关闭 S6，RAG / OAuth 保持暂缓。
+
+R12 / R14 基础复用回流：WorldHub 六个标签及返回按钮仍为手写控件，正式红测 data-foundation=tabs 缺失。按用户“产品体验从基础来”的已授权范围，用既有 TabStrip underline / IconButton 替换局部标签皮肤及按钮，正式与 Playground 同一共享组件；保留六面、panelId、测试入口与真实业务子页。删除仅限该局部控件重复实现，不删除导航能力。不改基础组件默认行为、不改 IPC / 后端 / 依赖；允许修改 WorldHub、体验注册表、chat E2E 及模块 / 质量 / 进度。四主题宽窄、键盘左右 / Home / End、hover 尺寸、页面溢出及返回必须通过。通讯录候选仍是静态关系行而正式 CastPanel 有摘要 / 忙闲 / 召唤，差异待单独核验，不通过本批静默删正式能力或提升 adopted。
+
 S4 普通设置队列卸载保护已落地（2026-09-20）：有待保存 / 在途 / 失败保留项时阻止重载退出，原自动保存完成后放行。UI 红测转绿，最新值排队、失败重试及应用内离页 3 项通过；真实 Electron 局部扣住 800ms 防抖回调，验证 reload / quit 拒绝、释放后真实落盘与完整重启恢复，整组生命周期 3 项通过。Unit 1236、根 tsc / build 通过。未改主进程 / IPC / 依赖，MCP 与权限独立操作、其余 S4–S6 仍待核实；RAG / OAuth 后续暂缓。
 
 S4 普通设置队列卸载保护：正式伙伴说明已加入 pendingSettingsRef，但 beforeunload 仍放行，受控红测 expected true / actual false。复用模型草稿的卸载取消机制与既有 Toast，仅在 SettingsPanel 非 preview 且有普通设置待保存 / 保存中时留页，不新建保存队列，不自动提交模型草稿。允许修改 SettingsPanel、既有 chat 与 model-diagnostic-lifecycle 测试和相关文档；该组件存量 diff 已核对为空。不修改主进程、IPC、依赖或 UI 布局。必测防抖前、保存中更新同键、失败后重试、清队列放行，以及真实 Electron 重载 / quit 拒绝与保存后重启恢复；不以此覆盖 MCP / 权限独立操作生命周期或强杀恢复。

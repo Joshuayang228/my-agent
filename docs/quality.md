@@ -1,5 +1,7 @@
 # 质量总控
 
+WorldHub Foundation 门禁：s6-world-foundation-red 正式 tablist 缺失 data-foundation=tabs，修复后实际渲染该属性并通过 ArrowRight / Home / End 焦点与面板切换，不仅检查 import。四主题 × 1166 / 600 共 8 项通过（s6-world-foundation-final），返回按钮 hover 前后 28×28、页面无水平溢出，检查两张深浅截图；候选人物切换 / 内存操作隔离与正式六面入口 3 项通过（s6-world-foundation-parity）。Unit 1236、根 tsc / build 通过，无主进程 / IPC 改动、无独立 lint，既有构建警告保留；不以此证明通讯录候选与正式完整一致。
+
 S4 普通设置保存队列：UI s4-settings-queue-red 在填入第一版后 dispatch beforeunload 返回放行，expected blocked=true / actual=false。修复后 s4-settings-queue-ui 3 项通过，覆盖 pending、同键新旧值、失败保留与重试、清空放行。真实 Electron 初版 page.clock 全局冻结 / 恢复两次均未观察到防抖落盘，不作成功证据；改为仅扣住 800ms 回调、计数确认已挂起，保留真实 IPC / SQLite，释放后保存并完整重启恢复。独立用例及 s4-settings-queue-verified 整组 3 项通过。Unit 1236、根 tsc / build 通过；无独立 lint，既有构建警告保留。只修普通设置队列卸载，不宣称所有设置副作用与跨入口写入竞争已验收。
 
 S6 资产角色绑定验证：s6-stale-role-red 仅延迟测试窗口 role-changed 通知，真实主进程 Asset added 日志与正式列表均显示旧 lin 草稿写到 zhou。修复后 s6-stale-role-fixed 独立用例、s6-stale-role-onboarding 完整 21 项通过；同用例覆盖四类过期表单零新增、8 类无效 / 错误角色、通知恢复后正常写入及重载、跨角色编辑删除拒绝。测试不替换写入 IPC / SQLite，finally 恢复通知并清理自身资产。UI 时序与新增失败 40 项通过（s6-stale-role-ui），Unit 1236、Eval 23 + 1、根 tsc / build 通过。主进程同树对照 72 → 72，唯一诊断文本差异是既有 TS6307 的引用链增加 companion IPC，错误本身未新增但仍非全绿。无独立 lint 脚本，已有构建警告保留；不将本批当作总体验采用或其他设置竞争验收。

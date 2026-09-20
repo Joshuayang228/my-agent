@@ -3,6 +3,8 @@
  */
 
 import type { ReactNode } from 'react'
+import { TabStrip } from '../foundation/TabStrip'
+import { IconButton } from '../foundation/IconButton'
 import { Newspaper, Shirt, Users, BookOpen, Home, MapPin, LayoutGrid, X } from 'lucide-react'
 import { MomentsPanel, type MomentsPreviewData } from '../MomentsPanel'
 import { AssetsPanel } from '../AssetsPanel'
@@ -93,48 +95,25 @@ export function WorldHub({
             {visibleTabs.map(labelFor).join('、')} — 一个口袋里的生活面。
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-lg p-1.5 transition"
-          style={{ color: 'var(--text-muted)' }}
-          title="返回聊天"
-        >
+        <IconButton label="返回聊天" onClick={onClose} style={{ color: 'var(--text-muted)' }}>
           <X size={14} />
-        </button>
+        </IconButton>
       </div>}
 
-      <div
-        className="flex shrink-0 gap-1 overflow-x-auto border-b px-4"
-        style={{ borderColor: 'var(--border-subtle)' }}
-        role="tablist"
-        aria-label="人物世界分区"
-      >
-        {visibleTabs.map((t) => {
-          const active = tab === t.id
-          return (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              aria-controls={`world-panel-${t.id}`}
-              onClick={() => onTabChange(t.id)}
-              className="flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-[12px] transition"
-              data-testid={`world-tab-${t.id}`}
-              style={{
-                borderColor: active ? 'var(--companion-accent-warm)' : 'transparent',
-                color: active ? 'var(--text-primary)' : 'var(--text-muted)',
-                fontWeight: active ? 600 : 400,
-              }}
-            >
-              <span style={{ color: active ? 'var(--companion-accent-warm)' : 'var(--text-muted)' }}>
-                {t.icon}
-              </span>
-              {labelFor(t)}
-            </button>
-          )
-        })}
+      <div className="flex min-w-0 shrink-0 border-b px-4 py-1" style={{ borderColor: 'var(--border-subtle)' }}>
+        <TabStrip
+          label="人物世界分区"
+          variant="underline"
+          items={visibleTabs.map(item => ({
+            id: item.id,
+            label: labelFor(item),
+            icon: item.icon,
+            panelId: 'world-panel-' + item.id,
+            testId: 'world-tab-' + item.id,
+          }))}
+          activeId={tab}
+          onSelect={id => { const target = visibleTabs.find(item => item.id === id); if (target) onTabChange(target.id) }}
+        />
       </div>
 
       <div id={`world-panel-${tab}`} role="tabpanel" className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">

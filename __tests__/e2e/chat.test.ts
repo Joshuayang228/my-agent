@@ -1668,6 +1668,46 @@ for (const scenario of ['failure', 'mismatch', 'late'] as const) {
 }
 }
 
+for (const theme of ['porcelain-blue', 'yao-stone', 'deep-plum', 'song-smoke']) {
+  for (const width of [1166, 600]) {
+    test('正式人物世界基础导航 ' + theme + ' ' + width, async ({ page }, testInfo) => {
+      await installProductionElectronStub(page)
+      await page.setViewportSize({ width, height: 731 })
+      await page.addInitScript(theme => localStorage.setItem('theme', theme), theme)
+      await page.goto('/')
+      await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+      const world = page.getByTestId('world-hub')
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
+      const tabs = world.getByRole('tablist', { name: '人物世界分区' })
+      await expect(tabs).toHaveAttribute('data-foundation', 'tabs')
+      await expect(tabs.getByRole('tab')).toHaveText(['朋友圈', '衣柜', '文化角', '家居', '通讯录', '足迹'])
+      const first = tabs.getByRole('tab', { name: '朋友圈', exact: true })
+      await first.focus()
+      await page.keyboard.press('ArrowRight')
+      await expect(tabs.getByRole('tab', { name: '衣柜', exact: true })).toBeFocused()
+      await expect(tabs.getByRole('tab', { name: '衣柜', exact: true })).toHaveAttribute('aria-selected', 'true')
+      await expect(page.getByTestId('world-assets-panel')).toBeVisible()
+      await page.keyboard.press('End')
+      const last = tabs.getByRole('tab', { name: '足迹', exact: true })
+      await expect(last).toBeFocused()
+      await expect(last).toHaveAttribute('aria-selected', 'true')
+      await expect(page.locator('#world-panel-footprints')).toBeVisible()
+      await page.keyboard.press('Home')
+      await expect(first).toBeFocused()
+      const close = world.getByRole('button', { name: '返回聊天', exact: true })
+      const before = await close.boundingBox()
+      await close.hover()
+      expect(await close.boundingBox()).toEqual(before)
+      expect(before?.width).toBe(28)
+      expect(before?.height).toBe(28)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+      await page.screenshot({ path: testInfo.outputPath('world-navigation.png') })
+      await close.click()
+      await expect(world).toHaveCount(0)
+    })
+  }
+}
+
 for (const tab of ['culture', 'home', 'footprints']) {
   test('正式生活面切角清除旧内容与草稿 ' + tab, async ({ page }) => {
     const nameLabel = tab === 'culture' ? '作品' : tab === 'home' ? '物件' : '地点'
