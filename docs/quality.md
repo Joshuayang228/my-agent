@@ -1,5 +1,7 @@
 # 质量总控
 
+2026-09-20 正式 Electron 组合回归：`rollout-electron-current` 排除 RAG / OAuth 名称用例，33 通过、4 外部模型条件跳过、1 失败。朋友圈备份新目录导入在 5 秒断言期限内未完成；临时 IPC 计时复现实际 8521ms 后成功，最终 UI 显示导入成功，导出配置包含 modelConnections。生产加密持久化等待上限为 15 秒，故只将该新目录导入成功断言预算设为 20 秒，不改生产等待或其他断言；`moment-import-budget` 完整用例通过（15.6 秒），验证重启后的赞评与重复导入保护。临时日志和诊断等待均已移除。Unit 183 文件 / 1237 项通过；组合套件尚未按最终测试文件全量重跑，不将专项通过写成全量绿灯，不恢复 RAG / OAuth 后续。
+
 S4 MCP 向导：s4-mcp-wizard-red 在点击保存后 beforeunload 返回放行，修复为同步 phaseRef / refreshing 判定。初版误拦 cancelling 导致既有重测离页测试失败，已按原契约撤掉取消阶段拦截，不改断言。s4-mcp-wizard-final 12 项通过，含保存失败重试、刷新失败只刷新、保存 / 刷新期间内部导航和卸载保护、四主题先测后存及取消迟到隔离。Unit 1237、根 tsc / build 通过，无独立 lint，既有构建警告保留。本批为 Renderer 受控时序证据，不替代新增向导真实 Electron 持久化验收。
 
 S4 MCP 普通管理：s4-mcp-action-red 三条 pending 红测 expected blocked=true / actual=false；s4-mcp-action-ui 13 项通过，覆盖停用 / 删除 / 工具许可离页和卸载保护、失败释放与重试、四主题服务卡及权限回归。s4-mcp-action-electron 两项用原 handler 延迟夹具验证真实 reload / quit 取消与写入后重启（权限规则及 MCP 删除），不替换存储。Unit 1237、根 tsc / build 通过，无独立 lint，既有构建警告保留。只保护 runMcpAction 普通管理路径，OAuth 启停 / 重试排除，新增向导与跨入口竞争不由本批证明。

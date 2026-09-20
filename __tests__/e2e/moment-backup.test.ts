@@ -46,7 +46,9 @@ test('正式朋友圈赞评经数据页备份到新目录、重启展示且重�
     await page.getByTestId('settings-nav-data').click()
     await app.evaluate(({ dialog }, file) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] }) }, output)
     await page.getByTestId('section-data').getByTestId('import').click()
-    await expect(page.getByTestId('section-data').getByRole('status')).toContainText('导入成功')
+    // 新目录导入包含加密配置，会等待 Windows Local State 落盘；生产最多等待 15 秒，
+    // 此处给 IPC / 渲染留余量而非固定休眠，仍须成功并通过下方真实重启数据断言。
+    await expect(page.getByTestId('section-data').getByRole('status')).toContainText('导入成功', { timeout: 20_000 })
     expect(await page.evaluate(() => window.electronAPI.companion.addMomentComment('history-moment', '恢复之后新增的评论'))).toMatchObject({ ok: true })
     expect(await page.evaluate(() => window.electronAPI.data.import())).toMatchObject({ success: true })
     await app.close(); app = undefined
