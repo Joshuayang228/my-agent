@@ -30,6 +30,17 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('MCP 清单正式与候选共用数量、添加和空态，基础操作没有 IPC', () => {
+    for (const file of ['src/components/SettingsPanel.tsx', 'src/components/playground/SettingsExperienceCandidate.tsx']) {
+      expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'McpServiceList', '/settings/McpServiceList'), file).toBe(true)
+    }
+    const content = readFileSync('src/components/settings/McpServiceList.tsx', 'utf8')
+    expect(rendersSharedTabs(content, 'ActionButton', '/foundation/ActionButton')).toBe(true)
+    expect(content).not.toContain('electronAPI')
+    expect(content).not.toContain('<button')
+    expect(UI_COMPONENT_REGISTRY['layout.mcp-service-list'].sourcePath).toBe('src/components/settings/McpServiceList.tsx')
+  })
+
   it('角色架正式与候选实际复用展示组件及 Foundation 操作', () => {
     for (const file of ['src/components/CharacterShelfPanel.tsx', 'src/components/playground/SurfaceBaselinePanel.tsx']) {
       expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'CharacterShelfContent', '/companion/CharacterShelfContent'), file).toBe(true)

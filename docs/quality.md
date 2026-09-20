@@ -1,5 +1,7 @@
 # 质量总控
 
+R10 MCP 清单共享验证（2026-09-20）：McpServiceList 已进入正式设置与候选真实 JSX，数量、添加与空态不再独立维护；保留真实列表来源、管理互斥和离页保护。45 项 MCP UI 回归通过（四主题宽窄、几何、失败重试与候选场景），深浅截图已检查；真实 Electron 普通新增、保存在途拒绝 reload / quit、完整重启恢复连接及工具许可 1 项通过（15.9 秒）。Unit 1243、根 tsc、vite build、资产 37 项通过，无独立 lint 脚本，构建保留既有警告。证据 var/verification/mcp-list-shared 与 mcp-list-electron；不运行 OAuth / RAG 专项，不提升整个设置体验 adopted。角色架旧导航仍待回流，见 WISH-045。
+
 R04 角色架共享回流（2026-09-20）：CharacterShelfPanel 与候选 RoleShelfFixture 共用 CharacterShelfContent，卡片复用 Foundation ActionButton、刷新 / 关闭复用 IconButton；正式旧卡片和 Catch-up 内部说明移除，后端切角与追赶逻辑不变。正式容器保留真实读取 / requestSwitch，新增读取失败重试、切换失败留页和同步单请求锁，卸载后忽略迟到显示。四主题宽窄、长文、hover、流式拒绝 / 异常 / 重试及候选入口 11 项 UI 通过，深浅截图已检查；独立 Electron 正式点击切角、身份更新、重载保留与切回通过（14.2 秒），Unit 1242、根 tsc / vite build 通过。证据 var/verification/character-shelf-shared 与 character-shelf-electron；未改 IPC / 主进程 / 角色资源 / 依赖，构建保留既有警告。本批未跑完整 UI / Electron，不提升整个设置体验 adopted，RAG / OAuth 后续继续暂缓。
 
 S5 / S6 桌面收口复核（2026-09-20）：本地模型、生图、备份崩溃恢复、朋友圈备份、配置生命周期及凭据持久化 6 文件共 12 项通过（2.1 分钟、无重试），证据 var/verification/production-rollout-backend。六面入口单独运行通过；__lifeStore 实际由生产 engine 初始化，不是前序用例注入。伙伴偏好单独运行在重载后的隐藏设置按钮失败，根因缺失前序模型配置；用例自行通过真实 IPC 配置本地模型后独立通过（18.8 秒），整组 onboarding 21 项通过（58.8 秒）。证据 world-entry-standalone / companion-settings-standalone / companion-settings-independent / onboarding-companion-independent-full 均位于 var/verification/。仅改测试准备，未改产品启动、IPC、Prompt、阈值或权限；Unit 1241、根 tsc 通过。未运行 OAuth / RAG 专项及付费外部模型；其他 onboarding 用例独立性与全产品采用审计不据此自动关闭。

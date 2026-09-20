@@ -48,7 +48,7 @@ test('正式 MCP 新增向导保存期间拒绝重载退出，重启恢复连接
       BrowserWindow.getAllWindows()[0].webContents.on('will-prevent-unload', () => { state.blocked++ })
     })
     await page.getByTestId('settings-nav-mcp').click()
-    await page.getByRole('button', { name: '+ 添加', exact: true }).click()
+    await page.getByTestId('settings-mcp-add').click()
     const form = page.getByTestId('mcp-connection-form')
     await form.getByLabel('连接名称', { exact: true }).fill('向导真实连接')
     await form.getByLabel('服务 URL').fill(url)

@@ -19,6 +19,7 @@ import { backupFailureMessage } from '../shared/backup-errors'
 import { McpServiceCard, type McpServiceState } from './settings/McpServiceCard'
 import type { McpServerStatus } from '../shared/types'
 import { McpConnectionForm } from './settings/McpConnectionForm'
+import { McpServiceList } from './settings/McpServiceList'
 
 interface SettingsForm {
   llmTemperature: string
@@ -497,20 +498,8 @@ export function SettingsPanel({
     <div className="space-y-4">
       <SettingsPageHeader title="MCP" description="连接外部工具和服务，扩展 Agent 能力；每个服务独立管理。" />
 
-      <SettingCard>
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>已连接服务</div>
-        <button
-          onClick={() => { if (!mcpBusyRef.current) setMcpAdding(true) }}
-          disabled={mcpAdding || mcpBusy}
-          className="h-8 shrink-0 rounded-[var(--radius-md)] border px-3 text-xs transition"
-          style={{ borderColor: 'var(--border-subtle)', color: 'var(--accent-fg)' }}
-        >
-          + 添加
-        </button>
-      </div>
-      </SettingCard>
-
+      <McpServiceList count={mcpServers.length} onAdd={() => { if (!mcpBusyRef.current) setMcpAdding(true) }}
+        disabled={mcpAdding || mcpBusy || preview} showEmpty={mcpServers.length === 0 && !mcpAdding && !mcpReadError}>
       {mcpAdding && !preview && <McpConnectionForm beforeLeaveRef={mcpFormBeforeLeaveRef} actions={window.electronAPI.mcp} onCancel={() => setMcpAdding(false)} onSaved={async (result) => {
         const settings = await window.electronAPI.settings.get()
         const servers = JSON.parse(settings.mcpServers || '[]')
@@ -520,14 +509,6 @@ export function SettingsPanel({
         if (!result.ok) toast(result.error, 'warning')
         setMcpAdding(false)
       }} />}
-
-      {mcpServers.length === 0 && !mcpAdding && (
-        <SettingCard>
-        <div className="border-t border-dashed pt-3 text-center text-xs" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
-          暂无 MCP 服务器，点击"+ 添加"连接外部能力
-        </div>
-        </SettingCard>
-      )}
 
       {mcpReadError && <div role="alert" className="flex items-center justify-between gap-3 text-xs" style={{ color: 'var(--danger)' }}><span>{mcpReadError}</span><ActionButton disabled={mcpBusy} onClick={() => void runMcpAction(refreshMcpStatus)}>刷新</ActionButton></div>}
       <div className="space-y-3">
@@ -566,6 +547,7 @@ export function SettingsPanel({
             })} />
         })}
       </div>
+      </McpServiceList>
     </div>
   )
 

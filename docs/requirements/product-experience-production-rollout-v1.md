@@ -1,7 +1,11 @@
 # 全产品体验正式回流 v1 施工合同
 
+R10 MCP 清单共享验证（2026-09-20）：McpServiceList 已进入正式设置与候选真实 JSX，数量、添加与空态不再独立维护；保留真实列表来源、管理互斥和离页保护。45 项 MCP UI 回归通过（四主题宽窄、几何、失败重试与候选场景），深浅截图已检查；真实 Electron 普通新增、保存在途拒绝 reload / quit、完整重启恢复连接及工具许可 1 项通过（15.9 秒）。Unit 1243、根 tsc、vite build、资产 37 项通过，无独立 lint 脚本，构建保留既有警告。证据 var/verification/mcp-list-shared 与 mcp-list-electron；不运行 OAuth / RAG 专项，不提升整个设置体验 adopted。角色架旧导航仍待回流，见 WISH-045。
+
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
+
+R10 MCP 清单回流（2026-09-20）：正式 SettingsPanel 与候选 McpScenePreview 改用 McpServiceList，共享数量、Foundation 添加按钮与空态；删除两侧重复标题 / 按钮 / 空态 JSX，正式旧外层卡片不再保留。真实列表仍由 settings 与 MCP 状态 / 工具查询提供，保存、串行操作和离页保护不变；候选仅注入内存数据。范围包括共享组件、两调用方、资产登记、相关测试和文档，不改 IPC、后端、依赖及 OAuth 行为。OAuth 测试仅迁移已改名按钮的定位，不运行专项。全产品状态不提升 adopted。
 
 R04 角色架共享回流（2026-09-20）：CharacterShelfPanel 与候选 RoleShelfFixture 共用 CharacterShelfContent，卡片复用 Foundation ActionButton、刷新 / 关闭复用 IconButton；正式旧卡片和 Catch-up 内部说明移除，后端切角与追赶逻辑不变。正式容器保留真实读取 / requestSwitch，新增读取失败重试、切换失败留页和同步单请求锁，卸载后忽略迟到显示。四主题宽窄、长文、hover、流式拒绝 / 异常 / 重试及候选入口 11 项 UI 通过，深浅截图已检查；独立 Electron 正式点击切角、身份更新、重载保留与切回通过（14.2 秒），Unit 1242、根 tsc / vite build 通过。证据 var/verification/character-shelf-shared 与 character-shelf-electron；未改 IPC / 主进程 / 角色资源 / 依赖，构建保留既有警告。本批未跑完整 UI / Electron，不提升整个设置体验 adopted，RAG / OAuth 后续继续暂缓。
 

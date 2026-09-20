@@ -19,6 +19,7 @@ import { ActionButton } from '../foundation/ActionButton'
 import { AboutSettingsContent } from '../settings/AboutSettingsContent'
 import { DataSettingsContent } from '../settings/DataSettingsContent'
 import { McpServiceCard } from '../settings/McpServiceCard'
+import { McpServiceList } from '../settings/McpServiceList'
 import { ModelConnectionForm } from '../settings/ModelConnectionForm'
 import { ModelConnectionCard } from '../settings/ModelConnectionCard'
 import { ModelConnectionList } from '../settings/ModelConnectionList'
@@ -357,18 +358,16 @@ function McpScenePreview() {
       {MCP_SCENES.map(([id, label]) => <button key={id} id={`mcp-scene-${id}`} type="button" role="tab" aria-selected={scene === id} aria-controls="mcp-scene-panel" onClick={() => chooseScene(id)} className="settings-option px-2.5 py-1.5 text-[11px]" data-selected={scene === id ? 'true' : undefined}>{label}</button>)}
     </div>
     <div id="mcp-scene-panel" role="tabpanel" aria-labelledby={`mcp-scene-${scene}`} className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{servers.length} 个服务</span>
-        <button type="button" onClick={() => setForm('add-remote')} className="settings-option inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-[11px]" style={{ borderColor: 'var(--accent)', color: 'var(--accent-fg)' }} data-testid="settings-candidate-mcp-add"><Plus size={14} />添加连接</button>
-      </div>
+      <McpServiceList count={servers.length} onAdd={() => setForm('add-remote')} disabled={Boolean(form)}
+        showEmpty={!form && servers.length === 0} testIdPrefix="settings-candidate">
       {form && <McpConnectionPreview key={form} scene={form} onCancel={() => { setForm(null); if (scene.startsWith('add-')) setScene('empty') }} onSave={(server) => { setServers((current) => [...current, { ...server, id: `added-${++serial.current}` }]); setForm(null); if (scene.startsWith('add-')) setScene('one') }} />}
-      {!form && servers.length === 0 && <div className="py-10 text-center text-[12px]" style={{ color: 'var(--text-muted)' }} data-testid="settings-candidate-mcp-empty">还没有 MCP 服务</div>}
       {servers.map((server) => <McpServiceCard key={server.id} {...server} enabled={server.status !== 'disabled'} testId={`settings-candidate-mcp-server-${server.id}`}
         onEnabledChange={(checked) => updateServer(server.id, { status: checked ? 'connected' : 'disabled' })}
         onToolChange={server.status === 'confirm' ? (id, allowed) => updateServer(server.id, { tools: server.tools.map((tool) => tool.id === id ? { ...tool, allowed } : tool) }) : undefined}
         onRetry={() => updateServer(server.id, { status: 'connecting' })}
         onCancel={() => server.status === 'confirm' ? chooseScene('empty') : updateServer(server.id, { status: 'disabled' })}
         onConfirm={() => updateServer(server.id, { status: 'connected' })} />)}
+      </McpServiceList>
     </div>
   </div>
 }

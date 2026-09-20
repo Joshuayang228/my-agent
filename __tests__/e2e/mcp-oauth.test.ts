@@ -30,7 +30,7 @@ test('正式 OAuth 浏览器授权、工具许可、失效重新登录与重启�
     await instrument()
     await expect(page.getByTestId('settings-panel')).toBeVisible()
     await page.getByTestId('settings-nav-mcp').click()
-    await page.getByRole('button', { name: '+ 添加', exact: true }).click()
+    await page.getByTestId('settings-mcp-add').click()
     const form = page.getByTestId('mcp-connection-form')
     await form.getByLabel('连接名称', { exact: true }).fill('OAuth 笔记')
     await form.getByLabel('服务 URL').fill(fixture.url)
