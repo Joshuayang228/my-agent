@@ -6,4 +6,5 @@
 
 | 笔记 | 说明 |
 |------|------|
+| [rag-mcp-oauth.md](./rag-mcp-oauth.md) | RAG 与 MCP OAuth 后续工作暂缓，等待共同研究后明确恢复 |
 | [native-voice-input.md](./native-voice-input.md) | 原生语音 STT 评估与暂缓条件（2026-08-03） |
