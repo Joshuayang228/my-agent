@@ -1,5 +1,7 @@
 # 项目进度
 
+- S4 MCP 普通管理在途保护（2026-09-20）：停用 / 删除 / 工具许可三条红测确认请求挂起但卸载放行；runMcpAction 新增独立导航保护，OAuth 启停与重试明确排除。UI 13、真实 Electron MCP 删除 / 权限保存的 reload / quit 保护及重启恢复 2、Unit 1237、根 tsc / build 通过。不改后端 / IPC；新增向导、未提交草稿和跨入口竞争继续核验，不关闭 S4 / S6，RAG / OAuth 后续暂缓。
+
 - S4 权限在途保存保护（2026-09-20）：规则保存 pending 时 beforeunload 原本放行，受控红测复现后以独立计数保护卸载和内部导航；失败保留表单并可重试。UI 模式 / 规则 / 既有规则四主题与普通队列 11 项，真实 Electron 重载 / quit 拒绝、真实写盘与完整重启恢复 1 项，Unit 1237、根 tsc / build 通过。不改权限策略 / IPC / 后端；MCP 独立操作及其余总体验边界继续，RAG / OAuth 后续暂缓。
 
 - 全产品当前 UI 组合回归（2026-09-20）：50f20c1 代码的完整 ui 项目 331 项通过，8.2 分钟，无重试，证据 var/verification/rollout-current-ui。不改产品代码、不提升四项 experience 状态。下一步具体核验 S4 权限独立保存的 pending / 离页 / 卸载边界：savePermissionSetting 绕过普通设置队列，现有 beforeunload 只检查普通队列；当前仅代码证据，尚未运行该故障复现。真实 Electron 总验收、其余合同缺口继续，RAG / OAuth 后续暂缓。

@@ -8,6 +8,51 @@ import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { expectSharedCodeSurface } from './shared-code-surface'
 
+for (const operation of ['disable', 'remove', 'tool']) {
+  test(`正式 MCP 普通操作在途不允许离页 ${operation}`, async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      const state = { calls: 0, fail: true, release: null as null | (() => void), servers: [{ id: 'pending', name: '待保存服务', enabled: true, transport: 'stdio', command: 'local-test', args: [] }] }
+      ;(window as any).__mcpPending = state
+      const get = api.settings.get
+      api.settings.get = async () => ({ ...await get(), mcpServers: JSON.stringify(state.servers) })
+      const wait = async () => { state.calls++; await new Promise<void>(resolve => { state.release = resolve }); if (state.fail) throw new Error('controlled-failure') }
+      api.settings.set = async (key: string, value: string) => { if (key === 'mcpServers') { await wait(); state.servers = JSON.parse(value) } }
+      api.mcp.status = async () => [{ id: 'pending', name: '待保存服务', status: 'connected', toolCount: 1 }]
+      api.mcp.listTools = async () => [{ serverId: 'pending', serverName: '待保存服务', name: 'read', description: '读取', allowed: true }]
+      api.mcp.disconnect = async () => ({ success: true })
+      api.mcp.setToolAllowed = async () => { await wait(); return { success: true } }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+    await page.getByRole('button', { name: 'MCP', exact: true }).click()
+    const card = page.getByTestId('settings-mcp-server-pending')
+    const action = operation === 'disable' ? card.getByRole('switch') : operation === 'remove'
+      ? card.getByRole('button', { name: '删除待保存服务', exact: true })
+      : card.getByRole('checkbox', { name: '允许read', exact: true })
+    await action.click()
+    await expect.poll(() => page.evaluate(() => (window as any).__mcpPending.calls)).toBe(1)
+    const blocked = () => page.evaluate(() => !window.dispatchEvent(new Event('beforeunload', { cancelable: true })))
+    expect(await blocked()).toBe(true)
+    await page.getByTestId('settings-nav-appearance').click()
+    await expect(card).toBeVisible()
+    await page.keyboard.press('Control+n')
+    await expect(page.getByTestId('settings-panel')).toBeVisible()
+    await page.evaluate(() => (window as any).__mcpPending.release())
+    await expect(action).toBeEnabled()
+    expect(await blocked()).toBe(false)
+    await page.evaluate(() => { (window as any).__mcpPending.fail = false })
+    await action.click()
+    await expect.poll(() => page.evaluate(() => (window as any).__mcpPending.calls)).toBe(2)
+    expect(await blocked()).toBe(true)
+    await page.evaluate(() => (window as any).__mcpPending.release())
+    await expect.poll(() => blocked()).toBe(false)
+    await page.getByTestId('settings-nav-appearance').click()
+    await expect(page.getByTestId('settings-nav-appearance')).toHaveAttribute('aria-current', 'page')
+  })
+}
+
 for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
   for (const width of [1166, 600]) {
     test(`生图共享预览固定尺寸与读取重试 ${theme} ${width}`, async ({ page }, testInfo) => {

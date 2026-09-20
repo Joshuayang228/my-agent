@@ -3,6 +3,8 @@
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
 
+S4 MCP 普通管理保护（2026-09-20）：修改 SettingsPanel、chat / model-diagnostic-lifecycle 测试及模块 / 质量 / 账本。已有 runMcpAction 锁仅禁按钮，三条红测证明普通停用 / 删除 / 工具许可请求在途仍允许卸载；新增导航保护标记并在 finally 释放，OAuth 启停 / 重试显式不受新锁影响，保留原取消链。未改后端、IPC、权限语义、依赖或布局。UI 13、真实 Electron 删除 / 权限保存的重载退出及重启恢复 2、Unit 1237、根 tsc / build 通过。新增向导、未提交草稿、跨入口竞争尚未由本批覆盖，不关闭 S4 / S6。
+
 S4 权限在途保存保护（2026-09-20）：允许修改 SettingsPanel、chat / model-diagnostic-lifecycle 测试及权限模块 / 质量 / 进度账本。实际规则请求挂起时卸载未阻止，根因为独立 savePermissionSetting 绕过普通队列。新增独立请求计数，保存期间拒绝内部导航及卸载，失败仍走原表单，不自动重放写入；finally 释放。未改 IPC、主进程、权限策略、依赖或页面布局。UI 11 项、真实 Electron 重载 / 退出保护及重启恢复 1 项、Unit 1237、根 tsc / build 通过；未提交草稿及 MCP 独立操作不由本批覆盖，S4 / S6 总项不关闭。
 
 S5 watcher 误报收口（2026-09-20）：修改范围为 dev-server-watch.test.ts 与质量 / 进度 / 待办记录，不改 Vite 配置或产品行为。临时日志在全量 Unit 复现 docs-start 后 31ms 的第二次 index.html change 及刷新，旧测试因 middlewareMode 的 * 路径及 mockClear 误归因为文档。测试改为临时端口真实服务，按源码路径验证全部刷新，文档 / 产物仍必须零事件；正常与源码交叠两场景、全量 Unit 1237、根 tsc / build 通过，临时日志移除。只关闭该误报子项，其他 E2E 可靠性及全产品 S6 不据此完成。

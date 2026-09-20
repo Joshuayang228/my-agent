@@ -119,6 +119,7 @@ export function SettingsPanel({
   const [mcpTools, setMcpTools] = useState<McpToolEntry[] | null>(null)
   const [mcpBusy, setMcpBusy] = useState(false)
   const mcpBusyRef = useRef(false)
+  const mcpNavigationPendingRef = useRef(false)
   const mcpLoginRef = useRef<string | null>(null)
   useEffect(() => () => {
     const id = mcpLoginRef.current
@@ -146,7 +147,7 @@ export function SettingsPanel({
     // 普通设置防抖和在途保存不经过模型草稿门控；留页等待原队列完成，不能在卸载中赌异步写盘。
     // 只检查实时队列与保存锁，失败项保留重试；清空后必须放行，预览不得拦截生产窗口。
     const preventPendingLoss = (event: BeforeUnloadEvent) => {
-      if (!pendingSettingsRef.current.size && !savingRef.current && !permissionSavesRef.current) return
+      if (!pendingSettingsRef.current.size && !savingRef.current && !permissionSavesRef.current && !mcpNavigationPendingRef.current) return
       event.preventDefault()
       event.returnValue = ''
       toast('设置尚未保存完成，请稍后再离开；保存失败时请重试。', 'warning')
@@ -182,13 +183,15 @@ export function SettingsPanel({
    * 设计意图：串行化当前设置页的变更，失败留在原页面，刷新重试不伪装成功。
    * 关键约束：先同步占用再 await，固定控件不卸载；不代替主进程确认和权限检查。
    */
-  const runMcpAction = async (action: () => Promise<void>) => {
+  const runMcpAction = async (action: () => Promise<void>, protectNavigation = true) => {
     if (mcpBusyRef.current || preview || !window.electronAPI) return
     mcpBusyRef.current = true
+    // 普通管理请求必须保留结果接收页；OAuth 登录仍沿用离页取消，不由此锁改变其生命周期。
+    mcpNavigationPendingRef.current = protectNavigation
     setMcpBusy(true)
     try { await action() }
     catch { toast('MCP 操作未完成，请重试', 'error') }
-    finally { mcpBusyRef.current = false; setMcpBusy(false) }
+    finally { mcpNavigationPendingRef.current = false; mcpBusyRef.current = false; setMcpBusy(false) }
   }
 
   useEffect(() => {
@@ -284,13 +287,17 @@ export function SettingsPanel({
 
   // 背景：子页草稿不属于自动保存字段；意图：所有导航先检查再清空保存队列；约束：防抖仍只调用 persistSettings，不能自动提交连接草稿。
   const prepareToLeave = useCallback(async () => {
+    if (mcpNavigationPendingRef.current) {
+      toast('MCP 操作正在完成，请稍后再离开。', 'warning')
+      return false
+    }
     if (permissionSavesRef.current) {
       toast('权限设置正在保存，请稍后再离开。', 'warning')
       return false
     }
     if (modelBeforeLeaveRef.current && !modelBeforeLeaveRef.current()) return false
     if (!(await persistSettings())) return false
-    if (permissionSavesRef.current) return false
+    if (permissionSavesRef.current || mcpNavigationPendingRef.current) return false
     return modelBeforeLeaveRef.current?.() ?? true
   }, [persistSettings, toast])
   useImperativeHandle(saveBeforeLeaveRef, () => prepareToLeave, [prepareToLeave])
@@ -536,7 +543,7 @@ export function SettingsPanel({
             error={error}
             tools={mcpTools?.filter((tool) => tool.serverId === server.id).map((tool) => ({ id: tool.name, ...tool })) ?? null}
             busy={mcpBusy} testId={`settings-mcp-server-${server.id}`}
-            onEnabledChange={() => void runMcpAction(() => handleToggleMcp(server.id))}
+            onEnabledChange={() => void runMcpAction(() => handleToggleMcp(server.id), !server.oauth)}
             onRemove={() => void runMcpAction(() => handleRemoveMcp(server.id))}
             onCancel={server.oauth ? () => { void window.electronAPI.mcp.cancelLogin(server.id).catch(() => toast('取消状态未确认，请重试。', 'warning')) } : undefined}
             onRetry={() => void runMcpAction(async () => {
@@ -546,7 +553,7 @@ export function SettingsPanel({
                 const result = await window.electronAPI.mcp.connect(server)
                 if (!result.success) toast(result.error || '连接失败，请重试', 'error')
               } finally { if (mcpLoginRef.current === server.id) mcpLoginRef.current = null; await refreshMcpStatus() }
-            })}
+            }, !server.oauth)}
             onToolChange={(name, allowed) => void runMcpAction(async () => {
               const result = await window.electronAPI.mcp.setToolAllowed(server.id, name, allowed)
               if (!result.success) { toast(result.error || '工具许可未更新', 'error'); return }

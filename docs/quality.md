@@ -1,5 +1,7 @@
 # 质量总控
 
+S4 MCP 普通管理：s4-mcp-action-red 三条 pending 红测 expected blocked=true / actual=false；s4-mcp-action-ui 13 项通过，覆盖停用 / 删除 / 工具许可离页和卸载保护、失败释放与重试、四主题服务卡及权限回归。s4-mcp-action-electron 两项用原 handler 延迟夹具验证真实 reload / quit 取消与写入后重启（权限规则及 MCP 删除），不替换存储。Unit 1237、根 tsc / build 通过，无独立 lint，既有构建警告保留。只保护 runMcpAction 普通管理路径，OAuth 启停 / 重试排除，新增向导与跨入口竞争不由本批证明。
+
 S4 权限在途保存：s4-permission-red 的 rules 请求已发出但卸载未阻止（expected true / actual false）；mode 初版选中当前模式而未发起请求，修正测试前置为先计划，不将其算作产品故障。s4-permission-ui 11 项通过，验证 pending 拒绝内部切页 / 新会话 / beforeunload、失败保留草稿、重试与释放。s4-permission-electron 1 项通过：独占测试进程仅延迟原 settings:set handler，释放后仍走真实参数校验、SQLite 和热更新；实际 reload / quit 均触发 will-prevent-unload，成功后正常退出并重启恢复规则。该测试依赖 Electron 内部 handler 映射，升级若不可用会显式失败。Unit 1237、根 tsc / build 通过，无独立 lint，既有构建警告保留；不外推到未提交草稿或 MCP 生命周期。
 
 全产品 UI 组合回归（2026-09-20，代码 HEAD 50f20c1）：npx playwright test --project=ui --output=var/verification/rollout-current-ui，331 项全部通过，8.2 分钟，未使用重试。覆盖 chat / markdown-theme / checkbox / 既有 OAuth UI 基线；包括正式设置、记忆、人物世界、五工具工作区与 Playground 隔离。不是 Electron 真实持久化或外部模型质量证据，不恢复 OAuth 后续施工。当前产品代码未改，前批 Unit 1237 与根 tsc / build 结果仍对应同一代码；本轮未重新执行。权限独立 savePermissionSetting 不经过 pendingSettingsRef / savingRef，卸载与离页是否保留待提交操作仍须受控验证，不能沿用普通设置队列的通过结论。
