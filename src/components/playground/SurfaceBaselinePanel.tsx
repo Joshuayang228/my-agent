@@ -4,14 +4,14 @@
  */
 
 import { useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, ArrowUp, BookOpen, Bot, ChevronDown, CircleAlert, Folder, Home, MapPin, MessageCircle, Newspaper, PanelLeftOpen, PanelRight, Paperclip, Plus, RotateCcw, Search, Shield, Shirt, UserRound, Users, X, Check } from 'lucide-react'
+import { ArrowRight, ArrowUp, Bot, ChevronDown, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, Paperclip, Plus, RotateCcw, Search, Shield, UserRound, X, Check } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import type { MomentItem, MomentsPreviewData } from '../MomentsPanel'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
-import { WorldHub, type WorldTab, type WorldTabDefinition } from '../shell/WorldHub'
+import { WorldHub, type WorldTab } from '../shell/WorldHub'
 import { AssetsPanel } from '../AssetsPanel'
 import { CastPanel, type CastPreviewData } from '../CastPanel'
 import { WorldDetailsPanel } from '../WorldDetailsPanel'
@@ -522,15 +522,6 @@ function MomentsProfileHero({ persona }: { persona: PlaygroundPersona }) {
   )
 }
 
-const PLAYGROUND_WORLD_TABS: readonly WorldTabDefinition[] = [
-  { id: 'moments', label: '朋友圈', icon: <Newspaper size={14} strokeWidth={1.5} /> },
-  { id: 'wardrobe', label: '衣柜', icon: <Shirt size={14} strokeWidth={1.5} /> },
-  { id: 'culture', label: '文化角', icon: <BookOpen size={14} strokeWidth={1.5} /> },
-  { id: 'home', label: '家居', icon: <Home size={14} strokeWidth={1.5} /> },
-  { id: 'cast', label: '通讯录', icon: <Users size={14} strokeWidth={1.5} /> },
-  { id: 'footprints', label: '足迹', icon: <MapPin size={14} strokeWidth={1.5} /> },
-]
-
 function worldPreviewAsset(personaId: string, id: string, kind: string, name: string, payload: Record<string, unknown>, acquiredAt = 1): WorldAssetRecord {
   return { id: `${personaId}-${id}`, roleId: personaId, kind, name, payload, acquiredAt, sourceEventId: null }
 }
@@ -627,7 +618,6 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
             showSocialActions
             hideMomentsHeader
             previewPanels={previewPanels}
-            tabs={PLAYGROUND_WORLD_TABS}
             hideHeader
           />
         </div>

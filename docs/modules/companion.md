@@ -73,7 +73,7 @@
 
 - 正式与 Playground 共用的动态、近期穿着空态和书架说明只展示用户状态，不显示 tick / Catch-up、引用或派生等内部实现术语；未生成动态不承诺具体出现时间。
 
-- 人物世界六面导航与返回操作由 WorldHub 统一复用 Foundation TabStrip / IconButton，正式与 Playground 同源。支持方向键、Home / End、单一 Tab 焦点、窄屏标签内滚动；返回按钮固定 28px，hover 不改变尺寸。六面数据和入口不变。
+- 人物世界六面导航与返回操作由 WorldHub 统一复用 Foundation TabStrip / IconButton，正式与 Playground 直接使用同一份标签定义（含足迹 MapPin），不再维护候选独立标签表。支持方向键、Home / End、单一 Tab 焦点、窄屏标签内滚动；返回按钮固定 28px，hover 不改变尺寸。六面数据和入口不变；候选人物头部尚未统一，不据此宣称整页已采用。
 
 - 伙伴相处说明等普通设置沿用串行自动保存；有待保存内容时重载和退出会留页提示，失败仍保留修改并可重试。同字段保存中继续编辑不会被旧请求清掉，新值落盘后才允许离开。
 

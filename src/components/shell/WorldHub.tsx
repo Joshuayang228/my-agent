@@ -5,7 +5,7 @@
 import type { ReactNode } from 'react'
 import { TabStrip } from '../foundation/TabStrip'
 import { IconButton } from '../foundation/IconButton'
-import { Newspaper, Shirt, Users, BookOpen, Home, MapPin, LayoutGrid, X } from 'lucide-react'
+import { Newspaper, Shirt, Users, BookOpen, Home, MapPin, X } from 'lucide-react'
 import { MomentsPanel, type MomentsPreviewData } from '../MomentsPanel'
 import { AssetsPanel } from '../AssetsPanel'
 import { CastPanel } from '../CastPanel'
@@ -23,7 +23,7 @@ const WORLD_TABS: WorldTabDefinition[] = [
   { id: 'culture', label: '文化角', icon: <BookOpen size={14} strokeWidth={1.5} /> },
   { id: 'home', label: '家居', icon: <Home size={14} strokeWidth={1.5} /> },
   { id: 'cast', label: '通讯录', icon: <Users size={14} strokeWidth={1.5} /> },
-  { id: 'footprints', label: '足迹', icon: <LayoutGrid size={14} strokeWidth={1.5} /> },
+  { id: 'footprints', label: '足迹', icon: <MapPin size={14} strokeWidth={1.5} /> },
 ]
 
 export function isWorldView(view: ShellView): boolean {
