@@ -5582,6 +5582,56 @@ test.describe('My Agent UI', () => {
     expect(await page.evaluate(() => (window as any).__queueUnload.stored.companionResponseNote)).toBe('最后一版')
   })
 
+  for (const kind of ['mode', 'rules']) {
+    test(`正式权限独立保存阻止卸载和离页 ${kind}`, async ({ page }) => {
+      await installProductionElectronStub(page)
+      await page.addInitScript(() => {
+        const api = (window as any).electronAPI
+        const state = { release: null as null | (() => void), fail: true, calls: 0 }
+        ;(window as any).__permissionSave = state
+        const original = api.settings.set
+        api.settings.set = async (key: string, value: string) => {
+          if (key !== 'executionMode' && key !== 'permissionRules') return original(key, value)
+          state.calls++
+          await new Promise<void>(resolve => { state.release = resolve })
+          if (state.fail) throw new Error('controlled-permission-save-failure')
+        }
+      })
+      await page.goto('/')
+      await page.locator('button[title="设置"]').click()
+      await page.getByTestId('settings-nav-permissions').click()
+      const save = kind === 'mode'
+        ? page.getByRole('button', { name: /先计划/ })
+        : page.getByTestId('settings-save-rule')
+      if (kind === 'rules') {
+        await page.getByTestId('settings-permission-rules-toggle').click()
+        await page.getByTestId('settings-add-rule').click()
+        await page.getByLabel('规则匹配内容', { exact: true }).fill('npm publish')
+      }
+      await save.click()
+      await expect.poll(() => page.evaluate(() => (window as any).__permissionSave.calls)).toBe(1)
+      const blocked = () => page.evaluate(() => !window.dispatchEvent(new Event('beforeunload', { cancelable: true })))
+      expect(await blocked()).toBe(true)
+      await page.getByTestId('settings-nav-appearance').click()
+      await expect(page.getByTestId('settings-nav-permissions')).toHaveAttribute('aria-current', 'page')
+      await page.keyboard.press('Control+n')
+      await expect(page.getByTestId('settings-panel')).toBeVisible()
+      await page.evaluate(() => (window as any).__permissionSave.release())
+      await expect(page.getByRole('alert')).toBeVisible()
+      await expect(save).toBeEnabled()
+      if (kind === 'rules') await expect(page.getByLabel('规则匹配内容', { exact: true })).toHaveValue('npm publish')
+      expect(await blocked()).toBe(false)
+      await page.evaluate(() => { (window as any).__permissionSave.fail = false })
+      await save.click()
+      await expect.poll(() => page.evaluate(() => (window as any).__permissionSave.calls)).toBe(2)
+      expect(await blocked()).toBe(true)
+      await page.evaluate(() => (window as any).__permissionSave.release())
+      await expect.poll(() => blocked()).toBe(false)
+      await page.getByTestId('settings-nav-appearance').click()
+      await expect(page.getByTestId('settings-nav-appearance')).toHaveAttribute('aria-current', 'page')
+    })
+  }
+
   test('设置等待保存时侧栏重渲染不取消快捷键离开', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {

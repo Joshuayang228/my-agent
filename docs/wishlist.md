@@ -1,6 +1,6 @@
 # 心愿池
 
-- WISH-045 S4 权限独立保存待核验：SettingsPanel.savePermissionSetting 直接等待 settings.set，未进入普通 pendingSettingsRef / savingRef；现有卸载与 prepareToLeave 检查不能直接证明该路径安全。需受控挂起请求，验证离页 / 重载 / 失败重试与真实落盘；本轮仅定位调用链，不能宣称已复现数据丢失或已修复。当前完整 UI 331 项通过但不包含此边界。
+- WISH-045 S4 权限在途保存子项已关闭：规则请求挂起时卸载放行已复现，独立计数现保护内部导航与卸载；UI 11、真实 Electron reload / quit 拒绝及落盘重启恢复 1、Unit 1237、根 tsc / build 通过。未提交规则草稿和 MCP 独立操作仍须按各自边界评估，不关闭 S4 / S6 总项；此前完整 UI 331 是本修复前的组合证据，不冒充修复后全量。
 
 - WISH-045 R12 / R14 审计：WorldSurface 通讯录现复用正式 CastPanel，隔离数据、摘要 / 刷新及禁止真实开聊已验证；独立姓名行已移除，正式摘要 / 忙闲 / 召唤保留。共享形态的最终视觉确认仍待完成，不能将本批作为全部回流验收。WorldHub 基础导航及 Moments / 衣柜内部术语已清理，不提升全体验采用状态。
 

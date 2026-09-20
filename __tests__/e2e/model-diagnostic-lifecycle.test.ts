@@ -73,6 +73,59 @@ test('正式模型草稿隐藏恢复与重载退出的保存边界', async ({}, 
   }
 })
 
+test('正式权限在途保存拒绝重载退出并在重启后恢复规则', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'my-agent-permission-lifecycle-'))
+  let app: ElectronApplication | undefined
+  const launch = () => electron.launch({ args: [fileURLToPath(new URL('../../dist-electron/index.js', import.meta.url)), '--user-data-dir=' + directory, '--no-sandbox'], env: { ...process.env, NODE_ENV: 'production', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' } })
+  try {
+    app = await launch()
+    let page = await app.firstWindow()
+    page.on('dialog', () => {})
+    await expect(page.getByTestId('settings-panel')).toBeVisible()
+    await page.getByTestId('settings-nav-permissions').click()
+    await page.getByTestId('settings-permission-rules-toggle').click()
+    await page.getByTestId('settings-add-rule').click()
+    await page.getByLabel('规则匹配内容', { exact: true }).fill('npm publish')
+    // 仅在独占测试进程中延迟原 handler 的执行；保留真实 preload、参数校验、存储与热更新。
+    // Electron 升级若移除该内部映射必须显式失败，不能降级为假保存或跳过验证。
+    await app.evaluate(({ ipcMain, BrowserWindow }) => {
+      const handlers = (ipcMain as any)._invokeHandlers as Map<string, (...args: any[]) => unknown>
+      const original = handlers?.get('settings:set')
+      if (!original) throw new Error('settings:set handler unavailable')
+      const state = { blocked: 0, release: null as null | (() => void) }
+      ;(globalThis as any).__permissionLifecycle = state
+      ipcMain.removeHandler('settings:set')
+      ipcMain.handle('settings:set', async (event, key, value) => {
+        if (key === 'permissionRules') await new Promise<void>(resolve => { state.release = resolve })
+        return original(event, key, value)
+      })
+      BrowserWindow.getAllWindows()[0].webContents.on('will-prevent-unload', () => { state.blocked++ })
+    })
+    await page.getByTestId('settings-save-rule').click()
+    await expect.poll(() => app!.evaluate(() => Boolean((globalThis as any).__permissionLifecycle.release))).toBe(true)
+    await app.evaluate(({ BrowserWindow }) => { BrowserWindow.getAllWindows()[0].webContents.reload() })
+    await expect.poll(() => app!.evaluate(() => (globalThis as any).__permissionLifecycle.blocked)).toBe(1)
+    await app.evaluate(({ app }) => { app.quit() })
+    await expect.poll(() => app!.evaluate(() => (globalThis as any).__permissionLifecycle.blocked)).toBe(2)
+    await expect(page.getByLabel('规则匹配内容', { exact: true })).toHaveValue('npm publish')
+    await app.evaluate(() => { (globalThis as any).__permissionLifecycle.release() })
+    await expect(page.getByLabel('规则匹配内容', { exact: true })).toHaveCount(0)
+    await expect.poll(() => page.evaluate(async () => (await window.electronAPI.settings.get()).permissionRules)).toContain('npm publish')
+    await app.close()
+    app = undefined
+    app = await launch()
+    page = await app.firstWindow()
+    await expect(page.getByTestId('settings-panel')).toBeVisible()
+    await page.getByTestId('settings-nav-permissions').click()
+    await page.getByTestId('settings-permission-rules-toggle').click()
+    await expect(page.getByTestId('settings-rule-card')).toContainText('npm publish')
+  } finally {
+    if (app && app.process().exitCode === null) await app.evaluate(({ BrowserWindow }) => { for (const window of BrowserWindow.getAllWindows()) window.destroy() }).catch(() => {})
+    await app?.close()
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test('普通设置防抖草稿拒绝重载退出并在保存后重启恢复', async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'my-agent-settings-queue-'))
   let app: ElectronApplication | undefined

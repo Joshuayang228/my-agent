@@ -139,13 +139,14 @@ export function SettingsPanel({
   const settingsLoadedRef = useRef(false)
   const pendingSettingsRef = useRef(new Map<keyof SettingsForm, string>())
   const savingRef = useRef<Promise<boolean> | null>(null)
+  const permissionSavesRef = useRef(0)
 
   useEffect(() => {
     if (preview || !window.electronAPI) return
     // 普通设置防抖和在途保存不经过模型草稿门控；留页等待原队列完成，不能在卸载中赌异步写盘。
     // 只检查实时队列与保存锁，失败项保留重试；清空后必须放行，预览不得拦截生产窗口。
     const preventPendingLoss = (event: BeforeUnloadEvent) => {
-      if (!pendingSettingsRef.current.size && !savingRef.current) return
+      if (!pendingSettingsRef.current.size && !savingRef.current && !permissionSavesRef.current) return
       event.preventDefault()
       event.returnValue = ''
       toast('设置尚未保存完成，请稍后再离开；保存失败时请重试。', 'warning')
@@ -283,10 +284,15 @@ export function SettingsPanel({
 
   // 背景：子页草稿不属于自动保存字段；意图：所有导航先检查再清空保存队列；约束：防抖仍只调用 persistSettings，不能自动提交连接草稿。
   const prepareToLeave = useCallback(async () => {
+    if (permissionSavesRef.current) {
+      toast('权限设置正在保存，请稍后再离开。', 'warning')
+      return false
+    }
     if (modelBeforeLeaveRef.current && !modelBeforeLeaveRef.current()) return false
     if (!(await persistSettings())) return false
+    if (permissionSavesRef.current) return false
     return modelBeforeLeaveRef.current?.() ?? true
-  }, [persistSettings])
+  }, [persistSettings, toast])
   useImperativeHandle(saveBeforeLeaveRef, () => prepareToLeave, [prepareToLeave])
 
   const initialLoadDone = useRef(false)
@@ -328,8 +334,13 @@ export function SettingsPanel({
   const savePermissionSetting = async (key: 'executionMode' | 'permissionRules', value: string) => {
     if (preview) { setForm(current => ({ ...current, [key]: value })); return }
     if (!window.electronAPI) throw new Error('设置服务不可用')
-    await window.electronAPI.settings.set(key, value)
-    setForm(current => ({ ...current, [key]: value }))
+    // 权限请求不进入自动保存队列；独立计数保护离页，避免一个请求完成后释放另一个在途请求。
+    // 仅记录等待状态，不重放权限写入；失败由原表单保留草稿并提示重试，finally 必须释放计数。
+    permissionSavesRef.current++
+    try {
+      await window.electronAPI.settings.set(key, value)
+      setForm(current => ({ ...current, [key]: value }))
+    } finally { permissionSavesRef.current-- }
   }
 
   const saveMcpList = useCallback(async (servers: McpServerEntry[]) => {
