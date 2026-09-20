@@ -10,6 +10,7 @@ import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperien
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import { ChatWelcome } from '../chat/ChatWelcome'
+import { CharacterShelfContent } from '../companion/CharacterShelfContent'
 import { ChatComposer } from '../chat/ChatComposer'
 import { ChatApprovalControl } from '../chat/ChatApprovalControl'
 import { ChatMessageFrame } from '../chat/ChatMessageFrame'
@@ -616,39 +617,10 @@ function SettingsSurface({ persona, onPersonaChange, scenario, onScenarioChange,
 
 /** 设置页中的角色架候选：只展示切换关系，不连接真实角色列表或写入主角状态。 */
 function RoleShelfFixture({ persona, onPersonaChange }: { persona: PlaygroundPersona; onPersonaChange: (personaId: string) => void }) {
-  return (
-    <div className="space-y-4" data-testid="settings-role-shelf-fixture">
-      <div className="mb-4 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>角色架</h2>
-        <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>管理同一生活世界中的主角，切换后朋友圈与对话一起跟随。</p>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {PLAYGROUND_PERSONAS.map((option) => {
-          const active = option.id === persona.id
-          return (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => onPersonaChange(option.id)}
-              aria-pressed={active}
-              data-testid={`settings-persona-option-${option.id}`}
-              className="rounded-xl border p-4 text-left transition"
-              style={{ borderColor: active ? 'var(--companion-accent-warm)' : 'var(--border-subtle)', background: active ? 'var(--accent-subtle)' : 'var(--card-bg)' }}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{option.name}</div>
-                  <p className="mt-1 text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>{option.blurb} · {option.detail}</p>
-                </div>
-                {active && <span className="shrink-0 rounded-full px-2 py-0.5 text-[9px]" style={{ background: 'var(--card-bg)', color: 'var(--accent-fg)' }}>当前主角</span>}
-              </div>
-            </button>
-          )
-        })}
-      </div>
-      <p className="mt-3 text-[10px]" style={{ color: 'var(--text-muted)' }}>这是 Playground 的隔离切换；确认后，Chat 与人物世界会沿用同一位主角。</p>
-    </div>
-  )
+  return <div data-testid="settings-role-shelf-fixture">
+    <CharacterShelfContent characters={PLAYGROUND_PERSONAS.map(option => ({ id: option.id, name: option.name, description: option.blurb + ' · ' + option.detail }))}
+      activeId={persona.id} onSelect={onPersonaChange} optionTestIdPrefix="settings-persona-option" />
+  </div>
 }
 
 type MemoryScenario = 'list' | 'long' | 'empty' | 'sensitive' | 'editing'

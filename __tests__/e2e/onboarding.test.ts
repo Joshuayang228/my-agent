@@ -831,6 +831,46 @@ test('正式生活资产拒绝通知迟到时旧伙伴页面的新增', async ()
   }
 })
 
+test('正式共享角色架点击切角后重载保留并恢复原角色', async () => {
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  await page.evaluate(async (url) => {
+    await window.electronAPI.settings.saveModelConfiguration({
+      connections: JSON.stringify([{ id: 'shelf-test', name: '角色架测试连接', baseUrl: url, apiKey: 'local-test-key', model: 'local-test-model', enabled: true }]),
+      routes: JSON.stringify([{ purpose: 'primary', connectionId: 'shelf-test', model: 'local-test-model', enabled: true }]),
+    })
+  }, baseUrl)
+  await page.reload()
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  const original = await page.evaluate(() => window.electronAPI.companion.getActive())
+  const other = (await page.evaluate(() => window.electronAPI.companion.listProtagonists())).find(role => role.id !== original.id)!
+  expect(other).toBeDefined()
+  const openShelf = async () => {
+    if (!(await page.getByTestId('settings-panel').isVisible())) await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-companion').click()
+    await page.getByTestId('settings-open-role-shelf').click()
+  }
+  try {
+    await openShelf()
+    await page.getByTestId('character-option-' + other.id).click()
+    await expect(page.getByTestId('character-option-' + other.id)).toHaveAttribute('aria-pressed', 'true')
+    await expect.poll(async () => (await page.evaluate(() => window.electronAPI.companion.getActive())).id).toBe(other.id)
+    await page.getByRole('button', { name: '关闭角色架' }).click()
+    await page.getByTestId('settings-back').click()
+    await expect(page.getByTestId('primary-sidebar')).toContainText(other.name)
+    await page.reload()
+    await expect(page.locator('#startup-splash')).toBeHidden()
+    await openShelf()
+    await expect(page.getByTestId('character-option-' + other.id)).toHaveAttribute('aria-pressed', 'true')
+    await page.getByTestId('character-option-' + original.id).click()
+    await expect(page.getByTestId('character-option-' + original.id)).toHaveAttribute('aria-pressed', 'true')
+    await expect.poll(async () => (await page.evaluate(() => window.electronAPI.companion.getActive())).id).toBe(original.id)
+  } finally {
+    await page.evaluate(id => window.electronAPI.companion.requestSwitch(id), original.id)
+    await page.reload()
+    await expect(page.locator('#startup-splash')).toBeHidden()
+  }
+})
+
 test('正式生活面真实切角通知隔离四类资产并重载保留', async () => {
   test.setTimeout(120000)
   await page.evaluate(async (url) => {

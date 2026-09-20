@@ -71,6 +71,8 @@
 
 ## 已落地能力
 
+- 角色架正式与候选共用 CharacterShelfContent，两列角色卡 / 窄屏单列、当前主角固定标记和 Foundation 按钮统一；正式 CharacterShelfPanel 提供真实角色列表与 requestSwitch，流式拒绝仍来自主进程。读取失败可刷新，切换失败保留当前角色，在途禁止重复切角，离页后不显示迟到结果。候选仅更新共享 persona，不读写生产 IPC。正式点击切角、侧栏身份和重载保留已有独立 Electron 证据。
+
 - ChatMessageFrame 共享正式与候选的用户 / 助手排列、头像、身份行和气泡；正文、工具及操作由原业务注入。正式按会话 roleId 映射主角 / 召唤伙伴名称，未知角色显示「伙伴」，合法时间来自消息记录，未知时间省略。候选固定时间只经显式 previewTimeLabel 注入；hover 不改变消息尺寸，长名称和正文可换行。
 
 

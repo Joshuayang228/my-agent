@@ -1,5 +1,7 @@
 # 心愿池
 
+- WISH-045 R04：审计发现正式角色架仍是旧布局，现已与候选共享 CharacterShelfContent；11 项 UI、独立正式切角 Electron、Unit 1242 和根 tsc / build 通过。只关闭此布局差异，全产品组合与其他入口审计继续，不重启 RAG / OAuth。
+
 - WISH-045 S5 / S6：伙伴偏好独立运行的模型前置依赖已修，六面单独运行通过；剩余非 OAuth / RAG 桌面组 12 项、整组 onboarding 21 项通过。仅关闭伙伴用例这一具体依赖，其他用例独立性及最终采用仍待审计。
 
 - WISH-045 S5 / S6：当前代码组合 UI 363、真实 Electron onboarding 21 项通过，无重试。合同清单已去除过时的“仍有硬编码 starter / 文档刷新 / 外部模型旧 UI”描述；onboarding 仍共用 beforeAll，未证明全部用例独立。其他 Electron 文件及逐项采用审计继续，RAG / OAuth 后续维持暂缓。

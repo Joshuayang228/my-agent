@@ -3,6 +3,10 @@
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
 
+R04 角色架共享回流（2026-09-20）：CharacterShelfPanel 与候选 RoleShelfFixture 共用 CharacterShelfContent，卡片复用 Foundation ActionButton、刷新 / 关闭复用 IconButton；正式旧卡片和 Catch-up 内部说明移除，后端切角与追赶逻辑不变。正式容器保留真实读取 / requestSwitch，新增读取失败重试、切换失败留页和同步单请求锁，卸载后忽略迟到显示。四主题宽窄、长文、hover、流式拒绝 / 异常 / 重试及候选入口 11 项 UI 通过，深浅截图已检查；独立 Electron 正式点击切角、身份更新、重载保留与切回通过（14.2 秒），Unit 1242、根 tsc / vite build 通过。证据 var/verification/character-shelf-shared 与 character-shelf-electron；未改 IPC / 主进程 / 角色资源 / 依赖，构建保留既有警告。本批未跑完整 UI / Electron，不提升整个设置体验 adopted，RAG / OAuth 后续继续暂缓。
+
+R04 角色架差异回流（2026-09-20）：正式 CharacterShelfPanel 仍是旧卡片和 Catch-up 说明，候选 RoleShelfFixture 独立渲染。本批提取共享 CharacterShelfContent，复用 Foundation ActionButton / IconButton，保留候选标题、两列卡片、当前主角标记；正式注入 listProtagonists / getActive / requestSwitch，候选只传 persona 与内存切换。允许修改这三个组件、资产登记、Unit / UI 与伙伴模块及收工文档。删除范围仅为正式旧展示 JSX 与候选重复卡片，不删主进程流式门控、切角或 Catch-up 行为。不改 IPC / 后端 / 角色资源 / 依赖；加载失败可重试、切换失败留页，在途禁止重复操作，卸载后忽略迟到 UI 更新。必测长文四主题宽窄、hover 几何、加载失败 / 重试、切换成功 / 拒绝 / 失败及候选隔离。
+
 S5 / S6 桌面收口复核（2026-09-20）：本地模型、生图、备份崩溃恢复、朋友圈备份、配置生命周期及凭据持久化 6 文件共 12 项通过（2.1 分钟、无重试），证据 var/verification/production-rollout-backend。六面入口单独运行通过；__lifeStore 实际由生产 engine 初始化，不是前序用例注入。伙伴偏好单独运行在重载后的隐藏设置按钮失败，根因缺失前序模型配置；用例自行通过真实 IPC 配置本地模型后独立通过（18.8 秒），整组 onboarding 21 项通过（58.8 秒）。证据 world-entry-standalone / companion-settings-standalone / companion-settings-independent / onboarding-companion-independent-full 均位于 var/verification/。仅改测试准备，未改产品启动、IPC、Prompt、阈值或权限；Unit 1241、根 tsc 通过。未运行 OAuth / RAG 专项及付费外部模型；其他 onboarding 用例独立性与全产品采用审计不据此自动关闭。
 
 R01 审批本批收口：定向 UI 17、Unit 1241、根 tsc / vite build 通过；资产与文档按提交门禁复核。Renderer 证据见 var/verification/chat-approval-verified，保留首次红测和外部点击坐标纠正记录。构建保留既有 chunk / dynamic import / inlineDynamicImports 警告，无独立 lint 脚本；未跑本批全量 UI / Electron，不代替全产品最终验收。

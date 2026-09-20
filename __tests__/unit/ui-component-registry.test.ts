@@ -30,6 +30,17 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('角色架正式与候选实际复用展示组件及 Foundation 操作', () => {
+    for (const file of ['src/components/CharacterShelfPanel.tsx', 'src/components/playground/SurfaceBaselinePanel.tsx']) {
+      expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'CharacterShelfContent', '/companion/CharacterShelfContent'), file).toBe(true)
+    }
+    const content = readFileSync('src/components/companion/CharacterShelfContent.tsx', 'utf8')
+    expect(content).not.toContain('electronAPI')
+    expect(content).toContain('<ActionButton')
+    expect(content).toContain('<IconButton')
+    expect(UI_COMPONENT_REGISTRY['layout.character-shelf'].sourcePath).toBe('src/components/companion/CharacterShelfContent.tsx')
+  })
+
   it('Chat 审批入口正式与候选共享基础按钮，权限写入留在调用方', () => {
     for (const file of ['src/App.tsx', 'src/components/playground/SurfaceBaselinePanel.tsx']) {
       expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'ChatApprovalControl', '/chat/ChatApprovalControl'), file).toBe(true)

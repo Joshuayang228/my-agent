@@ -8,6 +8,73 @@ import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { expectSharedCodeSurface } from './shared-code-surface'
 
+for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
+  for (const width of [1166, 600]) {
+    test('正式共享角色架长文与切换恢复 ' + theme + ' ' + width, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 731 })
+      await installProductionElectronStub(page)
+      await page.addInitScript(theme => {
+        localStorage.setItem('theme', theme)
+        const api = (window as any).electronAPI.companion
+        const state = { active: 'lin', outcome: 'blocked', calls: 0, failRead: false, release: () => {} }
+        ;(window as any).__shelf = state
+        const roles = [{ id: 'lin', name: '当前伙伴', description: '真实简介'.repeat(40) }, { id: 'other', name: '很长的伙伴名称'.repeat(10), description: '另一位伙伴的真实介绍'.repeat(30) }]
+        api.getActive = async () => roles.find(role => role.id === state.active)
+        api.listProtagonists = async () => { if (state.failRead) throw new Error('private-path'); return roles }
+        api.requestSwitch = async (id: string) => {
+          state.calls++
+          if (state.outcome === 'blocked') return { ok: false, code: 'SESSION_ACTIVE' }
+          if (state.outcome === 'error') throw new Error('private-error')
+          await new Promise<void>(resolve => { state.release = resolve })
+          state.active = id
+          return { ok: true }
+        }
+      }, theme)
+      await page.goto('/')
+      await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+      if (width < 768) await page.getByRole('tab', { name: '伙伴与相处', exact: true }).click()
+      else await page.getByTestId('settings-nav-companion').click()
+      await page.getByTestId('settings-open-role-shelf').click()
+      const shelf = page.getByTestId('character-shelf-panel')
+      const current = shelf.getByTestId('character-option-lin')
+      const other = shelf.getByTestId('character-option-other')
+      await expect(current).toHaveAttribute('aria-pressed', 'true')
+      await expect(shelf).not.toContainText('Catch-up')
+      await other.scrollIntoViewIfNeeded()
+      const before = await other.boundingBox()
+      await other.hover()
+      expect(await other.boundingBox()).toEqual(before)
+      expect(await shelf.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+      await page.screenshot({ path: testInfo.outputPath('role-shelf.png'), animations: 'disabled' })
+      await other.click()
+      await expect(shelf.getByRole('alert')).toContainText('对话进行中')
+      await expect(current).toHaveAttribute('aria-pressed', 'true')
+      await page.evaluate(() => { (window as any).__shelf.outcome = 'error' })
+      await other.click()
+      await expect(shelf.getByRole('alert')).toHaveText('切换未完成，请重试。')
+      await page.evaluate(() => { (window as any).__shelf.outcome = 'success' })
+      await other.click()
+      await expect(other).toBeDisabled()
+      await expect(current).toBeDisabled()
+      await other.dispatchEvent('click')
+      expect(await page.evaluate(() => (window as any).__shelf.calls)).toBe(3)
+      await page.evaluate(() => (window as any).__shelf.release())
+      await expect(other).toHaveAttribute('aria-pressed', 'true')
+      await page.evaluate(() => { (window as any).__shelf.failRead = true })
+      await shelf.getByRole('button', { name: '刷新角色架' }).click()
+      await expect(shelf.getByRole('alert')).toHaveText('角色读取失败，请刷新重试。')
+      await expect(other).toHaveAttribute('aria-pressed', 'true')
+      await page.evaluate(() => { (window as any).__shelf.failRead = false })
+      await shelf.getByRole('button', { name: '刷新角色架' }).click()
+      await expect(shelf.getByRole('alert')).toHaveCount(0)
+      await shelf.getByRole('button', { name: '关闭角色架' }).click()
+      await expect(page.getByTestId('settings-open-role-shelf')).toBeVisible()
+    })
+  }
+}
+
+
+
 for (const [mode, label] of [['auto', '替我审批'], ['full-access', '完全访问权限']]) {
   test('审批保存失败不改变当前模式 ' + mode, async ({ page }) => {
     await installProductionElectronStub(page)
