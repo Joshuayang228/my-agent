@@ -156,7 +156,12 @@ test.beforeAll(async () => {
 })
 
 test.afterAll(async () => {
-  if (electronApp) await electronApp.close()
+  if (electronApp) {
+    // 失败用例可能留在受保护草稿；仅销毁独占测试进程的窗口，不让清理再触发产品离页确认。
+    // 保持产品 beforeunload 不变，正常流程的显式重启仍在各用例内验收。
+    if (electronApp.process().exitCode === null) await electronApp.evaluate(({ BrowserWindow }) => { for (const window of BrowserWindow.getAllWindows()) window.destroy() }).catch(() => {})
+    await electronApp.close()
+  }
   await unlink(fixtureReportPath).catch(() => undefined)
   if (server) {
     server.closeAllConnections()
@@ -234,7 +239,8 @@ test('首次进入通过模型路由配置后开始对话', async () => {
 })
 
 test('正式自定义模型连接保存协议并在重载后通过真实协议测试', async () => {
-  await page.locator('button[title="设置"]').click()
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  if (!(await page.getByTestId('settings-panel').isVisible())) await page.locator('button[title="设置"]').click()
   await page.getByTestId('settings-nav-model').click()
   const models = page.getByTestId('settings-model-routing')
   await models.getByRole('button', { name: '添加连接', exact: true }).click()
@@ -252,7 +258,8 @@ test('正式自定义模型连接保存协议并在重载后通过真实协议�
   expect((await page.evaluate(() => window.electronAPI.settings.get())).modelConnections).toBe(beforeDraftLeave)
   await form.getByRole('button', { name: '保存连接', exact: true }).click()
   const profile = models.locator('[data-testid^="settings-model-profile-"]').filter({ hasText: '协议本地验收' })
-  await expect(profile).toContainText('自定义连接 · Anthropic')
+  // 独立首启会等待 Windows 安全存储落盘（生产最多 15 秒），不能依赖前一个用例预热。
+  await expect(profile).toContainText('自定义连接 · Anthropic', { timeout: 20_000 })
   const manual = profile.getByRole('textbox', { name: '手动添加模型 协议本地验收', exact: true })
   await manual.fill('protocol-fixture-model')
   await manual.press('Enter')
