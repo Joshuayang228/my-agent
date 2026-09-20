@@ -1,5 +1,7 @@
 # 质量总控
 
+S5 / S6 桌面收口复核（2026-09-20）：本地模型、生图、备份崩溃恢复、朋友圈备份、配置生命周期及凭据持久化 6 文件共 12 项通过（2.1 分钟、无重试），证据 var/verification/production-rollout-backend。六面入口单独运行通过；__lifeStore 实际由生产 engine 初始化，不是前序用例注入。伙伴偏好单独运行在重载后的隐藏设置按钮失败，根因缺失前序模型配置；用例自行通过真实 IPC 配置本地模型后独立通过（18.8 秒），整组 onboarding 21 项通过（58.8 秒）。证据 world-entry-standalone / companion-settings-standalone / companion-settings-independent / onboarding-companion-independent-full 均位于 var/verification/。仅改测试准备，未改产品启动、IPC、Prompt、阈值或权限；Unit 1241、根 tsc 通过。未运行 OAuth / RAG 专项及付费外部模型；其他 onboarding 用例独立性与全产品采用审计不据此自动关闭。
+
 全产品组合复核（2026-09-20，代码 dc6a47f）：chat / markdown-theme / checkbox 三组 UI 共 363 项通过（8.2 分钟、无重试），证据 var/verification/production-rollout-combined-ui；排除 mcp-oauth-ui 专项。正式 Electron onboarding 21 项通过（1.8 分钟、无重试），证据 var/verification/production-rollout-onboarding，覆盖真实配置、Skills、六面资产 / 赞评、角色隔离、文件 / 终端 / 侧聊、权限、记忆重启和普通 MCP。未运行 OAuth / RAG 专项或付费外部模型，不冒充全部 Electron 文件通过。合同当前清单已按代码修正 starter、watcher、外部模型测试入口等旧描述；onboarding 共用 beforeAll 的前置依赖仍需收口，整体验证与 adopted 状态尚未关闭。
 
 R01 审批本批收口：定向 UI 17、Unit 1241、根 tsc / vite build 通过；资产与文档按提交门禁复核。Renderer 证据见 var/verification/chat-approval-verified，保留首次红测和外部点击坐标纠正记录。构建保留既有 chunk / dynamic import / inlineDynamicImports 警告，无独立 lint 脚本；未跑本批全量 UI / Electron，不代替全产品最终验收。

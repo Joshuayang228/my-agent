@@ -3,6 +3,8 @@
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
 
+S5 / S6 桌面收口复核（2026-09-20）：本地模型、生图、备份崩溃恢复、朋友圈备份、配置生命周期及凭据持久化 6 文件共 12 项通过（2.1 分钟、无重试），证据 var/verification/production-rollout-backend。六面入口单独运行通过；__lifeStore 实际由生产 engine 初始化，不是前序用例注入。伙伴偏好单独运行在重载后的隐藏设置按钮失败，根因缺失前序模型配置；用例自行通过真实 IPC 配置本地模型后独立通过（18.8 秒），整组 onboarding 21 项通过（58.8 秒）。证据 world-entry-standalone / companion-settings-standalone / companion-settings-independent / onboarding-companion-independent-full 均位于 var/verification/。仅改测试准备，未改产品启动、IPC、Prompt、阈值或权限；Unit 1241、根 tsc 通过。未运行 OAuth / RAG 专项及付费外部模型；其他 onboarding 用例独立性与全产品采用审计不据此自动关闭。
+
 R01 审批本批收口：定向 UI 17、Unit 1241、根 tsc / vite build 通过；资产与文档按提交门禁复核。Renderer 证据见 var/verification/chat-approval-verified，保留首次红测和外部点击坐标纠正记录。构建保留既有 chunk / dynamic import / inlineDynamicImports 警告，无独立 lint 脚本；未跑本批全量 UI / Electron，不代替全产品最终验收。
 
 R01 审批呈现回流边界（2026-09-20）：新增 ChatApprovalControl 组合 Foundation ActionButton，共享正式和候选的固定审批入口；候选保持禁用，不写生产设置。允许修改 App、ChatSurface、共享组件、资产登记、Unit / UI 与权限模块及收工文档；删除仅限 App 原内联菜单和迁入组件的开关状态，不改项目菜单。正式保留 settings.set executionMode 与主进程完全访问确认，保存成功后才更新显示，失败保留原模式并提示重试，进行中禁止重复写入；新增键盘退出 / 焦点回收。无主进程、IPC、策略、依赖变化。必测成功 / 失败 / 取消 / 在途、键盘、几何和候选隔离；全产品采用状态保持进行中。
@@ -125,7 +127,7 @@ R12 六面分别验收：朋友圈核对赞评及备份链；衣柜、文化角�
 | S2 模型与嵌入配置收口 | 请求空间隔离、配置提交唤醒与失败恢复已有实现；独立嵌入配置、RAG 导入完整性 / 重建及对应专项验收按用户要求暂缓 | 仅在用户共同研究后显式恢复；不作为当前回流完成的阻塞项，不将暂缓记成完成。恢复范围以 [延期记录](../deferred/rag-mcp-oauth.md) 为准 |
 | S3 人物生活数据来源 | 已移除衣柜 / 书架 / 文化硬编码 starter；assets.ts 的 startersFor 对这些 kind 返回空数组，住所 / 地点仍从 world.default 读取；旧开发库内容与正式最终展示需核验 | 每项正式初始内容来自已确认 Role Pack / 用户操作 / 已发布事件；无来源用真实空态；候选样张保持隔离。不重新删除已移除的默认常量，也不编造人物设定 |
 | S4 草稿生命周期边界 | 模型草稿、普通设置队列、权限在途请求、普通 MCP 管理 / 向导已有离页保护与桌面证据；MCP 两入口互斥，审批显示改为保存成功后更新。其余真实可达冲突与最终组合仍需核验 | 对现存路径核对隐藏再显示、内部导航及显式退出 / 重载；不重复修已关闭故障。不得新增多窗口产品或自动持久化未保存凭据，OAuth 后续除外 |
-| S5 验收可靠性 | watcher 已排除文档并保留源码刷新，含交叠事件单测；外部模型脚本已使用新连接表单和逐例独立目录。onboarding 仍共用 beforeAll 应用状态，仅自定义协议独立入口已修，不能宣称全部独立 | 继续核对 onboarding 的前置依赖和 worker 重建；其他已解决项保留证据，不重复施工。偶发失败须有可解释证据，不靠放宽断言或反复重跑宣称修复 |
+| S5 验收可靠性 | watcher 已排除文档并保留源码刷新，含交叠事件单测；外部模型脚本已使用新连接表单和逐例独立目录。onboarding 仍共用 beforeAll 应用状态，自定义协议与伙伴偏好独立入口已修，六面单独运行通过，不能宣称全部独立 | 继续核对 onboarding 的前置依赖和 worker 重建；其他已解决项保留证据，不重复施工。偶发失败须有可解释证据，不靠放宽断言或反复重跑宣称修复 |
 | S6 全产品正式验收与采用 | 四个 experience 资产仍为 playground；已有批次报告不能证明最终代码所有正式入口一起成立 | 对照 R01–R14 与 R12 六面，从正式 App 逐项操作并检查深浅 / 宽窄 / 长文 / hover / 失败态；核实 Foundation 实际复用与夹具隔离；跑最终回归，更新采用状态、模块卡和账本，稳定事实吸收后冻结合同并提交推送 |
 
 当前验证锚点：`var/verification/model-diagnostic-electron-full/.last-run.json` 与 `var/verification/moment-backup-ui-full/.last-run.json` 均为 passed；前者上一批报告为 26 通过 / 4 外部模型条件跳过，Unit 为 1191。结果文件本身不包含全部用例内容，数字引用上一批记录，不冒充本轮重新运行结果。审计确认 onboarding 六面测试使用真实 IPC / 存储，但内容有显式测试播种；这证明连接与读取，不证明真实人物内容或付费模型输出质量。

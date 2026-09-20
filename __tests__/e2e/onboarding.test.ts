@@ -301,6 +301,16 @@ test('正式自定义模型连接保存协议并在重载后通过真实协议�
 
 test('正式伙伴设置经真实 IPC 保存独立偏好并在重载后恢复', async () => {
   await expect(page.locator('#startup-splash')).toBeHidden()
+  // 独立运行时没有前序模型配置；本用例自行接通本地服务，避免重载进入首次设置及 Prompt 验证借用旧路由。
+  // 配置仅写 beforeAll 的临时用户目录，仍由真实 IPC 持久化，不改变产品启动分流或外部模型配置。
+  await page.evaluate(async (url) => {
+    await window.electronAPI.settings.saveModelConfiguration({
+      connections: JSON.stringify([{ id: 'companion-test', name: '伙伴设置测试连接', baseUrl: url, apiKey: 'local-test-key', model: 'local-test-model', enabled: true }]),
+      routes: JSON.stringify([{ purpose: 'primary', connectionId: 'companion-test', model: 'local-test-model', enabled: true }]),
+    })
+  }, baseUrl)
+  await page.reload()
+  await expect(page.locator('#startup-splash')).toBeHidden()
   const debugBack = page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: '返回', exact: true })
   if (await debugBack.isVisible().catch(() => false)) await debugBack.click()
   if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
