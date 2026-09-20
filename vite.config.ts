@@ -11,8 +11,12 @@ export default defineConfig(({ mode }) => {
       // Electron 开发窗口统一走 IPv4，避免 Windows localhost 优先命中旧的 IPv6 服务。
       host: '127.0.0.1',
       strictPort: isUiE2E,
-      // 验收 trace 会生成 HTML；只排除机器产物，避免触发页面重载，同时保留源码 HMR。
-      watch: { ignored: ['**/var/verification/**', '**/test-results/**'] },
+      // 文档与验收产物不是应用模块，HTML 变更会干扰正在验收的页面；按目录隔离，
+      // 不全局忽略 Markdown / HTML，保留 src 与 electron 中真实资产的开发更新。
+      watch: { ignored: [
+        '**/var/verification/**', '**/test-results/**',
+        '**/docs/**', '**/methodology/**', '**/agent-skills/**', '**/.agents/skills/**',
+      ] },
     },
     resolve: {
       alias: {
