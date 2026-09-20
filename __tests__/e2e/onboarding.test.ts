@@ -716,6 +716,68 @@ test('正式人物世界六面从正式入口读取真实伙伴数据', async ()
   }
 })
 
+test('正式生活面真实切角通知隔离四类资产并重载保留', async () => {
+  test.setTimeout(120000)
+  await page.evaluate(async (url) => {
+    await window.electronAPI.settings.saveModelConfiguration({
+      connections: JSON.stringify([{ id: 'role-test', name: '切角测试连接', baseUrl: url, apiKey: 'local-test-key', model: 'local-test-model', enabled: true }]),
+      routes: JSON.stringify([{ purpose: 'primary', connectionId: 'role-test', model: 'local-test-model', enabled: true }]),
+    })
+  }, baseUrl)
+  await page.reload()
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
+  const original = await page.evaluate(() => window.electronAPI.companion.getActive())
+  const created: Array<{ role: string; id: string }> = []
+  const marker = '切角验收-' + randomUUID().slice(0, 8)
+  const switchTo = async (role: string) => {
+    const result = await page.evaluate(async (id) => {
+      if ((await window.electronAPI.companion.getActive()).id === id) return { ok: true }
+      return window.electronAPI.companion.requestSwitch(id)
+    }, role)
+    expect(result.ok).toBe(true)
+  }
+  try {
+    for (const role of ['lin', 'zhou']) {
+      await switchTo(role)
+      for (const kind of ['wardrobe', 'culture', 'furniture', 'footprint']) {
+        const result = await page.evaluate(input => window.electronAPI.companion.createAsset(input), { kind, name: marker + '-' + role + '-' + kind, payload: {} })
+        expect(result.ok).toBe(true)
+        if (result.ok) created.push({ role, id: result.asset.id })
+      }
+    }
+    await switchTo('lin')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    for (const [tab, kind] of [['wardrobe', 'wardrobe'], ['culture', 'culture'], ['home', 'furniture'], ['footprints', 'footprint']]) {
+      await page.getByTestId('world-tab-' + tab).click()
+      const panel = page.getByTestId(tab === 'wardrobe' ? 'world-assets-panel' : 'world-details')
+      await expect(panel).toContainText(marker + '-lin-' + kind)
+      await switchTo('zhou')
+      await expect(panel).toContainText(marker + '-zhou-' + kind)
+      await expect(panel).not.toContainText(marker + '-lin-')
+      await switchTo('lin')
+      await expect(panel).toContainText(marker + '-lin-' + kind)
+      await expect(panel).not.toContainText(marker + '-zhou-')
+    }
+    await page.reload()
+    await expect(page.locator('#startup-splash')).toBeHidden()
+    for (const role of ['lin', 'zhou']) {
+      await switchTo(role)
+      const assets = await page.evaluate(() => window.electronAPI.companion.getAssets())
+      expect(assets.roleId).toBe(role)
+      expect(assets.items.filter(item => item.name.startsWith(marker)).map(item => item.id).sort()).toEqual(created.filter(item => item.role === role).map(item => item.id).sort())
+    }
+  } finally {
+    for (const role of ['lin', 'zhou']) {
+      await switchTo(role)
+      for (const item of created.filter(item => item.role === role)) await page.evaluate(id => window.electronAPI.companion.deleteAsset(id), item.id)
+    }
+    await switchTo(original.id)
+    await page.reload()
+    await expect(page.locator('#startup-splash')).toBeHidden()
+  }
+})
+
 test('正式关于页开发者模式经真实 IPC 开关、隐藏入口并完整重启恢复', async () => {
   await expect(page.locator('#startup-splash')).toBeHidden()
   const debugBack = page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: '返回', exact: true })

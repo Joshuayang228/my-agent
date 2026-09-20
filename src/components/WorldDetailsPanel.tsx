@@ -127,6 +127,20 @@ export function WorldDetailsPanel({
 
   useEffect(() => { void load(); return () => { requestId.current++ } }, [load])
 
+  useEffect(() => {
+    if (isPreview || !window.electronAPI?.companion.onRoleChanged) return
+    // 页面在切角通知后仍可能保持挂载；清空旧主角草稿，而非把它带到新资产链。
+    // load 立即递增请求序号，旧读取不得发布结果；预览不订阅生产通知。
+    return window.electronAPI.companion.onRoleChanged(() => {
+      setState(null)
+      setEditingId(null)
+      setPendingDelete(null)
+      setAddDrafts({})
+      setWriteError('')
+      void load()
+    })
+  }, [isPreview, load])
+
   const mutate = async (action: () => Promise<void>, message: string) => {
     if (writing.current || !mounted.current) return
     writing.current = true

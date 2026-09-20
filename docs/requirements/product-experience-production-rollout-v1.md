@@ -3,6 +3,8 @@
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
 
+S6 生活面角色通知（2026-09-20）：正式 culture / home / footprints 三条受控红测证明 App 已收到 zhou 切角通知，共享 WorldDetailsPanel 仍显示 lin 内容与草稿；根因是没有订阅既有 onRoleChanged。仅在共享组件增加生产通知订阅，切角清展示 / 编辑 / 删除确认 / 新增草稿并重读；沿用请求序号拒绝旧响应，Playground 不订阅。不修改 UI 形态、IPC、后端或依赖。Unit 1236、根 tsc / build、四主题宽窄及失败恢复定向 UI 12 项通过。新增独立 Electron 用例实际创建 lin / zhou 的衣柜、文化、家具、足迹资产，走 requestSwitch 与真实广播验证四页就地更新及重载归属，单跑通过；完整 onboarding 20 项通过。证据 s6-living-role-red-verified / final / electron / onboarding 位于 var/verification。首次红测因表单标签误写“名称”而中止，不作产品失败证据。资产写入跨切角竞争与其余 S4–S6 仍未以本批证据关闭，RAG / OAuth 后续保持暂缓。
+
 S6 衣柜读取修复（2026-09-20）：正式入口受控 IPC 复现三项失败：读取拒绝无提示、角色响应不一致仍展示、切到 zhou 后迟到 lin 结果覆盖新衣柜。本批仅修改 AssetsPanel 读取生命周期和既有 chat E2E；复用 WorldDetailsPanel 的请求序号与身份校验模式、Foundation IconButton 和共享错误提示，不新增依赖 / IPC / 存储。角色通知立即清旧内容及草稿，响应角色不一致清空并报错，普通刷新失败保留旧列表；旧请求的成功、错误和 finally 均不能更新当前状态。三条红测转绿；深浅宽窄、原位重试及既有删除 / 候选回归 14 项、Unit 1236、根 tsc / build 通过。证据 s6-wardrobe-read-red / final / themes 位于 var/verification；这些是 Renderer 受控时序，不冒充真实后端切角验收。不修改体验采用状态，不扩大到写入竞态，RAG / OAuth 继续暂缓。
 
 S6 正式界面审计（2026-09-20）：既有 chat / Markdown / checkbox 界面套件 263 项通过（排除 OAuth 专项）；这是 Renderer 验证，其中真实 IPC 替身不等于 Electron 持久化证据。实际检查正式浅色宽屏文化角、深色窄屏家居长文、深色窄屏记忆失败编辑态及深色审阅原始代码截图，未见这些截面的白底或正文溢出。发现外观页将“基础设计资产”开发说明带入正式页面，新增正式入口断言复现后，从正式 / 候选共用组件移除说明；共享页头支持无说明，不影响其他调用方。Unit 1236、根 tsc / build、四主题宽窄与候选隔离定向 6 项通过；证据为 var/verification/s6-formal-ui-audit、s6-appearance-copy-red、s6-appearance-copy-final。没有据此提升四个体验资产状态。衣柜 AssetsPanel.load 的角色一致性、交错读取及失败反馈仍待复现，纳入既有 R12 / S6，不另增功能包；RAG / OAuth 后续继续暂缓。

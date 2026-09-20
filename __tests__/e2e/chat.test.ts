@@ -1663,6 +1663,47 @@ for (const scenario of ['failure', 'mismatch', 'late'] as const) {
 }
 }
 
+for (const tab of ['culture', 'home', 'footprints']) {
+  test('正式生活面切角清除旧内容与草稿 ' + tab, async ({ page }) => {
+    const nameLabel = tab === 'culture' ? '作品' : tab === 'home' ? '物件' : '地点'
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const listeners = new Set<(value: any) => void>()
+      const harness = { role: 'lin', hold: false, pending: [] as Array<() => void>,
+        switchRole: () => { harness.role = 'zhou'; listeners.forEach(listener => listener({ roleId: 'zhou' })) } }
+      ;(window as any).__livingRole = harness
+      const api = (window as any).electronAPI.companion
+      api.onRoleChanged = (listener: (value: any) => void) => { listeners.add(listener); return () => listeners.delete(listener) }
+      api.getActive = async () => ({ id: harness.role, name: harness.role, description: '' })
+      api.catchupStatus = async () => ({ roleId: harness.role, presence: harness.role + '的活动' })
+      api.getMoments = async () => ({ roleId: harness.role, items: [] })
+      api.getAssets = async () => {
+        const role = harness.role
+        const result = { roleId: role, items: ['culture', 'furniture', 'footprint'].map(kind => ({ id: role + kind, roleId: role, kind, name: role + '的记录', payload: {}, acquiredAt: 1, sourceEventId: null })) }
+        if (harness.hold) return new Promise(resolve => harness.pending.push(() => resolve(result)))
+        return result
+      }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    await page.getByTestId('world-tab-' + tab).click()
+    const panel = page.getByTestId('world-details')
+    await expect(panel).toContainText('lin的记录')
+    await panel.getByRole('button', { name: /^添加/ }).click()
+    await panel.getByRole('textbox', { name: nameLabel, exact: true }).fill('不属于新角色的草稿')
+    await page.evaluate(() => { (window as any).__livingRole.hold = true })
+    await panel.getByRole('button', { name: '刷新生活面', exact: true }).click()
+    await expect.poll(() => page.evaluate(() => (window as any).__livingRole.pending.length)).toBe(1)
+    await page.evaluate(() => { const h = (window as any).__livingRole; h.hold = false; h.switchRole() })
+    await expect(panel).toContainText('zhou的记录')
+    await expect(panel.getByRole('textbox', { name: nameLabel, exact: true })).toHaveCount(0)
+    await page.evaluate(() => { (window as any).__livingRole.pending.forEach((resolve: () => void) => resolve()) })
+    await expect(panel).not.toContainText('lin的记录')
+    await panel.getByRole('button', { name: /^添加/ }).click()
+    await expect(panel.getByRole('textbox', { name: nameLabel, exact: true })).toHaveValue('')
+  })
+}
+
 async function installTerminalLifecycleStub(page: import('@playwright/test').Page) {
   await installProductionElectronStub(page)
   await page.addInitScript(() => {
