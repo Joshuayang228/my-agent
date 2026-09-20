@@ -29,6 +29,7 @@ beforeEach(async () => {
   state.apiKey = 'test'
   state.baseUrl = 'http://localhost/v1'
   state.root = fs.mkdtempSync(path.join(os.tmpdir(), 'memory-index-'))
+  fs.writeFileSync(path.join(state.root, 'Local State'), JSON.stringify({ os_crypt: { encrypted_key: Buffer.from('DPAPI-test-only').toString('base64') } }))
   const SQL = await initSqlJs()
   state.db = new SQL.Database()
   state.db.run('CREATE TABLE memories (id TEXT PRIMARY KEY, category TEXT, content TEXT, createdAt INTEGER, updatedAt INTEGER, role_id TEXT)')

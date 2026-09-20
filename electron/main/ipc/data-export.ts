@@ -683,6 +683,9 @@ export function registerDataExportIPC(): void {
       const preparedImages = await prepareBackupImages(data.generatedImageMedia ?? [])
       if (!operation.isActive()) return { success: false, error: 'cancelled' }
 
+      const settingEntries = Object.entries(data.settings || {}).filter(([key]) => isSafeBackupSettingKey(key))
+      if (settingEntries.length) await settingsStore.ensureSettingsEncryption(settingEntries.map(([key]) => key))
+      if (!operation.isActive()) return { success: false, error: 'cancelled' }
       const db = await getDatabase()
       const existingMemories = await memoryStore.listMemories()
       const normalizedMemoryContents = new Set(existingMemories.map((memory) => memory.content.toLowerCase()))
@@ -693,7 +696,6 @@ export function registerDataExportIPC(): void {
         return true
       })
       const pendingSettings: ReturnType<typeof settingsStore.prepareSettingWrite>[] = []
-      const settingEntries = Object.entries(data.settings || {}).filter(([key]) => isSafeBackupSettingKey(key))
       if (settingEntries.length) await settingsStore.ensureTable()
       for (const [key, value] of settingEntries) {
         if (!isSafeBackupSettingKey(key)) continue

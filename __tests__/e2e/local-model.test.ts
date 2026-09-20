@@ -57,7 +57,7 @@ test('无 Key 本地连接从正式设置发现、测试、重启并流式对话
     await expect(form.getByLabel('API Key', { exact: true })).toHaveValue('')
     await form.getByRole('button', { name: '保存连接', exact: true }).click()
     let profile = page.locator('[data-testid^="settings-model-profile-"]').filter({ hasText: '无密钥本地连接' })
-    await expect(profile).toContainText('可留空')
+    await expect(profile).toContainText('可留空', { timeout: 20_000 })
     await profile.getByRole('button', { name: '获取 无密钥本地连接 已有模型', exact: true }).click()
     await profile.getByRole('button', { name: 'local-fixture', exact: true }).click()
     await profile.getByRole('button', { name: '测试连接 无密钥本地连接', exact: true }).click()

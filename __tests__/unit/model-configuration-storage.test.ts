@@ -21,6 +21,7 @@ const newConnections = JSON.stringify([{ id: 'new', apiKey: 'fixture-new' }])
 const newRoutes = JSON.stringify([{ connectionId: 'new' }])
 beforeEach(async () => {
   fixture.directory = fs.mkdtempSync(path.join(os.tmpdir(), 'my-agent-model-config-'))
+  fs.writeFileSync(path.join(fixture.directory, 'Local State'), JSON.stringify({ os_crypt: { encrypted_key: Buffer.from('DPAPI-test-only').toString('base64') } }))
   fixture.encryption = true
   await settings.ensureTable()
 })
@@ -33,6 +34,22 @@ const read = async () => [await settings.getSetting('modelConnections'), await s
 const save = (connections: string, routes: string) => settings.saveModelConfiguration({ connections, routes })
 
 describe('模型配置整组真实 SQLite 持久化', () => {
+  it.runIf(process.platform === 'win32')('系统状态损坏时双键、单键与同步准备均拒绝且保留原配置', async () => {
+    await save(oldConnections, oldRoutes)
+    const before = fs.readFileSync(path.join(fixture.directory, 'my-agent.db'))
+    fs.writeFileSync(path.join(fixture.directory, 'Local State'), '{')
+    const notify = vi.fn()
+    const stop = settings.subscribeModelConfigurationCommitted(notify)
+    try {
+      await expect(save(newConnections, newRoutes)).rejects.toThrow('系统安全存储')
+      await expect(settings.setSetting('modelConnections', newConnections)).rejects.toThrow('系统安全存储')
+      expect(() => settings.prepareSettingWrite('mcpServers', '[]')).toThrow('系统安全存储')
+      expect(await read()).toEqual([oldConnections, oldRoutes])
+      expect(fs.readFileSync(path.join(fixture.directory, 'my-agent.db'))).toEqual(before)
+      expect(notify).not.toHaveBeenCalled()
+    } finally { stop() }
+  })
+
   it('只在模型设置成功落盘后通知，失败及无关设置不通知，取消订阅生效', async () => {
     const notify = vi.fn()
     const unsubscribe = settings.subscribeModelConfigurationCommitted(notify)

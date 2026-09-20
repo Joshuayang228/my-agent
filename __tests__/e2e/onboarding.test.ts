@@ -558,7 +558,8 @@ test('正式生活资产经真实备份导出导入后保留且不覆盖现有�
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] })
     }, exportPath)
     await importPage.getByTestId('section-data').getByTestId('import').click()
-    await expect(importPage.getByTestId('section-data').getByRole('status')).toContainText('导入成功')
+    // 全新目录导入模型配置也须等待系统加密状态落盘；不能让测试先正常退出规避首次保存。
+    await expect(importPage.getByTestId('section-data').getByRole('status')).toContainText('导入成功', { timeout: 20_000 })
     const restored = await importPage.evaluate(() => window.electronAPI.companion.getAssets())
     const item = restored.items.find((entry) => entry.name === '备份往返验收作品')
     expect(item?.payload.note).toBe(note)

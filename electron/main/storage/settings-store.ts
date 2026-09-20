@@ -1,5 +1,6 @@
 import { safeStorage } from 'electron'
 import { getDatabase, persist } from './database'
+import { assertEncryptionPersisted, ensureEncryptionPersisted } from './encryption-persistence'
 import { createLogger } from '../utils/logger'
 import { MAX_COMPANION_RESPONSE_NOTE_LENGTH } from '../../../src/shared/types'
 import type { ModelConfigurationInput } from '../../../src/shared/types'
@@ -31,11 +32,16 @@ const ENCRYPTED_KEYS = new Set<keyof AppSettings>(['llmApiKey', 'mcpServers', 'm
 const ENCRYPTED_VALUE_PREFIX = 'enc:v1:'
 export const MAX_SETTING_VALUE_LENGTH = 1_000_000
 
+export async function ensureSettingsEncryption(keys: readonly string[]): Promise<void> {
+  if (keys.some(key => ENCRYPTED_KEYS.has(key as keyof AppSettings))) await ensureEncryptionPersisted()
+}
+
 function encrypt(value: string): string {
   if (!value) return value
   if (!safeStorage.isEncryptionAvailable()) {
     throw new Error('系统安全存储不可用，无法安全保存敏感设置')
   }
+  assertEncryptionPersisted()
   return ENCRYPTED_VALUE_PREFIX + safeStorage.encryptString(value).toString('base64')
 }
 
@@ -247,6 +253,7 @@ export async function setSetting<K extends keyof AppSettings>(
   key: K,
   value: AppSettings[K],
 ): Promise<void> {
+  if (value) await ensureSettingsEncryption([key])
   const prepared = prepareSettingWrite(key, value)
   await ensureTable()
   const db = await getDatabase()
@@ -310,6 +317,7 @@ export async function saveModelConfiguration(input: ModelConfigurationInput): Pr
   if ([input.connections, input.routes].some((value) => typeof value !== 'string' || value.length > MAX_SETTING_VALUE_LENGTH)) {
     throw new Error('模型配置无效或超出长度限制')
   }
+  if (input.connections) await ensureSettingsEncryption(['modelConnections'])
   const values = [encrypt(input.connections), input.routes]
   await ensureTable()
   const db = await getDatabase()

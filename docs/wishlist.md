@@ -1,6 +1,6 @@
 # 心愿池
 
-- WISH-045 S4 2026-09-20 定位补充：Electron 42.9.1 Windows 全新目录保存成功即强退，重启 connections=0、routes=1、ready=false；Local State 在保存应答时不存在。session.flushStorageData() 不能立即刷出该文件，单次约 10855ms 后才出现，不能作为固定等待常量。已排除 Session flush 方案；系统密钥状态与数据库提交顺序仍待修复，未新增暂缓项或关闭 S4。
+- WISH-045 S4 首次保存强退缺口已由持久化前置门与真实 Electron 回归关闭；首次安全保存最多等待 15 秒，系统状态异常保留原配置并允许重试。Windows Electron 升级必须复核 Local State / DPAPI 格式；不承诺外部篡改、系统账户变化或断电恢复。S4 草稿生命周期与真实写入竞争仍未收口，不能关闭 WISH-045 总项。
 
 - WISH-042 S5 工作区前置依赖已解除：文件 / 侧聊关闭、终端、主会话切换分别从新 Electron 数据目录单跑通过；共享准备流程显式配置模型、创建独立项目并打开右坞。完整 onboarding 19 项通过，原始单跑失败保留在 s5-workspace-independent-red。其他用例独立性、外部脚本和已记录偶发错误仍未关闭，不以此宣称整个 S5 完成。
 

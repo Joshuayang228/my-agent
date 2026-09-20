@@ -1,5 +1,9 @@
 # 质量总控
 
+S4 保存调用方补充回归：生图、索引恢复有 Key / 无 Key、模型诊断共 4 项通过（`s4-credential-dependent`）；同批本地连接旧 5 秒等待失败，现场仍为保存中，调整首次成功等待后独立通过（`s4-credential-local-final`）。未重跑 OAuth 专项，不恢复已暂缓范围。
+
+S4 首次敏感设置持久化：Unit 验证 Local State 缺失 / 无密钥 / 损坏 / 超限 / 加密不可用、等待合并、超时后重试、不缓存成功；真实 SQLite 验证双键 / 单键 / 同步备份准备失败零提交。正式 Electron 在全新目录经模型表单保存随机凭据，成功即 taskkill 自有进程树，重启后真实模型发现收到正确认证，SQLite 不含原文；旧构建明确失败，见 `s4-credential-first-save-red`。最终凭据 / onboarding / 备份恢复 22 项通过，证据 `var/verification/s4-credential-final`。首次新回归与备份测试曾在 5 秒时仍处于保存中，按生产 15 秒上限调整首次成功等待为 20 秒，未删除恢复 / 内容 / 认证断言。Unit 1235、根 tsc / build 通过；主进程同树仅替换本批生产文件对照 71 → 71 无新增，非全绿。未改 UI / 依赖，无独立 lint，已有构建警告保留；不代表 S4 全部边界或全产品完成。
+
 S5 工作区独立验收：onboarding 的文件 / 侧聊关闭、终端进程树、主会话切换三项各自提交本地模型路由，创建独立临时项目，并经正式项目选择入口打开右坞；不再借用前序配置。侧聊单跑红测现场确认未配置模型、未选择项目、右坞缺失；修复后三项分别在新 Electron 数据目录单跑通过，完整 onboarding 19 项通过。证据 `var/verification/s5-workspace-independent-red`、`s5-workspace-*-alone`、`s5-workspace-onboarding`。Unit 1227、根 tsc / build 通过；未改生产代码或依赖，无独立 lint，既有构建警告保留。此证据不证明整套用例已完全独立或外部供应商可用。
 
 S5 文档监听门禁：dev-server-watch 使用真实 Vite 服务和真实临时文件，覆盖 docs / methodology / agent-skills / .agents/skills 的 HTML 与 Markdown 创建不进入 watcher、不发送 WebSocket 消息；两次应用入口 HTML 修改仍发送 full-reload，src/content/prompt.md 仍进入 watcher。不全局排除 Markdown / HTML。本批 Unit 1227、根 tsc / build 通过，未改界面或主进程，不重复跑完整 UI / Electron；无独立 lint 脚本，已有构建拆包警告保留。

@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// 本文件验证密文格式迁移；系统状态持久化由独立真实文件测试和 Electron 强退测试覆盖。
+vi.mock('../../electron/main/storage/encryption-persistence', () => ({ assertEncryptionPersisted: vi.fn(), ensureEncryptionPersisted: vi.fn() }))
+
 const { encryptString, decryptString } = vi.hoisted(() => ({
   encryptString: vi.fn((value: string) => Buffer.from(`cipher:${value}`, 'utf-8')),
   decryptString: vi.fn((value: Buffer) => {

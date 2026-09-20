@@ -30,6 +30,7 @@ let databasePath: string
 beforeEach(() => {
   vi.clearAllMocks()
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'backup-atomicity-'))
+  fs.writeFileSync(path.join(root, 'Local State'), JSON.stringify({ os_crypt: { encrypted_key: Buffer.from('DPAPI-test-only').toString('base64') } }))
   backupPath = path.join(root, 'backup.json')
   databasePath = path.join(root, 'database.db')
   db = new SQL.Database()
@@ -67,6 +68,18 @@ function counts(database = db) {
   return ['sessions', 'messages', 'memories', 'settings', 'companion_assets', 'companion_asset_seeds']
     .map(table => database.exec(`SELECT COUNT(*) FROM ${table}`)[0].values[0][0])
 }
+
+it.runIf(process.platform === 'win32')('系统密钥状态不可读时备份不提交任何业务数据', async () => {
+  const data = JSON.parse(fs.readFileSync(backupPath, 'utf8'))
+  data.settings.modelConnections = '[]'
+  fs.writeFileSync(backupPath, JSON.stringify(data))
+  fs.writeFileSync(path.join(root, 'Local State'), '{')
+  const before = fs.readFileSync(databasePath)
+  expect(await invoke()).toMatchObject({ success: false })
+  expect(counts()).toEqual([0, 0, 0, 0, 0, 0])
+  expect(fs.readFileSync(databasePath)).toEqual(before)
+  expect(state.persist).not.toHaveBeenCalled()
+})
 
 it('只恢复模型设置也通知索引，失败与没有实际写入的重复导入不通知', async () => {
   const data = JSON.parse(fs.readFileSync(backupPath, 'utf8'))
