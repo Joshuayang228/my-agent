@@ -3,6 +3,8 @@
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
 
+S5 watcher 误报收口（2026-09-20）：修改范围为 dev-server-watch.test.ts 与质量 / 进度 / 待办记录，不改 Vite 配置或产品行为。临时日志在全量 Unit 复现 docs-start 后 31ms 的第二次 index.html change 及刷新，旧测试因 middlewareMode 的 * 路径及 mockClear 误归因为文档。测试改为临时端口真实服务，按源码路径验证全部刷新，文档 / 产物仍必须零事件；正常与源码交叠两场景、全量 Unit 1237、根 tsc / build 通过，临时日志移除。只关闭该误报子项，其他 E2E 可靠性及全产品 S6 不据此完成。
+
 R12 通讯录共享呈现（2026-09-20）：按已授权回流范围，修改 CastPanel、SurfaceBaselinePanel、chat E2E 及相关文档；删除对象仅为 WorldSurface 静态姓名行渲染，因其不能代表正式忙闲 / 摘要 / 召唤流程。正式组件增加显式 previewData，样张数据留在 Playground；预览摘要 / 刷新仅操作内存，禁用创建会话并在处理器拦截，不订阅真实事件。不改正式默认布局、后端、IPC、依赖。深浅宽窄隔离及正式交互 7 项、Unit 1236、根 tsc / build 通过；候选形态仍待最终视觉确认，不据此提升 adopted 或关闭 S6。
 
 R12 人物世界内部术语清理（2026-09-20）：共享 MomentsPanel / AssetsPanel 将动态、穿着空态及书架说明改为用户文案，旧回顾标题也不再显示 Catch-up；不改变数据链或生成行为。正式红测转绿，四主题宽窄及 Playground 同源回归 11 项、Unit 1236、根 tsc / build 通过；检查深色窄屏截图。通讯录共享呈现仍待处理，不关闭 S6 或提升 adopted，RAG / OAuth 暂缓。

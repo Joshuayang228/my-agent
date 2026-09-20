@@ -1,5 +1,7 @@
 # 质量总控
 
+S5 watcher 误报根因（2026-09-20）：带临时时序日志的全量 Unit 复现第二次 index.html change 在 docs-start 后 31ms 到达，随即 full-reload；没有文档文件事件。旧测试的 middlewareMode 将刷新路径统一为 *，mockClear 后错误地将合法迟到源码事件归为文档刷新。现在启动临时端口真实 Vite，按实际路径断言，只允许测试写入的源码刷新；文档 / 产物事件必须为空，后续新源码文件和 src/content/prompt.md 必须仍触发监听。正常与交叠两场景通过，最终全量 183 文件 / 1237 项、根 tsc / build 通过；临时日志已移除。未改产品 watch 配置、超时或忽略范围，无独立 lint，既有构建警告保留。不把此项外推为其余 E2E 偶发问题已解决。
+
 R12 通讯录共享呈现：s6-cast-shared 的深浅主题 × 1166 / 600 验证真实 CastPanel、忙闲、摘要、刷新和禁用开聊；挂载 / 操作 / 离页期间 companion IPC 调用记录为空。加人物切换、正式忙闲预检和强行开聊失败重试共 7 项通过，检查浅色宽屏及深色窄屏截图。Unit 1236、根 tsc / build 通过；无主进程 / IPC / 依赖变化，无独立 lint，既有构建警告保留。此批证明组件共享及隔离，不代替新的视觉认可或全量正式验收。
 
 R12 文案验收：s6-world-copy-red 正式入口仍显示 tick / Catch-up，缺少用户空态文案；s6-world-copy-final 四主题宽窄与 Playground 基础 / 产品边界共 11 项通过，动态 / 穿着空态有正向文案和技术术语缺席断言。已检查深色窄屏截图。Unit 1236、根 tsc / build 通过；本批仅共享 JSX 文案，无主进程 / IPC 变化，无独立 lint，既有构建警告保留。
