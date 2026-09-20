@@ -78,6 +78,7 @@ export function WorldDetailsPanel({
   const [pendingDelete, setPendingDelete] = useState<WorldAssetRecord | null>(null)
   const requestId = useRef(0)
   const writing = useRef(false)
+  const writeEpoch = useRef(0)
   const mounted = useRef(false)
 
   useEffect(() => {
@@ -132,6 +133,11 @@ export function WorldDetailsPanel({
     // 页面在切角通知后仍可能保持挂载；清空旧主角草稿，而非把它带到新资产链。
     // load 立即递增请求序号，旧读取不得发布结果；预览不订阅生产通知。
     return window.electronAPI.companion.onRoleChanged(() => {
+      // 切角不取消已发出的写入；更换代次隔离旧响应，新角色可独立操作。
+      // 旧请求不得清草稿、发布错误或释放新角色的写入锁。
+      writeEpoch.current++
+      writing.current = false
+      setBusy(false)
       setState(null)
       setEditingId(null)
       setPendingDelete(null)
@@ -141,19 +147,23 @@ export function WorldDetailsPanel({
     })
   }, [isPreview, load])
 
-  const mutate = async (action: () => Promise<void>, message: string) => {
+  const mutate = async (action: (isCurrent: () => boolean) => Promise<void>, message: string) => {
     if (writing.current || !mounted.current) return
+    const epoch = ++writeEpoch.current
+    const isCurrent = () => mounted.current && epoch === writeEpoch.current
     writing.current = true
     setBusy(true)
     setWriteError('')
     try {
-      await action()
-      if (mounted.current && !isPreview) await load()
+      await action(isCurrent)
+      if (isCurrent() && !isPreview) await load()
     } catch {
-      if (mounted.current) setWriteError(message)
+      if (isCurrent()) setWriteError(message)
     } finally {
-      writing.current = false
-      if (mounted.current) setBusy(false)
+      if (isCurrent()) {
+        writing.current = false
+        setBusy(false)
+      }
     }
   }
 
@@ -175,13 +185,13 @@ export function WorldDetailsPanel({
       setEditingId(null)
       return
     }
-    await mutate(async () => {
+    await mutate(async (isCurrent) => {
       const result = await window.electronAPI!.companion.updateAsset(editingId, {
         name: editDraft.name,
         payload: payloadFromDraft(editDraft),
       })
       if (!result.ok) throw new Error(result.error || '保存失败')
-      if (!mounted.current) return
+      if (!isCurrent()) return
       setEditingId(null)
     }, '未保存，修改仍保留。请重试。')
   }
@@ -205,14 +215,14 @@ export function WorldDetailsPanel({
       setAddDrafts((drafts) => ({ ...drafts, [tab]: { open: false, draft: emptyWorldAssetDraft(ADD_KIND[tab]) } }))
       return
     }
-    await mutate(async () => {
+    await mutate(async (isCurrent) => {
       const result = await window.electronAPI!.companion.createAsset({
         kind: addDraft.kind,
         name: addDraft.name,
         payload: payloadFromDraft(addDraft),
       })
       if (!result.ok) throw new Error(result.error || '添加失败')
-      if (!mounted.current) return
+      if (!isCurrent()) return
       setAddDrafts((drafts) => ({ ...drafts, [tab]: { open: false, draft: emptyWorldAssetDraft(ADD_KIND[tab]) } }))
     }, '未添加，内容仍保留。请重试。')
   }
@@ -225,10 +235,10 @@ export function WorldDetailsPanel({
       setPendingDelete(null)
       return
     }
-    await mutate(async () => {
+    await mutate(async (isCurrent) => {
       const result = await window.electronAPI!.companion.deleteAsset(asset.id)
       if (!result.ok) throw new Error(result.error || '删除失败')
-      if (!mounted.current) return
+      if (!isCurrent()) return
       if (editingId === asset.id) setEditingId(null)
       setPendingDelete(null)
     }, '未删除，请重试或取消。')

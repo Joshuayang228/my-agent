@@ -59,6 +59,7 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
   const [busy, setBusy] = useState(false)
   const [writeError, setWriteError] = useState('')
   const writing = useRef(false)
+  const writeEpoch = useRef(0)
   const mounted = useRef(false)
 
   useEffect(() => {
@@ -144,6 +145,11 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
   useEffect(() => {
     if (isPreview || !window.electronAPI?.companion.onRoleChanged) return
     return window.electronAPI.companion.onRoleChanged(() => {
+      // 切角不取消已发出的写入；更换代次隔离旧响应，新角色可独立操作。
+      // 旧请求不得清草稿、发布错误或释放新角色的写入锁。
+      writeEpoch.current++
+      writing.current = false
+      setBusy(false)
       setItems([])
       setRoleId('')
       setRoleName('')
@@ -161,19 +167,23 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
   const wearing = useMemo(() => (wearingId ? items.find((asset) => asset.id === wearingId) ?? null : null), [items, wearingId])
   const inventory = useMemo(() => tabItems.filter((asset) => asset.id !== wearing?.id), [tabItems, wearing])
 
-  const mutate = async (action: () => Promise<void>, message: string) => {
+  const mutate = async (action: (isCurrent: () => boolean) => Promise<void>, message: string) => {
     if (writing.current || !mounted.current) return
+    const epoch = ++writeEpoch.current
+    const isCurrent = () => mounted.current && epoch === writeEpoch.current
     writing.current = true
     setBusy(true)
     setWriteError('')
     try {
-      await action()
-      if (mounted.current && !isPreview) await load()
+      await action(isCurrent)
+      if (isCurrent() && !isPreview) await load()
     } catch {
-      if (mounted.current) setWriteError(message)
+      if (isCurrent()) setWriteError(message)
     } finally {
-      writing.current = false
-      if (mounted.current) setBusy(false)
+      if (isCurrent()) {
+        writing.current = false
+        setBusy(false)
+      }
     }
   }
 
@@ -194,13 +204,13 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
       setEditingId(null)
       return
     }
-    await mutate(async () => {
+    await mutate(async (isCurrent) => {
       const result = await window.electronAPI!.companion.updateAsset(editingId, {
         name: editDraft.name,
         payload: payloadFromDraft(editDraft),
       })
       if (!result.ok) throw new Error(result.error || '保存失败')
-      if (!mounted.current) return
+      if (!isCurrent()) return
       setEditingId(null)
     }, '未保存，修改仍保留。请重试。')
   }
@@ -221,14 +231,14 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
       setAddDrafts((drafts) => ({ ...drafts, [tab]: { open: false, draft: emptyWorldAssetDraft(tab) } }))
       return
     }
-    await mutate(async () => {
+    await mutate(async (isCurrent) => {
       const result = await window.electronAPI!.companion.createAsset({
         kind: addDraft.kind,
         name: addDraft.name,
         payload: payloadFromDraft(addDraft),
       })
       if (!result.ok) throw new Error(result.error || '添加失败')
-      if (!mounted.current) return
+      if (!isCurrent()) return
       setAddDrafts((drafts) => ({ ...drafts, [tab]: { open: false, draft: emptyWorldAssetDraft(tab) } }))
     }, '未添加，内容仍保留。请重试。')
   }
@@ -242,10 +252,10 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
       setPendingDelete(null)
       return
     }
-    await mutate(async () => {
+    await mutate(async (isCurrent) => {
       const result = await window.electronAPI!.companion.deleteAsset(asset.id)
       if (!result.ok) throw new Error(result.error || '删除失败')
-      if (!mounted.current) return
+      if (!isCurrent()) return
       if (editingId === asset.id) setEditingId(null)
       if (wearingId === asset.id) setWearingId(null)
       setPendingDelete(null)

@@ -1709,6 +1709,68 @@ for (const tab of ['culture', 'home', 'footprints']) {
   })
 }
 
+for (const tab of ['wardrobe', 'culture', 'home', 'footprints']) {
+  for (const outcome of ['success', 'failure', 'pending']) {
+    for (const operation of ['create', 'update', 'delete']) {
+      test('正式生活面旧写入不影响新角色 ' + tab + ' ' + outcome + ' ' + operation, async ({ page }, testInfo) => {
+        await installProductionElectronStub(page)
+        await page.setViewportSize({ width: outcome === 'success' ? 1166 : 600, height: 731 })
+        await page.addInitScript(theme => localStorage.setItem('theme', theme), outcome === 'success' ? 'porcelain-blue' : 'yao-stone')
+        await page.addInitScript(() => {
+          const listeners = new Set<(value: any) => void>()
+          const h = { role: 'lin', release: null as null | ((ok: boolean) => void),
+            switchRole: () => { h.role = 'zhou'; listeners.forEach(fn => fn({ roleId: 'zhou' })) } }
+          ;(window as any).__livingWrite = h
+          const api = (window as any).electronAPI.companion
+          api.onRoleChanged = (fn: (value: any) => void) => { listeners.add(fn); return () => listeners.delete(fn) }
+          api.getActive = async () => ({ id: h.role, name: h.role, description: '' })
+          api.catchupStatus = async () => ({ roleId: h.role, presence: '' })
+          api.getMoments = async () => ({ roleId: h.role, items: [] })
+          api.getAssets = async () => ({ roleId: h.role, items: ['wardrobe', 'culture', 'furniture', 'footprint'].map(kind => ({ id: h.role + kind, roleId: h.role, kind, name: h.role + '的记录', payload: {}, acquiredAt: 1, sourceEventId: null })) })
+          api.createAsset = api.updateAsset = api.deleteAsset = () => new Promise(resolve => { h.release = ok => resolve({ ok, error: ok ? undefined : 'OLD_ROLE_FAILURE' }) })
+        })
+        await page.goto('/')
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+        await page.getByTestId('world-tab-' + tab).click()
+        const kind = tab === 'home' ? 'furniture' : tab === 'footprints' ? 'footprint' : tab
+        const add = page.getByTestId('world-asset-add-' + kind)
+        await expect(page.getByText('lin的记录', { exact: true }).first()).toBeVisible()
+        if (operation === 'create') {
+          await add.getByRole('button', { name: /^添加/ }).click()
+          await add.getByRole('textbox').first().fill('旧伙伴提交')
+          await add.getByRole('button', { name: /^保存/ }).click()
+        } else {
+          await page.getByRole('button', { name: (operation === 'update' ? '编辑 ' : '删除 ') + 'lin的记录', exact: true }).click()
+          if (operation === 'update') {
+            await page.getByTestId('world-asset-form').getByRole('textbox').first().fill('旧伙伴提交')
+            await page.getByTestId('world-asset-form').getByRole('button', { name: /^保存/ }).click()
+          } else await page.getByRole('button', { name: '删除', exact: true }).click()
+        }
+        await expect.poll(() => page.evaluate(() => Boolean((window as any).__livingWrite.release))).toBe(true)
+        await page.evaluate(() => { const h = (window as any).__livingWrite; h.oldRelease = h.release; h.switchRole() })
+        await expect(page.getByText('zhou的记录', { exact: true }).first()).toBeVisible()
+        await expect(add.getByRole('button', { name: /^添加/ })).toBeEnabled()
+        await add.getByRole('button', { name: /^添加/ }).click()
+        const input = add.getByRole('textbox').first()
+        await input.fill('新伙伴草稿')
+        if (outcome === 'pending') {
+          await add.getByRole('button', { name: /^保存/ }).click()
+          await expect(input).toBeDisabled()
+        }
+        await page.evaluate(async ok => { (window as any).__livingWrite.oldRelease(ok); await new Promise(resolve => setTimeout(resolve, 100)) }, outcome !== 'failure')
+        await expect(input).toHaveValue('新伙伴草稿')
+        if (operation === 'create' && outcome !== 'pending') await page.screenshot({ path: testInfo.outputPath('role-write.png') })
+        if (outcome === 'pending') {
+          await expect(input).toBeDisabled()
+          await page.evaluate(() => (window as any).__livingWrite.release(true))
+          await expect(add.getByRole('button', { name: /^添加/ })).toBeEnabled()
+        } else await expect(input).toBeEnabled()
+        await expect(page.getByText(/未添加，内容仍保留|未保存，修改仍保留|未删除，请重试/)).toHaveCount(0)
+      })
+    }
+  }
+}
+
 async function installTerminalLifecycleStub(page: import('@playwright/test').Page) {
   await installProductionElectronStub(page)
   await page.addInitScript(() => {
