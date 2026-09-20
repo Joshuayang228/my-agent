@@ -16,7 +16,7 @@ export function AppearanceSettingsContent({ theme, fontScale, onThemeChange, onF
   prefix?: string
 }) {
   return <div className="space-y-4" data-testid={`${prefix}-section-appearance`}>
-    <SettingsPageHeader title="外观与界面" description="调整应用主题和界面显示；主题选项来自基础设计资产。" />
+    <SettingsPageHeader title="外观与界面" />
     <SettingCard><SettingRow scope="本机" label="界面语言" description="当前只提供简体中文。" icon={<CircleHelp size={15} />}>
       <span className="rounded-full border px-2.5 py-1 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>简体中文</span>
     </SettingRow></SettingCard>

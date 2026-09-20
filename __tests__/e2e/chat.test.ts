@@ -114,6 +114,8 @@ for (const width of [1166, 600]) {
     const settings = page.getByTestId('settings-panel')
     await settings.getByRole(width < 768 ? 'tab' : 'button', { name: '外观与界面', exact: true }).click()
     const appearance = page.getByTestId('settings-section-appearance')
+    await expect(appearance).not.toContainText(/基础设计资产|隔离样张|候选/)
+    await expect(appearance.getByRole('heading', { name: '外观与界面', exact: true })).toBeVisible()
     await expect(appearance.getByTestId('settings-theme-card').getByRole('button')).toHaveCount(4)
     for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
       const option = appearance.getByTestId(`settings-theme-${theme}`)

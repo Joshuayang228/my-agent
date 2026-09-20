@@ -1,5 +1,7 @@
 # 心愿池
 
+- WISH-045 S6 衣柜读取待复现：AssetsPanel.load 并行读取 active / assets / moments 后直接组合展示，仅用 mounted 防卸载；对照 WorldDetailsPanel，缺少角色一致性校验与读取 catch。需验证角色切换时交错响应、旧请求迟到及读取失败的实际 UI，再沿共享生活组件补齐；不能只凭六面入口或写入测试通过关闭。当前为代码审计发现，尚未声称复现或修复；不恢复 RAG / OAuth。
+
 - WISH-045 S4 首次保存强退缺口已由持久化前置门与真实 Electron 回归关闭；首次安全保存最多等待 15 秒，系统状态异常保留原配置并允许重试。Windows Electron 升级必须复核 Local State / DPAPI 格式；不承诺外部篡改、系统账户变化或断电恢复。S4 草稿生命周期与真实写入竞争仍未收口，不能关闭 WISH-045 总项。
 
 - WISH-042 S5 工作区前置依赖已解除：文件 / 侧聊关闭、终端、主会话切换分别从新 Electron 数据目录单跑通过；共享准备流程显式配置模型、创建独立项目并打开右坞。完整 onboarding 19 项通过，原始单跑失败保留在 s5-workspace-independent-red。其他用例独立性、外部脚本和已记录偶发错误仍未关闭，不以此宣称整个 S5 完成。

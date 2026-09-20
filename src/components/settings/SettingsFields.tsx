@@ -39,7 +39,7 @@ export function SettingSwitch({ checked, compact = false, description, label, on
 }
 
 export function SettingsPageHeader({ description, title, icon, eyebrow, badge }: {
-  description: string
+  description?: string
   title: string
   icon?: ReactNode
   eyebrow?: string
@@ -49,7 +49,7 @@ export function SettingsPageHeader({ description, title, icon, eyebrow, badge }:
     <div className="min-w-0">
       {(icon || eyebrow) && <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold tracking-[0.16em]" style={{ color: 'var(--accent-fg)' }}><span aria-hidden="true">{icon}</span>{eyebrow}</div>}
       <h2 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>{title}</h2>
-      <p className="mt-1 max-w-2xl text-[12px] leading-5" style={{ color: 'var(--text-muted)' }}>{description}</p>
+      {description && <p className="mt-1 max-w-2xl text-[12px] leading-5" style={{ color: 'var(--text-muted)' }}>{description}</p>}
     </div>
     {badge && <span className="shrink-0 rounded-full border px-2.5 py-1 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>{badge}</span>}
   </header>
