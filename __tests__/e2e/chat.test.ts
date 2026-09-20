@@ -1305,6 +1305,54 @@ test('MCP 已保存但刷新失败只重试刷新，不重复保存', async ({ p
   expect(await page.evaluate(() => (window as any).__mcpRefresh.saves)).toBe(1)
 })
 
+test('MCP 向导与已有服务管理互斥，旧列表不能覆盖新连接', async ({ page }) => {
+  await installProductionElectronStub(page)
+  await page.addInitScript(() => {
+    const api = (window as any).electronAPI
+    const get = api.settings.get
+    const state = { servers: [{ id: 'old', name: '旧服务', enabled: false, command: 'node', args: [], transport: 'stdio' }], committed: false, release: null as null | (() => void), writes: [] as string[][] }
+    ;(window as any).__mcpOverlap = state
+    api.settings.get = async () => ({ ...await get(), mcpServers: JSON.stringify(state.servers) })
+    api.settings.set = async (key: string, value: string) => {
+      if (key === 'mcpServers') { state.servers = JSON.parse(value); state.writes.push(state.servers.map(s => s.id)) }
+    }
+    api.mcp.status = async () => state.servers.map(s => ({ id: s.id, name: s.name, status: 'disconnected', toolCount: 0 }))
+    api.mcp.listTools = async () => []
+    api.mcp.testConnection = async () => ({ ok: true, tools: [] })
+    api.mcp.cancelTest = async () => ({ ok: true })
+    api.mcp.disconnect = async () => ({ success: true })
+    api.mcp.saveTested = async () => {
+      state.servers.push({ id: 'new', name: '新服务', enabled: false, command: 'node', args: [], transport: 'stdio' })
+      state.committed = true
+      await new Promise<void>(resolve => { state.release = resolve })
+      return { ok: true, serverId: 'new' }
+    }
+  })
+  await page.goto('/')
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+  await page.getByRole('button', { name: 'MCP', exact: true }).click()
+  await page.getByRole('button', { name: '+ 添加', exact: true }).click()
+  const form = page.getByTestId('mcp-connection-form')
+  await form.getByLabel('连接名称').fill('新服务')
+  await form.getByLabel('服务 URL').fill('https://example.com/mcp')
+  await form.getByRole('button', { name: '测试连接', exact: true }).click()
+  await form.getByRole('button', { name: '保存连接', exact: true }).click()
+  await expect.poll(() => page.evaluate(() => (window as any).__mcpOverlap.committed)).toBe(true)
+  const remove = page.getByRole('button', { name: '删除旧服务', exact: true })
+  // 向导已提交但尚未刷新清单，模拟用户在可操作时删除旧项；必须保住已提交的新项。
+  // 不伪造合并逻辑，settings.set 仍按生产接口的整表替换语义记录真实提交载荷。
+  if (await remove.isEnabled()) await remove.click()
+  expect(await page.evaluate(() => ({ ids: (window as any).__mcpOverlap.servers.map((s: any) => s.id), writes: (window as any).__mcpOverlap.writes }))).toEqual({ ids: ['old', 'new'], writes: [] })
+  await expect(remove).toBeDisabled()
+  await page.evaluate(() => (window as any).__mcpOverlap.release())
+  await expect(form).toHaveCount(0)
+  await expect(remove).toBeEnabled()
+  await remove.click()
+  await expect(page.getByTestId('settings-mcp-server-old')).toHaveCount(0)
+  await expect(page.getByTestId('settings-mcp-server-new')).toBeVisible()
+  expect(await page.evaluate(() => (window as any).__mcpOverlap.servers.map((s: any) => s.id))).toEqual(['new'])
+})
+
 test('MCP 新增向导保存与刷新期间留页，失败后可重试', async ({ page }) => {
   await installProductionElectronStub(page)
   await page.addInitScript(() => {
@@ -1404,9 +1452,11 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       await card.getByRole('button', { name: '重试', exact: true }).click()
       await expect(card.getByRole('status')).toHaveText('连接中')
       await expect(toggle).toBeDisabled()
+      await expect(page.getByRole('button', { name: '+ 添加', exact: true })).toBeDisabled()
       expect(await toggle.boundingBox()).toEqual(before)
       await page.evaluate(() => (window as any).__mcpHarness.finish())
       await expect(card.getByRole('status')).toHaveText('已连接')
+      await expect(page.getByRole('button', { name: '+ 添加', exact: true })).toBeEnabled()
       const permission = card.getByRole('checkbox', { name: '允许read', exact: true })
       await permission.scrollIntoViewIfNeeded()
       const permissionBox = await permission.boundingBox()

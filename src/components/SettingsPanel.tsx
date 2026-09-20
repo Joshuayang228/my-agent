@@ -185,7 +185,9 @@ export function SettingsPanel({
    * 关键约束：先同步占用再 await，固定控件不卸载；不代替主进程确认和权限检查。
    */
   const runMcpAction = async (action: () => Promise<void>, protectNavigation = true) => {
-    if (mcpBusyRef.current || preview || !window.electronAPI) return
+    // 向导保存后刷新前，管理操作仍持有旧整表快照；串行化两个入口以免覆盖新连接。
+    // 锁住整个向导周期而非只锁请求瞬间，保存刷新成功或取消后才恢复已有服务操作。
+    if (mcpAdding || mcpBusyRef.current || preview || !window.electronAPI) return
     mcpBusyRef.current = true
     // 普通管理请求必须保留结果接收页；OAuth 登录仍沿用离页取消，不由此锁改变其生命周期。
     mcpNavigationPendingRef.current = protectNavigation
@@ -499,8 +501,8 @@ export function SettingsPanel({
       <div className="flex items-center justify-between gap-3">
         <div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>已连接服务</div>
         <button
-          onClick={() => setMcpAdding(true)}
-          disabled={mcpAdding}
+          onClick={() => { if (!mcpBusyRef.current) setMcpAdding(true) }}
+          disabled={mcpAdding || mcpBusy}
           className="h-8 shrink-0 rounded-[var(--radius-md)] border px-3 text-xs transition"
           style={{ borderColor: 'var(--border-subtle)', color: 'var(--accent-fg)' }}
         >
@@ -543,7 +545,7 @@ export function SettingsPanel({
             transport={server.transport === 'streamable-http' ? '远程 · Streamable HTTP' : server.transport === 'sse' ? '远程 · SSE' : '本地 · stdio'} status={status}
             error={error}
             tools={mcpTools?.filter((tool) => tool.serverId === server.id).map((tool) => ({ id: tool.name, ...tool })) ?? null}
-            busy={mcpBusy} testId={`settings-mcp-server-${server.id}`}
+            busy={mcpBusy || mcpAdding} testId={`settings-mcp-server-${server.id}`}
             onEnabledChange={() => void runMcpAction(() => handleToggleMcp(server.id), !server.oauth)}
             onRemove={() => void runMcpAction(() => handleRemoveMcp(server.id))}
             onCancel={server.oauth ? () => { void window.electronAPI.mcp.cancelLogin(server.id).catch(() => toast('取消状态未确认，请重试。', 'warning')) } : undefined}
