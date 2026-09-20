@@ -1,5 +1,7 @@
 # 项目进度
 
+- 全产品当前 UI 组合回归（2026-09-20）：50f20c1 代码的完整 ui 项目 331 项通过，8.2 分钟，无重试，证据 var/verification/rollout-current-ui。不改产品代码、不提升四项 experience 状态。下一步具体核验 S4 权限独立保存的 pending / 离页 / 卸载边界：savePermissionSetting 绕过普通设置队列，现有 beforeunload 只检查普通队列；当前仅代码证据，尚未运行该故障复现。真实 Electron 总验收、其余合同缺口继续，RAG / OAuth 后续暂缓。
+
 - S5 watcher 测试误报已定位并修复（2026-09-20）：真实日志显示文档阶段收到的是迟到的第二次 index.html change，不是被忽略的文档事件。测试改用真实服务刷新路径归因，不清空历史后猜来源；正常 / 交叠场景通过，Unit 1237、根 tsc / build 通过。未改产品监听配置；S5 其余验收可靠性和 S6 总体验仍待完成，RAG / OAuth 后续保持暂缓。
 
 - R12 通讯录共享呈现（2026-09-20）：WorldSurface 删除独立姓名行并复用 CastPanel 的隔离 previewData，保留正式忙闲 / 摘要 / 开聊能力。深浅宽窄隔离与既有正式交互共 7 项 UI、Unit 1236、根 tsc / build 通过；检查深浅截图。候选现能展示真实组件形态，最终视觉确认与全产品 S6 仍未关闭，不提升 adopted；RAG / OAuth 后续保持暂缓。
