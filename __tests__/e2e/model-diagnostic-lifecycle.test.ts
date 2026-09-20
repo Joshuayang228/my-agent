@@ -73,6 +73,69 @@ test('正式模型草稿隐藏恢复与重载退出的保存边界', async ({}, 
   }
 })
 
+test('普通设置防抖草稿拒绝重载退出并在保存后重启恢复', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'my-agent-settings-queue-'))
+  let app: ElectronApplication | undefined
+  const launch = () => electron.launch({ args: [fileURLToPath(new URL('../../dist-electron/index.js', import.meta.url)), '--user-data-dir=' + directory, '--no-sandbox'], env: { ...process.env, NODE_ENV: 'production', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' } })
+  try {
+    app = await launch()
+    let page = await app.firstWindow()
+    page.on('dialog', () => {})
+    await expect(page.getByTestId('settings-panel')).toBeVisible()
+    await page.getByTestId('settings-nav-companion').click()
+    // 仅扣住设置的 800ms 防抖回调，不替换 Chromium 全局时钟或真实 IPC / 数据库。
+    await page.evaluate(() => {
+      const schedule = window.setTimeout.bind(window)
+      const cancel = window.clearTimeout.bind(window)
+      const held = new Map<number, () => void>()
+      window.setTimeout = ((handler: TimerHandler, delay?: number, ...args: any[]) => {
+        if (delay !== 800 || typeof handler !== 'function') return schedule(handler, delay, ...args)
+        const id = schedule(() => {}, 60000)
+        held.set(id, () => handler(...args))
+        return id
+      }) as typeof window.setTimeout
+      window.clearTimeout = (id?: number) => { if (id !== undefined) held.delete(id); cancel(id) }
+      ;(window as any).__releaseSettingsDebounce = () => {
+        window.setTimeout = schedule
+        window.clearTimeout = cancel
+        for (const [id, run] of held) { cancel(id); run() }
+        held.clear()
+      }
+      ;(window as any).__settingsDebounceCount = () => held.size
+    })
+    const note = page.getByRole('textbox', { name: '相处补充说明', exact: true })
+    await note.fill('重载退出前必须保存的伙伴说明')
+    await expect.poll(() => page.evaluate(() => (window as any).__settingsDebounceCount())).toBe(1)
+    expect((await page.evaluate(() => window.electronAPI.settings.get())).companionResponseNote).toBe('')
+    await app.evaluate(({ BrowserWindow }) => {
+      const state = globalThis as { __queueBlocked?: number }
+      state.__queueBlocked = 0
+      BrowserWindow.getAllWindows()[0].webContents.on('will-prevent-unload', () => { state.__queueBlocked!++ })
+      BrowserWindow.getAllWindows()[0].webContents.reload()
+    })
+    await expect.poll(() => app!.evaluate(() => (globalThis as { __queueBlocked?: number }).__queueBlocked)).toBe(1)
+    await app.evaluate(({ app }) => { app.quit() })
+    await expect.poll(() => app!.evaluate(() => (globalThis as { __queueBlocked?: number }).__queueBlocked)).toBe(2)
+    await expect(note).toHaveValue('重载退出前必须保存的伙伴说明')
+    await page.evaluate(() => (window as any).__releaseSettingsDebounce())
+    await expect.poll(async () => (await page.evaluate(() => window.electronAPI.settings.get())).companionResponseNote).toBe('重载退出前必须保存的伙伴说明')
+    await expect.poll(() => page.evaluate(() => window.dispatchEvent(new Event('beforeunload', { cancelable: true })))).toBe(true)
+    await page.reload()
+    await expect(page.getByTestId('settings-panel')).toBeVisible()
+    await app.close()
+    app = undefined
+    app = await launch()
+    page = await app.firstWindow()
+    await expect(page.getByTestId('settings-panel')).toBeVisible()
+    await page.getByTestId('settings-nav-companion').click()
+    await expect(page.getByRole('textbox', { name: '相处补充说明', exact: true })).toHaveValue('重载退出前必须保存的伙伴说明')
+  } finally {
+    if (app && app.process().exitCode === null) await app.evaluate(({ BrowserWindow }) => { for (const window of BrowserWindow.getAllWindows()) window.destroy() }).catch(() => {})
+    await app?.close()
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test('正式模型诊断重载取消真实 HTTP，重新进入可发现与测试', async () => {
   let hang = true
   const received: string[] = []

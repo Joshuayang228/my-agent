@@ -5467,6 +5467,45 @@ test.describe('My Agent UI', () => {
     await expect(search).toHaveValue('')
   })
 
+  test('普通设置保存队列在重载前保留最新值', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      const state = { pending: [] as Array<() => void>, fail: false, writes: [] as string[], stored: { llmConnectionReady: 'true', companionResponseNote: '' } as Record<string, string> }
+      ;(window as any).__queueUnload = state
+      api.settings.get = async () => ({ ...state.stored })
+      api.settings.set = async (key: string, value: string) => {
+        state.writes.push(value)
+        await new Promise<void>(resolve => state.pending.push(resolve))
+        if (state.fail) throw new Error('synthetic-save-failure')
+        state.stored[key] = value
+      }
+    })
+    await page.goto('/')
+    await page.locator('button[title="设置"]').click()
+    await page.getByTestId('settings-nav-companion').click()
+    const note = page.getByRole('textbox', { name: '相处补充说明', exact: true })
+    const blocked = () => page.evaluate(() => !window.dispatchEvent(new Event('beforeunload', { cancelable: true })))
+    await note.fill('第一版')
+    expect(await blocked()).toBe(true)
+    await expect.poll(() => page.evaluate(() => (window as any).__queueUnload.pending.length)).toBe(1)
+    await note.fill('最后一版')
+    expect(await blocked()).toBe(true)
+    await page.evaluate(() => (window as any).__queueUnload.pending.shift()())
+    await expect.poll(() => page.evaluate(() => (window as any).__queueUnload.writes)).toEqual(['第一版', '最后一版'])
+    expect(await blocked()).toBe(true)
+    await page.evaluate(() => { const s = (window as any).__queueUnload; s.fail = true; s.pending.shift()() })
+    await expect(page.getByRole('button', { name: /重试/ }).first()).toBeVisible()
+    expect(await blocked()).toBe(true)
+    await expect(note).toHaveValue('最后一版')
+    await page.evaluate(() => { (window as any).__queueUnload.fail = false })
+    await page.getByRole('button', { name: /重试/ }).first().click()
+    await expect.poll(() => page.evaluate(() => (window as any).__queueUnload.pending.length)).toBe(1)
+    await page.evaluate(() => (window as any).__queueUnload.pending.shift()())
+    await expect.poll(() => blocked()).toBe(false)
+    expect(await page.evaluate(() => (window as any).__queueUnload.stored.companionResponseNote)).toBe('最后一版')
+  })
+
   test('设置等待保存时侧栏重渲染不取消快捷键离开', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {

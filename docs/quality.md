@@ -1,5 +1,7 @@
 # 质量总控
 
+S4 普通设置保存队列：UI s4-settings-queue-red 在填入第一版后 dispatch beforeunload 返回放行，expected blocked=true / actual=false。修复后 s4-settings-queue-ui 3 项通过，覆盖 pending、同键新旧值、失败保留与重试、清空放行。真实 Electron 初版 page.clock 全局冻结 / 恢复两次均未观察到防抖落盘，不作成功证据；改为仅扣住 800ms 回调、计数确认已挂起，保留真实 IPC / SQLite，释放后保存并完整重启恢复。独立用例及 s4-settings-queue-verified 整组 3 项通过。Unit 1236、根 tsc / build 通过；无独立 lint，既有构建警告保留。只修普通设置队列卸载，不宣称所有设置副作用与跨入口写入竞争已验收。
+
 S6 资产角色绑定验证：s6-stale-role-red 仅延迟测试窗口 role-changed 通知，真实主进程 Asset added 日志与正式列表均显示旧 lin 草稿写到 zhou。修复后 s6-stale-role-fixed 独立用例、s6-stale-role-onboarding 完整 21 项通过；同用例覆盖四类过期表单零新增、8 类无效 / 错误角色、通知恢复后正常写入及重载、跨角色编辑删除拒绝。测试不替换写入 IPC / SQLite，finally 恢复通知并清理自身资产。UI 时序与新增失败 40 项通过（s6-stale-role-ui），Unit 1236、Eval 23 + 1、根 tsc / build 通过。主进程同树对照 72 → 72，唯一诊断文本差异是既有 TS6307 的引用链增加 companion IPC，错误本身未新增但仍非全绿。无独立 lint 脚本，已有构建警告保留；不将本批当作总体验采用或其他设置竞争验收。
 
 S6 生活资产写入隔离门禁：旧代码四个正式页面在切角后添加按钮仍 disabled，红测 s6-role-write-red。新增 / 编辑 / 删除 × 成功 / 失败 / 新写入 pending × 四页共 36 项，加既有切角读取 3 项，最终 39 通过（s6-role-write-themes）；成功场景浅色 1166，失败与 pending 深色 600，人工检查文化角窄屏及衣柜宽屏截图。Unit 首跑 dev-server-watch:35 多收到一次 full-reload，1235 通过；不改代码断言复核 1236 通过，尚未定位监听测试根因。根 tsc / build 通过；无独立 lint 脚本，已有构建警告保留。本批未改主进程 / IPC，不宣称后端受理切角竞争或全产品验收完成。

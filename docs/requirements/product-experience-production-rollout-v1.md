@@ -3,6 +3,10 @@
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
 
+S4 普通设置队列卸载保护已落地（2026-09-20）：有待保存 / 在途 / 失败保留项时阻止重载退出，原自动保存完成后放行。UI 红测转绿，最新值排队、失败重试及应用内离页 3 项通过；真实 Electron 局部扣住 800ms 防抖回调，验证 reload / quit 拒绝、释放后真实落盘与完整重启恢复，整组生命周期 3 项通过。Unit 1236、根 tsc / build 通过。未改主进程 / IPC / 依赖，MCP 与权限独立操作、其余 S4–S6 仍待核实；RAG / OAuth 后续暂缓。
+
+S4 普通设置队列卸载保护：正式伙伴说明已加入 pendingSettingsRef，但 beforeunload 仍放行，受控红测 expected true / actual false。复用模型草稿的卸载取消机制与既有 Toast，仅在 SettingsPanel 非 preview 且有普通设置待保存 / 保存中时留页，不新建保存队列，不自动提交模型草稿。允许修改 SettingsPanel、既有 chat 与 model-diagnostic-lifecycle 测试和相关文档；该组件存量 diff 已核对为空。不修改主进程、IPC、依赖或 UI 布局。必测防抖前、保存中更新同键、失败后重试、清队列放行，以及真实 Electron 重载 / quit 拒绝与保存后重启恢复；不以此覆盖 MCP / 权限独立操作生命周期或强杀恢复。
+
 S6 新增资产跨角色误写已修复（2026-09-20）：真实 Electron 红测在小林旧表单提交后，主进程日志确认衣物写到 zhou。新增请求现绑定页面快照 roleId，主进程拒绝无效 / 过期角色，受理后固定归属。四页过期新增无落库、正常新增重载、跨角色编辑删除拒绝均经真实 IPC 验证；独立用例及完整 onboarding 21 项通过，UI 40、Unit 1236、Eval 23 + 1、根 tsc / build 通过。其他设置生命周期、总体验采用仍继续，RAG / OAuth 后续暂缓。
 
 S6 新增资产角色绑定修复边界：真实 Electron 延迟测试窗口的 role-changed 通知后，小林表单提交的新衣物实际以 roleId=zhou 入库。新增 IPC 必须携带已展示资产快照的 roleId，主进程核验其与受理时活跃角色一致；缺失 / 无效角色拒绝，不回退当前角色。校验后固定使用该角色提交，后续切角不改归属；编辑 / 删除沿用已有 expectedRoleId 校验。不新增锁、数据库迁移、UI 样式或依赖。允许修改 shared/types、preload、vite-env、companion IPC、AssetsPanel、WorldDetailsPanel、既有 onboarding 测试及对应模块 / 架构 / 质量 / 账本；共享文件先核对存量 diff 为零。必测四页过期表单拒绝且不落库、当前角色成功写入及重载、缺失 / 错误角色拒绝、已有编辑删除隔离；不恢复 RAG / OAuth。

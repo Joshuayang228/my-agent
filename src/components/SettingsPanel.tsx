@@ -140,6 +140,20 @@ export function SettingsPanel({
   const pendingSettingsRef = useRef(new Map<keyof SettingsForm, string>())
   const savingRef = useRef<Promise<boolean> | null>(null)
 
+  useEffect(() => {
+    if (preview || !window.electronAPI) return
+    // 普通设置防抖和在途保存不经过模型草稿门控；留页等待原队列完成，不能在卸载中赌异步写盘。
+    // 只检查实时队列与保存锁，失败项保留重试；清空后必须放行，预览不得拦截生产窗口。
+    const preventPendingLoss = (event: BeforeUnloadEvent) => {
+      if (!pendingSettingsRef.current.size && !savingRef.current) return
+      event.preventDefault()
+      event.returnValue = ''
+      toast('设置尚未保存完成，请稍后再离开；保存失败时请重试。', 'warning')
+    }
+    window.addEventListener('beforeunload', preventPendingLoss)
+    return () => window.removeEventListener('beforeunload', preventPendingLoss)
+  }, [preview, toast])
+
   const applyMcpStatuses = useCallback((statuses: McpServerStatus[]) => {
     setMcpStatuses(statuses)
   }, [])
