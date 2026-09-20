@@ -1,5 +1,7 @@
 # 伙伴世界（Companion）
 
+人物世界身份区由 WorldProfileHeader 共享呈现；正式 App 传入当前角色名称 / 简介，Playground 传入隔离 persona。姓名首字仅作头像占位，空简介不填编造人设；返回沿用 Foundation IconButton。不新增头像上传或角色存储。
+
 ## 一句话
 
 同宇宙多主角架构下，**唯一活跃主角**接管聊天、生活世界、朋友圈与衣柜；文案资产化，组装器只拼装。

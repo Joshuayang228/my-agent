@@ -15,6 +15,7 @@ import { WorldHub, type WorldTab } from '../shell/WorldHub'
 import { AssetsPanel } from '../AssetsPanel'
 import { CastPanel, type CastPreviewData } from '../CastPanel'
 import { WorldDetailsPanel } from '../WorldDetailsPanel'
+import { WorldProfileHeader } from '../world/WorldProfileHeader'
 import type { WorldAssetRecord } from '../world/WorldAssetEditor'
 import type { MemoryEntry } from '../../shared/types'
 import { MEMORY_GROUPS } from '../../shared/memory-groups'
@@ -499,27 +500,7 @@ function DockSurface() {
   return <WorkspaceExperienceCandidate />
 }
 function MomentsProfileHero({ persona }: { persona: PlaygroundPersona }) {
-  return (
-    <section className="moments-profile-hero relative shrink-0 overflow-hidden" data-testid="playground-moments-profile">
-      <div className="moments-profile-hero-wash absolute inset-0" aria-hidden="true">
-        <div className="moments-profile-hero-orbit absolute -right-10 -top-20 h-48 w-48 rounded-full" />
-        <div className="moments-profile-hero-orbit moments-profile-hero-orbit-secondary absolute -left-16 -bottom-28 h-56 w-56 rounded-full" />
-        <div className="moments-profile-hero-vignette absolute inset-x-0 bottom-0 h-20" />
-      </div>
-      <div className="relative flex min-h-[9.5rem] items-end gap-3 px-5 pb-4 pt-8">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-lg)] border-4 text-lg font-semibold shadow-sm" style={{ borderColor: 'var(--card-bg)', background: 'var(--accent-subtle)', color: 'var(--companion-accent-warm)' }}>
-          小
-        </div>
-        <div className="min-w-0 flex-1 pb-0.5">
-          <div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{persona.name}</div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px]" style={{ color: 'color-mix(in srgb, var(--text-primary) 78%, transparent)' }}>
-            <span>沉稳体贴的数字伙伴</span>
-            <span className="inline-flex items-center gap-1"><MapPin size={11} aria-hidden="true" />生活在此刻</span>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
+  return <WorldProfileHeader profile={{ name: persona.name, description: persona.blurb }} testId="playground-moments-profile" />
 }
 
 function worldPreviewAsset(personaId: string, id: string, kind: string, name: string, payload: Record<string, unknown>, acquiredAt = 1): WorldAssetRecord {

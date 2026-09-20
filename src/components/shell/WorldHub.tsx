@@ -11,6 +11,7 @@ import { AssetsPanel } from '../AssetsPanel'
 import { CastPanel } from '../CastPanel'
 import { CharacterShelfPanel } from '../CharacterShelfPanel'
 import { WorldDetailsPanel } from '../WorldDetailsPanel'
+import { WorldProfileHeader, type WorldProfile } from '../world/WorldProfileHeader'
 import type { ShellView } from './SecondaryNav'
 
 export type WorldTab = 'moments' | 'assets' | 'cast' | 'shelf' | 'wardrobe' | 'culture' | 'home' | 'footprints'
@@ -52,6 +53,7 @@ export function WorldHub({
   hiddenTabs = [],
   tabLabels,
   tabs,
+  profile,
 }: {
   tab: WorldTab
   onTabChange: (tab: WorldTab) => void
@@ -77,13 +79,14 @@ export function WorldHub({
   tabLabels?: Partial<Record<WorldTab, string>>
   /** Playground 可提供独立的生活面 Tab 定义；不传时保持正式页面的既有入口。 */
   tabs?: readonly WorldTabDefinition[]
+  profile?: WorldProfile
 }) {
   const visibleTabs = (tabs ?? WORLD_TABS).filter((item) => !hiddenTabs.includes(item.id))
   const labelFor = (item: WorldTabDefinition) => tabLabels?.[item.id] ?? item.label
 
   return (
     <div className="flex h-full flex-col" data-testid="world-hub">
-      {!hideHeader && <div
+      {!hideHeader && (profile ? <WorldProfileHeader profile={profile} onClose={onClose} /> : <div
         className="flex shrink-0 items-center justify-between gap-3 border-b px-5 py-3"
         style={{ borderColor: 'var(--border-subtle)' }}
       >
@@ -98,7 +101,7 @@ export function WorldHub({
         <IconButton label="返回聊天" onClick={onClose} style={{ color: 'var(--text-muted)' }}>
           <X size={14} />
         </IconButton>
-      </div>}
+      </div>)}
 
       <div className="flex min-w-0 shrink-0 border-b px-4 py-1" style={{ borderColor: 'var(--border-subtle)' }}>
         <TabStrip

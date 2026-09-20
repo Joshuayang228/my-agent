@@ -1111,6 +1111,7 @@ function App() {
               />
             ) : isWorldView(activeView) ? (
               <WorldHub
+                profile={{ name: currentPersonaName, description: companionBlurb }}
                 tab={activeView === 'world' ? worldTab : worldTabFromView(activeView)}
                 onTabChange={(t) => {
                   setWorldTab(t)
