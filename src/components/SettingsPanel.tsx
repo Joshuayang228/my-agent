@@ -120,6 +120,7 @@ export function SettingsPanel({
   const [mcpBusy, setMcpBusy] = useState(false)
   const mcpBusyRef = useRef(false)
   const mcpNavigationPendingRef = useRef(false)
+  const mcpFormBeforeLeaveRef = useRef<(() => boolean) | null>(null)
   const mcpLoginRef = useRef<string | null>(null)
   useEffect(() => () => {
     const id = mcpLoginRef.current
@@ -147,7 +148,7 @@ export function SettingsPanel({
     // 普通设置防抖和在途保存不经过模型草稿门控；留页等待原队列完成，不能在卸载中赌异步写盘。
     // 只检查实时队列与保存锁，失败项保留重试；清空后必须放行，预览不得拦截生产窗口。
     const preventPendingLoss = (event: BeforeUnloadEvent) => {
-      if (!pendingSettingsRef.current.size && !savingRef.current && !permissionSavesRef.current && !mcpNavigationPendingRef.current) return
+      if (!pendingSettingsRef.current.size && !savingRef.current && !permissionSavesRef.current && !mcpNavigationPendingRef.current && mcpFormBeforeLeaveRef.current?.() !== false) return
       event.preventDefault()
       event.returnValue = ''
       toast('设置尚未保存完成，请稍后再离开；保存失败时请重试。', 'warning')
@@ -287,7 +288,7 @@ export function SettingsPanel({
 
   // 背景：子页草稿不属于自动保存字段；意图：所有导航先检查再清空保存队列；约束：防抖仍只调用 persistSettings，不能自动提交连接草稿。
   const prepareToLeave = useCallback(async () => {
-    if (mcpNavigationPendingRef.current) {
+    if (mcpNavigationPendingRef.current || mcpFormBeforeLeaveRef.current?.() === false) {
       toast('MCP 操作正在完成，请稍后再离开。', 'warning')
       return false
     }
@@ -297,7 +298,7 @@ export function SettingsPanel({
     }
     if (modelBeforeLeaveRef.current && !modelBeforeLeaveRef.current()) return false
     if (!(await persistSettings())) return false
-    if (permissionSavesRef.current || mcpNavigationPendingRef.current) return false
+    if (permissionSavesRef.current || mcpNavigationPendingRef.current || mcpFormBeforeLeaveRef.current?.() === false) return false
     return modelBeforeLeaveRef.current?.() ?? true
   }, [persistSettings, toast])
   useImperativeHandle(saveBeforeLeaveRef, () => prepareToLeave, [prepareToLeave])
@@ -508,7 +509,7 @@ export function SettingsPanel({
       </div>
       </SettingCard>
 
-      {mcpAdding && !preview && <McpConnectionForm actions={window.electronAPI.mcp} onCancel={() => setMcpAdding(false)} onSaved={async (result) => {
+      {mcpAdding && !preview && <McpConnectionForm beforeLeaveRef={mcpFormBeforeLeaveRef} actions={window.electronAPI.mcp} onCancel={() => setMcpAdding(false)} onSaved={async (result) => {
         const settings = await window.electronAPI.settings.get()
         const servers = JSON.parse(settings.mcpServers || '[]')
         if (!Array.isArray(servers)) throw new Error('MCP 配置读取失败')

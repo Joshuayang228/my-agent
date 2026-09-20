@@ -1,5 +1,7 @@
 # 质量总控
 
+S4 MCP 向导：s4-mcp-wizard-red 在点击保存后 beforeunload 返回放行，修复为同步 phaseRef / refreshing 判定。初版误拦 cancelling 导致既有重测离页测试失败，已按原契约撤掉取消阶段拦截，不改断言。s4-mcp-wizard-final 12 项通过，含保存失败重试、刷新失败只刷新、保存 / 刷新期间内部导航和卸载保护、四主题先测后存及取消迟到隔离。Unit 1237、根 tsc / build 通过，无独立 lint，既有构建警告保留。本批为 Renderer 受控时序证据，不替代新增向导真实 Electron 持久化验收。
+
 S4 MCP 普通管理：s4-mcp-action-red 三条 pending 红测 expected blocked=true / actual=false；s4-mcp-action-ui 13 项通过，覆盖停用 / 删除 / 工具许可离页和卸载保护、失败释放与重试、四主题服务卡及权限回归。s4-mcp-action-electron 两项用原 handler 延迟夹具验证真实 reload / quit 取消与写入后重启（权限规则及 MCP 删除），不替换存储。Unit 1237、根 tsc / build 通过，无独立 lint，既有构建警告保留。只保护 runMcpAction 普通管理路径，OAuth 启停 / 重试排除，新增向导与跨入口竞争不由本批证明。
 
 S4 权限在途保存：s4-permission-red 的 rules 请求已发出但卸载未阻止（expected true / actual false）；mode 初版选中当前模式而未发起请求，修正测试前置为先计划，不将其算作产品故障。s4-permission-ui 11 项通过，验证 pending 拒绝内部切页 / 新会话 / beforeunload、失败保留草稿、重试与释放。s4-permission-electron 1 项通过：独占测试进程仅延迟原 settings:set handler，释放后仍走真实参数校验、SQLite 和热更新；实际 reload / quit 均触发 will-prevent-unload，成功后正常退出并重启恢复规则。该测试依赖 Electron 内部 handler 映射，升级若不可用会显式失败。Unit 1237、根 tsc / build 通过，无独立 lint，既有构建警告保留；不外推到未提交草稿或 MCP 生命周期。

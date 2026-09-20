@@ -1305,6 +1305,68 @@ test('MCP 已保存但刷新失败只重试刷新，不重复保存', async ({ p
   expect(await page.evaluate(() => (window as any).__mcpRefresh.saves)).toBe(1)
 })
 
+test('MCP 新增向导保存与刷新期间留页，失败后可重试', async ({ page }) => {
+  await installProductionElectronStub(page)
+  await page.addInitScript(() => {
+    const api = (window as any).electronAPI
+    const get = api.settings.get
+    const state = { saves: 0, cancels: 0, failSave: true, failRefresh: true, saved: false, release: null as null | (() => void) }
+    ;(window as any).__wizardSave = state
+    api.settings.get = async () => {
+      if (state.saved) {
+        await new Promise<void>(resolve => { state.release = resolve })
+        if (state.failRefresh) throw new Error('controlled-refresh-failure')
+      }
+      return get()
+    }
+    api.mcp.testConnection = async () => ({ ok: true, tools: [] })
+    api.mcp.cancelTest = async () => { state.cancels++; return { ok: true } }
+    api.mcp.saveTested = async () => {
+      state.saves++
+      await new Promise<void>(resolve => { state.release = resolve })
+      if (state.failSave) return { ok: false, error: '保存失败，请重试。' }
+      state.saved = true
+      return { ok: true, serverId: 'saved' }
+    }
+  })
+  await page.goto('/')
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+  await page.getByRole('button', { name: 'MCP', exact: true }).click()
+  await page.getByRole('button', { name: '+ 添加', exact: true }).click()
+  const form = page.getByTestId('mcp-connection-form')
+  await form.getByLabel('连接名称').fill('保存中的连接')
+  await form.getByLabel('服务 URL').fill('https://example.com/mcp')
+  await form.getByRole('button', { name: '测试连接', exact: true }).click()
+  await form.getByRole('button', { name: '保存连接', exact: true }).click()
+  const blocked = () => page.evaluate(() => !window.dispatchEvent(new Event('beforeunload', { cancelable: true })))
+  expect(await blocked()).toBe(true)
+  await page.getByTestId('settings-nav-appearance').click()
+  await expect(form).toBeVisible()
+  await page.keyboard.press('Control+n')
+  await expect(form).toBeVisible()
+  expect(await page.evaluate(() => (window as any).__wizardSave.cancels)).toBe(0)
+  await page.evaluate(() => (window as any).__wizardSave.release())
+  await expect(form.getByRole('alert')).toContainText('保存失败')
+  expect(await blocked()).toBe(false)
+  await page.evaluate(() => { (window as any).__wizardSave.failSave = false })
+  await form.getByRole('button', { name: '保存连接', exact: true }).click()
+  await page.evaluate(() => (window as any).__wizardSave.release())
+  await expect(form.getByRole('button', { name: '刷新列表', exact: true })).toBeDisabled()
+  expect(await blocked()).toBe(true)
+  await page.getByTestId('settings-nav-appearance').click()
+  await expect(form).toBeVisible()
+  await page.evaluate(() => (window as any).__wizardSave.release())
+  await expect(form.getByRole('alert')).toContainText('列表刷新失败')
+  expect(await blocked()).toBe(false)
+  await page.evaluate(() => { (window as any).__wizardSave.failRefresh = false })
+  await form.getByRole('button', { name: '刷新列表', exact: true }).click()
+  expect(await blocked()).toBe(true)
+  await page.evaluate(() => (window as any).__wizardSave.release())
+  await expect(form).toHaveCount(0)
+  expect(await blocked()).toBe(false)
+  expect(await page.evaluate(() => (window as any).__wizardSave.saves)).toBe(2)
+})
+
 for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
   for (const width of [1166, 600]) {
     test(`正式 MCP 共享服务卡与操作恢复 ${theme} ${width}`, async ({ page }, testInfo) => {

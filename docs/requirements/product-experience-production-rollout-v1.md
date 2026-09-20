@@ -3,6 +3,8 @@
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
 
+S4 新增 MCP 向导 Renderer 边界（2026-09-20）：修改 SettingsPanel、McpConnectionForm、chat E2E 与相关文档；表单提供同步 beforeLeaveRef，仅保存 / 刷新时拒绝导航及卸载。原取消 / 测试中离页行为保留，失败仍重试原动作，已保存状态只刷新，不引入自动提交。未改布局 / IPC / 后端 / 依赖。saving 红测转绿，12 项 UI、Unit 1237、根 tsc / build 通过；普通向导的真实 Electron 保存及重启证据、跨入口竞争仍待后续收口，S4 / S6 保持进行中，不恢复 RAG / OAuth 后续。
+
 S4 MCP 普通管理保护（2026-09-20）：修改 SettingsPanel、chat / model-diagnostic-lifecycle 测试及模块 / 质量 / 账本。已有 runMcpAction 锁仅禁按钮，三条红测证明普通停用 / 删除 / 工具许可请求在途仍允许卸载；新增导航保护标记并在 finally 释放，OAuth 启停 / 重试显式不受新锁影响，保留原取消链。未改后端、IPC、权限语义、依赖或布局。UI 13、真实 Electron 删除 / 权限保存的重载退出及重启恢复 2、Unit 1237、根 tsc / build 通过。新增向导、未提交草稿、跨入口竞争尚未由本批覆盖，不关闭 S4 / S6。
 
 S4 权限在途保存保护（2026-09-20）：允许修改 SettingsPanel、chat / model-diagnostic-lifecycle 测试及权限模块 / 质量 / 进度账本。实际规则请求挂起时卸载未阻止，根因为独立 savePermissionSetting 绕过普通队列。新增独立请求计数，保存期间拒绝内部导航及卸载，失败仍走原表单，不自动重放写入；finally 释放。未改 IPC、主进程、权限策略、依赖或页面布局。UI 11 项、真实 Electron 重载 / 退出保护及重启恢复 1 项、Unit 1237、根 tsc / build 通过；未提交草稿及 MCP 独立操作不由本批覆盖，S4 / S6 总项不关闭。

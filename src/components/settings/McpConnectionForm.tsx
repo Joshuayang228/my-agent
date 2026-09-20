@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useImperativeHandle, useRef, useState, type ChangeEvent, type Ref } from 'react'
 import { X, RefreshCw } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
@@ -22,6 +22,7 @@ export interface McpConnectionDraft {
 }
 type Phase = 'editing' | 'testing' | 'ready' | 'saving' | 'cancelling' | 'cleanup-error' | 'saved'
 interface Props {
+  beforeLeaveRef?: Ref<() => boolean>
   actions: McpConnectionActions
   onCancel: () => void
   onSaved: (result: McpConnectionSaveResult) => Promise<void>
@@ -68,7 +69,7 @@ export function parseMcpConnectionDraft(draft: McpConnectionDraft): McpConnectio
  * 设计意图：按 requestId 持有会话，用 actions 注入生产 IPC 或隔离夹具；不再复制候选表单。
  * 关键约束：每次测试新 id，旧响应不得回写；取消确认后才能重测，保存完成后仅刷新，不重复保存。
  */
-export function McpConnectionForm({ actions, onCancel, onSaved, initialDraft, preview }: Props) {
+export function McpConnectionForm({ actions, onCancel, onSaved, initialDraft, preview, beforeLeaveRef }: Props) {
   const [draft, setDraft] = useState<McpConnectionDraft>(() => ({ ...EMPTY, ...initialDraft }))
   const [phase, setPhase] = useState<Phase>(preview?.phase ?? 'editing')
   const phaseRef = useRef(phase)
@@ -83,6 +84,9 @@ export function McpConnectionForm({ actions, onCancel, onSaved, initialDraft, pr
   api.current = actions
   const saved = useRef<McpConnectionSaveResult | null>(null)
   const refreshing = useRef(false)
+  // 外层导航必须与表单关闭按钮共享在途边界；读取同步 ref，避免点击保存后的首帧被放行。
+  // 测试及取消中离页仍由卸载清理兜底；只拦保存和刷新，不自动提交未保存草稿。
+  useImperativeHandle(beforeLeaveRef, () => () => phaseRef.current !== 'saving' && !refreshing.current, [])
   const transition = (next: Phase) => { phaseRef.current = next; setPhase(next) }
 
   useEffect(() => {

@@ -1,5 +1,7 @@
 # 项目进度
 
+- S4 MCP 向导 Renderer 保存保护（2026-09-20）：saving 原本只禁表单关闭按钮，beforeunload 红测放行；现以表单同步 ref 接入 Settings 离页 / 卸载判定。保存及刷新在途留页，失败重试，测试 / 取消仍可离页。12 项 UI、Unit 1237、根 tsc / build 通过；未改后端。普通向导真实 Electron 保存重启与跨入口竞争仍待核验，不能以本批关闭 S4 / S6；RAG / OAuth 后续暂缓。
+
 - S4 MCP 普通管理在途保护（2026-09-20）：停用 / 删除 / 工具许可三条红测确认请求挂起但卸载放行；runMcpAction 新增独立导航保护，OAuth 启停与重试明确排除。UI 13、真实 Electron MCP 删除 / 权限保存的 reload / quit 保护及重启恢复 2、Unit 1237、根 tsc / build 通过。不改后端 / IPC；新增向导、未提交草稿和跨入口竞争继续核验，不关闭 S4 / S6，RAG / OAuth 后续暂缓。
 
 - S4 权限在途保存保护（2026-09-20）：规则保存 pending 时 beforeunload 原本放行，受控红测复现后以独立计数保护卸载和内部导航；失败保留表单并可重试。UI 模式 / 规则 / 既有规则四主题与普通队列 11 项，真实 Electron 重载 / quit 拒绝、真实写盘与完整重启恢复 1 项，Unit 1237、根 tsc / build 通过。不改权限策略 / IPC / 后端；MCP 独立操作及其余总体验边界继续，RAG / OAuth 后续暂缓。
