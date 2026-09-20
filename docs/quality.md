@@ -1,5 +1,9 @@
 # 质量总控
 
+R01 审批本批收口：定向 UI 17、Unit 1241、根 tsc / vite build 通过；资产与文档按提交门禁复核。Renderer 证据见 var/verification/chat-approval-verified，保留首次红测和外部点击坐标纠正记录。构建保留既有 chunk / dynamic import / inlineDynamicImports 警告，无独立 lint 脚本；未跑本批全量 UI / Electron，不代替全产品最终验收。
+
+R01 审批入口共享（2026-09-20）：ChatApprovalControl 组合 Foundation ActionButton，App 与 ChatSurface 同源，候选仍禁用且零生产 API。正式 settings.set 成功后才更新模式；拒绝 / 取消保留旧值、显示通用错误并可重试，在途同步锁拒绝重复写入，关闭菜单后响应不抢焦点。定向 UI 17 项通过，Unit 单独重跑 1241 项通过，根 tsc 通过。首轮 UI 14 通过 / 2 外部点击坐标落入菜单，改点真实外部区域后全绿；首次 Unit 与 UI 并行时文件扫描一项超时，未改阈值和业务，独立全量通过。证据 var/verification/chat-approval-verified，深浅宽窄截图已检查。未改 IPC / 主进程 / 权限策略，不代替真实 Electron 高风险确认验收；全产品组合验收仍进行中，RAG / OAuth 后续暂缓。
+
 R01 消息外框共享验证（2026-09-20）：App 与候选实际调用 ChatMessageFrame，正式保留 Markdown、记忆引用、工具回合与编辑操作。四主题宽窄、长文本 / 代码、hover 尺寸、编辑取消 / 删除、历史角色及历史生图等定向 UI 12 项通过；Unit 1240、根 tsc / vite build 通过，深浅截图已检查。证据 var/verification/chat-message-frame-final。首轮测试字符串语法错误已修正后重跑；本批未跑完整 UI / Electron，不借用之前 352 项作为本批全量证据。审批菜单共享与全产品组合验收继续，RAG / OAuth 后续仍暂缓。 构建仍有既有 chunk / dynamic import 警告，无独立 lint 脚本。
 
 

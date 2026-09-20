@@ -3,6 +3,10 @@
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
 
+R01 审批本批收口：定向 UI 17、Unit 1241、根 tsc / vite build 通过；资产与文档按提交门禁复核。Renderer 证据见 var/verification/chat-approval-verified，保留首次红测和外部点击坐标纠正记录。构建保留既有 chunk / dynamic import / inlineDynamicImports 警告，无独立 lint 脚本；未跑本批全量 UI / Electron，不代替全产品最终验收。
+
+R01 审批呈现回流边界（2026-09-20）：新增 ChatApprovalControl 组合 Foundation ActionButton，共享正式和候选的固定审批入口；候选保持禁用，不写生产设置。允许修改 App、ChatSurface、共享组件、资产登记、Unit / UI 与权限模块及收工文档；删除仅限 App 原内联菜单和迁入组件的开关状态，不改项目菜单。正式保留 settings.set executionMode 与主进程完全访问确认，保存成功后才更新显示，失败保留原模式并提示重试，进行中禁止重复写入；新增键盘退出 / 焦点回收。无主进程、IPC、策略、依赖变化。必测成功 / 失败 / 取消 / 在途、键盘、几何和候选隔离；全产品采用状态保持进行中。
+
 R01 消息外框共享验证（2026-09-20）：App 与候选实际调用 ChatMessageFrame，正式保留 Markdown、记忆引用、工具回合与编辑操作。四主题宽窄、长文本 / 代码、hover 尺寸、编辑取消 / 删除、历史角色及历史生图等定向 UI 12 项通过；Unit 1240、根 tsc / vite build 通过，深浅截图已检查。证据 var/verification/chat-message-frame-final。首轮测试字符串语法错误已修正后重跑；本批未跑完整 UI / Electron，不借用之前 352 项作为本批全量证据。审批菜单共享与全产品组合验收继续，RAG / OAuth 后续仍暂缓。
 
 

@@ -8,6 +8,87 @@ import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { expectSharedCodeSurface } from './shared-code-surface'
 
+for (const [mode, label] of [['auto', '替我审批'], ['full-access', '完全访问权限']]) {
+  test('审批保存失败不改变当前模式 ' + mode, async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      const state = { calls: [] as string[], fail: true, release: () => {} }
+      ;(window as any).__approval = state
+      api.settings.set = async (key: string, value: string) => {
+        if (key !== 'executionMode') return
+        state.calls.push(value)
+        if (state.fail) throw new Error('用户取消高风险设置变更')
+        await new Promise<void>(resolve => { state.release = resolve })
+      }
+    })
+    await page.goto('/')
+    const control = page.getByTestId('chat-approval-control')
+    const trigger = control.getByRole('button')
+    await trigger.click()
+    await control.getByRole('menuitemradio', { name: new RegExp(label) }).click()
+    await expect(control.getByRole('alert')).toContainText('当前模式未变')
+    await expect(trigger).toHaveAccessibleName('确认模式')
+    await page.evaluate(() => { (window as any).__approval.fail = false })
+    const option = control.getByRole('menuitemradio', { name: new RegExp(label) })
+    await option.click()
+    await expect(control.getByRole('status')).toHaveText('正在保存…')
+    await expect(trigger).toHaveAccessibleName('确认模式')
+    await option.dispatchEvent('click')
+    expect(await page.evaluate(() => (window as any).__approval.calls)).toEqual([mode, mode])
+    await option.press('Escape')
+    const input = page.getByRole('textbox', { name: '消息', exact: true })
+    await input.focus()
+    await page.evaluate(() => (window as any).__approval.release())
+    await expect(trigger).toHaveAccessibleName(mode === 'auto' ? '自动审批' : '完全访问')
+    await expect(input).toBeFocused()
+    await expect(control.getByRole('menu')).toHaveCount(0)
+  })
+}
+
+for (const theme of ['porcelain-blue', 'deep-plum']) {
+  for (const width of [1166, 600]) {
+    test('共享审批菜单键盘与几何 ' + theme + ' ' + width, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 731 })
+      await installProductionElectronStub(page)
+      await page.addInitScript(theme => {
+        localStorage.setItem('theme', theme)
+        ;(window as any).__approvalCalls = []
+        ;(window as any).electronAPI.settings.set = async (key: string, value: string) => {
+          if (key === 'executionMode') (window as any).__approvalCalls.push(value)
+        }
+      }, theme)
+      await page.goto('/')
+      const control = page.getByTestId('chat-approval-control')
+      const trigger = control.getByRole('button')
+      const before = await trigger.boundingBox()
+      await trigger.hover()
+      expect(await trigger.boundingBox()).toEqual(before)
+      await trigger.press('Enter')
+      const items = control.getByRole('menuitemradio')
+      await expect(items.nth(0)).toBeFocused()
+      await items.nth(0).press('End')
+      await expect(items.nth(2)).toBeFocused()
+      await items.nth(2).press('Home')
+      await items.nth(0).press('ArrowDown')
+      await expect(items.nth(1)).toBeFocused()
+      await page.screenshot({ path: testInfo.outputPath('approval-menu.png'), animations: 'disabled' })
+      await items.nth(1).press('Enter')
+      await expect(trigger).toHaveAccessibleName('自动审批')
+      await expect(trigger).toBeFocused()
+      expect(await trigger.boundingBox()).toEqual(before)
+      expect(await page.evaluate(() => (window as any).__approvalCalls)).toEqual(['auto'])
+      await trigger.click()
+      await items.nth(1).press('Escape')
+      await expect(trigger).toBeFocused()
+      await trigger.click()
+      await page.getByRole('textbox', { name: '消息', exact: true }).click({ position: { x: 4, y: 4 } })
+      await expect(control.getByRole('menu')).toHaveCount(0)
+      expect(await page.getByTestId('chat-composer').evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+    })
+  }
+}
+
 for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
   for (const width of [1166, 600]) {
     test('正式共享消息外框保留正文引用与操作 ' + theme + ' ' + width, async ({ page }, testInfo) => {
@@ -184,6 +265,7 @@ test('候选共享输入区发送与附件保持隔离', async ({ page }) => {
   })
   const main = page.getByTestId('chat-surface-main')
   const input = main.getByTestId('chat-surface-input')
+  await expect(main.getByTestId('chat-approval-control').getByRole('button')).toBeDisabled()
   await main.getByTestId('chat-preview-file-input').setInputFiles({ name: 'preview.txt', mimeType: 'text/plain', buffer: Buffer.from('不得上传') })
   await expect(main.getByTestId('chat-preview-attachments')).toContainText('preview.txt')
   await main.getByRole('button', { name: '移除preview.txt', exact: true }).click()

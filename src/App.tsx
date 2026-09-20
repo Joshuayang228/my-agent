@@ -19,9 +19,10 @@ import { MemoryCitationChips } from './components/chat/MemoryCitationChips'
 import { PermissionConfirmCard } from './components/chat/PermissionConfirmCard'
 import { ChatWelcome } from './components/chat/ChatWelcome'
 import { ChatComposer } from './components/chat/ChatComposer'
+import { ChatApprovalControl } from './components/chat/ChatApprovalControl'
 import { ChatMessageFrame } from './components/chat/ChatMessageFrame'
 import {
-  Volume2, Paperclip, Shield, RefreshCw, Zap,
+  Volume2, Paperclip,
   Folder, FolderOpen, Ban, PanelRight,
   ChevronDown,
   Copy, Check, X, Pencil, RotateCcw, GitBranch, Trash2,
@@ -122,7 +123,7 @@ function App() {
   // UI E2E 运行的是隔离的 Vite 展示壳，需保留开发入口以覆盖 Playground / Debug；Electron 正式默认仍由持久化设置决定。
   const [developerMode, setDeveloperMode] = useState(() => import.meta.env.MODE === 'ui-e2e')
   const [approvalMode, setApprovalMode] = useState<'confirm-all' | 'auto' | 'full-access'>('confirm-all')
-  const [approvalMenuOpen, setApprovalMenuOpen] = useState(false)
+
   const [modeChangeNotice, setModeChangeNotice] = useState<string | null>(null)
   const [currentProject, setCurrentProject] = useState<{ path: string; name: string } | null>(null)
   const [recentProjects, setRecentProjects] = useState<{ path: string; name: string }[]>([])
@@ -531,11 +532,11 @@ function App() {
   }, [activeView, closeSettings])
 
   useEffect(() => {
-    if (!approvalMenuOpen && !projectMenuOpen) return
-    const handler = () => { setApprovalMenuOpen(false); setProjectMenuOpen(false) }
+    if (!projectMenuOpen) return
+    const handler = () => { setProjectMenuOpen(false) }
     document.addEventListener('click', handler)
     return () => document.removeEventListener('click', handler)
-  }, [approvalMenuOpen, projectMenuOpen])
+  }, [projectMenuOpen])
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -1509,55 +1510,11 @@ function App() {
                   ))}
                 </div>
               )}
-              approvalControl={
-                  // 审批模式同时决定「问不问」与有效沙箱（full-access 放开路径限制）；共享输入区不能改写此业务契约。
-                  <div className="relative">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setApprovalMenuOpen(!approvalMenuOpen) }}
-                      className="flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] transition"
-                      style={{ color: 'var(--text-secondary)' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-                    >
-                      <span>{approvalMode === 'confirm-all' ? <Shield size={12} /> : approvalMode === 'auto' ? <RefreshCw size={12} /> : <Zap size={12} />}</span>
-                      <span>{approvalMode === 'confirm-all' ? '确认模式' : approvalMode === 'auto' ? '自动审批' : '完全访问'}</span>
-                      <ChevronDown size={9} style={{ color: 'var(--text-muted)' }} />
-                    </button>
-                    {approvalMenuOpen && (
-                      <div className="absolute bottom-full left-0 z-50 mb-1 w-56 rounded-lg border py-1.5 shadow-lg" style={{ borderColor: 'var(--border-color)', background: 'var(--dropdown-bg)' }}>
-                        <div className="px-3 pb-1.5 pt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>应如何批准操作？</div>
-                        {([
-                          { mode: 'confirm-all' as const, icon: <Shield size={14} />, label: '请求批准', desc: '破坏性操作始终询问；仅允许工作区内写入' },
-                          { mode: 'auto' as const, icon: <RefreshCw size={14} />, label: '替我审批', desc: '仅对风险操作请求批准；仅允许工作区内写入' },
-                          { mode: 'full-access' as const, icon: <Zap size={14} />, label: '完全访问权限', desc: '跳过确认，并放开文件路径沙箱' },
-                        ]).map((opt) => (
-                          <button
-                            key={opt.mode}
-                            onClick={async (e) => {
-                              e.stopPropagation()
-                              setApprovalMode(opt.mode)
-                              await window.electronAPI?.settings.set('executionMode', opt.mode)
-                              setApprovalMenuOpen(false)
-                            }}
-                            className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition"
-                            style={{ background: approvalMode === opt.mode ? 'var(--accent-subtle)' : undefined }}
-                            onMouseEnter={(e) => { if (approvalMode !== opt.mode) (e.currentTarget as HTMLButtonElement).style.background = 'var(--hover-overlay)' }}
-                            onMouseLeave={(e) => { if (approvalMode !== opt.mode) (e.currentTarget as HTMLButtonElement).style.background = '' }}
-                          >
-                            <span className="mt-0.5 text-sm">{opt.icon}</span>
-                            <div>
-                              <div className="flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                                {opt.label}
-                                {approvalMode === opt.mode && <Check size={12} style={{ color: 'var(--accent-fg)' }} />}
-                              </div>
-                              <div className="mt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>{opt.desc}</div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-              }
+              approvalControl={<ChatApprovalControl value={approvalMode} onChange={async mode => {
+                if (!window.electronAPI) throw new Error('Settings unavailable')
+                await window.electronAPI.settings.set('executionMode', mode)
+                setApprovalMode(mode)
+              }} />}
             />
 
             {/* 输入框下方信息栏：项目选择器 + Token 用量 */}

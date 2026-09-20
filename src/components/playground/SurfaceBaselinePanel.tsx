@@ -4,13 +4,14 @@
  */
 
 import { useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, ChevronDown, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, Shield, X, Check } from 'lucide-react'
+import { ArrowRight, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, X, Check } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import { ChatWelcome } from '../chat/ChatWelcome'
 import { ChatComposer } from '../chat/ChatComposer'
+import { ChatApprovalControl } from '../chat/ChatApprovalControl'
 import { ChatMessageFrame } from '../chat/ChatMessageFrame'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
@@ -406,7 +407,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                           <span className="min-w-0 truncate">{name}</span><IconButton label={`移除${name}`} size={24} onClick={() => setPreviewFiles(files => files.filter((_, item) => item !== index))}><X size={12} /></IconButton>
                         </span>)}
                       </div>}
-                      approvalControl={<ActionButton disabled title="审批设置在此样张中不可修改" className="gap-1 !border-0 !px-2 !text-[10.5px]"><Shield size={12} />确认模式<ChevronDown size={9} /></ActionButton>}
+                      approvalControl={<ChatApprovalControl value="confirm-all" disabled />}
                     />
                     <div className="mt-1.5 flex items-center justify-between px-1 text-[10px]" style={{ color: 'var(--text-muted)' }}><span className="flex items-center gap-1"><Folder size={11} /> my-agent · 样张项目</span><span>{isWork ? (workspaceOpen ? '工作区已打开' : '工作区已收起') : journey === 'confirmation' ? '等待确认' : journey === 'completed' ? '任务已完成' : journey === 'failed' ? '可以重试或继续聊聊' : isWelcome ? '准备开始' : '对话进行中'}</span></div>
                   </div>

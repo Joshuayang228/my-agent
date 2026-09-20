@@ -74,7 +74,7 @@
 - ChatMessageFrame 共享正式与候选的用户 / 助手排列、头像、身份行和气泡；正文、工具及操作由原业务注入。正式按会话 roleId 映射主角 / 召唤伙伴名称，未知角色显示「伙伴」，合法时间来自消息记录，未知时间省略。候选固定时间只经显式 previewTimeLabel 注入；hover 不改变消息尺寸，长名称和正文可换行。
 
 
-- Chat 输入卡片由 ChatComposer 共享，内部使用 Foundation TextField / IconButton；正式 App 保留附件读取、图片粘贴、文件引用、中文输入法、发送和停止回调。输入高度 64–120px、长模型名截断、发送与停止共用 28px 操作槽；候选只保留选中文件名和内存消息，不调用生产 API。审批菜单及其写入契约仍由 App 持有；消息外框已共享，整项 Chat 仍待组合验收。
+- Chat 输入卡片由 ChatComposer 共享，内部使用 Foundation TextField / IconButton；正式 App 保留附件读取、图片粘贴、文件引用、中文输入法、发送和停止回调。输入高度 64–120px、长模型名截断、发送与停止共用 28px 操作槽；候选只保留选中文件名和内存消息，不调用生产 API。审批呈现由 ChatApprovalControl 共享，写入回调仍由 App 持有；消息外框已共享，整项 Chat 仍待组合验收。
 
 - Chat 欢迎区由 ChatWelcome 共享呈现，正式 App 使用 buildColdStartCopy 的当前角色文案及原有 sendMessage / 人物世界导航，候选仅传 persona 与内存场景回调。三个动作复用 Foundation ActionButton，长名称 / 简介换行，hover 不改尺寸；不将输入区、消息流或整项 Chat 体验一并宣称完成。
 
