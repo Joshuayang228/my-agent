@@ -19,6 +19,7 @@ import { MemoryCitationChips } from './components/chat/MemoryCitationChips'
 import { PermissionConfirmCard } from './components/chat/PermissionConfirmCard'
 import { ChatWelcome } from './components/chat/ChatWelcome'
 import { ChatComposer } from './components/chat/ChatComposer'
+import { ChatMessageFrame } from './components/chat/ChatMessageFrame'
 import {
   Volume2, Paperclip, Shield, RefreshCw, Zap,
   Folder, FolderOpen, Ban, PanelRight,
@@ -916,6 +917,11 @@ function App() {
     [toolCollapse],
   )
 
+  const messageRoleId = sessions.find(session => session.id === activeSessionId)?.roleId
+  const messagePersonaName = messageRoleId && messageRoleId !== activeRoleId
+    ? protagonistNames[messageRoleId] || '伙伴'
+    : currentPersonaName || '伙伴'
+
   const coldStart = buildColdStartCopy({
     name: currentPersonaName,
     description: companionBlurb,
@@ -1206,7 +1212,7 @@ function App() {
                 return (
                   <div
                     key={msg.id}
-                    className={`animate-fade-in-up group ${dimmed ? 'opacity-20' : ''} ${isSearchMatch ? 'rounded-md ring-1' : ''} ${isUser ? 'flex justify-end' : ''}`}
+                    className={`animate-fade-in-up group ${dimmed ? 'opacity-20' : ''} ${isSearchMatch ? 'rounded-md ring-1' : ''}`}
                     style={isSearchMatch ? { ['--tw-ring-color' as string]: 'var(--accent)', ['--tw-ring-opacity' as string]: '0.3' } as React.CSSProperties : {}}
                   >
                     {showThinkingBeforeMsg && (
@@ -1218,36 +1224,9 @@ function App() {
                         className="mb-3"
                       />
                     )}
-                    {isUser ? (
-                      /* ── 用户消息：右对齐气泡 ── */
-                      <div className="relative max-w-[85%]">
-                        {editingMsgId === msg.id ? (
-                          <div className="flex flex-col gap-2 rounded-2xl border px-4 py-3" style={{ background: 'var(--msg-user-bg)', borderColor: 'var(--border-color)' }}>
-                            <textarea
-                              value={editingContent}
-                              onChange={(e) => setEditingContent(e.target.value)}
-                              className="theme-input w-full resize-none rounded border px-2 py-1 text-[13px] outline-none"
-                              rows={3}
-                              autoFocus
-                            />
-                            <div className="flex justify-end gap-1">
-                              <button onClick={() => setEditingMsgId(null)} className="rounded px-2 py-0.5 text-xs transition" style={{ color: 'var(--text-secondary)' }}>取消</button>
-                              <button onClick={() => submitEditedMessage(msg.id)} className="rounded px-2 py-0.5 text-xs font-medium text-white" style={{ background: 'var(--accent-emphasis)' }}>提交</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed" style={{ background: 'var(--msg-user-bg)' }}>
-                            {msg.images && msg.images.length > 0 && (
-                              <div className="mb-2 flex flex-wrap gap-2">
-                                {msg.images.map((img, i) => (
-                                  <img key={i} src={img.dataUrl} alt={img.fileName || 'image'} className="max-h-48 max-w-xs rounded border" style={{ borderColor: 'var(--border-color)' }} />
-                                ))}
-                              </div>
-                            )}
-                            <div className="whitespace-pre-wrap">{msg.content}</div>
-                          </div>
-                        )}
-                        {/* hover 操作 */}
+                    <ChatMessageFrame role={isUser ? 'user' : 'assistant'} name={messagePersonaName} timestamp={msg.timestamp}
+                      editing={isUser && editingMsgId === msg.id}
+                      actions={isUser ? (
                         <div className="absolute -bottom-5 right-2 flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
                           {!isStreaming && editingMsgId !== msg.id && (
                             <MsgBtn onClick={() => { setEditingMsgId(msg.id); setEditingContent(msg.content) }} title="编辑"><Pencil size={12} /></MsgBtn>
@@ -1271,45 +1250,7 @@ function App() {
                             </>
                           )}
                         </div>
-                      </div>
-                    ) : (
-                      /* ── AI 消息：左对齐纯文本 ── */
-                      <div className="relative max-w-full">
-                        {msg.memoryCitations && msg.memoryCitations.length > 0 && (
-                          <MemoryCitationChips
-                            citations={msg.memoryCitations}
-                            showActions={!isStreaming}
-                            onForget={(id) => void handleForgetCitation(id)}
-                            onAmend={(id, summary) => void handleAmendCitation(id, summary)}
-                          />
-                        )}
-                        {(msg.content || (isStreaming && isLastMsg)) && (
-                        <div className="mb-3 text-[13.5px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>
-                          {msg.content ? <MarkdownRenderer content={msg.content} /> : null}
-                          {isStreaming && msg.id === messages.filter(m => m.role === 'assistant').at(-1)?.id && (
-                            <span className="animate-typing-cursor ml-0.5 inline-block h-4 w-0.5" style={{ background: 'var(--accent)' }} />
-                          )}
-                        </div>
-                        )}
-                        {(() => {
-                          // Alice：tool_call 跟在本回合 assistant 正文后；历史从 toolCalls+后续 tool 还原
-                          const turnTools = applyToolCollapse(
-                            resolveToolsForAssistant(msg, messages, {
-                              liveHostId: liveToolHostId,
-                              liveTools: activeTools,
-                              expandHistoric: false,
-                            }),
-                          )
-                          return turnTools.length > 0 ? (
-                            <ToolCallbackList
-                              tools={turnTools}
-                              sessionId={activeSessionId}
-                              onToggleCollapse={toggleToolCollapse}
-                              className="mt-1"
-                            />
-                          ) : null
-                        })()}
-                        {/* hover 操作 */}
+                      ) : (
                         <div className="absolute -bottom-5 left-0 flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
                           {msg.content && (
                             <>
@@ -1341,8 +1282,73 @@ function App() {
                             </>
                           )}
                         </div>
-                      </div>
-                    )}
+                      )}>
+                      {isUser ? <>
+                        {editingMsgId === msg.id ? (
+                          <div className="flex flex-col gap-2 rounded-2xl border px-4 py-3" style={{ background: 'var(--msg-user-bg)', borderColor: 'var(--border-color)' }}>
+                            <textarea
+                              value={editingContent}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              className="theme-input w-full resize-none rounded border px-2 py-1 text-[13px] outline-none"
+                              rows={3}
+                              autoFocus
+                            />
+                            <div className="flex justify-end gap-1">
+                              <button onClick={() => setEditingMsgId(null)} className="rounded px-2 py-0.5 text-xs transition" style={{ color: 'var(--text-secondary)' }}>取消</button>
+                              <button onClick={() => submitEditedMessage(msg.id)} className="rounded px-2 py-0.5 text-xs font-medium text-white" style={{ background: 'var(--accent-emphasis)' }}>提交</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            {msg.images && msg.images.length > 0 && (
+                              <div className="mb-2 flex flex-wrap gap-2">
+                                {msg.images.map((img, i) => (
+                                  <img key={i} src={img.dataUrl} alt={img.fileName || 'image'} className="max-h-48 max-w-full rounded border" style={{ borderColor: 'var(--border-color)' }} />
+                                ))}
+                              </div>
+                            )}
+                            <div className="whitespace-pre-wrap">{msg.content}</div>
+                          </>
+                        )}
+
+                      </> : <>
+                        {msg.memoryCitations && msg.memoryCitations.length > 0 && (
+                          <MemoryCitationChips
+                            citations={msg.memoryCitations}
+                            showActions={!isStreaming}
+                            onForget={(id) => void handleForgetCitation(id)}
+                            onAmend={(id, summary) => void handleAmendCitation(id, summary)}
+                          />
+                        )}
+                        {(msg.content || (isStreaming && isLastMsg)) && (
+                        <div className="mb-3" style={{ color: 'var(--text-primary)' }}>
+                          {msg.content ? <MarkdownRenderer content={msg.content} /> : null}
+                          {isStreaming && msg.id === messages.filter(m => m.role === 'assistant').at(-1)?.id && (
+                            <span className="animate-typing-cursor ml-0.5 inline-block h-4 w-0.5" style={{ background: 'var(--accent)' }} />
+                          )}
+                        </div>
+                        )}
+                        {(() => {
+                          // Alice：tool_call 跟在本回合 assistant 正文后；历史从 toolCalls+后续 tool 还原
+                          const turnTools = applyToolCollapse(
+                            resolveToolsForAssistant(msg, messages, {
+                              liveHostId: liveToolHostId,
+                              liveTools: activeTools,
+                              expandHistoric: false,
+                            }),
+                          )
+                          return turnTools.length > 0 ? (
+                            <ToolCallbackList
+                              tools={turnTools}
+                              sessionId={activeSessionId}
+                              onToggleCollapse={toggleToolCollapse}
+                              className="mt-1"
+                            />
+                          ) : null
+                        })()}
+
+                      </>}
+                    </ChatMessageFrame>
                   </div>
                 )
               })}

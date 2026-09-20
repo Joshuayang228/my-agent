@@ -30,6 +30,17 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('Chat 消息外框正式与候选同源，正文与操作由业务注入', () => {
+    for (const file of ['src/App.tsx', 'src/components/playground/SurfaceBaselinePanel.tsx']) {
+      expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'ChatMessageFrame', '/chat/ChatMessageFrame'), file).toBe(true)
+    }
+    const source = readFileSync('src/components/chat/ChatMessageFrame.tsx', 'utf8')
+    expect(source).not.toContain('electronAPI')
+    expect(source).not.toContain('刚刚')
+    expect(source).toContain('{children}')
+    expect(source).toContain('{actions}')
+    expect(UI_COMPONENT_REGISTRY['layout.chat-message-frame'].sourcePath).toBe('src/components/chat/ChatMessageFrame.tsx')
+  })
   it('Chat 输入区正式与候选复用 Foundation 且不绑定 IPC', () => {
     for (const file of ['src/App.tsx', 'src/components/playground/SurfaceBaselinePanel.tsx']) {
       expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'ChatComposer', '/chat/ChatComposer'), file).toBe(true)

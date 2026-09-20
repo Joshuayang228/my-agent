@@ -4,13 +4,14 @@
  */
 
 import { useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, Bot, ChevronDown, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, Shield, UserRound, X, Check } from 'lucide-react'
+import { ArrowRight, ChevronDown, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, Shield, X, Check } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import { ChatWelcome } from '../chat/ChatWelcome'
 import { ChatComposer } from '../chat/ChatComposer'
+import { ChatMessageFrame } from '../chat/ChatMessageFrame'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import type { MomentItem, MomentsPreviewData } from '../MomentsPanel'
@@ -379,20 +380,13 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                       actionTestId="chat-journey-quick-action" />
                   ) : (
                     <div className="mx-auto w-full max-w-[800px] space-y-7 py-4" data-testid="chat-surface-message-flow">
-                      <div className="flex items-start justify-end gap-2.5">
-                        <div className="max-w-[75%] rounded-[var(--radius-lg)] px-3.5 py-2.5 text-[13px] leading-6" style={{ background: 'var(--msg-user-bg)', color: 'var(--text-primary)' }}>
-                          <span className="whitespace-pre-wrap break-words">{previewMessage || '帮我把今天的事情理一下，先做最重要的。'}</span>
-                        </div>
-                        <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}><UserRound size={14} aria-hidden="true" /></span>
-                      </div>
-                      <div className="flex items-start gap-2.5">
-                        <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: 'var(--accent-subtle)', color: 'var(--companion-accent-warm)' }}><Bot size={14} aria-hidden="true" /></span>
-                        <div className="min-w-0 max-w-[82%]">
-                          <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}><span className="font-medium" style={{ color: 'var(--text-secondary)' }}>{persona.name}</span><span>刚刚</span></div>
-                          <p className="mt-1.5 text-[14px] leading-7" data-testid={journey === 'completed' ? 'chat-surface-completed-reply' : undefined} style={{ color: 'var(--text-primary)' }}>{journey === 'completed' ? '已经整理好优先顺序。今天先处理最重要的三件事，剩下的我先放在会话里，之后可以继续接着排。' : '可以。我们先把今天必须完成的事情挑出来，再给剩下的留一点喘息的空间。'}</p>
+                      <ChatMessageFrame role="user">
+                        <span className="whitespace-pre-wrap break-words">{previewMessage || '帮我把今天的事情理一下，先做最重要的。'}</span>
+                      </ChatMessageFrame>
+                      <ChatMessageFrame role="assistant" name={persona.name} previewTimeLabel="刚刚">
+                          <p className="text-[14px] leading-7" data-testid={journey === 'completed' ? 'chat-surface-completed-reply' : undefined} style={{ color: 'var(--text-primary)' }}>{journey === 'completed' ? '已经整理好优先顺序。今天先处理最重要的三件事，剩下的我先放在会话里，之后可以继续接着排。' : '可以。我们先把今天必须完成的事情挑出来，再给剩下的留一点喘息的空间。'}</p>
                           <div className="mt-3 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}><MessageCircle size={12} aria-hidden="true" />上下文会跟着当前会话保留</div>
-                        </div>
-                      </div>
+                      </ChatMessageFrame>
                       {isTaskJourney && <ChatTaskJourney journey={journey} onJourneyChange={setJourney} />}
                     </div>
                   )}

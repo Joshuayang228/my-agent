@@ -42,7 +42,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     descriptionZh: '伙伴身份、会话导航、欢迎区和消息阅读组成的主对话体验。',
     status: 'playground',
     playgroundTabId: 'chat',
-    sourcePaths: ['src/App.tsx', 'src/components/shell/PrimarySidebar.tsx', 'src/components/chat/ChatWelcome.tsx', 'src/components/chat/ChatComposer.tsx', 'src/components/chat/callbacks/GeneratedImageResult.tsx'],
+    sourcePaths: ['src/App.tsx', 'src/components/shell/PrimarySidebar.tsx', 'src/components/chat/ChatWelcome.tsx', 'src/components/chat/ChatComposer.tsx', 'src/components/chat/ChatMessageFrame.tsx', 'src/components/chat/callbacks/GeneratedImageResult.tsx'],
     formalEntryPaths: ['src/App.tsx', 'src/components/shell/PrimarySidebar.tsx'],
     realDataPaths: ['electron/main/ipc/session.ts', 'electron/main/ipc/chat.ts', 'electron/main/agent/runtime.ts'],
     evidencePaths: ['__tests__/e2e/chat.test.ts', '__tests__/unit/chat-session-lifecycle.test.ts'],

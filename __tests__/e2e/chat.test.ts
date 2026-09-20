@@ -10,6 +10,75 @@ import { expectSharedCodeSurface } from './shared-code-surface'
 
 for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
   for (const width of [1166, 600]) {
+    test('正式共享消息外框保留正文引用与操作 ' + theme + ' ' + width, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 731 })
+      await installProductionElectronStub(page)
+      await page.addInitScript(theme => {
+        localStorage.setItem('theme', theme)
+        const api = (window as any).electronAPI
+        const state = { deleted: [] as string[] }
+        ;(window as any).__messageFrames = state
+        api.companion.getActive = async () => ({ id: 'lin', name: '很长的伙伴名称'.repeat(8), description: '' })
+        api.session.list = async () => [{ id: 'frame', title: '消息外框验收', createdAt: 1, updatedAt: 1, roleId: 'lin' }]
+        api.session.get = async () => ({ id: 'frame', messages: [
+          { id: 'user-frame', role: 'user', content: 'long-unbroken-message-'.repeat(30), timestamp: 1 },
+          { id: 'assistant-frame', role: 'assistant', content: '**共享正文**\n\n```ts\nconst message = "' + 'long-value-'.repeat(40) + '"\n```', timestamp: 1750000000000,
+            memoryCitations: [{ id: 'memory-frame', category: 'preference', summary: '保留原来的引用' }],
+            toolCalls: [{ id: 'tool-frame', name: 'get_current_time', arguments: '{}' }] },
+          { id: 'result-frame', role: 'tool', content: '当前时间：已读取', timestamp: 1750000000001, toolCallId: 'tool-frame' },
+        ] })
+        api.session.deleteMessage = async (id: string) => { state.deleted.push(id); return { success: true } }
+      }, theme)
+      await page.goto('/')
+      await page.getByText('消息外框验收', { exact: true }).click()
+      const frames = page.getByTestId('chat-messages').getByTestId('chat-message-frame')
+      await expect(frames).toHaveCount(2)
+      const user = frames.filter({ has: page.locator('.lucide-user-round') })
+      const assistant = frames.filter({ has: page.getByTestId('chat-message-identity') })
+      await expect(assistant.getByTestId('chat-message-identity')).toContainText('很长的伙伴名称')
+      await expect(assistant.locator('time')).toHaveAttribute('datetime', '2025-06-15T15:06:40.000Z')
+      await expect(assistant.locator('strong')).toHaveText('共享正文')
+      await expect(assistant.getByLabel('本轮引用的记忆')).toContainText('保留原来的引用')
+      await expect(assistant.getByTestId('markdown-code-block')).toBeVisible()
+      await expect(assistant.getByTestId('tool-callback-list')).toBeVisible()
+      await assistant.getByTestId('chat-message-identity').scrollIntoViewIfNeeded()
+      await page.screenshot({ path: testInfo.outputPath('assistant-frame.png'), animations: 'disabled' })
+      for (const frame of [user, assistant]) expect(await frame.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+      await user.scrollIntoViewIfNeeded()
+      await page.screenshot({ path: testInfo.outputPath('message-frames.png'), animations: 'disabled' })
+      const before = await user.boundingBox()
+      await user.hover()
+      expect(await user.boundingBox()).toEqual(before)
+      await user.getByRole('button', { name: '编辑', exact: true }).click()
+      await user.getByRole('textbox').fill('编辑草稿')
+      await user.getByRole('button', { name: '取消', exact: true }).click()
+      await expect(user).toContainText('long-unbroken-message-')
+      await user.getByRole('button', { name: '删除', exact: true }).click()
+      expect(await page.evaluate(() => (window as any).__messageFrames.deleted)).toEqual(['user-frame'])
+      await expect(frames).toHaveCount(1)
+    })
+  }
+}
+
+test('正式消息身份按会话角色而非当前主角显示', async ({ page }) => {
+  await installProductionElectronStub(page)
+  await page.addInitScript(() => {
+    const api = (window as any).electronAPI
+    api.companion.listProtagonists = async () => [{ id: 'old', name: '旧主角', description: '' }]
+    api.companion.getRoster = async () => ({ cast: [{ id: 'guest', name: '召唤伙伴' }] })
+    api.session.list = async () => ['old', 'guest', 'unknown'].map(id => ({ id, title: '身份-' + id, roleId: id, sessionKind: id === 'guest' ? 'summon' : 'main', createdAt: 1, updatedAt: 1 }))
+    api.session.get = async (id: string) => ({ id, messages: [{ id: 'reply-' + id, role: 'assistant', content: '历史消息', timestamp: null }] })
+  })
+  await page.goto('/')
+  for (const [id, name] of [['old', '旧主角'], ['guest', '召唤伙伴'], ['unknown', '伙伴']]) {
+    await page.getByText('身份-' + id, { exact: true }).click()
+    await expect(page.getByTestId('chat-message-identity')).toHaveText(name)
+    await expect(page.getByTestId('chat-message-identity').locator('time')).toHaveCount(0)
+  }
+})
+
+for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
+  for (const width of [1166, 600]) {
     test('正式共享输入区长文输入法与停止 ' + theme + ' ' + width, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 731 })
       await installProductionElectronStub(page)

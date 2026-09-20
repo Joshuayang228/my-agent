@@ -1,5 +1,8 @@
 # 质量总控
 
+R01 消息外框共享验证（2026-09-20）：App 与候选实际调用 ChatMessageFrame，正式保留 Markdown、记忆引用、工具回合与编辑操作。四主题宽窄、长文本 / 代码、hover 尺寸、编辑取消 / 删除、历史角色及历史生图等定向 UI 12 项通过；Unit 1240、根 tsc / vite build 通过，深浅截图已检查。证据 var/verification/chat-message-frame-final。首轮测试字符串语法错误已修正后重跑；本批未跑完整 UI / Electron，不借用之前 352 项作为本批全量证据。审批菜单共享与全产品组合验收继续，RAG / OAuth 后续仍暂缓。 构建仍有既有 chunk / dynamic import 警告，无独立 lint 脚本。
+
+
 R01 输入区最终验证（2026-09-20）：完整 UI 352 项通过（8.1 分钟、无重试），含新增图片粘贴载荷断言；证据 var/verification/chat-composer-full-ui。Unit 1239、根 tsc / vite build、资产 33 项与文档门禁通过。只证明本批共享呈现及 Renderer 回归，不替代真实 Electron / 外部模型验收，不提升整个 Chat 或全产品采用状态。
 
 R01 共享输入区验证（2026-09-20）：新增正式四主题 × 1166 / 600 宽的长文、长模型名、IME、Shift+Enter、发送 / 停止固定尺寸与取消后可再输入测试；覆盖附件文件读取、粘贴文件 / 图片和引用文件进入发送载荷，以及候选零生产 API。Unit 门禁检查两处真实 JSX 引用 ChatComposer，内部复用 Foundation；Provider 原内联标签断言迁移到调用方当前模型值与共享标签。定向首轮 14 项通过（图片粘贴补充前），证据 var/verification/chat-composer-focused；Unit 1239、根 tsc / vite build 通过。IPC 使用 Renderer 替身，不宣称真实供应商验证；无主进程 / IPC / 依赖变更。构建保留既有 chunk / dynamic import 警告，无独立 lint 脚本。
