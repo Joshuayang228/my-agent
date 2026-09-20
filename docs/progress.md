@@ -1,5 +1,7 @@
 # 项目进度
 
+- S5 工作区验收前置已解除：三项用例显式准备真实模型配置、独立项目及右坞，不再依赖先前测试成功。原侧聊用例独立运行失败，修复后三项分别单跑通过，完整 onboarding 19、Unit 1227、根 tsc / build 通过。未改正式产品行为；其余套件独立性、外部脚本和 S6 继续，RAG / OAuth 仍暂缓。
+
 - S5 文档监听子项收口：Vite 不再监听 docs / methodology / agent-skills / .agents/skills，保留原验收产物排除及源码更新。真实 Vite 红测捕获四类文档 HTML 事件，修复后文档无 watcher / WebSocket 重载通知，入口 HTML 与源码 Markdown 仍可更新。Unit 1227、根 tsc / build 通过。未改正式 UI 或体验采用状态；onboarding 前置依赖与其余 S5 / S6 项仍待完成。
 
 - S3 无来源生活默认值已移除：正式初始化不再为角色自动编造衣柜、书架及文化作品，用户 / 事件 / world.default 路径保留，Playground 样张不变。5 条角色空态红测转绿；Unit 1227、Eval 23 + 1、根 tsc / build、onboarding Electron 最终 19 项通过，主进程 72 → 72 无新增。证据 `var/verification/s3-living-source-final`；旧开发库残留未批量清理，人物世界总验收及其他收尾包仍进行中。RAG / OAuth 后续继续暂缓。

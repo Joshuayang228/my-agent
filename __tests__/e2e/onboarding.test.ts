@@ -860,14 +860,23 @@ test.afterEach(async ({}, testInfo) => {
   }
 })
 
-test('正式工作区读取真实文件，流式生成中关闭侧聊终止请求并删除会话', async () => {
+// 工作区验收曾依赖前序用例留下的模型、项目与右坞；worker 重建会丢失这些状态。
+// 每项从真实配置提交和正式项目入口准备，保留首启用例自己的 UI 配置覆盖；不替换业务 IPC。
+async function prepareWorkspace(): Promise<string> {
+  await page.evaluate(async (url) => {
+    await window.electronAPI.settings.saveModelConfiguration({
+      connections: JSON.stringify([{ id: 'workspace-test', name: '工作区测试连接', baseUrl: url, apiKey: 'local-test-key', model: 'local-test-model', enabled: true }]),
+      routes: JSON.stringify([{ purpose: 'primary', connectionId: 'workspace-test', model: 'local-test-model', enabled: true }]),
+    })
+  }, baseUrl)
+  heldStreamClosed = false
+  await page.reload()
   await expect(page.locator('#startup-splash')).toBeHidden()
   const debugBack = page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: '返回', exact: true })
   if (await debugBack.isVisible().catch(() => false)) await debugBack.click()
   if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
   await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
-  const projectPath = path.join(userDataDir, 'workspace-fixture')
-  await mkdir(projectPath)
+  const projectPath = await mkdtemp(path.join(userDataDir, 'workspace-fixture-'))
   await writeFile(path.join(projectPath, 'workspace.txt'), 'real workspace file content', 'utf8')
   // 仅替换操作系统目录选择器；正式 project IPC 仍执行授权、设置与文件读取。
   await electronApp.evaluate(({ dialog }, directory) => {
@@ -875,9 +884,19 @@ test('正式工作区读取真实文件，流式生成中关闭侧聊终止请�
   }, projectPath)
   await electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.setSize(1280, 850))
   await page.getByTestId('primary-sidebar').getByRole('button', { name: '新对话', exact: true }).click()
-  await page.getByRole('button', { name: '未选择项目', exact: true }).click()
+  const currentProject = await page.evaluate(() => window.electronAPI.project.get())
+  await page.getByRole('button', { name: currentProject?.name || '未选择项目', exact: true }).click()
   await page.getByRole('button', { name: '添加新项目', exact: true }).click()
-  await page.getByRole('button', { name: '打开工作区', exact: true }).click()
+  const openWorkspace = page.getByRole('button', { name: '打开工作区', exact: true })
+  if (await openWorkspace.isVisible()) await openWorkspace.click()
+  await expect(page.getByTestId('chat-right-dock')).toBeVisible()
+  expect((await page.evaluate(() => window.electronAPI.project.get()))?.path).toBe(projectPath)
+  expect((await page.evaluate(() => window.electronAPI.settings.get())).llmConnectionReady).toBe('true')
+  return projectPath
+}
+
+test('正式工作区读取真实文件，流式生成中关闭侧聊终止请求并删除会话', async () => {
+  await prepareWorkspace()
   const dock = page.getByTestId('chat-right-dock')
   await dock.getByText('workspace.txt', { exact: true }).click()
   await expect(dock.getByText('real workspace file content', { exact: true })).toBeVisible()
@@ -921,14 +940,8 @@ test('正式工作区读取真实文件，流式生成中关闭侧聊终止请�
 })
 
 test('正式终端保留大块输出，停止与关闭回收真实进程树', async () => {
-  await expect(page.locator('#startup-splash')).toBeHidden()
-  const debugBack = page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: '返回', exact: true })
-  if (await debugBack.isVisible().catch(() => false)) await debugBack.click()
-  if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
-  await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
   test.skip(process.platform !== 'win32', '此用例验证 Windows taskkill 进程树')
-  const projectPath = path.join(userDataDir, 'workspace-fixture')
-  await mkdir(projectPath, { recursive: true })
+  const projectPath = await prepareWorkspace()
   await writeFile(path.join(projectPath, 'terminal-output.cjs'), "process.stdout.write('x'.repeat(20000) + '\\n'); process.stderr.write('stderr-marker\\n')", 'utf8')
   // 仅运行本测试创建的进程；兜底自行退出，断言仍要求关闭后 5 秒内退出而非等兜底。
   await writeFile(path.join(projectPath, 'terminal-tree.cjs'), `
@@ -1008,11 +1021,7 @@ setTimeout(() => process.exit(0), 15000)
 })
 
 test('切换主会话清理真实侧聊流与存储，新侧聊独立发送', async () => {
-  await expect(page.locator('#startup-splash')).toBeHidden()
-  const debugBack = page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: '返回', exact: true })
-  if (await debugBack.isVisible().catch(() => false)) await debugBack.click()
-  if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
-  await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
+  await prepareWorkspace()
   const dock = page.getByTestId('chat-right-dock')
   await page.evaluate(() => {
     const observed = { sessionId: '' }

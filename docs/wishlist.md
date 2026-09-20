@@ -1,5 +1,7 @@
 # 心愿池
 
+- WISH-042 S5 工作区前置依赖已解除：文件 / 侧聊关闭、终端、主会话切换分别从新 Electron 数据目录单跑通过；共享准备流程显式配置模型、创建独立项目并打开右坞。完整 onboarding 19 项通过，原始单跑失败保留在 s5-workspace-independent-red。其他用例独立性、外部脚本和已记录偶发错误仍未关闭，不以此宣称整个 S5 完成。
+
 - WISH-044 本批审计取证缺口：全量及 omit=dev 的 npm audit 均被端点以 HTTP 400 / Invalid package tree 拒绝，未取得新结果。独立核验审计工具与锁文件后重跑；本批不改依赖，不用既有报告冒充最新结果。
 
 > 只保存**尚未完成**的缺口、暂缓项和灵感，不承诺执行。完整旧心愿池（含 107 个已完成项）见 [`../_archive/ledgers/wishlist-through-2026-08-16.md`](../_archive/ledgers/wishlist-through-2026-08-16.md)。
