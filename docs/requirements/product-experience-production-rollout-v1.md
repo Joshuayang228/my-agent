@@ -3,6 +3,8 @@
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
 
+S5 外部脚本子项（2026-09-20）：四项可选模型测试已迁移正式连接与用途，独立应用 / 数据目录，真实工具与终态断言；不再共享前置或使用旧颜色类名。协议复核发现 R01 流式 Stop 返回 model_error，确定性 Unit 证实 signal 已取消仍进入故障分支；本批只在 Loop 流读取 catch 中优先结束取消，其他故障行为不变。本地协议四项、无 Key 跳过四项已核验，Unit 1236、Eval 23 + 1、根 tsc / build 通过；外部供应商需明确费用授权后验收，不能用本地服务代替质量证据。其余收尾包仍进行中。
+
 S4 首次凭据强退修复：已接统一只读持久化门，双键 / 单键保存先等待 Local State 的 DPAPI 记录，同步加密前复核；备份等待在快照和事务之前，随后复核取消状态。缺失最多等 15 秒，损坏 / 超限 / 不可用拒绝，失败零业务提交并可重试。Windows Electron 42 的格式依赖必须随升级回归，不写 Chromium 文件或复制系统密钥，不承诺断电或系统账户变化恢复。正式 UI 首次保存立即强退红测转绿，重启真实 HTTP 认证成立；本子项不关闭 S4 草稿与写入竞争或 S6 全产品验收。
 
 S4 首次凭据强退定位（2026-09-20，Electron 42.9.1 / Windows）：独立临时 userData 经真实 saveModelConfiguration 保存随机测试凭据，返回成功后 Local State 仍不存在；立即 taskkill 自有 Electron 进程树，重启读取到 connections=0、routes=1、llmConnectionReady=false。另一个全新实例验证 safeStorage 可用，但 session.defaultSession.flushStorageData() 后 Local State 仍不存在，约启动 10855ms 后才出现；这是单次观测，不是可硬编码的等待时长。当前版本 browser_process_impl.cc 在退出主消息循环时提交 Local State；同步 encryptString 不构成持久化确认。修复必须保证敏感配置成功应答前具备可重启解密的系统状态；不得以固定 sleep、正常退出一次、明文降级、直接覆写 Chromium Local State 或只刷新 Session 替代。生产代码尚未修改，S4 未完成；下一步验证可用的系统状态持久化完成信号及失败时不提交配置的统一保存边界。

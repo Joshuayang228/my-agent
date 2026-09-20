@@ -139,6 +139,23 @@ describe('agentLoop', () => {
     expect(events.some(e => e.type === 'error' && e.message.includes('cancelled'))).toBe(true)
   })
 
+  it('流读取中取消返回 aborted，不重试或转换为模型故障', async () => {
+    const controller = new AbortController()
+    const stream = vi.fn(async function* () {
+      yield { type: 'text' as const, content: '已经开始输出' }
+      controller.abort()
+      expect(controller.signal.aborted).toBe(true)
+      throw new DOMException('The operation was aborted', 'AbortError')
+    })
+    const received = await collectEvents(agentLoop({
+      config: testConfig, messages: [userMsg('Hi')], tools: [],
+      signal: controller.signal, _streamChatOverride: stream,
+    }, new ToolRegistry()))
+    expect(stream).toHaveBeenCalledTimes(1)
+    expect(received.filter(event => event.type === 'done')).toEqual([{ type: 'done', reason: 'aborted' }])
+    expect(received.filter(event => event.type === 'error').every(event => event.code === 'ABORTED')).toBe(true)
+  })
+
   it('LLM 错误产出 error 事件', async () => {
     const registry = new ToolRegistry()
     const options: AgentLoopOptions = {

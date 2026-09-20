@@ -1,5 +1,7 @@
 # 系统架构
 
+Agent Loop 的模型流读取异常边界先核验当次 AbortSignal：已取消时结束观察 span 并复用 terminateLoop(aborted)，未取消才进入重试 / 压缩 / model_error。Runtime 继续保留 Loop 已发布终态，不补发或改写取消；不通过异常名字推断用户取消。
+
 敏感设置持久化经 `storage/encryption-persistence.ts` 前置保护：Windows 在保存快照之前只读检查 userData/Local State 的 os_crypt.encrypted_key（DPAPI 包络）；缺失时合并异步等待，15 秒上限失败且不提交。`settings-store` 双键 / 单键入口等待后同步复核，备份在业务快照与 beginCommit 前准备，并复核请求归属。只读系统状态，不改写 Chromium 文件、不另存密钥、不明文降级；当前格式绑定 Electron 42 Windows，升级须跑首次保存强退回归。保护针对进程异常退出，不承诺磁盘损坏、系统账户变化或断电恢复。
 
 模型配置提交事件由 storage/settings-store 发布无载荷通知，memory/index-sync 订阅后重读统一配置工厂。双键 / 单键保存及备份实际写入模型键均须完整持久化成功后发布；失败补偿且不通知。恢复 worker 合并请求、取消过期尝试并以修订号阻止旧结果发布，停止时解除订阅。存储层不反向依赖 memory 或 llm。

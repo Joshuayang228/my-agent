@@ -1,5 +1,7 @@
 # 质量总控
 
+S5 外部模型脚本已改走正式连接 / 模型清单 / 主用途入口，每项新建独立 userData；移除旧表单、bg-slate 选择器和固定等待。工具用真实 tool_end 验证，多轮仅匹配助手 text 事件，停止要求 done(aborted)。本地回环 SSE 驱动四项通过（`var/verification/s5-external-script-final`），无 Key 四项明确跳过（`s5-external-script-no-key`）；没有外部付费请求，不证明供应商质量。首轮本地 Stop 暴露 model_error，Unit 在 signal.aborted=true 时复现，修复 Loop 异常分支后通过。Unit 1236、Eval 23 + 1、根 tsc / build 通过；主进程同树替换 loop.ts 对照 71 → 71 无新增，非全绿。未改 UI / 依赖，无独立 lint，构建已有警告保留。
+
 S4 保存调用方补充回归：生图、索引恢复有 Key / 无 Key、模型诊断共 4 项通过（`s4-credential-dependent`）；同批本地连接旧 5 秒等待失败，现场仍为保存中，调整首次成功等待后独立通过（`s4-credential-local-final`）。未重跑 OAuth 专项，不恢复已暂缓范围。
 
 S4 首次敏感设置持久化：Unit 验证 Local State 缺失 / 无密钥 / 损坏 / 超限 / 加密不可用、等待合并、超时后重试、不缓存成功；真实 SQLite 验证双键 / 单键 / 同步备份准备失败零提交。正式 Electron 在全新目录经模型表单保存随机凭据，成功即 taskkill 自有进程树，重启后真实模型发现收到正确认证，SQLite 不含原文；旧构建明确失败，见 `s4-credential-first-save-red`。最终凭据 / onboarding / 备份恢复 22 项通过，证据 `var/verification/s4-credential-final`。首次新回归与备份测试曾在 5 秒时仍处于保存中，按生产 15 秒上限调整首次成功等待为 20 秒，未删除恢复 / 内容 / 认证断言。Unit 1235、根 tsc / build 通过；主进程同树仅替换本批生产文件对照 71 → 71 无新增，非全绿。未改 UI / 依赖，无独立 lint，已有构建警告保留；不代表 S4 全部边界或全产品完成。

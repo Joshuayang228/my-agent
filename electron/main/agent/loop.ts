@@ -416,6 +416,12 @@ export async function* agentLoop(
         getObserver().onLLMEnd(llmSpan, true)
         break
       } catch (err) {
+        // 流读取会因用户 Stop 抛错；优先沿既有取消终态结束，不能重试或把取消显示为模型故障。
+        if (signal?.aborted) {
+          getObserver().onLLMEnd(llmSpan, false, 'aborted')
+          yield* terminateLoop(state, 'aborted')
+          return
+        }
         lastErr = err
 
         // ── 413 紧急压缩 + 重试 ──
