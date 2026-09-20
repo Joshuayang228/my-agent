@@ -1,5 +1,7 @@
 # 质量总控
 
+R12 通讯录共享呈现：s6-cast-shared 的深浅主题 × 1166 / 600 验证真实 CastPanel、忙闲、摘要、刷新和禁用开聊；挂载 / 操作 / 离页期间 companion IPC 调用记录为空。加人物切换、正式忙闲预检和强行开聊失败重试共 7 项通过，检查浅色宽屏及深色窄屏截图。Unit 1236、根 tsc / build 通过；无主进程 / IPC / 依赖变化，无独立 lint，既有构建警告保留。此批证明组件共享及隔离，不代替新的视觉认可或全量正式验收。
+
 R12 文案验收：s6-world-copy-red 正式入口仍显示 tick / Catch-up，缺少用户空态文案；s6-world-copy-final 四主题宽窄与 Playground 基础 / 产品边界共 11 项通过，动态 / 穿着空态有正向文案和技术术语缺席断言。已检查深色窄屏截图。Unit 1236、根 tsc / build 通过；本批仅共享 JSX 文案，无主进程 / IPC 变化，无独立 lint，既有构建警告保留。
 
 WorldHub Foundation 门禁：s6-world-foundation-red 正式 tablist 缺失 data-foundation=tabs，修复后实际渲染该属性并通过 ArrowRight / Home / End 焦点与面板切换，不仅检查 import。四主题 × 1166 / 600 共 8 项通过（s6-world-foundation-final），返回按钮 hover 前后 28×28、页面无水平溢出，检查两张深浅截图；候选人物切换 / 内存操作隔离与正式六面入口 3 项通过（s6-world-foundation-parity）。Unit 1236、根 tsc / build 通过，无主进程 / IPC 改动、无独立 lint，既有构建警告保留；不以此证明通讯录候选与正式完整一致。

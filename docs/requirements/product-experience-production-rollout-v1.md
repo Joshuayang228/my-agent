@@ -3,6 +3,8 @@
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
 
+R12 通讯录共享呈现（2026-09-20）：按已授权回流范围，修改 CastPanel、SurfaceBaselinePanel、chat E2E 及相关文档；删除对象仅为 WorldSurface 静态姓名行渲染，因其不能代表正式忙闲 / 摘要 / 召唤流程。正式组件增加显式 previewData，样张数据留在 Playground；预览摘要 / 刷新仅操作内存，禁用创建会话并在处理器拦截，不订阅真实事件。不改正式默认布局、后端、IPC、依赖。深浅宽窄隔离及正式交互 7 项、Unit 1236、根 tsc / build 通过；候选形态仍待最终视觉确认，不据此提升 adopted 或关闭 S6。
+
 R12 人物世界内部术语清理（2026-09-20）：共享 MomentsPanel / AssetsPanel 将动态、穿着空态及书架说明改为用户文案，旧回顾标题也不再显示 Catch-up；不改变数据链或生成行为。正式红测转绿，四主题宽窄及 Playground 同源回归 11 项、Unit 1236、根 tsc / build 通过；检查深色窄屏截图。通讯录共享呈现仍待处理，不关闭 S6 或提升 adopted，RAG / OAuth 暂缓。
 
 R12 / R14 人物世界基础导航复用完成（2026-09-20）：WorldHub 手写 Tab 与返回按钮替换为已验收 Foundation TabStrip underline / IconButton，正式与候选同轮生效，体验注册表补真实 WorldHub source / formal 路径。四主题宽窄、键盘、hover 尺寸、溢出和返回 8 项通过，候选隔离与六面正式入口 3 项通过；已查看浅色宽屏与深色窄屏截图。Unit 1236、根 tsc / build 通过；通讯录呈现差异及内部术语已记录，不提升 adopted、不关闭 S6，RAG / OAuth 保持暂缓。

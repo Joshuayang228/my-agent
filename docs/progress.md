@@ -1,5 +1,7 @@
 # 项目进度
 
+- R12 通讯录共享呈现（2026-09-20）：WorldSurface 删除独立姓名行并复用 CastPanel 的隔离 previewData，保留正式忙闲 / 摘要 / 开聊能力。深浅宽窄隔离与既有正式交互共 7 项 UI、Unit 1236、根 tsc / build 通过；检查深浅截图。候选现能展示真实组件形态，最终视觉确认与全产品 S6 仍未关闭，不提升 adopted；RAG / OAuth 后续保持暂缓。
+
 - R12 人物世界内部术语清理（2026-09-20）：共享 MomentsPanel / AssetsPanel 将动态、穿着空态及书架说明改为用户文案，旧回顾标题也不再显示 Catch-up；不改变数据链或生成行为。正式红测转绿，四主题宽窄及 Playground 同源回归 11 项、Unit 1236、根 tsc / build 通过；检查深色窄屏截图。通讯录共享呈现仍待处理，不关闭 S6 或提升 adopted，RAG / OAuth 暂缓。
 
 - R12 / R14 人物世界基础导航复用完成（2026-09-20）：WorldHub 手写 Tab 与返回按钮替换为已验收 Foundation TabStrip underline / IconButton，正式与候选同轮生效，体验注册表补真实 WorldHub source / formal 路径。四主题宽窄、键盘、hover 尺寸、溢出和返回 8 项通过，候选隔离与六面正式入口 3 项通过；已查看浅色宽屏与深色窄屏截图。Unit 1236、根 tsc / build 通过；通讯录呈现差异及内部术语已记录，不提升 adopted、不关闭 S6，RAG / OAuth 保持暂缓。

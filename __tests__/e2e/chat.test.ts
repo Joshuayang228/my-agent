@@ -4127,6 +4127,38 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('受 Alice 项目启发', { exact: true })).toHaveCount(0)
   })
 
+  for (const theme of ['porcelain-blue', 'yao-stone']) {
+    for (const width of [1166, 600]) {
+      test(`Playground 通讯录共享呈现与隔离 ${theme} ${width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 731 })
+        await page.addInitScript((value) => localStorage.setItem('theme', value), theme)
+        await page.goto('/')
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+        await page.getByTestId('playground-nav').getByRole('button', { name: '人物世界', exact: true }).click()
+        await page.evaluate(() => {
+          const calls: string[] = []
+          ;(window as any).__castPreviewCalls = calls
+          const companion = new Proxy({}, { get: (_, name) => () => { calls.push(String(name)); throw new Error('Preview called production IPC') } })
+          ;(window as any).electronAPI = { companion }
+        })
+        await page.getByTestId('world-tab-cast').click()
+        const panel = page.getByTestId('world-cast-fixture').getByTestId('world-cast-panel')
+        await expect(panel).toBeVisible()
+        await expect(panel.getByTestId('world-cast-card-yao')).toHaveAttribute('data-availability', 'available')
+        await expect(panel.getByTestId('world-cast-card-xu')).toHaveAttribute('data-availability', 'busy')
+        await panel.getByTestId('world-cast-card-yao').getByRole('button', { name: '查看摘要' }).click()
+        await expect(panel.getByRole('button', { name: '开聊', exact: true })).toHaveCount(3)
+        for (const button of await panel.getByRole('button', { name: '开聊', exact: true }).all()) await expect(button).toBeDisabled()
+        await panel.getByRole('button', { name: '刷新通讯录' }).click()
+        await expect(panel.getByRole('button', { name: '开聊', exact: true })).toHaveCount(2)
+        expect(await page.evaluate(() => (window as any).__castPreviewCalls)).toEqual([])
+        await page.screenshot({ path: testInfo.outputPath('cast-preview.png') })
+        await page.getByTestId('world-tab-moments').click()
+        expect(await page.evaluate(() => (window as any).__castPreviewCalls)).toEqual([])
+      })
+    }
+  }
+
   test('Playground 当前主角贯穿 Chat、人物世界六个生活面', async ({ page }) => {
     await page.goto('/')
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()

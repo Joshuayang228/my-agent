@@ -69,6 +69,8 @@
 
 ## 已落地能力
 
+- 通讯录产品体验样张复用正式 CastPanel，不再维护独立姓名行；previewData 显式提供隔离名册与忙闲，摘要在内存查看、刷新恢复样张，开聊禁用且处理器二次阻断。预览不读取名册、不订阅真实切角、不创建会话；正式 roster / availability / summon 链路保留。共享呈现不等于通讯录最终视觉验收完成。
+
 - 正式与 Playground 共用的动态、近期穿着空态和书架说明只展示用户状态，不显示 tick / Catch-up、引用或派生等内部实现术语；未生成动态不承诺具体出现时间。
 
 - 人物世界六面导航与返回操作由 WorldHub 统一复用 Foundation TabStrip / IconButton，正式与 Playground 同源。支持方向键、Home / End、单一 Tab 焦点、窄屏标签内滚动；返回按钮固定 28px，hover 不改变尺寸。六面数据和入口不变。

@@ -38,6 +38,7 @@ export interface CastRecentInteraction {
 }
 
 interface CastPanelProps {
+  previewData?: CastPreviewData
   onClose: () => void
   /** 召唤开聊成功后切到该会话 */
   onOpenSession?: (sessionId: string) => void
@@ -45,6 +46,14 @@ interface CastPanelProps {
   onOpenShelf?: () => void
   /** 按 roleId 的最近召唤会话（由 App 从 sessions 派生） */
   recentByRole?: Record<string, CastRecentInteraction>
+}
+
+export interface CastPreviewData {
+  roleId: string
+  roleName: string
+  lines: RosterLine[]
+  cast: CastBrief[]
+  availabilityById: Record<string, CastAvailabilitySnapshot | null>
 }
 
 function formatRelative(ms: number): string {
@@ -88,6 +97,7 @@ export function CastPanel({
   onOpenSession,
   onOpenShelf,
   recentByRole = {},
+  previewData,
 }: CastPanelProps) {
   const { toast } = useToast()
   const [roleId, setRoleId] = useState('')
@@ -134,6 +144,18 @@ export function CastPanel({
   }, [])
 
   const load = useCallback(async () => {
+    if (previewData) {
+      setRoleId(previewData.roleId)
+      setRoleName(previewData.roleName)
+      setLines(previewData.lines)
+      setCast(previewData.cast)
+      setAvailabilityById(previewData.availabilityById)
+      setAvailabilityLoading(false)
+      setAvailabilityError('')
+      setSelected(null)
+      setLoading(false)
+      return
+    }
     if (!window.electronAPI?.companion.getRoster) return
     const generation = ++loadGeneration.current
     setLoading(true)
@@ -159,18 +181,19 @@ export function CastPanel({
     } finally {
       if (loadGeneration.current === generation) setLoading(false)
     }
-  }, [loadAvailability])
+  }, [loadAvailability, previewData])
 
   useEffect(() => {
     load()
+    return () => { loadGeneration.current++ }
   }, [load])
 
   useEffect(() => {
-    if (!window.electronAPI?.companion.onRoleChanged) return
+    if (previewData || !window.electronAPI?.companion.onRoleChanged) return
     return window.electronAPI.companion.onRoleChanged(() => {
       void load()
     })
-  }, [load])
+  }, [load, previewData])
 
   const cards = useMemo(() => {
     return lines.map((line) => {
@@ -182,13 +205,17 @@ export function CastPanel({
   }, [lines, cast, recentByRole, availabilityById, availabilityLoading])
 
   const summon = async (id: string) => {
+    if (previewData) {
+      setSelected(previewData.cast.find((entry) => entry.id === id) ?? null)
+      return
+    }
     if (!window.electronAPI?.companion.summonBrief) return
     const r = await window.electronAPI.companion.summonBrief(id)
     if (r.ok) setSelected(r.brief)
   }
 
   const startChat = async (id: string, name: string, force = false) => {
-    if (!window.electronAPI?.companion.startSummon || startingRef.current) return
+    if (previewData || !window.electronAPI?.companion.startSummon || startingRef.current) return
     startingRef.current = true
     setStarting(id)
     try {
@@ -354,7 +381,8 @@ export function CastPanel({
                       <ActionButton
                         className="gap-1"
                         tone="accent"
-                        disabled={starting === line.otherId}
+                        disabled={Boolean(previewData) || starting === line.otherId}
+                        title={previewData ? '样张不创建真实会话' : undefined}
                         onClick={() => void startChat(line.otherId, line.otherName)}
                       >
                         <MessageCircle size={11} />
@@ -392,7 +420,8 @@ export function CastPanel({
               <ActionButton
                 className="gap-1"
                 tone="accent"
-                disabled={starting === selected.id}
+                disabled={Boolean(previewData) || starting === selected.id}
+                title={previewData ? '样张不创建真实会话' : undefined}
                 onClick={() => void startChat(selected.id, selected.name)}
               >
                 <MessageCircle size={11} />
