@@ -1,5 +1,7 @@
 # 项目进度
 
+- R12 人物世界内部术语清理（2026-09-20）：共享 MomentsPanel / AssetsPanel 将动态、穿着空态及书架说明改为用户文案，旧回顾标题也不再显示 Catch-up；不改变数据链或生成行为。正式红测转绿，四主题宽窄及 Playground 同源回归 11 项、Unit 1236、根 tsc / build 通过；检查深色窄屏截图。通讯录共享呈现仍待处理，不关闭 S6 或提升 adopted，RAG / OAuth 暂缓。
+
 - R12 / R14 人物世界基础导航复用完成（2026-09-20）：WorldHub 手写 Tab 与返回按钮替换为已验收 Foundation TabStrip underline / IconButton，正式与候选同轮生效，体验注册表补真实 WorldHub source / formal 路径。四主题宽窄、键盘、hover 尺寸、溢出和返回 8 项通过，候选隔离与六面正式入口 3 项通过；已查看浅色宽屏与深色窄屏截图。Unit 1236、根 tsc / build 通过；通讯录呈现差异及内部术语已记录，不提升 adopted、不关闭 S6，RAG / OAuth 保持暂缓。
 
 - S4 普通设置队列卸载保护已落地（2026-09-20）：有待保存 / 在途 / 失败保留项时阻止重载退出，原自动保存完成后放行。UI 红测转绿，最新值排队、失败重试及应用内离页 3 项通过；真实 Electron 局部扣住 800ms 防抖回调，验证 reload / quit 拒绝、释放后真实落盘与完整重启恢复，整组生命周期 3 项通过。Unit 1236、根 tsc / build 通过。未改主进程 / IPC / 依赖，MCP 与权限独立操作、其余 S4–S6 仍待核实；RAG / OAuth 后续暂缓。

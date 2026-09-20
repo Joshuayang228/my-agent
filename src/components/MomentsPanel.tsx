@@ -243,7 +243,7 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
             <div>
               <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>朋友圈</div>
               <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                {roleName || roleId || '活跃主角'} · 生活广播（非日志表）
+                {roleName || roleId || '活跃主角'} · 最近生活
               </div>
             </div>
           </div>
@@ -261,13 +261,13 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
       <div className={isSocialFeed ? 'flex-1 overflow-y-auto px-5 py-4 scrollbar-thin' : 'flex-1 overflow-y-auto px-4 py-3 scrollbar-thin'}>
         {!isSocialFeed && summary ? (
           <div className="mb-4 rounded-lg border px-3 py-2.5 text-[12px] leading-relaxed" style={{ borderColor: 'var(--companion-catchup-border)', background: 'var(--companion-catchup-bg)', color: 'var(--text-secondary)' }}>
-            <div className="mb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: 'var(--companion-accent-warm)' }}>Catch-up</div>
+            <div className="mb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: 'var(--companion-accent-warm)' }}>最近的生活</div>
             {summary}
           </div>
         ) : null}
 
         {items.length === 0 && !loading ? (
-          <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>还没有动态。活跃主角生活 tick / Catch-up 后会出现在这里。</p>
+          <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>还没有新的动态。</p>
         ) : (
           <ul className={isSocialFeed ? 'space-y-5' : 'space-y-3'}>
             {items.map((m) => {
@@ -406,7 +406,7 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
             })}
           </ul>
         )}
-        {isSocialFeed && <p className="pt-5 text-center text-[10px]" style={{ color: 'var(--text-muted)' }}>仅展示近期动态 · 内容由主角的生活事件自然派生</p>}
+        {isSocialFeed && <p className="pt-5 text-center text-[10px]" style={{ color: 'var(--text-muted)' }}>最近的生活动态</p>}
       </div>
     </div>
   )

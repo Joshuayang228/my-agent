@@ -337,13 +337,13 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
               </div>
             ) : (
               <div className="rounded-xl border border-dashed px-4 py-5 text-center text-[12px]" data-testid="world-wardrobe-wearing-empty" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
-                暂无近期穿着记录。生活 tick 带上衣柜引用后，会显示在这里。
+                还没有近期穿着记录。
               </div>
             )}
           </section>
         ) : (
           <section className="mb-4">
-            <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>书架是角色拥有的书目真相；叙事里提到的读物应对得上这里的条目。</p>
+            <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>收藏的书与阅读笔记。</p>
           </section>
         )}
 

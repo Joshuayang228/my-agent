@@ -1,5 +1,7 @@
 # 质量总控
 
+R12 文案验收：s6-world-copy-red 正式入口仍显示 tick / Catch-up，缺少用户空态文案；s6-world-copy-final 四主题宽窄与 Playground 基础 / 产品边界共 11 项通过，动态 / 穿着空态有正向文案和技术术语缺席断言。已检查深色窄屏截图。Unit 1236、根 tsc / build 通过；本批仅共享 JSX 文案，无主进程 / IPC 变化，无独立 lint，既有构建警告保留。
+
 WorldHub Foundation 门禁：s6-world-foundation-red 正式 tablist 缺失 data-foundation=tabs，修复后实际渲染该属性并通过 ArrowRight / Home / End 焦点与面板切换，不仅检查 import。四主题 × 1166 / 600 共 8 项通过（s6-world-foundation-final），返回按钮 hover 前后 28×28、页面无水平溢出，检查两张深浅截图；候选人物切换 / 内存操作隔离与正式六面入口 3 项通过（s6-world-foundation-parity）。Unit 1236、根 tsc / build 通过，无主进程 / IPC 改动、无独立 lint，既有构建警告保留；不以此证明通讯录候选与正式完整一致。
 
 S4 普通设置保存队列：UI s4-settings-queue-red 在填入第一版后 dispatch beforeunload 返回放行，expected blocked=true / actual=false。修复后 s4-settings-queue-ui 3 项通过，覆盖 pending、同键新旧值、失败保留与重试、清空放行。真实 Electron 初版 page.clock 全局冻结 / 恢复两次均未观察到防抖落盘，不作成功证据；改为仅扣住 800ms 回调、计数确认已挂起，保留真实 IPC / SQLite，释放后保存并完整重启恢复。独立用例及 s4-settings-queue-verified 整组 3 项通过。Unit 1236、根 tsc / build 通过；无独立 lint，既有构建警告保留。只修普通设置队列卸载，不宣称所有设置副作用与跨入口写入竞争已验收。
