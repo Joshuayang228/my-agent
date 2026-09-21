@@ -10,6 +10,7 @@ import { WorldStatePanel, type WorldSnapshot } from './debug/WorldStatePanel'
 import { PersonaEvalPanel } from './debug/PersonaEvalPanel'
 import { SkillEvalPanel } from './debug/SkillEvalPanel'
 import { buildDebugOverviewSnapshot, DebugOverview, type DebugOverviewEvidence, type DebugOverviewSnapshot, type DebugOverviewTab } from './debug/DebugOverview'
+import { ActionButton } from './foundation/ActionButton'
 
 type DebugTab = 'overview' | DebugOverviewTab | 'eval'
 type RequestRuntimeView = 'llm' | 'traces' | 'events'
@@ -590,9 +591,9 @@ function RequestRuntimePanel({
         {views.map((item) => {
           const active = view === item.id
           return (
-            <button key={item.id} type="button" onClick={() => setView(item.id)} className="inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-medium" style={{ color: active ? 'var(--accent-fg)' : 'var(--text-muted)', background: active ? 'var(--accent-subtle)' : 'transparent' }}>
+            <ActionButton key={item.id} type="button" onClick={() => setView(item.id)} tone={active ? 'accent' : 'neutral'} className="h-8 gap-1.5 rounded px-2.5 text-xs font-medium" aria-pressed={active} style={{ borderColor: active ? 'transparent' : 'var(--border-subtle)' }}>
               {item.icon}{item.label}
-            </button>
+            </ActionButton>
           )
         })}
       </div>

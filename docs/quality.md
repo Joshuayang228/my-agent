@@ -1,6 +1,8 @@
 # 质量总控
 
-R01 / R14 全页 Debug LLM 调用控件基础复用（2026-09-21）：正式 `LLMCallsPanel` 接入 Foundation `TextField` / `SelectField` / `ActionButton` / `IconButton`，列表选中、详情标签和清空二次确认不改变真实 Debug IPC。正式 Debug 导航 UI E2E 1 项、定向 Foundation / 产品注册 / LLM Debug 存储 Unit 19 项、根 `npx tsc --noEmit` 与 `npx vite build` 通过；构建保留既有 chunk / dynamic import 警告，无独立 lint 脚本。本批不代表全页 Debug、设置、人物世界或工作区全产品回流完成，RAG / MCP OAuth 后续继续暂缓。
+R01 / R14 Debug 请求与运行切换基础复用（2026-09-22）：`DevPanel` 的 LLM 调用 / 调用链 / 实时事件切换接入 Foundation `ActionButton`，保留 `LLMCallsPanel`、调用链和实时事件数据路径。正式 Debug 导航 UI E2E 1 项、Foundation / UI 注册 Unit 34 项、根 `npx tsc --noEmit` 通过；本批不代表全产品回流完成，RAG / MCP OAuth 后续继续暂缓。
+
+R01 / R14 全页 Debug LLM 调用控件基础复用（2026-09-22）：正式 `LLMCallsPanel` 接入 Foundation `TextField` / `SelectField` / `ActionButton` / `IconButton`，列表选中、详情标签和清空二次确认不改变真实 Debug IPC。正式 Debug 导航 UI E2E 1 项、定向 Foundation / 产品注册 / LLM Debug 存储 Unit 19 项、根 `npx tsc --noEmit` 与 `npx vite build` 通过；构建保留既有 chunk / dynamic import 警告，无独立 lint 脚本。本批不代表全页 Debug、设置、人物世界或工作区全产品回流完成，RAG / MCP OAuth 后续继续暂缓。
 
 R01 / R14 对话 Debug 源码控件基础收口（2026-09-21）：`ConversationDebugAside` 源码组件的调用展开、详情复制 / 导出、会话导出 / 清空 / 关闭入口接入 Foundation `ActionButton` / `IconButton`；清空动作使用 `ConfirmPanel`。该组件当前没有正式挂载点，因此不作为正式产品入口证据；定向 `conversation-debug.test.ts` 6 项、根 `npx tsc --noEmit`、`npx vite build` 通过。
 
