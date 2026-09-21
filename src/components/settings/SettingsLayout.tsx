@@ -56,7 +56,7 @@ export function SettingsLayout({ activeSection, onSelect, onClose, children, pre
     <aside className="scrollbar-thin hidden w-[198px] shrink-0 flex-col overflow-y-auto border-r px-3 py-4 md:flex"
       style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} data-testid="settings-nav">
       <div className="mb-5 px-2">
-        {onClose ? <ActionButton onClick={onClose} title="返回聊天" data-testid="settings-back" className="gap-2 border-0"><ArrowLeft size={15} />返回</ActionButton> : null}
+        {onClose ? <ActionButton onClick={onClose} title="返回" data-testid="settings-back" className="gap-2 border-0"><ArrowLeft size={15} />返回</ActionButton> : null}
         <h2 className="mt-2 text-[13px] font-semibold">设置</h2>
       </div>
       <nav className="flex-1 space-y-5" aria-label="设置导航">

@@ -7,14 +7,14 @@ describe('WorldHub helpers', () => {
     expect(isWorldView('moments')).toBe(true)
     expect(isWorldView('assets')).toBe(true)
     expect(isWorldView('cast')).toBe(true)
-    expect(isWorldView('shelf')).toBe(true)
+    expect(isWorldView('settings')).toBe(false)
     expect(isWorldView('chat')).toBe(false)
     expect(isWorldView('debug')).toBe(false)
   })
 
   it('worldTabFromView 默认朋友圈', () => {
     expect(worldTabFromView('world')).toBe('moments')
-    expect(worldTabFromView('shelf')).toBe('shelf')
+    expect(worldTabFromView('cast')).toBe('cast')
     expect(worldTabFromView('chat')).toBe('moments')
   })
 })

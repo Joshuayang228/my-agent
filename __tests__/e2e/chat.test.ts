@@ -8,6 +8,40 @@ import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { expectSharedCodeSurface } from './shared-code-surface'
 
+for (const width of [1166, 600]) {
+  test('角色架快捷入口统一进入设置并返回原分区 ' + width, async ({ page }, testInfo) => {
+    await installProductionElectronStub(page)
+    await page.setViewportSize({ width, height: 731 })
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI.companion
+      api.getRoster = async () => ({ roleId: 'lin', lines: [{ otherId: 'zhou', otherName: '周宁', relationType: 'friend', text: '朋友' }], cast: [{ id: 'zhou', name: '周宁', description: '朋友', summary: '朋友', canBeProtagonist: true, summonHint: '' }] })
+      api.checkCastAvailability = async () => ({ available: true, roleId: 'zhou', name: '周宁' })
+    })
+    await page.goto('/')
+    const sidebar = page.getByTestId('primary-sidebar')
+    await sidebar.getByTitle('打开角色架').click()
+    const settings = page.getByTestId('settings-panel')
+    await expect(settings.getByTestId('character-shelf-panel')).toBeVisible()
+    await expect(page.getByTestId('world-hub')).toHaveCount(0)
+    await settings.getByRole('button', { name: '关闭角色架' }).click()
+    await expect(settings.getByTestId('settings-open-role-shelf')).toBeVisible()
+    await page.getByTestId(width < 768 ? 'settings-back-mobile' : 'settings-back').click()
+    await expect(page.getByRole('textbox', { name: '消息', exact: true })).toBeVisible()
+    await sidebar.getByRole('button', { name: '人物世界', exact: true }).click()
+    await page.getByTestId('world-tab-cast').click()
+    await page.getByTestId('world-cast-card-zhou').getByRole('button', { name: '去角色架', exact: true }).click()
+    await expect(settings.getByTestId('character-shelf-panel')).toBeVisible()
+    await page.screenshot({ path: testInfo.outputPath('shelf-settings-entry.png'), animations: 'disabled' })
+    await page.getByTestId(width < 768 ? 'settings-back-mobile' : 'settings-back').click()
+    await expect(page.getByTestId('world-tab-cast')).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByTestId('world-cast-card-zhou')).toBeVisible()
+    await sidebar.getByRole('button', { name: '设置', exact: true }).click()
+    await expect(settings.getByTestId('character-shelf-panel')).toHaveCount(0)
+    await page.getByTestId(width < 768 ? 'settings-back-mobile' : 'settings-back').click()
+    await expect(page.getByRole('textbox', { name: '消息', exact: true })).toBeVisible()
+  })
+}
+
 for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
   for (const width of [1166, 600]) {
     test('正式共享角色架长文与切换恢复 ' + theme + ' ' + width, async ({ page }, testInfo) => {

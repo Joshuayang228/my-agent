@@ -115,6 +115,8 @@ function App() {
   const [activeView, setActiveView] = useState<ShellView>('chat')
   const settingsSaveBeforeLeave = useRef<(() => Promise<boolean>) | null>(null)
   const settingsNavigationPending = useRef(false)
+  const [settingsEntry, setSettingsEntry] = useState<'default' | 'role-shelf'>('default')
+  const settingsReturnView = useRef<ShellView>('chat')
   const [worldTab, setWorldTab] = useState<WorldTab>('moments')
   const [theme, setTheme] = useState<string>(() => {
     return normalizeThemeId(localStorage.getItem('theme'))
@@ -417,8 +419,17 @@ function App() {
     await loadSessions()
   }
 
-  const closeSettings = useCallback((nextView: ShellView = 'chat') => {
-    setActiveView(nextView)
+  // 角色架快捷入口属于设置；记录来源只用于返回，不能复活人物世界的隐藏角色架页。
+  const openRoleShelf = () => {
+    settingsReturnView.current = activeView
+    setSettingsEntry('role-shelf')
+    setActiveView('settings')
+  }
+
+  const closeSettings = useCallback((nextView?: ShellView) => {
+    setActiveView(nextView ?? settingsReturnView.current)
+    settingsReturnView.current = 'chat'
+    setSettingsEntry('default')
     if (window.electronAPI) {
       window.electronAPI.companion.getActive().then((p) => {
         if (p?.name) setCurrentPersonaName(p.name)
@@ -968,10 +979,7 @@ function App() {
           renamingId={renamingId}
           renameValue={renameValue}
           width={sidebarWidth}
-          onOpenShelf={() => {
-            setWorldTab('shelf')
-            setActiveView('world')
-          }}
+          onOpenShelf={openRoleShelf}
           onCreateSession={() => { void createNewSession() }}
           onToggleSearch={() => {
             setSidebarSearchOpen((v) => !v)
@@ -1128,11 +1136,7 @@ function App() {
                 }}
                 onClose={() => setActiveView('chat')}
                 onOpenSession={(sid) => { void openSummonSession(sid) }}
-                onSwitched={(p) => {
-                  setCurrentPersonaName(p.name)
-                  setCompanionBlurb(p.description)
-                  setActiveRoleId(p.id)
-                }}
+                onOpenShelf={openRoleShelf}
                 recentByRole={Object.fromEntries(
                   sessions
                     .filter((s) => s.sessionKind === 'summon' && s.roleId)
@@ -1664,6 +1668,7 @@ function App() {
       {standaloneView && <div className="app-shell view-transition flex h-screen min-w-0 select-none" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
         {activeView === 'settings' ? <div className="flex h-full w-full min-h-0 min-w-0 flex-1 flex-col">
           <SettingsPanel
+            initialEntry={settingsEntry}
             onClose={closeSettings}
             saveBeforeLeaveRef={settingsSaveBeforeLeave}
             currentTheme={theme}

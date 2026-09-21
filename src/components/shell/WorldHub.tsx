@@ -9,12 +9,11 @@ import { Newspaper, Shirt, Users, BookOpen, Home, MapPin, X } from 'lucide-react
 import { MomentsPanel, type MomentsPreviewData } from '../MomentsPanel'
 import { AssetsPanel } from '../AssetsPanel'
 import { CastPanel } from '../CastPanel'
-import { CharacterShelfPanel } from '../CharacterShelfPanel'
 import { WorldDetailsPanel } from '../WorldDetailsPanel'
 import { WorldProfileHeader, type WorldProfile } from '../world/WorldProfileHeader'
 import type { ShellView } from './SecondaryNav'
 
-export type WorldTab = 'moments' | 'assets' | 'cast' | 'shelf' | 'wardrobe' | 'culture' | 'home' | 'footprints'
+export type WorldTab = 'moments' | 'assets' | 'cast' | 'wardrobe' | 'culture' | 'home' | 'footprints'
 
 export type WorldTabDefinition = { id: WorldTab; label: string; icon: ReactNode }
 
@@ -28,12 +27,12 @@ const WORLD_TABS: WorldTabDefinition[] = [
 ]
 
 export function isWorldView(view: ShellView): boolean {
-  return view === 'world' || view === 'moments' || view === 'assets' || view === 'cast' || view === 'shelf' || view === 'wardrobe' || view === 'culture' || view === 'home' || view === 'footprints'
+  return view === 'world' || view === 'moments' || view === 'assets' || view === 'cast' || view === 'wardrobe' || view === 'culture' || view === 'home' || view === 'footprints'
 }
 
 export function worldTabFromView(view: ShellView): WorldTab {
   if (view === 'assets') return 'wardrobe'
-  if (view === 'cast' || view === 'shelf' || view === 'moments' || view === 'wardrobe' || view === 'culture' || view === 'home' || view === 'footprints') return view
+  if (view === 'cast' || view === 'moments' || view === 'wardrobe' || view === 'culture' || view === 'home' || view === 'footprints') return view
   return 'moments'
 }
 
@@ -42,7 +41,7 @@ export function WorldHub({
   onTabChange,
   onClose,
   onOpenSession,
-  onSwitched,
+  onOpenShelf,
   recentByRole,
   momentsPreview,
   momentsAppearance,
@@ -59,7 +58,7 @@ export function WorldHub({
   onTabChange: (tab: WorldTab) => void
   onClose: () => void
   onOpenSession: (sessionId: string) => void
-  onSwitched: (p: { id: string; name: string; description: string }) => void
+  onOpenShelf?: () => void
   recentByRole: Record<string, { sessionId: string; title: string; updatedAt: number }>
   /** Playground / 测试专用只读朋友圈样张。 */
   momentsPreview?: MomentsPreviewData
@@ -129,11 +128,10 @@ export function WorldHub({
               <CastPanel
                 onClose={onClose}
                 onOpenSession={onOpenSession}
-                onOpenShelf={() => onTabChange('shelf')}
+                onOpenShelf={onOpenShelf}
                 recentByRole={recentByRole}
               />
             )}
-            {tab === 'shelf' && <CharacterShelfPanel onClose={onClose} onSwitched={onSwitched} />}
           </>
         )}
       </div>

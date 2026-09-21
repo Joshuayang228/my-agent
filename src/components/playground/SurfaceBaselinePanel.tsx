@@ -583,7 +583,6 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
             onTabChange={setTab}
             onClose={noop}
             onOpenSession={noop}
-            onSwitched={noop}
             recentByRole={{}}
             momentsPreview={momentsPreviewForPersona(persona)}
             momentsAppearance="alice-feed"

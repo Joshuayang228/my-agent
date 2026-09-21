@@ -82,6 +82,7 @@ const PAGE_SECTIONS: Record<SettingsPageId, SettingsSection> = {
 const SECTION_PAGES: Record<SettingsSection, SettingsPageId> = PAGE_SECTIONS
 
 interface SettingsPanelProps {
+  initialEntry?: 'default' | 'role-shelf'
   onClose: () => void
   saveBeforeLeaveRef?: Ref<() => Promise<boolean>>
   currentTheme?: string
@@ -93,6 +94,7 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({
+  initialEntry = 'default',
   onClose,
   saveBeforeLeaveRef,
   currentTheme,
@@ -102,9 +104,9 @@ export function SettingsPanel({
 }: SettingsPanelProps) {
   const { toast } = useToast()
   const [activeSection, setActiveSection] = useState<SettingsSection>(
-    preview && previewInitialSection ? previewInitialSection : 'appearance',
+    preview ? (previewInitialSection ?? 'appearance') : initialEntry === 'role-shelf' ? 'companion' : 'appearance',
   )
-  const [roleShelfOpen, setRoleShelfOpen] = useState(false)
+  const [roleShelfOpen, setRoleShelfOpen] = useState(!preview && initialEntry === 'role-shelf')
   const activeSectionRef = useRef(activeSection)
   activeSectionRef.current = activeSection
   const [fontScale, setFontScale] = useState(() => localStorage.getItem('uiFontScale') || 'md')

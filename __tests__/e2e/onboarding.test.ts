@@ -845,9 +845,10 @@ test('正式共享角色架点击切角后重载保留并恢复原角色', async
   const other = (await page.evaluate(() => window.electronAPI.companion.listProtagonists())).find(role => role.id !== original.id)!
   expect(other).toBeDefined()
   const openShelf = async () => {
-    if (!(await page.getByTestId('settings-panel').isVisible())) await page.locator('button[title="设置"]').click()
-    await page.getByTestId('settings-nav-companion').click()
-    await page.getByTestId('settings-open-role-shelf').click()
+    if (await page.getByTestId('settings-panel').isVisible()) await page.getByTestId('settings-back').click()
+    await page.getByTestId('primary-sidebar').getByTitle('打开角色架').click()
+    await expect(page.getByTestId('settings-panel').getByTestId('character-shelf-panel')).toBeVisible()
+    await expect(page.getByTestId('world-hub')).toHaveCount(0)
   }
   try {
     await openShelf()
