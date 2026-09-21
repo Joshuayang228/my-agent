@@ -1,5 +1,7 @@
 # 项目进度
 
+R12 / 全产品回流组合审计（2026-09-21）：先按“正式入口、真实数据链路、状态覆盖、测试证据”四条链复核人物世界，不再把 Playground 样张或单个生活面当作整体完成。定向 Unit 6 个文件 / 46 项通过；正式 Electron 伙伴设置、文化角更新与重载、生活资产新增与重载、生活资产备份往返、迟到切角写入保护 5 项通过；此前六面正式入口测试覆盖朋友圈、衣柜、文化角、家居、通讯录、足迹。当前人物世界没有被证据支持的实现缺口，仍不提升 `experience.world` 为 `adopted`；下一批转审设置与工作区的跨页组合状态、错误恢复和正式入口独立性。RAG / MCP OAuth 继续暂缓。
+
 R01 / R14 Debug 运行概览证据入口基础复用（2026-09-21）：正式 `DebugOverview` 的四个真实证据入口统一使用 Foundation `ActionButton`，保留 Prompt、请求与运行、伙伴世界和系统工具的真实导航，不引入 Playground fixture。正式 Debug 导航 UI 回归 1 项、Foundation / 产品注册定向单测 26 项、根 tsc 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
 
 R01 / R14 Debug 请求与运行切换基础复用（2026-09-21）：正式 `DevPanel` 的 LLM 调用 / 调用链 / 实时事件切换统一使用 Foundation `ActionButton`，保留真实诊断数据、焦点跳转和子视图状态。正式 Debug 导航 UI 回归 1 项、Foundation / UI 注册定向单测 34 项、根 tsc 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
