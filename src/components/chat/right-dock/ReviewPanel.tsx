@@ -178,10 +178,9 @@ export function ReviewPanel({ sessionId, onContextChange }: ReviewPanelProps) {
               const name = it.path.replace(/\\/g, '/').split('/').pop() || it.path
               const active = selected === it.path
               return (
-                <button
+                <ActionButton
                   key={it.path}
-                  type="button"
-                  className="flex w-full flex-col gap-0.5 px-2.5 py-1.5 text-left text-[11px] transition"
+                  className="w-full flex-col items-stretch gap-0.5 rounded-none border-0 px-2.5 py-1.5 text-left text-[11px] hover:bg-[var(--hover-overlay)]"
                   style={{
                     background: active ? 'var(--accent-subtle)' : undefined,
                     color: 'var(--text-primary)',
@@ -194,7 +193,7 @@ export function ReviewPanel({ sessionId, onContextChange }: ReviewPanelProps) {
                     {it.toolName} · {new Date(it.updatedAt).toLocaleTimeString()}
                     {!it.hasBefore ? ' · 新文件/无旧稿' : ''}
                   </span>
-                </button>
+                </ActionButton>
               )
             })}
           </div>

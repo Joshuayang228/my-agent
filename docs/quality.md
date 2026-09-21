@@ -1,5 +1,7 @@
 # 质量总控
 
+R06 / R14 审阅文件列表基础复用（2026-09-21）：正式 `ReviewPanel` 的文件选择行接入 Foundation `ActionButton`，保留多行文件名 / 工具 / 时间信息、选中态与 `session.listFileChanges` / `session.getFileChangeDiff` 真实链路；定向工作区 Foundation 与后端契约 8 项、根 `npx tsc --noEmit` 通过。未改变 diff 加载、清空、重试、上下文聚焦或 IPC 载荷。
+
 R12 / R14 通讯录操作基础复用（2026-09-21）：正式 `CastPanel` 的最近互动入口接入 Foundation `ActionButton`，通讯录 Playground / 正式 UI 6 项、UI / 产品体验注册单测 26 项、根 `npx tsc --noEmit` 通过；未改变召唤 IPC、关系数据或角色切换。构建保留既有警告，无独立 lint 脚本。
 
 设置导航 hover 基础复用（2026-09-21）：共享 `SettingsLayout` 修复内联背景覆盖 hover 样式的问题。设置相关 UI 17 项中 15 项通过；2 项失败来自现有未提交测试对已完成产品变化的旧断言（旧“返回聊天”入口、已删除品牌占位文案），与本改动无关且未被本批修改。根 `npx tsc --noEmit` 通过；完整 Unit / vite build 已在同一回流批次通过，构建保留既有警告，无独立 lint 脚本。
