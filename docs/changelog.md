@@ -1,5 +1,7 @@
 # 变更日志
 
+- 正式 Chat 的思考过程与工具调用折叠行统一使用 Foundation `ActionButton`，保持流式状态和工具结果不变，并固定 hover 前后的消息布局。
+
 - Markdown / Diff 的统一与并排视图切换统一使用 Foundation `IconButton`，固定操作槽尺寸并保持正式审阅、文件预览和工作区候选的共享渲染链路。
 
 - 工作区审阅文件列表统一使用基础 `ActionButton`，保留真实文件变更与 diff 查看流程，并固定 hover 前后的列表行几何。

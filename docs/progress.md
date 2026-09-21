@@ -1,5 +1,7 @@
 # 项目进度
 
+R01 / R14 Chat 回调折叠控件基础复用（2026-09-21）：正式消息流的思考过程与工具调用折叠行统一使用 Foundation `ActionButton`，保留流式阶段、工具结果、图片结果和折叠状态；业务层仅覆盖卡片内边距，hover 前后不改变消息布局。定向 Foundation 11 项与根 tsc 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
+
 R06 / R14 Markdown / Diff Foundation 收口（2026-09-21）：共享 `DiffViewer` 的统一 / 并排视图切换改用 Foundation `IconButton`，固定 24px 操作槽；基础故事、正式 ReviewPanel、文件预览和工作区候选继续共用 `CodeBlock` 与语义主题清洗。定向 Foundation / 语法 / 工作区契约 21 项、根 tsc 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
 
 R06 / R14 审阅文件列表基础复用（2026-09-21）：正式工作区审阅面板的文件选择行统一使用 Foundation `ActionButton`，保留全宽多行文件信息、选中态和真实 diff 链路；hover 前后固定操作槽与列表几何，不改变 session 文件变更 IPC。定向工作区 Foundation / 后端契约 8 项与根 tsc 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。

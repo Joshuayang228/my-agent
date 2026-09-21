@@ -101,6 +101,15 @@ describe('Foundation story registry', () => {
     expect(source).not.toMatch(/<button[\s\S]*统一差异/)
   })
 
+  it('Chat 思考与工具回调的折叠行复用 Foundation ActionButton', () => {
+    for (const file of ['src/components/chat/callbacks/ReasoningCallback.tsx', 'src/components/chat/callbacks/ToolCallbackList.tsx']) {
+      const source = readFileSync(file, 'utf8')
+      expect(source).toContain("from '../../foundation/ActionButton'")
+      expect(source).toMatch(/<ActionButton[\s\S]*onClick=/)
+      expect(source).not.toMatch(/<button[\s\S]*onClick=/)
+    }
+  })
+
   it('TextField 的 Foundation 实现覆盖故事和正式工作区输入', () => {
     for (const file of ['src/components/playground/UiControlsPanel.tsx', 'src/components/FileBrowser.tsx', 'src/components/chat/right-dock/BrowserPanel.tsx', 'src/components/chat/right-dock/TerminalPanel.tsx', 'src/components/chat/right-dock/SideChatPanel.tsx']) {
       const source = readFileSync(file, 'utf8')

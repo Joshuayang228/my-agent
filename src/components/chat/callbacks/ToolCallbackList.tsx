@@ -7,6 +7,7 @@ import { useCallback } from 'react'
 import { GeneratedImageResult, type GeneratedImageReader, type GeneratedImageRevealer } from './GeneratedImageResult'
 import type { ToolCallbackItem } from './types'
 import { toolItemPhase } from './types'
+import { ActionButton } from '../../foundation/ActionButton'
 
 const STATUS_LABEL: Record<ToolCallbackItem['status'], string> = {
   pending: '准备中',
@@ -54,10 +55,9 @@ export function ToolCallbackList({
             style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
             data-phase={phase}
           >
-            <button
-              type="button"
+            <ActionButton
               onClick={() => onToggleCollapse(tool.callId)}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px]"
+              className="w-full !min-h-0 !justify-start gap-2 rounded-none border-0 !px-3 !py-2 text-left text-[12px] hover:bg-[var(--hover-overlay)]"
             >
               <Wrench size={12} style={{ color: 'var(--text-muted)' }} />
               <span
@@ -84,7 +84,7 @@ export function ToolCallbackList({
                 className={`ml-auto shrink-0 transition-transform ${collapsed ? '' : 'rotate-90'}`}
                 style={{ color: 'var(--text-muted)' }}
               />
-            </button>
+            </ActionButton>
             {!collapsed && (
               <div className="space-y-2 border-t px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
                 {tool.status === 'pending' && tool.streamingArgs && (

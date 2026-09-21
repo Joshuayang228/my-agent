@@ -6,6 +6,7 @@
 import { ChevronRight } from 'lucide-react'
 import type { ReasoningChunk } from './types'
 import { reasoningPhase } from './types'
+import { ActionButton } from '../../foundation/ActionButton'
 
 export function ReasoningCallback({
   chunks,
@@ -30,10 +31,9 @@ export function ReasoningCallback({
       data-callback="reasoning"
       data-phase={phase}
     >
-      <button
-        type="button"
+      <ActionButton
         onClick={onToggle}
-        className="flex w-full items-center gap-2 text-[11px] font-medium"
+        className="w-full !min-h-0 !justify-start gap-2 rounded-none border-0 !px-0 !py-0 text-[11px] font-medium hover:bg-[var(--hover-overlay)]"
         style={{ color: 'var(--text-muted)' }}
       >
         <ChevronRight size={12} className={`transition-transform ${expanded ? 'rotate-90' : ''}`} />
@@ -44,7 +44,7 @@ export function ReasoningCallback({
         {phase === 'complete' && !expanded && (
           <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>已完成</span>
         )}
-      </button>
+      </ActionButton>
       {expanded && (
         <pre
           className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-xs leading-relaxed"
