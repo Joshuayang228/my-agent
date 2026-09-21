@@ -4,6 +4,7 @@
  */
 
 import { AlertTriangle } from 'lucide-react'
+import { ActionButton } from '../foundation/ActionButton'
 
 export function PermissionConfirmCard({
   toolName,
@@ -40,22 +41,21 @@ export function PermissionConfirmCard({
         </pre>
       </div>
       <div className="flex justify-end gap-2">
-        <button
-          type="button"
+        <ActionButton
           onClick={onDeny}
-          className="rounded-md border px-3 py-1.5 text-[13px] transition"
+          className="!min-h-0 rounded-md px-3 py-1.5 text-[13px] hover:bg-[var(--hover-overlay)]"
           style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
         >
           拒绝
-        </button>
-        <button
-          type="button"
+        </ActionButton>
+        <ActionButton
+          tone="accent"
           onClick={onAllow}
-          className="rounded-md px-3 py-1.5 text-[13px] font-medium transition"
-          style={{ background: 'var(--warning)' }}
+          className="!min-h-0 rounded-md px-3 py-1.5 text-[13px] font-medium hover:!opacity-90"
+          style={{ background: 'var(--warning)', color: 'var(--bg-primary)', borderColor: 'var(--warning)' }}
         >
           允许执行
-        </button>
+        </ActionButton>
       </div>
     </div>
   )

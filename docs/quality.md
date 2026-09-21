@@ -1,5 +1,7 @@
 # 质量总控
 
+R01 / R14 Chat 记忆引用与权限确认基础复用（2026-09-21）：正式 `MemoryCitationChips` / `PermissionConfirmCard` 的动作接入 Foundation `ActionButton`，保留记忆纠正 / 删除、审批允许 / 拒绝和危险色语义；定向 Foundation 12 项、根 `npx tsc --noEmit` 通过。未改变 memory IPC、确认队列、授权凭据或工具执行链路。
+
 R01 / R14 Chat 回调折叠控件基础复用（2026-09-21）：正式 `ReasoningCallback` / `ToolCallbackList` 的折叠行接入 Foundation `ActionButton`，保留流式阶段、工具结果、图片结果和折叠状态；定向 Foundation 11 项、根 `npx tsc --noEmit` 通过。未改变消息事件、工具执行、图片读取或持久化链路。
 
 R06 / R14 Markdown / Diff Foundation 收口（2026-09-21）：共享 `DiffViewer` 的统一 / 并排视图切换改用 Foundation `IconButton`，固定 24px 操作槽；Foundation 故事注册、语法主题清洗、工作区控件审计与后端契约定向 21 项、根 `npx tsc --noEmit` 通过。未改变 diff 原文、缺稿回退、复制、IPC 或侧聊上下文行为。

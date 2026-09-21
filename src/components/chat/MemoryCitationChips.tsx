@@ -4,6 +4,7 @@
  */
 
 import type { MemoryCitation } from '../../shared/types'
+import { ActionButton } from '../foundation/ActionButton'
 
 export function MemoryCitationChips({
   citations,
@@ -36,24 +37,22 @@ export function MemoryCitationChips({
           </span>
           {showActions && (
             <>
-              <button
-                type="button"
-                className="shrink-0 underline-offset-2 hover:underline"
+              <ActionButton
+                className="!min-h-0 shrink-0 rounded-none border-0 !px-0 !py-0 underline-offset-2 hover:!bg-transparent hover:underline"
                 style={{ color: 'var(--text-secondary)' }}
                 title="记错了：从库中删除这条引用"
                 onClick={() => onForget?.(c.id)}
               >
                 记错了
-              </button>
-              <button
-                type="button"
-                className="shrink-0 underline-offset-2 hover:underline"
+              </ActionButton>
+              <ActionButton
+                className="!min-h-0 shrink-0 rounded-none border-0 !px-0 !py-0 underline-offset-2 hover:!bg-transparent hover:underline"
                 style={{ color: 'var(--text-secondary)' }}
                 title="改正：写入正确内容"
                 onClick={() => onAmend?.(c.id, c.summary)}
               >
                 改正
-              </button>
+              </ActionButton>
             </>
           )}
         </span>

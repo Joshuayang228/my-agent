@@ -110,6 +110,15 @@ describe('Foundation story registry', () => {
     }
   })
 
+  it('Chat 记忆引用动作与权限确认动作复用 Foundation ActionButton', () => {
+    for (const file of ['src/components/chat/MemoryCitationChips.tsx', 'src/components/chat/PermissionConfirmCard.tsx']) {
+      const source = readFileSync(file, 'utf8')
+      expect(source).toContain("from '../foundation/ActionButton'")
+      expect(source).toMatch(/<ActionButton[\s\S]*onClick=/)
+      expect(source).not.toMatch(/<button[\s\S]*onClick=/)
+    }
+  })
+
   it('TextField 的 Foundation 实现覆盖故事和正式工作区输入', () => {
     for (const file of ['src/components/playground/UiControlsPanel.tsx', 'src/components/FileBrowser.tsx', 'src/components/chat/right-dock/BrowserPanel.tsx', 'src/components/chat/right-dock/TerminalPanel.tsx', 'src/components/chat/right-dock/SideChatPanel.tsx']) {
       const source = readFileSync(file, 'utf8')

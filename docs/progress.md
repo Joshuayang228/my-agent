@@ -1,5 +1,7 @@
 # 项目进度
 
+R01 / R14 Chat 记忆引用与权限确认基础复用（2026-09-21）：正式 Chat 的记忆引用“记错了 / 改正”和权限确认“拒绝 / 允许执行”统一使用 Foundation `ActionButton`；保留记忆纠正 / 删除回调、审批危险色与原有尺寸语义。定向 Foundation 12 项与根 tsc 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
+
 R01 / R14 Chat 回调折叠控件基础复用（2026-09-21）：正式消息流的思考过程与工具调用折叠行统一使用 Foundation `ActionButton`，保留流式阶段、工具结果、图片结果和折叠状态；业务层仅覆盖卡片内边距，hover 前后不改变消息布局。定向 Foundation 11 项与根 tsc 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
 
 R06 / R14 Markdown / Diff Foundation 收口（2026-09-21）：共享 `DiffViewer` 的统一 / 并排视图切换改用 Foundation `IconButton`，固定 24px 操作槽；基础故事、正式 ReviewPanel、文件预览和工作区候选继续共用 `CodeBlock` 与语义主题清洗。定向 Foundation / 语法 / 工作区契约 21 项、根 tsc 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
