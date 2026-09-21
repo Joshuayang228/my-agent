@@ -1,8 +1,8 @@
 # 全产品体验正式回流 v1 施工合同
 
-R04 角色架入口回流（2026-09-20）：按已批准的“角色架归设置”候选，将 App 侧栏头像和 WorldHub 通讯录快捷入口接到 SettingsPanel 的显式 initialEntry。删除 WorldHub 内部 shelf 分支、ShellView / WorldTab 的 shelf 值及旧 onSwitched 回调；真实切角通知继续由 App 既有 onRoleChanged 接收，退出设置仍刷新角色。快捷进入时记录原视图，设置返回恢复原聊天或世界分区，普通设置默认行为不变。允许修改上述壳层与设置、候选失效参数、Unit / UI / Electron 和伙伴模块及收工文档；不改 IPC、存储、切角门控、RAG 或 OAuth。验证入口、关闭角色架、返回、再次普通设置、保存保护和真实切角重载。
+R04 角色架入口回流（2026-09-20）：按已批准的“角色架归设置”候选，将 App 侧栏头像和 WorldHub 通讯录快捷入口接到 SettingsPanel 的显式 initialEntry。删除 WorldHub 内部 shelf 分支、ShellView / WorldTab 的 shelf 值及旧 onSwitched 回调；真实切角通知继续由 App 既有 onRoleChanged 接收，退出设置仍刷新角色。快捷进入时记录原视图；关闭角色架回到伙伴设置，设置返回再恢复原聊天或世界分区，普通设置默认行为不变。允许修改上述壳层与设置、候选失效参数、Unit / UI / Electron 和伙伴模块及收工文档；不改 IPC、存储、切角门控、RAG 或 OAuth。验证入口、关闭角色架、返回、再次普通设置、保存保护和真实切角重载。
 
-R10 MCP 清单共享验证（2026-09-20）：McpServiceList 已进入正式设置与候选真实 JSX，数量、添加与空态不再独立维护；保留真实列表来源、管理互斥和离页保护。45 项 MCP UI 回归通过（四主题宽窄、几何、失败重试与候选场景），深浅截图已检查；真实 Electron 普通新增、保存在途拒绝 reload / quit、完整重启恢复连接及工具许可 1 项通过（15.9 秒）。Unit 1243、根 tsc、vite build、资产 37 项通过，无独立 lint 脚本，构建保留既有警告。证据 var/verification/mcp-list-shared 与 mcp-list-electron；不运行 OAuth / RAG 专项，不提升整个设置体验 adopted。角色架旧导航仍待回流，见 WISH-045。
+R10 MCP 清单共享验证（2026-09-20）：McpServiceList 已进入正式设置与候选真实 JSX，数量、添加与空态不再独立维护；保留真实列表来源、管理互斥和离页保护。45 项 MCP UI 回归通过（四主题宽窄、几何、失败重试与候选场景），深浅截图已检查；真实 Electron 普通新增、保存在途拒绝 reload / quit、完整重启恢复连接及工具许可 1 项通过（15.9 秒）。Unit 1243、根 tsc、vite build、资产 37 项通过，无独立 lint 脚本，构建保留既有警告。证据 var/verification/mcp-list-shared 与 mcp-list-electron；不运行 OAuth / RAG 专项，不提升整个设置体验 adopted。角色架旧导航已移除，后续继续做全产品组合审计。
 
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
