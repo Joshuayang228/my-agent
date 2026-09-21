@@ -1,5 +1,7 @@
 # 项目进度
 
+R12 / R14 通讯录操作基础复用（2026-09-21）：正式通讯录卡片的“最近互动”跳转统一使用 Foundation `ActionButton`，保留真实召唤会话入口、时间与标题展示；通讯录 Playground / 正式 UI 6 项通过，UI / 产品体验注册单测 26 项、根 tsc 通过，未改召唤 IPC、关系数据或角色切换契约。
+
 设置导航 hover 基础复用（2026-09-21）：修复共享 `SettingsLayout` 中未选中导航项因 `ActionButton` 内联背景覆盖而失去 hover 反馈的问题；保持 active 状态、导航切换和保存保护不变。设置相关 UI 17 项中 15 项通过；2 项为现有未提交测试对已完成产品变化的旧断言（旧“返回聊天”入口、已删除品牌占位文案），未修改或混入。本批仍不提升整体设置体验为 `adopted`，RAG / MCP OAuth 后续保持暂缓。
 
 R01 / R14 主侧栏导航基础复用（2026-09-21）：伙伴身份 / 角色架入口、开发入口 Debug / Playground 与人物世界 / 设置底栏统一使用 Foundation `ActionButton`，保留开发者模式门控、导航目标、active 状态和 hover 几何；新增 Foundation 门禁防止正式侧栏回退为裸按钮。定向侧栏 UI 7 项、Foundation Unit 4 项、全量 Unit 1244 项、根 tsc 与 vite build 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。

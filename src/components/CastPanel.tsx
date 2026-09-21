@@ -359,16 +359,16 @@ export function CastPanel({
                       {availability.detail}
                     </p>
                     {recent ? (
-                      <button
-                        type="button"
+                      <ActionButton
                         onClick={() => onOpenSession?.(recent.sessionId)}
-                        className="mt-1.5 text-left text-[11px] transition"
+                        size="sm"
+                        className="mt-1.5 border-0 px-0 text-left text-[11px]"
                         style={{ color: 'var(--text-muted)' }}
                         title="打开最近召唤会话"
                       >
                         最近互动 · {formatRelative(recent.updatedAt)}
                         {recent.title ? ` · ${recent.title}` : ''}
-                      </button>
+                      </ActionButton>
                     ) : (
                       <div className="mt-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
                         尚未召唤开聊
