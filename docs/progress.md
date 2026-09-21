@@ -1,5 +1,7 @@
 # 项目进度
 
+R01 / R14 主侧栏基础控件回流（2026-09-21）：PrimarySidebar 的搜索、 新对话、折叠、重命名和删除控件统一接入 Foundation TextField / ActionButton / IconButton；删除按钮使用固定 24px 槽位并以 visibility 控制显隐，hover 前后行几何保持不变。侧栏搜索、删除槽几何和折叠 3 项 UI 回归通过，根 tsc 通过；后续继续审计其他正式页面的局部裸控件。RAG / OAuth 后续保持暂缓。
+
 R06 工作区入口基础复用（2026-09-21）：App 工作区开关改用现有 Foundation IconButton，保留原有状态、32px 尺寸与 aria-controls；折叠几何 UI 四个主题 / 宽度组合通过，证据 var/verification/workspace-toggle-foundation。仅统一入口控件，工作区候选内的浏览器、终端和侧聊样张仍需继续核对共享呈现，不将此项视为全产品采用完成。RAG / OAuth 后续保持暂缓。
 
 工作区资产注册补全（2026-09-21）：产品体验注册表补登记正式浏览器、终端、侧边聊天面板及 App 入口，并声明工作区实际使用的 Foundation ActionButton；资产审计 37 项通过。注册表只补齐真实调用链映射，不改变工作区运行行为或 Playground 隔离边界。

@@ -3,7 +3,7 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'aria-label'> {
   label: string
   children: ReactNode
-  size?: 24 | 28 | 32
+  size?: 24 | 28 | 32 | 40
 }
 
 /**

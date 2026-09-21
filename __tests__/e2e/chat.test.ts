@@ -2481,6 +2481,23 @@ test.describe('My Agent UI', () => {
     await expect(sidebar.getByTitle('搜索会话')).toBeVisible()
   })
 
+  test('侧栏会话删除操作槽在 hover 前后保持布局占位', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      ;(window as any).electronAPI.session.list = async () => [{ id: 'fixed-session', title: '一条很长的会话标题', createdAt: 1, updatedAt: 1 }]
+    })
+    await page.goto('/')
+    const sidebar = page.getByTestId('primary-sidebar')
+    await expect(sidebar.getByText('一条很长的会话标题', { exact: true })).toBeVisible()
+    const row = sidebar.getByText('一条很长的会话标题', { exact: true }).locator('..').locator('..')
+    const remove = sidebar.locator('button[aria-label="删除会话"]')
+    const rect = async (locator: ReturnType<typeof sidebar.locator>) => locator.evaluate((element) => { const box = element.getBoundingClientRect(); return { x: box.x, y: box.y, width: box.width, height: box.height } })
+    const before = { row: await rect(row), remove: await rect(remove) }
+    await row.hover()
+    const after = { row: await rect(row), remove: await rect(remove) }
+    expect(after).toEqual(before)
+  })
+
   test('侧边栏可见且可折叠', async ({ page }) => {
     await page.goto('/')
 

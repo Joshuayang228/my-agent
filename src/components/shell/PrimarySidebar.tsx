@@ -3,7 +3,7 @@
  * Debug / Playground 与人物世界 / 设置位于底部稳定入口区；生活面收进「人物世界」。
  */
 
-import type { RefObject, ReactNode, MouseEvent } from 'react'
+import type { RefObject, ReactNode, MouseEvent, ChangeEvent, KeyboardEvent } from 'react'
 import {
   Plus, Search, X, Pin, Sparkles, Settings,
   Bug, FlaskConical, PanelLeftClose,
@@ -11,6 +11,9 @@ import {
 import type { ShellView } from './SecondaryNav'
 import { isWorldView } from './WorldHub'
 import { formatSessionPreview, formatSessionStamp } from './session-format'
+import { ActionButton } from '../foundation/ActionButton'
+import { IconButton } from '../foundation/IconButton'
+import { TextField } from '../foundation/TextField'
 
 export interface SidebarSession {
   id: string
@@ -131,43 +134,40 @@ export function PrimarySidebar({
       <div className="mt-3 flex items-center gap-1.5 px-3" data-testid="sidebar-toolbar">
         {sidebarSearchOpen ? (
           <div
-            className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-lg)] border px-2.5"
+            className="flex h-10 min-w-0 flex-1 self-start items-center gap-2 rounded-[var(--radius-lg)] border px-2.5"
             style={{
               background: 'var(--input-bg)',
               borderColor: 'var(--input-border)',
             }}
           >
             <Search size={15} style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
-            <input
+            <TextField
               ref={sessionFilterRef}
               value={sessionFilter}
-              onChange={(e) => onSessionFilterChange(e.target.value)}
-              onKeyDown={(e) => {
+              onChange={(e: ChangeEvent<HTMLInputElement>) => onSessionFilterChange(e.target.value)}
+              onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
                 if (e.key === 'Escape') onCloseSearch()
               }}
               placeholder="搜索对话..."
               aria-label="搜索对话"
               data-testid="sidebar-session-search"
-              className="min-w-0 flex-1 bg-transparent text-xs outline-none"
+              className="min-w-0 flex-1 text-xs"
             />
-            <button
-              type="button"
+            <IconButton
+              size={24}
               onClick={onCloseSearch}
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition"
+              className="transition hover:bg-[var(--sidebar-hover)]"
               style={{ color: 'var(--text-muted)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-              title="关闭搜索"
-              aria-label="关闭搜索"
+              label="关闭搜索"
             >
               <X size={14} />
-            </button>
+            </IconButton>
           </div>
         ) : (
-          <button
-            type="button"
+          <ActionButton
+            size="md"
             onClick={onCreateSession}
-            className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-lg)] text-[13px] font-medium transition"
+            className="h-10 min-w-0 flex-1 gap-1.5 rounded-[var(--radius-lg)] text-[13px] font-medium"
             style={{
               background: 'var(--accent-subtle)',
               color: 'var(--accent-fg)',
@@ -176,34 +176,29 @@ export function PrimarySidebar({
           >
             <Plus size={16} />
             新对话
-          </button>
+          </ActionButton>
         )}
         {!sidebarSearchOpen && (
-          <button
-            type="button"
+          <IconButton
+            size={40}
             onClick={onToggleSearch}
-            className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-lg)] transition"
+            className="rounded-[var(--radius-lg)] transition hover:bg-[var(--sidebar-hover)]"
             style={{ color: 'var(--text-muted)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-            title="搜索会话"
-            aria-label="搜索会话"
+            label="搜索会话"
           >
             <Search size={16} />
-          </button>
+          </IconButton>
         )}
-        <button
-          type="button"
+        <IconButton
+          size={40}
           onClick={onCollapse}
-          className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-lg)] transition"
+          className="rounded-[var(--radius-lg)] transition hover:bg-[var(--sidebar-hover)]"
           style={{ color: 'var(--text-muted)' }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+          label="收起侧栏"
           title="收起侧栏 Ctrl+B"
-          aria-label="收起侧栏"
         >
           <PanelLeftClose size={16} />
-        </button>
+        </IconButton>
       </div>
 
       {/* 会话列表 */}
@@ -240,17 +235,17 @@ export function PrimarySidebar({
                   }}
                 >
                   {renamingId === s.id ? (
-                    <input
-                      className="theme-input w-full rounded border px-1.5 py-0.5 text-[13px] outline-none"
+                    <TextField
+                      className="w-full rounded border px-1.5 py-0.5 text-[13px]"
                       value={renameValue}
-                      onChange={(e) => onRenameChange(e.target.value)}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => onRenameChange(e.target.value)}
                       onBlur={onCommitRename}
-                      onKeyDown={(e) => {
+                      onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
                         if (e.key === 'Enter') onCommitRename()
                         if (e.key === 'Escape') onCancelRename()
                       }}
                       autoFocus
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e: MouseEvent<HTMLInputElement>) => e.stopPropagation()}
                     />
                   ) : (
                     <>
@@ -281,19 +276,20 @@ export function PrimarySidebar({
                             {preview ? ` · ${formatSessionPreview(preview)}` : ''}
                           </div>
                         </div>
-                        <button
-                          type="button"
+                        <IconButton
+                          size={24}
                           onClick={(e) => {
                             e.stopPropagation()
                             onDeleteSession(s.id)
                           }}
-                          className="mt-0.5 hidden shrink-0 transition group-hover:block"
+                          className="invisible mt-0.5 shrink-0 transition group-hover:visible focus-visible:visible"
                           style={{ color: 'var(--text-muted)' }}
+                          label="删除会话"
                           onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger)')}
                           onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
                         >
                           <X size={12} />
-                        </button>
+                        </IconButton>
                       </div>
                     </>
                   )}
