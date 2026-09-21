@@ -1,8 +1,10 @@
 # 项目进度
 
-R01 / R14 Debug 请求与运行切换基础复用（2026-09-22）：正式 `DevPanel` 的 LLM 调用 / 调用链 / 实时事件切换统一使用 Foundation `ActionButton`，保留真实诊断数据、焦点跳转和子视图状态。正式 Debug 导航 UI 回归 1 项、Foundation / UI 注册定向单测 34 项、根 tsc 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
+R01 / R14 Debug 运行概览证据入口基础复用（2026-09-21）：正式 `DebugOverview` 的四个真实证据入口统一使用 Foundation `ActionButton`，保留 Prompt、请求与运行、伙伴世界和系统工具的真实导航，不引入 Playground fixture。正式 Debug 导航 UI 回归 1 项、Foundation / 产品注册定向单测 26 项、根 tsc 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
 
-R01 / R14 全页 Debug LLM 调用控件基础复用（2026-09-22）：正式 `LLMCallsPanel` 的查询输入、状态筛选、调用列表、详情标签、复制、刷新 / 导出 / 分页和清空入口统一复用 Foundation `TextField` / `SelectField` / `ActionButton` / `IconButton`；保留真实 Debug 查询、资产证据和懒加载链路。正式 Debug 导航 UI 回归 1 项、定向 Foundation / 产品注册 / LLM Debug 存储单测 19 项、根 tsc 与 vite build 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
+R01 / R14 Debug 请求与运行切换基础复用（2026-09-21）：正式 `DevPanel` 的 LLM 调用 / 调用链 / 实时事件切换统一使用 Foundation `ActionButton`，保留真实诊断数据、焦点跳转和子视图状态。正式 Debug 导航 UI 回归 1 项、Foundation / UI 注册定向单测 34 项、根 tsc 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
+
+R01 / R14 全页 Debug LLM 调用控件基础复用（2026-09-21）：正式 `LLMCallsPanel` 的查询输入、状态筛选、调用列表、详情标签、复制、刷新 / 导出 / 分页和清空入口统一复用 Foundation `TextField` / `SelectField` / `ActionButton` / `IconButton`；保留真实 Debug 查询、资产证据和懒加载链路。正式 Debug 导航 UI 回归 1 项、定向 Foundation / 产品注册 / LLM Debug 存储单测 19 项、根 tsc 与 vite build 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
 
 R01 / R14 对话 Debug 源码控件基础收口（2026-09-21）：现有 `ConversationDebugAside` 源码组件的展开行、详情复制 / 导出动作、会话导出 / 清空 / 关闭入口统一复用 Foundation `ActionButton` / `IconButton`，清空记录改为应用内 `ConfirmPanel`；组件当前没有正式挂载点，不计入正式产品回流证据。定向调用链单测 6 项、根 `npx tsc --noEmit` 与 `npx vite build` 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
 

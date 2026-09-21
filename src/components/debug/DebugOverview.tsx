@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Activity, FileText, Globe, Wrench } from 'lucide-react'
+import { ActionButton } from '../foundation/ActionButton'
 
 export type DebugOverviewTab = 'prompt' | 'request-runtime' | 'world' | 'system'
 
@@ -85,11 +86,11 @@ export function DebugOverview({ onOpen, snapshot, loading, error }: DebugOvervie
         <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>真实证据入口</h2>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {EVIDENCE_ENTRIES.map((entry) => (
-            <button
+            <ActionButton
               key={entry.tab}
               type="button"
               onClick={() => onOpen(entry.tab)}
-              className="flex min-h-[72px] items-start gap-3 rounded-lg border px-3 py-3 text-left transition hover:bg-[var(--hover-overlay)]"
+              className="h-auto min-h-[72px] w-full justify-start gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-[var(--hover-overlay)]"
               style={{ borderColor: 'var(--border-subtle)' }}
             >
               <span className="mt-0.5" style={{ color: 'var(--accent)' }}>{entry.icon}</span>
@@ -97,7 +98,7 @@ export function DebugOverview({ onOpen, snapshot, loading, error }: DebugOvervie
                 <span className="block text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{entry.label}</span>
                 <span className="mt-1 block text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>{entry.detail}</span>
               </span>
-            </button>
+            </ActionButton>
           ))}
         </div>
       </section>
