@@ -1,6 +1,6 @@
 # 项目进度
 
-R01 / R14 主侧栏导航基础复用（2026-09-21）：开发入口 Debug / Playground 与人物世界 / 设置底栏统一使用 Foundation `ActionButton`，保留开发者模式门控、导航目标、active 状态和 hover 几何；新增 Foundation 门禁防止正式侧栏回退为裸按钮。定向侧栏 UI 7 项、Foundation Unit 4 项、全量 Unit 1244 项、根 tsc 与 vite build 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
+R01 / R14 主侧栏导航基础复用（2026-09-21）：伙伴身份 / 角色架入口、开发入口 Debug / Playground 与人物世界 / 设置底栏统一使用 Foundation `ActionButton`，保留开发者模式门控、导航目标、active 状态和 hover 几何；新增 Foundation 门禁防止正式侧栏回退为裸按钮。定向侧栏 UI 7 项、Foundation Unit 4 项、全量 Unit 1244 项、根 tsc 与 vite build 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
 
 正式设置与人物世界组合复核（2026-09-21）：使用正确的 Electron 验收配置运行正式入口 18 项全部通过，覆盖 Skills、模型与伙伴设置、文化角 / 家居 / 足迹、生活资产备份、朋友圈、人物世界六面、角色架切角、开发者模式、工作区侧聊与终端、权限规则、记忆增改删、MCP 凭据恢复与异常断开。该证据关闭本批真实入口回归，不提升四个产品体验为 `adopted`；仍需 S6 的全产品组合审计，RAG / MCP OAuth 后续保持暂缓。
 

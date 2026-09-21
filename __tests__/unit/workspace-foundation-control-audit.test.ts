@@ -59,6 +59,6 @@ describe('正式工作区 Foundation 控件门禁', () => {
 
   it('正式主侧栏的开发入口和产品导航复用 ActionButton', () => {
     const source = readFileSync('src/components/shell/PrimarySidebar.tsx', 'utf8')
-    expect(source.match(/<ActionButton\b/g)?.length).toBeGreaterThanOrEqual(3)
+    expect(source.match(/<ActionButton\b/g)?.length).toBeGreaterThanOrEqual(4)
   })
 })

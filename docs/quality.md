@@ -1,6 +1,6 @@
 # 质量总控
 
-R01 / R14 主侧栏导航 Foundation 门禁（2026-09-21）：新增正式主侧栏开发入口与产品导航的控件来源审计，确保 Debug / Playground 及人物世界 / 设置入口复用 `ActionButton`，避免回退为页面内裸按钮。定向 UI 7 项、Foundation Unit 4 项、全量 Unit 1244 项、根 `npx tsc --noEmit` 和 `npx vite build` 通过；构建保留既有 chunk / dynamic import 警告，无独立 lint 脚本。本批不改变 IPC、导航数据或开发者模式存储。
+R01 / R14 主侧栏导航 Foundation 门禁（2026-09-21）：新增正式主侧栏伙伴身份 / 角色架入口、开发入口与产品导航的控件来源审计，确保 Debug / Playground 及人物世界 / 设置入口复用 `ActionButton`，避免回退为页面内裸按钮。定向 UI 7 项、Foundation Unit 4 项、全量 Unit 1244 项、根 `npx tsc --noEmit` 和 `npx vite build` 通过；构建保留既有 chunk / dynamic import 警告，无独立 lint 脚本。本批不改变 IPC、导航数据或开发者模式存储。
 
 文件提及弹层操作槽收口（2026-09-21）：关闭按钮接入 Foundation IconButton；本批不改变项目文件 IPC、筛选或键盘选择行为，类型 / 构建 / 文档门禁随本批执行。
 

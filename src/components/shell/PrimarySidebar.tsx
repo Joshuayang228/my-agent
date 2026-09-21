@@ -105,13 +105,13 @@ export function PrimarySidebar({
       data-testid="primary-sidebar"
     >
       {/* 品牌 / 主角 */}
-      <button
-        type="button"
+      <ActionButton
         onClick={onOpenShelf}
-        className="mx-3 mt-4 flex items-center gap-3 rounded-[var(--radius-lg)] px-2 py-2.5 text-left transition"
+        size="md"
+        className="mx-3 mt-4 w-auto justify-start gap-3 border-0 px-2 py-2.5 text-left"
         style={{ background: 'transparent' }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
-        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+        onMouseEnter={(event) => { event.currentTarget.style.background = 'var(--sidebar-hover)' }}
+        onMouseLeave={(event) => { event.currentTarget.style.background = 'transparent' }}
         title="打开角色架"
       >
         <span
@@ -128,7 +128,7 @@ export function PrimarySidebar({
             {personaBlurb || '越探索，越着迷。'}
           </span>
         </span>
-      </button>
+      </ActionButton>
 
       {/* 新对话 / 搜索：搜索在同一行展开，避免把会话列表再向下挤一层。 */}
       <div className="mt-3 flex items-center gap-1.5 px-3" data-testid="sidebar-toolbar">
@@ -341,11 +341,13 @@ export function PrimarySidebar({
                   key={item.id}
                   onClick={() => onNavigate(item.id)}
                   size="sm"
-                  className="w-full flex-col gap-1 border-0 px-1 py-2 text-[10px] leading-none hover:bg-[var(--sidebar-hover)]"
+                  className="w-full flex-col gap-1 border-0 px-1 py-2 text-[10px] leading-none"
                   style={{
                     color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
                     background: active ? 'var(--accent-subtle)' : 'transparent',
                   }}
+                  onMouseEnter={(event) => { if (!active) event.currentTarget.style.background = 'var(--sidebar-hover)' }}
+                  onMouseLeave={(event) => { if (!active) event.currentTarget.style.background = 'transparent' }}
                   title={item.label}
                 >
                   {item.icon}
@@ -375,12 +377,14 @@ function DockTextBtn({
     <ActionButton
       onClick={onClick}
       size="sm"
-      className="w-full border-0 py-1.5 text-[11px] hover:bg-[var(--sidebar-hover)]"
+      className="w-full border-0 py-1.5 text-[11px]"
       style={{
         color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
         background: active ? 'var(--accent-subtle)' : 'transparent',
         fontWeight: active ? 600 : 400,
       }}
+      onMouseEnter={(event) => { if (!active) event.currentTarget.style.background = 'var(--sidebar-hover)' }}
+      onMouseLeave={(event) => { if (!active) event.currentTarget.style.background = 'transparent' }}
     >
       {icon}
       {label}
