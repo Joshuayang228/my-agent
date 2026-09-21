@@ -4952,6 +4952,29 @@ test.describe('My Agent UI', () => {
     expect(await page.evaluate(() => (window as any).__developerModeSettings.writes.filter(([key]: [string]) => key === 'developerMode'))).toEqual([['developerMode', 'true'], ['developerMode', 'false']])
   })
 
+  test('Debug 页面新对话入口创建会话后返回聊天', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI
+      const sessions: Array<{ id: string; title: string; messages: [] }> = []
+      api.session.list = async () => [...sessions]
+      api.session.create = async () => {
+        const session = { id: `e2e-session-${sessions.length + 1}`, title: '新对话', messages: [] }
+        sessions.push(session)
+        return session
+      }
+      api.session.get = async (id: string) => sessions.find(session => session.id === id) ?? null
+      ;(window as any).__debugNewConversation = { sessions }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
+    await expect(page.getByTestId('dev-panel')).toBeVisible()
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '新对话', exact: true }).click()
+    await expect(page.getByRole('textbox', { name: '消息', exact: true })).toBeVisible()
+    await expect(page.getByTestId('dev-panel')).toHaveCount(0)
+    await expect.poll(() => page.evaluate(() => (window as any).__debugNewConversation.sessions.length)).toBe(1)
+  })
+
   test('Debug 与 Playground 采用一级任务导航', async ({ page }) => {
     await page.goto('/')
 

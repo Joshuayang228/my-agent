@@ -980,7 +980,7 @@ function App() {
           renameValue={renameValue}
           width={sidebarWidth}
           onOpenShelf={openRoleShelf}
-          onCreateSession={() => { void createNewSession() }}
+          onCreateSession={() => { setActiveView('chat'); void createNewSession() }}
           onToggleSearch={() => {
             setSidebarSearchOpen((v) => !v)
             setTimeout(() => sessionFilterRef.current?.focus(), 50)

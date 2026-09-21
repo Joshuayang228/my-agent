@@ -35,7 +35,6 @@
 | `moments` | MomentsPanel（经 WorldHub） | 朋友圈卡片时间线 |
 | `assets` | AssetsPanel | 衣柜（P1 加厚主视觉） |
 | `cast` | CastPanel | 通讯录 / 召唤（≠换活跃） |
-| `shelf` | CharacterShelfPanel | 角色架换角 |
 | `settings` | SettingsPanel + CompanionSettingsContent | 相处偏好 / 提醒 / 角色架；与 Playground 共用业务组合，数据隔离 |
 
 ## 依赖
