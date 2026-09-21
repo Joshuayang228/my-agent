@@ -1,6 +1,8 @@
 # 质量总控
 
-R01 / R14 对话 Debug 侧栏基础控件收口（2026-09-21）：正式 `ConversationDebugAside` 的调用展开、详情复制 / 导出、会话导出 / 清空 / 关闭入口接入 Foundation `ActionButton` / `IconButton`；清空动作使用 `ConfirmPanel`，未改变 `debug.llmLogGet`、`debug.llmLogExport`、`debug.llmLogsExport`、`debug.llmLogsClear` 或聊天消息存储。定向 `conversation-debug.test.ts` 6 项、根 `npx tsc --noEmit`、`npx vite build` 通过；构建仅保留既有 chunk / dynamic import 警告，无独立 lint 脚本。本批不代表 Debug、设置、人物世界或工作区全产品回流完成，RAG / MCP OAuth 后续继续暂缓。
+R01 / R14 全页 Debug LLM 调用控件基础复用（2026-09-21）：正式 `LLMCallsPanel` 接入 Foundation `TextField` / `SelectField` / `ActionButton` / `IconButton`，列表选中、详情标签和清空二次确认不改变真实 Debug IPC。正式 Debug 导航 UI E2E 1 项、定向 Foundation / 产品注册 / LLM Debug 存储 Unit 19 项、根 `npx tsc --noEmit` 与 `npx vite build` 通过；构建保留既有 chunk / dynamic import 警告，无独立 lint 脚本。本批不代表全页 Debug、设置、人物世界或工作区全产品回流完成，RAG / MCP OAuth 后续继续暂缓。
+
+R01 / R14 对话 Debug 源码控件基础收口（2026-09-21）：`ConversationDebugAside` 源码组件的调用展开、详情复制 / 导出、会话导出 / 清空 / 关闭入口接入 Foundation `ActionButton` / `IconButton`；清空动作使用 `ConfirmPanel`。该组件当前没有正式挂载点，因此不作为正式产品入口证据；定向 `conversation-debug.test.ts` 6 项、根 `npx tsc --noEmit`、`npx vite build` 通过。
 
 R01 / R14 Chat 记忆引用与权限确认基础复用（2026-09-21）：正式 `MemoryCitationChips` / `PermissionConfirmCard` 的动作接入 Foundation `ActionButton`，保留记忆纠正 / 删除、审批允许 / 拒绝和危险色语义；定向 Foundation 12 项、根 `npx tsc --noEmit` 通过。未改变 memory IPC、确认队列、授权凭据或工具执行链路。
 

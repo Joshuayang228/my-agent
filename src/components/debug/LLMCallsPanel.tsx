@@ -6,11 +6,15 @@
  * 关键约束：正文按单条懒加载；清空只删除 Debug 日志，并在界面内要求二次确认。
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import {
   ChevronLeft, ChevronRight, Copy, Download, RefreshCw, Search, Trash2,
 } from 'lucide-react'
 import type { AgentAssetUsageEvidence, LLMCallDetail, LLMCallQuery, LLMCallSummary, PromptAssetTrace, SkillActivationTrace } from '../../shared/types'
+import { ActionButton } from '../foundation/ActionButton'
+import { IconButton } from '../foundation/IconButton'
+import { SelectField } from '../foundation/SelectField'
+import { TextField } from '../foundation/TextField'
 import { formatDebugBytes, formatDebugValue, normalizeDebugMessages } from './debug-format'
 
 const PAGE_SIZE = 30
@@ -176,56 +180,55 @@ export function LLMCallsPanel({ focusId }: { focusId?: string } = {}) {
           </p>
         </div>
         <div className="flex items-center gap-1.5">
-          <IconButton title="刷新" onClick={() => void loadRecords(true)}><RefreshCw size={13} /></IconButton>
-          <IconButton title="导出筛选结果为 JSONL" onClick={() => void exportFiltered()}><Download size={13} /></IconButton>
-          <button
+          <IconButton label="刷新" onClick={() => void loadRecords(true)}><RefreshCw size={13} /></IconButton>
+          <IconButton label="导出筛选结果为 JSONL" onClick={() => void exportFiltered()}><Download size={13} /></IconButton>
+          <ActionButton
             type="button"
             onClick={() => void clearLogs()}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[11px]"
-            style={{ borderColor: 'var(--border-color)', color: clearArmed ? 'var(--danger)' : 'var(--text-muted)' }}
+            tone={clearArmed ? 'danger' : 'neutral'}
+            size="md"
+            className="gap-1.5"
           >
             <Trash2 size={12} />
             {clearArmed ? '再次确认清空' : '清空日志'}
-          </button>
+          </ActionButton>
         </div>
       </header>
 
       <form onSubmit={applyFilters} className="grid gap-2 lg:grid-cols-[minmax(180px,1fr)_150px_180px_130px_auto]">
         <label className="relative">
           <Search size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-          <input
+          <TextField
             value={searchDraft}
-            onChange={(event) => setSearchDraft(event.target.value)}
-            className="theme-input h-9 w-full rounded-lg border pl-8 pr-3 text-xs"
+            onChange={(event: ChangeEvent<HTMLInputElement>) => setSearchDraft(event.target.value)}
+            className="h-9 w-full rounded-lg border pl-8 pr-3 text-xs"
             placeholder="模型、Provider、会话…"
           />
         </label>
-        <input
+        <TextField
           value={callerDraft}
-          onChange={(event) => setCallerDraft(event.target.value)}
-          className="theme-input h-9 rounded-lg border px-3 text-xs"
+          onChange={(event: ChangeEvent<HTMLInputElement>) => setCallerDraft(event.target.value)}
+          className="h-9 rounded-lg border px-3 text-xs"
           placeholder="Caller"
         />
-        <input
+        <TextField
           value={modelDraft}
-          onChange={(event) => setModelDraft(event.target.value)}
-          className="theme-input h-9 rounded-lg border px-3 text-xs"
+          onChange={(event: ChangeEvent<HTMLInputElement>) => setModelDraft(event.target.value)}
+          className="h-9 rounded-lg border px-3 text-xs"
           placeholder="精确模型"
         />
-        <select
+        <SelectField
           value={statusDraft}
           onChange={(event) => setStatusDraft(event.target.value as LLMCallQuery['status'] | '')}
-          className="theme-input h-9 rounded-lg border px-2 text-xs"
+          className="rounded-lg px-2"
           aria-label="调用状态"
         >
           <option value="">全部状态</option>
           <option value="success">成功</option>
           <option value="error">错误</option>
           <option value="pending">进行中</option>
-        </select>
-        <button type="submit" className="h-9 rounded-lg px-3 text-xs font-medium" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>
-          筛选
-        </button>
+        </SelectField>
+        <ActionButton type="submit" tone="accent" size="md" className="rounded-lg px-3 text-xs font-medium">筛选</ActionButton>
       </form>
 
       {error && <p className="text-xs" style={{ color: 'var(--danger)' }}>{error}</p>}
@@ -235,7 +238,7 @@ export function LLMCallsPanel({ focusId }: { focusId?: string } = {}) {
           {loading && records.length === 0 && <Empty text="读取 LLM 调用中…" />}
           {!loading && records.length === 0 && <Empty text="没有匹配的 LLM 调用。" />}
           {records.map((record) => (
-            <button
+            <ActionButton
               key={record.id}
               type="button"
               onClick={() => {
@@ -243,7 +246,7 @@ export function LLMCallsPanel({ focusId }: { focusId?: string } = {}) {
                 setDetail(null)
                 void loadDetail(record.id)
               }}
-              className="block w-full border-b px-3 py-2.5 text-left last:border-b-0"
+              className="h-auto min-h-0 w-full justify-start rounded-none border-x-0 border-t-0 px-3 py-2.5 text-left last:border-b-0"
               style={{
                 borderColor: 'var(--border-subtle)',
                 background: selectedId === record.id ? 'var(--sidebar-active)' : 'transparent',
@@ -261,7 +264,7 @@ export function LLMCallsPanel({ focusId }: { focusId?: string } = {}) {
                 <span className="font-mono">{record.totalTokens}t</span>
                 {record.error && <span className="ml-auto max-w-28 truncate" style={{ color: 'var(--danger)' }}>{record.error}</span>}
               </div>
-            </button>
+            </ActionButton>
           ))}
         </div>
 
@@ -277,7 +280,7 @@ export function LLMCallsPanel({ focusId }: { focusId?: string } = {}) {
                     {detail.provider} · {detail.caller} · {detail.promptTokens}/{detail.completionTokens} tokens · {formatDuration(detail.durationMs)}
                   </div>
                 </div>
-                <button
+                <ActionButton
                   type="button"
                   onClick={() => {
                     void navigator.clipboard?.writeText(JSON.stringify(detail, null, 2)).then(() => {
@@ -285,28 +288,28 @@ export function LLMCallsPanel({ focusId }: { focusId?: string } = {}) {
                       window.setTimeout(() => setCopied(false), 1200)
                     })
                   }}
-                  className="inline-flex items-center gap-1 rounded px-2 py-1 text-[10px]"
-                  style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }}
+                  className="gap-1"
                 >
                   <Copy size={11} />
                   {copied ? '已复制' : '复制 JSON'}
-                </button>
+                </ActionButton>
               </div>
 
               <div className="my-2 flex flex-wrap gap-1">
                 {(['prompts', 'system', 'messages', 'tools', 'extra', 'response', 'json'] as DetailView[]).map((item) => (
-                  <button
+                  <ActionButton
                     key={item}
                     type="button"
                     onClick={() => setDetailView(item)}
                     className="rounded-lg px-2.5 py-1.5 text-[11px]"
+                    aria-pressed={detailView === item}
+                    tone={detailView === item ? 'accent' : 'neutral'}
                     style={{
-                      color: detailView === item ? 'var(--accent-fg)' : 'var(--text-muted)',
-                      background: detailView === item ? 'var(--accent-subtle)' : 'transparent',
+                      borderColor: detailView === item ? 'transparent' : 'var(--border-subtle)',
                     }}
                   >
                     {{ prompts: `资产证据 ${assetEvidence.length || promptAssets.length}`, system: `System ${systemMessages.length}`, messages: `Messages ${messages.length}`, tools: 'Tools', extra: '请求参数', response: '响应', json: '完整 JSON' }[item]}
-                  </button>
+                  </ActionButton>
                 ))}
               </div>
 
@@ -344,9 +347,9 @@ export function LLMCallsPanel({ focusId }: { focusId?: string } = {}) {
       <div className="flex items-center justify-between text-[11px]" style={{ color: 'var(--text-muted)' }}>
         <span>第 {total === 0 ? 0 : page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, total)} / 共 {total} 条</span>
         <div className="flex gap-1">
-          <IconButton title="上一页" disabled={page === 0} onClick={() => setPage((value) => Math.max(0, value - 1))}><ChevronLeft size={14} /></IconButton>
+          <IconButton label="上一页" disabled={page === 0} onClick={() => setPage((value) => Math.max(0, value - 1))}><ChevronLeft size={14} /></IconButton>
           <span className="inline-flex h-8 min-w-16 items-center justify-center font-mono">{page + 1}/{totalPages}</span>
-          <IconButton title="下一页" disabled={page + 1 >= totalPages} onClick={() => setPage((value) => value + 1)}><ChevronRight size={14} /></IconButton>
+          <IconButton label="下一页" disabled={page + 1 >= totalPages} onClick={() => setPage((value) => value + 1)}><ChevronRight size={14} /></IconButton>
         </div>
       </div>
     </div>
@@ -574,22 +577,6 @@ function ResponseBlock({ label, value, danger }: { label: string; value: string;
       <div className="mb-1 text-[10px] font-semibold uppercase" style={{ color: danger ? 'var(--danger)' : 'var(--text-muted)' }}>{label}</div>
       <pre className="scrollbar-hover max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-lg border p-3 font-mono text-[11px]" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: danger ? 'var(--danger)' : 'var(--text-secondary)' }}>{value}</pre>
     </section>
-  )
-}
-
-function IconButton({ title, onClick, disabled, children }: { title: string; onClick: () => void; disabled?: boolean; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      title={title}
-      aria-label={title}
-      disabled={disabled}
-      onClick={onClick}
-      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border disabled:opacity-35"
-      style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}
-    >
-      {children}
-    </button>
   )
 }
 
