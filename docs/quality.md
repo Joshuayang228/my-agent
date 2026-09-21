@@ -1,5 +1,7 @@
 # 质量总控
 
+R01 / R14 对话 Debug 侧栏基础控件收口（2026-09-21）：正式 `ConversationDebugAside` 的调用展开、详情复制 / 导出、会话导出 / 清空 / 关闭入口接入 Foundation `ActionButton` / `IconButton`；清空动作使用 `ConfirmPanel`，未改变 `debug.llmLogGet`、`debug.llmLogExport`、`debug.llmLogsExport`、`debug.llmLogsClear` 或聊天消息存储。定向 `conversation-debug.test.ts` 6 项、根 `npx tsc --noEmit`、`npx vite build` 通过；构建仅保留既有 chunk / dynamic import 警告，无独立 lint 脚本。本批不代表 Debug、设置、人物世界或工作区全产品回流完成，RAG / MCP OAuth 后续继续暂缓。
+
 R01 / R14 Chat 记忆引用与权限确认基础复用（2026-09-21）：正式 `MemoryCitationChips` / `PermissionConfirmCard` 的动作接入 Foundation `ActionButton`，保留记忆纠正 / 删除、审批允许 / 拒绝和危险色语义；定向 Foundation 12 项、根 `npx tsc --noEmit` 通过。未改变 memory IPC、确认队列、授权凭据或工具执行链路。
 
 R01 / R14 Chat 回调折叠控件基础复用（2026-09-21）：正式 `ReasoningCallback` / `ToolCallbackList` 的折叠行接入 Foundation `ActionButton`，保留流式阶段、工具结果、图片结果和折叠状态；定向 Foundation 11 项、根 `npx tsc --noEmit` 通过。未改变消息事件、工具执行、图片读取或持久化链路。

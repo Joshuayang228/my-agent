@@ -20,6 +20,9 @@ import {
   X,
 } from 'lucide-react'
 import type { LLMCallDetail, LLMCallSummary } from '../../shared/types'
+import { ActionButton } from '../foundation/ActionButton'
+import { ConfirmPanel } from '../foundation/ConfirmPanel'
+import { IconButton } from '../foundation/IconButton'
 import {
   formatDuration,
   formatTokenK,
@@ -117,10 +120,11 @@ function CallRow({
       style={{ borderColor: 'var(--border-subtle)', background: expanded ? 'var(--hover-overlay)' : undefined }}
       data-testid="conversation-debug-call"
     >
-      <button
+      <ActionButton
         type="button"
         onClick={onToggle}
-        className="flex w-full items-start gap-2 px-3 py-2 text-left"
+        className="h-auto min-h-0 w-full justify-start gap-2 rounded-none border-0 px-3 py-2 text-left"
+        style={{ color: 'inherit' }}
       >
         <span className="w-4 shrink-0 pt-0.5 text-right font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>
           {index + 1}
@@ -166,7 +170,7 @@ function CallRow({
             )}
           </span>
         </span>
-      </button>
+      </ActionButton>
 
       {expanded && (
         <div
@@ -217,10 +221,9 @@ function CallRow({
                 <DetailRow label="正文" value="（空 — 可能被 thinking 占满 max_tokens）" />
               ) : null}
               <div className="mt-1 flex gap-1.5">
-                <button
+                <ActionButton
                   type="button"
-                  className="inline-flex items-center gap-1 rounded px-2 py-1 text-[10px]"
-                  style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }}
+                  className="gap-1"
                   onClick={() => {
                     void navigator.clipboard?.writeText(JSON.stringify(detail, null, 2)).then(() => {
                       setCopied(true)
@@ -230,15 +233,13 @@ function CallRow({
                 >
                   {copied ? <Check size={10} /> : <Copy size={10} />}
                   {copied ? '已复制' : '复制 JSON'}
-                </button>
-                <button
+                </ActionButton>
+                <ActionButton
                   type="button"
-                  className="rounded px-2 py-1 text-[10px]"
-                  style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }}
                   onClick={() => { void window.electronAPI?.debug.llmLogExport(call.id) }}
                 >
                   导出 JSON
-                </button>
+                </ActionButton>
               </div>
             </>
           )}
@@ -262,6 +263,7 @@ export function ConversationDebugAside({
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
   const [details, setDetails] = useState<Record<string, LLMCallDetail | null>>({})
   const [detailLoadingIds, setDetailLoadingIds] = useState<Set<string>>(() => new Set())
+  const [pendingClear, setPendingClear] = useState(false)
   const storedIds = useMemo(() => new Set(persistedCalls.map((call) => call.id)), [persistedCalls])
   const calls = useMemo(
     () => persistedCalls.map(fromStoredCall),
@@ -325,41 +327,50 @@ export function ConversationDebugAside({
         ) : null}
         {sessionId && (
           <>
-            <button
-              type="button"
-              className="rounded p-1"
-              style={{ color: 'var(--text-muted)' }}
-              title="导出当前会话 Debug JSONL"
+            <IconButton
+              label="导出当前会话 Debug JSONL"
+              size={28}
+              className="text-[var(--text-muted)] transition hover:bg-[var(--hover-overlay)]"
               onClick={() => { void window.electronAPI?.debug.llmLogsExport({ sessionId, includeSubagents: true }) }}
             >
               <Download size={13} />
-            </button>
+            </IconButton>
             {calls.length > 0 && (
-              <button
-                type="button"
-                className="rounded p-1"
-                style={{ color: 'var(--text-muted)' }}
-                title="清空当前会话 Debug 记录"
-                onClick={() => {
-                  if (!window.confirm('只清空当前会话的 Debug 记录，不影响聊天消息。继续吗？')) return
-                  void window.electronAPI?.debug.llmLogsClear(sessionId)
-                }}
+              <IconButton
+                label="清空当前会话 Debug 记录"
+                size={28}
+                className="text-[var(--text-muted)] transition hover:bg-[var(--hover-overlay)]"
+                onClick={() => setPendingClear(true)}
               >
                 <Trash2 size={13} />
-              </button>
+              </IconButton>
             )}
           </>
         )}
-        <button
-          type="button"
+        <IconButton
+          label="关闭对话 Debug"
+          size={28}
+          className="text-[var(--text-muted)] transition hover:bg-[var(--hover-overlay)]"
           onClick={onClose}
-          className="rounded p-1 transition"
-          style={{ color: 'var(--text-muted)' }}
-          title="关闭对话 Debug"
         >
           <X size={14} />
-        </button>
+        </IconButton>
       </div>
+
+      {pendingClear && sessionId && (
+        <div className="shrink-0 border-b p-3" style={{ borderColor: 'var(--border-subtle)' }}>
+          <ConfirmPanel
+            icon={<Trash2 size={15} />}
+            title="清空当前会话的 Debug 记录？"
+            description="只会移除本次会话的调用链记录，不影响聊天消息。"
+            confirmLabel="清空记录"
+            onCancel={() => setPendingClear(false)}
+            onConfirm={() => {
+              void window.electronAPI?.debug.llmLogsClear(sessionId).finally(() => setPendingClear(false))
+            }}
+          />
+        </div>
+      )}
 
       <div className="min-h-0 flex-1 overflow-auto scrollbar-hover">
         {calls.length === 0 ? (

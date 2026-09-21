@@ -1,5 +1,7 @@
 # 项目进度
 
+R01 / R14 对话 Debug 侧栏基础控件收口（2026-09-21）：正式 `ConversationDebugAside` 的展开行、详情复制 / 导出动作、会话导出 / 清空 / 关闭入口统一复用 Foundation `ActionButton` / `IconButton`；清空记录改为应用内 `ConfirmPanel`，保留真实 Debug IPC 与会话消息不受影响的边界。定向调用链单测 6 项、根 `npx tsc --noEmit` 与 `npx vite build` 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
+
 R01 / R14 Chat 记忆引用与权限确认基础复用（2026-09-21）：正式 Chat 的记忆引用“记错了 / 改正”和权限确认“拒绝 / 允许执行”统一使用 Foundation `ActionButton`；保留记忆纠正 / 删除回调、审批危险色与原有尺寸语义。定向 Foundation 12 项与根 tsc 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
 
 R01 / R14 Chat 回调折叠控件基础复用（2026-09-21）：正式消息流的思考过程与工具调用折叠行统一使用 Foundation `ActionButton`，保留流式阶段、工具结果、图片结果和折叠状态；业务层仅覆盖卡片内边距，hover 前后不改变消息布局。定向 Foundation 11 项与根 tsc 通过；整体回流目标仍进行中，RAG / MCP OAuth 后续保持暂缓。
