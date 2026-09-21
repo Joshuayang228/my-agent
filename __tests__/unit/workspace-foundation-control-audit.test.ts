@@ -49,10 +49,16 @@ describe('正式工作区 Foundation 控件门禁', () => {
       'src/components/chat/right-dock/SideChatPanel.tsx': ['IconButton', 'ActionButton', 'TextField', 'MarkdownRenderer'],
       'src/components/FileBrowser.tsx': ['IconButton', 'ActionButton', 'SegmentedControl', 'TextField', 'MarkdownRenderer'],
       'src/components/MarkdownRenderer.tsx': ['IconButton'],
+      'src/components/shell/PrimarySidebar.tsx': ['ActionButton'],
     }
     for (const [file, bindings] of Object.entries(requiredBindings)) {
       const source = readFileSync(file, 'utf8')
       for (const binding of bindings) expect(source, file + ' -> ' + binding).toContain(binding)
     }
+  })
+
+  it('正式主侧栏的开发入口和产品导航复用 ActionButton', () => {
+    const source = readFileSync('src/components/shell/PrimarySidebar.tsx', 'utf8')
+    expect(source.match(/<ActionButton\b/g)?.length).toBeGreaterThanOrEqual(3)
   })
 })

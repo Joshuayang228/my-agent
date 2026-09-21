@@ -337,26 +337,20 @@ export function PrimarySidebar({
             {DOCK.map((item) => {
               const active = item.id === 'world' ? isWorldView(activeView) : activeView === item.id
               return (
-                <button
+                <ActionButton
                   key={item.id}
-                  type="button"
                   onClick={() => onNavigate(item.id)}
-                  className="flex flex-col items-center gap-1 rounded-[var(--radius-md)] px-1 py-2 transition"
+                  size="sm"
+                  className="w-full flex-col gap-1 border-0 px-1 py-2 text-[10px] leading-none hover:bg-[var(--sidebar-hover)]"
                   style={{
                     color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
                     background: active ? 'var(--accent-subtle)' : 'transparent',
                   }}
-                  onMouseEnter={(e) => {
-                    if (!active) e.currentTarget.style.background = 'var(--sidebar-hover)'
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) e.currentTarget.style.background = 'transparent'
-                  }}
                   title={item.label}
                 >
                   {item.icon}
-                  <span className="text-[10px] leading-none">{item.label}</span>
-                </button>
+                  <span>{item.label}</span>
+                </ActionButton>
               )
             })}
           </div>
@@ -378,24 +372,18 @@ function DockTextBtn({
   label: string
 }) {
   return (
-    <button
-      type="button"
+    <ActionButton
       onClick={onClick}
-      className="flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-md)] py-1.5 text-[11px] transition"
+      size="sm"
+      className="w-full border-0 py-1.5 text-[11px] hover:bg-[var(--sidebar-hover)]"
       style={{
         color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
         background: active ? 'var(--accent-subtle)' : 'transparent',
         fontWeight: active ? 600 : 400,
       }}
-      onMouseEnter={(e) => {
-        if (!active) e.currentTarget.style.background = 'var(--sidebar-hover)'
-      }}
-      onMouseLeave={(e) => {
-        if (!active) e.currentTarget.style.background = 'transparent'
-      }}
     >
       {icon}
       {label}
-    </button>
+    </ActionButton>
   )
 }
