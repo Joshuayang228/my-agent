@@ -46,7 +46,9 @@ export function SettingsLayout({ activeSection, onSelect, onClose, children, pre
       aria-controls={`${prefix}-panel-${item.id}`} title={item.label} onClick={() => onSelect(item.id)}
       data-testid={`${prefix}-nav-${item.id}`}
       className="settings-nav-item w-full gap-2 border-0 text-left hover:bg-[var(--hover-overlay)]"
-      style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)', background: active ? 'var(--hover-overlay)' : undefined }}>
+      style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)', background: active ? 'var(--hover-overlay)' : undefined }}
+      onMouseEnter={(event) => { if (!active) event.currentTarget.style.background = 'var(--hover-overlay)' }}
+      onMouseLeave={(event) => { if (!active) event.currentTarget.style.background = 'transparent' }}>
       <span className="shrink-0" aria-hidden="true" style={{ color: active ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{item.icon}</span>
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
       <ChevronRight size={12} className="shrink-0" aria-hidden="true" style={{ opacity: active ? 1 : 0 }} />
