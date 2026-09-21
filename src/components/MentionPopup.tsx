@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { File, Folder, Search, X } from 'lucide-react'
+import { IconButton } from './foundation/IconButton'
 
 interface FileEntry {
   name: string
@@ -127,9 +128,9 @@ export default function MentionPopup({ query, anchor, onSelect, onClose }: Menti
         <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
           {query ? `搜索: ${query}` : '输入文件名搜索...'}
         </span>
-        <button onClick={onClose} className="ml-auto opacity-50 hover:opacity-100">
+        <IconButton size={28} label="关闭文件提及" onClick={onClose} className="ml-auto transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}>
           <X size={13} />
-        </button>
+        </IconButton>
       </div>
 
       <div ref={listRef} className="overflow-y-auto" style={{ maxHeight: '220px' }}>
