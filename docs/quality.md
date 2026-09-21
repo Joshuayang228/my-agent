@@ -1,5 +1,7 @@
 # 质量总控
 
+R06 / R14 Markdown / Diff Foundation 收口（2026-09-21）：共享 `DiffViewer` 的统一 / 并排视图切换改用 Foundation `IconButton`，固定 24px 操作槽；Foundation 故事注册、语法主题清洗、工作区控件审计与后端契约定向 21 项、根 `npx tsc --noEmit` 通过。未改变 diff 原文、缺稿回退、复制、IPC 或侧聊上下文行为。
+
 R06 / R14 审阅文件列表基础复用（2026-09-21）：正式 `ReviewPanel` 的文件选择行接入 Foundation `ActionButton`，保留多行文件名 / 工具 / 时间信息、选中态与 `session.listFileChanges` / `session.getFileChangeDiff` 真实链路；定向工作区 Foundation 与后端契约 8 项、根 `npx tsc --noEmit` 通过。未改变 diff 加载、清空、重试、上下文聚焦或 IPC 载荷。
 
 R12 / R14 通讯录操作基础复用（2026-09-21）：正式 `CastPanel` 的最近互动入口接入 Foundation `ActionButton`，通讯录 Playground / 正式 UI 6 项、UI / 产品体验注册单测 26 项、根 `npx tsc --noEmit` 通过；未改变召唤 IPC、关系数据或角色切换。构建保留既有警告，无独立 lint 脚本。

@@ -94,6 +94,13 @@ describe('Foundation story registry', () => {
     expect(source).toMatch(/<IconButton[\s\S]*label=\{copied/)
   })
 
+  it('Diff 视图切换复用 Foundation IconButton 并保留固定操作槽', () => {
+    const source = readFileSync('src/components/foundation/DiffViewer.tsx', 'utf8')
+    expect(source).toContain("from './IconButton'")
+    expect(source).toMatch(/<IconButton[\s\S]*size=\{24\}[\s\S]*aria-pressed=/)
+    expect(source).not.toMatch(/<button[\s\S]*统一差异/)
+  })
+
   it('TextField 的 Foundation 实现覆盖故事和正式工作区输入', () => {
     for (const file of ['src/components/playground/UiControlsPanel.tsx', 'src/components/FileBrowser.tsx', 'src/components/chat/right-dock/BrowserPanel.tsx', 'src/components/chat/right-dock/TerminalPanel.tsx', 'src/components/chat/right-dock/SideChatPanel.tsx']) {
       const source = readFileSync(file, 'utf8')

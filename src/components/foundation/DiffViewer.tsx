@@ -1,5 +1,6 @@
 import { Columns2, Rows3 } from 'lucide-react'
 import { CodeBlock } from '../MarkdownRenderer'
+import { IconButton } from './IconButton'
 
 export type DiffViewMode = 'unified' | 'split'
 
@@ -29,11 +30,11 @@ export function DiffViewControls({ mode, canSplit, onChange }: {
   const current = resolveDiffViewMode(mode, canSplit)
   return <div className="flex shrink-0 items-center gap-0.5" role="group" aria-label="审阅视图" data-foundation="diff-view-controls">
     {([{ id: 'unified', label: '统一差异', Icon: Rows3 }, { id: 'split', label: '并排差异', Icon: Columns2 }] as const).map(({ id, label, Icon }) =>
-      <button key={id} type="button" aria-label={label} title={label} aria-pressed={current === id} disabled={id === 'split' && !canSplit}
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded disabled:opacity-40"
+      <IconButton key={id} label={label} title={label} size={24} aria-pressed={current === id} disabled={id === 'split' && !canSplit}
+        className="transition hover:bg-[var(--hover-overlay)] disabled:opacity-40"
         style={{ color: current === id ? 'var(--accent-fg)' : 'var(--text-muted)', background: current === id ? 'var(--accent-subtle)' : undefined }} onClick={() => onChange(id)}>
         <Icon size={13} />
-      </button>)}
+      </IconButton>)}
   </div>
 }
 

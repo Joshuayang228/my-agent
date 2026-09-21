@@ -1,5 +1,7 @@
 # 变更日志
 
+- Markdown / Diff 的统一与并排视图切换统一使用 Foundation `IconButton`，固定操作槽尺寸并保持正式审阅、文件预览和工作区候选的共享渲染链路。
+
 - 工作区审阅文件列表统一使用基础 `ActionButton`，保留真实文件变更与 diff 查看流程，并固定 hover 前后的列表行几何。
 
 - 正式通讯录的最近互动入口统一使用 Foundation ActionButton；保留打开召唤会话的真实行为和原有轻量文字呈现。
