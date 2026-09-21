@@ -21,6 +21,7 @@ import { ChatWelcome } from './components/chat/ChatWelcome'
 import { ChatComposer } from './components/chat/ChatComposer'
 import { ChatApprovalControl } from './components/chat/ChatApprovalControl'
 import { ChatMessageFrame } from './components/chat/ChatMessageFrame'
+import { IconButton } from './components/foundation/IconButton'
 import {
   Volume2, Paperclip,
   Folder, FolderOpen, Ban, PanelRight,
@@ -1076,7 +1077,7 @@ function App() {
               </span>
             </div>
             {currentProject && (
-              <button
+              <IconButton
                 onClick={() => {
                   if (!showFileBrowser) {
                     setShowFileBrowser(true)
@@ -1085,8 +1086,8 @@ function App() {
                     setRightDockCollapsed((current) => !current)
                   }
                 }}
-                type="button"
-                className="mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition"
+                size={32}
+                className="mr-2 transition hover:bg-[var(--hover-overlay)]"
                 style={{
                   color: showFileBrowser && !rightDockCollapsed ? 'var(--accent-fg)' : 'var(--text-muted)',
                   background: showFileBrowser && !rightDockCollapsed ? 'var(--accent-subtle)' : undefined,
@@ -1095,11 +1096,11 @@ function App() {
                 aria-controls="chat-right-dock"
                 onMouseEnter={(e) => { if (!showFileBrowser || rightDockCollapsed) e.currentTarget.style.background = 'var(--hover-overlay)' }}
                 onMouseLeave={(e) => { if (!showFileBrowser || rightDockCollapsed) e.currentTarget.style.background = '' }}
-                aria-label={showFileBrowser && !rightDockCollapsed ? '收起工作区' : '打开工作区'}
+                label={showFileBrowser && !rightDockCollapsed ? '收起工作区' : '打开工作区'}
                 title={showFileBrowser && !rightDockCollapsed ? '收起工作区' : '打开工作区'}
               >
                 <PanelRight size={14} />
-              </button>
+              </IconButton>
             )}
             {(() => {
               const session = sessions.find((item) => item.id === activeSessionId)
