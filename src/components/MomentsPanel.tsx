@@ -4,8 +4,9 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
-import { Heart, MapPin, MessageCircle, Newspaper, RefreshCw, X } from 'lucide-react'
+import { Heart, MapPin, MessageCircle, MoreHorizontal, Newspaper, RefreshCw, X } from 'lucide-react'
 import { ActionButton } from './foundation/ActionButton'
+import { IconButton } from './foundation/IconButton'
 import { TextField } from './foundation/TextField'
 import {
   emptyMomentSocial,
@@ -248,12 +249,12 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <button type="button" onClick={() => void load()} className="rounded p-1.5 transition" style={{ color: 'var(--text-muted)' }} title="刷新">
+            <IconButton size={28} label="刷新朋友圈" onClick={() => void load()} className="transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}>
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            </button>
-            <button type="button" onClick={onClose} className="rounded p-1.5 transition" style={{ color: 'var(--text-muted)' }} title="关闭">
+            </IconButton>
+            <IconButton size={28} label="关闭朋友圈" onClick={onClose} className="transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}>
               <X size={14} />
-            </button>
+            </IconButton>
           </div>
         </div>
       )}
@@ -291,7 +292,9 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
                         <div className="flex items-center justify-between gap-2">
                           <div className="text-[13px] font-semibold" style={{ color: isAliceFeed ? 'var(--text-primary)' : 'var(--accent-fg)' }}>{roleName || '小林'}</div>
                           {!isAliceFeed ? (
-                            <button type="button" className="rounded px-1 text-[13px]" style={{ color: 'var(--text-muted)' }} title="动态选项">···</button>
+                            <IconButton size={28} label="动态选项" className="transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}>
+                              <MoreHorizontal size={14} />
+                            </IconButton>
                           ) : null}
                         </div>
                         <div className="mt-0.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>

@@ -1,5 +1,8 @@
 # 质量总控
 
+朋友圈操作槽基础复用（2026-09-21）：正式朋友圈刷新、关闭与动态选项接入 Foundation IconButton；根 
+px tsc --noEmit 通过。既有真实赞评 / 评论槽几何回归继续覆盖数据链路，本批未改 IPC、存储、RAG 或 OAuth。
+
 记忆页基础控件收口（2026-09-21）：记忆清单专项 UI 4 项通过，覆盖 `porcelain-blue` / `yao-stone` 两主题、1166 / 600 宽度、默认 / hover / focus / 编辑态及长记忆切换；验证日期与操作槽共行且卡片几何不变。根 `npx tsc --noEmit` 通过。本批未改 IPC、存储、敏感检测或 RAG / OAuth；整体正式页面回流仍需继续审计。
 
 R01 / R14 主侧栏基础控件回流（2026-09-21）：侧栏搜索、删除操作槽和折叠回归 3 项通过，验证 Foundation TextField / ActionButton / IconButton 接入后仍保持入口行为；删除按钮隐藏态与 hover 态的行及操作槽几何一致。证据 var/verification/primary-sidebar-foundation-final2；根 tsc、全量 Unit 1243 和 vite build 通过。无独立 lint 脚本，构建保留既有警告。

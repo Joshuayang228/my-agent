@@ -1,5 +1,7 @@
 # 项目进度
 
+朋友圈操作槽基础复用（2026-09-21）：正式朋友圈的刷新、关闭和动态选项统一使用 Foundation IconButton 与 Lucide 图标，固定操作槽不随 hover 改变几何；真实赞评 IPC 与 Alice feed 展示保持不变。类型检查通过，完整 UI / Electron 回归仍按组合批次继续；RAG / OAuth 后续保持暂缓。
+
 记忆页基础控件收口（2026-09-21）：正式记忆页关闭、分类筛选、预览编辑 / 删除及非紧凑编辑态统一复用 Foundation IconButton / ActionButton / TextField；保留记忆 IPC、敏感检测、长记忆多行编辑和日期操作槽布局。记忆清单专项 UI 4 项通过（两主题、宽窄视口、hover/focus、编辑态与长记忆切换），根 tsc 通过。本批仅收口控件来源与几何稳定性，其他正式页面和整体回流目标继续进行；RAG / OAuth 后续保持暂缓。
 
 R01 / R14 主侧栏基础控件回流（2026-09-21）：PrimarySidebar 的搜索、 新对话、折叠、重命名和删除控件统一接入 Foundation TextField / ActionButton / IconButton；删除按钮使用固定 24px 槽位并以 visibility 控制显隐，hover 前后行几何保持不变。侧栏搜索、删除槽几何和折叠 3 项 UI 回归通过，根 tsc 通过；后续继续审计其他正式页面的局部裸控件。RAG / OAuth 后续保持暂缓。
