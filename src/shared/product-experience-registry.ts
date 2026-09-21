@@ -82,13 +82,13 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     descriptionZh: '审阅、浏览器、文件、终端与侧边聊天组成的右侧工具区。',
     status: 'playground',
     playgroundTabId: 'workspace',
-    sourcePaths: ['src/components/playground/WorkspaceExperienceCandidate.tsx', 'src/components/chat/right-dock/ChatRightDock.tsx', 'src/components/chat/right-dock/ReviewPanel.tsx', 'src/components/chat/right-dock/WorkspaceFilesPanel.tsx', 'src/components/FileBrowser.tsx', 'src/components/MarkdownRenderer.tsx'],
-    formalEntryPaths: ['src/components/chat/right-dock/ChatRightDock.tsx', 'src/components/chat/right-dock/ReviewPanel.tsx', 'src/components/chat/right-dock/WorkspaceFilesPanel.tsx', 'src/components/FileBrowser.tsx'],
+    sourcePaths: ['src/components/playground/WorkspaceExperienceCandidate.tsx', 'src/components/chat/right-dock/ChatRightDock.tsx', 'src/components/chat/right-dock/ReviewPanel.tsx', 'src/components/chat/right-dock/WorkspaceFilesPanel.tsx', 'src/components/chat/right-dock/BrowserPanel.tsx', 'src/components/chat/right-dock/TerminalPanel.tsx', 'src/components/chat/right-dock/SideChatPanel.tsx', 'src/components/FileBrowser.tsx', 'src/components/MarkdownRenderer.tsx'],
+    formalEntryPaths: ['src/App.tsx', 'src/components/chat/right-dock/ChatRightDock.tsx', 'src/components/chat/right-dock/ReviewPanel.tsx', 'src/components/chat/right-dock/WorkspaceFilesPanel.tsx', 'src/components/chat/right-dock/BrowserPanel.tsx', 'src/components/chat/right-dock/TerminalPanel.tsx', 'src/components/chat/right-dock/SideChatPanel.tsx', 'src/components/FileBrowser.tsx'],
     realDataPaths: ['electron/main/ipc/project.ts', 'electron/main/ipc/session.ts', 'electron/main/ipc/chat.ts', 'electron/main/ipc/browser.ts', 'electron/main/ipc/session-changes.ts', 'electron/main/ipc/terminal.ts'],
     evidencePaths: ['__tests__/e2e/chat.test.ts', '__tests__/e2e/onboarding.test.ts', '__tests__/unit/workspace-backend-contract.test.ts', '__tests__/unit/workspace-foundation-control-audit.test.ts'],
     fixtureAssetPaths: ['src/assets/playground/moment-tea-by-window.jpg'],
     experienceParts: ['审阅', '浏览器', '文件', '终端', '侧边聊天'],
-    usesFoundation: ['developer.file-tree', 'developer.markdown', 'developer.diff-viewer', 'layout.resize-handle', 'behavior.tabs', 'behavior.input', 'behavior.icon-button'],
+    usesFoundation: ['developer.file-tree', 'developer.markdown', 'developer.diff-viewer', 'layout.resize-handle', 'behavior.tabs', 'behavior.input', 'behavior.icon-button', 'behavior.action-button'],
   }),
 ] as const satisfies readonly ProductExperienceDefinition[]
 

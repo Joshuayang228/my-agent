@@ -2,6 +2,8 @@
 
 R06 工作区入口基础复用（2026-09-21）：App 工作区开关改用现有 Foundation IconButton，保留原有状态、32px 尺寸与 aria-controls；折叠几何 UI 四个主题 / 宽度组合通过，证据 var/verification/workspace-toggle-foundation。仅统一入口控件，工作区候选内的浏览器、终端和侧聊样张仍需继续核对共享呈现，不将此项视为全产品采用完成。RAG / OAuth 后续保持暂缓。
 
+工作区资产注册补全（2026-09-21）：产品体验注册表补登记正式浏览器、终端、侧边聊天面板及 App 入口，并声明工作区实际使用的 Foundation ActionButton；资产审计 37 项通过。注册表只补齐真实调用链映射，不改变工作区运行行为或 Playground 隔离边界。
+
 R04 角色架入口回流验证（2026-09-21）：App 侧栏头像和人物世界通讯录的“去角色架”统一进入 SettingsPanel 的伙伴与相处 → 角色架；移除 WorldHub / ShellView 的旧 shelf 路由。快捷进入会记录原视图，关闭角色架后回到伙伴设置，设置返回再恢复原聊天或通讯录；正式 UI 宽屏 / 窄屏 2 项通过，真实 Electron 切角、重载保留与恢复原角色仍通过。Unit 1243、根 tsc、vite build 通过；本批不涉及 IPC、存储、RAG 或 OAuth。
 
 Debug 新对话入口修复（2026-09-21）：从 Debug 页面点击侧栏“新对话”现在会先切回聊天，再创建并载入新会话；独立 UI 回归通过，避免会话已创建但仍停留在 Debug 的正式导航断链。证据 var/verification/debug-new-conversation；不涉及 IPC、存储、RAG 或 OAuth。
