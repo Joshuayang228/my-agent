@@ -1,5 +1,7 @@
 # 项目进度
 
+记忆页基础控件收口（2026-09-21）：正式记忆页关闭、分类筛选、预览编辑 / 删除及非紧凑编辑态统一复用 Foundation IconButton / ActionButton / TextField；保留记忆 IPC、敏感检测、长记忆多行编辑和日期操作槽布局。记忆清单专项 UI 4 项通过（两主题、宽窄视口、hover/focus、编辑态与长记忆切换），根 tsc 通过。本批仅收口控件来源与几何稳定性，其他正式页面和整体回流目标继续进行；RAG / OAuth 后续保持暂缓。
+
 R01 / R14 主侧栏基础控件回流（2026-09-21）：PrimarySidebar 的搜索、 新对话、折叠、重命名和删除控件统一接入 Foundation TextField / ActionButton / IconButton；删除按钮使用固定 24px 槽位并以 visibility 控制显隐，hover 前后行几何保持不变。侧栏搜索、删除槽几何和折叠 3 项 UI 回归通过，根 tsc 通过；后续继续审计其他正式页面的局部裸控件。RAG / OAuth 后续保持暂缓。
 
 R06 工作区入口基础复用（2026-09-21）：App 工作区开关改用现有 Foundation IconButton，保留原有状态、32px 尺寸与 aria-controls；折叠几何 UI 四个主题 / 宽度组合通过，证据 var/verification/workspace-toggle-foundation。仅统一入口控件，工作区候选内的浏览器、终端和侧聊样张仍需继续核对共享呈现，不将此项视为全产品采用完成。RAG / OAuth 后续保持暂缓。

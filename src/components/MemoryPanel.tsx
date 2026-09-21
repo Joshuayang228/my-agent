@@ -305,15 +305,15 @@ export function MemoryPanel({
               <span className="rounded px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{memories.length}</span>
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <IconButton
+                size={32}
+                label="关闭记忆"
                 onClick={onClose}
-                className="rounded-lg p-1.5 transition"
+                className="transition hover:bg-[var(--hover-overlay)]"
                 style={{ color: 'var(--text-muted)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
               >
                 <X size={16} />
-              </button>
+              </IconButton>
             </div>
           </div>
         )}
@@ -327,30 +327,26 @@ export function MemoryPanel({
 
         {!management && !previewCompact && (
           <div className="flex flex-wrap gap-2 border-b px-5 py-2.5" style={{ borderColor: 'var(--border-color)' }} data-testid="memory-category-filters">
-            <button
+            <ActionButton
               onClick={() => setFilter('all')}
-              className={`rounded-lg px-2.5 py-1 text-[11px] transition ${
-                filter === 'all' ? 'font-medium' : ''
-              }`}
-              style={{ background: filter === 'all' ? 'var(--bg-tertiary)' : undefined, color: filter === 'all' ? 'var(--text-primary)' : 'var(--text-muted)' }}
+              aria-pressed={filter === 'all'}
+              className={filter === 'all' ? 'font-medium' : ''}
+              style={{ background: filter === 'all' ? 'var(--bg-tertiary)' : 'transparent', color: filter === 'all' ? 'var(--text-primary)' : 'var(--text-muted)', borderColor: filter === 'all' ? 'transparent' : 'var(--border-color)' }}
             >
               全部 ({memories.length})
-            </button>
+            </ActionButton>
             {CATEGORIES.map(cat => {
               const count = categoryCounts[cat.id] || 0
               return (
-                <button
+                <ActionButton
                   key={cat.id}
                   onClick={() => setFilter(cat.id)}
-                  className={`rounded-lg px-2.5 py-1 text-[11px] transition ${
-                    filter === cat.id
-                      ? `${COLOR_MAP[cat.color].badge} font-medium`
-                      : ''
-                  }`}
+                  aria-pressed={filter === cat.id}
+                  className={filter === cat.id ? `${COLOR_MAP[cat.color].badge} font-medium` : ''}
                   style={filter !== cat.id ? { color: 'var(--text-muted)' } : undefined}
                 >
                   {cat.icon} {cat.label} ({count})
-                </button>
+                </ActionButton>
               )
             })}
           </div>
@@ -484,31 +480,30 @@ export function MemoryPanel({
                         )
                       ) : (
                       <div className="flex gap-2">
-                        <input
+                        <TextField
                           value={editContent}
-                          onChange={e => setEditContent(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') handleSaveEdit(mem.id)
-                            if (e.key === 'Escape') setEditing(null)
+                          onChange={(event: ChangeEvent<HTMLInputElement>) => setEditContent(event.target.value)}
+                          onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+                            if (event.key === 'Enter') void handleSaveEdit(mem.id)
+                            if (event.key === 'Escape') setEditing(null)
                           }}
                           autoFocus
                           readOnly={!canEdit}
-                          className="theme-input flex-1 rounded border px-2 py-1 text-xs outline-none"
+                          className="theme-input min-w-0 flex-1 rounded-[var(--radius-md)] border px-2 py-1 text-xs outline-none"
                         />
-                        <button
+                        <ActionButton
                           onClick={() => handleSaveEdit(mem.id)}
-                          disabled={!canEdit}
-                          className="rounded px-2 py-1 text-[10px] text-white disabled:opacity-50"
-                          style={{ background: 'var(--accent-emphasis)' }}
+                          disabled={!canEdit || busy}
+                          tone="accent"
                         >
                           保存
-                        </button>
-                        <button
+                        </ActionButton>
+                        <ActionButton
                           onClick={() => setEditing(null)}
-                          className="memory-action-button rounded px-2 py-1 text-[10px] transition"
+                          disabled={busy}
                         >
                           取消
-                        </button>
+                        </ActionButton>
                       </div>
                       )
                     ) : (
@@ -576,8 +571,8 @@ export function MemoryPanel({
 
                       {canEdit && !isEditing ? (
                         <div className="flex shrink-0 items-center gap-1">
-                          <button aria-label={`编辑记忆 ${mem.content}`} onClick={() => startEdit(mem)} className="memory-action-button rounded px-1.5 py-0.5 text-[10px] transition">编辑</button>
-                          <button aria-label={`删除记忆 ${mem.content}`} onClick={() => handleDelete(mem.id)} className="memory-delete-button rounded px-1.5 py-0.5 text-[10px] transition">删除</button>
+                          <ActionButton aria-label={`编辑记忆 ${mem.content}`} onClick={() => startEdit(mem)}>编辑</ActionButton>
+                          <ActionButton aria-label={`删除记忆 ${mem.content}`} onClick={() => handleDelete(mem.id)} tone="danger">删除</ActionButton>
                         </div>
                       ) : null}
                     </div>}
