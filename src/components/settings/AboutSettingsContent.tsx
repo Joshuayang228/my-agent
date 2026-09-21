@@ -32,7 +32,7 @@ export function AboutSettingsContent({
           <Sparkles size={18} style={{ color: 'var(--companion-accent-warm)' }} aria-hidden="true" />
           <div>
             <div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>My Agent</div>
-            <p className="mt-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>品牌标语待定</p>
+            <p className="mt-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>有性格、有记忆，也会和你一起成长。</p>
           </div>
         </div>
         <div className="mt-5 grid gap-3 text-[11px] sm:grid-cols-3" style={{ color: 'var(--text-secondary)' }}>
