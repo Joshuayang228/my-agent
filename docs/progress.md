@@ -1,5 +1,7 @@
 # 项目进度
 
+S6 / 设置开关颜色语义收口（2026-09-22）：共享 `SettingSwitch` 的开启轨道改用主题 accent，开关圆点改用输入背景色，修复浅色主题下深色圆点与轨道对比突兀的问题；伙伴设置、开发者模式、权限规则与 Playground 共享同一修复。根 `tsc`、定向注册测试 39 项与 `vite build` 通过。
+
 S6 / Foundation 焦点语义与设置样张补齐（2026-09-22）：`TextField`、`ActionButton` 与 `Button` 的焦点表现统一由基础 CSS 提供，输入框由 2px 强外扩改为 1px 低对比语义环，导航按钮移除浏览器黑色默认轮廓；正式记忆页补齐标题，Playground 模型页默认展示三家连接商、多个模型及跨用途路由组合。根 `tsc`、定向 Foundation / 产品注册测试 40 项与 `vite build` 通过。
 
 S6 / 返回导航基础控件统一（2026-09-22）：Foundation `ActionButton` 新增 `plain` 变体，统一正式设置与 Playground 的返回入口；固定操作槽、低强调表面和 hover 背景由基础组件提供，正式页面不再维护孤儿按钮样式。定向 Foundation / 注册表测试、根 `tsc` 与 `vite build` 通过。

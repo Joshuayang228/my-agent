@@ -32,8 +32,8 @@ export function SettingSwitch({ checked, compact = false, description, label, on
     className={compact ? 'h-5 w-9 min-h-0 border-0 p-0' : 'w-full gap-4 rounded-[var(--radius-md)] px-3 py-3 text-left'}
     style={{ borderColor: 'var(--border-subtle)', background: !compact && checked ? 'var(--accent-subtle)' : 'transparent' }} data-testid={testId}>
     {!compact && <span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{label}{scope && <ScopeBadge label={scope} />}</span><span className="mt-0.5 block text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>{description}</span></span>}
-    <span className="relative block h-5 w-9 shrink-0 rounded-full transition" style={{ background: checked ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }} aria-hidden="true">
-      <span className="absolute top-0.5 h-4 w-4 rounded-full shadow-sm transition" style={{ background: 'var(--text-primary)', left: checked ? 'calc(100% - 1.125rem)' : '0.125rem' }} />
+    <span className="relative block h-5 w-9 shrink-0 rounded-full transition" style={{ background: checked ? 'var(--accent)' : 'var(--bg-tertiary)' }} aria-hidden="true">
+      <span className="absolute top-0.5 h-4 w-4 rounded-full shadow-sm transition" style={{ background: 'var(--input-bg)', left: checked ? 'calc(100% - 1.125rem)' : '0.125rem' }} />
     </span>
   </ActionButton>
 }
