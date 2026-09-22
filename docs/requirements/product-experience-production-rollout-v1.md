@@ -1,5 +1,7 @@
 # 全产品体验正式回流 v1 施工合同
 
+S5 / S6 当前 Electron 证据（2026-09-22）：正式 Electron 套件 41 项中 36 项通过、4 项因外部模型凭据条件跳过；唯一失败是暂缓的 MCP OAuth 专项，失败为测试处理不存在的 JavaScript dialog（`Page.handleJavaScriptDialog: No dialog is showing`）。设置、记忆、人物世界、权限、Skills、工作区、终端、侧聊、生图、备份与凭据恢复主线通过；OAuth / RAG 仍按用户决定暂缓，不推进采用状态。
+
 R12 组合审计复核（2026-09-21）：人物世界按正式入口、真实数据链路、状态覆盖、测试证据四条链复核。定向 Unit 6 个文件 / 46 项通过；正式 Electron 伙伴设置、文化角更新与重载、生活资产新增与重载、生活资产备份往返、迟到切角写入保护 5 项通过；六面正式入口测试覆盖朋友圈、衣柜、文化角、家居、通讯录、足迹。结论是人物世界当前没有证据支持的新增实现缺口，不把本批结果外推为全产品 `adopted`，`experience.world` 继续保持 `playground`。下一批只审设置与工作区的跨页组合状态、失败恢复和正式入口独立性；RAG / MCP OAuth 继续暂缓。
 
 R04 角色架入口回流（2026-09-20）：按已批准的“角色架归设置”候选，将 App 侧栏头像和 WorldHub 通讯录快捷入口接到 SettingsPanel 的显式 initialEntry。删除 WorldHub 内部 shelf 分支、ShellView / WorldTab 的 shelf 值及旧 onSwitched 回调；真实切角通知继续由 App 既有 onRoleChanged 接收，退出设置仍刷新角色。快捷进入时记录原视图；关闭角色架回到伙伴设置，设置返回再恢复原聊天或世界分区，普通设置默认行为不变。允许修改上述壳层与设置、候选失效参数、Unit / UI / Electron 和伙伴模块及收工文档；不改 IPC、存储、切角门控、RAG 或 OAuth。验证入口、关闭角色架、返回、再次普通设置、保存保护和真实切角重载。
