@@ -58,7 +58,7 @@ export function SettingsLayout({ activeSection, onSelect, onClose, children, pre
     <aside className="scrollbar-thin hidden w-[198px] shrink-0 flex-col overflow-y-auto border-r px-3 py-4 md:flex"
       style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} data-testid="settings-nav">
       <div className="mb-5 px-2">
-        {onClose ? <ActionButton onClick={onClose} title="返回聊天" data-testid="settings-back" className="gap-2 border-0"><ArrowLeft size={15} />返回</ActionButton> : null}
+        {onClose ? <ActionButton onClick={onClose} title="返回聊天" data-testid="settings-back" variant="plain" className="min-h-8 w-full justify-start gap-1.5 rounded-lg px-2.5 py-2 text-left text-[12px]"><ArrowLeft size={15} strokeWidth={1.75} />返回</ActionButton> : null}
         <h2 className="mt-2 text-[13px] font-semibold">设置</h2>
       </div>
       <nav className="flex-1 space-y-5" aria-label="设置导航">
@@ -71,7 +71,7 @@ export function SettingsLayout({ activeSection, onSelect, onClose, children, pre
     </aside>
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       <div className="min-w-0 border-b px-3 py-2 md:hidden" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
-        {onClose && <ActionButton onClick={onClose} title="返回" data-testid="settings-back-mobile" className="mb-2 gap-2 border-0"><ArrowLeft size={15} />返回</ActionButton>}
+        {onClose && <ActionButton onClick={onClose} title="返回" data-testid="settings-back-mobile" variant="plain" className="mb-2 min-h-8 justify-start gap-1.5 rounded-lg px-2.5 py-2 text-left text-[12px]"><ArrowLeft size={15} strokeWidth={1.75} />返回</ActionButton>}
         <div data-testid={`${prefix}-mobile-nav`}>
           <TabStrip label="设置导航" items={SETTINGS_NAV_ITEMS.map((item) => ({ id: item.id, label: item.id === 'about' ? '关于' : item.label, panelId: `${prefix}-panel-${item.id}` }))}
             activeId={activeSection} onSelect={(id) => { const item = SETTINGS_NAV_ITEMS.find((entry) => entry.id === id); if (item) onSelect(item.id) }} />

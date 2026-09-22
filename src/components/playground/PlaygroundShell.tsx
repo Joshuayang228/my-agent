@@ -30,6 +30,7 @@ import { ToolRunPanel, type PlaygroundToolInfo } from './ToolRunPanel'
 import { ModelTestPanel } from './ModelTestPanel'
 import { PlaygroundPageHeader, PlaygroundSourcePath } from './PlaygroundLayout'
 import { findPlaygroundPersona } from '../../shared/playground-journey-fixtures'
+import { ActionButton } from '../foundation/ActionButton'
 
 const TAB_STORAGE_KEY = 'playground.active-tab'
 
@@ -104,19 +105,16 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
       >
         {onClose && (
           <div className="mb-4">
-            <button
-              type="button"
+            <ActionButton
               onClick={onClose}
-              className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-2 text-[12px] transition"
-              style={{ color: 'var(--text-secondary)' }}
-              onMouseEnter={(event) => (event.currentTarget.style.background = 'var(--hover-overlay)')}
-              onMouseLeave={(event) => (event.currentTarget.style.background = '')}
+              variant="plain"
+              className="min-h-8 w-full justify-start gap-1.5 rounded-lg px-2.5 py-2 text-left text-[12px]"
               title="返回聊天"
               data-testid="playground-back"
             >
               <ArrowLeft size={15} strokeWidth={1.75} />
               返回
-            </button>
+            </ActionButton>
           </div>
         )}
 

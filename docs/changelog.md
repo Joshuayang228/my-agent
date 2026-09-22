@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-09-22：统一设置与 Playground 的返回导航外观：新增 Foundation `ActionButton` 的 `plain` 变体，正式设置页获得与 Playground 一致的低强调样式和 hover 背景，同时保留固定尺寸与可访问名称。
+
 2026-09-22：全产品体验回流收口：Chat、人物世界、设置、记忆、主题 / Foundation 与工作区五工具完成正式采用登记；正式入口继续使用真实 IPC、存储和生命周期保护。RAG、MCP OAuth 与完整 PTY 不包含在本批范围内，继续暂缓。
 
 2026-09-22：Foundation 生命周期收口：新增通用 `Button`、`EmptyState`、`ErrorState`，正式浏览器与角色架的空态 / 错误态 / 恢复动作统一从基础组件渲染；四个产品体验资产完成正式采用登记。RAG 与 MCP OAuth 不包含在本批完成范围内，继续暂缓。
