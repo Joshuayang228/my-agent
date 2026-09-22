@@ -1,5 +1,7 @@
 # 质量总控
 
+S6 / 人物世界通讯录结构门禁（2026-09-22）：通讯录不再自行渲染页面级标题、关闭和常驻刷新栏，人物世界外层 `WorldHub` 负责身份上下文与 tab 导航；通讯录读取异常时仍需在面内提供可操作的重新读取入口。相关样张回归只验证通讯录内容与召唤行为，不把重复导航控件作为产品契约。
+
 S3 / S4 quality gates: companion-source-boundary and settings-lifecycle-boundary lock the production source and leave-guard contracts. Behavioral coverage remains in Renderer / Electron E2E; RAG / MCP OAuth stay deferred.
 
 S6 / Foundation 生命周期门禁（2026-09-22）：新增 `Button`、`EmptyState`、`ErrorState` 后，UI 注册表、Foundation 故事、正式浏览器 / 角色架消费者和工作区控件审计共 39 项定向 Unit 通过；全量 Unit 183 文件 / 1248 项、Renderer E2E 379 项、根 `tsc`、`vite build`、assets:check 38 项和 docs:validate 155 份 Markdown 均通过。错误态的 `role=alert` 只包用户可读错误正文，恢复按钮保持独立操作语义与固定操作槽。RAG / MCP OAuth 继续暂缓。

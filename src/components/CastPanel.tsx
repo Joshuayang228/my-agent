@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { LayoutGrid, MessageCircle, RefreshCw, TriangleAlert, Users, X } from 'lucide-react'
+import { LayoutGrid, MessageCircle, RefreshCw, TriangleAlert } from 'lucide-react'
 import { ActionButton } from './foundation/ActionButton'
 import { ConfirmPanel } from './foundation/ConfirmPanel'
 import { IconButton } from './foundation/IconButton'
@@ -100,8 +100,6 @@ export function CastPanel({
   previewData,
 }: CastPanelProps) {
   const { toast } = useToast()
-  const [roleId, setRoleId] = useState('')
-  const [roleName, setRoleName] = useState('')
   const [lines, setLines] = useState<RosterLine[]>([])
   const [cast, setCast] = useState<CastBrief[]>([])
   const [availabilityById, setAvailabilityById] = useState<Record<string, CastAvailabilitySnapshot | null>>({})
@@ -145,8 +143,6 @@ export function CastPanel({
 
   const load = useCallback(async () => {
     if (previewData) {
-      setRoleId(previewData.roleId)
-      setRoleName(previewData.roleName)
       setLines(previewData.lines)
       setCast(previewData.cast)
       setAvailabilityById(previewData.availabilityById)
@@ -161,13 +157,8 @@ export function CastPanel({
     setLoading(true)
     setAvailabilityLoading(true)
     try {
-      const [data, active] = await Promise.all([
-        window.electronAPI.companion.getRoster(),
-        window.electronAPI.companion.getActive(),
-      ])
+      const data = await window.electronAPI.companion.getRoster()
       if (loadGeneration.current !== generation) return
-      setRoleId(data.roleId)
-      setRoleName(active.name)
       setLines(data.lines)
       setCast(data.cast)
       setSelected(null)
@@ -249,31 +240,6 @@ export function CastPanel({
 
   return (
     <div className="flex h-full flex-col" data-testid="world-cast-panel">
-      <div
-        className="flex items-center justify-between border-b px-4 py-3"
-        style={{ borderColor: 'var(--border-subtle)' }}
-      >
-        <div className="flex items-center gap-2">
-          <Users size={16} style={{ color: 'var(--companion-accent-warm)' }} />
-          <div>
-            <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-              通讯录
-            </div>
-            <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              以 {roleName || roleId || '活跃主角'} 为视角 · 召唤 ≠ 换主角
-            </div>
-          </div>
-        </div>
-        <div className="flex h-8 items-center gap-1">
-          <IconButton size={32} label="刷新通讯录" onClick={() => void load()} disabled={loading}>
-            <RefreshCw size={14} className={loading ? "animate-spin" : undefined} />
-          </IconButton>
-          <IconButton size={32} label="关闭通讯录" onClick={onClose}>
-            <X size={14} />
-          </IconButton>
-        </div>
-      </div>
-
       <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-thin">
         {pendingForce && <div className="mb-3"><ConfirmPanel icon={<TriangleAlert size={15} />} title={`仍要强行与${pendingForce.name}开聊吗？`} description={`${pendingForce.description}\n\n强行开聊会忽略对方当前的忙碌状态，但不会切换活跃主角。`} confirmLabel="强行开聊" busy={starting === pendingForce.id} onCancel={() => { if (!startingRef.current) setPendingForce(null) }} onConfirm={() => { const target = pendingForce; if (target) void startChat(target.id, target.name, true) }} /></div>}
         <p
@@ -288,9 +254,12 @@ export function CastPanel({
           要换活跃主角请用角色架。
         </p>
         {availabilityError ? (
-          <p className="mb-3 text-[11px]" style={{ color: "var(--warning)" }} data-testid="world-cast-availability-error">
-            {availabilityError}
-          </p>
+          <div className="mb-3 flex items-center gap-2 text-[11px]" style={{ color: 'var(--warning)' }} data-testid="world-cast-availability-error">
+            <span>{availabilityError}</span>
+            <IconButton size={28} label="重新读取通讯录" onClick={() => void load()} disabled={loading}>
+              <RefreshCw size={13} className={loading ? 'animate-spin' : undefined} />
+            </IconButton>
+          </div>
         ) : null}
 
         {cards.length === 0 && !loading ? (
