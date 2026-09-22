@@ -219,7 +219,10 @@ test('首次进入通过模型路由配置后开始对话', async () => {
   await page.getByPlaceholder('Base URL').fill(baseUrl)
   await page.getByLabel('API Key', { exact: true }).fill('local-test-key')
   await page.getByRole('button', { name: '保存连接', exact: true }).click()
-  await expect(page.getByText('本地测试连接', { exact: true })).toBeVisible()
+  // 背景：独立首启会等待 Windows 安全存储落盘，而共享套件通常已被前序用例预热。
+  // 设计意图：等待真实保存完成后再读取正式连接卡片，不把慢启动误判成 IPC 失败。
+  // 关键约束：上限固定为 20 秒；超过上限仍必须失败，不能用无限等待掩盖保存链路问题。
+  await expect(page.getByText('本地测试连接', { exact: true })).toBeVisible({ timeout: 20_000 })
   await expect.poll(() => page.evaluate(async () => JSON.parse((await window.electronAPI.settings.get()).modelConnections).some((connection: { name: string; enabled: boolean }) => connection.name === '本地测试连接' && connection.enabled))).toBe(true)
   const modelInput = page.getByRole('textbox', { name: '手动添加模型 本地测试连接', exact: true })
   await modelInput.fill('local-test-model')

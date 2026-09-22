@@ -1,5 +1,7 @@
 # 项目进度
 
+S5 / onboarding 独立性收口（2026-09-22）：正式 `onboarding.test.ts` 完整 22 项通过；独立启动的 Skills、模型路由、人物世界六面、工作区、终端、权限和记忆代表用例也通过。独立首启模型路由首次暴露保存连接断言仍使用默认 5 秒的问题，根因是 Windows 安全存储冷启动；测试改为有界 20 秒等待后独立通过，不改变产品保存链路。共享前置仍只承载本地服务与独立临时 user-data-dir，不再把前序模型配置当作该用例的成功条件。
+
 S5 / S6 正式 Electron 当前回归（2026-09-22）：运行 `npm run test:e2e:electron` 的 41 项套件，36 项通过、4 项因外部模型凭据条件跳过；唯一失败为已暂缓的 `mcp-oauth.test.ts`，错误是测试尝试处理已不存在的 JavaScript dialog（`Page.handleJavaScriptDialog: No dialog is showing`）。正式设置、记忆、人物世界、权限、Skills、工作区、终端、侧聊、生图、备份与凭据恢复用例均通过。该结果关闭本轮 S5 的主线 Electron 依赖证据缺口，但不把 OAuth 标记为完成，也不因此将四个产品体验资产批量提升为 `adopted`。
 
 R13 / 设置与工作区跨页组合验收（2026-09-22）：正式工作区进入设置与 Playground 后保留终端实例，返回后继续显示原命令状态；切换项目才清理旧终端。首轮 127 项定向 UI 中仅该用例因设置返回按钮缺少“返回聊天”辅助语义失败；SettingsLayout 桌面返回 tooltip 补齐后，独立用例通过，工作区 / 设置相关 Unit 4 文件 34 项与根 tsc 通过。移动端隐藏返回控件保留独立 title，避免响应式隐藏节点污染严格定位。未改变保存保护、导航、IPC 或工作区生命周期；全产品 experience 仍未提升为 adopted，RAG / MCP OAuth 继续暂缓。

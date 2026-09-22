@@ -1,5 +1,7 @@
 # 质量总控
 
+S5 / onboarding 独立性收口（2026-09-22）：正式 `onboarding.test.ts` 22 项全通过；Skills、模型路由、人物世界六面、工作区、终端、权限和记忆代表用例另以独立 Electron 进程 / 临时数据目录复跑通过。模型路由独立首启暴露 Windows 安全存储冷启动超过默认 5 秒的测试假设，改为有界 20 秒断言后通过；没有修改生产保存逻辑。
+
 S5 / S6 正式 Electron 当前回归（2026-09-22）：`npm run test:e2e:electron` 共 41 项，36 项通过、4 项因外部模型凭据条件跳过；唯一失败位于暂缓的 MCP OAuth 专项，原因为 `Page.handleJavaScriptDialog: No dialog is showing`，不是当前正式设置、记忆、人物世界、工作区或权限链路失败。该结果不将 OAuth 记为完成，也不替代四个产品体验资产的最终采用审计。
 
 R13 / 关于页文案契约回归（2026-09-22）：Playground 设置候选与正式关于页统一使用“有性格、有记忆，也会和你一起成长。”，E2E 不再断言已移除的“品牌标语待定”占位文案。定向用例 1 项、完整 Renderer UI 回归 379 项、Unit 1247 项、根 `npx tsc --noEmit`、`npx vite build`、资产与文档门禁通过；本批只同步测试契约，不改变生产 IPC、设置存储或开发者模式行为。
