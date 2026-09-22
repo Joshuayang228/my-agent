@@ -136,15 +136,18 @@ describe('Foundation story registry', () => {
     expect(production).toMatch(/<SegmentedControl[\s\S]*value=\{htmlView\}/)
   })
 
-  it('ActionButton 的 Foundation 实现覆盖故事和正式工作区恢复动作', () => {
+  it('Foundation 文字按钮实现覆盖故事和正式工作区恢复动作', () => {
     const story = readFileSync('src/components/playground/FoundationAdvancedStories.tsx', 'utf8')
     expect(story).toContain("from '../foundation/ActionButton'")
     expect(story).toContain("case 'foundation.action-button'")
-    for (const file of ['src/components/FileBrowser.tsx', 'src/components/chat/right-dock/BrowserPanel.tsx', 'src/components/chat/right-dock/ReviewPanel.tsx', 'src/components/chat/right-dock/SideChatPanel.tsx']) {
+    for (const file of ['src/components/FileBrowser.tsx', 'src/components/chat/right-dock/ReviewPanel.tsx', 'src/components/chat/right-dock/SideChatPanel.tsx']) {
       const source = readFileSync(file, 'utf8')
       expect(source).toContain('foundation/ActionButton')
       expect(source).toContain('<ActionButton')
     }
+    const browser = readFileSync('src/components/chat/right-dock/BrowserPanel.tsx', 'utf8')
+    expect(browser).toContain('foundation/Button')
+    expect(browser).toContain('<Button')
   })
 
   it('keeps story keys, views, assets and groups in one consistent relation', () => {

@@ -33,10 +33,14 @@ describe('正式工作区 Foundation 控件门禁', () => {
       const source = readFileSync(file, 'utf8')
       expect(source, file).toContain('IconButton')
     }
-    for (const file of ['src/components/chat/right-dock/BrowserPanel.tsx', 'src/components/chat/right-dock/ReviewPanel.tsx', 'src/components/chat/right-dock/SideChatPanel.tsx', 'src/components/FileBrowser.tsx']) {
+    for (const file of ['src/components/chat/right-dock/ReviewPanel.tsx', 'src/components/chat/right-dock/SideChatPanel.tsx', 'src/components/FileBrowser.tsx']) {
       const source = readFileSync(file, 'utf8')
       expect(source, file).toContain('ActionButton')
     }
+    const browser = readFileSync('src/components/chat/right-dock/BrowserPanel.tsx', 'utf8')
+    expect(browser).toContain('Button')
+    expect(browser).toContain('EmptyState')
+    expect(browser).toContain('ErrorState')
   })
 
   it('formal workspace shared controls stay bound to Foundation', () => {
@@ -45,7 +49,7 @@ describe('正式工作区 Foundation 控件门禁', () => {
       'src/components/chat/right-dock/WorkspaceFilesPanel.tsx': ['TabStrip'],
       'src/components/chat/right-dock/ReviewPanel.tsx': ['DiffViewer', 'DiffViewControls', 'IconButton', 'ActionButton'],
       'src/components/chat/right-dock/TerminalPanel.tsx': ['IconButton', 'TextField'],
-      'src/components/chat/right-dock/BrowserPanel.tsx': ['IconButton', 'ActionButton', 'TextField'],
+      'src/components/chat/right-dock/BrowserPanel.tsx': ['IconButton', 'Button', 'EmptyState', 'ErrorState', 'TextField'],
       'src/components/chat/right-dock/SideChatPanel.tsx': ['IconButton', 'ActionButton', 'TextField', 'MarkdownRenderer'],
       'src/components/FileBrowser.tsx': ['IconButton', 'ActionButton', 'SegmentedControl', 'TextField', 'MarkdownRenderer'],
       'src/components/MarkdownRenderer.tsx': ['IconButton'],

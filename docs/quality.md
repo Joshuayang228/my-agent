@@ -1,5 +1,7 @@
 # 质量总控
 
+S6 / Foundation 生命周期门禁（2026-09-22）：新增 `Button`、`EmptyState`、`ErrorState` 后，UI 注册表、Foundation 故事、正式浏览器 / 角色架消费者和工作区控件审计共 39 项定向 Unit 通过；全量 Unit 183 文件 / 1248 项、Renderer E2E 379 项、根 `tsc`、`vite build`、assets:check 38 项和 docs:validate 155 份 Markdown 均通过。错误态的 `role=alert` 只包用户可读错误正文，恢复按钮保持独立操作语义与固定操作槽。RAG / MCP OAuth 继续暂缓。
+
 S6 / 正式入口组合门禁（2026-09-22）：完整 Renderer UI `npm run test:e2e` 379 / 379 通过；定向正式入口审计 35 / 35 通过，覆盖 Chat 工作区折叠与跨页保留、设置返回与保存保护、记忆长文编辑 / 敏感项 / 失败恢复、权限规则新增与离页保护、人物世界六面、四主题宽窄和 Playground 隔离。正式入口源码扫描未发现引用 Playground fixture 或 preview 注入。该证据关闭当前 Renderer 组合回归缺口，但不替代最终人工采用确认，也不关闭 RAG / MCP OAuth 暂缓项。
 
 S5 / onboarding 独立性收口（2026-09-22）：正式 `onboarding.test.ts` 22 项全通过；Skills、模型路由、人物世界六面、工作区、终端、权限和记忆代表用例另以独立 Electron 进程 / 临时数据目录复跑通过。模型路由独立首启暴露 Windows 安全存储冷启动超过默认 5 秒的测试假设，改为有界 20 秒断言后通过；没有修改生产保存逻辑。

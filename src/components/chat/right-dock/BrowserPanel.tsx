@@ -2,7 +2,9 @@ import { LoaderCircle, RefreshCw } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react'
 import { IconButton } from '../../foundation/IconButton'
-import { ActionButton } from '../../foundation/ActionButton'
+import { Button } from '../../foundation/Button'
+import { EmptyState } from '../../foundation/EmptyState'
+import { ErrorState } from '../../foundation/ErrorState'
 import { TextField } from '../../foundation/TextField'
 
 function toSandboxDocument(source: string): string {
@@ -51,6 +53,6 @@ export function BrowserPanel() {
       <TextField aria-label="浏览器地址" value={draft} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft(event.target.value)} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => { if (event.key === 'Escape') { setDraft(address); event.currentTarget.blur() } }} className="flex-1 text-center text-[11px]" />
       <IconButton type="submit" label={loading ? '正在加载' : '刷新页面'} size={24} disabled={loading} className="disabled:opacity-50" style={{ color: 'var(--text-muted)' }}>{loading ? <LoaderCircle size={13} className="animate-spin" /> : <RefreshCw size={13} />}</IconButton>
     </form>
-    {error ? <div className="m-auto flex flex-col items-center gap-2 p-6 text-center"><p role="alert" className="text-[12px]" style={{ color: 'var(--danger)' }}>{error}</p><ActionButton tone="accent" onClick={() => { void load() }}>重新加载</ActionButton></div> : document == null ? <div className="m-auto p-6 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>输入地址后加载网页</div> : <iframe title="网页内容" sandbox="" referrerPolicy="no-referrer" srcDoc={toSandboxDocument(document)} className="min-h-0 w-full flex-1 border-0" />}
+    {error ? <ErrorState className="m-auto" title="网页加载失败" description={error} action={<Button tone="accent" onClick={() => { void load() }}>重新加载</Button>} /> : document == null ? <EmptyState className="m-auto" title="还没有网页内容" description="输入地址后加载网页" /> : <iframe title="网页内容" sandbox="" referrerPolicy="no-referrer" srcDoc={toSandboxDocument(document)} className="min-h-0 w-full flex-1 border-0" />}
   </div>
 }

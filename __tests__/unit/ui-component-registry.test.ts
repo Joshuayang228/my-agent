@@ -263,6 +263,25 @@ describe('UI component asset registry', () => {
     expect(rendersSharedTabs("const TabStrip = () => <div />; const x = <TabStrip />")).toBe(false)
     expect(rendersSharedTabs("import { TabStrip as Tabs } from '../foundation/TabStrip'; const x = <Tabs />")).toBe(true)
   })
+  it('按钮、空态和错误态从 Foundation 进入正式消费者', () => {
+    expect(UI_COMPONENT_REGISTRY['behavior.button']).toMatchObject({ status: 'adopted', sourcePath: 'src/components/foundation/Button.tsx' })
+    expect(UI_COMPONENT_REGISTRY['state.empty']).toMatchObject({ status: 'adopted', sourcePath: 'src/components/foundation/EmptyState.tsx' })
+    expect(UI_COMPONENT_REGISTRY['state.error']).toMatchObject({ status: 'adopted', sourcePath: 'src/components/foundation/ErrorState.tsx' })
+
+    const browser = readFileSync('src/components/chat/right-dock/BrowserPanel.tsx', 'utf8')
+    expect(rendersSharedTabs(browser, 'Button', '/foundation/Button')).toBe(true)
+    expect(rendersSharedTabs(browser, 'EmptyState', '/foundation/EmptyState')).toBe(true)
+    expect(rendersSharedTabs(browser, 'ErrorState', '/foundation/ErrorState')).toBe(true)
+
+    const shelf = readFileSync('src/components/companion/CharacterShelfContent.tsx', 'utf8')
+    expect(rendersSharedTabs(shelf, 'EmptyState', '/foundation/EmptyState')).toBe(true)
+    expect(rendersSharedTabs(shelf, 'ErrorState', '/foundation/ErrorState')).toBe(true)
+
+    for (const filePath of ['src/components/foundation/Button.tsx', 'src/components/foundation/EmptyState.tsx', 'src/components/foundation/ErrorState.tsx']) {
+      const source = readFileSync(filePath, 'utf8')
+      expect(source).not.toContain('electronAPI')
+    }
+  })
   it('keeps stable keys, category coverage and lifecycle metadata', () => {
     const keys = UI_COMPONENT_ASSETS.map((asset) => asset.key)
 

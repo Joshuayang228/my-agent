@@ -1,6 +1,8 @@
 import { RefreshCw, X } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
+import { EmptyState } from '../foundation/EmptyState'
+import { ErrorState } from '../foundation/ErrorState'
 
 export interface ShelfCharacter { id: string; name: string; description: string }
 
@@ -30,7 +32,7 @@ export function CharacterShelfContent({ characters, activeId, switchingId, loadi
         {onClose && <IconButton label="关闭角色架" onClick={onClose}><X size={14} /></IconButton>}
       </div>}
     </header>
-    {error && <p role="alert" className="text-xs" style={{ color: 'var(--danger)' }}>{error}</p>}
+    {error && <ErrorState title="角色读取失败" description={error} action={onRefresh && <ActionButton onClick={onRefresh} disabled={loading || !!switchingId}>重新读取</ActionButton>} />}
     {loading && <p role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>正在读取角色…</p>}
     <div className="grid min-w-0 gap-3 sm:grid-cols-2">
       {characters.map(character => {
@@ -50,6 +52,6 @@ export function CharacterShelfContent({ characters, activeId, switchingId, loadi
         </ActionButton>
       })}
     </div>
-    {!characters.length && !loading && !error && <p className="py-10 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>暂无可用主角</p>}
+    {!characters.length && !loading && !error && <EmptyState title="暂无可用主角" description="创建或连接一个角色后，这里会显示可切换的生活世界。" />}
   </section>
 }

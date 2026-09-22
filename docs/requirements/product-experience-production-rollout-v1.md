@@ -3,7 +3,7 @@
 > 状态：进行中
 > 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
 
-S6 正式入口组合审计（2026-09-22）：完整 Renderer UI 门禁 379 / 379 通过；正式工作区、设置与 Playground 跨页、记忆、权限和开发者模式的定向审计 35 / 35 通过，并覆盖四主题、宽窄窗口、长文、失败恢复与操作槽稳定性。正式源码边界扫描未发现 Playground fixture / preview 注入进入生产入口。该批次只证明当前实现具备可重复的正式入口回归证据，不自动将 `experience.chat`、`experience.world`、`experience.settings`、`experience.workspace` 改为 `adopted`；采用状态仍需完成施工合同要求的最终人工确认和文档收工。RAG 与 MCP OAuth 继续保持暂缓；OAuth 专项的既有 dialog 测试失败不阻塞本轮已验证的正式产品主线。
+S6 正式入口组合审计与 Foundation 收口（2026-09-22）：完整 Renderer UI 门禁 379 / 379 通过；正式工作区、设置与 Playground 跨页、记忆、权限和开发者模式的定向审计 35 / 35 通过，并覆盖四主题、宽窄窗口、长文、失败恢复与操作槽稳定性。随后新增 `Button`、`EmptyState`、`ErrorState` 三个 Foundation 组件，正式浏览器 / 角色架和 Foundation 故事实际复用，注册表与调用链定向 Unit 39 项通过，根 `tsc` / `vite build` 通过。四个 `experience.*` 已登记为 `adopted`；RAG 与 MCP OAuth 不属于本批完成范围，继续保持暂缓，合同仍因这两个后置边界保持进行中。
 
 S5 onboarding 独立性证据（2026-09-22）：正式 `onboarding.test.ts` 22 项全部通过；Skills、模型路由、人物世界六面、工作区、终端、权限和记忆代表用例以独立 Electron 进程 / 临时 user-data-dir 复跑通过。独立首启模型路由测试曾因 Windows 安全存储冷启动超过默认 5 秒而误报，已改为有界 20 秒等待并通过；该修正只改变测试等待，不改变产品保存契约。S5 的主线依赖隔离证据已收口，OAuth 专项仍按用户决定暂缓。
 

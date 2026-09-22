@@ -17,6 +17,9 @@ import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import { CodeBlock, MarkdownRenderer } from '../MarkdownRenderer'
 import { TextField } from '../foundation/TextField'
 import { ConfirmPanel } from '../foundation/ConfirmPanel'
+import { Button } from '../foundation/Button'
+import { EmptyState } from '../foundation/EmptyState'
+import { ErrorState } from '../foundation/ErrorState'
 import { THEME_STUDIES, getThemeStudyStyle } from './foundation-themes'
 import { ToastPreview, type ToastPreviewItem } from '../Toast'
 import type { UiControlsSubId } from './catalog'
@@ -117,30 +120,7 @@ function ConfirmPanelStory() {
 }
 
 function ChatEmptyFixture({ long }: { long?: boolean }) {
-  return (
-    <div
-      className="flex flex-col items-center rounded-xl border px-6 py-10 text-center"
-      style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
-    >
-      <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>还没有话题</p>
-      <p className="mt-1 max-w-xs text-[12px]" style={{ color: 'var(--text-muted)' }}>
-        {long
-          ? '打个招呼，或从侧栏开一个新会话。伙伴在这儿等你。这是一段刻意拉长的说明文案，用来检查空态在窄栏下是否换行难看、是否把下方 pill 挤出可视区。'
-          : '打个招呼，或从侧栏开一个新会话。伙伴在这儿等你。'}
-      </p>
-      <div className="mt-4 flex flex-wrap justify-center gap-2">
-        {['今天怎么样？', '帮我理一下待办', '随便聊聊'].map((t) => (
-          <span
-            key={t}
-            className="rounded-full px-3 py-1 text-[11px]"
-            style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}
-          >
-            {t}
-          </span>
-        ))}
-      </div>
-    </div>
-  )
+  return <EmptyState title="还没有话题" description={long ? '打个招呼，或从侧栏开一个新会话。伙伴在这儿等你。这是一段刻意拉长的说明文案，用来检查空态在窄栏下是否换行难看、是否把下方操作挤出可视区。' : '打个招呼，或从侧栏开一个新会话。伙伴在这儿等你。'} action={<div className="flex flex-wrap justify-center gap-2">{['今天怎么样？', '帮我理一下待办', '随便聊聊'].map((t) => <Button key={t} tone="accent" size="sm">{t}</Button>)}</div>} />
 }
 
 function IconButtonStory() {
@@ -243,16 +223,7 @@ function DividerStory() {
 }
 
 function FixtureError({ title, body, action }: { title: string; body: string; action: string }) {
-  return (
-    <div
-      className="rounded-lg border px-3 py-2.5"
-      style={{ borderColor: 'color-mix(in srgb, var(--danger) 35%, var(--border-color))', background: 'var(--bg-secondary)' }}
-    >
-      <div className="text-[12px] font-medium" style={{ color: 'var(--danger)' }}>{title}</div>
-      <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{body}</p>
-      <button type="button" className="mt-2 rounded border px-2 py-0.5 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>{action}</button>
-    </div>
-  )
+  return <ErrorState title={title} description={body} action={<Button>{action}</Button>} />
 }
 
 function ResizeStory() {
@@ -314,39 +285,19 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
         <div className="space-y-3">
           <StoryBlock title="主要 / 次要" source="src/index.css · .settings-option" adopted>
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" className="settings-option px-3 py-1.5 text-xs">主要操作</button>
-              <button
-                type="button"
-                className="rounded-lg border px-3 py-1.5 text-xs"
-                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-              >
-                次要
-              </button>
-              <button
-                type="button"
-                className="rounded-lg px-3 py-1.5 text-xs"
-                style={{ background: 'var(--danger)', color: 'var(--text-primary)' }}
-              >
-                危险
-              </button>
+              <Button tone="accent">主要操作</Button>
+              <Button>次要</Button>
+              <Button tone="danger">危险</Button>
             </div>
           </StoryBlock>
           <StoryBlock title="禁用" source="src/components/playground/UiControlsPanel.tsx · disabled state" edge adopted>
-            <button type="button" disabled className="settings-option px-3 py-1.5 text-xs disabled:opacity-50">
-              不可点
-            </button>
+            <Button disabled>不可点</Button>
           </StoryBlock>
           <StoryBlock title="生成动作" source="src/components/playground/UiControlsPanel.tsx · Playground fixture">
             <div className="flex flex-wrap gap-2">
-              <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
-                <Sparkles size={14} />生成
-              </button>
-              <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs" style={{ background: 'var(--accent-emphasis)', color: 'var(--text-primary)' }}>
-                <WandSparkles size={14} />重新生成
-              </button>
-              <button type="button" disabled className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs opacity-60" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
-                <LoaderCircle size={14} className="animate-spin" />生成中
-              </button>
+              <Button className="gap-1.5"><Sparkles size={14} />生成</Button>
+              <Button tone="accent" className="gap-1.5"><WandSparkles size={14} />重新生成</Button>
+              <Button busy busyLabel="生成中" className="gap-1.5"><LoaderCircle size={14} className="animate-spin" />生成中</Button>
             </div>
           </StoryBlock>
         </div>
