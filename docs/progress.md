@@ -1,5 +1,7 @@
 # 项目进度
 
+S6 / 正式入口组合审计收口（2026-09-22）：完整 Renderer UI 门禁 `npm run test:e2e` 379 项全部通过；本轮定向复核的正式工作区、设置与 Playground 跨页、记忆长文编辑 / 失败恢复、权限自定义规则、关于页开发者模式共 35 项也全部通过，覆盖四主题与宽窄窗口。审计同时扫描正式组件对 Playground fixture / preview 注入的边界，未发现正式入口引入隔离样张的路径。当前已验证的是入口、状态和隔离证据，不等于四个 `experience.*` 自动进入 `adopted`；仍需按施工合同完成最终人工入口确认并冻结合同。RAG 与 MCP OAuth 继续按用户决定暂缓，OAuth 专项失败不计入本轮正式产品主线。
+
 S5 / onboarding 独立性收口（2026-09-22）：正式 `onboarding.test.ts` 完整 22 项通过；独立启动的 Skills、模型路由、人物世界六面、工作区、终端、权限和记忆代表用例也通过。独立首启模型路由首次暴露保存连接断言仍使用默认 5 秒的问题，根因是 Windows 安全存储冷启动；测试改为有界 20 秒等待后独立通过，不改变产品保存链路。共享前置仍只承载本地服务与独立临时 user-data-dir，不再把前序模型配置当作该用例的成功条件。
 
 S5 / S6 正式 Electron 当前回归（2026-09-22）：运行 `npm run test:e2e:electron` 的 41 项套件，36 项通过、4 项因外部模型凭据条件跳过；唯一失败为已暂缓的 `mcp-oauth.test.ts`，错误是测试尝试处理已不存在的 JavaScript dialog（`Page.handleJavaScriptDialog: No dialog is showing`）。正式设置、记忆、人物世界、权限、Skills、工作区、终端、侧聊、生图、备份与凭据恢复用例均通过。该结果关闭本轮 S5 的主线 Electron 依赖证据缺口，但不把 OAuth 标记为完成，也不因此将四个产品体验资产批量提升为 `adopted`。

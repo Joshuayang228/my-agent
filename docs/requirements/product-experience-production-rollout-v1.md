@@ -1,5 +1,10 @@
 # 全产品体验正式回流 v1 施工合同
 
+> 状态：进行中
+> 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
+
+S6 正式入口组合审计（2026-09-22）：完整 Renderer UI 门禁 379 / 379 通过；正式工作区、设置与 Playground 跨页、记忆、权限和开发者模式的定向审计 35 / 35 通过，并覆盖四主题、宽窄窗口、长文、失败恢复与操作槽稳定性。正式源码边界扫描未发现 Playground fixture / preview 注入进入生产入口。该批次只证明当前实现具备可重复的正式入口回归证据，不自动将 `experience.chat`、`experience.world`、`experience.settings`、`experience.workspace` 改为 `adopted`；采用状态仍需完成施工合同要求的最终人工确认和文档收工。RAG 与 MCP OAuth 继续保持暂缓；OAuth 专项的既有 dialog 测试失败不阻塞本轮已验证的正式产品主线。
+
 S5 onboarding 独立性证据（2026-09-22）：正式 `onboarding.test.ts` 22 项全部通过；Skills、模型路由、人物世界六面、工作区、终端、权限和记忆代表用例以独立 Electron 进程 / 临时 user-data-dir 复跑通过。独立首启模型路由测试曾因 Windows 安全存储冷启动超过默认 5 秒而误报，已改为有界 20 秒等待并通过；该修正只改变测试等待，不改变产品保存契约。S5 的主线依赖隔离证据已收口，OAuth 专项仍按用户决定暂缓。
 
 S5 / S6 当前 Electron 证据（2026-09-22）：正式 Electron 套件 41 项中 36 项通过、4 项因外部模型凭据条件跳过；唯一失败是暂缓的 MCP OAuth 专项，失败为测试处理不存在的 JavaScript dialog（`Page.handleJavaScriptDialog: No dialog is showing`）。设置、记忆、人物世界、权限、Skills、工作区、终端、侧聊、生图、备份与凭据恢复主线通过；OAuth / RAG 仍按用户决定暂缓，不推进采用状态。
@@ -9,9 +14,6 @@ R12 组合审计复核（2026-09-21）：人物世界按正式入口、真实数
 R04 角色架入口回流（2026-09-20）：按已批准的“角色架归设置”候选，将 App 侧栏头像和 WorldHub 通讯录快捷入口接到 SettingsPanel 的显式 initialEntry。删除 WorldHub 内部 shelf 分支、ShellView / WorldTab 的 shelf 值及旧 onSwitched 回调；真实切角通知继续由 App 既有 onRoleChanged 接收，退出设置仍刷新角色。快捷进入时记录原视图；关闭角色架回到伙伴设置，设置返回再恢复原聊天或世界分区，普通设置默认行为不变。允许修改上述壳层与设置、候选失效参数、Unit / UI / Electron 和伙伴模块及收工文档；不改 IPC、存储、切角门控、RAG 或 OAuth。验证入口、关闭角色架、返回、再次普通设置、保存保护和真实切角重载。
 
 R10 MCP 清单共享验证（2026-09-20）：McpServiceList 已进入正式设置与候选真实 JSX，数量、添加与空态不再独立维护；保留真实列表来源、管理互斥和离页保护。45 项 MCP UI 回归通过（四主题宽窄、几何、失败重试与候选场景），深浅截图已检查；真实 Electron 普通新增、保存在途拒绝 reload / quit、完整重启恢复连接及工具许可 1 项通过（15.9 秒）。Unit 1243、根 tsc、vite build、资产 37 项通过，无独立 lint 脚本，构建保留既有警告。证据 var/verification/mcp-list-shared 与 mcp-list-electron；不运行 OAuth / RAG 专项，不提升整个设置体验 adopted。角色架旧导航已移除，后续继续做全产品组合审计。
-
-> 状态：进行中
-> 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
 
 R10 MCP 清单回流（2026-09-20）：正式 SettingsPanel 与候选 McpScenePreview 改用 McpServiceList，共享数量、Foundation 添加按钮与空态；删除两侧重复标题 / 按钮 / 空态 JSX，正式旧外层卡片不再保留。真实列表仍由 settings 与 MCP 状态 / 工具查询提供，保存、串行操作和离页保护不变；候选仅注入内存数据。范围包括共享组件、两调用方、资产登记、相关测试和文档，不改 IPC、后端、依赖及 OAuth 行为。OAuth 测试仅迁移已改名按钮的定位，不运行专项。全产品状态不提升 adopted。
 

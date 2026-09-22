@@ -1,5 +1,7 @@
 # 质量总控
 
+S6 / 正式入口组合门禁（2026-09-22）：完整 Renderer UI `npm run test:e2e` 379 / 379 通过；定向正式入口审计 35 / 35 通过，覆盖 Chat 工作区折叠与跨页保留、设置返回与保存保护、记忆长文编辑 / 敏感项 / 失败恢复、权限规则新增与离页保护、人物世界六面、四主题宽窄和 Playground 隔离。正式入口源码扫描未发现引用 Playground fixture 或 preview 注入。该证据关闭当前 Renderer 组合回归缺口，但不替代最终人工采用确认，也不关闭 RAG / MCP OAuth 暂缓项。
+
 S5 / onboarding 独立性收口（2026-09-22）：正式 `onboarding.test.ts` 22 项全通过；Skills、模型路由、人物世界六面、工作区、终端、权限和记忆代表用例另以独立 Electron 进程 / 临时数据目录复跑通过。模型路由独立首启暴露 Windows 安全存储冷启动超过默认 5 秒的测试假设，改为有界 20 秒断言后通过；没有修改生产保存逻辑。
 
 S5 / S6 正式 Electron 当前回归（2026-09-22）：`npm run test:e2e:electron` 共 41 项，36 项通过、4 项因外部模型凭据条件跳过；唯一失败位于暂缓的 MCP OAuth 专项，原因为 `Page.handleJavaScriptDialog: No dialog is showing`，不是当前正式设置、记忆、人物世界、工作区或权限链路失败。该结果不将 OAuth 记为完成，也不替代四个产品体验资产的最终采用审计。
