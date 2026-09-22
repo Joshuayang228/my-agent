@@ -8,7 +8,7 @@
  * 关键约束：不得调用 window.electronAPI，不展示真实 Key、MCP secret、权限规则或路径；
  *       所有开关、连接状态和输入都只存在于当前 Playground 会话。
  */
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { PermissionSettingsContent } from '../settings/PermissionSettingsContent'
 import { Brain, ChevronRight, CircleHelp, Cloud, Heart, KeyRound, Link2, Plug, Settings2, ShieldCheck, SlidersHorizontal, UserRound, Wrench, Activity, Gauge, Plus, ListChecks, ArrowLeft } from 'lucide-react'
 import { AppearanceSettingsContent } from '../settings/AppearanceSettingsContent'
@@ -131,9 +131,37 @@ function createConnection(provider: { providerId: string; label: string; baseUrl
 function ModelPage({ selectedProvider }: { selectedProvider: string; onProviderChange: (provider: string) => void }) {
   const allProviders = CONNECTION_PRESETS
   const firstProvider = allProviders.find((provider) => provider.providerId === selectedProvider) ?? allProviders[0]
-  const [previewState, setPreviewState] = useState<'empty' | 'one' | 'two'>('one')
-  const [connections, setConnections] = useState<ModelConnectionFixture[]>(() => [createConnection(firstProvider)])
-  const [routes, setRoutes] = useState<Record<ModelRoutePurpose, ModelRoute[]>>({ primary: [{ connectionId: connections[0]?.id ?? '', modelId: 'gpt-4o', enabled: true }, { connectionId: connections[0]?.id ?? '', modelId: 'gpt-4o-mini', enabled: true }], auxiliary: [{ connectionId: connections[0]?.id ?? '', modelId: 'gpt-4o-mini', enabled: true }], image: [{ connectionId: connections[0]?.id ?? '', modelId: 'image-model-id', enabled: true }] })
+  const initialConnections = useMemo(() => {
+    const first = createConnection(firstProvider)
+    const second = createConnection(allProviders.find((item) => item.providerId === 'openrouter') ?? allProviders[1], 1)
+    second.name = '国际流动'
+    second.source = 'relay'
+    second.models = [
+      { id: 'deepseek-chat', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'supported' },
+      { id: 'deepseek-reasoner', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'supported' },
+    ]
+    const third = createConnection(allProviders.find((item) => item.providerId === 'anthropic') ?? allProviders[2], 2)
+    third.name = '研究助手'
+    third.models = [
+      { id: 'claude-sonnet-4', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unsupported', tools: 'supported' },
+      { id: 'claude-haiku-3.5', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unsupported', tools: 'supported' },
+    ]
+    return [first, second, third]
+  }, [allProviders, firstProvider])
+  const [previewState, setPreviewState] = useState<'empty' | 'one' | 'two'>('two')
+  const [connections, setConnections] = useState<ModelConnectionFixture[]>(initialConnections)
+  const [routes, setRoutes] = useState<Record<ModelRoutePurpose, ModelRoute[]>>({
+    primary: [
+      { connectionId: initialConnections[0].id, modelId: 'gpt-4o', enabled: true },
+      { connectionId: initialConnections[1].id, modelId: 'deepseek-chat', enabled: true },
+      { connectionId: initialConnections[2].id, modelId: 'claude-sonnet-4', enabled: true },
+    ],
+    auxiliary: [
+      { connectionId: initialConnections[1].id, modelId: 'deepseek-reasoner', enabled: true },
+      { connectionId: initialConnections[2].id, modelId: 'claude-haiku-3.5', enabled: true },
+    ],
+    image: [{ connectionId: initialConnections[0].id, modelId: 'image-model-id', enabled: true }],
+  })
   const [showAdd, setShowAdd] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [source, setSource] = useState<ConnectionSource>('relay')
@@ -240,7 +268,56 @@ function ModelPage({ selectedProvider }: { selectedProvider: string; onProviderC
     const valid = Boolean(connection.baseUrl.trim()) && fixtureCredentialLabel(connection) !== '未配置'
     setConnections((items) => items.map((item) => item.id === connectionId ? { ...item, status: valid ? 'healthy' : 'failed' } : item))
   }
-  const setPreview = (state: 'empty' | 'one' | 'two') => { fetchTimers.current.forEach((timer) => window.clearTimeout(timer)); fetchTimers.current.clear(); setFetchStates({}); setFetchedModelsByConnection({}); setModelDrafts({}); closeForm(); setPreviewState(state); if (state === 'empty') { setConnections([]); setRoutes({ primary: [], auxiliary: [], image: [] }); return }; const first = createConnection(firstProvider); if (state === 'one') { setConnections([first]); setRoutes({ primary: [{ connectionId: first.id, modelId: 'gpt-4o', enabled: true }, { connectionId: first.id, modelId: 'gpt-4o-mini', enabled: true }], auxiliary: [{ connectionId: first.id, modelId: 'gpt-4o-mini', enabled: true }], image: [{ connectionId: first.id, modelId: 'image-model-id', enabled: true }] }); return }; const second = createConnection(allProviders.find((item) => item.providerId === 'openrouter') ?? allProviders[1], 1); second.name = '国际流动'; second.source = 'relay'; second.models = [{ id: 'deepseek-chat', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'unknown' }, { id: 'deepseek-reasoner', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'unknown' }]; setConnections([first, second]); setRoutes({ primary: [{ connectionId: first.id, modelId: 'gpt-4o', enabled: true }, { connectionId: second.id, modelId: 'deepseek-chat', enabled: true }], auxiliary: [{ connectionId: second.id, modelId: 'deepseek-reasoner', enabled: true }], image: [{ connectionId: first.id, modelId: 'image-model-id', enabled: true }] }) }
+  const setPreview = (state: 'empty' | 'one' | 'two') => {
+    fetchTimers.current.forEach((timer) => window.clearTimeout(timer))
+    fetchTimers.current.clear()
+    setFetchStates({})
+    setFetchedModelsByConnection({})
+    setModelDrafts({})
+    closeForm()
+    setPreviewState(state)
+    if (state === 'empty') {
+      setConnections([])
+      setRoutes({ primary: [], auxiliary: [], image: [] })
+      return
+    }
+    const first = createConnection(firstProvider)
+    if (state === 'one') {
+      setConnections([first])
+      setRoutes({
+        primary: [{ connectionId: first.id, modelId: 'gpt-4o', enabled: true }, { connectionId: first.id, modelId: 'gpt-4o-mini', enabled: true }],
+        auxiliary: [{ connectionId: first.id, modelId: 'gpt-4o-mini', enabled: true }],
+        image: [{ connectionId: first.id, modelId: 'image-model-id', enabled: true }],
+      })
+      return
+    }
+    const second = createConnection(allProviders.find((item) => item.providerId === 'openrouter') ?? allProviders[1], 1)
+    second.name = '国际流动'
+    second.source = 'relay'
+    second.models = [
+      { id: 'deepseek-chat', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'supported' },
+      { id: 'deepseek-reasoner', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unknown', tools: 'supported' },
+    ]
+    const third = createConnection(allProviders.find((item) => item.providerId === 'anthropic') ?? allProviders[2], 2)
+    third.name = '研究助手'
+    third.models = [
+      { id: 'claude-sonnet-4', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unsupported', tools: 'supported' },
+      { id: 'claude-haiku-3.5', enabled: true, visibleInPicker: true, purpose: 'unused', image: 'unsupported', tools: 'supported' },
+    ]
+    setConnections([first, second, third])
+    setRoutes({
+      primary: [
+        { connectionId: first.id, modelId: 'gpt-4o', enabled: true },
+        { connectionId: second.id, modelId: 'deepseek-chat', enabled: true },
+        { connectionId: third.id, modelId: 'claude-sonnet-4', enabled: true },
+      ],
+      auxiliary: [
+        { connectionId: second.id, modelId: 'deepseek-reasoner', enabled: true },
+        { connectionId: third.id, modelId: 'claude-haiku-3.5', enabled: true },
+      ],
+      image: [{ connectionId: first.id, modelId: 'image-model-id', enabled: true }],
+    })
+  }
   const availableModels = connections.flatMap((connection) => connection.models.filter((model) => model.enabled).map((model) => ({ connectionId: connection.id, connectionName: connection.name, modelId: model.id })))
   const addRoute = (purpose: ModelRoutePurpose, key: string) => { const [connectionId, modelId] = key.split('::'); if (!connectionId || !modelId) return; setRoutes((current) => ({ ...current, [purpose]: current[purpose].some((item) => item.connectionId === connectionId && item.modelId === modelId) ? current[purpose] : [...current[purpose], { connectionId, modelId, enabled: true }] })) }
   const moveRoute = (purpose: ModelRoutePurpose, index: number, direction: -1 | 1) => setRoutes((current) => { const next = [...current[purpose]]; const target = index + direction; if (target < 0 || target >= next.length) return current; [next[index], next[target]] = [next[target], next[index]]; return { ...current, [purpose]: next } })

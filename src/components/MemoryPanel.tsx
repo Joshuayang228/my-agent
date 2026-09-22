@@ -296,6 +296,10 @@ export function MemoryPanel({
   return (
     <fieldset disabled={busy} aria-busy={busy || loading} className="m-0 flex h-full min-h-0 min-w-0 flex-col border-0 p-0">
         {pendingSensitiveAdd && <div className="px-4 pt-3"><ConfirmPanel icon={<ShieldAlert size={15} />} title="这条记忆包含敏感信息" description={`${formatSensitiveCollectionHint(pendingSensitiveAdd.kinds)}\n\n只有在你确认后，才会写入本机记忆。`} confirmLabel="确认保存" busy={busy} onCancel={() => { if (!busy) setPendingSensitiveAdd(null) }} onConfirm={() => { const draft = pendingSensitiveAdd; if (draft) void addMemory(draft) }} /></div>}
+        {isProductMemory && <header className="px-5 pb-2 pt-5" data-testid="memory-page-heading">
+          <h2 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>记忆</h2>
+          <p className="mt-1 max-w-2xl text-[12px] leading-5" style={{ color: 'var(--text-muted)' }}>查看和管理会影响未来相处的长期信息。</p>
+        </header>}
         {management && <MemoryToolbar group={group} counts={groupCounts} query={query} onQueryChange={setQuery} searchOpen={searchOpen} onSearchOpen={setSearchOpen}
           onGroupChange={(next) => { setSelectedGroup(next); onPreviewGroupChange?.(next); setQuery(''); setWriteError(''); setPendingSensitiveAdd(null) }} />}
         {!management && !previewCompact && (

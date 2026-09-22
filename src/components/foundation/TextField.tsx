@@ -10,7 +10,7 @@ type TextFieldProps = (InputHTMLAttributes<HTMLInputElement> | TextareaHTMLAttri
  * 关键约束：单行与多行都使用语义 token，控件不会因 hover/disabled 或占位符变化改变外部布局；multiline 只改变原生元素类型。
  */
 export const TextField = forwardRef<HTMLInputElement | HTMLTextAreaElement, TextFieldProps>(function TextField({ multiline = false, className = '', style, ...props }, ref) {
-  const classes = `min-w-0 bg-transparent text-[12px] outline-none placeholder:text-[var(--text-muted)] focus-visible:ring-1 focus-visible:ring-[var(--accent)] ${className}`
+  const classes = `min-w-0 bg-transparent text-[12px] foundation-text-field outline-none placeholder:text-[var(--text-muted)] ${className}`
   const sharedStyle = { color: 'var(--text-primary)', ...style }
   if (multiline) return <textarea {...props as TextareaHTMLAttributes<HTMLTextAreaElement>} ref={ref as Ref<HTMLTextAreaElement>} className={classes} style={sharedStyle} />
   return <input {...props as InputHTMLAttributes<HTMLInputElement>} ref={ref as Ref<HTMLInputElement>} className={classes} style={sharedStyle} />

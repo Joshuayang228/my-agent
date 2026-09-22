@@ -24,7 +24,7 @@ export const ActionButton = forwardRef<HTMLButtonElement, ActionButtonProps>(fun
         ? { color: 'var(--text-secondary)', borderColor: 'transparent' }
         : { color: 'var(--text-secondary)', background: 'transparent', borderColor: 'var(--border-color)' }
   return <button {...props} ref={ref} type={props.type ?? 'button'}
-    className={`inline-flex shrink-0 items-center justify-center rounded border text-[11px] transition ${variant === 'plain' ? 'bg-transparent hover:bg-[var(--hover-overlay)] focus-visible:bg-[var(--hover-overlay)]' : ''} disabled:cursor-not-allowed disabled:opacity-45 ${size === 'md' ? 'min-h-8 px-3' : 'min-h-7 px-2.5'} ${className}`}
+    className={`foundation-action-button inline-flex shrink-0 items-center justify-center rounded border text-[11px] transition ${variant === 'plain' ? 'bg-transparent hover:bg-[var(--hover-overlay)] focus-visible:bg-[var(--hover-overlay)]' : ''} disabled:cursor-not-allowed disabled:opacity-45 ${size === 'md' ? 'min-h-8 px-3' : 'min-h-7 px-2.5'} ${className}`}
     style={{ ...colors, ...style }}>
     {children}
   </button>

@@ -23,7 +23,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       : { color: 'var(--text-secondary)', background: 'transparent', borderColor: 'var(--border-color)' }
 
   return <button {...props} ref={ref} type={props.type ?? 'button'} disabled={disabled || busy}
-    className={`inline-flex shrink-0 items-center justify-center rounded border text-[11px] transition disabled:cursor-not-allowed disabled:opacity-45 ${size === 'md' ? 'min-h-8 px-3' : 'min-h-7 px-2.5'} ${className}`}
+    className={`foundation-button inline-flex shrink-0 items-center justify-center rounded border text-[11px] transition disabled:cursor-not-allowed disabled:opacity-45 ${size === 'md' ? 'min-h-8 px-3' : 'min-h-7 px-2.5'} ${className}`}
     style={{ ...colors, ...style }}>
     <span className="grid">
       <span className="col-start-1 row-start-1" style={{ visibility: busy ? 'hidden' : 'visible' }}>{children}</span>

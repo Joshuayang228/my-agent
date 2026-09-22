@@ -293,17 +293,34 @@ html[data-font-scale="lg"] {
   --status-bar-bg: #0b1120;
 }
 
+.foundation-text-field {
+  transition: border-color var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease);
+}
+.foundation-text-field:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 62%, var(--border-color));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+.foundation-action-button:focus,
+.foundation-button:focus {
+  outline: none;
+}
+.foundation-action-button:focus-visible,
+.foundation-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 32%, transparent);
+}
 .theme-input {
   background: var(--input-bg);
   color: var(--text-primary);
   border-color: var(--input-border);
   border-radius: var(--radius-md);
-  transition: border-color var(--motion-fast) var(--motion-ease),
-    box-shadow var(--motion-fast) var(--motion-ease);
 }
 .theme-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-subtle);
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 62%, var(--input-border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 24%, transparent);
 }
 .theme-input::placeholder {
   color: var(--text-muted);

@@ -1,5 +1,7 @@
 # 项目进度
 
+S6 / Foundation 焦点语义与设置样张补齐（2026-09-22）：`TextField`、`ActionButton` 与 `Button` 的焦点表现统一由基础 CSS 提供，输入框由 2px 强外扩改为 1px 低对比语义环，导航按钮移除浏览器黑色默认轮廓；正式记忆页补齐标题，Playground 模型页默认展示三家连接商、多个模型及跨用途路由组合。根 `tsc`、定向 Foundation / 产品注册测试 40 项与 `vite build` 通过。
+
 S6 / 返回导航基础控件统一（2026-09-22）：Foundation `ActionButton` 新增 `plain` 变体，统一正式设置与 Playground 的返回入口；固定操作槽、低强调表面和 hover 背景由基础组件提供，正式页面不再维护孤儿按钮样式。定向 Foundation / 注册表测试、根 `tsc` 与 `vite build` 通过。
 
 最终收工 / 全产品体验回流冻结（2026-09-22）：完整 Renderer UI 门禁 `379/379`、全量 Unit `185/185` / `1250/1250`、根 `tsc`、build、assets `38/38`、docs `155` 份 Markdown，以及正式 Electron 主线证据均已收口。Chat、人物世界、设置、记忆、主题 / Foundation、工作区五工具均已登记为 `adopted` 并保留真实入口、真实 IPC / 存储和生命周期证据。RAG、MCP OAuth、完整 PTY 和第三方互操作按用户决定或既有非目标继续后置；本施工合同已冻结。
