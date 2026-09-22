@@ -1,5 +1,7 @@
 # 项目进度
 
+最终收工 / 全产品体验回流冻结（2026-09-22）：完整 Renderer UI 门禁 `379/379`、全量 Unit `185/185` / `1250/1250`、根 `tsc`、build、assets `38/38`、docs `155` 份 Markdown，以及正式 Electron 主线证据均已收口。Chat、人物世界、设置、记忆、主题 / Foundation、工作区五工具均已登记为 `adopted` 并保留真实入口、真实 IPC / 存储和生命周期证据。RAG、MCP OAuth、完整 PTY 和第三方互操作按用户决定或既有非目标继续后置；本施工合同已冻结。
+
 S6 / Foundation 生命周期收口与四体验采用（2026-09-22）：新增正式 `Button`、`EmptyState`、`ErrorState` 三个共享基础组件，浏览器工作区、角色架和 Playground Foundation 故事均实际渲染这些组件；注册表来源、正式消费者 import / JSX 链和无 IPC 约束由定向 Unit 固化，39 项通过，根 `tsc` 与 `vite build` 通过。`experience.chat`、`experience.world`、`experience.settings`、`experience.workspace` 已从 `playground` 提升为 `adopted`，但这不表示 RAG 或 MCP OAuth 已完成；两项继续按用户决定暂缓并保留在合同的未完成边界。
 
 S3 / S4 来源与生命周期收口（2026-09-22）：复核正式人物世界六面后确认，衣柜 / 书架 / 文化角无 Role Pack 来源即为空态，家居 / 足迹仅从 `world.default.json` 初始化，用户创建和已发布事件不走服务默认值；新增 `companion-source-boundary.test.ts` 固化六角色来源矩阵。正式设置的普通队列、权限、模型草稿和 MCP 向导均由同一 `prepareToLeave` / `beforeunload` 闸门管理，新增 `settings-lifecycle-boundary.test.ts` 固化接线，既有 Electron 组合证据覆盖隐藏、内部导航、退出和重载。S3、S4 不再是当前回流阻塞项；RAG / MCP OAuth 仍按用户决定暂缓。

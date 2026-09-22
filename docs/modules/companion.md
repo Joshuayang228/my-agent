@@ -85,7 +85,7 @@
 
 - 正式与 Playground 共用的动态、近期穿着空态和书架说明只展示用户状态，不显示 tick / Catch-up、引用或派生等内部实现术语；未生成动态不承诺具体出现时间。
 
-- 人物世界六面导航与身份头部由 WorldHub / WorldProfileHeader 统一复用 Foundation TabStrip / IconButton，正式与 Playground 使用同一份标签定义（含足迹 MapPin）和同一身份呈现。正式传入当前角色真实名称 / 简介，候选传入隔离 persona；支持方向键、Home / End、单一 Tab 焦点、窄屏标签内滚动，返回按钮固定 28px。六面数据和入口不变；人物世界整体仍未完成 adopted 验收。
+- 人物世界六面导航与身份头部由 WorldHub / WorldProfileHeader 统一复用 Foundation TabStrip / IconButton，正式与 Playground 使用同一份标签定义（含足迹 MapPin）和同一身份呈现。正式传入当前角色真实名称 / 简介，候选传入隔离 persona；支持方向键、Home / End、单一 Tab 焦点、窄屏标签内滚动，返回按钮固定 28px。六面数据和入口已完成正式采用验收；候选仍只使用隔离 persona 和 fixture。
 
 - 伙伴相处说明等普通设置沿用串行自动保存；有待保存内容时重载和退出会留页提示，失败仍保留修改并可重试。同字段保存中继续编辑不会被旧请求清掉，新值落盘后才允许离开。
 
@@ -198,7 +198,7 @@
 
 ## 现状 / 缺口
 
-**现状**：W0–W6 主线已落地；深 Why：`methodology/m22`–`m31`（Part VI 收齐）；前端 P0–P2 已落地；小航 B02–B07 真实 DeepSeek `pass^3` 已通过，仍待本地人工语气审美验收；人物故事尚未确定且未激活；其他角色本轮不扩写。
+**现状**：W0–W6 主线与人物世界 P1 正式回流已落地；六面入口、真实生活资产链、角色架、通讯录、朋友圈互动、备份、来源边界和正式入口验收均已收口。人物故事仍由 Role Pack 来源治理，未确认的生活事实保持空态。
 **缺口**：见上表「缺口」行 + wishlist；生图场景等非本阶段。
 
 - 2026-09-14：文化角正式使用 `companion_assets(kind=culture)`，按主角隔离并复用既有资产 CRUD / starter 播种；资产 payload 的 `type` 区分 reading、music、film、photography。

@@ -22,7 +22,7 @@
 
 | 文档 | 说明 |
 |------|------|
-| [product-experience-production-rollout-v1.md](./product-experience-production-rollout-v1.md) | 全产品 P1 回流：正式入口映射、必要后端补齐、逐项证据与完整验收；用户已授权，进行中 |
+
 | [foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md) | P0 方案待确认：四个产品体验的真实基础复用、Markdown / Diff / 控件收口与源码自动门禁 |
 | [playground-state-switchers-v1.md](./playground-state-switchers-v1.md) | P0：统一 Playground 场景、状态与宽度控制器，采用 MCP 独立选项样式 |
 | [playground-page-baseline-polish-v1.md](./playground-page-baseline-polish-v1.md) | P0 施工：Sidebar 底栏、Toast、Right Dock、人物世界与记忆页面样张统一精修 |
@@ -48,6 +48,7 @@
 
 | 文档 | 说明 |
 |------|------|
+| [product-experience-production-rollout-v1.md](./product-experience-production-rollout-v1.md) | 已完成施工快照：Chat、人物世界、设置、记忆、主题 / Foundation、工作区的正式回流与主线后端验收；RAG、MCP OAuth、完整 PTY 等后置边界明确保留 |
 | [playground-memory-information-architecture-v1.md](./playground-memory-information-architecture-v1.md) | 已完成施工快照：四类长期记忆导航、紧凑列表与 Debug 来源开关 |
 | [playground-memory-settings-journey-v1.md](./playground-memory-settings-journey-v1.md) | 已完成施工快照：记忆来源、纠正与设置管理的关系旅程 |
 | [memory-world-boundary-v2.md](./memory-world-boundary-v2.md) | 已完成施工快照：用户 / 伙伴 / 关系 / 当前状态的记忆边界与人物世界关系 |

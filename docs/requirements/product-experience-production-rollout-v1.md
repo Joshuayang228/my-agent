@@ -1,9 +1,9 @@
 # 全产品体验正式回流 v1 施工合同
 
-> 状态：进行中
-> 生命周期：进行中；全产品 P1 回流，未完成，不以工作区子项完成代替总体验验收。
+> 状态：已完成施工快照（冻结）
+> 生命周期：已完成施工快照（冻结）；四个产品体验已完成正式采用登记与主线验收。RAG、MCP OAuth、完整 PTY 及其他明确后置边界不属于本合同已完成范围。
 
-S6 正式入口组合审计与 Foundation 收口（2026-09-22）：完整 Renderer UI 门禁 379 / 379 通过；正式工作区、设置与 Playground 跨页、记忆、权限和开发者模式的定向审计 35 / 35 通过，并覆盖四主题、宽窄窗口、长文、失败恢复与操作槽稳定性。随后新增 `Button`、`EmptyState`、`ErrorState` 三个 Foundation 组件，正式浏览器 / 角色架和 Foundation 故事实际复用，注册表与调用链定向 Unit 39 项通过，根 `tsc` / `vite build` 通过。四个 `experience.*` 已登记为 `adopted`；RAG 与 MCP OAuth 不属于本批完成范围，继续保持暂缓，合同仍因这两个后置边界保持进行中。
+最终收工（2026-09-22）：完整 Renderer UI 门禁 379 / 379 通过；正式工作区、设置与 Playground 跨页、记忆、权限、人物世界和开发者模式的定向审计通过，并覆盖四主题、宽窄窗口、长文、失败恢复与操作槽稳定性。`Button`、`EmptyState`、`ErrorState` 等 Foundation 组件已被正式消费者和 Foundation 故事实际复用；注册表、来源边界、生命周期门禁、根 `tsc` / `vite build`、assets 与 docs 门禁均通过。四个 `experience.*` 已登记为 `adopted`，本合同冻结。RAG、MCP OAuth、完整 PTY 和其他已登记后置事项继续留在对应 deferred / wishlist，不冒充本合同完成。
 
 S5 onboarding 独立性证据（2026-09-22）：正式 `onboarding.test.ts` 22 项全部通过；Skills、模型路由、人物世界六面、工作区、终端、权限和记忆代表用例以独立 Electron 进程 / 临时 user-data-dir 复跑通过。独立首启模型路由测试曾因 Windows 安全存储冷启动超过默认 5 秒而误报，已改为有界 20 秒等待并通过；该修正只改变测试等待，不改变产品保存契约。S5 的主线依赖隔离证据已收口，OAuth 专项仍按用户决定暂缓。
 
@@ -443,19 +443,19 @@ R05 整页回流施工范围：正式 `MemoryPanel` 与 `SurfaceBaselinePanel` �
 - 证据：Unit 串行 150 文件 / 880 项、正式与候选 UI 全量 142 项、Electron 9 项通过（4 项外部模型测试跳过），根 tsc / build 与资产检查通过。新增 Electron 用例通过真实 preload / memory IPC，在独立数据目录完成增改、完整退出重启恢复和删除；不代表备份或向量召回验收。
 - 正式 Renderer 回归覆盖四主题、1166 / 600px、长文删短、多行焦点、hover / pending 操作槽几何、失败保留草稿、重复点击、刷新重试与离页迟到响应。截图位于 `var/verification/memory-rollout-ui`。默认并发 Unit 的既有 MCP 30ms 超时保留在 WISH-042，未修改断言掩盖。
 
-### 3.1 当前回流状态快照（2026-09-15）
+### 3.1 当前回流状态快照（2026-09-22，冻结前最终状态）
 
 | 回流面 | 当前状态 | 已有正式证据 | 仍缺的硬证据 |
 |---|---|---|---|
-| 对话与导航 | `production-ready`，待完整入口验收 | 正式 `App` / Sidebar / Chat / Right Dock 调用链与既有 Electron 回归 | 四主题、窄宽、跨页草稿与任务恢复的正式入口证据 |
-| 人物世界 | `production-ready`，部分 `adopted` | 角色架、文化角 / 家居 / 足迹真实资产链、正式增改删与 Electron create 覆盖、通讯录列表忙闲预检、朋友圈真实赞评、生活资产真实备份、六面正式入口 Electron、文化 starter 无证据数量文案、无 world.default 时世界态 / Catch-up / Prompt 回退为未设定 | 衣柜 / 文化分味播种仍不是已确认人物事实；全产品 adopted 仍未完成 |
-| 设置与人物设置 | `user-approved`，正在回流 | Playground 候选、正式 `SettingsPanel`、共享导航 / 卡片基础层；R11 关于页开发者模式已有正式入口与 Electron 持久化证据；R06 正式模型发现走主进程 `/v1/models`；R10 异常断开 UI 已接入设置页 | OAuth 首次登录已有独立 Electron 流程；后续登录保持见 WISH-045；编程套餐真实调用仍见 WISH-027；不把 Playground 夹具当真实发现 |
+| 对话与导航 | `adopted` | 正式 `App` / Sidebar / Chat / Right Dock 调用链；四主题、窄宽、跨页状态与真实会话证据 | 无本合同范围内的主线缺口 |
+| 人物世界 | `adopted` | 六面正式入口、真实资产 CRUD / 备份、通讯录忙闲与朋友圈互动、无来源空态和来源边界测试 | 角色故事内容仍按 Role Pack 来源治理；不编造未确认人物事实 |
+| 设置与人物设置 | `adopted` | 正式 `SettingsPanel`、角色架、记忆、Skills、MCP 普通连接、模型路由、权限、数据页与开发者模式均走真实入口和保存链路；离页生命周期统一受保护 | MCP OAuth 登录保持与第三方互操作按 deferred / wishlist 后置 |
 | 记忆 | 整页已回流 | 共享四类 / 搜索 / 新增行；正式长文、固定槽、四主题宽窄、失败恢复及真实四类重启 CRUD | 本项不替代其他设置或备份 / 向量召回的验收 |
-| 主题与基础组件 | `production-ready` | Foundation 主题资产、共享设置卡片 / 行组件、基础复用门禁、共享 Prism 主题清洗 | 全产品 Markdown / Diff 仍未标 adopted；OAuth 后续生命周期已明确后置，工作区跨页状态仍待收口 |
-| 工作区工具 | `production-ready`，部分 `adopted` | 正式 Right Dock 五工具、共享面板布局与 Electron 回归 | 浏览器 / 文件 / 审阅 / 终端跨页状态和完整错误路径 |
-| MCP / 模型等后端 | `in-progress` | MCP 测试连接生命周期、资源 / elicitation 接管、配置锁专项 Unit、异常断开 in-place 重连与设置页订阅 | 首次 OAuth 已有独立 Electron 数据目录证据；第三方兼容按需验证，真实生图及全产品最终验收仍未完成 |
+| 主题与基础组件 | `adopted` | Foundation 主题、Markdown / Diff、固定操作槽和正式消费者复用门禁 | 新基础组件继续按同一注册与故事门禁进入产品 |
+| 工作区工具 | `adopted` | 正式 Right Dock 五工具、真实浏览器 / 文件 / 审阅 / 终端 / 侧聊链路、跨页状态与错误恢复证据 | 完整 PTY、浏览器登录 / 脚本交互仍是明确非目标 |
+| MCP / 模型等后端 | `adopted（后置项除外）` | MCP 普通连接、模型路由、真实生图工具与正式设置 / Chat 链路均有真实数据与测试证据 | MCP OAuth、RAG 独立配置 / 重建和第三方互操作按用户决定后置 |
 
-本快照只记录当前证据，不把 `Playground` fixture、Renderer 替身或局部右坞验收升级为全产品 `adopted`。设置回流允许移除旧 UI 壳和重复入口，但必须保留真实数据、权限和安全边界；每次删除旧展示层都要在对应测试与变更记录中说明。
+本冻结快照记录当前已验收事实。Playground fixture、Renderer 替身和局部故事仍只作为候选 / 隔离证据，不能反向成为生产数据源；正式页面保留真实 IPC、存储、权限和安全边界。后续新增能力不应直接修改本快照，应新开施工合同或更新对应模块卡。
 
 ## 4. 影响范围与不碰项
 
