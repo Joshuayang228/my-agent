@@ -4489,7 +4489,7 @@ test.describe('My Agent UI', () => {
     await expect(candidate.getByText('回答方式', { exact: true })).toHaveCount(0)
 
     await candidate.getByRole('button', { name: '关于 My Agent', exact: true }).click()
-    await expect(candidate.getByText('品牌标语待定', { exact: true })).toBeVisible()
+    await expect(candidate.getByText('有性格、有记忆，也会和你一起成长。', { exact: true })).toBeVisible()
     await expect(candidate.getByText('查看版本、运行环境和本机数据位置。', { exact: true })).toBeVisible()
     await expect(candidate).not.toContainText('越探索，越着迷。')
     const candidateSwitch = candidate.getByTestId('settings-candidate-settings-developer-mode')

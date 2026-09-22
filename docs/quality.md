@@ -1,5 +1,7 @@
 # 质量总控
 
+R13 / 关于页文案契约回归（2026-09-22）：Playground 设置候选与正式关于页统一使用“有性格、有记忆，也会和你一起成长。”，E2E 不再断言已移除的“品牌标语待定”占位文案。定向用例 1 项、完整 Renderer UI 回归 379 项、Unit 1247 项、根 `npx tsc --noEmit`、`npx vite build`、资产与文档门禁通过；本批只同步测试契约，不改变生产 IPC、设置存储或开发者模式行为。
+
 R13 / 设置与工作区跨页组合验收（2026-09-22）：正式 UI 用例 `正式工作区跨设置与 Playground 保留但项目切换清理` 通过；验证终端实例在设置与 Playground 间保持连接，返回后状态不丢失，项目切换才触发清理。修复 `SettingsLayout` 桌面返回按钮的 tooltip 为“返回聊天”，移动端隐藏节点保留独立“返回”提示，避免严格定位命中两个响应式按钮。工作区 / 设置相关 Unit 4 文件 34 项、根 `npx tsc --noEmit` 通过；未修改 IPC、存储或终端清理契约。
 
 R01 / R14 Debug 运行概览证据入口基础复用（2026-09-21）：正式 `DebugOverview` 的四个真实证据入口接入 Foundation `ActionButton`，保留现有 Debug 分区导航与只读状态摘要。正式 Debug 导航 UI E2E 1 项、Foundation / 产品注册 Unit 26 项、根 `npx tsc --noEmit` 通过；本批不代表全产品回流完成，RAG / MCP OAuth 后续继续暂缓。
