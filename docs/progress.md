@@ -2,6 +2,8 @@
 
 S6 / Foundation 生命周期收口与四体验采用（2026-09-22）：新增正式 `Button`、`EmptyState`、`ErrorState` 三个共享基础组件，浏览器工作区、角色架和 Playground Foundation 故事均实际渲染这些组件；注册表来源、正式消费者 import / JSX 链和无 IPC 约束由定向 Unit 固化，39 项通过，根 `tsc` 与 `vite build` 通过。`experience.chat`、`experience.world`、`experience.settings`、`experience.workspace` 已从 `playground` 提升为 `adopted`，但这不表示 RAG 或 MCP OAuth 已完成；两项继续按用户决定暂缓并保留在合同的未完成边界。
 
+S3 / S4 来源与生命周期收口（2026-09-22）：复核正式人物世界六面后确认，衣柜 / 书架 / 文化角无 Role Pack 来源即为空态，家居 / 足迹仅从 `world.default.json` 初始化，用户创建和已发布事件不走服务默认值；新增 `companion-source-boundary.test.ts` 固化六角色来源矩阵。正式设置的普通队列、权限、模型草稿和 MCP 向导均由同一 `prepareToLeave` / `beforeunload` 闸门管理，新增 `settings-lifecycle-boundary.test.ts` 固化接线，既有 Electron 组合证据覆盖隐藏、内部导航、退出和重载。S3、S4 不再是当前回流阻塞项；RAG / MCP OAuth 仍按用户决定暂缓。
+
 S6 / 正式入口组合审计收口（2026-09-22）：完整 Renderer UI 门禁 `npm run test:e2e` 379 项全部通过；本轮定向复核的正式工作区、设置与 Playground 跨页、记忆长文编辑 / 失败恢复、权限自定义规则、关于页开发者模式共 35 项也全部通过，覆盖四主题与宽窄窗口。审计同时扫描正式组件对 Playground fixture / preview 注入的边界，未发现正式入口引入隔离样张的路径。当前已验证的是入口、状态和隔离证据，不等于四个 `experience.*` 自动进入 `adopted`；仍需按施工合同完成最终人工入口确认并冻结合同。RAG 与 MCP OAuth 继续按用户决定暂缓，OAuth 专项失败不计入本轮正式产品主线。
 
 S5 / onboarding 独立性收口（2026-09-22）：正式 `onboarding.test.ts` 完整 22 项通过；独立启动的 Skills、模型路由、人物世界六面、工作区、终端、权限和记忆代表用例也通过。独立首启模型路由首次暴露保存连接断言仍使用默认 5 秒的问题，根因是 Windows 安全存储冷启动；测试改为有界 20 秒等待后独立通过，不改变产品保存链路。共享前置仍只承载本地服务与独立临时 user-data-dir，不再把前序模型配置当作该用例的成功条件。
