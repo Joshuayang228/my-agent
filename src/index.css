@@ -783,6 +783,9 @@ html[data-font-scale="lg"] {
   background: linear-gradient(to top, color-mix(in srgb, var(--bg-inset) 22%, transparent), transparent);
 }
 .moments-alice-feed .moments-alice-post {
+  align-self: flex-start;
+  height: fit-content;
+  min-height: 0;
   border: 1px solid color-mix(in srgb, var(--accent) 12%, var(--border-subtle));
   border-radius: var(--radius-lg);
   padding: 1.15rem 1.25rem 1rem;

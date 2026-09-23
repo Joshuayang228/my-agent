@@ -5135,6 +5135,7 @@ test.describe('My Agent UI', () => {
     const likeBox = await firstLike.boundingBox()
     expect(momentBox).not.toBeNull()
     expect(likeBox).not.toBeNull()
+    expect(momentBox?.height ?? Number.POSITIVE_INFINITY).toBeLessThan(260)
     expect(likeBox?.x ?? Number.POSITIVE_INFINITY).toBeLessThan((momentBox?.x ?? 0) + (momentBox?.width ?? 0) / 2)
     await expect(firstComment).toHaveAttribute('aria-pressed', 'false')
     await firstComment.click()
