@@ -3,7 +3,7 @@
  * 渲染正式 class / ToolCallbackList；不另造皮肤。
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { Check, LoaderCircle, MoreHorizontal, Plus, Search, Sparkles, WandSparkles, X } from 'lucide-react'
 import { ToolCallbackList } from '../chat/callbacks/ToolCallbackList'
 import type { GeneratedImageReader, GeneratedImageRevealer } from '../chat/callbacks/GeneratedImageResult'
@@ -346,16 +346,16 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
 
       {effectiveSub === 'inputs' && (
         <div className="space-y-3">
-          <StoryBlock title="theme-input 默认" source="src/index.css · .theme-input" adopted>
+          <StoryBlock title="基础输入默认" source="src/components/foundation/TextField.tsx" adopted>
             <TextField
-              className="w-full max-w-sm rounded-lg border px-2 py-1.5 text-xs"
+              className="w-full max-w-sm rounded-lg px-2 py-1.5 text-xs"
               placeholder="输入…"
               defaultValue="示例"
             />
           </StoryBlock>
-          <StoryBlock title="超长占位 / 窄宽" source="src/index.css · .theme-input" edge adopted>
+          <StoryBlock title="超长内容 / 窄宽" source="src/components/foundation/TextField.tsx · overflow fixture" edge adopted>
             <TextField
-              className="w-28 rounded-lg border px-2 py-1.5 text-xs"
+              className="w-28 rounded-lg px-2 py-1.5 text-xs"
               defaultValue="这是一段故意超长的输入内容用来看截断与溢出"
             />
           </StoryBlock>
@@ -363,7 +363,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
             <label className="relative block max-w-sm">
               <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
               <TextField
-                className="h-9 w-full border pl-9 pr-3 text-xs"
+                className="h-9 w-full pl-9 pr-3 text-xs"
                 placeholder="搜索会话、文件或能力"
               />
             </label>
@@ -645,13 +645,12 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
                   <label className="relative flex w-44 min-w-0">
                     <span className="sr-only">搜索图标</span>
                     <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-                    <input
+                    <TextField
                       autoFocus
                       value={iconQuery}
-                      onChange={(event) => setIconQuery(event.target.value)}
+                      onChange={(event: ChangeEvent<HTMLInputElement>) => setIconQuery(event.target.value)}
                       placeholder="搜索中文或 English"
-                      className="h-8 w-full rounded-md border pl-8 pr-8 text-xs outline-none"
-                      style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                      className="h-8 w-full pl-8 pr-8 text-xs"
                     />
                     <button
                       type="button"

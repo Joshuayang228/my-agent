@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type ChangeEvent, type FocusEvent, type KeyboardEvent } from 'react'
 import { ArrowUp, Globe, GitCompare, FileText, TerminalSquare, MessageCircle, RefreshCw, Square, LoaderCircle, PanelRight } from 'lucide-react'
 import { type FileBrowserPreviewData } from '../FileBrowser'
 import { WorkspaceFilesPanel } from '../chat/right-dock/WorkspaceFilesPanel'
@@ -7,6 +7,7 @@ import { DiffViewer, DiffViewControls, type DiffViewMode } from '../foundation/D
 import { TabStrip } from '../foundation/TabStrip'
 import { IconButton } from '../foundation/IconButton'
 import { WorkspaceToolMenu } from '../foundation/WorkspaceToolMenu'
+import { TextField } from '../foundation/TextField'
 import teaImage from '../../assets/playground/moment-tea-by-window.jpg'
 
 const VIEWS = [
@@ -129,7 +130,7 @@ function BrowserSample({ scene }: { scene: string }) {
   }
   return <>
     <form className="flex items-center gap-2 border-b p-2" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); navigate() }}>
-      <input aria-label="浏览器地址" aria-invalid={Boolean(error)} value={draft} maxLength={2048} spellCheck={false} autoComplete="off" className="h-7 min-w-0 flex-1 rounded border-0 bg-transparent px-2 text-center text-[11px] focus:bg-[var(--bg-secondary)]" onFocus={(event) => event.target.select()} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); setDraft(address); setError(''); event.currentTarget.blur() } }} />
+      <TextField aria-label="浏览器地址" aria-invalid={Boolean(error)} value={draft} maxLength={2048} spellCheck={false} autoComplete="off" className="h-7 min-w-0 flex-1 px-2 text-center text-[11px] focus:bg-[var(--bg-secondary)]" onFocus={(event: FocusEvent<HTMLInputElement>) => event.target.select()} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft(event.target.value)} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => { if (event.key === 'Escape') { event.stopPropagation(); setDraft(address); setError(''); event.currentTarget.blur() } }} />
       <IconButton label="刷新页面" size={24} onClick={navigate}><RefreshCw size={14} /></IconButton>
     </form>
     {error && <p role="alert" className="px-3 py-2 text-[11px]" style={{ color: 'var(--danger)' }}>{error}</p>}
@@ -149,7 +150,7 @@ function WorkspaceChatShell() {
   const [messages, setMessages] = useState(['帮我看看 theme.ts 的间距调整。'])
   return <>
     <div className="min-h-0 flex-1 space-y-4 overflow-auto p-3 text-[12px] leading-6">{messages.map((message, index) => <p key={index} className="break-words">{message}</p>)}<p style={{ color: 'var(--text-muted)' }}>可以打开右侧审阅，查看修改前后的内容。</p></div>
-    <form className="flex items-end gap-1 border-t p-2" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); if (input.trim()) { setMessages((current) => [...current, input.trim()]); setInput('') } }}><textarea aria-label="主对话样张消息" rows={3} className="theme-input min-w-0 flex-1 resize-none rounded border p-2 text-[12px]" placeholder="继续对话…" value={input} onChange={(event) => setInput(event.target.value)} /><button type="submit" aria-label="发送主对话样张" title="发送主对话样张" disabled={!input.trim()} className="p-1 disabled:opacity-40"><ArrowUp size={14} /></button></form>
+    <form className="flex items-end gap-1 border-t p-2" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); if (input.trim()) { setMessages((current) => [...current, input.trim()]); setInput('') } }}><TextField multiline aria-label="主对话样张消息" rows={3} className="min-w-0 flex-1 resize-none p-2 text-[12px]" placeholder="继续对话…" value={input} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setInput(event.target.value)} /><button type="submit" aria-label="发送主对话样张" title="发送主对话样张" disabled={!input.trim()} className="p-1 disabled:opacity-40"><ArrowUp size={14} /></button></form>
   </>
 }
 
@@ -170,7 +171,7 @@ function TerminalSample({ scene }: { scene: string }) {
   return <>
     <div className="flex items-center gap-2 border-b p-2 text-[11px]" style={{ borderColor: 'var(--border-subtle)' }}>{(scene === '多终端' ? ['1', '2'] : ['1']).map((id) => <button key={id} type="button" className="settings-option px-2 py-1" aria-pressed={active === id} onClick={() => setActive(id)} data-selected={active === id ? 'true' : undefined}>终端 {id}</button>)}{running && <button className="ml-auto p-1" type="button" aria-label="停止运行" title="停止运行" onClick={() => { setRunning(false); setOutput((current) => ({ ...current, [active]: current[active] + '\n^C\n已停止' })) }}><Square size={13} /></button>}</div>
     <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-4 font-mono text-[12px] leading-6" data-testid="workspace-terminal-output">{output[active]}{running && <span className="animate-pulse"> ▌</span>}</pre>
-    <form className="flex items-center gap-2 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); submit() }}><span>$</span><input aria-label="终端样张命令" placeholder="help" className="min-w-0 flex-1 bg-transparent text-[12px] outline-none" value={input} disabled={running} onChange={(event) => setInput(event.target.value)} /><button type="submit" disabled={running || !input.trim()} title="运行样张命令" aria-label="运行样张命令" className="p-1 disabled:opacity-40"><ArrowUp size={14} /></button></form>
+    <form className="flex items-center gap-2 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); submit() }}><span>$</span><TextField aria-label="终端样张命令" placeholder="help" className="min-w-0 flex-1 text-[12px]" value={input} disabled={running} onChange={(event: ChangeEvent<HTMLInputElement>) => setInput(event.target.value)} /><button type="submit" disabled={running || !input.trim()} title="运行样张命令" aria-label="运行样张命令" className="p-1 disabled:opacity-40"><ArrowUp size={14} /></button></form>
   </>
 }
 
@@ -190,7 +191,7 @@ function SideChatSample({ scene }: { scene: string }) {
       {state === '生成中' && <span className="inline-flex items-center gap-2 text-[11px]" role="status"><LoaderCircle size={13} className="animate-spin" />正在生成</span>}
       {state === '发送失败' && <div className="flex items-center gap-3 text-[11px]"><span style={{ color: 'var(--danger)' }}>消息未发送</span><button type="button" onClick={() => { setMessages((current) => [...current, { role: 'assistant', text: '样张回复：这处变化影响布局留白。' }]); setState('对话') }}>重试</button></div>}
     </div>
-    <form className="flex items-end gap-2 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); send() }}><textarea aria-label="侧边聊天消息" rows={2} placeholder="继续聊聊…" className="theme-input min-w-0 flex-1 resize-none rounded border p-2 text-[12px]" value={input} onChange={(event) => setInput(event.target.value)} />{state === '生成中' ? <button type="button" aria-label="停止生成" title="停止生成" className="p-2" onClick={() => setState('对话')}><Square size={15} /></button> : <button type="submit" aria-label="发送消息" title="发送消息" disabled={!input.trim()} className="p-2 disabled:opacity-40"><ArrowUp size={16} /></button>}</form>
+    <form className="flex items-end gap-2 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); send() }}><TextField multiline aria-label="侧边聊天消息" rows={2} placeholder="继续聊聊…" className="min-w-0 flex-1 resize-none p-2 text-[12px]" value={input} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setInput(event.target.value)} />{state === '生成中' ? <button type="button" aria-label="停止生成" title="停止生成" className="p-2" onClick={() => setState('对话')}><Square size={15} /></button> : <button type="submit" aria-label="发送消息" title="发送消息" disabled={!input.trim()} className="p-2 disabled:opacity-40"><ArrowUp size={16} /></button>}</form>
   </>
 }
 

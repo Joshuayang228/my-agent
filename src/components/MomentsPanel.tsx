@@ -367,7 +367,7 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
                                 aria-hidden={!commentOpen}
                                 tabIndex={commentOpen ? 0 : -1}
                                 data-testid="moment-comment-input"
-                                className="theme-input h-8 min-w-0 rounded-[var(--radius-md)] border px-3"
+                                className="theme-input h-8 min-w-0 rounded-[var(--radius-md)] px-3"
                                 style={{ visibility: commentOpen ? 'visible' : 'hidden', pointerEvents: commentOpen ? 'auto' : 'none' }}
                               />
                               <ActionButton

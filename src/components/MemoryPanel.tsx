@@ -468,7 +468,7 @@ export function MemoryPanel({
                             autoFocus
                             readOnly={!canEdit}
                             rows={Math.min(10, Math.max(4, Math.ceil(editContent.length / 45)))}
-                            className="theme-input min-h-24 min-w-0 w-full resize-y rounded-[var(--radius-md)] border px-3 py-2 text-[13px] font-medium leading-6 outline-none"
+                            className="theme-input min-h-24 min-w-0 w-full resize-y rounded-[var(--radius-md)] px-3 py-2 text-[13px] font-medium leading-6"
                             style={{ color: 'var(--text-primary)' }}
                           />
                         ) : (
@@ -478,7 +478,7 @@ export function MemoryPanel({
                             onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => handleEditKey(event, mem.id)}
                             autoFocus
                             readOnly={!canEdit}
-                            className="theme-input h-8 min-w-0 w-full rounded-[var(--radius-md)] border px-3 text-[13px] font-medium leading-6 outline-none"
+                            className="theme-input h-8 min-w-0 w-full rounded-[var(--radius-md)] px-3 text-[13px] font-medium leading-6"
                             style={{ color: 'var(--text-primary)' }}
                           />
                         )
@@ -493,7 +493,7 @@ export function MemoryPanel({
                           }}
                           autoFocus
                           readOnly={!canEdit}
-                          className="theme-input min-w-0 flex-1 rounded-[var(--radius-md)] border px-2 py-1 text-xs outline-none"
+                          className="theme-input min-w-0 flex-1 rounded-[var(--radius-md)] px-2 py-1 text-xs"
                         />
                         <ActionButton
                           onClick={() => handleSaveEdit(mem.id)}

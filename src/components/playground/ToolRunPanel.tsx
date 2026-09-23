@@ -2,7 +2,9 @@
  * 工具手测 — 真 Registry + 权限路径（原 ToolRunTab）。
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
+import { SelectField } from '../foundation/SelectField'
+import { TextField } from '../foundation/TextField'
 
 export interface PlaygroundToolInfo {
   name: string
@@ -101,15 +103,15 @@ export function ToolRunPanel({ tools }: { tools: PlaygroundToolInfo[] }) {
         <>
           <label className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
             工具
-            <select
+            <SelectField
               value={name}
               onChange={(e) => onPick(e.target.value)}
-              className="theme-input mt-1 w-full rounded-lg border px-2 py-1.5 font-mono text-xs outline-none"
+              className="mt-1 w-full px-2 py-1.5 font-mono text-xs"
             >
               {tools.map((t) => (
                 <option key={t.name} value={t.name}>{t.name}</option>
               ))}
-            </select>
+            </SelectField>
           </label>
           {selected && (
             <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
@@ -121,11 +123,12 @@ export function ToolRunPanel({ tools }: { tools: PlaygroundToolInfo[] }) {
           )}
           <label className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
             参数 JSON
-            <textarea
+            <TextField
+              multiline
               value={argsJson}
-              onChange={(e) => setArgsJson(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setArgsJson(e.target.value)}
               rows={8}
-              className="theme-input mt-1 w-full rounded-lg border px-2 py-1.5 font-mono text-xs outline-none"
+              className="mt-1 w-full rounded-lg px-2 py-1.5 font-mono text-xs"
             />
           </label>
           <label className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>

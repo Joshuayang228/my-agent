@@ -2,7 +2,8 @@
  * 对话试验 — 会话级 System 覆盖 + 可多轮隔离试跑（不写 settings）。
  */
 
-import { useState } from 'react'
+import { useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import { TextField } from '../foundation/TextField'
 
 interface PromptInfo {
   full: string
@@ -109,11 +110,12 @@ export function PromptLabPanel({
       </div>
       <label className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
         System（会话覆盖）
-        <textarea
+        <TextField
+          multiline
           value={systemPrompt}
-          onChange={(e) => setSystemPrompt(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setSystemPrompt(e.target.value)}
           rows={6}
-          className="theme-input mt-1 w-full rounded-lg border px-2 py-1.5 font-mono text-xs outline-none"
+          className="mt-1 w-full rounded-lg px-2 py-1.5 font-mono text-xs"
           placeholder="空 = 使用默认 playground 指令；不写全局 settings"
         />
       </label>
@@ -139,12 +141,13 @@ export function PromptLabPanel({
 
       <label className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
         User（下一轮）
-        <textarea
+        <TextField
+          multiline
           value={userPrompt}
-          onChange={(e) => setUserPrompt(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setUserPrompt(e.target.value)}
           rows={3}
-          className="theme-input mt-1 w-full rounded-lg border px-2 py-1.5 font-mono text-xs outline-none"
-          onKeyDown={(e) => {
+          className="mt-1 w-full rounded-lg px-2 py-1.5 font-mono text-xs"
+          onKeyDown={(e: KeyboardEvent<HTMLTextAreaElement>) => {
             if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault()
               void run()

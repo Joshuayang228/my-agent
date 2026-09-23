@@ -7,7 +7,7 @@
  * 关键约束：不调用 IPC、不写设置或会话；正式组件落地前，候选故事只作为 Playground 证据。
  */
 
-import { useState } from 'react'
+import { useState, type ChangeEvent } from 'react'
 import { ChevronDown, Command, FileText, MoreHorizontal, Search, X } from 'lucide-react'
 import { StoryBlock } from './StoryBlock'
 import { DiffViewer, DiffViewControls, type DiffViewMode } from '../foundation/DiffViewer'
@@ -16,6 +16,7 @@ import { ActionButton } from '../foundation/ActionButton'
 import { SelectField } from '../foundation/SelectField'
 import { CheckboxField } from '../foundation/CheckboxField'
 import { SegmentedControl } from '../foundation/SegmentedControl'
+import { TextField } from '../foundation/TextField'
 import { type AdvancedFoundationStoryKey } from '../../shared/foundation-story-registry'
 
 function ActionButtonStory() {
@@ -120,7 +121,7 @@ function ComboboxStory() {
     <div className="max-w-sm">
       <label className="relative block">
         <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
-        <input className="theme-input h-9 w-full rounded-md border pl-8 pr-3 text-xs outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索伙伴" aria-label="搜索伙伴" role="combobox" aria-expanded="true" aria-controls="playground-combobox-options" />
+        <TextField className="h-9 w-full pl-8 pr-3 text-xs" value={query} onChange={(event: ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)} placeholder="搜索伙伴" aria-label="搜索伙伴" role="combobox" aria-expanded="true" aria-controls="playground-combobox-options" />
       </label>
       <div id="playground-combobox-options" className="mt-2 rounded-lg border p-1" role="listbox" aria-label="伙伴选项" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
         {filtered.length > 0 ? filtered.map((option) => <button type="button" role="option" aria-selected="false" key={option} className="block w-full rounded px-2 py-1.5 text-left text-[11px]" style={{ color: 'var(--text-secondary)' }}>{option}</button>) : <p className="px-2 py-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>没有匹配结果</p>}
@@ -135,7 +136,7 @@ function CommandStory() {
   const filtered = commands.filter((command) => command.includes(query))
   return (
     <div className="max-w-md rounded-lg border p-2" role="search" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
-      <div className="flex items-center gap-2 border-b px-1 pb-2" style={{ borderColor: 'var(--border-subtle)' }}><Command size={14} style={{ color: 'var(--text-muted)' }} /><input className="min-w-0 flex-1 bg-transparent text-xs outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索动作…" aria-label="搜索动作" /></div>
+      <div className="flex items-center gap-2 border-b px-1 pb-2" style={{ borderColor: 'var(--border-subtle)' }}><Command size={14} style={{ color: 'var(--text-muted)' }} /><TextField className="min-w-0 flex-1 text-xs" value={query} onChange={(event: ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)} placeholder="搜索动作…" aria-label="搜索动作" /></div>
       <div className="mt-1 space-y-0.5">{filtered.map((command, index) => <button type="button" key={command} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-[11px]" style={{ color: index === 0 ? 'var(--accent-fg)' : 'var(--text-secondary)', background: index === 0 ? 'var(--accent-subtle)' : undefined }}>{command}<span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>Enter</span></button>)}</div>
     </div>
   )
@@ -175,7 +176,7 @@ function DiffViewerStory() {
   const after = scene === 'long' ? Array.from({ length: 100 }, (_, index) => `const item${index} = '${'long '.repeat(30)}'`).join('\n') : "const mode = 'balanced'\nreturn streamChat()"
   return <div className="min-w-0 space-y-3" data-testid="foundation-diff-code">
     <div className="flex items-center justify-between gap-2">
-      <select aria-label="差异样张" className="theme-input h-8 rounded border px-2 text-xs" value={scene} onChange={(event) => setScene(event.target.value)}><option value="standard">标准</option><option value="empty">空旧稿</option><option value="long">长文件</option></select>
+      <SelectField aria-label="差异样张" className="h-8 px-2 text-xs" value={scene} onChange={(event) => setScene(event.target.value)}><option value="standard">标准</option><option value="empty">空旧稿</option><option value="long">长文件</option></SelectField>
       <DiffViewControls mode={mode} canSplit onChange={setMode} />
     </div>
     <div className="max-h-80 overflow-auto overscroll-contain" data-testid="foundation-diff-scroll">
@@ -210,7 +211,7 @@ function CheckboxStory() {
 
 function FormFieldStory() {
   const [enabled, setEnabled] = useState(true)
-  return <div className="grid gap-3 md:grid-cols-2"><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>显示名称</span><input className="theme-input h-9 w-full rounded-md border px-2 text-xs outline-none" defaultValue="小林" aria-label="显示名称" /><small className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>辅助说明与控件保持同一组。</small></label><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>错误字段</span><input className="theme-input h-9 w-full rounded-md border px-2 text-xs outline-none" defaultValue="" aria-label="错误字段" aria-invalid="true" style={{ borderColor: 'var(--danger)' }} /><small className="block text-[10px]" style={{ color: 'var(--danger)' }}>请输入有效内容。</small></label><label className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}><CheckboxField defaultChecked aria-label="启用记忆" />启用记忆</label><button type="button" role="switch" aria-checked={enabled} onClick={() => setEnabled((value) => !value)} className="flex items-center gap-2 text-left text-[11px]" style={{ color: 'var(--text-secondary)' }}><span className="relative h-5 w-9 rounded-full" style={{ background: enabled ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }}><span className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition" style={{ left: enabled ? 'calc(100% - 1.125rem)' : '0.125rem' }} /></span>自动保存</button></div>
+  return <div className="grid gap-3 md:grid-cols-2"><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>显示名称</span><TextField className="h-9 w-full px-2 text-xs" defaultValue="小林" aria-label="显示名称" /><small className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>辅助说明与控件保持同一组。</small></label><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>错误字段</span><TextField className="h-9 w-full px-2 text-xs" defaultValue="" aria-label="错误字段" aria-invalid="true" style={{ boxShadow: '0 0 0 1px color-mix(in srgb, var(--danger) 45%, transparent)' }} /><small className="block text-[10px]" style={{ color: 'var(--danger)' }}>请输入有效内容。</small></label><label className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}><CheckboxField defaultChecked aria-label="启用记忆" />启用记忆</label><button type="button" role="switch" aria-checked={enabled} onClick={() => setEnabled((value) => !value)} className="flex items-center gap-2 text-left text-[11px]" style={{ color: 'var(--text-secondary)' }}><span className="relative h-5 w-9 rounded-full" style={{ background: enabled ? 'var(--accent-emphasis)' : 'var(--bg-tertiary)' }}><span className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition" style={{ left: enabled ? 'calc(100% - 1.125rem)' : '0.125rem' }} /></span>自动保存</button></div>
 }
 
 function assertNever(value: never): never {
