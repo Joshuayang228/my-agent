@@ -122,7 +122,7 @@ export function WorldHub({
         {previewPanels?.[tab] ?? (
           <>
             {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} appearance={momentsAppearance ?? 'alice-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} />}
-            {tab === 'wardrobe' && <AssetsPanel onClose={onClose} />}
+            {tab === 'wardrobe' && <AssetsPanel />}
             {(tab === 'culture' || tab === 'home' || tab === 'footprints') && <WorldDetailsPanel tab={tab} />}
             {tab === 'cast' && (
               <CastPanel

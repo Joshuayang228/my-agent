@@ -3,7 +3,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { BookOpen, RefreshCw, Shirt, Sparkles, X } from 'lucide-react'
+import { BookOpen, Shirt, Sparkles } from 'lucide-react'
 import { ActionButton } from './foundation/ActionButton'
 import { IconButton } from './foundation/IconButton'
 import { TabStrip } from './foundation/TabStrip'
@@ -24,10 +24,8 @@ import {
 type AssetTab = 'wardrobe' | 'bookshelf'
 
 interface AssetsPanelProps {
-  onClose: () => void
   previewAssets?: WorldAssetRecord[]
   previewEditable?: boolean
-  previewRoleName?: string
   previewWearingId?: string
 }
 
@@ -40,11 +38,10 @@ function occasionTags(payload: Record<string, unknown>): string[] {
   return tags.slice(0, 4)
 }
 
-export function AssetsPanel({ onClose, previewAssets, previewEditable = false, previewRoleName = '', previewWearingId }: AssetsPanelProps) {
+export function AssetsPanel({ previewAssets, previewEditable = false, previewWearingId }: AssetsPanelProps) {
   const isPreview = previewAssets !== undefined
   const canEdit = !isPreview || previewEditable
   const [roleId, setRoleId] = useState('')
-  const [roleName, setRoleName] = useState(previewRoleName)
   const [items, setItems] = useState<WorldAssetRecord[]>(previewAssets ?? [])
   const [tab, setTab] = useState<AssetTab>('wardrobe')
   const [wearingId, setWearingId] = useState<string | null>(null)
@@ -76,7 +73,6 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
     const currentRequest = ++requestId.current
     if (isPreview) {
       setItems(previewAssets ?? [])
-      setRoleName(previewRoleName)
       setWearingId(previewWearingId ?? null)
       setWearingHint('')
       return
@@ -98,7 +94,6 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
       if (assets.roleId !== active.id || moments.roleId !== active.id) {
         setItems([])
         setRoleId('')
-        setRoleName('')
         setWearingId(null)
         setWearingHint('')
         setEditingId(null)
@@ -107,7 +102,6 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
         throw new Error('ROLE_CHANGED')
       }
       setRoleId(assets.roleId)
-      setRoleName(active.name)
       setItems(assets.items)
       const wardrobe = assets.items.filter((asset) => asset.kind === 'wardrobe')
       let foundId: string | null = null
@@ -138,7 +132,7 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
     } finally {
       if (mounted.current && currentRequest === requestId.current) setLoading(false)
     }
-  }, [isPreview, previewAssets, previewRoleName, previewWearingId])
+  }, [isPreview, previewAssets, previewWearingId])
 
   useEffect(() => { void load() }, [load])
 
@@ -152,7 +146,6 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
       setBusy(false)
       setItems([])
       setRoleId('')
-      setRoleName('')
       setWearingId(null)
       setWearingHint('')
       setWriteError('')
@@ -268,20 +261,6 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
 
   return (
     <fieldset disabled={busy} aria-busy={busy || loading} className="m-0 flex h-full min-h-0 flex-col border-0 p-0" data-testid="world-assets-panel">
-      <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border-subtle)' }}>
-        <div className="flex items-center gap-2">
-          <KindIcon size={16} style={{ color: 'var(--companion-accent-warm)' }} />
-          <div>
-            <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>物什</div>
-            <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{roleName || roleId || '活跃主角'} · 衣柜 / 书架</div>
-          </div>
-        </div>
-        <div className="flex h-8 items-center gap-1">
-          {!isPreview && <IconButton size={32} label={readError ? '重试物什' : '刷新物什'} onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>}
-          <IconButton size={32} label="关闭物什" onClick={onClose}><X size={14} /></IconButton>
-        </div>
-      </div>
-
       <div className="border-b px-4 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
         <TabStrip
           label="物什分区"
@@ -300,7 +279,9 @@ export function AssetsPanel({ onClose, previewAssets, previewEditable = false, p
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin">
-        <WorldWriteError message={readError} />
+        <WorldWriteError message={readError}>
+          {!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>}
+        </WorldWriteError>
         {pendingDelete && (
           <WorldAssetDeleteConfirm
             asset={pendingDelete}

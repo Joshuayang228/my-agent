@@ -1,5 +1,7 @@
 # 质量总控
 
+S6 / 人物世界衣柜结构门禁（2026-09-23）：衣柜 / 书架面板不重复承担人物世界页面级标题、关闭和常驻刷新；WorldHub 负责外层上下文，读取失败必须保留内容区重新读取入口。正式衣柜读取隔离与恢复覆盖两主题、两宽度和失败 / 角色不匹配 / 迟到响应三类场景，共 12 项通过。
+
 S6 / 人物世界通讯录结构门禁（2026-09-22）：通讯录不再自行渲染页面级标题、关闭和常驻刷新栏，人物世界外层 `WorldHub` 负责身份上下文与 tab 导航；通讯录读取异常时仍需在面内提供可操作的重新读取入口。相关样张回归只验证通讯录内容与召唤行为，不把重复导航控件作为产品契约。
 
 S3 / S4 quality gates: companion-source-boundary and settings-lifecycle-boundary lock the production source and leave-guard contracts. Behavioral coverage remains in Renderer / Electron E2E; RAG / MCP OAuth stay deferred.

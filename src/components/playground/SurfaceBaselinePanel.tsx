@@ -549,7 +549,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
   const previewPanels: Partial<Record<WorldTab, ReactNode>> = {
     wardrobe: (
       <div data-testid="world-wardrobe-fixture" data-persona-id={persona.id}>
-        <AssetsPanel key={persona.id} onClose={noop} previewAssets={fixtures.wardrobe} previewEditable previewRoleName={persona.name} previewWearingId={fixtures.wardrobe[0]?.id} />
+        <AssetsPanel key={persona.id} previewAssets={fixtures.wardrobe} previewEditable previewWearingId={fixtures.wardrobe[0]?.id} />
       </div>
     ),
     culture: (
