@@ -9,7 +9,7 @@
 ## 边界
 
 **做**：Role Pack / 单活跃门控 / MUTABLE 版本与自动反思 / LifeEngine（暂停·剧本·tick）/ Catch-up≤7×24h / Moments·Assets 截面 / 名册浅注入 / 冷启动在场 / 召唤子会话与忙闲婉拒。  
-**不做**：会话中途换角；非活跃后台养成；多宇宙并行；生图朋友圈（非本阶段）。
+**不做**：会话中途换角；非活跃后台养成；多宇宙并行；自动生成朋友圈内容（视觉资产生图已接入，但不自动替动态生成内容）。
 
 ## 短 Why
 
@@ -104,12 +104,15 @@
 - 生活剧本、朋友圈润色、Catch-up 摘要与显式反思入口用共享连接认证判断，允许已配置的本机兼容无 Key 辅助模型；仍保留原有 preferLlm、数据校验和失败回退，不更改主动调用时机、反思门闸或角色隔离。协议可连接不代表任意本地型号能正确生成结构化生活内容。
 
 - 朋友圈正式页与 Playground 共用卡片样式，hover 只改变颜色，不再通过 translateY 移动整张卡片；评论槽在展开前后保持相同尺寸与位置。衣柜删除失败保留确认、原条目与重试入口，测试按真实无障碍按钮名称及脱敏错误提示验收。
+- 正式人物世界的朋友圈、衣柜、文化角、家居和足迹图片统一复用 Foundation `ImageViewer`；衣柜真实 `payload.image` 通过 `companion.readAssetImage` 读取，生活面图片保留原有重试 / 定位链路，Playground 静态样张不进入生产。Chat 附件、生图结果、Markdown 图片和工作区图片也复用同一预览器，预览层使用 Portal、Esc / 背景关闭、缩放拖动与固定尺寸工具栏。
 - 人物世界正式入口提供六个生活面：朋友圈、衣柜、文化角、家居、通讯录、足迹。朋友圈、衣柜和通讯录读取现有 companion IPC；正式通讯录列表会先读取既有 `check-cast-availability` 展示方便 / 忙碌，开聊仍走 `startSummon` 二次判定。文化角、家居和足迹复用按主角隔离的 `companion_assets`，其中家居与常去地点仅在 Role Pack 提供真实 `world.default` 时幂等播种；小林当前没有该资产，正式家居 / 常去保持空态。没有 `world.default.json` 时，运行态 `world_json`、Catch-up 和 Prompt 切片的居所 / 当前位置回退为「未设定」，不再写入城西小公寓、日常住处或家。生活动态地点作为足迹的近期补充，不把 Playground fixture 当作生产数据源。衣柜、书架和文化角不再从服务硬编码默认值生成作品、穿着或阅读经历；无 Role Pack 定义时为空。
 - 家居与足迹的正式页、Playground 使用同一 `WorldLivingContent` 纯展示组件；家居保留住所结构和生活物件，足迹分开常去、显式想去记录与实际动态，不用资产初始化时间伪造访问日期，同地点不同动态保留各自正文和日期。正式刷新失败保留内容并可重试，响应主角不一致则清空并提示重试。
 - 新住所 / 地点的初始化标记与资产在同一 SQLite 事务内写入 `companion_asset_seeds`；仅真实 Role Pack 提供默认数据时初始化，不覆盖已有记录，删除后重载不补种。文化角 / 衣柜 / 书架沿用既有初始化语义，不外推该删除保证。
 - 文化角通过 `WorldCultureContent` 同源展示四类文化卡片、书架阅读内容和关联读书笔记；`detail` 与 `note` 同时存在时均保留，重名作品按资产 ID 区分，未知类型保留为文化记录，空数据不生成作品。正式页沿既有资产 IPC 读取，并通过 `companion:create-asset` 与既有 update / delete 编辑衣柜、文化、家居物件和足迹地点；Playground 只传隔离 props 并改内存预览。
 - 文化 / 书架资产更新中的 `note`、`detail`、`description` 支持最多 4000 UTF-16 代码单元，保留换行，超限或错误类型在写入前拒绝整次修改，不再按衣柜标签截为 24 字。书架进入 Prompt 仍只取 24 字笔记摘要；其余资产短标签规则不变，历史已截断正文无法自动恢复。
-- 正式设置「数据与隐私」的导出 / 导入覆盖 `companion_assets` 与 `companion_asset_seeds`；按稳定 id / 播种键合并，不覆盖现有记录。会话与生活资产同一事务，失败整笔回滚。旧备份缺这两项仍可导入。记忆继续走 `memoryStore.addMemory`。不导出朋友圈互动、MCP、权限、API Key 和本机项目路径。
+- 正式设置「数据与隐私」的导出 / 导入覆盖 `companion_assets` 与 `companion_asset_seeds`；资产 `payload.image` 与会话生成图片共用 PNG 媒体校验、摘要和受控恢复目录，导入新增资产时会回填新路径。按稳定 id / 播种键合并，不覆盖现有记录。会话与生活资产同一事务，失败整笔回滚。旧备份缺这两项仍可导入。记忆继续走 `memoryStore.addMemory`。不导出朋友圈互动、MCP、权限、API Key 和本机项目路径。
+
+- 生活切片链路已接通第一版：`companion:get-life-slice` 以 `companion_events` 为事实源，按 `role_id` 返回对应 Moment、`source_event_id` 资产和 `companion_event_links`；跨角色事件返回空，不允许 Renderer 自行跨表拼接。正式朋友圈已可进入局部滚动详情并返回，结构化关联以用户态中文线索呈现；事件关联随朋友圈历史备份恢复，导入失败会与事件 / Moment 一起回滚。
 
 状态：`已落地` · `部分` · `缺口`。能力增删或行为变了 → **同轮改本表**。
 
@@ -160,7 +163,8 @@
 | Chat 消息区大气化（Phase B 留白） | 已落地 | 消息流 `space-y-8`；工具卡见 agent-runtime | `frontend-alice-shell` Phase B |
 | 人物世界口袋（对齐 Alice `/moments`） | 已落地 | 侧栏一入口 + 内页 tab | `WorldHub` |
 | 伴侣状态条（展厅故事格） | 已落地 | Playground UI · 状态条 | `CompanionStatusBar` · Chat 顶栏已撤 |
-| 生图朋友圈 / 多宇宙并行 | 缺口 | — | wishlist / 非本阶段 |
+| 自动生成朋友圈内容 / 多宇宙并行 | 缺口 | — | wishlist / 明确非本阶段 |
+| 人物世界视觉资产引用 | 已落地 | `image_generate` 可将真实生成结果绑定到当前角色生活资产；Chat 与 WorldDetailsPanel 复用受控读取 / 定位预览；生成入口、媒体备份恢复和正式页面回流已完成。自动生成朋友圈内容仍不在本阶段 | `image-generation-product-integration-v1.md` |
 | 非活跃后台养成 | 缺口 | — | 产品明确不做 |
 
 ### Prompt / 召回组装管线（聊天一轮）
@@ -198,8 +202,38 @@
 
 ## 现状 / 缺口
 
-**现状**：W0–W6 主线与人物世界 P1 正式回流已落地；六面入口、真实生活资产链、角色架、通讯录、朋友圈互动、备份、来源边界和正式入口验收均已收口。人物故事仍由 Role Pack 来源治理，未确认的生活事实保持空态。
-**缺口**：见上表「缺口」行 + wishlist；生图场景等非本阶段。
+**现状**：W0–W6 主线与人物世界六面正式回流已落地；六面入口、真实生活资产链、角色架、通讯录、朋友圈互动、备份、来源边界、生活切片和正式入口验收均已收口。人物故事仍由 Role Pack 来源治理，未确认的生活事实保持空态；`companion_event_links` 已完成幂等读写、事件发布投影、资产 / 卡司 / 图片关联、生活切片聚合、按角色回放和孤儿清理。
+**缺口**：只保留上表「缺口」行和 wishlist 中明确后置的能力。不能把 Debug 世界态时间线当作普通用户 UI；静态属性、动态状态、触发时机和字段映射以已冻结的 `companion-world-model-v1.md` 为准。
+
+### 人物世界当前数据边界
+
+以下内容记录当前代码边界、已批准的施工方向和仍需收口的问题；具体执行以 `companion-world-model-v1.md` 为准：
+
+| 生活面 / 数据 | 当前事实边界 | 首版已冻结规则 |
+|------|------|------|
+| 朋友圈 | `companion_events` 是事件事实，`companion_moments` 是可重建的用户可见投影；正式 UI 展示动态，不展示原始事件表 | 生活切片承接一条或一组 Moment，局部滚动并保持回到 Chat 的路径 |
+| 衣柜、文化角、家居、足迹 | 统一使用按 `role_id` 隔离的 `companion_assets`；图片只保存结构化引用，字节走受控媒体存储；事件多对多关联使用 `companion_event_links` | 图片归属、读取、删除、备份恢复和事件关联按角色隔离；视觉资产由真实生图明确触发 |
+| 通讯录 | 角色架与 roster 提供关系摘要；召唤会话不切换主角，也不推进被召唤角色生活 | 关系是 Role Pack 静态资料、独立运行时关系状态，还是二者叠加；哪些变化需要用户确认 |
+| 运行时世界 | LifeEngine、planned / published 事件、Catch-up 和 presence 已存在，Prompt 只消费组装后的切片 | 静态属性与动态状态的分层、更新来源、版本化和冲突处理 |
+
+暂定的数据流表达为：
+
+```text
+Role Pack / 用户确认的稳定资料
+  ↓
+稳定身份与静态世界
+  ↓
+planned event / 用户行动 / Agent 工具 / tick
+  ↓
+published event（事件事实）
+  ├─ 更新短期世界状态
+  ├─ 投影 Moments
+  ├─ 关联生活资产、地点和关系线索
+  ├─ 形成 Catch-up
+  └─ 供 Chat Prompt 组装消费
+```
+
+静态不等于永不变化，而是变化频率低、需要更高确认门槛；动态不等于临时文案，而是必须有来源、时间和生命周期的运行时事实。Prompt 是消费层，不反向充当人物世界数据库真相。
 
 - 2026-09-14：文化角正式使用 `companion_assets(kind=culture)`，按主角隔离并复用既有资产 CRUD / starter 播种；资产 payload 的 `type` 区分 reading、music、film、photography。
 - 2026-09-15：家居与足迹接入同一 `companion_assets` 事实链，分别使用 `kind=home` 与 `kind=footprint`；家居读取住所结构，足迹读取角色常去地点，近期动态仅作为补充。

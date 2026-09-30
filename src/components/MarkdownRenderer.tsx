@@ -1,6 +1,7 @@
 import { Children, isValidElement, memo, useState, useEffect, useRef, type ReactNode } from 'react'
 import { Check, Copy } from 'lucide-react'
 import { IconButton } from './foundation/IconButton'
+import { ImagePreviewImage } from './foundation/ImagePreviewImage'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -54,7 +55,7 @@ SyntaxHighlighter.registerLanguage('py', python)
 
 function MarkdownImage({ src, alt }: { src?: string; alt?: string }) {
   if (isSafeMarkdownImageSource(src)) {
-    return <img src={src} alt={alt || '图片'} className="my-3 max-h-96 max-w-full rounded-lg" />
+    return <ImagePreviewImage src={src!} alt={alt || '图片'} className="my-3 max-h-96 max-w-full rounded-lg" />
   }
   if (src) {
     try {

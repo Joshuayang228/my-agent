@@ -393,6 +393,7 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 - 每个活跃产品体验必须登记真实 source 与 `usesFoundation`；TypeScript 检查 key，Unit 检查依赖存在、foundation 层级、生命周期兼容和 Playground 入口一一对应；反向 usedBy 只能派生。新增 `src/assets/playground/` 媒体夹具时，对应体验必须在 `fixtureAssetPaths` 显式认领，并通过 `assets:check` 的 staged 漏登门禁。
 - 图标目录的 adopted 状态必须逐项提供真实 `sourcePaths`；Unit 检查来源存在和状态一致性。禁止把整页、目录或全部图标批量标成已采用。
 - Playground 回流正式 UI 必须补 UI 契约证据：正式右坞默认预览、文件 → 预览上下文保持、正式审阅 / 终端未替换为 fixture，并验证深浅主题下 Markdown 代码层级不与页面底色混淆。
+- 图片预览回流必须覆盖正式 Chat 附件 / 生图结果、Markdown 与工作区文件、朋友圈多图、衣柜真实 `payload.image`、文化角 / 家居 / 足迹资产；这些入口只能复用 Foundation `ImageViewer`，并验证 Portal、Esc / 背景关闭、切图重置、固定工具栏尺寸与四主题 / 窄宽回归。Playground 图片样张不得成为正式数据源。
 - Foundation Design Language 候选主题、圆角和动效只能在 Playground 局部生效；Unit / Renderer E2E 必须证明它们不会污染正式 `design-asset-registry`、`documentElement` 或生产默认主题。
 - 设置候选四主题必须与基础主题对照的名称、顺序、色板同源；E2E 在深浅全局主题、宽窄视口中逐一切换，验证局部实际颜色、唯一选中、键盘操作、返回分区保留选择，以及全局主题和 localStorage 不变。
 - `design-study` 家族显式治理 Playground 共享色板；新增候选来源仍须通过静态资产登记门禁，不因文件位于组件目录就重复登记为 UI 控件，也不得泛化成 Playground 目录豁免。

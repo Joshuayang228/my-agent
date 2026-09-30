@@ -6,6 +6,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BookOpen, Shirt, Sparkles } from 'lucide-react'
 import { ActionButton } from './foundation/ActionButton'
 import { IconButton } from './foundation/IconButton'
+import { ImagePreviewImage } from './foundation/ImagePreviewImage'
+import { GeneratedImageResult } from './chat/callbacks/GeneratedImageResult'
 import { TabStrip } from './foundation/TabStrip'
 import {
   WorldAssetActions,
@@ -20,13 +22,17 @@ import {
   type WorldAssetKind,
   type WorldAssetRecord,
 } from './world/WorldAssetEditor'
+import type { GeneratedImageReference } from '../shared/types'
 
 type AssetTab = 'wardrobe' | 'bookshelf'
 
 interface AssetsPanelProps {
+  onGenerateAssetImage?: (asset: WorldAssetRecord) => void
   previewAssets?: WorldAssetRecord[]
   previewEditable?: boolean
   previewWearingId?: string
+  /** Playground 可将书架收归文化角；正式页默认保留资产分栏。 */
+  showAssetTabs?: boolean
 }
 
 function occasionTags(payload: Record<string, unknown>): string[] {
@@ -38,7 +44,29 @@ function occasionTags(payload: Record<string, unknown>): string[] {
   return tags.slice(0, 4)
 }
 
-export function AssetsPanel({ previewAssets, previewEditable = false, previewWearingId }: AssetsPanelProps) {
+function PreviewAssetImage({ asset }: { asset: WorldAssetRecord }) {
+  const src = typeof asset.payload.playgroundImageSrc === 'string' ? asset.payload.playgroundImageSrc : ''
+  if (!src) return null
+  return <ImagePreviewImage src={src} alt={`${asset.name}的穿着参考图`} className="mb-3 block aspect-[4/3] w-full rounded-[var(--radius-md)] object-cover" buttonClassName="w-full" />
+}
+
+function imageFromAsset(asset: WorldAssetRecord): GeneratedImageReference | null {
+  const value = asset.payload.image
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const image = value as Partial<GeneratedImageReference>
+  if (typeof image.id !== 'string' || !/^[a-f0-9]{64}$/.test(image.id) || typeof image.path !== 'string'
+    || !['image/png', 'image/jpeg', 'image/webp'].includes(image.mimeType ?? '')
+    || !Number.isSafeInteger(image.width) || !Number.isSafeInteger(image.height) || !Number.isSafeInteger(image.byteLength)) return null
+  return image as GeneratedImageReference
+}
+
+function AssetImage({ asset }: { asset: WorldAssetRecord }) {
+  const image = imageFromAsset(asset)
+  if (!image || !window.electronAPI?.companion?.readAssetImage) return null
+  return <GeneratedImageResult image={image} readImage={(imageId) => window.electronAPI.companion.readAssetImage(asset.id, imageId)} scope={`asset:${asset.id}`} />
+}
+
+export function AssetsPanel({ previewAssets, previewEditable = false, previewWearingId, showAssetTabs = true, onGenerateAssetImage }: AssetsPanelProps) {
   const isPreview = previewAssets !== undefined
   const canEdit = !isPreview || previewEditable
   const [roleId, setRoleId] = useState('')
@@ -261,7 +289,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
 
   return (
     <fieldset disabled={busy} aria-busy={busy || loading} className="m-0 flex h-full min-h-0 flex-col border-0 p-0" data-testid="world-assets-panel">
-      <div className="border-b px-4 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
+      {showAssetTabs && <div className="border-b px-4 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
         <TabStrip
           label="物什分区"
           activeId={tab}
@@ -276,7 +304,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
             { id: 'bookshelf', label: '书架', icon: <BookOpen size={12} />, testId: 'assets-tab-bookshelf' },
           ]}
         />
-      </div>
+      </div>}
 
       <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin">
         <WorldWriteError message={readError}>
@@ -299,9 +327,9 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
             {wearing ? (
               <div className="companion-life-card rounded-xl border p-4" data-testid="world-wardrobe-wearing" style={{ borderColor: 'var(--companion-accent-warm)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
                 <div className="flex items-start gap-3">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl" style={{ background: 'var(--companion-catchup-bg)', color: 'var(--companion-accent-warm)' }}>
-                    <Sparkles size={22} />
-                  </div>
+                  {isPreview && wearing.payload.playgroundImageSrc
+                    ? <ImagePreviewImage src={String(wearing.payload.playgroundImageSrc)} alt={`${wearing.name}的穿着参考图`} className="h-24 w-24 shrink-0 rounded-[var(--radius-md)] object-cover" />
+                    : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl" style={{ background: 'var(--companion-catchup-bg)', color: 'var(--companion-accent-warm)' }}><Sparkles size={22} /></div>}
                   <div className="min-w-0 flex-1">
                     <div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{wearing.name}</div>
                     {wearingHint ? <div className="mt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>{wearingHint}</div> : null}
@@ -312,9 +340,10 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
                     </div>
                     {editingId === wearing.id
                       ? <WorldAssetForm draft={editDraft} onChange={setEditDraft} onSave={() => void saveEdit()} onCancel={() => { if (!busy) { setEditingId(null); setWriteError('') } }} busy={busy} saveLabel="保存衣物" />
-                      : canEdit ? <WorldAssetActions name={wearing.name} disabled={busy} onEdit={() => startEdit(wearing)} onDelete={() => setPendingDelete(wearing)} /> : null}
+                      : canEdit ? <WorldAssetActions name={wearing.name} disabled={busy} onGenerate={onGenerateAssetImage ? () => onGenerateAssetImage(wearing) : undefined} onEdit={() => startEdit(wearing)} onDelete={() => setPendingDelete(wearing)} /> : null}
                   </div>
                 </div>
+                {!isPreview && <AssetImage asset={wearing} />}
               </div>
             ) : (
               <div className="rounded-xl border border-dashed px-4 py-5 text-center text-[12px]" data-testid="world-wardrobe-wearing-empty" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
@@ -338,6 +367,8 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
             <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(9.5rem, 1fr))' }}>
               {visibleItems.map((asset) => (
                 <div key={asset.id} className="companion-life-card rounded-xl border px-3 py-3" style={{ borderColor: editingId === asset.id ? 'var(--companion-accent-warm)' : 'var(--card-border)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
+                  {isPreview && <PreviewAssetImage asset={asset} />}
+                  {!isPreview && <AssetImage asset={asset} />}
                   <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
                     <KindIcon size={16} style={{ color: 'var(--text-secondary)' }} />
                   </div>
@@ -349,7 +380,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
                   </div>
                   {editingId === asset.id
                     ? <WorldAssetForm draft={editDraft} onChange={setEditDraft} onSave={() => void saveEdit()} onCancel={() => { if (!busy) { setEditingId(null); setWriteError('') } }} busy={busy} saveLabel={tab === 'bookshelf' ? '保存书目' : '保存衣物'} />
-                    : canEdit ? <WorldAssetActions name={asset.name} disabled={busy} onEdit={() => startEdit(asset)} onDelete={() => setPendingDelete(asset)} /> : null}
+                    : canEdit ? <WorldAssetActions name={asset.name} disabled={busy} onGenerate={onGenerateAssetImage ? () => onGenerateAssetImage(asset) : undefined} onEdit={() => startEdit(asset)} onDelete={() => setPendingDelete(asset)} /> : null}
                 </div>
               ))}
             </div>

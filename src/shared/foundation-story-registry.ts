@@ -78,6 +78,7 @@ export const FOUNDATION_STORIES = [
   { key: 'foundation.checkbox', viewId: 'checkbox', assetKey: 'behavior.checkbox', labelZh: '复选框', group: 'behavior', renderer: 'advanced', navigationGroup: 'input-form' },
   { key: 'foundation.switch', viewId: 'switch', assetKey: 'behavior.switch', labelZh: '开关', group: 'behavior', renderer: 'advanced', navigationGroup: 'input-form' },
   { key: 'foundation.dialog', viewId: 'dialog', assetKey: 'behavior.dialog', labelZh: '对话框', group: 'behavior', renderer: 'advanced', navigationGroup: 'overlay' },
+  { key: 'foundation.image-viewer', viewId: 'image-viewer', assetKey: 'behavior.image-viewer', labelZh: '图片预览器', group: 'behavior', renderer: 'ui-controls', navigationGroup: 'overlay' },
   { key: 'foundation.popover', viewId: 'popover', assetKey: 'behavior.popover', labelZh: '弹出层', group: 'behavior', renderer: 'advanced', navigationGroup: 'overlay' },
   { key: 'foundation.dropdown-menu', viewId: 'dropdown-menu', assetKey: 'behavior.dropdown-menu', labelZh: '下拉菜单', group: 'behavior', renderer: 'advanced', navigationGroup: 'menu-tooltip' },
   { key: 'foundation.workspace-tool-menu', viewId: 'workspace-tool-menu', assetKey: 'behavior.workspace-tool-menu', labelZh: '工作区工具菜单', group: 'behavior', renderer: 'advanced', navigationGroup: 'menu-tooltip' },

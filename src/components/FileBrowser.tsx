@@ -27,6 +27,7 @@ import { IconButton } from './foundation/IconButton'
 import { ActionButton } from './foundation/ActionButton'
 import { SegmentedControl } from './foundation/SegmentedControl'
 import { TextField } from './foundation/TextField'
+import { ImagePreviewImage } from './foundation/ImagePreviewImage'
 
 export interface FileBrowserPreviewEntry {
   name: string
@@ -291,10 +292,11 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                 <div className={`min-h-0 flex-1 overflow-auto scrollbar-hover select-text ${preview.kind === 'text' && preview.languageHint === 'html' && htmlView === 'preview' ? 'p-0' : 'p-3'}`}>
                   {preview.kind === 'loading' && <p role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>正在读取文件…</p>}
                   {preview.kind === 'image' && (
-                    <img
+                    <ImagePreviewImage
                       src={preview.dataUrl}
                       alt={fileName}
                       className="mx-auto max-h-full max-w-full object-contain"
+                      buttonClassName="mx-auto max-w-full"
                     />
                   )}
                   {preview.kind === 'text' && preview.languageHint === 'html' && htmlView === 'preview' && (

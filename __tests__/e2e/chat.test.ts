@@ -474,6 +474,12 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       const result = stories.getByTestId('generated-image-result').first()
       const image = result.getByRole('img', { name: '生成的图片' })
       await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth)).toBe(1200)
+      await result.getByRole('button', { name: '预览生成的图片' }).click()
+      await expect(page.getByTestId('image-viewer-toolbar')).toBeVisible()
+      await expect(page.getByTestId('image-viewer-copy')).toContainText('复制图片')
+      await expect(page.getByTestId('image-viewer-download')).toContainText('下载图片')
+      await page.keyboard.press('Escape')
+      await expect(page.getByTestId('image-viewer')).toHaveCount(0)
       const zoom = result.getByRole('button', { name: '查看原图' })
       await zoom.scrollIntoViewIfNeeded()
       const before = await zoom.boundingBox()
@@ -1230,7 +1236,7 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       const testButton = page.getByTestId('settings-test-connection-geometry')
       const fetchButton = page.getByTestId('settings-fetch-models-geometry')
       expect(await fetchButton.evaluate(node => Number.parseFloat(getComputedStyle(node).columnGap) / Number.parseFloat(getComputedStyle(document.documentElement).fontSize))).toBe(0.25)
-      expect(await profile.getByRole('textbox', { name: /^手动添加模型 / }).evaluate(node => getComputedStyle(node).borderTopWidth)).toBe('1px')
+      expect(await profile.getByRole('textbox', { name: /^手动添加模型 / }).evaluate(node => getComputedStyle(node).borderTopWidth)).toBe('0px')
       await testButton.hover()
       expect(await geometry()).toEqual(before)
       await testButton.click()
@@ -2242,6 +2248,39 @@ for (const scenario of ['failure', 'mismatch', 'late'] as const) {
 }
 }
 }
+
+test('正式生图入口回流到 Chat 并保持操作槽尺寸', async ({ page }) => {
+  await installProductionElectronStub(page)
+  await page.addInitScript(() => {
+    const api = (window as any).electronAPI.companion
+    api.getMoments = async () => ({ roleId: 'lin', items: [] })
+    api.getAssets = async () => ({
+      roleId: 'lin',
+      items: [{ id: 'coat-1', roleId: 'lin', kind: 'wardrobe', name: '测试伙伴的外套', payload: {}, acquiredAt: 1, sourceEventId: null }],
+    })
+  })
+  await page.goto('/')
+
+  const composer = page.getByTestId('chat-composer')
+  const chatImageButton = composer.getByRole('button', { name: '生成图片', exact: true })
+  await expect(chatImageButton).toBeVisible()
+  const composerBefore = await composer.boundingBox()
+  await chatImageButton.click()
+  await expect(page.getByRole('textbox', { name: '消息', exact: true })).toHaveValue('请生成一张图片：窗边的茶、木桌、午后的自然光。')
+  expect(await composer.boundingBox()).toEqual(composerBefore)
+
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+  await page.getByTestId('world-tab-wardrobe').click()
+  const panel = page.getByTestId('world-assets-panel')
+  await expect(panel).toContainText('测试伙伴的外套')
+  const actions = panel.getByTestId('world-asset-actions').first()
+  const actionsBefore = await actions.boundingBox()
+  const assetImageButton = actions.getByRole('button', { name: '为 测试伙伴的外套 生成图片', exact: true })
+  await expect(assetImageButton).toBeVisible()
+  await assetImageButton.click()
+  await expect(page.getByRole('textbox', { name: '消息', exact: true })).toHaveValue('请为人物世界资产“测试伙伴的外套”生成一张图片。资产 ID：coat-1。生成后请使用 image_generate 的 targetAssetId 绑定到这个资产。')
+  expect(actionsBefore?.width).toBe(104)
+})
 
 for (const theme of ['porcelain-blue', 'yao-stone', 'deep-plum', 'song-smoke']) {
   for (const width of [1166, 600]) {
@@ -3745,7 +3784,7 @@ test.describe('My Agent UI', () => {
     await expect(page.getByTestId('playground-moments-profile')).toContainText('小林')
     await expect(page.getByText('把窗帘拉开了一点，泡了杯乌龙茶，准备先把桌面清出一块。', { exact: true })).toBeVisible()
     await expect(page.locator('.moments-social-feed.moments-alice-feed')).toBeVisible()
-    await expect(page.getByTestId('moment-post')).toHaveCount(3)
+    await expect(page.getByTestId('moment-post')).toHaveCount(6)
     await expect(page.getByTestId('moment-post').first()).not.toContainText('生活动态')
     const firstMomentImage = page.getByTestId('moment-post').first().getByTestId('moment-media-image')
     await expect(firstMomentImage).toBeVisible()
@@ -4599,7 +4638,7 @@ test.describe('My Agent UI', () => {
         await plan.selectOption('aliyun_coding')
         await expect(key).toHaveValue('')
         await form.getByRole('button', { name: '取消', exact: true }).click()
-        await expect(candidate.getByTestId('settings-candidate-model-connections')).toContainText('2 个连接入口')
+        await expect(candidate.getByTestId('settings-candidate-model-connections')).toContainText('4 个连接入口')
       })
     }
   }
@@ -4783,6 +4822,7 @@ test.describe('My Agent UI', () => {
     await expect(page.getByTestId('world-wardrobe-fixture')).toContainText('灰绿帆布包')
     await expect(page.getByTestId('world-wardrobe-wearing')).toContainText('米白针织衫')
     await expect(page.getByTestId('world-wardrobe-wearing')).not.toContainText('灰绿帆布包')
+    await expect(page.getByTestId('world-wardrobe-wearing').getByRole('img', { name: '米白针织衫的穿着参考图' })).toBeVisible()
     await page.getByTestId('world-tab-culture').click()
     await expect(page.getByTestId('world-culture-fixture')).toHaveAttribute('data-persona-id', 'yao')
     await expect(page.getByTestId('world-culture-fixture')).toContainText('《瓦尔登湖》')
@@ -4792,14 +4832,52 @@ test.describe('My Agent UI', () => {
     await page.getByTestId('world-tab-home').click()
     await expect(page.getByTestId('world-home-fixture')).toHaveAttribute('data-persona-id', 'yao')
     await expect(page.getByTestId('world-home-fixture')).toContainText('当前空间')
+    await expect(page.getByTestId('world-home-fixture').getByRole('img', { name: '书桌的生活场景' })).toBeVisible()
     await page.getByTestId('world-tab-cast').click()
     await expect(page.getByTestId('world-cast-fixture')).toHaveAttribute('data-persona-id', 'yao')
-    await expect(page.getByTestId('world-cast-fixture')).toContainText('阿遥')
+    await expect(page.getByTestId('world-cast-fixture')).toContainText('小林')
+    await expect(page.getByTestId('world-cast-fixture')).toContainText('阿禾')
     await page.getByTestId('world-tab-footprints').click()
     await expect(page.getByTestId('world-footprints-fixture')).toHaveAttribute('data-persona-id', 'yao')
     await expect(page.getByTestId('world-footprints-fixture')).toContainText('杭州 · 西湖边')
     await expect(page.getByTestId('world-footprints-fixture').getByRole('region', { name: '想去的地方' })).toContainText('北海')
     await expect(page.getByTestId('world-footprints-fixture').getByRole('region', { name: '常去地点' })).not.toContainText('北海')
+    await expect(page.getByTestId('world-footprints-fixture').getByRole('img', { name: '楼下咖啡店的生活场景' })).toBeVisible()
+  })
+
+  test('Playground 朋友圈两图三图九宫格占位稳定', async ({ page }) => {
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+    await page.getByTestId('playground-nav').getByRole('button', { name: '人物世界', exact: true }).click()
+
+    const fixture = page.getByTestId('world-moments-fixture')
+    const findPost = (text: string) => fixture.locator('li').filter({ hasText: text }).first()
+    const twoPost = findPost('今天只选了两张照片')
+    const threePost = findPost('三张照片记录下午')
+    const ninePost = findPost('九宫格适合一段完整')
+    const gallery = twoPost.getByTestId('moment-media')
+    const before = await gallery.boundingBox()
+    await expect(twoPost.getByTestId('moment-media-image')).toHaveCount(2)
+    await expect(threePost.getByTestId('moment-media-image')).toHaveCount(3)
+    await expect(ninePost.getByTestId('moment-media-image')).toHaveCount(9)
+
+    await twoPost.getByTestId('moment-media-trigger').first().click()
+    const preview = page.getByTestId('image-viewer')
+    await expect(preview).toBeVisible()
+    await expect(preview.getByTestId('image-viewer-image')).toHaveAttribute('alt', '两图样张第1张')
+    await preview.getByRole('button', { name: '下一张图片' }).click()
+    await expect(preview.getByTestId('image-viewer-image')).toHaveAttribute('alt', '两图样张第2张')
+    await page.keyboard.press('Escape')
+    await expect(preview).toHaveCount(0)
+
+    await twoPost.getByRole('button', { name: '评论', exact: true }).click()
+    await expect(twoPost.getByTestId('moment-comment-input')).toBeVisible()
+    const after = await findPost('今天只选了两张照片').getByTestId('moment-media').boundingBox()
+    expect(after).not.toBeNull()
+    expect(before).not.toBeNull()
+    expect(after?.x).toBe(before?.x)
+    expect(after?.width).toBe(before?.width)
+    expect(after?.height).toBe(before?.height)
   })
 
   test('Playground Toast 四态关闭按钮沿统一右边界对齐', async ({ page }) => {
@@ -4895,6 +4973,7 @@ test.describe('My Agent UI', () => {
     await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
     const post = page.getByTestId('moment-post').first()
     await expect(post).toContainText('今天把书桌收拾出来了。')
+    await expect(post).not.toContainText('同框')
     await expect(post.getByTestId('moment-comment')).toHaveText(['陈晨：这桌面终于能看见了'])
     const composer = post.getByTestId('moment-comment-composer')
     const closedBox = await composer.boundingBox()
@@ -4923,6 +5002,29 @@ test.describe('My Agent UI', () => {
     await expect(post.getByTestId('moment-like-button')).toHaveAttribute('aria-label', '取消赞')
     await post.getByTestId('moment-like-button').click()
     await expect(post.getByTestId('moment-like-button')).toHaveAttribute('aria-label', '赞')
+  })
+
+  test('正式朋友圈不暴露生活切片入口', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const moment = {
+        id: 'moment-slice',
+        roleId: 'lin',
+        eventId: 'event-slice',
+        publishedAt: Date.UTC(2026, 8, 30, 15),
+        text: '把窗边的桌面收拾出来，泡了一杯茶。',
+        meta: { location: '家中', interactions: [] },
+      }
+      const api = (window as any).electronAPI.companion
+      api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
+      api.catchupStatus = async () => ({ roleId: 'lin', presence: '下午 · 家中', catchupSummary: '' })
+      api.getMoments = async () => ({ roleId: 'lin', items: [moment], socialByMomentId: {} })
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    const post = page.getByTestId('moment-post').first()
+    await expect(post).toContainText('把窗边的桌面收拾出来')
+    await expect(post.getByRole('button', { name: '查看生活切片', exact: true })).toHaveCount(0)
   })
 
   test('正式关于页开发者模式开关控制侧栏入口，候选不写生产设置', async ({ page }) => {
@@ -5127,7 +5229,7 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('CATCH-UP', { exact: true })).toHaveCount(0)
     await expect(page.getByText('把窗帘拉开了一点，泡了杯乌龙茶，准备先把桌面清出一块。', { exact: true })).toBeVisible()
     await expect(page.getByText('最近的生活动态', { exact: true })).toBeVisible()
-    await expect(page.getByTestId('moment-social-actions')).toHaveCount(3)
+    await expect(page.getByTestId('moment-social-actions')).toHaveCount(6)
     const firstMoment = page.getByTestId('moment-post').first()
     const firstLike = firstMoment.getByTestId('moment-like-button')
     const firstComment = firstMoment.getByTestId('moment-comment-button')
@@ -5135,7 +5237,8 @@ test.describe('My Agent UI', () => {
     const likeBox = await firstLike.boundingBox()
     expect(momentBox).not.toBeNull()
     expect(likeBox).not.toBeNull()
-    expect(momentBox?.height ?? Number.POSITIVE_INFINITY).toBeLessThan(260)
+    expect(momentBox?.height ?? Number.POSITIVE_INFINITY).toBeLessThan(620)
+    await expect(firstMoment.locator('.moments-alice-media-image')).toBeVisible()
     expect(likeBox?.x ?? Number.POSITIVE_INFINITY).toBeLessThan((momentBox?.x ?? 0) + (momentBox?.width ?? 0) / 2)
     await expect(firstComment).toHaveAttribute('aria-pressed', 'false')
     await firstComment.click()
