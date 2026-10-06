@@ -32,6 +32,16 @@ import { PLAYGROUND_PERSONAS, type PlaygroundPersona } from '../../shared/playgr
 import momentTeaByWindow from '../../assets/playground/moment-tea-by-window.jpg'
 import wardrobeJacket from '../../assets/playground/wardrobe-gray-blue-jacket.png'
 import wardrobeCasualOutfit from '../../assets/playground/wardrobe-lin-casual-outfit.png'
+import wardrobeCommuteOutfit from '../../assets/playground/wardrobe-lin-commute-outfit.png'
+import wardrobeSportOutfit from '../../assets/playground/wardrobe-lin-sport-outfit.png'
+import wardrobeTop from '../../assets/playground/wardrobe-top.png'
+import wardrobeBottom from '../../assets/playground/wardrobe-bottom.png'
+import wardrobeShoes from '../../assets/playground/wardrobe-shoes.png'
+import wardrobeShirt from '../../assets/playground/wardrobe-shirt.png'
+import wardrobeTrousers from '../../assets/playground/wardrobe-trousers.png'
+import wardrobeCommuteShoes from '../../assets/playground/wardrobe-commute-shoes.png'
+import wardrobeSportTop from '../../assets/playground/wardrobe-sport-top.png'
+import wardrobeSportBottom from '../../assets/playground/wardrobe-sport-bottom.png'
 
 type SurfaceId = 'chat' | 'sidebar' | 'dock' | 'world' | 'memory' | 'settings'
 
@@ -504,14 +514,14 @@ function worldPreviewAsset(personaId: string, id: string, kind: string, name: st
 function worldPreviewFixtures(persona: PlaygroundPersona) {
   const wardrobe = [
     worldPreviewAsset(persona.id, 'coat', 'wardrobe', '灰蓝薄外套', { category: 'outerwear', previewWearing: true, playgroundImageSrc: wardrobeJacket }),
-    worldPreviewAsset(persona.id, 'top', 'wardrobe', '米白针织衫', { category: 'top', previewWearing: true }, 2),
-    worldPreviewAsset(persona.id, 'bottom', 'wardrobe', '深色直筒裤', { category: 'bottom', previewWearing: true }, 3),
-    worldPreviewAsset(persona.id, 'shoes', 'wardrobe', '白色运动鞋', { category: 'shoes', previewWearing: true }, 4),
-    worldPreviewAsset(persona.id, 'shirt', 'wardrobe', '浅灰棉质宽松长袖衬衫', { category: 'top', previewImageState: 'pending' }, 5),
-    worldPreviewAsset(persona.id, 'trousers', 'wardrobe', '深蓝细纹舒适垂坠宽腿长裤', { category: 'bottom', previewImageState: 'failed' }, 6),
-    worldPreviewAsset(persona.id, 'commute-shoes', 'wardrobe', '黑色低帮皮鞋', { category: 'shoes' }, 7),
-    worldPreviewAsset(persona.id, 'sport-top', 'wardrobe', '白色运动短袖', { category: 'top' }, 8),
-    worldPreviewAsset(persona.id, 'sport-bottom', 'wardrobe', '深灰运动长裤', { category: 'bottom' }, 9),
+    worldPreviewAsset(persona.id, 'top', 'wardrobe', '米白针织衫', { category: 'top', previewWearing: true, playgroundImageSrc: wardrobeTop }, 2),
+    worldPreviewAsset(persona.id, 'bottom', 'wardrobe', '深色直筒裤', { category: 'bottom', previewWearing: true, playgroundImageSrc: wardrobeBottom }, 3),
+    worldPreviewAsset(persona.id, 'shoes', 'wardrobe', '白色运动鞋', { category: 'shoes', previewWearing: true, playgroundImageSrc: wardrobeShoes }, 4),
+    worldPreviewAsset(persona.id, 'shirt', 'wardrobe', '浅灰棉质宽松长袖衬衫', { category: 'top', previewImageState: 'pending', playgroundImageSrc: wardrobeShirt }, 5),
+    worldPreviewAsset(persona.id, 'trousers', 'wardrobe', '深蓝细纹舒适垂坠宽腿长裤', { category: 'bottom', previewImageState: 'failed', playgroundImageSrc: wardrobeTrousers }, 6),
+    worldPreviewAsset(persona.id, 'commute-shoes', 'wardrobe', '黑色低帮皮鞋', { category: 'shoes', playgroundImageSrc: wardrobeCommuteShoes }, 7),
+    worldPreviewAsset(persona.id, 'sport-top', 'wardrobe', '白色运动短袖', { category: 'top', playgroundImageSrc: wardrobeSportTop }, 8),
+    worldPreviewAsset(persona.id, 'sport-bottom', 'wardrobe', '深灰运动长裤', { category: 'bottom', playgroundImageSrc: wardrobeSportBottom }, 9),
   ]
   const living: WorldAssetRecord[] = [
     worldPreviewAsset(persona.id, 'reading', 'culture', '《瓦尔登湖》', { type: 'reading', detail: '正在读', note: '有时候不是事情太多，而是没有给自己留下足够的空白。' }),
@@ -548,15 +558,16 @@ function WardrobeCandidate({ assets, personaId }: { assets: WorldAssetRecord[]; 
       ...(scenario === 'partial' ? { previewWearing: asset.payload.category === 'outerwear' } : {}),
       ...(scenario === 'commute' || scenario === 'sport' ? { previewWearing: outfitIds[scenario].some((id) => asset.id === `${personaId}-${id}`) } : {}),
       ...(scenario === 'failure' ? { previewChangeFailure: true } : {}),
+      ...(scenario === 'no-images' ? { playgroundImageSrc: undefined } : {}),
     },
   })), [assets, scenario])
   return <div data-testid="world-wardrobe-fixture" data-persona-id={personaId}>
     <div className="px-4 pt-3">
       <PlaygroundStateSwitcher ariaLabel="衣柜状态样张" value={scenario} onChange={setScenario}
-        items={[{ id: 'default', label: '完整穿搭' }, { id: 'commute', label: '外出通勤' }, { id: 'sport', label: '轻松运动' }, { id: 'partial', label: '部分穿搭' }, { id: 'pending', label: '穿搭图生成中' }, { id: 'image-failed', label: '穿搭图失败' }, { id: 'empty', label: '空衣柜' }, { id: 'failure', label: '换上失败' }]} />
+        items={[{ id: 'default', label: '完整穿搭' }, { id: 'commute', label: '外出通勤' }, { id: 'sport', label: '轻松运动' }, { id: 'partial', label: '部分穿搭' }, { id: 'pending', label: '穿搭图生成中' }, { id: 'image-failed', label: '穿搭图失败' }, { id: 'no-images', label: '无图衣柜' }, { id: 'empty', label: '空衣柜' }, { id: 'failure', label: '换上失败' }]} />
     </div>
     <AssetsPanel key={`${personaId}-${scenario}`} previewAssets={samples} previewWearingId={samples.find((asset) => asset.payload.previewWearing === true)?.id} showAssetTabs={false} presentation="wardrobe-gallery"
-      previewOutfitImage={{ src: personaId === 'lin' ? wardrobeCasualOutfit : undefined, status: scenario === 'pending' ? 'pending' : scenario === 'image-failed' ? 'failed' : personaId === 'lin' && ['default', 'failure'].includes(scenario) ? 'ready' : 'none' }} />
+      previewOutfitImage={{ src: personaId === 'lin' ? scenario === 'commute' ? wardrobeCommuteOutfit : scenario === 'sport' ? wardrobeSportOutfit : wardrobeCasualOutfit : undefined, status: scenario === 'pending' ? 'pending' : scenario === 'image-failed' ? 'failed' : personaId === 'lin' && ['default', 'failure', 'commute', 'sport'].includes(scenario) ? 'ready' : 'none' }} />
   </div>
 }
 

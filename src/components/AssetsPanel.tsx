@@ -362,13 +362,12 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
           <section className="mb-5">
             <div className="mb-2 flex items-baseline justify-between gap-3">
               <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--companion-accent-warm)' }}>{wardrobeGallery ? '正在穿着' : '穿着中'}</div>
-              {wardrobeGallery && <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>当前这一套</span>}
             </div>
             {wearing ? (
-              <div className={`companion-life-card rounded-xl border p-4 ${wardrobeGallery ? 'sm:p-5' : ''}`} data-testid="world-wardrobe-wearing" style={{ borderColor: 'var(--companion-accent-warm)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
-                <div className={wardrobeGallery ? 'grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] sm:items-center' : 'flex items-start gap-3'}>
+              <div className={wardrobeGallery ? 'border-b pb-4' : 'companion-life-card rounded-xl border p-4'} data-testid="world-wardrobe-wearing" style={wardrobeGallery ? { borderColor: 'var(--border-subtle)' } : { borderColor: 'var(--companion-accent-warm)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
+                <div className={wardrobeGallery ? 'flex min-w-0 flex-col items-center gap-4' : 'flex items-start gap-3'}>
                   {wardrobeGallery
-                    ? <div className="aspect-[3/4] w-full overflow-hidden rounded-[var(--radius-md)]" data-testid="wardrobe-outfit-image" style={{ background: 'var(--bg-secondary)' }}>
+                    ? <div className="aspect-[3/4] w-full max-w-60 overflow-hidden rounded-[var(--radius-md)]" data-testid="wardrobe-outfit-image" style={{ background: 'var(--bg-secondary)' }}>
                       {outfitImageSrc
                         ? <ImagePreviewImage src={outfitImageSrc} alt="当前穿搭全身图" className="block aspect-[3/4] w-full object-contain" buttonClassName="h-full w-full" />
                         : <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center text-[12px]" role="status" style={{ color: 'var(--text-muted)' }}>
@@ -379,15 +378,15 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
                     : isPreview && wearing.payload.playgroundImageSrc
                     ? <ImagePreviewImage src={String(wearing.payload.playgroundImageSrc)} alt={`${wearing.name}的穿着参考图`} className={wardrobeGallery ? 'block aspect-[3/4] max-h-80 w-full rounded-[var(--radius-md)] object-contain' : 'h-24 w-24 shrink-0 rounded-[var(--radius-md)] object-cover'} buttonClassName={wardrobeGallery ? 'w-full' : ''} />
                     : <div className={`flex shrink-0 items-center justify-center rounded-xl ${wardrobeGallery ? 'aspect-[3/4] max-h-80 w-full' : 'h-14 w-14'}`} style={{ background: 'var(--companion-catchup-bg)', color: 'var(--companion-accent-warm)' }}><Sparkles size={22} /></div>}
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{wardrobeGallery ? '当前穿搭' : wearing.name}</div>
+                  <div className={wardrobeGallery ? 'w-full min-w-0 max-w-2xl' : 'min-w-0 flex-1'}>
+                    {!wardrobeGallery && <div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{wearing.name}</div>}
                     {wearingHint ? <div className="mt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>{wearingHint}</div> : null}
-                    {wardrobeGallery && <div className="mt-4 space-y-2" data-testid="wardrobe-current-slots">
+                    {wardrobeGallery && <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="wardrobe-current-slots">
                       {Object.entries(slotLabels).map(([slot, label]) => {
                         const current = items.find((asset) => asset.id === previewSlots[slot])
-                        return <div key={slot} className="flex min-h-8 min-w-0 items-center gap-3 text-[12px]">
-                          <span className="w-8 shrink-0" style={{ color: 'var(--text-muted)' }}>{label}</span>
-                          <span className="min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>{current?.name ?? '未选择'}</span>
+                        return <div key={slot} className="flex min-h-12 min-w-0 flex-col gap-1 text-[12px]">
+                          <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+                          <span className="min-w-0 truncate" title={current?.name} style={{ color: 'var(--text-primary)' }}>{current?.name ?? '未选择'}</span>
                         </div>
                       })}
                     </div>}
