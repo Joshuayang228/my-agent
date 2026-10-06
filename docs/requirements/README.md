@@ -40,6 +40,7 @@
 | [playground-model-and-workspace-v2.md](./playground-model-and-workspace-v2.md) | P0 施工：从用户故事重构模型设置与任务工作区候选 |
 | [debug-ui-information-architecture-v1.md](./debug-ui-information-architecture-v1.md) | 正式 Debug UI：运行概览、真实证据与受控诊断入口 |
 | [wardrobe-clothing-system-v1.md](./wardrobe-clothing-system-v1.md) | P0 / P1：衣物资产、当前穿着、穿搭槽位、换上链路与真实生图衣柜 |
+| [culture-corner-v1.md](./culture-corner-v1.md) | 四类文化生活：产品方向已确认，字段 / 实施方案待确认，先 Playground 后真实链路与正式回流 |
 
 
 

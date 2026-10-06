@@ -191,6 +191,8 @@
 
 ### 产品体验
 
+- [ ] **WISH-046 · 文化角扩展能力** — 官方封面 / 海报授权获取、联网书目检索、音乐播放、真实摄影导入、摄影系列浏览不在文化角 v1 范围；须分别明确外部来源、授权与数据 / 播放 / 导入契约后再开工，不增加假按钮。来源：[文化角施工合同](./requirements/culture-corner-v1.md)。
+
 - [ ] **WISH-016 · 人格化错误承接** — 评估错误码到伙伴语气模板的映射，避免技术错误提示破坏关系体验；来源：2026-07 Gap Audit。
 - [ ] **WISH-017 · M24-G3 生图朋友圈** — 非本阶段。；来源：M24 方法论
 - [ ] **WISH-018 · 原生语音输入** — 暂缓；待选择系统 STT 或云端 Whisper，见 [`deferred/native-voice-input.md`](./deferred/native-voice-input.md)。；来源：docs/deferred/native-voice-input.md
