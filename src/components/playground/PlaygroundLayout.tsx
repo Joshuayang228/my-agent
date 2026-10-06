@@ -32,6 +32,19 @@ export interface PlaygroundStoryGroup {
   items: readonly { id: string; label: string }[]
 }
 
+/** 状态样张共用样式入口，不接收业务按钮的内联颜色，避免选中态被覆盖。 */
+export function PlaygroundStateSwitcher<T extends string>({ items, value, onChange, ariaLabel }: {
+  items: readonly { id: T; label: string }[]
+  value: T
+  onChange: (value: T) => void
+  ariaLabel: string
+}) {
+  return <div data-playground-switcher role="tablist" aria-label={ariaLabel}>
+    {items.map((item) => <button key={item.id} type="button" role="tab"
+      aria-selected={item.id === value} onClick={() => onChange(item.id)}>{item.label}</button>)}
+  </div>
+}
+
 export function PlaygroundPageHeader({
   title,
   description,
@@ -81,22 +94,7 @@ export function PlaygroundStoryTabs({
     <div className="mb-4 min-w-0" data-testid="playground-story-nav">
       <div className="sr-only" aria-live="polite">当前故事：{value}</div>
       <div className="min-w-0">
-        <div data-playground-switcher role="tablist" aria-label={ariaLabel}>
-          {groups.flatMap((group) => group.items).map((item) => {
-            const selected = item.id === value
-            return (
-              <button
-                key={item.id}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                onClick={() => onChange(item.id)}
-              >
-                {item.label}
-              </button>
-            )
-          })}
-        </div>
+        <PlaygroundStateSwitcher items={groups.flatMap((group) => group.items)} value={value} onChange={onChange} ariaLabel={ariaLabel} />
       </div>
     </div>
   )

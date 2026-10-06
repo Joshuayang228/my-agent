@@ -6,6 +6,7 @@
 import { useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { ArrowRight, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, X, Check } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
+import { PlaygroundStateSwitcher } from './PlaygroundLayout'
 import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
@@ -541,9 +542,9 @@ function WardrobeCandidate({ assets, personaId }: { assets: WorldAssetRecord[]; 
     },
   })), [assets, scenario])
   return <div data-testid="world-wardrobe-fixture" data-persona-id={personaId}>
-    <div className="flex flex-wrap gap-2 px-4 pt-3" data-playground-switcher>
-      {[['default', '完整穿搭'], ['partial', '部分穿搭'], ['empty', '空衣柜'], ['failure', '换上失败']].map(([id, label]) =>
-        <ActionButton key={id} aria-pressed={scenario === id} onClick={() => setScenario(id)}>{label}</ActionButton>)}
+    <div className="px-4 pt-3">
+      <PlaygroundStateSwitcher ariaLabel="衣柜状态样张" value={scenario} onChange={setScenario}
+        items={[{ id: 'default', label: '完整穿搭' }, { id: 'partial', label: '部分穿搭' }, { id: 'empty', label: '空衣柜' }, { id: 'failure', label: '换上失败' }]} />
     </div>
     <AssetsPanel key={`${personaId}-${scenario}`} previewAssets={samples} previewEditable previewWearingId={samples[0]?.id} showAssetTabs={false} presentation="wardrobe-gallery" />
   </div>
@@ -678,11 +679,8 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
   return <div className="space-y-2">
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>状态样张</span>
-      <div className="flex flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="记忆页面场景">
-        {scenarios.map((item) => <button key={item.id} type="button" role="tab" aria-selected={scenario === item.id}
-          onClick={() => { setScenario(item.id); setScenarioGroup(group) }} className="settings-option px-2.5 py-1 text-[10px]"
-          data-selected={scenario === item.id ? 'true' : undefined}>{item.label}</button>)}
-      </div>
+      <PlaygroundStateSwitcher ariaLabel="记忆页面场景" items={scenarios} value={scenario}
+        onChange={(id) => { setScenario(id); setScenarioGroup(group) }} />
       <button type="button" role="switch" aria-checked={debugEnabled} aria-label="Debug 模式" data-testid="memory-debug-mode"
         onClick={() => { setDebugEnabled(!debugEnabled); setShowSource(false) }}
         className="ml-auto rounded-md px-2 py-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>Debug {debugEnabled ? '开' : '关'}</button>

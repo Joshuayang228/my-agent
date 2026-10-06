@@ -5636,6 +5636,54 @@ test.describe('My Agent UI', () => {
     expect(await page.evaluate(() => (window as any).__playgroundMemoryWrites)).toEqual([])
   })
 
+  for (const theme of ['porcelain-blue', 'yao-stone']) {
+    for (const width of [1096, 640]) {
+      test(`Playground 状态样张衣柜与记忆样式一致 ${theme} ${width}`, async ({ page }) => {
+        await installProductionElectronStub(page)
+        await page.addInitScript(value => localStorage.setItem('theme', value), theme)
+        await page.setViewportSize({ width, height: 704 })
+        await page.goto('/')
+        await page.addStyleTag({ content: '* { transition: none !important; animation: none !important; }' })
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+        await page.getByTestId('playground-nav').getByRole('button', { name: '人物世界', exact: true }).click()
+        await page.getByTestId('world-tab-wardrobe').click()
+        await page.mouse.move(0, 0)
+        const wardrobe = page.getByRole('tablist', { name: '衣柜状态样张' })
+        const selected = wardrobe.getByRole('tab', { name: '完整穿搭', exact: true })
+        const readStyle = (element: HTMLElement | SVGElement) => {
+          const css = getComputedStyle(element)
+          const canvas = document.createElement('canvas')
+          canvas.width = canvas.height = 1
+          const context = canvas.getContext('2d')!
+          context.fillStyle = css.backgroundColor
+          context.fillRect(0, 0, 1, 1)
+          return { height: css.height, padding: css.padding, radius: css.borderRadius,
+            color: css.color, background: Array.from(context.getImageData(0, 0, 1, 1).data), border: css.borderColor,
+            shadow: css.boxShadow === 'none' ? 'none' : css.boxShadow.match(/0px 0px 0px 2px$/)?.[0], font: css.fontSize }
+        }
+        const selectedStyle = await selected.evaluate(readStyle)
+        const idleStyle = await wardrobe.getByRole('tab', { name: '部分穿搭', exact: true }).evaluate(readStyle)
+        expect(selectedStyle.background).not.toBe(idleStyle.background)
+        await selected.scrollIntoViewIfNeeded()
+        const before = await selected.boundingBox()
+        await selected.hover()
+        expect(await selected.boundingBox()).toEqual(before)
+        await wardrobe.getByRole('tab', { name: '部分穿搭', exact: true }).click()
+        await expect(selected).toHaveAttribute('aria-selected', 'false')
+        await selected.click()
+        expect(await selected.boundingBox()).toEqual(before)
+        await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
+        await (width < 768 ? page.getByRole('tab', { name: '外观与界面', exact: true }) : page.getByTestId('settings-candidate-nav-appearance')).click()
+        await page.getByTestId(`settings-candidate-theme-${theme}`).click()
+        await (width < 768 ? page.getByRole('tab', { name: '记忆', exact: true }) : page.getByTestId('settings-candidate-nav-memory')).click()
+        await page.mouse.move(0, 0)
+        const memory = page.getByRole('tablist', { name: '记忆页面场景' })
+        expect(await memory.getByRole('tab', { name: '清单', exact: true }).evaluate(readStyle)).toEqual(selectedStyle)
+        expect(await memory.getByRole('tab', { name: '长记忆', exact: true }).evaluate(readStyle)).toEqual(idleStyle)
+      })
+    }
+  }
+
   test('Playground 衣柜换上保留其他槽位且失败不改变穿搭', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.goto('/')
@@ -5664,13 +5712,13 @@ test.describe('My Agent UI', () => {
     await wardrobe.getByRole('tab', { name: '鞋履', exact: true }).click()
     await expect(wardrobe.getByRole('button', { name: '换上 白色运动鞋', exact: true })).toBeVisible()
     await expect(change).toHaveCount(0)
-    await wardrobe.getByRole('button', { name: '换上失败', exact: true }).click()
+    await wardrobe.getByRole('tab', { name: '换上失败', exact: true }).click()
     await wardrobe.getByRole('button', { name: '换上 浅灰棉质宽松长袖衬衫', exact: true }).click()
     await expect(wardrobe.getByRole('alert')).toContainText('当前穿着仍保留')
     await expect(slots).toContainText('米白针织衫')
-    await wardrobe.getByRole('button', { name: '部分穿搭', exact: true }).click()
+    await wardrobe.getByRole('tab', { name: '部分穿搭', exact: true }).click()
     await expect(slots).toContainText('未选择')
-    await wardrobe.getByRole('button', { name: '空衣柜', exact: true }).click()
+    await wardrobe.getByRole('tab', { name: '空衣柜', exact: true }).click()
     await expect(wardrobe).toContainText('衣柜还是空的')
   })
 
