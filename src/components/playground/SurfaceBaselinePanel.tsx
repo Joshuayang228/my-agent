@@ -29,6 +29,7 @@ import { MEMORY_GROUPS } from '../../shared/memory-groups'
 import type { PlaygroundTabId } from './catalog'
 import { PLAYGROUND_PERSONAS, type PlaygroundPersona } from '../../shared/playground-journey-fixtures'
 import momentTeaByWindow from '../../assets/playground/moment-tea-by-window.jpg'
+import wardrobeJacket from '../../assets/playground/wardrobe-gray-blue-jacket.png'
 
 type SurfaceId = 'chat' | 'sidebar' | 'dock' | 'world' | 'memory' | 'settings'
 
@@ -499,17 +500,14 @@ function worldPreviewAsset(personaId: string, id: string, kind: string, name: st
 }
 
 function worldPreviewFixtures(persona: PlaygroundPersona) {
-  const wardrobe = persona.id === 'lin'
-    ? [
-        worldPreviewAsset(persona.id, 'coat', 'wardrobe', '灰蓝薄外套', { color: '灰蓝', style: '薄外套', occasion: '傍晚散步' }),
-        worldPreviewAsset(persona.id, 'bag', 'wardrobe', '深蓝帆布包', { color: '深蓝', style: '帆布包', occasion: '常带着电脑' }, 2),
-        worldPreviewAsset(persona.id, 'camera', 'wardrobe', '旧相机', { color: '旧', style: '相机', occasion: '散步偶尔带上' }, 3),
-      ]
-    : [
-        worldPreviewAsset(persona.id, 'coat', 'wardrobe', '米白针织衫', { color: '米白', style: '针织衫', occasion: '安静的下午' }),
-        worldPreviewAsset(persona.id, 'bag', 'wardrobe', '灰绿帆布包', { color: '灰绿', style: '帆布包', occasion: '耳机和随手记' }, 2),
-        worldPreviewAsset(persona.id, 'umbrella', 'wardrobe', '折叠伞', { color: '折叠', style: '雨具', occasion: '天气不确定' }, 3),
-      ]
+  const wardrobe = [
+    worldPreviewAsset(persona.id, 'coat', 'wardrobe', '灰蓝薄外套', { category: 'outerwear', previewWearing: true, playgroundImageSrc: wardrobeJacket }),
+    worldPreviewAsset(persona.id, 'top', 'wardrobe', '米白针织衫', { category: 'top', previewWearing: true }, 2),
+    worldPreviewAsset(persona.id, 'bottom', 'wardrobe', '深色直筒裤', { category: 'bottom', previewWearing: true }, 3),
+    worldPreviewAsset(persona.id, 'shoes', 'wardrobe', '白色运动鞋', { category: 'shoes', previewWearing: true }, 4),
+    worldPreviewAsset(persona.id, 'shirt', 'wardrobe', '浅灰棉质宽松长袖衬衫', { category: 'top', previewImageState: 'pending' }, 5),
+    worldPreviewAsset(persona.id, 'trousers', 'wardrobe', '深蓝细纹舒适垂坠宽腿长裤', { category: 'bottom', previewImageState: 'failed' }, 6),
+  ]
   const living: WorldAssetRecord[] = [
     worldPreviewAsset(persona.id, 'reading', 'culture', '《瓦尔登湖》', { type: 'reading', detail: '正在读', note: '有时候不是事情太多，而是没有给自己留下足够的空白。' }),
     worldPreviewAsset(persona.id, 'music', 'culture', '旅行的意义', { type: 'music', detail: '最近常听 · 傍晚散步' }, 2),
@@ -519,6 +517,8 @@ function worldPreviewFixtures(persona: PlaygroundPersona) {
     worldPreviewAsset(persona.id, 'lamp', 'furniture', '台灯', { description: '暖光 · 已打开' }, 6),
     worldPreviewAsset(persona.id, 'tea', 'object', '乌龙茶', { description: '刚泡好 · 还温着' }, 7),
     worldPreviewAsset(persona.id, 'home-camera', 'object', '旧相机', { description: '放在桌角' }, 8),
+    worldPreviewAsset(persona.id, 'home-bag', 'object', '灰绿帆布包', { description: '挂在门边' }, 8),
+    worldPreviewAsset(persona.id, 'home-umbrella', 'object', '折叠伞', { description: '放在玄关' }, 8),
     worldPreviewAsset(persona.id, 'cafe', 'footprint', '楼下咖啡店', { visitStatus: 'favorite' }, 9),
     worldPreviewAsset(persona.id, 'riverside', 'footprint', '河边步道', { visitStatus: 'favorite' }, 10),
     worldPreviewAsset(persona.id, 'beihai', 'footprint', '北海', { visitStatus: 'wanted' }, 11),
@@ -529,6 +529,24 @@ function worldPreviewFixtures(persona: PlaygroundPersona) {
     moments: [{ publishedAt: Date.UTC(2026, 8, 1), meta: { location: '杭州 · 西湖边' }, text: '和阿遥一起散步，记下了一段慢下来的下午。' }],
     presence: '下午 · 家中',
   }
+}
+
+function WardrobeCandidate({ assets, personaId }: { assets: WorldAssetRecord[]; personaId: string }) {
+  const [scenario, setScenario] = useState('default')
+  const samples = useMemo(() => scenario === 'empty' ? [] : assets.map((asset) => ({
+    ...asset,
+    payload: { ...asset.payload,
+      ...(scenario === 'partial' ? { previewWearing: asset.payload.category === 'outerwear' } : {}),
+      ...(scenario === 'failure' ? { previewChangeFailure: true } : {}),
+    },
+  })), [assets, scenario])
+  return <div data-testid="world-wardrobe-fixture" data-persona-id={personaId}>
+    <div className="flex flex-wrap gap-2 px-4 pt-3" data-playground-switcher>
+      {[['default', '完整穿搭'], ['partial', '部分穿搭'], ['empty', '空衣柜'], ['failure', '换上失败']].map(([id, label]) =>
+        <ActionButton key={id} aria-pressed={scenario === id} onClick={() => setScenario(id)}>{label}</ActionButton>)}
+    </div>
+    <AssetsPanel key={`${personaId}-${scenario}`} previewAssets={samples} previewEditable previewWearingId={samples[0]?.id} showAssetTabs={false} presentation="wardrobe-gallery" />
+  </div>
 }
 
 function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onNavigate?: (tab: PlaygroundTabId) => void }) {
@@ -548,9 +566,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
   }, [persona])
   const previewPanels: Partial<Record<WorldTab, ReactNode>> = {
     wardrobe: (
-      <div data-testid="world-wardrobe-fixture" data-persona-id={persona.id}>
-        <AssetsPanel key={persona.id} previewAssets={fixtures.wardrobe} previewEditable previewWearingId={fixtures.wardrobe[0]?.id} />
-      </div>
+      <WardrobeCandidate assets={fixtures.wardrobe} personaId={persona.id} />
     ),
     culture: (
       <div data-testid="world-culture-fixture" data-persona-id={persona.id}>

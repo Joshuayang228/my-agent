@@ -33,6 +33,8 @@ interface AssetsPanelProps {
   previewWearingId?: string
   /** Playground 可将书架收归文化角；正式页默认保留资产分栏。 */
   showAssetTabs?: boolean
+  /** Playground 的衣柜候选展示；正式页保持默认资产面板布局。 */
+  presentation?: 'default' | 'wardrobe-gallery'
 }
 
 function occasionTags(payload: Record<string, unknown>): string[] {
@@ -44,10 +46,10 @@ function occasionTags(payload: Record<string, unknown>): string[] {
   return tags.slice(0, 4)
 }
 
-function PreviewAssetImage({ asset }: { asset: WorldAssetRecord }) {
+function PreviewAssetImage({ asset, gallery = false }: { asset: WorldAssetRecord; gallery?: boolean }) {
   const src = typeof asset.payload.playgroundImageSrc === 'string' ? asset.payload.playgroundImageSrc : ''
   if (!src) return null
-  return <ImagePreviewImage src={src} alt={`${asset.name}的穿着参考图`} className="mb-3 block aspect-[4/3] w-full rounded-[var(--radius-md)] object-cover" buttonClassName="w-full" />
+  return <ImagePreviewImage src={src} alt={`${asset.name}的穿着参考图`} className={`mb-3 block w-full rounded-[var(--radius-md)] ${gallery ? 'aspect-[3/4] object-contain' : 'aspect-[4/3] object-cover'}`} buttonClassName="w-full" />
 }
 
 function imageFromAsset(asset: WorldAssetRecord): GeneratedImageReference | null {
@@ -66,7 +68,7 @@ function AssetImage({ asset }: { asset: WorldAssetRecord }) {
   return <GeneratedImageResult image={image} readImage={(imageId) => window.electronAPI.companion.readAssetImage(asset.id, imageId)} scope={`asset:${asset.id}`} />
 }
 
-export function AssetsPanel({ previewAssets, previewEditable = false, previewWearingId, showAssetTabs = true, onGenerateAssetImage }: AssetsPanelProps) {
+export function AssetsPanel({ previewAssets, previewEditable = false, previewWearingId, showAssetTabs = true, presentation = 'default', onGenerateAssetImage }: AssetsPanelProps) {
   const isPreview = previewAssets !== undefined
   const canEdit = !isPreview || previewEditable
   const [roleId, setRoleId] = useState('')
@@ -74,6 +76,11 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
   const [tab, setTab] = useState<AssetTab>('wardrobe')
   const [wearingId, setWearingId] = useState<string | null>(null)
   const [wearingHint, setWearingHint] = useState('')
+  const [category, setCategory] = useState('all')
+  const [previewSlots, setPreviewSlots] = useState<Record<string, string>>({})
+  const [changeError, setChangeError] = useState('')
+  const [changingId, setChangingId] = useState<string | null>(null)
+  const changeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [loading, setLoading] = useState(!isPreview)
   const [readError, setReadError] = useState('')
   const requestId = useRef(0)
@@ -89,7 +96,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
 
   useEffect(() => {
     mounted.current = true
-    return () => { mounted.current = false; requestId.current++ }
+    return () => { mounted.current = false; requestId.current++; if (changeTimer.current) clearTimeout(changeTimer.current) }
   }, [])
 
   const adding = addDrafts[tab]?.open ?? false
@@ -103,6 +110,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
       setItems(previewAssets ?? [])
       setWearingId(previewWearingId ?? null)
       setWearingHint('')
+      setPreviewSlots(Object.fromEntries((previewAssets ?? []).filter((asset) => asset.payload.previewWearing === true).map((asset) => [String(asset.payload.category), asset.id])))
       return
     }
     if (!window.electronAPI?.companion) {
@@ -220,7 +228,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
     if (!editingId || !editDraft.name.trim() || writing.current) return
     if (isPreview) {
       setItems((current) => current.map((asset) => (
-        asset.id === editingId ? { ...asset, name: editDraft.name.trim(), payload: payloadFromDraft(editDraft) } : asset
+        asset.id === editingId ? { ...asset, name: editDraft.name.trim(), payload: { ...asset.payload, ...payloadFromDraft(editDraft) } } : asset
       )))
       setEditingId(null)
       return
@@ -245,7 +253,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
         roleId: roleId || 'preview',
         kind: addDraft.kind,
         name: addDraft.name.trim(),
-        payload: payloadFromDraft(addDraft),
+        payload: { ...payloadFromDraft(addDraft), ...(presentation === 'wardrobe-gallery' ? { category: category === 'all' ? 'outerwear' : category } : {}) },
         acquiredAt: now,
         sourceEventId: null,
       }])
@@ -285,10 +293,31 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
   }
 
   const KindIcon = tab === 'bookshelf' ? BookOpen : Shirt
-  const visibleItems = tab === 'wardrobe' && wearing ? inventory : tabItems
+  const wardrobeGallery = isPreview && presentation === 'wardrobe-gallery' && tab === 'wardrobe'
+  const visibleItems = wardrobeGallery
+    ? tabItems.filter((asset) => category === 'all' || asset.payload.category === category)
+    : tab === 'wardrobe' && wearing ? inventory : tabItems
+  const slotLabels: Record<string, string> = { top: '上装', bottom: '下装', outerwear: '外套', shoes: '鞋履' }
+  const changePreview = (asset: WorldAssetRecord) => {
+    // Playground 需展示换装在途和失败态，使用本地延迟而不调用真实穿着服务。
+    // 仅替换目标槽位，失败不发布新穿搭；离页时取消计时器，不能产生生产写入。
+    const slot = String(asset.payload.category)
+    if (changingId || !slotLabels[slot] || previewSlots[slot] === asset.id) return
+    setChangingId(asset.id)
+    setChangeError('')
+    changeTimer.current = setTimeout(() => {
+      if (!mounted.current) return
+      if (asset.payload.previewChangeFailure) setChangeError('未换上，当前穿着仍保留。请重试。')
+      else {
+        setPreviewSlots((slots) => ({ ...slots, [slot]: asset.id }))
+        if (slot === 'outerwear') setWearingId(asset.id)
+      }
+      setChangingId(null)
+    }, 450)
+  }
 
   return (
-    <fieldset disabled={busy} aria-busy={busy || loading} className="m-0 flex h-full min-h-0 flex-col border-0 p-0" data-testid="world-assets-panel">
+    <fieldset disabled={busy || changingId !== null} aria-busy={busy || loading || changingId !== null} className="m-0 flex h-full min-h-0 flex-col border-0 p-0" data-testid="world-assets-panel">
       {showAssetTabs && <div className="border-b px-4 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
         <TabStrip
           label="物什分区"
@@ -323,21 +352,33 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
         </WorldWriteError>
         {tab === 'wardrobe' ? (
           <section className="mb-5">
-            <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--companion-accent-warm)' }}>穿着中</div>
+            <div className="mb-2 flex items-baseline justify-between gap-3">
+              <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--companion-accent-warm)' }}>{wardrobeGallery ? '正在穿着' : '穿着中'}</div>
+              {wardrobeGallery && <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>当前这一套</span>}
+            </div>
             {wearing ? (
-              <div className="companion-life-card rounded-xl border p-4" data-testid="world-wardrobe-wearing" style={{ borderColor: 'var(--companion-accent-warm)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
-                <div className="flex items-start gap-3">
+              <div className={`companion-life-card rounded-xl border p-4 ${wardrobeGallery ? 'sm:p-5' : ''}`} data-testid="world-wardrobe-wearing" style={{ borderColor: 'var(--companion-accent-warm)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
+                <div className={wardrobeGallery ? 'grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] sm:items-center' : 'flex items-start gap-3'}>
                   {isPreview && wearing.payload.playgroundImageSrc
-                    ? <ImagePreviewImage src={String(wearing.payload.playgroundImageSrc)} alt={`${wearing.name}的穿着参考图`} className="h-24 w-24 shrink-0 rounded-[var(--radius-md)] object-cover" />
-                    : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl" style={{ background: 'var(--companion-catchup-bg)', color: 'var(--companion-accent-warm)' }}><Sparkles size={22} /></div>}
+                    ? <ImagePreviewImage src={String(wearing.payload.playgroundImageSrc)} alt={`${wearing.name}的穿着参考图`} className={wardrobeGallery ? 'block aspect-[3/4] max-h-80 w-full rounded-[var(--radius-md)] object-contain' : 'h-24 w-24 shrink-0 rounded-[var(--radius-md)] object-cover'} buttonClassName={wardrobeGallery ? 'w-full' : ''} />
+                    : <div className={`flex shrink-0 items-center justify-center rounded-xl ${wardrobeGallery ? 'aspect-[3/4] max-h-80 w-full' : 'h-14 w-14'}`} style={{ background: 'var(--companion-catchup-bg)', color: 'var(--companion-accent-warm)' }}><Sparkles size={22} /></div>}
                   <div className="min-w-0 flex-1">
                     <div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{wearing.name}</div>
                     {wearingHint ? <div className="mt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>{wearingHint}</div> : null}
-                    <div className="mt-2 flex flex-wrap gap-1.5">
+                    {wardrobeGallery && <div className="mt-4 space-y-2" data-testid="wardrobe-current-slots">
+                      {Object.entries(slotLabels).map(([slot, label]) => {
+                        const current = items.find((asset) => asset.id === previewSlots[slot])
+                        return <div key={slot} className="flex min-h-8 min-w-0 items-center gap-3 text-[12px]">
+                          <span className="w-8 shrink-0" style={{ color: 'var(--text-muted)' }}>{label}</span>
+                          <span className="min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>{current?.name ?? '未选择'}</span>
+                        </div>
+                      })}
+                    </div>}
+                    {!wardrobeGallery && <div className="mt-2 flex flex-wrap gap-1.5">
                       {occasionTags(wearing.payload).map((tag) => (
                         <span key={tag} className="rounded-full px-2 py-0.5 text-[10px]" style={{ background: 'var(--companion-catchup-bg)', color: 'var(--companion-accent-warm)' }}>{tag}</span>
                       ))}
-                    </div>
+                    </div>}
                     {editingId === wearing.id
                       ? <WorldAssetForm draft={editDraft} onChange={setEditDraft} onSave={() => void saveEdit()} onCancel={() => { if (!busy) { setEditingId(null); setWriteError('') } }} busy={busy} saveLabel="保存衣物" />
                       : canEdit ? <WorldAssetActions name={wearing.name} disabled={busy} onGenerate={onGenerateAssetImage ? () => onGenerateAssetImage(wearing) : undefined} onEdit={() => startEdit(wearing)} onDelete={() => setPendingDelete(wearing)} /> : null}
@@ -358,26 +399,34 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
         )}
 
         <section>
+          {wardrobeGallery && <div className="mb-3"><TabStrip label="衣物分类" activeId={category} onSelect={setCategory} items={[
+            { id: 'all', label: '全部' }, ...Object.entries(slotLabels).map(([id, label]) => ({ id, label })),
+          ]} /></div>}
+          {wardrobeGallery && <WorldWriteError message={changeError} />}
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
             {tab === 'bookshelf' ? '藏书' : '库存'}{tabItems.length ? ` · ${tabItems.length}` : ''}
           </div>
           {tabItems.length === 0 && !loading ? (
             <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>{tab === 'bookshelf' ? '书架还是空的。' : '衣柜还是空的。'}</p>
           ) : (
-            <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(9.5rem, 1fr))' }}>
+            <div className={wardrobeGallery ? 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3' : 'grid gap-2.5'} style={wardrobeGallery ? undefined : { gridTemplateColumns: 'repeat(auto-fill, minmax(9.5rem, 1fr))' }}>
               {visibleItems.map((asset) => (
-                <div key={asset.id} className="companion-life-card rounded-xl border px-3 py-3" style={{ borderColor: editingId === asset.id ? 'var(--companion-accent-warm)' : 'var(--card-border)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
-                  {isPreview && <PreviewAssetImage asset={asset} />}
+                <div key={asset.id} className={`companion-life-card rounded-xl border ${wardrobeGallery ? 'p-3.5' : 'px-3 py-3'}`} style={{ borderColor: editingId === asset.id ? 'var(--companion-accent-warm)' : 'var(--card-border)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
+                  {isPreview && <PreviewAssetImage asset={asset} gallery={wardrobeGallery} />}
                   {!isPreview && <AssetImage asset={asset} />}
-                  <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
-                    <KindIcon size={16} style={{ color: 'var(--text-secondary)' }} />
-                  </div>
-                  <div className="truncate text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{asset.name}</div>
-                  <div className="mt-1.5 flex flex-wrap gap-1">
+                  {(!wardrobeGallery || typeof asset.payload.playgroundImageSrc !== 'string' || !asset.payload.playgroundImageSrc) && <div className={`${wardrobeGallery ? 'mb-3 aspect-[3/4] w-full' : 'mb-2 h-9 w-9'} flex items-center justify-center rounded-lg`} style={{ background: 'var(--bg-secondary)' }}>
+                    {wardrobeGallery && <span className="mr-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>{asset.payload.previewImageState === 'pending' ? '生成中' : asset.payload.previewImageState === 'failed' ? '生成失败' : '暂无图片'}</span>}
+                    <KindIcon size={wardrobeGallery ? 22 : 16} style={{ color: 'var(--text-secondary)' }} />
+                  </div>}
+                  <div className={`${wardrobeGallery ? 'line-clamp-2 min-h-10' : 'truncate'} text-[13px] font-medium`} style={{ color: 'var(--text-primary)' }} title={asset.name}>{asset.name}</div>
+                  {wardrobeGallery && <div className="mt-2 h-8"><ActionButton className="h-8 w-24" aria-label={`换上 ${asset.name}`} disabled={changingId !== null || previewSlots[String(asset.payload.category)] === asset.id} onClick={() => changePreview(asset)}>
+                    {changingId === asset.id ? '换上中' : previewSlots[String(asset.payload.category)] === asset.id ? '正在穿着' : '换上'}
+                  </ActionButton></div>}
+                  {!wardrobeGallery && <div className="mt-1.5 flex flex-wrap gap-1">
                     {occasionTags(asset.payload).map((tag) => (
                       <span key={tag} className="rounded-full px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>{tag}</span>
                     ))}
-                  </div>
+                  </div>}
                   {editingId === asset.id
                     ? <WorldAssetForm draft={editDraft} onChange={setEditDraft} onSave={() => void saveEdit()} onCancel={() => { if (!busy) { setEditingId(null); setWriteError('') } }} busy={busy} saveLabel={tab === 'bookshelf' ? '保存书目' : '保存衣物'} />
                     : canEdit ? <WorldAssetActions name={asset.name} disabled={busy} onGenerate={onGenerateAssetImage ? () => onGenerateAssetImage(asset) : undefined} onEdit={() => startEdit(asset)} onDelete={() => setPendingDelete(asset)} /> : null}
