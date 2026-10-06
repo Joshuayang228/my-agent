@@ -16,10 +16,10 @@ const categories = [
 ] as const
 const text = (asset: LivingAsset, key: string) => typeof asset.payload[key] === 'string' ? asset.payload[key] as string : ''
 const typeFor = (asset: LivingAsset) => asset.kind === 'bookshelf' ? 'reading' : text(asset, 'type')
-const fullReflection = (asset: LivingAsset) => typeFor(asset) === 'film'
+const fullReflection = (asset: LivingAsset) => ['film', 'music'].includes(typeFor(asset))
   ? text(asset, 'detail').trim() ? text(asset, 'detail') : text(asset, 'summary').trim() ? text(asset, 'summary') : ''
   : text(asset, 'detail')
-const reflectionExcerpt = (asset: LivingAsset) => typeFor(asset) === 'film' ? fullReflection(asset) : text(asset, 'summary')
+const reflectionExcerpt = (asset: LivingAsset) => ['film', 'music'].includes(typeFor(asset)) ? fullReflection(asset) : text(asset, 'summary')
 const states: Record<string, string> = { planned: '想读', reading: '正在读', paused: '暂时放下', finished: '已完成', abandoned: '未继续', watching: '正在看', queued: '想听', listening: '正在听', revisiting: '最近常听' }
 const formatLabel = (asset: LivingAsset) => typeFor(asset) === 'film'
   ? text(asset, 'mediaKind') === 'movie' ? '电影' : text(asset, 'mediaKind') === 'series' ? '剧集' : ''
