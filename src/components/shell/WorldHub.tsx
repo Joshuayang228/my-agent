@@ -52,6 +52,7 @@ export function WorldHub({
   compactClosedComposer = false,
   enableImagePreview = false,
   previewPanels,
+  previewTabVariant,
   hiddenTabs = [],
   tabLabels,
   tabs,
@@ -79,6 +80,8 @@ export function WorldHub({
   enableImagePreview?: boolean
   /** Playground / 测试专用业务样张；存在时替代对应真实面板，避免读取生产数据。 */
   previewPanels?: Partial<Record<WorldTab, ReactNode>>
+  /** 候选先验收 Foundation 标签呈现，正式导航在回流许可前保持原样。 */
+  previewTabVariant?: 'surface'
   /** 候选组合可隐藏不属于该页面的 Tab；默认产品世界仍保留完整入口。 */
   hiddenTabs?: readonly WorldTab[]
   /** Playground 可替换用户可见标签；内部 tab key 保持稳定，正式页面默认文案不变。 */
@@ -112,7 +115,7 @@ export function WorldHub({
       <div className="flex min-w-0 shrink-0 border-b px-4 py-1" style={{ borderColor: 'var(--border-subtle)' }}>
         <TabStrip
           label="人物世界分区"
-          variant="underline"
+          variant={previewPanels ? previewTabVariant ?? 'underline' : 'underline'}
           items={visibleTabs.map(item => ({
             id: item.id,
             label: labelFor(item),

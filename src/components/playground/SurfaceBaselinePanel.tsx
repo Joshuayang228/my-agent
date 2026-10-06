@@ -605,6 +605,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
             showSocialActions
             hideMomentsHeader
             previewPanels={previewPanels}
+            previewTabVariant="surface"
             hideHeader
           />
         </div>

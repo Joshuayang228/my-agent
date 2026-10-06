@@ -403,7 +403,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
           <StoryBlock title="标签切换" source="src/components/foundation/TabStrip.tsx" adopted>
             <div className="max-w-md rounded-xl border" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
               <div className="border-b px-3" style={{ borderColor: 'var(--border-subtle)' }}>
-                <TabStrip label="Foundation 标签样张" variant="underline"
+                <TabStrip label="Foundation 标签样张" variant="surface"
                   items={['基础', '产品体验', 'Agent 实验'].map((label) => ({ id: label, label }))}
                   activeId={tabSample} onSelect={setTabSample} />
               </div>
