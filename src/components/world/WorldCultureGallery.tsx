@@ -16,7 +16,12 @@ const categories = [
 ] as const
 const text = (asset: LivingAsset, key: string) => typeof asset.payload[key] === 'string' ? asset.payload[key] as string : ''
 const typeFor = (asset: LivingAsset) => asset.kind === 'bookshelf' ? 'reading' : text(asset, 'type')
-const states: Record<string, string> = { planned: '想读', reading: '正在读', paused: '暂时放下', finished: '已完成', abandoned: '未继续', watching: '正在看', queued: '想听', listening: '正在听', revisiting: '最近常听', published: '作品' }
+const states: Record<string, string> = { planned: '想读', reading: '正在读', paused: '暂时放下', finished: '已完成', abandoned: '未继续', watching: '正在看', queued: '想听', listening: '正在听', revisiting: '最近常听' }
+const formatLabel = (asset: LivingAsset) => typeFor(asset) === 'film'
+  ? text(asset, 'mediaKind') === 'movie' ? '电影' : text(asset, 'mediaKind') === 'series' ? '剧集' : ''
+  : typeFor(asset) === 'music' ? text(asset, 'musicKind') === 'track' ? '单曲' : text(asset, 'musicKind') === 'album' ? '专辑' : '' : ''
+const creator = (asset: LivingAsset) => text(asset, 'author') || text(asset, 'artist') || text(asset, 'director')
+const photoMetadata = (asset: LivingAsset) => [text(asset, 'locationName'), text(asset, 'depictedAt')].filter(Boolean).join(' · ')
 
 export interface CultureReadingNote {
   id: string
@@ -31,7 +36,7 @@ export interface CultureReadingNote {
 const noteDate = (note: CultureReadingNote) => note.occurredAt !== undefined && Number.isFinite(note.occurredAt)
   ? new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric' }).format(note.occurredAt) : ''
 
-function Artwork({ asset }: { asset: LivingAsset }) {
+function Artwork({ asset, maximumHeight }: { asset: LivingAsset; maximumHeight?: number }) {
   const type = typeFor(asset)
   const photography = type === 'photography'
   const ratio = photography && typeof asset.payload.imageWidth === 'number' && typeof asset.payload.imageHeight === 'number'
@@ -39,7 +44,7 @@ function Artwork({ asset }: { asset: LivingAsset }) {
     ? asset.payload.imageWidth / asset.payload.imageHeight : type === 'music' ? 1 : photography ? 4 / 3 : 2 / 3
   const src = text(asset, 'playgroundImageSrc')
   const Icon = categories.find((item) => item.id === type)?.icon ?? BookOpen
-  return <div className="w-full overflow-hidden rounded-md" data-testid="culture-artwork" style={{ aspectRatio: ratio, background: 'var(--bg-secondary)' }}>
+  return <div className="w-full overflow-hidden rounded-md" data-testid="culture-artwork" style={{ aspectRatio: ratio, maxWidth: maximumHeight ? maximumHeight * ratio : undefined, background: 'var(--bg-secondary)' }}>
     {src && !['pending', 'failed'].includes(text(asset, 'imageState'))
       ? <ImagePreviewImage src={src} alt={`${asset.name}${photography ? '，虚构摄影作品' : '，示意配图'}`} className="block h-full w-full object-contain" buttonClassName="h-full w-full" />
       : <div role="status" className="flex h-full flex-col items-center justify-center gap-3 px-3 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>
@@ -74,8 +79,12 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
   const close = () => { returnId.current = selectedId; setSelectedId(null) }
   const status = (asset: LivingAsset) => {
     const key = text(asset, 'readingStatus') || text(asset, 'watchStatus') || text(asset, 'listeningStatus') || text(asset, 'workStatus')
+    if (typeFor(asset) === 'film' && key === 'planned') return '想看'
+    if (typeFor(asset) === 'film' && key === 'finished') return '已看完'
+    if (typeFor(asset) === 'film' && key === 'paused') return '暂时搁置'
     return Object.hasOwn(states, key) ? states[key] : ''
   }
+  const isEngaged = (asset: LivingAsset) => ['reading', 'watching', 'listening', 'revisiting'].includes(text(asset, 'readingStatus') || text(asset, 'watchStatus') || text(asset, 'listeningStatus'))
   const notesFor = (asset: LivingAsset) => readingNotes.filter((note) => note.assetId === asset.id && note.text.trim()).slice().sort((a, b) => ((b.occurredAt ?? b.createdAt) ?? 0) - ((a.occurredAt ?? a.createdAt) ?? 0) || a.id.localeCompare(b.id))
   return <div className="flex h-full min-h-0 flex-col px-4 py-4" data-testid="culture-gallery">
     <div className="mb-4 shrink-0"><TabStrip label="文化分类" activeId={category} onSelect={(id) => {
@@ -95,17 +104,27 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
               {typeof selected.payload.currentPage === 'number' && <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>读到第 {selected.payload.currentPage} 页{typeof selected.payload.totalPages === 'number' ? ` / 共 ${selected.payload.totalPages} 页` : ''}</p>}
               <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>示意配图 · 非官方封面</p>
             </div>
-          </div> : <>
+          </div> : category === 'photography' ? <>
+          <div className="max-w-xl"><Artwork asset={selected} maximumHeight={320} /></div>
           <h3 ref={heading} tabIndex={-1} className="break-words text-[16px] font-semibold" style={{ color: 'var(--text-primary)' }}>{selected.name}</h3>
-          <div className="max-w-60"><Artwork asset={selected} /></div>
-          <div className="flex flex-wrap gap-3 text-[12px]" style={{ color: 'var(--text-muted)' }}>
-            <span>{text(selected, 'author') || text(selected, 'artist')}</span><span>{status(selected)}</span>
-            <span>{text(selected, 'locationName')}</span><span>{text(selected, 'depictedAt')}</span>
-          </div>
-          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{category === 'photography' ? '虚构摄影作品 · AI 生成' : '示意配图 · 非官方封面'}</p>
-          </>}
+          {photoMetadata(selected) && <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{photoMetadata(selected)}</p>}
+          <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>虚构摄影作品 · AI 生成</p>
+          </> : <div className="flex items-start gap-4" data-testid="culture-work-header">
+            <div className="w-24 shrink-0"><Artwork asset={selected} /></div>
+            <div className="min-w-0 flex-1 space-y-2">
+              <h3 ref={heading} tabIndex={-1} className="break-words text-[16px] font-semibold" style={{ color: 'var(--text-primary)' }}>{selected.name}</h3>
+              {creator(selected) && <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{creator(selected)}</p>}
+              <div className="flex flex-wrap items-center gap-2">
+                {formatLabel(selected) && <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{formatLabel(selected)}</span>}
+                {status(selected) && <Badge tone={isEngaged(selected) ? 'accent' : 'neutral'}>{status(selected)}</Badge>}
+              </div>
+              {category === 'film' && Number.isSafeInteger(selected.payload.episode) && <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{typeof selected.payload.season === 'number' ? `第 ${selected.payload.season} 季 · ` : ''}看到第 {String(selected.payload.episode)} 集{typeof selected.payload.totalEpisodes === 'number' ? ` / 共 ${selected.payload.totalEpisodes} 集` : ''}</p>}
+              {category === 'music' && text(selected, 'albumTitle') && <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>所属专辑：{text(selected, 'albumTitle')}</p>}
+              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>示意配图 · 非官方{category === 'film' ? '海报' : '封面'}</p>
+            </div>
+          </div>}
           <div className="max-h-[45vh] overflow-y-auto whitespace-pre-wrap break-words pr-2 text-[13px] leading-6 scrollbar-thin" data-testid="culture-detail-text" tabIndex={0} style={{ color: 'var(--text-secondary)' }}>
-            {text(selected, 'detail') && <section className="mb-5"><h4 className="mb-2 font-medium">{category === 'reading' ? '整体感受' : '感受'}</h4><p>{text(selected, 'detail')}</p></section>}
+            {text(selected, 'detail') && <section className="mb-5"><h4 className="mb-2 font-medium">{category === 'reading' ? '整体感受' : category === 'film' ? '观后感' : category === 'music' ? '听感' : '创作说明'}</h4><p>{text(selected, 'detail')}</p></section>}
             {category === 'reading' ? <section data-testid="reading-notes"><h4 className="mb-3 font-medium">读书笔记</h4>
               {notesFor(selected).length ? <ol className="space-y-3">{notesFor(selected).map((note) => <li key={note.id} className="rounded-md border p-3" data-testid="reading-note" style={{ borderColor: 'var(--border-subtle)' }}>
                 <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
@@ -124,7 +143,7 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
               onClick={() => { if (scroll.current) positions.current[category] = scroll.current.scrollTop; setSelectedId(asset.id) }}>
               <span className="line-clamp-2 break-words text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{asset.name}</span>
             </ActionButton>
-            <div className="min-h-5 truncate text-[11px]" style={{ color: 'var(--text-muted)' }}>{text(asset, 'author') || text(asset, 'artist') || text(asset, 'locationName')}</div>
+            {(category === 'photography' ? photoMetadata(asset) : creator(asset)) && <div className="truncate text-[11px]" title={category === 'photography' ? photoMetadata(asset) : creator(asset)} style={{ color: 'var(--text-muted)' }}>{category === 'photography' ? photoMetadata(asset) : creator(asset)}</div>}
             {category === 'reading' ? <>
               {status(asset) && <Badge tone={text(asset, 'readingStatus') === 'reading' ? 'accent' : 'neutral'}>{status(asset)}</Badge>}
               {notesFor(asset)[0] && <div className="pt-3 text-[12px] leading-5" data-testid="reading-note-excerpt">
@@ -132,8 +151,14 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
                 <p className="line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{notesFor(asset)[0].text}</p>
               </div>}
             </> : <>
-              <div className="min-h-5 text-[11px]" style={{ color: 'var(--text-muted)' }}>{status(asset)}</div>
-              <p className="line-clamp-2 min-h-10 text-[12px] leading-5" style={{ color: 'var(--text-secondary)' }}>{text(asset, 'summary')}</p>
+              {category !== 'photography' && (formatLabel(asset) || status(asset)) && <div className="flex flex-wrap items-center gap-2">
+                {formatLabel(asset) && <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{formatLabel(asset)}</span>}
+                {status(asset) && <Badge tone={isEngaged(asset) ? 'accent' : 'neutral'}>{status(asset)}</Badge>}
+              </div>}
+              {text(asset, 'summary') && <div className="pt-3 text-[12px] leading-5" data-testid="culture-reflection-excerpt">
+                {category !== 'photography' && <div className="mb-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{category === 'film' ? '观后感' : '听感'}</div>}
+                <p className="line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{text(asset, 'summary')}</p>
+              </div>}
             </>}
           </article>)}
         </div> : <EmptyState title={`还没有${categories.find((item) => item.id === category)?.label}记录`} description="可以在对话中聊聊你想一起读、看、听或创作的内容。" />}

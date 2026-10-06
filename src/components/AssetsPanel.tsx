@@ -26,6 +26,14 @@ import type { GeneratedImageReference } from '../shared/types'
 
 type AssetTab = 'wardrobe' | 'bookshelf'
 
+export interface PreviewWardrobeOutfit {
+  id: string
+  name: string
+  slots: Record<string, string>
+  imageSrc?: string
+  changeFailure?: boolean
+}
+
 interface AssetsPanelProps {
   onGenerateAssetImage?: (asset: WorldAssetRecord) => void
   previewAssets?: WorldAssetRecord[]
@@ -37,6 +45,7 @@ interface AssetsPanelProps {
   presentation?: 'default' | 'wardrobe-gallery'
   /** 隔离故事中的整套图片；仅匹配初始槽位时展示，不能冒充生产生成结果。 */
   previewOutfitImage?: { src?: string; status: 'ready' | 'pending' | 'failed' | 'none' }
+  previewOutfits?: readonly PreviewWardrobeOutfit[]
 }
 
 function occasionTags(payload: Record<string, unknown>): string[] {
@@ -70,7 +79,7 @@ function AssetImage({ asset }: { asset: WorldAssetRecord }) {
   return <GeneratedImageResult image={image} readImage={(imageId) => window.electronAPI.companion.readAssetImage(asset.id, imageId)} scope={`asset:${asset.id}`} />
 }
 
-export function AssetsPanel({ previewAssets, previewEditable = false, previewWearingId, showAssetTabs = true, presentation = 'default', previewOutfitImage, onGenerateAssetImage }: AssetsPanelProps) {
+export function AssetsPanel({ previewAssets, previewEditable = false, previewWearingId, showAssetTabs = true, presentation = 'default', previewOutfitImage, previewOutfits = [], onGenerateAssetImage }: AssetsPanelProps) {
   const isPreview = previewAssets !== undefined
   const canEdit = (!isPreview || previewEditable) && !(isPreview && presentation === 'wardrobe-gallery')
   const [roleId, setRoleId] = useState('')
@@ -306,8 +315,31 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
   // 以资产 ID 比较而非名称比较，恢复原组合可复用；正式页不走此隔离分支。
   const initialSlots = Object.fromEntries((previewAssets ?? []).filter((asset) => asset.payload.previewWearing === true).map((asset) => [String(asset.payload.category), asset.id]))
   const matchesInitialOutfit = Object.keys(slotLabels).every((slot) => initialSlots[slot] === previewSlots[slot])
-  const outfitImageStatus = matchesInitialOutfit ? previewOutfitImage?.status ?? 'none' : 'none'
-  const outfitImageSrc = outfitImageStatus === 'ready' ? previewOutfitImage?.src : undefined
+  const matchesOutfit = (outfit: PreviewWardrobeOutfit) => Object.keys(slotLabels).every((slot) => outfit.slots[slot] === previewSlots[slot])
+  const cachedOutfit = previewOutfits.find(matchesOutfit)
+  const outfitImageStatus = matchesInitialOutfit ? previewOutfitImage?.status ?? 'none' : cachedOutfit?.imageSrc ? 'ready' : 'none'
+  const outfitImageSrc = outfitImageStatus === 'ready' ? matchesInitialOutfit ? previewOutfitImage?.src : cachedOutfit?.imageSrc : undefined
+  const changeOutfitPreview = (outfit: PreviewWardrobeOutfit) => {
+    if (changingId || matchesOutfit(outfit)) return
+    const valid = Object.entries(outfit.slots).every(([slot, id]) => slotLabels[slot] && tabItems.some((asset) => asset.id === id && asset.payload.category === slot))
+      && ['top', 'bottom', 'shoes'].every((slot) => outfit.slots[slot])
+    if (!valid) { setChangeError('套装衣物不完整，当前穿着仍保留。'); return }
+    setChangingId(outfit.id)
+    setChangeError('')
+    // 背景：套装可能没有外套，逐件合并会遗留上一套衣物。
+    // 意图：候选在一次发布中替换完整槽位，而非逐件执行；失败和卸载不能发布部分组合。
+    // 约束：只使用夹具中的衣物 ID，不调用 IPC；同一计时器由卸载清理，正式穿着服务不受影响。
+    changeTimer.current = setTimeout(() => {
+      if (!mounted.current) return
+      if (outfit.changeFailure) setChangeError('未换上，当前穿着仍保留。请重试。')
+      else {
+        setPreviewSlots({ ...outfit.slots })
+        setWearingId(outfit.slots.outerwear ?? outfit.slots.top)
+        setPreviewWardrobeView('wearing')
+      }
+      setChangingId(null)
+    }, 450)
+  }
   const changePreview = (asset: WorldAssetRecord) => {
     // Playground 需展示换装在途和失败态，使用本地延迟而不调用真实穿着服务。
     // 仅替换目标槽位，失败不发布新穿搭；离页时取消计时器，不能产生生产写入。
@@ -363,6 +395,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
         </WorldWriteError>
         {wardrobeGallery && <div className="mb-4" data-testid="wardrobe-view-tabs"><TabStrip label="衣柜视图" activeId={previewWardrobeView} onSelect={(id) => { setPreviewWardrobeView(id); if (id !== 'wearing') setCategory(id) }} items={[
           { id: 'wearing', label: '正在穿着' }, { id: 'all', label: '全部', separatorBefore: true },
+          { id: 'outfits', label: '套装' },
           ...Object.entries(slotLabels).map(([id, label]) => ({ id, label })),
         ]} /></div>}
         {wardrobeGallery && <WorldWriteError message={changeError} />}
@@ -422,7 +455,19 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
           </section>
         ) : null}
 
-        {(!wardrobeGallery || previewWardrobeView !== 'wearing') && <section data-testid="world-assets-inventory">
+        {wardrobeGallery && previewWardrobeView === 'outfits' && <section data-testid="wardrobe-outfits">
+          {previewOutfits.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {previewOutfits.map((outfit) => <article key={outfit.id} aria-label={outfit.name} className="min-w-0 rounded-md border p-3.5" style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)' }}>
+              <div className="mb-3 aspect-[3/4] overflow-hidden rounded-md" style={{ background: 'var(--bg-secondary)' }}>
+                {outfit.imageSrc ? <ImagePreviewImage src={outfit.imageSrc} alt={`${outfit.name}的穿搭参考图`} className="block h-full w-full object-contain" buttonClassName="h-full w-full" />
+                  : <div className="flex h-full items-center justify-center gap-2 text-[12px]" style={{ color: 'var(--text-muted)' }}><Shirt size={20} />暂无套装图片</div>}
+              </div>
+              <div className="line-clamp-2 min-h-10 text-[13px] font-medium" title={outfit.name} style={{ color: 'var(--text-primary)' }}>{outfit.name}</div>
+              <div className="mt-2 h-8"><ActionButton className="h-8 w-24" aria-label={`换上套装 ${outfit.name}`} disabled={changingId !== null || matchesOutfit(outfit)} onClick={() => changeOutfitPreview(outfit)}>{changingId === outfit.id ? '换上中' : matchesOutfit(outfit) ? '正在穿着' : '换上'}</ActionButton></div>
+            </article>)}
+          </div> : <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>还没有套装。</p>}
+        </section>}
+        {(!wardrobeGallery || !['wearing', 'outfits'].includes(previewWardrobeView)) && <section data-testid="world-assets-inventory">
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
             {tab === 'bookshelf' ? '藏书' : '库存'}{tabItems.length ? ` · ${tabItems.length}` : ''}
           </div>
