@@ -59,7 +59,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     formalEntryPaths: ['src/components/shell/WorldHub.tsx', 'src/App.tsx', 'src/components/MomentsPanel.tsx', 'src/components/AssetsPanel.tsx', 'src/components/CastPanel.tsx', 'src/components/WorldDetailsPanel.tsx'],
     realDataPaths: ['electron/main/ipc/companion.ts', 'electron/main/companion/life/assets.ts', 'electron/main/companion/life/moments.ts', 'electron/main/companion/life/store.ts'],
     evidencePaths: ['__tests__/e2e/chat.test.ts', '__tests__/e2e/onboarding.test.ts', '__tests__/unit/world-hub.test.ts', '__tests__/unit/world-living-content.test.ts'],
-    fixtureAssetPaths: ['src/assets/playground/moment-tea-by-window.jpg', 'src/assets/playground/wardrobe-gray-blue-jacket.png'],
+    fixtureAssetPaths: ['src/assets/playground/moment-tea-by-window.jpg', 'src/assets/playground/wardrobe-gray-blue-jacket.png', 'src/assets/playground/wardrobe-lin-casual-outfit.png'],
     experienceParts: ['朋友圈', '衣柜', '文化角', '家居', '通讯录', '足迹'],
     usesFoundation: ['behavior.tabs', 'state.empty', 'behavior.icon-button', 'behavior.button', 'behavior.input', 'behavior.select', 'state.confirm-panel'],
   }),

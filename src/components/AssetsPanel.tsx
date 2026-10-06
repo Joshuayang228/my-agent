@@ -35,6 +35,8 @@ interface AssetsPanelProps {
   showAssetTabs?: boolean
   /** Playground 的衣柜候选展示；正式页保持默认资产面板布局。 */
   presentation?: 'default' | 'wardrobe-gallery'
+  /** 隔离故事中的整套图片；仅匹配初始槽位时展示，不能冒充生产生成结果。 */
+  previewOutfitImage?: { src?: string; status: 'ready' | 'pending' | 'failed' | 'none' }
 }
 
 function occasionTags(payload: Record<string, unknown>): string[] {
@@ -68,9 +70,9 @@ function AssetImage({ asset }: { asset: WorldAssetRecord }) {
   return <GeneratedImageResult image={image} readImage={(imageId) => window.electronAPI.companion.readAssetImage(asset.id, imageId)} scope={`asset:${asset.id}`} />
 }
 
-export function AssetsPanel({ previewAssets, previewEditable = false, previewWearingId, showAssetTabs = true, presentation = 'default', onGenerateAssetImage }: AssetsPanelProps) {
+export function AssetsPanel({ previewAssets, previewEditable = false, previewWearingId, showAssetTabs = true, presentation = 'default', previewOutfitImage, onGenerateAssetImage }: AssetsPanelProps) {
   const isPreview = previewAssets !== undefined
-  const canEdit = !isPreview || previewEditable
+  const canEdit = (!isPreview || previewEditable) && !(isPreview && presentation === 'wardrobe-gallery')
   const [roleId, setRoleId] = useState('')
   const [items, setItems] = useState<WorldAssetRecord[]>(previewAssets ?? [])
   const [tab, setTab] = useState<AssetTab>('wardrobe')
@@ -298,6 +300,12 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
     ? tabItems.filter((asset) => category === 'all' || asset.payload.category === category)
     : tab === 'wardrobe' && wearing ? inventory : tabItems
   const slotLabels: Record<string, string> = { top: '上装', bottom: '下装', outerwear: '外套', shoes: '鞋履' }
+  // 候选图片只对应明确的初始组合，换上另一件时不能沿用旧整套图。
+  // 以资产 ID 比较而非名称比较，恢复原组合可复用；正式页不走此隔离分支。
+  const initialSlots = Object.fromEntries((previewAssets ?? []).filter((asset) => asset.payload.previewWearing === true).map((asset) => [String(asset.payload.category), asset.id]))
+  const matchesInitialOutfit = Object.keys(slotLabels).every((slot) => initialSlots[slot] === previewSlots[slot])
+  const outfitImageStatus = matchesInitialOutfit ? previewOutfitImage?.status ?? 'none' : 'none'
+  const outfitImageSrc = outfitImageStatus === 'ready' ? previewOutfitImage?.src : undefined
   const changePreview = (asset: WorldAssetRecord) => {
     // Playground 需展示换装在途和失败态，使用本地延迟而不调用真实穿着服务。
     // 仅替换目标槽位，失败不发布新穿搭；离页时取消计时器，不能产生生产写入。
@@ -359,11 +367,20 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
             {wearing ? (
               <div className={`companion-life-card rounded-xl border p-4 ${wardrobeGallery ? 'sm:p-5' : ''}`} data-testid="world-wardrobe-wearing" style={{ borderColor: 'var(--companion-accent-warm)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
                 <div className={wardrobeGallery ? 'grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] sm:items-center' : 'flex items-start gap-3'}>
-                  {isPreview && wearing.payload.playgroundImageSrc
+                  {wardrobeGallery
+                    ? <div className="aspect-[3/4] w-full overflow-hidden rounded-[var(--radius-md)]" data-testid="wardrobe-outfit-image" style={{ background: 'var(--bg-secondary)' }}>
+                      {outfitImageSrc
+                        ? <ImagePreviewImage src={outfitImageSrc} alt="当前穿搭全身图" className="block aspect-[3/4] w-full object-contain" buttonClassName="h-full w-full" />
+                        : <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center text-[12px]" role="status" style={{ color: 'var(--text-muted)' }}>
+                          <Shirt size={22} />
+                          <span>{outfitImageStatus === 'pending' ? '正在生成穿搭图片' : outfitImageStatus === 'failed' ? '穿搭图片生成失败，当前穿着已保留' : '暂无当前穿搭图片'}</span>
+                        </div>}
+                    </div>
+                    : isPreview && wearing.payload.playgroundImageSrc
                     ? <ImagePreviewImage src={String(wearing.payload.playgroundImageSrc)} alt={`${wearing.name}的穿着参考图`} className={wardrobeGallery ? 'block aspect-[3/4] max-h-80 w-full rounded-[var(--radius-md)] object-contain' : 'h-24 w-24 shrink-0 rounded-[var(--radius-md)] object-cover'} buttonClassName={wardrobeGallery ? 'w-full' : ''} />
                     : <div className={`flex shrink-0 items-center justify-center rounded-xl ${wardrobeGallery ? 'aspect-[3/4] max-h-80 w-full' : 'h-14 w-14'}`} style={{ background: 'var(--companion-catchup-bg)', color: 'var(--companion-accent-warm)' }}><Sparkles size={22} /></div>}
                   <div className="min-w-0 flex-1">
-                    <div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{wearing.name}</div>
+                    <div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{wardrobeGallery ? '当前穿搭' : wearing.name}</div>
                     {wearingHint ? <div className="mt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>{wearingHint}</div> : null}
                     {wardrobeGallery && <div className="mt-4 space-y-2" data-testid="wardrobe-current-slots">
                       {Object.entries(slotLabels).map(([slot, label]) => {

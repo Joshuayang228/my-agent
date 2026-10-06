@@ -122,6 +122,20 @@ Alice 的实现验证了几条重要原则：衣物是长期资产；朋友圈�
 
 ## 3. 参考 Alice 与我方取舍
 
+### 已确认补充：穿搭主图与角色初始数据（2026-10-06）
+
+当前穿着主图展示人物穿着当前组合的全身图，背景简洁、衣物可辨；库存继续展示单件图。主图标题统一为“当前穿搭”，不能用某一件衣物的名称或商品图代表整套。
+
+换上事务成功后立即更新槽位和文字，再异步更新穿搭主图，不等待图片才能换衣。生成失败不回滚穿搭。旧图不得无标识地作为当前图；没有匹配图片时使用同尺寸占位。打开衣柜不自动生成，已缓存的同一组合优先复用；连续换装合并请求，过期结果只能缓存，不能覆盖新组合。
+
+穿搭图片必须绑定 `roleId`、当前穿搭版本和规范化组合签名（按固定槽位排序的资产 ID / 资产视觉版本，加人物外貌参考版本与生成策略版本）。图片请求保存 requestId、状态、生成模型和媒体引用；主进程核验结果版本后才发布。失败可通过对话重试；图片不会反向创建衣物或补齐槽位。部分穿搭采用明确的角色基础穿着约定，没有该约定时只展示已知衣物，不偷偷推测为拥有新资产。
+
+每个本版内置角色由 Role Pack 提供三套完整初始组合：日常休闲、外出通勤、轻松运动，按角色风格配置，允许共用衣物 ID。每套包含上装、下装、鞋履，外套可选；默认选择其中一套。初始组合只作为可引用的数据定义，本版不新增套装编辑器或整套换上 UI。
+
+初始衣物来源为 `seed`，穿过次数为 0，不虚构购买、价格或历史穿着；初始选中不算一次实际换装。预置图片作为角色资产提供，不在首次打开强制付费生图。播种标记、衣物和初始穿搭须同事务写入，按角色及稳定 seed key 幂等；淘汰后重启不得补种。未知 / 用户自定义角色未提供 Role Pack 初始衣柜时保留空态，不套用小林数据。
+
+第一批先完成 Playground：三套隔离初始组合、无维护入口、全身主图或准确占位、生成中 / 失败 / 缓存恢复和几何稳定性。第二批在 Phase 2 实现上述 Role Pack 播种、真实换装与生成服务；未通过真实链路验证不宣称生产已完成。
+
 ### 3.1 吸收的 Alice 设计
 
 本合同吸收以下经过源码和方法论确认的做法：
@@ -452,6 +466,7 @@ type OutfitSlot = 'top' | 'bottom' | 'outerwear' | 'shoes';
 type CurrentOutfit = {
   roleId: string;
   slots: Partial<Record<OutfitSlot, string>>;
+  revision: number;
   updatedAt: number;
   source: 'user' | 'agent' | 'event' | 'seed';
   outfitId?: string | null;
@@ -459,6 +474,30 @@ type CurrentOutfit = {
 ```
 
 第一版可以将 `CurrentOutfit` 存在现有角色状态 / companion 资产状态中，但必须保持“当前穿着引用衣物资产 ID”的关系，不在当前穿着里复制衣物名称、图片和统计字段。
+
+### 4.2.1 穿搭图片与初始组合字段
+
+以下为本版后端施工契约，不表示已在共享类型或数据库落地。
+
+| 字段 | 值域与含义 | 写入责任 |
+|------|------|------|
+| `CurrentOutfit.revision` | 非负整数，初始 0；每次实际槽位变化递增，同组合重试不递增 | 换装事务 |
+| `outfitImage.roleId` | 所属角色稳定 ID | 世界服务 |
+| `outfitImage.outfitRevision` | 发起请求时的穿搭 revision；发布时核验 | 图片调度服务 |
+| `outfitImage.signature` | 规范化槽位、衣物视觉版本、角色参考版本和生成策略版本的摘要；缓存键，不含凭据 | 主进程纯函数 |
+| `outfitImage.requestId` | 唯一请求 ID，用于防重与取消 / 过期结果隔离 | 图片调度服务 |
+| `outfitImage.status` | `none` 无匹配图、`pending` 在途、`ready` 可展示、`failed` 本次失败 | 图片调度服务 |
+| `outfitImage.mediaId` | 可空受控媒体 ID，成功后绑定；不直接保存 Renderer 临时 URI | 媒体服务 |
+| `outfitImage.errorCode` / `errorMessage` | 可空错误分类 / 脱敏提示，失败不清除当前穿搭 | 图片调度服务 |
+| `outfitImage.provider` / `model` / `promptAssetKey` | 实际生成溯源，仅 Debug 可见 | 统一生图入口 |
+| `outfitImage.createdAt` / `updatedAt` | UTC Unix 毫秒 | 图片调度服务 |
+| `seed.version` / `seed.key` | Role Pack 初始衣柜版本 / 稳定播种键；标记已播种，不能因为资产减少再次补种 | Role Pack loader 与播种事务 |
+| `seed.items[].key` | 稳定衣物键，复用同一件时引用同一个键 | Role Pack 资产 |
+| `seed.outfits[].key` / `name` / `slots` | 稳定组合键 / 名称 / 槽位引用衣物键；本版每套上装、下装、鞋履非空 | Role Pack 校验器 |
+| `seed.defaultOutfitKey` | 必须指向已定义完整组合，初始化一次选中 | 播种事务 |
+| `seed.outfits[].mediaKey` | 可空预置全身图资产键，必须与组合及角色外貌一致；缺失显示准确占位 | Role Pack loader |
+
+图片缓存与请求记录不放进衣物 payload，不将人物整套图绑定为某件外套的主图。生成调度必须有取消、去重及失败可观测记录；连续换装采用尾沿合并，定时窗口由服务统一维护，不散落在 Renderer。
 
 ### 4.3 穿着事件
 
