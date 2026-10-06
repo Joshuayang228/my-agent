@@ -7,6 +7,24 @@ import { WorldCultureContent, type LivingAsset } from '../../src/components/worl
 const render = (assets: LivingAsset[]) => renderToStaticMarkup(createElement(WorldCultureContent, { assets }))
 
 describe('WorldCultureContent', () => {
+  it('书籍候选区分作者、状态与独立最新笔记，按时间和稳定标识排序', () => {
+    const html = renderToStaticMarkup(createElement(WorldCultureContent, {
+      presentation: 'culture-gallery', showPreviewImages: true,
+      assets: [{ id: 'book', kind: 'culture', name: '书籍', payload: { type: 'reading', author: '作者', readingStatus: 'reading', summary: '摘要不铺开' } }],
+      previewReadingNotes: [
+        { id: 'z', assetId: 'book', text: '旧笔记', occurredAt: 1 },
+        { id: 'b', assetId: 'book', text: '同时间第二条', createdAt: 2 },
+        { id: 'a', assetId: 'book', text: '最新笔记', occurredAt: 2 },
+        { id: 'other', assetId: 'other', text: '其他书笔记', occurredAt: 3 },
+      ],
+    }))
+    expect(html).toContain('data-foundation="badge"')
+    expect(html).toContain('正在读')
+    expect(html).toContain('reading-note-excerpt')
+    expect(html).toContain('最新笔记')
+    for (const value of ['旧笔记', '同时间第二条', '其他书笔记', '摘要不铺开']) expect(html).not.toContain(value)
+  })
+
   it('四分类候选只展示书籍，不混入其他类别、归档和维护插槽', () => {
     const html = renderToStaticMarkup(createElement(WorldCultureContent, {
       presentation: 'culture-gallery', showPreviewImages: true,

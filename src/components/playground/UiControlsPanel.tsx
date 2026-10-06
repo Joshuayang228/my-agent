@@ -11,6 +11,7 @@ import imagePreview from '../../assets/playground/moment-tea-by-window.jpg'
 import { FileBrowser, type FileBrowserPreviewData } from '../FileBrowser'
 import { ResizeHandle } from '../shell/ResizeHandle'
 import { TabStrip } from '../foundation/TabStrip'
+import { Badge } from '../foundation/Badge'
 import type { ToolCallbackItem } from '../chat/callbacks/types'
 import { MemoryCitationChips } from '../chat/MemoryCitationChips'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
@@ -178,10 +179,10 @@ function BadgeTagStory() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full px-2 py-0.5 text-[10px]" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>已采用</span>
-        <span className="rounded-full px-2 py-0.5 text-[10px]" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>候选</span>
-        <span className="rounded-full px-2 py-0.5 text-[10px]" style={{ background: 'color-mix(in srgb, var(--success) 15%, transparent)', color: 'var(--success)' }}>成功</span>
-        <span className="rounded-full px-2 py-0.5 text-[10px]" style={{ background: 'color-mix(in srgb, var(--danger) 15%, transparent)', color: 'var(--danger)' }}>错误</span>
+        <Badge tone="accent">已采用</Badge>
+        <Badge>候选</Badge>
+        <Badge tone="success">成功</Badge>
+        <Badge tone="danger">错误</Badge>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {['基础引用', '窄宽验收', '长内容示例'].map((label) => (

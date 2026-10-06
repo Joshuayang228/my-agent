@@ -75,7 +75,7 @@ describe('product experience registry', () => {
     expect([...activeExperienceTabs].sort()).toEqual([...registeredActiveTabs].sort())
   })
 
-  it('反向使用关系只从活跃体验的 usesFoundation 派生', () => {
+  it('反向使用关系从活跃体验的正式及候选基础依赖派生', () => {
     expect(isActiveProductExperience({ ...PRODUCT_EXPERIENCE_ASSETS[0], status: 'archived' })).toBe(false)
     expect(productExperiencesUsingFoundation('developer.markdown').map((asset) => asset.key)).toEqual(['experience.workspace'])
     expect(productExperiencesUsingFoundation('state.empty').map((asset) => asset.key)).toEqual([
@@ -83,9 +83,19 @@ describe('product experience registry', () => {
       'experience.world',
     ])
     expect(productExperiencesUsingFoundation('state.permission-confirm').map((asset) => asset.key)).toEqual(['experience.chat'])
+    expect(productExperiencesUsingFoundation('behavior.badge').map((asset) => asset.key)).toEqual(['experience.world'])
   })
 
   it('生命周期规则阻止正式体验依赖候选或 Playground 基础', () => {
+    const world = PRODUCT_EXPERIENCE_REGISTRY['experience.world']
+    expect(world.usesFoundation).not.toContain('behavior.badge')
+    expect(world.playgroundUsesFoundation).toContain('behavior.badge')
+    for (const experience of PRODUCT_EXPERIENCE_ASSETS) {
+      for (const key of (experience as typeof world).playgroundUsesFoundation ?? []) {
+        expect(UI_COMPONENT_REGISTRY[key].layer).toBe('foundation')
+        expect(isFoundationStatusAllowed('playground', UI_COMPONENT_REGISTRY[key].status)).toBe(true)
+      }
+    }
     expect(isFoundationStatusAllowed('adopted', 'adopted')).toBe(true)
     expect(isFoundationStatusAllowed('adopted', 'playground')).toBe(false)
     expect(isFoundationStatusAllowed('adopted', 'candidate')).toBe(false)

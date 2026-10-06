@@ -29,6 +29,8 @@ export interface ProductExperienceDefinition {
   /** 业务语义与页面组成；不参与 Foundation 依赖校验。 */
   experienceParts: readonly string[]
   usesFoundation: readonly FoundationComponentKey[]
+  /** 仅隔离候选使用的基础能力，不代表正式采用。 */
+  playgroundUsesFoundation?: readonly FoundationComponentKey[]
 }
 
 function experience<const T extends ProductExperienceDefinition>(definition: T): T {
@@ -66,6 +68,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
       'src/assets/playground/wardrobe-sport-top.png', 'src/assets/playground/wardrobe-sport-bottom.png',
       'src/assets/playground/culture-book.png', 'src/assets/playground/culture-film.png', 'src/assets/playground/culture-music.png', 'src/assets/playground/culture-photo.png'],
     experienceParts: ['朋友圈', '衣柜', '文化角', '家居', '通讯录', '足迹'],
+    playgroundUsesFoundation: ['behavior.badge'],
     usesFoundation: ['behavior.tabs', 'state.empty', 'state.error', 'behavior.action-button', 'behavior.icon-button', 'behavior.button', 'behavior.input', 'behavior.select', 'state.confirm-panel', 'behavior.image-viewer'],
   }),
   experience({
@@ -118,9 +121,13 @@ export function isActiveProductExperience(asset: ProductExperienceDefinition): b
   return asset.status !== 'archived'
 }
 
-/** 反向关系始终由活跃产品体验的 usesFoundation 派生，禁止另建 usedBy 清单。 */
+/** 反向关系由活跃体验的正式及候选依赖派生，禁止另建 usedBy 清单。 */
 export function productExperiencesUsingFoundation(key: FoundationComponentKey): readonly ProductExperienceAsset[] {
   return PRODUCT_EXPERIENCE_ASSETS.filter(
-    (asset) => isActiveProductExperience(asset) && (asset.usesFoundation as readonly FoundationComponentKey[]).includes(key),
+    (asset) => isActiveProductExperience(asset) && experienceFoundationKeys(asset).includes(key),
   )
+}
+
+export function experienceFoundationKeys(asset: ProductExperienceDefinition): readonly FoundationComponentKey[] {
+  return [...new Set([...asset.usesFoundation, ...(asset.playgroundUsesFoundation ?? [])])]
 }

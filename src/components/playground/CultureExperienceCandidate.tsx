@@ -6,13 +6,14 @@ import filmPoster from '../../assets/playground/culture-film.png'
 import musicCover from '../../assets/playground/culture-music.png'
 import photoPortrait from '../../assets/playground/culture-photo.png'
 import teaPhoto from '../../assets/playground/moment-tea-by-window.jpg'
+import type { CultureReadingNote } from '../world/WorldCultureGallery'
 
 export function CultureExperienceCandidate({ personaId }: { personaId: string }) {
   const [scenario, setScenario] = useState('default')
   const assets = useMemo<LivingAsset[]>(() => {
     if (scenario === 'empty') return []
     const records = [
-      { id: 'reading', name: '《瓦尔登湖》', type: 'reading', author: '亨利·戴维·梭罗', readingStatus: 'reading', src: bookCover, summary: '慢一点，也许能看见生活本来的样子。', detail: '读到湖边生活的段落，想起那些没有安排的下午。', note: '有时候不是事情太多，而是没有给自己留下足够的空白。' },
+      { id: 'reading', name: '《瓦尔登湖》', type: 'reading', author: '亨利·戴维·梭罗', readingStatus: 'reading', currentPage: 124, totalPages: 352, src: bookCover, summary: '慢一点，也许能看见生活本来的样子。', detail: '读到湖边生活的段落，想起那些没有安排的下午。', note: '有时候不是事情太多，而是没有给自己留下足够的空白。' },
       { id: 'book2', name: '《散步去》', type: 'reading', author: '谷口治郎', readingStatus: 'finished', src: bookCover, summary: '熟悉的街道，也值得再走一次。', detail: '喜欢它把平常的路写得很认真。', note: '下次出门，试试不先决定目的地。' },
       { id: 'film', name: '《海街日记》', type: 'film', watchStatus: 'finished', src: filmPoster, summary: '记住的是饭桌、风和四季。', detail: '让我想起那些不必说很多话，也能安心相处的时刻。' },
       { id: 'film2', name: '海边的下午', type: 'film', watchStatus: 'planned', src: filmPoster, summary: '', detail: '隔离样张中的虚构电影。' },
@@ -27,10 +28,18 @@ export function CultureExperienceCandidate({ personaId }: { personaId: string })
         ...(scenario === 'long' ? { detail: '这些是隔离样张中的感受，不是伙伴真实的阅读或观看经历。\n'.repeat(50), note: '留下一点空白，也给新的想法留一个位置。\n'.repeat(40) } : {}),
       } }))
   }, [personaId, scenario])
+  const readingNotes = useMemo<CultureReadingNote[]>(() => scenario === 'no-notes' ? [] : assets.filter(asset => asset.payload.type === 'reading').flatMap((asset, index) => index > 0 ? [
+    { id: `${asset.id}-note-1`, assetId: asset.id, text: String(asset.payload.note ?? ''), occurredAt: Date.UTC(2026, 9, 6, 8) },
+  ] : [
+    { id: `${asset.id}-note-1`, assetId: asset.id, text: '记得给日常留一点空白，不必把每个小时填满。', occurredAt: Date.UTC(2026, 9, 1, 8), page: 36, chapter: '经济篇' },
+    { id: `${asset.id}-note-2`, assetId: asset.id, text: String(asset.payload.note ?? ''), occurredAt: Date.UTC(2026, 9, 6, 8), page: 124, chapter: '声音' },
+    ...(index === 0 ? [{ id: `${asset.id}-note-3`, assetId: asset.id, text: '慢下来以后，原来忽略的声音也变得清楚了。', occurredAt: Date.UTC(2026, 9, 3, 8), page: 82, chapter: '我生活的地方' }] : []),
+  ]), [assets, scenario])
   return <div className="flex h-full min-h-0 flex-col" data-testid="world-culture-fixture" data-persona-id={personaId}>
     <div className="shrink-0 px-4 pt-3"><PlaygroundStateSwitcher ariaLabel="文化角状态样张" value={scenario} onChange={setScenario}
-      items={[{ id: 'default', label: '文化清单' }, { id: 'long', label: '长名称与笔记' }, { id: 'empty', label: '空文化角' }, { id: 'error', label: '读取失败' }, { id: 'no-image', label: '无配图' }, { id: 'pending', label: '配图生成中' }, { id: 'image-failed', label: '配图失败' }]} /></div>
+      items={[{ id: 'default', label: '文化清单' }, { id: 'long', label: '长名称与笔记' }, { id: 'no-notes', label: '无读书笔记' }, { id: 'empty', label: '空文化角' }, { id: 'error', label: '读取失败' }, { id: 'no-image', label: '无配图' }, { id: 'pending', label: '配图生成中' }, { id: 'image-failed', label: '配图失败' }]} /></div>
     <WorldCultureContent key={`${personaId}-${scenario}`} assets={assets} presentation="culture-gallery" showPreviewImages
+      previewReadingNotes={readingNotes}
       previewReadError={scenario === 'error' ? '记录暂时未能读取，请重新读取。' : undefined} onPreviewRetry={() => setScenario('default')} />
   </div>
 }

@@ -3,7 +3,7 @@ import { BookOpen, Camera, Clapperboard, Home, MapPin, Music, Package } from 'lu
 import { GeneratedImageResult, type GeneratedImageReader, type GeneratedImageRevealer } from '../chat/callbacks/GeneratedImageResult'
 import { ImagePreviewImage } from '../foundation/ImagePreviewImage'
 import type { GeneratedImageReference } from '../../shared/types'
-import { WorldCultureGallery } from './WorldCultureGallery'
+import { WorldCultureGallery, type CultureReadingNote } from './WorldCultureGallery'
 
 export interface LivingAsset {
   id: string
@@ -63,8 +63,8 @@ const cultureTypes = {
  * 设计意图：正式与候选共用卡片组合，书架记录作为阅读内容，笔记单独展示并保留所属作品。
  * 关键约束：仅呈现传入的真实字段；不制造播放、观影次数或笔记数量，不按同名去重，不读取 IPC。
  */
-export function WorldCultureContent({ assets, renderEditor, readImage, revealImage, showPreviewImages = false, presentation = 'default', previewReadError, onPreviewRetry }: { assets: readonly LivingAsset[]; renderEditor?: LivingAssetEditor; readImage?: LivingAssetImageReader; revealImage?: LivingAssetImageRevealer; showPreviewImages?: boolean; presentation?: 'default' | 'culture-gallery'; previewReadError?: string; onPreviewRetry?: () => void }) {
-  if (showPreviewImages && presentation === 'culture-gallery') return <WorldCultureGallery assets={assets} readError={previewReadError} onRetry={onPreviewRetry} />
+export function WorldCultureContent({ assets, renderEditor, readImage, revealImage, showPreviewImages = false, presentation = 'default', previewReadError, onPreviewRetry, previewReadingNotes }: { assets: readonly LivingAsset[]; renderEditor?: LivingAssetEditor; readImage?: LivingAssetImageReader; revealImage?: LivingAssetImageRevealer; showPreviewImages?: boolean; presentation?: 'default' | 'culture-gallery'; previewReadError?: string; onPreviewRetry?: () => void; previewReadingNotes?: readonly CultureReadingNote[] }) {
+  if (showPreviewImages && presentation === 'culture-gallery') return <WorldCultureGallery assets={assets} readingNotes={previewReadingNotes} readError={previewReadError} onRetry={onPreviewRetry} />
   const items = assets.filter((item) => item.kind === 'culture' || item.kind === 'bookshelf')
   const typeFor = (item: LivingAsset) => item.kind === 'bookshelf' ? 'reading' : textField(item.payload, 'type')
   const notes = items.filter((item) => typeFor(item) === 'reading' && textField(item.payload, 'note').trim())
