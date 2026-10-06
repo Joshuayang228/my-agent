@@ -5704,6 +5704,15 @@ test.describe('My Agent UI', () => {
         await expect(culture.getByText('旅行的意义', { exact: true })).toHaveCount(0)
         const firstBook = culture.getByRole('article', { name: '《瓦尔登湖》', exact: true })
         await expect(firstBook.locator('[data-foundation="badge"]')).toHaveText('正在读')
+        const checkAuthorStatus = async (row: import('@playwright/test').Locator) => {
+          const author = await row.locator('span').first().boundingBox()
+          const badge = await row.locator('[data-foundation="badge"]').boundingBox()
+          expect(author).not.toBeNull()
+          expect(badge).not.toBeNull()
+          expect(badge!.x).toBeGreaterThanOrEqual(author!.x + author!.width)
+          expect(Math.abs(badge!.y + badge!.height / 2 - author!.y - author!.height / 2)).toBeLessThan(1)
+        }
+        for (const row of await culture.getByTestId('reading-author-status').all()) await checkAuthorStatus(row)
         await expect(firstBook.getByTestId('reading-note-excerpt')).toContainText('空白')
         await expect(firstBook).not.toContainText('原来忽略的声音')
         await expect(firstBook).not.toContainText('慢一点，也许能看见')
@@ -5719,6 +5728,7 @@ test.describe('My Agent UI', () => {
         await expect(culture.getByTestId('culture-detail')).toContainText('感受')
         await expect(culture.getByTestId('culture-detail')).toContainText('笔记')
         const readingHeader = culture.getByTestId('reading-book-header')
+        await checkAuthorStatus(readingHeader.getByTestId('reading-author-status'))
         await expect(readingHeader).toContainText('读到第 124 页 / 共 352 页')
         const headerPicture = await readingHeader.getByTestId('culture-artwork').boundingBox()
         expect(headerPicture!.width).toBeLessThanOrEqual(96)

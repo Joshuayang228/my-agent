@@ -103,8 +103,10 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
             <div className="w-24 shrink-0"><Artwork asset={selected} /></div>
             <div className="min-w-0 flex-1 space-y-2">
               <h3 ref={heading} tabIndex={-1} className="break-words text-[16px] font-semibold" style={{ color: 'var(--text-primary)' }}>{selected.name}</h3>
-              {text(selected, 'author') && <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{text(selected, 'author')}</p>}
-              {status(selected) && <Badge tone={text(selected, 'readingStatus') === 'reading' ? 'accent' : 'neutral'}>{status(selected)}</Badge>}
+              {(text(selected, 'author') || status(selected)) && <div className="flex flex-wrap items-center gap-2" data-testid="reading-author-status">
+                {text(selected, 'author') && <span className="min-w-0 break-words text-[12px]" style={{ color: 'var(--text-muted)' }}>{text(selected, 'author')}</span>}
+                {status(selected) && <Badge tone={text(selected, 'readingStatus') === 'reading' ? 'accent' : 'neutral'}>{status(selected)}</Badge>}
+              </div>}
               {typeof selected.payload.currentPage === 'number' && <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>读到第 {selected.payload.currentPage} 页{typeof selected.payload.totalPages === 'number' ? ` / 共 ${selected.payload.totalPages} 页` : ''}</p>}
               <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>示意配图 · 非官方封面</p>
             </div>
@@ -147,9 +149,12 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
               onClick={() => { if (scroll.current) positions.current[category] = scroll.current.scrollTop; setSelectedId(asset.id) }}>
               <span className="line-clamp-2 break-words text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{asset.name}</span>
             </ActionButton>
-            {(category === 'photography' ? photoMetadata(asset) : creator(asset)) && <div className="truncate text-[11px]" title={category === 'photography' ? photoMetadata(asset) : creator(asset)} style={{ color: 'var(--text-muted)' }}>{category === 'photography' ? photoMetadata(asset) : creator(asset)}</div>}
+            {category !== 'reading' && (category === 'photography' ? photoMetadata(asset) : creator(asset)) && <div className="truncate text-[11px]" title={category === 'photography' ? photoMetadata(asset) : creator(asset)} style={{ color: 'var(--text-muted)' }}>{category === 'photography' ? photoMetadata(asset) : creator(asset)}</div>}
             {category === 'reading' ? <>
-              {status(asset) && <Badge tone={text(asset, 'readingStatus') === 'reading' ? 'accent' : 'neutral'}>{status(asset)}</Badge>}
+              {(creator(asset) || status(asset)) && <div className="flex flex-wrap items-center gap-2" data-testid="reading-author-status">
+                {creator(asset) && <span className="min-w-0 break-words text-[11px]" style={{ color: 'var(--text-muted)' }}>{creator(asset)}</span>}
+                {status(asset) && <Badge tone={text(asset, 'readingStatus') === 'reading' ? 'accent' : 'neutral'}>{status(asset)}</Badge>}
+              </div>}
               {notesFor(asset)[0] && <div className="pt-3 text-[12px] leading-5" data-testid="reading-note-excerpt">
                 <div className="mb-1 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}><BookOpen size={12} aria-hidden="true" />最新笔记</div>
                 <p className="line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{notesFor(asset)[0].text}</p>
