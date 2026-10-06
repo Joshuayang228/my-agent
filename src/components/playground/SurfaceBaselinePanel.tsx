@@ -7,6 +7,7 @@ import { useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'reac
 import { ArrowRight, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, X, Check } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
+import { CultureExperienceCandidate } from './CultureExperienceCandidate'
 import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
@@ -591,9 +592,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
       <WardrobeCandidate assets={fixtures.wardrobe} personaId={persona.id} />
     ),
     culture: (
-      <div data-testid="world-culture-fixture" data-persona-id={persona.id}>
-        <WorldDetailsPanel key={`${persona.id}-culture`} tab="culture" previewAssets={fixtures.living} previewEditable previewRoleName={persona.name} />
-      </div>
+      <CultureExperienceCandidate key={persona.id} personaId={persona.id} />
     ),
     home: (
       <div data-testid="world-home-fixture" data-persona-id={persona.id}>

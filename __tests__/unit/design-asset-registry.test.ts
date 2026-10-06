@@ -10,6 +10,12 @@ import {
 } from '../../src/shared/design-asset-registry'
 
 describe('设计资产注册表', () => {
+  it('文化角业务组合属于体验资产，不能为通过门禁冒充基础组件', () => {
+    const family = ASSET_GOVERNANCE.find((entry) => entry.id === 'product-experience')
+    expect(family?.sourcePaths).toContain('src/components/playground/CultureExperienceCandidate.tsx')
+    expect(family?.sourcePaths).toContain('src/components/world/WorldCultureGallery.tsx')
+    expect(family?.registryPaths).toEqual(['src/shared/product-experience-registry.ts'])
+  })
   it('候选色板保留独立的静态资产门禁，不冒充生产主题或 UI 控件', () => {
     const candidate = ASSET_GOVERNANCE.find((family) => family.id === 'design-study')
     expect(candidate?.kind).toBe('static-renderer')

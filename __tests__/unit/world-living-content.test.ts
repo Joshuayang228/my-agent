@@ -7,6 +7,30 @@ import { WorldCultureContent, type LivingAsset } from '../../src/components/worl
 const render = (assets: LivingAsset[]) => renderToStaticMarkup(createElement(WorldCultureContent, { assets }))
 
 describe('WorldCultureContent', () => {
+  it('四分类候选只展示书籍，不混入其他类别、归档和维护插槽', () => {
+    const html = renderToStaticMarkup(createElement(WorldCultureContent, {
+      presentation: 'culture-gallery', showPreviewImages: true,
+      assets: [
+        { id: 'one', kind: 'culture', name: '同名书', payload: { type: 'reading', detail: '详情不得铺开' } },
+        { id: 'two', kind: 'bookshelf', name: '同名书', payload: {} },
+        { id: 'film', kind: 'culture', name: '电影不得出现', payload: { type: 'film' } },
+        { id: 'archived', kind: 'culture', name: '归档不得出现', payload: { type: 'reading', visibility: 'archived' } },
+      ], renderEditor: () => createElement('div', null, '编辑不得出现'),
+    }))
+    for (const label of ['书籍', '影视', '音乐', '摄影']) expect(html).toContain(label)
+    expect(html.match(/<article /g)).toHaveLength(2)
+    for (const value of ['电影不得出现', '归档不得出现', '详情不得铺开', '编辑不得出现', '>全部<']) expect(html).not.toContain(value)
+  })
+
+  it('候选必须显式启用图片样张隔离，正式默认保留维护和完整记录', () => {
+    const html = renderToStaticMarkup(createElement(WorldCultureContent, {
+      presentation: 'culture-gallery', assets: [{ id: 'one', kind: 'culture', name: '正式记录', payload: { type: 'music', detail: '真实正文' } }],
+      renderEditor: () => createElement('div', null, '正式维护'),
+    }))
+    expect(html).not.toContain('culture-gallery')
+    expect(html).toContain('真实正文')
+    expect(html).toContain('正式维护')
+  })
   it('四类中文标签、书架及笔记共享展示，不按名称丢掉不同记录', () => {
     const html = render([
       ...['reading', 'music', 'film', 'photography'].map((type) => ({ id: type, kind: 'culture', name: `作品-${type}`, payload: { type, detail: '真实摘要', note: `笔记-${type}` } })),

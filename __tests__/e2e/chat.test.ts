@@ -4826,8 +4826,11 @@ test.describe('My Agent UI', () => {
     await page.getByTestId('world-tab-culture').click()
     await expect(page.getByTestId('world-culture-fixture')).toHaveAttribute('data-persona-id', 'yao')
     await expect(page.getByTestId('world-culture-fixture')).toContainText('《瓦尔登湖》')
+    await page.getByTestId('world-culture-fixture').getByRole('tab', { name: '音乐', exact: true }).click()
     await expect(page.getByTestId('world-culture-fixture')).toContainText('旅行的意义')
+    await page.getByTestId('world-culture-fixture').getByRole('tab', { name: '影视', exact: true }).click()
     await expect(page.getByTestId('world-culture-fixture')).toContainText('《海街日记》')
+    await page.getByTestId('world-culture-fixture').getByRole('tab', { name: '摄影', exact: true }).click()
     await expect(page.getByTestId('world-culture-fixture')).toContainText('窗边的光')
     await page.getByTestId('world-tab-home').click()
     await expect(page.getByTestId('world-home-fixture')).toHaveAttribute('data-persona-id', 'yao')
@@ -5684,6 +5687,72 @@ test.describe('My Agent UI', () => {
     }
   }
 
+  for (const theme of ['porcelain-blue', 'yao-stone']) {
+    for (const width of [1096, 640]) {
+      test(`Playground 文化角四类与详情 ${theme} ${width}`, async ({ page }) => {
+        await installProductionElectronStub(page)
+        await page.addInitScript(value => localStorage.setItem('theme', value), theme)
+        await page.setViewportSize({ width, height: 704 })
+        await page.goto('/')
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+        await page.getByTestId('playground-nav').getByRole('button', { name: '人物世界', exact: true }).click()
+        await page.getByTestId('world-tab-culture').click()
+        const culture = page.getByTestId('world-culture-fixture')
+        const tabs = culture.getByRole('tablist', { name: '文化分类' })
+        expect(await tabs.getByRole('tab').allTextContents()).toEqual(['书籍', '影视', '音乐', '摄影'])
+        await expect(culture.locator('article')).toHaveCount(2)
+        await expect(culture.getByText('旅行的意义', { exact: true })).toHaveCount(0)
+        await expect.poll(() => culture.locator('img').evaluateAll(images => images.length === 2 && images.every(img => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0))).toBe(true)
+        const trigger = culture.getByRole('button', { name: '查看作品：《瓦尔登湖》', exact: true })
+        await trigger.scrollIntoViewIfNeeded()
+        const before = await trigger.boundingBox()
+        await trigger.hover()
+        expect(await trigger.boundingBox()).toEqual(before)
+        await trigger.click()
+        await expect(culture.getByTestId('culture-detail')).toBeVisible()
+        await expect(culture.getByTestId('culture-grid')).toHaveCount(0)
+        await expect(culture.getByTestId('culture-detail')).toContainText('感受')
+        await expect(culture.getByTestId('culture-detail')).toContainText('笔记')
+        await culture.getByRole('button', { name: /预览图片/ }).click()
+        await expect(page.getByRole('dialog', { name: '图片预览' })).toBeVisible()
+        await page.keyboard.press('Escape')
+        await expect(culture.getByTestId('culture-detail')).toBeVisible()
+        await culture.getByRole('button', { name: '返回列表', exact: true }).click()
+        await expect(trigger).toBeFocused()
+        await tabs.getByRole('tab', { name: '影视', exact: true }).click()
+        await expect(culture).toContainText('《海街日记》')
+        await tabs.getByRole('tab', { name: '音乐', exact: true }).click()
+        const musicPicture = culture.getByTestId('culture-artwork').first()
+        const musicSize = await musicPicture.boundingBox()
+        expect(Math.abs(musicSize!.width - musicSize!.height)).toBeLessThan(2)
+        await tabs.getByRole('tab', { name: '摄影', exact: true }).click()
+        const photos = culture.getByTestId('culture-artwork')
+        expect((await photos.nth(0).boundingBox())!.width).toBeGreaterThan((await photos.nth(0).boundingBox())!.height)
+        expect((await photos.nth(1).boundingBox())!.height).toBeGreaterThan((await photos.nth(1).boundingBox())!.width)
+        await expect(culture.getByRole('button', { name: /添加文化记录|编辑 |删除 / })).toHaveCount(0)
+        await culture.getByRole('tab', { name: '读取失败', exact: true }).click()
+        await expect(culture.getByRole('alert')).toContainText('重新读取')
+        await culture.getByRole('button', { name: '重新读取', exact: true }).click()
+        await expect(culture.locator('article')).toHaveCount(2)
+        const imageSize = await culture.getByTestId('culture-artwork').first().boundingBox()
+        for (const scenario of ['配图生成中', '配图失败', '无配图']) {
+          await culture.getByRole('tab', { name: scenario, exact: true }).click()
+          expect(await culture.getByTestId('culture-artwork').first().boundingBox()).toEqual(imageSize)
+        }
+        await culture.getByRole('tab', { name: '空文化角', exact: true }).click()
+        await expect(culture).toContainText('还没有书籍记录')
+        await culture.getByRole('tab', { name: '长名称与笔记', exact: true }).click()
+        await culture.getByRole('button', { name: /^查看作品：《瓦尔登湖》/ }).click()
+        const body = culture.getByTestId('culture-detail-text')
+        expect(await body.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true)
+        await culture.getByRole('button', { name: '返回列表', exact: true }).click()
+        await culture.getByRole('tab', { name: '文化清单', exact: true }).click()
+        await culture.getByTestId('culture-gallery').scrollIntoViewIfNeeded()
+        await page.screenshot({ path: `var/verification/culture-gallery-${theme}-${width}.png`, fullPage: true })
+      })
+    }
+  }
+
   test('Playground 衣柜换上保留其他槽位且失败不改变穿搭', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.goto('/')
@@ -5800,7 +5869,7 @@ test.describe('My Agent UI', () => {
     }
   }
 
-  test('Playground 衣柜仅换上且文化编辑仍隔离真实 IPC', async ({ page }) => {
+  test('Playground 衣柜仅换上且文化浏览仍隔离真实 IPC', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
       const writes: unknown[] = []
@@ -5822,10 +5891,10 @@ test.describe('My Agent UI', () => {
     await expect(wardrobe.getByTestId('wardrobe-current-slots')).toContainText('浅灰棉质宽松长袖衬衫')
     await page.getByTestId('world-tab-culture').click()
     const culture = page.getByTestId('world-culture-fixture')
-    await culture.getByRole('button', { name: '添加文化记录', exact: true }).click()
-    await culture.getByLabel('作品', { exact: true }).fill('预览新作品')
-    await culture.getByRole('button', { name: '保存文化记录', exact: true }).click()
-    await expect(culture).toContainText('预览新作品')
+    await expect(culture.getByRole('button', { name: /添加文化记录|编辑 |删除 / })).toHaveCount(0)
+    await culture.getByRole('button', { name: '查看作品：《瓦尔登湖》', exact: true }).click()
+    await expect(culture.getByTestId('culture-detail')).toContainText('空白')
+    await culture.getByRole('button', { name: '返回列表', exact: true }).click()
     expect(await page.evaluate(() => (window as any).__worldPreviewWrites)).toEqual([])
   })
 
