@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef, type ReactNode } from 'react'
+import { Fragment, useId, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 
 export interface TabStripItem {
@@ -7,6 +7,7 @@ export interface TabStripItem {
   icon?: ReactNode
   panelId?: string
   testId?: string
+  separatorBefore?: boolean
 }
 
 interface TabStripProps {
@@ -44,7 +45,9 @@ export function TabStrip({ label, items, activeId, onSelect, onClose, itemTestId
     data-foundation="tabs" className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
     {items.map((item, index) => {
       const active = item.id === activeId
-      return <div key={item.id} role="presentation" data-testid={itemTestId}
+      return <Fragment key={item.id}>
+        {item.separatorBefore && <span aria-hidden="true" className="flex h-8 shrink-0 items-center px-1" style={{ color: 'var(--text-muted)' }}>|</span>}
+        <div role="presentation" data-testid={itemTestId}
         className="flex shrink-0 items-center rounded-md px-1 hover:bg-[var(--bg-secondary)]"
         style={{ background: variant === 'surface' && active ? 'var(--bg-secondary)' : undefined }}>
         <button ref={(node) => { if (node) buttons.current.set(item.id, node); else buttons.current.delete(item.id) }}
@@ -72,7 +75,7 @@ export function TabStrip({ label, items, activeId, onSelect, onClose, itemTestId
         {onClose && <button type="button" aria-label={'关闭' + item.label} title={'关闭' + item.label}
           className="flex h-6 w-6 shrink-0 items-center justify-center rounded hover:bg-[var(--hover-overlay)]"
           style={{ color: 'var(--text-muted)' }} onClick={() => close(item.id)}><X size={14} /></button>}
-      </div>
+      </div></Fragment>
     })}
   </div>
 }

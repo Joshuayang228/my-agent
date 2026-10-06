@@ -79,6 +79,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
   const [wearingId, setWearingId] = useState<string | null>(null)
   const [wearingHint, setWearingHint] = useState('')
   const [category, setCategory] = useState('all')
+  const [previewWardrobeView, setPreviewWardrobeView] = useState('wearing')
   const [previewSlots, setPreviewSlots] = useState<Record<string, string>>({})
   const [changeError, setChangeError] = useState('')
   const [changingId, setChangingId] = useState<string | null>(null)
@@ -112,6 +113,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
       setItems(previewAssets ?? [])
       setWearingId(previewWearingId ?? null)
       setWearingHint('')
+      setPreviewWardrobeView('wearing')
       setPreviewSlots(Object.fromEntries((previewAssets ?? []).filter((asset) => asset.payload.previewWearing === true).map((asset) => [String(asset.payload.category), asset.id])))
       return
     }
@@ -319,6 +321,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
       else {
         setPreviewSlots((slots) => ({ ...slots, [slot]: asset.id }))
         if (slot === 'outerwear') setWearingId(asset.id)
+        setPreviewWardrobeView('wearing')
       }
       setChangingId(null)
     }, 450)
@@ -358,13 +361,18 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
         <WorldWriteError message={writeError}>
           {!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>}
         </WorldWriteError>
-        {tab === 'wardrobe' ? (
+        {wardrobeGallery && <div className="mb-4" data-testid="wardrobe-view-tabs"><TabStrip label="衣柜视图" activeId={previewWardrobeView} onSelect={(id) => { setPreviewWardrobeView(id); if (id !== 'wearing') setCategory(id) }} items={[
+          { id: 'wearing', label: '正在穿着' }, { id: 'all', label: '全部', separatorBefore: true },
+          ...Object.entries(slotLabels).map(([id, label]) => ({ id, label })),
+        ]} /></div>}
+        {wardrobeGallery && <WorldWriteError message={changeError} />}
+        {tab === 'wardrobe' && (!wardrobeGallery || previewWardrobeView === 'wearing') ? (
           <section className="mb-5">
-            <div className="mb-2 flex items-baseline justify-between gap-3">
+            {!wardrobeGallery && <div className="mb-2 flex items-baseline justify-between gap-3">
               <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--companion-accent-warm)' }}>{wardrobeGallery ? '正在穿着' : '穿着中'}</div>
-            </div>
+            </div>}
             {wearing ? (
-              <div className={wardrobeGallery ? 'border-b pb-4' : 'companion-life-card rounded-xl border p-4'} data-testid="world-wardrobe-wearing" style={wardrobeGallery ? { borderColor: 'var(--border-subtle)' } : { borderColor: 'var(--companion-accent-warm)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
+              <div className={wardrobeGallery ? 'py-2' : 'companion-life-card rounded-xl border p-4'} data-testid="world-wardrobe-wearing" style={wardrobeGallery ? undefined : { borderColor: 'var(--companion-accent-warm)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
                 <div className={wardrobeGallery ? 'flex min-w-0 flex-col items-center gap-4' : 'flex items-start gap-3'}>
                   {wardrobeGallery
                     ? <div className="aspect-[3/4] w-full max-w-60 overflow-hidden rounded-[var(--radius-md)]" data-testid="wardrobe-outfit-image" style={{ background: 'var(--bg-secondary)' }}>
@@ -408,17 +416,13 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
               </div>
             )}
           </section>
-        ) : (
+        ) : tab === 'bookshelf' ? (
           <section className="mb-4">
             <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>收藏的书与阅读笔记。</p>
           </section>
-        )}
+        ) : null}
 
-        <section>
-          {wardrobeGallery && <div className="mb-3"><TabStrip label="衣物分类" activeId={category} onSelect={setCategory} items={[
-            { id: 'all', label: '全部' }, ...Object.entries(slotLabels).map(([id, label]) => ({ id, label })),
-          ]} /></div>}
-          {wardrobeGallery && <WorldWriteError message={changeError} />}
+        {(!wardrobeGallery || previewWardrobeView !== 'wearing') && <section data-testid="world-assets-inventory">
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
             {tab === 'bookshelf' ? '藏书' : '库存'}{tabItems.length ? ` · ${tabItems.length}` : ''}
           </div>
@@ -462,7 +466,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
               onCancel={() => { if (!busy) setAddDrafts((drafts) => ({ ...drafts, [tab]: { open: false, draft: drafts[tab]?.draft ?? emptyWorldAssetDraft(tab) } })) }}
             />
           )}
-        </section>
+        </section>}
       </div>
     </fieldset>
   )
