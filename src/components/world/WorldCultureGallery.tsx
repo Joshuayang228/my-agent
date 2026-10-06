@@ -16,6 +16,10 @@ const categories = [
 ] as const
 const text = (asset: LivingAsset, key: string) => typeof asset.payload[key] === 'string' ? asset.payload[key] as string : ''
 const typeFor = (asset: LivingAsset) => asset.kind === 'bookshelf' ? 'reading' : text(asset, 'type')
+const fullReflection = (asset: LivingAsset) => typeFor(asset) === 'film'
+  ? text(asset, 'detail').trim() ? text(asset, 'detail') : text(asset, 'summary').trim() ? text(asset, 'summary') : ''
+  : text(asset, 'detail')
+const reflectionExcerpt = (asset: LivingAsset) => typeFor(asset) === 'film' ? fullReflection(asset) : text(asset, 'summary')
 const states: Record<string, string> = { planned: '想读', reading: '正在读', paused: '暂时放下', finished: '已完成', abandoned: '未继续', watching: '正在看', queued: '想听', listening: '正在听', revisiting: '最近常听' }
 const formatLabel = (asset: LivingAsset) => typeFor(asset) === 'film'
   ? text(asset, 'mediaKind') === 'movie' ? '电影' : text(asset, 'mediaKind') === 'series' ? '剧集' : ''
@@ -124,7 +128,7 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
             </div>
           </div>}
           <div className="max-h-[45vh] overflow-y-auto whitespace-pre-wrap break-words pr-2 text-[13px] leading-6 scrollbar-thin" data-testid="culture-detail-text" tabIndex={0} style={{ color: 'var(--text-secondary)' }}>
-            {text(selected, 'detail') && <section className="mb-5"><h4 className="mb-2 font-medium">{category === 'reading' ? '整体感受' : category === 'film' ? '观后感' : category === 'music' ? '听感' : '创作说明'}</h4><p>{text(selected, 'detail')}</p></section>}
+            {fullReflection(selected) && <section className="mb-5"><h4 className="mb-2 font-medium">{category === 'reading' ? '整体感受' : category === 'film' ? '观后感' : category === 'music' ? '听感' : '创作说明'}</h4><p>{fullReflection(selected)}</p></section>}
             {category === 'reading' ? <section data-testid="reading-notes"><h4 className="mb-3 font-medium">读书笔记</h4>
               {notesFor(selected).length ? <ol className="space-y-3">{notesFor(selected).map((note) => <li key={note.id} className="rounded-md border p-3" data-testid="reading-note" style={{ borderColor: 'var(--border-subtle)' }}>
                 <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
@@ -155,9 +159,9 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
                 {formatLabel(asset) && <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{formatLabel(asset)}</span>}
                 {status(asset) && <Badge tone={isEngaged(asset) ? 'accent' : 'neutral'}>{status(asset)}</Badge>}
               </div>}
-              {text(asset, 'summary') && <div className="pt-3 text-[12px] leading-5" data-testid="culture-reflection-excerpt">
+              {reflectionExcerpt(asset) && <div className="pt-3 text-[12px] leading-5" data-testid="culture-reflection-excerpt">
                 {category !== 'photography' && <div className="mb-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{category === 'film' ? '观后感' : '听感'}</div>}
-                <p className="line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{text(asset, 'summary')}</p>
+                <p className="line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{reflectionExcerpt(asset)}</p>
               </div>}
             </>}
           </article>)}
