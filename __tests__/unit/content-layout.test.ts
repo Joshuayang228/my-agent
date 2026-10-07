@@ -4,7 +4,8 @@ import ts from 'typescript'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createElement } from 'react'
 import { ActionButton } from '../../src/components/foundation/ActionButton'
-import { CONTENT_LAYOUT, LAYOUT_CLASSES, LAYOUT_DENSITIES, LAYOUT_PROFILES, SPACING, layoutDensityStyle, layoutProfileStyle, contentGutterStyle, readingContentStyle } from '../../src/shared/content-layout'
+import { LayoutLanguageSamples } from '../../src/components/playground/LayoutLanguageSamples'
+import { CONTENT_LAYOUT, LAYOUT_CLASSES, LAYOUT_DENSITIES, LAYOUT_EXCEPTIONS, LAYOUT_PROFILES, SPACING, layoutDensityStyle, layoutProfileStyle, contentGutterStyle, readingContentStyle } from '../../src/shared/content-layout'
 
 function hasSharedDetail(source: string, id: string) {
   const file = ts.createSourceFile('candidate.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
@@ -29,6 +30,16 @@ function hasSharedDetail(source: string, id: string) {
 }
 
 describe('共享内容布局候选', () => {
+  it('基础五组实际样张同时存在，例外定义仍保留而不占展示区', () => {
+    const markup = renderToStaticMarkup(createElement(LayoutLanguageSamples))
+    for (const id of ['text', 'images', 'combinations', 'modules', 'alignment']) expect(markup).toContain(`data-testid="layout-section-${id}"`)
+    expect(markup).not.toContain('独立布局契约')
+    expect(markup).not.toContain('布局稳定性')
+    expect(markup).not.toContain('overflow-y-auto')
+    expect(markup).toContain('data-testid="layout-module-action"')
+    expect(markup).toContain('group-hover:opacity-100')
+    expect(LAYOUT_EXCEPTIONS.map(item => item.key)).toEqual(['navigation', 'media', 'canvas'])
+  })
   it('基础密度不引用产品场景，并与同一间距阶梯一致', () => {
     expect(Object.values(LAYOUT_DENSITIES).map(value => value.label)).toEqual(['紧凑', '标准', '宽松'])
     for (const [id, density] of Object.entries(LAYOUT_DENSITIES)) {

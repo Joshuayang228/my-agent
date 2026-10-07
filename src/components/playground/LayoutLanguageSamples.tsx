@@ -1,22 +1,28 @@
-import { useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { Check, Copy } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
+import { IconButton } from '../foundation/IconButton'
 import { TabStrip } from '../foundation/TabStrip'
-import { CONTENT_LAYOUT, LAYOUT_CLASSES, LAYOUT_DENSITIES, LAYOUT_EXCEPTIONS, layoutDensityStyle, contentGutterStyle, readingContentStyle, type LayoutDensityId } from '../../shared/content-layout'
+import { CONTENT_LAYOUT, LAYOUT_CLASSES, LAYOUT_DENSITIES, layoutDensityStyle, readingContentStyle, type LayoutDensityId } from '../../shared/content-layout'
 import canal from '../../assets/playground/travel-canal.png'
 
 /**
- * 背景：规范需要通过长内容和交互检查，不能只列数值。
- * 设计意图：同一来源演示对齐、限宽、滚动和常驻操作槽。
- * 关键约束：只操作本地样张；错误对照不输出给产品组件。
+ * 背景：单个详情和检查说明无法直观比较基础布局。
+ * 设计意图：五组实际内容同时展示，共同继承密度变量。
+ * 关键约束：自然展开、不绑定产品场景；操作按钮始终保留占位。
  */
 export function LayoutLanguageSamples() {
-  const [long, setLong] = useState(false)
-  const [image, setImage] = useState('ready')
-  const [detail, setDetail] = useState(true)
   const [densityId, setDensityId] = useState<LayoutDensityId>('standard')
+  const [copied, setCopied] = useState(false)
+  const [copyError, setCopyError] = useState(false)
   const density = LAYOUT_DENSITIES[densityId]
-  return <div className="space-y-6" data-testid="layout-language-samples">
+  const paragraph = '午后的光映在水面上。沿着河边走，遇见喜欢的地方就停下来，记下路上看到的光影。'
+  const longParagraph = `${paragraph}远处的桥、近处的树影和偶尔经过的人，让同一段路在不同时间有了不同的模样。没有急着赶路，反而注意到了平时忽略的细节。`
+  const surface = { borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }
+  const section = (id: string, title: string, children: ReactNode) => <section aria-label={title} data-testid={`layout-section-${id}`} className={`min-w-0 ${LAYOUT_CLASSES.section}`}><h3 className="text-sm font-medium">{title}</h3>{children}</section>
+  const caption = (text: string) => <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{text}</p>
+  const content = (long = false) => <div className={`min-w-0 ${LAYOUT_CLASSES.section}`}><h4 className="text-base font-semibold">沿着运河慢慢走</h4><p className="text-sm leading-7">{long ? longParagraph : paragraph}</p><p className="text-xs leading-5" style={{ color: 'var(--text-muted)' }}>午后 · 河畔</p></div>
+  return <div className={`min-w-0 ${LAYOUT_CLASSES.section}`} data-testid="layout-language-samples" style={layoutDensityStyle(densityId)}>
     <TabStrip label="布局密度" items={Object.entries(LAYOUT_DENSITIES).map(([id, value]) => ({ id, label: value.label }))} activeId={densityId} onSelect={value => setDensityId(value as LayoutDensityId)} />
     <dl className="flex flex-wrap gap-6 text-xs" data-testid="layout-profile-values">
       <div><dt>页面边距</dt><dd>{density.gutter}px</dd></div>
@@ -24,33 +30,21 @@ export function LayoutLanguageSamples() {
       <div><dt>区块间距</dt><dd>{density.section}px</dd></div>
       <div><dt>卡片内边距</dt><dd>{density.card}px</dd></div>
     </dl>
-    <section className="space-y-3" aria-label="边距与内容宽度">
-      <div className="flex flex-wrap items-center gap-3"><h3 className="text-sm font-medium">边距与内容宽度</h3>
-        <ActionButton onClick={() => setLong(value => !value)} aria-pressed={long}>{long ? '短正文' : '长正文'}</ActionButton></div>
-      <div className={`border ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`} data-layout-density={densityId} data-testid="layout-scroll-sample" style={{ ...layoutDensityStyle(densityId), borderColor: 'var(--border-color)' }}>
-        {!detail && <ActionButton onClick={() => setDetail(true)}>查看内容</ActionButton>}
-        {detail && <><ActionButton variant="plain" data-testid="layout-back" onClick={() => setDetail(false)}><ArrowLeft size={14} className="mr-2" />返回</ActionButton>
-        <article data-testid="layout-reading" style={{ ...readingContentStyle(), display: 'grid', gap: density.section, marginTop: density.section }}>
-          <h4 className="text-base font-semibold">沿着运河慢慢走</h4>
-          <TabStrip label="配图状态" items={[{ id: 'ready', label: '有图' }, { id: 'pending', label: '加载中' }, { id: 'failed', label: '加载失败' }]} activeId={image} onSelect={setImage} />
-          <div data-testid="layout-media" className="relative overflow-hidden" style={{ aspectRatio: '3 / 2', background: 'var(--bg-secondary)' }}>
-            {image === 'ready' ? <img src={canal} alt="古镇运河" className="block h-full w-full object-cover" />
-              : <div role="status" className="flex h-full items-center justify-center text-xs">{image === 'pending' ? '配图加载中' : '配图加载失败'}</div>}
-          </div>
-          <p className="whitespace-pre-wrap text-sm leading-7" data-testid="layout-body">{Array(long ? 12 : 1).fill('这次没有把行程排满。沿着河边走，遇见喜欢的地方就停下来，记下路上看到的光影。').join('\n\n')}</p>
-          <div className={`border ${LAYOUT_CLASSES.card}`} data-testid="layout-card-sample" style={{ borderColor: 'var(--border-color)' }}><p className="text-sm">午后的光映在水面上。</p></div>
-        </article></>}
-      </div>
-    </section>
-    <section aria-label="独立布局契约" className="space-y-3"><h3 className="text-sm font-medium">独立布局契约</h3>
-      <dl className="grid gap-3 sm:grid-cols-3">{LAYOUT_EXCEPTIONS.map(item => <div key={item.key} className="min-w-0 text-xs"><dt className="font-medium">{item.label}</dt><dd className="mt-1 break-words" style={{ color: 'var(--text-muted)' }}>{item.owner}</dd></div>)}</dl>
-    </section>
-    <section className="space-y-3" aria-label="布局稳定性"><h3 className="text-sm font-medium">布局稳定性</h3>
-      <div className="group flex items-center gap-4 border py-3" style={{ ...contentGutterStyle(), borderColor: 'var(--border-color)' }} data-testid="layout-hover-row">
-        <p className="min-w-0 flex-1 text-sm">在河边记下一个想法。</p>
-        <ActionButton className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100" data-testid="layout-hover-action" onClick={() => { setLong(true); setDetail(true) }}>查看</ActionButton>
-      </div>
-    </section>
+    {section('text', '文字', <div className="grid min-w-0 sm:grid-cols-2" style={{ gap: density.section }}>{[false, true].map(long => <div key={String(long)} className={LAYOUT_CLASSES.section}>{caption(long ? '长正文' : '短正文')}{content(long)}</div>)}</div>)}
+    {section('images', '图片', <div className="grid min-w-0 grid-cols-3 items-start" style={{ gap: density.section }}>{[{ label: '横图', ratio: '3 / 2' }, { label: '竖图', ratio: '2 / 3' }, { label: '方图', ratio: '1 / 1' }].map(({ label, ratio }) => <figure key={label} className={`min-w-0 ${LAYOUT_CLASSES.section}`}><img data-testid="layout-ratio-image" src={canal} alt={`古镇运河 · ${label}`} className="block w-full object-cover" style={{ aspectRatio: ratio }} /><figcaption className="text-xs" style={{ color: 'var(--text-muted)' }}>{label} · {ratio}</figcaption></figure>)}</div>)}
+    {section('combinations', '图文组合', <div className="grid min-w-0 sm:grid-cols-2" style={{ gap: density.section }}>
+      <div className={LAYOUT_CLASSES.section}>{caption('上图下文')}<img src={canal} alt="运河与石桥" className="block aspect-[3/2] w-full object-cover" />{content()}</div>
+      <div className={LAYOUT_CLASSES.section}>{caption('左图右文')}<div className="grid min-w-0 grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-start" style={{ gap: density.section }}><img src={canal} alt="河畔树影" className="block aspect-[2/3] w-full object-cover" />{content()}</div></div>
+    </div>)}
+    {section('modules', '模块', <div className={LAYOUT_CLASSES.section}>
+      <article className={`group rounded-lg border ${LAYOUT_CLASSES.card}`} data-testid="layout-module-single" style={surface}>
+        <div className="flex items-center gap-3" data-testid="layout-module-action-row"><h4 className="min-w-0 flex-1 text-sm font-medium">在河边记下一个想法。</h4><IconButton label="复制样张文字" size={28} className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100" data-testid="layout-module-action" onClick={async () => { try { await navigator.clipboard.writeText(paragraph); setCopied(true); setCopyError(false) } catch { setCopyError(true) } }}>{copied ? <Check size={14} /> : <Copy size={14} />}</IconButton></div>
+        <p className="mt-2 text-sm leading-7">{paragraph}</p>
+      </article>
+      <div className="grid min-w-0 sm:grid-cols-3" data-testid="layout-module-grid" style={{ gap: density.section }}>{['水面上的光', '桥下的倒影', '一段不赶时间的散步与随手记下的见闻'].map((title, index) => <article key={title} className={`min-w-0 rounded-lg border ${LAYOUT_CLASSES.card}`} data-testid="layout-module-card" style={surface}><h4 className="break-words text-sm font-medium">{title}</h4><p className="mt-2 text-sm leading-7">{index === 2 ? longParagraph : paragraph}</p></article>)}</div>
+      <p role="status" className="min-h-5 text-xs" style={{ color: 'var(--text-muted)' }}>{copyError ? '复制未成功，请重试。' : copied ? '已复制' : ''}</p>
+    </div>)}
+    {section('alignment', '边界与对齐', <div className={LAYOUT_CLASSES.section}>{[false, true].map(centered => <div key={String(centered)} className={`min-w-0 border ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`} data-testid={centered ? 'layout-align-center' : 'layout-align-left'} style={{ borderColor: 'var(--border-color)' }}><div className={LAYOUT_CLASSES.section} data-testid={centered ? 'layout-reading-center' : 'layout-reading-left'} style={{ ...readingContentStyle(), ...(centered ? { marginInline: 'auto', textAlign: 'center' as const } : {}) }}>{caption(centered ? '居中 · 限宽' : '左对齐 · 限宽')}{content()}</div></div>)}</div>)}
   </div>
 }
 
