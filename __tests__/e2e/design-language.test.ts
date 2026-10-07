@@ -58,6 +58,48 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
       expect(await samples.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
     }
     await densityTabs.getByRole('tab', { name: '标准', exact: true }).click()
+    for (const heading of await samples.getByRole('heading', { level: 3 }).all()) await expect(heading).toHaveCSS('font-weight', '700')
+    for (const example of await samples.locator('[data-testid="layout-section-text"] .border, [data-testid="layout-section-images"] figure, [data-testid="layout-section-combinations"] > div > .border').all()) await expect(example).toHaveCSS('border-top-width', '1px')
+    const gutterInput = page.getByRole('spinbutton', { name: '页面边距数值', exact: true })
+    await gutterInput.fill('31')
+    await expect(page.getByRole('slider', { name: '页面边距', exact: true })).toHaveValue('31')
+    await expect(page.getByTestId('layout-preview-gutter')).toHaveCSS('padding-left', '31px')
+    await expect(page.getByTestId('layout-custom-label')).toHaveText('自定义')
+    await gutterInput.fill('')
+    await gutterInput.blur()
+    await expect(gutterInput).toHaveValue('31')
+    await gutterInput.fill('999')
+    await gutterInput.press('Enter')
+    await expect(gutterInput).toHaveValue('48')
+    await gutterInput.fill('-5')
+    await gutterInput.blur()
+    await expect(gutterInput).toHaveValue('0')
+    for (const [label, value, target, property] of [
+      ['内容宽度', 400, 'layout-preview-width', 'max-width'],
+      ['区块间距', 33, 'layout-module-grid', 'gap'],
+      ['卡片内边距', 27, 'layout-module-single', 'padding-left'],
+    ] as const) {
+      const input = page.getByRole('spinbutton', { name: `${label}数值`, exact: true })
+      await input.fill(String(value))
+      await input.press('Enter')
+      await expect(page.getByTestId(target)).toHaveCSS(property, `${value}px`)
+      const slider = page.getByRole('slider', { name: label, exact: true })
+      await expect(slider).toHaveValue(String(value))
+      await slider.focus()
+      await slider.press('ArrowRight')
+      await expect(input).toHaveValue(String(value + 1))
+    }
+    await page.getByRole('spinbutton', { name: '内容宽度数值' }).fill('240')
+    await page.getByRole('spinbutton', { name: '卡片内边距数值' }).fill('48')
+    expect(await samples.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+    for (const sample of await samples.locator('section').all()) expect(await sample.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+    await page.getByRole('button', { name: '重置布局参数', exact: true }).click()
+    await expect(gutterInput).toHaveValue('16')
+    await expect(page.getByRole('spinbutton', { name: '内容宽度数值' })).toHaveValue('672')
+    await expect(page.getByRole('spinbutton', { name: '区块间距数值' })).toHaveValue('20')
+    await expect(page.getByRole('spinbutton', { name: '卡片内边距数值' })).toHaveValue('16')
+    await expect(page.getByTestId('layout-custom-label')).toHaveText('')
+    await expect(densityTabs.getByRole('tab', { name: '标准', exact: true })).toHaveAttribute('aria-selected', 'true')
     for (const [index, ratio] of [3 / 2, 2 / 3, 1].entries()) {
       const media = page.getByTestId('layout-ratio-image').nth(index)
       expect(await media.evaluate(node => (node as HTMLImageElement).complete && (node as HTMLImageElement).naturalWidth > 0)).toBe(true)
