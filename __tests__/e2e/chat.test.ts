@@ -617,7 +617,7 @@ for (const outerTheme of ['porcelain-blue', 'yao-stone']) {
       await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
       const nav = page.getByTestId('playground-nav')
       await nav.getByRole('button', { name: '设计语言', exact: true }).click()
-      await page.getByRole('button', { name: '主题对照', exact: true }).click()
+      await page.getByRole('tab', { name: '主题对照', exact: true }).click()
       const studies = await page.getByTestId('theme-study-grid').locator('article').evaluateAll((nodes) => nodes.map((node) => ({
         id: node.getAttribute('data-testid')!.replace('theme-study-', ''),
         label: node.querySelector('h4')!.textContent!,
@@ -3571,7 +3571,7 @@ test.describe('My Agent UI', () => {
     await expect(designSource).toHaveClass(/w-\[18rem\]/)
     await expect(page.getByTestId('color-role-groups')).toBeVisible()
     await expect(page.getByTestId('color-interaction-matrix')).toContainText('focus / disabled')
-    await page.getByRole('button', { name: '主题对照', exact: true }).click()
+    await page.getByRole('tab', { name: '主题对照', exact: true }).click()
     await expect(page.getByTestId('theme-study-grid')).toBeVisible()
     for (const studyId of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) {
       await expect(page.getByTestId(`theme-study-${studyId}`)).toBeVisible()
@@ -3581,7 +3581,7 @@ test.describe('My Agent UI', () => {
     await expect(page.getByTestId('theme-study-selection')).toContainText('曜石')
     await expect(page.getByTestId('theme-study-yao-stone')).toContainText('当前比较')
     await expect(page.getByTestId('production-theme-strip')).toContainText('瓷青')
-    await page.getByRole('button', { name: '形态与动效', exact: true }).click()
+    await page.getByRole('tab', { name: '形态与动效', exact: true }).click()
     const radiusSlider = page.getByTestId('radius-controls').getByRole('slider', { name: '自定义圆角', exact: true })
     await expect(radiusSlider).toBeVisible()
     await radiusSlider.fill('24')

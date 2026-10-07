@@ -7,6 +7,7 @@ import { ImagePreviewImage } from '../foundation/ImagePreviewImage'
 import { TabStrip } from '../foundation/TabStrip'
 import { Badge } from '../foundation/Badge'
 import type { LivingAsset } from './WorldLivingContent'
+import { contentGutterStyle, readingContentStyle } from '../../shared/content-layout'
 
 const categories = [
   { id: 'reading', label: '书籍', icon: BookOpen },
@@ -90,14 +91,14 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
   }
   const isEngaged = (asset: LivingAsset) => ['reading', 'watching', 'listening', 'revisiting'].includes(text(asset, 'readingStatus') || text(asset, 'watchStatus') || text(asset, 'listeningStatus'))
   const notesFor = (asset: LivingAsset) => readingNotes.filter((note) => note.assetId === asset.id && note.text.trim()).slice().sort((a, b) => ((b.occurredAt ?? b.createdAt) ?? 0) - ((a.occurredAt ?? a.createdAt) ?? 0) || a.id.localeCompare(b.id))
-  return <div className="flex h-full min-h-0 flex-col px-4 py-4" data-testid="culture-gallery">
+  return <div className="flex h-full min-h-0 flex-col" style={contentGutterStyle()} data-testid="culture-gallery">
     <div className="mb-4 shrink-0"><TabStrip label="文化分类" activeId={category} onSelect={(id) => {
       if (!selected && scroll.current) positions.current[category] = scroll.current.scrollTop
       returnId.current = null; setSelectedId(null); setCategory(id)
     }} items={categories.map(({ id, label, icon: Icon }) => ({ id, label, icon: <Icon size={14} /> }))} /></div>
     <div ref={scroll} className="min-h-0 flex-1 overflow-y-auto scrollbar-thin" data-testid="culture-content-scroll">
       {readError ? <ErrorState title="文化记录未能读取" description={readError} action={onRetry && <ActionButton onClick={onRetry}>重新读取</ActionButton>} />
-        : selected ? <section data-testid="culture-detail" className="min-w-0 space-y-4" onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); close() } }}>
+        : selected ? <section data-testid="culture-detail" className="space-y-4" style={readingContentStyle()} onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); close() } }}>
           <ActionButton variant="plain" onClick={close}><ArrowLeft size={14} className="mr-2" />返回列表</ActionButton>
           {category === 'reading' ? <div className="flex items-start gap-4" data-testid="reading-book-header">
             <div className="w-24 shrink-0"><Artwork asset={selected} /></div>

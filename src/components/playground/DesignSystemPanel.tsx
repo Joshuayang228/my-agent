@@ -10,6 +10,8 @@ import { useState, type CSSProperties } from 'react'
 import { AdoptionMark } from './AdoptionMark'
 import { DESIGN_THEME_ASSETS } from '../../shared/design-asset-registry'
 import { THEME_STUDIES } from './foundation-themes'
+import { TabStrip } from '../foundation/TabStrip'
+import { LayoutLanguageSamples, OpacityLanguageSamples } from './LayoutLanguageSamples'
 
 const COLORS = [
   ['--bg-primary', '主底', '画布与页面背景'],
@@ -55,7 +57,7 @@ const MOTION_EASINGS = {
 
 
 const PRODUCTION_THEMES = DESIGN_THEME_ASSETS.map((asset) => ({ id: asset.id, label: asset.labelZh }))
-type Sub = 'colors' | 'themes' | 'radius'
+type Sub = 'colors' | 'themes' | 'layout' | 'opacity' | 'radius'
 type MotionEasing = keyof typeof MOTION_EASINGS
 
 type ThemeStyle = CSSProperties & Record<`--study-${string}`, string>
@@ -212,22 +214,16 @@ export function DesignSystemPanel() {
   const subs: { id: Sub; label: string }[] = [
     { id: 'colors', label: '颜色' },
     { id: 'themes', label: '主题对照' },
+    { id: 'layout', label: '布局与间距' },
+    { id: 'opacity', label: '透明度' },
     { id: 'radius', label: '形态与动效' },
   ]
 
   return (
     <div className="playground-panel w-full space-y-6" data-testid="design-system-panel">
-      <div className="flex min-w-0 items-center gap-5 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-        {subs.map((item) => {
-          const active = sub === item.id
-          return (
-            <button key={item.id} type="button" onClick={() => setSub(item.id)} className="relative py-2.5 text-[11px] transition" style={{ color: active ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: active ? 600 : 400 }}>
-              {item.label}
-              {active && <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full" style={{ background: 'var(--accent-emphasis)' }} />}
-            </button>
-          )
-        })}
-      </div>
+      <TabStrip label="设计语言分类" items={subs} activeId={sub} onSelect={value => setSub(value as Sub)} />
+      {sub === 'layout' && <LayoutLanguageSamples />}
+      {sub === 'opacity' && <OpacityLanguageSamples />}
 
       {sub === 'colors' && (
         <div className="space-y-5">

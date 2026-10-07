@@ -5,6 +5,7 @@ import { EmptyState } from '../foundation/EmptyState'
 import { ErrorState } from '../foundation/ErrorState'
 import { ImagePreviewImage } from '../foundation/ImagePreviewImage'
 import { TabStrip } from '../foundation/TabStrip'
+import { CONTENT_LAYOUT, readingContentStyle } from '../../shared/content-layout'
 
 export interface HomeSpacePreview { id: string; name: string; description?: string; image?: string; icon?: ReactNode }
 export interface HomeObjectPreview {
@@ -59,7 +60,7 @@ export function WorldHomeGallery({ overviewImage, spaces, objects, imageState = 
   const tabs = [{ id: 'overview', label: '总览', icon: <LayoutGrid size={14} /> }, ...spaces.map(item => ({ id: item.id, label: item.name, icon: item.icon ?? <Home size={14} /> })),
     ...(homeObjectsForSpace(objects, 'unassigned').length ? [{ id: 'unassigned', label: '未归置', icon: <Package size={14} /> }] : [])]
   const empty = spaces.length === 0 && objects.length === 0 && !overviewImage
-  return <div className="flex min-h-0 flex-1 flex-col px-4 pb-4" data-testid="home-gallery">
+  return <div className="flex min-h-0 flex-1 flex-col" style={{ paddingInline: CONTENT_LAYOUT.gutter, paddingBottom: CONTENT_LAYOUT.gutter }} data-testid="home-gallery">
     <div className="shrink-0 py-3"><TabStrip label="家居空间" activeId={spaceId} items={tabs} onSelect={id => {
       if (scroll.current && !selected) positions.current.set(spaceId, scroll.current.scrollTop)
       returnId.current = null; setSelected(null); setSpaceId(id)
@@ -67,7 +68,7 @@ export function WorldHomeGallery({ overviewImage, spaces, objects, imageState = 
     <div ref={scroll} className="min-h-0 flex-1 overflow-y-auto scrollbar-thin" data-testid="home-content-scroll">
       {readError ? <ErrorState title="家居记录未能读取" description={readError} action={onRetry && <ActionButton onClick={onRetry}>重新读取</ActionButton>} />
         : empty ? <EmptyState title="还没有记录居住空间" description="" />
-        : selected ? <section className="space-y-4" data-testid="home-object-detail" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); close() } }}>
+        : selected ? <section className="space-y-4" style={readingContentStyle()} data-testid="home-object-detail" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); close() } }}>
           <ActionButton variant="plain" onClick={close}><ArrowLeft size={14} className="mr-2" />返回物件</ActionButton>
           <div className="flex items-start gap-4">
             <div className="w-28 shrink-0"><HomePicture key={selected.id} src={selected.image} alt={`${selected.name}，家居设计样张`} state={imageState} variant="object" /></div>
