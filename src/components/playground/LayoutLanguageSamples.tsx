@@ -63,7 +63,7 @@ export function OpacityLanguageSamples() {
     </label>
     <div className="relative h-64 overflow-hidden" style={{ backgroundImage: `url(${canal})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
       <div data-testid="opacity-surface" className="absolute inset-6 flex items-center justify-center border text-sm" style={{ borderColor: 'var(--border-color)', background: `color-mix(in srgb, var(--card-bg) ${alpha}%, transparent)` }}>
-        <span data-testid="opacity-text-surface" className="px-3 py-2" style={{ color: 'var(--text-primary)', background: `color-mix(in srgb, var(--card-bg) ${alpha}%, transparent)` }}>运河边的午后</span>
+        <span data-testid="opacity-text-surface" className="px-3 py-2" style={{ color: 'var(--text-primary)' }}>运河边的午后</span>
       </div>
     </div>
     <div className="grid grid-cols-3 gap-3">{[15, 40, 80].map(value => <ActionButton key={value} aria-pressed={alpha === value} onClick={() => setAlpha(value)}>{value}%</ActionButton>)}</div>
