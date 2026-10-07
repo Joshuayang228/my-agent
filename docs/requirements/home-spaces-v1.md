@@ -82,6 +82,27 @@
 
 空间迁移和归档必须事务校验；仍有物件时先明确重归置或改为未归置，不产生悬空 spaceId。搬家不自动迁走所有物件或复制旧房间，由明确动作提供变更清单。历史引用与图片归属沿现有事件 / 媒体服务处理。
 
+### 4.3 物件操作接口
+
+保留完整、可验证的操作服务，不以“前端不展示维护按钮”为由删掉增改能力。以下名称为服务语义合同，最终 Tool / IPC 名称按现有注册规范确定；正式 Agent 工具与受控 IPC 复用同一服务，不各写一套 CRUD。
+
+| 操作 | 关键输入 | 行为与返回 |
+|---|---|---|
+| listObjects / getObject | roleId、residenceId，可选 spaceId / lifecycle；详情用 objectId | 按角色与住所过滤，支持分页；返回完整结构化记录及 version，不只返回卡片展示字段 |
+| createObject | roleId、residenceId、可空 spaceId、name、objectType、可选 description / originNote / acquiredAt、requestId | 校验后添加；返回完整物件、version 与变更 ID，重试不重复添加；不附带隐式生图 |
+| updateObject | roleId、objectId、expectedVersion、requestId、字段白名单 patch | 编辑名称、类型、描述、来历和明确获得时间；未传字段不变，可空字段用 null 显式清除；不能修改 ID / 归属 / 系统时间或任意图片路径 |
+| placeObject | roleId、objectId、expectedVersion、requestId、residenceId、可空 spaceId | 原子更新住所与常驻收纳空间；null 表示未归置，跨住所移动须明确提供目标住所，跨角色拒绝 |
+| archiveObject / restoreObject | roleId、objectId、expectedVersion、requestId、可选原因 | 移出展示 / 恢复，保留来源、历史和媒体引用；恢复前再次校验住所与空间，不能产生悬空关联 |
+| requestObjectImage / cancelImageRequest | roleId、objectId、expectedVersion、requestId、明确生成意图；取消用任务 ID | 复用真实生图服务；返回可追踪任务及状态，图片成功后由受控服务绑定，不由 Agent 提交自由路径；失败不撤销物件 |
+
+共同约束：写入前校验调用来源、权限、角色、字段边界及关联；expectedVersion 冲突明确返回，不覆盖他人新版本。requestId 在角色与操作作用域内幂等，同一 ID 不同载荷拒绝。动作记录用户意图来源、执行 Agent / 调用者和可选关联事件，不能把 Agent 推断伪装成用户确认。
+
+结果统一表达成功记录 / 任务与可定位的变更信息；错误区分非法字段、无权访问、记录不存在、关联失效、版本冲突与生图失败，用户提示不泄露内部路径或堆栈。真实写入成功但界面刷新失败时只重读，不重新添加。
+
+第一版“删除”对应 archiveObject，不把库存维护映射为不可恢复的数据库硬删除；整个角色的数据清除仍走已有隐私 / 数据服务。住所与空间也须保留受校验的新增、编辑、排序、设为当前、归档服务，并遵守第 4 节的关联事务，不在本合同中交付空函数接口。
+
+验收增加：添加后重载保留、重复请求幂等、编辑可空字段清除、未知字段拒绝、并发版本冲突、物件归置 / 未归置、移出与恢复、跨角色 / 住所越权拒绝、归档时在途图片不能复活记录，以及刷新失败不重复添加。
+
 ## 5. 生图与保存
 
 - 复用现有真实生图服务与模型配置工厂，不在页面手拼 Provider、凭据或另一套调用协议。没有可用模型时明确报错，不返回伪图片。
