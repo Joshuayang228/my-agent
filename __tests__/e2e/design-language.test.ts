@@ -62,8 +62,11 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     expect(await media.boundingBox()).toEqual(dimensions)
     await page.getByRole('tab', { name: '加载失败', exact: true }).click()
     expect(await media.boundingBox()).toEqual(dimensions)
+    const shortHeight = (await scroll.boundingBox())!.height
     await page.getByRole('button', { name: '长正文', exact: true }).click()
-    expect(await page.getByTestId('layout-scroll-sample').evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true)
+    expect((await scroll.boundingBox())!.height).toBeGreaterThan(shortHeight)
+    await expect(scroll).toHaveCSS('overflow-y', 'visible')
+    expect(await scroll.evaluate(node => node.scrollHeight - node.clientHeight)).toBeLessThanOrEqual(1)
     const row = page.getByTestId('layout-hover-row')
     await row.scrollIntoViewIfNeeded()
     await page.mouse.move(0, 0)

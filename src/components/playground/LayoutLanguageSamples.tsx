@@ -27,7 +27,7 @@ export function LayoutLanguageSamples() {
     <section className="space-y-3" aria-label="边距与内容宽度">
       <div className="flex flex-wrap items-center gap-3"><h3 className="text-sm font-medium">边距与内容宽度</h3>
         <ActionButton onClick={() => setLong(value => !value)} aria-pressed={long}>{long ? '短正文' : '长正文'}</ActionButton></div>
-      <div className={`h-80 overflow-y-auto border ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`} data-layout-density={densityId} data-testid="layout-scroll-sample" style={{ ...layoutDensityStyle(densityId), borderColor: 'var(--border-color)' }}>
+      <div className={`border ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`} data-layout-density={densityId} data-testid="layout-scroll-sample" style={{ ...layoutDensityStyle(densityId), borderColor: 'var(--border-color)' }}>
         {!detail && <ActionButton onClick={() => setDetail(true)}>查看内容</ActionButton>}
         {detail && <><ActionButton variant="plain" data-testid="layout-back" onClick={() => setDetail(false)}><ArrowLeft size={14} className="mr-2" />返回</ActionButton>
         <article data-testid="layout-reading" style={{ ...readingContentStyle(), display: 'grid', gap: density.section, marginTop: density.section }}>
