@@ -26,6 +26,9 @@ describe('product experience registry', () => {
       'src/assets/playground/wardrobe-shirt.png', 'src/assets/playground/wardrobe-trousers.png', 'src/assets/playground/wardrobe-commute-shoes.png',
       'src/assets/playground/wardrobe-sport-top.png', 'src/assets/playground/wardrobe-sport-bottom.png',
       'src/assets/playground/culture-book.png', 'src/assets/playground/culture-film.png', 'src/assets/playground/culture-music.png', 'src/assets/playground/culture-photo.png',
+      'src/assets/playground/home-overview.png', 'src/assets/playground/home-living.png', 'src/assets/playground/home-bedroom.png',
+      'src/assets/playground/home-study.png', 'src/assets/playground/home-entry.png', 'src/assets/playground/home-sofa.png',
+      'src/assets/playground/home-lamp.png', 'src/assets/playground/home-camera.png', 'src/assets/playground/home-umbrella.png',
     ])
 
     for (const experience of PRODUCT_EXPERIENCE_ASSETS) {

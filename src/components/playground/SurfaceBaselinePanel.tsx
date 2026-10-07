@@ -8,6 +8,7 @@ import { ArrowRight, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, 
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
 import { CultureExperienceCandidate } from './CultureExperienceCandidate'
+import { HomeExperienceCandidate } from './HomeExperienceCandidate'
 import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
@@ -601,9 +602,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
       <CultureExperienceCandidate key={persona.id} personaId={persona.id} />
     ),
     home: (
-      <div data-testid="world-home-fixture" data-persona-id={persona.id}>
-        <WorldDetailsPanel key={`${persona.id}-home`} tab="home" previewAssets={fixtures.living} previewMoments={fixtures.moments} previewPresence={fixtures.presence} previewEditable previewRoleName={persona.name} />
-      </div>
+      <HomeExperienceCandidate key={persona.id} personaId={persona.id} />
     ),
     cast: (
       <div className="h-full min-h-0" data-testid="world-cast-fixture" data-persona-id={persona.id}>
