@@ -82,8 +82,9 @@ export function FootprintsExperienceCandidate({ personaId }: { personaId: string
       { id: 'default', label: '旅行清单' }, { id: 'active', label: '进行中' }, { id: 'no-image', label: '无配图' }, { id: 'pending', label: '配图生成中' }, { id: 'failed', label: '配图失败' }, { id: 'long', label: '长名称与故事' }, { id: 'empty', label: '空足迹' },
     ]} /></div>
     <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto p-4" data-testid="travel-scroll" style={{ color: 'var(--text-primary)' }}>
-      {trip ? <article data-testid="travel-detail" className="mx-auto max-w-2xl min-w-0 space-y-5 [overflow-wrap:anywhere]">
-        <ActionButton variant="plain" onClick={back}><ArrowLeft size={14} />返回</ActionButton>
+      {trip ? <>
+        <ActionButton variant="plain" className="mb-5" onClick={back}><ArrowLeft size={14} className="mr-2" />返回</ActionButton>
+        <article data-testid="travel-detail" className="mx-auto max-w-2xl min-w-0 space-y-5 [overflow-wrap:anywhere]">
         <header className="space-y-2"><div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-semibold leading-7">{trip.title}</h2>{trip.status === 'active' && <Badge tone="accent">旅行中</Badge>}</div>
           <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs" style={{ color: 'var(--text-muted)' }}><span className="inline-flex items-center gap-1"><MapPin size={12} />{trip.destination}</span><span>{previewTripDates(trip)}</span></p></header>
         {image ? <ActionButton className="block w-full overflow-hidden p-0" aria-label="预览旅行封面" onClick={() => setPreview(true)}><img className="block max-h-96 w-full object-cover" style={{ aspectRatio: '3 / 2' }} src={image} alt={trip.title} /></ActionButton>
@@ -91,7 +92,7 @@ export function FootprintsExperienceCandidate({ personaId }: { personaId: string
         <p className="whitespace-pre-wrap text-sm leading-7">{trip.story}</p>
         <section className="space-y-4" aria-label="旅途经历"><h3 className="text-sm font-medium">旅途经历</h3>{trip.stops.map(stop => <div key={stop.id} className="border-t pt-3" style={{ borderColor: 'var(--border-color)' }}><div className="flex flex-wrap items-baseline justify-between gap-2"><h4 className="text-sm font-medium">{stop.name}</h4><span className="text-xs" style={{ color: 'var(--text-muted)' }}>{stop.date}</span></div><p className="mt-1 text-sm leading-6" style={{ color: 'var(--text-secondary)' }}>{stop.story}</p></div>)}</section>
         <ImageViewer items={image ? [{ src: image, alt: trip.title }] : []} open={preview && !!image} onClose={() => setPreview(false)} />
-      </article> : trips.length ? <ul className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2" aria-label="旅行记录">{trips.map(item => {
+      </article></> : trips.length ? <ul className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2" aria-label="旅行记录">{trips.map(item => {
         const src = ['no-image', 'pending', 'failed'].includes(scenario) ? undefined : item.image
         return <li key={item.id} className="min-w-0"><ActionButton ref={button => { if (button) buttons.current.set(item.id, button); else buttons.current.delete(item.id) }} aria-label={`查看旅行 ${item.title}`} onClick={() => open(item)} className="h-full w-full flex-col items-stretch overflow-hidden rounded-lg p-0 text-left hover:bg-[var(--hover-overlay)]">
           <div className="flex w-full items-center justify-center overflow-hidden" style={{ aspectRatio: '3 / 2', background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>{src ? <img src={src} alt="" className="h-full w-full object-cover" /> : <span className="inline-flex items-center gap-2"><ImageOff size={16} />{imageState}</span>}</div>

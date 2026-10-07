@@ -5926,6 +5926,13 @@ test.describe('My Agent UI', () => {
         expect(await first.boundingBox()).toEqual(box)
         await first.click()
         await expect(candidate.getByTestId('travel-detail').getByRole('heading', { level: 2 })).toHaveText('在苏州慢慢过一个周末')
+        const returnButton = candidate.getByRole('button', { name: '返回', exact: true })
+        const returnLeft = await returnButton.evaluate(el => {
+          const scroll = el.closest('[data-testid="travel-scroll"]')!
+          return el.getBoundingClientRect().left - scroll.getBoundingClientRect().left - parseFloat(getComputedStyle(scroll).paddingLeft)
+        })
+        expect(Math.abs(returnLeft)).toBeLessThan(2)
+        await expect(returnButton).toHaveClass(/foundation-action-button/)
         await expect(candidate.getByRole('heading', { name: '老城街巷', exact: true })).toHaveCount(2)
         await candidate.getByRole('button', { name: '预览旅行封面' }).click()
         await expect(page.getByTestId('image-viewer')).toBeVisible()
