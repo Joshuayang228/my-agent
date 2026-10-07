@@ -1,12 +1,12 @@
-import { useLayoutEffect, useRef, useState } from 'react'
-import { ArrowLeft, Home, Package } from 'lucide-react'
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { ArrowLeft, Home, LayoutGrid, Package } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { EmptyState } from '../foundation/EmptyState'
 import { ErrorState } from '../foundation/ErrorState'
 import { ImagePreviewImage } from '../foundation/ImagePreviewImage'
 import { TabStrip } from '../foundation/TabStrip'
 
-export interface HomeSpacePreview { id: string; name: string; description?: string; image?: string }
+export interface HomeSpacePreview { id: string; name: string; description?: string; image?: string; icon?: ReactNode }
 export interface HomeObjectPreview {
   id: string; name: string; spaceId: string | null; image?: string; description?: string; originNote?: string;
   displayInHome?: boolean; displayReason?: string; displayEvidence?: readonly string[]
@@ -56,8 +56,8 @@ export function WorldHomeGallery({ overviewImage, spaces, objects, imageState = 
   const close = () => { returnId.current = selected?.id ?? null; setSelected(null) }
   const space = spaces.find(item => item.id === spaceId)
   const items = homeObjectsForSpace(objects, spaceId)
-  const tabs = [{ id: 'overview', label: '总览' }, ...spaces.map(item => ({ id: item.id, label: item.name })),
-    ...(homeObjectsForSpace(objects, 'unassigned').length ? [{ id: 'unassigned', label: '未归置' }] : [])]
+  const tabs = [{ id: 'overview', label: '总览', icon: <LayoutGrid size={14} /> }, ...spaces.map(item => ({ id: item.id, label: item.name, icon: item.icon ?? <Home size={14} /> })),
+    ...(homeObjectsForSpace(objects, 'unassigned').length ? [{ id: 'unassigned', label: '未归置', icon: <Package size={14} /> }] : [])]
   const empty = spaces.length === 0 && objects.length === 0 && !overviewImage
   return <div className="flex min-h-0 flex-1 flex-col px-4 pb-4" data-testid="home-gallery">
     <div className="shrink-0 py-3"><TabStrip label="家居空间" activeId={spaceId} items={tabs} onSelect={id => {

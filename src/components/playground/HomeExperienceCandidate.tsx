@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BedDouble, BookOpen, DoorOpen, Sofa } from 'lucide-react'
 import { WorldHomeGallery, type HomeObjectPreview, type HomeImageState } from '../world/WorldHomeGallery'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
 import overview from '../../assets/playground/home-overview.png'
@@ -14,10 +15,10 @@ import umbrella from '../../assets/playground/home-umbrella.png'
 export function HomeExperienceCandidate({ personaId }: { personaId: string }) {
   const [scenario, setScenario] = useState('default')
   const spaces = [
-    { id: 'living', name: '客厅', image: living, description: '窗边留出一块安静的地方，晚上常在这里坐一会儿。' },
-    { id: 'bedroom', name: '卧室', image: bedroom, description: '床头只留一盏灯，休息时不把工作带进来。' },
-    { id: 'study', name: '书房', image: study, description: '桌面留得宽一些，写东西和整理照片都在这里。' },
-    { id: 'entry', name: '玄关', image: entry, description: '出门要带的东西，通常收在门边。' },
+    { id: 'living', name: '客厅', icon: <Sofa size={14} />, image: living, description: '窗边留出一块安静的地方，晚上常在这里坐一会儿。' },
+    { id: 'bedroom', name: '卧室', icon: <BedDouble size={14} />, image: bedroom, description: '床头只留一盏灯，休息时不把工作带进来。' },
+    { id: 'study', name: '书房', icon: <BookOpen size={14} />, image: study, description: '桌面留得宽一些，写东西和整理照片都在这里。' },
+    { id: 'entry', name: '玄关', icon: <DoorOpen size={14} />, image: entry, description: '出门要带的东西，通常收在门边。' },
   ]
   let objects: HomeObjectPreview[] = [
     { id: 'sofa', spaceId: 'living', name: '窗边沙发', image: sofa, description: '写完第一个项目的那天，和朋友坐在这里聊到天黑。现在周末仍会在这里写几行日记。', originNote: '搬进这里时一起挑的。', displayInHome: true, displayReason: '承载项目完成的共同回忆与周末写日记的习惯。', displayEvidence: ['fixture:first-project', 'fixture:weekend-journal'] },

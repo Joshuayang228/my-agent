@@ -5836,6 +5836,16 @@ test.describe('My Agent UI', () => {
         await page.getByTestId('playground-nav').getByRole('button', { name: '人物世界', exact: true }).click()
         await page.getByTestId('world-tab-home').click()
         const home = page.getByTestId('world-home-fixture')
+        const roomTabs = home.getByRole('tablist', { name: '家居空间', exact: true }).getByRole('tab')
+        await expect(roomTabs.locator('svg')).toHaveCount(5)
+        for (const tab of await roomTabs.all()) {
+          await expect(tab.locator('svg')).toHaveAttribute('width', '14')
+          expect(await tab.evaluate(el => getComputedStyle(el).borderBottomWidth)).toBe('0px')
+        }
+        const livingTab = home.getByRole('tab', { name: '客厅', exact: true })
+        const tabSize = await livingTab.evaluate(el => ({ width: el.clientWidth, height: el.clientHeight }))
+        await livingTab.hover()
+        expect(await livingTab.evaluate(el => ({ width: el.clientWidth, height: el.clientHeight }))).toEqual(tabSize)
         const select = async (name: string) => home.getByRole('tab', { name, exact: true }).click()
         const picture = home.getByTestId('home-overview-picture')
         await expect(home.locator('img')).toHaveCount(1)
@@ -5846,6 +5856,7 @@ test.describe('My Agent UI', () => {
         await expect(page.getByRole('dialog')).toBeVisible()
         await page.keyboard.press('Escape')
         await select('客厅')
+        expect(await livingTab.evaluate(el => ({ width: el.clientWidth, height: el.clientHeight }))).toEqual(tabSize)
         await expect(home.getByTestId('home-object-card')).toHaveCount(2)
         await expect(home.getByText('另一张沙发', { exact: true })).toHaveCount(0)
         const open = home.getByRole('button', { name: '查看物件：窗边沙发', exact: true })
@@ -5960,6 +5971,11 @@ test.describe('My Agent UI', () => {
         expect((await slots.boundingBox())!.y).toBeGreaterThanOrEqual(dimensions!.y + dimensions!.height)
         await expect(wardrobe.locator('img')).toHaveCount(1)
         const navigation = wardrobe.getByTestId('wardrobe-view-tabs')
+        await expect(navigation.getByRole('tab').locator('svg')).toHaveCount(7)
+        for (const tab of await navigation.getByRole('tab').all()) {
+          await expect(tab.locator('svg')).toHaveAttribute('width', '14')
+          expect(await tab.evaluate(el => getComputedStyle(el).borderBottomWidth)).toBe('0px')
+        }
         expect(await navigation.getByRole('tab').allTextContents()).toEqual(['正在穿着', '全部', '套装', '上装', '下装', '外套', '鞋履'])
         const navigationBox = await navigation.boundingBox()
         await expect(wardrobe.getByTestId('world-assets-inventory')).toHaveCount(0)

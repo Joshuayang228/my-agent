@@ -3,7 +3,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { BookOpen, Shirt, Sparkles } from 'lucide-react'
+import { BookOpen, Footprints, Layers, LayoutGrid, PersonStanding, RectangleVertical, Shirt, Sparkles, type LucideIcon } from 'lucide-react'
 import { ActionButton } from './foundation/ActionButton'
 import { IconButton } from './foundation/IconButton'
 import { ImagePreviewImage } from './foundation/ImagePreviewImage'
@@ -311,6 +311,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
     ? tabItems.filter((asset) => category === 'all' || asset.payload.category === category)
     : tab === 'wardrobe' && wearing ? inventory : tabItems
   const slotLabels: Record<string, string> = { top: '上装', bottom: '下装', outerwear: '外套', shoes: '鞋履' }
+  const slotIcons: Record<string, LucideIcon> = { top: Shirt, bottom: RectangleVertical, outerwear: Layers, shoes: Footprints }
   // 候选图片只对应明确的初始组合，换上另一件时不能沿用旧整套图。
   // 以资产 ID 比较而非名称比较，恢复原组合可复用；正式页不走此隔离分支。
   const initialSlots = Object.fromEntries((previewAssets ?? []).filter((asset) => asset.payload.previewWearing === true).map((asset) => [String(asset.payload.category), asset.id]))
@@ -394,9 +395,9 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
           {!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>}
         </WorldWriteError>
         {wardrobeGallery && <div className="mb-4" data-testid="wardrobe-view-tabs"><TabStrip label="衣柜视图" activeId={previewWardrobeView} onSelect={(id) => { setPreviewWardrobeView(id); if (id !== 'wearing') setCategory(id) }} items={[
-          { id: 'wearing', label: '正在穿着' }, { id: 'all', label: '全部', separatorBefore: true },
-          { id: 'outfits', label: '套装' },
-          ...Object.entries(slotLabels).map(([id, label]) => ({ id, label })),
+          { id: 'wearing', label: '正在穿着', icon: <PersonStanding size={14} /> }, { id: 'all', label: '全部', icon: <LayoutGrid size={14} />, separatorBefore: true },
+          { id: 'outfits', label: '套装', icon: <Shirt size={14} /> },
+          ...Object.entries(slotLabels).map(([id, label]) => { const Icon = slotIcons[id]; return { id, label, icon: <Icon size={14} /> } }),
         ]} /></div>}
         {wardrobeGallery && <WorldWriteError message={changeError} />}
         {tab === 'wardrobe' && (!wardrobeGallery || previewWardrobeView === 'wearing') ? (
