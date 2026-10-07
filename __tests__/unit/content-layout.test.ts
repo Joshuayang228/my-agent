@@ -4,7 +4,7 @@ import ts from 'typescript'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createElement } from 'react'
 import { ActionButton } from '../../src/components/foundation/ActionButton'
-import { CONTENT_LAYOUT, contentGutterStyle, readingContentStyle } from '../../src/shared/content-layout'
+import { CONTENT_LAYOUT, LAYOUT_CLASSES, LAYOUT_PROFILES, SPACING, layoutProfileStyle, contentGutterStyle, readingContentStyle } from '../../src/shared/content-layout'
 
 function hasSharedDetail(source: string, id: string) {
   const file = ts.createSourceFile('candidate.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
@@ -29,6 +29,20 @@ function hasSharedDetail(source: string, id: string) {
 }
 
 describe('共享内容布局候选', () => {
+  it('场景密度读取统一阶梯，变量仅由调用方显式注入', () => {
+    for (const [id, profile] of Object.entries(LAYOUT_PROFILES)) {
+      for (const key of ['gutterSmall', 'gutterLarge', 'block', 'section', 'cardSmall', 'cardLarge', 'list'] as const) {
+        expect(Object.values(SPACING)).toContain(profile[key])
+      }
+      const variables = layoutProfileStyle(id as keyof typeof LAYOUT_PROFILES) as Record<string, string>
+      expect(variables['--layout-section']).toBe(`${profile.section}px`)
+      expect(variables['--layout-gutter-small']).toBe(`${profile.gutterSmall}px`)
+    }
+    expect(LAYOUT_CLASSES.card).toContain('var(--layout-card-small,1rem)')
+    expect(LAYOUT_CLASSES.card).toContain('var(--layout-card-large,1.25rem)')
+    expect(readingContentStyle('workspace').maxWidth).toBe('none')
+    expect(readingContentStyle('chat').maxWidth).toBe(800)
+  })
   it('数值只有一个来源，限宽不隐式居中', () => {
     expect(contentGutterStyle().padding).toBe(CONTENT_LAYOUT.gutter)
     expect(readingContentStyle()).toMatchObject({ maxWidth: CONTENT_LAYOUT.readingWidth, width: '100%', marginInline: 0 })

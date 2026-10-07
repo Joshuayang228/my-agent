@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronRight, Download, LockKeyhole, Save, Upload } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { SettingCard, SettingsPageHeader } from './SettingsFields'
+import { LAYOUT_CLASSES } from '../../shared/content-layout'
 
 export type DataSettingsAction = 'export' | 'import'
 export interface DataSettingsFeedback {
@@ -47,7 +48,7 @@ export function DataSettingsContent({ onAction, testIdPrefix = '', activeAction 
     }
   }
 
-  return <div className="space-y-4" data-testid={`${testIdPrefix}section-data`}>
+  return <div className={LAYOUT_CLASSES.section} data-testid={`${testIdPrefix}section-data`}>
     <SettingsPageHeader title="数据与隐私" description="管理本地数据的迁移和备份，并明确哪些内容不会跟着备份文件离开设备。" />
     <SettingCard>
       <div className="grid gap-2 sm:grid-cols-2">

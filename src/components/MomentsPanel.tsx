@@ -259,7 +259,7 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
         </div>
       )}
 
-      <div className={isSocialFeed ? 'flex-1 overflow-y-auto px-5 py-4 scrollbar-thin' : 'flex-1 overflow-y-auto px-4 py-3 scrollbar-thin'}>
+      <div className={isSocialFeed ? 'flex-1 overflow-y-auto px-[var(--layout-gutter-small,1.25rem)] py-4 scrollbar-thin' : 'flex-1 overflow-y-auto px-4 py-3 scrollbar-thin'} data-testid="moments-content-scroll">
         {!isSocialFeed && summary ? (
           <div className="mb-4 rounded-lg border px-3 py-2.5 text-[12px] leading-relaxed" style={{ borderColor: 'var(--companion-catchup-border)', background: 'var(--companion-catchup-bg)', color: 'var(--text-secondary)' }}>
             <div className="mb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: 'var(--companion-accent-warm)' }}>最近的生活</div>
@@ -270,7 +270,7 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
         {items.length === 0 && !loading ? (
           <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>还没有新的动态。</p>
         ) : (
-          <ul className={isSocialFeed ? 'space-y-5' : 'space-y-3'}>
+          <ul className={isSocialFeed ? 'space-y-[var(--layout-section,1.25rem)]' : 'space-y-3'}>
             {items.map((m) => {
               const type = typeof m.meta?.type === 'string' ? m.meta.type : ''
               const location = typeof m.meta?.location === 'string' ? m.meta.location : ''
@@ -283,7 +283,7 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
               const commentPending = pendingCommentIds.has(m.id)
               if (isSocialFeed) {
                 return (
-                  <li key={m.id} data-testid={isAliceFeed ? 'moment-post' : undefined} className={isAliceFeed ? 'moments-alice-post' : 'border-b pb-5'} style={isAliceFeed ? undefined : { borderColor: 'var(--border-subtle)' }}>
+                  <li key={m.id} data-testid={isAliceFeed ? 'moment-post' : undefined} className={isAliceFeed ? 'moments-alice-post' : 'border-b pb-5'} style={isAliceFeed ? { padding: 'var(--layout-post-padding,1.15rem 1.25rem 1rem)' } : { borderColor: 'var(--border-subtle)' }}>
                     <div className="flex items-start gap-2.5">
                       <span className={`flex ${isAliceFeed ? 'h-10 w-10' : 'h-9 w-9'} shrink-0 items-center justify-center rounded-full text-[13px] font-semibold`} style={{ background: 'var(--accent-subtle)', color: 'var(--companion-accent-warm)' }}>
                         {(roleName || '小林').slice(0, 1)}

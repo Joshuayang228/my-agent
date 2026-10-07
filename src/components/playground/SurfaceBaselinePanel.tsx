@@ -7,6 +7,7 @@ import { useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'reac
 import { ArrowRight, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, X, Check } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
+import { LAYOUT_CLASSES, layoutProfileStyle } from '../../shared/content-layout'
 import { CultureExperienceCandidate } from './CultureExperienceCandidate'
 import { HomeExperienceCandidate } from './HomeExperienceCandidate'
 import { FootprintsExperienceCandidate } from './FootprintsExperienceCandidate'
@@ -389,7 +390,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                 <button type="button" title={workspaceOpen ? '收起工作区' : '打开工作区'} aria-label={workspaceOpen ? '收起工作区' : '打开工作区'} aria-expanded={workspaceOpen} aria-controls="chat-surface-workspace-panel" onClick={() => setWorkspaceOpen((open) => !open)} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-secondary)' }} data-testid="chat-surface-workspace-toggle"><PanelRight size={16} aria-hidden="true" /></button>
               </div>}
               <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-                <div className="flex min-h-0 flex-1 overflow-y-auto px-6 py-8">
+                <div className={`flex min-h-0 flex-1 overflow-y-auto ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`} data-testid="chat-surface-scroll">
                   {isWelcome ? (
                     <ChatWelcome title={`嗨，我是${persona.name}`} subtitle={persona.blurb}
                       onGreet={() => setJourney('conversation')}
@@ -397,7 +398,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                       onOpenWorld={() => onNavigate?.('world')}
                       actionTestId="chat-journey-quick-action" />
                   ) : (
-                    <div className="mx-auto w-full max-w-[800px] space-y-7 py-4" data-testid="chat-surface-message-flow">
+                    <div className={`mx-auto w-full ${LAYOUT_CLASSES.section} py-4`} style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-surface-message-flow">
                       <ChatMessageFrame role="user">
                         <span className="whitespace-pre-wrap break-words">{previewMessage || '帮我把今天的事情理一下，先做最重要的。'}</span>
                       </ChatMessageFrame>
@@ -409,8 +410,8 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                     </div>
                   )}
                 </div>
-                <div className="shrink-0 px-5 pb-5 pt-2">
-                  <div className="mx-auto max-w-[800px]">
+                <div className={`shrink-0 ${LAYOUT_CLASSES.gutter} pb-5 pt-2`} data-testid="chat-surface-composer-area">
+                  <div className="mx-auto w-full" style={{ maxWidth: 'var(--layout-width)' }}>
                     <input ref={previewFileRef} type="file" multiple hidden data-testid="chat-preview-file-input"
                       onChange={(event) => { setPreviewFiles(Array.from(event.target.files ?? []).map(file => file.name)); event.target.value = '' }} />
                     <ChatComposer
@@ -744,7 +745,7 @@ export function SurfaceBaselinePanel({ initialSurface, persona, onPersonaChange,
   const fixedSurface = initialSurface !== undefined
 
   return (
-    <div className="playground-experience-panel w-full space-y-4" data-testid="surface-baseline-panel">
+    <div className="playground-experience-panel w-full space-y-4" data-testid="surface-baseline-panel" data-layout-profile={surface === 'chat' ? 'chat' : surface === 'settings' || surface === 'memory' ? 'settings' : surface === 'world' ? 'world' : 'workspace'} style={layoutProfileStyle(surface === 'chat' ? 'chat' : surface === 'settings' || surface === 'memory' ? 'settings' : surface === 'world' ? 'world' : 'workspace')}>
       {!fixedSurface && <div data-playground-switcher role="tablist" aria-label="页面基线分区">
         {SURFACES.map((item) => {
           const selected = item.id === surface

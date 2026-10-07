@@ -9,6 +9,7 @@ import { IconButton } from '../foundation/IconButton'
 import { WorkspaceToolMenu } from '../foundation/WorkspaceToolMenu'
 import { TextField } from '../foundation/TextField'
 import teaImage from '../../assets/playground/moment-tea-by-window.jpg'
+import { LAYOUT_CLASSES, layoutProfileStyle } from '../../shared/content-layout'
 
 const VIEWS = [
   { id: 'review', label: '审阅', icon: GitCompare, scenes: ['行内差异', '并排差异', '多文件', '无变更'] },
@@ -67,7 +68,7 @@ export function WorkspaceDock({
     setTabs(remaining)
     if (active === id) setActive(remaining.at(-1)?.id ?? -1)
   }
-  return <div className="flex h-full min-h-0 min-w-0 flex-col" data-testid="workspace-dock-candidate">
+  return <div className="flex h-full min-h-0 min-w-0 flex-col" data-testid="workspace-dock-candidate" data-layout-profile="workspace" style={layoutProfileStyle('workspace')}>
     <div className="flex h-full min-h-0 min-w-0 overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
       <div className={showChat && (narrow || !open) ? 'flex min-w-0 flex-1 flex-col' : 'hidden'} data-testid="workspace-main-chat">
         <div className="flex items-center justify-between gap-2 border-b p-3 text-[12px]" style={{ borderColor: 'var(--border-subtle)' }}><span>Chat</span><IconButton label={open ? '收起工作区' : '打开工作区'} size={24} aria-expanded={open} onClick={() => { if (open && onClose && tabs.length <= 1) onClose(); else setOpen(!open) }}><PanelRight size={16} /></IconButton></div>
@@ -170,7 +171,7 @@ function TerminalSample({ scene }: { scene: string }) {
   }
   return <>
     <div className="flex items-center gap-2 border-b p-2 text-[11px]" style={{ borderColor: 'var(--border-subtle)' }}>{(scene === '多终端' ? ['1', '2'] : ['1']).map((id) => <button key={id} type="button" className="settings-option px-2 py-1" aria-pressed={active === id} onClick={() => setActive(id)} data-selected={active === id ? 'true' : undefined}>终端 {id}</button>)}{running && <button className="ml-auto p-1" type="button" aria-label="停止运行" title="停止运行" onClick={() => { setRunning(false); setOutput((current) => ({ ...current, [active]: current[active] + '\n^C\n已停止' })) }}><Square size={13} /></button>}</div>
-    <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-4 font-mono text-[12px] leading-6" data-testid="workspace-terminal-output">{output[active]}{running && <span className="animate-pulse"> ▌</span>}</pre>
+    <pre className={`min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block} font-mono text-[12px] leading-6`} data-testid="workspace-terminal-output">{output[active]}{running && <span className="animate-pulse"> ▌</span>}</pre>
     <form className="flex items-center gap-2 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); submit() }}><span>$</span><TextField aria-label="终端样张命令" placeholder="help" className="min-w-0 flex-1 text-[12px]" value={input} disabled={running} onChange={(event: ChangeEvent<HTMLInputElement>) => setInput(event.target.value)} /><button type="submit" disabled={running || !input.trim()} title="运行样张命令" aria-label="运行样张命令" className="p-1 disabled:opacity-40"><ArrowUp size={14} /></button></form>
   </>
 }
@@ -185,7 +186,7 @@ function SideChatSample({ scene }: { scene: string }) {
   const send = () => { if (!input.trim()) return; setMessages((current) => [...current, { role: 'user', text: input.trim() }, { role: 'assistant', text: '样张回复：可以结合右侧内容继续讨论这一处调整。' }]); setInput(''); setState('对话') }
   return <>
     <div className="border-b p-3 text-[11px]" style={{ borderColor: 'var(--border-subtle)' }}>关于 theme.ts</div>
-    <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4" data-testid="workspace-sidechat-messages">
+    <div className={`min-h-0 flex-1 ${LAYOUT_CLASSES.section} overflow-auto ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`} data-testid="workspace-sidechat-messages">
       {messages.length === 0 && <p className="py-12 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>还没有消息</p>}
       {messages.map((message, index) => <div key={index} className={message.role === 'user' ? 'ml-auto max-w-[90%] rounded-lg px-3 py-2 text-[12px]' : 'text-[12px] leading-6'} style={{ background: message.role === 'user' ? 'var(--bg-secondary)' : undefined }}><MarkdownRenderer content={message.text} /></div>)}
       {state === '生成中' && <span className="inline-flex items-center gap-2 text-[11px]" role="status"><LoaderCircle size={13} className="animate-spin" />正在生成</span>}
@@ -199,7 +200,7 @@ export function WorkspaceExperienceCandidate() {
   const [view, setView] = useState<View>('review')
   const [scene, setScene] = useState<string>('行内差异')
   const [narrow, setNarrow] = useState(false)
-  return <div className="space-y-3" data-testid="workspace-experience-candidate">
+  return <div className={LAYOUT_CLASSES.section} data-testid="workspace-experience-candidate" data-layout-profile="workspace" style={layoutProfileStyle('workspace')}>
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex min-w-0 flex-1 flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="工作区功能">
         {VIEWS.map(({ id, label, icon: Icon, scenes }) => <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => { setView(id); setScene(scenes[0]) }} className="settings-option inline-flex items-center gap-1.5 px-3 py-2 text-[12px]" data-selected={view === id ? 'true' : undefined}><Icon size={14} />{label}</button>)}

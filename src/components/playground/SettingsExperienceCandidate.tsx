@@ -10,6 +10,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { PermissionSettingsContent } from '../settings/PermissionSettingsContent'
+import { LAYOUT_CLASSES, layoutProfileStyle } from '../../shared/content-layout'
 import { Brain, ChevronRight, CircleHelp, Cloud, Heart, KeyRound, Link2, Plug, Settings2, ShieldCheck, SlidersHorizontal, UserRound, Wrench, Activity, Gauge, Plus, ListChecks, ArrowLeft } from 'lucide-react'
 import { AppearanceSettingsContent } from '../settings/AppearanceSettingsContent'
 import { SettingsLayout, type SettingsPageId } from '../settings/SettingsLayout'
@@ -328,7 +329,7 @@ function ModelPage({ selectedProvider }: { selectedProvider: string; onProviderC
       setAdapter(CONNECTION_ADAPTERS.find((item) => item.provider === next.provider)?.id ?? 'openai-compatible')
     }} onCancel={closeForm} onSave={finishSave} />
   return (
-    <div className="space-y-4" data-testid="settings-candidate-section-model">
+    <div className={LAYOUT_CLASSES.section} data-testid="settings-candidate-section-model">
       <CandidatePageHeader icon={<Cloud size={14} />} title="模型" description="先安排每种用途，再管理连接和连接下的模型清单。" />
       <div className="flex flex-wrap items-center justify-between gap-2" data-testid="settings-candidate-model-state-tabs"><div className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>模型状态样张</div><div className="flex flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="模型状态样张">{(['empty', 'one', 'two'] as const).map((state) => <button key={state} type="button" role="tab" aria-selected={previewState === state} onClick={() => setPreview(state)} className="settings-option px-2.5 py-1 text-[10px]" data-testid={`settings-candidate-model-state-${state}`} data-selected={previewState === state ? 'true' : undefined}>{state === 'empty' ? '空态' : state === 'one' ? '单连接' : '多连接'}</button>)}</div></div>
       <ModelUsageArrangements testIdPrefix="settings-candidate" purposes={ROUTE_PURPOSES}
@@ -362,7 +363,7 @@ function ModelPage({ selectedProvider }: { selectedProvider: string; onProviderC
   )
 }
 function MemoryPage({ detail }: { detail?: ReactNode }) {
-  return <div className="space-y-4" data-testid="settings-candidate-section-memory"><CandidatePageHeader icon={<Brain size={14} />} title="记忆" description="查看和管理会影响未来相处的长期信息。" />{detail ?? <SettingCard><div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>记忆内容由产品体验页统一管理。</div></SettingCard>}</div>
+  return <div className={LAYOUT_CLASSES.section} data-testid="settings-candidate-section-memory"><CandidatePageHeader icon={<Brain size={14} />} title="记忆" description="查看和管理会影响未来相处的长期信息。" />{detail ?? <SettingCard><div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>记忆内容由产品体验页统一管理。</div></SettingCard>}</div>
 }
 
 function DataPage() {
@@ -371,7 +372,7 @@ function DataPage() {
 
 function PermissionsPage({ mode, onModeChange }: { mode: string; onModeChange: (value: string) => void }) {
   const [rules, setRules] = useState(JSON.stringify([{ id: 'preview-publish', type: 'command', action: 'deny', pattern: 'npm publish', enabled: true }]))
-  return <div className="space-y-4" data-testid="settings-candidate-section-permissions">
+  return <div className={LAYOUT_CLASSES.section} data-testid="settings-candidate-section-permissions">
     <CandidatePageHeader icon={<ShieldCheck size={14} />} title="权限与自动化" description="让你决定 Agent 什么时候先问你、什么时候按计划推进；越高风险的能力越应该明确。" />
     <PermissionSettingsContent mode={mode} onModeChange={onModeChange} rules={rules} onRulesChange={setRules} prefix="settings-candidate" />
   </div>
@@ -430,7 +431,7 @@ function McpScenePreview() {
   const serial = useRef(0)
   const chooseScene = (next: McpScene) => { setScene(next); setForm(next.startsWith('add-') ? next : null); setServers(next.startsWith('add-') ? [] : createMcpScene(next)) }
   const updateServer = (id: string, patch: Partial<McpPreviewServer>) => setServers((current) => current.map((server) => server.id === id ? { ...server, ...patch } : server))
-  return <div className="space-y-4" data-testid="settings-candidate-mcp-scenes">
+  return <div className={LAYOUT_CLASSES.section} data-testid="settings-candidate-mcp-scenes">
     <div className="flex flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="MCP 样张场景">
       {MCP_SCENES.map(([id, label]) => <button key={id} id={`mcp-scene-${id}`} type="button" role="tab" aria-selected={scene === id} aria-controls="mcp-scene-panel" onClick={() => chooseScene(id)} className="settings-option px-2.5 py-1.5 text-[11px]" data-selected={scene === id ? 'true' : undefined}>{label}</button>)}
     </div>
@@ -457,7 +458,7 @@ function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
   const viewSkill = (sample: typeof skillsSamples[number]): SkillInfo => ({ name: sample.name, description: sample.description, when_to_use: sample.trigger, author: sample.author, version: sample.version, source: 'builtin', enabled: skillsEnabled[sample.name] })
   const toggleSkill = (name: string, enabled: boolean) => setSkillsEnabled((current) => ({ ...current, [name]: enabled }))
 
-  return <div className="space-y-4" data-testid={`settings-candidate-section-${mode}`}>
+  return <div className={LAYOUT_CLASSES.section} data-testid={`settings-candidate-section-${mode}`}>
     <CandidatePageHeader icon={mode === 'skills' ? <Wrench size={14} /> : <Link2 size={14} />} title={mode === 'skills' ? 'Skills' : 'MCP'} description={mode === 'skills' ? '管理伙伴可以按需使用的工作方法。' : '管理伙伴可以使用的外部服务连接。'} />
     {mode === 'skills' && <>
       <div className="flex items-center justify-end gap-1" data-playground-switcher role="tablist" aria-label="Skills 样张状态" data-testid="settings-candidate-skills-states">
@@ -471,7 +472,7 @@ function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
   </div>
 }
 function AboutPage({ developerMode, onDeveloperModeChange }: { developerMode: boolean; onDeveloperModeChange: (enabled: boolean) => void }) {
-  return <div className="space-y-4" data-testid="settings-candidate-section-about">
+  return <div className={LAYOUT_CLASSES.section} data-testid="settings-candidate-section-about">
     <CandidatePageHeader icon={<CircleHelp size={14} />} title="关于 My Agent" description="查看版本、运行环境和本机数据位置。" />
     <AboutSettingsContent developerMode={developerMode} onDeveloperModeChange={onDeveloperModeChange} showHeader={false} testIdPrefix="settings-candidate-" />
   </div>
@@ -497,7 +498,7 @@ export function SettingsExperienceCandidate({ companionDetail, memoryDetail, ini
 
 
 
-  return <div aria-label="设置候选版" className="flex min-h-[620px] w-full min-w-0 overflow-hidden rounded-[var(--radius-lg)] border" style={{ ...getThemeStudyStyle(THEME_STUDIES.find((theme) => theme.id === activeTheme)!), borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} data-playground-theme={activeTheme} data-testid="settings-candidate">
+  return <div aria-label="设置候选版" className="flex min-h-[620px] w-full min-w-0 overflow-hidden rounded-[var(--radius-lg)] border" style={{ ...layoutProfileStyle('settings'), ...getThemeStudyStyle(THEME_STUDIES.find((theme) => theme.id === activeTheme)!), borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} data-layout-profile="settings" data-playground-theme={activeTheme} data-testid="settings-candidate">
     <SettingsLayout activeSection={activeSection} onSelect={setActiveSection} prefix="settings-candidate">
       {activeSection === 'appearance' && <AppearancePage activeTheme={activeTheme} fontScale={fontScale} onFontScaleChange={setFontScale} onThemeChange={setActiveTheme} />}{activeSection === 'memory' && <MemoryPage detail={memoryDetail} />}{activeSection === 'companion' && (companionDetail ?? <CompanionPage expertise={expertise} momentTips={momentTips} onExpertiseChange={setExpertise} onOpenRoleShelf={onOpenRoleShelf} onMomentTipsChange={setMomentTips} onProactiveGreetingChange={setProactiveGreeting} proactiveGreeting={proactiveGreeting} />)}{activeSection === 'model' && <ModelPage selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} />}{activeSection === 'data' && <DataPage />}{activeSection === 'permissions' && <PermissionsPage mode={permissionMode} onModeChange={setPermissionMode} />}{activeSection === 'skills' && <CapabilityPage mode="skills" />}{activeSection === 'mcp' && <CapabilityPage mode="mcp" />}{activeSection === 'about' && <AboutPage developerMode={developerMode} onDeveloperModeChange={setDeveloperMode} />}
     </SettingsLayout>

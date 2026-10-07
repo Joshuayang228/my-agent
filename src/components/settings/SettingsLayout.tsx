@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { ArrowLeft, Brain, ChevronRight, CircleHelp, Cloud, Database, Heart, Link2, Palette, ShieldCheck, Wrench } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { TabStrip } from '../foundation/TabStrip'
+import { LAYOUT_CLASSES } from '../../shared/content-layout'
 
 export type SettingsPageId = 'appearance' | 'companion' | 'model' | 'memory' | 'data' | 'permissions' | 'skills' | 'mcp' | 'about'
 
@@ -77,10 +78,10 @@ export function SettingsLayout({ activeSection, onSelect, onClose, children, pre
             activeId={activeSection} onSelect={(id) => { const item = SETTINGS_NAV_ITEMS.find((entry) => entry.id === id); if (item) onSelect(item.id) }} />
         </div>
       </div>
-      <main className={`min-h-0 min-w-0 flex-1 px-4 py-5 sm:px-6 ${panelOwnsScroll ? 'overflow-hidden' : 'scrollbar-thin overflow-y-auto'}`} data-testid="settings-main">
+      <main className={`min-h-0 min-w-0 flex-1 ${LAYOUT_CLASSES.gutter} py-[var(--layout-block,1.25rem)] ${panelOwnsScroll ? 'overflow-hidden' : 'scrollbar-thin overflow-y-auto'}`} data-testid="settings-main">
         <div key={activeSection} id={`${prefix}-panel-${activeSection}`} role="tabpanel"
           aria-label={SETTINGS_NAV_ITEMS.find((item) => item.id === activeSection)?.label}
-          className={`view-transition mx-auto w-full min-w-0 max-w-3xl ${panelOwnsScroll ? 'h-full min-h-0' : ''}`} data-testid={`${prefix}-content`}>
+          className={`view-transition mx-auto w-full min-w-0 max-w-[var(--layout-width,48rem)] ${panelOwnsScroll ? 'h-full min-h-0' : ''}`} data-testid={`${prefix}-content`}>
           {children}
         </div>
       </main>

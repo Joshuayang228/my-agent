@@ -4,6 +4,7 @@ import { TextField } from '../foundation/TextField'
 import { ActionButton } from '../foundation/ActionButton'
 import { MAX_COMPANION_RESPONSE_NOTE_LENGTH } from '../../shared/types'
 import { SettingCard, SettingRow, SettingSwitch } from './SettingsFields'
+import { LAYOUT_CLASSES } from '../../shared/content-layout'
 
 export type CompanionExpertise = 'auto' | 'novice' | 'intermediate' | 'expert'
 
@@ -37,7 +38,7 @@ const ANSWERS: readonly [CompanionExpertise, string, string, string][] = [
 
 export function CompanionSettingsContent(props: CompanionSettingsContentProps) {
   const testIdPrefix = props.testIdPrefix ?? ''
-  return <div className="space-y-4" data-testid="settings-companion-content">
+  return <div className={LAYOUT_CLASSES.section} data-testid="settings-companion-content">
     <header className="mb-5"><div className="mb-2 flex items-center gap-2 text-[10px] font-semibold tracking-[0.16em]" style={{ color: 'var(--accent-fg)' }}><Heart size={14} />伙伴设置</div><h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>伙伴与相处</h2><p className="mt-1 text-[12px] leading-5" style={{ color: 'var(--text-muted)' }}>调整伙伴和你说话、提醒以及回应你的方式。</p></header>
     <SettingCard><SettingRow scope="伙伴" label="当前伙伴" description="朋友圈、衣柜和对话都会跟随当前主角。" icon={<UserRound size={15} />}>{props.roleAction}</SettingRow></SettingCard>
     <SettingCard><SettingRow scope="伙伴" label="回答方式" description="你希望伙伴平时怎么回答你？" icon={<Eye size={15} />} stacked><div className="grid gap-2 sm:grid-cols-2">{ANSWERS.map(([value, label, description, example]) => <ActionButton key={value} type="button" aria-pressed={props.expertise === value} onClick={() => props.onExpertiseChange(value)} className="block min-w-0 whitespace-normal rounded-[var(--radius-md)] border px-3 py-2.5 text-left transition" style={{ display: 'block', padding: '10px 12px', borderColor: props.expertise === value ? 'var(--accent)' : 'var(--border-subtle)', background: props.expertise === value ? 'var(--accent-subtle)' : 'transparent' }}><div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{label}</div><div className="mt-1 text-[10px]" style={{ color: 'var(--text-secondary)' }}>{description}</div><div className="mt-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>例如：{example}</div></ActionButton>)}</div></SettingRow></SettingCard>

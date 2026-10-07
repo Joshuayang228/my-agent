@@ -9,6 +9,7 @@ import { IconButton } from './foundation/IconButton'
 import { ImagePreviewImage } from './foundation/ImagePreviewImage'
 import { GeneratedImageResult } from './chat/callbacks/GeneratedImageResult'
 import { TabStrip } from './foundation/TabStrip'
+import { LAYOUT_CLASSES } from '../shared/content-layout'
 import {
   WorldAssetActions,
   WorldAssetAddRow,
@@ -380,7 +381,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
         />
       </div>}
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin">
+      <div className={`flex-1 overflow-y-auto ${wardrobeGallery ? LAYOUT_CLASSES.gutter : 'px-4'} py-4 scrollbar-thin`} data-testid="wardrobe-content-scroll">
         <WorldWriteError message={readError}>
           {!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>}
         </WorldWriteError>
@@ -458,7 +459,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
         ) : null}
 
         {wardrobeGallery && previewWardrobeView === 'outfits' && <section data-testid="wardrobe-outfits">
-          {previewOutfits.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {previewOutfits.length ? <div className={`grid ${LAYOUT_CLASSES.grid} sm:grid-cols-2 lg:grid-cols-3`}>
             {previewOutfits.map((outfit) => <article key={outfit.id} aria-label={outfit.name} className="min-w-0 rounded-md border p-3.5" style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)' }}>
               <div className="mb-3 aspect-[3/4] overflow-hidden rounded-md" style={{ background: 'var(--bg-secondary)' }}>
                 {outfit.imageSrc ? <ImagePreviewImage src={outfit.imageSrc} alt={`${outfit.name}的穿搭参考图`} className="block h-full w-full object-contain" buttonClassName="h-full w-full" />
@@ -476,7 +477,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
           {tabItems.length === 0 && !loading ? (
             <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>{tab === 'bookshelf' ? '书架还是空的。' : '衣柜还是空的。'}</p>
           ) : (
-            <div className={wardrobeGallery ? 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3' : 'grid gap-2.5'} style={wardrobeGallery ? undefined : { gridTemplateColumns: 'repeat(auto-fill, minmax(9.5rem, 1fr))' }}>
+            <div className={wardrobeGallery ? `grid ${LAYOUT_CLASSES.grid} sm:grid-cols-2 lg:grid-cols-3` : 'grid gap-2.5'} style={wardrobeGallery ? undefined : { gridTemplateColumns: 'repeat(auto-fill, minmax(9.5rem, 1fr))' }}>
               {visibleItems.map((asset) => (
                 <div key={asset.id} className={`companion-life-card rounded-xl border ${wardrobeGallery ? 'p-3.5' : 'px-3 py-3'}`} style={{ borderColor: editingId === asset.id ? 'var(--companion-accent-warm)' : 'var(--card-border)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
                   {isPreview && <PreviewAssetImage asset={asset} gallery={wardrobeGallery} />}

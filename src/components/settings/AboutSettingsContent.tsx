@@ -1,5 +1,6 @@
 import { Sparkles } from 'lucide-react'
 import { SettingCard, SettingsPageHeader, SettingSwitch } from './SettingsFields'
+import { LAYOUT_CLASSES } from '../../shared/content-layout'
 
 export interface AboutSettingsContentProps {
   developerMode: boolean
@@ -25,7 +26,7 @@ export function AboutSettingsContent({
   showHeader = true,
 }: AboutSettingsContentProps) {
   return (
-    <div className="space-y-4" data-testid={`${testIdPrefix}section-about`}>
+    <div className={LAYOUT_CLASSES.section} data-testid={`${testIdPrefix}section-about`}>
       {showHeader ? <SettingsPageHeader title="关于 My Agent" description="查看版本、运行环境和本机数据位置。" /> : null}
       <SettingCard>
         <div className="flex items-start gap-3">

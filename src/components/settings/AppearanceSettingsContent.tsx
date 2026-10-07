@@ -2,6 +2,7 @@ import { Check, CircleHelp, Eye } from 'lucide-react'
 import { DESIGN_THEME_ASSETS, FONT_SCALE_ASSETS, type ThemeId } from '../../shared/design-asset-registry'
 import { ActionButton } from '../foundation/ActionButton'
 import { SettingCard, SettingRow, SettingsPageHeader } from './SettingsFields'
+import { LAYOUT_CLASSES } from '../../shared/content-layout'
 
 /**
  * 背景：正式与候选外观页复制选项按钮，资产同源仍无法防止交互分叉。
@@ -15,7 +16,7 @@ export function AppearanceSettingsContent({ theme, fontScale, onThemeChange, onF
   onFontScaleChange: (scale: string) => void
   prefix?: string
 }) {
-  return <div className="space-y-4" data-testid={`${prefix}-section-appearance`}>
+  return <div className={LAYOUT_CLASSES.section} data-testid={`${prefix}-section-appearance`}>
     <SettingsPageHeader title="外观与界面" />
     <SettingCard><SettingRow scope="本机" label="界面语言" description="当前只提供简体中文。" icon={<CircleHelp size={15} />}>
       <span className="rounded-full border px-2.5 py-1 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>简体中文</span>

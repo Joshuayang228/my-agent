@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { TabStrip } from '../foundation/TabStrip'
-import { CONTENT_LAYOUT, contentGutterStyle, readingContentStyle } from '../../shared/content-layout'
+import { LAYOUT_CLASSES, LAYOUT_PROFILES, LAYOUT_EXCEPTIONS, layoutProfileStyle, contentGutterStyle, readingContentStyle, type LayoutProfileId } from '../../shared/content-layout'
 import canal from '../../assets/playground/travel-canal.png'
 
 /**
@@ -14,19 +14,23 @@ export function LayoutLanguageSamples() {
   const [long, setLong] = useState(false)
   const [image, setImage] = useState('ready')
   const [detail, setDetail] = useState(true)
+  const [profile, setProfile] = useState<LayoutProfileId>('world')
+  const density = LAYOUT_PROFILES[profile]
   return <div className="space-y-6" data-testid="layout-language-samples">
-    <dl className="flex flex-wrap gap-6 text-xs">
-      <div><dt>内容边距</dt><dd>{CONTENT_LAYOUT.gutter}px</dd></div>
-      <div><dt>阅读宽度上限</dt><dd>{CONTENT_LAYOUT.readingWidth}px</dd></div>
-      <div><dt>内容组间距</dt><dd>{CONTENT_LAYOUT.sectionGap}px</dd></div>
+    <TabStrip label="布局密度" items={Object.entries(LAYOUT_PROFILES).map(([id, value]) => ({ id, label: value.label }))} activeId={profile} onSelect={value => setProfile(value as LayoutProfileId)} />
+    <dl className="flex flex-wrap gap-6 text-xs" data-testid="layout-profile-values">
+      <div><dt>窄屏 / 宽屏边距</dt><dd>{density.gutterSmall} / {density.gutterLarge}px</dd></div>
+      <div><dt>阅读宽度上限</dt><dd>{density.width === null ? '不限宽' : `${density.width}px`}</dd></div>
+      <div><dt>内容组间距</dt><dd>{density.section}px</dd></div>
+      <div><dt>卡片内边距</dt><dd>{density.cardSmall} / {density.cardLarge}px</dd></div>
     </dl>
     <section className="space-y-3" aria-label="边距与内容宽度">
       <div className="flex flex-wrap items-center gap-3"><h3 className="text-sm font-medium">边距与内容宽度</h3>
         <ActionButton onClick={() => setLong(value => !value)} aria-pressed={long}>{long ? '短正文' : '长正文'}</ActionButton></div>
-      <div className="h-80 overflow-y-auto border" data-testid="layout-scroll-sample" style={{ ...contentGutterStyle(), borderColor: 'var(--border-color)' }}>
+      <div className={`h-80 overflow-y-auto border ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`} data-layout-profile={profile} data-testid="layout-scroll-sample" style={{ ...layoutProfileStyle(profile), borderColor: 'var(--border-color)' }}>
         {!detail && <ActionButton onClick={() => setDetail(true)}>查看旅行</ActionButton>}
         {detail && <><ActionButton variant="plain" data-testid="layout-back" onClick={() => setDetail(false)}><ArrowLeft size={14} className="mr-2" />返回</ActionButton>
-        <article data-testid="layout-reading" style={{ ...readingContentStyle(), display: 'grid', gap: CONTENT_LAYOUT.sectionGap, marginTop: CONTENT_LAYOUT.sectionGap }}>
+        <article data-testid="layout-reading" style={{ ...readingContentStyle(profile), display: 'grid', gap: density.section, marginTop: density.section }}>
           <h4 className="text-base font-semibold">沿着运河慢慢走</h4>
           <TabStrip label="配图状态" items={[{ id: 'ready', label: '有图' }, { id: 'pending', label: '加载中' }, { id: 'failed', label: '加载失败' }]} activeId={image} onSelect={setImage} />
           <div data-testid="layout-media" className="relative overflow-hidden" style={{ aspectRatio: '3 / 2', background: 'var(--bg-secondary)' }}>
@@ -36,6 +40,9 @@ export function LayoutLanguageSamples() {
           <p className="whitespace-pre-wrap text-sm leading-7" data-testid="layout-body">{Array(long ? 12 : 1).fill('这次没有把行程排满。沿着河边走，遇见喜欢的地方就停下来，记下路上看到的光影。').join('\n\n')}</p>
         </article></>}
       </div>
+    </section>
+    <section aria-label="独立布局契约" className="space-y-3"><h3 className="text-sm font-medium">独立布局契约</h3>
+      <dl className="grid gap-3 sm:grid-cols-3">{LAYOUT_EXCEPTIONS.map(item => <div key={item.key} className="min-w-0 text-xs"><dt className="font-medium">{item.label}</dt><dd className="mt-1 break-words" style={{ color: 'var(--text-muted)' }}>{item.owner}</dd></div>)}</dl>
     </section>
     <section className="space-y-3" aria-label="布局稳定性"><h3 className="text-sm font-medium">布局稳定性</h3>
       <div className="group flex items-center gap-4 border py-3" style={{ ...contentGutterStyle(), borderColor: 'var(--border-color)' }} data-testid="layout-hover-row">

@@ -240,7 +240,7 @@ export function CastPanel({
 
   return (
     <div className="flex h-full flex-col" data-testid="world-cast-panel">
-      <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto px-[var(--layout-gutter-small,1rem)] py-3 scrollbar-thin" data-testid="cast-content-scroll">
         {pendingForce && <div className="mb-3"><ConfirmPanel icon={<TriangleAlert size={15} />} title={`仍要强行与${pendingForce.name}开聊吗？`} description={`${pendingForce.description}\n\n强行开聊会忽略对方当前的忙碌状态，但不会切换活跃主角。`} confirmLabel="强行开聊" busy={starting === pendingForce.id} onCancel={() => { if (!startingRef.current) setPendingForce(null) }} onConfirm={() => { const target = pendingForce; if (target) void startChat(target.id, target.name, true) }} /></div>}
         <p
           className="mb-4 rounded-lg border px-3 py-2 text-[11px] leading-relaxed"

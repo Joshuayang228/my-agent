@@ -5,6 +5,7 @@ import { IconButton } from './foundation/IconButton'
 import { TextField } from './foundation/TextField'
 import { MemoryAddRow, MemoryToolbar } from './memory/MemoryManagementControls'
 import { MEMORY_CATEGORY_GROUP, MEMORY_GROUPS, type MemoryGroup } from '../shared/memory-groups'
+import { LAYOUT_CLASSES } from '../shared/content-layout'
 import type { MemoryCategory, MemoryEntry } from '../shared/types'
 import {
   detectSensitiveKinds,
@@ -383,7 +384,7 @@ export function MemoryPanel({
             )
           ) : (
             <div
-              className={management || isCompactPreview ? 'space-y-3' : isPreview ? 'grid gap-3 px-0.5 sm:grid-cols-2' : 'space-y-2'}
+              className={management || isCompactPreview ? LAYOUT_CLASSES.list : isPreview ? 'grid gap-3 px-0.5 sm:grid-cols-2' : 'space-y-2'}
             >
               {filtered.map(mem => {
                 const cat = CATEGORIES.find(c => c.id === mem.category)
@@ -398,7 +399,7 @@ export function MemoryPanel({
                     data-testid={useCompactLayout ? `memory-item-${mem.id}` : undefined}
                     className={`${useCompactLayout ? 'group/memory-item' : 'group'} transition ${
                       useCompactLayout
-                        ? 'rounded-[var(--radius-lg)] border p-4'
+                        ? 'rounded-[var(--radius-lg)] border p-[var(--layout-memory-card,1rem)]'
                         : `rounded-xl border px-4 py-3.5 hover:bg-opacity-10 ${isPreview ? 'min-h-[156px]' : isSensitive ? '' : `${colors.border} ${colors.bg}`}`
                     }`}
                     style={

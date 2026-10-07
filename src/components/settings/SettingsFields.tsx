@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import { ActionButton } from '../foundation/ActionButton'
+import { LAYOUT_CLASSES } from '../../shared/content-layout'
 
 export function SettingCard({ children, testId }: { children: ReactNode; testId?: string }) {
-  return <section className="rounded-[var(--radius-lg)] border p-4 sm:p-5" data-testid={testId}
+  return <section className={`rounded-[var(--radius-lg)] border ${LAYOUT_CLASSES.card}`} data-layout-card="settings" data-testid={testId}
     style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)' }}>{children}</section>
 }
 
