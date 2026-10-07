@@ -20,6 +20,8 @@
 
 ## 进行中
 
+布局基线：[foundation-layout-boundaries-v1.md](./foundation-layout-boundaries-v1.md)，设计语言新增「布局与间距」方向已确认；具体施工方案待确认，正式回流未授权。
+
 足迹设计：[footprints-travel-v1.md](./footprints-travel-v1.md)，旅行粒度与产品边界已确认；数据 / 交互方案待确认，正式回流未授权。
 
 | 文档 | 说明 |
