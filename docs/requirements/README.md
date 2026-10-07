@@ -41,6 +41,7 @@
 | [debug-ui-information-architecture-v1.md](./debug-ui-information-architecture-v1.md) | 正式 Debug UI：运行概览、真实证据与受控诊断入口 |
 | [wardrobe-clothing-system-v1.md](./wardrobe-clothing-system-v1.md) | P0 / P1：衣物资产、当前穿着、穿搭槽位、换上链路与真实生图衣柜 |
 | [culture-corner-v1.md](./culture-corner-v1.md) | 四类文化生活：用户许可推进，Playground 四分类与详情候选施工，真实链路及正式回流未完成 |
+| [home-spaces-v1.md](./home-spaces-v1.md) | 家居：总览鸟瞰图、空间与物件关联、隔离真实生图；详细合同待审阅，尚未施工 |
 
 
 
