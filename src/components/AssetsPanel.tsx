@@ -2,7 +2,7 @@
  * 活跃主角物什（生活面）：衣柜 + 书架分栏；编辑 / 删除 / 新增。
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { BookOpen, Footprints, Layers, LayoutGrid, PersonStanding, RectangleVertical, Shirt, Sparkles, type LucideIcon } from 'lucide-react'
 import { ActionButton } from './foundation/ActionButton'
 import { IconButton } from './foundation/IconButton'
@@ -46,6 +46,7 @@ interface AssetsPanelProps {
   /** 隔离故事中的整套图片；仅匹配初始槽位时展示，不能冒充生产生成结果。 */
   previewOutfitImage?: { src?: string; status: 'ready' | 'pending' | 'failed' | 'none' }
   previewOutfits?: readonly PreviewWardrobeOutfit[]
+  previewTabIcons?: Readonly<Record<string, ReactNode>>
 }
 
 function occasionTags(payload: Record<string, unknown>): string[] {
@@ -79,7 +80,7 @@ function AssetImage({ asset }: { asset: WorldAssetRecord }) {
   return <GeneratedImageResult image={image} readImage={(imageId) => window.electronAPI.companion.readAssetImage(asset.id, imageId)} scope={`asset:${asset.id}`} />
 }
 
-export function AssetsPanel({ previewAssets, previewEditable = false, previewWearingId, showAssetTabs = true, presentation = 'default', previewOutfitImage, previewOutfits = [], onGenerateAssetImage }: AssetsPanelProps) {
+export function AssetsPanel({ previewAssets, previewEditable = false, previewWearingId, showAssetTabs = true, presentation = 'default', previewOutfitImage, previewOutfits = [], previewTabIcons, onGenerateAssetImage }: AssetsPanelProps) {
   const isPreview = previewAssets !== undefined
   const canEdit = (!isPreview || previewEditable) && !(isPreview && presentation === 'wardrobe-gallery')
   const [roleId, setRoleId] = useState('')
@@ -396,8 +397,8 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
         </WorldWriteError>
         {wardrobeGallery && <div className="mb-4" data-testid="wardrobe-view-tabs"><TabStrip label="衣柜视图" activeId={previewWardrobeView} onSelect={(id) => { setPreviewWardrobeView(id); if (id !== 'wearing') setCategory(id) }} items={[
           { id: 'wearing', label: '正在穿着', icon: <PersonStanding size={14} /> }, { id: 'all', label: '全部', icon: <LayoutGrid size={14} />, separatorBefore: true },
-          { id: 'outfits', label: '套装', icon: <Shirt size={14} /> },
-          ...Object.entries(slotLabels).map(([id, label]) => { const Icon = slotIcons[id]; return { id, label, icon: <Icon size={14} /> } }),
+          { id: 'outfits', label: '套装', icon: previewTabIcons?.outfits ?? <Shirt size={14} /> },
+          ...Object.entries(slotLabels).map(([id, label]) => { const Icon = slotIcons[id]; return { id, label, icon: previewTabIcons?.[id] ?? <Icon size={14} /> } }),
         ]} /></div>}
         {wardrobeGallery && <WorldWriteError message={changeError} />}
         {tab === 'wardrobe' && (!wardrobeGallery || previewWardrobeView === 'wearing') ? (

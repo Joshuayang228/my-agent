@@ -29,6 +29,16 @@ describe('product experience registry', () => {
       'src/assets/playground/home-overview.png', 'src/assets/playground/home-living.png', 'src/assets/playground/home-bedroom.png',
       'src/assets/playground/home-study.png', 'src/assets/playground/home-entry.png', 'src/assets/playground/home-sofa.png',
       'src/assets/playground/home-lamp.png', 'src/assets/playground/home-camera.png', 'src/assets/playground/home-umbrella.png',
+      'src/assets/playground/wardrobe-icons/phosphor-t-shirt.svg',
+      'src/assets/playground/wardrobe-icons/phosphor-pants.svg',
+      'src/assets/playground/wardrobe-icons/phosphor-hoodie.svg',
+      'src/assets/playground/wardrobe-icons/phosphor-sneaker.svg',
+      'src/assets/playground/wardrobe-icons/phosphor-coat-hanger.svg',
+      'src/assets/playground/wardrobe-icons/iconpark-clothes-short-sleeve.svg',
+      'src/assets/playground/wardrobe-icons/iconpark-clothes-pants.svg',
+      'src/assets/playground/wardrobe-icons/iconpark-clothes-windbreaker.svg',
+      'src/assets/playground/wardrobe-icons/iconpark-clothes-suit.svg',
+      'src/assets/playground/wardrobe-icons/iconpark-boots.svg',
     ])
 
     for (const experience of PRODUCT_EXPERIENCE_ASSETS) {

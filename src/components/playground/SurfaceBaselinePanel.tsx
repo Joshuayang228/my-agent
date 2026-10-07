@@ -9,6 +9,7 @@ import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
 import { CultureExperienceCandidate } from './CultureExperienceCandidate'
 import { HomeExperienceCandidate } from './HomeExperienceCandidate'
+import { WardrobeIconOptions, wardrobePreviewIcons, type WardrobeIconStyle } from './WardrobeIconOptions'
 import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
@@ -550,6 +551,7 @@ function worldPreviewFixtures(persona: PlaygroundPersona) {
 
 function WardrobeCandidate({ assets, personaId }: { assets: WorldAssetRecord[]; personaId: string }) {
   const [scenario, setScenario] = useState('default')
+  const [iconStyle, setIconStyle] = useState<WardrobeIconStyle>('original')
   const outfitIds: Record<string, string[]> = {
     commute: ['shirt', 'trousers', 'commute-shoes'],
     sport: ['sport-top', 'sport-bottom', 'shoes'],
@@ -572,9 +574,11 @@ function WardrobeCandidate({ assets, personaId }: { assets: WorldAssetRecord[]; 
     <div className="px-4 pt-3">
       <PlaygroundStateSwitcher ariaLabel="衣柜状态样张" value={scenario} onChange={setScenario}
         items={[{ id: 'default', label: '完整穿搭' }, { id: 'commute', label: '外出通勤' }, { id: 'sport', label: '轻松运动' }, { id: 'partial', label: '部分穿搭' }, { id: 'pending', label: '穿搭图生成中' }, { id: 'image-failed', label: '穿搭图失败' }, { id: 'no-images', label: '无图衣柜' }, { id: 'empty', label: '空衣柜' }, { id: 'failure', label: '换上失败' }]} />
+      <div className="pt-2"><WardrobeIconOptions value={iconStyle} onChange={setIconStyle} /></div>
     </div>
     <AssetsPanel key={`${personaId}-${scenario}`} previewAssets={samples} previewWearingId={samples.find((asset) => asset.payload.previewWearing === true)?.id} showAssetTabs={false} presentation="wardrobe-gallery"
       previewOutfits={previewOutfits}
+      previewTabIcons={wardrobePreviewIcons(iconStyle)}
       previewOutfitImage={{ src: personaId === 'lin' ? scenario === 'commute' ? wardrobeCommuteOutfit : scenario === 'sport' ? wardrobeSportOutfit : wardrobeCasualOutfit : undefined, status: scenario === 'pending' ? 'pending' : scenario === 'image-failed' ? 'failed' : personaId === 'lin' && ['default', 'failure', 'commute', 'sport'].includes(scenario) ? 'ready' : 'none' }} />
   </div>
 }

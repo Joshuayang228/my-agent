@@ -5905,6 +5905,67 @@ test.describe('My Agent UI', () => {
     }
   }
 
+  for (const theme of ['porcelain-blue', 'yao-stone']) {
+    for (const width of [1096, 640]) {
+      test(`Playground 衣柜服装图标对照 ${theme} ${width}`, async ({ page }) => {
+        await installProductionElectronStub(page)
+        await page.addInitScript(value => localStorage.setItem('theme', value), theme)
+        await page.setViewportSize({ width, height: 704 })
+        await page.goto('/')
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+        await page.getByTestId('playground-nav').getByRole('button', { name: '人物世界', exact: true }).click()
+        await page.getByTestId('world-tab-wardrobe').click()
+        const wardrobe = page.getByTestId('world-wardrobe-fixture')
+        const options = wardrobe.getByRole('tablist', { name: '衣柜图标对照', exact: true })
+        const navigation = wardrobe.getByTestId('wardrobe-view-tabs')
+        await navigation.getByRole('tab', { name: '全部', exact: true }).click()
+        await wardrobe.getByRole('button', { name: '换上 浅灰棉质宽松长袖衬衫', exact: true }).click()
+        const wearing = await wardrobe.getByTestId('wardrobe-current-slots').textContent()
+        expect(wearing).toContain('浅灰棉质宽松长袖衬衫')
+        await navigation.getByRole('tab', { name: '下装', exact: true }).click()
+        const inventory = await wardrobe.getByTestId('world-assets-inventory').textContent()
+        const geometry = () => navigation.getByRole('tab').evaluateAll(tabs => tabs.map(tab => ({ width: tab.clientWidth, height: tab.clientHeight })))
+        const originalGeometry = await geometry()
+        for (const [label, style] of [['Phosphor', 'phosphor'], ['IconPark', 'iconpark']]) {
+          await options.getByRole('tab', { name: label, exact: true }).click()
+          await expect(navigation.getByRole('tab', { name: '下装', exact: true })).toHaveAttribute('aria-selected', 'true')
+          expect(await wardrobe.getByTestId('world-assets-inventory').textContent()).toBe(inventory)
+          expect(await geometry()).toEqual(originalGeometry)
+          const icons = navigation.locator(`[data-wardrobe-icon="${style}"]`)
+          await expect(icons).toHaveCount(5)
+          for (const icon of await icons.all()) {
+            await icon.scrollIntoViewIfNeeded()
+            const box = await icon.boundingBox()
+            expect(box?.width).toBe(14)
+            expect(box?.height).toBe(14)
+            expect(await icon.evaluate(async el => {
+              const url = getComputedStyle(el).maskImage.replace(/^url\(["']?/, '').replace(/["']?\)$/, '')
+              const image = new Image()
+              image.src = url
+              try { await image.decode(); return image.naturalWidth > 0 } catch { return false }
+            })).toBe(true)
+            const { default: sharp } = await import('sharp')
+            const { data, info } = await sharp(await icon.screenshot()).raw().toBuffer({ resolveWithObject: true })
+            const colors = new Set<string>()
+            for (let index = 0; index < data.length; index += info.channels) colors.add(`${data[index]},${data[index + 1]},${data[index + 2]}`)
+            expect(colors.size).toBeGreaterThan(2)
+          }
+          const selected = navigation.getByRole('tab', { name: '下装', exact: true })
+          await selected.hover()
+          expect(await geometry()).toEqual(originalGeometry)
+          await navigation.getByRole('tab', { name: '正在穿着', exact: true }).click()
+          expect(await wardrobe.getByTestId('wardrobe-current-slots').textContent()).toBe(wearing)
+          await page.screenshot({ path: `var/verification/wardrobe-icons-${style}-${theme}-${width}.png`, fullPage: true })
+          await navigation.getByRole('tab', { name: '下装', exact: true }).click()
+        }
+        await options.getByRole('tab', { name: '原图标', exact: true }).click()
+        await expect(navigation.locator('[data-wardrobe-icon]')).toHaveCount(0)
+        await expect(navigation.getByRole('tab').locator('svg')).toHaveCount(7)
+        expect(await geometry()).toEqual(originalGeometry)
+      })
+    }
+  }
+
   test('Playground 衣柜换上保留其他槽位且失败不改变穿搭', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.goto('/')
