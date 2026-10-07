@@ -6,6 +6,16 @@ import { wardrobePreviewIcons } from '../../src/components/playground/WardrobeIc
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('衣柜静态图标对照', () => {
+  it('选定组合仅覆盖套装、下装与外套，上装和鞋子保留原图标', () => {
+    const icons = wardrobePreviewIcons('mixed')!
+    expect(Object.keys(icons)).toEqual(['outfits', 'bottom', 'outerwear'])
+    const phosphor = wardrobePreviewIcons('phosphor')!
+    for (const id of Object.keys(icons)) {
+      const selected = renderToStaticMarkup(createElement(Fragment, null, icons[id]))
+      const reference = renderToStaticMarkup(createElement(Fragment, null, phosphor[id]))
+      expect(selected.replace('data-wardrobe-icon="mixed"', 'data-wardrobe-icon="phosphor"')).toBe(reference)
+    }
+  })
   it('默认不覆盖原图标，两组均只注入五个服装类别', () => {
     expect(wardrobePreviewIcons('original')).toBeUndefined()
     for (const style of ['phosphor', 'iconpark'] as const) {

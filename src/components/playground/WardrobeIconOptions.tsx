@@ -11,10 +11,11 @@ import iconparkBottom from '../../assets/playground/wardrobe-icons/iconpark-clot
 import iconparkOuterwear from '../../assets/playground/wardrobe-icons/iconpark-clothes-windbreaker.svg'
 import iconparkShoes from '../../assets/playground/wardrobe-icons/iconpark-boots.svg'
 
-export type WardrobeIconStyle = 'original' | 'phosphor' | 'iconpark'
+export type WardrobeIconStyle = 'original' | 'phosphor' | 'iconpark' | 'mixed'
 const sources = {
   phosphor: { outfits: phosphorOutfits, top: phosphorTop, bottom: phosphorBottom, outerwear: phosphorOuterwear, shoes: phosphorShoes },
   iconpark: { outfits: iconparkOutfits, top: iconparkTop, bottom: iconparkBottom, outerwear: iconparkOuterwear, shoes: iconparkShoes },
+  mixed: { outfits: phosphorOutfits, bottom: phosphorBottom, outerwear: phosphorOuterwear },
 }
 
 /**
@@ -33,6 +34,6 @@ export function wardrobePreviewIcons(style: WardrobeIconStyle): Readonly<Record<
 
 export function WardrobeIconOptions({ value, onChange }: { value: WardrobeIconStyle; onChange: (value: WardrobeIconStyle) => void }) {
   return <PlaygroundStateSwitcher ariaLabel="衣柜图标对照" value={value} onChange={onChange} items={[
-    { id: 'original', label: '原图标' }, { id: 'phosphor', label: 'Phosphor' }, { id: 'iconpark', label: 'IconPark' },
+    { id: 'mixed', label: '选定组合' }, { id: 'original', label: '原图标' }, { id: 'phosphor', label: 'Phosphor' }, { id: 'iconpark', label: 'IconPark' },
   ]} />
 }

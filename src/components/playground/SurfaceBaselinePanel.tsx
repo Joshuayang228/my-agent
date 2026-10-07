@@ -551,7 +551,7 @@ function worldPreviewFixtures(persona: PlaygroundPersona) {
 
 function WardrobeCandidate({ assets, personaId }: { assets: WorldAssetRecord[]; personaId: string }) {
   const [scenario, setScenario] = useState('default')
-  const [iconStyle, setIconStyle] = useState<WardrobeIconStyle>('original')
+  const [iconStyle, setIconStyle] = useState<WardrobeIconStyle>('mixed')
   const outfitIds: Record<string, string[]> = {
     commute: ['shirt', 'trousers', 'commute-shoes'],
     sport: ['sport-top', 'sport-bottom', 'shoes'],
