@@ -5933,7 +5933,7 @@ test.describe('My Agent UI', () => {
     await expect(slots).toContainText('白色运动鞋')
     await expect(wardrobe.getByAltText('当前穿搭全身图')).toHaveCount(0)
     await expect(wardrobe.getByTestId('wardrobe-outfit-image')).toContainText('暂无当前穿搭图片')
-    await wardrobe.getByRole('tab', { name: '鞋履', exact: true }).click()
+    await wardrobe.getByRole('tab', { name: '鞋子', exact: true }).click()
     await expect(wardrobe.getByRole('button', { name: '换上 白色运动鞋', exact: true })).toBeVisible()
     await expect(change).toHaveCount(0)
     await wardrobe.getByRole('tab', { name: '换上失败', exact: true }).click()
@@ -5976,7 +5976,7 @@ test.describe('My Agent UI', () => {
           await expect(tab.locator('svg')).toHaveAttribute('width', '14')
           expect(await tab.evaluate(el => getComputedStyle(el).borderBottomWidth)).toBe('0px')
         }
-        expect(await navigation.getByRole('tab').allTextContents()).toEqual(['正在穿着', '全部', '套装', '上装', '下装', '外套', '鞋履'])
+        expect(await navigation.getByRole('tab').allTextContents()).toEqual(['正在穿着', '全部', '套装', '上装', '下装', '外套', '鞋子'])
         const navigationBox = await navigation.boundingBox()
         await expect(wardrobe.getByTestId('world-assets-inventory')).toHaveCount(0)
         await expect(navigation).toContainText('|')

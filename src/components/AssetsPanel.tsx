@@ -310,7 +310,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
   const visibleItems = wardrobeGallery
     ? tabItems.filter((asset) => category === 'all' || asset.payload.category === category)
     : tab === 'wardrobe' && wearing ? inventory : tabItems
-  const slotLabels: Record<string, string> = { top: '上装', bottom: '下装', outerwear: '外套', shoes: '鞋履' }
+  const slotLabels: Record<string, string> = { top: '上装', bottom: '下装', outerwear: '外套', shoes: '鞋子' }
   const slotIcons: Record<string, LucideIcon> = { top: Shirt, bottom: RectangleVertical, outerwear: Layers, shoes: Footprints }
   // 候选图片只对应明确的初始组合，换上另一件时不能沿用旧整套图。
   // 以资产 ID 比较而非名称比较，恢复原组合可复用；正式页不走此隔离分支。
