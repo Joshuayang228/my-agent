@@ -338,6 +338,10 @@ html[data-font-scale="lg"] {
 .playground-shape-scope [role="dialog"] {
   border-radius: var(--radius-overlay);
 }
+.playground-shape-scope [data-foundation="tabs"][data-tab-variant="surface"] > [role="presentation"] {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-control);
+}
 .foundation-action-button:focus,
 .foundation-button:focus {
   outline: none;

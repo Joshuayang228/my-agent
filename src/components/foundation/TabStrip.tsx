@@ -42,7 +42,7 @@ export function TabStrip({ label, items, activeId, onSelect, onClose, itemTestId
     onClose?.(id)
   }
   return <div ref={list} role="tablist" aria-label={label} tabIndex={items.length ? -1 : 0}
-    data-foundation="tabs" className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
+    data-foundation="tabs" data-tab-variant={variant} className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
     {items.map((item, index) => {
       const active = item.id === activeId
       return <Fragment key={item.id}>
