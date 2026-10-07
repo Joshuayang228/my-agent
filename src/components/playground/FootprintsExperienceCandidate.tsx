@@ -97,7 +97,7 @@ export function FootprintsExperienceCandidate({ personaId }: { personaId: string
           <div className="flex w-full items-center justify-center overflow-hidden" style={{ aspectRatio: '3 / 2', background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>{src ? <img src={src} alt="" className="h-full w-full object-cover" /> : <span className="inline-flex items-center gap-2"><ImageOff size={16} />{imageState}</span>}</div>
           <div className="w-full space-y-2 p-3 [overflow-wrap:anywhere]"><div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.title}</h3>{item.status === 'active' && <Badge tone="accent">旅行中</Badge>}</div><p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{item.destination}</p><p className="text-xs" style={{ color: 'var(--text-muted)' }}>{previewTripDates(item)}</p></div>
         </ActionButton></li>
-      })}</ul> : <EmptyState title="还没有旅行足迹" description="出发后的旅行，会在这里留下记录。" />}
+      })}</ul> : <EmptyState centerWithoutAction title="还没有旅行足迹" description="出发后的旅行，会在这里留下记录。" />}
     </div>
   </div>
 }
