@@ -4,7 +4,7 @@ import ts from 'typescript'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createElement } from 'react'
 import { ActionButton } from '../../src/components/foundation/ActionButton'
-import { CONTENT_LAYOUT, LAYOUT_CLASSES, LAYOUT_PROFILES, SPACING, layoutProfileStyle, contentGutterStyle, readingContentStyle } from '../../src/shared/content-layout'
+import { CONTENT_LAYOUT, LAYOUT_CLASSES, LAYOUT_DENSITIES, LAYOUT_PROFILES, SPACING, layoutDensityStyle, layoutProfileStyle, contentGutterStyle, readingContentStyle } from '../../src/shared/content-layout'
 
 function hasSharedDetail(source: string, id: string) {
   const file = ts.createSourceFile('candidate.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
@@ -29,6 +29,24 @@ function hasSharedDetail(source: string, id: string) {
 }
 
 describe('共享内容布局候选', () => {
+  it('基础密度不引用产品场景，并与同一间距阶梯一致', () => {
+    expect(Object.values(LAYOUT_DENSITIES).map(value => value.label)).toEqual(['紧凑', '标准', '宽松'])
+    for (const [id, density] of Object.entries(LAYOUT_DENSITIES)) {
+      expect(Object.values(SPACING)).toContain(density.gutter)
+      expect(Object.values(SPACING)).toContain(density.section)
+      expect(Object.values(SPACING)).toContain(density.card)
+      expect(layoutDensityStyle(id as keyof typeof LAYOUT_DENSITIES)).toMatchObject({ '--layout-gutter-small': `${density.gutter}px`, '--layout-card-large': `${density.card}px` })
+    }
+    const source = readFileSync(new URL('../../src/components/playground/LayoutLanguageSamples.tsx', import.meta.url), 'utf8')
+    const ast = ts.createSourceFile('samples.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+    for (const statement of ast.statements.filter(ts.isImportDeclaration)) {
+      const bindings = statement.importClause?.namedBindings
+      if (bindings && ts.isNamedImports(bindings)) {
+        expect(bindings.elements.map(element => element.name.text)).not.toContain('LAYOUT_PROFILES')
+        expect(bindings.elements.map(element => element.name.text)).not.toContain('layoutProfileStyle')
+      }
+    }
+  })
   it('场景密度读取统一阶梯，变量仅由调用方显式注入', () => {
     for (const [id, profile] of Object.entries(LAYOUT_PROFILES)) {
       for (const key of ['gutterSmall', 'gutterLarge', 'block', 'section', 'cardSmall', 'cardLarge', 'list'] as const) {

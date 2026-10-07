@@ -8,6 +8,25 @@ import type { CSSProperties } from 'react'
 export const SPACING = { tight: 8, compact: 12, normal: 16, relaxed: 20, wide: 24, message: 28, spacious: 32 } as const
 export const CONTENT_LAYOUT = { gutter: SPACING.normal, readingWidth: 672, sectionGap: SPACING.relaxed } as const
 
+export const LAYOUT_DENSITIES = {
+  compact: { label: '紧凑', gutter: SPACING.compact, section: SPACING.compact, card: SPACING.compact },
+  standard: { label: '标准', gutter: SPACING.normal, section: SPACING.relaxed, card: SPACING.normal },
+  relaxed: { label: '宽松', gutter: SPACING.wide, section: SPACING.wide, card: SPACING.wide },
+} as const
+export type LayoutDensityId = keyof typeof LAYOUT_DENSITIES
+
+export function layoutDensityStyle(id: LayoutDensityId): CSSProperties {
+  const density = LAYOUT_DENSITIES[id]
+  return {
+    '--layout-gutter-small': `${density.gutter}px`,
+    '--layout-gutter-large': `${density.gutter}px`,
+    '--layout-block': `${density.gutter}px`,
+    '--layout-card-small': `${density.card}px`,
+    '--layout-card-large': `${density.card}px`,
+    '--layout-section': `${density.section}px`,
+  } as CSSProperties
+}
+
 export const LAYOUT_PROFILES = {
   chat: { label: 'Chat', gutterSmall: SPACING.normal, gutterLarge: SPACING.wide, block: SPACING.spacious, section: SPACING.message, cardSmall: SPACING.normal, cardLarge: SPACING.normal, list: SPACING.compact, width: 800 },
   settings: { label: '设置', gutterSmall: SPACING.normal, gutterLarge: SPACING.wide, block: SPACING.relaxed, section: SPACING.normal, cardSmall: SPACING.normal, cardLarge: SPACING.relaxed, list: SPACING.compact, width: 768 },
@@ -56,6 +75,6 @@ export function contentGutterStyle() {
   return { padding: CONTENT_LAYOUT.gutter, minWidth: 0 }
 }
 
-export function readingContentStyle(profile: LayoutProfileId = 'world') {
-  return { width: '100%', maxWidth: LAYOUT_PROFILES[profile].width ?? 'none', minWidth: 0, marginInline: 0 } as const
+export function readingContentStyle(profile?: LayoutProfileId) {
+  return { width: '100%', maxWidth: profile ? LAYOUT_PROFILES[profile].width ?? 'none' : CONTENT_LAYOUT.readingWidth, minWidth: 0, marginInline: 0 } as const
 }
