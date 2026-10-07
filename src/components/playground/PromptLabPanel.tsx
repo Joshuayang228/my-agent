@@ -111,11 +111,12 @@ export function PromptLabPanel({
       <label className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
         System（会话覆盖）
         <TextField
+          appearance="outlined"
           multiline
           value={systemPrompt}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setSystemPrompt(e.target.value)}
           rows={6}
-          className="mt-1 w-full rounded-lg px-2 py-1.5 font-mono text-xs"
+          className="mt-1 w-full px-2 py-1.5 font-mono text-xs"
           placeholder="空 = 使用默认 playground 指令；不写全局 settings"
         />
       </label>
@@ -142,11 +143,12 @@ export function PromptLabPanel({
       <label className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
         User（下一轮）
         <TextField
+          appearance="outlined"
           multiline
           value={userPrompt}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setUserPrompt(e.target.value)}
           rows={3}
-          className="mt-1 w-full rounded-lg px-2 py-1.5 font-mono text-xs"
+          className="mt-1 w-full px-2 py-1.5 font-mono text-xs"
           onKeyDown={(e: KeyboardEvent<HTMLTextAreaElement>) => {
             if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault()

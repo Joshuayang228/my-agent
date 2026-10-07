@@ -1,6 +1,6 @@
 /**
  * Playground 全屏壳：与设置页共用“单一左栏 + 右侧内容”的一级工作区结构。
- * 设计意图：进入 Playground 后不再叠加产品 Primary Sidebar，避免出现两层侧栏和重复返回路径。
+ * 设计意图：实验导航保持独立；只保留分组样张入口与顶部返回，不重复设置底部跳转。
  */
 
 import { useCallback, useEffect, useState } from 'react'

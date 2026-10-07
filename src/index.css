@@ -302,6 +302,22 @@ html[data-font-scale="lg"] {
   border-color: color-mix(in srgb, var(--accent) 62%, var(--border-color));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 24%, transparent);
 }
+.foundation-text-field-outlined {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+.foundation-text-field-outlined:focus-visible {
+  box-shadow: none;
+}
+.foundation-text-field-outlined[aria-invalid="true"] {
+  border-color: color-mix(in srgb, var(--danger) 65%, var(--border-color));
+}
+.foundation-text-field-embedded,
+.foundation-text-field-embedded:focus-visible {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
 .foundation-action-button:focus,
 .foundation-button:focus {
   outline: none;
