@@ -9,6 +9,7 @@ import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
 import { CultureExperienceCandidate } from './CultureExperienceCandidate'
 import { HomeExperienceCandidate } from './HomeExperienceCandidate'
+import { FootprintsExperienceCandidate } from './FootprintsExperienceCandidate'
 import { WardrobeIconOptions, wardrobePreviewIcons, type WardrobeIconStyle } from './WardrobeIconOptions'
 import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
@@ -25,7 +26,6 @@ import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
 import { WorldHub, type WorldTab } from '../shell/WorldHub'
 import { AssetsPanel } from '../AssetsPanel'
 import { CastPanel, type CastPreviewData } from '../CastPanel'
-import { WorldDetailsPanel } from '../WorldDetailsPanel'
 import { WorldProfileHeader } from '../world/WorldProfileHeader'
 import type { WorldAssetRecord } from '../world/WorldAssetEditor'
 import type { MemoryEntry } from '../../shared/types'
@@ -614,9 +614,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
       </div>
     ),
     footprints: (
-      <div data-testid="world-footprints-fixture" data-persona-id={persona.id}>
-        <WorldDetailsPanel key={`${persona.id}-footprints`} tab="footprints" previewAssets={fixtures.living} previewMoments={fixtures.moments} previewEditable previewRoleName={persona.name} />
-      </div>
+      <FootprintsExperienceCandidate key={persona.id} personaId={persona.id} />
     ),
   }
   return (

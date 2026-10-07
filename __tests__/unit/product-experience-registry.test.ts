@@ -39,6 +39,7 @@ describe('product experience registry', () => {
       'src/assets/playground/wardrobe-icons/iconpark-clothes-windbreaker.svg',
       'src/assets/playground/wardrobe-icons/iconpark-clothes-suit.svg',
       'src/assets/playground/wardrobe-icons/iconpark-boots.svg',
+      'src/assets/playground/travel-canal.png',
     ])
 
     for (const experience of PRODUCT_EXPERIENCE_ASSETS) {
