@@ -11,6 +11,7 @@
 - 图标：**仅** `lucide-react` SVG；禁止 Emoji 当图标。跨页面复用的语义图标优先登记到 `src/shared/icon-registry.ts`，不要再引入第二套生产图标库。
 - UI 组件资产：稳定语义、来源、采用状态和无障碍约束登记到 `src/shared/ui-component-registry.ts`；注册表不复制组件实现，候选外部 Primitive 不得冒充已安装依赖。
 - 字体：UI 用 `--font-ui`；空态问候 / 伙伴身份展示可用 `--font-display`（衬线），勿污染表单。
+- 形态：新候选的控件、输入、卡片、弹层与胶囊分别引用 `--radius-control` / `--radius-input` / `--radius-card` / `--radius-overlay` / `--radius-pill`。数值唯一来自 `src/index.css`，用途与实值在「基础 → 设计语言 → 形态与动效」查看；禁止另写局部圆角数值。已有正式页面按 P0 → 确认 → P1 收口，不批量覆盖未知用途节点；圆角实验滑块不修改规范或生产主题。施工边界见 `docs/requirements/foundation-design-language-v2.md`。
 
 ---
 

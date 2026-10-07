@@ -36,11 +36,11 @@ const COLOR_ROLES = [
 ] as const
 
 const RADII = [
-  { name: '--radius-sm', label: '控件', usage: '按钮 / 输入 / 标签' },
-  { name: '--radius-md', label: '卡片', usage: '内容卡 / 选择器' },
-  { name: '--radius-lg', label: '面板', usage: '组合内容 / 侧栏' },
-  { name: '--radius-xl', label: '浮层', usage: '欢迎区 / 对话框' },
-  { name: '--radius-full', label: '胶囊', usage: '状态 / 筛选' },
+  { name: '--radius-control', label: '控件', usage: '文字按钮 / 图标按钮' },
+  { name: '--radius-input', label: '输入', usage: '独立输入 / 选择器' },
+  { name: '--radius-card', label: '卡片', usage: '内容卡 / 独立样张' },
+  { name: '--radius-overlay', label: '弹层', usage: '对话框 / 浮层' },
+  { name: '--radius-pill', label: '胶囊', usage: '状态标签 / 开关' },
 ] as const
 
 const MOTIONS = [
@@ -298,14 +298,15 @@ export function DesignSystemPanel() {
         <div className="space-y-5">
           <SectionHeading title="形态、材质与动效" hint="高级感来自比例和节奏，不来自效果叠加" />
           <section className="rounded-2xl border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
-            <div className="flex flex-wrap items-center gap-3" data-testid="radius-controls">
-              <span className="shrink-0 text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>圆角样张</span>
+            <h4 className="text-[12px] font-semibold">圆角规范</h4>
+            <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-5" data-testid="radius-role-grid">
+              {RADII.map((item) => <div key={item.name} className="text-center"><div className="mx-auto mb-2 h-14 w-14 border" style={{ borderColor: 'var(--accent-fg)', background: 'var(--accent-subtle)', borderRadius: `var(${item.name})` }} /><div className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{item.label}</div><div className="mt-0.5 font-mono text-[9px]" style={{ color: 'var(--text-muted)' }}>{read(item.name) || '—'}</div><div className="mt-1 text-[9px]" style={{ color: 'var(--text-muted)' }}>{item.usage}</div></div>)}
+            </div>
+            <div className="mt-5 flex flex-wrap items-center gap-3 border-t pt-4" data-testid="radius-controls" style={{ borderColor: 'var(--border-subtle)' }}>
+              <span className="shrink-0 text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>圆角实验</span>
               <input type="range" min="0" max="32" step="1" value={customRadius} aria-label="自定义圆角" onChange={(event) => setCustomRadius(Number(event.target.value))} className="min-w-[10rem] flex-1 accent-[var(--accent-emphasis)]" />
               <span className="w-10 shrink-0 text-right font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{customRadius}px</span>
               <div className="flex h-9 w-24 items-center justify-center border text-[9px]" style={{ borderColor: 'var(--accent-fg)', background: 'var(--accent-subtle)', borderRadius: `${customRadius}px`, color: 'var(--text-secondary)' }}>实时样张</div>
-            </div>
-            <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-5" data-testid="radius-role-grid">
-              {RADII.map((item) => <div key={item.name} className="text-center"><div className="mx-auto mb-2 h-14 w-14 border" style={{ borderColor: 'var(--accent-fg)', background: 'var(--accent-subtle)', borderRadius: `var(${item.name})` }} /><div className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>{item.label}</div><div className="mt-0.5 font-mono text-[9px]" style={{ color: 'var(--text-muted)' }}>{read(item.name) || '—'}</div><div className="mt-1 text-[9px]" style={{ color: 'var(--text-muted)' }}>{item.usage}</div></div>)}
             </div>
           </section>
 

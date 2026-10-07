@@ -156,18 +156,18 @@ function IconButtonStory() {
 function CardStory() {
   return (
     <div className="grid gap-3 md:grid-cols-3">
-      <article className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
+      <article data-shape="card" className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
         <h5 className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>静态卡片</h5>
         <p className="mt-1 text-[11px] leading-4" style={{ color: 'var(--text-muted)' }}>只承载一组相关信息，不附加业务状态。</p>
       </article>
-      <button type="button" className="rounded-lg border p-3 text-left transition hover:bg-[var(--hover-overlay)]" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
+      <button data-shape="card" type="button" className="rounded-lg border p-3 text-left transition hover:bg-[var(--hover-overlay)]" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
         <span className="flex items-center justify-between gap-2">
           <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>可交互卡片</span>
           <Check size={14} style={{ color: 'var(--accent-fg)' }} aria-hidden="true" />
         </span>
         <span className="mt-1 block text-[11px] leading-4" style={{ color: 'var(--text-muted)' }}>整体可点击时，卡片需要有清晰名称。</span>
       </button>
-      <article className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+      <article data-shape="card" className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
         <h5 className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>长内容</h5>
         <p className="mt-1 text-[11px] leading-4" style={{ color: 'var(--text-secondary)' }}>卡片可以容纳较长的说明，但不能依靠阴影或额外色条制造层级，内容仍应通过字重、留白和底色自然分层。</p>
       </article>

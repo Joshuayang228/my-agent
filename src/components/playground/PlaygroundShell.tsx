@@ -96,7 +96,7 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
   })()
 
   return (
-    <div className="flex h-full min-h-0 w-full min-w-0 flex-1" data-testid="playground-shell">
+    <div className="playground-shape-scope flex h-full min-h-0 w-full min-w-0 flex-1" data-testid="playground-shell">
       <aside
         className="playground-nav flex w-[208px] shrink-0 flex-col overflow-y-auto border-r px-3 py-5"
         style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}

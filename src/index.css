@@ -7,6 +7,11 @@
   --radius-lg: 16px;
   --radius-xl: 22px;
   --radius-full: 9999px;
+  --radius-control: var(--radius-sm);
+  --radius-input: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --radius-overlay: var(--radius-xl);
+  --radius-pill: var(--radius-full);
   --motion-fast: 150ms;
   --motion-normal: 220ms;
   --motion-slow: 280ms;
@@ -317,6 +322,21 @@ html[data-font-scale="lg"] {
   border: 0;
   border-radius: 0;
   box-shadow: none;
+}
+.playground-shape-scope .foundation-action-button,
+.playground-shape-scope .foundation-button,
+.playground-shape-scope .foundation-icon-button {
+  border-radius: var(--radius-control);
+}
+.playground-shape-scope .foundation-text-field-outlined {
+  border-radius: var(--radius-input);
+}
+.playground-shape-scope .playground-story-block,
+.playground-shape-scope [data-shape="card"] {
+  border-radius: var(--radius-card);
+}
+.playground-shape-scope [role="dialog"] {
+  border-radius: var(--radius-overlay);
 }
 .foundation-action-button:focus,
 .foundation-button:focus {
