@@ -137,16 +137,16 @@ function IconButtonStory() {
           type="button"
           aria-label={label}
           title={label}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border transition hover:bg-[var(--hover-overlay)]"
+          className="foundation-icon-button inline-flex h-9 w-9 items-center justify-center border transition hover:bg-[var(--hover-overlay)]"
           style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
         >
           <Icon size={16} strokeWidth={1.7} aria-hidden="true" />
         </button>
       ))}
-      <button type="button" aria-label="禁用关闭" disabled className="inline-flex h-9 w-9 items-center justify-center rounded-md border opacity-45" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
+      <button type="button" aria-label="禁用关闭" disabled className="foundation-icon-button inline-flex h-9 w-9 items-center justify-center border opacity-45" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
         <X size={16} aria-hidden="true" />
       </button>
-      <button type="button" aria-label="删除" className="inline-flex h-9 w-9 items-center justify-center rounded-md border" style={{ borderColor: 'color-mix(in srgb, var(--danger) 40%, var(--border-color))', color: 'var(--danger)' }}>
+      <button type="button" aria-label="删除" className="foundation-icon-button inline-flex h-9 w-9 items-center justify-center border" style={{ borderColor: 'color-mix(in srgb, var(--danger) 40%, var(--border-color))', color: 'var(--danger)' }}>
         <X size={16} aria-hidden="true" />
       </button>
     </div>

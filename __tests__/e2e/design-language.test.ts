@@ -15,10 +15,10 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await expect(page.getByTestId('settings-main')).toBeVisible()
     await nav.getByRole('button', { name: '基础组件', exact: true }).click()
     await page.getByRole('tab', { name: '按钮', exact: true }).click()
-    for (const selector of ['.foundation-action-button', '.foundation-button']) {
+    for (const selector of ['.foundation-action-button', '.foundation-button', '.foundation-icon-button']) {
       const button = page.locator(selector).filter({ visible: true }).first()
       await button.scrollIntoViewIfNeeded()
-      await expect(button).toHaveCSS('border-radius', '14px')
+      await expect(button).toHaveCSS('border-radius', '10px')
       const before = await button.boundingBox()
       await button.hover()
       await button.focus()
@@ -124,7 +124,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     const tabs = page.getByRole('tablist', { name: '设计语言分类' })
     const tabFrame = tabs.locator('[role="presentation"]').first()
     await expect(tabFrame).toHaveCSS('border-top-width', '1px')
-    await expect(tabFrame).toHaveCSS('border-radius', '14px')
+    await expect(tabFrame).toHaveCSS('border-radius', '10px')
     const tabBounds = await tabFrame.boundingBox()
     await tabFrame.hover()
     await tabs.getByRole('tab').first().focus()
@@ -133,7 +133,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     expect(await tabFrame.boundingBox()).toEqual(tabBounds)
     await tabs.getByRole('tab', { name: '布局与间距' }).click()
     const samples = page.getByTestId('layout-language-samples')
-    await expect(page.getByRole('button', { name: '重置布局参数', exact: true })).toHaveCSS('border-radius', '14px')
+    await expect(page.getByRole('button', { name: '重置布局参数', exact: true })).toHaveCSS('border-radius', '10px')
     const densityTabs = page.getByRole('tablist', { name: '布局密度' })
     await expect(densityTabs.getByRole('tab')).toHaveText(['紧凑', '标准', '宽松'])
     await expect(samples.getByRole('heading', { level: 3 })).toHaveText(['文字', '图片', '图文组合', '模块', '边界与对齐'])
@@ -253,7 +253,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await page.getByTestId('design-system-panel').evaluate(node => { (node as HTMLElement).style.zoom = '1' })
     await tabs.getByRole('tab', { name: '形态与动效', exact: true }).click()
     const roles = page.getByTestId('radius-role-grid').locator(':scope > div')
-    for (const [index, radius] of ['14px', '14px', '16px', '22px', '9999px'].entries()) {
+    for (const [index, radius] of ['10px', '10px', '16px', '22px', '9999px'].entries()) {
       await expect(roles.nth(index).locator(':scope > div').first()).toHaveCSS('border-radius', radius)
       await expect(roles.nth(index)).toContainText(radius)
     }
@@ -261,7 +261,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await experiment.focus()
     await experiment.press('End')
     await expect(experiment).toHaveValue('32')
-    await expect(roles.first().locator(':scope > div').first()).toHaveCSS('border-radius', '14px')
+    await expect(roles.first().locator(':scope > div').first()).toHaveCSS('border-radius', '10px')
     await page.screenshot({ path: info.outputPath('shape-language.png'), fullPage: true })
   })
 }
