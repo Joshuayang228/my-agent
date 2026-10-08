@@ -61,7 +61,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     formalEntryPaths: ['src/components/shell/WorldHub.tsx', 'src/App.tsx', 'src/components/MomentsPanel.tsx', 'src/components/AssetsPanel.tsx', 'src/components/CastPanel.tsx', 'src/components/WorldDetailsPanel.tsx'],
     realDataPaths: ['electron/main/ipc/companion.ts', 'electron/main/companion/life/assets.ts', 'electron/main/companion/life/moments.ts', 'electron/main/companion/life/store.ts'],
     evidencePaths: ['__tests__/e2e/chat.test.ts', '__tests__/e2e/onboarding.test.ts', '__tests__/unit/world-hub.test.ts', '__tests__/unit/world-living-content.test.ts'],
-    fixtureAssetPaths: ['src/assets/playground/moment-tea-by-window.jpg', 'src/assets/playground/wardrobe-gray-blue-jacket.png', 'src/assets/playground/wardrobe-lin-casual-outfit.png',
+    fixtureAssetPaths: ['src/assets/playground/contact-yao-avatar.png', 'src/assets/playground/contact-xu-avatar.png', 'src/assets/playground/moment-tea-by-window.jpg', 'src/assets/playground/wardrobe-gray-blue-jacket.png', 'src/assets/playground/wardrobe-lin-casual-outfit.png',
       'src/assets/playground/wardrobe-lin-commute-outfit.png', 'src/assets/playground/wardrobe-lin-sport-outfit.png',
       'src/assets/playground/wardrobe-top.png', 'src/assets/playground/wardrobe-bottom.png', 'src/assets/playground/wardrobe-shoes.png',
       'src/assets/playground/wardrobe-shirt.png', 'src/assets/playground/wardrobe-trousers.png', 'src/assets/playground/wardrobe-commute-shoes.png',

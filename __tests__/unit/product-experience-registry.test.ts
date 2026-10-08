@@ -18,6 +18,8 @@ describe('product experience registry', () => {
     expect(new Set(keys).size).toBe(keys.length)
     expect(new Set(tabIds).size).toBe(tabIds.length)
     expect(PRODUCT_EXPERIENCE_REGISTRY['experience.world'].fixtureAssetPaths).toEqual([
+      'src/assets/playground/contact-yao-avatar.png',
+      'src/assets/playground/contact-xu-avatar.png',
       'src/assets/playground/moment-tea-by-window.jpg',
       'src/assets/playground/wardrobe-gray-blue-jacket.png',
       'src/assets/playground/wardrobe-lin-casual-outfit.png',

@@ -7,6 +7,8 @@ import { ImageViewer } from '../foundation/ImageViewer'
 import { contentGutterStyle, readingContentStyle } from '../../shared/content-layout'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
 import { TRAVEL_PREVIEWS } from './FootprintsExperienceCandidate'
+import yaoAvatar from '../../assets/playground/contact-yao-avatar.png'
+import xuAvatar from '../../assets/playground/contact-xu-avatar.png'
 
 interface PersonPreview { id: string; name: string; introduction: string; city?: string; avatarSrc?: string }
 interface RelationPreview { ownerRoleId: string; personId: string; relationLabel: string; firstMetStory?: string; interactionSummary?: string }
@@ -15,8 +17,8 @@ interface ExperiencePreview { id: string; ownerRoleId: string; personId: string;
 export function contactFixtures(ownerRoleId: string) {
   const first = ownerRoleId === 'lin' ? { id: 'yao', name: '阿遥' } : { id: 'lin', name: '小林' }
   const people: PersonPreview[] = [
-    { ...first, introduction: '喜欢阅读，也喜欢不赶时间地散步。', city: '杭州' },
-    { id: 'xu', name: '许叔', introduction: '经营一家小咖啡店，记得熟客偏好的口味。', city: '杭州' },
+    { ...first, introduction: '喜欢阅读，也喜欢不赶时间地散步。', city: '杭州', avatarSrc: first.id === 'yao' ? yaoAvatar : undefined },
+    { id: 'xu', name: '许叔', introduction: '经营一家小咖啡店，记得熟客偏好的口味。', city: '杭州', avatarSrc: xuAvatar },
   ]
   const relations: RelationPreview[] = people.map((person, index) => ({ ownerRoleId, personId: person.id,
     relationLabel: index === 0 ? '大学同学' : '街坊',
@@ -58,6 +60,7 @@ export function ContactsExperienceCandidate({ personaId }: { personaId: string }
   const people = scenario === 'empty' ? [] : fixtures.people.map((person, index) => ({ ...person,
     ...(scenario === 'long' && index === 0 ? { name: '阿遥和一段需要完整显示的很长人物姓名', introduction: person.introduction.repeat(4) } : {}),
     ...(scenario === 'failed-avatar' ? { avatarSrc: '/__missing-contact-avatar__.png' } : {}),
+    ...(scenario === 'no-avatar' ? { avatarSrc: undefined } : {}),
   }))
   const person = people.find(item => item.id === selected)
   const relation = fixtures.relations.find(item => item.personId === selected)
@@ -79,7 +82,7 @@ export function ContactsExperienceCandidate({ personaId }: { personaId: string }
 
   return <div className="flex h-full min-h-0 flex-col" data-testid="world-cast-fixture" data-persona-id={personaId}>
     <div className="shrink-0 px-4 pt-3"><PlaygroundStateSwitcher ariaLabel="通讯录状态样张" value={scenario} onChange={value => { setScenario(value); setSelected(null); setLinkedId(null); setPreviewImage(false) }} items={[
-      { id: 'default', label: '人物清单' }, { id: 'long', label: '长姓名' }, { id: 'no-experiences', label: '无共同经历' }, { id: 'failed-avatar', label: '头像失败' }, { id: 'empty', label: '空通讯录' },
+      { id: 'default', label: '人物清单' }, { id: 'long', label: '长姓名' }, { id: 'no-experiences', label: '无共同经历' }, { id: 'no-avatar', label: '无头像' }, { id: 'failed-avatar', label: '头像失败' }, { id: 'empty', label: '空通讯录' },
     ]} /></div>
     <div ref={scroll} className="min-h-0 flex-1 overflow-y-auto" data-testid="contacts-scroll" style={{ ...contentGutterStyle(), color: 'var(--text-primary)' }}>
       {person ? <>

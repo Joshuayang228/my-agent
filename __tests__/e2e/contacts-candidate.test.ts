@@ -11,6 +11,11 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     const panel = page.getByTestId('world-cast-fixture')
     const scenario = panel.getByRole('tablist', { name: '通讯录状态样张' })
     const card = panel.getByTestId('contact-card-yao')
+    for (const id of ['yao', 'xu']) {
+      const image = panel.getByTestId(`contact-card-${id}`).getByRole('img')
+      await expect(image).toBeVisible()
+      await expect.poll(() => image.evaluate(node => (node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
+    }
     await expect(card).toHaveCSS('border-radius', '16px')
     const box = await card.boundingBox()
     await card.hover()
@@ -20,6 +25,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     expect(width === 600 ? other!.y > box!.y : Math.abs(other!.y - box!.y) < 2).toBe(true)
     await page.screenshot({ path: info.outputPath('contacts-list.png') })
     await card.press('Enter')
+    await expect(panel.getByTestId('contact-detail').getByRole('img', { name: '阿遥' })).toBeVisible()
     await expect(panel.getByTestId('contact-detail')).toContainText('一本书，两种读法')
     await panel.getByRole('button', { name: '查看旅行记录' }).click()
     await expect(panel.getByTestId('contact-detail')).toContainText('这次没有把行程排满。')
@@ -35,6 +41,8 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await card.click()
     await expect(panel).toContainText('还没有留下共同经历')
     await expect(panel.getByRole('button', { name: '查看旅行记录' })).toHaveCount(0)
+    await scenario.getByRole('tab', { name: '无头像' }).click()
+    await expect(card.locator('img')).toHaveCount(0)
     await scenario.getByRole('tab', { name: '头像失败' }).click()
     await expect(card.locator('img')).toHaveCount(0)
     await scenario.getByRole('tab', { name: '空通讯录' }).click()
