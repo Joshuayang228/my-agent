@@ -326,20 +326,27 @@ html[data-font-scale="lg"] {
 }
 .playground-shape-scope .foundation-action-button,
 .playground-shape-scope .foundation-button,
-.playground-shape-scope .foundation-icon-button {
+.playground-shape-scope .foundation-icon-button,
+.world-shape-scope .foundation-action-button,
+.world-shape-scope .foundation-button,
+.world-shape-scope .foundation-icon-button {
   border-radius: var(--radius-control);
 }
-.playground-shape-scope .foundation-text-field-outlined {
+.playground-shape-scope .foundation-text-field-outlined,
+.world-shape-scope .foundation-text-field-outlined {
   border-radius: var(--radius-input);
 }
 .playground-shape-scope .playground-story-block,
-.playground-shape-scope [data-shape="card"] {
+.playground-shape-scope [data-shape="card"],
+.world-shape-scope [data-shape="card"] {
   border-radius: var(--radius-card);
 }
-.playground-shape-scope [role="dialog"] {
+.playground-shape-scope [role="dialog"],
+.world-shape-scope [role="dialog"] {
   border-radius: var(--radius-overlay);
 }
-.playground-shape-scope [data-foundation="tabs"][data-tab-variant="surface"] > [role="presentation"] {
+.playground-shape-scope [data-foundation="tabs"][data-tab-variant="surface"] > [role="presentation"],
+.world-shape-scope [data-foundation="tabs"][data-tab-variant="surface"] > [role="presentation"] {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-control);
 }

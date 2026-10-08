@@ -13,12 +13,19 @@ beforeEach(async () => {
   db = new SQL.Database()
   const event = await store.insertEvent({ roleId: 'lin', scheduledAt: 1, status: 'published', type: 'home', payload: { location: '家中', grantAsset: { kind: 'home', name: '不应重新发放' } }, dayScriptId: 'not-restored' })
   const moment = (await store.insertMoment({ roleId: 'lin', eventId: event.id, publishedAt: 1, text: '原动态', meta: { location: '家中', interactions: [{ kind: 'comment', castName: '朋友', text: '原卡司评论' }] } }))!
+  await store.replaceEventLinks('lin', event.id, [{
+    eventId: event.id,
+    roleId: 'lin',
+    targetType: 'image',
+    targetId: 'history-image',
+    relation: 'depicts',
+  }])
   await toggleMomentLikeForRole('lin', moment.id)
   await addMomentCommentForRole('lin', moment.id, '用户自己的评论')
 })
 afterEach(() => db.close())
 function clear() {
-  db.run('DELETE FROM companion_moment_user_interactions; DELETE FROM companion_moments; DELETE FROM companion_events;')
+  db.run('DELETE FROM companion_moment_user_interactions; DELETE FROM companion_event_links; DELETE FROM companion_moments; DELETE FROM companion_events;')
 }
 const payload = () => ({ sessions: [], livingAssets: [], livingAssetSeeds: [], momentHistory: collectMomentBackup(db) })
 const count = (table: string) => db.exec(`SELECT COUNT(*) FROM ${table}`)[0].values[0][0]
@@ -33,6 +40,7 @@ it('真实赞评连同来源事件和动态往返，重开仍可见，重复导�
   const snapshot = db.export(); db.close(); db = new SQL.Database(snapshot)
   expect(collectMomentBackup(db)).toEqual(data.momentHistory)
   expect(db.exec('SELECT status, day_script_id FROM companion_events')[0].values).toEqual([['published', null]])
+  expect(count('companion_event_links')).toBe(1)
   expect(count('companion_assets')).toBe(0)
   db.run("UPDATE companion_moments SET text = '当前动态'")
   db.run("UPDATE companion_moment_user_interactions SET text = '当前评论' WHERE kind = 'comment'")
@@ -40,6 +48,7 @@ it('真实赞评连同来源事件和动态往返，重开仍可见，重复导�
   expect((await store.listMoments('lin'))[0].text).toBe('当前动态')
   expect((await store.listMomentUserInteractions('lin')).find(row => row.kind === 'comment')?.text).toBe('当前评论')
   expect(count('companion_moment_user_interactions')).toBe(2)
+  expect(count('companion_event_links')).toBe(1)
 })
 
 it.each(['role', 'missing-event', 'missing-moment', 'actor', 'comment', 'like', 'planned', 'duplicate', 'size'])('非法历史包 %s 在写入前拒绝', kind => {
@@ -66,6 +75,7 @@ it.each(['sql', 'persist'])('历史导入 %s 失败不留下事件、动态、�
   expect(count('companion_events')).toBe(0)
   expect(count('companion_moments')).toBe(0)
   expect(count('companion_moment_user_interactions')).toBe(0)
+  expect(count('companion_event_links')).toBe(0)
 })
 
 it('现有动态归属不同拒绝整份导入，现有记录不改写', () => {

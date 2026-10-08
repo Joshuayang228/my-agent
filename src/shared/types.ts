@@ -977,8 +977,43 @@ export interface MomentListResult {
     publishedAt: number
     text: string
     meta: Record<string, unknown>
+    imageIds?: string[]
   }>
   socialByMomentId: Record<string, MomentSocialView>
+}
+
+/** 人物世界生活切片：由事件聚合动态和其产生的长期资产，供详情页按主角读取。 */
+export interface CompanionLifeSlice {
+  event: {
+    id: string
+    roleId: string
+    scheduledAt: number
+    status: 'planned' | 'published' | 'cancelled'
+    type: string
+    payload: Record<string, unknown>
+    dayScriptId: string | null
+  }
+  moment: {
+    id: string
+    roleId: string
+    eventId: string
+    publishedAt: number
+    text: string
+    meta: Record<string, unknown>
+  } | null
+  assets: BackupLivingAsset[]
+  links: CompanionEventLink[]
+}
+
+export interface CompanionEventLink {
+  id: string
+  eventId: string
+  roleId: string
+  targetType: string
+  targetId: string
+  relation: string
+  metadata: Record<string, unknown>
+  createdAt: number
 }
 
 export type MomentSocialMutationResult =
@@ -1166,3 +1201,22 @@ export interface SkillDefinition {
   /** 来源：内置 / 用户 */
   source: 'builtin' | 'user'
 }
+
+export interface CompanionContactPerson { id: string; name: string; introduction: string }
+export interface CompanionContactRelation {
+  ownerRoleId: string; personId: string; relationType: string; summary: string
+}
+export interface CompanionContactExperience {
+  id: string; ownerRoleId: string; personId: string; occurredAt: number;
+  title: string; story: string; eventId: string;
+  references: Array<{ kind: 'moment' | 'trip'; targetId: string }>
+}
+export interface CompanionContactsData {
+  roleId: string; people: CompanionContactPerson[];
+  relations: CompanionContactRelation[]; experiences: CompanionContactExperience[]
+}
+
+export interface CompanionWardrobeChangeInput { roleId: string; assetId: string; expectedVersion: number }
+export type CompanionWardrobeChangeResult =
+  | { ok: true; asset: { id: string; roleId: string; kind: string; name: string; payload: Record<string, unknown>; acquiredAt: number; sourceEventId: string | null } }
+  | { ok: false; code: 'INVALID' | 'ROLE_MISMATCH' | 'NOT_FOUND'; error: string }

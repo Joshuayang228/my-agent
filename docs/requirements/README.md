@@ -20,8 +20,6 @@
 
 ## 进行中
 
-人物世界整体回流：[world-six-surfaces-production-rollout-v1.md](./world-six-surfaces-production-rollout-v1.md)，六面整体回流已授权；本轮生产改造方案与具体数据差异待确认。
-
 布局基线：[foundation-layout-boundaries-v1.md](./foundation-layout-boundaries-v1.md)，布局与间距、透明度 P0 候选施工，正式回流未授权。
 
 足迹设计：[footprints-travel-v1.md](./footprints-travel-v1.md)，旅行粒度与产品边界已确认；数据 / 交互方案待确认，正式回流未授权。
@@ -55,9 +53,12 @@
 
 ## 已完成施工快照（冻结）
 
+人物世界六面正式回流：[world-six-surfaces-production-rollout-v1.md](./world-six-surfaces-production-rollout-v1.md)。已验收六面真实数据、维护 / 换装、角色隔离、失败恢复、受控图片与备份；当前能力见伙伴模块卡。
+
 | 文档 | 说明 |
 |------|------|
 | [product-experience-production-rollout-v1.md](./product-experience-production-rollout-v1.md) | 已完成施工快照：Chat、人物世界、设置、记忆、主题 / Foundation、工作区的正式回流与主线后端验收；RAG、MCP OAuth、完整 PTY 等后置边界明确保留 |
+| [companion-world-model-v1.md](./companion-world-model-v1.md) | 已完成施工快照：人物世界六面、静态 / 动态分层、事件关联、生活切片、真实生图资产链、正式回流与质量门禁；RAG、MCP OAuth、完整 PTY 等后置边界明确保留 |
 | [playground-memory-information-architecture-v1.md](./playground-memory-information-architecture-v1.md) | 已完成施工快照：四类长期记忆导航、紧凑列表与 Debug 来源开关 |
 | [playground-memory-settings-journey-v1.md](./playground-memory-settings-journey-v1.md) | 已完成施工快照：记忆来源、纠正与设置管理的关系旅程 |
 | [memory-world-boundary-v2.md](./memory-world-boundary-v2.md) | 已完成施工快照：用户 / 伙伴 / 关系 / 当前状态的记忆边界与人物世界关系 |

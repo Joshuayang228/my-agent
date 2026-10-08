@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto'
 import type { GeneratedImageReference } from '../../../src/shared/types'
 import { BACKUP_IMAGE_ERRORS } from '../../../src/shared/backup-errors'
 import { GENERATED_IMAGE_LIMITS, normalizeGeneratedImage } from '../utils/generated-image-codec'
-import { loadGeneratedImageFile } from './generated-images'
+import { loadGeneratedImageFile, loadGeneratedImageReference } from './generated-images'
 import { finishBackupMedia, markPendingBackupMedia } from './backup-recovery'
 
 export type BackupImageReference = Omit<GeneratedImageReference, 'path'> & { fileName: string }
@@ -16,6 +16,12 @@ interface ImageSession {
   id: string
   messages: Array<{ generatedImages?: BackupImageReference[] }>
 }
+
+export interface ImageReferenceCollection {
+  references: Array<BackupImageReference | GeneratedImageReference>
+  scope?: string
+}
+
 function record(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value)
 }
@@ -30,6 +36,10 @@ function metadata(value: unknown): value is Omit<GeneratedImageReference, 'path'
 }
 function sameMetadata(a: Omit<GeneratedImageReference, 'path'>, b: Omit<GeneratedImageReference, 'path'>): boolean {
   return a.id === b.id && a.width === b.width && a.height === b.height && a.byteLength === b.byteLength && a.mimeType === b.mimeType
+}
+export function isBackupImageReference(value: unknown): value is BackupImageReference {
+  return metadata(value) && typeof (value as BackupImageReference).fileName === 'string'
+    && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}\.png$/.test((value as BackupImageReference).fileName)
 }
 export function toBackupImageReference(image: GeneratedImageReference): BackupImageReference {
   return { id: image.id, fileName: path.basename(image.path), width: image.width, height: image.height, byteLength: image.byteLength, mimeType: image.mimeType }
@@ -55,7 +65,7 @@ function indexBackupMedia(raw: unknown): Map<string, BackupImageMedia> | null {
   return byId
 }
 
-export function isValidBackupImageBundle(sessions: unknown[], raw: unknown): raw is BackupImageMedia[] | undefined {
+export function isValidBackupImageBundle(sessions: unknown[], raw: unknown, collections: ImageReferenceCollection[] = []): raw is BackupImageMedia[] | undefined {
   const byId = indexBackupMedia(raw)
   if (!byId) return false
   const used = new Set<string>()
@@ -79,15 +89,43 @@ export function isValidBackupImageBundle(sessions: unknown[], raw: unknown): raw
       }
     }
   }
+  // 当前穿搭可复用套装图片，因此不能跨资产拒绝相同摘要；只拒绝集合内部重复，
+  // 并逐条匹配唯一媒体的尺寸与字节数，避免共享引用放宽媒体校验。
+  for (const collection of collections) {
+    if (!collection || !Array.isArray(collection.references)) return false
+    const collectionIds = new Set<string>()
+    for (const image of collection.references) {
+      if (!isBackupImageReference(image) || collectionIds.has(image.id)) return false
+      const bytes = byId.get(image.id)
+      if (!bytes || !sameMetadata(image, bytes)) return false
+      collectionIds.add(image.id)
+      used.add(image.id)
+    }
+  }
   return used.size === byId.size
 }
 
 /** 导出只读已保存会话引用；缺图必须使整份备份失败，不能生成看似成功的残缺备份。 */
-export async function collectBackupImageMedia(sessions: ImageSession[], load = loadGeneratedImageFile): Promise<BackupImageMedia[]> {
+export async function collectBackupImageMedia(
+  sessions: ImageSession[],
+  collections: ImageReferenceCollection[] = [],
+  load = loadGeneratedImageFile,
+): Promise<BackupImageMedia[]> {
   const images = new Map<string, BackupImageMedia>()
   let total = 0
   for (const session of sessions) for (const message of session.messages) for (const reference of message.generatedImages ?? []) {
     const result = await load(session.id, reference.id)
+    if (result.ok === false) throw new BackupImageError(BACKUP_IMAGE_ERRORS.missing)
+    if (result.bytes.length !== reference.byteLength) throw new BackupImageError(BACKUP_IMAGE_ERRORS.changed)
+    if (images.has(reference.id)) continue
+    total += result.bytes.length
+    if (images.size >= BACKUP_IMAGE_LIMITS.count || total > BACKUP_IMAGE_LIMITS.totalBytes) throw new BackupImageError(BACKUP_IMAGE_ERRORS.limit)
+    images.set(reference.id, { id: reference.id, width: reference.width, height: reference.height, byteLength: reference.byteLength, mimeType: reference.mimeType, data: result.bytes.toString('base64') })
+  }
+  for (const collection of collections) for (const reference of collection.references) {
+    const result = 'path' in reference
+      ? await loadGeneratedImageReference(reference, reference.id)
+      : { ok: false as const, error: '图片引用无效。' }
     if (result.ok === false) throw new BackupImageError(BACKUP_IMAGE_ERRORS.missing)
     if (result.bytes.length !== reference.byteLength) throw new BackupImageError(BACKUP_IMAGE_ERRORS.changed)
     if (images.has(reference.id)) continue
@@ -137,10 +175,14 @@ export async function prepareBackupImages(images: BackupImageMedia[]): Promise<P
  * 意图：在主进程指定的 userData 下排他创建一批媒体，再把本地引用交给会话事务。
  * 约束：仅恢复待新增会话使用的图片；失败只清理本批目录，快照成功落盘后只调用 finish。
  */
-export function restoreBackupImages(images: PreparedBackupImage[], sessions: ImageSession[], userData: string) {
+export function restoreBackupImages(images: PreparedBackupImage[], sessions: ImageSession[], userData: string, collections: ImageReferenceCollection[] = []) {
   const needed = new Map<string, string>()
   for (const session of sessions) for (const message of session.messages) for (const image of message.generatedImages ?? []) {
     if (!/^[a-f0-9]{64}$/.test(image.id) || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}\.png$/.test(image.fileName)) throw new BackupImageError(BACKUP_IMAGE_ERRORS.reference)
+    needed.set(image.id, image.fileName)
+  }
+  for (const collection of collections) for (const image of collection.references) {
+    if (!isBackupImageReference(image)) throw new BackupImageError(BACKUP_IMAGE_ERRORS.reference)
     needed.set(image.id, image.fileName)
   }
   const references = new Map<string, GeneratedImageReference>()

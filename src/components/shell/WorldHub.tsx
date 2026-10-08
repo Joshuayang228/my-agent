@@ -8,11 +8,12 @@ import { IconButton } from '../foundation/IconButton'
 import { Newspaper, Shirt, Users, BookOpen, Home, MapPin, X } from 'lucide-react'
 import { MomentsPanel, type MomentItem, type MomentsPreviewData } from '../MomentsPanel'
 import { AssetsPanel } from '../AssetsPanel'
-import { CastPanel } from '../CastPanel'
+import { WorldContactsPanel } from '../world/WorldContactsPanel'
 import { WorldDetailsPanel } from '../WorldDetailsPanel'
 import { WorldProfileHeader, type WorldProfile } from '../world/WorldProfileHeader'
 import type { ShellView } from './SecondaryNav'
 import type { WorldAssetRecord } from '../world/WorldAssetEditor'
+import { layoutProfileStyle } from '../../shared/content-layout'
 
 export type WorldTab = 'moments' | 'assets' | 'cast' | 'wardrobe' | 'culture' | 'home' | 'footprints'
 
@@ -94,7 +95,7 @@ export function WorldHub({
   const visibleTabs = (tabs ?? WORLD_TABS).filter((item) => !hiddenTabs.includes(item.id))
   const labelFor = (item: WorldTabDefinition) => tabLabels?.[item.id] ?? item.label
   return (
-    <div className="flex h-full flex-col" data-testid="world-hub">
+    <div className="world-shape-scope flex h-full flex-col" style={layoutProfileStyle('world')} data-testid="world-hub">
       {!hideHeader && (profile ? <WorldProfileHeader profile={profile} onClose={onClose} /> : <div
         className="flex shrink-0 items-center justify-between gap-3 border-b px-5 py-3"
         style={{ borderColor: 'var(--border-subtle)' }}
@@ -115,7 +116,7 @@ export function WorldHub({
       <div className="flex min-w-0 shrink-0 border-b px-4 py-1" style={{ borderColor: 'var(--border-subtle)' }}>
         <TabStrip
           label="人物世界分区"
-          variant={previewPanels ? previewTabVariant ?? 'underline' : 'underline'}
+          variant={previewPanels ? previewTabVariant ?? 'surface' : 'surface'}
           items={visibleTabs.map(item => ({
             id: item.id,
             label: labelFor(item),
@@ -131,16 +132,11 @@ export function WorldHub({
       <div id={`world-panel-${tab}`} role="tabpanel" className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
         {previewPanels?.[tab] ?? (
           <>
-            {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} appearance={momentsAppearance ?? 'alice-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} compactClosedComposer={compactClosedComposer} enableImagePreview={enableImagePreview} />}
-            {tab === 'wardrobe' && <AssetsPanel onGenerateAssetImage={onGenerateAssetImage} />}
-            {(tab === 'culture' || tab === 'home' || tab === 'footprints') && <WorldDetailsPanel tab={tab} onGenerateAssetImage={onGenerateAssetImage} />}
+            {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} appearance={momentsAppearance ?? 'alice-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} compactClosedComposer={compactClosedComposer} enableImagePreview={enableImagePreview} previewChrome="minimal" />}
+            {tab === 'wardrobe' && <AssetsPanel onGenerateAssetImage={onGenerateAssetImage} showAssetTabs={false} presentation="wardrobe-gallery" />}
+            {(tab === 'culture' || tab === 'home' || tab === 'footprints') && <WorldDetailsPanel tab={tab} onGenerateAssetImage={onGenerateAssetImage} showDetailTitle={false} />}
             {tab === 'cast' && (
-              <CastPanel
-                onClose={onClose}
-                onOpenSession={onOpenSession}
-                onOpenShelf={onOpenShelf}
-                recentByRole={recentByRole}
-              />
+              <WorldContactsPanel />
             )}
           </>
         )}

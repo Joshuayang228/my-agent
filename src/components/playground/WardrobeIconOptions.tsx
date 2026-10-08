@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
+import { wardrobeCategoryIcons } from '../world/WardrobeCategoryIcons'
 import phosphorOutfits from '../../assets/playground/wardrobe-icons/phosphor-coat-hanger.svg'
 import phosphorTop from '../../assets/playground/wardrobe-icons/phosphor-t-shirt.svg'
 import phosphorBottom from '../../assets/playground/wardrobe-icons/phosphor-pants.svg'
@@ -15,7 +16,6 @@ export type WardrobeIconStyle = 'original' | 'phosphor' | 'iconpark' | 'mixed'
 const sources = {
   phosphor: { outfits: phosphorOutfits, top: phosphorTop, bottom: phosphorBottom, outerwear: phosphorOuterwear, shoes: phosphorShoes },
   iconpark: { outfits: iconparkOutfits, top: iconparkTop, bottom: iconparkBottom, outerwear: iconparkOuterwear, shoes: iconparkShoes },
-  mixed: { outfits: phosphorOutfits, bottom: phosphorBottom, outerwear: phosphorOuterwear },
 }
 
 /**
@@ -25,6 +25,7 @@ const sources = {
  */
 export function wardrobePreviewIcons(style: WardrobeIconStyle): Readonly<Record<string, ReactNode>> | undefined {
   if (style === 'original') return undefined
+  if (style === 'mixed') return wardrobeCategoryIcons
   return Object.fromEntries(Object.entries(sources[style]).map(([id, src]) => [id,
     <span key={id} aria-hidden="true" data-wardrobe-icon={style} data-icon-slot={id}
       className="block h-[14px] w-[14px] shrink-0" style={{ backgroundColor: 'currentColor',

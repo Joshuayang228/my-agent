@@ -23,6 +23,8 @@ import { collectExportSessions, isValidExportData, registerDataExportIPC, type E
 import { collectBackupImageMedia, prepareBackupImages } from '../../electron/main/storage/generated-image-backup'
 import { createSession, deleteSession, getSession, saveMessage } from '../../electron/main/storage/session-store'
 import { readGeneratedImage } from '../../electron/main/storage/generated-images'
+import { insertEvent, insertMoment, replaceEventLinks } from '../../electron/main/companion/life/store'
+import { momentImageIdsForRole, readMomentImageForRole } from '../../electron/main/companion/life/moment-images'
 
 const SQL = await initSqlJs()
 let db: InstanceType<typeof SQL.Database>
@@ -45,9 +47,9 @@ function invoke(action: 'export' | 'import') {
   const sender = Object.assign(new EventEmitter(), { mainFrame: {}, isDestroyed: () => false, window: { isDestroyed: () => false } })
   return state.handlers.get(`data:${action}`)!({ sender, senderFrame: sender.mainFrame })
 }
-async function fixture() {
+async function fixture(compressionLevel = 6) {
   const session = await createSession('role')
-  const bytes = await sharp({ create: { width: 3, height: 2, channels: 3, background: '#348368' } }).png().toBuffer()
+  const bytes = await sharp({ create: { width: 3, height: 2, channels: 3, background: '#348368' } }).png({ compressionLevel }).toBuffer()
   const id = createHash('sha256').update(bytes).digest('hex')
   const folder = path.join(root, 'project', 'images')
   fs.mkdirSync(folder, { recursive: true })
@@ -58,6 +60,65 @@ async function fixture() {
   return { session, bytes, id, file }
 }
 const restoredDirectories = () => fs.readdirSync(root).filter(name => name.startsWith('restored-images-'))
+
+it('图片恢复重新编码改变摘要时，朋友圈事件和图片关联同步到新媒体并可读取', async () => {
+  const { session, file, id } = await fixture(0)
+  const event = await insertEvent({ roleId: 'role', status: 'published', scheduledAt: 1, type: 'walk', dayScriptId: null, payload: { imageId: id, imageIds: [id], activity: '真实散步' } })
+  const post = await insertMoment({ roleId: 'role', eventId: event.id, publishedAt: 1, text: '带配图的真实动态' })
+  if (!post) throw new Error('fixture moment missing')
+  await replaceEventLinks('role', event.id, [{ targetType: 'image', targetId: id, relation: 'depicts', metadata: { position: 0 } }])
+  expect(await invoke('export')).toMatchObject({ success: true })
+  for (const table of ['companion_event_links', 'companion_moments', 'companion_events']) db.run(`DELETE FROM ${table}`)
+  await deleteSession(session.id)
+  fs.unlinkSync(file)
+  expect(await invoke('import')).toMatchObject({ success: true })
+  const restoredSession = (await getSession(session.id))!
+  const restoredImage = restoredSession.messages[1].generatedImages![0]
+  expect(restoredImage.id).not.toBe(id)
+  expect(await momentImageIdsForRole('role', post.id)).toEqual([restoredImage.id])
+  expect(await readMomentImageForRole('role', post.id, restoredImage.id)).toMatchObject({ ok: true })
+  const payload = JSON.parse(String(db.exec('SELECT payload_json FROM companion_events')[0].values[0][0]))
+  expect(payload).toMatchObject({ imageId: restoredImage.id, imageIds: [restoredImage.id], activity: '真实散步' })
+  const snapshot = db.export(); db.close(); db = new SQL.Database(snapshot)
+  expect(await readMomentImageForRole('role', post.id, restoredImage.id)).toMatchObject({ ok: true })
+  const folders = restoredDirectories()
+  expect(await invoke('import')).toMatchObject({ success: true, stats: { sessions: 0 } })
+  expect(restoredDirectories()).toEqual(folders)
+})
+
+it.each([false, true])('同像素图片恢复合并不重复导入，说明冲突则零写入（冲突=%s）', async conflicting => {
+  const { session, file, id, bytes } = await fixture(0)
+  const secondBytes = await sharp({ create: { width: 3, height: 2, channels: 3, background: '#348368' } }).png({ compressionLevel: 9 }).toBuffer()
+  const secondId = createHash('sha256').update(secondBytes).digest('hex')
+  expect(secondId).not.toBe(id)
+  const secondFile = path.join(path.dirname(file), 'second.png')
+  fs.writeFileSync(secondFile, secondBytes)
+  const refs = [{ id, path: file, width: 3, height: 2, byteLength: bytes.length, mimeType: 'image/png' }, { id: secondId, path: secondFile, width: 3, height: 2, byteLength: secondBytes.length, mimeType: 'image/png' }]
+  db.run('UPDATE messages SET generated_images = ? WHERE id = ?', [JSON.stringify(refs), 'result'])
+  const event = await insertEvent({ roleId: 'role', status: 'published', scheduledAt: 1, type: 'walk', dayScriptId: null, payload: { imageIds: [id, secondId] } })
+  const post = await insertMoment({ roleId: 'role', eventId: event.id, publishedAt: 1, text: '同像素两种编码' })
+  if (!post) throw new Error('fixture moment missing')
+  await replaceEventLinks('role', event.id, refs.map((ref, position) => ({ targetType: 'image', targetId: ref.id, relation: 'depicts', metadata: { position, ...(conflicting ? { caption: `说明-${position}` } : {}) } })))
+  expect(await invoke('export')).toMatchObject({ success: true })
+  for (const table of ['companion_event_links', 'companion_moments', 'companion_events']) db.run(`DELETE FROM ${table}`)
+  await deleteSession(session.id)
+  fs.unlinkSync(file); fs.unlinkSync(secondFile)
+  const result = await invoke('import')
+  if (conflicting) {
+    expect(result).toMatchObject({ success: false })
+    expect(await getSession(session.id)).toBeNull()
+    expect(db.exec('SELECT COUNT(*) FROM companion_event_links')[0].values[0][0]).toBe(0)
+    expect(restoredDirectories()).toEqual([])
+    return
+  }
+  expect(result).toMatchObject({ success: true })
+  const restored = (await getSession(session.id))!.messages[1].generatedImages!
+  expect(restored[0].id).toBe(restored[1].id)
+  expect(await momentImageIdsForRole('role', post.id)).toEqual([restored[0].id])
+  expect(await invoke('import')).toMatchObject({ success: true, stats: { sessions: 0 } })
+  expect(await momentImageIdsForRole('role', post.id)).toEqual([restored[0].id])
+  expect(db.exec('SELECT COUNT(*) FROM companion_event_links')[0].values[0][0]).toBe(1)
+})
 
 it('真实备份在原图和会话删除后恢复工具卡及图片，重开 SQLite 后可读取且重复导入不复制媒体', async () => {
   const { session, file } = await fixture()
@@ -94,6 +155,95 @@ it('原图缺失或被替换时导出明确失败，不写残缺备份', async (
   fs.unlinkSync(file)
   expect(await invoke('export')).toMatchObject({ success: false })
   expect(fs.existsSync(backup)).toBe(false)
+})
+
+it('人物世界资产图片与会话图片共用媒体备份，并在导入时重写为新路径', async () => {
+  const { session, file, id, bytes } = await fixture()
+  db.run(`CREATE TABLE companion_assets (
+    id TEXT PRIMARY KEY, role_id TEXT NOT NULL, kind TEXT NOT NULL, name TEXT NOT NULL,
+    payload_json TEXT NOT NULL, acquired_at INTEGER NOT NULL, source_event_id TEXT
+  );`)
+  db.run(`INSERT INTO companion_assets (id, role_id, kind, name, payload_json, acquired_at, source_event_id)
+    VALUES (?, ?, ?, ?, ?, ?, NULL)`, ['home:role:tea', 'role', 'home', '窗边茶桌', JSON.stringify({ image: { id, path: file, mimeType: 'image/png', width: 3, height: 2, byteLength: bytes.length } }), 1])
+  expect(await invoke('export')).toMatchObject({ success: true, stats: { livingAssets: 1 } })
+  const data = JSON.parse(fs.readFileSync(backup, 'utf8')) as ExportData
+  expect(data.generatedImageMedia).toHaveLength(1)
+  expect(data.livingAssets?.[0].payload.image).not.toHaveProperty('path')
+  db.run('DELETE FROM companion_assets')
+  await deleteSession(session.id)
+  fs.unlinkSync(file)
+  expect(await invoke('import')).toMatchObject({ success: true, stats: { livingAssets: 1 } })
+  const row = db.exec("SELECT payload_json FROM companion_assets WHERE id = 'home:role:tea'")[0]?.values[0]?.[0]
+  const restored = JSON.parse(String(row)) as { image: { id: string; path: string } }
+  expect(restored.image.id).toBe(id)
+  expect(restored.image.path).not.toBe(file)
+  expect(restored.image.path.startsWith(root + path.sep)).toBe(true)
+})
+
+it('人物世界结构化记录与共享穿搭配图经真实备份恢复和数据库重开不丢字段', async () => {
+  const { session, file, id, bytes } = await fixture()
+  db.run(`CREATE TABLE companion_assets (
+    id TEXT PRIMARY KEY, role_id TEXT NOT NULL, kind TEXT NOT NULL, name TEXT NOT NULL,
+    payload_json TEXT NOT NULL, acquired_at INTEGER NOT NULL, source_event_id TEXT
+  );`)
+  const image = { id, path: file, mimeType: 'image/png', width: 3, height: 2, byteLength: bytes.length }
+  const slots = { top: 'top', bottom: 'bottom', shoes: 'shoes' }
+  const records = [
+    { id: 'top', kind: 'wardrobe', payload: { recordType: 'garment', category: 'top' } },
+    { id: 'bottom', kind: 'wardrobe', payload: { recordType: 'garment', category: 'bottom' } },
+    { id: 'shoes', kind: 'wardrobe', payload: { recordType: 'garment', category: 'shoes' } },
+    { id: 'outfit', kind: 'wardrobe', payload: { recordType: 'outfit', slots, outfitVersion: 2, imageOutfitVersion: 2, image } },
+    { id: 'wear', kind: 'wardrobe', payload: { recordType: 'wear-state', slots, outfitVersion: 7, imageOutfitVersion: 7, image } },
+    { id: 'reading', kind: 'bookshelf', payload: { type: 'reading', readingStatus: 'reading', readingNotes: Array.from({ length: 200 }, (_, index) => ({ id: `note-${index}`, text: '完整笔记'.repeat(1000), page: index + 1, occurredAt: 42 })) } },
+    { id: 'residence', kind: 'home', payload: { recordType: 'residence', description: '真实住所' } },
+    { id: 'room', kind: 'home', payload: { recordType: 'space', residenceId: 'residence', description: '真实房间' } },
+    { id: 'object', kind: 'furniture', payload: { spaceId: 'room', displayInHome: true, displayReason: '有真实故事', displayEvidence: ['事件记录', '长期习惯'] } },
+    { id: 'trip', kind: 'footprint', payload: { recordType: 'trip', status: 'completed', destination: '苏州', start: '2026-09-26', end: '2026-09-27', story: '旅途故事', stops: [{ id: 'stop-one', name: '老街', date: '2026-09-26', story: '停留经历' }] } },
+  ]
+  for (const record of records) db.run('INSERT INTO companion_assets VALUES (?, ?, ?, ?, ?, ?, NULL)', [record.id, 'role', record.kind, record.id, JSON.stringify(record.payload), 1])
+  db.run('INSERT INTO companion_assets VALUES (?, ?, ?, ?, ?, ?, NULL)', ['other-book', 'other', 'bookshelf', '其他角色书籍', JSON.stringify({ readingNotes: [{ id: 'other-note', text: '其他人物的笔记' }] }), 2])
+  expect(await invoke('export')).toMatchObject({ success: true, stats: { livingAssets: 11 } })
+  const data = JSON.parse(fs.readFileSync(backup, 'utf8')) as ExportData
+  expect(isValidExportData(data)).toBe(true)
+  expect(data.generatedImageMedia).toHaveLength(1)
+  db.run('DELETE FROM companion_assets')
+  await deleteSession(session.id)
+  fs.unlinkSync(file)
+  expect(await invoke('import')).toMatchObject({ success: true, stats: { livingAssets: 11 } })
+  const snapshot = db.export(); db.close(); db = new SQL.Database(snapshot)
+  const restored = new Map(db.exec('SELECT id, role_id, payload_json FROM companion_assets')[0].values.map(row => [String(row[0]), { roleId: String(row[1]), payload: JSON.parse(String(row[2])) }]))
+  for (const record of records) {
+    const expected = { ...record.payload } as Record<string, unknown>
+    delete expected.image
+    expect(restored.get(record.id)).toMatchObject({ roleId: 'role', payload: expected })
+  }
+  const restoredImage = restored.get('outfit')!.payload.image
+  expect(restored.get('wear')!.payload.image).toEqual(restoredImage)
+  expect(restoredImage.path).not.toBe(file)
+  expect(fs.existsSync(restoredImage.path)).toBe(true)
+  expect(restored.get('other-book')).toMatchObject({ roleId: 'other', payload: { readingNotes: [{ id: 'other-note', text: '其他人物的笔记' }] } })
+  const folders = restoredDirectories()
+  expect(await invoke('import')).toMatchObject({ success: true, stats: { livingAssets: 0 } })
+  expect(restoredDirectories()).toEqual(folders)
+})
+
+it('扩容后的生活记录备份仍在业务写入前拒绝单资产超限和超大文件', async () => {
+  const { session } = await fixture()
+  expect(await invoke('export')).toMatchObject({ success: true })
+  const data = JSON.parse(fs.readFileSync(backup, 'utf8')) as ExportData
+  data.livingAssets = [{ id: 'oversized', roleId: 'role', kind: 'bookshelf', name: '超限书籍', acquiredAt: 1, sourceEventId: null, payload: { note: 'x'.repeat(6_000_001) } }]
+  expect(isValidExportData(data)).toBe(false)
+  fs.writeFileSync(backup, JSON.stringify(data))
+  await deleteSession(session.id)
+  state.persist.mockClear()
+  expect(await invoke('import')).toMatchObject({ success: false, error: '备份文件格式无效或包含超限数据' })
+  expect(await getSession(session.id)).toBeNull()
+  expect(state.persist).not.toHaveBeenCalled()
+  expect(restoredDirectories()).toEqual([])
+  fs.writeFileSync(backup, ' '.repeat(25 * 1024 * 1024 + 1))
+  expect(await invoke('import')).toMatchObject({ success: false, error: '备份文件过大，无法导入' })
+  expect(state.persist).not.toHaveBeenCalled()
+  expect(restoredDirectories()).toEqual([])
 })
 
 it.each(['path', 'filename', 'missing', 'orphan', 'role', 'pair', 'duplicate', 'dimensions', 'bytes', 'count'])('导入预检拒绝非法图片包 %s，零业务写入', async kind => {

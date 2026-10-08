@@ -21,6 +21,7 @@ import { ConfirmPanel } from '../foundation/ConfirmPanel'
 import { Button } from '../foundation/Button'
 import { EmptyState } from '../foundation/EmptyState'
 import { ErrorState } from '../foundation/ErrorState'
+import { ImageViewer } from '../foundation/ImageViewer'
 import { THEME_STUDIES, getThemeStudyStyle } from './foundation-themes'
 import { ToastPreview, type ToastPreviewItem } from '../Toast'
 import type { UiControlsSubId } from './catalog'
@@ -69,6 +70,11 @@ const GENERATED_IMAGE_STORY: ToolCallbackItem = {
 }
 const readPreviewImage: GeneratedImageReader = async () => ({ ok: true, dataUrl: imagePreview, fileName: 'tea.png' })
 const revealPreviewImage: GeneratedImageRevealer = async () => ({ ok: false, error: '这是隔离样张，没有本地文件。' })
+const IMAGE_VIEWER_STORY_ITEMS = [
+  { src: imagePreview, alt: '窗边的乌龙茶、笔记和远处山影' },
+  { src: imagePreview, alt: '两图样张中的第二张生活图片' },
+  { src: imagePreview, alt: '三图样张中的第三张生活图片' },
+] as const
 function GeneratedImageStories() {
   const [collapsed, setCollapsed] = useState(true)
   const failed = useRef(false)
@@ -251,6 +257,7 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
   const [iconCategory, setIconCategory] = useState<IconCategoryId | 'all'>('all')
   const [customIconSize, setCustomIconSize] = useState(16)
   const [tabSample, setTabSample] = useState('基础')
+  const [imageViewerOpen, setImageViewerOpen] = useState(false)
 
   const filteredIconAssets = useMemo(() => {
     const query = iconQuery.trim().toLocaleLowerCase('zh-CN')
@@ -300,6 +307,21 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
               <Button tone="accent" className="gap-1.5"><WandSparkles size={14} />重新生成</Button>
               <Button busy busyLabel="生成中" className="gap-1.5"><LoaderCircle size={14} className="animate-spin" />生成中</Button>
             </div>
+          </StoryBlock>
+        </div>
+      )}
+
+      {effectiveSub === 'image-viewer' && (
+        <div className="space-y-3">
+          <StoryBlock title="图片预览器" source="src/components/foundation/ImageViewer.tsx · Alice-inspired Foundation primitive">
+            <div className="max-w-md">
+              <button type="button" className="group relative block w-full overflow-hidden rounded-[var(--radius-md)] border p-0 text-left" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} onClick={() => setImageViewerOpen(true)}>
+                <img src={imagePreview} alt="点击预览窗边的乌龙茶、笔记和远处山影" className="block aspect-[3/2] w-full object-cover transition group-hover:scale-[1.01]" />
+                <span className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-1 text-[10px] text-white/85">点击预览</span>
+              </button>
+            </div>
+            <p className="mt-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>统一行为：滚轮缩放、拖动移动、复制图片、下载图片、左右切换、Esc 或点击背景关闭。</p>
+            <ImageViewer items={IMAGE_VIEWER_STORY_ITEMS} initialIndex={0} open={imageViewerOpen} onClose={() => setImageViewerOpen(false)} />
           </StoryBlock>
         </div>
       )}

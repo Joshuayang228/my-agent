@@ -6,13 +6,14 @@
  */
 import { app, ipcMain, dialog } from 'electron'
 import { createBackupOperationGuard } from './backup-operation'
+import path from 'node:path'
 import { writeFile, readFile, stat } from 'node:fs/promises'
 import { createLogger, hashForLog } from '../utils/logger'
 import * as sessionStore from '../storage/session-store'
 import * as memoryStore from '../storage/memory-store'
 import * as settingsStore from '../storage/settings-store'
 import { getDatabase, persist } from '../storage/database'
-import { BackupImageError, collectBackupImageMedia, isValidBackupImageBundle, prepareBackupImages, restoreBackupImages, toBackupImageReference, type BackupImageMedia, type BackupImageReference } from '../storage/generated-image-backup'
+import { BackupImageError, collectBackupImageMedia, isBackupImageReference, isValidBackupImageBundle, prepareBackupImages, restoreBackupImages, toBackupImageReference, type BackupImageMedia, type BackupImageReference, type ImageReferenceCollection } from '../storage/generated-image-backup'
 import type {
   BackupLivingAsset,
   BackupLivingAssetSeed,
@@ -42,7 +43,9 @@ const MAX_IMPORTED_LIVING_ASSETS = 10_000
 const MAX_IMPORTED_LIVING_ASSET_SEEDS = 1_000
 const MAX_IMPORTED_STRING_LENGTH = 1_000_000
 const MAX_IMPORTED_ASSET_NAME_LENGTH = 40
-const MAX_IMPORTED_ASSET_PAYLOAD_CHARS = 20_000
+// 多条笔记 / 停留记录最多 200 项，正文和元信息 JSON 转义后可超过旧短标签上限。
+// 单资产保留足够的有界容量而不截断正文；整份导入仍先受 MAX_IMPORT_BYTES 限制。
+const MAX_IMPORTED_ASSET_PAYLOAD_CHARS = 6_000_000
 const EXPORT_MESSAGE_ROLES = new Set(['user', 'assistant', 'system', 'tool'])
 const EXPORT_MEMORY_CATEGORIES = new Set<MemoryCategory>(['identity', 'preference', 'fact', 'workflow', 'voice', 'feedback'])
 const EXPORT_LIVING_ASSET_KINDS = new Set<string>(BACKUP_LIVING_ASSET_KINDS)
@@ -202,7 +205,68 @@ export function isValidExportData(value: unknown): value is ExportData {
     if (seenSeeds.has(key)) return false
     seenSeeds.add(key)
   }
-  return isValidBackupImageBundle(value.sessions, value.generatedImageMedia)
+  return isValidBackupImageBundle(value.sessions, value.generatedImageMedia, livingAssetImageCollections(livingAssets))
+}
+
+function assetImageReference(payload: Record<string, unknown>): GeneratedImageReference | null {
+  const value = payload.image
+  if (!isRecord(value) || typeof value.id !== 'string' || !/^[a-f0-9]{64}$/.test(value.id)
+    || value.mimeType !== 'image/png' || typeof value.path !== 'string' || !path.isAbsolute(value.path)
+    || !Number.isSafeInteger(value.width) || !Number.isSafeInteger(value.height) || !Number.isSafeInteger(value.byteLength)) return null
+  return value as unknown as GeneratedImageReference
+}
+
+function livingAssetImageCollections(assets: readonly BackupLivingAsset[]): ImageReferenceCollection[] {
+  return assets.flatMap((asset) => {
+    const backupImage = isBackupImageReference(asset.payload.image) ? asset.payload.image : null
+    if (backupImage) return [{ scope: `asset:${asset.id}`, references: [backupImage] }]
+    const image = assetImageReference(asset.payload)
+    return image ? [{ scope: `asset:${asset.id}`, references: [toBackupImageReference(image)] }] : []
+  })
+}
+
+function livingAssetImageSources(assets: readonly BackupLivingAsset[]): ImageReferenceCollection[] {
+  return assets.flatMap((asset) => {
+    const image = assetImageReference(asset.payload)
+    return image ? [{ scope: `asset:${asset.id}`, references: [image] }] : []
+  })
+}
+
+function newLivingAssets(db: Database, assets: readonly BackupLivingAsset[]): BackupLivingAsset[] {
+  return assets.filter((asset) => {
+    const statement = db.prepare('SELECT 1 FROM companion_assets WHERE id = ?')
+    try {
+      statement.bind([asset.id])
+      return !statement.step()
+    } finally {
+      statement.free()
+    }
+  })
+}
+
+function toBackupLivingAssets(assets: readonly BackupLivingAsset[]): BackupLivingAsset[] {
+  return assets.map((asset) => {
+    const image = assetImageReference(asset.payload)
+    if (!image) {
+      if (Object.prototype.hasOwnProperty.call(asset.payload, 'image')) {
+        const payload = { ...asset.payload }
+        delete payload.image
+        return { ...asset, payload }
+      }
+      return asset
+    }
+    return { ...asset, payload: { ...asset.payload, image: toBackupImageReference(image) } }
+  })
+}
+
+function restoreLivingAssetImages(assets: readonly BackupLivingAsset[], references: ReadonlyMap<string, GeneratedImageReference>): BackupLivingAsset[] {
+  return assets.map((asset) => {
+    const value = asset.payload.image
+    if (!isBackupImageReference(value)) return asset
+    const restored = references.get(value.id)
+    if (!restored) throw new BackupImageError(BACKUP_IMAGE_ERRORS.incomplete)
+    return { ...asset, payload: { ...asset.payload, image: restored } }
+  })
 }
 
 export interface ExportData {
@@ -496,6 +560,7 @@ export function importBackupPayload(
     settings?: ReturnType<typeof settingsStore.prepareSettingWrite>[]
     persist?: () => void
     momentHistory?: MomentBackup
+    normalizedImageIds?: ReadonlyMap<string, string>
   },
 ): DataImportStats {
   let importedSessions = 0
@@ -529,7 +594,10 @@ export function importBackupPayload(
     }
     importedSessions = importSessionsIntoDatabase(db, payload.sessions, { transact: false, imageReferences: payload.imageReferences })
     importedLiving = importLivingAssetsIntoDatabase(db, payload.livingAssets, payload.livingAssetSeeds)
-    if (payload.momentHistory) importMomentBackup(db, payload.momentHistory, undo)
+    if (payload.momentHistory) importMomentBackup(db, payload.momentHistory, undo, {
+      restored: new Map([...(payload.imageReferences ?? [])].map(([sourceId, image]) => [sourceId, image.id])),
+      normalized: payload.normalizedImageIds ?? new Map(),
+    })
     for (const memory of payload.memories ?? []) {
       const result = memoryStore.writeMemoryToDatabase(db, memory.category as MemoryCategory, memory.content, { roleId: memory.roleId })
       if (result.inserted) {
@@ -595,11 +663,12 @@ export function registerDataExportIPC(): void {
 
       const db = await getDatabase()
       const sessions = await collectExportSessions(db)
-      const generatedImageMedia = await collectBackupImageMedia(sessions)
       const memories = await memoryStore.listMemories()
       const settings = await settingsStore.getAllSettings()
-      const livingAssets = collectExportLivingAssets(db)
+      const sourceLivingAssets = collectExportLivingAssets(db)
+      const livingAssets = toBackupLivingAssets(sourceLivingAssets)
       const livingAssetSeeds = collectExportLivingAssetSeeds(db)
+      const generatedImageMedia = await collectBackupImageMedia(sessions, livingAssetImageSources(sourceLivingAssets))
       const momentHistory = collectMomentBackup(db)
 
       const safeSettings: Record<string, string> = {}
@@ -711,14 +780,16 @@ export function registerDataExportIPC(): void {
         const statement = db.prepare('SELECT id FROM sessions WHERE id = ?')
         try { statement.bind([session.id]); return !statement.step() } finally { statement.free() }
       })
-      const restored = restoreBackupImages(preparedImages, newSessions, preparedImages.length ? app.getPath('userData') : '')
+      const pendingLivingAssets = newLivingAssets(db, data.livingAssets ?? [])
+      const restored = restoreBackupImages(preparedImages, newSessions, preparedImages.length ? app.getPath('userData') : '', livingAssetImageCollections(pendingLivingAssets))
       let importedCore: ReturnType<typeof importBackupPayload>
       try {
         importedCore = importBackupPayload(db, {
           sessions: newSessions,
-          livingAssets: data.livingAssets ?? [],
+          livingAssets: restoreLivingAssetImages(pendingLivingAssets, restored.references),
           livingAssetSeeds: data.livingAssetSeeds ?? [],
           imageReferences: restored.references,
+          normalizedImageIds: new Map(preparedImages.map(image => [image.sourceId, image.reference.id])),
           memories: pendingMemories,
           settings: pendingSettings,
           persist,

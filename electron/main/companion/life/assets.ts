@@ -7,12 +7,16 @@
  */
 
 import { randomUUID } from 'node:crypto'
+import path from 'node:path'
 import { getDatabase, persist } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
 import type { CompanionAsset, GrantAssetSpec } from '../types'
+import type { GeneratedImageReference } from '../../../../src/shared/types'
 import { BACKUP_LIVING_ASSET_KINDS } from '../../../../src/shared/types'
 import { loadRoleWorldDefaults } from '../identity/loader'
 import { normalizeGrantAsset } from './grant-asset'
+import { normalizeWorldRecordField, wardrobeCategorySchema, wardrobeSlotsSchema, worldRecordConsistencyError } from '../../../../src/shared/world-records'
+import type { CompanionWardrobeChangeInput } from '../../../../src/shared/types'
 
 export { normalizeGrantAsset } from './grant-asset'
 
@@ -94,6 +98,8 @@ export type AssetMutationResult =
   | { ok: true; asset: CompanionAsset }
   | { ok: false; code: 'NOT_FOUND' | 'ROLE_MISMATCH' | 'INVALID'; error: string }
 
+class InvalidInternalAssetError extends Error {}
+
 export async function addAsset(input: {
   roleId: string
   kind: string
@@ -106,6 +112,25 @@ export async function addAsset(input: {
 }): Promise<CompanionAsset> {
   await ensureTables()
   const db = await getDatabase()
+  // 内部播种和事件发放也会进入六面；只规范新登记字段，保留旧正文而不套用短标签截断。
+  // 引用校验与 INSERT 同步执行；非法发放可被明确跳过，真实数据库失败不得被吞掉。
+  const payload = { ...input.payload }
+  for (const [key, value] of Object.entries(payload)) {
+    const field = normalizeWorldRecordField(input.kind, key, value)
+    if (!field.handled) continue
+    if (!field.ok) throw new InvalidInternalAssetError(field.error)
+    payload[key] = field.value
+  }
+  if (input.kind === 'wardrobe' && payload.recordType === 'wear-state') throw new InvalidInternalAssetError('当前穿搭请通过换上操作更新。')
+  const invalid = worldRecordConsistencyError(input.kind, payload)
+    ?? homeReferenceError(db, input.roleId, input.kind, payload)
+    ?? wardrobeReferenceError(db, input.roleId, input.kind, payload)
+  if (invalid) throw new InvalidInternalAssetError(invalid)
+  if (input.kind === 'wardrobe' && payload.recordType === 'outfit') {
+    if (payload.image) throw new InvalidInternalAssetError('套装配图请通过受控生图绑定。')
+    payload.outfitVersion = 1
+    delete payload.imageOutfitVersion
+  }
   const id = input.id || randomUUID()
   const acquiredAt = input.acquiredAt ?? Date.now()
   db.run(
@@ -117,7 +142,7 @@ export async function addAsset(input: {
       input.roleId,
       input.kind,
       input.name,
-      JSON.stringify(input.payload ?? {}),
+      JSON.stringify(payload),
       acquiredAt,
       input.sourceEventId ?? null,
     ],
@@ -129,7 +154,7 @@ export async function addAsset(input: {
     roleId: input.roleId,
     kind: input.kind,
     name: input.name,
-    payload: input.payload ?? {},
+    payload,
     acquiredAt,
     sourceEventId: input.sourceEventId ?? null,
   }
@@ -156,6 +181,16 @@ const LONG_TEXT_FIELDS = new Set([
   'view',
   'surroundings',
 ])
+
+function normalizeImageReference(value: unknown): GeneratedImageReference | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const image = value as Partial<GeneratedImageReference>
+  if (typeof image.id !== 'string' || !/^[a-f0-9]{64}$/.test(image.id) || typeof image.path !== 'string'
+    || !path.isAbsolute(image.path) || image.mimeType !== 'image/png'
+    || typeof image.width !== 'number' || !Number.isSafeInteger(image.width) || image.width <= 0 || typeof image.height !== 'number' || !Number.isSafeInteger(image.height) || image.height <= 0
+    || typeof image.byteLength !== 'number' || !Number.isSafeInteger(image.byteLength) || image.byteLength <= 0) return null
+  return { id: image.id, path: image.path, mimeType: image.mimeType, width: image.width, height: image.height, byteLength: image.byteLength }
+}
 
 function allowsLongText(kind: string): boolean {
   return kind === ASSET_KIND_CULTURE
@@ -188,12 +223,24 @@ export function applyAssetPayloadPatch(
       delete next[key]
       continue
     }
+    const worldField = normalizeWorldRecordField(kind, key, value)
+    if (worldField.handled) {
+      if (!worldField.ok) return { ok: false, error: worldField.error }
+      next[key] = worldField.value
+      continue
+    }
     if (allowsLongText(kind) && LONG_TEXT_FIELDS.has(key)) {
       if (typeof value !== 'string' || value.length > 4000) {
         return { ok: false, error: '正文须为文本，长度不能超过 4000 字符' }
       }
       if (value.trim()) next[key] = value
       else delete next[key]
+      continue
+    }
+    if (key === 'image') {
+      const image = normalizeImageReference(value)
+      if (!image) return { ok: false, error: '图片引用无效，未保存。' }
+      next[key] = image
       continue
     }
     if (typeof value === 'string') {
@@ -204,7 +251,8 @@ export function applyAssetPayloadPatch(
       next[key] = value
     }
   }
-  return { ok: true, payload: next }
+  const consistencyError = worldRecordConsistencyError(kind, next)
+  return consistencyError ? { ok: false, error: consistencyError } : { ok: true, payload: next }
 }
 
 export function isUserCreatableAssetKind(kind: string): kind is UserCreatableAssetKind {
@@ -226,17 +274,133 @@ export async function createAsset(input: {
   if (!isUserCreatableAssetKind(kind)) {
     return { ok: false, code: 'INVALID', error: '不支持的生活资产类型' }
   }
+  if (kind === ASSET_KIND_WARDROBE && input.payload?.recordType === 'wear-state') return { ok: false, code: 'INVALID', error: '当前穿搭请通过换上操作更新。' }
   const name = normalizeAssetName(input.name)
   if (!name.ok) return { ok: false, code: 'INVALID', error: name.error }
   const payload = applyAssetPayloadPatch(kind, {}, input.payload)
   if (!payload.ok) return { ok: false, code: 'INVALID', error: payload.error }
-  const asset = await addAsset({
-    roleId: input.roleId,
-    kind,
-    name: name.value,
-    payload: payload.payload,
-  })
+  await ensureTables()
+  const db = await getDatabase()
+  const referenceError = homeReferenceError(db, input.roleId, kind, payload.payload)
+  if (referenceError) return { ok: false, code: 'INVALID', error: referenceError }
+  const wardrobeError = wardrobeReferenceError(db, input.roleId, kind, payload.payload)
+  if (wardrobeError) return { ok: false, code: 'INVALID', error: wardrobeError }
+  if (kind === ASSET_KIND_WARDROBE && payload.payload.recordType === 'outfit') payload.payload.outfitVersion = 1
+  const asset: CompanionAsset = { id: randomUUID(), roleId: input.roleId, kind, name: name.value, payload: payload.payload, acquiredAt: Date.now(), sourceEventId: null }
+  db.run('INSERT INTO companion_assets (id, role_id, kind, name, payload_json, acquired_at, source_event_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [asset.id, asset.roleId, asset.kind, asset.name, JSON.stringify(asset.payload), asset.acquiredAt, null])
+  persist()
+  log.info('Asset added', { roleId: asset.roleId, kind, id: asset.id })
   return { ok: true, asset }
+}
+
+/**
+ * 背景：正式换装不能依赖动态名称或候选内存，也不能逐件写入造成半套状态。
+ * 设计意图：复用资产表，以版本核验和同步引用检查后的一次 SQL 保存完整槽位。
+ * 关键约束：检查到写入间无 await；只引用同角色有效分类衣物，整套替换不遗留外套，图片只在内容版本匹配时沿用。
+ */
+export async function changeWardrobe(input: CompanionWardrobeChangeInput): Promise<AssetMutationResult> {
+  if (!input || typeof input.roleId !== 'string' || !input.roleId.trim() || typeof input.assetId !== 'string' || !input.assetId.trim()
+    || !Number.isSafeInteger(input.expectedVersion) || input.expectedVersion < 0) return { ok: false, code: 'INVALID', error: '换装信息无效，请重新读取衣柜。' }
+  await ensureTables()
+  const db = await getDatabase()
+  const stmt = db.prepare('SELECT * FROM companion_assets WHERE role_id = ? AND kind = ?')
+  const items: CompanionAsset[] = []
+  try { stmt.bind([input.roleId, ASSET_KIND_WARDROBE]); while (stmt.step()) items.push(rowToAsset(stmt.getAsObject())) } finally { stmt.free() }
+  const states = items.filter(asset => asset.payload.recordType === 'wear-state')
+  if (states.length > 1) return { ok: false, code: 'INVALID', error: '当前穿搭记录冲突，请重新读取衣柜。' }
+  const current = states[0]
+  const version = current ? current.payload.outfitVersion : 0
+  if (version !== input.expectedVersion || !Number.isSafeInteger(version)) return { ok: false, code: 'INVALID', error: '穿搭已发生变化，请重新读取后再换上。' }
+  const target = items.find(asset => asset.id === input.assetId)
+  if (!target) return { ok: false, code: 'NOT_FOUND', error: '衣物或套装不存在于当前衣柜。' }
+  const isOutfit = target.payload.recordType === 'outfit'
+  const category = wardrobeCategorySchema.safeParse(target.payload.category)
+  if (!isOutfit && (!category.success || target.payload.recordType && target.payload.recordType !== 'garment')) return { ok: false, code: 'INVALID', error: '这条记录不是可换上的衣物或套装。' }
+  const slots = wardrobeSlotsSchema.safeParse(isOutfit ? target.payload.slots : { ...(current?.payload.slots as Record<string, unknown> ?? {}), [category.success ? category.data : '']: target.id })
+  if (!slots.success || isOutfit && worldRecordConsistencyError(ASSET_KIND_WARDROBE, target.payload)) return { ok: false, code: 'INVALID', error: '套装衣物不完整，当前穿着仍保留。' }
+  for (const [slot, id] of Object.entries(slots.data)) {
+    const garment = items.find(asset => asset.id === id)
+    if (!garment || garment.payload.category !== slot || garment.payload.recordType && garment.payload.recordType !== 'garment') return { ok: false, code: 'INVALID', error: '穿搭引用了失效或分类不匹配的衣物，当前穿着仍保留。' }
+  }
+  const nextVersion = Number(version) + 1
+  if (!Number.isSafeInteger(nextVersion)) return { ok: false, code: 'INVALID', error: '穿搭版本无效，请重新读取衣柜。' }
+  const payload: Record<string, unknown> = { recordType: 'wear-state', slots: slots.data, outfitVersion: nextVersion }
+  if (isOutfit && Number.isSafeInteger(target.payload.outfitVersion) && target.payload.outfitVersion === target.payload.imageOutfitVersion) {
+    const image = normalizeImageReference(target.payload.image)
+    if (image) { payload.image = image; payload.imageOutfitVersion = nextVersion }
+  }
+  const asset: CompanionAsset = { id: current?.id ?? randomUUID(), roleId: input.roleId, kind: ASSET_KIND_WARDROBE, name: '当前穿搭', payload, acquiredAt: current?.acquiredAt ?? Date.now(), sourceEventId: null }
+  if (current) db.run('UPDATE companion_assets SET name = ?, payload_json = ? WHERE id = ? AND role_id = ?', [asset.name, JSON.stringify(payload), asset.id, input.roleId])
+  else db.run('INSERT INTO companion_assets (id, role_id, kind, name, payload_json, acquired_at, source_event_id) VALUES (?, ?, ?, ?, ?, ?, ?)', [asset.id, asset.roleId, asset.kind, asset.name, JSON.stringify(payload), asset.acquiredAt, null])
+  persist()
+  log.info('Wardrobe changed', { roleId: input.roleId, assetId: target.id, outfitVersion: nextVersion })
+  return { ok: true, asset }
+}
+
+/**
+ * 背景：远程生图返回前，套装或当前穿搭可能已改变，旧结果不能覆盖新内容。
+ * 设计意图：生成前捕获版本，绑定时同步重读资产并核验，而不是用早先快照调用通用编辑。
+ * 关键约束：角色、内容版本和衣物引用均有效才一次写入；失败保留原图片，普通生活资产无需穿搭版本。
+ */
+export async function attachWorldAssetImage(assetId: string, image: GeneratedImageReference, opts: { expectedRoleId: string; expectedOutfitVersion?: number }): Promise<AssetMutationResult> {
+  await ensureTables()
+  const db = await getDatabase()
+  const stmt = db.prepare('SELECT * FROM companion_assets WHERE id = ?')
+  let asset: CompanionAsset | null = null
+  try { stmt.bind([assetId]); if (stmt.step()) asset = rowToAsset(stmt.getAsObject()) } finally { stmt.free() }
+  if (!asset) return { ok: false, code: 'NOT_FOUND', error: '资产不存在，未绑定图片。' }
+  if (asset.roleId !== opts.expectedRoleId) return { ok: false, code: 'ROLE_MISMATCH', error: '图片不属于当前伙伴。' }
+  const normalized = normalizeImageReference(image)
+  if (!normalized) return { ok: false, code: 'INVALID', error: '图片引用无效，未保存。' }
+  const payload: Record<string, unknown> = { ...asset.payload, image: normalized }
+  if (asset.kind === ASSET_KIND_WARDROBE && ['outfit', 'wear-state'].includes(String(asset.payload.recordType))) {
+    if (!Number.isSafeInteger(opts.expectedOutfitVersion) || asset.payload.outfitVersion !== opts.expectedOutfitVersion) return { ok: false, code: 'INVALID', error: '生成期间穿搭已改变，未覆盖当前图片。' }
+    const error = wardrobeReferenceError(db, asset.roleId, asset.kind, payload)
+    if (error) return { ok: false, code: 'INVALID', error }
+    payload.imageOutfitVersion = opts.expectedOutfitVersion
+  }
+  db.run('UPDATE companion_assets SET payload_json = ? WHERE id = ? AND role_id = ?', [JSON.stringify(payload), assetId, opts.expectedRoleId])
+  persist()
+  return { ok: true, asset: { ...asset, payload } }
+}
+
+/**
+ * 背景：空间和物件保存时可能引用别人的房间，或已删除的住所。
+ * 设计意图：在同一数据库实例上同步检查引用后写入，避免异步读取与写入之间引用变化。
+ * 关键约束：只按稳定 ID 和角色归属判断，不按名称匹配；存量失效引用允许纯正文修订，新增 / 更改引用必须有效。
+ */
+function homeReferenceError(db: Awaited<ReturnType<typeof getDatabase>>, roleId: string, kind: string, payload: Record<string, unknown>, previous?: Record<string, unknown>): string | null {
+  const key = kind === 'home' && payload.recordType === 'space' ? 'residenceId' : kind === 'furniture' ? 'spaceId' : null
+  if (!key || payload[key] == null) return null
+  if (previous && previous[key] === payload[key] && (key !== 'residenceId' || previous.recordType === 'space')) return null
+  const stmt = db.prepare('SELECT role_id, kind, payload_json FROM companion_assets WHERE id = ?')
+  try {
+    stmt.bind([String(payload[key])])
+    if (!stmt.step()) return '关联的居住空间不存在，请重新选择。'
+    const row = stmt.getAsObject()
+    if (row.role_id !== roleId || row.kind !== 'home') return '只能关联当前人物的居住空间。'
+    const target = JSON.parse(String(row.payload_json)) as Record<string, unknown>
+    if (key === 'spaceId' ? target.recordType !== 'space' : target.recordType === 'space') return '关联的空间类型不正确，请重新选择。'
+    return null
+  } finally { stmt.free() }
+}
+
+function wardrobeReferenceError(db: Awaited<ReturnType<typeof getDatabase>>, roleId: string, kind: string, payload: Record<string, unknown>): string | null {
+  if (kind !== ASSET_KIND_WARDROBE || !['outfit', 'wear-state'].includes(String(payload.recordType))) return null
+  const slots = wardrobeSlotsSchema.safeParse(payload.slots)
+  if (!slots.success) return '穿搭槽位无效，未保存。'
+  for (const [slot, id] of Object.entries(slots.data)) {
+    const stmt = db.prepare('SELECT role_id, kind, payload_json FROM companion_assets WHERE id = ?')
+    try {
+      stmt.bind([id])
+      if (!stmt.step()) return '穿搭引用的衣物不存在，未保存。'
+      const row = stmt.getAsObject()
+      const garment = JSON.parse(String(row.payload_json)) as Record<string, unknown>
+      if (row.role_id !== roleId || row.kind !== ASSET_KIND_WARDROBE || garment.category !== slot || garment.recordType && garment.recordType !== 'garment') return '穿搭只能引用当前人物分类匹配的衣物，未保存。'
+    } finally { stmt.free() }
+  }
+  return null
 }
 
 export type AssetKind = typeof ASSET_KIND_WARDROBE | typeof ASSET_KIND_BOOKSHELF | typeof ASSET_KIND_CULTURE | typeof ASSET_KIND_HOME | typeof ASSET_KIND_FOOTPRINT | typeof ASSET_KIND_FURNITURE
@@ -531,13 +695,20 @@ export async function updateAsset(
   patch: { name?: string; payload?: Record<string, unknown> },
   opts?: { expectedRoleId?: string },
 ): Promise<AssetMutationResult> {
-  const existing = await getAsset(assetId)
+  await ensureTables()
+  const db = await getDatabase()
+  const stmt = db.prepare('SELECT * FROM companion_assets WHERE id = ?')
+  let existing: CompanionAsset | null = null
+  try { stmt.bind([assetId]); if (stmt.step()) existing = rowToAsset(stmt.getAsObject()) } finally { stmt.free() }
   if (!existing) {
     return { ok: false, code: 'NOT_FOUND', error: '资产不存在' }
   }
   if (opts?.expectedRoleId && existing.roleId !== opts.expectedRoleId) {
     return { ok: false, code: 'ROLE_MISMATCH', error: '只能改当前活跃主角的资产' }
   }
+
+  if (existing.kind === ASSET_KIND_WARDROBE && (existing.payload.recordType === 'wear-state' || patch.payload?.recordType === 'wear-state')) return { ok: false, code: 'INVALID', error: '当前穿搭请通过换上操作更新。' }
+  if (existing.kind === ASSET_KIND_WARDROBE && existing.payload.recordType === 'outfit' && patch.payload && ['image', 'imageOutfitVersion', 'outfitVersion'].some(key => Object.hasOwn(patch.payload!, key))) return { ok: false, code: 'INVALID', error: '穿搭图片与版本请通过生成图片操作更新。' }
 
   const name = patch.name !== undefined ? normalizeAssetName(patch.name) : { ok: true as const, value: existing.name }
   if (!name.ok) return { ok: false, code: 'INVALID', error: name.error }
@@ -546,7 +717,18 @@ export async function updateAsset(
   if (!payloadResult.ok) return { ok: false, code: 'INVALID', error: payloadResult.error }
   const payload = payloadResult.payload
 
-  const db = await getDatabase()
+  const referenceError = homeReferenceError(db, existing.roleId, existing.kind, payload, existing.payload)
+  if (referenceError) return { ok: false, code: 'INVALID', error: referenceError }
+  if (existing.kind === ASSET_KIND_WARDROBE && ['outfit', 'wear-state'].includes(String(payload.recordType))) {
+    const changedSlots = JSON.stringify(Object.entries(payload.slots as Record<string, unknown>).sort()) !== JSON.stringify(Object.entries(existing.payload.slots as Record<string, unknown> ?? {}).sort())
+    if (changedSlots || existing.payload.recordType !== payload.recordType) {
+      const wardrobeError = wardrobeReferenceError(db, existing.roleId, existing.kind, payload)
+      if (wardrobeError) return { ok: false, code: 'INVALID', error: wardrobeError }
+      payload.outfitVersion = Number.isSafeInteger(existing.payload.outfitVersion) ? Number(existing.payload.outfitVersion) + 1 : 1
+      delete payload.image
+      delete payload.imageOutfitVersion
+    }
+  }
   db.run(
     `UPDATE companion_assets SET name = ?, payload_json = ? WHERE id = ?`,
     [name.value, JSON.stringify(payload), assetId],
@@ -597,14 +779,20 @@ export async function maybeGrantFromEvent(input: {
 
   const id = `grant:${input.eventId}`
   const existing = await getAsset(id)
-  if (existing) return existing
+  if (existing) return existing.roleId === input.roleId ? existing : null
 
-  return addAsset({
-    id,
-    roleId: input.roleId,
-    kind: grant.kind,
-    name: grant.name,
-    payload: grant.payload,
-    sourceEventId: input.eventId,
-  })
+  try {
+    return await addAsset({
+      id,
+      roleId: input.roleId,
+      kind: grant.kind,
+      name: grant.name,
+      payload: grant.payload,
+      sourceEventId: input.eventId,
+    })
+  } catch (error) {
+    if (!(error instanceof InvalidInternalAssetError)) throw error
+    log.warn('Invalid event asset skipped', { roleId: input.roleId, eventId: input.eventId, kind: grant.kind })
+    return null
+  }
 }

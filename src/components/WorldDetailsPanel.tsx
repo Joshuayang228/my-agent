@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { ActionButton } from './foundation/ActionButton'
 import { IconButton } from './foundation/IconButton'
-import { WorldCultureContent, WorldHomeContent, WorldFootprintsContent, type LivingAsset } from './world/WorldLivingContent'
+import { WorldCultureContent, WorldHomeContent, WorldFootprintsContent, type LivingAsset, type LivingAssetImageReader, type LivingAssetImageRevealer } from './world/WorldLivingContent'
 import {
   WorldAssetActions,
   WorldAssetAddRow,
@@ -21,11 +21,13 @@ type WorldDetailTab = 'culture' | 'home' | 'footprints'
 
 interface WorldDetailsPanelProps {
   tab: WorldDetailTab
+  onGenerateAssetImage?: (asset: WorldAssetRecord) => void
   previewAssets?: WorldAssetRecord[]
   previewMoments?: Array<{ text: string; publishedAt: number; meta: Record<string, unknown> }>
   previewPresence?: string
   previewRoleName?: string
   previewEditable?: boolean
+  showDetailTitle?: boolean
 }
 
 interface WorldDetailsState {
@@ -45,21 +47,23 @@ const ADD_KIND: Record<WorldDetailTab, WorldAssetKind> = {
 const ADD_LABEL: Record<WorldDetailTab, string> = {
   culture: '文化记录',
   home: '生活物件',
-  footprints: '地点',
+  footprints: '旅行',
 }
 
 /**
  * 背景：人物世界的文化角、家居和足迹入口已在 Playground 验收；文化角需要真实的多类型生活资产，不能继续只读书架映射。
- * 设计意图：文化角、家居和足迹都复用 companion_assets 的 role_id 隔离资产链路；生活动态只补充足迹的近期发生记录。
- * 关键约束：三类资产必须由真实 IPC 返回；住所与常去地点只初始化一次，不因用户删空而重新制造。
+ * 设计意图：三面复用 companion_assets 的角色隔离链，足迹只展示已出发旅行，不从日常动态推断。
+ * 关键约束：正式读取完成后复核活跃角色及逐条归属；样张只在显式 preview 中使用，删空不补造资料。
  */
 export function WorldDetailsPanel({
   tab,
+  onGenerateAssetImage,
   previewAssets,
   previewMoments,
   previewPresence = '',
   previewRoleName = '',
   previewEditable = false,
+  showDetailTitle = true,
 }: WorldDetailsPanelProps) {
   const isPreview = previewAssets !== undefined
   const canEdit = !isPreview || previewEditable
@@ -91,6 +95,15 @@ export function WorldDetailsPanel({
   const adding = addDrafts[tab]?.open ?? false
   const addDraft = addDrafts[tab]?.draft ?? emptyWorldAssetDraft(ADD_KIND[tab])
 
+  const readImage = useCallback<LivingAssetImageReader>(async (assetId, imageId) => {
+    if (isPreview || !window.electronAPI?.companion?.readAssetImage) return { ok: false, error: '样张图片不读取本地文件。' }
+    return window.electronAPI.companion.readAssetImage(assetId, imageId)
+  }, [isPreview])
+  const revealImage = useCallback<LivingAssetImageRevealer>(async (assetId, imageId) => {
+    if (isPreview || !window.electronAPI?.companion?.revealAssetImage) return { ok: false, error: '样张图片不能定位本地文件。' }
+    return window.electronAPI.companion.revealAssetImage(assetId, imageId)
+  }, [isPreview])
+
   const load = useCallback(async () => {
     if (isPreview) {
       setState({
@@ -105,6 +118,7 @@ export function WorldDetailsPanel({
     const currentRequest = ++requestId.current
     if (!window.electronAPI?.companion) {
       setError('生活面需要桌面连接，请重新打开应用后重试。')
+      setLoading(false)
       return
     }
     setLoading(true)
@@ -116,12 +130,13 @@ export function WorldDetailsPanel({
         window.electronAPI.companion.getMoments({ limit: 50 }),
         window.electronAPI.companion.getAssets(),
       ])
+      const confirmed = await window.electronAPI.companion.getActive()
       if (requestId.current !== currentRequest || !mounted.current) return
-      if ([presence.roleId, moments.roleId, assets.roleId].some((roleId) => roleId !== active.id)) {
+      if (confirmed.id !== active.id || [presence.roleId, moments.roleId, assets.roleId].some((roleId) => roleId !== active.id)) {
         setState(null)
         throw new Error('ROLE_CHANGED')
       }
-      setState({ roleId: active.id, roleName: active.name, presence: presence.presence, moments: moments.items, assets: assets.items })
+      setState({ roleId: active.id, roleName: active.name, presence: presence.presence, moments: moments.items.filter(item => item.roleId === active.id), assets: assets.items.filter(item => item.roleId === active.id) })
     } catch {
       if (requestId.current === currentRequest && mounted.current) setError('生活面暂时无法加载，请重试。')
     } finally {
@@ -175,7 +190,7 @@ export function WorldDetailsPanel({
     setWriteError('')
     setPendingDelete(null)
     setEditingId(asset.id)
-    setEditDraft(draftFromAsset(asset))
+    setEditDraft(draftFromAsset(asset, !isPreview && tab === 'home' ? 'home-gallery' : !isPreview && tab === 'footprints' ? 'travel-gallery' : !isPreview && tab === 'culture' ? 'culture-gallery' : undefined))
   }
 
   const saveEdit = async () => {
@@ -251,39 +266,49 @@ export function WorldDetailsPanel({
   const renderEditor = (asset: LivingAsset) => {
     if (!canEdit) return null
     if (editingId === asset.id) {
-      return <WorldAssetForm draft={editDraft} onChange={setEditDraft} onSave={() => void saveEdit()} onCancel={() => { if (!busy) { setEditingId(null); setWriteError('') } }} busy={busy} saveLabel={`保存${ADD_LABEL[tab]}`} />
+      return <WorldAssetForm draft={editDraft} assets={state?.assets.filter(item => item.roleId === state.roleId)} onChange={setEditDraft} onSave={() => void saveEdit()} onCancel={() => { if (!busy) { setEditingId(null); setWriteError('') } }} busy={busy} saveLabel={`保存${ADD_LABEL[tab]}`} />
     }
     const record = state?.assets.find((item) => item.id === asset.id)
     if (!record) return null
-    return <WorldAssetActions name={record.name} disabled={busy} onEdit={() => startEdit(record)} onDelete={() => setPendingDelete(record)} />
+    return <WorldAssetActions name={record.name} disabled={busy} onGenerate={onGenerateAssetImage ? () => onGenerateAssetImage(record) : undefined} onEdit={() => startEdit(record)} onDelete={() => setPendingDelete(record)} />
   }
 
   if (loading && !state) return <div className="p-5 text-xs" style={{ color: 'var(--text-muted)' }}>正在整理生活面…</div>
   if (error && !state) return <div role="alert" className="flex items-center gap-2 p-5 text-xs" style={{ color: 'var(--danger)' }}><span>{error}</span><IconButton label="重试生活面" size={32} onClick={() => void load()}><RefreshCw size={14} /></IconButton></div>
   if (!state) return null
 
-  return <fieldset disabled={busy} aria-busy={busy || loading} className="m-0 min-w-0 space-y-3 border-0 p-5" data-testid="world-details">
-    <div className="flex items-center justify-between gap-3">
-      <div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{state.roleName}的{tab === 'culture' ? '文化角' : tab === 'home' ? '家居' : '足迹'}</div>
-      {!isPreview && <IconButton label={error ? '重试生活面' : '刷新生活面'} size={32} onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>}
-    </div>
+  return <fieldset disabled={busy} aria-busy={busy || loading} className="m-0 flex h-full min-h-0 min-w-0 flex-col border-0 p-0" data-testid="world-details">
+    {(showDetailTitle || !isPreview) && (
+      <div className="flex shrink-0 items-center justify-between gap-3 px-4 pt-3">
+        {showDetailTitle ? (
+          <div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{state.roleName}的{tab === 'culture' ? '文化角' : tab === 'home' ? '家居' : '足迹'}</div>
+        ) : <span aria-hidden="true" />}
+        {!isPreview && <IconButton label={error ? '重试生活面' : '刷新生活面'} size={32} onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>}
+      </div>
+    )}
     {error && <p role="alert" className="text-[11px]" style={{ color: 'var(--danger)' }}>{error}</p>}
     {pendingDelete && <WorldAssetDeleteConfirm asset={pendingDelete} busy={busy} onCancel={() => { if (!busy) setPendingDelete(null) }} onConfirm={() => { const target = pendingDelete; if (target) void removeAsset(target) }} />}
     <WorldWriteError message={writeError}>{!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>}</WorldWriteError>
-    {tab === 'culture' && <WorldCultureContent assets={state.assets} renderEditor={renderEditor} />}
-    {tab === 'home' && <WorldHomeContent assets={state.assets} presence={state.presence} renderEditor={renderEditor} />}
-    {tab === 'footprints' && <WorldFootprintsContent assets={state.assets} moments={state.moments} renderEditor={renderEditor} />}
+    {tab === 'culture' && <WorldCultureContent assets={state.assets} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} presentation={isPreview ? 'default' : 'culture-gallery'} />}
+    {tab === 'home' && <WorldHomeContent assets={state.assets} roleId={state.roleId} presence={state.presence} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} presentation={isPreview ? 'default' : 'home-gallery'} />}
+    {tab === 'footprints' && <WorldFootprintsContent assets={state.assets} roleId={state.roleId} moments={state.moments} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} variant={isPreview ? 'alice' : 'travel-gallery'} />}
     {canEdit && (
+      <div className="shrink-0 px-4 pb-4">
+      {tab === 'home' && !isPreview && !adding && <div className="flex flex-wrap gap-2">
+        {(['residence', 'space'] as const).map(type => <ActionButton key={type} disabled={busy} onClick={() => setAddDrafts(drafts => ({ ...drafts, home: { open: true, draft: { ...emptyWorldAssetDraft('home'), presentation: 'home-gallery', payload: { recordType: type } } } }))}>添加{type === 'space' ? '空间' : '住所'}</ActionButton>)}
+      </div>}
       <WorldAssetAddRow
         open={adding}
-        label={ADD_LABEL[tab]}
+        label={tab === 'home' && addDraft.kind === 'home' ? addDraft.payload.recordType === 'space' ? '空间' : '住所' : ADD_LABEL[tab]}
+        assets={state.assets.filter(item => item.roleId === state.roleId)}
         draft={addDraft}
         busy={busy}
-        onOpen={() => setAddDrafts((drafts) => ({ ...drafts, [tab]: { open: true, draft: drafts[tab]?.draft ?? emptyWorldAssetDraft(ADD_KIND[tab]) } }))}
+        onOpen={() => setAddDrafts((drafts) => ({ ...drafts, [tab]: { open: true, draft: tab === 'home' && !isPreview ? { ...emptyWorldAssetDraft('furniture'), presentation: 'home-gallery' } : tab === 'footprints' && !isPreview ? { kind: 'footprint', name: '', presentation: 'travel-gallery', payload: { status: 'completed' }, stops: [] } : tab === 'culture' && !isPreview ? { ...emptyWorldAssetDraft('culture'), presentation: 'culture-gallery', readingNotes: [] } : drafts[tab]?.draft ?? emptyWorldAssetDraft(ADD_KIND[tab]) } }))}
         onChange={(draft) => setAddDrafts((drafts) => ({ ...drafts, [tab]: { open: true, draft } }))}
         onSave={() => void saveAdd()}
         onCancel={() => { if (!busy) setAddDrafts((drafts) => ({ ...drafts, [tab]: { open: false, draft: drafts[tab]?.draft ?? emptyWorldAssetDraft(ADD_KIND[tab]) } })) }}
       />
+      </div>
     )}
   </fieldset>
 }

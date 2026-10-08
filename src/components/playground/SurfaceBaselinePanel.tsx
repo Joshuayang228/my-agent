@@ -4,7 +4,7 @@
  */
 
 import { useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, X, Check } from 'lucide-react'
+import { ArrowRight, Check, CircleAlert, Clock3, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, X } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
 import { LAYOUT_CLASSES, layoutProfileStyle } from '../../shared/content-layout'
@@ -12,6 +12,7 @@ import { CultureExperienceCandidate } from './CultureExperienceCandidate'
 import { HomeExperienceCandidate } from './HomeExperienceCandidate'
 import { FootprintsExperienceCandidate } from './FootprintsExperienceCandidate'
 import { WardrobeIconOptions, wardrobePreviewIcons, type WardrobeIconStyle } from './WardrobeIconOptions'
+import { MomentsExperienceCandidate } from './MomentsExperienceCandidate'
 import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
@@ -22,12 +23,11 @@ import { ChatApprovalControl } from '../chat/ChatApprovalControl'
 import { ChatMessageFrame } from '../chat/ChatMessageFrame'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
-import type { MomentItem, MomentsPreviewData } from '../MomentsPanel'
+import { MomentsPanel, type MomentItem, type MomentMediaItem, type MomentsPreviewData } from '../MomentsPanel'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
 import { WorldHub, type WorldTab } from '../shell/WorldHub'
 import { AssetsPanel } from '../AssetsPanel'
 import { ContactsExperienceCandidate } from './ContactsExperienceCandidate'
-import { WorldProfileHeader } from '../world/WorldProfileHeader'
 import type { WorldAssetRecord } from '../world/WorldAssetEditor'
 import type { MemoryEntry } from '../../shared/types'
 import { MEMORY_GROUPS } from '../../shared/memory-groups'
@@ -160,6 +160,40 @@ const MOMENTS_PREVIEW_FIXTURES: MomentsPreviewData = {
   ] satisfies MomentItem[],
 }
 
+/**
+ * Playground 只用同一张确定性图片验证朋友圈画廊的几何，不把样张当作生产生活事实。
+ * 背景：生图结果会在真实运行时异步到达，图片数量变化最容易造成动态卡片跳动；这里必须先验证 2 / 3 / 9 张的固定占位。
+ * 设计意图：沿用 Alice 的“动态内画廊”结构，单图保持横向内容比例，多图统一方格，而不是另造相册组件。
+ * 关键约束：每个媒体项都必须有稳定的 `src`、替代文本和方格占位；不要用加载完成后才决定高度的布局。
+ */
+function momentGallery(count: number, label: string): MomentMediaItem[] {
+  return Array.from({ length: count }, (_, index) => ({
+    src: momentTeaByWindow,
+    alt: `${label}第${index + 1}张`,
+  }))
+}
+
+const MOMENTS_GALLERY_FIXTURES: MomentItem[] = [
+  {
+    id: 'playground-moment-gallery-2', roleId: 'lin', eventId: 'fixture-gallery-2',
+    publishedAt: NOW - 8 * 3_600_000, text: '今天只选了两张照片，留一点空白给正在发生的事情。',
+    meta: { type: 'daily', location: '窗边', interactions: [] },
+    media: momentGallery(2, '两图样张'),
+  },
+  {
+    id: 'playground-moment-gallery-3', roleId: 'lin', eventId: 'fixture-gallery-3',
+    publishedAt: NOW - 12 * 3_600_000, text: '三张照片记录下午的光线、桌面和那杯还没喝完的茶。',
+    meta: { type: 'daily', location: '家中', interactions: [] },
+    media: momentGallery(3, '三图样张'),
+  },
+  {
+    id: 'playground-moment-gallery-9', roleId: 'lin', eventId: 'fixture-gallery-9',
+    publishedAt: NOW - 18 * 3_600_000, text: '九宫格适合一段完整的生活片段，但每张图仍然属于同一条动态。',
+    meta: { type: 'mood', location: '河边', interactions: [] },
+    media: momentGallery(9, '九宫格样张'),
+  },
+]
+
 
 /**
  * 将同一组确定性动态投影到当前实验主角，保持故事结构稳定而让跨页面身份变化可见。
@@ -172,7 +206,7 @@ function momentsPreviewForPersona(persona: PlaygroundPersona): MomentsPreviewDat
     roleId: persona.id,
     roleName: persona.name,
     summary: `${persona.name}今天的生活节奏比较松，留了一点时间整理桌面和散步。`,
-    items: MOMENTS_PREVIEW_FIXTURES.items.map((item) => ({
+    items: [...MOMENTS_PREVIEW_FIXTURES.items, ...MOMENTS_GALLERY_FIXTURES].map((item) => ({
       ...item,
       roleId: persona.id,
     })),
@@ -507,8 +541,39 @@ function SidebarSurface() {
 function DockSurface() {
   return <WorkspaceExperienceCandidate />
 }
-function MomentsProfileHero({ persona }: { persona: PlaygroundPersona }) {
-  return <WorldProfileHeader profile={{ name: persona.name, description: persona.blurb }} testId="playground-moments-profile" />
+function WorldOverviewHero({ persona }: { persona: PlaygroundPersona }) {
+  return (
+    <section
+      className="shrink-0 border-b px-5 pb-4 pt-4 sm:px-6"
+      data-testid="playground-moments-profile"
+      style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}
+    >
+      <div className="flex min-w-0 items-start gap-3">
+        <div
+          aria-hidden="true"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-base font-semibold"
+          style={{ background: 'var(--accent-subtle)', color: 'var(--companion-accent-warm)' }}
+        >
+          {Array.from(persona.name)[0]}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h2 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{persona.name}</h2>
+            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px]" style={{ color: 'var(--success)', background: 'color-mix(in srgb, var(--success) 11%, transparent)' }}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--success)' }} />
+              此刻在家
+            </span>
+          </div>
+          <p className="mt-1 max-w-2xl text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}>{persona.blurb}</p>
+        </div>
+        <div className="hidden shrink-0 items-center gap-1.5 text-[10px] sm:flex" style={{ color: 'var(--text-muted)' }}>
+          <Clock3 size={12} strokeWidth={1.7} aria-hidden="true" />
+          <span>下午 · 杭州</span>
+        </div>
+      </div>
+
+    </section>
+  )
 }
 
 function worldPreviewAsset(personaId: string, id: string, kind: string, name: string, payload: Record<string, unknown>, acquiredAt = 1): WorldAssetRecord {
@@ -528,19 +593,19 @@ function worldPreviewFixtures(persona: PlaygroundPersona) {
     worldPreviewAsset(persona.id, 'sport-bottom', 'wardrobe', '深灰运动长裤', { category: 'bottom', playgroundImageSrc: wardrobeSportBottom }, 9),
   ]
   const living: WorldAssetRecord[] = [
-    worldPreviewAsset(persona.id, 'reading', 'culture', '《瓦尔登湖》', { type: 'reading', detail: '正在读', note: '有时候不是事情太多，而是没有给自己留下足够的空白。' }),
+    worldPreviewAsset(persona.id, 'reading', 'culture', '《瓦尔登湖》', { type: 'reading', detail: '正在读', note: '有时候不是事情太多，而是没有给自己留下足够的空白。', playgroundImageSrc: momentTeaByWindow }),
     worldPreviewAsset(persona.id, 'music', 'culture', '旅行的意义', { type: 'music', detail: '最近常听 · 傍晚散步' }, 2),
     worldPreviewAsset(persona.id, 'film', 'culture', '《海街日记》', { type: 'film', detail: '喜欢的电影' }, 3),
-    worldPreviewAsset(persona.id, 'photo', 'culture', '窗边的光', { type: 'photography', detail: '自己的作品 · 2026 年 8 月' }, 4),
-    worldPreviewAsset(persona.id, 'desk', 'home', '书桌', { interior: '窗帘拉开了一点，桌面留出了一块安静的空白。' }, 5),
+    worldPreviewAsset(persona.id, 'photo', 'culture', '窗边的光', { type: 'photography', detail: '自己的作品 · 2026 年 8 月', playgroundImageSrc: momentTeaByWindow }, 4),
+    worldPreviewAsset(persona.id, 'desk', 'home', '书桌', { interior: '窗帘拉开了一点，桌面留出了一块安静的空白。', playgroundImageSrc: momentTeaByWindow }, 5),
     worldPreviewAsset(persona.id, 'lamp', 'furniture', '台灯', { description: '暖光 · 已打开' }, 6),
     worldPreviewAsset(persona.id, 'tea', 'object', '乌龙茶', { description: '刚泡好 · 还温着' }, 7),
     worldPreviewAsset(persona.id, 'home-camera', 'object', '旧相机', { description: '放在桌角' }, 8),
     worldPreviewAsset(persona.id, 'home-bag', 'object', '灰绿帆布包', { description: '挂在门边' }, 8),
     worldPreviewAsset(persona.id, 'home-umbrella', 'object', '折叠伞', { description: '放在玄关' }, 8),
-    worldPreviewAsset(persona.id, 'cafe', 'footprint', '楼下咖啡店', { visitStatus: 'favorite' }, 9),
-    worldPreviewAsset(persona.id, 'riverside', 'footprint', '河边步道', { visitStatus: 'favorite' }, 10),
-    worldPreviewAsset(persona.id, 'beihai', 'footprint', '北海', { visitStatus: 'wanted' }, 11),
+    worldPreviewAsset(persona.id, 'cafe', 'footprint', '楼下咖啡店', { visitStatus: 'favorite', city: '住处附近', description: '下楼就能坐一会儿，通常带着笔记本。', playgroundImageSrc: momentTeaByWindow }, 9),
+    worldPreviewAsset(persona.id, 'riverside', 'footprint', '河边步道', { visitStatus: 'favorite', city: '杭州', description: '天气好的时候会沿着水边慢慢走。' }, 10),
+    worldPreviewAsset(persona.id, 'beihai', 'footprint', '北海', { visitStatus: 'wanted', city: '广西', description: '想在不赶行程的几天里去看看海。' }, 11),
   ]
   return {
     wardrobe,
@@ -588,6 +653,9 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
   const [tab, setTab] = useState<WorldTab>('moments')
   const fixtures = useMemo(() => worldPreviewFixtures(persona), [persona])
   const previewPanels: Partial<Record<WorldTab, ReactNode>> = {
+    moments: (
+      <MomentsExperienceCandidate previewData={momentsPreviewForPersona(persona)} />
+    ),
     wardrobe: (
       <WardrobeCandidate assets={fixtures.wardrobe} personaId={persona.id} />
     ),
@@ -607,7 +675,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
   return (
     <SurfaceViewport>
       <div className="flex h-full min-h-0 flex-col" data-testid="playground-world-experience" data-persona-id={persona.id}>
-        <MomentsProfileHero persona={persona} />
+        <WorldOverviewHero persona={persona} />
         <div className="min-h-0 flex-1">
           <WorldHub
             tab={tab}
@@ -618,6 +686,8 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
             momentsPreview={momentsPreviewForPersona(persona)}
             momentsAppearance="alice-feed"
             showSocialActions
+            compactClosedComposer
+            enableImagePreview
             hideMomentsHeader
             previewPanels={previewPanels}
             previewTabVariant="surface"

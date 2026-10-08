@@ -176,7 +176,7 @@ function buildLifeAssets(universeId: string, roleId: string, rolePack: RolePack)
   return getStarterAssetDefinitions(roleId).map((item) => {
     const content = jsonContent({ kind: item.kind, key: item.key, name: item.name, payload: item.payload })
     const worldDerived = item.kind === 'home' || item.kind === 'footprint'
-    const label = { wardrobe: '衣柜', bookshelf: '书架', culture: '文化角', home: '住所', footprint: '常去地点' }[item.kind]
+    const label = { wardrobe: '衣柜', bookshelf: '书架', culture: '文化角', home: '住所', furniture: '家具', footprint: '常去地点' }[item.kind]
     return makeCompanionAsset({
       key: `companion:${universeId}:${roleId}:life:${item.kind}:${item.key}`,
       name: `生活资产 · ${rolePack.name} · ${item.name}`,

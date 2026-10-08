@@ -1130,6 +1130,11 @@ function App() {
             ) : isWorldView(activeView) ? (
               <WorldHub
                 profile={{ name: currentPersonaName, description: companionBlurb }}
+                onGenerateAssetImage={(asset) => {
+                  setActiveView('chat')
+                  setInput(`请为人物世界资产“${asset.name}”生成一张图片。资产 ID：${asset.id}。生成后请使用 image_generate 的 targetAssetId 绑定到这个资产。`)
+                  setTimeout(() => inputRef.current?.focus(), 0)
+                }}
                 tab={activeView === 'world' ? worldTab : worldTabFromView(activeView)}
                 onTabChange={(t) => {
                   setWorldTab(t)
@@ -1138,6 +1143,7 @@ function App() {
                 onClose={() => setActiveView('chat')}
                 onOpenSession={(sid) => { void openSummonSession(sid) }}
                 onOpenShelf={openRoleShelf}
+                enableImagePreview
                 recentByRole={Object.fromEntries(
                   sessions
                     .filter((s) => s.sessionKind === 'summon' && s.roleId)

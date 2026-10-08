@@ -11,6 +11,7 @@ import { getRules } from '../../sandbox/permission-engine'
 import type { GeneratedImageReference, ToolContext } from '../../../../src/shared/types'
 import type { SandboxMode } from '../../sandbox/policy'
 import { createLogger } from '../../utils/logger'
+import { attachWorldAssetImage, getAsset } from '../../companion/life/assets'
 
 const log = createLogger('ImageGenerate')
 
@@ -74,6 +75,7 @@ export const imageGenerateTool = buildTool({
     properties: {
       prompt: { type: 'string', description: '图片内容描述，最多 16000 字。' },
       path: { type: 'string', description: '输出路径，例如 images/tea-room.png；名称只含字母、数字、短横线或下划线，不能覆盖已有文件。' },
+      targetAssetId: { type: 'string', description: '可选：将生成图片绑定到当前会话角色的人物世界资产。' },
     },
     required: ['prompt', 'path'],
   },
@@ -87,6 +89,17 @@ export const imageGenerateTool = buildTool({
       const config = await loadImageGenerationConfig()
       if (!config) throw new ImageGenerationError('请先在模型设置中安排生图模型。')
       if (typeof args.prompt !== 'string' || !args.prompt.trim() || args.prompt.length > 16_000) throw new ImageGenerationError('请提供不超过 16000 字的图片描述。')
+      const targetAssetId = typeof args.targetAssetId === 'string' ? args.targetAssetId.trim() : ''
+      let expectedOutfitVersion: number | undefined
+      if (targetAssetId) {
+        if (!context?.roleId) throw new ImageGenerationError('当前会话没有绑定人物，无法把图片放入人物世界。')
+        const asset = await getAsset(targetAssetId)
+        if (!asset || asset.roleId !== context.roleId) throw new ImageGenerationError('人物世界资产已不存在或不属于当前伙伴。')
+        if (asset.kind === 'wardrobe' && ['outfit', 'wear-state'].includes(String(asset.payload.recordType))) {
+          if (!Number.isSafeInteger(asset.payload.outfitVersion)) throw new ImageGenerationError('穿搭版本无效，请重新读取衣柜后再生成图片。')
+          expectedOutfitVersion = Number(asset.payload.outfitVersion)
+        }
+      }
       // 配置装配也会异步等待；请求前再次复核，不能等付费完成才发现授权或目标失效。
       const requestMode = await loadEffectiveSandbox()
       context?.signal?.throwIfAborted()
@@ -101,6 +114,13 @@ export const imageGenerateTool = buildTool({
       context?.signal?.throwIfAborted()
       commitImage(current, image.bytes)
       const generatedImages: GeneratedImageReference[] = [{ id: createHash('sha256').update(image.bytes).digest('hex'), path: current.target, mimeType: image.mimeType, width: image.width, height: image.height, byteLength: image.bytes.length }]
+      if (targetAssetId) {
+        const linked = await attachWorldAssetImage(targetAssetId, generatedImages[0], { expectedRoleId: context!.roleId!, expectedOutfitVersion })
+        if (!linked.ok) {
+          try { fs.unlinkSync(current.target) } catch { log.warn('Generated image cleanup failed after asset link rejection', { target: current.target }) }
+          throw new ImageGenerationError(linked.error)
+        }
+      }
       return { content: `图片已生成并保存到 ${args.path}（${image.width} × ${image.height}）。`, generatedImages }
     } catch (error) {
       return { content: context?.signal?.aborted ? '已取消生图，服务端可能仍在处理；请勿重复提交。' : error instanceof ImageGenerationError ? error.message : '图片生成或保存失败，请检查模型、图片格式和项目权限；没有自动重试。', isError: true }

@@ -30,6 +30,21 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('人物世界共享画廊采用状态对应真实正式入口', () => {
+    for (const key of ['layout.world-record-image', 'layout.home-gallery', 'layout.travel-gallery', 'layout.contacts-gallery']) {
+      const asset = UI_COMPONENT_REGISTRY[key]
+      expect(asset.status).toBe('adopted')
+      expect(existsSync(asset.sourcePath)).toBe(true)
+    }
+    const hub = readFileSync('src/components/shell/WorldHub.tsx', 'utf8')
+    expect(hub).toContain('<WorldContactsPanel')
+    const living = readFileSync('src/components/world/WorldLivingContent.tsx', 'utf8')
+    expect(living).toContain('<WorldHomeGallery')
+    expect(living).toContain('<WorldTravelGallery')
+    expect(readFileSync('src/components/world/WorldCultureGallery.tsx', 'utf8')).toContain('<WorldRecordImage')
+    expect(UI_COMPONENT_REGISTRY['layout.moments-experience-candidate'].status).toBe('playground')
+    expect(UI_COMPONENT_REGISTRY['layout.contacts-candidate'].status).toBe('playground')
+  })
   it('MCP 清单正式与候选共用数量、添加和空态，基础操作没有 IPC', () => {
     for (const file of ['src/components/SettingsPanel.tsx', 'src/components/playground/SettingsExperienceCandidate.tsx']) {
       expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'McpServiceList', '/settings/McpServiceList'), file).toBe(true)

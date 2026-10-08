@@ -402,9 +402,12 @@ test('正式文化角通过真实资产 IPC 更新并在重载后保留作品与
     await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
     await page.getByTestId('world-tab-culture').click()
     const culture = page.locator('[data-world-content="culture"]')
-    await expect(culture.getByRole('article', { name: '文化角持久化验收作品', exact: true })).toContainText('摘要和笔记应同时可见')
-    await expect(culture.locator('blockquote').filter({ hasText: '文化角持久化验收作品' })).toContainText(note.trim())
-    await expect(culture).toContainText('读书')
+    await expect(culture.getByRole('article', { name: '文化角持久化验收作品', exact: true })).toContainText('最新笔记')
+    await culture.getByRole('button', { name: '查看作品：文化角持久化验收作品', exact: true }).click()
+    await expect(culture.getByTestId('culture-detail')).toContainText('摘要和笔记应同时可见')
+    await expect(culture.getByTestId('reading-notes')).toContainText(note.trim())
+    await expect(culture).toContainText('书籍')
+    await culture.getByRole('button', { name: '返回列表', exact: true }).click()
     await expect(culture.getByRole('article')).toHaveCount(1)
     expect(await culture.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
     const persisted = await page.evaluate(() => window.electronAPI.companion.getAssets())
@@ -440,7 +443,7 @@ test('正式生活资产可通过真实 IPC 新增、重载保留并拒绝超限
     const furniture = await page.evaluate(async () => window.electronAPI.companion.createAsset({ roleId: (await window.electronAPI.companion.getActive()).id,
       kind: 'furniture',
       name: '家居新增验收台灯',
-      payload: { description: '桌边一盏真实台灯' },
+      payload: { description: '桌边一盏真实台灯', displayInHome: true, displayReason: '阅读习惯', displayEvidence: ['读书时常用'] },
     }))
     expect(furniture).toMatchObject({ ok: true })
     if (!furniture.ok) return
@@ -448,8 +451,8 @@ test('正式生活资产可通过真实 IPC 新增、重载保留并拒绝超限
 
     const footprint = await page.evaluate(async () => window.electronAPI.companion.createAsset({ roleId: (await window.electronAPI.companion.getActive()).id,
       kind: 'footprint',
-      name: '足迹新增验收地点',
-      payload: { visitStatus: 'wanted', city: '北海', description: '想去但还没有去过' },
+      name: '足迹新增验收旅行',
+      payload: { recordType: 'trip', status: 'completed', destination: '北海', start: '2026-09-01', end: '2026-09-02', story: '海边走了一天', stops: [{ id: 'beach', name: '海边', date: '2026-09-02', story: '看了日落' }] },
     }))
     expect(footprint).toMatchObject({ ok: true })
     if (!footprint.ok) return
@@ -470,22 +473,28 @@ test('正式生活资产可通过真实 IPC 新增、重载保留并拒绝超限
 
     await page.getByTestId('world-tab-culture').click()
     const cultureView = page.locator('[data-world-content="culture"]')
-    await expect(cultureView.getByRole('article', { name: '文化角新增验收作品', exact: true })).toContainText('摘要和笔记应同时可见')
-    await expect(cultureView.locator('blockquote').filter({ hasText: '文化角新增验收作品' })).toContainText(note.trim())
+    await expect(cultureView.getByRole('article', { name: '文化角新增验收作品', exact: true })).toContainText('最新笔记')
+    await cultureView.getByRole('button', { name: '查看作品：文化角新增验收作品', exact: true }).click()
+    await expect(cultureView.getByTestId('culture-detail')).toContainText('摘要和笔记应同时可见')
+    await expect(cultureView.getByTestId('reading-notes')).toContainText(note.trim())
 
     await page.getByTestId('world-tab-home').click()
-    const homeView = page.locator('[data-world-content="home"]')
-    await expect(homeView.getByRole('article').filter({ hasText: '家居新增验收台灯' })).toContainText('桌边一盏真实台灯')
+    const homeView = page.getByTestId('home-gallery')
+    await homeView.getByRole('tab', { name: '未归置', exact: true }).click()
+    await homeView.getByRole('button', { name: '查看物件：家居新增验收台灯', exact: true }).click()
+    await expect(homeView.getByTestId('home-object-detail')).toContainText('桌边一盏真实台灯')
 
     await page.getByTestId('world-tab-footprints').click()
-    const footprintsView = page.locator('[data-world-content="footprints"]')
-    await expect(footprintsView.getByRole('region', { name: '想去的地方' })).toContainText('足迹新增验收地点')
-    await expect(footprintsView.getByRole('region', { name: '常去地点' }).getByText('足迹新增验收地点', { exact: true })).toHaveCount(0)
+    await page.getByRole('button', { name: '查看旅行 足迹新增验收旅行', exact: true }).click()
+    const footprintsView = page.getByTestId('travel-detail')
+    await expect(footprintsView).toContainText('海边走了一天')
+    await expect(footprintsView).toContainText('看了日落')
+    await expect(footprintsView).toContainText('2026-09-02')
 
     const persisted = await page.evaluate(() => window.electronAPI.companion.getAssets())
     expect(persisted.items.find((item) => item.name === '文化角新增验收作品')?.payload.note).toBe(note)
     expect(persisted.items.find((item) => item.name === '家居新增验收台灯')?.payload.description).toBe('桌边一盏真实台灯')
-    expect(persisted.items.find((item) => item.name === '足迹新增验收地点')?.payload.visitStatus).toBe('wanted')
+    expect(persisted.items.find((item) => item.name === '足迹新增验收旅行')?.payload.status).toBe('completed')
     expect(persisted.items.some((item) => item.name === '不得写入超限作品')).toBe(false)
     await page.screenshot({ path: 'test-results/world-living-create-electron.png', fullPage: true })
   } finally {
@@ -493,7 +502,7 @@ test('正式生活资产可通过真实 IPC 新增、重载保留并拒绝超限
       await page.evaluate((assetId) => window.electronAPI.companion.deleteAsset(assetId), id)
     }
     const leftover = await page.evaluate(() => window.electronAPI.companion.getAssets())
-    expect(leftover.items.some((item) => ['文化角新增验收作品', '家居新增验收台灯', '足迹新增验收地点', '不得写入超限作品'].includes(item.name))).toBe(false)
+    expect(leftover.items.some((item) => ['文化角新增验收作品', '家居新增验收台灯', '足迹新增验收旅行', '不得写入超限作品'].includes(item.name))).toBe(false)
     const back = page.getByTestId('world-hub').getByRole('button', { name: '返回聊天', exact: true })
     if (await back.isVisible()) await back.click()
   }
@@ -691,6 +700,8 @@ test('正式人物世界六面从正式入口读取真实伙伴数据', async ()
     await page.getByTestId('world-tab-wardrobe').click()
     const wardrobe = page.getByTestId('world-assets-panel')
     await expect(wardrobe).toBeVisible()
+    await expect(wardrobe).toContainText('还没有当前穿搭。')
+    await wardrobe.getByRole('tab', { name: '全部', exact: true }).click()
     await expect(wardrobe).toContainText('衣柜还是空的。')
     const initial = await page.evaluate(() => window.electronAPI.companion.getAssets())
     expect(initial.items.filter(item => ['wardrobe', 'bookshelf', 'culture'].includes(item.kind))).toEqual([])
@@ -706,33 +717,99 @@ test('正式人物世界六面从正式入口读取真实伙伴数据', async ()
     expect(created.clothing.ok).toBe(true)
     expect(created.reading.ok).toBe(true)
     await page.getByTestId('world-tab-wardrobe').click()
+    await wardrobe.getByRole('tab', { name: '全部', exact: true }).click()
     await expect(wardrobe.getByText('用户验收外套', { exact: true })).toBeVisible()
     await page.getByTestId('world-tab-culture').click()
     await expect(culture.getByRole('article', { name: '用户验收读物', exact: true })).toBeVisible()
-    await expect(culture.locator('blockquote').filter({ hasText: '用户验收读物' })).toContainText('用户记录的读书笔记')
+    await culture.getByRole('button', { name: '查看作品：用户验收读物', exact: true }).click()
+    await expect(culture.getByTestId('reading-notes')).toContainText('用户记录的读书笔记')
     await expect(culture).not.toContainText('《瓦尔登湖》')
 
     await page.getByTestId('world-tab-home').click()
-    const home = page.locator('[data-world-content="home"]')
-    await expect(home.getByRole('region', { name: '当前空间' })).toContainText('还没有记录居住空间。')
+    const home = page.getByTestId('home-gallery')
+    await expect(home).toContainText('还没有记录居住空间')
     await expect(home).not.toContainText('城西小公寓')
 
     await page.getByTestId('world-tab-cast').click()
-    const contacts = page.getByTestId('world-cast-panel')
-    await expect(contacts.getByTestId('world-cast-card-chen')).toContainText('陈姐')
-    await expect(contacts.getByTestId('world-cast-card-ayu')).toContainText('阿雨')
-    await expect(contacts.getByTestId('world-cast-presence-chen')).toHaveText(/方便开聊|现在忙碌|状态未读到|正在查看忙闲/)
-    await expect(contacts.getByTestId('world-cast-presence-ayu')).toHaveText(/方便开聊|现在忙碌|状态未读到|正在查看忙闲/)
+    const contacts = page.getByTestId('world-contacts-panel')
+    await expect(contacts.getByTestId('contact-card-chen')).toContainText('陈姐')
+    await expect(contacts.getByTestId('contact-card-ayu')).toContainText('阿雨')
+    await expect(contacts.getByRole('button', { name: /开聊|强行开聊/ })).toHaveCount(0)
+    await contacts.getByTestId('contact-card-chen').click()
+    await expect(contacts.getByTestId('contact-detail')).toContainText('陈姐')
+    await contacts.getByRole('button', { name: '返回', exact: true }).click()
 
     await page.getByTestId('world-tab-footprints').click()
-    const footprints = page.locator('[data-world-content="footprints"]')
-    await expect(footprints.getByRole('region', { name: '生活足迹' })).toContainText('家中')
-    await expect(footprints.getByRole('region', { name: '生活足迹' })).toContainText('六面入口验收：今天把书桌收拾出来了。')
-    await expect(footprints.getByRole('region', { name: '常去地点' })).toHaveCount(0)
+    const footprints = page.locator('#world-panel-footprints')
+    await expect(footprints).toContainText('还没有旅行足迹')
+    await expect(footprints).not.toContainText('六面入口验收：今天把书桌收拾出来了。')
+    await expect(footprints).not.toContainText('家中')
     await expect(footprints).not.toContainText('城西小公寓')
   } finally {
     const back = page.getByTestId('world-hub').getByRole('button', { name: '返回聊天', exact: true })
     if (await back.isVisible().catch(() => false)) await back.click()
+  }
+})
+
+test('正式衣柜通过真实 IPC 整套单件换上并重载保留，过期请求不改变穿搭', async () => {
+  await page.evaluate(async url => {
+    await window.electronAPI.settings.saveModelConfiguration({
+      connections: JSON.stringify([{ id: 'wardrobe-desktop', name: '衣柜桌面验收', baseUrl: url, apiKey: 'local-test-key', model: 'local-test-model', enabled: true }]),
+      routes: JSON.stringify([{ purpose: 'primary', connectionId: 'wardrobe-desktop', model: 'local-test-model', enabled: true }]),
+    })
+  }, baseUrl)
+  await page.reload()
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  const roleId = (await page.evaluate(() => window.electronAPI.companion.getActive())).id
+  const marker = '桌面换装-' + randomUUID().slice(0, 8)
+  const initial = await page.evaluate(() => window.electronAPI.companion.getAssets())
+  expect(initial.items.filter(item => item.payload.recordType === 'wear-state')).toEqual([])
+  const createdIds: string[] = []
+  try {
+    const ids = await page.evaluate(async ({ roleId, marker }) => {
+      const ids: Record<string, string> = {}
+      for (const [key, category] of [['top', 'top'], ['replacement', 'top'], ['bottom', 'bottom'], ['shoes', 'shoes']]) {
+        const result = await window.electronAPI.companion.createAsset({ roleId, kind: 'wardrobe', name: marker + '-' + key, payload: { recordType: 'garment', category } })
+        if (!result.ok) throw new Error('衣物准备失败')
+        ids[key] = result.asset.id
+      }
+      const result = await window.electronAPI.companion.createAsset({ roleId, kind: 'wardrobe', name: marker + '-套装', payload: { recordType: 'outfit', slots: { top: ids.top, bottom: ids.bottom, shoes: ids.shoes } } })
+      if (!result.ok) throw new Error('套装准备失败')
+      ids.outfit = result.asset.id
+      return ids
+    }, { roleId, marker })
+    createdIds.push(...Object.values(ids))
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    await page.getByTestId('world-tab-wardrobe').click()
+    const panel = page.getByTestId('world-assets-panel')
+    await panel.getByRole('tab', { name: '套装', exact: true }).click()
+    await panel.getByRole('button', { name: '换上套装 ' + marker + '-套装', exact: true }).click()
+    await expect(panel.getByRole('tab', { name: '正在穿着', exact: true })).toHaveAttribute('aria-selected', 'true')
+    await expect(panel.getByTestId('world-wardrobe-wearing')).toContainText(marker + '-top')
+    const wearing = () => page.evaluate(async () => (await window.electronAPI.companion.getAssets()).items.find(item => item.payload.recordType === 'wear-state'))
+    const first = await wearing()
+    expect(first?.payload).toMatchObject({ slots: { top: ids.top, bottom: ids.bottom, shoes: ids.shoes }, outfitVersion: 1 })
+    await panel.getByRole('tab', { name: '上装', exact: true }).click()
+    await panel.getByRole('button', { name: '换上 ' + marker + '-replacement', exact: true }).click()
+    await expect(panel.getByTestId('world-wardrobe-wearing')).toContainText(marker + '-replacement')
+    const second = await wearing()
+    expect(second?.payload).toMatchObject({ slots: { top: ids.replacement, bottom: ids.bottom, shoes: ids.shoes }, outfitVersion: 2 })
+    expect(second?.id).toBe(first?.id)
+    const rejected = await page.evaluate(input => window.electronAPI.companion.changeWardrobe(input), { roleId, assetId: ids.outfit, expectedVersion: 1 })
+    expect(rejected).toMatchObject({ ok: false, code: 'INVALID' })
+    expect(await wearing()).toEqual(second)
+    await page.reload()
+    await expect(page.locator('#startup-splash')).toBeHidden()
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    await page.getByTestId('world-tab-wardrobe').click()
+    await expect(panel.getByTestId('world-wardrobe-wearing')).toContainText(marker + '-replacement')
+    expect(await wearing()).toEqual(second)
+  } finally {
+    const assets = await page.evaluate(() => window.electronAPI.companion.getAssets())
+    for (const item of assets.items.filter(item => createdIds.includes(item.id) || item.name.startsWith(marker) || item.payload.recordType === 'wear-state')) {
+      await page.evaluate(id => window.electronAPI.companion.deleteAsset(id), item.id)
+    }
+    await page.reload()
   }
 })
 
@@ -763,10 +840,16 @@ test('正式生活资产拒绝通知迟到时旧伙伴页面的新增', async ()
       await switchTo('lin')
       await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
       await page.getByTestId('world-tab-' + tab).click()
+      if (tab === 'wardrobe') await page.getByTestId('world-assets-panel').getByRole('tab', { name: '全部', exact: true }).click()
       const add = page.getByTestId('world-asset-add-' + kind)
       await add.getByRole('button', { name: /^添加/ }).click()
       const input = add.getByRole('textbox').first()
       await input.fill(marker + '-' + kind)
+      if (kind === 'footprint') {
+        await add.getByRole('textbox', { name: '目的地', exact: true }).fill('苏州')
+        await add.getByLabel('出发日期', { exact: true }).fill('2026-09-01')
+        await add.getByLabel('结束日期', { exact: true }).fill('2026-09-02')
+      }
       // 只延迟测试窗口的通知，保留真实切角、preload、IPC 校验和 SQLite 提交。
       await electronApp.evaluate(({ BrowserWindow }) => {
         const contents = BrowserWindow.getAllWindows()[0].webContents
@@ -789,6 +872,7 @@ test('正式生活资产拒绝通知迟到时旧伙伴页面的新增', async ()
       expect(assets.roleId).toBe('zhou')
       expect(assets.items.filter(item => item.name === marker + '-' + kind)).toEqual([])
       await release()
+      if (tab === 'wardrobe') await page.getByTestId('world-assets-panel').getByRole('tab', { name: '全部', exact: true }).click()
       await expect(add.getByRole('button', { name: /^添加/ })).toBeVisible()
       await expect(page.getByText('未添加，内容仍保留。请重试。', { exact: true })).toHaveCount(0)
       if (tab === 'wardrobe') {
@@ -804,6 +888,11 @@ test('正式生活资产拒绝通知迟到时旧伙伴页面的新增', async ()
       }
       await add.getByRole('button', { name: /^添加/ }).click()
       await add.getByRole('textbox').first().fill(marker + '-' + kind + '-accepted')
+      if (kind === 'footprint') {
+        await add.getByRole('textbox', { name: '目的地', exact: true }).fill('苏州')
+        await add.getByLabel('出发日期', { exact: true }).fill('2026-09-01')
+        await add.getByLabel('结束日期', { exact: true }).fill('2026-09-02')
+      }
       await add.getByRole('button', { name: /^保存/ }).click()
       await expect(add.getByRole('button', { name: /^添加/ })).toBeVisible()
       const saved = (await page.evaluate(() => window.electronAPI.companion.getAssets())).items.find(item => item.name === marker + '-' + kind + '-accepted')
@@ -900,7 +989,8 @@ test('正式生活面真实切角通知隔离四类资产并重载保留', async
     for (const role of ['lin', 'zhou']) {
       await switchTo(role)
       for (const kind of ['wardrobe', 'culture', 'furniture', 'footprint']) {
-        const result = await page.evaluate(input => window.electronAPI.companion.createAsset(input), { roleId: role, kind, name: marker + '-' + role + '-' + kind, payload: {} })
+        const payload = kind === 'culture' ? { type: 'reading' } : kind === 'furniture' ? { displayInHome: true, displayReason: '真实测试资料', displayEvidence: ['已有记录'] } : kind === 'footprint' ? { recordType: 'trip', status: 'completed', destination: '苏州', start: '2026-09-01', end: '2026-09-02' } : { category: 'outerwear' }
+        const result = await page.evaluate(input => window.electronAPI.companion.createAsset(input), { roleId: role, kind, name: marker + '-' + role + '-' + kind, payload })
         expect(result.ok).toBe(true)
         if (result.ok) created.push({ role, id: result.asset.id })
       }
@@ -910,11 +1000,18 @@ test('正式生活面真实切角通知隔离四类资产并重载保留', async
     for (const [tab, kind] of [['wardrobe', 'wardrobe'], ['culture', 'culture'], ['home', 'furniture'], ['footprints', 'footprint']]) {
       await page.getByTestId('world-tab-' + tab).click()
       const panel = page.getByTestId(tab === 'wardrobe' ? 'world-assets-panel' : 'world-details')
+      const selectCollection = async () => {
+        if (tab === 'wardrobe') await panel.getByRole('tab', { name: '全部', exact: true }).click()
+        if (tab === 'home') await panel.getByRole('tab', { name: '未归置', exact: true }).click()
+      }
+      await selectCollection()
       await expect(panel).toContainText(marker + '-lin-' + kind)
       await switchTo('zhou')
+      await selectCollection()
       await expect(panel).toContainText(marker + '-zhou-' + kind)
       await expect(panel).not.toContainText(marker + '-lin-')
       await switchTo('lin')
+      await selectCollection()
       await expect(panel).toContainText(marker + '-lin-' + kind)
       await expect(panel).not.toContainText(marker + '-zhou-')
     }

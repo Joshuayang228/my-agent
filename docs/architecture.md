@@ -1,5 +1,7 @@
 # 系统架构
 
+人物世界六面共用纯展示画廊，正式加载 / 写入由各面板和 companion IPC 管理；Playground 通过隔离 props 注入样张，不改变生产默认数据。world-records 负责结构校验，资产服务负责同角色引用与同步换装版本校验；通讯录从已发布事件与 event_links 派生关系经历，足迹仅消费已出发旅行。schema 18 保存事件关联；关联替换与事件投影删除使用 SAVEPOINT 整组回滚。用户资料不是内置生产资产，Debug 静态目录仍只登记 Role Pack 与 starter 定义。
+
 生活资产创建 IPC 使用共享 CompanionAssetCreateInput：Renderer 从已校验的资产快照发送 roleId，主进程进行运行时类型 / 长度与活跃角色一致性校验，再将固定 roleId 交给资产服务；角色变化不能把请求重定向给另一伙伴。无角色旧调用直接拒绝，不作兼容回退；preload / vite-env 共用输入类型。编辑删除的资产 ID 与 expectedRoleId 校验不变，不新增数据库锁或迁移。
 
 模型草稿离页判定由 ModelRoutingSettings 统一提供给内部 beforeLeave 和桌面 beforeunload。主窗口 will-prevent-unload 恢复 isQuitting=false 并显示原窗口，不强行放行卸载；memoryIndexSync.stop 位于最终 will-quit，不能在可取消的 before-quit 停止后台索引。无新增 IPC 或持久化路径。
@@ -49,9 +51,9 @@ ModelUsageArrangements 同样属于纯受控 Experience，组合 Foundation Sele
 
 主对话与辅助用途由唯一配置工厂按同用途顺序装配首选及 fallbackModels，过滤停用项和缺失引用、去重相同连接模型；每项端点、密钥、模型和 provider 整体绑定，空 Key 不借用其他连接凭据。独立辅助用途不继承主用途备用池，无有效辅助用途时整体沿用主配置。生图必须显式配置，只取首个有效目标，不回退主模型、不自动重试或跨供应商重发。主用途不存在时身份为空，不读取旧全局字段或 LLM_* 环境变量。一次性身份覆盖不继承已保存备用链。统一调用入口逐目标认证，远程缺 Key 不发请求；Debug 从主配置工厂读取脱敏身份。
 
-用户主动生图沿 image_generate → loadImageGenerationConfig → Images / Gemini 适配器 → sharp 完整解码并归一化 PNG → 项目 images 目录独占提交执行。主进程注入 workspaceRoot，收费请求前及提交前复核权限与真实路径；restricted-fetch 同时服务生成下载及 OAuth 网络封装，限制目标、DNS、重定向和响应规模。结构化图片引用经 Registry / Loop 写入 schema 17 工具消息后才发布 tool_end；模型仅接收文字摘要，主聊天、侧边聊天和基础故事共用 GeneratedImageResult。读取与文件定位 IPC 仅接受会话和图片身份，主进程校验工具归属、文件摘要及路径，不接受 Renderer 任意路径。
+用户主动生图沿 image_generate → loadImageGenerationConfig → Images / Gemini 适配器 → sharp 完整解码并归一化 PNG → 项目 images 目录独占提交执行。主进程注入 workspaceRoot，收费请求前及提交前复核权限与真实路径；restricted-fetch 同时服务生成下载及 OAuth 网络封装，限制目标、DNS、重定向和响应规模。结构化图片引用经 Registry / Loop 写入 schema 17 工具消息或当前角色的 companion_assets.payload.image 后才发布结果；模型仅接收文字摘要，主聊天、侧边聊天和人物世界共用 GeneratedImageResult。读取与文件定位 IPC 仅接受会话 / 资产身份和图片身份，主进程校验归属、文件摘要及路径，不接受 Renderer 任意路径。
 
-媒体备份保存工具调用配对、图片摘要和受限 PNG 字节，不保存恢复用绝对路径。导入经完整校验后写 userData 带管理标记的独立目录。会话、生活资产、记忆和设置在同一同步事务中写入，记忆去重和设置加密复用存储原语；COMMIT 后一次 persist，替换失败同步补偿本批写入并清理媒体，不更换数据库实例。成功落盘后才通知 `memory/index-sync` 核对派生索引并移除媒体标记。启动先读取持久数据库并核对待恢复目录，未引用才清理，已引用则保留；解析失败 / 链接目录不清理。SQLite 是结构化记忆事实源，Vectra 镜像由启动、成功提交和失败退避 worker 按稳定 id 重建 / 清理；不承诺断电耐久性、外部 Embedding 可用性或未保存凭据的强退恢复。
+媒体备份保存工具调用配对、人物资产图片引用、图片摘要和受限 PNG 字节，不保存恢复用绝对路径。导入经完整校验后写 userData 带管理标记的独立目录，并把新路径回填到新增 companion_assets 的 payload；会话、生活资产、记忆和设置在同一同步事务中写入，失败整笔回滚并清理本批媒体，不更换数据库实例。成功落盘后才通知 `memory/index-sync` 核对派生索引并移除媒体标记。启动先读取持久数据库并核对待恢复目录，未引用才清理，已引用则保留；解析失败 / 链接目录不清理。SQLite 是结构化记忆事实源，Vectra 镜像由启动、成功提交和失败退避 worker 按稳定 id 重建 / 清理；不承诺断电耐久性、外部 Embedding 可用性或未保存凭据的强退恢复。
 
 不只是一个工具，而是一个有性格、有记忆、能成长的数字伙伴：
 - **人格化交互** — 有一致的性格特征和交流风格，不是冰冷的 Q&A 机器
@@ -228,7 +230,9 @@ Skill 启停是用户运行态，不修改内置文件或资产指纹。`skills:
 
 生活面数据沿 `Role Pack world.default → life/assets → companion_assets → companion IPC → WorldDetailsPanel / AssetsPanel → WorldLivingContent / WorldAssetEditor` 流转。正式通讯录沿 `get-roster` + 既有 `check-cast-availability` 进入 `CastPanel` 列表预检，开聊仍走 `start-summon` 二次判定；Playground 通讯录保持静态夹具。住所和常去地点分别为 `home` / `footprint`，不另建第二份世界内容库；运行后以角色隔离的资产为准。没有 `world.default.json` 时，`world_json` 的 home / currentLocation 与 Catch-up 居所回退为「未设定」，不得按角色写入公寓、合租或日常住处。用户新增走 `companion:create-asset`，由 `createAsset` 校验白名单 kind 后写入活跃主角；更新 / 删除沿既有 IPC。`companion_asset_seeds(role_id, kind)` 与新资产同事务写入，事务内无异步等待或落盘；默认世界未设定不生成，已有记录优先，删空后不重新初始化。动态足迹继续来自 Moments，不把资产创建日期当成访问日期。正式朋友圈沿 `companion:get-moments` 读取动态；用户赞 / 评论写入独立表 `companion_moment_user_interactions`，不改 `moment.text` 或卡司 `meta.interactions`。Playground 朋友圈仍用本地夹具。
 
-`WorldLivingContent` 是正式家居 / 足迹与 Playground 共用的纯展示层，只接收 props；真实 IPC 和加载 / 错误处理属于正式面板，隔离样张属于 Playground。用户导入导出覆盖 `companion_assets` 与 `companion_asset_seeds`，按 id / 播种键合并，失败与会话同一事务回滚；旧备份缺字段仍可导入。不导出朋友圈互动、MCP、权限、API Key 和本机项目路径。
+`WorldLivingContent` 将正式文化角 / 家居 / 足迹投影到共享画廊；真实 IPC 和加载 / 错误处理属于正式面板，隔离样张属于 Playground。用户导入导出覆盖 `companion_assets`、`companion_asset_seeds` 与已发布朋友圈事件 / 动态 / 用户互动 / 关联，按稳定身份合并，失败与会话同一事务回滚；旧备份缺字段仍可导入。媒体只保存受限字节与摘要，恢复目录由主进程重建，不导出恢复用本机绝对路径。
+
+生活切片详情沿 `companion:get-life-slice` 读取：主进程以 `companion_events` 为事实源，按当前 `role_id` 聚合对应 `companion_moments`、`companion_assets.source_event_id` 和 `companion_event_links`；Renderer 不自行拼接跨表关系，找不到事件或角色不匹配时返回空。关联表必须以 `role_id + event_id` 隔离，唯一关系由 `(event_id, target_type, target_id, relation)` 约束，避免事件详情只依赖不可查询的长文本。朋友圈历史备份同步保存这些关联，导入失败时与事件、Moment 和用户互动一并回滚。
 
 ### 6. MCP 协议
 

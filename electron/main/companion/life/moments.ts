@@ -73,7 +73,53 @@ export async function projectMomentFromEvent(
     universeId: opts?.universeId,
   })
 
-  return store.insertMoment({
+  const links: store.CompanionEventLinkInput[] = []
+  if (assetId && outfitName) {
+    links.push({
+      eventId: event.id,
+      roleId: event.roleId,
+      targetType: 'asset',
+      targetId: assetId,
+      relation: 'wears',
+      metadata: { name: outfitName },
+    })
+  }
+  if (bookAssetId && bookName) {
+    links.push({
+      eventId: event.id,
+      roleId: event.roleId,
+      targetType: 'asset',
+      targetId: bookAssetId,
+      relation: 'references',
+      metadata: { name: bookName },
+    })
+  }
+  const imageId = typeof event.payload.imageId === 'string' ? event.payload.imageId.trim() : ''
+  const imageIds = Array.isArray(event.payload.imageIds)
+    ? event.payload.imageIds.filter((id): id is string => typeof id === 'string' && /^[a-f0-9]{64}$/.test(id)).slice(0, 9) : []
+  for (const [position, linkedImageId] of [...new Set([...(imageId ? [imageId] : []), ...imageIds])].slice(0, 9).entries()) {
+    links.push({
+      eventId: event.id,
+      roleId: event.roleId,
+      targetType: 'image',
+      targetId: linkedImageId,
+      relation: 'depicts',
+      metadata: { position },
+    })
+  }
+  for (const interaction of interactions) {
+    if (interaction.kind !== 'coframe') continue
+    links.push({
+      eventId: event.id,
+      roleId: event.roleId,
+      targetType: 'cast',
+      targetId: interaction.castId,
+      relation: 'coframe',
+      metadata: { name: interaction.castName },
+    })
+  }
+
+  const moment = await store.insertMoment({
     roleId: event.roleId,
     eventId: event.id,
     publishedAt: event.scheduledAt,
@@ -91,6 +137,8 @@ export async function projectMomentFromEvent(
       ...(interactions.length ? { interactions } : {}),
     },
   })
+  await store.replaceEventLinks(event.roleId, event.id, links)
+  return moment
 }
 
 /**

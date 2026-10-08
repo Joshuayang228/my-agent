@@ -16,6 +16,9 @@ for (const width of [1166, 600]) {
       const api = (window as any).electronAPI.companion
       api.getRoster = async () => ({ roleId: 'lin', lines: [{ otherId: 'zhou', otherName: '周宁', relationType: 'friend', text: '朋友' }], cast: [{ id: 'zhou', name: '周宁', description: '朋友', summary: '朋友', canBeProtagonist: true, summonHint: '' }] })
       api.checkCastAvailability = async () => ({ available: true, roleId: 'zhou', name: '周宁' })
+      api.getContacts = async () => ({ roleId: 'lin', people: [{ id: 'zhou', name: '周宁', introduction: '朋友' }], relations: [], experiences: [] })
+      api.getAssets = async () => ({ roleId: 'lin', items: [] })
+      api.getMoments = async () => ({ roleId: 'lin', items: [] })
     })
     await page.goto('/')
     const sidebar = page.getByTestId('primary-sidebar')
@@ -29,12 +32,14 @@ for (const width of [1166, 600]) {
     await expect(page.getByRole('textbox', { name: '消息', exact: true })).toBeVisible()
     await sidebar.getByRole('button', { name: '人物世界', exact: true }).click()
     await page.getByTestId('world-tab-cast').click()
-    await page.getByTestId('world-cast-card-zhou').getByRole('button', { name: '去角色架', exact: true }).click()
+    await expect(page.getByTestId('contact-card-zhou')).toBeVisible()
+    await expect(page.getByTestId('world-contacts-panel').getByRole('button', { name: '去角色架', exact: true })).toHaveCount(0)
+    await sidebar.getByTitle('打开角色架').click()
     await expect(settings.getByTestId('character-shelf-panel')).toBeVisible()
     await page.screenshot({ path: testInfo.outputPath('shelf-settings-entry.png'), animations: 'disabled' })
     await page.getByTestId(width < 768 ? 'settings-back-mobile' : 'settings-back').click()
     await expect(page.getByTestId('world-tab-cast')).toHaveAttribute('aria-selected', 'true')
-    await expect(page.getByTestId('world-cast-card-zhou')).toBeVisible()
+    await expect(page.getByTestId('contact-card-zhou')).toBeVisible()
     await sidebar.getByRole('button', { name: '设置', exact: true }).click()
     await expect(settings.getByTestId('character-shelf-panel')).toHaveCount(0)
     await page.getByTestId(width < 768 ? 'settings-back-mobile' : 'settings-back').click()
@@ -898,6 +903,10 @@ async function installProductionElectronStub(page: import('@playwright/test').Pa
         getActive: async () => ({ id: 'lin', name: '测试伙伴', description: '测试用伙伴' }),
         listProtagonists: async () => [],
         getRoster: async () => ({ cast: [] }),
+        getContacts: async () => ({ roleId: 'lin', people: [], relations: [], experiences: [] }),
+        getAssets: async () => ({ roleId: 'lin', items: [] }),
+        getMoments: async () => ({ roleId: 'lin', items: [] }),
+        catchupStatus: async () => ({ roleId: 'lin', presence: '' }),
       },
       project: {
         get: async () => ({ path: 'C:\\\\e2e-project', name: '测试项目' }),
@@ -2120,13 +2129,15 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
           if (harness.fail) throw new Error('测试读取失败')
           return { roleId: harness.mismatch ? 'wrong-role' : harness.roleId, items: harness.empty ? [] : [
             { id: 'home-a', kind: 'home', name: `${harness.roleId}的住所`, payload: { residence: '真实住所描述', interior: '很长的房间描述。\n'.repeat(80) } },
-            { id: 'lamp-a', kind: 'furniture', name: '真实台灯', payload: { description: '已记录的桌上物件' } },
+            { id: 'room-a', kind: 'home', name: '书房', payload: { recordType: 'space', residenceId: 'home-a', description: '很长的房间描述。\n'.repeat(80) } },
+            { id: 'lamp-a', kind: 'furniture', name: '真实台灯', payload: { spaceId: 'room-a', description: '已记录的桌上物件', displayInHome: true, displayReason: '阅读习惯', displayEvidence: ['每天读书时使用'] } },
             { id: 'place-a', kind: 'footprint', name: '常去图书馆', payload: { description: '只记录常去，不代表今天到访', city: '记录中的城市' } },
             { id: 'wanted-a', kind: 'footprint', name: '想去的山谷', payload: { visitStatus: 'wanted', description: '尚未去过' } },
+            { id: 'trip-a', kind: 'footprint', name: '已出发的旅行', payload: { recordType: 'trip', status: 'completed', destination: '苏州', start: '2026-09-01', end: '2026-09-02', story: '旅行中的真实记录。'.repeat(80), stops: [{ id: 'alley', name: '老街', date: '2026-09-02', story: '第二天到访，另一段经历。' }] } },
             { id: 'clothes-a', kind: 'wardrobe', name: '不属于家居的外套', payload: {} },
             ...['reading', 'music', 'film', 'photography'].map((type) => ({ id: type, kind: 'culture', name: `已记录作品-${type}`, payload: { type, detail: `已记录摘要-${type}`, note: type === 'reading' ? '长读书笔记。\n'.repeat(80) : '' } })),
             { id: 'book-a', kind: 'bookshelf', name: '已有书架作品', payload: { author: '书架作者', note: '书架笔记不能丢' } },
-          ] }
+          ].map(item => ({ ...item, roleId: harness.roleId, acquiredAt: 1, sourceEventId: null })) }
         }
       }, theme)
       await page.setViewportSize({ width, height: 731 })
@@ -2134,11 +2145,11 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
       await page.getByTestId('world-tab-home').click()
       const details = page.getByTestId('world-details')
-      await expect(details.locator('[data-world-content="home"]')).toBeVisible()
-      await expect(details).toContainText('lin的住所')
+      await expect(details.getByTestId('home-gallery')).toBeVisible()
+      await details.getByRole('tab', { name: '书房', exact: true }).click()
       await expect(details).toContainText('真实台灯')
       await expect(details).not.toContainText('不属于家居的外套')
-      const panel = page.locator('#world-panel-home')
+      const panel = details.getByTestId('home-content-scroll')
       expect(await panel.evaluate((node) => node.scrollHeight > node.clientHeight)).toBe(true)
       expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true)
       expect(await details.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
@@ -2155,24 +2166,37 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       await expect(details.getByRole('alert')).toHaveCount(0)
       await page.screenshot({ path: testInfo.outputPath('world-home.png'), animations: 'disabled' })
       await page.getByTestId('world-tab-footprints').click()
-      await expect(details.locator('[data-world-content="footprints"]')).toBeVisible()
-      await expect(details).toContainText('常去图书馆')
-      await expect(details.getByRole('region', { name: '想去的地方' })).toContainText('想去的山谷')
-      await expect(details.getByRole('region', { name: '常去地点' })).not.toContainText('想去的山谷')
-      await expect(details.locator('time')).toHaveCount(2)
-      await expect(details.locator('time').first()).toHaveText('2026/9/1')
-      await expect(details).toContainText('第二次到访，另一段经历。')
+      await expect(details.getByRole('list', { name: '旅行记录' })).toBeVisible()
+      await expect(details).not.toContainText('常去图书馆')
+      await expect(details).not.toContainText('想去的山谷')
+      await expect(details).not.toContainText('实际到过的公园')
+      await details.getByRole('button', { name: '查看旅行 已出发的旅行', exact: true }).click()
+      await expect(details.getByTestId('travel-detail')).toContainText('第二天到访，另一段经历。')
+      await expect(details.getByTestId('travel-detail')).toContainText('2026-09-02')
       expect(await details.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
       await page.screenshot({ path: testInfo.outputPath('world-footprints.png'), animations: 'disabled' })
       await page.getByTestId('world-tab-culture').click()
       const culture = details.locator('[data-world-content="culture"]')
       await expect(culture).toBeVisible()
-      for (const label of ['读书', '音乐', '电影', '摄影', '读书笔记', '书架笔记不能丢', '已记录摘要-reading']) await expect(culture).toContainText(label)
-      await expect(culture.getByRole('article')).toHaveCount(5)
+      await expect(culture.getByRole('tab')).toHaveText(['书籍', '影视', '音乐', '摄影'])
+      await expect(culture.getByRole('article')).toHaveCount(2)
       await expect(culture.locator('article article')).toHaveCount(0)
       await expect(culture).not.toContainText('真实台灯')
+      await culture.getByRole('button', { name: '查看作品：已记录作品-reading', exact: true }).click()
+      await expect(culture.getByTestId('reading-notes')).toContainText('长读书笔记。')
+      await expect(culture.getByTestId('culture-detail')).toContainText('已记录摘要-reading')
+      await culture.getByRole('button', { name: '返回列表', exact: true }).click()
+      await culture.getByRole('button', { name: '查看作品：已有书架作品', exact: true }).click()
+      await expect(culture.getByTestId('reading-notes')).toContainText('书架笔记不能丢')
+      await culture.getByRole('button', { name: '返回列表', exact: true }).click()
+      for (const [label, type] of [['影视', 'film'], ['音乐', 'music'], ['摄影', 'photography']]) {
+        await culture.getByRole('tab', { name: label, exact: true }).click()
+        await expect(culture.getByRole('article')).toHaveCount(1)
+        await culture.getByRole('button', { name: `查看作品：已记录作品-${type}`, exact: true }).click()
+        await expect(culture.getByTestId('culture-detail')).toContainText(`已记录摘要-${type}`)
+        await culture.getByRole('button', { name: '返回列表', exact: true }).click()
+      }
       expect(await culture.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
-      expect(await page.locator('#world-panel-culture').evaluate((node) => node.scrollHeight > node.clientHeight)).toBe(true)
       expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true)
       await page.screenshot({ path: testInfo.outputPath('world-culture.png'), animations: 'disabled' })
       await page.getByTestId('world-tab-footprints').click()
@@ -2182,14 +2206,105 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'song-smoke', 'deep-plum']) 
       await expect(page.getByRole('button', { name: '重试生活面' })).toBeVisible()
       await page.evaluate(() => { Object.assign((window as any).__worldDetailsHarness, { mismatch: false, roleId: 'zhou', empty: true }) })
       await page.getByRole('button', { name: '重试生活面' }).click()
-      await expect(details).toContainText('另一位伙伴的足迹')
-      await expect(details).toContainText('还没有记录到生活地点。')
+      await expect(details).toContainText('还没有旅行足迹')
       await expect(details).not.toContainText('实际到过的公园')
       await page.getByTestId('world-tab-culture').click()
-      await expect(details).toContainText('还没有记录文化生活。')
+      await expect(details).toContainText('还没有书籍记录')
       await expect(details).not.toContainText('已记录作品')
     })
   }
+}
+
+for (const tab of ['culture', 'home', 'footprints'] as const) {
+  test('正式生活面桌面连接缺失与恢复 ' + tab, async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const api = (window as any).electronAPI.companion
+      api.getActive = async () => ({ id: 'lin', name: '小林', description: '' })
+      api.catchupStatus = async () => ({ roleId: 'lin', presence: '' })
+      api.getMoments = async () => ({ roleId: 'lin', items: [] })
+      api.getAssets = async () => ({ roleId: 'lin', items: [] })
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    await page.evaluate(() => {
+      ;(window as any).__disconnectedWorldAPI = (window as any).electronAPI
+      ;(window as any).electronAPI = undefined
+    })
+    await page.getByTestId('world-tab-' + tab).click()
+    await expect(page.getByRole('alert')).toContainText('生活面需要桌面连接')
+    await expect(page.getByText('正在整理生活面…', { exact: true })).toHaveCount(0)
+    await page.evaluate(() => { (window as any).electronAPI = (window as any).__disconnectedWorldAPI })
+    await page.getByRole('button', { name: '重试生活面', exact: true }).click()
+    await expect(page.getByTestId('world-details')).toBeVisible()
+    await expect(page.getByRole('alert')).toHaveCount(0)
+  })
+}
+
+test('正式朋友圈桌面连接缺失不冒充空动态并可恢复', async ({ page }) => {
+  await installProductionElectronStub(page)
+  await page.addInitScript(() => {
+    const api = (window as any).electronAPI.companion
+    api.getActive = async () => ({ id: 'lin', name: '小林', description: '' })
+    api.catchupStatus = async () => ({ roleId: 'lin', presence: '' })
+    api.getMoments = async () => ({ roleId: 'lin', items: [] })
+    api.getAssets = async () => ({ roleId: 'lin', items: [] })
+  })
+  await page.goto('/')
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+  await page.getByTestId('world-tab-culture').click()
+  await expect(page.getByTestId('world-details')).toBeVisible()
+  await page.evaluate(() => {
+    ;(window as any).__disconnectedWorldAPI = (window as any).electronAPI
+    ;(window as any).electronAPI = undefined
+  })
+  await page.getByTestId('world-tab-moments').click()
+  await expect(page.getByRole('alert')).toContainText('朋友圈需要桌面连接')
+  await expect(page.getByText('还没有新的动态。', { exact: true })).toHaveCount(0)
+  await page.evaluate(() => { (window as any).electronAPI = (window as any).__disconnectedWorldAPI })
+  await page.getByRole('button', { name: '重新读取朋友圈', exact: true }).click()
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  await expect(page.getByText('还没有新的动态。', { exact: true })).toBeVisible()
+})
+
+for (const mode of ['foreign-item', 'late-active'] as const) {
+  test('正式文化读取逐条隔离与切角完成复核 ' + mode, async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const state = { role: 'lin', hold: false, pending: [] as Array<() => void> }
+      ;(window as any).__cultureIsolation = state
+      const api = (window as any).electronAPI.companion
+      api.getActive = async () => ({ id: state.role, name: state.role, description: '' })
+      api.catchupStatus = async () => ({ roleId: state.role, presence: '' })
+      api.getMoments = async () => ({ roleId: state.role, items: [] })
+      api.getAssets = async () => {
+        const role = state.role
+        const data = { roleId: role, items: [
+          { id: 'owned', roleId: role, kind: 'culture', name: role + '的读物', payload: { type: 'reading' }, acquiredAt: 1, sourceEventId: null },
+          { id: 'foreign', roleId: 'other', kind: 'culture', name: '不属于当前角色的读物', payload: { type: 'reading' }, acquiredAt: 1, sourceEventId: null },
+        ] }
+        if (state.hold) return new Promise(resolve => state.pending.push(() => resolve(data)))
+        return data
+      }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    await page.getByTestId('world-tab-culture').click()
+    const details = page.getByTestId('world-details')
+    await expect(details).toContainText('lin的读物')
+    if (mode === 'foreign-item') {
+      await expect(details).not.toContainText('不属于当前角色的读物')
+    } else {
+      await page.evaluate(() => { (window as any).__cultureIsolation.hold = true })
+      await details.getByRole('button', { name: '刷新生活面', exact: true }).click()
+      await expect.poll(() => page.evaluate(() => (window as any).__cultureIsolation.pending.length)).toBe(1)
+      await page.evaluate(() => { const state = (window as any).__cultureIsolation; state.role = 'zhou'; state.hold = false; state.pending.forEach((resolve: () => void) => resolve()) })
+      await expect(details).toHaveCount(0)
+      await page.getByRole('button', { name: '重试生活面', exact: true }).click()
+      await expect(details).toContainText('zhou的读物')
+      await expect(details).not.toContainText('lin的读物')
+    }
+  })
 }
 
 for (const theme of ['porcelain-blue', 'yao-stone']) {
@@ -2219,12 +2334,14 @@ for (const scenario of ['failure', 'mismatch', 'late'] as const) {
     await page.goto('/')
     await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
     await page.getByTestId('world-tab-wardrobe').click()
+      await page.getByTestId('world-assets-panel').getByRole('tab', { name: '全部', exact: true }).click()
     const panel = page.getByTestId('world-assets-panel')
     await expect(panel).toContainText('lin的外套')
     if (scenario === 'late') {
       await page.evaluate(() => { (window as any).__wardrobeRead.hold = true })
       await page.getByTestId('world-tab-moments').click()
       await page.getByTestId('world-tab-wardrobe').click()
+      await page.getByTestId('world-assets-panel').getByRole('tab', { name: '全部', exact: true }).click()
       await expect.poll(() => page.evaluate(() => (window as any).__wardrobeRead.pending.length)).toBe(1)
       await page.evaluate(() => { const h = (window as any).__wardrobeRead; h.hold = false; h.switchRole() })
       await expect(panel).toContainText('zhou的外套')
@@ -2235,6 +2352,7 @@ for (const scenario of ['failure', 'mismatch', 'late'] as const) {
       await page.evaluate((mode) => { (window as any).__wardrobeRead[mode === 'failure' ? 'fail' : 'mismatch'] = true }, scenario)
       await page.getByTestId('world-tab-moments').click()
       await page.getByTestId('world-tab-wardrobe').click()
+      await page.getByTestId('world-assets-panel').getByRole('tab', { name: '全部', exact: true }).click()
       await expect(panel.getByRole('alert')).toContainText('请重试')
       await expect(panel.getByRole('button', { name: '重新读取', exact: true })).toBeVisible()
       await page.screenshot({ path: testInfo.outputPath('wardrobe-read-error.png'), animations: 'disabled' })
@@ -2272,6 +2390,7 @@ test('正式生图入口回流到 Chat 并保持操作槽尺寸', async ({ page 
   await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
   await page.getByTestId('world-tab-wardrobe').click()
   const panel = page.getByTestId('world-assets-panel')
+  await panel.getByRole('tab', { name: '全部', exact: true }).click()
   await expect(panel).toContainText('测试伙伴的外套')
   const actions = panel.getByTestId('world-asset-actions').first()
   const actionsBefore = await actions.boundingBox()
@@ -2305,7 +2424,7 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'deep-plum', 'song-smoke']) 
       await expect(tabs.getByRole('tab', { name: '衣柜', exact: true })).toBeFocused()
       await expect(tabs.getByRole('tab', { name: '衣柜', exact: true })).toHaveAttribute('aria-selected', 'true')
       await expect(page.getByTestId('world-assets-panel')).toBeVisible()
-      await expect(page.getByTestId('world-wardrobe-wearing-empty')).toHaveText('还没有近期穿着记录。')
+      await expect(page.getByTestId('world-wardrobe-wearing-empty')).toHaveText('还没有当前穿搭。')
       await expect(world).not.toContainText(/tick|Catch-up|引用后/)
       await page.keyboard.press('End')
       const last = tabs.getByRole('tab', { name: '足迹', exact: true })
@@ -2331,7 +2450,7 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'deep-plum', 'song-smoke']) 
 
 for (const tab of ['culture', 'home', 'footprints']) {
   test('正式生活面切角清除旧内容与草稿 ' + tab, async ({ page }) => {
-    const nameLabel = tab === 'culture' ? '作品' : tab === 'home' ? '物件' : '地点'
+    const nameLabel = tab === 'culture' ? '书名' : tab === 'home' ? '物件' : '旅行名称'
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
       const listeners = new Set<(value: any) => void>()
@@ -2345,7 +2464,7 @@ for (const tab of ['culture', 'home', 'footprints']) {
       api.getMoments = async () => ({ roleId: harness.role, items: [] })
       api.getAssets = async () => {
         const role = harness.role
-        const result = { roleId: role, items: ['culture', 'furniture', 'footprint'].map(kind => ({ id: role + kind, roleId: role, kind, name: role + '的记录', payload: {}, acquiredAt: 1, sourceEventId: null })) }
+        const result = { roleId: role, items: ['culture', 'furniture', 'footprint'].map(kind => ({ id: role + kind, roleId: role, kind, name: role + '的记录', payload: kind === 'culture' ? { type: 'reading' } : kind === 'furniture' ? { displayInHome: true, displayReason: '日常使用', displayEvidence: ['经常在这里读书'] } : { recordType: 'trip', status: 'completed', destination: '苏州', start: '2026-09-01', end: '2026-09-02' }, acquiredAt: 1, sourceEventId: null })) }
         if (harness.hold) return new Promise(resolve => harness.pending.push(() => resolve(result)))
         return result
       }
@@ -2354,18 +2473,21 @@ for (const tab of ['culture', 'home', 'footprints']) {
     await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
     await page.getByTestId('world-tab-' + tab).click()
     const panel = page.getByTestId('world-details')
+    const add = panel.getByTestId('world-asset-add-' + (tab === 'home' ? 'furniture' : tab === 'footprints' ? 'footprint' : 'culture'))
+    if (tab === 'home') await panel.getByRole('tab', { name: '未归置', exact: true }).click()
     await expect(panel).toContainText('lin的记录')
-    await panel.getByRole('button', { name: /^添加/ }).click()
+    await add.getByRole('button', { name: /^添加/ }).click()
     await panel.getByRole('textbox', { name: nameLabel, exact: true }).fill('不属于新角色的草稿')
     await page.evaluate(() => { (window as any).__livingRole.hold = true })
     await panel.getByRole('button', { name: '刷新生活面', exact: true }).click()
     await expect.poll(() => page.evaluate(() => (window as any).__livingRole.pending.length)).toBe(1)
     await page.evaluate(() => { const h = (window as any).__livingRole; h.hold = false; h.switchRole() })
+    if (tab === 'home') await panel.getByRole('tab', { name: '未归置', exact: true }).click()
     await expect(panel).toContainText('zhou的记录')
     await expect(panel.getByRole('textbox', { name: nameLabel, exact: true })).toHaveCount(0)
     await page.evaluate(() => { (window as any).__livingRole.pending.forEach((resolve: () => void) => resolve()) })
     await expect(panel).not.toContainText('lin的记录')
-    await panel.getByRole('button', { name: /^添加/ }).click()
+    await add.getByRole('button', { name: /^添加/ }).click()
     await expect(panel.getByRole('textbox', { name: nameLabel, exact: true })).toHaveValue('')
   })
 }
@@ -2387,12 +2509,17 @@ for (const tab of ['wardrobe', 'culture', 'home', 'footprints']) {
           api.getActive = async () => ({ id: h.role, name: h.role, description: '' })
           api.catchupStatus = async () => ({ roleId: h.role, presence: '' })
           api.getMoments = async () => ({ roleId: h.role, items: [] })
-          api.getAssets = async () => ({ roleId: h.role, items: ['wardrobe', 'culture', 'furniture', 'footprint'].map(kind => ({ id: h.role + kind, roleId: h.role, kind, name: h.role + '的记录', payload: {}, acquiredAt: 1, sourceEventId: null })) })
+          api.getAssets = async () => ({ roleId: h.role, items: ['wardrobe', 'culture', 'furniture', 'footprint'].map(kind => ({ id: h.role + kind, roleId: h.role, kind, name: h.role + '的记录', payload: kind === 'wardrobe' ? { category: 'top' } : kind === 'culture' ? { type: 'reading' } : kind === 'furniture' ? { displayInHome: true, displayReason: '日常使用', displayEvidence: ['经常在这里读书'] } : { recordType: 'trip', status: 'completed', destination: '苏州', start: '2026-09-01', end: '2026-09-02' }, acquiredAt: 1, sourceEventId: null })) })
           api.createAsset = api.updateAsset = api.deleteAsset = () => new Promise(resolve => { h.release = ok => resolve({ ok, error: ok ? undefined : 'OLD_ROLE_FAILURE' }) })
         })
         await page.goto('/')
         await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
         await page.getByTestId('world-tab-' + tab).click()
+        const selectCollection = async () => {
+          if (tab === 'wardrobe') await page.getByTestId('world-assets-panel').getByRole('tab', { name: '全部', exact: true }).click()
+          if (tab === 'home') await page.getByTestId('world-details').getByRole('tab', { name: '未归置', exact: true }).click()
+        }
+        await selectCollection()
         const kind = tab === 'home' ? 'furniture' : tab === 'footprints' ? 'footprint' : tab
         const add = page.getByTestId('world-asset-add-' + kind)
         await expect(page.getByText('lin的记录', { exact: true }).first()).toBeVisible()
@@ -2401,6 +2528,7 @@ for (const tab of ['wardrobe', 'culture', 'home', 'footprints']) {
           await add.getByRole('textbox').first().fill('旧伙伴提交')
           await add.getByRole('button', { name: /^保存/ }).click()
         } else {
+          if (tab !== 'wardrobe') await page.getByRole('button', { name: tab === 'culture' ? '查看作品：lin的记录' : tab === 'home' ? '查看物件：lin的记录' : '查看旅行 lin的记录', exact: true }).click()
           await page.getByRole('button', { name: (operation === 'update' ? '编辑 ' : '删除 ') + 'lin的记录', exact: true }).click()
           if (operation === 'update') {
             await page.getByTestId('world-asset-form').getByRole('textbox').first().fill('旧伙伴提交')
@@ -2409,6 +2537,7 @@ for (const tab of ['wardrobe', 'culture', 'home', 'footprints']) {
         }
         await expect.poll(() => page.evaluate(() => Boolean((window as any).__livingWrite.release))).toBe(true)
         await page.evaluate(() => { const h = (window as any).__livingWrite; h.oldRelease = h.release; h.switchRole() })
+        await selectCollection()
         await expect(page.getByText('zhou的记录', { exact: true }).first()).toBeVisible()
         await expect(add.getByRole('button', { name: /^添加/ })).toBeEnabled()
         await add.getByRole('button', { name: /^添加/ }).click()
@@ -4302,7 +4431,7 @@ test.describe('My Agent UI', () => {
         await address.press('Enter')
         await expect(page.frameLocator('iframe[title="浏览器网页样张"]').getByRole('heading', { name: '窗边的一杯茶' })).toBeVisible()
         for (const tab of await opened.getByTestId('workspace-open-tab').all()) {
-          await expect(tab).toHaveCSS('border-top-width', '0px')
+          await expect(tab).toHaveCSS('border-top-width', '1px')
           await expect(tab.getByRole('button', { name: /^关闭/ })).toBeVisible()
         }
         await page.screenshot({ path: testInfo.outputPath('workspace-borderless-tabs.png'), animations: 'disabled' })
@@ -4355,7 +4484,7 @@ test.describe('My Agent UI', () => {
         await check('workspace')
         await page.getByRole('tab', { name: '浏览器', exact: true }).click()
         await expect(page.getByRole('textbox', { name: '浏览器地址' })).toBeVisible()
-        await expect(page.getByTestId('workspace-open-tab')).toHaveCSS('border-top-width', '0px')
+        await expect(page.getByTestId('workspace-open-tab')).toHaveCSS('border-top-width', '1px')
         await nav.getByRole('button', { name: '基础组件', exact: true }).click()
         await check('foundation')
       })
@@ -4839,7 +4968,8 @@ test.describe('My Agent UI', () => {
     await page.getByTestId('world-tab-cast').click()
     await expect(page.getByTestId('world-cast-fixture')).toHaveAttribute('data-persona-id', 'yao')
     await expect(page.getByTestId('world-cast-fixture')).toContainText('小林')
-    await expect(page.getByTestId('world-cast-fixture')).toContainText('阿禾')
+    await expect(page.getByTestId('world-cast-fixture').getByTestId('contact-card-xu')).toContainText('许叔')
+    await expect(page.getByTestId('world-cast-fixture').getByTestId('contact-card-yao')).toHaveCount(0)
     await page.getByTestId('world-tab-footprints').click()
     await expect(page.getByTestId('world-footprints-fixture')).toHaveAttribute('data-persona-id', 'yao')
     await expect(page.getByTestId('world-footprints-fixture')).toContainText('在苏州慢慢过一个周末')
@@ -4847,6 +4977,69 @@ test.describe('My Agent UI', () => {
     await expect(page.getByTestId('world-footprints-fixture')).not.toContainText('北海')
     await expect(page.getByTestId('world-footprints-fixture')).not.toContainText('楼下咖啡店')
   })
+
+  for (const theme of ['porcelain-blue', 'yao-stone']) {
+    for (const width of [1096, 640]) {
+      test(`Playground 朋友圈独立状态样张 ${theme} ${width}`, async ({ page }) => {
+        await installProductionElectronStub(page)
+        await page.addInitScript(value => localStorage.setItem('theme', value), theme)
+        await page.setViewportSize({ width, height: 704 })
+        await page.goto('/')
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+        await page.getByTestId('playground-nav').getByRole('button', { name: '人物世界', exact: true }).click()
+        const fixture = page.getByTestId('world-moments-fixture')
+        const switcher = fixture.getByRole('tablist', { name: '朋友圈状态样张' })
+        await expect(fixture.getByTestId('moment-post')).toHaveCount(6)
+        const button = switcher.getByRole('tab', { name: '单图', exact: true })
+        const before = await button.boundingBox()
+        await button.hover()
+        expect(await button.boundingBox()).toEqual(before)
+        await button.click()
+        expect(await button.boundingBox()).toEqual(before)
+        const imageTrigger = fixture.getByTestId('moment-media-trigger').first()
+        const imageGeometry = () => imageTrigger.evaluate(element => {
+          const image = element.getBoundingClientRect()
+          const post = element.closest('[data-testid="moment-post"]')!.getBoundingClientRect()
+          return { x: image.x - post.x, y: image.y - post.y, width: image.width, height: image.height }
+        })
+        const imageBox = await imageGeometry()
+        await imageTrigger.hover()
+        await expect(imageTrigger.locator('svg')).toHaveCount(0)
+        await expect(imageTrigger.locator('span')).toHaveCSS('background-color', /^(?:rgba\(0, 0, 0, 0\.15\)|oklab\(0 0 0 \/ 0\.15\))$/)
+        expect(await imageGeometry()).toEqual(imageBox)
+        for (const [name, count] of [['单图', 1], ['两图', 2], ['三图', 3], ['九宫格', 9]] as const) {
+          await switcher.getByRole('tab', { name, exact: true }).click()
+          await expect(fixture.getByTestId('moment-post')).toHaveCount(1)
+          await expect(fixture.getByTestId('moment-media-image')).toHaveCount(count)
+          await expect.poll(() => fixture.getByTestId('moment-media-image').evaluateAll(images => images.every(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0))).toBe(true)
+        }
+        await switcher.getByRole('tab', { name: '纯文字', exact: true }).click()
+        await expect(fixture.getByTestId('moment-post')).toHaveCount(2)
+        await expect(fixture.getByTestId('moment-media')).toHaveCount(0)
+        await switcher.getByRole('tab', { name: '长正文', exact: true }).click()
+        await expect(fixture.getByTestId('moment-post')).toContainText('第8个片段')
+        await switcher.getByRole('tab', { name: '多条评论', exact: true }).click()
+        await expect(fixture.getByTestId('moment-comment')).toHaveCount(3)
+        await fixture.getByTestId('moment-like-button').click()
+        await expect(fixture.getByTestId('moment-like-button')).toHaveAttribute('aria-label', '取消赞')
+        await fixture.getByTestId('moment-comment-button').click()
+        await fixture.getByTestId('moment-comment-input').fill('这条评论只属于当前样张。')
+        await fixture.getByTestId('moment-comment-submit').click()
+        await expect(fixture.getByTestId('moment-comment')).toHaveCount(4)
+        await switcher.getByRole('tab', { name: '空朋友圈', exact: true }).click()
+        await expect(fixture.getByTestId('moment-post')).toHaveCount(0)
+        await expect(fixture.getByText('还没有新的动态。', { exact: true })).toBeVisible()
+        await expect(fixture.getByText('最近的生活动态', { exact: true })).toHaveCount(0)
+        await switcher.getByRole('tab', { name: '多条评论', exact: true }).click()
+        await expect(fixture.getByTestId('moment-comment')).toHaveCount(3)
+        await expect(fixture.getByTestId('moment-like-button')).toHaveAttribute('aria-label', '赞')
+        await expect(fixture.getByTestId('moment-life-slice-button')).toHaveCount(0)
+        const overflow = await fixture.evaluate(element => element.scrollWidth > element.clientWidth)
+        expect(overflow).toBe(false)
+        await page.screenshot({ path: `var/verification/moments-scenarios-${theme}-${width}.png` })
+      })
+    }
+  }
 
   test('Playground 朋友圈两图三图九宫格占位稳定', async ({ page }) => {
     await page.goto('/')
@@ -5006,6 +5199,120 @@ test.describe('My Agent UI', () => {
     await post.getByTestId('moment-like-button').click()
     await expect(post.getByTestId('moment-like-button')).toHaveAttribute('aria-label', '赞')
   })
+
+  test('正式朋友圈读取失败可恢复且拒绝混入其他人物动态', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const state = { fail: true, foreign: false }
+      ;(window as any).__momentRead = state
+      const api = (window as any).electronAPI.companion
+      api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
+      api.catchupStatus = async () => ({ roleId: 'lin', catchupSummary: '' })
+      api.getMoments = async () => {
+        if (state.fail) throw new Error('private-path')
+        return { roleId: 'lin', items: [{ id: 'read-test', roleId: state.foreign ? 'other' : 'lin', eventId: 'event', publishedAt: Date.now(), text: '真实读取的动态', meta: {} }], socialByMomentId: {} }
+      }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    const world = page.getByTestId('world-hub')
+    await expect(world.getByRole('alert')).toHaveText('朋友圈读取失败，请重试。重新读取朋友圈')
+    await expect(world).not.toContainText('private-path')
+    await page.evaluate(() => { (window as any).__momentRead.fail = false; (window as any).__momentRead.foreign = true })
+    await world.getByRole('button', { name: '重新读取朋友圈' }).click()
+    await expect(world.getByRole('alert')).toContainText('人物已切换')
+    await expect(world.getByTestId('moment-post')).toHaveCount(0)
+    await page.evaluate(() => { (window as any).__momentRead.foreign = false })
+    await world.getByRole('button', { name: '重新读取朋友圈' }).click()
+    await expect(world.getByTestId('moment-post')).toContainText('真实读取的动态')
+    await expect(world.getByRole('alert')).toHaveCount(0)
+    await expect(world.getByText('最近的生活动态', { exact: true })).toHaveCount(0)
+  })
+
+  test('正式朋友圈角色切换丢弃迟到赞评且异常保留评论草稿', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const callbacks: Array<() => void> = []
+      const state = { role: 'lin', fail: true, release: () => {}, switchRole: () => {} }
+      ;(window as any).__momentRace = state
+      const api = (window as any).electronAPI.companion
+      api.onRoleChanged = (callback: () => void) => { callbacks.push(callback); return () => {} }
+      state.switchRole = () => { state.role = 'other'; callbacks.forEach(callback => callback()) }
+      api.getActive = async () => ({ id: state.role, name: state.role, description: '' })
+      api.catchupStatus = async () => ({ roleId: state.role, catchupSummary: '' })
+      api.getMoments = async () => ({ roleId: state.role, items: [{ id: `moment-${state.role}`, roleId: state.role, eventId: 'event', publishedAt: Date.now(), text: `动态-${state.role}`, meta: {} }], socialByMomentId: {} })
+      api.addMomentComment = async () => {
+        if (state.fail) throw new Error('private-error')
+        await new Promise<void>(resolve => { state.release = resolve })
+        return { ok: true, social: { liked: true, likeCount: 1, comments: [{ id: 'late', actorName: '我', text: '旧角色迟到评论', createdAt: Date.now() }], commentCount: 1 } }
+      }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    const post = page.getByTestId('moment-post')
+    await expect(post).toContainText('动态-lin')
+    await post.getByTestId('moment-comment-button').click()
+    await post.getByTestId('moment-comment-input').fill('保留草稿')
+    await post.getByTestId('moment-comment-submit').click()
+    await expect(post.getByTestId('moment-comment-error')).toContainText('评论未发送，请重试。')
+    await expect(post.getByTestId('moment-comment-input')).toHaveValue('保留草稿')
+    await page.evaluate(() => { (window as any).__momentRace.fail = false })
+    await post.getByTestId('moment-comment-submit').click()
+    await expect(post.getByTestId('moment-comment-submit')).toBeDisabled()
+    await page.evaluate(() => (window as any).__momentRace.switchRole())
+    await expect(post).toContainText('动态-other')
+    await page.evaluate(() => (window as any).__momentRace.release())
+    await expect(post.getByTestId('moment-comment')).toHaveCount(0)
+    await expect(post.getByTestId('moment-like-button')).toHaveAttribute('aria-label', '赞')
+    await expect(post).not.toContainText('旧角色迟到评论')
+  })
+
+  for (const theme of ['porcelain-blue', 'yao-stone']) {
+    for (const width of [1096, 600]) {
+      test(`正式朋友圈真实图片读取与多图预览 ${theme} ${width}`, async ({ page }, testInfo) => {
+        await installProductionElectronStub(page)
+        await page.setViewportSize({ width, height: 704 })
+        await page.addInitScript(theme => {
+          localStorage.setItem('theme', theme)
+          const state = { fail: true, calls: [] as string[] }
+          ;(window as any).__momentImages = state
+          const api = (window as any).electronAPI.companion
+          api.getActive = async () => ({ id: 'lin', name: '真实伙伴', description: '' })
+          api.catchupStatus = async () => ({ roleId: 'lin', catchupSummary: '' })
+          api.getMoments = async () => ({ roleId: 'lin', items: [{ id: 'real-image-moment', roleId: 'lin', eventId: 'event', publishedAt: Date.now(), text: '实际动态配图', meta: {}, imageIds: ['a'.repeat(64), 'b'.repeat(64)] }], socialByMomentId: {} })
+          api.readMomentImage = async (momentId: string, imageId: string) => {
+            state.calls.push(`${momentId}:${imageId}`)
+            if (imageId === 'b'.repeat(64) && state.fail) return { ok: false, error: '图片暂时无法读取，请重试。' }
+            return { ok: true, fileName: 'moment.png', dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0L8AAAAASUVORK5CYII=' }
+          }
+        }, theme)
+        await page.goto('/')
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+        const media = page.getByTestId('moment-media')
+        const frames = media.getByTestId('moment-image-frame')
+        await expect(frames).toHaveCount(2)
+        await expect(frames.nth(1).getByRole('alert')).toContainText('图片暂时无法读取')
+        const before = await frames.nth(1).boundingBox()
+        await page.evaluate(() => { (window as any).__momentImages.fail = false })
+        await media.getByRole('button', { name: '重新读取动态图片 2' }).click()
+        await expect(media.getByRole('button', { name: '预览图片：动态图片 2' })).toBeEnabled()
+        expect(await frames.nth(1).boundingBox()).toEqual(before)
+        await media.getByRole('button', { name: '预览图片：动态图片 1' }).click()
+        const viewer = page.getByRole('dialog', { name: '图片预览' })
+        await expect(viewer).toBeVisible()
+        await viewer.getByRole('button', { name: '下一张' }).click()
+        await expect(viewer.getByRole('img', { name: '动态图片 2' })).toBeVisible()
+        await page.keyboard.press('Escape')
+        await expect(viewer).toHaveCount(0)
+        await media.getByRole('button', { name: '预览图片：动态图片 1' }).hover()
+        await expect(media.locator('svg.lucide-zoom-in')).toHaveCount(0)
+        const bounds = await media.boundingBox()
+        expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width)
+        expect(await page.evaluate(() => (window as any).__momentImages.calls.length)).toBe(3)
+        await page.screenshot({ path: testInfo.outputPath('production-moment-images.png'), animations: 'disabled' })
+      })
+    }
+  }
 
   test('正式朋友圈不暴露生活切片入口', async ({ page }) => {
     await installProductionElectronStub(page)
@@ -5231,7 +5538,7 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('生活广播（非日志表）', { exact: false })).toHaveCount(0)
     await expect(page.getByText('CATCH-UP', { exact: true })).toHaveCount(0)
     await expect(page.getByText('把窗帘拉开了一点，泡了杯乌龙茶，准备先把桌面清出一块。', { exact: true })).toBeVisible()
-    await expect(page.getByText('最近的生活动态', { exact: true })).toBeVisible()
+    await expect(page.getByText('最近的生活动态', { exact: true })).toHaveCount(0)
     await expect(page.getByTestId('moment-social-actions')).toHaveCount(6)
     const firstMoment = page.getByTestId('moment-post').first()
     const firstLike = firstMoment.getByTestId('moment-like-button')
@@ -6024,8 +6331,6 @@ test.describe('My Agent UI', () => {
     await installProductionElectronStub(page)
     await page.goto('/')
     await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
-
-
     await page.getByTestId('playground-nav').getByRole('button', { name: '人物世界', exact: true }).click()
     await page.getByTestId('world-tab-wardrobe').click()
     const selectedTab = page.getByTestId('world-tab-wardrobe')
@@ -6088,10 +6393,13 @@ test.describe('My Agent UI', () => {
         expect((await slots.boundingBox())!.y).toBeGreaterThanOrEqual(dimensions!.y + dimensions!.height)
         await expect(wardrobe.locator('img')).toHaveCount(1)
         const navigation = wardrobe.getByTestId('wardrobe-view-tabs')
-        await expect(navigation.getByRole('tab').locator('svg')).toHaveCount(7)
+        await expect(navigation.getByRole('tab').locator('svg, [data-wardrobe-icon]')).toHaveCount(7)
         for (const tab of await navigation.getByRole('tab').all()) {
-          await expect(tab.locator('svg')).toHaveAttribute('width', '14')
+          const icon = await tab.locator('svg, [data-wardrobe-icon]').boundingBox()
+          expect(icon?.width).toBe(14)
+          expect(icon?.height).toBe(14)
           expect(await tab.evaluate(el => getComputedStyle(el).borderBottomWidth)).toBe('0px')
+          expect(await tab.evaluate(el => parseFloat(getComputedStyle(el.parentElement!).borderBottomWidth))).toBeGreaterThanOrEqual(1)
         }
         expect(await navigation.getByRole('tab').allTextContents()).toEqual(['正在穿着', '全部', '套装', '上装', '下装', '外套', '鞋子'])
         const navigationBox = await navigation.boundingBox()
@@ -6180,6 +6488,7 @@ test.describe('My Agent UI', () => {
       const writes: unknown[] = []
       ;(window as any).__worldPreviewWrites = writes
       const api = (window as any).electronAPI.companion
+      api.changeWardrobe = async (...args: unknown[]) => { writes.push(['changeWardrobe', ...args]); return { ok: false, code: 'INVALID', error: '候选不得写入' } }
       api.createAsset = async (...args: unknown[]) => { writes.push(['create', ...args]); return { ok: true, asset: { id: 'should-not-write', roleId: 'lin', kind: 'wardrobe', name: 'should-not-write', payload: {}, acquiredAt: 1, sourceEventId: null } } }
       api.updateAsset = async (...args: unknown[]) => { writes.push(['update', ...args]); return { ok: true, asset: { id: 'should-not-write', roleId: 'lin', kind: 'wardrobe', name: 'should-not-write', payload: {}, acquiredAt: 1, sourceEventId: null } } }
       api.deleteAsset = async (...args: unknown[]) => { writes.push(['delete', ...args]); return { ok: true } }
@@ -6201,6 +6510,341 @@ test.describe('My Agent UI', () => {
     await expect(culture.getByTestId('culture-detail')).toContainText('空白')
     await culture.getByRole('button', { name: '返回列表', exact: true }).click()
     expect(await page.evaluate(() => (window as any).__worldPreviewWrites)).toEqual([])
+  })
+
+  for (const theme of ['porcelain-blue', 'yao-stone']) {
+    for (const width of [1096, 600]) {
+      test(`正式文化画廊真实笔记与图片 ${theme} ${width}`, async ({ page }) => {
+        await installProductionElectronStub(page)
+        await page.addInitScript((selectedTheme) => {
+          localStorage.setItem('theme', selectedTheme)
+          const harness = { failImage: true, imageCalls: [] as string[] }
+          ;(window as any).__cultureRollout = harness
+          const api = (window as any).electronAPI.companion
+          const image = { id: 'a'.repeat(64), path: 'C:/owned/book.png', mimeType: 'image/png', width: 1, height: 1, byteLength: 100 }
+          api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
+          api.catchupStatus = async () => ({ roleId: 'lin', presence: '' })
+          api.getMoments = async () => ({ roleId: 'lin', items: [] })
+          api.getAssets = async () => ({ roleId: 'lin', items: [
+            { id: 'book', roleId: 'lin', kind: 'culture', name: '实际记录的书', payload: { type: 'reading', author: '记录中的作者', readingStatus: 'reading', image, playgroundImageSrc: 'https://must-not-load.invalid/sample.png', readingNotes: [{ id: 'n1', text: '较早的读书笔记', occurredAt: 1 }, { id: 'n2', text: '最新的读书笔记', occurredAt: 2 }] } },
+            { id: 'film', roleId: 'lin', kind: 'culture', name: '实际记录的电影', payload: { type: 'film', mediaKind: 'movie', summary: '不应替代详情的旧摘要', detail: '这是一条统一的观后感。', watchStatus: 'finished' } },
+            { id: 'music', roleId: 'lin', kind: 'culture', name: '实际记录的歌', payload: { type: 'music', musicKind: 'track', detail: '这是一条统一的听感。' } },
+            { id: 'photo', roleId: 'lin', kind: 'culture', name: '实际记录的摄影', payload: { type: 'photography', detail: '摄影说明。' } },
+          ] })
+          api.readAssetImage = async (assetId: string, imageId: string) => {
+            harness.imageCalls.push(`${assetId}:${imageId}`)
+            if (harness.failImage) return { ok: false, error: '图片暂不可读' }
+            return { ok: true, fileName: 'book.png', dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0L8AAAAASUVORK5CYII=' }
+          }
+        }, theme)
+        await page.setViewportSize({ width, height: 704 })
+        await page.goto('/')
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+        await page.getByTestId('world-tab-culture').click()
+        const gallery = page.getByTestId('culture-gallery')
+        await expect(gallery.getByRole('tab')).toHaveText(['书籍', '影视', '音乐', '摄影'])
+        await expect(gallery.getByTestId('reading-author-status')).toContainText('记录中的作者')
+        await expect(gallery.getByTestId('reading-note-excerpt')).toContainText('最新的读书笔记')
+        await expect(gallery.getByRole('alert')).toContainText('图片暂不可读')
+        const frame = gallery.getByTestId('culture-artwork')
+        const before = await frame.boundingBox()
+        await page.evaluate(() => { (window as any).__cultureRollout.failImage = false })
+        await gallery.getByRole('button', { name: '重新读取图片', exact: true }).click()
+        await expect(gallery.getByAltText('实际记录的书')).toBeVisible()
+        expect(await gallery.getByAltText('实际记录的书').evaluate((node: HTMLImageElement) => node.naturalWidth)).toBeGreaterThan(0)
+        const after = await frame.boundingBox()
+        expect(after?.height).toBeCloseTo(before!.height, 0)
+        await gallery.getByRole('button', { name: '预览图片：实际记录的书', exact: true }).click()
+        await expect(page.getByRole('dialog')).toBeVisible()
+        await page.keyboard.press('Escape')
+        await gallery.getByRole('button', { name: '查看作品：实际记录的书', exact: true }).click()
+        await expect(gallery.getByTestId('reading-note')).toHaveCount(2)
+        await expect(gallery.getByTestId('reading-note').first()).toContainText('最新的读书笔记')
+        await expect(gallery).not.toContainText('非官方封面')
+        await expect(gallery.getByRole('button', { name: '编辑 实际记录的书', exact: true })).toBeVisible()
+        await gallery.getByRole('button', { name: '返回列表', exact: true }).click()
+        await expect(gallery.getByRole('button', { name: '查看作品：实际记录的书', exact: true })).toBeFocused()
+        for (const [category, title, reflection] of [['影视', '实际记录的电影', '这是一条统一的观后感。'], ['音乐', '实际记录的歌', '这是一条统一的听感。']]) {
+          await gallery.getByRole('tab', { name: category, exact: true }).click()
+          await expect(gallery.getByTestId('culture-reflection-excerpt')).toContainText(reflection)
+          await gallery.getByRole('button', { name: `查看作品：${title}`, exact: true }).click()
+          await expect(gallery.getByTestId('culture-detail-text')).toContainText(reflection)
+          await expect(gallery).not.toContainText('不应替代详情的旧摘要')
+          await gallery.getByRole('button', { name: '返回列表', exact: true }).click()
+        }
+        expect(await gallery.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+        expect(await page.evaluate(() => (window as any).__cultureRollout.imageCalls.every((call: string) => call === `book:${'a'.repeat(64)}`))).toBe(true)
+        await page.screenshot({ path: `var/verification/world-culture-production-${theme}-${width}.png`, fullPage: true })
+      })
+    }
+  }
+
+  for (const theme of ['porcelain-blue', 'yao-stone']) {
+    for (const width of [1096, 600]) {
+      test(`正式家居空间与有依据物件 ${theme} ${width}`, async ({ page }) => {
+        await installProductionElectronStub(page)
+        await page.addInitScript(selectedTheme => {
+          localStorage.setItem('theme', selectedTheme)
+          const api = (window as any).electronAPI.companion
+          const image = { id: 'a'.repeat(64), path: 'C:/owned/home.png', mimeType: 'image/png', width: 1, height: 1, byteLength: 100 }
+          api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
+          api.catchupStatus = async () => ({ roleId: 'lin', presence: '当前活动不是住所描述' })
+          api.getMoments = async () => ({ roleId: 'lin', items: [] })
+          const asset = (id: string, kind: string, payload: unknown, roleId = 'lin') => ({ id, roleId, kind, name: id, payload })
+          api.getAssets = async () => ({ roleId: 'lin', items: [
+            asset('真实住所', 'home', { recordType: 'residence', image, playgroundImageSrc: 'https://fixture.invalid/home.png' }),
+            asset('卧室', 'home', { recordType: 'space', residenceId: '真实住所', description: '记录中的卧室', image }),
+            asset('另一角色房间', 'home', { recordType: 'space' }, 'other'),
+            asset('窗边沙发', 'furniture', { spaceId: '卧室', displayInHome: true, displayReason: '常在这里读书', displayEvidence: ['习惯记录'], description: '喜欢在这里看书。', originNote: '搬家时朋友送的。', image }),
+            asset('普通家具', 'furniture', { spaceId: '卧室', displayInHome: true }),
+            asset('纪念杯', 'furniture', { displayInHome: true, displayReason: '朋友的礼物', displayEvidence: ['来历'] }),
+          ] })
+          api.readAssetImage = async () => ({ ok: true, fileName: 'home.png', dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0L8AAAAASUVORK5CYII=' })
+        }, theme)
+        await page.setViewportSize({ width, height: 704 })
+        await page.goto('/')
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+        await page.getByTestId('world-tab-home').click()
+        const gallery = page.getByTestId('home-gallery')
+        await expect(gallery.getByRole('tab')).toHaveText(['总览', '卧室', '未归置'])
+        await expect(gallery.getByTestId('home-object-card')).toHaveCount(0)
+        await expect(gallery.getByAltText('真实住所鸟瞰图')).toBeVisible()
+        await gallery.getByRole('button', { name: '预览图片：真实住所鸟瞰图', exact: true }).click()
+        await expect(page.getByRole('dialog')).toBeVisible()
+        await page.keyboard.press('Escape')
+        await gallery.getByRole('tab', { name: '卧室', exact: true }).click()
+        await expect(gallery.getByTestId('home-object-card')).toHaveCount(1)
+        await expect(gallery).not.toContainText('普通家具')
+        const open = gallery.getByRole('button', { name: '查看物件：窗边沙发', exact: true })
+        await open.click()
+        await expect(gallery.getByTestId('home-object-detail')).toContainText('搬家时朋友送的。')
+        await expect(gallery.getByRole('button', { name: '编辑 窗边沙发', exact: true })).toBeVisible()
+        await gallery.getByRole('button', { name: '返回物件', exact: true }).click()
+        await expect(open).toBeFocused()
+        await gallery.getByRole('tab', { name: '未归置', exact: true }).click()
+        await expect(gallery.getByTestId('home-object-card')).toHaveCount(1)
+        await expect(gallery).toContainText('纪念杯')
+        await expect(gallery).not.toContainText('当前活动不是住所描述')
+        expect(await gallery.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+        await page.screenshot({ path: `var/verification/world-home-production-${theme}-${width}.png`, fullPage: true })
+      })
+    }
+  }
+
+  for (const theme of ['porcelain-blue', 'yao-stone']) {
+    for (const width of [1096, 600]) {
+      test(`正式足迹旅行记录 ${theme} ${width}`, async ({ page }) => {
+        await installProductionElectronStub(page)
+        await page.addInitScript(selectedTheme => {
+          localStorage.setItem('theme', selectedTheme)
+          const api = (window as any).electronAPI.companion
+          api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
+          api.catchupStatus = async () => ({ roleId: 'lin', presence: '' })
+          api.getMoments = async () => ({ roleId: 'lin', items: [{ text: '楼下咖啡店日常', publishedAt: 1, meta: { location: '咖啡店' } }] })
+          const trip = (id: string, payload: any, roleId = 'lin') => ({ id, roleId, kind: 'footprint', name: id, payload: { recordType: 'trip', destination: '苏州', start: '2026-09-26', status: 'active', ...payload } })
+          api.getAssets = async () => ({ roleId: 'lin', items: [trip('正在旅行', { story: '真实旅行故事', stops: [{ id: 'stop', name: '老城', story: '雨后慢慢走' }] }), trip('完成旅行', { status: 'completed', end: '2026-09-27' }), trip('尚未出发', { status: 'planned' }), trip('其他角色', {}, 'yao'), trip('常去咖啡店', { recordType: 'place' })] })
+        }, theme)
+        await page.setViewportSize({ width, height: 704 })
+        await page.goto('/')
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+        await page.getByTestId('world-tab-footprints').click()
+        const gallery = page.getByTestId('travel-gallery')
+        await expect(gallery.getByRole('button', { name: /^查看旅行 / })).toHaveCount(2)
+        await expect(gallery.getByRole('button', { name: /^查看旅行 / }).first()).toHaveAccessibleName('查看旅行 正在旅行')
+        for (const text of ['楼下咖啡店日常', '尚未出发', '其他角色', '常去咖啡店']) await expect(gallery).not.toContainText(text)
+        const open = gallery.getByRole('button', { name: '查看旅行 正在旅行', exact: true })
+        await open.click()
+        await expect(gallery.getByTestId('travel-detail')).toContainText('真实旅行故事')
+        await expect(gallery.getByRole('region', { name: '旅途经历' })).toContainText('雨后慢慢走')
+        await gallery.getByRole('button', { name: '编辑 正在旅行', exact: true }).click()
+        await expect(gallery.getByLabel('旅行状态', { exact: true })).toHaveValue('active')
+        await expect(gallery.getByLabel('经历 1 地点或经历', { exact: true })).toHaveValue('老城')
+        await expect(gallery.getByLabel('结束日期', { exact: true })).toHaveCount(0)
+        await gallery.getByRole('button', { name: '取消', exact: true }).click()
+        await gallery.getByRole('button', { name: '返回', exact: true }).click()
+        await expect(open).toBeFocused()
+        expect(await gallery.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+        await page.screenshot({ path: `var/verification/world-travel-production-${theme}-${width}.png`, fullPage: true })
+      })
+    }
+  }
+
+  for (const theme of ['porcelain-blue', 'yao-stone']) {
+    for (const width of [1096, 600]) {
+      test(`正式衣柜换装与重载 ${theme} ${width}`, async ({ page }) => {
+        await installProductionElectronStub(page)
+        await page.addInitScript(selectedTheme => {
+          localStorage.setItem('theme', selectedTheme)
+          const initial = [
+            ...[['top', '米白上衣'], ['bottom', '深色裤子'], ['shoes', '白色鞋子'], ['outerwear', '灰蓝外套'], ['next-top', '另一件上衣']].map(([id, name]) => ({ id, roleId: 'lin', kind: 'wardrobe', name, payload: { recordType: 'garment', category: id === 'next-top' ? 'top' : id, playgroundImageSrc: 'https://fixture.invalid/image.png' } })),
+            { id: 'outfit', roleId: 'lin', kind: 'wardrobe', name: '真实套装', payload: { recordType: 'outfit', slots: { top: 'top', bottom: 'bottom', shoes: 'shoes' }, outfitVersion: 1 } },
+            { id: 'current', roleId: 'lin', kind: 'wardrobe', name: '当前穿搭', payload: { recordType: 'wear-state', slots: { top: 'top', bottom: 'bottom', shoes: 'shoes', outerwear: 'outerwear' }, outfitVersion: 4 } },
+            { id: 'foreign', roleId: 'yao', kind: 'wardrobe', name: '其他人物衣物', payload: { category: 'top' } },
+          ]
+          const state = { items: JSON.parse(localStorage.getItem('wardrobe-test-records') ?? JSON.stringify(initial)), fail: true, writes: [] as any[] }
+          ;(window as any).__wardrobeWrite = state
+          const api = (window as any).electronAPI.companion
+          api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
+          api.getAssets = async () => ({ roleId: 'lin', items: state.items })
+          api.getMoments = async () => ({ roleId: 'lin', items: [] })
+          api.changeWardrobe = async (input: any) => {
+            state.writes.push(input)
+            await new Promise(resolve => setTimeout(resolve, 120))
+            if (state.fail) return { ok: false, code: 'INVALID', error: '保存失败' }
+            const current = state.items.find((item: any) => item.id === 'current')
+            if (input.roleId !== 'lin' || input.expectedVersion !== current.payload.outfitVersion) return { ok: false, code: 'INVALID', error: '版本冲突' }
+            const target = state.items.find((item: any) => item.id === input.assetId)
+            current.payload = { recordType: 'wear-state', outfitVersion: current.payload.outfitVersion + 1, slots: target.payload.recordType === 'outfit' ? { ...target.payload.slots } : { ...current.payload.slots, [target.payload.category]: target.id } }
+            localStorage.setItem('wardrobe-test-records', JSON.stringify(state.items))
+            return { ok: true, asset: current }
+          }
+        }, theme)
+        await page.setViewportSize({ width, height: 704 })
+        await page.goto('/')
+        const open = async () => {
+          await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+          await page.getByTestId('world-tab-wardrobe').click()
+        }
+        await open()
+        const panel = page.getByTestId('world-assets-panel')
+        await expect(panel.getByTestId('wardrobe-current-slots')).toContainText('灰蓝外套')
+        await expect(panel.getByRole('tab', { name: '书架', exact: true })).toHaveCount(0)
+        for (const name of ['正在穿着', '全部', '套装', '上装', '下装', '外套', '鞋子']) await expect(panel.getByRole('tab', { name, exact: true })).toBeVisible()
+        await expect(panel.locator('[data-wardrobe-icon="mixed"]')).toHaveCount(3)
+        await panel.getByRole('tab', { name: '套装', exact: true }).click()
+        const outfit = panel.getByRole('button', { name: '换上套装 真实套装', exact: true })
+        await outfit.click()
+        await expect(panel.getByRole('alert')).toContainText('未换上')
+        await panel.getByRole('tab', { name: '正在穿着', exact: true }).click()
+        await expect(panel.getByTestId('wardrobe-current-slots')).toContainText('灰蓝外套')
+        await page.evaluate(() => { (window as any).__wardrobeWrite.fail = false })
+        await panel.getByRole('tab', { name: '套装', exact: true }).click()
+        await outfit.click()
+        await expect(panel.getByTestId('wardrobe-current-slots')).toContainText('米白上衣')
+        await expect(panel.getByTestId('wardrobe-current-slots')).not.toContainText('灰蓝外套')
+        await panel.getByRole('tab', { name: '全部', exact: true }).click()
+        await expect(panel).not.toContainText('其他人物衣物')
+        await expect(panel.locator('img[src*="fixture.invalid"]')).toHaveCount(0)
+        await panel.getByRole('button', { name: '换上 另一件上衣', exact: true }).click()
+        await expect(panel.getByTestId('wardrobe-current-slots')).toContainText('另一件上衣')
+        expect(await page.evaluate(() => (window as any).__wardrobeWrite.writes.map((input: any) => input.expectedVersion))).toEqual([4, 4, 5])
+        await page.reload()
+        await open()
+        await expect(panel.getByTestId('wardrobe-current-slots')).toContainText('另一件上衣')
+        expect(await panel.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+        const panelBox = (await panel.boundingBox())!
+        const pictureBox = (await panel.getByTestId('wardrobe-outfit-image').boundingBox())!
+        expect(panelBox.x + panelBox.width).toBeLessThanOrEqual(width)
+        expect(pictureBox.x + pictureBox.width).toBeLessThanOrEqual(panelBox.x + panelBox.width)
+        await page.screenshot({ path: `var/verification/world-wardrobe-production-${theme}-${width}.png`, fullPage: true })
+      })
+
+      test(`正式通讯录关系与关联 ${theme} ${width}`, async ({ page }) => {
+        await installProductionElectronStub(page)
+        await page.addInitScript(selectedTheme => {
+          localStorage.setItem('theme', selectedTheme)
+          const api = (window as any).electronAPI.companion
+          const state = { fail: true, calls: [] as string[] }
+          ;(window as any).__contactsRead = state
+          api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
+          api.getContacts = async () => {
+            if (state.fail) throw new Error('内部错误')
+            return { roleId: 'lin', people: [{ id: 'yao', name: '阿遥', introduction: '真实介绍' }], relations: [{ ownerRoleId: 'lin', personId: 'yao', relationType: 'friend', summary: '真实关系说明' }], experiences: [
+              { id: 'one', ownerRoleId: 'lin', personId: 'yao', occurredAt: 1, title: '共同旅行', story: '真实共同经历', references: [{ kind: 'trip', targetId: 'trip' }, { kind: 'trip', targetId: 'foreign' }, { kind: 'moment', targetId: 'moment' }, { kind: 'moment', targetId: 'foreign-moment' }] },
+              { id: 'two', ownerRoleId: 'lin', personId: 'yao', occurredAt: 2, title: '第二段经历', story: '另一条经历', references: [{ kind: 'trip', targetId: 'trip' }] },
+              { id: 'other', ownerRoleId: 'other', personId: 'yao', occurredAt: 3, title: '串角色经历', story: '不得展示', references: [] },
+            ] }
+          }
+          api.getAssets = async () => ({ roleId: 'lin', items: [{ id: 'trip', roleId: 'lin', kind: 'footprint', name: '真实旅行', payload: { recordType: 'trip', destination: '苏州', status: 'active', start: '2026-09-26', story: '关联旅行原文' } }] })
+          api.getMoments = async () => ({ roleId: 'lin', items: [{ id: 'moment', roleId: 'lin', text: '关联动态原文', publishedAt: 1, imageIds: ['a'.repeat(64)] }, { id: 'foreign-moment', roleId: 'other', text: '跨角色动态不得显示', publishedAt: 1 }] })
+          api.readMomentImage = async (momentId: string, imageId: string) => {
+            state.calls.push(`image:${momentId}:${imageId}`)
+            return { ok: true, fileName: 'moment.png', dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0L8AAAAASUVORK5CYII=' }
+          }
+          for (const method of ['checkCastAvailability', 'startSummon', 'summonBrief']) api[method] = async () => { state.calls.push(method); throw new Error('不得调用召唤') }
+        }, theme)
+        await page.setViewportSize({ width, height: 704 })
+        await page.goto('/')
+        await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+        await page.getByTestId('world-tab-cast').click()
+        const panel = page.getByTestId('world-contacts-panel')
+        await expect(panel.getByRole('alert')).toContainText('通讯录暂时未能读取')
+        await expect(panel.getByRole('alert')).not.toContainText('内部错误')
+        await page.evaluate(() => { (window as any).__contactsRead.fail = false })
+        await panel.getByRole('button', { name: '重新读取通讯录', exact: true }).click()
+        const card = panel.getByTestId('contact-card-yao')
+        await expect(card).toContainText('真实介绍')
+        await card.click()
+        await expect(panel.getByTestId('contact-detail')).toContainText('真实关系说明')
+        await expect(panel.getByTestId('contact-detail')).toContainText('第二段经历')
+        await expect(panel).not.toContainText('串角色经历')
+        await expect(panel.getByRole('button', { name: '查看旅行记录', exact: true })).toHaveCount(2)
+        const link = panel.getByRole('button', { name: '查看旅行记录', exact: true }).first()
+        await link.click()
+        await expect(panel.getByTestId('travel-detail')).toContainText('关联旅行原文')
+        await panel.getByRole('button', { name: '返回', exact: true }).click()
+        await expect(link).toBeFocused()
+        await expect(panel.getByRole('button', { name: '查看生活动态', exact: true })).toHaveCount(1)
+        await expect(panel).not.toContainText('跨角色动态不得显示')
+        await panel.getByRole('button', { name: '查看生活动态', exact: true }).click()
+        await expect(panel.getByTestId('contact-linked-moment')).toContainText('关联动态原文')
+        const linkedImage = panel.getByTestId('contact-linked-moment').getByTestId('moment-media-image')
+        await expect(linkedImage).toBeVisible()
+        await expect.poll(() => linkedImage.evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth > 0)).toBe(true)
+        await expect(linkedImage).toHaveAttribute('src', /^data:image\/png;base64,/)
+        await panel.getByRole('button', { name: '返回', exact: true }).click()
+        await panel.getByRole('button', { name: '返回', exact: true }).click()
+        await expect(card).toBeFocused()
+        await expect(panel.getByRole('button', { name: '开聊', exact: true })).toHaveCount(0)
+        expect(await page.evaluate(() => (window as any).__contactsRead.calls)).toEqual(['image:moment:' + 'a'.repeat(64)])
+        expect(await panel.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+        await page.screenshot({ path: `var/verification/world-contacts-production-${theme}-${width}.png`, fullPage: true })
+      })
+    }
+  }
+
+  test('正式家居新增空间与物件保留失败草稿并写入结构化字段', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const state = { fail: true, items: [{ id: 'house', roleId: 'lin', kind: 'home', name: '真实住所', payload: { recordType: 'residence' } }] as any[], writes: [] as any[] }
+      ;(window as any).__homeWrite = state
+      const api = (window as any).electronAPI.companion
+      api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
+      api.catchupStatus = async () => ({ roleId: 'lin', presence: '' })
+      api.getMoments = async () => ({ roleId: 'lin', items: [] })
+      api.getAssets = async () => ({ roleId: 'lin', items: state.items })
+      api.createAsset = async (input: any) => {
+        state.writes.push(input)
+        if (state.fail) return { ok: false, error: '保存失败', code: 'INVALID' }
+        const asset = { ...input, id: `saved-${state.items.length}` }
+        state.items = [...state.items, asset]
+        return { ok: true, asset }
+      }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    await page.getByTestId('world-tab-home').click()
+    const details = page.getByTestId('world-details')
+    await details.getByRole('button', { name: '添加空间', exact: true }).click()
+    await details.getByLabel('空间名称', { exact: true }).fill('卧室')
+    await details.getByLabel('所属住所', { exact: true }).selectOption('house')
+    await details.getByLabel('空间描述', { exact: true }).fill('真实空间描述')
+    await details.getByRole('button', { name: '保存空间', exact: true }).click()
+    await expect(details.getByRole('alert')).toContainText('未添加')
+    await expect(details.getByLabel('空间名称', { exact: true })).toHaveValue('卧室')
+    await page.evaluate(() => { (window as any).__homeWrite.fail = false })
+    await details.getByRole('button', { name: '保存空间', exact: true }).click()
+    await expect(details.getByRole('tab', { name: '卧室', exact: true })).toBeVisible()
+    await details.getByRole('button', { name: '添加生活物件', exact: true }).click()
+    await details.getByLabel('物件', { exact: true }).fill('纪念杯')
+    await details.getByLabel('所属空间', { exact: true }).selectOption('saved-1')
+    await details.getByLabel('在家居中展示', { exact: true }).check()
+    await details.getByLabel('展示理由', { exact: true }).fill('朋友送的礼物')
+    await details.getByLabel('故事或习惯依据', { exact: true }).fill('生日礼物\n每天泡茶')
+    await details.getByRole('button', { name: '保存生活物件', exact: true }).click()
+    await details.getByRole('tab', { name: '卧室', exact: true }).click()
+    await expect(details.getByTestId('home-object-card')).toContainText('纪念杯')
+    expect(await page.evaluate(() => (window as any).__homeWrite.writes.at(-1).payload)).toMatchObject({ spaceId: 'saved-1', displayInHome: true, displayEvidence: ['生日礼物', '每天泡茶'] })
   })
 
   test('正式生活资产新增失败保留草稿', async ({ page }) => {
@@ -6226,18 +6870,87 @@ test.describe('My Agent UI', () => {
     await page.getByTestId('world-tab-culture').click()
     const details = page.getByTestId('world-details')
     await details.getByRole('button', { name: '添加文化记录', exact: true }).click()
-    await details.getByLabel('作品', { exact: true }).fill('正式新作品')
+    await details.getByLabel('书名', { exact: true }).fill('正式新作品')
+    await details.getByLabel('阅读状态', { exact: true }).selectOption('reading')
+    await details.getByLabel('当前页数', { exact: true }).fill('12')
+    await details.getByLabel('总页数', { exact: true }).fill('100')
+    await details.getByRole('button', { name: '添加笔记', exact: true }).click()
+    await details.getByLabel('笔记 1 正文', { exact: true }).fill('第一条真实笔记')
+    await details.getByRole('button', { name: '添加笔记', exact: true }).click()
+    await details.getByLabel('笔记 2 正文', { exact: true }).fill('第二条真实笔记')
+    await details.getByLabel('笔记 2 页码', { exact: true }).fill('12')
     await details.getByRole('button', { name: '保存文化记录', exact: true }).click()
     await expect(details.getByRole('alert')).toContainText('未添加')
-    await expect(details.getByLabel('作品', { exact: true })).toHaveValue('正式新作品')
+    await expect(details.getByLabel('书名', { exact: true })).toHaveValue('正式新作品')
+    await expect(details.getByLabel('笔记 2 正文', { exact: true })).toHaveValue('第二条真实笔记')
     await page.evaluate(() => { (window as any).__assetCreate.fail = false })
     await details.getByRole('button', { name: '保存文化记录', exact: true }).click()
     await expect(details).toContainText('正式新作品')
     await expect(details.getByTestId('world-asset-form')).toHaveCount(0)
+    const saved = await page.evaluate(() => (window as any).__assetCreate.items[0].payload)
+    expect(saved).toMatchObject({ currentPage: 12, totalPages: 100, readingStatus: 'reading', readingNotes: [{ text: '第一条真实笔记' }, { text: '第二条真实笔记', page: 12 }] })
+    expect(saved.readingNotes[0].id).not.toBe(saved.readingNotes[1].id)
     expect(await page.evaluate(() => (window as any).__assetCreate.creates)).toEqual([
       { kind: 'culture', name: '正式新作品' },
       { kind: 'culture', name: '正式新作品' },
     ])
+  })
+
+  test('正式衣柜衣物与套装维护保留失败草稿', async ({ page }) => {
+    await installProductionElectronStub(page)
+    await page.addInitScript(() => {
+      const state = { fail: true, creates: [] as any[], updates: [] as any[], items: ['top', 'bottom', 'shoes'].map(category => ({ id: category, roleId: 'lin', kind: 'wardrobe', name: category, payload: { recordType: 'garment', category } })) as any[] }
+      ;(window as any).__wardrobeMaintain = state
+      const api = (window as any).electronAPI.companion
+      api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
+      api.getMoments = async () => ({ roleId: 'lin', items: [] })
+      api.getAssets = async () => ({ roleId: 'lin', items: state.items })
+      api.createAsset = async (input: any) => {
+        state.creates.push(input)
+        if (state.fail) return { ok: false, code: 'INVALID', error: '未保存' }
+        const asset = { ...input, id: `new-${state.items.length}`, acquiredAt: 1, sourceEventId: null }
+        state.items = [...state.items, asset]
+        return { ok: true, asset }
+      }
+      api.updateAsset = async (id: string, patch: any) => {
+        state.updates.push({ id, patch })
+        if (state.fail) return { ok: false, code: 'INVALID', error: '未保存' }
+        const asset = state.items.find(item => item.id === id)
+        Object.assign(asset, { name: patch.name, payload: { ...asset.payload, ...patch.payload } })
+        return { ok: true, asset }
+      }
+    })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    await page.getByTestId('world-tab-wardrobe').click()
+    const panel = page.getByTestId('world-assets-panel')
+    await panel.getByRole('tab', { name: '全部', exact: true }).click()
+    await panel.getByRole('button', { name: '添加衣物', exact: true }).click()
+    await panel.getByLabel('名称', { exact: true }).fill('新的外套')
+    await panel.getByLabel('衣物分类', { exact: true }).selectOption('outerwear')
+    await panel.getByRole('button', { name: '保存衣物', exact: true }).click()
+    await expect(panel.getByRole('alert')).toContainText('未添加')
+    await expect(panel.getByLabel('名称', { exact: true })).toHaveValue('新的外套')
+    await page.evaluate(() => { (window as any).__wardrobeMaintain.fail = false })
+    await panel.getByRole('button', { name: '保存衣物', exact: true }).click()
+    await expect(panel.getByRole('button', { name: '换上 新的外套', exact: true })).toBeVisible()
+    await panel.getByRole('tab', { name: '套装', exact: true }).click()
+    await panel.getByRole('button', { name: '添加套装', exact: true }).click()
+    await panel.getByLabel('套装名称', { exact: true }).fill('新套装')
+    await panel.getByLabel('上装', { exact: true }).selectOption('top')
+    await panel.getByLabel('下装', { exact: true }).selectOption('bottom')
+    await panel.getByLabel('鞋子', { exact: true }).selectOption('shoes')
+    await panel.getByRole('button', { name: '保存套装', exact: true }).click()
+    await expect(panel.getByRole('button', { name: '换上套装 新套装', exact: true })).toBeVisible()
+    await panel.getByRole('button', { name: '编辑 新套装', exact: true }).click()
+    await panel.getByLabel('外套', { exact: true }).selectOption('new-3')
+    await page.evaluate(() => { (window as any).__wardrobeMaintain.fail = true })
+    await panel.getByRole('button', { name: '保存套装', exact: true }).click()
+    await expect(panel.getByRole('alert')).toContainText('未保存')
+    await expect(panel.getByLabel('外套', { exact: true })).toHaveValue('new-3')
+    await page.evaluate(() => { (window as any).__wardrobeMaintain.fail = false })
+    await panel.getByRole('button', { name: '保存套装', exact: true }).click()
+    expect(await page.evaluate(() => (window as any).__wardrobeMaintain.updates.at(-1).patch.payload)).toEqual({ recordType: 'outfit', slots: { top: 'top', bottom: 'bottom', shoes: 'shoes', outerwear: 'new-3' } })
   })
 
   test('正式衣柜删除确认失败保留且防重入', async ({ page }) => {
@@ -6261,6 +6974,7 @@ test.describe('My Agent UI', () => {
     await page.goto('/')
     await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
     await page.getByTestId('world-tab-wardrobe').click()
+    await page.getByTestId('world-assets-panel').getByRole('tab', { name: '全部', exact: true }).click()
     await expect(page.getByText('灰绿外套', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: '删除 灰绿外套', exact: true }).click()
     const confirmation = page.getByRole('group', { name: '删除「灰绿外套」？', exact: true })
@@ -6280,23 +6994,24 @@ test.describe('My Agent UI', () => {
     await expect(confirmation).toHaveCount(0)
   })
 
-  test('正式通讯录列表先展示忙闲且忙碌仍可开聊', async ({ page }) => {
+  test('正式通讯录只展示关系而不读取忙闲或开启召唤', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
       const state = { availability: [] as string[], summons: [] as Array<{ id: string; force?: boolean }> }
       ;(window as any).__castAvailability = state
       const api = (window as any).electronAPI.companion
       api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
-      api.getRoster = async () => ({
+      api.getContacts = async () => ({
         roleId: 'lin',
-        lines: [
-          { otherId: 'chen', otherName: '陈晨', relationType: 'friend', text: '经常一起讨论工作。' },
-          { otherId: 'ayu', otherName: '阿雨', relationType: 'friend', text: '周末会一起散步。' },
+        relations: [
+          { ownerRoleId: 'lin', personId: 'chen', relationType: 'friend', summary: '经常一起讨论工作。' },
+          { ownerRoleId: 'lin', personId: 'ayu', relationType: 'friend', summary: '周末会一起散步。' },
         ],
-        cast: [
-          { id: 'chen', name: '陈晨', description: '朋友', summary: '朋友', canBeProtagonist: false, summonHint: '' },
-          { id: 'ayu', name: '阿雨', description: '朋友', summary: '朋友', canBeProtagonist: false, summonHint: '' },
+        people: [
+          { id: 'chen', name: '陈晨', introduction: '朋友' },
+          { id: 'ayu', name: '阿雨', introduction: '朋友' },
         ],
+        experiences: [],
       })
       api.checkCastAvailability = async (id: string) => {
         state.availability.push(id)
@@ -6314,57 +7029,50 @@ test.describe('My Agent UI', () => {
     await page.goto('/')
     await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
     await page.getByTestId('world-tab-cast').click()
-    const chen = page.getByTestId('world-cast-card-chen')
-    const ayu = page.getByTestId('world-cast-card-ayu')
-    await expect(chen).toHaveAttribute('data-availability', 'busy')
-    await expect(chen.getByTestId('world-cast-presence-chen')).toHaveText('现在忙碌')
-    await expect(chen).toContainText('陈晨正在忙')
-    await expect(ayu).toHaveAttribute('data-availability', 'available')
-    await expect(ayu.getByTestId('world-cast-presence-ayu')).toHaveText('方便开聊')
-    await expect.poll(() => page.evaluate(() => (window as any).__castAvailability.availability.slice().sort())).toEqual(['ayu', 'chen'])
-    await chen.getByRole('button', { name: '开聊', exact: true }).click()
-    await expect(page.getByRole('group', { name: '仍要强行与陈晨开聊吗？', exact: true })).toBeVisible()
-    expect(await page.evaluate(() => (window as any).__castAvailability.summons)).toEqual([{ id: 'chen', force: false }])
+    const panel = page.getByTestId('world-contacts-panel')
+    const chen = panel.getByTestId('contact-card-chen')
+    await expect(chen).toContainText('朋友')
+    await expect(panel.getByTestId('contact-card-ayu')).toContainText('朋友')
+    await chen.click()
+    await expect(panel.getByTestId('contact-detail')).toContainText('经常一起讨论工作。')
+    await expect(panel).not.toContainText(/现在忙碌|方便开聊|陈晨正在忙/)
+    await expect(panel.getByRole('button', { name: /开聊|强行开聊/ })).toHaveCount(0)
+    expect(await page.evaluate(() => (window as any).__castAvailability)).toEqual({ availability: [], summons: [] })
   })
 
-  test('正式通讯录强行开聊确认失败保留且防重入', async ({ page }) => {
+  test('正式通讯录切角清空旧详情并丢弃迟到读取', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
-      const state = { calls: [] as Array<{ id: string; force?: boolean }>, failForce: true, release: null as null | (() => void) }
-      ;(window as any).__summonForce = state
+      const listeners = new Set<() => void>()
+      const state = { role: 'lin', hold: false, pending: [] as Array<() => void>, switchRole: () => { state.role = 'zhou'; listeners.forEach(listener => listener()) } }
+      ;(window as any).__contactsRole = state
       const api = (window as any).electronAPI.companion
-      api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
-      api.getRoster = async () => ({
-        roleId: 'lin',
-        lines: [{ otherId: 'chen', otherName: '陈晨', relationType: 'friend', text: '经常一起讨论工作。' }],
-        cast: [{ id: 'chen', name: '陈晨', description: '朋友', summary: '朋友', canBeProtagonist: false, summonHint: '' }],
-      })
-      api.checkCastAvailability = async (id: string) => ({ available: false, roleId: id, name: '陈晨', reason: '陈晨正在忙', alternative: '可以晚点再聊' })
-      api.startSummon = async (id: string, force?: boolean) => {
-        state.calls.push({ id, force: Boolean(force) })
-        if (!force) return { ok: false, error: 'BUSY', reason: '陈晨正在忙', alternative: '可以晚点再聊' }
-        await new Promise<void>((resolve) => { state.release = resolve })
-        if (state.failForce) return { ok: false, error: 'SUMMON_FAILED' }
-        return { ok: true, sessionId: 'summon-1', roleId: id, name: '陈晨', sessionKind: 'summon', activeRoleId: 'lin' }
+      api.getActive = async () => ({ id: state.role, name: state.role, description: '' })
+      api.onRoleChanged = (listener: () => void) => { listeners.add(listener); return () => listeners.delete(listener) }
+      api.getAssets = async () => ({ roleId: state.role, items: [] })
+      api.getMoments = async () => ({ roleId: state.role, items: [] })
+      api.getContacts = async () => {
+        const role = state.role
+        const data = { roleId: role, people: [{ id: role + '-friend', name: role + '的朋友', introduction: role + '的关系资料' }], relations: [], experiences: [] }
+        if (state.hold) return new Promise(resolve => state.pending.push(() => resolve(data)))
+        return data
       }
     })
     await page.goto('/')
     await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
     await page.getByTestId('world-tab-cast').click()
-    await page.getByRole('button', { name: '开聊', exact: true }).click()
-    const confirmation = page.getByRole('group', { name: '仍要强行与陈晨开聊吗？', exact: true })
-    await expect(confirmation).toContainText('陈晨正在忙')
-    const confirm = confirmation.getByRole('button', { name: '强行开聊', exact: true })
-    await confirm.evaluate((node: HTMLButtonElement) => { node.click(); node.click() })
-    await expect(confirm).toBeDisabled()
-    expect(await page.evaluate(() => (window as any).__summonForce.calls)).toEqual([{ id: 'chen', force: false }, { id: 'chen', force: true }])
-    await page.evaluate(() => (window as any).__summonForce.release())
-    await expect(confirmation).toBeVisible()
-    await page.evaluate(() => { (window as any).__summonForce.failForce = false })
-    await confirm.click()
-    await expect.poll(() => page.evaluate(() => (window as any).__summonForce.calls.length)).toBe(3)
-    await page.evaluate(() => (window as any).__summonForce.release())
-    await expect(confirmation).toHaveCount(0)
+    const panel = page.getByTestId('world-contacts-panel')
+    await panel.getByTestId('contact-card-lin-friend').click()
+    await expect(panel.getByTestId('contact-detail')).toContainText('lin的关系资料')
+    await page.evaluate(() => { (window as any).__contactsRole.hold = true })
+    await panel.getByRole('button', { name: '刷新通讯录', exact: true }).click()
+    await expect.poll(() => page.evaluate(() => (window as any).__contactsRole.pending.length)).toBe(1)
+    await page.evaluate(() => { const state = (window as any).__contactsRole; state.hold = false; state.switchRole() })
+    await expect(panel.getByTestId('contact-card-zhou-friend')).toBeVisible()
+    await expect(panel.getByTestId('contact-detail')).toHaveCount(0)
+    await page.evaluate(() => { (window as any).__contactsRole.pending.forEach((resolve: () => void) => resolve()) })
+    await expect(panel).not.toContainText('lin的关系资料')
+    await expect(panel.getByTestId('contact-card-zhou-friend')).toBeVisible()
   })
 
 

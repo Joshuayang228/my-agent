@@ -36,7 +36,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 17
+export const SCHEMA_VERSION = 18
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -467,6 +467,24 @@ export function runMigrations(database: SqlJsDatabase): void {
     // v16 -> v17: generated media references belong to tool messages, never to their model-visible text.
     (d) => {
       if (tableExists(d, 'messages')) addColumnIfMissing(d, 'messages', 'generated_images', 'TEXT')
+    },
+    // v17 -> v18: event links make asset / cast / image relations replayable without parsing UI metadata.
+    (d) => {
+      d.run(`
+        CREATE TABLE IF NOT EXISTS companion_event_links (
+          id            TEXT PRIMARY KEY,
+          event_id      TEXT NOT NULL,
+          role_id       TEXT NOT NULL,
+          target_type   TEXT NOT NULL,
+          target_id     TEXT NOT NULL,
+          relation      TEXT NOT NULL,
+          metadata_json TEXT NOT NULL DEFAULT '{}',
+          created_at    INTEGER NOT NULL,
+          UNIQUE(event_id, target_type, target_id, relation)
+        )
+      `)
+      d.run('CREATE INDEX IF NOT EXISTS idx_companion_event_links_event ON companion_event_links(role_id, event_id)')
+      d.run('CREATE INDEX IF NOT EXISTS idx_companion_event_links_target ON companion_event_links(role_id, target_type, target_id)')
     },
   ]
 

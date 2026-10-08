@@ -7,6 +7,12 @@ import { imageGenerateTool } from '../../electron/main/tools/builtins/image-gene
 import { ToolRegistry } from '../../electron/main/tools/registry'
 import { loadRules } from '../../electron/main/sandbox/permission-engine'
 import type { ToolContext } from '../../src/shared/types'
+import initSqlJs from 'sql.js'
+import { changeWardrobe, createAsset, getAsset } from '../../electron/main/companion/life/assets'
+
+const SQL = await initSqlJs()
+let assetDb: InstanceType<typeof SQL.Database>
+vi.mock('../../electron/main/storage/database', () => ({ getDatabase: vi.fn(async () => assetDb), persist: vi.fn() }))
 
 const state = vi.hoisted(() => ({ request: vi.fn(), config: vi.fn(), mode: 'workspace-write' }))
 vi.mock('../../electron/main/llm/image-generation', async original => ({ ...await original<typeof import('../../electron/main/llm/image-generation')>(), requestGeneratedImage: state.request }))
@@ -20,13 +26,35 @@ const args = { path: 'images/example.png', prompt: '测试图' }
 const run = (input = args) => registry.executeAll([{ id: 'call-image', name: 'image_generate', arguments: JSON.stringify(input) }], context).then(results => results[0])
 beforeEach(async () => {
   vi.clearAllMocks(); state.mode = 'workspace-write'; loadRules('[]')
+  assetDb = new SQL.Database()
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'image-generate-test-'))
   context = { sessionId: 'session', workdir: root, workspaceRoot: root }
   registry = new ToolRegistry(); registry.register(imageGenerateTool)
   state.config.mockResolvedValue({ model: 'fixture', baseUrl: 'https://example.test', apiKey: 'fixture' })
   state.request.mockResolvedValue({ bytes: await sharp({ create: { width: 16, height: 12, channels: 3, background: '#2c7755' } }).png().toBuffer(), mimeType: 'image/png' })
 })
-afterEach(() => { vi.restoreAllMocks(); loadRules('[]'); fs.rmSync(root, { recursive: true, force: true }) })
+afterEach(() => { assetDb.close(); vi.restoreAllMocks(); loadRules('[]'); fs.rmSync(root, { recursive: true, force: true }) })
+
+it('正式穿搭生图绑定真实资产版本，等待期间换衣拒绝迟到图片并清理结果', async () => {
+  context.roleId = 'lin'
+  const top = await createAsset({ roleId: 'lin', kind: 'wardrobe', name: '上装', payload: { category: 'top' } })
+  const next = await createAsset({ roleId: 'lin', kind: 'wardrobe', name: '另一件上装', payload: { category: 'top' } })
+  if (!top.ok || !next.ok) throw new Error('衣物初始化失败')
+  const current = await changeWardrobe({ roleId: 'lin', assetId: top.asset.id, expectedVersion: 0 })
+  if (!current.ok) throw new Error(current.error)
+  const bytes = await sharp({ create: { width: 16, height: 12, channels: 3, background: '#2c7755' } }).png().toBuffer()
+  const input = { ...args, targetAssetId: current.asset.id }
+  const first = await registry.executeAll([{ id: 'first', name: 'image_generate', arguments: JSON.stringify(input) }], context)
+  expect(first[0].isError).not.toBe(true)
+  expect((await getAsset(current.asset.id))?.payload).toMatchObject({ imageOutfitVersion: 1, image: first[0].generatedImages?.[0] })
+  state.request.mockImplementationOnce(async () => { await changeWardrobe({ roleId: 'lin', assetId: next.asset.id, expectedVersion: 1 }); return { bytes, mimeType: 'image/png' } })
+  const late = await registry.executeAll([{ id: 'late', name: 'image_generate', arguments: JSON.stringify({ ...input, path: 'images/late.png' }) }], context)
+  expect(late[0]).toMatchObject({ isError: true })
+  expect(late[0].content).toContain('穿搭已改变')
+  expect(fs.existsSync(path.join(root, 'images', 'late.png'))).toBe(false)
+  expect((await getAsset(current.asset.id))?.payload).not.toHaveProperty('image')
+  expect((await getAsset(current.asset.id))?.payload.slots).toEqual({ top: next.asset.id })
+})
 
 it('生成结果解码后真实保存，结构化引用与文件相符，不留下临时文件', async () => {
   const result = await run()

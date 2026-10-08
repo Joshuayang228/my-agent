@@ -1,6 +1,7 @@
 import { ipcRenderer, contextBridge } from 'electron'
 import type {
   CompanionAssetCreateInput,
+  CompanionLifeSlice,
   AgentAssetUsageQuery,
   AgentAssetUsageQueryResult,
   ChatMessage,
@@ -158,6 +159,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('companion:rollback-mutable', roleId, toVersion),
     getMoments: (opts?: { limit?: number; offset?: number }): Promise<MomentListResult> =>
       ipcRenderer.invoke('companion:get-moments', opts),
+    getLifeSlice: (eventId: string): Promise<CompanionLifeSlice | null> =>
+      ipcRenderer.invoke('companion:get-life-slice', eventId),
     toggleMomentLike: (momentId: string): Promise<MomentSocialMutationResult> =>
       ipcRenderer.invoke('companion:toggle-moment-like', momentId),
     addMomentComment: (momentId: string, text: string): Promise<MomentSocialMutationResult> =>
@@ -198,6 +201,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         }
       | { ok: false; error: string; code?: string }
     > => ipcRenderer.invoke('companion:create-asset', input),
+    changeWardrobe: (input: import('../../src/shared/types').CompanionWardrobeChangeInput): Promise<import('../../src/shared/types').CompanionWardrobeChangeResult> => ipcRenderer.invoke('companion:change-wardrobe', input),
     updateAsset: (
       assetId: string,
       patch: { name?: string; payload?: Record<string, unknown> },
@@ -220,6 +224,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       assetId: string,
     ): Promise<{ ok: true } | { ok: false; error: string; code?: string }> =>
       ipcRenderer.invoke('companion:delete-asset', assetId),
+    readMomentImage: (momentId: string, imageId: string): Promise<GeneratedImageReadResult> =>
+      ipcRenderer.invoke('companion:read-moment-image', momentId, imageId),
+    readAssetImage: (assetId: string, imageId: string): Promise<GeneratedImageReadResult> =>
+      ipcRenderer.invoke('companion:read-asset-image', assetId, imageId),
+    revealAssetImage: (assetId: string, imageId: string): Promise<GeneratedImageRevealResult> =>
+      ipcRenderer.invoke('companion:reveal-asset-image', assetId, imageId),
+    getContacts: (): Promise<import('../../src/shared/types').CompanionContactsData> => ipcRenderer.invoke('companion:get-contacts'),
     getRoster: (): Promise<{
       roleId: string
       lines: Array<{

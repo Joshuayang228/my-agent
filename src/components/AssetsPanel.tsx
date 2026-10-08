@@ -3,7 +3,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { BookOpen, Footprints, Layers, LayoutGrid, PersonStanding, RectangleVertical, Shirt, Sparkles, type LucideIcon } from 'lucide-react'
+import { BookOpen, Footprints, ImagePlus, Layers, LayoutGrid, PersonStanding, RectangleVertical, Shirt, Sparkles, type LucideIcon } from 'lucide-react'
 import { ActionButton } from './foundation/ActionButton'
 import { IconButton } from './foundation/IconButton'
 import { ImagePreviewImage } from './foundation/ImagePreviewImage'
@@ -24,6 +24,9 @@ import {
   type WorldAssetRecord,
 } from './world/WorldAssetEditor'
 import type { GeneratedImageReference } from '../shared/types'
+import { wardrobeSlotsSchema, worldRecordImageReference } from '../shared/world-records'
+import { WorldRecordImage } from './world/WorldRecordImage'
+import { wardrobeCategoryIcons } from './world/WardrobeCategoryIcons'
 
 type AssetTab = 'wardrobe' | 'bookshelf'
 
@@ -40,9 +43,9 @@ interface AssetsPanelProps {
   previewAssets?: WorldAssetRecord[]
   previewEditable?: boolean
   previewWearingId?: string
-  /** Playground 可将书架收归文化角；正式页默认保留资产分栏。 */
+  /** 人物世界将书架收归文化角；其他调用方默认保留资产分栏。 */
   showAssetTabs?: boolean
-  /** Playground 的衣柜候选展示；正式页保持默认资产面板布局。 */
+  /** 正式与候选显式采用共享衣柜画廊，未采用的调用方保留原布局。 */
   presentation?: 'default' | 'wardrobe-gallery'
   /** 隔离故事中的整套图片；仅匹配初始槽位时展示，不能冒充生产生成结果。 */
   previewOutfitImage?: { src?: string; status: 'ready' | 'pending' | 'failed' | 'none' }
@@ -153,7 +156,12 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
         throw new Error('ROLE_CHANGED')
       }
       setRoleId(assets.roleId)
-      setItems(assets.items)
+      setItems(assets.items.filter(asset => asset.roleId === active.id))
+      if (presentation === 'wardrobe-gallery') {
+        setWearingId(assets.items.find(asset => asset.roleId === active.id && asset.kind === 'wardrobe' && asset.payload.recordType === 'wear-state')?.id ?? null)
+        setWearingHint('')
+        return
+      }
       const wardrobe = assets.items.filter((asset) => asset.kind === 'wardrobe')
       let foundId: string | null = null
       let hint = ''
@@ -183,7 +191,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
     } finally {
       if (mounted.current && currentRequest === requestId.current) setLoading(false)
     }
-  }, [isPreview, previewAssets, previewWearingId])
+  }, [isPreview, previewAssets, previewWearingId, presentation])
 
   useEffect(() => { void load() }, [load])
 
@@ -200,6 +208,8 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
       setWearingId(null)
       setWearingHint('')
       setWriteError('')
+      setChangeError('')
+      setChangingId(null)
       setEditingId(null)
       setPendingDelete(null)
       setAddDrafts({})
@@ -236,7 +246,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
     setWriteError('')
     setPendingDelete(null)
     setEditingId(asset.id)
-    setEditDraft(draftFromAsset(asset))
+    setEditDraft(draftFromAsset(asset, !isPreview && presentation === 'wardrobe-gallery' ? 'wardrobe-gallery' : undefined))
   }
 
   const saveEdit = async () => {
@@ -308,17 +318,43 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
   }
 
   const KindIcon = tab === 'bookshelf' ? BookOpen : Shirt
-  const wardrobeGallery = isPreview && presentation === 'wardrobe-gallery' && tab === 'wardrobe'
+  const wardrobeGallery = presentation === 'wardrobe-gallery' && tab === 'wardrobe'
+  const garments = tabItems.filter(asset => !['outfit', 'wear-state'].includes(String(asset.payload.recordType)))
   const visibleItems = wardrobeGallery
-    ? tabItems.filter((asset) => category === 'all' || asset.payload.category === category)
+    ? garments.filter((asset) => category === 'all' || asset.payload.category === category)
     : tab === 'wardrobe' && wearing ? inventory : tabItems
   const slotLabels: Record<string, string> = { top: '上装', bottom: '下装', outerwear: '外套', shoes: '鞋子' }
   const slotIcons: Record<string, LucideIcon> = { top: Shirt, bottom: RectangleVertical, outerwear: Layers, shoes: Footprints }
+  const savedSlots = wardrobeSlotsSchema.safeParse(wearing?.payload.slots)
+  const displaySlots: Record<string, string> = isPreview ? previewSlots : savedSlots.success ? savedSlots.data : {}
+  const outfits: readonly PreviewWardrobeOutfit[] = isPreview ? previewOutfits : tabItems.filter(asset => asset.payload.recordType === 'outfit').map(asset => {
+    const parsed = wardrobeSlotsSchema.safeParse(asset.payload.slots)
+    return { id: asset.id, name: asset.name, slots: parsed.success ? parsed.data : {} }
+  })
+  const realPicture = (asset: WorldAssetRecord, versioned = false) => {
+    const image = versioned && asset.payload.imageOutfitVersion !== asset.payload.outfitVersion ? null : worldRecordImageReference(asset.payload)
+    return <div className="mb-3 aspect-[3/4] w-full overflow-hidden rounded-[var(--radius-md)]" style={{ background: 'var(--bg-secondary)' }}>{image ? <WorldRecordImage assetId={asset.id} image={image} alt={asset.name} readImage={(id, imageId) => window.electronAPI.companion.readAssetImage(id, imageId)} revealImage={(id, imageId) => window.electronAPI.companion.revealAssetImage(id, imageId)} /> : <div className="flex h-full items-center justify-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}><Shirt size={20} />暂无图片</div>}</div>
+  }
+  const changeFormal = async (assetId: string) => {
+    if (writing.current || changingId || isPreview) return
+    const epoch = writeEpoch.current + 1
+    setChangingId(assetId)
+    setChangeError('')
+    await mutate(async isCurrent => {
+      const result = await window.electronAPI.companion.changeWardrobe({ roleId, assetId, expectedVersion: typeof wearing?.payload.outfitVersion === 'number' ? wearing.payload.outfitVersion : 0 })
+      if (!result.ok) throw new Error(result.error)
+      if (!isCurrent()) return
+      setItems(current => [...current.filter(asset => asset.id !== result.asset.id), result.asset])
+      setWearingId(result.asset.id)
+      setPreviewWardrobeView('wearing')
+    }, '未换上，当前穿着仍保留。请重新读取后重试。')
+    if (mounted.current && epoch === writeEpoch.current) setChangingId(null)
+  }
   // 候选图片只对应明确的初始组合，换上另一件时不能沿用旧整套图。
   // 以资产 ID 比较而非名称比较，恢复原组合可复用；正式页不走此隔离分支。
   const initialSlots = Object.fromEntries((previewAssets ?? []).filter((asset) => asset.payload.previewWearing === true).map((asset) => [String(asset.payload.category), asset.id]))
   const matchesInitialOutfit = Object.keys(slotLabels).every((slot) => initialSlots[slot] === previewSlots[slot])
-  const matchesOutfit = (outfit: PreviewWardrobeOutfit) => Object.keys(slotLabels).every((slot) => outfit.slots[slot] === previewSlots[slot])
+  const matchesOutfit = (outfit: PreviewWardrobeOutfit) => Object.keys(slotLabels).every((slot) => outfit.slots[slot] === displaySlots[slot])
   const cachedOutfit = previewOutfits.find(matchesOutfit)
   const outfitImageStatus = matchesInitialOutfit ? previewOutfitImage?.status ?? 'none' : cachedOutfit?.imageSrc ? 'ready' : 'none'
   const outfitImageSrc = outfitImageStatus === 'ready' ? matchesInitialOutfit ? previewOutfitImage?.src : cachedOutfit?.imageSrc : undefined
@@ -363,7 +399,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
   }
 
   return (
-    <fieldset disabled={busy || changingId !== null} aria-busy={busy || loading || changingId !== null} className="m-0 flex h-full min-h-0 flex-col border-0 p-0" data-testid="world-assets-panel">
+    <fieldset disabled={busy || changingId !== null} aria-busy={busy || loading || changingId !== null} className="m-0 flex h-full min-h-0 w-full min-w-0 flex-col border-0 p-0" data-testid="world-assets-panel">
       {showAssetTabs && <div className="border-b px-4 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
         <TabStrip
           label="物什分区"
@@ -381,7 +417,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
         />
       </div>}
 
-      <div className={`flex-1 overflow-y-auto ${wardrobeGallery ? LAYOUT_CLASSES.gutter : 'px-4'} py-4 scrollbar-thin`} data-testid="wardrobe-content-scroll">
+      <div className={`min-h-0 min-w-0 flex-1 overflow-y-auto ${wardrobeGallery ? LAYOUT_CLASSES.gutter : 'px-4'} py-4 scrollbar-thin`} data-testid="wardrobe-content-scroll">
         <WorldWriteError message={readError}>
           {!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>}
         </WorldWriteError>
@@ -396,10 +432,10 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
         <WorldWriteError message={writeError}>
           {!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>}
         </WorldWriteError>
-        {wardrobeGallery && <div className="mb-4" data-testid="wardrobe-view-tabs"><TabStrip label="衣柜视图" activeId={previewWardrobeView} onSelect={(id) => { setPreviewWardrobeView(id); if (id !== 'wearing') setCategory(id) }} items={[
+        {wardrobeGallery && <div className="mb-4" data-testid="wardrobe-view-tabs"><TabStrip label="衣柜视图" activeId={previewWardrobeView} onSelect={(id) => { setPreviewWardrobeView(id); if (id !== 'wearing') setCategory(id); if (!isPreview) { setEditingId(null); setPendingDelete(null); setAddDrafts({}) } }} items={[
           { id: 'wearing', label: '正在穿着', icon: <PersonStanding size={14} /> }, { id: 'all', label: '全部', icon: <LayoutGrid size={14} />, separatorBefore: true },
-          { id: 'outfits', label: '套装', icon: previewTabIcons?.outfits ?? <Shirt size={14} /> },
-          ...Object.entries(slotLabels).map(([id, label]) => { const Icon = slotIcons[id]; return { id, label, icon: previewTabIcons?.[id] ?? <Icon size={14} /> } }),
+          { id: 'outfits', label: '套装', icon: previewTabIcons?.outfits ?? (!isPreview ? wardrobeCategoryIcons.outfits : <Shirt size={14} />) },
+          ...Object.entries(slotLabels).map(([id, label]) => { const Icon = slotIcons[id]; return { id, label, icon: previewTabIcons?.[id] ?? (!isPreview ? wardrobeCategoryIcons[id] : undefined) ?? <Icon size={14} /> } }),
         ]} /></div>}
         {wardrobeGallery && <WorldWriteError message={changeError} />}
         {tab === 'wardrobe' && (!wardrobeGallery || previewWardrobeView === 'wearing') ? (
@@ -412,7 +448,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
                 <div className={wardrobeGallery ? 'flex min-w-0 flex-col items-center gap-4' : 'flex items-start gap-3'}>
                   {wardrobeGallery
                     ? <div className="aspect-[3/4] w-full max-w-60 overflow-hidden rounded-[var(--radius-md)]" data-testid="wardrobe-outfit-image" style={{ background: 'var(--bg-secondary)' }}>
-                      {outfitImageSrc
+                      {!isPreview ? realPicture(wearing, true) : outfitImageSrc
                         ? <ImagePreviewImage src={outfitImageSrc} alt="当前穿搭全身图" className="block aspect-[3/4] w-full object-contain" buttonClassName="h-full w-full" />
                         : <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center text-[12px]" role="status" style={{ color: 'var(--text-muted)' }}>
                           <Shirt size={22} />
@@ -427,7 +463,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
                     {wearingHint ? <div className="mt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>{wearingHint}</div> : null}
                     {wardrobeGallery && <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="wardrobe-current-slots">
                       {Object.entries(slotLabels).map(([slot, label]) => {
-                        const current = items.find((asset) => asset.id === previewSlots[slot])
+                        const current = items.find((asset) => asset.id === displaySlots[slot] && asset.payload.category === slot && asset.roleId === wearing.roleId)
                         return <div key={slot} className="flex min-h-12 min-w-0 flex-col gap-1 text-[12px]">
                           <span style={{ color: 'var(--text-muted)' }}>{label}</span>
                           <span className="min-w-0 truncate" title={current?.name} style={{ color: 'var(--text-primary)' }}>{current?.name ?? '未选择'}</span>
@@ -439,16 +475,16 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
                         <span key={tag} className="rounded-full px-2 py-0.5 text-[10px]" style={{ background: 'var(--companion-catchup-bg)', color: 'var(--companion-accent-warm)' }}>{tag}</span>
                       ))}
                     </div>}
-                    {editingId === wearing.id
+                    {!isPreview && wardrobeGallery ? onGenerateAssetImage && <IconButton label="为当前穿搭生成图片" disabled={busy} onClick={() => onGenerateAssetImage(wearing)}><ImagePlus size={14} /></IconButton> : editingId === wearing.id
                       ? <WorldAssetForm draft={editDraft} onChange={setEditDraft} onSave={() => void saveEdit()} onCancel={() => { if (!busy) { setEditingId(null); setWriteError('') } }} busy={busy} saveLabel="保存衣物" />
                       : canEdit ? <WorldAssetActions name={wearing.name} disabled={busy} onGenerate={onGenerateAssetImage ? () => onGenerateAssetImage(wearing) : undefined} onEdit={() => startEdit(wearing)} onDelete={() => setPendingDelete(wearing)} /> : null}
                   </div>
                 </div>
-                {!isPreview && <AssetImage asset={wearing} />}
+                {!isPreview && !wardrobeGallery && <AssetImage asset={wearing} />}
               </div>
             ) : (
               <div className="rounded-xl border border-dashed px-4 py-5 text-center text-[12px]" data-testid="world-wardrobe-wearing-empty" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
-                还没有近期穿着记录。
+                {wardrobeGallery ? '还没有当前穿搭。' : '还没有近期穿着记录。'}
               </div>
             )}
           </section>
@@ -459,36 +495,38 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
         ) : null}
 
         {wardrobeGallery && previewWardrobeView === 'outfits' && <section data-testid="wardrobe-outfits">
-          {previewOutfits.length ? <div className={`grid ${LAYOUT_CLASSES.grid} sm:grid-cols-2 lg:grid-cols-3`}>
-            {previewOutfits.map((outfit) => <article key={outfit.id} aria-label={outfit.name} className="min-w-0 rounded-md border p-3.5" style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)' }}>
+          {outfits.length ? <div className={`grid ${LAYOUT_CLASSES.grid} sm:grid-cols-2 lg:grid-cols-3`}>
+            {outfits.map((outfit) => <article key={outfit.id} aria-label={outfit.name} data-shape="card" className="min-w-0 rounded-md border p-3.5" style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)' }}>
               <div className="mb-3 aspect-[3/4] overflow-hidden rounded-md" style={{ background: 'var(--bg-secondary)' }}>
-                {outfit.imageSrc ? <ImagePreviewImage src={outfit.imageSrc} alt={`${outfit.name}的穿搭参考图`} className="block h-full w-full object-contain" buttonClassName="h-full w-full" />
+                {!isPreview ? realPicture(tabItems.find(asset => asset.id === outfit.id)!, true) : outfit.imageSrc ? <ImagePreviewImage src={outfit.imageSrc} alt={`${outfit.name}的穿搭参考图`} className="block h-full w-full object-contain" buttonClassName="h-full w-full" />
                   : <div className="flex h-full items-center justify-center gap-2 text-[12px]" style={{ color: 'var(--text-muted)' }}><Shirt size={20} />暂无套装图片</div>}
               </div>
               <div className="line-clamp-2 min-h-10 text-[13px] font-medium" title={outfit.name} style={{ color: 'var(--text-primary)' }}>{outfit.name}</div>
-              <div className="mt-2 h-8"><ActionButton className="h-8 w-24" aria-label={`换上套装 ${outfit.name}`} disabled={changingId !== null || matchesOutfit(outfit)} onClick={() => changeOutfitPreview(outfit)}>{changingId === outfit.id ? '换上中' : matchesOutfit(outfit) ? '正在穿着' : '换上'}</ActionButton></div>
+              <div className="mt-2 h-8"><ActionButton className="h-8 w-24" aria-label={`换上套装 ${outfit.name}`} disabled={changingId !== null || matchesOutfit(outfit)} onClick={() => isPreview ? changeOutfitPreview(outfit) : void changeFormal(outfit.id)}>{changingId === outfit.id ? '换上中' : matchesOutfit(outfit) ? '正在穿着' : '换上'}</ActionButton></div>
+              {!isPreview && (editingId === outfit.id ? <WorldAssetForm draft={editDraft} onChange={setEditDraft} onSave={() => void saveEdit()} onCancel={() => setEditingId(null)} busy={busy} saveLabel="保存套装" assets={garments} /> : <WorldAssetActions name={outfit.name} disabled={busy} onEdit={() => startEdit(tabItems.find(asset => asset.id === outfit.id)!)} onDelete={() => setPendingDelete(tabItems.find(asset => asset.id === outfit.id)!)} onGenerate={onGenerateAssetImage ? () => onGenerateAssetImage(tabItems.find(asset => asset.id === outfit.id)!) : undefined} />)}
             </article>)}
           </div> : <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>还没有套装。</p>}
         </section>}
+        {wardrobeGallery && !isPreview && previewWardrobeView === 'outfits' && <WorldAssetAddRow open={adding} label="套装" draft={addDraft} busy={busy} assets={garments} onOpen={() => setAddDrafts(drafts => ({ ...drafts, wardrobe: { open: true, draft: { kind: 'wardrobe', name: '', presentation: 'wardrobe-gallery', payload: { recordType: 'outfit' } } } }))} onChange={draft => setAddDrafts(drafts => ({ ...drafts, wardrobe: { open: true, draft } }))} onSave={() => void saveAdd()} onCancel={() => { if (!busy) setAddDrafts({}) }} />}
         {(!wardrobeGallery || !['wearing', 'outfits'].includes(previewWardrobeView)) && <section data-testid="world-assets-inventory">
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-            {tab === 'bookshelf' ? '藏书' : '库存'}{tabItems.length ? ` · ${tabItems.length}` : ''}
+            {tab === 'bookshelf' ? '藏书' : '库存'}{(wardrobeGallery ? garments.length : tabItems.length) ? ` · ${wardrobeGallery ? garments.length : tabItems.length}` : ''}
           </div>
-          {tabItems.length === 0 && !loading ? (
+          {visibleItems.length === 0 && !loading ? (
             <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>{tab === 'bookshelf' ? '书架还是空的。' : '衣柜还是空的。'}</p>
           ) : (
             <div className={wardrobeGallery ? `grid ${LAYOUT_CLASSES.grid} sm:grid-cols-2 lg:grid-cols-3` : 'grid gap-2.5'} style={wardrobeGallery ? undefined : { gridTemplateColumns: 'repeat(auto-fill, minmax(9.5rem, 1fr))' }}>
               {visibleItems.map((asset) => (
-                <div key={asset.id} className={`companion-life-card rounded-xl border ${wardrobeGallery ? 'p-3.5' : 'px-3 py-3'}`} style={{ borderColor: editingId === asset.id ? 'var(--companion-accent-warm)' : 'var(--card-border)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
+                <div key={asset.id} data-shape="card" className={`companion-life-card rounded-xl border ${wardrobeGallery ? 'p-3.5' : 'px-3 py-3'}`} style={{ borderColor: editingId === asset.id ? 'var(--companion-accent-warm)' : 'var(--card-border)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
                   {isPreview && <PreviewAssetImage asset={asset} gallery={wardrobeGallery} />}
-                  {!isPreview && <AssetImage asset={asset} />}
-                  {(!wardrobeGallery || typeof asset.payload.playgroundImageSrc !== 'string' || !asset.payload.playgroundImageSrc) && <div className={`${wardrobeGallery ? 'mb-3 aspect-[3/4] w-full' : 'mb-2 h-9 w-9'} flex items-center justify-center rounded-lg`} style={{ background: 'var(--bg-secondary)' }}>
+                  {!isPreview && (wardrobeGallery ? realPicture(asset) : <AssetImage asset={asset} />)}
+                  {(!wardrobeGallery || isPreview && (typeof asset.payload.playgroundImageSrc !== 'string' || !asset.payload.playgroundImageSrc)) && <div className={`${wardrobeGallery ? 'mb-3 aspect-[3/4] w-full' : 'mb-2 h-9 w-9'} flex items-center justify-center rounded-lg`} style={{ background: 'var(--bg-secondary)' }}>
                     {wardrobeGallery && <span className="mr-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>{asset.payload.previewImageState === 'pending' ? '生成中' : asset.payload.previewImageState === 'failed' ? '生成失败' : '暂无图片'}</span>}
                     <KindIcon size={wardrobeGallery ? 22 : 16} style={{ color: 'var(--text-secondary)' }} />
                   </div>}
                   <div className={`${wardrobeGallery ? 'line-clamp-2 min-h-10' : 'truncate'} text-[13px] font-medium`} style={{ color: 'var(--text-primary)' }} title={asset.name}>{asset.name}</div>
-                  {wardrobeGallery && <div className="mt-2 h-8"><ActionButton className="h-8 w-24" aria-label={`换上 ${asset.name}`} disabled={changingId !== null || previewSlots[String(asset.payload.category)] === asset.id} onClick={() => changePreview(asset)}>
-                    {changingId === asset.id ? '换上中' : previewSlots[String(asset.payload.category)] === asset.id ? '正在穿着' : '换上'}
+                  {wardrobeGallery && <div className="mt-2 h-8"><ActionButton className="h-8 w-24" aria-label={`换上 ${asset.name}`} disabled={changingId !== null || !slotLabels[String(asset.payload.category)] || displaySlots[String(asset.payload.category)] === asset.id} onClick={() => isPreview ? changePreview(asset) : void changeFormal(asset.id)}>
+                    {changingId === asset.id ? '换上中' : displaySlots[String(asset.payload.category)] === asset.id ? '正在穿着' : '换上'}
                   </ActionButton></div>}
                   {!wardrobeGallery && <div className="mt-1.5 flex flex-wrap gap-1">
                     {occasionTags(asset.payload).map((tag) => (
@@ -508,7 +546,8 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
               label={tab === 'bookshelf' ? '书目' : '衣物'}
               draft={addDraft}
               busy={busy}
-              onOpen={() => setAddDrafts((drafts) => ({ ...drafts, [tab]: { open: true, draft: drafts[tab]?.draft ?? emptyWorldAssetDraft(tab) } }))}
+              assets={garments}
+              onOpen={() => setAddDrafts((drafts) => ({ ...drafts, [tab]: { open: true, draft: !isPreview && wardrobeGallery ? { kind: 'wardrobe', name: '', presentation: 'wardrobe-gallery', payload: { recordType: 'garment', category: slotLabels[category] ? category : 'top' } } : drafts[tab]?.draft ?? emptyWorldAssetDraft(tab) } }))}
               onChange={(draft) => setAddDrafts((drafts) => ({ ...drafts, [tab]: { open: true, draft } }))}
               onSave={() => void saveAdd()}
               onCancel={() => { if (!busy) setAddDrafts((drafts) => ({ ...drafts, [tab]: { open: false, draft: drafts[tab]?.draft ?? emptyWorldAssetDraft(tab) } })) }}

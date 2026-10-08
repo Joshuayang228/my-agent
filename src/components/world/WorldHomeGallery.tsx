@@ -34,16 +34,20 @@ function HomePicture({ src, alt, state, variant }: { src?: string; alt: string; 
 }
 
 /**
- * 背景：家居新方案需要先验收按空间浏览，旧正式页仍是住所与物件混排。
- * 设计意图：纯展示组合只接收隔离数据，复用基础标签、详情动作及图片预览，不另造装修工具。
- * 关键约束：仅候选显式调用；不读取 IPC、生成或写盘，详情返回恢复位置与焦点，空间图不是库存事实。
+ * 背景：候选与正式页都需要按空间浏览，但真实媒体和维护动作必须由所属资产提供。
+ * 设计意图：复用纯展示组合，通过显式回调注入受控媒体和编辑，不在画廊复制存储逻辑。
+ * 关键约束：不读取 IPC、生成或写盘；详情按 ID 派生以免编辑后陈旧，空间图不是库存事实。
  */
-export function WorldHomeGallery({ overviewImage, spaces, objects, imageState = 'ready', readError, onRetry }: {
+export function WorldHomeGallery({ overviewImage, spaces, objects, imageState = 'ready', readError, onRetry, renderPicture, renderEditor, hasOverview = !!overviewImage }: {
   overviewImage?: string; spaces: readonly HomeSpacePreview[]; objects: readonly HomeObjectPreview[];
-  imageState?: HomeImageState; readError?: string; onRetry?: () => void
+  imageState?: HomeImageState; readError?: string; onRetry?: () => void;
+  hasOverview?: boolean;
+  renderPicture?: (id: string, variant: 'overview' | 'scene' | 'object') => ReactNode;
+  renderEditor?: (id: string) => ReactNode
 }) {
   const [spaceId, setSpaceId] = useState('overview')
-  const [selected, setSelected] = useState<HomeObjectPreview | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selected = objects.find(item => item.id === selectedId) ?? null
   const scroll = useRef<HTMLDivElement>(null)
   const triggers = useRef(new Map<string, HTMLButtonElement>())
   const positions = useRef(new Map<string, number>())
@@ -54,16 +58,19 @@ export function WorldHomeGallery({ overviewImage, spaces, objects, imageState = 
     if (scroll.current) scroll.current.scrollTop = positions.current.get(spaceId) ?? 0
     if (returnId.current) { triggers.current.get(returnId.current)?.focus({ preventScroll: true }); returnId.current = null }
   }, [selected, spaceId])
-  const close = () => { returnId.current = selected?.id ?? null; setSelected(null) }
+  const close = () => { returnId.current = selected?.id ?? null; setSelectedId(null) }
   const space = spaces.find(item => item.id === spaceId)
   const items = homeObjectsForSpace(objects, spaceId)
   const tabs = [{ id: 'overview', label: '总览', icon: <LayoutGrid size={14} /> }, ...spaces.map(item => ({ id: item.id, label: item.name, icon: item.icon ?? <Home size={14} /> })),
     ...(homeObjectsForSpace(objects, 'unassigned').length ? [{ id: 'unassigned', label: '未归置', icon: <Package size={14} /> }] : [])]
-  const empty = spaces.length === 0 && objects.length === 0 && !overviewImage
+  const empty = spaces.length === 0 && !tabs.some(tab => tab.id === 'unassigned') && !hasOverview
+  const picture = (id: string, variant: 'overview' | 'scene' | 'object', src?: string, name?: string) => renderPicture
+    ? <div data-testid={`home-${variant}-picture`} className="w-full overflow-hidden rounded-md" style={{ aspectRatio: variant === 'overview' ? '4 / 3' : variant === 'scene' ? '16 / 9' : '1', maxWidth: variant === 'scene' ? 560 : undefined, background: 'var(--bg-secondary)' }}>{renderPicture(id, variant)}</div>
+    : <HomePicture key={`${id}-${imageState}`} src={src} alt={`${name ?? '住所鸟瞰图'}，家居设计样张`} state={imageState} variant={variant} />
   return <div className="flex min-h-0 flex-1 flex-col" style={{ paddingInline: CONTENT_LAYOUT.gutter, paddingBottom: CONTENT_LAYOUT.gutter }} data-testid="home-gallery">
     <div className="shrink-0 py-3"><TabStrip label="家居空间" activeId={spaceId} items={tabs} onSelect={id => {
       if (scroll.current && !selected) positions.current.set(spaceId, scroll.current.scrollTop)
-      returnId.current = null; setSelected(null); setSpaceId(id)
+      returnId.current = null; setSelectedId(null); setSpaceId(id)
     }} /></div>
     <div ref={scroll} className="min-h-0 flex-1 overflow-y-auto scrollbar-thin" data-testid="home-content-scroll">
       {readError ? <ErrorState title="家居记录未能读取" description={readError} action={onRetry && <ActionButton onClick={onRetry}>重新读取</ActionButton>} />
@@ -71,7 +78,7 @@ export function WorldHomeGallery({ overviewImage, spaces, objects, imageState = 
         : selected ? <section className={LAYOUT_CLASSES.section} style={readingContentStyle()} data-testid="home-object-detail" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); close() } }}>
           <ActionButton variant="plain" onClick={close}><ArrowLeft size={14} className="mr-2" />返回物件</ActionButton>
           <div className="flex items-start gap-4">
-            <div className="w-28 shrink-0"><HomePicture key={selected.id} src={selected.image} alt={`${selected.name}，家居设计样张`} state={imageState} variant="object" /></div>
+            <div className="w-28 shrink-0">{picture(selected.id, 'object', selected.image, selected.name)}</div>
             <div className="min-w-0 space-y-2">
               <h3 ref={heading} tabIndex={-1} className="break-words text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{selected.name}</h3>
               <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{spaces.find(item => item.id === selected.spaceId)?.name ?? '未归置'}</p>
@@ -81,17 +88,19 @@ export function WorldHomeGallery({ overviewImage, spaces, objects, imageState = 
             {selected.description && <p>{selected.description}</p>}
             {selected.originNote && <section className="mt-4"><h4 className="mb-1 text-[12px] font-medium">来历</h4><p>{selected.originNote}</p></section>}
           </div>
+          {renderEditor?.(selected.id)}
         </section>
-        : spaceId === 'overview' ? <HomePicture key={`overview-${imageState}`} src={overviewImage} alt="住所鸟瞰图，家居设计样张" state={imageState} variant="overview" />
+        : spaceId === 'overview' ? <>{picture('overview', 'overview', overviewImage)}{renderEditor?.('overview')}</>
         : <div className="space-y-4">
-          {space && <HomePicture key={`${space.id}-${imageState}`} src={space.image} alt={`${space.name}场景，家居设计样张`} state={imageState} variant="scene" />}
+          {space && picture(space.id, 'scene', space.image, `${space.name}场景`)}
           {space?.description && <p className="break-words text-[12px] leading-5" style={{ color: 'var(--text-muted)' }}>{space.description}</p>}
+          {space && renderEditor?.(space.id)}
           {items.length ? <div className="grid grid-cols-2 items-start gap-4 lg:grid-cols-3" data-testid="home-object-grid">
             {items.map(item => <article key={item.id} aria-label={item.name} className="min-w-0 space-y-2" data-testid="home-object-card">
-              <HomePicture key={`${item.id}-${imageState}`} src={item.image} alt={`${item.name}，家居设计样张`} state={imageState} variant="object" />
+              {picture(item.id, 'object', item.image, item.name)}
               <ActionButton variant="plain" ref={node => { if (node) triggers.current.set(item.id, node); else triggers.current.delete(item.id) }}
                 className="!block min-h-10 w-full !px-0 text-left" aria-label={`查看物件：${item.name}`} title={item.name}
-                onClick={() => { if (scroll.current) positions.current.set(spaceId, scroll.current.scrollTop); setSelected(item) }}>
+                onClick={() => { if (scroll.current) positions.current.set(spaceId, scroll.current.scrollTop); setSelectedId(item.id) }}>
                 <span className="line-clamp-2 break-words text-[13px] font-medium">{item.name}</span>
               </ActionButton>
             </article>)}

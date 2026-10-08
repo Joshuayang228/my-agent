@@ -77,7 +77,7 @@ describe('共享内容布局候选', () => {
     expect(readingContentStyle()).toMatchObject({ maxWidth: CONTENT_LAYOUT.readingWidth, width: '100%', marginInline: 0 })
   })
   it.each([
-    ['playground/FootprintsExperienceCandidate', 'travel-detail'],
+    ['world/WorldTravelGallery', 'travel-detail'],
     ['world/WorldCultureGallery', 'culture-detail'],
     ['world/WorldHomeGallery', 'home-object-detail'],
   ])('检查 %s 的真实 JSX 详情调用并拒绝局部覆盖', (path, id) => {

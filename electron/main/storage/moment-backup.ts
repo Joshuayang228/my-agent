@@ -1,4 +1,5 @@
 import type { Database } from 'sql.js'
+import type { CompanionEventLink } from '../../../src/shared/types'
 import { MOMENT_USER_ACTOR_ID, normalizeMomentCommentText, type MomentUserInteraction } from '../../../src/shared/moment-user-interactions'
 
 interface PublishedEvent {
@@ -21,6 +22,7 @@ export interface MomentBackup {
   events: PublishedEvent[]
   moments: MomentSnapshot[]
   interactions: MomentUserInteraction[]
+  links: CompanionEventLink[]
 }
 const MAX_ROWS = 10_000
 const object = (v: unknown): v is Record<string, unknown> => Boolean(v) && typeof v === 'object' && !Array.isArray(v)
@@ -64,7 +66,36 @@ export function isValidMomentBackup(value: unknown): value is MomentBackup {
       if (!normalized.ok || normalized.text !== row.text) return false
     } else return false
   }
+  const links = Array.isArray(value.links) ? value.links : []
+  const linkKeys = new Set<string>()
+  for (const row of links as unknown[]) {
+    if (!object(row) || !text(row.id) || !text(row.eventId) || !text(row.roleId)
+      || events.get(row.eventId) !== row.roleId || !text(row.targetType, 40)
+      || !text(row.targetId, 200) || !text(row.relation, 80) || !jsonObject(row.metadata)
+      || !timestamp(row.createdAt)) return false
+    const key = `${row.eventId}\u0000${row.targetType}\u0000${row.targetId}\u0000${row.relation}`
+    if (linkKeys.has(key)) return false
+    linkKeys.add(key)
+  }
   return true
+}
+
+function ensureEventLinkTable(db: Database): void {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS companion_event_links (
+      id            TEXT PRIMARY KEY,
+      event_id      TEXT NOT NULL,
+      role_id       TEXT NOT NULL,
+      target_type   TEXT NOT NULL,
+      target_id     TEXT NOT NULL,
+      relation      TEXT NOT NULL,
+      metadata_json TEXT NOT NULL DEFAULT '{}',
+      created_at    INTEGER NOT NULL,
+      UNIQUE(event_id, target_type, target_id, relation)
+    )
+  `)
+  db.run('CREATE INDEX IF NOT EXISTS idx_companion_event_links_event ON companion_event_links(role_id, event_id)')
+  db.run('CREATE INDEX IF NOT EXISTS idx_companion_event_links_target ON companion_event_links(role_id, target_type, target_id)')
 }
 
 function rows(db: Database, sql: string, bindings: string[] = []): Record<string, unknown>[] {
@@ -81,7 +112,7 @@ function rows(db: Database, sql: string, bindings: string[] = []): Record<string
 }
 
 export function collectMomentBackup(db: Database): MomentBackup {
-  const tables = rows(db, "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('companion_events', 'companion_moments', 'companion_moment_user_interactions')")
+  const tables = rows(db, "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('companion_events', 'companion_moments', 'companion_moment_user_interactions', 'companion_event_links')")
   const names = new Set(tables.map(row => row.name))
   const moments = names.has('companion_moments') ? rows(db, 'SELECT * FROM companion_moments ORDER BY published_at, id').map(row => ({
     id: row.id as string, roleId: row.role_id as string, eventId: row.event_id as string,
@@ -96,7 +127,18 @@ export function collectMomentBackup(db: Database): MomentBackup {
     id: row.id as string, momentId: row.moment_id as string, roleId: row.role_id as string, kind: row.kind as MomentUserInteraction['kind'],
     actorId: row.actor_id as string, text: row.text as string | null, createdAt: row.created_at as number,
   })) : []
-  const result = { events, moments, interactions }
+  const eventIds = new Set(events.map((event) => event.id))
+  const links = names.has('companion_event_links') ? rows(db, 'SELECT * FROM companion_event_links ORDER BY created_at, id').map(row => ({
+    id: row.id as string,
+    eventId: row.event_id as string,
+    roleId: row.role_id as string,
+    targetType: row.target_type as string,
+    targetId: row.target_id as string,
+    relation: row.relation as string,
+    metadata: JSON.parse(String(row.metadata_json || '{}')) as Record<string, unknown>,
+    createdAt: row.created_at as number,
+  })).filter((link) => eventIds.has(link.eventId)) : []
+  const result = { events, moments, interactions, links }
   if (!isValidMomentBackup(result)) throw new Error('朋友圈历史关联不完整，无法导出')
   return result
 }
@@ -106,8 +148,18 @@ export function collectMomentBackup(db: Database): MomentBackup {
  * 意图：同步恢复 published 事件、原截面和用户互动，交给外层整份事务及落盘补偿。
  * 约束：不调用投影 / 奖励 / 调度器，不覆盖已有行，冲突归属整笔失败；undo 只含本次新增行。
  */
-export function importMomentBackup(db: Database, bundle: MomentBackup, undo: Array<() => void>): void {
+export function importMomentBackup(db: Database, bundle: MomentBackup, undo: Array<() => void>, imageRemap?: {
+  restored: ReadonlyMap<string, string>
+  normalized: ReadonlyMap<string, string>
+}): void {
   if (!isValidMomentBackup(bundle)) throw new Error('朋友圈历史格式无效')
+  ensureEventLinkTable(db)
+  const remapPayload = (payload: Record<string, unknown>) => {
+    const result = { ...payload }
+    if (typeof result.imageId === 'string') result.imageId = imageRemap?.restored.get(result.imageId) ?? result.imageId
+    if (Array.isArray(result.imageIds)) result.imageIds = [...new Set(result.imageIds.map(id => typeof id === 'string' ? imageRemap?.restored.get(id) ?? id : id))]
+    return result
+  }
   for (const event of bundle.events) {
     const existing = rows(db, 'SELECT role_id, status FROM companion_events WHERE id = ?', [event.id])[0]
     if (existing) {
@@ -115,8 +167,56 @@ export function importMomentBackup(db: Database, bundle: MomentBackup, undo: Arr
       continue
     }
     db.run('INSERT INTO companion_events (id, role_id, scheduled_at, status, type, payload_json, day_script_id) VALUES (?, ?, ?, ?, ?, ?, NULL)',
-      [event.id, event.roleId, event.scheduledAt, 'published', event.type, JSON.stringify(event.payload)])
+      [event.id, event.roleId, event.scheduledAt, 'published', event.type, JSON.stringify(remapPayload(event.payload))])
     undo.push(() => { db.run('DELETE FROM companion_events WHERE id = ?', [event.id]) })
+  }
+  const newImageRelations = new Map<string, Record<string, unknown>>()
+  const orderedLinks = [...(bundle.links ?? [])].sort((a, b) => {
+    const position = (link: CompanionEventLink) => link.targetType === 'image' && typeof link.metadata.position === 'number' ? link.metadata.position : 9
+    return position(a) - position(b)
+  })
+  for (const sourceLink of orderedLinks) {
+    const existingById = rows(db, 'SELECT event_id, role_id, target_type, target_id, relation, metadata_json FROM companion_event_links WHERE id = ?', [sourceLink.id])[0]
+    // 恢复可改变图片摘要；新增关联同步新引用，重复导入识别已恢复摘要，
+    // 但既有原始关联不覆盖；只有本次新增、重编码后相同的图片关系可合并。
+    let targetId = sourceLink.targetId
+    if (sourceLink.targetType === 'image' && existingById?.target_id !== sourceLink.targetId) {
+      const normalizedId = imageRemap?.normalized.get(sourceLink.targetId)
+      targetId = existingById ? normalizedId ?? targetId : imageRemap?.restored.get(sourceLink.targetId) ?? targetId
+      if (!existingById && targetId === sourceLink.targetId && normalizedId && normalizedId !== targetId) {
+        const restoredRelation = rows(db, 'SELECT 1 FROM companion_event_links WHERE event_id = ? AND role_id = ? AND target_type = ? AND target_id = ? AND relation = ?',
+          [sourceLink.eventId, sourceLink.roleId, 'image', normalizedId, sourceLink.relation])[0]
+        if (restoredRelation) targetId = normalizedId
+      }
+    }
+    const link = { ...sourceLink, targetId }
+    const relationKey = JSON.stringify([link.eventId, link.roleId, link.targetType, link.targetId, link.relation])
+    if (!existingById && link.targetType === 'image' && newImageRelations.has(relationKey)) {
+      const prior = { ...newImageRelations.get(relationKey) }
+      const incoming = { ...link.metadata }
+      delete prior.position
+      delete incoming.position
+      if (JSON.stringify(prior) !== JSON.stringify(incoming)) throw new Error('图片关联说明冲突')
+      continue
+    }
+    const existingByRelation = rows(db, 'SELECT id, event_id, role_id, target_type, target_id, relation, metadata_json FROM companion_event_links WHERE event_id = ? AND target_type = ? AND target_id = ? AND relation = ?', [link.eventId, link.targetType, link.targetId, link.relation])[0]
+    if (existingById || existingByRelation) {
+      const existing = existingById ?? existingByRelation
+      if (existing.event_id !== link.eventId || existing.role_id !== link.roleId
+        || existing.target_type !== link.targetType || existing.target_id !== link.targetId
+        || existing.relation !== link.relation
+        || JSON.stringify(JSON.parse(String(existing.metadata_json || '{}'))) !== JSON.stringify(link.metadata)) {
+        throw new Error('事件关联归属冲突')
+      }
+      if (link.targetType === 'image') newImageRelations.set(relationKey, link.metadata)
+      continue
+    }
+    db.run(`INSERT INTO companion_event_links
+      (id, event_id, role_id, target_type, target_id, relation, metadata_json, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [link.id, link.eventId, link.roleId, link.targetType, link.targetId, link.relation, JSON.stringify(link.metadata), link.createdAt])
+    if (link.targetType === 'image') newImageRelations.set(relationKey, link.metadata)
+    undo.push(() => { db.run('DELETE FROM companion_event_links WHERE id = ?', [link.id]) })
   }
   for (const moment of bundle.moments) {
     const matches = rows(db, 'SELECT id, role_id, event_id FROM companion_moments WHERE id = ? OR event_id = ?', [moment.id, moment.eventId])
@@ -127,7 +227,7 @@ export function importMomentBackup(db: Database, bundle: MomentBackup, undo: Arr
       continue
     }
     db.run('INSERT INTO companion_moments (id, role_id, event_id, published_at, text, meta_json) VALUES (?, ?, ?, ?, ?, ?)',
-      [moment.id, moment.roleId, moment.eventId, moment.publishedAt, moment.text, JSON.stringify(moment.meta)])
+      [moment.id, moment.roleId, moment.eventId, moment.publishedAt, moment.text, JSON.stringify(remapPayload(moment.meta))])
     undo.push(() => { db.run('DELETE FROM companion_moments WHERE id = ?', [moment.id]) })
   }
   for (const item of bundle.interactions) {

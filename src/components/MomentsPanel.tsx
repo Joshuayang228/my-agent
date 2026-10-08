@@ -4,10 +4,12 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
-import { Heart, MapPin, MessageCircle, MoreHorizontal, Newspaper, RefreshCw, X } from 'lucide-react'
+import { Heart, MapPin, MessageCircle, MoreHorizontal, Newspaper, RefreshCw, X, ZoomIn } from 'lucide-react'
 import { ActionButton } from './foundation/ActionButton'
+import { ImageViewer } from './foundation/ImageViewer'
 import { IconButton } from './foundation/IconButton'
 import { TextField } from './foundation/TextField'
+import { MomentImageGrid } from './world/MomentImageGrid'
 import {
   emptyMomentSocial,
   mergeMomentComments,
@@ -25,6 +27,7 @@ export interface MomentItem {
   meta: Record<string, unknown>
   /** Playground / 已解析产品数据可附带的展示图片；生产事件仍以 meta 为唯一生活事实。 */
   media?: MomentMediaItem[]
+  imageIds?: string[]
 }
 
 export interface MomentMediaItem {
@@ -49,6 +52,13 @@ interface MomentsPanelProps {
   hideHeader?: boolean
   /** Playground 仍用本地夹具互动；正式页只要没有 previewData 就走真实赞 / 评论。 */
   showSocialActions?: boolean
+  compactClosedComposer?: boolean
+  /** 仅供 Debug 证据面按需打开生活切片；朋友圈产品态不展示该入口。 */
+  onMomentSelect?: (moment: MomentItem) => void
+  /** 正式与隔离样张共享图片预览，真实图片仍由生产数据提供。 */
+  enableImagePreview?: boolean
+  /** 已确认的精简装饰；正式人物世界与隔离样张显式采用。 */
+  previewChrome?: 'minimal'
 }
 
 const TYPE_DOT: Record<string, string> = {
@@ -87,7 +97,8 @@ function typeColor(type: unknown): string {
 }
 
 
-export function MomentsPanel({ onClose, previewData, appearance = 'default', hideHeader = false, showSocialActions = false }: MomentsPanelProps) {
+export function MomentsPanel({ onClose, previewData, appearance = 'default', hideHeader = false, showSocialActions = false, compactClosedComposer = false, onMomentSelect, enableImagePreview = false, previewChrome }: MomentsPanelProps) {
+  const minimalPreviewChrome = previewChrome === 'minimal'
   const isSocialFeed = appearance === 'social-feed' || appearance === 'alice-feed'
   const isAliceFeed = appearance === 'alice-feed'
   const [roleId, setRoleId] = useState(previewData?.roleId ?? '')
@@ -100,12 +111,22 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
   const [commentErrors, setCommentErrors] = useState<Record<string, string>>({})
   const [pendingLikeIds, setPendingLikeIds] = useState<Set<string>>(new Set())
   const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(new Set())
+  const [previewImage, setPreviewImage] = useState<{ items: MomentMediaItem[]; index: number } | null>(null)
   const pendingLikeLock = useRef(new Set<string>())
   const pendingCommentLock = useRef(new Set<string>())
   const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState('')
+  const readEpoch = useRef(0)
+  const roleEpoch = useRef(0)
   const socialEnabled = previewData ? showSocialActions : true
 
+  const openImagePreview = useCallback((items: MomentMediaItem[], index: number) => {
+    if (!enableImagePreview) return
+    setPreviewImage({ items, index })
+  }, [enableImagePreview])
+
   const load = useCallback(async () => {
+    const epoch = ++readEpoch.current
     if (previewData) {
       setRoleId(previewData.roleId)
       setRoleName(previewData.roleName)
@@ -115,31 +136,63 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
       setLoading(false)
       return
     }
-    if (!window.electronAPI?.companion) return
+    if (!window.electronAPI?.companion) {
+      setLoadError('朋友圈需要桌面连接，请重新打开应用后重试。')
+      setLoading(false)
+      return
+    }
     setLoading(true)
+    setLoadError('')
     try {
       const [active, moments, status] = await Promise.all([
         window.electronAPI.companion.getActive(),
         window.electronAPI.companion.getMoments({ limit: 80 }),
         window.electronAPI.companion.catchupStatus(),
       ])
+      const current = await window.electronAPI.companion.getActive()
+      if (epoch !== readEpoch.current) return
+      if (active.id !== moments.roleId || current.id !== moments.roleId
+        || moments.items.some((item) => item.roleId !== moments.roleId)) {
+        setItems([])
+        setSocialByMomentId({})
+        setPreviewImage(null)
+        setLoadError('人物已切换，请重新读取朋友圈。')
+        return
+      }
       setRoleId(moments.roleId)
       setRoleName(active.name)
       setItems(moments.items)
       setSummary(status.catchupSummary || '')
       setSocialByMomentId(moments.socialByMomentId ?? {})
+    } catch {
+      if (epoch === readEpoch.current) setLoadError('朋友圈读取失败，请重试。')
     } finally {
-      setLoading(false)
+      if (epoch === readEpoch.current) setLoading(false)
     }
   }, [previewData])
 
   useEffect(() => {
     void load()
+    return () => { readEpoch.current++; roleEpoch.current++ }
   }, [load])
 
   useEffect(() => {
     if (previewData || !window.electronAPI?.companion.onRoleChanged) return
     return window.electronAPI.companion.onRoleChanged(() => {
+      roleEpoch.current++
+      setItems([])
+      setRoleId('')
+      setRoleName('')
+      setSummary('')
+      setSocialByMomentId({})
+      setCommentFocusId(null)
+      setCommentDrafts({})
+      setCommentErrors({})
+      setPreviewImage(null)
+      pendingLikeLock.current.clear()
+      pendingCommentLock.current.clear()
+      setPendingLikeIds(new Set())
+      setPendingCommentIds(new Set())
       void load()
     })
   }, [load, previewData])
@@ -168,22 +221,28 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
     }
     if (!window.electronAPI?.companion.toggleMomentLike) return
     pendingLikeLock.current.add(momentId)
+    const epoch = roleEpoch.current
     setPendingLikeIds((current) => new Set(current).add(momentId))
     try {
       const result = await window.electronAPI.companion.toggleMomentLike(momentId)
+      if (epoch !== roleEpoch.current) return
       if (!result.ok) {
         setCommentErrors((current) => ({ ...current, [momentId]: result.error }))
         return
       }
       setCommentErrors((current) => ({ ...current, [momentId]: '' }))
       patchSocial(momentId, result.social)
+    } catch {
+      if (epoch === roleEpoch.current) setCommentErrors((current) => ({ ...current, [momentId]: '点赞未完成，请重试。' }))
     } finally {
-      pendingLikeLock.current.delete(momentId)
-      setPendingLikeIds((current) => {
-        const next = new Set(current)
-        next.delete(momentId)
-        return next
-      })
+      if (epoch === roleEpoch.current) {
+        pendingLikeLock.current.delete(momentId)
+        setPendingLikeIds((current) => {
+          const next = new Set(current)
+          next.delete(momentId)
+          return next
+        })
+      }
     }
   }, [patchSocial, previewData, socialEnabled])
 
@@ -208,9 +267,11 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
     }
     if (!window.electronAPI?.companion.addMomentComment) return
     pendingCommentLock.current.add(momentId)
+    const epoch = roleEpoch.current
     setPendingCommentIds((current) => new Set(current).add(momentId))
     try {
       const result = await window.electronAPI.companion.addMomentComment(momentId, draft)
+      if (epoch !== roleEpoch.current) return
       if (!result.ok) {
         setCommentErrors((current) => ({ ...current, [momentId]: result.error }))
         return
@@ -218,13 +279,17 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
       patchSocial(momentId, result.social)
       setCommentDrafts((current) => ({ ...current, [momentId]: '' }))
       setCommentErrors((current) => ({ ...current, [momentId]: '' }))
+    } catch {
+      if (epoch === roleEpoch.current) setCommentErrors((current) => ({ ...current, [momentId]: '评论未发送，请重试。' }))
     } finally {
-      pendingCommentLock.current.delete(momentId)
-      setPendingCommentIds((current) => {
-        const next = new Set(current)
-        next.delete(momentId)
-        return next
-      })
+      if (epoch === roleEpoch.current) {
+        pendingCommentLock.current.delete(momentId)
+        setPendingCommentIds((current) => {
+          const next = new Set(current)
+          next.delete(momentId)
+          return next
+        })
+      }
     }
   }, [commentDrafts, patchSocial, previewData, socialEnabled])
 
@@ -267,7 +332,11 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
           </div>
         ) : null}
 
-        {items.length === 0 && !loading ? (
+        {loadError ? <div role="alert" className="mb-4 flex flex-wrap items-center gap-2 text-sm" style={{ color: 'var(--danger)' }}>
+          <span>{loadError}</span>
+          <ActionButton onClick={() => void load()} disabled={loading}>重新读取朋友圈</ActionButton>
+        </div> : null}
+        {items.length === 0 && !loading && !loadError ? (
           <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>还没有新的动态。</p>
         ) : (
           <ul className={isSocialFeed ? 'space-y-[var(--layout-section,1.25rem)]' : 'space-y-3'}>
@@ -275,7 +344,6 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
               const type = typeof m.meta?.type === 'string' ? m.meta.type : ''
               const location = typeof m.meta?.location === 'string' ? m.meta.location : ''
               const interactions = parseCastInteractions(m.meta || {})
-              const coframes = interactions.filter((i) => i.kind === 'coframe')
               const social = socialByMomentId[m.id] ?? emptyMomentSocial()
               const comments = mergeMomentComments(interactions, social.comments)
               const commentOpen = commentFocusId === m.id
@@ -301,21 +369,34 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
                           {isAliceFeed ? formatRelativeWhen(m.publishedAt) : formatWhen(m.publishedAt)}{!isAliceFeed && location ? ` · ${location}` : ''}
                         </div>
                         <p className="mt-2 text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>{m.text}</p>
-                        {m.media?.length ? (
+                        {!previewData && m.imageIds?.length ? <MomentImageGrid momentId={m.id} imageIds={m.imageIds} enabled={enableImagePreview} /> : previewData && m.media?.length ? (
                           <div
                             className={`moments-alice-media mt-2.5 grid gap-1.5 ${m.media.length === 1 ? 'grid-cols-1' : m.media.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}
                             data-testid="moment-media"
                           >
                             {m.media.slice(0, 9).map((media, index) => (
-                              <img
+                              <button
                                 key={`${media.src}-${index}`}
-                                src={media.src}
-                                alt={media.alt}
-                                loading="lazy"
-                                decoding="async"
-                                className="moments-alice-media-image block w-full object-cover"
-                                data-testid="moment-media-image"
-                              />
+                                type="button"
+                                className="group relative block w-full min-w-0 appearance-none border-0 bg-transparent p-0 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent-fg)]"
+                                aria-label={enableImagePreview ? `预览图片：${media.alt}` : media.alt}
+                                data-testid="moment-media-trigger"
+                                onClick={() => openImagePreview(m.media!.slice(0, 9), index)}
+                              >
+                                <img
+                                  src={media.src}
+                                  alt={media.alt}
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="moments-alice-media-image block w-full object-cover"
+                                  data-testid="moment-media-image"
+                                />
+                                {enableImagePreview ? (
+                                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 text-white opacity-0 transition group-hover:bg-black/15 group-hover:opacity-100 group-focus-visible:opacity-100">
+                                    {!minimalPreviewChrome && <ZoomIn size={18} strokeWidth={1.8} aria-hidden="true" />}
+                                  </span>
+                                ) : null}
+                              </button>
                             ))}
                           </div>
                         ) : null}
@@ -325,7 +406,19 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
                             <span>{location}</span>
                           </div>
                         ) : null}
-                        {coframes.length ? <div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>与{coframes.map((c) => c.castName).join('、')}同框</div> : null}
+                        {onMomentSelect ? (
+                          <div className="mt-3">
+                            <ActionButton
+                              variant="plain"
+                              data-testid="moment-life-slice-button"
+                              onClick={() => onMomentSelect(m)}
+                              className="gap-1 px-0 text-[11px]"
+                            >
+                              查看生活切片
+                              <span aria-hidden="true">›</span>
+                            </ActionButton>
+                          </div>
+                        ) : null}
                         {comments.length ? (
                           <ul className="mt-2 space-y-1 rounded-md px-2.5 py-2 text-[11px]" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
                             {comments.map((c) => <li key={c.key} data-testid="moment-comment" data-comment-source={c.source}><span style={{ color: 'var(--accent-fg)' }}>{c.actorName}</span>：{c.text || '赞'}</li>)}
@@ -357,7 +450,7 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
                                 <span aria-hidden="true">{comments.length || '评论'}</span>
                               </ActionButton>
                             </div>
-                            <div className="mt-2 grid h-8 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" data-testid="moment-comment-composer">
+                            {(!compactClosedComposer || commentOpen) && <div className="mt-2 grid h-8 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" data-testid="moment-comment-composer">
                               <TextField
                                 value={commentDrafts[m.id] ?? ''}
                                 onChange={(event: ChangeEvent<HTMLInputElement>) => setCommentDrafts((current) => ({ ...current, [m.id]: event.target.value }))}
@@ -380,8 +473,9 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
                               >
                                 发送
                               </ActionButton>
-                            </div>
-                            <p className="min-h-4 text-[10px]" data-testid="moment-comment-error" style={{ color: 'var(--danger)' }}>{commentErrors[m.id] || '\u00a0'}</p>
+                            </div>}
+
+                            {(!compactClosedComposer || commentOpen) && <p className="min-h-4 text-[10px]" data-testid="moment-comment-error" style={{ color: 'var(--danger)' }}>{commentErrors[m.id] || '\u00a0'}</p>}
                           </div>
                         )}
                       </div>
@@ -396,7 +490,6 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
                     <span>{formatWhen(m.publishedAt)}</span>
                     {type ? <span>· {type}</span> : null}
                     {location ? <span>· {location}</span> : null}
-                    {coframes.length ? <span>· 与{coframes.map((c) => c.castName).join('、')}同框</span> : null}
                   </div>
                   <div className="text-[13px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>{m.text}</div>
                   {comments.length ? (
@@ -409,8 +502,14 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
             })}
           </ul>
         )}
-        {isSocialFeed && <p className="pt-5 text-center text-[10px]" style={{ color: 'var(--text-muted)' }}>最近的生活动态</p>}
+        {isSocialFeed && !minimalPreviewChrome && <p className="pt-5 text-center text-[10px]" style={{ color: 'var(--text-muted)' }}>最近的生活动态</p>}
       </div>
+      <ImageViewer
+        items={previewImage?.items ?? []}
+        initialIndex={previewImage?.index ?? 0}
+        open={enableImagePreview && previewImage !== null}
+        onClose={() => setPreviewImage(null)}
+      />
     </div>
   )
 }

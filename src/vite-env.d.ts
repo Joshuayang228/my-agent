@@ -2,6 +2,7 @@
 
 import type {
   CompanionAssetCreateInput,
+  CompanionLifeSlice,
   AgentAssetUsageQuery,
   AgentAssetUsageQueryResult,
   ChatMessage,
@@ -173,6 +174,7 @@ declare global {
           toVersion: number,
         ) => Promise<{ ok: true; version: number } | { ok: false; error: string }>
         getMoments: (opts?: { limit?: number; offset?: number }) => Promise<MomentListResult>
+        getLifeSlice: (eventId: string) => Promise<CompanionLifeSlice | null>
         toggleMomentLike: (momentId: string) => Promise<MomentSocialMutationResult>
         addMomentComment: (momentId: string, text: string) => Promise<MomentSocialMutationResult>
         catchupStatus: () => Promise<{
@@ -211,6 +213,7 @@ declare global {
             }
           | { ok: false; error: string; code?: string }
         >
+        changeWardrobe: (input: import('./shared/types').CompanionWardrobeChangeInput) => Promise<import('./shared/types').CompanionWardrobeChangeResult>
         updateAsset: (
           assetId: string,
           patch: { name?: string; payload?: Record<string, unknown> },
@@ -232,6 +235,10 @@ declare global {
         deleteAsset: (
           assetId: string,
         ) => Promise<{ ok: true } | { ok: false; error: string; code?: string }>
+        readMomentImage: (momentId: string, imageId: string) => Promise<GeneratedImageReadResult>
+        readAssetImage: (assetId: string, imageId: string) => Promise<GeneratedImageReadResult>
+        revealAssetImage: (assetId: string, imageId: string) => Promise<GeneratedImageRevealResult>
+        getContacts: () => Promise<import('./shared/types').CompanionContactsData>
         getRoster: () => Promise<{
           roleId: string
           lines: Array<{

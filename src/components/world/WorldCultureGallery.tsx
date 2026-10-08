@@ -6,7 +6,9 @@ import { ErrorState } from '../foundation/ErrorState'
 import { ImagePreviewImage } from '../foundation/ImagePreviewImage'
 import { TabStrip } from '../foundation/TabStrip'
 import { Badge } from '../foundation/Badge'
-import type { LivingAsset } from './WorldLivingContent'
+import type { LivingAsset, LivingAssetEditor, LivingAssetImageReader, LivingAssetImageRevealer } from './WorldLivingContent'
+import { WorldRecordImage } from './WorldRecordImage'
+import { worldRecordImageReference } from '../../shared/world-records'
 import { LAYOUT_CLASSES, contentGutterStyle, readingContentStyle } from '../../shared/content-layout'
 
 const categories = [
@@ -41,16 +43,19 @@ export interface CultureReadingNote {
 const noteDate = (note: CultureReadingNote) => note.occurredAt !== undefined && Number.isFinite(note.occurredAt)
   ? new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric' }).format(note.occurredAt) : ''
 
-function Artwork({ asset, maximumHeight }: { asset: LivingAsset; maximumHeight?: number }) {
+type ArtworkSource = { showPreviewImages?: boolean; readImage?: LivingAssetImageReader; revealImage?: LivingAssetImageRevealer }
+
+function Artwork({ asset, maximumHeight, showPreviewImages = false, readImage, revealImage }: { asset: LivingAsset; maximumHeight?: number } & ArtworkSource) {
   const type = typeFor(asset)
   const photography = type === 'photography'
   const ratio = photography && typeof asset.payload.imageWidth === 'number' && typeof asset.payload.imageHeight === 'number'
     && asset.payload.imageWidth > 0 && asset.payload.imageHeight > 0
     ? asset.payload.imageWidth / asset.payload.imageHeight : type === 'music' ? 1 : photography ? 4 / 3 : 2 / 3
-  const src = text(asset, 'playgroundImageSrc')
+  const src = showPreviewImages ? text(asset, 'playgroundImageSrc') : ''
+  const image = !showPreviewImages ? worldRecordImageReference(asset.payload) : null
   const Icon = categories.find((item) => item.id === type)?.icon ?? BookOpen
   return <div className="w-full overflow-hidden rounded-md" data-testid="culture-artwork" style={{ aspectRatio: ratio, maxWidth: maximumHeight ? maximumHeight * ratio : undefined, background: 'var(--bg-secondary)' }}>
-    {src && !['pending', 'failed'].includes(text(asset, 'imageState'))
+    {image && readImage ? <WorldRecordImage assetId={asset.id} image={image} alt={asset.name} readImage={readImage} revealImage={revealImage} /> : src && !['pending', 'failed'].includes(text(asset, 'imageState'))
       ? <ImagePreviewImage src={src} alt={`${asset.name}${photography ? '，虚构摄影作品' : '，示意配图'}`} className="block h-full w-full object-contain" buttonClassName="h-full w-full" />
       : <div role="status" className="flex h-full flex-col items-center justify-center gap-3 px-3 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>
         <Icon size={20} /><span>{text(asset, 'imageState') === 'pending' ? '配图生成中' : text(asset, 'imageState') === 'failed' ? '配图生成失败，记录已保留' : '暂无配图'}</span>
@@ -59,11 +64,11 @@ function Artwork({ asset, maximumHeight }: { asset: LivingAsset; maximumHeight?:
 }
 
 /**
- * 背景：四类文化生活需要先验收独立浏览，旧生产页仍保留混排与维护能力。
- * 设计意图：通过显式候选分支复用基础标签、动作与图片预览，详情原位替换列表而不自造模态框。
- * 关键约束：只读传入夹具，不读取 IPC；详情关闭恢复分类滚动及触发点，正式默认分支不能调用本组件。
+ * 背景：用户已确认四类文化体验回流，正式作品与隔离样张应保持同一信息结构。
+ * 设计意图：外层负责真实读写，本组件复用分类、详情与预览；不复制一套生产皮肤。
+ * 关键约束：样张图片必须显式启用；详情关闭恢复焦点 / 位置，编辑动作仍由正式加载层提供。
  */
-export function WorldCultureGallery({ assets, readingNotes = [], readError = '', onRetry }: { assets: readonly LivingAsset[]; readingNotes?: readonly CultureReadingNote[]; readError?: string; onRetry?: () => void }) {
+export function WorldCultureGallery({ assets, readingNotes = [], readError = '', onRetry, renderEditor, ...artworkSource }: { assets: readonly LivingAsset[]; readingNotes?: readonly CultureReadingNote[]; readError?: string; onRetry?: () => void; renderEditor?: LivingAssetEditor } & ArtworkSource) {
   const [category, setCategory] = useState('reading')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const scroll = useRef<HTMLDivElement>(null)
@@ -91,7 +96,7 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
   }
   const isEngaged = (asset: LivingAsset) => ['reading', 'watching', 'listening', 'revisiting'].includes(text(asset, 'readingStatus') || text(asset, 'watchStatus') || text(asset, 'listeningStatus'))
   const notesFor = (asset: LivingAsset) => readingNotes.filter((note) => note.assetId === asset.id && note.text.trim()).slice().sort((a, b) => ((b.occurredAt ?? b.createdAt) ?? 0) - ((a.occurredAt ?? a.createdAt) ?? 0) || a.id.localeCompare(b.id))
-  return <div className="flex h-full min-h-0 flex-col" style={contentGutterStyle()} data-testid="culture-gallery">
+  return <div className="flex min-h-0 flex-1 flex-col" style={contentGutterStyle()} data-testid="culture-gallery" data-world-content="culture">
     <div className="mb-4 shrink-0"><TabStrip label="文化分类" activeId={category} onSelect={(id) => {
       if (!selected && scroll.current) positions.current[category] = scroll.current.scrollTop
       returnId.current = null; setSelectedId(null); setCategory(id)
@@ -101,7 +106,7 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
         : selected ? <section data-testid="culture-detail" className={LAYOUT_CLASSES.section} style={readingContentStyle()} onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); close() } }}>
           <ActionButton variant="plain" onClick={close}><ArrowLeft size={14} className="mr-2" />返回列表</ActionButton>
           {category === 'reading' ? <div className="flex items-start gap-4" data-testid="reading-book-header">
-            <div className="w-24 shrink-0"><Artwork asset={selected} /></div>
+            <div className="w-24 shrink-0"><Artwork asset={selected} {...artworkSource} /></div>
             <div className="min-w-0 flex-1 space-y-2">
               <h3 ref={heading} tabIndex={-1} className="break-words text-[16px] font-semibold" style={{ color: 'var(--text-primary)' }}>{selected.name}</h3>
               {(text(selected, 'author') || status(selected)) && <div className="flex flex-wrap items-center gap-2" data-testid="reading-author-status">
@@ -109,15 +114,15 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
                 {status(selected) && <Badge tone={text(selected, 'readingStatus') === 'reading' ? 'accent' : 'neutral'}>{status(selected)}</Badge>}
               </div>}
               {typeof selected.payload.currentPage === 'number' && <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>读到第 {selected.payload.currentPage} 页{typeof selected.payload.totalPages === 'number' ? ` / 共 ${selected.payload.totalPages} 页` : ''}</p>}
-              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>示意配图 · 非官方封面</p>
+              {artworkSource.showPreviewImages && <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>示意配图 · 非官方封面</p>}
             </div>
           </div> : category === 'photography' ? <>
-          <div className="max-w-xl"><Artwork asset={selected} maximumHeight={320} /></div>
+          <div className="max-w-xl"><Artwork asset={selected} maximumHeight={320} {...artworkSource} /></div>
           <h3 ref={heading} tabIndex={-1} className="break-words text-[16px] font-semibold" style={{ color: 'var(--text-primary)' }}>{selected.name}</h3>
           {photoMetadata(selected) && <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{photoMetadata(selected)}</p>}
-          <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>虚构摄影作品 · AI 生成</p>
+          {artworkSource.showPreviewImages && <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>虚构摄影作品 · AI 生成</p>}
           </> : <div className="flex items-start gap-4" data-testid="culture-work-header">
-            <div className="w-24 shrink-0"><Artwork asset={selected} /></div>
+            <div className="w-24 shrink-0"><Artwork asset={selected} {...artworkSource} /></div>
             <div className="min-w-0 flex-1 space-y-2">
               <h3 ref={heading} tabIndex={-1} className="break-words text-[16px] font-semibold" style={{ color: 'var(--text-primary)' }}>{selected.name}</h3>
               {creator(selected) && <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{creator(selected)}</p>}
@@ -127,9 +132,10 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
               </div>
               {category === 'film' && Number.isSafeInteger(selected.payload.episode) && <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{typeof selected.payload.season === 'number' ? `第 ${selected.payload.season} 季 · ` : ''}看到第 {String(selected.payload.episode)} 集{typeof selected.payload.totalEpisodes === 'number' ? ` / 共 ${selected.payload.totalEpisodes} 集` : ''}</p>}
               {category === 'music' && text(selected, 'albumTitle') && <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>所属专辑：{text(selected, 'albumTitle')}</p>}
-              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>示意配图 · 非官方{category === 'film' ? '海报' : '封面'}</p>
+              {artworkSource.showPreviewImages && <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>示意配图 · 非官方{category === 'film' ? '海报' : '封面'}</p>}
             </div>
           </div>}
+          {renderEditor?.(selected)}
           <div className="max-h-[45vh] overflow-y-auto whitespace-pre-wrap break-words pr-2 text-[13px] leading-6 scrollbar-thin" data-testid="culture-detail-text" tabIndex={0} style={{ color: 'var(--text-secondary)' }}>
             {fullReflection(selected) && <section className="mb-5"><h4 className="mb-2 font-medium">{category === 'reading' ? '整体感受' : category === 'film' ? '观后感' : category === 'music' ? '听感' : '创作说明'}</h4><p>{fullReflection(selected)}</p></section>}
             {category === 'reading' ? <section data-testid="reading-notes"><h4 className="mb-3 font-medium">读书笔记</h4>
@@ -144,7 +150,7 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
         </section>
         : items.length ? <div className="grid min-w-0 grid-cols-2 items-start gap-4 lg:grid-cols-3" data-testid="culture-grid">
           {items.map((asset) => <article key={asset.id} aria-label={asset.name} className="min-w-0 space-y-2">
-            <Artwork asset={asset} />
+            <Artwork asset={asset} {...artworkSource} />
             <ActionButton variant="plain" ref={(node) => { if (node) triggers.current.set(asset.id, node); else triggers.current.delete(asset.id) }}
               className="!block min-h-10 w-full !px-0 text-left" aria-label={`查看作品：${asset.name}`} title={asset.name}
               onClick={() => { if (scroll.current) positions.current[category] = scroll.current.scrollTop; setSelectedId(asset.id) }}>

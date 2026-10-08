@@ -4,9 +4,14 @@ import { GeneratedImageResult, type GeneratedImageReader, type GeneratedImageRev
 import { ImagePreviewImage } from '../foundation/ImagePreviewImage'
 import type { GeneratedImageReference } from '../../shared/types'
 import { WorldCultureGallery, type CultureReadingNote } from './WorldCultureGallery'
+import { readingNotesForAsset, worldRecordImageReference, worldRecordConsistencyError, tripStopSchema } from '../../shared/world-records'
+import { WorldHomeGallery } from './WorldHomeGallery'
+import { WorldRecordImage } from './WorldRecordImage'
+import { WorldTravelGallery, type TravelRecordView } from './WorldTravelGallery'
 
 export interface LivingAsset {
   id: string
+  roleId?: string
   kind: string
   name: string
   payload: Record<string, unknown>
@@ -64,7 +69,7 @@ const cultureTypes = {
  * 关键约束：仅呈现传入的真实字段；不制造播放、观影次数或笔记数量，不按同名去重，不读取 IPC。
  */
 export function WorldCultureContent({ assets, renderEditor, readImage, revealImage, showPreviewImages = false, presentation = 'default', previewReadError, onPreviewRetry, previewReadingNotes }: { assets: readonly LivingAsset[]; renderEditor?: LivingAssetEditor; readImage?: LivingAssetImageReader; revealImage?: LivingAssetImageRevealer; showPreviewImages?: boolean; presentation?: 'default' | 'culture-gallery'; previewReadError?: string; onPreviewRetry?: () => void; previewReadingNotes?: readonly CultureReadingNote[] }) {
-  if (showPreviewImages && presentation === 'culture-gallery') return <WorldCultureGallery assets={assets} readingNotes={previewReadingNotes} readError={previewReadError} onRetry={onPreviewRetry} />
+  if (presentation === 'culture-gallery') return <WorldCultureGallery assets={assets} readingNotes={showPreviewImages ? previewReadingNotes : assets.flatMap(readingNotesForAsset)} readError={previewReadError} onRetry={onPreviewRetry} showPreviewImages={showPreviewImages} readImage={readImage} revealImage={revealImage} renderEditor={renderEditor} />
   const items = assets.filter((item) => item.kind === 'culture' || item.kind === 'bookshelf')
   const typeFor = (item: LivingAsset) => item.kind === 'bookshelf' ? 'reading' : textField(item.payload, 'type')
   const notes = items.filter((item) => typeFor(item) === 'reading' && textField(item.payload, 'note').trim())
@@ -100,7 +105,8 @@ export function WorldCultureContent({ assets, renderEditor, readImage, revealIma
  * 设计意图：候选与正式共用纯展示组件，仅由外层提供隔离样张或真实资产。
  * 关键约束：不读取 IPC、不播种数据，不把在场活动冒充住所，也不把未设定空间填成样张。
  */
-export function WorldHomeContent({ assets, presence, renderEditor, readImage, revealImage, showPreviewImages = false }: { assets: readonly LivingAsset[]; presence: string; renderEditor?: LivingAssetEditor; readImage?: LivingAssetImageReader; revealImage?: LivingAssetImageRevealer; showPreviewImages?: boolean }) {
+export function WorldHomeContent({ assets, presence, renderEditor, readImage, revealImage, showPreviewImages = false, presentation = 'default', roleId }: { assets: readonly LivingAsset[]; presence: string; renderEditor?: LivingAssetEditor; readImage?: LivingAssetImageReader; revealImage?: LivingAssetImageRevealer; showPreviewImages?: boolean; presentation?: 'default' | 'home-gallery'; roleId?: string }) {
+  if (presentation === 'home-gallery') return <ProductionHomeGallery assets={assets} roleId={roleId} renderEditor={renderEditor} readImage={readImage} revealImage={revealImage} />
   const homes = assets.filter((item) => item.kind === 'home')
   const objects = assets.filter((item) => !['home', 'footprint', 'wardrobe', 'bookshelf', 'culture'].includes(item.kind))
   return <div className="min-w-0 space-y-3" data-world-content="home">
@@ -128,6 +134,40 @@ export function WorldHomeContent({ assets, presence, renderEditor, readImage, re
   </div>
 }
 
+export function homeRecordsForRole(assets: readonly LivingAsset[], roleId: string | undefined) {
+  const owned = roleId ? assets.filter(item => item.roleId === roleId) : []
+  const residence = owned.find(item => item.kind === 'home' && item.payload.recordType !== 'space')
+  const rooms = owned.filter(item => item.kind === 'home' && item.payload.recordType === 'space'
+    && (!item.payload.residenceId || item.payload.residenceId === residence?.id))
+  const roomIds = new Set(rooms.map(item => item.id))
+  const spaces = rooms.map(item => ({ id: item.id, name: item.name, description: textField(item.payload, 'description') }))
+  const objects = owned.filter(item => item.kind === 'furniture').map(item => ({
+    id: item.id, name: item.name,
+    spaceId: typeof item.payload.spaceId === 'string' && roomIds.has(item.payload.spaceId) ? item.payload.spaceId : null,
+    description: textField(item.payload, 'description'), originNote: textField(item.payload, 'originNote'),
+    displayInHome: item.payload.displayInHome === true, displayReason: textField(item.payload, 'displayReason'),
+    displayEvidence: Array.isArray(item.payload.displayEvidence) ? item.payload.displayEvidence.filter((value): value is string => typeof value === 'string') : [],
+  }))
+  return { owned, residence, spaces, objects }
+}
+
+function ProductionHomeGallery({ assets, roleId, renderEditor, readImage, revealImage }: {
+  assets: readonly LivingAsset[]; roleId?: string; renderEditor?: LivingAssetEditor;
+  readImage?: LivingAssetImageReader; revealImage?: LivingAssetImageRevealer
+}) {
+  const view = homeRecordsForRole(assets, roleId)
+  const assetFor = (id: string) => id === 'overview' ? view.residence : view.owned.find(item => item.id === id)
+  return <WorldHomeGallery spaces={view.spaces} objects={view.objects} hasOverview={!!view.residence}
+    renderEditor={id => { const asset = assetFor(id); return asset ? renderEditor?.(asset) : null }}
+    renderPicture={id => {
+      const asset = assetFor(id)
+      const image = asset && worldRecordImageReference(asset.payload)
+      return asset && image && readImage
+        ? <WorldRecordImage assetId={asset.id} image={image} alt={id === 'overview' ? `${asset.name}鸟瞰图` : asset.name} readImage={readImage} revealImage={revealImage} />
+        : <div role="status" className="flex h-full items-center justify-center text-xs" style={{ color: 'var(--text-muted)' }}>暂无配图</div>
+    }} />
+}
+
 /**
  * 背景：常去和想去是地点记录，动态足迹才是发生过的经历；去重成地名会丢掉日期和经历。
  * 设计意图：按显式状态分组地点，单独呈现真实动态，沿用候选的地点、正文与右侧日期布局。
@@ -141,6 +181,7 @@ export function WorldFootprintsContent({
   revealImage,
   showPreviewImages = false,
   variant = 'default',
+  roleId,
 }: {
   assets: readonly LivingAsset[]
   moments: readonly LivingMoment[]
@@ -148,8 +189,17 @@ export function WorldFootprintsContent({
   readImage?: LivingAssetImageReader
   revealImage?: LivingAssetImageRevealer
   showPreviewImages?: boolean
-  variant?: 'default' | 'alice'
+  variant?: 'default' | 'alice' | 'travel-gallery'
+  roleId?: string
 }) {
+  if (variant === 'travel-gallery') {
+    const owned = roleId ? assets.filter(asset => asset.roleId === roleId) : []
+    return <WorldTravelGallery trips={travelRecordsForRole(assets, roleId)} renderEditor={id => { const asset = owned.find(item => item.id === id); return asset && renderEditor?.(asset) }} renderImage={(trip, thumbnail) => {
+      const asset = owned.find(item => item.id === trip.id)
+      const image = asset && worldRecordImageReference(asset.payload)
+      return asset && image && readImage ? <WorldRecordImage assetId={asset.id} image={image} alt={trip.title} mode={thumbnail ? 'thumbnail' : 'preview'} readImage={readImage} revealImage={revealImage} /> : null
+    }} />
+  }
   const places = assets.filter((item) => item.kind === 'footprint')
   const visits = moments.filter((item) => textField(item.meta, 'location').trim())
   const aliceLayout = variant === 'alice'
@@ -188,4 +238,17 @@ export function WorldFootprintsContent({
       </div>
     </section>
   </div>
+}
+
+export function travelRecordsForRole(assets: readonly LivingAsset[], roleId: string | undefined): TravelRecordView[] {
+  if (!roleId) return []
+  return assets.flatMap(asset => {
+    const payload = asset.payload
+    if (asset.roleId !== roleId || asset.kind !== 'footprint' || payload.recordType !== 'trip' || worldRecordConsistencyError('footprint', payload)) return []
+    if (payload.status !== 'active' && payload.status !== 'completed') return []
+    const stops = tripStopSchema.array().safeParse(payload.stops ?? [])
+    if (!stops.success) return []
+    return [{ id: asset.id, title: asset.name, destination: textField(payload, 'destination'), start: textField(payload, 'start') || null, end: textField(payload, 'end') || null,
+      status: payload.status, story: textField(payload, 'story'), stops: stops.data }]
+  })
 }
