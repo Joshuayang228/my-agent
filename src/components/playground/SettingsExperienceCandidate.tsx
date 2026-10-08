@@ -14,6 +14,7 @@ import { LAYOUT_CLASSES, layoutProfileStyle } from '../../shared/content-layout'
 import { ChevronRight, KeyRound, Plug, Settings2, SlidersHorizontal, UserRound, Activity, Gauge, Plus, ListChecks, ArrowLeft } from 'lucide-react'
 import { AppearanceSettingsContent } from '../settings/AppearanceSettingsContent'
 import { SettingsLayout, type SettingsPageId } from '../settings/SettingsLayout'
+import { SETTINGS_PAGE_HEADERS } from '../../shared/settings-page-headers'
 import { ScopeBadge, SettingCard, SettingRow, SettingSwitch, SettingsPageHeader } from '../settings/SettingsFields'
 import { CompanionSettingsContent } from '../settings/CompanionSettingsContent'
 import { ActionButton } from '../foundation/ActionButton'
@@ -76,17 +77,6 @@ export { SETTINGS_NAV_GROUPS as SETTINGS_CANDIDATE_NAV_GROUPS } from '../setting
 
 function CandidateSwitch({ checked, compact = false, description, label, onChange, scope, testId }: CandidateSwitchProps) {
   return <SettingSwitch checked={checked} compact={compact} description={description} label={label} onChange={onChange} scope={scope} testId={testId} />
-}
-const PAGE_HEADERS: Record<SettingsPageId, { title: string; description: string }> = {
-  appearance: { title: '外观与界面', description: '调整主题和字体大小。' },
-  companion: { title: '伙伴与相处', description: '调整伙伴和你说话、提醒以及回应你的方式。' },
-  model: { title: '模型', description: '先安排每种用途，再管理连接和连接下的模型清单。' },
-  memory: { title: '记忆', description: '查看和管理会影响未来相处的长期信息。' },
-  data: { title: '数据与隐私', description: '管理本地数据的迁移和备份，并明确哪些内容不会跟着备份文件离开设备。' },
-  permissions: { title: '权限与自动化', description: '让你决定 Agent 什么时候先问你、什么时候按计划推进；越高风险的能力越应该明确。' },
-  skills: { title: 'Skills', description: '管理伙伴可以按需使用的工作方法。' },
-  mcp: { title: 'MCP', description: '管理伙伴可以使用的外部服务连接。' },
-  about: { title: '关于 My Agent', description: '查看版本、运行环境和本机数据位置。' },
 }
 
 function AppearancePage({ activeTheme, fontScale, onFontScaleChange, onThemeChange }: { activeTheme: ThemeStudyId; fontScale: string; onFontScaleChange: (value: string) => void; onThemeChange: (value: ThemeStudyId) => void }) {
@@ -508,7 +498,7 @@ export function SettingsExperienceCandidate({ companionDetail, memoryDetail, ini
     <p className="mb-2 text-xs" style={{ color: 'var(--text-muted)' }} data-testid="settings-candidate-preview-label">仅供预览</p>
     <div aria-label="设置候选版" className="flex min-h-[620px] w-full min-w-0 overflow-hidden rounded-[var(--radius-lg)] border" style={{ ...layoutProfileStyle('settings'), ...getThemeStudyStyle(THEME_STUDIES.find((theme) => theme.id === activeTheme)!), borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} data-layout-profile="settings" data-playground-theme={activeTheme} data-testid="settings-candidate">
     <SettingsLayout activeSection={activeSection} onSelect={setActiveSection} onClose={onClose} showNavigationTitle={false} prefix="settings-candidate">
-      <SettingsPageHeader {...PAGE_HEADERS[activeSection]} spacing="layout" />
+      <SettingsPageHeader {...SETTINGS_PAGE_HEADERS[activeSection]} spacing="layout" />
       {activeSection === 'appearance' && <AppearancePage activeTheme={activeTheme} fontScale={fontScale} onFontScaleChange={setFontScale} onThemeChange={setActiveTheme} />}{activeSection === 'memory' && <MemoryPage detail={memoryDetail} />}{activeSection === 'companion' && (companionDetail ?? <CompanionPage expertise={expertise} momentTips={momentTips} onExpertiseChange={setExpertise} onOpenRoleShelf={onOpenRoleShelf} onMomentTipsChange={setMomentTips} onProactiveGreetingChange={setProactiveGreeting} proactiveGreeting={proactiveGreeting} />)}{activeSection === 'model' && <ModelPage selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} />}{activeSection === 'data' && <DataPage />}{activeSection === 'permissions' && <PermissionsPage mode={permissionMode} onModeChange={setPermissionMode} />}{activeSection === 'skills' && <CapabilityPage mode="skills" />}{activeSection === 'mcp' && <CapabilityPage mode="mcp" />}{activeSection === 'about' && <AboutPage developerMode={developerMode} onDeveloperModeChange={setDeveloperMode} />}
     </SettingsLayout>
     </div>

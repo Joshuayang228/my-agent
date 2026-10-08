@@ -7,13 +7,14 @@ import { IconButton } from './foundation/IconButton'
 import { TextField } from './foundation/TextField'
 import { SettingsPageHeader } from './settings/SettingsFields'
 import { SkillDetail, SkillFilePreview, SkillListCard } from './settings/SkillViews'
+import { LAYOUT_CLASSES } from '../shared/content-layout'
 
 /**
  * 背景：正式 Skills 曾保留旧双栏和不可见的历史逻辑，与候选脱节。
  * 设计意图：共享列表 / 详情展示，控制器只负责真实 IPC、草稿和失败恢复。
  * 关键约束：单次操作同步加锁；页面生命周期令牌屏蔽迟到结果，保存失败不清草稿。
  */
-export function SkillsPanel({ visible }: { visible: boolean }) {
+export function SkillsPanel({ visible, showHeader = true }: { visible: boolean; showHeader?: boolean }) {
   const [skills, setSkills] = useState<SkillInfo[]>([])
   const [selected, setSelected] = useState<SkillInfo | null>(null)
   const [content, setContent] = useState<string | null>(null)
@@ -133,11 +134,11 @@ export function SkillsPanel({ visible }: { visible: boolean }) {
   }
 
   if (!visible) return null
-  return <div className="min-w-0 space-y-4" data-testid="skills-panel" aria-busy={busy}>
-    <div className="flex items-start justify-between gap-3">
-      <SettingsPageHeader title="Skills" description="管理伙伴可以按需使用的工作方法。" />
+  return <div className={`min-w-0 ${LAYOUT_CLASSES.section}`} data-testid="skills-panel" aria-busy={busy}>
+    {(showHeader || !selected) && <div className="flex items-start justify-between gap-3">
+      {showHeader && <SettingsPageHeader title="Skills" description="管理伙伴可以按需使用的工作方法。" />}
       {!selected && <IconButton label="刷新 Skills" disabled={busy} onClick={() => void load(true)}><RefreshCw size={16} /></IconButton>}
-    </div>
+    </div>}
     {error && <div role="alert" className="flex flex-wrap items-center gap-3 text-[12px]" style={{ color: 'var(--danger)' }}>
       <span>{error}</span>
       {!selected && <ActionButton disabled={busy} onClick={() => void load()}>重试读取</ActionButton>}

@@ -20,6 +20,8 @@ import { McpServiceCard, type McpServiceState } from './settings/McpServiceCard'
 import type { McpServerStatus } from '../shared/types'
 import { McpConnectionForm } from './settings/McpConnectionForm'
 import { McpServiceList } from './settings/McpServiceList'
+import { LAYOUT_CLASSES, layoutProfileStyle } from '../shared/content-layout'
+import { SETTINGS_PAGE_HEADERS } from '../shared/settings-page-headers'
 
 interface SettingsForm {
   llmTemperature: string
@@ -409,9 +411,10 @@ export function SettingsPanel({
 
   // ── 各区块渲染 ──
 
-  const renderGeneral = () => <AppearanceSettingsContent theme={currentTheme} fontScale={fontScale} onThemeChange={onThemeChange} onFontScaleChange={setFontScale} />
+  const renderGeneral = () => <AppearanceSettingsContent showHeader={false} theme={currentTheme} fontScale={fontScale} onThemeChange={onThemeChange} onFontScaleChange={setFontScale} />
 
   const renderCompanion = () => <CompanionSettingsContent
+    showHeader={false}
     expertise={form.userExpertiseLevel as CompanionExpertise}
     onExpertiseChange={(value) => update('userExpertiseLevel', value)}
     momentTipsMuted={form.companionMomentTipsMuted === 'true'}
@@ -434,8 +437,7 @@ export function SettingsPanel({
   const primaryTestTarget = resolveRoutedConfigs(modelConnections, modelRoutes, 'primary')[0]
   // Provider 预设仍由 PROVIDER_PRESET_GROUPS 作为 Playground 与生产资产的唯一事实源；正式页不再复制旧预设卡片。
   const renderModel = () => (
-    <div className="space-y-4">
-      <SettingsPageHeader title="模型" description="管理模型连接与用途安排；密钥只保存在本机安全存储中。" />
+    <div className={LAYOUT_CLASSES.section}>
       <ModelRoutingSettings beforeLeaveRef={modelBeforeLeaveRef} connectionsRaw={modelConnections} routesRaw={modelRoutes} onTestConnection={async (connection, draftApiKey) => {
         if (preview || !window.electronAPI) return { ok: false, error: '当前仅可在正式设置中测试' }
         const apiKey = draftApiKey?.trim()
@@ -481,24 +483,22 @@ export function SettingsPanel({
     </div>
   )
   const renderMemory = () => (
-    <MemoryPanel onClose={() => setActiveSection('companion')} {...(preview ? { previewMemories: [], readOnly: true } : {})} />
+    <MemoryPanel embedded onClose={() => setActiveSection('companion')} {...(preview ? { previewMemories: [], readOnly: true } : {})} />
   )
 
   const renderTools = () => preview
     ? <div className="text-sm" style={{ color: 'var(--text-muted)' }}>Skills 预览不读取本机文件。</div>
-    : <SkillsPanel visible />
+    : <SkillsPanel visible showHeader={false} />
 
   const renderSecurity = () => (
-    <div className="space-y-4">
-      <SettingsPageHeader title="权限与自动化" description="让你决定 Agent 什么时候先问你、什么时候按计划推进；越高风险的能力越应该明确。" />
+    <div className={LAYOUT_CLASSES.section}>
       <PermissionSettingsContent mode={form.executionMode} onModeChange={value => savePermissionSetting('executionMode', value)}
         rules={form.permissionRules} onRulesChange={value => savePermissionSetting('permissionRules', value)} />
     </div>
   )
 
   const renderConnection = () => (
-    <div className="space-y-4">
-      <SettingsPageHeader title="MCP" description="连接外部工具和服务，扩展 Agent 能力；每个服务独立管理。" />
+    <div className={LAYOUT_CLASSES.section}>
 
       <McpServiceList count={mcpServers.length} onAdd={() => { if (!mcpBusyRef.current) setMcpAdding(true) }}
         disabled={mcpAdding || mcpBusy || preview} showEmpty={mcpServers.length === 0 && !mcpAdding && !mcpReadError}>
@@ -554,7 +554,7 @@ export function SettingsPanel({
   )
 
   const renderData = () => (
-    <DataSettingsContent activeAction={dataBusy} onAction={async (action) => {
+    <DataSettingsContent showHeader={false} activeAction={dataBusy} onAction={async (action) => {
       if (preview) return { message: `已模拟${action === 'export' ? '导出' : '导入'}（仅样张反馈）` }
       if (!window.electronAPI) return { error: true, message: '请在桌面应用中管理备份。' }
       if (dataBusyRef.current) return null
@@ -577,6 +577,7 @@ export function SettingsPanel({
 
   const renderAbout = () => (
     <AboutSettingsContent
+      showHeader={false}
       developerMode={form.developerMode === 'true'}
       onDeveloperModeChange={(enabled) => update('developerMode', enabled ? 'true' : 'false')}
     />
@@ -595,10 +596,10 @@ export function SettingsPanel({
   }
 
   const page = SECTION_PAGES[activeSection]
-  const embedded = activeSection === 'memory' || activeSection === 'skills' || (activeSection === 'companion' && roleShelfOpen)
+  const embedded = activeSection === 'companion' && roleShelfOpen
 
   return (
-    <div className="flex h-full min-h-0 w-full min-w-0 flex-1" data-testid="settings-panel">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-1" style={layoutProfileStyle('settings')} data-layout-profile="settings" data-testid="settings-panel">
       <SettingsLayout activeSection={page} showNavigationTitle={false} onClose={() => { void prepareToLeave().then((saved) => { if (saved) onClose() }) }} panelOwnsScroll={embedded}
         onSelect={(id) => {
           if (id === page) return
@@ -609,6 +610,7 @@ export function SettingsPanel({
               setForm((current) => ({ ...current, activeRoleId: role.id }))
             }} />
           : <>
+              <SettingsPageHeader {...SETTINGS_PAGE_HEADERS[page]} spacing="layout" />
               {SECTION_RENDERERS[activeSection]()}
             </>}
       </SettingsLayout>

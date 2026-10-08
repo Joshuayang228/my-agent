@@ -20,8 +20,6 @@
 
 ## 进行中
 
-设置布局统一：[settings-layout-consistency-v1.md](./settings-layout-consistency-v1.md)，九区 P0 页头与共享间距；施工合同已确认，候选验收中，正式回流未授权。
-
 布局基线：[foundation-layout-boundaries-v1.md](./foundation-layout-boundaries-v1.md)，布局与间距、透明度 P0 候选施工，正式回流未授权。
 
 足迹设计：[footprints-travel-v1.md](./footprints-travel-v1.md)，旅行粒度与产品边界已确认；数据 / 交互方案待确认，正式回流未授权。
@@ -54,6 +52,8 @@
 ---
 
 ## 已完成施工快照（冻结）
+
+设置布局统一：[settings-layout-consistency-v1.md](./settings-layout-consistency-v1.md)。九区同源页头、共享间距及正式回流已验收；当前能力见伙伴模块卡。
 
 人物世界六面正式回流：[world-six-surfaces-production-rollout-v1.md](./world-six-surfaces-production-rollout-v1.md)。已验收六面真实数据、维护 / 换装、角色隔离、失败恢复、受控图片与备份；当前能力见伙伴模块卡。
 
