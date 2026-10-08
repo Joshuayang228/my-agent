@@ -1,6 +1,25 @@
 import { test, expect } from '@playwright/test'
 
 for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 746]) {
+  test(`正式设置返回 ${theme} ${width}`, async ({ page }, info) => {
+    await page.setViewportSize({ width, height: 704 })
+    await page.addInitScript(theme => localStorage.setItem('theme', theme), theme)
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
+    const settings = page.getByTestId('settings-panel')
+    await expect(settings.getByRole('heading', { name: '设置', exact: true })).toHaveCount(0)
+    const back = settings.getByTestId(width >= 768 ? 'settings-back' : 'settings-back-mobile')
+    await expect(back).toBeVisible()
+    await expect(back).toHaveClass(/foundation-action-button/)
+    await page.screenshot({ path: info.outputPath('production-settings-back.png'), fullPage: true })
+    await back.click()
+    await expect(settings).toHaveCount(0)
+    await expect(page.getByRole('textbox', { name: '消息', exact: true })).toBeVisible()
+    await expect(page.getByTestId('playground-nav')).toHaveCount(0)
+  })
+}
+
+for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 746]) {
   test(`设置样张返回 ${theme} ${width}`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: 704 })
     await page.addInitScript(theme => localStorage.setItem('theme', theme), theme)

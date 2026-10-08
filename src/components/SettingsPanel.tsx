@@ -599,7 +599,7 @@ export function SettingsPanel({
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1" data-testid="settings-panel">
-      <SettingsLayout activeSection={page} onClose={() => { void prepareToLeave().then((saved) => { if (saved) onClose() }) }} panelOwnsScroll={embedded}
+      <SettingsLayout activeSection={page} showNavigationTitle={false} onClose={() => { void prepareToLeave().then((saved) => { if (saved) onClose() }) }} panelOwnsScroll={embedded}
         onSelect={(id) => {
           if (id === page) return
           void prepareToLeave().then((allowed) => { if (allowed) { setRoleShelfOpen(false); setActiveSection(PAGE_SECTIONS[id]) } })
