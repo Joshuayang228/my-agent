@@ -9,15 +9,16 @@ import { LAYOUT_CLASSES } from '../../shared/content-layout'
  * 意图：共享业务结构并直接组合基础按钮，状态与保存由各自宿主持有。
  * 约束：不访问 IPC 或本地存储；选中标记始终占位，切换和 hover 不改变控件尺寸。
  */
-export function AppearanceSettingsContent({ theme, fontScale, onThemeChange, onFontScaleChange, prefix = 'settings' }: {
+export function AppearanceSettingsContent({ theme, fontScale, onThemeChange, onFontScaleChange, prefix = 'settings', showHeader = true }: {
   theme?: string
   fontScale: string
   onThemeChange?: (theme: ThemeId) => void
   onFontScaleChange: (scale: string) => void
   prefix?: string
+  showHeader?: boolean
 }) {
   return <div className={LAYOUT_CLASSES.section} data-testid={`${prefix}-section-appearance`}>
-    <SettingsPageHeader title="外观与界面" />
+    {showHeader && <SettingsPageHeader title="外观与界面" />}
     <SettingCard><SettingRow scope="本机" label="界面语言" description="当前只提供简体中文。" icon={<CircleHelp size={15} />}>
       <span className="rounded-full border px-2.5 py-1 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>简体中文</span>
     </SettingRow></SettingCard>

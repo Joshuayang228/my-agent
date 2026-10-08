@@ -39,14 +39,15 @@ export function SettingSwitch({ checked, compact = false, description, label, on
   </ActionButton>
 }
 
-export function SettingsPageHeader({ description, title, icon, eyebrow, badge }: {
+export function SettingsPageHeader({ description, title, icon, eyebrow, badge, spacing = 'default' }: {
   description?: string
   title: string
   icon?: ReactNode
   eyebrow?: string
   badge?: string
+  spacing?: 'default' | 'layout'
 }) {
-  return <header className={`mb-5 ${icon || eyebrow || badge ? 'flex items-start justify-between gap-4' : ''}`}>
+  return <header className={`${spacing === 'layout' ? 'mb-[var(--layout-section,1rem)]' : 'mb-5'} ${icon || eyebrow || badge ? 'flex items-start justify-between gap-4' : ''}`}>
     <div className="min-w-0">
       {(icon || eyebrow) && <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold tracking-[0.16em]" style={{ color: 'var(--accent-fg)' }}><span aria-hidden="true">{icon}</span>{eyebrow}</div>}
       <h2 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>{title}</h2>

@@ -14,6 +14,7 @@ interface DataSettingsContentProps {
   onAction: (action: DataSettingsAction) => Promise<DataSettingsFeedback | null>
   testIdPrefix?: string
   activeAction?: DataSettingsAction | null
+  showHeader?: boolean
 }
 
 /**
@@ -21,7 +22,7 @@ interface DataSettingsContentProps {
  * 因此调用方只注入操作，组件统一反馈与同步锁；卸载后仅忽略结果，不声称取消主进程操作。
  * 锁必须在 await 前建立，取消不报错，异常不可展示内部路径或异常正文。
  */
-export function DataSettingsContent({ onAction, testIdPrefix = '', activeAction = null }: DataSettingsContentProps) {
+export function DataSettingsContent({ onAction, testIdPrefix = '', activeAction = null, showHeader = true }: DataSettingsContentProps) {
   const [busy, setBusy] = useState<DataSettingsAction | null>(null)
   const [feedback, setFeedback] = useState<DataSettingsFeedback | null>(null)
   const locked = useRef(false)
@@ -49,7 +50,7 @@ export function DataSettingsContent({ onAction, testIdPrefix = '', activeAction 
   }
 
   return <div className={LAYOUT_CLASSES.section} data-testid={`${testIdPrefix}section-data`}>
-    <SettingsPageHeader title="数据与隐私" description="管理本地数据的迁移和备份，并明确哪些内容不会跟着备份文件离开设备。" />
+    {showHeader && <SettingsPageHeader title="数据与隐私" description="管理本地数据的迁移和备份，并明确哪些内容不会跟着备份文件离开设备。" />}
     <SettingCard>
       <div className="grid gap-2 sm:grid-cols-2">
         {(['export', 'import'] as const).map(action => {

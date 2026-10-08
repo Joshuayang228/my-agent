@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { PermissionSettingsContent } from '../settings/PermissionSettingsContent'
 import { LAYOUT_CLASSES, layoutProfileStyle } from '../../shared/content-layout'
-import { Brain, ChevronRight, CircleHelp, Cloud, Heart, KeyRound, Link2, Plug, Settings2, ShieldCheck, SlidersHorizontal, UserRound, Wrench, Activity, Gauge, Plus, ListChecks, ArrowLeft } from 'lucide-react'
+import { ChevronRight, KeyRound, Plug, Settings2, SlidersHorizontal, UserRound, Activity, Gauge, Plus, ListChecks, ArrowLeft } from 'lucide-react'
 import { AppearanceSettingsContent } from '../settings/AppearanceSettingsContent'
 import { SettingsLayout, type SettingsPageId } from '../settings/SettingsLayout'
 import { ScopeBadge, SettingCard, SettingRow, SettingSwitch, SettingsPageHeader } from '../settings/SettingsFields'
@@ -77,12 +77,20 @@ export { SETTINGS_NAV_GROUPS as SETTINGS_CANDIDATE_NAV_GROUPS } from '../setting
 function CandidateSwitch({ checked, compact = false, description, label, onChange, scope, testId }: CandidateSwitchProps) {
   return <SettingSwitch checked={checked} compact={compact} description={description} label={label} onChange={onChange} scope={scope} testId={testId} />
 }
-function CandidatePageHeader({ description, icon, title }: { description: string; icon: ReactNode; title: string }) {
-  return <SettingsPageHeader icon={icon} eyebrow="设置样张" badge="仅供预览" title={title} description={description} />
+const PAGE_HEADERS: Record<SettingsPageId, { title: string; description: string }> = {
+  appearance: { title: '外观与界面', description: '调整主题和字体大小。' },
+  companion: { title: '伙伴与相处', description: '调整伙伴和你说话、提醒以及回应你的方式。' },
+  model: { title: '模型', description: '先安排每种用途，再管理连接和连接下的模型清单。' },
+  memory: { title: '记忆', description: '查看和管理会影响未来相处的长期信息。' },
+  data: { title: '数据与隐私', description: '管理本地数据的迁移和备份，并明确哪些内容不会跟着备份文件离开设备。' },
+  permissions: { title: '权限与自动化', description: '让你决定 Agent 什么时候先问你、什么时候按计划推进；越高风险的能力越应该明确。' },
+  skills: { title: 'Skills', description: '管理伙伴可以按需使用的工作方法。' },
+  mcp: { title: 'MCP', description: '管理伙伴可以使用的外部服务连接。' },
+  about: { title: '关于 My Agent', description: '查看版本、运行环境和本机数据位置。' },
 }
 
 function AppearancePage({ activeTheme, fontScale, onFontScaleChange, onThemeChange }: { activeTheme: ThemeStudyId; fontScale: string; onFontScaleChange: (value: string) => void; onThemeChange: (value: ThemeStudyId) => void }) {
-  return <AppearanceSettingsContent prefix="settings-candidate" theme={activeTheme} fontScale={fontScale} onThemeChange={onThemeChange} onFontScaleChange={onFontScaleChange} />
+  return <AppearanceSettingsContent showHeader={false} prefix="settings-candidate" theme={activeTheme} fontScale={fontScale} onThemeChange={onThemeChange} onFontScaleChange={onFontScaleChange} />
 }
 
 function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProactiveGreetingChange, proactiveGreeting, expertise, onExpertiseChange }: { momentTips: boolean; onMomentTipsChange: (value: boolean) => void; onOpenRoleShelf?: () => void; onProactiveGreetingChange: (value: boolean) => void; proactiveGreeting: boolean; expertise: string; onExpertiseChange: (value: string) => void }) {
@@ -91,6 +99,7 @@ function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProa
   const [maxPerDay, setMaxPerDay] = useState('3')
   const [note, setNote] = useState('当我把事情排得太满时，提醒我留一点空白。')
   return <CompanionSettingsContent
+    showHeader={false}
     expertise={expertise as 'auto' | 'novice' | 'intermediate' | 'expert'}
     onExpertiseChange={onExpertiseChange as (value: 'auto' | 'novice' | 'intermediate' | 'expert') => void}
     momentTipsMuted={!momentTips}
@@ -331,7 +340,6 @@ function ModelPage({ selectedProvider }: { selectedProvider: string; onProviderC
     }} onCancel={closeForm} onSave={finishSave} />
   return (
     <div className={LAYOUT_CLASSES.section} data-testid="settings-candidate-section-model">
-      <CandidatePageHeader icon={<Cloud size={14} />} title="模型" description="先安排每种用途，再管理连接和连接下的模型清单。" />
       <div className="flex flex-wrap items-center justify-between gap-2" data-testid="settings-candidate-model-state-tabs"><div className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>模型状态样张</div><div className="flex flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="模型状态样张">{(['empty', 'one', 'two'] as const).map((state) => <button key={state} type="button" role="tab" aria-selected={previewState === state} onClick={() => setPreview(state)} className="settings-option px-2.5 py-1 text-[10px]" data-testid={`settings-candidate-model-state-${state}`} data-selected={previewState === state ? 'true' : undefined}>{state === 'empty' ? '空态' : state === 'one' ? '单连接' : '多连接'}</button>)}</div></div>
       <ModelUsageArrangements testIdPrefix="settings-candidate" purposes={ROUTE_PURPOSES}
         routes={ROUTE_PURPOSES.flatMap(purpose => routes[purpose.id].map(route => ({ purpose: purpose.id, connectionId: route.connectionId, model: route.modelId, enabled: route.enabled })))}
@@ -364,17 +372,16 @@ function ModelPage({ selectedProvider }: { selectedProvider: string; onProviderC
   )
 }
 function MemoryPage({ detail }: { detail?: ReactNode }) {
-  return <div className={LAYOUT_CLASSES.section} data-testid="settings-candidate-section-memory"><CandidatePageHeader icon={<Brain size={14} />} title="记忆" description="查看和管理会影响未来相处的长期信息。" />{detail ?? <SettingCard><div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>记忆内容由产品体验页统一管理。</div></SettingCard>}</div>
+  return <div className={LAYOUT_CLASSES.section} data-testid="settings-candidate-section-memory">{detail ?? <SettingCard><div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>记忆内容由产品体验页统一管理。</div></SettingCard>}</div>
 }
 
 function DataPage() {
-  return <DataSettingsContent testIdPrefix="settings-candidate-" onAction={async action => ({ message: `已模拟${action === 'export' ? '导出' : '导入'}（仅样张反馈）` })} />
+  return <DataSettingsContent showHeader={false} testIdPrefix="settings-candidate-" onAction={async action => ({ message: `已模拟${action === 'export' ? '导出' : '导入'}（仅样张反馈）` })} />
 }
 
 function PermissionsPage({ mode, onModeChange }: { mode: string; onModeChange: (value: string) => void }) {
   const [rules, setRules] = useState(JSON.stringify([{ id: 'preview-publish', type: 'command', action: 'deny', pattern: 'npm publish', enabled: true }]))
   return <div className={LAYOUT_CLASSES.section} data-testid="settings-candidate-section-permissions">
-    <CandidatePageHeader icon={<ShieldCheck size={14} />} title="权限与自动化" description="让你决定 Agent 什么时候先问你、什么时候按计划推进；越高风险的能力越应该明确。" />
     <PermissionSettingsContent mode={mode} onModeChange={onModeChange} rules={rules} onRulesChange={setRules} prefix="settings-candidate" />
   </div>
 }
@@ -460,7 +467,6 @@ function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
   const toggleSkill = (name: string, enabled: boolean) => setSkillsEnabled((current) => ({ ...current, [name]: enabled }))
 
   return <div className={LAYOUT_CLASSES.section} data-testid={`settings-candidate-section-${mode}`}>
-    <CandidatePageHeader icon={mode === 'skills' ? <Wrench size={14} /> : <Link2 size={14} />} title={mode === 'skills' ? 'Skills' : 'MCP'} description={mode === 'skills' ? '管理伙伴可以按需使用的工作方法。' : '管理伙伴可以使用的外部服务连接。'} />
     {mode === 'skills' && <>
       <div className="flex items-center justify-end gap-1" data-playground-switcher role="tablist" aria-label="Skills 样张状态" data-testid="settings-candidate-skills-states">
         {(['单个', '多个', '详情'] as const).map((state) => <button key={state} type="button" role="tab" aria-selected={skillsState === state} onClick={() => setSkillsState(state)} className="settings-option px-2.5 py-1 text-[10px]" data-selected={skillsState === state ? 'true' : undefined}>{state}</button>)}
@@ -474,7 +480,6 @@ function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
 }
 function AboutPage({ developerMode, onDeveloperModeChange }: { developerMode: boolean; onDeveloperModeChange: (enabled: boolean) => void }) {
   return <div className={LAYOUT_CLASSES.section} data-testid="settings-candidate-section-about">
-    <CandidatePageHeader icon={<CircleHelp size={14} />} title="关于 My Agent" description="查看版本、运行环境和本机数据位置。" />
     <AboutSettingsContent developerMode={developerMode} onDeveloperModeChange={onDeveloperModeChange} showHeader={false} testIdPrefix="settings-candidate-" />
   </div>
 }
@@ -499,9 +504,13 @@ export function SettingsExperienceCandidate({ companionDetail, memoryDetail, ini
 
 
 
-  return <div aria-label="设置候选版" className="flex min-h-[620px] w-full min-w-0 overflow-hidden rounded-[var(--radius-lg)] border" style={{ ...layoutProfileStyle('settings'), ...getThemeStudyStyle(THEME_STUDIES.find((theme) => theme.id === activeTheme)!), borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} data-layout-profile="settings" data-playground-theme={activeTheme} data-testid="settings-candidate">
+  return <>
+    <p className="mb-2 text-xs" style={{ color: 'var(--text-muted)' }} data-testid="settings-candidate-preview-label">仅供预览</p>
+    <div aria-label="设置候选版" className="flex min-h-[620px] w-full min-w-0 overflow-hidden rounded-[var(--radius-lg)] border" style={{ ...layoutProfileStyle('settings'), ...getThemeStudyStyle(THEME_STUDIES.find((theme) => theme.id === activeTheme)!), borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} data-layout-profile="settings" data-playground-theme={activeTheme} data-testid="settings-candidate">
     <SettingsLayout activeSection={activeSection} onSelect={setActiveSection} onClose={onClose} showNavigationTitle={false} prefix="settings-candidate">
+      <SettingsPageHeader {...PAGE_HEADERS[activeSection]} spacing="layout" />
       {activeSection === 'appearance' && <AppearancePage activeTheme={activeTheme} fontScale={fontScale} onFontScaleChange={setFontScale} onThemeChange={setActiveTheme} />}{activeSection === 'memory' && <MemoryPage detail={memoryDetail} />}{activeSection === 'companion' && (companionDetail ?? <CompanionPage expertise={expertise} momentTips={momentTips} onExpertiseChange={setExpertise} onOpenRoleShelf={onOpenRoleShelf} onMomentTipsChange={setMomentTips} onProactiveGreetingChange={setProactiveGreeting} proactiveGreeting={proactiveGreeting} />)}{activeSection === 'model' && <ModelPage selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} />}{activeSection === 'data' && <DataPage />}{activeSection === 'permissions' && <PermissionsPage mode={permissionMode} onModeChange={setPermissionMode} />}{activeSection === 'skills' && <CapabilityPage mode="skills" />}{activeSection === 'mcp' && <CapabilityPage mode="mcp" />}{activeSection === 'about' && <AboutPage developerMode={developerMode} onDeveloperModeChange={setDeveloperMode} />}
     </SettingsLayout>
-  </div>
+    </div>
+  </>
 }

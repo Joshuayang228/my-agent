@@ -1,6 +1,66 @@
 import { test, expect } from '@playwright/test'
 
 for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 746]) {
+  test(`设置九区页头候选 ${theme} ${width}`, async ({ page }, info) => {
+    await page.setViewportSize({ width, height: 704 })
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+    await page.getByTestId('playground-nav').getByRole('button', { name: '设置', exact: true }).click()
+    const candidate = page.getByTestId('settings-candidate')
+    await candidate.getByTestId(`settings-candidate-theme-${theme}`).click()
+    const sections = ['appearance', 'companion', 'model', 'memory', 'data', 'permissions', 'skills', 'mcp', 'about']
+    let typography: string[] | undefined
+    for (const section of sections) {
+      const nav = width >= 768 ? candidate.getByTestId(`settings-candidate-nav-${section}`) : candidate.getByTestId('settings-candidate-mobile-nav').getByRole('tab').nth(sections.indexOf(section))
+      await nav.click()
+      const panel = candidate.getByTestId('settings-candidate-content')
+      const heading = panel.locator(':scope > header h2')
+      await expect(heading).toHaveCount(1)
+      await expect(panel.getByText('设置样张', { exact: true })).toHaveCount(0)
+      await expect(panel.getByText('伙伴设置', { exact: true })).toHaveCount(0)
+      const geometry = await panel.evaluate(el => {
+        const header = el.querySelector(':scope > header')!, h = header.querySelector('h2')!, body = header.nextElementSibling!
+        const p = el.getBoundingClientRect(), r = h.getBoundingClientRect(), s = getComputedStyle(h)
+        return { left: r.left - p.left, top: r.top - p.top, bodyLeft: body.getBoundingClientRect().left - p.left,
+          gap: body.getBoundingClientRect().top - header.getBoundingClientRect().bottom,
+          typography: [s.fontSize, s.fontWeight, s.lineHeight], overflow: el.scrollWidth > el.clientWidth }
+      })
+      expect(Math.abs(geometry.left)).toBeLessThanOrEqual(2)
+      expect(Math.abs(geometry.top)).toBeLessThanOrEqual(2)
+      expect(Math.abs(geometry.bodyLeft)).toBeLessThanOrEqual(2)
+      expect(geometry.gap).toBeCloseTo(16, 0)
+      typography ??= geometry.typography
+      expect(geometry.typography).toEqual(typography)
+      expect(geometry.overflow).toBe(false)
+      await heading.scrollIntoViewIfNeeded()
+      await page.screenshot({ path: info.outputPath(`settings-${section}.png`) })
+      if (section === 'model') {
+        await candidate.getByTestId('settings-candidate-model-state-empty').click()
+        await expect(candidate.getByTestId('settings-candidate-model-state-empty')).toHaveAttribute('aria-selected', 'true')
+      } else if (section === 'memory') {
+        await panel.getByRole('tab', { name: '空态', exact: true }).click()
+        await expect(panel.getByText('还没有任何记忆。', { exact: true })).toBeVisible()
+      } else if (section === 'skills') {
+        await candidate.getByTestId('settings-candidate-skills-states').getByRole('tab', { name: '详情', exact: true }).click()
+        await expect(candidate.getByTestId('settings-candidate-skill-detail')).toBeVisible()
+        await candidate.getByRole('button', { name: '返回 Skills', exact: true }).click()
+        await expect(candidate.getByTestId('settings-candidate-skill-detail')).toHaveCount(0)
+      } else if (section === 'mcp') {
+        await panel.getByRole('tab', { name: '连接失败', exact: true }).click()
+        const service = panel.getByTestId('settings-candidate-mcp-server-files')
+        await expect(service.getByRole('status')).toHaveText('连接失败')
+        await service.getByRole('button', { name: '重试', exact: true }).click()
+        await expect(service.getByRole('status')).toHaveText('连接中')
+      }
+      await expect(heading).toHaveCount(1)
+      expect(await panel.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(false)
+    }
+    await expect(page.getByTestId('settings-candidate-preview-label')).toHaveText('仅供预览')
+    await expect(candidate.getByText('仅供预览', { exact: true })).toHaveCount(0)
+  })
+}
+
+for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 746]) {
   test(`正式设置返回 ${theme} ${width}`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: 704 })
     await page.addInitScript(theme => localStorage.setItem('theme', theme), theme)
