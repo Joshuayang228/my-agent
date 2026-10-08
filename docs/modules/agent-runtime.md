@@ -196,7 +196,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 | Observer / DevPanel 可观测 | 已落地 | tracer / observer / DevPanel |
 | LLM Debug 安全元数据持久化 | 已落地 | tracer sink · `llm_debug_logs` · Debug IPC；只保留结构元数据、正文长度和资产证据，不持久化 Prompt / 响应 / hidden reasoning |
 | Chat Callback 三通道 UI | 已落地 | `src/components/chat/callbacks/` |
-| Chat 页面组合基线 | 已落地 | Sidebar 默认 248px、开发入口固定在底部产品区上方、Chat 专属 52px 会话顶栏、居中欢迎区、引用式主角提示与紧凑输入卡；Playground 复用正式组件验收标准 / 窄宽 |
+| Chat 页面组合基线 | 已落地 | Sidebar 默认 248px、开发入口固定在底部产品区上方、底栏只保留外层分界；搜索与消息输入复用 TextField embedded，无内框、外层承载焦点。Chat 专属 52px 会话顶栏、居中欢迎区、引用式主角提示与紧凑输入卡；Playground 复用正式组件验收标准 / 窄宽，搜索关闭与消息草稿不丢失 |
 | Chat 右侧工作坞正式 Tab | 部分 | `ChatRightDock`；正式文件工具已收进 `WorkspaceFilesPanel`，内部左树右多预览；审阅 / 终端保持真实面板与 IPC，终端事件按实例 runId 过滤并在终止／卸载时清理 |
 | 工具卡行内附着 assistant（Alice Phase B） | 已落地 | `resolve-tools-for-message.ts` · 历史 `toolCalls`+`role=tool`；进行中挂 live host |
 | Dev Playground（无 Assemble 试跑） | 已落地 | PlaygroundPage · `debug:playground-run` |

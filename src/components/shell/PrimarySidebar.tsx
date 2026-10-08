@@ -61,6 +61,7 @@ export function PrimarySidebar({
   onCollapse,
   width,
   developerMode = false,
+  collapseFooterDivider = true,
 }: {
   personaName: string
   personaBlurb: string
@@ -93,6 +94,8 @@ export function PrimarySidebar({
   /** 可拖宽度；默认 248 */
   width?: number
   developerMode?: boolean
+  /** 正式与样张共用一条底栏外边界；显式 false 可保留独立分隔布局。 */
+  collapseFooterDivider?: boolean
 }) {
   return (
     <aside
@@ -134,7 +137,7 @@ export function PrimarySidebar({
       <div className="mt-3 flex items-center gap-1.5 px-3" data-testid="sidebar-toolbar">
         {sidebarSearchOpen ? (
           <div
-            className="flex h-10 min-w-0 flex-1 self-start items-center gap-2 rounded-[var(--radius-lg)] border px-2.5"
+            className="flex h-10 min-w-0 flex-1 self-start items-center gap-2 rounded-[var(--radius-lg)] border px-2.5 focus-within:outline-1 focus-within:outline-[var(--accent)]"
             style={{
               background: 'var(--input-bg)',
               borderColor: 'var(--input-border)',
@@ -142,6 +145,7 @@ export function PrimarySidebar({
           >
             <Search size={15} style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
             <TextField
+              appearance="embedded"
               ref={sessionFilterRef}
               value={sessionFilter}
               onChange={(e: ChangeEvent<HTMLInputElement>) => onSessionFilterChange(e.target.value)}
@@ -332,7 +336,7 @@ export function PrimarySidebar({
             />
           </div>
         </div>}
-        <div className="mt-2 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div className={`mt-2 pt-2 ${collapseFooterDivider ? '' : 'border-t'}`} style={{ borderColor: 'var(--border-subtle)' }}>
           <div className="grid grid-cols-2 gap-1">
             {DOCK.map((item) => {
               const active = item.id === 'world' ? isWorldView(activeView) : activeView === item.id

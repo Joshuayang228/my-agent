@@ -34,10 +34,10 @@ export function ChatComposer({ inputProps, inputRef, prefix, approvalControl, mo
   }
   useLayoutEffect(resizeInput, [inputProps.value])
 
-  return <div data-testid="chat-composer" className="relative rounded-[var(--radius-xl)] border px-3 py-2 shadow-sm transition-shadow focus-within:shadow-md"
+  return <div data-testid="chat-composer" className="relative rounded-[var(--radius-xl)] border px-3 py-2 shadow-sm transition-shadow focus-within:shadow-md focus-within:outline-1 focus-within:outline-[var(--accent)]"
     style={{ borderColor: 'var(--border-color)', background: 'var(--card-bg)', boxShadow: '0 6px 22px color-mix(in srgb, var(--text-primary) 5%, transparent)' }}>
     {prefix}
-    <TextField multiline rows={1} aria-label="消息" {...inputProps} ref={textareaRef} disabled={streaming}
+    <TextField multiline rows={1} aria-label="消息" {...inputProps} appearance="embedded" ref={textareaRef} disabled={streaming}
       onInput={resizeInput} className="min-h-[64px] w-full resize-none px-1 py-2 !text-[13px] disabled:opacity-50" style={{ maxHeight: 120 }} />
     <div className="flex min-w-0 items-center justify-between gap-2 pt-1" data-testid="chat-composer-toolbar">
       <div className="flex shrink-0 items-center gap-1">

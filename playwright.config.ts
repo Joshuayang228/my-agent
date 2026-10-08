@@ -12,7 +12,7 @@ export default defineConfig({
   projects: [
     {
       name: 'ui',
-      testMatch: ['chat.test.ts', 'markdown-theme.test.ts', 'checkbox.test.ts', 'mcp-oauth-ui.test.ts', 'design-language.test.ts', 'contacts-candidate.test.ts'],
+      testMatch: ['chat.test.ts', 'chat-input-boundaries.test.ts', 'markdown-theme.test.ts', 'checkbox.test.ts', 'mcp-oauth-ui.test.ts', 'design-language.test.ts', 'contacts-candidate.test.ts'],
       use: {
         baseURL: 'http://127.0.0.1:5175',
         channel: 'chrome',
