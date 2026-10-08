@@ -20,6 +20,8 @@
 
 ## 进行中
 
+人物世界整体回流：[world-six-surfaces-production-rollout-v1.md](./world-six-surfaces-production-rollout-v1.md)，六面整体回流已授权；本轮生产改造方案与具体数据差异待确认。
+
 布局基线：[foundation-layout-boundaries-v1.md](./foundation-layout-boundaries-v1.md)，布局与间距、透明度 P0 候选施工，正式回流未授权。
 
 足迹设计：[footprints-travel-v1.md](./footprints-travel-v1.md)，旅行粒度与产品边界已确认；数据 / 交互方案待确认，正式回流未授权。
