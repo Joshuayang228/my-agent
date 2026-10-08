@@ -26,7 +26,7 @@ import type { MomentItem, MomentsPreviewData } from '../MomentsPanel'
 import { PrimarySidebar, type SidebarSession } from '../shell/PrimarySidebar'
 import { WorldHub, type WorldTab } from '../shell/WorldHub'
 import { AssetsPanel } from '../AssetsPanel'
-import { CastPanel, type CastPreviewData } from '../CastPanel'
+import { ContactsExperienceCandidate } from './ContactsExperienceCandidate'
 import { WorldProfileHeader } from '../world/WorldProfileHeader'
 import type { WorldAssetRecord } from '../world/WorldAssetEditor'
 import type { MemoryEntry } from '../../shared/types'
@@ -587,18 +587,6 @@ function WardrobeCandidate({ assets, personaId }: { assets: WorldAssetRecord[]; 
 function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onNavigate?: (tab: PlaygroundTabId) => void }) {
   const [tab, setTab] = useState<WorldTab>('moments')
   const fixtures = useMemo(() => worldPreviewFixtures(persona), [persona])
-  const castPreview = useMemo<CastPreviewData>(() => {
-    const contacts = persona.id === 'lin'
-      ? [{ id: 'yao', name: '阿遥', text: '偶尔联系的朋友' }, { id: 'xu', name: '许叔', text: '楼下咖啡店老板' }]
-      : [{ id: 'lin', name: '小林', text: '偶尔联系的朋友' }, { id: 'he', name: '阿禾', text: '一起散步的朋友' }]
-    return {
-      roleId: persona.id,
-      roleName: persona.name,
-      lines: contacts.map((contact) => ({ otherId: contact.id, otherName: contact.name, relationType: 'friend', text: contact.text })),
-      cast: contacts.map((contact) => ({ id: contact.id, name: contact.name, description: contact.text, summary: contact.text, canBeProtagonist: false, summonHint: contact.text })),
-      availabilityById: Object.fromEntries(contacts.map((contact, index) => [contact.id, { roleId: contact.id, name: contact.name, available: index === 0, presence: index === 0 ? '在家读书' : '正在工作' }])),
-    }
-  }, [persona])
   const previewPanels: Partial<Record<WorldTab, ReactNode>> = {
     wardrobe: (
       <WardrobeCandidate assets={fixtures.wardrobe} personaId={persona.id} />
@@ -610,9 +598,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
       <HomeExperienceCandidate key={persona.id} personaId={persona.id} />
     ),
     cast: (
-      <div className="h-full min-h-0" data-testid="world-cast-fixture" data-persona-id={persona.id}>
-        <CastPanel key={persona.id} onClose={noop} previewData={castPreview} />
-      </div>
+      <ContactsExperienceCandidate key={persona.id} personaId={persona.id} />
     ),
     footprints: (
       <FootprintsExperienceCandidate key={persona.id} personaId={persona.id} />
