@@ -87,6 +87,7 @@ function AssetImage({ asset }: { asset: WorldAssetRecord }) {
 
 export function AssetsPanel({ previewAssets, previewEditable = false, previewWearingId, showAssetTabs = true, presentation = 'default', previewOutfitImage, previewOutfits = [], previewTabIcons, onGenerateAssetImage }: AssetsPanelProps) {
   const isPreview = previewAssets !== undefined
+  const readLabel = presentation === 'wardrobe-gallery' ? '衣柜' : '物什'
   const canEdit = (!isPreview || previewEditable) && !(isPreview && presentation === 'wardrobe-gallery')
   const [roleId, setRoleId] = useState('')
   const [items, setItems] = useState<WorldAssetRecord[]>(previewAssets ?? [])
@@ -133,7 +134,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
       return
     }
     if (!window.electronAPI?.companion) {
-      setReadError('物什需要桌面连接，请重新打开应用后重试。')
+      setReadError(`${readLabel}需要桌面连接，请重新打开应用后重试。`)
       setLoading(false)
       return
     }
@@ -188,11 +189,11 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
       setWearingId(foundId)
       setWearingHint(hint)
     } catch {
-      if (mounted.current && currentRequest === requestId.current) setReadError('物什暂时无法加载，请重试。')
+      if (mounted.current && currentRequest === requestId.current) setReadError(`${readLabel}暂时无法加载，请重试。`)
     } finally {
       if (mounted.current && currentRequest === requestId.current) setLoading(false)
     }
-  }, [isPreview, previewAssets, previewWearingId, presentation])
+  }, [isPreview, previewAssets, previewWearingId, presentation, readLabel])
 
   useEffect(() => { void load() }, [load])
 
@@ -419,7 +420,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
       </div>}
 
       <div className={`min-h-0 min-w-0 flex-1 overflow-y-auto ${wardrobeGallery ? LAYOUT_CLASSES.gutter : 'px-4'} py-4 scrollbar-thin`} data-testid="wardrobe-content-scroll">
-        {readError && <ErrorState className="mb-4" title="物什未能读取" description={readError}
+        {readError && <ErrorState className="mb-4" title={`${readLabel}未能读取`} description={readError}
           action={!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>} />}
         {pendingDelete && (
           <WorldAssetDeleteConfirm

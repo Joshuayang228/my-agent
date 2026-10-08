@@ -50,6 +50,11 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
       const panel = page.locator(`#world-panel-${tab}`)
       const alert = panel.getByRole('alert').first()
       await expect(alert).toBeVisible()
+      if (tab === 'wardrobe') {
+        await expect(panel.getByText('衣柜未能读取', { exact: true })).toBeVisible()
+        await expect(alert).toHaveText('衣柜需要桌面连接，请重新打开应用后重试。')
+        await expect(panel.getByText(/物什/)).toHaveCount(0)
+      }
       const geometry = await alert.evaluate(el => {
         const r = el.closest('section')!.getBoundingClientRect(), p = el.closest('[role="tabpanel"]')!.getBoundingClientRect(), s = getComputedStyle(el)
         return { x: r.left - p.left, y: r.top - p.top, font: s.fontSize, line: s.lineHeight }
@@ -63,6 +68,20 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
       await expect(retry).toBeEnabled()
       await retry.click()
       await expect(alert).toBeVisible()
+      if (tab === 'wardrobe') {
+        await page.evaluate(() => {
+          const host = window as unknown as { electronAPI: unknown }
+          host.electronAPI = { companion: {
+            getActive: async () => { throw new Error('synthetic read failure') },
+            getAssets: async () => null,
+            getMoments: async () => null,
+          } }
+        })
+        await retry.click()
+        await expect(alert).toHaveText('衣柜暂时无法加载，请重试。')
+        await expect(panel.getByText(/物什/)).toHaveCount(0)
+        await page.evaluate(() => { (window as unknown as { electronAPI: unknown }).electronAPI = undefined })
+      }
       expect(await panel.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(false)
       await page.screenshot({ path: info.outputPath(`world-${tab}-error.png`) })
     }
