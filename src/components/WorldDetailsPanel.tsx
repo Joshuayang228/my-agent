@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { ActionButton } from './foundation/ActionButton'
 import { IconButton } from './foundation/IconButton'
+import { ErrorState } from './foundation/ErrorState'
+import { LAYOUT_CLASSES } from '../shared/content-layout'
 import { WorldCultureContent, WorldHomeContent, WorldFootprintsContent, type LivingAsset, type LivingAssetImageReader, type LivingAssetImageRevealer } from './world/WorldLivingContent'
 import {
   WorldAssetActions,
@@ -274,11 +276,12 @@ export function WorldDetailsPanel({
   }
 
   if (loading && !state) return <div className="p-5 text-xs" style={{ color: 'var(--text-muted)' }}>正在整理生活面…</div>
-  if (error && !state) return <div role="alert" className="flex items-center gap-2 p-5 text-xs" style={{ color: 'var(--danger)' }}><span>{error}</span><IconButton label="重试生活面" size={32} onClick={() => void load()}><RefreshCw size={14} /></IconButton></div>
+  const readFailure = error && <ErrorState title={`${tab === 'culture' ? '文化角' : tab === 'home' ? '家居' : '足迹'}未能读取`} description={error} action={<ActionButton disabled={loading} onClick={() => void load()}>重试生活面</ActionButton>} />
+  if (error && !state) return <div className={`${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`}>{readFailure}</div>
   if (!state) return null
 
   return <fieldset disabled={busy} aria-busy={busy || loading} className="m-0 flex h-full min-h-0 min-w-0 flex-col border-0 p-0" data-testid="world-details">
-    {(showDetailTitle || !isPreview) && (
+    {(showDetailTitle || !isPreview) && !error && (
       <div className="flex shrink-0 items-center justify-between gap-3 px-4 pt-3">
         {showDetailTitle ? (
           <div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{state.roleName}的{tab === 'culture' ? '文化角' : tab === 'home' ? '家居' : '足迹'}</div>
@@ -286,7 +289,7 @@ export function WorldDetailsPanel({
         {!isPreview && <IconButton label={error ? '重试生活面' : '刷新生活面'} size={32} onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>}
       </div>
     )}
-    {error && <p role="alert" className="text-[11px]" style={{ color: 'var(--danger)' }}>{error}</p>}
+    {error && <div className={`${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`}>{readFailure}</div>}
     {pendingDelete && <WorldAssetDeleteConfirm asset={pendingDelete} busy={busy} onCancel={() => { if (!busy) setPendingDelete(null) }} onConfirm={() => { const target = pendingDelete; if (target) void removeAsset(target) }} />}
     <WorldWriteError message={writeError}>{!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>}</WorldWriteError>
     {tab === 'culture' && <WorldCultureContent assets={state.assets} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} presentation={isPreview ? 'default' : 'culture-gallery'} />}

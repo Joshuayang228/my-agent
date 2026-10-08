@@ -9,6 +9,8 @@ import { ActionButton } from './foundation/ActionButton'
 import { ImageViewer } from './foundation/ImageViewer'
 import { IconButton } from './foundation/IconButton'
 import { TextField } from './foundation/TextField'
+import { ErrorState } from './foundation/ErrorState'
+import { LAYOUT_CLASSES } from '../shared/content-layout'
 import { MomentImageGrid } from './world/MomentImageGrid'
 import {
   emptyMomentSocial,
@@ -324,7 +326,7 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
         </div>
       )}
 
-      <div className={isSocialFeed ? 'flex-1 overflow-y-auto px-[var(--layout-gutter-small,1.25rem)] py-4 scrollbar-thin' : 'flex-1 overflow-y-auto px-4 py-3 scrollbar-thin'} data-testid="moments-content-scroll">
+      <div className={loadError ? `flex-1 overflow-y-auto ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block} scrollbar-thin` : isSocialFeed ? 'flex-1 overflow-y-auto px-[var(--layout-gutter-small,1.25rem)] py-4 scrollbar-thin' : 'flex-1 overflow-y-auto px-4 py-3 scrollbar-thin'} data-testid="moments-content-scroll">
         {!isSocialFeed && summary ? (
           <div className="mb-4 rounded-lg border px-3 py-2.5 text-[12px] leading-relaxed" style={{ borderColor: 'var(--companion-catchup-border)', background: 'var(--companion-catchup-bg)', color: 'var(--text-secondary)' }}>
             <div className="mb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: 'var(--companion-accent-warm)' }}>最近的生活</div>
@@ -332,10 +334,8 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
           </div>
         ) : null}
 
-        {loadError ? <div role="alert" className="mb-4 flex flex-wrap items-center gap-2 text-sm" style={{ color: 'var(--danger)' }}>
-          <span>{loadError}</span>
-          <ActionButton onClick={() => void load()} disabled={loading}>重新读取朋友圈</ActionButton>
-        </div> : null}
+        {loadError ? <ErrorState className="mb-4" title="朋友圈未能读取" description={loadError}
+          action={<ActionButton onClick={() => void load()} disabled={loading}>重新读取朋友圈</ActionButton>} /> : null}
         {items.length === 0 && !loading && !loadError ? (
           <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>还没有新的动态。</p>
         ) : (

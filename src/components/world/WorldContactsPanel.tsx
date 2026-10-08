@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { IconButton } from '../foundation/IconButton'
+import { ActionButton } from '../foundation/ActionButton'
+import { ErrorState } from '../foundation/ErrorState'
+import { LAYOUT_CLASSES } from '../../shared/content-layout'
 import { WorldContactsGallery } from './WorldContactsGallery'
 import { WorldTravelGallery } from './WorldTravelGallery'
 import { WorldRecordImage } from './WorldRecordImage'
@@ -46,8 +49,8 @@ export function WorldContactsPanel() {
   const data = state?.data
   const trips = state ? travelRecordsForRole(state.assets, state.data.roleId) : []
   return <div className="flex h-full min-h-0 flex-col" data-testid="world-contacts-panel">
-    <div className="flex shrink-0 items-center justify-end px-4 pt-3"><IconButton label={error ? '重新读取通讯录' : '刷新通讯录'} disabled={loading} onClick={() => void load()}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton></div>
-    {error && <p role="alert" className="px-4 py-2 text-xs" style={{ color: 'var(--danger)' }}>{error}</p>}
+    {!error && <div className="flex shrink-0 items-center justify-end px-4 pt-3"><IconButton label="刷新通讯录" disabled={loading} onClick={() => void load()}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton></div>}
+    {error && <div className={`${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`}><ErrorState title="通讯录未能读取" description={error} action={<ActionButton disabled={loading} onClick={() => void load()}>重新读取通讯录</ActionButton>} /></div>}
     {!data && loading && <p role="status" className="p-4 text-xs" style={{ color: 'var(--text-muted)' }}>正在读取通讯录…</p>}
     {data && <WorldContactsGallery key={data.roleId} ownerRoleId={data.roleId} people={data.people}
       relations={data.relations.map(item => ({ ...item, relationLabel: relationLabels[item.relationType] ?? item.relationType, interactionSummary: item.summary }))}

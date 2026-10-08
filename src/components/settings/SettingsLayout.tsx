@@ -79,7 +79,7 @@ export function SettingsLayout({ activeSection, onSelect, onClose, children, pre
             activeId={activeSection} onSelect={(id) => { const item = SETTINGS_NAV_ITEMS.find((entry) => entry.id === id); if (item) onSelect(item.id) }} />
         </div>
       </div>
-      <main className={`min-h-0 min-w-0 flex-1 ${LAYOUT_CLASSES.gutter} py-[var(--layout-block,1.25rem)] ${panelOwnsScroll ? 'overflow-hidden' : 'scrollbar-thin overflow-y-auto'}`} data-testid="settings-main">
+      <main className={`min-h-0 min-w-0 flex-1 ${LAYOUT_CLASSES.gutter} py-[var(--layout-block,1.25rem)] ${panelOwnsScroll ? 'overflow-hidden' : 'scrollbar-thin overflow-y-auto'}`} style={{ scrollbarGutter: 'stable' }} data-testid="settings-main">
         <div key={activeSection} id={`${prefix}-panel-${activeSection}`} role="tabpanel"
           aria-label={SETTINGS_NAV_ITEMS.find((item) => item.id === activeSection)?.label}
           className={`view-transition mx-auto w-full min-w-0 max-w-[var(--layout-width,48rem)] ${panelOwnsScroll ? 'h-full min-h-0' : ''}`} data-testid={`${prefix}-content`}>

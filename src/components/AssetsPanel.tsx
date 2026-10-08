@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { BookOpen, Footprints, ImagePlus, Layers, LayoutGrid, PersonStanding, RectangleVertical, Shirt, Sparkles, type LucideIcon } from 'lucide-react'
 import { ActionButton } from './foundation/ActionButton'
+import { ErrorState } from './foundation/ErrorState'
 import { IconButton } from './foundation/IconButton'
 import { ImagePreviewImage } from './foundation/ImagePreviewImage'
 import { GeneratedImageResult } from './chat/callbacks/GeneratedImageResult'
@@ -418,9 +419,8 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
       </div>}
 
       <div className={`min-h-0 min-w-0 flex-1 overflow-y-auto ${wardrobeGallery ? LAYOUT_CLASSES.gutter : 'px-4'} py-4 scrollbar-thin`} data-testid="wardrobe-content-scroll">
-        <WorldWriteError message={readError}>
-          {!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>}
-        </WorldWriteError>
+        {readError && <ErrorState className="mb-4" title="物什未能读取" description={readError}
+          action={!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>} />}
         {pendingDelete && (
           <WorldAssetDeleteConfirm
             asset={pendingDelete}

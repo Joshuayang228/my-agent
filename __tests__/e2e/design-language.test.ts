@@ -2,13 +2,15 @@ import { test, expect } from '@playwright/test'
 
 for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 746]) {
   test(`正式设置九区页头 ${theme} ${width}`, async ({ page }, info) => {
-    await page.setViewportSize({ width, height: 704 })
+    await page.setViewportSize({ width, height: 480 })
     await page.addInitScript(theme => localStorage.setItem('theme', theme), theme)
     await page.goto('/')
     await page.getByTestId('primary-sidebar').getByRole('button', { name: '设置', exact: true }).click()
     const settings = page.getByTestId('settings-panel')
+    await expect(settings.getByTestId('settings-main')).toHaveCSS('scrollbar-gutter', 'stable')
     const sections = ['appearance', 'companion', 'model', 'memory', 'data', 'permissions', 'skills', 'mcp', 'about']
     let typography: string[] | undefined
+    let absoluteLeft: number | undefined
     for (const section of sections) {
       await (width >= 768 ? settings.getByTestId(`settings-nav-${section}`) : settings.getByTestId('settings-mobile-nav').getByRole('tab').nth(sections.indexOf(section))).click()
       const panel = settings.getByTestId('settings-content')
@@ -18,18 +20,51 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
       const geometry = await panel.evaluate(el => {
         const header = el.querySelector(':scope > header')!, heading = header.querySelector('h2')!, body = header.nextElementSibling!
         const p = el.getBoundingClientRect(), r = heading.getBoundingClientRect(), style = getComputedStyle(heading)
-        return { left: r.left - p.left, top: r.top - p.top, bodyLeft: body.getBoundingClientRect().left - p.left,
+        return { absoluteLeft: r.left, left: r.left - p.left, top: r.top - p.top, bodyLeft: body.getBoundingClientRect().left - p.left,
           gap: body.getBoundingClientRect().top - header.getBoundingClientRect().bottom,
           typography: [style.fontSize, style.fontWeight, style.lineHeight], overflow: el.scrollWidth > el.clientWidth }
       })
       expect(Math.abs(geometry.left)).toBeLessThanOrEqual(2)
       expect(Math.abs(geometry.top)).toBeLessThanOrEqual(2)
       expect(Math.abs(geometry.bodyLeft)).toBeLessThanOrEqual(2)
+      absoluteLeft ??= geometry.absoluteLeft
+      expect(Math.abs(geometry.absoluteLeft - absoluteLeft)).toBeLessThanOrEqual(2)
       expect(geometry.gap).toBeCloseTo(16, 0)
       typography ??= geometry.typography
       expect(geometry.typography).toEqual(typography)
       expect(geometry.overflow).toBe(false)
       await page.screenshot({ path: info.outputPath(`production-${section}.png`) })
+    }
+  })
+}
+
+for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 746]) {
+  test(`正式生活面读取错误一致 ${theme} ${width}`, async ({ page }, info) => {
+    await page.setViewportSize({ width, height: 704 })
+    await page.addInitScript(theme => localStorage.setItem('theme', theme), theme)
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+    let baseline: { x: number; y: number; font: string; line: string } | undefined
+    for (const tab of ['moments', 'wardrobe', 'culture', 'home', 'cast', 'footprints']) {
+      await page.getByTestId(`world-tab-${tab}`).click()
+      const panel = page.locator(`#world-panel-${tab}`)
+      const alert = panel.getByRole('alert').first()
+      await expect(alert).toBeVisible()
+      const geometry = await alert.evaluate(el => {
+        const r = el.closest('section')!.getBoundingClientRect(), p = el.closest('[role="tabpanel"]')!.getBoundingClientRect(), s = getComputedStyle(el)
+        return { x: r.left - p.left, y: r.top - p.top, font: s.fontSize, line: s.lineHeight }
+      })
+      baseline ??= geometry
+      expect(Math.abs(geometry.x - baseline.x)).toBeLessThanOrEqual(2)
+      expect(Math.abs(geometry.y - baseline.y)).toBeLessThanOrEqual(2)
+      expect(geometry.font).toEqual(baseline.font)
+      expect(geometry.line).toEqual(baseline.line)
+      const retry = panel.getByRole('button', { name: /重新读取|重试生活面/ }).first()
+      await expect(retry).toBeEnabled()
+      await retry.click()
+      await expect(alert).toBeVisible()
+      expect(await panel.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(false)
+      await page.screenshot({ path: info.outputPath(`world-${tab}-error.png`) })
     }
   })
 }
