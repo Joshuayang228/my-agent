@@ -709,6 +709,7 @@ function SettingsSurface({ persona, onPersonaChange, scenario, onScenarioChange,
             companionDetail={scenario === 'role-shelf' ? <RoleShelfFixture persona={persona} onPersonaChange={onPersonaChange} /> : undefined}
             initialSection={scenario === 'memory-management' ? 'memory' : scenario === 'role-shelf' ? 'companion' : undefined}
             onOpenRoleShelf={() => onScenarioChange('role-shelf')}
+            onClose={onNavigate ? () => onNavigate('chat') : undefined}
           />
         </div>
       </SurfaceViewport>

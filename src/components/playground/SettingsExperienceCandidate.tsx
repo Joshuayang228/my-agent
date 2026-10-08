@@ -68,6 +68,7 @@ export interface SettingsExperienceCandidateProps {
   memoryDetail?: ReactNode
   initialSection?: SettingsCandidateSection
   onOpenRoleShelf?: () => void
+  onClose?: () => void
 }
 interface CandidateSwitchProps { checked: boolean; compact?: boolean; description: string; label: string; onChange: (checked: boolean) => void; scope?: string; testId: string }
 
@@ -478,7 +479,7 @@ function AboutPage({ developerMode, onDeveloperModeChange }: { developerMode: bo
   </div>
 }
 
-export function SettingsExperienceCandidate({ companionDetail, memoryDetail, initialSection, onOpenRoleShelf }: SettingsExperienceCandidateProps) {
+export function SettingsExperienceCandidate({ companionDetail, memoryDetail, initialSection, onOpenRoleShelf, onClose }: SettingsExperienceCandidateProps) {
   const [activeSection, setActiveSection] = useState<SettingsCandidateSection>(initialSection ?? 'appearance')
   const [activeTheme, setActiveTheme] = useState<ThemeStudyId>(THEME_STUDIES[0].id)
   const [fontScale, setFontScale] = useState('md')
@@ -499,7 +500,7 @@ export function SettingsExperienceCandidate({ companionDetail, memoryDetail, ini
 
 
   return <div aria-label="设置候选版" className="flex min-h-[620px] w-full min-w-0 overflow-hidden rounded-[var(--radius-lg)] border" style={{ ...layoutProfileStyle('settings'), ...getThemeStudyStyle(THEME_STUDIES.find((theme) => theme.id === activeTheme)!), borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} data-layout-profile="settings" data-playground-theme={activeTheme} data-testid="settings-candidate">
-    <SettingsLayout activeSection={activeSection} onSelect={setActiveSection} prefix="settings-candidate">
+    <SettingsLayout activeSection={activeSection} onSelect={setActiveSection} onClose={onClose} showNavigationTitle={false} prefix="settings-candidate">
       {activeSection === 'appearance' && <AppearancePage activeTheme={activeTheme} fontScale={fontScale} onFontScaleChange={setFontScale} onThemeChange={setActiveTheme} />}{activeSection === 'memory' && <MemoryPage detail={memoryDetail} />}{activeSection === 'companion' && (companionDetail ?? <CompanionPage expertise={expertise} momentTips={momentTips} onExpertiseChange={setExpertise} onOpenRoleShelf={onOpenRoleShelf} onMomentTipsChange={setMomentTips} onProactiveGreetingChange={setProactiveGreeting} proactiveGreeting={proactiveGreeting} />)}{activeSection === 'model' && <ModelPage selectedProvider={selectedProvider} onProviderChange={setSelectedProvider} />}{activeSection === 'data' && <DataPage />}{activeSection === 'permissions' && <PermissionsPage mode={permissionMode} onModeChange={setPermissionMode} />}{activeSection === 'skills' && <CapabilityPage mode="skills" />}{activeSection === 'mcp' && <CapabilityPage mode="mcp" />}{activeSection === 'about' && <AboutPage developerMode={developerMode} onDeveloperModeChange={setDeveloperMode} />}
     </SettingsLayout>
   </div>

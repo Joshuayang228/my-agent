@@ -29,6 +29,7 @@ interface SettingsLayoutProps {
   activeSection: SettingsPageId
   onSelect: (section: SettingsPageId) => void
   onClose?: () => void
+  showNavigationTitle?: boolean
   children: ReactNode
   prefix?: string
   /** 嵌入的管理面板拥有自己的滚动区，外壳不能再增加第二个页面滚动区。 */
@@ -40,7 +41,7 @@ interface SettingsLayoutProps {
  * 设计意图：共享业务导航与布局，基础交互复用 ActionButton / TabStrip；数据和保存仍由调用方管理。
  * 关键约束：此组件不读写 IPC 或设置，候选与正式只隔离内容；所有导航项始终预留指示图标空间。
  */
-export function SettingsLayout({ activeSection, onSelect, onClose, children, prefix = 'settings', panelOwnsScroll = false }: SettingsLayoutProps) {
+export function SettingsLayout({ activeSection, onSelect, onClose, children, prefix = 'settings', panelOwnsScroll = false, showNavigationTitle = true }: SettingsLayoutProps) {
   const renderItem = (item: SettingsNavItem) => {
     const active = item.id === activeSection
     return <ActionButton key={item.id} size="md" aria-current={active ? 'page' : undefined}
@@ -60,7 +61,7 @@ export function SettingsLayout({ activeSection, onSelect, onClose, children, pre
       style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} data-testid="settings-nav">
       <div className="mb-5 px-2">
         {onClose ? <ActionButton onClick={onClose} title="返回聊天" data-testid="settings-back" variant="plain" className="min-h-8 w-full justify-start gap-1.5 rounded-lg px-2.5 py-2 text-left text-[12px]"><ArrowLeft size={15} strokeWidth={1.75} />返回</ActionButton> : null}
-        <h2 className="mt-2 text-[13px] font-semibold">设置</h2>
+        {showNavigationTitle && <h2 className="mt-2 text-[13px] font-semibold">设置</h2>}
       </div>
       <nav className="flex-1 space-y-5" aria-label="设置导航">
         {SETTINGS_NAV_GROUPS.map((group) => <div key={group.group}>
