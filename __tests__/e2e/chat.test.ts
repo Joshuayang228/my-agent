@@ -19,6 +19,10 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1166, 
     const close = sidebar.getByRole('button', { name: '收起侧栏', exact: true })
     const reopen = page.getByTestId('surface-sidebar-reopen')
     const before = (await close.boundingBox())!
+    const brand = (await sidebar.getByTitle('打开角色架').boundingBox())!
+    const sidebarBox = (await sidebar.boundingBox())!
+    expect(brand.y - sidebarBox.y).toBeLessThanOrEqual(8)
+    expect(brand.x + brand.width).toBeLessThanOrEqual(before.x)
     await expect(reopen).toBeHidden()
     await expect(sidebar.getByTestId('sidebar-toolbar').getByRole('button', { name: '收起侧栏' })).toHaveCount(0)
     await expect(sidebar).toHaveCSS('transition-duration', '0.22s, 0.22s')

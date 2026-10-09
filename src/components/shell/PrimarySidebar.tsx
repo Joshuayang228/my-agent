@@ -102,7 +102,7 @@ export function PrimarySidebar({
 }) {
   return (
     <aside
-      className="chat-shape-scope flex shrink-0 flex-col border-r"
+      className={`chat-shape-scope flex shrink-0 flex-col border-r ${collapseControlPlacement === 'header' ? 'relative' : ''}`}
       style={{
         width: width ?? 248,
         background: 'var(--sidebar-bg)',
@@ -111,18 +111,16 @@ export function PrimarySidebar({
       data-testid="primary-sidebar"
     >
       {collapseControlPlacement === 'header' && (
-        <div className="flex h-12 shrink-0 items-center justify-end px-3">
           <IconButton size={32} onClick={onCollapse} label="收起侧栏" title="收起侧栏 Ctrl+B"
-            className="hover:bg-[var(--sidebar-hover)]" style={{ color: 'var(--text-muted)' }}>
+            className="absolute right-3 top-2 hover:bg-[var(--sidebar-hover)]" style={{ color: 'var(--text-muted)' }}>
             <PanelLeftClose size={16} />
           </IconButton>
-        </div>
       )}
       {/* 品牌 / 主角 */}
       <ActionButton
         onClick={onOpenShelf}
         size="md"
-        className="mx-3 mt-4 w-auto justify-start gap-3 border-0 px-2 py-2.5 text-left"
+        className={`w-auto justify-start gap-3 border-0 px-2 py-2.5 text-left ${collapseControlPlacement === 'header' ? 'ml-3 mr-12 mt-2' : 'mx-3 mt-4'}`}
         style={{ background: 'transparent' }}
         onMouseEnter={(event) => { event.currentTarget.style.background = 'var(--sidebar-hover)' }}
         onMouseLeave={(event) => { event.currentTarget.style.background = 'transparent' }}
