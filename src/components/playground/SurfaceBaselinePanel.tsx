@@ -307,10 +307,9 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
   const [previewFiles, setPreviewFiles] = useState<string[]>([])
   const [previewMessage, setPreviewMessage] = useState('')
   const previewFileRef = useRef<HTMLInputElement>(null)
-  const [workspaceOpen, setWorkspaceOpen] = useState(true)
+  const [workspaceOpen, setWorkspaceOpen] = useState(false)
   const setJourney = (next: ChatJourney) => {
     setJourneyState(next)
-    setWorkspaceOpen(true)
   }
   const handleContextMenu = (event: MouseEvent, sessionId: string) => {
     event.preventDefault()
@@ -420,9 +419,9 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                   <PanelLeftOpen size={15} />
                 </button>
               )}
-              {isWork && <div className="hidden h-12 shrink-0 items-center justify-end px-3 md:flex" data-testid="chat-surface-workspace-toolbar">
+              <div className="hidden h-12 shrink-0 items-center justify-end px-3 md:flex" data-testid="chat-surface-workspace-toolbar">
                 <button type="button" title={workspaceOpen ? '收起工作区' : '打开工作区'} aria-label={workspaceOpen ? '收起工作区' : '打开工作区'} aria-expanded={workspaceOpen} aria-controls="chat-surface-workspace-panel" onClick={() => setWorkspaceOpen((open) => !open)} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-secondary)' }} data-testid="chat-surface-workspace-toggle"><PanelRight size={16} aria-hidden="true" /></button>
-              </div>}
+              </div>
               <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                 <div className={`flex min-h-0 flex-1 overflow-y-auto ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`} data-testid="chat-surface-scroll">
                   {isWelcome ? (
@@ -475,11 +474,9 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                 </div>
               </div>
             )}
-            {isWork && (
               <div id="chat-surface-workspace-panel" className={`hidden min-w-0 self-stretch shrink-0 overflow-hidden border-l ${workspaceOpen ? 'md:flex' : ''}`} data-testid="chat-surface-workspace" style={{ width: viewport === 'split' ? 320 : 420, maxWidth: '45%', borderColor: 'var(--border-color)' }}>
-                <WorkspaceDock initialView="files" initialScene="Markdown" onClose={() => setJourney('conversation')} />
+                <WorkspaceDock initialView="files" initialScene="Markdown" onClose={() => setWorkspaceOpen(false)} />
               </div>
-            )}
           </div>
         </SurfaceViewport>
       </div>
