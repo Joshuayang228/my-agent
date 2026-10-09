@@ -6,6 +6,20 @@
 
 ## 1. 需求背景（Why）
 
+### 2026-10-09：Chat 与侧边栏整体 P1 回流
+
+授权：用户明确要求「把chat相关的回流到正式环境吧……包括侧边栏的也回流」。来源为 SurfaceBaselinePanel 的 Chat / Sidebar 样张及共享 ChatWelcome、ChatComposer、ChatMessageFrame、ReasoningCallback；允许修改 App、PrimarySidebar、ChatComposer、ReasoningCallback、GeneratedImageResult、相关样张 / CSS、定向测试与本合同、运行时模块卡、质量、进度、变更日志。
+
+| 项目 | 正式落点与分类 | 保留 / 排除与验收 |
+|------|----------------|------------------|
+| 侧边栏 | PrimarySidebar 已同源；直接采用并验证 | 保留真实会话、搜索、重命名、删除、折叠、角色与开发者门控；不播种样张 |
+| Chat 工具栏 / 工作区 | App 顶部保留固定工具槽，移除重复会话标题 / 分界；工作区按钮不依赖项目 | ChatRightDock 支持 projectPath=null；保留无项目提示和已有真实五工具、折叠挂载、换项目重建；不复制候选工作区 |
+| 欢迎 / 正文 / 输入布局 | App 显式注入 chat 布局 profile，复用共享组件及宽度 / 间距 | 原欢迎快捷操作、输入法、发送 / 停止、错误 / 审批、附件与草稿不变 |
+| 思考卡 | App 两个真实 reasoning 调用点显式采用 stable 展开效果 | 使用真实 chunks；不移植样张思考正文，不修改 Prompt 或模型策略；补折叠 / 流式 / 长文及减少动效检查 |
+| 图片交互 | Chat 复用 ImagePreviewImage，输入工具提供主动生图意图入口 | 仅填可编辑草稿、不能自动发送或收费；实际发送仍走 sendMessage / Agent / 权限链；图片地址与受控读取契约不变 |
+
+不新增依赖、IPC、存储、权限或模型配置，不改变非 Chat 页。候选控制器 / 夹具 / 来源标签留在 Playground，其他未提交修改分别隔离。先完成实际调用与差异自审，再通过 Unit、类型、构建、深浅窄宽正式 UI、工作区状态 / 搜索 / 输入 / 图片 / 审批回归与资产 / 文档门禁；只在证据成立后记为 adopted。本合同其他未确认候选不因此获得回流许可。
+
 ### 2026-10-09：Chat 工作区按钮常驻 P0
 
 用户明确选择「按钮常驻」并授权「好，改吧」。仅调整 SurfaceBaselinePanel 的隔离 Chat 样张：六态都保留展开 / 收起入口，初次默认收起，旅程切换不强制展开、不卸载内容，关闭最后一个内容只收起工作区；保留既有 md 响应式阈值和真实页面行为。默认、深浅宽窄、内容保留、键盘与关闭恢复由 chat.test.ts 验收，不视为正式回流许可证。

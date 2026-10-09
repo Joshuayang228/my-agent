@@ -21,6 +21,7 @@ import { CharacterShelfContent } from '../companion/CharacterShelfContent'
 import { ChatComposer } from '../chat/ChatComposer'
 import { ChatApprovalControl } from '../chat/ChatApprovalControl'
 import { ChatMessageFrame } from '../chat/ChatMessageFrame'
+import { ReasoningCallback } from '../chat/callbacks/ReasoningCallback'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { MomentsPanel, type MomentItem, type MomentMediaItem, type MomentsPreviewData } from '../MomentsPanel'
@@ -308,6 +309,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
   const [previewMessage, setPreviewMessage] = useState('')
   const previewFileRef = useRef<HTMLInputElement>(null)
   const [workspaceOpen, setWorkspaceOpen] = useState(false)
+  const [reasoningExpanded, setReasoningExpanded] = useState(false)
   const setJourney = (next: ChatJourney) => {
     setJourneyState(next)
   }
@@ -435,6 +437,14 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                       <ChatMessageFrame role="user">
                         <span className="whitespace-pre-wrap break-words">{previewMessage || '帮我把今天的事情理一下，先做最重要的。'}</span>
                       </ChatMessageFrame>
+                      <ReasoningCallback
+                        chunks={[{ content: '先确认今天必须完成的事情，再按重要程度整理，保留可以稍后再做的内容。' }]}
+                        expanded={reasoningExpanded}
+                        onToggle={() => setReasoningExpanded((expanded) => !expanded)}
+                        streaming={false}
+                        presentation="stable"
+                        className="mb-3"
+                      />
                       <ChatMessageFrame role="assistant" name={persona.name} previewTimeLabel="刚刚">
                           <p className="text-[14px] leading-7" data-testid={journey === 'completed' ? 'chat-surface-completed-reply' : undefined} style={{ color: 'var(--text-primary)' }}>{journey === 'completed' ? '已经整理好优先顺序。今天先处理最重要的三件事，剩下的我先放在会话里，之后可以继续接着排。' : '可以。我们先把今天必须完成的事情挑出来，再给剩下的留一点喘息的空间。'}</p>
                           <div className="mt-3 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}><MessageCircle size={12} aria-hidden="true" />上下文会跟着当前会话保留</div>
@@ -453,12 +463,14 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                         onKeyDown: event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); sendPreview() } } }}
                       modelLabel="样张模型" sendDisabled={!previewInput.trim()} onSend={sendPreview}
                       onAttach={() => previewFileRef.current?.click()}
+                      onImageGenerate={() => setPreviewInput(current => current.trim() || '请生成一张图片：')}
                       prefix={previewFiles.length > 0 && <div className="flex flex-wrap gap-1" data-testid="chat-preview-attachments">
                         {previewFiles.map((name, index) => <span key={index} className="inline-flex max-w-full items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                           <span className="min-w-0 truncate">{name}</span><IconButton label={`移除${name}`} size={24} onClick={() => setPreviewFiles(files => files.filter((_, item) => item !== index))}><X size={12} /></IconButton>
                         </span>)}
                       </div>}
                       approvalControl={<ChatApprovalControl value="confirm-all" disabled />}
+                      inputFocusRing="card"
                     />
                     <div className="mt-1.5 flex items-center justify-between px-1 text-[10px]" style={{ color: 'var(--text-muted)' }}><span className="flex items-center gap-1"><Folder size={11} /> my-agent · 样张项目</span><span>{isWork ? (workspaceOpen ? '工作区已打开' : '工作区已收起') : journey === 'confirmation' ? '等待确认' : journey === 'completed' ? '任务已完成' : journey === 'failed' ? '可以重试或继续聊聊' : isWelcome ? '准备开始' : '对话进行中'}</span></div>
                   </div>
@@ -525,6 +537,7 @@ function SidebarSurface() {
             onContextMenu={handleContextMenu}
             onNavigate={noop}
             onCollapse={noop}
+            collapseFooterDivider
           />
         </div>
         <div className="flex min-w-0 flex-1 items-center justify-center text-xs" style={{ color: 'var(--text-muted)' }}>

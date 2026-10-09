@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, type ReactNode, type RefObject, type TextareaHTMLAttributes } from 'react'
-import { ArrowUp, Paperclip, Square } from 'lucide-react'
+import { ArrowUp, ImagePlus, Paperclip, Square } from 'lucide-react'
 import { IconButton } from '../foundation/IconButton'
 import { TextField } from '../foundation/TextField'
 
@@ -14,8 +14,11 @@ interface ChatComposerProps {
   streaming?: boolean
   sendDisabled: boolean
   onAttach: () => void
+  onImageGenerate: () => void
   onSend: () => void
   onStop?: () => void
+  /** 嵌入输入的焦点由外层卡片承担；保留参数兼容已有样张。 */
+  inputFocusRing?: 'field' | 'card'
 }
 
 /**
@@ -23,7 +26,7 @@ interface ChatComposerProps {
  * 设计意图：共享 Foundation 输入与固定按钮，附件、审批、发送和停止仍由调用方负责；不把 IPC 或样张数据带进呈现层。
  * 关键约束：发送 / 停止共用 28px 槽，模型名只能截断，hover 不改布局；输入高度只随内容变化且不超过 120px。
  */
-export function ChatComposer({ inputProps, inputRef, prefix, approvalControl, modelLabel, streaming = false, sendDisabled, onAttach, onSend, onStop }: ChatComposerProps) {
+export function ChatComposer({ inputProps, inputRef, prefix, approvalControl, modelLabel, streaming = false, sendDisabled, onAttach, onImageGenerate, onSend, onStop, inputFocusRing = 'field' }: ChatComposerProps) {
   const localRef = useRef<HTMLTextAreaElement>(null)
   const textareaRef = inputRef ?? localRef
   const resizeInput = () => {
@@ -38,10 +41,11 @@ export function ChatComposer({ inputProps, inputRef, prefix, approvalControl, mo
     style={{ borderColor: 'var(--border-color)', background: 'var(--card-bg)', boxShadow: '0 6px 22px color-mix(in srgb, var(--text-primary) 5%, transparent)' }}>
     {prefix}
     <TextField multiline rows={1} aria-label="消息" {...inputProps} appearance="embedded" ref={textareaRef} disabled={streaming}
-      onInput={resizeInput} className="min-h-[64px] w-full resize-none px-1 py-2 !text-[13px] disabled:opacity-50" style={{ maxHeight: 120 }} />
+      onInput={resizeInput} className={`min-h-[64px] w-full resize-none px-1 py-2 !text-[13px] disabled:opacity-50 ${inputFocusRing === 'card' ? 'chat-composer-input-no-ring' : ''}`} style={{ maxHeight: 120 }} />
     <div className="flex min-w-0 items-center justify-between gap-2 pt-1" data-testid="chat-composer-toolbar">
       <div className="flex shrink-0 items-center gap-1">
         <IconButton label="添加附件" onClick={onAttach} className="transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><Paperclip size={14} aria-hidden="true" /></IconButton>
+        <IconButton label="生成图片" onClick={onImageGenerate} disabled={streaming} className="transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-muted)' }}><ImagePlus size={14} aria-hidden="true" /></IconButton>
         <span className="h-4 w-px" style={{ background: 'var(--border-subtle)' }} />
         {approvalControl}
       </div>

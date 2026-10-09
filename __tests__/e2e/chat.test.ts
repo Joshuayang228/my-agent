@@ -8,6 +8,69 @@ import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { expectSharedCodeSurface } from './shared-code-surface'
 
+for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 600]) {
+  test(`正式 Chat 整体回流 ${theme} ${width}`, async ({ page }, info) => {
+    await page.setViewportSize({ width, height: 704 })
+    await installProductionElectronStub(page)
+    await page.addInitScript(theme => {
+      localStorage.setItem('theme', theme)
+      const api = (window as any).electronAPI
+      api.project.get = async () => null
+      api.project.list = async () => []
+      const state = { sends: [] as any[], emit: (_event: any) => {} }
+      ;(window as any).__chatRollout = state
+      api.chat.onEvent = (listener: any) => { state.emit = listener; return () => {} }
+      api.chat.send = async (_id: string, message: any) => { state.sends.push(message) }
+      api.chat.abort = async (id: string) => state.emit({ sessionId: id, type: 'done', reason: 'cancelled' })
+      api.session.get = async () => ({ id: 'e2e-session', messages: state.sends })
+    }, theme)
+    await page.goto('/')
+    const sidebar = page.getByTestId('primary-sidebar')
+    await expect(sidebar.getByRole('button', { name: '新对话', exact: true })).toHaveCSS('border-radius', '10px')
+    await expect(page.getByTestId('chat-toolbar')).toHaveCSS('border-bottom-width', '0px')
+    await expect(page.getByTestId('chat-toolbar')).not.toContainText('新对话')
+    const toggle = page.getByRole('button', { name: '打开工作区', exact: true })
+    await expect(toggle).toBeVisible()
+    const input = page.getByRole('textbox', { name: '消息', exact: true })
+    await page.getByRole('button', { name: '生成图片', exact: true }).click()
+    await expect(input).toHaveValue('请生成一张图片：')
+    expect(await page.evaluate(() => (window as any).__chatRollout.sends.length)).toBe(0)
+    await input.fill('保留我的草稿')
+    await page.getByRole('button', { name: '生成图片', exact: true }).click()
+    await expect(input).toHaveValue('保留我的草稿')
+    const content = (await page.getByTestId('chat-content').boundingBox())!
+    const composer = (await page.getByTestId('chat-composer').boundingBox())!
+    expect(Math.abs(content.x - composer.x)).toBeLessThan(2)
+    expect(Math.abs(content.width - composer.width)).toBeLessThan(2)
+    await page.screenshot({ path: info.outputPath('chat-ready.png') })
+    if (width < 800) await sidebar.getByRole('button', { name: '收起侧栏', exact: true }).click()
+    await toggle.click()
+    const dock = page.getByTestId('chat-right-dock')
+    await expect(dock).toBeVisible()
+    await expect(dock).toContainText('未选择项目')
+    await page.getByRole('button', { name: '收起工作区', exact: true }).click()
+    await expect(dock).toBeHidden()
+    await input.fill('介绍一下你自己')
+    await input.press('Enter')
+    await expect.poll(() => page.evaluate(() => (window as any).__chatRollout.sends.length)).toBe(1)
+    await page.evaluate(() => (window as any).__chatRollout.emit({ sessionId: 'e2e-session', type: 'thinking', content: '真实事件中的思考文字。\n'.repeat(80) }))
+    const reasoning = page.locator('[data-callback="reasoning"]').filter({ visible: true })
+    await expect(reasoning).toHaveClass(/reasoning-callback-stable/)
+    const reasoningToggle = reasoning.getByRole('button', { name: '思考过程' })
+    await reasoningToggle.click()
+    await expect(reasoningToggle).toHaveAttribute('aria-expanded', 'true')
+    const pre = reasoning.locator('pre')
+    expect(await pre.evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true)
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await expect(reasoning.locator('.reasoning-callback-content')).toHaveCSS('transition-duration', '0s')
+    await reasoningToggle.click()
+    await expect(reasoning.locator('.reasoning-callback-content')).toHaveAttribute('aria-hidden', 'true')
+    await page.getByRole('button', { name: '停止', exact: true }).click()
+    await expect(page.getByRole('button', { name: '打开工作区', exact: true })).toBeVisible()
+    await page.screenshot({ path: info.outputPath('chat-stopped.png') })
+  })
+}
+
 for (const width of [1166, 600]) {
   test('角色架快捷入口统一进入设置并返回原分区 ' + width, async ({ page }, testInfo) => {
     await installProductionElectronStub(page)

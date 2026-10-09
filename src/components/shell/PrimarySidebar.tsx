@@ -99,7 +99,7 @@ export function PrimarySidebar({
 }) {
   return (
     <aside
-      className="flex shrink-0 flex-col border-r"
+      className="chat-shape-scope flex shrink-0 flex-col border-r"
       style={{
         width: width ?? 248,
         background: 'var(--sidebar-bg)',

@@ -308,6 +308,9 @@ html[data-font-scale="lg"] {
   border-color: color-mix(in srgb, var(--accent) 62%, var(--border-color));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 24%, transparent);
 }
+.chat-composer-input-no-ring:focus-visible {
+  box-shadow: none;
+}
 .foundation-text-field-outlined {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -329,11 +332,15 @@ html[data-font-scale="lg"] {
 .playground-shape-scope .foundation-icon-button,
 .world-shape-scope .foundation-action-button,
 .world-shape-scope .foundation-button,
-.world-shape-scope .foundation-icon-button {
+.world-shape-scope .foundation-icon-button,
+.chat-shape-scope .foundation-action-button,
+.chat-shape-scope .foundation-button,
+.chat-shape-scope .foundation-icon-button {
   border-radius: var(--radius-control);
 }
 .playground-shape-scope .foundation-text-field-outlined,
-.world-shape-scope .foundation-text-field-outlined {
+.world-shape-scope .foundation-text-field-outlined,
+.chat-shape-scope .foundation-text-field-outlined {
   border-radius: var(--radius-input);
 }
 .playground-shape-scope .playground-story-block,
@@ -346,9 +353,26 @@ html[data-font-scale="lg"] {
   border-radius: var(--radius-overlay);
 }
 .playground-shape-scope [data-foundation="tabs"][data-tab-variant="surface"] > [role="presentation"],
-.world-shape-scope [data-foundation="tabs"][data-tab-variant="surface"] > [role="presentation"] {
+.world-shape-scope [data-foundation="tabs"][data-tab-variant="surface"] > [role="presentation"],
+.chat-shape-scope [data-foundation="tabs"][data-tab-variant="surface"] > [role="presentation"] {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-control);
+}
+.reasoning-callback-content {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height var(--motion-normal) var(--motion-ease), opacity var(--motion-fast) var(--motion-ease);
+}
+.reasoning-callback-content-open {
+  max-height: 13rem;
+  opacity: 1;
+  overflow: visible;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reasoning-callback-content {
+    transition: none;
+  }
 }
 .foundation-action-button:focus,
 .foundation-button:focus {

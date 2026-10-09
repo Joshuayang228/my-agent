@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { FolderOpen, ImageOff, LoaderCircle, Maximize2, Minimize2, RefreshCw } from 'lucide-react'
 import { ActionButton } from '../../foundation/ActionButton'
 import { IconButton } from '../../foundation/IconButton'
+import { ImageViewer } from '../../foundation/ImageViewer'
 import type { GeneratedImageReadResult, GeneratedImageReference, GeneratedImageRevealResult } from '../../../shared/types'
 
 export type GeneratedImageReader = (imageId: string) => Promise<GeneratedImageReadResult>
@@ -16,6 +17,7 @@ function ImageContent({ image, readImage, revealImage }: { image: GeneratedImage
   const [original, setOriginal] = useState(false)
   const [revealing, setRevealing] = useState(false)
   const [revealNotice, setRevealNotice] = useState('')
+  const [viewerOpen, setViewerOpen] = useState(false)
   const revealPending = useRef(false)
   const mounted = useRef(false)
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
@@ -48,10 +50,12 @@ function ImageContent({ image, readImage, revealImage }: { image: GeneratedImage
   const loading = !result || (!!result.source && !decoded)
   return <figure className="min-w-0 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} data-testid="generated-image-result">
     <div className="relative w-full overflow-auto rounded" style={{ aspectRatio: ratio, minHeight: 128, maxHeight: 360, background: 'var(--bg-tertiary)' }} data-testid="generated-image-viewport" aria-busy={loading}>
-      {result?.source && <img src={result.source} alt="生成的图片" width={image.width} height={image.height}
-        className={original ? 'block max-w-none' : 'absolute inset-0 h-full w-full object-contain'}
-        style={{ opacity: decoded ? 1 : 0 }}
-        onLoad={() => setDecoded(true)} onError={() => { setDecoded(false); setResult({ error: '图片无法显示，请重新读取。' }) }} />}
+      {result?.source && <button type="button" aria-label="预览生成的图片" className="absolute inset-0 block min-w-0 appearance-none border-0 bg-transparent p-0 text-left" disabled={!decoded} onClick={() => setViewerOpen(true)}>
+        <img src={result.source} alt="生成的图片" width={image.width} height={image.height}
+          className={original ? 'block max-w-none' : 'absolute inset-0 h-full w-full object-contain'}
+          style={{ opacity: decoded ? 1 : 0 }}
+          onLoad={() => setDecoded(true)} onError={() => { setDecoded(false); setResult({ error: '图片无法显示，请重新读取。' }) }} />
+      </button>}
       {loading && <div role="status" className="absolute inset-0 flex items-center justify-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}><LoaderCircle size={16} className="animate-spin" />正在读取图片</div>}
       {result?.error && <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-auto p-3 text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
         <ImageOff size={20} /><p className="max-w-full break-words">{result.error}</p>
@@ -69,6 +73,7 @@ function ImageContent({ image, readImage, revealImage }: { image: GeneratedImage
       </IconButton>
     </figcaption>
     {revealNotice && <p role="status" className="mt-1 break-words text-[11px]" style={{ color: 'var(--text-muted)' }}>{revealNotice}</p>}
+    {result?.source && <ImageViewer items={[{ src: result.source, alt: '生成的图片' }]} open={viewerOpen} onClose={() => setViewerOpen(false)} />}
   </figure>
 }
 

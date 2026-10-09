@@ -22,6 +22,7 @@ import { ChatComposer } from './components/chat/ChatComposer'
 import { ChatApprovalControl } from './components/chat/ChatApprovalControl'
 import { ChatMessageFrame } from './components/chat/ChatMessageFrame'
 import { IconButton } from './components/foundation/IconButton'
+import { ImagePreviewImage } from './components/foundation/ImagePreviewImage'
 import {
   Volume2, Paperclip,
   Folder, FolderOpen, Ban, PanelRight,
@@ -57,6 +58,7 @@ import {
 } from './components/shell'
 import { ResizeHandle } from './components/shell/ResizeHandle'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from './shared/panel-layout'
+import { LAYOUT_CLASSES, layoutProfileStyle } from './shared/content-layout'
 import { normalizeThemeId } from './shared/design-asset-registry'
 
 let messageIdCounter = 0
@@ -1055,10 +1057,10 @@ function App() {
       )}
 
       {/* ── 主区域 ── */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Chat 才需要会话顶栏；其它全页视图自带导航，避免留下无内容的 52px 空壳。 */}
+      <div className={`${activeView === 'chat' ? 'chat-shape-scope ' : ''}flex min-w-0 flex-1 flex-col overflow-hidden`} style={activeView === 'chat' ? layoutProfileStyle('chat') : undefined}>
+        {/* Chat 工具槽常驻，避免工作区入口随项目或聊天阶段消失；其它全页视图仍自带导航。 */}
         {activeView === 'chat' && (
-          <div className="flex h-[52px] shrink-0 items-center border-b px-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
+          <div data-testid="chat-toolbar" className="flex h-12 shrink-0 items-center px-3" style={{ background: 'var(--bg-primary)' }}>
             {!sidebarOpen && (
               <button
                 onClick={() => setSidebarOpen(true)}
@@ -1071,12 +1073,7 @@ function App() {
                 <Menu size={16} />
               </button>
             )}
-            <div className="min-w-0 flex-1">
-              <span className="block truncate text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-                {sessions.find((session) => session.id === activeSessionId)?.title || '新对话'}
-              </span>
-            </div>
-            {currentProject && (
+            <div className="min-w-0 flex-1" aria-hidden="true" />
               <IconButton
                 onClick={() => {
                   if (!showFileBrowser) {
@@ -1099,9 +1096,8 @@ function App() {
                 label={showFileBrowser && !rightDockCollapsed ? '收起工作区' : '打开工作区'}
                 title={showFileBrowser && !rightDockCollapsed ? '收起工作区' : '打开工作区'}
               >
-                <PanelRight size={14} />
+                <PanelRight size={16} />
               </IconButton>
-            )}
             {(() => {
               const session = sessions.find((item) => item.id === activeSessionId)
               const sessionRole = session?.roleId
@@ -1201,7 +1197,8 @@ function App() {
           onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) handleFileAttach(e.dataTransfer.files) }}
         >
           <CompanionSceneBackdrop roleId={activeRoleId} />
-          <div className="relative z-[1] mx-auto max-w-3xl px-6 py-8">
+          <div className={`relative z-[1] ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`}>
+          <div className="mx-auto w-full" style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-content">
             {/* 欢迎屏 — 衬线问候 + 建议 pill（Phase 3） */}
             {messages.length === 0 && (
               <div className="flex min-h-[calc(100vh-13.5rem)] flex-col items-center justify-center pb-6">
@@ -1213,7 +1210,7 @@ function App() {
             )}
 
             {/* 消息流 — Alice 壳 Phase B */}
-            <div className="space-y-8">
+            <div className={LAYOUT_CLASSES.section}>
               {visibleMessages.map((msg, msgIndex) => {
                 const isSearchMatch = searchQuery && msg.content.toLowerCase().includes(searchQuery.toLowerCase())
                 const dimmed = searchQuery && !isSearchMatch
@@ -1233,6 +1230,7 @@ function App() {
                         expanded={thinkingExpanded}
                         onToggle={() => setThinkingExpanded(!thinkingExpanded)}
                         streaming={isStreaming}
+                        presentation="stable"
                         className="mb-3"
                       />
                     )}
@@ -1315,7 +1313,7 @@ function App() {
                             {msg.images && msg.images.length > 0 && (
                               <div className="mb-2 flex flex-wrap gap-2">
                                 {msg.images.map((img, i) => (
-                                  <img key={i} src={img.dataUrl} alt={img.fileName || 'image'} className="max-h-48 max-w-full rounded border" style={{ borderColor: 'var(--border-color)' }} />
+                                  <ImagePreviewImage key={i} src={img.dataUrl} alt={img.fileName || 'image'} className="max-h-48 max-w-full rounded border" buttonClassName="max-w-full" style={{ borderColor: 'var(--border-color)' }} />
                                 ))}
                               </div>
                             )}
@@ -1373,6 +1371,7 @@ function App() {
                 expanded={thinkingExpanded}
                 onToggle={() => setThinkingExpanded(!thinkingExpanded)}
                 streaming={isStreaming}
+                presentation="stable"
                 className="mt-4"
               />
             )}
@@ -1389,12 +1388,13 @@ function App() {
 
             <div ref={messagesEndRef} />
           </div>
+          </div>
 
         </div>}
 
         {/* 输入区 — Codex 风格居中卡片 */}
-        {activeView === 'chat' && <div className="relative shrink-0 px-5 pb-5 pt-2" style={{ background: 'var(--bg-primary)' }}>
-          <div className="mx-auto max-w-[800px]">
+        {activeView === 'chat' && <div className={`relative shrink-0 ${LAYOUT_CLASSES.gutter} pb-5 pt-2`} style={{ ...layoutProfileStyle('chat'), background: 'var(--bg-primary)' }} data-testid="chat-composer-area">
+          <div className="mx-auto w-full" style={{ maxWidth: 'var(--layout-width)' }}>
             {/* 附件预览 */}
             {attachedFiles.length > 0 && (
               <div className="mb-1.5 flex flex-wrap gap-1">
@@ -1410,7 +1410,7 @@ function App() {
               <div className="mb-1.5 flex gap-2">
                 {pendingImages.map((img, i) => (
                   <div key={i} className="group relative">
-                    <img src={img.dataUrl} alt={img.fileName || 'image'} className="h-14 w-14 rounded-lg border object-cover" style={{ borderColor: 'var(--border-color)' }} />
+                    <ImagePreviewImage src={img.dataUrl} alt={img.fileName || 'image'} className="h-14 w-14 rounded-lg border object-cover" style={{ borderColor: 'var(--border-color)' }} />
                     <button
                       onClick={() => setPendingImages(prev => prev.filter((_, idx) => idx !== i))}
                       className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full text-[10px] text-white group-hover:flex"
@@ -1500,6 +1500,10 @@ function App() {
                 inp.multiple = true
                 inp.onchange = () => { if (inp.files) void handleFileAttach(inp.files) }
                 inp.click()
+              }}
+              onImageGenerate={() => {
+                setInput((current) => current.trim() || '请生成一张图片：')
+                setTimeout(() => inputRef.current?.focus(), 0)
               }}
               prefix={mentionedFiles.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 px-3 pt-2">
