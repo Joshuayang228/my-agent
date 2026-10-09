@@ -8,6 +8,59 @@ import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { expectSharedCodeSurface } from './shared-code-surface'
 
+for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1166, 900]) {
+  test(`候选侧栏顶部对齐与连续切换 ${theme} ${width}`, async ({ page }, info) => {
+    await page.setViewportSize({ width, height: 731 })
+    await page.addInitScript(theme => localStorage.setItem('theme', theme), theme)
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+    await page.getByTestId('playground-nav').getByRole('button', { name: 'Chat', exact: true }).click()
+    const sidebar = page.getByTestId('surface-sidebar-candidate')
+    const close = sidebar.getByRole('button', { name: '收起侧栏', exact: true })
+    const reopen = page.getByTestId('surface-sidebar-reopen')
+    const before = (await close.boundingBox())!
+    await expect(reopen).toBeHidden()
+    await expect(sidebar.getByTestId('sidebar-toolbar').getByRole('button', { name: '收起侧栏' })).toHaveCount(0)
+    await expect(sidebar).toHaveCSS('transition-duration', '0.22s, 0.22s')
+    const samples = await close.evaluate(async button => {
+      const wrapper = button.closest('[data-testid="surface-sidebar-candidate"]')!
+      ;(window as any).__sidebarCandidateNode = wrapper.querySelector('aside')
+      button.click()
+      const widths: number[] = []
+      for (let i = 0; i < 6; i++) {
+        await new Promise(requestAnimationFrame)
+        widths.push(wrapper.getBoundingClientRect().width)
+      }
+      return widths
+    })
+    expect(samples.some(value => value > 0 && value < 248)).toBeTruthy()
+    await expect(sidebar).toHaveCSS('width', '0px')
+    await expect(sidebar).toHaveAttribute('inert', '')
+    await expect(reopen).toBeFocused()
+    const after = (await reopen.boundingBox())!
+    expect(Math.abs(before.y - after.y)).toBeLessThanOrEqual(1)
+    expect(after.height).toBe(before.height)
+    await page.screenshot({ path: info.outputPath('sidebar-closed.png'), animations: 'disabled' })
+    await reopen.press('Enter')
+    await expect(sidebar).toHaveCSS('width', '248px')
+    await expect(close).toBeFocused()
+    expect(await sidebar.evaluate(node => node.querySelector('aside') === (window as any).__sidebarCandidateNode)).toBeTruthy()
+    await page.screenshot({ path: info.outputPath('sidebar-open.png'), animations: 'disabled' })
+    await close.click()
+    await reopen.click()
+    await close.click()
+    await expect(sidebar).toHaveCSS('width', '0px')
+    await reopen.click()
+    await expect(sidebar).toHaveCSS('width', '248px')
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await expect(sidebar).toHaveCSS('transition-duration', '0s')
+    await close.click()
+    await expect(sidebar).toHaveCSS('width', '0px')
+    await reopen.press('Enter')
+    await expect(sidebar).toHaveCSS('width', '248px')
+  })
+}
+
 for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 600]) {
   test(`正式 Chat 整体回流 ${theme} ${width}`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: 704 })

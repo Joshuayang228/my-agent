@@ -62,6 +62,7 @@ export function PrimarySidebar({
   width,
   developerMode = false,
   collapseFooterDivider = true,
+  collapseControlPlacement = 'toolbar',
 }: {
   personaName: string
   personaBlurb: string
@@ -96,6 +97,8 @@ export function PrimarySidebar({
   developerMode?: boolean
   /** 正式与样张共用一条底栏外边界；显式 false 可保留独立分隔布局。 */
   collapseFooterDivider?: boolean
+  /** 顶部工具槽仅供已明确选择的候选调用方；正式默认入口不变。 */
+  collapseControlPlacement?: 'toolbar' | 'header'
 }) {
   return (
     <aside
@@ -107,6 +110,14 @@ export function PrimarySidebar({
       }}
       data-testid="primary-sidebar"
     >
+      {collapseControlPlacement === 'header' && (
+        <div className="flex h-12 shrink-0 items-center justify-end px-3">
+          <IconButton size={32} onClick={onCollapse} label="收起侧栏" title="收起侧栏 Ctrl+B"
+            className="hover:bg-[var(--sidebar-hover)]" style={{ color: 'var(--text-muted)' }}>
+            <PanelLeftClose size={16} />
+          </IconButton>
+        </div>
+      )}
       {/* 品牌 / 主角 */}
       <ActionButton
         onClick={onOpenShelf}
@@ -193,7 +204,7 @@ export function PrimarySidebar({
             <Search size={16} />
           </IconButton>
         )}
-        <IconButton
+        {collapseControlPlacement === 'toolbar' && <IconButton
           size={40}
           onClick={onCollapse}
           className="rounded-[var(--radius-lg)] transition hover:bg-[var(--sidebar-hover)]"
@@ -202,7 +213,7 @@ export function PrimarySidebar({
           title="收起侧栏 Ctrl+B"
         >
           <PanelLeftClose size={16} />
-        </IconButton>
+        </IconButton>}
       </div>
 
       {/* 会话列表 */}

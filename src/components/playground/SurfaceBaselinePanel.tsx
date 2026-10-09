@@ -256,6 +256,13 @@ const PAGE_CANDIDATE_STYLE = `
     .playground-sidebar-candidate > [data-testid="primary-sidebar"] {
       flex: 0 0 auto;
     }
+    .playground-chat-sidebar-motion {
+      overflow: hidden;
+      transition: width var(--motion-normal) var(--motion-ease), opacity var(--motion-normal) var(--motion-ease);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .playground-chat-sidebar-motion { transition: none; }
+    }
     .playground-sidebar-candidate [data-testid="primary-sidebar"] button[title="记忆"] { display: none; }
     .playground-sidebar-candidate [data-testid="primary-sidebar"] .grid:has(> button[title="记忆"]) {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -303,6 +310,8 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
   const sessionFilterRef = useRef<HTMLInputElement>(null)
   const [viewport, setViewport] = useState<'standard' | 'split'>('standard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const sidebarReopenRef = useRef<HTMLButtonElement>(null)
+  const sidebarCandidateRef = useRef<HTMLDivElement>(null)
   const [journey, setJourneyState] = useState<ChatJourney>('welcome')
   const [previewInput, setPreviewInput] = useState('')
   const [previewFiles, setPreviewFiles] = useState<string[]>([])
@@ -372,8 +381,9 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
         <SurfaceViewport testId="chat-surface-viewport">
           <style>{PAGE_CANDIDATE_STYLE}</style>
           <div className="relative flex h-full min-h-[580px]">
-            {sidebarOpen && (
-              <div className="playground-sidebar-candidate shrink-0" data-testid="surface-sidebar-candidate">
+            {/* 侧栏卸载会让收起硬切且丢失内部状态；候选保留固定宽内容，只过渡外框，关闭时 inert 禁止隐藏控件获焦。 */}
+              <div ref={sidebarCandidateRef} className="playground-sidebar-candidate playground-chat-sidebar-motion shrink-0" data-testid="surface-sidebar-candidate"
+                style={{ width: sidebarOpen ? 248 : 0, opacity: sidebarOpen ? 1 : 0 }} inert={!sidebarOpen} aria-hidden={!sidebarOpen} data-open={sidebarOpen}>
                 <PrimarySidebar
                   personaName={persona.name}
                   personaBlurb={persona.blurb}
@@ -402,25 +412,26 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                   onDeleteSession={noop}
                   onContextMenu={handleContextMenu}
                   onNavigate={noop}
-                  onCollapse={() => setSidebarOpen(false)}
+                  onCollapse={() => { setSidebarOpen(false); requestAnimationFrame(() => sidebarReopenRef.current?.focus()) }}
+                  collapseControlPlacement="header"
                   width={248}
                 />
               </div>
-            )}
 
             <div className="relative flex min-w-0 flex-1 flex-col" style={{ background: 'var(--bg-primary)' }} data-testid="chat-surface-main" data-persona-id={persona.id}>
-              {!sidebarOpen && (
-                <button
-                  type="button"
-                  onClick={() => setSidebarOpen(true)}
-                  className="absolute left-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] transition"
+                <IconButton
+                  ref={sidebarReopenRef}
+                  size={32}
+                  label="展开侧栏"
+                  onClick={() => { setSidebarOpen(true); requestAnimationFrame(() => sidebarCandidateRef.current?.querySelector<HTMLButtonElement>('button[aria-label="收起侧栏"]')?.focus()) }}
+                  className={`absolute left-3 top-2 z-10 hover:bg-[var(--hover-overlay)] ${sidebarOpen ? '!hidden' : ''}`}
+                  hidden={sidebarOpen}
                   style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
                   data-testid="surface-sidebar-reopen"
                   title="重新展开主侧栏"
                 >
-                  <PanelLeftOpen size={15} />
-                </button>
-              )}
+                  <PanelLeftOpen size={16} />
+                </IconButton>
               <div className="hidden h-12 shrink-0 items-center justify-end px-3 md:flex" data-testid="chat-surface-workspace-toolbar">
                 <button type="button" title={workspaceOpen ? '收起工作区' : '打开工作区'} aria-label={workspaceOpen ? '收起工作区' : '打开工作区'} aria-expanded={workspaceOpen} aria-controls="chat-surface-workspace-panel" onClick={() => setWorkspaceOpen((open) => !open)} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-secondary)' }} data-testid="chat-surface-workspace-toggle"><PanelRight size={16} aria-hidden="true" /></button>
               </div>

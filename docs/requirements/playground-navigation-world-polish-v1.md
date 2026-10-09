@@ -6,6 +6,10 @@
 
 ## 1. 需求背景（Why）
 
+### 2026-10-09：Chat 侧栏顶部控制与连续切换 P0
+
+用户要求把收起按钮放到顶部，与收起后的展开按钮垂直一致，并排查切换不顺畅。前端 skill 已规定侧栏采用 motion-normal；实际 Chat 样张通过条件卸载侧栏硬切且两按钮分属不同高度。仅在 ChatSurface 候选使用 PrimarySidebar 显式 header 选项（正式默认 toolbar 不变），两端按钮共用 48px 顶部槽与 32px 控件；固定内部 248px 宽度，外框宽度 / 透明度引用统一动效 token，收起保留挂载并 inert，按钮切换恢复键盘焦点，减少动态效果时禁用过渡。允许修改上述两组件、隔离 E2E 及相关记录；不修改 App、正式侧栏默认、IPC、会话数据或 skill 数值。验收深浅主题、窄宽、按钮纵坐标误差不超过 1px、逐帧中间宽度、快速反向切换、DOM 保留、键盘及减少动效；经用户查看后另获 P1 许可。
+
 ### 2026-10-09：Chat 与侧边栏整体 P1 回流
 
 授权：用户明确要求「把chat相关的回流到正式环境吧……包括侧边栏的也回流」。来源为 SurfaceBaselinePanel 的 Chat / Sidebar 样张及共享 ChatWelcome、ChatComposer、ChatMessageFrame、ReasoningCallback；允许修改 App、PrimarySidebar、ChatComposer、ReasoningCallback、GeneratedImageResult、相关样张 / CSS、定向测试与本合同、运行时模块卡、质量、进度、变更日志。
