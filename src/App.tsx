@@ -144,8 +144,9 @@ function App() {
     return normalizeThemeId(localStorage.getItem('theme'))
   })
   const [currentModel, setCurrentModel] = useState('')
-  // UI E2E 运行的是隔离的 Vite 展示壳，需保留开发入口以覆盖 Playground / Debug；Electron 正式默认仍由持久化设置决定。
-  const [developerMode, setDeveloperMode] = useState(() => import.meta.env.MODE === 'ui-e2e')
+  // 浏览器预览没有 preload 桥接，只能查看隔离的 Playground / Debug 壳；真实伙伴、设置和写入能力仍必须走 Electron。
+  // 入口在浏览器中默认可见，避免把“没有桌面连接”和“没有开发入口”混成同一个故障；Electron 仍以持久化开发者设置为准。
+  const [developerMode, setDeveloperMode] = useState(() => import.meta.env.MODE === 'ui-e2e' || !window.electronAPI)
   const [approvalMode, setApprovalMode] = useState<'confirm-all' | 'auto' | 'full-access'>('confirm-all')
 
   const [modeChangeNotice, setModeChangeNotice] = useState<string | null>(null)
@@ -482,7 +483,7 @@ function App() {
     let navigationActive = true
     const canNavigate = async (target: ShellView) => {
       if (target !== 'debug' && target !== 'playground') return true
-      if (import.meta.env.MODE === 'ui-e2e') return true
+      if (import.meta.env.MODE === 'ui-e2e' || !window.electronAPI) return true
       try {
         const enabled = (await window.electronAPI.settings.get()).developerMode === 'true'
         if (!navigationActive) return false
