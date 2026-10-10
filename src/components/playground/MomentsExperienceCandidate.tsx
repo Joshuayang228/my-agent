@@ -35,7 +35,7 @@ function projectPreview(preview: MomentsPreviewData, scenario: Scenario): Moment
 
 export function MomentsExperienceCandidate({ previewData }: { previewData: MomentsPreviewData }) {
   const [scenario, setScenario] = useState<Scenario>('mixed')
-  return <div data-testid="world-moments-fixture" data-persona-id={previewData.roleId}>
+  return <div className="flex h-full min-h-0 flex-col" data-testid="world-moments-fixture" data-persona-id={previewData.roleId}>
     <div className="px-5 pt-3">
       <PlaygroundStateSwitcher items={scenarios} value={scenario} onChange={setScenario} ariaLabel="朋友圈状态样张" />
     </div>
