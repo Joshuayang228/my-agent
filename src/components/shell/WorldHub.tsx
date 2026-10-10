@@ -59,6 +59,7 @@ export function WorldHub({
   tabs,
   profile,
   onGenerateAssetImage,
+  allowAssetEditing = false,
 }: {
   tab: WorldTab
   onTabChange: (tab: WorldTab) => void
@@ -91,7 +92,10 @@ export function WorldHub({
   tabs?: readonly WorldTabDefinition[]
   profile?: WorldProfile
   onGenerateAssetImage?: (asset: WorldAssetRecord) => void
+  /** 人物世界正式入口只浏览；独立资产维护入口不受影响。 */
+  allowAssetEditing?: boolean
 }) {
+  const canEditAssets = allowAssetEditing
   const visibleTabs = (tabs ?? WORLD_TABS).filter((item) => !hiddenTabs.includes(item.id))
   const labelFor = (item: WorldTabDefinition) => tabLabels?.[item.id] ?? item.label
   return (
@@ -133,8 +137,8 @@ export function WorldHub({
         {previewPanels?.[tab] ?? (
           <>
             {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} appearance={momentsAppearance ?? 'alice-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} compactClosedComposer={compactClosedComposer} enableImagePreview={enableImagePreview} previewChrome="minimal" />}
-            {tab === 'wardrobe' && <AssetsPanel onGenerateAssetImage={onGenerateAssetImage} showAssetTabs={false} showAddControls={false} presentation="wardrobe-gallery" />}
-            {(tab === 'culture' || tab === 'home' || tab === 'footprints') && <WorldDetailsPanel tab={tab} onGenerateAssetImage={onGenerateAssetImage} showDetailTitle={false} showAddControls={false} />}
+            {tab === 'wardrobe' && <AssetsPanel allowAssetEditing={canEditAssets} onGenerateAssetImage={canEditAssets ? onGenerateAssetImage : undefined} showAssetTabs={false} showAddControls={false} presentation="wardrobe-gallery" />}
+            {(tab === 'culture' || tab === 'home' || tab === 'footprints') && <WorldDetailsPanel tab={tab} allowAssetEditing={canEditAssets} onGenerateAssetImage={canEditAssets ? onGenerateAssetImage : undefined} showDetailTitle={false} showAddControls={false} />}
             {tab === 'cast' && (
               <WorldContactsPanel />
             )}

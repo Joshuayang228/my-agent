@@ -5277,6 +5277,9 @@ test.describe('My Agent UI', () => {
       const tab = world.getByTestId(`world-tab-${id}`)
       await tab.click()
       await expect(tab).toHaveAttribute('aria-selected', 'true')
+      await expect(world.getByRole('button', { name: /^(编辑|删除) / })).toHaveCount(0)
+      await expect(world.getByRole('button', { name: /生成图片/ })).toHaveCount(0)
+      await expect(world.getByRole('button', { name: /^添加/ })).toHaveCount(0)
     }
   })
   test('正式朋友圈赞评走真实 IPC 替身且关闭评论不占位', async ({ page }) => {
@@ -7033,7 +7036,7 @@ test.describe('My Agent UI', () => {
     expect(await page.evaluate(() => (window as any).__homeWrite.writes.at(-1).payload)).toMatchObject({ spaceId: 'room', displayInHome: true, displayEvidence: ['生日礼物', '每天泡茶'] })
   })
 
-  test('正式生活资产编辑失败保留草稿', async ({ page }) => {
+  test.skip('正式生活资产编辑失败保留草稿（正式人物世界已改为只读）', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
       const state = { updates: [] as Array<{ id: string; name: string }>, fail: true, items: [{ id: 'book', roleId: 'lin', kind: 'culture', name: '已有作品', payload: { type: 'reading' }, acquiredAt: 1, sourceEventId: null }] as Array<{ id: string; roleId: string; kind: string; name: string; payload: Record<string, unknown>; acquiredAt: number; sourceEventId: null }> }
@@ -7083,7 +7086,7 @@ test.describe('My Agent UI', () => {
     ])
   })
 
-  test('正式衣柜衣物与套装维护保留失败草稿', async ({ page }) => {
+  test.skip('正式衣柜衣物与套装维护保留失败草稿（正式人物世界已改为只读）', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
       const state = { fail: true, creates: [] as any[], updates: [] as any[], items: [
@@ -7143,7 +7146,7 @@ test.describe('My Agent UI', () => {
     expect(await page.evaluate(() => (window as any).__wardrobeMaintain.updates.at(-1).patch.payload)).toEqual({ recordType: 'outfit', slots: { top: 'top', bottom: 'bottom', shoes: 'shoes' } })
   })
 
-  test('正式衣柜删除确认失败保留且防重入', async ({ page }) => {
+  test.skip('正式衣柜删除确认失败保留且防重入（正式人物世界已改为只读）', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
       const state = { deletes: [] as string[], fail: true, release: null as null | (() => void), items: [{ id: 'coat-1', roleId: 'lin', kind: 'wardrobe', name: '灰绿外套', payload: { color: '灰绿' }, acquiredAt: 1, sourceEventId: null }] }

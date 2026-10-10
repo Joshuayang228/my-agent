@@ -29,6 +29,8 @@ interface WorldDetailsPanelProps {
   previewPresence?: string
   previewRoleName?: string
   previewEditable?: boolean
+  /** 正式人物世界只浏览；独立资产面板可保留维护能力。 */
+  allowAssetEditing?: boolean
   showDetailTitle?: boolean
   /** 人物世界列表不提供手工新增；独立资产面板保留原维护入口。 */
   showAddControls?: boolean
@@ -67,11 +69,12 @@ export function WorldDetailsPanel({
   previewPresence = '',
   previewRoleName = '',
   previewEditable = false,
+  allowAssetEditing = true,
   showDetailTitle = true,
   showAddControls = true,
 }: WorldDetailsPanelProps) {
   const isPreview = previewAssets !== undefined
-  const canEdit = !isPreview || previewEditable
+  const canEdit = allowAssetEditing && (!isPreview || previewEditable)
   const [state, setState] = useState<WorldDetailsState | null>(isPreview ? {
     roleId: 'preview',
     roleName: previewRoleName,

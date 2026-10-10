@@ -1156,6 +1156,7 @@ function App() {
             ) : isWorldView(activeView) ? (
               <WorldHub
                 profile={{ name: currentPersonaName, description: companionBlurb }}
+                allowAssetEditing={false}
                 onGenerateAssetImage={(asset) => {
                   setActiveView('chat')
                   setInput(`请为人物世界资产“${asset.name}”生成一张图片。资产 ID：${asset.id}。生成后请使用 image_generate 的 targetAssetId 绑定到这个资产。`)

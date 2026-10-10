@@ -43,6 +43,8 @@ interface AssetsPanelProps {
   onGenerateAssetImage?: (asset: WorldAssetRecord) => void
   previewAssets?: WorldAssetRecord[]
   previewEditable?: boolean
+  /** 正式人物世界只浏览；独立资产面板可保留维护能力。 */
+  allowAssetEditing?: boolean
   previewWearingId?: string
   /** 人物世界将书架收归文化角；其他调用方默认保留资产分栏。 */
   showAssetTabs?: boolean
@@ -87,10 +89,10 @@ function AssetImage({ asset }: { asset: WorldAssetRecord }) {
   return <GeneratedImageResult image={image} readImage={(imageId) => window.electronAPI.companion.readAssetImage(asset.id, imageId)} scope={`asset:${asset.id}`} />
 }
 
-export function AssetsPanel({ previewAssets, previewEditable = false, previewWearingId, showAssetTabs = true, showAddControls = true, presentation = 'default', previewOutfitImage, previewOutfits = [], previewTabIcons, onGenerateAssetImage }: AssetsPanelProps) {
+export function AssetsPanel({ previewAssets, previewEditable = false, allowAssetEditing = true, previewWearingId, showAssetTabs = true, showAddControls = true, presentation = 'default', previewOutfitImage, previewOutfits = [], previewTabIcons, onGenerateAssetImage }: AssetsPanelProps) {
   const isPreview = previewAssets !== undefined
   const readLabel = presentation === 'wardrobe-gallery' ? '衣柜' : '物什'
-  const canEdit = (!isPreview || previewEditable) && !(isPreview && presentation === 'wardrobe-gallery')
+  const canEdit = allowAssetEditing && (!isPreview || previewEditable) && !(isPreview && presentation === 'wardrobe-gallery')
   const [roleId, setRoleId] = useState('')
   const [items, setItems] = useState<WorldAssetRecord[]>(previewAssets ?? [])
   const [tab, setTab] = useState<AssetTab>('wardrobe')
@@ -478,7 +480,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
                         <span key={tag} className="rounded-full px-2 py-0.5 text-[10px]" style={{ background: 'var(--companion-catchup-bg)', color: 'var(--companion-accent-warm)' }}>{tag}</span>
                       ))}
                     </div>}
-                    {!isPreview && wardrobeGallery ? onGenerateAssetImage && <IconButton label="为当前穿搭生成图片" disabled={busy} onClick={() => onGenerateAssetImage(wearing)}><ImagePlus size={14} /></IconButton> : editingId === wearing.id
+                    {!isPreview && wardrobeGallery ? allowAssetEditing && onGenerateAssetImage && <IconButton label="为当前穿搭生成图片" disabled={busy} onClick={() => onGenerateAssetImage(wearing)}><ImagePlus size={14} /></IconButton> : editingId === wearing.id
                       ? <WorldAssetForm draft={editDraft} onChange={setEditDraft} onSave={() => void saveEdit()} onCancel={() => { if (!busy) { setEditingId(null); setWriteError('') } }} busy={busy} saveLabel="保存衣物" />
                       : canEdit ? <WorldAssetActions name={wearing.name} disabled={busy} onGenerate={onGenerateAssetImage ? () => onGenerateAssetImage(wearing) : undefined} onEdit={() => startEdit(wearing)} onDelete={() => setPendingDelete(wearing)} /> : null}
                   </div>
@@ -506,7 +508,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
               </div>
               <div className="line-clamp-2 min-h-10 text-[13px] font-medium" title={outfit.name} style={{ color: 'var(--text-primary)' }}>{outfit.name}</div>
               <div className="mt-2 h-8"><ActionButton className="h-8 w-24" aria-label={`换上套装 ${outfit.name}`} disabled={changingId !== null || matchesOutfit(outfit)} onClick={() => isPreview ? changeOutfitPreview(outfit) : void changeFormal(outfit.id)}>{changingId === outfit.id ? '换上中' : matchesOutfit(outfit) ? '正在穿着' : '换上'}</ActionButton></div>
-              {!isPreview && (editingId === outfit.id ? <WorldAssetForm draft={editDraft} onChange={setEditDraft} onSave={() => void saveEdit()} onCancel={() => setEditingId(null)} busy={busy} saveLabel="保存套装" assets={garments} /> : <WorldAssetActions name={outfit.name} disabled={busy} onEdit={() => startEdit(tabItems.find(asset => asset.id === outfit.id)!)} onDelete={() => setPendingDelete(tabItems.find(asset => asset.id === outfit.id)!)} onGenerate={onGenerateAssetImage ? () => onGenerateAssetImage(tabItems.find(asset => asset.id === outfit.id)!) : undefined} />)}
+              {allowAssetEditing && !isPreview && (editingId === outfit.id ? <WorldAssetForm draft={editDraft} onChange={setEditDraft} onSave={() => void saveEdit()} onCancel={() => setEditingId(null)} busy={busy} saveLabel="保存套装" assets={garments} /> : <WorldAssetActions name={outfit.name} disabled={busy} onEdit={() => startEdit(tabItems.find(asset => asset.id === outfit.id)!)} onDelete={() => setPendingDelete(tabItems.find(asset => asset.id === outfit.id)!)} onGenerate={onGenerateAssetImage ? () => onGenerateAssetImage(tabItems.find(asset => asset.id === outfit.id)!) : undefined} />)}
             </article>)}
           </div> : <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>还没有套装。</p>}
         </section>}
