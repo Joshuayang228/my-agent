@@ -80,10 +80,10 @@ export function PermissionRulesEditor({ value, onChange, prefix = 'settings' }: 
         }
         setExpanded(current => !current)
       }} data-testid={toggleId}
-      className="w-full justify-between gap-3 border-0 p-0 text-left">
+      className="w-full items-start justify-start gap-3 border-0 p-0 text-left">
       <span className="min-w-0"><span className="flex items-center gap-2 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}><SlidersHorizontal size={15} />自定义规则</span>
         <span className="mt-1 block text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>已保存的例外规则，优先于默认审批方式生效。</span></span>
-      <span className="flex shrink-0 items-center gap-2 text-[10px]"><span>{rules.length} 条</span><ChevronRight size={14} className={expanded ? 'rotate-90' : ''} /></span>
+      <span className="ml-auto flex shrink-0 items-center gap-2 text-[10px]"><span>{rules.length} 条</span><ChevronRight size={14} className={expanded ? 'rotate-90' : ''} /></span>
     </ActionButton>
     {expanded && <div id={prefix + '-rules-content'} className="mt-3 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
       {!parsed.ok && <p role="alert" className="mb-3 text-xs" style={{ color: 'var(--danger)' }}>规则数据无法读取：{parsed.error}。原数据未更改。</p>}
