@@ -50,7 +50,7 @@ export function WorldHub({
   hideMomentsHeader,
   hideHeader,
   showSocialActions = false,
-  compactClosedComposer = false,
+  compactClosedComposer = true,
   enableImagePreview = false,
   previewPanels,
   previewTabVariant,
@@ -133,8 +133,8 @@ export function WorldHub({
         {previewPanels?.[tab] ?? (
           <>
             {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} appearance={momentsAppearance ?? 'alice-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} compactClosedComposer={compactClosedComposer} enableImagePreview={enableImagePreview} previewChrome="minimal" />}
-            {tab === 'wardrobe' && <AssetsPanel onGenerateAssetImage={onGenerateAssetImage} showAssetTabs={false} presentation="wardrobe-gallery" />}
-            {(tab === 'culture' || tab === 'home' || tab === 'footprints') && <WorldDetailsPanel tab={tab} onGenerateAssetImage={onGenerateAssetImage} showDetailTitle={false} />}
+            {tab === 'wardrobe' && <AssetsPanel onGenerateAssetImage={onGenerateAssetImage} showAssetTabs={false} showAddControls={false} presentation="wardrobe-gallery" />}
+            {(tab === 'culture' || tab === 'home' || tab === 'footprints') && <WorldDetailsPanel tab={tab} onGenerateAssetImage={onGenerateAssetImage} showDetailTitle={false} showAddControls={false} />}
             {tab === 'cast' && (
               <WorldContactsPanel />
             )}

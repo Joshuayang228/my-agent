@@ -813,7 +813,7 @@ test('正式衣柜通过真实 IPC 整套单件换上并重载保留，过期请
   }
 })
 
-test('正式生活资产拒绝通知迟到时旧伙伴页面的新增', async () => {
+test('正式生活资产角色隔离与迟到通知', async () => {
   test.setTimeout(120000)
   await page.evaluate(async url => {
     await window.electronAPI.settings.saveModelConfiguration({
@@ -841,15 +841,7 @@ test('正式生活资产拒绝通知迟到时旧伙伴页面的新增', async ()
       await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
       await page.getByTestId('world-tab-' + tab).click()
       if (tab === 'wardrobe') await page.getByTestId('world-assets-panel').getByRole('tab', { name: '全部', exact: true }).click()
-      const add = page.getByTestId('world-asset-add-' + kind)
-      await add.getByRole('button', { name: /^添加/ }).click()
-      const input = add.getByRole('textbox').first()
-      await input.fill(marker + '-' + kind)
-      if (kind === 'footprint') {
-        await add.getByRole('textbox', { name: '目的地', exact: true }).fill('苏州')
-        await add.getByLabel('出发日期', { exact: true }).fill('2026-09-01')
-        await add.getByLabel('结束日期', { exact: true }).fill('2026-09-02')
-      }
+      await page.evaluate(({ kind, name }) => window.electronAPI.companion.createAsset({ kind, name, payload: kind === 'footprint' ? { recordType: 'trip', destination: '苏州', start: '2026-09-01', end: '2026-09-02' } : {} }), { kind, name: marker + '-' + kind })
       // 只延迟测试窗口的通知，保留真实切角、preload、IPC 校验和 SQLite 提交。
       await electronApp.evaluate(({ BrowserWindow }) => {
         const contents = BrowserWindow.getAllWindows()[0].webContents
@@ -865,16 +857,11 @@ test('正式生活资产拒绝通知迟到时旧伙伴页面的新增', async ()
         }
       })
       await switchTo('zhou')
-      await expect(input).toHaveValue(marker + '-' + kind)
-      await add.getByRole('button', { name: /^保存/ }).click()
-      await expect(page.getByText('未添加，内容仍保留。请重试。', { exact: true })).toBeVisible()
       const assets = await page.evaluate(() => window.electronAPI.companion.getAssets())
       expect(assets.roleId).toBe('zhou')
       expect(assets.items.filter(item => item.name === marker + '-' + kind)).toEqual([])
       await release()
       if (tab === 'wardrobe') await page.getByTestId('world-assets-panel').getByRole('tab', { name: '全部', exact: true }).click()
-      await expect(add.getByRole('button', { name: /^添加/ })).toBeVisible()
-      await expect(page.getByText('未添加，内容仍保留。请重试。', { exact: true })).toHaveCount(0)
       if (tab === 'wardrobe') {
         const rejected = await page.evaluate(async name => {
           const results = []
@@ -886,15 +873,7 @@ test('正式生活资产拒绝通知迟到时旧伙伴页面的新增', async ()
         expect(rejected.every(result => !result.ok)).toBe(true)
         expect((await page.evaluate(() => window.electronAPI.companion.getAssets())).items.some(item => item.name === marker + '-invalid')).toBe(false)
       }
-      await add.getByRole('button', { name: /^添加/ }).click()
-      await add.getByRole('textbox').first().fill(marker + '-' + kind + '-accepted')
-      if (kind === 'footprint') {
-        await add.getByRole('textbox', { name: '目的地', exact: true }).fill('苏州')
-        await add.getByLabel('出发日期', { exact: true }).fill('2026-09-01')
-        await add.getByLabel('结束日期', { exact: true }).fill('2026-09-02')
-      }
-      await add.getByRole('button', { name: /^保存/ }).click()
-      await expect(add.getByRole('button', { name: /^添加/ })).toBeVisible()
+      await page.evaluate(({ kind, name }) => window.electronAPI.companion.createAsset({ kind, name, payload: kind === 'footprint' ? { recordType: 'trip', destination: '苏州', start: '2026-09-01', end: '2026-09-02' } : {} }), { kind, name: marker + '-' + kind + '-accepted' })
       const saved = (await page.evaluate(() => window.electronAPI.companion.getAssets())).items.find(item => item.name === marker + '-' + kind + '-accepted')
       expect(saved?.roleId).toBe('zhou')
       await page.reload()

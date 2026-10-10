@@ -46,6 +46,8 @@ interface AssetsPanelProps {
   previewWearingId?: string
   /** 人物世界将书架收归文化角；其他调用方默认保留资产分栏。 */
   showAssetTabs?: boolean
+  /** 人物世界列表不提供手工新增；独立资产面板保留原维护入口。 */
+  showAddControls?: boolean
   /** 正式与候选显式采用共享衣柜画廊，未采用的调用方保留原布局。 */
   presentation?: 'default' | 'wardrobe-gallery'
   /** 隔离故事中的整套图片；仅匹配初始槽位时展示，不能冒充生产生成结果。 */
@@ -85,7 +87,7 @@ function AssetImage({ asset }: { asset: WorldAssetRecord }) {
   return <GeneratedImageResult image={image} readImage={(imageId) => window.electronAPI.companion.readAssetImage(asset.id, imageId)} scope={`asset:${asset.id}`} />
 }
 
-export function AssetsPanel({ previewAssets, previewEditable = false, previewWearingId, showAssetTabs = true, presentation = 'default', previewOutfitImage, previewOutfits = [], previewTabIcons, onGenerateAssetImage }: AssetsPanelProps) {
+export function AssetsPanel({ previewAssets, previewEditable = false, previewWearingId, showAssetTabs = true, showAddControls = true, presentation = 'default', previewOutfitImage, previewOutfits = [], previewTabIcons, onGenerateAssetImage }: AssetsPanelProps) {
   const isPreview = previewAssets !== undefined
   const readLabel = presentation === 'wardrobe-gallery' ? '衣柜' : '物什'
   const canEdit = (!isPreview || previewEditable) && !(isPreview && presentation === 'wardrobe-gallery')
@@ -508,7 +510,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
             </article>)}
           </div> : <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>还没有套装。</p>}
         </section>}
-        {wardrobeGallery && !isPreview && previewWardrobeView === 'outfits' && <WorldAssetAddRow open={adding} label="套装" draft={addDraft} busy={busy} assets={garments} onOpen={() => setAddDrafts(drafts => ({ ...drafts, wardrobe: { open: true, draft: { kind: 'wardrobe', name: '', presentation: 'wardrobe-gallery', payload: { recordType: 'outfit' } } } }))} onChange={draft => setAddDrafts(drafts => ({ ...drafts, wardrobe: { open: true, draft } }))} onSave={() => void saveAdd()} onCancel={() => { if (!busy) setAddDrafts({}) }} />}
+        {showAddControls && wardrobeGallery && !isPreview && previewWardrobeView === 'outfits' && <WorldAssetAddRow open={adding} label="套装" draft={addDraft} busy={busy} assets={garments} onOpen={() => setAddDrafts(drafts => ({ ...drafts, wardrobe: { open: true, draft: { kind: 'wardrobe', name: '', presentation: 'wardrobe-gallery', payload: { recordType: 'outfit' } } } }))} onChange={draft => setAddDrafts(drafts => ({ ...drafts, wardrobe: { open: true, draft } }))} onSave={() => void saveAdd()} onCancel={() => { if (!busy) setAddDrafts({}) }} />}
         {(!wardrobeGallery || !['wearing', 'outfits'].includes(previewWardrobeView)) && <section data-testid="world-assets-inventory">
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
             {tab === 'bookshelf' ? '藏书' : '库存'}{(wardrobeGallery ? garments.length : tabItems.length) ? ` · ${wardrobeGallery ? garments.length : tabItems.length}` : ''}
@@ -541,7 +543,7 @@ export function AssetsPanel({ previewAssets, previewEditable = false, previewWea
               ))}
             </div>
           )}
-          {canEdit && (
+          {canEdit && showAddControls && (
             <WorldAssetAddRow
               open={adding}
               label={tab === 'bookshelf' ? '书目' : '衣物'}

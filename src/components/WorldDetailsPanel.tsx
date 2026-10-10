@@ -30,6 +30,8 @@ interface WorldDetailsPanelProps {
   previewRoleName?: string
   previewEditable?: boolean
   showDetailTitle?: boolean
+  /** 人物世界列表不提供手工新增；独立资产面板保留原维护入口。 */
+  showAddControls?: boolean
 }
 
 interface WorldDetailsState {
@@ -66,6 +68,7 @@ export function WorldDetailsPanel({
   previewRoleName = '',
   previewEditable = false,
   showDetailTitle = true,
+  showAddControls = true,
 }: WorldDetailsPanelProps) {
   const isPreview = previewAssets !== undefined
   const canEdit = !isPreview || previewEditable
@@ -295,7 +298,7 @@ export function WorldDetailsPanel({
     {tab === 'culture' && <WorldCultureContent assets={state.assets} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} presentation={isPreview ? 'default' : 'culture-gallery'} />}
     {tab === 'home' && <WorldHomeContent assets={state.assets} roleId={state.roleId} presence={state.presence} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} presentation={isPreview ? 'default' : 'home-gallery'} />}
     {tab === 'footprints' && <WorldFootprintsContent assets={state.assets} roleId={state.roleId} moments={state.moments} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} variant={isPreview ? 'alice' : 'travel-gallery'} />}
-    {canEdit && (
+    {canEdit && showAddControls && (
       <div className="shrink-0 px-4 pb-4">
       {tab === 'home' && !isPreview && !adding && <div className="flex flex-wrap gap-2">
         {(['residence', 'space'] as const).map(type => <ActionButton key={type} disabled={busy} onClick={() => setAddDrafts(drafts => ({ ...drafts, home: { open: true, draft: { ...emptyWorldAssetDraft('home'), presentation: 'home-gallery', payload: { recordType: type } } } }))}>添加{type === 'space' ? '空间' : '住所'}</ActionButton>)}
