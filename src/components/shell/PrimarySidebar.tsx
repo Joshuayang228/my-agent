@@ -110,17 +110,12 @@ export function PrimarySidebar({
       }}
       data-testid="primary-sidebar"
     >
-      {collapseControlPlacement === 'header' && (
-          <IconButton size={32} onClick={onCollapse} label="收起侧栏" title="收起侧栏 Ctrl+B"
-            className="absolute right-3 top-2 hover:bg-[var(--sidebar-hover)]" style={{ color: 'var(--text-muted)' }}>
-            <PanelLeftClose size={16} />
-          </IconButton>
-      )}
+      <div className={collapseControlPlacement === 'header' ? 'flex shrink-0 items-center gap-2 px-3 pt-2' : 'contents'}>
       {/* 品牌 / 主角 */}
       <ActionButton
         onClick={onOpenShelf}
         size="md"
-        className={`w-auto justify-start gap-3 border-0 px-2 py-2.5 text-left ${collapseControlPlacement === 'header' ? 'ml-3 mr-12 mt-2' : 'mx-3 mt-4'}`}
+        className={`w-auto justify-start gap-3 border-0 px-2 py-2.5 text-left ${collapseControlPlacement === 'header' ? 'min-w-0 flex-1' : 'mx-3 mt-4'}`}
         style={{ background: 'transparent' }}
         onMouseEnter={(event) => { event.currentTarget.style.background = 'var(--sidebar-hover)' }}
         onMouseLeave={(event) => { event.currentTarget.style.background = 'transparent' }}
@@ -141,6 +136,13 @@ export function PrimarySidebar({
           </span>
         </span>
       </ActionButton>
+      {collapseControlPlacement === 'header' && (
+        <IconButton size={32} onClick={onCollapse} label="收起侧栏" title="收起侧栏 Ctrl+B"
+          className="hover:bg-[var(--sidebar-hover)]" style={{ color: 'var(--text-muted)' }}>
+          <PanelLeftClose size={16} />
+        </IconButton>
+      )}
+      </div>
 
       {/* 新对话 / 搜索：搜索在同一行展开，避免把会话列表再向下挤一层。 */}
       <div className="mt-3 flex items-center gap-1.5 px-3" data-testid="sidebar-toolbar">

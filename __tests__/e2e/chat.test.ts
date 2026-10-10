@@ -22,6 +22,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1166, 
     const brand = (await sidebar.getByTitle('打开角色架').boundingBox())!
     const sidebarBox = (await sidebar.boundingBox())!
     expect(brand.y - sidebarBox.y).toBeLessThanOrEqual(8)
+    expect(Math.abs((before.y + before.height / 2) - (brand.y + brand.height / 2))).toBeLessThanOrEqual(1)
     expect(brand.x + brand.width).toBeLessThanOrEqual(before.x)
     await expect(reopen).toBeHidden()
     await expect(sidebar.getByTestId('sidebar-toolbar').getByRole('button', { name: '收起侧栏' })).toHaveCount(0)
@@ -42,7 +43,8 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1166, 
     await expect(sidebar).toHaveAttribute('inert', '')
     await expect(reopen).toBeFocused()
     const after = (await reopen.boundingBox())!
-    expect(Math.abs(before.y - after.y)).toBeLessThanOrEqual(1)
+    // 收起入口按新要求对齐伙伴区；折叠后无伙伴区，展开入口仍位于原顶部工具槽。
+    expect(after.y - sidebarBox.y).toBeLessThanOrEqual(8)
     expect(after.height).toBe(before.height)
     await page.screenshot({ path: info.outputPath('sidebar-closed.png'), animations: 'disabled' })
     await reopen.press('Enter')
