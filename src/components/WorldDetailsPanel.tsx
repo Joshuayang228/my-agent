@@ -287,20 +287,19 @@ export function WorldDetailsPanel({
   if (!state) return null
 
   return <fieldset disabled={busy} aria-busy={busy || loading} className="m-0 flex h-full min-h-0 min-w-0 flex-col border-0 p-0" data-testid="world-details">
-    {(showDetailTitle || !isPreview) && !error && (
+    {showDetailTitle && !error && (
       <div className="flex shrink-0 items-center justify-between gap-3 px-4 pt-3">
         {showDetailTitle ? (
           <div className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{state.roleName}的{tab === 'culture' ? '文化角' : tab === 'home' ? '家居' : '足迹'}</div>
-        ) : <span aria-hidden="true" />}
-        {!isPreview && <IconButton label={error ? '重试生活面' : '刷新生活面'} size={32} onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>}
+        ) : null}
       </div>
     )}
     {error && <div className={`${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`}>{readFailure}</div>}
     {pendingDelete && <WorldAssetDeleteConfirm asset={pendingDelete} busy={busy} onCancel={() => { if (!busy) setPendingDelete(null) }} onConfirm={() => { const target = pendingDelete; if (target) void removeAsset(target) }} />}
     <WorldWriteError message={writeError}>{!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>}</WorldWriteError>
-    {tab === 'culture' && <WorldCultureContent assets={state.assets} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} presentation={isPreview ? 'default' : 'culture-gallery'} />}
-    {tab === 'home' && <WorldHomeContent assets={state.assets} roleId={state.roleId} presence={state.presence} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} presentation={isPreview ? 'default' : 'home-gallery'} />}
-    {tab === 'footprints' && <WorldFootprintsContent assets={state.assets} roleId={state.roleId} moments={state.moments} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} variant={isPreview ? 'alice' : 'travel-gallery'} />}
+    {tab === 'culture' && <WorldCultureContent assets={state.assets} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} presentation={isPreview ? 'default' : 'culture-gallery'} toolbarAction={!isPreview && <IconButton label="刷新生活面" size={32} onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>} />}
+    {tab === 'home' && <WorldHomeContent assets={state.assets} roleId={state.roleId} presence={state.presence} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} presentation={isPreview ? 'default' : 'home-gallery'} toolbarAction={!isPreview && <IconButton label="刷新生活面" size={32} onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>} />}
+    {tab === 'footprints' && <WorldFootprintsContent assets={state.assets} roleId={state.roleId} moments={state.moments} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} variant={isPreview ? 'alice' : 'travel-gallery'} toolbarAction={!isPreview && <IconButton label="刷新生活面" size={32} onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>} />}
     {canEdit && showAddControls && (
       <div className="shrink-0 px-4 pb-4">
       {tab === 'home' && !isPreview && !adding && <div className="flex flex-wrap gap-2">

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BedDouble, BookOpen, DoorOpen, Sofa } from 'lucide-react'
 import { WorldHomeGallery, type HomeObjectPreview, type HomeImageState } from '../world/WorldHomeGallery'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
+import { WorldCandidateControls, WorldCandidateRefresh } from './WorldCandidateControls'
 import overview from '../../assets/playground/home-overview.png'
 import living from '../../assets/playground/home-living.png'
 import bedroom from '../../assets/playground/home-bedroom.png'
@@ -34,12 +35,13 @@ export function HomeExperienceCandidate({ personaId }: { personaId: string }) {
   if (scenario === 'long') objects = objects.map(item => ({ ...item, name: `${item.name}：留给日常生活的一件值得慢慢记住的小东西`, description: '这是用于检验详情长文滚动的隔离样张，不是人物真实经历。\n'.repeat(60) }))
   const state: HomeImageState = scenario === 'no-image' ? 'missing' : scenario === 'pending' ? 'pending' : scenario === 'image-failed' ? 'failed' : 'ready'
   return <div className="flex h-full min-h-0 flex-col" data-testid="world-home-fixture" data-persona-id={personaId}>
-    <div className="shrink-0 px-4 pt-3"><PlaygroundStateSwitcher ariaLabel="家居状态样张" value={scenario} onChange={setScenario} items={[
+    <WorldCandidateControls><PlaygroundStateSwitcher ariaLabel="家居状态样张" value={scenario} onChange={setScenario} items={[
       { id: 'default', label: '居住空间' }, { id: 'many', label: '多物件' }, { id: 'long', label: '长名称与描述' },
       { id: 'unassigned', label: '未归置物件' }, { id: 'empty-room', label: '空房间' }, { id: 'empty', label: '空家居' },
       { id: 'no-image', label: '无配图' }, { id: 'pending', label: '配图生成中' }, { id: 'image-failed', label: '配图失败' }, { id: 'error', label: '读取失败' },
-    ]} /></div>
+    ]} /></WorldCandidateControls>
     <WorldHomeGallery key={`${personaId}-${scenario}`} overviewImage={scenario === 'empty' ? undefined : overview}
+      toolbarAction={<WorldCandidateRefresh label="刷新家居" />}
       spaces={scenario === 'empty' ? [] : spaces} objects={scenario === 'empty' ? [] : objects} imageState={state}
       readError={scenario === 'error' ? '记录暂时未能读取，请重新读取。' : undefined} onRetry={() => setScenario('default')} />
   </div>

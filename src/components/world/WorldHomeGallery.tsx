@@ -38,10 +38,11 @@ function HomePicture({ src, alt, state, variant }: { src?: string; alt: string; 
  * 设计意图：复用纯展示组合，通过显式回调注入受控媒体和编辑，不在画廊复制存储逻辑。
  * 关键约束：不读取 IPC、生成或写盘；详情按 ID 派生以免编辑后陈旧，空间图不是库存事实。
  */
-export function WorldHomeGallery({ overviewImage, spaces, objects, imageState = 'ready', readError, onRetry, renderPicture, renderEditor, hasOverview = !!overviewImage }: {
+export function WorldHomeGallery({ overviewImage, spaces, objects, imageState = 'ready', readError, onRetry, renderPicture, renderEditor, toolbarAction, hasOverview = !!overviewImage }: {
   overviewImage?: string; spaces: readonly HomeSpacePreview[]; objects: readonly HomeObjectPreview[];
   imageState?: HomeImageState; readError?: string; onRetry?: () => void;
   hasOverview?: boolean;
+  toolbarAction?: ReactNode;
   renderPicture?: (id: string, variant: 'overview' | 'scene' | 'object') => ReactNode;
   renderEditor?: (id: string) => ReactNode
 }) {
@@ -68,10 +69,10 @@ export function WorldHomeGallery({ overviewImage, spaces, objects, imageState = 
     ? <div data-testid={`home-${variant}-picture`} className="w-full overflow-hidden rounded-md" style={{ aspectRatio: variant === 'overview' ? '4 / 3' : variant === 'scene' ? '16 / 9' : '1', maxWidth: variant === 'scene' ? 560 : undefined, background: 'var(--bg-secondary)' }}>{renderPicture(id, variant)}</div>
     : <HomePicture key={`${id}-${imageState}`} src={src} alt={`${name ?? '住所鸟瞰图'}，家居设计样张`} state={imageState} variant={variant} />
   return <div className="flex min-h-0 flex-1 flex-col" style={{ paddingInline: CONTENT_LAYOUT.gutter, paddingBottom: CONTENT_LAYOUT.gutter }} data-testid="home-gallery">
-    <div className="shrink-0 py-3"><TabStrip label="家居空间" activeId={spaceId} items={tabs} onSelect={id => {
+    <div className={toolbarAction ? 'flex min-w-0 shrink-0 items-center gap-3 py-3' : 'shrink-0 py-3'}><TabStrip label="家居空间" activeId={spaceId} items={tabs} onSelect={id => {
       if (scroll.current && !selected) positions.current.set(spaceId, scroll.current.scrollTop)
       returnId.current = null; setSelectedId(null); setSpaceId(id)
-    }} /></div>
+    }} />{toolbarAction && <div className="ml-auto shrink-0">{toolbarAction}</div>}</div>
     <div ref={scroll} className="min-h-0 flex-1 overflow-y-auto scrollbar-thin" data-testid="home-content-scroll">
       {readError ? <ErrorState title="家居记录未能读取" description={readError} action={onRetry && <ActionButton onClick={onRetry}>重新读取</ActionButton>} />
         : empty ? <EmptyState title="还没有记录居住空间" description="" />

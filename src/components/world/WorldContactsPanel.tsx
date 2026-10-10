@@ -49,10 +49,10 @@ export function WorldContactsPanel() {
   const data = state?.data
   const trips = state ? travelRecordsForRole(state.assets, state.data.roleId) : []
   return <div className="flex h-full min-h-0 flex-col" data-testid="world-contacts-panel">
-    {!error && <div className="flex shrink-0 items-center justify-end px-4 pt-3"><IconButton label="刷新通讯录" disabled={loading} onClick={() => void load()}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton></div>}
     {error && <div className={`${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`}><ErrorState title="通讯录未能读取" description={error} action={<ActionButton disabled={loading} onClick={() => void load()}>重新读取通讯录</ActionButton>} /></div>}
     {!data && loading && <p role="status" className="p-4 text-xs" style={{ color: 'var(--text-muted)' }}>正在读取通讯录…</p>}
     {data && <WorldContactsGallery key={data.roleId} ownerRoleId={data.roleId} people={data.people}
+      toolbarAction={<IconButton label="刷新通讯录" disabled={loading} onClick={() => void load()}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>}
       relations={data.relations.map(item => ({ ...item, relationLabel: relationLabels[item.relationType] ?? item.relationType, interactionSummary: item.summary }))}
       experiences={data.experiences.map(item => ({ ...item, date: new Date(item.occurredAt).toLocaleDateString('zh-CN') }))}
       resolveReference={reference => {

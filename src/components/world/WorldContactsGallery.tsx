@@ -22,9 +22,9 @@ function PersonAvatar({ person }: { person: ContactPersonView }) {
  * 设计意图：共用人物 / 关系 / 经历视图，由外层解析关联，不维护另一份生活事实。
  * 关键约束：关系与经历限定 ownerRoleId，缺字段不补栏目；关联返回恢复链接焦点，人物返回恢复原卡与位置。
  */
-export function WorldContactsGallery({ ownerRoleId, people, relations, experiences, resolveReference }: {
+export function WorldContactsGallery({ ownerRoleId, people, relations, experiences, resolveReference, toolbarAction }: {
   ownerRoleId: string; people: readonly ContactPersonView[]; relations: readonly ContactRelationView[];
-  experiences: readonly ContactExperienceView[]; resolveReference?: (reference: ContactReference) => ReactNode
+  experiences: readonly ContactExperienceView[]; resolveReference?: (reference: ContactReference) => ReactNode; toolbarAction?: ReactNode
 }) {
   const [selected, setSelected] = useState<string | null>(null)
   const [linked, setLinked] = useState<ContactReference | null>(null)
@@ -54,6 +54,7 @@ export function WorldContactsGallery({ ownerRoleId, people, relations, experienc
     else { restoring.current = true; setSelected(null) }
   }
   return <div className="flex h-full min-h-0 flex-col" data-testid="contacts-gallery">
+    {toolbarAction && <div className="flex shrink-0 justify-end px-4 pt-3">{toolbarAction}</div>}
     <div ref={scroll} className="min-h-0 flex-1 overflow-y-auto" data-testid="contacts-scroll" style={{ ...contentGutterStyle(), color: 'var(--text-primary)' }} onKeyDown={event => { if (event.key === 'Escape' && person) { event.stopPropagation(); back() } }}>
       {person ? <>
         <ActionButton variant="plain" className="mb-4 gap-2" onClick={back}><ArrowLeft size={14} />返回</ActionButton>

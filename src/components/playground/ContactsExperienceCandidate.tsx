@@ -3,6 +3,7 @@ import { ImageViewer } from '../foundation/ImageViewer'
 import { WorldContactsGallery } from '../world/WorldContactsGallery'
 import { WorldTravelGallery } from '../world/WorldTravelGallery'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
+import { WorldCandidateControls, WorldCandidateRefresh } from './WorldCandidateControls'
 import { TRAVEL_PREVIEWS } from './FootprintsExperienceCandidate'
 import yaoAvatar from '../../assets/playground/contact-yao-avatar.png'
 import xuAvatar from '../../assets/playground/contact-xu-avatar.png'
@@ -44,10 +45,10 @@ export function ContactsExperienceCandidate({ personaId }: { personaId: string }
     ...(scenario === 'no-avatar' ? { avatarSrc: undefined } : {}),
   }))
   return <div className="flex h-full min-h-0 flex-col" data-testid="world-cast-fixture" data-persona-id={personaId}>
-    <div className="shrink-0 px-4 pt-3"><PlaygroundStateSwitcher ariaLabel="通讯录状态样张" value={scenario} onChange={value => { setScenario(value); setPreviewImage(false) }} items={[
+    <WorldCandidateControls><PlaygroundStateSwitcher ariaLabel="通讯录状态样张" value={scenario} onChange={value => { setScenario(value); setPreviewImage(false) }} items={[
       { id: 'default', label: '人物清单' }, { id: 'long', label: '长姓名' }, { id: 'no-experiences', label: '无共同经历' }, { id: 'no-avatar', label: '无头像' }, { id: 'failed-avatar', label: '头像失败' }, { id: 'empty', label: '空通讯录' },
-    ]} /></div>
-    <WorldContactsGallery key={`${personaId}-${scenario}`} ownerRoleId={personaId} people={people} relations={fixtures.relations} experiences={scenario === 'no-experiences' ? [] : fixtures.experiences} resolveReference={reference => {
+    ]} /></WorldCandidateControls>
+    <WorldContactsGallery key={`${personaId}-${scenario}`} ownerRoleId={personaId} people={people} relations={fixtures.relations} experiences={scenario === 'no-experiences' ? [] : fixtures.experiences} toolbarAction={<WorldCandidateRefresh label="刷新通讯录" />} resolveReference={reference => {
       const trip = resolveContactReference(reference)
       return trip ? <WorldTravelGallery key={trip.id} embedded initialSelectedId={trip.id} trips={[trip]} renderImage={() => trip.image ? <>
         <button type="button" aria-label="预览旅行图片" className="block h-full w-full overflow-hidden" onClick={() => setPreviewImage(true)}><img src={trip.image} alt={trip.title} className="block h-full w-full object-cover" /></button>

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { ArrowLeft, BookOpen, Camera, Clapperboard, Music } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { EmptyState } from '../foundation/EmptyState'
@@ -68,7 +68,7 @@ function Artwork({ asset, maximumHeight, showPreviewImages = false, readImage, r
  * 设计意图：外层负责真实读写，本组件复用分类、详情与预览；不复制一套生产皮肤。
  * 关键约束：样张图片必须显式启用；详情关闭恢复焦点 / 位置，编辑动作仍由正式加载层提供。
  */
-export function WorldCultureGallery({ assets, readingNotes = [], readError = '', onRetry, renderEditor, ...artworkSource }: { assets: readonly LivingAsset[]; readingNotes?: readonly CultureReadingNote[]; readError?: string; onRetry?: () => void; renderEditor?: LivingAssetEditor } & ArtworkSource) {
+export function WorldCultureGallery({ assets, readingNotes = [], readError = '', onRetry, renderEditor, toolbarAction, ...artworkSource }: { assets: readonly LivingAsset[]; readingNotes?: readonly CultureReadingNote[]; readError?: string; onRetry?: () => void; renderEditor?: LivingAssetEditor; toolbarAction?: ReactNode } & ArtworkSource) {
   const [category, setCategory] = useState('reading')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const scroll = useRef<HTMLDivElement>(null)
@@ -97,10 +97,10 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
   const isEngaged = (asset: LivingAsset) => ['reading', 'watching', 'listening', 'revisiting'].includes(text(asset, 'readingStatus') || text(asset, 'watchStatus') || text(asset, 'listeningStatus'))
   const notesFor = (asset: LivingAsset) => readingNotes.filter((note) => note.assetId === asset.id && note.text.trim()).slice().sort((a, b) => ((b.occurredAt ?? b.createdAt) ?? 0) - ((a.occurredAt ?? a.createdAt) ?? 0) || a.id.localeCompare(b.id))
   return <div className="flex min-h-0 flex-1 flex-col" style={contentGutterStyle()} data-testid="culture-gallery" data-world-content="culture">
-    <div className="mb-4 shrink-0"><TabStrip label="文化分类" activeId={category} onSelect={(id) => {
+    <div className={toolbarAction ? 'mb-4 flex min-w-0 shrink-0 items-center gap-3' : 'mb-4 shrink-0'}><TabStrip label="文化分类" activeId={category} onSelect={(id) => {
       if (!selected && scroll.current) positions.current[category] = scroll.current.scrollTop
       returnId.current = null; setSelectedId(null); setCategory(id)
-    }} items={categories.map(({ id, label, icon: Icon }) => ({ id, label, icon: <Icon size={14} /> }))} /></div>
+    }} items={categories.map(({ id, label, icon: Icon }) => ({ id, label, icon: <Icon size={14} /> }))} />{toolbarAction && <div className="ml-auto shrink-0">{toolbarAction}</div>}</div>
     <div ref={scroll} className="min-h-0 flex-1 overflow-y-auto scrollbar-thin" data-testid="culture-content-scroll">
       {readError ? <ErrorState title="文化记录未能读取" description={readError} action={onRetry && <ActionButton onClick={onRetry}>重新读取</ActionButton>} />
         : selected ? <section data-testid="culture-detail" className={LAYOUT_CLASSES.section} style={readingContentStyle()} onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); close() } }}>

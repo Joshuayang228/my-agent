@@ -68,8 +68,8 @@ const cultureTypes = {
  * 设计意图：正式与候选共用卡片组合，书架记录作为阅读内容，笔记单独展示并保留所属作品。
  * 关键约束：仅呈现传入的真实字段；不制造播放、观影次数或笔记数量，不按同名去重，不读取 IPC。
  */
-export function WorldCultureContent({ assets, renderEditor, readImage, revealImage, showPreviewImages = false, presentation = 'default', previewReadError, onPreviewRetry, previewReadingNotes }: { assets: readonly LivingAsset[]; renderEditor?: LivingAssetEditor; readImage?: LivingAssetImageReader; revealImage?: LivingAssetImageRevealer; showPreviewImages?: boolean; presentation?: 'default' | 'culture-gallery'; previewReadError?: string; onPreviewRetry?: () => void; previewReadingNotes?: readonly CultureReadingNote[] }) {
-  if (presentation === 'culture-gallery') return <WorldCultureGallery assets={assets} readingNotes={showPreviewImages ? previewReadingNotes : assets.flatMap(readingNotesForAsset)} readError={previewReadError} onRetry={onPreviewRetry} showPreviewImages={showPreviewImages} readImage={readImage} revealImage={revealImage} renderEditor={renderEditor} />
+export function WorldCultureContent({ assets, renderEditor, readImage, revealImage, showPreviewImages = false, presentation = 'default', previewReadError, onPreviewRetry, previewReadingNotes, toolbarAction }: { assets: readonly LivingAsset[]; renderEditor?: LivingAssetEditor; readImage?: LivingAssetImageReader; revealImage?: LivingAssetImageRevealer; showPreviewImages?: boolean; presentation?: 'default' | 'culture-gallery'; previewReadError?: string; onPreviewRetry?: () => void; previewReadingNotes?: readonly CultureReadingNote[]; toolbarAction?: ReactNode }) {
+  if (presentation === 'culture-gallery') return <WorldCultureGallery assets={assets} readingNotes={showPreviewImages ? previewReadingNotes : assets.flatMap(readingNotesForAsset)} readError={previewReadError} onRetry={onPreviewRetry} showPreviewImages={showPreviewImages} readImage={readImage} revealImage={revealImage} renderEditor={renderEditor} toolbarAction={toolbarAction} />
   const items = assets.filter((item) => item.kind === 'culture' || item.kind === 'bookshelf')
   const typeFor = (item: LivingAsset) => item.kind === 'bookshelf' ? 'reading' : textField(item.payload, 'type')
   const notes = items.filter((item) => typeFor(item) === 'reading' && textField(item.payload, 'note').trim())
@@ -105,8 +105,8 @@ export function WorldCultureContent({ assets, renderEditor, readImage, revealIma
  * 设计意图：候选与正式共用纯展示组件，仅由外层提供隔离样张或真实资产。
  * 关键约束：不读取 IPC、不播种数据，不把在场活动冒充住所，也不把未设定空间填成样张。
  */
-export function WorldHomeContent({ assets, presence, renderEditor, readImage, revealImage, showPreviewImages = false, presentation = 'default', roleId }: { assets: readonly LivingAsset[]; presence: string; renderEditor?: LivingAssetEditor; readImage?: LivingAssetImageReader; revealImage?: LivingAssetImageRevealer; showPreviewImages?: boolean; presentation?: 'default' | 'home-gallery'; roleId?: string }) {
-  if (presentation === 'home-gallery') return <ProductionHomeGallery assets={assets} roleId={roleId} renderEditor={renderEditor} readImage={readImage} revealImage={revealImage} />
+export function WorldHomeContent({ assets, presence, renderEditor, readImage, revealImage, showPreviewImages = false, presentation = 'default', roleId, toolbarAction }: { assets: readonly LivingAsset[]; presence: string; renderEditor?: LivingAssetEditor; readImage?: LivingAssetImageReader; revealImage?: LivingAssetImageRevealer; showPreviewImages?: boolean; presentation?: 'default' | 'home-gallery'; roleId?: string; toolbarAction?: ReactNode }) {
+  if (presentation === 'home-gallery') return <ProductionHomeGallery assets={assets} roleId={roleId} renderEditor={renderEditor} readImage={readImage} revealImage={revealImage} toolbarAction={toolbarAction} />
   const homes = assets.filter((item) => item.kind === 'home')
   const objects = assets.filter((item) => !['home', 'footprint', 'wardrobe', 'bookshelf', 'culture'].includes(item.kind))
   return <div className="min-w-0 space-y-3" data-world-content="home">
@@ -151,13 +151,13 @@ export function homeRecordsForRole(assets: readonly LivingAsset[], roleId: strin
   return { owned, residence, spaces, objects }
 }
 
-function ProductionHomeGallery({ assets, roleId, renderEditor, readImage, revealImage }: {
+function ProductionHomeGallery({ assets, roleId, renderEditor, readImage, revealImage, toolbarAction }: {
   assets: readonly LivingAsset[]; roleId?: string; renderEditor?: LivingAssetEditor;
-  readImage?: LivingAssetImageReader; revealImage?: LivingAssetImageRevealer
+  readImage?: LivingAssetImageReader; revealImage?: LivingAssetImageRevealer; toolbarAction?: ReactNode
 }) {
   const view = homeRecordsForRole(assets, roleId)
   const assetFor = (id: string) => id === 'overview' ? view.residence : view.owned.find(item => item.id === id)
-  return <WorldHomeGallery spaces={view.spaces} objects={view.objects} hasOverview={!!view.residence}
+  return <WorldHomeGallery spaces={view.spaces} objects={view.objects} hasOverview={!!view.residence} toolbarAction={toolbarAction}
     renderEditor={id => { const asset = assetFor(id); return asset ? renderEditor?.(asset) : null }}
     renderPicture={id => {
       const asset = assetFor(id)
@@ -182,6 +182,7 @@ export function WorldFootprintsContent({
   showPreviewImages = false,
   variant = 'default',
   roleId,
+  toolbarAction,
 }: {
   assets: readonly LivingAsset[]
   moments: readonly LivingMoment[]
@@ -191,10 +192,11 @@ export function WorldFootprintsContent({
   showPreviewImages?: boolean
   variant?: 'default' | 'alice' | 'travel-gallery'
   roleId?: string
+  toolbarAction?: ReactNode
 }) {
   if (variant === 'travel-gallery') {
     const owned = roleId ? assets.filter(asset => asset.roleId === roleId) : []
-    return <WorldTravelGallery trips={travelRecordsForRole(assets, roleId)} renderEditor={id => { const asset = owned.find(item => item.id === id); return asset && renderEditor?.(asset) }} renderImage={(trip, thumbnail) => {
+    return <WorldTravelGallery trips={travelRecordsForRole(assets, roleId)} toolbarAction={toolbarAction} renderEditor={id => { const asset = owned.find(item => item.id === id); return asset && renderEditor?.(asset) }} renderImage={(trip, thumbnail) => {
       const asset = owned.find(item => item.id === trip.id)
       const image = asset && worldRecordImageReference(asset.payload)
       return asset && image && readImage ? <WorldRecordImage assetId={asset.id} image={image} alt={trip.title} mode={thumbnail ? 'thumbnail' : 'preview'} readImage={readImage} revealImage={revealImage} /> : null

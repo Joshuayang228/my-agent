@@ -56,6 +56,7 @@ interface AssetsPanelProps {
   previewOutfitImage?: { src?: string; status: 'ready' | 'pending' | 'failed' | 'none' }
   previewOutfits?: readonly PreviewWardrobeOutfit[]
   previewTabIcons?: Readonly<Record<string, ReactNode>>
+  toolbarAction?: ReactNode
 }
 
 function occasionTags(payload: Record<string, unknown>): string[] {
@@ -89,7 +90,7 @@ function AssetImage({ asset }: { asset: WorldAssetRecord }) {
   return <GeneratedImageResult image={image} readImage={(imageId) => window.electronAPI.companion.readAssetImage(asset.id, imageId)} scope={`asset:${asset.id}`} />
 }
 
-export function AssetsPanel({ previewAssets, previewEditable = false, allowAssetEditing = true, previewWearingId, showAssetTabs = true, showAddControls = true, presentation = 'default', previewOutfitImage, previewOutfits = [], previewTabIcons, onGenerateAssetImage }: AssetsPanelProps) {
+export function AssetsPanel({ previewAssets, previewEditable = false, allowAssetEditing = true, previewWearingId, showAssetTabs = true, showAddControls = true, presentation = 'default', previewOutfitImage, previewOutfits = [], previewTabIcons, toolbarAction, onGenerateAssetImage }: AssetsPanelProps) {
   const isPreview = previewAssets !== undefined
   const readLabel = presentation === 'wardrobe-gallery' ? '衣柜' : '物什'
   const canEdit = allowAssetEditing && (!isPreview || previewEditable) && !(isPreview && presentation === 'wardrobe-gallery')
@@ -437,11 +438,11 @@ export function AssetsPanel({ previewAssets, previewEditable = false, allowAsset
         <WorldWriteError message={writeError}>
           {!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>}
         </WorldWriteError>
-        {wardrobeGallery && <div className="mb-4" data-testid="wardrobe-view-tabs"><TabStrip label="衣柜视图" activeId={previewWardrobeView} onSelect={(id) => { setPreviewWardrobeView(id); if (id !== 'wearing') setCategory(id); if (!isPreview) { setEditingId(null); setPendingDelete(null); setAddDrafts({}) } }} items={[
+        {wardrobeGallery && <div className={toolbarAction ? 'mb-4 flex min-w-0 items-center gap-3' : 'mb-4'} data-testid="wardrobe-view-tabs"><TabStrip label="衣柜视图" activeId={previewWardrobeView} onSelect={(id) => { setPreviewWardrobeView(id); if (id !== 'wearing') setCategory(id); if (!isPreview) { setEditingId(null); setPendingDelete(null); setAddDrafts({}) } }} items={[
           { id: 'wearing', label: '正在穿着', icon: <PersonStanding size={14} /> }, { id: 'all', label: '全部', icon: <LayoutGrid size={14} />, separatorBefore: true },
           { id: 'outfits', label: '套装', icon: previewTabIcons?.outfits ?? (!isPreview ? wardrobeCategoryIcons.outfits : <Shirt size={14} />) },
           ...Object.entries(slotLabels).map(([id, label]) => { const Icon = slotIcons[id]; return { id, label, icon: previewTabIcons?.[id] ?? (!isPreview ? wardrobeCategoryIcons[id] : undefined) ?? <Icon size={14} /> } }),
-        ]} /></div>}
+        ]} />{toolbarAction && <div className="ml-auto shrink-0">{toolbarAction}</div>}</div>}
         {wardrobeGallery && <WorldWriteError message={changeError} />}
         {tab === 'wardrobe' && (!wardrobeGallery || previewWardrobeView === 'wearing') ? (
           <section className="mb-5">

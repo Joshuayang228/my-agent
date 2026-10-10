@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MomentsPanel, type MomentsPreviewData } from '../MomentsPanel'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
+import { WorldCandidateControls } from './WorldCandidateControls'
 
 const scenarios = [
   { id: 'mixed', label: '综合' }, { id: 'text', label: '纯文字' },
@@ -36,11 +37,11 @@ function projectPreview(preview: MomentsPreviewData, scenario: Scenario): Moment
 export function MomentsExperienceCandidate({ previewData }: { previewData: MomentsPreviewData }) {
   const [scenario, setScenario] = useState<Scenario>('mixed')
   return <div className="flex h-full min-h-0 flex-col" data-testid="world-moments-fixture" data-persona-id={previewData.roleId}>
-    <div className="px-5 pt-3">
+    <WorldCandidateControls>
       <PlaygroundStateSwitcher items={scenarios} value={scenario} onChange={setScenario} ariaLabel="朋友圈状态样张" />
-    </div>
+    </WorldCandidateControls>
     <MomentsPanel key={`${previewData.roleId}-${scenario}`} onClose={() => {}}
       previewData={projectPreview(previewData, scenario)} appearance="alice-feed"
-      hideHeader showSocialActions compactClosedComposer enableImagePreview previewChrome="minimal" />
+      showSocialActions compactClosedComposer enableImagePreview previewChrome="minimal" />
   </div>
 }

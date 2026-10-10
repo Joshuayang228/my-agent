@@ -7,6 +7,7 @@ import { useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'reac
 import { ArrowRight, Check, CircleAlert, Clock3, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, X } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
+import { WorldCandidateControls, WorldCandidateControlsTarget, WorldCandidateRefresh } from './WorldCandidateControls'
 import { LAYOUT_CLASSES, layoutProfileStyle } from '../../shared/content-layout'
 import { CultureExperienceCandidate } from './CultureExperienceCandidate'
 import { HomeExperienceCandidate } from './HomeExperienceCandidate'
@@ -671,12 +672,13 @@ function WardrobeCandidate({ assets, personaId }: { assets: WorldAssetRecord[]; 
     { id: 'sport', name: '轻松运动', slots: { top: `${personaId}-sport-top`, bottom: `${personaId}-sport-bottom`, shoes: `${personaId}-shoes` }, imageSrc: wardrobeSportOutfit },
   ].map((outfit) => ({ ...outfit, slots: Object.fromEntries(Object.entries(outfit.slots).filter(([, id]) => id !== undefined)), imageSrc: personaId === 'lin' && scenario !== 'no-images' ? outfit.imageSrc : undefined, changeFailure: scenario === 'failure' }))
   return <div data-testid="world-wardrobe-fixture" data-persona-id={personaId}>
-    <div className="px-4 pt-3">
+    <WorldCandidateControls>
       <PlaygroundStateSwitcher ariaLabel="衣柜状态样张" value={scenario} onChange={setScenario}
         items={[{ id: 'default', label: '完整穿搭' }, { id: 'commute', label: '外出通勤' }, { id: 'sport', label: '轻松运动' }, { id: 'partial', label: '部分穿搭' }, { id: 'pending', label: '穿搭图生成中' }, { id: 'image-failed', label: '穿搭图失败' }, { id: 'no-images', label: '无图衣柜' }, { id: 'empty', label: '空衣柜' }, { id: 'failure', label: '换上失败' }]} />
       <div className="pt-2"><WardrobeIconOptions value={iconStyle} onChange={setIconStyle} /></div>
-    </div>
+    </WorldCandidateControls>
     <AssetsPanel key={`${personaId}-${scenario}`} previewAssets={samples} previewWearingId={samples.find((asset) => asset.payload.previewWearing === true)?.id} showAssetTabs={false} presentation="wardrobe-gallery"
+      toolbarAction={<WorldCandidateRefresh label="刷新衣柜" />}
       previewOutfits={previewOutfits}
       previewTabIcons={wardrobePreviewIcons(iconStyle)}
       previewOutfitImage={{ src: personaId === 'lin' ? scenario === 'commute' ? wardrobeCommuteOutfit : scenario === 'sport' ? wardrobeSportOutfit : wardrobeCasualOutfit : undefined, status: scenario === 'pending' ? 'pending' : scenario === 'image-failed' ? 'failed' : personaId === 'lin' && ['default', 'failure', 'commute', 'sport'].includes(scenario) ? 'ready' : 'none' }} />
@@ -685,6 +687,7 @@ function WardrobeCandidate({ assets, personaId }: { assets: WorldAssetRecord[]; 
 
 function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onNavigate?: (tab: PlaygroundTabId) => void }) {
   const [tab, setTab] = useState<WorldTab>('moments')
+  const [controlsTarget, setControlsTarget] = useState<HTMLDivElement | null>(null)
   const fixtures = useMemo(() => worldPreviewFixtures(persona), [persona])
   const previewPanels: Partial<Record<WorldTab, ReactNode>> = {
     moments: (
@@ -707,6 +710,8 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
     ),
   }
   return (
+    <WorldCandidateControlsTarget.Provider value={controlsTarget}>
+      <div ref={setControlsTarget} className="mb-4 min-w-0" data-testid="world-candidate-controls" />
     <SurfaceViewport>
       <div className="flex h-full min-h-0 flex-col" data-testid="playground-world-experience" data-persona-id={persona.id}>
         <WorldOverviewHero persona={persona} />
@@ -730,6 +735,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
         </div>
       </div>
     </SurfaceViewport>
+    </WorldCandidateControlsTarget.Provider>
   )
 }
 

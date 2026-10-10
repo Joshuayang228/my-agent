@@ -27,10 +27,11 @@ export function tripDates(trip: TravelRecordView) {
  * 设计意图：共享列表 / 详情，外层注入受控媒体和维护动作，沿用一个滚动容器。
  * 关键约束：只呈现已出发旅行；按 ID 选择，返回恢复原卡焦点与列表位置，不猜测日期。
  */
-export function WorldTravelGallery({ trips: input, renderImage, renderEditor, initialSelectedId = null, embedded = false }: {
+export function WorldTravelGallery({ trips: input, renderImage, renderEditor, toolbarAction, initialSelectedId = null, embedded = false }: {
   trips: readonly TravelRecordView[];
   renderImage?: (trip: TravelRecordView, thumbnail: boolean) => ReactNode;
   renderEditor?: (id: string) => ReactNode
+  toolbarAction?: ReactNode
   initialSelectedId?: string | null; embedded?: boolean
 }) {
   const trips = visibleTrips(input)
@@ -51,6 +52,7 @@ export function WorldTravelGallery({ trips: input, renderImage, renderEditor, in
   const back = () => { restoring.current = true; setSelected(null) }
   const picture = (item: TravelRecordView, thumbnail: boolean) => <div className={`flex w-full items-center justify-center overflow-hidden ${thumbnail ? '' : 'max-h-96 rounded-md'}`} style={{ aspectRatio: '3 / 2', background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>{renderImage?.(item, thumbnail) ?? <span className="inline-flex items-center gap-2 text-xs"><ImageOff size={16} />暂无旅行配图</span>}</div>
   return <div className="flex min-h-0 flex-1 flex-col" data-testid="travel-gallery">
+    {!embedded && toolbarAction && <div className="flex shrink-0 justify-end px-4 pt-3">{toolbarAction}</div>}
     <div ref={scroller} className={embedded ? 'min-w-0' : 'min-h-0 flex-1 overflow-y-auto'} data-testid="travel-scroll" style={{ ...(!embedded ? contentGutterStyle() : {}), color: 'var(--text-primary)' }}>
       {trip ? <div onKeyDown={event => { if (event.key === 'Escape' && !embedded) { event.stopPropagation(); back() } }}>
         {!embedded && <ActionButton variant="plain" className="mb-5" onClick={back}><ArrowLeft size={14} className="mr-2" />返回</ActionButton>}
