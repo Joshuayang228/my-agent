@@ -143,7 +143,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
       await expect(heading).toHaveCount(1)
       expect(await panel.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(false)
     }
-    await expect(page.getByTestId('settings-candidate-preview-label')).toHaveText('仅供预览')
+    await expect(page.getByTestId('settings-candidate-preview-label')).toHaveCount(0)
     await expect(candidate.getByText('仅供预览', { exact: true })).toHaveCount(0)
   })
 }

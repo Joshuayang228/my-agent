@@ -685,6 +685,12 @@ html[data-font-scale="lg"] {
   visibility: hidden;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-transition {
+    transition: none;
+  }
+}
+
 .view-transition {
   animation: fade-in var(--motion-fast) var(--motion-ease);
 }

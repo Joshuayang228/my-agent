@@ -109,6 +109,25 @@ function App() {
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarReopenReady, setSidebarReopenReady] = useState(false)
+  const sidebarShellRef = useRef<HTMLDivElement>(null)
+  const sidebarReopenRef = useRef<HTMLButtonElement>(null)
+
+  /*
+   * 背景：正式 Chat 侧栏收起和展开共用同一条工具栏，两个入口同时可见会发生重叠。
+   * 设计意图：先完成退场计时，再显示浮动入口；反向展开立即清理等待状态，放弃同时保留两套入口的直觉做法。
+   * 关键约束：计时必须与 --motion-normal 的 220ms 对齐，并在 effect 清理时取消旧计时器，否则快速反向操作会让旧按钮重新出现。
+   */
+  useLayoutEffect(() => {
+    setSidebarReopenReady(false)
+    if (sidebarOpen) return
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const timer = window.setTimeout(() => {
+      setSidebarReopenReady(true)
+      requestAnimationFrame(() => sidebarReopenRef.current?.focus())
+    }, reducedMotion ? 0 : 220)
+    return () => window.clearTimeout(timer)
+  }, [sidebarOpen])
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -954,6 +973,7 @@ function App() {
        * 这样展开 / 收起不会靠卸载造成硬切，同时 ResizeHandle 会和侧栏一起进退。
        */}
       <div
+        ref={sidebarShellRef}
         className="sidebar-transition flex min-h-0 shrink-0 overflow-hidden"
         style={{
           width: sidebarOpen ? sidebarWidth + 1 : 0,
@@ -962,10 +982,12 @@ function App() {
           pointerEvents: sidebarOpen ? 'auto' : 'none',
         }}
         aria-hidden={!sidebarOpen}
+        inert={!sidebarOpen}
         data-open={sidebarOpen}
         data-testid="sidebar-transition-shell"
       >
         <PrimarySidebar
+          collapseControlPlacement="header"
           developerMode={developerMode}
           personaName={currentPersonaName}
           personaBlurb={companionBlurb || '越探索，越着迷。'}
@@ -1057,21 +1079,28 @@ function App() {
       )}
 
       {/* ── 主区域 ── */}
-      <div className={`${activeView === 'chat' ? 'chat-shape-scope ' : ''}flex min-w-0 flex-1 flex-col overflow-hidden`} style={activeView === 'chat' ? layoutProfileStyle('chat') : undefined}>
+      <div className={`${activeView === 'chat' ? 'chat-shape-scope ' : ''}relative flex min-w-0 flex-1 flex-col overflow-hidden`} style={activeView === 'chat' ? layoutProfileStyle('chat') : undefined}>
         {/* Chat 工具槽常驻，避免工作区入口随项目或聊天阶段消失；其它全页视图仍自带导航。 */}
         {activeView === 'chat' && (
           <div data-testid="chat-toolbar" className="flex h-12 shrink-0 items-center px-3" style={{ background: 'var(--bg-primary)' }}>
-            {!sidebarOpen && (
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="mr-3 flex h-8 w-8 items-center justify-center rounded-md transition"
+            {!sidebarOpen && sidebarReopenReady && (
+              <IconButton
+                ref={sidebarReopenRef}
+                size={32}
+                label="展开侧栏"
+                onClick={() => {
+                  setSidebarReopenReady(false)
+                  setSidebarOpen(true)
+                  requestAnimationFrame(() => sidebarShellRef.current?.querySelector<HTMLButtonElement>('button[aria-label="收起侧栏"]')?.focus())
+                }}
+                className="absolute left-3 top-[22px] z-10"
                 style={{ color: 'var(--text-muted)' }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '')}
                 title="展开侧边栏 (Ctrl+B)"
               >
                 <Menu size={16} />
-              </button>
+              </IconButton>
             )}
             <div className="min-w-0 flex-1" aria-hidden="true" />
               <IconButton

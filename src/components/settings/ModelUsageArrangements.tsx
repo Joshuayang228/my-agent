@@ -1,9 +1,8 @@
 import { ArrowDown, ArrowUp, GripVertical, X } from 'lucide-react'
 import type { ModelRouteProfile, ModelRoutePurpose } from '../../shared/types'
-import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { SelectField } from '../foundation/SelectField'
-import { ScopeBadge, SettingCard } from './SettingsFields'
+import { ScopeBadge, SettingCard, SettingSwitch } from './SettingsFields'
 
 type ModelOption = { value: string; label: string }
 type RoutePurpose = { id: ModelRoutePurpose; label: string; description: string }
@@ -54,7 +53,7 @@ export function ModelUsageArrangements({ purposes, routes, options, routeLabel, 
               <span className="w-5 shrink-0 text-center text-[11px] font-semibold" style={{ color: 'var(--accent-fg)' }}>{index + 1}</span>
               <GripVertical size={13} className="shrink-0" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
               <span className="min-w-0 flex-1 truncate text-[11px]" title={label} style={{ color: 'var(--text-primary)' }}>{label}</span>
-              <ActionButton size="sm" role="switch" aria-checked={route.enabled} aria-label={`${label}${route.enabled ? '已启用' : '已停用'}`} disabled={disabled} onClick={() => onToggle(route)} className="h-7 min-h-0 w-12 shrink-0 border-0 px-0" style={{ color: route.enabled ? 'var(--accent-fg)' : 'var(--text-muted)', background: route.enabled ? 'var(--accent-subtle)' : 'transparent' }}>{route.enabled ? '启用' : '停用'}</ActionButton>
+              <SettingSwitch compact checked={route.enabled} label={`${label}${route.enabled ? '已启用' : '已停用'}`} description="" onChange={() => onToggle(route)} disabled={disabled} testId={`${testIdPrefix}-route-toggle-${purpose.id}-${route.connectionId}-${route.model}`} />
               <IconButton label={`上移 ${label}`} disabled={disabled || index === 0} onClick={() => onMove(purpose.id, index, -1)} className="disabled:opacity-30"><ArrowUp size={13} style={{ color: 'var(--text-muted)' }} /></IconButton>
               <IconButton label={`下移 ${label}`} disabled={disabled || index === items.length - 1} onClick={() => onMove(purpose.id, index, 1)} className="disabled:opacity-30"><ArrowDown size={13} style={{ color: 'var(--text-muted)' }} /></IconButton>
               <IconButton label={`移除 ${label}`} disabled={disabled} onClick={() => onRemove(route)}><X size={13} style={{ color: 'var(--danger)' }} /></IconButton>

@@ -310,6 +310,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
   const sessionFilterRef = useRef<HTMLInputElement>(null)
   const [viewport, setViewport] = useState<'standard' | 'split'>('standard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarReopenReady, setSidebarReopenReady] = useState(true)
   const sidebarReopenRef = useRef<HTMLButtonElement>(null)
   const sidebarCandidateRef = useRef<HTMLDivElement>(null)
   const [journey, setJourneyState] = useState<ChatJourney>('welcome')
@@ -319,6 +320,17 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
   const previewFileRef = useRef<HTMLInputElement>(null)
   const [workspaceOpen, setWorkspaceOpen] = useState(false)
   const [reasoningExpanded, setReasoningExpanded] = useState(false)
+  const finishSidebarCollapse = () => {
+    setSidebarReopenReady(true)
+    requestAnimationFrame(() => sidebarReopenRef.current?.focus())
+  }
+  const collapseSidebar = () => {
+    setSidebarReopenReady(false)
+    setSidebarOpen(false)
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reducedMotion) requestAnimationFrame(finishSidebarCollapse)
+    else window.setTimeout(finishSidebarCollapse, 220)
+  }
   const setJourney = (next: ChatJourney) => {
     setJourneyState(next)
   }
@@ -368,6 +380,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
               type="button"
               onClick={() => {
                 setViewport(item.id)
+                setSidebarReopenReady(true)
                 setSidebarOpen(true)
               }}
               aria-pressed={viewport === item.id}
@@ -412,7 +425,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                   onDeleteSession={noop}
                   onContextMenu={handleContextMenu}
                   onNavigate={noop}
-                  onCollapse={() => { setSidebarOpen(false); requestAnimationFrame(() => sidebarReopenRef.current?.focus()) }}
+                  onCollapse={collapseSidebar}
                   collapseControlPlacement="header"
                   width={248}
                 />
@@ -423,9 +436,9 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                   ref={sidebarReopenRef}
                   size={32}
                   label="展开侧栏"
-                  onClick={() => { setSidebarOpen(true); requestAnimationFrame(() => sidebarCandidateRef.current?.querySelector<HTMLButtonElement>('button[aria-label="收起侧栏"]')?.focus()) }}
-                  className={`absolute left-3 top-2 z-10 hover:bg-[var(--hover-overlay)] ${sidebarOpen ? '!hidden' : ''}`}
-                  hidden={sidebarOpen}
+                  onClick={() => { setSidebarReopenReady(false); setSidebarOpen(true); requestAnimationFrame(() => sidebarCandidateRef.current?.querySelector<HTMLButtonElement>('button[aria-label="收起侧栏"]')?.focus()) }}
+                  className="absolute left-3 top-2 z-10 hover:bg-[var(--hover-overlay)]"
+                  hidden={sidebarOpen || !sidebarReopenReady}
                   style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
                   data-testid="surface-sidebar-reopen"
                   title="重新展开主侧栏"
@@ -721,21 +734,15 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
 }
 
 function SettingsSurface({ persona, onPersonaChange, scenario, onScenarioChange, onNavigate }: { persona: PlaygroundPersona; onPersonaChange: (personaId: string) => void; scenario: SettingsScenario; onScenarioChange: (scenario: SettingsScenario) => void; onNavigate?: (tab: PlaygroundTabId) => void }) {
-  return (
-    <div className="space-y-2">
-      <SurfaceViewport>
-        <div aria-label="设置隔离预览" data-testid="settings-surface-candidate">
-          <SettingsExperienceCandidate
-            memoryDetail={<MemorySurface />}
-            companionDetail={scenario === 'role-shelf' ? <RoleShelfFixture persona={persona} onPersonaChange={onPersonaChange} /> : undefined}
-            initialSection={scenario === 'memory-management' ? 'memory' : scenario === 'role-shelf' ? 'companion' : undefined}
-            onOpenRoleShelf={() => onScenarioChange('role-shelf')}
-            onClose={onNavigate ? () => onNavigate('chat') : undefined}
-          />
-        </div>
-      </SurfaceViewport>
-    </div>
-  )
+  return <SurfaceViewport testId="settings-surface-candidate">
+    <SettingsExperienceCandidate
+      memoryDetail={<MemorySurface />}
+      companionDetail={scenario === 'role-shelf' ? <RoleShelfFixture persona={persona} onPersonaChange={onPersonaChange} /> : undefined}
+      initialSection={scenario === 'memory-management' ? 'memory' : scenario === 'role-shelf' ? 'companion' : undefined}
+      onOpenRoleShelf={() => onScenarioChange('role-shelf')}
+      onClose={onNavigate ? () => onNavigate('chat') : undefined}
+    />
+  </SurfaceViewport>
 }
 
 /** 设置页中的角色架候选：只展示切换关系，不连接真实角色列表或写入主角状态。 */
