@@ -20,6 +20,8 @@
 
 ## 进行中
 
+伙伴时间控件：[companion-quiet-time-controls-v1.md](./companion-quiet-time-controls-v1.md)，Foundation 整点时间选择与 Playground 伙伴设置收口方案待确认；正式默认与存量偏好数据不变。
+
 布局基线：[foundation-layout-boundaries-v1.md](./foundation-layout-boundaries-v1.md)，布局与间距、透明度 P0 候选施工，正式回流未授权。
 
 足迹设计：[footprints-travel-v1.md](./footprints-travel-v1.md)，旅行粒度与产品边界已确认；数据 / 交互方案待确认，正式回流未授权。

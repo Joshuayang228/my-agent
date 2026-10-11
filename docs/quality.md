@@ -1,5 +1,7 @@
 # 质量总控
 
+伙伴补充说明入口门禁（2026-10-11）：Playground 伙伴设置不得渲染“相处补充说明”输入框，正式 Settings 仍保留该入口；候选隐藏不得清除 `companionResponseNote`、改变保存契约或移除提示词注入。
+
 Playground 设置状态控制布局门禁（2026-10-11）：模型、Skills、MCP 及设置内记忆样张的状态切换必须位于 `settings-candidate-controls` 框架外槽位；对应设置内容区不得再出现第二份控制器，无状态分区不保留空白控制行，正式 Settings 入口不受影响。
 
 Skills Foundation 动作门禁（2026-10-11）：Skills 列表进入详情和详情返回必须使用 `ActionButton` 的明确变体；低强调动作必须保留 hover / focus 表面，不得用业务 class 把 Foundation 的交互反馈抹掉。

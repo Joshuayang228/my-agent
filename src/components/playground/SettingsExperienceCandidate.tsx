@@ -92,6 +92,7 @@ function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProa
   const [note, setNote] = useState('当我把事情排得太满时，提醒我留一点空白。')
   return <CompanionSettingsContent
     showHeader={false}
+    showResponseNote={false}
     expertise={expertise as 'auto' | 'novice' | 'intermediate' | 'expert'}
     onExpertiseChange={onExpertiseChange as (value: 'auto' | 'novice' | 'intermediate' | 'expert') => void}
     momentTipsMuted={!momentTips}

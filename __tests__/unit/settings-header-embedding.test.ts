@@ -58,5 +58,7 @@ describe('settings header embedding remains explicit', () => {
     expect(embedded).not.toContain('<h2')
     expect(embedded).toContain('回答方式')
     expect(embedded).toContain('相处补充说明')
+    const candidate = renderToStaticMarkup(createElement(CompanionSettingsContent, { ...companionProps, showHeader: false, showResponseNote: false }))
+    expect(candidate).not.toContain('相处补充说明')
   })
 })
