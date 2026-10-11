@@ -16,7 +16,7 @@ interface SkillViewProps {
 export function SkillListCard({ skill, disabled, onEnabledChange, onOpen, testId, toggleTestId }: SkillViewProps & { onOpen: () => void }) {
   return <SettingCard testId={testId}>
     <div className="flex items-center justify-between gap-3">
-      <ActionButton disabled={disabled} onClick={onOpen} className="min-w-0 shrink border-0 p-0 text-left text-[13px] font-medium [overflow-wrap:anywhere]" style={{ color: 'var(--text-primary)' }}>{skill.name}</ActionButton>
+      <ActionButton variant="plain" disabled={disabled} onClick={onOpen} className="min-w-0 shrink border-0 p-0 text-left text-[13px] font-medium [overflow-wrap:anywhere]" style={{ color: 'var(--text-primary)' }}>{skill.name}</ActionButton>
       <SettingSwitch checked={skill.enabled} compact disabled={disabled} label={skill.name} description="" onChange={onEnabledChange} testId={toggleTestId ?? `${testId}-enabled`} />
     </div>
   </SettingCard>
@@ -29,7 +29,7 @@ export function SkillDetail({ skill, disabled, onEnabledChange, onBack, content,
   notice?: ReactNode
 }) {
   return <SettingCard testId={testId}>
-    <div className="mb-2"><ActionButton disabled={disabled} onClick={onBack} className="gap-1.5 border-0 p-0" aria-label="返回 Skills" data-testid={testId.replace(/-detail$/, '-back')}><ArrowLeft size={16} />返回 Skills</ActionButton></div>
+    <div className="mb-2"><ActionButton variant="plain" disabled={disabled} onClick={onBack} className="gap-1.5 border-0 p-0" aria-label="返回 Skills" data-testid={testId.replace(/-detail$/, '-back')}><ArrowLeft size={16} />返回 Skills</ActionButton></div>
     <div className="mb-4 flex items-center gap-3">
       <h3 className="min-w-0 flex-1 text-[15px] font-semibold [overflow-wrap:anywhere]" style={{ color: 'var(--text-primary)' }}>{skill.name}</h3>
       <SettingSwitch checked={skill.enabled} compact disabled={disabled} label={skill.name} description="" onChange={onEnabledChange} testId={toggleTestId ?? `${testId}-enabled`} />
