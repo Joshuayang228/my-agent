@@ -28,7 +28,7 @@ import {
   Folder, FolderOpen, Ban, PanelRight,
   ChevronDown,
   Copy, Check, X, Pencil, RotateCcw, GitBranch, Trash2,
-  Search, Menu, File,
+  Search, PanelLeftOpen, File,
 } from 'lucide-react'
 import { buildColdStartCopy } from './shared/companion-presence'
 import {
@@ -1094,13 +1094,13 @@ function App() {
                   setSidebarOpen(true)
                   requestAnimationFrame(() => sidebarShellRef.current?.querySelector<HTMLButtonElement>('button[aria-label="收起侧栏"]')?.focus())
                 }}
-                className="absolute left-3 top-[22px] z-10"
+                className="pointer-events-auto absolute left-3 top-2 z-10 hover:bg-[var(--hover-overlay)]"
                 style={{ color: 'var(--text-muted)' }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '')}
                 title="展开侧边栏 (Ctrl+B)"
               >
-                <Menu size={16} />
+                <PanelLeftOpen size={16} />
               </IconButton>
             )}
             <div className="min-w-0 flex-1" aria-hidden="true" />
