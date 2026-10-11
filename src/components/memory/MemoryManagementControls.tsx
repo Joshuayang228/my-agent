@@ -29,7 +29,7 @@ export function MemoryToolbar({ group, counts, onGroupChange, query, onQueryChan
     <div className={`flex h-8 shrink-0 justify-end ${searchOpen ? 'w-52 max-w-[42%]' : 'w-8'}`} data-testid="memory-actions">
       {searchOpen ? <div className="flex h-8 w-full items-center gap-2 rounded-[var(--radius-md)] border px-2" style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)' }}>
         <Search size={14} className="shrink-0" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
-        <TextField autoFocus aria-label="搜索记忆" placeholder="搜索记忆" value={query} className="w-full flex-1"
+        <TextField appearance="embedded" autoFocus aria-label="搜索记忆" placeholder="搜索记忆" value={query} className="w-full flex-1"
           onChange={(event: ChangeEvent<HTMLInputElement>) => onQueryChange(event.target.value)} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
             if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeSearch() }
           }} />
