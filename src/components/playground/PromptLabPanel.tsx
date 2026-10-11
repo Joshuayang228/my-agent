@@ -4,6 +4,7 @@
 
 import { useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import { TextField } from '../foundation/TextField'
+import { ActionButton } from '../foundation/ActionButton'
 
 interface PromptInfo {
   full: string
@@ -84,29 +85,26 @@ export function PromptLabPanel({
   return (
     <div className="mx-auto max-w-2xl space-y-3" data-testid="prompt-lab">
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
+        <ActionButton
           disabled={loadingProd}
           onClick={() => void loadProduction()}
-          className="settings-option px-3 py-1.5 text-xs disabled:opacity-50"
+          size="md"
         >
           {loadingProd ? '载入中…' : '载入当前实装'}
-        </button>
-        <button
-          type="button"
+        </ActionButton>
+        <ActionButton
           onClick={() => setSystemPrompt('')}
-          className="settings-option px-3 py-1.5 text-xs"
+          size="md"
         >
           清空 System（用默认试验指令）
-        </button>
-        <button
-          type="button"
+        </ActionButton>
+        <ActionButton
           onClick={resetTurns}
-          className="settings-option px-3 py-1.5 text-xs"
+          size="md"
           disabled={turns.length === 0}
         >
           清空对话轮次
-        </button>
+        </ActionButton>
       </div>
       <label className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>
         System（会话覆盖）
@@ -157,14 +155,14 @@ export function PromptLabPanel({
           }}
         />
       </label>
-      <button
-        type="button"
+      <ActionButton
         disabled={running || !userPrompt.trim()}
         onClick={() => void run()}
-        className="settings-option px-3 py-1.5 text-xs disabled:opacity-50"
+        tone="accent"
+        size="md"
       >
         {running ? '运行中…' : turns.length > 0 ? '继续试跑（带历史）' : '试跑（无工具）'}
-      </button>
+      </ActionButton>
       {lastMeta && (
         <p className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>{lastMeta}</p>
       )}

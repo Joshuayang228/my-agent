@@ -3,6 +3,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
+import { ActionButton } from '../foundation/ActionButton'
 
 type Status = {
   model: string
@@ -129,33 +130,29 @@ export function ModelTestPanel() {
             </p>
           )}
           <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
+            <ActionButton
               disabled={busy}
               onClick={() => void runSmoke()}
-              className="rounded-lg px-3 py-1.5 text-xs disabled:opacity-50"
-              style={{ background: 'var(--accent)', color: '#fff' }}
+              tone="accent"
+              size="md"
             >
               烟测连通
-            </button>
-            <button
-              type="button"
+            </ActionButton>
+            <ActionButton
               disabled={busy}
               onClick={() => void runProbe()}
-              className="rounded-lg border px-3 py-1.5 text-xs disabled:opacity-50"
-              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+              size="md"
             >
               探测 Thinking 开关
-            </button>
-            <button
-              type="button"
+            </ActionButton>
+            <ActionButton
               disabled={busy}
               onClick={() => void refresh()}
-              className="rounded-lg border px-3 py-1.5 text-xs disabled:opacity-50"
-              style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}
+              variant="plain"
+              size="md"
             >
               刷新状态
-            </button>
+            </ActionButton>
           </div>
         </div>
       </div>

@@ -62,6 +62,7 @@ export const FOUNDATION_STORY_NAVIGATION_GROUPS: readonly FoundationStoryNavigat
   { id: 'cards', label: '卡片', description: '静态、可交互和长内容通用卡片' },
 ] as const
 
+// Agent 实验只消费下列基础故事对应的控件，不在实验面板中复制 Foundation 故事或维护第二套控件资产。
 export const FOUNDATION_STORIES = [
   { key: 'foundation.action-button', viewId: 'action-button', assetKey: 'behavior.action-button', labelZh: '文字动作按钮', group: 'behavior', renderer: 'advanced', navigationGroup: 'buttons' },
   { key: 'foundation.button', viewId: 'buttons', assetKey: 'behavior.button', labelZh: '按钮', group: 'behavior', renderer: 'ui-controls', navigationGroup: 'buttons' },

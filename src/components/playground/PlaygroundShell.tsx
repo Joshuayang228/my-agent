@@ -25,6 +25,7 @@ import { FoundationComponentsPanel } from './FoundationComponentsPanel'
 import { ProductExperienceDependencies } from './ProductExperienceDependencies'
 import type { ProductExperienceTabId } from '../../shared/product-experience-registry'
 import { SurfaceBaselinePanel } from './SurfaceBaselinePanel'
+import { ImageGenerationExperienceCandidate } from './ImageGenerationExperienceCandidate'
 import { PromptLabPanel } from './PromptLabPanel'
 import { ToolRunPanel, type PlaygroundToolInfo } from './ToolRunPanel'
 import { ModelTestPanel } from './ModelTestPanel'
@@ -39,6 +40,7 @@ const ICONS: Partial<Record<PlaygroundTabId, LucideIcon>> = {
   'visual-assets': Image,
   'foundation-components': Blocks,
   chat: MessageSquare,
+  'image-generation': Image,
   world: Newspaper,
   settings: Settings2,
   workspace: PanelRight,
@@ -129,11 +131,11 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
                 const active = tab === item.id
                 const Icon = ICONS[item.id] ?? FileCode2
                 return (
-                  <button
+                  <ActionButton
                     key={item.id}
-                    type="button"
                     onClick={() => setTab(item.id)}
-                    className={`group flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[12px] transition ${active ? 'font-medium' : ''}`}
+                    variant="plain"
+                    className={`group flex w-full justify-start gap-2 rounded-lg px-2 py-2 text-left text-[12px] ${active ? 'font-medium' : ''}`}
                     style={{
                       color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
                       background: active ? 'var(--hover-overlay)' : undefined,
@@ -144,12 +146,13 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
                   >
                     <Icon size={15} strokeWidth={1.7} style={{ color: active ? 'var(--text-primary)' : 'var(--text-muted)' }} aria-hidden="true" />
                     <span className="truncate">{item.label}</span>
-                  </button>
+                  </ActionButton>
                 )
               })}
             </section>
           )
         })}
+
       </aside>
 
       <main className="playground-main min-h-0 min-w-0 flex-1 overflow-y-auto px-6 py-6 sm:px-10 sm:py-8" data-testid="playground-main">
@@ -168,6 +171,7 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
             {tab === 'visual-assets' && <UiControlsPanel initialSub="icons" />}
             {tab === 'foundation-components' && <FoundationComponentsPanel />}
             {tab === 'chat' && <SurfaceBaselinePanel initialSurface="chat" persona={persona} onPersonaChange={setPersonaId} settingsScenario={settingsScenario} onSettingsScenarioChange={setSettingsScenario} onNavigate={navigateTo} />}
+            {tab === 'image-generation' && <ImageGenerationExperienceCandidate />}
             {tab === 'world' && <SurfaceBaselinePanel initialSurface="world" persona={persona} onPersonaChange={setPersonaId} settingsScenario={settingsScenario} onSettingsScenarioChange={setSettingsScenario} onNavigate={navigateTo} />}
             {tab === 'settings' && <SurfaceBaselinePanel initialSurface="settings" persona={persona} onPersonaChange={setPersonaId} settingsScenario={settingsScenario} onSettingsScenarioChange={setSettingsScenario} onNavigate={navigateTo} />}
             {tab === 'workspace' && <SurfaceBaselinePanel initialSurface="dock" />}

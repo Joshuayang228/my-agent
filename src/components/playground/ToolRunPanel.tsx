@@ -5,6 +5,8 @@
 import { useEffect, useState, type ChangeEvent } from 'react'
 import { SelectField } from '../foundation/SelectField'
 import { TextField } from '../foundation/TextField'
+import { ActionButton } from '../foundation/ActionButton'
+import { CheckboxField } from '../foundation/CheckboxField'
 
 export interface PlaygroundToolInfo {
   name: string
@@ -133,21 +135,20 @@ export function ToolRunPanel({ tools }: { tools: PlaygroundToolInfo[] }) {
             />
           </label>
           <label className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            <input
-              type="checkbox"
+            <CheckboxField
               checked={confirmRisk}
               onChange={(e) => setConfirmRisk(e.target.checked)}
             />
             我了解风险，确认执行（破坏性 / 需审批时必选）
           </label>
-          <button
-            type="button"
+          <ActionButton
             disabled={running || !name}
             onClick={() => void run()}
-            className="settings-option px-3 py-1.5 text-xs disabled:opacity-50"
+            tone="accent"
+            size="md"
           >
             {running ? '执行中…' : '执行工具'}
-          </button>
+          </ActionButton>
         </>
       )}
       {error && (
