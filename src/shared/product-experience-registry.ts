@@ -49,7 +49,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     realDataPaths: ['electron/main/ipc/session.ts', 'electron/main/ipc/chat.ts', 'electron/main/agent/runtime.ts'],
     evidencePaths: ['__tests__/e2e/chat.test.ts', '__tests__/unit/chat-session-lifecycle.test.ts'],
     experienceParts: ['伙伴身份', '会话导航', '欢迎区', '消息流'],
-    usesFoundation: ['state.empty', 'state.toast', 'state.permission-confirm', 'state.error', 'developer.tool-callback', 'behavior.button', 'behavior.action-button', 'behavior.icon-button', 'behavior.input'],
+    usesFoundation: ['state.empty', 'state.toast', 'state.permission-confirm', 'state.error', 'developer.tool-callback', 'behavior.button', 'behavior.action-button', 'behavior.icon-button', 'behavior.input', 'behavior.image-viewer'],
   }),
   experience({
     key: 'experience.world',

@@ -1,5 +1,7 @@
 # 质量总控
 
+生图实验入口门禁（2026-10-12）：Playground 目录必须将生图实验归入 Agent 实验工作域，并登记真实 source paths；入口只复用既有生图链路，不新增 Renderer 直连、权限绕过或媒体存储契约。
+
 伙伴整点时间控件门禁（2026-10-12）：勿扰开始 / 结束使用共享 Foundation `TimeSelect`，覆盖 00:00–23:00、键盘选择、禁用态与 Playground 隔离故事；同起止关闭、跨午夜解释、持久化与通知调度沿用既有业务测试，不新增数据或 IPC 契约。
 
 相处补充说明移除门禁（2026-10-11）：正式与 Playground 不得渲染该入口，`RendererSettings`、设置 IPC、备份白名单、Prompt 注册表与运行时组装不得保留 `companionResponseNote`；启动时清理旧键，其他设置和记忆链路继续可用。

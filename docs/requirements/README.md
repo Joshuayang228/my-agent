@@ -20,7 +20,7 @@
 
 ## 进行中
 
-伙伴时间控件：[companion-quiet-time-controls-v1.md](./companion-quiet-time-controls-v1.md)，Foundation 整点时间选择与 Playground 伙伴设置收口方案待确认；正式默认与存量偏好数据不变。
+伙伴时间控件：[companion-quiet-time-controls-v1.md](./companion-quiet-time-controls-v1.md)，Foundation 整点时间选择已回流到正式与 Playground 伙伴设置；正式默认、存量偏好数据与通知调度不变。
 
 布局基线：[foundation-layout-boundaries-v1.md](./foundation-layout-boundaries-v1.md)，布局与间距、透明度 P0 候选施工，正式回流未授权。
 
@@ -63,6 +63,7 @@
 |------|------|
 | [product-experience-production-rollout-v1.md](./product-experience-production-rollout-v1.md) | 已完成施工快照：Chat、人物世界、设置、记忆、主题 / Foundation、工作区的正式回流与主线后端验收；RAG、MCP OAuth、完整 PTY 等后置边界明确保留 |
 | [companion-world-model-v1.md](./companion-world-model-v1.md) | 已完成施工快照：人物世界六面、静态 / 动态分层、事件关联、生活切片、真实生图资产链、正式回流与质量门禁；RAG、MCP OAuth、完整 PTY 等后置边界明确保留 |
+| [image-generation-product-integration-v1.md](./image-generation-product-integration-v1.md) | 已完成施工快照：对话与人物世界统一真实生图入口、视觉资产归属、受控读取、定位和备份恢复 |
 | [playground-memory-information-architecture-v1.md](./playground-memory-information-architecture-v1.md) | 已完成施工快照：四类长期记忆导航、紧凑列表与 Debug 来源开关 |
 | [playground-memory-settings-journey-v1.md](./playground-memory-settings-journey-v1.md) | 已完成施工快照：记忆来源、纠正与设置管理的关系旅程 |
 | [memory-world-boundary-v2.md](./memory-world-boundary-v2.md) | 已完成施工快照：用户 / 伙伴 / 关系 / 当前状态的记忆边界与人物世界关系 |

@@ -13,6 +13,7 @@ export type PlaygroundTabId =
   | 'visual-assets'
   | 'foundation-components'
   | ProductExperienceTabId
+  | 'image-generation'
   | 'chat-lab'
   | 'model-test'
   | 'tools'
@@ -69,6 +70,7 @@ export const PLAYGROUND_TABS: readonly PlaygroundTabDef[] = [
   { id: 'visual-assets', label: '图标与视觉', group: 'foundation', description: '统一查看可复用图标和视觉资产，确认名称、尺寸与采用证据。', sourcePaths: ['src/components/playground/UiControlsPanel.tsx', 'src/shared/icon-registry.ts'] },
   { id: 'foundation-components', label: '基础组件', group: 'foundation', description: '先验收可复用基础能力，再让产品体验引用。', sourcePaths: ['src/components/playground/FoundationComponentsPanel.tsx', 'src/components/playground/FoundationAdvancedStories.tsx', 'src/shared/foundation-story-registry.ts'] },
   { id: 'chat', label: 'Chat', group: 'experience', description: '确认伙伴身份、会话导航、欢迎区与消息流的组合关系。' },
+  { id: 'image-generation', label: '生图实验', group: 'agent-experiments', description: '隔离验证 Agent 调用生图模型、读取结果、绑定资产和处理失败的完整链路。', sourcePaths: ['src/components/playground/ImageGenerationExperienceCandidate.tsx', 'src/components/chat/callbacks/GeneratedImageResult.tsx'] },
   { id: 'world', label: '人物世界', group: 'experience', description: '确认朋友圈、衣柜、文化角、家居、通讯录和足迹如何组成生活面；角色架归入设置。' },
   { id: 'settings', label: '设置', group: 'experience', description: '确认设置分组、字段编辑、自动保存和失败恢复的密度。' },
   { id: 'workspace', label: '工作区', group: 'experience', description: '审阅、浏览器、文件、终端与侧边聊天的形态样张。' },
