@@ -33,7 +33,7 @@ export function ImageGenerationExperienceCandidate() {
         <div className="min-w-0 space-y-3">
           <label className="block text-[11px]" style={{ color: 'var(--text-secondary)' }}>
             生成意图
-            <TextField multiline rows={3} value={prompt} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setPrompt(event.target.value)} className="mt-1 min-h-20 w-full rounded border p-2" />
+            <TextField multiline rows={3} value={prompt} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setPrompt(event.target.value)} className="theme-input mt-1 min-h-20 w-full rounded-[var(--radius-md)] border px-2 py-2" />
           </label>
           <div>
             <div className="mb-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>结果归属</div>

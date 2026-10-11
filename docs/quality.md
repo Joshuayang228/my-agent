@@ -4,6 +4,8 @@ Playground 设置状态控制布局门禁（2026-10-11）：模型、Skills、MC
 
 Skills Foundation 动作门禁（2026-10-11）：Skills 列表进入详情和详情返回必须使用 `ActionButton` 的明确变体；低强调动作必须保留 hover / focus 表面，不得用业务 class 把 Foundation 的交互反馈抹掉。
 
+生图实验输入门禁（2026-10-11）：生图意图输入必须使用 Foundation `TextField` 的产品输入表面与 `radius-md` 圆角，不得用更小的局部 `rounded` 覆盖产品体验规格。
+
 Playground 记忆分类工具栏布局门禁（2026-10-11）：搜索关闭时 `memory-actions` 只能占用图标按钮槽位，记忆四类 Tab 在常用宽度下不得因搜索占位产生横向滚动条；搜索展开后工具栏整体位置保持稳定，分类切换和焦点恢复继续可用。
 
 Playground Agent 实验控件来源门禁（2026-10-11）：生图、对话试验、模型能力、工具手测及 Agent 实验导航不得直接声明原生 `button` 或风险 `input[type=checkbox]`；文字动作、输入、下拉和复选框必须来自 `src/components/foundation/`，实验 IPC、模拟状态和生产隔离边界保持不变。
