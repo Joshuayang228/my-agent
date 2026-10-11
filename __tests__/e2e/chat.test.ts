@@ -5136,6 +5136,7 @@ test.describe('My Agent UI', () => {
     await page.getByTestId('world-tab-wardrobe').click()
     const wardrobe = page.getByTestId('world-wardrobe-fixture')
     await expect(wardrobe).toHaveAttribute('data-persona-id', 'yao')
+    await expect(page.getByTestId('world-hub').getByRole('button', { name: '刷新衣柜', exact: true })).toHaveCount(1)
     await expect(wardrobe).not.toContainText('灰绿帆布包')
     await expect(page.getByTestId('world-wardrobe-wearing')).toContainText('米白针织衫')
     await expect(page.getByTestId('world-wardrobe-wearing')).not.toContainText('灰绿帆布包')

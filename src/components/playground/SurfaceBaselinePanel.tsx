@@ -678,7 +678,6 @@ function WardrobeCandidate({ assets, personaId }: { assets: WorldAssetRecord[]; 
       <div className="pt-2"><WardrobeIconOptions value={iconStyle} onChange={setIconStyle} /></div>
     </WorldCandidateControls>
     <AssetsPanel key={`${personaId}-${scenario}`} previewAssets={samples} previewWearingId={samples.find((asset) => asset.payload.previewWearing === true)?.id} showAssetTabs={false} presentation="wardrobe-gallery"
-      toolbarAction={<WorldCandidateRefresh label="刷新衣柜" />}
       previewOutfits={previewOutfits}
       previewTabIcons={wardrobePreviewIcons(iconStyle)}
       previewOutfitImage={{ src: personaId === 'lin' ? scenario === 'commute' ? wardrobeCommuteOutfit : scenario === 'sport' ? wardrobeSportOutfit : wardrobeCasualOutfit : undefined, status: scenario === 'pending' ? 'pending' : scenario === 'image-failed' ? 'failed' : personaId === 'lin' && ['default', 'failure', 'commute', 'sport'].includes(scenario) ? 'ready' : 'none' }} />
