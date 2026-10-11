@@ -3,7 +3,7 @@ import { ImageOff } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { ImageViewer } from '../foundation/ImageViewer'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
-import { WorldCandidateControls, WorldCandidateRefresh } from './WorldCandidateControls'
+import { WorldCandidateControls } from './WorldCandidateControls'
 import alley from '../../assets/playground/culture-photo.png'
 import canal from '../../assets/playground/travel-canal.png'
 import { WorldTravelGallery, visibleTrips, tripDates } from '../world/WorldTravelGallery'
@@ -53,7 +53,6 @@ export function FootprintsExperienceCandidate({ personaId }: { personaId: string
     <WorldCandidateControls><PlaygroundStateSwitcher ariaLabel="足迹状态样张" value={scenario} onChange={value => { setScenario(value); setPreview(false) }} items={[
       { id: 'default', label: '旅行清单' }, { id: 'active', label: '进行中' }, { id: 'no-image', label: '无配图' }, { id: 'pending', label: '配图生成中' }, { id: 'failed', label: '配图失败' }, { id: 'long', label: '长名称与故事' }, { id: 'empty', label: '空足迹' },
     ]} /></WorldCandidateControls>
-    <div className="flex items-center justify-between px-4 pt-3"><span className="text-sm font-semibold">旅行记录</span><WorldCandidateRefresh label="刷新足迹" /></div>
     <WorldTravelGallery key={`${personaId}-${scenario}`} trips={trips} renderImage={(trip, thumbnail) => {
       const src = ['no-image', 'pending', 'failed'].includes(scenario) ? undefined : trip.image
       if (!src) return <span className="inline-flex items-center gap-2 text-xs"><ImageOff size={16} />{imageState}</span>

@@ -60,6 +60,7 @@ export function WorldHub({
   profile,
   onGenerateAssetImage,
   allowAssetEditing = false,
+  toolbarAction,
 }: {
   tab: WorldTab
   onTabChange: (tab: WorldTab) => void
@@ -94,6 +95,8 @@ export function WorldHub({
   onGenerateAssetImage?: (asset: WorldAssetRecord) => void
   /** 人物世界正式入口只浏览；独立资产维护入口不受影响。 */
   allowAssetEditing?: boolean
+  /** 组合页可把当前生活面的刷新动作放到统一生活面工具栏；未传入时保持正式默认布局。 */
+  toolbarAction?: ReactNode
 }) {
   const canEditAssets = allowAssetEditing
   const visibleTabs = (tabs ?? WORLD_TABS).filter((item) => !hiddenTabs.includes(item.id))
@@ -117,7 +120,7 @@ export function WorldHub({
         </IconButton>
       </div>)}
 
-      <div className="flex min-w-0 shrink-0 border-b px-4 py-1" style={{ borderColor: 'var(--border-subtle)' }}>
+      <div className="flex min-w-0 shrink-0 items-center gap-2 border-b px-4 py-1" style={{ borderColor: 'var(--border-subtle)' }}>
         <TabStrip
           label="人物世界分区"
           variant={previewPanels ? previewTabVariant ?? 'surface' : 'surface'}
@@ -129,8 +132,9 @@ export function WorldHub({
             testId: 'world-tab-' + item.id,
           }))}
           activeId={tab}
-           onSelect={id => { const target = visibleTabs.find(item => item.id === id); if (target) onTabChange(target.id) }}
+          onSelect={id => { const target = visibleTabs.find(item => item.id === id); if (target) onTabChange(target.id) }}
         />
+        {toolbarAction && <div className="shrink-0">{toolbarAction}</div>}
       </div>
 
       <div id={`world-panel-${tab}`} role="tabpanel" className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">

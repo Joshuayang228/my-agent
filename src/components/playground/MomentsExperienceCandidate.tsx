@@ -42,6 +42,6 @@ export function MomentsExperienceCandidate({ previewData }: { previewData: Momen
     </WorldCandidateControls>
     <MomentsPanel key={`${previewData.roleId}-${scenario}`} onClose={() => {}}
       previewData={projectPreview(previewData, scenario)} appearance="alice-feed"
-      showSocialActions compactClosedComposer enableImagePreview previewChrome="minimal" />
+      hideHeader showSocialActions compactClosedComposer enableImagePreview previewChrome="minimal" />
   </div>
 }

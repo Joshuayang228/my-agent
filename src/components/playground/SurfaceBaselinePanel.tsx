@@ -709,6 +709,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
       <FootprintsExperienceCandidate key={persona.id} personaId={persona.id} />
     ),
   }
+  const refreshLabel = ({ moments: '刷新朋友圈', assets: '刷新衣柜', wardrobe: '刷新衣柜', culture: '刷新文化角', home: '刷新家居', cast: '刷新通讯录', footprints: '刷新足迹' } as const)[tab]
   return (
     <WorldCandidateControlsTarget.Provider value={controlsTarget}>
       <div ref={setControlsTarget} className="mb-4 min-w-0" data-testid="world-candidate-controls" />
@@ -731,6 +732,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
             previewPanels={previewPanels}
             previewTabVariant="surface"
             hideHeader
+            toolbarAction={<WorldCandidateRefresh key={tab} label={refreshLabel} />}
           />
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { WorldCultureContent, type LivingAsset } from '../world/WorldLivingContent'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
-import { WorldCandidateControls, WorldCandidateRefresh } from './WorldCandidateControls'
+import { WorldCandidateControls } from './WorldCandidateControls'
 import bookCover from '../../assets/playground/culture-book.png'
 import filmPoster from '../../assets/playground/culture-film.png'
 import musicCover from '../../assets/playground/culture-music.png'
@@ -41,7 +41,6 @@ export function CultureExperienceCandidate({ personaId }: { personaId: string })
     <WorldCandidateControls><PlaygroundStateSwitcher ariaLabel="文化角状态样张" value={scenario} onChange={setScenario}
       items={[{ id: 'default', label: '文化清单' }, { id: 'long', label: '长名称与笔记' }, { id: 'no-notes', label: '无读书笔记' }, { id: 'minimal', label: '精简信息' }, { id: 'empty', label: '空文化角' }, { id: 'error', label: '读取失败' }, { id: 'no-image', label: '无配图' }, { id: 'pending', label: '配图生成中' }, { id: 'image-failed', label: '配图失败' }]} /></WorldCandidateControls>
     <WorldCultureContent key={`${personaId}-${scenario}`} assets={assets} presentation="culture-gallery" showPreviewImages
-      toolbarAction={<WorldCandidateRefresh label="刷新文化角" />}
       previewReadingNotes={readingNotes}
       previewReadError={scenario === 'error' ? '记录暂时未能读取，请重新读取。' : undefined} onPreviewRetry={() => setScenario('default')} />
   </div>

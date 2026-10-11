@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { BedDouble, BookOpen, DoorOpen, Sofa } from 'lucide-react'
 import { WorldHomeGallery, type HomeObjectPreview, type HomeImageState } from '../world/WorldHomeGallery'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
-import { WorldCandidateControls, WorldCandidateRefresh } from './WorldCandidateControls'
+import { WorldCandidateControls } from './WorldCandidateControls'
 import overview from '../../assets/playground/home-overview.png'
 import living from '../../assets/playground/home-living.png'
 import bedroom from '../../assets/playground/home-bedroom.png'
@@ -41,7 +41,6 @@ export function HomeExperienceCandidate({ personaId }: { personaId: string }) {
       { id: 'no-image', label: '无配图' }, { id: 'pending', label: '配图生成中' }, { id: 'image-failed', label: '配图失败' }, { id: 'error', label: '读取失败' },
     ]} /></WorldCandidateControls>
     <WorldHomeGallery key={`${personaId}-${scenario}`} overviewImage={scenario === 'empty' ? undefined : overview}
-      toolbarAction={<WorldCandidateRefresh label="刷新家居" />}
       spaces={scenario === 'empty' ? [] : spaces} objects={scenario === 'empty' ? [] : objects} imageState={state}
       readError={scenario === 'error' ? '记录暂时未能读取，请重新读取。' : undefined} onRetry={() => setScenario('default')} />
   </div>
