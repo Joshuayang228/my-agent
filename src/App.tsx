@@ -1094,7 +1094,7 @@ function App() {
                   setSidebarOpen(true)
                   requestAnimationFrame(() => sidebarShellRef.current?.querySelector<HTMLButtonElement>('button[aria-label="收起侧栏"]')?.focus())
                 }}
-                className="pointer-events-auto absolute left-3 top-2 z-10 hover:bg-[var(--hover-overlay)]"
+                className="pointer-events-auto absolute left-3 top-[22px] z-10 hover:bg-[var(--hover-overlay)]"
                 style={{ color: 'var(--text-muted)' }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '')}
