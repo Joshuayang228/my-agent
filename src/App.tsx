@@ -1083,7 +1083,7 @@ function App() {
       <div className={`${activeView === 'chat' ? 'chat-shape-scope ' : ''}relative flex min-w-0 flex-1 flex-col overflow-hidden`} style={activeView === 'chat' ? layoutProfileStyle('chat') : undefined}>
         {/* Chat 工具槽常驻，避免工作区入口随项目或聊天阶段消失；其它全页视图仍自带导航。 */}
         {activeView === 'chat' && (
-          <div data-testid="chat-toolbar" className="flex h-12 shrink-0 items-center px-3" style={{ background: 'var(--bg-primary)' }}>
+          <div data-testid="chat-toolbar" className="flex h-12 shrink-0 items-center px-3">
             {!sidebarOpen && sidebarReopenReady && (
               <IconButton
                 ref={sidebarReopenRef}

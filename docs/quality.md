@@ -8,6 +8,8 @@ Skills Foundation 动作门禁（2026-10-11）：Skills 列表进入详情和详
 
 记忆搜索输入门禁（2026-10-11）：记忆搜索外层容器负责边界时，内部 `TextField` 必须使用 `appearance="embedded"`，不得叠加默认焦点边框或阴影。
 
+正式 Chat 工具槽门禁（2026-10-11）：`chat-toolbar` 不得额外设置 `bg-primary` 色带；必须保留工作区按钮、侧栏重开按钮、键盘可达性和固定高度，视觉上与 Playground Chat 页面基线一致。
+
 Playground 记忆分类工具栏布局门禁（2026-10-11）：搜索关闭时 `memory-actions` 只能占用图标按钮槽位，记忆四类 Tab 在常用宽度下不得因搜索占位产生横向滚动条；搜索展开后工具栏整体位置保持稳定，分类切换和焦点恢复继续可用。
 
 Playground Agent 实验控件来源门禁（2026-10-11）：生图、对话试验、模型能力、工具手测及 Agent 实验导航不得直接声明原生 `button` 或风险 `input[type=checkbox]`；文字动作、输入、下拉和复选框必须来自 `src/components/foundation/`，实验 IPC、模拟状态和生产隔离边界保持不变。
