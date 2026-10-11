@@ -1083,7 +1083,7 @@ function App() {
       <div className={`${activeView === 'chat' ? 'chat-shape-scope ' : ''}relative flex min-w-0 flex-1 flex-col overflow-hidden`} style={activeView === 'chat' ? layoutProfileStyle('chat') : undefined}>
         {/* Chat 工具槽常驻，避免工作区入口随项目或聊天阶段消失；其它全页视图仍自带导航。 */}
         {activeView === 'chat' && (
-          <div data-testid="chat-toolbar" className="flex h-12 shrink-0 items-center px-3">
+          <div data-testid="chat-toolbar" className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-12 items-center justify-end px-3">
             {!sidebarOpen && sidebarReopenReady && (
               <IconButton
                 ref={sidebarReopenRef}
@@ -1114,7 +1114,7 @@ function App() {
                   }
                 }}
                 size={32}
-                className="mr-2 transition hover:bg-[var(--hover-overlay)]"
+                className="pointer-events-auto mr-2 transition hover:bg-[var(--hover-overlay)]"
                 style={{
                   color: showFileBrowser && !rightDockCollapsed ? 'var(--accent-fg)' : 'var(--text-muted)',
                   background: showFileBrowser && !rightDockCollapsed ? 'var(--accent-subtle)' : undefined,
@@ -1138,7 +1138,7 @@ function App() {
                 ? '召唤子会话：已装载对方人设，不推进其生活世界'
                 : '此会话绑定旧主角；生活世界已是新活跃主角'
               return (
-                <span className="rounded-full px-2 py-1 text-[10px]" style={{ color: 'var(--warning)', background: 'color-mix(in srgb, var(--warning) 10%, transparent)' }} title={title}>
+                <span className="pointer-events-auto rounded-full px-2 py-1 text-[10px]" style={{ color: 'var(--warning)', background: 'color-mix(in srgb, var(--warning) 10%, transparent)' }} title={title}>
                   {isSummon ? '召唤会话' : '会话角色已变化'}
                 </span>
               )

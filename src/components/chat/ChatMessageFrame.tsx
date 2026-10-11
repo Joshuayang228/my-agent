@@ -7,6 +7,7 @@ interface ChatMessageFrameProps {
   timestamp?: number
   previewTimeLabel?: string
   editing?: boolean
+  showUserAvatar?: boolean
   actions?: ReactNode
   children: ReactNode
 }
@@ -16,7 +17,7 @@ interface ChatMessageFrameProps {
  * 设计意图：只共享消息排列、身份与气泡；正文和操作通过插槽保留原有数据链路，不复制样张消息。
  * 关键约束：正式时间来自消息记录，未知时间不伪造；头像与操作槽不随 hover 改尺寸，长内容不能撑宽会话。
  */
-export function ChatMessageFrame({ role, name, timestamp, previewTimeLabel, editing = false, actions, children }: ChatMessageFrameProps) {
+export function ChatMessageFrame({ role, name, timestamp, previewTimeLabel, editing = false, showUserAvatar = true, actions, children }: ChatMessageFrameProps) {
   const isUser = role === 'user'
   const date = typeof timestamp === 'number' && Number.isFinite(timestamp) ? new Date(timestamp) : null
   const validDate = date && Number.isFinite(date.getTime()) ? date : null
@@ -37,6 +38,6 @@ export function ChatMessageFrame({ role, name, timestamp, previewTimeLabel, edit
       </div>
       {actions}
     </div>
-    {isUser && avatar}
+    {isUser && showUserAvatar && avatar}
   </div>
 }

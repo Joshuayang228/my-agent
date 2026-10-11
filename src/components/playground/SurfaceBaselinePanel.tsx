@@ -446,8 +446,8 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                 >
                   <PanelLeftOpen size={16} />
                 </IconButton>
-              <div className="hidden h-12 shrink-0 items-center justify-end px-3 md:flex" data-testid="chat-surface-workspace-toolbar">
-                <button type="button" title={workspaceOpen ? '收起工作区' : '打开工作区'} aria-label={workspaceOpen ? '收起工作区' : '打开工作区'} aria-expanded={workspaceOpen} aria-controls="chat-surface-workspace-panel" onClick={() => setWorkspaceOpen((open) => !open)} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition hover:bg-[var(--hover-overlay)]" style={{ color: 'var(--text-secondary)' }} data-testid="chat-surface-workspace-toggle"><PanelRight size={16} aria-hidden="true" /></button>
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 hidden justify-end px-3 pt-2 md:flex" data-testid="chat-surface-workspace-toolbar">
+                <IconButton label={workspaceOpen ? '收起工作区' : '打开工作区'} size={32} aria-expanded={workspaceOpen} aria-controls="chat-surface-workspace-panel" onClick={() => setWorkspaceOpen((open) => !open)} className="pointer-events-auto" style={{ color: 'var(--text-secondary)' }} data-testid="chat-surface-workspace-toggle"><PanelRight size={16} aria-hidden="true" /></IconButton>
               </div>
               <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                 <div className={`flex min-h-0 flex-1 overflow-y-auto ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`} data-testid="chat-surface-scroll">
@@ -459,7 +459,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                       actionTestId="chat-journey-quick-action" />
                   ) : (
                     <div className={`mx-auto w-full ${LAYOUT_CLASSES.section} py-4`} style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-surface-message-flow">
-                      <ChatMessageFrame role="user">
+                      <ChatMessageFrame role="user" showUserAvatar={false}>
                         <span className="whitespace-pre-wrap break-words">{previewMessage || '帮我把今天的事情理一下，先做最重要的。'}</span>
                       </ChatMessageFrame>
                       <ReasoningCallback
