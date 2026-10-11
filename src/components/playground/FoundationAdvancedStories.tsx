@@ -14,6 +14,7 @@ import { DiffViewer, DiffViewControls, type DiffViewMode } from '../foundation/D
 import { WorkspaceToolMenu } from '../foundation/WorkspaceToolMenu'
 import { ActionButton } from '../foundation/ActionButton'
 import { SelectField } from '../foundation/SelectField'
+import { TimeSelect } from '../foundation/TimeSelect'
 import { CheckboxField } from '../foundation/CheckboxField'
 import { SegmentedControl } from '../foundation/SegmentedControl'
 import { TextField } from '../foundation/TextField'
@@ -54,6 +55,11 @@ function SelectStory() {
       </label>
     </div>
   )
+}
+
+function TimeSelectStory() {
+  const [value, setValue] = useState('22')
+  return <div className="grid max-w-md gap-3 sm:grid-cols-2"><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>默认整点</span><TimeSelect aria-label="默认整点" value={value} onChange={(event) => setValue(event.target.value)} /></label><label className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}><span>禁用</span><TimeSelect aria-label="禁用整点" value="8" disabled /></label><p className="text-[10px] leading-4 sm:col-span-2" style={{ color: 'var(--text-muted)' }}>只提供 00:00–23:00；开始与结束相同表示关闭勿扰，跨午夜由业务层解释。</p></div>
 }
 
 function DialogStory() {
@@ -222,6 +228,7 @@ function storyContent(story: AdvancedFoundationStoryKey) {
   switch (story) {
     case 'foundation.action-button': return <StoryBlock title="文字动作按钮" source="src/components/foundation/ActionButton.tsx" edge adopted><ActionButtonStory /></StoryBlock>
     case 'foundation.select': return <StoryBlock title="下拉选择" source="src/components/playground/FoundationAdvancedStories.tsx · native select"><SelectStory /></StoryBlock>
+    case 'foundation.time-select': return <StoryBlock title="整点时间" source="src/components/foundation/TimeSelect.tsx" adopted><TimeSelectStory /></StoryBlock>
     case 'foundation.dialog': return <StoryBlock title="对话框" source="src/components/playground/FoundationAdvancedStories.tsx · Dialog candidate" edge><DialogStory /></StoryBlock>
     case 'foundation.popover': return <StoryBlock title="弹出层" source="src/components/playground/FoundationAdvancedStories.tsx · Popover candidate" edge><PopoverStory /></StoryBlock>
     case 'foundation.dropdown-menu': return <StoryBlock title="下拉菜单" source="src/components/chat/right-dock/ChatRightDock.tsx · add tab / candidate" edge><DropdownMenuStory /></StoryBlock>

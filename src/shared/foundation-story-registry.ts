@@ -74,6 +74,7 @@ export const FOUNDATION_STORIES = [
   { key: 'foundation.tabs', viewId: 'tabs', assetKey: 'behavior.tabs', labelZh: '标签切换', group: 'behavior', renderer: 'ui-controls', navigationGroup: 'tabs-selection' },
   { key: 'foundation.segmented-control', viewId: 'segmented-control', assetKey: 'behavior.segmented-control', labelZh: '分段选择', group: 'behavior', renderer: 'advanced', navigationGroup: 'tabs-selection' },
   { key: 'foundation.select', viewId: 'select', assetKey: 'behavior.select', labelZh: '下拉选择', group: 'behavior', renderer: 'advanced', navigationGroup: 'tabs-selection' },
+  { key: 'foundation.time-select', viewId: 'time-select', assetKey: 'behavior.time-select', labelZh: '整点时间', group: 'behavior', renderer: 'advanced', navigationGroup: 'tabs-selection' },
   { key: 'foundation.combobox', viewId: 'combobox', assetKey: 'behavior.combobox', labelZh: '可搜索选择', group: 'behavior', renderer: 'advanced', navigationGroup: 'tabs-selection' },
   { key: 'foundation.form-field', viewId: 'form-field', assetKey: 'behavior.form-field', labelZh: '表单字段', group: 'behavior', renderer: 'advanced', navigationGroup: 'input-form' },
   { key: 'foundation.checkbox', viewId: 'checkbox', assetKey: 'behavior.checkbox', labelZh: '复选框', group: 'behavior', renderer: 'advanced', navigationGroup: 'input-form' },

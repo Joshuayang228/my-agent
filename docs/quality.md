@@ -1,5 +1,7 @@
 # 质量总控
 
+伙伴整点时间控件门禁（2026-10-12）：勿扰开始 / 结束使用共享 Foundation `TimeSelect`，覆盖 00:00–23:00、键盘选择、禁用态与 Playground 隔离故事；同起止关闭、跨午夜解释、持久化与通知调度沿用既有业务测试，不新增数据或 IPC 契约。
+
 相处补充说明移除门禁（2026-10-11）：正式与 Playground 不得渲染该入口，`RendererSettings`、设置 IPC、备份白名单、Prompt 注册表与运行时组装不得保留 `companionResponseNote`；启动时清理旧键，其他设置和记忆链路继续可用。
 
 Playground 设置状态控制布局门禁（2026-10-11）：模型、Skills、MCP 及设置内记忆样张的状态切换必须位于 `settings-candidate-controls` 框架外槽位；对应设置内容区不得再出现第二份控制器，无状态分区不保留空白控制行，正式 Settings 入口不受影响。

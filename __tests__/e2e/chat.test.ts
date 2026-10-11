@@ -4718,11 +4718,11 @@ test.describe('My Agent UI', () => {
       ;(window as any).__candidateCompanionWrites = []
       ;(window as any).electronAPI = { settings: { set: async (...args: unknown[]) => { (window as any).__candidateCompanionWrites.push(args) } } }
     })
-    await companion.getByRole('spinbutton', { name: '勿扰开始', exact: true }).fill('20')
-    await companion.getByRole('spinbutton', { name: '勿扰结束', exact: true }).fill('7')
+    await companion.getByRole('combobox', { name: '勿扰开始', exact: true }).selectOption('20')
+    await companion.getByRole('combobox', { name: '勿扰结束', exact: true }).selectOption('7')
     await companion.getByRole('spinbutton', { name: '每日最多', exact: true }).fill('5')
     await expect(companion.getByRole('textbox', { name: '相处补充说明', exact: true })).toHaveCount(0)
-    await expect(companion.getByRole('spinbutton', { name: '勿扰开始', exact: true })).toHaveValue('20')
+    await expect(companion.getByRole('combobox', { name: '勿扰开始', exact: true })).toHaveValue('20')
     expect(await page.evaluate(() => (window as any).__candidateCompanionWrites)).toEqual([])
     await page.evaluate(() => { delete (window as any).electronAPI })
     await expect(companion.getByRole('switch', { name: '生活动态提醒' })).toBeVisible()
