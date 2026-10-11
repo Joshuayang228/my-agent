@@ -1232,7 +1232,7 @@ function App() {
           <div className="mx-auto w-full" style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-content">
             {/* 欢迎屏 — 衬线问候 + 建议 pill（Phase 3） */}
             {messages.length === 0 && (
-              <div className="flex min-h-[calc(100vh-13.5rem)] flex-col items-center justify-center pb-6">
+              <div className="flex min-h-full flex-col items-center justify-center pb-6">
                 <ChatWelcome title={coldStart.title} subtitle={coldStart.subtitle}
                   onGreet={() => { void sendMessage('你好，介绍一下你自己') }}
                   onPlanDay={() => { void sendMessage('今天打算怎么过？陪我想想。') }}

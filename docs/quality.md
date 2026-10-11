@@ -14,6 +14,8 @@ Skills Foundation 动作门禁（2026-10-11）：Skills 列表进入详情和详
 
 Chat 工作区与消息层级门禁（2026-10-11）：工作区入口必须保留且展开 / 收起不改变主内容几何；Playground 用户消息不显示用户头像，伙伴消息保留伙伴头像。
 
+Chat 欢迎态滚动门禁（2026-10-11）：初始欢迎态 `chat-messages` 的 `scrollHeight` 不得大于 `clientHeight`；有消息后的正常消息流仍保留内部滚动能力。
+
 Playground 记忆分类工具栏布局门禁（2026-10-11）：搜索关闭时 `memory-actions` 只能占用图标按钮槽位，记忆四类 Tab 在常用宽度下不得因搜索占位产生横向滚动条；搜索展开后工具栏整体位置保持稳定，分类切换和焦点恢复继续可用。
 
 Playground Agent 实验控件来源门禁（2026-10-11）：生图、对话试验、模型能力、工具手测及 Agent 实验导航不得直接声明原生 `button` 或风险 `input[type=checkbox]`；文字动作、输入、下拉和复选框必须来自 `src/components/foundation/`，实验 IPC、模拟状态和生产隔离边界保持不变。

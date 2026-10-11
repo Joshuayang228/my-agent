@@ -2771,6 +2771,7 @@ test.describe('My Agent UI', () => {
 
     await expect(page.locator('[data-testid="chat-messages"] h1')).toContainText('我是')
     await expect(page.locator('[data-testid="primary-sidebar"]')).toBeVisible()
+    expect(await page.getByTestId('chat-messages').evaluate((node) => node.scrollHeight <= node.clientHeight)).toBe(true)
 
     const textarea = page.locator('textarea')
     await expect(textarea).toBeVisible()
