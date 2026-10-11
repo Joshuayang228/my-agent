@@ -2393,6 +2393,34 @@ test('正式朋友圈桌面连接缺失不冒充空动态并可恢复', async ({
   await expect(page.getByText('还没有新的动态。', { exact: true })).toBeVisible()
 })
 
+test('正式衣柜桌面连接缺失不渲染衣柜筛选与空内容并可恢复', async ({ page }) => {
+  await installProductionElectronStub(page)
+  await page.addInitScript(() => {
+    const api = (window as any).electronAPI.companion
+    api.getActive = async () => ({ id: 'lin', name: '小林', description: '' })
+    api.catchupStatus = async () => ({ roleId: 'lin', presence: '' })
+    api.getMoments = async () => ({ roleId: 'lin', items: [] })
+    api.getAssets = async () => ({ roleId: 'lin', items: [] })
+  })
+  await page.goto('/')
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
+  await page.evaluate(() => {
+    ;(window as any).__disconnectedWorldAPI = (window as any).electronAPI
+    ;(window as any).electronAPI = undefined
+  })
+  await page.getByTestId('world-tab-wardrobe').click()
+  const wardrobe = page.locator('#world-panel-wardrobe')
+  await expect(wardrobe.getByRole('alert')).toContainText('衣柜需要桌面连接')
+  await expect(wardrobe.getByTestId('wardrobe-view-tabs')).toHaveCount(0)
+  await expect(wardrobe.getByTestId('world-wardrobe-wearing-empty')).toHaveCount(0)
+  await expect(wardrobe.getByText('全部', { exact: true })).toHaveCount(0)
+  await expect(wardrobe.getByText('套装', { exact: true })).toHaveCount(0)
+  await page.evaluate(() => { (window as any).electronAPI = (window as any).__disconnectedWorldAPI })
+  await wardrobe.getByRole('button', { name: '重新读取', exact: true }).click()
+  await expect(wardrobe.getByRole('alert')).toHaveCount(0)
+  await expect(wardrobe.getByTestId('wardrobe-view-tabs')).toBeVisible()
+})
+
 for (const mode of ['foreign-item', 'late-active'] as const) {
   test('正式文化读取逐条隔离与切角完成复核 ' + mode, async ({ page }) => {
     await installProductionElectronStub(page)

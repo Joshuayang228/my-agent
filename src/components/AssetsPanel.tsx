@@ -427,24 +427,25 @@ export function AssetsPanel({ previewAssets, previewEditable = false, allowAsset
       <div className={`min-h-0 min-w-0 flex-1 overflow-y-auto ${wardrobeGallery ? LAYOUT_CLASSES.gutter : 'px-4'} py-4 scrollbar-thin`} data-testid="wardrobe-content-scroll">
         {readError && <ErrorState className="mb-4" title={`${readLabel}未能读取`} description={readError}
           action={!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>} />}
-        {pendingDelete && (
+        {!readError && <>
+          {pendingDelete && (
           <WorldAssetDeleteConfirm
             asset={pendingDelete}
             busy={busy}
             onCancel={() => { if (!busy) setPendingDelete(null) }}
             onConfirm={() => { const target = pendingDelete; if (target) void removeAsset(target) }}
           />
-        )}
-        <WorldWriteError message={writeError}>
-          {!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>}
-        </WorldWriteError>
-        {wardrobeGallery && <div className={toolbarAction ? 'mb-4 flex min-w-0 items-center gap-3' : 'mb-4'} data-testid="wardrobe-view-tabs"><TabStrip label="衣柜视图" activeId={previewWardrobeView} onSelect={(id) => { setPreviewWardrobeView(id); if (id !== 'wearing') setCategory(id); if (!isPreview) { setEditingId(null); setPendingDelete(null); setAddDrafts({}) } }} items={[
+          )}
+          <WorldWriteError message={writeError}>
+            {!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>}
+          </WorldWriteError>
+          {wardrobeGallery && <div className={toolbarAction ? 'mb-4 flex min-w-0 items-center gap-3' : 'mb-4'} data-testid="wardrobe-view-tabs"><TabStrip label="衣柜视图" activeId={previewWardrobeView} onSelect={(id) => { setPreviewWardrobeView(id); if (id !== 'wearing') setCategory(id); if (!isPreview) { setEditingId(null); setPendingDelete(null); setAddDrafts({}) } }} items={[
           { id: 'wearing', label: '正在穿着', icon: <PersonStanding size={14} /> }, { id: 'all', label: '全部', icon: <LayoutGrid size={14} />, separatorBefore: true },
           { id: 'outfits', label: '套装', icon: previewTabIcons?.outfits ?? (!isPreview ? wardrobeCategoryIcons.outfits : <Shirt size={14} />) },
           ...Object.entries(slotLabels).map(([id, label]) => { const Icon = slotIcons[id]; return { id, label, icon: previewTabIcons?.[id] ?? (!isPreview ? wardrobeCategoryIcons[id] : undefined) ?? <Icon size={14} /> } }),
-        ]} />{toolbarAction && <div className="ml-auto shrink-0">{toolbarAction}</div>}</div>}
-        {wardrobeGallery && <WorldWriteError message={changeError} />}
-        {tab === 'wardrobe' && (!wardrobeGallery || previewWardrobeView === 'wearing') ? (
+          ]} />{toolbarAction && <div className="ml-auto shrink-0">{toolbarAction}</div>}</div>}
+          {wardrobeGallery && <WorldWriteError message={changeError} />}
+          {tab === 'wardrobe' && (!wardrobeGallery || previewWardrobeView === 'wearing') ? (
           <section className="mb-5">
             {!wardrobeGallery && <div className="mb-2 flex items-baseline justify-between gap-3">
               <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--companion-accent-warm)' }}>{wardrobeGallery ? '正在穿着' : '穿着中'}</div>
@@ -494,13 +495,13 @@ export function AssetsPanel({ previewAssets, previewEditable = false, allowAsset
               </div>
             )}
           </section>
-        ) : tab === 'bookshelf' ? (
+          ) : tab === 'bookshelf' ? (
           <section className="mb-4">
             <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>收藏的书与阅读笔记。</p>
           </section>
-        ) : null}
+          ) : null}
 
-        {wardrobeGallery && previewWardrobeView === 'outfits' && <section data-testid="wardrobe-outfits">
+          {wardrobeGallery && previewWardrobeView === 'outfits' && <section data-testid="wardrobe-outfits">
           {outfits.length ? <div className={`grid ${LAYOUT_CLASSES.grid} sm:grid-cols-2 lg:grid-cols-3`}>
             {outfits.map((outfit) => <article key={outfit.id} aria-label={outfit.name} data-shape="card" className="min-w-0 rounded-md border p-3.5" style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)' }}>
               <div className="mb-3 aspect-[3/4] overflow-hidden rounded-md" style={{ background: 'var(--bg-secondary)' }}>
@@ -512,9 +513,9 @@ export function AssetsPanel({ previewAssets, previewEditable = false, allowAsset
               {allowAssetEditing && !isPreview && (editingId === outfit.id ? <WorldAssetForm draft={editDraft} onChange={setEditDraft} onSave={() => void saveEdit()} onCancel={() => setEditingId(null)} busy={busy} saveLabel="保存套装" assets={garments} /> : <WorldAssetActions name={outfit.name} disabled={busy} onEdit={() => startEdit(tabItems.find(asset => asset.id === outfit.id)!)} onDelete={() => setPendingDelete(tabItems.find(asset => asset.id === outfit.id)!)} onGenerate={onGenerateAssetImage ? () => onGenerateAssetImage(tabItems.find(asset => asset.id === outfit.id)!) : undefined} />)}
             </article>)}
           </div> : <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>还没有套装。</p>}
-        </section>}
-        {showAddControls && wardrobeGallery && !isPreview && previewWardrobeView === 'outfits' && <WorldAssetAddRow open={adding} label="套装" draft={addDraft} busy={busy} assets={garments} onOpen={() => setAddDrafts(drafts => ({ ...drafts, wardrobe: { open: true, draft: { kind: 'wardrobe', name: '', presentation: 'wardrobe-gallery', payload: { recordType: 'outfit' } } } }))} onChange={draft => setAddDrafts(drafts => ({ ...drafts, wardrobe: { open: true, draft } }))} onSave={() => void saveAdd()} onCancel={() => { if (!busy) setAddDrafts({}) }} />}
-        {(!wardrobeGallery || !['wearing', 'outfits'].includes(previewWardrobeView)) && <section data-testid="world-assets-inventory">
+          </section>}
+          {showAddControls && wardrobeGallery && !isPreview && previewWardrobeView === 'outfits' && <WorldAssetAddRow open={adding} label="套装" draft={addDraft} busy={busy} assets={garments} onOpen={() => setAddDrafts(drafts => ({ ...drafts, wardrobe: { open: true, draft: { kind: 'wardrobe', name: '', presentation: 'wardrobe-gallery', payload: { recordType: 'outfit' } } } }))} onChange={draft => setAddDrafts(drafts => ({ ...drafts, wardrobe: { open: true, draft } }))} onSave={() => void saveAdd()} onCancel={() => { if (!busy) setAddDrafts({}) }} />}
+          {(!wardrobeGallery || !['wearing', 'outfits'].includes(previewWardrobeView)) && <section data-testid="world-assets-inventory">
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
             {tab === 'bookshelf' ? '藏书' : '库存'}{(wardrobeGallery ? garments.length : tabItems.length) ? ` · ${wardrobeGallery ? garments.length : tabItems.length}` : ''}
           </div>
@@ -559,7 +560,8 @@ export function AssetsPanel({ previewAssets, previewEditable = false, allowAsset
               onCancel={() => { if (!busy) setAddDrafts((drafts) => ({ ...drafts, [tab]: { open: false, draft: drafts[tab]?.draft ?? emptyWorldAssetDraft(tab) } })) }}
             />
           )}
-        </section>}
+          </section>}
+        </>}
       </div>
     </fieldset>
   )
