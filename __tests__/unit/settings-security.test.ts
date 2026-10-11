@@ -28,7 +28,7 @@ vi.mock('electron', () => ({
   safeStorage: { isEncryptionAvailable: () => false },
 }))
 vi.mock('../../electron/main/storage/settings-store', () => ({
-  isAppSettingKey: (key: string) => ['llmTemperature', 'sessionTokenBudget', 'dailyTokenBudget', 'llmApiKey', 'mcpServers', 'modelConnections', 'executionMode', 'llmModel', 'permissionRules', 'companionResponseNote'].includes(key),
+  isAppSettingKey: (key: string) => ['llmTemperature', 'sessionTokenBudget', 'dailyTokenBudget', 'llmApiKey', 'mcpServers', 'modelConnections', 'executionMode', 'llmModel', 'permissionRules'].includes(key),
   MAX_SETTING_VALUE_LENGTH: 1_000_000,
   getAllSettings,
   getSetting,
@@ -245,17 +245,6 @@ describe('设置 IPC 安全视图', () => {
     expect((await save({ baseUrl: 'https://other.test/v1' })).apiKey).toBe('')
     expect((await save({ provider: 'anthropic' })).apiKey).toBe('')
     expect((await save({ baseUrl: 'https://other.test/v1', apiKey: 'fixture-new' })).apiKey).toBe('fixture-new')
-  })
-
-  it('相处偏好写入独立字段，拒绝超长输入', async () => {
-    registerSettingsIPC()
-    const handler = handlers.get('settings:set')!
-    await handler({}, 'companionResponseNote', '先说结论')
-    expect(setSetting).toHaveBeenCalledWith('companionResponseNote', '先说结论')
-    expect(setSetting).not.toHaveBeenCalledWith('systemPrompt', expect.anything())
-    setSetting.mockClear()
-    await expect(handler({}, 'companionResponseNote', '好'.repeat(4001))).rejects.toThrow()
-    expect(setSetting).not.toHaveBeenCalled()
   })
 
   it('Streamable HTTP Bearer 在设置读取时脱敏，回传哨兵保留原值，换地址拒绝', async () => {

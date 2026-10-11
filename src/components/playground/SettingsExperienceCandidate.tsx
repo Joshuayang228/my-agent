@@ -89,10 +89,8 @@ function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProa
   const [quietStart, setQuietStart] = useState('22')
   const [quietEnd, setQuietEnd] = useState('8')
   const [maxPerDay, setMaxPerDay] = useState('3')
-  const [note, setNote] = useState('当我把事情排得太满时，提醒我留一点空白。')
   return <CompanionSettingsContent
     showHeader={false}
-    showResponseNote={false}
     expertise={expertise as 'auto' | 'novice' | 'intermediate' | 'expert'}
     onExpertiseChange={onExpertiseChange as (value: 'auto' | 'novice' | 'intermediate' | 'expert') => void}
     momentTipsMuted={!momentTips}
@@ -105,8 +103,6 @@ function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProa
     onQuietStartChange={setQuietStart}
     onQuietEndChange={setQuietEnd}
     onMaxPerDayChange={setMaxPerDay}
-    note={note}
-    onNoteChange={setNote}
     testIdPrefix="settings-candidate-"
     roleAction={<ActionButton onClick={onOpenRoleShelf} className="gap-1" data-testid="settings-candidate-open-role-shelf">小林 · 管理角色架 <ChevronRight size={12} /></ActionButton>}
   />

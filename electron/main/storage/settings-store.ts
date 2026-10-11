@@ -2,7 +2,6 @@ import { safeStorage } from 'electron'
 import { getDatabase, persist } from './database'
 import { assertEncryptionPersisted, ensureEncryptionPersisted } from './encryption-persistence'
 import { createLogger } from '../utils/logger'
-import { MAX_COMPANION_RESPONSE_NOTE_LENGTH } from '../../../src/shared/types'
 import type { ModelConfigurationInput } from '../../../src/shared/types'
 import type { Database } from 'sql.js'
 
@@ -95,8 +94,6 @@ export interface AppSettings {
   llmTopP: string
   llmMaxTokens: string
   systemPrompt: string
-  /** 用户在伙伴设置中填写的回应偏好，不能替代 systemPrompt 或 Role Pack。 */
-  companionResponseNote: string
   /** 当前活跃主角（Companion Role Pack id） */
   activeRoleId: string
   /** 当前宇宙 id，默认 default */
@@ -179,7 +176,6 @@ function getDefaults(): AppSettings {
     llmTopP: '1',
     llmMaxTokens: '4096',
     systemPrompt: '',
-    companionResponseNote: '',
     activeRoleId: 'lin',
     universeId: 'default',
     mcpServers: '[]',
@@ -221,6 +217,7 @@ export async function ensureTable(): Promise<void> {
   `)
   // 破坏性重置：旧 personaId 键直接删除，不做映射兼容
   db.run(`DELETE FROM settings WHERE key = 'personaId'`)
+  db.run(`DELETE FROM settings WHERE key = 'companionResponseNote'`)
 }
 
 export async function getSetting<K extends keyof AppSettings>(key: K): Promise<AppSettings[K]> {
@@ -287,9 +284,6 @@ export function prepareSettingWrite<K extends keyof AppSettings>(key: K, value: 
   if (!isAppSettingKey(String(key))) throw new Error('无效的设置项')
   if (typeof value !== 'string' || value.length > MAX_SETTING_VALUE_LENGTH) {
     throw new Error('设置值无效或超出长度限制')
-  }
-  if (key === 'companionResponseNote' && value.length > MAX_COMPANION_RESPONSE_NOTE_LENGTH) {
-    throw new Error('相处补充说明超出长度限制')
   }
   const stored = ENCRYPTED_KEYS.has(key) && value ? encrypt(String(value)) : String(value)
   return { key, stored }

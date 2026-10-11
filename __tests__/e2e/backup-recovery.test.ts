@@ -20,7 +20,7 @@ for (const phase of ['before', 'after'] as const) {
         { id: 'crash-result', role: 'tool', content: '恢复图片', timestamp: 2, toolCallId: 'crash-call', generatedImages: [{ ...metadata, fileName: 'restored.png' }] },
       ] }],
       memories: [{ id: 'crash-memory', category: 'fact', content: '崩溃恢复记忆样本', createdAt: 1, updatedAt: 1 }],
-      settings: { companionResponseNote: '恢复后的相处说明' },
+      settings: {},
       generatedImageMedia: [{ ...metadata, data: bytes.toString('base64') }],
     }))
     let app: ElectronApplication | undefined
@@ -68,12 +68,10 @@ for (const phase of ['before', 'after'] as const) {
       if (phase === 'before') {
         expect(restored.session).toBeNull()
         expect(restored.memories.some(memory => memory.content === '崩溃恢复记忆样本')).toBe(false)
-        expect(restored.settings.companionResponseNote).toBe('')
         expect((await readdir(root)).filter(name => name.startsWith('restored-images-'))).toEqual([])
       } else {
         expect(restored.session?.messages).toHaveLength(2)
         expect(restored.memories.some(memory => memory.content === '崩溃恢复记忆样本')).toBe(true)
-        expect(restored.settings.companionResponseNote).toBe('恢复后的相处说明')
         const image = restored.session!.messages[1].generatedImages![0]
         expect(await sharp(await readFile(image.path)).metadata()).toMatchObject({ width: 4, height: 3 })
         await expect(readFile(path.join(root, directories[0], '.my-agent-pending-import'))).rejects.toMatchObject({ code: 'ENOENT' })

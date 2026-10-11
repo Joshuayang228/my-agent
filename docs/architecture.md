@@ -83,7 +83,7 @@ ModelUsageArrangements 同样属于纯受控 Experience，组合 Foundation Sele
 - MCP 工具许可数据流：正式 Settings 读取脱敏后的服务配置与真实 `mcp:list-tools`，通过 `mcp:set-tool-allowed` 写回服务配置；主进程更新活动连接、重建 MCP Bridge 的 ToolRegistry 注册，并在 `callTool` 前再次校验。未配置 `allowedTools` 的历史配置保持全部允许，MCP 许可不替代权限引擎的审批决策。
 
 
-- 伙伴回应偏好沿 `SettingsPanel → settings:get/set → settings-store → Runtime → prompt-builder` 单一路径装配；共享 `CompanionSettingsContent` 只接 props，Playground 使用隔离状态。`companionResponseNote` 与旧 `systemPrompt` 分离，无隐式数据迁移，Debug 从同一组装器查看结果；该字段不是记忆库或身份资产。
+- 伙伴设置只通过 `SettingsPanel → settings:get/set → settings-store` 管理回答方式、生活提醒和主动问候；共享 `CompanionSettingsContent` 只接 props，Playground 使用隔离状态。相处补充说明已从设置、备份和 Runtime Prompt 数据流移除，记忆库仍由独立 memory-store 负责。
 
 - chat:send 建立会话到发起 Renderer 的短生命周期归属，chat:abort 只能控制该归属；IPC 缺省会话 ID 直接返回，避免把 Renderer 输入映射为 Runtime 全局中断。
 

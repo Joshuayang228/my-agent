@@ -46,7 +46,7 @@ beforeEach(() => {
   state.persist.mockClear()
   fs.writeFileSync(backupPath, JSON.stringify({ version: 1, exportedAt: 1,
     sessions: [{ id: 'import-session', title: '恢复会话', createdAt: 1, updatedAt: 1, messages: [{ id: 'import-message', role: 'user', content: '恢复正文', timestamp: 1 }] }],
-    memories: [{ id: 'memory', category: 'fact', content: '喜欢在清晨散步', createdAt: 1, updatedAt: 1 }], settings: { companionResponseNote: '请直接回答' },
+    memories: [{ id: 'memory', category: 'fact', content: '喜欢在清晨散步', createdAt: 1, updatedAt: 1 }], settings: {},
     livingAssets: [{ id: 'asset', roleId: 'role', kind: 'culture', name: '书架', payload: {}, acquiredAt: 1, sourceEventId: null }],
     livingAssetSeeds: [{ roleId: 'role', kind: 'culture' }],
   }))
@@ -104,7 +104,10 @@ it('只恢复模型设置也通知索引，失败与没有实际写入的重复�
 })
 
 it('设置写入失败时会话、记忆、生活资产和磁盘均不留下部分导入，向量任务不提前发布', async () => {
-  db.run("CREATE TRIGGER reject_import_setting BEFORE INSERT ON settings BEGIN SELECT RAISE(ABORT, 'test failure'); END")
+  const data = JSON.parse(fs.readFileSync(backupPath, 'utf8'))
+  data.settings = { modelRoutes: '[]' }
+  fs.writeFileSync(backupPath, JSON.stringify(data))
+  db.run("CREATE TRIGGER reject_import_setting BEFORE INSERT ON settings WHEN NEW.key = 'modelRoutes' BEGIN SELECT RAISE(ABORT, 'test failure'); END")
   const before = counts()
   expect(await invoke()).toMatchObject({ success: false })
   await drainMemoryBackgroundTasks()
@@ -123,11 +126,11 @@ it('最后写盘失败时恢复内存数据且不发向量任务，随后可以�
   expect(state.vector).not.toHaveBeenCalled()
   expect(fs.readFileSync(databasePath)).toEqual(originalBytes)
   state.persist.mockClear()
-  expect(await invoke()).toMatchObject({ success: true, stats: { sessions: 1, memories: 1, settings: 1, livingAssets: 1, livingAssetSeeds: 1 } })
+  expect(await invoke()).toMatchObject({ success: true, stats: { sessions: 1, memories: 1, settings: 0, livingAssets: 1, livingAssetSeeds: 1 } })
   expect(state.persist).toHaveBeenCalledTimes(1)
-  expect(counts()).toEqual([1, 1, 1, 1, 1, 1])
+  expect(counts()).toEqual([1, 1, 1, 0, 1, 1])
   const reopened = new SQL.Database(fs.readFileSync(databasePath))
-  try { expect(counts(reopened)).toEqual([1, 1, 1, 1, 1, 1]) } finally { reopened.close() }
+  try { expect(counts(reopened)).toEqual([1, 1, 1, 0, 1, 1]) } finally { reopened.close() }
 })
 
 it('导入与普通记忆共用语义去重，设置密文在提交前准备，重复导入不覆盖当前数据', async () => {
@@ -135,7 +138,7 @@ it('导入与普通记忆共用语义去重，设置密文在提交前准备，�
   data.memories.push({ ...data.memories[0], id: 'near-duplicate', content: '喜欢在清晨散步。' })
   data.settings.modelConnections = JSON.stringify([{ id: 'connection', apiKey: '', baseUrl: 'https://example.invalid', models: [] }])
   fs.writeFileSync(backupPath, JSON.stringify(data))
-  expect(await invoke()).toMatchObject({ success: true, stats: { memories: 1, settings: 2 } })
+  expect(await invoke()).toMatchObject({ success: true, stats: { memories: 1, settings: 1 } })
   expect(db.exec("SELECT value FROM settings WHERE key = 'modelConnections'")[0].values[0][0]).toMatch(/^enc:v1:/)
   db.run("UPDATE sessions SET title = '当前名称'")
   expect(await invoke()).toMatchObject({ success: true, stats: { sessions: 0, memories: 0, settings: 0, livingAssets: 0, livingAssetSeeds: 0 } })

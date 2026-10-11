@@ -9,7 +9,6 @@ import { CONNECTION_TEST_MESSAGES, sameConnectionEndpoint, validateLLMConnection
 import { MODEL_FETCH_MESSAGES, normalizeConnectionModels, validateLLMModelFetchInput } from '../../../src/shared/llm-model-fetch'
 import { fetchRemoteModels } from '../llm/model-discovery'
 import type { LLMConnectionTestInput, LLMConnectionTestResult, LLMModelFetchInput, LLMModelFetchResult, RendererSettings } from '../../../src/shared/types'
-import { MAX_COMPANION_RESPONSE_NOTE_LENGTH } from '../../../src/shared/types'
 import { redactMcpConfigsForRenderer, hasNewOrChangedEnabledMcpConfig, mergeMcpConfigListSecrets, parseStoredMcpConfigs } from '../mcp/config-security'
 import { withMcpConfigLock } from '../mcp/config-lock'
 import { z } from 'zod'
@@ -150,10 +149,6 @@ export function registerSettingsIPC(): void {
     }
     const parameterError = modelParameterError(key, value)
     if (parameterError) throw new Error(parameterError)
-    if (key === 'companionResponseNote' && value.length > MAX_COMPANION_RESPONSE_NOTE_LENGTH) {
-      throw new Error('相处补充说明超出长度限制')
-    }
-
     if (key === 'executionMode' && value === 'full-access') {
       const previous = await settings.getSetting('executionMode')
       if (previous !== 'full-access' && !await confirmHighRiskSettingChange(

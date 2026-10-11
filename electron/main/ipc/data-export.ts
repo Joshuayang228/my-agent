@@ -27,7 +27,6 @@ import type {
 } from '../../../src/shared/types'
 import {
   BACKUP_LIVING_ASSET_KINDS,
-  MAX_COMPANION_RESPONSE_NOTE_LENGTH,
 } from '../../../src/shared/types'
 import type { Database } from 'sql.js'
 import { BACKUP_IMAGE_ERRORS } from '../../../src/shared/backup-errors'
@@ -60,7 +59,6 @@ const EXPORT_LIVING_ASSET_KINDS = new Set<string>(BACKUP_LIVING_ASSET_KINDS)
 const SAFE_BACKUP_SETTING_KEYS = new Set<keyof settingsStore.AppSettings>([
   'llmBaseUrl', 'llmModel', 'llmTemperature', 'llmTopP', 'llmMaxTokens',
   'systemPrompt', 'activeRoleId', 'universeId', 'userExpertiseLevel', 'auxModel',
-  'companionResponseNote',
   'sessionTokenBudget', 'dailyTokenBudget',
   'companionGrowthStartedAt', 'companionGrowthStartedAtByRole', 'companionMilestonesByRole',
   'companionMomentTipsMuted', 'companionMomentTipsLastAt', 'companionMomentTipsQuietStart',
@@ -190,7 +188,6 @@ export function isValidExportData(value: unknown): value is ExportData {
 
   for (const [key, setting] of Object.entries(value.settings)) {
     if (!boundedString(key, 200) || !boundedString(setting)) return false
-    if (key === 'companionResponseNote' && setting.length > MAX_COMPANION_RESPONSE_NOTE_LENGTH) return false
   }
 
   const seenAssetIds = new Set<string>()

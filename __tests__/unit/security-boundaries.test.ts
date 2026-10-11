@@ -225,7 +225,6 @@ describe('安全边界', () => {
   })
 
   it('备份设置白名单排除凭据、执行入口、权限和本机路径', () => {
-    expect(isSafeBackupSettingKey('companionResponseNote')).toBe(true)
     expect(isSafeBackupSettingKey('llmModel')).toBe(true)
     expect(isSafeBackupSettingKey('llmApiKey')).toBe(false)
     expect(isSafeBackupSettingKey('mcpServers')).toBe(false)
@@ -235,12 +234,6 @@ describe('安全边界', () => {
     expect(isSafeBackupSettingKey('modelConnections')).toBe(true)
     expect(redactModelConnections(JSON.stringify([{ id: 'c', apiKey: 'secret', baseUrl: 'https://example.test', model: 'm' }]))).not.toContain('secret')
     expect(redactModelConnections(JSON.stringify([{ id: 'c', apiKey: 'secret', baseUrl: 'https://example.test', model: 'm' }]))).toContain('"apiKey":""')
-  })
-
-  it('导入在写库前拒绝超长相处偏好，兼容旧备份', () => {
-    expect(isValidExportData(validExport)).toBe(true)
-    expect(isValidExportData({ ...validExport, settings: { companionResponseNote: '好'.repeat(4000) } })).toBe(true)
-    expect(isValidExportData({ ...validExport, settings: { companionResponseNote: '好'.repeat(4001) } })).toBe(false)
   })
 
 

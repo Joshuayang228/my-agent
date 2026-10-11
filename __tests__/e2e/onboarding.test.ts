@@ -302,76 +302,6 @@ test('正式自定义模型连接保存协议并在重载后通过真实协议�
   await page.getByTestId('settings-back').click()
 })
 
-test('正式伙伴设置经真实 IPC 保存独立偏好并在重载后恢复', async () => {
-  await expect(page.locator('#startup-splash')).toBeHidden()
-  // 独立运行时没有前序模型配置；本用例自行接通本地服务，避免重载进入首次设置及 Prompt 验证借用旧路由。
-  // 配置仅写 beforeAll 的临时用户目录，仍由真实 IPC 持久化，不改变产品启动分流或外部模型配置。
-  await page.evaluate(async (url) => {
-    await window.electronAPI.settings.saveModelConfiguration({
-      connections: JSON.stringify([{ id: 'companion-test', name: '伙伴设置测试连接', baseUrl: url, apiKey: 'local-test-key', model: 'local-test-model', enabled: true }]),
-      routes: JSON.stringify([{ purpose: 'primary', connectionId: 'companion-test', model: 'local-test-model', enabled: true }]),
-    })
-  }, baseUrl)
-  await page.reload()
-  await expect(page.locator('#startup-splash')).toBeHidden()
-  const debugBack = page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: '返回', exact: true })
-  if (await debugBack.isVisible().catch(() => false)) await debugBack.click()
-  if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
-  await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
-  const previous = await page.evaluate(() => window.electronAPI.settings.get())
-  const noteText = '先给我结论，再说明依据。\n'.repeat(60)
-  try {
-    await page.locator('button[title="设置"]').click()
-    await page.getByTestId('settings-nav-companion').click()
-    const note = page.getByRole('textbox', { name: '相处补充说明', exact: true })
-    await note.fill(noteText)
-    await page.getByTestId('settings-back').click()
-    await expect.poll(async () => (await page.evaluate(() => window.electronAPI.settings.get())).companionResponseNote).toBe(noteText)
-    expect((await page.evaluate(() => window.electronAPI.settings.get())).systemPrompt).toBe(previous.systemPrompt)
-    await page.reload()
-    await page.locator('button[title="设置"]').click()
-    await page.getByTestId('settings-nav-companion').click()
-    await expect(note).toHaveValue(noteText)
-    for (const kind of ['main', 'workspace'] as const) {
-      const marker = `companion-note-runtime-${kind}`
-      await page.evaluate(async ({ kind, marker }) => {
-        const session = await (kind === 'workspace' ? window.electronAPI.session.createWorkspace() : window.electronAPI.session.create())
-        try {
-          await window.electronAPI.chat.send(session.id, { id: crypto.randomUUID(), role: 'user', content: marker, timestamp: Date.now() })
-        } finally {
-          await window.electronAPI.session.delete(session.id)
-        }
-      }, { kind, marker })
-      const request = capturedRequests.find((entry) => {
-        const messages = entry.body.messages as Array<{ role: string; content: unknown }> | undefined
-        return messages?.some((message) => message.role === 'user' && typeof message.content === 'string' && message.content.split('\n').at(-1) === marker)
-      })
-      expect(request, `${kind} 必须到达本地测试模型`).toBeDefined()
-      const messages = request!.body.messages as Array<{ role: string; content: unknown }>
-      const system = JSON.stringify(messages.filter((message) => message.role === 'system'))
-      if (kind === 'main') {
-        expect(system).toContain('## 用户相处偏好')
-        expect(system).toContain('先给我结论，再说明依据。')
-      } else {
-        expect(system).not.toContain('## 用户相处偏好')
-        expect(system).not.toContain('先给我结论，再说明依据。')
-      }
-    }
-    await note.fill('')
-    await page.getByTestId('settings-back').click()
-    await expect.poll(async () => (await page.evaluate(() => window.electronAPI.settings.get())).companionResponseNote).toBe('')
-    const rejected = await page.evaluate(async () => {
-      try {
-        await window.electronAPI.settings.set('companionResponseNote', '好'.repeat(4001))
-        return false
-      } catch { return true }
-    })
-    expect(rejected).toBe(true)
-  } finally {
-    await page.evaluate((value) => window.electronAPI.settings.set('companionResponseNote', value), previous.companionResponseNote || '')
-  }
-})
-
 test('正式文化角通过真实资产 IPC 更新并在重载后保留作品与笔记', async () => {
   await expect(page.locator('#startup-splash')).toBeHidden()
   await page.evaluate(() => window.electronAPI.settings.set('llmApiKey', 'local-test-key'))
@@ -563,7 +493,6 @@ test('正式生活资产经真实备份导出导入后保留且不覆盖现有�
       sessions: await window.electronAPI.session.list(),
       memories: await window.electronAPI.memory.list(),
       assets: await window.electronAPI.companion.getAssets(),
-      responseNote: (await window.electronAPI.settings.get()).companionResponseNote,
     }))
     const beforeInvalidImport = await readImportState()
     for (const length of [0, 1, 20_001]) {
@@ -574,7 +503,7 @@ test('正式生活资产经真实备份导出导入后保留且不覆盖现有�
           { id: 'valid', category: 'fact', content: '这条有效记忆也不应在整份备份被拒绝时写入。', createdAt: 1, updatedAt: 1 },
           { id: 'invalid', category: 'fact', content: '文'.repeat(length), createdAt: 1, updatedAt: 1 },
         ],
-        settings: { companionResponseNote: '非法备份不应修改相处说明。' },
+        settings: {},
       }), 'utf8')
       await importApp.evaluate(({ dialog }, filePath) => {
         dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] })

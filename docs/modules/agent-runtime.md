@@ -138,7 +138,6 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 - MCP 生产传输由 `mcp/transport.ts` 统一创建，支持旧 stdio / SSE 和 Streamable HTTP；配置与 connect IPC 共用 `src/shared/types.ts` 的 `McpServerConfig`。可选 Bearer 随 MCP 配置整体加密，Renderer 仅收到哨兵；复用已存令牌要求同 id、同传输、同 URL，换地址需重新提供令牌。带令牌只允许 HTTPS 或回环 HTTP，新 HTTP 传输拒绝自动重定向；手动连接仍由主进程确认，不实现隐式 OAuth。未声明 tools 的服务可连接为零工具；已声明但发现失败仍为错误，不能假装成功。正式添加向导、隔离测试与取消 / 保存已接入；更长期的 OAuth 生命周期不在本次范围。
 - MCP 工具许可由服务配置的 `allowedTools` 字段承载；旧配置未设置时兼容为全部允许。MCP Bridge 注册工具和 `McpClientManager.callTool` 执行前均再次过滤，正式设置通过 `mcp:set-tool-allowed` 更新并持久化；审批规则仍独立负责高风险确认。
 
-- 正式相处说明经 `settings.companionResponseNote` 进入 `buildSystemPrompt` 的独立 L3 区块，主对话和召唤读取，workspace 排除。空值不注入、组装侧再次限长；动态 Prompt key 只登记用户数据来源，不复制正文。该偏好不替代 Role Pack 或工具权限；产品入口与保存契约见伙伴模块卡。
 
 - 差异内容与模式控件由 Foundation `DiffViewer` / `DiffViewControls` 统一提供，基础故事、工作区候选和正式 ReviewPanel 实际引用；底层继续复用 CodeBlock，业务只提供已有 unified/before/after，不重算差异。空字符串是有效稿件，缺稿时统一内容和按钮状态一起回退，避免并排选择导致新文件空白。模式切换由 Foundation `IconButton` 提供固定 24px 操作槽，长文件在所在滚动区阅读；符号绑定 Unit 和正式 Renderer 空稿/缺稿回归保护三层复用。
 - 工作区文字恢复和外部打开动作由 Foundation `ActionButton` 提供，正式浏览器、审阅、侧边聊天和 FileBrowser 共用固定高度与语义色；正式 Chat 的思考过程 / 工具调用折叠行、记忆引用动作和权限确认动作也复用同一操作基础，业务回调和真实数据路径不下沉到基础层。

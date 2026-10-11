@@ -590,7 +590,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
             httpOk: boolean
             error?: string
           }
-          note: string
         }
       | { ok: false; error: string; model?: string; baseUrl?: string }
     > => ipcRenderer.invoke('debug:model-probe-thinking'),

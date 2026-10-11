@@ -305,7 +305,7 @@ R12 必须拆成六个独立验收面：
 ### R04 相处说明接入边界（2026-09-14）
 
 - 复核：上次提交仅接入了共享导航和部分伙伴内容；R02–R04 尚未整体验收。设置页仍有旧内容，不能写为全页 demo 已完成。
-- 相处说明使用独立的 `companionResponseNote`，默认空、上限 4000 个 UTF-16 代码单元；不从旧 `systemPrompt` 迁移，也不覆盖它。沿既有 settings:get/set 保存，适用于本机所有伙伴的下一轮主对话与召唤；workspace 会话不注入。
+- 相处说明能力已在 2026-10-11 的后续回流中移除；此历史合同条目仅保留当时的采用记录，不再代表当前实现。
 - 组装使用独立 L3 用户偏好区块，序列化为带引号的文本，不替换身份、工具权限或系统规则；主进程存储限制长度，Debug 同源展示组装结果，用户正文不作为内置资产登记。
 - 文件范围：SettingsPanel / CompanionSettingsContent / SettingsExperienceCandidate、共享设置类型、settings-store / settings IPC / preload / renderer 声明、runtime / prompt-builder / debug / Prompt 注册表、备份设置白名单及对应测试；同步伙伴模块卡与质量、进度、变更账本。
 - 验证：旧 systemPrompt 不变、空值清除、超长拒绝、重新打开恢复、保存失败重试、候选编辑不写 IPC、Prompt 身份与权限不变、真实 Electron IPC 及独立测试数据目录。不上真实付费模型，不改模型/MCP/世界状态契约。

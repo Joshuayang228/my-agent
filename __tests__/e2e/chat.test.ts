@@ -7598,121 +7598,6 @@ test.describe('My Agent UI', () => {
     }
   }
 
-  for (const theme of ['porcelain-blue', 'song-smoke', 'yao-stone', 'deep-plum']) {
-    for (const width of [1166, 600]) {
-      test(`正式相处偏好保存失败与恢复 ${theme} ${width}`, async ({ page }, testInfo) => {
-        await page.setViewportSize({ width, height: 731 })
-        await installProductionElectronStub(page)
-        await page.addInitScript((selectedTheme) => {
-          localStorage.setItem('theme', selectedTheme)
-          const api = (window as any).electronAPI
-          const stored: Record<string, string> = { llmApiKeyConfigured: 'true', llmConnectionReady: 'true', llmModel: 'test', systemPrompt: '旧提示词保持不变', companionResponseNote: '' }
-          const harness = { fail: true, writes: [] as Array<[string, string]>, stored }
-          ;(window as any).__companionSettings = harness
-          api.settings.get = async () => ({ ...stored })
-          api.settings.set = async (key: string, value: string) => {
-            harness.writes.push([key, value])
-            if (harness.fail) throw new Error('测试保存失败')
-            stored[key] = value
-          }
-          api.mcp.status = async () => []
-        }, theme)
-        await page.goto('/')
-        await page.locator('button[title="设置"]').click()
-        const nav = width < 768 ? page.getByRole('tab', { name: '伙伴与相处', exact: true }) : page.getByTestId('settings-nav-companion')
-        await nav.click()
-        const note = page.getByRole('textbox', { name: '相处补充说明', exact: true })
-        await expect(note).toHaveAttribute('maxlength', '4000')
-        const status = page.getByTestId('settings-save-status')
-        const size = () => status.evaluate((node) => ({ width: node.clientWidth, height: node.clientHeight }))
-        const initialSize = await size()
-        const text = '请先给结论，再解释依据。\n'.repeat(80)
-        await note.fill(text)
-        const retry = page.getByRole('button', { name: '重试保存', exact: true })
-        await expect(retry).toBeVisible()
-        await expect(page.getByText('设置自动保存失败，修改仍保留，请重试', { exact: true })).toHaveCount(0)
-        expect(await size()).toEqual(initialSize)
-        const back = page.getByTestId(width < 768 ? 'settings-back-mobile' : 'settings-back')
-        await back.click()
-        await expect(note).toHaveValue(text)
-        await expect(page.getByTestId('settings-panel')).toBeVisible()
-        expect(await note.evaluate((node) => node.scrollHeight > node.clientHeight)).toBe(true)
-        await retry.scrollIntoViewIfNeeded()
-        await page.screenshot({ path: testInfo.outputPath('companion-save-failed.png') })
-        await page.evaluate(() => { (window as any).__companionSettings.fail = false })
-        await retry.click()
-        await expect(retry).not.toBeVisible()
-        expect(await size()).toEqual(initialSize)
-        expect(await page.evaluate(() => (window as any).__companionSettings.stored.systemPrompt)).toBe('旧提示词保持不变')
-        expect(await page.evaluate(() => (window as any).__companionSettings.writes.every(([key]: [string]) => key === 'companionResponseNote'))).toBe(true)
-        await back.click()
-        await page.locator('button[title="设置"]').click()
-        await nav.click()
-        await expect(note).toHaveValue(text)
-        await note.fill('')
-        const answer = page.getByRole('button', { name: /^直接一点/ })
-        await answer.scrollIntoViewIfNeeded()
-        const beforeHover = await answer.boundingBox()
-        await answer.hover()
-        expect(await answer.boundingBox()).toEqual(beforeHover)
-        await answer.focus()
-        await page.keyboard.press('Enter')
-        await expect(answer).toHaveAttribute('aria-pressed', 'true')
-        for (const [label, value] of [['勿扰开始', '21'], ['勿扰结束', '9'], ['每日最多', '4']]) {
-          const field = page.getByRole('spinbutton', { name: label, exact: true })
-          await field.fill(value)
-          await expect(field).toHaveValue(value)
-        }
-        await page.getByRole('spinbutton', { name: '每日最多', exact: true }).scrollIntoViewIfNeeded()
-        await page.screenshot({ path: testInfo.outputPath('companion-foundation-fields.png'), animations: 'disabled' })
-        await back.click()
-        expect(await page.evaluate(() => (window as any).__companionSettings.stored.companionResponseNote)).toBe('')
-        expect(await page.evaluate(() => (window as any).__companionSettings.stored)).toMatchObject({
-          userExpertiseLevel: 'expert', companionMomentTipsQuietStart: '21', companionMomentTipsQuietEnd: '9', companionMomentTipsMaxPerDay: '4',
-        })
-        await page.locator('button[title="设置"]').click()
-        await nav.click()
-        await expect(answer).toHaveAttribute('aria-pressed', 'true')
-        await expect(page.getByRole('spinbutton', { name: '勿扰开始', exact: true })).toHaveValue('21')
-      })
-    }
-  }
-
-  test('设置快捷键离开失败保留草稿且保存成功后才新建会话', async ({ page }) => {
-    await installProductionElectronStub(page)
-    await page.addInitScript(() => {
-      const api = (window as any).electronAPI
-      const state = { fail: true, created: 0, stored: { llmApiKeyConfigured: 'true', llmConnectionReady: 'true', companionResponseNote: '' } as Record<string, string> }
-      ;(window as any).__settingsExit = state
-      api.settings.get = async () => ({ ...state.stored })
-      api.settings.set = async (key: string, value: string) => {
-        if (state.fail) throw new Error('test save failure')
-        state.stored[key] = value
-      }
-      api.session.create = async () => ({ id: `exit-session-${++state.created}` })
-    })
-    await page.goto('/')
-    await page.locator('button[title="设置"]').click()
-    await page.getByTestId('settings-nav-companion').click()
-    const note = page.getByRole('textbox', { name: '相处补充说明', exact: true })
-    await note.fill('保存失败时不要丢弃这条草稿')
-    await expect(page.getByRole('button', { name: '重试保存', exact: true })).toBeVisible()
-    for (const shortcut of ['Control+,', 'Control+Shift+P', 'Control+n', 'Escape', 'Control+Shift+M', 'Control+Shift+F', 'Control+Shift+K', 'Control+Shift+D']) {
-      await page.keyboard.press(shortcut)
-      await expect(page.getByTestId('settings-panel')).toBeVisible()
-      await expect(note).toHaveValue('保存失败时不要丢弃这条草稿')
-    }
-    expect(await page.evaluate(() => (window as any).__settingsExit.created)).toBe(0)
-    await page.evaluate(() => { (window as any).__settingsExit.fail = false })
-    await page.keyboard.press('Control+n')
-    await expect(page.getByTestId('settings-panel')).toHaveCount(0)
-    await expect.poll(() => page.evaluate(() => (window as any).__settingsExit.created)).toBe(1)
-    expect(await page.evaluate(() => (window as any).__settingsExit.stored.companionResponseNote)).toBe('保存失败时不要丢弃这条草稿')
-    await page.locator('button[title="设置"]').click()
-    await page.getByTestId('settings-nav-companion').click()
-    await expect(note).toHaveValue('保存失败时不要丢弃这条草稿')
-  })
-
   test('导航提交后快捷键读取当前视图和搜索状态', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.goto('/')
@@ -7730,45 +7615,6 @@ test.describe('My Agent UI', () => {
     await expect(search).toHaveCount(0)
     await page.keyboard.press('Control+f')
     await expect(search).toHaveValue('')
-  })
-
-  test('普通设置保存队列在重载前保留最新值', async ({ page }) => {
-    await installProductionElectronStub(page)
-    await page.addInitScript(() => {
-      const api = (window as any).electronAPI
-      const state = { pending: [] as Array<() => void>, fail: false, writes: [] as string[], stored: { llmConnectionReady: 'true', companionResponseNote: '' } as Record<string, string> }
-      ;(window as any).__queueUnload = state
-      api.settings.get = async () => ({ ...state.stored })
-      api.settings.set = async (key: string, value: string) => {
-        state.writes.push(value)
-        await new Promise<void>(resolve => state.pending.push(resolve))
-        if (state.fail) throw new Error('synthetic-save-failure')
-        state.stored[key] = value
-      }
-    })
-    await page.goto('/')
-    await page.locator('button[title="设置"]').click()
-    await page.getByTestId('settings-nav-companion').click()
-    const note = page.getByRole('textbox', { name: '相处补充说明', exact: true })
-    const blocked = () => page.evaluate(() => !window.dispatchEvent(new Event('beforeunload', { cancelable: true })))
-    await note.fill('第一版')
-    expect(await blocked()).toBe(true)
-    await expect.poll(() => page.evaluate(() => (window as any).__queueUnload.pending.length)).toBe(1)
-    await note.fill('最后一版')
-    expect(await blocked()).toBe(true)
-    await page.evaluate(() => (window as any).__queueUnload.pending.shift()())
-    await expect.poll(() => page.evaluate(() => (window as any).__queueUnload.writes)).toEqual(['第一版', '最后一版'])
-    expect(await blocked()).toBe(true)
-    await page.evaluate(() => { const s = (window as any).__queueUnload; s.fail = true; s.pending.shift()() })
-    await expect(page.getByRole('button', { name: /重试/ }).first()).toBeVisible()
-    expect(await blocked()).toBe(true)
-    await expect(note).toHaveValue('最后一版')
-    await page.evaluate(() => { (window as any).__queueUnload.fail = false })
-    await page.getByRole('button', { name: /重试/ }).first().click()
-    await expect.poll(() => page.evaluate(() => (window as any).__queueUnload.pending.length)).toBe(1)
-    await page.evaluate(() => (window as any).__queueUnload.pending.shift()())
-    await expect.poll(() => blocked()).toBe(false)
-    expect(await page.evaluate(() => (window as any).__queueUnload.stored.companionResponseNote)).toBe('最后一版')
   })
 
   for (const kind of ['mode', 'rules']) {
@@ -7820,34 +7666,6 @@ test.describe('My Agent UI', () => {
       await expect(page.getByTestId('settings-nav-appearance')).toHaveAttribute('aria-current', 'page')
     })
   }
-
-  test('设置等待保存时侧栏重渲染不取消快捷键离开', async ({ page }) => {
-    await installProductionElectronStub(page)
-    await page.addInitScript(() => {
-      const api = (window as any).electronAPI
-      const state = { created: 0, release: null as null | (() => void), stored: { llmApiKeyConfigured: 'true', llmConnectionReady: 'true', companionResponseNote: '' } as Record<string, string> }
-      ;(window as any).__pendingSettingsExit = state
-      api.settings.get = async () => ({ ...state.stored })
-      api.settings.set = async (key: string, value: string) => {
-        await new Promise<void>((resolve) => { state.release = resolve })
-        state.stored[key] = value
-      }
-      api.session.create = async () => ({ id: `pending-exit-${++state.created}` })
-    })
-    await page.goto('/')
-    await page.locator('button[title="设置"]').click()
-    await page.getByTestId('settings-nav-companion').click()
-    await page.getByRole('textbox', { name: '相处补充说明', exact: true }).fill('等待保存的草稿')
-    await expect.poll(() => page.evaluate(() => Boolean((window as any).__pendingSettingsExit.release))).toBe(true)
-    await page.keyboard.press('Control+n')
-    await page.keyboard.press('Control+b')
-    await page.keyboard.press('Control+n')
-    expect(await page.evaluate(() => (window as any).__pendingSettingsExit.created)).toBe(0)
-    await page.evaluate(() => (window as any).__pendingSettingsExit.release())
-    await expect.poll(() => page.evaluate(() => (window as any).__pendingSettingsExit.stored.companionResponseNote)).toBe('等待保存的草稿')
-    await expect(page.getByTestId('settings-panel')).toHaveCount(0)
-    await expect.poll(() => page.evaluate(() => (window as any).__pendingSettingsExit.created)).toBe(1)
-  })
 
   test('设置高级模型参数自动保存并在离开时刷新', async ({ page }) => {
     await page.goto('/')

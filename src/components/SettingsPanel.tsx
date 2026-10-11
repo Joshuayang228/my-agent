@@ -25,7 +25,6 @@ import { SETTINGS_PAGE_HEADERS } from '../shared/settings-page-headers'
 
 interface SettingsForm {
   llmTemperature: string
-  companionResponseNote: string
   activeRoleId: string
   executionMode: string
   /** auto | novice | intermediate | expert — 能力解释粒度（M30-G3） */
@@ -53,7 +52,6 @@ interface McpToolEntry { serverId: string; serverName: string; name: string; des
 
 const DEFAULTS: SettingsForm = {
   llmTemperature: '0.7',
-  companionResponseNote: '',
   activeRoleId: 'lin',
   executionMode: 'auto',
   userExpertiseLevel: 'auto',
@@ -213,7 +211,6 @@ export function SettingsPanel({
     window.electronAPI.settings.get().then((s) => {
       setForm({
         llmTemperature: s.llmTemperature || DEFAULTS.llmTemperature,
-        companionResponseNote: s.companionResponseNote || '',
         activeRoleId: s.activeRoleId || DEFAULTS.activeRoleId,
         executionMode: s.executionMode || DEFAULTS.executionMode,
         userExpertiseLevel: s.userExpertiseLevel || DEFAULTS.userExpertiseLevel,
@@ -427,8 +424,6 @@ export function SettingsPanel({
     onQuietStartChange={(value) => update('companionMomentTipsQuietStart', value)}
     onQuietEndChange={(value) => update('companionMomentTipsQuietEnd', value)}
     onMaxPerDayChange={(value) => update('companionMomentTipsMaxPerDay', value)}
-    note={form.companionResponseNote}
-    onNoteChange={(value) => update('companionResponseNote', value)}
     saveFailed={saveFailed}
     onRetrySave={() => { void persistSettings() }}
     roleAction={<ActionButton onClick={() => setRoleShelfOpen(true)} disabled={preview} data-testid="settings-open-role-shelf">管理角色架</ActionButton>}

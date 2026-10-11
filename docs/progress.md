@@ -1,6 +1,6 @@
 # 项目进度
 
-伙伴补充说明入口收口（2026-10-11）：Playground 伙伴设置暂不展示“相处补充说明”，只去掉重复的样张入口；正式 Settings、`companionResponseNote` 存储和提示词注入继续保留，后续再单独讨论其产品归属。
+相处补充说明能力移除（2026-10-11）：按用户确认从正式与 Playground 设置删除入口，并清理 settings 字段、备份、IPC 和 Prompt 注入；启动建表会删除旧 `companionResponseNote` 键。现有记忆能力不受影响。
 
 Playground 设置状态控制上移（2026-10-11）：设置候选复用人物世界的框架外控制槽，模型、Skills、MCP 和设置内记忆样张的状态切换移到样张框架上方；内容区不再嵌套状态切换，正式 Settings 不变。
 

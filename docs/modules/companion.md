@@ -2,7 +2,7 @@
 
 ## 已落地能力：伙伴补充说明候选入口收口
 
-Playground 伙伴设置隐藏“相处补充说明”编辑入口，作为界面收口候选；正式设置仍保留入口，`companionResponseNote` 存储、备份和 L3 提示词注入不变。隐藏样张不代表停用业务能力，正式回流与已有内容归属须另行确认。
+伙伴设置已移除“相处补充说明”入口及其独立业务能力；该能力与记忆重复，正式和 Playground 都不再保存、备份或注入提示词。
 
 ## 已落地能力：正式布局遗漏校正
 
@@ -124,7 +124,7 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 | 类型 | 位置 |
 |------|------|
 | UI · 生活面 | 侧栏「人物世界」（`WorldHub`：朋友圈 / 衣柜 / 文化角 / 家居 / 通讯录 / 足迹）；角色架归设置 |
-| UI · 工具面 | 设置「伙伴与相处」：回答方式、相处补充说明、生活提醒、主动问候、角色架；旧 MUTABLE / 反思表单不再保留为设置入口，后端服务仍保留 |
+| UI · 工具面 | 设置「伙伴与相处」：回答方式、生活提醒、主动问候、角色架；旧 MUTABLE / 反思表单不再保留为设置入口 |
 | IPC | `companion:*`（list / switch / moments / toggle-moment-like / add-moment-comment / assets / roster / catchup-status(+presence) / start-summon / reflection…） |
 | Prompt | `prompt-builder` + `orchestrator.loadRoleAssembleInput`（管线见下方「Prompt 组装」） |
 | 资产 | `electron/main/companion/universes/default/` |
@@ -232,7 +232,7 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 
 - 生产初始化不再生成服务内置的衣物、书籍、歌单、电影与摄影记录；当前角色未定义这些初始资产时展示真实空态。Role Pack 世界默认、用户创建和已发布事件资产不受影响；Playground 样张仍隔离。此次不批量删除旧数据库中的历史记录，不把已有记录当成角色设定已确认的证据。
 
-- 伙伴设置的回答方式、相处补充说明和提醒数字输入均组合 Foundation ActionButton / TextField；正式与 Playground 使用同一 CompanionSettingsContent，不再在业务组合中复制原生按钮 / 数字输入。候选的勿扰时段、次数及补充说明可在隔离内存中编辑，不再使用空回调；正式保存链路不变。绑定门禁检查真实 JSX 符号而非 import 声明，正式入口覆盖四主题宽窄、键盘选中、hover 尺寸与保存失败恢复。
+- 伙伴设置的回答方式和提醒数字输入均组合 Foundation ActionButton / TextField；正式与 Playground 使用同一 CompanionSettingsContent，不再在业务组合中复制原生按钮 / 数字输入。勿扰时段与次数在隔离内存中编辑，不访问真实设置。绑定门禁检查真实 JSX 符号，正式入口覆盖四主题宽窄、键盘选中与 hover 尺寸。
 
 - 生活剧本、朋友圈润色、Catch-up 摘要与显式反思入口用共享连接认证判断，允许已配置的本机兼容无 Key 辅助模型；仍保留原有 preferLlm、数据校验和失败回退，不更改主动调用时机、反思门闸或角色隔离。协议可连接不代表任意本地型号能正确生成结构化生活内容。
 
@@ -253,7 +253,6 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 
 | 能力 | 状态 | 用户入口 | 落点 |
 |------|------|----------|------|
-| 用户相处补充说明 | 已落地 | 设置 → 伙伴与相处 | 独立 `companionResponseNote`，默认空、最多 4000 UTF-16 代码单元；仅保存实际修改，失败保留草稿并提供固定操作槽重试。作为 L3 偏好用于下一轮主对话 / 召唤，workspace 排除；不迁移或覆盖旧 `systemPrompt`，不改变角色身份和工具权限。备份白名单包含该字段，导入前同样限长 |
 | 生活资产与朋友圈备份往返 | 已落地 | 设置 → 数据与隐私 | `data:export` / `data:import` 覆盖生活资产、播种标记、已发布事件、动态快照及用户赞评；按稳定身份合并，同一事务失败回滚。旧备份缺字段仍可导入。不包含未来事件、日剧本、当前世界态、MCP、权限、凭据和项目路径；恢复历史不重放奖励 |
 | Universe + Role Pack（三槽：lin / zhou / xia） | 已落地 | 角色架 / 设置 | `universes/default/` · 文案见 [companion-cast-content](../requirements/companion-cast-content.md) |
 | 主角候选结构化档案（Role Profile） | 已落地 | Debug「世界态」/ Prompt L1 | 当前仅小航 `profile.json`；行为边界与五维表达基线已定，人物故事字段待定 |

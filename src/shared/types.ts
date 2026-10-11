@@ -719,8 +719,6 @@ export type LLMModelFetchResult =
   | { ok: true; models: string[] }
   | { ok: false; error: string; reason: LLMModelFetchReason; retryable: boolean }
 
-export const MAX_COMPANION_RESPONSE_NOTE_LENGTH = 4000
-
 export type McpTransportType = 'stdio' | 'sse' | 'streamable-http'
 
 /** MCP 设置及连接 IPC 共用载荷；持久化加密，Renderer 中凭据仅为脱敏哨兵。 */
@@ -774,8 +772,6 @@ export interface RendererSettings extends Record<string, string> {
   llmEffectiveModel: string
   llmEffectiveBaseUrl: string
   mcpServers: string
-  /** 本机回应偏好；独立于旧 systemPrompt，不覆盖角色身份。 */
-  companionResponseNote: string
 }
 
 export type LLMConnectionTestResult =

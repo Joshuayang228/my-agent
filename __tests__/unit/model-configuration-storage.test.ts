@@ -61,7 +61,6 @@ describe('模型配置整组真实 SQLite 持久化', () => {
       notify.mockClear()
       vi.spyOn(database, 'persist').mockImplementationOnce(() => { throw new Error('fixture-failed') })
       await expect(save(newConnections, newRoutes)).rejects.toThrow()
-      await settings.setSetting('companionResponseNote', '无关设置')
       expect(notify).not.toHaveBeenCalled()
       await settings.setSetting('modelRoutes', newRoutes)
       expect(notify).toHaveBeenCalledTimes(1)
