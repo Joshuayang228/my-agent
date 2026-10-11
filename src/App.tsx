@@ -1228,11 +1228,11 @@ function App() {
           onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) handleFileAttach(e.dataTransfer.files) }}
         >
           <CompanionSceneBackdrop roleId={activeRoleId} />
-          <div className={`relative z-[1] ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`}>
-          <div className="mx-auto w-full" style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-content">
+          <div className={`relative z-[1] flex min-h-full flex-col ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`}>
+          <div className="mx-auto flex min-h-full w-full flex-1 flex-col" style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-content">
             {/* 欢迎屏 — 衬线问候 + 建议 pill（Phase 3） */}
             {messages.length === 0 && (
-              <div className="flex min-h-full flex-col items-center justify-center pb-6">
+              <div className="flex flex-1 flex-col items-center justify-center pb-6">
                 <ChatWelcome title={coldStart.title} subtitle={coldStart.subtitle}
                   onGreet={() => { void sendMessage('你好，介绍一下你自己') }}
                   onPlanDay={() => { void sendMessage('今天打算怎么过？陪我想想。') }}
