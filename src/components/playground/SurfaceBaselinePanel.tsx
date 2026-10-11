@@ -7,7 +7,7 @@ import { useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'reac
 import { ArrowRight, Check, CircleAlert, Clock3, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, X } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
-import { WorldCandidateControls, WorldCandidateControlsTarget, WorldCandidateRefresh } from './WorldCandidateControls'
+import { PlaygroundCandidateControls, PlaygroundCandidateControlsTarget, WorldCandidateControls, WorldCandidateControlsTarget, WorldCandidateRefresh } from './WorldCandidateControls'
 import { LAYOUT_CLASSES, layoutProfileStyle } from '../../shared/content-layout'
 import { CultureExperienceCandidate } from './CultureExperienceCandidate'
 import { HomeExperienceCandidate } from './HomeExperienceCandidate'
@@ -741,15 +741,19 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
 }
 
 function SettingsSurface({ persona, onPersonaChange, scenario, onScenarioChange, onNavigate }: { persona: PlaygroundPersona; onPersonaChange: (personaId: string) => void; scenario: SettingsScenario; onScenarioChange: (scenario: SettingsScenario) => void; onNavigate?: (tab: PlaygroundTabId) => void }) {
-  return <SurfaceViewport testId="settings-surface-candidate">
-    <SettingsExperienceCandidate
-      memoryDetail={<MemorySurface />}
-      companionDetail={scenario === 'role-shelf' ? <RoleShelfFixture persona={persona} onPersonaChange={onPersonaChange} /> : undefined}
-      initialSection={scenario === 'memory-management' ? 'memory' : scenario === 'role-shelf' ? 'companion' : undefined}
-      onOpenRoleShelf={() => onScenarioChange('role-shelf')}
-      onClose={onNavigate ? () => onNavigate('chat') : undefined}
-    />
-  </SurfaceViewport>
+  const [controlsTarget, setControlsTarget] = useState<HTMLDivElement | null>(null)
+  return <PlaygroundCandidateControlsTarget.Provider value={controlsTarget}>
+    <div ref={setControlsTarget} className="mb-4 min-w-0 empty:hidden" data-testid="settings-candidate-controls" />
+    <SurfaceViewport testId="settings-surface-candidate">
+      <SettingsExperienceCandidate
+        memoryDetail={<MemorySurface />}
+        companionDetail={scenario === 'role-shelf' ? <RoleShelfFixture persona={persona} onPersonaChange={onPersonaChange} /> : undefined}
+        initialSection={scenario === 'memory-management' ? 'memory' : scenario === 'role-shelf' ? 'companion' : undefined}
+        onOpenRoleShelf={() => onScenarioChange('role-shelf')}
+        onClose={onNavigate ? () => onNavigate('chat') : undefined}
+      />
+    </SurfaceViewport>
+  </PlaygroundCandidateControlsTarget.Provider>
 }
 
 /** 设置页中的角色架候选：只展示切换关系，不连接真实角色列表或写入主角状态。 */
@@ -797,7 +801,7 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
   const editingId = MEMORY_PREVIEW_GROUPS.find((item) => item.id === group)?.memories[0]?.id
 
   return <div className="space-y-2">
-    <div className="flex flex-wrap items-center gap-2">
+    <PlaygroundCandidateControls><div className="flex flex-wrap items-center gap-2">
       <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>状态样张</span>
       <PlaygroundStateSwitcher ariaLabel="记忆页面场景" items={scenarios} value={scenario}
         onChange={(id) => { setScenario(id); setScenarioGroup(group) }} />
@@ -808,7 +812,7 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
         onClick={() => setShowSource(!showSource)} className="rounded-md px-2 py-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>查看来源</button>}
       {onNavigate && <button type="button" data-testid="memory-open-settings" className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px]"
         style={{ color: 'var(--text-muted)' }} onClick={() => { onNavigate('settings'); onOpenMemorySettings?.() }}>去设置 <ArrowRight size={11} /></button>}
-    </div>
+    </div></PlaygroundCandidateControls>
     <div className="playground-memory-candidate" data-testid="memory-surface-candidate">
       <MemoryPanel key={scenario} onClose={noop} previewMemories={memories} previewEvidence={MEMORY_PREVIEW_EVIDENCE}
         previewCompact previewManagement previewGroup={group} onPreviewGroupChange={setGroup}

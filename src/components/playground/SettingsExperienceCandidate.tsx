@@ -33,6 +33,7 @@ import { CONNECTION_ADAPTERS, CONNECTION_PRESETS, CONNECTION_SOURCE_OPTIONS, con
 import { SkillDetail, SkillFilePreview, SkillListCard } from '../settings/SkillViews'
 import type { SkillInfo, ModelConnectionSource as ConnectionSource } from '../../shared/types'
 import { McpConnectionPreview } from './McpConnectionPreview'
+import { PlaygroundCandidateControls } from './WorldCandidateControls'
 import { THEME_STUDIES, getThemeStudyStyle, type ThemeStudyId } from './foundation-themes'
 import { JSON_SCHEMA, load } from 'js-yaml'
 import codeReview from '../../../electron/skills-builtin/code-review/SKILL.md?raw'
@@ -331,7 +332,7 @@ function ModelPage({ selectedProvider }: { selectedProvider: string; onProviderC
     }} onCancel={closeForm} onSave={finishSave} />
   return (
     <div className={LAYOUT_CLASSES.section} data-testid="settings-candidate-section-model">
-      <div className="flex flex-wrap items-center justify-between gap-2" data-testid="settings-candidate-model-state-tabs"><div className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>模型状态样张</div><div className="flex flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="模型状态样张">{(['empty', 'one', 'two'] as const).map((state) => <button key={state} type="button" role="tab" aria-selected={previewState === state} onClick={() => setPreview(state)} className="settings-option px-2.5 py-1 text-[10px]" data-testid={`settings-candidate-model-state-${state}`} data-selected={previewState === state ? 'true' : undefined}>{state === 'empty' ? '空态' : state === 'one' ? '单连接' : '多连接'}</button>)}</div></div>
+      <PlaygroundCandidateControls><div className="flex flex-wrap items-center justify-between gap-2" data-testid="settings-candidate-model-state-tabs"><div className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>模型状态样张</div><div className="flex flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="模型状态样张">{(['empty', 'one', 'two'] as const).map((state) => <button key={state} type="button" role="tab" aria-selected={previewState === state} onClick={() => setPreview(state)} className="settings-option px-2.5 py-1 text-[10px]" data-testid={`settings-candidate-model-state-${state}`} data-selected={previewState === state ? 'true' : undefined}>{state === 'empty' ? '空态' : state === 'one' ? '单连接' : '多连接'}</button>)}</div></div></PlaygroundCandidateControls>
       <ModelUsageArrangements testIdPrefix="settings-candidate" purposes={ROUTE_PURPOSES}
         routes={ROUTE_PURPOSES.flatMap(purpose => routes[purpose.id].map(route => ({ purpose: purpose.id, connectionId: route.connectionId, model: route.modelId, enabled: route.enabled })))}
         options={availableModels.map(item => ({ value: `${item.connectionId}::${item.modelId}`, label: `${item.connectionName} · ${item.modelId}` }))}
@@ -431,9 +432,9 @@ function McpScenePreview() {
   const chooseScene = (next: McpScene) => { setScene(next); setForm(next.startsWith('add-') ? next : null); setServers(next.startsWith('add-') ? [] : createMcpScene(next)) }
   const updateServer = (id: string, patch: Partial<McpPreviewServer>) => setServers((current) => current.map((server) => server.id === id ? { ...server, ...patch } : server))
   return <div className={LAYOUT_CLASSES.section} data-testid="settings-candidate-mcp-scenes">
-    <div className="flex flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="MCP 样张场景">
+    <PlaygroundCandidateControls><div className="flex flex-wrap gap-1" data-playground-switcher role="tablist" aria-label="MCP 样张场景">
       {MCP_SCENES.map(([id, label]) => <button key={id} id={`mcp-scene-${id}`} type="button" role="tab" aria-selected={scene === id} aria-controls="mcp-scene-panel" onClick={() => chooseScene(id)} className="settings-option px-2.5 py-1.5 text-[11px]" data-selected={scene === id ? 'true' : undefined}>{label}</button>)}
-    </div>
+    </div></PlaygroundCandidateControls>
     <div id="mcp-scene-panel" role="tabpanel" aria-labelledby={`mcp-scene-${scene}`} className="space-y-3">
       <McpServiceList count={servers.length} onAdd={() => setForm('add-remote')} disabled={Boolean(form)}
         showEmpty={!form && servers.length === 0} testIdPrefix="settings-candidate">
@@ -459,9 +460,9 @@ function CapabilityPage({ mode }: { mode: 'skills' | 'mcp' }) {
 
   return <div className={LAYOUT_CLASSES.section} data-testid={`settings-candidate-section-${mode}`}>
     {mode === 'skills' && <>
-      <div className="flex items-center justify-end gap-1" data-playground-switcher role="tablist" aria-label="Skills 样张状态" data-testid="settings-candidate-skills-states">
+      <PlaygroundCandidateControls><div className="flex items-center justify-end gap-1" data-playground-switcher role="tablist" aria-label="Skills 样张状态" data-testid="settings-candidate-skills-states">
         {(['单个', '多个', '详情'] as const).map((state) => <button key={state} type="button" role="tab" aria-selected={skillsState === state} onClick={() => setSkillsState(state)} className="settings-option px-2.5 py-1 text-[10px]" data-selected={skillsState === state ? 'true' : undefined}>{state}</button>)}
-      </div>
+      </div></PlaygroundCandidateControls>
       {skillsState === '详情' ? <SkillDetail skill={viewSkill(skill)} testId="settings-candidate-skill-detail" toggleTestId="settings-candidate-skills-enabled" onBack={() => setSkillsState('多个')} onEnabledChange={(enabled) => toggleSkill(skill.name, enabled)} content={<SkillFilePreview content={skill.raw} testId="settings-candidate-skill-file-preview" />} /> : <div className="grid gap-3 sm:grid-cols-2">
         {(skillsState === '多个' ? skillsSamples : skillsSamples.slice(0, 1)).map((sample) => <SkillListCard key={sample.name} skill={viewSkill(sample)} testId={'settings-candidate-skill-card-' + sample.name} toggleTestId={sample.name === skillsSamples[0].name ? 'settings-candidate-skills-enabled' : 'settings-candidate-skill-toggle-' + sample.name} onOpen={() => { setSelectedSkill(sample.name); setSkillsState('详情') }} onEnabledChange={(enabled) => toggleSkill(sample.name, enabled)} />)}
       </div>}
