@@ -26,7 +26,7 @@ export function MemoryToolbar({ group, counts, onGroupChange, query, onQueryChan
       <TabStrip label="记忆分类" activeId={group} onSelect={(id) => onGroupChange(id as MemoryGroup)}
         items={MEMORY_GROUPS.map((item) => ({ id: item.id, label: `${item.label} ${counts[item.id]}`, testId: `memory-group-${item.id}` }))} />
     </div>
-    <div className="flex h-8 w-52 max-w-[42%] shrink-0 justify-end" data-testid="memory-actions">
+    <div className={`flex h-8 shrink-0 justify-end ${searchOpen ? 'w-52 max-w-[42%]' : 'w-8'}`} data-testid="memory-actions">
       {searchOpen ? <div className="flex h-8 w-full items-center gap-2 rounded-[var(--radius-md)] border px-2" style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)' }}>
         <Search size={14} className="shrink-0" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
         <TextField autoFocus aria-label="搜索记忆" placeholder="搜索记忆" value={query} className="w-full flex-1"
