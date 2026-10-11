@@ -217,7 +217,7 @@ export function PrimarySidebar({
       </div>
 
       {/* 会话列表 */}
-      <div className="scrollbar-thin mt-3 flex-1 overflow-y-auto px-2 pb-2" data-testid="sidebar-session-list">
+      <div className="scrollbar-hover mt-3 flex-1 overflow-y-auto px-2 pb-2" data-testid="sidebar-session-list">
         {sessionGroups.map((group) => (
           <div key={group.label}>
             <div

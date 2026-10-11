@@ -5639,6 +5639,7 @@ test.describe('My Agent UI', () => {
     await expect(primarySidebar).not.toContainText('产品')
     await expect(developerNav).toBeVisible()
     await expect(sessionList).toBeVisible()
+    await expect(sessionList).toHaveClass(/scrollbar-hover/)
     expect(await sessionList.evaluate((element, dev) => Boolean(element.compareDocumentPosition(dev as Node) & Node.DOCUMENT_POSITION_FOLLOWING), await developerNav.elementHandle())).toBe(true)
 
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: '设置', exact: true }).click()
