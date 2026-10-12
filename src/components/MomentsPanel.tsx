@@ -348,7 +348,7 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
         {loadError ? <ErrorState className="mb-4" title="朋友圈未能读取" description={loadError}
           action={<ActionButton onClick={() => void load()} disabled={loading}>重新读取朋友圈</ActionButton>} /> : null}
         {items.length === 0 && !loading && !loadError ? (
-          <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>还没有新的动态。</p>
+          <div className="flex min-h-28 items-center justify-center py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>还没有新的动态。</div>
         ) : (
           <ul className={isSocialFeed ? 'space-y-[var(--layout-section,1.25rem)]' : 'space-y-3'}>
             {items.map((m) => {

@@ -6373,6 +6373,8 @@ test.describe('My Agent UI', () => {
         await page.getByTestId('playground-nav').getByRole('button', { name: '人物世界', exact: true }).click()
         await page.getByTestId('world-tab-home').click()
         const home = page.getByTestId('world-home-fixture')
+        const homeStateTabs = page.getByRole('tablist', { name: '家居状态样张', exact: true })
+        const homeScenarioNames = new Set(['居住空间', '多物件', '长名称与描述', '未归置物件', '空房间', '空家居', '无配图', '配图生成中', '配图失败', '读取失败'])
         const roomTabs = home.getByRole('tablist', { name: '家居空间', exact: true }).getByRole('tab')
         await expect(roomTabs.locator('svg')).toHaveCount(5)
         for (const tab of await roomTabs.all()) {
@@ -6383,7 +6385,9 @@ test.describe('My Agent UI', () => {
         const tabSize = await livingTab.evaluate(el => ({ width: el.clientWidth, height: el.clientHeight }))
         await livingTab.hover()
         expect(await livingTab.evaluate(el => ({ width: el.clientWidth, height: el.clientHeight }))).toEqual(tabSize)
-        const select = async (name: string) => home.getByRole('tab', { name, exact: true }).click()
+        const select = async (name: string) => homeScenarioNames.has(name)
+          ? homeStateTabs.getByRole('tab', { name, exact: true }).click()
+          : home.getByRole('tab', { name, exact: true }).click()
         const picture = home.getByTestId('home-overview-picture')
         await expect(home.locator('img')).toHaveCount(1)
         await expect.poll(() => home.locator('img').evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true)
@@ -6430,6 +6434,7 @@ test.describe('My Agent UI', () => {
         }
         await select('空家居')
         await expect(home).toContainText('还没有记录居住空间')
+        await expect(home.getByRole('tab', { name: '总览', exact: true })).toHaveCount(0)
         await select('读取失败')
         await expect(home.getByRole('alert')).toContainText('记录暂时未能读取，请重新读取。')
         await expect(home).toContainText('家居记录未能读取')

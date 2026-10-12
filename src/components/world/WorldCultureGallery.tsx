@@ -177,7 +177,7 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
               </div>}
             </>}
           </article>)}
-        </div> : <EmptyState title={`还没有${categories.find((item) => item.id === category)?.label}记录`} description="可以在对话中聊聊你想一起读、看、听或创作的内容。" />}
+        </div> : <EmptyState centerWithoutAction title={`还没有${categories.find((item) => item.id === category)?.label}记录`} description="可以在对话中聊聊你想一起读、看、听或创作的内容。" />}
     </div>
   </div>
 }

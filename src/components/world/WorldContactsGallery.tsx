@@ -73,7 +73,7 @@ export function WorldContactsGallery({ ownerRoleId, people, relations, experienc
         {people.map(item => <button type="button" key={item.id} ref={node => { if (node) cards.current.set(item.id, node); else cards.current.delete(item.id) }} data-testid={`contact-card-${item.id}`} className="flex min-w-0 items-start gap-3 border p-4 text-left transition hover:bg-[var(--hover-overlay)]" style={{ borderRadius: 'var(--radius-card)', borderColor: 'var(--border-color)', background: 'var(--card-bg)' }} onClick={() => { position.current = scroll.current?.scrollTop ?? 0; target.current = item.id; setSelected(item.id) }}>
           <PersonAvatar key={`${item.id}-${item.avatarSrc}`} person={item} /><span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><span className="break-words text-sm font-semibold">{item.name}</span>{relations.find(entry => entry.ownerRoleId === ownerRoleId && entry.personId === item.id)?.relationLabel && <Badge>{relations.find(entry => entry.ownerRoleId === ownerRoleId && entry.personId === item.id)!.relationLabel}</Badge>}</span>{item.introduction && <span className="mt-2 block text-xs leading-6" style={{ color: 'var(--text-secondary)' }}>{item.introduction}</span>}</span>
         </button>)}
-      </div> : <EmptyState title="还没有认识的人" description="生活中建立的关系，会在这里留下记录。" />}
+      </div> : <EmptyState centerWithoutAction title="还没有认识的人" description="生活中建立的关系，会在这里留下记录。" />}
     </div>
   </div>
 }
