@@ -13,7 +13,7 @@ import { CultureExperienceCandidate } from './CultureExperienceCandidate'
 import { HomeExperienceCandidate } from './HomeExperienceCandidate'
 import { FootprintsExperienceCandidate } from './FootprintsExperienceCandidate'
 import { WardrobeIconOptions, wardrobePreviewIcons, type WardrobeIconStyle } from './WardrobeIconOptions'
-import { WorldLifeSliceCandidate } from './WorldLifeSliceCandidate'
+import { MomentsExperienceCandidate } from './MomentsExperienceCandidate'
 import { WorkspaceDock, WorkspaceExperienceCandidate } from './WorkspaceExperienceCandidate'
 import { MemoryPanel, type MemoryPreviewEvidence } from '../MemoryPanel'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
@@ -690,7 +690,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
   const fixtures = useMemo(() => worldPreviewFixtures(persona), [persona])
   const previewPanels: Partial<Record<WorldTab, ReactNode>> = {
     moments: (
-      <WorldLifeSliceCandidate personaName={persona.name} moments={momentsPreviewForPersona(persona)} assets={fixtures.living} />
+      <MomentsExperienceCandidate previewData={momentsPreviewForPersona(persona)} />
     ),
     wardrobe: (
       <WardrobeCandidate assets={fixtures.wardrobe} personaId={persona.id} />

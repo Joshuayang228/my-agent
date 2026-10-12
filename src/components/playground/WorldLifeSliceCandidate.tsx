@@ -4,43 +4,6 @@ import { ActionButton } from '../foundation/ActionButton'
 import { MomentsPanel, type MomentItem, type MomentsPreviewData } from '../MomentsPanel'
 import { parseCastInteractions } from '../../shared/moment-user-interactions'
 import type { WorldAssetRecord } from '../world/WorldAssetEditor'
-import { PlaygroundStateSwitcher } from './PlaygroundLayout'
-import { WorldCandidateControls } from './WorldCandidateControls'
-
-const scenarios = [
-  { id: 'mixed', label: '综合' }, { id: 'text', label: '纯文字' },
-  { id: 'single', label: '单图' }, { id: 'two', label: '两图' },
-  { id: 'three', label: '三图' }, { id: 'nine', label: '九宫格' },
-  { id: 'long', label: '长正文' }, { id: 'comments', label: '多条评论' },
-  { id: 'empty', label: '空朋友圈' },
-] as const
-type Scenario = typeof scenarios[number]['id']
-
-function projectPreview(preview: MomentsPreviewData, scenario: Scenario): MomentsPreviewData {
-  if (scenario === 'mixed') return preview
-  if (scenario === 'empty') return { ...preview, items: [] }
-  const counts: Partial<Record<Scenario, number>> = { text: 0, single: 1, two: 2, three: 3, nine: 9 }
-  const count = counts[scenario]
-  if (count !== undefined) return { ...preview, items: preview.items.filter((item) => (item.media?.length ?? 0) === count) }
-  const first = preview.items[0]
-  if (!first) return { ...preview, items: [] }
-  return {
-    ...preview,
-    items: [{
-      ...first,
-      id: `${first.id}-${scenario}`,
-      ...(scenario === 'long' ? {
-        text: Array.from({ length: 8 }, (_, index) => `今天散步时记下的第${index + 1}个片段：河边的风比昨天轻，路过的小店还没有开门。我原本想赶紧回去把清单上的事情做完，后来决定坐一会儿，看光线慢慢移到树梢。并不是每一天都要有一个漂亮的结尾，把眼前的小事认真过完，也是一种很踏实的进展。`).join('\n'),
-      } : {
-        meta: { ...first.meta, interactions: [
-          { kind: 'comment', castName: '小航', text: '这次先别把自己排得太满。' },
-          { kind: 'comment', castName: '阿禾', text: '我也想给今天留一点空白，等忙完一起去河边走走。' },
-          { kind: 'comment', castName: '小雨', text: '看到你慢下来才想起来，休息不一定要等所有事情都做完。' },
-        ] },
-      }),
-    }],
-  }
-}
 
 interface WorldLifeSliceCandidateProps {
   personaName: string
@@ -85,17 +48,13 @@ function relatedAssetNames(moment: MomentItem, assets: readonly WorldAssetRecord
  * 关键约束：详情只消费传入的 Moment、资产和关系数据；长内容在局部容器滚动，返回动作不改变六个生活面入口。
  */
 export function WorldLifeSliceCandidate({ personaName, moments, assets }: WorldLifeSliceCandidateProps) {
-  const [scenario, setScenario] = useState<Scenario>('mixed')
   const [selected, setSelected] = useState<MomentItem | null>(null)
   const relatedAssets = useMemo(() => selected ? relatedAssetNames(selected, assets) : [], [assets, selected])
   const selectedLocation = selected && typeof selected.meta.location === 'string' ? selected.meta.location : ''
   const selectedRelations = selected ? parseCastInteractions(selected.meta).filter((item) => item.kind === 'coframe' || item.kind === 'comment') : []
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-col space-y-4" data-testid="world-life-slice-candidate">
-      <WorldCandidateControls>
-        <PlaygroundStateSwitcher items={scenarios} value={scenario} onChange={(value) => { setScenario(value); setSelected(null) }} ariaLabel="朋友圈状态样张" />
-      </WorldCandidateControls>
+    <div className="min-w-0 space-y-4 p-5" data-testid="world-life-slice-candidate">
       {selected ? (
         <section className="min-w-0 space-y-4" data-testid="world-life-slice-detail">
           <div className="flex items-center justify-between gap-3">
@@ -144,20 +103,15 @@ export function WorldLifeSliceCandidate({ personaName, moments, assets }: WorldL
           </div>
         </section>
       ) : (
-        <div className="flex h-full min-h-0 flex-col" data-testid="world-moments-fixture" data-persona-id={moments.roleId}>
-          <MomentsPanel
-            key={`${moments.roleId}-${scenario}`}
-            onClose={() => undefined}
-            previewData={projectPreview(moments, scenario)}
-            appearance="alice-feed"
-            hideHeader
-            showSocialActions
-            compactClosedComposer
-          enableImagePreview
-          previewChrome="minimal"
-            onMomentSelect={setSelected}
-          />
-        </div>
+        <MomentsPanel
+          onClose={() => undefined}
+          previewData={moments}
+          appearance="alice-feed"
+          hideHeader
+          showSocialActions
+          compactClosedComposer
+          onMomentSelect={setSelected}
+        />
       )}
     </div>
   )

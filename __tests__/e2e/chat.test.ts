@@ -5249,33 +5249,13 @@ test.describe('My Agent UI', () => {
         await switcher.getByRole('tab', { name: '多条评论', exact: true }).click()
         await expect(fixture.getByTestId('moment-comment')).toHaveCount(3)
         await expect(fixture.getByTestId('moment-like-button')).toHaveAttribute('aria-label', '赞')
-        await expect(fixture.getByTestId('moment-life-slice-button')).toHaveCount(1)
+        await expect(fixture.getByTestId('moment-life-slice-button')).toHaveCount(0)
         const overflow = await fixture.evaluate(element => element.scrollWidth > element.clientWidth)
         expect(overflow).toBe(false)
         await page.screenshot({ path: `var/verification/moments-scenarios-${theme}-${width}.png` })
       })
     }
   }
-
-  test('Playground 朋友圈进入生活切片并返回', async ({ page }) => {
-    await page.goto('/')
-    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
-    await page.getByTestId('playground-nav').getByRole('button', { name: '人物世界', exact: true }).click()
-
-    const candidate = page.getByTestId('world-life-slice-candidate')
-    const fixture = candidate.getByTestId('world-moments-fixture')
-    await expect(candidate).toBeVisible()
-    await expect(fixture.getByTestId('moment-life-slice-button').first()).toBeVisible()
-    await fixture.getByTestId('moment-life-slice-button').first().click()
-    const detail = candidate.getByTestId('world-life-slice-detail')
-    await expect(detail).toBeVisible()
-    await expect(detail).toContainText('生活切片')
-    await expect(detail).toContainText('这件事留下的生活线索')
-    await expect(detail).toContainText('乌龙茶')
-    await detail.getByRole('button', { name: '回到朋友圈', exact: true }).click()
-    await expect(candidate.getByTestId('world-moments-fixture')).toBeVisible()
-    await expect(candidate.getByTestId('world-life-slice-detail')).toHaveCount(0)
-  })
 
   test('Playground 朋友圈两图三图九宫格占位稳定', async ({ page }) => {
     await page.goto('/')
