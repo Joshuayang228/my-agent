@@ -57,9 +57,9 @@ export function SettingsLayout({ activeSection, onSelect, onClose, children, pre
     </ActionButton>
   }
   return <div className="flex h-full min-h-0 w-full min-w-0 flex-1" data-settings-layout="shared">
-    <aside className="scrollbar-thin hidden w-[198px] shrink-0 flex-col overflow-y-auto border-r px-3 py-4 md:flex"
+    <aside className="scrollbar-thin hidden w-[198px] shrink-0 flex-col overflow-y-auto border-r px-3 py-5 md:flex"
       style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} data-testid="settings-nav">
-      <div className="mb-5 px-2">
+      <div className="mb-4">
         {onClose ? <ActionButton onClick={onClose} title="返回聊天" data-testid="settings-back" variant="plain" className="min-h-8 w-full justify-start gap-1.5 rounded-lg px-2.5 py-2 text-left text-[12px]"><ArrowLeft size={15} strokeWidth={1.75} />返回</ActionButton> : null}
         {showNavigationTitle && <h2 className="mt-2 text-[13px] font-semibold">设置</h2>}
       </div>

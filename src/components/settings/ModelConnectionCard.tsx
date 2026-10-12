@@ -60,7 +60,7 @@ export function ModelConnectionCard({ id, name, sourceLabel, providerLabel, cust
           </div>)}
         </div>
         <div className="mt-3 flex min-w-0 items-center gap-2">
-          <TextField aria-label={`手动添加模型 ${name}`} value={draft} disabled={busy} onChange={(event: ChangeEvent<HTMLInputElement>) => onDraftChange(event.target.value)} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); onSubmitModel() } }} placeholder="填写模型 ID" className="theme-input h-8 min-w-0 flex-1 rounded-[var(--radius-sm)] border px-2.5 text-[10px]" />
+          <TextField aria-label={`手动添加模型 ${name}`} value={draft} disabled={busy} onChange={(event: ChangeEvent<HTMLInputElement>) => onDraftChange(event.target.value)} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); onSubmitModel() } }} placeholder="填写模型 ID" className="theme-input h-8 min-w-0 flex-1 rounded-[var(--radius-sm)] px-2.5 text-[10px]" />
           <IconButton size={32} label="手动添加模型" disabled={busy || !draft.trim() || duplicate} onClick={onSubmitModel} className="border disabled:opacity-40" style={{ borderColor: 'var(--border-color)' }}><Plus size={14} /></IconButton>
         </div>
         {fetchState === 'success' && fetchedModels.length > 0 && <div className="mt-3 space-y-2" data-testid={`${testIdPrefix}-fetched-models-${id}`}><div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>获取到的模型 · 点击加入清单</div><div className="flex flex-wrap gap-1.5">{fetchedModels.map(modelId => {

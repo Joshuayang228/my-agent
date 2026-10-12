@@ -291,59 +291,59 @@ export function CastPanel({
                   >
                     {initialOf(line.otherName)}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        {line.otherName}
-                      </span>
-                      <span
-                        className="rounded-full px-2 py-0.5 text-[10px]"
-                        style={{
-                          background: 'var(--bg-secondary)',
-                          color: 'var(--text-secondary)',
-                        }}
-                      >
-                        {relationLabel(line.relationType)}
-                      </span>
-                      <span
-                        className="rounded-full px-2 py-0.5 text-[10px]"
-                        data-testid={`world-cast-presence-${line.otherId}`}
-                        style={{
-                          background: "var(--bg-secondary)",
-                          color: availabilityToneColor(availability.tone),
-                        }}
-                      >
-                        {availability.label}
-                      </span>
-                      {brief?.canBeProtagonist ? (
-                        <span className="text-[10px]" style={{ color: 'var(--companion-accent-warm)' }}>
-                          可任主角
+                  <div className="grid min-w-0 flex-1 gap-x-4 gap-y-3 md:grid-cols-[minmax(0,1fr)_auto]">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                          {line.otherName}
                         </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-1 text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                      {line.text}
-                    </p>
-                    <p className="mt-1 text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                      {availability.detail}
-                    </p>
-                    {recent ? (
-                      <ActionButton
-                        onClick={() => onOpenSession?.(recent.sessionId)}
-                        size="sm"
-                        className="mt-1.5 border-0 px-0 text-left text-[11px]"
-                        style={{ color: 'var(--text-muted)' }}
-                        title="打开最近召唤会话"
-                      >
-                        最近互动 · {formatRelative(recent.updatedAt)}
-                        {recent.title ? ` · ${recent.title}` : ''}
-                      </ActionButton>
-                    ) : (
-                      <div className="mt-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                        尚未召唤开聊
+                        <span
+                          className="rounded-full px-2 py-0.5 text-[10px]"
+                          style={{
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--text-secondary)',
+                          }}
+                        >
+                          {relationLabel(line.relationType)}
+                        </span>
+                        {brief?.canBeProtagonist ? (
+                          <span className="text-[10px]" style={{ color: 'var(--companion-accent-warm)' }}>
+                            可任主角
+                          </span>
+                        ) : null}
                       </div>
-                    )}
-                    <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                      <p className="mt-1 text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                        {line.text}
+                      </p>
+                      <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        <span
+                          className="rounded-full px-2 py-0.5"
+                          data-testid={`world-cast-presence-${line.otherId}`}
+                          style={{
+                            background: 'var(--bg-secondary)',
+                            color: availabilityToneColor(availability.tone),
+                          }}
+                        >
+                          {availability.label}
+                        </span>
+                        <span className="min-w-0">{availability.detail}</span>
+                        {recent ? (
+                          <ActionButton
+                            onClick={() => onOpenSession?.(recent.sessionId)}
+                            size="sm"
+                            className="min-w-0 border-0 px-0 text-left text-[11px]"
+                            style={{ color: 'var(--text-muted)' }}
+                            title="打开最近召唤会话"
+                          >
+                            最近互动 · {formatRelative(recent.updatedAt)}
+                            {recent.title ? ` · ${recent.title}` : ''}
+                          </ActionButton>
+                        ) : (
+                          <span>尚未召唤开聊</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 md:self-end">
                       <ActionButton onClick={() => void summon(line.otherId)}>
                         查看摘要
                       </ActionButton>
