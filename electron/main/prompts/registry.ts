@@ -14,6 +14,7 @@ import type {
   PromptAsset,
   PromptAssetKey,
   PromptAssetMode,
+  PromptBehaviorMetadata,
   PromptAssetTrace,
   PromptSlot,
 } from '../../../src/shared/types'
@@ -46,6 +47,7 @@ type PromptAssetInput = {
   mode?: PromptAssetMode
   locale?: string
   slots?: PromptSlot[]
+  behavior?: PromptBehaviorMetadata
   preview?: string
   content?: string
   template?: string
@@ -100,6 +102,7 @@ function normalizeAsset(input: PromptAssetInput): PromptAsset & { content?: stri
       },
     },
     slots: input.slots ?? [],
+    ...(input.behavior ? { behavior: input.behavior } : {}),
     dynamic: mode === 'dynamic',
   }
 }
@@ -394,6 +397,16 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     sourcePath: 'electron/main/companion/growth/reflection-service.ts',
     preview: '输出结构化反思结果；不复用主对话 System Prompt。',
     slots: [{ name: 'reflectionInput', source: 'recent interaction', lifecycle: '每次反思' }],
+    behavior: {
+      behaviorKey: 'companion-reflection',
+      trigger: '伙伴后台反思周期触发，且存在可供判断的近期互动。',
+      characterInputs: ['protected.md', 'mutable.default.md', 'voice.md'],
+      runtimeInputs: ['recent interaction', 'current mutable state'],
+      outputContract: '结构化反思结果；仅允许声明可验证的状态变化候选。',
+      validation: 'parseReflectionJson',
+      fallback: '解析失败或模型失败时记录本次失败，不修改 MUTABLE。',
+      sideEffects: ['通过 mutable-store 校验后更新角色可成长状态', '记录反思运行结果'],
+    },
   }),
   dynamicAsset({
     id: PROMPT_KEYS.companionCatchup,
@@ -405,6 +418,16 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     sourcePath: 'electron/main/companion/life/catchup.ts',
     preview: '输出暂停期间的生活摘要，不改写主会话 Prompt。',
     slots: [{ name: 'catchupWindow', source: 'companion lifecycle', lifecycle: '恢复时' }],
+    behavior: {
+      behaviorKey: 'companion-catchup',
+      trigger: '角色恢复或切换后存在暂停时间区间。',
+      characterInputs: ['protected.md', 'profile.json', 'world.default.json', 'voice.md'],
+      runtimeInputs: ['paused interval', 'current world state', 'current time'],
+      outputContract: '短文本生活补叙；只描述允许从时间区间和世界状态推导的内容。',
+      validation: 'normalizeCatchupSummaryText',
+      fallback: '模型失败或文本无法归一化时跳过补叙，不写入虚构事件。',
+      sideEffects: ['写入角色恢复阶段的生活摘要'],
+    },
   }),
   dynamicAsset({
     id: PROMPT_KEYS.companionMomentPolish,
@@ -416,6 +439,16 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     sourcePath: 'electron/main/companion/life/moment-polish.ts',
     preview: '只润色已有事件，不新增未发生的事实。',
     slots: [{ name: 'momentEvent', source: 'published life event', lifecycle: '每次发布' }],
+    behavior: {
+      behaviorKey: 'companion-moment-polish',
+      trigger: '生活事件已发布，且需要生成面向用户的 Moment 文案。',
+      characterInputs: ['protected.md', 'voice.md', 'mutable.default.md'],
+      runtimeInputs: ['published event', 'activity', 'mood', 'location', 'outfit', 'book'],
+      outputContract: '简短自然的 Moment 文案；不得新增事件、人物、地点或物品事实。',
+      validation: 'validatePolishedMomentText',
+      fallback: '校验失败时保留规则生成的原始文案，不写入模型结果。',
+      sideEffects: ['写入已发布 Moment 的展示文案'],
+    },
   }),
   dynamicAsset({
     id: PROMPT_KEYS.companionDayScript,
@@ -427,6 +460,16 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     sourcePath: 'electron/main/companion/life/script-generator.ts',
     preview: '输出结构化日程载荷，后续仍需规则校验。',
     slots: [{ name: 'dayContext', source: 'role pack and world state', lifecycle: '每日生成' }],
+    behavior: {
+      behaviorKey: 'companion-day-script',
+      trigger: '日程生成周期触发，且存在可用角色与世界输入。',
+      characterInputs: ['protected.md', 'profile.json', 'world.default.json', 'voice.md'],
+      runtimeInputs: ['date', 'weather', 'mood', 'energy', 'social need', 'bookshelf', 'wardrobe', 'roster', 'budget'],
+      outputContract: '结构化日程数组；每项必须通过时间、地点、消费、状态变化和 Moment 字段校验。',
+      validation: 'parseDayScriptPayload',
+      fallback: '解析或规则校验失败时不写入日程，保留已有世界状态。',
+      sideEffects: ['写入计划事件', '按校验结果派生 Moment 或生图任务'],
+    },
   }),
   dynamicAsset({
     id: PROMPT_KEYS.evalJudge,
@@ -478,6 +521,10 @@ const ROLE_PROMPT_FILES = [
   { suffix: 'scenes/display.md', label: '展示场景' },
   { suffix: 'scenes/interact.md', label: '互动场景' },
   { suffix: 'scenes/execute.md', label: '执行场景' },
+  { suffix: 'behaviors/moment-polish.md', label: 'Moment 行为补充' },
+  { suffix: 'behaviors/day-script.md', label: '日程行为补充' },
+  { suffix: 'behaviors/catchup.md', label: '补叙行为补充' },
+  { suffix: 'behaviors/reflection.md', label: '反思行为补充' },
 ] as const
 
 let roleAssetsCache: Array<PromptAsset & { content: string }> | undefined
@@ -532,7 +579,7 @@ export function getPromptAssets(): Array<PromptAsset & { content?: string }> {
  */
 export function getPromptAssetTraces(keys?: readonly string[]): PromptAssetTrace[] {
   if (keys) return resolvePromptAssetTraces(keys).assets
-  return getPromptAssets().map(({ key, purpose, role, source, version, fingerprint, fingerprintKind, locale, mode, slots }) => ({
+  return getPromptAssets().map(({ key, purpose, role, source, version, fingerprint, fingerprintKind, locale, mode, slots, behavior }) => ({
     key,
     purpose,
     role,
@@ -543,6 +590,7 @@ export function getPromptAssetTraces(keys?: readonly string[]): PromptAssetTrace
     locale,
     mode,
     slots,
+    ...(behavior ? { behavior } : {}),
   }))
 }
 

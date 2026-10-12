@@ -1,5 +1,7 @@
 # 项目进度
 
+伙伴行为 Prompt 抽象层（2026-10-12）：在现有 L1–L4 与 Role Pack 之外，为日程剧本、朋友圈润色、生活补叙和人格反思登记触发条件、人物输入、运行时输入、输出协议、校验、回退和副作用；预留 Role Pack `behaviors/` 覆盖文件，不复制完整行为 Prompt。施工合同见 `docs/requirements/debug-prompt-layered-assets-v1.md`。
+
 Debug 导航工作域分组（2026-10-12）：按 Alice 参考将 Debug 入口分为「内核 / 伙伴 / 质量」，提示词管理器归入内核；不改变各分区入口、IPC 或真实数据链路。
 
 Debug Prompt 管理器前端收口（2026-10-12）：按 Alice 的信息组织方式增加生产证据页头、只读状态、资产摘要、分类计数和分栏详情；继续复用真实 Prompt / 伙伴资产目录、动态插槽、实验副本和调用追踪，不改变 IPC、Prompt 正文或 Playground 边界。施工合同见 `docs/requirements/debug-prompt-layered-assets-v1.md`。

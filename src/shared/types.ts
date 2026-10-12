@@ -98,6 +98,27 @@ export interface PromptSlot {
   lifecycle: string
 }
 
+/**
+ * 行为 Prompt 的生产契约；正文仍由真实组装器提供。
+ *
+ * 背景：伙伴的日程、Moment、补叙和反思会持续增加，只有名称和插槽不足以说明
+ * 一个行为怎样触发、消费哪类人物输入、如何校验以及失败后会不会产生副作用。
+ * 设计意图：把行为身份与主对话 L1–L4 分开，复用同一份行为元数据供 Debug、调用追踪
+ * 和未来 Role Pack 覆盖使用，放弃在每个人物目录复制一套完整行为 Prompt。
+ * 关键约束：这些字段必须能从生产调用、解析器、校验器和副作用代码追溯；不能在
+ * Playground 手写“看起来完整”的行为目录，也不能把运行时正文存进内置资产。
+ */
+export interface PromptBehaviorMetadata {
+  behaviorKey: string
+  trigger: string
+  characterInputs: string[]
+  runtimeInputs: string[]
+  outputContract: string
+  validation: string
+  fallback: string
+  sideEffects: string[]
+}
+
 export interface PromptLocaleAsset {
   /** 静态正文或动态模板骨架；最终插槽值仍以真实调用记录为准。 */
   template?: string
@@ -128,6 +149,7 @@ export interface PromptAsset {
   locale: string
   locales: Record<string, PromptLocaleAsset>
   slots: PromptSlot[]
+  behavior?: PromptBehaviorMetadata
   /** 生产资产生命周期；旧 Prompt 资产缺省视为 active。 */
   status?: AgentAssetStatus
   /** 派生资产指向其稳定来源 key；只用于追踪，不复制来源正文。 */
@@ -152,6 +174,7 @@ export type PromptAssetTrace = Pick<
   | 'locale'
   | 'mode'
   | 'slots'
+  | 'behavior'
 >
 
 export type ModelContextAsset = PromptAsset

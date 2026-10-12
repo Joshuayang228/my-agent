@@ -73,6 +73,27 @@ describe('debug prompt assets', () => {
     expect(system?.slots.some((slot) => slot.name === 'persona')).toBe(true)
   })
 
+  it('伙伴行为资产登记真实触发、输入、校验和回退契约', () => {
+    const assets = getPromptAssets()
+    const behaviors = [
+      [PROMPT_KEYS.companionMomentPolish, 'companion-moment-polish', 'validatePolishedMomentText'],
+      [PROMPT_KEYS.companionDayScript, 'companion-day-script', 'parseDayScriptPayload'],
+      [PROMPT_KEYS.companionCatchup, 'companion-catchup', 'normalizeCatchupSummaryText'],
+      [PROMPT_KEYS.companionReflection, 'companion-reflection', 'parseReflectionJson'],
+    ] as const
+
+    for (const [key, behaviorKey, validation] of behaviors) {
+      const behavior = assets.find((asset) => asset.key === key)?.behavior
+      expect(behavior).toMatchObject({ behaviorKey, validation })
+      expect(behavior?.trigger).toBeTruthy()
+      expect(behavior?.characterInputs.length).toBeGreaterThan(0)
+      expect(behavior?.runtimeInputs.length).toBeGreaterThan(0)
+      expect(behavior?.outputContract).toBeTruthy()
+      expect(behavior?.fallback).toBeTruthy()
+      expect(behavior?.sideEffects.length).toBeGreaterThan(0)
+    }
+  })
+
   it('核心类型化 key 全部存在，静态正文与动态模板生成稳定指纹', () => {
     const assets = getPromptAssets()
     const keys = new Set(assets.map((asset) => asset.key))
