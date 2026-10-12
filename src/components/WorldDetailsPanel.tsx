@@ -23,6 +23,9 @@ type WorldDetailTab = 'culture' | 'home' | 'footprints'
 
 interface WorldDetailsPanelProps {
   tab: WorldDetailTab
+  /** 人物世界统一工具栏触发真实生活面重新读取；独立面板不传入。 */
+  refreshToken?: number
+  onLoadingChange?: (loading: boolean) => void
   onGenerateAssetImage?: (asset: WorldAssetRecord) => void
   previewAssets?: WorldAssetRecord[]
   previewMoments?: Array<{ text: string; publishedAt: number; meta: Record<string, unknown> }>
@@ -63,6 +66,8 @@ const ADD_LABEL: Record<WorldDetailTab, string> = {
  */
 export function WorldDetailsPanel({
   tab,
+  refreshToken,
+  onLoadingChange,
   onGenerateAssetImage,
   previewAssets,
   previewMoments,
@@ -85,6 +90,8 @@ export function WorldDetailsPanel({
   const [error, setError] = useState('')
   const [writeError, setWriteError] = useState('')
   const [loading, setLoading] = useState(!isPreview)
+  const lastRefreshToken = useRef(refreshToken)
+  useEffect(() => { onLoadingChange?.(loading) }, [loading, onLoadingChange])
   const [busy, setBusy] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState<WorldAssetDraft>(emptyWorldAssetDraft(ADD_KIND[tab]))
@@ -153,6 +160,12 @@ export function WorldDetailsPanel({
   }, [isPreview, previewAssets, previewMoments, previewPresence, previewRoleName])
 
   useEffect(() => { void load(); return () => { requestId.current++ } }, [load])
+
+  useEffect(() => {
+    if (refreshToken === undefined || refreshToken === lastRefreshToken.current) return
+    lastRefreshToken.current = refreshToken
+    void load()
+  }, [load, refreshToken])
 
   useEffect(() => {
     if (isPreview || !window.electronAPI?.companion.onRoleChanged) return
@@ -297,9 +310,9 @@ export function WorldDetailsPanel({
     {error && <div className={`${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`}>{readFailure}</div>}
     {pendingDelete && <WorldAssetDeleteConfirm asset={pendingDelete} busy={busy} onCancel={() => { if (!busy) setPendingDelete(null) }} onConfirm={() => { const target = pendingDelete; if (target) void removeAsset(target) }} />}
     <WorldWriteError message={writeError}>{!isPreview && <ActionButton onClick={() => void load()} disabled={loading}>重新读取</ActionButton>}</WorldWriteError>
-    {tab === 'culture' && <WorldCultureContent assets={state.assets} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} presentation={isPreview ? 'default' : 'culture-gallery'} toolbarAction={!isPreview && <IconButton label="刷新生活面" size={32} onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>} />}
-    {tab === 'home' && <WorldHomeContent assets={state.assets} roleId={state.roleId} presence={state.presence} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} presentation={isPreview ? 'default' : 'home-gallery'} toolbarAction={!isPreview && <IconButton label="刷新生活面" size={32} onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>} />}
-    {tab === 'footprints' && <WorldFootprintsContent assets={state.assets} roleId={state.roleId} moments={state.moments} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} variant={isPreview ? 'alice' : 'travel-gallery'} toolbarAction={!isPreview && <IconButton label="刷新生活面" size={32} onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>} />}
+    {tab === 'culture' && <WorldCultureContent assets={state.assets} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} presentation={isPreview ? 'default' : 'culture-gallery'} toolbarAction={!isPreview && refreshToken === undefined && <IconButton label="刷新生活面" size={32} onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>} />}
+    {tab === 'home' && <WorldHomeContent assets={state.assets} roleId={state.roleId} presence={state.presence} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} presentation={isPreview ? 'default' : 'home-gallery'} toolbarAction={!isPreview && refreshToken === undefined && <IconButton label="刷新生活面" size={32} onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>} />}
+    {tab === 'footprints' && <WorldFootprintsContent assets={state.assets} roleId={state.roleId} moments={state.moments} renderEditor={renderEditor} readImage={isPreview ? undefined : readImage} revealImage={isPreview ? undefined : revealImage} showPreviewImages={isPreview} variant={isPreview ? 'alice' : 'travel-gallery'} toolbarAction={!isPreview && refreshToken === undefined && <IconButton label="刷新生活面" size={32} onClick={() => void load()} disabled={loading}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>} />}
     {canEdit && showAddControls && (
       <div className="shrink-0 px-4 pb-4">
       {tab === 'home' && !isPreview && !adding && <div className="flex flex-wrap gap-2">

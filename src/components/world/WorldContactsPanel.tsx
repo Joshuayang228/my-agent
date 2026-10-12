@@ -20,9 +20,11 @@ interface ContactsState { data: CompanionContactsData; assets: LivingAsset[]; mo
  * 设计意图：独立只读加载层复用关系画廊，关联目标从同角色响应解析，底层召唤能力保留。
  * 关键约束：切换角色立即清空旧资料，过期响应不得落入新角色；失败可重试，不把 fixture 作为 fallback。
  */
-export function WorldContactsPanel() {
+export function WorldContactsPanel({ refreshToken, onLoadingChange }: { refreshToken?: number; onLoadingChange?: (loading: boolean) => void }) {
   const [state, setState] = useState<ContactsState | null>(null)
   const [loading, setLoading] = useState(false)
+  const lastRefreshToken = useRef(refreshToken)
+  useEffect(() => { onLoadingChange?.(loading) }, [loading, onLoadingChange])
   const [error, setError] = useState('')
   const generation = useRef(0)
   const load = useCallback(async () => {
@@ -44,6 +46,11 @@ export function WorldContactsPanel() {
     const off = window.electronAPI?.companion.onRoleChanged?.(() => { generation.current++; setState(null); void load() })
     return () => { generation.current++; off?.() }
   }, [load])
+  useEffect(() => {
+    if (refreshToken === undefined || refreshToken === lastRefreshToken.current) return
+    lastRefreshToken.current = refreshToken
+    void load()
+  }, [load, refreshToken])
   const readImage = useCallback((assetId: string, imageId: string) => window.electronAPI!.companion.readAssetImage(assetId, imageId), [])
   const revealImage = useCallback((assetId: string, imageId: string) => window.electronAPI!.companion.revealAssetImage(assetId, imageId), [])
   const data = state?.data
@@ -52,7 +59,7 @@ export function WorldContactsPanel() {
     {error && <div className={`${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`}><ErrorState title="通讯录未能读取" description={error} action={<ActionButton disabled={loading} onClick={() => void load()}>重新读取通讯录</ActionButton>} /></div>}
     {!data && loading && <p role="status" className="p-4 text-xs" style={{ color: 'var(--text-muted)' }}>正在读取通讯录…</p>}
     {data && <WorldContactsGallery key={data.roleId} ownerRoleId={data.roleId} people={data.people}
-      toolbarAction={<IconButton label="刷新通讯录" disabled={loading} onClick={() => void load()}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton>}
+      toolbarAction={refreshToken === undefined ? <IconButton label="刷新通讯录" disabled={loading} onClick={() => void load()}><RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /></IconButton> : undefined}
       relations={data.relations.map(item => ({ ...item, relationLabel: relationLabels[item.relationType] ?? item.relationType, interactionSummary: item.summary }))}
       experiences={data.experiences.map(item => ({ ...item, date: new Date(item.occurredAt).toLocaleDateString('zh-CN') }))}
       resolveReference={reference => {

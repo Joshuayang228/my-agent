@@ -2,10 +2,10 @@
  * 人物世界口袋 — 对齐 Alice `/moments`：一页多 tab，侧栏只留一个入口。
  */
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { TabStrip } from '../foundation/TabStrip'
 import { IconButton } from '../foundation/IconButton'
-import { Newspaper, Shirt, Users, BookOpen, Home, MapPin, X } from 'lucide-react'
+import { Newspaper, Shirt, Users, BookOpen, Home, MapPin, RefreshCw, X } from 'lucide-react'
 import { MomentsPanel, type MomentItem, type MomentsPreviewData } from '../MomentsPanel'
 import { AssetsPanel } from '../AssetsPanel'
 import { WorldContactsPanel } from '../world/WorldContactsPanel'
@@ -101,6 +101,23 @@ export function WorldHub({
   const canEditAssets = allowAssetEditing
   const visibleTabs = (tabs ?? WORLD_TABS).filter((item) => !hiddenTabs.includes(item.id))
   const labelFor = (item: WorldTabDefinition) => tabLabels?.[item.id] ?? item.label
+  const [worldRefreshToken, setWorldRefreshToken] = useState(0)
+  const [worldRefreshing, setWorldRefreshing] = useState(false)
+
+  const refreshLabel = ({ moments: '刷新朋友圈', assets: '刷新衣柜', wardrobe: '刷新衣柜', culture: '刷新文化角', home: '刷新家居', cast: '刷新通讯录', footprints: '刷新足迹' } as const)[tab]
+  const defaultToolbarAction = !toolbarAction ? (
+    <IconButton
+      label={refreshLabel}
+      disabled={worldRefreshing}
+      aria-busy={worldRefreshing}
+      onClick={() => {
+        setWorldRefreshing(true)
+        setWorldRefreshToken(current => current + 1)
+      }}
+    >
+      <RefreshCw size={14} className={worldRefreshing ? 'animate-spin motion-reduce:animate-none' : undefined} />
+    </IconButton>
+  ) : null
   return (
     <div className="world-shape-scope flex h-full flex-col" style={layoutProfileStyle('world')} data-testid="world-hub">
       {!hideHeader && (profile ? <WorldProfileHeader profile={profile} onClose={onClose} /> : <div
@@ -132,19 +149,19 @@ export function WorldHub({
             testId: 'world-tab-' + item.id,
           }))}
           activeId={tab}
-          onSelect={id => { const target = visibleTabs.find(item => item.id === id); if (target) onTabChange(target.id) }}
+          onSelect={id => { const target = visibleTabs.find(item => item.id === id); if (target) { setWorldRefreshing(false); onTabChange(target.id) } }}
         />
-        {toolbarAction && <div className="shrink-0">{toolbarAction}</div>}
+        {(toolbarAction ?? defaultToolbarAction) && <div className="shrink-0">{toolbarAction ?? defaultToolbarAction}</div>}
       </div>
 
       <div id={`world-panel-${tab}`} role="tabpanel" className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
         {previewPanels?.[tab] ?? (
           <>
-            {tab === 'moments' && <MomentsPanel onClose={onClose} previewData={momentsPreview} appearance={momentsAppearance ?? 'alice-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} compactClosedComposer={compactClosedComposer} enableImagePreview={enableImagePreview} previewChrome="minimal" />}
-            {tab === 'wardrobe' && <AssetsPanel allowAssetEditing={canEditAssets} onGenerateAssetImage={canEditAssets ? onGenerateAssetImage : undefined} showAssetTabs={false} showAddControls={false} presentation="wardrobe-gallery" />}
-            {(tab === 'culture' || tab === 'home' || tab === 'footprints') && <WorldDetailsPanel tab={tab} allowAssetEditing={canEditAssets} onGenerateAssetImage={canEditAssets ? onGenerateAssetImage : undefined} showDetailTitle={false} showAddControls={false} />}
+            {tab === 'moments' && <MomentsPanel onClose={onClose} onLoadingChange={setWorldRefreshing} refreshToken={momentsPreview ? undefined : worldRefreshToken} previewData={momentsPreview} appearance={momentsAppearance ?? 'alice-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} compactClosedComposer={compactClosedComposer} enableImagePreview={enableImagePreview} previewChrome="minimal" />}
+            {tab === 'wardrobe' && <AssetsPanel refreshToken={worldRefreshToken} onLoadingChange={setWorldRefreshing} allowAssetEditing={canEditAssets} onGenerateAssetImage={canEditAssets ? onGenerateAssetImage : undefined} showAssetTabs={false} showAddControls={false} presentation="wardrobe-gallery" />}
+            {(tab === 'culture' || tab === 'home' || tab === 'footprints') && <WorldDetailsPanel refreshToken={worldRefreshToken} onLoadingChange={setWorldRefreshing} tab={tab} allowAssetEditing={canEditAssets} onGenerateAssetImage={canEditAssets ? onGenerateAssetImage : undefined} showDetailTitle={false} showAddControls={false} />}
             {tab === 'cast' && (
-              <WorldContactsPanel />
+              <WorldContactsPanel refreshToken={worldRefreshToken} onLoadingChange={setWorldRefreshing} />
             )}
           </>
         )}

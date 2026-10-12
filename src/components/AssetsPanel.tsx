@@ -40,6 +40,9 @@ export interface PreviewWardrobeOutfit {
 }
 
 interface AssetsPanelProps {
+  /** 人物世界统一工具栏触发真实衣柜重新读取；独立资产页不传入。 */
+  refreshToken?: number
+  onLoadingChange?: (loading: boolean) => void
   onGenerateAssetImage?: (asset: WorldAssetRecord) => void
   previewAssets?: WorldAssetRecord[]
   previewEditable?: boolean
@@ -90,7 +93,7 @@ function AssetImage({ asset }: { asset: WorldAssetRecord }) {
   return <GeneratedImageResult image={image} readImage={(imageId) => window.electronAPI.companion.readAssetImage(asset.id, imageId)} scope={`asset:${asset.id}`} />
 }
 
-export function AssetsPanel({ previewAssets, previewEditable = false, allowAssetEditing = true, previewWearingId, showAssetTabs = true, showAddControls = true, presentation = 'default', previewOutfitImage, previewOutfits = [], previewTabIcons, toolbarAction, onGenerateAssetImage }: AssetsPanelProps) {
+export function AssetsPanel({ refreshToken, onLoadingChange, previewAssets, previewEditable = false, allowAssetEditing = true, previewWearingId, showAssetTabs = true, showAddControls = true, presentation = 'default', previewOutfitImage, previewOutfits = [], previewTabIcons, toolbarAction, onGenerateAssetImage }: AssetsPanelProps) {
   const isPreview = previewAssets !== undefined
   const readLabel = presentation === 'wardrobe-gallery' ? '衣柜' : '物什'
   const canEdit = allowAssetEditing && (!isPreview || previewEditable) && !(isPreview && presentation === 'wardrobe-gallery')
@@ -106,6 +109,8 @@ export function AssetsPanel({ previewAssets, previewEditable = false, allowAsset
   const [changingId, setChangingId] = useState<string | null>(null)
   const changeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [loading, setLoading] = useState(!isPreview)
+  const lastRefreshToken = useRef(refreshToken)
+  useEffect(() => { onLoadingChange?.(loading) }, [loading, onLoadingChange])
   const [readError, setReadError] = useState('')
   const requestId = useRef(0)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -201,6 +206,12 @@ export function AssetsPanel({ previewAssets, previewEditable = false, allowAsset
   }, [isPreview, previewAssets, previewWearingId, presentation, readLabel])
 
   useEffect(() => { void load() }, [load])
+
+  useEffect(() => {
+    if (refreshToken === undefined || refreshToken === lastRefreshToken.current) return
+    lastRefreshToken.current = refreshToken
+    void load()
+  }, [load, refreshToken])
 
   useEffect(() => {
     if (isPreview || !window.electronAPI?.companion.onRoleChanged) return

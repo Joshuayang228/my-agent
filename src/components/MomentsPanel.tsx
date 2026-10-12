@@ -46,6 +46,9 @@ export interface MomentsPreviewData {
 
 interface MomentsPanelProps {
   onClose: () => void
+  /** 组合页工具栏触发正式朋友圈重新读取；Playground 仍由本地状态切换驱动。 */
+  refreshToken?: number
+  onLoadingChange?: (loading: boolean) => void
   /** Playground / 测试专用只读朋友圈样张；存在时跳过 companion IPC。 */
   previewData?: MomentsPreviewData
   /** Playground 可显式切换为更接近微信朋友圈的社交流展示。 */
@@ -99,7 +102,7 @@ function typeColor(type: unknown): string {
 }
 
 
-export function MomentsPanel({ onClose, previewData, appearance = 'default', hideHeader = false, showSocialActions = false, compactClosedComposer = false, onMomentSelect, enableImagePreview = false, previewChrome }: MomentsPanelProps) {
+export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewData, appearance = 'default', hideHeader = false, showSocialActions = false, compactClosedComposer = false, onMomentSelect, enableImagePreview = false, previewChrome }: MomentsPanelProps) {
   const minimalPreviewChrome = previewChrome === 'minimal'
   const isSocialFeed = appearance === 'social-feed' || appearance === 'alice-feed'
   const isAliceFeed = appearance === 'alice-feed'
@@ -117,6 +120,8 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
   const pendingLikeLock = useRef(new Set<string>())
   const pendingCommentLock = useRef(new Set<string>())
   const [loading, setLoading] = useState(false)
+  const lastRefreshToken = useRef(refreshToken)
+  useEffect(() => { onLoadingChange?.(loading) }, [loading, onLoadingChange])
   const [loadError, setLoadError] = useState('')
   const readEpoch = useRef(0)
   const roleEpoch = useRef(0)
@@ -177,6 +182,12 @@ export function MomentsPanel({ onClose, previewData, appearance = 'default', hid
     void load()
     return () => { readEpoch.current++; roleEpoch.current++ }
   }, [load])
+
+  useEffect(() => {
+    if (refreshToken === undefined || refreshToken === lastRefreshToken.current) return
+    lastRefreshToken.current = refreshToken
+    void load()
+  }, [load, refreshToken])
 
   useEffect(() => {
     if (previewData || !window.electronAPI?.companion.onRoleChanged) return
