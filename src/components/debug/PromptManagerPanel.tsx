@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { Check, Copy, RotateCcw, Save, Search } from 'lucide-react'
+import { Check, Copy, RotateCcw, Save, Search, ShieldCheck } from 'lucide-react'
 import type { AgentAssetUsageEvidence, DebugPromptSnapshot, ModelContextAsset, PromptAsset, PromptAssetTrace } from '../../shared/types'
 
 export type DebugPromptInfo = DebugPromptSnapshot
@@ -143,6 +143,11 @@ export function PromptManagerPanel({ info, onRefresh, onOpenUsage }: { info: Deb
       .some((value) => value.toLocaleLowerCase().includes(normalizedQuery))
   }), [assets, category, normalizedQuery])
 
+  const categoryCounts = useMemo(() => assets.reduce<Record<string, number>>((counts, asset) => {
+    counts[asset.category] = (counts[asset.category] ?? 0) + 1
+    return counts
+  }, {}), [assets])
+
   const showRuntime = (category === 'all' || category === 'system') && (
     !normalizedQuery || ['当前装配预览', 'system prompt', info?.persona.name ?? '']
       .some((value) => value.toLocaleLowerCase().includes(normalizedQuery))
@@ -246,17 +251,31 @@ export function PromptManagerPanel({ info, onRefresh, onOpenUsage }: { info: Deb
 
   return (
     <div className="space-y-4" data-testid="prompt-manager-panel">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="flex items-baseline gap-2">
-            <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>提示词管理器</h2>
-            <span className="font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{assets.length + 1} 项</span>
+      <header className="flex flex-wrap items-start justify-between gap-4 rounded-[var(--radius-card)] border px-4 py-4" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+        <div className="min-w-0">
+          <div className="mb-1 flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
+            <ShieldCheck size={13} style={{ color: 'var(--success)' }} />
+            <span>Debug · 生产证据</span>
           </div>
-          <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            统一查看生产 Prompt、伙伴与人格资产、记忆策略、权限与沙箱策略、模型 Provider、Tool schema、Skill、Eval Case / Grader、Eval Judge 与当前 MCP 工具。资产保持只读；只有显式载入的文本实验副本和 L3 自定义补充可以编辑。
+          <div className="flex flex-wrap items-baseline gap-2">
+            <h2 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>提示词管理器</h2>
+            <span className="rounded-full border px-2 py-0.5 font-mono text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>{assets.length + 1} 项资产</span>
+          </div>
+          <p className="mt-2 max-w-3xl text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>
+            从真实生产来源查看 Prompt、伙伴资产、工具和运行上下文。目录只读；实验副本与 L3 补充指令分别保留在隔离或设置边界内。
           </p>
         </div>
+        <div className="flex shrink-0 items-center gap-2 rounded-full border px-2.5 py-1.5 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--success)' }} />
+          <span>生产目录只读</span>
+        </div>
       </header>
+
+      <div className="grid gap-2 sm:grid-cols-3" aria-label="Prompt 资产摘要">
+        <SummaryCard label="生产资产" value={String(assets.length)} hint="来自注册表与真实 loader" />
+        <SummaryCard label="当前装配" value={info ? `~${info.estimatedTokens}` : '—'} hint={info ? `${info.persona.name} · tokens` : '等待运行状态'} />
+        <SummaryCard label="资产分类" value={String(Object.keys(categoryCounts).length)} hint="按模型可见来源分组" />
+      </div>
 
       <section className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }} data-testid="prompt-l3-editor">
         <div className="flex flex-wrap items-start justify-between gap-2">
@@ -292,9 +311,11 @@ export function PromptManagerPanel({ info, onRefresh, onOpenUsage }: { info: Deb
       <div className="flex flex-wrap gap-1.5" aria-label="生产资产分类">
         {CATEGORY_OPTIONS.map((option) => {
           const active = category === option.id
+          const count = option.id === 'all' ? assets.length : categoryCounts[option.id] ?? 0
           return (
-            <button key={option.id} type="button" onClick={() => setCategory(option.id)} className="rounded-lg border px-3 py-1.5 text-xs transition" style={{ borderColor: active ? 'var(--accent)' : 'var(--border-color)', background: active ? 'var(--accent-subtle)' : 'transparent', color: active ? 'var(--accent-fg)' : 'var(--text-muted)' }}>
+            <button key={option.id} type="button" onClick={() => setCategory(option.id)} className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition" style={{ borderColor: active ? 'var(--accent)' : 'var(--border-color)', background: active ? 'var(--accent-subtle)' : 'transparent', color: active ? 'var(--accent-fg)' : 'var(--text-muted)' }}>
               {option.label}
+              <span className="font-mono text-[9px] opacity-70">{count}</span>
             </button>
           )
         })}
@@ -305,15 +326,15 @@ export function PromptManagerPanel({ info, onRefresh, onOpenUsage }: { info: Deb
         <input value={query} onChange={(event) => setQuery(event.target.value)} className="theme-input h-10 w-full rounded-lg border pl-9 pr-3 text-xs outline-none" placeholder="搜索名称、用途或源文件…" />
       </label>
 
-      <div className="grid min-h-[430px] gap-3 lg:grid-cols-[minmax(220px,0.42fr)_minmax(0,1fr)]">
-        <div className="scrollbar-hover min-h-0 overflow-y-auto rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
+      <div className="grid min-h-[430px] gap-3 lg:grid-cols-[minmax(240px,0.38fr)_minmax(0,1fr)]">
+        <div className="scrollbar-hover min-h-0 overflow-y-auto rounded-[var(--radius-card)] border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
           {showRuntime && <PromptListButton active={selectedId === RUNTIME_ID} name="当前装配预览" meta={info ? `${info.persona.name} · ~${info.estimatedTokens} tokens` : '加载中'} onClick={() => setSelectedId(RUNTIME_ID)} />}
           {filteredAssets.map((asset) => <PromptListButton key={asset.key} active={selectedId === asset.key} name={asset.name} meta={`${asset.key} · ${CATEGORY_LABELS[asset.category]} · ${OWNERSHIP_LABELS[asset.ownership]} · ${asset.mode === 'dynamic' ? '动态' : '静态'} · v${asset.version}`} onClick={() => setSelectedId(asset.key)} />)}
           {!loading && !showRuntime && filteredAssets.length === 0 && <p className="px-3 py-5 text-center text-xs" style={{ color: 'var(--text-muted)' }}>没有匹配项</p>}
           {loading && <p className="px-3 py-5 text-center text-xs" style={{ color: 'var(--text-muted)' }}>读取中…</p>}
         </div>
 
-        <div className="min-w-0 rounded-lg border p-4" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+        <div className="min-w-0 rounded-[var(--radius-card)] border p-4" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
           {selectedId === RUNTIME_ID
             ? <RuntimePromptDetail info={info} layer={layer} setLayer={setLayer} onLoadExperiment={loadExperiment} onCopy={(value) => void copyText(value, 'System Prompt ')} />
             : selectedAsset
@@ -347,6 +368,18 @@ export function PromptManagerPanel({ info, onRefresh, onOpenUsage }: { info: Deb
 
 function PromptListButton({ active, name, meta, onClick }: { active: boolean; name: string; meta: string; onClick: () => void }) {
   return <button type="button" onClick={onClick} className="block w-full border-b px-3 py-2.5 text-left transition last:border-b-0" style={{ borderColor: 'var(--border-subtle)', background: active ? 'var(--sidebar-active)' : 'transparent' }}><span className="block text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{name}</span><span className="mt-0.5 block text-[10px]" style={{ color: 'var(--text-muted)' }}>{meta}</span></button>
+}
+
+function SummaryCard({ label, value, hint }: { label: string; value: string; hint: string }) {
+  return (
+    <div className="rounded-[var(--radius-card)] border px-3 py-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+      <div className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>{label}</div>
+      <div className="mt-1 flex items-baseline gap-2">
+        <span className="font-mono text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{value}</span>
+        <span className="truncate text-[10px]" style={{ color: 'var(--text-muted)' }}>{hint}</span>
+      </div>
+    </div>
+  )
 }
 
 function RuntimePromptDetail({ info, layer, setLayer, onLoadExperiment, onCopy }: { info: DebugPromptInfo | null; layer: PromptLayer; setLayer: (layer: PromptLayer) => void; onLoadExperiment: (label: string, content: string | undefined) => void; onCopy: (value: string) => void }) {
