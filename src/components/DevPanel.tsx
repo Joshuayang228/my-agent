@@ -123,6 +123,12 @@ export const DEBUG_TABS: { id: DebugTab; label: string; icon: ReactNode }[] = [
   { id: 'system', label: '系统', icon: <BarChart3 size={12} /> },
 ]
 
+const DEBUG_TAB_GROUPS: Array<{ label: string; tabs: DebugTab[] }> = [
+  { label: '内核', tabs: ['overview', 'prompt', 'request-runtime', 'system'] },
+  { label: '伙伴', tabs: ['world'] },
+  { label: '质量', tabs: ['eval'] },
+]
+
 interface DevPanelProps {
   onClose: () => void
   eventLog: Array<{ time: number; type: string; detail: string }>
@@ -254,30 +260,37 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
             <RotateCcw size={12} />
           </button>
         </div>
-        {DEBUG_TABS.map(t => {
-          const active = debugTab === t.id
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setDebugTab(t.id)}
-              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition"
-              style={{
-                color: active ? 'var(--text-primary)' : 'var(--text-muted)',
-                background: active ? 'var(--sidebar-active)' : 'transparent',
-              }}
-              onMouseEnter={(e) => {
-                if (!active) e.currentTarget.style.background = 'var(--sidebar-hover)'
-              }}
-              onMouseLeave={(e) => {
-                if (!active) e.currentTarget.style.background = 'transparent'
-              }}
-            >
-              <span style={{ color: active ? 'var(--success)' : 'var(--text-muted)' }}>{t.icon}</span>
-              {t.label}
-            </button>
-          )
-        })}
+        {DEBUG_TAB_GROUPS.map((group) => (
+          <div key={group.label} className="mt-3 first:mt-0">
+            <div className="mb-1 px-2.5 text-[10px] font-medium uppercase tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>{group.label}</div>
+            {group.tabs.map((tabId) => {
+              const t = DEBUG_TABS.find((item) => item.id === tabId)
+              if (!t) return null
+              const active = debugTab === t.id
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setDebugTab(t.id)}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition"
+                  style={{
+                    color: active ? 'var(--text-primary)' : 'var(--text-muted)',
+                    background: active ? 'var(--sidebar-active)' : 'transparent',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) e.currentTarget.style.background = 'var(--sidebar-hover)'
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  <span style={{ color: active ? 'var(--success)' : 'var(--text-muted)' }}>{t.icon}</span>
+                  {t.label}
+                </button>
+              )
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-5">
