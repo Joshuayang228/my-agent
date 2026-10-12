@@ -117,7 +117,11 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 ## 边界
 
 **做**：Role Pack / 单活跃门控 / MUTABLE 版本与自动反思 / LifeEngine（暂停·剧本·tick）/ Catch-up≤7×24h / Moments·Assets 截面 / 名册浅注入 / 冷启动在场 / 召唤子会话与忙闲婉拒。  
-**不做**：会话中途换角；非活跃后台养成；多宇宙并行；自动生成朋友圈内容（视觉资产生图已接入，但不自动替动态生成内容）。
+**不做**：会话中途换角；非活跃后台养成；多宇宙并行；自动生成朋友圈内容（视觉资产生图已接入，但不自动替动态生成内容）。人物行为 Skill 的发现、激活和权限治理属于能力扩展边界，不由 Role Pack 静默切换。
+
+## 已落地能力：语义 Prompt 编译与人物行为扩展
+
+主对话由 `electron/main/prompts/compiler.ts` 按平台规则、人物定义、人物成长、行为定义、情境上下文和输出契约编译。Moment 润色、日程剧本、生活补叙和人格反思通过同一行为编译入口共享人物基线，各自保留事实输入、解析校验、回退和副作用。Role Pack 可增加 `behaviors/<behavior>.md` 行为增量；增量只能影响指定行为的表达与选择，不能覆盖稳定身份、平台规则或输出校验。后续扩展团队成员时只需新增 Role Pack 资产和明确的行为入口，不复制完整主 Prompt。
 
 ## 短 Why
 
@@ -130,7 +134,7 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 | UI · 生活面 | 侧栏「人物世界」（`WorldHub`：朋友圈 / 衣柜 / 文化角 / 家居 / 通讯录 / 足迹）；角色架归设置 |
 | UI · 工具面 | 设置「伙伴与相处」：回答方式、生活提醒、主动问候、角色架；旧 MUTABLE / 反思表单不再保留为设置入口 |
 | IPC | `companion:*`（list / switch / moments / toggle-moment-like / add-moment-comment / assets / roster / catchup-status(+presence) / start-summon / reflection…） |
-| Prompt | `prompt-builder` + `orchestrator.loadRoleAssembleInput`（管线见下方「Prompt 组装」） |
+| Prompt | `prompts/compiler.ts` + `orchestrator.loadRoleAssembleInput`（主对话与后台行为统一语义编译） |
 | 资产 | `electron/main/companion/universes/default/` |
 | 契约 | `docs/requirements/companion-*.md`；前端方案 [frontend-companion-surfaces.md](../requirements/frontend-companion-surfaces.md) |
 
@@ -165,7 +169,7 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 - `electron/main/companion/life/engine.ts`
 - `electron/main/companion/cast/roster.ts`
 - `electron/main/companion/growth/reflection-service.ts`
-- `electron/main/agent/prompt-builder.ts`
+- `electron/main/prompts/compiler.ts`
 - `electron/main/agent/runtime.ts`（组装 + 召回 + 反思调度）
 - `docs/requirements/companion-tech-spec.md`
 
@@ -259,16 +263,16 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 |------|------|----------|------|
 | 生活资产与朋友圈备份往返 | 已落地 | 设置 → 数据与隐私 | `data:export` / `data:import` 覆盖生活资产、播种标记、已发布事件、动态快照及用户赞评；按稳定身份合并，同一事务失败回滚。旧备份缺字段仍可导入。不包含未来事件、日剧本、当前世界态、MCP、权限、凭据和项目路径；恢复历史不重放奖励 |
 | Universe + Role Pack（三槽：lin / zhou / xia） | 已落地 | 角色架 / 设置 | `universes/default/` · 文案见 [companion-cast-content](../requirements/companion-cast-content.md) |
-| 主角候选结构化档案（Role Profile） | 已落地 | Debug「世界态」/ Prompt L1 | 当前仅小航 `profile.json`；行为边界与五维表达基线已定，人物故事字段待定 |
+| 主角候选结构化档案（Role Profile） | 已落地 | Debug「世界态」/ Prompt 人物定义 | 当前仅小航 `profile.json`；行为边界与五维表达基线已定，人物故事字段待定 |
 | 伙伴生产资产目录 | 已落地 | Debug「提示词管理器 → 伙伴世界」 | `companion/asset-registry.ts`；manifest / profile / 默认世界 / 场景 / 衣柜书架 starter 使用稳定 key、版本、指纹、来源和依赖 |
 | 生活资产来源边界 | 已落地 | 衣柜 / 文化角 / 家居 / 足迹 | 衣柜、书架、文化默认样张不再播种；住所 / 地点 / 物件沿用真实 world.default，用户 CRUD 与已发布事件授予保留。已有数据库不批量清空 |
 | 日剧本 LLM（当日）+ 哈希回退 | 已落地 | （隐式）Life ticker | `resolveDayScript` · aux-config |
-| 世界状态薄片（居所/时区/情境/心情/精力/当前位置与活动） | 已落地 | （隐式）Assemble L3 | schema v1 `world_json` · `## World slice`；无 Role Pack 世界默认时 home / currentLocation 为「未设定」 |
+| 世界状态薄片（居所/时区/情境/心情/精力/当前位置与活动） | 已落地 | （隐式）语义编译 · 情境上下文 | schema v1 `world_json` · `## World slice`；无 Role Pack 世界默认时 home / currentLocation 为「未设定」 |
 | 主角候选默认世界结构 | 已落地 | Debug「世界态」/ 世界初始化 | 当前仅小航 `world.default.json`；城市、住所、地点、物品与作息均待定 |
 | 主角候选行为人格验收 | 已落地 | Playground「人格验收」/ `npm run eval:persona` | 七个中性故事格 + B02–B07 DeepSeek `pass^3`；自动门禁已过，人工语气审美待本地验收 |
 | 伙伴 Prompt 自有框架文案统一中文 | 已落地 | 人物档案 / 世界 / 关系阶段 / 里程碑 / 召唤任务工动态注入；Role Pack 原文继续作为单一事实源 |
 | Catch-up 概况 LLM + 模板回退 | 已落地 | （隐式）换角追赶 | `resolveCatchupSummary` · catchup.ts |
-| 聊圈薄一致性（近 Moment 锚点） | 已落地 | （隐式）Assemble L3 | `moment-consistency` · `## Recent moments` |
+| 聊圈薄一致性（近 Moment 锚点） | 已落地 | （隐式）语义编译 · 情境上下文 | `moment-consistency` · `## Recent moments` |
 | Moment LLM 润色（绑 event） | 已落地 | （隐式）tick 发布 | `moment-polish` · 规则回退 |
 | 单活跃 + 流式换角门控 | 已落地 | **角色架（主）** / 设置（次） | `orchestrator` · `streaming-gate` · `requestSwitch` |
 | 会话绑定 `role_id` | 已落地 | （隐式）Chat 顶栏徽标 | `runtime` · `assertSessionRole` |
@@ -317,7 +321,7 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
   → resolveToneControl(stance, mode, text)      # M27-G3 紧/软/中性 + aside 策略
   → resolveRelationshipStageForRole(...)        # M28-G1/G2 阶段 + 交心/干活 lean
   → memory.buildUserProfile()                   # 结构化画像
-  → safeVectorSearch(lastUser)                  # 向量语义召回 → L3 memories
+  → safeVectorSearch(lastUser)                  # 向量语义召回 → 情境上下文 memories
   → yield memory_citations                      # M29-G1 UI 芯片
   → buildSystemPrompt({
         L1: PROTECTED + MUTABLE

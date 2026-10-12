@@ -7,7 +7,7 @@ import { BrowserWindow, dialog, ipcMain } from 'electron'
 import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { ToolRegistry } from '../tools/registry'
-import { buildSystemPrompt, rolePackToPromptParts, type PromptContext } from '../agent/prompt-builder'
+import { characterDefinitionFromRolePack, compileMainChatPrompt } from '../prompts/compiler'
 import { getPromptAssets, getRuntimePromptAssetTraces } from '../prompts/registry'
 import { loadActiveAssembleInput } from '../companion/orchestrator'
 import { getAllSettings } from '../storage/settings-store'
@@ -64,43 +64,41 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     try {
       const settings = await getAllSettings()
       const { pack, mutableBody } = await loadActiveAssembleInput()
-      const persona = rolePackToPromptParts(pack, mutableBody)
+      const character = characterDefinitionFromRolePack(pack, mutableBody)
       const toolNames = toolRegistry.getAll().map(t => t.name)
 
-      let userProfile: PromptContext['userProfile'] | undefined
+      let userProfile: { identity: string; workflow: string; voice: string } | undefined
       try {
         const profile = await buildUserProfile()
         if (profile) userProfile = profile
       } catch { /* memory not available */ }
 
       const customPrompt = settings.systemPrompt || undefined
-      const prompt = buildSystemPrompt({
-        persona,
-        toolNames,
-        userProfile,
-        sessionInfo: customPrompt,
+      const compiled = compileMainChatPrompt({
+        character,
+        platform: { toolNames },
+        behavior: {
+          key: 'main-chat',
+          purpose: '在当前人物与会话情境中回应用户并完成请求。',
+          customInstructions: customPrompt,
+        },
+        situation: { userProfile },
+        currentDate: new Date().toLocaleDateString('sv-SE'),
       })
 
       return {
-        full: prompt,
-        layers: {
-          l1: `[PROTECTED]\n${persona.protected}\n[/PROTECTED]${persona.profile ? `\n\n## 人物档案\n${persona.profile}` : ''}${persona.worldProfile ? `\n\n## 默认生活世界\n${persona.worldProfile}` : ''}\n\n[MUTABLE]\n${persona.mutable}\n[/MUTABLE]`,
-          l2: `Tools: ${toolNames.join(', ')}`,
-          l3: userProfile
-            ? `Identity: ${userProfile.identity.slice(0, 100) || '(none)'}\nWorkflow: ${userProfile.workflow.slice(0, 100) || '(none)'}\nVoice: ${userProfile.voice.slice(0, 100) || '(none)'}${customPrompt ? `\nCustom: ${customPrompt.slice(0, 100)}` : ''}`
-            : customPrompt ? `Custom: ${customPrompt.slice(0, 200)}` : '(empty)',
-          l4: `Time: ${new Date().toLocaleString('zh-CN')}`,
-        },
-        persona: { id: persona.id, name: persona.name },
-        charCount: prompt.length,
-        estimatedTokens: Math.ceil(prompt.length / 3.5),
-        assets: getRuntimePromptAssetTraces(persona.id),
+        full: compiled.text,
+        modules: compiled.modules,
+        persona: { id: character.id, name: character.name },
+        charCount: compiled.text.length,
+        estimatedTokens: Math.ceil(compiled.text.length / 3.5),
+        assets: getRuntimePromptAssetTraces(character.id),
       }
     } catch (err) {
       log.error('Failed to build debug prompt', { error: String(err) })
       return {
         full: '(error)',
-        layers: { l1: '', l2: '', l3: '', l4: '' },
+        modules: [],
         persona: { id: '', name: '' },
         charCount: 0,
         estimatedTokens: 0,

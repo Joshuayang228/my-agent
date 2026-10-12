@@ -11,7 +11,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 
 ## 边界
 
-**做**：Agent Loop（流式事件 / 工具超时 / 重试）、会话 Runtime 中心化、System Prompt 四层组装、上下文压缩、后台任务队列、子 Agent、MCP Client、多 Provider LLM、模型连接 / 用途路由 / 主进程模型发现、Headless、Observer/DevPanel。MCP 工具许可由配置、活动连接、Registry 注册和执行前调用共同约束；模型连接密钥由主进程解密装配，Renderer 与备份只接触脱敏结构。
+**做**：Agent Loop（流式事件 / 工具超时 / 重试）、会话 Runtime 中心化、Prompt 语义编译、上下文压缩、后台任务队列、子 Agent、MCP Client、多 Provider LLM、模型连接 / 用途路由 / 主进程模型发现、Headless、Observer/DevPanel。MCP 工具许可由配置、活动连接、Registry 注册和执行前调用共同约束；模型连接密钥由主进程解密装配，Renderer 与备份只接触脱敏结构。
 **不做**：伙伴生活世界语义及生活资产角色绑定（见 [companion](companion.md)）；结构化记忆库本身（见 memory）；权限策略语义（见 permission）。生活资产创建的角色校验属于 Companion IPC，不进入 Agent Loop、ToolRegistry 或模型输入。
 
 ## 短 Why
@@ -23,7 +23,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 | 类型 | 位置 |
 |------|------|
 | 运行时 | `agent/runtime.ts` · `agent/loop.ts` |
-| Prompt | `agent/prompt-builder.ts` · `prompts/registry.ts` · `prompts/texts.ts` |
+| Prompt | `prompts/compiler.ts` · `prompts/registry.ts` · `prompts/texts.ts` |
 | 压缩 | `agent/context-manager.ts` |
 | 队列 | `services/task-queue.ts` |
 | UI 调试 | DevPanel（Debug）· PlaygroundPage |
@@ -39,7 +39,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 - `chat:send` 只传本轮用户消息；历史由 session-store 加载
 - 工具执行前走权限引擎（见 permission）
 - 权限决策与工具执行的运行证据统一使用 `ToolContext.sessionId` 记录会话归属；Loop 不从不存在的顶层会话字段读取，避免 workspace/runtime 证据丢失或串会话。
-- 主 Assemble 只在 `prompt-builder`；辅助 Prompt 不得再走一套平行组装器冒充主路径
+- 主 Assemble 只在 `prompts/compiler.ts`；辅助行为必须通过同一行为编译入口选择模块，不得复制完整主 Prompt
 - Loop 的 `done` 必须保留真实 `TerminalReason` 且只发一次；只有 `completed` 才保存完整 assistant、启动后台善后和成功通知
 - Runtime 从配置初始化到生成器退出持续持有会话锁，abort 只发信号；session:delete 必须等待 chat IPC 的完整收尾，再删除记录，不能以 done 或 abort 回执判断存储已无写入。
 
@@ -47,7 +47,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 
 - `electron/main/agent/runtime.ts`
 - `electron/main/agent/loop.ts`
-- `electron/main/agent/prompt-builder.ts`
+- `electron/main/prompts/compiler.ts`
 - `electron/main/agent/context-manager.ts`
 - `electron/main/services/task-queue.ts`
 - `docs/architecture.md`
@@ -184,7 +184,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 | 生活资产备份 IPC | 已落地 | `ipc/data-export.ts` · `data:export` / `data:import`；覆盖 `companion_assets` 与 `companion_asset_seeds`，按 id / 播种键合并，会话与资产同一事务失败回滚。旧备份缺字段仍可导入。整份预检共用记忆存储正文断言，非法记忆不得在会话 / 资产写入后才被拒绝；通过后记忆继续走 `memoryStore.addMemory`，不进入 Loop；合法输入的跨存储原子导入仍未实现 |
 | 会话 Runtime 中心化（chat:send 只传本轮） | 已落地 | `agent/runtime.ts` · `ipc/chat` |
 | TerminalReason 终态传递与 Runtime 去重 | 已落地 | `agent/loop.ts` · `agent/runtime.ts` · `runtime-terminal-reason.test.ts` |
-| System Prompt 四层组装 | 已落地 | `prompt-builder.ts` |
+| Prompt 语义编译 | 已落地 | `prompt-builder.ts` |
 | 自有模型提示词统一中文 + 自动语言门禁 | 已落地 | 主 Assemble / 压缩 / 画像 / 子 Agent / 内置工具 schema；`prompt-language.test.ts` |
 | 上下文压缩 L1–L4 | 已落地 | `context-manager` |
 | 任务队列（后处理 / 反思等） | 已落地 | `services/task-queue` 等 |

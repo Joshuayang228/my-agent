@@ -13,7 +13,7 @@ function promptKey<T extends string>(value: T): T & PromptAssetKey {
 }
 
 export const PROMPT_KEYS = {
-  systemLayers: promptKey('system-layers'),
+  promptCompiler: promptKey('prompt-compiler'),
   loopDefault: promptKey('loop-default'),
   playgroundDefault: promptKey('playground-default'),
   playgroundDraft: promptKey('playground-draft'),
@@ -54,6 +54,28 @@ export type RolePromptSuffix =
   | 'scenes/display.md'
   | 'scenes/interact.md'
   | 'scenes/execute.md'
+  | `behaviors/${'moment-polish' | 'day-script' | 'catchup' | 'reflection'}.md`
+
+export const ROLE_BEHAVIOR_PROMPT_SUFFIX = {
+  momentPolish: 'behaviors/moment-polish.md',
+  dayScript: 'behaviors/day-script.md',
+  catchup: 'behaviors/catchup.md',
+  reflection: 'behaviors/reflection.md',
+} as const satisfies Record<string, RolePromptSuffix>
+
+export const ROLE_BEHAVIOR_IDS = {
+  momentPolish: 'moment-polish',
+  dayScript: 'day-script',
+  catchup: 'catchup',
+  reflection: 'reflection',
+} as const
+
+export const PROMPT_BEHAVIOR_IDS = {
+  momentPolish: PROMPT_KEYS.companionMomentPolish,
+  dayScript: PROMPT_KEYS.companionDayScript,
+  catchup: PROMPT_KEYS.companionCatchup,
+  reflection: PROMPT_KEYS.companionReflection,
+} as const
 
 export function rolePromptAssetKey(roleId: string, suffix: RolePromptSuffix): PromptAssetKey {
   return promptKey(`role-${roleId}-${suffix.replace(/[^a-z0-9]+/gi, '-')}`)

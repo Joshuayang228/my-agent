@@ -229,7 +229,11 @@ export interface AgentAssetUsageQueryResult {
 
 export interface DebugPromptSnapshot {
   full: string
-  layers: { l1: string; l2: string; l3: string; l4: string }
+  modules: Array<{
+    id: string
+    stability: 'stable' | 'session' | 'runtime'
+    content: string
+  }>
   persona: { id: string; name: string }
   charCount: number
   estimatedTokens: number

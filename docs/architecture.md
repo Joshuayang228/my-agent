@@ -192,20 +192,22 @@ Renderer 只能通过 preload 白名单访问主进程。敏感配置、文件�
 
 - 自动提取用户画像（异步 LLM 分析，每 5 分钟 + 3 条消息触发）
 - 对话后只索引用户消息；assistant 原文不写入向量库，避免自我强化循环
-- 语义检索注入 System Prompt L3 层（top-5，score > 0.6）
+- 语义检索注入 Prompt 情境上下文模块（top-5，score > 0.6）
 
-### 5. Prompt 分层系统
+### 5. Prompt 语义编译
 
-4 层 System Prompt 注入，稳定内容在前（利于 KV Cache）：
+Prompt 不再以 L1–L4 作为领域模型。主对话和伙伴后台行为由 `electron/main/prompts/compiler.ts` 按行为选择六类语义模块：平台规则、人物定义、人物成长、行为定义、情境上下文和输出契约。Role Pack 提供稳定人物与可选 `behaviors/<behavior>.md` 增量；行为服务提供事实、校验、回退和副作用。上下文压缩仍可使用 L1–L4 作为算法名称，但不得把它们重新当作人物 Prompt 层。
 
-| 层级 | 内容 | 稳定性 |
-|------|------|--------|
-| L1 人格定义 | [PROTECTED] 核心身份 + [MUTABLE] 行为规范 | 最稳定 |
-| L2 能力边界 | 工具列表、行为规范、aside 格式 | 稳定 |
-| L3 上下文 | 用户画像、记忆、向量检索结果、自定义指令 | 每次重建 |
-| L4 动态 | 当前时间 | 每次变化 |
+| 语义模块 | 内容 | 主要来源 |
+|------|------|------|
+| 平台规则 | 工具、权限、不受信任数据和注入防护 | 主进程生产规则 |
+| 人物定义 | 身份、价值观、档案、世界默认值、表达基线 | Role Pack |
+| 人物成长 | 可持久化的长期表达变化 | MUTABLE store / 反思校验 |
+| 行为定义 | 任务目的、边界、行为增量与 Skill 摘要 | 行为入口 / Role Pack |
+| 情境上下文 | 用户、记忆、世界、关系和事件切片 | 运行时数据源 |
+| 输出契约 | 格式、校验、回退和副作用边界 | 真实行为服务 |
 
-Prompt 资产由 `electron/main/prompts/registry.ts` 统一登记；核心 key 由 `prompts/keys.ts` 类型化，Role Pack key 只能通过工厂生成。每项记录用途、角色、真实来源、人工版本、自动内容/结构指纹、当前 locale、静态 / 动态模式和动态插槽。每次 `streamChat` / `chatComplete` 必须声明非空资产 key，或显式给出 `promptlessReason`；统一入口把解析结果写入 `requestExtra.promptAssets`，未知 key 进入 `unknownPromptAssetKeys`。静态正文集中在 `prompts/texts.ts`，Eval Judge 模板集中在 `prompts/eval-judge.ts`，生产调用与目录共同引用。Debug 通过 `debug:model-context-assets` 在 IPC 高层聚合 Prompt、伙伴与人格资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Case / Grader、Eval Judge 和当前 MCP 工具；含用户状态的最终动态内容仍只认真实调用的 System / Messages / Tools。Playground 只接收显式实验副本，不维护第二份生产目录。
+Prompt 资产仍由 `electron/main/prompts/registry.ts` 统一登记；每次模型调用必须声明非空资产 key。Debug 只读取生产资产和真实调用证据，Playground 只接收显式实验副本。
 
 未来扩展英文时，在同一资产 key 下维护独立语言版本，由运行时按 locale 单选；当前不实现英文或韩文版本。
 
@@ -225,7 +227,7 @@ Skill 启停是用户运行态，不修改内置文件或资产指纹。`skills:
 | 产品模块 | [`modules/companion.md`](./modules/companion.md) |
 | 能力表 | [`modules/companion.md`](./modules/companion.md)「已落地能力」；运行时见 [`modules/agent-runtime.md`](./modules/agent-runtime.md) |
 
-目录落点：`electron/main/companion/`（identity / growth / life / cast / orchestrator）；`prompt-builder` 为组装器。  
+目录落点：`electron/main/companion/`（identity / growth / life / cast / orchestrator）；`prompts/compiler.ts` 为 Prompt 编译器。
 已落地：**W0–W6** + 三槽 + 召唤子会话/忙闲 + 自动反思 MUTABLE。后续：Pack 内容打磨、methodology M21–M31 深啃。
 
 生活面数据沿 `Role Pack world.default → life/assets → companion_assets → companion IPC → WorldDetailsPanel / AssetsPanel → WorldLivingContent / WorldAssetEditor` 流转。正式通讯录沿 `get-roster` + 既有 `check-cast-availability` 进入 `CastPanel` 列表预检，开聊仍走 `start-summon` 二次判定；Playground 通讯录保持静态夹具。住所和常去地点分别为 `home` / `footprint`，不另建第二份世界内容库；运行后以角色隔离的资产为准。没有 `world.default.json` 时，`world_json` 的 home / currentLocation 与 Catch-up 居所回退为「未设定」，不得按角色写入公寓、合租或日常住处。用户新增走 `companion:create-asset`，由 `createAsset` 校验白名单 kind 后写入活跃主角；更新 / 删除沿既有 IPC。`companion_asset_seeds(role_id, kind)` 与新资产同事务写入，事务内无异步等待或落盘；默认世界未设定不生成，已有记录优先，删空后不重新初始化。动态足迹继续来自 Moments，不把资产创建日期当成访问日期。正式朋友圈沿 `companion:get-moments` 读取动态；用户赞 / 评论写入独立表 `companion_moment_user_interactions`，不改 `moment.text` 或卡司 `meta.interactions`。Playground 朋友圈仍用本地夹具。

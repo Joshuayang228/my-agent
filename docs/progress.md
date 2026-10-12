@@ -1,5 +1,8 @@
 # 项目进度
 
+Prompt 语义编译框架（2026-10-13）：主对话与四类伙伴后台行为已从 L1–L4 迁移到 `prompts/compiler.ts` 的六类语义模块；Role Pack 支持行为增量，Debug 展示实际模块与资产追踪。全量 Unit 1330、类型、构建、资产与文档门禁通过。
+
+
 伙伴行为 Prompt 抽象层（2026-10-12）：在现有 L1–L4 与 Role Pack 之外，为日程剧本、朋友圈润色、生活补叙和人格反思登记触发条件、人物输入、运行时输入、输出协议、校验、回退和副作用；预留 Role Pack `behaviors/` 覆盖文件，不复制完整行为 Prompt。施工合同见 `docs/requirements/debug-prompt-layered-assets-v1.md`。
 
 Debug 导航工作域分组（2026-10-12）：按 Alice 参考将 Debug 入口分为「内核 / 伙伴 / 质量」，提示词管理器归入内核；不改变各分区入口、IPC 或真实数据链路。

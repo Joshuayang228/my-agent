@@ -92,12 +92,12 @@ describe('buildSystemPrompt', () => {
   it('L4 包含日期（仅日期，不含秒级时间）', () => {
     const prompt = buildSystemPrompt(makeCtx())
     expect(prompt).toContain('[动态上下文]')
-    expect(prompt).toContain("今天的日期：")
+    expect(prompt).toContain("当前日期：")
     // 不应包含秒级时间（会导致每次调用都破坏 KV Cache）
     expect(prompt).not.toContain('Current time:')
   })
 
-  it('层级顺序：PROTECTED → MUTABLE → Capabilities → Profile → Memory → Session → Dynamic', () => {
+  it('语义模块顺序：平台规则 → 人物定义 → 成长 → 行为 → 动态输出', () => {
     const prompt = buildSystemPrompt(makeCtx({
       persona: { ...minimalPersona, aside_style: 'test' },
       userProfile: { identity: 'dev', workflow: 'agile', voice: 'formal' },
@@ -106,13 +106,10 @@ describe('buildSystemPrompt', () => {
     }))
 
     const indices = [
+      prompt.indexOf('## 能力边界'),
       prompt.indexOf('[PROTECTED]'),
       prompt.indexOf('[MUTABLE]'),
-      prompt.indexOf('## 能力边界'),
-      prompt.indexOf('## 回复格式'),
-      prompt.indexOf('## 用户画像'),
-      prompt.indexOf('## 已记住的上下文'),
-      prompt.indexOf('## 会话上下文'),
+      prompt.indexOf('## 当前行为'),
       prompt.indexOf('[动态上下文]'),
     ]
 
@@ -124,7 +121,7 @@ describe('buildSystemPrompt', () => {
   it('G2 PROTECTED 区含防注入声明', () => {
     const prompt = buildSystemPrompt(makeCtx())
     // 防注入声明必须落在 PROTECTED 区块内（在 [/PROTECTED] 之前）
-    const declIdx = prompt.indexOf('以上身份与价值观是永久不变的')
+    const declIdx = prompt.indexOf('以上身份与价值观是稳定人物定义')
     const closeIdx = prompt.indexOf('[/PROTECTED]')
     expect(declIdx).toBeGreaterThan(-1)
     expect(declIdx).toBeLessThan(closeIdx)

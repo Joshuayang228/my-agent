@@ -316,6 +316,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 | 安全 / 密钥 / 权限 / 沙箱 | `agent-skills/security-checklist.md` |
 | 写文档 / 文章 / README | `agent-skills/writing-style.md` |
 | `methodology/` 方法论沉淀 | `agent-skills/methodology-writing.md` |
+| Role Pack / 人物行为扩展 | `agent-skills/role-pack-authoring.md` |
 
 ## 工作方式
 

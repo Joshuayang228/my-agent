@@ -9,9 +9,10 @@
 import type { LLMConfig } from '../../../../src/shared/types'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm/index'
-import { PROMPT_KEYS } from '../../prompts/keys'
+import { PROMPT_KEYS, PROMPT_BEHAVIOR_IDS, ROLE_BEHAVIOR_IDS, ROLE_BEHAVIOR_PROMPT_SUFFIX, rolePromptAssetKey } from '../../prompts/keys'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
+import { characterDefinitionFromRolePack, compileCompanionBehaviorPrompt } from '../../prompts/compiler'
 import {
   formatRoleProfileForPrompt,
   formatRoleWorldDefaultsForPrompt,
@@ -235,8 +236,18 @@ function buildLlmPrompt(input: {
   date: string
   voiceHint: string
   characterHint: string
+  character?: ReturnType<typeof characterDefinitionFromRolePack>
+  behaviorPrompt?: string
 }): string {
-  return `你是生活世界编剧。为数字伙伴「${input.roleName}」(id=${input.roleId}) 生成 ${input.date} 的一日剧本。
+  const prefix = input.character
+    ? compileCompanionBehaviorPrompt({
+      character: input.character,
+      behavior: { key: 'day-script', purpose: '生成符合人物与世界连续性的一日生活剧本。', characterSupplement: input.behaviorPrompt },
+      facts: `日期：${input.date}\n人物与默认世界参考：${input.characterHint}`,
+      output: { format: 'JSON', validation: `slots ${SLOT_COUNT_MIN}～${SLOT_COUNT_MAX} 条且可解析`, fallback: '由调用方回退到确定性剧本。' },
+    })
+    : `你是生活世界编剧。为数字伙伴「${input.roleName}」(id=${input.roleId}) 生成 ${input.date} 的一日剧本。`
+  return `${prefix}
 
 人设语气参考（勿写成对白，只影响活动气质）：
 ${input.voiceHint || '（无）'}
@@ -283,10 +294,12 @@ export async function generateDayScriptViaLlm(
           date,
           voiceHint,
           characterHint,
+          character: characterDefinitionFromRolePack(pack),
+          behaviorPrompt: pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.dayScript],
         }),
       }],
       caller: 'day-script',
-      promptAssetKeys: [PROMPT_KEYS.companionDayScript],
+      promptAssetKeys: [PROMPT_KEYS.companionDayScript, PROMPT_BEHAVIOR_IDS.dayScript, ...(pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.dayScript] ? [rolePromptAssetKey(pack.id, ROLE_BEHAVIOR_PROMPT_SUFFIX.dayScript)] : [])],
     })
     const parsed = parseDayScriptPayload(raw, date)
     if (!parsed) {

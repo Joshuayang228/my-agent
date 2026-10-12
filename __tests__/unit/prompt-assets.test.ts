@@ -6,7 +6,7 @@ import { EXTRACTION_PROMPT } from '../../electron/main/prompts/texts'
 import { EVAL_JUDGE_TEMPLATE } from '../../electron/main/prompts/eval-judge'
 
 const REQUIRED_KEYS = [
-  'system-layers',
+  'prompt-compiler',
   'loop-default',
   'playground-default',
   'l3-collapse',
@@ -33,7 +33,7 @@ describe('debug prompt assets', () => {
     const assets = getPromptAssets()
     expect(assets.length).toBeGreaterThanOrEqual(5)
     expect(assets.some((asset) => asset.key === 'loop-default' && asset.content?.includes('乐于助人的 AI 助手'))).toBe(true)
-    expect(assets.some((asset) => asset.key === 'system-layers' && asset.mode === 'dynamic')).toBe(true)
+    expect(assets.some((asset) => asset.key === 'prompt-compiler' && asset.mode === 'dynamic')).toBe(true)
     for (const asset of assets) {
       expect(asset.key).toBeTruthy()
       expect(asset.id).toBe(asset.key)
@@ -66,7 +66,7 @@ describe('debug prompt assets', () => {
   it('静态资产登记真实正文，动态资产可登记模板骨架或运行时插槽', () => {
     const assets = getPromptAssets()
     const loop = assets.find((asset) => asset.key === 'loop-default')
-    const system = assets.find((asset) => asset.key === 'system-layers')
+    const system = assets.find((asset) => asset.key === 'prompt-compiler')
     expect(loop?.locales['zh-CN'].template).toBe(loop?.content)
     expect(system?.locales['zh-CN'].template).toBeUndefined()
     expect(assets.find((asset) => asset.key === PROMPT_KEYS.evalJudge)?.locales['zh-CN'].template).toBe(EVAL_JUDGE_TEMPLATE)
@@ -126,11 +126,11 @@ describe('debug prompt assets', () => {
 
   it('当前 System 装配快照通过同一注册表返回来源与版本追踪', () => {
     const traces = getRuntimePromptAssetTraces('missing-role')
-    expect(traces.map((trace) => trace.key)).toEqual(['system-layers'])
+    expect(traces.map((trace) => trace.key)).toEqual(['prompt-compiler'])
     expect(traces[0]).toMatchObject({
-      purpose: '主对话 System 四层组装',
+      purpose: '主对话语义模块编译',
       role: 'system',
-      source: 'electron/main/agent/prompt-builder.ts',
+      source: 'electron/main/prompts/compiler.ts',
       locale: 'zh-CN',
       mode: 'dynamic',
     })

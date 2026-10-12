@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 人格反思服务（对照 Alice PersonaReflectionService + runPersonaReflection）
  *
  * 背景：低频把互动默契固化进 MUTABLE，不碰 PROTECTED。
@@ -8,7 +8,7 @@
 
 import type { LLMConfig } from '../../../../src/shared/types'
 import { chatComplete } from '../../llm/index'
-import { PROMPT_KEYS } from '../../prompts/keys'
+import { PROMPT_KEYS, ROLE_BEHAVIOR_IDS, ROLE_BEHAVIOR_PROMPT_SUFFIX, rolePromptAssetKey } from '../../prompts/keys'
 import { listFeedbackForRole } from '../../storage/memory-store'
 import {
   listRecentUserMessagesForRole,
@@ -16,6 +16,7 @@ import {
 import { createLogger } from '../../utils/logger'
 import { taskQueue } from '../../services/task-queue'
 import { loadRolePack } from '../identity/loader'
+import { characterDefinitionFromRolePack, compileCompanionBehaviorPrompt } from '../../prompts/compiler'
 import { recordAndBroadcastMilestone } from './milestones'
 import { getMutable, setMutable } from './mutable-store'
 import { MUTABLE_MAX_CHARS } from './mutable-validate'
@@ -40,6 +41,8 @@ function buildReflectionPrompt(input: {
   feedbackNotes: string[]
   /** M22-G4：Catch-up + 近 Moments 薄切片 */
   lifeSignals?: string
+  character?: ReturnType<typeof characterDefinitionFromRolePack>
+  behaviorPrompt?: string
 }): string {
   const msgs = input.recentUserMessages.length
     ? input.recentUserMessages.map((m, i) => `${i + 1}. ${m}`).join('\n')
@@ -49,7 +52,15 @@ function buildReflectionPrompt(input: {
     : '（无）'
   const life = input.lifeSignals?.trim() || '（无）'
 
-  return `你是人格成长系统的审慎编辑。角色「${input.roleName}」是用户的数字伙伴。
+  const prefix = input.character
+    ? compileCompanionBehaviorPrompt({
+      character: input.character,
+      behavior: { key: 'reflection', purpose: '审慎判断是否需要调整人物的可变成长状态。', characterSupplement: input.behaviorPrompt },
+      facts: `当前可变状态：${input.currentMutable}\n近况信号：${life}`,
+      output: { format: 'JSON', validation: 'newMutable 必须是短小行为默认值或 null', fallback: '保持当前状态。' },
+    })
+    : `你是人格成长系统的审慎编辑。角色「${input.roleName}」是用户的数字伙伴。`
+  return `${prefix}
 
 ## PROTECTED（不可改写，仅作防漂移锚点）
 ${input.protectedSummary}
@@ -143,6 +154,8 @@ async function runReflectionCore(
     recentUserMessages,
     feedbackNotes: feedbacks,
     lifeSignals,
+    character: characterDefinitionFromRolePack(pack, currentMutable),
+    behaviorPrompt: pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.reflection],
   })
 
   let parsed: { newMutable: string | null; summary: string }
@@ -153,7 +166,7 @@ async function runReflectionCore(
       temperature: 0.7,
       maxTokens: 1500,
       caller: 'persona-reflection',
-      promptAssetKeys: [PROMPT_KEYS.companionReflection],
+      promptAssetKeys: [PROMPT_KEYS.companionReflection, ...(pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.reflection] ? [rolePromptAssetKey(pack.id, ROLE_BEHAVIOR_PROMPT_SUFFIX.reflection)] : [])],
     })
     parsed = parseReflectionJson(raw)
   } catch (err) {

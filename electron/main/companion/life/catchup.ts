@@ -10,9 +10,10 @@ import type { LLMConfig } from '../../../../src/shared/types'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { chatComplete } from '../../llm/index'
-import { PROMPT_KEYS } from '../../prompts/keys'
+import { PROMPT_KEYS, ROLE_BEHAVIOR_IDS, ROLE_BEHAVIOR_PROMPT_SUFFIX, rolePromptAssetKey } from '../../prompts/keys'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
+import { characterDefinitionFromRolePack, compileCompanionBehaviorPrompt } from '../../prompts/compiler'
 import { eachLocalDateInclusive, toLocalDateString } from './dates'
 import { ensureDayScripts } from './engine'
 import { publishAndProjectRange } from './moments'
@@ -58,8 +59,18 @@ function buildCatchupLlmPrompt(input: {
   gapDays: number
   home: string
   voiceHint: string
+  character?: ReturnType<typeof characterDefinitionFromRolePack>
+  behaviorPrompt?: string
 }): string {
-  return `你是生活世界旁白编辑。角色「${input.roleName}」(id=${input.roleId}) 曾暂停一段时间，需要一条「期间概况」给对话系统用。
+  const prefix = input.character
+    ? compileCompanionBehaviorPrompt({
+      character: input.character,
+      behavior: { key: 'catchup', purpose: '为恢复会话的角色生成期间概况。', characterSupplement: input.behaviorPrompt },
+      facts: `暂停起：${input.from}\n概况区间：${input.from}～${input.gapEnd}\n近窗：${input.gapEnd}～${input.until}`,
+      output: { format: '一段中文概况', validation: `不超过 ${SUMMARY_MAX_CHARS} 字，不虚构具体行程`, fallback: '使用规则模板。' },
+    })
+    : `你是生活世界旁白编辑。角色「${input.roleName}」(id=${input.roleId}) 曾暂停一段时间，需要一条「期间概况」给对话系统用。`
+  return `${prefix}
 
 事实锚点（不得编造具体行程细节）：
 - 暂停起：${input.from}
@@ -130,10 +141,12 @@ export async function generateCatchupSummaryViaLlm(
           gapDays,
           home: world.home,
           voiceHint,
+          character: characterDefinitionFromRolePack(pack),
+          behaviorPrompt: pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.catchup],
         }),
       }],
       caller: 'catchup-summary',
-      promptAssetKeys: [PROMPT_KEYS.companionCatchup],
+      promptAssetKeys: [PROMPT_KEYS.companionCatchup, ...(pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.catchup] ? [rolePromptAssetKey(pack.id, ROLE_BEHAVIOR_PROMPT_SUFFIX.catchup)] : [])],
     })
     const normalized = normalizeCatchupSummaryText(raw)
     if (!normalized) {

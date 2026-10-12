@@ -176,6 +176,8 @@ export interface RolePack {
   voice?: string
   profile?: RoleProfile
   worldDefaults?: RoleWorldDefaults
+  /** 按行为提供的可选增量规则；不允许覆盖 platform / protected / output contract。 */
+  behaviorPrompts?: Record<string, string>
 }
 
 export interface UniverseRelations {

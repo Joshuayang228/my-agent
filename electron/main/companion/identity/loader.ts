@@ -205,6 +205,11 @@ export function loadRolePack(roleId: string, universeId: string = DEFAULT_UNIVER
   const mutableDefault = readText(`${base}/mutable.default.md`)
   const summaryRel = `${base}/summary.txt`
   const voiceRel = `${base}/voice.md`
+  const behaviorPrompts: Record<string, string> = {}
+  for (const behavior of ['moment-polish', 'day-script', 'catchup', 'reflection']) {
+    const rel = `${base}/behaviors/${behavior}.md`
+    if (assetExists(rel)) behaviorPrompts[behavior] = readText(rel)
+  }
 
   return {
     id: manifest.id,
@@ -218,6 +223,7 @@ export function loadRolePack(roleId: string, universeId: string = DEFAULT_UNIVER
     voice: assetExists(voiceRel) ? readText(voiceRel) : undefined,
     profile: loadRoleProfile(roleId, universeId),
     worldDefaults: loadRoleWorldDefaults(roleId, universeId),
+    behaviorPrompts,
   }
 }
 

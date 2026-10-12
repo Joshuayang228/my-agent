@@ -14,7 +14,7 @@ import { BrowserWindow, Notification } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import { agentLoop } from './loop'
-import { buildSystemPrompt, rolePackToPromptParts } from './prompt-builder'
+import { characterDefinitionFromRolePack, compileMainChatPrompt } from '../prompts/compiler'
 import { describeCastPresence } from '../companion/cast/availability'
 import { formatSummonSceneBlock } from '../companion/cast/scene-prompts'
 import { summonParentDelegationHint } from '../companion/cast/summon-delegation'
@@ -248,7 +248,7 @@ class AgentRuntime {
         bookshelfSlice,
         rosterLines,
       } = await loadRoleAssembleInput(assembleRoleId)
-      const persona = rolePackToPromptParts(pack, mutableBody)
+      const character = characterDefinitionFromRolePack(pack, mutableBody)
 
       const chatSpan = startSpan('chat', 'main', 'interaction', undefined, { sessionId, model: llmConfig.model })
       errorSpan = chatSpan
@@ -259,7 +259,7 @@ class AgentRuntime {
         sessionId,
         messageCount: messages.length,
         model: llmConfig.model,
-        roleId: persona.id,
+        roleId: character.id,
         activeRoleId,
         roleMismatch: mismatch,
         sessionKind: sessionMeta?.sessionKind || 'main',
@@ -305,7 +305,7 @@ class AgentRuntime {
           summonParentDelegationHint() +
           sceneBlock
       }
-      const sessionInfoParts = [customPrompt, summonNote].filter(Boolean)
+      const sessionInfoParts = [summonNote].filter(Boolean)
       if (isWorkspace) {
         const parent = workspaceContext?.parentSessionId
           ? await store.getSession(workspaceContext.parentSessionId)
@@ -349,7 +349,7 @@ class AgentRuntime {
         // M30-G1：主会话首次进入默契密度时记里程碑
         if (!isSummon && rel.stage === 'rapport') {
           void recordAndBroadcastMilestone(assembleRoleId, 'first_rapport', {
-            roleDisplayName: persona.name,
+            roleDisplayName: character.name,
           }).catch(() => {})
         }
         if (!isSummon) {
@@ -385,32 +385,42 @@ class AgentRuntime {
         })
       }
 
-      const systemPrompt = buildSystemPrompt({
-        persona,
-        toolNames: toolRegistry.getAll().map(t => t.name),
-        userProfile: userProfile ?? undefined,
-        memories: vectorContext,
-        sessionInfo: sessionInfoParts.length ? sessionInfoParts.join('\n\n') : undefined,
-        skillSummary,
-        activeSkillBody,
-        executionMode,
-        // 召唤不注入生活追赶 / 世界薄片 / 近 Moment（不启用对方生活世界）
-        catchupSummary: isSummon ? undefined : catchupSummary,
-        worldSlice: isSummon ? undefined : worldSlice,
-        recentMomentsSlice: isSummon ? undefined : recentMomentsSlice,
-        bookshelfSlice: isSummon ? undefined : bookshelfSlice,
-        rosterLines,
-        replyStanceHint,
-        toneControlHint,
-        relationshipStageHint,
-        milestoneHint,
-        expertiseHint,
+      const { text: systemPrompt } = compileMainChatPrompt({
+        character,
+        platform: {
+          toolNames: toolRegistry.getAll().map(t => t.name),
+          executionMode,
+        },
+        behavior: {
+          key: 'main-chat',
+          purpose: '在当前人物与会话情境中回应用户并完成请求。',
+          customInstructions: customPrompt ?? undefined,
+          replyStance: replyStanceHint,
+          toneControl: toneControlHint,
+          relationshipStage: relationshipStageHint,
+          milestone: milestoneHint,
+          expertise: expertiseHint,
+          skillSummary,
+          activeSkillBody,
+        },
+        situation: {
+          userProfile: userProfile ?? undefined,
+          memories: vectorContext,
+          sessionInfo: sessionInfoParts.length ? sessionInfoParts.join('\n\n') : undefined,
+          // 召唤不注入生活追赶 / 世界薄片 / 近 Moment（不启用对方生活世界）
+          catchupSummary: isSummon ? undefined : catchupSummary,
+          worldSlice: isSummon ? undefined : worldSlice,
+          recentMomentsSlice: isSummon ? undefined : recentMomentsSlice,
+          bookshelfSlice: isSummon ? undefined : bookshelfSlice,
+          rosterLines,
+        },
+        currentDate: new Date().toLocaleDateString('sv-SE'),
       })
 
       // 调用点只声明稳定 key；来源、版本与 locale 由 LLM 统一入口从注册表解析。
       // Role Pack 只标注本次实际读取的文件，动态 MUTABLE 与场景 Prompt 不冒充默认正文。
       const promptAssetKeys: PromptAssetKeyList = [
-        PROMPT_KEYS.systemLayers,
+        PROMPT_KEYS.promptCompiler,
         rolePromptAssetKey(assembleRoleId, 'protected.md'),
         ...(mutableBody === pack.mutableDefault
           ? [rolePromptAssetKey(assembleRoleId, 'mutable.default.md')]

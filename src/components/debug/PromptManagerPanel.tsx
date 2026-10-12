@@ -2,8 +2,8 @@
  * Debug 提示词管理器。
  *
  * 背景：生产 Prompt、伙伴资产、记忆策略、权限策略、Tool schema、Skill 与 Eval 资产属于代码 / Role Pack / 运行时真相，Debug 不应绕过 Git 直接覆盖源文件。
- * 设计意图：保留生产资产只读查看，同时提供实验副本和现有 L3 自定义补充指令的受控编辑入口。
- * 关键约束：实验副本不影响真实会话；只有用户二次确认后，L3 草稿才写入现有 settings.systemPrompt。
+ * 设计意图：保留生产资产只读查看，同时提供实验副本和现有 会话补充指令的受控编辑入口。
+ * 关键约束：实验副本不影响真实会话；只有用户二次确认后，补充指令草稿才写入现有 settings.systemPrompt。
  */
 
 import { useEffect, useMemo, useState } from 'react'
@@ -13,7 +13,7 @@ import type { AgentAssetUsageEvidence, DebugPromptSnapshot, ModelContextAsset, P
 export type DebugPromptInfo = DebugPromptSnapshot
 
 type CategoryFilter = 'all' | ModelContextAsset['category']
-type PromptLayer = 'full' | 'l1' | 'l2' | 'l3' | 'l4'
+type PromptLayer = 'full' | string
 
 const RUNTIME_ID = '__runtime-current__'
 const MAX_L3_CHARS = 4000
@@ -217,11 +217,11 @@ export function PromptManagerPanel({ info, onRefresh, onOpenUsage }: { info: Deb
   /** 二次确认后复用现有设置键保存 L3；生产 Prompt 资产始终不写。 */
   const saveL3 = async () => {
     if (!window.electronAPI?.settings?.set) {
-      setError('需要 Electron 环境才能保存 L3 自定义补充指令')
+      setError('需要 Electron 环境才能保存 会话补充指令')
       return
     }
     if (l3Draft.length > MAX_L3_CHARS) {
-      setError(`L3 自定义补充指令最多 ${MAX_L3_CHARS} 字，请只保留需要追加的差异或行为约束。`)
+      setError(`会话补充指令最多 ${MAX_L3_CHARS} 字，请只保留需要追加的差异或行为约束。`)
       return
     }
     if (!saveArmed) {
@@ -235,7 +235,7 @@ export function PromptManagerPanel({ info, onRefresh, onOpenUsage }: { info: Deb
       setSavedL3(l3Draft)
       setSaveArmed(false)
       await onRefresh?.()
-      setStatus('已保存到设置的 L3 自定义补充指令；后续真实对话会使用它。')
+      setStatus('已保存到设置的 会话补充指令；后续真实对话会使用它。')
       clearStatusSoon()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -245,7 +245,7 @@ export function PromptManagerPanel({ info, onRefresh, onOpenUsage }: { info: Deb
   const resetL3 = () => {
     setL3Draft(savedL3)
     setSaveArmed(false)
-    setStatus('已恢复上次保存的 L3 内容。')
+    setStatus('已恢复上次保存的 补充内容。')
     clearStatusSoon()
   }
 
@@ -280,9 +280,9 @@ export function PromptManagerPanel({ info, onRefresh, onOpenUsage }: { info: Deb
       <section className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }} data-testid="prompt-l3-editor">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <h3 className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>L3 自定义补充指令</h3>
+            <h3 className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>会话补充指令</h3>
             <p className="mt-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>
-              这是现有设置项，会追加到 L3 并影响后续真实对话；不会替换或改写生产 Prompt 资产文件。
+              这是现有设置项，会追加到当前行为上下文 并影响后续真实对话；不会替换或改写生产 Prompt 资产文件。
             </p>
           </div>
           <div className="flex gap-1.5">
@@ -348,7 +348,7 @@ export function PromptManagerPanel({ info, onRefresh, onOpenUsage }: { info: Deb
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <h3 className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>实验副本{experimentSource ? ` · ${experimentSource}` : ''}</h3>
-              <p className="mt-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>这里的修改只存在于当前页面，不会写入生产资产或真实会话。验证后，请把需要追加的差异手动整理到顶部 L3 编辑器。</p>
+              <p className="mt-1 text-[10px] leading-4" style={{ color: 'var(--text-muted)' }}>这里的修改只存在于当前页面，不会写入生产资产或真实会话。验证后，请把需要追加的差异手动整理到会话补充指令。</p>
             </div>
             <div className="flex gap-1.5">
               <button type="button" onClick={() => void copyText(experimentDraft, '实验 Prompt ')} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}><Copy size={11} />复制</button>
@@ -385,13 +385,10 @@ function SummaryCard({ label, value, hint }: { label: string; value: string; hin
 function RuntimePromptDetail({ info, layer, setLayer, onLoadExperiment, onCopy }: { info: DebugPromptInfo | null; layer: PromptLayer; setLayer: (layer: PromptLayer) => void; onLoadExperiment: (label: string, content: string | undefined) => void; onCopy: (value: string) => void }) {
   if (!info) return <p className="text-sm" style={{ color: 'var(--text-muted)' }}>加载当前装配预览中…</p>
   const layers = [
-    { id: 'full' as const, label: '完整' },
-    { id: 'l1' as const, label: 'L1 人格' },
-    { id: 'l2' as const, label: 'L2 能力' },
-    { id: 'l3' as const, label: 'L3 上下文' },
-    { id: 'l4' as const, label: 'L4 动态' },
+    { id: 'full', label: '完整', content: info.full },
+    ...info.modules.map((module) => ({ id: module.id, label: module.id === 'platform-rules' ? '平台规则' : module.id === 'character-definition' ? '人物定义' : module.id === 'character-growth' ? '人物成长' : module.id === 'behavior-definition' ? '行为定义' : module.id === 'situational-context' ? '情境上下文' : '输出契约', content: module.content })),
   ]
-  const content = layer === 'full' ? info.full : info.layers[layer]
+  const content = layers.find((item) => item.id === layer)?.content ?? info.full
   return <div className="space-y-3"><div><h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>当前装配预览</h3><p className="mt-1 font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{info.persona.name} · {info.charCount} chars · ~{info.estimatedTokens} tokens</p><p className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>按当前状态即时重组，不代表某次请求的精确实发内容。</p></div><RuntimeTraceList assets={info.assets} /><div className="flex flex-wrap gap-1.5">{layers.map((item) => { const active = layer === item.id; return <button key={item.id} type="button" onClick={() => setLayer(item.id)} className="rounded-lg border px-2.5 py-1 text-[11px]" style={{ borderColor: active ? 'var(--accent)' : 'var(--border-color)', background: active ? 'var(--accent-subtle)' : 'transparent', color: active ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{item.label}</button> })}</div><div className="flex gap-1.5"><button type="button" onClick={() => onLoadExperiment(`当前装配 · ${layer}`, content)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>载入为实验副本</button><button type="button" onClick={() => onCopy(content)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}><Copy size={11} />复制</button></div><pre className="scrollbar-hover max-h-[52vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border p-3 font-mono text-[11px] leading-relaxed" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>{content}</pre></div>
 }
 
