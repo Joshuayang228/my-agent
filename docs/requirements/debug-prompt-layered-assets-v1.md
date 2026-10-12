@@ -107,6 +107,26 @@
 6. **质量验证**：补 Unit、Debug UI E2E、调用覆盖、资产唯一性、动态槽位和敏感信息门禁。
 7. **文档收口**：把稳定边界吸收到模块卡、Architecture、Quality、Progress 和 Changelog；未做的行为登记到 Wishlist。
 
+### 5.1 现状盘点证据（2026-10-12）
+
+本轮先完成代码证据盘点，再决定是否补资产或界面：
+
+| 层级 / 分类 | 当前真实内容 | 来源与调用证据 | 结论 |
+|---|---|---|---|
+| 主对话 | 四层 System、Role Pack protected / mutable / voice、用户画像、记忆召回、回复立场、语气、关系、专家度、Skill、伙伴世界上下文 | `electron/main/agent/runtime.ts` 组装 `promptAssetKeys`；主 Loop 通过 `streamChat` 发起 | 已覆盖；稳定人物与动态上下文已分开 |
+| 上下文管理 | L3 Collapse、L4 AutoCompact | `electron/main/agent/context-manager.ts` → `chatComplete` | 已覆盖；压缩指令属于 context，不应归入伙伴行为 |
+| 伙伴行为 | 日程剧本、朋友圈 Moment 润色、生活补叙、人格反思 | `script-generator.ts`、`moment-polish.ts`、`catchup.ts`、`reflection-service.ts` | 已有四个行为级 Prompt，均有真实调用、解析 / 校验和回退 |
+| 记忆 / 会话辅助 | 用户画像提取、Embedding 输入、会话标题 | `profile-extractor.ts`、记忆向量入口、`session-store.ts` | 已覆盖；Embedding 是非聊天输入，需单独标识 |
+| Playground / 诊断 | Playground 默认 / 草稿 / 模型探测、连接测试、Eval Judge、子 Agent、权限拒绝 | 对应 agent、IPC、Eval 和 subagent 调用点 | 已覆盖；不属于伙伴行为目录 |
+| Role Pack | 角色 manifest、profile、world.default、scene Prompt、life 资产 | `companion/asset-registry.ts` 与 `prompts/registry.ts` 的 Role Pack 动态注册 | 按角色动态派生，不在核心 Prompt 表复制一套人物正文 |
+| 生图 / 外观 | `image_generate` 接收用户或工具调用中的图片描述；外观字段来自 Role Pack profile | `tools/builtins/image-generate.ts`、`llm/image-generation.ts`、`identity/profile.ts` | 当前没有独立“生图 Prompt”资产；这是独立图片协议，不应伪造聊天 Prompt key |
+
+核心注册表当前有 30 个稳定 Prompt key，另有按角色和文件后缀动态生成的 Role Pack 资产。已检出的聊天模型调用均声明了 `promptAssetKeys`；没有发现绕过统一 LLM 入口的聊天调用。
+
+与 Alice 的分类对照后，当前属于“真实缺口”的只有**行为元数据表达**：注册表已有名称、来源、动态槽位和指纹，但还没有统一表达行为触发条件、角色输入、运行时输入、输出协议、校验、回退和副作用。Alice 的 `letter`、`thought`、`appearance` 等分类在本项目没有对应生产调用，不能为了分类数量对齐而新增占位 Prompt。`companion-background-tasks` 目前只有注册项，未检出对应的 LLM 调用，应标记为“已登记但未关联”，而不是当作已实现行为。
+
+本盘点暂不修改 Prompt 正文、调用语义或生图链路；下一步应先为四个真实伙伴行为补齐可由生产代码派生的行为元数据，再在 Debug 中展示“已关联 / 未关联”状态。
+
 ## 6. 风险与权衡
 
 - 如果把所有运行时数据都展示成人物资产，人物设定会被当前状态污染；因此必须保留来源和生命周期标签。
