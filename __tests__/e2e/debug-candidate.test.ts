@@ -145,6 +145,46 @@ for (const theme of ['porcelain-blue', 'yao-stone']) {
     const panel = page.getByTestId('debug-candidate')
     const nav = panel.getByRole('navigation', { name: 'Debug 候选导航' })
     const groups = nav.locator('.debug-candidate-nav-groups')
+    const prompt = panel.getByTestId('debug-prompt-workbench')
+    await prompt.getByRole('button', { name: /行为与编译，/ }).click()
+    await prompt.getByRole('button', { name: /主对话语义编译/ }).click()
+    const split = prompt.locator('.debug-prompt-split')
+    expect((await split.boundingBox())!.height).toBeGreaterThanOrEqual(420)
+    expect((await prompt.locator('.debug-prompt-directory').boundingBox())!.width).toBe(340)
+    expect((await prompt.getByRole('button', { name: /主对话语义编译/ }).boundingBox())!.height).toBeLessThan(105)
+    const body = prompt.locator('.debug-candidate-body')
+    const bodyBox = (await body.boundingBox())!
+    const splitBox = (await split.boundingBox())!
+    expect(bodyBox.y + bodyBox.height).toBeLessThanOrEqual(splitBox.y + splitBox.height)
+    expect(await body.evaluate(node => parseFloat(getComputedStyle(node).fontSize))).toBeGreaterThanOrEqual(14)
+    // 背景：浅色样张文字曾低对比难读；意图：测量实际主题色而非检查 token 名；约束：按浏览器解析后的前景 / 背景计算普通文字 4.5:1。
+    const contrast = await prompt.locator('.debug-prompt-excerpt').evaluate(node => {
+      const canvas = document.createElement('canvas')
+      canvas.width = canvas.height = 1
+      const ctx = canvas.getContext('2d')!
+      const luminance = () => {
+        const values = [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3).map(value => {
+          const channel = value / 255
+          return channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4
+        })
+        return .2126 * values[0] + .7152 * values[1] + .0722 * values[2]
+      }
+      // 背景：选中底色带 12% 透明度；意图：从祖先向内合成真实背景；约束：不能拿透明底色的 RGB 当不透明颜色，否则两主题都产生假失败。
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 1, 1)
+      const ancestors: Element[] = []
+      for (let current: Element | null = node; current; current = current.parentElement) ancestors.push(current)
+      for (const ancestor of ancestors.reverse()) {
+        ctx.fillStyle = getComputedStyle(ancestor).backgroundColor; ctx.fillRect(0, 0, 1, 1)
+      }
+      const bg = luminance()
+      ctx.fillStyle = getComputedStyle(node).color; ctx.fillRect(0, 0, 1, 1)
+      const fg = luminance()
+      return { foreground: getComputedStyle(node).color, background: getComputedStyle(node.closest('button')!).backgroundColor, ratio: (Math.max(fg, bg) + .05) / (Math.min(fg, bg) + .05) }
+    })
+    expect(contrast.ratio, JSON.stringify(contrast)).toBeGreaterThanOrEqual(4.5)
+    await page.screenshot({ path: info.outputPath('debug-prompt-readable.png') })
+    await prompt.getByText(/版本与来源 ·/).click()
+    await expect(prompt.getByRole('article')).toContainText('自动指纹')
     expect(await groups.evaluate(node => getComputedStyle(node).scrollbarWidth)).toBe('none')
     expect(await groups.evaluate(node => getComputedStyle(node, '::-webkit-scrollbar').display)).toBe('none')
     await nav.getByRole('button', { name: '提示词管理器', exact: true }).focus()
