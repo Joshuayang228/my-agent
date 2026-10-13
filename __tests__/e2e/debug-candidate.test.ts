@@ -108,9 +108,9 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 
     await expect(panel.getByRole('article', { name: '领域证据详情' })).toContainText('此次注入证据未提供')
     // 背景：首版有证据但缺领域入口；意图：按合同逐页实际点开；约束：不能只校验导航元素存在。
     for (const [label, id] of [
-      ['最近事项', 'recent'], ['行为日志', 'activity'], ['位置', 'location'], ['居住空间', 'residence'],
-      ['兴趣资料', 'interests'], ['成长与反思', 'growth'], ['人物关系', 'relations'], ['主动消息证据', 'proactive'],
-      ['衣柜', 'wardrobe'], ['文化与物品', 'items'], ['生活事件关联', 'links'], ['上下文', 'context'],
+      ['最近事项', 'recent'], ['行为日志', 'activity'], ['当前位置', 'location'], ['家居', 'residence'],
+      ['人物档案', 'character'], ['足迹', 'footprints'], ['朋友圈', 'moments'], ['成长与反思', 'growth'], ['通讯录', 'relations'], ['主动消息证据', 'proactive'],
+      ['衣柜', 'wardrobe'], ['文化角', 'items'], ['生活事件关联', 'links'], ['上下文', 'context'],
       ['用户画像', 'profile'], ['调用链', 'traces'], ['实时事件', 'events'], ['技能与工具', 'tools'],
     ]) {
       await nav.getByRole('button', { name: label, exact: true }).click()
@@ -130,5 +130,66 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 
     await expect(panel).toContainText('工具清单尚未取得，数量未知')
     await panel.getByRole('button', { name: '返回 Playground' }).click()
     await expect(page.getByTestId('playground-nav')).toBeVisible()
+  })
+}
+
+for (const theme of ['porcelain-blue', 'yao-stone']) {
+  test(`Debug 本项目生活面与无滚动条导航 ${theme}`, async ({ page }, info) => {
+    await page.setViewportSize({ width: 1096, height: 704 })
+    await page.addInitScript(theme => {
+      localStorage.setItem('theme', theme)
+      localStorage.setItem('playground.active-tab', 'debug')
+    }, theme)
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+    const panel = page.getByTestId('debug-candidate')
+    const nav = panel.getByRole('navigation', { name: 'Debug 候选导航' })
+    const groups = nav.locator('.debug-candidate-nav-groups')
+    expect(await groups.evaluate(node => getComputedStyle(node).scrollbarWidth)).toBe('none')
+    expect(await groups.evaluate(node => getComputedStyle(node, '::-webkit-scrollbar').display)).toBe('none')
+    await nav.getByRole('button', { name: '提示词管理器', exact: true }).focus()
+    for (let i = 0; i < 25; i++) await page.keyboard.press('Tab')
+    await expect(nav.getByRole('button', { name: '人格验收', exact: true })).toBeFocused()
+    expect(await groups.evaluate(node => node.scrollTop)).toBeGreaterThan(0)
+    await page.keyboard.press('Enter')
+    await expect(panel.getByRole('heading', { name: '人格验收', exact: true })).toBeVisible()
+    await groups.hover()
+    await page.mouse.wheel(0, -2000)
+    await expect.poll(() => groups.evaluate(node => node.scrollTop)).toBe(0)
+
+    await nav.getByRole('button', { name: '家居', exact: true }).click()
+    await panel.getByRole('button', { name: /小相机/ }).click()
+    const detail = panel.getByRole('article', { name: '领域证据详情' })
+    await expect(detail).toContainText('displayInHome = true')
+    await expect(detail).toContainText('展示依据demo-event-reading')
+    await page.screenshot({ path: info.outputPath('debug-home.png') })
+    await panel.getByRole('button', { name: '查看所属空间' }).click()
+    await expect(detail).toContainText('所属住所demo-home-lin')
+    await panel.getByRole('button', { name: '查看所属住所' }).click()
+    await expect(detail).toContainText('记录类型residence')
+    await panel.getByRole('button', { name: /备用收纳盒/ }).click()
+    await expect(detail).toContainText('空间未归置')
+    await expect(detail).toContainText('displayInHome = false')
+    await nav.getByRole('button', { name: '足迹', exact: true }).click()
+    await panel.getByRole('button', { name: /河边旅行/ }).click()
+    await expect(detail).toContainText('demo-stop-river')
+    await expect(detail).toContainText('2026-10-10')
+    await expect(detail).toContainText('停留经历样张')
+    await page.screenshot({ path: info.outputPath('debug-footprints.png') })
+    await panel.getByRole('button', { name: /海边旅行计划/ }).click()
+    await expect(detail).toContainText('不纳入实际旅行')
+    await panel.getByRole('button', { name: /旧地点/ }).click()
+    await expect(detail).toContainText('访问日期未记录')
+    await panel.getByRole('group', { name: '证据人物筛选' }).getByRole('button', { name: '予 · 样张' }).click()
+    await expect(panel).toContainText('没有匹配的证据')
+    await nav.getByRole('button', { name: '用户画像', exact: true }).click()
+    await panel.getByRole('button', { name: /用户画像 · 林调用范围/ }).click()
+    await expect(detail).toContainText('workflow · 全局 / feedback · 林')
+    await expect(panel).toContainText('其他类别仍全局聚合')
+    await nav.getByRole('button', { name: '朋友圈', exact: true }).click()
+    await panel.getByRole('button', { name: /林 · 阅读旅行笔记/ }).click()
+    await expect(detail).toContainText('demo-comment-yu')
+    await panel.getByRole('button', { name: '查看发布来源事件' }).click()
+    await expect(detail).toContainText('没有完成证据')
   })
 }

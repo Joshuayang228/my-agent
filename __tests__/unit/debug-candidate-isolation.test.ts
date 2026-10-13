@@ -44,6 +44,19 @@ describe('Debug 候选隔离边界', () => {
     }
   })
 
+  it('本项目六生活面各有明确入口，住所、物件、旅行与文化记录不混型', () => {
+    const labels = new Set(DEBUG_PERSPECTIVES.map(view => view.label))
+    for (const label of ['朋友圈', '衣柜', '文化角', '家居', '通讯录', '足迹']) expect(labels.has(label)).toBe(true)
+    const home = DEBUG_EVIDENCE_PAGES.residence.items
+    expect(home.some(entry => entry.fields.some(([key, value]) => key === '记录类型' && value === 'space'))).toBe(true)
+    expect(home.some(entry => entry.fields.some(([key, value]) => key === '家居展示' && value === 'displayInHome = false'))).toBe(true)
+    expect(DEBUG_EVIDENCE_PAGES.items.items.some(entry => entry.id === 'demo-item-camera')).toBe(false)
+    expect(home.some(entry => entry.id === 'demo-item-camera')).toBe(true)
+    const planned = DEBUG_EVIDENCE_PAGES.footprints.items.find(entry => entry.id === 'demo-trip-planned')!
+    expect(planned.fields).toContainEqual(['正式足迹展示', '不纳入实际旅行'])
+    expect(DEBUG_EVIDENCE_PAGES.footprints.items.find(entry => entry.id === 'demo-footprint-place')?.fields).toContainEqual(['访问日期', '未记录'])
+  })
+
   it('运行中快照的调用链和实时事件不沿用最终失败；无 Span 不生成节点', () => {
     const pending = DEBUG_RECORD_FIXTURES.map((record, index) => index ? record : { ...record, status: 'pending' as const, stages: record.stages.slice(0, 1) })
     const traces = getDebugEvidencePage('traces', pending)

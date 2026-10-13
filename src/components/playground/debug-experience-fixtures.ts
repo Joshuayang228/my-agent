@@ -4,7 +4,7 @@
  * 关键约束：所有数据仅供 P0；关联只能使用显式 id，历史正文缺失不得用当前模板代替。
  */
 export type DebugScenario = 'normal' | 'running' | 'empty' | 'refresh-error'
-export type DebugPerspective = 'assets' | 'schedule' | 'recent' | 'activity' | 'now' | 'location' | 'residence' | 'interests' | 'growth' | 'relations' | 'proactive' | 'wardrobe' | 'items' | 'links' | 'context' | 'profile' | 'memories' | 'runs' | 'traces' | 'events' | 'tools' | 'system' | 'quality' | 'persona'
+export type DebugPerspective = 'assets' | 'schedule' | 'recent' | 'activity' | 'now' | 'location' | 'residence' | 'character' | 'footprints' | 'moments' | 'growth' | 'relations' | 'proactive' | 'wardrobe' | 'items' | 'links' | 'context' | 'profile' | 'memories' | 'runs' | 'traces' | 'events' | 'tools' | 'system' | 'quality' | 'persona'
 export interface DebugRecordFixture {
   id: string
   title: string
@@ -51,17 +51,19 @@ export const DEBUG_PERSPECTIVES: readonly DebugView[] = [
   { id: 'recent', group: '内核', label: '最近事项', description: '浏览计划与已发布的生活事件，追踪关联动态和资产。', source: 'debug:world-snapshot · events / life/slices.ts' },
   { id: 'activity', group: '内核', label: '行为日志', description: '查看已记录的行为证据，区分生活计划与模型请求。', source: 'Trace / eventLog / growth/reflection-log.ts' },
   { id: 'now', group: '生活', label: '此刻', description: '当前活动、情绪与生活推进状态。', source: 'debug:world-snapshot · world / life' },
-  { id: 'location', group: '生活', label: '位置', description: '分开查看当前位置、常去地点和动态中的地点。', source: 'world.currentLocation / footprint / moments' },
-  { id: 'residence', group: '生活', label: '居住空间', description: '区分居所设定、当前居所和拥有的生活物件。', source: 'worldDefaults.home / world.home / home assets' },
-  { id: 'interests', group: '生活', label: '兴趣资料', description: '人物稳定兴趣与文化记录；不推断动态兴趣进度。', source: 'Role Profile.interests / culture / bookshelf' },
+  { id: 'character', group: '生活', label: '人物档案', description: '查看伙伴的稳定身份、人物资料与兴趣，和用户画像分开。', source: 'Role Pack manifest / profile / characterProfile' },
+  { id: 'location', group: '生活', label: '当前位置', description: '查看当前地点和细节；出行历史在足迹，住所与物件在家居。', source: 'world.currentLocation / locationDetail' },
+  { id: 'residence', group: '生活', label: '家居', description: '查看住所、空间归属、生活物件及展示依据。', source: 'companion_assets · home / furniture / homeRecordsForRole' },
+  { id: 'footprints', group: '生活', label: '足迹', description: '查看旅行状态、日期、经历与停留，区分旧地点资料和实际出发记录。', source: 'companion_assets · footprint / travelRecordsForRole' },
   { id: 'growth', group: '生活', label: '成长与反思', description: '查看成长覆盖、版本及已记录的反思结果。', source: 'mutable-store / companion:reflection-status' },
-  { id: 'relations', group: '社交', label: '人物关系', description: '查看人物关系资料与已有成长线索。', source: 'companion:get-contacts / roster / milestones' },
+  { id: 'moments', group: '社交', label: '朋友圈', description: '查看已发布动态、评论和生活事件来源，区别于计划。', source: 'companion:get-moments / moments / comments' },
+  { id: 'relations', group: '社交', label: '通讯录', description: '查看人物关系、忙闲与已有经历，保留用户关系证据。', source: 'companion:get-contacts / roster / milestones' },
   { id: 'proactive', group: '社交', label: '主动消息证据', description: '只展示可证明的问候与消息证据。', source: 'life/proactive-greeting.ts / conversation messages' },
   { id: 'wardrobe', group: '资产', label: '衣柜', description: '拥有的衣物、当前穿着与来源，默认只读。', source: 'life/assets.ts · wardrobe / Moment.outfit' },
-  { id: 'items', group: '资产', label: '文化与物品', description: '查看作品、书籍与生活物件的分类和来源。', source: 'companion_assets · culture / bookshelf / furniture' },
+  { id: 'items', group: '资产', label: '文化角', description: '查看阅读、音乐、影视、摄影与所属笔记；生活物件归家居。', source: 'companion_assets · culture / bookshelf / readingNotes' },
   { id: 'links', group: '资产', label: '生活事件关联', description: '按显式事件标识查看动态与长期资产之间的关联。', source: 'companion:get-life-slice / companion_event_links' },
   { id: 'context', group: '用户', label: '上下文', description: '区分当前装配预览、本次注入与历史保存范围。', source: 'ContextInspectorPanel / debug:system-prompt' },
-  { id: 'profile', group: '用户', label: '用户画像', description: '查看用户身份、协作方式与表达偏好的提取结果。', source: 'buildUserProfile(role.id)' },
+  { id: 'profile', group: '用户', label: '用户画像', description: '查看已存记忆汇总的身份、协作方式与表达偏好，明确实际聚合范围。', source: 'memory-store.buildUserProfile / runtime / debug:world-snapshot' },
   { id: 'memories', group: '用户', label: '用户记忆', description: '区分全局与人物分桶、存储条目与实际召回。', source: 'memory:list / memory-store / injection evidence' },
   { id: 'runs', group: '系统', label: 'LLM 调用', description: '定位一次调用，查看输入结构、执行过程与资产来源。', source: 'debug:llm-logs-query' },
   { id: 'traces', group: '系统', label: '调用链', description: '以明确 Span 关联查看执行阶段和失败位置。', source: 'debug:traces' },
