@@ -54,6 +54,8 @@
 
 ## 已完成施工快照（冻结）
 
+人物共创技能：[character-system-builder-skill-v1.md](./character-system-builder-skill-v1.md)，用户决策 / 材料 / 反馈驱动的完整人物共创规程；当前能力见伙伴模块，技能源码持续维护。
+
 注册模型请求边界：[prompt-registered-request-boundary-v1.md](./prompt-registered-request-boundary-v1.md)。固定配方签发、模型入口身份与来源校验、压缩恢复 / 子任务续跑、实验作用域及失败门禁已验收；当前事实见运行时、伙伴与记忆模块卡。
 
 设置布局统一：[settings-layout-consistency-v1.md](./settings-layout-consistency-v1.md)。九区同源页头、共享间距及正式回流已验收；当前能力见伙伴模块卡。
