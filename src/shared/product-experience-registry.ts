@@ -9,7 +9,7 @@
 import type { FoundationComponentKey, UiComponentStatus } from './ui-component-registry'
 
 export type ProductExperienceStatus = UiComponentStatus
-export type ProductExperienceTabId = 'chat' | 'world' | 'settings' | 'workspace'
+export type ProductExperienceTabId = 'chat' | 'world' | 'settings' | 'workspace' | 'debug'
 
 export interface ProductExperienceDefinition {
   key: `experience.${string}`
@@ -112,6 +112,19 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     fixtureAssetPaths: ['src/assets/playground/moment-tea-by-window.jpg'],
     experienceParts: ['审阅', '浏览器', '文件', '终端', '侧边聊天'],
     usesFoundation: ['developer.file-tree', 'developer.markdown', 'developer.diff-viewer', 'layout.resize-handle', 'behavior.tabs', 'behavior.input', 'behavior.icon-button', 'behavior.action-button'],
+  }),
+  experience({
+    key: 'experience.debug',
+    labelZh: 'Debug 诊断',
+    descriptionZh: '独立诊断工作区的隔离候选，以一次调用和明确来源组织证据。',
+    status: 'playground',
+    playgroundTabId: 'debug',
+    sourcePaths: ['src/components/playground/DebugExperienceCandidate.tsx', 'src/components/playground/debug-experience-fixtures.ts', 'src/components/playground/debug-experience.css'],
+    formalEntryPaths: ['src/components/DevPanel.tsx'],
+    realDataPaths: ['electron/main/ipc/debug.ts', 'electron/main/debug/model-context-assets.ts'],
+    evidencePaths: ['__tests__/e2e/debug-candidate.test.ts', '__tests__/unit/debug-candidate-isolation.test.ts'],
+    experienceParts: ['运行记录', '生产资产', '伙伴状态', '质量报告', '系统状态'],
+    usesFoundation: ['behavior.action-button', 'behavior.input', 'behavior.badge', 'state.empty', 'state.error'],
   }),
 ] as const satisfies readonly ProductExperienceDefinition[]
 

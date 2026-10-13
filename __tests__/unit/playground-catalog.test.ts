@@ -6,7 +6,7 @@ describe('playground catalog', () => {
   it('只暴露基础、产品体验与 Agent 实验三个工作域', () => {
     expect(PLAYGROUND_GROUPS.map((group) => group.id)).toEqual(['foundation', 'experience', 'agent-experiments'])
     expect(PLAYGROUND_TABS.filter((tab) => tab.status !== 'archived').map((tab) => tab.id)).toEqual([
-      'design-tokens', 'visual-assets', 'foundation-components', 'chat', 'image-generation', 'world', 'settings', 'workspace', 'chat-lab', 'model-test', 'tools',
+      'design-tokens', 'visual-assets', 'foundation-components', 'chat', 'image-generation', 'world', 'settings', 'workspace', 'debug', 'chat-lab', 'model-test', 'tools',
     ])
     expect(PLAYGROUND_TABS.find((tab) => tab.id === 'design-tokens')?.label).toBe('设计语言')
     expect(PLAYGROUND_TABS.find((tab) => tab.id === 'image-generation')).toMatchObject({ label: '生图实验', group: 'agent-experiments' })

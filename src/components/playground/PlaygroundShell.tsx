@@ -32,6 +32,7 @@ import { ModelTestPanel } from './ModelTestPanel'
 import { PlaygroundPageHeader, PlaygroundSourcePath } from './PlaygroundLayout'
 import { findPlaygroundPersona } from '../../shared/playground-journey-fixtures'
 import { ActionButton } from '../foundation/ActionButton'
+import { DebugExperienceCandidate } from './DebugExperienceCandidate'
 
 const TAB_STORAGE_KEY = 'playground.active-tab'
 
@@ -91,11 +92,15 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
       case 'world':
       case 'settings':
       case 'workspace':
+      case 'debug':
         return tab
       default:
         return undefined
     }
   })()
+
+  // 背景：Debug 候选需要验收独立工作区；设计意图：替换展厅壳避免双侧栏；约束：返回仅切换展厅，不进入正式 Debug。
+  if (tab === 'debug') return <DebugExperienceCandidate onBack={() => setTab('design-tokens')} />
 
   return (
     <div className="playground-shape-scope flex h-full min-h-0 w-full min-w-0 flex-1" data-testid="playground-shell">

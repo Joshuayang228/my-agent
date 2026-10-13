@@ -97,9 +97,10 @@ describe('product experience registry', () => {
     expect(productExperiencesUsingFoundation('state.empty').map((asset) => asset.key)).toEqual([
       'experience.chat',
       'experience.world',
+      'experience.debug',
     ])
     expect(productExperiencesUsingFoundation('state.permission-confirm').map((asset) => asset.key)).toEqual(['experience.chat'])
-    expect(productExperiencesUsingFoundation('behavior.badge').map((asset) => asset.key)).toEqual(['experience.world'])
+    expect(productExperiencesUsingFoundation('behavior.badge').map((asset) => asset.key)).toEqual(['experience.world', 'experience.debug'])
   })
 
   it('生命周期规则阻止正式体验依赖候选或 Playground 基础', () => {

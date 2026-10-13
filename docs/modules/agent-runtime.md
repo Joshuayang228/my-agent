@@ -1,5 +1,11 @@
 # Agent 运行时
 
+## 已落地能力：Debug 信息展示候选
+
+Playground「产品体验 → Debug 诊断」提供独立单侧栏工作区，按运行记录、生产资产、伙伴状态、质量报告和系统状态组织隔离样张。记录支持搜索、状态筛选、模型输入 / 执行 / 来源切换，以及调用 → 资产 → 关联调用跳转；结构化记录默认折叠。刷新失败保留最后快照；未知计量、未关联 Span 与未保存正文明确展示。
+
+来源：`DebugExperienceCandidate.tsx`、`debug-experience-fixtures.ts` 与 `experience.debug`。基础控件复用 Foundation，局部样式仅作用于候选。此能力不调用生产 IPC、不复制 Prompt 正文、不修改正式 Debug；正式回流仍待用户查看并明确授权。必测：深浅主题、宽窄布局、键盘选择、筛选空态、运行中、失败与证据关联。施工边界见 [Debug 施工合同](../requirements/debug-ui-information-architecture-v1.md)。
+
 ## 已落地能力：模型请求强制注册编译
 
 `streamChat` / `chatComplete` 只接受固定行为配方签发的 `RegisteredModelRequest`，不接受原始 messages、手填 key 或 promptlessReason。主对话、子任务、后台行为、压缩、画像、标题、连接诊断与模型探测的正文和实际依赖由 `prompts/registered-request.ts` 自动生成；身份表与冻结快照把正文和来源绑定，复制 / 序列化对象、旧字段覆盖、错误行为与未知资产在网络和 LLM Trace 之前被拒绝。

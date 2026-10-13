@@ -1,0 +1,123 @@
+import { useState, type ChangeEvent, type ReactNode } from 'react'
+import { Activity, ArrowLeft, ArrowUpRight, Box, Check, ChevronRight, Clock3, FileText, FlaskConical, Heart, Search, Server, ShieldCheck } from 'lucide-react'
+import { ActionButton } from '../foundation/ActionButton'
+import { Badge } from '../foundation/Badge'
+import { TextField } from '../foundation/TextField'
+import { EmptyState } from '../foundation/EmptyState'
+import { ErrorState } from '../foundation/ErrorState'
+import { ProductExperienceDependencies } from './ProductExperienceDependencies'
+import { DEBUG_ASSET_FIXTURES, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES, type DebugPerspective, type DebugRecordFixture, type DebugScenario } from './debug-experience-fixtures'
+import './debug-experience.css'
+
+const STATUS_LABELS = { success: '已完成', error: '失败', pending: '运行中' } as const
+const ICONS = { runs: Activity, assets: Box, companion: Heart, quality: FlaskConical, system: Server }
+const SCENARIOS: readonly { id: DebugScenario; label: string }[] = [
+  { id: 'normal', label: '默认记录' }, { id: 'running', label: '运行中' }, { id: 'empty', label: '无记录' }, { id: 'refresh-error', label: '刷新失败' },
+]
+
+function Facts({ items }: { items: readonly [string, ReactNode][] }) {
+  return <dl className="debug-candidate-facts">{items.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+}
+
+function Section({ title, children, note }: { title: string; children: ReactNode; note?: string }) {
+  return <section className="debug-candidate-section"><h3>{title}</h3>{note && <p className="debug-candidate-muted mb-3">{note}</p>}{children}</section>
+}
+
+function Status({ status }: { status: DebugRecordFixture['status'] }) {
+  return <Badge tone={status === 'error' ? 'danger' : status === 'success' ? 'success' : 'accent'}>{STATUS_LABELS[status]}</Badge>
+}
+
+/**
+ * 背景：旧 Debug 把记录、Span 与资产分开浏览，无法在同一处解释一次请求。
+ * 设计意图：候选采用单一工作区和主从浏览，通过显式 id 关联；复用 Foundation 控件而不修改正式默认。
+ * 关键约束：本组件只读隔离样张，不使用 electronAPI、不保存设置、不调用模型；返回按钮只能返回 Playground。
+ */
+export function DebugExperienceCandidate({ onBack }: { onBack: () => void }) {
+  const [perspective, setPerspective] = useState<DebugPerspective>('runs')
+  const [scenario, setScenario] = useState<DebugScenario>('normal')
+  const [snapshotScenario, setSnapshotScenario] = useState<Exclude<DebugScenario, 'refresh-error'>>('normal')
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState('all')
+  const [recordId, setRecordId] = useState(DEBUG_RECORD_FIXTURES[0].id)
+  const [assetKey, setAssetKey] = useState(DEBUG_ASSET_FIXTURES[0].key)
+  const [detail, setDetail] = useState('request')
+  const [qualityId, setQualityId] = useState('skill')
+  const view = DEBUG_PERSPECTIVES.find(item => item.id === perspective)!
+  const records = snapshotScenario === 'empty' ? [] : DEBUG_RECORD_FIXTURES.map((record, index) => snapshotScenario === 'running' && index === 0
+    ? { ...record, status: 'pending' as const, durationMs: undefined, outputTokens: undefined, error: undefined, stages: record.stages.slice(0, 1) } : record)
+  const match = (text: string) => text.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
+  const filteredRecords = records.filter(record => (filter === 'all' || record.status === filter) && match(`${record.title} ${record.id} ${record.caller} ${record.sessionId} ${record.model}`))
+  const record = filteredRecords.find(item => item.id === recordId) ?? filteredRecords[0]
+  const filteredAssets = DEBUG_ASSET_FIXTURES.filter(asset => match(`${asset.label} ${asset.key} ${asset.type} ${asset.source}`))
+  const asset = filteredAssets.find(item => item.key === assetKey) ?? filteredAssets[0]
+
+  const navigate = (id: DebugPerspective) => { setPerspective(id); setQuery(''); setFilter('all') }
+  const openAsset = (key: string) => { navigate('assets'); setAssetKey(key) }
+  const openRecord = (id: string) => { navigate('runs'); setRecordId(id); setDetail('sources') }
+  // 背景：刷新失败不能变造已有证据；设计意图：独立保留最后样张快照；约束：错误状态不重置选中项、筛选或执行结果。
+  const changeScenario = (id: DebugScenario) => {
+    setScenario(id)
+    if (id !== 'refresh-error') {
+      setSnapshotScenario(id); setRecordId(DEBUG_RECORD_FIXTURES[0].id); setDetail('request'); setQuery(''); setFilter('all')
+    }
+  }
+
+  return <div className="debug-candidate" data-testid="debug-candidate">
+    <div className="debug-candidate-preview">
+      <ActionButton variant="plain" onClick={onBack}><ArrowLeft size={14} /> 返回 Playground</ActionButton>
+      <span>Debug 重设计 · 隔离样张</span>
+      <div className="flex flex-wrap gap-1" role="group" aria-label="Debug 样张状态" data-playground-switcher>
+        {SCENARIOS.map(item => <ActionButton key={item.id} variant="plain" aria-pressed={scenario === item.id} onClick={() => changeScenario(item.id)}>{item.label}</ActionButton>)}
+      </div>
+    </div>
+    <div className="debug-candidate-workspace">
+      <nav className="debug-candidate-nav" aria-label="Debug 候选导航">
+        <div className="debug-candidate-brand"><Activity size={18} /><strong>Debug</strong><span>诊断工作区</span></div>
+        <p className="debug-candidate-nav-label">浏览证据</p>
+        {DEBUG_PERSPECTIVES.map(item => { const Icon = ICONS[item.id]; return <ActionButton key={item.id} variant="plain" onClick={() => navigate(item.id)} aria-current={perspective === item.id ? 'page' : undefined}><Icon size={15} />{item.label}</ActionButton> })}
+        <div className="debug-candidate-nav-footer"><ShieldCheck size={14} /><span>生产信息只读<br />编辑与实验分开进行</span></div>
+      </nav>
+      <main className="debug-candidate-main">
+        <header className="debug-candidate-header"><div><div className="debug-candidate-eyebrow">诊断 / {view.label}</div><h2>{view.label}</h2><p>{view.description}</p></div><Badge>只读浏览</Badge></header>
+        <div className="debug-candidate-source"><span>数据来源</span><span>{view.source}</span><span>此页展示隔离样张</span></div>
+        {scenario === 'refresh-error' && <ErrorState title="刷新失败，保留上次证据" description="暂时无法读取新的诊断数据。下方是刷新前的样张，不代表最新状态。" action={<ActionButton onClick={() => setScenario(snapshotScenario)}>重试读取样张</ActionButton>} />}
+        {perspective === 'runs' && <>
+          <div className="debug-candidate-summary" aria-label="记录摘要">
+            <div><span>调用记录</span><strong>{records.length}</strong><small>当前样张范围</small></div>
+            <div><span>失败</span><strong className={records.some(item => item.status === 'error') ? 'debug-candidate-danger' : ''}>{records.filter(item => item.status === 'error').length}</strong><small>优先查看异常</small></div>
+            <div><span>运行中</span><strong>{records.filter(item => item.status === 'pending').length}</strong><small>尚未收到完整结果</small></div>
+          </div>
+          <div className="debug-candidate-toolbar"><label className="debug-candidate-search"><Search size={14} /><TextField aria-label="搜索运行记录" placeholder="搜索调用、会话或模型" value={query} onChange={(event: ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)} /></label><div role="group" aria-label="调用状态筛选" className="flex gap-1 flex-wrap">{[['all', '全部'], ['error', '失败'], ['pending', '运行中'], ['success', '已完成']].map(([id, label]) => <ActionButton key={id} variant="plain" aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}</ActionButton>)}</div></div>
+          {filteredRecords.length === 0 ? <EmptyState title={records.length ? '没有匹配的记录' : '还没有运行记录'} description={records.length ? '调整搜索或状态筛选后继续查看。' : '实际请求出现后，记录会按时间显示；没有数据不等于系统异常。'} action={records.length ? <ActionButton onClick={() => { setQuery(''); setFilter('all') }}>清除筛选</ActionButton> : undefined} /> : <div className="debug-candidate-split">
+            <div className="debug-candidate-list" aria-label="调用记录列表"><div className="debug-candidate-list-heading">最新调用优先 <span>{filteredRecords.length} 条</span></div>{filteredRecords.map(item => <ActionButton key={item.id} variant="plain" className="debug-candidate-record" aria-pressed={record?.id === item.id} onClick={() => { setRecordId(item.id); setDetail('request') }}>
+              <span className="debug-candidate-record-top"><span>{item.time} · {item.caller}</span><Status status={item.status} /></span><strong>{item.title}</strong><span>{item.model}</span><span className="debug-candidate-record-bottom"><code>{item.id}</code><span>{item.durationMs == null ? '耗时待定' : `${(item.durationMs / 1000).toFixed(2)} s`}</span></span>
+            </ActionButton>)}</div>
+            {record && <article className="debug-candidate-detail" aria-label="调用详情" data-testid="debug-call-detail">
+              <div className="debug-candidate-detail-heading"><div><h3>{record.title}</h3><code>{record.id}</code></div><Status status={record.status} /></div>
+              <div className="debug-candidate-detail-metrics"><span><Clock3 size={13} />{record.durationMs == null ? '进行中 · 最终耗时待定' : `${(record.durationMs / 1000).toFixed(2)} s`}</span><span>输入 {record.inputTokens?.toLocaleString() ?? '未计量'}</span><span>输出 {record.outputTokens?.toLocaleString() ?? '未计量'}</span></div>
+              {record.error && <div className="debug-candidate-call-error" role="status"><strong>失败原因</strong><p>{record.error}</p><span>未记录响应正文；不将失败请求的输出记作 0。</span></div>}
+              {record.status === 'pending' && <p className="debug-candidate-notice" role="status">正在等待模型结果。最终耗时与输出计量将在请求结束后确定。</p>}
+              <div className="debug-candidate-detail-tabs" role="group" aria-label="调用证据视角">{[['request', '模型输入'], ['execution', '执行过程'], ['sources', '资产来源']].map(([id, label]) => <ActionButton key={id} variant="plain" aria-pressed={detail === id} onClick={() => setDetail(id)}>{label}</ActionButton>)}</div>
+              {detail === 'request' && <>
+                <Section title="请求结构"><Facts items={[[ '调用用途', record.caller ], ['实际模型', record.model], ['会话', record.sessionId], ['Span', record.spanId ?? '未关联']]} /></Section>
+                <Section title="输入与正文" note="请求元数据与正文保存状态分开表达。"><div className="debug-candidate-notice"><FileText size={16} /><div><strong>历史正文未保存</strong><p>仅有结构元数据与资产关联。不能使用当前 Prompt 装配预览还原这次请求。</p></div></div></Section>
+                <Section title="继续定位"><ActionButton variant="plain" onClick={() => setDetail('sources')}>查看实际来源 <ArrowUpRight size={13} /></ActionButton><ActionButton variant="plain" onClick={() => setDetail('execution')}>查看执行证据 <ArrowUpRight size={13} /></ActionButton></Section>
+              </>}
+              {detail === 'execution' && <Section title="执行证据" note="仅按明确关联的 Span 展示；阶段不是模型思维过程。">{record.stages.length ? <ol className="debug-candidate-timeline">{record.stages.map((stage, index) => <li key={stage.title}><span className="debug-candidate-step">{index + 1}</span><div><strong>{stage.title}</strong><p>{stage.detail}</p></div><code>{stage.duration}</code></li>)}</ol> : <EmptyState title="没有关联的执行证据" description="此记录未关联 Span，不能根据时间相近把其他事件拼接过来。" />}</Section>}
+              {detail === 'sources' && <Section title="本次调用的资产来源" note="按此次调用保存的 key 关联当前目录；当前版本可能与调用时版本不同。">{record.assetKeys.map(key => { const related = DEBUG_ASSET_FIXTURES.find(item => item.key === key); return <ActionButton key={key} className="debug-candidate-asset-link" variant="plain" onClick={() => openAsset(key)}><div><strong>{related?.label ?? key}</strong><code>{key}</code></div><ChevronRight size={14} /></ActionButton> })}</Section>}
+              <details className="debug-candidate-raw"><summary>结构化记录 · 脱敏样张</summary><pre>{JSON.stringify({ id: record.id, sessionId: record.sessionId, spanId: record.spanId, status: record.status, assetKeys: record.assetKeys }, null, 2)}</pre></details>
+            </article>}
+          </div>}
+        </>}
+        {perspective === 'assets' && <>
+          <div className="debug-candidate-toolbar"><label className="debug-candidate-search"><Search size={14} /><TextField aria-label="搜索生产资产" placeholder="搜索名称、key、类型或来源" value={query} onChange={(event: ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)} /></label><span className="debug-candidate-muted">{filteredAssets.length} 项样张 · 不含生产正文</span></div>
+          {asset ? <div className="debug-candidate-split"><div className="debug-candidate-list" aria-label="资产列表">{filteredAssets.map(item => <ActionButton key={item.key} variant="plain" className="debug-candidate-record" aria-pressed={asset.key === item.key} onClick={() => setAssetKey(item.key)}><Badge>{item.type}</Badge><strong>{item.label}</strong><code>{item.key}</code></ActionButton>)}</div><article className="debug-candidate-detail" aria-label="资产详情"><div className="debug-candidate-detail-heading"><h3>{asset.label}</h3><Badge>当前定义</Badge></div><Section title="身份与来源"><Facts items={[[ '稳定 key', asset.key ], ['版本', asset.version], ['自动指纹', asset.fingerprint], ['归属', asset.ownership], ['来源', asset.source], ['状态', '隔离样张']]} /></Section><Section title="定义边界"><p>{asset.summary}</p><p className="debug-candidate-muted mt-3">这里不提供正文编辑。模板、运行时数据和实发内容分别追踪。</p></Section><Section title="关联调用" note="以明确保存的资产 key 查找样张，避免把可用资产当成实际使用。">{records.filter(item => item.assetKeys.includes(asset.key)).map(item => <ActionButton key={item.id} className="debug-candidate-asset-link" variant="plain" onClick={() => openRecord(item.id)}><div><strong>{item.title}</strong><code>{item.id}</code></div><ArrowUpRight size={14} /></ActionButton>)}{!records.some(item => item.assetKeys.includes(asset.key)) && <p>此范围内没有关联调用。</p>}</Section></article></div> : <EmptyState title="没有匹配的资产" description="调整搜索条件；目录不包含用户会话、凭据或工具原始输出。" />}
+        </>}
+        {perspective === 'companion' && <div className="debug-candidate-reading"><Section title="当前人物"><Facts items={[[ '角色', '林 · 样张人物' ], ['身份来源', 'Role Pack loader'], ['生活快照', '14:32 · 样张时间'], ['快照性质', '当前状态，非历史请求']]} /></Section><Section title="生活与关系"><Facts items={[[ '当前地点', '家中 · 书桌前' ], ['当前活动', '整理旅行照片'], ['关系摘要', '最近聊过旅行偏好'], ['注入边界', '生活与关系由动态上下文独立注入']]} /></Section><Section title="解释一次调用"><p>当前生活状态不能证明过去请求使用了哪些上下文。</p><ActionButton className="mt-3" onClick={() => openRecord('demo-call-03')}>前往运行记录 <ArrowUpRight size={13} /></ActionButton></Section></div>}
+        {perspective === 'quality' && <div className="debug-candidate-split"><div className="debug-candidate-list">{[['skill', 'Skill 边界检查', '自动检查 · 1 项失败'], ['persona', '人格一致性验收', '人工审阅 · 待审阅']].map(([id, label, summary]) => <ActionButton key={id} variant="plain" className="debug-candidate-record" aria-pressed={qualityId === id} onClick={() => setQualityId(id)}><strong>{label}</strong><span>{summary}</span></ActionButton>)}</div><article className="debug-candidate-detail"><div className="debug-candidate-detail-heading"><h3>{qualityId === 'skill' ? 'Skill 边界检查' : '人格一致性验收'}</h3><Badge tone={qualityId === 'skill' ? 'danger' : 'neutral'}>{qualityId === 'skill' ? '未通过' : '待审阅'}</Badge></div><Section title="验收结论"><p>{qualityId === 'skill' ? '工具边界检查未通过。优先查看具体检查证据，再判断行为是否符合预期。' : '自动判定与人工体验判断分开保存。当前样张尚无人工结论。'}</p></Section><Section title="检查证据">{qualityId === 'skill' ? <><Facts items={[[ '应触发行为', '通过' ], ['指南注入', '通过'], ['工具边界', '失败 · 样张调用超出 allowed_tools'], ['回复约束', '通过']]} /><details className="debug-candidate-raw"><summary>查看失败检查证据</summary><p>样张期望：仅可读取；样张实际：报告记录了写入工具。此信息属于 Eval 样张，不是生产运行故障。</p></details></> : <Facts items={[[ '人格表达', '自动检查通过 · 样张' ], ['关系连续性', '需人工判断'], ['审阅记录', '无'], ['报告正文', '只读']]} />}</Section></article></div>}
+        {perspective === 'system' && <div className="debug-candidate-reading"><Section title="实际运行环境" note="展示实际值，区别于默认配置；样张不包含端点或凭据。"><Facts items={[[ '应用版本', '开发版 · 样张' ], ['平台', 'Windows'], ['运行时', 'Electron / Node.js'], ['当前模型', '示例对话模型'], ['凭据状态', '已配置 · 不展示值']]} /></Section><Section title="工具与连接"><Facts items={[[ '内置工具', '8 个 · 样张' ], ['MCP', '1 项连接失败 · 样张'], ['沙箱', '读取实际策略 · 样张'], ['权限规则', '生产来源只读展示']]} /><div className="debug-candidate-call-error"><strong>MCP 连接失败</strong><p>工具清单尚未取得，数量未知。连接编辑与重试归设置管理。</p></div></Section><Section title="只读诊断边界"><p>这里用于确认系统实际状态。不会在浏览过程中发起模型调用、改写配置或自动清理日志。</p></Section></div>}
+        <footer className="debug-candidate-footer"><Check size={12} />示例标识均以 demo 标记；此候选不读写真实会话。<ProductExperienceDependencies tabId="debug" showSource /></footer>
+      </main>
+    </div>
+  </div>
+}

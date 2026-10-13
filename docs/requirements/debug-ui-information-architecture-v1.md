@@ -1,10 +1,32 @@
 # 施工合同：Debug 界面信息架构与生产证据 v1
 
-> 状态：进行中（2026-09-05）
+> 状态：进行中（2026-10-13；P0 候选完成，正式回流待验收授权）
 > 生命周期：进行中
 > 范围：正式 Debug UI 的信息架构、真实证据展示和受控诊断入口；不改变 Agent 行为、Prompt、权限规则和生产配置语义。
 > 研究参考：Alice `/debug`、M32 Debug 与 Playground 代码走读、当前 `DevPanel` 与 `debug` IPC。
 > 统一称呼：施工合同
+
+## 2026-10-13 重设计施工范围
+
+用户授权「参考 Alice」「不考虑兼容」「开干」。本轮完成 P0 可交互候选，正式回流须在用户实际查看后单独明确授权；不沿用旧布局。
+
+- Alice 研究：`alice-source/_extract/index-ppRSWnkN.js` 的 `ZM`（全页分组导航）、`Pp`（调用详情）与「LLM 调用链」区域；可观测理念见 `alice-methodology/chapters/13-observability.md`。CC 恢复源码的 `debug-tool-call/index.js` 仅为禁用 stub，没有可复用桌面布局；选择 Alice 的主从浏览思路，保留本项目数据契约。
+- 五个独立视角：运行记录（默认）、生产资产、伙伴状态、质量报告、系统状态。运行视角以记录列表 → 请求 / 执行 / 来源证据为主；不再让用户在三个页面拼接同一次调用。
+- 固定框架：单一左导航、页面标题与来源、紧凑摘要、搜索 / 筛选、主从详情。详情区优先可读字段和阶段时间，原始记录只折叠展开。
+- 所有候选数据是显式隔离样张，不能成为 Prompt 或生产目录事实源。只展示来源 key / 元数据，不复制生产 Prompt 正文；只有真实标识存在时才允许关联跳转。历史正文缺失明确说明，禁止以当前装配内容补成历史快照。
+- 修改范围：`DebugExperienceCandidate.tsx`、候选样张与局部 CSS、PlaygroundShell / catalog、产品体验注册表、相关 Unit / E2E、Playwright 测试入口及本文档 / runtime 模块卡 / quality / progress / changelog。
+- 不修改生产 `DevPanel`、主进程、共享 IPC、模型调用、资产正文、设置或日志存储；不移除任何旧生产行为。无新增依赖。
+- 资产归属同步：`scripts/asset-governance.mjs` 显式登记三个候选来源至产品体验家族；不泛化目录豁免、不改门禁算法、不将业务工作区冒充 Foundation 组件。
+- 可验证步骤：完成五个视角和记录选择 / 搜索 / 筛选 / 证据跳转 → 覆盖异常、运行中、空、正文缺失和刷新失败保留证据 → 深浅主题及宽窄截图、键盘操作 → 自审、Unit、类型、build、E2E、资产与文档门禁 → 提交推送，展示候选供回流确认。
+- 数据映射：调用记录 `debug:llm-logs-query`，调用链 `debug:traces`，事件使用既有 eventLog；生产目录 `debug:model-context-assets`，伙伴 `debug:world-snapshot`，质量使用现有 Eval 报告入口，系统 `debug:system-info`。候选不调用上述 IPC；正式接线时以现有共享类型与处理器为准。
+- 取舍：候选采用请求级浏览，不声称现有数据已经完整支持跨调用的任务聚合。耗时、Token、状态分别表达，未知值不伪装成零；受控诊断与编辑不混入只读浏览。
+
+### P0 交付证据
+
+- L1 自审：调用关联仅来自显式样张 key / id；无生产 API 或模型调用，无 Prompt 正文副本，无正式组件默认行为变更。候选状态与显示数据分离，刷新错误保留已有记录、筛选和选中项。
+- `npx tsc --noEmit`、全量 Unit（203 文件 / 1358 项）、候选 E2E（深浅主题 × 宽窄，4 项）、`npx vite build`、`npm run assets:check` 与 staged `npm run docs:validate` 通过。项目未配置独立 lint 脚本；`git diff --cached --check` 通过。构建仍提示大 chunk 与既有动态 / 静态 import 混用，不在此候选范围扩大构建重构。
+- 浏览器已实际进入候选；截图检查宽屏分栏和窄屏堆叠，执行 / 来源 / 报告均有真实可操作的隔离路径。本合同仍进行中，不将 P0 当作生产数据接线完成。
+
 
 ## 1. 需求背景（Why）
 
