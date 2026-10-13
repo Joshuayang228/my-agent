@@ -43,7 +43,7 @@
 
 | [playground-mcp-scenarios-v1.md](./playground-mcp-scenarios-v1.md) | P0 施工：MCP 多服务、连接状态与工具数量场景直接审阅 |
 | [playground-model-and-workspace-v2.md](./playground-model-and-workspace-v2.md) | P0 施工：从用户故事重构模型设置与任务工作区候选 |
-| [debug-ui-information-architecture-v1.md](./debug-ui-information-architecture-v1.md) | Debug 重设计：七组 24 入口整体 P0 已施工，正式回流待实际查看与明确许可 |
+| [debug-ui-information-architecture-v1.md](./debug-ui-information-architecture-v1.md) | Debug 重设计：现有七组 26 入口候选已施工，按阅读任务呈现的完整修订方案待确认；正式回流未授权 |
 | [wardrobe-clothing-system-v1.md](./wardrobe-clothing-system-v1.md) | P0 / P1：衣物资产、当前穿着、穿搭槽位、换上链路与真实生图衣柜 |
 | [culture-corner-v1.md](./culture-corner-v1.md) | 四类文化生活：用户许可推进，Playground 四分类与详情候选施工，真实链路及正式回流未完成 |
 | [home-spaces-v1.md](./home-spaces-v1.md) | 家居：总览鸟瞰、空间与有意义物件；已许可 Playground 候选，真实数据链与正式回流未交付 |
