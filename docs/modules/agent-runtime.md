@@ -4,7 +4,7 @@
 
 Playground「产品体验 → Debug 诊断」提供独立单侧栏工作区，按运行记录、生产资产、伙伴状态、质量报告和系统状态组织隔离样张。记录支持搜索、状态筛选、模型输入 / 执行 / 来源切换，以及调用 → 资产 → 关联调用跳转；结构化记录默认折叠。刷新失败保留最后快照；未知计量、未关联 Span 与未保存正文明确展示。
 
-来源：`DebugExperienceCandidate.tsx`、`debug-experience-fixtures.ts` 与 `experience.debug`。基础控件复用 Foundation，局部样式仅作用于候选。此能力不调用生产 IPC、不复制 Prompt 正文、不修改正式 Debug；正式回流仍待用户查看并明确授权。必测：深浅主题、宽窄布局、键盘选择、筛选空态、运行中、失败与证据关联。施工边界见 [Debug 施工合同](../requirements/debug-ui-information-architecture-v1.md)。
+来源：`DebugExperienceCandidate.tsx`、`debug-experience-fixtures.ts` 与 `experience.debug`。基础控件复用 Foundation，局部样式仅作用于候选。此能力不调用生产 IPC、不复制 Prompt 正文、不修改正式 Debug。**首版候选已被用户否定，不能作为正式回流基线**：缺明确提示词管理器与生活分项入口。已按 Alice 六组 26 页完成来源对照，整体重做方案见 [Debug 施工合同](../requirements/debug-ui-information-architecture-v1.md)；新候选尚未实现。必测：深浅主题、宽窄布局、全导航覆盖、键盘选择、筛选空态、运行中、失败与证据关联。
 
 ## 已落地能力：模型请求强制注册编译
 
