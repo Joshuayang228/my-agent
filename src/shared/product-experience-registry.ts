@@ -116,14 +116,14 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
   experience({
     key: 'experience.debug',
     labelZh: 'Debug 诊断',
-    descriptionZh: '独立诊断工作区的隔离候选，以一次调用和明确来源组织证据。',
+    descriptionZh: '独立诊断工作区的隔离候选，以领域分组和明确来源组织人物、生活与运行证据。',
     status: 'playground',
     playgroundTabId: 'debug',
-    sourcePaths: ['src/components/playground/DebugExperienceCandidate.tsx', 'src/components/playground/debug-experience-fixtures.ts', 'src/components/playground/debug-experience.css'],
+    sourcePaths: ['src/components/playground/DebugExperienceCandidate.tsx', 'src/components/playground/debug-experience-fixtures.ts', 'src/components/playground/debug-experience.css', 'src/components/playground/DebugPromptCandidate.tsx', 'src/components/playground/DebugEvidenceCandidate.tsx', 'src/components/playground/debug-asset-fixtures.ts', 'src/components/playground/debug-evidence-fixtures.ts'],
     formalEntryPaths: ['src/components/DevPanel.tsx'],
-    realDataPaths: ['electron/main/ipc/debug.ts', 'electron/main/debug/model-context-assets.ts'],
+    realDataPaths: ['electron/main/ipc/debug.ts', 'electron/main/debug/model-context-assets.ts', 'electron/main/agent/debug-world-snapshot.ts', 'electron/main/ipc/companion.ts', 'electron/main/ipc/memory.ts'],
     evidencePaths: ['__tests__/e2e/debug-candidate.test.ts', '__tests__/unit/debug-candidate-isolation.test.ts'],
-    experienceParts: ['运行记录', '生产资产', '伙伴状态', '质量报告', '系统状态'],
+    experienceParts: ['内核与提示词工作台', '生活诊断', '社交证据', '资产来源', '用户上下文与资料', '系统与运行证据', '质量验收'],
     usesFoundation: ['behavior.action-button', 'behavior.input', 'behavior.badge', 'state.empty', 'state.error'],
   }),
 ] as const satisfies readonly ProductExperienceDefinition[]

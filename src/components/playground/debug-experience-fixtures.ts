@@ -4,7 +4,7 @@
  * 关键约束：所有数据仅供 P0；关联只能使用显式 id，历史正文缺失不得用当前模板代替。
  */
 export type DebugScenario = 'normal' | 'running' | 'empty' | 'refresh-error'
-export type DebugPerspective = 'runs' | 'assets' | 'companion' | 'quality' | 'system'
+export type DebugPerspective = 'assets' | 'schedule' | 'recent' | 'activity' | 'now' | 'location' | 'residence' | 'interests' | 'growth' | 'relations' | 'proactive' | 'wardrobe' | 'items' | 'links' | 'context' | 'profile' | 'memories' | 'runs' | 'traces' | 'events' | 'tools' | 'system' | 'quality' | 'persona'
 export interface DebugRecordFixture {
   id: string
   title: string
@@ -36,26 +36,50 @@ export const DEBUG_RECORD_FIXTURES: readonly DebugRecordFixture[] = [
   { id: 'demo-call-01', title: '提取旅行偏好', caller: '记忆提取', status: 'success', time: '14:30:12', model: '示例辅助模型', durationMs: 840, inputTokens: 720, outputTokens: 86, sessionId: 'demo-session-02', assetKeys: ['demo.memory.extract'], stages: [] },
 ]
 
-export interface DebugAssetFixture {
-  key: string
+export type DebugGroup = '内核' | '生活' | '社交' | '资产' | '用户' | '系统' | '质量'
+export const DEBUG_GROUPS: readonly DebugGroup[] = ['内核', '生活', '社交', '资产', '用户', '系统', '质量']
+export interface DebugView {
+  id: DebugPerspective
+  group: DebugGroup
   label: string
-  type: string
-  version: string
-  fingerprint: string
+  description: string
   source: string
-  ownership: string
-  summary: string
 }
-export const DEBUG_ASSET_FIXTURES: readonly DebugAssetFixture[] = [
-  { key: 'demo.prompt.main', label: '主对话语义编译', type: '提示词', version: '样张 v3', fingerprint: 'demo:71c83a', source: 'electron/main/prompts/compiler.ts', ownership: '平台', summary: '动态组装平台规则、人物、成长、行为、情境与输出契约。目录描述当前定义，具体调用的输入以请求证据为准。' },
-  { key: 'demo.role.lin', label: '人物定义 · 林', type: '人物', version: '样张 v2', fingerprint: 'demo:a59e12', source: 'Role Pack loader', ownership: '角色包', summary: '人物身份与角色资产的来源示例。生活状态独立注入，不覆盖稳定身份。' },
-  { key: 'demo.tool.read', label: '读取工具', type: '工具', version: '样张 v1', fingerprint: 'demo:8e6f02', source: 'ToolRegistry', ownership: '平台', summary: '工具身份及只读能力摘要。生产目录须读取 Registry，不能从展示文案生成权限规则。' },
-  { key: 'demo.memory.extract', label: '记忆提取策略', type: '记忆', version: '样张 v1', fingerprint: 'demo:462ca9', source: 'memory production definitions', ownership: '平台', summary: '后台提取行为的资产关联示例，不包含用户记忆正文。' },
+export const DEBUG_PERSPECTIVES: readonly DebugView[] = [
+  { id: 'assets', group: '内核', label: '提示词管理器', description: '按人物与用途查找定义，查看正文、模板、变量和来源。', source: 'debug:model-context-assets' },
+  { id: 'schedule', group: '内核', label: '今日日程', description: '查看当天计划；计划与事件发布状态分别追踪。', source: 'debug:world-snapshot · dayScript' },
+  { id: 'recent', group: '内核', label: '最近事项', description: '浏览计划与已发布的生活事件，追踪关联动态和资产。', source: 'debug:world-snapshot · events / life/slices.ts' },
+  { id: 'activity', group: '内核', label: '行为日志', description: '查看已记录的行为证据，区分生活计划与模型请求。', source: 'Trace / eventLog / growth/reflection-log.ts' },
+  { id: 'now', group: '生活', label: '此刻', description: '当前活动、情绪与生活推进状态。', source: 'debug:world-snapshot · world / life' },
+  { id: 'location', group: '生活', label: '位置', description: '分开查看当前位置、常去地点和动态中的地点。', source: 'world.currentLocation / footprint / moments' },
+  { id: 'residence', group: '生活', label: '居住空间', description: '区分居所设定、当前居所和拥有的生活物件。', source: 'worldDefaults.home / world.home / home assets' },
+  { id: 'interests', group: '生活', label: '兴趣资料', description: '人物稳定兴趣与文化记录；不推断动态兴趣进度。', source: 'Role Profile.interests / culture / bookshelf' },
+  { id: 'growth', group: '生活', label: '成长与反思', description: '查看成长覆盖、版本及已记录的反思结果。', source: 'mutable-store / companion:reflection-status' },
+  { id: 'relations', group: '社交', label: '人物关系', description: '查看人物关系资料与已有成长线索。', source: 'companion:get-contacts / roster / milestones' },
+  { id: 'proactive', group: '社交', label: '主动消息证据', description: '只展示可证明的问候与消息证据。', source: 'life/proactive-greeting.ts / conversation messages' },
+  { id: 'wardrobe', group: '资产', label: '衣柜', description: '拥有的衣物、当前穿着与来源，默认只读。', source: 'life/assets.ts · wardrobe / Moment.outfit' },
+  { id: 'items', group: '资产', label: '文化与物品', description: '查看作品、书籍与生活物件的分类和来源。', source: 'companion_assets · culture / bookshelf / furniture' },
+  { id: 'links', group: '资产', label: '生活事件关联', description: '按显式事件标识查看动态与长期资产之间的关联。', source: 'companion:get-life-slice / companion_event_links' },
+  { id: 'context', group: '用户', label: '上下文', description: '区分当前装配预览、本次注入与历史保存范围。', source: 'ContextInspectorPanel / debug:system-prompt' },
+  { id: 'profile', group: '用户', label: '用户画像', description: '查看用户身份、协作方式与表达偏好的提取结果。', source: 'buildUserProfile(role.id)' },
+  { id: 'memories', group: '用户', label: '用户记忆', description: '区分全局与人物分桶、存储条目与实际召回。', source: 'memory:list / memory-store / injection evidence' },
+  { id: 'runs', group: '系统', label: 'LLM 调用', description: '定位一次调用，查看输入结构、执行过程与资产来源。', source: 'debug:llm-logs-query' },
+  { id: 'traces', group: '系统', label: '调用链', description: '以明确 Span 关联查看执行阶段和失败位置。', source: 'debug:traces' },
+  { id: 'events', group: '系统', label: '实时事件', description: '展示本次运行期间收到的事件，不当作完整历史台账。', source: 'DevPanel.eventLog / AgentStreamEvent' },
+  { id: 'tools', group: '系统', label: '技能与工具', description: '区分注册定义、当前可用与此次实际使用。', source: 'debug:tools / skills:list / systemInfo.mcp' },
+  { id: 'system', group: '系统', label: '系统状态', description: '查看实际运行环境与连接，配置编辑仍归设置。', source: 'debug:system-info' },
+  { id: 'quality', group: '质量', label: 'Skill 验收', description: '从验收结论进入输入、边界检查与失败证据。', source: 'Skill Eval report' },
+  { id: 'persona', group: '质量', label: '人格验收', description: '区分自动一致性判定与人工语气体验审阅。', source: 'Persona Eval report / human review' },
 ]
-export const DEBUG_PERSPECTIVES: readonly { id: DebugPerspective; label: string; description: string; source: string }[] = [
-  { id: 'runs', label: '运行记录', description: '定位一次调用，查看输入结构、执行过程与资产来源。', source: 'LLM 调用记录 · Trace · 实时事件' },
-  { id: 'assets', label: '生产资产', description: '查看当前生产定义，以及哪些调用使用过它。', source: 'debug:model-context-assets' },
-  { id: 'companion', label: '伙伴状态', description: '区分当前人物、生活快照与长期关系资料。', source: 'debug:world-snapshot' },
-  { id: 'quality', label: '质量报告', description: '从结论进入检查证据，区分自动判定与人工审阅。', source: 'Skill / Persona Eval 报告' },
-  { id: 'system', label: '系统状态', description: '查看实际运行环境与连接，配置编辑仍归设置。', source: 'debug:system-info' },
-]
+export const DEBUG_ROLES = [{ id: 'lin', label: '林 · 样张' }, { id: 'yu', label: '予 · 样张' }] as const
+
+export const DEBUG_CAPABILITY_GAPS = [
+  ['日记与情绪日记', '目前只有动态与补叙，未形成独立日记模型。'],
+  ['动态兴趣', '稳定兴趣已有；兴趣轮换、进度与结束状态未形成完整链路。'],
+  ['独立思绪池', '反思结果可追踪，不展示模型隐藏思维。'],
+  ['信件与消息台账', '问候已有；独立信件与完整交付历史尚未形成。'],
+  ['生活账簿', '物品来源已有，不具备钱包余额和交易台账。'],
+  ['头像与封面历史', '媒体引用已有，未形成独立版本、激活和切换历史。'],
+  ['用户待办', '定时任务和 Agent 任务不等于用户待办状态机。'],
+  ['完整生活执行日志', '计划 / 发布不能证明完成、跳过或重排原因。'],
+] as const
