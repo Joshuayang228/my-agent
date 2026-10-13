@@ -1,9 +1,8 @@
+import { compileTitleRequest } from '../prompts/registered-request'
 import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from './database'
 import { createLogger } from '../utils/logger'
 import { chatComplete } from '../llm/index'
-import { PROMPT_KEYS } from '../prompts/keys'
-import { SESSION_TITLE_SYSTEM_PROMPT } from '../prompts/texts'
 import { getSetting } from './settings-store'
 import { llmDebugStore } from './llm-debug-store'
 import type { ChatMessage, ChatSession, LLMConfig, SessionKind } from '../../../src/shared/types'
@@ -386,18 +385,10 @@ export async function generateSmartTitle(
     // maxTokens 略放宽：即使未关闭 thinking，也给正文留一点预算
     const title = (await chatComplete({
       config: llmConfig,
-      messages: [
-        {
-          role: 'system',
-          content: SESSION_TITLE_SYSTEM_PROMPT,
-        },
-        { role: 'user', content: userMessage.slice(0, 200) },
-        { role: 'assistant', content: assistantReply.slice(0, 200) },
-      ],
+      request: compileTitleRequest(userMessage, assistantReply),
       temperature: 0.3,
       maxTokens: 64,
       caller: 'title',
-      promptAssetKeys: [PROMPT_KEYS.sessionTitle],
       sessionId,
     })).trim()
 

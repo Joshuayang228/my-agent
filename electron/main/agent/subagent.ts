@@ -18,7 +18,7 @@ import { ToolRegistry } from '../tools/registry'
 import { createLogger, hashForLog } from '../utils/logger'
 import { startSpan } from '../utils/tracer'
 import { llmDebugStore } from '../storage/llm-debug-store'
-import { PROMPT_KEYS } from '../prompts/keys'
+import { compileSubagentSystem } from '../prompts/registered-request'
 import { registerSubAgent } from './subagent-registry'
 import { AGENT_ROLES, getSubAgentRoleAsset } from './subagent-asset-registry'
 import type { AgentRole } from './subagent-asset-registry'
@@ -128,9 +128,7 @@ export async function runSubAgent(
     ? { ...config.toolContext, sessionId: debugSessionId }
     : config.toolContext
 
-  const systemPrompt = buildSubAgentSystemPrompt(config.role, {
-    sessionKind: config.toolContext?.sessionKind,
-  })
+  const systemPrompt = compileSubagentSystem(config.role, config.toolContext?.sessionKind)
   const messages: ChatMessage[] = [
     { id: 'sub-user', role: 'user', content: config.task, timestamp: Date.now() },
   ]
@@ -199,7 +197,6 @@ export async function runSubAgent(
         messages,
         tools: childRegistry.getAll(),
         systemPrompt,
-        promptAssetKeys: [PROMPT_KEYS.subagentSystem],
         maxIterations,
         signal,
         executionMode,           // G4：只降不升后的模式

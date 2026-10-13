@@ -39,7 +39,6 @@ vi.mock('../../electron/main/sandbox/permission-engine', () => ({ loadRules: vi.
 vi.mock('../../electron/main/llm/index', () => ({ chatComplete, LLMError: class LLMError extends Error {} }))
 vi.mock('../../electron/main/llm/aux-config', () => ({ loadMainLLMConfig }))
 vi.mock('../../electron/main/llm/model-discovery', () => ({ fetchRemoteModels }))
-vi.mock('../../electron/main/prompts/keys', () => ({ PROMPT_KEYS: { connectionTest: 'test' } }))
 
 import { getRendererSettings, registerSettingsIPC } from '../../electron/main/ipc/settings'
 

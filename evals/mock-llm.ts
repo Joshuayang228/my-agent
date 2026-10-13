@@ -83,10 +83,10 @@ export function createCapturingMockStreamChat(
 
   // 必须手动 forward 而非 yield*，以保证 AsyncGenerator 的 return value 正确传播
   return async function* capturingMock(options: unknown): AsyncGenerator<import('../src/shared/types').AgentStreamEvent, import('../electron/main/llm/index').StreamChatResult> {
-    const opts = options as { messages: import('../src/shared/types').ChatMessage[] }
+    const opts = options as { request: import('../src/shared/types').RegisteredModelRequest }
     callIdx++
     // 拷贝一份：loop 内部可能会修改 messages 数组
-    captured.calls.push({ messages: [...opts.messages], turnIndex: callIdx })
+    captured.calls.push({ messages: [...opts.request.messages], turnIndex: callIdx })
 
     const gen = baseFn(options)
     let step = await gen.next()

@@ -39,7 +39,7 @@ describe('model-based grader', () => {
     expect(result.violations).toEqual(['second: 原文证据'])
     expect(result.evidence).toContain('[1] NOT_FOUND')
     expect(chatComplete).toHaveBeenCalledOnce()
-    const prompt = chatComplete.mock.calls[0][0].messages[0].content
+    const prompt = chatComplete.mock.calls[0][0].request.messages[0].content
     expect(prompt).toContain('完整回复')
   })
 

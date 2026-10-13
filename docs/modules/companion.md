@@ -1,5 +1,9 @@
 # 伙伴世界（Companion）
 
+## 已落地能力：伙伴行为请求自动绑定来源
+
+主对话和四种后台行为通过 `prompts/registered-request.ts` 的固定配方生成模型请求，服务不再手填来源 key。角色文件、成长覆盖、行为增量与可选语气回退依赖随实际编译自动推导；新增角色仍复用 Role Pack 与行为协议，新增行为需同步配方、注册定义和边界测试。Debug 生产详情只读，动态正文以模板 / 插槽及真实调用区分展示。
+
 ## 已落地能力：伙伴 Prompt 正文与人物来源统一收口
 
 四个后台行为的生产正文和输出协议集中在 `prompts/companion-behaviors.ts`，服务只负责读取事实、调用模型、校验和回退；Debug 模板由同一构造器生成。角色通过 `protected.md`、可选 profile / world / voice 和 `behaviors/<行为>.md` 塑造身份与行为增量，不复制通用任务协议；运行时成长覆盖单独标源。结构化人物来源复用 `identity/source-assets.ts` 的 canonical key；召唤场景按实际文件或派生默认追踪，不推进对方生活世界。

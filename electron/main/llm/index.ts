@@ -7,6 +7,7 @@ import type {
   AgentStreamEvent,
   ResponseFormat,
   PromptAssetKeyList,
+  RegisteredModelRequest,
   SkillActivationTrace,
 } from '../../../src/shared/types'
 import { detectProvider, buildAnthropicBody, buildGeminiBody } from './provider-router'
@@ -34,6 +35,7 @@ import {
 } from '../utils/tracer'
 import { getTraceContext } from '../utils/trace-context'
 import { resolvePromptAssetTraces } from '../prompts/registry'
+import { readRegisteredModelRequest } from '../prompts/registered-request'
 import { recordAssetUsage, recordAssetUsages } from '../utils/asset-usage'
 import { PROVIDER_ASSET_KEYS } from './provider-asset-keys'
 import { PROVIDER_PRESETS } from '../../../src/shared/provider-presets'
@@ -82,7 +84,10 @@ export function parseRetryAfterMs(response: Response): number | undefined {
 
 interface StreamChatBaseOptions {
   config: LLMConfig
-  messages: ChatMessage[]
+  request: RegisteredModelRequest
+  messages?: never
+  promptAssetKeys?: never
+  promptlessReason?: never
   tools?: ToolDefinition[]
   signal?: AbortSignal
   responseFormat?: ResponseFormat
@@ -102,11 +107,24 @@ interface StreamChatBaseOptions {
   skillActivations?: SkillActivationTrace[]
 }
 
-type PromptTracking =
-  | { promptAssetKeys: PromptAssetKeyList; promptlessReason?: never }
-  | { promptAssetKeys?: never; promptlessReason: string }
+export type StreamChatOptions = StreamChatBaseOptions
 
-export type StreamChatOptions = StreamChatBaseOptions & PromptTracking
+type ResolvedStreamChatOptions = Omit<StreamChatOptions, 'messages' | 'promptAssetKeys' | 'promptlessReason'> & {
+  messages: ChatMessage[]
+  promptAssetKeys: PromptAssetKeyList
+  promptScope: RegisteredModelRequest['scope']
+}
+
+/** 背景：旧入口可给任意正文手填来源；意图：只解析编译身份与注册依赖；约束：额外旧字段、错误行为和未知来源必须在 Trace / 网络之前失败。 */
+function resolveRequestOptions(input: StreamChatOptions): ResolvedStreamChatOptions {
+  if ('messages' in input || 'promptAssetKeys' in input || 'promptlessReason' in input) {
+    throw new Error('模型入口不接受原始消息、手填资产 key 或 promptlessReason')
+  }
+  const snapshot = readRegisteredModelRequest(input.request, input.caller ?? 'unknown')
+  const resolution = resolvePromptAssetTraces(snapshot.promptAssetKeys)
+  if (resolution.unknownKeys.length) throw new Error('模型请求引用了未注册的 Prompt 资产')
+  return { ...input, ...snapshot, promptScope: snapshot.scope }
+}
 
 export interface StreamChatResult {
   content: string | null
@@ -196,15 +214,9 @@ function finishLLMTrace(
  * 主模型失败时，按 config.fallbackModels 顺序自动重试备用模型。
  */
 export async function* streamChat(
-  options: StreamChatOptions,
+  input: StreamChatOptions,
 ): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
-  if (options.promptAssetKeys) {
-    if (options.promptAssetKeys.length === 0) {
-      throw new Error('LLM 调用的 promptAssetKeys 不能为空')
-    }
-  } else if (!options.promptlessReason?.trim()) {
-    throw new Error('LLM 调用必须声明 Prompt 资产，或提供非空 promptlessReason')
-  }
+  const options = resolveRequestOptions(input)
   const { config } = options
   const fallbacks = config.fallbackModels ?? []
   const sessionId = options.sessionId ?? getTraceContext().sessionId
@@ -220,12 +232,6 @@ export async function* streamChat(
   })
   const ownsTraceSpan = !options.traceSpan
   const promptAssetResolution = resolvePromptAssetTraces(options.promptAssetKeys ?? [])
-  if (promptAssetResolution.unknownKeys.length > 0) {
-    llmLog.warn('Unknown Prompt asset keys', {
-      caller: options.caller ?? 'unknown',
-      keys: promptAssetResolution.unknownKeys,
-    })
-  }
   const staticEvidence = [
     ...promptAssetResolution.assets.map((asset) => ({
       assetKey: asset.key,
@@ -332,7 +338,7 @@ export async function* streamChat(
         responseFormat: options.responseFormat,
         enablePromptCache: options.enablePromptCache === true,
         promptAssets: promptAssetResolution.assets,
-        ...(options.promptlessReason ? { promptlessReason: options.promptlessReason } : {}),
+        promptScope: options.promptScope,
         ...(options.skillActivations && options.skillActivations.length > 0 ? { skillActivations: options.skillActivations } : {}),
         ...(promptAssetResolution.unknownKeys.length > 0
           ? { unknownPromptAssetKeys: promptAssetResolution.unknownKeys }
@@ -354,7 +360,7 @@ export async function* streamChat(
   const cannotFallback = (error: unknown) => modelOutputStarted || options.signal?.aborted
     || (error instanceof Error && error.name === 'AbortError')
   // 背景：流已交给调用方后无法撤回；意图：禁止拼接两次模型输出；约束：切换提示不算模型输出，所有模型事件都算。
-  async function* attempt(attemptOptions: StreamChatOptions): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
+  async function* attempt(attemptOptions: ResolvedStreamChatOptions): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
     attemptOptions.signal?.throwIfAborted()
     if (!hasLLMAuthentication({ ...attemptOptions.config, fallbackModels: undefined })) {
       throw new Error('当前模型连接缺少 API Key')
@@ -418,7 +424,7 @@ export async function* streamChat(
  * 单模型流式调用（内部实现）。
  */
 async function* streamChatSingle(
-  options: StreamChatOptions,
+  options: ResolvedStreamChatOptions,
 ): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
   const { config, messages, tools, signal, responseFormat } = options
   const provider = detectProvider(config)
@@ -604,7 +610,7 @@ export function buildToolResultMessages(results: ToolResult[]): Record<string, u
 // ── Anthropic SSE 流式适配 ──
 
 async function* streamChatAnthropic(
-  options: StreamChatOptions,
+  options: ResolvedStreamChatOptions,
 ): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
   const { config, messages, tools, signal, enablePromptCache } = options
   const stripImages = isVisionDenied(config) || !hasImages(messages)
@@ -750,8 +756,10 @@ async function* streamChatAnthropic(
 
 interface ChatCompleteBaseOptions {
   config: LLMConfig
-  /** 简单的对话消息（system / user / assistant），辅助调用无需完整 ChatMessage */
-  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
+  request: RegisteredModelRequest
+  messages?: never
+  promptAssetKeys?: never
+  promptlessReason?: never
   /** 覆盖温度（辅助调用通常用低温） */
   temperature?: number
   /** 覆盖最大输出 token */
@@ -768,7 +776,7 @@ interface ChatCompleteBaseOptions {
   signal?: AbortSignal
 }
 
-export type ChatCompleteOptions = ChatCompleteBaseOptions & PromptTracking
+export type ChatCompleteOptions = ChatCompleteBaseOptions
 
 /**
  * 非流式 LLM 调用 —— 辅助场景（摘要 / 画像提取 / 标题生成）的统一入口。
@@ -785,9 +793,11 @@ export type ChatCompleteOptions = ChatCompleteBaseOptions & PromptTracking
  * @returns 模型输出的完整文本；失败或空结果时抛出错误由调用方兜底
  */
 export async function chatComplete(options: ChatCompleteOptions): Promise<string> {
+  resolveRequestOptions(options)
+
   const {
     config,
-    messages,
+    request,
     temperature,
     maxTokens,
     caller,
@@ -795,8 +805,6 @@ export async function chatComplete(options: ChatCompleteOptions): Promise<string
     parentSpanId,
     timeoutMs = 120_000,
     signal,
-    promptAssetKeys,
-    promptlessReason,
   } = options
 
   // 合并「外部中断」和「超时」两个信号
@@ -811,24 +819,15 @@ export async function chatComplete(options: ChatCompleteOptions): Promise<string
     fallbackModels: config.fallbackModels,
   }
 
-  const chatMessages: ChatMessage[] = messages.map((m, i) => ({
-    id: `cc_${i}`,
-    role: m.role,
-    content: m.content,
-    timestamp: Date.now(),
-  }))
-
   const startedAt = Date.now()
   // 消费整个流式生成器，只取最终结果（方案 A：流式收敛）
   const gen = streamChat({
     config: callConfig,
-    messages: chatMessages,
+    request,
     signal: combinedSignal,
     caller,
     sessionId,
     parentSpanId,
-    promptAssetKeys,
-    promptlessReason,
   })
   let result: StreamChatResult
   while (true) {
@@ -858,7 +857,7 @@ export async function chatComplete(options: ChatCompleteOptions): Promise<string
 // ── Gemini SSE 流式适配 ──
 
 async function* streamChatGemini(
-  options: StreamChatOptions,
+  options: ResolvedStreamChatOptions,
 ): AsyncGenerator<AgentStreamEvent, StreamChatResult> {
   const { config, messages, tools, signal } = options
   const stripImages = isVisionDenied(config) || !hasImages(messages)

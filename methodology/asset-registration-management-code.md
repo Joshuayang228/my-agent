@@ -1,7 +1,13 @@
 # 注册与管理：当前代码走读
 
 > 本文只记录当前实现如何落到代码；设计取舍见 [`asset-registration-management.md`](./asset-registration-management.md)。
-> 最近核对：2026-08-17。
+> 最近核对：2026-10-13。
+
+## 0. 模型入口的来源认证
+
+`prompts/registered-request.ts` 固定配方签发 RegisteredSystemPrompt 与 RegisteredModelRequest；共享品牌类型约束编译期，私有 WeakMap 约束运行时身份，冻结快照绑定正文和自动推导的 key。模型入口不接受原始消息、手填 key 或 promptlessReason；未知来源与错误行为在 Trace / 网络之前失败。
+
+主 Prompt 与压缩恢复系统消息同样认证，普通历史和工具结果仍是运行时数据。生产文件禁止导入 Eval 签发入口，实验草稿与 Eval 场景各有明确作用域。新增配方要登记真实 definitions；Unit 同时验证伪造 / 篡改 / 覆盖 / 未知来源失败，以及别名、namespace 和变量回溯。Debug 的只读生产详情展示正文或动态模板 / 插槽；实验草稿和用户补充保存是另一个受控职责，当次调用快照与即时装配预览不能互相冒充。
 
 ## 1. 统一展示契约
 

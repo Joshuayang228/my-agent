@@ -31,7 +31,7 @@ export function promptDefinitions(file: string, text: string): string[] {
   const found: string[] = []
   for (const node of source.statements) {
     if (ts.isFunctionDeclaration(node) && node.name && node.body
-      && /Prompt|SystemAddon/.test(node.name.text)
+      && /Prompt|SystemAddon|^compile.*(?:Request|System|Message)$/.test(node.name.text)
       && (/^(string|Promise<string)/.test(node.type?.getText(source) ?? '') || /^(build|compile|format|default|load)/.test(node.name.text))) {
       found.push(`${file}#${node.name.text}`)
     }
@@ -107,6 +107,7 @@ export function auditCallBindings(file: string, text: string, owners: Map<string
             const reference = imports.get(child.expression.text) ?? `${file}#${child.expression.text}`
             const required = owners.get(reference)
             if (required) {
+              if (/registered-request.ts#compile.*Request$/.test(reference)) return
               if (!required.some(key => declared.includes(`PROMPT_KEYS.${key}`))) errors.push(`${file}:${source.getLineAndCharacterOfPosition(node.getStart()).line + 1} ${reference}`)
               return
             }

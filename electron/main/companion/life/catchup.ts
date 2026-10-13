@@ -1,3 +1,4 @@
+import { buildCatchupLlmPrompt } from '../../prompts/companion-behaviors'
 /**
  * Catch-up（W3 / M23-G3）
  *
@@ -11,12 +12,9 @@ import type { LLMConfig } from '../../../../src/shared/types'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { chatComplete } from '../../llm/index'
-import { PROMPT_KEYS, ROLE_PROMPT_SUMMARY_SUFFIX, ROLE_BEHAVIOR_IDS, ROLE_BEHAVIOR_PROMPT_SUFFIX, rolePromptAssetKey } from '../../prompts/keys'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
-import { characterDefinitionFromRolePack } from '../../prompts/compiler'
-import { getCharacterPromptAssetKeys } from '../../prompts/dependencies'
-import { buildCatchupLlmPrompt } from '../../prompts/companion-behaviors'
+import { compileCatchupRequest } from '../../prompts/registered-request'
 import { eachLocalDateInclusive, toLocalDateString } from './dates'
 import { ensureDayScripts } from './engine'
 import { publishAndProjectRange } from './moments'
@@ -94,9 +92,7 @@ export async function generateCatchupSummaryViaLlm(
         maxTokens: llmConfig.maxTokens ?? 400,
         temperature: llmConfig.temperature ?? 0.7,
       },
-      messages: [{
-        role: 'user',
-        content: buildCatchupLlmPrompt({
+      request: compileCatchupRequest(pack, {
           roleName: pack.name,
           roleId,
           from,
@@ -105,12 +101,8 @@ export async function generateCatchupSummaryViaLlm(
           gapDays,
           home: world.home,
           voiceHint,
-          character: characterDefinitionFromRolePack(pack),
-          behaviorPrompt: pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.catchup],
         }),
-      }],
       caller: 'catchup-summary',
-      promptAssetKeys: [PROMPT_KEYS.companionCatchup, PROMPT_KEYS.companionCompiler, ...getCharacterPromptAssetKeys(pack), ...(!pack.voice?.trim() && pack.summary?.trim() ? [rolePromptAssetKey(pack.id, ROLE_PROMPT_SUMMARY_SUFFIX)] : []), ...(pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.catchup] ? [rolePromptAssetKey(pack.id, ROLE_BEHAVIOR_PROMPT_SUFFIX.catchup)] : [])],
     })
     const normalized = normalizeCatchupSummaryText(raw)
     if (!normalized) {

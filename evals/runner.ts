@@ -1,3 +1,4 @@
+import { compileEvalSystem, readRegisteredSystemText } from '../electron/main/prompts/registered-request'
 /**
  * Eval Runner — 驱动 agentLoop，收集事件流，运行 graders
  *
@@ -39,7 +40,7 @@ import { collectAgentText } from './transcript'
 function snapshotAgentInput(
   options: {
     config: { model: string; baseUrl: string }
-    systemPrompt?: string
+    systemPrompt?: import('../src/shared/types').RegisteredSystemPrompt
     messages: Array<{ role: 'user' | 'assistant' | 'system' | 'tool'; content: string }>
     tools: Array<{ name: string }>
     executionMode?: PersonaEvalAgentInputSnapshot['executionMode']
@@ -49,7 +50,7 @@ function snapshotAgentInput(
     model: options.config.model,
     baseUrl: options.config.baseUrl,
     executionMode: options.executionMode ?? 'auto',
-    systemPrompt: options.systemPrompt ?? DEFAULT_SYSTEM_PROMPT,
+    systemPrompt: options.systemPrompt ? readRegisteredSystemText(options.systemPrompt) : DEFAULT_SYSTEM_PROMPT,
     messages: options.messages.map((message) => ({
       role: message.role,
       content: message.content,
@@ -99,6 +100,7 @@ export async function runScenario(scenario: EvalScenario): Promise<ScenarioResul
 
     const loopOptions = {
       ...restBaseOptions,
+      systemPrompt: restBaseOptions.systemPrompt === undefined ? undefined : compileEvalSystem(restBaseOptions.systemPrompt),
       tools: restBaseOptions.tools ?? registry.getAll(),
       toolContext: {
         ...(restBaseOptions.toolContext ?? {}),

@@ -146,7 +146,7 @@ describe('resolveDayScript', () => {
       llmConfig: { apiKey: 'k', baseUrl: 'http://x', model: 'm' },
     })
     const request = vi.mocked(chatComplete).mock.calls[0][0]
-    const prompt = String(request.messages[0].content)
+    const prompt = String(request.request.messages[0].content)
     expect(prompt).toContain('人物故事尚未确定')
     expect(prompt).toContain('当前不声明城市、家乡或长期生活地点')
     expect(prompt).not.toMatch(/临湾|海堤|旧港|码头/)

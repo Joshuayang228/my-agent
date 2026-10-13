@@ -14,9 +14,9 @@ import { BrowserWindow, Notification } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import { agentLoop } from './loop'
-import { characterDefinitionFromRolePack, compileMainChatPrompt } from '../prompts/compiler'
+import { characterDefinitionFromRolePack } from '../prompts/compiler'
 import { buildSummonContextPrompt, buildWorkspaceContextPrompt, buildActiveSkillPrompt } from '../prompts/runtime-context'
-import { getCharacterPromptAssetKeys, getSummonSceneAssetKeys } from '../prompts/dependencies'
+import { compileMainSystem } from '../prompts/registered-request'
 import { describeCastPresence } from '../companion/cast/availability'
 import { formatSummonSceneBlock } from '../companion/cast/scene-prompts'
 import { summonParentDelegationHint } from '../companion/cast/summon-delegation'
@@ -65,9 +65,8 @@ import {
 } from '../utils/trace-context'
 import { startSpan } from '../utils/tracer'
 import { AgentErrorCode, toAgentError } from '../errs'
-import type { ChatMessage, LLMConfig, ExecutionMode, AgentStreamEvent, ToolContext, WorkspaceChatContext, PromptAssetKey, PromptAssetKeyList, TerminalReason } from '../../../src/shared/types'
+import type { ChatMessage, LLMConfig, ExecutionMode, AgentStreamEvent, ToolContext, WorkspaceChatContext, TerminalReason } from '../../../src/shared/types'
 import { taskQueue } from '../services/task-queue'
-import { PROMPT_KEYS } from '../prompts/keys'
 
 const log = createLogger('Runtime')
 
@@ -287,7 +286,6 @@ class AgentRuntime {
       } catch { /* skill system not ready */ }
 
       let summonNote: string | undefined
-      let summonSceneAssetKeys: PromptAssetKey[] = []
       if (isSummon) {
         let presenceLine = ''
         try {
@@ -302,7 +300,6 @@ class AgentRuntime {
           sceneBlock = formatSummonSceneBlock(assembleRoleId)
         } catch { /* ignore */ }
         summonNote = buildSummonContextPrompt(presenceLine, summonParentDelegationHint(), sceneBlock)
-        if (sceneBlock) summonSceneAssetKeys = getSummonSceneAssetKeys(pack)
       }
       const sessionInfoParts = [summonNote].filter(Boolean)
       if (isWorkspace) {
@@ -380,15 +377,12 @@ class AgentRuntime {
         })
       }
 
-      const { text: systemPrompt } = compileMainChatPrompt({
-        character,
+      const systemPrompt = compileMainSystem(pack, mutableBody, {
         platform: {
           toolNames: toolRegistry.getAll().map(t => t.name),
           executionMode,
         },
         behavior: {
-          key: 'main-chat',
-          purpose: '在当前人物与会话情境中回应用户并完成请求。',
           customInstructions: customPrompt ?? undefined,
           replyStance: replyStanceHint,
           toneControl: toneControlHint,
@@ -410,31 +404,7 @@ class AgentRuntime {
           rosterLines,
         },
         currentDate: new Date().toLocaleDateString('sv-SE'),
-      })
-
-      // 调用点只声明稳定 key；来源、版本与 locale 由 LLM 统一入口从注册表解析。
-      // Role Pack 只标注本次实际读取的文件，动态 MUTABLE 与场景 Prompt 不冒充默认正文。
-      const promptAssetKeys: PromptAssetKeyList = [
-        PROMPT_KEYS.promptCompiler,
-        ...getCharacterPromptAssetKeys(pack, mutableBody),
-        ...summonSceneAssetKeys,
-        ...(isWorkspace ? [PROMPT_KEYS.workspaceContext] : []),
-        ...(customPrompt?.trim() ? [PROMPT_KEYS.settingsSystemPrompt] : []),
-        ...([userProfile?.identity, userProfile?.workflow, userProfile?.voice].some((value) => value?.trim())
-          ? [PROMPT_KEYS.userProfileContext]
-          : []),
-        ...(vectorContext?.trim() ? [PROMPT_KEYS.memoryRecallContext] : []),
-        PROMPT_KEYS.replyStance,
-        PROMPT_KEYS.toneControl,
-        ...(relationshipStageHint?.trim() ? [PROMPT_KEYS.relationshipStage] : []),
-        ...(milestoneHint?.trim() ? [PROMPT_KEYS.relationshipMilestones] : []),
-        ...(expertiseHint?.trim() ? [PROMPT_KEYS.expertiseLevel] : []),
-        ...(skillSummary?.trim() || activeSkillBody?.trim() ? [PROMPT_KEYS.skillContext] : []),
-        ...(summonNote?.trim() || (!isSummon && (catchupSummary?.trim() || worldSlice?.trim()
-          || recentMomentsSlice?.trim() || bookshelfSlice?.trim())) || rosterLines?.trim()
-          ? [PROMPT_KEYS.companionContext]
-          : []),
-      ]
+      }, isSummon ? 'summon' : isWorkspace ? 'workspace' : 'main')
 
       // ── 运行 Agent Loop ──
       const toolContext: ToolContext = {
@@ -465,7 +435,6 @@ class AgentRuntime {
           tools: toolRegistry.getAll(),
           confirmTool,
           systemPrompt,
-          promptAssetKeys,
           signal: abortController.signal,
           executionMode,
           toolContext,

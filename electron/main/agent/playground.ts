@@ -7,13 +7,14 @@
  * 关键约束：不注入 Role Pack / Moments / 记忆；失败返回可读错误。
  */
 
-import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
+import type { LLMConfig } from '../../../src/shared/types'
 import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import { chatComplete } from '../llm/index'
 import { loadMainLLMConfig } from '../llm/aux-config'
 import { createLogger } from '../utils/logger'
 import { DEFAULT_PLAYGROUND_SYSTEM } from '../prompts/texts'
-import { PROMPT_KEYS } from '../prompts/keys'
+import { buildPlaygroundMessages, type PlaygroundTurn } from '../prompts/playground'
+import { compilePlaygroundRequest } from '../prompts/registered-request'
 import { startLinkedAsyncSpan } from '../utils/tracer'
 
 export { DEFAULT_PLAYGROUND_SYSTEM } from '../prompts/texts'
@@ -23,46 +24,7 @@ const log = createLogger('Playground')
 export const MAX_PLAYGROUND_TEXT_LENGTH = 100_000
 export const MAX_PLAYGROUND_HISTORY_TURNS = 50
 
-/** 试验场历史轮（不含 system） */
-export type PlaygroundTurn = { role: 'user' | 'assistant'; content: string }
-
-export function buildPlaygroundMessages(input: {
-  systemPrompt?: string
-  userPrompt: string
-  history?: PlaygroundTurn[]
-}): ChatMessage[] {
-  const user = input.userPrompt.trim()
-  const system = (input.systemPrompt ?? '').trim() || DEFAULT_PLAYGROUND_SYSTEM
-  const now = Date.now()
-  const msgs: ChatMessage[] = [
-    {
-      id: `pg-sys-${now}`,
-      role: 'system',
-      content: system,
-      timestamp: now,
-    },
-  ]
-  const history = input.history ?? []
-  for (let i = 0; i < history.length; i++) {
-    const h = history[i]
-    const content = (h.content ?? '').trim()
-    if (!content) continue
-    if (h.role !== 'user' && h.role !== 'assistant') continue
-    msgs.push({
-      id: `pg-h-${now}-${i}`,
-      role: h.role,
-      content,
-      timestamp: now + i + 1,
-    })
-  }
-  msgs.push({
-    id: `pg-user-${now}`,
-    role: 'user',
-    content: user,
-    timestamp: now + history.length + 1,
-  })
-  return msgs
-}
+export { buildPlaygroundMessages, type PlaygroundTurn } from '../prompts/playground'
 
 async function loadPlaygroundLLMConfig(): Promise<LLMConfig> {
   const main = await loadMainLLMConfig()
@@ -105,11 +67,6 @@ export async function runPlayground(input: {
     return { ok: false, error: '请先在设置中配置 API Key' }
   }
 
-  const messages = buildPlaygroundMessages({
-    systemPrompt: input.systemPrompt,
-    userPrompt: user,
-    history: input.history,
-  })
   const span = startLinkedAsyncSpan('playground:run', 'system', {
     attributes: {
       model: config.model,
@@ -121,12 +78,8 @@ export async function runPlayground(input: {
   try {
     const text = await chatComplete({
       config,
-      messages: messages.map((m) => ({
-        role: m.role as 'system' | 'user' | 'assistant',
-        content: typeof m.content === 'string' ? m.content : String(m.content),
-      })),
+      request: compilePlaygroundRequest(input),
       caller: 'playground',
-      promptAssetKeys: [(input.systemPrompt ?? '').trim() ? PROMPT_KEYS.playgroundDraft : PROMPT_KEYS.playgroundDefault],
       temperature: 0.7,
       maxTokens: 1024,
     })

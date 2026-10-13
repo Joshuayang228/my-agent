@@ -5,8 +5,8 @@ import type { ChatMessage } from '../../src/shared/types'
 const capturedCalls: Array<{ messages: Array<{ role: string; content: string }> }> = []
 
 vi.mock('../../electron/main/llm/index', () => ({
-  chatComplete: vi.fn(async (opts: { messages: Array<{ role: string; content: string }> }) => {
-    capturedCalls.push({ messages: opts.messages })
+  chatComplete: vi.fn(async (opts: { request: { messages: Array<{ role: string; content: string }> } }) => {
+    capturedCalls.push({ messages: opts.request.messages })
     return '## 当前任务\n测试任务\n## 已完成步骤\n无\n## 当前状态\n进行中\n## 下一步计划\n无\n## 关键上下文\n无'
   }),
 }))

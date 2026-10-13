@@ -885,13 +885,27 @@ export interface LLMResponse {
 /** auto / confirm-all / plan-first 管确认；full-access 跳过确认且有效沙箱为放开路径 */
 export type ExecutionMode = 'auto' | 'confirm-all' | 'plan-first' | 'full-access'
 
+declare const registeredPromptBrand: unique symbol
+declare const registeredRequestBrand: unique symbol
+/** 仅由主进程 Prompt 编译器生成，运行时还校验对象身份。 */
+export interface RegisteredSystemPrompt {
+  readonly [registeredPromptBrand]: true
+  readonly text: string
+  readonly promptAssetKeys: PromptAssetKeyList
+  readonly scope: 'production' | 'eval'
+}
+export interface RegisteredModelRequest {
+  readonly [registeredRequestBrand]: true
+  readonly messages: readonly ChatMessage[]
+  readonly promptAssetKeys: PromptAssetKeyList
+  readonly scope: 'production' | 'playground' | 'eval'
+}
+
 export interface AgentLoopOptions {
   config: LLMConfig
   messages: ChatMessage[]
   tools: ToolDefinition[]
-  systemPrompt?: string
-  /** 本次 Loop 实际使用的 Prompt 注册表稳定 key；来源与版本由 LLM 入口统一解析。 */
-  promptAssetKeys?: PromptAssetKeyList
+  systemPrompt?: RegisteredSystemPrompt
   /** 当前 Loop 已激活的 Skill 元数据；正文仍只保留在真实请求消息中。 */
   skillActivations?: SkillActivationTrace[]
   maxIterations?: number

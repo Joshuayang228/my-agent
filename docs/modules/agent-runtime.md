@@ -1,12 +1,22 @@
 # Agent 运行时
 
+## 已落地能力：模型请求强制注册编译
+
+`streamChat` / `chatComplete` 只接受固定行为配方签发的 `RegisteredModelRequest`，不接受原始 messages、手填 key 或 promptlessReason。主对话、子任务、后台行为、压缩、画像、标题、连接诊断与模型探测的正文和实际依赖由 `prompts/registered-request.ts` 自动生成；身份表与冻结快照把正文和来源绑定，复制 / 序列化对象、旧字段覆盖、错误行为与未知资产在网络和 LLM Trace 之前被拒绝。
+
+子 Agent 的首次执行与继续任务都使用同一角色编译入口，保留召唤任务工边界。Loop 的主 System Prompt、压缩恢复系统消息也具有真实编译身份；普通历史、用户消息与工具结果作为运行时数据。Playground 草稿只能用于 playground 调用，Eval 自定义正文登记为外部实验来源；生产模块禁止导入 Eval 签发入口。新增正文和配方要登记 definitions，调用门禁覆盖 import 别名、namespace、变量和 spread，运行时校验不依赖命名约定。
+
+Debug 的生产资产详情只读：静态显示正文，动态显示模板或来源 / 插槽；实际请求的精确输入看当次调用快照。整个提示词管理器仍有隔离实验草稿和经二次确认保存用户会话补充指令的操作，不能把整个页面称为只读。当前即时装配预览不代表历史实发内容，持久化调用记录不保存完整正文。
+
+必测：伪造身份 / 篡改 / 额外旧字段 / 未注册来源 / 实验冒充生产均不能发请求；正常路由、失败转移、压缩、时间注入、拒绝继续、输出恢复和 Eval 保持可用。
+
 ## 已落地能力：Prompt 全入口注册与防漏门禁
 
 生产 Prompt 正文、动态包装与真实生产符号由 `prompts/registry.ts` 统一索引。主对话、四类伙伴行为、压缩、子任务、拒绝继续策略、输出截断恢复、时间参考、工作区与 Skill 包装都登记稳定 key；有模板的资产由实际纯构造器展开占位符，最终值以实际请求为准。旧 `agent/prompt-builder.ts` 已删除，Eval 直接使用语义编译器，历史单元夹具只存在测试目录。
 
 人物 manifest / profile / world 来源由 `companion/identity/source-assets.ts` 单一工厂提供，Prompt 和伙伴目录共用同一 key，Debug 聚合去重。真实请求仅登记实际人物文件、成长覆盖和场景来源；当前装配预览只追踪该预览实际注入的输入，不冒充完整会话。
 
-防漏测试检查生产定义符号、Role Pack 文本与 JSON 来源、内联模型指令和调用正文的资产归属，并包含新增函数未登记、错 key 与内联正文的负例。新增正文必须遵守命名约定并同步 `definitions`；未知调用 key 仍由统一解析器显式返回。Tool / Skill / MCP 继续从真实 Registry 自动发现。
+防漏测试检查生产定义符号、Role Pack 文本与 JSON 来源、内联模型指令和调用正文的资产归属，并包含新增函数未登记、错 key 与内联正文的负例。新增正文必须遵守命名约定并同步 `definitions`；统一解析器仍返回未知 key 供目录诊断；真实模型入口遇到未知来源立即拒绝。Tool / Skill / MCP 继续从真实 Registry 自动发现。
 
 ## 已落地能力：人物世界配图绑定边界
 
@@ -31,7 +41,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 | 类型 | 位置 |
 |------|------|
 | 运行时 | `agent/runtime.ts` · `agent/loop.ts` |
-| Prompt | `prompts/compiler.ts` · `prompts/registry.ts` · `prompts/texts.ts` |
+| Prompt | `prompts/registered-request.ts` · `prompts/compiler.ts` · `prompts/registry.ts` · `prompts/texts.ts` |
 | 压缩 | `agent/context-manager.ts` |
 | 队列 | `services/task-queue.ts` |
 | UI 调试 | DevPanel（Debug）· PlaygroundPage |
@@ -55,6 +65,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 
 - `electron/main/agent/runtime.ts`
 - `electron/main/agent/loop.ts`
+- `electron/main/prompts/registered-request.ts`
 - `electron/main/prompts/compiler.ts`
 - `electron/main/agent/context-manager.ts`
 - `electron/main/services/task-queue.ts`
@@ -253,7 +264,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 
 - 工作区侧边聊天 IPC 会话在活动期间绑定发起 Renderer，并以请求令牌释放归属；跨窗口发送／中断被拒绝，缺省会话 ID 不触发全局 Runtime 中断。
 
-**现状**：Loop / Runtime / Prompt / 压缩 / 队列 / MCP / Skill 管理 / 可观测主线已落地；Prompt 由生产注册表统一登记稳定 key、用途 / 角色、来源、版本、自动指纹、locale 和动态插槽；核心 key 已类型化，生产 LLM 调用必须声明非空 key 或显式 promptless 原因。Debug 提示词管理器已扩展为生产资产统一目录，覆盖 Prompt、伙伴人格、记忆策略、权限与沙箱、Tool schema、Skill、Eval Case / Grader、Eval Judge、模型 Provider 和 MCP；真实 LLM / Tool / Memory / Permission 路径写入 `available / used / triggered / matched` 四类脱敏关联，调用详情逐次展示资产证据，资产详情可反查最近使用，未知 key 不静默入库；LLM Debug 只通过现有 observer → tracer Span sink 持久化结构元数据、正文长度和资产证据；schema v14 会清理历史正文，侧栏不再读取 Prompt / 响应 / hidden reasoning；全页 Debug 已按开发者诊断任务收口：提示词管理器 / 请求与运行 / 伙伴状态 / 质量·Eval / 系统；请求与运行域直接读取真实请求快照并保留调用链 / 事件，质量域读取 Skill / Persona Eval 报告：Skill Eval 展示触发、指南注入、工具边界和回复约束证据，Persona Eval 在独立本地审阅层保存真人格人工判断；原始报告和自动判定保持只读。Playground 已按设计 / Agent 实验两组收口，设计组件边缘态合并展示，旧人格验收与体验夹具源码保留但不再作为 active 入口。
+**现状**：Loop / Runtime / Prompt / 压缩 / 队列 / MCP / Skill 管理 / 可观测主线已落地；Prompt 由生产注册表统一登记稳定 key、用途 / 角色、来源、版本、自动指纹、locale 和动态插槽；核心 key 已类型化，生产 LLM 调用只接受固定配方签发的请求，自动携带来源，禁止原始消息 / 手填 key / promptless 覆盖。Debug 提示词管理器已扩展为生产资产统一目录，覆盖 Prompt、伙伴人格、记忆策略、权限与沙箱、Tool schema、Skill、Eval Case / Grader、Eval Judge、模型 Provider 和 MCP；真实 LLM / Tool / Memory / Permission 路径写入 `available / used / triggered / matched` 四类脱敏关联，调用详情逐次展示资产证据，资产详情可反查最近使用，未知 key 不静默入库；LLM Debug 只通过现有 observer → tracer Span sink 持久化结构元数据、正文长度和资产证据；schema v14 会清理历史正文，侧栏不再读取 Prompt / 响应 / hidden reasoning；全页 Debug 已按开发者诊断任务收口：提示词管理器 / 请求与运行 / 伙伴状态 / 质量·Eval / 系统；请求与运行域直接读取真实请求快照并保留调用链 / 事件，质量域读取 Skill / Persona Eval 报告：Skill Eval 展示触发、指南注入、工具边界和回复约束证据，Persona Eval 在独立本地审阅层保存真人格人工判断；原始报告和自动判定保持只读。Playground 已按设计 / Agent 实验两组收口，设计组件边缘态合并展示，旧人格验收与体验夹具源码保留但不再作为 active 入口。
 **缺口**：Swarm（wishlist）；更完整的子 Agent 产品化；真实 HTTP/SSE replay 与操作系统级 Shell 隔离仍未纳入默认门禁；外部 MCP 工具描述已标记为不受信任数据，超大 schema fail-closed。
 
 - 2026-09-17：复核生活资产备份 IPC。`data:export` / `data:import` 覆盖生活资产与播种标记，失败与会话同一事务回滚；记忆导入仍走 `memoryStore.addMemory`。该链路不进入 Loop，也不把朋友圈互动、MCP、权限、凭据或项目路径纳入备份。

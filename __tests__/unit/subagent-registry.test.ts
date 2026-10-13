@@ -5,9 +5,12 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
+const captured = vi.hoisted(() => ({ options: [] as Array<import('../../src/shared/types').AgentLoopOptions> }))
+
 // mock agentLoop：产出一段文本 + 一次工具调用事件，不碰真实 LLM
 vi.mock('../../electron/main/agent/loop', () => ({
-  agentLoop: async function* () {
+  agentLoop: async function* (options: import('../../src/shared/types').AgentLoopOptions) {
+    captured.options.push(options)
     yield { type: 'text', content: 'continued response' }
     yield { type: 'tool_start', name: 'file_read', callId: 'c1', args: {} }
     yield { type: 'done', reason: 'completed' }
@@ -43,6 +46,7 @@ function makeRegParams(sessionId = 'sess-1', role = 'researcher') {
 }
 
 beforeEach(() => {
+  captured.options.length = 0
   clearAllSubAgents()
 })
 
@@ -68,6 +72,15 @@ describe('子 Agent 注册与取回', () => {
 })
 
 describe('continue 机制', () => {
+  it('继续任务保留原角色的注册 System Prompt 和召唤任务边界', async () => {
+    const params = { ...makeRegParams('sess-1', 'coder'), toolContext: { workdir: '.', sessionKind: 'summon' as const } }
+    const id = registerSubAgent(params)
+    await continueSubAgent(id, '继续修改')
+    expect(captured.options[0]?.systemPrompt?.promptAssetKeys).toEqual(['subagent-system'])
+    expect(captured.options[0]?.systemPrompt?.text).toContain('边界（召唤')
+    expect(captured.options[0]?.systemPrompt?.text).toContain('编码专家')
+  })
+
   it('continueSubAgent 追加消息并续跑', async () => {
     const id = registerSubAgent(makeRegParams())
     const before = getSubAgent(id)!.messages.length

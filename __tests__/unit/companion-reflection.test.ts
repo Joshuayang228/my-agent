@@ -252,10 +252,10 @@ describe('companion reflection runner', () => {
     expect(r.changed).toBe(false)
     expect(await getMutable('lin')).toBe(before)
     const call = vi.mocked(chatComplete).mock.calls[0]?.[0] as {
-      messages: Array<{ content: string }>
+      request: { messages: Array<{ content: string }> }
     }
-    expect(call.messages[0].content).toContain('近况生活信号')
-    expect(call.messages[0].content).toContain('午饭散步')
+    expect(call.request.messages[0].content).toContain('近况生活信号')
+    expect(call.request.messages[0].content).toContain('午饭散步')
   })
 
   it('LLM 返回正文则写入', async () => {

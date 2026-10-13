@@ -129,6 +129,13 @@ function dynamicAsset(input: PromptAssetInput): PromptAsset & { content?: string
 
 const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
+    id: PROMPT_KEYS.evalInput,
+    definitions: ['electron/main/prompts/registered-request.ts#compileEvalSystem', 'electron/main/prompts/registered-request.ts#compileEvalRequest'], name: 'Eval 外部输入', category: 'system',
+    desc: 'Eval 场景提供的实验正文与消息，不冒充生产人物或行为定义。',
+    sourcePath: 'electron/main/prompts/registered-request.ts#compileEvalSystem',
+    ownership: 'external', preview: '实验输入由 Eval 场景提供；真实正文只属于当次实验请求，不是生产目录正文。', slots: [{ name: 'scenarioInput', source: 'Eval 场景与测试夹具', lifecycle: '每次实验' }],
+  }),
+  dynamicAsset({
     id: PROMPT_KEYS.profileExtractionInput, name: '画像提取输入包装', category: 'context',
     desc: '近期对话与已知用户事实的防重复包装；事实正文是运行时数据。', sourcePath: 'electron/main/prompts/profile-extraction.ts#buildProfileExtractionInputPrompt',
     definitions: ['electron/main/prompts/profile-extraction.ts#buildProfileExtractionInputPrompt'],
@@ -148,7 +155,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.compactRestoreContext, name: '压缩后上下文恢复', category: 'context',
     desc: '压缩后的摘要标识和近期文件恢复包装；原始内容是运行时数据。', sourcePath: 'electron/main/prompts/compact.ts',
-    definitions: ['electron/main/prompts/compact.ts#buildFileRestorePrompt', 'electron/main/prompts/compact.ts#buildCompactSummaryPrompt'],
+    definitions: ['electron/main/prompts/registered-request.ts#compileContextMessage', 'electron/main/prompts/compact.ts#buildFileRestorePrompt', 'electron/main/prompts/compact.ts#buildCompactSummaryPrompt'],
     template: [buildFileRestorePrompt('{{fileContents}}'), buildCompactSummaryPrompt('{{summary}}')].join('\n\n'),
   }),
   dynamicAsset({
@@ -170,7 +177,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.promptCompiler,
-    definitions: ['electron/main/prompts/compiler.ts#compileMainChatPrompt', 'electron/main/prompts/compiler.ts#buildPlatformModule', 'electron/main/prompts/compiler.ts#buildCharacterModules', 'electron/main/prompts/compiler.ts#buildBehaviorModule', 'electron/main/prompts/compiler.ts#buildSituationModule', 'electron/main/prompts/compiler.ts#buildOutputModule', 'electron/main/companion/identity/profile.ts#formatRoleProfileForPrompt', 'electron/main/companion/identity/profile.ts#formatRoleWorldDefaultsForPrompt'],
+    definitions: ['electron/main/prompts/registered-request.ts#compileMainSystem', 'electron/main/prompts/compiler.ts#compileMainChatPrompt', 'electron/main/prompts/compiler.ts#buildPlatformModule', 'electron/main/prompts/compiler.ts#buildCharacterModules', 'electron/main/prompts/compiler.ts#buildBehaviorModule', 'electron/main/prompts/compiler.ts#buildSituationModule', 'electron/main/prompts/compiler.ts#buildOutputModule', 'electron/main/companion/identity/profile.ts#formatRoleProfileForPrompt', 'electron/main/companion/identity/profile.ts#formatRoleWorldDefaultsForPrompt'],
     name: 'System Prompt 语义编译器',
     category: 'system',
     purpose: '主对话语义模块编译',
@@ -190,7 +197,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   staticAsset({
     id: PROMPT_KEYS.loopDefault,
-    definitions: ['electron/main/prompts/texts.ts#DEFAULT_SYSTEM_PROMPT'],
+    definitions: ['electron/main/prompts/registered-request.ts#compileDefaultSystem', 'electron/main/prompts/registered-request.ts#compileAgentRequest', 'electron/main/prompts/texts.ts#DEFAULT_SYSTEM_PROMPT'],
     name: 'Loop 默认 System（无人格时）',
     category: 'system',
     purpose: 'Agent Loop 兜底 System',
@@ -201,7 +208,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   staticAsset({
     id: PROMPT_KEYS.playgroundDefault,
-    definitions: ['electron/main/prompts/texts.ts#DEFAULT_PLAYGROUND_SYSTEM'],
+    definitions: ['electron/main/prompts/registered-request.ts#compilePlaygroundRequest', 'electron/main/prompts/texts.ts#DEFAULT_PLAYGROUND_SYSTEM'],
     name: 'Playground 默认试验指令',
     category: 'system',
     purpose: 'Playground 隔离试跑',
@@ -212,6 +219,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.playgroundDraft,
+    definitions: ['electron/main/prompts/registered-request.ts#compilePlaygroundRequest'],
     ownership: 'user',
     name: 'Playground 自定义草稿',
     category: 'system',
@@ -224,7 +232,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.playgroundModelTest,
-    definitions: ['electron/main/prompts/texts.ts#MODEL_SMOKE_PROMPT', 'electron/main/prompts/texts.ts#MODEL_THINKING_PROBE_PROMPT'],
+    definitions: ['electron/main/prompts/registered-request.ts#compileModelProbeRequest', 'electron/main/prompts/texts.ts#MODEL_SMOKE_PROMPT', 'electron/main/prompts/texts.ts#MODEL_THINKING_PROBE_PROMPT'],
     name: 'Playground 模型能力探测',
     category: 'ui',
     purpose: '模型连通与 Thinking 能力探测',
@@ -237,7 +245,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.l3Collapse,
-    definitions: ['electron/main/prompts/compact.ts#buildCompactPrompt', 'electron/main/prompts/compact.ts#formatMinSetWhitelistForCompactPrompt', 'electron/main/prompts/compact.ts#buildCompactHistoryPrompt'],
+    definitions: ['electron/main/prompts/registered-request.ts#compileCompactRequest', 'electron/main/prompts/compact.ts#buildCompactPrompt', 'electron/main/prompts/compact.ts#formatMinSetWhitelistForCompactPrompt', 'electron/main/prompts/compact.ts#buildCompactHistoryPrompt'],
     name: 'L3 Collapse 摘要指令',
     category: 'context',
     purpose: '中段上下文压缩',
@@ -250,7 +258,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.l4Autocompact,
-    definitions: ['electron/main/prompts/compact.ts#buildCompactPrompt', 'electron/main/prompts/compact.ts#formatMinSetWhitelistForCompactPrompt', 'electron/main/prompts/compact.ts#buildCompactHistoryPrompt'],
+    definitions: ['electron/main/prompts/registered-request.ts#compileCompactRequest', 'electron/main/prompts/compact.ts#buildCompactPrompt', 'electron/main/prompts/compact.ts#formatMinSetWhitelistForCompactPrompt', 'electron/main/prompts/compact.ts#buildCompactHistoryPrompt'],
     name: 'L4 AutoCompact 全量摘要',
     category: 'context',
     purpose: '超长上下文全量摘要',
@@ -263,7 +271,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   staticAsset({
     id: PROMPT_KEYS.profileExtraction,
-    definitions: ['electron/main/prompts/texts.ts#EXTRACTION_PROMPT'],
+    definitions: ['electron/main/prompts/registered-request.ts#compileProfileRequest', 'electron/main/prompts/texts.ts#EXTRACTION_PROMPT'],
     name: '用户画像提取',
     category: 'context',
     purpose: '用户画像提取',
@@ -307,7 +315,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.sessionTitle,
-    definitions: ['electron/main/prompts/texts.ts#SESSION_TITLE_SYSTEM_PROMPT'],
+    definitions: ['electron/main/prompts/registered-request.ts#compileTitleRequest', 'electron/main/prompts/texts.ts#SESSION_TITLE_SYSTEM_PROMPT'],
     name: '会话标题生成',
     category: 'context',
     purpose: '新会话标题生成',
@@ -320,7 +328,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.connectionTest,
-    definitions: ['src/shared/llm-connection-test.ts#CONNECTION_TEST_MESSAGES'],
+    definitions: ['electron/main/prompts/registered-request.ts#compileConnectionRequest', 'src/shared/llm-connection-test.ts#CONNECTION_TEST_MESSAGES'],
     name: '模型连接测试',
     category: 'ui',
     purpose: '设置页模型连接验证',
@@ -451,7 +459,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.companionReflection,
     dependencies: [PROMPT_KEYS.companionCompiler],
-    definitions: ['electron/main/prompts/companion-behaviors.ts#buildReflectionPrompt'],
+    definitions: ['electron/main/prompts/registered-request.ts#compileReflectionRequest', 'electron/main/prompts/companion-behaviors.ts#buildReflectionPrompt'],
     name: '伙伴反思更新 Prompt',
     category: 'companion',
     purpose: '角色 MUTABLE 反思更新',
@@ -466,7 +474,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.companionCatchup,
     dependencies: [PROMPT_KEYS.companionCompiler],
-    definitions: ['electron/main/prompts/companion-behaviors.ts#buildCatchupLlmPrompt'],
+    definitions: ['electron/main/prompts/registered-request.ts#compileCatchupRequest', 'electron/main/prompts/companion-behaviors.ts#buildCatchupLlmPrompt'],
     name: '伙伴生活补叙 Prompt',
     category: 'companion',
     purpose: '暂停期间生活补叙',
@@ -481,7 +489,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.companionMomentPolish,
     dependencies: [PROMPT_KEYS.companionCompiler],
-    definitions: ['electron/main/prompts/companion-behaviors.ts#buildPolishPrompt'],
+    definitions: ['electron/main/prompts/registered-request.ts#compileMomentRequest', 'electron/main/prompts/companion-behaviors.ts#buildPolishPrompt'],
     name: '伙伴 Moment 润色 Prompt',
     category: 'companion',
     purpose: '已发布 Moment 文案润色',
@@ -496,7 +504,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.companionDayScript,
     dependencies: [PROMPT_KEYS.companionCompiler],
-    definitions: ['electron/main/prompts/companion-behaviors.ts#buildLlmPrompt'],
+    definitions: ['electron/main/prompts/registered-request.ts#compileDayRequest', 'electron/main/prompts/companion-behaviors.ts#buildLlmPrompt'],
     name: '伙伴日程剧本 Prompt',
     category: 'companion',
     purpose: '角色日程剧本生成',
@@ -510,7 +518,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.evalJudge,
-    definitions: ['electron/main/prompts/eval-judge.ts#buildEvalJudgePrompt'],
+    definitions: ['electron/main/prompts/registered-request.ts#compileJudgeRequest', 'electron/main/prompts/eval-judge.ts#buildEvalJudgePrompt'],
     name: 'Eval Model Judge Prompt',
     assetType: 'eval-judge',
     category: 'eval',
@@ -528,7 +536,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.subagentSystem,
     template: buildSubAgentPrompt('{{roleDescription}}', '{{summonBoundary}}'),
-    definitions: ['electron/main/prompts/agent-behaviors.ts#buildSubAgentPrompt', 'electron/main/agent/subagent.ts#buildSubAgentSystemPrompt', 'electron/main/companion/cast/summon-delegation.ts#summonWorkerSystemAddon'],
+    definitions: ['electron/main/prompts/registered-request.ts#compileSubagentSystem', 'electron/main/prompts/agent-behaviors.ts#buildSubAgentPrompt', 'electron/main/agent/subagent.ts#buildSubAgentSystemPrompt', 'electron/main/companion/cast/summon-delegation.ts#summonWorkerSystemAddon'],
     name: '子 Agent System Prompt',
     category: 'subagent',
     purpose: '子 Agent 角色与边界',

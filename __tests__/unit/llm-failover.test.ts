@@ -1,5 +1,6 @@
+import { compileEvalRequest, compileProfileRequest, compileAgentRequest, compileDefaultSystem } from '../../electron/main/prompts/registered-request'
 import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest'
-import type { AgentStreamEvent, LLMConfig, PromptAssetKey } from '../../src/shared/types'
+import type { AgentStreamEvent, LLMConfig, ChatMessage } from '../../src/shared/types'
 
 vi.mock('../../electron/main/utils/logger', () => ({
   createLogger: () => ({
@@ -20,7 +21,6 @@ vi.stubGlobal('fetch', mockFetch)
 
 import { streamChat, chatComplete, LLMError, parseRetryAfterMs, type StreamChatOptions } from '../../electron/main/llm/index'
 import { setLLMTraceSink, type LLMTraceRequest } from '../../electron/main/utils/tracer'
-import { PROMPT_KEYS } from '../../electron/main/prompts/keys'
 
 function makeSSEResponse(textChunks: string[], statusCode = 200) {
   const lines = textChunks.map(chunk => {
@@ -44,8 +44,6 @@ function makeSSEResponse(textChunks: string[], statusCode = 200) {
     headers: { 'Content-Type': 'text/event-stream' },
   })
 }
-
-const TEST_PROMPTLESS_REASON = '单元测试直接验证 LLM 路由，不对应生产 Prompt 资产'
 
 const baseConfig: LLMConfig = {
   apiKey: 'test-key',
@@ -77,8 +75,8 @@ describe('streamChat failover', () => {
       throw new DOMException('aborted', 'AbortError')
     })
     await expect(collectEvents(streamChat({
-      config: { ...baseConfig, fallbackModels: [{ model: 'backup' }] }, messages: [],
-      signal: controller.signal, promptlessReason: TEST_PROMPTLESS_REASON,
+      config: { ...baseConfig, fallbackModels: [{ model: 'backup' }] }, request: compileEvalRequest([].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
+      signal: controller.signal,
     }))).rejects.toThrow('aborted')
     expect(mockFetch).toHaveBeenCalledTimes(1)
   })
@@ -96,7 +94,7 @@ describe('streamChat failover', () => {
     })))
     const events: AgentStreamEvent[] = []
     const consume = async () => {
-      for await (const event of streamChat({ config: { ...baseConfig, fallbackModels: [{ model: 'backup' }] }, messages: [], promptlessReason: TEST_PROMPTLESS_REASON })) events.push(event)
+      for await (const event of streamChat({ config: { ...baseConfig, fallbackModels: [{ model: 'backup' }] }, request: compileEvalRequest([].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',  })) events.push(event)
     }
     await expect(consume()).rejects.toThrow('stream interrupted')
     expect(events.length).toBeGreaterThan(0)
@@ -107,7 +105,7 @@ describe('streamChat failover', () => {
     mockFetch.mockResolvedValueOnce(makeSSEResponse(['local ok']))
     const result = await chatComplete({
       config: { ...baseConfig, apiKey: '', fallbackModels: [{ model: 'local', baseUrl: 'http://127.0.0.1:1234/v1', apiKey: '', provider: 'openai' }] },
-      messages: [], promptlessReason: TEST_PROMPTLESS_REASON,
+      request: compileEvalRequest([].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
     })
     expect(result).toBe('local ok')
     expect(mockFetch).toHaveBeenCalledTimes(1)
@@ -116,24 +114,24 @@ describe('streamChat failover', () => {
     expect(new Headers(request.headers).get('authorization')).toBeNull()
   })
 
-  it('拒绝既未声明 Prompt 资产也未说明 promptless 原因的调用', async () => {
+  it('拒绝旧的原始消息调用', async () => {
     await expect(collectEvents(streamChat({
       config: baseConfig,
       messages: [{ id: 'missing-trace', role: 'user', content: 'hi', timestamp: Date.now() }],
-    } as StreamChatOptions))).rejects.toThrow('必须声明 Prompt 资产')
+    } as StreamChatOptions))).rejects.toThrow('不接受原始消息')
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
-  it('拒绝空 Prompt 资产列表', async () => {
+  it('拒绝手填 Prompt 资产列表', async () => {
     await expect(collectEvents(streamChat({
       config: baseConfig,
       messages: [{ id: 'empty-trace', role: 'user', content: 'hi', timestamp: Date.now() }],
       promptAssetKeys: [],
-    } as unknown as StreamChatOptions))).rejects.toThrow('promptAssetKeys 不能为空')
+    } as unknown as StreamChatOptions))).rejects.toThrow('不接受原始消息')
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
-  it('把 Prompt key 在统一入口解析为 Debug 来源与版本，并保留未知 key', async () => {
+  it('把编译请求的真实来源解析为 Debug 来源与版本', async () => {
     const requests: LLMTraceRequest[] = []
     setLLMTraceSink({
       onLLMStart: (request) => requests.push(request),
@@ -143,13 +141,12 @@ describe('streamChat failover', () => {
 
     await collectEvents(streamChat({
       config: baseConfig,
-      messages: [{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }],
+      request: compileProfileRequest([{id:'1',role:'user',content:'hi',timestamp:Date.now()}], ''),
       caller: 'profile',
-      promptAssetKeys: [PROMPT_KEYS.profileExtraction, PROMPT_KEYS.profileExtraction, 'missing-prompt-key' as PromptAssetKey],
     }))
 
     expect(requests).toHaveLength(1)
-    expect(requests[0].extra.promptAssets).toEqual([
+    expect(requests[0].extra.promptAssets).toEqual(expect.arrayContaining([
       expect.objectContaining({
         key: 'profile-extraction',
         source: 'electron/main/prompts/texts.ts',
@@ -157,8 +154,8 @@ describe('streamChat failover', () => {
         locale: 'zh-CN',
         fingerprint: expect.stringMatching(/^[a-f0-9]{16}$/),
       }),
-    ])
-    expect(requests[0].extra.unknownPromptAssetKeys).toEqual(['missing-prompt-key'])
+    ]))
+    expect(requests[0].extra.unknownPromptAssetKeys).toBeUndefined()
   })
 
   it('记录当前调用已激活的 Skill 元数据，但不记录正文', async () => {
@@ -171,9 +168,8 @@ describe('streamChat failover', () => {
 
     await collectEvents(streamChat({
       config: baseConfig,
-      messages: [{ id: 'skill-trace', role: 'user', content: '审阅代码', timestamp: Date.now() }],
-      caller: 'main',
-      promptAssetKeys: [PROMPT_KEYS.skillContext],
+      request: compileAgentRequest({systemPrompt:compileDefaultSystem(),messages:[{id:'system',role:'system',content:'',timestamp:0},{id:'skill-trace',role:'user',content:'审阅代码',timestamp:0}],deniedTools:[],deniedCommands:[]}),
+      caller:'main',
       skillActivations: [{
         name: 'code-review',
         toolName: 'skill_invoke_code_review',
@@ -198,9 +194,9 @@ describe('streamChat failover', () => {
     mockFetch.mockResolvedValueOnce(makeSSEResponse(['Hello']))
 
     const options: StreamChatOptions = {
-      promptlessReason: TEST_PROMPTLESS_REASON,
+
       config: baseConfig,
-      messages: [{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }],
+      request: compileEvalRequest([{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
     }
 
     const gen = streamChat(options)
@@ -215,9 +211,9 @@ describe('streamChat failover', () => {
     mockFetch.mockResolvedValueOnce(new Response('error', { status: 500 }))
 
     const options: StreamChatOptions = {
-      promptlessReason: TEST_PROMPTLESS_REASON,
+
       config: baseConfig,
-      messages: [{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }],
+      request: compileEvalRequest([{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
     }
 
     await expect(async () => {
@@ -239,9 +235,9 @@ describe('streamChat failover', () => {
     }
 
     const options: StreamChatOptions = {
-      promptlessReason: TEST_PROMPTLESS_REASON,
+
       config,
-      messages: [{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }],
+      request: compileEvalRequest([{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
     }
 
     const gen = streamChat(options)
@@ -268,9 +264,9 @@ describe('streamChat failover', () => {
     }
 
     const options: StreamChatOptions = {
-      promptlessReason: TEST_PROMPTLESS_REASON,
+
       config,
-      messages: [{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }],
+      request: compileEvalRequest([{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
     }
 
     await expect(async () => {
@@ -293,9 +289,9 @@ describe('streamChat failover', () => {
     }
 
     const options: StreamChatOptions = {
-      promptlessReason: TEST_PROMPTLESS_REASON,
+
       config,
-      messages: [{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }],
+      request: compileEvalRequest([{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
     }
 
     const gen = streamChat(options)
@@ -320,10 +316,10 @@ describe('chatComplete（非流式辅助调用入口）', () => {
     mockFetch.mockResolvedValueOnce(makeSSEResponse(['标', '题', '内容']))
 
     const result = await chatComplete({
-      promptlessReason: TEST_PROMPTLESS_REASON,
+
       config: baseConfig,
-      messages: [{ role: 'user', content: '生成标题' }],
-      caller: 'title',
+      request: compileEvalRequest([{ role: 'user', content: '生成标题' }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]),
+      caller: 'eval-test',
     })
 
     expect(result).toBe('标题内容')
@@ -336,24 +332,24 @@ describe('chatComplete（非流式辅助调用入口）', () => {
 
     await expect(
       chatComplete({
-        promptlessReason: TEST_PROMPTLESS_REASON,
+
         config: baseConfig,
-        messages: [{ role: 'user', content: 'x' }],
-        caller: 'profile',
+        request: compileEvalRequest([{ role: 'user', content: 'x' }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]),
+        caller: 'eval-test',
       }),
-    ).rejects.toThrow(/profile/)
+    ).rejects.toThrow(/eval-test/)
   })
 
   it('传入的 temperature / maxTokens 覆盖到请求体', async () => {
     mockFetch.mockResolvedValueOnce(makeSSEResponse(['ok']))
 
     await chatComplete({
-      promptlessReason: TEST_PROMPTLESS_REASON,
+
       config: baseConfig,
-      messages: [{ role: 'user', content: 'x' }],
+      request: compileEvalRequest([{ role: 'user', content: 'x' }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]),
       temperature: 0.1,
       maxTokens: 42,
-      caller: 'summary',
+      caller: 'eval-test',
     })
 
     const body = JSON.parse(mockFetch.mock.calls[0][1]?.body as string)
@@ -374,10 +370,10 @@ describe('chatComplete（非流式辅助调用入口）', () => {
     }
 
     const result = await chatComplete({
-      promptlessReason: TEST_PROMPTLESS_REASON,
+
       config,
-      messages: [{ role: 'user', content: 'x' }],
-      caller: 'summary',
+      request: compileEvalRequest([{ role: 'user', content: 'x' }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]),
+      caller: 'eval-test',
     })
 
     // failover 会额外注入「已切换」提示文本，故用 contains 断言
@@ -411,9 +407,9 @@ describe('G2/G3：usage guard + retry-after', () => {
     mockFetch.mockResolvedValueOnce(new Response(stream, { status: 200, headers: { 'Content-Type': 'text/event-stream' } }))
 
     const gen = streamChat({
-      promptlessReason: TEST_PROMPTLESS_REASON,
+
       config: baseConfig,
-      messages: [{ id: '1', role: 'user', content: 'test', timestamp: Date.now() }],
+      request: compileEvalRequest([{ id: '1', role: 'user', content: 'test', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
     })
     const events = await collectEvents(gen)
     const usageEvent = events.find(e => e.type === 'usage') as { promptTokens: number; completionTokens: number } | undefined
@@ -446,9 +442,9 @@ describe('G2/G3：usage guard + retry-after', () => {
 
     try {
       const gen = streamChat({
-        promptlessReason: TEST_PROMPTLESS_REASON,
+
         config: baseConfig,
-        messages: [{ id: '1', role: 'user', content: 'x', timestamp: Date.now() }],
+        request: compileEvalRequest([{ id: '1', role: 'user', content: 'x', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
       })
       await collectEvents(gen)
       throw new Error('Should have thrown')

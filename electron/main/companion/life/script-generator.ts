@@ -1,3 +1,4 @@
+import { buildLlmPrompt } from '../../prompts/companion-behaviors'
 /**
  * 日剧本生成器（M23-G1：LLM 优先 + 哈希回退）
  *
@@ -10,12 +11,9 @@ import { SLOT_COUNT_MIN, SLOT_COUNT_MAX, TEXT_MAX } from '../../prompts/behavior
 import type { LLMConfig } from '../../../../src/shared/types'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm/index'
-import { PROMPT_KEYS, ROLE_PROMPT_SUMMARY_SUFFIX, ROLE_BEHAVIOR_IDS, ROLE_BEHAVIOR_PROMPT_SUFFIX, rolePromptAssetKey } from '../../prompts/keys'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
-import { characterDefinitionFromRolePack } from '../../prompts/compiler'
-import { getCharacterPromptAssetKeys } from '../../prompts/dependencies'
-import { buildLlmPrompt } from '../../prompts/companion-behaviors'
+import { compileDayRequest } from '../../prompts/registered-request'
 import {
   formatRoleProfileForPrompt,
   formatRoleWorldDefaultsForPrompt,
@@ -252,20 +250,14 @@ export async function generateDayScriptViaLlm(
         maxTokens: llmConfig.maxTokens ?? 900,
         temperature: llmConfig.temperature ?? 0.8,
       },
-      messages: [{
-        role: 'user',
-        content: buildLlmPrompt({
+      request: compileDayRequest(pack, {
           roleName: pack.name,
           roleId,
           date,
           voiceHint,
           characterHint,
-          character: characterDefinitionFromRolePack(pack),
-          behaviorPrompt: pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.dayScript],
         }),
-      }],
       caller: 'day-script',
-      promptAssetKeys: [PROMPT_KEYS.companionDayScript, PROMPT_KEYS.companionCompiler, ...getCharacterPromptAssetKeys(pack), ...(!pack.voice?.trim() && pack.summary?.trim() ? [rolePromptAssetKey(pack.id, ROLE_PROMPT_SUMMARY_SUFFIX)] : []), ...(pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.dayScript] ? [rolePromptAssetKey(pack.id, ROLE_BEHAVIOR_PROMPT_SUFFIX.dayScript)] : [])],
     })
     const parsed = parseDayScriptPayload(raw, date)
     if (!parsed) {

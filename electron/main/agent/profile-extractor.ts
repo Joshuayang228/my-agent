@@ -9,11 +9,9 @@
  * 只在用户消息包含足够线索时触发。
  */
 
-import { buildProfileExtractionInputPrompt } from '../prompts/profile-extraction'
+import { compileProfileRequest } from '../prompts/registered-request'
 import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
-import { EXTRACTION_PROMPT } from '../prompts/texts'
-import { PROMPT_KEYS } from '../prompts/keys'
 import { chatComplete } from '../llm/index'
 import { addMemory, listMemories, type MemoryCategory } from '../storage/memory-store'
 import { recordAssetUsage } from '../utils/asset-usage'
@@ -76,21 +74,16 @@ export async function maybeExtractProfile(
       .map((memory) => memory.content)
       .join('; ')
 
-    const prompt = buildProfileExtractionInputPrompt(recentMessages, existingFacts)
 
     // 走统一路由层（chatComplete）而非直接 fetch —— 自动获得多 Provider 支持 + failover
     let text: string
     try {
       text = await chatComplete({
         config,
-        messages: [
-          { role: 'system', content: EXTRACTION_PROMPT },
-          { role: 'user', content: prompt },
-        ],
+        request: compileProfileRequest(recentMessages, existingFacts),
         temperature: 0.1,
         maxTokens: 500,
         caller: 'profile',
-        promptAssetKeys: [PROMPT_KEYS.profileExtraction, PROMPT_KEYS.profileExtractionInput],
         sessionId: opts?.sessionId,
       })
     } catch (apiErr) {

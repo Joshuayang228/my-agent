@@ -1,3 +1,4 @@
+import { buildReflectionPrompt } from '../../prompts/companion-behaviors'
 /**
  * 人格反思服务（对照 Alice PersonaReflectionService + runPersonaReflection）
  *
@@ -8,7 +9,6 @@
 
 import type { LLMConfig } from '../../../../src/shared/types'
 import { chatComplete } from '../../llm/index'
-import { PROMPT_KEYS, ROLE_BEHAVIOR_IDS, ROLE_BEHAVIOR_PROMPT_SUFFIX, rolePromptAssetKey } from '../../prompts/keys'
 import { listFeedbackForRole } from '../../storage/memory-store'
 import {
   listRecentUserMessagesForRole,
@@ -16,9 +16,7 @@ import {
 import { createLogger } from '../../utils/logger'
 import { taskQueue } from '../../services/task-queue'
 import { loadRolePack } from '../identity/loader'
-import { characterDefinitionFromRolePack } from '../../prompts/compiler'
-import { getCharacterPromptAssetKeys } from '../../prompts/dependencies'
-import { buildReflectionPrompt } from '../../prompts/companion-behaviors'
+import { compileReflectionRequest } from '../../prompts/registered-request'
 import { recordAndBroadcastMilestone } from './milestones'
 import { getMutable, setMutable } from './mutable-store'
 import { MUTABLE_MAX_CHARS } from './mutable-validate'
@@ -93,26 +91,23 @@ async function runReflectionCore(
   const lifeSignals = await collectLifeSignalsForRole(roleId)
   const protectedSummary = pack.protected.slice(0, 400)
 
-  const prompt = buildReflectionPrompt({
+  const request = compileReflectionRequest(pack, {
     roleName: pack.name,
     protectedSummary,
     currentMutable,
     recentUserMessages,
     feedbackNotes: feedbacks,
     lifeSignals,
-    character: characterDefinitionFromRolePack(pack, currentMutable),
-    behaviorPrompt: pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.reflection],
   })
 
   let parsed: { newMutable: string | null; summary: string }
   try {
     const raw = await chatComplete({
       config: llmConfig,
-      messages: [{ role: 'user', content: prompt }],
+      request,
       temperature: 0.7,
       maxTokens: 1500,
       caller: 'persona-reflection',
-      promptAssetKeys: [PROMPT_KEYS.companionReflection, PROMPT_KEYS.companionCompiler, ...getCharacterPromptAssetKeys(pack, currentMutable), ...(pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.reflection] ? [rolePromptAssetKey(pack.id, ROLE_BEHAVIOR_PROMPT_SUFFIX.reflection)] : [])],
     })
     parsed = parseReflectionJson(raw)
   } catch (err) {

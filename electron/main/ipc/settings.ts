@@ -1,11 +1,11 @@
+import { compileConnectionRequest } from '../prompts/registered-request'
 import { BrowserWindow, dialog, ipcMain } from 'electron'
 import * as settings from '../storage/settings-store'
 import type { AppSettings } from '../storage/settings-store'
 import { loadRules, validatePermissionRules } from '../sandbox/permission-engine'
 import { chatComplete, LLMError } from '../llm/index'
 import { loadMainLLMConfig } from '../llm/aux-config'
-import { PROMPT_KEYS } from '../prompts/keys'
-import { CONNECTION_TEST_MESSAGES, sameConnectionEndpoint, validateLLMConnectionTestInput } from '../../../src/shared/llm-connection-test'
+import { sameConnectionEndpoint, validateLLMConnectionTestInput } from '../../../src/shared/llm-connection-test'
 import { MODEL_FETCH_MESSAGES, normalizeConnectionModels, validateLLMModelFetchInput } from '../../../src/shared/llm-model-fetch'
 import { fetchRemoteModels } from '../llm/model-discovery'
 import type { LLMConnectionTestInput, LLMConnectionTestResult, LLMModelFetchInput, LLMModelFetchResult, RendererSettings } from '../../../src/shared/types'
@@ -218,9 +218,8 @@ export function registerSettingsIPC(): void {
           temperature: 0,
           maxTokens: 32,
         },
-        messages: CONNECTION_TEST_MESSAGES,
+        request: compileConnectionRequest(),
         caller: 'connection-test',
-        promptAssetKeys: [PROMPT_KEYS.connectionTest],
         timeoutMs: 15_000,
         signal: operation.signal,
       })

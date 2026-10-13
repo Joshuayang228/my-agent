@@ -1,4 +1,4 @@
-import { buildDeniedToolsPromptSuffix, OUTPUT_RECOVERY_PROMPT, buildTimeContextPrompt } from '../prompts/agent-behaviors'
+import { buildDeniedToolsPromptSuffix, OUTPUT_RECOVERY_PROMPT } from '../prompts/agent-behaviors'
 import type {
   AgentLoopOptions,
   AgentStreamEvent,
@@ -24,8 +24,7 @@ import { PERMISSION_SANDBOX_ASSET_KEYS } from '../sandbox/asset-keys'
 import { resolveEffectiveSandbox } from '../sandbox/effective-sandbox'
 import { compressContext, emergencyTruncate, estimateTokens, DEFAULT_MAX_TOKENS } from './context-manager'
 import { sanitizeMessages } from './message-pipeline'
-import { DEFAULT_SYSTEM_PROMPT } from '../prompts/texts'
-import { PROMPT_KEYS } from '../prompts/keys'
+import { compileAgentRequest, compileDefaultSystem, readRegisteredSystemText } from '../prompts/registered-request'
 
 export { DEFAULT_SYSTEM_PROMPT } from '../prompts/texts'
 
@@ -143,7 +142,7 @@ export async function* agentLoop(
     config,
     messages: inputMessages,
     tools,
-    systemPrompt = DEFAULT_SYSTEM_PROMPT,
+    systemPrompt = compileDefaultSystem(),
     maxIterations = DEFAULT_MAX_ITERATIONS,
     signal,
     confirmTool,
@@ -151,9 +150,10 @@ export async function* agentLoop(
     executionMode = 'auto',
     toolContext,
     interactionSpanId,
-    promptAssetKeys = systemPrompt === DEFAULT_SYSTEM_PROMPT ? [PROMPT_KEYS.loopDefault] : undefined,
     skillActivations,
   } = options
+
+  const systemText = readRegisteredSystemText(systemPrompt)
 
   // 运行时有效模式可因连续拒绝自动收紧；只允许从 auto 降到 confirm-all，不提升权限。
   let effectiveExecutionMode = executionMode
@@ -169,7 +169,7 @@ export async function* agentLoop(
 
   const state: LoopState = {
     messages: [
-      { id: 'system', role: 'system', content: systemPrompt, timestamp: Date.now() },
+      { id: 'system', role: 'system', content: systemText, timestamp: Date.now() },
       ...sanitizeMessages(inputMessages),
     ],
     turnCount: 0,
@@ -229,7 +229,7 @@ export async function* agentLoop(
     // ── 注入权限拒绝摘要到 system prompt ──
     const deniedSuffix = buildDeniedToolsPromptSuffix(state.deniedTools, state.deniedCommands)
     if (deniedSuffix && state.messages[0]?.role === 'system') {
-      const basePrompt = systemPrompt
+      const basePrompt = systemText
       state.messages[0] = {
         ...state.messages[0],
         content: basePrompt + deniedSuffix,
@@ -332,42 +332,19 @@ export async function* agentLoop(
         // 参考 CC 的 <system-reminder> 机制（注入对话层而非 system prompt 层）。
         const now = new Date()
         const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-        const messagesWithTime = state.messages.map((m, i) => {
-          // 只修改最后一条 user 消息，且只在第一次 attempt（重试不重复注入）
-          if (attempt > 0) return m
-          if (i !== state.messages.length - 1) return m
-          if (m.role !== 'user') return m
-          return { ...m, content: buildTimeContextPrompt(timeStr, m.content) }
-        })
-
-        const injectTime = attempt === 0 && state.messages.at(-1)?.role === 'user'
-        const hasOutputRecovery = state.messages.some(message => message.id.startsWith('user-recovery-'))
-        const hasCompactRestore = state.messages.some(message => message.id === 'context-file-restore' || message.id === 'auto-compact-summary')
         const stream = streamChat({
           config,
-          messages: messagesWithTime,
+          request: compileAgentRequest({ systemPrompt, messages: state.messages, deniedTools: state.deniedTools, deniedCommands: state.deniedCommands, time: attempt === 0 ? timeStr : undefined }),
           tools: effectiveTools,
           skillActivations: toolContext?.skillActivations ?? skillActivations,
           signal,
           enablePromptCache: true,
-          caller: 'main',
+          caller: systemPrompt.scope === 'eval' ? 'eval-agent' : 'main',
           sessionId: toolContext?.sessionId,
           parentSpanId: state.interactionSpanId,
           traceSpan: llmSpan,
           retryAttempt: attempt,
-          ...(promptAssetKeys
-            ? {
-                promptAssetKeys: [
-                  ...promptAssetKeys,
-                  ...(injectTime ? [PROMPT_KEYS.loopTimeContext] : []),
-                  ...(hasOutputRecovery ? [PROMPT_KEYS.loopOutputRecovery] : []),
-                  ...(hasCompactRestore ? [PROMPT_KEYS.compactRestoreContext] : []),
-                  ...(state.deniedTools.length > 0 || state.deniedCommands.length > 0
-                    ? [PROMPT_KEYS.permissionDenial]
-                    : []),
-                ],
-              }
-            : { promptlessReason: 'Agent Loop 使用调用方提供、但未登记到生产注册表的 System Prompt' }),
+
         })
 
         let streamResult = await stream.next()

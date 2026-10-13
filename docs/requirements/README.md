@@ -28,7 +28,6 @@
 
 | 文档 | 说明 |
 |------|------|
-
 | [foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md) | P0 方案待确认：四个产品体验的真实基础复用、Markdown / Diff / 控件收口与源码自动门禁 |
 | [playground-state-switchers-v1.md](./playground-state-switchers-v1.md) | P0：统一 Playground 场景、状态与宽度控制器，采用 MCP 独立选项样式 |
 | [playground-page-baseline-polish-v1.md](./playground-page-baseline-polish-v1.md) | P0 施工：Sidebar 底栏、Toast、Right Dock、人物世界与记忆页面样张统一精修 |
@@ -54,6 +53,8 @@
 ---
 
 ## 已完成施工快照（冻结）
+
+注册模型请求边界：[prompt-registered-request-boundary-v1.md](./prompt-registered-request-boundary-v1.md)。固定配方签发、模型入口身份与来源校验、压缩恢复 / 子任务续跑、实验作用域及失败门禁已验收；当前事实见运行时、伙伴与记忆模块卡。
 
 设置布局统一：[settings-layout-consistency-v1.md](./settings-layout-consistency-v1.md)。九区同源页头、共享间距及正式回流已验收；当前能力见伙伴模块卡。
 

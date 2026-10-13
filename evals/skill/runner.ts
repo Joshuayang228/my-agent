@@ -1,3 +1,4 @@
+import { compileEvalSystem } from '../../electron/main/prompts/registered-request'
 /**
  * Skill Eval 隔离运行器。
  *
@@ -75,7 +76,7 @@ export async function runSkillEvalCase(testCase: SkillEvalCase): Promise<SkillEv
       config,
       messages: [{ id: `user-${testCase.id}`, role: 'user' as const, content: testCase.userPrompt, timestamp: Date.now() }],
       tools: registry.getAll(),
-      systemPrompt: buildSkillSummary([testCase.skill]),
+      systemPrompt: compileEvalSystem(buildSkillSummary([testCase.skill])),
       executionMode: 'auto' as const,
       toolContext: { workdir, sessionId: `skill-eval-${testCase.id}`, skillActivations: activations },
       ...(mode === 'mock' ? { _streamChatOverride: createMockStreamChat(testCase.mockResponses) } : {}),

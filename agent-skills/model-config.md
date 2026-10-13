@@ -66,6 +66,10 @@ Runtime 通过 `getLLMConfig()` / `getAuxLLMConfig()` 分别获取。二者必�
 
 ## LLM 调用规范
 
+- 模型输入只能使用 `prompts/registered-request.ts` 固定配方生成的 RegisteredModelRequest；不得传原始 messages、手填 promptAssetKeys 或 promptlessReason。正文与来源自动绑定，新增配方必须登记 definitions 和补边界测试。
+- 生产模块不得导入 Eval 签发入口；Playground 草稿仅用对应实验配方，不能成为主对话来源。
+
+
 - 每次调用必须标记来源 `caller`，例如 `main`、`compact`、`memory`、`title`、`subagent`。
 - 流式返回使用 `AsyncGenerator<AgentStreamEvent>`。
 - 重试策略：网络错误、429、5xx 最多 2 次，指数退避。

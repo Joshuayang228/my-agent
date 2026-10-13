@@ -15,13 +15,12 @@
  */
 
 import type { EvalGrader, GraderResult, EvalContext, ViolationCheck } from '../types'
-import type { LLMConfig, ChatMessage } from '../../src/shared/types'
+import type { LLMConfig } from '../../src/shared/types'
 import { chatComplete } from '../../electron/main/llm/index'
 import { makeEvalLLMConfig } from '../types'
 import { getEvalMode } from '../eval-config'
 import { collectAgentText } from '../transcript'
-import { buildEvalJudgePrompt } from '../../electron/main/prompts/eval-judge'
-import { PROMPT_KEYS } from '../../electron/main/prompts/keys'
+import { compileJudgeRequest } from '../../electron/main/prompts/registered-request'
 
 
 /**
@@ -92,27 +91,19 @@ export function makeModelBasedGrader(
         .map((c, i) => `${i + 1}. [${c.id}] ${c.question}`)
         .join('\n')
 
-      const judgePrompt = buildEvalJudgePrompt({
+      const request = compileJudgeRequest({
         systemContext,
         agentTexts,
         checkList,
       })
 
       // ── 4. 调用 LLM judge ──
-      const judgeMsg: ChatMessage = {
-        id: 'judge-q',
-        role: 'user',
-        content: judgePrompt,
-        timestamp: Date.now(),
-      }
-
       let judgeResponse: string
       try {
         judgeResponse = await chatComplete({
           config: cfg,
-          messages: [judgeMsg],
+          request,
           caller: 'eval-judge',
-          promptAssetKeys: [PROMPT_KEYS.evalJudge],
         })
       } catch (err) {
         return {

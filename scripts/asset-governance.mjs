@@ -38,7 +38,7 @@ export const ASSET_GOVERNANCE = [
   },
   {
     id: 'subagent-role', labelZh: 'SubAgent 角色', kind: 'static', modelContextTypes: ['subagent-role'],
-    sourcePaths: ['electron/main/agent/subagent-asset-registry.ts', 'electron/main/agent/subagent.ts'], registryPaths: ['electron/main/agent/subagent-asset-registry.ts'], discovery: '显式角色注册表',
+    sourcePaths: ['electron/main/prompts/subagent-roles.ts', 'electron/main/agent/subagent-asset-registry.ts', 'electron/main/agent/subagent.ts'], registryPaths: ['electron/main/agent/subagent-asset-registry.ts'], discovery: '显式角色注册表',
     keyRule: 'subagent-role:<role id>', display: 'Debug / 资产目录', usageEvidence: 'subagent-role',
   },
   {

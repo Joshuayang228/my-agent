@@ -10,6 +10,7 @@
  */
 
 import { agentLoop } from './loop'
+import { compileSubagentSystem } from '../prompts/registered-request'
 import { ToolRegistry } from '../tools/registry'
 import { createLogger, hashForLog } from '../utils/logger'
 import { startSpan } from '../utils/tracer'
@@ -103,6 +104,7 @@ export async function continueSubAgent(
     const stream = agentLoop(
       {
         config: inst.llmConfig,
+        systemPrompt: compileSubagentSystem(inst.role, inst.toolContext?.sessionKind),
         messages: inst.messages,
         tools: inst.childRegistry.getAll(),
         maxIterations: inst.maxIterations,

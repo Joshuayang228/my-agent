@@ -135,7 +135,7 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 - `electron/main/prompts/registry.ts` 是 Prompt 注册表事实源；静态 Prompt 由 `electron/main/prompts/texts.ts` 等生产常量直接提供，动态 Prompt 标记为 `dynamic` 并指向实际组装器。Debug「提示词管理器」通过 `debug:model-context-assets` 在主进程聚合 Prompt、伙伴与人格资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Case / Grader、Eval Judge、模型 Provider 和 MCP；兼容接口 `debug:prompt-assets` 不再作为统一目录入口。
 - 新增或修改 Prompt 时，必须同步注册表项和对应测试；目录展示不能脱离实际运行路径单独演进。
 - 固定 Prompt 正文与动态包装必须使用含 `Prompt` 的命名函数或 `*_PROMPT` 常量，注册表 `definitions` 登记真实 `路径#符号`；禁止在模型消息中内联新指令。`prompt-registration-coverage` 检查定义、Role Pack 文件和调用资产归属，并用漏登 / 错 key 负例验证；有运行时数据输入不等于可以省略其包装定义。
-- 核心 Prompt key 只通过 `electron/main/prompts/keys.ts` 的 `PROMPT_KEYS` 使用，Role Pack key 通过统一工厂生成；生产 `streamChat` / `chatComplete` 必须声明非空资产 key，或显式填写 `promptlessReason`。
+- 核心 Prompt key 只通过 `electron/main/prompts/keys.ts` 的 `PROMPT_KEYS` 使用，Role Pack key 通过统一工厂生成；生产 `streamChat` / `chatComplete` 只接受 `prompts/registered-request.ts` 固定配方签发的 `RegisteredModelRequest`；来源 key 自动生成，禁止原始 `messages`、手填 `promptAssetKeys` 或 `promptlessReason`。新增编译配方必须登记真实 `definitions` 并补边界测试；生产模块禁止导入 Eval 签发入口。
 - Debug「提示词管理器」是生产资产统一目录：除 Prompt 外还聚合伙伴与人格资产、记忆策略、权限与沙箱策略、Tool schema、Skill、Eval Case / Grader、Eval Judge、模型 Provider 和当前 MCP 工具；资产同时显示人工版本与自动指纹。Playground 只接收显式实验副本，不复制目录。
 - **Prompt 当前只做中文**：先用简体中文写清意图、行为边界、优先级和例外；英文只保留必要的技术术语、工具名、JSON key、协议 token 或 canonical name。
 - 禁止中英文逐句对照或把同一条规则重复写成两种自然语言；英文不是默认翻译层，而是必要的技术契约或外部原文。

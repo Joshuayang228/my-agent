@@ -47,6 +47,7 @@ export const PROMPT_KEYS = {
   companionDayScript: promptKey('companion-day-script'),
   subagentSystem: promptKey('subagent-system'),
   permissionDenial: promptKey('permission-denial'),
+  evalInput: promptKey('eval-input'),
   evalJudge: promptKey('eval-judge'),
 } as const
 

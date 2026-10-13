@@ -1,3 +1,4 @@
+import { buildPolishPrompt } from '../../prompts/companion-behaviors'
 /**
  * Moment 文案润色（M24-G2）
  *
@@ -9,12 +10,9 @@
 import type { LLMConfig } from '../../../../src/shared/types'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm/index'
-import { PROMPT_KEYS, ROLE_PROMPT_SUMMARY_SUFFIX, ROLE_BEHAVIOR_IDS, ROLE_BEHAVIOR_PROMPT_SUFFIX, rolePromptAssetKey } from '../../prompts/keys'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
-import { characterDefinitionFromRolePack } from '../../prompts/compiler'
-import { getCharacterPromptAssetKeys } from '../../prompts/dependencies'
-import { buildPolishPrompt } from '../../prompts/companion-behaviors'
+import { compileMomentRequest } from '../../prompts/registered-request'
 import type { CompanionEvent } from '../types'
 import { formatMomentText } from './moment-format'
 
@@ -84,9 +82,7 @@ export async function polishMomentTextViaLlm(
         maxTokens: opts.llmConfig.maxTokens ?? 120,
         temperature: opts.llmConfig.temperature ?? 0.75,
       },
-      messages: [{
-        role: 'user',
-        content: buildPolishPrompt({
+      request: compileMomentRequest(pack, {
           roleName: pack.name,
           activity,
           mood,
@@ -95,12 +91,8 @@ export async function polishMomentTextViaLlm(
           book: opts.bookName,
           ruleText,
           voiceHint,
-          character: characterDefinitionFromRolePack(pack),
-          behaviorPrompt: pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.momentPolish],
         }),
-      }],
       caller: 'moment-polish',
-      promptAssetKeys: [PROMPT_KEYS.companionMomentPolish, PROMPT_KEYS.companionCompiler, ...getCharacterPromptAssetKeys(pack), ...(!pack.voice?.trim() && pack.summary?.trim() ? [rolePromptAssetKey(pack.id, ROLE_PROMPT_SUMMARY_SUFFIX)] : []), ...(pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.momentPolish] ? [rolePromptAssetKey(pack.id, ROLE_BEHAVIOR_PROMPT_SUFFIX.momentPolish)] : [])],
     })
     const ok = validatePolishedMomentText(raw, { activity, location, ruleText })
     if (!ok) {

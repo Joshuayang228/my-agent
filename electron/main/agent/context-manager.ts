@@ -1,8 +1,7 @@
+import { compileCompactRequest, compileContextMessage } from '../prompts/registered-request'
 import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
 import { chatComplete } from '../llm/index'
-import { PROMPT_KEYS } from '../prompts/keys'
-import { buildCompactPrompt, buildFileRestorePrompt, buildCompactSummaryPrompt, buildCompactHistoryPrompt } from '../prompts/compact'
 import { recordAssetUsage } from '../utils/asset-usage'
 import { PROVIDER_ASSET_KEYS } from '../llm/provider-asset-keys'
 import { getEffectiveContextWindow } from './model-context-window'
@@ -15,7 +14,6 @@ export {
 } from './model-context-window'
 import {
   extractRelationshipMinSet,
-  formatMinSetWhitelistForCompactPrompt,
   mergeMinSetIntoSummary,
 } from './relationship-minset'
 
@@ -346,12 +344,7 @@ function buildFileRestoreMessage(files: RestoredFile[]): ChatMessage | null {
 
   if (sections.length === 0) return null
 
-  return {
-    id: 'context-file-restore',
-    role: 'system',
-    content: buildFileRestorePrompt(sections.join('\n\n')),
-    timestamp: Date.now(),
-  }
+  return compileContextMessage('files', sections.join('\n\n'))
 }
 
 /**
@@ -569,11 +562,8 @@ async function collapse(
   // A2: 恢复压缩前最近读取的文件（快照来自 compressContext 入口，未受 L1 Snip 影响）
   const fileRestore = buildFileRestoreMessage(preCompactFileReads)
 
-  const summaryMsg: ChatMessage = {
-    id: 'context-summary',
-    role: 'system',
-    content: summaryContent,
-    timestamp: Date.now(),
+  const summaryMsg: ChatMessage = compileContextMessage('summary', summaryContent)
+  Object.assign(summaryMsg, {
     // B3: boundary marker 元数据（postCompactTokens 在组装后回填）
     compactMetadata: {
       level: 'L3_Collapse',
@@ -583,7 +573,7 @@ async function collapse(
       compactedAt: Date.now(),
       usedLLM,
     },
-  }
+  })
 
   const head = fileRestore ? [...preamble, summaryMsg, fileRestore] : [...preamble, summaryMsg]
   const result = [...head, ...recent]
@@ -646,11 +636,8 @@ async function autoCompact(
   // A2: 恢复压缩前最近读取的文件（快照来自 compressContext 入口）
   const fileRestore = buildFileRestoreMessage(preCompactFileReads)
 
-  const summaryMsg: ChatMessage = {
-    id: 'auto-compact-summary',
-    role: 'system',
-    content: buildCompactSummaryPrompt(summaryContent),
-    timestamp: Date.now(),
+  const summaryMsg: ChatMessage = compileContextMessage('auto-summary', summaryContent)
+  Object.assign(summaryMsg, {
     compactMetadata: {
       level: 'L4_AutoCompact',
       preCompactTokens,
@@ -659,7 +646,7 @@ async function autoCompact(
       compactedAt: Date.now(),
       usedLLM,
     },
-  }
+  })
 
   const result = fileRestore
     ? [...preamble, summaryMsg, fileRestore, ...recent]
@@ -674,27 +661,13 @@ async function generateLLMSummary(
   llmConfig: LLMConfig,
   comprehensive = false,
 ): Promise<string> {
-  const conversationText = buildCompactHistoryPrompt(messages)
-
-  // B1: 结构化摘要框架 —— 自由文本摘要在下一轮推理时易被误读，
-  // 结构化框架（当前任务/已完成/状态/下一步/关键上下文）更利于 LLM 正确解读。
-  // 对照 Alice Ch.5 + CC compact/prompt.ts getCompactPrompt。
-  const wordLimit = comprehensive ? 500 : 300
-  // M30-G2：关系最小集白名单进压缩 instruction
-  const minSetSection = formatMinSetWhitelistForCompactPrompt()
-  const instruction = buildCompactPrompt(wordLimit, minSetSection)
-
   // 走统一路由层（chatComplete）而非直接 fetch —— 自动获得多 Provider 支持 + failover
   const summary = await chatComplete({
     config: llmConfig,
-    messages: [
-      { role: 'system', content: instruction },
-      { role: 'user', content: conversationText },
-    ],
+    request: compileCompactRequest(messages, comprehensive),
     temperature: 0.2,
     maxTokens: comprehensive ? 800 : 400,
     caller: 'summary',
-    promptAssetKeys: [comprehensive ? PROMPT_KEYS.l4Autocompact : PROMPT_KEYS.l3Collapse],
   })
 
   const withMinSet = mergeMinSetIntoSummary(summary, extractRelationshipMinSet(messages))

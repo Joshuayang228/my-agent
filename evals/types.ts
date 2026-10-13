@@ -98,7 +98,7 @@ export interface EvalScenario {
   buildOptions: (
     workdir: string,
     registry: ToolRegistry,
-  ) => Promise<AgentLoopOptions>
+  ) => Promise<Omit<AgentLoopOptions, 'systemPrompt'> & { systemPrompt?: string }>
   /**
    * 注册场景所需的工具（runner 新建空 ToolRegistry 后调用）。
    * 不传则使用空 registry。
