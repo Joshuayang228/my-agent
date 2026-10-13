@@ -15,12 +15,16 @@ function promptKey<T extends string>(value: T): T & PromptAssetKey {
 export const PROMPT_KEYS = {
   promptCompiler: promptKey('prompt-compiler'),
   loopDefault: promptKey('loop-default'),
+  loopTimeContext: promptKey('loop-time-context'),
+  loopOutputRecovery: promptKey('loop-output-recovery'),
+  compactRestoreContext: promptKey('compact-restore-context'),
   playgroundDefault: promptKey('playground-default'),
   playgroundDraft: promptKey('playground-draft'),
   playgroundModelTest: promptKey('playground-model-test'),
   l3Collapse: promptKey('l3-collapse'),
   l4Autocompact: promptKey('l4-autocompact'),
   profileExtraction: promptKey('profile-extraction'),
+  profileExtractionInput: promptKey('profile-extraction-input'),
   userProfileContext: promptKey('user-profile-context'),
   memoryRecallContext: promptKey('memory-recall-context'),
   embeddingInput: promptKey('embedding-input'),
@@ -33,9 +37,10 @@ export const PROMPT_KEYS = {
   relationshipMilestones: promptKey('relationship-milestones'),
   expertiseLevel: promptKey('expertise-level'),
   skillContext: promptKey('skill-context'),
+  workspaceContext: promptKey('workspace-context'),
   companionContext: promptKey('companion-context'),
   companionMutableState: promptKey('companion-mutable-state'),
-  companionBackgroundTasks: promptKey('companion-background-tasks'),
+  companionCompiler: promptKey('companion-compiler'),
   companionReflection: promptKey('companion-reflection'),
   companionCatchup: promptKey('companion-catchup'),
   companionMomentPolish: promptKey('companion-moment-polish'),
@@ -46,11 +51,16 @@ export const PROMPT_KEYS = {
 } as const
 
 export type CorePromptAssetKey = typeof PROMPT_KEYS[keyof typeof PROMPT_KEYS]
+export const ROLE_PROMPT_SUMMARY_SUFFIX = 'summary.txt' as const
 
 export type RolePromptSuffix =
   | 'protected.md'
   | 'mutable.default.md'
   | 'voice.md'
+  | 'summary.txt'
+  | 'manifest.json'
+  | 'profile.json'
+  | 'world.default.json'
   | 'scenes/display.md'
   | 'scenes/interact.md'
   | 'scenes/execute.md'
@@ -78,5 +88,7 @@ export const PROMPT_BEHAVIOR_IDS = {
 } as const
 
 export function rolePromptAssetKey(roleId: string, suffix: RolePromptSuffix): PromptAssetKey {
+  const structured = { 'manifest.json': 'manifest', 'profile.json': 'profile', 'world.default.json': 'world-default' } as const
+  if (suffix in structured) return promptKey(`companion:default:${roleId}:${structured[suffix as keyof typeof structured]}`)
   return promptKey(`role-${roleId}-${suffix.replace(/[^a-z0-9]+/gi, '-')}`)
 }

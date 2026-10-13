@@ -11,7 +11,7 @@ import { makeEvalLLMConfig } from '../types'
 import { makeTextNotContainsGrader } from '../graders'
 import { makeModelBasedGrader } from '../graders/model-based'
 import { loadRolePack } from '../../electron/main/companion/identity/loader'
-import { buildSystemPrompt, rolePackToPromptParts } from '../../electron/main/agent/prompt-builder'
+import { compileMainChatPrompt, characterDefinitionFromRolePack } from '../../electron/main/prompts/compiler'
 import { getEvalMode, hasEvalApiKey } from '../eval-config'
 
 type BehaviorCase = {
@@ -39,10 +39,7 @@ function makeBehaviorScenario(testCase: BehaviorCase): EvalScenario {
       const realMode = getEvalMode() === 'real'
       const hasKey = hasEvalApiKey()
       const pack = loadRolePack('hang')
-      const systemPrompt = buildSystemPrompt({
-        persona: rolePackToPromptParts(pack),
-        toolNames: [],
-      })
+      const systemPrompt = compileMainChatPrompt({ character: characterDefinitionFromRolePack(pack), platform: { toolNames: [] }, behavior: { key: 'main-chat', purpose: '在当前人物与会话情境中回应用户并完成请求。' }, situation: {  }, currentDate: new Date().toLocaleDateString('sv-SE') }).text
       const messages = [{
         id: `${testCase.id}-u1`,
         role: 'user' as const,

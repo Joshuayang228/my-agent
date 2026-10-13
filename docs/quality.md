@@ -537,6 +537,9 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 
 ## 四、Prompt 与生产资产门禁
 
+`prompt-registration-coverage.test.ts` 对生产 AST 扫描：含 Prompt 的正文函数与常量必须有注册符号，Role Pack 文本与人物 JSON 必须有真实来源，模型消息不得内联新固定指令，生产构造器与常量必须声明其所属资产 key。测试包含同文件新增函数、经变量引用却使用错 key，以及内联 System 正文的失败用例。命名和显式注册共同承担语义约束；机器扫描不声称理解任意自然语言是否属于指令。`prompt-call-coverage` 继续约束每个调用声明非空资产或显式 promptless 来源、禁止裸 key。新增人物 / 行为必须同时通过两项门禁，不只添加一个目录标签；Prompt 定义、调用、资产与实际依赖测试同时纳入 `npm run assets:check`。
+
+
 - 自有模型可见自然语言保持简体中文；协议 token、代码标识、工具名、JSON key 和外部原文可保留英文。
 - 每个生产 LLM 调用必须声明稳定 Prompt 资产 key，或显式声明 promptless 原因。
 - Prompt、Role Pack、Memory Strategy、Permission / Sandbox、Tool、Skill、Eval、Provider 和 MCP 资产必须由真实生产注册表提供来源、版本和指纹；Debug 不维护第二套目录文案。

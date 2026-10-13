@@ -8,7 +8,7 @@ import {
   formatRecentMomentsForPrompt,
   checkReplyAgainstRecentMoments,
 } from '../../electron/main/companion/life/moment-consistency'
-import { buildSystemPrompt } from '../../electron/main/agent/prompt-builder'
+import { buildSystemPrompt } from '../helpers/prompt-fixture'
 
 function moment(partial: Partial<CompanionMoment> & { text: string }): CompanionMoment {
   return {

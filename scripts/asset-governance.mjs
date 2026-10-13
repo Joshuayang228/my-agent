@@ -6,9 +6,9 @@
 export const ASSET_GOVERNANCE = [
   {
     id: 'prompt', labelZh: 'Prompt', kind: 'static', modelContextTypes: ['prompt'],
-    sourcePaths: ['electron/main/prompts/registry.ts', 'electron/main/prompts/keys.ts', 'electron/main/prompts/compiler.ts', 'electron/main/prompts/behavior-contracts.ts'],
+    sourcePaths: ['electron/main/prompts'],
     registryPaths: ['electron/main/prompts/registry.ts'], discovery: '显式注册表',
-    keyRule: 'prompt:<稳定语义 key>', display: 'Debug / 提示词管理器', usageEvidence: 'llm-input',
+    keyRule: 'PROMPT_KEYS / rolePromptAssetKey；definitions 指向生产符号', display: 'Debug / 提示词管理器', usageEvidence: 'llm-input',
   },
   {
     id: 'companion', labelZh: '伙伴资产', kind: 'static', modelContextTypes: ['companion-manifest', 'companion-profile', 'companion-world', 'companion-scene', 'companion-life'],

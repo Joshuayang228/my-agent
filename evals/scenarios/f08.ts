@@ -13,7 +13,7 @@
 import type { EvalScenario, EvalGrader, GraderResult } from '../types'
 import { makeTerminalReasonGrader } from '../graders/index'
 import { createCapturingMockStreamChat, type CapturedLLMCall } from '../mock-llm'
-import { buildSystemPrompt, rolePackToPromptParts } from '../../electron/main/agent/prompt-builder'
+import { compileMainChatPrompt, characterDefinitionFromRolePack } from '../../electron/main/prompts/compiler'
 import { loadRolePack } from '../../electron/main/companion/identity/loader'
 import { makeEvalLLMConfig } from '../types'
 import type { ChatMessage } from '../../src/shared/types'
@@ -85,9 +85,9 @@ export const F08: EvalScenario = {
     // 重置捕获记录，保证多次 run 互不干扰
     captured.calls = []
 
-    const persona = rolePackToPromptParts(loadRolePack('lin'))
+    const persona = characterDefinitionFromRolePack(loadRolePack('lin'))
     // 在 system prompt 最前面加标记，压缩后检查是否保留
-    const baseSystemPrompt = buildSystemPrompt({ persona, toolNames: [] })
+    const baseSystemPrompt = compileMainChatPrompt({ character: persona, platform: { toolNames: [] }, behavior: { key: 'main-chat', purpose: '在当前人物与会话情境中回应用户并完成请求。' }, situation: {  }, currentDate: new Date().toLocaleDateString('sv-SE') }).text
     const markedSystemPrompt = `${PREAMBLE_MARKER}\n${baseSystemPrompt}`
 
     // 构造足够长的消息历史，让 estimateTokens 超过压缩阈值

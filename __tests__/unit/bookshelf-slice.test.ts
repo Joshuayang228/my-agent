@@ -7,7 +7,7 @@ import {
   shouldAttachBookshelfRef,
 } from '../../electron/main/companion/life/assets'
 import { formatMomentText } from '../../electron/main/companion/life/moment-format'
-import { buildSystemPrompt } from '../../electron/main/agent/prompt-builder'
+import { buildSystemPrompt } from '../helpers/prompt-fixture'
 
 describe('formatBookshelfSliceForPrompt', () => {
   it('空柜返回空串', () => {

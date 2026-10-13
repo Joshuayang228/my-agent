@@ -10,7 +10,7 @@
 import type { EvalScenario, EvalGrader, EvalContext, GraderResult } from '../types'
 import { makeTerminalReasonGrader, makeToolCallGrader, makeTextNotContainsGrader } from '../graders/index'
 import { buildTool } from '../../electron/main/tools/builder'
-import { buildSystemPrompt, rolePackToPromptParts } from '../../electron/main/agent/prompt-builder'
+import { compileMainChatPrompt, characterDefinitionFromRolePack } from '../../electron/main/prompts/compiler'
 import { loadRolePack } from '../../electron/main/companion/identity/loader'
 import type { ToolRegistry } from '../../electron/main/tools/registry'
 import { makeEvalLLMConfig } from '../types'
@@ -79,11 +79,8 @@ export const P01: EvalScenario = {
   registerTools(_registry) { /* 不需要工具 */ },
 
   async buildOptions(workdir, registry) {
-    const persona = rolePackToPromptParts(loadRolePack('lin'))
-    const systemPrompt = buildSystemPrompt({
-      persona,
-      toolNames: registry.getAll().map((t) => t.name),
-    })
+    const persona = characterDefinitionFromRolePack(loadRolePack('lin'))
+    const systemPrompt = compileMainChatPrompt({ character: persona, platform: { toolNames: registry.getAll().map((t) => t.name) }, behavior: { key: 'main-chat', purpose: '在当前人物与会话情境中回应用户并完成请求。' }, situation: {  }, currentDate: new Date().toLocaleDateString('sv-SE') }).text
 
     // 构造足够多的历史消息以触发压缩检测路径
     const messages: ChatMessage[] = [

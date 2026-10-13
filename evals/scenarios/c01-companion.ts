@@ -9,7 +9,7 @@ import { join } from 'node:path'
 import type { EvalScenario, EvalGrader, EvalContext, GraderResult } from '../types'
 import { makeTerminalReasonGrader } from '../graders/index'
 import { makeEvalLLMConfig } from '../types'
-import { buildSystemPrompt, rolePackToPromptParts } from '../../electron/main/agent/prompt-builder'
+import { compileMainChatPrompt, characterDefinitionFromRolePack } from '../../electron/main/prompts/compiler'
 import { loadRolePack } from '../../electron/main/companion/identity/loader'
 import {
   buildRosterLines,
@@ -63,11 +63,7 @@ export const C01: EvalScenario = {
   async buildOptions(workdir, registry) {
     const pack = loadRolePack('lin')
     const rosterLines = formatRosterForPrompt(buildRosterLines('lin'))
-    const systemPrompt = buildSystemPrompt({
-      persona: rolePackToPromptParts(pack),
-      toolNames: registry.getAll().map((t) => t.name),
-      rosterLines,
-    })
+    const systemPrompt = compileMainChatPrompt({ character: characterDefinitionFromRolePack(pack), platform: { toolNames: registry.getAll().map((t) => t.name) }, behavior: { key: 'main-chat', purpose: '在当前人物与会话情境中回应用户并完成请求。' }, situation: { rosterLines: rosterLines }, currentDate: new Date().toLocaleDateString('sv-SE') }).text
 
     writeFileSync(
       join(workdir, 'companion-checks.json'),

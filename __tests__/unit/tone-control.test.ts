@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { resolveToneControl, formatToneControlForPrompt } from '../../electron/main/agent/tone-control'
-import { buildSystemPrompt, rolePackToPromptParts } from '../../electron/main/agent/prompt-builder'
+import { buildSystemPrompt, rolePackToPromptParts } from '../helpers/prompt-fixture'
 import { loadRolePack } from '../../electron/main/companion/identity/loader'
 
 describe('resolveToneControl', () => {

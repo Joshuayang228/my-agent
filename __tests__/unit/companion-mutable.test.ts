@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import initSqlJs from 'sql.js'
-import { rolePackToPromptParts, buildSystemPrompt } from '../../electron/main/agent/prompt-builder'
+import { rolePackToPromptParts, buildSystemPrompt } from '../helpers/prompt-fixture'
 import { loadRolePack } from '../../electron/main/companion/identity/loader'
 import {
   registerStreamingProbe,

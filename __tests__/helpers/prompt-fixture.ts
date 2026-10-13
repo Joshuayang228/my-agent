@@ -1,13 +1,13 @@
 /**
- * 测试与旧工具调用的薄适配层。
+ * 历史测试输入夹具，仅用于保持行为断言，不进入生产或 Eval。
  *
  * 背景：仓库内仍有若干行为单测直接构造旧的角色切片；生产运行时已统一走 prompts/compiler。
  * 设计意图：只转换输入，不再维护第二套 Prompt 文案，避免测试夹具阻止语义编译器迁移。
  * 关键约束：这里不得新增 Prompt 规则；所有正文必须由 compiler 生成。
  */
-import { characterDefinitionFromRolePack, compileMainChatPrompt } from '../prompts/compiler'
-import { formatRoleProfileForPrompt, formatRoleWorldDefaultsForPrompt } from '../companion/identity/profile'
-import type { RoleProfile, RoleWorldDefaults } from '../companion/types'
+import { characterDefinitionFromRolePack, compileMainChatPrompt } from '../../electron/main/prompts/compiler'
+import { formatRoleProfileForPrompt, formatRoleWorldDefaultsForPrompt } from '../../electron/main/companion/identity/profile'
+import type { RoleProfile, RoleWorldDefaults } from '../../electron/main/companion/types'
 
 export interface RolePromptParts {
   id: string

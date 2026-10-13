@@ -6,7 +6,7 @@ import {
   resolveExpertiseLevel,
   formatExpertiseLevelForPrompt,
 } from '../../electron/main/agent/expertise-level'
-import { buildSystemPrompt } from '../../electron/main/agent/prompt-builder'
+import { buildSystemPrompt } from '../helpers/prompt-fixture'
 
 const persona = {
   id: 'lin',

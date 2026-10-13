@@ -3,7 +3,7 @@
  *
  * 背景：圈与对话同源是地板；硬裁判拦回复是天花板，易误伤。
  * 意图：① Assemble 注入近 1–3 条 Moment 锚点；② 纯规则软校验，供测/调试，不阻断 Loop。
- * 约束：不整库灌圈；不写 prompt-builder 长文案；召唤会话不注入对方圈。
+ * 约束：不整库灌圈；不写会话编译器长文案；召唤会话不注入对方圈。
  */
 
 import type { CompanionMoment } from '../types'

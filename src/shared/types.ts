@@ -138,6 +138,8 @@ export interface PromptAsset {
   source: string
   /** 兼容现有 UI 的来源字段，与 source 保持一致。 */
   sourcePath: string
+  /** 可审计的生产定义，格式为仓库路径#符号；用于防漏登记门禁。 */
+  definitions?: string[]
   version: string
   /** 自动指纹；静态资产基于正文，动态资产基于模板或结构描述。 */
   fingerprint: string

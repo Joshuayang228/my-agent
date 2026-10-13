@@ -29,8 +29,15 @@ import {
 import { EVAL_JUDGE_TEMPLATE } from './eval-judge'
 import { modelContextFingerprint } from './fingerprint'
 import { BEHAVIOR_CONTRACTS } from './behavior-contracts'
+import { COMPANION_BEHAVIOR_TEMPLATES } from './companion-behaviors'
+import { buildWorkspaceContextPrompt, buildSummonContextPrompt } from './runtime-context'
+import { buildProfileExtractionInputPrompt } from './profile-extraction'
+import { buildSubAgentPrompt, buildDeniedToolsPromptSuffix, OUTPUT_RECOVERY_PROMPT, buildTimeContextPrompt } from './agent-behaviors'
+import { buildCompactPrompt, formatMinSetWhitelistForCompactPrompt, buildFileRestorePrompt, buildCompactSummaryPrompt, buildCompactHistoryPrompt } from './compact'
+import { MAIN_CHAT_TEMPLATE, COMPANION_COMPILER_TEMPLATE } from './compiler'
 import { PROMPT_KEYS, rolePromptAssetKey, type RolePromptSuffix } from './keys'
 import { CONNECTION_TEST_MESSAGES } from '../../../src/shared/llm-connection-test'
+import { getRoleSourceAssetCatalog } from '../companion/identity/source-assets'
 import { listAvailableRoleIds, tryReadRoleText } from '../companion/identity/loader'
 
 const PROMPT_LOCALE = 'zh-CN'
@@ -42,6 +49,8 @@ type PromptAssetInput = {
   category: PromptAsset['category']
   desc: string
   sourcePath: string
+  definitions?: string[]
+  dependencies?: string[]
   purpose?: string
   role?: string
   version?: string
@@ -85,6 +94,7 @@ function normalizeAsset(input: PromptAssetInput): PromptAsset & { content?: stri
   })
   return {
     ...input,
+    status: 'active',
     key: input.id,
     purpose: input.purpose ?? input.name,
     role: input.role ?? input.category,
@@ -119,25 +129,68 @@ function dynamicAsset(input: PromptAssetInput): PromptAsset & { content?: string
 
 const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
+    id: PROMPT_KEYS.profileExtractionInput, name: '画像提取输入包装', category: 'context',
+    desc: '近期对话与已知用户事实的防重复包装；事实正文是运行时数据。', sourcePath: 'electron/main/prompts/profile-extraction.ts#buildProfileExtractionInputPrompt',
+    definitions: ['electron/main/prompts/profile-extraction.ts#buildProfileExtractionInputPrompt'],
+    template: buildProfileExtractionInputPrompt([{ id: 'template', role: 'user', content: '{{conversation}}', timestamp: 0 }], '{{existingFacts}}'),
+    slots: [{ name: 'recentConversation', source: 'profile-extractor', lifecycle: '画像提取' }],
+  }),
+  staticAsset({
+    id: PROMPT_KEYS.loopOutputRecovery, name: '回复截断恢复', category: 'system',
+    desc: '达到输出长度限制时请求从中断处继续。', sourcePath: 'electron/main/prompts/agent-behaviors.ts#OUTPUT_RECOVERY_PROMPT',
+    definitions: ['electron/main/prompts/agent-behaviors.ts#OUTPUT_RECOVERY_PROMPT'], content: OUTPUT_RECOVERY_PROMPT,
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.loopTimeContext, name: '当前时间参考', category: 'context',
+    desc: '为本轮最后一条用户消息附加当前时间参考。', sourcePath: 'electron/main/prompts/agent-behaviors.ts#buildTimeContextPrompt',
+    definitions: ['electron/main/prompts/agent-behaviors.ts#buildTimeContextPrompt'], template: buildTimeContextPrompt('{{time}}', '{{userMessage}}'),
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.compactRestoreContext, name: '压缩后上下文恢复', category: 'context',
+    desc: '压缩后的摘要标识和近期文件恢复包装；原始内容是运行时数据。', sourcePath: 'electron/main/prompts/compact.ts',
+    definitions: ['electron/main/prompts/compact.ts#buildFileRestorePrompt', 'electron/main/prompts/compact.ts#buildCompactSummaryPrompt'],
+    template: [buildFileRestorePrompt('{{fileContents}}'), buildCompactSummaryPrompt('{{summary}}')].join('\n\n'),
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.workspaceContext, name: '工作区上下文', category: 'context',
+    desc: '工作区项目、主会话参考和当前查看内容；不写入长期记忆。',
+    sourcePath: 'electron/main/prompts/runtime-context.ts#buildWorkspaceContextPrompt',
+    definitions: ['electron/main/prompts/runtime-context.ts#buildWorkspaceContextPrompt'],
+    template: buildWorkspaceContextPrompt({ project: '{{project}}', transcript: '{{transcript}}', focus: { kind: 'file', path: '{{path}}', content: '{{content}}' } }),
+    slots: [{ name: 'workspace', source: 'runtime workspace context', lifecycle: '每轮装配' }],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.companionCompiler,
+    definitions: ['electron/main/prompts/compiler.ts#compileCompanionBehaviorPrompt', 'electron/main/companion/identity/profile.ts#formatRoleProfileForPrompt', 'electron/main/companion/identity/profile.ts#formatRoleWorldDefaultsForPrompt'], name: '伙伴行为语义编译器', category: 'companion',
+    purpose: '后台行为公共平台与人物模块编译', role: 'companion-background',
+    desc: '四类后台行为共享的人物、信任边界和输出模块；领域正文来自各自生产定义。',
+    sourcePath: 'electron/main/prompts/compiler.ts#compileCompanionBehaviorPrompt',
+    template: COMPANION_COMPILER_TEMPLATE,
+    slots: [{ name: 'facts', source: '行为服务事实输入', lifecycle: '每次行为' }],
+  }),
+  dynamicAsset({
     id: PROMPT_KEYS.promptCompiler,
+    definitions: ['electron/main/prompts/compiler.ts#compileMainChatPrompt', 'electron/main/prompts/compiler.ts#buildPlatformModule', 'electron/main/prompts/compiler.ts#buildCharacterModules', 'electron/main/prompts/compiler.ts#buildBehaviorModule', 'electron/main/prompts/compiler.ts#buildSituationModule', 'electron/main/prompts/compiler.ts#buildOutputModule', 'electron/main/companion/identity/profile.ts#formatRoleProfileForPrompt', 'electron/main/companion/identity/profile.ts#formatRoleWorldDefaultsForPrompt'],
     name: 'System Prompt 语义编译器',
     category: 'system',
     purpose: '主对话语义模块编译',
     role: 'system',
     desc: '主对话由语义模块编译器组装；具体一轮结果请在 Debug 或「载入当前实装」查看。',
     sourcePath: 'electron/main/prompts/compiler.ts',
+    template: MAIN_CHAT_TEMPLATE,
     preview: '平台规则 · 人物定义 · 人物成长 · 行为定义 · 情境上下文 · 输出契约',
     slots: [
-      { name: 'persona', source: 'rolePackToPromptParts', lifecycle: '每次装配' },
+      { name: 'character', source: 'characterDefinitionFromRolePack', lifecycle: '每次装配' },
       { name: 'toolNames', source: 'ToolRegistry', lifecycle: '每次装配' },
       { name: 'userProfile', source: 'memory-store', lifecycle: '按需注入' },
       { name: 'companionContext', source: 'companion orchestrator', lifecycle: '按需注入' },
-      { name: 'sessionInfo', source: 'settings.systemPrompt', lifecycle: '会话 / 设置变更' },
+      { name: 'sessionInfo', source: 'runtime session context', lifecycle: '会话变更' },
       { name: 'dynamicState', source: 'runtime context', lifecycle: '每轮装配' },
     ],
   }),
   staticAsset({
     id: PROMPT_KEYS.loopDefault,
+    definitions: ['electron/main/prompts/texts.ts#DEFAULT_SYSTEM_PROMPT'],
     name: 'Loop 默认 System（无人格时）',
     category: 'system',
     purpose: 'Agent Loop 兜底 System',
@@ -148,6 +201,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   staticAsset({
     id: PROMPT_KEYS.playgroundDefault,
+    definitions: ['electron/main/prompts/texts.ts#DEFAULT_PLAYGROUND_SYSTEM'],
     name: 'Playground 默认试验指令',
     category: 'system',
     purpose: 'Playground 隔离试跑',
@@ -170,6 +224,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.playgroundModelTest,
+    definitions: ['electron/main/prompts/texts.ts#MODEL_SMOKE_PROMPT', 'electron/main/prompts/texts.ts#MODEL_THINKING_PROBE_PROMPT'],
     name: 'Playground 模型能力探测',
     category: 'ui',
     purpose: '模型连通与 Thinking 能力探测',
@@ -182,28 +237,33 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.l3Collapse,
+    definitions: ['electron/main/prompts/compact.ts#buildCompactPrompt', 'electron/main/prompts/compact.ts#formatMinSetWhitelistForCompactPrompt', 'electron/main/prompts/compact.ts#buildCompactHistoryPrompt'],
     name: 'L3 Collapse 摘要指令',
     category: 'context',
     purpose: '中段上下文压缩',
     role: 'context-manager',
     desc: '上下文中段压缩时动态生成的结构化摘要指令。',
-    sourcePath: 'electron/main/agent/context-manager.ts',
+    sourcePath: 'electron/main/prompts/compact.ts#buildCompactPrompt',
+    template: buildCompactPrompt('{{wordLimit}}', formatMinSetWhitelistForCompactPrompt()) + '\n\n' + buildCompactHistoryPrompt([{ id: 'template', role: 'user', content: '{{conversation}}', timestamp: 0 }]),
     preview: '当前任务 · 已完成步骤 · 当前状态 · 下一步计划 · 关键上下文',
     slots: [{ name: 'conversationWindow', source: 'context-manager', lifecycle: '每次压缩' }],
   }),
   dynamicAsset({
     id: PROMPT_KEYS.l4Autocompact,
+    definitions: ['electron/main/prompts/compact.ts#buildCompactPrompt', 'electron/main/prompts/compact.ts#formatMinSetWhitelistForCompactPrompt', 'electron/main/prompts/compact.ts#buildCompactHistoryPrompt'],
     name: 'L4 AutoCompact 全量摘要',
     category: 'context',
     purpose: '超长上下文全量摘要',
     role: 'context-manager',
     desc: '超长上下文的紧急全量摘要路径，与 L3 共用摘要管线。',
-    sourcePath: 'electron/main/agent/context-manager.ts',
+    sourcePath: 'electron/main/prompts/compact.ts#buildCompactPrompt',
+    template: buildCompactPrompt('{{wordLimit}}', formatMinSetWhitelistForCompactPrompt()) + '\n\n' + buildCompactHistoryPrompt([{ id: 'template', role: 'user', content: '{{conversation}}', timestamp: 0 }]),
     preview: '综合摘要模式；字数上限和上下文范围随运行状态变化。',
     slots: [{ name: 'fullConversation', source: 'context-manager', lifecycle: '每次紧急压缩' }],
   }),
   staticAsset({
     id: PROMPT_KEYS.profileExtraction,
+    definitions: ['electron/main/prompts/texts.ts#EXTRACTION_PROMPT'],
     name: '用户画像提取',
     category: 'context',
     purpose: '用户画像提取',
@@ -247,18 +307,20 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.sessionTitle,
+    definitions: ['electron/main/prompts/texts.ts#SESSION_TITLE_SYSTEM_PROMPT'],
     name: '会话标题生成',
     category: 'context',
     purpose: '新会话标题生成',
     role: 'session-store',
     desc: '根据首轮用户与助手文本生成 4–10 字中文标题。',
     sourcePath: 'electron/main/storage/session-store.ts',
-    template: `${SESSION_TITLE_SYSTEM_PROMPT}\n\n[用户首轮] {{userMessage}}\n[助手首轮] {{assistantReply}}`,
+    template: SESSION_TITLE_SYSTEM_PROMPT,
     preview: '只返回短标题，不注入完整会话历史。',
     slots: [{ name: 'openingTurn', source: 'session messages', lifecycle: '新会话首轮' }],
   }),
   dynamicAsset({
     id: PROMPT_KEYS.connectionTest,
+    definitions: ['src/shared/llm-connection-test.ts#CONNECTION_TEST_MESSAGES'],
     name: '模型连接测试',
     category: 'ui',
     purpose: '设置页模型连接验证',
@@ -274,15 +336,16 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     ownership: 'user',
     name: '设置中的 System 补充指令',
     category: 'system',
-    purpose: '主对话 L3 自定义补充',
+    purpose: '主对话行为补充指令',
     role: 'system',
-    desc: '保留旧配置中的 System 补充；新伙伴设置的相处说明使用独立字段，不覆盖此内容。',
+    desc: '用户拥有的 System 补充指令，编译到行为模块；不能覆盖平台规则、稳定身份或输出协议。',
     sourcePath: 'electron/main/storage/settings-store.ts',
     preview: '正文来自 settings.systemPrompt；Debug 调用详情可查看本次实发内容。',
     slots: [{ name: 'systemPrompt', source: 'settings.systemPrompt', lifecycle: '设置变更' }],
   }),
   dynamicAsset({
     id: PROMPT_KEYS.replyStance,
+    definitions: ['electron/main/agent/reply-stance.ts#formatReplyStanceForPrompt'],
     name: '回复立场提示',
     category: 'system',
     purpose: '本轮回复立场选择',
@@ -294,6 +357,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.toneControl,
+    definitions: ['electron/main/agent/tone-control.ts#formatToneControlForPrompt'],
     name: '语气收放提示',
     category: 'system',
     purpose: '本轮语气与 aside 策略',
@@ -305,6 +369,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.relationshipStage,
+    definitions: ['electron/main/companion/growth/relationship-stage.ts#formatRelationshipStageForPrompt', 'electron/main/companion/growth/familiarity-mix.ts#formatFamiliarityMixForPrompt'],
     name: '关系阶段提示',
     category: 'companion',
     purpose: '关系阶段边界注入',
@@ -316,6 +381,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.relationshipMilestones,
+    definitions: ['electron/main/companion/growth/milestones.ts#formatMilestonesForPrompt', 'electron/main/companion/growth/milestones.ts#getMilestonePromptHint'],
     name: '关系里程碑提示',
     category: 'companion',
     purpose: '关系里程碑薄提示',
@@ -327,6 +393,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.expertiseLevel,
+    definitions: ['electron/main/agent/expertise-level.ts#formatExpertiseLevelForPrompt'],
     name: '专家度 / 解释粒度提示',
     category: 'system',
     purpose: '解释粒度调整',
@@ -338,6 +405,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.skillContext,
+    definitions: ['electron/main/skills/registry.ts#buildSkillSummaryForPrompt', 'electron/main/prompts/runtime-context.ts#buildActiveSkillPrompt'],
     name: 'Skill 上下文提示',
     category: 'system',
     purpose: 'Skill 能力上下文注入',
@@ -352,6 +420,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.companionContext,
+    definitions: ['electron/main/companion/life/assets.ts#formatBookshelfSliceForPrompt', 'electron/main/companion/life/moment-consistency.ts#formatRecentMomentsForPrompt', 'electron/main/companion/life/world-codec.ts#formatWorldSliceForPrompt', 'electron/main/companion/cast/roster.ts#formatRosterForPrompt', 'electron/main/companion/cast/scene-prompts.ts#defaultCastScenePrompt', 'electron/main/companion/cast/scene-prompts.ts#loadCastScenePrompt', 'electron/main/companion/cast/scene-prompts.ts#formatSummonSceneBlock', 'electron/main/companion/cast/summon-delegation.ts#summonParentDelegationHint', 'electron/main/prompts/runtime-context.ts#buildSummonContextPrompt'],
+    template: buildSummonContextPrompt('{{presence}}', '{{delegation}}', '{{scene}}'),
     name: '伙伴世界上下文片段',
     category: 'companion',
     purpose: '伙伴生活世界上下文注入',
@@ -379,66 +449,68 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [{ name: 'mutableBody', source: 'companion mutable store', lifecycle: '角色状态变化' }],
   }),
   dynamicAsset({
-    id: PROMPT_KEYS.companionBackgroundTasks,
-    name: '伙伴后台任务 Prompt',
-    category: 'companion',
-    purpose: '伙伴后台 LLM 任务',
-    role: 'companion-background',
-    desc: 'Catch-up、反思、Moment 润色和剧本生成等辅助 LLM 调用；具体行为由各自编译器选择。',
-    sourcePath: 'electron/main/companion/life/ + electron/main/companion/growth/',
-    preview: '每个辅助任务在自身服务文件中组装，不复用主对话 System Prompt。',
-    slots: [{ name: 'taskInput', source: 'companion background task', lifecycle: '每次后台任务' }],
-  }),
-  dynamicAsset({
     id: PROMPT_KEYS.companionReflection,
+    dependencies: [PROMPT_KEYS.companionCompiler],
+    definitions: ['electron/main/prompts/companion-behaviors.ts#buildReflectionPrompt'],
     name: '伙伴反思更新 Prompt',
     category: 'companion',
     purpose: '角色 MUTABLE 反思更新',
     role: 'companion-background',
     desc: '根据近期互动判断是否更新角色可成长状态。',
-    sourcePath: 'electron/main/companion/growth/reflection-service.ts',
+    sourcePath: 'electron/main/prompts/companion-behaviors.ts#buildReflectionPrompt',
+    template: COMPANION_BEHAVIOR_TEMPLATES[PROMPT_KEYS.companionReflection],
     preview: '输出结构化反思结果；不复用主对话 System Prompt。',
     slots: [{ name: 'reflectionInput', source: 'recent interaction', lifecycle: '每次反思' }],
     behavior: BEHAVIOR_CONTRACTS[PROMPT_KEYS.companionReflection],
   }),
   dynamicAsset({
     id: PROMPT_KEYS.companionCatchup,
+    dependencies: [PROMPT_KEYS.companionCompiler],
+    definitions: ['electron/main/prompts/companion-behaviors.ts#buildCatchupLlmPrompt'],
     name: '伙伴生活补叙 Prompt',
     category: 'companion',
     purpose: '暂停期间生活补叙',
     role: 'companion-background',
     desc: '根据角色与暂停区间生成可校验的 Catch-up 摘要。',
-    sourcePath: 'electron/main/companion/life/catchup.ts',
+    sourcePath: 'electron/main/prompts/companion-behaviors.ts#buildCatchupLlmPrompt',
+    template: COMPANION_BEHAVIOR_TEMPLATES[PROMPT_KEYS.companionCatchup],
     preview: '输出暂停期间的生活摘要，不改写主会话 Prompt。',
     slots: [{ name: 'catchupWindow', source: 'companion lifecycle', lifecycle: '恢复时' }],
     behavior: BEHAVIOR_CONTRACTS[PROMPT_KEYS.companionCatchup],
   }),
   dynamicAsset({
     id: PROMPT_KEYS.companionMomentPolish,
+    dependencies: [PROMPT_KEYS.companionCompiler],
+    definitions: ['electron/main/prompts/companion-behaviors.ts#buildPolishPrompt'],
     name: '伙伴 Moment 润色 Prompt',
     category: 'companion',
     purpose: '已发布 Moment 文案润色',
     role: 'companion-background',
     desc: '在规则文案基础上按角色语气生成简短生活动态。',
-    sourcePath: 'electron/main/companion/life/moment-polish.ts',
+    sourcePath: 'electron/main/prompts/companion-behaviors.ts#buildPolishPrompt',
+    template: COMPANION_BEHAVIOR_TEMPLATES[PROMPT_KEYS.companionMomentPolish],
     preview: '只润色已有事件，不新增未发生的事实。',
     slots: [{ name: 'momentEvent', source: 'published life event', lifecycle: '每次发布' }],
     behavior: BEHAVIOR_CONTRACTS[PROMPT_KEYS.companionMomentPolish],
   }),
   dynamicAsset({
     id: PROMPT_KEYS.companionDayScript,
+    dependencies: [PROMPT_KEYS.companionCompiler],
+    definitions: ['electron/main/prompts/companion-behaviors.ts#buildLlmPrompt'],
     name: '伙伴日程剧本 Prompt',
     category: 'companion',
     purpose: '角色日程剧本生成',
     role: 'companion-background',
     desc: '结合人物档案与世界默认值生成结构化日程脚本。',
-    sourcePath: 'electron/main/companion/life/script-generator.ts',
+    sourcePath: 'electron/main/prompts/companion-behaviors.ts#buildLlmPrompt',
+    template: COMPANION_BEHAVIOR_TEMPLATES[PROMPT_KEYS.companionDayScript],
     preview: '输出结构化日程载荷，后续仍需规则校验。',
     slots: [{ name: 'dayContext', source: 'role pack and world state', lifecycle: '每日生成' }],
     behavior: BEHAVIOR_CONTRACTS[PROMPT_KEYS.companionDayScript],
   }),
   dynamicAsset({
     id: PROMPT_KEYS.evalJudge,
+    definitions: ['electron/main/prompts/eval-judge.ts#buildEvalJudgePrompt'],
     name: 'Eval Model Judge Prompt',
     assetType: 'eval-judge',
     category: 'eval',
@@ -455,6 +527,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.subagentSystem,
+    template: buildSubAgentPrompt('{{roleDescription}}', '{{summonBoundary}}'),
+    definitions: ['electron/main/prompts/agent-behaviors.ts#buildSubAgentPrompt', 'electron/main/agent/subagent.ts#buildSubAgentSystemPrompt', 'electron/main/companion/cast/summon-delegation.ts#summonWorkerSystemAddon'],
     name: '子 Agent System Prompt',
     category: 'subagent',
     purpose: '子 Agent 角色与边界',
@@ -469,12 +543,14 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.permissionDenial,
+    definitions: ['electron/main/prompts/agent-behaviors.ts#buildDeniedToolsPromptSuffix'],
+    template: buildDeniedToolsPromptSuffix([{ name: '{{tool}}', reason: '{{reason}}' }], [{ command: '{{command}}', reason: '{{reason}}' }]),
     name: '权限拒绝后的继续策略',
     category: 'system',
     purpose: '权限拒绝后的继续策略',
     role: 'agent-loop',
     desc: '工具或命令被拒绝后注入 Loop 的替代方案提示，并在连续拒绝时停止本轮。',
-    sourcePath: 'electron/main/agent/loop.ts',
+    sourcePath: 'electron/main/prompts/agent-behaviors.ts#buildDeniedToolsPromptSuffix',
     preview: '不要重试同一动作；换个方式或询问用户如何继续。',
     slots: [{ name: 'deniedTool', source: 'permission engine', lifecycle: '每次拒绝' }],
   }),
@@ -484,6 +560,7 @@ const ROLE_PROMPT_FILES = [
   { suffix: 'protected.md', label: 'PROTECTED 人格正文' },
   { suffix: 'mutable.default.md', label: 'MUTABLE 默认状态' },
   { suffix: 'voice.md', label: '语气补充' },
+  { suffix: 'summary.txt', label: '角色摘要' },
   { suffix: 'scenes/display.md', label: '展示场景' },
   { suffix: 'scenes/interact.md', label: '互动场景' },
   { suffix: 'scenes/execute.md', label: '执行场景' },
@@ -493,6 +570,7 @@ const ROLE_PROMPT_FILES = [
   { suffix: 'behaviors/reflection.md', label: '反思行为补充' },
 ] as const
 
+let roleSourceAssetsCache: PromptAsset[] | undefined
 let roleAssetsCache: Array<PromptAsset & { content: string }> | undefined
 
 /**
@@ -533,7 +611,7 @@ function loadRoleAssets(): Array<PromptAsset & { content: string }> {
 }
 
 export function getPromptAssets(): Array<PromptAsset & { content?: string }> {
-  return [...CORE_PROMPT_ASSETS, ...loadRoleAssets()]
+  return [...CORE_PROMPT_ASSETS, ...loadRoleAssets(), ...(roleSourceAssetsCache ??= getRoleSourceAssetCatalog())]
 }
 
 /**
@@ -587,28 +665,9 @@ export function resolvePromptAssetTraces(keys: readonly string[]): PromptAssetRe
       unknownKeys.push(key)
       continue
     }
-    const { purpose, role, source, version, fingerprint, fingerprintKind, locale, mode, slots } = asset
-    assets.push({ key, purpose, role, source, version, fingerprint, fingerprintKind, locale, mode, slots })
+    const { purpose, role, source, version, fingerprint, fingerprintKind, locale, mode, slots, behavior } = asset
+    assets.push({ key, purpose, role, source, version, fingerprint, fingerprintKind, locale, mode, slots, ...(behavior ? { behavior } : {}) })
   }
 
   return { assets, unknownKeys }
-}
-
-/**
- * 根据当前 System Prompt 装配输入投影实际涉及的资产元数据。
- *
- * 背景：Debug 当前装配预览需要显示“这次为什么出现这些 Prompt”，但不能把完整正文再复制到追踪层。
- * 设计意图：稳定系统组装 key 与当前角色 Pack key 由真实注册表筛选，角色文件缺失时自动只返回存在的资产。
- * 关键约束：这里只返回来源 / 版本 / 插槽等元数据，不返回用户画像、会话内容或其他敏感动态值。
- */
-export function getRuntimePromptAssetTraces(personaId: string): PromptAssetTrace[] {
-  const rolePrefix = `role-${personaId}-`
-  const keys = getPromptAssets()
-    .filter((asset) => asset.key === PROMPT_KEYS.promptCompiler || (
-      asset.key.startsWith(rolePrefix)
-      && !asset.key.includes('-behaviors-')
-      && !asset.key.includes('-scenes-')
-    ))
-    .map((asset) => asset.key)
-  return getPromptAssetTraces(keys)
 }

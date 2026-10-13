@@ -6,13 +6,16 @@
  * 约束：输出必须通过结构校验；Catch-up 细补默认不用 LLM（见 engine opts）。
  */
 
+import { SLOT_COUNT_MIN, SLOT_COUNT_MAX, TEXT_MAX } from '../../prompts/behavior-limits'
 import type { LLMConfig } from '../../../../src/shared/types'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm/index'
-import { PROMPT_KEYS, PROMPT_BEHAVIOR_IDS, ROLE_BEHAVIOR_IDS, ROLE_BEHAVIOR_PROMPT_SUFFIX, rolePromptAssetKey } from '../../prompts/keys'
+import { PROMPT_KEYS, ROLE_PROMPT_SUMMARY_SUFFIX, ROLE_BEHAVIOR_IDS, ROLE_BEHAVIOR_PROMPT_SUFFIX, rolePromptAssetKey } from '../../prompts/keys'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
-import { characterDefinitionFromRolePack, compileCompanionBehaviorPrompt } from '../../prompts/compiler'
+import { characterDefinitionFromRolePack } from '../../prompts/compiler'
+import { getCharacterPromptAssetKeys } from '../../prompts/dependencies'
+import { buildLlmPrompt } from '../../prompts/companion-behaviors'
 import {
   formatRoleProfileForPrompt,
   formatRoleWorldDefaultsForPrompt,
@@ -113,9 +116,6 @@ const ROLE_POOL: Record<string, { themes: string[]; activities: ActivitySeed[] }
   },
 }
 
-const SLOT_COUNT_MIN = 5
-const SLOT_COUNT_MAX = 8
-const TEXT_MAX = 40
 
 function hashSeed(roleId: string, date: string): number {
   const s = `${roleId}:${date}`
@@ -230,40 +230,6 @@ export function parseDayScriptPayload(
   return { date, theme, slots }
 }
 
-function buildLlmPrompt(input: {
-  roleName: string
-  roleId: string
-  date: string
-  voiceHint: string
-  characterHint: string
-  character?: ReturnType<typeof characterDefinitionFromRolePack>
-  behaviorPrompt?: string
-}): string {
-  const prefix = input.character
-    ? compileCompanionBehaviorPrompt({
-      character: input.character,
-      behavior: { key: 'day-script', purpose: '生成符合人物与世界连续性的一日生活剧本。', characterSupplement: input.behaviorPrompt },
-      facts: `日期：${input.date}\n人物与默认世界参考：${input.characterHint}`,
-      output: { format: 'JSON', validation: `slots ${SLOT_COUNT_MIN}～${SLOT_COUNT_MAX} 条且可解析`, fallback: '由调用方回退到确定性剧本。' },
-    })
-    : `你是生活世界编剧。为数字伙伴「${input.roleName}」(id=${input.roleId}) 生成 ${input.date} 的一日剧本。`
-  return `${prefix}
-
-人设语气参考（勿写成对白，只影响活动气质）：
-${input.voiceHint || '（无）'}
-
-人物与默认世界参考（只用于保持生活连续性，不要逐条复述）：
-${input.characterHint || '（无）'}
-
-要求：
-1. 日常可信、有分味，不要夸张奇幻；地点用短词（家/工位/路上/咖啡馆/附近街道等）
-2. slots ${SLOT_COUNT_MIN}～${SLOT_COUNT_MAX} 条，按时间升序；hour 0-23，minute 0 或 30
-3. type 只能是 "moment"（适合发动态）或 "activity"（推进日程）；至少 2 条 moment
-4. theme / activity / mood / location 各不超过 ${TEXT_MAX} 字
-5. 可选：整天最多 1 个 slot 带 grantAsset（购得/获赠的小物），形如 {"kind":"wardrobe","name":"短名","payload":{"color":"…"}}；日常勿滥发
-6. 只输出 JSON：{"theme":"...","slots":[{"hour":8,"minute":0,"activity":"...","mood":"...","location":"...","type":"activity"}]}`
-}
-
 /** 尝试 LLM；失败返回 null（由调用方回退哈希） */
 export async function generateDayScriptViaLlm(
   roleId: string,
@@ -299,7 +265,7 @@ export async function generateDayScriptViaLlm(
         }),
       }],
       caller: 'day-script',
-      promptAssetKeys: [PROMPT_KEYS.companionDayScript, PROMPT_BEHAVIOR_IDS.dayScript, ...(pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.dayScript] ? [rolePromptAssetKey(pack.id, ROLE_BEHAVIOR_PROMPT_SUFFIX.dayScript)] : [])],
+      promptAssetKeys: [PROMPT_KEYS.companionDayScript, PROMPT_KEYS.companionCompiler, ...getCharacterPromptAssetKeys(pack), ...(!pack.voice?.trim() && pack.summary?.trim() ? [rolePromptAssetKey(pack.id, ROLE_PROMPT_SUMMARY_SUFFIX)] : []), ...(pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.dayScript] ? [rolePromptAssetKey(pack.id, ROLE_BEHAVIOR_PROMPT_SUFFIX.dayScript)] : [])],
     })
     const parsed = parseDayScriptPayload(raw, date)
     if (!parsed) {

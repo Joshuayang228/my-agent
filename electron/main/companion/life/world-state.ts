@@ -3,7 +3,7 @@
  *
  * 背景：原先只有 catchup_summary + 事件里的 location；缺稳定「居所/时区/短期情境」。
  * 意图：结构化存 world_json；Assemble 只吃一行薄切片；不整库灌 Prompt。
- * 约束：不碰 prompt-builder 的 L1/L2；辅任务 Prompt 仍放各服务文件。
+ * 约束：不改稳定人物定义；辅任务正文来自纯 Prompt 生产定义。
  */
 
 import type { CompanionWorldState } from '../types'

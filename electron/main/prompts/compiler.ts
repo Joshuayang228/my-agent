@@ -238,3 +238,27 @@ export function characterDefinitionFromRolePack(
     asideStyle: pack.asideStyle,
   }
 }
+
+const templateCharacter: PromptCharacterDefinition = {
+  id: '{{roleId}}', name: '{{roleName}}', description: '{{description}}', protected: '{{protected}}',
+  profile: '{{profile}}', worldDefault: '{{worldDefaults}}', growth: '{{growth}}', voice: '{{voice}}', asideStyle: '{{asideStyle}}',
+}
+
+export const MAIN_CHAT_TEMPLATE = compileMainChatPrompt({
+  character: templateCharacter,
+  platform: { toolNames: ['{{toolNames}}'] },
+  behavior: { key: 'main-chat', purpose: '在当前人物与会话情境中回应用户并完成请求。',
+    policy: '{{policy}}', customInstructions: '{{customInstructions}}', characterSupplement: '{{behaviorSupplement}}',
+    replyStance: '{{replyStance}}', toneControl: '{{toneControl}}', relationshipStage: '{{relationshipStage}}',
+    milestone: '{{milestone}}', expertise: '{{expertise}}', skillSummary: '{{skillSummary}}', activeSkillBody: '{{activeSkillBody}}' },
+  situation: { userProfile: { identity: '{{userIdentity}}', workflow: '{{userWorkflow}}', voice: '{{userVoice}}' },
+    memories: '{{memories}}', sessionInfo: '{{sessionInfo}}', catchupSummary: '{{catchupSummary}}', worldSlice: '{{worldSlice}}',
+    recentMomentsSlice: '{{recentMomentsSlice}}', bookshelfSlice: '{{bookshelfSlice}}', rosterLines: '{{rosterLines}}' },
+  currentDate: '{{currentDate}}',
+}).text
+
+export const COMPANION_COMPILER_TEMPLATE = compileCompanionBehaviorPrompt({
+  character: templateCharacter,
+  behavior: { key: '{{behaviorKey}}', purpose: '{{purpose}}', characterSupplement: '{{behaviorSupplement}}' },
+  facts: '{{facts}}', output: { format: '{{outputContract}}' },
+})

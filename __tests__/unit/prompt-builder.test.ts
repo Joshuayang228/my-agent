@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { buildSystemPrompt, rolePackToPromptParts } from '../../electron/main/agent/prompt-builder'
-import type { PersonaTemplate, PromptContext } from '../../electron/main/agent/prompt-builder'
+import { buildSystemPrompt, rolePackToPromptParts } from '../helpers/prompt-fixture'
+import type { PersonaTemplate, PromptContext } from '../helpers/prompt-fixture'
 import { loadRolePack, listProtagonists, loadUniverseManifest } from '../../electron/main/companion/identity/loader'
 
 const minimalPersona: PersonaTemplate = {

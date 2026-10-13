@@ -1,3 +1,4 @@
+import { buildDeniedToolsPromptSuffix, OUTPUT_RECOVERY_PROMPT, buildTimeContextPrompt } from '../prompts/agent-behaviors'
 import type {
   AgentLoopOptions,
   AgentStreamEvent,
@@ -106,23 +107,6 @@ function isMaxOutputError(err: unknown): boolean {
 }
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
-
-function buildDeniedToolsPromptSuffix(
-  deniedTools: Array<{ name: string; reason: string }>,
-  deniedCommands: Array<{ command: string; reason: string }> = [],
-): string {
-  if (deniedTools.length === 0 && deniedCommands.length === 0) return ''
-  const parts: string[] = []
-  if (deniedTools.length > 0) {
-    const lines = deniedTools.map(d => `- ${d.name}: ${d.reason}`)
-    parts.push(`[系统] 本次会话中以下工具已被拒绝。不要原样重试；请改用能实现用户目标的更安全方案，或向用户说明继续操作需要什么：\n${lines.join('\n')}`)
-  }
-  if (deniedCommands.length > 0) {
-    const lines = deniedCommands.map(d => `- ${d.command}: ${d.reason}`)
-    parts.push(`[系统] 本次会话中以下命令已被沙箱阻止。不要再次运行；请改用其他方式达成目标（更安全的命令、专用工具，或请求用户调整沙箱）：\n${lines.join('\n')}`)
-  }
-  return `\n\n${parts.join('\n\n')}`
-}
 
 /** 从 shell_exec 的工具结果里识别被沙箱拦截的命令（G2 命令拒绝追踪） */
 const SANDBOX_BLOCK_MARKER = '[SANDBOX BLOCKED]'
@@ -353,9 +337,12 @@ export async function* agentLoop(
           if (attempt > 0) return m
           if (i !== state.messages.length - 1) return m
           if (m.role !== 'user') return m
-          return { ...m, content: `[当前时间: ${timeStr}]\n${m.content}` }
+          return { ...m, content: buildTimeContextPrompt(timeStr, m.content) }
         })
 
+        const injectTime = attempt === 0 && state.messages.at(-1)?.role === 'user'
+        const hasOutputRecovery = state.messages.some(message => message.id.startsWith('user-recovery-'))
+        const hasCompactRestore = state.messages.some(message => message.id === 'context-file-restore' || message.id === 'auto-compact-summary')
         const stream = streamChat({
           config,
           messages: messagesWithTime,
@@ -372,6 +359,9 @@ export async function* agentLoop(
             ? {
                 promptAssetKeys: [
                   ...promptAssetKeys,
+                  ...(injectTime ? [PROMPT_KEYS.loopTimeContext] : []),
+                  ...(hasOutputRecovery ? [PROMPT_KEYS.loopOutputRecovery] : []),
+                  ...(hasCompactRestore ? [PROMPT_KEYS.compactRestoreContext] : []),
                   ...(state.deniedTools.length > 0 || state.deniedCommands.length > 0
                     ? [PROMPT_KEYS.permissionDenial]
                     : []),
@@ -506,7 +496,7 @@ export async function* agentLoop(
         state.messages.push({
           id: `user-recovery-${state.turnCount}`,
           role: 'user',
-          content: '[系统] 你上一条回复因长度限制被截断，请从中断处继续。',
+          content: OUTPUT_RECOVERY_PROMPT,
           timestamp: Date.now(),
         })
         state.transition = { reason: 'max_output_recovery' }

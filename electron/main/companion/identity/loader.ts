@@ -1,7 +1,7 @@
 /**
  * Role Pack 加载器（Identity）
  *
- * 背景：人设文案必须落在 universes/ 资产目录，禁止再硬编码进 prompt-builder。
+ * 背景：人设文案必须落在 universes/ 资产目录，禁止再硬编码进会话组装入口。
  * 意图：按 universe manifest 的 protagonistIds 列出主角；按需读完整 Pack。
  * 约束：通过 Vite `import.meta.glob(?raw)` 打进主进程包，避免生产环境缺文件；
  *       若 glob 不可用则回退 fs（兼容部分测试环境）。

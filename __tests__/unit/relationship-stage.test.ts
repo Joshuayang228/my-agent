@@ -6,7 +6,7 @@ import {
   resolveRelationshipStage,
   formatRelationshipStageForPrompt,
 } from '../../electron/main/companion/growth/relationship-stage'
-import { buildSystemPrompt } from '../../electron/main/agent/prompt-builder'
+import { buildSystemPrompt } from '../helpers/prompt-fixture'
 import { COLD_START_MS, MIN_USER_MESSAGES } from '../../electron/main/companion/growth/reflection-gate'
 
 const HOUR = 3600_000

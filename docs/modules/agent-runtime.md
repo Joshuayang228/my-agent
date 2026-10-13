@@ -1,5 +1,13 @@
 # Agent 运行时
 
+## 已落地能力：Prompt 全入口注册与防漏门禁
+
+生产 Prompt 正文、动态包装与真实生产符号由 `prompts/registry.ts` 统一索引。主对话、四类伙伴行为、压缩、子任务、拒绝继续策略、输出截断恢复、时间参考、工作区与 Skill 包装都登记稳定 key；有模板的资产由实际纯构造器展开占位符，最终值以实际请求为准。旧 `agent/prompt-builder.ts` 已删除，Eval 直接使用语义编译器，历史单元夹具只存在测试目录。
+
+人物 manifest / profile / world 来源由 `companion/identity/source-assets.ts` 单一工厂提供，Prompt 和伙伴目录共用同一 key，Debug 聚合去重。真实请求仅登记实际人物文件、成长覆盖和场景来源；当前装配预览只追踪该预览实际注入的输入，不冒充完整会话。
+
+防漏测试检查生产定义符号、Role Pack 文本与 JSON 来源、内联模型指令和调用正文的资产归属，并包含新增函数未登记、错 key 与内联正文的负例。新增正文必须遵守命名约定并同步 `definitions`；未知调用 key 仍由统一解析器显式返回。Tool / Skill / MCP 继续从真实 Registry 自动发现。
+
 ## 已落地能力：人物世界配图绑定边界
 
 人物世界显式生图沿既有 image_generate 工具与统一模型工厂执行；目标资产绑定由 Companion 服务验证角色和穿搭版本，迟到结果不覆盖已变更穿搭。工具执行前后的权限 / 取消及生成文件清理继续生效，不新增自动收费请求或生产 Prompt。六面展示回流不改变 Loop、压缩或模型备用路由。
@@ -184,7 +192,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 | 生活资产备份 IPC | 已落地 | `ipc/data-export.ts` · `data:export` / `data:import`；覆盖 `companion_assets` 与 `companion_asset_seeds`，按 id / 播种键合并，会话与资产同一事务失败回滚。旧备份缺字段仍可导入。整份预检共用记忆存储正文断言，非法记忆不得在会话 / 资产写入后才被拒绝；通过后记忆继续走 `memoryStore.addMemory`，不进入 Loop；合法输入的跨存储原子导入仍未实现 |
 | 会话 Runtime 中心化（chat:send 只传本轮） | 已落地 | `agent/runtime.ts` · `ipc/chat` |
 | TerminalReason 终态传递与 Runtime 去重 | 已落地 | `agent/loop.ts` · `agent/runtime.ts` · `runtime-terminal-reason.test.ts` |
-| Prompt 语义编译 | 已落地 | `prompt-builder.ts` |
+| Prompt 语义编译 | 已落地 | `prompts/compiler.ts` |
 | 自有模型提示词统一中文 + 自动语言门禁 | 已落地 | 主 Assemble / 压缩 / 画像 / 子 Agent / 内置工具 schema；`prompt-language.test.ts` |
 | 上下文压缩 L1–L4 | 已落地 | `context-manager` |
 | 任务队列（后处理 / 反思等） | 已落地 | `services/task-queue` 等 |
@@ -221,7 +229,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 | GitHub Actions 质量门禁 | 已落地 | Docs / Asset 工作流；Unit 在无界面 Runner 使用 Electron external 占位路径，不下载桌面二进制；官方 Actions 使用 v7 |
 | Skills 管理 | 已落地 | 正式 Settings 与 Playground 共用 `settings/SkillViews.tsx` 的列表 / 独立详情 / 限高全文；内置正文只读，用户正文校验保存、取消与页内确认删除，失败可重试，离页迟到响应不覆盖新页面。`skills:set-enabled` 经 registry 串行持久化到 `skill-state-store`；停用从新摘要和工具注册移除，旧工具引用执行前再次校验。版本 / 回滚 / 隔离试跑后端仍供其既有调用者使用，不再是正式 Skills 页入口 |
 | Skill Eval 证据闭环 | 已落地 | `npm run eval:skill`；S01–S03 覆盖应触发 / 不触发 / `allowed_tools`；JSON + Markdown 报告；Debug「质量 / Eval」展示输入、Trace、工具、回复与四类 Grader |
-| Prompt 受控编辑 | 已落地 | 生产资产只读；实验副本可隔离试跑；二次确认后复用 `settings.systemPrompt` 保存为 L3 自定义补充指令 |
+| Prompt 受控编辑 | 已落地 | 生产资产只读；实验副本可隔离试跑；二次确认后复用 `settings.systemPrompt` 保存为行为模块的自定义补充指令 |
 | Playground 多轮隔离对话 | 已落地 | `playgroundRun.history` · PromptLab transcript |
 | Playground 模型测试（烟测 + thinking.disabled 探测） | 已落地 | `基础 → 设计语言`、`Agent 实验 → 模型能力` 等一级入口 · `debug:model-smoke` / `model-probe-thinking`；能力缓存供辅助调用 |
 | Debug 世界态透视 | 已落地 | `debug:world-snapshot` · DevPanel 伙伴状态域 |

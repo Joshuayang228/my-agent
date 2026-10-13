@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import initSqlJs from 'sql.js'
-import { buildSystemPrompt, rolePackToPromptParts } from '../../electron/main/agent/prompt-builder'
+import { buildSystemPrompt, rolePackToPromptParts } from '../helpers/prompt-fixture'
 
 vi.mock('electron', () => ({
   app: { getPath: () => '/tmp' },

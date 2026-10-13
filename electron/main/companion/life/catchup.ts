@@ -3,17 +3,20 @@
  *
  * 背景：完整切换回曾暂停角色时，细补最近 ≤7×24h 窗口内的剧本/事件；更早只写概况摘要。
  * 意图：runCatchup(roleId, pausedAt, now)；概况优先 LLM，失败回退规则模板。
- * 约束：时区用本地日历日；不在打开瞬间伪造「正在发生」；辅任务 Prompt 留在本文件，不进 prompt-builder。
+ * 约束：时区用本地日历日；不在打开瞬间伪造「正在发生」；辅任务正文来自 prompts/companion-behaviors，服务只提供事实和回退。
  */
 
+import { SUMMARY_MAX_CHARS } from '../../prompts/behavior-limits'
 import type { LLMConfig } from '../../../../src/shared/types'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { chatComplete } from '../../llm/index'
-import { PROMPT_KEYS, ROLE_BEHAVIOR_IDS, ROLE_BEHAVIOR_PROMPT_SUFFIX, rolePromptAssetKey } from '../../prompts/keys'
+import { PROMPT_KEYS, ROLE_PROMPT_SUMMARY_SUFFIX, ROLE_BEHAVIOR_IDS, ROLE_BEHAVIOR_PROMPT_SUFFIX, rolePromptAssetKey } from '../../prompts/keys'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
-import { characterDefinitionFromRolePack, compileCompanionBehaviorPrompt } from '../../prompts/compiler'
+import { characterDefinitionFromRolePack } from '../../prompts/compiler'
+import { getCharacterPromptAssetKeys } from '../../prompts/dependencies'
+import { buildCatchupLlmPrompt } from '../../prompts/companion-behaviors'
 import { eachLocalDateInclusive, toLocalDateString } from './dates'
 import { ensureDayScripts } from './engine'
 import { publishAndProjectRange } from './moments'
@@ -26,7 +29,6 @@ const log = createLogger('Catchup')
 export const CATCHUP_FINE_MS = 7 * 86_400_000
 
 const SUMMARY_PREFIX = '【生活追赶摘要】'
-const SUMMARY_MAX_CHARS = 280
 
 export function computeFineStart(pausedAt: number, now: number): number {
   return Math.max(pausedAt, now - CATCHUP_FINE_MS)
@@ -48,44 +50,6 @@ export function buildCatchupSummary(
     `${from}～${gapEnd} 约 ${gapDays} 个日历日以概况带过（未逐日生成）。` +
     `已细补 ${gapEnd}～${until} 近窗生活。现在是 ${until}。`
   )
-}
-
-function buildCatchupLlmPrompt(input: {
-  roleName: string
-  roleId: string
-  from: string
-  gapEnd: string
-  until: string
-  gapDays: number
-  home: string
-  voiceHint: string
-  character?: ReturnType<typeof characterDefinitionFromRolePack>
-  behaviorPrompt?: string
-}): string {
-  const prefix = input.character
-    ? compileCompanionBehaviorPrompt({
-      character: input.character,
-      behavior: { key: 'catchup', purpose: '为恢复会话的角色生成期间概况。', characterSupplement: input.behaviorPrompt },
-      facts: `暂停起：${input.from}\n概况区间：${input.from}～${input.gapEnd}\n近窗：${input.gapEnd}～${input.until}`,
-      output: { format: '一段中文概况', validation: `不超过 ${SUMMARY_MAX_CHARS} 字，不虚构具体行程`, fallback: '使用规则模板。' },
-    })
-    : `你是生活世界旁白编辑。角色「${input.roleName}」(id=${input.roleId}) 曾暂停一段时间，需要一条「期间概况」给对话系统用。`
-  return `${prefix}
-
-事实锚点（不得编造具体行程细节）：
-- 暂停起：${input.from}
-- 概况带过：${input.from}～${input.gapEnd}（约 ${input.gapDays} 个日历日，未逐日生成）
-- 近窗已细补：${input.gapEnd}～${input.until}
-- 居所参考：${input.home || '未设定'}
-
-人设语气参考（勿写成对白）：
-${input.voiceHint || '（无）'}
-
-硬性要求：
-1. 只输出一段中文概况（可含一句氛围），不要 JSON、不要列表、不要标题
-2. 总长不超过 ${SUMMARY_MAX_CHARS} 字；必须体现「中间一段以概况带过、近几天已接上」
-3. 禁止伪造「此刻正在发生」的具体约会/对话；不要写精确钟点行程
-4. 不要抄写 PROTECTED 长文或发明新身份`
 }
 
 /** 规范化 LLM 正文；不合格返回 null */
@@ -146,7 +110,7 @@ export async function generateCatchupSummaryViaLlm(
         }),
       }],
       caller: 'catchup-summary',
-      promptAssetKeys: [PROMPT_KEYS.companionCatchup, ...(pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.catchup] ? [rolePromptAssetKey(pack.id, ROLE_BEHAVIOR_PROMPT_SUFFIX.catchup)] : [])],
+      promptAssetKeys: [PROMPT_KEYS.companionCatchup, PROMPT_KEYS.companionCompiler, ...getCharacterPromptAssetKeys(pack), ...(!pack.voice?.trim() && pack.summary?.trim() ? [rolePromptAssetKey(pack.id, ROLE_PROMPT_SUMMARY_SUFFIX)] : []), ...(pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.catchup] ? [rolePromptAssetKey(pack.id, ROLE_BEHAVIOR_PROMPT_SUFFIX.catchup)] : [])],
     })
     const normalized = normalizeCatchupSummaryText(raw)
     if (!normalized) {

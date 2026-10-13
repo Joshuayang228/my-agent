@@ -1,5 +1,11 @@
 # 系统架构
 
+## Prompt 生产定义与注册边界
+
+`prompts/` 保存纯正文构造器、语义编译器、typed key 与注册索引；领域服务提供事实并拥有解析、回退与副作用。注册表的 `definitions` 指向真实代码符号，动态模板调用同一生产构造器生成；禁止在索引或 Debug 复制正文。四类伙伴行为的领域协议在输出模块最后编译，人物增量和运行时事实不能隐式覆盖稳定身份。
+
+人物 JSON 来源由纯 `companion/identity/source-assets.ts` 工厂投影，Prompt 追踪和伙伴目录共享 canonical key；高层 Debug 聚合去重。LLM 依赖 Prompt 目录时不反向导入 Agent 或生活存储，Role Pack 文本仍从实际 loader 读取。主对话 / Eval 使用 `prompts/compiler.ts`；旧生产组装适配层已移除。
+
 人物世界六面共用纯展示画廊，正式加载 / 写入由各面板和 companion IPC 管理；Playground 通过隔离 props 注入样张，不改变生产默认数据。world-records 负责结构校验，资产服务负责同角色引用与同步换装版本校验；通讯录从已发布事件与 event_links 派生关系经历，足迹仅消费已出发旅行。schema 18 保存事件关联；关联替换与事件投影删除使用 SAVEPOINT 整组回滚。用户资料不是内置生产资产，Debug 静态目录仍只登记 Role Pack 与 starter 定义。
 
 生活资产创建 IPC 使用共享 CompanionAssetCreateInput：Renderer 从已校验的资产快照发送 roleId，主进程进行运行时类型 / 长度与活跃角色一致性校验，再将固定 roleId 交给资产服务；角色变化不能把请求重定向给另一伙伴。无角色旧调用直接拒绝，不作兼容回退；preload / vite-env 共用输入类型。编辑删除的资产 ID 与 expectedRoleId 校验不变，不新增数据库锁或迁移。
@@ -371,7 +377,7 @@ my-agent/
 用户输入 → 渲染进程(React) → IPC chat:send
     → 主进程 AgentRuntime.chat()
         ├─ 记忆检索（向量 + SQLite）
-        ├─ 上下文组装（System Prompt 4 层 + 消息管道清洗）
+        ├─ 上下文组装（System Prompt 语义模块 + 消息管道清洗）
         ├─ Token 预算检查
         └─ Agent Loop（AsyncGenerator）
             ├─ streamChat → LLM API（Provider Router 自动选择协议）

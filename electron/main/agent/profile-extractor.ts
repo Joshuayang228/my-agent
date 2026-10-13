@@ -9,6 +9,7 @@
  * 只在用户消息包含足够线索时触发。
  */
 
+import { buildProfileExtractionInputPrompt } from '../prompts/profile-extraction'
 import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
 import { EXTRACTION_PROMPT } from '../prompts/texts'
@@ -67,10 +68,7 @@ export async function maybeExtractProfile(
       ? [...messages, { id: 'latest', role: 'assistant' as const, content: latestAssistantContent, timestamp: Date.now() }]
       : messages
     const recentMessages = allMessages.slice(-PROFILE_EXTRACTION_MAX_RECENT_MESSAGES)
-    const conversationText = recentMessages
-      .filter(m => m.role === 'user' || m.role === 'assistant')
-      .map(m => `${m.role === 'user' ? '用户' : '助手'}： ${m.content.slice(0, 500)}`)
-      .join('\n\n')
+
 
     const existingMemories = await listMemories()
     const existingFacts = existingMemories
@@ -78,9 +76,7 @@ export async function maybeExtractProfile(
       .map((memory) => memory.content)
       .join('; ')
 
-    const prompt = existingFacts
-      ? `已知的用户信息：${existingFacts}\n\n不要重复已知事实，只提取新信息。\n\n近期对话：\n${conversationText}`
-      : `近期对话：\n${conversationText}`
+    const prompt = buildProfileExtractionInputPrompt(recentMessages, existingFacts)
 
     // 走统一路由层（chatComplete）而非直接 fetch —— 自动获得多 Provider 支持 + failover
     let text: string
@@ -94,7 +90,7 @@ export async function maybeExtractProfile(
         temperature: 0.1,
         maxTokens: 500,
         caller: 'profile',
-        promptAssetKeys: [PROMPT_KEYS.profileExtraction],
+        promptAssetKeys: [PROMPT_KEYS.profileExtraction, PROMPT_KEYS.profileExtractionInput],
         sessionId: opts?.sessionId,
       })
     } catch (apiErr) {

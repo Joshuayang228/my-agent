@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getPromptAssets, getRuntimePromptAssetTraces, resolvePromptAssetTraces } from '../../electron/main/prompts/registry'
+import { getPromptAssets, getPromptAssetTraces, resolvePromptAssetTraces } from '../../electron/main/prompts/registry'
 import { PROMPT_KEYS } from '../../electron/main/prompts/keys'
 import { modelContextFingerprint } from '../../electron/main/prompts/fingerprint'
 import { EXTRACTION_PROMPT } from '../../electron/main/prompts/texts'
@@ -68,9 +68,9 @@ describe('debug prompt assets', () => {
     const loop = assets.find((asset) => asset.key === 'loop-default')
     const system = assets.find((asset) => asset.key === 'prompt-compiler')
     expect(loop?.locales['zh-CN'].template).toBe(loop?.content)
-    expect(system?.locales['zh-CN'].template).toBeUndefined()
+    expect(system?.locales['zh-CN'].template).toContain('{{protected}}')
     expect(assets.find((asset) => asset.key === PROMPT_KEYS.evalJudge)?.locales['zh-CN'].template).toBe(EVAL_JUDGE_TEMPLATE)
-    expect(system?.slots.some((slot) => slot.name === 'persona')).toBe(true)
+    expect(system?.slots.some((slot) => slot.name === 'character')).toBe(true)
   })
 
   it('伙伴行为资产登记真实触发、输入、校验和回退契约', () => {
@@ -125,7 +125,7 @@ describe('debug prompt assets', () => {
   })
 
   it('当前 System 装配快照通过同一注册表返回来源与版本追踪', () => {
-    const traces = getRuntimePromptAssetTraces('missing-role')
+    const traces = getPromptAssetTraces([PROMPT_KEYS.promptCompiler])
     expect(traces.map((trace) => trace.key)).toEqual(['prompt-compiler'])
     expect(traces[0]).toMatchObject({
       purpose: '主对话语义模块编译',

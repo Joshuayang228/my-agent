@@ -7,7 +7,7 @@ import {
   detectReplyStance,
   formatReplyStanceForPrompt,
 } from '../../electron/main/agent/reply-stance'
-import { buildSystemPrompt, rolePackToPromptParts } from '../../electron/main/agent/prompt-builder'
+import { buildSystemPrompt, rolePackToPromptParts } from '../helpers/prompt-fixture'
 import { loadRolePack } from '../../electron/main/companion/identity/loader'
 
 describe('detectReplyStance', () => {

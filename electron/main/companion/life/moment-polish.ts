@@ -9,61 +9,23 @@
 import type { LLMConfig } from '../../../../src/shared/types'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm/index'
-import { PROMPT_KEYS, PROMPT_BEHAVIOR_IDS, ROLE_BEHAVIOR_IDS, ROLE_BEHAVIOR_PROMPT_SUFFIX, rolePromptAssetKey } from '../../prompts/keys'
+import { PROMPT_KEYS, ROLE_PROMPT_SUMMARY_SUFFIX, ROLE_BEHAVIOR_IDS, ROLE_BEHAVIOR_PROMPT_SUFFIX, rolePromptAssetKey } from '../../prompts/keys'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
-import { characterDefinitionFromRolePack, compileCompanionBehaviorPrompt } from '../../prompts/compiler'
+import { characterDefinitionFromRolePack } from '../../prompts/compiler'
+import { getCharacterPromptAssetKeys } from '../../prompts/dependencies'
+import { buildPolishPrompt } from '../../prompts/companion-behaviors'
 import type { CompanionEvent } from '../types'
 import { formatMomentText } from './moment-format'
 
 const log = createLogger('MomentPolish')
 
-export const MOMENT_TEXT_MAX = 80
+export { MOMENT_TEXT_MAX } from '../../prompts/behavior-limits'
+import { MOMENT_TEXT_MAX } from '../../prompts/behavior-limits'
 
 const LOCATION_HINTS = [
   '家', '工位', '路上', '咖啡馆', '附近街道', '公园', '合租', '公寓', '宿舍',
 ]
-
-function buildPolishPrompt(input: {
-  roleName: string
-  activity: string
-  mood: string
-  location: string
-  outfit?: string
-  book?: string
-  ruleText: string
-  voiceHint: string
-  character?: ReturnType<typeof characterDefinitionFromRolePack>
-  behaviorPrompt?: string
-}): string {
-  const prefix = input.character
-    ? compileCompanionBehaviorPrompt({
-      character: { ...input.character, growth: input.character.growth },
-      behavior: { key: 'moment-polish', purpose: '根据已发生事件生成一条短动态。', characterSupplement: input.behaviorPrompt },
-      facts: `活动：${input.activity}\n心情：${input.mood}\n地点：${input.location}\n规则底稿：${input.ruleText}`,
-      output: { format: '一句中文动态', validation: `不超过 ${MOMENT_TEXT_MAX} 字，必须锚定活动或地点`, fallback: '由调用方回退到规则底稿。' },
-    })
-    : '你是朋友圈短动态编辑。根据已发生事件写一句短动态（不是日记长文）。'
-  return `${prefix}
-
-角色：${input.roleName}
-事实（不得增删行程）：
-- 活动：${input.activity}
-- 心情：${input.mood || '（无）'}
-- 地点：${input.location || '（无）'}
-- 着装：${input.outfit || '（无）'}
-- 在读：${input.book || '（无）'}
-规则底稿：${input.ruleText}
-
-人设语气参考（勿写成对白）：
-${input.voiceHint || '（无）'}
-
-硬性要求：
-1. 只输出一句中文动态，不要 JSON、不要引号包裹、不要话题标签堆砌
-2. 总长不超过 ${MOMENT_TEXT_MAX} 字；必须能看出上述活动或地点
-3. 禁止发明新地点、新约会、新人物；禁止「正在打字」类元叙述
-4. 可略带情绪，但别写成小作文`
-}
 
 /**
  * 校验润色结果仍锚定事实；不合格返回 null。
@@ -138,7 +100,7 @@ export async function polishMomentTextViaLlm(
         }),
       }],
       caller: 'moment-polish',
-      promptAssetKeys: [PROMPT_KEYS.companionMomentPolish, PROMPT_BEHAVIOR_IDS.momentPolish, ...(pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.momentPolish] ? [rolePromptAssetKey(pack.id, ROLE_BEHAVIOR_PROMPT_SUFFIX.momentPolish)] : [])],
+      promptAssetKeys: [PROMPT_KEYS.companionMomentPolish, PROMPT_KEYS.companionCompiler, ...getCharacterPromptAssetKeys(pack), ...(!pack.voice?.trim() && pack.summary?.trim() ? [rolePromptAssetKey(pack.id, ROLE_PROMPT_SUMMARY_SUFFIX)] : []), ...(pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.momentPolish] ? [rolePromptAssetKey(pack.id, ROLE_BEHAVIOR_PROMPT_SUFFIX.momentPolish)] : [])],
     })
     const ok = validatePolishedMomentText(raw, { activity, location, ruleText })
     if (!ok) {

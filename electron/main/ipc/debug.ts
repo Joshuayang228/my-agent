@@ -8,7 +8,9 @@ import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { ToolRegistry } from '../tools/registry'
 import { characterDefinitionFromRolePack, compileMainChatPrompt } from '../prompts/compiler'
-import { getPromptAssets, getRuntimePromptAssetTraces } from '../prompts/registry'
+import { getPromptAssets, getPromptAssetTraces } from '../prompts/registry'
+import { getCharacterPromptAssetKeys } from '../prompts/dependencies'
+import { PROMPT_KEYS } from '../prompts/keys'
 import { loadActiveAssembleInput } from '../companion/orchestrator'
 import { getAllSettings } from '../storage/settings-store'
 import { buildUserProfile } from '../storage/memory-store'
@@ -92,7 +94,11 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
         persona: { id: character.id, name: character.name },
         charCount: compiled.text.length,
         estimatedTokens: Math.ceil(compiled.text.length / 3.5),
-        assets: getRuntimePromptAssetTraces(character.id),
+        assets: getPromptAssetTraces([
+          PROMPT_KEYS.promptCompiler, ...getCharacterPromptAssetKeys(pack, mutableBody),
+          ...(customPrompt?.trim() ? [PROMPT_KEYS.settingsSystemPrompt] : []),
+          ...([userProfile?.identity, userProfile?.workflow, userProfile?.voice].some((value) => value?.trim()) ? [PROMPT_KEYS.userProfileContext] : []),
+        ]),
       }
     } catch (err) {
       log.error('Failed to build debug prompt', { error: String(err) })

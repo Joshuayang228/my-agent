@@ -2,6 +2,7 @@ import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
 import { chatComplete } from '../llm/index'
 import { PROMPT_KEYS } from '../prompts/keys'
+import { buildCompactPrompt, buildFileRestorePrompt, buildCompactSummaryPrompt, buildCompactHistoryPrompt } from '../prompts/compact'
 import { recordAssetUsage } from '../utils/asset-usage'
 import { PROVIDER_ASSET_KEYS } from '../llm/provider-asset-keys'
 import { getEffectiveContextWindow } from './model-context-window'
@@ -348,7 +349,7 @@ function buildFileRestoreMessage(files: RestoredFile[]): ChatMessage | null {
   return {
     id: 'context-file-restore',
     role: 'system',
-    content: `[压缩后文件恢复 — 以下是压缩前最近读取的文件内容，避免重复读取]\n\n${sections.join('\n\n')}`,
+    content: buildFileRestorePrompt(sections.join('\n\n')),
     timestamp: Date.now(),
   }
 }
@@ -648,7 +649,7 @@ async function autoCompact(
   const summaryMsg: ChatMessage = {
     id: 'auto-compact-summary',
     role: 'system',
-    content: `[自动压缩——完整对话摘要]\n${summaryContent}`,
+    content: buildCompactSummaryPrompt(summaryContent),
     timestamp: Date.now(),
     compactMetadata: {
       level: 'L4_AutoCompact',
@@ -673,17 +674,7 @@ async function generateLLMSummary(
   llmConfig: LLMConfig,
   comprehensive = false,
 ): Promise<string> {
-  const conversationText = messages
-    .filter(m => m.role !== 'system')
-    .map(m => {
-      if (m.role === 'tool') return `[工具结果] ${m.content.slice(0, 200)}`
-      if (m.role === 'assistant' && m.toolCalls?.length) {
-        return `[助手调用了： ${m.toolCalls.map(tc => tc.name).join(', ')}]`
-      }
-      return `[${m.role === 'user' ? '用户' : '助手'}] ${m.content.slice(0, 300)}`
-    })
-    .join('\n')
-    .slice(0, 6000)
+  const conversationText = buildCompactHistoryPrompt(messages)
 
   // B1: 结构化摘要框架 —— 自由文本摘要在下一轮推理时易被误读，
   // 结构化框架（当前任务/已完成/状态/下一步/关键上下文）更利于 LLM 正确解读。
@@ -691,28 +682,7 @@ async function generateLLMSummary(
   const wordLimit = comprehensive ? 500 : 300
   // M30-G2：关系最小集白名单进压缩 instruction
   const minSetSection = formatMinSetWhitelistForCompactPrompt()
-  const instruction = `你正在为一个持续进行的对话生成压缩摘要。摘要将替换早期对话历史，供 AI 继续任务时参考。
-
-请严格按以下结构化格式输出（每节简明扼要，缺失的节写「无」）：
-
-## 当前任务
-[用一句话说明用户的核心目标]
-
-## 已完成步骤
-[按顺序列出已完成的关键操作，无则写「无」]
-
-## 当前状态
-[进展到哪一步，遇到什么问题，无则写「无」]
-
-## 下一步计划
-[接下来应该做什么，无则写「无」]
-
-## 关键上下文
-[必须记住的信息：文件路径、变量名、配置值、用户偏好等，无则写「无」]
-
-${minSetSection}
-
-用中文回答，总字数控制在 ${wordLimit} 字以内。只输出上述结构，不要额外说明。`
+  const instruction = buildCompactPrompt(wordLimit, minSetSection)
 
   // 走统一路由层（chatComplete）而非直接 fetch —— 自动获得多 Provider 支持 + failover
   const summary = await chatComplete({

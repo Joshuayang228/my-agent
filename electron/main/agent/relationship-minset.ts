@@ -9,11 +9,7 @@
 import type { ChatMessage } from '../../../src/shared/types'
 
 /** 产品白名单：压缩时不可当废纸的关系类信息（对照 M30§三） */
-export const RELATIONSHIP_MINSET_WHITELIST = [
-  '称呼与沟通偏好',
-  '进行中的共同约定',
-  '未完成的情感锚点（用户要求先别提/别问的事）',
-] as const
+export { RELATIONSHIP_MINSET_WHITELIST, formatMinSetWhitelistForCompactPrompt } from '../prompts/compact'
 
 export type RelationshipMinSetKind =
   | 'address_pref'
@@ -79,15 +75,6 @@ export function extractRelationshipMinSet(
     }
   }
   return out
-}
-
-/** 写入压缩 instruction 的白名单说明（给摘要 LLM） */
-export function formatMinSetWhitelistForCompactPrompt(): string {
-  const bullets = RELATIONSHIP_MINSET_WHITELIST.map((w) => `- ${w}`).join('\n')
-  return `## 关系最小集（必须保留）
-以下类别若在对话中出现，必须写入本节，禁止省略或改写成「无」：
-${bullets}
-若原文没有则写「无」。不要编造未出现的关系事实。`
 }
 
 export function formatMinSetBlock(items: RelationshipMinSetItem[]): string {

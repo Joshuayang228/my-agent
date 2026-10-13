@@ -10,6 +10,7 @@
  * 权限：只降不升。子 Agent 的工具集是父 Agent 工具集的子集。
  */
 
+import { buildSubAgentPrompt } from '../prompts/agent-behaviors'
 import { randomUUID } from 'node:crypto'
 import { agentLoop } from './loop'
 import { summonWorkerSystemAddon } from '../companion/cast/summon-delegation'
@@ -103,16 +104,7 @@ export function buildSubAgentSystemPrompt(
   const roleDesc = preset ? preset.systemPromptAddon : role
   const summonAddon = summonWorkerSystemAddon(opts?.sessionKind)
   const boundary = summonAddon ? `\n\n${summonAddon}` : ''
-  return `你是一个专门执行任务的子 Agent，角色如下：
-
-${roleDesc}
-
-重要约束：
-- 只专注于交给你的任务。
-- 不要闲聊，也不要提出澄清问题；直接完成任务。
-- 用清晰、结构化的方式返回结果。
-- 如果现有工具不足以完成任务，说明还需要什么。
-- 回复保持简洁、可执行。${boundary}`
+  return buildSubAgentPrompt(roleDesc, boundary)
 }
 
 /**

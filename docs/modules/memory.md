@@ -1,5 +1,9 @@
 # 记忆（memory）
 
+## 已落地能力：画像与压缩来源一致性
+
+画像提取继续引用生产 `EXTRACTION_PROMPT`，注入由语义编译器负责。压缩指令及关系最小集白名单统一来自 `prompts/compact.ts`，压缩摘要和文件恢复包装也有稳定注册 key；真实用户记忆、文件内容与会话摘要仍是运行时数据，不登记为内置正文。
+
 ## 一句话
 
 跨会话持久化用户信息，并在对话前检索注入 Prompt，使 Agent「越用越懂你」。
@@ -37,7 +41,7 @@
 
 ## 依赖
 
-- **依赖**：storage（SQLite）、memory/vector-store + embeddings、prompt-builder、llm（提取/嵌入）
+- **依赖**：storage（SQLite）、memory/vector-store + embeddings、prompts/compiler、llm（提取/嵌入）
 - **被依赖**：chat 发送路径、companion 反思（用户消息/反馈信号）、DevPanel 可观测
 
 ## 不变量
@@ -57,7 +61,7 @@
 - `electron/main/memory/embeddings.ts`
 - `electron/main/tools/builtins/memory-manage.ts`
 - `electron/main/agent/profile-extractor.ts`
-- `electron/main/agent/prompt-builder.ts`
+- `electron/main/prompts/compiler.ts`
 - `src/components/MemoryPanel.tsx`
 - `electron/main/ipc/memory.ts`
 
