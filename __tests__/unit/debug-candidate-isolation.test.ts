@@ -3,12 +3,28 @@ import { describe, expect, it } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { DebugEvidenceCandidate } from '../../src/components/playground/DebugEvidenceCandidate'
+import { DebugPromptCandidate, type PromptPreviewState } from '../../src/components/playground/DebugPromptCandidate'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES } from '../../src/components/playground/debug-experience-fixtures'
 import { DEBUG_ASSET_FIXTURES, debugAssetGroup } from '../../src/components/playground/debug-asset-fixtures'
 import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, type DebugEvidencePageId } from '../../src/components/playground/debug-evidence-fixtures'
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('提示词首次未读取与局部失败不冒充成功空结果', () => {
+    const render = (previewState: PromptPreviewState) => renderToStaticMarkup(createElement(DebugPromptCandidate, { previewState, empty: false, selectedKey: 'demo.prompt.main', onSelect: () => {}, records: DEBUG_RECORD_FIXTURES, onRecord: () => {} }))
+    for (const state of ['unread', 'unavailable', 'loading', 'error'] as const) {
+      const html = render(state)
+      expect(html).not.toContain('此范围没有资产')
+      expect(html).not.toContain('debug-prompt-directory')
+      expect(html).not.toContain('相关调用 · 0')
+      expect(html).toContain('disabled=""')
+    }
+    const usage = render('usage-error')
+    expect(usage).toContain('和用户共同整理')
+    expect(usage).toContain('相关调用 · 未读取')
+    expect(usage).not.toContain('此范围内没有关联调用')
+    expect(render('missing')).toContain('引用的资产未在目录中找到')
+  })
   it('领域默认只读当前人物，首屏不混入另一人物画像及来源分类', () => {
     const html = renderToStaticMarkup(createElement(DebugEvidenceCandidate, {
       id: 'profile', records: DEBUG_RECORD_FIXTURES, empty: false,

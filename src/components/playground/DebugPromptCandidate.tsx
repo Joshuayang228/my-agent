@@ -7,12 +7,16 @@ import { EmptyState } from '../foundation/EmptyState'
 import { DEBUG_ASSET_FIXTURES, debugAssetGroup } from './debug-asset-fixtures'
 import { DEBUG_ROLES, type DebugRecordFixture } from './debug-experience-fixtures'
 
+export type PromptPreviewState = 'ready' | 'unread' | 'unavailable' | 'loading' | 'error' | 'refresh-error' | 'usage-error' | 'missing' | 'long'
+
 interface Props {
   empty: boolean
   selectedKey: string | null
   onSelect: (key: string | null) => void
   records: readonly DebugRecordFixture[]
   onRecord: (id: string) => void
+  previewState?: PromptPreviewState
+  onRetry?: () => void
 }
 
 /**
@@ -20,33 +24,41 @@ interface Props {
  * 设计意图：采用分组目录与独立详情，把本项目版本、指纹与调用证据融入，而不复制语言切换和生产编辑。
  * 关键约束：所有正文均标明隔离演示；人物过滤含平台通用定义；当前模板不等于历史实发输入。
  */
-export function DebugPromptCandidate({ empty, selectedKey, onSelect, records, onRecord }: Props) {
+export function DebugPromptCandidate({ empty, selectedKey, onSelect, records, onRecord, previewState = 'ready', onRetry }: Props) {
   const entryButtons = useRef(new Map<string, HTMLButtonElement>())
   const [query, setQuery] = useState('')
   const [role, setRole] = useState('all')
   const [kind, setKind] = useState('all')
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set(DEBUG_ASSET_FIXTURES.filter(asset => asset.key === selectedKey).map(asset => debugAssetGroup(asset, 'all'))))
   const [detailOpen, setDetailOpen] = useState(Boolean(selectedKey))
-  const filtered = (empty ? [] : DEBUG_ASSET_FIXTURES).filter(asset =>
+  const available = !['unread', 'unavailable', 'loading', 'error'].includes(previewState)
+  const assets = previewState === 'long' ? DEBUG_ASSET_FIXTURES.map((asset, index) => index ? asset : {
+    ...asset, label: '主对话语义编译：长名称、自然语言正文与多段规则的隔离阅读示例',
+    preview: Array.from({ length: 12 }, (_, paragraph) => `【隔离长正文演示 ${paragraph + 1}】\n与用户共同整理虚构旅行计划，先说明安排的依据，再提供可调整的选项。保持段落清楚，保留 {{role_voice}} 与 {{life_context}} 插槽，不把当前模板当作历史实发输入。`).join('\n\n'),
+  }) : DEBUG_ASSET_FIXTURES
+  const filtered = (available && !empty ? assets : []).filter(asset =>
     (role === 'all' || !asset.roles.length || asset.roles.includes(role)) &&
     (kind === 'all' || asset.kind === kind) &&
     `${asset.label} ${asset.key} ${asset.group} ${asset.source} ${asset.preview} ${asset.slots.join(' ')}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
   )
   const groups = [...new Set(filtered.map(asset => debugAssetGroup(asset, role)))]
-  const selected = filtered.find(asset => asset.key === selectedKey)
+  const requestedKey = previewState === 'missing' ? 'demo.missing-asset' : selectedKey
+  const selected = filtered.find(asset => asset.key === requestedKey)
   const reset = () => { setQuery(''); setRole('all'); setKind('all'); onSelect(null); setDetailOpen(false) }
   const toggle = (group: string) => setExpanded(previous => { const next = new Set(previous); if (next.has(group)) next.delete(group); else next.add(group); return next })
 
   return <section className="debug-prompt-workbench" data-testid="debug-prompt-workbench">
+    {!available && <div className="debug-prompt-state" role={previewState === 'error' ? 'alert' : 'status'}><strong>{({ unread: '目录尚未读取', unavailable: '诊断接口不可用', loading: '正在读取目录', error: '目录读取失败' } as Record<string, string>)[previewState]}</strong><p>{previewState === 'unavailable' ? '此页面需要桌面诊断接口。目录数量未知，不表示没有资产。' : previewState === 'error' ? '尚未取得目录，不显示零条或空结果。可以重试读取。' : previewState === 'loading' ? '正在等待目录响应，不补造资产或数量。' : '读取完成后显示目录与正文，当前数量未知。'}</p>{previewState !== 'loading' && onRetry && <ActionButton variant="plain" onClick={onRetry}>读取目录样张</ActionButton>}</div>}
+    {previewState === 'refresh-error' && <div className="debug-prompt-state" role="alert"><strong>刷新失败，保留上次目录</strong><p>当前目录与选中正文是刷新前的样张。</p>{onRetry && <ActionButton variant="plain" onClick={onRetry}>重试读取样张</ActionButton>}</div>}
     <div className="debug-candidate-role-filter" role="group" aria-label="资产人物筛选">
       {[{ id: 'all', label: '全部人物' }, ...DEBUG_ROLES].map(entry => <ActionButton key={entry.id} variant="plain" aria-pressed={role === entry.id} onClick={() => { setRole(entry.id); onSelect(null); setDetailOpen(false) }}>{entry.label}</ActionButton>)}
-      {(role !== 'all' || query || kind !== 'all') && <span>{filtered.length} / {empty ? 0 : DEBUG_ASSET_FIXTURES.length}</span>}
+      {available && (role !== 'all' || query || kind !== 'all') && <span>{filtered.length} / {empty ? 0 : assets.length}</span>}
     </div>
     <div className="debug-candidate-toolbar">
-      <label className="debug-candidate-search"><Search size={14} /><TextField appearance="outlined" className="h-8 px-3" aria-label="搜索提示词与资产" value={query} placeholder="搜索名称、正文、变量或来源" onChange={(event: ChangeEvent<HTMLInputElement>) => { setQuery(event.target.value); onSelect(null); setDetailOpen(false) }} /></label>
+      <label className="debug-candidate-search"><Search size={14} /><TextField disabled={!available} appearance="outlined" className="h-8 px-3" aria-label="搜索提示词与资产" value={query} placeholder="搜索名称、正文、变量或来源" onChange={(event: ChangeEvent<HTMLInputElement>) => { setQuery(event.target.value); onSelect(null); setDetailOpen(false) }} /></label>
       <details className="debug-focused-filter"><summary>{kind === 'all' ? '筛选' : `筛选 · ${kind}`}</summary><div className="debug-candidate-detail-tabs" role="group" aria-label="资产形态筛选" data-playground-switcher>{['all', '常量', '模板', '结构'].map(value => <ActionButton key={value} variant="plain" aria-pressed={kind === value} onClick={() => { setKind(value); onSelect(null); setDetailOpen(false) }}>{value === 'all' ? '全部形态' : value}</ActionButton>)}</div></details>
     </div>
-    {!filtered.length ? <EmptyState title={empty ? '此范围没有资产' : '没有匹配的资产'} description={empty ? '目录已读取，未返回记录；不等于未读取或读取失败。' : '搜索会同时查找名称、正文和变量；当前筛选不修改生产定义。'} action={empty ? undefined : <ActionButton onClick={reset}>清除筛选</ActionButton>} /> : <div className="debug-candidate-split debug-prompt-split" data-detail-open={detailOpen && Boolean(selected)}>
+    {!available ? <div className="debug-prompt-awaiting" aria-label="目录未读取"><p>读取成功后显示分组目录与资产详情。</p></div> : !filtered.length ? <EmptyState title={empty ? '此范围没有资产' : '没有匹配的资产'} description={empty ? '目录已读取，未返回记录；不等于未读取或读取失败。' : '搜索会同时查找名称、正文和变量；当前筛选不修改生产定义。'} action={empty ? undefined : <ActionButton onClick={reset}>清除筛选</ActionButton>} /> : <div className="debug-candidate-split debug-prompt-split" data-detail-open={previewState === 'missing' || detailOpen && Boolean(selected)}>
       <div className="debug-prompt-directory scrollbar-hover" aria-label="提示词分组目录">
         {groups.map(group => {
           const entries = filtered.filter(asset => debugAssetGroup(asset, role) === group)
@@ -54,7 +66,7 @@ export function DebugPromptCandidate({ empty, selectedKey, onSelect, records, on
           const Icon = open ? ChevronDown : ChevronRight
           return <section key={group}>
             <ActionButton variant="plain" className="debug-prompt-group" aria-expanded={open} aria-label={`${group}，${entries.length} 项`} onClick={() => toggle(group)}><span><Icon size={14} />{group}</span><span className="debug-prompt-counts">{entries.length} 项</span></ActionButton>
-            {open && entries.map(asset => <ActionButton ref={node => { if (node) entryButtons.current.set(asset.key, node); else entryButtons.current.delete(asset.key) }} key={asset.key} variant="plain" className="debug-prompt-entry" aria-pressed={selectedKey === asset.key} onClick={() => { onSelect(asset.key); setDetailOpen(true) }}><span className="debug-prompt-entry-meta"><span data-kind={asset.kind}>{asset.kind}</span>{asset.slots.length > 0 && <span>{asset.slots.length} 个变量</span>}</span><strong>{asset.label}</strong><span className="debug-prompt-excerpt">{asset.preview.replace('【隔离模板演示】', '').replace('【隔离正文演示】', '').replace('【隔离结构演示】', '').trim()}</span></ActionButton>)}
+            {open && entries.map(asset => <ActionButton ref={node => { if (node) entryButtons.current.set(asset.key, node); else entryButtons.current.delete(asset.key) }} key={asset.key} variant="plain" className="debug-prompt-entry" aria-pressed={requestedKey === asset.key} onClick={() => { onSelect(asset.key); setDetailOpen(true) }}><span className="debug-prompt-entry-meta"><span data-kind={asset.kind}>{asset.kind}</span>{asset.slots.length > 0 && <span>{asset.slots.length} 个变量</span>}</span><strong>{asset.label}</strong><span className="debug-prompt-excerpt">{asset.preview.replace('【隔离模板演示】', '').replace('【隔离正文演示】', '').replace('【隔离结构演示】', '').trim()}</span></ActionButton>)}
           </section>
         })}
       </div>
@@ -62,11 +74,12 @@ export function DebugPromptCandidate({ empty, selectedKey, onSelect, records, on
         {selected ? <>
           <ActionButton variant="plain" className="debug-candidate-mobile-back" onClick={() => { setDetailOpen(false); requestAnimationFrame(() => entryButtons.current.get(selected.key)?.focus()) }}><ArrowLeft size={14} /> 返回目录</ActionButton>
           <div className="debug-candidate-detail-heading"><h3>{selected.label}</h3><Badge>{selected.kind}</Badge></div>
-          <section className="debug-candidate-section"><h3>{selected.kind === '模板' ? '模板正文' : selected.kind === '常量' ? '正文' : '结构内容'} · 隔离演示 <span className="debug-candidate-muted">{selected.preview.length} 字符</span></h3><pre className="debug-candidate-body">{selected.preview}</pre></section>
+          <section className="debug-candidate-section"><h3>{selected.kind === '模板' ? '模板正文' : selected.kind === '常量' ? '正文' : '结构内容'} · 隔离演示</h3><pre className="debug-candidate-body" data-content-kind={selected.kind === '结构' ? 'structured' : 'prose'}>{selected.preview}</pre></section>
           {selected.slots.length > 0 && <details className="debug-prompt-provenance debug-prompt-variables"><summary>变量说明 · {selected.slots.length}</summary><div>{selected.slots.map(slot => <span key={slot}><code>{`{{${slot}}}`}</code></span>)}</div></details>}
-          <details className="debug-prompt-provenance"><summary>版本与来源 · {selected.version}</summary><dl className="debug-candidate-facts">{[['标识', selected.key], ['分组', selected.group], ['资产类型', selected.assetType], ['版本', selected.version], ['自动指纹', selected.fingerprint], ['归属', selected.ownership], ['来源', selected.source], ['状态', '隔离样张 · 非生产目录']].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p>变量由实际组装器独立注入，不隐式覆盖稳定身份。</p></details>
-          <details className="debug-prompt-provenance"><summary>相关调用 · {records.filter(record => record.assetKeys.includes(selected.key)).length}</summary><p className="debug-candidate-muted mb-2">按明确保存的 key 关联；当前定义不等于历史版本或实发输入。</p>{records.filter(record => record.assetKeys.includes(selected.key)).map(record => <ActionButton key={record.id} variant="plain" className="debug-candidate-asset-link" onClick={() => onRecord(record.id)}><div><strong>{record.title}</strong><code>{record.id}</code></div><ArrowUpRight size={14} /></ActionButton>)}{!records.some(record => record.assetKeys.includes(selected.key)) && <p>此范围内没有关联调用。</p>}</details>
-        </> : <EmptyState title="选择左侧条目查看详情" description="" centerWithoutAction />}
+          <details className="debug-prompt-provenance"><summary>版本与来源 · {selected.version}</summary><dl className="debug-candidate-facts">{[['标识', selected.key], ['分组', selected.group], ['资产类型', selected.assetType], ['版本', selected.version], ['自动指纹', selected.fingerprint], ['归属', selected.ownership], ['来源', selected.source], ['状态', '隔离样张 · 非生产目录']].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{['标识', '自动指纹', '来源'].includes(label) ? <code>{value}</code> : value}</dd></div>)}</dl><p>变量由实际组装器独立注入，不隐式覆盖稳定身份。</p></details>
+          {previewState === 'usage-error' && <p role="alert" className="debug-prompt-local-error">相关调用读取失败；资产正文仍可阅读，调用数量未知。</p>}
+          <details className="debug-prompt-provenance"><summary>相关调用 · {previewState === 'usage-error' ? '未读取' : records.filter(record => record.assetKeys.includes(selected.key)).length}</summary><p className="debug-candidate-muted mb-2">按明确保存的 key 关联；当前定义不等于历史版本或实发输入。</p>{previewState !== 'usage-error' && <>{records.filter(record => record.assetKeys.includes(selected.key)).map(record => <ActionButton key={record.id} variant="plain" className="debug-candidate-asset-link" onClick={() => onRecord(record.id)}><div><strong>{record.title}</strong><code>{record.id}</code></div><ArrowUpRight size={14} /></ActionButton>)}{!records.some(record => record.assetKeys.includes(selected.key)) && <p>此范围内没有关联调用。</p>}</>}</details>
+        </> : previewState === 'missing' ? <div className="debug-prompt-state" role="status"><strong>引用的资产未在目录中找到</strong><p>不使用其他资产代替这个引用。</p><ActionButton onClick={() => { onSelect(null); onRetry?.() }}>返回目录</ActionButton></div> : <EmptyState title="选择左侧条目查看详情" description="" centerWithoutAction />}
       </article>
     </div>}
   </section>

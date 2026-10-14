@@ -8,9 +8,10 @@ import { ErrorState } from '../foundation/ErrorState'
 import { ProductExperienceDependencies } from './ProductExperienceDependencies'
 import { PlaygroundPageHeader } from './PlaygroundLayout'
 import { TabStrip } from '../foundation/TabStrip'
+import { SelectField } from '../foundation/SelectField'
 import { DEBUG_CAPABILITY_GAPS, DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES, type DebugPerspective, type DebugRecordFixture, type DebugScenario } from './debug-experience-fixtures'
 import { DEBUG_ASSET_FIXTURES } from './debug-asset-fixtures'
-import { DebugPromptCandidate } from './DebugPromptCandidate'
+import { DebugPromptCandidate, type PromptPreviewState } from './DebugPromptCandidate'
 import { DebugEvidenceCandidate } from './DebugEvidenceCandidate'
 import { getDebugEvidencePage, type DebugEvidencePageId } from './debug-evidence-fixtures'
 import './debug-experience.css'
@@ -46,11 +47,14 @@ export function DebugExperienceCandidate({ onBack }: { onBack: () => void }) {
   const [filter, setFilter] = useState('all')
   const [recordId, setRecordId] = useState(DEBUG_RECORD_FIXTURES[0].id)
   const [assetKey, setAssetKey] = useState<string | null>(null)
+  const [promptEdge, setPromptEdge] = useState<PromptPreviewState>('ready')
+  const [hasPromptSnapshot, setHasPromptSnapshot] = useState(true)
   const [evidenceTarget, setEvidenceTarget] = useState<string | undefined>()
   const mainRef = useRef<HTMLElement>(null)
   const [detail, setDetail] = useState('request')
   const qualityId = perspective === 'persona' ? 'persona' : 'skill'
   const view = DEBUG_PERSPECTIVES.find(item => item.id === perspective)!
+  const promptState = promptEdge !== 'ready' ? promptEdge : scenario === 'refresh-error' ? hasPromptSnapshot ? 'refresh-error' : 'error' : snapshotScenario === 'unread' ? 'unread' : snapshotScenario === 'running' ? 'loading' : 'ready'
   const records = snapshotScenario === 'empty' ? [] : DEBUG_RECORD_FIXTURES.map((record, index) => snapshotScenario === 'running' && index === 0
     ? { ...record, status: 'pending' as const, durationMs: undefined, outputTokens: undefined, error: undefined, stages: record.stages.slice(0, 1) } : record)
   const match = (text: string) => text.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
@@ -67,17 +71,20 @@ export function DebugExperienceCandidate({ onBack }: { onBack: () => void }) {
   // 背景：刷新失败不能变造已有证据；设计意图：独立保留最后样张快照；约束：错误状态不重置选中项、筛选或执行结果。
   const changeScenario = (id: DebugScenario) => {
     setScenario(id)
+    setPromptEdge('ready')
     if (id !== 'refresh-error') {
+      setHasPromptSnapshot(!['unread', 'running'].includes(id))
       setSnapshotScenario(id); setRecordId(DEBUG_RECORD_FIXTURES[0].id); setDetail('request'); setQuery(''); setFilter('all')
     }
   }
 
-  return <div className="debug-candidate debug-refined debug-focused playground-shape-scope" data-testid="debug-candidate">
+  return <div className="debug-candidate debug-refined debug-focused playground-shape-scope" data-testid="debug-candidate" data-perspective={perspective}>
     <div className="debug-candidate-preview">
       <ActionButton variant="plain" onClick={onBack}><ArrowLeft size={14} /> 返回 Playground</ActionButton>
       <span>Debug 重设计 · 隔离样张</span>
       <div className="flex flex-wrap gap-1" role="group" aria-label="Debug 样张状态" data-playground-switcher>
         {SCENARIOS.map(item => <ActionButton key={item.id} variant="plain" aria-pressed={scenario === item.id} onClick={() => changeScenario(item.id)}>{item.label}</ActionButton>)}
+        {perspective === 'assets' && <details className="debug-prompt-preview-options"><summary>更多样张</summary><label>提示词状态<SelectField aria-label="提示词边缘样张" value={promptEdge} onChange={event => { changeScenario('normal'); setPromptEdge(event.target.value as PromptPreviewState); setHasPromptSnapshot(!['unavailable', 'error'].includes(event.target.value)) }}><option value="ready">默认目录</option><option value="unavailable">接口不可用</option><option value="error">首次读取失败</option><option value="usage-error">关联读取失败</option><option value="missing">引用资产缺失</option><option value="long">长名称与长正文</option></SelectField></label></details>}
       </div>
     </div>
     <div className="debug-candidate-workspace">
@@ -87,9 +94,10 @@ export function DebugExperienceCandidate({ onBack }: { onBack: () => void }) {
         <div className="debug-candidate-nav-footer"><ShieldCheck size={14} /><span>生产信息只读<br />编辑与实验分开进行</span></div>
       </nav>
       <main ref={mainRef} className={`debug-candidate-main${perspective === 'assets' ? ' debug-candidate-main-prompt' : ''}`}>
-        <PlaygroundPageHeader title={view.label} description={perspective === 'assets' ? (snapshotScenario === 'unread' ? '目录未读取' : `${snapshotScenario === 'empty' ? 0 : DEBUG_ASSET_FIXTURES.length} 项演示资产`) : ''} />
-        {scenario === 'refresh-error' && <ErrorState title="刷新失败，保留上次证据" description="暂时无法读取新的诊断数据。下方是刷新前的样张，不代表最新状态。" action={<ActionButton onClick={() => setScenario(snapshotScenario)}>重试读取样张</ActionButton>} />}
-        {snapshotScenario === 'unread' ? <EmptyState title="尚未读取诊断数据" description="选择默认记录样张查看读取后的布局；未读取不能当作零条记录。" /> : <>
+        <PlaygroundPageHeader title={view.label} description={perspective === 'assets' ? (['unread', 'unavailable', 'loading', 'error'].includes(promptState) ? '目录未读取' : `${snapshotScenario === 'empty' ? 0 : DEBUG_ASSET_FIXTURES.length} 项演示资产`) : ''} />
+        {perspective === 'assets' && snapshotScenario === 'truncated' && <p className="debug-candidate-notice" role="status">仅展示有界样张范围，历史已截断；全量总数未知。当前结果不能证明更早记录不存在。</p>}
+        {perspective !== 'assets' && scenario === 'refresh-error' && <ErrorState title="刷新失败，保留上次证据" description="暂时无法读取新的诊断数据。下方是刷新前的样张，不代表最新状态。" action={<ActionButton onClick={() => setScenario(snapshotScenario)}>重试读取样张</ActionButton>} />}
+        {perspective === 'assets' ? <DebugPromptCandidate empty={snapshotScenario === 'empty'} selectedKey={assetKey} onSelect={setAssetKey} records={records} onRecord={openRecord} previewState={promptState} onRetry={() => changeScenario('normal')} /> : snapshotScenario === 'unread' ? <EmptyState title="尚未读取诊断数据" description="选择默认记录样张查看读取后的布局；未读取不能当作零条记录。" /> : <>
         {snapshotScenario === 'truncated' && <p className="debug-candidate-notice" role="status">仅展示有界样张范围，历史已截断；全量总数未知。当前结果不能证明更早记录不存在。</p>}
         {perspective === 'runs' && <>
           <div className="debug-candidate-summary" aria-label="记录摘要">
@@ -119,7 +127,6 @@ export function DebugExperienceCandidate({ onBack }: { onBack: () => void }) {
             </article>}
           </div>}
         </>}
-        {perspective === 'assets' && <DebugPromptCandidate empty={snapshotScenario === 'empty'} selectedKey={assetKey} onSelect={setAssetKey} records={records} onRecord={openRecord} />}
         {!['assets', 'runs', 'quality', 'persona', 'system'].includes(perspective) && <DebugEvidenceCandidate key={`${perspective}:${snapshotScenario}:${evidenceTarget ?? ''}`} id={perspective as DebugEvidencePageId} initialSelectedId={evidenceTarget} records={records} empty={snapshotScenario === 'empty'} onAsset={openAsset} onRecord={openRecord} onEvidence={openEvidence} />}
         {snapshotScenario === 'empty' && ['quality', 'persona', 'system'].includes(perspective) && <EmptyState title="此范围没有记录" description="已读取但无报告或快照，不展示默认结论。" />}
         {snapshotScenario !== 'empty' && (perspective === 'quality' || perspective === 'persona') && <div className="debug-candidate-reading"><article className="debug-candidate-detail"><div className="debug-candidate-detail-heading"><h3>{qualityId === 'skill' ? 'Skill 边界检查' : '人格一致性验收'}</h3><Badge tone={qualityId === 'skill' ? 'danger' : 'neutral'}>{qualityId === 'skill' ? '未通过' : '待审阅'}</Badge></div><Section title="验收结论"><p>{qualityId === 'skill' ? '工具边界检查未通过。优先查看具体检查证据，再判断行为是否符合预期。' : '自动判定与人工体验判断分开保存。当前样张尚无人工结论。'}</p></Section><Section title="检查证据">{qualityId === 'skill' ? <><Facts items={[[ '应触发行为', '通过' ], ['指南注入', '通过'], ['工具边界', '失败 · 样张调用超出 allowed_tools'], ['回复约束', '通过']]} /><details className="debug-candidate-raw"><summary>查看失败检查证据</summary><p>样张期望：仅可读取；样张实际：报告记录了写入工具。此信息属于 Eval 样张，不是生产运行故障。</p></details></> : <Facts items={[[ '人格表达', '自动检查通过 · 样张' ], ['关系连续性', '需人工判断'], ['审阅记录', '无'], ['报告正文', '只读']]} />}</Section></article></div>}
