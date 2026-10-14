@@ -40,8 +40,8 @@ const TODAY = '2026-10-13'
 const CULTURE_CATEGORIES: Record<string, NonNullable<DebugEvidenceItem['category']>> = { 'item-book': 'reading', 'culture-music': 'music', 'culture-film': 'film', 'culture-photo': 'photography' }
 const READING_FIELDS: Record<string, readonly number[]> = {
   'slot-morning': [1, 2], 'slot-afternoon': [1, 2], 'slot-evening': [1, 2], 'slot-yesterday': [1], 'slot-yu': [1, 2],
-  'residence-home': [2, 3], 'residence-space': [3], 'item-camera': [3, 4, 5], 'home-unplaced': [3, 4], 'residence-yu': [0, 1, 2],
-  'trip-completed': [2, 4, 5], 'trip-active': [2, 4, 5], 'trip-planned': [2, 3], 'trip-cancelled': [2, 3], 'footprint-place': [2, 3],
+  'residence-home': [2, 3], 'residence-space': [3], 'item-camera': [4], 'home-unplaced': [4], 'residence-yu': [0, 1, 2],
+  'trip-completed': [2, 4, 5], 'trip-active': [2, 4, 5], 'trip-planned': [3], 'trip-cancelled': [], 'footprint-place': [3],
   'character-lin': [1, 2, 4], 'character-yu': [1, 2], 'event-reading': [1, 3], 'event-walk': [1, 2, 3],
   'now-lin': [0, 1, 2, 3, 4, 6, 7], 'location-current': [1, 2, 3, 4],
   'item-book': [2, 3], 'culture-music': [2, 3], 'culture-film': [2, 3], 'culture-photo': [2, 3],

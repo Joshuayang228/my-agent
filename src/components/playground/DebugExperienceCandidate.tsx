@@ -6,6 +6,8 @@ import { TextField } from '../foundation/TextField'
 import { EmptyState } from '../foundation/EmptyState'
 import { ErrorState } from '../foundation/ErrorState'
 import { ProductExperienceDependencies } from './ProductExperienceDependencies'
+import { PlaygroundPageHeader } from './PlaygroundLayout'
+import { TabStrip } from '../foundation/TabStrip'
 import { DEBUG_CAPABILITY_GAPS, DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES, type DebugPerspective, type DebugRecordFixture, type DebugScenario } from './debug-experience-fixtures'
 import { DEBUG_ASSET_FIXTURES } from './debug-asset-fixtures'
 import { DebugPromptCandidate } from './DebugPromptCandidate'
@@ -70,7 +72,7 @@ export function DebugExperienceCandidate({ onBack }: { onBack: () => void }) {
     }
   }
 
-  return <div className="debug-candidate debug-workspace" data-testid="debug-candidate">
+  return <div className="debug-candidate debug-refined playground-shape-scope" data-testid="debug-candidate">
     <div className="debug-candidate-preview">
       <ActionButton variant="plain" onClick={onBack}><ArrowLeft size={14} /> 返回 Playground</ActionButton>
       <span>Debug 重设计 · 隔离样张</span>
@@ -85,7 +87,7 @@ export function DebugExperienceCandidate({ onBack }: { onBack: () => void }) {
         <div className="debug-candidate-nav-footer"><ShieldCheck size={14} /><span>生产信息只读<br />编辑与实验分开进行</span></div>
       </nav>
       <main ref={mainRef} className={`debug-candidate-main${perspective === 'assets' ? ' debug-candidate-main-prompt' : ''}`}>
-        <header className="debug-candidate-header"><div>{perspective !== 'assets' && <div className="debug-candidate-eyebrow">{view.group} / {view.label}</div>}<h2>{view.label}{perspective === 'assets' && <small className="debug-heading-count">{snapshotScenario === 'unread' ? '目录未读取' : `${snapshotScenario === 'empty' ? 0 : DEBUG_ASSET_FIXTURES.length} 项演示资产`}</small>}</h2>{perspective !== 'assets' && <p>{view.description}</p>}</div><Badge>只读浏览</Badge></header>
+        <PlaygroundPageHeader title={view.label} description={perspective === 'assets' ? (snapshotScenario === 'unread' ? '目录未读取' : `${snapshotScenario === 'empty' ? 0 : DEBUG_ASSET_FIXTURES.length} 项演示资产`) : view.description} />
         {scenario === 'refresh-error' && <ErrorState title="刷新失败，保留上次证据" description="暂时无法读取新的诊断数据。下方是刷新前的样张，不代表最新状态。" action={<ActionButton onClick={() => setScenario(snapshotScenario)}>重试读取样张</ActionButton>} />}
         {snapshotScenario === 'unread' ? <EmptyState title="尚未读取诊断数据" description="选择默认记录样张查看读取后的布局；未读取不能当作零条记录。" /> : <>
         {snapshotScenario === 'truncated' && <p className="debug-candidate-notice" role="status">仅展示有界样张范围，历史已截断；全量总数未知。当前结果不能证明更早记录不存在。</p>}
@@ -105,7 +107,7 @@ export function DebugExperienceCandidate({ onBack }: { onBack: () => void }) {
               <div className="debug-candidate-detail-metrics"><span><Clock3 size={13} />{record.durationMs == null ? '进行中 · 最终耗时待定' : `${(record.durationMs / 1000).toFixed(2)} s`}</span><span>输入 {record.inputTokens?.toLocaleString() ?? '未计量'}</span><span>输出 {record.outputTokens?.toLocaleString() ?? '未计量'}</span></div>
               {record.error && <div className="debug-candidate-call-error" role="status"><strong>失败原因</strong><p>{record.error}</p><span>未记录响应正文；不将失败请求的输出记作 0。</span></div>}
               {record.status === 'pending' && <p className="debug-candidate-notice" role="status">正在等待模型结果。最终耗时与输出计量将在请求结束后确定。</p>}
-              <div className="debug-candidate-detail-tabs" role="group" aria-label="调用证据视角">{[['request', '模型输入'], ['execution', '执行过程'], ['sources', '资产来源']].map(([id, label]) => <ActionButton key={id} variant="plain" aria-pressed={detail === id} onClick={() => setDetail(id)}>{label}</ActionButton>)}</div>
+              <TabStrip label="调用证据视角" variant="underline" items={[{ id: 'request', label: '模型输入' }, { id: 'execution', label: '执行过程' }, { id: 'sources', label: '资产来源' }]} activeId={detail} onSelect={id => setDetail(id as typeof detail)} />
               {detail === 'request' && <>
                 <Section title="请求结构"><Facts items={[[ '调用用途', record.caller ], ['实际模型', record.model], ['会话', record.sessionId], ['Span', record.spanId ?? '未关联']]} /></Section>
                 <Section title="输入与正文" note="请求元数据与正文保存状态分开表达。"><div className="debug-candidate-notice"><FileText size={16} /><div><strong>历史正文未保存</strong><p>仅有结构元数据与资产关联。不能使用当前 Prompt 装配预览还原这次请求。</p></div></div></Section>

@@ -20,6 +20,8 @@
 
 ## 进行中
 
+Debug 阅读层级：[debug-foundation-reading-v2.md](./debug-foundation-reading-v2.md)，统一基础组件与页头、简化默认展示；先完成 Playground 候选验收。
+
 伙伴时间控件：[companion-quiet-time-controls-v1.md](./companion-quiet-time-controls-v1.md)，Foundation 整点时间选择已回流到正式与 Playground 伙伴设置；正式默认、存量偏好数据与通知调度不变。
 
 布局基线：[foundation-layout-boundaries-v1.md](./foundation-layout-boundaries-v1.md)，布局与间距、透明度 P0 候选施工，正式回流未授权。

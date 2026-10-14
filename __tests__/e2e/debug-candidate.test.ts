@@ -12,7 +12,8 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 
     const panel = page.getByTestId('debug-candidate')
     const nav = panel.getByRole('navigation', { name: 'Debug 候选导航' })
     await expect(page.getByTestId('playground-nav')).toHaveCount(0)
-    await expect(panel.getByRole('heading', { name: /^提示词管理器20 项演示资产$/ })).toBeVisible()
+    await expect(panel.getByRole('heading', { name: '提示词管理器', exact: true })).toBeVisible()
+    await expect(panel.getByTestId('playground-page-header')).toContainText('20 项演示资产')
     await expect(nav.getByRole('region')).toHaveCount(7)
     await expect(nav.getByLabel('内核分区').getByRole('button', { name: '今日日程', exact: true })).toBeVisible()
     const prompt = panel.getByTestId('debug-prompt-workbench')
@@ -57,11 +58,11 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 
     await panel.getByText('相关调用 · 2', { exact: true }).click()
     await panel.getByRole('button', { name: /读取旅行记录 demo-call-02/ }).click()
     await expect(panel.getByTestId('debug-call-detail')).toContainText('demo-call-02')
-    await panel.getByRole('button', { name: '执行过程', exact: true }).click()
+    await panel.getByRole('tab', { name: '执行过程', exact: true }).click()
     await expect(panel.getByTestId('debug-call-detail')).toContainText('权限检查')
     await page.screenshot({ path: info.outputPath('debug-execution.png') })
     await panel.getByRole('button', { name: /提取旅行偏好/ }).click()
-    await panel.getByRole('button', { name: '执行过程', exact: true }).click()
+    await panel.getByRole('tab', { name: '执行过程', exact: true }).click()
     await expect(panel).toContainText('没有关联的执行证据')
     await panel.getByRole('textbox', { name: '搜索运行记录' }).fill('no-such-request')
     await expect(panel).toContainText('没有匹配的记录')
@@ -164,7 +165,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) {
     expect(bodyBox.y + bodyBox.height).toBeLessThanOrEqual(splitBox.y + splitBox.height)
     expect(await body.evaluate(node => parseFloat(getComputedStyle(node).fontSize))).toBeGreaterThanOrEqual(14)
     // 背景：浅色样张文字曾低对比难读；意图：测量实际主题色而非检查 token 名；约束：按浏览器解析后的前景 / 背景计算普通文字 4.5:1。
-    const contrast = await prompt.locator('.debug-prompt-excerpt').evaluate(node => {
+    const contrast = await body.evaluate(node => {
       const canvas = document.createElement('canvas')
       canvas.width = canvas.height = 1
       const ctx = canvas.getContext('2d')!
@@ -185,7 +186,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) {
       const bg = luminance()
       ctx.fillStyle = getComputedStyle(node).color; ctx.fillRect(0, 0, 1, 1)
       const fg = luminance()
-      return { foreground: getComputedStyle(node).color, background: getComputedStyle(node.closest('button')!).backgroundColor, ratio: (Math.max(fg, bg) + .05) / (Math.min(fg, bg) + .05) }
+      return { foreground: getComputedStyle(node).color, background: getComputedStyle(node.closest('article')!).backgroundColor, ratio: (Math.max(fg, bg) + .05) / (Math.min(fg, bg) + .05) }
     })
     expect(contrast.ratio, JSON.stringify(contrast)).toBeGreaterThanOrEqual(4.5)
     await page.screenshot({ path: info.outputPath('debug-prompt-readable.png') })

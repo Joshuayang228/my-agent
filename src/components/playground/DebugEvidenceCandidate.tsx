@@ -48,7 +48,7 @@ export function DebugEvidenceCandidate({ id, records, empty, initialSelectedId, 
     <ActionButton ref={node => { if (node) entryButtons.current.set(entry.id, node); else entryButtons.current.delete(entry.id) }} variant="plain" className="debug-reading-entry-title" aria-pressed={(selected?.id ?? filtered[0]?.id) === entry.id} onClick={() => { setSelectedId(entry.id); setDetailOpen(true) }}>
       <strong>{entry.title}</strong><Badge tone={entry.status.includes('失败') ? 'danger' : 'neutral'}>{entry.status}</Badge>
     </ActionButton>
-    <p className="debug-reading-subtitle">{entry.subtitle} · {entry.role === 'shared' ? '显式共享' : DEBUG_ROLES.find(value => value.id === entry.role)?.label}</p>
+    <p className="debug-reading-subtitle">{entry.role === 'shared' ? '显式共享' : DEBUG_ROLES.find(value => value.id === entry.role)?.label}</p>
     {entry.summaries ? <div className="debug-reading-summaries">{entry.summaries.map(summary => <section key={summary.title}><h3>{summary.title}</h3><p>{summary.text}</p><small>{summary.scope}</small></section>)}</div> : facts(entry, true)}
     {!entry.stages && entry.body && <p className="debug-reading-body">{entry.body}</p>}
     {entry.stages && <ol className="debug-candidate-timeline">{entry.stages.map((stage, index) => <li key={stage.title}><span className="debug-candidate-step">{index + 1}</span><div><strong>{stage.title}</strong><p>{stage.detail}</p></div><code>{stage.duration}</code></li>)}</ol>}
@@ -105,7 +105,7 @@ export function DebugEvidenceCandidate({ id, records, empty, initialSelectedId, 
         <div className="debug-candidate-detail-heading"><h3>{selected.title}</h3><Badge>{selected.status}</Badge></div>
         {facts(selected)}
         {selected.body && <p className="debug-reading-body">{selected.body}</p>}
-        <details className="debug-prompt-provenance"><summary>记录标识与范围</summary><code>{selected.id}</code><p>{selected.date} · {selected.role} · 隔离样张</p></details>
+        <details className="debug-prompt-provenance"><summary>记录标识与范围</summary><code>{selected.id}</code><p>{selected.subtitle}</p><p>{selected.date} · {selected.role} · 隔离样张</p></details>
         <section className="debug-candidate-section"><h3>明确关联的来源与证据</h3>
           {selected.assets?.map(key => <ActionButton key={key} variant="plain" className="debug-candidate-asset-link" onClick={() => onAsset(key)}><div><strong>查看注册定义</strong><code>{key}</code></div><ArrowUpRight size={14} /></ActionButton>)}
           {selected.callId && <ActionButton variant="plain" className="debug-candidate-asset-link" onClick={() => onRecord(selected.callId!)}><div><strong>查看关联调用</strong><code>{selected.callId}</code></div><ArrowUpRight size={14} /></ActionButton>}
