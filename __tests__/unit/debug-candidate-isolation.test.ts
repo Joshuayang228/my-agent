@@ -9,6 +9,17 @@ import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, type DebugEvidencePageId } 
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('领域默认只读当前人物，首屏不混入另一人物画像及来源分类', () => {
+    const html = renderToStaticMarkup(createElement(DebugEvidenceCandidate, {
+      id: 'profile', records: DEBUG_RECORD_FIXTURES, empty: false,
+      onAsset: () => {}, onRecord: () => {}, onEvidence: () => {},
+    }))
+    expect(html).toContain('data-record-id="demo-profile-lin"')
+    expect(html).not.toContain('data-record-id="demo-profile-yu"')
+    expect(html).toContain('先看结论，再看依据')
+    expect(html).not.toContain('identity + fact')
+    expect(html).not.toContain('buildUserProfile(lin)')
+  })
   it('显式关联昨日记录时按目标日期定位，未知目标不伪造详情', () => {
     const render = (initialSelectedId: string) => renderToStaticMarkup(createElement(DebugEvidenceCandidate, {
       id: 'schedule', records: DEBUG_RECORD_FIXTURES, empty: false, initialSelectedId,

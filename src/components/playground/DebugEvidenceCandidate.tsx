@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowUpRight, Search } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { Badge } from '../foundation/Badge'
 import { TextField } from '../foundation/TextField'
+import { SelectField } from '../foundation/SelectField'
 import { EmptyState } from '../foundation/EmptyState'
 import { DEBUG_ROLES, type DebugRecordFixture } from './debug-experience-fixtures'
 import { getDebugEvidencePage, type DebugEvidencePageId, type DebugEvidenceItem } from './debug-evidence-fixtures'
@@ -18,6 +19,7 @@ interface Props {
 }
 const TIMELINE_PAGES = new Set<DebugEvidencePageId>(['recent', 'activity', 'events', 'moments', 'proactive', 'growth', 'traces'])
 const STATUS_PAGES = new Set<DebugEvidencePageId>(['now', 'location', 'character', 'profile', 'context'])
+const ROUTINE_STATUS = new Set(['计划时段', '当前快照', '当前', '已有记录', '已设定', '人物资料', '记忆聚合', '已存储', '已记录', '已收到', '当前版本', '已提供资料', '已有线索', '显式关联'])
 
 /** 背景：默认必须读到领域事实，不能靠逐条选择通用字段列表。
  * 设计意图：时序、状态、资料和资产分别阅读，共享筛选及显式证据跳转；技术字段留在详情。
@@ -25,7 +27,7 @@ const STATUS_PAGES = new Set<DebugEvidencePageId>(['now', 'location', 'character
  */
 export function DebugEvidenceCandidate({ id, records, empty, initialSelectedId, onAsset, onRecord, onEvidence }: Props) {
   const [query, setQuery] = useState('')
-  const [role, setRole] = useState('all')
+  const [role, setRole] = useState<string>(() => getDebugEvidencePage(id, records).items.find(entry => entry.id === initialSelectedId)?.role === 'yu' ? 'yu' : 'lin')
   const [date, setDate] = useState(() => getDebugEvidencePage(id, records).items.find(entry => entry.id === initialSelectedId)?.date ?? '2026-10-13')
   const [selectedId, setSelectedId] = useState(initialSelectedId)
   const [detailOpen, setDetailOpen] = useState(Boolean(initialSelectedId))
@@ -42,14 +44,14 @@ export function DebugEvidenceCandidate({ id, records, empty, initialSelectedId, 
   useEffect(() => { if (detailOpen) detailRef.current?.scrollIntoView({ block: 'start' }) }, [detailOpen, selectedId])
   const searchable = !STATUS_PAGES.has(id)
   const layout = id === 'schedule' ? 'schedule' : TIMELINE_PAGES.has(id) ? 'timeline' : STATUS_PAGES.has(id) ? 'summary' : 'catalog'
-  const reset = () => { setQuery(''); setRole('all'); setDate('2026-10-13'); setDetailOpen(false) }
-  const facts = (entry: DebugEvidenceItem, reading = false) => <dl className="debug-candidate-facts">{(reading ? entry.readingFields ?? entry.fields : entry.fields).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+  const reset = () => { setQuery(''); setRole('lin'); setDate('2026-10-13'); setDetailOpen(false) }
+  const facts = (entry: DebugEvidenceItem, reading = false) => <dl className="debug-candidate-facts">{(reading ? entry.readingFields ?? [] : entry.fields).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
   const card = (entry: DebugEvidenceItem) => <article key={entry.id} className="debug-reading-entry" data-record-id={entry.id}>
-    <ActionButton ref={node => { if (node) entryButtons.current.set(entry.id, node); else entryButtons.current.delete(entry.id) }} variant="plain" className="debug-reading-entry-title" aria-pressed={(selected?.id ?? filtered[0]?.id) === entry.id} onClick={() => { setSelectedId(entry.id); setDetailOpen(true) }}>
-      <strong>{entry.title}</strong><Badge tone={entry.status.includes('失败') ? 'danger' : 'neutral'}>{entry.status}</Badge>
+    <ActionButton ref={node => { if (node) entryButtons.current.set(entry.id, node); else entryButtons.current.delete(entry.id) }} variant="plain" className="debug-reading-entry-title" aria-label={entry.title} aria-expanded={detailOpen && selected?.id === entry.id} onClick={() => { setSelectedId(entry.id); setDetailOpen(true) }}>
+      {STATUS_PAGES.has(id) && filtered.length === 1 ? <span className="debug-candidate-muted">查看详情 <ArrowUpRight size={12} /></span> : <strong>{entry.title}</strong>}{!ROUTINE_STATUS.has(entry.status) && <Badge tone={entry.status.includes('失败') ? 'danger' : 'neutral'}>{entry.status}</Badge>}
     </ActionButton>
-    <p className="debug-reading-subtitle">{entry.role === 'shared' ? '显式共享' : DEBUG_ROLES.find(value => value.id === entry.role)?.label}</p>
-    {entry.summaries ? <div className="debug-reading-summaries">{entry.summaries.map(summary => <section key={summary.title}><h3>{summary.title}</h3><p>{summary.text}</p><small>{summary.scope}</small></section>)}</div> : facts(entry, true)}
+    {role === 'all' && <p className="debug-reading-subtitle">{entry.role === 'shared' ? '显式共享' : DEBUG_ROLES.find(value => value.id === entry.role)?.label}</p>}
+    {entry.summaries ? <div className="debug-reading-summaries">{entry.summaries.map(summary => <section key={summary.title}><h3>{summary.title}</h3><p>{summary.text}</p></section>)}</div> : facts(entry, true)}
     {!entry.stages && entry.body && <p className="debug-reading-body">{entry.body}</p>}
     {entry.stages && <ol className="debug-candidate-timeline">{entry.stages.map((stage, index) => <li key={stage.title}><span className="debug-candidate-step">{index + 1}</span><div><strong>{stage.title}</strong><p>{stage.detail}</p></div><code>{stage.duration}</code></li>)}</ol>}
     {entry.travel?.stops?.map(stop => <section key={`${stop.name}:${stop.date}`} className="debug-reading-stop"><h4>{stop.date ?? '日期未提供'} · {stop.name}</h4><p>{stop.story}</p></section>)}
@@ -88,14 +90,15 @@ export function DebugEvidenceCandidate({ id, records, empty, initialSelectedId, 
   })}</>
 
   return <section className="debug-evidence-workbench" data-testid={`debug-evidence-${id}`}>
-    <div className="debug-candidate-role-filter" role="group" aria-label="证据人物筛选">
-      {[{ id: 'all', label: '全部人物' }, ...DEBUG_ROLES].map(entry => <ActionButton key={entry.id} variant="plain" aria-pressed={role === entry.id} onClick={() => { setRole(entry.id); setDetailOpen(false) }}>{entry.label}</ActionButton>)}
-      <span>{filtered.length} / {items.length} {page.unit} · 样张范围{role !== 'all' && ' · 含显式共享'}</span>
+    {id === 'profile' && <p className="debug-reading-subtitle">{role === 'all' ? '全局资料与各人物的协作反馈' : '全局资料与当前人物的协作反馈'}</p>}
+    <div className="debug-candidate-toolbar">
+    <div className="debug-candidate-role-filter debug-focused-scope" role="group" aria-label="证据人物筛选">
+      <label>人物<SelectField aria-label="诊断人物" value={role} onChange={event => { setRole(event.target.value); setDetailOpen(false) }}>{[{ id: 'all', label: '全部人物' }, ...DEBUG_ROLES].map(entry => <option key={entry.id} value={entry.id}>{entry.label}</option>)}</SelectField></label>
+      {(query || role === 'all') && <span>{filtered.length} {page.unit}</span>}
     </div>
-    {(searchable || page.dateFilter) && <div className="debug-candidate-toolbar">
-      {searchable && <label className="debug-candidate-search"><Search size={14} /><TextField aria-label="搜索当前页证据" value={query} placeholder="搜索名称、正文或字段" onChange={(event: ChangeEvent<HTMLInputElement>) => { setQuery(event.target.value); setDetailOpen(false) }} /></label>}
-      {page.dateFilter && <label className="debug-evidence-date">样张日期<TextField type="date" aria-label="证据日期" value={date} onChange={(event: ChangeEvent<HTMLInputElement>) => { setDate(event.target.value); setDetailOpen(false) }} /></label>}
-    </div>}
+      {searchable && <label className="debug-candidate-search"><Search size={14} /><TextField appearance="outlined" className="h-8 px-3" aria-label="搜索当前页证据" value={query} placeholder="搜索名称、正文或字段" onChange={(event: ChangeEvent<HTMLInputElement>) => { setQuery(event.target.value); setDetailOpen(false) }} /></label>}
+      {page.dateFilter && <label className="debug-evidence-date">{id === 'schedule' ? '计划日期' : '日期'}<TextField appearance="outlined" className="h-8 px-2" type="date" aria-label="证据日期" value={date} onChange={(event: ChangeEvent<HTMLInputElement>) => { setDate(event.target.value); setDetailOpen(false) }} /></label>}
+    </div>
     {!filtered.length ? <EmptyState title={items.length ? '没有匹配的证据' : '此范围没有记录'} description={items.length ? '调整搜索、人物或日期；没有匹配不等于能力未实现。' : '真实读取为空时保留来源与范围，不生成默认人物事实。'} action={items.length ? <ActionButton onClick={reset}>清除筛选</ActionButton> : undefined} /> : <>
       <div className={`debug-reading debug-reading-${layout}`} data-reading-layout={id === 'residence' ? 'home' : id === 'footprints' ? 'travel' : layout} data-detail-open={detailOpen && Boolean(selected)}>
         {id === 'residence' ? home() : id === 'footprints' ? travel() : id === 'items' ? culture() : filtered.map(card)}
@@ -114,6 +117,5 @@ export function DebugEvidenceCandidate({ id, records, empty, initialSelectedId, 
         </section>
       </article>}
     </>}
-    <details className="debug-prompt-provenance"><summary>数据范围与能力边界</summary><p>{page.boundary}</p></details>
   </section>
 }

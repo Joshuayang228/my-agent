@@ -120,11 +120,11 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     status: 'adopted',
     playgroundTabId: 'debug',
     sourcePaths: ['src/components/playground/DebugExperienceCandidate.tsx', 'src/components/playground/debug-experience-fixtures.ts', 'src/components/playground/debug-experience.css', 'src/components/playground/DebugPromptCandidate.tsx', 'src/components/playground/DebugEvidenceCandidate.tsx', 'src/components/playground/debug-asset-fixtures.ts', 'src/components/playground/debug-evidence-fixtures.ts'],
-    formalEntryPaths: ['src/components/DevPanel.tsx', 'src/components/debug/RegisteredAssetWorkbench.tsx', 'src/components/debug/CompanionEvidencePanel.tsx', 'src/components/debug/debug-workspace.css', 'src/shared/debug-navigation.ts'],
+    formalEntryPaths: ['src/components/DevPanel.tsx', 'src/components/layout/PageHeader.tsx', 'src/components/debug/RegisteredAssetWorkbench.tsx', 'src/components/debug/CompanionEvidencePanel.tsx', 'src/components/debug/LLMCallsPanel.tsx', 'src/components/debug/debug-workspace.css', 'src/shared/debug-navigation.ts'],
     realDataPaths: ['electron/main/ipc/debug.ts', 'electron/main/debug/companion-evidence.ts', 'electron/main/debug/model-context-assets.ts', 'electron/main/agent/debug-world-snapshot.ts', 'electron/main/ipc/companion.ts', 'electron/main/ipc/memory.ts'],
     evidencePaths: ['__tests__/e2e/debug-candidate.test.ts', '__tests__/unit/debug-candidate-isolation.test.ts', '__tests__/unit/debug-companion-evidence.test.ts', '__tests__/unit/debug-catalog.test.ts'],
     experienceParts: ['内核与提示词工作台', '生活诊断', '社交证据', '资产来源', '用户上下文与资料', '系统与运行证据', '质量验收'],
-    usesFoundation: ['behavior.action-button', 'behavior.input', 'behavior.badge', 'behavior.tabs', 'state.empty', 'state.error'],
+    usesFoundation: ['layout.page-header', 'behavior.action-button', 'behavior.input', 'behavior.select', 'behavior.badge', 'behavior.tabs', 'state.empty', 'state.error'],
   }),
 ] as const satisfies readonly ProductExperienceDefinition[]
 

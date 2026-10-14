@@ -39,17 +39,23 @@ const TODAY = '2026-10-13'
 // 约束：这些索引属于固定隔离样张，不用于推断生产响应，也不按中文标签判断业务含义。
 const CULTURE_CATEGORIES: Record<string, NonNullable<DebugEvidenceItem['category']>> = { 'item-book': 'reading', 'culture-music': 'music', 'culture-film': 'film', 'culture-photo': 'photography' }
 const READING_FIELDS: Record<string, readonly number[]> = {
-  'slot-morning': [1, 2], 'slot-afternoon': [1, 2], 'slot-evening': [1, 2], 'slot-yesterday': [1], 'slot-yu': [1, 2],
-  'residence-home': [2, 3], 'residence-space': [3], 'item-camera': [4], 'home-unplaced': [4], 'residence-yu': [0, 1, 2],
+  'slot-morning': [1], 'slot-afternoon': [1], 'slot-evening': [1], 'slot-yesterday': [1], 'slot-yu': [1],
+  'residence-home': [], 'residence-space': [3], 'item-camera': [4], 'home-unplaced': [4], 'residence-yu': [0],
   'trip-completed': [2, 4, 5], 'trip-active': [2, 4, 5], 'trip-planned': [3], 'trip-cancelled': [], 'footprint-place': [3],
-  'character-lin': [1, 2, 4], 'character-yu': [1, 2], 'event-reading': [1, 3], 'event-walk': [1, 2, 3],
-  'now-lin': [0, 1, 2, 3, 4, 6, 7], 'location-current': [1, 2, 3, 4],
+  'character-lin': [1, 2], 'character-yu': [1, 2], 'event-reading': [0], 'event-walk': [0], 'event-book': [0],
+  'now-lin': [0, 1], 'location-current': [1, 2],
   'item-book': [2, 3], 'culture-music': [2, 3], 'culture-film': [2, 3], 'culture-photo': [2, 3],
-  'wardrobe-shirt': [1, 2, 3], 'wardrobe-coat': [1, 2, 3], 'moment-reading': [1, 2, 4, 5],
+  'wardrobe-shirt': [], 'wardrobe-coat': [], 'moment-reading': [1, 2],
+  'action-reflection': [2], 'action-tool': [1, 2], 'growth-cover': [0], 'growth-run': [1],
+  'relation-yu': [0, 2], 'relation-user': [1, 2], 'message-greeting': [4],
+  'link-reading': [], 'context-preview': [6], 'profile-lin': [], 'profile-yu': [],
+  'memory-lin': [], 'memory-shared': [], 'memory-yu': [],
+  'runtime-asset': [0], 'runtime-error': [0], 'runtime-unlinked': [1, 2],
+  'tool-read': [1], 'tool-skill': [1, 2], 'tool-mcp': [1],
 }
 
 const item = (id: string, title: string, subtitle: string, status: string, fields: DebugEvidenceItem['fields'], extra: Partial<DebugEvidenceItem> = {}): DebugEvidenceItem =>
-  ({ id: `demo-${id}`, title, subtitle, role: 'lin', date: TODAY, status, fields, category: CULTURE_CATEGORIES[id], readingFields: (READING_FIELDS[id] ?? fields.map((_, index) => index)).map(index => fields[index]), ...extra, ...(id === 'profile-lin' ? { summaries: [{ title: '身份', text: fields[0][1], scope: fields[1][1] }, { title: '协作方式', text: fields[2][1], scope: fields[3][1] }, { title: '表达偏好', text: fields[4][1], scope: fields[5][1] }] } : id === 'profile-yu' ? { summaries: [{ title: '身份', text: fields[0][1], scope: 'identity + fact · 全局' }, { title: '协作方式', text: fields[1][1], scope: 'workflow · 全局 / feedback · 予' }, { title: '表达偏好', text: fields[2][1], scope: 'voice + preference · 全局' }] } : {}) })
+  ({ id: `demo-${id}`, title, subtitle, role: 'lin', date: TODAY, status, fields, category: CULTURE_CATEGORIES[id], readingFields: (READING_FIELDS[id] ?? []).map(index => fields[index]), ...extra, ...(id === 'profile-lin' ? { summaries: [{ title: '身份', text: fields[0][1], scope: fields[1][1] }, { title: '协作方式', text: fields[2][1], scope: fields[3][1] }, { title: '表达偏好', text: fields[4][1], scope: fields[5][1] }] } : id === 'profile-yu' ? { summaries: [{ title: '身份', text: fields[0][1], scope: 'identity + fact · 全局' }, { title: '协作方式', text: fields[1][1], scope: 'workflow · 全局 / feedback · 予' }, { title: '表达偏好', text: fields[2][1], scope: 'voice + preference · 全局' }] } : {}) })
 
 export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage> = {
   schedule: {

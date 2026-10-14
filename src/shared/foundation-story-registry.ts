@@ -103,6 +103,7 @@ export const FOUNDATION_STORIES = [
   { key: 'foundation.scroll-area', viewId: 'scroll-area', assetKey: 'behavior.scroll-area', labelZh: '滚动区域', group: 'developer', renderer: 'advanced', navigationGroup: 'layout-scroll' },
   { key: 'foundation.resize-handle', viewId: 'resize-handle', assetKey: 'layout.resize-handle', labelZh: '分栏拖拽', group: 'developer', renderer: 'ui-controls', navigationGroup: 'layout-scroll' },
   { key: 'foundation.divider', viewId: 'divider', assetKey: 'layout.divider', labelZh: '分隔线', group: 'developer', renderer: 'ui-controls', navigationGroup: 'layout-scroll' },
+  { key: 'foundation.page-header', viewId: 'page-header', assetKey: 'layout.page-header', labelZh: '页面标题', group: 'developer', renderer: 'advanced', navigationGroup: 'layout-scroll' },
 ] as const satisfies readonly FoundationStoryRecord[]
 
 export type FoundationStoryDefinition = (typeof FOUNDATION_STORIES)[number]

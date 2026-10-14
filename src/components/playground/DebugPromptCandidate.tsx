@@ -40,11 +40,11 @@ export function DebugPromptCandidate({ empty, selectedKey, onSelect, records, on
   return <section className="debug-prompt-workbench" data-testid="debug-prompt-workbench">
     <div className="debug-candidate-role-filter" role="group" aria-label="资产人物筛选">
       {[{ id: 'all', label: '全部人物' }, ...DEBUG_ROLES].map(entry => <ActionButton key={entry.id} variant="plain" aria-pressed={role === entry.id} onClick={() => { setRole(entry.id); onSelect(null); setDetailOpen(false) }}>{entry.label}</ActionButton>)}
-      <span>{filtered.length} 项{(role !== 'all' || query || kind !== 'all') && ` / ${empty ? 0 : DEBUG_ASSET_FIXTURES.length}`}</span>
+      {(role !== 'all' || query || kind !== 'all') && <span>{filtered.length} / {empty ? 0 : DEBUG_ASSET_FIXTURES.length}</span>}
     </div>
     <div className="debug-candidate-toolbar">
       <label className="debug-candidate-search"><Search size={14} /><TextField appearance="outlined" className="h-8 px-3" aria-label="搜索提示词与资产" value={query} placeholder="搜索名称、正文、变量或来源" onChange={(event: ChangeEvent<HTMLInputElement>) => { setQuery(event.target.value); onSelect(null); setDetailOpen(false) }} /></label>
-      <div className="debug-candidate-detail-tabs" role="group" aria-label="资产形态筛选" data-playground-switcher>{['all', '常量', '模板', '结构'].map(value => <ActionButton key={value} variant="plain" aria-pressed={kind === value} onClick={() => { setKind(value); onSelect(null); setDetailOpen(false) }}>{value === 'all' ? '全部形态' : value}</ActionButton>)}</div>
+      <details className="debug-focused-filter"><summary>{kind === 'all' ? '筛选' : `筛选 · ${kind}`}</summary><div className="debug-candidate-detail-tabs" role="group" aria-label="资产形态筛选" data-playground-switcher>{['all', '常量', '模板', '结构'].map(value => <ActionButton key={value} variant="plain" aria-pressed={kind === value} onClick={() => { setKind(value); onSelect(null); setDetailOpen(false) }}>{value === 'all' ? '全部形态' : value}</ActionButton>)}</div></details>
     </div>
     {!filtered.length ? <EmptyState title={empty ? '此范围没有资产' : '没有匹配的资产'} description={empty ? '目录已读取，未返回记录；不等于未读取或读取失败。' : '搜索会同时查找名称、正文和变量；当前筛选不修改生产定义。'} action={empty ? undefined : <ActionButton onClick={reset}>清除筛选</ActionButton>} /> : <div className="debug-candidate-split debug-prompt-split" data-detail-open={detailOpen && Boolean(selected)}>
       <div className="debug-prompt-directory scrollbar-hover" aria-label="提示词分组目录">
@@ -62,11 +62,11 @@ export function DebugPromptCandidate({ empty, selectedKey, onSelect, records, on
         {selected ? <>
           <ActionButton variant="plain" className="debug-candidate-mobile-back" onClick={() => { setDetailOpen(false); requestAnimationFrame(() => entryButtons.current.get(selected.key)?.focus()) }}><ArrowLeft size={14} /> 返回目录</ActionButton>
           <div className="debug-candidate-detail-heading"><h3>{selected.label}</h3><Badge>{selected.kind}</Badge></div>
-          {selected.slots.length > 0 && <section className="debug-prompt-variables"><h3>动态变量 · {selected.slots.length}</h3><div>{selected.slots.map(slot => <span key={slot}><code>{`{{${slot}}}`}</code></span>)}</div></section>}
           <section className="debug-candidate-section"><h3>{selected.kind === '模板' ? '模板正文' : selected.kind === '常量' ? '正文' : '结构内容'} · 隔离演示 <span className="debug-candidate-muted">{selected.preview.length} 字符</span></h3><pre className="debug-candidate-body">{selected.preview}</pre></section>
+          {selected.slots.length > 0 && <details className="debug-prompt-provenance debug-prompt-variables"><summary>变量说明 · {selected.slots.length}</summary><div>{selected.slots.map(slot => <span key={slot}><code>{`{{${slot}}}`}</code></span>)}</div></details>}
           <details className="debug-prompt-provenance"><summary>版本与来源 · {selected.version}</summary><dl className="debug-candidate-facts">{[['标识', selected.key], ['分组', selected.group], ['资产类型', selected.assetType], ['版本', selected.version], ['自动指纹', selected.fingerprint], ['归属', selected.ownership], ['来源', selected.source], ['状态', '隔离样张 · 非生产目录']].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p>变量由实际组装器独立注入，不隐式覆盖稳定身份。</p></details>
           <details className="debug-prompt-provenance"><summary>相关调用 · {records.filter(record => record.assetKeys.includes(selected.key)).length}</summary><p className="debug-candidate-muted mb-2">按明确保存的 key 关联；当前定义不等于历史版本或实发输入。</p>{records.filter(record => record.assetKeys.includes(selected.key)).map(record => <ActionButton key={record.id} variant="plain" className="debug-candidate-asset-link" onClick={() => onRecord(record.id)}><div><strong>{record.title}</strong><code>{record.id}</code></div><ArrowUpRight size={14} /></ActionButton>)}{!records.some(record => record.assetKeys.includes(selected.key)) && <p>此范围内没有关联调用。</p>}</details>
-        </> : <EmptyState title="选择左侧条目查看详情" description="展开分组查看正文、变量、版本和来源。目录数量仅表示演示样张。" />}
+        </> : <EmptyState title="选择左侧条目查看详情" description="" centerWithoutAction />}
       </article>
     </div>}
   </section>

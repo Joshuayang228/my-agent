@@ -12,7 +12,7 @@ import { DEBUG_CAPABILITY_GAPS, DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_F
 import { DEBUG_ASSET_FIXTURES } from './debug-asset-fixtures'
 import { DebugPromptCandidate } from './DebugPromptCandidate'
 import { DebugEvidenceCandidate } from './DebugEvidenceCandidate'
-import type { DebugEvidencePageId } from './debug-evidence-fixtures'
+import { getDebugEvidencePage, type DebugEvidencePageId } from './debug-evidence-fixtures'
 import './debug-experience.css'
 
 const STATUS_LABELS = { success: '已完成', error: '失败', pending: '运行中' } as const
@@ -72,7 +72,7 @@ export function DebugExperienceCandidate({ onBack }: { onBack: () => void }) {
     }
   }
 
-  return <div className="debug-candidate debug-refined playground-shape-scope" data-testid="debug-candidate">
+  return <div className="debug-candidate debug-refined debug-focused playground-shape-scope" data-testid="debug-candidate">
     <div className="debug-candidate-preview">
       <ActionButton variant="plain" onClick={onBack}><ArrowLeft size={14} /> 返回 Playground</ActionButton>
       <span>Debug 重设计 · 隔离样张</span>
@@ -87,7 +87,7 @@ export function DebugExperienceCandidate({ onBack }: { onBack: () => void }) {
         <div className="debug-candidate-nav-footer"><ShieldCheck size={14} /><span>生产信息只读<br />编辑与实验分开进行</span></div>
       </nav>
       <main ref={mainRef} className={`debug-candidate-main${perspective === 'assets' ? ' debug-candidate-main-prompt' : ''}`}>
-        <PlaygroundPageHeader title={view.label} description={perspective === 'assets' ? (snapshotScenario === 'unread' ? '目录未读取' : `${snapshotScenario === 'empty' ? 0 : DEBUG_ASSET_FIXTURES.length} 项演示资产`) : view.description} />
+        <PlaygroundPageHeader title={view.label} description={perspective === 'assets' ? (snapshotScenario === 'unread' ? '目录未读取' : `${snapshotScenario === 'empty' ? 0 : DEBUG_ASSET_FIXTURES.length} 项演示资产`) : ''} />
         {scenario === 'refresh-error' && <ErrorState title="刷新失败，保留上次证据" description="暂时无法读取新的诊断数据。下方是刷新前的样张，不代表最新状态。" action={<ActionButton onClick={() => setScenario(snapshotScenario)}>重试读取样张</ActionButton>} />}
         {snapshotScenario === 'unread' ? <EmptyState title="尚未读取诊断数据" description="选择默认记录样张查看读取后的布局；未读取不能当作零条记录。" /> : <>
         {snapshotScenario === 'truncated' && <p className="debug-candidate-notice" role="status">仅展示有界样张范围，历史已截断；全量总数未知。当前结果不能证明更早记录不存在。</p>}
@@ -109,7 +109,7 @@ export function DebugExperienceCandidate({ onBack }: { onBack: () => void }) {
               {record.status === 'pending' && <p className="debug-candidate-notice" role="status">正在等待模型结果。最终耗时与输出计量将在请求结束后确定。</p>}
               <TabStrip label="调用证据视角" variant="underline" items={[{ id: 'request', label: '模型输入' }, { id: 'execution', label: '执行过程' }, { id: 'sources', label: '资产来源' }]} activeId={detail} onSelect={id => setDetail(id as typeof detail)} />
               {detail === 'request' && <>
-                <Section title="请求结构"><Facts items={[[ '调用用途', record.caller ], ['实际模型', record.model], ['会话', record.sessionId], ['Span', record.spanId ?? '未关联']]} /></Section>
+                <details className="debug-prompt-provenance"><summary>请求结构</summary><Facts items={[[ '调用用途', record.caller ], ['实际模型', record.model], ['会话', record.sessionId], ['Span', record.spanId ?? '未关联']]} /></details>
                 <Section title="输入与正文" note="请求元数据与正文保存状态分开表达。"><div className="debug-candidate-notice"><FileText size={16} /><div><strong>历史正文未保存</strong><p>仅有结构元数据与资产关联。不能使用当前 Prompt 装配预览还原这次请求。</p></div></div></Section>
                 <Section title="继续定位"><ActionButton variant="plain" onClick={() => setDetail('sources')}>查看实际来源 <ArrowUpRight size={13} /></ActionButton><ActionButton variant="plain" onClick={() => setDetail('execution')}>查看执行证据 <ArrowUpRight size={13} /></ActionButton></Section>
               </>}
@@ -125,7 +125,7 @@ export function DebugExperienceCandidate({ onBack }: { onBack: () => void }) {
         {snapshotScenario !== 'empty' && (perspective === 'quality' || perspective === 'persona') && <div className="debug-candidate-reading"><article className="debug-candidate-detail"><div className="debug-candidate-detail-heading"><h3>{qualityId === 'skill' ? 'Skill 边界检查' : '人格一致性验收'}</h3><Badge tone={qualityId === 'skill' ? 'danger' : 'neutral'}>{qualityId === 'skill' ? '未通过' : '待审阅'}</Badge></div><Section title="验收结论"><p>{qualityId === 'skill' ? '工具边界检查未通过。优先查看具体检查证据，再判断行为是否符合预期。' : '自动判定与人工体验判断分开保存。当前样张尚无人工结论。'}</p></Section><Section title="检查证据">{qualityId === 'skill' ? <><Facts items={[[ '应触发行为', '通过' ], ['指南注入', '通过'], ['工具边界', '失败 · 样张调用超出 allowed_tools'], ['回复约束', '通过']]} /><details className="debug-candidate-raw"><summary>查看失败检查证据</summary><p>样张期望：仅可读取；样张实际：报告记录了写入工具。此信息属于 Eval 样张，不是生产运行故障。</p></details></> : <Facts items={[[ '人格表达', '自动检查通过 · 样张' ], ['关系连续性', '需人工判断'], ['审阅记录', '无'], ['报告正文', '只读']]} />}</Section></article></div>}
         {snapshotScenario !== 'empty' && perspective === 'system' && <div className="debug-candidate-reading"><Section title="实际运行环境" note="展示实际值，区别于默认配置；样张不包含端点或凭据。"><Facts items={[[ '应用版本', '开发版 · 样张' ], ['平台', 'Windows'], ['运行时', 'Electron / Node.js'], ['当前模型', '示例对话模型'], ['凭据状态', '已配置 · 不展示值']]} /></Section><Section title="工具与连接"><Facts items={[[ '内置工具', '8 个 · 样张' ], ['MCP', '1 项连接失败 · 样张'], ['沙箱', '读取实际策略 · 样张'], ['权限规则', '生产来源只读展示']]} /><div className="debug-candidate-call-error"><strong>MCP 连接失败</strong><p>工具清单尚未取得，数量未知。连接编辑与重试归设置管理。</p></div></Section><Section title="只读诊断边界"><p>这里用于确认系统实际状态。不会在浏览过程中发起模型调用、改写配置或自动清理日志。</p></Section></div>}
         </>}
-        <footer className="debug-candidate-footer"><details className="debug-candidate-gaps"><summary>来源与诊断说明 · 隔离样张</summary><p>数据来源：{view.source}。{view.description}</p><dl className="debug-candidate-facts">{DEBUG_CAPABILITY_GAPS.map(([label, description]) => <div key={label}><dt>{label}</dt><dd>{description}</dd></div>)}</dl><p><Check size={12} />示例标识均以 demo 标记；此候选不读写真实会话。中文正文仅为隔离演示。</p><ProductExperienceDependencies tabId="debug" showSource /></details></footer>
+        <footer className="debug-candidate-footer"><details className="debug-candidate-gaps"><summary>来源与诊断说明 · 隔离样张</summary><p>数据来源：{view.source}。{view.description}</p>{!['assets', 'runs', 'quality', 'persona', 'system'].includes(perspective) && <p>{getDebugEvidencePage(perspective as DebugEvidencePageId, records).boundary}</p>}<dl className="debug-candidate-facts">{DEBUG_CAPABILITY_GAPS.map(([label, description]) => <div key={label}><dt>{label}</dt><dd>{description}</dd></div>)}</dl><p><Check size={12} />示例标识均以 demo 标记；此候选不读写真实会话。中文正文仅为隔离演示。</p><ProductExperienceDependencies tabId="debug" showSource /></details></footer>
       </main>
     </div>
   </div>

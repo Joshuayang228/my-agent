@@ -1,6 +1,91 @@
 import { test, expect } from '@playwright/test'
 
 for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 600]) {
+  test(`正式 Debug 阅读与完整证据 ${theme} ${width}`, async ({ page }, info) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.addInitScript(theme => localStorage.setItem('theme', theme), theme)
+    await page.goto('/')
+    // 背景：浏览器不连接 Electron；意图：在真实生产组件上注入 IPC 契约响应而非候选数据。
+    // 约束：本测试不证明数据库读取；数据库只读与范围隔离由 debug-companion-evidence Unit 覆盖。
+    await page.evaluate(() => {
+      const state = window as unknown as { electronAPI: { debug: Record<string, unknown> }; __debugFail?: boolean }
+      state.electronAPI = { ...state.electronAPI, debug: { ...state.electronAPI?.debug } }
+      const record = (id: string, kind: string, body: string, payload: Record<string, unknown> = {}) => ({ id, kind, title: id, body, data: { payload }, roleId: 'lin', time: null, status: 'published', source: 'test-contract', truncated: false, links: [] })
+      Object.assign(state.electronAPI.debug, {
+        companionEvidenceScope: async () => ({ roles: [{ id: 'lin', name: '林' }, { id: 'yu', name: '予' }], activeRoleId: 'lin', universeId: 'test', ready: true }),
+        modelContextAssets: async () => {
+          if (state.__debugFail) throw new Error('test failure')
+          return [{ key: 'test.prompt', name: '主对话', category: 'system', assetType: 'prompt', ownership: 'builtin', source: 'production#prompt', version: '1', fingerprint: 'fingerprint-proof', status: 'active', contentKind: 'template', mode: 'dynamic', content: '请先阅读用户材料。{{context}}', locale: 'zh-CN', locales: {}, slots: [{ name: 'context', source: 'assembler', lifecycle: 'turn' }], roleIds: [] }]
+        },
+        assetUsageQuery: async () => ({ records: [], total: 0 }),
+        companionEvidenceQuery: async (query: { view: string; roleId: string; date?: string }) => {
+          if (state.__debugFail) throw new Error('test failure')
+          return { ...query, state: 'ready', source: 'test-contract', timezone: 'Asia/Shanghai', generatedAt: Date.now(), total: null, hasMore: false, issues: [], boundary: '只读范围证据', records: query.view === 'schedule' ? [record('day-proof', 'day', '', { theme: '不应默认显示的主题', slots: [{ hour: 9, minute: 15, activity: '阅读材料', location: '书房', mood: '完整详情情绪' }] })] : query.view === 'profile' ? [record('identity', 'identity', '身份摘要'), record('workflow', 'workflow', '先看结论'), record('voice', 'voice', '表达简洁')] : query.view === 'footprints' ? [record('已完成旅行', 'footprint', '旅行经历', { recordType: 'trip', status: 'completed', destination: '杭州' }), record('下周计划', 'footprint', '计划经历', { recordType: 'trip', status: 'planned' }), record('地点资料', 'footprint', '', { recordType: 'place' })] : [] }
+        },
+        llmLogsQuery: async () => ({ records: [{ id: 'call-proof', model: 'test-model', provider: 'test', caller: 'main', startedAt: Date.now(), status: 'success', promptTokens: 1, completionTokens: 1, totalTokens: 2, durationMs: 1, toolCallCount: 0, cacheReadTokens: 0, cacheCreationTokens: 0 }], total: 1, storageBytes: 1 }),
+        llmLogGet: async () => ({ id: 'call-proof', model: 'test-model', provider: 'test', caller: 'main', startedAt: Date.now(), status: 'success', promptTokens: 1, completionTokens: 1, totalTokens: 2, durationMs: 1, toolCallCount: 0, cacheReadTokens: 0, cacheCreationTokens: 0, requestMessages: [{ role: 'system', content: 'system-proof' }, { role: 'user', content: 'user-proof' }], requestTools: [], requestExtra: {}, responseContent: 'response-proof', responseToolCalls: [] }),
+        onLLMCallEvent: () => () => {},
+      })
+    })
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
+    const panel = page.getByTestId('dev-panel')
+    const nav = panel.getByRole('navigation', { name: '调试分区' })
+    await expect(panel.locator('.workspace-page-header')).toContainText('1 项生产资产')
+    await panel.getByRole('button', { name: /平台 \/ 行为/ }).click()
+    await panel.getByRole('button', { name: '模板 主对话', exact: true }).click()
+    await expect(panel.getByText('请先阅读用户材料。{{context}}', { exact: true })).toBeVisible()
+    await expect(panel.getByText('fingerprint-proof', { exact: true })).toBeHidden()
+    await panel.getByText('变量说明 · 1', { exact: true }).click()
+    await expect(panel.getByText('{{context}}', { exact: true })).toBeVisible()
+    await panel.getByText('来源与版本 · 1', { exact: true }).click()
+    await expect(panel.getByText('fingerprint-proof', { exact: true })).toBeVisible()
+    if (width === 600) {
+      await panel.getByRole('button', { name: '返回目录', exact: true }).click()
+      await expect(panel.getByRole('button', { name: '模板 主对话', exact: true })).toBeFocused()
+    }
+    await nav.getByRole('button', { name: '今日日程', exact: true }).click()
+    await expect(panel.getByRole('heading', { name: '09:15 · 阅读材料', exact: true })).toBeVisible()
+    await expect(panel.getByText('书房', { exact: true }).first()).toBeVisible()
+    await expect(panel.getByText('不应默认显示的主题', { exact: true })).toBeHidden()
+    await panel.getByText('查看详情', { exact: true }).click()
+    await expect(panel.getByText('不应默认显示的主题', { exact: true })).toBeVisible()
+    await page.evaluate(() => { (window as unknown as { __debugFail: boolean }).__debugFail = true })
+    await panel.getByRole('button', { name: '刷新当前分区', exact: true }).click()
+    await expect(panel.getByText('证据读取失败；刷新时保留上次成功结果')).toBeVisible()
+    await expect(panel.getByRole('heading', { name: '09:15 · 阅读材料', exact: true }).first()).toBeVisible()
+    await page.evaluate(() => { (window as unknown as { __debugFail: boolean }).__debugFail = false })
+    await nav.getByRole('button', { name: '用户画像', exact: true }).click()
+    for (const label of ['身份', '协作方式', '表达偏好']) await expect(panel.getByRole('heading', { name: label, exact: true })).toBeVisible()
+    await expect(panel.getByText('先看结论', { exact: true }).first()).toBeVisible()
+    await expect(panel.locator('[data-record-id="workflow"]')).toBeHidden()
+    await panel.getByText('查看画像来源记录', { exact: true }).click()
+    await expect(panel.locator('[data-record-id="workflow"]')).toBeVisible()
+    await nav.getByRole('button', { name: '足迹', exact: true }).click()
+    for (const label of ['实际旅行', '旅行计划', '地点与其他记录']) await expect(panel.getByRole('heading', { name: label, exact: true })).toBeVisible()
+    await nav.getByRole('button', { name: 'LLM 调用', exact: true }).click()
+    const tabs = panel.getByRole('tablist', { name: '调用详情' })
+    await expect(tabs.getByRole('tab')).toHaveCount(7)
+    await tabs.getByRole('tab', { name: 'System 1', exact: true }).click()
+    await expect(panel.getByText('system-proof', { exact: true })).toBeVisible()
+    await tabs.getByRole('tab', { name: 'System 1', exact: true }).press('ArrowRight')
+    await expect(tabs.getByRole('tab', { name: 'Messages 2', exact: true })).toBeFocused()
+    await expect(panel.getByText('user-proof', { exact: true })).toBeVisible()
+    await tabs.getByRole('tab', { name: '响应', exact: true }).click()
+    await expect(panel.getByText('response-proof', { exact: true })).toBeVisible()
+    expect(await panel.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+    await page.screenshot({ path: info.outputPath('production-debug.png') })
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+    await page.getByTestId('playground-nav').getByRole('button', { name: '基础组件', exact: true }).click()
+    await page.getByRole('tab', { name: '布局与滚动', exact: true }).click()
+    const headerStory = page.getByTestId('foundation-story-page-header')
+    await expect(headerStory.getByRole('heading', { name: '诊断记录', exact: true })).toBeVisible()
+    const narrow = headerStory.getByTestId('page-header-narrow')
+    await expect(narrow.getByRole('button', { name: '刷新', exact: true })).toBeVisible()
+    expect(await narrow.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+  })
+}
+
+for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 600]) {
   test(`Debug 证据浏览 ${theme} ${width}`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: 900 })
     await page.addInitScript(theme => {
@@ -26,6 +111,9 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 
     await expect(prompt.getByRole('article', { name: '资产详情' })).toContainText('{{role_voice}}')
     await expect(prompt.getByRole('article', { name: '资产详情' })).toContainText('样张 v3')
     await expect(prompt.getByRole('article', { name: '资产详情' })).toContainText('模板正文')
+    await expect(prompt.locator('.debug-prompt-variables > div')).toBeHidden()
+    await prompt.getByText('变量说明 · 3', { exact: true }).click()
+    await expect(prompt.locator('.debug-prompt-variables > div')).toBeVisible()
     await expect(prompt.locator('textarea')).toHaveCount(0)
     await page.screenshot({ path: info.outputPath('debug-prompts.png') })
     if (width === 600) {
@@ -56,7 +144,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 
       await panel.locator('.debug-prompt-entry').filter({ hasText: '主对话语义编译' }).click()
     }
     await panel.getByText('相关调用 · 2', { exact: true }).click()
-    await panel.getByRole('button', { name: /读取旅行记录 demo-call-02/ }).click()
+    await panel.getByRole('button', { name: /读取旅行记录/ }).click()
     await expect(panel.getByTestId('debug-call-detail')).toContainText('demo-call-02')
     await panel.getByRole('tab', { name: '执行过程', exact: true }).click()
     await expect(panel.getByTestId('debug-call-detail')).toContainText('权限检查')
@@ -108,7 +196,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 
     await expect(panel).toContainText('没有匹配的证据')
     await panel.getByRole('button', { name: '清除筛选' }).click()
     await nav.getByRole('button', { name: '用户记忆', exact: true }).click()
-    await panel.getByRole('group', { name: '证据人物筛选' }).getByRole('button', { name: '林 · 样张' }).click()
+    await panel.getByRole('combobox', { name: '诊断人物' }).selectOption('lin')
     await expect(panel.getByRole('button', { name: /阅读前先看目录/ })).toHaveCount(0)
     await expect(panel.getByRole('button', { name: /使用简体中文/ })).toBeVisible()
     await panel.getByRole('button', { name: /先说结论，再展开依据/ }).click()
@@ -123,7 +211,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 
       await nav.getByRole('button', { name: label, exact: true }).click()
       const evidence = panel.getByTestId(`debug-evidence-${id}`)
       await expect(evidence).toBeVisible()
-      await evidence.getByRole('button', { pressed: true }).last().click()
+      await evidence.locator('[data-record-id]').getByRole('button').first().click()
       await expect(evidence.getByRole('article', { name: '领域证据详情' })).toBeVisible()
       expect(await panel.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
     }
@@ -227,12 +315,12 @@ for (const theme of ['porcelain-blue', 'yao-stone']) {
     await expect(detail).toContainText('不纳入实际旅行')
     await panel.getByRole('button', { name: /旧地点/ }).click()
     await expect(detail).toContainText('访问日期未记录')
-    await panel.getByRole('group', { name: '证据人物筛选' }).getByRole('button', { name: '予 · 样张' }).click()
+    await panel.getByRole('combobox', { name: '诊断人物' }).selectOption('yu')
     await expect(panel).toContainText('没有匹配的证据')
     await nav.getByRole('button', { name: '用户画像', exact: true }).click()
     await panel.getByRole('button', { name: /用户画像 · 林调用范围/ }).click()
     await expect(detail).toContainText('workflow · 全局 / feedback · 林')
-    await panel.getByText('数据范围与能力边界', { exact: true }).click()
+    await panel.getByText('来源与诊断说明 · 隔离样张', { exact: true }).click()
     await expect(panel.getByText(/其他类别仍全局聚合/)).toBeVisible()
     await nav.getByRole('button', { name: '朋友圈', exact: true }).click()
     await panel.getByRole('button', { name: /林 · 阅读旅行笔记/ }).click()
@@ -274,6 +362,12 @@ for (const theme of ['porcelain-blue', 'yao-stone']) {
     await page.screenshot({ path: info.outputPath('debug-reading-schedule.png') })
     await nav.getByRole('button', { name: '用户画像', exact: true }).click()
     await expect(panel.getByRole('textbox', { name: '搜索当前页证据' })).toHaveCount(0)
+    await expect(panel.getByRole('combobox', { name: '诊断人物' })).toHaveValue('lin')
+    await expect(panel).toContainText('全局资料与当前人物的协作反馈')
+    await expect(panel.locator('[data-record-id="demo-profile-yu"]')).toHaveCount(0)
+    await panel.getByRole('combobox', { name: '诊断人物' }).selectOption('all')
+    await expect(panel.locator('[data-record-id="demo-profile-yu"]')).toBeVisible()
+    await panel.getByRole('combobox', { name: '诊断人物' }).selectOption('lin')
     for (const title of ['身份', '协作方式', '表达偏好']) await expect(panel.locator('[data-record-id="demo-profile-lin"] .debug-reading-summaries').getByRole('heading', { name: title, exact: true })).toBeVisible()
     await page.screenshot({ path: info.outputPath('debug-reading-profile.png') })
     await nav.getByRole('button', { name: '家居', exact: true }).click()

@@ -30,6 +30,15 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('正式 Debug 和展厅页头实际绑定共享纯呈现定义', () => {
+    for (const file of ['src/components/DevPanel.tsx', 'src/components/playground/PlaygroundLayout.tsx']) {
+      expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'PageHeader', '/layout/PageHeader'), file).toBe(true)
+    }
+    const source = readFileSync(UI_COMPONENT_REGISTRY['layout.page-header'].sourcePath, 'utf8')
+    expect(source).not.toContain('electronAPI')
+    expect(source).not.toContain('localStorage')
+    expect(UI_COMPONENT_REGISTRY['layout.page-header'].status).toBe('adopted')
+  })
   it('人物世界共享画廊采用状态对应真实正式入口', () => {
     for (const key of ['layout.world-record-image', 'layout.home-gallery', 'layout.travel-gallery', 'layout.contacts-gallery']) {
       const asset = UI_COMPONENT_REGISTRY[key]

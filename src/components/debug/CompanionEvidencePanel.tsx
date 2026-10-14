@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Search } from 'lucide-react'
-import type { DebugEvidenceRecord, DebugEvidenceResult, DebugEvidenceQuery } from '../../shared/types'
+import type { DebugEvidenceRecord, DebugEvidenceResult, DebugEvidenceQuery, DebugEvidenceScope } from '../../shared/types'
 import { ActionButton } from '../foundation/ActionButton'
 import { Badge } from '../foundation/Badge'
 import { TextField } from '../foundation/TextField'
+import { SelectField } from '../foundation/SelectField'
 import { EmptyState } from '../foundation/EmptyState'
 import { ErrorState } from '../foundation/ErrorState'
 
@@ -12,11 +13,25 @@ const object = (value: unknown): Record<string, unknown> => value && typeof valu
 const valueText = (value: unknown): string => typeof value === 'string' ? value || '未记录' : Array.isArray(value) ? value.filter(item => typeof item === 'string').join('、') : value === null || value === undefined ? '未记录' : String(value)
 function Facts({ data }: { data: Record<string, unknown> }) { return <dl className="debug-candidate-facts">{Object.entries(data).filter(([key, value]) => key in LABELS && (typeof value !== 'object' || value === null || Array.isArray(value) && value.every(item => typeof item === 'string'))).map(([key, value]) => <div key={key}><dt>{LABELS[key]}</dt><dd>{valueText(value)}</dd></div>)}</dl> }
 
+// 背景：目录自动展开全部字段曾淹没事实；意图：按阅读任务显式声明首屏字段。
+// 约束：没有映射的字段只进完整详情；这里不推断记录类型，不改变生产数据。
+const READING_FIELDS: Partial<Record<DebugEvidenceQuery['view'], readonly string[]>> = {
+  now: ['currentActivity', 'currentLocation'], location: ['currentLocation', 'locationDetail'],
+  character: ['occupation', 'agePresentation'], residence: ['layout'], footprints: ['destination', 'start', 'end'],
+  items: ['author', 'artist', 'director', 'readingStatus', 'watchStatus', 'listeningStatus'],
+  recent: ['location'], activity: ['location'], moments: ['location'], relations: ['socialStyle'],
+}
+const ROUTINE_STATUS = new Set(['published', 'completed', 'active', 'stored', 'ready'])
+function ReadingFacts({ record, view }: { record: DebugEvidenceRecord; view: DebugEvidenceQuery['view'] }) {
+  const source = view === 'character' ? object(record.data.profile) : ['now', 'location'].includes(view) ? object(record.data.world) : object(record.data.payload)
+  return <Facts data={Object.fromEntries((READING_FIELDS[view] ?? []).filter(key => key in source).map(key => [key, source[key]]))} />
+}
+
 /** 背景：领域事实默认需要直接阅读，原始结构和标识不应占据第一屏。
  * 意图：时段、世界、资料、家居及旅行按各自结构显示，完整脱敏记录在详情保留。
  * 约束：只调用有界只读接口；迟到响应不越过人物/日期范围，刷新失败保留旧证据，分页不清空已有页。
  */
-export function CompanionEvidencePanel({ view, roleId, revision, targetId, onEvidence }: { view: DebugEvidenceQuery['view']; roleId: string; revision: number; targetId?: string; onEvidence: (view: DebugEvidenceQuery['view'], id: string) => void }) {
+export function CompanionEvidencePanel({ view, roleId, revision, targetId, onEvidence, scope, onRoleChange }: { view: DebugEvidenceQuery['view']; roleId: string; scope?: DebugEvidenceScope | null; onRoleChange?: (id: string) => void; revision: number; targetId?: string; onEvidence: (view: DebugEvidenceQuery['view'], id: string) => void }) {
   const [date, setDate] = useState(view === 'schedule' && !targetId ? new Date().toLocaleDateString('sv-SE') : '')
   const [query, setQuery] = useState('')
   const [result, setResult] = useState<DebugEvidenceResult | null>(null)
@@ -41,8 +56,19 @@ export function CompanionEvidencePanel({ view, roleId, revision, targetId, onEvi
   const filtered = (result?.records ?? []).filter(record => `${record.title} ${record.body} ${JSON.stringify(record.data)}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
   const assets = (record: DebugEvidenceRecord) => object(record.data.payload)
   const card = (record: DebugEvidenceRecord) => <article className="debug-reading-entry" key={`${record.source}:${record.id}`} data-record-id={record.id}>
-    <div className="debug-candidate-detail-heading"><h3>{record.title || '未命名记录'}</h3>{record.status && <Badge>{record.status}</Badge>}</div>
-    {record.time !== null && <p className="debug-reading-subtitle">{new Date(record.time).toLocaleString('zh-CN', { timeZone: result?.timezone })} · {record.roleId || '显式共享'}</p>}
+    {view !== 'schedule' && <div className="debug-candidate-detail-heading"><h3>{['now', 'location', 'character'].includes(view) ? '当前记录' : record.title || '未命名记录'}</h3>{record.status && !ROUTINE_STATUS.has(record.status) && <Badge>{record.status}</Badge>}</div>}
+    {view === 'schedule' && record.status && !ROUTINE_STATUS.has(record.status) && <p role="status">{record.status}</p>}
+    {view === 'schedule' && (!Array.isArray(assets(record).slots) || !(assets(record).slots as unknown[]).length) && <p role="status">没有可读取的计划时段。</p>}
+    {record.time !== null && !['profile', 'schedule', 'now', 'location', 'character'].includes(view) && <p className="debug-reading-subtitle">{new Date(record.time).toLocaleString('zh-CN', { timeZone: result?.timezone })}</p>}
+    {view === 'schedule' ? <>{Array.isArray(assets(record).slots) && (assets(record).slots as unknown[]).map((slot, index) => {
+      const row = object(slot); const minute = row.minute ?? 0
+      const time = typeof row.hour === 'number' && Number.isInteger(row.hour) && row.hour >= 0 && row.hour <= 23 && typeof minute === 'number' && Number.isInteger(minute) && minute >= 0 && minute <= 59 ? `${String(row.hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}` : '时间未记录'
+      return <section key={index} className="debug-reading-entry"><h4>{time} · {valueText(row.activity)}</h4><Facts data={{ location: row.location }} /></section>
+    })}</> : <>{record.body && <p className="debug-reading-body">{record.body}</p>}<ReadingFacts view={view} record={record} /></>}
+    {record.truncated && <p role="status">正文或结构已截断。</p>}
+    {Boolean(record.data.paused_at || record.data.storedWorld && typeof record.data.storedWorld === 'string') && <p role="status">{record.data.paused_at ? '人物推进已暂停。' : String(record.data.storedWorld)}</p>}
+    <details open={targetId === record.id} className="debug-prompt-provenance"><summary>查看详情</summary>
+    <p>{record.status || '状态未记录'} · {record.roleId || '显式共享'}</p>
     <Facts data={assets(record)} />
     {record.body && <p className="debug-reading-body">{record.body}</p>}
     {view === 'schedule' && Array.isArray(assets(record).slots) && <div>{(assets(record).slots as unknown[]).map((slot, index) => { const row = object(slot); const minute = row.minute ?? 0; const time = typeof row.hour === 'number' && Number.isInteger(row.hour) && row.hour >= 0 && row.hour <= 23 && typeof minute === 'number' && Number.isInteger(minute) && minute >= 0 && minute <= 59 ? `${String(row.hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}` : '时间未记录'; return <section key={index} className="debug-reading-entry"><h4>{time} · {valueText(row.activity)}</h4><Facts data={row} /><small>计划时段；执行结果以明确事件证据为准。</small></section> })}</div>}
@@ -61,25 +87,27 @@ export function CompanionEvidencePanel({ view, roleId, revision, targetId, onEvi
     {record.links.map(link => <ActionButton key={`${link.view}:${link.id}`} variant="plain" onClick={() => onEvidence(link.view, link.id)}>{link.label}</ActionButton>)}
     {record.truncated && <p role="status">正文或结构已截断。</p>}
     <details open={targetId === record.id} className="debug-prompt-provenance"><summary>来源与完整记录</summary><p>{record.source} · {record.id}</p><pre className="debug-candidate-body">{JSON.stringify(record.data, null, 2)}</pre></details>
+    </details>
   </article>
   const home = () => {
     const nested = new Set<string>()
     const roots = filtered.filter(record => assets(record).recordType === 'residence')
     return <>{roots.map(root => { nested.add(root.id); return <section className="debug-reading-home" key={root.id}>{card(root)}{filtered.filter(record => assets(record).recordType === 'space' && assets(record).residenceId === root.id).map(space => { nested.add(space.id); return <section className="debug-reading-space" key={space.id}>{card(space)}<div className="debug-reading-object-grid">{filtered.filter(record => record.kind === 'furniture' && assets(record).spaceId === space.id).map(item => { nested.add(item.id); return card(item) })}</div></section> })}</section> })}<section><h3 className="debug-reading-group-title">未归置或当前页的独立记录</h3>{filtered.filter(record => !nested.has(record.id)).map(card)}</section></>
   }
-  const profile = () => <div className="debug-reading-summaries">{[{ title: '身份', categories: ['identity', 'fact'] }, { title: '协作方式', categories: ['workflow', 'feedback'] }, { title: '表达偏好', categories: ['voice', 'preference'] }].map(section => <section key={section.title}><h3>{section.title}</h3>{filtered.filter(record => section.categories.includes(record.kind)).map(record => <p key={record.id}>{record.body}</p>)}<small>当前读取范围的记忆摘要，完整来源见下方记录。</small></section>)}</div>
+  const profile = () => <div className="debug-reading-summaries">{[{ title: '身份', categories: ['identity', 'fact'] }, { title: '协作方式', categories: ['workflow', 'feedback'] }, { title: '表达偏好', categories: ['voice', 'preference'] }].map(section => <section key={section.title}><h3>{section.title}</h3>{filtered.filter(record => section.categories.includes(record.kind)).map(record => <p key={record.id}>{record.body}</p>)}</section>)}</div>
   return <section className="debug-evidence-workbench" data-testid={`debug-evidence-${view}`}>
     {targetId && <ActionButton variant="plain" onClick={() => onEvidence(view, '')}>返回当前领域列表</ActionButton>}
-    <div className="debug-candidate-toolbar">{!['now', 'location', 'character', 'profile', 'context', 'proactive'].includes(view) && <label className="debug-candidate-search"><Search size={14} /><TextField aria-label="搜索当前页证据" placeholder="搜索当前已读取记录" value={query} onChange={(event: ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)} /></label>}{!targetId && ['schedule', 'recent', 'activity', 'moments', 'growth', 'links'].includes(view) && <label className="debug-evidence-date">日期<TextField type="date" aria-label="证据日期" value={date} onChange={(event: ChangeEvent<HTMLInputElement>) => changeDate(event.target.value)} /></label>}</div>
+    <div className="debug-candidate-toolbar">{scope && onRoleChange && <div className="debug-focused-scope" role="group" aria-label="诊断人物范围"><label>人物<SelectField aria-label="诊断人物" value={roleId} onChange={event => onRoleChange(event.target.value)}>{scope.roles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}</SelectField></label></div>}{!['now', 'location', 'character', 'profile', 'context', 'proactive'].includes(view) && <label className="debug-candidate-search"><Search size={14} /><TextField appearance="outlined" className="h-8 px-3" aria-label="搜索当前页证据" placeholder="搜索当前已读取记录" value={query} onChange={(event: ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)} /></label>}{!targetId && ['schedule', 'recent', 'activity', 'moments', 'growth', 'links'].includes(view) && <label className="debug-evidence-date">{view === 'schedule' ? '计划日期' : '日期'}<TextField appearance="outlined" className="h-8 px-2" type="date" aria-label="证据日期" value={date} onChange={(event: ChangeEvent<HTMLInputElement>) => changeDate(event.target.value)} /></label>}</div>
     {error && <ErrorState title="读取异常" description={error} action={<ActionButton onClick={() => setReload(value => value + 1)}>重试</ActionButton>} />}
     {loading && <p role="status">正在读取诊断证据…</p>}
-    {result && <p className="debug-reading-subtitle">{result.records.length} 条已读取 · 全量总数未计量 · {result.timezone}{result.hasMore && ' · 历史还有后续页'}</p>}
+    {view === 'profile' && <p className="debug-reading-subtitle">全局资料与当前人物的协作反馈</p>}
+    {result && query && <p className="debug-reading-subtitle">{filtered.length} / {result.records.length} 条已读取</p>}
     {result?.issues.map((issue, index) => <p role="status" key={index}>{issue}</p>)}
     {result?.state === 'unsupported' || result?.state === 'unavailable' ? <EmptyState title={result.state === 'unsupported' ? '此类证据尚无独立读取源' : '诊断源暂不可用'} description={result.boundary} /> : result && !filtered.length ? <EmptyState title={targetId ? '引用目标未在该人物范围找到' : result.records.length ? '没有匹配的证据' : '此范围没有记录'} description="空记录不等于引擎不存在，不补造默认事实。" /> : <div className={`debug-reading debug-reading-${view === 'schedule' ? 'schedule' : ['recent', 'activity', 'moments', 'growth'].includes(view) ? 'timeline' : 'catalog'}`}>
-      {view === 'profile' && profile()}{view === 'residence' ? home() : view === 'items' ? (['reading', 'music', 'film', 'photography'] as const).map(type => { const records = filtered.filter(record => assets(record).type === type || type === 'reading' && record.kind === 'bookshelf' && !assets(record).type); return records.length ? <section key={type}><h3 className="debug-reading-group-title">{{ reading: '阅读', music: '音乐', film: '影视', photography: '摄影' }[type]}</h3>{records.map(card)}</section> : null }) : filtered.map(card)}
+      {view === 'profile' ? <>{profile()}<details className="debug-prompt-provenance" open={Boolean(targetId)}><summary>查看画像来源记录</summary>{filtered.map(card)}</details></> : view === 'residence' ? home() : view === 'items' ? (['reading', 'music', 'film', 'photography'] as const).map(type => { const records = filtered.filter(record => assets(record).type === type || type === 'reading' && record.kind === 'bookshelf' && !assets(record).type); return records.length ? <section key={type}><h3 className="debug-reading-group-title">{{ reading: '阅读', music: '音乐', film: '影视', photography: '摄影' }[type]}</h3>{records.map(card)}</section> : null }) : view === 'footprints' ? [{ label: '实际旅行', match: (r: DebugEvidenceRecord) => assets(r).recordType === 'trip' && ['active', 'completed'].includes(String(assets(r).status)) }, { label: '旅行计划', match: (r: DebugEvidenceRecord) => assets(r).recordType === 'trip' && assets(r).status === 'planned' }, { label: '已取消计划', match: (r: DebugEvidenceRecord) => assets(r).recordType === 'trip' && assets(r).status === 'cancelled' }, { label: '地点与其他记录', match: (r: DebugEvidenceRecord) => assets(r).recordType !== 'trip' || !['active', 'completed', 'planned', 'cancelled'].includes(String(assets(r).status)) }].map(group => { const rows = filtered.filter(group.match); return rows.length ? <section key={group.label}><h3 className="debug-reading-group-title">{group.label}</h3>{rows.map(card)}</section> : null }) : filtered.map(card)}
     </div>}
     {view === 'items' && filtered.filter(record => !['reading', 'music', 'film', 'photography'].includes(String(assets(record).type)) && !(record.kind === 'bookshelf' && !assets(record).type)).map(card)}
     {result?.hasMore && <ActionButton disabled={loading} onClick={() => setCursor(result.nextCursor)}>读取下一页</ActionButton>}
-    {result && <details className="debug-prompt-provenance"><summary>数据范围与能力边界</summary><p>{result.boundary}</p><p>{result.source} · {new Date(result.generatedAt).toLocaleString()}</p></details>}
+    {result && <details className="debug-prompt-provenance"><summary>来源与诊断说明</summary><p>{result.boundary}</p><p>{result.records.length} 条已读取 · 全量总数未计量 · {result.timezone}</p><p>{result.source} · {new Date(result.generatedAt).toLocaleString()}</p></details>}
   </section>
 }

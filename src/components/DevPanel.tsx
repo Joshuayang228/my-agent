@@ -10,6 +10,7 @@ import { PersonaEvalPanel } from './debug/PersonaEvalPanel'
 import { SkillEvalPanel } from './debug/SkillEvalPanel'
 import { ActionButton } from './foundation/ActionButton'
 import { ErrorState } from './foundation/ErrorState'
+import { PageHeader } from './layout/PageHeader'
 import { EmptyState } from './foundation/EmptyState'
 import { DebugOverview, buildDebugOverviewSnapshot } from './debug/DebugOverview'
 import './debug/debug-workspace.css'
@@ -171,15 +172,15 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
     if (llm) setCallId(item.spanId); else setSpanId(item.spanId)
   }
   const domain = page !== 'context' && DEBUG_EVIDENCE_VIEWS.includes(page as DebugEvidenceView)
-  return <div className="debug-workspace" data-testid="dev-panel" data-surface="debug">
+  return <div className="debug-workspace debug-refined debug-focused playground-shape-scope" data-testid="dev-panel" data-surface="debug">
     <header className="debug-candidate-preview"><ActionButton variant="plain" title="返回聊天" onClick={onClose}><ArrowLeft size={14} /> 返回聊天</ActionButton><span>Debug · 生产诊断</span><ActionButton variant="plain" title="刷新当前调试分区" onClick={() => setRevision(value => value + 1)}><RotateCcw size={14} /> 刷新当前分区</ActionButton></header>
     <div className="debug-candidate-workspace">
       <nav className="debug-candidate-nav" aria-label="调试分区"><div className="debug-candidate-brand"><Activity size={20} /><strong>Debug</strong><span>诊断工作区</span></div><div className="debug-candidate-nav-groups">{DEBUG_GROUPS.map(group => <section key={group} aria-label={`${group}分区`}><p className="debug-candidate-nav-label">{group}</p>{DEBUG_PERSPECTIVES.filter(item => item.group === group).map(item => { const Icon = ICONS[item.id]; return <ActionButton key={item.id} variant="plain" aria-current={page === item.id ? 'page' : undefined} onClick={() => navigate(item.id)}><Icon size={14} />{item.label}</ActionButton> })}</section>)}</div><div className="debug-candidate-nav-footer"><ShieldCheck size={14} /><span>生产资产只读<br />受控诊断单独确认</span></div></nav>
       <main className={`debug-candidate-main ${page === 'assets' ? 'debug-candidate-main-prompt' : ''}`}>
-        <header className="debug-candidate-header"><small>{entry.group} / {entry.label}</small><div><h2>{entry.label}{page === 'assets' && assetTotal !== null && <small>{assetTotal} 项生产资产</small>}</h2></div></header>
+        <PageHeader title={entry.label} description={page === 'assets' && assetTotal !== null ? `${assetTotal} 项生产资产` : ''} />
         {scopeError && <ErrorState title="人物范围读取异常" description={scopeError} />}{error && <ErrorState title="诊断读取异常" description={error} />}
         {page === 'assets' && <RegisteredAssetWorkbench scope={scope} revision={revision} focusKey={assetKey} onUsage={openUsage} onTotal={setAssetTotal} />}
-        {domain && <><div className="debug-candidate-role-filter" role="group" aria-label="诊断人物范围">{scope?.roles.map(role => <ActionButton key={role.id} variant="plain" aria-pressed={roleId === role.id} onClick={() => setRoleId(role.id)}>{role.name}</ActionButton>)}<span>仅改变诊断范围</span></div>{roleId ? <CompanionEvidencePanel key={`${page}:${roleId}:${evidenceTarget?.id ?? ''}`} targetId={evidenceTarget?.id} onEvidence={(view, id) => { navigate(view); setEvidenceTarget(id ? { view, id } : null) }} view={page as DebugEvidenceView} roleId={roleId} revision={revision} /> : <EmptyState title="尚未取得人物范围" description="未确定人物时不生成默认状态。" />}</>}
+        {domain && <>{roleId ? <CompanionEvidencePanel key={`${page}:${roleId}:${evidenceTarget?.id ?? ''}`} scope={scope} onRoleChange={setRoleId} targetId={evidenceTarget?.id} onEvidence={(view, id) => { navigate(view); setEvidenceTarget(id ? { view, id } : null) }} view={page as DebugEvidenceView} roleId={roleId} revision={revision} /> : <EmptyState title="尚未取得人物范围" description="未确定人物时不生成默认状态。" />}</>}
         {page === 'context' && <><p>从实际调用查看保存的 System、Messages 与语义来源；当前定义不替代历史输入。此清单是全局调用范围，不受诊断人物筛选影响。</p><LLMCallsPanel revision={revision} onAsset={key => { navigate('assets'); setAssetKey(key) }} /></>}
         {['runs', 'traces', 'events'].includes(page) && <RequestRuntimePanel view={page === 'runs' ? 'llm' : page as RequestRuntimeView} traces={traces} events={eventLog} focusedLLMCallId={callId} focusedTraceSpanId={spanId} revision={revision} onAsset={key => { navigate('assets'); setAssetKey(key) }} />}
         {page === 'system' && <DebugOverview snapshot={buildDebugOverviewSnapshot({ system: systemInfo ?? undefined, traces: traces ?? undefined, world: scope?.activeRoleId ? { role: { name: scope.roles.find(role => role.id === scope.activeRoleId)?.name ?? scope.activeRoleId } } : undefined, eventCount: eventLog.length, unavailable: [...(!systemInfo ? ['system' as const] : []), ...(!traces ? ['traces' as const] : []), ...(!scope?.activeRoleId ? ['world' as const] : [])] })} loading={false} error={error} onOpen={tab => navigate(({ prompt: 'assets', 'request-runtime': 'runs', world: 'now', system: 'system' } as const)[tab])} />}

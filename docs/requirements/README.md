@@ -20,8 +20,6 @@
 
 ## 进行中
 
-Debug 阅读层级：[debug-foundation-reading-v2.md](./debug-foundation-reading-v2.md)，统一基础组件与页头、简化默认展示；先完成 Playground 候选验收。
-
 伙伴时间控件：[companion-quiet-time-controls-v1.md](./companion-quiet-time-controls-v1.md)，Foundation 整点时间选择已回流到正式与 Playground 伙伴设置；正式默认、存量偏好数据与通知调度不变。
 
 布局基线：[foundation-layout-boundaries-v1.md](./foundation-layout-boundaries-v1.md)，布局与间距、透明度 P0 候选施工，正式回流未授权。
@@ -54,6 +52,8 @@ Debug 阅读层级：[debug-foundation-reading-v2.md](./debug-foundation-reading
 ---
 
 ## 已完成施工快照（冻结）
+
+Debug 阅读层级：[debug-foundation-reading-v2.md](./debug-foundation-reading-v2.md)，已确认候选回流正式页；当前能力见 agent-runtime 模块卡，验证与限制见 quality。
 
 人物共创技能：[character-system-builder-skill-v1.md](./character-system-builder-skill-v1.md)，用户决策 / 材料 / 反馈驱动的完整人物共创规程；当前能力见伙伴模块，技能源码持续维护。
 

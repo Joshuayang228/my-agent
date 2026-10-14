@@ -508,6 +508,7 @@ html[data-font-scale="lg"] {
   background: color-mix(in srgb, var(--bg-secondary) 92%, var(--bg-primary));
 }
 
+.workspace-page-header,
 .playground-page-header {
   border-color: color-mix(in srgb, var(--border-subtle) 82%, transparent);
 }

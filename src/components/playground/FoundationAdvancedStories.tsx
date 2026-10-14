@@ -10,6 +10,7 @@
 import { useState, type ChangeEvent } from 'react'
 import { ChevronDown, Command, FileText, MoreHorizontal, Search, X } from 'lucide-react'
 import { StoryBlock } from './StoryBlock'
+import { PageHeader } from '../layout/PageHeader'
 import { DiffViewer, DiffViewControls, type DiffViewMode } from '../foundation/DiffViewer'
 import { WorkspaceToolMenu } from '../foundation/WorkspaceToolMenu'
 import { ActionButton } from '../foundation/ActionButton'
@@ -226,6 +227,7 @@ function assertNever(value: never): never {
 
 function storyContent(story: AdvancedFoundationStoryKey) {
   switch (story) {
+    case 'foundation.page-header': return <StoryBlock title="页面标题" source="src/components/layout/PageHeader.tsx" edge adopted><PageHeader title="诊断记录" description="标题与辅助说明" /><div className="max-w-64" data-testid="page-header-narrow"><PageHeader title="窄宽记录" description="很长的辅助说明保持单行省略，不挤压标题和操作" metaInline meta={<ActionButton>刷新</ActionButton>} /></div></StoryBlock>
     case 'foundation.action-button': return <StoryBlock title="文字动作按钮" source="src/components/foundation/ActionButton.tsx" edge adopted><ActionButtonStory /></StoryBlock>
     case 'foundation.select': return <StoryBlock title="下拉选择" source="src/components/playground/FoundationAdvancedStories.tsx · native select"><SelectStory /></StoryBlock>
     case 'foundation.time-select': return <StoryBlock title="整点时间" source="src/components/foundation/TimeSelect.tsx" adopted><TimeSelectStory /></StoryBlock>

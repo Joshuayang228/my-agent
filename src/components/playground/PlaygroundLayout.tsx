@@ -5,6 +5,7 @@
 
 import type { ReactNode } from 'react'
 import './state-switchers.css'
+import { PageHeader } from '../layout/PageHeader'
 
 const PLAYGROUND_SOURCE_WIDTH_CLASS = 'w-[18rem]'
 
@@ -58,25 +59,7 @@ export function PlaygroundPageHeader({
   descriptionInline?: boolean
   metaInline?: boolean
 }) {
-  return (
-    <header className="playground-page-header mb-6 flex flex-wrap items-end justify-between gap-3 border-b pb-4" data-testid="playground-page-header">
-      <div className="w-full min-w-0">
-        <div className="flex min-w-0 items-baseline gap-3" data-testid="playground-page-title-row">
-          <div className={descriptionInline ? 'flex min-w-0 flex-1 items-baseline gap-x-3 gap-y-1' : 'min-w-0 flex-1'}>
-            <h1 className="shrink-0 text-[1.05rem] font-semibold tracking-[-0.015em]" style={{ color: 'var(--text-primary)' }}>{title}</h1>
-            {descriptionInline && (
-              <p className="min-w-0 truncate text-[11px] leading-5 tracking-[0.01em]" style={{ color: 'var(--text-muted)' }}>{description}</p>
-            )}
-          </div>
-          {metaInline && meta}
-        </div>
-        {!descriptionInline && (
-          <p className="mt-1 max-w-2xl text-[11px] leading-5" style={{ color: 'var(--text-muted)' }}>{description}</p>
-        )}
-        {!metaInline && meta}
-      </div>
-    </header>
-  )
+  return <PageHeader title={title} description={description} meta={meta} descriptionInline={descriptionInline} metaInline={metaInline} className="playground-page-header" testId="playground-page-header" titleRowTestId="playground-page-title-row" />
 }
 
 export function PlaygroundStoryTabs({

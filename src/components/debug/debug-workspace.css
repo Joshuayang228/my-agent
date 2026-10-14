@@ -1,6 +1,5 @@
 .debug-workspace { --debug-secondary:color-mix(in srgb,var(--text-primary) 78%,var(--bg-primary)); width:100%; height:100%; min-height:0; display:flex; flex-direction:column; color:var(--text-primary); background:var(--bg-primary); font-size:14px; }
 .debug-workspace button { border-radius:var(--radius-control); }
-.debug-workspace .foundation-action-button { font-size:13px; color:var(--debug-secondary)!important; }
 .debug-workspace button:focus-visible, .debug-workspace summary:focus-visible { outline:2px solid var(--accent-fg); outline-offset:-2px; }
 .debug-candidate-preview { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:8px 16px; border-bottom:1px solid var(--border-subtle); color:var(--debug-secondary); background:var(--bg-secondary); font-size:13px; }
 .debug-candidate-workspace { display:flex; flex:1; min-height:0; }
@@ -183,6 +182,78 @@
 
 @media(max-width:900px) { .debug-reading[data-detail-open=true] { display:none; } }
 .debug-prompt-kind-row { flex-shrink:0; }
-.debug-workspace [class~="text-[9px]"], .debug-workspace [class~="text-[10px]"], .debug-workspace [class~="text-[11px]"] { font-size:13px; }
-.debug-workspace pre { font-size:14px; line-height:1.8; }
-.debug-workspace [style*="color: var(--text-muted)"] { color:var(--debug-secondary)!important; }
+
+/* 背景：Debug 的业务样式曾覆盖 Foundation 控件，并让说明和正文争夺首屏。
+   设计意图：共享呈现使用 Playground 实际页头、Foundation 控件及相同的文字阶梯；业务样式仅组织阅读区。
+   关键约束：候选和正式页共享作用域，不改变基础组件默认；深浅主题始终使用语义 token。 */
+.debug-refined { display:flex; flex-direction:column; width:100%; height:100%; min-height:0; font-family:var(--font-ui); font-size:12px; color:var(--text-primary); background:var(--bg-primary); --debug-secondary:var(--text-secondary); }
+.debug-refined .debug-candidate-preview { background:var(--bg-primary); font-size:11px; }
+.debug-refined .debug-candidate-preview > span { display:none; }
+.debug-refined .debug-candidate-nav { width:184px; background:var(--bg-primary); }
+.debug-refined .debug-candidate-brand { padding-bottom:12px; }
+.debug-refined .debug-candidate-brand strong { font-size:1.05rem; }
+.debug-refined .debug-candidate-brand span, .debug-refined .debug-candidate-nav-footer { display:none; }
+.debug-refined .debug-candidate-nav-label { font-size:11px; color:var(--text-muted); padding-bottom:4px; }
+.debug-refined .debug-candidate-nav-groups button { font-size:11px; min-height:32px; }
+.debug-refined .debug-candidate-main { padding:24px; }
+.debug-refined .debug-candidate-main > .workspace-page-header { flex-shrink:0; max-width:none; margin-bottom:16px; border-color:var(--border-subtle); }
+.debug-refined .debug-candidate-main-prompt { padding-top:24px; padding-bottom:16px; }
+.debug-refined .debug-candidate-search { border:0; padding:0; max-width:none; }
+.debug-refined .debug-candidate-search > svg { display:none; }
+.debug-refined .debug-candidate-search:focus-within { outline:0; }
+.debug-refined .debug-candidate-role-filter { gap:4px; margin-bottom:12px; }
+.debug-refined .debug-candidate-role-filter button { font-size:11px; border-color:transparent; padding:0 10px; min-height:28px; }
+.debug-refined .debug-candidate-role-filter > span { font-size:11px; color:var(--text-muted); }
+.debug-refined .debug-prompt-workbench > .debug-candidate-toolbar { margin-bottom:12px; }
+.debug-refined .debug-prompt-split { grid-template-columns:340px minmax(0,1fr); gap:16px; }
+.debug-refined .debug-prompt-group { background:var(--bg-primary); font-size:12px; padding:10px 12px!important; }
+.debug-refined .debug-prompt-counts { font-size:11px; }
+.debug-refined .debug-prompt-counts > span { font-size:11px; background:transparent; padding:0 3px; color:var(--text-muted); }
+.debug-refined .debug-prompt-entry strong { font-size:12px; }
+.debug-refined .debug-prompt-entry-meta { font-size:11px; }
+.debug-refined .debug-prompt-entry-meta > span { font-size:11px; padding:0; background:transparent; }
+.debug-refined .debug-prompt-excerpt { display:none; }
+.debug-refined .debug-prompt-detail { padding:20px; }
+.debug-refined .debug-candidate-detail-heading h3 { font-size:1rem; margin:0; }
+.debug-refined .debug-prompt-variables h3, .debug-refined .debug-candidate-section h3, .debug-refined .debug-prompt-provenance summary { font-size:11px; color:var(--text-muted); }
+.debug-refined .debug-prompt-detail .debug-candidate-body { background:transparent; padding:0; border-radius:0; font-size:1rem; line-height:1.8; }
+.debug-refined .debug-prompt-detail > section[aria-label="选择左侧条目查看详情"] { border:0; background:transparent; }
+.debug-refined .debug-candidate-summary { display:flex; gap:24px; border:0; margin-bottom:12px; }
+.debug-refined .debug-candidate-summary > div { flex-direction:row; align-items:baseline; padding:0; }
+.debug-refined .debug-candidate-summary strong { font-size:1rem; }
+.debug-refined .debug-candidate-summary small { display:none; }
+.debug-refined .debug-candidate-detail, .debug-refined .debug-reading-entry-title strong { font-size:12px; }
+.debug-refined .debug-reading-body, .debug-refined .debug-reading-summaries p { font-size:1rem; }
+.debug-refined .debug-candidate-reading .debug-candidate-detail { padding:0; }
+.debug-refined .debug-reading-timeline .debug-reading-entry { background:transparent; border-bottom:1px solid var(--border-subtle); border-radius:0; padding:12px 0; }
+.debug-refined .debug-candidate-main > .debug-candidate-footer { margin-top:16px; font-size:11px; }
+.debug-refined .debug-candidate-footer summary { padding:0; line-height:20px; }
+@media(max-width:900px) { .debug-refined .debug-prompt-split { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:600px) { .debug-refined .debug-candidate-nav { width:124px; padding:12px 6px; } .debug-refined .debug-candidate-main { padding:16px 12px; } .debug-refined .workspace-page-header p { display:none; } }
+
+/* 背景：逐页重复诊断字段会压过事实；意图：范围只出现一次，正文与核心值先读。
+   约束：隐藏的列表辅助信息仍在详情中保留，错误、截断与未知状态不能被本层掩盖。 */
+.debug-focused-scope label { display:flex; align-items:center; gap:8px; color:var(--text-muted); }
+.debug-focused-scope select { width:auto; max-width:180px; }
+.debug-focused .debug-candidate-toolbar > .debug-focused-scope { flex-shrink:0; margin-bottom:0; }
+.debug-focused .debug-reading-schedule .debug-candidate-facts { grid-row:1; }
+.debug-focused .debug-reading-schedule .debug-reading-entry { align-items:center; padding:12px 0; }
+.debug-focused .debug-reading-entry-title { min-height:28px; }
+.debug-focused .debug-reading-entry-title strong { font-size:1rem; font-weight:500; }
+.debug-focused .debug-reading-summary .debug-reading-entry-title:has(> .debug-candidate-muted) { justify-content:flex-end!important; }
+.debug-focused .debug-reading-entry-title .debug-candidate-muted { display:flex; align-items:center; gap:4px; font-size:11px; }
+.debug-focused .debug-reading-home > .debug-reading-entry { border-bottom:0; }
+.debug-focused .debug-reading-entry:has(.debug-reading-summaries) { border:0; }
+.debug-focused-filter { flex-shrink:0; position:relative; color:var(--text-muted); font-size:11px; }
+.debug-focused-filter summary { cursor:pointer; padding:8px; }
+.debug-focused-filter[open] > div { max-width:260px; padding:8px 0; }
+.debug-focused .debug-prompt-entry { display:grid!important; grid-template-columns:minmax(0,1fr) auto; align-items:center!important; padding:10px 12px 10px 26px!important; }
+.debug-focused .debug-prompt-entry strong { grid-column:1; grid-row:1; }
+.debug-focused .debug-prompt-entry-meta { grid-column:2; grid-row:1; }
+.debug-focused .debug-prompt-entry-meta > span:not([data-kind]) { display:none; }
+.debug-focused .debug-prompt-variables { margin-top:0; }
+.debug-focused .debug-prompt-variables[open] > div { padding-top:12px; }
+.debug-focused .debug-candidate-detail-metrics { margin:8px 0; }
+.debug-focused .debug-candidate-record-bottom { display:none; }
+
+.debug-focused .debug-reading-schedule .debug-reading-entry > .debug-prompt-provenance { grid-column:1 / -1; }

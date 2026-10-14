@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import type { AgentAssetUsageEvidence, LLMCallDetail, LLMCallQuery, LLMCallSummary, PromptAssetTrace, SkillActivationTrace } from '../../shared/types'
 import { ActionButton } from '../foundation/ActionButton'
+import { TabStrip } from '../foundation/TabStrip'
 import { IconButton } from '../foundation/IconButton'
 import { SelectField } from '../foundation/SelectField'
 import { TextField } from '../foundation/TextField'
@@ -295,23 +296,7 @@ export function LLMCallsPanel({ focusId, onAsset, revision = 0 }: { focusId?: st
                 </ActionButton>
               </div>
 
-              <div className="my-2 flex flex-wrap gap-1">
-                {(['prompts', 'system', 'messages', 'tools', 'extra', 'response', 'json'] as DetailView[]).map((item) => (
-                  <ActionButton
-                    key={item}
-                    type="button"
-                    onClick={() => setDetailView(item)}
-                    className="rounded-lg px-2.5 py-1.5 text-[11px]"
-                    aria-pressed={detailView === item}
-                    tone={detailView === item ? 'accent' : 'neutral'}
-                    style={{
-                      borderColor: detailView === item ? 'transparent' : 'var(--border-subtle)',
-                    }}
-                  >
-                    {{ prompts: `资产证据 ${assetEvidence.length || promptAssets.length}`, system: `System ${systemMessages.length}`, messages: `Messages ${messages.length}`, tools: 'Tools', extra: '请求参数', response: '响应', json: '完整 JSON' }[item]}
-                  </ActionButton>
-                ))}
-              </div>
+              <div className="my-2 min-w-0"><TabStrip label="调用详情" activeId={detailView} onSelect={id => setDetailView(id as DetailView)} items={(['prompts', 'system', 'messages', 'tools', 'extra', 'response', 'json'] as const).map(id => ({ id, label: { prompts: `资产证据 ${assetEvidence.length || promptAssets.length}`, system: `System ${systemMessages.length}`, messages: `Messages ${messages.length}`, tools: 'Tools', extra: '请求参数', response: '响应', json: '完整 JSON' }[id] }))} /></div>
 
               {detailView === 'prompts' && (
                 <AssetEvidenceDetail

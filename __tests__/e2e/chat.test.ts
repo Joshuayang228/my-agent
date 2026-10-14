@@ -5671,7 +5671,7 @@ test.describe('My Agent UI', () => {
 
     await debugNav.getByRole('button', { name: 'LLM 调用', exact: true }).click()
     await expect(page.locator('[data-testid="request-runtime-panel"]')).toBeVisible()
-    await expect(page.locator('[data-testid="dev-panel"] main > header h2')).toBeVisible()
+    await expect(page.locator('[data-testid="dev-panel"] main > header h1')).toBeVisible()
 
     await page.locator('[data-testid="dev-panel"] button[title="返回聊天"]').click()
     await expect(page.getByTestId('open-global-debug')).toBeVisible()
