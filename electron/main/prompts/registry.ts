@@ -53,6 +53,8 @@ type PromptAssetInput = {
   dependencies?: string[]
   purpose?: string
   role?: string
+  roleIds?: string[]
+  roleUses?: PromptAsset['roleUses']
   version?: string
   mode?: PromptAssetMode
   locale?: string
@@ -602,6 +604,8 @@ function loadRoleAssets(): Array<PromptAsset & { content: string }> {
           category: 'companion',
           purpose: `角色 Pack · ${file.label}`,
           role: roleId,
+          roleIds: [roleId],
+          roleUses: [{ roleId, purpose: file.suffix === 'mutable.default.md' ? '成长与关系' : file.suffix === 'protected.md' || file.suffix === 'summary.txt' ? '身份' : file.suffix.startsWith('scenes/') ? '生活情境' : '行为' }],
           desc: `角色 Pack 的 ${file.label}，由 Identity loader 读取。`,
           sourcePath: `electron/main/companion/universes/default/roles/${roleId}/${file.suffix}`,
           version: 'role-pack-1.0.0',

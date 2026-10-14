@@ -21,6 +21,7 @@ import { getPersonaEvalReport, listPersonaEvalReports } from '../debug/persona-e
 import { getSkillEvalReport, listSkillEvalReports } from '../debug/skill-eval-reports'
 import { DebugEvalRunner } from '../debug/eval-runner'
 import { getModelContextAssets } from '../debug/model-context-assets'
+import { getDebugEvidenceScope, queryCompanionEvidence } from '../debug/companion-evidence'
 import { assetUsageStore } from '../storage/asset-usage-store'
 import {
   llmDebugStore,
@@ -44,6 +45,12 @@ let evalRunner: DebugEvalRunner | null = null
 let evalRunnerUnsubscribe: (() => void) | null = null
 
 export function registerDebugIPC(toolRegistry: ToolRegistry): void {
+  ipcMain.handle('debug:companion-evidence-scope', () => {
+    try { return getDebugEvidenceScope() } catch { log.warn('Debug evidence scope unavailable'); throw new Error('无法读取人物诊断范围') }
+  })
+  ipcMain.handle('debug:companion-evidence-query', (_event, input: unknown) => {
+    try { return queryCompanionEvidence(input) } catch { log.warn('Debug evidence query rejected or unavailable'); throw new Error('无法读取诊断证据，请检查人物、日期与查询范围') }
+  })
   if (!evalRunner) {
     evalRunner = new DebugEvalRunner(process.env.APP_ROOT || process.cwd())
   }

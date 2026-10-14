@@ -8,7 +8,7 @@
  */
 
 import type { ToolRegistry } from '../tools/registry'
-import { getAllSettings } from '../storage/settings-store'
+import { getAllSettingsReadOnly } from '../storage/settings-store'
 import { loadMainLLMConfig } from '../llm/aux-config'
 import { getRules } from '../sandbox/permission-engine'
 import { resolveEffectiveSandbox } from '../sandbox/effective-sandbox'
@@ -62,8 +62,8 @@ export interface DebugSystemInfo {
 }
 
 export async function buildDebugSystemInfo(toolRegistry: ToolRegistry): Promise<DebugSystemInfo> {
-  const settings = await getAllSettings()
-  const model = await loadMainLLMConfig()
+  const settings = getAllSettingsReadOnly()
+  const model = await loadMainLLMConfig(undefined, { readOnly: true })
   const rules = getRules()
   const skills = getLoadedSkills()
   const mcpStatuses = mcpManager.getStatus()

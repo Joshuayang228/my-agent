@@ -944,7 +944,7 @@ test('正式生活面真实切角通知隔离四类资产并重载保留', async
 
 test('正式关于页开发者模式经真实 IPC 开关、隐藏入口并完整重启恢复', async () => {
   await expect(page.locator('#startup-splash')).toBeHidden()
-  const debugBack = page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: '返回', exact: true })
+  const debugBack = page.getByTestId('dev-panel').getByRole('button', { name: '返回聊天', exact: true })
   if (await debugBack.isVisible().catch(() => false)) await debugBack.click()
   if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
   await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
@@ -1021,13 +1021,13 @@ test('Debug 质量 Eval 可保存并重新载入真人格人工审阅', async ()
   await page.reload()
   await expect(page.locator('#startup-splash')).toBeHidden()
 
-  const debugBack = page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: '返回', exact: true })
+  const debugBack = page.getByTestId('dev-panel').getByRole('button', { name: '返回聊天', exact: true })
   if (await debugBack.isVisible().catch(() => false)) await debugBack.click()
   if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
   await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()
   await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Debug', exact: true }).click()
   const debugNav = page.locator('[data-testid="dev-panel"] nav')
-  await debugNav.getByRole('button', { name: '质量 / Eval', exact: true }).click()
+  await debugNav.getByRole('button', { name: '人格验收', exact: true }).click()
   await expect(page.locator('[data-testid="persona-eval-report"]')).toBeVisible()
   await expect(page.locator('[data-testid="persona-eval-scenario-B02"]')).toBeVisible()
 
@@ -1099,7 +1099,7 @@ async function prepareWorkspace(): Promise<string> {
   heldStreamClosed = false
   await page.reload()
   await expect(page.locator('#startup-splash')).toBeHidden()
-  const debugBack = page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: '返回', exact: true })
+  const debugBack = page.getByTestId('dev-panel').getByRole('button', { name: '返回聊天', exact: true })
   if (await debugBack.isVisible().catch(() => false)) await debugBack.click()
   if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
   await expect(page.locator('[data-testid="chat-messages"]')).toBeVisible()

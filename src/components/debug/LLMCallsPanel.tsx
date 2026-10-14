@@ -21,7 +21,7 @@ const PAGE_SIZE = 30
 
 type DetailView = 'prompts' | 'system' | 'messages' | 'tools' | 'extra' | 'response' | 'json'
 
-export function LLMCallsPanel({ focusId }: { focusId?: string } = {}) {
+export function LLMCallsPanel({ focusId, onAsset, revision = 0 }: { focusId?: string; onAsset?: (key: string) => void; revision?: number } = {}) {
   const [records, setRecords] = useState<LLMCallSummary[]>([])
   const [total, setTotal] = useState(0)
   const [storageBytes, setStorageBytes] = useState(0)
@@ -103,7 +103,7 @@ export function LLMCallsPanel({ focusId }: { focusId?: string } = {}) {
     }
   }, [loadDetail, query])
 
-  useEffect(() => { void loadRecords(true) }, [loadRecords])
+  useEffect(() => { void loadRecords(true) }, [loadRecords, revision])
 
   useEffect(() => {
     if (!focusId?.trim()) return
@@ -315,6 +315,7 @@ export function LLMCallsPanel({ focusId }: { focusId?: string } = {}) {
 
               {detailView === 'prompts' && (
                 <AssetEvidenceDetail
+                  onAsset={onAsset}
                   evidence={assetEvidence}
                   fallback={(
                     <PromptAssetsDetail
@@ -366,7 +367,7 @@ function usageGroup(item: AgentAssetUsageEvidence): string {
 }
 
 /** 展示真实运行关联；旧记录没有索引时回退现有 Prompt 资产视图。 */
-function AssetEvidenceDetail({ evidence, fallback }: { evidence: AgentAssetUsageEvidence[]; fallback: ReactNode }) {
+function AssetEvidenceDetail({ evidence, fallback, onAsset }: { evidence: AgentAssetUsageEvidence[]; fallback: ReactNode; onAsset?: (key: string) => void }) {
   if (evidence.length === 0) return <>{fallback}</>
   const groups = new Map<string, AgentAssetUsageEvidence[]>()
   for (const item of evidence) {
@@ -382,7 +383,7 @@ function AssetEvidenceDetail({ evidence, fallback }: { evidence: AgentAssetUsage
             {items.map((item) => (
               <div key={item.id} className="rounded border px-2.5 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-[10px] font-semibold" style={{ color: 'var(--text-primary)' }}>{item.assetKey}</span>
+                  <ActionButton variant="plain" disabled={!onAsset} onClick={() => onAsset?.(item.assetKey)}>{item.assetKey}</ActionButton>
                   <span className="rounded px-1.5 py-0.5 text-[9px]" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>{item.relation}</span>
                   <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{item.usageKind} · {item.status}</span>
                 </div>

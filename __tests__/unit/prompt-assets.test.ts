@@ -23,6 +23,15 @@ const REQUIRED_KEYS = [
 ] as const
 
 describe('debug prompt assets', () => {
+  it('角色文本目录登记明确人物与用途，不以正文猜归属', () => {
+    const assets = getPromptAssets().filter(asset => asset.ownership === 'role-pack' && asset.assetType === 'prompt')
+    expect(assets.length).toBeGreaterThan(0)
+    for (const asset of assets) {
+      expect(asset.roleIds).toEqual([asset.role])
+      expect(asset.roleUses).toHaveLength(1)
+      expect(asset.roleUses![0].roleId).toBe(asset.role)
+    }
+  })
   it('书架上下文登记实际摘要格式化入口，不复制资产正文', () => {
     const asset = getPromptAssets().find((entry) => entry.key === PROMPT_KEYS.companionContext)
     expect(asset?.slots).toContainEqual(expect.objectContaining({ name: 'bookshelfSlice', source: 'electron/main/companion/life/assets.ts#formatBookshelfSliceForPrompt' }))

@@ -50,6 +50,8 @@ export function makeCompanionAsset(input: {
     category: 'companion',
     purpose: input.purpose,
     role: input.role,
+    roleIds: input.role.startsWith('role-pack:') ? [input.role.slice('role-pack:'.length)] : undefined,
+    roleUses: input.role.startsWith('role-pack:') ? [{ roleId: input.role.slice('role-pack:'.length), purpose: ['companion-manifest', 'companion-profile'].includes(input.assetType) ? '身份' : '生活情境' }] : undefined,
     desc: input.description,
     source: input.source,
     sourcePath: input.source,

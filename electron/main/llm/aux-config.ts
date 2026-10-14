@@ -19,8 +19,8 @@ import { readModelParameter } from '../../../src/shared/model-parameters'
 import * as settings from '../storage/settings-store'
 import { withAuxThinking } from './thinking'
 
-export async function loadMainLLMConfig(overrides?: Partial<LLMConfig>): Promise<LLMConfig> {
-  const s = await settings.getAllSettings()
+export async function loadMainLLMConfig(overrides?: Partial<LLMConfig>, options?: { readOnly?: boolean }): Promise<LLMConfig> {
+  const s = options?.readOnly ? settings.getAllSettingsReadOnly() : await settings.getAllSettings()
   const chain = resolveRoutedConfigs(s.modelConnections, s.modelRoutes, 'primary')
   const routed = chain[0]
   return {

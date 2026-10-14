@@ -1,20 +1,22 @@
-import { useState, useEffect, useCallback, type ReactNode } from 'react'
-import type { AgentAssetUsageEvidence } from '../shared/types'
-import {
-  FileText, BarChart3, ClipboardList, Zap, RotateCcw,
-  Globe, ArrowLeft, Layers3, Activity, FlaskConical,
-} from 'lucide-react'
-import { PromptManagerPanel, type DebugPromptInfo } from './debug/PromptManagerPanel'
+import { useState, useEffect, type ReactNode } from 'react'
+import { FileText, CalendarDays, History, Activity, Heart, UserRound, MapPin, House, Footprints, Sprout, MessageCircle, Users, Shirt, BookOpen, Link, ScanText, Contact, Brain, Clock3, ListTree, Radio, Wrench, Server, FlaskConical, ShieldCheck, ArrowLeft, RotateCcw } from 'lucide-react'
+import type { AgentAssetUsageEvidence, DebugEvidenceScope } from '../shared/types'
+import { DEBUG_EVIDENCE_VIEWS, type DebugEvidenceView } from '../shared/debug-evidence'
+import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, type DebugPage } from '../shared/debug-navigation'
+import { RegisteredAssetWorkbench } from './debug/RegisteredAssetWorkbench'
+import { CompanionEvidencePanel } from './debug/CompanionEvidencePanel'
 import { LLMCallsPanel } from './debug/LLMCallsPanel'
-import { WorldStatePanel, type WorldSnapshot } from './debug/WorldStatePanel'
 import { PersonaEvalPanel } from './debug/PersonaEvalPanel'
 import { SkillEvalPanel } from './debug/SkillEvalPanel'
-import { buildDebugOverviewSnapshot, DebugOverview, type DebugOverviewEvidence, type DebugOverviewSnapshot, type DebugOverviewTab } from './debug/DebugOverview'
 import { ActionButton } from './foundation/ActionButton'
+import { ErrorState } from './foundation/ErrorState'
+import { EmptyState } from './foundation/EmptyState'
+import { DebugOverview, buildDebugOverviewSnapshot } from './debug/DebugOverview'
+import './debug/debug-workspace.css'
 
-type DebugTab = 'overview' | DebugOverviewTab | 'eval'
 type RequestRuntimeView = 'llm' | 'traces' | 'events'
-
+export const DEBUG_TABS = DEBUG_PERSPECTIVES
+const ICONS: Record<DebugPage, typeof FileText> = { assets: FileText, schedule: CalendarDays, recent: History, activity: Activity, now: Heart, character: UserRound, location: MapPin, residence: House, footprints: Footprints, growth: Sprout, moments: MessageCircle, relations: Users, proactive: MessageCircle, wardrobe: Shirt, items: BookOpen, links: Link, context: ScanText, profile: Contact, memories: Brain, runs: Clock3, traces: ListTree, events: Radio, tools: Wrench, system: Server, quality: FlaskConical, persona: ShieldCheck }
 interface TraceSpanInfo {
   id: string
   name: string
@@ -114,217 +116,82 @@ function formatUptime(seconds: number): string {
   return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`
 }
 
-export const DEBUG_TABS: { id: DebugTab; label: string; icon: ReactNode }[] = [
-  { id: 'overview', label: '运行概览', icon: <Activity size={12} /> },
-  { id: 'prompt', label: '提示词管理器', icon: <FileText size={12} /> },
-  { id: 'request-runtime', label: '请求与运行', icon: <Layers3 size={12} /> },
-  { id: 'world', label: '伙伴状态', icon: <Globe size={12} /> },
-  { id: 'eval', label: '质量 / Eval', icon: <FlaskConical size={12} /> },
-  { id: 'system', label: '系统', icon: <BarChart3 size={12} /> },
-]
-
-const DEBUG_TAB_GROUPS: Array<{ label: string; tabs: DebugTab[] }> = [
-  { label: '内核', tabs: ['overview', 'prompt', 'request-runtime', 'system'] },
-  { label: '伙伴', tabs: ['world'] },
-  { label: '质量', tabs: ['eval'] },
-]
 
 interface DevPanelProps {
   onClose: () => void
   eventLog: Array<{ time: number; type: string; detail: string }>
 }
 
-/** Debug 独立全页（与 Playground 分离，不再共用 surface 双页壳） */
+/** 背景：六入口把人物世界和生产资产压成摘要，难以按实际阅读任务诊断。
+ * 意图：沿用候选七组导航，领域证据、生产目录、调用与质量分别从真实接口读取。
+ * 关键约束：正式页面不依赖样张；诊断选角不切换主角；屏幕权限缺失不伪装成视觉验收通过。
+ */
 export function DevPanel({ onClose, eventLog }: DevPanelProps) {
-  const [debugTab, setDebugTab] = useState<DebugTab>('overview')
-  const [promptInfo, setPromptInfo] = useState<DebugPromptInfo | null>(null)
+  const [page, setPage] = useState<DebugPage>('assets')
+  const [revision, setRevision] = useState(0)
+  const [scope, setScope] = useState<DebugEvidenceScope | null>(null)
+  const [roleId, setRoleId] = useState('')
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
   const [tools, setTools] = useState<DebugToolInfo[]>([])
   const [traces, setTraces] = useState<TracesPayload | null>(null)
-  const [requestRuntimeView, setRequestRuntimeView] = useState<RequestRuntimeView>('llm')
-  const [focusedLLMCallId, setFocusedLLMCallId] = useState('')
-  const [focusedTraceSpanId, setFocusedTraceSpanId] = useState('')
-  const [worldSnap, setWorldSnap] = useState<WorldSnapshot | null>(null)
-  const [worldError, setWorldError] = useState('')
-  const [overviewSnapshot, setOverviewSnapshot] = useState<DebugOverviewSnapshot | null>(null)
-  const [overviewLoading, setOverviewLoading] = useState(false)
-  const [overviewError, setOverviewError] = useState('')
-
-  const refresh = useCallback(async () => {
+  const [error, setError] = useState('')
+  const [scopeError, setScopeError] = useState('')
+  const [assetKey, setAssetKey] = useState('')
+  const [assetTotal, setAssetTotal] = useState<number | null>(null)
+  const [callId, setCallId] = useState('')
+  const [spanId, setSpanId] = useState('')
+  const [evidenceTarget, setEvidenceTarget] = useState<{ view: DebugEvidenceView; id: string } | null>(null)
+  const entry = DEBUG_PERSPECTIVES.find(item => item.id === page)!
+  useEffect(() => {
+    let current = true
+    if (!window.electronAPI?.debug?.companionEvidenceScope) { setScopeError('此页面需要桌面应用的诊断接口'); return }
+    window.electronAPI.debug.companionEvidenceScope().then(next => { if (current) { setScope(next); setScopeError(''); setRoleId(previous => next.roles.some(role => role.id === previous) ? previous : next.activeRoleId ?? next.roles[0]?.id ?? '') } }).catch(() => { if (current) setScopeError('人物诊断范围读取失败；保留上次可用范围') })
+    return () => { current = false }
+  }, [revision])
+  useEffect(() => {
+    let current = true
+    setError('')
     if (!window.electronAPI?.debug) return
-    try {
-      if (debugTab === 'overview') {
-        setOverviewLoading(true)
-        setOverviewError('')
-        const [systemResult, tracesResult, worldResult] = await Promise.allSettled([
-          window.electronAPI.debug.systemInfo(),
-          window.electronAPI.debug.traces(),
-          window.electronAPI.debug.worldSnapshot(),
-        ])
-        const unavailable: DebugOverviewEvidence[] = []
-        const system = systemResult.status === 'fulfilled' ? systemResult.value : undefined
-        const traces = tracesResult.status === 'fulfilled' ? tracesResult.value : undefined
-        const world = worldResult.status === 'fulfilled' ? worldResult.value : undefined
-        if (!system) unavailable.push('system')
-        if (!traces) unavailable.push('traces')
-        if (!world) unavailable.push('world')
-        setOverviewSnapshot(buildDebugOverviewSnapshot({
-          system,
-          traces,
-          world,
-          eventCount: eventLog.length,
-          unavailable,
-        }))
-        setOverviewError(
-          unavailable.length === 3
-            ? '暂时无法读取运行概览，请稍后重试。'
-            : unavailable.length > 0
-              ? '部分运行证据不可用，请进入对应分区重试。'
-              : '',
-        )
-      } else if (debugTab === 'prompt') {
-        setPromptInfo(await window.electronAPI.debug.systemPrompt())
-      } else if (debugTab === 'world') {
-        setWorldError('')
-        setWorldSnap(await window.electronAPI.debug.worldSnapshot())
-      } else if (debugTab === 'system') {
-        const [nextSystemInfo, nextTools] = await Promise.all([
-          window.electronAPI.debug.systemInfo(),
-          window.electronAPI.debug.tools(),
-        ])
-        setSystemInfo(nextSystemInfo)
-        setTools(nextTools)
-      } else if (debugTab === 'request-runtime' && requestRuntimeView === 'traces') {
-        const data = await window.electronAPI.debug.traces()
-        setTraces({
-          spans: data.spans ?? [],
-          callerStats: (data.callerStats ?? {}) as Record<string, CallerStat>,
-          tokenLanes: data.tokenLanes,
-          dailyTokenUsage: typeof data.dailyTokenUsage === 'number' ? data.dailyTokenUsage : undefined,
-        })
-      }
-    } catch (e) {
-      if (debugTab === 'world') {
-        setWorldError(e instanceof Error ? e.message : String(e))
-      } else if (debugTab === 'overview') {
-        setOverviewError('暂时无法读取运行概览，请稍后重试。')
-      }
-    } finally {
-      if (debugTab === 'overview') setOverviewLoading(false)
+    if (page === 'system' || page === 'tools') {
+      Promise.allSettled([window.electronAPI.debug.systemInfo(), window.electronAPI.debug.tools(), window.electronAPI.debug.traces()]).then(([system, registered, traceResult]) => {
+        if (!current) return
+        if (system.status === 'fulfilled') setSystemInfo(system.value as SystemInfo)
+        if (registered.status === 'fulfilled') setTools(registered.value)
+        if (traceResult.status === 'fulfilled') setTraces({ ...traceResult.value, callerStats: traceResult.value.callerStats as Record<string, CallerStat> })
+        if (system.status === 'rejected' || registered.status === 'rejected' || traceResult.status === 'rejected') setError('部分系统证据刷新失败，保留上次成功结果')
+      })
     }
-  }, [debugTab, eventLog.length, requestRuntimeView])
-
-  useEffect(() => { void refresh() }, [refresh])
-
-  const openAssetUsage = useCallback((item: AgentAssetUsageEvidence) => {
-    setDebugTab('request-runtime')
-    if (!['llm-input', 'provider-route', 'provider-policy', 'tool-available', 'skill-activation'].includes(item.usageKind)) {
-      setRequestRuntimeView('traces')
-      setFocusedLLMCallId('')
-      setFocusedTraceSpanId(item.spanId)
-      return
-    }
-    setRequestRuntimeView('llm')
-    setFocusedTraceSpanId('')
-    setFocusedLLMCallId(item.spanId)
-  }, [])
-
-  return (
-    <div className="flex h-full min-h-0" data-testid="dev-panel" data-surface="debug">
-      <nav
-        className="flex w-[156px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r px-2 py-3"
-        style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}
-        aria-label="调试分区"
-      >
-        <div className="mb-2 flex items-center gap-1">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg px-2.5 py-2 text-left text-[13px] transition"
-            style={{ color: 'var(--text-secondary)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-            title="返回聊天"
-          >
-            <ArrowLeft size={15} strokeWidth={1.75} />
-            返回
-          </button>
-          <button
-            type="button"
-            onClick={() => void refresh()}
-            className="shrink-0 rounded p-2 transition"
-            style={{ color: 'var(--text-muted)' }}
-            title="刷新当前调试分区"
-            aria-label="刷新当前调试分区"
-          >
-            <RotateCcw size={12} />
-          </button>
-        </div>
-        {DEBUG_TAB_GROUPS.map((group) => (
-          <div key={group.label} className="mt-3 first:mt-0">
-            <div className="mb-1 px-2.5 text-[10px] font-medium uppercase tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>{group.label}</div>
-            {group.tabs.map((tabId) => {
-              const t = DEBUG_TABS.find((item) => item.id === tabId)
-              if (!t) return null
-              const active = debugTab === t.id
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setDebugTab(t.id)}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition"
-                  style={{
-                    color: active ? 'var(--text-primary)' : 'var(--text-muted)',
-                    background: active ? 'var(--sidebar-active)' : 'transparent',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) e.currentTarget.style.background = 'var(--sidebar-hover)'
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) e.currentTarget.style.background = 'transparent'
-                  }}
-                >
-                  <span style={{ color: active ? 'var(--success)' : 'var(--text-muted)' }}>{t.icon}</span>
-                  {t.label}
-                </button>
-              )
-            })}
-          </div>
-        ))}
-      </nav>
-
-      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-5">
-        {debugTab === 'overview' && <DebugOverview onOpen={(tab) => setDebugTab(tab)} snapshot={overviewSnapshot} loading={overviewLoading} error={overviewError} />}
-        {debugTab === 'prompt' && (
-          <PromptManagerPanel info={promptInfo} onRefresh={() => refresh()} onOpenUsage={openAssetUsage} />
-        )}
-        {debugTab === 'request-runtime' && (
-          <RequestRuntimePanel
-            view={requestRuntimeView}
-            setView={setRequestRuntimeView}
-            traces={traces}
-            events={eventLog}
-            focusedLLMCallId={focusedLLMCallId}
-            focusedTraceSpanId={focusedTraceSpanId}
-          />
-        )}
-        {debugTab === 'world' && (
-          <WorldStatePanel snap={worldSnap} error={worldError} />
-        )}
-        {debugTab === 'eval' && (
-          <div className="mx-auto max-w-5xl space-y-4">
-            <SkillEvalPanel />
-            <PersonaEvalPanel />
-          </div>
-        )}
-        {debugTab === 'system' && <SystemTab info={systemInfo} tools={tools} />}
-      </div>
+    if (page === 'traces') window.electronAPI.debug.traces().then(data => { if (current) setTraces({ spans: data.spans, callerStats: data.callerStats as Record<string, CallerStat>, tokenLanes: data.tokenLanes, dailyTokenUsage: data.dailyTokenUsage }) }).catch(() => { if (current) setError('调用链读取失败，保留上次成功证据') })
+    return () => { current = false }
+  }, [page, revision])
+  const navigate = (next: DebugPage) => { setPage(next); setAssetKey(''); setCallId(''); setSpanId(''); setEvidenceTarget(null) }
+  const openUsage = (item: AgentAssetUsageEvidence) => {
+    const llm = ['llm-input', 'provider-route', 'provider-policy', 'tool-available', 'skill-activation'].includes(item.usageKind)
+    navigate(llm ? 'runs' : 'traces')
+    if (llm) setCallId(item.spanId); else setSpanId(item.spanId)
+  }
+  const domain = page !== 'context' && DEBUG_EVIDENCE_VIEWS.includes(page as DebugEvidenceView)
+  return <div className="debug-workspace" data-testid="dev-panel" data-surface="debug">
+    <header className="debug-candidate-preview"><ActionButton variant="plain" title="返回聊天" onClick={onClose}><ArrowLeft size={14} /> 返回聊天</ActionButton><span>Debug · 生产诊断</span><ActionButton variant="plain" title="刷新当前调试分区" onClick={() => setRevision(value => value + 1)}><RotateCcw size={14} /> 刷新当前分区</ActionButton></header>
+    <div className="debug-candidate-workspace">
+      <nav className="debug-candidate-nav" aria-label="调试分区"><div className="debug-candidate-brand"><Activity size={20} /><strong>Debug</strong><span>诊断工作区</span></div><div className="debug-candidate-nav-groups">{DEBUG_GROUPS.map(group => <section key={group} aria-label={`${group}分区`}><p className="debug-candidate-nav-label">{group}</p>{DEBUG_PERSPECTIVES.filter(item => item.group === group).map(item => { const Icon = ICONS[item.id]; return <ActionButton key={item.id} variant="plain" aria-current={page === item.id ? 'page' : undefined} onClick={() => navigate(item.id)}><Icon size={14} />{item.label}</ActionButton> })}</section>)}</div><div className="debug-candidate-nav-footer"><ShieldCheck size={14} /><span>生产资产只读<br />受控诊断单独确认</span></div></nav>
+      <main className={`debug-candidate-main ${page === 'assets' ? 'debug-candidate-main-prompt' : ''}`}>
+        <header className="debug-candidate-header"><small>{entry.group} / {entry.label}</small><div><h2>{entry.label}{page === 'assets' && assetTotal !== null && <small>{assetTotal} 项生产资产</small>}</h2></div></header>
+        {scopeError && <ErrorState title="人物范围读取异常" description={scopeError} />}{error && <ErrorState title="诊断读取异常" description={error} />}
+        {page === 'assets' && <RegisteredAssetWorkbench scope={scope} revision={revision} focusKey={assetKey} onUsage={openUsage} onTotal={setAssetTotal} />}
+        {domain && <><div className="debug-candidate-role-filter" role="group" aria-label="诊断人物范围">{scope?.roles.map(role => <ActionButton key={role.id} variant="plain" aria-pressed={roleId === role.id} onClick={() => setRoleId(role.id)}>{role.name}</ActionButton>)}<span>仅改变诊断范围</span></div>{roleId ? <CompanionEvidencePanel key={`${page}:${roleId}:${evidenceTarget?.id ?? ''}`} targetId={evidenceTarget?.id} onEvidence={(view, id) => { navigate(view); setEvidenceTarget(id ? { view, id } : null) }} view={page as DebugEvidenceView} roleId={roleId} revision={revision} /> : <EmptyState title="尚未取得人物范围" description="未确定人物时不生成默认状态。" />}</>}
+        {page === 'context' && <><p>从实际调用查看保存的 System、Messages 与语义来源；当前定义不替代历史输入。此清单是全局调用范围，不受诊断人物筛选影响。</p><LLMCallsPanel revision={revision} onAsset={key => { navigate('assets'); setAssetKey(key) }} /></>}
+        {['runs', 'traces', 'events'].includes(page) && <RequestRuntimePanel view={page === 'runs' ? 'llm' : page as RequestRuntimeView} traces={traces} events={eventLog} focusedLLMCallId={callId} focusedTraceSpanId={spanId} revision={revision} onAsset={key => { navigate('assets'); setAssetKey(key) }} />}
+        {page === 'system' && <DebugOverview snapshot={buildDebugOverviewSnapshot({ system: systemInfo ?? undefined, traces: traces ?? undefined, world: scope?.activeRoleId ? { role: { name: scope.roles.find(role => role.id === scope.activeRoleId)?.name ?? scope.activeRoleId } } : undefined, eventCount: eventLog.length, unavailable: [...(!systemInfo ? ['system' as const] : []), ...(!traces ? ['traces' as const] : []), ...(!scope?.activeRoleId ? ['world' as const] : [])] })} loading={false} error={error} onOpen={tab => navigate(({ prompt: 'assets', 'request-runtime': 'runs', world: 'now', system: 'system' } as const)[tab])} />}
+        {page === 'tools' && <p>注册定义不等于本次可用或实际使用；使用证据请从生产资产目录进入关联调用。</p>}
+        {(page === 'system' || page === 'tools') && <SystemTab info={systemInfo} tools={tools} />}
+        {page === 'quality' && <SkillEvalPanel revision={revision} />}{page === 'persona' && <PersonaEvalPanel revision={revision} />}
+      </main>
     </div>
-  )
+  </div>
 }
-
 function SystemTab({ info, tools }: { info: SystemInfo | null; tools: DebugToolInfo[] }) {
-  if (!info) return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载中...</div>
+  if (!info) return <EmptyState title="尚未读取系统快照" description="可刷新当前分区重试；未读取不显示默认配置或零值。" />
 
   const detailSections = [
     {
@@ -377,8 +244,8 @@ function SystemTab({ info, tools }: { info: SystemInfo | null; tools: DebugToolI
     <div>
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="工具数" value={String(info.toolCount)} color="cyan" />
-        <StatCard label="Skills" value={String(skills?.total ?? 0)} color="violet" />
-        <StatCard label="权限规则" value={String(rules?.enabled ?? 0)} color="emerald" />
+        <StatCard label="Skills" value={String(skills?.total ?? '未读取')} color="violet" />
+        <StatCard label="权限规则" value={String(rules?.enabled ?? '未读取')} color="emerald" />
         <StatCard label="MCP" value={String(info.mcp.length)} color="cyan" />
       </div>
 
@@ -539,13 +406,8 @@ function SystemTab({ info, tools }: { info: SystemInfo | null; tools: DebugToolI
 }
 
 function StatCard({ label, value, color }: { label: string; value: string; color: string }) {
-  const colorMap: Record<string, string> = {
-    cyan: 'border-cyan-500/30 bg-cyan-500/5 text-cyan-400',
-    violet: 'border-violet-500/30 bg-violet-500/5 text-violet-400',
-    emerald: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-400',
-  }
   return (
-    <div className={`rounded-lg border p-3 text-center ${colorMap[color] || colorMap.cyan}`}>
+    <div data-stat-category={color} className="theme-card rounded-lg border p-3 text-center" style={{ color: 'var(--text-primary)', background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
       <div className="text-lg font-bold">{value}</div>
       <div className="text-[10px] opacity-70">{label}</div>
     </div>
@@ -573,48 +435,23 @@ function ToolFlag({
   )
 }
 
-/** 请求与运行共享一个诊断域；LLM 请求、调用链和事件只是三种观察粒度。 */
-function RequestRuntimePanel({
-  view,
-  setView,
-  traces,
-  events,
-  focusedLLMCallId,
-  focusedTraceSpanId,
-}: {
+/** 背景：三种观察粒度已有各自侧栏入口；意图：保留真实面板而去掉重复导航。
+ * 约束：关联调用与 Span 标识继续传递，刷新由统一分区控制器触发。
+ */
+function RequestRuntimePanel({ view, traces, events, focusedLLMCallId, focusedTraceSpanId, onAsset, revision }: {
   view: RequestRuntimeView
-  setView: (view: RequestRuntimeView) => void
   traces: TracesPayload | null
   events: Array<{ time: number; type: string; detail: string }>
   focusedLLMCallId: string
   focusedTraceSpanId: string
+  onAsset: (key: string) => void
+  revision: number
 }) {
-  const views: Array<{ id: RequestRuntimeView; label: string; icon: ReactNode }> = [
-    { id: 'llm', label: 'LLM 调用', icon: <Activity size={13} /> },
-    { id: 'traces', label: '调用链', icon: <Zap size={13} /> },
-    { id: 'events', label: '实时事件', icon: <ClipboardList size={13} /> },
-  ]
-  return (
-    <div className="space-y-4" data-testid="request-runtime-panel">
-      <div>
-        <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>请求与运行</h2>
-        <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>从单次模型请求到整轮 Agent Loop，统一查看真实执行链路。</p>
-      </div>
-      <div className="flex flex-wrap gap-1 border-b pb-2" style={{ borderColor: 'var(--border-subtle)' }}>
-        {views.map((item) => {
-          const active = view === item.id
-          return (
-            <ActionButton key={item.id} type="button" onClick={() => setView(item.id)} tone={active ? 'accent' : 'neutral'} className="h-8 gap-1.5 rounded px-2.5 text-xs font-medium" aria-pressed={active} style={{ borderColor: active ? 'transparent' : 'var(--border-subtle)' }}>
-              {item.icon}{item.label}
-            </ActionButton>
-          )
-        })}
-      </div>
-      {view === 'llm' && <LLMCallsPanel focusId={focusedLLMCallId} />}
-      {view === 'traces' && <TracesTab data={traces} focusId={focusedTraceSpanId} />}
-      {view === 'events' && <EventsTab events={events} />}
-    </div>
-  )
+  return <div className="space-y-4" data-testid="request-runtime-panel">
+    {view === 'llm' && <LLMCallsPanel focusId={focusedLLMCallId} revision={revision} onAsset={onAsset} />}
+    {view === 'traces' && <TracesTab data={traces} focusId={focusedTraceSpanId} />}
+    {view === 'events' && <EventsTab events={events} />}
+  </div>
 }
 
 function TracesTab({ data, focusId }: { data: TracesPayload | null; focusId?: string }) {
@@ -629,7 +466,7 @@ function TracesTab({ data, focusId }: { data: TracesPayload | null; focusId?: st
   }, [data, focusId])
 
   if (!data) {
-    return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>加载中…</div>
+    return <EmptyState title="尚未读取调用链" description="可刷新当前分区重试；未读取不等于没有 Span。" />
   }
 
   const spans = data.spans
@@ -787,7 +624,7 @@ function EventsTab({ events }: { events: Array<{ time: number; type: string; det
             <span className={`w-24 shrink-0 ${typeColor[ev.type] || ''}`} style={!typeColor[ev.type] ? { color: 'var(--text-muted)' } : undefined}>
               {ev.type}
             </span>
-            <span className="truncate" style={{ color: ev.type === 'compact' ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{ev.detail}</span>
+            <span className="min-w-0 whitespace-pre-wrap break-words" style={{ color: ev.type === 'compact' ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{ev.detail}</span>
           </div>
         ))}
       </div>

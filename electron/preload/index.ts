@@ -1,5 +1,8 @@
 import { ipcRenderer, contextBridge } from 'electron'
 import type {
+  DebugEvidenceQuery,
+  DebugEvidenceResult,
+  DebugEvidenceScope,
   CompanionAssetCreateInput,
   CompanionLifeSlice,
   AgentAssetUsageQuery,
@@ -471,6 +474,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     systemPrompt: () => ipcRenderer.invoke('debug:system-prompt'),
     promptAssets: (): Promise<PromptAsset[]> => ipcRenderer.invoke('debug:prompt-assets'),
     modelContextAssets: (): Promise<ModelContextAsset[]> => ipcRenderer.invoke('debug:model-context-assets'),
+    companionEvidenceScope: (): Promise<DebugEvidenceScope> => ipcRenderer.invoke('debug:companion-evidence-scope'),
+    companionEvidenceQuery: (query: DebugEvidenceQuery): Promise<DebugEvidenceResult> => ipcRenderer.invoke('debug:companion-evidence-query', query),
     tools: () => ipcRenderer.invoke('debug:tools'),
     systemInfo: () => ipcRenderer.invoke('debug:system-info'),
     traces: () => ipcRenderer.invoke('debug:traces'),

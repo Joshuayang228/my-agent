@@ -1,6 +1,9 @@
 /// <reference types="vite/client" />
 
 import type {
+  DebugEvidenceQuery,
+  DebugEvidenceResult,
+  DebugEvidenceScope,
   CompanionAssetCreateInput,
   CompanionLifeSlice,
   AgentAssetUsageQuery,
@@ -436,6 +439,8 @@ declare global {
         systemPrompt: () => Promise<DebugPromptSnapshot>
         promptAssets: () => Promise<PromptAsset[]>
         modelContextAssets: () => Promise<ModelContextAsset[]>
+        companionEvidenceScope: () => Promise<DebugEvidenceScope>
+        companionEvidenceQuery: (query: DebugEvidenceQuery) => Promise<DebugEvidenceResult>
         tools: () => Promise<Array<{
           name: string
           description: string

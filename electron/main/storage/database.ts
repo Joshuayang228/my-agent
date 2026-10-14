@@ -43,6 +43,12 @@ let persisting = false
 /** 写盘期间又有人调了 persist → 结束后再写一次最新快照 */
 let persistDirty = false
 
+/** 背景：Debug 浏览不能借数据库 getter 初始化、迁移或写盘。
+ * 设计意图：只提供启动流程已经打开的实例，未就绪时由诊断页显示不可用。
+ * 关键约束：此函数不得打开文件、初始化 schema 或改变单例；业务写入口仍走 getDatabase。
+ */
+export function getInitializedDatabase(): SqlJsDatabase | null { return db }
+
 export async function getDatabase(): Promise<SqlJsDatabase> {
   if (db) return db
 

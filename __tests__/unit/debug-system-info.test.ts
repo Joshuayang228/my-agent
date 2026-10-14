@@ -5,7 +5,7 @@ vi.mock('electron', () => ({
 }))
 
 vi.mock('../../electron/main/storage/settings-store', () => ({
-  getAllSettings: vi.fn(async () => ({
+  getAllSettingsReadOnly: vi.fn(() => ({
     llmModel: 'gpt-4o',
     llmBaseUrl: 'https://api.openai.com/v1',
     activeRoleId: 'lin',

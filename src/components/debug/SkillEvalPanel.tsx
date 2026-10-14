@@ -16,7 +16,7 @@ const graderLabels: Record<string, string> = {
  * 设计意图：直接读取主进程校验过的 CLI 报告，不在渲染层重新判分。
  * 关键约束：Vite 展厅没有 Electron IPC 时只显示空态；报告不包含 Skill 正文或密钥。
  */
-export function SkillEvalPanel() {
+export function SkillEvalPanel({ revision = 0 }: { revision?: number } = {}) {
   const [index, setIndex] = useState<DebugSkillEvalIndex | null>(null)
   const [report, setReport] = useState<DebugSkillEvalReport | null>(null)
   const [loading, setLoading] = useState(true)
@@ -54,7 +54,7 @@ export function SkillEvalPanel() {
         void loadIndex(event.status.latestReportFile)
       }
     })
-  }, [loadIndex])
+  }, [loadIndex, revision])
 
   const selectReport = async (fileName: string) => {
     const debug = window.electronAPI?.debug

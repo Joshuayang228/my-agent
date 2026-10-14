@@ -14,7 +14,7 @@ import { getBuiltinToolSource } from '../tools/builtins'
 import type { ToolRegistry } from '../tools/registry'
 import { getLoadedSkills, getSkillToolName } from '../skills/registry'
 import { isMcpTool, parseMcpToolName } from '../mcp/bridge'
-import { getAllSettings } from '../storage/settings-store'
+import { getAllSettingsReadOnly } from '../storage/settings-store'
 import { PROMPT_KEYS } from '../prompts/keys'
 import { getCompanionAssetCatalog } from '../companion/asset-registry'
 import { getMemoryStrategyAssetCatalog } from '../memory/strategy-registry'
@@ -157,7 +157,7 @@ export function buildModelContextAssets(input: {
 }
 
 export async function getModelContextAssets(toolRegistry: ToolRegistry): Promise<ModelContextAsset[]> {
-  const settings = await getAllSettings()
+  const settings = getAllSettingsReadOnly()
   return buildModelContextAssets({
     promptAssets: getPromptAssets(),
     tools: toolRegistry.getAll(),

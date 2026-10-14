@@ -1,4 +1,5 @@
 // ── 消息 ──
+export type { DebugEvidenceQuery, DebugEvidenceResult, DebugEvidenceRecord, DebugEvidenceScope } from './debug-evidence'
 
 export interface ImageAttachment {
   /** base64 编码的图片数据（data:image/png;base64,...） */
@@ -133,6 +134,10 @@ export interface PromptAsset {
   category: PromptAssetKind
   purpose: string
   role: string
+  /** 生产来源明确登记的人物归属；缺失时不得由 Renderer 从正文或路径猜测。 */
+  roleIds?: string[]
+  /** 人物用途由来源工厂登记，仅用于浏览分类，不作为历史注入证明。 */
+  roleUses?: Array<{ roleId: string; purpose: '身份' | '成长与关系' | '行为' | '生活情境' | '工具环境' | '输出协议' }>
   desc: string
   /** 生产来源的可读路径或组装器标识。 */
   source: string

@@ -1,3 +1,4 @@
+import { tripStopSchema, type TripStopRecord } from '../../shared/world-records'
 import type { DebugPerspective, DebugRecordFixture } from './debug-experience-fixtures'
 
 export type DebugEvidencePageId = Exclude<DebugPerspective, 'assets' | 'runs' | 'system' | 'quality' | 'persona'>
@@ -9,10 +10,16 @@ export interface DebugEvidenceItem {
   date: string
   status: string
   fields: readonly [string, string][]
+  readingFields?: readonly [string, string][]
   body?: string
   assets?: readonly string[]
   callId?: string
   links?: readonly { page: DebugEvidencePageId; id: string; label: string }[]
+  home?: { kind: 'residence' | 'space' | 'object' | 'unset'; parentId?: string }
+  travel?: { kind: 'actual' | 'planned' | 'cancelled' | 'place'; stops?: readonly TripStopRecord[] }
+  category?: 'reading' | 'music' | 'film' | 'photography'
+  stages?: DebugRecordFixture['stages']
+  summaries?: readonly { title: string; text: string; scope: string }[]
 }
 export interface DebugEvidencePage {
   unit: string
@@ -28,8 +35,21 @@ const TODAY = '2026-10-13'
  * 设计意图：样张按真实领域字段组织，记录明确来源关联；正文均为虚构的演示内容。
  * 关键约束：日期固定为样张日期，不随电脑时钟变造历史；计划 / 发布不映射为完成或跳过。
  */
+// 背景：样张需把业务摘要与完整诊断字段分开；意图：字段值只维护一份，显式声明阅读索引。
+// 约束：这些索引属于固定隔离样张，不用于推断生产响应，也不按中文标签判断业务含义。
+const CULTURE_CATEGORIES: Record<string, NonNullable<DebugEvidenceItem['category']>> = { 'item-book': 'reading', 'culture-music': 'music', 'culture-film': 'film', 'culture-photo': 'photography' }
+const READING_FIELDS: Record<string, readonly number[]> = {
+  'slot-morning': [1, 2], 'slot-afternoon': [1, 2], 'slot-evening': [1, 2], 'slot-yesterday': [1], 'slot-yu': [1, 2],
+  'residence-home': [2, 3], 'residence-space': [3], 'item-camera': [3, 4, 5], 'home-unplaced': [3, 4], 'residence-yu': [0, 1, 2],
+  'trip-completed': [2, 4, 5], 'trip-active': [2, 4, 5], 'trip-planned': [2, 3], 'trip-cancelled': [2, 3], 'footprint-place': [2, 3],
+  'character-lin': [1, 2, 4], 'character-yu': [1, 2], 'event-reading': [1, 3], 'event-walk': [1, 2, 3],
+  'now-lin': [0, 1, 2, 3, 4, 6, 7], 'location-current': [1, 2, 3, 4],
+  'item-book': [2, 3], 'culture-music': [2, 3], 'culture-film': [2, 3], 'culture-photo': [2, 3],
+  'wardrobe-shirt': [1, 2, 3], 'wardrobe-coat': [1, 2, 3], 'moment-reading': [1, 2, 4, 5],
+}
+
 const item = (id: string, title: string, subtitle: string, status: string, fields: DebugEvidenceItem['fields'], extra: Partial<DebugEvidenceItem> = {}): DebugEvidenceItem =>
-  ({ id: `demo-${id}`, title, subtitle, role: 'lin', date: TODAY, status, fields, ...extra })
+  ({ id: `demo-${id}`, title, subtitle, role: 'lin', date: TODAY, status, fields, category: CULTURE_CATEGORIES[id], readingFields: (READING_FIELDS[id] ?? fields.map((_, index) => index)).map(index => fields[index]), ...extra, ...(id === 'profile-lin' ? { summaries: [{ title: '身份', text: fields[0][1], scope: fields[1][1] }, { title: '协作方式', text: fields[2][1], scope: fields[3][1] }, { title: '表达偏好', text: fields[4][1], scope: fields[5][1] }] } : id === 'profile-yu' ? { summaries: [{ title: '身份', text: fields[0][1], scope: 'identity + fact · 全局' }, { title: '协作方式', text: fields[1][1], scope: 'workflow · 全局 / feedback · 予' }, { title: '表达偏好', text: fields[2][1], scope: 'voice + preference · 全局' }] } : {}) })
 
 export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage> = {
   schedule: {
@@ -70,11 +90,11 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
   residence: {
     unit: '家居记录', boundary: '住所、空间与物件分别追踪，按人物归属和 spaceId 关联；展示决定须有显式理由与依据。未设定不填默认公寓，浏览不播种资产。',
     items: [
-      item('residence-home', '住所 · 样张住所', 'home · residence', '已设定', [['资产', 'demo-home-lin'], ['记录类型', 'residence'], ['默认居所', '样张住所'], ['运行态居所', '样张住所'], ['搬迁状态', '未实现']], { assets: ['demo.world.lin'], body: '【住所样张】一间书房与生活区。仅为验收的虚构设定。' }),
-      item('residence-space', '空间 · 样张书房', 'home · space', '已有记录', [['资产', 'demo-space-study'], ['记录类型', 'space'], ['所属住所', 'demo-home-lin'], ['描述', '靠窗的书桌与书架 · 样张']], { links: [{ page: 'residence', id: 'demo-residence-home', label: '查看所属住所' }] }),
-      item('item-camera', '小相机', '生活物件 · 家居', '明确展示', [['资产', 'demo-owned-camera'], ['类型', 'furniture'], ['空间', 'demo-space-study'], ['家居展示', 'displayInHome = true'], ['展示理由', '日常整理旅行照片使用 · 样张'], ['展示依据', 'demo-event-reading'], ['来源说明', '阅读事件关联物件 · 样张'], ['实际购买日期', '未记录']], { links: [{ page: 'residence', id: 'demo-residence-space', label: '查看所属空间' }, { page: 'links', id: 'demo-link-reading', label: '查看关联生活事件' }] }),
-      item('home-unplaced', '备用收纳盒', '生活物件 · 未归置', '未展示', [['资产', 'demo-owned-box'], ['类型', 'furniture'], ['空间', '未归置'], ['家居展示', 'displayInHome = false'], ['展示理由', '尚无陈列依据 · 样张'], ['展示依据', '未提供']]),
-      item('residence-yu', '予 · 居所未设定', '没有 world.default', '未设定', [['默认居所', '未设定'], ['运行态居所', '未设定'], ['家具', '没有已提供记录']], { role: 'yu' }),
+      item('residence-home', '住所 · 样张住所', 'home · residence', '已设定', [['资产', 'demo-home-lin'], ['记录类型', 'residence'], ['默认居所', '样张住所'], ['运行态居所', '样张住所'], ['搬迁状态', '未实现']], { home: { kind: 'residence' }, assets: ['demo.world.lin'], body: '【住所样张】一间书房与生活区。仅为验收的虚构设定。' }),
+      item('residence-space', '空间 · 样张书房', 'home · space', '已有记录', [['资产', 'demo-space-study'], ['记录类型', 'space'], ['所属住所', 'demo-home-lin'], ['描述', '靠窗的书桌与书架 · 样张']], { home: { kind: 'space', parentId: 'demo-residence-home' }, links: [{ page: 'residence', id: 'demo-residence-home', label: '查看所属住所' }] }),
+      item('item-camera', '小相机', '生活物件 · 家居', '明确展示', [['资产', 'demo-owned-camera'], ['类型', 'furniture'], ['空间', 'demo-space-study'], ['家居展示', 'displayInHome = true'], ['展示理由', '日常整理旅行照片使用 · 样张'], ['展示依据', 'demo-event-reading'], ['来源说明', '阅读事件关联物件 · 样张'], ['实际购买日期', '未记录']], { home: { kind: 'object', parentId: 'demo-residence-space' }, links: [{ page: 'residence', id: 'demo-residence-space', label: '查看所属空间' }, { page: 'links', id: 'demo-link-reading', label: '查看关联生活事件' }] }),
+      item('home-unplaced', '备用收纳盒', '生活物件 · 未归置', '未展示', [['资产', 'demo-owned-box'], ['类型', 'furniture'], ['空间', '未归置'], ['家居展示', 'displayInHome = false'], ['展示理由', '尚无陈列依据 · 样张'], ['展示依据', '未提供']], { home: { kind: 'object' } }),
+      item('residence-yu', '予 · 居所未设定', '没有 world.default', '未设定', [['默认居所', '未设定'], ['运行态居所', '未设定'], ['家具', '没有已提供记录']], { home: { kind: 'unset' }, role: 'yu' }),
     ],
   },
   character: {
@@ -94,11 +114,11 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
   footprints: {
     unit: '足迹记录', boundary: '实际旅行展示仅含 active / completed；Debug 同时解释计划、取消与旧地点记录。计划不等于出发，播种 / 创建时间不作为访问日期，旧地点不自动转换为旅行。',
     items: [
-      item('trip-completed', '河边旅行', 'footprint · trip', '已结束旅行', [['资产', 'demo-trip-river'], ['记录类型', 'trip'], ['目的地', '样张河畔小镇'], ['旅行状态', 'completed'], ['开始日期', '2026-10-10'], ['结束日期', '2026-10-11'], ['正式足迹展示', '纳入实际旅行'], ['停留记录', 'demo-stop-river · 河边步道 · 2026-10-10']], { body: '【旅行经历样张】沿河边走了一段，记录了步道的光线。\n【停留经历样张】在河边步道整理照片。' }),
-      item('trip-active', '山间旅行', 'footprint · trip', '旅行中', [['资产', 'demo-trip-mountain'], ['记录类型', 'trip'], ['目的地', '样张山间'], ['旅行状态', 'active'], ['开始日期', '2026-10-13'], ['结束日期', '未提供'], ['正式足迹展示', '纳入实际旅行'], ['停留记录', '未提供']]),
-      item('trip-planned', '海边旅行计划', 'footprint · trip', '未出发', [['资产', 'demo-trip-coast'], ['记录类型', 'trip'], ['旅行状态', 'planned'], ['开始日期', '未提供'], ['正式足迹展示', '不纳入实际旅行']]),
-      item('trip-cancelled', '取消的出行', 'footprint · trip', '已取消', [['资产', 'demo-trip-cancelled'], ['记录类型', 'trip'], ['旅行状态', 'cancelled'], ['正式足迹展示', '不纳入实际旅行']]),
-      item('footprint-place', '旧地点 · 样张河边', 'footprint · place', '常去资料', [['资产', 'demo-place-river'], ['记录类型', 'place'], ['地点状态', 'favorite'], ['访问日期', '未记录'], ['正式旅行展示', '不自动转换为旅行']], { assets: ['demo.world.lin'] }),
+      item('trip-completed', '河边旅行', 'footprint · trip', '已结束旅行', [['资产', 'demo-trip-river'], ['记录类型', 'trip'], ['目的地', '样张河畔小镇'], ['旅行状态', 'completed'], ['开始日期', '2026-10-10'], ['结束日期', '2026-10-11'], ['正式足迹展示', '纳入实际旅行'], ['停留记录', 'demo-stop-river · 河边步道 · 2026-10-10']], { travel: { kind: 'actual', stops: [tripStopSchema.parse({ id: 'demo-stop-river', name: '河边步道', date: '2026-10-10', story: '【停留经历样张】在河边步道整理照片。' })] }, body: '【旅行经历样张】沿河边走了一段，记录了步道的光线。\n【停留经历样张】在河边步道整理照片。' }),
+      item('trip-active', '山间旅行', 'footprint · trip', '旅行中', [['资产', 'demo-trip-mountain'], ['记录类型', 'trip'], ['目的地', '样张山间'], ['旅行状态', 'active'], ['开始日期', '2026-10-13'], ['结束日期', '未提供'], ['正式足迹展示', '纳入实际旅行'], ['停留记录', '未提供']], { travel: { kind: 'actual' } }),
+      item('trip-planned', '海边旅行计划', 'footprint · trip', '未出发', [['资产', 'demo-trip-coast'], ['记录类型', 'trip'], ['旅行状态', 'planned'], ['开始日期', '未提供'], ['正式足迹展示', '不纳入实际旅行']], { travel: { kind: 'planned' } }),
+      item('trip-cancelled', '取消的出行', 'footprint · trip', '已取消', [['资产', 'demo-trip-cancelled'], ['记录类型', 'trip'], ['旅行状态', 'cancelled'], ['正式足迹展示', '不纳入实际旅行']], { travel: { kind: 'cancelled' } }),
+      item('footprint-place', '旧地点 · 样张河边', 'footprint · place', '常去资料', [['资产', 'demo-place-river'], ['记录类型', 'place'], ['地点状态', 'favorite'], ['访问日期', '未记录'], ['正式旅行展示', '不自动转换为旅行']], { travel: { kind: 'place' }, assets: ['demo.world.lin'] }),
     ],
   },
   moments: {
@@ -190,6 +210,6 @@ export function getDebugEvidencePage(id: DebugEvidencePageId, records: readonly 
     status: record.status === 'pending' ? '运行中' : record.status === 'error' ? '失败' : '已结束',
     fields: [['Span', record.spanId!], ['会话', record.sessionId], ['明确关联请求', record.id], ['阶段数量', String(record.stages.length)]],
     body: record.stages.map((stage, index) => `${index + 1}. ${stage.title} · ${stage.duration}\n${stage.detail}`).join('\n\n'),
-    assets: record.assetKeys, callId: record.id,
+    assets: record.assetKeys, callId: record.id, stages: record.stages,
   })) }
 }

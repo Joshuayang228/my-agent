@@ -1,11 +1,29 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { DebugEvidenceCandidate } from '../../src/components/playground/DebugEvidenceCandidate'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES } from '../../src/components/playground/debug-experience-fixtures'
-import { DEBUG_ASSET_FIXTURES } from '../../src/components/playground/debug-asset-fixtures'
+import { DEBUG_ASSET_FIXTURES, debugAssetGroup } from '../../src/components/playground/debug-asset-fixtures'
 import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, type DebugEvidencePageId } from '../../src/components/playground/debug-evidence-fixtures'
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('显式关联昨日记录时按目标日期定位，未知目标不伪造详情', () => {
+    const render = (initialSelectedId: string) => renderToStaticMarkup(createElement(DebugEvidenceCandidate, {
+      id: 'schedule', records: DEBUG_RECORD_FIXTURES, empty: false, initialSelectedId,
+      onAsset: () => {}, onRecord: () => {}, onEvidence: () => {},
+    }))
+    const yesterday = render('demo-slot-yesterday')
+    expect(yesterday).toContain('value="2026-10-12"')
+    expect(yesterday).toContain('aria-label="领域证据详情"')
+    expect(yesterday).toContain('10:00 · 整理书架')
+    expect(yesterday).not.toContain('14:00 · 阅读旅行笔记')
+    const unknown = render('demo-missing-target')
+    expect(unknown).toContain('value="2026-10-13"')
+    expect(unknown).not.toContain('aria-label="领域证据详情"')
+  })
+
   it('样张身份不冒充生产资产，关联不悬空', () => {
     const keys = new Set(DEBUG_ASSET_FIXTURES.map(asset => asset.key))
     expect(keys.size).toBe(DEBUG_ASSET_FIXTURES.length)
@@ -65,6 +83,33 @@ describe('Debug 候选隔离边界', () => {
     expect(traces.items.some(entry => entry.callId === 'demo-call-01')).toBe(false)
     expect(getDebugEvidencePage('traces', []).items).toEqual([])
     expect(getDebugEvidencePage('events', pending).items.find(entry => entry.id === 'demo-runtime-error')?.status).toBe('运行中')
+  })
+
+  it('人物用途来自显式关联，平台共用与未登记不冒充注入', () => {
+    const main = DEBUG_ASSET_FIXTURES.find(asset => asset.key === 'demo.prompt.main')!
+    const identity = DEBUG_ASSET_FIXTURES.find(asset => asset.key === 'demo.prompt.identity')!
+    expect(debugAssetGroup(main, 'all')).toBe('平台 / 行为')
+    expect(debugAssetGroup(main, 'lin')).toBe('行为')
+    expect(debugAssetGroup(main, 'yu')).toBe('平台共用')
+    expect(debugAssetGroup(identity, 'lin')).toBe('身份')
+    expect(debugAssetGroup({ ...identity, uses: undefined }, 'lin')).toBe('未登记关联')
+    for (const asset of DEBUG_ASSET_FIXTURES) {
+      for (const role of Object.keys(asset.uses ?? {})) expect(['lin', 'yu']).toContain(role)
+    }
+  })
+
+  it('阅读摘要复用原字段；家居父子、旅行状态与停留有明确结构', () => {
+    for (const page of Object.values(DEBUG_EVIDENCE_PAGES)) for (const entry of page.items) {
+      for (const field of entry.readingFields ?? []) expect(entry.fields).toContainEqual(field)
+    }
+    const home = DEBUG_EVIDENCE_PAGES.residence.items
+    for (const entry of home) if (entry.home?.parentId) {
+      expect(home.some(parent => parent.id === entry.home!.parentId && parent.role === entry.role)).toBe(true)
+    }
+    const trips = DEBUG_EVIDENCE_PAGES.footprints.items
+    expect(trips.find(entry => entry.id === 'demo-trip-completed')?.travel?.stops?.[0]).toMatchObject({ id: 'demo-stop-river', date: '2026-10-10' })
+    expect(trips.find(entry => entry.id === 'demo-trip-planned')?.travel?.kind).toBe('planned')
+    expect(trips.find(entry => entry.id === 'demo-footprint-place')?.travel?.kind).toBe('place')
   })
 
   it('候选与样张不访问生产桥接、模型或持久化', () => {

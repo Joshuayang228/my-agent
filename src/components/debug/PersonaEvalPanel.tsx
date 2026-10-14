@@ -46,7 +46,7 @@ function reviewStatusLabel(review?: PersonaEvalHumanReview): string {
  * 设计意图：面板读取同一 JSON 真相，支持历史切换与逐 trial 追证，不复制 Eval 判定逻辑。
  * 关键约束：只读；不在打开 Debug 时自动触发真实模型调用或产生费用。
  */
-export function PersonaEvalPanel() {
+export function PersonaEvalPanel({ revision = 0 }: { revision?: number } = {}) {
   const [index, setIndex] = useState<DebugPersonaEvalIndex | null>(null)
   const [report, setReport] = useState<DebugPersonaEvalReport | null>(null)
   const [loading, setLoading] = useState(true)
@@ -87,7 +87,7 @@ export function PersonaEvalPanel() {
     }
   }, [])
 
-  useEffect(() => { void loadIndex() }, [loadIndex])
+  useEffect(() => { void loadIndex() }, [loadIndex, revision])
 
   useEffect(() => {
     if (runStatus.state !== 'running') return

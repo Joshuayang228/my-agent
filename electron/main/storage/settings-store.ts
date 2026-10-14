@@ -1,5 +1,5 @@
 import { safeStorage } from 'electron'
-import { getDatabase, persist } from './database'
+import { getDatabase, getInitializedDatabase, persist } from './database'
 import { assertEncryptionPersisted, ensureEncryptionPersisted } from './encryption-persistence'
 import { createLogger } from '../utils/logger'
 import type { ModelConfigurationInput } from '../../../src/shared/types'
@@ -365,5 +365,33 @@ export async function getAllSettings(): Promise<AppSettings> {
     db.run('UPDATE settings SET value = ? WHERE key = ?', [migration.value, migration.key])
   }
   if (migrations.length > 0) persist()
+  return result
+}
+
+/** 背景：设置的普通读取可迁移旧密文，Debug 浏览不应触发这类写入。
+ * 意图：仅从已打开实例读取并解码，不调用初始化、加密迁移或 persist。
+ * 关键约束：新包络解密失败仍关闭凭据；返回值仅供主进程诊断，不可直接传给 Renderer。
+ */
+export function getAllSettingsReadOnly(): AppSettings {
+  const db = getInitializedDatabase()
+  if (!db) throw new Error('设置存储尚未就绪')
+  const exists = db.exec("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'settings'")
+  const result = { ...getDefaults() }
+  if (!exists.length) return result
+  const stmt = db.prepare('SELECT key, value FROM settings')
+  try {
+    while (stmt.step()) {
+      const row = stmt.getAsObject() as { key: string; value: string }
+      if (!(row.key in result) || !row.value) continue
+      const key = row.key as keyof AppSettings
+      let value = row.value
+      if (ENCRYPTED_KEYS.has(key)) {
+        if (!safeStorage.isEncryptionAvailable()) value = ''
+        else if (value.startsWith(ENCRYPTED_VALUE_PREFIX)) value = decryptPayload(value.slice(ENCRYPTED_VALUE_PREFIX.length)) ?? ''
+        else value = decryptPayload(value) ?? value
+      }
+      ;(result as Record<string, string>)[row.key] = value
+    }
+  } finally { stmt.free() }
   return result
 }
