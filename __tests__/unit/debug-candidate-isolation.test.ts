@@ -11,6 +11,25 @@ import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, type DebugEvidencePageId } 
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('行为日志候选对齐现有事件源，不将 Trace 和反思伪装成主列表', () => {
+    const events = getDebugEvidencePage('recent', DEBUG_RECORD_FIXTURES).items
+    const activity = getDebugEvidencePage('activity', DEBUG_RECORD_FIXTURES).items
+    expect(activity.map(entry => entry.id)).toEqual(events.map(entry => entry.id))
+    for (const entry of activity) {
+      expect(entry.links).toContainEqual({ page: 'recent', id: entry.id, label: '查看来源生活事件' })
+      expect(entry.callId).toBeUndefined()
+    }
+    const render = (previewState: EvidencePreviewState) => renderToStaticMarkup(createElement(DebugEvidenceCandidate, { id: 'activity', previewState, records: DEBUG_RECORD_FIXTURES, empty: false, onAsset: () => {}, onRecord: () => {}, onEvidence: () => {} }))
+    const ready = render('ready')
+    expect(ready).toContain('完整行动日志尚未建立')
+    expect(ready).toContain('河边散步')
+    expect(ready).not.toContain('demo-action-reflection')
+    expect(ready).not.toContain('demo-action-tool')
+    const failed = render('error')
+    expect(failed).toContain('行为证据读取失败')
+    expect(failed).not.toContain('data-record-id=')
+    expect(failed).not.toContain('行为证据范围计数')
+  })
   it('最近事项只统计已读范围，未读取和未知时间不补造事实', () => {
     const render = (previewState: EvidencePreviewState, initialSelectedId?: string) => renderToStaticMarkup(createElement(DebugEvidenceCandidate, { id: 'recent', previewState, initialSelectedId, records: DEBUG_RECORD_FIXTURES, empty: false, onAsset: () => {}, onRecord: () => {}, onEvidence: () => {} }))
     for (const state of ['unread', 'loading', 'unavailable', 'error'] as const) {

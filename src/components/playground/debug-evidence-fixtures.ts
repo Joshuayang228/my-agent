@@ -48,7 +48,7 @@ const READING_FIELDS: Record<string, readonly number[]> = {
   'now-lin': [0, 1], 'location-current': [1, 2],
   'item-book': [2, 3], 'culture-music': [2, 3], 'culture-film': [2, 3], 'culture-photo': [2, 3],
   'wardrobe-shirt': [], 'wardrobe-coat': [], 'moment-reading': [1, 2],
-  'action-reflection': [2], 'action-tool': [1, 2], 'growth-cover': [0], 'growth-run': [1],
+  'growth-cover': [0], 'growth-run': [1],
   'relation-yu': [0, 2], 'relation-user': [1, 2], 'message-greeting': [4],
   'link-reading': [], 'context-preview': [6], 'profile-lin': [], 'profile-yu': [],
   'memory-lin': [], 'memory-shared': [], 'memory-yu': [],
@@ -63,6 +63,14 @@ const item = (id: string, title: string, subtitle: string, status: string, field
 const scheduleItem = (id: string, time: string, activity: string, location: string, fields: DebugEvidenceItem['fields'], extra: Partial<DebugEvidenceItem> = {}) =>
   item(id, `${time} · ${activity}`, '日程计划 · 隔离样张', '计划时段', [['时间', time], ['地点', location], ...fields], { ...extra, schedule: { time, activity, location } })
 
+// 背景：正式 recent / activity 当前都读取生活事件；意图：共用一份隔离记录，避免把 Trace 或反思误当作行动台账。
+// 约束：activity 只追加显式来源跳转，不改变事件状态、时间或正文；反思与工具样张留在其真实页面。
+const LIFE_EVENT_ITEMS: readonly DebugEvidenceItem[] = [
+  item('event-reading', '阅读旅行笔记', '14:00 · 样张书房', '已发布', [['计划时间', '2026-10-13 14:00'], ['状态', 'published · 已发布'], ['动态投影', 'demo-moment-reading'], ['活动执行', '没有完成证据']], { event: { scheduledAt: Date.parse('2026-10-13T14:00:00+08:00'), location: '样张书房' }, body: '【动态样张】翻到上次旅途的笔记，准备挑几张照片做成小册子。', links: [{ page: 'links', id: 'demo-link-reading', label: '查看动态与物品关联' }] }),
+  item('event-walk', '河边散步', '19:00 · 样张河边', '计划中', [['计划时间', '2026-10-13 19:00'], ['状态', 'planned · 计划中'], ['动态投影', '尚未发布'], ['活动执行', '未记录']], { event: { scheduledAt: Date.parse('2026-10-13T19:00:00+08:00'), location: '样张河边' } }),
+  item('event-book', '整理旧书', '昨天 · 样张书房', '已发布', [['计划时间', '2026-10-12 10:00'], ['状态', 'published · 已发布'], ['活动执行', '没有完成证据']], { date: '2026-10-12', event: { scheduledAt: Date.parse('2026-10-12T10:00:00+08:00'), location: '样张书房' } }),
+]
+
 export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage> = {
   schedule: {
     unit: '时段', dateFilter: true, boundary: '时段属于计划；事件已发布也不证明活动已完成。生产快照最多 12 个时段，完整跳过 / 重排原因尚未记录。',
@@ -76,18 +84,11 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
   },
   recent: {
     unit: '事件', dateFilter: true, boundary: '事件按计划时间倒序有界读取；当前页数量不是全量。已发布不证明活动完成，没有独立发布时间时不补猜。',
-    items: [
-      item('event-reading', '阅读旅行笔记', '14:00 · 样张书房', '已发布', [['计划时间', '2026-10-13 14:00'], ['状态', 'published · 已发布'], ['动态投影', 'demo-moment-reading'], ['活动执行', '没有完成证据']], { event: { scheduledAt: Date.parse('2026-10-13T14:00:00+08:00'), location: '样张书房' }, body: '【动态样张】翻到上次旅途的笔记，准备挑几张照片做成小册子。', links: [{ page: 'links', id: 'demo-link-reading', label: '查看动态与物品关联' }] }),
-      item('event-walk', '河边散步', '19:00 · 样张河边', '计划中', [['计划时间', '2026-10-13 19:00'], ['状态', 'planned · 计划中'], ['动态投影', '尚未发布'], ['活动执行', '未记录']], { event: { scheduledAt: Date.parse('2026-10-13T19:00:00+08:00'), location: '样张河边' } }),
-      item('event-book', '整理旧书', '昨天 · 样张书房', '已发布', [['计划时间', '2026-10-12 10:00'], ['状态', 'published · 已发布'], ['活动执行', '没有完成证据']], { date: '2026-10-12', event: { scheduledAt: Date.parse('2026-10-12T10:00:00+08:00'), location: '样张书房' } }),
-    ],
+    items: LIFE_EVENT_ITEMS,
   },
   activity: {
-    unit: '行为证据', dateFilter: true, boundary: '当前有反思、Trace 与事件证据，尚无完整行动 / Planner 台账。生活执行、跳过和重排原因不能从请求耗时推断。',
-    items: [
-      item('action-reflection', '成长反思', '13:10 · 反思日志', '未改变人格', [['日志来源', 'reflection-log'], ['是否改变', '否'], ['结论', '目前偏好已覆盖，无新增修改'], ['模型输入正文', '未保存']], { links: [{ page: 'growth', id: 'demo-growth-run', label: '查看反思结果与门闸' }] }),
-      item('action-tool', '读取旅行记录', '14:31 · 工具执行证据', '已记录', [['证据来源', 'demo-span-02'], ['权限结果', '读取规则通过'], ['工具执行', '返回读取摘要'], ['生活活动完成', '不能据此推断']], { callId: 'demo-call-02', assets: ['demo.tool.read'] }),
-    ],
+    unit: '行为证据', dateFilter: true, boundary: '本页当前只读取生活事件，尚无完整行动 / Planner 台账；工具执行见调用链，反思记录见成长与反思，不混入本页计数。',
+    items: LIFE_EVENT_ITEMS.map(entry => ({ ...entry, links: [...(entry.links ?? []), { page: 'recent' as const, id: entry.id, label: '查看来源生活事件' }] })),
   },
   now: {
     unit: '当前快照', boundary: '此页是当前状态，非历史请求。快照的情绪与活动不能证明某次过去请求注入了什么。',
