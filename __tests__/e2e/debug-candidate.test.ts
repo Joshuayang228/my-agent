@@ -154,7 +154,9 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await panel.getByRole('navigation').getByRole('button', { name: '今日日程', exact: true }).click()
     await expect(panel.getByRole('navigation').getByRole('button', { name: '今日日程', exact: true })).toHaveCSS('font-size', '13px')
     await panel.getByRole('navigation').getByRole('button', { name: '最近事项', exact: true }).click()
-    await expect(panel.getByRole('navigation').getByRole('button', { name: '最近事项', exact: true })).toHaveCSS('font-size', '11px')
+    await expect(panel.getByRole('navigation').getByRole('button', { name: '最近事项', exact: true })).toHaveCSS('font-size', '13px')
+    await panel.getByRole('navigation').getByRole('button', { name: '行为日志', exact: true }).click()
+    await expect(panel.getByRole('navigation').getByRole('button', { name: '行为日志', exact: true })).toHaveCSS('font-size', '11px')
   })
 }
 

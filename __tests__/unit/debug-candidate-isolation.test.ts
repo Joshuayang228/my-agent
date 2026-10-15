@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { DebugEvidenceCandidate } from '../../src/components/playground/DebugEvidenceCandidate'
+import { DebugEvidenceCandidate, type EvidencePreviewState } from '../../src/components/playground/DebugEvidenceCandidate'
 import { DebugScheduleCandidate, type SchedulePreviewState } from '../../src/components/playground/DebugScheduleCandidate'
 import { DebugPromptCandidate, type PromptPreviewState } from '../../src/components/playground/DebugPromptCandidate'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES } from '../../src/components/playground/debug-experience-fixtures'
@@ -11,6 +11,26 @@ import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, type DebugEvidencePageId } 
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('最近事项只统计已读范围，未读取和未知时间不补造事实', () => {
+    const render = (previewState: EvidencePreviewState, initialSelectedId?: string) => renderToStaticMarkup(createElement(DebugEvidenceCandidate, { id: 'recent', previewState, initialSelectedId, records: DEBUG_RECORD_FIXTURES, empty: false, onAsset: () => {}, onRecord: () => {}, onEvidence: () => {} }))
+    for (const state of ['unread', 'loading', 'unavailable', 'error'] as const) {
+      const html = render(state)
+      expect(html).not.toContain('事项范围计数')
+      expect(html).not.toContain('此范围没有记录')
+      expect(html).not.toContain('data-record-id=')
+    }
+    const ready = render('ready')
+    expect(ready).toContain('3 条已读取')
+    expect(ready).toContain('总数未知')
+    expect(ready.indexOf('河边散步')).toBeLessThan(ready.indexOf('阅读旅行笔记'))
+    expect(ready).not.toContain('翻到上次旅途')
+    expect(render('unknown-time')).toContain('时间未记录')
+    const history = render('ready', 'demo-event-book')
+    expect(history).toContain('value="2026-10-12"')
+    expect(history).toContain('aria-label="领域证据详情"')
+    expect(history).toContain('此事项未保存正文')
+    expect(render('missing')).not.toContain('data-record-id=')
+  })
   it('日程未读取不生成零条结论，历史引用按人物和日期定位', () => {
     const render = (previewState: SchedulePreviewState, initialSelectedId?: string) => renderToStaticMarkup(createElement(DebugScheduleCandidate, { previewState, initialSelectedId, empty: false, onRetry: () => {}, onEvidence: () => {} }))
     for (const state of ['unread', 'loading', 'unavailable', 'error'] as const) {

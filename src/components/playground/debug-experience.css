@@ -2,9 +2,9 @@
 
 /* 背景：提示词候选需要比较 Alice 的阅读比例与当前小字导航。
    意图：用隔离的文字角色检验比例，并随现有全局字号一起缩放。
-   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule 样张生效，不能影响正式控件或未施工视角。
+   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent 样张生效，不能影响正式控件或未施工视角。
    标准字号为 15px 时依次呈现标题 15、正文 14、控件 13、说明 12、技术标识 11；确认后归入基础定义。 */
-.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"]) {
+.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"]) {
   --prompt-title-size:1rem;
   --prompt-body-size:calc(1rem * 14 / 15);
   --prompt-control-size:calc(1rem * 13 / 15);
@@ -89,3 +89,35 @@
  .debug-schedule-list[data-detail-open="true"] { display:none; }
  .debug-schedule-location { display:block; margin-left:0; margin-top:2px; }
 }
+
+/* 背景：最近事项需要按事件时间扫描；意图：仅此候选采用轻行，正文与完整字段进入单事件详情。
+   约束：时间是计划时刻，未知不补猜；复用已验证的 P0 文字比例，不修改生产或未施工页面。 */
+.debug-candidate[data-perspective="recent"] .workspace-page-header h1 { font-size:var(--prompt-title-size); line-height:1.5; }
+.debug-candidate[data-perspective="recent"] .debug-candidate-nav-groups button,
+.debug-candidate[data-perspective="recent"] .debug-evidence-workbench input,
+.debug-candidate[data-perspective="recent"] .debug-evidence-workbench select,
+.debug-candidate[data-perspective="recent"] .debug-evidence-workbench button:not(.debug-recent-title) { font-size:var(--prompt-control-size); }
+.debug-candidate[data-perspective="recent"] .debug-candidate-nav-label,
+.debug-candidate[data-perspective="recent"] .debug-candidate-footer { font-size:var(--prompt-meta-size); }
+.debug-candidate[data-perspective="recent"] .debug-candidate-toolbar { gap:12px; align-items:center; flex-wrap:wrap; }
+.debug-candidate[data-perspective="recent"] .debug-focused-scope label,
+.debug-candidate[data-perspective="recent"] .debug-evidence-date { font-size:var(--prompt-caption-size); }
+.debug-candidate[data-perspective="recent"] .debug-reading-timeline { gap:0; }
+.debug-candidate[data-perspective="recent"] .debug-reading-entry { display:grid; grid-template-columns:8ch minmax(0,1fr); gap:16px; border:0; border-bottom:1px solid var(--border-subtle); background:transparent; border-radius:0; padding:12px 0; }
+.debug-recent-time { font-size:var(--prompt-caption-size); color:var(--text-secondary); line-height:1.6; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; white-space:pre-wrap; padding-top:4px; }
+.debug-recent-summary { min-width:0; }
+.debug-candidate[data-perspective="recent"] .debug-recent-title { display:block; text-align:left; white-space:normal; overflow-wrap:anywhere; padding:0; font-size:var(--prompt-body-size); font-weight:400; line-height:1.6; min-height:28px; color:var(--text-primary)!important; }
+.debug-recent-summary p { display:flex; flex-wrap:wrap; gap:4px 12px; color:var(--text-secondary); font-size:var(--prompt-caption-size); line-height:1.6; }
+.debug-recent-range { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; color:var(--text-secondary); font-size:var(--prompt-caption-size); margin:8px 0; }
+.debug-recent-state { font-size:var(--prompt-caption-size); line-height:1.6; padding:8px 0; }
+.debug-recent-state[role="alert"] { color:var(--danger); }
+.debug-recent-state button { margin-top:8px; }
+.debug-candidate[data-perspective="recent"] .debug-reading-detail { border:0; border-top:1px solid var(--border-subtle); border-radius:0; background:transparent; padding:16px 0; }
+.debug-candidate[data-perspective="recent"] .debug-reading-detail h3 { font-size:var(--prompt-title-size); line-height:1.6; overflow-wrap:anywhere; }
+.debug-candidate[data-perspective="recent"] .debug-reading-body { font-size:var(--prompt-body-size); line-height:1.75; max-width:72ch; }
+.debug-candidate[data-perspective="recent"] .debug-prompt-provenance,
+.debug-candidate[data-perspective="recent"] .debug-candidate-facts dt,
+.debug-candidate[data-perspective="recent"] .debug-candidate-section h3 { font-size:var(--prompt-caption-size); }
+.debug-candidate[data-perspective="recent"] .debug-candidate-facts dd { font-size:var(--prompt-control-size); }
+.debug-candidate[data-perspective="recent"] .debug-prompt-provenance pre,
+.debug-candidate[data-perspective="recent"] .debug-prompt-provenance code { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; }

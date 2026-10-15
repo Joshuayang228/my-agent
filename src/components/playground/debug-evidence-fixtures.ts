@@ -12,6 +12,7 @@ export interface DebugEvidenceItem {
   fields: readonly [string, string][]
   readingFields?: readonly [string, string][]
   schedule?: { time: string; activity: string; location: string }
+  event?: { scheduledAt: number | null; location?: string }
   body?: string
   assets?: readonly string[]
   callId?: string
@@ -74,11 +75,11 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
     ],
   },
   recent: {
-    unit: '事件', dateFilter: true, boundary: '生产快照最多 30 条计划 / 发布事件。以下只表示查询范围；发布日期与计划日期分开，不展示虚构完成时间。',
+    unit: '事件', dateFilter: true, boundary: '事件按计划时间倒序有界读取；当前页数量不是全量。已发布不证明活动完成，没有独立发布时间时不补猜。',
     items: [
-      item('event-reading', '阅读旅行笔记', '14:00 · 样张书房', '已发布', [['计划时间', '2026-10-13 14:00'], ['状态', 'published · 已发布'], ['动态投影', 'demo-moment-reading'], ['活动执行', '没有完成证据']], { body: '【动态样张】翻到上次旅途的笔记，准备挑几张照片做成小册子。', links: [{ page: 'links', id: 'demo-link-reading', label: '查看动态与物品关联' }] }),
-      item('event-walk', '河边散步', '19:00 · 样张河边', '计划中', [['计划时间', '2026-10-13 19:00'], ['状态', 'planned · 计划中'], ['动态投影', '尚未发布'], ['活动执行', '未记录']]),
-      item('event-book', '整理旧书', '昨天 · 样张书房', '已发布', [['计划时间', '2026-10-12 10:00'], ['状态', 'published · 已发布'], ['活动执行', '没有完成证据']], { date: '2026-10-12' }),
+      item('event-reading', '阅读旅行笔记', '14:00 · 样张书房', '已发布', [['计划时间', '2026-10-13 14:00'], ['状态', 'published · 已发布'], ['动态投影', 'demo-moment-reading'], ['活动执行', '没有完成证据']], { event: { scheduledAt: Date.parse('2026-10-13T14:00:00+08:00'), location: '样张书房' }, body: '【动态样张】翻到上次旅途的笔记，准备挑几张照片做成小册子。', links: [{ page: 'links', id: 'demo-link-reading', label: '查看动态与物品关联' }] }),
+      item('event-walk', '河边散步', '19:00 · 样张河边', '计划中', [['计划时间', '2026-10-13 19:00'], ['状态', 'planned · 计划中'], ['动态投影', '尚未发布'], ['活动执行', '未记录']], { event: { scheduledAt: Date.parse('2026-10-13T19:00:00+08:00'), location: '样张河边' } }),
+      item('event-book', '整理旧书', '昨天 · 样张书房', '已发布', [['计划时间', '2026-10-12 10:00'], ['状态', 'published · 已发布'], ['活动执行', '没有完成证据']], { date: '2026-10-12', event: { scheduledAt: Date.parse('2026-10-12T10:00:00+08:00'), location: '样张书房' } }),
     ],
   },
   activity: {
