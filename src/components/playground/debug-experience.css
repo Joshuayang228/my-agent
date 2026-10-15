@@ -2,9 +2,9 @@
 
 /* 背景：提示词候选需要比较 Alice 的阅读比例与当前小字导航。
    意图：用隔离的文字角色检验比例，并随现有全局字号一起缩放。
-   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity 样张生效，不能影响正式控件或未施工视角。
+   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now 样张生效，不能影响正式控件或未施工视角。
    标准字号为 15px 时依次呈现标题 15、正文 14、控件 13、说明 12、技术标识 11；确认后归入基础定义。 */
-.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"]) {
+.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"]) {
   --prompt-title-size:1rem;
   --prompt-body-size:calc(1rem * 14 / 15);
   --prompt-control-size:calc(1rem * 13 / 15);
@@ -126,3 +126,30 @@
    约束：不渲染虚构的 Planner 台账、成功统计或内部思考，也不改未施工页面。 */
 .debug-activity-boundary { display:flex; align-items:center; flex-wrap:wrap; gap:4px 12px; margin-bottom:16px; color:var(--text-secondary); font-size:var(--prompt-caption-size); line-height:1.6; }
 .debug-activity-boundary > div { display:flex; flex-wrap:wrap; gap:4px; }
+
+/* 背景：此刻是单人物的解析快照，不能用通用日志卡堆满数值；意图：先读活动和地点，再展开诊断。
+   约束：仅 now P0，暂停 / 回退提示不折叠，不用默认值渲染健康状态或推断当前心情。 */
+.debug-candidate[data-perspective="now"] .workspace-page-header h1 { font-size:var(--prompt-title-size); line-height:1.5; }
+.debug-candidate[data-perspective="now"] .debug-candidate-nav-groups button,
+.debug-candidate[data-perspective="now"] .debug-now-workbench button,
+.debug-candidate[data-perspective="now"] .debug-now-workbench select { font-size:var(--prompt-control-size); }
+.debug-candidate[data-perspective="now"] .debug-candidate-nav-label,
+.debug-candidate[data-perspective="now"] .debug-candidate-footer { font-size:var(--prompt-meta-size); }
+.debug-now-toolbar { margin-bottom:20px; }
+.debug-now-toolbar label { display:flex; align-items:center; gap:8px; font-size:var(--prompt-caption-size); color:var(--text-secondary); }
+.debug-now-toolbar select { min-height:32px; padding:4px 8px; }
+.debug-now-summary dl > div { display:grid; grid-template-columns:6em minmax(0,1fr); gap:12px; padding:8px 0; }
+.debug-now-summary dt { font-size:var(--prompt-caption-size); line-height:1.8; color:var(--text-secondary); }
+.debug-now-summary dd { font-size:var(--prompt-body-size); line-height:1.6; font-weight:400; overflow-wrap:anywhere; }
+.debug-now-meta { font-size:var(--prompt-caption-size); line-height:1.6; color:var(--text-secondary); margin:12px 0; overflow-wrap:anywhere; }
+.debug-now-state { font-size:var(--prompt-caption-size); line-height:1.6; padding:8px 0; }
+.debug-now-state button { margin-top:8px; }
+.debug-now-state[role="alert"] { color:var(--danger); }
+.debug-now-warning { color:var(--text-primary); font-weight:500; }
+.debug-now-detail { border-top:1px solid var(--border-subtle); margin-top:16px; padding-top:16px; }
+.debug-now-detail h3 { font-size:var(--prompt-caption-size); font-weight:500; margin:12px 0 8px; }
+.debug-now-detail .debug-candidate-facts dt { font-size:var(--prompt-caption-size); }
+.debug-now-detail .debug-candidate-facts dd { font-size:var(--prompt-control-size); }
+.debug-now-body { font-size:var(--prompt-body-size); line-height:1.75; max-width:72ch; white-space:pre-wrap; overflow-wrap:anywhere; }
+.debug-now-detail .debug-prompt-provenance { font-size:var(--prompt-caption-size); }
+.debug-now-detail pre, .debug-now-detail code { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; }

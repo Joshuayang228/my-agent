@@ -4,6 +4,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { DebugEvidenceCandidate, type EvidencePreviewState } from '../../src/components/playground/DebugEvidenceCandidate'
 import { DebugScheduleCandidate, type SchedulePreviewState } from '../../src/components/playground/DebugScheduleCandidate'
+import { DebugNowCandidate, type NowPreviewState } from '../../src/components/playground/DebugNowCandidate'
 import { DebugPromptCandidate, type PromptPreviewState } from '../../src/components/playground/DebugPromptCandidate'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES } from '../../src/components/playground/debug-experience-fixtures'
 import { DEBUG_ASSET_FIXTURES, debugAssetGroup } from '../../src/components/playground/debug-asset-fixtures'
@@ -11,6 +12,28 @@ import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, type DebugEvidencePageId } 
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('此刻不补造未读或缺失快照，数值与暂停遵守生产语义', () => {
+    const render = (previewState: NowPreviewState, empty = false, initialSelectedId?: string) => renderToStaticMarkup(createElement(DebugNowCandidate, { previewState, snapshotState: 'paused', empty, initialSelectedId, onRetry: () => {}, onPage: () => {} }))
+    for (const state of ['unread', 'loading', 'unavailable', 'error', 'missing'] as const) {
+      const html = render(state)
+      expect(html).not.toContain('debug-now-summary')
+      expect(html).not.toContain('65 · 样张值')
+      expect(html).not.toContain('正常运行')
+    }
+    expect(render('ready', true)).toContain('未补造默认世界')
+    expect(render('ready', false, 'demo-missing')).toContain('未选择替代快照')
+    expect(render('paused')).toContain('生活推进已暂停')
+    expect(render('refresh-error')).toContain('生活推进已暂停')
+    expect(render('fallback')).toContain('不代表已存世界')
+    expect(render('unset')).toContain('更新时间未记录')
+    expect(render('unset')).not.toContain('1970')
+    const expanded = render('ready', false, 'demo-now-lin')
+    expect(expanded).toContain('65 · 样张值')
+    expect(expanded).not.toContain('0.65')
+    expect(DEBUG_EVIDENCE_PAGES.now.items[0].now?.activity).toBe('整理旅行照片')
+    expect(DEBUG_EVIDENCE_PAGES.now.items[0].links).toBeUndefined()
+    expect(DEBUG_EVIDENCE_PAGES.now.items[0].relatedPages?.map(link => link.page)).toEqual(['location', 'schedule'])
+  })
   it('行为日志候选对齐现有事件源，不将 Trace 和反思伪装成主列表', () => {
     const events = getDebugEvidencePage('recent', DEBUG_RECORD_FIXTURES).items
     const activity = getDebugEvidencePage('activity', DEBUG_RECORD_FIXTURES).items

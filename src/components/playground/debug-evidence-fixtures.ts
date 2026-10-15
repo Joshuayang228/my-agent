@@ -2,6 +2,19 @@ import { tripStopSchema, type TripStopRecord } from '../../shared/world-records'
 import type { DebugPerspective, DebugRecordFixture } from './debug-experience-fixtures'
 
 export type DebugEvidencePageId = Exclude<DebugPerspective, 'assets' | 'runs' | 'system' | 'quality' | 'persona'>
+export interface DebugNowState {
+  activity: string
+  location: string
+  mood: number
+  energy: number
+  socialNeed: number
+  pausedAt: number | null
+  lastTickAt: number
+  updatedAt: number
+  timezone: string
+  catchupSummary: string
+  storedWorldIssue?: string
+}
 export interface DebugEvidenceItem {
   id: string
   title: string
@@ -13,10 +26,12 @@ export interface DebugEvidenceItem {
   readingFields?: readonly [string, string][]
   schedule?: { time: string; activity: string; location: string }
   event?: { scheduledAt: number | null; location?: string }
+  now?: DebugNowState
   body?: string
   assets?: readonly string[]
   callId?: string
   links?: readonly { page: DebugEvidencePageId; id: string; label: string }[]
+  relatedPages?: readonly { page: DebugEvidencePageId; label: string }[]
   home?: { kind: 'residence' | 'space' | 'object' | 'unset'; parentId?: string }
   travel?: { kind: 'actual' | 'planned' | 'cancelled' | 'place'; stops?: readonly TripStopRecord[] }
   category?: 'reading' | 'music' | 'film' | 'photography'
@@ -63,6 +78,20 @@ const item = (id: string, title: string, subtitle: string, status: string, field
 const scheduleItem = (id: string, time: string, activity: string, location: string, fields: DebugEvidenceItem['fields'], extra: Partial<DebugEvidenceItem> = {}) =>
   item(id, `${time} · ${activity}`, '日程计划 · 隔离样张', '计划时段', [['时间', time], ['地点', location], ...fields], { ...extra, schedule: { time, activity, location } })
 
+const NOW_STATE: DebugNowState = {
+  activity: '整理旅行照片', location: '样张书房', mood: 65, energy: 72, socialNeed: 40,
+  pausedAt: null, lastTickAt: Date.parse('2026-10-13T14:30:00+08:00'), updatedAt: Date.parse('2026-10-13T14:32:00+08:00'), timezone: 'Asia/Shanghai',
+  catchupSummary: '【离线补叙样张】午后留出一段时间整理照片。补叙是生活摘要，不是独立日记。',
+}
+export const debugNowTime = (time: number, timezone: string) => time > 0 ? new Intl.DateTimeFormat('zh-CN', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(time) : '未记录'
+// 背景：当前态摘要和诊断字段必须来自同一夹具；意图：按值派生阅读字段；约束：不根据数值生成情绪标签，0 时间不伪装成 Unix 起点。
+export const debugNowFields = (state: DebugNowState): DebugEvidenceItem['fields'] => [
+  ['活动', state.activity || '未记录'], ['当前位置', state.location || '未设定'],
+  ['情绪', `${state.mood} · 样张值`], ['能量', `${state.energy} · 样张值`], ['社交需求', `${state.socialNeed} · 样张值`],
+  ['生活暂停', state.pausedAt === null ? '否' : `是 · ${debugNowTime(state.pausedAt, state.timezone)}`],
+  ['最后推进', debugNowTime(state.lastTickAt, state.timezone)], ['世界更新时间', debugNowTime(state.updatedAt, state.timezone)], ['时区', state.timezone], ['快照性质', '当前状态，非历史请求'],
+]
+
 // 背景：正式 recent / activity 当前都读取生活事件；意图：共用一份隔离记录，避免把 Trace 或反思误当作行动台账。
 // 约束：activity 只追加显式来源跳转，不改变事件状态、时间或正文；反思与工具样张留在其真实页面。
 const LIFE_EVENT_ITEMS: readonly DebugEvidenceItem[] = [
@@ -92,7 +121,7 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
   },
   now: {
     unit: '当前快照', boundary: '此页是当前状态，非历史请求。快照的情绪与活动不能证明某次过去请求注入了什么。',
-    items: [item('now-lin', '林 · 此刻', '14:32 · 当前生活快照', '当前快照', [['活动', '整理旅行照片'], ['当前位置', '样张书房'], ['情绪', '0.65 · 样张值'], ['能量', '0.72 · 样张值'], ['社交需求', '0.40 · 样张值'], ['生活暂停', '否'], ['最后推进', '14:30'], ['快照性质', '当前状态，非历史请求']], { body: '【离线补叙样张】午后留出一段时间整理照片。补叙是生活摘要，不是独立日记。', links: [{ page: 'location', id: 'demo-location-current', label: '查看当前位置来源' }, { page: 'schedule', id: 'demo-slot-afternoon', label: '查看今日计划' }] })],
+    items: [item('now-lin', '林 · 此刻', '运行时解析快照 · 隔离样张', '当前快照', debugNowFields(NOW_STATE), { now: NOW_STATE, body: NOW_STATE.catchupSummary, relatedPages: [{ page: 'location', label: '查看位置快照' }, { page: 'schedule', label: '查看今日计划' }] })],
   },
   location: {
     unit: '当前位置', boundary: '此页只展示世界运行态位置。当前位置不证明旅行或访问历史；常去 / 想去资料和旅行记录在足迹，住所与物件在家居。',
