@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { DebugEvidenceCandidate } from '../../src/components/playground/DebugEvidenceCandidate'
+import { DebugScheduleCandidate, type SchedulePreviewState } from '../../src/components/playground/DebugScheduleCandidate'
 import { DebugPromptCandidate, type PromptPreviewState } from '../../src/components/playground/DebugPromptCandidate'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES } from '../../src/components/playground/debug-experience-fixtures'
 import { DEBUG_ASSET_FIXTURES, debugAssetGroup } from '../../src/components/playground/debug-asset-fixtures'
@@ -10,6 +11,23 @@ import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, type DebugEvidencePageId } 
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('日程未读取不生成零条结论，历史引用按人物和日期定位', () => {
+    const render = (previewState: SchedulePreviewState, initialSelectedId?: string) => renderToStaticMarkup(createElement(DebugScheduleCandidate, { previewState, initialSelectedId, empty: false, onRetry: () => {}, onEvidence: () => {} }))
+    for (const state of ['unread', 'loading', 'unavailable', 'error'] as const) {
+      const html = render(state)
+      expect(html).not.toContain('计划时段计数')
+      expect(html).not.toContain('此范围没有记录')
+      expect(html).not.toContain('data-record-id=')
+    }
+    const history = render('ready', 'demo-slot-yesterday')
+    expect(history).toContain('value="2026-10-12"')
+    expect(history).toContain('aria-label="领域证据详情"')
+    expect(history).toContain('10:00 · 整理书架')
+    expect(history).not.toContain('14:00 · 阅读旅行笔记')
+    expect(render('ready', 'demo-slot-yu')).toContain('value="yu" selected=""')
+    expect(render('ready', 'demo-missing')).not.toContain('aria-label="领域证据详情"')
+    expect(render('invalid')).toContain('没有可读取的计划时段')
+  })
   it('提示词首次未读取与局部失败不冒充成功空结果', () => {
     const render = (previewState: PromptPreviewState) => renderToStaticMarkup(createElement(DebugPromptCandidate, { previewState, empty: false, selectedKey: 'demo.prompt.main', onSelect: () => {}, records: DEBUG_RECORD_FIXTURES, onRecord: () => {} }))
     for (const state of ['unread', 'unavailable', 'loading', 'error'] as const) {

@@ -11,6 +11,7 @@ export interface DebugEvidenceItem {
   status: string
   fields: readonly [string, string][]
   readingFields?: readonly [string, string][]
+  schedule?: { time: string; activity: string; location: string }
   body?: string
   assets?: readonly string[]
   callId?: string
@@ -57,15 +58,19 @@ const READING_FIELDS: Record<string, readonly number[]> = {
 const item = (id: string, title: string, subtitle: string, status: string, fields: DebugEvidenceItem['fields'], extra: Partial<DebugEvidenceItem> = {}): DebugEvidenceItem =>
   ({ id: `demo-${id}`, title, subtitle, role: 'lin', date: TODAY, status, fields, category: CULTURE_CATEGORIES[id], readingFields: (READING_FIELDS[id] ?? []).map(index => fields[index]), ...extra, ...(id === 'profile-lin' ? { summaries: [{ title: '身份', text: fields[0][1], scope: fields[1][1] }, { title: '协作方式', text: fields[2][1], scope: fields[3][1] }, { title: '表达偏好', text: fields[4][1], scope: fields[5][1] }] } : id === 'profile-yu' ? { summaries: [{ title: '身份', text: fields[0][1], scope: 'identity + fact · 全局' }, { title: '协作方式', text: fields[1][1], scope: 'workflow · 全局 / feedback · 予' }, { title: '表达偏好', text: fields[2][1], scope: 'voice + preference · 全局' }] } : {}) })
 
+// 背景：日程阅读列不能通过拆分中文标题恢复数据；意图：同一份时段值生成标题和字段；约束：只用于隔离夹具，不生成执行状态。
+const scheduleItem = (id: string, time: string, activity: string, location: string, fields: DebugEvidenceItem['fields'], extra: Partial<DebugEvidenceItem> = {}) =>
+  item(id, `${time} · ${activity}`, '日程计划 · 隔离样张', '计划时段', [['时间', time], ['地点', location], ...fields], { ...extra, schedule: { time, activity, location } })
+
 export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage> = {
   schedule: {
     unit: '时段', dateFilter: true, boundary: '时段属于计划；事件已发布也不证明活动已完成。生产快照最多 12 个时段，完整跳过 / 重排原因尚未记录。',
     items: [
-      item('slot-morning', '09:00 · 整理旅行照片', '林 · 今日计划', '计划时段', [['时间', '09:00'], ['地点', '样张书房'], ['活动类型', '休闲'], ['情绪', '平静'], ['执行结果', '未记录'], ['时区', 'Asia/Shanghai'], ['剧本来源', 'demo-script-lin-1013 · 辅助模型样张']]),
-      item('slot-afternoon', '14:00 · 阅读旅行笔记', '林 · 今日计划', '计划时段', [['时间', '14:00'], ['地点', '样张书房'], ['活动类型', '阅读'], ['关联事件', 'demo-event-reading'], ['执行结果', '未记录'], ['时区', 'Asia/Shanghai']], { links: [{ page: 'recent', id: 'demo-event-reading', label: '查看关联生活事件' }] }),
-      item('slot-evening', '19:00 · 散步', '林 · 今日计划', '计划时段', [['时间', '19:00'], ['地点', '样张河边'], ['活动类型', '户外'], ['执行结果', '未记录'], ['时区', 'Asia/Shanghai']]),
-      item('slot-yesterday', '10:00 · 整理书架', '林 · 昨日样张', '计划时段', [['时间', '10:00'], ['地点', '样张书房'], ['执行结果', '未记录']], { date: '2026-10-12' }),
-      item('slot-yu', '11:00 · 阅读', '予 · 今日计划', '计划时段', [['时间', '11:00'], ['地点', '未设定'], ['执行结果', '未记录']], { role: 'yu' }),
+      scheduleItem('slot-morning', '09:00', '整理旅行照片', '样张书房', [['活动类型', '休闲'], ['情绪', '平静'], ['执行结果', '未记录'], ['时区', 'Asia/Shanghai'], ['剧本来源', 'demo-script-lin-1013 · 辅助模型样张']]),
+      scheduleItem('slot-afternoon', '14:00', '阅读旅行笔记', '样张书房', [['活动类型', '阅读'], ['关联事件', 'demo-event-reading'], ['执行结果', '未记录'], ['时区', 'Asia/Shanghai']], { links: [{ page: 'recent', id: 'demo-event-reading', label: '查看关联生活事件' }] }),
+      scheduleItem('slot-evening', '19:00', '散步', '样张河边', [['活动类型', '户外'], ['执行结果', '未记录'], ['时区', 'Asia/Shanghai']]),
+      scheduleItem('slot-yesterday', '10:00', '整理书架', '样张书房', [['执行结果', '未记录']], { date: '2026-10-12' }),
+      scheduleItem('slot-yu', '11:00', '阅读', '未设定', [['执行结果', '未记录']], { role: 'yu' }),
     ],
   },
   recent: {

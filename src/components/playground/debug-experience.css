@@ -2,9 +2,9 @@
 
 /* 背景：提示词候选需要比较 Alice 的阅读比例与当前小字导航。
    意图：用隔离的文字角色检验比例，并随现有全局字号一起缩放。
-   约束：这里只是 P0 profile；仅 assets 样张生效，不能影响正式控件或其他 Debug 视角。
+   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule 样张生效，不能影响正式控件或未施工视角。
    标准字号为 15px 时依次呈现标题 15、正文 14、控件 13、说明 12、技术标识 11；确认后归入基础定义。 */
-.debug-candidate[data-perspective="assets"] {
+.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"]) {
   --prompt-title-size:1rem;
   --prompt-body-size:calc(1rem * 14 / 15);
   --prompt-control-size:calc(1rem * 13 / 15);
@@ -53,3 +53,39 @@
 .debug-prompt-preview-options { position:relative; font-size:11px; }
 .debug-prompt-preview-options summary { cursor:pointer; padding:6px; }
 .debug-prompt-preview-options > label { position:absolute; right:0; top:100%; z-index:30; width:180px; padding:12px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:var(--radius-overlay); }
+
+/* 背景：日程需要按时间扫描，不能把每个时段排成字段卡；意图：复用候选文字角色，采用轻行与单条详情。
+   约束：仅 schedule P0；没有执行状态标记，长活动换行，技术字段不占默认列表。 */
+.debug-candidate[data-perspective="schedule"] .workspace-page-header h1 { font-size:var(--prompt-title-size); line-height:1.5; }
+.debug-candidate[data-perspective="schedule"] .debug-candidate-nav-groups button,
+.debug-candidate[data-perspective="schedule"] .debug-schedule-workbench button,
+.debug-candidate[data-perspective="schedule"] .debug-schedule-workbench input,
+.debug-candidate[data-perspective="schedule"] .debug-schedule-workbench select { font-size:var(--prompt-control-size); }
+.debug-candidate[data-perspective="schedule"] .debug-candidate-nav-label,
+.debug-candidate[data-perspective="schedule"] .debug-candidate-footer { font-size:var(--prompt-meta-size); }
+.debug-schedule-workbench { min-width:0; }
+.debug-schedule-toolbar { display:flex; align-items:flex-end; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+.debug-schedule-toolbar label { display:flex; flex-direction:column; gap:4px; font-size:var(--prompt-caption-size); color:var(--text-secondary); min-width:0; }
+.debug-schedule-toolbar input, .debug-schedule-toolbar select { min-height:32px; padding:4px 8px; width:100%; }
+.debug-schedule-search { flex:1; min-width:140px!important; }
+.debug-schedule-context { display:flex; justify-content:space-between; gap:12px; font-size:var(--prompt-caption-size); color:var(--text-secondary); margin-bottom:8px; }
+.debug-schedule-list > article { border-bottom:1px solid var(--border-subtle); }
+.debug-schedule-workbench .debug-schedule-row { display:flex; align-items:flex-start; justify-content:flex-start; gap:16px; width:100%; padding:10px 0; text-align:left; white-space:normal; }
+.debug-schedule-row time { flex:0 0 5ch; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; color:var(--text-secondary); font-size:var(--prompt-body-size); line-height:1.6; }
+.debug-schedule-activity { min-width:0; font-size:var(--prompt-body-size); line-height:1.6; color:var(--text-primary); overflow-wrap:anywhere; }
+.debug-schedule-location { display:inline; margin-left:12px; font-size:var(--prompt-caption-size); color:var(--text-secondary); }
+.debug-schedule-state { padding:12px 0; font-size:var(--prompt-caption-size); line-height:1.6; }
+.debug-schedule-state button { margin-top:8px; }
+.debug-schedule-state[role="alert"] { color:var(--danger); }
+.debug-schedule-boundary { font-size:var(--prompt-caption-size); color:var(--text-secondary); margin-top:16px; }
+.debug-schedule-detail { border-top:1px solid var(--border-subtle); margin-top:20px; padding-top:16px; min-width:0; }
+.debug-schedule-detail h3 { font-size:var(--prompt-title-size); font-weight:500; line-height:1.6; margin:12px 0 4px; overflow-wrap:anywhere; }
+.debug-schedule-detail > p { font-size:var(--prompt-caption-size); color:var(--text-secondary); margin-bottom:16px; }
+.debug-schedule-detail .debug-candidate-facts dt { font-size:var(--prompt-caption-size); }
+.debug-schedule-detail .debug-candidate-facts dd { font-size:var(--prompt-control-size); }
+.debug-schedule-detail .debug-prompt-provenance { font-size:var(--prompt-caption-size); }
+.debug-schedule-detail code, .debug-schedule-detail pre { font-size:var(--prompt-meta-size); overflow-wrap:anywhere; white-space:pre-wrap; }
+@media(max-width:900px) {
+ .debug-schedule-list[data-detail-open="true"] { display:none; }
+ .debug-schedule-location { display:block; margin-left:0; margin-top:2px; }
+}
