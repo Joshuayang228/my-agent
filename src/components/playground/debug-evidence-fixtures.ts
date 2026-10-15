@@ -15,6 +15,11 @@ export interface DebugNowState {
   catchupSummary: string
   storedWorldIssue?: string
 }
+export interface DebugCharacterDefinition {
+  summary: string
+  profile: { occupation?: string; agePresentation?: string; interests?: readonly string[]; [key: string]: unknown } | null
+  worldDefaults: Record<string, unknown> | null
+}
 export interface DebugEvidenceItem {
   id: string
   title: string
@@ -27,6 +32,7 @@ export interface DebugEvidenceItem {
   schedule?: { time: string; activity: string; location: string }
   event?: { scheduledAt: number | null; location?: string }
   now?: DebugNowState
+  character?: DebugCharacterDefinition
   body?: string
   assets?: readonly string[]
   callId?: string
@@ -59,7 +65,7 @@ const READING_FIELDS: Record<string, readonly number[]> = {
   'slot-morning': [1], 'slot-afternoon': [1], 'slot-evening': [1], 'slot-yesterday': [1], 'slot-yu': [1],
   'residence-home': [], 'residence-space': [3], 'item-camera': [4], 'home-unplaced': [4], 'residence-yu': [0],
   'trip-completed': [2, 4, 5], 'trip-active': [2, 4, 5], 'trip-planned': [3], 'trip-cancelled': [], 'footprint-place': [3],
-  'character-lin': [1, 2], 'character-yu': [1, 2], 'event-reading': [0], 'event-walk': [0], 'event-book': [0],
+  'character-lin': [0, 1, 2], 'character-yu': [], 'event-reading': [0], 'event-walk': [0], 'event-book': [0],
   'now-lin': [0, 1], 'location-current': [1, 2],
   'item-book': [2, 3], 'culture-music': [2, 3], 'culture-film': [2, 3], 'culture-photo': [2, 3],
   'wardrobe-shirt': [], 'wardrobe-coat': [], 'moment-reading': [1, 2],
@@ -90,6 +96,24 @@ export const debugNowFields = (state: DebugNowState): DebugEvidenceItem['fields'
   ['情绪', `${state.mood} · 样张值`], ['能量', `${state.energy} · 样张值`], ['社交需求', `${state.socialNeed} · 样张值`],
   ['生活暂停', state.pausedAt === null ? '否' : `是 · ${debugNowTime(state.pausedAt, state.timezone)}`],
   ['最后推进', debugNowTime(state.lastTickAt, state.timezone)], ['世界更新时间', debugNowTime(state.updatedAt, state.timezone)], ['时区', state.timezone], ['快照性质', '当前状态，非历史请求'],
+]
+
+const CHARACTER_LIN: DebugCharacterDefinition = {
+  summary: '【虚构人物样张】喜欢记录生活的数字伙伴，习惯先听完对方的想法，再一起整理线索。',
+  profile: {
+    schemaVersion: 1, occupation: '生活记录者 · 样张设定', agePresentation: '成年人的表达方式', birthday: '', genderPresentation: '', pronouns: '', origin: '虚构人物设定',
+    background: ['习惯用照片和短笔记记录生活'], education: [], careerHistory: [], skills: ['整理线索'], dailyRhythm: ['午后整理材料'], interests: ['摄影', '阅读'], dislikes: [], habits: ['留意细节'], flaws: ['偶尔想得太多'], socialStyle: ['先听后说'], valuesInPractice: ['分清事实与推测'],
+    lifeAnchors: [{ period: '设定阶段', title: '开始记录', summary: '学着从日常材料里寻找值得保存的线索。' }],
+    appearance: { overall: '自然简洁的虚构形象', hair: '', eyes: '', build: '', clothingStyle: '舒适朴素', distinguishingFeatures: [] },
+    favorites: { foods: [], drinks: [], music: [], books: [], activities: ['整理照片'], weather: [], colors: [] },
+    selfAwareness: '知道自己是数字伙伴，不把虚构经历冒充真实人类履历。',
+    expression: { warmth: 6, energy: 4, directness: 6, playfulness: 3, initiative: 4 },
+  },
+  worldDefaults: null,
+}
+// 背景：简介与诊断资料必须共源；意图：只从 profile 提取基础事实；约束：缺字段保持缺失，不推断真实年龄、兴趣进度或生活状态。
+export const debugCharacterFields = (definition: DebugCharacterDefinition): DebugEvidenceItem['fields'] => [
+  ['身份', definition.profile?.occupation || '未提供'], ['年龄呈现', definition.profile?.agePresentation || '未提供'], ['稳定兴趣', definition.profile?.interests?.join('、') || '未提供'],
 ]
 
 // 背景：正式 recent / activity 当前都读取生活事件；意图：共用一份隔离记录，避免把 Trace 或反思误当作行动台账。
@@ -142,8 +166,8 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
   character: {
     unit: '人物资料', boundary: '这是伙伴人物档案，区别于用户画像。稳定身份、结构化 profile 和成长覆盖分开；兴趣不等于动态进度，人物资料不是实时生活状态。',
     items: [
-      item('character-lin', '林 · 人物档案', 'Role Pack · 稳定资料', '人物资料', [['来源', 'manifest / profile / characterProfile'], ['身份', '喜欢记录生活的数字伙伴 · 样张'], ['稳定兴趣', '摄影、阅读 · 样张'], ['人物资料版本', '样张 v2'], ['动态兴趣进度', '未实现']], { assets: ['demo.role.lin', 'demo.prompt.identity'], links: [{ page: 'growth', id: 'demo-growth-cover', label: '查看独立成长覆盖' }, { page: 'items', id: 'demo-item-book', label: '查看实际阅读记录' }] }),
-      item('character-yu', '予 · 人物档案', 'Role Pack · 资料不完整', '资料缺失', [['来源', 'manifest'], ['人物详细档案', '未提供'], ['稳定兴趣', '未提供']], { role: 'yu', assets: ['demo.role.yu'] }),
+      item('character-lin', '林 · 人物档案', 'Role Pack · 稳定资料', '人物资料', debugCharacterFields(CHARACTER_LIN), { character: CHARACTER_LIN, assets: ['demo.role.lin', 'demo.prompt.identity'], relatedPages: [{ page: 'growth', label: '查看成长与反思' }, { page: 'items', label: '查看文化记录' }] }),
+      item('character-yu', '予 · 人物档案', 'Role Pack · 资料不完整', '资料缺失', [['人物详细档案', '未提供']], { role: 'yu', character: { summary: '【虚构人物样张】予的简介已提供，详细人物资料仍待补充。', profile: null, worldDefaults: null }, assets: ['demo.role.yu'] }),
     ],
   },
   growth: {

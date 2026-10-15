@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { DebugEvidenceCandidate, type EvidencePreviewState } from '../../src/components/playground/DebugEvidenceCandidate'
 import { DebugScheduleCandidate, type SchedulePreviewState } from '../../src/components/playground/DebugScheduleCandidate'
 import { DebugNowCandidate, type NowPreviewState } from '../../src/components/playground/DebugNowCandidate'
+import { DebugCharacterCandidate, type CharacterPreviewState } from '../../src/components/playground/DebugCharacterCandidate'
 import { DebugPromptCandidate, type PromptPreviewState } from '../../src/components/playground/DebugPromptCandidate'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES } from '../../src/components/playground/debug-experience-fixtures'
 import { DEBUG_ASSET_FIXTURES, debugAssetGroup } from '../../src/components/playground/debug-asset-fixtures'
@@ -12,6 +13,30 @@ import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, type DebugEvidencePageId } 
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('人物定义缺口、读取失败与历史证据分开，长文和未知字段不丢失', () => {
+    const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.character)
+    const render = (previewState: CharacterPreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugCharacterCandidate, { previewState, snapshotState: 'partial', initialSelectedId, empty, onRetry: () => {}, onAsset: () => {}, onPage: () => {} }))
+    for (const state of ['unread', 'loading', 'unavailable', 'error', 'missing'] as const) {
+      expect(render(state)).not.toContain('data-record-id=')
+      expect(render(state)).not.toContain('0 条')
+      expect(render(state)).not.toContain('未补造人物设定')
+    }
+    expect(render('ready', undefined, true)).toContain('未补造人物设定')
+    expect(render('ready', 'demo-not-found')).toContain('未选择替代人物')
+    expect(render('ready', 'demo-character-yu')).toContain('详细人物资料未提供')
+    expect(render('empty-profile')).toContain('已读取空资料结构')
+    expect(render('partial')).toContain('未提供')
+    expect(render('refresh-error', 'demo-character-lin')).toContain('保留上次资料')
+    expect(render('refresh-error', 'demo-character-lin')).not.toContain('生活记录者 · 样张设定')
+    const long = render('long', 'demo-character-lin')
+    expect(long).toContain('完整简介')
+    expect(long).toContain('额外资料字段也完整保留')
+    expect(long).toContain('不是当前心情或模型参数')
+    expect(long).not.toContain('查看实际阅读记录')
+    expect(JSON.stringify(DEBUG_EVIDENCE_PAGES.character)).toBe(before)
+    expect(DEBUG_EVIDENCE_PAGES.character.items[0].links).toBeUndefined()
+    expect(DEBUG_EVIDENCE_PAGES.character.items[0].relatedPages?.map(value => value.page)).toEqual(['growth', 'items'])
+  })
   it('此刻不补造未读或缺失快照，数值与暂停遵守生产语义', () => {
     const render = (previewState: NowPreviewState, empty = false, initialSelectedId?: string) => renderToStaticMarkup(createElement(DebugNowCandidate, { previewState, snapshotState: 'paused', empty, initialSelectedId, onRetry: () => {}, onPage: () => {} }))
     for (const state of ['unread', 'loading', 'unavailable', 'error', 'missing'] as const) {
