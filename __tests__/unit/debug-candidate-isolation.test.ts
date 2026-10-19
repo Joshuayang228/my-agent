@@ -8,13 +8,40 @@ import { DebugNowCandidate, type NowPreviewState } from '../../src/components/pl
 import { DebugCharacterCandidate, type CharacterPreviewState } from '../../src/components/playground/DebugCharacterCandidate'
 import { DebugLocationCandidate, type LocationPreviewState } from '../../src/components/playground/DebugLocationCandidate'
 import { DebugResidenceCandidate, type ResidencePreviewState } from '../../src/components/playground/DebugResidenceCandidate'
+import { DebugFootprintsCandidate, type FootprintsPreviewState } from '../../src/components/playground/DebugFootprintsCandidate'
+import { worldRecordConsistencyError } from '../../src/shared/world-records'
 import { DebugPromptCandidate, type PromptPreviewState } from '../../src/components/playground/DebugPromptCandidate'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES } from '../../src/components/playground/debug-experience-fixtures'
 import { DEBUG_ASSET_FIXTURES, debugAssetGroup } from '../../src/components/playground/debug-asset-fixtures'
-import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, type DebugEvidencePageId } from '../../src/components/playground/debug-evidence-fixtures'
+import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, debugTravelKind, type DebugEvidencePageId } from '../../src/components/playground/debug-evidence-fixtures'
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('足迹按明确状态分组，不把创建日、缺日期或未知状态当到访证据', () => {
+    const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.footprints)
+    const render = (previewState: FootprintsPreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugFootprintsCandidate, { previewState, snapshotState: 'undated', initialSelectedId, empty, onRetry: () => {}, onAsset: () => {}, onPage: () => {} }))
+    for (const state of ['unread', 'loading', 'unavailable', 'error'] as const) {
+      expect(render(state)).not.toContain('data-record-id=')
+      expect(render(state)).not.toContain('项已读')
+    }
+    expect(render('ready', undefined, true)).toContain('不推断人物从未到访')
+    expect(render('missing', 'demo-not-found')).not.toContain('aria-label="领域证据详情"')
+    expect(render('unknown')).toContain('旅行状态未识别')
+    expect(render('undated')).toContain('资料不完整')
+    expect(debugTravelKind({ recordType: 'trip', status: 'future-status' })).toBe('unknown')
+    expect(debugTravelKind({ recordType: 'trip' })).toBe('unknown')
+    expect(debugTravelKind({ recordType: 'place', status: 'completed' })).toBe('place')
+    expect(render('undated')).not.toContain('2026-10-13')
+    expect(render('refresh-error', 'demo-trip-completed')).toContain('日期未提供')
+    expect(render('long', 'demo-trip-completed')).toContain('停留长文样张')
+    expect(render('ready')).not.toContain('停留经历样张')
+    expect(DEBUG_EVIDENCE_PAGES.footprints.items[0].body).not.toContain('停留经历样张')
+    expect(JSON.stringify(DEBUG_EVIDENCE_PAGES.footprints)).toBe(before)
+    for (const entry of DEBUG_EVIDENCE_PAGES.footprints.items) {
+      expect(entry.fields).toContainEqual(['资产', entry.id])
+      expect(worldRecordConsistencyError('footprint', entry.travel ?? {})).toBeNull()
+    }
+  })
   it('家居只按已读显式关系组织，未知陈列和父级不补造，样张资产 ID 一致', () => {
     const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.residence)
     const render = (previewState: ResidencePreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugResidenceCandidate, { previewState, snapshotState: 'orphan', initialSelectedId, empty, onRetry: () => {}, onAsset: () => {}, onPage: () => {}, onEvidence: () => {} }))

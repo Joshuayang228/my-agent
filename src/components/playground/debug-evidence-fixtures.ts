@@ -49,7 +49,7 @@ export interface DebugEvidenceItem {
   links?: readonly { page: DebugEvidencePageId; id: string; label: string }[]
   relatedPages?: readonly { page: DebugEvidencePageId; label: string }[]
   home?: { kind: 'residence' | 'space' | 'object' | 'unset'; parentId?: string; description?: string; displayInHome?: boolean; displayReason?: string; displayEvidence?: readonly string[]; originNote?: string }
-  travel?: { kind: 'actual' | 'planned' | 'cancelled' | 'place'; stops?: readonly TripStopRecord[] }
+  travel?: { kind: 'actual' | 'planned' | 'cancelled' | 'place' | 'unknown'; recordType: 'trip' | 'place'; status?: string; destination?: string; start?: string; end?: string; story?: string; stops?: readonly TripStopRecord[] }
   category?: 'reading' | 'music' | 'film' | 'photography'
   stages?: DebugRecordFixture['stages']
   summaries?: readonly { title: string; text: string; scope: string }[]
@@ -74,7 +74,7 @@ const CULTURE_CATEGORIES: Record<string, NonNullable<DebugEvidenceItem['category
 const READING_FIELDS: Record<string, readonly number[]> = {
   'slot-morning': [1], 'slot-afternoon': [1], 'slot-evening': [1], 'slot-yesterday': [1], 'slot-yu': [1],
   'residence-home': [], 'residence-space': [], 'item-camera': [], 'home-unplaced': [],
-  'trip-completed': [2, 4, 5], 'trip-active': [2, 4, 5], 'trip-planned': [3], 'trip-cancelled': [], 'footprint-place': [3],
+  'trip-completed': [], 'trip-active': [], 'trip-planned': [], 'trip-cancelled': [], 'footprint-place': [],
   'character-lin': [0, 1, 2], 'character-yu': [], 'event-reading': [0], 'event-walk': [0], 'event-book': [0],
   'now-lin': [0, 1], 'location-current': [0, 1, 2],
   'item-book': [2, 3], 'culture-music': [2, 3], 'culture-film': [2, 3], 'culture-photo': [2, 3],
@@ -157,6 +157,24 @@ function homeItem(id: string, title: string, home: NonNullable<DebugEvidenceItem
   return item(id, title, 'companion_assets · 隔离样张', '已有记录', debugHomeFields({ id: `demo-${id}`, home }), { ...extra, home, body: home.description })
 }
 
+// 背景：旧地点与旅行状态不能通过中文标题推断；意图：由真实结构字段派生分组和阅读字段；约束：未知状态不默认为已出发，创建日期不充当到访日期。
+export function debugTravelKind(travel: Pick<NonNullable<DebugEvidenceItem['travel']>, 'recordType' | 'status'>): NonNullable<DebugEvidenceItem['travel']>['kind'] {
+  return travel.recordType === 'place' ? 'place' : travel.status === 'active' || travel.status === 'completed' ? 'actual' : travel.status === 'planned' ? 'planned' : travel.status === 'cancelled' ? 'cancelled' : 'unknown'
+}
+export function debugTravelFields(entry: Pick<DebugEvidenceItem, 'id' | 'travel'>): DebugEvidenceItem['fields'] {
+  const travel = entry.travel
+  if (!travel) return []
+  return [
+    ['资产', entry.id], ['记录类型', travel.recordType], ['目的地', travel.destination || '未提供'],
+    ...(travel.recordType === 'trip' ? [['旅行状态', travel.status || '未记录'], ['开始日期', travel.start || '未提供'], ['结束日期', travel.end || '未提供'], ['正式足迹展示', debugTravelKind(travel) === 'actual' ? '纳入实际旅行' : '不纳入实际旅行']] as [string, string][] : [['地点状态', travel.status || '未记录'], ['访问日期', '未记录'], ['正式旅行展示', '不自动转换为旅行']] as [string, string][]),
+    ['停留记录', travel.stops?.map(stop => stop.id).join('、') || '未提供'],
+  ]
+}
+function tripItem(id: string, title: string, data: Omit<NonNullable<DebugEvidenceItem['travel']>, 'kind'>, extra: Partial<DebugEvidenceItem> = {}): DebugEvidenceItem {
+  const travel = { ...data, kind: debugTravelKind(data) }
+  return item(id, title, 'companion_assets footprint · 隔离样张', '旅行资料', debugTravelFields({ id: `demo-${id}`, travel }), { ...extra, travel, body: travel.story })
+}
+
 // 背景：正式 recent / activity 当前都读取生活事件；意图：共用一份隔离记录，避免把 Trace 或反思误当作行动台账。
 // 约束：activity 只追加显式来源跳转，不改变事件状态、时间或正文；反思与工具样张留在其真实页面。
 const LIFE_EVENT_ITEMS: readonly DebugEvidenceItem[] = [
@@ -220,11 +238,11 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
   footprints: {
     unit: '足迹记录', boundary: '实际旅行展示仅含 active / completed；Debug 同时解释计划、取消与旧地点记录。计划不等于出发，播种 / 创建时间不作为访问日期，旧地点不自动转换为旅行。',
     items: [
-      item('trip-completed', '河边旅行', 'footprint · trip', '已结束旅行', [['资产', 'demo-trip-river'], ['记录类型', 'trip'], ['目的地', '样张河畔小镇'], ['旅行状态', 'completed'], ['开始日期', '2026-10-10'], ['结束日期', '2026-10-11'], ['正式足迹展示', '纳入实际旅行'], ['停留记录', 'demo-stop-river · 河边步道 · 2026-10-10']], { travel: { kind: 'actual', stops: [tripStopSchema.parse({ id: 'demo-stop-river', name: '河边步道', date: '2026-10-10', story: '【停留经历样张】在河边步道整理照片。' })] }, body: '【旅行经历样张】沿河边走了一段，记录了步道的光线。\n【停留经历样张】在河边步道整理照片。' }),
-      item('trip-active', '山间旅行', 'footprint · trip', '旅行中', [['资产', 'demo-trip-mountain'], ['记录类型', 'trip'], ['目的地', '样张山间'], ['旅行状态', 'active'], ['开始日期', '2026-10-13'], ['结束日期', '未提供'], ['正式足迹展示', '纳入实际旅行'], ['停留记录', '未提供']], { travel: { kind: 'actual' } }),
-      item('trip-planned', '海边旅行计划', 'footprint · trip', '未出发', [['资产', 'demo-trip-coast'], ['记录类型', 'trip'], ['旅行状态', 'planned'], ['开始日期', '未提供'], ['正式足迹展示', '不纳入实际旅行']], { travel: { kind: 'planned' } }),
-      item('trip-cancelled', '取消的出行', 'footprint · trip', '已取消', [['资产', 'demo-trip-cancelled'], ['记录类型', 'trip'], ['旅行状态', 'cancelled'], ['正式足迹展示', '不纳入实际旅行']], { travel: { kind: 'cancelled' } }),
-      item('footprint-place', '旧地点 · 样张河边', 'footprint · place', '常去资料', [['资产', 'demo-place-river'], ['记录类型', 'place'], ['地点状态', 'favorite'], ['访问日期', '未记录'], ['正式旅行展示', '不自动转换为旅行']], { travel: { kind: 'place' }, assets: ['demo.world.lin'] }),
+      tripItem('trip-completed', '河边旅行', { recordType: 'trip', destination: '样张河畔小镇', status: 'completed', start: '2026-10-10', end: '2026-10-11', story: '【旅行经历样张】沿河边走了一段，记录了步道的光线。', stops: [tripStopSchema.parse({ id: 'demo-stop-river', name: '河边步道', date: '2026-10-10', story: '【停留经历样张】在河边步道整理照片。' })] }),
+      tripItem('trip-active', '山间旅行', { recordType: 'trip', status: 'active', destination: '样张山间', start: '2026-10-13' }),
+      tripItem('trip-planned', '海边旅行计划', { recordType: 'trip', status: 'planned', destination: '样张海边' }),
+      tripItem('trip-cancelled', '取消的出行', { recordType: 'trip', status: 'cancelled', destination: '样张旧城' }),
+      tripItem('footprint-place', '旧地点 · 样张河边', { recordType: 'place', status: 'favorite', destination: '样张河边' }, { assets: ['demo.world.lin'], relatedPages: [{ page: 'location', label: '查看当前位置' }] }),
     ],
   },
   moments: {

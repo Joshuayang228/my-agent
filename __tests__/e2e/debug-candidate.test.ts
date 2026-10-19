@@ -166,7 +166,9 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await panel.getByRole('navigation').getByRole('button', { name: '家居', exact: true }).click()
     await expect(panel.getByRole('navigation').getByRole('button', { name: '家居', exact: true })).toHaveCSS('font-size', '13px')
     await panel.getByRole('navigation').getByRole('button', { name: '足迹', exact: true }).click()
-    await expect(panel.getByRole('navigation').getByRole('button', { name: '足迹', exact: true })).toHaveCSS('font-size', '11px')
+    await expect(panel.getByRole('navigation').getByRole('button', { name: '足迹', exact: true })).toHaveCSS('font-size', '13px')
+    await panel.getByRole('navigation').getByRole('button', { name: '成长与反思', exact: true }).click()
+    await expect(panel.getByRole('navigation').getByRole('button', { name: '成长与反思', exact: true })).toHaveCSS('font-size', '11px')
   })
 }
 
@@ -487,7 +489,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) {
     await panel.getByRole('button', { name: /旧地点/ }).click()
     await expect(detail).toContainText('访问日期未记录')
     await panel.getByRole('combobox', { name: '诊断人物' }).selectOption('yu')
-    await expect(panel).toContainText('没有匹配的证据')
+    await expect(panel).toContainText('没有已读取足迹资产')
     await nav.getByRole('button', { name: '用户画像', exact: true }).click()
     await panel.getByRole('button', { name: /用户画像 · 林调用范围/ }).click()
     await expect(detail).toContainText('workflow · 全局 / feedback · 林')
@@ -550,6 +552,8 @@ for (const theme of ['porcelain-blue', 'yao-stone']) {
     await page.screenshot({ path: info.outputPath('debug-reading-home.png') })
     await nav.getByRole('button', { name: '足迹', exact: true }).click()
     await expect(panel.getByRole('heading', { name: /实际旅行 · 2/ })).toBeVisible()
+    await expect(panel.locator('[data-record-id="demo-trip-completed"]')).toContainText('2026-10-10')
+    await panel.getByRole('button', { name: '河边旅行', exact: true }).click()
     await expect(panel.getByText('2026-10-10 · 河边步道', { exact: true })).toBeVisible()
     await page.screenshot({ path: info.outputPath('debug-reading-travel.png') })
     await page.setViewportSize({ width: 600, height: 704 })
