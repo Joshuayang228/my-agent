@@ -48,7 +48,7 @@ export interface DebugEvidenceItem {
   callId?: string
   links?: readonly { page: DebugEvidencePageId; id: string; label: string }[]
   relatedPages?: readonly { page: DebugEvidencePageId; label: string }[]
-  home?: { kind: 'residence' | 'space' | 'object' | 'unset'; parentId?: string }
+  home?: { kind: 'residence' | 'space' | 'object' | 'unset'; parentId?: string; description?: string; displayInHome?: boolean; displayReason?: string; displayEvidence?: readonly string[]; originNote?: string }
   travel?: { kind: 'actual' | 'planned' | 'cancelled' | 'place'; stops?: readonly TripStopRecord[] }
   category?: 'reading' | 'music' | 'film' | 'photography'
   stages?: DebugRecordFixture['stages']
@@ -73,7 +73,7 @@ const TODAY = '2026-10-13'
 const CULTURE_CATEGORIES: Record<string, NonNullable<DebugEvidenceItem['category']>> = { 'item-book': 'reading', 'culture-music': 'music', 'culture-film': 'film', 'culture-photo': 'photography' }
 const READING_FIELDS: Record<string, readonly number[]> = {
   'slot-morning': [1], 'slot-afternoon': [1], 'slot-evening': [1], 'slot-yesterday': [1], 'slot-yu': [1],
-  'residence-home': [], 'residence-space': [3], 'item-camera': [4], 'home-unplaced': [4], 'residence-yu': [0],
+  'residence-home': [], 'residence-space': [], 'item-camera': [], 'home-unplaced': [],
   'trip-completed': [2, 4, 5], 'trip-active': [2, 4, 5], 'trip-planned': [3], 'trip-cancelled': [], 'footprint-place': [3],
   'character-lin': [0, 1, 2], 'character-yu': [], 'event-reading': [0], 'event-walk': [0], 'event-book': [0],
   'now-lin': [0, 1], 'location-current': [0, 1, 2],
@@ -142,6 +142,21 @@ export const debugLocationFields = (state: DebugLocationState): DebugEvidenceIte
   ['世界更新时间', debugNowTime(state.updatedAt, state.timezone)], ['时区', state.timezone], ['来源', 'companion_role_state · codec 解析快照'], ['移动原因', '未记录'],
 ]
 
+// 背景：家居展示与完整字段不能各维护一份关系；意图：从结构化样张生成同源字段；约束：资产 ID 与记录 ID 一致，未记录陈列标记不能当 false。
+export const debugHomeFields = (entry: Pick<DebugEvidenceItem, 'id' | 'home'>): DebugEvidenceItem['fields'] => {
+  const home = entry.home
+  if (!home) return []
+  return [
+    ['资产', entry.id], [home.kind === 'object' ? '类型' : '记录类型', home.kind === 'object' ? 'furniture' : home.kind],
+    ...(home.kind === 'space' ? [['所属住所', home.parentId || '未提供']] as [string, string][] : []),
+    ...(home.kind === 'object' ? [['空间', home.parentId || '未归置'], ['家居展示', home.displayInHome === undefined ? '未记录' : `displayInHome = ${home.displayInHome}`], ['展示理由', home.displayReason || '未提供'], ['展示依据', home.displayEvidence?.join('、') || '未提供'], ['来源说明', home.originNote || '未提供']] as [string, string][] : []),
+    ['描述', home.description || '未提供'],
+  ]
+}
+function homeItem(id: string, title: string, home: NonNullable<DebugEvidenceItem['home']>, extra: Partial<DebugEvidenceItem> = {}): DebugEvidenceItem {
+  return item(id, title, 'companion_assets · 隔离样张', '已有记录', debugHomeFields({ id: `demo-${id}`, home }), { ...extra, home, body: home.description })
+}
+
 // 背景：正式 recent / activity 当前都读取生活事件；意图：共用一份隔离记录，避免把 Trace 或反思误当作行动台账。
 // 约束：activity 只追加显式来源跳转，不改变事件状态、时间或正文；反思与工具样张留在其真实页面。
 const LIFE_EVENT_ITEMS: readonly DebugEvidenceItem[] = [
@@ -182,11 +197,10 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
   residence: {
     unit: '家居记录', boundary: '住所、空间与物件分别追踪，按人物归属和 spaceId 关联；展示决定须有显式理由与依据。未设定不填默认公寓，浏览不播种资产。',
     items: [
-      item('residence-home', '住所 · 样张住所', 'home · residence', '已设定', [['资产', 'demo-home-lin'], ['记录类型', 'residence'], ['默认居所', '样张住所'], ['运行态居所', '样张住所'], ['搬迁状态', '未实现']], { home: { kind: 'residence' }, assets: ['demo.world.lin'], body: '【住所样张】一间书房与生活区。仅为验收的虚构设定。' }),
-      item('residence-space', '空间 · 样张书房', 'home · space', '已有记录', [['资产', 'demo-space-study'], ['记录类型', 'space'], ['所属住所', 'demo-home-lin'], ['描述', '靠窗的书桌与书架 · 样张']], { home: { kind: 'space', parentId: 'demo-residence-home' }, links: [{ page: 'residence', id: 'demo-residence-home', label: '查看所属住所' }] }),
-      item('item-camera', '小相机', '生活物件 · 家居', '明确展示', [['资产', 'demo-owned-camera'], ['类型', 'furniture'], ['空间', 'demo-space-study'], ['家居展示', 'displayInHome = true'], ['展示理由', '日常整理旅行照片使用 · 样张'], ['展示依据', 'demo-event-reading'], ['来源说明', '阅读事件关联物件 · 样张'], ['实际购买日期', '未记录']], { home: { kind: 'object', parentId: 'demo-residence-space' }, links: [{ page: 'residence', id: 'demo-residence-space', label: '查看所属空间' }, { page: 'links', id: 'demo-link-reading', label: '查看关联生活事件' }] }),
-      item('home-unplaced', '备用收纳盒', '生活物件 · 未归置', '未展示', [['资产', 'demo-owned-box'], ['类型', 'furniture'], ['空间', '未归置'], ['家居展示', 'displayInHome = false'], ['展示理由', '尚无陈列依据 · 样张'], ['展示依据', '未提供']], { home: { kind: 'object' } }),
-      item('residence-yu', '予 · 居所未设定', '没有 world.default', '未设定', [['默认居所', '未设定'], ['运行态居所', '未设定'], ['家具', '没有已提供记录']], { home: { kind: 'unset' }, role: 'yu' }),
+      homeItem('residence-home', '住所 · 样张住所', { kind: 'residence', description: '【住所样张】一间书房与生活区。仅为验收的虚构设定。' }, { assets: ['demo.world.lin'], relatedPages: [{ page: 'character', label: '查看人物定义' }, { page: 'location', label: '查看当前位置' }] }),
+      homeItem('residence-space', '空间 · 样张书房', { kind: 'space', parentId: 'demo-residence-home', description: '靠窗的书桌与书架 · 样张' }, { links: [{ page: 'residence', id: 'demo-residence-home', label: '查看所属住所' }] }),
+      homeItem('item-camera', '小相机', { kind: 'object', parentId: 'demo-residence-space', displayInHome: true, displayReason: '日常整理旅行照片使用 · 样张', displayEvidence: ['demo-event-reading'], originNote: '阅读事件关联物件 · 样张' }, { links: [{ page: 'residence', id: 'demo-residence-space', label: '查看所属空间' }, { page: 'links', id: 'demo-link-reading', label: '查看关联生活事件' }] }),
+      homeItem('home-unplaced', '备用收纳盒', { kind: 'object', displayInHome: false, displayReason: '尚无陈列依据 · 样张' }),
     ],
   },
   character: {
@@ -246,7 +260,7 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
   },
   links: {
     unit: '事件关联', boundary: '只使用显式 source_event_id 与 event_links，不按名称或时间拼接；发布时刻不代表物品购买或活动完成时刻。',
-    items: [item('link-reading', '阅读事件 → 动态与物品', 'demo-event-reading', '显式关联', [['事件', 'demo-event-reading'], ['动态', 'demo-moment-reading'], ['物品', 'demo-owned-camera'], ['衣物', 'demo-owned-coat'], ['图片', '样张未提供'], ['关联来源', 'source_event_id / companion_event_links']], { links: [{ page: 'recent', id: 'demo-event-reading', label: '查看生活事件' }, { page: 'moments', id: 'demo-moment-reading', label: '查看已发布动态' }, { page: 'residence', id: 'demo-item-camera', label: '查看关联物品' }, { page: 'wardrobe', id: 'demo-wardrobe-coat', label: '查看关联衣物' }] })],
+    items: [item('link-reading', '阅读事件 → 动态与物品', 'demo-event-reading', '显式关联', [['事件', 'demo-event-reading'], ['动态', 'demo-moment-reading'], ['物品', 'demo-item-camera'], ['衣物', 'demo-owned-coat'], ['图片', '样张未提供'], ['关联来源', 'source_event_id / companion_event_links']], { links: [{ page: 'recent', id: 'demo-event-reading', label: '查看生活事件' }, { page: 'moments', id: 'demo-moment-reading', label: '查看已发布动态' }, { page: 'residence', id: 'demo-item-camera', label: '查看关联物品' }, { page: 'wardrobe', id: 'demo-wardrobe-coat', label: '查看关联衣物' }] })],
   },
   context: {
     unit: '上下文证据', boundary: '当前装配预览不能还原历史实发正文。六个语义模块来自我们的编译架构，生活、用户数据与稳定身份独立注入。',

@@ -2,9 +2,9 @@
 
 /* 背景：提示词候选需要比较 Alice 的阅读比例与当前小字导航。
    意图：用隔离的文字角色检验比例，并随现有全局字号一起缩放。
-   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character / location 样张生效，不能影响正式控件或未施工视角。
+   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character / location / residence 样张生效，不能影响正式控件或未施工视角。
    标准字号为 15px 时依次呈现标题 15、正文 14、控件 13、说明 12、技术标识 11；确认后归入基础定义。 */
-.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"]) {
+.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"]) {
   --prompt-title-size:1rem;
   --prompt-body-size:calc(1rem * 14 / 15);
   --prompt-control-size:calc(1rem * 13 / 15);
@@ -213,3 +213,40 @@
 .debug-location-detail .debug-prompt-provenance { font-size:var(--prompt-caption-size); }
 .debug-location-detail pre, .debug-location-detail code { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; }
 .debug-location-related { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+
+/* 背景：家居关系需要可扫描的层级，重卡片会挤压资产名称；意图：用轻分隔与缩进显示明确归属。
+   约束：仅 residence P0，隐藏陈列仍可诊断，窄屏不增加独立内滚动或改变未施工页。 */
+.debug-candidate[data-perspective="residence"] { --text-secondary:color-mix(in srgb,var(--text-primary) 78%,var(--bg-primary)); }
+.debug-candidate[data-perspective="residence"] .workspace-page-header h1 { font-size:var(--prompt-title-size); line-height:1.5; }
+.debug-candidate[data-perspective="residence"] .debug-candidate-nav-groups button,
+.debug-candidate[data-perspective="residence"] .debug-home-workbench button:not(.debug-home-name),
+.debug-candidate[data-perspective="residence"] .debug-home-workbench select,
+.debug-candidate[data-perspective="residence"] .debug-home-workbench input { font-size:var(--prompt-control-size); }
+.debug-candidate[data-perspective="residence"] .debug-candidate-nav-label,
+.debug-candidate[data-perspective="residence"] .debug-candidate-footer { font-size:var(--prompt-meta-size); }
+.debug-home-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px; }
+.debug-home-toolbar > label { display:flex; align-items:center; gap:8px; color:var(--text-secondary); font-size:var(--prompt-caption-size); }
+.debug-home-toolbar select { min-height:32px; padding:4px 8px; }
+.debug-home-search { flex:1; min-width:min(100%,200px); }
+.debug-home-search input { min-width:0; }
+.debug-home-range { color:var(--text-secondary); font-size:var(--prompt-caption-size); line-height:1.6; margin-bottom:8px; }
+.debug-home-entry { padding:10px 0; border-bottom:1px solid var(--border-subtle); min-width:0; }
+.debug-candidate[data-perspective="residence"] .debug-home-name { padding:0; display:block; text-align:left; font-size:var(--prompt-body-size); font-weight:400; line-height:1.6; white-space:normal; overflow-wrap:anywhere; color:var(--text-primary); }
+.debug-home-residence > .debug-home-entry .debug-home-name { font-weight:500; }
+.debug-home-space { margin-left:16px; }
+.debug-home-objects { margin-left:16px; }
+.debug-home-description { font-size:var(--prompt-control-size); line-height:1.7; color:var(--text-secondary); overflow-wrap:anywhere; max-width:72ch; margin-top:4px; }
+.debug-home-meta { display:flex; flex-wrap:wrap; gap:4px 12px; color:var(--text-secondary); font-size:var(--prompt-caption-size); line-height:1.6; }
+.debug-home-list h3 { font-size:var(--prompt-caption-size); color:var(--text-secondary); font-weight:500; margin:16px 0 4px; }
+.debug-home-state { font-size:var(--prompt-caption-size); line-height:1.6; padding:8px 0; color:var(--text-primary); }
+.debug-home-state button { margin-top:8px; }
+.debug-home-state[role="alert"] { color:var(--danger); }
+.debug-home-detail { border-top:1px solid var(--border-subtle); margin-top:20px; padding-top:12px; scroll-margin-top:12px; }
+.debug-home-detail h3 { font-size:var(--prompt-title-size); line-height:1.6; font-weight:500; margin:12px 0; overflow-wrap:anywhere; }
+.debug-home-body { font-size:var(--prompt-body-size); line-height:1.75; white-space:pre-wrap; overflow-wrap:anywhere; max-width:72ch; }
+.debug-home-detail .debug-candidate-facts { margin-top:12px; }
+.debug-home-detail .debug-candidate-facts dt { font-size:var(--prompt-caption-size); }
+.debug-home-detail .debug-candidate-facts dd { font-size:var(--prompt-control-size); white-space:pre-wrap; }
+.debug-home-related { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+.debug-home-detail .debug-prompt-provenance { font-size:var(--prompt-caption-size); }
+.debug-home-detail pre, .debug-home-detail code { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; }

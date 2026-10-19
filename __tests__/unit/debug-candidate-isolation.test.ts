@@ -7,6 +7,7 @@ import { DebugScheduleCandidate, type SchedulePreviewState } from '../../src/com
 import { DebugNowCandidate, type NowPreviewState } from '../../src/components/playground/DebugNowCandidate'
 import { DebugCharacterCandidate, type CharacterPreviewState } from '../../src/components/playground/DebugCharacterCandidate'
 import { DebugLocationCandidate, type LocationPreviewState } from '../../src/components/playground/DebugLocationCandidate'
+import { DebugResidenceCandidate, type ResidencePreviewState } from '../../src/components/playground/DebugResidenceCandidate'
 import { DebugPromptCandidate, type PromptPreviewState } from '../../src/components/playground/DebugPromptCandidate'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES } from '../../src/components/playground/debug-experience-fixtures'
 import { DEBUG_ASSET_FIXTURES, debugAssetGroup } from '../../src/components/playground/debug-asset-fixtures'
@@ -14,6 +15,27 @@ import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, type DebugEvidencePageId } 
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('家居只按已读显式关系组织，未知陈列和父级不补造，样张资产 ID 一致', () => {
+    const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.residence)
+    const render = (previewState: ResidencePreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugResidenceCandidate, { previewState, snapshotState: 'orphan', initialSelectedId, empty, onRetry: () => {}, onAsset: () => {}, onPage: () => {}, onEvidence: () => {} }))
+    for (const state of ['unread', 'loading', 'unavailable', 'error'] as const) {
+      expect(render(state)).not.toContain('data-record-id=')
+      expect(render(state)).not.toContain('项已读')
+    }
+    expect(render('ready', undefined, true)).toContain('不推断默认住所')
+    expect(render('ready', 'demo-not-found')).toContain('未选择替代记录')
+    expect(render('orphan')).toContain('父级未在当前已读范围')
+    expect(render('refresh-error', 'demo-item-camera')).toContain('demo-unread-space')
+    expect(render('unknown-display')).toContain('陈列标记未记录')
+    expect(render('paged')).not.toContain('data-record-id="demo-item-camera"')
+    expect(render('long', 'demo-residence-home')).toContain('家居长描述样张')
+    expect(JSON.stringify(DEBUG_EVIDENCE_PAGES.residence)).toBe(before)
+    for (const entry of DEBUG_EVIDENCE_PAGES.residence.items) {
+      expect(entry.fields).toContainEqual(['资产', entry.id])
+      expect(entry.fields.some(([key]) => ['默认居所', '运行态居所', '搬迁状态'].includes(key))).toBe(false)
+    }
+    expect(DEBUG_EVIDENCE_PAGES.residence.items.some(entry => entry.role === 'yu')).toBe(false)
+  })
   it('位置快照不补造未读 / 缺失地点，解析回退与移动历史分开', () => {
     const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.location)
     const render = (previewState: LocationPreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugLocationCandidate, { previewState, snapshotState: 'fallback', initialSelectedId, empty, onRetry: () => {}, onAsset: () => {}, onPage: () => {} }))
