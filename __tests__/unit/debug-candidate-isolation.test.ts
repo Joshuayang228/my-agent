@@ -6,6 +6,7 @@ import { DebugEvidenceCandidate, type EvidencePreviewState } from '../../src/com
 import { DebugScheduleCandidate, type SchedulePreviewState } from '../../src/components/playground/DebugScheduleCandidate'
 import { DebugNowCandidate, type NowPreviewState } from '../../src/components/playground/DebugNowCandidate'
 import { DebugCharacterCandidate, type CharacterPreviewState } from '../../src/components/playground/DebugCharacterCandidate'
+import { DebugLocationCandidate, type LocationPreviewState } from '../../src/components/playground/DebugLocationCandidate'
 import { DebugPromptCandidate, type PromptPreviewState } from '../../src/components/playground/DebugPromptCandidate'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES } from '../../src/components/playground/debug-experience-fixtures'
 import { DEBUG_ASSET_FIXTURES, debugAssetGroup } from '../../src/components/playground/debug-asset-fixtures'
@@ -13,6 +14,30 @@ import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, type DebugEvidencePageId } 
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('位置快照不补造未读 / 缺失地点，解析回退与移动历史分开', () => {
+    const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.location)
+    const render = (previewState: LocationPreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugLocationCandidate, { previewState, snapshotState: 'fallback', initialSelectedId, empty, onRetry: () => {}, onAsset: () => {}, onPage: () => {} }))
+    for (const state of ['unread', 'loading', 'unavailable', 'error', 'missing'] as const) {
+      expect(render(state)).not.toContain('data-record-id=')
+      expect(render(state)).not.toContain('0 条')
+      expect(render(state)).not.toContain('未补造默认地点')
+    }
+    expect(render('ready', undefined, true)).toContain('未补造默认地点')
+    expect(render('ready', 'demo-not-found')).toContain('未选择替代记录')
+    expect(render('unset')).toContain('世界更新时间未记录')
+    expect(render('unset')).not.toContain('1970')
+    expect(render('fallback')).toContain('不代表实际位置已知')
+    const refresh = render('refresh-error', 'demo-location-current')
+    expect(refresh).toContain('保留上次位置快照')
+    expect(refresh).toContain('不代表实际位置已知')
+    expect(refresh).toContain('旧结构地点')
+    expect(refresh).toContain('更新时间不是到达时间')
+    expect(render('long', 'demo-location-current')).toContain('长位置细节样张')
+    expect(JSON.stringify(DEBUG_EVIDENCE_PAGES.location)).toBe(before)
+    expect(DEBUG_EVIDENCE_PAGES.location.items[0].location?.currentLocation).toBe(DEBUG_EVIDENCE_PAGES.now.items[0].now?.location)
+    expect(DEBUG_EVIDENCE_PAGES.location.items[0].links).toBeUndefined()
+    expect(DEBUG_EVIDENCE_PAGES.location.items[0].relatedPages?.map(link => link.page)).toEqual(['now', 'residence', 'footprints'])
+  })
   it('人物定义缺口、读取失败与历史证据分开，长文和未知字段不丢失', () => {
     const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.character)
     const render = (previewState: CharacterPreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugCharacterCandidate, { previewState, snapshotState: 'partial', initialSelectedId, empty, onRetry: () => {}, onAsset: () => {}, onPage: () => {} }))

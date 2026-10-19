@@ -20,6 +20,15 @@ export interface DebugCharacterDefinition {
   profile: { occupation?: string; agePresentation?: string; interests?: readonly string[]; [key: string]: unknown } | null
   worldDefaults: Record<string, unknown> | null
 }
+export interface DebugLocationState {
+  currentLocation: string
+  locationDetail: string
+  currentActivity: string
+  updatedAt: number
+  timezone: string
+  storedWorld?: Record<string, unknown> | string
+  issue?: string
+}
 export interface DebugEvidenceItem {
   id: string
   title: string
@@ -33,6 +42,7 @@ export interface DebugEvidenceItem {
   event?: { scheduledAt: number | null; location?: string }
   now?: DebugNowState
   character?: DebugCharacterDefinition
+  location?: DebugLocationState
   body?: string
   assets?: readonly string[]
   callId?: string
@@ -66,7 +76,7 @@ const READING_FIELDS: Record<string, readonly number[]> = {
   'residence-home': [], 'residence-space': [3], 'item-camera': [4], 'home-unplaced': [4], 'residence-yu': [0],
   'trip-completed': [2, 4, 5], 'trip-active': [2, 4, 5], 'trip-planned': [3], 'trip-cancelled': [], 'footprint-place': [3],
   'character-lin': [0, 1, 2], 'character-yu': [], 'event-reading': [0], 'event-walk': [0], 'event-book': [0],
-  'now-lin': [0, 1], 'location-current': [1, 2],
+  'now-lin': [0, 1], 'location-current': [0, 1, 2],
   'item-book': [2, 3], 'culture-music': [2, 3], 'culture-film': [2, 3], 'culture-photo': [2, 3],
   'wardrobe-shirt': [], 'wardrobe-coat': [], 'moment-reading': [1, 2],
   'growth-cover': [0], 'growth-run': [1],
@@ -116,6 +126,22 @@ export const debugCharacterFields = (definition: DebugCharacterDefinition): Debu
   ['身份', definition.profile?.occupation || '未提供'], ['年龄呈现', definition.profile?.agePresentation || '未提供'], ['稳定兴趣', definition.profile?.interests?.join('、') || '未提供'],
 ]
 
+const LOCATION_STATE: DebugLocationState = {
+  currentLocation: NOW_STATE.location, locationDetail: '书桌前', currentActivity: NOW_STATE.activity,
+  updatedAt: NOW_STATE.updatedAt, timezone: NOW_STATE.timezone,
+}
+LOCATION_STATE.storedWorld = {
+  schemaVersion: 1, home: '未设定', situation: '', timezone: LOCATION_STATE.timezone,
+  mood: NOW_STATE.mood, energy: NOW_STATE.energy, socialNeed: NOW_STATE.socialNeed, statusTags: [],
+  currentLocation: LOCATION_STATE.currentLocation, locationDetail: LOCATION_STATE.locationDetail,
+  currentActivity: LOCATION_STATE.currentActivity, updatedAt: LOCATION_STATE.updatedAt,
+}
+// 背景：位置与此刻来自同一人物状态行；意图：共源生成阅读字段；约束：更新时间不是到达时间，不从地点名称推断住所或旅行状态。
+export const debugLocationFields = (state: DebugLocationState): DebugEvidenceItem['fields'] => [
+  ['当前位置', state.currentLocation || '未设定'], ['位置细节', state.locationDetail || '未记录'], ['当前活动', state.currentActivity || '未记录'],
+  ['世界更新时间', debugNowTime(state.updatedAt, state.timezone)], ['时区', state.timezone], ['来源', 'companion_role_state · codec 解析快照'], ['移动原因', '未记录'],
+]
+
 // 背景：正式 recent / activity 当前都读取生活事件；意图：共用一份隔离记录，避免把 Trace 或反思误当作行动台账。
 // 约束：activity 只追加显式来源跳转，不改变事件状态、时间或正文；反思与工具样张留在其真实页面。
 const LIFE_EVENT_ITEMS: readonly DebugEvidenceItem[] = [
@@ -150,7 +176,7 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
   location: {
     unit: '当前位置', boundary: '此页只展示世界运行态位置。当前位置不证明旅行或访问历史；常去 / 想去资料和旅行记录在足迹，住所与物件在家居。',
     items: [
-      item('location-current', '当前位置 · 样张书房', '当前世界状态', '当前', [['来源', 'world.currentLocation'], ['细节', '书桌前'], ['当前活动', '整理旅行照片'], ['更新时间', '14:32'], ['移动原因', '未记录']], { assets: ['demo.world.lin'] }),
+      item('location-current', '当前位置 · 样张书房', '当前世界状态', '当前', debugLocationFields(LOCATION_STATE), { location: LOCATION_STATE, assets: ['demo.world.lin'], relatedPages: [{ page: 'now', label: '查看此刻状态' }, { page: 'residence', label: '查看家居资料' }, { page: 'footprints', label: '查看足迹记录' }] }),
     ],
   },
   residence: {

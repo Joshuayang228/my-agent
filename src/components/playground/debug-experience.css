@@ -2,9 +2,9 @@
 
 /* 背景：提示词候选需要比较 Alice 的阅读比例与当前小字导航。
    意图：用隔离的文字角色检验比例，并随现有全局字号一起缩放。
-   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character 样张生效，不能影响正式控件或未施工视角。
+   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character / location 样张生效，不能影响正式控件或未施工视角。
    标准字号为 15px 时依次呈现标题 15、正文 14、控件 13、说明 12、技术标识 11；确认后归入基础定义。 */
-.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"]) {
+.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"]) {
   --prompt-title-size:1rem;
   --prompt-body-size:calc(1rem * 14 / 15);
   --prompt-control-size:calc(1rem * 13 / 15);
@@ -184,3 +184,32 @@
 .debug-character-detail pre, .debug-character-detail code { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; }
 .debug-character-related { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
 @media (max-width:700px) { .debug-character-profile dl dl > div { display:block; } }
+
+/* 背景：位置是当前世界快照而非旅行列表；意图：用地点、正文细节和辅助时间形成轻阅读层。
+   约束：仅 location P0，回退提示保持主文字对比度，不推断在家 / 旅行状态。 */
+.debug-candidate[data-perspective="location"] .workspace-page-header h1 { font-size:var(--prompt-title-size); line-height:1.5; }
+.debug-candidate[data-perspective="location"] .debug-candidate-nav-groups button,
+.debug-candidate[data-perspective="location"] .debug-location-workbench button,
+.debug-candidate[data-perspective="location"] .debug-location-workbench select { font-size:var(--prompt-control-size); }
+.debug-candidate[data-perspective="location"] .debug-candidate-nav-label,
+.debug-candidate[data-perspective="location"] .debug-candidate-footer { font-size:var(--prompt-meta-size); }
+.debug-location-toolbar { margin-bottom:20px; }
+.debug-location-toolbar label { display:flex; align-items:center; gap:8px; color:var(--text-secondary); font-size:var(--prompt-caption-size); }
+.debug-location-toolbar select { min-height:32px; padding:4px 8px; }
+.debug-location-place { font-size:var(--prompt-body-size); font-weight:500; line-height:1.6; overflow-wrap:anywhere; max-width:72ch; }
+.debug-location-body { font-size:var(--prompt-body-size); line-height:1.75; white-space:pre-wrap; overflow-wrap:anywhere; max-width:72ch; margin:8px 0; }
+.debug-location-meta { font-size:var(--prompt-caption-size); line-height:1.6; color:var(--text-secondary); margin:8px 0; overflow-wrap:anywhere; }
+.debug-location-facts > div { display:grid; grid-template-columns:6em minmax(0,1fr); gap:12px; padding:8px 0; }
+.debug-location-facts dt { font-size:var(--prompt-caption-size); line-height:1.8; color:var(--text-secondary); }
+.debug-location-facts dd { font-size:var(--prompt-body-size); font-weight:400; line-height:1.6; overflow-wrap:anywhere; }
+.debug-location-state { font-size:var(--prompt-caption-size); line-height:1.6; padding:8px 0; color:var(--text-primary); }
+.debug-location-state button { margin-top:8px; }
+.debug-location-state[role="alert"] { color:var(--danger); }
+.debug-location-warning { font-weight:500; }
+.debug-location-detail { border-top:1px solid var(--border-subtle); margin-top:16px; padding-top:16px; }
+.debug-location-detail h3 { font-size:var(--prompt-caption-size); font-weight:500; margin:12px 0 8px; }
+.debug-location-detail .debug-candidate-facts dt { font-size:var(--prompt-caption-size); }
+.debug-location-detail .debug-candidate-facts dd { font-size:var(--prompt-control-size); white-space:pre-wrap; }
+.debug-location-detail .debug-prompt-provenance { font-size:var(--prompt-caption-size); }
+.debug-location-detail pre, .debug-location-detail code { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; }
+.debug-location-related { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
