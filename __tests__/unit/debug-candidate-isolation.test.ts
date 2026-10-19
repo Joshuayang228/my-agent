@@ -9,14 +9,47 @@ import { DebugCharacterCandidate, type CharacterPreviewState } from '../../src/c
 import { DebugLocationCandidate, type LocationPreviewState } from '../../src/components/playground/DebugLocationCandidate'
 import { DebugResidenceCandidate, type ResidencePreviewState } from '../../src/components/playground/DebugResidenceCandidate'
 import { DebugFootprintsCandidate, type FootprintsPreviewState } from '../../src/components/playground/DebugFootprintsCandidate'
+import { DebugGrowthCandidate, type GrowthPreviewState } from '../../src/components/playground/DebugGrowthCandidate'
 import { worldRecordConsistencyError } from '../../src/shared/world-records'
 import { DebugPromptCandidate, type PromptPreviewState } from '../../src/components/playground/DebugPromptCandidate'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES } from '../../src/components/playground/debug-experience-fixtures'
 import { DEBUG_ASSET_FIXTURES, debugAssetGroup } from '../../src/components/playground/debug-asset-fixtures'
-import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, debugTravelKind, type DebugEvidencePageId } from '../../src/components/playground/debug-evidence-fixtures'
+import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, debugTravelKind, debugGrowthKey, debugGrowthFields, type DebugEvidencePageId } from '../../src/components/playground/debug-evidence-fixtures'
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('成长按来源隔离相同人物 ID，局部反思异常不吞正文与版本，默认与缺失不混同', () => {
+    const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.growth)
+    const render = (previewState: GrowthPreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugGrowthCandidate, { previewState, snapshotState: 'unknown-time', initialSelectedId, empty, onRetry: () => {}, onAsset: () => {}, onPage: () => {} }))
+    for (const state of ['unread', 'loading', 'unavailable', 'error'] as const) {
+      expect(render(state)).not.toContain('data-record-id=')
+      expect(render(state)).not.toContain('项已读历史')
+    }
+    expect(render('ready', undefined, true)).toContain('未补默认正文')
+    expect(render('ready', 'demo-not-found')).not.toContain('aria-label="领域证据详情"')
+    expect(render('empty-body', 'demo-growth-cover')).toContain('该记录正文为空')
+    expect(render('unknown-time')).not.toContain('1970')
+    expect(render('refresh-error', 'demo-growth-run')).toContain('未记录')
+    const partial = render('reflection-error')
+    expect(partial).toContain('结果数量未知')
+    expect(partial).toContain('当前成长覆盖')
+    expect(partial).toContain('历史版本 v2')
+    expect(partial).not.toContain('当前已读范围没有反思状态')
+    const current = DEBUG_EVIDENCE_PAGES.growth.items.find(entry => entry.growth?.kind === 'current')!
+    const reflection = DEBUG_EVIDENCE_PAGES.growth.items.find(entry => entry.growth?.kind === 'reflection')!
+    expect(current.growth!.recordId).toBe(reflection.growth!.recordId)
+    expect(debugGrowthKey(current)).not.toBe(debugGrowthKey(reflection))
+    expect(debugGrowthFields(current.growth!)).toContainEqual(['覆盖更新时间', '2026/10/12 18:20'])
+    const fallback = render('ready', 'demo-growth-default-yu')
+    expect(fallback).toContain('不是用户覆盖')
+    expect(fallback).not.toContain('用户成长覆盖 · v1')
+    expect(fallback).not.toContain('demo.prompt.growth')
+    const long = render('long', 'demo-growth-cover')
+    expect(long).toContain('正文预览，完整正文在详情')
+    expect(long).not.toContain('冷却中')
+    expect(JSON.stringify(DEBUG_EVIDENCE_PAGES.growth)).toBe(before)
+  })
+
   it('足迹按明确状态分组，不把创建日、缺日期或未知状态当到访证据', () => {
     const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.footprints)
     const render = (previewState: FootprintsPreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugFootprintsCandidate, { previewState, snapshotState: 'undated', initialSelectedId, empty, onRetry: () => {}, onAsset: () => {}, onPage: () => {} }))

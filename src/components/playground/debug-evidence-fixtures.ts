@@ -29,6 +29,17 @@ export interface DebugLocationState {
   storedWorld?: Record<string, unknown> | string
   issue?: string
 }
+export interface DebugGrowthRecord {
+  kind: 'current' | 'default' | 'history' | 'reflection'
+  source: string
+  recordId: string
+  version?: number
+  at?: number
+  body?: string
+  summary?: string
+  lastRunAt?: number
+  runs?: readonly { at: number; changed: boolean; summary: string }[]
+}
 export interface DebugEvidenceItem {
   id: string
   title: string
@@ -43,6 +54,7 @@ export interface DebugEvidenceItem {
   now?: DebugNowState
   character?: DebugCharacterDefinition
   location?: DebugLocationState
+  growth?: DebugGrowthRecord
   body?: string
   assets?: readonly string[]
   callId?: string
@@ -79,7 +91,7 @@ const READING_FIELDS: Record<string, readonly number[]> = {
   'now-lin': [0, 1], 'location-current': [0, 1, 2],
   'item-book': [2, 3], 'culture-music': [2, 3], 'culture-film': [2, 3], 'culture-photo': [2, 3],
   'wardrobe-shirt': [], 'wardrobe-coat': [], 'moment-reading': [1, 2],
-  'growth-cover': [0], 'growth-run': [1],
+  'growth-cover': [], 'growth-run': [],
   'relation-yu': [0, 2], 'relation-user': [1, 2], 'message-greeting': [4],
   'link-reading': [], 'context-preview': [6], 'profile-lin': [], 'profile-yu': [],
   'memory-lin': [], 'memory-shared': [], 'memory-yu': [],
@@ -175,6 +187,21 @@ function tripItem(id: string, title: string, data: Omit<NonNullable<DebugEvidenc
   return item(id, title, 'companion_assets footprint · 隔离样张', '旅行资料', debugTravelFields({ id: `demo-${id}`, travel }), { ...extra, travel, body: travel.story })
 }
 
+const GROWTH_BODY = '【成长样张】交流时先给出简短结论，再提供可展开的依据。'
+export const debugGrowthKey = (entry: Pick<DebugEvidenceItem, 'id' | 'growth'>) => entry.growth ? `${entry.growth.source}:${entry.growth.recordId}` : entry.id
+// 背景：当前覆盖和反思状态可能共用 role_id；意图：来源与版本保持独立事实；约束：默认定义不补版本 / 时间，门闸与隐藏思维不从摘要推断。
+export function debugGrowthFields(growth: DebugGrowthRecord): DebugEvidenceItem['fields'] {
+  return [
+    ['来源', growth.source], ['记录标识', growth.recordId],
+    ...(growth.kind === 'current' || growth.kind === 'history' ? [['版本', growth.version === undefined ? '未记录' : `v${growth.version}`], [growth.kind === 'history' ? '版本创建时间' : '覆盖更新时间', debugNowTime(growth.at ?? 0, 'Asia/Shanghai')]] as [string, string][] : []),
+    ...(growth.kind === 'default' ? [['定义性质', '已读 Role Pack 默认，不冒充用户覆盖']] as [string, string][] : []),
+    ...(growth.kind === 'reflection' ? [['最后运行', debugNowTime(growth.lastRunAt ?? 0, 'Asia/Shanghai')], ['结果性质', '已保存的运行结果摘要，不是隐藏思维'], ['门闸判断', '本查询未提供，不推算下一次运行时间']] as [string, string][] : []),
+  ]
+}
+function growthItem(id: string, title: string, growth: DebugGrowthRecord, extra: Partial<DebugEvidenceItem> = {}): DebugEvidenceItem {
+  return item(id, title, `${growth.source} · 隔离样张`, '已读资料', debugGrowthFields(growth), { ...extra, growth, body: growth.body })
+}
+
 // 背景：正式 recent / activity 当前都读取生活事件；意图：共用一份隔离记录，避免把 Trace 或反思误当作行动台账。
 // 约束：activity 只追加显式来源跳转，不改变事件状态、时间或正文；反思与工具样张留在其真实页面。
 const LIFE_EVENT_ITEMS: readonly DebugEvidenceItem[] = [
@@ -231,8 +258,11 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
   growth: {
     unit: '成长证据', boundary: '成长覆盖与反思日志分开；日志不等于模型隐藏思维。这里只读，不触发反思或回滚人格。',
     items: [
-      item('growth-cover', '成长覆盖 · v2', 'mutable override · 林', '当前版本', [['版本', '样张 v2'], ['来源', 'override'], ['更新时间', '2026-10-12 18:20'], ['与稳定身份关系', '独立注入，不替换身份']], { assets: ['demo.prompt.growth'], body: '【成长样张】交流时先给出简短结论，再提供可展开的依据。' }),
-      item('growth-run', '13:10 · 最近反思', 'reflection-status / runs', '未改变', [['是否改变', '否'], ['摘要', '已有偏好覆盖本次反馈'], ['门闸状态', '冷却中 · 样张'], ['下一次可运行', '由真实门闸判断']], { body: '【日志样张】这是一条反思服务结果，不是隐藏思维记录。' }),
+      growthItem('growth-cover', '当前成长覆盖', { kind: 'current', source: 'companion_mutable', recordId: 'demo-role-lin', version: 2, at: Date.parse('2026-10-12T18:20:00+08:00'), body: GROWTH_BODY }, { assets: ['demo.prompt.growth'], relatedPages: [{ page: 'character', label: '查看稳定人物定义' }] }),
+      growthItem('growth-version-2', '历史版本 v2', { kind: 'history', source: 'companion_mutable_versions', recordId: 'demo-growth-version-2', version: 2, at: Date.parse('2026-10-12T18:20:00+08:00'), summary: '调整交流节奏 · 样张', body: GROWTH_BODY }),
+      growthItem('growth-version-1', '历史版本 v1', { kind: 'history', source: 'companion_mutable_versions', recordId: 'demo-growth-version-1', version: 1, at: Date.parse('2026-10-11T16:00:00+08:00'), summary: '最初的交流约定 · 样张', body: '【历史成长样张】先听完对方的想法，再一起整理线索。' }),
+      growthItem('growth-run', '反思运行结果', { kind: 'reflection', source: 'companion_reflection_state', recordId: 'demo-role-lin', at: Date.parse('2026-10-13T13:11:00+08:00'), lastRunAt: Date.parse('2026-10-13T13:10:00+08:00'), runs: [{ at: Date.parse('2026-10-13T13:10:00+08:00'), changed: false, summary: '【结果摘要样张】已有偏好覆盖本次反馈，未修改成长覆盖。' }] }),
+      growthItem('growth-default-yu', '已读默认成长定义', { kind: 'default', source: 'Role Pack mutable.default', recordId: 'demo-yu:pack-default', body: '【默认成长样张】交流时保持简洁，留出继续补充想法的空间。' }, { role: 'yu' }),
     ],
   },
   footprints: {
