@@ -170,7 +170,9 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await panel.getByRole('navigation').getByRole('button', { name: '成长与反思', exact: true }).click()
     await expect(panel.getByRole('navigation').getByRole('button', { name: '成长与反思', exact: true })).toHaveCSS('font-size', '13px')
     await panel.getByRole('navigation').getByRole('button', { name: '朋友圈', exact: true }).click()
-    await expect(panel.getByRole('navigation').getByRole('button', { name: '朋友圈', exact: true })).toHaveCSS('font-size', '11px')
+    await expect(panel.getByRole('navigation').getByRole('button', { name: '朋友圈', exact: true })).toHaveCSS('font-size', '13px')
+    await panel.getByRole('navigation').getByRole('button', { name: '通讯录', exact: true }).click()
+    await expect(panel.getByRole('navigation').getByRole('button', { name: '通讯录', exact: true })).toHaveCSS('font-size', '11px')
   })
 }
 
@@ -498,8 +500,10 @@ for (const theme of ['porcelain-blue', 'yao-stone']) {
     await panel.getByText('来源与诊断说明 · 隔离样张', { exact: true }).click()
     await expect(panel.getByText(/其他类别仍全局聚合/)).toBeVisible()
     await nav.getByRole('button', { name: '朋友圈', exact: true }).click()
-    await panel.getByRole('button', { name: /林 · 阅读旅行笔记/ }).click()
-    await expect(detail).toContainText('demo-comment-yu')
+    await panel.getByRole('button', { name: /查看动态：.*翻到上次旅途/ }).click()
+    await detail.getByText('互动记录', { exact: true }).click()
+    await expect(detail).toContainText('想看看这本小册子 · 样张')
+    await expect(detail).toContainText('同框记录')
     await panel.getByRole('button', { name: '查看发布来源事件' }).click()
     await expect(detail).toContainText('没有完成证据')
   })

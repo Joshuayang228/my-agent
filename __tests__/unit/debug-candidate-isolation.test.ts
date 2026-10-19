@@ -10,14 +10,43 @@ import { DebugLocationCandidate, type LocationPreviewState } from '../../src/com
 import { DebugResidenceCandidate, type ResidencePreviewState } from '../../src/components/playground/DebugResidenceCandidate'
 import { DebugFootprintsCandidate, type FootprintsPreviewState } from '../../src/components/playground/DebugFootprintsCandidate'
 import { DebugGrowthCandidate, type GrowthPreviewState } from '../../src/components/playground/DebugGrowthCandidate'
+import { DebugMomentsCandidate, type MomentsPreviewState } from '../../src/components/playground/DebugMomentsCandidate'
 import { worldRecordConsistencyError } from '../../src/shared/world-records'
 import { DebugPromptCandidate, type PromptPreviewState } from '../../src/components/playground/DebugPromptCandidate'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES } from '../../src/components/playground/debug-experience-fixtures'
 import { DEBUG_ASSET_FIXTURES, debugAssetGroup } from '../../src/components/playground/debug-asset-fixtures'
-import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, debugTravelKind, debugGrowthKey, debugGrowthFields, type DebugEvidencePageId } from '../../src/components/playground/debug-evidence-fixtures'
+import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, debugTravelKind, debugGrowthKey, debugGrowthFields, debugMomentDate, debugMomentFields, type DebugEvidencePageId } from '../../src/components/playground/debug-evidence-fixtures'
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('朋友圈以发布事实阅读，互动缺失与空范围分开，截断和坏记录不补全', () => {
+    const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.moments)
+    const render = (previewState: MomentsPreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugMomentsCandidate, { previewState, snapshotState: 'truncated', initialSelectedId, empty, onRetry: () => {}, onEvidence: () => {}, onPage: () => {} }))
+    for (const state of ['unread', 'loading', 'unavailable', 'error'] as const) {
+      expect(render(state)).not.toContain('data-record-id=')
+      expect(render(state)).not.toContain('项已读动态')
+    }
+    expect(render('ready', undefined, true)).toContain('不据此推断人物从未发布')
+    expect(render('missing', 'demo-not-found')).not.toContain('aria-label="领域证据详情"')
+    expect(render('ready', 'demo-moment-evening')).toContain('本次查询未提供用户互动，数量未知')
+    expect(render('ready', 'demo-moment-book')).toContain('本次已读范围没有用户互动')
+    expect(render('ready', 'demo-moment-reading')).toContain('同框记录')
+    expect(render('ready', 'demo-moment-reading')).toContain('想看看这本小册子')
+    expect(render('partial')).not.toContain('data-record-id="demo-moment-reading"')
+    expect(render('partial')).toContain('data-record-id="demo-moment-book"')
+    expect(render('empty-body', 'demo-moment-reading')).toContain('未补事件文案')
+    expect(render('unknown-time', 'demo-moment-reading')).not.toContain('1970')
+    expect(render('refresh-error', 'demo-moment-reading')).toContain('互动总数未知')
+    expect(debugMomentDate(0)).toBe('')
+    expect(debugMomentDate(Date.parse('2026-10-12T16:30:00Z'))).toBe('2026-10-13')
+    const moment = DEBUG_EVIDENCE_PAGES.moments.items[0]
+    expect(debugMomentFields(moment.id, moment.moment!)).toEqual(moment.fields)
+    expect(moment.links?.map(link => link.page)).toEqual(['recent'])
+    expect(moment.relatedPages?.map(link => link.page)).toEqual(['links'])
+    expect(render('long', moment.id)).toContain('用户长评论样张')
+    expect(JSON.stringify(DEBUG_EVIDENCE_PAGES.moments)).toBe(before)
+  })
+
   it('成长按来源隔离相同人物 ID，局部反思异常不吞正文与版本，默认与缺失不混同', () => {
     const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.growth)
     const render = (previewState: GrowthPreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugGrowthCandidate, { previewState, snapshotState: 'unknown-time', initialSelectedId, empty, onRetry: () => {}, onAsset: () => {}, onPage: () => {} }))

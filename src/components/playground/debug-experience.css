@@ -2,9 +2,9 @@
 
 /* 背景：提示词候选需要比较 Alice 的阅读比例与当前小字导航。
    意图：用隔离的文字角色检验比例，并随现有全局字号一起缩放。
-   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character / location / residence / footprints / growth 样张生效，不能影响正式控件或未施工视角。
+   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character / location / residence / footprints / growth / moments 样张生效，不能影响正式控件或未施工视角。
    标准字号为 15px 时依次呈现标题 15、正文 14、控件 13、说明 12、技术标识 11；确认后归入基础定义。 */
-.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"], [data-perspective="footprints"], [data-perspective="growth"]) {
+.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"], [data-perspective="footprints"], [data-perspective="growth"], [data-perspective="moments"]) {
   --prompt-title-size:1rem;
   --prompt-body-size:calc(1rem * 14 / 15);
   --prompt-control-size:calc(1rem * 13 / 15);
@@ -313,3 +313,36 @@
 .debug-growth-detail .debug-candidate-facts dt, .debug-growth-detail .debug-prompt-provenance { font-size:var(--prompt-caption-size); }
 .debug-growth-detail .debug-candidate-facts dd { font-size:var(--prompt-control-size); white-space:pre-wrap; }
 .debug-growth-detail code, .debug-growth-detail pre { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; }
+
+/* 背景：动态正文与技术字段同层妨碍阅读；意图：轻量正文行、弱发布时间和按需互动。
+   约束：仅 moments P0，沿用已验证的角色文字与主题色，不改正式生活面。 */
+.debug-candidate[data-perspective="moments"] { --text-secondary:color-mix(in srgb,var(--text-primary) 78%,var(--bg-primary)); }
+.debug-candidate[data-perspective="moments"] .workspace-page-header h1 { font-size:var(--prompt-title-size); line-height:1.5; }
+.debug-candidate[data-perspective="moments"] .debug-candidate-nav-groups button,
+.debug-candidate[data-perspective="moments"] .debug-moments-workbench button:not(.debug-moments-preview),
+.debug-candidate[data-perspective="moments"] .debug-moments-workbench input,
+.debug-candidate[data-perspective="moments"] .debug-moments-workbench select { font-size:var(--prompt-control-size); }
+.debug-candidate[data-perspective="moments"] .debug-candidate-nav-label,
+.debug-candidate[data-perspective="moments"] .debug-candidate-footer { font-size:var(--prompt-meta-size); }
+.debug-moments-toolbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+.debug-moments-toolbar > label { display:flex; align-items:center; gap:8px; font-size:var(--prompt-caption-size); color:var(--text-secondary); min-width:0; }
+.debug-moments-toolbar select, .debug-moments-toolbar input { min-height:32px; padding:4px 8px; min-width:0; }
+.debug-moments-toolbar input[type="date"] { max-width:150px; }
+.debug-moments-toolbar > .debug-moments-search { flex:1; min-width:min(100%,180px); }
+.debug-moments-range, .debug-moments-meta { color:var(--text-secondary); font-size:var(--prompt-caption-size); line-height:1.6; overflow-wrap:anywhere; }
+.debug-moments-range { margin-bottom:4px; }
+.debug-moments-row { padding:12px 0; border-bottom:1px solid var(--border-subtle); }
+.debug-candidate[data-perspective="moments"] .debug-moments-preview { display:block; padding:0; font-size:var(--prompt-body-size); font-weight:400; line-height:1.75; text-align:left; white-space:pre-wrap; overflow-wrap:anywhere; max-width:72ch; }
+.debug-moments-meta { margin-top:4px; }
+.debug-moments-state { font-size:var(--prompt-caption-size); line-height:1.6; padding:8px 0; }
+.debug-moments-state[role="alert"] { color:var(--danger); }
+.debug-moments-state button { margin-top:8px; }
+.debug-moments-detail { border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:20px; scroll-margin-top:12px; }
+.debug-moments-detail > h3 { font-size:var(--prompt-title-size); font-weight:500; line-height:1.6; margin:12px 0; }
+.debug-moments-body { font-size:var(--prompt-body-size); line-height:1.75; white-space:pre-wrap; overflow-wrap:anywhere; max-width:72ch; }
+.debug-moments-interactions h4 { font-size:var(--prompt-control-size); font-weight:500; margin:12px 0 4px; }
+.debug-moments-interaction { padding:4px 0; }
+.debug-moments-related { display:flex; flex-wrap:wrap; gap:8px; }
+.debug-moments-detail .debug-candidate-facts dt, .debug-moments-detail .debug-prompt-provenance { font-size:var(--prompt-caption-size); }
+.debug-moments-detail .debug-candidate-facts dd { font-size:var(--prompt-control-size); white-space:pre-wrap; }
+.debug-moments-detail code, .debug-moments-detail pre { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; }

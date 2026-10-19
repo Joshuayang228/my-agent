@@ -40,6 +40,13 @@ export interface DebugGrowthRecord {
   lastRunAt?: number
   runs?: readonly { at: number; changed: boolean; summary: string }[]
 }
+export interface DebugMomentRecord {
+  publishedAt?: number
+  text: string
+  meta: Record<string, unknown>
+  userInteractions?: readonly { actor_id: string; kind: string; text: string | null; created_at: number }[]
+  truncated?: boolean
+}
 export interface DebugEvidenceItem {
   id: string
   title: string
@@ -55,6 +62,7 @@ export interface DebugEvidenceItem {
   character?: DebugCharacterDefinition
   location?: DebugLocationState
   growth?: DebugGrowthRecord
+  moment?: DebugMomentRecord
   body?: string
   assets?: readonly string[]
   callId?: string
@@ -90,7 +98,7 @@ const READING_FIELDS: Record<string, readonly number[]> = {
   'character-lin': [0, 1, 2], 'character-yu': [], 'event-reading': [0], 'event-walk': [0], 'event-book': [0],
   'now-lin': [0, 1], 'location-current': [0, 1, 2],
   'item-book': [2, 3], 'culture-music': [2, 3], 'culture-film': [2, 3], 'culture-photo': [2, 3],
-  'wardrobe-shirt': [], 'wardrobe-coat': [], 'moment-reading': [1, 2],
+  'wardrobe-shirt': [], 'wardrobe-coat': [], 'moment-reading': [],
   'growth-cover': [], 'growth-run': [],
   'relation-yu': [0, 2], 'relation-user': [1, 2], 'message-greeting': [4],
   'link-reading': [], 'context-preview': [6], 'profile-lin': [], 'profile-yu': [],
@@ -187,6 +195,17 @@ function tripItem(id: string, title: string, data: Omit<NonNullable<DebugEvidenc
   return item(id, title, 'companion_assets footprint · 隔离样张', '旅行资料', debugTravelFields({ id: `demo-${id}`, travel }), { ...extra, travel, body: travel.story })
 }
 
+// 背景：动态列表不能用事件标题或计划日替代发布事实；意图：由同一结构生成阅读字段。
+// 约束：固定角色时区，时间缺失保留未知，用户互动未提供不等于没有互动。
+export const debugMomentDate = (time?: number) => time && time > 0 ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(time) : ''
+export const debugMomentPreview = (moment: DebugMomentRecord) => moment.text ? moment.text.slice(0, 140) + (moment.text.length > 140 ? '…' : '') : '动态正文为空'
+export function debugMomentFields(id: string, moment: DebugMomentRecord): DebugEvidenceItem['fields'] {
+  return [['动态', id], ['发布时间', debugNowTime(moment.publishedAt ?? 0, 'Asia/Shanghai')], ['地点', typeof moment.meta.location === 'string' && moment.meta.location ? moment.meta.location : '未提供'], ['来源', 'companion_moments'], ['用户互动范围', moment.userInteractions === undefined ? '本次查询未提供' : '本次已读范围，非全量统计']]
+}
+function momentItem(id: string, moment: DebugMomentRecord, extra: Partial<DebugEvidenceItem> = {}): DebugEvidenceItem {
+  return item(id, debugMomentPreview(moment), '已发布动态 · 隔离样张', '已发布', debugMomentFields(`demo-${id}`, moment), { ...extra, date: debugMomentDate(moment.publishedAt), body: moment.text, moment })
+}
+
 const GROWTH_BODY = '【成长样张】交流时先给出简短结论，再提供可展开的依据。'
 export const debugGrowthKey = (entry: Pick<DebugEvidenceItem, 'id' | 'growth'>) => entry.growth ? `${entry.growth.source}:${entry.growth.recordId}` : entry.id
 // 背景：当前覆盖和反思状态可能共用 role_id；意图：来源与版本保持独立事实；约束：默认定义不补版本 / 时间，门闸与隐藏思维不从摘要推断。
@@ -277,7 +296,11 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
   },
   moments: {
     unit: '动态', dateFilter: true, boundary: '此页是已发布动态与评论；最近事项含计划 / 发布事件。动态发布不证明活动完成，评论不代替关系状态；不提供点赞、发帖或评论写入。',
-    items: [item('moment-reading', '林 · 阅读旅行笔记', '14:00 · 已发布动态', '已发布', [['动态', 'demo-moment-reading'], ['发布时间', '2026-10-13 14:00'], ['地点', '样张书房'], ['来源事件', 'demo-event-reading'], ['评论', 'demo-comment-yu · 予 · 想看看这本小册子 · 样张'], ['图片', '未提供']], { body: '【动态样张】翻到上次旅途的笔记，准备挑几张照片做成小册子。', links: [{ page: 'recent', id: 'demo-event-reading', label: '查看发布来源事件' }, { page: 'links', id: 'demo-link-reading', label: '查看动态与物品关联' }] })],
+    items: [
+      momentItem('moment-reading', { publishedAt: Date.parse('2026-10-13T14:00:00+08:00'), text: '【动态样张】翻到上次旅途的笔记，准备挑几张照片做成小册子。', meta: { location: '样张书房', textSource: 'rule', interactions: [{ kind: 'comment', castId: 'demo-yu', castName: '予', text: '想看看这本小册子 · 样张' }, { kind: 'coframe', castId: 'demo-yu', castName: '予' }] }, userInteractions: [{ actor_id: 'user', kind: 'like', text: null, created_at: Date.parse('2026-10-13T14:10:00+08:00') }, { actor_id: 'user', kind: 'comment', text: '下次一起整理吧 · 用户评论样张', created_at: Date.parse('2026-10-13T14:05:00+08:00') }] }, { links: [{ page: 'recent', id: 'demo-event-reading', label: '查看发布来源事件' }], relatedPages: [{ page: 'links', label: '查看生活事件关联' }] }),
+      momentItem('moment-book', { publishedAt: Date.parse('2026-10-12T10:00:00+08:00'), text: '【动态样张】整理旧书时找到一张夹在书里的车票。', meta: { location: '样张书房' }, userInteractions: [] }, { links: [{ page: 'recent', id: 'demo-event-book', label: '查看发布来源事件' }] }),
+      momentItem('moment-evening', { publishedAt: Date.parse('2026-10-13T18:00:00+08:00'), text: '【动态样张】窗边的光慢慢暗下来，想把今天的照片留到明天再挑。', meta: { location: '样张窗边' } }),
+    ],
   },
   relations: {
     unit: '关系记录', boundary: '关系短句、忙闲与成长证据各有来源。关系未确认时保留未知，不移植 Alice 专属 OPC 或信任分模型。',
