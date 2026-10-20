@@ -4,7 +4,7 @@
    意图：用隔离的文字角色检验比例，并随现有全局字号一起缩放。
    约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character / location / residence / footprints / growth / moments / relations / proactive / wardrobe / items / links / context 样张生效，不能影响正式控件或未施工视角。
    标准字号为 15px 时依次呈现标题 15、正文 14、控件 13、说明 12、技术标识 11；确认后归入基础定义。 */
-.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"], [data-perspective="footprints"], [data-perspective="growth"], [data-perspective="moments"], [data-perspective="relations"], [data-perspective="proactive"], [data-perspective="wardrobe"], [data-perspective="items"], [data-perspective="links"], [data-perspective="context"], [data-perspective="profile"], [data-perspective="memories"]) {
+.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"], [data-perspective="footprints"], [data-perspective="growth"], [data-perspective="moments"], [data-perspective="relations"], [data-perspective="proactive"], [data-perspective="wardrobe"], [data-perspective="items"], [data-perspective="links"], [data-perspective="context"], [data-perspective="profile"], [data-perspective="memories"], [data-perspective="traces"]) {
   --prompt-title-size:1rem;
   --prompt-body-size:calc(1rem * 14 / 15);
   --prompt-control-size:calc(1rem * 13 / 15);
@@ -582,3 +582,24 @@
 .debug-memory-source { border-top:1px solid var(--border-subtle); padding-top:12px; }
 .debug-memory-source summary { cursor:pointer; }
 .debug-memory-source pre { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; margin-top:10px; }
+
+.debug-candidate[data-perspective="traces"] { --text-secondary:color-mix(in srgb,var(--text-primary) 78%,var(--bg-primary)); --text-muted:var(--text-secondary); }
+.debug-candidate[data-perspective="traces"] .debug-candidate-nav-groups button,
+.debug-traces-workbench button { font-size:var(--prompt-control-size); }
+.debug-candidate[data-perspective="traces"] .debug-candidate-nav-label,
+.debug-candidate[data-perspective="traces"] .debug-candidate-footer { font-size:var(--prompt-meta-size); }
+.debug-traces-workbench { min-width:0; font-size:var(--prompt-body-size); color:var(--text-primary); }
+.debug-trace-caption, .debug-trace-source { color:var(--text-secondary); font-size:var(--prompt-caption-size); line-height:1.7; margin:10px 0; }
+.debug-trace-state { margin:16px 0; line-height:1.7; }
+.debug-trace-tree { border-top:1px solid var(--border-subtle); margin-top:12px; }
+.debug-trace-row { border-bottom:1px solid var(--border-subtle); padding:8px 0; }
+.debug-trace-text { display:flex; align-items:center; gap:8px; width:100%; text-align:left; min-width:0; }
+.debug-trace-text span { min-width:0; overflow-wrap:anywhere; flex:1; }
+.debug-trace-text code, .debug-trace-text > span:last-child { font-size:var(--prompt-meta-size); color:var(--text-secondary); }
+.debug-trace-error { color:var(--danger); }
+.debug-trace-detail { border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:20px; }
+.debug-trace-detail h3 { font-size:var(--prompt-title-size); font-weight:500; margin:12px 0; }
+.debug-trace-detail dl { display:grid; grid-template-columns:auto minmax(0,1fr); gap:6px 12px; }
+.debug-trace-detail dd, .debug-trace-detail code, .debug-trace-detail pre { font-size:var(--prompt-meta-size); overflow-wrap:anywhere; white-space:pre-wrap; }
+.debug-trace-detail pre { margin-top:10px; }
+.debug-trace-source { border-top:1px solid var(--border-subtle); padding-top:12px; }

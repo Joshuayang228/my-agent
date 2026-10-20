@@ -1,5 +1,9 @@
 # Agent 运行时
 
+## 已落地能力：调用链 v3 隔离候选
+
+Playground 调用链按 tracer Span 的显式 parentId 与 links 展示树和后台关联，详情保留 caller、type、状态、属性与稳定 ID。未知父级 / 类型、截断和刷新失败不补链路；候选不改变 debug:traces、tracer 或正式请求详情。
+
 ## 已落地能力：用户记忆列表 v3 隔离候选
 
 Playground 用户记忆按 `memories` 的实际来源分组，人物范围包含显式共享记录，feedback 保持人物分桶；正文、类别、更新时间和稳定 ID 按需展开。候选不改变记忆存储、凭据过滤、向量同步或运行时注入语义，存储记录不作为召回证明。

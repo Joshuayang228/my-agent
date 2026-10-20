@@ -442,6 +442,10 @@ Electron 首启测试通过正式界面先保存连接、添加命名模型、�
 > 质量维入口：定义 Unit / Eval / E2E / 安全审计的分层和必跑条件。具体 Case、测试文件和当前通过数量以仓库代码及命令输出为准，不在本文维护动态总数。
 > 深 Why：`methodology/m17-testing-architecture.md`、`methodology/m18-eval.md`。
 
+## Debug 调用链 v3 候选验收
+
+`debug-traces-candidate.test.ts` 覆盖显式父子 / links、孤儿、未知类型、截断、空与失败；`debug-traces.test.ts` 覆盖两主题 × 1096 / 600、Span 详情与请求跳转、刷新保留及横向溢出。候选不证明 Electron 实际 Span 查询。
+
 ## Debug 用户记忆 v3 候选验收
 
 `debug-memory-candidate.test.ts` 覆盖共享 / feedback 范围、类别分组、空 / 失败 / 分页 / 更新时间缺失 / 结构异常 / 长文和稳定 ID；`debug-memories.test.ts` 覆盖两主题 × 1096 / 600、详情与焦点返回、人物切换、分页、刷新保留和横向溢出。候选不证明真实 Electron 记忆查询或注入。
