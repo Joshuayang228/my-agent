@@ -1,5 +1,9 @@
 # Agent 运行时
 
+## 已落地能力：实时事件 v3 隔离候选
+
+Playground 实时事件按有界窗口时间线展示类型、状态、正文和显式会话 / Span 标识；未关联事件不按时间拼接调用链，截断、未知时间与刷新失败保留边界。候选不改变 debug-world-snapshot、事件生产或正式跳转。
+
 ## 已落地能力：调用链 v3 隔离候选
 
 Playground 调用链按 tracer Span 的显式 parentId 与 links 展示树和后台关联，详情保留 caller、type、状态、属性与稳定 ID。未知父级 / 类型、截断和刷新失败不补链路；候选不改变 debug:traces、tracer 或正式请求详情。

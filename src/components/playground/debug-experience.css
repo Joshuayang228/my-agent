@@ -4,7 +4,7 @@
    意图：用隔离的文字角色检验比例，并随现有全局字号一起缩放。
    约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character / location / residence / footprints / growth / moments / relations / proactive / wardrobe / items / links / context 样张生效，不能影响正式控件或未施工视角。
    标准字号为 15px 时依次呈现标题 15、正文 14、控件 13、说明 12、技术标识 11；确认后归入基础定义。 */
-.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"], [data-perspective="footprints"], [data-perspective="growth"], [data-perspective="moments"], [data-perspective="relations"], [data-perspective="proactive"], [data-perspective="wardrobe"], [data-perspective="items"], [data-perspective="links"], [data-perspective="context"], [data-perspective="profile"], [data-perspective="memories"], [data-perspective="traces"]) {
+.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"], [data-perspective="footprints"], [data-perspective="growth"], [data-perspective="moments"], [data-perspective="relations"], [data-perspective="proactive"], [data-perspective="wardrobe"], [data-perspective="items"], [data-perspective="links"], [data-perspective="context"], [data-perspective="profile"], [data-perspective="memories"], [data-perspective="traces"], [data-perspective="events"]) {
   --prompt-title-size:1rem;
   --prompt-body-size:calc(1rem * 14 / 15);
   --prompt-control-size:calc(1rem * 13 / 15);
@@ -603,3 +603,27 @@
 .debug-trace-detail dd, .debug-trace-detail code, .debug-trace-detail pre { font-size:var(--prompt-meta-size); overflow-wrap:anywhere; white-space:pre-wrap; }
 .debug-trace-detail pre { margin-top:10px; }
 .debug-trace-source { border-top:1px solid var(--border-subtle); padding-top:12px; }
+
+.debug-candidate[data-perspective="events"] { --text-secondary:color-mix(in srgb,var(--text-primary) 78%,var(--bg-primary)); --text-muted:var(--text-secondary); }
+.debug-candidate[data-perspective="events"] .debug-candidate-nav-groups button,
+.debug-events-workbench button, .debug-events-workbench select { font-size:var(--prompt-control-size); }
+.debug-candidate[data-perspective="events"] .debug-candidate-nav-label,
+.debug-candidate[data-perspective="events"] .debug-candidate-footer { font-size:var(--prompt-meta-size); }
+.debug-events-workbench { min-width:0; font-size:var(--prompt-body-size); color:var(--text-primary); }
+.debug-events-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:12px 0 16px; color:var(--text-secondary); font-size:var(--prompt-caption-size); }
+.debug-events-toolbar label { display:flex; align-items:center; gap:8px; }
+.debug-events-toolbar select { min-height:32px; padding:4px 8px; }
+.debug-events-state, .debug-events-source { margin:16px 0; line-height:1.7; color:var(--text-secondary); font-size:var(--prompt-caption-size); }
+.debug-events-timeline { border-top:1px solid var(--border-subtle); }
+.debug-event-row { display:grid; grid-template-columns:155px minmax(0,1fr); gap:14px; border-bottom:1px solid var(--border-subtle); padding:10px 0; }
+.debug-event-row time { color:var(--text-secondary); font-size:var(--prompt-caption-size); font-variant-numeric:tabular-nums; }
+.debug-event-title { text-align:left; line-height:1.7; width:100%; }
+.debug-event-row p { color:var(--text-secondary); font-size:var(--prompt-caption-size); margin:2px 0 0; }
+.debug-events-detail { border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:20px; }
+.debug-events-detail h3 { font-size:var(--prompt-title-size); font-weight:500; margin:12px 0; }
+.debug-events-body { font-size:var(--prompt-body-size); line-height:1.8; max-width:72ch; white-space:pre-wrap; overflow-wrap:anywhere; }
+.debug-events-detail dl { display:grid; grid-template-columns:auto minmax(0,1fr); gap:6px 12px; margin:14px 0; }
+.debug-events-detail dd, .debug-events-detail code { font-size:var(--prompt-meta-size); overflow-wrap:anywhere; }
+.debug-events-source { border-top:1px solid var(--border-subtle); padding-top:12px; }
+.debug-events-source summary { cursor:pointer; }
+@media (max-width:700px) { .debug-event-row { grid-template-columns:1fr; gap:3px; } }
