@@ -4,7 +4,7 @@
    意图：用隔离的文字角色检验比例，并随现有全局字号一起缩放。
    约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character / location / residence / footprints / growth / moments / relations / proactive / wardrobe / items / links / context 样张生效，不能影响正式控件或未施工视角。
    标准字号为 15px 时依次呈现标题 15、正文 14、控件 13、说明 12、技术标识 11；确认后归入基础定义。 */
-.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"], [data-perspective="footprints"], [data-perspective="growth"], [data-perspective="moments"], [data-perspective="relations"], [data-perspective="proactive"], [data-perspective="wardrobe"], [data-perspective="items"], [data-perspective="links"], [data-perspective="context"], [data-perspective="profile"]) {
+.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"], [data-perspective="footprints"], [data-perspective="growth"], [data-perspective="moments"], [data-perspective="relations"], [data-perspective="proactive"], [data-perspective="wardrobe"], [data-perspective="items"], [data-perspective="links"], [data-perspective="context"], [data-perspective="profile"], [data-perspective="memories"]) {
   --prompt-title-size:1rem;
   --prompt-body-size:calc(1rem * 14 / 15);
   --prompt-control-size:calc(1rem * 13 / 15);
@@ -557,3 +557,28 @@
 .debug-profile-source dd, .debug-profile-source code, .debug-profile-source pre { font-size:var(--prompt-meta-size); overflow-wrap:anywhere; white-space:pre-wrap; }
 .debug-profile-source pre { margin-top:10px; }
 .debug-profile-other { border-top:1px solid var(--border-subtle); margin-top:18px; padding-top:12px; }
+
+.debug-candidate[data-perspective="memories"] { --text-secondary:color-mix(in srgb,var(--text-primary) 78%,var(--bg-primary)); --text-muted:var(--text-secondary); }
+.debug-candidate[data-perspective="memories"] .debug-candidate-nav-groups button,
+.debug-memory-workbench button, .debug-memory-workbench select, .debug-memory-workbench input { font-size:var(--prompt-control-size); }
+.debug-candidate[data-perspective="memories"] .debug-candidate-nav-label,
+.debug-candidate[data-perspective="memories"] .debug-candidate-footer { font-size:var(--prompt-meta-size); }
+.debug-memory-workbench { min-width:0; font-size:var(--prompt-body-size); color:var(--text-primary); }
+.debug-memory-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:12px 0 16px; }
+.debug-memory-toolbar label { display:flex; align-items:center; gap:8px; color:var(--text-secondary); font-size:var(--prompt-caption-size); }
+.debug-memory-toolbar select, .debug-memory-toolbar input { min-height:32px; padding:4px 8px; min-width:0; }
+.debug-memory-toolbar input { flex:1; }
+.debug-memory-caption, .debug-memory-source { color:var(--text-secondary); font-size:var(--prompt-caption-size); line-height:1.7; margin:10px 0; }
+.debug-memory-state { margin:16px 0; line-height:1.7; }
+.debug-memory-state button { margin-top:8px; }
+.debug-memory-list { display:grid; gap:18px; }
+.debug-memory-list > section { border-top:1px solid var(--border-subtle); padding-top:12px; }
+.debug-memory-list h3, .debug-memory-detail h3 { font-size:var(--prompt-title-size); font-weight:500; margin:0 0 8px; }
+.debug-memory-row { border-bottom:1px solid var(--border-subtle); padding:10px 0; }
+.debug-memory-text { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; width:100%; text-align:left; line-height:1.7; white-space:pre-wrap; overflow-wrap:anywhere; }
+.debug-memory-text svg { flex:none; margin-top:4px; }
+.debug-memory-detail { border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:20px; scroll-margin-top:12px; }
+.debug-memory-body { font-size:var(--prompt-body-size); line-height:1.8; max-width:72ch; white-space:pre-wrap; overflow-wrap:anywhere; }
+.debug-memory-source { border-top:1px solid var(--border-subtle); padding-top:12px; }
+.debug-memory-source summary { cursor:pointer; }
+.debug-memory-source pre { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; margin-top:10px; }

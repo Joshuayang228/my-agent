@@ -12,7 +12,7 @@ export default defineConfig({
   projects: [
     {
       name: 'ui',
-      testMatch: ['chat.test.ts', 'chat-input-boundaries.test.ts', 'markdown-theme.test.ts', 'checkbox.test.ts', 'mcp-oauth-ui.test.ts', 'design-language.test.ts', 'contacts-candidate.test.ts', 'debug-candidate.test.ts', 'debug-recent.test.ts', 'debug-activity.test.ts', 'debug-now.test.ts', 'debug-character.test.ts', 'debug-location.test.ts', 'debug-residence.test.ts', 'debug-footprints.test.ts', 'debug-growth.test.ts', 'debug-moments.test.ts', 'debug-relations.test.ts', 'debug-proactive.test.ts', 'debug-wardrobe.test.ts', 'debug-culture.test.ts', 'debug-links.test.ts', 'debug-context.test.ts', 'debug-profile.test.ts'],
+      testMatch: ['chat.test.ts', 'chat-input-boundaries.test.ts', 'markdown-theme.test.ts', 'checkbox.test.ts', 'mcp-oauth-ui.test.ts', 'design-language.test.ts', 'contacts-candidate.test.ts', 'debug-candidate.test.ts', 'debug-recent.test.ts', 'debug-activity.test.ts', 'debug-now.test.ts', 'debug-character.test.ts', 'debug-location.test.ts', 'debug-residence.test.ts', 'debug-footprints.test.ts', 'debug-growth.test.ts', 'debug-moments.test.ts', 'debug-relations.test.ts', 'debug-proactive.test.ts', 'debug-wardrobe.test.ts', 'debug-culture.test.ts', 'debug-links.test.ts', 'debug-context.test.ts', 'debug-profile.test.ts', 'debug-memories.test.ts'],
       use: {
         baseURL: 'http://127.0.0.1:5175',
         channel: 'chrome',
