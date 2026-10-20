@@ -134,7 +134,7 @@ const READING_FIELDS: Record<string, readonly number[]> = {
   'wardrobe-shirt': [], 'wardrobe-coat': [], 'moment-reading': [],
   'growth-cover': [], 'growth-run': [],
   'relation-yu': [], 'relation-user': [],
-  'link-reading': [], 'context-preview': [6], 'profile-lin': [], 'profile-yu': [],
+  'link-reading': [], 'profile-lin': [], 'profile-yu': [],
   'memory-lin': [], 'memory-shared': [], 'memory-yu': [],
   'runtime-asset': [0], 'runtime-error': [0], 'runtime-unlinked': [1, 2],
   'tool-read': [1], 'tool-skill': [1, 2], 'tool-mcp': [1],
@@ -446,8 +446,8 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
     ],
   },
   context: {
-    unit: '上下文证据', boundary: '当前装配预览不能还原历史实发正文。六个语义模块来自我们的编译架构，生活、用户数据与稳定身份独立注入。',
-    items: [item('context-preview', '当前装配范围', '林 · 当前预览样张', '预览', [['平台规则', '通用规则资产'], ['人物定义', '稳定身份与 profile'], ['成长', 'mutable 覆盖'], ['行为', '主对话任务'], ['情境', '生活状态与用户资料'], ['输出契约', '协议边界'], ['历史正文', '未保存']], { assets: ['demo.prompt.main', 'demo.prompt.identity', 'demo.prompt.growth'], callId: 'demo-call-03', body: '【装配预览样张】这里只解释模块排列及来源。没有把生产 Prompt 复制进候选，也不将此预览称为某次请求的正文。' })],
+    unit: '上下文保存范围', boundary: '全局调用范围；新日志只保存消息元数据，不持久化正文。当前资产定义和装配预览不能补写历史。',
+    items: [],
   },
   profile: {
     unit: '记忆摘要', boundary: '用户画像是已有记忆的聚合摘要，不是伙伴人物档案。当前仅 feedback 按人物过滤，其他类别仍全局聚合；跳过凭据。主对话使用此摘要，工作区会话不注入，无材料返回空。',

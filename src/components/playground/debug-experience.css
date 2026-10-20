@@ -2,9 +2,9 @@
 
 /* 背景：提示词候选需要比较 Alice 的阅读比例与当前小字导航。
    意图：用隔离的文字角色检验比例，并随现有全局字号一起缩放。
-   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character / location / residence / footprints / growth / moments / relations / proactive / wardrobe / items / links 样张生效，不能影响正式控件或未施工视角。
+   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character / location / residence / footprints / growth / moments / relations / proactive / wardrobe / items / links / context 样张生效，不能影响正式控件或未施工视角。
    标准字号为 15px 时依次呈现标题 15、正文 14、控件 13、说明 12、技术标识 11；确认后归入基础定义。 */
-.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"], [data-perspective="footprints"], [data-perspective="growth"], [data-perspective="moments"], [data-perspective="relations"], [data-perspective="proactive"], [data-perspective="wardrobe"], [data-perspective="items"], [data-perspective="links"]) {
+.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"], [data-perspective="footprints"], [data-perspective="growth"], [data-perspective="moments"], [data-perspective="relations"], [data-perspective="proactive"], [data-perspective="wardrobe"], [data-perspective="items"], [data-perspective="links"], [data-perspective="context"]) {
   --prompt-title-size:1rem;
   --prompt-body-size:calc(1rem * 14 / 15);
   --prompt-control-size:calc(1rem * 13 / 15);
@@ -503,3 +503,29 @@
 .debug-links-detail .debug-candidate-facts dt, .debug-links-detail .debug-prompt-provenance { font-size:var(--prompt-caption-size); }
 .debug-links-detail .debug-candidate-facts dd { font-size:var(--prompt-control-size); white-space:pre-wrap; }
 .debug-links-detail pre { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; }
+
+/* 上下文 P0：沿用候选文字阶梯，保存范围与正文分层，不修改生产控件。 */
+.debug-candidate[data-perspective="context"] { --text-secondary:color-mix(in srgb,var(--text-primary) 78%,var(--bg-primary)); --text-muted:var(--text-secondary); }
+.debug-candidate[data-perspective="context"] .debug-candidate-nav-groups button,
+.debug-context-workbench button, .debug-context-workbench select { font-size:var(--prompt-control-size); }
+.debug-candidate[data-perspective="context"] .debug-candidate-nav-label,
+.debug-candidate[data-perspective="context"] .debug-candidate-footer { font-size:var(--prompt-meta-size); }
+.debug-context-workbench { min-width:0; font-size:var(--prompt-body-size); color:var(--text-primary); }
+.debug-context-caption, .debug-context-source { color:var(--text-secondary); font-size:var(--prompt-caption-size); line-height:1.7; margin:10px 0; }
+.debug-context-picker { display:flex; gap:10px; align-items:center; font-size:var(--prompt-control-size); margin:16px 0; }
+.debug-context-picker select { width:100%; min-width:0; flex:1; padding:6px 8px; }
+.debug-context-heading { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin:12px 0; }
+.debug-context-heading code { font-size:var(--prompt-meta-size); overflow-wrap:anywhere; }
+.debug-context-state { margin:16px 0; font-size:var(--prompt-body-size); line-height:1.7; }
+.debug-context-state button { margin-top:8px; }
+.debug-context-message { border-bottom:1px solid var(--border-subtle); padding:12px 0; }
+.debug-context-message summary { display:flex; flex-wrap:wrap; gap:4px 16px; cursor:pointer; font-size:var(--prompt-control-size); }
+.debug-context-message summary span:last-child { color:var(--text-secondary); font-size:var(--prompt-caption-size); }
+.debug-context-body { font-family:inherit; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.75; max-width:72ch; margin:12px 0; }
+.debug-context-workbench pre { font-size:var(--prompt-meta-size); line-height:1.7; white-space:pre-wrap; overflow-wrap:anywhere; margin:12px 0; }
+.debug-context-source { border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:20px; }
+.debug-context-source summary { cursor:pointer; }
+
+.debug-context-message > summary { align-items:center; }
+.debug-context-chevron { flex-shrink:0; }
+.debug-context-message[open] > summary .debug-context-chevron { transform:rotate(90deg); }

@@ -182,7 +182,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await panel.getByRole('navigation').getByRole('button', { name: '生活事件关联', exact: true }).click()
     await expect(panel.getByRole('navigation').getByRole('button', { name: '生活事件关联', exact: true })).toHaveCSS('font-size', '13px')
     await panel.getByRole('navigation').getByRole('button', { name: '上下文', exact: true }).click()
-    await expect(panel.getByRole('navigation').getByRole('button', { name: '上下文', exact: true })).toHaveCSS('font-size', '11px')
+    await expect(panel.getByRole('navigation').getByRole('button', { name: '上下文', exact: true })).toHaveCSS('font-size', '13px')
   })
 }
 
@@ -391,7 +391,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 
     for (const [label, id] of [
       ['最近事项', 'recent'], ['行为日志', 'activity'], ['当前位置', 'location'], ['家居', 'residence'],
       ['人物档案', 'character'], ['足迹', 'footprints'], ['朋友圈', 'moments'], ['成长与反思', 'growth'], ['通讯录', 'relations'],
-      ['衣柜', 'wardrobe'], ['文化角', 'items'], ['生活事件关联', 'links'], ['上下文', 'context'],
+      ['衣柜', 'wardrobe'], ['文化角', 'items'], ['生活事件关联', 'links'],
       ['用户画像', 'profile'], ['调用链', 'traces'], ['实时事件', 'events'], ['技能与工具', 'tools'],
     ]) {
       await nav.getByRole('button', { name: label, exact: true }).click()

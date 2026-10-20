@@ -488,7 +488,8 @@ describe('Debug 候选隔离边界', () => {
       if (id === 'proactive') {
         expect(page.items).toEqual([])
         expect(page.boundary).toContain('没有独立主动消息投递证据索引')
-      } else expect(page.items.length).toBeGreaterThan(0)
+      } else if (id === 'context') expect(page.items).toEqual([]) // 专用调用样张不再伪装成领域装配预览。
+      else expect(page.items.length).toBeGreaterThan(0)
       expect(new Set(page.items.map(entry => entry.id)).size).toBe(page.items.length)
       for (const entry of page.items) {
         expect(entry.id).toMatch(/^demo-/)
