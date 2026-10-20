@@ -12,6 +12,7 @@ import { DebugFootprintsCandidate, type FootprintsPreviewState } from '../../src
 import { DebugGrowthCandidate, type GrowthPreviewState } from '../../src/components/playground/DebugGrowthCandidate'
 import { DebugMomentsCandidate, type MomentsPreviewState } from '../../src/components/playground/DebugMomentsCandidate'
 import { DebugRelationsCandidate, type RelationsPreviewState } from '../../src/components/playground/DebugRelationsCandidate'
+import { DebugProactiveCandidate, type ProactivePreviewState } from '../../src/components/playground/DebugProactiveCandidate'
 import { worldRecordConsistencyError } from '../../src/shared/world-records'
 import { DebugPromptCandidate, type PromptPreviewState } from '../../src/components/playground/DebugPromptCandidate'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES } from '../../src/components/playground/debug-experience-fixtures'
@@ -20,6 +21,26 @@ import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, debugTravelKind, debugGrowt
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('主动消息不支持独立查询时不伪造普通消息或送达统计', () => {
+    const render = (previewState: ProactivePreviewState) => renderToStaticMarkup(createElement(DebugProactiveCandidate, { previewState, onRetry: () => {}, onPage: () => {} }))
+    expect(DEBUG_EVIDENCE_PAGES.proactive.items).toEqual([])
+    for (const state of ['unread', 'loading', 'unavailable', 'error'] as const) {
+      expect(render(state)).not.toContain('尚无独立投递记录源')
+      expect(render(state)).not.toContain('&quot;unsupported&quot;')
+    }
+    for (const state of ['ready', 'refresh-error'] as const) {
+      const html = render(state)
+      expect(html).toContain('尚无独立投递记录源')
+      expect(html).toContain('&quot;unsupported&quot;')
+      expect(html).not.toContain('data-record-id')
+      expect(html).not.toContain('0 条')
+      expect(html).not.toContain('demo-session-01')
+      expect(html).not.toContain('下午问候')
+      expect(html).toContain('朋友圈是相关生活上下文，不是问候回执')
+    }
+    expect(render('refresh-error')).toContain('保留上次查询边界')
+  })
+
   it('通讯录保留方向定义与有界事件，姓名和经历缺失不补造关系事实', () => {
     const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.relations)
     const render = (previewState: RelationsPreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugRelationsCandidate, { previewState, snapshotState: 'unknown-time', initialSelectedId, empty, onRetry: () => {}, onEvidence: () => {}, onPage: () => {} }))
@@ -347,7 +368,7 @@ describe('Debug 候选隔离边界', () => {
     }
   })
 
-  it('所有分区有领域数据；资产、请求和跨页关联不悬空', () => {
+  it('分区域数据服从真实读取能力；资产、请求和跨页关联不悬空', () => {
     expect(new Set(DEBUG_PERSPECTIVES.map(view => view.id)).size).toBe(DEBUG_PERSPECTIVES.length)
     expect(new Set(DEBUG_PERSPECTIVES.map(view => view.group))).toEqual(new Set(DEBUG_GROUPS))
     const specialized = ['assets', 'runs', 'quality', 'persona', 'system']
@@ -357,7 +378,10 @@ describe('Debug 候选隔离边界', () => {
     for (const id of Object.keys(DEBUG_EVIDENCE_PAGES) as DebugEvidencePageId[]) {
       const page = getDebugEvidencePage(id, DEBUG_RECORD_FIXTURES)
       expect(page.boundary.length).toBeGreaterThan(10)
-      expect(page.items.length).toBeGreaterThan(0)
+      if (id === 'proactive') {
+        expect(page.items).toEqual([])
+        expect(page.boundary).toContain('没有独立主动消息投递证据索引')
+      } else expect(page.items.length).toBeGreaterThan(0)
       expect(new Set(page.items.map(entry => entry.id)).size).toBe(page.items.length)
       for (const entry of page.items) {
         expect(entry.id).toMatch(/^demo-/)

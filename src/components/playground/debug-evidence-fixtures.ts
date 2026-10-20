@@ -108,7 +108,7 @@ const READING_FIELDS: Record<string, readonly number[]> = {
   'item-book': [2, 3], 'culture-music': [2, 3], 'culture-film': [2, 3], 'culture-photo': [2, 3],
   'wardrobe-shirt': [], 'wardrobe-coat': [], 'moment-reading': [],
   'growth-cover': [], 'growth-run': [],
-  'relation-yu': [], 'relation-user': [], 'message-greeting': [4],
+  'relation-yu': [], 'relation-user': [],
   'link-reading': [], 'context-preview': [6], 'profile-lin': [], 'profile-yu': [],
   'memory-lin': [], 'memory-shared': [], 'memory-yu': [],
   'runtime-asset': [0], 'runtime-error': [0], 'runtime-unlinked': [1, 2],
@@ -328,8 +328,8 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
     ],
   },
   proactive: {
-    unit: '消息证据', boundary: '问候能力已有；完整发送队列、失败重试和交付历史尚未形成。普通会话消息不能证明主动消息已送达。',
-    items: [item('message-greeting', '下午问候', '会话消息样张 · 林', '会话内已记录', [['来源', 'proactive-greeting / conversation message'], ['会话', 'demo-session-01'], ['消息', 'demo-message-greeting'], ['主动来源关联', '未保存'], ['交付状态', '没有独立台账']], { body: '【消息样张】刚整理好几张照片，想听听你更喜欢哪一种排法。' })],
+    unit: '消息证据', boundary: '当前没有独立主动消息投递证据索引；普通消息不作为主动发送证明。',
+    items: [],
   },
   wardrobe: {
     unit: '衣物', boundary: '这里查看拥有、穿着版本与来源，不换装、不生图。正式接线须用纯只读查询，不能调用带初始化副作用的 get-assets。',

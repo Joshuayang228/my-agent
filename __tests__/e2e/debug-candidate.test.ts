@@ -174,7 +174,9 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await panel.getByRole('navigation').getByRole('button', { name: '通讯录', exact: true }).click()
     await expect(panel.getByRole('navigation').getByRole('button', { name: '通讯录', exact: true })).toHaveCSS('font-size', '13px')
     await panel.getByRole('navigation').getByRole('button', { name: '主动消息证据', exact: true }).click()
-    await expect(panel.getByRole('navigation').getByRole('button', { name: '主动消息证据', exact: true })).toHaveCSS('font-size', '11px')
+    await expect(panel.getByRole('navigation').getByRole('button', { name: '主动消息证据', exact: true })).toHaveCSS('font-size', '13px')
+    await panel.getByRole('navigation').getByRole('button', { name: '衣柜', exact: true }).click()
+    await expect(panel.getByRole('navigation').getByRole('button', { name: '衣柜', exact: true })).toHaveCSS('font-size', '11px')
   })
 }
 
@@ -382,7 +384,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 
     // 背景：首版有证据但缺领域入口；意图：按合同逐页实际点开；约束：不能只校验导航元素存在。
     for (const [label, id] of [
       ['最近事项', 'recent'], ['行为日志', 'activity'], ['当前位置', 'location'], ['家居', 'residence'],
-      ['人物档案', 'character'], ['足迹', 'footprints'], ['朋友圈', 'moments'], ['成长与反思', 'growth'], ['通讯录', 'relations'], ['主动消息证据', 'proactive'],
+      ['人物档案', 'character'], ['足迹', 'footprints'], ['朋友圈', 'moments'], ['成长与反思', 'growth'], ['通讯录', 'relations'],
       ['衣柜', 'wardrobe'], ['文化角', 'items'], ['生活事件关联', 'links'], ['上下文', 'context'],
       ['用户画像', 'profile'], ['调用链', 'traces'], ['实时事件', 'events'], ['技能与工具', 'tools'],
     ]) {
@@ -393,6 +395,11 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 
       await expect(evidence.getByRole('article', { name: '领域证据详情' })).toBeVisible()
       expect(await panel.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
     }
+    await nav.getByRole('button', { name: '主动消息证据', exact: true }).click()
+    await expect(panel.getByTestId('debug-evidence-proactive').getByRole('status')).toContainText('尚无独立投递记录源')
+    await expect(panel.getByTestId('debug-evidence-proactive').locator('[data-record-id]')).toHaveCount(0)
+    await panel.getByTestId('debug-evidence-proactive').getByRole('button', { name: '查看朋友圈', exact: true }).click()
+    await expect(panel.getByTestId('debug-evidence-moments').getByRole('article', { name: '领域证据详情' })).toHaveCount(0)
     await nav.getByRole('button', { name: '调用链', exact: true }).click()
     await panel.getByRole('button', { name: /整理旅行计划/ }).click()
     await panel.getByRole('button', { name: '查看关联调用' }).click()

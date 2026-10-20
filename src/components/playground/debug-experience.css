@@ -2,9 +2,9 @@
 
 /* 背景：提示词候选需要比较 Alice 的阅读比例与当前小字导航。
    意图：用隔离的文字角色检验比例，并随现有全局字号一起缩放。
-   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character / location / residence / footprints / growth / moments / relations 样张生效，不能影响正式控件或未施工视角。
+   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character / location / residence / footprints / growth / moments / relations / proactive 样张生效，不能影响正式控件或未施工视角。
    标准字号为 15px 时依次呈现标题 15、正文 14、控件 13、说明 12、技术标识 11；确认后归入基础定义。 */
-.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"], [data-perspective="footprints"], [data-perspective="growth"], [data-perspective="moments"], [data-perspective="relations"]) {
+.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"], [data-perspective="footprints"], [data-perspective="growth"], [data-perspective="moments"], [data-perspective="relations"], [data-perspective="proactive"]) {
   --prompt-title-size:1rem;
   --prompt-body-size:calc(1rem * 14 / 15);
   --prompt-control-size:calc(1rem * 13 / 15);
@@ -379,3 +379,22 @@
 .debug-relations-detail .debug-candidate-facts dt, .debug-relations-detail .debug-prompt-provenance { font-size:var(--prompt-caption-size); }
 .debug-relations-detail .debug-candidate-facts dd { font-size:var(--prompt-control-size); white-space:pre-wrap; }
 .debug-relations-detail code, .debug-relations-detail pre { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; }
+
+/* 背景：不支持的投递查询不应伪装消息列表；意图：紧凑边界与按需来源。
+   约束：仅 proactive P0，沿用候选文字角色与主题，不改变生产问候或其他页面。 */
+.debug-candidate[data-perspective="proactive"] { --text-secondary:color-mix(in srgb,var(--text-primary) 78%,var(--bg-primary)); }
+.debug-candidate[data-perspective="proactive"] .workspace-page-header h1 { font-size:var(--prompt-title-size); line-height:1.5; }
+.debug-candidate[data-perspective="proactive"] .debug-candidate-nav-groups button,
+.debug-candidate[data-perspective="proactive"] .debug-proactive-workbench button { font-size:var(--prompt-control-size); }
+.debug-candidate[data-perspective="proactive"] .debug-candidate-nav-label,
+.debug-candidate[data-perspective="proactive"] .debug-candidate-footer { font-size:var(--prompt-meta-size); }
+.debug-proactive-boundary h3 { font-size:var(--prompt-body-size); font-weight:500; line-height:1.6; margin-bottom:8px; }
+.debug-proactive-boundary > p { font-size:var(--prompt-body-size); line-height:1.75; max-width:72ch; overflow-wrap:anywhere; }
+.debug-proactive-boundary { margin-bottom:12px; }
+.debug-proactive-state { font-size:var(--prompt-caption-size); line-height:1.6; padding:8px 0; }
+.debug-proactive-state[role="alert"] { color:var(--danger); }
+.debug-proactive-state button { margin-top:8px; }
+.debug-proactive-workbench .debug-prompt-provenance { font-size:var(--prompt-caption-size); color:var(--text-secondary); }
+.debug-proactive-workbench .debug-candidate-facts dt { font-size:var(--prompt-caption-size); }
+.debug-proactive-workbench .debug-candidate-facts dd { font-size:var(--prompt-control-size); }
+.debug-proactive-workbench pre, .debug-proactive-workbench code { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; }
