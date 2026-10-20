@@ -1,4 +1,4 @@
-import { tripStopSchema, wardrobeCategorySchema, type TripStopRecord } from '../../shared/world-records'
+import { tripStopSchema, wardrobeCategorySchema, normalizeWorldRecordField, type TripStopRecord } from '../../shared/world-records'
 import type { DebugPerspective, DebugRecordFixture } from './debug-experience-fixtures'
 
 export type DebugEvidencePageId = Exclude<DebugPerspective, 'assets' | 'runs' | 'system' | 'quality' | 'persona'>
@@ -60,6 +60,13 @@ export interface DebugWardrobeRecord {
   sourceEventId?: string
   truncated?: boolean
 }
+export interface DebugCultureRecord {
+  kind: 'culture' | 'bookshelf'
+  payload: Record<string, unknown>
+  acquiredAt?: number
+  sourceEventId?: string
+  truncated?: boolean
+}
 export interface DebugEvidenceItem {
   id: string
   title: string
@@ -78,6 +85,7 @@ export interface DebugEvidenceItem {
   moment?: DebugMomentRecord
   relation?: DebugRelationRecord
   wardrobe?: DebugWardrobeRecord
+  culture?: DebugCultureRecord
   body?: string
   assets?: readonly string[]
   callId?: string
@@ -259,6 +267,33 @@ function wardrobeItem(id: string, name: string, record: DebugWardrobeRecord): De
   return item(id, name, '衣柜资料 · 隔离样张', '已读资料', debugWardrobeFields({ id: `demo-${id}`, wardrobe: record }), { wardrobe: record, body: typeof record.payload.description === 'string' ? record.payload.description : undefined, links: record.sourceEventId ? [{ page: 'recent', id: record.sourceEventId, label: '查看来源事件' }] : undefined })
 }
 
+export function debugCultureType(record: DebugCultureRecord): string {
+  if (record.kind === 'bookshelf') return 'reading'
+  const normalized = normalizeWorldRecordField(record.kind, 'type', record.payload.type)
+  return normalized.handled && normalized.ok ? String(normalized.value) : 'unknown'
+}
+export const debugCultureText = (record: DebugCultureRecord, key: string) => typeof record.payload[key] === 'string' ? record.payload[key] as string : ''
+const CULTURE_STATUS_FIELDS: Record<string, string> = { reading: 'readingStatus', film: 'watchStatus', music: 'listeningStatus', photography: 'workStatus' }
+const CULTURE_STATUS_LABELS: Record<string, Record<string, string>> = { reading: { planned: '想读', reading: '阅读中', paused: '暂停阅读', finished: '已读完', abandoned: '未继续阅读' }, film: { planned: '想看', watching: '观看中', paused: '暂停观看', finished: '已看完', abandoned: '未继续观看' }, music: { queued: '想听', listening: '聆听中', revisiting: '最近常听', finished: '已听完' }, photography: { draft: '草稿作品', published: '已发布作品' } }
+export function debugCultureStatus(record: DebugCultureRecord) {
+  const type = debugCultureType(record), key = CULTURE_STATUS_FIELDS[type]
+  if (!key) return '状态未识别'
+  const value = record.payload[key]
+  if (value === undefined) return '状态未记录'
+  const normalized = normalizeWorldRecordField(record.kind, key, value)
+  return normalized.handled && normalized.ok ? CULTURE_STATUS_LABELS[type]?.[String(value)] ?? '状态未识别' : '状态未识别'
+}
+export function debugCultureBody(record: DebugCultureRecord) { return debugCultureText(record, 'detail').trim() ? debugCultureText(record, 'detail') : debugCultureText(record, 'summary').trim() ? debugCultureText(record, 'summary') : debugCultureText(record, 'description') }
+// 背景：作品收录与笔记 / 体验时间来自不同字段；意图：结构化字段只维护一份。
+// 约束：分类状态不互借，缺值保留未知，原始正文不由收录日补出含义。
+export function debugCultureFields(entry: Pick<DebugEvidenceItem, 'id' | 'culture'>): DebugEvidenceItem['fields'] {
+  const record = entry.culture!
+  return [['资产', entry.id], ['来源', `companion_assets · ${record.kind}`], ['类型', debugCultureType(record)], ['已读状态', debugCultureStatus(record)], ['收录时间', debugNowTime(record.acquiredAt ?? 0, 'Asia/Shanghai')], ['来源事件', record.sourceEventId ?? '未保存']]
+}
+function cultureItem(id: string, title: string, record: DebugCultureRecord): DebugEvidenceItem {
+  return item(id, title, '文化资料 · 隔离样张', debugCultureStatus(record), debugCultureFields({ id: `demo-${id}`, culture: record }), { culture: record, body: debugCultureBody(record), readingFields: [], links: record.sourceEventId ? [{ page: 'recent', id: record.sourceEventId, label: '查看来源事件' }] : undefined })
+}
+
 // 背景：正式 recent / activity 当前都读取生活事件；意图：共用一份隔离记录，避免把 Trace 或反思误当作行动台账。
 // 约束：activity 只追加显式来源跳转，不改变事件状态、时间或正文；反思与工具样张留在其真实页面。
 const LIFE_EVENT_ITEMS: readonly DebugEvidenceItem[] = [
@@ -364,12 +399,12 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
     ],
   },
   items: {
-    unit: '文化记录', boundary: '阅读、音乐、影视、摄影是文化资产，笔记保留所属作品和独立正文；实物属于家居。阅读 / 观看 / 聆听状态不等于动态兴趣进度。',
+    unit: '文化记录', boundary: '阅读、影视、音乐与摄影按实际类型和各自状态区分；作品说明与阅读笔记分开，收录时间不作为体验时间。保留已归档与异常已有记录，只读，不改进度、不写笔记。',
     items: [
-      item('item-book', '旅行笔记', '书架 · 阅读中', '已拥有', [['资产', 'demo-owned-book'], ['类型', 'bookshelf'], ['作者', '样张作者'], ['阅读状态', '阅读中'], ['来源', '用户创建 · 样张']], { body: '【阅读笔记样张】这一章记录了河边步行的观察；正文和资产描述分别保存。' }),
-      item('culture-music', '午后旋律', 'culture · music', '聆听中', [['资产', 'demo-culture-music'], ['类型', 'music'], ['状态', 'listening'], ['作者', '样张音乐人']], { body: '【听感样张】适合整理照片时听的一段旋律。' }),
-      item('culture-film', '旅途影像', 'culture · film', '观看中', [['资产', 'demo-culture-film'], ['类型', 'film'], ['状态', 'watching'], ['导演', '样张导演']], { body: '【影视感想样张】镜头让人留意路边的细节。' }),
-      item('culture-photo', '河边光线', 'culture · photography', '已发布作品', [['资产', 'demo-culture-photo'], ['类型', 'photography'], ['作品状态', 'published'], ['拍摄地点', '样张河边']], { body: '【摄影作品样张】午后的光线落在步道上。' }),
+      cultureItem('culture-photo', '河边光线', { kind: 'culture', acquiredAt: Date.parse('2026-10-13T15:00:00+08:00'), payload: { type: 'photography', workStatus: 'published', locationName: '样张河边', depictedAt: '2026-10-10', summary: '【摄影作品样张】午后的光线落在步道上。' } }),
+      cultureItem('item-book', '旅行笔记', { kind: 'bookshelf', acquiredAt: Date.parse('2026-10-13T14:00:00+08:00'), sourceEventId: 'demo-event-reading', payload: { author: '样张作者', readingStatus: 'reading', currentPage: 32, totalPages: 160, summary: '【作品说明样张】记录沿河步行和旅行观察的一本书。', readingNotes: [{ id: 'demo-reading-note-river', text: '【阅读笔记样张】这一章记录了河边步行的观察；正文和资产描述分别保存。', occurredAt: Date.parse('2026-10-13T14:30:00+08:00'), createdAt: Date.parse('2026-10-13T14:25:00+08:00'), page: 32, chapter: '河边步行' }, { id: 'demo-reading-note-margin', text: '【第二条笔记样张】页边的留白让我想起尚未整理的车票。', createdAt: Date.parse('2026-10-12T16:00:00+08:00'), page: 18 }] } }),
+      cultureItem('culture-film', '旅途影像', { kind: 'culture', acquiredAt: Date.parse('2026-10-13T12:00:00+08:00'), payload: { type: 'film', mediaKind: 'series', director: '样张导演', watchStatus: 'watching', season: 2, episode: 3, totalEpisodes: 8, summary: '【影视摘要样张】一段沿途观察。', detail: '【影视感想样张】镜头让人留意路边的细节。' } }),
+      cultureItem('culture-music', '午后旋律', { kind: 'culture', acquiredAt: Date.parse('2026-10-13T11:00:00+08:00'), payload: { type: 'music', artist: '样张音乐人', musicKind: 'album', listeningStatus: 'listening', summary: '【听感样张】适合整理照片时听的一段旋律。' } }),
     ],
   },
   links: {

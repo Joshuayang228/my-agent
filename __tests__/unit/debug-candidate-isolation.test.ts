@@ -14,14 +14,53 @@ import { DebugMomentsCandidate, type MomentsPreviewState } from '../../src/compo
 import { DebugRelationsCandidate, type RelationsPreviewState } from '../../src/components/playground/DebugRelationsCandidate'
 import { DebugProactiveCandidate, type ProactivePreviewState } from '../../src/components/playground/DebugProactiveCandidate'
 import { DebugWardrobeCandidate, type WardrobePreviewState } from '../../src/components/playground/DebugWardrobeCandidate'
+import { DebugCultureCandidate, type CulturePreviewState } from '../../src/components/playground/DebugCultureCandidate'
 import { worldRecordConsistencyError } from '../../src/shared/world-records'
 import { DebugPromptCandidate, type PromptPreviewState } from '../../src/components/playground/DebugPromptCandidate'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES } from '../../src/components/playground/debug-experience-fixtures'
 import { DEBUG_ASSET_FIXTURES, debugAssetGroup } from '../../src/components/playground/debug-asset-fixtures'
-import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, debugTravelKind, debugGrowthKey, debugGrowthFields, debugMomentDate, debugMomentFields, debugRelationFields, debugWardrobeFields, debugWardrobeKind, type DebugEvidencePageId } from '../../src/components/playground/debug-evidence-fixtures'
+import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, debugTravelKind, debugGrowthKey, debugGrowthFields, debugMomentDate, debugMomentFields, debugRelationFields, debugWardrobeFields, debugWardrobeKind, debugCultureFields, debugCultureStatus, debugCultureType, debugCultureBody, type DebugEvidencePageId } from '../../src/components/playground/debug-evidence-fixtures'
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('文化作品状态与独立笔记分开，空数组 / 旧笔记 / 坏数组不互相冒充', () => {
+    const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.items)
+    const render = (previewState: CulturePreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugCultureCandidate, { previewState, snapshotState: 'legacy-note', initialSelectedId, empty, onRetry: () => {}, onEvidence: () => {} }))
+    for (const state of ['unread', 'loading', 'unavailable', 'error'] as const) {
+      expect(render(state)).not.toContain('data-record-id=')
+      expect(render(state)).not.toContain('项已读作品')
+    }
+    expect(render('ready', undefined, true)).toContain('不推断没有兴趣或从未体验')
+    expect(render('missing', 'demo-not-found')).not.toContain('aria-label="领域证据详情"')
+    const book = render('ready', 'demo-item-book')
+    expect(book).toContain('data-note-id="demo-reading-note-river"')
+    expect(book).toContain('data-note-id="demo-reading-note-margin"')
+    expect(book).toContain('发生时间')
+    expect(book).toContain('创建时间')
+    const empty = render('empty-notes', 'demo-item-book')
+    expect(empty).toContain('未回退旧笔记')
+    expect(empty).not.toContain('data-note-id=')
+    expect(render('invalid-notes', 'demo-item-book')).toContain('笔记结构无效')
+    expect(render('invalid-notes', 'demo-item-book')).not.toContain('data-note-id=')
+    expect(render('legacy-note', 'demo-item-book')).toContain('demo-item-book:note')
+    expect(render('legacy-note', 'demo-item-book')).toContain('笔记时间：未记录')
+    expect(render('refresh-error', 'demo-item-book')).toContain('旧笔记样张')
+    expect(render('invalid-progress', 'demo-item-book')).toContain('当前进度不能超过总量')
+    expect(render('missing-fields', 'demo-item-book')).toContain('状态未记录')
+    expect(render('missing-fields', 'demo-item-book')).not.toContain('1970')
+    expect(render('archived')).toContain('已归档记录')
+    expect(render('unknown')).toContain('状态未识别')
+    expect(render('truncated', 'demo-item-book')).toContain('不能认定为完整作品与笔记')
+    expect(render('long', 'demo-item-book')).toContain('长阅读笔记样张')
+    const entries = DEBUG_EVIDENCE_PAGES.items.items
+    for (const entry of entries) { expect(debugCultureFields(entry)).toEqual(entry.fields); expect(worldRecordConsistencyError(entry.culture!.kind, entry.culture!.payload)).toBeNull() }
+    expect(debugCultureType(entries.find(entry => entry.id === 'demo-item-book')!.culture!)).toBe('reading')
+    expect(debugCultureStatus({ kind: 'bookshelf', payload: { readingStatus: 'watching', watchStatus: 'watching' } })).toBe('状态未识别')
+    expect(debugCultureBody({ kind: 'culture', payload: { detail: '全文', summary: '摘要' } })).toBe('全文')
+    expect(debugCultureBody({ kind: 'culture', payload: { description: '旧说明' } })).toBe('旧说明')
+    expect(JSON.stringify(DEBUG_EVIDENCE_PAGES.items)).toBe(before)
+  })
+
   it('衣柜不按单件推断穿着，分页缺项和冲突保留为未知，槽位复用生产校验', () => {
     const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.wardrobe)
     const render = (previewState: WardrobePreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugWardrobeCandidate, { previewState, snapshotState: 'conflict', initialSelectedId, empty, onRetry: () => {}, onEvidence: () => {} }))
