@@ -47,6 +47,13 @@ export interface DebugMomentRecord {
   userInteractions?: readonly { actor_id: string; kind: string; text: string | null; created_at: number }[]
   truncated?: boolean
 }
+export interface DebugRelationRecord {
+  truncated?: boolean
+  personId: string
+  name: string
+  edges: readonly { from: string; to: string; type: string; note?: string }[]
+  experiences?: readonly { id: string; time?: number; payload: Record<string, unknown> }[]
+}
 export interface DebugEvidenceItem {
   id: string
   title: string
@@ -63,6 +70,7 @@ export interface DebugEvidenceItem {
   location?: DebugLocationState
   growth?: DebugGrowthRecord
   moment?: DebugMomentRecord
+  relation?: DebugRelationRecord
   body?: string
   assets?: readonly string[]
   callId?: string
@@ -100,7 +108,7 @@ const READING_FIELDS: Record<string, readonly number[]> = {
   'item-book': [2, 3], 'culture-music': [2, 3], 'culture-film': [2, 3], 'culture-photo': [2, 3],
   'wardrobe-shirt': [], 'wardrobe-coat': [], 'moment-reading': [],
   'growth-cover': [], 'growth-run': [],
-  'relation-yu': [0, 2], 'relation-user': [1, 2], 'message-greeting': [4],
+  'relation-yu': [], 'relation-user': [], 'message-greeting': [4],
   'link-reading': [], 'context-preview': [6], 'profile-lin': [], 'profile-yu': [],
   'memory-lin': [], 'memory-shared': [], 'memory-yu': [],
   'runtime-asset': [0], 'runtime-error': [0], 'runtime-unlinked': [1, 2],
@@ -221,6 +229,15 @@ function growthItem(id: string, title: string, growth: DebugGrowthRecord, extra:
   return item(id, title, `${growth.source} · 隔离样张`, '已读资料', debugGrowthFields(growth), { ...extra, growth, body: growth.body })
 }
 
+// 背景：诊断通讯录只读取关系定义和有界共同在场事件；意图：字段从同一结构生成。
+// 约束：人物 ID 回退不编造姓名，不把忙闲 / 里程碑当作本查询事实，不把缺表当作空历史。
+export function debugRelationFields(relation: DebugRelationRecord): DebugEvidenceItem['fields'] {
+  return [['人物标识', relation.personId], ['资料名称', relation.name], ['来源', 'Role Pack / Universe relations'], ['关系定义', `${relation.edges.length} 条已读定义`], ['共同经历范围', relation.experiences === undefined ? '本次查询未提供' : '显式共同在场的已读事件范围，非完整历史'], ['忙闲状态', '本查询未提供']]
+}
+function relationItem(id: string, relation: DebugRelationRecord, extra: Partial<DebugEvidenceItem> = {}): DebugEvidenceItem {
+  return item(id, relation.name, '关系定义 · 隔离样张', '已读资料', debugRelationFields(relation), { ...extra, relation, body: relation.edges[0]?.note })
+}
+
 // 背景：正式 recent / activity 当前都读取生活事件；意图：共用一份隔离记录，避免把 Trace 或反思误当作行动台账。
 // 约束：activity 只追加显式来源跳转，不改变事件状态、时间或正文；反思与工具样张留在其真实页面。
 const LIFE_EVENT_ITEMS: readonly DebugEvidenceItem[] = [
@@ -303,10 +320,11 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
     ],
   },
   relations: {
-    unit: '关系记录', boundary: '关系短句、忙闲与成长证据各有来源。关系未确认时保留未知，不移植 Alice 专属 OPC 或信任分模型。',
+    unit: '关系记录', boundary: '关系定义与有界共同在场事件分开；忙闲、用户关系阶段和召唤聊天未由本查询提供，不补造关系分数。',
     items: [
-      item('relation-yu', '林与予', '通讯录关系资料', '已提供资料', [['关系短句', '一起交流摄影的熟人 · 样张'], ['来源', 'roster / contacts'], ['忙闲', '忙碌 · 当前样张'], ['关系状态版本', '未记录']], { assets: ['demo.role.yu'] }),
-      item('relation-user', '林与用户', '成长与里程碑', '已有线索', [['来源', 'relationship-stage / milestones'], ['里程碑', '首次共同整理资料 · 样张'], ['关系名称', '未确认'], ['信任分', '无此字段']], { links: [{ page: 'memories', id: 'demo-memory-lin', label: '查看人物分桶记忆' }] }),
+      relationItem('relation-yu', { personId: 'demo-yu', name: '予 · 样张', edges: [{ from: 'lin', to: 'demo-yu', type: 'acquaintance', note: '一起交流摄影的熟人 · 关系定义样张' }, { from: 'demo-yu', to: 'lin', type: 'friend', note: '愿意一起整理旅途照片 · 反方向关系定义样张' }], experiences: [{ id: 'demo-event-reading', time: Date.parse('2026-10-13T14:00:00+08:00'), payload: { activity: '阅读旅行笔记', location: '样张书房', text: LIFE_EVENT_ITEMS[0].body } }, { id: 'demo-event-book', time: Date.parse('2026-10-12T10:00:00+08:00'), payload: { activity: '整理旧书', location: '样张书房', text: '【共同经历样张】翻看旧书，交换夹在书里的旅行线索。' } }] }, { relatedPages: [{ page: 'growth', label: '查看成长与反思' }] }),
+      relationItem('relation-user', { personId: 'demo-user', name: 'demo-user', edges: [{ from: 'lin', to: 'demo-user', type: 'collaborator', note: '共同整理材料的协作关系 · 关系定义样张' }], experiences: [] }, { relatedPages: [{ page: 'memories', label: '查看用户记忆' }] }),
+      relationItem('relation-lin', { personId: 'lin', name: '林 · 样张', edges: [{ from: 'yu', to: 'lin', type: 'friend', note: '一起整理照片的朋友 · 关系定义样张' }] }, { role: 'yu' }),
     ],
   },
   proactive: {

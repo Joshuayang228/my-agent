@@ -172,7 +172,9 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await panel.getByRole('navigation').getByRole('button', { name: '朋友圈', exact: true }).click()
     await expect(panel.getByRole('navigation').getByRole('button', { name: '朋友圈', exact: true })).toHaveCSS('font-size', '13px')
     await panel.getByRole('navigation').getByRole('button', { name: '通讯录', exact: true }).click()
-    await expect(panel.getByRole('navigation').getByRole('button', { name: '通讯录', exact: true })).toHaveCSS('font-size', '11px')
+    await expect(panel.getByRole('navigation').getByRole('button', { name: '通讯录', exact: true })).toHaveCSS('font-size', '13px')
+    await panel.getByRole('navigation').getByRole('button', { name: '主动消息证据', exact: true }).click()
+    await expect(panel.getByRole('navigation').getByRole('button', { name: '主动消息证据', exact: true })).toHaveCSS('font-size', '11px')
   })
 }
 

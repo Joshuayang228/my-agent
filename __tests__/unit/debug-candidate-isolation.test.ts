@@ -11,14 +11,52 @@ import { DebugResidenceCandidate, type ResidencePreviewState } from '../../src/c
 import { DebugFootprintsCandidate, type FootprintsPreviewState } from '../../src/components/playground/DebugFootprintsCandidate'
 import { DebugGrowthCandidate, type GrowthPreviewState } from '../../src/components/playground/DebugGrowthCandidate'
 import { DebugMomentsCandidate, type MomentsPreviewState } from '../../src/components/playground/DebugMomentsCandidate'
+import { DebugRelationsCandidate, type RelationsPreviewState } from '../../src/components/playground/DebugRelationsCandidate'
 import { worldRecordConsistencyError } from '../../src/shared/world-records'
 import { DebugPromptCandidate, type PromptPreviewState } from '../../src/components/playground/DebugPromptCandidate'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES } from '../../src/components/playground/debug-experience-fixtures'
 import { DEBUG_ASSET_FIXTURES, debugAssetGroup } from '../../src/components/playground/debug-asset-fixtures'
-import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, debugTravelKind, debugGrowthKey, debugGrowthFields, debugMomentDate, debugMomentFields, type DebugEvidencePageId } from '../../src/components/playground/debug-evidence-fixtures'
+import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, debugTravelKind, debugGrowthKey, debugGrowthFields, debugMomentDate, debugMomentFields, debugRelationFields, type DebugEvidencePageId } from '../../src/components/playground/debug-evidence-fixtures'
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('通讯录保留方向定义与有界事件，姓名和经历缺失不补造关系事实', () => {
+    const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.relations)
+    const render = (previewState: RelationsPreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugRelationsCandidate, { previewState, snapshotState: 'unknown-time', initialSelectedId, empty, onRetry: () => {}, onEvidence: () => {}, onPage: () => {} }))
+    for (const state of ['unread', 'loading', 'unavailable', 'error'] as const) {
+      expect(render(state)).not.toContain('data-record-id=')
+      expect(render(state)).not.toContain('位已读人物')
+    }
+    expect(render('ready', undefined, true)).toContain('不推断没有关系')
+    expect(render('missing', 'demo-not-found')).not.toContain('aria-label="领域证据详情"')
+    const current = render('ready', 'demo-relation-yu')
+    expect(current).toContain('反方向关系定义样张')
+    expect(current).toContain('acquaintance')
+    expect(current).toContain('friend')
+    expect(current).not.toContain('忙碌 · 当前样张')
+    expect(current).not.toContain('首次共同整理资料')
+    expect(render('ready', 'demo-relation-lin')).toContain('本次查询未提供共同经历，数量未知')
+    expect(render('ready', 'demo-relation-user')).toContain('本次已读范围没有共同在场事件')
+    expect(render('no-experience-source', 'demo-relation-yu')).toContain('本次查询未提供共同经历')
+    const partial = render('experience-error', 'demo-relation-yu')
+    expect(partial).toContain('一条共同经历格式损坏')
+    expect(partial).not.toContain('阅读旅行笔记')
+    expect(partial).toContain('整理旧书')
+    expect(render('truncated', 'demo-relation-yu')).toContain('以下仅含已返回内容')
+    expect(render('unregistered')).toContain('姓名未登记')
+    expect(render('same-name', 'demo-relation-user')).toContain('demo-user')
+    expect(render('unknown-time', 'demo-relation-yu')).not.toContain('1970')
+    expect(render('refresh-error', 'demo-relation-yu')).toContain('事件计划时间：未记录')
+    expect(render('limited')).toContain('1 位已读人物')
+    expect(render('limited')).not.toContain('下一页')
+    expect(render('missing-note', 'demo-relation-yu')).toContain('此方向未提供关系说明')
+    expect(render('long', 'demo-relation-yu')).toContain('共同经历长文样张')
+    const entry = DEBUG_EVIDENCE_PAGES.relations.items[0]
+    expect(debugRelationFields(entry.relation!)).toEqual(entry.fields)
+    expect(entry.relation!.experiences!.every(event => DEBUG_EVIDENCE_PAGES.recent.items.some(record => record.id === event.id))).toBe(true)
+    expect(JSON.stringify(DEBUG_EVIDENCE_PAGES.relations)).toBe(before)
+  })
+
   it('朋友圈以发布事实阅读，互动缺失与空范围分开，截断和坏记录不补全', () => {
     const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.moments)
     const render = (previewState: MomentsPreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugMomentsCandidate, { previewState, snapshotState: 'truncated', initialSelectedId, empty, onRetry: () => {}, onEvidence: () => {}, onPage: () => {} }))
