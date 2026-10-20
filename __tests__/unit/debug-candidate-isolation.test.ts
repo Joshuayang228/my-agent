@@ -13,14 +13,47 @@ import { DebugGrowthCandidate, type GrowthPreviewState } from '../../src/compone
 import { DebugMomentsCandidate, type MomentsPreviewState } from '../../src/components/playground/DebugMomentsCandidate'
 import { DebugRelationsCandidate, type RelationsPreviewState } from '../../src/components/playground/DebugRelationsCandidate'
 import { DebugProactiveCandidate, type ProactivePreviewState } from '../../src/components/playground/DebugProactiveCandidate'
+import { DebugWardrobeCandidate, type WardrobePreviewState } from '../../src/components/playground/DebugWardrobeCandidate'
 import { worldRecordConsistencyError } from '../../src/shared/world-records'
 import { DebugPromptCandidate, type PromptPreviewState } from '../../src/components/playground/DebugPromptCandidate'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES } from '../../src/components/playground/debug-experience-fixtures'
 import { DEBUG_ASSET_FIXTURES, debugAssetGroup } from '../../src/components/playground/debug-asset-fixtures'
-import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, debugTravelKind, debugGrowthKey, debugGrowthFields, debugMomentDate, debugMomentFields, debugRelationFields, type DebugEvidencePageId } from '../../src/components/playground/debug-evidence-fixtures'
+import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, debugTravelKind, debugGrowthKey, debugGrowthFields, debugMomentDate, debugMomentFields, debugRelationFields, debugWardrobeFields, debugWardrobeKind, type DebugEvidencePageId } from '../../src/components/playground/debug-evidence-fixtures'
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('衣柜不按单件推断穿着，分页缺项和冲突保留为未知，槽位复用生产校验', () => {
+    const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.wardrobe)
+    const render = (previewState: WardrobePreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugWardrobeCandidate, { previewState, snapshotState: 'conflict', initialSelectedId, empty, onRetry: () => {}, onEvidence: () => {} }))
+    for (const state of ['unread', 'loading', 'unavailable', 'error'] as const) {
+      expect(render(state)).not.toContain('data-record-id=')
+      expect(render(state)).not.toContain('项已读记录')
+    }
+    expect(render('ready', undefined, true)).toContain('不推断没有衣物')
+    expect(render('missing', 'demo-not-found')).not.toContain('aria-label="领域证据详情"')
+    expect(render('paged')).toContain('当前已读范围未包含穿搭状态')
+    expect(render('conflict')).toContain('存在冲突；不推断哪条生效')
+    expect(render('refresh-error')).toContain('存在冲突')
+    expect(render('unread-reference', 'demo-wardrobe-outfit')).toContain('不能判定不存在')
+    expect(render('mismatch', 'demo-wardrobe-outfit')).toContain('分类与槽位不匹配')
+    expect(render('invalid', 'demo-wardrobe-outfit')).toContain('穿搭需要有效衣物槽位')
+    expect(render('unknown', 'demo-wardrobe-coat')).toContain('future-kind')
+    expect(render('unknown-time', 'demo-wardrobe-state')).not.toContain('1970')
+    expect(render('truncated', 'demo-wardrobe-state')).toContain('以下仅含已返回内容')
+    expect(render('long', 'demo-wardrobe-coat')).toContain('衣物长文样张')
+    const entries = DEBUG_EVIDENCE_PAGES.wardrobe.items
+    const shirt = entries.find(entry => entry.id === 'demo-wardrobe-shirt')!
+    expect(debugWardrobeKind(shirt.wardrobe!)).toBe('garment')
+    expect(shirt.wardrobe!.payload.outfitVersion).toBeUndefined()
+    for (const entry of entries) {
+      expect(debugWardrobeFields(entry)).toEqual(entry.fields)
+      expect(worldRecordConsistencyError('wardrobe', entry.wardrobe!.payload)).toBeNull()
+      const slots = entry.wardrobe!.payload.slots as Record<string, string> | undefined
+      for (const [slot, id] of Object.entries(slots ?? {})) expect(entries.find(value => value.id === id)?.wardrobe?.payload.category).toBe(slot)
+    }
+    expect(JSON.stringify(DEBUG_EVIDENCE_PAGES.wardrobe)).toBe(before)
+  })
+
   it('主动消息不支持独立查询时不伪造普通消息或送达统计', () => {
     const render = (previewState: ProactivePreviewState) => renderToStaticMarkup(createElement(DebugProactiveCandidate, { previewState, onRetry: () => {}, onPage: () => {} }))
     expect(DEBUG_EVIDENCE_PAGES.proactive.items).toEqual([])

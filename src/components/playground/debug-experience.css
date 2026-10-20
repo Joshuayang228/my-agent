@@ -2,9 +2,9 @@
 
 /* 背景：提示词候选需要比较 Alice 的阅读比例与当前小字导航。
    意图：用隔离的文字角色检验比例，并随现有全局字号一起缩放。
-   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character / location / residence / footprints / growth / moments / relations / proactive 样张生效，不能影响正式控件或未施工视角。
+   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character / location / residence / footprints / growth / moments / relations / proactive / wardrobe 样张生效，不能影响正式控件或未施工视角。
    标准字号为 15px 时依次呈现标题 15、正文 14、控件 13、说明 12、技术标识 11；确认后归入基础定义。 */
-.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"], [data-perspective="footprints"], [data-perspective="growth"], [data-perspective="moments"], [data-perspective="relations"], [data-perspective="proactive"]) {
+.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"], [data-perspective="footprints"], [data-perspective="growth"], [data-perspective="moments"], [data-perspective="relations"], [data-perspective="proactive"], [data-perspective="wardrobe"]) {
   --prompt-title-size:1rem;
   --prompt-body-size:calc(1rem * 14 / 15);
   --prompt-control-size:calc(1rem * 13 / 15);
@@ -398,3 +398,36 @@
 .debug-proactive-workbench .debug-candidate-facts dt { font-size:var(--prompt-caption-size); }
 .debug-proactive-workbench .debug-candidate-facts dd { font-size:var(--prompt-control-size); }
 .debug-proactive-workbench pre, .debug-proactive-workbench code { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; }
+
+/* 背景：衣柜中的单件、套装和状态不应混为穿着结论；意图：类型轻分组、短名称和按需槽位。
+   约束：仅 wardrobe P0，复用既有候选文字角色和主题，不改正式换装与图片呈现。 */
+.debug-candidate[data-perspective="wardrobe"] { --text-secondary:color-mix(in srgb,var(--text-primary) 78%,var(--bg-primary)); }
+.debug-candidate[data-perspective="wardrobe"] .workspace-page-header h1 { font-size:var(--prompt-title-size); line-height:1.5; }
+.debug-candidate[data-perspective="wardrobe"] .debug-candidate-nav-groups button,
+.debug-candidate[data-perspective="wardrobe"] .debug-wardrobe-workbench button:not(.debug-wardrobe-name),
+.debug-candidate[data-perspective="wardrobe"] .debug-wardrobe-workbench input,
+.debug-candidate[data-perspective="wardrobe"] .debug-wardrobe-workbench select { font-size:var(--prompt-control-size); }
+.debug-candidate[data-perspective="wardrobe"] .debug-candidate-nav-label,
+.debug-candidate[data-perspective="wardrobe"] .debug-candidate-footer { font-size:var(--prompt-meta-size); }
+.debug-wardrobe-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px; }
+.debug-wardrobe-toolbar > label { display:flex; align-items:center; gap:8px; min-width:0; font-size:var(--prompt-caption-size); color:var(--text-secondary); }
+.debug-wardrobe-toolbar input, .debug-wardrobe-toolbar select { min-height:32px; padding:4px 8px; min-width:0; }
+.debug-wardrobe-toolbar > .debug-wardrobe-search { flex:1; min-width:min(100%,200px); }
+.debug-wardrobe-search input { width:100%; }
+.debug-wardrobe-meta, .debug-wardrobe-range { color:var(--text-secondary); font-size:var(--prompt-caption-size); line-height:1.6; overflow-wrap:anywhere; }
+.debug-wardrobe-list > section > h3 { font-size:var(--prompt-control-size); font-weight:500; margin:16px 0 4px; }
+.debug-wardrobe-row { padding:8px 0; border-bottom:1px solid var(--border-subtle); }
+.debug-candidate[data-perspective="wardrobe"] .debug-wardrobe-name { display:block; padding:0; font-size:var(--prompt-body-size); font-weight:400; line-height:1.6; text-align:left; white-space:normal; overflow-wrap:anywhere; }
+.debug-wardrobe-meta { margin-top:4px; }
+.debug-wardrobe-state { font-size:var(--prompt-caption-size); line-height:1.6; padding:8px 0; }
+.debug-wardrobe-state[role="alert"] { color:var(--danger); }
+.debug-wardrobe-state button { margin-top:8px; }
+.debug-wardrobe-detail { border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:20px; scroll-margin-top:12px; }
+.debug-wardrobe-detail > h3 { font-size:var(--prompt-title-size); font-weight:500; line-height:1.6; margin:12px 0; overflow-wrap:anywhere; }
+.debug-wardrobe-detail h4 { font-size:var(--prompt-control-size); font-weight:500; margin:12px 0 4px; }
+.debug-wardrobe-body { font-size:var(--prompt-body-size); line-height:1.75; white-space:pre-wrap; overflow-wrap:anywhere; max-width:72ch; }
+.debug-wardrobe-slots > div { padding:8px 0; font-size:var(--prompt-control-size); overflow-wrap:anywhere; }
+.debug-wardrobe-slots > div > span { color:var(--text-secondary); display:inline-block; margin-right:12px; }
+.debug-wardrobe-detail .debug-candidate-facts dt, .debug-wardrobe-detail .debug-prompt-provenance { font-size:var(--prompt-caption-size); }
+.debug-wardrobe-detail .debug-candidate-facts dd { font-size:var(--prompt-control-size); white-space:pre-wrap; }
+.debug-wardrobe-detail pre, .debug-wardrobe-detail code { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; }

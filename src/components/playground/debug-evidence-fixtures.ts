@@ -1,4 +1,4 @@
-import { tripStopSchema, type TripStopRecord } from '../../shared/world-records'
+import { tripStopSchema, wardrobeCategorySchema, type TripStopRecord } from '../../shared/world-records'
 import type { DebugPerspective, DebugRecordFixture } from './debug-experience-fixtures'
 
 export type DebugEvidencePageId = Exclude<DebugPerspective, 'assets' | 'runs' | 'system' | 'quality' | 'persona'>
@@ -54,6 +54,12 @@ export interface DebugRelationRecord {
   edges: readonly { from: string; to: string; type: string; note?: string }[]
   experiences?: readonly { id: string; time?: number; payload: Record<string, unknown> }[]
 }
+export interface DebugWardrobeRecord {
+  payload: Record<string, unknown>
+  acquiredAt?: number
+  sourceEventId?: string
+  truncated?: boolean
+}
 export interface DebugEvidenceItem {
   id: string
   title: string
@@ -71,6 +77,7 @@ export interface DebugEvidenceItem {
   growth?: DebugGrowthRecord
   moment?: DebugMomentRecord
   relation?: DebugRelationRecord
+  wardrobe?: DebugWardrobeRecord
   body?: string
   assets?: readonly string[]
   callId?: string
@@ -238,6 +245,20 @@ function relationItem(id: string, relation: DebugRelationRecord, extra: Partial<
   return item(id, relation.name, '关系定义 · 隔离样张', '已读资料', debugRelationFields(relation), { ...extra, relation, body: relation.edges[0]?.note })
 }
 
+export function debugWardrobeKind(record: DebugWardrobeRecord) {
+  const type = record.payload.recordType
+  if (type === 'outfit' || type === 'wear-state') return type
+  return type === 'garment' || type === undefined && wardrobeCategorySchema.safeParse(record.payload.category).success ? 'garment' : 'unknown'
+}
+// 背景：同表中的衣物和穿搭状态有不同时间 / 版本语义；意图：字段由实际 payload 派生。
+// 约束：不把创建时间当换装时间，未读状态不补默认穿搭，版本不复制给单件衣物。
+export function debugWardrobeFields(entry: Pick<DebugEvidenceItem, 'id' | 'wardrobe'>): DebugEvidenceItem['fields'] {
+  return [['资产', entry.id], ['来源', 'companion_assets · wardrobe'], ['记录类型', String(entry.wardrobe?.payload.recordType ?? '未提供，按已读分类解释')], ['收录时间', debugNowTime(entry.wardrobe?.acquiredAt ?? 0, 'Asia/Shanghai')], ['来源事件', entry.wardrobe?.sourceEventId ?? '未保存']]
+}
+function wardrobeItem(id: string, name: string, record: DebugWardrobeRecord): DebugEvidenceItem {
+  return item(id, name, '衣柜资料 · 隔离样张', '已读资料', debugWardrobeFields({ id: `demo-${id}`, wardrobe: record }), { wardrobe: record, body: typeof record.payload.description === 'string' ? record.payload.description : undefined, links: record.sourceEventId ? [{ page: 'recent', id: record.sourceEventId, label: '查看来源事件' }] : undefined })
+}
+
 // 背景：正式 recent / activity 当前都读取生活事件；意图：共用一份隔离记录，避免把 Trace 或反思误当作行动台账。
 // 约束：activity 只追加显式来源跳转，不改变事件状态、时间或正文；反思与工具样张留在其真实页面。
 const LIFE_EVENT_ITEMS: readonly DebugEvidenceItem[] = [
@@ -332,10 +353,14 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
     items: [],
   },
   wardrobe: {
-    unit: '衣物', boundary: '这里查看拥有、穿着版本与来源，不换装、不生图。正式接线须用纯只读查询，不能调用带初始化副作用的 get-assets。',
+    unit: '衣柜记录', boundary: '衣物、套装和穿搭状态按保存结构区分；当前有界范围不足以证明完整衣柜或当前实际穿着。收录时间不作为换装时间；只读，不换装、不生图。',
     items: [
-      item('wardrobe-shirt', '浅色衬衫', '衣柜 · 上装', '当前穿着', [['资产', 'demo-owned-shirt'], ['槽位', 'top'], ['穿搭版本', '样张 v4'], ['来源', '用户创建 · 样张'], ['关联动态', '没有显式关联']]),
-      item('wardrobe-coat', '旅行外套', '衣柜 · 外套', '已拥有', [['资产', 'demo-owned-coat'], ['槽位', 'outer'], ['穿搭版本', '未穿着'], ['来源', 'demo-event-reading · 样张']], { links: [{ page: 'links', id: 'demo-link-reading', label: '查看获得来源' }] }),
+      wardrobeItem('wardrobe-coat', '旅行外套', { acquiredAt: Date.parse('2026-10-13T14:00:00+08:00'), sourceEventId: 'demo-event-reading', payload: { recordType: 'garment', category: 'outerwear', description: '【衣物样张】出门整理照片时常用的一件外套。' } }),
+      wardrobeItem('wardrobe-shirt', '浅色衬衫', { acquiredAt: Date.parse('2026-10-13T11:00:00+08:00'), payload: { category: 'top', description: '【旧单件样张】只有分类，没有 recordType；不据此丢弃已读资料。' } }),
+      wardrobeItem('wardrobe-trousers', '深色长裤', { acquiredAt: Date.parse('2026-10-13T10:00:00+08:00'), payload: { recordType: 'garment', category: 'bottom' } }),
+      wardrobeItem('wardrobe-shoes', '步行鞋', { acquiredAt: Date.parse('2026-10-13T09:00:00+08:00'), payload: { recordType: 'garment', category: 'shoes' } }),
+      wardrobeItem('wardrobe-outfit', '出行套装', { acquiredAt: Date.parse('2026-10-12T08:00:00+08:00'), payload: { recordType: 'outfit', outfitVersion: 2, slots: { top: 'demo-wardrobe-shirt', bottom: 'demo-wardrobe-trousers', shoes: 'demo-wardrobe-shoes', outerwear: 'demo-wardrobe-coat' } } }),
+      wardrobeItem('wardrobe-state', '当前穿搭', { acquiredAt: Date.parse('2026-10-11T08:00:00+08:00'), payload: { recordType: 'wear-state', outfitVersion: 4, slots: { top: 'demo-wardrobe-shirt', bottom: 'demo-wardrobe-trousers', shoes: 'demo-wardrobe-shoes' } } }),
     ],
   },
   items: {
@@ -349,7 +374,7 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
   },
   links: {
     unit: '事件关联', boundary: '只使用显式 source_event_id 与 event_links，不按名称或时间拼接；发布时刻不代表物品购买或活动完成时刻。',
-    items: [item('link-reading', '阅读事件 → 动态与物品', 'demo-event-reading', '显式关联', [['事件', 'demo-event-reading'], ['动态', 'demo-moment-reading'], ['物品', 'demo-item-camera'], ['衣物', 'demo-owned-coat'], ['图片', '样张未提供'], ['关联来源', 'source_event_id / companion_event_links']], { links: [{ page: 'recent', id: 'demo-event-reading', label: '查看生活事件' }, { page: 'moments', id: 'demo-moment-reading', label: '查看已发布动态' }, { page: 'residence', id: 'demo-item-camera', label: '查看关联物品' }, { page: 'wardrobe', id: 'demo-wardrobe-coat', label: '查看关联衣物' }] })],
+    items: [item('link-reading', '阅读事件 → 动态与物品', 'demo-event-reading', '显式关联', [['事件', 'demo-event-reading'], ['动态', 'demo-moment-reading'], ['物品', 'demo-item-camera'], ['衣物', 'demo-wardrobe-coat'], ['图片', '样张未提供'], ['关联来源', 'source_event_id / companion_event_links']], { links: [{ page: 'recent', id: 'demo-event-reading', label: '查看生活事件' }, { page: 'moments', id: 'demo-moment-reading', label: '查看已发布动态' }, { page: 'residence', id: 'demo-item-camera', label: '查看关联物品' }, { page: 'wardrobe', id: 'demo-wardrobe-coat', label: '查看关联衣物' }] })],
   },
   context: {
     unit: '上下文证据', boundary: '当前装配预览不能还原历史实发正文。六个语义模块来自我们的编译架构，生活、用户数据与稳定身份独立注入。',
