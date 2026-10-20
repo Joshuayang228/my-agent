@@ -15,14 +15,49 @@ import { DebugRelationsCandidate, type RelationsPreviewState } from '../../src/c
 import { DebugProactiveCandidate, type ProactivePreviewState } from '../../src/components/playground/DebugProactiveCandidate'
 import { DebugWardrobeCandidate, type WardrobePreviewState } from '../../src/components/playground/DebugWardrobeCandidate'
 import { DebugCultureCandidate, type CulturePreviewState } from '../../src/components/playground/DebugCultureCandidate'
+import { DebugLinksCandidate, type LinksPreviewState } from '../../src/components/playground/DebugLinksCandidate'
 import { worldRecordConsistencyError } from '../../src/shared/world-records'
 import { DebugPromptCandidate, type PromptPreviewState } from '../../src/components/playground/DebugPromptCandidate'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, DEBUG_RECORD_FIXTURES } from '../../src/components/playground/debug-experience-fixtures'
 import { DEBUG_ASSET_FIXTURES, debugAssetGroup } from '../../src/components/playground/debug-asset-fixtures'
-import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, debugTravelKind, debugGrowthKey, debugGrowthFields, debugMomentDate, debugMomentFields, debugRelationFields, debugWardrobeFields, debugWardrobeKind, debugCultureFields, debugCultureStatus, debugCultureType, debugCultureBody, type DebugEvidencePageId } from '../../src/components/playground/debug-evidence-fixtures'
+import { DEBUG_EVIDENCE_PAGES, getDebugEvidencePage, debugTravelKind, debugGrowthKey, debugGrowthFields, debugMomentDate, debugMomentFields, debugRelationFields, debugWardrobeFields, debugWardrobeKind, debugCultureFields, debugCultureStatus, debugCultureType, debugCultureBody, debugLinkFields, debugLinkTitle, debugLinkMetadata, type DebugEvidencePageId } from '../../src/components/playground/debug-evidence-fixtures'
 import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience-registry'
 
 describe('Debug 候选隔离边界', () => {
+  it('生活事件关联逐边展示，定位只消费响应，保存名和创建时间不扩张为故事', () => {
+    const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.links)
+    const render = (previewState: LinksPreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugLinksCandidate, { previewState, snapshotState: 'no-jumps', initialSelectedId, empty, onRetry: () => {}, onEvidence: () => {} }))
+    for (const state of ['unread', 'loading', 'unavailable', 'error'] as const) {
+      expect(render(state)).not.toContain('data-record-id=')
+      expect(render(state)).not.toContain('条已读关联')
+    }
+    expect(render('ready', undefined, true)).toContain('不推断事件从未有关联')
+    expect(render('missing', 'demo-not-found')).not.toContain('aria-label="领域证据详情"')
+    const missing = render('no-jumps', 'demo-link-reading')
+    expect(missing).toContain('当前响应未提供事件定位')
+    expect(missing).toContain('当前响应未提供目标定位')
+    expect(missing).not.toContain('>查看明确关联的资产')
+    expect(render('refresh-error', 'demo-link-reading')).toContain('当前响应未提供目标定位')
+    expect(render('ready', 'demo-link-cast')).not.toContain('>查看明确关联的资产')
+    expect(render('ready', 'demo-link-image')).not.toContain('<img')
+    expect(render('unknown-time', 'demo-link-reading')).not.toContain('1970')
+    expect(render('unknown-time', 'demo-link-reading')).toContain('关联创建时间</dt><dd>未记录')
+    expect(render('partial')).not.toContain('data-record-id="demo-link-image"')
+    expect(render('partial')).toContain('data-record-id="demo-link-reading"')
+    expect(render('metadata-shape', 'demo-link-reading')).toContain('元数据不是对象')
+    expect(render('unknown')).toContain('未识别')
+    expect(render('truncated', 'demo-link-reading')).toContain('不能认定元数据完整')
+    expect(render('long', 'demo-link-reading')).toContain('长关联备注样张')
+    const entries = DEBUG_EVIDENCE_PAGES.links.items
+    expect(entries.filter(entry => entry.link?.eventId === 'demo-event-reading')).toHaveLength(4)
+    for (const entry of entries) {
+      expect(debugLinkFields(entry)).toEqual(entry.fields)
+      if (typeof debugLinkMetadata(entry.link!)?.name === 'string') expect(debugLinkTitle(entry.link!)).toContain('保存名')
+      if (entry.link!.targetType !== 'asset') expect(entry.links?.every(jump => jump.page === 'recent')).toBe(true)
+    }
+    expect(JSON.stringify(DEBUG_EVIDENCE_PAGES.links)).toBe(before)
+  })
+
   it('文化作品状态与独立笔记分开，空数组 / 旧笔记 / 坏数组不互相冒充', () => {
     const before = JSON.stringify(DEBUG_EVIDENCE_PAGES.items)
     const render = (previewState: CulturePreviewState, initialSelectedId?: string, empty = false) => renderToStaticMarkup(createElement(DebugCultureCandidate, { previewState, snapshotState: 'legacy-note', initialSelectedId, empty, onRetry: () => {}, onEvidence: () => {} }))

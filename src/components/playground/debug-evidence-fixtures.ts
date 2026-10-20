@@ -67,6 +67,15 @@ export interface DebugCultureRecord {
   sourceEventId?: string
   truncated?: boolean
 }
+export interface DebugLinkRecord {
+  eventId: string
+  targetType: string
+  targetId: string
+  relation: string
+  createdAt?: number
+  metadata: unknown
+  truncated?: boolean
+}
 export interface DebugEvidenceItem {
   id: string
   title: string
@@ -86,6 +95,7 @@ export interface DebugEvidenceItem {
   relation?: DebugRelationRecord
   wardrobe?: DebugWardrobeRecord
   culture?: DebugCultureRecord
+  link?: DebugLinkRecord
   body?: string
   assets?: readonly string[]
   callId?: string
@@ -294,10 +304,28 @@ function cultureItem(id: string, title: string, record: DebugCultureRecord): Deb
   return item(id, title, '文化资料 · 隔离样张', debugCultureStatus(record), debugCultureFields({ id: `demo-${id}`, culture: record }), { culture: record, body: debugCultureBody(record), readingFields: [], links: record.sourceEventId ? [{ page: 'recent', id: record.sourceEventId, label: '查看来源事件' }] : undefined })
 }
 
+const LINK_RELATION_LABELS: Record<string, string> = { wears: '穿着关联', references: '引用关联', depicts: '图片关联', coframe: '共同在场关联', participant: '参与关联' }
+export const debugLinkMetadata = (link: DebugLinkRecord): Record<string, unknown> | null => link.metadata !== null && typeof link.metadata === 'object' && !Array.isArray(link.metadata) ? link.metadata as Record<string, unknown> : null
+export function debugLinkTitle(link: DebugLinkRecord) {
+  const relation = LINK_RELATION_LABELS[link.relation] ?? `关系 ${link.relation.slice(0, 40) || '未记录'}`
+  const metadata = debugLinkMetadata(link)
+  return typeof metadata?.name === 'string' && metadata.name ? `${relation} · ${metadata.name.slice(0, 80)}${metadata.name.length > 80 ? '…' : ''}（保存名）` : relation
+}
+
+// 背景：同事件多条关联不能拼成一个故事；意图：由单条边生成阅读字段和保存名。
+// 约束：元数据名称不是解析后的当前名称，创建时间不冒充发生时间，定位只消费显式响应。
+export function debugLinkFields(entry: Pick<DebugEvidenceItem, 'id' | 'link'>): DebugEvidenceItem['fields'] {
+  const link = entry.link!
+  return [['关联记录', entry.id], ['来源', 'companion_event_links'], ['来源事件', link.eventId || '未记录'], ['目标类型', link.targetType || '未记录'], ['目标标识', link.targetId || '未记录'], ['关系类型', link.relation || '未记录'], ['关联创建时间', debugNowTime(link.createdAt ?? 0, 'Asia/Shanghai')]]
+}
+function linkItem(id: string, link: DebugLinkRecord, links: DebugEvidenceItem['links']): DebugEvidenceItem {
+  return item(id, debugLinkTitle(link), '独立关联边 · 隔离样张', '已读关联', debugLinkFields({ id: `demo-${id}`, link }), { link, links, readingFields: [], date: debugMomentDate(link.createdAt) })
+}
+
 // 背景：正式 recent / activity 当前都读取生活事件；意图：共用一份隔离记录，避免把 Trace 或反思误当作行动台账。
 // 约束：activity 只追加显式来源跳转，不改变事件状态、时间或正文；反思与工具样张留在其真实页面。
 const LIFE_EVENT_ITEMS: readonly DebugEvidenceItem[] = [
-  item('event-reading', '阅读旅行笔记', '14:00 · 样张书房', '已发布', [['计划时间', '2026-10-13 14:00'], ['状态', 'published · 已发布'], ['动态投影', 'demo-moment-reading'], ['活动执行', '没有完成证据']], { event: { scheduledAt: Date.parse('2026-10-13T14:00:00+08:00'), location: '样张书房' }, body: '【动态样张】翻到上次旅途的笔记，准备挑几张照片做成小册子。', links: [{ page: 'links', id: 'demo-link-reading', label: '查看动态与物品关联' }] }),
+  item('event-reading', '阅读旅行笔记', '14:00 · 样张书房', '已发布', [['计划时间', '2026-10-13 14:00'], ['状态', 'published · 已发布'], ['动态投影', 'demo-moment-reading'], ['活动执行', '没有完成证据']], { event: { scheduledAt: Date.parse('2026-10-13T14:00:00+08:00'), location: '样张书房' }, body: '【动态样张】翻到上次旅途的笔记，准备挑几张照片做成小册子。', links: [{ page: 'links', id: 'demo-link-reading', label: '查看物品关联记录' }] }),
   item('event-walk', '河边散步', '19:00 · 样张河边', '计划中', [['计划时间', '2026-10-13 19:00'], ['状态', 'planned · 计划中'], ['动态投影', '尚未发布'], ['活动执行', '未记录']], { event: { scheduledAt: Date.parse('2026-10-13T19:00:00+08:00'), location: '样张河边' } }),
   item('event-book', '整理旧书', '昨天 · 样张书房', '已发布', [['计划时间', '2026-10-12 10:00'], ['状态', 'published · 已发布'], ['活动执行', '没有完成证据']], { date: '2026-10-12', event: { scheduledAt: Date.parse('2026-10-12T10:00:00+08:00'), location: '样张书房' } }),
 ]
@@ -408,8 +436,14 @@ export const DEBUG_EVIDENCE_PAGES: Record<DebugEvidencePageId, DebugEvidencePage
     ],
   },
   links: {
-    unit: '事件关联', boundary: '只使用显式 source_event_id 与 event_links，不按名称或时间拼接；发布时刻不代表物品购买或活动完成时刻。',
-    items: [item('link-reading', '阅读事件 → 动态与物品', 'demo-event-reading', '显式关联', [['事件', 'demo-event-reading'], ['动态', 'demo-moment-reading'], ['物品', 'demo-item-camera'], ['衣物', 'demo-wardrobe-coat'], ['图片', '样张未提供'], ['关联来源', 'source_event_id / companion_event_links']], { links: [{ page: 'recent', id: 'demo-event-reading', label: '查看生活事件' }, { page: 'moments', id: 'demo-moment-reading', label: '查看已发布动态' }, { page: 'residence', id: 'demo-item-camera', label: '查看关联物品' }, { page: 'wardrobe', id: 'demo-wardrobe-coat', label: '查看关联衣物' }] })],
+    unit: '关联边', boundary: '每行是一条已保存关联，不代表完整事件故事。名称来自保存元数据，定位只用响应提供的显式跳转；未给定位不判目标不存在，创建时间不当发生时间。',
+    items: [
+      linkItem('link-reading', { eventId: 'demo-event-reading', targetType: 'asset', targetId: 'demo-item-camera', relation: 'references', createdAt: Date.parse('2026-10-13T14:05:00+08:00'), metadata: { name: '小相机', note: '【关联备注样张】整理照片时引用的物件。' } }, [{ page: 'recent', id: 'demo-event-reading', label: '查看来源事件' }, { page: 'residence', id: 'demo-item-camera', label: '查看明确关联的资产' }]),
+      linkItem('link-coat', { eventId: 'demo-event-reading', targetType: 'asset', targetId: 'demo-wardrobe-coat', relation: 'wears', createdAt: Date.parse('2026-10-13T14:04:00+08:00'), metadata: { name: '旅行外套' } }, [{ page: 'recent', id: 'demo-event-reading', label: '查看来源事件' }, { page: 'wardrobe', id: 'demo-wardrobe-coat', label: '查看明确关联的资产' }]),
+      linkItem('link-book', { eventId: 'demo-event-reading', targetType: 'asset', targetId: 'demo-item-book', relation: 'references', createdAt: Date.parse('2026-10-13T14:03:00+08:00'), metadata: { name: '旅行笔记' } }, [{ page: 'recent', id: 'demo-event-reading', label: '查看来源事件' }, { page: 'items', id: 'demo-item-book', label: '查看明确关联的资产' }]),
+      linkItem('link-cast', { eventId: 'demo-event-reading', targetType: 'cast', targetId: 'demo-yu', relation: 'coframe', createdAt: Date.parse('2026-10-13T14:02:00+08:00'), metadata: { name: '予' } }, [{ page: 'recent', id: 'demo-event-reading', label: '查看来源事件' }]),
+      linkItem('link-image', { eventId: 'demo-event-book', targetType: 'image', targetId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', relation: 'depicts', createdAt: Date.parse('2026-10-12T10:10:00+08:00'), metadata: { position: 0, description: '图片标识样张，未提供文件' } }, [{ page: 'recent', id: 'demo-event-book', label: '查看来源事件' }]),
+    ],
   },
   context: {
     unit: '上下文证据', boundary: '当前装配预览不能还原历史实发正文。六个语义模块来自我们的编译架构，生活、用户数据与稳定身份独立注入。',

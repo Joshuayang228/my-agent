@@ -2,9 +2,9 @@
 
 /* 背景：提示词候选需要比较 Alice 的阅读比例与当前小字导航。
    意图：用隔离的文字角色检验比例，并随现有全局字号一起缩放。
-   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character / location / residence / footprints / growth / moments / relations / proactive / wardrobe / items 样张生效，不能影响正式控件或未施工视角。
+   约束：这里只是 P0 profile；仅已逐页施工的 assets / schedule / recent / activity / now / character / location / residence / footprints / growth / moments / relations / proactive / wardrobe / items / links 样张生效，不能影响正式控件或未施工视角。
    标准字号为 15px 时依次呈现标题 15、正文 14、控件 13、说明 12、技术标识 11；确认后归入基础定义。 */
-.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"], [data-perspective="footprints"], [data-perspective="growth"], [data-perspective="moments"], [data-perspective="relations"], [data-perspective="proactive"], [data-perspective="wardrobe"], [data-perspective="items"]) {
+.debug-candidate:is([data-perspective="assets"], [data-perspective="schedule"], [data-perspective="recent"], [data-perspective="activity"], [data-perspective="now"], [data-perspective="character"], [data-perspective="location"], [data-perspective="residence"], [data-perspective="footprints"], [data-perspective="growth"], [data-perspective="moments"], [data-perspective="relations"], [data-perspective="proactive"], [data-perspective="wardrobe"], [data-perspective="items"], [data-perspective="links"]) {
   --prompt-title-size:1rem;
   --prompt-body-size:calc(1rem * 14 / 15);
   --prompt-control-size:calc(1rem * 13 / 15);
@@ -463,3 +463,43 @@
 .debug-culture-detail .debug-candidate-facts dt, .debug-culture-detail .debug-prompt-provenance { font-size:var(--prompt-caption-size); }
 .debug-culture-detail .debug-candidate-facts dd { font-size:var(--prompt-control-size); white-space:pre-wrap; }
 .debug-culture-detail pre, .debug-culture-detail code { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; }
+
+/* 背景：同一事件的多条边容易被综合故事吞掉；意图：单边轻列表与核心有向标识。
+   约束：仅 links P0，保存名与当前名分开，沿用已测文字角色与主题，不改实际关联引擎。 */
+.debug-candidate[data-perspective="links"] { --text-secondary:color-mix(in srgb,var(--text-primary) 78%,var(--bg-primary)); }
+.debug-candidate[data-perspective="links"] .workspace-page-header h1 { font-size:var(--prompt-title-size); line-height:1.5; }
+.debug-candidate[data-perspective="links"] .debug-candidate-nav-groups button,
+.debug-candidate[data-perspective="links"] .debug-links-workbench button:not(.debug-links-name),
+.debug-candidate[data-perspective="links"] .debug-links-workbench input,
+.debug-candidate[data-perspective="links"] .debug-links-workbench select { font-size:var(--prompt-control-size); }
+.debug-candidate[data-perspective="links"] .debug-candidate-nav-label,
+.debug-candidate[data-perspective="links"] .debug-candidate-footer { font-size:var(--prompt-meta-size); }
+.debug-links-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px; }
+.debug-links-toolbar > label, .debug-links-filter label { display:flex; align-items:center; gap:8px; min-width:0; color:var(--text-secondary); font-size:var(--prompt-caption-size); }
+.debug-links-toolbar input, .debug-links-toolbar select { min-height:32px; padding:4px 8px; min-width:0; }
+.debug-links-toolbar > .debug-links-search { flex:1; min-width:min(100%,180px); }
+.debug-links-search input { width:100%; }
+.debug-links-filter { font-size:var(--prompt-caption-size); color:var(--text-secondary); }
+.debug-links-filter[open] { flex-basis:100%; }
+.debug-links-filter label { margin:8px 0; }
+.debug-links-filter input[type="date"] { max-width:160px; }
+.debug-links-range, .debug-links-meta { font-size:var(--prompt-caption-size); color:var(--text-secondary); line-height:1.6; overflow-wrap:anywhere; }
+.debug-links-list > section > h3 { font-size:var(--prompt-control-size); font-weight:500; line-height:1.6; margin:16px 0 4px; overflow-wrap:anywhere; }
+.debug-links-row { padding:10px 0; border-bottom:1px solid var(--border-subtle); }
+.debug-candidate[data-perspective="links"] .debug-links-name { display:block; padding:0; text-align:left; font-size:var(--prompt-body-size); font-weight:400; line-height:1.6; white-space:normal; overflow-wrap:anywhere; }
+.debug-links-meta { margin-top:4px; }
+.debug-links-meta code { font-size:var(--prompt-caption-size); }
+.debug-links-state { font-size:var(--prompt-caption-size); line-height:1.6; padding:8px 0; }
+.debug-links-state[role="alert"] { color:var(--danger); }
+.debug-links-state button { margin-top:8px; }
+.debug-links-detail { border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:20px; scroll-margin-top:12px; }
+.debug-links-detail > h3 { font-size:var(--prompt-title-size); font-weight:500; line-height:1.6; margin:12px 0; overflow-wrap:anywhere; }
+.debug-links-detail h4 { font-size:var(--prompt-control-size); font-weight:500; margin:12px 0 4px; }
+.debug-links-edge { display:grid; grid-template-columns:auto minmax(0,1fr); gap:8px 12px; margin:12px 0; }
+.debug-links-edge dt { color:var(--text-secondary); font-size:var(--prompt-caption-size); }
+.debug-links-edge dd, .debug-links-edge code { font-size:var(--prompt-control-size); overflow-wrap:anywhere; }
+.debug-links-body { font-size:var(--prompt-body-size); line-height:1.75; white-space:pre-wrap; overflow-wrap:anywhere; max-width:72ch; }
+.debug-links-actions { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+.debug-links-detail .debug-candidate-facts dt, .debug-links-detail .debug-prompt-provenance { font-size:var(--prompt-caption-size); }
+.debug-links-detail .debug-candidate-facts dd { font-size:var(--prompt-control-size); white-space:pre-wrap; }
+.debug-links-detail pre { font-size:var(--prompt-meta-size); white-space:pre-wrap; overflow-wrap:anywhere; }

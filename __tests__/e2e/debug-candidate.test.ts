@@ -180,7 +180,9 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await panel.getByRole('navigation').getByRole('button', { name: '文化角', exact: true }).click()
     await expect(panel.getByRole('navigation').getByRole('button', { name: '文化角', exact: true })).toHaveCSS('font-size', '13px')
     await panel.getByRole('navigation').getByRole('button', { name: '生活事件关联', exact: true }).click()
-    await expect(panel.getByRole('navigation').getByRole('button', { name: '生活事件关联', exact: true })).toHaveCSS('font-size', '11px')
+    await expect(panel.getByRole('navigation').getByRole('button', { name: '生活事件关联', exact: true })).toHaveCSS('font-size', '13px')
+    await panel.getByRole('navigation').getByRole('button', { name: '上下文', exact: true }).click()
+    await expect(panel.getByRole('navigation').getByRole('button', { name: '上下文', exact: true })).toHaveCSS('font-size', '11px')
   })
 }
 
@@ -368,8 +370,8 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 
     await page.screenshot({ path: info.outputPath('debug-schedule.png') })
     await panel.getByRole('button', { name: '查看关联生活事件' }).click()
     await expect(panel.getByRole('article', { name: '领域证据详情' })).toContainText('demo-event-reading')
-    await panel.getByRole('button', { name: '查看动态与物品关联' }).click()
-    await panel.getByRole('button', { name: '查看关联物品' }).click()
+    await panel.getByRole('button', { name: '查看物品关联记录' }).click()
+    await panel.getByRole('button', { name: '查看明确关联的资产' }).click()
     await expect(panel.getByRole('article', { name: '领域证据详情' })).toContainText('demo-item-camera')
     await nav.getByRole('button', { name: '今日日程', exact: true }).click()
     await panel.getByRole('textbox', { name: '证据日期' }).fill('2026-10-12')
