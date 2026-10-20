@@ -442,6 +442,10 @@ Electron 首启测试通过正式界面先保存连接、添加命名模型、�
 > 质量维入口：定义 Unit / Eval / E2E / 安全审计的分层和必跑条件。具体 Case、测试文件和当前通过数量以仓库代码及命令输出为准，不在本文维护动态总数。
 > 深 Why：`methodology/m17-testing-architecture.md`、`methodology/m18-eval.md`。
 
+## Debug 用户画像 v3 候选验收
+
+`debug-profile-candidate.test.ts` 覆盖人物反馈分桶、全局其他来源、三块摘要、空 / 失败 / 缺失 / 异常 / 截断 / 长文与原始 ID；`debug-profile.test.ts` 覆盖两主题 × 1096 / 600、摘要详情、焦点返回、人物切换、跨页入口、分页、刷新保留、更新时间缺失和横向溢出。候选不证明真实 Electron 画像查询或运行时注入。
+
 ## Debug 上下文 v3 候选验收
 
 `debug-context-candidate.test.ts` 覆盖占位长度、返回原文、结构异常、引用缺失不选替代及样张不变性；`debug-context.test.ts` 覆盖两主题 × 1096 / 600、文字比例与对比度、调用 / tab / 展开 / 更多消息刷新保留、历史截断保留、空结构与无 System、消息 / 工具 / 参数、精确调用跳转、失败重读、长文及字号缩放。全局 context 入口不受人物筛选；新日志只保存元数据，空数组可能来自存储解析回退，不能证明原请求无输入。测试和内置浏览器仅证明隔离候选，不替代 Electron 实际数据查询。
