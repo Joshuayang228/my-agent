@@ -1,5 +1,9 @@
 # Agent 运行时
 
+## 已落地能力：调用记录与技能工具 v3 隔离候选
+
+Playground 调用记录按脱敏摘要与显式来源跳转展示；技能工具将注册定义、当前可用、MCP 连接和实际使用证据分开。候选不修改真实日志、ToolRegistry、Skills loader 或 MCP 状态。
+
 ## 已落地能力：质量 / Skill 验收 v3 隔离候选
 
 Playground 质量候选将 Skill Eval Grader 与 Persona Eval 自动结果 / 人工审阅分开，按报告、用例和证据渐进展示；缺报告、运行中和未审阅不补结论。候选不运行 Eval、不修改报告、不改变人工审阅存储。

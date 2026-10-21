@@ -1,0 +1,15 @@
+import { useState } from 'react'
+import { ActionButton } from '../foundation/ActionButton'
+import { SelectField } from '../foundation/SelectField'
+const TOOLS = [
+  { id:'demo-tool-read', name:'读取工具', kind:'注册定义', status:'当前可用', detail:'read · 只读 · 非破坏性', usage:'demo-call-02' },
+  { id:'demo-tool-skill', name:'旅行整理技能', kind:'Skill', status:'已加载', detail:'Skills loader · 此次激活未提供证据', usage:'' },
+  { id:'demo-tool-mcp', name:'资料连接', kind:'MCP', status:'连接失败', detail:'工具数量未知 · Schema 尚未取得', usage:'' },
+]
+export type ToolsPreviewState = 'ready'|'unread'|'loading'|'unavailable'|'error'|'refresh-error'|'mcp-error'|'unknown'|'long'
+export function DebugToolsCandidate({ previewState, snapshotState, onRetry }: { previewState: ToolsPreviewState; snapshotState: ToolsPreviewState; onRetry:()=>void }) {
+  const [selected,setSelected]=useState<string>(); const [kind,setKind]=useState('all'); const state=previewState==='refresh-error'?snapshotState:previewState; const available=!['unread','loading','unavailable','error'].includes(previewState)
+  const tools=state==='long'?TOOLS.map(t=>t.id==='demo-tool-read'?{...t,detail:t.detail+' · '+('长注册说明样张 '.repeat(30))}:t):TOOLS; const rows=tools.filter(t=>kind==='all'||t.kind===kind); const item=rows.find(t=>t.id===selected)
+  return <section className="debug-tools-workbench" data-testid="debug-evidence-tools"><div className="debug-tools-toolbar"><span>注册、可用与使用证据分开</span><label>形态<SelectField aria-label="工具形态筛选" value={kind} onChange={e=>setKind(e.target.value)}><option value="all">全部</option><option value="注册定义">注册定义</option><option value="Skill">Skill</option><option value="MCP">MCP</option></SelectField></label></div>{!available?<div className="debug-tools-state" role="status"><p>{previewState==='unavailable'?'需要桌面诊断连接才能读取能力。':previewState==='loading'?'正在读取技能与工具…':'技能与工具读取失败'}</p>{previewState!=='loading'&&<ActionButton onClick={onRetry}>读取能力样张</ActionButton>}</div>:<>{previewState==='refresh-error'&&<div className="debug-tools-state" role="alert"><p>刷新失败，保留原能力列表与选中详情。</p><ActionButton onClick={onRetry}>重试读取样张</ActionButton></div>}{state==='mcp-error'&&<p className="debug-tools-state" role="status">MCP 连接失败，工具数量未知，不显示为零。</p>}<div className="debug-tools-list">{rows.map(t=><div key={t.id} data-record-id={t.id} className="debug-tools-row"><ActionButton variant="plain" style={{color:'var(--text-primary)'}} onClick={()=>setSelected(t.id)}><strong>{t.name}</strong><span>{t.kind}</span><BadgeText status={t.status}/></ActionButton></div>)}</div>{item&&<article className="debug-tools-detail" aria-label="能力详情"><ActionButton variant="plain" onClick={()=>setSelected(undefined)}>返回能力列表</ActionButton><h3>{item.name}</h3><p>{item.detail}</p><dl><dt>注册 / 来源</dt><dd>{item.kind}</dd><dt>实际使用证据</dt><dd>{item.usage||'未提供，不推断已调用'}</dd></dl></article>}<details className="debug-tools-source"><summary>来源与边界</summary><p>注册定义、当前可用和实际使用是不同事实；浏览不运行工具、不激活 Skill、不修改许可。</p></details></>}</section>
+}
+function BadgeText({status}:{status:string}){return <span className={status==='连接失败'?'debug-tools-error':''}>{status}</span>}
