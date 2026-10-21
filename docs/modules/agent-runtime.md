@@ -1,5 +1,9 @@
 # Agent 运行时
 
+## 已落地能力：质量 / Skill 验收 v3 隔离候选
+
+Playground 质量候选将 Skill Eval Grader 与 Persona Eval 自动结果 / 人工审阅分开，按报告、用例和证据渐进展示；缺报告、运行中和未审阅不补结论。候选不运行 Eval、不修改报告、不改变人工审阅存储。
+
 ## 已落地能力：系统状态 v3 隔离候选
 
 Playground 系统状态按只读 `debug:system-info` 聚合分区展示运行环境、模型与执行、MCP、权限规则和 Skills；凭据不展示，MCP / 规则 / Skills 的未知或有界范围不补零。候选不改变配置工厂、沙箱、工具注册或正式 IPC。
