@@ -20,6 +20,18 @@
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
     "Microsoft YaHei", "Noto Sans SC", sans-serif;
   --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Songti SC", "Noto Serif SC", Georgia, serif;
+  /* 文字角色与 Playground Debug 候选共用；以 html 的全局字号为缩放基准。 */
+  --type-title: 1rem;
+  --type-body: calc(1rem * 14 / 15);
+  --type-control: calc(1rem * 13 / 15);
+  --type-caption: calc(1rem * 12 / 15);
+  --type-meta: calc(1rem * 11 / 15);
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  --line-height-title: 1.5;
+  --line-height-body: 1.75;
+  --line-height-control: 1.6;
+  --line-height-caption: 1.6;
+  --line-height-meta: 1.5;
 
   --bg-primary: #0d1117;
   --bg-secondary: #161b22;
