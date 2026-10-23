@@ -20,8 +20,6 @@
 
 ## 进行中
 
-Debug 页面呈现：[debug-presentation-alice-v3.md](./debug-presentation-alice-v3.md)，依导航逐个完成 Alice 对照与 Playground 候选验收，全部齐备后统一复核并回流；通用设计标准留在前端 Skill。
-
 伙伴时间控件：[companion-quiet-time-controls-v1.md](./companion-quiet-time-controls-v1.md)，Foundation 整点时间选择已回流到正式与 Playground 伙伴设置；正式默认、存量偏好数据与通知调度不变。
 
 布局基线：[foundation-layout-boundaries-v1.md](./foundation-layout-boundaries-v1.md)，布局与间距、透明度 P0 候选施工，正式回流未授权。
@@ -54,6 +52,8 @@ Debug 页面呈现：[debug-presentation-alice-v3.md](./debug-presentation-alice
 ---
 
 ## 已完成施工快照（冻结）
+
+Debug 页面呈现：[debug-presentation-alice-v3.md](./debug-presentation-alice-v3.md)，Alice 对照候选已整批回流正式 Debug；当前能力见 agent-runtime 模块卡，验证与限制见 quality。
 
 Debug 阅读层级：[debug-foundation-reading-v2.md](./debug-foundation-reading-v2.md)，已确认候选回流正式页；当前能力见 agent-runtime 模块卡，验证与限制见 quality。
 

@@ -5,7 +5,6 @@ import { ActionButton } from '../foundation/ActionButton'
 import { Badge } from '../foundation/Badge'
 import { TextField } from '../foundation/TextField'
 import { EmptyState } from '../foundation/EmptyState'
-import { ErrorState } from '../foundation/ErrorState'
 
 const SOURCE_LABELS: Record<string, string> = { system: '平台 / 行为', context: '平台 / 行为', companion: '人物与世界', subagent: '人物与世界', memory: '记忆策略', permission: '权限与沙箱', provider: '模型与调度', tool: '工具与技能', skill: '工具与技能', external: '工具与技能', eval: '验收定义', ui: '界面定义' }
 export function registeredAssetKind(asset: ModelContextAsset): string { return asset.contentKind === 'template' || asset.slots.length ? '模板' : asset.contentKind === 'static' ? '常量' : '结构' }
@@ -32,16 +31,19 @@ export function RegisteredAssetWorkbench({ scope, revision, focusKey, onUsage, o
   const [detailOpen, setDetailOpen] = useState(Boolean(focusKey))
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [error, setError] = useState('')
-  const [usage, setUsage] = useState<{ records: AgentAssetUsageEvidence[]; total: number } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [reload, setReload] = useState(0)
+  const [usageSnapshot, setUsageSnapshot] = useState<{ key: string; records: AgentAssetUsageEvidence[]; total: number } | null>(null)
+  const usage = usageSnapshot?.key === selectedKey ? usageSnapshot : null
   const [usageError, setUsageError] = useState('')
   const buttons = useRef(new Map<string, HTMLButtonElement>())
   useEffect(() => {
     let current = true
-    setError('')
-    if (!window.electronAPI?.debug) { setError('此页面需要桌面应用的诊断接口'); return }
-    window.electronAPI.debug.modelContextAssets().then(data => { if (current) { setAssets(data); onTotal?.(data.length) } }).catch(() => { if (current) setError('目录刷新失败，保留上次可用定义') })
+    setError(''); setLoading(true)
+    if (!window.electronAPI?.debug?.modelContextAssets) { setLoading(false); setError('此页面需要桌面应用的诊断接口'); return }
+    window.electronAPI.debug.modelContextAssets().then(data => { if (current) { setAssets(data); onTotal?.(data.length) } }).catch(() => { if (current) setError('未能重新读取目录；已有定义保持为上次成功结果') }).finally(() => { if (current) setLoading(false) })
     return () => { current = false }
-  }, [revision, onTotal])
+  }, [revision, reload, onTotal])
   useEffect(() => { if (focusKey) { setSelectedKey(focusKey); setDetailOpen(true); setRoleId(''); setKind('全部形态'); setQuery('') } }, [focusKey])
   const selected = assets?.find(asset => asset.key === selectedKey)
   useEffect(() => {
@@ -50,19 +52,20 @@ export function RegisteredAssetWorkbench({ scope, revision, focusKey, onUsage, o
   }, [selected, roleId])
   useEffect(() => {
     let current = true
-    setUsage(null); setUsageError('')
+    setUsageError('')
     if (!selectedKey || !window.electronAPI?.debug) return
-    window.electronAPI.debug.assetUsageQuery({ assetKey: selectedKey, limit: 50 }).then(data => { if (current) setUsage(data) }).catch(() => { if (current) setUsageError('关联调用读取失败；不代表没有调用') })
+    window.electronAPI.debug.assetUsageQuery({ assetKey: selectedKey, limit: 50 }).then(data => { if (current) setUsageSnapshot({ ...data, key: selectedKey }) }).catch(() => { if (current) setUsageError('关联调用读取失败；不代表没有调用') })
     return () => { current = false }
   }, [selectedKey, revision])
   const filtered = (assets ?? []).filter(asset => (!roleId || !asset.roleIds?.length || asset.roleIds.includes(roleId)) && (kind === '全部形态' || registeredAssetKind(asset) === kind) && `${asset.name} ${asset.key} ${asset.source} ${asset.content ?? ''} ${asset.preview ?? ''} ${asset.slots.map(slot => slot.name).join(' ')}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
   const groups = [...new Set(filtered.map(asset => registeredAssetGroup(asset, roleId)))]
   const clearSelection = () => { setSelectedKey(''); setDetailOpen(false) }
+  const missing = Boolean(assets && selectedKey && !selected)
   return <section className="debug-prompt-workbench" data-testid="registered-asset-workbench">
-    {error && <ErrorState title="目录读取异常" description={error} />}
+    {(error || loading && !assets) && <div className="debug-prompt-state" role={error ? 'alert' : 'status'}><strong>{error ? assets ? '刷新失败，保留上次目录' : '目录读取失败' : '正在读取目录…'}</strong>{error && <><p>{error}</p><ActionButton variant="plain" onClick={() => setReload(value => value + 1)}>重试读取目录</ActionButton></>}</div>}
     <div className="debug-candidate-role-filter" role="group" aria-label="资产人物筛选">{[{ id: '', name: '全部人物' }, ...(scope?.roles ?? [])].map(role => <ActionButton key={role.id} variant="plain" aria-pressed={roleId === role.id} onClick={() => { setRoleId(role.id); clearSelection() }}>{role.name}</ActionButton>)}{(roleId || query || kind !== '全部形态') && <span>{assets ? `${filtered.length} / ${assets.length}` : '目录未读取'}</span>}</div>
     <div className="debug-candidate-toolbar"><label className="debug-candidate-search"><Search size={14} /><TextField appearance="outlined" className="h-8 px-3" aria-label="搜索提示词与资产" value={query} placeholder="搜索名称、正文、变量或来源" onChange={(event: ChangeEvent<HTMLInputElement>) => { setQuery(event.target.value); clearSelection() }} /></label><details className="debug-focused-filter"><summary>{kind === '全部形态' ? '筛选' : `筛选 · ${kind}`}</summary><div className="debug-candidate-detail-tabs" role="group" aria-label="资产形态筛选">{['全部形态', '常量', '模板', '结构'].map(value => <ActionButton key={value} variant="plain" aria-pressed={kind === value} onClick={() => { setKind(value); clearSelection() }}>{value}</ActionButton>)}</div></details></div>
-    {!assets ? <EmptyState title="尚未读取生产目录" description="读取完成后显示真实定义，不生成默认资产。" /> : !filtered.length ? <EmptyState title={assets.length ? '没有匹配的资产' : '此范围没有资产'} description="目录数量与本次实际注入分别追踪。" action={<ActionButton onClick={() => { setQuery(''); setRoleId(''); setKind('全部形态'); clearSelection() }}>清除筛选</ActionButton>} /> : <div className="debug-candidate-split debug-prompt-split" data-detail-open={detailOpen && Boolean(selected)}>
+    {!assets ? <div className="debug-prompt-awaiting" aria-label="目录未读取">读取成功后显示真实分组与定义；当前数量未知。</div> : !filtered.length && !missing ? <EmptyState title={assets.length ? '没有匹配的资产' : '此范围没有资产'} description="目录数量与本次实际注入分别追踪。" action={assets.length ? <ActionButton onClick={() => { setQuery(''); setRoleId(''); setKind('全部形态'); clearSelection() }}>清除筛选</ActionButton> : undefined} /> : <div className="debug-candidate-split debug-prompt-split" data-detail-open={missing || detailOpen && Boolean(selected)}>
       <div className="debug-prompt-directory scrollbar-hover" aria-label="提示词分组目录">{groups.map(group => {
         const entries = filtered.filter(asset => registeredAssetGroup(asset, roleId) === group)
         const open = expanded.has(group) || Boolean(query.trim()); const Icon = open ? ChevronDown : ChevronRight
@@ -71,11 +74,11 @@ export function RegisteredAssetWorkbench({ scope, revision, focusKey, onUsage, o
       <article className="debug-candidate-detail debug-prompt-detail scrollbar-hover" aria-label="资产详情">{selected ? <>
         <ActionButton variant="plain" className="debug-candidate-mobile-back" onClick={() => { setDetailOpen(false); requestAnimationFrame(() => buttons.current.get(selected.key)?.focus()) }}><ArrowLeft size={14} /> 返回目录</ActionButton>
         <div className="debug-candidate-detail-heading"><h3>{selected.name}</h3><Badge>{registeredAssetKind(selected)}</Badge></div>
-        <section className="debug-candidate-section"><h3>{selected.mode === 'dynamic' ? '模板 / 组装定义' : '正文与结构'}</h3>{selected.mode === 'dynamic' && <p>实际插槽值与历史实发输入以该次调用保存记录为准。</p>}<pre className="debug-candidate-body">{selected.content ?? selected.locales[selected.locale]?.template ?? '此定义没有可直接展示的正文，请查看来源。'}</pre></section>
+        <section className="debug-candidate-section"><h3>{selected.mode === 'dynamic' ? '模板 / 组装定义' : '正文与结构'}</h3>{selected.mode === 'dynamic' && <p>实际插槽值与历史实发输入以该次调用保存记录为准。</p>}<pre className="debug-candidate-body" data-content-kind={registeredAssetKind(selected) === '结构' ? 'structured' : 'prose'}>{selected.content ?? selected.locales[selected.locale]?.template ?? '此定义没有可直接展示的正文，请查看来源。'}</pre></section>
         {selected.slots.length > 0 && <details className="debug-prompt-provenance debug-prompt-variables"><summary>变量说明 · {selected.slots.length}</summary><div>{selected.slots.map(slot => <span key={slot.name}><code>{`{{${slot.name}}}`}</code><small>{slot.source} · {slot.lifecycle}</small></span>)}</div></details>}
         <details className="debug-prompt-provenance"><summary>来源与版本 · {selected.version}</summary><dl className="debug-candidate-facts">{[['标识', selected.key], ['分组', registeredAssetGroup(selected, roleId)], ['类型', selected.assetType], ['来源', selected.source], ['版本', selected.version], ['自动指纹', selected.fingerprint], ['归属', selected.ownership], ['状态', selected.status ?? 'active'], ['依赖', selected.dependencies?.join('\n') || '未登记']].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>
         <details className="debug-prompt-provenance"><summary>相关调用 · {usage?.total ?? '未读取'}</summary><p>按保存的 key 关联；当前版本不等于历史版本。最多显示 50 条。</p>{usageError && <p role="alert">{usageError}</p>}{usage?.records.map(item => <ActionButton key={item.id} variant="plain" className="debug-candidate-asset-link" onClick={() => onUsage(item)}><span>{item.usageKind} · {item.status} · {new Date(item.occurredAt).toLocaleString()}</span><ArrowUpRight size={14} /></ActionButton>)}</details>
-      </> : <EmptyState title="选择左侧条目查看详情" description="" centerWithoutAction />}</article>
+      </> : missing ? <div className="debug-prompt-state" role="status"><strong>引用的资产未在目录中找到</strong><p>不使用其他资产代替这个引用。</p><ActionButton onClick={clearSelection}>返回目录</ActionButton></div> : <EmptyState title="选择左侧条目查看详情" description="" centerWithoutAction />}</article>
     </div>}
   </section>
 }

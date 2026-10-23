@@ -8,6 +8,56 @@ import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { expectSharedCodeSurface } from './shared-code-surface'
 
+for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 600]) {
+  test(`正式 Debug 提示词 v3 回流 ${theme} ${width}`, async ({ page }, info) => {
+    await page.setViewportSize({ width, height: 704 })
+    await installProductionElectronStub(page)
+    await page.addInitScript(theme => {
+      localStorage.setItem('theme', theme)
+      const api = (window as any).electronAPI
+      const state = { fail: true, calls: 0 }
+      ;(window as any).__promptRollout = state
+      api.debug.companionEvidenceScope = async () => { throw new Error('scope unavailable') }
+      api.debug.modelContextAssets = async () => {
+        state.calls++
+        if (state.fail) throw new Error('catalog unavailable')
+        return [{ key: 'test.production.prompt', id: 'test.production.prompt', name: '真实接口测试定义', category: 'system', purpose: 'test', role: 'system', desc: '只读接口替身', source: 'test#definition', sourcePath: 'test#definition', version: 'v1', fingerprint: 'test-fingerprint', fingerprintKind: 'content', assetType: 'prompt', ownership: 'platform', contentKind: 'static', mode: 'static', locale: 'zh-CN', locales: {}, slots: [], content: '来自正式只读接口的测试正文。\n\n保持段落与自然语言字体。' }]
+      }
+      api.debug.assetUsageQuery = async () => { throw new Error('usage unavailable') }
+    }, theme)
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
+    const panel = page.getByTestId('dev-panel')
+    const prompt = panel.getByTestId('registered-asset-workbench')
+    await expect(prompt.getByRole('alert')).toContainText('目录读取失败')
+    await expect(prompt.getByText('此范围没有资产', { exact: true })).toHaveCount(0)
+    await expect(panel.getByRole('heading', { name: '提示词管理器', exact: true })).toHaveCSS('font-size', '15px')
+    await page.evaluate(() => { (window as any).__promptRollout.fail = false })
+    await prompt.getByRole('button', { name: '重试读取目录' }).click()
+    await prompt.getByRole('textbox').fill('真实接口测试定义')
+    await prompt.getByRole('button', { name: '常量 真实接口测试定义' }).click()
+    const body = prompt.locator('[data-content-kind="prose"]')
+    await expect(body).toContainText('来自正式只读接口')
+    await expect(body).toHaveCSS('font-size', '14px')
+    await expect(body).toHaveCSS('line-height', '24.5px')
+    await prompt.getByText('相关调用 · 未读取', { exact: true }).click()
+    await expect(prompt.getByText('关联调用读取失败；不代表没有调用')).toBeVisible()
+    await page.evaluate(() => { (window as any).__promptRollout.fail = true })
+    await panel.getByRole('button', { name: '刷新当前分区' }).click()
+    await expect(prompt.locator('.debug-prompt-state[role="alert"]')).toContainText('保留上次目录')
+    await expect(body).toContainText('来自正式只读接口')
+    for (const scale of ['sm', 'lg']) {
+      await page.evaluate(scale => document.documentElement.setAttribute('data-font-scale', scale), scale)
+      expect(await body.evaluate(node => parseFloat(getComputedStyle(node).fontSize) / parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(14 / 15, 3)
+    }
+    expect(await panel.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+    await page.screenshot({ path: info.outputPath('production-prompt-v3.png') })
+    await panel.getByRole('navigation').getByRole('button', { name: 'LLM 调用', exact: true }).click()
+    await expect(panel.getByText('此页面需要桌面应用的诊断接口', { exact: true })).toHaveCount(0)
+    await expect(panel.getByText('人物诊断范围读取失败；保留上次可用范围', { exact: true })).toHaveCount(0)
+  })
+}
+
 for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1166, 900]) {
   test(`候选侧栏顶部对齐与连续切换 ${theme} ${width}`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: 731 })
@@ -1047,6 +1097,15 @@ async function installProductionElectronStub(page: import('@playwright/test').Pa
       },
       tasks: { sync: async () => ({ active: [], pendingNotify: [] }), onEvent: () => noopCleanup },
       chat: { onEvent: () => noopCleanup, onConfirmRequest: () => noopCleanup },
+      debug: {
+        companionEvidenceScope: async () => ({ roles: [{ id: 'lin', name: '测试伙伴' }], activeRoleId: 'lin' }),
+        modelContextAssets: async () => [],
+        assetUsageQuery: async () => ({ records: [], total: 0 }),
+        systemInfo: async () => null,
+        tools: async () => [],
+        traces: async () => ({ spans: [], callerStats: {} }),
+        llmLogs: async () => ({ records: [], total: 0 }),
+      },
       mcp: {},
     }
   })

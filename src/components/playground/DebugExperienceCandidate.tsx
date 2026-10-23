@@ -36,7 +36,7 @@ import { DebugQualityCandidate, type QualityPreviewState } from './DebugQualityC
 import { DebugToolsCandidate, type ToolsPreviewState } from './DebugToolsCandidate'
 import { DebugRunsCandidate, type RunsPreviewState } from './DebugRunsCandidate'
 import { getDebugEvidencePage, type DebugEvidencePageId } from './debug-evidence-fixtures'
-import './debug-experience.css'
+import '../debug/debug-experience.css'
 
 const STATUS_LABELS = { success: '已完成', error: '失败', pending: '运行中' } as const
 const ICONS: Record<DebugPerspective, typeof FileText> = { assets: FileText, schedule: CalendarDays, recent: History, activity: Activity, now: Heart, character: UserRound, location: MapPin, residence: House, footprints: Footprints, growth: Sprout, moments: MessageCircle, relations: Users, proactive: MessageCircle, wardrobe: Shirt, items: BookOpen, links: Link, context: ScanText, profile: Contact, memories: Brain, runs: Clock3, traces: ListTree, events: Radio, tools: Wrench, system: Server, quality: FlaskConical, persona: ShieldCheck }

@@ -66,7 +66,7 @@ const EVIDENCE_ENTRIES: Array<{
  */
 export function DebugOverview({ onOpen, snapshot, loading, error }: DebugOverviewProps) {
   return (
-    <div className="mx-auto max-w-5xl space-y-5" data-testid="debug-overview">
+    <div className="debug-overview mx-auto max-w-5xl space-y-5" data-testid="debug-overview">
       <header>
         <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>运行概览</h1>
         <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>查看当前系统实际状态，再进入对应的真实证据。</p>

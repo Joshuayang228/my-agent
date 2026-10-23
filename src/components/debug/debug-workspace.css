@@ -257,3 +257,51 @@
 .debug-focused .debug-candidate-record-bottom { display:none; }
 
 .debug-focused .debug-reading-schedule .debug-reading-entry > .debug-prompt-provenance { grid-column:1 / -1; }
+
+.debug-production-schedule { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.debug-production-slot { display:flex; align-items:baseline; flex-wrap:wrap; gap:8px; min-width:0; font-size:var(--type-body); line-height:var(--line-height-control); }
+.debug-production-slot time { flex:0 0 5ch; font-family:var(--font-mono); color:var(--text-secondary); font-size:var(--type-body); }
+.debug-production-slot strong { font-weight:500; overflow-wrap:anywhere; }
+.debug-production-slot > span { color:var(--text-secondary); font-size:var(--type-caption); overflow-wrap:anywhere; }
+
+/* 已批准的提示词阅读呈现：生产与样张共用规则，数据与读取状态由各自容器持有。 */
+.debug-workspace { --prompt-title-size:var(--type-title); --prompt-body-size:var(--type-body); --prompt-control-size:var(--type-control); --prompt-caption-size:var(--type-caption); --prompt-meta-size:var(--type-meta); }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-candidate-nav-groups button,
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-candidate-role-filter button,
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-group,
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-entry strong,
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-workbench input,
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-workbench button { font-size:var(--prompt-control-size); }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-candidate-nav-label,
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-counts,
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-provenance summary,
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-focused-filter,
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-candidate-section h3 { font-size:var(--prompt-caption-size); }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-entry-meta,
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-entry-meta > span { font-size:var(--prompt-meta-size); }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .workspace-page-header p,
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-candidate-role-filter > span,
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-candidate-footer { font-size:var(--prompt-meta-size); }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-provenance .debug-candidate-facts dt,
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-provenance .debug-candidate-facts dd,
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-provenance p,
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-local-error { font-size:var(--prompt-caption-size); }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-variables code { font-size:var(--prompt-meta-size); }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-provenance .debug-candidate-facts code { font-size:var(--prompt-meta-size); font-family:var(--font-mono); }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .workspace-page-header h1,
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-candidate-detail-heading h3 { font-size:var(--prompt-title-size); line-height:1.5; }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-detail .debug-candidate-body { font-size:var(--prompt-body-size); line-height:1.75; max-width:72ch; }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-candidate-body[data-content-kind="structured"] { font-family:var(--font-mono); font-size:var(--prompt-control-size); }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-candidate-detail-heading { align-items:flex-start; }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-candidate-detail-heading h3 { flex:1; min-width:0; overflow-wrap:anywhere; }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-detail .debug-candidate-section { padding:12px 0; }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-provenance { border-bottom:0; padding:10px 0; }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-group { padding:10px 12px!important; }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-entry strong { white-space:normal; line-height:1.5; }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-state { padding:12px 0; font-size:var(--prompt-caption-size); line-height:1.6; flex-shrink:0; }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-state strong { font-weight:500; }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-state p { color:var(--text-secondary); margin-top:4px; }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-state[role="alert"],
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-local-error { color:var(--danger); }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-state button { margin-top:8px; }
+:is(.debug-candidate,.debug-workspace)[data-perspective="assets"] .debug-prompt-awaiting { flex:1; min-height:0; padding:20px 0; font-size:var(--prompt-caption-size); color:var(--text-muted); }

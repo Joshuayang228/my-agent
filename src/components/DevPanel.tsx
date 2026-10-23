@@ -14,6 +14,7 @@ import { PageHeader } from './layout/PageHeader'
 import { EmptyState } from './foundation/EmptyState'
 import { DebugOverview, buildDebugOverviewSnapshot } from './debug/DebugOverview'
 import './debug/debug-workspace.css'
+import './debug/debug-experience.css'
 
 type RequestRuntimeView = 'llm' | 'traces' | 'events'
 export const DEBUG_TABS = DEBUG_PERSPECTIVES
@@ -172,13 +173,13 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
     if (llm) setCallId(item.spanId); else setSpanId(item.spanId)
   }
   const domain = page !== 'context' && DEBUG_EVIDENCE_VIEWS.includes(page as DebugEvidenceView)
-  return <div className="debug-workspace debug-refined debug-focused playground-shape-scope" data-testid="dev-panel" data-surface="debug">
+  return <div className="debug-workspace debug-refined debug-focused playground-shape-scope" data-testid="dev-panel" data-surface="debug" data-perspective={page}>
     <header className="debug-candidate-preview"><ActionButton variant="plain" title="返回聊天" onClick={onClose}><ArrowLeft size={14} /> 返回聊天</ActionButton><span>Debug · 生产诊断</span><ActionButton variant="plain" title="刷新当前调试分区" onClick={() => setRevision(value => value + 1)}><RotateCcw size={14} /> 刷新当前分区</ActionButton></header>
     <div className="debug-candidate-workspace">
       <nav className="debug-candidate-nav" aria-label="调试分区"><div className="debug-candidate-brand"><Activity size={20} /><strong>Debug</strong><span>诊断工作区</span></div><div className="debug-candidate-nav-groups">{DEBUG_GROUPS.map(group => <section key={group} aria-label={`${group}分区`}><p className="debug-candidate-nav-label">{group}</p>{DEBUG_PERSPECTIVES.filter(item => item.group === group).map(item => { const Icon = ICONS[item.id]; return <ActionButton key={item.id} variant="plain" aria-current={page === item.id ? 'page' : undefined} onClick={() => navigate(item.id)}><Icon size={14} />{item.label}</ActionButton> })}</section>)}</div><div className="debug-candidate-nav-footer"><ShieldCheck size={14} /><span>生产资产只读<br />受控诊断单独确认</span></div></nav>
       <main className={`debug-candidate-main ${page === 'assets' ? 'debug-candidate-main-prompt' : ''}`}>
         <PageHeader title={entry.label} description={page === 'assets' && assetTotal !== null ? `${assetTotal} 项生产资产` : ''} />
-        {scopeError && <ErrorState title="人物范围读取异常" description={scopeError} />}{error && <ErrorState title="诊断读取异常" description={error} />}
+        {scopeError && (domain || page === 'assets') && <p role="alert" className="debug-prompt-state">{scopeError}</p>}{error && <ErrorState title="诊断读取异常" description={error} />}
         {page === 'assets' && <RegisteredAssetWorkbench scope={scope} revision={revision} focusKey={assetKey} onUsage={openUsage} onTotal={setAssetTotal} />}
         {domain && <>{roleId ? <CompanionEvidencePanel key={`${page}:${roleId}:${evidenceTarget?.id ?? ''}`} scope={scope} onRoleChange={setRoleId} targetId={evidenceTarget?.id} onEvidence={(view, id) => { navigate(view); setEvidenceTarget(id ? { view, id } : null) }} view={page as DebugEvidenceView} roleId={roleId} revision={revision} /> : <EmptyState title="尚未取得人物范围" description="未确定人物时不生成默认状态。" />}</>}
         {page === 'context' && <><p>从实际调用查看保存的 System、Messages 与语义来源；当前定义不替代历史输入。此清单是全局调用范围，不受诊断人物筛选影响。</p><LLMCallsPanel revision={revision} onAsset={key => { navigate('assets'); setAssetKey(key) }} /></>}
@@ -242,7 +243,7 @@ function SystemTab({ info, tools }: { info: SystemInfo | null; tools: DebugToolI
   const skills = info.skills
 
   return (
-    <div>
+    <div className="debug-system-workbench">
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="工具数" value={String(info.toolCount)} color="cyan" />
         <StatCard label="Skills" value={String(skills?.total ?? '未读取')} color="violet" />
@@ -448,7 +449,7 @@ function RequestRuntimePanel({ view, traces, events, focusedLLMCallId, focusedTr
   onAsset: (key: string) => void
   revision: number
 }) {
-  return <div className="space-y-4" data-testid="request-runtime-panel">
+  return <div className="debug-runtime-workbench space-y-4" data-testid="request-runtime-panel">
     {view === 'llm' && <LLMCallsPanel focusId={focusedLLMCallId} revision={revision} onAsset={onAsset} />}
     {view === 'traces' && <TracesTab data={traces} focusId={focusedTraceSpanId} />}
     {view === 'events' && <EventsTab events={events} />}
@@ -531,7 +532,7 @@ function TracesTab({ data, focusId }: { data: TracesPayload | null; focusId?: st
   }
 
   return (
-    <div className="space-y-4">
+    <div className="debug-runtime-traces space-y-4">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <StatCard
           label="今日 Token"
@@ -610,7 +611,7 @@ function EventsTab({ events }: { events: Array<{ time: number; type: string; det
   }
 
   return (
-    <div>
+    <div className="debug-runtime-events">
       <div className="mb-3 text-xs" style={{ color: 'var(--text-muted)' }}>共 {events.length} 条事件</div>
       <div className="space-y-0.5 font-mono text-[11px]">
         {events.map((ev, i) => (
