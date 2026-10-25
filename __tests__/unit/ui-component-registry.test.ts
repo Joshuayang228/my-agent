@@ -30,6 +30,10 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('正式生活关联与候选共用单边和来源阅读', () => {
+    for (const [file, suffix] of [['src/components/debug/LinksEvidenceContent.tsx', './LinksReading'], ['src/components/playground/DebugLinksCandidate.tsx', '/debug/LinksReading']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'LinksReading', suffix), file).toBe(true)
+    expect(UI_COMPONENT_REGISTRY['developer.links-reading'].status).toBe('adopted')
+  })
   it('正式文化角与候选共用作品和多笔记阅读', () => {
     for (const [file, suffix] of [['src/components/debug/CultureEvidenceContent.tsx', './CultureReading'], ['src/components/playground/DebugCultureCandidate.tsx', '/debug/CultureReading']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'CultureReading', suffix), file).toBe(true)
     expect(UI_COMPONENT_REGISTRY['developer.culture-reading'].status).toBe('adopted')

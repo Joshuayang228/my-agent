@@ -43,6 +43,7 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
     const relationRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'relations', roleId }), roleId)).records
     const wardrobeRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'wardrobe', roleId }), roleId)).records
     const cultureRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'items', roleId }), roleId)).records
+    const linkRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'links', roleId }), roleId)).records
     for (const view of DEBUG_EVIDENCE_VIEWS.filter(view => view !== 'context')) {
       const result = await page.evaluate(({ view, roleId }) => window.electronAPI.debug.companionEvidenceQuery({ view, roleId, date: view === 'schedule' ? new Date().toLocaleDateString('sv-SE') : undefined }), { view, roleId })
       expect(result.view).toBe(view)
@@ -93,6 +94,17 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
           expect(await culture.locator('[data-record-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-record-id')).sort())).toEqual(cultureRecords.map(record => record.id).sort())
           await expect(culture.getByRole('tablist', { name: '文化分类' })).toBeVisible()
           if (!cultureRecords.length) await expect(culture).toContainText('不推断没有兴趣或从未体验')
+        }
+        if (entry.id === 'links') {
+          const links = panel.getByTestId('debug-evidence-links')
+          expect(await links.locator('[data-record-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-record-id')).sort())).toEqual(linkRecords.map(record => record.id).sort())
+          if (!linkRecords.length) await expect(links).toContainText('不推断事件从未有关联')
+          else {
+            await links.locator('[data-record-id] button').first().click()
+            const detail = links.getByRole('article', { name: '领域证据详情' })
+            await detail.getByText('来源与原始记录', { exact: true }).click()
+            await expect(detail.locator('pre')).toHaveText(JSON.stringify(linkRecords[0].data, null, 2))
+          }
         }
         if (entry.id === 'wardrobe') {
           const wardrobe = panel.getByTestId('debug-evidence-wardrobe')

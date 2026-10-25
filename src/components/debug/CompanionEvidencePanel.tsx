@@ -12,6 +12,7 @@ import { LifeEventEvidenceContent } from './LifeEventEvidenceContent'
 import { NowEvidenceContent } from './NowEvidenceContent'
 import { CharacterEvidenceContent } from './CharacterEvidenceContent'
 import { LocationEvidenceContent } from './LocationEvidenceContent'
+import { LinksEvidenceContent } from './LinksEvidenceContent'
 import { CultureEvidenceContent } from './CultureEvidenceContent'
 import { WardrobeEvidenceContent } from './WardrobeEvidenceContent'
 import { ProactiveEvidenceContent } from './ProactiveEvidenceContent'
@@ -82,9 +83,12 @@ export function CompanionEvidencePanel({ view, roleId, revision, targetId, onEvi
     }).catch(() => { if (current) setError('证据读取失败；刷新时保留上次成功结果') }).finally(() => { if (current) setLoading(false) })
     return () => { current = false }
   }, [view, roleId, date, cursor, revision, reload, targetId])
-  const changeDate = (value: string) => { setDate(value); setCursor(undefined); setResult(null); recordsRef.current = []; pageCursors.current = [] }
+  // 背景：清除搜索也会提交原日期，清空结果却不改变 effect 依赖会让页面永久空白。
+  // 意图：日期范围未变时保留已读快照；约束：真实日期变化仍清空旧页与游标，不能混合范围。
+  const changeDate = (value: string) => { if (value === date) return; setDate(value); setCursor(undefined); setResult(null); recordsRef.current = []; pageCursors.current = [] }
   if (view === 'schedule') return <ScheduleEvidenceContent key={`${roleId}:${date}:${targetId ?? ''}`} result={result} loading={loading} error={error} date={date} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onDateChange={changeDate} onQueryChange={setQuery} onRetry={() => setReload(value => value + 1)} onEvidence={onEvidence} />
   if (view === 'residence') return <ResidenceEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onQueryChange={setQuery} onRetry={() => setReload(value => value + 1)} onNext={() => setCursor(result?.nextCursor)} onEvidence={onEvidence} />
+  if (view === 'links') return <LinksEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} date={date} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onQueryChange={setQuery} onDateChange={changeDate} onRetry={() => setReload(value => value + 1)} onNext={() => setCursor(result?.nextCursor)} onEvidence={onEvidence} />
   if (view === 'items') return <CultureEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onQueryChange={setQuery} onRetry={() => setReload(value => value + 1)} onNext={() => setCursor(result?.nextCursor)} onEvidence={onEvidence} />
   if (view === 'wardrobe') return <WardrobeEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onQueryChange={setQuery} onRetry={() => setReload(value => value + 1)} onNext={() => setCursor(result?.nextCursor)} onEvidence={onEvidence} />
   if (view === 'proactive') return <ProactiveEvidenceContent result={result} loading={loading} error={error} onRetry={() => setReload(value => value + 1)} onMoments={() => onEvidence('moments', '')} />
