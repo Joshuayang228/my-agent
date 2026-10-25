@@ -75,7 +75,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await expect(detail).toHaveCount(0)
     await toggle.click()
     await detail.getByRole('button', { name: '查看位置快照', exact: true }).click()
-    await panel.locator('details.debug-production-record > summary').click()
+    await panel.getByTestId('debug-evidence-location').getByRole('button', { name: /完整快照/ }).click()
     await panel.getByRole('button', { name: '查看此刻引用', exact: true }).click()
     await expect(now).toContainText('引用状态未在该人物范围找到，未选择替代快照。')
     await expect(now.locator('.debug-now-summary')).toHaveCount(0)

@@ -30,6 +30,14 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('正式位置与候选渲染共享位置快照阅读', () => {
+    for (const [file, suffix] of [['src/components/debug/LocationEvidenceContent.tsx', './LocationStateReading'], ['src/components/playground/DebugLocationCandidate.tsx', '/debug/LocationStateReading']]) {
+      expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'LocationStateReading', suffix), file).toBe(true)
+    }
+    const asset = UI_COMPONENT_REGISTRY['developer.location-state-reading']
+    expect(asset.status).toBe('adopted')
+    expect(readFileSync(asset.sourcePath, 'utf8')).not.toContain('electronAPI')
+  })
   it('人物档案正式与候选渲染共享完整定义阅读', () => {
     for (const [file, suffix] of [['src/components/debug/CharacterEvidenceContent.tsx', './CharacterDefinitionReading'], ['src/components/playground/DebugCharacterCandidate.tsx', '/debug/CharacterDefinitionReading']]) {
       expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'CharacterDefinitionReading', suffix), file).toBe(true)

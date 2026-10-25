@@ -5,6 +5,7 @@ import { ActionButton } from '../foundation/ActionButton'
 import { SelectField } from '../foundation/SelectField'
 import { evidenceObject } from './EvidenceSummary'
 import { NowStateReading, snapshotTime } from './NowStateReading'
+import { worldSnapshotIssue } from './world-snapshot'
 
 const text = (value: unknown) => typeof value === 'string' ? value : ''
 const score = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? String(value) : '未记录'
@@ -20,10 +21,7 @@ export function NowEvidenceContent({ result, loading, error, roleId, scope, targ
   const [expanded, setExpanded] = useState(Boolean(targetId))
   const record = result?.records.find(record => !targetId || record.id === targetId)
   const world = evidenceObject(record?.data.world)
-  const storedWorld = evidenceObject(record?.data.storedWorld)
-  // 背景：合法 JSON 也可能经过 codec 默认或规范化；意图：只报告返回投影的实际差异，不在 UI 重写 codec 判定。
-  // 约束：不推断差异原因、不回写原文；脱敏和截断后的两个投影也只能按诊断范围解释。
-  const warning = typeof record?.data.storedWorld === 'string' ? record.data.storedWorld : Object.entries(world).some(([key, value]) => JSON.stringify(value) !== JSON.stringify(storedWorld[key])) ? '保存值与运行时解析快照存在差异；请展开完整来源核对。' : undefined
+  const warning = worldSnapshotIssue(record?.data.world, record?.data.storedWorld)
   const pause = record?.data.paused_at
   const timezone = result?.timezone ?? ''
   const pauseTime = snapshotTime(pause, timezone)
