@@ -12,6 +12,7 @@ import { LifeEventEvidenceContent } from './LifeEventEvidenceContent'
 import { NowEvidenceContent } from './NowEvidenceContent'
 import { CharacterEvidenceContent } from './CharacterEvidenceContent'
 import { LocationEvidenceContent } from './LocationEvidenceContent'
+import { CultureEvidenceContent } from './CultureEvidenceContent'
 import { WardrobeEvidenceContent } from './WardrobeEvidenceContent'
 import { ProactiveEvidenceContent } from './ProactiveEvidenceContent'
 import { RelationsEvidenceContent } from './RelationsEvidenceContent'
@@ -84,6 +85,7 @@ export function CompanionEvidencePanel({ view, roleId, revision, targetId, onEvi
   const changeDate = (value: string) => { setDate(value); setCursor(undefined); setResult(null); recordsRef.current = []; pageCursors.current = [] }
   if (view === 'schedule') return <ScheduleEvidenceContent key={`${roleId}:${date}:${targetId ?? ''}`} result={result} loading={loading} error={error} date={date} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onDateChange={changeDate} onQueryChange={setQuery} onRetry={() => setReload(value => value + 1)} onEvidence={onEvidence} />
   if (view === 'residence') return <ResidenceEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onQueryChange={setQuery} onRetry={() => setReload(value => value + 1)} onNext={() => setCursor(result?.nextCursor)} onEvidence={onEvidence} />
+  if (view === 'items') return <CultureEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onQueryChange={setQuery} onRetry={() => setReload(value => value + 1)} onNext={() => setCursor(result?.nextCursor)} onEvidence={onEvidence} />
   if (view === 'wardrobe') return <WardrobeEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onQueryChange={setQuery} onRetry={() => setReload(value => value + 1)} onNext={() => setCursor(result?.nextCursor)} onEvidence={onEvidence} />
   if (view === 'proactive') return <ProactiveEvidenceContent result={result} loading={loading} error={error} onRetry={() => setReload(value => value + 1)} onMoments={() => onEvidence('moments', '')} />
   if (view === 'relations') return <RelationsEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onQueryChange={setQuery} onRetry={() => setReload(value => value + 1)} onEvidence={onEvidence} />
@@ -105,7 +107,7 @@ export function CompanionEvidencePanel({ view, roleId, revision, targetId, onEvi
     <p>{record.status || '状态未记录'} · {record.roleId || '显式共享'}</p>
     <Facts data={assets(record)} />
     {record.body && <p className="debug-reading-body">{record.body}</p>}
-    {view === 'items' && Array.isArray(assets(record).readingNotes) && (assets(record).readingNotes as unknown[]).map((note, index) => { const row = object(note); return <section key={index} className="debug-reading-stop"><h4>{row.page ? `第 ${row.page} 页 · ` : ''}{typeof row.chapter === 'string' ? row.chapter : '阅读笔记'}</h4><p>{valueText(row.text)}</p></section> })}
+
     {Array.isArray(record.data.runs) && record.data.runs.map((run, index) => { const row = object(run); return <section key={index}><h4>{typeof row.at === 'number' ? new Date(row.at).toLocaleString() : '时间未记录'}</h4><p>{valueText(row.summary)}</p><small>{row.changed === true ? '覆盖已变更' : '覆盖未变更'}</small></section> })}
     {Array.isArray(record.data.userInteractions) && record.data.userInteractions.map((interaction, index) => { const row = object(interaction); return <p key={index}>{valueText(row.actor_id)} · {row.kind === 'like' ? '点赞' : valueText(row.text)}</p> })}
     {Array.isArray(record.data.experiences) && record.data.experiences.map((experience, index) => { const row = object(experience); const payload = object(row.payload); return <section key={index}><h4>{valueText(payload.activity)}</h4><p>{valueText(payload.story)}</p><ActionButton variant="plain" onClick={() => onEvidence('recent', String(row.id))}>查看共同经历来源事件</ActionButton></section> })}
@@ -127,9 +129,9 @@ export function CompanionEvidencePanel({ view, roleId, revision, targetId, onEvi
     {result && query && <p className="debug-reading-subtitle">{filtered.length} / {result.records.length} 条已读取</p>}
     {result?.issues.map((issue, index) => <p role="status" key={index}>{issue}</p>)}
     {result?.state === 'unsupported' || result?.state === 'unavailable' ? <EmptyState title={result.state === 'unsupported' ? '此类证据尚无独立读取源' : '诊断源暂不可用'} description={result.boundary} /> : result && !filtered.length ? <EmptyState title={targetId ? '引用目标未在该人物范围找到' : result.records.length ? '没有匹配的证据' : '此范围没有记录'} description="空记录不等于引擎不存在，不补造默认事实。" /> : <div className={`debug-reading debug-reading-${['recent', 'activity', 'moments', 'growth'].includes(view) ? 'timeline' : 'catalog'}`}>
-      {view === 'profile' ? profile() : view === 'items' ? (['reading', 'music', 'film', 'photography'] as const).map(type => { const records = filtered.filter(record => assets(record).type === type || type === 'reading' && record.kind === 'bookshelf' && !assets(record).type); return records.length ? <section key={type}><h3 className="debug-reading-group-title">{{ reading: '阅读', music: '音乐', film: '影视', photography: '摄影' }[type]}</h3>{records.map(card)}</section> : null }) : filtered.map(card)}
+      {view === 'profile' ? profile() : filtered.map(card)}
     </div>}
-    {view === 'items' && filtered.filter(record => !['reading', 'music', 'film', 'photography'].includes(String(assets(record).type)) && !(record.kind === 'bookshelf' && !assets(record).type)).map(card)}
+
     {result?.hasMore && <ActionButton disabled={loading || Boolean(error)} onClick={() => setCursor(result.nextCursor)}>读取下一页</ActionButton>}
     {result && <details className="debug-prompt-provenance"><summary>来源与诊断说明</summary><p>{result.boundary}</p><p>{result.records.length} 条已读取 · 全量总数未计量 · {result.timezone}</p><p>{result.source} · {new Date(result.generatedAt).toLocaleString()}</p></details>}
   </section>
