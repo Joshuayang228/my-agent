@@ -12,6 +12,7 @@ import { LifeEventEvidenceContent } from './LifeEventEvidenceContent'
 import { NowEvidenceContent } from './NowEvidenceContent'
 import { CharacterEvidenceContent } from './CharacterEvidenceContent'
 import { LocationEvidenceContent } from './LocationEvidenceContent'
+import { GrowthEvidenceContent } from './GrowthEvidenceContent'
 import { FootprintsEvidenceContent } from './FootprintsEvidenceContent'
 import { ResidenceEvidenceContent } from './ResidenceEvidenceContent'
 
@@ -79,6 +80,7 @@ export function CompanionEvidencePanel({ view, roleId, revision, targetId, onEvi
   const changeDate = (value: string) => { setDate(value); setCursor(undefined); setResult(null); recordsRef.current = []; pageCursors.current = [] }
   if (view === 'schedule') return <ScheduleEvidenceContent key={`${roleId}:${date}:${targetId ?? ''}`} result={result} loading={loading} error={error} date={date} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onDateChange={changeDate} onQueryChange={setQuery} onRetry={() => setReload(value => value + 1)} onEvidence={onEvidence} />
   if (view === 'residence') return <ResidenceEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onQueryChange={setQuery} onRetry={() => setReload(value => value + 1)} onNext={() => setCursor(result?.nextCursor)} onEvidence={onEvidence} />
+  if (view === 'growth') return <GrowthEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onRetry={() => setReload(value => value + 1)} onNext={() => setCursor(result?.nextCursor)} onEvidence={onEvidence} />
   if (view === 'footprints') return <FootprintsEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onQueryChange={setQuery} onRetry={() => setReload(value => value + 1)} onNext={() => setCursor(result?.nextCursor)} onEvidence={onEvidence} />
   if (view === 'location') return <LocationEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} roleId={roleId} scope={scope} targetId={targetId} revision={revision} onRoleChange={onRoleChange} onRetry={() => setReload(value => value + 1)} onEvidence={onEvidence} onAsset={onAsset} />
   if (view === 'character') return <CharacterEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} roleId={roleId} scope={scope} targetId={targetId} revision={revision} onRoleChange={onRoleChange} onRetry={() => setReload(value => value + 1)} onEvidence={onEvidence} onAsset={onAsset} />

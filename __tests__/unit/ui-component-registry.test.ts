@@ -30,6 +30,10 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('正式成长与候选共用来源分区和正文阅读', () => {
+    for (const [file, suffix] of [['src/components/debug/GrowthEvidenceContent.tsx', './GrowthReading'], ['src/components/playground/DebugGrowthCandidate.tsx', '/debug/GrowthReading']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'GrowthReading', suffix), file).toBe(true)
+    expect(UI_COMPONENT_REGISTRY['developer.growth-reading'].status).toBe('adopted')
+  })
   it('正式足迹与候选共用旅行分组和单条阅读', () => {
     for (const [file, suffix] of [['src/components/debug/FootprintsEvidenceContent.tsx', './FootprintsReading'], ['src/components/playground/DebugFootprintsCandidate.tsx', '/debug/FootprintsReading']]) {
       expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'FootprintsReading', suffix), file).toBe(true)
