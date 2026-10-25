@@ -2,6 +2,8 @@
 
 ## Debug 的只读数据边界
 
+上下文由正式 `ContextInspectorPanel` 负责 `llmLogsQuery / llmLogGet` 的只读状态、选中归属和恢复，`SavedContextContent` 只呈现保存投影并供候选复用。Playground 数据和状态控制仍在候选容器，正式组件不导入 fixture。
+
 Debug 与 Settings / Playground 同为独立一级工作区；`App` 保留隐藏的 Chat 工作区实例，仅在独立壳挂载一个 `DevPanel`。Debug 继续消费 App 的事件快照，返回不销毁 Chat 工作区。调用清单与详情使用独立响应序号，当前范围 / 选中项之外的迟到结果不能提交；资产关联失败与调用详情失败分别反馈。
 
 正式 DevPanel → preload → debug IPC → companion-evidence 纯查询投影 → 已初始化数据库 / Role Pack。诊断不通过会初始化表、播种或修复配置的业务 getter；未初始化时显示不可用。视图、人物、日期、页大小、游标和显式目标在主进程校验，所有值参数化，表与列来自内部白名单。生产资产继续通过统一聚合器读取，正文不复制进 UI。

@@ -30,6 +30,16 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('正式上下文与候选共用纯保存范围阅读', () => {
+    for (const file of ['src/components/debug/ContextInspectorPanel.tsx', 'src/components/playground/DebugContextCandidate.tsx']) {
+      expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'SavedContextContent', '/debug/SavedContextContent') || rendersSharedTabs(readFileSync(file, 'utf8'), 'SavedContextContent', './SavedContextContent'), file).toBe(true)
+    }
+    const asset = UI_COMPONENT_REGISTRY['developer.saved-context-content']
+    const source = readFileSync(asset.sourcePath, 'utf8')
+    expect(source).not.toContain('electronAPI')
+    expect(source).not.toContain('playground/')
+    expect(asset.status).toBe('adopted')
+  })
   it('正式 Debug 和展厅页头实际绑定共享纯呈现定义', () => {
     for (const file of ['src/components/DevPanel.tsx', 'src/components/playground/PlaygroundLayout.tsx']) {
       expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'PageHeader', '/layout/PageHeader'), file).toBe(true)

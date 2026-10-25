@@ -640,3 +640,77 @@ test('正式 Debug 快速切换调用不被迟到详情覆盖，局部资产失�
   await expect(calls.getByText('beta-response', { exact: true })).toBeVisible()
   await expect(calls.getByText('alpha-response', { exact: true })).toHaveCount(0)
 })
+
+
+for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 600]) {
+  test(`正式 Debug 上下文专用阅读与恢复 ${theme} ${width}`, async ({ page }, info) => {
+    await page.setViewportSize({ width, height: 704 })
+    await page.addInitScript(theme => localStorage.setItem('theme', theme), theme)
+    await page.goto('/')
+    await page.evaluate(() => {
+      const state = window as unknown as { electronAPI: { debug: Record<string, unknown> }; __contextFail: boolean; __contextDetailFail: boolean }
+      state.electronAPI = { ...state.electronAPI, debug: { ...state.electronAPI?.debug } }
+      state.__contextFail = true
+      const base = { provider: 'test', caller: 'main', startedAt: Date.now(), status: 'success', promptTokens: 1, completionTokens: 1, totalTokens: 2, durationMs: 1, toolCallCount: 0, cacheReadTokens: 0, cacheCreationTokens: 0 }
+      Object.assign(state.electronAPI.debug, {
+        llmLogsQuery: async () => {
+          if (state.__contextFail) throw new Error('list failure')
+          return { records: ['alpha', 'beta'].map(id => ({ ...base, id, model: id })), total: 2, storageBytes: 10 }
+        },
+        llmLogGet: async (id: string) => {
+          if (state.__contextDetailFail) throw new Error('detail failure')
+          return { ...base, id, model: id, requestMessages: id === 'beta' ? { unexpected: 'test-malformed' } : Array.from({ length: 12 }, (_, i) => ({ role: i === 0 ? 'system' : 'user', content: '（正文未持久化）', contentLength: i === 0 ? 2400 : 50 })), requestTools: [], requestExtra: {}, responseContent: `${id}-raw`, responseToolCalls: [] }
+        },
+        assetUsageQuery: async () => ({ records: [], total: 0 }),
+        onLLMCallEvent: () => () => {},
+      })
+    })
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
+    const panel = page.getByTestId('dev-panel')
+    await panel.getByRole('navigation').getByRole('button', { name: '上下文', exact: true }).click()
+    const context = panel.getByTestId('debug-evidence-context')
+    await expect(panel.getByTestId('llm-calls-panel')).toHaveCount(0)
+    await expect(context.getByRole('alert')).toContainText('调用清单读取失败')
+    await expect(context.getByRole('combobox')).toHaveCount(0)
+    await expect(context).not.toContainText('条已读调用')
+    await page.evaluate(() => { (window as unknown as { __contextFail: boolean }).__contextFail = false })
+    await context.getByRole('button', { name: '重试读取调用清单', exact: true }).click()
+    await expect(context.locator('.debug-context-message')).toHaveCount(8)
+    await expect(context).toContainText('保存长度 2400 字符')
+    await context.getByRole('button', { name: '显示其余 4 条消息', exact: true }).click()
+    const first = context.locator('.debug-context-message').first()
+    await first.locator(':scope > summary').click()
+    await first.getByText('完整消息结构', { exact: true }).click()
+    await page.evaluate(() => { (window as unknown as { __contextFail: boolean }).__contextFail = true })
+    await panel.getByRole('button', { name: '刷新当前分区', exact: true }).click()
+    await expect(context.getByRole('alert')).toContainText('调用清单读取失败')
+    await expect(context.locator('.debug-context-message')).toHaveCount(12)
+    await expect(first.locator('pre')).toBeVisible()
+    await context.getByRole('tab', { name: '工具', exact: true }).click()
+    await expect(context).toContainText('不代表当前可执行权限')
+    await page.evaluate(() => { (window as unknown as { __contextFail: boolean }).__contextFail = false })
+    await context.getByRole('button', { name: '重试读取调用清单', exact: true }).click()
+    await expect(context.getByRole('alert')).toHaveCount(0)
+    await expect(context.getByRole('tab', { name: '工具', exact: true })).toHaveAttribute('aria-selected', 'true')
+    await context.getByRole('combobox', { name: '选择保存的调用' }).selectOption('beta')
+    await context.getByRole('tab', { name: '消息', exact: true }).click()
+    await expect(context).toContainText('消息结构不是数组')
+    await context.getByText('来源与完整保存结构', { exact: true }).click()
+    await expect(context.locator('.debug-context-source pre')).toContainText('test-malformed')
+    await page.evaluate(() => { (window as unknown as { __contextDetailFail: boolean }).__contextDetailFail = true })
+    await panel.getByRole('button', { name: '刷新当前分区', exact: true }).click()
+    await expect(context.getByRole('alert')).toContainText('详情读取失败')
+    await expect(context.locator('.debug-context-source pre')).toBeVisible()
+    await page.evaluate(() => { (window as unknown as { __contextDetailFail: boolean }).__contextDetailFail = false })
+    await context.getByRole('button', { name: '重试详情', exact: true }).click()
+    await expect(context.getByRole('alert')).toHaveCount(0)
+    for (const scale of ['sm', 'lg']) {
+      await page.evaluate(scale => document.documentElement.setAttribute('data-font-scale', scale), scale)
+      expect(await context.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+    }
+    await page.screenshot({ path: info.outputPath('production-context.png') })
+    await context.getByRole('button', { name: '查看这次调用', exact: true }).click()
+    await panel.getByRole('tab', { name: '响应', exact: true }).click()
+    await expect(panel.getByText('beta-raw', { exact: true })).toBeVisible()
+  })
+}

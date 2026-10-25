@@ -20,7 +20,7 @@ v3 回流完成记录只证明导航接入、部分阅读结构及文字 token �
 
 ## 影响范围
 
-允许修改 `src/App.tsx` 的 Debug 一级壳挂载、`src/components/DevPanel.tsx`、`src/components/debug/`、Debug Playground 候选及 fixture、对应单元/E2E 测试与本次文档。共享类型、IPC 和生产聚合器仅在定位到确切契约缺陷后按四处同步规则修改并记录。
+允许修改 `src/App.tsx` 的 Debug 一级壳挂载、`src/components/DevPanel.tsx`、`src/components/debug/`、Debug Playground 候选及 fixture、对应单元/E2E 测试、Electron 测试匹配配置与本次文档。共享类型、IPC 和生产聚合器仅在定位到确切契约缺陷后按四处同步规则修改并记录。
 
 不修改生产 Prompt、权限、安全模型、人物世界和其他页面行为，不引入新依赖。工作区内 Terminal、sandbox、thinking、memory 等存量改动不归本任务，不覆盖、不混入提交。
 
@@ -44,3 +44,7 @@ v3 回流完成记录只证明导航接入、部分阅读结构及文字 token �
 - 2026-10-25：实际浏览器截图复现双侧栏，正式 Debug 仍挂载在 Chat 主壳内，内容被两层侧栏挤压。将唯一 DevPanel 实例移到与 Settings / Playground 同级的独立壳；原位置不再渲染，事件来源和返回聊天行为保留。
 
 - 首批验证：213 文件 / 1416 项单元测试全通过（释放本轮开发服务端口后完整重跑）；相关 UI 24 项通过；类型、生产 build 与资产 11 文件 / 77 项通过。浏览器已实测读取、筛选展开和单导航截图，普通网页没有 Electron 桥接，未声明真实接口全部完成。
+
+- 上下文：用共享纯阅读替换旧 `ContextInspectorPanel` 的未挂载旧实现；不再在正式上下文重复完整 LLM 管理台。清单/详情真实接口不变；旧局部自制按钮、指标块与重复标题随替换移除，复制完整 JSON 仍在可跳转的 LLM 调用详情。
+
+- 真实 Electron：新增隔离用户目录的 `debug-production.test.ts`，确认真实 userData 归属后读取各领域与资产、工具、系统、Trace、LLM、Skill / Persona 报告接口；两组主题/宽度遍历实际导航全部页面，无页面异常、读取错误或横向溢出。该测试不配置模型，不运行工具 / Eval；只证明现有读取和空 / unsupported 边界，不证明不存在的历史接口已实现。

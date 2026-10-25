@@ -46,6 +46,7 @@ describe('上下文候选的已保存输入边界', () => {
     expect(savedMessages([null, 'raw'])?.[1]).toEqual({ role: 'unknown', raw: 'raw' })
     expect(messageScope({ content: '（正文未持久化）' })).toContain('长度未记录')
     expect(messageScope({ content: '（正文未持久化）', contentLength: 0 })).toContain('0 字符')
+    expect(messageScope({ content: '（正文未持久化）', contentLength: -1 })).toContain('长度未记录')
     expect(messageScope({ content: '' })).toContain('包含已保存内容')
     expect(messageScope({})).toContain('未返回正文字段')
   })
