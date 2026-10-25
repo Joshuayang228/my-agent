@@ -14,6 +14,7 @@ import { CharacterEvidenceContent } from './CharacterEvidenceContent'
 import { LocationEvidenceContent } from './LocationEvidenceContent'
 import { LinksEvidenceContent } from './LinksEvidenceContent'
 import { ProfileEvidenceContent } from './ProfileEvidenceContent'
+import { MemoryEvidenceContent } from './MemoryEvidenceContent'
 import { CultureEvidenceContent } from './CultureEvidenceContent'
 import { WardrobeEvidenceContent } from './WardrobeEvidenceContent'
 import { ProactiveEvidenceContent } from './ProactiveEvidenceContent'
@@ -89,6 +90,7 @@ export function CompanionEvidencePanel({ view, roleId, revision, targetId, onEvi
   const changeDate = (value: string) => { if (value === date) return; setDate(value); setCursor(undefined); setResult(null); recordsRef.current = []; pageCursors.current = [] }
   if (view === 'schedule') return <ScheduleEvidenceContent key={`${roleId}:${date}:${targetId ?? ''}`} result={result} loading={loading} error={error} date={date} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onDateChange={changeDate} onQueryChange={setQuery} onRetry={() => setReload(value => value + 1)} onEvidence={onEvidence} />
   if (view === 'residence') return <ResidenceEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onQueryChange={setQuery} onRetry={() => setReload(value => value + 1)} onNext={() => setCursor(result?.nextCursor)} onEvidence={onEvidence} />
+  if (view === 'memories') return <MemoryEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onQueryChange={setQuery} onRetry={() => setReload(value => value + 1)} onNext={() => setCursor(result?.nextCursor)} onEvidence={onEvidence} />
   if (view === 'profile') return <ProfileEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onRetry={() => setReload(value => value + 1)} onNext={() => setCursor(result?.nextCursor)} onEvidence={onEvidence} />
   if (view === 'links') return <LinksEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} date={date} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onQueryChange={setQuery} onDateChange={changeDate} onRetry={() => setReload(value => value + 1)} onNext={() => setCursor(result?.nextCursor)} onEvidence={onEvidence} />
   if (view === 'items') return <CultureEvidenceContent key={`${roleId}:${targetId ?? ''}`} result={result} loading={loading} error={error} query={query} roleId={roleId} scope={scope} targetId={targetId} onRoleChange={onRoleChange} onQueryChange={setQuery} onRetry={() => setReload(value => value + 1)} onNext={() => setCursor(result?.nextCursor)} onEvidence={onEvidence} />

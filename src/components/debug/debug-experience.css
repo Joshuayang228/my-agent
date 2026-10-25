@@ -526,7 +526,7 @@
 :is(.debug-candidate,.debug-workspace)[data-perspective="memories"] .debug-candidate-footer { font-size:var(--prompt-meta-size); }
 .debug-memory-workbench { min-width:0; font-size:var(--prompt-body-size); color:var(--text-primary); }
 .debug-memory-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:12px 0 16px; }
-.debug-memory-toolbar label { display:flex; align-items:center; gap:8px; color:var(--text-secondary); font-size:var(--prompt-caption-size); }
+.debug-memory-toolbar label { display:flex; align-items:center; gap:8px; color:var(--text-secondary); font-size:var(--prompt-caption-size); white-space:nowrap; }
 .debug-memory-toolbar select, .debug-memory-toolbar input { min-height:32px; padding:4px 8px; min-width:0; }
 .debug-memory-toolbar input { flex:1; }
 .debug-memory-caption, .debug-memory-source { color:var(--text-secondary); font-size:var(--prompt-caption-size); line-height:1.7; margin:10px 0; }
