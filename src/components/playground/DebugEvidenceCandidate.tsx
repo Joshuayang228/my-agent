@@ -5,6 +5,7 @@ import { Badge } from '../foundation/Badge'
 import { TextField } from '../foundation/TextField'
 import { SelectField } from '../foundation/SelectField'
 import { EmptyState } from '../foundation/EmptyState'
+import { EventTimelineReading } from '../debug/EventTimelineReading'
 import { DEBUG_ROLES, type DebugRecordFixture } from './debug-experience-fixtures'
 import { getDebugEvidencePage, type DebugEvidencePageId, type DebugEvidenceItem } from './debug-evidence-fixtures'
 
@@ -67,12 +68,7 @@ export function DebugEvidenceCandidate({ id, records, empty, initialSelectedId, 
   const reset = () => { setQuery(''); setRole('lin'); setDate(eventTimeline ? '' : '2026-10-13'); setDetailOpen(false) }
   const facts = (entry: DebugEvidenceItem, reading = false) => <dl className="debug-candidate-facts">{(reading ? entry.readingFields ?? [] : entry.fields).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
   const card = (entry: DebugEvidenceItem) => <article key={entry.id} className="debug-reading-entry" data-record-id={entry.id}>
-    {eventTimeline ? <>
-      <time className="debug-recent-time">{entry.event?.scheduledAt == null ? '时间未记录' : new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(entry.event.scheduledAt)}</time>
-      <div className="debug-recent-summary"><ActionButton ref={node => { if (node) entryButtons.current.set(entry.id, node); else entryButtons.current.delete(entry.id) }} variant="plain" className="debug-recent-title" aria-label={entry.title} aria-expanded={detailOpen && selected?.id === entry.id} onClick={() => { setSelectedId(entry.id); setDetailOpen(true) }}>{entry.title}</ActionButton>
-        <p><span>{entry.status}</span>{entry.event?.location && <span>{entry.event.location}</span>}{role === 'all' && <span>{DEBUG_ROLES.find(value => value.id === entry.role)?.label}</span>}</p>
-      </div>
-    </> : <><ActionButton ref={node => { if (node) entryButtons.current.set(entry.id, node); else entryButtons.current.delete(entry.id) }} variant="plain" className="debug-reading-entry-title" aria-label={entry.title} aria-expanded={detailOpen && selected?.id === entry.id} onClick={() => { setSelectedId(entry.id); setDetailOpen(true) }}>
+    <ActionButton ref={node => { if (node) entryButtons.current.set(entry.id, node); else entryButtons.current.delete(entry.id) }} variant="plain" className="debug-reading-entry-title" aria-label={entry.title} aria-expanded={detailOpen && selected?.id === entry.id} onClick={() => { setSelectedId(entry.id); setDetailOpen(true) }}>
       {STATUS_PAGES.has(id) && filtered.length === 1 ? <span className="debug-candidate-muted">查看详情 <ArrowUpRight size={12} /></span> : <strong>{entry.title}</strong>}{!ROUTINE_STATUS.has(entry.status) && <Badge tone={entry.status.includes('失败') ? 'danger' : 'neutral'}>{entry.status}</Badge>}
     </ActionButton>
     {role === 'all' && <p className="debug-reading-subtitle">{entry.role === 'shared' ? '显式共享' : DEBUG_ROLES.find(value => value.id === entry.role)?.label}</p>}
@@ -81,7 +77,7 @@ export function DebugEvidenceCandidate({ id, records, empty, initialSelectedId, 
     {entry.stages && <ol className="debug-candidate-timeline">{entry.stages.map((stage, index) => <li key={stage.title}><span className="debug-candidate-step">{index + 1}</span><div><strong>{stage.title}</strong><p>{stage.detail}</p></div><code>{stage.duration}</code></li>)}</ol>}
     {entry.travel?.stops?.map(stop => <section key={`${stop.name}:${stop.date}`} className="debug-reading-stop"><h4>{stop.date ?? '日期未提供'} · {stop.name}</h4><p>{stop.story}</p></section>)}
     {entry.travel?.kind === 'planned' && <p className="debug-reading-warning">尚未出发，不计入实际旅行。</p>}
-    {entry.travel?.kind === 'place' && <p className="debug-reading-warning">地点资料，访问日期未记录，不转为旅行。</p>}</>}
+    {entry.travel?.kind === 'place' && <p className="debug-reading-warning">地点资料，访问日期未记录，不转为旅行。</p>}
   </article>
 
   // 背景：家居对象在扁平列表中失去住所和空间关系；意图：只用显式 parentId 嵌套。
@@ -129,18 +125,26 @@ export function DebugEvidenceCandidate({ id, records, empty, initialSelectedId, 
     {eventTimeline && previewState === 'refresh-error' && <div className="debug-recent-state" role="alert"><p>刷新失败，保留上次{readLabel}；下方不是最新结果。</p><ActionButton onClick={onRetry}>重试读取样张</ActionButton></div>}
     {eventTimeline && <p className="debug-recent-range"><span>{date || '全部日期'} · 按计划时间</span><span aria-label={id === 'activity' ? '行为证据范围计数' : '事项范围计数'}>{filtered.length} 条{query ? '匹配 · 已读取范围' : '已读取'} · 总数未知</span></p>}
     {missing ? <p className="debug-recent-state" role="status">引用{readLabel}未在该人物范围找到，未选择替代记录。</p> : eventTimeline && !filtered.length ? <div className="debug-recent-state" role="status"><p>{items.some(entry => (role === 'all' || entry.role === role) && (!date || entry.date === date)) ? '没有匹配的证据' : '此范围没有记录'}</p>{(query || date || role !== 'lin') && <ActionButton onClick={reset}>清除筛选</ActionButton>}</div> : !filtered.length ? <EmptyState title={items.length ? '没有匹配的证据' : '此范围没有记录'} description={items.length ? '调整搜索、人物或日期；没有匹配不等于能力未实现。' : '真实读取为空时保留来源与范围，不生成默认人物事实。'} action={items.length ? <ActionButton onClick={reset}>清除筛选</ActionButton> : undefined} /> : <>
+      {eventTimeline ? <EventTimelineReading items={filtered.map(entry => ({ ...entry, time: entry.event?.scheduledAt == null ? '时间未记录' : new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(entry.event.scheduledAt), locationText: entry.event?.location, owner: role === 'all' ? DEBUG_ROLES.find(value => value.id === entry.role)?.label : undefined }))} selectedId={detailOpen ? selectedId : undefined} onSelect={value => { setSelectedId(value); setDetailOpen(Boolean(value)) }} renderDetail={entry => <>
+        <p className="debug-recent-state">计划时间不代表发布时间；已发布不证明活动完成。</p>
+        {entry.body ? <p className="debug-reading-body">{entry.body}</p> : <p className="debug-recent-state">此{readLabel}未保存正文。</p>}
+        <details className="debug-prompt-provenance"><summary>完整字段</summary>{facts(entry)}</details>
+        <details className="debug-prompt-provenance"><summary>记录标识与范围</summary><code>{entry.id}</code><p>{entry.subtitle}</p><p>{entry.date} · {entry.role} · 隔离样张</p><pre>{JSON.stringify(entry, null, 2)}</pre></details>
+        <section className="debug-candidate-section"><h3>明确关联的来源与证据</h3>
+          {entry.assets?.map(key => <ActionButton key={key} variant="plain" className="debug-candidate-asset-link" onClick={() => onAsset(key)}><div><strong>查看注册定义</strong><code>{key}</code></div><ArrowUpRight size={14} /></ActionButton>)}
+          {entry.callId && <ActionButton variant="plain" className="debug-candidate-asset-link" onClick={() => onRecord(entry.callId!)}><div><strong>查看关联调用</strong><code>{entry.callId}</code></div><ArrowUpRight size={14} /></ActionButton>}
+          {entry.links?.map(link => <ActionButton key={`${link.page}:${link.id}`} variant="plain" className="debug-candidate-asset-link" onClick={() => onEvidence(link.page, link.id)}><div><strong>{link.label}</strong><code>{link.id}</code></div><ArrowUpRight size={14} /></ActionButton>)}
+          {!entry.assets?.length && !entry.callId && !entry.links?.length && <p>没有保存更多关联标识，不按时间或名称补猜。</p>}
+        </section>
+      </>} /> : <>
       <div className={`debug-reading debug-reading-${layout}`} data-reading-layout={id === 'residence' ? 'home' : id === 'footprints' ? 'travel' : layout} data-detail-open={detailOpen && Boolean(selected)}>
         {id === 'residence' ? home() : id === 'footprints' ? travel() : id === 'items' ? culture() : filtered.map(card)}
       </div>
       {detailOpen && selected && <article ref={detailRef} className="debug-candidate-detail debug-reading-detail" aria-label="领域证据详情">
         <ActionButton variant="plain" onClick={() => { setDetailOpen(false); requestAnimationFrame(() => entryButtons.current.get(selected.id)?.focus()) }}><ArrowLeft size={14} /> 返回列表</ActionButton>
         <div className="debug-candidate-detail-heading"><h3>{selected.title}</h3><Badge>{selected.status}</Badge></div>
-        {eventTimeline ? <>
-          <p className="debug-recent-state">计划时间不代表发布时间；已发布不证明活动完成。</p>
-          {selected.body ? <p className="debug-reading-body">{selected.body}</p> : <p className="debug-recent-state">此{readLabel}未保存正文。</p>}
-          <details className="debug-prompt-provenance"><summary>完整字段</summary>{facts(selected)}</details>
-        </> : <>{facts(selected)}{selected.body && <p className="debug-reading-body">{selected.body}</p>}</>}
-        <details className="debug-prompt-provenance"><summary>记录标识与范围</summary><code>{selected.id}</code><p>{selected.subtitle}</p><p>{selected.date} · {selected.role} · 隔离样张</p>{eventTimeline && <pre>{JSON.stringify(selected, null, 2)}</pre>}</details>
+        {facts(selected)}{selected.body && <p className="debug-reading-body">{selected.body}</p>}
+        <details className="debug-prompt-provenance"><summary>记录标识与范围</summary><code>{selected.id}</code><p>{selected.subtitle}</p><p>{selected.date} · {selected.role} · 隔离样张</p></details>
         <section className="debug-candidate-section"><h3>明确关联的来源与证据</h3>
           {selected.assets?.map(key => <ActionButton key={key} variant="plain" className="debug-candidate-asset-link" onClick={() => onAsset(key)}><div><strong>查看注册定义</strong><code>{key}</code></div><ArrowUpRight size={14} /></ActionButton>)}
           {selected.callId && <ActionButton variant="plain" className="debug-candidate-asset-link" onClick={() => onRecord(selected.callId!)}><div><strong>查看关联调用</strong><code>{selected.callId}</code></div><ArrowUpRight size={14} /></ActionButton>}
@@ -148,6 +152,7 @@ export function DebugEvidenceCandidate({ id, records, empty, initialSelectedId, 
           {!selected.assets?.length && !selected.callId && !selected.links?.length && <p>没有保存更多关联标识，不按时间或名称补猜。</p>}
         </section>
       </article>}
+      </>}
     </>}
     {eventTimeline && dataState === 'paged' && !moreLoaded && !initialSelectedId && <ActionButton onClick={() => setMoreLoaded(true)}>读取下一页样张</ActionButton>}
     </>}
