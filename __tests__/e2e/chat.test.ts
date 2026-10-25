@@ -5719,6 +5719,7 @@ test.describe('My Agent UI', () => {
     await expect(page.getByTestId('registered-asset-workbench')).toBeVisible()
     for (const label of ['今日日程', '家居', '足迹', '用户画像', '上下文', 'LLM 调用', 'Skill 验收', '人格验收']) await expect(debugNav.getByRole('button', { name: label, exact: true })).toBeAttached()
     await debugNav.getByRole('button', { name: '系统状态', exact: true }).click()
+    await page.getByTestId('dev-panel').getByText('运行概览与其他证据入口', { exact: true }).click()
     await expect(page.getByTestId('debug-overview')).toBeVisible()
     await debugNav.getByRole('button', { name: '提示词管理器', exact: true }).click()
     await expect(page.getByTestId('registered-asset-workbench').locator('textarea')).toHaveCount(0)

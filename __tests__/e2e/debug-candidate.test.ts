@@ -714,3 +714,54 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await expect(panel.getByText('beta-raw', { exact: true })).toBeVisible()
   })
 }
+
+
+test('正式 Debug 系统与能力分源读取，局部失败不遮挡已读工具', async ({ page }) => {
+  await page.goto('/')
+  await page.evaluate(() => {
+    const state = window as unknown as { electronAPI: { debug: Record<string, unknown> }; __systemFail: boolean; __tracesCalls: number }
+    state.electronAPI = { ...state.electronAPI, debug: { ...state.electronAPI?.debug } }
+    state.__systemFail = true; state.__tracesCalls = 0
+    Object.assign(state.electronAPI.debug, {
+      systemInfo: async () => {
+        if (state.__systemFail) throw new Error('system failure')
+        return { electron: 'test', node: 'test', chrome: 'test', platform: 'test', arch: 'test', appVersion: 'v-test', uptime: 12, memoryUsage: { rss: 10, heapUsed: 2, heapTotal: 5 }, toolCount: 1,
+          settings: { model: 'registered-model', baseUrl: 'https://test.invalid', activeRoleId: 'lin', hasApiKey: false, hasCustomPrompt: false, sandboxMode: 'read-only', executionMode: 'auto', sessionTokenBudget: 0, dailyTokenBudget: 0 },
+          permissionRules: { total: 0, enabled: 0, items: [], truncated: false }, skills: { total: 1, items: [{ name: 'same-name', source: 'builtin', description: 'skill-description' }], truncated: false },
+          mcp: [{ id: 'test-mcp', name: 'test-mcp', status: 'error', toolCount: 0, error: '连接失败' }] }
+      },
+      tools: async () => [{ name: 'same-name', description: 'tool-description', parameters: { proof: 'schema-proof' }, metadata: { isReadOnly: true, isDestructive: false, isConcurrencySafe: true } }],
+      traces: async () => { state.__tracesCalls++; throw new Error('unrelated trace failure') },
+    })
+  })
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
+  const panel = page.getByTestId('dev-panel'), nav = panel.getByRole('navigation')
+  await nav.getByRole('button', { name: '技能与工具', exact: true }).click()
+  const tools = panel.getByTestId('debug-evidence-tools')
+  await expect(panel.getByRole('alert')).toContainText('系统快照读取失败')
+  await tools.locator('[data-record-id="tool:same-name"] button').click()
+  await expect(tools.getByRole('article', { name: '能力详情' })).toContainText('tool-description')
+  await tools.getByText('工具 Schema', { exact: true }).click()
+  await expect(tools.locator('pre').first()).toContainText('schema-proof')
+  await expect(panel.getByText('LLM 配置', { exact: true })).toHaveCount(0)
+  expect(await page.evaluate(() => (window as unknown as { __tracesCalls: number }).__tracesCalls)).toBe(0)
+  await page.evaluate(() => { (window as unknown as { __systemFail: boolean }).__systemFail = false })
+  await panel.getByRole('button', { name: '刷新当前分区', exact: true }).click()
+  await expect(panel.getByRole('alert')).toHaveCount(0)
+  await expect(tools.locator('[data-record-id="skill:same-name"]')).toBeVisible()
+  await expect(tools.locator('pre').first()).toBeVisible()
+  await tools.getByRole('combobox', { name: '工具形态筛选' }).selectOption('MCP')
+  await tools.locator('[data-record-id="mcp:test-mcp"] button').click()
+  await expect(tools.getByRole('article', { name: '能力详情' })).toContainText('工具数量未知')
+  await nav.getByRole('button', { name: '系统状态', exact: true }).click()
+  const system = panel.getByTestId('debug-evidence-system')
+  await expect(system.locator('.debug-system-summary')).toContainText('registered-model')
+  await expect(system.getByText('https://test.invalid', { exact: true })).toBeHidden()
+  await system.locator('.debug-system-section > summary').filter({ hasText: '模型与执行' }).click()
+  await expect(system.getByText('https://test.invalid', { exact: true })).toBeVisible()
+  await page.evaluate(() => { (window as unknown as { __systemFail: boolean }).__systemFail = true })
+  await panel.getByRole('button', { name: '刷新当前分区', exact: true }).click()
+  await expect(panel.getByRole('alert').first()).toContainText('系统快照读取失败')
+  await expect(system.getByText('https://test.invalid', { exact: true })).toBeVisible()
+  await expect(system.locator('[data-record-id]')).toHaveCount(0)
+})

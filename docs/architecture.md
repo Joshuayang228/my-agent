@@ -2,6 +2,8 @@
 
 ## Debug 的只读数据边界
 
+系统状态通过共享摘要 / 分区阅读显示 `systemInfo`，技能工具由 `tools` 与 `systemInfo` 的 Skill / MCP 投影分别组成能力记录。读取失败按来源反馈，不因系统聚合失败而清空工具注册表；调用链概览的错误只进入折叠概览，不覆盖其他系统来源。
+
 上下文由正式 `ContextInspectorPanel` 负责 `llmLogsQuery / llmLogGet` 的只读状态、选中归属和恢复，`SavedContextContent` 只呈现保存投影并供候选复用。Playground 数据和状态控制仍在候选容器，正式组件不导入 fixture。
 
 Debug 与 Settings / Playground 同为独立一级工作区；`App` 保留隐藏的 Chat 工作区实例，仅在独立壳挂载一个 `DevPanel`。Debug 继续消费 App 的事件快照，返回不销毁 Chat 工作区。调用清单与详情使用独立响应序号，当前范围 / 选中项之外的迟到结果不能提交；资产关联失败与调用详情失败分别反馈。

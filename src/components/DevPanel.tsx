@@ -5,6 +5,8 @@ import { DEBUG_EVIDENCE_VIEWS, type DebugEvidenceView } from '../shared/debug-ev
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, type DebugPage } from '../shared/debug-navigation'
 import { RegisteredAssetWorkbench } from './debug/RegisteredAssetWorkbench'
 import { CompanionEvidencePanel } from './debug/CompanionEvidencePanel'
+import { DebugSystemContent, type DebugSystemSnapshot } from './debug/DebugSystemContent'
+import { DebugCapabilitiesContent, capabilityRecords, type DebugToolDefinition } from './debug/DebugCapabilitiesContent'
 import { ContextInspectorPanel } from './debug/ContextInspectorPanel'
 import { LLMCallsPanel } from './debug/LLMCallsPanel'
 import { PersonaEvalPanel } from './debug/PersonaEvalPanel'
@@ -34,59 +36,8 @@ interface TraceSpanInfo {
   error?: string
 }
 
-interface SystemInfo {
-  electron: string
-  node: string
-  chrome: string
-  platform: string
-  arch: string
-  appVersion: string
-  uptime: number
-  memoryUsage: { rss: number; heapUsed: number; heapTotal: number }
-  settings: {
-    model: string
-    baseUrl: string
-    activeRoleId: string
-    hasApiKey: boolean
-    hasCustomPrompt: boolean
-    sandboxMode?: string
-    executionMode?: string
-    sessionTokenBudget?: number
-    dailyTokenBudget?: number
-  }
-  mcp: Array<{ id: string; name: string; status: string; toolCount: number; error?: string }>
-  toolCount: number
-  permissionRules?: {
-    total: number
-    enabled: number
-    items: Array<{
-      id: string
-      type: string
-      pattern: string
-      action: string
-      enabled: boolean
-      description?: string
-    }>
-    truncated: boolean
-  }
-  skills?: {
-    total: number
-    items: Array<{ name: string; source: string; description: string }>
-    truncated: boolean
-  }
-}
-
-interface DebugToolInfo {
-  name: string
-  description: string
-  parameters: Record<string, unknown>
-  metadata: {
-    isReadOnly: boolean
-    isDestructive: boolean
-    isConcurrencySafe: boolean
-    longRunning?: boolean
-  }
-}
+type SystemInfo = DebugSystemSnapshot
+type DebugToolInfo = DebugToolDefinition
 
 interface CallerStat {
   count: number
@@ -106,20 +57,6 @@ interface TracesPayload {
   dailyTokenUsage?: number
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / 1048576).toFixed(1)} MB`
-}
-
-function formatUptime(seconds: number): string {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = seconds % 60
-  return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`
-}
-
-
 interface DevPanelProps {
   onClose: () => void
   eventLog: Array<{ time: number; type: string; detail: string }>
@@ -135,8 +72,14 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
   const [scope, setScope] = useState<DebugEvidenceScope | null>(null)
   const [roleId, setRoleId] = useState('')
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
-  const [tools, setTools] = useState<DebugToolInfo[]>([])
+  const [tools, setTools] = useState<DebugToolInfo[] | null>(null)
+  const [systemError, setSystemError] = useState('')
+  const [toolsError, setToolsError] = useState('')
+  const [systemLoading, setSystemLoading] = useState(false)
+  const [toolsLoading, setToolsLoading] = useState(false)
   const [traces, setTraces] = useState<TracesPayload | null>(null)
+  const [overviewError, setOverviewError] = useState('')
+  const [overviewLoading, setOverviewLoading] = useState(false)
   const [error, setError] = useState('')
   const [scopeError, setScopeError] = useState('')
   const [assetKey, setAssetKey] = useState('')
@@ -156,13 +99,16 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
     setError('')
     if (!window.electronAPI?.debug) return
     if (page === 'system' || page === 'tools') {
-      Promise.allSettled([window.electronAPI.debug.systemInfo(), window.electronAPI.debug.tools(), window.electronAPI.debug.traces()]).then(([system, registered, traceResult]) => {
-        if (!current) return
-        if (system.status === 'fulfilled') setSystemInfo(system.value as SystemInfo)
-        if (registered.status === 'fulfilled') setTools(registered.value)
-        if (traceResult.status === 'fulfilled') setTraces({ ...traceResult.value, callerStats: traceResult.value.callerStats as Record<string, CallerStat> })
-        if (system.status === 'rejected' || registered.status === 'rejected' || traceResult.status === 'rejected') setError('部分系统证据刷新失败，保留上次成功结果')
-      })
+      setSystemLoading(true)
+      window.electronAPI.debug.systemInfo().then(data => { if (current) { setSystemInfo(data); setSystemError('') } }).catch(() => { if (current) setSystemError('系统快照读取失败；已有来源保留，未读取部分不补零。') }).finally(() => { if (current) setSystemLoading(false) })
+    }
+    if (page === 'tools') {
+      setToolsLoading(true)
+      window.electronAPI.debug.tools().then(data => { if (current) { setTools(data); setToolsError('') } }).catch(() => { if (current) setToolsError('工具注册表读取失败；已读清单保留，不能推断没有工具。') }).finally(() => { if (current) setToolsLoading(false) })
+    }
+    if (page === 'system') {
+      setOverviewLoading(true)
+      window.electronAPI.debug.traces().then(data => { if (current) { setTraces({ ...data, callerStats: data.callerStats as Record<string, CallerStat> }); setOverviewError('') } }).catch(() => { if (current) setOverviewError('调用链概览读取失败；其他系统来源仍可阅读。') }).finally(() => { if (current) setOverviewLoading(false) })
     }
     if (page === 'traces') window.electronAPI.debug.traces().then(data => { if (current) setTraces({ spans: data.spans, callerStats: data.callerStats as Record<string, CallerStat>, tokenLanes: data.tokenLanes, dailyTokenUsage: data.dailyTokenUsage }) }).catch(() => { if (current) setError('调用链读取失败，保留上次成功证据') })
     return () => { current = false }
@@ -185,256 +131,26 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
         {domain && <>{roleId ? <CompanionEvidencePanel key={`${page}:${roleId}:${evidenceTarget?.id ?? ''}`} scope={scope} onRoleChange={setRoleId} targetId={evidenceTarget?.id} onEvidence={(view, id) => { navigate(view); setEvidenceTarget(id ? { view, id } : null) }} view={page as DebugEvidenceView} roleId={roleId} revision={revision} /> : <EmptyState title="尚未取得人物范围" description="未确定人物时不生成默认状态。" />}</>}
         {page === 'context' && <ContextInspectorPanel revision={revision} onRecord={id => { navigate('runs'); setCallId(id) }} />}
         {['runs', 'traces', 'events'].includes(page) && <RequestRuntimePanel view={page === 'runs' ? 'llm' : page as RequestRuntimeView} traces={traces} events={eventLog} focusedLLMCallId={callId} focusedTraceSpanId={spanId} revision={revision} onAsset={key => { navigate('assets'); setAssetKey(key) }} />}
-        {page === 'system' && <DebugOverview snapshot={buildDebugOverviewSnapshot({ system: systemInfo ?? undefined, traces: traces ?? undefined, world: scope?.activeRoleId ? { role: { name: scope.roles.find(role => role.id === scope.activeRoleId)?.name ?? scope.activeRoleId } } : undefined, eventCount: eventLog.length, unavailable: [...(!systemInfo ? ['system' as const] : []), ...(!traces ? ['traces' as const] : []), ...(!scope?.activeRoleId ? ['world' as const] : [])] })} loading={false} error={error} onOpen={tab => navigate(({ prompt: 'assets', 'request-runtime': 'runs', world: 'now', system: 'system' } as const)[tab])} />}
-        {page === 'tools' && <p>注册定义不等于本次可用或实际使用；使用证据请从生产资产目录进入关联调用。</p>}
-        {(page === 'system' || page === 'tools') && <SystemTab info={systemInfo} tools={tools} />}
+        {(page === 'system' || page === 'tools') && systemError && <p className="debug-system-state" role="alert">{systemError}</p>}
+        {page === 'system' && <><DebugSystemContent info={systemInfo} />{systemLoading && <p role="status">正在读取系统快照…</p>}<details className="debug-system-boundary"><summary>运行概览与其他证据入口</summary><DebugOverview snapshot={buildDebugOverviewSnapshot({ system: systemInfo ?? undefined, traces: traces ?? undefined, world: scope?.activeRoleId ? { role: { name: scope.roles.find(role => role.id === scope.activeRoleId)?.name ?? scope.activeRoleId } } : undefined, eventCount: eventLog.length, unavailable: [...(!systemInfo ? ['system' as const] : []), ...(!traces ? ['traces' as const] : []), ...(!scope?.activeRoleId ? ['world' as const] : [])] })} loading={systemLoading || overviewLoading} error={overviewError} onOpen={tab => navigate(({ prompt: 'assets', 'request-runtime': 'runs', world: 'now', system: 'system' } as const)[tab])} /></details></>}
+        {page === 'tools' && <section className="debug-tools-workbench" data-testid="debug-evidence-tools">
+          {toolsError && <p className="debug-tools-state" role="alert">{toolsError}</p>}
+          {(toolsLoading || systemLoading) && <p role="status">正在读取技能与工具…</p>}
+          {!systemInfo && <p className="debug-tools-state">Skill 与 MCP 来源未读取，不能推断为空。</p>}
+          {tools === null && <p className="debug-tools-state">工具注册表未读取，数量未知。</p>}
+          {(tools !== null || systemInfo) && <DebugCapabilitiesContent records={capabilityRecords(tools, systemInfo)} />}
+        </section>}
         {page === 'quality' && <SkillEvalPanel revision={revision} />}{page === 'persona' && <PersonaEvalPanel revision={revision} />}
       </main>
     </div>
   </div>
 }
-function SystemTab({ info, tools }: { info: SystemInfo | null; tools: DebugToolInfo[] }) {
-  if (!info) return <EmptyState title="尚未读取系统快照" description="可刷新当前分区重试；未读取不显示默认配置或零值。" />
-
-  const detailSections = [
-    {
-      title: '运行环境',
-      items: [
-        ['Electron', info.electron],
-        ['Node.js', info.node],
-        ['Chrome', info.chrome],
-        ['平台', `${info.platform} / ${info.arch}`],
-        ['运行时间', formatUptime(info.uptime)],
-      ],
-    },
-    {
-      title: '内存使用',
-      items: [
-        ['RSS', formatBytes(info.memoryUsage.rss)],
-        ['Heap Used', formatBytes(info.memoryUsage.heapUsed)],
-        ['Heap Total', formatBytes(info.memoryUsage.heapTotal)],
-        ['利用率', `${Math.round((info.memoryUsage.heapUsed / info.memoryUsage.heapTotal) * 100)}%`],
-      ],
-    },
-  ]
-
-  const sections = [
-    {
-      title: '运行时策略',
-      items: [
-        ['有效沙箱', info.settings.sandboxMode || '—'],
-        ['审批模式', info.settings.executionMode || '—'],
-        ['会话 Token 预算', String(info.settings.sessionTokenBudget ?? 0)],
-        ['日 Token 预算', String(info.settings.dailyTokenBudget ?? 0)],
-      ],
-    },
-    {
-      title: 'LLM 配置',
-      items: [
-        ['模型', info.settings.model],
-        ['Base URL', info.settings.baseUrl],
-        ['主角', info.settings.activeRoleId],
-        ['API Key', info.settings.hasApiKey ? '已配置' : '未配置'],
-        ['自定义 Prompt', info.settings.hasCustomPrompt ? '有' : '—'],
-      ],
-    },
-  ]
-
-  const rules = info.permissionRules
-  const skills = info.skills
-
-  return (
-    <div className="debug-system-workbench">
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="工具数" value={String(info.toolCount)} color="cyan" />
-        <StatCard label="Skills" value={String(skills?.total ?? '未读取')} color="violet" />
-        <StatCard label="权限规则" value={String(rules?.enabled ?? '未读取')} color="emerald" />
-        <StatCard label="MCP" value={String(info.mcp.length)} color="cyan" />
-      </div>
-
-      {sections.map(section => (
-        <div key={section.title} className="mb-4">
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{section.title}</div>
-          <div className="theme-card rounded-lg border">
-            {section.items.map(([label, value], i) => (
-              <div
-                key={label}
-                className={`flex justify-between px-4 py-2 text-xs ${
-                  i < section.items.length - 1 ? 'border-b' : ''
-                }`}
-                style={i < section.items.length - 1 ? { borderColor: 'var(--border-color)' } : undefined}
-              >
-                <span style={{ color: 'var(--text-muted)' }}>{label}</span>
-                <span className="font-mono" style={{ color: 'var(--text-primary)' }}>{value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-
-      <details className="mb-4 rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
-        <summary className="cursor-pointer px-3 py-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-          运行环境与内存
-        </summary>
-        <div className="border-t px-3 pt-3" style={{ borderColor: 'var(--border-color)' }}>
-          {detailSections.map(section => (
-            <div key={section.title} className="mb-4 last:mb-0">
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{section.title}</div>
-              <div className="theme-card rounded-lg border">
-                {section.items.map(([label, value], i) => (
-                  <div
-                    key={label}
-                    className={`flex justify-between px-4 py-2 text-xs ${i < section.items.length - 1 ? 'border-b' : ''}`}
-                    style={i < section.items.length - 1 ? { borderColor: 'var(--border-color)' } : undefined}
-                  >
-                    <span style={{ color: 'var(--text-muted)' }}>{label}</span>
-                    <span className="font-mono" style={{ color: 'var(--text-primary)' }}>{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </details>
-
-      <div className="mb-4">
-        <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-          工具注册表（{tools.length}）
-        </div>
-        {tools.length === 0 ? (
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>未注册工具</p>
-        ) : (
-          <div className="space-y-1.5">
-            {tools.map((tool) => (
-              <details key={tool.name} className="theme-card rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border-color)' }}>
-                <summary className="cursor-pointer">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-mono text-xs" style={{ color: 'var(--text-primary)' }}>{tool.name}</div>
-                      <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{tool.description}</p>
-                    </div>
-                    <div className="flex shrink-0 flex-wrap gap-1 text-[10px]">
-                      <ToolFlag enabled={tool.metadata.isReadOnly} trueLabel="只读" falseLabel="可写" tone="success" />
-                      <ToolFlag enabled={tool.metadata.isDestructive} trueLabel="破坏性" falseLabel="非破坏性" tone="danger" />
-                      <ToolFlag enabled={tool.metadata.isConcurrencySafe} trueLabel="可并发" falseLabel="串行" tone="accent" />
-                      {tool.metadata.longRunning && (
-                        <ToolFlag enabled trueLabel="长任务" falseLabel="" tone="warning" />
-                      )}
-                    </div>
-                  </div>
-                </summary>
-                <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words border-t pt-2 font-mono text-[10px] leading-relaxed" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
-                  {JSON.stringify(tool.parameters, null, 2)}
-                </pre>
-              </details>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {rules && (
-        <div className="mb-4">
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-            权限规则（{rules.enabled}/{rules.total} 启用{rules.truncated ? ' · 已截断' : ''}）
-          </div>
-          {rules.items.length === 0 ? (
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>无自定义规则（走默认沙箱链）</p>
-          ) : (
-            <div className="space-y-1">
-              {rules.items.map((r) => (
-                <div
-                  key={r.id}
-                  className="theme-card flex flex-wrap items-center gap-2 rounded-lg border px-3 py-1.5 font-mono text-[11px]"
-                  style={{ borderColor: 'var(--border-color)', opacity: r.enabled ? 1 : 0.5 }}
-                >
-                  <span style={{ color: r.action === 'deny' ? 'var(--danger)' : r.action === 'ask' ? 'var(--warning)' : 'var(--success)' }}>
-                    {r.action}
-                  </span>
-                  <span style={{ color: 'var(--text-muted)' }}>{r.type}</span>
-                  <span className="break-all" style={{ color: 'var(--text-primary)' }}>{r.pattern}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {skills && (
-        <div className="mb-4">
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-            Skills（{skills.total}{skills.truncated ? ' · 已截断' : ''}）
-          </div>
-          {skills.items.length === 0 ? (
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>未加载 Skill</p>
-          ) : (
-            <div className="space-y-1">
-              {skills.items.map((s) => (
-                <div key={s.name} className="theme-card rounded-lg border px-3 py-1.5" style={{ borderColor: 'var(--border-color)' }}>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span style={{ color: 'var(--text-primary)' }}>{s.name}</span>
-                    <span className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{s.source}</span>
-                  </div>
-                  {s.description && (
-                    <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{s.description}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {info.mcp.length > 0 && (
-        <div>
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>MCP 连接</div>
-          <div className="space-y-1">
-            {info.mcp.map(s => (
-              <div key={s.id} className="theme-card flex items-center justify-between rounded-lg border px-4 py-2">
-                <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${
-                    s.status === 'connected' ? 'bg-emerald-400' :
-                    s.status === 'error' ? 'bg-red-400' : 'bg-amber-400'
-                  }`} />
-                  <span className="text-xs" style={{ color: 'var(--text-primary)' }}>{s.name}</span>
-                  {s.error && <span className="text-[10px]" style={{ color: 'var(--danger)' }}>{s.error}</span>}
-                </div>
-                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{s.toolCount} tools</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
 function StatCard({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div data-stat-category={color} className="theme-card rounded-lg border p-3 text-center" style={{ color: 'var(--text-primary)', background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
       <div className="text-lg font-bold">{value}</div>
       <div className="text-[10px] opacity-70">{label}</div>
     </div>
-  )
-}
-
-function ToolFlag({
-  enabled,
-  trueLabel,
-  falseLabel,
-  tone,
-}: {
-  enabled: boolean
-  trueLabel: string
-  falseLabel: string
-  tone: 'success' | 'danger' | 'accent' | 'warning'
-}) {
-  const color = enabled
-    ? `var(--${tone})`
-    : 'var(--text-muted)'
-  return (
-    <span className="rounded border px-1.5 py-0.5" style={{ borderColor: color, color }}>
-      {enabled ? trueLabel : falseLabel}
-    </span>
   )
 }
 

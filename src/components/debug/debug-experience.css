@@ -661,3 +661,9 @@
 .debug-llm-advanced summary { cursor:pointer; padding:8px; font-size:var(--type-control); line-height:var(--line-height-control); }
 .debug-llm-advanced > div { display:flex; flex-direction:column; gap:calc(var(--spacing) * 2); padding-block:8px; }
 .debug-llm-advanced input, .debug-llm-advanced select { width:100%; min-width:0; }
+
+.debug-system-section dl > div { display:contents; }
+.debug-tools-detail pre { font-family:var(--font-mono); font-size:var(--type-meta); line-height:var(--line-height-meta); white-space:pre-wrap; overflow-wrap:anywhere; margin-block:12px; }
+
+.debug-tools-toolbar label { white-space:nowrap; }
+.debug-tools-row [data-technical-name="true"] { font-family:var(--font-mono); }
