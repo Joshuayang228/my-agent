@@ -182,7 +182,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
         {scopeError && (domain || page === 'assets') && <p role="alert" className="debug-prompt-state">{scopeError}</p>}{error && <ErrorState title="诊断读取异常" description={error} />}
         {page === 'assets' && <RegisteredAssetWorkbench scope={scope} revision={revision} focusKey={assetKey} onUsage={openUsage} onTotal={setAssetTotal} />}
         {domain && <>{roleId ? <CompanionEvidencePanel key={`${page}:${roleId}:${evidenceTarget?.id ?? ''}`} scope={scope} onRoleChange={setRoleId} targetId={evidenceTarget?.id} onEvidence={(view, id) => { navigate(view); setEvidenceTarget(id ? { view, id } : null) }} view={page as DebugEvidenceView} roleId={roleId} revision={revision} /> : <EmptyState title="尚未取得人物范围" description="未确定人物时不生成默认状态。" />}</>}
-        {page === 'context' && <><p>从实际调用查看保存的 System、Messages 与语义来源；当前定义不替代历史输入。此清单是全局调用范围，不受诊断人物筛选影响。</p><LLMCallsPanel revision={revision} onAsset={key => { navigate('assets'); setAssetKey(key) }} /></>}
+        {page === 'context' && <><p>从实际调用查看保存的 System、Messages 与语义来源；当前定义不替代历史输入。此清单是全局调用范围，不受诊断人物筛选影响。</p><LLMCallsPanel showHeading={false} revision={revision} onAsset={key => { navigate('assets'); setAssetKey(key) }} /></>}
         {['runs', 'traces', 'events'].includes(page) && <RequestRuntimePanel view={page === 'runs' ? 'llm' : page as RequestRuntimeView} traces={traces} events={eventLog} focusedLLMCallId={callId} focusedTraceSpanId={spanId} revision={revision} onAsset={key => { navigate('assets'); setAssetKey(key) }} />}
         {page === 'system' && <DebugOverview snapshot={buildDebugOverviewSnapshot({ system: systemInfo ?? undefined, traces: traces ?? undefined, world: scope?.activeRoleId ? { role: { name: scope.roles.find(role => role.id === scope.activeRoleId)?.name ?? scope.activeRoleId } } : undefined, eventCount: eventLog.length, unavailable: [...(!systemInfo ? ['system' as const] : []), ...(!traces ? ['traces' as const] : []), ...(!scope?.activeRoleId ? ['world' as const] : [])] })} loading={false} error={error} onOpen={tab => navigate(({ prompt: 'assets', 'request-runtime': 'runs', world: 'now', system: 'system' } as const)[tab])} />}
         {page === 'tools' && <p>注册定义不等于本次可用或实际使用；使用证据请从生产资产目录进入关联调用。</p>}
@@ -450,7 +450,7 @@ function RequestRuntimePanel({ view, traces, events, focusedLLMCallId, focusedTr
   revision: number
 }) {
   return <div className="debug-runtime-workbench space-y-4" data-testid="request-runtime-panel">
-    {view === 'llm' && <LLMCallsPanel focusId={focusedLLMCallId} revision={revision} onAsset={onAsset} />}
+    {view === 'llm' && <LLMCallsPanel showHeading={false} focusId={focusedLLMCallId} revision={revision} onAsset={onAsset} />}
     {view === 'traces' && <TracesTab data={traces} focusId={focusedTraceSpanId} />}
     {view === 'events' && <EventsTab events={events} />}
   </div>

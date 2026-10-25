@@ -963,7 +963,7 @@ function App() {
   })
 
   // 全屏导航不能销毁项目工作区：保留固定位置的产品子树，仅隐藏；项目 key 才定义资源归属。
-  const standaloneView = activeView === 'settings' || activeView === 'playground'
+  const standaloneView = activeView === 'settings' || activeView === 'playground' || activeView === 'debug'
 
   return (
     <>
@@ -1148,12 +1148,7 @@ function App() {
 
         {activeView !== 'chat' && (
           <div className="view-transition flex flex-1 flex-col overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
-            {activeView === 'debug' ? (
-              <DevPanel
-                eventLog={eventLog}
-                onClose={() => setActiveView('chat')}
-              />
-            ) : isWorldView(activeView) ? (
+            {isWorldView(activeView) ? (
               <WorldHub
                 profile={{ name: currentPersonaName, description: companionBlurb }}
                 allowAssetEditing={false}
@@ -1708,7 +1703,7 @@ function App() {
     </div>
 
       {standaloneView && <div className="app-shell view-transition flex h-screen min-w-0 select-none" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-        {activeView === 'settings' ? <div className="flex h-full w-full min-h-0 min-w-0 flex-1 flex-col">
+        {activeView === 'debug' ? <DevPanel eventLog={eventLog} onClose={() => setActiveView('chat')} /> : activeView === 'settings' ? <div className="flex h-full w-full min-h-0 min-w-0 flex-1 flex-col">
           <SettingsPanel
             initialEntry={settingsEntry}
             onClose={closeSettings}

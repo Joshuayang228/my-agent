@@ -22,7 +22,7 @@ const PAGE_SIZE = 30
 
 type DetailView = 'prompts' | 'system' | 'messages' | 'tools' | 'extra' | 'response' | 'json'
 
-export function LLMCallsPanel({ focusId, onAsset, revision = 0 }: { focusId?: string; onAsset?: (key: string) => void; revision?: number } = {}) {
+export function LLMCallsPanel({ focusId, onAsset, revision = 0, showHeading = true }: { focusId?: string; onAsset?: (key: string) => void; revision?: number; showHeading?: boolean } = {}) {
   const [records, setRecords] = useState<LLMCallSummary[]>([])
   const [total, setTotal] = useState(0)
   const [storageBytes, setStorageBytes] = useState(0)
@@ -36,12 +36,18 @@ export function LLMCallsPanel({ focusId, onAsset, revision = 0 }: { focusId?: st
   const [detail, setDetail] = useState<LLMCallDetail | null>(null)
   const [assetEvidence, setAssetEvidence] = useState<AgentAssetUsageEvidence[]>([])
   const [detailView, setDetailView] = useState<DetailView>('prompts')
+  const [hasLoaded, setHasLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
   const [detailLoading, setDetailLoading] = useState(false)
   const [error, setError] = useState('')
+  const [detailError, setDetailError] = useState('')
+  const [evidenceError, setEvidenceError] = useState('')
   const [clearArmed, setClearArmed] = useState(false)
   const [copied, setCopied] = useState(false)
   const selectedIdRef = useRef('')
+  const detailRequest = useRef(0)
+  const listRequest = useRef(0)
+  useEffect(() => () => { detailRequest.current++; listRequest.current++ }, [])
 
   useEffect(() => {
     selectedIdRef.current = selectedId
@@ -55,28 +61,33 @@ export function LLMCallsPanel({ focusId, onAsset, revision = 0 }: { focusId?: st
   }), [filters, page])
 
   const loadDetail = useCallback(async (id: string) => {
-    if (!id || !window.electronAPI?.debug) {
-      setDetail(null)
-      return
-    }
+    const request = ++detailRequest.current
+    selectedIdRef.current = id
+    setSelectedId(id)
+    setDetail(null)
+    setAssetEvidence([])
+    setDetailError('')
+    setEvidenceError('')
+    if (!id || !window.electronAPI?.debug) return
     setDetailLoading(true)
-    try {
-      const [nextDetail, evidence] = await Promise.all([
-        window.electronAPI.debug.llmLogGet(id),
-        window.electronAPI.debug.assetUsageQuery({ spanId: id, limit: 100 }),
-      ])
-      setDetail(nextDetail)
-      setAssetEvidence(evidence.records)
-    } catch (cause) {
-      setDetail(null)
-      setAssetEvidence([])
-      setError(cause instanceof Error ? cause.message : String(cause))
-    } finally {
-      setDetailLoading(false)
-    }
+    // 背景：快速切换调用时，旧响应会覆盖新选中项；关联资产失败还曾吞掉有效详情。
+    // 意图：按请求序号提交，并分别处理正文与资产证据；约束：迟到结果不能跨选中调用，局部失败不当作空证据。
+    const [response, evidence] = await Promise.allSettled([
+      window.electronAPI.debug.llmLogGet(id),
+      window.electronAPI.debug.assetUsageQuery({ spanId: id, limit: 100 }),
+    ])
+    if (request !== detailRequest.current) return
+    if (response.status === 'fulfilled') {
+      setDetail(response.value)
+      if (!response.value) setDetailError('引用调用未返回详情；未选择其他调用代替。')
+    } else setDetailError('调用详情读取失败，请重新选择该调用重试。')
+    if (evidence.status === 'fulfilled') setAssetEvidence(evidence.value.records)
+    else setEvidenceError('关联资产读取失败；不代表此次调用没有使用资产。')
+    setDetailLoading(false)
   }, [])
 
   const loadRecords = useCallback(async (keepSelection = true) => {
+    const request = ++listRequest.current
     const debug = window.electronAPI?.debug
     if (!debug) {
       setError('需要 Electron 环境才能读取 LLM Debug 日志')
@@ -87,22 +98,24 @@ export function LLMCallsPanel({ focusId, onAsset, revision = 0 }: { focusId?: st
     setError('')
     try {
       const result = await debug.llmLogsQuery(query)
+      if (request !== listRequest.current) return
+      setHasLoaded(true)
       setRecords(result.records)
       setTotal(result.total)
       setStorageBytes(result.storageBytes)
       const currentSelection = selectedIdRef.current
-      const selection = keepSelection && result.records.some((record) => record.id === currentSelection)
+      const selection = keepSelection && currentSelection && (currentSelection === focusId || result.records.some((record) => record.id === currentSelection))
         ? currentSelection
         : result.records[0]?.id ?? ''
       setSelectedId(selection)
       if (selection) await loadDetail(selection)
-      else setDetail(null)
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      else { detailRequest.current++; setDetail(null); setAssetEvidence([]); setDetailError(''); setEvidenceError(''); setDetailLoading(false) }
+    } catch {
+      if (request === listRequest.current) setError('调用清单读取失败；已有结果保留，未读取的数量未知。')
     } finally {
-      setLoading(false)
+      if (request === listRequest.current) setLoading(false)
     }
-  }, [loadDetail, query])
+  }, [focusId, loadDetail, query])
 
   useEffect(() => { void loadRecords(true) }, [loadRecords, revision])
 
@@ -167,16 +180,16 @@ export function LLMCallsPanel({ focusId, onAsset, revision = 0 }: { focusId?: st
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
-    <div className="space-y-3" data-testid="llm-calls-panel">
+    <div className="debug-llm-workbench space-y-3" data-testid="llm-calls-panel">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="flex items-baseline gap-2">
-            <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>LLM 调用</h2>
-            <span className="font-mono text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              {total} 条 · {formatDebugBytes(storageBytes)}
+            {showHeading && <h2 className="text-[length:var(--type-control)] font-semibold" style={{ color: 'var(--text-primary)' }}>LLM 调用</h2>}
+            <span className="font-mono text-[length:var(--type-caption)]" style={{ color: 'var(--text-muted)' }}>
+              {hasLoaded ? `${total} 条 · ${formatDebugBytes(storageBytes)}` : loading ? '正在读取…' : '数量未读取'}
             </span>
           </div>
-          <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+          <p className="mt-1 text-[length:var(--type-caption)]" style={{ color: 'var(--text-muted)' }}>
             完整请求与响应按需读取；筛选与导出使用同一查询条件。
           </p>
         </div>
@@ -196,27 +209,28 @@ export function LLMCallsPanel({ focusId, onAsset, revision = 0 }: { focusId?: st
         </div>
       </header>
 
-      <form onSubmit={applyFilters} className="grid gap-2 lg:grid-cols-[minmax(180px,1fr)_150px_180px_130px_auto]">
+      <form onSubmit={applyFilters} className="debug-llm-filters">
         <label className="relative">
           <Search size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
           <TextField
             value={searchDraft}
             onChange={(event: ChangeEvent<HTMLInputElement>) => setSearchDraft(event.target.value)}
-            className="h-9 w-full rounded-lg border pl-8 pr-3 text-xs"
-            placeholder="模型、Provider、会话…"
+            className="h-9 w-full rounded-lg border pl-8 pr-3 text-[length:var(--type-control)]"
+            aria-label="搜索调用记录" placeholder="搜索模型、服务或会话"
           />
         </label>
+        <details className="debug-llm-advanced"><summary>更多筛选</summary><div>
         <TextField
           value={callerDraft}
           onChange={(event: ChangeEvent<HTMLInputElement>) => setCallerDraft(event.target.value)}
-          className="h-9 rounded-lg border px-3 text-xs"
-          placeholder="Caller"
+          className="h-9 rounded-lg border px-3 text-[length:var(--type-control)]"
+          aria-label="调用者" placeholder="调用者"
         />
         <TextField
           value={modelDraft}
           onChange={(event: ChangeEvent<HTMLInputElement>) => setModelDraft(event.target.value)}
-          className="h-9 rounded-lg border px-3 text-xs"
-          placeholder="精确模型"
+          className="h-9 rounded-lg border px-3 text-[length:var(--type-control)]"
+          aria-label="精确模型" placeholder="精确模型"
         />
         <SelectField
           value={statusDraft}
@@ -229,15 +243,18 @@ export function LLMCallsPanel({ focusId, onAsset, revision = 0 }: { focusId?: st
           <option value="error">错误</option>
           <option value="pending">进行中</option>
         </SelectField>
-        <ActionButton type="submit" tone="accent" size="md" className="rounded-lg px-3 text-xs font-medium">筛选</ActionButton>
+        </div></details>
+        <ActionButton type="submit" tone="accent" size="md" className="rounded-lg px-3 text-[length:var(--type-control)] font-medium">筛选</ActionButton>
       </form>
 
-      {error && <p className="text-xs" style={{ color: 'var(--danger)' }}>{error}</p>}
+      {error && <p role="alert" className="text-[length:var(--type-control)]" style={{ color: 'var(--danger)' }}>{error}</p>}
 
-      <div className="grid min-h-[500px] gap-3 xl:grid-cols-[minmax(300px,0.72fr)_minmax(0,1.28fr)]">
+      {detailError && <p role="alert">{detailError}</p>}
+      {evidenceError && <p role="alert">{evidenceError}</p>}
+      {(hasLoaded || loading || detail) && <div className="grid gap-3 xl:grid-cols-[minmax(300px,0.72fr)_minmax(0,1.28fr)]">
         <div className="scrollbar-hover min-h-0 overflow-y-auto rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
           {loading && records.length === 0 && <Empty text="读取 LLM 调用中…" />}
-          {!loading && records.length === 0 && <Empty text="没有匹配的 LLM 调用。" />}
+          {hasLoaded && !loading && !error && records.length === 0 && <Empty text="没有匹配的 LLM 调用。" />}
           {records.map((record) => (
             <ActionButton
               key={record.id}
@@ -255,10 +272,10 @@ export function LLMCallsPanel({ focusId, onAsset, revision = 0 }: { focusId?: st
             >
               <div className="flex items-center gap-2">
                 <StatusDot status={record.status} />
-                <span className="min-w-0 flex-1 truncate font-mono text-[11px]" style={{ color: 'var(--text-primary)' }}>{record.model || 'unknown'}</span>
-                <span className="shrink-0 font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatTime(record.startedAt)}</span>
+                <span className="min-w-0 flex-1 truncate font-mono text-[length:var(--type-caption)]" style={{ color: 'var(--text-primary)' }}>{record.model || 'unknown'}</span>
+                <span className="shrink-0 font-mono text-[length:var(--type-meta)]" style={{ color: 'var(--text-muted)' }}>{formatTime(record.startedAt)}</span>
               </div>
-              <div className="mt-1 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+              <div className="mt-1 flex items-center gap-1.5 text-[length:var(--type-meta)]" style={{ color: 'var(--text-muted)' }}>
                 <span className="rounded px-1.5 py-0.5" style={{ background: 'var(--bg-tertiary)' }}>{record.caller || 'system'}</span>
                 <span>{formatDuration(record.durationMs)}</span>
                 <span>·</span>
@@ -271,13 +288,13 @@ export function LLMCallsPanel({ focusId, onAsset, revision = 0 }: { focusId?: st
 
         <div className="min-w-0 rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
           {detailLoading && !detail && <Empty text="读取调用详情中…" />}
-          {!detailLoading && !detail && <Empty text="从左侧选择一条调用查看完整请求与响应。" />}
+          {hasLoaded && !detailLoading && !detail && !detailError && <Empty text="从左侧选择一条调用查看完整请求与响应。" />}
           {detail && (
             <>
               <div className="flex flex-wrap items-start justify-between gap-3 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
                 <div>
-                  <div className="font-mono text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{detail.model}</div>
-                  <div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                  <div className="font-mono text-[length:var(--type-control)] font-semibold" style={{ color: 'var(--text-primary)' }}>{detail.model}</div>
+                  <div className="mt-1 text-[length:var(--type-meta)]" style={{ color: 'var(--text-muted)' }}>
                     {detail.provider} · {detail.caller} · {detail.promptTokens}/{detail.completionTokens} tokens · {formatDuration(detail.durationMs)}
                   </div>
                 </div>
@@ -296,7 +313,7 @@ export function LLMCallsPanel({ focusId, onAsset, revision = 0 }: { focusId?: st
                 </ActionButton>
               </div>
 
-              <div className="my-2 min-w-0"><TabStrip label="调用详情" activeId={detailView} onSelect={id => setDetailView(id as DetailView)} items={(['prompts', 'system', 'messages', 'tools', 'extra', 'response', 'json'] as const).map(id => ({ id, label: { prompts: `资产证据 ${assetEvidence.length || promptAssets.length}`, system: `System ${systemMessages.length}`, messages: `Messages ${messages.length}`, tools: 'Tools', extra: '请求参数', response: '响应', json: '完整 JSON' }[id] }))} /></div>
+              <div className="my-2 min-w-0"><TabStrip label="调用详情" activeId={detailView} onSelect={id => setDetailView(id as DetailView)} items={(['prompts', 'system', 'messages', 'tools', 'extra', 'response', 'json'] as const).map(id => ({ id, label: { prompts: `资产证据 ${evidenceError ? '未读取' : assetEvidence.length || promptAssets.length}`, system: `System ${systemMessages.length}`, messages: `Messages ${messages.length}`, tools: 'Tools', extra: '请求参数', response: '响应', json: '完整 JSON' }[id] }))} /></div>
 
               {detailView === 'prompts' && (
                 <AssetEvidenceDetail
@@ -328,9 +345,9 @@ export function LLMCallsPanel({ focusId, onAsset, revision = 0 }: { focusId?: st
             </>
           )}
         </div>
-      </div>
+      </div>}
 
-      <div className="flex items-center justify-between text-[11px]" style={{ color: 'var(--text-muted)' }}>
+      <div className="flex items-center justify-between text-[length:var(--type-caption)]" hidden={!hasLoaded} style={{ color: 'var(--text-muted)' }}>
         <span>第 {total === 0 ? 0 : page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, total)} / 共 {total} 条</span>
         <div className="flex gap-1">
           <IconButton label="上一页" disabled={page === 0} onClick={() => setPage((value) => Math.max(0, value - 1))}><ChevronLeft size={14} /></IconButton>
@@ -363,7 +380,7 @@ function AssetEvidenceDetail({ evidence, fallback, onAsset }: { evidence: AgentA
     <div className="scrollbar-hover max-h-[52vh] space-y-3 overflow-y-auto pr-1" data-testid="asset-evidence-detail">
       {[...groups.entries()].map(([group, items]) => (
         <section key={group} className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
-          <div className="mb-2 text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>{group} · {items.length}</div>
+          <div className="mb-2 text-[length:var(--type-caption)] font-semibold" style={{ color: 'var(--text-primary)' }}>{group} · {items.length}</div>
           <div className="space-y-2">
             {items.map((item) => (
               <div key={item.id} className="rounded border px-2.5 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
@@ -372,7 +389,7 @@ function AssetEvidenceDetail({ evidence, fallback, onAsset }: { evidence: AgentA
                   <span className="rounded px-1.5 py-0.5 text-[9px]" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }}>{item.relation}</span>
                   <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{item.usageKind} · {item.status}</span>
                 </div>
-                <div className="mt-1 text-[10px]" style={{ color: 'var(--text-secondary)' }}>{item.assetName} · v{item.assetVersion} · {item.assetFingerprint}</div>
+                <div className="mt-1 text-[length:var(--type-meta)]" style={{ color: 'var(--text-secondary)' }}>{item.assetName} · v{item.assetVersion} · {item.assetFingerprint}</div>
                 {Object.keys(item.metadata).length > 0 && <div className="mt-1 break-words font-mono text-[9px]" style={{ color: 'var(--text-muted)' }}>{formatDebugValue(item.metadata)}</div>}
               </div>
             ))}
@@ -463,14 +480,14 @@ function PromptAssetsDetail({ assets, unknownKeys, promptlessReason, skillActiva
     <div className="scrollbar-hover max-h-[52vh] space-y-2 overflow-y-auto pr-1">
       {promptlessReason && (
         <section className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
-          <div className="text-[11px] font-semibold" style={{ color: 'var(--text-secondary)' }}>本次调用显式声明为无固定 Prompt 资产</div>
-          <div className="mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{promptlessReason}</div>
+          <div className="text-[length:var(--type-caption)] font-semibold" style={{ color: 'var(--text-secondary)' }}>本次调用显式声明为无固定 Prompt 资产</div>
+          <div className="mt-1 text-[length:var(--type-meta)]" style={{ color: 'var(--text-muted)' }}>{promptlessReason}</div>
         </section>
       )}
       {unknownKeys.length > 0 && (
         <section className="rounded-lg border p-3" style={{ borderColor: 'var(--warning)', background: 'var(--bg-primary)' }}>
-          <div className="text-[11px] font-semibold" style={{ color: 'var(--warning)' }}>注册表缺失 key</div>
-          <div className="mt-1 break-words font-mono text-[10px]" style={{ color: 'var(--text-secondary)' }}>{unknownKeys.join(', ')}</div>
+          <div className="text-[length:var(--type-caption)] font-semibold" style={{ color: 'var(--warning)' }}>注册表缺失 key</div>
+          <div className="mt-1 break-words font-mono text-[length:var(--type-meta)]" style={{ color: 'var(--text-secondary)' }}>{unknownKeys.join(', ')}</div>
         </section>
       )}
       {skillActivations.length > 0 && <SkillActivationsDetail items={skillActivations} />}
@@ -478,14 +495,14 @@ function PromptAssetsDetail({ assets, unknownKeys, promptlessReason, skillActiva
         <article key={asset.key} className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <div className="font-mono text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>{asset.key}</div>
-              <div className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{asset.purpose}</div>
+              <div className="font-mono text-[length:var(--type-caption)] font-semibold" style={{ color: 'var(--text-primary)' }}>{asset.key}</div>
+              <div className="mt-1 text-[length:var(--type-caption)]" style={{ color: 'var(--text-secondary)' }}>{asset.purpose}</div>
             </div>
-            <span className="rounded px-2 py-0.5 font-mono text-[10px]" style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}>
+            <span className="rounded px-2 py-0.5 font-mono text-[length:var(--type-meta)]" style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }}>
               {asset.version} · {asset.locale} · {asset.mode}
             </span>
           </div>
-          <dl className="mt-3 grid gap-1.5 text-[10px] sm:grid-cols-[64px_minmax(0,1fr)]">
+          <dl className="mt-3 grid gap-1.5 text-[length:var(--type-meta)] sm:grid-cols-[64px_minmax(0,1fr)]">
             <dt style={{ color: 'var(--text-muted)' }}>来源</dt>
             <dd className="break-all font-mono" style={{ color: 'var(--text-secondary)' }}>{asset.source}</dd>
             <dt style={{ color: 'var(--text-muted)' }}>角色</dt>
@@ -510,15 +527,15 @@ function PromptAssetsDetail({ assets, unknownKeys, promptlessReason, skillActiva
 function SkillActivationsDetail({ items }: { items: SkillActivationTrace[] }) {
   return (
     <section className="rounded-lg border p-3" style={{ borderColor: 'var(--accent)', background: 'var(--bg-primary)' }}>
-      <div className="text-[11px] font-semibold" style={{ color: 'var(--accent-fg)' }}>本次请求激活的 Skill</div>
+      <div className="text-[length:var(--type-caption)] font-semibold" style={{ color: 'var(--accent-fg)' }}>本次请求激活的 Skill</div>
       <div className="mt-2 space-y-2">
         {items.map((item, index) => (
           <article key={`${item.name}-${item.activatedAt}-${index}`} className="rounded border p-2" style={{ borderColor: 'var(--border-subtle)' }}>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="font-mono text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>{item.name}</span>
-              <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{item.source === 'builtin' ? '内置' : '用户'} · v{item.version}</span>
+              <span className="font-mono text-[length:var(--type-caption)] font-semibold" style={{ color: 'var(--text-primary)' }}>{item.name}</span>
+              <span className="text-[length:var(--type-meta)]" style={{ color: 'var(--text-muted)' }}>{item.source === 'builtin' ? '内置' : '用户'} · v{item.version}</span>
             </div>
-            <dl className="mt-1 grid gap-1 text-[10px] sm:grid-cols-[56px_minmax(0,1fr)]">
+            <dl className="mt-1 grid gap-1 text-[length:var(--type-meta)] sm:grid-cols-[56px_minmax(0,1fr)]">
               <dt style={{ color: 'var(--text-muted)' }}>激活工具</dt>
               <dd className="break-all font-mono" style={{ color: 'var(--text-secondary)' }}>{item.toolName}</dd>
               <dt style={{ color: 'var(--text-muted)' }}>指纹</dt>
@@ -539,10 +556,10 @@ function DetailMessages({ messages }: { messages: ReturnType<typeof normalizeDeb
       {messages.map((message, index) => (
         <article key={`${message.id ?? index}-${index}`} className="rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
           <div className="flex justify-between border-b px-3 py-1.5" style={{ borderColor: 'var(--border-subtle)' }}>
-            <span className="font-mono text-[10px] font-semibold" style={{ color: roleColor(message.role) }}>{message.role}</span>
-            <span className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{message.content.length} chars</span>
+            <span className="font-mono text-[length:var(--type-meta)] font-semibold" style={{ color: roleColor(message.role) }}>{message.role}</span>
+            <span className="font-mono text-[length:var(--type-meta)]" style={{ color: 'var(--text-muted)' }}>{message.content.length} chars</span>
           </div>
-          <pre className="whitespace-pre-wrap break-words p-3 font-mono text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{message.content || '（空）'}</pre>
+          <pre className="whitespace-pre-wrap break-words p-3 font-mono text-[length:var(--type-caption)] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{message.content || '（空）'}</pre>
         </article>
       ))}
     </div>
@@ -551,7 +568,7 @@ function DetailMessages({ messages }: { messages: ReturnType<typeof normalizeDeb
 
 function CodeBlock({ value }: { value: unknown }) {
   return (
-    <pre className="scrollbar-hover max-h-[52vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border p-3 font-mono text-[11px] leading-relaxed" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
+    <pre className="scrollbar-hover max-h-[52vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border p-3 font-mono text-[length:var(--type-caption)] leading-relaxed" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
       {formatDebugValue(value) || '（空）'}
     </pre>
   )
@@ -560,14 +577,14 @@ function CodeBlock({ value }: { value: unknown }) {
 function ResponseBlock({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
   return (
     <section>
-      <div className="mb-1 text-[10px] font-semibold uppercase" style={{ color: danger ? 'var(--danger)' : 'var(--text-muted)' }}>{label}</div>
-      <pre className="scrollbar-hover max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-lg border p-3 font-mono text-[11px]" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: danger ? 'var(--danger)' : 'var(--text-secondary)' }}>{value}</pre>
+      <div className="mb-1 text-[length:var(--type-meta)] font-semibold uppercase" style={{ color: danger ? 'var(--danger)' : 'var(--text-muted)' }}>{label}</div>
+      <pre className="scrollbar-hover max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-lg border p-3 font-mono text-[length:var(--type-caption)]" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: danger ? 'var(--danger)' : 'var(--text-secondary)' }}>{value}</pre>
     </section>
   )
 }
 
 function Empty({ text }: { text: string }) {
-  return <p className="px-4 py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>{text}</p>
+  return <p className="px-4 py-8 text-center text-[length:var(--type-body)]" style={{ color: 'var(--text-muted)' }}>{text}</p>
 }
 
 function StatusDot({ status }: { status: LLMCallSummary['status'] }) {

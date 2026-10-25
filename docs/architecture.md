@@ -2,6 +2,8 @@
 
 ## Debug 的只读数据边界
 
+Debug 与 Settings / Playground 同为独立一级工作区；`App` 保留隐藏的 Chat 工作区实例，仅在独立壳挂载一个 `DevPanel`。Debug 继续消费 App 的事件快照，返回不销毁 Chat 工作区。调用清单与详情使用独立响应序号，当前范围 / 选中项之外的迟到结果不能提交；资产关联失败与调用详情失败分别反馈。
+
 正式 DevPanel → preload → debug IPC → companion-evidence 纯查询投影 → 已初始化数据库 / Role Pack。诊断不通过会初始化表、播种或修复配置的业务 getter；未初始化时显示不可用。视图、人物、日期、页大小、游标和显式目标在主进程校验，所有值参数化，表与列来自内部白名单。生产资产继续通过统一聚合器读取，正文不复制进 UI。
 
 设置诊断使用 `getAllSettingsReadOnly` 解码而不迁移；主模型信息仍从 `loadMainLLMConfig` 的只读选项装配，普通生产调用路径不变。导航与样式由生产模块维护，Playground 只提供隔离数据与控制器。当前 / 存储 / 定义 / 实发输入分别标源，旧世界数据以生产 codec 的解码值展示，并保留原存储差异。

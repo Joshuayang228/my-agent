@@ -5668,7 +5668,7 @@ test.describe('My Agent UI', () => {
     expect(await page.evaluate(() => (window as any).__developerModeSettings.writes.filter(([key]: [string]) => key === 'developerMode'))).toEqual([['developerMode', 'true'], ['developerMode', 'false']])
   })
 
-  test('Debug 页面新对话入口创建会话后返回聊天', async ({ page }) => {
+  test('Debug 独立工作区返回聊天后可创建新对话', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
       const api = (window as any).electronAPI
@@ -5685,6 +5685,8 @@ test.describe('My Agent UI', () => {
     await page.goto('/')
     await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
     await expect(page.getByTestId('dev-panel')).toBeVisible()
+    await expect(page.getByTestId('primary-sidebar')).toBeHidden()
+    await page.getByTestId('dev-panel').getByRole('button', { name: '返回聊天', exact: true }).click()
     await page.getByTestId('primary-sidebar').getByRole('button', { name: '新对话', exact: true }).click()
     await expect(page.getByRole('textbox', { name: '消息', exact: true })).toBeVisible()
     await expect(page.getByTestId('dev-panel')).toHaveCount(0)

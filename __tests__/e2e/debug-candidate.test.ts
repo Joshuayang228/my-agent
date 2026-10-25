@@ -262,6 +262,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 
     await expect(panel.getByText('response-proof', { exact: true })).toBeVisible()
     expect(await panel.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
     await page.screenshot({ path: info.outputPath('production-debug.png') })
+    await panel.getByRole('button', { name: '返回聊天', exact: true }).click()
     await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
     await page.getByTestId('playground-nav').getByRole('button', { name: '基础组件', exact: true }).click()
     await page.getByRole('tab', { name: '布局与滚动', exact: true }).click()
@@ -588,3 +589,54 @@ for (const theme of ['porcelain-blue', 'yao-stone']) {
     expect(await panel.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
   })
 }
+
+
+test('正式 Debug 首次调用失败不显示零值或成功空态', async ({ page }) => {
+  await page.goto('/')
+  await page.evaluate(() => {
+    const api = window as unknown as { electronAPI: { debug: Record<string, unknown> } }
+    api.electronAPI = { ...api.electronAPI, debug: { ...api.electronAPI?.debug } }
+    window.electronAPI.debug.llmLogsQuery = async () => { throw new Error('contract failure') }
+    window.electronAPI.debug.onLLMCallEvent = () => () => {}
+  })
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
+  await page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: 'LLM 调用', exact: true }).click()
+  const calls = page.getByTestId('llm-calls-panel')
+  await expect(calls.getByRole('alert')).toContainText('调用清单读取失败')
+  await expect(calls).toContainText('数量未读取')
+  await expect(calls.getByText('没有匹配的 LLM 调用。', { exact: true })).toHaveCount(0)
+  await expect(calls.getByText(/第 .*共 0 条/)).toBeHidden()
+})
+
+test('正式 Debug 快速切换调用不被迟到详情覆盖，局部资产失败保留正文', async ({ page }) => {
+  await page.goto('/')
+  await page.evaluate(() => {
+    const api = window as unknown as { electronAPI: { debug: Record<string, unknown> } }
+    api.electronAPI = { ...api.electronAPI, debug: { ...api.electronAPI?.debug } }
+    const state = window as unknown as { __releaseAlpha: () => void; __alphaRead: boolean; __alphaFinished: boolean }
+    const base = { provider: 'test', caller: 'main', startedAt: Date.now(), status: 'success' as const, promptTokens: 1, completionTokens: 1, totalTokens: 2, durationMs: 1, toolCallCount: 0, cacheReadTokens: 0, cacheCreationTokens: 0 }
+    const summaries = ['alpha', 'beta'].map(id => ({ ...base, id, model: id }))
+    window.electronAPI.debug.llmLogsQuery = async () => ({ records: summaries, total: 2, storageBytes: 10 })
+    window.electronAPI.debug.onLLMCallEvent = () => () => {}
+    window.electronAPI.debug.assetUsageQuery = async ({ spanId } = {}) => {
+      if (spanId === 'beta') throw new Error('asset contract failure')
+      return { records: [], total: 0 }
+    }
+    window.electronAPI.debug.llmLogGet = async id => {
+      if (id === 'alpha') { state.__alphaRead = true; await new Promise<void>(resolve => { state.__releaseAlpha = resolve }); state.__alphaFinished = true }
+      return { ...base, id, model: id, requestMessages: [], requestTools: [], requestExtra: {}, responseContent: `${id}-response`, responseToolCalls: [] }
+    }
+  })
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
+  await page.getByRole('navigation', { name: '调试分区' }).getByRole('button', { name: 'LLM 调用', exact: true }).click()
+  const calls = page.getByTestId('llm-calls-panel')
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __alphaRead: boolean }).__alphaRead)).toBe(true)
+  await calls.getByRole('button').filter({ hasText: 'beta' }).click()
+  await expect(calls.getByRole('alert')).toContainText('关联资产读取失败')
+  await calls.getByRole('tab', { name: '响应', exact: true }).click()
+  await expect(calls.getByText('beta-response', { exact: true })).toBeVisible()
+  await page.evaluate(() => (window as unknown as { __releaseAlpha: () => void }).__releaseAlpha())
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __alphaFinished: boolean }).__alphaFinished)).toBe(true)
+  await expect(calls.getByText('beta-response', { exact: true })).toBeVisible()
+  await expect(calls.getByText('alpha-response', { exact: true })).toHaveCount(0)
+})

@@ -20,6 +20,8 @@
 
 ## 进行中
 
+Debug 正式回流复核：[debug-production-parity-v4.md](./debug-production-parity-v4.md)，逐页修复正式页面与已批准 Playground 的差异、跨页定位和真实接口验收。
+
 伙伴时间控件：[companion-quiet-time-controls-v1.md](./companion-quiet-time-controls-v1.md)，Foundation 整点时间选择已回流到正式与 Playground 伙伴设置；正式默认、存量偏好数据与通知调度不变。
 
 布局基线：[foundation-layout-boundaries-v1.md](./foundation-layout-boundaries-v1.md)，布局与间距、透明度 P0 候选施工，正式回流未授权。
