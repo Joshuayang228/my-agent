@@ -1,8 +1,9 @@
-import { useRef, useState, type ChangeEvent } from 'react'
-import { ArrowLeft, ArrowUpRight } from 'lucide-react'
+import { useState, type ChangeEvent } from 'react'
+import { ArrowUpRight } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { TextField } from '../foundation/TextField'
 import { SelectField } from '../foundation/SelectField'
+import { ScheduleReading } from '../debug/ScheduleReading'
 import { DEBUG_ROLES } from './debug-experience-fixtures'
 import { DEBUG_EVIDENCE_PAGES, type DebugEvidencePageId } from './debug-evidence-fixtures'
 
@@ -26,7 +27,6 @@ export function DebugScheduleCandidate({ empty, previewState, initialSelectedId,
   const [date, setDate] = useState(target?.date ?? '2026-10-13')
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState(initialSelectedId)
-  const buttons = useRef(new Map<string, HTMLButtonElement>())
   const available = !['unread', 'loading', 'unavailable', 'error'].includes(previewState)
   const items = empty || previewState === 'invalid' ? [] : fixtures.map((entry, index) => {
     if (previewState !== 'long' || index !== 0) return entry
@@ -38,7 +38,6 @@ export function DebugScheduleCandidate({ empty, previewState, initialSelectedId,
   // 背景：全部人物夹具按人物存放；意图：阅读顺序按时间，不沿用存放次序；约束：只排序筛选副本，夹具时间为固定 HH:mm。
   const scoped = items.filter(entry => (role === 'all' || entry.role === role) && entry.date === date).sort((left, right) => (left.schedule?.time ?? '').localeCompare(right.schedule?.time ?? ''))
   const filtered = scoped.filter(entry => `${entry.schedule?.time} ${entry.schedule?.activity} ${entry.schedule?.location} ${entry.fields.flat().join(' ')}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
-  const selected = filtered.find(entry => entry.id === selectedId)
   const missing = previewState === 'missing' || Boolean(initialSelectedId && !target)
   const clearFilters = () => { setRole('lin'); setDate('2026-10-13'); setQuery(''); setSelectedId(undefined) }
 
@@ -55,21 +54,12 @@ export function DebugScheduleCandidate({ empty, previewState, initialSelectedId,
       {previewState === 'refresh-error' && <div className="debug-schedule-state" role="alert"><p>刷新失败，保留上次日程；下方不是最新结果。</p><ActionButton onClick={onRetry}>重试读取样张</ActionButton></div>}
       <div className="debug-schedule-context"><span>{date} · 计划</span><span aria-label="计划时段计数">{filtered.length} 个计划时段{query && ' · 当前筛选'}</span></div>
       {missing ? <p className="debug-schedule-state" role="status">引用时段未在该人物范围找到，未选择替代记录。</p> : previewState === 'invalid' ? <p className="debug-schedule-state" role="status">日剧本已读取，但没有可读取的计划时段。</p> : !filtered.length ? <div className="debug-schedule-state" role="status"><p>{scoped.length ? '没有匹配的证据' : '此范围没有记录'}</p>{(!empty || query) && <ActionButton onClick={clearFilters}>清除筛选</ActionButton>}</div> : <>
-        <div className="debug-schedule-list" data-reading-layout="schedule" data-detail-open={Boolean(selected)} aria-label="计划时段列表">
-          {filtered.map(entry => <article key={entry.id} data-record-id={entry.id}>
-            <ActionButton ref={node => { if (node) buttons.current.set(entry.id, node); else buttons.current.delete(entry.id) }} variant="plain" className="debug-schedule-row" aria-label={entry.title} aria-expanded={selected?.id === entry.id} onClick={() => setSelectedId(entry.id)}>
-              <time>{entry.schedule?.time}</time><span className="debug-schedule-activity">{entry.schedule?.activity}<span className="debug-schedule-location">{entry.schedule?.location}{role === 'all' && ` · ${DEBUG_ROLES.find(value => value.id === entry.role)?.label}`}</span></span>
-            </ActionButton>
-          </article>)}
-        </div>
-        {selected && <article className="debug-schedule-detail" aria-label="领域证据详情">
-          <ActionButton variant="plain" onClick={() => { setSelectedId(undefined); requestAnimationFrame(() => buttons.current.get(selected.id)?.focus()) }}><ArrowLeft size={14} /> 返回列表</ActionButton>
-          <h3>{selected.schedule?.time} · {selected.schedule?.activity}</h3>
+        <ScheduleReading items={filtered.map(entry => ({ ...entry, time: entry.schedule?.time ?? '时间未记录', activity: entry.schedule?.activity ?? '活动未记录', location: `${entry.schedule?.location ?? ''}${role === 'all' ? ` · ${DEBUG_ROLES.find(value => value.id === entry.role)?.label}` : ''}` }))} selectedId={selectedId} onSelect={setSelectedId} renderDetail={selected => <>
           <p>计划时段，执行结果未记录。</p>
           <dl className="debug-candidate-facts">{selected.fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
           {selected.links?.map(link => <ActionButton key={link.id} variant="plain" onClick={() => onEvidence(link.page, link.id)}>{link.label}<ArrowUpRight size={14} /></ActionButton>)}
           <details className="debug-prompt-provenance"><summary>记录标识与范围</summary><code>{selected.id}</code><p>{selected.date} · {selected.role} · 隔离样张</p><pre>{JSON.stringify(selected, null, 2)}</pre></details>
-        </article>}
+        </>} />
       </>}
       <p className="debug-schedule-boundary">日程是计划，活动是否发生以事件证据为准。</p>
     </>}

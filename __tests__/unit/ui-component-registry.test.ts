@@ -30,6 +30,13 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('正式日程与候选实际渲染共享时段阅读', () => {
+    for (const [file, suffix] of [['src/components/debug/ScheduleEvidenceContent.tsx', './ScheduleReading'], ['src/components/playground/DebugScheduleCandidate.tsx', '/debug/ScheduleReading']]) {
+      expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'ScheduleReading', suffix), file).toBe(true)
+    }
+    expect(UI_COMPONENT_REGISTRY['developer.schedule-reading'].status).toBe('adopted')
+  })
+
   it('系统和能力候选使用正式共享阅读结构', () => {
     expect(rendersSharedTabs(readFileSync('src/components/playground/DebugSystemCandidate.tsx', 'utf8'), 'DiagnosticSections', '/debug/DebugSystemContent')).toBe(true)
     expect(rendersSharedTabs(readFileSync('src/components/playground/DebugToolsCandidate.tsx', 'utf8'), 'DebugCapabilitiesContent', '/debug/DebugCapabilitiesContent')).toBe(true)

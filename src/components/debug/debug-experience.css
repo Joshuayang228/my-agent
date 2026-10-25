@@ -667,3 +667,6 @@
 
 .debug-tools-toolbar label { white-space:nowrap; }
 .debug-tools-row [data-technical-name="true"] { font-family:var(--font-mono); }
+
+.debug-schedule-notice { display:block; font-size:var(--type-caption); line-height:var(--line-height-caption); margin-top:4px; }
+.debug-schedule-workbench > .debug-prompt-provenance pre { font-family:var(--font-mono); font-size:var(--type-meta); line-height:var(--line-height-meta); white-space:pre-wrap; overflow-wrap:anywhere; }

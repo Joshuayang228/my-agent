@@ -3,6 +3,7 @@ import initSqlJs, { type Database, type SqlJsStatic } from 'sql.js'
 import { queryCompanionEvidence } from '../../electron/main/debug/companion-evidence'
 import type { DebugEvidenceScope } from '../../src/shared/types'
 import { parseWorldJson } from '../../electron/main/companion/life/world-codec'
+import { projectScheduleSlots } from '../../src/components/debug/schedule-projection'
 
 let SQL: SqlJsStatic
 let db: Database
@@ -16,6 +17,18 @@ function events() {
 }
 
 describe('Debug 专用只读证据', () => {
+  it('真实日剧本查询可投影为独立计划时段，读取与排序不回写数据库', () => {
+    database().run('CREATE TABLE companion_day_scripts (id TEXT, role_id TEXT, date TEXT, payload_json TEXT, created_at INTEGER)')
+    db.run('INSERT INTO companion_day_scripts VALUES (?, ?, ?, ?, ?)', ['day', 'lin', '2026-10-25', JSON.stringify({ slots: [{ hour: 14, minute: 30, activity: '阅读', location: '书房' }, { hour: 9, minute: 15, activity: '整理' }] }), 1])
+    const before = db.export()
+    const result = queryCompanionEvidence({ view: 'schedule', roleId: 'lin', date: '2026-10-25' }, db, scope)
+    const projected = projectScheduleSlots(result.records)
+    expect(projected.issues).toEqual([])
+    expect(projected.slots.map(slot => [slot.time, slot.activity, slot.index])).toEqual([['09:15', '整理', 1], ['14:30', '阅读', 0]])
+    expect(projected.slots[0].record.source).toBe('companion_day_scripts')
+    expect(projected.slots[0].record.links).toEqual([])
+    expect(db.export()).toEqual(before)
+  })
   it('成长表已存在但未覆盖时仍显示真实 Pack 默认，不把空表当空人格', () => {
     database().run('CREATE TABLE companion_mutable (role_id TEXT, body TEXT, version INTEGER, updated_at INTEGER)')
     const before = db.export()
