@@ -86,6 +86,14 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
           expect(await home.locator('[data-record-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-record-id')).sort())).toEqual(homeRecords.map(record => record.id).sort())
           if (!homeRecords.length) await expect(home).toContainText('不推断默认住所或世界状态')
         }
+        if (entry.id === 'proactive') {
+          const proactive = panel.getByTestId('debug-evidence-proactive')
+          await expect(proactive).toContainText('尚无独立投递记录源')
+          await expect(proactive.locator('input, select, [data-record-id]')).toHaveCount(0)
+          await proactive.getByText('来源与边界', { exact: true }).click()
+          await expect(proactive.locator('pre')).toContainText('"state": "unsupported"')
+          await expect(proactive).not.toContainText('0 条')
+        }
         if (entry.id === 'relations') {
           const contacts = panel.getByTestId('debug-evidence-relations')
           expect(await contacts.locator('[data-record-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-record-id')).sort())).toEqual(relationRecords.map(record => record.id).sort())

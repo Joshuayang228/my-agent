@@ -30,6 +30,10 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('正式主动消息与候选共用能力边界和失败阅读', () => {
+    for (const [file, suffix] of [['src/components/debug/CompanionEvidencePanel.tsx', './ProactiveEvidenceContent'], ['src/components/playground/DebugProactiveCandidate.tsx', '/debug/ProactiveEvidenceContent']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'ProactiveEvidenceContent', suffix), file).toBe(true)
+    expect(UI_COMPONENT_REGISTRY['developer.proactive-evidence'].status).toBe('adopted')
+  })
   it('正式通讯录与候选共用关系方向和共同事件阅读', () => {
     for (const [file, suffix] of [['src/components/debug/RelationsEvidenceContent.tsx', './RelationsReading'], ['src/components/playground/DebugRelationsCandidate.tsx', '/debug/RelationsReading']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'RelationsReading', suffix), file).toBe(true)
     expect(UI_COMPONENT_REGISTRY['developer.relations-reading'].status).toBe('adopted')
