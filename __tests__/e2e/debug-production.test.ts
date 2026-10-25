@@ -36,6 +36,7 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
     const roleId = scope.activeRoleId ?? scope.roles[0].id
     const characterRecord = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'character', roleId }), roleId)).records[0]
     expect(characterRecord).toBeDefined()
+    const homeRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'residence', roleId }), roleId)).records
     for (const view of DEBUG_EVIDENCE_VIEWS.filter(view => view !== 'context')) {
       const result = await page.evaluate(({ view, roleId }) => window.electronAPI.debug.companionEvidenceQuery({ view, roleId, date: view === 'schedule' ? new Date().toLocaleDateString('sv-SE') : undefined }), { view, roleId })
       expect(result.view).toBe(view)
@@ -74,6 +75,12 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
           await detail.getByText('来源与原始记录', { exact: true }).click()
           for (const name of evidence.roleSources) await expect(detail.getByRole('button', { name: `查看注册定义 · ${name}`, exact: true })).toBeVisible()
           await expect(detail.getByRole('alert')).toHaveCount(0)
+        }
+        if (entry.id === 'residence') {
+          const home = panel.getByTestId('debug-evidence-residence')
+          await expect(home.locator('.debug-home-range')).toHaveText(`${homeRecords.length} 项已读 · 总数未知`)
+          expect(await home.locator('[data-record-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-record-id')).sort())).toEqual(homeRecords.map(record => record.id).sort())
+          if (!homeRecords.length) await expect(home).toContainText('不推断默认住所或世界状态')
         }
         expect(await panel.evaluate(node => node.scrollWidth <= node.clientWidth), entry.id).toBe(true)
         await page.screenshot({ path: info.outputPath(`${entry.id}-${theme}.png`) })
