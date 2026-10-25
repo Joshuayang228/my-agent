@@ -16,17 +16,9 @@ export const DEBUG_PROFILE_SOURCES: readonly DebugEvidenceRecord[] = [
   source('demo-feedback-yu', 'yu', 'feedback', '【予反馈样张】讨论提纲时先确认读者是谁。', 43),
 ]
 
-export const PROFILE_SECTIONS = [
-  { id: 'identity', label: '身份', categories: ['identity', 'fact'] },
-  { id: 'workflow', label: '协作方式', categories: ['workflow', 'feedback'] },
-  { id: 'voice', label: '表达偏好', categories: ['voice', 'preference'] },
-] as const
+export { profileSourceScope } from '../debug/ProfileReading'
 
 export function profileSourcesForRole(records: readonly DebugEvidenceRecord[], roleId: string): DebugEvidenceRecord[] {
   return records.filter(record => record.kind !== 'feedback' || record.roleId === roleId)
     .sort((a, b) => (b.time ?? 0) - (a.time ?? 0) || b.id.localeCompare(a.id))
-}
-
-export function profileSourceScope(record: DebugEvidenceRecord): string {
-  return record.kind === 'feedback' ? `当前人物反馈 · ${record.roleId}` : `全局查询 · 保存桶 ${record.roleId || '共享'}`
 }

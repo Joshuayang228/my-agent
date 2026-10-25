@@ -44,6 +44,7 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
     const wardrobeRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'wardrobe', roleId }), roleId)).records
     const cultureRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'items', roleId }), roleId)).records
     const linkRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'links', roleId }), roleId)).records
+    const profileRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'profile', roleId }), roleId)).records
     for (const view of DEBUG_EVIDENCE_VIEWS.filter(view => view !== 'context')) {
       const result = await page.evaluate(({ view, roleId }) => window.electronAPI.debug.companionEvidenceQuery({ view, roleId, date: view === 'schedule' ? new Date().toLocaleDateString('sv-SE') : undefined }), { view, roleId })
       expect(result.view).toBe(view)
@@ -105,6 +106,16 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
             await detail.getByText('来源与原始记录', { exact: true }).click()
             await expect(detail.locator('pre')).toHaveText(JSON.stringify(linkRecords[0].data, null, 2))
           }
+        }
+        if (entry.id === 'profile') {
+          const profile = panel.getByTestId('debug-evidence-profile')
+          expect(await profile.locator('[data-record-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-record-id')).sort())).toEqual(profileRecords.map(record => record.id).sort())
+          if (!profileRecords.length) await expect(profile).toContainText('不代表用户没有相关资料')
+          else {
+            for (const name of ['身份', '协作方式', '表达偏好']) await expect(profile.getByRole('heading', { name, exact: true })).toBeVisible()
+          }
+          await profile.getByText('查询范围与其他入口', { exact: true }).click()
+          await expect(profile).toContainText(`当前页 ${profileRecords.length} 条已读来源`)
         }
         if (entry.id === 'wardrobe') {
           const wardrobe = panel.getByTestId('debug-evidence-wardrobe')

@@ -37,9 +37,3 @@ export function EvidenceSummary({ record, view, timezone }: { record: DebugEvide
   if (view === 'growth') return <span className="debug-production-summary"><strong>{record.source === 'companion_mutable' ? '当前成长覆盖' : record.source === 'companion_reflection_state' ? '反思记录' : record.source === 'Role Pack mutable.default' ? '成长默认定义' : '历史成长版本'}</strong><span>{body || '正文未记录'}</span></span>
   return <span className="debug-production-summary"><strong>{record.title}</strong><span className="debug-production-meta">{[payload.author, payload.artist, payload.director, payload.readingStatus, payload.watchStatus, payload.listeningStatus].filter(value => typeof value === 'string' && value).join(' · ')}</span></span>
 }
-
-export const PROFILE_GROUPS = [
-  { title: '身份', categories: ['identity', 'fact'] },
-  { title: '协作方式', categories: ['workflow', 'feedback'] },
-  { title: '表达偏好', categories: ['voice', 'preference'] },
-] as const

@@ -9,6 +9,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await panel.getByRole('navigation').getByRole('button', { name: '用户画像', exact: true }).click()
     const profile = panel.getByTestId('debug-evidence-profile')
     await expect(profile).toContainText('全局资料与当前人物的协作反馈')
+    expect(await profile.locator('.debug-profile-toolbar label').evaluate(node => { const range = document.createRange(); range.selectNodeContents(node.firstChild!); return range.getClientRects().length })).toBe(1)
     await expect(profile).toContainText('不是全量画像')
     await expect(profile.getByRole('heading', { name: '身份', exact: true })).toBeVisible()
     await expect(profile.getByRole('heading', { name: '协作方式', exact: true })).toBeVisible()
