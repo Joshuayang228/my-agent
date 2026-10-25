@@ -81,7 +81,7 @@ describe('UI component asset registry', () => {
     expect(UI_COMPONENT_REGISTRY['layout.contacts-candidate'].status).toBe('playground')
   })
   it('正式事项与候选绑定同一纯时间线阅读组件', () => {
-    for (const [file, suffix] of [['src/components/debug/RecentEvidenceContent.tsx', './EventTimelineReading'], ['src/components/playground/DebugEvidenceCandidate.tsx', '/debug/EventTimelineReading']]) {
+    for (const [file, suffix] of [['src/components/debug/LifeEventEvidenceContent.tsx', './EventTimelineReading'], ['src/components/playground/DebugEvidenceCandidate.tsx', '/debug/EventTimelineReading']]) {
       expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'EventTimelineReading', suffix), file).toBe(true)
     }
     const asset = UI_COMPONENT_REGISTRY['developer.event-timeline-reading']
