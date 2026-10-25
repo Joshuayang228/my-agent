@@ -30,6 +30,14 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('正式足迹与候选共用旅行分组和单条阅读', () => {
+    for (const [file, suffix] of [['src/components/debug/FootprintsEvidenceContent.tsx', './FootprintsReading'], ['src/components/playground/DebugFootprintsCandidate.tsx', '/debug/FootprintsReading']]) {
+      expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'FootprintsReading', suffix), file).toBe(true)
+    }
+    const asset = UI_COMPONENT_REGISTRY['developer.footprints-reading']
+    expect(asset.status).toBe('adopted')
+    expect(readFileSync(asset.sourcePath, 'utf8')).not.toContain('electronAPI')
+  })
   it('正式家居与候选共用层级和单条阅读', () => {
     for (const [file, suffix] of [['src/components/debug/ResidenceEvidenceContent.tsx', './ResidenceReading'], ['src/components/playground/DebugResidenceCandidate.tsx', '/debug/ResidenceReading']]) {
       expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'ResidenceReading', suffix), file).toBe(true)

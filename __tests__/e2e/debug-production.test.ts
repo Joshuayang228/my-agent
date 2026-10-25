@@ -37,6 +37,7 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
     const characterRecord = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'character', roleId }), roleId)).records[0]
     expect(characterRecord).toBeDefined()
     const homeRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'residence', roleId }), roleId)).records
+    const tripRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'footprints', roleId }), roleId)).records
     for (const view of DEBUG_EVIDENCE_VIEWS.filter(view => view !== 'context')) {
       const result = await page.evaluate(({ view, roleId }) => window.electronAPI.debug.companionEvidenceQuery({ view, roleId, date: view === 'schedule' ? new Date().toLocaleDateString('sv-SE') : undefined }), { view, roleId })
       expect(result.view).toBe(view)
@@ -81,6 +82,12 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
           await expect(home.locator('.debug-home-range')).toHaveText(`${homeRecords.length} 项已读 · 总数未知`)
           expect(await home.locator('[data-record-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-record-id')).sort())).toEqual(homeRecords.map(record => record.id).sort())
           if (!homeRecords.length) await expect(home).toContainText('不推断默认住所或世界状态')
+        }
+        if (entry.id === 'footprints') {
+          const trips = panel.getByTestId('debug-evidence-footprints')
+          await expect(trips.locator('.debug-travel-range')).toHaveText(`${tripRecords.length} 项已读 · 总数未知`)
+          expect(await trips.locator('[data-record-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-record-id')).sort())).toEqual(tripRecords.map(record => record.id).sort())
+          if (!tripRecords.length) await expect(trips).toContainText('不推断人物从未到访')
         }
         expect(await panel.evaluate(node => node.scrollWidth <= node.clientWidth), entry.id).toBe(true)
         await page.screenshot({ path: info.outputPath(`${entry.id}-${theme}.png`) })
