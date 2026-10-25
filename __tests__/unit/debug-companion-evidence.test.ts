@@ -17,6 +17,11 @@ function events() {
 }
 
 describe('Debug 专用只读证据', () => {
+  it('人物档案的指定缺失 ID 不返回另一份当前人物定义', () => {
+    database()
+    expect(queryCompanionEvidence({ view: 'character', roleId: 'lin', recordId: 'missing' }, db, scope).records).toEqual([])
+    expect(queryCompanionEvidence({ view: 'character', roleId: 'lin', recordId: 'lin' }, db, scope).records[0]?.id).toBe('lin')
+  })
   it('真实日剧本查询可投影为独立计划时段，读取与排序不回写数据库', () => {
     database().run('CREATE TABLE companion_day_scripts (id TEXT, role_id TEXT, date TEXT, payload_json TEXT, created_at INTEGER)')
     db.run('INSERT INTO companion_day_scripts VALUES (?, ?, ?, ?, ?)', ['day', 'lin', '2026-10-25', JSON.stringify({ slots: [{ hour: 14, minute: 30, activity: '阅读', location: '书房' }, { hour: 9, minute: 15, activity: '整理' }] }), 1])

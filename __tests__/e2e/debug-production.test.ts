@@ -34,25 +34,28 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
     expect(scope.ready).toBe(true)
     expect(scope.roles.length).toBeGreaterThan(0)
     const roleId = scope.activeRoleId ?? scope.roles[0].id
+    const characterRecord = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'character', roleId }), roleId)).records[0]
+    expect(characterRecord).toBeDefined()
     for (const view of DEBUG_EVIDENCE_VIEWS.filter(view => view !== 'context')) {
       const result = await page.evaluate(({ view, roleId }) => window.electronAPI.debug.companionEvidenceQuery({ view, roleId, date: view === 'schedule' ? new Date().toLocaleDateString('sv-SE') : undefined }), { view, roleId })
       expect(result.view).toBe(view)
       expect(result.roleId).toBe(roleId)
       expect(result.state).toBe(view === 'proactive' ? 'unsupported' : 'ready')
     }
-    const evidence = await page.evaluate(async () => {
+    const evidence = await page.evaluate(async roleId => {
       const debug = window.electronAPI.debug
       const [assets, tools, system, traces, logs, absent, usage, skill, persona] = await Promise.all([
         debug.modelContextAssets(), debug.tools(), debug.systemInfo(), debug.traces(), debug.llmLogsQuery({ limit: 1 }),
         debug.llmLogGet('missing-debug-call'), debug.assetUsageQuery({ limit: 1 }), debug.skillEvalReports(), debug.personaEvalReports(),
       ])
-      return { assetCount: assets.length, toolCount: tools.length, electron: system.electron, spans: traces.spans.length, logCount: logs.total, absent, usageCount: usage.total, skills: Array.isArray(skill.reports), personas: Array.isArray(persona.reports) }
-    })
+      return { assetCount: assets.length, toolCount: tools.length, electron: system.electron, spans: traces.spans.length, logCount: logs.total, absent, usageCount: usage.total, skills: Array.isArray(skill.reports), personas: Array.isArray(persona.reports), roleSources: assets.filter(asset => asset.roleIds?.includes(roleId) && ['companion-manifest', 'companion-profile', 'companion-world'].includes(asset.assetType)).map(asset => asset.name) }
+    }, roleId)
     expect(evidence.assetCount).toBeGreaterThan(0)
     expect(evidence.toolCount).toBeGreaterThan(0)
     expect(evidence.electron).toBeTruthy()
     expect(evidence.absent).toBeNull()
     expect(evidence.skills && evidence.personas).toBe(true)
+    expect(evidence.roleSources.length).toBeGreaterThan(0)
     await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
     const panel = page.getByTestId('dev-panel')
     for (const [theme, width] of [['porcelain-blue', 1096], ['yao-stone', 600]] as const) {
@@ -63,6 +66,15 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
         await expect(panel.getByRole('heading', { name: entry.label, exact: true, level: 1 })).toBeVisible()
         await expect(panel.getByText(/正在读取/)).toHaveCount(0)
         await expect(panel.getByText(/读取失败|此页面需要桌面应用|需要 Electron 环境/)).toHaveCount(0)
+        if (entry.id === 'character') {
+          const character = panel.getByTestId('debug-evidence-character')
+          await expect(character.locator('.debug-character-summary .debug-character-body')).toHaveText(characterRecord.body.length > 160 ? `${characterRecord.body.slice(0, 160)}…` : characterRecord.body || '简介未提供')
+          await character.getByRole('button', { name: /完整资料/ }).click()
+          const detail = character.getByRole('article', { name: '领域证据详情' })
+          await detail.getByText('来源与原始记录', { exact: true }).click()
+          for (const name of evidence.roleSources) await expect(detail.getByRole('button', { name: `查看注册定义 · ${name}`, exact: true })).toBeVisible()
+          await expect(detail.getByRole('alert')).toHaveCount(0)
+        }
         expect(await panel.evaluate(node => node.scrollWidth <= node.clientWidth), entry.id).toBe(true)
         await page.screenshot({ path: info.outputPath(`${entry.id}-${theme}.png`) })
       }

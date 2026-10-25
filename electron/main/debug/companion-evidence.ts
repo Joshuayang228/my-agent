@@ -132,7 +132,11 @@ export function queryCompanionEvidence(input: unknown, db: Database | null = get
   } catch { result.issues.push(`记录 ${String(row.id ?? row.role_id ?? '未知').slice(0, 80)} 格式损坏或超限`) } } }
   if (['character', 'relations'].includes(query.view)) {
     result.source = 'Role Pack / Universe relations'
-    if (query.view === 'character') append([{ id: pack.id, role_id: pack.id, name: pack.name, text: pack.summary, profile: pack.profile ?? null, worldDefaults: pack.worldDefaults ?? null }], result.source)
+    if (query.view === 'character') {
+      // 背景：人物定义是单份 Role Pack，旧分支忽略引用 ID；意图：只返回实际匹配定义。
+      // 约束：缺失引用不得用当前人物替代，未指定 ID 的资料查询保持不变，不改变 Pack 内容。
+      if (!query.recordId || query.recordId === pack.id) append([{ id: pack.id, role_id: pack.id, name: pack.name, text: pack.summary, profile: pack.profile ?? null, worldDefaults: pack.worldDefaults ?? null }], result.source)
+    }
     else {
       const edges = loadRelations(scope.universeId).edges.filter(edge => edge.from === query.roleId || edge.to === query.roleId)
       const people = new Map<string, Row>()
