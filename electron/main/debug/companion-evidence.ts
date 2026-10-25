@@ -147,8 +147,12 @@ export function queryCompanionEvidence(input: unknown, db: Database | null = get
       }
       const selected = [...people.values()].filter(person => !query.recordId || person.id === query.recordId).slice(0, query.limit)
       if (hasTable(db, 'companion_events') && hasTable(db, 'companion_event_links')) {
-        const experiences = rows(db, "SELECT e.*, l.target_id AS person_id FROM companion_events e JOIN companion_event_links l ON e.id = l.event_id AND e.role_id = l.role_id WHERE e.role_id = ? AND e.status = 'published' AND ((l.target_type = 'cast' AND l.relation = 'coframe') OR (l.target_type = 'person' AND l.relation = 'participant')) ORDER BY e.scheduled_at DESC, e.id DESC LIMIT ?", [query.roleId, query.limit])
-        for (const person of selected) person.experiences = experiences.filter(event => event.person_id === person.id).flatMap(event => { try { return [safeValue({ id: event.id, time: event.scheduled_at, payload: json(event.payload_json) }, { truncated: false })] } catch { result.issues.push('一条共同经历格式损坏'); return [] } })
+        // 背景：一个人在同一事件可同时有同框和参与者关联，JOIN 曾返回重复经历并占用限量。
+        // 意图：读取前按事件与关联人物去重；约束：保留不同人物的关联和已发布 / 同角色过滤，不改写关联表。
+        const experiences = rows(db, "SELECT DISTINCT e.*, l.target_id AS person_id FROM companion_events e JOIN companion_event_links l ON e.id = l.event_id AND e.role_id = l.role_id WHERE e.role_id = ? AND e.status = 'published' AND ((l.target_type = 'cast' AND l.relation = 'coframe') OR (l.target_type = 'person' AND l.relation = 'participant')) ORDER BY e.scheduled_at DESC, e.id DESC LIMIT ?", [query.roleId, query.limit])
+        // 背景：共同事件曾先局部裁剪但丢弃其截断状态，最终联系人因此被误标为完整。
+        // 意图：解析后由下方 append 的唯一脱敏 / 裁剪边界处理全部资料；约束：JSON 长度和事件数量仍有界，未处理原文不得越过 append 进入 Renderer。
+        for (const person of selected) person.experiences = experiences.filter(event => event.person_id === person.id).flatMap(event => { try { return [{ id: event.id, time: event.scheduled_at, payload: json(event.payload_json) }] } catch { result.issues.push('一条共同经历格式损坏'); return [] } })
         result.boundary += ' 共同经历仅含显式共同在场关联与当前有界范围，不包含召唤聊天。忙闲未单独记录。'
       }
       append(selected, result.source)

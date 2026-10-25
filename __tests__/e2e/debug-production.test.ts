@@ -40,6 +40,7 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
     const tripRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'footprints', roleId }), roleId)).records
     const growthRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'growth', roleId }), roleId)).records
     const momentRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'moments', roleId }), roleId)).records
+    const relationRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'relations', roleId }), roleId)).records
     for (const view of DEBUG_EVIDENCE_VIEWS.filter(view => view !== 'context')) {
       const result = await page.evaluate(({ view, roleId }) => window.electronAPI.debug.companionEvidenceQuery({ view, roleId, date: view === 'schedule' ? new Date().toLocaleDateString('sv-SE') : undefined }), { view, roleId })
       expect(result.view).toBe(view)
@@ -84,6 +85,18 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
           await expect(home.locator('.debug-home-range')).toHaveText(`${homeRecords.length} 项已读 · 总数未知`)
           expect(await home.locator('[data-record-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-record-id')).sort())).toEqual(homeRecords.map(record => record.id).sort())
           if (!homeRecords.length) await expect(home).toContainText('不推断默认住所或世界状态')
+        }
+        if (entry.id === 'relations') {
+          const contacts = panel.getByTestId('debug-evidence-relations')
+          expect(await contacts.locator('[data-record-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-record-id')).sort())).toEqual(relationRecords.map(record => record.id).sort())
+          const first = relationRecords[0]
+          if (first) {
+            await contacts.locator('[data-record-id]').first().getByRole('button').click()
+            const detail = contacts.getByRole('article', { name: '领域证据详情' })
+            await expect(detail.locator('.debug-relations-definition')).toHaveCount(Array.isArray(first.data.relations) ? first.data.relations.length : 0)
+            await detail.getByText('来源与原始记录', { exact: true }).click()
+            await expect(detail.locator('pre')).toContainText(first.id)
+          } else await expect(contacts).toContainText('不推断没有关系')
         }
         if (entry.id === 'moments') {
           const moments = panel.getByTestId('debug-evidence-moments')
