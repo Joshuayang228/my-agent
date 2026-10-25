@@ -2,6 +2,8 @@
 
 ## Debug 的只读数据边界
 
+调用链沿 `tracer → debug:traces → preload → TracesEvidenceContent → TraceReading` 读取有界内存快照；`src/shared/debug-traces.ts` 统一已有 Span / links 和统计传输形状，handler、preload 与渲染声明共用该契约。树只依显式 parentId，links 是独立因果关联，统计不按当前可见树重算；持久化请求仍按 llm_request 的同 Span ID 进入现有 LLM 日志接口，不新增历史或执行通道。
+
 系统状态通过共享摘要 / 分区阅读显示 `systemInfo`，技能工具由 `tools` 与 `systemInfo` 的 Skill / MCP 投影分别组成能力记录。读取失败按来源反馈，不因系统聚合失败而清空工具注册表；调用链概览的错误只进入折叠概览，不覆盖其他系统来源。
 
 上下文由正式 `ContextInspectorPanel` 负责 `llmLogsQuery / llmLogGet` 的只读状态、选中归属和恢复，`SavedContextContent` 只呈现保存投影并供候选复用。Playground 数据和状态控制仍在候选容器，正式组件不导入 fixture。

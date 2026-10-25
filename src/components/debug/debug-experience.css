@@ -564,6 +564,7 @@
 .debug-trace-detail dd, .debug-trace-detail code, .debug-trace-detail pre { font-size:var(--prompt-meta-size); overflow-wrap:anywhere; white-space:pre-wrap; }
 .debug-trace-detail pre { margin-top:10px; }
 .debug-trace-source { border-top:1px solid var(--border-subtle); padding-top:12px; }
+.debug-trace-source pre { font-size:var(--prompt-meta-size); line-height:var(--line-height-body); white-space:pre-wrap; overflow-wrap:anywhere; margin-top:10px; }
 
 :is(.debug-candidate,.debug-workspace)[data-perspective="events"] { --text-secondary:color-mix(in srgb,var(--text-primary) 78%,var(--bg-primary)); --text-muted:var(--text-secondary); }
 :is(.debug-candidate,.debug-workspace)[data-perspective="events"] .debug-candidate-nav-groups button,

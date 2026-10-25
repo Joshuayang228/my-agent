@@ -1,6 +1,6 @@
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect } from 'react'
 import { FileText, CalendarDays, History, Activity, Heart, UserRound, MapPin, House, Footprints, Sprout, MessageCircle, Users, Shirt, BookOpen, Link, ScanText, Contact, Brain, Clock3, ListTree, Radio, Wrench, Server, FlaskConical, ShieldCheck, ArrowLeft, RotateCcw } from 'lucide-react'
-import type { AgentAssetUsageEvidence, DebugEvidenceScope } from '../shared/types'
+import type { AgentAssetUsageEvidence, DebugEvidenceScope, DebugTracesSnapshot } from '../shared/types'
 import { DEBUG_EVIDENCE_VIEWS, type DebugEvidenceView } from '../shared/debug-evidence'
 import { DEBUG_GROUPS, DEBUG_PERSPECTIVES, type DebugPage } from '../shared/debug-navigation'
 import { RegisteredAssetWorkbench } from './debug/RegisteredAssetWorkbench'
@@ -12,50 +12,18 @@ import { LLMCallsPanel } from './debug/LLMCallsPanel'
 import { PersonaEvalPanel } from './debug/PersonaEvalPanel'
 import { SkillEvalPanel } from './debug/SkillEvalPanel'
 import { ActionButton } from './foundation/ActionButton'
-import { ErrorState } from './foundation/ErrorState'
+import { TracesEvidenceContent } from './debug/TracesEvidenceContent'
 import { PageHeader } from './layout/PageHeader'
 import { EmptyState } from './foundation/EmptyState'
 import { DebugOverview, buildDebugOverviewSnapshot } from './debug/DebugOverview'
 import './debug/debug-workspace.css'
 import './debug/debug-experience.css'
 
-type RequestRuntimeView = 'llm' | 'traces' | 'events'
+type RequestRuntimeView = 'llm' | 'events'
 export const DEBUG_TABS = DEBUG_PERSPECTIVES
 const ICONS: Record<DebugPage, typeof FileText> = { assets: FileText, schedule: CalendarDays, recent: History, activity: Activity, now: Heart, character: UserRound, location: MapPin, residence: House, footprints: Footprints, growth: Sprout, moments: MessageCircle, relations: Users, proactive: MessageCircle, wardrobe: Shirt, items: BookOpen, links: Link, context: ScanText, profile: Contact, memories: Brain, runs: Clock3, traces: ListTree, events: Radio, tools: Wrench, system: Server, quality: FlaskConical, persona: ShieldCheck }
-interface TraceSpanInfo {
-  id: string
-  name: string
-  type: string
-  caller: string
-  parentId?: string
-  startTime: number
-  endTime?: number
-  duration?: number
-  status: string
-  attributes: Record<string, unknown>
-  error?: string
-}
-
 type SystemInfo = DebugSystemSnapshot
 type DebugToolInfo = DebugToolDefinition
-
-interface CallerStat {
-  count: number
-  totalMs: number
-  avgMs: number
-  totalInputTokens: number
-  totalOutputTokens: number
-}
-
-interface TracesPayload {
-  spans: TraceSpanInfo[]
-  callerStats: Record<string, CallerStat>
-  tokenLanes?: {
-    foreground: { inputTokens: number; outputTokens: number }
-    background: { inputTokens: number; outputTokens: number }
-  }
-  dailyTokenUsage?: number
-}
 
 interface DevPanelProps {
   onClose: () => void
@@ -77,10 +45,11 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
   const [toolsError, setToolsError] = useState('')
   const [systemLoading, setSystemLoading] = useState(false)
   const [toolsLoading, setToolsLoading] = useState(false)
-  const [traces, setTraces] = useState<TracesPayload | null>(null)
+  const [traces, setTraces] = useState<DebugTracesSnapshot | null>(null)
   const [overviewError, setOverviewError] = useState('')
   const [overviewLoading, setOverviewLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [tracesError, setTracesError] = useState('')
+  const [tracesLoading, setTracesLoading] = useState(false)
   const [scopeError, setScopeError] = useState('')
   const [assetKey, setAssetKey] = useState('')
   const [assetTotal, setAssetTotal] = useState<number | null>(null)
@@ -96,7 +65,6 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
   }, [revision])
   useEffect(() => {
     let current = true
-    setError('')
     if (!window.electronAPI?.debug) return
     if (page === 'system' || page === 'tools') {
       setSystemLoading(true)
@@ -108,9 +76,13 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
     }
     if (page === 'system') {
       setOverviewLoading(true)
-      window.electronAPI.debug.traces().then(data => { if (current) { setTraces({ ...data, callerStats: data.callerStats as Record<string, CallerStat> }); setOverviewError('') } }).catch(() => { if (current) setOverviewError('调用链概览读取失败；其他系统来源仍可阅读。') }).finally(() => { if (current) setOverviewLoading(false) })
+      window.electronAPI.debug.traces().then(data => { if (current) { setTraces(data); setOverviewError('') } }).catch(() => { if (current) setOverviewError('调用链概览读取失败；其他系统来源仍可阅读。') }).finally(() => { if (current) setOverviewLoading(false) })
     }
-    if (page === 'traces') window.electronAPI.debug.traces().then(data => { if (current) setTraces({ spans: data.spans, callerStats: data.callerStats as Record<string, CallerStat>, tokenLanes: data.tokenLanes, dailyTokenUsage: data.dailyTokenUsage }) }).catch(() => { if (current) setError('调用链读取失败，保留上次成功证据') })
+    if (page === 'traces') {
+      setTracesLoading(true); setTracesError('')
+      window.electronAPI.debug.traces().then(data => { if (current) setTraces(data) }).catch(() => { if (current) setTracesError('调用链读取失败；未读取的 Span 数量未知。') }).finally(() => { if (current) setTracesLoading(false) })
+    }
+
     return () => { current = false }
   }, [page, revision])
   const navigate = (next: DebugPage) => { setPage(next); setAssetKey(''); setCallId(''); setSpanId(''); setEvidenceTarget(null) }
@@ -126,11 +98,12 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
       <nav className="debug-candidate-nav" aria-label="调试分区"><div className="debug-candidate-brand"><Activity size={20} /><strong>Debug</strong><span>诊断工作区</span></div><div className="debug-candidate-nav-groups">{DEBUG_GROUPS.map(group => <section key={group} aria-label={`${group}分区`}><p className="debug-candidate-nav-label">{group}</p>{DEBUG_PERSPECTIVES.filter(item => item.group === group).map(item => { const Icon = ICONS[item.id]; return <ActionButton key={item.id} variant="plain" aria-current={page === item.id ? 'page' : undefined} onClick={() => navigate(item.id)}><Icon size={14} />{item.label}</ActionButton> })}</section>)}</div><div className="debug-candidate-nav-footer"><ShieldCheck size={14} /><span>生产资产只读<br />受控诊断单独确认</span></div></nav>
       <main className={`debug-candidate-main ${page === 'assets' ? 'debug-candidate-main-prompt' : ''}`}>
         <PageHeader title={entry.label} description={page === 'assets' && assetTotal !== null ? `${assetTotal} 项生产资产` : ''} />
-        {scopeError && (domain || page === 'assets') && <p role="alert" className="debug-prompt-state">{scopeError}</p>}{error && <ErrorState title="诊断读取异常" description={error} />}
+        {scopeError && (domain || page === 'assets') && <p role="alert" className="debug-prompt-state">{scopeError}</p>}
         {page === 'assets' && <RegisteredAssetWorkbench scope={scope} revision={revision} focusKey={assetKey} onUsage={openUsage} onTotal={setAssetTotal} />}
         {domain && <>{roleId ? <CompanionEvidencePanel key={`${page}:${roleId}:${evidenceTarget?.id ?? ''}`} scope={scope} onRoleChange={setRoleId} onOpenTraces={() => navigate('traces')} onAsset={key => { navigate('assets'); setAssetKey(key) }} targetId={evidenceTarget?.id} onEvidence={(view, id) => { navigate(view); setEvidenceTarget(id ? { view, id } : null) }} view={page as DebugEvidenceView} roleId={roleId} revision={revision} /> : <EmptyState title="尚未取得人物范围" description="未确定人物时不生成默认状态。" />}</>}
         {page === 'context' && <ContextInspectorPanel revision={revision} onRecord={id => { navigate('runs'); setCallId(id) }} />}
-        {['runs', 'traces', 'events'].includes(page) && <RequestRuntimePanel view={page === 'runs' ? 'llm' : page as RequestRuntimeView} traces={traces} events={eventLog} focusedLLMCallId={callId} focusedTraceSpanId={spanId} revision={revision} onAsset={key => { navigate('assets'); setAssetKey(key) }} />}
+        {page === 'traces' && <TracesEvidenceContent snapshot={traces} loading={tracesLoading} error={tracesError} focusId={spanId} onRetry={() => setRevision(value => value + 1)} onRecord={id => { navigate('runs'); setCallId(id) }} onAsset={key => { navigate('assets'); setAssetKey(key) }} />}
+        {['runs', 'events'].includes(page) && <RequestRuntimePanel view={page === 'runs' ? 'llm' : 'events'} events={eventLog} focusedLLMCallId={callId} revision={revision} onAsset={key => { navigate('assets'); setAssetKey(key) }} />}
         {(page === 'system' || page === 'tools') && systemError && <p className="debug-system-state" role="alert">{systemError}</p>}
         {page === 'system' && <><DebugSystemContent info={systemInfo} />{systemLoading && <p role="status">正在读取系统快照…</p>}<details className="debug-system-boundary"><summary>运行概览与其他证据入口</summary><DebugOverview snapshot={buildDebugOverviewSnapshot({ system: systemInfo ?? undefined, traces: traces ?? undefined, world: scope?.activeRoleId ? { role: { name: scope.roles.find(role => role.id === scope.activeRoleId)?.name ?? scope.activeRoleId } } : undefined, eventCount: eventLog.length, unavailable: [...(!systemInfo ? ['system' as const] : []), ...(!traces ? ['traces' as const] : []), ...(!scope?.activeRoleId ? ['world' as const] : [])] })} loading={systemLoading || overviewLoading} error={overviewError} onOpen={tab => navigate(({ prompt: 'assets', 'request-runtime': 'runs', world: 'now', system: 'system' } as const)[tab])} /></details></>}
         {page === 'tools' && <section className="debug-tools-workbench" data-testid="debug-evidence-tools">
@@ -145,168 +118,20 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
     </div>
   </div>
 }
-function StatCard({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <div data-stat-category={color} className="theme-card rounded-lg border p-3 text-center" style={{ color: 'var(--text-primary)', background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
-      <div className="text-lg font-bold">{value}</div>
-      <div className="text-[10px] opacity-70">{label}</div>
-    </div>
-  )
-}
-
 /** 背景：三种观察粒度已有各自侧栏入口；意图：保留真实面板而去掉重复导航。
  * 约束：关联调用与 Span 标识继续传递，刷新由统一分区控制器触发。
  */
-function RequestRuntimePanel({ view, traces, events, focusedLLMCallId, focusedTraceSpanId, onAsset, revision }: {
+function RequestRuntimePanel({ view, events, focusedLLMCallId, onAsset, revision }: {
   view: RequestRuntimeView
-  traces: TracesPayload | null
   events: Array<{ time: number; type: string; detail: string }>
   focusedLLMCallId: string
-  focusedTraceSpanId: string
   onAsset: (key: string) => void
   revision: number
 }) {
   return <div className="debug-runtime-workbench space-y-4" data-testid="request-runtime-panel">
     {view === 'llm' && <LLMCallsPanel showHeading={false} focusId={focusedLLMCallId} revision={revision} onAsset={onAsset} />}
-    {view === 'traces' && <TracesTab data={traces} focusId={focusedTraceSpanId} />}
     {view === 'events' && <EventsTab events={events} />}
   </div>
-}
-
-function TracesTab({ data, focusId }: { data: TracesPayload | null; focusId?: string }) {
-  useEffect(() => {
-    if (!focusId) return
-    const timer = window.setTimeout(() => {
-      const target = Array.from(document.querySelectorAll<HTMLElement>('[data-trace-span-id]'))
-        .find((element) => element.dataset.traceSpanId === focusId)
-      target?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-    }, 0)
-    return () => window.clearTimeout(timer)
-  }, [data, focusId])
-
-  if (!data) {
-    return <EmptyState title="尚未读取调用链" description="可刷新当前分区重试；未读取不等于没有 Span。" />
-  }
-
-  const spans = data.spans
-  const callers = Object.entries(data.callerStats || {})
-  const fg = data.tokenLanes?.foreground
-  const bg = data.tokenLanes?.background
-  const focusedExists = Boolean(focusId && spans.some((span) => span.id === focusId))
-
-  const byParent = new Map<string | undefined, TraceSpanInfo[]>()
-  for (const s of spans) {
-    const key = s.parentId
-    if (!byParent.has(key)) byParent.set(key, [])
-    byParent.get(key)!.push(s)
-  }
-
-  const roots = [
-    ...(byParent.get(undefined) ?? []),
-    ...spans.filter(s => s.parentId && !spans.some(p => p.id === s.parentId)),
-  ]
-  const seen = new Set<string>()
-  const uniqueRoots = roots.filter(r => {
-    if (seen.has(r.id)) return false
-    seen.add(r.id)
-    return true
-  })
-
-  function renderNode(span: TraceSpanInfo, depth: number): ReactNode {
-    const children = (byParent.get(span.id) ?? []).filter(c => c.id !== span.id)
-    return (
-      <div key={span.id}>
-        <div
-          data-trace-span-id={span.id}
-          className="flex items-center gap-2 rounded px-2 py-1 font-mono text-[11px]"
-          style={{
-            paddingLeft: 8 + depth * 14,
-            color: 'var(--text-secondary)',
-            background: span.id === focusId ? 'var(--accent-subtle)' : 'transparent',
-            outline: span.id === focusId ? '1px solid var(--accent)' : 'none',
-          }}
-        >
-          <span className={span.status === 'error' ? 'text-red-400' : span.status === 'running' ? 'text-amber-400' : 'text-emerald-400'}>
-            {span.status === 'ok' ? '●' : span.status === 'error' ? '✗' : '○'}
-          </span>
-          <span style={{ color: 'var(--text-primary)' }}>{span.name}</span>
-          <span style={{ color: 'var(--text-muted)' }}>{span.type}/{span.caller}</span>
-          <span style={{ color: 'var(--text-muted)' }}>
-            {span.duration !== undefined ? `${span.duration}ms` : '…'}
-          </span>
-          {span.error && <span className="truncate text-red-400">{span.error}</span>}
-          {(() => {
-            const raw = span.attributes.assetKeys
-            const keys = Array.isArray(raw) ? raw.filter((item): item is string => typeof item === 'string') : typeof raw === 'string' ? [raw] : []
-            return keys.length > 0 ? <span className="truncate" style={{ color: 'var(--accent-fg)' }}>{keys.join(' · ')}</span> : null
-          })()}
-          {typeof span.attributes.decision === 'string' && <span style={{ color: 'var(--text-muted)' }}>decision={span.attributes.decision}</span>}
-          {typeof span.attributes.sandboxMode === 'string' && <span style={{ color: 'var(--text-muted)' }}>sandbox={span.attributes.sandboxMode}</span>}
-        </div>
-        {children.map(c => renderNode(c, depth + 1))}
-      </div>
-    )
-  }
-
-  return (
-    <div className="debug-runtime-traces space-y-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <StatCard
-          label="今日 Token"
-          value={String(data.dailyTokenUsage ?? 0)}
-          color="emerald"
-        />
-        <StatCard
-          label="前台 in/out"
-          value={fg ? `${fg.inputTokens}/${fg.outputTokens}` : '—'}
-          color="cyan"
-        />
-        <StatCard
-          label="后台 in/out"
-          value={bg ? `${bg.inputTokens}/${bg.outputTokens}` : '—'}
-          color="violet"
-        />
-      </div>
-
-      {callers.length > 0 && (
-        <div>
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-            Caller 统计
-          </div>
-          <div className="theme-card overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
-            {callers.map(([name, s], i) => (
-              <div
-                key={name}
-                className={`flex flex-wrap justify-between gap-2 px-3 py-1.5 font-mono text-[11px] ${i < callers.length - 1 ? 'border-b' : ''}`}
-                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-              >
-                <span style={{ color: 'var(--text-primary)' }}>{name}</span>
-                <span>
-                  n={s.count} · avg={Math.round(s.avgMs)}ms · tok {s.totalInputTokens}/{s.totalOutputTokens}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div>
-        <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-          Span 树（最近 {spans.length}）
-        </div>
-        {focusId && !focusedExists && (
-          <p className="mb-2 rounded border px-2 py-1.5 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
-            目标 Span 不在当前内存窗口中；关联证据仍保留，可按 Span ID 在持久化记录中排查：<span className="font-mono">{focusId}</span>
-          </p>
-        )}
-        {spans.length === 0 ? (
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>暂无 Span。发送消息后会出现调用链。</p>
-        ) : (
-          <div className="space-y-0.5">{uniqueRoots.map(r => renderNode(r, 0))}</div>
-        )}
-      </div>
-    </div>
-  )
 }
 
 function EventsTab({ events }: { events: Array<{ time: number; type: string; detail: string }> }) {

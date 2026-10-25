@@ -4,6 +4,7 @@
  * 遵循架构分层：ipc/ → agent/, tools/, storage/, memory/, mcp/
  */
 import { BrowserWindow, dialog, ipcMain } from 'electron'
+import type { DebugTracesSnapshot } from '../../../src/shared/types'
 import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { ToolRegistry } from '../tools/registry'
@@ -139,7 +140,7 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     return buildDebugSystemInfo(toolRegistry)
   })
 
-  ipcMain.handle('debug:traces', () => {
+  ipcMain.handle('debug:traces', (): DebugTracesSnapshot => {
     const lanes = getTokenLaneStats()
     return {
       spans: getRecentSpans(100),

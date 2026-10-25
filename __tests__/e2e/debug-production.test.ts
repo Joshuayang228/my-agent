@@ -46,6 +46,7 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
     const linkRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'links', roleId }), roleId)).records
     const profileRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'profile', roleId }), roleId)).records
     const memoryRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'memories', roleId }), roleId)).records
+    const traceSnapshot = await page.evaluate(() => window.electronAPI.debug.traces())
     for (const view of DEBUG_EVIDENCE_VIEWS.filter(view => view !== 'context')) {
       const result = await page.evaluate(({ view, roleId }) => window.electronAPI.debug.companionEvidenceQuery({ view, roleId, date: view === 'schedule' ? new Date().toLocaleDateString('sv-SE') : undefined }), { view, roleId })
       expect(result.view).toBe(view)
@@ -125,6 +126,15 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
           if (!memoryRecords.length) await expect(memory).toContainText('不代表系统没有长期记忆')
           await memory.getByText('查询边界与关联入口', { exact: true }).click()
           await expect(memory).toContainText('画像查询的非反馈资料可跨桶读取')
+        }
+        if (entry.id === 'traces') {
+          const traces = panel.getByTestId('debug-evidence-traces')
+          expect(await traces.locator('[data-record-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-record-id')).sort())).toEqual([...new Set(traceSnapshot.spans.map(span => span.id))].sort())
+          if (!traceSnapshot.spans.length) await expect(traces).toContainText('不代表运行时没有调用')
+          await traces.getByText('统计与使用量', { exact: true }).click()
+          await expect(traces).toContainText('前台输入 / 输出')
+          await traces.getByText('来源与诊断边界', { exact: true }).click()
+          await expect(traces).toContainText('最近最多 100 条内存 Span 快照')
         }
         if (entry.id === 'wardrobe') {
           const wardrobe = panel.getByTestId('debug-evidence-wardrobe')

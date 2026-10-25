@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 import type {
+  DebugTracesSnapshot,
   DebugEvidenceQuery,
   DebugEvidenceResult,
   DebugEvidenceScope,
@@ -508,33 +509,7 @@ declare global {
         >
         evalRunCancel: (runId: string) => Promise<{ ok: boolean; error?: string }>
         onEvalRunEvent: (callback: (event: DebugEvalRunEvent) => void) => () => void
-        traces: () => Promise<{
-          spans: Array<{
-            id: string
-            name: string
-            type: string
-            caller: string
-            parentId?: string
-            startTime: number
-            endTime?: number
-            duration?: number
-            status: string
-            attributes: Record<string, unknown>
-            error?: string
-          }>
-          callerStats: Record<string, {
-            count: number
-            totalMs: number
-            avgMs: number
-            totalInputTokens: number
-            totalOutputTokens: number
-          }>
-          tokenLanes?: {
-            foreground: { inputTokens: number; outputTokens: number }
-            background: { inputTokens: number; outputTokens: number }
-          }
-          dailyTokenUsage: number
-        }>
+        traces: () => Promise<DebugTracesSnapshot>
         assetUsageQuery: (input?: AgentAssetUsageQuery) => Promise<AgentAssetUsageQueryResult>
         llmLogsQuery: (input?: LLMCallQuery) => Promise<LLMCallQueryResult>
         llmLogGet: (id: string) => Promise<LLMCallDetail | null>

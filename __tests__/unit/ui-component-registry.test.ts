@@ -30,6 +30,10 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('正式调用链与候选共用树及单 Span 详情', () => {
+    for (const [file, suffix] of [['src/components/debug/TracesEvidenceContent.tsx', './TraceReading'], ['src/components/playground/DebugTracesCandidate.tsx', '/debug/TraceReading']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'TraceReading', suffix), file).toBe(true)
+    expect(UI_COMPONENT_REGISTRY['developer.trace-reading'].status).toBe('adopted')
+  })
   it('正式用户记忆与候选共用分组和全文阅读', () => {
     for (const [file, suffix] of [['src/components/debug/MemoryEvidenceContent.tsx', './MemoryReading'], ['src/components/playground/DebugMemoryCandidate.tsx', '/debug/MemoryReading']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'MemoryReading', suffix), file).toBe(true)
     expect(UI_COMPONENT_REGISTRY['developer.memory-reading'].status).toBe('adopted')

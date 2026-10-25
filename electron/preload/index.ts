@@ -1,5 +1,6 @@
 import { ipcRenderer, contextBridge } from 'electron'
 import type {
+  DebugTracesSnapshot,
   DebugEvidenceQuery,
   DebugEvidenceResult,
   DebugEvidenceScope,
@@ -478,7 +479,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     companionEvidenceQuery: (query: DebugEvidenceQuery): Promise<DebugEvidenceResult> => ipcRenderer.invoke('debug:companion-evidence-query', query),
     tools: () => ipcRenderer.invoke('debug:tools'),
     systemInfo: () => ipcRenderer.invoke('debug:system-info'),
-    traces: () => ipcRenderer.invoke('debug:traces'),
+    traces: (): Promise<DebugTracesSnapshot> => ipcRenderer.invoke('debug:traces'),
     personaEvalReports: (): Promise<DebugPersonaEvalIndex> =>
       ipcRenderer.invoke('debug:persona-eval-reports'),
     personaEvalReportGet: (fileName: string): Promise<DebugPersonaEvalReport | null> =>
