@@ -160,6 +160,9 @@ export function queryCompanionEvidence(input: unknown, db: Database | null = get
   }
   if (query.view === 'now' || query.view === 'location') {
     result.source = 'companion_role_state'
+    // 背景：当前快照的稳定标识就是 role_id，显式缺失引用曾被忽略并返回另一条状态。
+    // 意图：在读取前核对人物和记录身份；约束：不跨人物补取，未指定 ID 的当前快照查询保持原行为。
+    if (query.recordId && query.recordId !== query.roleId) return result
     if (hasTable(db, result.source)) append(rows(db, 'SELECT * FROM companion_role_state WHERE role_id = ? LIMIT 1', [query.roleId]), result.source)
     return result
   }

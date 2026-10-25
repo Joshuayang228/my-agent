@@ -30,6 +30,14 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('正式此刻和候选绑定同一纯快照阅读组件', () => {
+    for (const [file, suffix] of [['src/components/debug/NowEvidenceContent.tsx', './NowStateReading'], ['src/components/playground/DebugNowCandidate.tsx', '/debug/NowStateReading']]) {
+      expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'NowStateReading', suffix), file).toBe(true)
+    }
+    const asset = UI_COMPONENT_REGISTRY['developer.now-state-reading']
+    expect(asset.status).toBe('adopted')
+    expect(readFileSync(asset.sourcePath, 'utf8')).not.toContain('electronAPI')
+  })
   it('正式日程与候选实际渲染共享时段阅读', () => {
     for (const [file, suffix] of [['src/components/debug/ScheduleEvidenceContent.tsx', './ScheduleReading'], ['src/components/playground/DebugScheduleCandidate.tsx', '/debug/ScheduleReading']]) {
       expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'ScheduleReading', suffix), file).toBe(true)

@@ -46,6 +46,14 @@ describe('Debug 专用只读证据', () => {
     expect(result.records[0].data.storedWorld).toEqual({})
     expect(db.export()).toEqual(before)
   })
+  it('指定当前快照只匹配同人物实际记录，缺失引用不返回替代快照', () => {
+    database().run('CREATE TABLE companion_role_state (role_id TEXT, world_json TEXT, updated_at INTEGER)')
+    db.run("INSERT INTO companion_role_state VALUES ('lin', '{}', 1)")
+    for (const view of ['now', 'location'] as const) {
+      expect(queryCompanionEvidence({ view, roleId: 'lin', recordId: 'missing' }, db, scope).records).toEqual([])
+      expect(queryCompanionEvidence({ view, roleId: 'lin', recordId: 'lin' }, db, scope).records[0]?.id).toBe('lin')
+    }
+  })
   it('显式目标在所属角色内查询，不被第一页范围隐藏或跨人物取出', () => {
     events()
     expect(queryCompanionEvidence({ view: 'recent', roleId: 'lin', recordId: 'a', limit: 1 }, db, scope).records.map(record => record.id)).toEqual(['a'])

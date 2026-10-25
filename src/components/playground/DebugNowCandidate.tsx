@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowUpRight } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { SelectField } from '../foundation/SelectField'
+import { NowStateReading } from '../debug/NowStateReading'
 import { DEBUG_ROLES } from './debug-experience-fixtures'
 import { DEBUG_EVIDENCE_PAGES, debugNowFields, debugNowTime, type DebugEvidencePageId } from './debug-evidence-fixtures'
 
@@ -46,19 +47,9 @@ export function DebugNowCandidate({ empty, previewState, snapshotState, initialS
     {!available ? <div className="debug-now-state" role={['error', 'unavailable'].includes(previewState) ? 'alert' : 'status'}><p>{previewState === 'unread' ? '状态尚未读取' : previewState === 'loading' ? '正在读取状态…' : previewState === 'unavailable' ? '状态接口不可用；需要桌面诊断连接。' : '状态读取失败'}</p>{previewState !== 'loading' && <ActionButton onClick={onRetry}>读取状态样张</ActionButton>}</div> : <>
       {previewState === 'refresh-error' && <div className="debug-now-state" role="alert"><p>刷新失败，保留上次快照；下方不是最新结果。</p><ActionButton onClick={onRetry}>重试读取样张</ActionButton></div>}
       {missing ? <p className="debug-now-state" role="status">引用状态未在该人物范围找到，未选择替代快照。</p> : state && entry ? <>
-        {state.storedWorldIssue && <p className="debug-now-state debug-now-warning" role="status">{state.storedWorldIssue}</p>}
-        {state.pausedAt !== null && <p className="debug-now-state debug-now-warning" role="status">生活推进已暂停 · {debugNowTime(state.pausedAt, state.timezone)}</p>}
-        <div className="debug-now-summary" data-record-id={entry.id}>
-          <dl><div><dt>当前活动</dt><dd className="debug-now-activity">{state.activity || '未记录'}</dd></div><div><dt>当前位置</dt><dd>{state.location || '未设定'}</dd></div></dl>
-          <p className="debug-now-meta">运行时解析快照 · {state.updatedAt ? `更新于 ${debugNowTime(state.updatedAt, state.timezone)}` : '更新时间未记录'} · {state.timezone}</p>
-          <ActionButton variant="plain" aria-label={`${entry.title} · 完整状态`} aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>完整状态</ActionButton>
-        </div>
-        {expanded && <article className="debug-now-detail" aria-label="领域证据详情">
-          <h3>诊断字段</h3><dl className="debug-candidate-facts">{debugNowFields(state).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
-          {state.catchupSummary && <section><h3>生活补叙</h3><p className="debug-now-body">{state.catchupSummary}</p></section>}
-          <h3>相关诊断</h3>{entry.relatedPages?.map(link => <ActionButton key={link.page} variant="plain" onClick={() => onPage(link.page)}>{link.label}<ArrowUpRight size={14} /></ActionButton>)}
-          <details className="debug-prompt-provenance"><summary>记录标识与原始样张</summary><code>companion_role_state · {entry.id}</code><pre>{JSON.stringify({ role, state }, null, 2)}</pre></details>
-        </article>}
+        <NowStateReading id={entry.id} title={entry.title} activity={state.activity} location={state.location} updated={debugNowTime(state.updatedAt, state.timezone)} timezone={state.timezone} warning={state.storedWorldIssue} pauseNotice={state.pausedAt !== null ? `生活推进已暂停 · ${debugNowTime(state.pausedAt, state.timezone)}` : undefined} fields={debugNowFields(state)} catchupSummary={state.catchupSummary} expanded={expanded} onToggle={() => setExpanded(!expanded)}
+          related={entry.relatedPages?.map(link => <ActionButton key={link.page} variant="plain" onClick={() => onPage(link.page)}>{link.label}<ArrowUpRight size={14} /></ActionButton>)}
+          source={<details className="debug-prompt-provenance"><summary>记录标识与原始样张</summary><code>companion_role_state · {entry.id}</code><pre>{JSON.stringify({ role, state }, null, 2)}</pre></details>} />
       </> : <p className="debug-now-state" role="status">该人物没有状态记录；未补造默认世界。</p>}
     </>}
   </section>
