@@ -30,6 +30,10 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('正式衣柜与候选共用分组和槽位阅读', () => {
+    for (const [file, suffix] of [['src/components/debug/WardrobeEvidenceContent.tsx', './WardrobeReading'], ['src/components/playground/DebugWardrobeCandidate.tsx', '/debug/WardrobeReading']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'WardrobeReading', suffix), file).toBe(true)
+    expect(UI_COMPONENT_REGISTRY['developer.wardrobe-reading'].status).toBe('adopted')
+  })
   it('正式主动消息与候选共用能力边界和失败阅读', () => {
     for (const [file, suffix] of [['src/components/debug/CompanionEvidencePanel.tsx', './ProactiveEvidenceContent'], ['src/components/playground/DebugProactiveCandidate.tsx', '/debug/ProactiveEvidenceContent']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'ProactiveEvidenceContent', suffix), file).toBe(true)
     expect(UI_COMPONENT_REGISTRY['developer.proactive-evidence'].status).toBe('adopted')

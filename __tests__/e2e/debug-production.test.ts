@@ -41,6 +41,7 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
     const growthRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'growth', roleId }), roleId)).records
     const momentRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'moments', roleId }), roleId)).records
     const relationRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'relations', roleId }), roleId)).records
+    const wardrobeRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'wardrobe', roleId }), roleId)).records
     for (const view of DEBUG_EVIDENCE_VIEWS.filter(view => view !== 'context')) {
       const result = await page.evaluate(({ view, roleId }) => window.electronAPI.debug.companionEvidenceQuery({ view, roleId, date: view === 'schedule' ? new Date().toLocaleDateString('sv-SE') : undefined }), { view, roleId })
       expect(result.view).toBe(view)
@@ -85,6 +86,11 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
           await expect(home.locator('.debug-home-range')).toHaveText(`${homeRecords.length} 项已读 · 总数未知`)
           expect(await home.locator('[data-record-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-record-id')).sort())).toEqual(homeRecords.map(record => record.id).sort())
           if (!homeRecords.length) await expect(home).toContainText('不推断默认住所或世界状态')
+        }
+        if (entry.id === 'wardrobe') {
+          const wardrobe = panel.getByTestId('debug-evidence-wardrobe')
+          expect(await wardrobe.locator('[data-record-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-record-id')).sort())).toEqual(wardrobeRecords.map(record => record.id).sort())
+          if (!wardrobeRecords.length) await expect(wardrobe).toContainText('不推断没有衣物或当前未穿着')
         }
         if (entry.id === 'proactive') {
           const proactive = panel.getByTestId('debug-evidence-proactive')
