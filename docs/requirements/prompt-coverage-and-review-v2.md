@@ -56,6 +56,15 @@
 
 ### 施工顺序与统一验收
 
+### 开工前核实的接口约束（只读核对）
+
+- 评论回复：`moments.ts#addMomentCommentForRole` 目前只写 `actorId=user`，`companion_moment_user_interactions` 没有父评论字段；`moment-user-interactions.ts#groupMomentUserInteractions` 统一展示为“我”，合并层只区分 cast / user。不能把主角回复直接塞进现有用户评论而不改协议，否则会冒充用户。正式施工需同步线程关联、作者类型、查询 / 展示及幂等，而非只加模型调用。
+- 后台配图：`image-generate.ts#resolveGeneratedImageTarget` 必须有真实 workdir / workspaceRoot / sessionId，且只在明确项目的 images 目录保存。后台生活没有这些上下文，不能伪造 ToolContext 或借用任意打开项目。需将图片协议 / 校验与受控领域保存职责分开，后台目标、授权和同人物回写单独验证；前台工具的原路径边界继续成立。
+- 视觉锚点：`RoleProfile.appearance` 已有 overall、hair、eyes、build、clothingStyle、distinguishingFeatures，现有 profile 格式化也读取这些字段。优先复用经用户确认的档案作为稳定视觉来源，新增的是图片场景组装与消费验证，不再维护平行的外貌正文。
+- 集中展示：`registered-asset-review.ts#section` 目前将所有 tool 类 Prompt 放工具组、companion-background 放生活组。新视觉 / 社交分组需由生产登记的稳定用途标识驱动，不能靠正文或中文名称匹配；只有修改显示顺序无法完成完整分域。
+
+### 施工步骤
+
 1. 生成逐功能覆盖基线，锁定缺失 Prompt 和缺消费链；每项都有可验证的完成条件。
 2. 完成注册契约、消费关系和防漏门禁，先让缺口能够被检查发现。
 3. 补齐公共文本行为、社交回复、记忆和生活生成；再补视觉策划 / 识图与主动表达，各项带真实接线和失败路径。
