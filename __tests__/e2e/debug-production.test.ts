@@ -5,6 +5,7 @@ import { test, expect, type ElectronApplication } from '@playwright/test'
 import { _electron as electron } from 'playwright'
 import { DEBUG_PERSPECTIVES } from '../../src/shared/debug-navigation'
 import { DEBUG_EVIDENCE_VIEWS } from '../../src/shared/debug-evidence'
+import { SPACING } from '../../src/shared/content-layout'
 
 /** 背景：浏览器契约替身不能证明正式 preload / IPC 可用。
  * 意图：用独立用户目录运行真实构建，读取所有现有 Debug 数据源并逐页操作。
@@ -89,7 +90,8 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
           await expect(row).toHaveCount(1); await row.click()
           const detail = assets.getByRole('article', { name: '资产详情' })
           await expect(detail.locator('[data-content-kind="prose"]')).toHaveText(productionPrompt!.content!)
-          await detail.getByText(/^来源与版本/).click()
+          await detail.getByText('来源', { exact: true }).click()
+          await detail.getByText('版本信息', { exact: true }).click()
           await expect(detail).toContainText(productionPrompt!.key)
           await expect(detail).toContainText(productionPrompt!.fingerprint)
           await expect(detail.locator('textarea, [contenteditable="true"]')).toHaveCount(0)
@@ -276,6 +278,66 @@ test('正式人格报告与真实审阅保存刷新清空', async ({}, info) => 
     if (app) await app.close()
     if (created) { if (path.dirname(file) !== reportDir || path.basename(file) !== name) throw new Error('拒绝清理非本次创建报告'); await unlink(file) }
     if (path.dirname(path.resolve(root)) !== path.resolve(os.tmpdir()) || !path.basename(root).startsWith('my-agent-persona-production-')) throw new Error('拒绝清理测试范围之外目录')
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+
+test('正式提示词审阅真实注册目录与共享间距', async ({}, info) => {
+  test.setTimeout(90_000)
+  const root = await mkdtemp(path.join(os.tmpdir(), 'my-agent-prompt-review-'))
+  let app: ElectronApplication | undefined
+  try {
+    app = await electron.launch({ args: [path.resolve('dist-electron/index.js'), `--user-data-dir=${root}`, '--no-sandbox'], env: { ...process.env, NODE_ENV: 'production', VITE_DEV_SERVER_URL: '', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' } })
+    expect(path.resolve(await app.evaluate(({ app }) => app.getPath('userData')))).toBe(path.resolve(root))
+    const page = await app.firstWindow()
+    await page.waitForLoadState('domcontentloaded')
+    await expect(page.locator('#startup-splash')).toBeHidden()
+    await page.evaluate(() => window.electronAPI.settings.set('developerMode', 'true'))
+    await page.reload()
+    await expect(page.getByTestId('settings-panel')).toBeVisible()
+    await page.getByTestId('settings-back').click()
+    const assets = await page.evaluate(() => window.electronAPI.debug.modelContextAssets())
+    const unique = [...new Map(assets.map(asset => [asset.key, asset])).values()]
+    const prompts = unique.filter(asset => asset.assetType === 'prompt')
+    expect(prompts.length).toBeGreaterThan(0)
+    const main = prompts.find(asset => asset.purpose === '主对话语义模块编译')!
+    expect(main).toBeDefined()
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
+    const workbench = page.getByTestId('registered-asset-workbench')
+    await expect(workbench.getByLabel('目录计数')).toHaveText(`提示词 ${prompts.length} 项`)
+    await workbench.getByRole('combobox', { name: '目录范围' }).selectOption('other')
+    await expect(workbench.getByLabel('目录计数')).toHaveText(`其他资产 ${unique.length - prompts.length} 项`)
+    await workbench.getByRole('combobox', { name: '目录范围' }).selectOption('prompts')
+    await workbench.getByRole('textbox').fill(main.key)
+    await workbench.locator('[data-asset-key]').filter({ hasText: main.name }).click()
+    const detail = workbench.getByRole('article', { name: '资产详情' })
+    await expect(detail.locator('.debug-candidate-body')).toHaveText(main.content ?? main.locales[main.locale].template!)
+    await detail.getByText('来源', { exact: true }).click()
+    const source = detail.locator(':scope > details').filter({ has: page.locator(':scope > summary', { hasText: /^来源$/ }) })
+    const gap = await source.evaluate(node => node.querySelector(':scope > details > summary')!.getBoundingClientRect().top - node.querySelector(':scope > dl')!.lastElementChild!.getBoundingClientRect().bottom)
+    expect(gap).toBeCloseTo(SPACING.compact, 0)
+    await detail.getByText('版本信息', { exact: true }).click()
+    await expect(detail.getByText(main.fingerprint, { exact: true })).toBeVisible()
+    await detail.getByText('查看实际调用', { exact: true }).click()
+    await expect(detail.getByText('当前范围没有保存的调用。', { exact: true })).toBeVisible()
+    for (const theme of ['porcelain-blue', 'yao-stone']) {
+      // 主题由 App 状态及表面色共同装配；仅改 DOM 属性会产生混色，需按真实启动入口重载。
+      await page.evaluate(theme => localStorage.setItem('theme', theme), theme)
+      await page.reload()
+      await expect(page.locator('#startup-splash')).toBeHidden()
+      if (await page.getByTestId('settings-panel').isVisible()) await page.getByTestId('settings-back').click()
+      await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
+      await workbench.getByRole('textbox').fill(main.key)
+      await workbench.locator('[data-asset-key]').filter({ hasText: main.name }).click()
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
+      await expect(detail.locator('.debug-candidate-body')).toHaveCSS('color', theme === 'porcelain-blue' ? 'rgb(24, 42, 51)' : 'rgb(241, 238, 232)')
+      await page.screenshot({ path: info.outputPath(`prompt-review-real-${theme}.png`) })
+    }
+    expect(await page.evaluate(() => window.electronAPI.debug.llmLogsQuery({ limit: 1 }))).toMatchObject({ total: 0 })
+  } finally {
+    await app?.close()
+    if (path.dirname(path.resolve(root)) !== path.resolve(os.tmpdir()) || !path.basename(root).startsWith('my-agent-prompt-review-')) throw new Error('拒绝清理测试范围之外目录')
     await rm(root, { recursive: true, force: true })
   }
 })

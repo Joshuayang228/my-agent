@@ -1,19 +1,13 @@
-import { useRef, useState, type ChangeEvent, type CSSProperties } from 'react'
+import { useRef, useState, type ChangeEvent } from 'react'
 import { ArrowLeft, ArrowUpRight, ChevronDown, ChevronRight, Copy, Search } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { TextField } from '../foundation/TextField'
 import { EmptyState } from '../foundation/EmptyState'
 import { SelectField } from '../foundation/SelectField'
-import { SPACING } from '../../shared/content-layout'
+import { reviewSpacingStyle } from '../debug/asset-review-layout'
 import { DEBUG_ROLES, type DebugRecordFixture } from './debug-experience-fixtures'
 import { filterReviewAssets, PROMPT_REVIEW_ASSETS, reviewBody, reviewGroup, reviewShape, uniqueReviewAssets, type ReviewScope } from './debug-prompt-review'
 import './debug-prompt-review.css'
-
-// 来源表与嵌套折叠项曾无间距；仅向候选根注入共享档位，避免局部像素值漂移或改变正式页默认布局。
-const reviewSpacingStyle = {
-  '--review-gap-item': `${SPACING.tight}px`,
-  '--review-gap-content': `${SPACING.compact}px`,
-} as CSSProperties
 
 export type PromptPreviewState = 'ready' | 'unread' | 'unavailable' | 'loading' | 'error' | 'refresh-error' | 'usage-error' | 'missing' | 'long'
 interface Props {

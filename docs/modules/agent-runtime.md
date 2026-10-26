@@ -1,10 +1,12 @@
 # Agent 运行时
 
-候选补充信息统一引用 Foundation 的 caption 行高与共享 SPACING：字段行距 tight（8px），字段表到嵌套版本入口 compact（12px）；正文继续使用 body 行高。此调整仅作用于 Playground 候选。
+## 已落地能力：提示词开发者审阅
 
-## Playground 候选：提示词开发者审阅
+正式 `DevPanel` → `RegisteredAssetWorkbench` 读取 `debug:model-context-assets`，默认按唯一 key 统计提示词定义，其他资产 / 全部资产仍可访问；搜索覆盖用途、正文、模板、变量和真实定义符号，人物筛选保留平台共用来源。按已登记 purpose / role / roleUses / assetType 将主对话、身份、成长、世界与生活前置，平台规则后置；未知用途不猜补，排序不影响注册、编译和注入。
 
-提示词管理器新增隔离审阅候选：当前目录范围按注册类型和唯一 key 计数，仅筛选时显示命中数 / 总数；支持用途 / 正文 / 变量 / 来源搜索、人物专属与平台共用范围、静态正文 / 模板 / 动态无固定正文区分。目录按主对话、身份、成长、世界与生活优先，平台规则后置；排序不影响生产编译或注入。详情仅呈现名称、复制与完整正文，变量、来源、实际调用分别按需访问；变量的含义、来源及明确标为非实际值的隔离示例用于理解，正式缺字段不猜补。取消笼统审阅区和独立形态筛选；动态无正文及失败仍直接说明。样张不连接模型、不读取真实目录、不写设置；正式 `RegisteredAssetWorkbench` 尚未回流，候选数量不代表生产数量。施工边界见 [提示词审阅施工合同](../requirements/debug-prompt-review-workbench-v1.md)。
+详情默认仅名称、复制与完整正文；动态无固定正文独立说明，不用 preview 回填。变量展示实际登记的名称、来源和更新时机，不编造解释或示例。来源、嵌套版本指纹、实际调用按需展开；调用仅展开后通过 assetUsageQuery 读取，迟到响应绑定 key，失败可重试，不推测未保存输入。首次目录失败不补零，刷新失败保留目录与展开，明确引用缺失不替代其他资产。
+
+正式与 Playground 共用 `prompt-review.css`、Foundation caption / body 行高和 SPACING：字段行距 tight（8px）、表格末行到版本入口 compact（12px）。Playground 的隔离示例与状态控制不进入正式数据链。施工边界见 [提示词审阅施工快照](../requirements/debug-prompt-review-workbench-v1.md)。
 
 ## 已落地能力：关键追踪历史只读查询
 

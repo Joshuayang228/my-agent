@@ -59,7 +59,6 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
   const [tracesLoading, setTracesLoading] = useState(false)
   const [scopeError, setScopeError] = useState('')
   const [assetKey, setAssetKey] = useState('')
-  const [assetTotal, setAssetTotal] = useState<number | null>(null)
   const [callId, setCallId] = useState('')
   const [spanId, setSpanId] = useState('')
   const [evidenceTarget, setEvidenceTarget] = useState<{ view: DebugEvidenceView; id: string } | null>(null)
@@ -118,10 +117,10 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
     <div className="debug-candidate-workspace">
       <nav className="debug-candidate-nav" aria-label="调试分区"><div className="debug-candidate-brand"><Activity size={20} /><strong>Debug</strong><span>诊断工作区</span></div><div className="debug-candidate-nav-groups">{DEBUG_GROUPS.map(group => <section key={group} aria-label={`${group}分区`}><p className="debug-candidate-nav-label">{group}</p>{DEBUG_PERSPECTIVES.filter(item => item.group === group).map(item => { const Icon = ICONS[item.id]; return <ActionButton key={item.id} variant="plain" aria-current={page === item.id ? 'page' : undefined} onClick={() => navigate(item.id)}><Icon size={14} />{item.label}</ActionButton> })}</section>)}</div><div className="debug-candidate-nav-footer"><ShieldCheck size={14} /><span>生产资产只读<br />受控诊断单独确认</span></div></nav>
       <main className={`debug-candidate-main ${page === 'assets' ? 'debug-candidate-main-prompt' : ''}`}>
-        <PageHeader title={entry.label} description={page === 'assets' && assetTotal !== null ? `${assetTotal} 项生产资产` : ''} />
+        <PageHeader title={entry.label} description="" />
         {savedOrigin && <ActionButton variant="plain" onClick={restoreSavedOrigin}>返回运行证据</ActionButton>}
         {scopeError && (domain || page === 'assets') && <p role="alert" className="debug-prompt-state">{scopeError}</p>}
-        {page === 'assets' && <RegisteredAssetWorkbench scope={scope} revision={revision} focusKey={assetKey} onUsage={openUsage} onTotal={setAssetTotal} />}
+        {page === 'assets' && <RegisteredAssetWorkbench scope={scope} revision={revision} focusKey={assetKey} onUsage={openUsage} />}
         {(page === 'activity' || page === 'proactive') && !roleId && <EmptyState title="尚未取得人物范围" description="未确定人物时不生成默认记录。" />}
         {page === 'activity' && <ActionButton variant="plain" onClick={() => { if (evidenceTarget) { setEvidenceTarget(null); setLifeView(false) } else setLifeView(value => !value) }}>{lifeView || evidenceTarget ? '查看运行行动' : '查看生活事件'}</ActionButton>}
         {page === 'activity' && !lifeView && !evidenceTarget && roleId && <SavedEvidencePanel view="activity" targetId={historyTarget} onClearTarget={() => setHistoryTarget(undefined)} onEvidence={openEvidence} roleId={roleId} scope={scope} onRoleChange={setRoleId} revision={revision} onCall={openSavedCall} />}

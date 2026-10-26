@@ -1,3 +1,4 @@
+import { REVIEW_SECTIONS } from '../debug/asset-review-layout'
 import type { ModelContextAssetType, PromptBehaviorMetadata } from '../../shared/types'
 import { DEBUG_ASSET_FIXTURES, type DebugAssetFixture } from './debug-asset-fixtures'
 
@@ -54,13 +55,6 @@ export const PROMPT_REVIEW_ASSETS: readonly ReviewAsset[] = [
   },
 ]
 
-const REVIEW_SECTIONS = {
-  conversation: { label: '主对话与表达', priority: 10 }, identity: { label: '人物身份', priority: 20 },
-  growth: { label: '成长与关系', priority: 30 }, world: { label: '世界与生活', priority: 40 },
-  memory: { label: '记忆', priority: 50 }, tools: { label: '工具与技能', priority: 60 },
-  evaluation: { label: '验收', priority: 70 }, model: { label: '模型配置', priority: 80 },
-  platform: { label: '平台规则与上下文', priority: 100 },
-} as const
 function reviewSection(asset: ReviewAsset): keyof typeof REVIEW_SECTIONS | undefined {
   if (asset.reviewSection) return asset.reviewSection
   if (asset.roles.length) return ['companion-world', 'companion-scene', 'companion-life'].includes(asset.assetType) ? 'world' : 'identity'

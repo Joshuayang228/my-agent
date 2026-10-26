@@ -217,18 +217,19 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 
     await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
     const panel = page.getByTestId('dev-panel')
     const nav = panel.getByRole('navigation', { name: '调试分区' })
-    await expect(panel.locator('.workspace-page-header')).toContainText('1 项生产资产')
-    await panel.getByRole('button', { name: /平台 \/ 行为/ }).click()
-    await panel.getByRole('button', { name: '模板 主对话', exact: true }).click()
+    await expect(panel.getByLabel('目录计数')).toHaveText('提示词 1 项')
+    await panel.getByRole('button', { name: /平台规则与上下文/ }).click()
+    await panel.getByRole('button', { name: '主对话 模板', exact: true }).click()
     await expect(panel.getByText('请先阅读用户材料。{{context}}', { exact: true })).toBeVisible()
     await expect(panel.getByText('fingerprint-proof', { exact: true })).toBeHidden()
-    await panel.getByText('变量说明 · 1', { exact: true }).click()
+    await panel.getByText('变量 · 1', { exact: true }).click()
     await expect(panel.getByText('{{context}}', { exact: true })).toBeVisible()
-    await panel.getByText('来源与版本 · 1', { exact: true }).click()
+    await panel.getByText('来源', { exact: true }).click()
+    await panel.getByText('版本信息', { exact: true }).click()
     await expect(panel.getByText('fingerprint-proof', { exact: true })).toBeVisible()
     if (width === 600) {
       await panel.getByRole('button', { name: '返回目录', exact: true }).click()
-      await expect(panel.getByRole('button', { name: '模板 主对话', exact: true })).toBeFocused()
+      await expect(panel.getByRole('button', { name: '主对话 模板', exact: true })).toBeFocused()
     }
     await nav.getByRole('button', { name: '今日日程', exact: true }).click()
     const scheduleSummary = panel.getByRole('button', { name: '09:15 · 阅读材料', exact: true })
@@ -911,3 +912,122 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await page.screenshot({ path: info.outputPath('prompt-review-order.png') })
   })
 }
+
+
+for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 600]) {
+  test(`正式提示词审阅回流与基础间距 ${theme} ${width}`, async ({ page, context }, info) => {
+    await page.setViewportSize({ width, height: 900 })
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await page.addInitScript(theme => localStorage.setItem('theme', theme), theme)
+    await page.goto('/')
+    await page.evaluate(() => {
+      const state = window as unknown as { __assetsFail: boolean; __usageFail: boolean; __usageCalls: string[] }
+      state.__assetsFail = false; state.__usageFail = false; state.__usageCalls = []
+      const base = { id: 'contract', category: 'system' as const, purpose: '', role: 'system', desc: '', source: 'contract.ts', sourcePath: 'contract.ts', definitions: ['contract.ts#buildPrompt'], version: '1', fingerprint: 'saved-fingerprint', fingerprintKind: 'content' as const, assetType: 'prompt' as const, ownership: 'builtin' as const, contentKind: 'template' as const, mode: 'dynamic' as const, locale: 'zh-CN', locales: {}, slots: [{ name: 'facts', source: 'registered-source', lifecycle: '每轮' }] }
+      const main = { ...base, key: 'test-main', name: '主要表达', purpose: '主对话语义模块编译', content: '先阅读用户材料。\n{{facts}}' }
+      const rows = [{ ...base, key: 'test-platform', name: '平台情境', preview: '预览不作为正文' }, { ...base, key: 'test-identity', name: '稳定身份', roleIds: ['lin'], roleUses: [{ roleId: 'lin', purpose: '身份' as const }], content: '身份原文' }, main, { ...base, key: 'test-tool', name: '读取工具', assetType: 'tool-schema' as const, contentKind: 'schema' as const, content: '{"type":"object"}' }, main]
+      window.electronAPI = { ...window.electronAPI, debug: { ...window.electronAPI?.debug,
+        companionEvidenceScope: async () => ({ roles: [{ id: 'lin', name: '林' }, { id: 'yu', name: '予' }], activeRoleId: 'lin', universeId: 'test', ready: true }),
+        modelContextAssets: async () => { if (state.__assetsFail) throw new Error('test'); return rows },
+        assetUsageQuery: async ({ assetKey } = {}) => { state.__usageCalls.push(assetKey ?? ''); if (state.__usageFail) throw new Error('test'); return { records: [], total: 0 } },
+      } }
+    })
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
+    const workbench = page.getByTestId('registered-asset-workbench')
+    const detail = workbench.getByRole('article', { name: '资产详情' })
+    const search = workbench.getByRole('textbox')
+    await expect(workbench.getByLabel('目录计数')).toHaveText('提示词 3 项')
+    expect(await workbench.locator('.debug-prompt-group').allTextContents()).toEqual(['主对话与表达1 项', '人物身份1 项', '平台规则与上下文1 项'])
+    await search.fill('主要表达')
+    await workbench.getByRole('button', { name: '主要表达 模板', exact: true }).click()
+    await expect(detail.locator('.debug-candidate-body')).toHaveText('先阅读用户材料。\n{{facts}}')
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __usageCalls: string[] }).__usageCalls.length)).toBe(0)
+    await detail.getByRole('button', { name: '复制正文', exact: true }).click()
+    expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n')).toBe('先阅读用户材料。\n{{facts}}')
+    await page.evaluate(() => { navigator.clipboard.writeText = async () => { throw new Error('clipboard test') } })
+    await detail.getByRole('button', { name: '复制正文', exact: true }).click()
+    await expect(detail.getByRole('status')).toHaveText('复制失败，请手动选择正文复制')
+    await detail.getByText('变量 · 1', { exact: true }).click()
+    await expect(detail.getByText('来源：registered-source', { exact: true })).toBeVisible()
+    await expect(detail.getByText(/示例/)).toHaveCount(0)
+    await detail.getByText('来源', { exact: true }).click()
+    const source = detail.locator(':scope > details').filter({ has: page.locator(':scope > summary', { hasText: /^来源$/ }) })
+    for (const scale of ['sm', 'lg']) {
+      await page.evaluate(scale => document.documentElement.setAttribute('data-font-scale', scale), scale)
+      const measured = await source.evaluate(node => {
+        const fields = node.querySelector(':scope > dl')!
+        const summary = node.querySelector(':scope > details > summary')!
+        const style = getComputedStyle(summary)
+        return { gap: summary.getBoundingClientRect().top - fields.lastElementChild!.getBoundingClientRect().bottom, rows: parseFloat(getComputedStyle(fields).rowGap), ratio: parseFloat(style.lineHeight) / parseFloat(style.fontSize), expectedRatio: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--line-height-caption')) }
+      })
+      expect(measured.gap).toBeCloseTo(SPACING.compact, 0)
+      expect(measured.rows).toBe(SPACING.tight)
+      expect(measured.ratio).toBeCloseTo(measured.expectedRatio, 2)
+      expect(await workbench.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+    }
+    await detail.getByText('版本信息', { exact: true }).click()
+    await expect(detail.getByText('saved-fingerprint', { exact: true })).toBeVisible()
+    await page.screenshot({ path: info.outputPath('prompt-review-production.png') })
+    await page.evaluate(() => { (window as unknown as { __assetsFail: boolean }).__assetsFail = true })
+    await page.getByRole('button', { name: '刷新当前分区', exact: true }).click()
+    await expect(workbench.getByRole('alert')).toContainText('刷新失败，保留上次目录')
+    await expect(detail.getByText('saved-fingerprint', { exact: true })).toBeVisible()
+    if (width === 600) await workbench.getByRole('button', { name: '返回目录', exact: true }).click()
+    await search.fill('平台情境')
+    await workbench.getByRole('button', { name: '平台情境 动态组装', exact: true }).click()
+    await expect(detail).toContainText('此项没有固定正文')
+    await expect(detail.getByRole('button', { name: '复制正文', exact: true })).toHaveCount(0)
+    await page.evaluate(() => { (window as unknown as { __usageFail: boolean }).__usageFail = true })
+    await detail.getByText('查看实际调用', { exact: true }).click()
+    await expect(detail.getByRole('alert')).toContainText('实际调用读取失败')
+    await expect(detail.getByText('当前范围没有保存的调用。', { exact: true })).toHaveCount(0)
+    await page.evaluate(() => { (window as unknown as { __usageFail: boolean }).__usageFail = false })
+    await detail.getByRole('button', { name: '重试读取调用', exact: true }).click()
+    await expect(detail.getByText('当前范围没有保存的调用。', { exact: true })).toBeVisible()
+    if (width === 600) await workbench.getByRole('button', { name: '返回目录', exact: true }).click()
+    await search.fill('')
+    await workbench.getByRole('combobox', { name: '目录范围' }).selectOption('other')
+    await expect(workbench.getByLabel('目录计数')).toHaveText('其他资产 1 项')
+    await search.fill('读取工具')
+    await workbench.getByRole('button', { name: '读取工具 结构内容', exact: true }).click()
+    await expect(detail.locator('[data-content-kind="structured"]')).toHaveText('{"type":"object"}')
+  })
+}
+
+
+test('正式提示词首次失败可恢复，迟到调用不覆盖新资产', async ({ page }) => {
+  await page.goto('/')
+  await page.evaluate(() => {
+    const state = window as unknown as { __readFail: boolean; __releaseUsage: () => void; __usageStarted: boolean; __usageFinished: boolean }
+    state.__readFail = true; state.__usageStarted = false; state.__usageFinished = false
+    const base = { id: 'test', category: 'system' as const, purpose: '', role: 'system', desc: '', source: 'test.ts', sourcePath: 'test.ts', version: '1', fingerprint: 'test', fingerprintKind: 'content' as const, assetType: 'prompt' as const, ownership: 'builtin' as const, contentKind: 'static' as const, mode: 'static' as const, locale: 'zh-CN', locales: {}, slots: [] }
+    window.electronAPI = { ...window.electronAPI, debug: { ...window.electronAPI?.debug,
+      companionEvidenceScope: async () => ({ roles: [], activeRoleId: null, universeId: 'test', ready: true }),
+      modelContextAssets: async () => { if (state.__readFail) throw new Error('test'); return ['a', 'b'].map(key => ({ ...base, key, name: key, content: `${key}原文` })) },
+      assetUsageQuery: async ({ assetKey } = {}) => {
+        if (assetKey === 'a') { state.__usageStarted = true; await new Promise<void>(resolve => { state.__releaseUsage = resolve }); state.__usageFinished = true }
+        return { records: [], total: assetKey === 'a' ? 99 : 0 }
+      },
+    } }
+  })
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
+  const workbench = page.getByTestId('registered-asset-workbench')
+  await expect(workbench.getByRole('alert')).toContainText('目录读取失败')
+  await expect(workbench.getByLabel('目录计数')).toHaveCount(0)
+  await expect(workbench.getByText('此范围没有资产', { exact: true })).toHaveCount(0)
+  await page.evaluate(() => { (window as unknown as { __readFail: boolean }).__readFail = false })
+  await workbench.getByRole('button', { name: '重试读取目录', exact: true }).click()
+  await expect(workbench.getByLabel('目录计数')).toHaveText('提示词 2 项')
+  await workbench.getByRole('textbox').fill('a')
+  await workbench.locator('[data-asset-key="a"]').click()
+  await workbench.getByText('查看实际调用', { exact: true }).click()
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __usageStarted: boolean }).__usageStarted)).toBe(true)
+  await workbench.getByRole('textbox').fill('b')
+  await workbench.locator('[data-asset-key="b"]').click()
+  await workbench.getByText('查看实际调用', { exact: true }).click()
+  await expect(workbench.getByText('当前范围没有保存的调用。', { exact: true })).toBeVisible()
+  await page.evaluate(() => (window as unknown as { __releaseUsage: () => void }).__releaseUsage())
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __usageFinished: boolean }).__usageFinished)).toBe(true)
+  await expect(workbench).not.toContainText('99')
+  await expect(workbench.getByText('b原文', { exact: true })).toBeVisible()
+})

@@ -28,7 +28,6 @@
 
 | 文档 | 说明 |
 |------|------|
-| [debug-prompt-review-workbench-v1.md](./debug-prompt-review-workbench-v1.md) | P0 候选待验收：开发者提示词计数、用途与正文审阅、来源及实际调用证据；正式回流未授权 |
 | [foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md) | P0 方案待确认：四个产品体验的真实基础复用、Markdown / Diff / 控件收口与源码自动门禁 |
 | [playground-state-switchers-v1.md](./playground-state-switchers-v1.md) | P0：统一 Playground 场景、状态与宽度控制器，采用 MCP 独立选项样式 |
 | [playground-page-baseline-polish-v1.md](./playground-page-baseline-polish-v1.md) | P0 施工：Sidebar 底栏、Toast、Right Dock、人物世界与记忆页面样张统一精修 |
@@ -53,6 +52,8 @@
 ---
 
 ## 已完成施工快照（冻结）
+
+提示词开发者审阅：[debug-prompt-review-workbench-v1.md](./debug-prompt-review-workbench-v1.md)，候选已回流正式提示词管理器；唯一计数、用途排序、正文及按需来源 / 调用证据已验收，当前事实见 agent-runtime 模块卡。
 
 Debug 能力证据：[debug-capability-evidence-v1.md](./debug-capability-evidence-v1.md)，四页真实历史、主动问候限次与呈现回执、生活发布关联已验收；全仓基线失败及类型 / 依赖债另有记录。
 
