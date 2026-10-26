@@ -13,6 +13,10 @@ function promptKey<T extends string>(value: T): T & PromptAssetKey {
 }
 
 export const PROMPT_KEYS = {
+  imageDraft: promptKey('image-request-draft'),
+  worldAssetImageDraft: promptKey('world-asset-image-request-draft'),
+  imageGeneration: promptKey('image-generation'),
+  momentComment: promptKey('companion-moment-comment'),
   promptCompiler: promptKey('prompt-compiler'),
   loopDefault: promptKey('loop-default'),
   loopTimeContext: promptKey('loop-time-context'),

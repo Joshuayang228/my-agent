@@ -15,7 +15,7 @@ function files(root: string): string[] {
 describe('Prompt 生产定义防漏登记', () => {
   const assets = getPromptAssets()
   const definitions = new Set(assets.flatMap(asset => asset.definitions ?? []))
-  const sources = files('electron/main').filter(file => file.endsWith('.ts'))
+  const sources = [...files('electron/main'), ...files('src').filter(file => !file.includes('/playground/'))].filter(file => /\.tsx?$/.test(file))
 
   it('全部生产正文函数与常量登记实际符号，同文件新增函数也必须登记', () => {
     const missing = sources.flatMap(file => promptDefinitions(file, readFileSync(file, 'utf8'))).filter(def => !definitions.has(def))

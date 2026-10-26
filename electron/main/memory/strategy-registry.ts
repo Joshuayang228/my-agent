@@ -7,7 +7,7 @@
  */
 
 import type { ModelContextAsset } from '../../../src/shared/types'
-import { PROFILE_EXTRACTION_CATEGORIES, PROFILE_EXTRACTION_INTERVAL_MS, PROFILE_EXTRACTION_MAX_CONTENT_LENGTH, PROFILE_EXTRACTION_MAX_ITEMS, PROFILE_EXTRACTION_MAX_RECENT_MESSAGES, PROFILE_EXTRACTION_MIN_USER_MESSAGES } from '../agent/profile-extractor'
+import { PROFILE_EXTRACTION_CATEGORIES, PROFILE_EXTRACTION_INTERVAL_MS, PROFILE_EXTRACTION_MAX_CONTENT_LENGTH, PROFILE_EXTRACTION_MAX_ITEMS, PROFILE_EXTRACTION_MAX_RECENT_MESSAGES, PROFILE_EXTRACTION_MIN_USER_MESSAGES, PROFILE_EXTRACTION_REQUIRE_USER_QUOTE } from '../agent/profile-extractor'
 import { planCitationCorrection } from './citation-correct'
 import { FEEDBACK_MEMORY_LIMIT, MEMORY_SEMANTIC_DEDUP_THRESHOLD } from '../storage/memory-store'
 import { DEFAULT_VECTOR_RECALL_MIN_SCORE, DEFAULT_VECTOR_RECALL_TOP_K, MAX_CONVERSATION_VECTORS, MEMORY_STALE_THRESHOLD_DAYS } from './vector-store'
@@ -91,6 +91,7 @@ export function getMemoryStrategyAssetCatalog(): ModelContextAsset[] {
   return [
     strategyAsset({
       key: MEMORY_STRATEGY_ASSET_KEYS.profileExtraction,
+      version: '1.1.0',
       name: '记忆策略 · 用户画像提取',
       purpose: '决定何时从近期对话提取长期用户信息',
       role: 'profile-extractor',
@@ -101,6 +102,7 @@ export function getMemoryStrategyAssetCatalog(): ModelContextAsset[] {
         maxRecentMessages: PROFILE_EXTRACTION_MAX_RECENT_MESSAGES,
         intervalMs: PROFILE_EXTRACTION_INTERVAL_MS,
         validCategories: [...PROFILE_EXTRACTION_CATEGORIES],
+        requiresUserQuote: PROFILE_EXTRACTION_REQUIRE_USER_QUOTE,
         maxItemsPerRun: PROFILE_EXTRACTION_MAX_ITEMS,
         maxContentLength: PROFILE_EXTRACTION_MAX_CONTENT_LENGTH,
         sensitivePolicy: '自动画像跳过健康、财务、凭据、隐私标识和职场机密候选',

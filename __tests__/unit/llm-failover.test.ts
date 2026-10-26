@@ -150,7 +150,7 @@ describe('streamChat failover', () => {
       expect.objectContaining({
         key: 'profile-extraction',
         source: 'electron/main/prompts/texts.ts',
-        version: '1.0.0',
+        version: '1.1.0',
         locale: 'zh-CN',
         fingerprint: expect.stringMatching(/^[a-f0-9]{16}$/),
       }),

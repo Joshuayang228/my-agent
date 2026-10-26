@@ -6,7 +6,7 @@
 export const ASSET_GOVERNANCE = [
   {
     id: 'prompt', labelZh: 'Prompt', kind: 'static', modelContextTypes: ['prompt'],
-    sourcePaths: ['electron/main/prompts'],
+    sourcePaths: ['electron/main/prompts', 'src/shared/request-draft-prompts.ts', 'src/shared/prompt-template.ts'],
     registryPaths: ['electron/main/prompts/registry.ts'], discovery: '显式注册表',
     keyRule: 'PROMPT_KEYS / rolePromptAssetKey；definitions 指向生产符号', display: 'Debug / 提示词管理器', usageEvidence: 'llm-input',
   },

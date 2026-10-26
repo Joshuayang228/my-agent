@@ -4,6 +4,7 @@ import { PROMPT_KEYS } from '../../electron/main/prompts/keys'
 import { modelContextFingerprint } from '../../electron/main/prompts/fingerprint'
 import { EXTRACTION_PROMPT } from '../../electron/main/prompts/texts'
 import { EVAL_JUDGE_TEMPLATE } from '../../electron/main/prompts/eval-judge'
+import { extractTemplatePlaceholders } from '../../src/shared/prompt-template'
 
 const REQUIRED_KEYS = [
   'prompt-compiler',
@@ -23,6 +24,16 @@ const REQUIRED_KEYS = [
 ] as const
 
 describe('debug prompt assets', () => {
+  it('所有真实模板占位符均有目录来源，重复变量只登记一次', () => {
+    expect(extractTemplatePlaceholders('{{one}} {{one}} {{two}}')).toEqual(['one', 'two'])
+    for (const asset of getPromptAssets()) {
+      const template = asset.locales['zh-CN'].template
+      if (!template) continue
+      for (const name of extractTemplatePlaceholders(template)) {
+        expect(asset.slots.find(slot => slot.name === name)?.source, `${asset.key}:${name}`).toBeTruthy()
+      }
+    }
+  })
   it('角色文本目录登记明确人物与用途，不以正文猜归属', () => {
     const assets = getPromptAssets().filter(asset => asset.ownership === 'role-pack' && asset.assetType === 'prompt')
     expect(assets.length).toBeGreaterThan(0)
@@ -79,7 +90,9 @@ describe('debug prompt assets', () => {
     expect(loop?.locales['zh-CN'].template).toBe(loop?.content)
     expect(system?.locales['zh-CN'].template).toContain('{{protected}}')
     expect(assets.find((asset) => asset.key === PROMPT_KEYS.evalJudge)?.locales['zh-CN'].template).toBe(EVAL_JUDGE_TEMPLATE)
-    expect(system?.slots.some((slot) => slot.name === 'character')).toBe(true)
+    expect(system?.semanticInputs?.some((slot) => slot.name === 'character')).toBe(true)
+    expect(system?.slots.some((slot) => slot.name === 'protected' && slot.source === 'MainChatPromptRequest.character.protected')).toBe(true)
+    expect(system?.slots).toHaveLength(29)
   })
 
   it('伙伴行为资产登记真实触发、输入、校验和回退契约', () => {
@@ -127,7 +140,7 @@ describe('debug prompt assets', () => {
     expect(result.assets.map((asset) => asset.key)).toEqual(['profile-extraction', 'l3-collapse'])
     expect(result.assets[0]).toMatchObject({
       source: 'electron/main/prompts/texts.ts',
-      version: '1.0.0',
+      version: '1.1.0',
       locale: 'zh-CN',
     })
     expect(result.unknownKeys).toEqual(['missing-prompt-key'])

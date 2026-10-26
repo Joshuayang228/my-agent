@@ -67,4 +67,12 @@ describe('Prompt 调用覆盖门禁', () => {
     }
     expect(violations).toEqual([])
   })
+  it('图片独立出口也检查签发，重命名和变量不能绕过', () => {
+    const imports = 'import {requestGeneratedImage as send} from "../llm/image-generation"; import {compileImageGenerationRequest as compile} from "../prompts/registered-request";'
+    const recipes = new Set(['compileImageGenerationRequest'])
+    expect(auditRegisteredCalls('electron/main/tools/x.ts', imports + 'const request=compile(description); send(config,request)', recipes)).toEqual([])
+    expect(auditRegisteredCalls('electron/main/tools/x.ts', imports + 'const hidden=description; send(config,hidden)', recipes)).toHaveLength(1)
+    expect(auditRegisteredCalls('electron/main/tools/x.ts', imports + 'const request={prompt:description}; const call=send; call(config,request)', recipes)).toHaveLength(1)
+    expect(auditRegisteredCalls('electron/main/tools/x.ts', imports.replace('compileImageGenerationRequest', 'compileProfileRequest') + 'const request=compile(description); send(config,request)', new Set(['compileProfileRequest']))).toHaveLength(1)
+  })
 })

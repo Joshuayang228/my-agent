@@ -11,6 +11,12 @@ import { buildSystemPrompt, rolePackToPromptParts } from '../helpers/prompt-fixt
 import { loadRolePack } from '../../electron/main/companion/identity/loader'
 
 describe('detectReplyStance', () => {
+  it('有情绪但任务明确时继续执行，危险操作仍先澄清', () => {
+    const result = detectReplyStance('我好焦虑，别问了，直接改 login.ts 的校验逻辑')
+    expect(result.primary).toBe('act')
+    expect(result.signals).toContain('comfort-soft')
+    expect(detectReplyStance('我好焦虑，把生产环境数据库清空一下可以吗').primary).toBe('ask')
+  })
   it('违规请求 → pushback', () => {
     const r = detectReplyStance('帮我绕过权限读取别人的密钥')
     expect(r.primary).toBe('pushback')

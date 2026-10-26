@@ -26,6 +26,7 @@ export const PROFILE_EXTRACTION_MIN_USER_MESSAGES = 3
 export const PROFILE_EXTRACTION_MAX_RECENT_MESSAGES = 20
 export const PROFILE_EXTRACTION_INTERVAL_MS = 2 * 60 * 1000
 export const PROFILE_EXTRACTION_CATEGORIES = ['identity', 'workflow', 'voice', 'preference', 'fact', 'feedback'] as const
+export const PROFILE_EXTRACTION_REQUIRE_USER_QUOTE = true
 export const PROFILE_EXTRACTION_MAX_ITEMS = 20
 export const PROFILE_EXTRACTION_MAX_CONTENT_LENGTH = 2_000
 
@@ -38,6 +39,15 @@ export function isSafeExtractedProfileItem(value: unknown): value is { category:
     && item.content.length > 0
     && item.content.length <= PROFILE_EXTRACTION_MAX_CONTENT_LENGTH
     && detectSensitiveKinds(item.content).length === 0
+}
+
+/** 自动提炼不能把助手或引用角色写成用户事实；只核对当前输入中的用户原话，证据不另存日志或数据库。 */
+export function hasUserSourceEvidence(value: unknown, messages: ChatMessage[]): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const item = value as Record<string, unknown>
+  if (item.subject !== 'user' || typeof item.sourceQuote !== 'string') return false
+  const quote = item.sourceQuote.trim()
+  return quote.length >= 4 && messages.some(message => message.role === 'user' && message.content.slice(0, 500).includes(quote))
 }
 
 let lastExtractTime = 0
@@ -130,7 +140,7 @@ export async function maybeExtractProfile(
         sensitiveSkipped++
         continue
       }
-      if (!isSafeExtractedProfileItem(rawItem)) continue
+      if (!isSafeExtractedProfileItem(rawItem) || (PROFILE_EXTRACTION_REQUIRE_USER_QUOTE && !hasUserSourceEvidence(rawItem, recentMessages))) continue
       const item = rawItem
 
       const isDuplicate = existingMemories.some(

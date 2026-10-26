@@ -10,5 +10,5 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["electron", "vite.config.ts", "vitest.config.ts", "package.json", "src/shared/model-routing.ts", "src/shared/model-parameters.ts", "src/shared/backup-errors.ts", "src/shared/world-records.ts", "src/shared/debug-evidence.ts", "src/shared/debug-traces.ts", "src/shared/debug-history.ts", "src/shared/proactive-evidence.ts"]
+  "include": ["electron", "vite.config.ts", "vitest.config.ts", "package.json", "src/shared/model-routing.ts", "src/shared/model-parameters.ts", "src/shared/backup-errors.ts", "src/shared/world-records.ts", "src/shared/debug-evidence.ts", "src/shared/debug-traces.ts", "src/shared/debug-history.ts", "src/shared/proactive-evidence.ts", "src/shared/prompt-template.ts", "src/shared/request-draft-prompts.ts"]
 }

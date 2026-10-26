@@ -1,3 +1,4 @@
+import { compileImageGenerationRequest } from '../../prompts/registered-request'
 import fs from 'node:fs'
 import path from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
@@ -105,7 +106,7 @@ export const imageGenerateTool = buildTool({
       context?.signal?.throwIfAborted()
       const requestTarget = resolveGeneratedImageTarget(args.path, context, requestMode)
       if (requestTarget.target !== target.target || mode !== requestMode || rules !== JSON.stringify(getRules())) throw new ImageGenerationError('项目或权限已变化，未发起生图。请检查设置后再操作。')
-      const response = await requestGeneratedImage(config, args.prompt, context?.signal)
+      const response = await requestGeneratedImage(config, compileImageGenerationRequest(args.prompt), context?.signal)
       const image = await normalizeGeneratedImage(response.bytes, context?.signal)
       context?.signal?.throwIfAborted()
       const currentMode = await loadEffectiveSandbox()

@@ -27,6 +27,7 @@ describe('Prompt semantic compiler', () => {
     expect(result.text).toContain('当前日期：2026-10-13')
     expect(result.text).not.toContain('L1')
     expect(result.text).not.toContain('L2')
+    expect(result.text.match(/task_plan/g)).toHaveLength(1)
   })
 
   it('行为编译器把人物补充限制在行为和输出契约内', () => {

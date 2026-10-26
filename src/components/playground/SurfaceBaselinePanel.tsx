@@ -1,3 +1,4 @@
+import { buildImageDraftPrompt } from '../../shared/request-draft-prompts'
 /**
  * 页面级基线故事：把正式壳层组件放进固定视口，先确认组合态的比例与层级。
  * 该展厅只提供静态 props，不创建会话、不发送模型请求，也不保存设置。
@@ -488,7 +489,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                         onKeyDown: event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); sendPreview() } } }}
                       modelLabel="样张模型" sendDisabled={!previewInput.trim()} onSend={sendPreview}
                       onAttach={() => previewFileRef.current?.click()}
-                      onImageGenerate={() => setPreviewInput(current => current.trim() || '请生成一张图片：')}
+                      onImageGenerate={() => setPreviewInput(current => current.trim() || buildImageDraftPrompt())}
                       prefix={previewFiles.length > 0 && <div className="flex flex-wrap gap-1" data-testid="chat-preview-attachments">
                         {previewFiles.map((name, index) => <span key={index} className="inline-flex max-w-full items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                           <span className="min-w-0 truncate">{name}</span><IconButton label={`移除${name}`} size={24} onClick={() => setPreviewFiles(files => files.filter((_, item) => item !== index))}><X size={12} /></IconButton>

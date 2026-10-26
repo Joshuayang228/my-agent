@@ -1,3 +1,7 @@
+import { extractTemplatePlaceholders } from '../../../src/shared/prompt-template'
+import { buildMomentCommentPrompt } from './moment-comment'
+import { buildImageGenerationPrompt } from './image-generation'
+import { buildImageDraftPrompt, buildWorldAssetImageDraftPrompt } from '../../../src/shared/request-draft-prompts'
 /**
  * Prompt 资产目录的唯一运行时来源。
  *
@@ -34,7 +38,7 @@ import { buildWorkspaceContextPrompt, buildSummonContextPrompt } from './runtime
 import { buildProfileExtractionInputPrompt } from './profile-extraction'
 import { buildSubAgentPrompt, buildDeniedToolsPromptSuffix, OUTPUT_RECOVERY_PROMPT, buildTimeContextPrompt } from './agent-behaviors'
 import { buildCompactPrompt, formatMinSetWhitelistForCompactPrompt, buildFileRestorePrompt, buildCompactSummaryPrompt, buildCompactHistoryPrompt } from './compact'
-import { MAIN_CHAT_TEMPLATE, COMPANION_COMPILER_TEMPLATE } from './compiler'
+import { MAIN_CHAT_TEMPLATE, MAIN_CHAT_TEMPLATE_SLOTS, COMPANION_COMPILER_TEMPLATE } from './compiler'
 import { PROMPT_KEYS, rolePromptAssetKey, type RolePromptSuffix } from './keys'
 import { CONNECTION_TEST_MESSAGES } from '../../../src/shared/llm-connection-test'
 import { getRoleSourceAssetCatalog } from '../companion/identity/source-assets'
@@ -59,6 +63,7 @@ type PromptAssetInput = {
   mode?: PromptAssetMode
   locale?: string
   slots?: PromptSlot[]
+  semanticInputs?: PromptSlot[]
   behavior?: PromptBehaviorMetadata
   preview?: string
   content?: string
@@ -86,6 +91,13 @@ function normalizeAsset(input: PromptAssetInput): PromptAsset & { content?: stri
   const locale = input.locale ?? PROMPT_LOCALE
   const content = input.content
   const template = input.template
+  // 多分支组装器可能有模板样本未覆盖的输入；保留已登记项，同时让新增真实占位符不能从目录消失。
+  const slots = new Map((input.slots ?? []).map(slot => [slot.name, slot]))
+  if (template !== undefined) {
+    for (const name of extractTemplatePlaceholders(template)) {
+      if (!slots.has(name)) slots.set(name, { name, source: `生产组装器：${input.sourcePath}`, lifecycle: '每次装配' })
+    }
+  }
   const fingerprintInput = content ?? template ?? JSON.stringify({
     key: input.id,
     source: input.sourcePath,
@@ -115,7 +127,8 @@ function normalizeAsset(input: PromptAssetInput): PromptAsset & { content?: stri
         ...(content !== undefined || template !== undefined ? { template: content ?? template } : {}),
       },
     },
-    slots: input.slots ?? [],
+    slots: [...slots.values()],
+    ...(template !== undefined ? { semanticInputs: input.semanticInputs ?? input.slots ?? [] } : {}),
     ...(input.behavior ? { behavior: input.behavior } : {}),
     dynamic: mode === 'dynamic',
   }
@@ -130,6 +143,36 @@ function dynamicAsset(input: PromptAssetInput): PromptAsset & { content?: string
 }
 
 const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
+  dynamicAsset({
+    id: PROMPT_KEYS.momentComment, name: '朋友圈角色评论', category: 'companion', role: 'companion-background',
+    purpose: '基于公开名册回应已发布动态', desc: '仅润色已有确定性选中的评论者，不代替用户发言；无配置或校验失败保留原短句。',
+    sourcePath: 'electron/main/prompts/moment-comment.ts#buildMomentCommentPrompt',
+    definitions: ['electron/main/prompts/moment-comment.ts#buildMomentCommentPrompt', 'electron/main/prompts/registered-request.ts#compileMomentCommentRequest'],
+    template: buildMomentCommentPrompt({ posterName: '{{posterName}}', postText: '{{postText}}', commenterName: '{{commenterName}}', commenterBrief: '{{commenterBrief}}' }),
+    slots: [{ name: 'posterName', source: '已发布动态所属角色', lifecycle: '动态发布时' }, { name: 'postText', source: '已发布动态正文', lifecycle: '动态发布时' }, { name: 'commenterName', source: '确定性评论者选择', lifecycle: '动态发布时' }, { name: 'commenterBrief', source: 'buildRosterLines 公开关系摘要', lifecycle: '动态发布时' }],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.imageGeneration, name: '图片生成描述包装', category: 'tool', role: 'image-generation',
+    purpose: '约束独立图片协议中的明确描述与人物事实', desc: '图片描述是运行时资料，包装与来源由专用配方签发，不增加文本模型请求。',
+    sourcePath: 'electron/main/prompts/image-generation.ts#buildImageGenerationPrompt',
+    definitions: ['electron/main/prompts/image-generation.ts#buildImageGenerationPrompt', 'electron/main/prompts/registered-request.ts#compileImageGenerationRequest'],
+    template: buildImageGenerationPrompt('{{description}}'),
+    slots: [{ name: 'description', source: 'image_generate.prompt', lifecycle: '每次显式生成' }],
+  }),
+  staticAsset({
+    id: PROMPT_KEYS.imageDraft, name: '生图请求预填', category: 'ui', role: 'user-draft',
+    purpose: '用户可编辑的图片请求草稿，不自动发送', desc: '点击聊天生图按钮时填入输入框。',
+    sourcePath: 'src/shared/request-draft-prompts.ts#buildImageDraftPrompt',
+    definitions: ['src/shared/request-draft-prompts.ts#buildImageDraftPrompt'], content: buildImageDraftPrompt(),
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.worldAssetImageDraft, name: '人物世界配图请求预填', category: 'ui', role: 'user-draft',
+    purpose: '从明确资产进入可编辑的图片请求', desc: '用户发送后才进入正常对话与工具审批。',
+    sourcePath: 'src/shared/request-draft-prompts.ts#buildWorldAssetImageDraftPrompt',
+    definitions: ['src/shared/request-draft-prompts.ts#buildWorldAssetImageDraftPrompt'],
+    template: buildWorldAssetImageDraftPrompt({ name: '{{assetName}}', id: '{{assetId}}' }),
+    slots: [{ name: 'assetName', source: 'WorldHub 当前资产名称', lifecycle: '点击生成时' }, { name: 'assetId', source: 'WorldHub 当前资产 ID', lifecycle: '点击生成时' }],
+  }),
   dynamicAsset({
     id: PROMPT_KEYS.evalInput,
     definitions: ['electron/main/prompts/registered-request.ts#compileEvalSystem', 'electron/main/prompts/registered-request.ts#compileEvalRequest'], name: 'Eval 外部输入', category: 'system',
@@ -187,8 +230,10 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     desc: '主对话由语义模块编译器组装；具体一轮结果请在 Debug 或「载入当前实装」查看。',
     sourcePath: 'electron/main/prompts/compiler.ts',
     template: MAIN_CHAT_TEMPLATE,
+    version: '1.1.0',
+    slots: MAIN_CHAT_TEMPLATE_SLOTS,
     preview: '平台规则 · 人物定义 · 人物成长 · 行为定义 · 情境上下文 · 输出契约',
-    slots: [
+    semanticInputs: [
       { name: 'character', source: 'characterDefinitionFromRolePack', lifecycle: '每次装配' },
       { name: 'toolNames', source: 'ToolRegistry', lifecycle: '每次装配' },
       { name: 'userProfile', source: 'memory-store', lifecycle: '按需注入' },
@@ -273,6 +318,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   staticAsset({
     id: PROMPT_KEYS.profileExtraction,
+    version: '1.1.0',
     definitions: ['electron/main/prompts/registered-request.ts#compileProfileRequest', 'electron/main/prompts/texts.ts#EXTRACTION_PROMPT'],
     name: '用户画像提取',
     category: 'context',
@@ -312,6 +358,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     role: 'embedding-runtime',
     desc: '原始记忆或查询文本直接发送 Embeddings API；没有独立 System 指令。',
     sourcePath: 'electron/main/memory/embeddings.ts',
+    definitions: ['electron/main/memory/embeddings.ts#createEmbedding', 'electron/main/memory/embeddings.ts#createEmbeddings'],
     preview: '这是模型输入资产而非聊天 Prompt；目录不展示用户原文。',
     slots: [{ name: 'embeddingText', source: 'memory/query text', lifecycle: '每次向量化' }],
   }),
@@ -355,6 +402,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.replyStance,
+    version: '1.1.0',
     definitions: ['electron/main/agent/reply-stance.ts#formatReplyStanceForPrompt'],
     name: '回复立场提示',
     category: 'system',

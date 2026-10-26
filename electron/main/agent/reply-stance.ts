@@ -46,7 +46,7 @@ const GUIDANCE: Record<ReplyStance, string> = {
 
 /**
  * 轻量分类用户文本 → 本轮立场。
- * 优先级：推回 > 危险偏问 > 情绪安慰 > 催办即做 > 不清则问 > 均衡。
+ * 优先级：推回 > 危险偏问 > 明确任务（可简短接住情绪）> 单独情绪安慰 > 不清则问 > 均衡。
  */
 export function detectReplyStance(
   userText: string,
@@ -89,8 +89,8 @@ export function detectReplyStance(
     return pack('comfort', signals)
   }
   if (emotion && clearAct) {
-    // 又急又崩：安慰优先，但仍提示可办事
-    return pack('comfort', [...signals, 'then-act'])
+    // 用户已明确要求做事时，情绪只影响表达，不再增加一次是否继续的确认。
+    return pack('act', [...signals, 'comfort-soft'])
   }
 
   if (opts?.executionMode === 'plan-first' && !clearAct) {

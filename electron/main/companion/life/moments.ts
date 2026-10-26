@@ -19,7 +19,7 @@ import {
 } from '../../../../src/shared/moment-user-interactions'
 import { getAsset, maybeGrantFromEvent } from './assets'
 import { formatMomentText } from './moment-format'
-import { deriveCastInteractions } from './moment-interactions'
+import { resolveCastInteractions } from './moment-comment-service'
 import { resolveMomentText } from './moment-polish'
 import * as store from './store'
 
@@ -70,9 +70,9 @@ export async function projectMomentFromEvent(
     universeId: opts?.universeId,
   })
 
-  // M26-G1：名册浅派生评论/同框（确定性；无边则空）
-  const interactions = deriveCastInteractions(event, {
-    universeId: opts?.universeId,
+  // 公开名册仍决定选人；已有辅助模型路径只增强短评论，失败保留确定性结果，不启动其他角色生活。
+  const interactions = await resolveCastInteractions(event, {
+    universeId: opts?.universeId, preferLlm: opts?.preferLlm, llmConfig, postText: text,
   })
 
   const links: store.CompanionEventLinkInput[] = []

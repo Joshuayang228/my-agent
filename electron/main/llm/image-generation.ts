@@ -1,3 +1,4 @@
+import { readRegisteredImageRequest, type RegisteredImageRequest } from '../prompts/registered-request'
 import type { LLMConfig } from '../../../src/shared/types'
 import { appendApiPath } from './provider-router'
 import { detectProviderFromBaseUrl } from '../../../src/shared/llm-connection-test'
@@ -42,8 +43,10 @@ function decodeImage(value: unknown): GeneratedImageBytes {
  * 意图：独立适配 Images 与 Gemini 图片输出协议，一次调用只有一次生成请求；下载不携带服务凭据。
  * 约束：config 必须来自统一配置工厂；不回退主模型、不重试、不自动选择型号，取消覆盖下载阶段。
  */
-export async function requestGeneratedImage(config: LLMConfig, prompt: string, signal?: AbortSignal): Promise<GeneratedImageBytes> {
-  if (typeof prompt !== 'string' || !prompt.trim() || prompt.length > 16_000) throw new ImageGenerationError('请提供不超过 16000 字的图片描述。')
+export async function requestGeneratedImage(config: LLMConfig, request: RegisteredImageRequest, signal?: AbortSignal): Promise<GeneratedImageBytes> {
+  let prompt: string
+  try { prompt = readRegisteredImageRequest(request).prompt }
+  catch { throw new ImageGenerationError('生图请求必须由已登记的图片配方生成。') }
   if (!config.baseUrl?.trim() || !config.model?.trim()) throw new ImageGenerationError('请先在模型设置中安排生图模型。')
   const provider = config.provider && config.provider !== 'auto' ? config.provider : detectProviderFromBaseUrl(config.baseUrl)
   if (provider !== 'openai' && provider !== 'gemini') throw new ImageGenerationError('当前连接协议不支持生图，请选择兼容 Images 或 Gemini 的连接。')

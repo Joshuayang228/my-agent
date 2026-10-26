@@ -1,3 +1,4 @@
+import { buildImageDraftPrompt, buildWorldAssetImageDraftPrompt } from './shared/request-draft-prompts'
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
 import type {
   ChatMessage,
@@ -1157,7 +1158,7 @@ function App() {
                 allowAssetEditing={false}
                 onGenerateAssetImage={(asset) => {
                   setActiveView('chat')
-                  setInput(`请为人物世界资产“${asset.name}”生成一张图片。资产 ID：${asset.id}。生成后请使用 image_generate 的 targetAssetId 绑定到这个资产。`)
+                  setInput(buildWorldAssetImageDraftPrompt(asset))
                   setTimeout(() => inputRef.current?.focus(), 0)
                 }}
                 tab={activeView === 'world' ? worldTab : worldTabFromView(activeView)}
@@ -1531,7 +1532,7 @@ function App() {
                 inp.click()
               }}
               onImageGenerate={() => {
-                setInput((current) => current.trim() || '请生成一张图片：')
+                setInput((current) => current.trim() || buildImageDraftPrompt())
                 setTimeout(() => inputRef.current?.focus(), 0)
               }}
               prefix={mentionedFiles.length > 0 && (

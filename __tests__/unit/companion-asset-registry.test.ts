@@ -1,5 +1,6 @@
 ﻿import { describe, expect, it, vi } from 'vitest'
 import { modelContextFingerprint } from '../../electron/main/prompts/fingerprint'
+import { MOMENT_COMMENT_POLICY } from '../../electron/main/prompts/moment-comment'
 
 vi.mock('electron', () => ({
   app: { getPath: () => 'C:/tmp/my-agent-test' },
@@ -15,6 +16,11 @@ const { getStarterAssetDefinitions } = await import('../../electron/main/compani
 const { loadRoleProfile } = await import('../../electron/main/companion/identity/loader')
 
 describe('伙伴生产资产目录', () => {
+  it('评论策略读取真实生成与解析共用边界，不复制另一份参数', () => {
+    const asset = getCompanionAssetCatalog().find(asset => asset.key === 'companion:policy:moment-comment')
+    expect(JSON.parse(asset!.content!)).toEqual(MOMENT_COMMENT_POLICY)
+    expect(asset?.dependencies).toEqual(['companion-moment-comment'])
+  })
   it('为全部可加载角色生成稳定且唯一的清单、场景和生活资产', () => {
     const assets = getCompanionAssetCatalog()
     const keys = assets.map((asset) => asset.key)

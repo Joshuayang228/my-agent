@@ -159,6 +159,8 @@ export interface PromptAsset {
   locale: string
   locales: Record<string, PromptLocaleAsset>
   slots: PromptSlot[]
+  /** 模板的分组输入说明，与实际占位符 slots 分开，不代表本次注入值。 */
+  semanticInputs?: PromptSlot[]
   behavior?: PromptBehaviorMetadata
   /** 生产资产生命周期；旧 Prompt 资产缺省视为 active。 */
   status?: AgentAssetStatus

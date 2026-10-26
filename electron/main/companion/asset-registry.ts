@@ -9,6 +9,8 @@
  */
 
 import { PROACTIVE_DELIVERY_POLICY } from '../../../src/shared/proactive-evidence'
+import { MOMENT_COMMENT_POLICY } from '../prompts/moment-comment'
+import { PROMPT_KEYS } from '../prompts/keys'
 import type { ModelContextAsset } from '../../../src/shared/types'
 import type { RolePack } from './types'
 import { getStarterAssetDefinitions } from './life/assets'
@@ -89,6 +91,13 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     role: 'platform', description: '投递资源与回执边界',
     source: 'src/shared/proactive-evidence.ts#PROACTIVE_DELIVERY_POLICY', version: 'delivery-v1',
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin', content: jsonContent(PROACTIVE_DELIVERY_POLICY),
+  }), makeCompanionAsset({
+    key: 'companion:policy:moment-comment', name: '朋友圈角色评论策略',
+    purpose: '约束已有 NPC 评论的输入长度、生成预算和输出长度',
+    role: 'platform', description: '仅现有 preferLlm 路径增强；失败保留规则短句。',
+    source: 'electron/main/prompts/moment-comment.ts#MOMENT_COMMENT_POLICY', version: '1.0.0',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent(MOMENT_COMMENT_POLICY), dependencies: [PROMPT_KEYS.momentComment],
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

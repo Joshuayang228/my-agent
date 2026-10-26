@@ -4,6 +4,19 @@ import { createEmbedding, createEmbeddings, getEmbeddingMetadata, getEmbeddingSp
 afterEach(() => vi.unstubAllGlobals())
 
 describe('embedding authentication headers', () => {
+  it('独立向量出口按数据原文发送，不追加聊天指令或虚构模板', async () => {
+    const requests: Record<string, unknown>[] = []
+    vi.stubGlobal('fetch', vi.fn(async (_url, init) => {
+      requests.push(JSON.parse(String(init?.body)))
+      return new Response(JSON.stringify({ data: [{ embedding: [1, 0], index: 0 }], model: 'embedding', usage: { total_tokens: 1 } }))
+    }))
+    const config = { apiKey: '', baseUrl: 'http://example.invalid/v1', model: 'chat' }
+    await createEmbedding('用户资料 {{不是模板}}', config)
+    await createEmbeddings(['原文一', '原文二'], config)
+    expect(requests[0].input).toBe('用户资料 {{不是模板}}')
+    expect(requests[1].input).toEqual(['原文一', '原文二'])
+    expect(requests.every(request => !('messages' in request) && !('prompt' in request))).toBe(true)
+  })
   it('空间身份由实际嵌入请求决定，不受聊天模型和密钥轮换影响', () => {
     const config = { apiKey: 'secret-fixture', baseUrl: 'http://localhost/v1/', model: 'chat-a' }
     const key = getEmbeddingSpaceKey(config)

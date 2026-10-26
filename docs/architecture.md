@@ -22,6 +22,8 @@ Debug 与 Settings / Playground 同为独立一级工作区；`App` 保留隐藏
 
 ## 模型请求的注册编译边界
 
+图片独立出口使用 `compileImageGenerationRequest` 签发对象，`llm/image-generation.ts` 在网络前校验私有身份；与聊天请求的证明表分开，复制或反序列化不能继承证明。Renderer 生图草稿由 shared 生产构造器提供，注册表引用同一符号；用户编辑后是运行时数据。Embedding 保持原文本 / 批量数据协议。NPC 评论在动态投影中沿既有 preferLlm 与辅助配置调用专用注册配方，选择、解析、回退与持久化仍归领域服务。
+
 领域服务 → `prompts/registered-request.ts` 固定配方 → 不透明编译对象 → `llm/index.ts` 校验来源与身份 → Provider。签发器不公开，正文、key 和实验作用域保存为冻结快照；模型入口先拒绝旧字段、伪造身份、错误调用行为和未知资产，再创建 Trace 与发送请求。主 System 与压缩恢复系统消息必须有编译身份，运行时数据不伪装成生产资产。SubAgent 角色纯定义移至 `prompts/subagent-roles.ts`，执行器与资产目录共用它，LLM 不反向依赖 Agent。
 
 Playground / Eval 使用明确实验配方与来源，生产模块禁止导入 Eval 签发入口。目录只读与页面编辑实验是不同职责；Debug 即时装配和当次实发快照也各自标明边界。

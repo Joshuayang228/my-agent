@@ -65,7 +65,7 @@ export function auditRegisteredCalls(file: string, text: string, recipes: Set<st
       seen.add(expr.text)
       const value = variables.get(expr.text)
       if (value) return reference(value, seen)
-      if (['streamChat', 'chatComplete'].includes(expr.text)) return `model#${expr.text}`
+      if (['streamChat', 'chatComplete', 'requestGeneratedImage'].includes(expr.text)) return `model#${expr.text}`
     }
     if (ts.isPropertyAccessExpression(expr) && ts.isIdentifier(expr.expression)) {
       const from = namespaces.get(expr.expression.text)
@@ -74,16 +74,16 @@ export function auditRegisteredCalls(file: string, text: string, recipes: Set<st
     if (ts.isBinaryExpression(expr) && expr.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) return reference(expr.right, seen)
     return undefined
   }
-  const isRecipe = (expr: ts.Expression, seen = new Set<string>()): boolean => {
+  const isRecipe = (expr: ts.Expression, seen = new Set<string>(), requiredRecipe?: string): boolean => {
     if (ts.isIdentifier(expr)) {
       if (seen.has(expr.text)) return false
       seen.add(expr.text)
       const value = variables.get(expr.text)
-      return value ? isRecipe(value, seen) : false
+      return value ? isRecipe(value, seen, requiredRecipe) : false
     }
     if (ts.isCallExpression(expr)) {
       const ref = reference(expr.expression)
-      return Boolean(ref && /registered-request#/.test(ref) && recipes.has(ref.split('#')[1]))
+      return Boolean(ref && /registered-request#/.test(ref) && recipes.has(ref.split('#')[1]) && (!requiredRecipe || ref.split('#')[1] === requiredRecipe))
     }
     return false
   }
@@ -107,6 +107,10 @@ export function auditRegisteredCalls(file: string, text: string, recipes: Set<st
     return undefined
   }
   const visit = (node: ts.Node) => {
+    if (ts.isCallExpression(node) && /#requestGeneratedImage$/.test(reference(node.expression) ?? '')) {
+      const request = node.arguments[1]
+      if (!request || !isRecipe(request, new Set(), 'compileImageGenerationRequest')) errors.push(`${line(node)} 图片调用必须使用登记配方生成的 request`)
+    }
     if (ts.isCallExpression(node) && /#(?:streamChat|chatComplete)$/.test(reference(node.expression) ?? '')) {
       const props = options(node.arguments[0])
       const request = props?.find(p => p.name?.getText(source) === 'request')
