@@ -81,7 +81,8 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await page.screenshot({ path: info.outputPath('location-production-source.png') })
     for (const [label, destination] of [['查看家居资料', 'residence'], ['查看足迹记录', 'footprints']] as const) {
       await detail.getByRole('button', { name: label, exact: true }).click()
-      await expect(panel.getByTestId(`debug-evidence-${destination}`)).toContainText('此范围没有记录')
+      await expect(panel.getByTestId(`debug-evidence-${destination}`)).toContainText(destination === 'residence' ? '不推断默认住所或世界状态' : '不推断人物从未到访')
+      await expect(panel.getByTestId(`debug-evidence-${destination}`).locator('[data-record-id]')).toHaveCount(0)
       await nav.getByRole('button', { name: '当前位置', exact: true }).click()
       await toggle.click()
     }

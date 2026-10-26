@@ -1,5 +1,9 @@
 # Agent 运行时
 
+## 已落地能力：Debug 同源阅读与保存边界
+
+Debug 的内核、生活、社交、资产、用户、系统与质量七组采用 26 个同级入口；正文 / 关键事实优先，来源、变量、原始结构与运行诊断按需展开，字号和行距来自 Foundation。候选与正式页共用纯阅读层，正式数据、分页、异步归属与写入守卫由正式容器持有。LLM 的 System / 消息 / 响应正文采用 UI 正文档，工具 JSON 保留等宽；未保存响应不显示为空回复，明确保存的空字符串单独表达。消息占位展示实际保存的 contentLength，无效长度保持未知，不用占位文字字符数冒充请求长度。原有完整诊断、只读目录和受控执行边界保留。
+
 ## 已落地能力：正式人格验收与独立人工审阅
 
 正式人格验收与候选共用 `QualityReportReading`，保存摘要与逐场景结果先读，完整回复、自动证据、实际输入、System Prompt 和 Judge 计划按需展开；计划不证明已执行，未知历史字段不补造。人工审阅沿用报告文件 / 场景 / 保存轮次的持久化键，与自动结果分离；同文件刷新保留草稿，读失败禁写，迟到读取 / 保存不污染其他报告，重复场景标识保留证据但禁止歧义写入。运行白名单、进度、完整输出、停止和真实模型费用确认收在诊断展开区；确认框使用模态焦点边界，Esc 不触发外层返回，结束后恢复焦点。缺报告不替代最新，首次失败 / 无接口 / 实际空范围分开，刷新失败保留旧来源；未改报告或新增 IPC。
@@ -407,7 +411,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 | Agent 生产资产目录与运行证据链 | 已落地 | Debug「提示词管理器」聚合 Prompt / 伙伴人格 / 记忆策略 / 权限与沙箱 / Tool schema / Skill / Eval Case 与 Grader / Eval Judge / 模型 Provider / MCP；真实 LLM / Tool / Memory / Permission 运行通过稳定 key 写入脱敏证据，支持调用级分组、资产最近使用、跨面板跳转与 JSON / JSONL 导出；前端按 Alice 参考收口为生产证据页头、资产摘要、分类计数和左右分栏详情 |
 | GitHub Actions 质量门禁 | 已落地 | Docs / Asset 工作流；Unit 在无界面 Runner 使用 Electron external 占位路径，不下载桌面二进制；官方 Actions 使用 v7 |
 | Skills 管理 | 已落地 | 正式 Settings 与 Playground 共用 `settings/SkillViews.tsx` 的列表 / 独立详情 / 限高全文；内置正文只读，用户正文校验保存、取消与页内确认删除，失败可重试，离页迟到响应不覆盖新页面。`skills:set-enabled` 经 registry 串行持久化到 `skill-state-store`；停用从新摘要和工具注册移除，旧工具引用执行前再次校验。版本 / 回滚 / 隔离试跑后端仍供其既有调用者使用，不再是正式 Skills 页入口 |
-| Skill Eval 证据闭环 | 已落地 | `npm run eval:skill`；S01–S03 覆盖应触发 / 不触发 / `allowed_tools`；JSON + Markdown 报告；Debug「质量 / Eval」展示输入、Trace、工具、回复与四类 Grader |
+| Skill Eval 证据闭环 | 已落地 | `npm run eval:skill`；S01–S03 覆盖应触发 / 不触发 / `allowed_tools`；JSON + Markdown 报告；Debug「Skill 验收」展示输入、Trace、工具、回复与四类 Grader |
 | Prompt 受控编辑 | 已落地 | 生产资产只读；实验副本可隔离试跑；二次确认后复用 `settings.systemPrompt` 保存为行为模块的自定义补充指令 |
 | Playground 多轮隔离对话 | 已落地 | `playgroundRun.history` · PromptLab transcript |
 | Playground 模型测试（烟测 + thinking.disabled 探测） | 已落地 | `基础 → 设计语言`、`Agent 实验 → 模型能力` 等一级入口 · `debug:model-smoke` / `model-probe-thinking`；能力缓存供辅助调用 |
@@ -432,7 +436,8 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 
 - 工作区侧边聊天 IPC 会话在活动期间绑定发起 Renderer，并以请求令牌释放归属；跨窗口发送／中断被拒绝，缺省会话 ID 不触发全局 Runtime 中断。
 
-**现状**：Loop / Runtime / Prompt / 压缩 / 队列 / MCP / Skill 管理 / 可观测主线已落地；Prompt 由生产注册表统一登记稳定 key、用途 / 角色、来源、版本、自动指纹、locale 和动态插槽；核心 key 已类型化，生产 LLM 调用只接受固定配方签发的请求，自动携带来源，禁止原始消息 / 手填 key / promptless 覆盖。Debug 提示词管理器已扩展为生产资产统一目录，覆盖 Prompt、伙伴人格、记忆策略、权限与沙箱、Tool schema、Skill、Eval Case / Grader、Eval Judge、模型 Provider 和 MCP；真实 LLM / Tool / Memory / Permission 路径写入 `available / used / triggered / matched` 四类脱敏关联，调用详情逐次展示资产证据，资产详情可反查最近使用，未知 key 不静默入库；LLM Debug 只通过现有 observer → tracer Span sink 持久化结构元数据、正文长度和资产证据；schema v14 会清理历史正文，侧栏不再读取 Prompt / 响应 / hidden reasoning；全页 Debug 已按开发者诊断任务收口：提示词管理器 / 请求与运行 / 伙伴状态 / 质量·Eval / 系统；请求与运行域直接读取真实请求快照并保留调用链 / 事件，质量域读取 Skill / Persona Eval 报告：Skill Eval 展示触发、指南注入、工具边界和回复约束证据，Persona Eval 在独立本地审阅层保存真人格人工判断；原始报告和自动判定保持只读。Playground 已按设计 / Agent 实验两组收口，设计组件边缘态合并展示，旧人格验收与体验夹具源码保留但不再作为 active 入口。
+**现状**：Loop / Runtime / Prompt / 压缩 / 队列 / MCP / Skill 管理 / 可观测主线已落地；Prompt 由生产注册表统一登记稳定 key、用途 / 角色、来源、版本、自动指纹、locale 和动态插槽；核心 key 已类型化，生产 LLM 调用只接受固定配方签发的请求，自动携带来源，禁止原始消息 / 手填 key / promptless 覆盖。Debug 提示词管理器已扩展为生产资产统一目录，覆盖 Prompt、伙伴人格、记忆策略、权限与沙箱、Tool schema、Skill、Eval Case / Grader、Eval Judge、模型 Provider 和 MCP；真实 LLM / Tool / Memory / Permission 路径写入 `available / used / triggered / matched` 四类脱敏关联，调用详情逐次展示资产证据，资产详情可反查最近使用，未知 key 不静默入库；LLM Debug 只通过现有 observer → tracer Span sink 持久化结构元数据、正文长度和资产证据；schema v14 会清理历史正文，侧栏不再读取 Prompt / 响应 / hidden reasoning；全页 Debug 是与聊天并列的独立工作区，七组 26 个入口分别阅读内核、生活、社交、资产、用户、系统和质量证据；默认提示词管理器，运行概览融入系统状态。各页使用与已批准候选共源的纯阅读结构，正式容器仍持有真实只读查询、分页、刷新和稳定 ID 定位。来源、变量、完整字段和原始结构按需展开，未读 / 失败 / 空范围 / 不支持分别表达；Skill 报告只读，Persona 人工审阅独立保存且保留受控运行。Playground 当前有基础、产品体验与 Agent 实验三个工作域；Debug 候选使用隔离样张，不复制生产目录或触发真实会话 / 审阅写入。
+
 **缺口**：Swarm（wishlist）；更完整的子 Agent 产品化；真实 HTTP/SSE replay 与操作系统级 Shell 隔离仍未纳入默认门禁；外部 MCP 工具描述已标记为不受信任数据，超大 schema fail-closed。
 
 - 2026-09-17：复核生活资产备份 IPC。`data:export` / `data:import` 覆盖生活资产与播种标记，失败与会话同一事务回滚；记忆导入仍走 `memoryStore.addMemory`。该链路不进入 Loop，也不把朋友圈互动、MCP、权限、凭据或项目路径纳入备份。

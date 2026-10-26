@@ -36,8 +36,10 @@ let capturedRequest: CapturedRequest | null = null
 const capturedRequests: CapturedRequest[] = []
 let heldStreamClosed = false
 let mainOutput = ''
-const fixtureReportName = '2099-01-01T00-00-00-000Z-persona-b02-b07-pass-1.json'
+const fixtureStamp = new Date(); fixtureStamp.setUTCFullYear(2099)
+const fixtureReportName = `${fixtureStamp.toISOString().replace(/[:.]/g, '-')}-persona-b02-b07-pass-1.json`
 const fixtureReportPath = path.resolve(__dirname, '../../eval-reports', fixtureReportName)
+let fixtureReportCreated = false
 
 async function readBody(request: IncomingMessage): Promise<string> {
   const chunks: Buffer[] = []
@@ -85,7 +87,8 @@ test.beforeAll(async () => {
         },
       }],
     }],
-  }), 'utf8')
+  }), { encoding: 'utf8', flag: 'wx' })
+  fixtureReportCreated = true
   server = createServer(async (request, response) => {
     if (request.method === 'POST' && request.url === '/v1/messages') {
       capturedRequest = { url: request.url, authorization: String(request.headers['x-api-key'] ?? ''), body: JSON.parse(await readBody(request)) }
@@ -162,7 +165,7 @@ test.afterAll(async () => {
     if (electronApp.process().exitCode === null) await electronApp.evaluate(({ BrowserWindow }) => { for (const window of BrowserWindow.getAllWindows()) window.destroy() }).catch(() => {})
     await electronApp.close()
   }
-  await unlink(fixtureReportPath).catch(() => undefined)
+  if (fixtureReportCreated) await unlink(fixtureReportPath).catch(error => { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error })
   if (server) {
     server.closeAllConnections()
     await new Promise<void>((resolve) => server.close(() => resolve()))
@@ -239,6 +242,34 @@ test('首次进入通过模型路由配置后开始对话', async () => {
   await send.click()
   await expect(page.getByText('连接成功', { exact: true })).toBeVisible({ timeout: 30_000 })
   expect(capturedRequest).toMatchObject({ url: '/v1/chat/completions', authorization: 'Bearer local-test-key', body: { model: 'local-test-model', stream: true } })
+  // 背景：只读空库不能证明历史上下文回读；意图：沿本地 SSE → 生产 observer / SQL → preload → 正式 UI 核对同条保存投影。
+  // 约束：仍为独占 profile 和本地测试服务，不访问真实模型；正文按生产元数据策略解释，不用当前 Prompt 补历史。
+  await expect.poll(async () => (await page.evaluate(() => window.electronAPI.debug.llmLogsQuery({ model: 'local-test-model', status: 'success', limit: 40 }))).records.length).toBeGreaterThan(0)
+  const saved = await page.evaluate(async () => {
+    const list = await window.electronAPI.debug.llmLogsQuery({ model: 'local-test-model', status: 'success', limit: 40 })
+    return window.electronAPI.debug.llmLogGet(list.records[0].id)
+  })
+  expect(saved).not.toBeNull(); expect(saved!.requestMessages.length).toBeGreaterThan(0)
+  expect(JSON.stringify(saved)).not.toContain('local-test-key')
+  await page.evaluate(() => window.electronAPI.settings.set('developerMode', 'true')); await page.reload()
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
+  const debug = page.getByTestId('dev-panel')
+  await debug.getByRole('navigation').getByRole('button', { name: '上下文', exact: true }).click()
+  await debug.getByRole('combobox', { name: '选择保存的调用', exact: true }).selectOption(saved!.id)
+  const context = debug.getByRole('article', { name: '上下文保存范围', exact: true })
+  await expect(context).toContainText(saved!.id)
+  await context.getByText('来源与完整保存结构', { exact: true }).click()
+  await expect(context.locator('.debug-context-source pre')).toHaveText(JSON.stringify({ id: saved!.id, requestMessages: saved!.requestMessages, requestTools: saved!.requestTools, requestExtra: saved!.requestExtra }, null, 2))
+  await expect(debug).toContainText('新日志不保存消息正文')
+  await context.getByRole('button', { name: '查看这次调用', exact: true }).click()
+  const calls = debug.getByTestId('llm-calls-panel')
+  await calls.getByRole('tab', { name: '完整 JSON', exact: true }).click()
+  await expect(calls).toContainText(saved!.id)
+  await calls.getByRole('tab', { name: '响应', exact: true }).click()
+  await expect(calls).toContainText('响应正文未持久化')
+  await debug.getByRole('button', { name: '返回聊天', exact: true }).click()
+
 })
 
 test('正式自定义模型连接保存协议并在重载后通过真实协议测试', async () => {

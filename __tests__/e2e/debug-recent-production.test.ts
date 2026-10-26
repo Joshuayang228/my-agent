@@ -83,7 +83,8 @@ for (const view of ['recent', 'activity'] as const) for (const theme of ['porcel
     if (view === 'activity') {
       await recent.getByRole('button', { name: '查看调用链', exact: true }).click()
       await expect(panel.getByRole('heading', { name: '调用链', level: 1, exact: true })).toBeVisible()
-      await expect(panel.getByText('调用链读取失败，保留上次成功证据', { exact: true })).toBeVisible()
+      await expect(panel.getByRole('alert')).toContainText('调用链读取失败；未读取的 Span 数量未知。')
+      await expect(panel.getByTestId('debug-evidence-traces').locator('[data-record-id]')).toHaveCount(0)
       await panel.getByRole('navigation').getByRole('button', { name: label, exact: true }).click()
       await recent.getByRole('button', { name: '查看成长与反思', exact: true }).click()
       await expect(panel.getByRole('heading', { name: '成长与反思', level: 1, exact: true })).toBeVisible()

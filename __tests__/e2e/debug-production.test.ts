@@ -47,6 +47,8 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
     const profileRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'profile', roleId }), roleId)).records
     const memoryRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'memories', roleId }), roleId)).records
     const traceSnapshot = await page.evaluate(() => window.electronAPI.debug.traces())
+    const productionPrompt = await page.evaluate(async () => (await window.electronAPI.debug.modelContextAssets()).find(asset => asset.assetType === 'prompt' && asset.contentKind === 'static' && typeof asset.content === 'string' && asset.content.length > 0))
+    expect(productionPrompt).toBeDefined()
     const skillIndex = await page.evaluate(() => window.electronAPI.debug.skillEvalReports())
     for (const view of DEBUG_EVIDENCE_VIEWS.filter(view => view !== 'context')) {
       const result = await page.evaluate(({ view, roleId }) => window.electronAPI.debug.companionEvidenceQuery({ view, roleId, date: view === 'schedule' ? new Date().toLocaleDateString('sv-SE') : undefined }), { view, roleId })
@@ -78,6 +80,20 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
         await expect(panel.getByRole('heading', { name: entry.label, exact: true, level: 1 })).toBeVisible()
         await expect(panel.getByText(/正在读取/)).toHaveCount(0)
         await expect(panel.getByText(/读取失败|此页面需要桌面应用|需要 Electron 环境/)).toHaveCount(0)
+        if (entry.id === 'assets') {
+          const assets = panel.getByTestId('registered-asset-workbench')
+          await assets.getByRole('textbox', { name: '搜索提示词与资产' }).fill(productionPrompt!.key)
+          const group = assets.locator('.debug-prompt-group').first()
+          if ((await group.getAttribute('aria-expanded')) !== 'true') await group.click()
+          const row = assets.locator('.debug-prompt-entry').filter({ has: page.getByText(productionPrompt!.name, { exact: true }) })
+          await expect(row).toHaveCount(1); await row.click()
+          const detail = assets.getByRole('article', { name: '资产详情' })
+          await expect(detail.locator('[data-content-kind="prose"]')).toHaveText(productionPrompt!.content!)
+          await detail.getByText(/^来源与版本/).click()
+          await expect(detail).toContainText(productionPrompt!.key)
+          await expect(detail).toContainText(productionPrompt!.fingerprint)
+          await expect(detail.locator('textarea, [contenteditable="true"]')).toHaveCount(0)
+        }
         if (entry.id === 'character') {
           const character = panel.getByTestId('debug-evidence-character')
           await expect(character.locator('.debug-character-summary .debug-character-body')).toHaveText(characterRecord.body.length > 160 ? `${characterRecord.body.slice(0, 160)}…` : characterRecord.body || '简介未提供')

@@ -17,6 +17,7 @@ import { IconButton } from '../foundation/IconButton'
 import { SelectField } from '../foundation/SelectField'
 import { TextField } from '../foundation/TextField'
 import { formatDebugBytes, formatDebugValue, normalizeDebugMessages } from './debug-format'
+import { messageScope } from './saved-context'
 
 const PAGE_SIZE = 30
 
@@ -337,8 +338,8 @@ export function LLMCallsPanel({ focusId, onAsset, revision = 0, showHeading = tr
                 <div className="space-y-2">
                   {detail.error && <ResponseBlock label="错误" value={detail.error} danger />}
                   {detail.responseReasoning && <ResponseBlock label="Reasoning" value={detail.responseReasoning} />}
-                  <ResponseBlock label="正文" value={detail.responseContent || '（空）'} />
-                  <ResponseBlock label="Tool Calls" value={formatDebugValue(detail.responseToolCalls) || '[]'} />
+                  <ResponseBlock label="正文" value={detail.responseContent == null ? '响应正文未持久化或未返回；不据此判断模型回复为空。' : detail.responseContent === '' ? '（已保存空字符串）' : detail.responseContent} />
+                  <ResponseBlock label="Tool Calls" technical value={formatDebugValue(detail.responseToolCalls) || '[]'} />
                 </div>
               )}
               {detailView === 'json' && <CodeBlock value={detail} />}
@@ -549,6 +550,10 @@ function SkillActivationsDetail({ items }: { items: SkillActivationTrace[] }) {
   )
 }
 
+/** 背景：日志保留正文占位与原长度，数占位字样会误报请求大小。
+ * 意图：复用上下文保存范围解释，正文使用基础正文阅读档。
+ * 约束：不还原未保存正文；无有效长度保持未知，实际已保存字符数与原请求长度分别表达。
+ */
 function DetailMessages({ messages }: { messages: ReturnType<typeof normalizeDebugMessages> }) {
   if (messages.length === 0) return <Empty text="本次调用没有请求消息。" />
   return (
@@ -557,9 +562,9 @@ function DetailMessages({ messages }: { messages: ReturnType<typeof normalizeDeb
         <article key={`${message.id ?? index}-${index}`} className="rounded-lg border" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
           <div className="flex justify-between border-b px-3 py-1.5" style={{ borderColor: 'var(--border-subtle)' }}>
             <span className="font-mono text-[length:var(--type-meta)] font-semibold" style={{ color: roleColor(message.role) }}>{message.role}</span>
-            <span className="font-mono text-[length:var(--type-meta)]" style={{ color: 'var(--text-muted)' }}>{message.content.length} chars</span>
+            <span className="font-mono text-[length:var(--type-meta)]" style={{ color: 'var(--text-muted)' }}>{message.content === '（正文未持久化）' ? messageScope({ content: message.content, contentLength: message.contentLength }) : `${message.content.length} 个已保存字符`}</span>
           </div>
-          <pre className="whitespace-pre-wrap break-words p-3 font-mono text-[length:var(--type-caption)] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{message.content || '（空）'}</pre>
+          <pre className="whitespace-pre-wrap break-words p-3 text-[length:var(--type-body)] leading-[var(--line-height-body)]" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)' }}>{message.content || '（空）'}</pre>
         </article>
       ))}
     </div>
@@ -574,11 +579,15 @@ function CodeBlock({ value }: { value: unknown }) {
   )
 }
 
-function ResponseBlock({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
+/** 背景：响应正文与工具 JSON 曾一律按小号代码排版。
+ * 意图：自然语言沿用已确认的基础正文档，显式协议字段保留等宽。
+ * 约束：只改变阅读角色，不解析、裁剪或生成响应内容，所有尺寸与行距来自 Foundation token。
+ */
+function ResponseBlock({ label, value, danger, technical = false }: { label: string; value: string; danger?: boolean; technical?: boolean }) {
   return (
     <section>
       <div className="mb-1 text-[length:var(--type-meta)] font-semibold uppercase" style={{ color: danger ? 'var(--danger)' : 'var(--text-muted)' }}>{label}</div>
-      <pre className="scrollbar-hover max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-lg border p-3 font-mono text-[length:var(--type-caption)]" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: danger ? 'var(--danger)' : 'var(--text-secondary)' }}>{value}</pre>
+      <pre className={`scrollbar-hover max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-lg border p-3 ${technical ? 'font-mono text-[length:var(--type-caption)] leading-[var(--line-height-caption)]' : 'text-[length:var(--type-body)] leading-[var(--line-height-body)]'}`} style={{ fontFamily: technical ? 'var(--font-mono)' : 'var(--font-ui)', borderColor: 'var(--border-color)', background: 'var(--bg-primary)', color: danger ? 'var(--danger)' : 'var(--text-secondary)' }}>{value}</pre>
     </section>
   )
 }

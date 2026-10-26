@@ -83,7 +83,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await page.evaluate(() => document.documentElement.setAttribute('data-font-scale', 'md'))
     await page.screenshot({ path: info.outputPath('character-production-detail.png') })
     await detail.getByRole('button', { name: '查看成长与反思', exact: true }).click()
-    await panel.locator('details.debug-production-record > summary').click()
+    await panel.getByTestId('debug-evidence-growth').locator('[data-record-id="lin"] button').click()
     await panel.getByRole('button', { name: '查看缺失人物引用', exact: true }).click()
     await expect(character).toContainText('引用资料未在该人物范围找到，未选择替代人物。')
     await expect(character.locator('.debug-character-summary')).toHaveCount(0)

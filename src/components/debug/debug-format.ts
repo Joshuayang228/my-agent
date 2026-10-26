@@ -1,6 +1,7 @@
 export interface DebugRequestMessage {
   role: string
   content: string
+  contentLength?: number
   id?: string
   toolName?: string
 }
@@ -32,6 +33,7 @@ export function normalizeDebugMessages(value: unknown): DebugRequestMessage[] {
     return {
       role: typeof raw.role === 'string' ? raw.role : 'unknown',
       content: formatDebugValue(raw.content),
+      ...(typeof raw.contentLength === 'number' && Number.isSafeInteger(raw.contentLength) && raw.contentLength >= 0 ? { contentLength: raw.contentLength } : {}),
       ...(typeof raw.id === 'string' ? { id: raw.id } : { id: String(index) }),
       ...(typeof raw.toolName === 'string' ? { toolName: raw.toolName } : {}),
     }

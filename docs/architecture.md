@@ -303,7 +303,7 @@ Skill 启停是用户运行态，不修改内置文件或资产指纹。`skills:
 ### 9. Eval 与 Debug 证据链
 
 - Eval CLI 是判定与报告的事实源；Debug 只通过受控 IPC 读取报告、启动固定白名单脚本，不在渲染层重新评分。
-- Debug 只有一个产品入口：`activeView === 'debug'` 渲染 `DevPanel` 全页工作区；Chat 不再维护 `conversationDebugMode`，也不在 `ChatRightDock` 中叠加调试半屏。LLM 调用、Trace 和事件统一在 Debug「请求与运行」域查看。
+- Debug 只有一个产品入口：`activeView === 'debug'` 渲染 `DevPanel` 全页工作区；Chat 不再维护 `conversationDebugMode`，也不在 `ChatRightDock` 中叠加调试半屏。LLM 调用、调用链和实时事件分别作为 Debug「系统」分组的同级视角；七组 26 个入口以 `debug-navigation.ts` 为唯一导航事实源。候选与正式页共用无夹具阅读组件，正式容器仍负责真实读取、分页 / 刷新、异步归属与稳定 ID 跳转；生产不导入 Playground。
 - 产品 Primary Sidebar 只保留人物世界与设置两个产品目的地；MemoryPanel 与 SkillsPanel 仍是独立页面能力，但入口统一由 Settings 的「记忆」与「工具」分区承载，SecondaryNav 不再挂载。
 - Chat 壳层的 PrimarySidebar 与 ResizeHandle 由 `sidebar-transition` 轨道常驻承载：收起时通过宽度 / 透明度 / 位移和延迟隐藏完成滑动，搜索在顶部工具行内展开，不再增加独立搜索行。
 - Skill Eval 为每个 Case 创建独立临时目录和 ToolRegistry，复用生产 Skill 激活工具、Skill 摘要与 Agent Loop；Mock / Real 共用触发、指南注入、工具边界和回复约束 Grader。
