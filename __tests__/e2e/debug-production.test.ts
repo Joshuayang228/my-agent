@@ -47,6 +47,7 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
     const profileRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'profile', roleId }), roleId)).records
     const memoryRecords = (await page.evaluate(roleId => window.electronAPI.debug.companionEvidenceQuery({ view: 'memories', roleId }), roleId)).records
     const traceSnapshot = await page.evaluate(() => window.electronAPI.debug.traces())
+    const skillIndex = await page.evaluate(() => window.electronAPI.debug.skillEvalReports())
     for (const view of DEBUG_EVIDENCE_VIEWS.filter(view => view !== 'context')) {
       const result = await page.evaluate(({ view, roleId }) => window.electronAPI.debug.companionEvidenceQuery({ view, roleId, date: view === 'schedule' ? new Date().toLocaleDateString('sv-SE') : undefined }), { view, roleId })
       expect(result.view).toBe(view)
@@ -135,6 +136,21 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
           await expect(traces).toContainText('前台输入 / 输出')
           await traces.getByText('来源与诊断边界', { exact: true }).click()
           await expect(traces).toContainText('最近最多 100 条内存 Span 快照')
+        }
+        if (entry.id === 'quality') {
+          const skill = panel.getByTestId('skill-eval-panel')
+          if (skillIndex.latest) {
+            await expect(skill.getByTestId('skill-eval-report')).toBeVisible()
+            await expect(skill.locator('[data-case-id]')).toHaveCount(skillIndex.latest.cases.length)
+            await expect(skill.getByRole('combobox', { name: 'Skill Eval 历史报告' })).toHaveValue(skillIndex.latest.fileName)
+            await skill.getByText('报告来源与字段', { exact: true }).click()
+            await expect(skill).toContainText(skillIndex.latest.fileName)
+          } else {
+            await expect(skill).toContainText('还没有 Skill Eval 报告')
+            await expect(skill.getByTestId('skill-eval-report')).toHaveCount(0)
+          }
+          await skill.getByText('来源与诊断边界', { exact: true }).click()
+          await expect(skill).toContainText('本页不运行 Eval、不改报告、不重新评分')
         }
         if (entry.id === 'events') {
           const events = panel.getByTestId('debug-evidence-events')

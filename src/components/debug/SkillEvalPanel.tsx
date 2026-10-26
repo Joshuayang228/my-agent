@@ -1,177 +1,102 @@
-﻿import { CheckCircle2, RefreshCw, XCircle } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
-import type { DebugSkillEvalIndex, DebugSkillEvalReport, SkillEvalCaseReport } from '../../shared/types'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { DebugEvalRunStatus, DebugSkillEvalIndex, DebugSkillEvalReport } from '../../shared/types'
+import { ActionButton } from '../foundation/ActionButton'
+import { SelectField } from '../foundation/SelectField'
+import { QualityReportReading } from './QualityReportReading'
+import { SkillReportEvidence, skillReportNotices } from './SkillReportEvidence'
 
-const graderLabels: Record<string, string> = {
-  SkillActivation: '触发',
-  SkillInjection: '指南注入',
-  SkillToolBoundary: '工具边界',
-  SkillResponse: '回复约束',
-}
+const reportTime = (value: string) => Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString('zh-CN') : value || '时间未记录'
 
-/**
- * 展示 Skill Eval 的真实落盘证据。
- *
- * 背景：开发者需要看到 Agent 收到了什么、Skill 是否触发以及工具边界为何通过或失败。
- * 设计意图：直接读取主进程校验过的 CLI 报告，不在渲染层重新判分。
- * 关键约束：Vite 展厅没有 Electron IPC 时只显示空态；报告不包含 Skill 正文或密钥。
+/** 背景：报告切换的迟到响应和缺失文件回退曾把其他运行当作当前证据。
+ * 意图：索引 / 选择 / 运行通知共用请求归属，候选阅读只消费实际保存结果。
+ * 约束：不运行 Eval、不重新判分；首次失败不造空索引，刷新保留旧快照但明确来源，卸载后的响应不能提交。
  */
 export function SkillEvalPanel({ revision = 0 }: { revision?: number } = {}) {
   const [index, setIndex] = useState<DebugSkillEvalIndex | null>(null)
   const [report, setReport] = useState<DebugSkillEvalReport | null>(null)
+  const [selectedFile, setSelectedFile] = useState('')
+  const [selectedCase, setSelectedCase] = useState<string>()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-
-  const loadIndex = useCallback(async (preferredFile?: string) => {
-    const debug = window.electronAPI?.debug
-    if (!debug?.skillEvalReports) {
-      setIndex({ reportDir: 'eval-reports', reports: [], latest: null, skippedFiles: 0 })
-      setReport(null)
-      setLoading(false)
-      return
-    }
-    try {
-      setError('')
-      const nextIndex = await debug.skillEvalReports()
-      setIndex(nextIndex)
-      const selected = preferredFile
-        ? await debug.skillEvalReportGet(preferredFile)
-        : nextIndex.latest
-      setReport(selected || nextIndex.latest)
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : '读取 Skill Eval 报告失败')
-    } finally {
-      setLoading(false)
-    }
+  const [unavailable, setUnavailable] = useState(false)
+  const [missing, setMissing] = useState(false)
+  const [runStatus, setRunStatus] = useState<DebugEvalRunStatus | null>(null)
+  const [statusUnknown, setStatusUnknown] = useState(false)
+  const request = useRef(0), statusRequest = useRef(0), desiredFile = useRef(''), displayedFile = useRef('')
+  const commitReport = useCallback((next: DebugSkillEvalReport | null, target: string) => {
+    if ((next?.fileName ?? '') !== displayedFile.current) setSelectedCase(undefined)
+    displayedFile.current = next?.fileName ?? ''
+    setReport(next); setMissing(Boolean(target && !next))
   }, [])
-
+  const loadIndex = useCallback(async (preferredFile?: string) => {
+    const own = ++request.current
+    if (preferredFile) desiredFile.current = preferredFile
+    setLoading(true); setError(''); setUnavailable(false)
+    const debug = window.electronAPI?.debug
+    if (!debug?.skillEvalReports || !debug.skillEvalReportGet) { setUnavailable(true); setLoading(false); return }
+    try {
+      const nextIndex = await debug.skillEvalReports()
+      if (own !== request.current) return
+      const target = desiredFile.current || nextIndex.latest?.fileName || ''
+      const next = target && nextIndex.latest?.fileName === target ? nextIndex.latest : target ? await debug.skillEvalReportGet(target) : null
+      if (own !== request.current) return
+      if (next && next.fileName !== target) throw new Error('report identity mismatch')
+      desiredFile.current = target; setSelectedFile(target); setIndex(nextIndex); commitReport(next, target)
+    } catch {
+      if (own === request.current) setError('Skill 报告读取失败；已有报告保留，未读取的数量未知。')
+    } finally { if (own === request.current) setLoading(false) }
+  }, [commitReport])
+  const selectReport = async (fileName: string) => {
+    const own = ++request.current
+    desiredFile.current = fileName; setSelectedFile(fileName); setLoading(true); setError(''); setUnavailable(false)
+    const debug = window.electronAPI?.debug
+    if (!debug?.skillEvalReportGet) { setUnavailable(true); setLoading(false); return }
+    try {
+      const next = await debug.skillEvalReportGet(fileName)
+      if (own !== request.current) return
+      if (next && next.fileName !== fileName) throw new Error('report identity mismatch')
+      commitReport(next, fileName)
+    } catch {
+      if (own === request.current) setError('所选 Skill 报告读取失败；上次成功报告保留。')
+    } finally { if (own === request.current) setLoading(false) }
+  }
   useEffect(() => {
     void loadIndex()
     const debug = window.electronAPI?.debug
-    if (!debug?.onEvalRunEvent) return
-    return debug.onEvalRunEvent((event) => {
-      if (event.status.suite === 'skill' && event.status.state !== 'running') {
-        void loadIndex(event.status.latestReportFile)
-      }
+    const unsubscribe = debug?.onEvalRunEvent?.(event => {
+      statusRequest.current++; setRunStatus(event.status); setStatusUnknown(false)
+      if (event.status.suite === 'skill' && event.status.state !== 'running') void loadIndex(event.status.latestReportFile)
     })
+    const own = ++statusRequest.current
+    if (debug?.evalRunStatus) void debug.evalRunStatus().then(next => { if (own === statusRequest.current) { setRunStatus(next); setStatusUnknown(false) } }).catch(() => { if (own === statusRequest.current) setStatusUnknown(true) })
+    else setStatusUnknown(true)
+    return () => { request.current++; statusRequest.current++; unsubscribe?.() }
   }, [loadIndex, revision])
-
-  const selectReport = async (fileName: string) => {
-    const debug = window.electronAPI?.debug
-    if (!debug?.skillEvalReportGet) return
-    setLoading(true)
-    try {
-      setError('')
-      setReport(await debug.skillEvalReportGet(fileName))
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : '读取 Skill Eval 报告失败')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <section className="theme-card rounded-xl border p-4" data-testid="skill-eval-panel" style={{ borderColor: 'var(--border-color)' }}>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Skill Eval</h2>
-          <p className="mt-1 text-xs leading-5" style={{ color: 'var(--text-muted)' }}>验证 Skill 的触发、指南注入、工具边界和回复约束，并保留逐项证据。</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {index && index.reports.length > 0 && (
-            <select
-              aria-label="Skill Eval 历史报告"
-              className="theme-input h-8 max-w-64 rounded border px-2 text-xs"
-              value={report?.fileName || ''}
-              onChange={(event) => void selectReport(event.target.value)}
-            >
-              {index.reports.map((item) => (
-                <option key={item.fileName} value={item.fileName}>{new Date(item.timestamp).toLocaleString('zh-CN')} · {item.passedCases}/{item.totalCases}</option>
-              ))}
-            </select>
-          )}
-          <button type="button" onClick={() => void loadIndex(report?.fileName)} className="rounded border p-1.5" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }} title="刷新 Skill Eval 报告">
-            <RefreshCw size={13} />
-          </button>
-        </div>
-      </header>
-
-      {error && <p className="mt-3 text-xs" style={{ color: 'var(--danger)' }}>{error}</p>}
-      {loading && <p className="mt-4 text-xs" style={{ color: 'var(--text-muted)' }}>正在读取报告…</p>}
-      {!loading && !report && (
-        <div className="mt-4 rounded-lg border border-dashed px-4 py-5 text-center" style={{ borderColor: 'var(--border-subtle)' }}>
-          <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>还没有 Skill Eval 报告</p>
-          <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>使用下方“运行 Eval”中的 Skill Eval，或执行 npm run eval:skill。</p>
-        </div>
-      )}
-      {!loading && report && <SkillEvalReportView report={report} />}
-    </section>
-  )
-}
-
-function SkillEvalReportView({ report }: { report: DebugSkillEvalReport }) {
-  return (
-    <div className="mt-4 space-y-3" data-testid="skill-eval-report">
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border px-3 py-2 text-xs" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>
-        <ResultMark pass={report.pass} />
-        <span>{report.passedCases}/{report.totalCases} Case 通过</span>
-        <span>模式：{report.mode === 'mock' ? 'Mock' : 'Real'}</span>
-        <span>模型：{report.model}</span>
-        <span>{new Date(report.timestamp).toLocaleString('zh-CN')}</span>
-      </div>
-      <div className="space-y-2">
-        {report.cases.map((testCase) => <SkillEvalCaseView key={testCase.id} testCase={testCase} />)}
-      </div>
+  const running = !statusUnknown && runStatus?.suite === 'skill' && runStatus.state === 'running'
+  const rows = report?.cases.map(item => ({ id: item.id, title: item.description, pass: item.pass, caption: `${item.graderResults.length} 项判定`, source: item })) ?? []
+  return <section className="debug-quality-workbench" data-testid="skill-eval-panel">
+    <p className="debug-quality-state">验证 Skill 的触发、指南注入、工具边界和回复约束，并保留逐项证据。</p>
+    <div className="debug-quality-toolbar">
+      {index && index.reports.length > 0 && <label><span>报告</span><SelectField aria-label="Skill Eval 历史报告" value={selectedFile} onChange={event => void selectReport(event.target.value)}>
+        {selectedFile && !index.reports.some(item => item.fileName === selectedFile) && <option value={selectedFile}>{selectedFile}（未在当前索引）</option>}
+        {index.reports.map(item => <option key={item.fileName} value={item.fileName}>{reportTime(item.timestamp)} · {item.passedCases}/{item.totalCases} · {item.mode === 'mock' ? '模拟' : '真实'} · {item.fileName}</option>)}
+      </SelectField></label>}
+      <ActionButton onClick={() => void loadIndex()} title="刷新 Skill Eval 报告">刷新报告</ActionButton>
     </div>
-  )
-}
-
-function SkillEvalCaseView({ testCase }: { testCase: SkillEvalCaseReport }) {
-  return (
-    <details className="rounded-lg border" data-testid={`skill-eval-case-${testCase.id}`} style={{ borderColor: testCase.pass ? 'var(--border-subtle)' : 'var(--danger)' }}>
-      <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-xs">
-        <ResultMark pass={testCase.pass} />
-        <strong style={{ color: 'var(--text-primary)' }}>{testCase.id}</strong>
-        <span className="min-w-0 flex-1 truncate" style={{ color: 'var(--text-secondary)' }}>{testCase.description}</span>
-        <span style={{ color: 'var(--text-muted)' }}>{testCase.durationMs}ms</span>
-      </summary>
-      <div className="space-y-3 border-t px-3 py-3 text-xs" style={{ borderColor: 'var(--border-subtle)' }}>
-        <EvidenceBlock title="实际输入">
-          <p><strong>用户输入：</strong>{testCase.input.userPrompt}</p>
-          <p><strong>Skill：</strong>{testCase.input.skill.name} · {testCase.input.skill.version} · {testCase.input.skill.source}</p>
-          <p className="break-all"><strong>指纹：</strong>{testCase.input.skill.fingerprint}</p>
-          <p><strong>预期触发：</strong>{testCase.input.expectedActivation ? '是' : '否'}　<strong>激活工具：</strong>{testCase.input.skill.toolName}</p>
-          <p><strong>允许工具：</strong>{testCase.input.allowedTools.join(', ') || '无'}</p>
-        </EvidenceBlock>
-        <EvidenceBlock title="运行证据">
-          <p><strong>指南注入：</strong>{testCase.evidence.injectionObserved ? '已观察到' : '未观察到'}</p>
-          <p><strong>工具调用：</strong>{testCase.evidence.toolCalls.join(', ') || '无'}</p>
-          <p><strong>激活 Trace：</strong>{testCase.evidence.activations.length === 0 ? '无' : testCase.evidence.activations.map((item) => `${item.name}（${item.reason || '无原因'}）`).join('；')}</p>
-        </EvidenceBlock>
-        <EvidenceBlock title="Agent 回复">
-          <p className="whitespace-pre-wrap">{testCase.evidence.agentText || '（空）'}</p>
-        </EvidenceBlock>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {testCase.graderResults.map((grader) => (
-            <div key={grader.graderName} className="rounded border p-2.5" style={{ borderColor: grader.result.pass ? 'var(--border-subtle)' : 'var(--danger)' }}>
-              <div className="flex items-center gap-1.5 font-medium" style={{ color: 'var(--text-primary)' }}><ResultMark pass={grader.result.pass} />{graderLabels[grader.graderName] || grader.graderName}</div>
-              <p className="mt-1.5" style={{ color: grader.result.violations.length ? 'var(--danger)' : 'var(--text-muted)' }}>{grader.result.violations.join('；') || '无违规'}</p>
-              {grader.result.evidence.map((item, index) => <p key={`${grader.graderName}-${index}`} className="mt-1 break-words" style={{ color: 'var(--text-muted)' }}>{item}</p>)}
-            </div>
-          ))}
-        </div>
-        {testCase.error && <p style={{ color: 'var(--danger)' }}>{testCase.error}</p>}
-      </div>
-    </details>
-  )
-}
-
-function EvidenceBlock({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div className="space-y-1 rounded border p-2.5" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}><h3 className="font-medium" style={{ color: 'var(--text-primary)' }}>{title}</h3>{children}</div>
-}
-
-function ResultMark({ pass }: { pass: boolean }) {
-  return pass
-    ? <CheckCircle2 size={14} style={{ color: 'var(--success)' }} aria-label="通过" />
-    : <XCircle size={14} style={{ color: 'var(--danger)' }} aria-label="失败" />
+    {unavailable && <p className="debug-quality-state" role="status">Skill 报告接口不可用，未读取报告数量；已有内容不是最新结果。</p>}
+    {error && <div className="debug-quality-state" role="alert"><p>{error}</p><ActionButton onClick={() => void loadIndex()}>重试</ActionButton></div>}
+    {loading && <p className="debug-quality-state" role="status">正在读取报告；已保存内容不代表最新读取结果…</p>}
+    {running && <p className="debug-quality-state" role="status">Skill Eval 正在运行；完成前不显示本轮通过结论。</p>}
+    {runStatus?.suite === 'skill' && ['failed', 'cancelled'].includes(runStatus.state) && <p className="debug-quality-state" role="status">最近一次记录的 Skill 运行未成功；报告判定仍以所选保存文件为准。</p>}
+    {missing && <p className="debug-quality-state" role="status">指定报告未返回，未用最新报告代替。<code>{selectedFile}</code></p>}
+    {report && selectedFile !== report.fileName && <p className="debug-quality-state" role="status">尚未读到所选报告，下方仍为上次成功文件：<code>{report.fileName}</code></p>}
+    {!running && !loading && !unavailable && !error && index && !report && !missing && <div className="debug-quality-state" role="status"><p>还没有 Skill Eval 报告</p><p>报告由固定 CLI 生成；本页只读，不自动运行模型。</p></div>}
+    {index && index.skippedFiles > 0 && <p className="debug-quality-state">当前有界索引有 {index.skippedFiles} 个报告文件未能读取，不推断完整历史。</p>}
+    {report && !running && <div data-testid="skill-eval-report">
+      {skillReportNotices(report).map(notice => <p className="debug-quality-state" role="status" key={notice}>{notice}</p>)}
+      <QualityReportReading title={`Skill Eval · ${report.mode === 'mock' ? '模拟' : '真实'}`} result={`${report.passedCases}/${report.totalCases} 通过`} resultNote={`报告标记：${report.pass ? '通过' : '未通过'}`} pass={report.pass} judgment="自动 Grader" cases={rows} selectedKey={selectedCase} onSelect={setSelectedCase} renderEvidence={item => <SkillReportEvidence item={item.source} />} />
+      <details className="debug-quality-boundary"><summary>报告来源与字段</summary><dl><dt>文件</dt><dd><code>{report.fileName}</code></dd><dt>时间</dt><dd>{reportTime(report.timestamp)}</dd><dt>模型</dt><dd>{report.model || '未记录'}</dd><dt>模式</dt><dd>{report.mode === 'mock' ? '模拟' : '真实'}</dd></dl></details>
+    </div>}
+    <details className="debug-quality-boundary"><summary>来源与诊断边界</summary><p>来源为 Skill Eval CLI 的已保存 JSON 报告与 grader 证据，索引经主进程有界校验读取。历史选项不是全量目录，模拟结果不当作真实模型质量结论；本页不运行 Eval、不改报告、不重新评分。</p>{statusUnknown && <p>运行状态未读取，不能据此判断是否正在运行；已保存报告不是本轮执行状态。</p>}</details>
+  </section>
 }

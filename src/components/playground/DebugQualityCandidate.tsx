@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ActionButton } from '../foundation/ActionButton'
-import { Badge } from '../foundation/Badge'
+import { QualityReportReading } from '../debug/QualityReportReading'
 
 export type QualityPreviewState = 'ready' | 'unread' | 'loading' | 'unavailable' | 'error' | 'refresh-error' | 'no-report' | 'running' | 'long' | 'failed-case' | 'unreviewed'
 interface Props { kind: 'quality' | 'persona'; previewState: QualityPreviewState; snapshotState: QualityPreviewState; onRetry: () => void }
@@ -26,7 +26,6 @@ export function DebugQualityCandidate({ kind, previewState, snapshotState, onRet
   const available = !['unread', 'loading', 'unavailable', 'error'].includes(previewState)
   const cases = kind === 'quality' ? SKILL_CASES : PERSONA_CASES
   const shown = state === 'long' ? [...cases, { id: 'extra', title: '长场景样张', pass: true, evidence: ['报告正文较长，按需展开。'.repeat(8)] }] : cases
-  const current = shown.find(item => item.id === selected)
   const passCount = shown.filter(item => item.pass).length
   const title = kind === 'quality' ? 'Skill Eval' : 'Persona Eval'
   return <section className="debug-quality-workbench" data-testid={`debug-evidence-${kind}`}>
@@ -36,8 +35,7 @@ export function DebugQualityCandidate({ kind, previewState, snapshotState, onRet
       {state === 'running' && <div className="debug-quality-state" role="status"><p>{title} 正在运行；完成前不显示通过结论。</p></div>}
       {state === 'unreviewed' && kind === 'persona' && <p className="debug-quality-state" role="status">自动结果已读取，人工审阅尚未完成；两者分开保存。</p>}
       {state !== 'no-report' && state !== 'running' && <>
-        <div className="debug-quality-summary"><div><span>报告</span><strong>{title}</strong></div><div><span>结果</span><strong className={passCount === shown.length ? 'debug-quality-pass' : 'debug-quality-fail'}>{passCount}/{shown.length} 通过</strong></div><div><span>判定</span><strong>{kind === 'persona' ? '自动 + 人工' : '自动 Grader'}</strong></div></div>
-        <div className="debug-quality-cases">{shown.map(item => <article key={item.id} className="debug-quality-case" data-case-id={item.id}><ActionButton variant="plain" style={{ color: 'var(--text-primary)' }} onClick={() => setSelected(selected === item.id ? undefined : item.id)}><Badge tone={item.pass ? 'success' : 'danger'}>{item.pass ? '通过' : '失败'}</Badge><strong>{item.title}</strong><span>{item.review ?? `${item.evidence.length} 条证据`}</span></ActionButton>{selected === item.id && <div className="debug-quality-evidence">{item.evidence.map((evidence, index) => <p key={index}>{evidence}</p>)}{kind === 'persona' && <p>人工审阅：{item.review ?? '未审阅'}；此页不替代人工下结论。</p>}</div>}</article>)}</div>
+        <QualityReportReading title={title} result={`${passCount}/${shown.length} 通过`} pass={passCount === shown.length} judgment={kind === 'persona' ? '自动 + 人工' : '自动 Grader'} cases={shown.map(item => ({ ...item, caption: item.review ?? `${item.evidence.length} 条证据` }))} selectedKey={selected} onSelect={setSelected} renderEvidence={item => <>{item.evidence.map((evidence, index) => <p key={index}>{evidence}</p>)}{kind === 'persona' && <p>人工审阅：{item.review ?? '未审阅'}；此页不替代人工下结论。</p>}</>} />
       </>}
       <details className="debug-quality-boundary"><summary>来源与诊断边界</summary><p>{kind === 'quality' ? '来源为 Skill Eval CLI 报告与 grader 证据；Skill 正文、凭据和隐藏推理不在此复制。' : '来源为 Persona Eval CLI 报告；自动判定与人工审阅独立保存，人工结果不会由 UI 自动推断。'} 不执行 Eval、不改变报告、不把 Playground 样张标成生产结论。</p></details>
     </>}
