@@ -31,7 +31,7 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 
 describe('UI component asset registry', () => {
   it('正式 Skill 验收与候选共用报告摘要和逐项阅读', () => {
-    for (const [file, suffix] of [['src/components/debug/SkillEvalPanel.tsx', './QualityReportReading'], ['src/components/playground/DebugQualityCandidate.tsx', '/debug/QualityReportReading']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'QualityReportReading', suffix), file).toBe(true)
+    for (const [file, suffix] of [['src/components/debug/PersonaEvalPanel.tsx', './QualityReportReading'], ['src/components/debug/SkillEvalPanel.tsx', './QualityReportReading'], ['src/components/playground/DebugQualityCandidate.tsx', '/debug/QualityReportReading']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'QualityReportReading', suffix), file).toBe(true)
     expect(UI_COMPONENT_REGISTRY['developer.quality-report-reading'].status).toBe('adopted')
   })
   it('正式运行事件与候选共用时间线和单条摘要', () => {

@@ -684,3 +684,16 @@
 
 .debug-schedule-notice { display:block; font-size:var(--type-caption); line-height:var(--line-height-caption); margin-top:4px; }
 .debug-schedule-workbench > .debug-prompt-provenance pre { font-family:var(--font-mono); font-size:var(--type-meta); line-height:var(--line-height-meta); white-space:pre-wrap; overflow-wrap:anywhere; }
+
+/* 背景：人格审阅和确认仍有历史固定字号；意图：业务表面只引用基础比例。
+   约束：不改变 Foundation 默认，不缩放报告原文或把自动结果合并为人工结论。 */
+.debug-persona-review, .debug-persona-controls { min-width:0; font-size:var(--type-caption); line-height:var(--line-height-caption); }
+.debug-persona-review textarea { width:100%; font-size:var(--type-body); line-height:var(--line-height-body); }
+.debug-persona-review fieldset { min-width:0; }
+.debug-persona-review button { font-size:var(--type-control); }
+.debug-persona-confirm { max-width:min(34rem,calc(100vw - 32px)); max-height:calc(100vh - 32px); overflow:auto; margin:auto; padding:calc(var(--spacing) * 5); border:1px solid var(--border-color); border-radius:var(--radius-overlay); background:var(--bg-primary); color:var(--text-primary); font-family:var(--font-ui); font-size:var(--type-body); line-height:var(--line-height-body); }
+.debug-persona-confirm::backdrop { background:rgba(0,0,0,.55); }
+.debug-persona-confirm h3 { font-size:var(--type-title); line-height:var(--line-height-title); }
+.debug-persona-confirm dl > div { display:grid; grid-template-columns:auto minmax(0,1fr); gap:12px; padding-block:8px; border-bottom:1px solid var(--border-subtle); }
+.debug-persona-confirm dd { overflow-wrap:anywhere; }
+.debug-persona-confirm button { font-size:var(--type-control); }

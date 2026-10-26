@@ -5729,7 +5729,7 @@ test.describe('My Agent UI', () => {
     await expect(page.getByText('Skill 报告接口不可用，未读取报告数量', { exact: false })).toBeVisible()
     await debugNav.getByRole('button', { name: '人格验收', exact: true }).click()
     await expect(page.locator('[data-testid="persona-eval-panel"]')).toBeVisible()
-    await expect(page.getByText('还没有 Persona Eval 报告', { exact: true })).toBeVisible()
+    await expect(page.getByText('人格报告接口不可用，未读取报告数量', { exact: false })).toBeVisible()
 
     await debugNav.getByRole('button', { name: 'LLM 调用', exact: true }).click()
     await expect(page.locator('[data-testid="request-runtime-panel"]')).toBeVisible()

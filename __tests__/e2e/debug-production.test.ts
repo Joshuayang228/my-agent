@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm, mkdir, writeFile, readFile, unlink } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { test, expect, type ElectronApplication } from '@playwright/test'
@@ -213,6 +213,53 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
     if (app) await app.close()
     // mkdtemp 的绝对路径只允许在本测试的临时父目录下清理。
     if (path.dirname(path.resolve(root)) !== path.resolve(os.tmpdir()) || !path.basename(root).startsWith('my-agent-debug-production-')) throw new Error('拒绝清理测试范围外目录')
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+/** 背景：替身无法证明人工审阅真正落库。
+ * 意图：向既有报告目录写唯一命名的测试文件，在独立 profile 中操作真实 preload / IPC / SQL。
+ * 约束：夹具不是模型质量证据；不启动模型 / Eval，不覆盖已有报告，结束只删除本次独占创建文件。
+ */
+test('正式人格报告与真实审阅保存刷新清空', async ({}, info) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'my-agent-persona-production-'))
+  const reportDir = path.resolve('eval-reports'), name = `${new Date().toISOString().replace(/[:.]/g, '-')}-persona-b02-b07-pass-1.json`, file = path.join(reportDir, name)
+  const original = JSON.stringify({ timestamp: new Date().toISOString(), mode: 'real', model: 'isolated-saved-fixture', baseUrl: 'mock://not-executed', pass: false, totalScenarios: 1, passedScenarios: 0, k: 1, scenarios: [{ id: 'P0', description: '仅验证已保存报告的读取与审阅', pass: false, passes: 0, k: 1, trials: [{ id: 'source-trial', description: '测试报告轮次', pass: false, durationMs: 0, graderResults: [], agentTexts: ['这是保存文件夹具，没有运行模型。'] }] }] })
+  let app: ElectronApplication | undefined, created = false
+  try {
+    await mkdir(reportDir, { recursive: true }); await writeFile(file, original, { flag: 'wx' }); created = true
+    app = await electron.launch({ args: [path.resolve('dist-electron/index.js'), `--user-data-dir=${root}`, '--no-sandbox'], env: { ...process.env, NODE_ENV: 'production', VITE_DEV_SERVER_URL: '', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' } })
+    expect(path.resolve(await app.evaluate(({ app }) => app.getPath('userData')))).toBe(path.resolve(root))
+    const page = await app.firstWindow(); await page.waitForLoadState('domcontentloaded'); await expect(page.locator('#startup-splash')).toBeHidden()
+    await page.evaluate(() => window.electronAPI.settings.set('developerMode', 'true')); await page.reload()
+    await expect(page.getByTestId('settings-panel')).toBeVisible(); await page.getByTestId('settings-back').click()
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
+    const panel = page.getByTestId('dev-panel'); await panel.getByRole('navigation').getByRole('button', { name: '人格验收', exact: true }).click()
+    const persona = panel.getByTestId('persona-eval-panel')
+    await persona.getByRole('combobox', { name: '选择 Eval 历史报告' }).selectOption(name)
+    await persona.locator('[data-case-id="P0"] > button').click()
+    await persona.getByTestId('persona-eval-trial-P0-trial-1').locator(':scope > summary').click()
+    const review = persona.getByTestId('persona-human-review'); await review.locator('summary').click()
+    await review.getByRole('button', { name: '活人感 / 自然度：5', exact: true }).click()
+    await review.getByRole('button', { name: '总体结论：通过', exact: true }).click()
+    await review.locator('textarea').fill('真实 IPC 独立保存，不改自动判定')
+    await review.getByRole('button', { name: '保存审阅', exact: true }).click()
+    await expect(review.getByText('已审阅 · 通过', { exact: true })).toBeVisible()
+    const stored = await page.evaluate(name => window.electronAPI.debug.personaEvalHumanReviewsList(name), name)
+    expect(stored).toHaveLength(1); expect(stored[0].notes).toBe('真实 IPC 独立保存，不改自动判定'); expect(stored[0].trialId).toBe('P0-trial-1')
+    await panel.getByRole('button', { name: '刷新当前分区', exact: true }).click()
+    await expect(review.locator('textarea')).toHaveValue('真实 IPC 独立保存，不改自动判定')
+    await expect(persona).toContainText('报告标记：未通过')
+    await page.screenshot({ path: info.outputPath('persona-real-review.png') })
+    await review.getByRole('button', { name: '清空', exact: true }).click()
+    await expect(persona).toContainText('人工审阅 0/1 轮')
+    expect(await page.evaluate(name => window.electronAPI.debug.personaEvalHumanReviewsList(name), name)).toEqual([])
+    expect(await readFile(file, 'utf8')).toBe(original)
+    expect((await page.evaluate(() => window.electronAPI.debug.evalRunStatus())).state).toBe('idle')
+  } finally {
+    if (app) await app.close()
+    if (created) { if (path.dirname(file) !== reportDir || path.basename(file) !== name) throw new Error('拒绝清理非本次创建报告'); await unlink(file) }
+    if (path.dirname(path.resolve(root)) !== path.resolve(os.tmpdir()) || !path.basename(root).startsWith('my-agent-persona-production-')) throw new Error('拒绝清理测试范围之外目录')
     await rm(root, { recursive: true, force: true })
   }
 })
