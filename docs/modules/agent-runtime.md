@@ -1,5 +1,9 @@
 # Agent 运行时
 
+## 提示词覆盖边界（2026-10-27 核对）
+
+注册目录与聊天签发已落地，不等于全部模型输入来源已闭环。现有防漏正文扫描主要限 electron/main，调用配方扫描为 electron/main / evals；App 的生图请求预填及独立 image-generation / Embedding 出口不受同样聊天门禁覆盖。主对话目录的 slots 为语义输入组，不是模板全部占位符的清单；当前 6 组与模板 29 个占位符不能直接视作一一对应。未保存的展开值也不从模板重建。已核对事实、Alice 证据与待确认修复见 [施工合同](../requirements/prompt-coverage-and-review-v2.md)。
+
 ## 已落地能力：提示词开发者审阅
 
 正式 `DevPanel` → `RegisteredAssetWorkbench` 读取 `debug:model-context-assets`，默认按唯一 key 统计提示词定义，其他资产 / 全部资产仍可访问；搜索覆盖用途、正文、模板、变量和真实定义符号，人物筛选保留平台共用来源。按已登记 purpose / role / roleUses / assetType 将主对话、身份、成长、世界与生活前置，平台规则后置；未知用途不猜补，排序不影响注册、编译和注入。

@@ -28,6 +28,7 @@
 
 | 文档 | 说明 |
 |------|------|
+| [prompt-coverage-and-review-v2.md](./prompt-coverage-and-review-v2.md) | 全链路盘点与 Alice 注册机制对照已完成；Renderer 预填、生图出口、变量映射及共享规则修复方案待确认 |
 | [foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md) | P0 方案待确认：四个产品体验的真实基础复用、Markdown / Diff / 控件收口与源码自动门禁 |
 | [playground-state-switchers-v1.md](./playground-state-switchers-v1.md) | P0：统一 Playground 场景、状态与宽度控制器，采用 MCP 独立选项样式 |
 | [playground-page-baseline-polish-v1.md](./playground-page-baseline-polish-v1.md) | P0 施工：Sidebar 底栏、Toast、Right Dock、人物世界与记忆页面样张统一精修 |
