@@ -1,0 +1,36 @@
+.debug-prompt-review .debug-review-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.debug-prompt-review .debug-review-counts,
+.debug-prompt-review .debug-review-result,
+.debug-prompt-review .debug-review-body-heading,
+.debug-prompt-review .debug-review-body-heading > span {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.debug-prompt-review .debug-review-counts,
+.debug-prompt-review .debug-review-result,
+.debug-prompt-review .debug-review-caption,
+.debug-prompt-review .debug-review-scope,
+.debug-prompt-review .debug-review-body-heading > span {
+  font-size: var(--type-caption);
+  line-height: var(--line-height-meta);
+  color: var(--text-muted);
+}
+.debug-prompt-review .debug-review-counts strong { color: var(--text-primary); }
+.debug-prompt-review .debug-review-counts details { min-width: 0; }
+.debug-prompt-review .debug-review-counts summary { cursor: pointer; }
+.debug-prompt-review .debug-review-counts p { max-width: 72ch; margin-block: 0.5rem; }
+.debug-prompt-review .debug-review-scope { display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
+.debug-prompt-review .debug-review-scope select { width: auto; font-size: var(--type-control); }
+.debug-prompt-review .debug-review-result { justify-content: space-between; }
+.debug-prompt-review .debug-review-body-heading { justify-content: space-between; margin-bottom: 0.75rem; }
+.debug-prompt-review .debug-review-body-heading h3 { margin: 0; }
+.debug-prompt-review .debug-review-purpose { font-size: var(--type-body); line-height: var(--line-height-body); color: var(--text-secondary); }
+.debug-prompt-review .debug-review-caption { margin-top: 0.5rem; }
+.debug-prompt-review .debug-candidate-facts dd { white-space: pre-wrap; overflow-wrap: anywhere; }
+.debug-candidate[data-perspective="assets"] .debug-prompt-review .debug-prompt-detail .debug-candidate-body { line-height: var(--line-height-body); }
+@media (max-width: 640px) {
+  .debug-prompt-review .debug-candidate-toolbar { flex-wrap: wrap; }
+  .debug-prompt-review .debug-candidate-search { flex-basis: 100%; }
+}

@@ -1,5 +1,9 @@
 # Agent 运行时
 
+## Playground 候选：提示词开发者审阅
+
+提示词管理器新增隔离审阅候选：提示词定义按注册类型和唯一 key 计数，与其他资产、当前筛选结果分别显示；支持用途 / 正文 / 变量 / 来源搜索、人物专属与平台共用范围、静态正文 / 模板 / 动态无固定正文区分。详情正文可复制，变量来源、行为合同、定义符号和相关调用按需展开。样张不连接模型、不读取真实目录、不写设置；正式 `RegisteredAssetWorkbench` 尚未回流，候选数量不代表生产数量。施工边界见 [提示词审阅施工合同](../requirements/debug-prompt-review-workbench-v1.md)。
+
 ## 已落地能力：关键追踪历史只读查询
 
 正式启动迁移到 schema v20（历史表自 v19 引入）后装配诊断历史 sink，Tracer 的采样 Span 及 start / end 事件按真实 ID 写入有界队列与 SQLite；`debug:history-query` 支持人物、会话、进程、Span、时间与指定记录筛选，游标绑定查询范围。查询不建表、不写盘；运行角色来自实际装配的 character，经 TraceContext 传播，不以活跃选角补齐。元数据仅含类型、caller、显式关联与数值，名字、错误正文、Prompt、工具输入输出均不保存。
