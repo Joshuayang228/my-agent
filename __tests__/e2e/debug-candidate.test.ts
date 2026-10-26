@@ -347,6 +347,8 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 
     await panel.getByRole('button', { name: /读取旅行记录/ }).click()
     await expect(panel.getByTestId('debug-call-detail')).toContainText('demo-call-02')
     await runs.getByRole('button', { name: '查看调用链', exact: true }).click()
+    // 此用例继续核对保留的当前快照；新增保存历史由独立四页用例验收。
+    if (await panel.getByTestId('debug-capability-candidate').isVisible()) await panel.getByRole('button', { name: '能力补齐样张', exact: true }).click()
     const traces = panel.getByTestId('debug-evidence-traces')
     await traces.locator('[data-record-id="demo-span-tool"] button').click()
     await expect(traces.getByRole('article', { name: 'Span 详情' })).toContainText('tool')

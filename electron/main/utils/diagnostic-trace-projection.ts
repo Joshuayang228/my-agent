@@ -16,13 +16,15 @@ export function publishTraceHistory(span: TraceSpan, phase: DiagnosticHistoryPha
     id: `${DIAGNOSTIC_PROCESS_RUN_ID}:span:${span.id}`, processRunId: DIAGNOSTIC_PROCESS_RUN_ID,
     kind: 'span', occurredAt: span.startTime, updatedAt: span.endTime ?? Date.now(), status: span.status,
     phase, spanType: span.type, caller: span.caller, spanId: span.id,
-    omittedFields: Object.keys(span.attributes).filter(key => !['roleId', 'sessionId', 'inputTokens', 'outputTokens'].includes(key)).length + 1 + (span.error ? 1 : 0),
+    omittedFields: Object.keys(span.attributes).filter(key => !['roleId', 'sessionId', 'sourceEventId', 'momentId', 'operation', 'inputTokens', 'outputTokens'].includes(key)).length + 1 + (span.error ? 1 : 0),
   }
-  for (const field of ['roleId', 'sessionId'] as const) {
+  for (const field of ['roleId', 'sessionId', 'sourceEventId', 'momentId'] as const) {
     const value = identifier(span.attributes[field])
     if (value) base[field] = value
     else if (span.attributes[field] !== undefined) base.omittedFields += 1
   }
+  if (span.attributes.operation === 'life_tick' || span.attributes.operation === 'life_projection') base.operation = span.attributes.operation
+  else if (span.attributes.operation !== undefined) base.omittedFields += 1
   const parent = identifier(span.parentId)
   if (parent) base.parentId = parent
   else if (span.parentId !== undefined) base.omittedFields += 1

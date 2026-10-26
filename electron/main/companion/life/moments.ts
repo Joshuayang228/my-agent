@@ -7,6 +7,7 @@
  */
 
 import type { LLMConfig } from '../../../../src/shared/types'
+import { startSpan } from '../../utils/tracer'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import type { CompanionEvent, CompanionMoment } from '../types'
 import {
@@ -26,6 +27,7 @@ export { formatMomentText } from './moment-format'
 
 export interface ProjectMomentOpts {
   /** tick 路径可为 true；Catch-up 细补默认 false */
+  parentSpanId?: string
   preferLlm?: boolean
   llmConfig?: LLMConfig
   universeId?: string
@@ -155,23 +157,28 @@ export async function publishAndProjectRange(
   let n = 0
   for (const ev of planned) {
     if (ev.scheduledAt < fromMs || ev.scheduledAt > toMs) continue
-    await store.markEventPublished(ev.id)
-    const published: CompanionEvent = { ...ev, status: 'published' }
-    // M25-G2：payload.grantAsset → 幂等入库（无则 noop）
-    await maybeGrantFromEvent({
-      roleId: ev.roleId,
-      eventId: ev.id,
-      eventPayload: ev.payload,
-    })
-    await projectMomentFromEvent(published, opts)
+    const span = startSpan('生活事件发布', 'system', 'interaction', opts?.parentSpanId, { roleId, sourceEventId: ev.id, operation: 'life_projection' })
+    try {
+      await store.markEventPublished(ev.id)
+      const published: CompanionEvent = { ...ev, status: 'published' }
+      // M25-G2：payload.grantAsset → 幂等入库（无则 noop）
+      await maybeGrantFromEvent({
+        roleId: ev.roleId,
+        eventId: ev.id,
+        eventPayload: ev.payload,
+      })
+      const moment = await projectMomentFromEvent(published, opts)
+      if (moment) span.setAttribute('momentId', moment.id)
+      span.end()
+    } catch (error) { span.end('error'); throw error }
     n += 1
   }
   return n
 }
 
 /** tick 用：发布所有 scheduled_at <= now 的 planned 并投影（prefer LLM 润色） */
-export async function publishAndProjectDue(roleId: string, now: number): Promise<number> {
-  return publishAndProjectRange(roleId, 0, now, { preferLlm: true })
+export async function publishAndProjectDue(roleId: string, now: number, parentSpanId?: string): Promise<number> {
+  return publishAndProjectRange(roleId, 0, now, { preferLlm: true, parentSpanId })
 }
 
 export async function listMomentsForRole(

@@ -6,11 +6,12 @@
  * 约束：默认关闭；复用勿扰窗；不发系统桌面通知；无 Moment 绝不空喊「想我了吗」。
  */
 
-import { BrowserWindow } from 'electron'
+import { PROACTIVE_DELIVERY_POLICY } from '../../../../src/shared/proactive-evidence'
 import * as settings from '../../storage/settings-store'
 import * as identity from '../identity/loader'
 import { toLocalDateString } from './dates'
 import { listMomentsForRole } from './moments'
+import { dispatchProactiveGreeting, hasProactiveReservation, recordProactiveSkip } from './proactive-evidence'
 import {
   DEFAULT_QUIET_END_HOUR,
   DEFAULT_QUIET_START_HOUR,
@@ -21,11 +22,11 @@ import {
   MOMENT_TIPS_QUIET_START_KEY,
 } from './moment-tips'
 
-export const PROACTIVE_GREETING_ENABLED_KEY = 'companionProactiveGreetingEnabled' as const
+export const PROACTIVE_GREETING_ENABLED_KEY = PROACTIVE_DELIVERY_POLICY.enabledSettingKey
 export const PROACTIVE_GREETING_LAST_DAY_KEY = 'companionProactiveGreetingLastDay' as const
 
 /** 近 Moment 窗口：超过则视为无增量，不问候 */
-export const PROACTIVE_GREETING_MOMENT_MAX_AGE_MS = 24 * 60 * 60 * 1000
+export const PROACTIVE_GREETING_MOMENT_MAX_AGE_MS = PROACTIVE_DELIVERY_POLICY.momentMaxAgeMs
 
 export type ProactiveGreetingDenyReason =
   | 'disabled'
@@ -85,23 +86,15 @@ function parseMuted(raw: string): boolean {
   return t === '1' || t === 'true' || t === 'yes'
 }
 
-function broadcast(payload: {
-  roleId: string
-  toast: string
-  momentId: string
-}): void {
-  for (const win of BrowserWindow.getAllWindows()) {
-    win.webContents.send('companion:proactive-greeting', payload)
-  }
-}
-
 /**
- * ticker 周期调用：条件满足则广播一次应用内主动问候。
+ * 背景：ticker 可重入且角色会切换，全局日标记不能约束每个人物。
+ * 意图：判断既有打扰策略，再让证据服务原子预留与定向投递。
+ * 约束：greeted 仅表示已发出；呈现靠单独回执，无窗口与失败不假报送达。
  */
 export async function maybeProactiveGreeting(
   roleId: string,
   now = Date.now(),
-): Promise<{ greeted: boolean; reason: ProactiveGreetingDecision['reason'] }> {
+): Promise<{ greeted: boolean; reason: ProactiveGreetingDecision['reason'] | 'no-window' | 'send-failed' | 'evidence-unavailable' | 'role-inactive' }> {
   const id = roleId.trim()
   if (!id) return { greeted: false, reason: 'disabled' }
 
@@ -115,8 +108,8 @@ export async function maybeProactiveGreeting(
     await settings.getSetting(MOMENT_TIPS_QUIET_END_KEY),
     DEFAULT_QUIET_END_HOUR,
   )
-  const lastDay = (await settings.getSetting(PROACTIVE_GREETING_LAST_DAY_KEY)).trim()
   const today = toLocalDateString(now)
+  const lastDay = hasProactiveReservation(id, today) ? today : ''
 
   const moments = await listMomentsForRole(id, { limit: 1 })
   const latest = moments[0]
@@ -124,6 +117,7 @@ export async function maybeProactiveGreeting(
   const ageOk =
     Boolean(latest) &&
     preview.length > 0 &&
+    now >= latest!.publishedAt &&
     now - latest!.publishedAt <= PROACTIVE_GREETING_MOMENT_MAX_AGE_MS
 
   const decision = decideProactiveGreeting({
@@ -137,6 +131,7 @@ export async function maybeProactiveGreeting(
     hasFreshMoment: ageOk,
   })
   if (!decision.allow) {
+    recordProactiveSkip(id, today, decision.reason, now, latest?.id)
     return { greeted: false, reason: decision.reason }
   }
 
@@ -149,9 +144,12 @@ export async function maybeProactiveGreeting(
   }
 
   const toast = formatProactiveGreetingToast({ roleName, preview })
-  await settings.setSetting(PROACTIVE_GREETING_LAST_DAY_KEY, today)
-  broadcast({ roleId: id, toast, momentId: latest!.id })
-  return { greeted: true, reason: 'ok' }
+  const activeRoleId = (await settings.getSetting('activeRoleId')).trim()
+  if (activeRoleId && activeRoleId !== id) {
+    recordProactiveSkip(id, today, 'role-inactive', now, latest?.id)
+    return { greeted: false, reason: 'role-inactive' }
+  }
+  return dispatchProactiveGreeting({ roleId: id, localDay: today, momentId: latest!.id, toast, now })
 }
 
 export const __test = {

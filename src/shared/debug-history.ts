@@ -28,6 +28,9 @@ export interface DiagnosticHistoryRecord {
   spanId: string
   roleId?: string
   sessionId?: string
+  operation?: 'life_tick' | 'life_projection'
+  sourceEventId?: string
+  momentId?: string
   parentId?: string
   links?: string[]
   durationMs?: number

@@ -10,6 +10,7 @@ import { mark, setLLMTraceSink } from './utils/tracer'
 import { setAssetUsageResolver, setAssetUsageSink } from './utils/asset-usage'
 import { closeDatabase, getDatabase, persist } from './storage/database'
 import { startDiagnosticHistory, stopDiagnosticHistory } from './debug/diagnostic-history-service'
+import { startProactiveEvidence, stopProactiveEvidence, registerProactiveGreetingWindow } from './companion/life/proactive-evidence'
 import { recoverPendingBackupMedia } from './storage/backup-recovery'
 import { startMemoryIndexSync } from './memory/index-sync'
 import { llmDebugStore } from './storage/llm-debug-store'
@@ -82,6 +83,7 @@ async function createWindow() {
   })
 
   const currentWindow = win
+  registerProactiveGreetingWindow(currentWindow)
   // 模型草稿可取消退出；恢复托盘关闭语义并显示已有留页提示，不能强制放行卸载。
   // 后台停止必须等 will-quit，before-quit 并不表示应用最终会退出。
   currentWindow.webContents.on('will-prevent-unload', () => {
@@ -278,6 +280,7 @@ function setupAutoUpdater() {
 app.whenReady().then(async () => {
   const database = await getDatabase()
   startDiagnosticHistory(database, persist)
+  startProactiveEvidence(database, persist)
   try { recoverPendingBackupMedia(database, app.getPath('userData')) }
   catch { log.warn('Backup media startup reconciliation deferred') }
   memoryIndexSync = startMemoryIndexSync()
@@ -330,6 +333,10 @@ app.on('before-quit', () => {
 })
 
 app.on('will-quit', async () => {
+  // 背景：Electron 不等待异步退出监听器；意图：在首个 await 前排空有界证据队列。
+  // 约束：退出期间尚未结束的任务保留未知结果，下次启动恢复为中断，不伪造成功。
+  stopDiagnosticHistory()
+  stopProactiveEvidence()
   memoryIndexSync?.stop()
   globalShortcut.unregisterAll()
   shutdownScheduler()
@@ -337,7 +344,6 @@ app.on('will-quit', async () => {
   stopLifeTicker()
   await runtime.shutdown()
   await mcpManager.disconnectAll().catch(() => {})
-  stopDiagnosticHistory()
   closeDatabase()
 })
 

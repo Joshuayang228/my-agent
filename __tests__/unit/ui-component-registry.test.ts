@@ -30,6 +30,15 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('保存运行与问候证据在正式容器及候选中使用同一阅读层', () => {
+    for (const [file, suffix] of [['src/components/debug/SavedEvidencePanel.tsx', './HistoryEvidenceReading'], ['src/components/playground/DebugCapabilityCandidate.tsx', '/debug/HistoryEvidenceReading']]) {
+      const source = readFileSync(file, 'utf8')
+      expect(rendersSharedTabs(source, 'HistoryEvidenceReading', suffix), file).toBe(true)
+      expect(rendersSharedTabs(source, 'ProactiveDeliveryReading', suffix), file).toBe(true)
+    }
+    expect(UI_COMPONENT_REGISTRY['developer.saved-evidence']).toMatchObject({ layer: 'experience', status: 'adopted', sourcePath: 'src/components/debug/HistoryEvidenceReading.tsx' })
+  })
+
   it('正式 Skill 验收与候选共用报告摘要和逐项阅读', () => {
     for (const [file, suffix] of [['src/components/debug/PersonaEvalPanel.tsx', './QualityReportReading'], ['src/components/debug/SkillEvalPanel.tsx', './QualityReportReading'], ['src/components/playground/DebugQualityCandidate.tsx', '/debug/QualityReportReading']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'QualityReportReading', suffix), file).toBe(true)
     expect(UI_COMPONENT_REGISTRY['developer.quality-report-reading'].status).toBe('adopted')
@@ -62,9 +71,9 @@ describe('UI component asset registry', () => {
     for (const [file, suffix] of [['src/components/debug/WardrobeEvidenceContent.tsx', './WardrobeReading'], ['src/components/playground/DebugWardrobeCandidate.tsx', '/debug/WardrobeReading']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'WardrobeReading', suffix), file).toBe(true)
     expect(UI_COMPONENT_REGISTRY['developer.wardrobe-reading'].status).toBe('adopted')
   })
-  it('正式主动消息与候选共用能力边界和失败阅读', () => {
+  it('旧版投递边界保留历史对照并标记弃用', () => {
     for (const [file, suffix] of [['src/components/debug/CompanionEvidencePanel.tsx', './ProactiveEvidenceContent'], ['src/components/playground/DebugProactiveCandidate.tsx', '/debug/ProactiveEvidenceContent']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'ProactiveEvidenceContent', suffix), file).toBe(true)
-    expect(UI_COMPONENT_REGISTRY['developer.proactive-evidence'].status).toBe('adopted')
+    expect(UI_COMPONENT_REGISTRY['developer.proactive-evidence'].status).toBe('deprecated')
   })
   it('正式通讯录与候选共用关系方向和共同事件阅读', () => {
     for (const [file, suffix] of [['src/components/debug/RelationsEvidenceContent.tsx', './RelationsReading'], ['src/components/playground/DebugRelationsCandidate.tsx', '/debug/RelationsReading']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'RelationsReading', suffix), file).toBe(true)

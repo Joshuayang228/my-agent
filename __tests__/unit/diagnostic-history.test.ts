@@ -53,6 +53,16 @@ describe('诊断历史：真实 SQL 与生命周期', () => {
     expect(queryDiagnosticHistory().state).toBe('ready')
   })
 
+  it('未 flush 的首个终态不会被重复结束覆盖，超限存储行不解析', () => {
+    store.record(record('twice', { status: 'ok', phase: 'ended', updatedAt: NOW }))
+    store.record(record('twice', { status: 'error', phase: 'ended', updatedAt: NOW + 1 }))
+    store.flush()
+    expect(store.query().records[0].status).toBe('ok')
+    db.run('UPDATE diagnostic_history SET record_json=?', [JSON.stringify({ text: 'x'.repeat(5000) })])
+    expect(store.query().records).toEqual([])
+    expect(store.query().coverage.invalidStored).toBe(1)
+  })
+
   it('同一真实 Span 可补上最初未知身份，但已有身份和终态不被覆盖', () => {
     store.record(record('late-role', { roleId: undefined }))
     store.flush()

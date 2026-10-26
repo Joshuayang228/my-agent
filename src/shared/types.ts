@@ -2,6 +2,7 @@
 export type { DebugEvidenceQuery, DebugEvidenceResult, DebugEvidenceRecord, DebugEvidenceScope } from './debug-evidence'
 export type { DebugTraceSpan, DebugTracesSnapshot } from './debug-traces'
 export type { DiagnosticHistoryRecord, DiagnosticHistoryQuery, DiagnosticHistoryResult } from './debug-history'
+export type { ProactiveGreetingPayload, ProactiveGreetingReceipt, ProactiveEvidenceQuery, ProactiveEvidenceResult } from './proactive-evidence'
 
 export interface ImageAttachment {
   /** base64 编码的图片数据（data:image/png;base64,...） */

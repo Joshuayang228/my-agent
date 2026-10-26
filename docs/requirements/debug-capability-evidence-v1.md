@@ -1,6 +1,6 @@
 # Debug 能力与历史证据补齐 v1
 
-状态：进行中（用户已确认；共同历史机制施工）
+生命周期：已完成施工快照（冻结）
 日期：2026-10-26
 
 ## 背景与目标
@@ -11,7 +11,7 @@ Debug 七组 26 页的展示回流已经完成，但展示真实来源不等于�
 
 当前能力事实仍归对应模块卡；下表是本次施工的源码核对底稿，不作为另一份长期能力总目录。
 
-## 源码核对：26 页与补齐归属
+## 开工时源码核对：26 页与补齐归属
 
 导航事实源：`src/shared/debug-navigation.ts`。领域读取集中在 `electron/main/debug/companion-evidence.ts`；其余专用接口位于 `electron/main/ipc/debug.ts`。
 
@@ -126,3 +126,29 @@ Debug 七组 26 页的展示回流已经完成，但展示真实来源不等于�
 批次验证：233 文件 / 1499 项 Unit、标准类型 / 生产构建通过；真实 Electron 在隔离 profile 沿本地 SSE → 生产 Span → SQLite → preload 查询核对同 ID 元数据，完整重启后按记录 ID 回读一致（`var/verification/diagnostic-history-{unit,build,electron}.log`）。测试不访问付费模型，不证明新 UI 或提醒送达。
 
 独立 Node 配置仍有既有诊断，不宣称全绿；编译器 overlay 对照本批改前 / 改后均 69 项、无新增（`var/verification/diagnostic-history-node-comparison.json`），`tsconfig.node.json` 已纳入新增共享历史类型。自审覆盖查询参数化 / 游标范围、列与 JSON 作用域一致性、白名单与凭据拒绝、资源上限、事务归属与重启中断；既有原始 Trace、LLM sink 与页面读取不删除。
+
+
+## 四页回流许可证与施工记录
+
+用户在 Playground 截图复核后明确回复「可以，按这版回流」，批准行为日志、主动消息、调用链和实时事件采用简洁时间线、单条详情、来源折叠；问候区分未发出、发出、呈现与未确认，不作已读证明。来源为既有 Debug story 的显式「能力补齐样张」，稳定导航身份仍为 activity / proactive / traces / events。
+
+生产落点：DevPanel → SavedEvidencePanel → HistoryEvidenceReading / ProactiveDeliveryReading；真实读取分别来自 debug:history-query 和 companion:proactive-evidence-query。生活事件、当前内存调用链与实时窗口仍保留；样张、场景控制器、虚构 ID 和首次失败开关留在 Playground，不进入正式页。
+
+本批替换正式主动消息的旧 unsupported 阅读入口和对应测试断言，原因是已有独立投递索引；通用旧领域接口仍明确指向专用接口，不再声称系统没有索引。行为日志的生活来源提示同步改为双来源说明，原生活查询 / 搜索 / 详情不删除；测试覆盖新时间线与真实查询，不再验证过时的「无独立源」界面。本合同收工结果见下节，稳定事实已吸入模块卡与架构文档。
+
+运行与投递阅读登记为 experience 组件 developer.saved-evidence，复用已有 Foundation；没有新增基础控件或 Foundation story。旧 developer.proactive-evidence 转为 deprecated，保留显式历史对照；正式体验来源与证据路径同步登记，资产审计与生产运行链分别核对。
+
+
+## 完工验收与边界（2026-10-26）
+
+四页按已批准样张回流，原生活事件、当前内存调用链和现场缓存保留；新增保存历史、主动问候索引、真实生活发布关联及来源往返均进入生产链路。未知 / 缺失 / 首次失败不补零、不替代目标，刷新旧快照保留，呈现不作已读证明。默认关闭、静音 / 勿扰、无窗口不消费、预留后不自动重发的边界未扩大；没有新增模型请求、系统通知或用户会话写入。
+
+回流映射：既有 Debug story / activity、proactive、traces、events → DevPanel / SavedEvidencePanel → 既有共享 Foundation 组合与新纯阅读层 → 两个只读 IPC。虚构记录、状态开关与旧版对照留在 Playground。新阅读组件 developer.saved-evidence 进入 adopted，旧边界组件 deprecated；生产投递常量直接注册为 companion:policy:proactive-delivery。
+
+最终自审核对 IPC 四处契约、SQL 参数化与游标归属、资源上限、落盘前预留、nonce / frame / 窗口归属、导航撤销、隐藏与卸载不报告、单向终态和重启恢复。另修复队列 flush 前重复结束可覆盖首个终态的问题，超限损坏行在 JSON 解析前拦下；负例测试通过。无新增依赖，无 Prompt 正文或凭据持久化。
+
+验证证据：235 文件 / 1515 项 Unit 通过；离线 Mock Eval 23 项和 Skill Eval 1 项通过；标准类型与生产 build 通过。Debug 最终专项 UI 40 项通过，覆盖四页能力样张、正式分页 / 失败 / 人物隔离、旧快照阅读及综合导航（debug-evidence-ui-final.log）；其他 Debug 页的扩大回归保留原日志。真实 Electron 全导航与审阅 2 项、问候闭环 1 项、本地请求到历史且完整重启回读 1 项通过（debug-evidence-electron-final.log 中前两项、debug-proactive-electron-probe.log、debug-history-electron-recheck.log）。问候测试验证实际隐藏窗口、额外未登记窗口、真实 Toast 回执、来源动态往返、并发 tick 和重启后的同条记录 / 名额，不依赖付费模型。
+
+额外 Node Compiler 对照改前 / 改后 69 项既有诊断且无新增，保留 WISH-043；根类型通过不等于该存量债已清零。扩大全仓 UI 时复现范围外的旧标题 / 状态切换 / 刷新按钮用例失败，经 HEAD 前端源码覆盖构建逐类复现后停止重复主题排列，保留 WISH-042，未宣称 682 项全绿。依赖审计全量 23 / 生产 15 项风险归 WISH-044，不在本合同顺手升级依赖或改范围外 UI。
+
+稳定能力、边界与必测点已吸入 companion / agent-runtime / memory 模块卡、architecture、quality；文档和资产门禁按最终暂存内容验证。该快照只保留本次 Why / What / How 和验收，今后能力变更回到模块卡维护。

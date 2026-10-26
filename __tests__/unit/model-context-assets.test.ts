@@ -41,6 +41,14 @@ const userSkill: SkillDefinition = {
 }
 
 describe('模型可见文本统一目录', () => {
+  it('主动问候生产策略直接登记常量与指纹，目录不读取提醒正文或用户设置', async () => {
+    const { getCompanionAssetCatalog } = await import('../../electron/main/companion/asset-registry')
+    const { PROACTIVE_DELIVERY_POLICY } = await import('../../src/shared/proactive-evidence')
+    const policy = getCompanionAssetCatalog().find(asset => asset.key === 'companion:policy:proactive-delivery')!
+    expect(policy).toMatchObject({ ownership: 'builtin', status: 'active', version: 'delivery-v1', source: 'src/shared/proactive-evidence.ts#PROACTIVE_DELIVERY_POLICY' })
+    expect(JSON.parse(policy.content)).toEqual(PROACTIVE_DELIVERY_POLICY)
+    expect(policy.fingerprint).toBeTruthy()
+  })
   it('聚合 Prompt、内置工具、用户 Skill 和 MCP schema，并标记所有权与指纹', () => {
     const promptAssets = getPromptAssets()
     const assets = buildModelContextAssets({
@@ -139,7 +147,7 @@ describe('模型可见文本统一目录', () => {
     })
     expect(new Set(assets.map((asset) => asset.assetType))).toEqual(new Set([
       'prompt', 'tool-schema', 'skill', 'eval-judge', 'eval-case', 'eval-grader',
-      'companion-manifest', 'companion-profile', 'companion-world', 'companion-scene',
+      'companion-life', 'companion-manifest', 'companion-profile', 'companion-world', 'companion-scene',
       'memory-strategy', 'permission-policy', 'sandbox-policy',
       'provider-capability', 'provider-policy', 'provider-preset', 'subagent-role',
     ]))

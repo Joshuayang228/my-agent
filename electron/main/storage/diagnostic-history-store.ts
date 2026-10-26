@@ -13,6 +13,7 @@ const recordSchema = z.object({
   spanType: z.enum(['interaction', 'llm_request', 'tool', 'tool_blocked', 'tool_execution', 'compress', 'subagent']),
   caller: z.enum(['main', 'compact', 'memory', 'title', 'subagent', 'tool', 'profile', 'system']), spanId: identity,
   roleId: identity.optional(), sessionId: identity.optional(), parentId: identity.optional(), links: z.array(identity).max(16).optional(),
+  operation: z.enum(['life_tick', 'life_projection']).optional(), sourceEventId: identity.optional(), momentId: identity.optional(),
   durationMs: count.optional(), inputTokens: count.optional(), outputTokens: count.optional(), omittedFields: count,
 }).strict().refine(row => row.updatedAt >= row.occurredAt)
 const querySchema = z.object({
@@ -71,7 +72,7 @@ export class DiagnosticHistoryStore {
     if (row.occurredAt < this.now() - LIMITS.retentionMs || row.updatedAt > this.now() + 60_000) { this.dropped += 1; return }
     const previous = this.queue.get(row.id)
     if (previous && (previous.occurredAt !== row.occurredAt || previous.roleId !== undefined && previous.roleId !== row.roleId || previous.sessionId !== undefined && previous.sessionId !== row.sessionId)) { this.dropped += 1; return }
-    if (previous && (previous.updatedAt > row.updatedAt || previous.status !== 'running' && row.status === 'running')) return
+    if (previous && (previous.updatedAt > row.updatedAt || previous.status !== 'running' && row.status !== previous.status)) return
     if (!previous && this.queue.size >= LIMITS.maxQueued) { this.dropped += 1; return }
     this.queue.set(row.id, row)
     this.schedule()
@@ -156,7 +157,8 @@ export class DiagnosticHistoryStore {
     let invalid = 0
     for (const row of page) {
       try {
-        const record = recordSchema.parse(JSON.parse(String(row.record_json)))
+        if (typeof row.record_json !== 'string' || Buffer.byteLength(row.record_json) > LIMITS.maxRecordBytes) throw new Error('历史记录超限')
+        const record = recordSchema.parse(JSON.parse(row.record_json))
         if (record.id !== row.id || record.occurredAt !== row.occurred_at || record.kind !== row.kind || record.processRunId !== row.process_run_id || record.spanId !== row.span_id || (record.roleId ?? null) !== row.role_id || (record.sessionId ?? null) !== row.session_id) throw new Error('历史标识不一致')
         if (row.status !== record.status && !(row.status === 'interrupted' && record.status === 'running' && record.kind === 'span')) throw new Error('历史状态不一致')
         records.push({ ...record, status: row.status === 'interrupted' ? 'interrupted' : record.status })

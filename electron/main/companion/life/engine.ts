@@ -8,6 +8,8 @@
 
 import type { LLMConfig } from '../../../../src/shared/types'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
+import { startSpan } from '../../utils/tracer'
+import { runWithTraceContext } from '../../utils/trace-context'
 import { createLogger } from '../../utils/logger'
 import * as settings from '../../storage/settings-store'
 import * as identity from '../identity/loader'
@@ -158,28 +160,36 @@ export async function tickActiveRole(now: number): Promise<{
     return { roleId, published: 0, scriptsCreated: 0 }
   }
 
-  const today = toLocalDateString(now)
-  const universeId = (await settings.getSetting('universeId')) || 'default'
-  const { created } = await ensureDayScripts(roleId, today, today, {
-    preferLlm: true,
-    universeId,
-  })
-  const published = await publishAndProjectDue(roleId, now)
-  // M23-G2：用最近 published 事件刷新短期情境（居所/时区保持稳定）
-  await refreshSituationFromLife(roleId, now)
-  await store.touchLastTick(roleId, now)
-  // M31-G1：有新投影时可选应用内轻提示（失败不阻断 tick）
-  if (published > 0) {
+  // 背景：生活推进独立于聊天；意图：记录真实任务身份并给发布节点传父 ID。
+  // 约束：只在解析主角且未暂停后开 Span，失败保留失败结果，不从 UI 选角回填。
+  const span = startSpan('生活推进', 'system', 'interaction', undefined, { roleId, operation: 'life_tick' })
+  return runWithTraceContext({ roleId, interactionSpanId: span.id }, async () => {
     try {
-      await maybeNotifyNewMoments(roleId, published, now)
-    } catch (err) {
-      log.warn('moment tip notify failed', { roleId, error: String(err) })
-    }
-  }
-  if (published || created) {
-    log.info('Active role ticked', { roleId, published, scriptsCreated: created, now })
-  }
-  return { roleId, published, scriptsCreated: created }
+      const today = toLocalDateString(now)
+      const universeId = (await settings.getSetting('universeId')) || 'default'
+      const { created } = await ensureDayScripts(roleId, today, today, {
+        preferLlm: true,
+        universeId,
+      })
+      const published = await publishAndProjectDue(roleId, now, span.id)
+      // M23-G2：用最近 published 事件刷新短期情境（居所/时区保持稳定）
+      await refreshSituationFromLife(roleId, now)
+      await store.touchLastTick(roleId, now)
+      // M31-G1：有新投影时可选应用内轻提示（失败不阻断 tick）
+      if (published > 0) {
+        try {
+          await maybeNotifyNewMoments(roleId, published, now)
+        } catch (err) {
+          log.warn('moment tip notify failed', { roleId, error: String(err) })
+        }
+      }
+      if (published || created) {
+        log.info('Active role ticked', { roleId, published, scriptsCreated: created, now })
+      }
+      span.end()
+      return { roleId, published, scriptsCreated: created }
+    } catch (error) { span.end('error'); throw error }
+  })
 }
 
 /** 供单测 / IPC 调试读取 */

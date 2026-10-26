@@ -22,6 +22,7 @@ import path from 'node:path'
 import { app } from 'electron'
 import { createLogger, hashForLog } from '../utils/logger'
 import { createDiagnosticHistorySchema } from './diagnostic-history-schema'
+import { createProactiveEvidenceSchema } from './proactive-evidence-schema'
 
 const log = createLogger('Database')
 
@@ -37,7 +38,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 19
+export const SCHEMA_VERSION = 20
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -495,6 +496,8 @@ export function runMigrations(database: SqlJsDatabase): void {
     },
     // v18 -> v19: bounded metadata history belongs to startup, never to Debug reads.
     createDiagnosticHistorySchema,
+    // v19 -> v20: role-scoped send reservations are independent of prunable greeting evidence.
+    createProactiveEvidenceSchema,
   ]
 
   while (version < SCHEMA_VERSION) {

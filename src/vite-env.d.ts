@@ -4,6 +4,10 @@ import type {
   DebugTracesSnapshot,
   DiagnosticHistoryQuery,
   DiagnosticHistoryResult,
+  ProactiveGreetingPayload,
+  ProactiveGreetingReceipt,
+  ProactiveEvidenceQuery,
+  ProactiveEvidenceResult,
   DebugEvidenceQuery,
   DebugEvidenceResult,
   DebugEvidenceScope,
@@ -348,8 +352,10 @@ declare global {
           callback: (payload: { roleId: string; toast: string; published: number }) => void,
         ) => () => void
         onProactiveGreeting: (
-          callback: (payload: { roleId: string; toast: string; momentId: string }) => void,
+          callback: (payload: ProactiveGreetingPayload) => void,
         ) => () => void
+        acknowledgeProactiveGreeting: (input: ProactiveGreetingReceipt) => Promise<{ accepted: boolean }>
+        proactiveEvidenceQuery: (input: ProactiveEvidenceQuery) => Promise<ProactiveEvidenceResult>
         onRoleChanged: (
           callback: (payload: {
             roleId: string

@@ -5,6 +5,7 @@
  */
 
 import { ipcMain, shell } from 'electron'
+import { acknowledgeProactiveGreeting, queryProactiveEvidence } from '../companion/life/proactive-evidence'
 import type { CompanionAssetCreateInput, CompanionWardrobeChangeInput } from '../../../src/shared/types'
 import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import {
@@ -56,6 +57,10 @@ import { readGeneratedImageReference, loadGeneratedImageReference } from '../sto
 const log = createLogger('CompanionIPC')
 
 export function registerCompanionIPC(): void {
+  ipcMain.handle('companion:proactive-greeting-receipt', (event, input: unknown) => acknowledgeProactiveGreeting(event, input))
+  ipcMain.handle('companion:proactive-evidence-query', (_event, input: unknown) => {
+    try { return queryProactiveEvidence(input) } catch { throw new Error('无法读取问候记录，请检查人物与查询范围后重试') }
+  })
   ipcMain.handle('companion:list-protagonists', async () => {
     const universeId = await settings.getSetting('universeId')
     return listActiveUniverseProtagonists(universeId)

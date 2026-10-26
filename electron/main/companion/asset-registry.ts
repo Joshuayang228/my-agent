@@ -8,6 +8,7 @@
  * 关键约束：只读、不访问运行时数据库、不把当前 world state 或用户资产混入静态目录。
  */
 
+import { PROACTIVE_DELIVERY_POLICY } from '../../../src/shared/proactive-evidence'
 import type { ModelContextAsset } from '../../../src/shared/types'
 import type { RolePack } from './types'
 import { getStarterAssetDefinitions } from './life/assets'
@@ -82,7 +83,13 @@ function buildLifeAssets(universeId: string, roleId: string, rolePack: RolePack)
  */
 export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelContextAsset[] {
   const universe = loadUniverseManifest(universeId)
-  const assets: ModelContextAsset[] = getRoleSourceAssetCatalog(universeId)
+  const assets: ModelContextAsset[] = [...getRoleSourceAssetCatalog(universeId), makeCompanionAsset({
+    key: 'companion:policy:proactive-delivery', name: '主动问候投递策略',
+    purpose: '已有生活动态的应用内提醒；人物每日先预留名额，失败或缺回执不自动重发，呈现不等于已读',
+    role: 'platform', description: '投递资源与回执边界',
+    source: 'src/shared/proactive-evidence.ts#PROACTIVE_DELIVERY_POLICY', version: 'delivery-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin', content: jsonContent(PROACTIVE_DELIVERY_POLICY),
+  })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {
       const rolePack = loadRolePack(roleId, universeId)

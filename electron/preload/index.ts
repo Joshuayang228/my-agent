@@ -3,6 +3,10 @@ import type {
   DebugTracesSnapshot,
   DiagnosticHistoryQuery,
   DiagnosticHistoryResult,
+  ProactiveGreetingPayload,
+  ProactiveGreetingReceipt,
+  ProactiveEvidenceQuery,
+  ProactiveEvidenceResult,
   DebugEvidenceQuery,
   DebugEvidenceResult,
   DebugEvidenceScope,
@@ -337,15 +341,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return () => ipcRenderer.removeListener('companion:moment-tip', handler)
     },
     onProactiveGreeting: (
-      callback: (payload: { roleId: string; toast: string; momentId: string }) => void,
+      callback: (payload: ProactiveGreetingPayload) => void,
     ) => {
       const handler = (
         _e: Electron.IpcRendererEvent,
-        payload: { roleId: string; toast: string; momentId: string },
+        payload: ProactiveGreetingPayload,
       ) => callback(payload)
       ipcRenderer.on('companion:proactive-greeting', handler)
       return () => ipcRenderer.removeListener('companion:proactive-greeting', handler)
     },
+    acknowledgeProactiveGreeting: (input: ProactiveGreetingReceipt): Promise<{ accepted: boolean }> => ipcRenderer.invoke('companion:proactive-greeting-receipt', input),
+    proactiveEvidenceQuery: (input: ProactiveEvidenceQuery): Promise<ProactiveEvidenceResult> => ipcRenderer.invoke('companion:proactive-evidence-query', input),
     onRoleChanged: (
       callback: (payload: {
         roleId: string

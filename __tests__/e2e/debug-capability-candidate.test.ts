@@ -1,0 +1,67 @@
+import { test, expect } from '@playwright/test'
+
+for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 600]) {
+  test(`能力补齐候选四页 ${theme} ${width}`, async ({ page }, info) => {
+    await page.setViewportSize({ width, height: 704 })
+    await page.addInitScript(theme => { localStorage.setItem('theme', theme); localStorage.setItem('playground.active-tab', 'debug') }, theme)
+    await page.goto('/')
+    await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Playground', exact: true }).click()
+    const panel = page.getByTestId('debug-candidate')
+    const nav = panel.getByRole('navigation')
+    const states = panel.getByRole('group', { name: 'Debug 样张状态' })
+    for (const label of ['行为日志', '主动消息证据', '调用链', '实时事件']) {
+      await nav.getByRole('button', { name: label, exact: true }).click()
+      if (!(await panel.getByTestId('debug-capability-candidate').isVisible())) await panel.getByRole('button', { name: '能力补齐样张', exact: true }).click()
+      await states.getByRole('button', { name: '默认记录', exact: true }).click()
+      const body = panel.getByTestId('debug-capability-candidate')
+      await expect(body.locator('article[data-record-id]')).toHaveCount(3)
+      await expect(panel.locator('main .workspace-page-header h1')).toHaveText(label)
+      await page.screenshot({ path: info.outputPath(`${label}-default.png`) })
+      const titles = body.locator('.debug-recent-title')
+      await titles.first().click()
+      const detail = body.getByRole('article', { name: '领域证据详情' })
+      await expect(detail).toBeVisible()
+      expect(await titles.first().evaluate(node => parseFloat(getComputedStyle(node).fontSize) / parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(14 / 15, 3)
+      await expect(detail.locator(':scope > p').first()).toHaveCSS('line-height', '24.5px')
+      if (label === '主动消息证据') {
+        await expect(detail).toContainText('不证明用户看见或阅读')
+        await detail.getByText('投递依据与来源', { exact: true }).click()
+      } else await detail.getByText('关联与保存字段', { exact: true }).click()
+      await expect(detail.locator('pre')).toContainText('demo-')
+      await expect(detail.locator('pre')).toHaveCSS('font-size', '11px')
+      await detail.getByRole('button', { name: '返回列表', exact: true }).click()
+      await expect(detail).toHaveCount(0)
+      if (label !== '主动消息证据') {
+        await body.getByRole('button', { name: '来源缺失样张', exact: true }).click()
+        await expect(body).toContainText('未选择其他记录代替')
+        await expect(body.getByRole('article', { name: '领域证据详情' })).toHaveCount(0)
+      }
+      await body.getByRole('button', { name: '首次失败样张', exact: true }).click()
+      await expect(body.getByRole('alert')).toContainText('尚未读到记录')
+      await expect(body.locator('article[data-record-id]')).toHaveCount(0)
+      await body.getByRole('button', { name: '重试读取', exact: true }).click()
+      await expect(body.locator('article[data-record-id]')).toHaveCount(3)
+      await states.getByRole('button', { name: '刷新失败', exact: true }).click()
+      await expect(body.getByRole('alert')).toContainText('下方仍是刷新前的范围')
+      await expect(panel.getByRole('alert')).toHaveCount(1)
+      await expect(body.locator('article[data-record-id]')).toHaveCount(3)
+      await states.getByRole('button', { name: '无记录', exact: true }).click()
+      await expect(body.locator('article[data-record-id]')).toHaveCount(0)
+      await expect(body).toContainText(label === '主动消息证据' ? '此范围没有问候记录' : '此范围没有已保存记录')
+      await states.getByRole('button', { name: '运行中', exact: true }).click()
+      await expect(body).toContainText('正在读取记录')
+      await expect(body).not.toContainText('此范围没有')
+      await states.getByRole('button', { name: '默认记录', exact: true }).click()
+      for (const scale of ['sm', 'lg']) {
+        await page.evaluate(scale => document.documentElement.setAttribute('data-font-scale', scale), scale)
+        expect(await titles.first().evaluate(node => parseFloat(getComputedStyle(node).fontSize) / parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(14 / 15, 3)
+        expect(await panel.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+        expect(await panel.locator('main').evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+      }
+      await page.evaluate(() => document.documentElement.setAttribute('data-font-scale', 'md'))
+    }
+    await panel.getByRole('button', { name: '能力补齐样张', exact: true }).click()
+    await expect(panel.getByTestId('debug-capability-candidate')).toHaveCount(0)
+    await expect(panel.getByTestId('debug-evidence-events')).toBeVisible()
+  })
+}

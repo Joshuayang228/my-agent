@@ -182,12 +182,12 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
           if (!wardrobeRecords.length) await expect(wardrobe).toContainText('不推断没有衣物或当前未穿着')
         }
         if (entry.id === 'proactive') {
-          const proactive = panel.getByTestId('debug-evidence-proactive')
-          await expect(proactive).toContainText('尚无独立投递记录源')
-          await expect(proactive.locator('input, select, [data-record-id]')).toHaveCount(0)
-          await proactive.getByText('来源与边界', { exact: true }).click()
-          await expect(proactive.locator('pre')).toContainText('"state": "unsupported"')
-          await expect(proactive).not.toContainText('0 条')
+          const proactive = panel.getByTestId('saved-evidence-proactive')
+          const saved = await page.evaluate(roleId => window.electronAPI.companion.proactiveEvidenceQuery({ roleId }), roleId)
+          expect(saved.state).toBe('ready')
+          await expect(proactive).toContainText('界面已呈现不代表用户已读')
+          expect(await proactive.locator('[data-record-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-record-id')).sort())).toEqual(saved.records.map(row => row.id).sort())
+          await expect(proactive.getByLabel('诊断人物')).toHaveValue(roleId)
         }
         if (entry.id === 'relations') {
           const contacts = panel.getByTestId('debug-evidence-relations')

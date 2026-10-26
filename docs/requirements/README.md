@@ -20,8 +20,6 @@
 
 ## 进行中
 
-Debug 能力补齐：[debug-capability-evidence-v1.md](./debug-capability-evidence-v1.md)，方案已确认；共同历史存储与只读查询施工，主动问候回执与四页新状态继续推进。
-
 伙伴时间控件：[companion-quiet-time-controls-v1.md](./companion-quiet-time-controls-v1.md)，Foundation 整点时间选择已回流到正式与 Playground 伙伴设置；正式默认、存量偏好数据与通知调度不变。
 
 布局基线：[foundation-layout-boundaries-v1.md](./foundation-layout-boundaries-v1.md)，布局与间距、透明度 P0 候选施工，正式回流未授权。
@@ -54,6 +52,8 @@ Debug 能力补齐：[debug-capability-evidence-v1.md](./debug-capability-eviden
 ---
 
 ## 已完成施工快照（冻结）
+
+Debug 能力证据：[debug-capability-evidence-v1.md](./debug-capability-evidence-v1.md)，四页真实历史、主动问候限次与呈现回执、生活发布关联已验收；全仓基线失败及类型 / 依赖债另有记录。
 
 Debug 正式回流复核：[debug-production-parity-v4.md](./debug-production-parity-v4.md)，七组 26 个入口逐页对齐及整套 / 真实接口回归完成；当前能力见 agent-runtime，验证边界见 quality。
 

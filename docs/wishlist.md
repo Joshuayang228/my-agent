@@ -158,6 +158,7 @@
 - [ ] **WISH-043 · 主进程类型检查门禁** — 来源：正式侧聊 Electron 回归发现 runtime 的 undefined.trim 和 span 越域未被默认 tsc 检出；根配置只 include src，主进程 `tsc -p tsconfig.node.json --noEmit` 仍报告跨项目 include/composite、ImportMeta.glob 与多个存量类型错误。重启条件：当前回流质量门禁收口；明确前端/主进程检查入口，先清理真实诊断，再纳入 build/commit，不用宽泛 any 或排除文件消音。 文件规则批次用相同 TypeScript Compiler API 对比 HEAD 覆盖前与当前工作树，均为 70 条既有诊断，无新增错误；仅排除诊断附带导入来源列表的文本变化。根 tsc 通过不代表主进程独立门禁通过，未删除检查或改用 any。
 
 - [ ] **WISH-042 · Foundation 真实复用与源码门禁** — 来源：2026-09-13 用户对白底、孤立控件和基础复用原则的反馈及代码审计；施工合同：`foundation-reuse-enforcement-v1.md`，范围待确认。共享 Prism 主题清洗已去掉容器独立白底，并有正式审阅 / 文件预览 / Foundation / 工作区审阅证据；四个 Playground 产品体验的通用控件真实复用和源码门禁仍待收口，不得只补调用参数或包装标签后宣称完成。
+  2026-10-26 Debug 批次复核：扩大 UI 回归发现设置外观旧标题定位、通讯录状态切换、文化 / 家居 / 足迹旧刷新按钮定位失败。用 HEAD 的 App / Toast / DevPanel / Debug 候选源码覆盖构建逐类复现（`var/verification/debug-evidence-before-ui-baseline-v2.log` 与 `debug-evidence-before-world-baseline.log`）；不修改原断言或范围外页面以掩盖失败，不宣称全仓 UI 全绿。本次 Debug 专项单独验收，旧用例与当前组合边界的同步仍归本项。
   2026-10-09 设置布局回流复核：默认运行与 npm 转发 worker 参数的快照运行均有 memory-strategy-registry 动态资产目录 5 秒超时；工作区原断言重跑全量 1332 项通过，但不能视为稳定性修复。独立快照改用直接 Vitest CLI 单 worker、禁用文件并行复核，不增加超时或改生产资产代码。
   2026-10-08 工作区旧边框断言子项已关闭：完整 UI 首轮 451 / 459 通过，八项均为 workspace-open-tab 的旧 0px 断言与既有 1px surface 规则不符；用户明确授权后仅同步两处断言，八项定向与完整 459 项通过，未修改范围外产品样式。不关闭其他 Foundation 复用或稳定性子项。提交快照默认并发 Unit 曾出现文件扫描 15 秒及记忆目录 5 秒超时；保持原断言 / 原超时，显式单 worker 串行完整 1325 项通过，不将此复跑当作并发稳定性已修复。
   门禁稳定性补充：Foundation 符号解析测试在默认/2-worker 全量运行中出现 5 秒超时；单独测量加载 427 个源文件（401 个来自依赖），程序构建与类型解析合计约 1 秒。单 worker、禁用文件并行后完整 803 项通过，原超时与断言未放宽；仍需稳定默认执行成本，不能把串行通过写成并发问题已修复。
@@ -168,7 +169,7 @@
 
 ### 安全与韧性
 
-- [ ] **WISH-044 · 当前锁定依赖安全更新** — 来源：本轮工作区收口执行 npm audit，全部依赖报告 7 项（3 high / 4 moderate），omit=dev 报告 4 项（2 high / 2 moderate）；涉及 fast-uri、hono、js-yaml、qs，以及开发依赖 @vitest/mocker/vitest、@xmldom/xmldom。未找到现有 DEC 接受这些风险。重启条件：发布前单独完成依赖升级与实际使用路径核验，运行 Unit/Eval/Electron/打包回归；本轮没有修改 package/lock，也未声称漏洞清零。
+- [ ] **WISH-044 · 当前锁定依赖安全更新** — 来源：2026-10-26 Debug 收工时的锁定依赖审计取证；全量结果：全量 npm audit 23 项（2 low / 5 moderate / 14 high / 2 critical），生产范围 15 项（2 low / 3 moderate / 8 high / 2 critical）；包含 MCP SDK、DOMPurify、fast-uri、js-yaml、zod 等锁定版本。此前 7 / 4 项是旧审计快照，数量不等于已证实可利用路径，未找到接受这些风险的 DEC。发布前须单独完成依赖升级、实际使用路径核验及 Unit / Eval / Electron / 打包回归。本次 Debug 批次未改 package / lock，未执行 audit fix，也未声称依赖风险清零。
 
 - [ ] **WISH-001 · URL Fetch DNS rebinding 深度防护** — 当前已有 DNS 预解析、私网黑名单、重定向阻断和响应上限；若威胁模型需要对抗主动竞态攻击，再引入固定地址连接器或进程级网络策略。历史证据见 [`../_archive/audits/security-audit-2026-08.md`](../_archive/audits/security-audit-2026-08.md)。；来源：安全审计
 - [ ] **WISH-002 · Tool Result Injection 结构化分类器** — 当前已有中英文启发式探针和不受信任内容边界；后续可用离线分类器 / Eval 扩展。；来源：安全审计 / Gap Audit

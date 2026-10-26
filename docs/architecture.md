@@ -1,8 +1,14 @@
 # 系统架构
 
+## 主动问候证据与生活追踪
+
+数据库 v20 新增 companion_greeting_days 名额与 companion_greeting_evidence 元数据索引，启动恢复旧进程未确认投递；只读查询不创建或修复表。主动问候经策略判断 → 同步事务预留并落盘 → 登记窗口定向 IPC → Toast 可见 DOM → 主 frame / nonce 校验 → 呈现证据。缺回执不释放名额，无窗口不消费。原始提醒、nonce 与任意内容不持久化。
+
+生活 tick 在解析真实主角且未暂停后创建 Span，发布节点沿明确父 ID 保存事件与动态身份；后台关联不借 UI 活跃人物补齐。工具 / 模型仍沿已有 tracer 发布，utils 不反向依赖 storage。will-quit 在首个 await 前停止投递回执并尽力排空有界历史，未确认结束的任务下次标中断。
+
 ## Debug 的只读数据边界
 
-调用链沿 `tracer → debug:traces → preload → TracesEvidenceContent → TraceReading` 读取有界内存快照；`src/shared/debug-traces.ts` 统一已有 Span / links 和统计传输形状，handler、preload 与渲染声明共用该契约。树只依显式 parentId，links 是独立因果关联，统计不按当前可见树重算；持久化请求仍按 llm_request 的同 Span ID 进入现有 LLM 日志接口，不新增历史或执行通道。
+调用链沿 `tracer → debug:traces → preload → TracesEvidenceContent → TraceReading` 读取有界内存快照；`src/shared/debug-traces.ts` 统一已有 Span / links 和统计传输形状，handler、preload 与渲染声明共用该契约。树只依显式 parentId，links 是独立因果关联，统计不按当前可见树重算；持久化请求仍按 llm_request 的同 Span ID 进入现有 LLM 日志接口，请求正文边界保持独立，保存历史沿下述元数据链路读取。
 
 系统状态通过共享摘要 / 分区阅读显示 `systemInfo`，技能工具由 `tools` 与 `systemInfo` 的 Skill / MCP 投影分别组成能力记录。读取失败按来源反馈，不因系统聚合失败而清空工具注册表；调用链概览的错误只进入折叠概览，不覆盖其他系统来源。
 
@@ -302,7 +308,7 @@ Skill 启停是用户运行态，不修改内置文件或资产指纹。`skills:
 
 ### 9. Eval 与 Debug 证据链
 
-- 关键历史链路为 `Tracer → utils/diagnostic-history` 的白名单元数据发布 → 启动装配 sink → `storage/diagnostic-history-store` → `debug:history-query`。schema 由正式数据库 v19 迁移建立，Debug 查询不初始化数据库；utils 不 import storage。角色身份来自实际装配角色并经 TraceContext 传播，保留原 Span ID、parentId 与 links；不存 Span 名称 / 错误正文或任意 attributes。历史与内存快照分别解释，重启未结束 Span 只标中断；四页 UI 接入与主动问候证据仍属后续施工。
+- 关键历史链路为 `Tracer → utils/diagnostic-history` 的白名单元数据发布 → 启动装配 sink → `storage/diagnostic-history-store` → `debug:history-query`。schema 由正式数据库 v19 迁移建立，Debug 查询不初始化数据库；utils 不 import storage。角色身份来自实际装配角色并经 TraceContext 传播，保留原 Span ID、parentId 与 links；不存 Span 名称 / 错误正文或任意 attributes。历史与内存快照分别解释，重启未结束 Span 只标中断；四页通过 SavedEvidencePanel 复用纯阅读层；日期 / 人物 / 目标归属和多页刷新由容器持有，迟到响应不可提交到新范围。
 
 - Eval CLI 是判定与报告的事实源；Debug 只通过受控 IPC 读取报告、启动固定白名单脚本，不在渲染层重新评分。
 - Debug 只有一个产品入口：`activeView === 'debug'` 渲染 `DevPanel` 全页工作区；Chat 不再维护 `conversationDebugMode`，也不在 `ChatRightDock` 中叠加调试半屏。LLM 调用、调用链和实时事件分别作为 Debug「系统」分组的同级视角；七组 26 个入口以 `debug-navigation.ts` 为唯一导航事实源。候选与正式页共用无夹具阅读组件，正式容器仍负责真实读取、分页 / 刷新、异步归属与稳定 ID 跳转；生产不导入 Playground。

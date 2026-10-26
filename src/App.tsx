@@ -376,7 +376,10 @@ function App() {
       if (payload.toast) toast(payload.toast, 'info')
     })
     const unsubGreeting = window.electronAPI.companion.onProactiveGreeting?.((payload) => {
-      if (payload.toast) toast(payload.toast, 'info')
+      if (payload.toast) toast(payload.toast, 'info', { onPresented: () => {
+        void window.electronAPI.companion.acknowledgeProactiveGreeting?.({ attemptId: payload.attemptId, receiptToken: payload.receiptToken })
+          .catch(() => console.warn('[Companion] 问候呈现记录未保存'))
+      } })
     })
     return () => {
       unsub?.()

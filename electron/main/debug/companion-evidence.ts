@@ -125,7 +125,7 @@ export function queryCompanionEvidence(input: unknown, db: Database | null = get
   const timezone = pack.worldDefaults?.timezone || 'Asia/Shanghai'
   const result: DebugEvidenceResult = { state: 'ready', roleId: query.roleId, view: query.view, date: query.date, timezone, records: [], source: '', generatedAt: Date.now(), hasMore: false, total: null, issues: [], boundary: '只读有界范围；注册定义、当前状态与历史执行分别解释，未保存的执行结果不补造。' }
   if (!db) return { ...result, state: 'unavailable', issues: ['数据库尚未由应用启动流程打开'] }
-  if (query.view === 'proactive' || query.view === 'context') return { ...result, state: 'unsupported', boundary: query.view === 'proactive' ? '当前没有独立主动消息投递证据索引；普通消息不作为主动发送证明。' : '请通过实际 LLM 调用查看该次保存的上下文；当前人物资料不是历史实发输入。' }
+  if (query.view === 'proactive' || query.view === 'context') return { ...result, state: 'unsupported', boundary: query.view === 'proactive' ? '此通用领域入口不提供问候证据；请使用 companion:proactive-evidence-query 读取独立投递索引。普通消息不作为主动发送证明。' : '请通过实际 LLM 调用查看该次保存的上下文；当前人物资料不是历史实发输入。' }
   const append = (raw: Row[], source: string) => { for (const row of raw) { try {
     if (source === 'memories' && typeof row.content === 'string' && detectSensitiveKinds(row.content).includes('credentials')) { result.issues.push('含凭据的记忆未展示'); continue }
     result.records.push(record(row, source, query.roleId))

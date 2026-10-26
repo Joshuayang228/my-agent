@@ -9,6 +9,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     const panel = page.getByTestId('debug-candidate')
     const nav = panel.getByRole('navigation')
     await nav.getByRole('button', { name: '行为日志', exact: true }).click()
+    if (await panel.getByTestId('debug-capability-candidate').isVisible()) await panel.getByRole('button', { name: '能力补齐样张', exact: true }).click()
     const activity = panel.getByTestId('debug-evidence-activity')
     const states = panel.getByRole('group', { name: 'Debug 样张状态' })
     const count = activity.getByLabel('行为证据范围计数')

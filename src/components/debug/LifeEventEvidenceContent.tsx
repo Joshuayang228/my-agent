@@ -30,7 +30,7 @@ export function LifeEventEvidenceContent({ view, result, loading, error, date, q
   })
   const fullFields = (record: DebugEvidenceRecord) => <dl className="debug-candidate-facts">{[['计划时间', validTime(record.data.scheduled_at) ? evidenceTime(record.data.scheduled_at, result!.timezone) : '时间未记录'], ['记录状态', record.status || '未记录'], ['事件类型', record.kind], ['地点', typeof evidenceObject(record.data.payload).location === 'string' ? String(evidenceObject(record.data.payload).location) : '未记录']].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
   return <section className="debug-evidence-workbench" data-testid={`debug-evidence-${view}`}>
-    {view === 'activity' && <div className="debug-activity-boundary"><p>当前读取生活事件；完整行动日志尚未建立。</p><div><ActionButton variant="plain" onClick={() => onPage('traces')}>查看调用链</ActionButton><ActionButton variant="plain" onClick={() => onPage('growth')}>查看成长与反思</ActionButton></div></div>}
+    {view === 'activity' && <div className="debug-activity-boundary"><p>此视角读取生活事件；运行行动由独立的保存历史提供。</p><div><ActionButton variant="plain" onClick={() => onPage('traces')}>查看调用链</ActionButton><ActionButton variant="plain" onClick={() => onPage('growth')}>查看成长与反思</ActionButton></div></div>}
     {targetId && <ActionButton variant="plain" onClick={() => onEvidence(view, '')}>返回当前领域列表</ActionButton>}
     <div className="debug-candidate-toolbar">
       {scope && onRoleChange && <div className="debug-focused-scope"><label>人物<SelectField aria-label="诊断人物" value={roleId} onChange={event => onRoleChange(event.target.value)}>{scope.roles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}</SelectField></label></div>}

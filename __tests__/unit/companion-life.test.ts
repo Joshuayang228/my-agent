@@ -4,6 +4,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import initSqlJs from 'sql.js'
+import { setDiagnosticHistorySink } from '../../electron/main/utils/diagnostic-history'
+import type { DiagnosticHistoryRecord } from '../../src/shared/debug-history'
 
 vi.mock('electron', () => ({
   app: { getPath: () => '/tmp' },
@@ -106,7 +108,26 @@ describe('LifeEngine', () => {
   })
 
   afterEach(() => {
+    setDiagnosticHistorySink()
     memDb.close()
+  })
+
+  it('实际生活推进与发布沿真实事件和动态 ID 关联，历史不含正文', async () => {
+    const history: DiagnosticHistoryRecord[] = []
+    setDiagnosticHistorySink(record => { history.push(record) })
+    await tickActiveRole(localDateTimeMs('2026-08-02', 15, 0))
+    const root = history.find(row => row.operation === 'life_tick' && row.phase === 'ended')!
+    expect(root).toMatchObject({ roleId: 'lin', status: 'ok' })
+    const published = history.filter(row => row.operation === 'life_projection' && row.phase === 'ended' && row.kind === 'span')
+    expect(published.length).toBeGreaterThan(0)
+    const events = await __lifeStore.listEvents('lin', { status: 'published' })
+    const moments = await __lifeStore.listMoments('lin')
+    for (const row of published) {
+      expect(row.parentId).toBe(root.spanId)
+      expect(events.some(event => event.id === row.sourceEventId)).toBe(true)
+      expect(moments.some(moment => moment.id === row.momentId && moment.eventId === row.sourceEventId)).toBe(true)
+    }
+    expect(JSON.stringify(history)).not.toContain('payload')
   })
 
   it('ensureDayScripts 补齐缺失 3 日', async () => {

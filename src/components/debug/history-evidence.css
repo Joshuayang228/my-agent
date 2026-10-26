@@ -1,0 +1,17 @@
+/* 背景：新增历史证据复用现有时间线，但不能带回旧字号 / 行距。
+   意图：只在新增阅读根内消费 Foundation token；约束：不改变现有页面默认皮肤。 */
+.debug-history-reading { min-width:0; font-family:var(--font-ui); font-size:var(--type-body); line-height:var(--line-height-body); }
+.debug-history-reading p { overflow-wrap:anywhere; }
+.debug-history-reading button { font-size:var(--type-control); line-height:var(--line-height-control); }
+.debug-history-reading .debug-recent-title { font-size:var(--type-body); font-weight:600; line-height:var(--line-height-body); }
+.debug-history-reading .debug-recent-summary > p { font-size:var(--type-caption); line-height:var(--line-height-caption); }
+.debug-history-reading .debug-candidate-detail-heading h3 { font-size:var(--type-title); line-height:var(--line-height-title); }
+.debug-history-reading .debug-recent-time,.debug-history-note,.debug-history-reading summary { font-size:var(--type-caption); line-height:var(--line-height-caption); color:var(--text-secondary); }
+.debug-history-reading summary { cursor:pointer; padding:8px 0; }
+.debug-history-reading pre { font-family:var(--font-mono); font-size:var(--type-meta); line-height:var(--line-height-meta); white-space:pre-wrap; overflow-wrap:anywhere; max-width:100%; }
+.debug-history-facts { display:flex; flex-wrap:wrap; gap:12px 32px; margin:12px 0; }
+.debug-history-facts > div { min-width:0; }
+.debug-history-facts dt { font-size:var(--type-caption); color:var(--text-secondary); }
+.debug-history-facts dd { margin:0; overflow-wrap:anywhere; }
+.debug-candidate[data-capability-preview="true"] .debug-prompt-preview-options { display:none; }
+.debug-candidate[data-capability-preview="true"] .debug-candidate-footer { display:none; }
