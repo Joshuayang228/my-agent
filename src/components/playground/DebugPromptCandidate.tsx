@@ -1,7 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 import { ArrowLeft, ArrowUpRight, ChevronDown, ChevronRight, Copy, Search } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
-import { Badge } from '../foundation/Badge'
 import { TextField } from '../foundation/TextField'
 import { EmptyState } from '../foundation/EmptyState'
 import { SelectField } from '../foundation/SelectField'
@@ -73,16 +72,18 @@ export function DebugPromptCandidate({ empty, selectedKey, onSelect, records, on
       })}</div>
       <article className="debug-candidate-detail debug-prompt-detail scrollbar-hover" aria-label="资产详情">{selected ? <>
         <ActionButton variant="plain" className="debug-candidate-mobile-back" onClick={() => { setDetailOpen(false); requestAnimationFrame(() => entryButtons.current.get(selected.key)?.focus()) }}><ArrowLeft size={14} /> 返回目录</ActionButton>
-        <div className="debug-candidate-detail-heading"><h3>{selected.label}</h3><Badge>{reviewShape(selected)}</Badge></div>
+        <div className="debug-candidate-detail-heading"><h3>{selected.label}</h3>{body !== null && <ActionButton variant="plain" aria-label="复制正文" title="复制正文" onClick={() => void copy()}><Copy size={14} /></ActionButton>}</div>
         {!filtered.some(asset => asset.key === selected.key) && <p className="debug-review-caption">此明确引用不在当前筛选范围，保留其详情供核对。</p>}
-        <p className="debug-review-purpose">{selected.purpose ?? selected.label}</p>
-        <p className="debug-review-caption">{REVIEW_TYPE_LABELS[selected.assetType]} · {selected.roles.length ? `人物专属：${selected.roles.map(id => DEBUG_ROLES.find(role => role.id === id)?.label ?? id).join('、')}` : '平台共用'}{selected.roles.length && role === 'all' ? '' : ' · 关联不等于实际注入'}</p>
-        <section className="debug-candidate-section"><div className="debug-review-body-heading"><h3>{body === null ? '组装定义' : selected.kind === '模板' ? '模板正文' : selected.kind === '常量' ? '正文' : '结构内容'}</h3>{body !== null && <span>{Array.from(body).length} 字符<ActionButton variant="plain" onClick={() => void copy()}><Copy size={14} />复制正文</ActionButton></span>}</div>{body === null ? <p>此项没有固定正文。内容由组装器生成，本次插槽值与历史输入请查看对应调用的保存记录。</p> : <pre className="debug-candidate-body" data-content-kind={selected.kind === '结构' ? 'structured' : 'prose'}>{body}</pre>}{copyStatus && <p role="status" className="debug-review-caption">{copyStatus}</p>}</section>
+        <section className="debug-candidate-section" aria-label="提示词正文">{body === null ? <p>此项没有固定正文。内容由组装器生成，本次插槽值与历史输入请查看对应调用的保存记录。</p> : <pre className="debug-candidate-body" data-content-kind={selected.kind === '结构' ? 'structured' : 'prose'}>{body}</pre>}{copyStatus && <p role="status" className="debug-review-caption">{copyStatus}</p>}</section>
+        {previewState === 'usage-error' && <p role="alert" className="debug-prompt-local-error">相关调用读取失败；资产正文仍可阅读，调用数量未知。</p>}
+        <details key={selected.key} className="debug-prompt-provenance debug-review-information"><summary>审阅信息</summary>
+        {selected.purpose && <p className="debug-review-purpose">{selected.purpose}</p>}
+        <p className="debug-review-caption">{REVIEW_TYPE_LABELS[selected.assetType]} · {selected.kind === '模板' && body !== null ? '模板正文' : reviewShape(selected)} · {selected.roles.length ? `人物专属：${selected.roles.map(id => DEBUG_ROLES.find(role => role.id === id)?.label ?? id).join('、')}` : '平台共用'} · 关联不等于实际注入{body !== null ? ` · ${Array.from(body).length} 字符` : ''}</p>
         {selected.slots.length > 0 && <details className="debug-prompt-provenance debug-prompt-variables"><summary>变量说明 · {selected.slots.length}</summary><div>{selected.slots.map(slot => <span key={slot}><code>{`{{${slot}}}`}</code><small>{selected.slotSources?.[slot] ?? '来源未登记'}</small></span>)}</div><p>由来源组装器注入；目录没有本次取值。变量来源：{selected.source}。</p></details>}
         {selected.behavior && <details className="debug-prompt-provenance"><summary>行为约束</summary><dl className="debug-candidate-facts">{[['触发条件', selected.behavior.trigger], ['人物输入', selected.behavior.characterInputs.join('、')], ['事实输入', selected.behavior.runtimeInputs.join('、')], ['输出约束', selected.behavior.outputContract], ['校验', selected.behavior.validation], ['失败回退', selected.behavior.fallback], ['副作用', selected.behavior.sideEffects.join('、')]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>}
         <details className="debug-prompt-provenance"><summary>版本与来源 · {selected.version}</summary><dl className="debug-candidate-facts">{[['标识', selected.key], ['来源', selected.source], ...(selected.definitions ? [['定义符号', selected.definitions.join('\n')]] : []), ['资产类型', REVIEW_TYPE_LABELS[selected.assetType]], ['版本', selected.version], ['自动指纹', selected.fingerprint], ['归属', selected.ownership], ['状态', '隔离样张 · 非生产目录']].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>
-        {previewState === 'usage-error' && <p role="alert" className="debug-prompt-local-error">相关调用读取失败；资产正文仍可阅读，调用数量未知。</p>}
         <details className="debug-prompt-provenance"><summary>相关调用 · {previewState === 'usage-error' ? '未读取' : records.filter(record => record.assetKeys.includes(selected.key)).length}</summary><p>仅关联当前样张范围内明确保存的 key。当前定义不等于历史版本；没有保存的完整输入不能重建。</p>{previewState !== 'usage-error' && <>{records.filter(record => record.assetKeys.includes(selected.key)).map(record => <ActionButton key={record.id} variant="plain" className="debug-candidate-asset-link" onClick={() => onRecord(record.id)}><span><strong>{record.title}</strong><code>{record.id}</code></span><ArrowUpRight size={14} /></ActionButton>)}{!records.some(record => record.assetKeys.includes(selected.key)) && <p>此范围内没有关联调用。</p>}</>}</details>
+        </details>
       </> : previewState === 'missing' ? <div className="debug-prompt-state" role="status"><strong>引用的资产未在目录中找到</strong><p>不使用其他资产代替这个引用。</p><ActionButton onClick={() => { clearSelection(); onRetry?.() }}>返回目录</ActionButton></div> : <EmptyState title="选择左侧条目查看详情" description="" centerWithoutAction />}</article>
     </div>}
   </section>

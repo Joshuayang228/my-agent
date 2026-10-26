@@ -1,8 +1,6 @@
 .debug-prompt-review .debug-review-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .debug-prompt-review .debug-review-counts,
-.debug-prompt-review .debug-review-result,
-.debug-prompt-review .debug-review-body-heading,
-.debug-prompt-review .debug-review-body-heading > span {
+.debug-prompt-review .debug-review-result {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -11,8 +9,7 @@
 .debug-prompt-review .debug-review-counts,
 .debug-prompt-review .debug-review-result,
 .debug-prompt-review .debug-review-caption,
-.debug-prompt-review .debug-review-scope,
-.debug-prompt-review .debug-review-body-heading > span {
+.debug-prompt-review .debug-review-scope {
   font-size: var(--type-caption);
   line-height: var(--line-height-meta);
   color: var(--text-muted);
@@ -24,8 +21,6 @@
 .debug-prompt-review .debug-review-scope { display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
 .debug-prompt-review .debug-review-scope select { width: auto; font-size: var(--type-control); }
 .debug-prompt-review .debug-review-result { justify-content: space-between; }
-.debug-prompt-review .debug-review-body-heading { justify-content: space-between; margin-bottom: 0.75rem; }
-.debug-prompt-review .debug-review-body-heading h3 { margin: 0; }
 .debug-prompt-review .debug-review-purpose { font-size: var(--type-body); line-height: var(--line-height-body); color: var(--text-secondary); }
 .debug-prompt-review .debug-review-caption { margin-top: 0.5rem; }
 .debug-prompt-review .debug-candidate-facts dd { white-space: pre-wrap; overflow-wrap: anywhere; }
