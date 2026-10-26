@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { SPACING } from '../../src/shared/content-layout'
 
 for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 600]) {
   test(`日程呈现 v3 范围与失败 ${theme} ${width}`, async ({ page }, info) => {
@@ -873,6 +874,24 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await prompt.getByRole('button', { name: /会话情境组装/ }).click()
     await expect(detail).toContainText('此项没有固定正文')
     await expect(detail.getByRole('button', { name: '复制正文', exact: true })).toHaveCount(0)
+    const source = detail.locator(':scope > details').filter({ has: page.locator(':scope > summary', { hasText: /^来源$/ }) })
+    await source.locator(':scope > summary').click()
+    const spacing = await source.evaluate(node => {
+      const fields = node.querySelector(':scope > dl')!
+      const summary = node.querySelector(':scope > details > summary')!
+      const style = getComputedStyle(summary)
+      return {
+        gap: summary.getBoundingClientRect().top - fields.lastElementChild!.getBoundingClientRect().bottom,
+        rowGap: parseFloat(getComputedStyle(fields).rowGap),
+        lineRatio: parseFloat(style.lineHeight) / parseFloat(style.fontSize),
+        captionRatio: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--line-height-caption')),
+      }
+    })
+    expect(spacing.gap).toBeCloseTo(SPACING.compact, 0)
+    expect(spacing.rowGap).toBe(SPACING.tight)
+    expect(spacing.lineRatio).toBeCloseTo(spacing.captionRatio, 2)
+    await source.getByText('版本信息', { exact: true }).click()
+    await page.screenshot({ path: info.outputPath('prompt-review-spacing.png') })
     if (width === 600) await prompt.getByRole('button', { name: '返回目录', exact: true }).click()
     await search.fill('')
     await prompt.getByRole('group', { name: '资产人物筛选' }).getByRole('button', { name: '予 · 样张', exact: true }).click()

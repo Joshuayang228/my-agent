@@ -1,12 +1,19 @@
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useRef, useState, type ChangeEvent, type CSSProperties } from 'react'
 import { ArrowLeft, ArrowUpRight, ChevronDown, ChevronRight, Copy, Search } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { TextField } from '../foundation/TextField'
 import { EmptyState } from '../foundation/EmptyState'
 import { SelectField } from '../foundation/SelectField'
+import { SPACING } from '../../shared/content-layout'
 import { DEBUG_ROLES, type DebugRecordFixture } from './debug-experience-fixtures'
 import { filterReviewAssets, PROMPT_REVIEW_ASSETS, reviewBody, reviewGroup, reviewShape, uniqueReviewAssets, type ReviewScope } from './debug-prompt-review'
 import './debug-prompt-review.css'
+
+// 来源表与嵌套折叠项曾无间距；仅向候选根注入共享档位，避免局部像素值漂移或改变正式页默认布局。
+const reviewSpacingStyle = {
+  '--review-gap-item': `${SPACING.tight}px`,
+  '--review-gap-content': `${SPACING.compact}px`,
+} as CSSProperties
 
 export type PromptPreviewState = 'ready' | 'unread' | 'unavailable' | 'loading' | 'error' | 'refresh-error' | 'usage-error' | 'missing' | 'long'
 interface Props {
@@ -56,7 +63,7 @@ export function DebugPromptCandidate({ empty, selectedKey, onSelect, records, on
     } catch { setCopyStatus('复制失败，请手动选择正文复制') }
   }
   const related = selected ? records.filter(record => record.assetKeys.includes(selected.key)) : []
-  return <section className="debug-prompt-workbench debug-prompt-review" data-testid="debug-prompt-workbench">
+  return <section className="debug-prompt-workbench debug-prompt-review" style={reviewSpacingStyle} data-testid="debug-prompt-workbench">
     {!available && <div className="debug-prompt-state" role={previewState === 'error' ? 'alert' : 'status'}><strong>{({ unread: '目录尚未读取', unavailable: '诊断接口不可用', loading: '正在读取目录', error: '目录读取失败' } as Record<string, string>)[previewState]}</strong><p>{previewState === 'unavailable' ? '此页面需要桌面诊断接口。目录数量未知，不表示没有资产。' : '尚未取得目录，数量未知。'}</p>{previewState !== 'loading' && onRetry && <ActionButton variant="plain" onClick={onRetry}>读取目录样张</ActionButton>}</div>}
     {previewState === 'refresh-error' && <div className="debug-prompt-state" role="alert"><strong>刷新失败，保留上次目录</strong><p>当前目录与选中正文是刷新前的样张。</p>{onRetry && <ActionButton variant="plain" onClick={onRetry}>重试读取样张</ActionButton>}</div>}
     <div className="debug-review-top">{available && <div className="debug-review-counts" aria-label="目录计数" title="按当前范围内唯一注册 key 统计定义；不等于调用次数或不重叠的指令数。">{scope === 'prompts' ? '提示词' : scope === 'other' ? '其他资产' : '全部资产'} {total} 项</div>}
