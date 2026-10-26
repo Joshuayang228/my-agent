@@ -428,7 +428,7 @@ describe('Debug 候选隔离边界', () => {
     }
     const usage = render('usage-error')
     expect(usage).toContain('和用户共同整理')
-    expect(usage).toContain('相关调用 · 未读取')
+    expect(usage).toContain('查看实际调用 · 未读取')
     expect(usage).not.toContain('此范围内没有关联调用')
     expect(render('missing')).toContain('引用的资产未在目录中找到')
   })
