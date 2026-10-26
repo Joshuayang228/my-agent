@@ -1,6 +1,8 @@
 import { ipcRenderer, contextBridge } from 'electron'
 import type {
   DebugTracesSnapshot,
+  DiagnosticHistoryQuery,
+  DiagnosticHistoryResult,
   DebugEvidenceQuery,
   DebugEvidenceResult,
   DebugEvidenceScope,
@@ -480,6 +482,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     tools: () => ipcRenderer.invoke('debug:tools'),
     systemInfo: () => ipcRenderer.invoke('debug:system-info'),
     traces: (): Promise<DebugTracesSnapshot> => ipcRenderer.invoke('debug:traces'),
+    historyQuery: (input?: DiagnosticHistoryQuery): Promise<DiagnosticHistoryResult> => ipcRenderer.invoke('debug:history-query', input),
     personaEvalReports: (): Promise<DebugPersonaEvalIndex> =>
       ipcRenderer.invoke('debug:persona-eval-reports'),
     personaEvalReportGet: (fileName: string): Promise<DebugPersonaEvalReport | null> =>

@@ -18,6 +18,7 @@ import { createLogger } from './logger'
 import { shouldSampleSession } from './session-sampler'
 import { captureAttributes, captureAttributeValue, captureErrorMessage } from './text-capture'
 import { getTraceContext, traceContextAttributes } from './trace-context'
+import { publishTraceHistory } from './diagnostic-trace-projection'
 
 const log = createLogger('Tracer')
 
@@ -218,6 +219,7 @@ export function startSpan(
     if (parentSpan) {
       if (parentSpan.attributes.sessionId !== undefined) inherited.sessionId = parentSpan.attributes.sessionId
       if (parentSpan.attributes.userId !== undefined) inherited.userId = parentSpan.attributes.userId
+      if (parentSpan.attributes.roleId !== undefined) inherited.roleId = parentSpan.attributes.roleId
     }
   }
 
@@ -246,6 +248,7 @@ export function startSpan(
     spans.splice(0, spans.length - MAX_SPANS)
   }
 
+  publishTraceHistory(span, 'started')
   return new SpanHandle(span)
 }
 
@@ -277,7 +280,7 @@ export function startLinkedAsyncSpan(
   )
   if (linkTo && !handle.dropped) {
     const span = spans.find((s) => s.id === handle.id)
-    if (span) span.links = [linkTo]
+    if (span) { span.links = [linkTo]; publishTraceHistory(span, 'updated') }
   }
   return handle
 }
@@ -300,12 +303,14 @@ export class SpanHandle {
   setAttribute(key: string, value: unknown): void {
     if (this.dropped) return
     this.span.attributes[key] = captureAttributeValue(key, value)
+    publishTraceHistory(this.span, 'updated')
   }
 
   /** 批量设置属性（含 PII 脱敏与文本预算） */
   setAttributes(attrs: Record<string, unknown>): void {
     if (this.dropped) return
     Object.assign(this.span.attributes, captureAttributes(attrs))
+    publishTraceHistory(this.span, 'updated')
   }
 
   end(status: 'ok' | 'error' = 'ok', error?: string): void {
@@ -327,6 +332,7 @@ export class SpanHandle {
     this.span.duration = this.span.endTime - this.span.startTime
     this.span.status = status
     if (error) this.span.error = captureErrorMessage(error)
+    publishTraceHistory(this.span, 'ended')
 
     log.debug(`Span ${this.span.name} [${this.span.type}/${this.span.caller}]`, {
       duration: this.span.duration,

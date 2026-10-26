@@ -10,6 +10,7 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 
 export interface TraceIdentity {
   sessionId?: string
+  roleId?: string
   userId?: string
   /** 当前主对话 interaction span，供后台 linked span 追溯（非 parent） */
   interactionSpanId?: string
@@ -23,6 +24,7 @@ export const DEFAULT_TRACE_USER_ID = 'local'
 function stripEmpty(ctx: TraceIdentity): TraceIdentity {
   const out: TraceIdentity = {}
   if (ctx.sessionId?.trim()) out.sessionId = ctx.sessionId.trim()
+  if (ctx.roleId?.trim()) out.roleId = ctx.roleId.trim()
   if (ctx.userId?.trim()) out.userId = ctx.userId.trim()
   if (ctx.interactionSpanId?.trim()) out.interactionSpanId = ctx.interactionSpanId.trim()
   return out
@@ -77,6 +79,7 @@ export function traceContextAttributes(): Record<string, unknown> {
   const ctx = getTraceContext()
   const attrs: Record<string, unknown> = {}
   if (ctx.sessionId) attrs.sessionId = ctx.sessionId
+  if (ctx.roleId) attrs.roleId = ctx.roleId
   if (ctx.userId) attrs.userId = ctx.userId
   return attrs
 }

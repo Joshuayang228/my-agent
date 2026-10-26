@@ -8,7 +8,8 @@ import { builtinTools } from './tools/builtins/index'
 import { createLogger, hashForLog } from './utils/logger'
 import { mark, setLLMTraceSink } from './utils/tracer'
 import { setAssetUsageResolver, setAssetUsageSink } from './utils/asset-usage'
-import { closeDatabase, getDatabase } from './storage/database'
+import { closeDatabase, getDatabase, persist } from './storage/database'
+import { startDiagnosticHistory, stopDiagnosticHistory } from './debug/diagnostic-history-service'
 import { recoverPendingBackupMedia } from './storage/backup-recovery'
 import { startMemoryIndexSync } from './memory/index-sync'
 import { llmDebugStore } from './storage/llm-debug-store'
@@ -276,6 +277,7 @@ function setupAutoUpdater() {
 
 app.whenReady().then(async () => {
   const database = await getDatabase()
+  startDiagnosticHistory(database, persist)
   try { recoverPendingBackupMedia(database, app.getPath('userData')) }
   catch { log.warn('Backup media startup reconciliation deferred') }
   memoryIndexSync = startMemoryIndexSync()
@@ -335,6 +337,7 @@ app.on('will-quit', async () => {
   stopLifeTicker()
   await runtime.shutdown()
   await mcpManager.disconnectAll().catch(() => {})
+  stopDiagnosticHistory()
   closeDatabase()
 })
 

@@ -21,6 +21,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { app } from 'electron'
 import { createLogger, hashForLog } from '../utils/logger'
+import { createDiagnosticHistorySchema } from './diagnostic-history-schema'
 
 const log = createLogger('Database')
 
@@ -36,7 +37,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 18
+export const SCHEMA_VERSION = 19
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -492,6 +493,8 @@ export function runMigrations(database: SqlJsDatabase): void {
       d.run('CREATE INDEX IF NOT EXISTS idx_companion_event_links_event ON companion_event_links(role_id, event_id)')
       d.run('CREATE INDEX IF NOT EXISTS idx_companion_event_links_target ON companion_event_links(role_id, target_type, target_id)')
     },
+    // v18 -> v19: bounded metadata history belongs to startup, never to Debug reads.
+    createDiagnosticHistorySchema,
   ]
 
   while (version < SCHEMA_VERSION) {

@@ -2,6 +2,8 @@
 
 import type {
   DebugTracesSnapshot,
+  DiagnosticHistoryQuery,
+  DiagnosticHistoryResult,
   DebugEvidenceQuery,
   DebugEvidenceResult,
   DebugEvidenceScope,
@@ -510,6 +512,7 @@ declare global {
         evalRunCancel: (runId: string) => Promise<{ ok: boolean; error?: string }>
         onEvalRunEvent: (callback: (event: DebugEvalRunEvent) => void) => () => void
         traces: () => Promise<DebugTracesSnapshot>
+        historyQuery: (input?: DiagnosticHistoryQuery) => Promise<DiagnosticHistoryResult>
         assetUsageQuery: (input?: AgentAssetUsageQuery) => Promise<AgentAssetUsageQueryResult>
         llmLogsQuery: (input?: LLMCallQuery) => Promise<LLMCallQueryResult>
         llmLogGet: (id: string) => Promise<LLMCallDetail | null>

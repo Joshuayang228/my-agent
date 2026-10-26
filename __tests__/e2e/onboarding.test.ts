@@ -251,6 +251,16 @@ test('首次进入通过模型路由配置后开始对话', async () => {
   })
   expect(saved).not.toBeNull(); expect(saved!.requestMessages.length).toBeGreaterThan(0)
   expect(JSON.stringify(saved)).not.toContain('local-test-key')
+  // 背景：历史接口不能只用空库证明；意图：核对真实模型 Span 与持久记录沿用同 ID。
+  // 约束：请求仍来自本地 SSE，历史只能有元数据，不能复制测试消息或认证值。
+  await expect.poll(async () => (await page.evaluate(spanId => window.electronAPI.debug.historyQuery({ kind: 'span', spanId }), saved!.id)).records.some(row => row.status === 'ok')).toBe(true)
+  const history = await page.evaluate(spanId => window.electronAPI.debug.historyQuery({ kind: 'span', spanId }), saved!.id)
+  expect(history.state).toBe('ready')
+  expect(history.records[0]).toMatchObject({ spanId: saved!.id, sessionId: saved!.sessionId, spanType: 'llm_request', status: 'ok' })
+  expect(history.records[0].roleId).toBeTruthy()
+  expect(JSON.stringify(history)).not.toMatch(/local-test-key|连接验证|连接成功/)
+  expect((await page.evaluate(() => window.electronAPI.debug.historyQuery({ sessionId: 'absent-session' }))).records).toEqual([])
+  await expect(page.evaluate(() => window.electronAPI.debug.historyQuery({ limit: 101 }))).rejects.toThrow(/无法读取运行历史/)
   await page.evaluate(() => window.electronAPI.settings.set('developerMode', 'true')); await page.reload()
   await expect(page.locator('#startup-splash')).toBeHidden()
   await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
@@ -269,7 +279,13 @@ test('首次进入通过模型路由配置后开始对话', async () => {
   await calls.getByRole('tab', { name: '响应', exact: true }).click()
   await expect(calls).toContainText('响应正文未持久化')
   await debug.getByRole('button', { name: '返回聊天', exact: true }).click()
-
+  await electronApp.close()
+  electronApp = await electron.launch({ args: [path.join(__dirname, '../../dist-electron/index.js'), '--user-data-dir=' + userDataDir, '--no-sandbox'], env: { ...process.env, NODE_ENV: 'production', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' } })
+  page = await electronApp.firstWindow()
+  await expect(page.locator('#startup-splash')).toBeHidden()
+  const reopened = await page.evaluate(recordId => window.electronAPI.debug.historyQuery({ recordId }), history.records[0].id)
+  expect(reopened.records).toEqual(history.records)
+  expect(reopened.coverage.processRunId).not.toBe(history.coverage.processRunId)
 })
 
 test('正式自定义模型连接保存协议并在重载后通过真实协议测试', async () => {

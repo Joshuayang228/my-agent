@@ -1,13 +1,13 @@
 # Debug 能力与历史证据补齐 v1
 
-状态：进行中（源码盘点完成；新增持久化与回执方案待确认）
+状态：进行中（用户已确认；共同历史机制施工）
 日期：2026-10-26
 
 ## 背景与目标
 
 Debug 七组 26 页的展示回流已经完成，但展示真实来源不等于具有完整的行动历史。此次以现有生产链路为基础，补主动问候证据、行动记录及可关联的历史追踪；不重新设计全部页面，不把 Alice 的专属产品模块搬入本项目。
 
-用户已同意“先盘点 → 复用记录关联 → 主动消息 → 行动历史 → 真实流程验收”的方向。本合同把新增数据与行为边界具体化，确认前只落盘调研与方案，不改生产行为。上一份已冻结的 `debug-production-parity-v4.md` 不重开。
+用户已同意“先盘点 → 复用记录关联 → 主动消息 → 行动历史 → 真实流程验收”的方向，并在合同落盘后明确“可以，继续干吧”，批准新增历史存储与回执机制。新 UI 状态仍按 Playground 确认后回流。上一份已冻结的 `debug-production-parity-v4.md` 不重开。
 
 当前能力事实仍归对应模块卡；下表是本次施工的源码核对底稿，不作为另一份长期能力总目录。
 
@@ -60,7 +60,7 @@ Debug 七组 26 页的展示回流已经完成，但展示真实来源不等于�
 - Alice 参考：`_reference/framework-harness/repos/alice-methodology/chapters/13-observability.md`，采用结构化原因、caller、显式关联与默认不记录正文。此处是方法论参考，不能称为已核对 Alice 完整生产实现。
 - 项目已有 tracer、trace-context、observer、LLM store 和领域事件表足以承载接入；新增本地只读历史投影，不引入云服务、额外依赖或每页一套数据库。
 
-## 技术方案（待确认）
+## 技术方案（已确认）
 
 ### 共同证据与存储
 
@@ -111,8 +111,18 @@ Debug 七组 26 页的展示回流已经完成，但展示真实来源不等于�
 - 全量 Span 原 attributes 可能含文本，必须白名单投影，禁止直接序列化迁入历史表。
 - 这是有范围、有资源上限的关键行动历史，不声称覆盖每个内部函数或完成全产品能力。
 
-## 本轮盘点交付
+## 盘点交付记录
 
 源码静态核对已完成；本轮不新增生产接口、数据库表、调度行为或视觉状态。新增持久化、回执和四页接入仍未实施，也没有以此前 UI / Electron 测试替代本合同的新能力验收。
 
 文档交付自审：逐项核对导航、只读查询、主动问候发送 / 接收、tracer 与日志保存边界，无生产代码改动。标准类型检查通过；全量 Unit 首次因正在运行的开发服务占用 5173 导致两项 watch 测试失败，停止该开发服务后 232 文件 / 1485 项通过（`var/verification/debug-capability-inventory-unit-recheck.log`）；`npm run build` 通过（`debug-capability-inventory-build.log`），`npm run docs:validate` 与暂存差异格式检查通过。本轮没有新 UI，不以这些检查宣称新能力验收通过。
+
+## 共同历史机制批次
+
+范围：正式 schema v19、Tracer 白名单投影与启动 sink、有界队列 / SQL 存储、`debug:history-query` 四处契约和对应测试。运行角色只来自实际装配的 character，并通过 TraceContext 传播；没有从当前 UI 选角回填。保留原 Span / LLM sink 与最近快照，不替换已存在的诊断行为。
+
+可独立查询的历史仅包含 Span 投影和 start / end 事件，最多 7 天 / 20000 条 / 单条 4 KiB / 队列 512；分页默认 50，上限 100。无生产界面变化，四页仍读原来源；主动问候独立证据、回执、生活推进关联与新状态候选继续施工，不以此批次宣称整个合同完成。
+
+批次验证：233 文件 / 1499 项 Unit、标准类型 / 生产构建通过；真实 Electron 在隔离 profile 沿本地 SSE → 生产 Span → SQLite → preload 查询核对同 ID 元数据，完整重启后按记录 ID 回读一致（`var/verification/diagnostic-history-{unit,build,electron}.log`）。测试不访问付费模型，不证明新 UI 或提醒送达。
+
+独立 Node 配置仍有既有诊断，不宣称全绿；编译器 overlay 对照本批改前 / 改后均 69 项、无新增（`var/verification/diagnostic-history-node-comparison.json`），`tsconfig.node.json` 已纳入新增共享历史类型。自审覆盖查询参数化 / 游标范围、列与 JSON 作用域一致性、白名单与凭据拒绝、资源上限、事务归属与重启中断；既有原始 Trace、LLM sink 与页面读取不删除。

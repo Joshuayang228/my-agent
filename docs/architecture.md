@@ -302,6 +302,8 @@ Skill 启停是用户运行态，不修改内置文件或资产指纹。`skills:
 
 ### 9. Eval 与 Debug 证据链
 
+- 关键历史链路为 `Tracer → utils/diagnostic-history` 的白名单元数据发布 → 启动装配 sink → `storage/diagnostic-history-store` → `debug:history-query`。schema 由正式数据库 v19 迁移建立，Debug 查询不初始化数据库；utils 不 import storage。角色身份来自实际装配角色并经 TraceContext 传播，保留原 Span ID、parentId 与 links；不存 Span 名称 / 错误正文或任意 attributes。历史与内存快照分别解释，重启未结束 Span 只标中断；四页 UI 接入与主动问候证据仍属后续施工。
+
 - Eval CLI 是判定与报告的事实源；Debug 只通过受控 IPC 读取报告、启动固定白名单脚本，不在渲染层重新评分。
 - Debug 只有一个产品入口：`activeView === 'debug'` 渲染 `DevPanel` 全页工作区；Chat 不再维护 `conversationDebugMode`，也不在 `ChatRightDock` 中叠加调试半屏。LLM 调用、调用链和实时事件分别作为 Debug「系统」分组的同级视角；七组 26 个入口以 `debug-navigation.ts` 为唯一导航事实源。候选与正式页共用无夹具阅读组件，正式容器仍负责真实读取、分页 / 刷新、异步归属与稳定 ID 跳转；生产不导入 Playground。
 - 产品 Primary Sidebar 只保留人物世界与设置两个产品目的地；MemoryPanel 与 SkillsPanel 仍是独立页面能力，但入口统一由 Settings 的「记忆」与「工具」分区承载，SecondaryNav 不再挂载。

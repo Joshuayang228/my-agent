@@ -20,7 +20,7 @@
 
 ## 进行中
 
-Debug 能力补齐：[debug-capability-evidence-v1.md](./debug-capability-evidence-v1.md)，26 页源码盘点完成；新增行动历史、主动问候回执与追踪持久化方案待确认，生产行为未改。
+Debug 能力补齐：[debug-capability-evidence-v1.md](./debug-capability-evidence-v1.md)，方案已确认；共同历史存储与只读查询施工，主动问候回执与四页新状态继续推进。
 
 伙伴时间控件：[companion-quiet-time-controls-v1.md](./companion-quiet-time-controls-v1.md)，Foundation 整点时间选择已回流到正式与 Playground 伙伴设置；正式默认、存量偏好数据与通知调度不变。
 

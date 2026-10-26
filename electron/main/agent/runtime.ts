@@ -251,10 +251,10 @@ class AgentRuntime {
       } = await loadRoleAssembleInput(assembleRoleId)
       const character = characterDefinitionFromRolePack(pack, mutableBody)
 
-      const chatSpan = startSpan('chat', 'main', 'interaction', undefined, { sessionId, model: llmConfig.model })
+      const chatSpan = startSpan('chat', 'main', 'interaction', undefined, { sessionId, roleId: character.id, model: llmConfig.model })
       errorSpan = chatSpan
       // 供后台 task linked span 追溯（非父子，不拉长主对话耗时）
-      updateTraceContext({ interactionSpanId: chatSpan.id })
+      updateTraceContext({ interactionSpanId: chatSpan.id, roleId: character.id })
 
       log.info('Chat started', {
         sessionId,

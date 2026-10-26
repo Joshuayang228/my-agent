@@ -23,6 +23,7 @@ import { getSkillEvalReport, listSkillEvalReports } from '../debug/skill-eval-re
 import { DebugEvalRunner } from '../debug/eval-runner'
 import { getModelContextAssets } from '../debug/model-context-assets'
 import { getDebugEvidenceScope, queryCompanionEvidence } from '../debug/companion-evidence'
+import { queryDiagnosticHistory } from '../debug/diagnostic-history-service'
 import { assetUsageStore } from '../storage/asset-usage-store'
 import {
   llmDebugStore,
@@ -46,6 +47,9 @@ let evalRunner: DebugEvalRunner | null = null
 let evalRunnerUnsubscribe: (() => void) | null = null
 
 export function registerDebugIPC(toolRegistry: ToolRegistry): void {
+  ipcMain.handle('debug:history-query', (_event, input: unknown) => {
+    try { return queryDiagnosticHistory(input) } catch { log.warn('Diagnostic history query rejected or unavailable'); throw new Error('无法读取运行历史，请检查查询范围后重试') }
+  })
   ipcMain.handle('debug:companion-evidence-scope', () => {
     try { return getDebugEvidenceScope() } catch { log.warn('Debug evidence scope unavailable'); throw new Error('无法读取人物诊断范围') }
   })
