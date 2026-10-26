@@ -30,6 +30,10 @@ function rendersSharedTabs(source: string, componentName = 'TabStrip', moduleSuf
 }
 
 describe('UI component asset registry', () => {
+  it('正式运行事件与候选共用时间线和单条摘要', () => {
+    for (const [file, suffix] of [['src/components/debug/EventsEvidenceContent.tsx', './EventReading'], ['src/components/playground/DebugEventsCandidate.tsx', '/debug/EventReading']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'EventReading', suffix), file).toBe(true)
+    expect(UI_COMPONENT_REGISTRY['developer.event-reading'].status).toBe('adopted')
+  })
   it('正式调用链与候选共用树及单 Span 详情', () => {
     for (const [file, suffix] of [['src/components/debug/TracesEvidenceContent.tsx', './TraceReading'], ['src/components/playground/DebugTracesCandidate.tsx', '/debug/TraceReading']]) expect(rendersSharedTabs(readFileSync(file, 'utf8'), 'TraceReading', suffix), file).toBe(true)
     expect(UI_COMPONENT_REGISTRY['developer.trace-reading'].status).toBe('adopted')

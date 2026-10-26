@@ -136,6 +136,14 @@ test('正式 Debug 全导航与真实只读接口', async ({}, info) => {
           await traces.getByText('来源与诊断边界', { exact: true }).click()
           await expect(traces).toContainText('最近最多 100 条内存 Span 快照')
         }
+        if (entry.id === 'events') {
+          const events = panel.getByTestId('debug-evidence-events')
+          await expect(events).toContainText('0 条缓存')
+          await expect(events.locator('[data-record-id]')).toHaveCount(0)
+          await events.getByText('来源与诊断边界', { exact: true }).click()
+          await expect(events).toContainText('最多保留 501 条')
+          await expect(events).toContainText('本页只显示已保存摘要')
+        }
         if (entry.id === 'wardrobe') {
           const wardrobe = panel.getByTestId('debug-evidence-wardrobe')
           expect(await wardrobe.locator('[data-record-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-record-id')).sort())).toEqual(wardrobeRecords.map(record => record.id).sort())

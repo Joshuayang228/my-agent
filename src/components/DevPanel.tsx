@@ -13,6 +13,7 @@ import { PersonaEvalPanel } from './debug/PersonaEvalPanel'
 import { SkillEvalPanel } from './debug/SkillEvalPanel'
 import { ActionButton } from './foundation/ActionButton'
 import { TracesEvidenceContent } from './debug/TracesEvidenceContent'
+import { EventsEvidenceContent } from './debug/EventsEvidenceContent'
 import { PageHeader } from './layout/PageHeader'
 import { EmptyState } from './foundation/EmptyState'
 import { DebugOverview, buildDebugOverviewSnapshot } from './debug/DebugOverview'
@@ -103,7 +104,7 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
         {domain && <>{roleId ? <CompanionEvidencePanel key={`${page}:${roleId}:${evidenceTarget?.id ?? ''}`} scope={scope} onRoleChange={setRoleId} onOpenTraces={() => navigate('traces')} onAsset={key => { navigate('assets'); setAssetKey(key) }} targetId={evidenceTarget?.id} onEvidence={(view, id) => { navigate(view); setEvidenceTarget(id ? { view, id } : null) }} view={page as DebugEvidenceView} roleId={roleId} revision={revision} /> : <EmptyState title="尚未取得人物范围" description="未确定人物时不生成默认状态。" />}</>}
         {page === 'context' && <ContextInspectorPanel revision={revision} onRecord={id => { navigate('runs'); setCallId(id) }} />}
         {page === 'traces' && <TracesEvidenceContent snapshot={traces} loading={tracesLoading} error={tracesError} focusId={spanId} onRetry={() => setRevision(value => value + 1)} onRecord={id => { navigate('runs'); setCallId(id) }} onAsset={key => { navigate('assets'); setAssetKey(key) }} />}
-        {['runs', 'events'].includes(page) && <RequestRuntimePanel view={page === 'runs' ? 'llm' : 'events'} events={eventLog} focusedLLMCallId={callId} revision={revision} onAsset={key => { navigate('assets'); setAssetKey(key) }} />}
+        {['runs', 'events'].includes(page) && <RequestRuntimePanel view={page === 'runs' ? 'llm' : 'events'} events={eventLog} focusedLLMCallId={callId} onPage={navigate} revision={revision} onAsset={key => { navigate('assets'); setAssetKey(key) }} />}
         {(page === 'system' || page === 'tools') && systemError && <p className="debug-system-state" role="alert">{systemError}</p>}
         {page === 'system' && <><DebugSystemContent info={systemInfo} />{systemLoading && <p role="status">正在读取系统快照…</p>}<details className="debug-system-boundary"><summary>运行概览与其他证据入口</summary><DebugOverview snapshot={buildDebugOverviewSnapshot({ system: systemInfo ?? undefined, traces: traces ?? undefined, world: scope?.activeRoleId ? { role: { name: scope.roles.find(role => role.id === scope.activeRoleId)?.name ?? scope.activeRoleId } } : undefined, eventCount: eventLog.length, unavailable: [...(!systemInfo ? ['system' as const] : []), ...(!traces ? ['traces' as const] : []), ...(!scope?.activeRoleId ? ['world' as const] : [])] })} loading={systemLoading || overviewLoading} error={overviewError} onOpen={tab => navigate(({ prompt: 'assets', 'request-runtime': 'runs', world: 'now', system: 'system' } as const)[tab])} /></details></>}
         {page === 'tools' && <section className="debug-tools-workbench" data-testid="debug-evidence-tools">
@@ -121,57 +122,16 @@ export function DevPanel({ onClose, eventLog }: DevPanelProps) {
 /** 背景：三种观察粒度已有各自侧栏入口；意图：保留真实面板而去掉重复导航。
  * 约束：关联调用与 Span 标识继续传递，刷新由统一分区控制器触发。
  */
-function RequestRuntimePanel({ view, events, focusedLLMCallId, onAsset, revision }: {
+function RequestRuntimePanel({ view, events, focusedLLMCallId, onPage, onAsset, revision }: {
   view: RequestRuntimeView
   events: Array<{ time: number; type: string; detail: string }>
   focusedLLMCallId: string
+  onPage: (page: 'traces' | 'runs') => void
   onAsset: (key: string) => void
   revision: number
 }) {
   return <div className="debug-runtime-workbench space-y-4" data-testid="request-runtime-panel">
     {view === 'llm' && <LLMCallsPanel showHeading={false} focusId={focusedLLMCallId} revision={revision} onAsset={onAsset} />}
-    {view === 'events' && <EventsTab events={events} />}
+    {view === 'events' && <EventsEvidenceContent events={events} onPage={onPage} />}
   </div>
-}
-
-function EventsTab({ events }: { events: Array<{ time: number; type: string; detail: string }> }) {
-  if (events.length === 0) {
-    return <div className="text-sm" style={{ color: 'var(--text-muted)' }}>暂无事件。发送消息后会在这里看到实时事件流。</div>
-  }
-
-  const typeColor: Record<string, string> = {
-    text: 'text-cyan-400',
-    thinking: 'text-indigo-400',
-    tool_start: 'text-amber-400',
-    tool_end: 'text-emerald-400',
-    usage: 'text-slate-500',
-    error: 'text-red-400',
-    done: 'text-slate-600',
-    tool_confirm: 'text-amber-300',
-    compact: 'text-violet-400',
-    execution_mode_changed: 'text-orange-400',
-  }
-
-  return (
-    <div className="debug-runtime-events">
-      <div className="mb-3 text-xs" style={{ color: 'var(--text-muted)' }}>共 {events.length} 条事件</div>
-      <div className="space-y-0.5 font-mono text-[11px]">
-        {events.map((ev, i) => (
-          <div
-            key={i}
-            className={`flex gap-3 rounded px-2 py-1 ${ev.type === 'compact' ? 'event-row-emphasis' : ''}`}
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>
-              {new Date(ev.time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </span>
-            <span className={`w-24 shrink-0 ${typeColor[ev.type] || ''}`} style={!typeColor[ev.type] ? { color: 'var(--text-muted)' } : undefined}>
-              {ev.type}
-            </span>
-            <span className="min-w-0 whitespace-pre-wrap break-words" style={{ color: ev.type === 'compact' ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{ev.detail}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
 }
