@@ -24,6 +24,14 @@ const REQUIRED_KEYS = [
 ] as const
 
 describe('debug prompt assets', () => {
+  it('生产 Prompt 用稳定用途分类，社交与视觉不借工具或显示名猜测', () => {
+    const assets = getPromptAssets()
+    const allowed = new Set(['conversation', 'character', 'life', 'social', 'visual', 'memory', 'proactive', 'tools', 'platform', 'evaluation'])
+    for (const asset of assets.filter(asset => asset.assetType === 'prompt')) expect(allowed.has(asset.domain!), asset.key).toBe(true)
+    expect(assets.find(asset => asset.key === PROMPT_KEYS.momentComment)?.domain).toBe('social')
+    expect(assets.find(asset => asset.key === PROMPT_KEYS.imageGeneration)?.domain).toBe('visual')
+    expect(assets.find(asset => asset.key === PROMPT_KEYS.profileExtraction)?.domain).toBe('memory')
+  })
   it('所有真实模板占位符均有目录来源，重复变量只登记一次', () => {
     expect(extractTemplatePlaceholders('{{one}} {{one}} {{two}}')).toEqual(['one', 'two'])
     for (const asset of getPromptAssets()) {

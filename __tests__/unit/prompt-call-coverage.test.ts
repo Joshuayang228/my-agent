@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 import ts from 'typescript'
-import { auditRegisteredCalls, auditSigningDefinitions } from '../helpers/registered-call-audit'
+import { auditRegisteredCalls, auditSigningDefinitions, collectRecipeConsumers } from '../helpers/registered-call-audit'
 import { getPromptAssets } from '../../electron/main/prompts/registry'
 
 const ROOTS = ['electron/main', 'evals']
@@ -20,6 +20,16 @@ function listTsFiles(dir: string): string[] {
 describe('Prompt 调用覆盖门禁', () => {
   const files = ROOTS.flatMap((root) => listTsFiles(root))
   const recipes = new Set(getPromptAssets().flatMap(asset => asset.definitions ?? []).filter(ref => ref.startsWith('electron/main/prompts/registered-request.ts#')).map(ref => ref.split('#')[1]))
+
+  it('每个登记配方都存在真实消费者，不能只加目录和未调用函数', () => {
+    const consumed = new Set(files.filter(file => !file.endsWith(path.join('prompts', 'registry.ts'))).flatMap(file => [...collectRecipeConsumers(file.replaceAll('\\', '/'), readFileSync(file, 'utf8'), recipes).keys()]))
+    expect([...recipes].filter(recipe => !consumed.has(recipe))).toEqual([])
+    const source = 'import {compileTitleRequest as title} from "../prompts/registered-request"; const send=title; send("u","a");'
+    expect([...collectRecipeConsumers('electron/main/agent/x.ts', source, new Set(['compileTitleRequest', 'unused'])).keys()]).toEqual(['compileTitleRequest'])
+    expect(collectRecipeConsumers('electron/main/agent/x.ts', source.replace('send("u","a");', '// send("u","a");'), recipes).size).toBe(0)
+    expect(collectRecipeConsumers('electron/main/agent/x.ts', source.replace('../prompts/registered-request', '../fake/registered-request'), recipes).size).toBe(0)
+    expect([...collectRecipeConsumers('evals/x.ts', 'import * as requests from "../electron/main/prompts/registered-request"; requests.compileJudgeRequest(input)', recipes).keys()]).toEqual(['compileJudgeRequest'])
+  })
 
   it('私有签发调用只属于真实登记配方，新函数不能套用旧 key 或公开通用签发器', () => {
     const file = 'electron/main/prompts/registered-request.ts'

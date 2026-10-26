@@ -1,4 +1,53 @@
 import ts from 'typescript'
+import path from 'node:path'
+
+/**
+ * 背景：登记一个未调用的配方也能让目录看似完整；意图：从真实生产 / Eval 调用反查配方消费者。
+ * 约束：不计 import、注释和注册表模板样本；别名和 namespace 仍指向原始配方，不执行扫描文件。
+ */
+export function collectRecipeConsumers(file: string, text: string, recipes: Set<string>): Map<string, string[]> {
+  const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
+  const bindings = new Map<string, string>()
+  const namespaces = new Set<string>()
+  const aliases = new Map<string, ts.Expression>()
+  const result = new Map<string, string[]>()
+  const declarations = (node: ts.Node) => {
+    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)
+      && path.posix.normalize(path.posix.join(path.posix.dirname(file), node.moduleSpecifier.text)).replace(/\.ts$/, '') === 'electron/main/prompts/registered-request') {
+      const names = node.importClause?.namedBindings
+      if (names && ts.isNamedImports(names)) for (const name of names.elements) bindings.set(name.name.text, name.propertyName?.text ?? name.name.text)
+      if (names && ts.isNamespaceImport(names)) namespaces.add(names.name.text)
+    }
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) aliases.set(node.name.text, node.initializer)
+    ts.forEachChild(node, declarations)
+  }
+  declarations(source)
+  const resolve = (expression: ts.Expression, seen = new Set<string>()): string | undefined => {
+    if (ts.isParenthesizedExpression(expression) || ts.isAsExpression(expression) || ts.isNonNullExpression(expression)) return resolve(expression.expression, seen)
+    if (ts.isIdentifier(expression)) {
+      if (bindings.has(expression.text)) return bindings.get(expression.text)
+      if (file === 'electron/main/prompts/registered-request.ts' && recipes.has(expression.text)) return expression.text
+      if (seen.has(expression.text)) return undefined
+      seen.add(expression.text)
+      const alias = aliases.get(expression.text)
+      return alias ? resolve(alias, seen) : undefined
+    }
+    if (ts.isPropertyAccessExpression(expression) && ts.isIdentifier(expression.expression) && namespaces.has(expression.expression.text)) return expression.name.text
+    return undefined
+  }
+  const visit = (node: ts.Node) => {
+    if (ts.isCallExpression(node)) {
+      const recipe = resolve(node.expression)
+      if (recipe && recipes.has(recipe)) {
+        const line = source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1
+        result.set(recipe, [...result.get(recipe) ?? [], `${file}:${line}`])
+      }
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(source)
+  return result
+}
 
 /** 背景：新函数可借私有签发器套用已有 key；意图：签发调用必须归属真实登记的函数；约束：签发器不能被导出、赋值成别名或作为回调暴露。 */
 export function auditSigningDefinitions(file: string, text: string, registered: Set<string>): string[] {

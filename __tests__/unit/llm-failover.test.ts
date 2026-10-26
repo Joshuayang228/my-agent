@@ -1,6 +1,12 @@
-import { compileEvalRequest, compileProfileRequest, compileAgentRequest, compileDefaultSystem } from '../../electron/main/prompts/registered-request'
+import { compileEvalSystem, compileProfileRequest, compileAgentRequest, compileDefaultSystem } from '../../electron/main/prompts/registered-request'
 import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest'
 import type { AgentStreamEvent, LLMConfig, ChatMessage } from '../../src/shared/types'
+
+// 协议替身仍走真实 Eval 的 System → Agent 请求链，不需要为测试保留生产通用签发器。
+function compileEvalFixture(messages: ChatMessage[]) {
+  const systemPrompt = compileEvalSystem('本地协议验收')
+  return compileAgentRequest({ systemPrompt, messages: [{ id: 'system', role: 'system', content: systemPrompt.text, timestamp: 0 }, ...messages], deniedTools: [], deniedCommands: [] })
+}
 
 vi.mock('../../electron/main/utils/logger', () => ({
   createLogger: () => ({
@@ -75,7 +81,7 @@ describe('streamChat failover', () => {
       throw new DOMException('aborted', 'AbortError')
     })
     await expect(collectEvents(streamChat({
-      config: { ...baseConfig, fallbackModels: [{ model: 'backup' }] }, request: compileEvalRequest([].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
+      config: { ...baseConfig, fallbackModels: [{ model: 'backup' }] }, request: compileEvalFixture([].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-agent',
       signal: controller.signal,
     }))).rejects.toThrow('aborted')
     expect(mockFetch).toHaveBeenCalledTimes(1)
@@ -94,7 +100,7 @@ describe('streamChat failover', () => {
     })))
     const events: AgentStreamEvent[] = []
     const consume = async () => {
-      for await (const event of streamChat({ config: { ...baseConfig, fallbackModels: [{ model: 'backup' }] }, request: compileEvalRequest([].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',  })) events.push(event)
+      for await (const event of streamChat({ config: { ...baseConfig, fallbackModels: [{ model: 'backup' }] }, request: compileEvalFixture([].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-agent',  })) events.push(event)
     }
     await expect(consume()).rejects.toThrow('stream interrupted')
     expect(events.length).toBeGreaterThan(0)
@@ -105,7 +111,7 @@ describe('streamChat failover', () => {
     mockFetch.mockResolvedValueOnce(makeSSEResponse(['local ok']))
     const result = await chatComplete({
       config: { ...baseConfig, apiKey: '', fallbackModels: [{ model: 'local', baseUrl: 'http://127.0.0.1:1234/v1', apiKey: '', provider: 'openai' }] },
-      request: compileEvalRequest([].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
+      request: compileEvalFixture([].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-agent',
     })
     expect(result).toBe('local ok')
     expect(mockFetch).toHaveBeenCalledTimes(1)
@@ -196,7 +202,7 @@ describe('streamChat failover', () => {
     const options: StreamChatOptions = {
 
       config: baseConfig,
-      request: compileEvalRequest([{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
+      request: compileEvalFixture([{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-agent',
     }
 
     const gen = streamChat(options)
@@ -213,7 +219,7 @@ describe('streamChat failover', () => {
     const options: StreamChatOptions = {
 
       config: baseConfig,
-      request: compileEvalRequest([{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
+      request: compileEvalFixture([{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-agent',
     }
 
     await expect(async () => {
@@ -237,7 +243,7 @@ describe('streamChat failover', () => {
     const options: StreamChatOptions = {
 
       config,
-      request: compileEvalRequest([{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
+      request: compileEvalFixture([{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-agent',
     }
 
     const gen = streamChat(options)
@@ -266,7 +272,7 @@ describe('streamChat failover', () => {
     const options: StreamChatOptions = {
 
       config,
-      request: compileEvalRequest([{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
+      request: compileEvalFixture([{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-agent',
     }
 
     await expect(async () => {
@@ -291,7 +297,7 @@ describe('streamChat failover', () => {
     const options: StreamChatOptions = {
 
       config,
-      request: compileEvalRequest([{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
+      request: compileEvalFixture([{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-agent',
     }
 
     const gen = streamChat(options)
@@ -318,8 +324,8 @@ describe('chatComplete（非流式辅助调用入口）', () => {
     const result = await chatComplete({
 
       config: baseConfig,
-      request: compileEvalRequest([{ role: 'user', content: '生成标题' }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]),
-      caller: 'eval-test',
+      request: compileEvalFixture([{ role: 'user', content: '生成标题' }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]),
+      caller: 'eval-agent',
     })
 
     expect(result).toBe('标题内容')
@@ -334,10 +340,10 @@ describe('chatComplete（非流式辅助调用入口）', () => {
       chatComplete({
 
         config: baseConfig,
-        request: compileEvalRequest([{ role: 'user', content: 'x' }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]),
-        caller: 'eval-test',
+        request: compileEvalFixture([{ role: 'user', content: 'x' }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]),
+        caller: 'eval-agent',
       }),
-    ).rejects.toThrow(/eval-test/)
+    ).rejects.toThrow(/eval-agent/)
   })
 
   it('传入的 temperature / maxTokens 覆盖到请求体', async () => {
@@ -346,10 +352,10 @@ describe('chatComplete（非流式辅助调用入口）', () => {
     await chatComplete({
 
       config: baseConfig,
-      request: compileEvalRequest([{ role: 'user', content: 'x' }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]),
+      request: compileEvalFixture([{ role: 'user', content: 'x' }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]),
       temperature: 0.1,
       maxTokens: 42,
-      caller: 'eval-test',
+      caller: 'eval-agent',
     })
 
     const body = JSON.parse(mockFetch.mock.calls[0][1]?.body as string)
@@ -372,8 +378,8 @@ describe('chatComplete（非流式辅助调用入口）', () => {
     const result = await chatComplete({
 
       config,
-      request: compileEvalRequest([{ role: 'user', content: 'x' }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]),
-      caller: 'eval-test',
+      request: compileEvalFixture([{ role: 'user', content: 'x' }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]),
+      caller: 'eval-agent',
     })
 
     // failover 会额外注入「已切换」提示文本，故用 contains 断言
@@ -409,7 +415,7 @@ describe('G2/G3：usage guard + retry-after', () => {
     const gen = streamChat({
 
       config: baseConfig,
-      request: compileEvalRequest([{ id: '1', role: 'user', content: 'test', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
+      request: compileEvalFixture([{ id: '1', role: 'user', content: 'test', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-agent',
     })
     const events = await collectEvents(gen)
     const usageEvent = events.find(e => e.type === 'usage') as { promptTokens: number; completionTokens: number } | undefined
@@ -444,7 +450,7 @@ describe('G2/G3：usage guard + retry-after', () => {
       const gen = streamChat({
 
         config: baseConfig,
-        request: compileEvalRequest([{ id: '1', role: 'user', content: 'x', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-test',
+        request: compileEvalFixture([{ id: '1', role: 'user', content: 'x', timestamp: Date.now() }].map((m, i) => ({ id: 'test-'+i, timestamp: Date.now(), ...m })) as ChatMessage[]), caller: 'eval-agent',
       })
       await collectEvents(gen)
       throw new Error('Should have thrown')

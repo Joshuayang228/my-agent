@@ -128,6 +128,9 @@ export interface PromptLocaleAsset {
   template?: string
 }
 
+/** 生产用途标识；用于目录分组，不参与指令优先级或模型路由。 */
+export type PromptDomain = 'conversation' | 'character' | 'life' | 'social' | 'visual' | 'memory' | 'proactive' | 'tools' | 'platform' | 'evaluation'
+
 export interface PromptAsset {
   /** 稳定语义标识；文案改动和文件移动不得随意改变。 */
   key: string
@@ -136,6 +139,8 @@ export interface PromptAsset {
   name: string
   category: PromptAssetKind
   purpose: string
+  /** 固定用途由生产定义声明；其他资产可不提供，浏览端不得根据正文猜测。 */
+  domain?: PromptDomain
   role: string
   /** 生产来源明确登记的人物归属；缺失时不得由 Renderer 从正文或路径猜测。 */
   roleIds?: string[]

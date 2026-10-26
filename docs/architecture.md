@@ -30,6 +30,8 @@ Playground / Eval 使用明确实验配方与来源，生产模块禁止导入 E
 
 ## Prompt 生产定义与注册边界
 
+目录用途采用生产注册项的稳定 `domain` 标识，身份 / 行为 / 场景文件由 Role Pack 来源契约声明用途；中文名称和正文不参与用途推断。注册元数据不改变请求编译或权限。配方消费者门禁沿真实文件 import、别名及 namespace 调用反查，防止仅登记未接入函数；实验请求通过实验 System 和 Agent 配方消费同一签发机制，不保留无人调用的额外消息签发入口。
+
 `prompts/` 保存纯正文构造器、语义编译器、typed key 与注册索引；领域服务提供事实并拥有解析、回退与副作用。注册表的 `definitions` 指向真实代码符号，动态模板调用同一生产构造器生成；禁止在索引或 Debug 复制正文。四类伙伴行为的领域协议在输出模块最后编译，人物增量和运行时事实不能隐式覆盖稳定身份。
 
 人物 JSON 来源由纯 `companion/identity/source-assets.ts` 工厂投影，Prompt 追踪和伙伴目录共享 canonical key；高层 Debug 聚合去重。LLM 依赖 Prompt 目录时不反向导入 Agent 或生活存储，Role Pack 文本仍从实际 loader 读取。主对话 / Eval 使用 `prompts/compiler.ts`；旧生产组装适配层已移除。

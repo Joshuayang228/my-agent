@@ -113,10 +113,6 @@ export function compileEvalSystem(text: string): RegisteredSystemPrompt {
   return signSystem(text, [PROMPT_KEYS.evalInput], 'eval')
 }
 
-export function compileEvalRequest(messages: ChatMessage[]): RegisteredModelRequest {
-  return signRequest(messages, [PROMPT_KEYS.evalInput], ['eval-agent', 'eval-test'], 'eval')
-}
-
 /** 背景：压缩追加系统消息；意图：上下文管理器签发真实包装并保持消息身份；约束：复制对象或修改正文会失去证明，压缩元数据允许后续补齐。 */
 export function compileContextMessage(kind: 'summary' | 'auto-summary' | 'files', data: string): ChatMessage {
   const id = kind === 'summary' ? 'context-summary' : kind === 'auto-summary' ? 'auto-compact-summary' : 'context-file-restore'

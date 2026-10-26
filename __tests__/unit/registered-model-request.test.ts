@@ -3,7 +3,7 @@ import type { ChatMessage, RegisteredModelRequest, RegisteredSystemPrompt } from
 import { streamChat, chatComplete, type StreamChatOptions } from '../../electron/main/llm/index'
 import { setLLMTraceSink } from '../../electron/main/utils/tracer'
 import {
-  compileAgentRequest, compileDefaultSystem, compileEvalRequest, compileEvalSystem,
+  compileAgentRequest, compileDefaultSystem, compileEvalSystem,
   compileContextMessage, compileTitleRequest, compilePlaygroundRequest,
   compileMainSystem, compileSubagentSystem, readRegisteredModelRequest,
   readRegisteredSystemText, compileModelProbeRequest,
@@ -60,7 +60,8 @@ describe('注册编译请求的模型边界', () => {
   })
 
   it('实验和标题配方不能冒充主对话；调用行为不一致时未发网络请求', async () => {
-    for (const request of [compilePlaygroundRequest({ systemPrompt: '实验指令', userPrompt: '你好' }), compileEvalRequest([]), compileTitleRequest('你好', '你好')]) {
+    const evalRequest = compileAgentRequest({ systemPrompt: compileEvalSystem('实验指令'), messages: [message('system', '实验指令', 'system')], deniedTools: [], deniedCommands: [] })
+    for (const request of [compilePlaygroundRequest({ systemPrompt: '实验指令', userPrompt: '你好' }), evalRequest, compileTitleRequest('你好', '你好')]) {
       await expect(consume({ config, caller: 'main', request })).rejects.toThrow('来源与调用行为不一致')
     }
     expect(fetch).not.toHaveBeenCalled()
