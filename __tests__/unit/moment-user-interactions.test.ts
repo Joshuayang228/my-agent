@@ -112,6 +112,11 @@ describe('moment user interactions', () => {
     ])
   })
 
+  it('主角回复保留作者类型和父评论关系，不冒充用户', () => {
+    const merged = mergeMomentComments([], [{ id: 'reply', actorName: '林晚', text: '收到啦', createdAt: 2, source: 'protagonist', parentInteractionId: 'user-comment' }])
+    expect(merged).toEqual([{ key: 'protagonist-reply', actorName: '林晚', text: '收到啦', source: 'protagonist' }])
+  })
+
   it('赞可切换且不改动态正文或卡司投影', async () => {
     const moment = await seedMoment('lin', 'event-like')
     const first = await toggleMomentLikeForRole('lin', moment.id)

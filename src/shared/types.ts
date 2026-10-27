@@ -192,6 +192,7 @@ export type PromptAssetTrace = Pick<
   | 'mode'
   | 'slots'
   | 'behavior'
+  | 'domain'
 >
 
 export type ModelContextAsset = PromptAsset
@@ -1012,6 +1013,8 @@ export interface MomentUserCommentView {
   actorName: string
   text: string
   createdAt: number
+  source?: 'user' | 'protagonist'
+  parentInteractionId?: string | null
 }
 
 export interface MomentSocialView {

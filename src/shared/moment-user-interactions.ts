@@ -31,6 +31,9 @@ export interface MomentUserInteraction {
   kind: MomentUserInteractionKind
   actorId: string
   text: string | null
+  actorType?: 'user' | 'protagonist'
+  actorName?: string
+  parentInteractionId?: string | null
   createdAt: number
 }
 
@@ -45,7 +48,7 @@ export interface MomentMergedCommentView {
   key: string
   actorName: string
   text: string
-  source: 'cast' | 'user'
+  source: 'cast' | 'user' | 'protagonist'
 }
 
 export function normalizeMomentCommentText(
@@ -101,9 +104,11 @@ export function groupMomentUserInteractions(rows: readonly MomentUserInteraction
     const list = commentsByMomentId.get(row.momentId) ?? []
     list.push({
       id: row.id,
-      actorName: MOMENT_USER_ACTOR_NAME,
+      actorName: row.actorName || (row.actorType === 'protagonist' ? row.actorId : MOMENT_USER_ACTOR_NAME),
       text: row.text,
       createdAt: row.createdAt,
+      source: row.actorType === 'protagonist' ? 'protagonist' : 'user',
+      parentInteractionId: row.parentInteractionId ?? null,
     })
     commentsByMomentId.set(row.momentId, list)
   }
@@ -139,10 +144,10 @@ export function mergeMomentComments(
       source: 'cast' as const,
     }))
   const fromUser = user.map((item) => ({
-      key: 'user-' + item.id,
+      key: (item.source === 'protagonist' ? 'protagonist-' : 'user-') + item.id,
       actorName: item.actorName,
       text: item.text,
-      source: 'user' as const,
+      source: item.source ?? 'user',
     }))
   return [...fromCast, ...fromUser]
 }

@@ -1,4 +1,5 @@
 import { buildMomentCommentPrompt, type MomentCommentInput } from './moment-comment'
+import { buildMomentReplyPrompt, type MomentReplyInput } from './moment-reply'
 import { buildImageGenerationPrompt } from './image-generation'
 /**
  * 背景：手填资产 key 无法证明正文来自登记的生产定义。
@@ -222,4 +223,7 @@ export function readRegisteredImageRequest(request: RegisteredImageRequest): { p
 
 export function compileMomentCommentRequest(input: MomentCommentInput): RegisteredModelRequest {
   return signRequest([{ role: 'user', content: buildMomentCommentPrompt(input) }], [PROMPT_KEYS.momentComment], ['moment-comment'])
+}
+export function compileMomentReplyRequest(input: MomentReplyInput): RegisteredModelRequest {
+  return signRequest([{ role: 'user', content: buildMomentReplyPrompt(input) }], [PROMPT_KEYS.momentReply], ['moment-reply'])
 }

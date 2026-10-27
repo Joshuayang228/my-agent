@@ -9,6 +9,10 @@
 import type { LLMConfig } from '../../../../src/shared/types'
 import { startSpan } from '../../utils/tracer'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
+import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
+import { chatComplete } from '../../llm/index'
+import { compileMomentReplyRequest } from '../../prompts/registered-request'
+import { loadRolePack } from '../identity/loader'
 import type { CompanionEvent, CompanionMoment } from '../types'
 import {
   MOMENT_USER_ACTOR_ID,
@@ -250,13 +254,42 @@ export async function addMomentCommentForRole(
   const moment = await store.getMomentById(id)
   if (!moment) return { ok: false, code: 'NOT_FOUND', error: '动态不存在' }
   if (moment.roleId !== roleId) return { ok: false, code: 'ROLE_MISMATCH', error: '只能互动当前主角的动态' }
-  await store.insertMomentUserInteraction({
+  const inserted = await store.insertMomentUserInteraction({
     momentId: id,
     roleId,
     kind: 'comment',
     actorId: MOMENT_USER_ACTOR_ID,
     text: normalized.text,
   })
+  // 回复是独立的主角作者记录；任何模型、配置或解析失败都不回滚用户评论。
+  try {
+    const config = await loadAuxLLMConfig()
+    const pack = loadRolePack(roleId)
+    if (hasLLMAuthentication(config)) {
+      const raw = await chatComplete({
+        config,
+        request: compileMomentReplyRequest({
+          protagonistName: pack.name,
+          protagonistBrief: `${pack.description}\n${pack.voice ?? ''}`.slice(0, 800),
+          postText: moment.text.slice(0, 1500),
+          userComment: normalized.text.slice(0, 280),
+        }),
+        caller: 'moment-reply', temperature: 0.65, maxTokens: 220,
+      })
+      let reply: unknown
+      try { reply = JSON.parse(raw) } catch { reply = null }
+      const textValue = reply && typeof reply === 'object' && !Array.isArray(reply) && typeof (reply as Record<string, unknown>).reply === 'string'
+        ? ((reply as Record<string, unknown>).reply as string).trim() : ''
+      if (textValue.length >= 2 && textValue.length <= 120 && !/[\r\n<>]/.test(textValue)) {
+        await store.insertMomentUserInteraction({
+          momentId: id, roleId, kind: 'comment', actorId: roleId, actorType: 'protagonist', actorName: pack.name,
+          parentInteractionId: inserted.id, text: textValue,
+        })
+      }
+    }
+  } catch {
+    // 用户评论已经持久化；回复失败只留下可见的用户评论，不伪造成功状态。
+  }
   const rows = await store.listMomentUserInteractions(roleId)
   return { ok: true, social: describeMomentSocial(id, rows) }
 }

@@ -14,6 +14,11 @@ export function registeredAssetKind(asset: ModelContextAsset): string {
  * 约束：未知用途不提升，角色关联不证明实际注入；分类和排序不得写回注册表或改变编译顺序。
  */
 function section(asset: ModelContextAsset): keyof typeof REVIEW_SECTIONS | undefined {
+  const domainSection: Record<string, keyof typeof REVIEW_SECTIONS> = {
+    conversation: 'conversation', character: 'identity', life: 'world', social: 'social', visual: 'visual',
+    memory: 'memory', proactive: 'proactive', tools: 'tools', platform: 'platform', evaluation: 'evaluation',
+  }
+  if (asset.domain && domainSection[asset.domain]) return domainSection[asset.domain]
   const uses = asset.roleUses?.map(use => use.purpose) ?? []
   if (asset.purpose === '主对话语义模块编译' || asset.role === 'companion' || uses.includes('行为')) return 'conversation'
   if (uses.includes('身份') || ['companion-manifest', 'companion-profile'].includes(asset.assetType)) return 'identity'

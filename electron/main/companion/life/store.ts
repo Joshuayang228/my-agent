@@ -97,6 +97,13 @@ async function ensureTables(): Promise<void> {
       created_at INTEGER NOT NULL
     )
   `)
+  for (const column of [
+    "ALTER TABLE companion_moment_user_interactions ADD COLUMN actor_type TEXT NOT NULL DEFAULT 'user'",
+    'ALTER TABLE companion_moment_user_interactions ADD COLUMN actor_name TEXT',
+    'ALTER TABLE companion_moment_user_interactions ADD COLUMN parent_interaction_id TEXT',
+  ]) {
+    try { db.run(column) } catch { /* 已升级的数据库 */ }
+  }
   db.run(`
     CREATE INDEX IF NOT EXISTS idx_companion_moment_user_role_moment
       ON companion_moment_user_interactions(role_id, moment_id, created_at)
@@ -733,6 +740,9 @@ function mapMomentUserInteraction(row: Record<string, unknown>): MomentUserInter
     kind,
     actorId: row.actor_id as string,
     text: typeof row.text === 'string' ? row.text : null,
+    actorType: row.actor_type === 'protagonist' ? 'protagonist' : 'user',
+    actorName: typeof row.actor_name === 'string' ? row.actor_name : undefined,
+    parentInteractionId: typeof row.parent_interaction_id === 'string' ? row.parent_interaction_id : null,
     createdAt: Number(row.created_at) || 0,
   }
 }
@@ -791,7 +801,7 @@ export async function listMomentUserInteractions(
   await ensureTables()
   const db = await getDatabase()
   const stmt = db.prepare(
-    `SELECT id, moment_id, role_id, kind, actor_id, text, created_at
+    `SELECT id, moment_id, role_id, kind, actor_id, actor_type, actor_name, parent_interaction_id, text, created_at
      FROM companion_moment_user_interactions
      WHERE role_id = ?
      ORDER BY created_at ASC`,
@@ -833,6 +843,9 @@ export async function insertMomentUserInteraction(input: {
   kind: MomentUserInteractionKind
   actorId: string
   text?: string | null
+  actorType?: 'user' | 'protagonist'
+  actorName?: string
+  parentInteractionId?: string | null
 }): Promise<MomentUserInteraction> {
   await ensureTables()
   const db = await getDatabase()
@@ -840,14 +853,17 @@ export async function insertMomentUserInteraction(input: {
   const createdAt = Date.now()
   db.run(
     `INSERT INTO companion_moment_user_interactions
-       (id, moment_id, role_id, kind, actor_id, text, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       (id, moment_id, role_id, kind, actor_id, actor_type, actor_name, parent_interaction_id, text, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.momentId,
       input.roleId,
       input.kind,
       input.actorId,
+      input.actorType ?? 'user',
+      input.actorName ?? null,
+      input.parentInteractionId ?? null,
       input.text ?? null,
       createdAt,
     ],
@@ -860,6 +876,9 @@ export async function insertMomentUserInteraction(input: {
     kind: input.kind,
     actorId: input.actorId,
     text: input.text ?? null,
+    actorType: input.actorType ?? 'user',
+    actorName: input.actorName,
+    parentInteractionId: input.parentInteractionId ?? null,
     createdAt,
   }
 }

@@ -1,5 +1,6 @@
 import { extractTemplatePlaceholders } from '../../../src/shared/prompt-template'
 import { buildMomentCommentPrompt } from './moment-comment'
+import { buildMomentReplyPrompt } from './moment-reply'
 import { buildImageGenerationPrompt } from './image-generation'
 import { buildImageDraftPrompt, buildWorldAssetImageDraftPrompt } from '../../../src/shared/request-draft-prompts'
 /**
@@ -162,6 +163,15 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     definitions: ['electron/main/prompts/image-generation.ts#buildImageGenerationPrompt', 'electron/main/prompts/registered-request.ts#compileImageGenerationRequest'],
     template: buildImageGenerationPrompt('{{description}}'),
     slots: [{ name: 'description', source: 'image_generate.prompt', lifecycle: '每次显式生成' }],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.momentReply,
+    domain: 'social', name: '主角回复用户评论', category: 'companion', role: 'companion-social',
+    purpose: '主角回复已保存的用户评论', desc: '只回复当前动态下的用户评论；生成失败不影响用户评论写入。',
+    sourcePath: 'electron/main/prompts/moment-reply.ts#buildMomentReplyPrompt',
+    definitions: ['electron/main/prompts/moment-reply.ts#buildMomentReplyPrompt', 'electron/main/prompts/registered-request.ts#compileMomentReplyRequest'],
+    template: buildMomentReplyPrompt({ protagonistName: '{{protagonistName}}', protagonistBrief: '{{protagonistBrief}}', postText: '{{postText}}', userComment: '{{userComment}}' }),
+    slots: [{ name: 'protagonistName', source: '当前主角 Role Pack', lifecycle: '评论提交时' }, { name: 'protagonistBrief', source: '当前主角公开简介', lifecycle: '评论提交时' }, { name: 'postText', source: '已发布动态正文', lifecycle: '评论提交时' }, { name: 'userComment', source: '刚保存的用户评论', lifecycle: '评论提交时' }],
   }),
   staticAsset({
     id: PROMPT_KEYS.imageDraft,
@@ -726,10 +736,11 @@ export function getPromptAssets(): Array<PromptAsset & { content?: string }> {
  */
 export function getPromptAssetTraces(keys?: readonly string[]): PromptAssetTrace[] {
   if (keys) return resolvePromptAssetTraces(keys).assets
-  return getPromptAssets().map(({ key, purpose, role, source, version, fingerprint, fingerprintKind, locale, mode, slots, behavior }) => ({
+  return getPromptAssets().map(({ key, purpose, role, domain, source, version, fingerprint, fingerprintKind, locale, mode, slots, behavior }) => ({
     key,
     purpose,
     role,
+    domain,
     source,
     version,
     fingerprint,
@@ -768,8 +779,8 @@ export function resolvePromptAssetTraces(keys: readonly string[]): PromptAssetRe
       unknownKeys.push(key)
       continue
     }
-    const { purpose, role, source, version, fingerprint, fingerprintKind, locale, mode, slots, behavior } = asset
-    assets.push({ key, purpose, role, source, version, fingerprint, fingerprintKind, locale, mode, slots, ...(behavior ? { behavior } : {}) })
+    const { purpose, role, domain, source, version, fingerprint, fingerprintKind, locale, mode, slots, behavior } = asset
+    assets.push({ key, purpose, role, domain, source, version, fingerprint, fingerprintKind, locale, mode, slots, ...(behavior ? { behavior } : {}) })
   }
 
   return { assets, unknownKeys }

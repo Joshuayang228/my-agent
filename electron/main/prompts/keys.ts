@@ -17,6 +17,7 @@ export const PROMPT_KEYS = {
   worldAssetImageDraft: promptKey('world-asset-image-request-draft'),
   imageGeneration: promptKey('image-generation'),
   momentComment: promptKey('companion-moment-comment'),
+  momentReply: promptKey('companion-moment-reply'),
   promptCompiler: promptKey('prompt-compiler'),
   loopDefault: promptKey('loop-default'),
   loopTimeContext: promptKey('loop-time-context'),
