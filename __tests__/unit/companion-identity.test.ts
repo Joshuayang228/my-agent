@@ -12,17 +12,15 @@ describe('companion identity loader', () => {
     const m = loadUniverseManifest('default')
     expect(m.id).toBe('default')
     expect(m.plannedProtagonistSlots).toBe(3)
-    expect(m.defaultProtagonistId).toBe('lin')
-    expect(m.protagonistIds).toContain('lin')
+    expect(m.defaultProtagonistId).toBe('luffy')
+    expect(m.protagonistIds).toEqual(['luffy'])
   })
 
   it('listProtagonists 返回已挂满的 3 个主角槽', () => {
     const list = listProtagonists('default')
-    expect(list.map((r) => r.id)).toEqual(['lin', 'zhou', 'xia'])
-    expect(list[0].name).toBe('小林')
-    expect(list[1].name).toBe('小周')
-    expect(list[2].name).toBe('小夏')
-    expect(isKnownProtagonist('xia')).toBe(true)
+    expect(list.map((r) => r.id)).toEqual(['luffy'])
+    expect(list[0].name).toBe('路飞')
+    expect(isKnownProtagonist('luffy')).toBe(true)
   })
 
   it('loadRolePack 读出 protected / mutable（含第三槽 xia）', () => {
@@ -60,9 +58,9 @@ describe('companion identity loader', () => {
   })
 
   it('未知角色校验', () => {
-    expect(isKnownProtagonist('lin')).toBe(true)
+    expect(isKnownProtagonist('luffy')).toBe(true)
     expect(isKnownProtagonist('warm-partner')).toBe(false)
-    expect(getDefaultProtagonistId()).toBe('lin')
+    expect(getDefaultProtagonistId()).toBe('luffy')
   })
 
   it('缺失 pack 抛错', () => {

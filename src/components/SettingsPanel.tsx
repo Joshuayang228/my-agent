@@ -52,7 +52,7 @@ interface McpToolEntry { serverId: string; serverName: string; name: string; des
 
 const DEFAULTS: SettingsForm = {
   llmTemperature: '0.7',
-  activeRoleId: 'lin',
+  activeRoleId: 'luffy',
   executionMode: 'auto',
   userExpertiseLevel: 'auto',
   companionMomentTipsMuted: 'false',

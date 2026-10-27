@@ -92,7 +92,7 @@ describe('debug prompt assets', () => {
     for (const key of REQUIRED_KEYS) {
       expect(keys).toContain(key)
     }
-    expect(keys).toContain('role-ayu-protected-md')
+    expect(keys).toContain('role-luffy-protected-md')
   })
 
   it('静态资产登记真实正文，动态资产可登记模板骨架或运行时插槽', () => {

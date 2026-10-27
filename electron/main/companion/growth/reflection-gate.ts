@@ -59,7 +59,7 @@ async function loadGrowthMap(): Promise<Record<string, number>> {
   if (Object.keys(map).length === 0) {
     const legacy = Number(await settings.getSetting(LEGACY_GROWTH_KEY))
     if (Number.isFinite(legacy) && legacy > 0) {
-      const active = (await settings.getSetting('activeRoleId')) || 'lin'
+      const active = (await settings.getSetting('activeRoleId')) || 'luffy'
       map = { [active]: legacy }
       await settings.setSetting(GROWTH_STARTED_BY_ROLE_KEY, JSON.stringify(map))
     }

@@ -104,7 +104,7 @@ describe('Companion Cast roster', () => {
   it('NPC 不在主角列表；三主角槽可列出且无需改 Orchestrator', async () => {
     const { listProtagonists } = await import('../../electron/main/companion/identity/loader')
     const ids = listProtagonists('default').map((p) => p.id)
-    expect(ids).toEqual(['lin', 'zhou', 'xia'])
+    expect(ids).toEqual(['luffy'])
     expect(ids).not.toContain('chen')
     expect(ids).not.toContain('ayu')
   })

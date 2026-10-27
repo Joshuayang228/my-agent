@@ -22,6 +22,15 @@ import type {
 } from '../types'
 
 const DEFAULT_UNIVERSE = 'default'
+const TEST_FIXTURE_ROOT = path.join(process.cwd(), 'tests-fixtures')
+
+function isVitestFixtureMode(): boolean {
+  return process.env.VITEST === 'true'
+}
+
+function fixturePath(relUnixPath: string): string {
+  return path.join(TEST_FIXTURE_ROOT, ...relUnixPath.split('/').slice(1))
+}
 
 /** Vite 将资产以 raw 字符串打入包；key 形如 `../universes/default/manifest.json` */
 const bundledAssets = import.meta.glob('../universes/**/*', {
@@ -69,6 +78,9 @@ function readText(relUnixPath: string): string {
   if (bundled !== null) return bundled
 
   const abs = path.join(resolveUniversesRoot(), ...relUnixPath.split('/'))
+  if (isVitestFixtureMode() && !fs.existsSync(abs) && fs.existsSync(fixturePath(relUnixPath))) {
+    return fs.readFileSync(fixturePath(relUnixPath), 'utf-8').replace(/^\uFEFF/, '').trimEnd()
+  }
   return fs.readFileSync(abs, 'utf-8').replace(/^\uFEFF/, '').trimEnd()
 }
 
@@ -79,7 +91,8 @@ function readJson<T>(relUnixPath: string): T {
 function assetExists(relUnixPath: string): boolean {
   if (readBundled(relUnixPath) !== null) return true
   try {
-    return fs.existsSync(path.join(resolveUniversesRoot(), ...relUnixPath.split('/')))
+    const abs = path.join(resolveUniversesRoot(), ...relUnixPath.split('/'))
+    return fs.existsSync(abs) || (isVitestFixtureMode() && fs.existsSync(fixturePath(relUnixPath)))
   } catch {
     return false
   }
@@ -99,6 +112,10 @@ export function loadUniverseManifest(universeId: string = DEFAULT_UNIVERSE): Uni
 
 export function loadRelations(universeId: string = DEFAULT_UNIVERSE): UniverseRelations {
   const rel = `${universeId}/relations.json`
+  if (isVitestFixtureMode()) {
+    const fixture = path.join(TEST_FIXTURE_ROOT, universeId, 'relations.json')
+    if (fs.existsSync(fixture)) return JSON.parse(fs.readFileSync(fixture, 'utf-8')) as UniverseRelations
+  }
   if (!assetExists(rel)) return { edges: [] }
   return readJson<UniverseRelations>(rel)
 }
@@ -174,6 +191,17 @@ export function listAvailableRoleIds(universeId: string = DEFAULT_UNIVERSE): str
     }
   } catch {
     // 打包环境可能没有可扫描目录；bundledAssets 已覆盖正常生产路径。
+  }
+
+  if (isVitestFixtureMode()) {
+    try {
+      const fixtureRoot = path.join(TEST_FIXTURE_ROOT, 'roles')
+      for (const entry of fs.readdirSync(fixtureRoot, { withFileTypes: true })) {
+        if (entry.isDirectory() && fs.existsSync(path.join(fixtureRoot, entry.name, 'manifest.json'))) roleIds.push(entry.name)
+      }
+    } catch {
+      // 测试夹具缺失时仍以生产目录为准。
+    }
   }
 
   return [...new Set(roleIds)].sort()

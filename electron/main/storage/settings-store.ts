@@ -176,7 +176,7 @@ function getDefaults(): AppSettings {
     llmTopP: '1',
     llmMaxTokens: '4096',
     systemPrompt: '',
-    activeRoleId: 'lin',
+    activeRoleId: 'luffy',
     universeId: 'default',
     mcpServers: '[]',
     sandboxMode: 'workspace-write',

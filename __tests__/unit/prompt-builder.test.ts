@@ -141,10 +141,10 @@ describe('buildSystemPrompt', () => {
   it('Role Pack lin 可组装进 L1，且宇宙 3 槽已挂满（lin+zhou+xia）', () => {
     const universe = loadUniverseManifest('default')
     expect(universe.plannedProtagonistSlots).toBe(3)
-    expect(universe.protagonistIds).toEqual(['lin', 'zhou', 'xia'])
+    expect(universe.protagonistIds).toEqual(['luffy'])
 
     const protagonists = listProtagonists('default')
-    expect(protagonists.map((p) => p.id)).toEqual(['lin', 'zhou', 'xia'])
+    expect(protagonists.map((p) => p.id)).toEqual(['luffy'])
 
     const pack = loadRolePack('lin')
     const persona = rolePackToPromptParts(pack)
@@ -154,17 +154,17 @@ describe('buildSystemPrompt', () => {
   })
 
   it('结构化角色档案以薄摘要进入 L1，不注入原始 JSON', () => {
-    const pack = loadRolePack('hang')
+    const pack = loadRolePack('luffy')
     const persona = rolePackToPromptParts(pack)
     const prompt = buildSystemPrompt(makeCtx({ persona }))
 
     expect(prompt).toContain('## 人物档案')
-    expect(prompt).toContain('年龄感：待定')
-    expect(prompt).toContain('温暖度 6/10')
+    expect(prompt).toContain('年龄感：待用户确认')
+    expect(prompt).toContain('温暖度 8/10')
     expect(prompt).toContain('本轮仍由场景与关系阶段收放')
     expect(prompt).toContain('## 默认生活世界')
-    expect(prompt).toContain('人物故事尚未确定')
-    expect(prompt).toContain('默认居所：未设定')
+    expect(prompt).toContain('作品时间线与具体出身资料待确认')
+    expect(prompt).toContain('默认居所：可移动的住处')
     expect(prompt).toContain('初始物品只用于播种资产库')
     expect(prompt).not.toMatch(/临湾|海堤|旧港|码头|船笛/)
     expect(prompt).not.toContain('"agePresentation"')

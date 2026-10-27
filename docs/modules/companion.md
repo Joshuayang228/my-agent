@@ -308,13 +308,13 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 | 能力 | 状态 | 用户入口 | 落点 |
 |------|------|----------|------|
 | 生活资产与朋友圈备份往返 | 已落地 | 设置 → 数据与隐私 | `data:export` / `data:import` 覆盖生活资产、播种标记、已发布事件、动态快照及用户赞评；按稳定身份合并，同一事务失败回滚。旧备份缺字段仍可导入。不包含未来事件、日剧本、当前世界态、MCP、权限、凭据和项目路径；恢复历史不重放奖励 |
-| Universe + Role Pack（三槽：lin / zhou / xia） | 已落地 | 角色架 / 设置 | `universes/default/` · 文案见 [companion-cast-content](../requirements/companion-cast-content.md) |
-| 主角候选结构化档案（Role Profile） | 已落地 | Debug「世界态」/ Prompt 人物定义 | 当前仅小航 `profile.json`；行为边界与五维表达基线已定，人物故事字段待定 |
+| Universe + Role Pack（三槽容量、当前唯一主角 luffy） | 已落地 | 角色架 / 设置 | `universes/default/` · 当前人物施工见 [character-luffy-v1](../requirements/character-luffy-v1.md) |
+| 主角候选结构化档案（Role Profile） | 已落地 | Debug「世界态」/ Prompt 人物定义 | 当前路飞 `profile.json`；公开高层方向已接通，作品细节按用户材料逐项确认 |
 | 伙伴生产资产目录 | 已落地 | Debug「提示词管理器 → 伙伴世界」 | `companion/asset-registry.ts`；manifest / profile / 默认世界 / 场景 / 衣柜书架 starter 使用稳定 key、版本、指纹、来源和依赖 |
 | 生活资产来源边界 | 已落地 | 衣柜 / 文化角 / 家居 / 足迹 | 衣柜、书架、文化默认样张不再播种；住所 / 地点 / 物件沿用真实 world.default，用户 CRUD 与已发布事件授予保留。已有数据库不批量清空 |
 | 日剧本 LLM（当日）+ 哈希回退 | 已落地 | （隐式）Life ticker | `resolveDayScript` · aux-config |
 | 世界状态薄片（居所/时区/情境/心情/精力/当前位置与活动） | 已落地 | （隐式）语义编译 · 情境上下文 | schema v1 `world_json` · `## World slice`；无 Role Pack 世界默认时 home / currentLocation 为「未设定」 |
-| 主角候选默认世界结构 | 已落地 | Debug「世界态」/ 世界初始化 | 当前仅小航 `world.default.json`；城市、住所、地点、物品与作息均待定 |
+| 主角候选默认世界结构 | 已落地 | Debug「世界态」/ 世界初始化 | 当前路飞 `world.default.json`；海上航路为共创骨架，具体地点与物件待确认 |
 | 主角候选行为人格验收 | 已落地 | Playground「人格验收」/ `npm run eval:persona` | 七个中性故事格 + B02–B07 DeepSeek `pass^3`；自动门禁已过，人工语气审美待本地验收 |
 | 伙伴 Prompt 自有框架文案统一中文 | 已落地 | 人物档案 / 世界 / 关系阶段 / 里程碑 / 召唤任务工动态注入；Role Pack 原文继续作为单一事实源 |
 | Catch-up 概况 LLM + 模板回退 | 已落地 | （隐式）换角追赶 | `resolveCatchupSummary` · catchup.ts |

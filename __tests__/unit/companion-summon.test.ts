@@ -27,7 +27,7 @@ vi.mock('../../electron/main/companion/streaming-gate', () => ({
 
 const SQL = await initSqlJs()
 let memDb: InstanceType<typeof SQL.Database>
-let activeRoleId = 'lin'
+let activeRoleId = 'luffy'
 
 vi.mock('../../electron/main/storage/database', () => ({
   getDatabase: vi.fn(async () => memDb),
@@ -53,7 +53,7 @@ const { createSession, getSession } = await import('../../electron/main/storage/
 describe('companion summon session', () => {
   beforeEach(() => {
     memDb = new SQL.Database()
-    activeRoleId = 'lin'
+    activeRoleId = 'luffy'
     memDb.run(`
       CREATE TABLE sessions (
         id TEXT PRIMARY KEY,
@@ -92,7 +92,7 @@ describe('companion summon session', () => {
     expect(result.sessionKind).toBe('summon')
     expect(result.roleId).toBe('chen')
     expect(result.name).toBe('陈姐')
-    expect(await getActiveRoleId()).toBe('lin')
+    expect(await getActiveRoleId()).toBe('luffy')
 
     const session = await getSession(result.sessionId)
     expect(session?.roleId).toBe('chen')
@@ -101,11 +101,11 @@ describe('companion summon session', () => {
   })
 
   it('召唤活跃主角退化为 main 会话', async () => {
-    const result = await startSummonSession('lin')
+    const result = await startSummonSession('luffy')
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.sessionKind).toBe('main')
-    expect(result.roleId).toBe('lin')
+    expect(result.roleId).toBe('luffy')
   })
 
   it('创建 workspace 会话时保留 workspace 类型', async () => {

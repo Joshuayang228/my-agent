@@ -13,7 +13,7 @@ describe('实际人物 Prompt 依赖', () => {
   })
 
   it('成长覆盖不误报默认文件，缺失可选档案不虚构依赖', () => {
-    const pack = loadRolePack('ayu')
+    const pack = { ...loadRolePack('luffy'), profile: undefined, worldDefaults: undefined }
     const keys = getCharacterPromptAssetKeys(pack, '本轮已保存的成长状态')
     expect(keys).toContain(PROMPT_KEYS.companionMutableState)
     expect(keys).not.toContain(rolePromptAssetKey(pack.id, 'mutable.default.md'))
@@ -22,9 +22,11 @@ describe('实际人物 Prompt 依赖', () => {
   })
 
   it('派生场景不冒充文件，结构化来源保持原有 canonical key', () => {
-    const keys = getSummonSceneAssetKeys(loadRolePack('hang'))
-    expect(keys).not.toContain(rolePromptAssetKey('hang', 'scenes/interact.md'))
-    expect(rolePromptAssetKey('hang', 'profile.json')).toBe('companion:default:hang:profile')
-    expect(getPromptAssets().filter(asset => asset.key === 'companion:default:hang:profile')).toHaveLength(1)
+    const keys = getSummonSceneAssetKeys(loadRolePack('luffy'))
+    expect(keys).toContain(rolePromptAssetKey('luffy', 'scenes/interact.md'))
+    expect(keys).toContain(rolePromptAssetKey('luffy', 'scenes/execute.md'))
+    expect(keys).not.toContain(rolePromptAssetKey('luffy', 'summary.txt'))
+    expect(rolePromptAssetKey('luffy', 'profile.json')).toBe('companion:default:luffy:profile')
+    expect(getPromptAssets().filter(asset => asset.key === 'companion:default:luffy:profile')).toHaveLength(1)
   })
 })

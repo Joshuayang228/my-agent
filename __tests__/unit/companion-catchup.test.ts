@@ -23,7 +23,7 @@ vi.mock('../../electron/main/utils/logger', () => ({
 
 const SQL = await initSqlJs()
 let memDb: InstanceType<typeof SQL.Database>
-let activeRoleId = 'lin'
+let activeRoleId = 'luffy'
 
 vi.mock('../../electron/main/storage/database', () => ({
   getDatabase: vi.fn(async () => memDb),
@@ -48,7 +48,7 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
     llmTopP: '',
     llmMaxTokens: '',
     universeId: 'default',
-    activeRoleId: 'lin',
+    activeRoleId: 'luffy',
   })),
 }))
 
@@ -63,7 +63,7 @@ const { listMomentsForRole } = await import('../../electron/main/companion/life/
 describe('Catch-up + Moments', () => {
   beforeEach(() => {
     memDb = new SQL.Database()
-    activeRoleId = 'lin'
+    activeRoleId = 'luffy'
   })
 
   afterEach(() => {
@@ -80,62 +80,62 @@ describe('Catch-up + Moments', () => {
     const now = localDateTimeMs('2026-08-12', 15, 0)
     const pausedAt = localDateTimeMs('2026-08-02', 15, 0)
 
-    const result = await runCatchup('lin', pausedAt, now)
+    const result = await runCatchup('luffy', pausedAt, now)
     expect(result.summaryUpdated).toBe(true)
     expect(result.fineDays).toBeGreaterThanOrEqual(7)
     expect(result.fineDays).toBeLessThanOrEqual(8)
 
-    const state = await __lifeStore.getRoleState('lin')
+    const state = await __lifeStore.getRoleState('luffy')
     expect(state?.pausedAt).toBeNull()
     expect(state?.catchupSummary).toContain('生活追赶摘要')
     expect(state?.catchupSummary.length).toBeGreaterThan(10)
 
     const fineStart = computeFineStart(pausedAt, now)
     const dates = eachLocalDateInclusive(toLocalDateString(fineStart), toLocalDateString(now))
-    expect(await __lifeStore.countDayScripts('lin')).toBe(dates.length)
+    expect(await __lifeStore.countDayScripts('luffy')).toBe(dates.length)
     expect(result.published).toBeGreaterThan(0)
-    expect(await __lifeStore.countMoments('lin')).toBeGreaterThan(0)
+    expect(await __lifeStore.countMoments('luffy')).toBeGreaterThan(0)
   })
 
   it('空洞 ≤7 日不写概况摘要，仍补齐细窗', async () => {
     const now = localDateTimeMs('2026-08-12', 12, 0)
     const pausedAt = localDateTimeMs('2026-08-10', 12, 0)
-    const result = await runCatchup('lin', pausedAt, now)
+    const result = await runCatchup('luffy', pausedAt, now)
     expect(result.summaryUpdated).toBe(false)
-    const state = await __lifeStore.getRoleState('lin')
+    const state = await __lifeStore.getRoleState('luffy')
     expect(state?.catchupSummary ?? '').toBe('')
-    expect(await __lifeStore.countDayScripts('lin')).toBe(result.fineDays)
+    expect(await __lifeStore.countDayScripts('luffy')).toBe(result.fineDays)
   })
 
   it('朋友圈按 role 隔离：other 的 moments 不混入 lin', async () => {
     const now = localDateTimeMs('2026-08-12', 18, 0)
-    await runCatchup('lin', localDateTimeMs('2026-08-11', 10, 0), now)
+    await runCatchup('luffy', localDateTimeMs('2026-08-11', 10, 0), now)
     await runCatchup('other', localDateTimeMs('2026-08-11', 10, 0), now)
 
-    const linMoments = await listMomentsForRole('lin')
+    const linMoments = await listMomentsForRole('luffy')
     const otherMoments = await listMomentsForRole('other')
     expect(linMoments.length).toBeGreaterThan(0)
     expect(otherMoments.length).toBeGreaterThan(0)
-    expect(linMoments.every((m) => m.roleId === 'lin')).toBe(true)
+    expect(linMoments.every((m) => m.roleId === 'luffy')).toBe(true)
     expect(otherMoments.every((m) => m.roleId === 'other')).toBe(true)
 
     // IPC 语义：仅 active — 此处模拟 active=lin 时不应读到 other
-    activeRoleId = 'lin'
+    activeRoleId = 'luffy'
     const activeOnly = await listMomentsForRole(activeRoleId)
-    expect(activeOnly.every((m) => m.roleId === 'lin')).toBe(true)
+    expect(activeOnly.every((m) => m.roleId === 'luffy')).toBe(true)
     expect(activeOnly.some((m) => m.roleId === 'other')).toBe(false)
   })
 
   it('tick 发布到期事件时同步投影 moments', async () => {
     const now = localDateTimeMs('2026-08-05', 20, 0)
     await tickActiveRole(now)
-    expect(await __lifeStore.countMoments('lin')).toBeGreaterThan(0)
+    expect(await __lifeStore.countMoments('luffy')).toBeGreaterThan(0)
   })
 
   it('pause 后 tick 跳过，不新增 moments', async () => {
-    await pauseRole('lin', Date.now())
-    const before = await __lifeStore.countMoments('lin')
+    await pauseRole('luffy', Date.now())
+    const before = await __lifeStore.countMoments('luffy')
     await tickActiveRole(localDateTimeMs('2026-08-06', 12, 0))
-    expect(await __lifeStore.countMoments('lin')).toBe(before)
+    expect(await __lifeStore.countMoments('luffy')).toBe(before)
   })
 })

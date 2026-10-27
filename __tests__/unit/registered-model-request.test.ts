@@ -69,7 +69,7 @@ describe('注册编译请求的模型边界', () => {
   })
 
   it('未注册人物来源在模型入口失败关闭，不创建 LLM Trace 或发请求', async () => {
-    const pack = { ...loadRolePack('ayu'), id: 'unregistered-role' }
+    const pack = { ...loadRolePack('luffy'), id: 'unregistered-role' }
     const systemPrompt = compileMainSystem(pack, pack.mutableDefault, { platform: { toolNames: [] }, behavior: {}, currentDate: '2026-10-13' })
     const request = compileAgentRequest({ systemPrompt, messages: [message('system', systemPrompt.text, 'system')], deniedTools: [], deniedCommands: [] })
     await expect(consume({ config, caller: 'main', request })).rejects.toThrow('未注册')
@@ -102,7 +102,7 @@ describe('注册编译请求的模型边界', () => {
   })
 
   it('主对话不接受额外行为正文插槽，诊断配方不接受未知种类', () => {
-    const pack = loadRolePack('ayu')
+    const pack = loadRolePack('luffy')
     expect(() => compileMainSystem(pack, pack.mutableDefault, { platform: { toolNames: [] }, behavior: { policy: '额外指令' } as never, currentDate: '2026-10-13' })).toThrow('已定义的运行时插槽')
     expect(() => compileModelProbeRequest('arbitrary' as 'smoke')).toThrow('未知模型诊断')
     expect(readRegisteredSystemText(compileSubagentSystem('researcher'))).toContain('子 Agent')

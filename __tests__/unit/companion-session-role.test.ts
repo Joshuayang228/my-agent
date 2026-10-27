@@ -24,7 +24,7 @@ vi.mock('../../electron/main/utils/logger', () => ({
 
 const SQL = await initSqlJs()
 let memDb: InstanceType<typeof SQL.Database>
-let activeRoleId = 'lin'
+let activeRoleId = 'luffy'
 
 vi.mock('../../electron/main/storage/database', () => ({
   getDatabase: vi.fn(async () => memDb),
@@ -49,7 +49,7 @@ const { setCatchupSummary } = await import('../../electron/main/companion/life/s
 describe('assertSessionRole', () => {
   beforeEach(() => {
     memDb = new SQL.Database()
-    activeRoleId = 'lin'
+    activeRoleId = 'luffy'
   })
   afterEach(() => {
     memDb.close()
@@ -57,14 +57,14 @@ describe('assertSessionRole', () => {
 
   it('无会话绑定时用 active', async () => {
     const r = await assertSessionRole('')
-    expect(r).toEqual({ assembleRoleId: 'lin', activeRoleId: 'lin', mismatch: false })
+    expect(r).toEqual({ assembleRoleId: 'luffy', activeRoleId: 'luffy', mismatch: false })
   })
 
   it('会话绑定与 active 不一致时仍按会话组装', async () => {
-    activeRoleId = 'zhou'
+    activeRoleId = 'luffy'
     const r = await assertSessionRole('lin')
     expect(r.assembleRoleId).toBe('lin')
-    expect(r.activeRoleId).toBe('zhou')
+    expect(r.activeRoleId).toBe('luffy')
     expect(r.mismatch).toBe(true)
   })
 

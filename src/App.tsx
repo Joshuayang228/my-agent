@@ -161,10 +161,10 @@ function App() {
     args: Record<string, unknown>
   }>>([])
   const confirmDialog = confirmQueue[0] ?? null
-  const [currentPersonaName, setCurrentPersonaName] = useState('小林')
-  const [companionBlurb, setCompanionBlurb] = useState('沉稳体贴的数字伙伴')
-  const [activeRoleId, setActiveRoleId] = useState('lin')
-  const [protagonistNames, setProtagonistNames] = useState<Record<string, string>>({ lin: '小林' })
+  const [currentPersonaName, setCurrentPersonaName] = useState('路飞')
+  const [companionBlurb, setCompanionBlurb] = useState('自由、直率、重视伙伴的冒险伙伴')
+  const [activeRoleId, setActiveRoleId] = useState('luffy')
+  const [protagonistNames, setProtagonistNames] = useState<Record<string, string>>({ luffy: '路飞' })
   const [reasoning, setReasoning] = useState<ReasoningCallbackState>(() => resetReasoning())
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
   const [usage, setUsage] = useState<UsageInfo | null>(null)
