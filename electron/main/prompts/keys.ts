@@ -18,6 +18,7 @@ export const PROMPT_KEYS = {
   imageGeneration: promptKey('image-generation'),
   momentComment: promptKey('companion-moment-comment'),
   momentReply: promptKey('companion-moment-reply'),
+  proactiveGreeting: promptKey('companion-proactive-greeting'),
   promptCompiler: promptKey('prompt-compiler'),
   loopDefault: promptKey('loop-default'),
   loopTimeContext: promptKey('loop-time-context'),

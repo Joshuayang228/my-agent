@@ -1,6 +1,7 @@
 import { extractTemplatePlaceholders } from '../../../src/shared/prompt-template'
 import { buildMomentCommentPrompt } from './moment-comment'
 import { buildMomentReplyPrompt } from './moment-reply'
+import { buildProactiveGreetingPrompt } from './proactive-greeting'
 import { buildImageGenerationPrompt } from './image-generation'
 import { buildImageDraftPrompt, buildWorldAssetImageDraftPrompt } from '../../../src/shared/request-draft-prompts'
 /**
@@ -172,6 +173,14 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     definitions: ['electron/main/prompts/moment-reply.ts#buildMomentReplyPrompt', 'electron/main/prompts/registered-request.ts#compileMomentReplyRequest'],
     template: buildMomentReplyPrompt({ protagonistName: '{{protagonistName}}', protagonistBrief: '{{protagonistBrief}}', postText: '{{postText}}', userComment: '{{userComment}}' }),
     slots: [{ name: 'protagonistName', source: '当前主角 Role Pack', lifecycle: '评论提交时' }, { name: 'protagonistBrief', source: '当前主角公开简介', lifecycle: '评论提交时' }, { name: 'postText', source: '已发布动态正文', lifecycle: '评论提交时' }, { name: 'userComment', source: '刚保存的用户评论', lifecycle: '评论提交时' }],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.proactiveGreeting, domain: 'proactive', name: '个性化主动问候', category: 'companion', role: 'proactive-message',
+    purpose: '依据已发布动态生成轻量主动问候', desc: '只在既有投递门闸允许且辅助模型可用时生成；失败回退确定性提醒。',
+    sourcePath: 'electron/main/prompts/proactive-greeting.ts#buildProactiveGreetingPrompt',
+    definitions: ['electron/main/prompts/proactive-greeting.ts#buildProactiveGreetingPrompt', 'electron/main/prompts/registered-request.ts#compileProactiveGreetingRequest'],
+    template: buildProactiveGreetingPrompt({ roleName: '{{roleName}}', momentText: '{{momentText}}' }),
+    slots: [{ name: 'roleName', source: '当前主角 Role Pack', lifecycle: '投递前' }, { name: 'momentText', source: '已发布动态正文', lifecycle: '投递前' }],
   }),
   staticAsset({
     id: PROMPT_KEYS.imageDraft,

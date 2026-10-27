@@ -1,5 +1,6 @@
 import { buildMomentCommentPrompt, type MomentCommentInput } from './moment-comment'
 import { buildMomentReplyPrompt, type MomentReplyInput } from './moment-reply'
+import { buildProactiveGreetingPrompt, type ProactiveGreetingInput } from './proactive-greeting'
 import { buildImageGenerationPrompt } from './image-generation'
 /**
  * 背景：手填资产 key 无法证明正文来自登记的生产定义。
@@ -226,4 +227,7 @@ export function compileMomentCommentRequest(input: MomentCommentInput): Register
 }
 export function compileMomentReplyRequest(input: MomentReplyInput): RegisteredModelRequest {
   return signRequest([{ role: 'user', content: buildMomentReplyPrompt(input) }], [PROMPT_KEYS.momentReply], ['moment-reply'])
+}
+export function compileProactiveGreetingRequest(input: ProactiveGreetingInput): RegisteredModelRequest {
+  return signRequest([{ role: 'user', content: buildProactiveGreetingPrompt(input) }], [PROMPT_KEYS.proactiveGreeting], ['proactive-greeting'])
 }

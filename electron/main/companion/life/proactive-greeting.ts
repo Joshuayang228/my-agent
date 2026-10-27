@@ -7,6 +7,10 @@
  */
 
 import { PROACTIVE_DELIVERY_POLICY } from '../../../../src/shared/proactive-evidence'
+import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
+import { chatComplete } from '../../llm/index'
+import { loadAuxLLMConfig } from '../../llm/aux-config'
+import { compileProactiveGreetingRequest } from '../../prompts/registered-request'
 import * as settings from '../../storage/settings-store'
 import * as identity from '../identity/loader'
 import { toLocalDateString } from './dates'
@@ -143,7 +147,18 @@ export async function maybeProactiveGreeting(
     /* id 即可 */
   }
 
-  const toast = formatProactiveGreetingToast({ roleName, preview })
+  let toast = formatProactiveGreetingToast({ roleName, preview })
+  try {
+    const config = await loadAuxLLMConfig()
+    if (hasLLMAuthentication(config)) {
+      const raw = await chatComplete({ config, request: compileProactiveGreetingRequest({ roleName, momentText: preview.slice(0, 1500) }), caller: 'proactive-greeting', temperature: 0.6, maxTokens: 160 })
+      const parsed: unknown = JSON.parse(raw)
+      const greeting = parsed && typeof parsed === 'object' && !Array.isArray(parsed) && typeof (parsed as Record<string, unknown>).greeting === 'string' ? ((parsed as Record<string, unknown>).greeting as string).trim() : ''
+      if (greeting.length >= 2 && greeting.length <= 80 && !/[\r\n<>]/.test(greeting)) toast = `${roleName}：${greeting}`
+    }
+  } catch {
+    // 确定性问候作为唯一回退；投递证据仍由同一门闸记录。
+  }
   const activeRoleId = (await settings.getSetting('activeRoleId')).trim()
   if (activeRoleId && activeRoleId !== id) {
     recordProactiveSkip(id, today, 'role-inactive', now, latest?.id)
