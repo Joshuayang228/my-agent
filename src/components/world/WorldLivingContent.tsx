@@ -141,12 +141,12 @@ export function homeRecordsForRole(assets: readonly LivingAsset[], roleId: strin
     && (!item.payload.residenceId || item.payload.residenceId === residence?.id))
   const roomIds = new Set(rooms.map(item => item.id))
   const spaces = rooms.map(item => ({ id: item.id, name: item.name, description: textField(item.payload, 'description') }))
-  const objects = owned.filter(item => item.kind === 'furniture').map(item => ({
+  const objects = owned.filter(item => item.kind === 'furniture' || item.kind === 'symbolic-item').map(item => ({
     id: item.id, name: item.name,
     spaceId: typeof item.payload.spaceId === 'string' && roomIds.has(item.payload.spaceId) ? item.payload.spaceId : null,
     description: textField(item.payload, 'description'), originNote: textField(item.payload, 'originNote'),
-    displayInHome: item.payload.displayInHome === true, displayReason: textField(item.payload, 'displayReason'),
-    displayEvidence: Array.isArray(item.payload.displayEvidence) ? item.payload.displayEvidence.filter((value): value is string => typeof value === 'string') : [],
+    displayInHome: item.kind === 'symbolic-item' || item.payload.displayInHome === true, displayReason: textField(item.payload, 'displayReason') || (item.kind === 'symbolic-item' ? '稳定象征物，默认展示在人物空间。' : ''),
+    displayEvidence: Array.isArray(item.payload.displayEvidence) ? item.payload.displayEvidence.filter((value): value is string => typeof value === 'string') : item.kind === 'symbolic-item' ? ['world.default'] : [],
   }))
   return { owned, residence, spaces, objects }
 }

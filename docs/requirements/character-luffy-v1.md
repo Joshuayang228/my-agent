@@ -71,6 +71,6 @@
 
 用户本轮要求补齐路飞的朋友关系和基础初始衣物。生产关系表新增 `zoro`、`nami`、`usopp`、`sanji` 四个 NPC，均保持 `canBeProtagonist: false`，只通过浅层名册摘要参与关系读取，不把 NPC protected 全文注入路飞主对话。
 
-路飞衣柜新增三件 starter：轻便红色背心、深蓝短裤、甲板凉鞋。它们来自 `electron/main/companion/life/assets.ts` 的角色专属 starter 定义，生成描述和分类，不写入当前穿着状态；用户删空后不自动复活。太阳号仍未写成正式家居事实，当前住所保持“可移动的住处”。
+路飞衣柜新增三件 starter：轻便红色背心、深蓝短裤、甲板凉鞋。它们来自 `electron/main/companion/life/assets.ts` 的角色专属 starter 定义，生成描述和分类，不写入当前穿着状态；用户删空后不自动复活。千里阳光号已写入正式 world.default 家居事实，运行态仍可由真实资产覆盖。
 
 内置生图请求本轮连接失败，没有把失败结果写入项目或运行时资产。后续视觉草稿生成成功并经确认后，再接入图片引用与衣柜版本链路。

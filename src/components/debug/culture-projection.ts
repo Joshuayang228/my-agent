@@ -17,9 +17,9 @@ export function projectCultureRecords(records: readonly DebugEvidenceRecord[], t
   return records.map(record => {
     const payload = evidenceObject(record.data.payload)
     const checkedType = normalizeWorldRecordField(record.kind, 'type', payload.type)
-    const type = record.kind === 'bookshelf' ? 'reading' : record.kind === 'culture' && checkedType.handled && checkedType.ok ? String(checkedType.value) : 'unknown'
+    const type = record.kind === 'symbolic-item' ? 'object' : record.kind === 'bookshelf' ? 'reading' : record.kind === 'culture' && checkedType.handled && checkedType.ok ? String(checkedType.value) : 'unknown'
     const stateKey = STATUS_FIELDS[type], stateValue = payload[stateKey], checkedState = stateKey ? normalizeWorldRecordField(record.kind, stateKey, stateValue) : undefined
-    const status = !stateKey ? '状态未识别' : stateValue === undefined ? '状态未记录' : checkedState?.handled && checkedState.ok ? STATUS_LABELS[type]?.[String(stateValue)] ?? '状态未识别' : '状态未识别'
+    const status = type === 'object' ? '物件资料' : !stateKey ? '状态未识别' : stateValue === undefined ? '状态未记录' : checkedState?.handled && checkedState.ok ? STATUS_LABELS[type]?.[String(stateValue)] ?? '状态未识别' : '状态未识别'
     const checkedNotes = normalizeWorldRecordField(record.kind, 'readingNotes', payload.readingNotes)
     const notesIssue = Object.hasOwn(payload, 'readingNotes') && checkedNotes.handled && !checkedNotes.ok
     const notes = readingNotesForAsset({ id: record.id, payload }).sort((a, b) => (b.occurredAt ?? b.createdAt ?? 0) - (a.occurredAt ?? a.createdAt ?? 0) || a.id.localeCompare(b.id)).map(note => ({ id: note.id, text: note.text, at: `${note.occurredAt !== undefined ? '发生时间' : note.createdAt !== undefined ? '创建时间' : '笔记时间'}：${snapshotTime(note.occurredAt ?? note.createdAt, timezone)}`, page: note.page, chapter: note.chapter }))

@@ -15,7 +15,7 @@ const SOURCES: Partial<Record<DebugEvidenceQuery['view'], Source>> = {
   moments: { table: 'companion_moments', time: 'published_at', id: 'id' },
   residence: { table: 'companion_assets', time: 'acquired_at', id: 'id', where: "kind IN ('home','furniture')" },
   wardrobe: { table: 'companion_assets', time: 'acquired_at', id: 'id', where: "kind = 'wardrobe'" },
-  items: { table: 'companion_assets', time: 'acquired_at', id: 'id', where: "kind IN ('culture','bookshelf')" },
+  items: { table: 'companion_assets', time: 'acquired_at', id: 'id', where: "kind IN ('culture','bookshelf','symbolic-item')" },
   footprints: { table: 'companion_assets', time: 'acquired_at', id: 'id', where: "kind = 'footprint'" },
   links: { table: 'companion_event_links', time: 'created_at', id: 'id' },
   memories: { table: 'memories', time: 'updatedAt', id: 'id', where: "(role_id = ? OR role_id = '')" },

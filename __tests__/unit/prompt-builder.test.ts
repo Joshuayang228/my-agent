@@ -164,7 +164,7 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('本轮仍由场景与关系阶段收放')
     expect(prompt).toContain('## 默认生活世界')
     expect(prompt).toContain('作品时间线与具体出身资料待确认')
-    expect(prompt).toContain('默认居所：可移动的住处')
+    expect(prompt).toContain('默认居所：千里阳光号')
     expect(prompt).toContain('初始物品只用于播种资产库')
     expect(prompt).not.toMatch(/临湾|海堤|旧港|码头|船笛/)
     expect(prompt).not.toContain('"agePresentation"')

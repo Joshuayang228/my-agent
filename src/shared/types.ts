@@ -1085,6 +1085,7 @@ export const BACKUP_LIVING_ASSET_KINDS = [
   'home',
   'footprint',
   'furniture',
+  'symbolic-item',
 ] as const
 
 export type BackupLivingAssetKind = (typeof BACKUP_LIVING_ASSET_KINDS)[number]

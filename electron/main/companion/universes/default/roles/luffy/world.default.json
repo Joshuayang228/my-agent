@@ -4,13 +4,13 @@
   "timezone": "Asia/Shanghai",
   "district": "当前航段",
   "districtDescription": "以当前故事事件为准，不把样张位置当作现实地址",
-  "home": {"shortName": "可移动的住处", "residence": "可随航行变化的临时居所", "surroundings": "海风、甲板和远处的岛屿", "interior": "留出休息、整理和共享物品的空间", "layout": "简洁、便于取用和移动", "view": "随当前航段变化", "sensoryDetails": ["风声", "木板或金属结构的轻响", "食物和海水的气味"]},
-  "initialLocation": "当前航段",
+  "home": {"shortName": "千里阳光号", "residence": "与伙伴们共同航行的梦之船", "surroundings": "海风、甲板和远处的岛屿", "interior": "留出休息、整理和共享物品的空间", "layout": "简洁、便于取用和移动", "view": "随当前航段变化", "sensoryDetails": ["风声", "木板或金属结构的轻响", "食物和海水的气味"]},
+  "initialLocation": "千里阳光号",
   "mobility": {"primary": "步行与船上移动", "alternatives": ["由事件定义的交通方式"]},
   "favoritePlaces": [{"id": "lookout", "name": "能看见远处的高处", "kind": "viewpoint", "description": "适合确认方向、吹风和讨论下一步；不对应现实地点", "travelMinutes": 10}],
-  "possessions": [{"id": "straw-hat-anchor", "kind": "symbolic-item", "name": "草帽方向的象征物", "description": "是否作为稳定物件写入人物世界待用户确认", "condition": "待确认"}],
+  "possessions": [{"id": "straw-hat", "kind": "symbolic-item", "name": "草帽", "description": "路飞最重要的随身象征物；通常放在共享甲板的个人物件位，出发或需要确认方向时随身携带。", "condition": "稳定保管；具体来源和历史按用户确认的资料补充"}],
   "routines": {"weekday": ["根据当前事件安排探索、休息和交流"], "weekend": ["不预设固定周末，按世界事件决定"]},
-  "standingFacts": ["这是人物共创用的虚构世界，不是现实定位", "地点、物件和事件只有在来源明确时才进入运行态"],
-  "initialState": {"mood": 75, "energy": 85, "socialNeed": 65, "currentLocation": "当前航段", "locationDetail": "等待首个生活事件或用户确认", "currentActivity": "参与人物共创", "statusTags": ["首个人物", "世界待扩展"]},
+  "standingFacts": ["这是人物共创用的虚构世界，不是现实定位", "地点、物件和事件只有在来源明确时才进入运行态", "千里阳光号是当前默认住所；运行后仍以真实世界状态为准", "草帽是路飞的稳定象征物，属于物件资产而非衣柜分类"],
+  "initialState": {"mood": 75, "energy": 85, "socialNeed": 65, "currentLocation": "千里阳光号", "locationDetail": "共享甲板；等待首个生活事件或用户确认", "currentActivity": "参与人物共创", "statusTags": ["首个人物", "千里阳光号", "草帽"]},
   "rooms": [{"id": "shared-deck", "name": "共享甲板", "day": "适合吹风、聊天和决定要不要出发", "night": "适合收束一天，听风声和整理明天的方向"}]
 }

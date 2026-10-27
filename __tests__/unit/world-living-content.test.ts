@@ -45,11 +45,12 @@ describe('正式家居资产投影', () => {
       owned('meaningful', 'furniture', { spaceId: 'room', displayInHome: true, displayReason: '常在这里读书', displayEvidence: ['习惯记录'] }),
       owned('missing-room', 'furniture', { spaceId: 'deleted', displayInHome: true, displayReason: '家人的礼物', displayEvidence: ['来历'] }),
       owned('ordinary', 'furniture', { spaceId: 'room', displayInHome: true }),
+      owned('straw-hat', 'symbolic-item', { description: '稳定象征物', condition: '稳定保管' }),
       owned('book', 'bookshelf', { displayInHome: true, displayReason: '故事', displayEvidence: ['故事'] }),
     ], 'role')
     expect(view.spaces.map(item => item.id)).toEqual(['room'])
     expect(homeObjectsForSpace(view.objects, 'room').map(item => item.id)).toEqual(['meaningful'])
-    expect(homeObjectsForSpace(view.objects, 'unassigned').map(item => item.id)).toEqual(['missing-room'])
+    expect(homeObjectsForSpace(view.objects, 'unassigned').map(item => item.id)).toEqual(['missing-room', 'straw-hat'])
     expect(homeRecordsForRole(view.owned, undefined).owned).toEqual([])
   })
   it('正式家居不读取样张地址，不把当前活动放进总览，保留真实住所维护', () => {

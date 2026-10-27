@@ -26,6 +26,10 @@ describe('文化作品与笔记真实阅读', () => {
     expect(items[2].notes[0]).toMatchObject({ id: 'legacy:note', text: '旧笔记', at: '笔记时间：未记录' })
     expect(items[3].issue).toContain('当前进度不能超过总量')
   })
+  it('物件资产进入文化与物品阅读但不伪装成作品', () => {
+    const items = projectCultureRecords([record('hat', 'symbolic-item', { description: '稳定象征物', condition: '稳定保管', seededFrom: 'world.default' })], 'Asia/Shanghai')
+    expect(items[0]).toMatchObject({ type: 'object', status: '物件资料', body: '稳定象征物' })
+  })
   it('真实 SQL 包含旧书架和文化资产，分页 / 归档不丢记录且无跨人物或回写', async () => {
     const SQL = await initSqlJs(), db = new SQL.Database()
     try {

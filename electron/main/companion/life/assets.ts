@@ -167,7 +167,8 @@ export const ASSET_KIND_HOME = 'home'
 export const ASSET_KIND_FOOTPRINT = 'footprint'
 export const ASSET_KIND_FURNITURE = 'furniture'
 
-export const USER_CREATABLE_ASSET_KINDS = BACKUP_LIVING_ASSET_KINDS
+/** 用户维护表单只允许六类生活资产；symbolic-item 由 Role Pack / world.default 出厂并可备份，不开放为任意用户输入。 */
+export const USER_CREATABLE_ASSET_KINDS = ['wardrobe', 'bookshelf', 'culture', 'home', 'footprint', 'furniture'] as const
 
 export type UserCreatableAssetKind = (typeof USER_CREATABLE_ASSET_KINDS)[number]
 

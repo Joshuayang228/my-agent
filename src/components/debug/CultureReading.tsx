@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 
-export const CULTURE_CATEGORIES = [{ id: 'all', label: '全部' }, { id: 'reading', label: '书籍' }, { id: 'film', label: '影视' }, { id: 'music', label: '音乐' }, { id: 'photography', label: '摄影' }, { id: 'unknown', label: '未识别' }]
+export const CULTURE_CATEGORIES = [{ id: 'all', label: '全部' }, { id: 'reading', label: '书籍' }, { id: 'film', label: '影视' }, { id: 'music', label: '音乐' }, { id: 'photography', label: '摄影' }, { id: 'object', label: '物件' }, { id: 'unknown', label: '未识别' }]
 export interface CultureReadingItem {
   id: string; title: string; type: string; status: string; creator: string; archived: boolean; truncated: boolean; issue: string | null; body: string
   notesIssue: boolean; emptyNotes: string; notes: Array<{ id: string; text: string; at: string; page?: number; chapter?: string }>

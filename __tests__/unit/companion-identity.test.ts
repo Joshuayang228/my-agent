@@ -57,6 +57,15 @@ describe('companion identity loader', () => {
     expect(isKnownProtagonist('hang')).toBe(false)
   })
 
+  it('路飞默认世界把千里阳光号和草帽作为可追踪出厂事实', () => {
+    const world = loadRolePack('luffy').worldDefaults
+    expect(world?.home.shortName).toBe('千里阳光号')
+    expect(world?.initialLocation).toBe('千里阳光号')
+    expect(world?.possessions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'straw-hat', name: '草帽', kind: 'symbolic-item' }),
+    ]))
+  })
+
   it('未知角色校验', () => {
     expect(isKnownProtagonist('luffy')).toBe(true)
     expect(isKnownProtagonist('warm-partner')).toBe(false)

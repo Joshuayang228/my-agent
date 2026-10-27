@@ -31,6 +31,7 @@
 | [prompt-coverage-and-review-v2.md](./prompt-coverage-and-review-v2.md) | 全量方案已确认：推进用途 / 消费者门禁、集中展示、缺失生成闭环和人物扩展；新增 UI 待候选验收后统一回流 |
 | [character-system-extension-v1.md](./character-system-extension-v1.md) | 首个人物的 Role Pack、Prompt 装配、材料采集、验收与扩展边界 |
 | [character-luffy-v1.md](./character-luffy-v1.md) | 进行中：删除默认宇宙旧人物资产，建立唯一首个人物路飞并验证制作流程 |
+| [luffy-full-journey-v1.md](./luffy-full-journey-v1.md) | 进行中：以路飞贯穿聊天、生活世界、记忆、生图与 Debug 的全功能人物验收 |
 | [foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md) | P0 方案待确认：四个产品体验的真实基础复用、Markdown / Diff / 控件收口与源码自动门禁 |
 | [playground-state-switchers-v1.md](./playground-state-switchers-v1.md) | P0：统一 Playground 场景、状态与宽度控制器，采用 MCP 独立选项样式 |
 | [playground-page-baseline-polish-v1.md](./playground-page-baseline-polish-v1.md) | P0 施工：Sidebar 底栏、Toast、Right Dock、人物世界与记忆页面样张统一精修 |

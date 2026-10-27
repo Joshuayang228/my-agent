@@ -267,7 +267,8 @@ describe('Companion Assets', () => {
   })
 
   it('createAsset 与备份使用同一生活资产白名单', () => {
-    expect(USER_CREATABLE_ASSET_KINDS).toEqual(BACKUP_LIVING_ASSET_KINDS)
+    expect(USER_CREATABLE_ASSET_KINDS).not.toContain('symbolic-item')
+    expect(BACKUP_LIVING_ASSET_KINDS).toContain('symbolic-item')
   })
 
   it('createAsset 只允许白名单类型，超限拒绝且按角色隔离', async () => {
