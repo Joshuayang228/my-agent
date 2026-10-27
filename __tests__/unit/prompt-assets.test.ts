@@ -5,6 +5,7 @@ import { modelContextFingerprint } from '../../electron/main/prompts/fingerprint
 import { EXTRACTION_PROMPT } from '../../electron/main/prompts/texts'
 import { EVAL_JUDGE_TEMPLATE } from '../../electron/main/prompts/eval-judge'
 import { extractTemplatePlaceholders } from '../../src/shared/prompt-template'
+import { registeredAssetGroup } from '../../src/components/debug/registered-asset-review'
 
 const REQUIRED_KEYS = [
   'prompt-compiler',
@@ -31,6 +32,9 @@ describe('debug prompt assets', () => {
     expect(assets.find(asset => asset.key === PROMPT_KEYS.momentComment)?.domain).toBe('social')
     expect(assets.find(asset => asset.key === PROMPT_KEYS.imageGeneration)?.domain).toBe('visual')
     expect(assets.find(asset => asset.key === PROMPT_KEYS.profileExtraction)?.domain).toBe('memory')
+    expect(registeredAssetGroup(assets.find(asset => asset.key === PROMPT_KEYS.momentComment)!)).toBe('朋友圈与互动')
+    expect(registeredAssetGroup(assets.find(asset => asset.key === PROMPT_KEYS.imageGeneration)!)).toBe('视觉与图片')
+    expect(registeredAssetGroup(assets.find(asset => asset.key === PROMPT_KEYS.proactiveGreeting)!)).toBe('主动消息')
   })
   it('所有真实模板占位符均有目录来源，重复变量只登记一次', () => {
     expect(extractTemplatePlaceholders('{{one}} {{one}} {{two}}')).toEqual(['one', 'two'])
