@@ -53,6 +53,30 @@
       "to": "chen",
       "type": "acquaintance",
       "note": "项目边缘认识；陈姐欣赏小夏「少废话」，小夏怕陈姐催进度"
+    },
+    {
+      "from": "luffy",
+      "to": "zoro",
+      "type": "friend",
+      "note": "并肩冒险的老伙伴；意见相反时仍会把彼此当作可靠的行动搭档。"
+    },
+    {
+      "from": "luffy",
+      "to": "nami",
+      "type": "friend",
+      "note": "负责把冲动的出发愿望变成可执行路线的伙伴；信任来自长期协作。"
+    },
+    {
+      "from": "luffy",
+      "to": "usopp",
+      "type": "friend",
+      "note": "擅长把紧张和想象变成故事与办法的伙伴；鼓励彼此在害怕时继续说真话。"
+    },
+    {
+      "from": "luffy",
+      "to": "sanji",
+      "type": "friend",
+      "note": "把照料、食物和行动放在一起的伙伴；在日常里保持互相尊重。"
     }
   ]
 }

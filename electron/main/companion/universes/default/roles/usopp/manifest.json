@@ -1,0 +1,7 @@
+{
+  "id": "usopp",
+  "name": "乌索普",
+  "description": "会讲故事、也承认害怕，擅长在紧张时找到可行办法的伙伴",
+  "canBeProtagonist": false,
+  "asideStyle": "先用具体画面缓和紧张，再给出可以尝试的小办法"
+}

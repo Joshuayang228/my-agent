@@ -816,3 +816,5 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 - 设置候选与正式页的卡片、设置行、范围徽标、标题和开关必须来自 `src/components/settings/SettingsFields.tsx`；禁止在 `src/components/playground/SettingsExperienceCandidate.tsx` 重新实现同类视觉控件。正式权限页的折叠交互使用真实 `PermissionRulesEditor`，候选 fixture 不能作为生产行为证据。
 
 - 2026-10-27：复核首个人物 Role Pack 切换与旧角色测试夹具迁移。新增角色资产加载、默认角色和角色隔离测试；本批不新增质量门禁类型，继续要求资产注册、加载器、提示词编译与伙伴行为测试同时通过。
+
+- 2026-10-27：复核首批 NPC 关系与路飞衣柜 starter：新增关系浅注入正例、NPC 不进入主角列表、starter 分类与来源边界测试；未改变质量门禁分层，也未把生图失败结果视为通过。

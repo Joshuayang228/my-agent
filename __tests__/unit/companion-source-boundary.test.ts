@@ -22,5 +22,9 @@ describe('伙伴生活面来源边界', () => {
       }
       expect(starters.some((starter) => ['wardrobe', 'bookshelf', 'culture'].includes(starter.kind))).toBe(false)
     }
+
+    const luffyStarters = getStarterAssetDefinitions('luffy')
+    expect(luffyStarters.filter((starter) => starter.kind === 'wardrobe')).toHaveLength(3)
+    expect(luffyStarters.filter((starter) => starter.kind === 'wardrobe').every((starter) => starter.payload.seededFrom === 'role-pack:luffy')).toBe(true)
   })
 })

@@ -76,4 +76,11 @@ describe('伙伴生产资产目录', () => {
       expect(getCompanionAssetCatalog().some(asset => asset.key.startsWith('companion:default:' + role + ':life:'))).toBe(false)
     }
   })
+
+  it('路飞衣柜由首个 Role Pack 的 starter 定义提供基础衣物', () => {
+    const starters = getStarterAssetDefinitions('luffy').filter(item => item.kind === 'wardrobe')
+    expect(starters.map(item => item.key)).toEqual(['red-vest', 'blue-shorts', 'deck-sandals'])
+    expect(starters.every(item => item.payload.seededFrom === 'role-pack:luffy')).toBe(true)
+    expect(starters.map(item => item.payload.category)).toEqual(['top', 'bottom', 'shoes'])
+  })
 })

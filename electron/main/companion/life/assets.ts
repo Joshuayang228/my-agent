@@ -436,8 +436,22 @@ export function getStarterAssetDefinitions(roleId: string): CompanionStarterAsse
 function startersFor(kind: AssetKind, roleId: string): StarterItem[] {
   if (kind === ASSET_KIND_HOME) return worldHomeStarters(roleId)
   if (kind === ASSET_KIND_FOOTPRINT) return worldFootprintStarters(roleId)
+  if (kind === ASSET_KIND_WARDROBE && roleId === 'luffy') return luffyWardrobeStarters()
   // 无已确认 Role Pack 来源时保持空态；衣物、作品与阅读经历不能由服务默认值编造。
   return []
+}
+
+/**
+ * 背景：首个人物需要一个可读、可撤回的出厂衣柜，供世界页和生图外观锚点使用。
+ * 设计意图：只提供三件基础衣物与一套可组合穿搭，不把生成图片、穿着状态或作品细节伪装成运行时事实。
+ * 关键约束：稳定 id 由 ensureStarterForKind 生成；每件衣物必须有明确分类，套装只能引用同一角色的衣物。
+ */
+function luffyWardrobeStarters(): StarterItem[] {
+  return [
+    { key: 'red-vest', name: '轻便红色背心', payload: { recordType: 'garment', category: 'top', color: '红色', description: '无袖、便于活动的轻便上装；视觉锚点仍可由用户调整。', style: '轻快、耐用、适合行动', seededFrom: 'role-pack:luffy' } },
+    { key: 'blue-shorts', name: '深蓝短裤', payload: { recordType: 'garment', category: 'bottom', color: '深蓝色', description: '活动时保持轻松的短裤；长度与细节不固定为唯一版本。', style: '简洁、便于移动', seededFrom: 'role-pack:luffy' } },
+    { key: 'deck-sandals', name: '甲板凉鞋', payload: { recordType: 'garment', category: 'shoes', color: '棕色', description: '适合甲板和短途移动的耐用鞋履。', style: '实用、耐磨', seededFrom: 'role-pack:luffy' } },
+  ]
 }
 
 /**

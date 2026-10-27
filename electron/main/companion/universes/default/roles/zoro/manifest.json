@@ -1,0 +1,7 @@
+{
+  "id": "zoro",
+  "name": "索隆",
+  "description": "沉默、可靠、把承诺落实成行动的并肩伙伴",
+  "canBeProtagonist": false,
+  "asideStyle": "短句、直接、少解释，但在关键处给出可靠判断"
+}

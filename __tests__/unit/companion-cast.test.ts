@@ -108,4 +108,11 @@ describe('Companion Cast roster', () => {
     expect(ids).not.toContain('chen')
     expect(ids).not.toContain('ayu')
   })
+
+  it('路飞的关系表提供核心伙伴浅层名册，不把 NPC 提升为主角', () => {
+    const lines = buildRosterLines('luffy')
+    expect(lines.map(line => line.otherId)).toEqual(['zoro', 'nami', 'usopp', 'sanji'])
+    expect(lines.map(line => line.relationType)).toEqual(['friend', 'friend', 'friend', 'friend'])
+    expect(lines.every(line => line.text.includes('朋友'))).toBe(true)
+  })
 })
