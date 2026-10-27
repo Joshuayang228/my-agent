@@ -13,6 +13,8 @@ import type { GeneratedImageReference, ToolContext } from '../../../../src/share
 import type { SandboxMode } from '../../sandbox/policy'
 import { createLogger } from '../../utils/logger'
 import { attachWorldAssetImage, getAsset } from '../../companion/life/assets'
+import { loadRolePack } from '../../companion/identity/loader'
+import { formatRoleAppearanceForImagePrompt } from '../../companion/identity/profile'
 
 const log = createLogger('ImageGenerate')
 
@@ -106,7 +108,8 @@ export const imageGenerateTool = buildTool({
       context?.signal?.throwIfAborted()
       const requestTarget = resolveGeneratedImageTarget(args.path, context, requestMode)
       if (requestTarget.target !== target.target || mode !== requestMode || rules !== JSON.stringify(getRules())) throw new ImageGenerationError('项目或权限已变化，未发起生图。请检查设置后再操作。')
-      const response = await requestGeneratedImage(config, compileImageGenerationRequest(args.prompt), context?.signal)
+      const visualAnchor = context?.roleId ? (() => { try { return formatRoleAppearanceForImagePrompt(loadRolePack(context.roleId).profile) } catch { return '' } })() : ''
+      const response = await requestGeneratedImage(config, compileImageGenerationRequest(args.prompt, visualAnchor), context?.signal)
       const image = await normalizeGeneratedImage(response.bytes, context?.signal)
       context?.signal?.throwIfAborted()
       const currentMode = await loadEffectiveSandbox()

@@ -85,6 +85,12 @@ export function formatRoleProfileForPrompt(profile: RoleProfile): string {
   return lines.join('\n').slice(0, PROFILE_PROMPT_MAX)
 }
 
+/** 生图只取经用户确认的人物外观字段，不把职业、经历或运行时状态带入视觉请求。 */
+export function formatRoleAppearanceForImagePrompt(profile: RoleProfile): string {
+  return [profile.appearance.overall, profile.appearance.hair, profile.appearance.eyes, profile.appearance.build, profile.appearance.clothingStyle, ...profile.appearance.distinguishingFeatures]
+    .map(value => value.trim()).filter(Boolean).join('；').slice(0, 800)
+}
+
 /**
  * 默认世界 → 稳定 Prompt 薄摘要。
  *

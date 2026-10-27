@@ -209,9 +209,9 @@ const imageProofs = new WeakMap<RegisteredImageRequest, { prompt: string; prompt
 /** 背景：图片独立协议不经过聊天签发；意图：固定配方把包装与来源一起签发，禁止对任意文本手填 key。
  * 约束：图片模型只调用一次；运行时描述不写入内置目录，复制对象或强制断言不具备证明。
  */
-export function compileImageGenerationRequest(description: string): RegisteredImageRequest {
+export function compileImageGenerationRequest(description: string, visualAnchor?: string): RegisteredImageRequest {
   if (typeof description !== 'string' || !description.trim() || description.length > 16_000) throw new Error('请提供不超过 16000 字的图片描述。')
-  const request = Object.freeze({ prompt: buildImageGenerationPrompt(description), promptAssetKeys: Object.freeze([PROMPT_KEYS.imageGeneration]) as unknown as PromptAssetKeyList })
+  const request = Object.freeze({ prompt: buildImageGenerationPrompt(description, visualAnchor), promptAssetKeys: Object.freeze([PROMPT_KEYS.imageGeneration]) as unknown as PromptAssetKeyList })
   imageProofs.set(request, request)
   return request
 }

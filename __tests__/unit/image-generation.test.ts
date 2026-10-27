@@ -27,6 +27,12 @@ async function fixture(handler: (body: Record<string, unknown>, url: string, hea
 }
 
 describe('真实生图协议适配器（本地协议，不代表外部模型验收）', () => {
+  it('人物上下文只注入已确认的外观锚点，不带入经历或运行状态', () => {
+    const request = compileImageGenerationRequest('在公园散步', '黑色短发；深色眼睛；简洁外套')
+    expect(request.prompt).toContain('已确认的人物外观锚点')
+    expect(request.prompt).toContain('黑色短发')
+    expect(request.prompt).not.toContain('职业经历')
+  })
   it('Images 请求真实发送，返回二进制；不重复版本路径或自动重试', async () => {
     const { config, calls } = await fixture(() => ({ body: { data: [{ b64_json: png }] } }))
     const image = await requestGeneratedImage(config, compileImageGenerationRequest('一张测试图片'))

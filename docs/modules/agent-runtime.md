@@ -8,6 +8,8 @@
 
 主对话目录的 slots 对应真实模板的 29 个占位符及 MainChatPromptRequest 字段来源；原 6 组语义说明独立保留为 semanticInputs。其他模板发现真实占位符并保留已声明的其他输入；未保存的展开值不从模板重建。共享任务规划指令去重，有明确任务的情绪表达不再强制转成是否继续的确认，危险操作仍先确认。旅程覆盖和待补产品闭环见 [施工合同](../requirements/prompt-coverage-and-review-v2.md)。
 
+生图固定配方可接收可选人物视觉锚点；图片工具只从当前 Role Pack 的 `appearance` 字段生成锚点，运行时经历和位置不进入图片包装。图片独立请求仍先通过私有签发证明，图片权限、保存和一次调用约束不变。
+
 ## 已落地能力：提示词开发者审阅
 
 正式 `DevPanel` → `RegisteredAssetWorkbench` 读取 `debug:model-context-assets`，默认按唯一 key 统计提示词定义，其他资产 / 全部资产仍可访问；搜索覆盖用途、正文、模板、变量和真实定义符号，人物筛选保留平台共用来源。按已登记 purpose / role / roleUses / assetType 将主对话、身份、成长、世界与生活前置，平台规则后置；未知用途不猜补，排序不影响注册、编译和注入。

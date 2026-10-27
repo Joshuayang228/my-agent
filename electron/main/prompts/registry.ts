@@ -2,6 +2,7 @@ import { extractTemplatePlaceholders } from '../../../src/shared/prompt-template
 import { buildMomentCommentPrompt } from './moment-comment'
 import { buildMomentReplyPrompt } from './moment-reply'
 import { buildProactiveGreetingPrompt } from './proactive-greeting'
+import { formatRoleAppearanceForImagePrompt } from '../companion/identity/profile'
 import { buildImageGenerationPrompt } from './image-generation'
 import { buildImageDraftPrompt, buildWorldAssetImageDraftPrompt } from '../../../src/shared/request-draft-prompts'
 /**
@@ -161,9 +162,9 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     domain: 'visual', name: '图片生成描述包装', category: 'tool', role: 'image-generation',
     purpose: '约束独立图片协议中的明确描述与人物事实', desc: '图片描述是运行时资料，包装与来源由专用配方签发，不增加文本模型请求。',
     sourcePath: 'electron/main/prompts/image-generation.ts#buildImageGenerationPrompt',
-    definitions: ['electron/main/prompts/image-generation.ts#buildImageGenerationPrompt', 'electron/main/prompts/registered-request.ts#compileImageGenerationRequest'],
-    template: buildImageGenerationPrompt('{{description}}'),
-    slots: [{ name: 'description', source: 'image_generate.prompt', lifecycle: '每次显式生成' }],
+    definitions: ['electron/main/prompts/image-generation.ts#buildImageGenerationPrompt', 'electron/main/prompts/registered-request.ts#compileImageGenerationRequest', 'electron/main/companion/identity/profile.ts#formatRoleAppearanceForImagePrompt'],
+    template: buildImageGenerationPrompt('{{description}}', '{{visualAnchor}}'),
+    slots: [{ name: 'description', source: 'image_generate.prompt', lifecycle: '每次显式生成' }, { name: 'visualAnchor', source: '当前人物已确认 appearance（可为空）', lifecycle: '每次显式生成' }],
   }),
   dynamicAsset({
     id: PROMPT_KEYS.momentReply,
