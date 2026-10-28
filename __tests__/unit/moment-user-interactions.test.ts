@@ -49,6 +49,16 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
   }),
 }))
 
+const llmState = vi.hoisted(() => ({ config: null as unknown, response: '{"reply":"收到！先把最重要的事做完，别急着一次冲完。"}' }))
+
+vi.mock('../../electron/main/llm/aux-config', () => ({
+  loadAuxLLMConfig: vi.fn(async () => llmState.config),
+}))
+
+vi.mock('../../electron/main/llm/index', () => ({
+  chatComplete: vi.fn(async () => llmState.response),
+}))
+
 const {
   addMomentCommentForRole,
   listMomentUserInteractionsForRole,
@@ -78,6 +88,7 @@ describe('moment user interactions', () => {
   beforeEach(() => {
     memDb = new SQL.Database()
     activeRoleId = 'lin'
+    llmState.config = null
   })
 
   afterEach(() => {
@@ -156,6 +167,19 @@ describe('moment user interactions', () => {
       { kind: 'comment', castId: 'chen', castName: '陈晨', text: '这桌面终于能看见了' },
       { kind: 'coframe', castId: 'ayu', castName: '阿雨' },
     ])
+  })
+
+  it('路飞回复用户评论时保留主角作者和父评论关系', async () => {
+    activeRoleId = 'luffy'
+    llmState.config = { apiKey: 'fixture', baseUrl: 'https://example.test', model: 'fixture' }
+    const moment = await seedMoment('luffy', 'event-luffy-comment', '在千里阳光号甲板上和伙伴整理航线。')
+    const saved = await addMomentCommentForRole('luffy', moment.id, '今天也要继续往前吗？')
+    expect(saved.ok).toBe(true)
+    const interactions = await listMomentUserInteractionsForRole('luffy')
+    const userComment = interactions.find(item => item.actorId === 'user' && item.kind === 'comment')
+    const reply = interactions.find(item => item.actorId === 'luffy' && item.actorType === 'protagonist')
+    expect(userComment).toBeDefined()
+    expect(reply).toMatchObject({ actorName: '路飞', parentInteractionId: userComment?.id, text: '收到！先把最重要的事做完，别急着一次冲完。' })
   })
 
   it('跨角色互动被拒绝，且不会写进对方动态', async () => {
