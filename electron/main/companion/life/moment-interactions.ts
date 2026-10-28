@@ -14,8 +14,8 @@ export type MomentInteraction =
   | { kind: 'coframe'; castId: string; castName: string }
   | { kind: 'comment'; castId: string; castName: string; text: string }
 
-const SOCIAL_LOC = /咖啡|街道|公园|户外|路上|合租/
-const SOCIAL_ACT = /约|朋友|见面|午饭|出门|逛街|聚/
+const SOCIAL_LOC = /咖啡|街道|公园|户外|路上|合租|甲板|千里阳光号/
+const SOCIAL_ACT = /约|朋友|见面|午饭|出门|逛街|聚|伙伴|一起|分享|航行/
 
 const COMMENT_BY_TYPE: Record<string, string[]> = {
   colleague: ['工位见～', '辛苦啦', '下次一起午饭？'],

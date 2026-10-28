@@ -119,6 +119,23 @@ describe('deriveCastInteractions', () => {
     }
   })
 
+  it('路飞的千里阳光号伙伴事件可以进入卡司互动投影', () => {
+    let hits = 0
+    for (let i = 0; i < 40; i++) {
+      const got = deriveCastInteractions(evt({
+        id: `luffy-deck-${i}`,
+        roleId: 'luffy',
+        scheduledAt: 2000 + i,
+        payload: { location: '千里阳光号 · 共享甲板', activity: '和伙伴一起准备早餐', theme: '和伙伴一起出发' },
+      }))
+      if (got.length) {
+        hits += 1
+        expect(got.every(item => ['zoro', 'nami', 'usopp', 'sanji'].includes(item.castId))).toBe(true)
+      }
+    }
+    expect(hits).toBeGreaterThan(0)
+  })
+
   it('hashSeed 稳定', () => {
     expect(__test.hashSeed('x', 1)).toBe(__test.hashSeed('x', 1))
     expect(__test.hashSeed('x', 1)).not.toBe(__test.hashSeed('y', 1))
