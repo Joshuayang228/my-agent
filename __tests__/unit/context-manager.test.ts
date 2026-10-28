@@ -93,6 +93,18 @@ describe('compressContext', () => {
     expect(result[0].role).toBe('system')
     expect(result.length).toBeLessThan(messages.length)
   })
+
+  it('路飞长会话压缩保留用户与路飞的共同约定，不把人物世界当成用户事实', async () => {
+    const system = msg('system', '你是路飞；千里阳光号是人物世界事实。')
+    const relationship = msg('user', '我和路飞约好：明天一起把最重要的事情做完，先别急着冲。')
+    const firstAssistant = msg('assistant', '好，记住我们的约定。')
+    const filler = Array.from({ length: 30 }, (_, i) => msg(i % 2 === 0 ? 'user' : 'assistant', `长会话填充 ${i} `.repeat(180)))
+    const result = await compressContext([system, firstAssistant, relationship, ...filler, msg('user', '继续')], { maxTokens: 1800 })
+    const summary = result.find(item => item.compactMetadata)?.content ?? result.find(item => item.content.includes('[上下文已压缩'))?.content ?? ''
+    expect(summary).toContain('关系最小集')
+    expect(summary).toContain('明天一起把最重要的事情做完')
+    expect(summary).not.toContain('千里阳光号是用户事实')
+  })
 })
 
 describe('B3: Compact boundary marker', () => {

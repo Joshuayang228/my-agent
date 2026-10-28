@@ -48,7 +48,7 @@
 | 主动问候 | 有新动态才问候，不把呈现当已读 | proactive-greeting + world | 路飞专属触发样例 |
 | 生图 | 草帽、基础衣物、千里阳光号环境锚点 | appearance + wardrobe + image recipe | 朋友圈配图与真实外部模型效果 |
 | 记忆提炼 | 只提取用户事实，不把路飞设定写入用户记忆 | profile-extraction | 人物事实 / 用户事实反例 |
-| 压缩与召回 | 关系最小集、草帽和千里阳光号只在相关时注入 | compact + relationship min set | 长会话验收 |
+| 压缩与召回 | 用户约定进入关系最小集；草帽和千里阳光号只在相关人物上下文注入 | compact + relationship min set | 更长真实会话与召回验收 |
 | Debug | 能看见来源、版本、关系、生活资产、真实调用 | model-context-assets + evidence | 路飞正式数据页 |
 | 用户画像 / 记忆 | 路飞不污染用户画像；反馈按人物分桶 | memory-store / profile | 纠错与跨角色负例 |
 
@@ -96,3 +96,5 @@
 资料补充（2026-10-29）：基础衣物视觉参考存放在 `roles/luffy/visual/wardrobe-initial-v1.png`，由 `profile.appearance.visualReferencePath` 关联；绑定人物穿搭的显式生图会读取同角色槽位衣物名称并经过 outfit version 校验。该参考图只用于项目资产审阅，不替代真实外部模型成图。
 
 验收补充（2026-10-29）：路飞主动消息、正式 Debug 全导航和成长反思回归已通过；压缩长会话、用户材料驱动成长、朋友圈配图与真实外部模型效果仍保留为未完成项。
+
+验收补充（2026-10-29）：长会话压缩已通过路飞共同约定正例，关系最小集保留用户约定；仍需更长真实会话验证召回稳定性。
