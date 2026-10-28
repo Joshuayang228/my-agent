@@ -24,6 +24,10 @@ describe('伙伴生活面来源边界', () => {
     }
 
     const luffyStarters = getStarterAssetDefinitions('luffy')
+    const luffyWorld = loadRoleWorldDefaults('luffy')!
+    expect(luffyStarters.filter((starter) => starter.kind === 'home').map((starter) => starter.name)).toEqual(['千里阳光号'])
+    expect(luffyStarters.filter((starter) => starter.kind === 'footprint').map((starter) => starter.name)).toEqual(luffyWorld.favoritePlaces.map((place) => place.name))
+    expect(luffyStarters.filter((starter) => ['home', 'footprint'].includes(starter.kind)).every((starter) => starter.payload.seededFrom === 'world.default')).toBe(true)
     expect(luffyStarters.filter((starter) => starter.kind === 'wardrobe')).toHaveLength(3)
     expect(luffyStarters.filter((starter) => starter.kind === 'wardrobe').every((starter) => starter.payload.seededFrom === 'role-pack:luffy')).toBe(true)
   })
