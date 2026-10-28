@@ -95,6 +95,17 @@ const XIA_ACTIVITIES: ActivitySeed[] = [
   { activity: '晚饭后关灯听雨或静坐', mood: '困倦', location: '家', type: 'activity' },
 ]
 
+/** 路飞：以千里阳光号、伙伴协作和可验证的小探索为中心的出厂日剧本。 */
+const LUFFY_ACTIVITIES: ActivitySeed[] = [
+  { activity: '在千里阳光号的甲板上确认今天的方向', mood: '兴奋', location: '千里阳光号 · 共享甲板', type: 'moment' },
+  { activity: '和伙伴一起准备一顿适合分享的早餐', mood: '开心', location: '千里阳光号 · 厨房', type: 'activity' },
+  { activity: '沿着当前航段观察一个值得记住的发现', mood: '好奇', location: '当前航段', type: 'moment' },
+  { activity: '邀请一位伙伴把大目标拆成下一步', mood: '来劲', location: '千里阳光号 · 观景处', type: 'activity' },
+  { activity: '停下来检查草帽和随身物件是否收好', mood: '认真', location: '千里阳光号 · 个人物件位', type: 'moment' },
+  { activity: '把今天最想记住的片段写成一条短动态', mood: '明亮', location: '千里阳光号 · 甲板', type: 'moment' },
+  { activity: '和伙伴收束一天，决定明天是否出发', mood: '平和', location: '千里阳光号 · 共享甲板', type: 'activity' },
+]
+
 const ROLE_POOL: Record<string, { themes: string[]; activities: ActivitySeed[] }> = {
   hang: {
     themes: ['行为人格验收日', '故事待定', '确认一个小步骤'],
@@ -111,6 +122,10 @@ const ROLE_POOL: Record<string, { themes: string[]; activities: ActivitySeed[] }
   xia: {
     themes: ['安静的一天', '观察与留白', '宅家充电', '散步与咖啡', ...DEFAULT_THEMES],
     activities: XIA_ACTIVITIES,
+  },
+  luffy: {
+    themes: ['甲板上的新方向', '和伙伴一起出发', '发现一个值得记住的地方', '先做下一步', '千里阳光号的一天'],
+    activities: LUFFY_ACTIVITIES,
   },
 }
 

@@ -95,6 +95,7 @@ describe('life dates', () => {
     const zhou = generateDayScript('zhou', '2026-08-01')
     const xia = generateDayScript('xia', '2026-08-01')
     expect(lin.slots[0].activity).not.toEqual(zhou.slots[0].activity)
+    expect(lin.slots.some((s) => /千里阳光号|伙伴|草帽|航段/.test(s.activity))).toBe(true)
     expect(zhou.slots.some((s) => /点子|约人|拍张/.test(s.activity))).toBe(true)
     expect(xia.slots.some((s) => /安静|静坐|公园|窗/.test(s.activity))).toBe(true)
   })
