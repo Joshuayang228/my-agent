@@ -79,6 +79,8 @@ describe('companion identity loader', () => {
     const profile = loadRolePack('luffy').profile
     expect(profile?.appearance.visualReferencePath).toBe('visual/wardrobe-initial-v1.png')
     expect(fs.existsSync(path.join(getUniversesRoot(), 'default', 'roles', 'luffy', profile!.appearance.visualReferencePath!))).toBe(true)
+    expect(profile?.appearance.visualReferencePaths).toEqual(['visual/wardrobe-initial-v1.png', 'visual/thousand-sunny-crew-scene-v1.png'])
+    expect(profile?.appearance.visualReferencePaths?.every(reference => fs.existsSync(path.join(getUniversesRoot(), 'default', 'roles', 'luffy', reference)))).toBe(true)
   })
 
   it('未知角色校验', () => {

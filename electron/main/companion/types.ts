@@ -48,6 +48,8 @@ export interface RoleAppearance {
   distinguishingFeatures: string[]
   /** 可选的项目内视觉参考；不参与模型提示词，只供人物资产与人工审阅使用。 */
   visualReferencePath?: string
+  /** 多张项目内视觉参考；同样只供人工审阅，不作为模型输入。 */
+  visualReferencePaths?: string[]
 }
 
 export interface RoleFavorites {

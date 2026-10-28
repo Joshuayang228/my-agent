@@ -93,7 +93,7 @@
 - 乌索普：`https://one-piece.com/character/usopp/`
 - 全员索引（含娜美、山治、千里阳光号）：`https://one-piece.com/character/`
 
-资料补充（2026-10-29）：基础衣物视觉参考存放在 `roles/luffy/visual/wardrobe-initial-v1.png`，由 `profile.appearance.visualReferencePath` 关联；绑定人物穿搭的显式生图会读取同角色槽位衣物名称并经过 outfit version 校验。该参考图只用于项目资产审阅，不替代真实外部模型成图。
+资料补充（2026-10-29）：基础衣物视觉参考存放在 `roles/luffy/visual/wardrobe-initial-v1.png`，千里阳光号伙伴场景参考存放在 `roles/luffy/visual/thousand-sunny-crew-scene-v1.png`，由 `profile.appearance.visualReferencePaths` 关联；绑定人物穿搭的显式生图会读取同角色槽位衣物名称并经过 outfit version 校验。参考图只用于项目资产审阅，不替代真实外部模型成图。
 
 验收补充（2026-10-29）：路飞主动消息、正式 Debug 全导航和成长反思回归已通过；压缩长会话、用户材料驱动成长、朋友圈配图与真实外部模型效果仍保留为未完成项。
 
