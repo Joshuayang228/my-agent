@@ -56,6 +56,23 @@ it('正式穿搭生图绑定真实资产版本，等待期间换衣拒绝迟到�
   expect((await getAsset(current.asset.id))?.payload.slots).toEqual({ top: next.asset.id })
 })
 
+it('路飞绑定基础穿搭生图时把真实衣物名称纳入视觉锚点', async () => {
+  context.roleId = 'luffy'
+  const top = await createAsset({ roleId: 'luffy', kind: 'wardrobe', name: '轻便红色背心', payload: { recordType: 'garment', category: 'top' } })
+  const bottom = await createAsset({ roleId: 'luffy', kind: 'wardrobe', name: '深蓝短裤', payload: { recordType: 'garment', category: 'bottom' } })
+  const shoes = await createAsset({ roleId: 'luffy', kind: 'wardrobe', name: '甲板凉鞋', payload: { recordType: 'garment', category: 'shoes' } })
+  if (!top.ok || !bottom.ok || !shoes.ok) throw new Error('路飞基础衣物初始化失败')
+  const outfit = await createAsset({ roleId: 'luffy', kind: 'wardrobe', name: '路飞基础穿搭', payload: { recordType: 'outfit', slots: { top: top.asset.id, bottom: bottom.asset.id, shoes: shoes.asset.id } } })
+  if (!outfit.ok) throw new Error('路飞基础穿搭初始化失败')
+  const result = await run({ ...args, targetAssetId: outfit.asset.id })
+  expect(result.isError).not.toBe(true)
+  const request = state.request.mock.calls[0]?.[1] as { prompt?: string } | undefined
+  expect(request?.prompt).toContain('当前确认穿搭')
+  expect(request?.prompt).toContain('轻便红色背心')
+  expect(request?.prompt).toContain('深蓝短裤')
+  expect(request?.prompt).toContain('甲板凉鞋')
+})
+
 it('生成结果解码后真实保存，结构化引用与文件相符，不留下临时文件', async () => {
   const result = await run()
   expect(result.isError).not.toBe(true)

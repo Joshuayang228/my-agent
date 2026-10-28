@@ -32,7 +32,7 @@ Playground / Eval 使用明确实验配方与来源，生产模块禁止导入 E
 
 目录用途采用生产注册项的稳定 `domain` 标识，身份 / 行为 / 场景文件由 Role Pack 来源契约声明用途；中文名称和正文不参与用途推断。注册元数据不改变请求编译或权限。配方消费者门禁沿真实文件 import、别名及 namespace 调用反查，防止仅登记未接入函数；实验请求通过实验 System 和 Agent 配方消费同一签发机制，不保留无人调用的额外消息签发入口。
 
-显式人物生图的数据流为 `RolePack.profile.appearance` → `formatRoleAppearanceForImagePrompt` → `compileImageGenerationRequest` → 图片协议；只投影外观字段，保持用户图片描述为运行时资料，不建立第二份人物视觉资产，也不让视觉锚点改变权限或图片落盘边界。
+显式人物生图的数据流为 `RolePack.profile.appearance` → `formatRoleAppearanceForImagePrompt`，绑定人物穿搭时再由 `companion_assets` 的同角色槽位补充衣物名称 → `compileImageGenerationRequest` → 图片协议；只投影确认的外观与穿搭字段，保持用户图片描述为运行时资料，不建立第二份人物视觉真相，也不让视觉锚点改变权限或图片落盘边界。
 
 `prompts/` 保存纯正文构造器、语义编译器、typed key 与注册索引；领域服务提供事实并拥有解析、回退与副作用。注册表的 `definitions` 指向真实代码符号，动态模板调用同一生产构造器生成；禁止在索引或 Debug 复制正文。四类伙伴行为的领域协议在输出模块最后编译，人物增量和运行时事实不能隐式覆盖稳定身份。
 

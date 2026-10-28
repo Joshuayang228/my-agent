@@ -164,7 +164,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     sourcePath: 'electron/main/prompts/image-generation.ts#buildImageGenerationPrompt',
     definitions: ['electron/main/prompts/image-generation.ts#buildImageGenerationPrompt', 'electron/main/prompts/registered-request.ts#compileImageGenerationRequest', 'electron/main/companion/identity/profile.ts#formatRoleAppearanceForImagePrompt'],
     template: buildImageGenerationPrompt('{{description}}', '{{visualAnchor}}'),
-    slots: [{ name: 'description', source: 'image_generate.prompt', lifecycle: '每次显式生成' }, { name: 'visualAnchor', source: '当前人物已确认 appearance（可为空）', lifecycle: '每次显式生成' }],
+    slots: [{ name: 'description', source: 'image_generate.prompt', lifecycle: '每次显式生成' }, { name: 'visualAnchor', source: '当前人物 appearance 与绑定穿搭资产（可为空）', lifecycle: '每次显式生成' }],
   }),
   dynamicAsset({
     id: PROMPT_KEYS.momentReply,

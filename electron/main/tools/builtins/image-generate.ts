@@ -12,11 +12,31 @@ import { getRules } from '../../sandbox/permission-engine'
 import type { GeneratedImageReference, ToolContext } from '../../../../src/shared/types'
 import type { SandboxMode } from '../../sandbox/policy'
 import { createLogger } from '../../utils/logger'
-import { attachWorldAssetImage, getAsset } from '../../companion/life/assets'
+import { attachWorldAssetImage, getAsset, listAssets } from '../../companion/life/assets'
 import { loadRolePack } from '../../companion/identity/loader'
 import { formatRoleAppearanceForImagePrompt } from '../../companion/identity/profile'
 
 const log = createLogger('ImageGenerate')
+
+/**
+ * 将已校验的衣柜槽位转成生图用的短视觉锚点。
+ *
+ * 背景：绑定穿搭的图片请求必须和当前穿着保持一致，否则衣柜版本链只保护了落盘却没有保护画面语义。
+ * 设计意图：只读取当前角色衣柜中被穿搭引用的 garment 名称，放弃把整张资产表或用户可编辑正文塞进 Prompt。
+ * 关键约束：角色、种类和槽位必须由真实资产查询确认；缺少有效引用时返回空字符串，不猜测衣物。
+ */
+async function formatWardrobeVisualAnchor(roleId: string, asset: { kind: string; payload: Record<string, unknown> }): Promise<string> {
+  if (asset.kind !== 'wardrobe' || !['outfit', 'wear-state'].includes(String(asset.payload.recordType))) return ''
+  const slots = asset.payload.slots
+  if (!slots || typeof slots !== 'object' || Array.isArray(slots)) return ''
+  const garments = await listAssets(roleId, { kind: 'wardrobe' })
+  const names = Object.entries(slots as Record<string, unknown>).flatMap(([slot, id]) => {
+    if (typeof id !== 'string') return []
+    const garment = garments.find(item => item.id === id && item.payload.recordType === 'garment' && item.payload.category === slot)
+    return garment ? [`${slot}：${garment.name}`] : []
+  })
+  return names.length ? `当前确认穿搭：${names.join('；')}` : ''
+}
 
 /**
  * 背景：生图先付出远程调用成本，必须先拒绝越界、覆盖和链接目标。
@@ -94,10 +114,12 @@ export const imageGenerateTool = buildTool({
       if (typeof args.prompt !== 'string' || !args.prompt.trim() || args.prompt.length > 16_000) throw new ImageGenerationError('请提供不超过 16000 字的图片描述。')
       const targetAssetId = typeof args.targetAssetId === 'string' ? args.targetAssetId.trim() : ''
       let expectedOutfitVersion: number | undefined
+      let targetAsset: Awaited<ReturnType<typeof getAsset>> = null
       if (targetAssetId) {
         if (!context?.roleId) throw new ImageGenerationError('当前会话没有绑定人物，无法把图片放入人物世界。')
         const asset = await getAsset(targetAssetId)
         if (!asset || asset.roleId !== context.roleId) throw new ImageGenerationError('人物世界资产已不存在或不属于当前伙伴。')
+        targetAsset = asset
         if (asset.kind === 'wardrobe' && ['outfit', 'wear-state'].includes(String(asset.payload.recordType))) {
           if (!Number.isSafeInteger(asset.payload.outfitVersion)) throw new ImageGenerationError('穿搭版本无效，请重新读取衣柜后再生成图片。')
           expectedOutfitVersion = Number(asset.payload.outfitVersion)
@@ -108,7 +130,9 @@ export const imageGenerateTool = buildTool({
       context?.signal?.throwIfAborted()
       const requestTarget = resolveGeneratedImageTarget(args.path, context, requestMode)
       if (requestTarget.target !== target.target || mode !== requestMode || rules !== JSON.stringify(getRules())) throw new ImageGenerationError('项目或权限已变化，未发起生图。请检查设置后再操作。')
-      const visualAnchor = context?.roleId ? (() => { try { return formatRoleAppearanceForImagePrompt(loadRolePack(context.roleId).profile) } catch { return '' } })() : ''
+      const appearanceAnchor = context?.roleId ? (() => { try { return formatRoleAppearanceForImagePrompt(loadRolePack(context.roleId).profile) } catch { return '' } })() : ''
+      const wardrobeAnchor = context?.roleId && targetAsset ? await formatWardrobeVisualAnchor(context.roleId, targetAsset) : ''
+      const visualAnchor = [appearanceAnchor, wardrobeAnchor].filter(Boolean).join('；')
       const response = await requestGeneratedImage(config, compileImageGenerationRequest(args.prompt, visualAnchor), context?.signal)
       const image = await normalizeGeneratedImage(response.bytes, context?.signal)
       context?.signal?.throwIfAborted()
