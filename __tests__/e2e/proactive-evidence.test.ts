@@ -37,6 +37,7 @@ test('真实问候呈现回执、重复 tick 与重启保留名额', async ({}, 
       for (const [key, value] of Object.entries({ developerMode: 'true', activeRoleId: roleId, companionProactiveGreetingEnabled: 'true', companionMomentTipsMuted: 'false', companionMomentTipsQuietStart: '0', companionMomentTipsQuietEnd: '0' })) await window.electronAPI.settings.set(key, value)
       return roleId
     })
+    expect(roleId).toBe('luffy')
     checkedRoleId = roleId
     await app.close(); app = undefined
     const dbPath = path.join(root, 'my-agent.db')
@@ -47,8 +48,8 @@ test('真实问候呈现回执、重复 tick 与重启保留名额', async ({}, 
     const day = toLocalDateString(now)
     db.run('INSERT INTO companion_day_scripts(id,role_id,date,payload_json,created_at) VALUES (?,?,?,?,?) ON CONFLICT(role_id,date) DO UPDATE SET payload_json=excluded.payload_json', ['proactive-fixture-day', roleId, day, JSON.stringify({ date: day, theme: '隔离回执验收', slots: [] }), now])
     db.run("UPDATE companion_events SET status='cancelled' WHERE role_id=? AND status='planned'", [roleId])
-    db.run("INSERT INTO companion_events(id,role_id,scheduled_at,status,type,payload_json) VALUES (?,?,?,'published','moment',?)", ['proactive-fixture-event', roleId, now - 1000, JSON.stringify({ activity: '回执验收', location: '未设定', mood: '平静' })])
-    db.run("INSERT INTO companion_moments(id,role_id,event_id,published_at,text,meta_json) VALUES (?,?,?,?,?,'{}')", ['proactive-fixture-moment', roleId, 'proactive-fixture-event', now, '回执验收的生活动态'])
+    db.run("INSERT INTO companion_events(id,role_id,scheduled_at,status,type,payload_json) VALUES (?,?,?,'published','moment',?)", ['proactive-fixture-event', roleId, now - 1000, JSON.stringify({ activity: '和伙伴整理航线', location: '千里阳光号 · 共享甲板', mood: '平静' })])
+    db.run("INSERT INTO companion_moments(id,role_id,event_id,published_at,text,meta_json) VALUES (?,?,?,?,?,'{}')", ['proactive-fixture-moment', roleId, 'proactive-fixture-event', now, '在千里阳光号甲板上和伙伴整理航线'])
     db.run("UPDATE settings SET value='false' WHERE key='companionProactiveGreetingEnabled'")
     db.run('DELETE FROM companion_greeting_days WHERE role_id=?', [roleId])
     db.run('DELETE FROM companion_greeting_evidence WHERE role_id=?', [roleId])
@@ -105,7 +106,7 @@ test('真实问候呈现回执、重复 tick 与重启保留名额', async ({}, 
     await expect(reading.getByRole('article', { name: '领域证据详情' })).toContainText('不证明用户看见或阅读')
     await page.screenshot({ path: info.outputPath('proactive-presented.png') })
     await reading.getByRole('button', { name: '查看来源动态', exact: true }).click()
-    await expect(page.getByTestId('debug-evidence-moments').getByRole('article', { name: '领域证据详情' })).toContainText('回执验收的生活动态')
+    await expect(page.getByTestId('debug-evidence-moments').getByRole('article', { name: '领域证据详情' })).toContainText('千里阳光号甲板')
     await page.getByTestId('dev-panel').getByRole('button', { name: '返回运行证据', exact: true }).click()
     await expect(reading.getByRole('article', { name: '领域证据详情' })).toContainText('不证明用户看见或阅读')
     await reading.getByRole('button', { name: '返回全部记录', exact: true }).click()
@@ -129,7 +130,7 @@ test('真实问候呈现回执、重复 tick 与重启保留名额', async ({}, 
     const reopened = await page.evaluate(({ roleId, id }) => window.electronAPI.companion.proactiveEvidenceQuery({ roleId, recordId: id }), { roleId, id: saved.id })
     expect(reopened.records).toEqual([saved])
     const raw = JSON.stringify((await page.evaluate(roleId => window.electronAPI.companion.proactiveEvidenceQuery({ roleId }), roleId)).records)
-    expect(raw).not.toContain('回执验收的生活动态')
+    expect(raw).not.toContain('千里阳光号甲板')
     expect(raw).not.toContain('receiptToken')
   } finally {
     await writeFile(info.outputPath('presentation-probe.json'), JSON.stringify(presentationProbe ?? null, null, 2))
