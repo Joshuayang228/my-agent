@@ -27,4 +27,14 @@ describe('自动记忆原话证据', () => {
     }
     expect(hasUserSourceEvidence({ subject: 'user', sourceQuote: '不可见的证据' }, [{ ...messages[0], content: '字'.repeat(500) + '不可见的证据' }])).toBe(false)
   })
+
+  it('路飞的身份和动态不会因为助手原话进入用户画像', () => {
+    const luffyConversation: ChatMessage[] = [
+      { id: 'user-1', role: 'user', content: '我想先把今天最重要的事做完', timestamp: 1 },
+      { id: 'assistant-1', role: 'assistant', content: '我是路飞，现在在千里阳光号甲板上。', timestamp: 2 },
+    ]
+    expect(hasUserSourceEvidence({ subject: 'user', sourceQuote: '我是路飞' }, luffyConversation)).toBe(false)
+    expect(hasUserSourceEvidence({ subject: 'user', sourceQuote: '千里阳光号甲板' }, luffyConversation)).toBe(false)
+    expect(hasUserSourceEvidence({ subject: 'user', sourceQuote: '今天最重要的事' }, luffyConversation)).toBe(true)
+  })
 })
