@@ -269,4 +269,16 @@ describe('companion reflection runner', () => {
     expect(r.version).toBe(1)
     expect(await getMutable('lin')).toContain('先给结论')
   })
+
+  it('路飞反思使用 Role Pack 身份边界，不把生活信号写成 MUTABLE 事实', async () => {
+    growthByRole = JSON.stringify({ luffy: Date.now() - COLD_START_MS - 60_000 })
+    settingsMap.activeRoleId = 'luffy'
+    vi.mocked(chatComplete).mockResolvedValueOnce('{"newMutable":null,"summary":"no-change"}')
+    const result = await runReflectionNow('luffy', { apiKey: 'x', baseUrl: 'http://x', model: 'm' }, { force: true })
+    expect(result.changed).toBe(false)
+    const call = vi.mocked(chatComplete).mock.calls[0]?.[0] as { request: { messages: Array<{ content: string }> } }
+    expect(call.request.messages[0].content).toContain('路飞')
+    expect(call.request.messages[0].content).toContain('不得抄进 MUTABLE')
+    expect(await getMutable('luffy')).not.toContain('千里阳光号')
+  })
 })
