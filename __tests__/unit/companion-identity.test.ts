@@ -69,6 +69,12 @@ describe('companion identity loader', () => {
     ]))
   })
 
+  it('路飞稳定身份不把平台术语写成自我介绍', () => {
+    const pack = loadRolePack('luffy')
+    expect(pack.protected.split('\n')[0]).toBe('你是路飞，一个自由、直率、重视伙伴的冒险伙伴。')
+    expect(pack.protected.split('\n')[0]).not.toContain('数字')
+  })
+
   it('路飞档案关联基础衣物视觉参考，图片属于 Role Pack 资产', () => {
     const profile = loadRolePack('luffy').profile
     expect(profile?.appearance.visualReferencePath).toBe('visual/wardrobe-initial-v1.png')
