@@ -30,7 +30,7 @@
 
 1. 关系表已能生成浅层名册，但 NPC 只有最小 Role Pack，尚未覆盖完整关系方向、共同经历、关系成长和冲突修复。
 2. 世界默认、运行态生活资产和衣柜 starter 是三条链，草帽 / 千里阳光号此前没有明确归属；本轮已补入 world.default.json，仍需验证播种、Debug 和图片引用。
-3. 人物视觉锚点已能进入显式生图，但衣柜图片版本、人物外观锚点、朋友圈配图和生成失败后的资产状态还没有用同一人物完整验收。
+3. 人物视觉锚点已能进入显式生图；本批已把基础衣物视觉参考接入 Role Pack，并让绑定穿搭时的真实衣物槽位进入图片配方，衣柜版本竞态与失败清理已有路飞正例。朋友圈配图和真实外部模型效果仍待同一人物验收。
 4. 后台行为已有通用 Prompt，但日程、追赶、反思、评论、主动问候、画像提炼和压缩对路飞的输入边界与回退样例没有全部落盘。
 5. Playground / Debug 的多数样张仍沿用历史人物夹具，无法证明路飞真实数据从生产来源进入页面；需要新增路飞隔离样张和正式只读验收。
 6. 作品事实、用户事实、运行事件和 AI 草稿目前仍需要在人物共创材料流中持续标源，不能用一次性 Role Pack 文案替代事实证据。
@@ -46,7 +46,7 @@
 | 朋友圈 | 航海生活事件、伙伴同框 | moments + relations | 事件素材与配图闭环 |
 | 评论 / 主角回复 | 直接、短、尊重用户评论 | moment-comment / moment-reply + role | 反例与失败样例 |
 | 主动问候 | 有新动态才问候，不把呈现当已读 | proactive-greeting + world | 路飞专属触发样例 |
-| 生图 | 草帽、基础衣物、千里阳光号环境锚点 | appearance + wardrobe + image recipe | 成图资产与版本链 |
+| 生图 | 草帽、基础衣物、千里阳光号环境锚点 | appearance + wardrobe + image recipe | 朋友圈配图与真实外部模型效果 |
 | 记忆提炼 | 只提取用户事实，不把路飞设定写入用户记忆 | profile-extraction | 人物事实 / 用户事实反例 |
 | 压缩与召回 | 关系最小集、草帽和千里阳光号只在相关时注入 | compact + relationship min set | 长会话验收 |
 | Debug | 能看见来源、版本、关系、生活资产、真实调用 | model-context-assets + evidence | 路飞正式数据页 |
@@ -92,3 +92,5 @@
 - 索隆：`https://one-piece.com/character/zoro/index.html`
 - 乌索普：`https://one-piece.com/character/usopp/`
 - 全员索引（含娜美、山治、千里阳光号）：`https://one-piece.com/character/`
+
+资料补充（2026-10-29）：基础衣物视觉参考存放在 `roles/luffy/visual/wardrobe-initial-v1.png`，由 `profile.appearance.visualReferencePath` 关联；绑定人物穿搭的显式生图会读取同角色槽位衣物名称并经过 outfit version 校验。该参考图只用于项目资产审阅，不替代真实外部模型成图。
