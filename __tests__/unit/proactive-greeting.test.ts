@@ -6,6 +6,7 @@ import {
   decideProactiveGreeting,
   formatProactiveGreetingToast,
 } from '../../electron/main/companion/life/proactive-greeting'
+import { buildProactiveGreetingPrompt } from '../../electron/main/prompts/proactive-greeting'
 
 const base = {
   enabled: true,
@@ -67,5 +68,18 @@ describe('formatProactiveGreetingToast', () => {
     expect(toast).toContain('路飞刚刚有条新动态')
     expect(toast).toContain('千里阳光号甲板')
     expect(toast).not.toContain('她')
+  })
+})
+
+describe('buildProactiveGreetingPrompt', () => {
+  it('把人物简介作为语气依据传入，不把动态以外的事实当作问候依据', () => {
+    const prompt = buildProactiveGreetingPrompt({
+      roleName: '路飞',
+      roleBrief: '自由、直率；优先珍惜伙伴。',
+      momentText: '在千里阳光号甲板上整理航线',
+    })
+    expect(prompt).toContain('roleBrief')
+    expect(prompt).toContain('千里阳光号甲板')
+    expect(prompt).toContain('人物简介只用于保持语气与身份一致')
   })
 })

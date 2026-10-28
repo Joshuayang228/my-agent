@@ -140,9 +140,12 @@ export async function maybeProactiveGreeting(
   }
 
   let roleName = id
+  let roleBrief = ''
   try {
     const universeId = (await settings.getSetting('universeId')) || 'default'
-    roleName = identity.loadRolePack(id, universeId).name
+    const pack = identity.loadRolePack(id, universeId)
+    roleName = pack.name
+    roleBrief = `${pack.description}\n${pack.voice ?? ''}`.slice(0, 800)
   } catch {
     /* id 即可 */
   }
@@ -151,7 +154,7 @@ export async function maybeProactiveGreeting(
   try {
     const config = await loadAuxLLMConfig()
     if (hasLLMAuthentication(config)) {
-      const raw = await chatComplete({ config, request: compileProactiveGreetingRequest({ roleName, momentText: preview.slice(0, 1500) }), caller: 'proactive-greeting', temperature: 0.6, maxTokens: 160 })
+      const raw = await chatComplete({ config, request: compileProactiveGreetingRequest({ roleName, roleBrief, momentText: preview.slice(0, 1500) }), caller: 'proactive-greeting', temperature: 0.6, maxTokens: 160 })
       const parsed: unknown = JSON.parse(raw)
       const greeting = parsed && typeof parsed === 'object' && !Array.isArray(parsed) && typeof (parsed as Record<string, unknown>).greeting === 'string' ? ((parsed as Record<string, unknown>).greeting as string).trim() : ''
       if (greeting.length >= 2 && greeting.length <= 80 && !/[\r\n<>]/.test(greeting)) toast = `${roleName}：${greeting}`

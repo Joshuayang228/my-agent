@@ -180,8 +180,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     purpose: '依据已发布动态生成轻量主动问候', desc: '只在既有投递门闸允许且辅助模型可用时生成；失败回退确定性提醒。',
     sourcePath: 'electron/main/prompts/proactive-greeting.ts#buildProactiveGreetingPrompt',
     definitions: ['electron/main/prompts/proactive-greeting.ts#buildProactiveGreetingPrompt', 'electron/main/prompts/registered-request.ts#compileProactiveGreetingRequest'],
-    template: buildProactiveGreetingPrompt({ roleName: '{{roleName}}', momentText: '{{momentText}}' }),
-    slots: [{ name: 'roleName', source: '当前主角 Role Pack', lifecycle: '投递前' }, { name: 'momentText', source: '已发布动态正文', lifecycle: '投递前' }],
+    template: buildProactiveGreetingPrompt({ roleName: '{{roleName}}', roleBrief: '{{roleBrief}}', momentText: '{{momentText}}' }),
+    slots: [{ name: 'roleName', source: '当前主角 Role Pack', lifecycle: '投递前' }, { name: 'roleBrief', source: '当前主角公开简介与 voice', lifecycle: '投递前' }, { name: 'momentText', source: '已发布动态正文', lifecycle: '投递前' }],
   }),
   staticAsset({
     id: PROMPT_KEYS.imageDraft,
