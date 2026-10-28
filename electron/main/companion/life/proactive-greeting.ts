@@ -75,7 +75,7 @@ export function formatProactiveGreetingToast(input: {
   const name = input.roleName.trim() || '伙伴'
   const preview = input.preview.replace(/\s+/g, ' ').trim().slice(0, 36)
   if (preview) {
-    return `${name}还在过她的日子：${preview}——有空打开朋友圈看看`
+    return `${name}刚刚有条新动态：${preview}——有空打开朋友圈看看`
   }
   return `${name}今天有新动态，有空打开朋友圈看看`
 }

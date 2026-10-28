@@ -59,12 +59,13 @@ describe('decideProactiveGreeting', () => {
 })
 
 describe('formatProactiveGreetingToast', () => {
-  it('挂在动态预览上', () => {
-    expect(
-      formatProactiveGreetingToast({
-        roleName: '小林',
-        preview: '午后改稿',
-      }),
-    ).toContain('午后改稿')
+  it('挂在动态预览上且不凭空添加人物性别', () => {
+    const toast = formatProactiveGreetingToast({
+      roleName: '路飞',
+      preview: '在千里阳光号甲板上和伙伴整理航线',
+    })
+    expect(toast).toContain('路飞刚刚有条新动态')
+    expect(toast).toContain('千里阳光号甲板')
+    expect(toast).not.toContain('她')
   })
 })
