@@ -46,6 +46,8 @@ export interface RoleAppearance {
   build: string
   clothingStyle: string
   distinguishingFeatures: string[]
+  /** 可选的项目内视觉参考；不参与模型提示词，只供人物资产与人工审阅使用。 */
+  visualReferencePath?: string
 }
 
 export interface RoleFavorites {

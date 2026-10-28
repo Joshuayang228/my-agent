@@ -74,4 +74,4 @@
 
 路飞衣柜新增三件 starter：轻便红色背心、深蓝短裤、甲板凉鞋。它们来自 `electron/main/companion/life/assets.ts` 的角色专属 starter 定义，生成描述和分类，不写入当前穿着状态；用户删空后不自动复活。千里阳光号已写入正式 world.default 家居事实，运行态仍可由真实资产覆盖。
 
-内置生图请求本轮连接失败，没有把失败结果写入项目或运行时资产。后续视觉草稿生成成功并经确认后，再接入图片引用与衣柜版本链路。
+已生成一张原创的基础衣物视觉参考，存放在 `roles/luffy/visual/wardrobe-initial-v1.png`，并由 `profile.appearance.visualReferencePath` 关联。它只用于人物资产审阅，不会自动进入模型提示词，也不替代真实生图结果或当前穿着记录。

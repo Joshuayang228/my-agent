@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
+import fs from 'node:fs'
+import path from 'node:path'
 import {
   getDefaultProtagonistId,
+  getUniversesRoot,
   isKnownProtagonist,
   listProtagonists,
   loadRolePack,
@@ -64,6 +67,12 @@ describe('companion identity loader', () => {
     expect(world?.possessions).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: 'straw-hat', name: '草帽', kind: 'symbolic-item' }),
     ]))
+  })
+
+  it('路飞档案关联基础衣物视觉参考，图片属于 Role Pack 资产', () => {
+    const profile = loadRolePack('luffy').profile
+    expect(profile?.appearance.visualReferencePath).toBe('visual/wardrobe-initial-v1.png')
+    expect(fs.existsSync(path.join(getUniversesRoot(), 'default', 'roles', 'luffy', profile!.appearance.visualReferencePath!))).toBe(true)
   })
 
   it('未知角色校验', () => {
