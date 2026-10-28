@@ -32,8 +32,14 @@ function fixturePath(relUnixPath: string): string {
   return path.join(TEST_FIXTURE_ROOT, ...relUnixPath.split('/').slice(1))
 }
 
-/** Vite 将资产以 raw 字符串打入包；key 形如 `../universes/default/manifest.json` */
-const bundledAssets = import.meta.glob('../universes/**/*', {
+/**
+ * Vite 只把 Role Pack 文本资产以 raw 字符串打入包；视觉参考图留在项目文件中，不能被当成文本塞进主进程 bundle。
+ *
+ * 背景：人物视觉参考属于人工审阅资产，不参与 loader 的 JSON / Markdown 解析；通配所有文件会让每张 PNG 膨胀 Electron 主包。
+ * 设计意图：按扩展名限制内嵌来源，放弃“所有文件都由同一 glob 兜底”的便利写法。
+ * 关键约束：新增可加载文本只能使用 json / md / txt；图片仍可通过 profile 的相对路径追踪，但不进入生产 Prompt 或主进程代码。
+ */
+const bundledAssets = import.meta.glob('../universes/**/*.{json,md,txt}', {
   query: '?raw',
   import: 'default',
   eager: true,
