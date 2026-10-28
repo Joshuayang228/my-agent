@@ -104,6 +104,13 @@ describe('模型可见文本统一目录', () => {
       assetType: 'companion-world',
       contentKind: 'data',
     })
+    expect(assets.find((asset) => asset.key === 'companion:default:luffy:life:home:residence')).toMatchObject({
+      name: expect.stringContaining('千里阳光号'),
+      source: 'role-pack://default/roles/luffy/world.default.json',
+      dependencies: expect.arrayContaining(['companion:default:luffy:world-default']),
+    })
+    expect(assets.filter((asset) => asset.key.startsWith('companion:default:luffy:life:wardrobe:')).map((asset) => asset.name)).toEqual(expect.arrayContaining(['生活资产 · 路飞 · 轻便红色背心', '生活资产 · 路飞 · 深蓝短裤', '生活资产 · 路飞 · 甲板凉鞋']))
+    expect(assets.find((asset) => asset.key === 'companion:default:luffy:profile')?.content).toContain('visual/wardrobe-initial-v1.png')
     expect(assets.find((asset) => asset.key === 'memory-strategy:vector-recall')).toMatchObject({
       category: 'memory',
       assetType: 'memory-strategy',
