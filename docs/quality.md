@@ -839,3 +839,4 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 - 2026-10-29：身份呈现回归锁住路飞 protected 首行，禁止把“数字”类平台术语作为人物自我介绍进入稳定身份。
 - 2026-10-29：路飞视觉资产回归新增千里阳光号伙伴场景图，验证多张 Role Pack 参考路径存在且不进入生图 Prompt。
 - 2026-10-29：Role Pack loader 构建回归限制为 json / md / txt，视觉 PNG 不再进入 raw bundle；Electron loader chunk 从约 9.7MB 降至约 21KB。
+- 2026-10-29：按用户确认，路飞完整 protected 与 selfAwareness 去除平台身份措辞；回归检查完整正文，权限与事实边界保持不变。
