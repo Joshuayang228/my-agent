@@ -462,3 +462,5 @@ LLM 返回 tool_calls（可能多个）
 - 模型配置的产品入口统一由 `ModelRoutingSettings` 组合真实设置存储、路由配置工厂与主进程模型发现；空清单不合成连接或用途，不恢复旧单连接身份。Chat 仅展示实际主模型，配置在正式模型页管理；Playground 获取仍是隔离 fixture。
 
 - LLM 配置工厂提供主对话、辅助任务和独立生图配置；Runtime 的图片输入仍使用主对话配置，image_generate 才调用生图配置。
+
+- 2026-10-30：Chat 人物生活写入沿现有分层落地：`tools/builtins/companion-life.ts` 只做工具薄包装，朋友圈写入 `companion_events` 后由 `life/moments.ts` 投影，家居等资料经 `life/assets.ts` 白名单入库；生图动态绑定经 `life/moment-images.ts` 写 `companion_event_links`。不新增 Renderer 直写路径或第二份生活真相。

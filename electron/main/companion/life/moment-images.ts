@@ -1,7 +1,53 @@
 import type { GeneratedImageReadResult } from '../../../../src/shared/types'
 import { getDatabase } from '../../storage/database'
 import { readGeneratedImageReference } from '../../storage/generated-images'
-import { getEventById, getMomentById, listEventLinks } from './store'
+import { getEventById, getMomentById, listEventLinks, replaceEventLinks } from './store'
+
+export type MomentImageTarget =
+  | { ok: true; eventId: string; position: number }
+  | { ok: false; error: string }
+
+/**
+ * 为朋友圈配图预检目标动态。
+ *
+ * 背景：生图请求可能产生远程费用，动态目标无效时不能等图片生成后才发现。
+ * 设计意图：只接受当前角色已发布的动态，并在真正请求前计算可用位置；不把 planned
+ * 事件或其他角色的动态当成可写目标。
+ * 关键约束：单条动态最多九张图；校验只读事件与现有关联，不产生写入副作用。
+ */
+export async function prepareMomentImageTarget(roleId: string, momentId: string): Promise<MomentImageTarget> {
+  const moment = await getMomentById(momentId)
+  if (!moment || moment.roleId !== roleId) return { ok: false, error: '目标动态不存在或不属于当前人物。' }
+  const event = await getEventById(moment.eventId)
+  if (!event || event.roleId !== roleId || event.status !== 'published') return { ok: false, error: '只能为当前人物已发布的动态配图。' }
+  const links = await listEventLinks(roleId, event.id)
+  const images = links.filter(link => link.targetType === 'image' && link.relation === 'depicts')
+  if (images.length >= 9) return { ok: false, error: '这条动态已经有九张图片，不能继续添加。' }
+  return { ok: true, eventId: event.id, position: images.length }
+}
+
+/**
+ * 将已经落盘且拥有摘要的图片绑定到朋友圈动态。
+ *
+ * 背景：动态图片必须沿事件关联表保存，才能被正式朋友圈、备份和 Debug 共同读取。
+ * 设计意图：复用事件关联的整体替换事务，保留衣物、卡司等已有关系；不把图片路径写进事件正文。
+ * 关键约束：再次核对角色、发布状态和九张上限；任何校验失败都不留下半条关联。
+ */
+export async function attachMomentImageForRole(roleId: string, momentId: string, imageId: string): Promise<MomentImageTarget> {
+  if (!/^[a-f0-9]{64}$/.test(imageId)) return { ok: false, error: '图片引用无效，未绑定到动态。' }
+  const target = await prepareMomentImageTarget(roleId, momentId)
+  if (!target.ok) return target
+  const links = await listEventLinks(roleId, target.eventId)
+  await replaceEventLinks(roleId, target.eventId, [...links, {
+    eventId: target.eventId,
+    roleId,
+    targetType: 'image',
+    targetId: imageId,
+    relation: 'depicts',
+    metadata: { position: target.position },
+  }])
+  return target
+}
 
 export async function momentImageIdsForRole(roleId: string, momentId: string): Promise<string[]> {
   const moment = await getMomentById(momentId)

@@ -17,6 +17,7 @@ import { ragSearchTool } from './rag-search'
 import { gitStatusTool, gitDiffTool, gitLogTool, gitCommitTool, gitBranchTool } from './git-tools'
 import { thinkTool } from './think'
 import { imageGenerateTool } from './image-generate'
+import { companionCreateAssetTool, companionPostMomentTool } from './companion-life'
 
 const BUILTIN_TOOL_ENTRIES: Array<{ tool: ToolDefinition; source: string }> = [
   { tool: getCurrentTimeTool, source: 'electron/main/tools/builtins/get-current-time.ts' },
@@ -43,6 +44,8 @@ const BUILTIN_TOOL_ENTRIES: Array<{ tool: ToolDefinition; source: string }> = [
   { tool: ragSearchTool, source: 'electron/main/tools/builtins/rag-search.ts' },
   { tool: thinkTool, source: 'electron/main/tools/builtins/think.ts' },
   { tool: imageGenerateTool, source: 'electron/main/tools/builtins/image-generate.ts' },
+  { tool: companionPostMomentTool, source: 'electron/main/tools/builtins/companion-life.ts' },
+  { tool: companionCreateAssetTool, source: 'electron/main/tools/builtins/companion-life.ts' },
 ]
 
 export const builtinTools: ToolDefinition[] = BUILTIN_TOOL_ENTRIES.map((entry) => entry.tool)

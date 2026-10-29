@@ -1,0 +1,112 @@
+import { buildTool } from '../builder'
+import { createAsset } from '../../companion/life/assets'
+import { projectMomentFromEvent } from '../../companion/life/moments'
+import { deleteEvent, insertEvent } from '../../companion/life/store'
+import { getSession } from '../../storage/session-store'
+
+const ASSET_KINDS = ['home', 'furniture', 'footprint', 'culture', 'bookshelf', 'wardrobe'] as const
+type CompanionAssetKind = (typeof ASSET_KINDS)[number]
+
+function textArg(args: Record<string, unknown>, key: string, max: number): string {
+  const value = typeof args[key] === 'string' ? args[key].trim() : ''
+  return value.length <= max ? value : ''
+}
+
+function imageIdsFromSession(session: Awaited<ReturnType<typeof getSession>>, raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return []
+  if (raw.length > 9 || raw.some(id => typeof id !== 'string' || !/^[a-f0-9]{64}$/.test(id))) return null
+  const owned = new Set(session?.messages.filter(message => message.role === 'tool').flatMap(message => message.generatedImages ?? []).map(image => image.id))
+  const ids = [...new Set(raw)] as string[]
+  return ids.every(id => owned.has(id)) ? ids : null
+}
+
+/**
+ * 背景：Chat 需要把已确认的生活片段写入朋友圈，才能让人物的生活事件、互动和 Debug 共享同一事实源。
+ * 设计意图：直接创建已发布事件并复用 Moment 投影器，放弃在工具内拼另一份朋友圈数据。
+ * 关键约束：必须绑定当前人物；图片只能引用本会话已经生成的图片；投影失败会删除整条事件。
+ */
+export const companionPostMomentTool = buildTool({
+  name: 'companion_post_moment',
+  description: '把当前人物刚刚确认发生的生活片段发布到朋友圈；可附上本会话已生成的图片。只记录明确事实，不替人物编造经历。',
+  parameters: {
+    type: 'object',
+    properties: {
+      text: { type: 'string', description: '朋友圈正文，最多 2000 字。' },
+      activity: { type: 'string', description: '这次生活事件的短标题，最多 120 字。' },
+      location: { type: 'string', description: '发生地点，例如千里阳光号甲板；可省略。' },
+      imageIds: { type: 'array', description: '可选：本会话已生成图片的摘要 ID，最多 9 个。' },
+    },
+    required: ['text'],
+  },
+  metadata: { isReadOnly: false, isDestructive: false, isConcurrencySafe: false },
+  inputExamples: [
+    { text: '甲板上的风把航线图吹得哗啦响，伙伴们已经找到下一段方向。', activity: '整理下一段航线', location: '千里阳光号甲板' },
+  ],
+  execute: async (args, context) => {
+    const roleId = context?.roleId?.trim()
+    if (!roleId) return '当前会话没有绑定人物，暂时不能发布朋友圈。'
+    const text = textArg(args, 'text', 2000)
+    if (!text) return '朋友圈正文不能为空，且不能超过 2000 字。'
+    const session = context?.sessionId ? await getSession(context.sessionId) : null
+    const imageIds = imageIdsFromSession(session, args.imageIds)
+    if (imageIds === null) return '图片只能引用本会话已生成的图片，最多 9 张。'
+    const activity = textArg(args, 'activity', 120) || text.slice(0, 80)
+    const location = textArg(args, 'location', 160)
+    const event = await insertEvent({
+      roleId,
+      scheduledAt: Date.now(),
+      status: 'published',
+      type: 'moment',
+      dayScriptId: null,
+      payload: { activity, story: text, ...(location ? { location } : {}), ...(imageIds.length ? { imageIds } : {}) },
+    })
+    try {
+      const moment = await projectMomentFromEvent(event, { preferLlm: false })
+      if (!moment) throw new Error('朋友圈投影未创建')
+      return `已发布朋友圈（动态 ID：${moment.id}）。${imageIds.length ? `已附 ${imageIds.length} 张图片。` : ''}`
+    } catch (error) {
+      await deleteEvent(roleId, event.id)
+      return `朋友圈发布失败，已撤销未完成的记录：${error instanceof Error ? error.message : '投影失败'}`
+    }
+  },
+})
+
+/**
+ * 背景：家居、家具、足迹和文化资料需要从 Chat 进入人物世界，不能只靠页面表单才能存在。
+ * 设计意图：把自然语言请求压成现有 createAsset 契约，由资产层统一做类型、角色和字段校验。
+ * 关键约束：不接受 roleId 参数，始终写当前会话人物；payload 只作为结构化资料交给白名单校验。
+ */
+export const companionCreateAssetTool = buildTool({
+  name: 'companion_create_asset',
+  description: '为当前人物添加一项生活资产，例如家居、家具、足迹、文化资料、书架条目或衣物；资料会进入人物世界。',
+  parameters: {
+    type: 'object',
+    properties: {
+      kind: { type: 'string', description: '资产类型。', enum: [...ASSET_KINDS] },
+      name: { type: 'string', description: '资产名称，1–40 字。' },
+      payload: { type: 'object', description: '可选结构化资料，例如 residence、description、detail、recordType、status。' },
+    },
+    required: ['kind', 'name'],
+  },
+  metadata: { isReadOnly: false, isDestructive: false, isConcurrencySafe: false },
+  inputExamples: [
+    { kind: 'furniture', name: '甲板望远镜架', payload: { description: '固定在千里阳光号甲板边，方便观察远处航线。' } },
+    { kind: 'home', name: '千里阳光号', payload: { recordType: 'residence', residence: '伙伴们共同生活和出发的船上空间。' } },
+  ],
+  execute: async (args, context) => {
+    const roleId = context?.roleId?.trim()
+    if (!roleId) return '当前会话没有绑定人物，暂时不能添加生活资产。'
+    const kind = typeof args.kind === 'string' ? args.kind.trim() : ''
+    if (!ASSET_KINDS.includes(kind as CompanionAssetKind)) return `资产类型无效，可选：${ASSET_KINDS.join('、')}。`
+    const name = textArg(args, 'name', 40)
+    if (!name) return '资产名称不能为空，且不能超过 40 字。'
+    const payload = args.payload === undefined ? undefined : args.payload
+    if (payload !== undefined && (!payload || typeof payload !== 'object' || Array.isArray(payload))) return '资产资料必须是结构化对象。'
+    try {
+      const result = await createAsset({ roleId, kind, name, payload: payload as Record<string, unknown> | undefined })
+      return result.ok ? `已添加${name}到人物世界（资产 ID：${result.asset.id}）。` : `生活资产未保存：${result.error}`
+    } catch (error) {
+      return `生活资产未保存：${error instanceof Error ? error.message : '资料校验失败'}`
+    }
+  },
+})

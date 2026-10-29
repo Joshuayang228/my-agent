@@ -352,7 +352,8 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 | 人物世界口袋（对齐 Alice `/moments`） | 已落地 | 侧栏一入口 + 内页 tab | `WorldHub` |
 | 伴侣状态条（展厅故事格） | 已落地 | Playground UI · 状态条 | `CompanionStatusBar` · Chat 顶栏已撤 |
 | 自动生成朋友圈内容 / 多宇宙并行 | 缺口 | — | wishlist / 明确非本阶段 |
-| 人物世界视觉资产引用 | 已落地 | `image_generate` 可将真实生成结果绑定到当前角色生活资产；Chat 与 WorldDetailsPanel 复用受控读取 / 定位预览；生成入口、媒体备份恢复和正式页面回流已完成。自动生成朋友圈内容仍不在本阶段 | `image-generation-product-integration-v1.md` |
+| 人物世界视觉资产引用 | 已落地 | `image_generate` 可将真实生成结果绑定到当前角色生活资产或已发布朋友圈动态；Chat 与 WorldDetailsPanel 复用受控读取 / 定位预览；生成入口、媒体备份恢复和正式页面回流已完成。自动生成朋友圈内容仍不在本阶段 | `image-generation-product-integration-v1.md` |
+| Chat 人物生活写入工具 | 已落地 | `companion_post_moment` 发布当前人物的朋友圈事件并复用 Moment 投影；`companion_create_asset` 写入家居、家具、足迹、文化资料、书架和衣物；均由当前会话人物绑定与生活层白名单校验 | `electron/main/tools/builtins/companion-life.ts` |
 | 非活跃后台养成 | 缺口 | — | 产品明确不做 |
 
 ### Prompt / 召回组装管线（聊天一轮）
@@ -449,3 +450,4 @@ published event（事件事实）
 - 2026-10-29：路飞 Role Pack 新增千里阳光号伙伴场景视觉参考，作为项目审阅资产与人物世界配图素材，不改变运行时生图输入边界。
 - 2026-10-29：Role Pack loader 仅内嵌文本资产，视觉 PNG 保留为项目文件，避免人物视觉资料影响 Electron 主包体积。
 - 2026-10-29：按用户确认，路飞完整 protected 与 selfAwareness 去除平台身份措辞；回归检查完整正文，权限与事实边界保持不变。
+- 2026-10-30：Chat 新增人物生活写入工具：`companion_post_moment` 复用事件 → 朋友圈投影链，`companion_create_asset` 复用生活资产白名单；生图工具支持 `targetMomentId`，生成结果可绑定已发布动态并沿图片关联链读取。

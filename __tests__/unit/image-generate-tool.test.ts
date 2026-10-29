@@ -9,6 +9,7 @@ import { loadRules } from '../../electron/main/sandbox/permission-engine'
 import type { ToolContext } from '../../src/shared/types'
 import initSqlJs from 'sql.js'
 import { changeWardrobe, createAsset, getAsset } from '../../electron/main/companion/life/assets'
+import { insertEvent, insertMoment, listEventLinks } from '../../electron/main/companion/life/store'
 
 const SQL = await initSqlJs()
 let assetDb: InstanceType<typeof SQL.Database>
@@ -71,6 +72,27 @@ it('路飞绑定基础穿搭生图时把真实衣物名称纳入视觉锚点', a
   expect(request?.prompt).toContain('轻便红色背心')
   expect(request?.prompt).toContain('深蓝短裤')
   expect(request?.prompt).toContain('甲板凉鞋')
+})
+
+it('路飞朋友圈配图在生成成功后绑定已发布动态，图片位置进入事件关联', async () => {
+  context.roleId = 'luffy'
+  const event = await insertEvent({ roleId: 'luffy', scheduledAt: 1, status: 'published', type: 'moment', payload: { activity: '在千里阳光号甲板上和伙伴整理航线' }, dayScriptId: null })
+  const moment = await insertMoment({ roleId: 'luffy', eventId: event.id, publishedAt: 1, text: '甲板上的新方向' })
+  if (!moment) throw new Error('朋友圈动态初始化失败')
+  const result = await run({ ...args, path: 'images/luffy-deck.png', targetMomentId: moment.id })
+  expect(result.isError).not.toBe(true)
+  const imageId = result.generatedImages?.[0]?.id
+  expect(imageId).toMatch(/^[a-f0-9]{64}$/)
+  expect(await listEventLinks('luffy', event.id)).toEqual(expect.arrayContaining([
+    expect.objectContaining({ targetType: 'image', targetId: imageId, relation: 'depicts', metadata: { position: 0 } }),
+  ]))
+})
+
+it('一次生图拒绝同时绑定资产和朋友圈，避免只回滚一侧造成悬挂引用', async () => {
+  const result = await run({ ...args, targetAssetId: 'asset', targetMomentId: 'moment' })
+  expect(result.isError).toBe(true)
+  expect(result.content).toContain('只能绑定一个')
+  expect(state.request).not.toHaveBeenCalled()
 })
 
 it('生成结果解码后真实保存，结构化引用与文件相符，不留下临时文件', async () => {
