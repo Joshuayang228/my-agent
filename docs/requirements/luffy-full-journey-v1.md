@@ -130,3 +130,5 @@ npx vitest run __tests__/unit/live-image-generation.test.ts
 验收补充（2026-10-30）：Chat 朋友圈工具支持经过关系表校验的参与者与关系阶段；路飞关系修复事件会写入 `companion_event_links` 的共同在场证据，并在 Moment / 通讯录 / Debug 中保留阶段和说明。
 
 验收补充（2026-10-30）：补齐 Chat 评论入口 `companion_comment_moment`。工具复用正式 `addMomentCommentForRole` 服务，当前人物归属、用户评论持久化、`moment-reply` 主角回复和失败回退不另建数据链；工具注册、路飞正例和跨入口来源均有回归测试。
+
+验收补充（2026-10-30）：新增 `__tests__/unit/luffy-journey-acceptance.test.ts` 生产验收矩阵，统一核对唯一主角、Role Pack 行为、千里阳光号 / 草帽、四位伙伴关系弧线、基础衣柜、Chat 生活工具、关键 Prompt 注册和 Debug 人物资产目录；矩阵 2 项通过，细节失败路径仍由专项测试负责。

@@ -1,5 +1,7 @@
 # 质量总控
 
+路飞全旅程生产验收矩阵（2026-10-30）：`luffy-journey-acceptance.test.ts` 一次核对唯一主角、Role Pack 行为、千里阳光号 / 草帽、四位伙伴关系弧线、基础衣柜、Chat 生活工具、关键 Prompt 注册项和 Debug 人物资产目录；2 项通过。它是总入口护栏，不替代各功能的失败、持久化与跨角色细测。
+
 Chat 生活互动补充门禁（2026-10-30）：`companion_comment_moment` 覆盖统一内置注册来源、路飞发布后评论正例、用户评论真实落库、无人物绑定拒绝和跨人物动态拒绝；主角回复继续复用 `moment-reply` 的解析 / 回退测试。验证命令：`npx vitest run __tests__/unit/companion-life-tools.test.ts`、`npx tsc --noEmit`、`npm run build`、`npm run docs:validate`。
 
 提示词消费关系门禁：所有核心 / Role Pack Prompt 必须有合法稳定用途；已登记编译配方需在生产或 Eval 中存在实际调用，排除 import、注释、目录构造与同名假路径。负例覆盖未消费配方，正例覆盖真实相对路径、别名、namespace 和完整 Eval 配方的主对话隔离。用途元数据本批次不改变正式 UI，集中展示仍待 Playground 候选及统一回流。
