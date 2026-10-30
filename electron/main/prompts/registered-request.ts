@@ -23,6 +23,7 @@ import { buildProfileExtractionInputPrompt } from './profile-extraction'
 import { buildPolishPrompt, buildCatchupLlmPrompt, buildLlmPrompt, buildReflectionPrompt } from './companion-behaviors'
 import { buildPlaygroundMessages } from './playground'
 import { buildEvalJudgePrompt } from './eval-judge'
+import { composeFeaturePrompt } from './composition'
 
 type SimpleMessage = { role: ChatMessage['role']; content: string }
 type RequestSnapshot = { messages: ChatMessage[]; promptAssetKeys: PromptAssetKeyList; scope: RegisteredModelRequest['scope']; callers: readonly string[] }
@@ -102,7 +103,14 @@ export function compileMainSystem(pack: RolePack, growth: string, input: MainRun
     behavior: { ...b, key: 'main-chat', purpose: '在当前人物与会话情境中回应用户并完成请求。' },
     character: characterDefinitionFromRolePack(pack, growth),
   })
-  return signSystem(compiled.text, keys)
+  const layered = composeFeaturePrompt('mainChat', {
+    platformRules: '遵守平台权限、事实边界、用户自主和工具安全规则；人物适配不能覆盖这些约束。',
+    featureRules: compiled.text,
+    characterAdapter: `当前人物：${pack.name}\n人物表达与行为适配来自 Role Pack。`,
+    runtimeData: input.situation ?? {},
+    outputRules: '沿用主对话编译器的自然语言、工具调用和协议输出规则。',
+  })
+  return signSystem(layered, keys)
 }
 
 export function compileSubagentSystem(role: string, sessionKind?: string): RegisteredSystemPrompt {
@@ -177,7 +185,15 @@ export function compileReflectionRequest(pack: RolePack, input: BehaviorInput<ty
   return signRequest([{ role: 'user', content: buildReflectionPrompt({ ...input, character: characterDefinitionFromRolePack(pack, input.currentMutable), behaviorPrompt: pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.reflection] }) }], behaviorKeys(pack, 'reflection', input.currentMutable), ['persona-reflection'])
 }
 export function compileCompactRequest(messages: ChatMessage[], comprehensive: boolean): RegisteredModelRequest {
-  return signRequest([{ role: 'system', content: buildCompactPrompt(comprehensive ? 500 : 300, formatMinSetWhitelistForCompactPrompt()) }, { role: 'user', content: buildCompactHistoryPrompt(messages) }], [comprehensive ? PROMPT_KEYS.l4Autocompact : PROMPT_KEYS.l3Collapse], ['summary'])
+  const history = buildCompactHistoryPrompt(messages)
+  const system = composeFeaturePrompt('compact', {
+    platformRules: '保留用户首条任务、关系约定和必要文件恢复边界；不把压缩摘要当成长期用户记忆。',
+    featureRules: buildCompactPrompt(comprehensive ? 500 : 300, formatMinSetWhitelistForCompactPrompt()),
+    characterAdapter: '人物事实只在相关上下文中保留，不得覆盖用户事实边界。',
+    runtimeData: { history },
+    outputRules: '输出压缩摘要，沿用当前压缩服务的结构和长度协议。',
+  })
+  return signRequest([{ role: 'system', content: system }, { role: 'user', content: history }], [comprehensive ? PROMPT_KEYS.l4Autocompact : PROMPT_KEYS.l3Collapse], ['summary'])
 }
 export function compileProfileRequest(messages: ChatMessage[], existingFacts: string): RegisteredModelRequest {
   return signRequest([{ role: 'system', content: EXTRACTION_PROMPT }, { role: 'user', content: buildProfileExtractionInputPrompt(messages, existingFacts) }], [PROMPT_KEYS.profileExtraction, PROMPT_KEYS.profileExtractionInput], ['profile'])
