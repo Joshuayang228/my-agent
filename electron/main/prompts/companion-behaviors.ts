@@ -8,6 +8,17 @@ import { characterDefinitionFromRolePack, compileCompanionBehaviorPrompt } from 
 import { PROMPT_BEHAVIOR_IDS } from './keys'
 import { MOMENT_TEXT_MAX, SUMMARY_MAX_CHARS, SLOT_COUNT_MIN, SLOT_COUNT_MAX, TEXT_MAX } from './behavior-limits'
 import { MUTABLE_MAX_CHARS } from '../companion/growth/mutable-validate'
+import { composeFeaturePrompt } from './composition'
+
+function layeredBehaviorFacts(key: 'momentPolish' | 'dayScript' | 'catchup' | 'reflection', facts: string, characterAdapter: string, outputRules: string): string {
+  return composeFeaturePrompt(key, {
+    platformRules: '只使用已确认事实；人物适配不能改变平台安全、生命周期和输出校验边界。',
+    featureRules: '运行该伙伴功能，保留事实约束并遵守结构化输出协议。',
+    characterAdapter,
+    runtimeData: { facts },
+    outputRules,
+  })
+}
 
 const templateCharacter = {
   id: '{{roleId}}', name: '{{roleName}}', description: '{{description}}',
@@ -30,7 +41,7 @@ export function buildPolishPrompt(input: {
   return compileCompanionBehaviorPrompt({
     character: input.character ?? { id: 'behavior-role', name: input.roleName, description: '', protected: '', growth: '', voice: input.voiceHint },
     behavior: { key: PROMPT_BEHAVIOR_IDS.momentPolish, purpose: '一句短动态', characterSupplement: input.behaviorPrompt },
-    facts: `角色：${input.roleName}
+    facts: layeredBehaviorFacts('momentPolish', `角色：${input.roleName}
 事实（不得增删行程）：
 - 活动：${input.activity}
 - 心情：${input.mood || '（无）'}
@@ -41,6 +52,9 @@ export function buildPolishPrompt(input: {
 
 人设语气参考（勿写成对白）：
 ${input.voiceHint || '（无）'}`,
+      `人物语气：${input.voiceHint || '（无）'}\n功能适配：${input.behaviorPrompt || '（无）'}`,
+      `只输出一句中文动态，不要 JSON；总长不超过 ${MOMENT_TEXT_MAX} 字。`,
+    ),
     output: { format: `硬性要求：
 1. 只输出一句中文动态，不要 JSON、不要引号包裹、不要话题标签堆砌
 2. 总长不超过 ${MOMENT_TEXT_MAX} 字；必须能看出上述活动或地点
@@ -64,7 +78,7 @@ export function buildCatchupLlmPrompt(input: {
   return compileCompanionBehaviorPrompt({
     character: input.character ?? { id: input.roleId, name: input.roleName, description: '', protected: '', growth: '', voice: input.voiceHint },
     behavior: { key: PROMPT_BEHAVIOR_IDS.catchup, purpose: '期间生活概况', characterSupplement: input.behaviorPrompt },
-    facts: `事实锚点（不得编造具体行程细节）：
+    facts: layeredBehaviorFacts('catchup', `事实锚点（不得编造具体行程细节）：
 - 暂停起：${input.from}
 - 概况带过：${input.from}～${input.gapEnd}（约 ${input.gapDays} 个日历日，未逐日生成）
 - 近窗已细补：${input.gapEnd}～${input.until}
@@ -72,6 +86,9 @@ export function buildCatchupLlmPrompt(input: {
 
 人设语气参考（勿写成对白）：
 ${input.voiceHint || '（无）'}`,
+      `人物语气：${input.voiceHint || '（无）'}\n功能适配：${input.behaviorPrompt || '（无）'}`,
+      `只输出一段中文概况；总长不超过 ${SUMMARY_MAX_CHARS} 字。`,
+    ),
     output: { format: `硬性要求：
 1. 只输出一段中文概况（可含一句氛围），不要 JSON、不要列表、不要标题
 2. 总长不超过 ${SUMMARY_MAX_CHARS} 字；必须体现「中间一段以概况带过、近几天已接上」
@@ -92,12 +109,15 @@ export function buildLlmPrompt(input: {
   return compileCompanionBehaviorPrompt({
     character: input.character ?? { id: input.roleId, name: input.roleName, description: '', protected: '', growth: '', voice: input.voiceHint },
     behavior: { key: PROMPT_BEHAVIOR_IDS.dayScript, purpose: '一日生活剧本', characterSupplement: input.behaviorPrompt },
-    facts: `日期：${input.date}
+    facts: layeredBehaviorFacts('dayScript', `日期：${input.date}
 人设语气参考（勿写成对白，只影响活动气质）：
 ${input.voiceHint || '（无）'}
 
 人物与默认世界参考（只用于保持生活连续性，不要逐条复述）：
 ${input.characterHint || '（无）'}`,
+      `人物语气：${input.voiceHint || '（无）'}\n功能适配：${input.behaviorPrompt || '（无）'}`,
+      `只输出符合 schema 的 JSON 日程；slots ${SLOT_COUNT_MIN}～${SLOT_COUNT_MAX} 条。`,
+    ),
     output: { format: `要求：
 1. 日常可信、有分味，不要夸张奇幻；地点用短词（家/工位/路上/咖啡馆/附近街道等）
 2. slots ${SLOT_COUNT_MIN}～${SLOT_COUNT_MAX} 条，按时间升序；hour 0-23，minute 0 或 30
@@ -130,7 +150,7 @@ export function buildReflectionPrompt(input: {
   return compileCompanionBehaviorPrompt({
     character: input.character ?? { id: 'behavior-role', name: input.roleName, description: '', protected: input.protectedSummary, growth: input.currentMutable },
     behavior: { key: PROMPT_BEHAVIOR_IDS.reflection, purpose: '审慎调整表达默认值', characterSupplement: input.behaviorPrompt },
-    facts: `## PROTECTED（不可改写，仅作防漂移锚点）
+    facts: layeredBehaviorFacts('reflection', `## PROTECTED（不可改写，仅作防漂移锚点）
 ${input.protectedSummary}
 
 ## 当前 MUTABLE（可微调的行为默认值）
@@ -144,6 +164,9 @@ ${feedback}
 
 ## 近况生活信号（薄切片；仅供推断相处节奏，勿把行程事实写入 MUTABLE）
 ${life}`,
+      `稳定身份和当前成长边界：\n${input.protectedSummary}\n功能适配：${input.behaviorPrompt || '（无）'}`,
+      `只输出 JSON：{"newMutable": string|null, "summary": "一句话说明"}。`,
+    ),
     output: { format: `## 任务
 判断是否需要微调 MUTABLE（语气、节奏、默认表达习惯等）。
 

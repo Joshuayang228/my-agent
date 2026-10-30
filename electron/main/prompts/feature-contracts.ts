@@ -69,6 +69,31 @@ export const PROMPT_FEATURE_CONTRACTS = Object.freeze({
     fallback: '缺少用户原话、主体不明或校验失败时不写入画像。',
     consumers: ['electron/main/agent/profile-extractor.ts#maybeExtractProfile'],
   }),
+  momentPolish: contract({
+    key: 'feature:moment-polish', name: '朋友圈动态润色', domain: 'life',
+    purpose: '把已确认生活事件整理成一句动态，不增加新的经历。',
+    staticInputs: ['事件事实边界', '动态长度与格式协议'], runtimeInputs: ['活动', '心情', '地点', '衣物 / 在读资料'],
+    overrideBoundary: ['人物叙述口吻', '情绪表达', '对伙伴的关注方式'], output: '一句中文动态，不超过功能长度限制。',
+    fallback: '润色失败时保留规则底稿，不发布模型编造内容。', consumers: ['electron/main/companion/life/moment-polish.ts'],
+  }),
+  dayScript: contract({
+    key: 'feature:day-script', name: '一日生活剧本', domain: 'life', purpose: '生成结构化、可执行且与世界状态一致的一日活动。',
+    staticInputs: ['日程结构协议', '生命周期边界'], runtimeInputs: ['日期', '人物表达', '默认世界', '衣物与资产'],
+    overrideBoundary: ['活动气质', '节奏偏好', '人物兴趣'], output: '符合 schema 的 JSON 日程，时间升序。',
+    fallback: '模型失败或结构不合约时使用确定性日程，不写入未验证资产。', consumers: ['electron/main/companion/life/script-generator.ts'],
+  }),
+  catchup: contract({
+    key: 'feature:catchup', name: '生活暂停补叙', domain: 'life', purpose: '对暂停期间做有边界的生活概况补叙。',
+    staticInputs: ['暂停生命周期规则', '概况长度协议'], runtimeInputs: ['暂停时间', '近窗时间', '居所', '人物表达'],
+    overrideBoundary: ['概况语气', '生活节奏表达'], output: '一段中文概况，不伪造逐日行程或精确对话。',
+    fallback: '模型失败时使用规则概况，暂停期间不补造具体事件。', consumers: ['electron/main/companion/life/catchup.ts'],
+  }),
+  reflection: contract({
+    key: 'feature:reflection', name: '人物成长反思', domain: 'memory', purpose: '仅微调可变行为默认值，不改写稳定身份。',
+    staticInputs: ['稳定身份保护', 'MUTABLE 长度与格式协议'], runtimeInputs: ['用户消息', '反馈记忆', '生活薄信号', '当前 MUTABLE'],
+    overrideBoundary: ['语气节奏', '默认表达习惯', '小幅行动倾向'], output: 'JSON {"newMutable": string|null, "summary": string}。',
+    fallback: '证据不足或模型失败时不修改 MUTABLE。', consumers: ['electron/main/companion/growth/reflection-service.ts'],
+  }),
 } as const)
 
 export type PromptFeatureContractKey = keyof typeof PROMPT_FEATURE_CONTRACTS
