@@ -847,3 +847,4 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 - 2026-10-30：关系事件门禁新增路飞修复正例，验证参与者必须来自关系表、阶段枚举受限、事件关联带阶段 / 说明且不越界写入用户记忆。
 - 2026-10-30：视觉资产门禁新增路飞家居参考路径存在性回归；构建验证 PNG 不进入 Role Pack 文本 loader bundle，静态参考不替代外部成图质量。
 - 2026-10-30：可选外部模型 Electron 门禁新增路飞专属断言：有 `TEST_LLM_API_KEY` 时验证正式 Chat 保持路飞身份并保留千里阳光号 / 伙伴锚点；无凭据时跳过，不把本地 fixture 当真实模型证据。
+- 2026-10-30：新增可选 `live-image-generation.test.ts`：配置 `TEST_IMAGE_API_KEY / TEST_IMAGE_BASE_URL / TEST_IMAGE_MODEL` 时走一次真实 Images 请求，验证路飞与千里阳光号家居锚点进入请求且返回图像可解码；无配置时跳过，人工审美仍需单独审阅。
