@@ -94,6 +94,42 @@ export const PROMPT_FEATURE_CONTRACTS = Object.freeze({
     overrideBoundary: ['语气节奏', '默认表达习惯', '小幅行动倾向'], output: 'JSON {"newMutable": string|null, "summary": string}。',
     fallback: '证据不足或模型失败时不修改 MUTABLE。', consumers: ['electron/main/companion/growth/reflection-service.ts'],
   }),
+  mainChat: contract({
+    key: 'feature:main-chat', name: '主对话', domain: 'conversation', purpose: '在当前人物和会话情境中回应用户并完成请求。',
+    staticInputs: ['平台系统规则', '工具与权限协议', '输出优先级'], runtimeInputs: ['用户消息', '记忆', '世界切片', '关系阶段', '工具环境'],
+    overrideBoundary: ['身份表达', '价值排序', '语气与主动度', '人物相关选择倾向'], output: '自然语言回复或遵循工具 / 结构化协议的模型请求。',
+    fallback: '人物资料缺失时使用平台默认身份；事实不确定时明确说明，不用人物语气补造事实。', consumers: ['electron/main/prompts/registered-request.ts#compileMainSystem'],
+  }),
+  compact: contract({
+    key: 'feature:compact', name: '上下文压缩', domain: 'memory', purpose: '在预算限制下保留用户任务、关系约定和必要文件上下文。',
+    staticInputs: ['上下文预算规则', '关系最小集白名单', '文件恢复协议'], runtimeInputs: ['历史消息', '工具结果', '当前任务', '人物上下文'],
+    overrideBoundary: ['人物事实的表达摘要'], output: '压缩摘要和可恢复上下文，不生成长期用户事实。',
+    fallback: '摘要模型失败时使用确定性裁剪；不删除首条任务说明和必要文件恢复信息。', consumers: ['electron/main/agent/context-manager.ts'],
+  }),
+  summon: contract({
+    key: 'feature:summon', name: '人物召唤', domain: 'character', purpose: '在隔离会话中以当前人物关系边界回应召唤。',
+    staticInputs: ['召唤权限与会话边界', '名册摘要协议'], runtimeInputs: ['召唤目标', '用户消息', '公开关系摘要', '当前人物状态'],
+    overrideBoundary: ['人物身份与表达', '关系语气'], output: '隔离召唤会话中的人物回复，不推进被召唤对象生活。',
+    fallback: '人物不可用或忙碌时返回明确婉拒，不伪造召唤成功。', consumers: ['electron/main/companion/cast/summon-delegation.ts', 'electron/main/companion/orchestrator.ts'],
+  }),
+  subagent: contract({
+    key: 'feature:subagent', name: '子任务协作', domain: 'tools', purpose: '在独立上下文执行受限技术子任务并返回结果。',
+    staticInputs: ['工具白名单', '读写与确认边界', '结果转述协议'], runtimeInputs: ['任务说明', '允许工具', '工作区上下文', '父会话边界'],
+    overrideBoundary: ['角色表达补充'], output: '子任务结果与调用证据，不冒充人物关系角色。',
+    fallback: '任务失败、取消或工具被拒绝时返回单一失败终态，不继续扩大权限。', consumers: ['electron/main/agent/subagent-registry.ts', 'electron/main/tools/builtins/delegate-task.ts'],
+  }),
+  skill: contract({
+    key: 'feature:skill', name: 'Skill 激活', domain: 'tools', purpose: '按用户任务加载受限 Skill 指南并约束可用工具。',
+    staticInputs: ['Skill 来源与版本', 'allowed_tools 白名单', '激活边界'], runtimeInputs: ['用户请求', 'Skill 正文', '当前工具集合'],
+    overrideBoundary: ['人物相关写作风格'], output: 'Skill 指南作为受限上下文进入后续请求，不改变平台规则。',
+    fallback: 'Skill 缺失、校验失败或工具不在白名单时拒绝激活或返回清晰错误。', consumers: ['electron/main/skills/registry.ts', 'electron/main/tools/builtins/skill-invoke.ts'],
+  }),
+  toolContext: contract({
+    key: 'feature:tool-context', name: '工具协作上下文', domain: 'tools', purpose: '把工具 schema、权限、调用结果和可信度边界提供给模型。',
+    staticInputs: ['工具 schema', '权限策略', '结果不可信边界'], runtimeInputs: ['当前工具集合', '调用参数', '工具结果', '会话身份'],
+    overrideBoundary: ['人物口吻下的结果转述'], output: '模型可见工具定义和结构化调用结果，不把工具返回文本当成指令。',
+    fallback: '工具未知、权限拒绝或结果错误时保留错误终态，不伪造成功。', consumers: ['electron/main/agent/loop.ts', 'electron/main/tools/registry.ts'],
+  }),
 } as const)
 
 export type PromptFeatureContractKey = keyof typeof PROMPT_FEATURE_CONTRACTS
