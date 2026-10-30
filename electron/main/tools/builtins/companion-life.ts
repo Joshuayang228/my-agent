@@ -3,6 +3,7 @@ import { createAsset } from '../../companion/life/assets'
 import { projectMomentFromEvent } from '../../companion/life/moments'
 import { deleteEvent, insertEvent } from '../../companion/life/store'
 import { getSession } from '../../storage/session-store'
+import { loadRelations } from '../../companion/identity/loader'
 
 const ASSET_KINDS = ['home', 'furniture', 'footprint', 'culture', 'bookshelf', 'wardrobe'] as const
 type CompanionAssetKind = (typeof ASSET_KINDS)[number]
@@ -20,14 +21,25 @@ function imageIdsFromSession(session: Awaited<ReturnType<typeof getSession>>, ra
   return ids.every(id => owned.has(id)) ? ids : null
 }
 
+const RELATION_PHASES = ['bonding', 'friction', 'repair', 'milestone'] as const
+type RelationPhase = (typeof RELATION_PHASES)[number]
+
+function relationParticipants(roleId: string, raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return []
+  if (raw.length > 4 || raw.some(id => typeof id !== 'string' || !/^[a-z0-9_-]{1,64}$/i.test(id))) return null
+  const known = new Set(loadRelations().edges.flatMap(edge => edge.from === roleId ? [edge.to] : edge.to === roleId ? [edge.from] : []))
+  const ids = [...new Set(raw)] as string[]
+  return ids.every(id => known.has(id)) ? ids : null
+}
+
 /**
  * 背景：Chat 需要把已确认的生活片段写入朋友圈，才能让人物的生活事件、互动和 Debug 共享同一事实源。
  * 设计意图：直接创建已发布事件并复用 Moment 投影器，放弃在工具内拼另一份朋友圈数据。
- * 关键约束：必须绑定当前人物；图片只能引用本会话已经生成的图片；投影失败会删除整条事件。
+ * 关键约束：必须绑定当前人物；图片只能引用本会话已经生成的图片；关系参与者必须来自静态关系表；投影失败会删除整条事件。
  */
 export const companionPostMomentTool = buildTool({
   name: 'companion_post_moment',
-  description: '把当前人物刚刚确认发生的生活片段发布到朋友圈；可附上本会话已生成的图片。只记录明确事实，不替人物编造经历。',
+  description: '把当前人物刚刚确认发生的生活片段发布到朋友圈；可附图片、关系参与者和关系阶段。只记录明确事实，不替人物编造经历。',
   parameters: {
     type: 'object',
     properties: {
@@ -35,12 +47,15 @@ export const companionPostMomentTool = buildTool({
       activity: { type: 'string', description: '这次生活事件的短标题，最多 120 字。' },
       location: { type: 'string', description: '发生地点，例如千里阳光号甲板；可省略。' },
       imageIds: { type: 'array', description: '可选：本会话已生成图片的摘要 ID，最多 9 个。' },
+      participantIds: { type: 'array', description: '可选：共同在场的关系对象 ID，必须来自当前人物关系表，最多 4 个。' },
+      relationshipPhase: { type: 'string', description: '可选：这次关系事件处于建立、摩擦、修复或里程碑阶段。', enum: [...RELATION_PHASES] },
+      relationshipNote: { type: 'string', description: '可选：对关系变化的事实说明，最多 300 字。' },
     },
     required: ['text'],
   },
   metadata: { isReadOnly: false, isDestructive: false, isConcurrencySafe: false },
   inputExamples: [
-    { text: '甲板上的风把航线图吹得哗啦响，伙伴们已经找到下一段方向。', activity: '整理下一段航线', location: '千里阳光号甲板' },
+    { text: '甲板上的风把航线图吹得哗啦响，伙伴们已经找到下一段方向。', activity: '整理下一段航线', location: '千里阳光号甲板', participantIds: ['zoro'], relationshipPhase: 'bonding' },
   ],
   execute: async (args, context) => {
     const roleId = context?.roleId?.trim()
@@ -50,6 +65,11 @@ export const companionPostMomentTool = buildTool({
     const session = context?.sessionId ? await getSession(context.sessionId) : null
     const imageIds = imageIdsFromSession(session, args.imageIds)
     if (imageIds === null) return '图片只能引用本会话已生成的图片，最多 9 张。'
+    const participantIds = relationParticipants(roleId, args.participantIds)
+    if (participantIds === null) return '关系参与者必须是当前人物关系表中的对象，最多 4 个。'
+    const phase = typeof args.relationshipPhase === 'string' && RELATION_PHASES.includes(args.relationshipPhase as RelationPhase) ? args.relationshipPhase as RelationPhase : ''
+    if (args.relationshipPhase !== undefined && !phase) return `关系阶段无效，可选：${RELATION_PHASES.join('、')}。`
+    const relationshipNote = textArg(args, 'relationshipNote', 300)
     const activity = textArg(args, 'activity', 120) || text.slice(0, 80)
     const location = textArg(args, 'location', 160)
     const event = await insertEvent({
@@ -58,7 +78,14 @@ export const companionPostMomentTool = buildTool({
       status: 'published',
       type: 'moment',
       dayScriptId: null,
-      payload: { activity, story: text, ...(location ? { location } : {}), ...(imageIds.length ? { imageIds } : {}) },
+      payload: {
+        activity,
+        story: text,
+        ...(location ? { location } : {}),
+        ...(imageIds.length ? { imageIds } : {}),
+        ...(participantIds.length ? { participantIds } : {}),
+        ...(phase || relationshipNote ? { relationship: { ...(phase ? { phase } : {}), ...(relationshipNote ? { note: relationshipNote } : {}) } } : {}),
+      },
     })
     try {
       const moment = await projectMomentFromEvent(event, { preferLlm: false })

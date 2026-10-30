@@ -92,6 +92,6 @@ describe('伙伴生产资产目录', () => {
       contentKind: 'data',
       dependencies: ['companion:default:luffy:manifest'],
     })
-    expect(asset?.content).toContain('修复')
+    expect(asset?.content).toContain('先听完提醒')
   })
 })

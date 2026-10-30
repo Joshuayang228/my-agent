@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
 import { companionCreateAssetTool, companionPostMomentTool } from '../../electron/main/tools/builtins/companion-life'
 import { ToolRegistry } from '../../electron/main/tools/registry'
-import { listMoments } from '../../electron/main/companion/life/store'
+import { listEventLinks, listMoments } from '../../electron/main/companion/life/store'
 import { listAssets } from '../../electron/main/companion/life/assets'
 import { builtinTools, getBuiltinToolSource } from '../../electron/main/tools/builtins'
 
@@ -33,6 +33,18 @@ it('Chat 发布路飞朋友圈后走真实事件与动态投影', async () => {
   expect(result[0].content).toContain('已发布朋友圈')
   expect(await listMoments('luffy')).toHaveLength(1)
   expect((await listMoments('luffy'))[0].meta.location).toBe('千里阳光号甲板')
+})
+
+it('Chat 记录路飞关系修复事件时写入已验证参与者与关系阶段', async () => {
+  const result = await registry().executeAll([{ id: 'repair', name: 'companion_post_moment', arguments: JSON.stringify({
+    text: '我先听完索隆的提醒，再一起决定下一步。', participantIds: ['zoro'], relationshipPhase: 'repair', relationshipNote: '把提醒听完后重新确认出发方式。',
+  }) }], { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' })
+  expect(result[0].content).toContain('已发布朋友圈')
+  const moment = (await listMoments('luffy'))[0]
+  const links = await listEventLinks('luffy', moment.eventId)
+  expect(links).toEqual(expect.arrayContaining([
+    expect.objectContaining({ targetType: 'cast', targetId: 'zoro', relation: 'coframe', metadata: expect.objectContaining({ relationshipPhase: 'repair', relationshipNote: expect.stringContaining('提醒听完') }) }),
+  ]))
 })
 
 it('Chat 可为路飞创建家居资料，并保留角色隔离', async () => {

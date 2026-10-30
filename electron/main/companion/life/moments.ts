@@ -124,6 +124,24 @@ export async function projectMomentFromEvent(
       metadata: { name: interaction.castName },
     })
   }
+  const participantIds = Array.isArray(event.payload.participantIds)
+    ? event.payload.participantIds.filter((id): id is string => typeof id === 'string' && id.trim()).slice(0, 4)
+    : []
+  const relationship = event.payload.relationship && typeof event.payload.relationship === 'object' && !Array.isArray(event.payload.relationship)
+    ? event.payload.relationship as Record<string, unknown>
+    : undefined
+  for (const participantId of [...new Set(participantIds)]) {
+    let castName = participantId
+    try { castName = loadRolePack(participantId, opts?.universeId ?? 'default').name } catch { /* 关系表已在工具入口校验；缺失 NPC 只保留 ID 证据 */ }
+    links.push({
+      eventId: event.id,
+      roleId: event.roleId,
+      targetType: 'cast',
+      targetId: participantId,
+      relation: 'coframe',
+      metadata: { name: castName, ...(typeof relationship?.phase === 'string' ? { relationshipPhase: relationship.phase } : {}), ...(typeof relationship?.note === 'string' ? { relationshipNote: relationship.note } : {}) },
+    })
+  }
 
   const moment = await store.insertMoment({
     roleId: event.roleId,
@@ -141,6 +159,8 @@ export async function projectMomentFromEvent(
       book: bookName,
       textSource: source,
       ...(interactions.length ? { interactions } : {}),
+      ...(participantIds.length ? { participantIds } : {}),
+      ...(relationship ? { relationship } : {}),
     },
   })
   await store.replaceEventLinks(event.roleId, event.id, links)

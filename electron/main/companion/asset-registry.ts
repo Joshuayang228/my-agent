@@ -93,7 +93,7 @@ function buildRelationAssets(universeId: string, roleId: string, rolePack: RoleP
     purpose: `角色${rolePack.name}的静态关系方向、摩擦与修复信号`,
     role: `role-pack:${roleId}`,
     description: rolePack.description,
-    source: sourceForRole(roleId, 'relations.json', universeId),
+    source: `role-pack://${universeId}/relations.json`,
     version: `universe-${universeVersion}`,
     assetType: 'companion-life',
     contentKind: 'data',
