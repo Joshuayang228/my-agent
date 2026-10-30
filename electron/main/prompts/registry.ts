@@ -149,6 +149,15 @@ function dynamicAsset(input: PromptAssetInput): PromptAsset & { content?: string
 }
 
 const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
+  staticAsset({
+    id: PROMPT_KEYS.compositionEngine,
+    domain: 'platform', name: 'Prompt 分层组合器', category: 'system', role: 'prompt-composition',
+    purpose: '按平台约束、功能协议、人物适配和运行时资料的固定顺序组合请求',
+    desc: '组合器只负责结构与边界，不复制功能正文或人物事实。',
+    sourcePath: 'electron/main/prompts/composition.ts#composeFeaturePrompt',
+    definitions: ['electron/main/prompts/composition.ts#composeFeaturePrompt'],
+    content: '平台约束 → 功能协议 → 人物适配 → 运行时资料 → 输出协议。',
+  }),
   ...Object.values(PROMPT_FEATURE_CONTRACTS).map((item) => dynamicAsset({
     id: item.key as PromptAssetKey,
     domain: item.domain,
