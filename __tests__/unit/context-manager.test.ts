@@ -105,6 +105,22 @@ describe('compressContext', () => {
     expect(summary).toContain('明天一起把最重要的事情做完')
     expect(summary).not.toContain('千里阳光号是用户事实')
   })
+
+  it('路飞 120 轮会话压缩仍保留多条用户约定与人物事实边界', async () => {
+    const system = msg('system', '你是路飞；千里阳光号是人物世界事实。')
+    const firstAssistant = msg('assistant', '好，我们一起慢慢来。')
+    const early = msg('user', '我们约好：这周先把最重要的事情做完，再处理次要事项。')
+    const earlyAck = msg('assistant', '记住了，先做最重要的事情。')
+    const middle = msg('user', '如果我说累了，记得帮我把下一步拆小，别急着往前冲。')
+    const middleAck = msg('assistant', '好，累了就先拆小一步。')
+    const filler = Array.from({ length: 120 }, (_, i) => msg(i % 2 === 0 ? 'user' : 'assistant', `第 ${i} 轮在千里阳光号上的长会话填充 `.repeat(90)))
+    const result = await compressContext([system, firstAssistant, early, earlyAck, middle, middleAck, ...filler, msg('user', '继续')], { maxTokens: 2200 })
+    const summary = result.find(item => item.compactMetadata)?.content ?? result.find(item => item.content.includes('[上下文已压缩'))?.content ?? ''
+    expect(summary).toContain('关系最小集')
+    expect(summary).toContain('这周先把最重要的事情做完')
+    expect(summary).toContain('把下一步拆小')
+    expect(summary).not.toContain('千里阳光号是用户事实')
+  })
 })
 
 describe('B3: Compact boundary marker', () => {
