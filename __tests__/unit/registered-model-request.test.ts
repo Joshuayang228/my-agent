@@ -98,7 +98,7 @@ describe('注册编译请求的模型边界', () => {
     expect(request.messages[0].content).toContain(DEFAULT_SYSTEM_PROMPT)
     expect(request.messages[0].content).not.toContain('企图替换稳定正文')
     expect(request.messages[1].content).toContain('[当前时间: 09:30]')
-    expect(request.promptAssetKeys).toEqual([PROMPT_KEYS.loopDefault, PROMPT_KEYS.permissionDenial, PROMPT_KEYS.loopOutputRecovery, PROMPT_KEYS.loopTimeContext])
+    expect(request.promptAssetKeys).toEqual([PROMPT_KEYS.loopDefault, PROMPT_KEYS.toolResultSafety, PROMPT_KEYS.permissionDenial, PROMPT_KEYS.loopOutputRecovery, PROMPT_KEYS.loopTimeContext])
   })
 
   it('主对话不接受额外行为正文插槽，诊断配方不接受未知种类', () => {

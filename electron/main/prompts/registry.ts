@@ -41,6 +41,7 @@ import { COMPANION_BEHAVIOR_TEMPLATES } from './companion-behaviors'
 import { buildWorkspaceContextPrompt, buildSummonContextPrompt } from './runtime-context'
 import { buildProfileExtractionInputPrompt } from './profile-extraction'
 import { buildSubAgentPrompt, buildDeniedToolsPromptSuffix, OUTPUT_RECOVERY_PROMPT, buildTimeContextPrompt } from './agent-behaviors'
+import { TOOL_RESULT_INJECTION_WARNING } from '../agent/tool-result-safety'
 import { buildCompactPrompt, formatMinSetWhitelistForCompactPrompt, buildFileRestorePrompt, buildCompactSummaryPrompt, buildCompactHistoryPrompt } from './compact'
 import { MAIN_CHAT_TEMPLATE, MAIN_CHAT_TEMPLATE_SLOTS, COMPANION_COMPILER_TEMPLATE } from './compiler'
 import { PROMPT_KEYS, rolePromptAssetKey, type RolePromptSuffix } from './keys'
@@ -696,6 +697,18 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     sourcePath: 'electron/main/prompts/agent-behaviors.ts#buildDeniedToolsPromptSuffix',
     preview: '不要重试同一动作；换个方式或询问用户如何继续。',
     slots: [{ name: 'deniedTool', source: 'permission engine', lifecycle: '每次拒绝' }],
+  }),
+  staticAsset({
+    id: PROMPT_KEYS.toolResultSafety,
+    domain: 'tools',
+    definitions: ['electron/main/agent/tool-result-safety.ts#prepareToolResultForModel', 'electron/main/agent/loop.ts#agentLoop'],
+    name: '工具结果安全锚点',
+    category: 'system',
+    purpose: '识别工具结果中的提示词注入并把结果降级为不受信任数据。',
+    role: 'agent-loop',
+    desc: '工具、网页、文件、RAG 和 MCP 返回内容进入模型前的安全提示。',
+    sourcePath: 'electron/main/agent/tool-result-safety.ts',
+    content: TOOL_RESULT_INJECTION_WARNING,
   }),
 ]
 

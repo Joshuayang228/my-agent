@@ -39,6 +39,16 @@ export const PROMPT_FEATURE_CONTRACTS = Object.freeze({
     fallback: '缺输入、模型失败或解析不合约时保留用户评论，不写入主角回复。',
     consumers: ['electron/main/companion/life/moments.ts#addMomentCommentForRole'],
   }),
+  momentComment: contract({
+    key: 'feature:moment-comment', name: '朋友圈动态评论', domain: 'social',
+    purpose: '根据已发布动态和公开关系生成指定评论者的自然短评论。',
+    staticInputs: ['公开关系边界', '评论长度与身份协议'],
+    runtimeInputs: ['动态正文', '评论者姓名', '评论者公开简介'],
+    overrideBoundary: ['评论语气', '回应角度', '关系亲近度表达'],
+    output: 'JSON 对象 {"comment":"2 到 80 字"}，不得附加旁白或其他字段。',
+    fallback: '缺输入、模型失败或解析不合约时不写入评论，保留已发布动态。',
+    consumers: ['electron/main/companion/life/moments.ts#addMomentCommentForRole'],
+  }),
   proactiveGreeting: contract({
     key: 'feature:proactive-greeting', name: '主动问候', domain: 'proactive',
     purpose: '根据已发布动态生成轻量应用内问候。',

@@ -144,6 +144,7 @@ export function compileAgentRequest(input: {
   if (!base) throw new Error('System Prompt 必须由已注册的编译入口生成')
   const messages = structuredClone(input.messages)
   const keys: [PromptAssetKey, ...PromptAssetKey[]] = [base.promptAssetKeys[0], ...base.promptAssetKeys.slice(1)]
+  keys.push(PROMPT_KEYS.toolResultSafety)
   if (messages[0]?.id !== 'system' || messages[0]?.role !== 'system') throw new Error('Agent 请求缺少主 System Prompt')
   messages[0].content = base.text + buildDeniedToolsPromptSuffix(input.deniedTools, input.deniedCommands)
   if (input.deniedTools.length || input.deniedCommands.length) keys.push(PROMPT_KEYS.permissionDenial)
