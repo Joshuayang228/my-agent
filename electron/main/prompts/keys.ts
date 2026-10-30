@@ -13,6 +13,10 @@ function promptKey<T extends string>(value: T): T & PromptAssetKey {
 }
 
 export const PROMPT_KEYS = {
+  featureMomentReply: promptKey('feature:moment-reply'),
+  featureProactiveGreeting: promptKey('feature:proactive-greeting'),
+  featureImageGeneration: promptKey('feature:image-generation'),
+  featureProfileExtraction: promptKey('feature:profile-extraction'),
   imageDraft: promptKey('image-request-draft'),
   worldAssetImageDraft: promptKey('world-asset-image-request-draft'),
   imageGeneration: promptKey('image-generation'),

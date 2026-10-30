@@ -47,6 +47,7 @@ import { PROMPT_KEYS, rolePromptAssetKey, type RolePromptSuffix } from './keys'
 import { CONNECTION_TEST_MESSAGES } from '../../../src/shared/llm-connection-test'
 import { getRoleSourceAssetCatalog } from '../companion/identity/source-assets'
 import { listAvailableRoleIds, tryReadRoleText } from '../companion/identity/loader'
+import { PROMPT_FEATURE_CONTRACTS } from './feature-contracts'
 
 const PROMPT_LOCALE = 'zh-CN'
 const DEFAULT_PROMPT_VERSION = '1.0.0'
@@ -148,6 +149,19 @@ function dynamicAsset(input: PromptAssetInput): PromptAsset & { content?: string
 }
 
 const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
+  ...Object.values(PROMPT_FEATURE_CONTRACTS).map((item) => dynamicAsset({
+    id: item.key as PromptAssetKey,
+    domain: item.domain,
+    name: `功能合同 · ${item.name}`,
+    category: 'system',
+    role: 'feature-contract',
+    purpose: item.purpose,
+    desc: `通用功能协议：${item.output} 回退：${item.fallback}`,
+    sourcePath: 'electron/main/prompts/feature-contracts.ts#PROMPT_FEATURE_CONTRACTS',
+    definitions: ['electron/main/prompts/feature-contracts.ts#PROMPT_FEATURE_CONTRACTS'],
+    template: `功能目的：${item.purpose}\n输出：${item.output}\n回退：${item.fallback}`,
+    slots: [...item.staticInputs, ...item.runtimeInputs].map(name => ({ name, source: '功能合同输入', lifecycle: '功能调用时' })),
+  })),
   dynamicAsset({
     id: PROMPT_KEYS.momentComment,
     domain: 'social', name: '朋友圈角色评论', category: 'companion', role: 'companion-background',
