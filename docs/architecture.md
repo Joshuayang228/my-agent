@@ -1,5 +1,9 @@
 # 系统架构
 
+## Chat 生活互动工具数据流
+
+Chat 的 `companion_comment_moment` 与发布、资产工具一起由 `tools/builtins/index.ts` 注册；工具从 `ToolContext.roleId` 取得当前人物，不接受调用方指定人物。评论请求进入 `companion/life/moments.ts` 的正式服务，先校验动态角色并保存用户互动，再按已注册的 `moment-reply` 配方尝试主角回复；失败只保留用户评论。WorldHub、Debug 和 Chat 读取同一生活存储，不产生第二份动态或互动事实。
+
 ## 主动问候证据与生活追踪
 
 数据库 v20 新增 companion_greeting_days 名额与 companion_greeting_evidence 元数据索引，启动恢复旧进程未确认投递；只读查询不创建或修复表。主动问候经策略判断 → 同步事务预留并落盘 → 登记窗口定向 IPC → Toast 可见 DOM → 主 frame / nonce 校验 → 呈现证据。缺回执不释放名额，无窗口不消费。原始提醒、nonce 与任意内容不持久化。

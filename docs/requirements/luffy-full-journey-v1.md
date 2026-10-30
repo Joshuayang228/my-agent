@@ -128,3 +128,5 @@ npx vitest run __tests__/unit/live-image-generation.test.ts
 验收补充（2026-10-30）：路飞四位核心伙伴关系新增结构化相处弧线（相处方向、摩擦点、修复方式、成长信号），名册、通讯录与 Debug 共用摘要；定向关系回归 9 项、全量 240 个测试文件 / 1559 项通过。
 
 验收补充（2026-10-30）：Chat 朋友圈工具支持经过关系表校验的参与者与关系阶段；路飞关系修复事件会写入 `companion_event_links` 的共同在场证据，并在 Moment / 通讯录 / Debug 中保留阶段和说明。
+
+验收补充（2026-10-30）：补齐 Chat 评论入口 `companion_comment_moment`。工具复用正式 `addMomentCommentForRole` 服务，当前人物归属、用户评论持久化、`moment-reply` 主角回复和失败回退不另建数据链；工具注册、路飞正例和跨入口来源均有回归测试。

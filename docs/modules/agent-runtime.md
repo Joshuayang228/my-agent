@@ -1,5 +1,7 @@
 # Agent 运行时
 
+Chat 生活工具入口补充（2026-10-30）：内置工具注册现在包含 `companion_post_moment`、`companion_comment_moment` 和 `companion_create_asset`。评论工具只接受当前会话人物的动态 ID，调用正式 `addMomentCommentForRole`；用户评论、主角回复 Prompt、失败回退和持久化仍由 companion 领域服务负责，工具注册表只暴露 schema 与来源。
+
 ## 提示词覆盖边界（2026-10-27 核对）
 
 生产 Prompt 现已逐项声明稳定 domain（主对话、人物、生活、社交、视觉、记忆、主动、工具、平台、验收），Role Pack 用途由来源文件契约提供；其他资产不冒充 Prompt。该字段只描述用途，不改变模型路由、编译顺序或正式页面布局。调用门禁反查每个已登记编译配方的真实生产 / Eval 消费者，排除仅 import、注释或目录样本；同名假模块不能充当消费者。未消费的 compileEvalRequest 已移除，Eval 继续沿 compileEvalSystem → compileAgentRequest 生成受隔离请求。
@@ -475,3 +477,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 - 模型设置的正式展示已收敛到多连接、用途路由与连接清单面板；正式获取走主进程，Playground 仍用隔离 fixture。旧全局身份不参与配置工厂装配；独立嵌入配置等存量字段的物理清理不在本批范围。
 
 - 主对话 Runtime 根据用户消息是否携带图片选择 primary 或 image 配置；image 路由无效时回退主配置，辅助任务仍走 auxiliary。
+# Chat 生活工具入口补充
+
+Chat 内置工具注册现在包含 `companion_post_moment`、`companion_comment_moment` 和 `companion_create_asset`。评论工具只接受当前会话人物的动态 ID，调用正式 `addMomentCommentForRole`，因此用户评论、主角回复 Prompt、失败回退和持久化仍由 companion 领域服务负责；工具注册表只暴露 schema 与来源，不复制生活事实或 Prompt 正文。
+

@@ -1,5 +1,7 @@
 # 质量总控
 
+Chat 生活互动补充门禁（2026-10-30）：`companion_comment_moment` 覆盖统一内置注册来源、路飞发布后评论正例、用户评论真实落库与无人物绑定拒绝；主角回复继续复用 `moment-reply` 的解析 / 回退测试。验证命令：`npx vitest run __tests__/unit/companion-life-tools.test.ts`、`npx tsc --noEmit`、`npm run build`、`npm run docs:validate`。
+
 提示词消费关系门禁：所有核心 / Role Pack Prompt 必须有合法稳定用途；已登记编译配方需在生产或 Eval 中存在实际调用，排除 import、注释、目录构造与同名假路径。负例覆盖未消费配方，正例覆盖真实相对路径、别名、namespace 和完整 Eval 配方的主对话隔离。用途元数据本批次不改变正式 UI，集中展示仍待 Playground 候选及统一回流。
 
 朋友圈回复回归：用户评论写入与主角回复分开记录，作者类型 / 父评论 ID 在旧表增量升级后仍可读取；未配置辅助模型、模型失败、非法 JSON、超长或含标签输出均不回滚用户评论。真实模型费用不在 Unit 中执行，正式 UI 的线程呈现待候选验收。
@@ -848,3 +850,7 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 - 2026-10-30：视觉资产门禁新增路飞家居参考路径存在性回归；构建验证 PNG 不进入 Role Pack 文本 loader bundle，静态参考不替代外部成图质量。
 - 2026-10-30：可选外部模型 Electron 门禁新增路飞专属断言：有 `TEST_LLM_API_KEY` 时验证正式 Chat 保持路飞身份并保留千里阳光号 / 伙伴锚点；无凭据时跳过，不把本地 fixture 当真实模型证据。
 - 2026-10-30：新增可选 `live-image-generation.test.ts`：配置 `TEST_IMAGE_API_KEY / TEST_IMAGE_BASE_URL / TEST_IMAGE_MODEL` 时走一次真实 Images 请求，验证路飞与千里阳光号家居锚点进入请求且返回图像可解码；无配置时跳过，人工审美仍需单独审阅。
+# 本轮质量门禁补充
+
+2026-10-30：`companion_comment_moment` 的门禁覆盖内置工具注册来源、路飞发布后评论正例、用户评论真实落库与无人物绑定拒绝；评论回复继续复用 `moment-reply` 的现有解析 / 回退测试。验证命令：`npx vitest run __tests__/unit/companion-life-tools.test.ts`、`npx tsc --noEmit`、`npm run build`、`npm run docs:validate`。
+

@@ -1,6 +1,6 @@
 import { buildTool } from '../builder'
 import { createAsset } from '../../companion/life/assets'
-import { projectMomentFromEvent } from '../../companion/life/moments'
+import { addMomentCommentForRole, projectMomentFromEvent } from '../../companion/life/moments'
 import { deleteEvent, insertEvent } from '../../companion/life/store'
 import { getSession } from '../../storage/session-store'
 import { loadRelations } from '../../companion/identity/loader'
@@ -135,5 +135,38 @@ export const companionCreateAssetTool = buildTool({
     } catch (error) {
       return `生活资产未保存：${error instanceof Error ? error.message : '资料校验失败'}`
     }
+  },
+})
+
+/**
+ * 背景：朋友圈评论原先只有 WorldHub 的 IPC 入口，Chat 无法完成“看到动态后回应”的人物旅程。
+ * 设计意图：复用既有评论服务，让用户评论、主角回复、失败回退和持久化继续走同一条链，放弃在工具内复制评论表或回复 Prompt。
+ * 关键约束：动态必须属于当前会话人物；评论先落库，人物回复失败不能撤销用户评论；工具不接受 roleId，避免跨人物写入。
+ */
+export const companionCommentMomentTool = buildTool({
+  name: 'companion_comment_moment',
+  description: '以当前人物身份查看并回应一条已发布朋友圈动态；评论会保留，人物回复在可用时单独生成。只能回应当前人物的动态。',
+  parameters: {
+    type: 'object',
+    properties: {
+      momentId: { type: 'string', description: '要评论的动态 ID。' },
+      text: { type: 'string', description: '评论内容，最多 280 字。' },
+    },
+    required: ['momentId', 'text'],
+  },
+  metadata: { isReadOnly: false, isDestructive: false, isConcurrencySafe: false },
+  inputExamples: [
+    { momentId: 'moment-id', text: '这段航线看起来很有意思，下一站准备去哪？' },
+  ],
+  execute: async (args, context) => {
+    const roleId = context?.roleId?.trim()
+    if (!roleId) return '当前会话没有绑定人物，暂时不能评论朋友圈。'
+    const momentId = textArg(args, 'momentId', 200)
+    const text = textArg(args, 'text', 280)
+    if (!momentId || !text) return '动态 ID 和评论内容不能为空，评论不能超过 280 字。'
+    const result = await addMomentCommentForRole(roleId, momentId, text)
+    if (!result.ok) return `朋友圈评论未保存：${result.error}`
+    const reply = result.social.comments.find(item => item.source === 'protagonist' && item.parentInteractionId)
+    return reply?.text ? `已评论朋友圈，${roleId} 回复：${reply.text}` : '已评论朋友圈；人物回复暂未生成。'
   },
 })
