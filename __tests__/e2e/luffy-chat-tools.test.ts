@@ -13,6 +13,7 @@ import { _electron as electron } from 'playwright'
  */
 test('正式 Chat 将路飞朋友圈工具暴露给模型并写入人物世界', async () => {
   const requests: Array<Record<string, unknown>> = []
+  let publishedMomentId = ''
   const server = createServer(async (request, response) => {
     const chunks: Buffer[] = []
     for await (const chunk of request) chunks.push(Buffer.from(chunk))
@@ -31,13 +32,17 @@ test('正式 Chat 将路飞朋友圈工具暴露给模型并写入人物世界',
     const lastUserIndex = messages.map(message => message.role).lastIndexOf('user')
     const lastUserText = lastUserIndex >= 0 ? String(messages[lastUserIndex]?.content ?? '') : ''
     const hasToolResultAfterLastUser = messages.slice(lastUserIndex + 1).some(message => message.role === 'tool')
+    const toolResultText = messages.filter(message => message.role === 'tool').map(message => String(message.content ?? '')).join('\n')
+    const momentIdMatch = toolResultText.match(/动态 ID：([a-f0-9-]+)/i)
+    if (momentIdMatch) publishedMomentId = momentIdMatch[1]
     const postMoment = lastUserText.includes('luffy-chat-tool-fixture')
     const createAsset = lastUserText.includes('luffy-chat-asset-fixture')
-    const shouldCall = (postMoment || createAsset) && !hasToolResultAfterLastUser
+    const commentMoment = lastUserText.includes('luffy-chat-comment-fixture') && Boolean(publishedMomentId)
+    const shouldCall = (postMoment || createAsset || commentMoment) && !hasToolResultAfterLastUser
     response.writeHead(200, { 'Content-Type': 'text/event-stream' })
     const delta = shouldCall
-      ? { tool_calls: [{ index: 0, id: createAsset ? 'luffy-asset-call' : 'luffy-moment-call', type: 'function', function: { name: createAsset ? 'companion_create_asset' : 'companion_post_moment', arguments: JSON.stringify(createAsset ? { kind: 'furniture', name: '甲板望远镜架', payload: { description: '固定在千里阳光号甲板边，方便观察远处航线。' } } : { text: '千里阳光号甲板上的风把航线图吹得哗啦响。', activity: '整理下一段航线', location: '千里阳光号甲板' }) } }] }
-      : { content: createAsset ? '路飞已经把甲板上的新家具记下来了。' : '路飞已经把这段航海生活记下来了。' }
+      ? { tool_calls: [{ index: 0, id: commentMoment ? 'luffy-comment-call' : createAsset ? 'luffy-asset-call' : 'luffy-moment-call', type: 'function', function: { name: commentMoment ? 'companion_comment_moment' : createAsset ? 'companion_create_asset' : 'companion_post_moment', arguments: JSON.stringify(commentMoment ? { momentId: publishedMomentId, text: '下一站也带我看看。' } : createAsset ? { kind: 'furniture', name: '甲板望远镜架', payload: { description: '固定在千里阳光号甲板边，方便观察远处航线。' } } : { text: '千里阳光号甲板上的风把航线图吹得哗啦响。', activity: '整理下一段航线', location: '千里阳光号甲板' }) } }] }
+      : { content: commentMoment ? '路飞已经回应了你的评论。' : createAsset ? '路飞已经把甲板上的新家具记下来了。' : '路飞已经把这段航海生活记下来了。' }
     response.write(`data: ${JSON.stringify({ choices: [{ delta, finish_reason: null }] })}\n\n`)
     response.write(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: shouldCall ? 'tool_calls' : 'stop' }], usage: { prompt_tokens: 3, completion_tokens: 3 } })}\n\n`)
     response.end('data: [DONE]\n\n')
@@ -84,6 +89,12 @@ test('正式 Chat 将路飞朋友圈工具暴露给模型并写入人物世界',
     await expect(page.getByText('路飞已经把甲板上的新家具记下来了。', { exact: true })).toBeVisible({ timeout: 30_000 })
     const assets = await page.evaluate(() => window.electronAPI.companion.getAssets({ kind: 'furniture' }))
     expect(assets.items.some(asset => asset.name === '甲板望远镜架')).toBe(true)
+    await page.getByPlaceholder(/和.*说说/).fill('luffy-chat-comment-fixture')
+    await page.getByRole('button', { name: '发送', exact: true }).click()
+    await expect(page.getByText('路飞已经回应了你的评论。', { exact: true })).toBeVisible({ timeout: 30_000 })
+    const refreshedMoments = await page.evaluate(() => window.electronAPI.companion.getMoments({ limit: 10 }))
+    const social = refreshedMoments.socialByMomentId[published!.id]
+    expect(social.comments.some(comment => comment.text === '下一站也带我看看。')).toBe(true)
   } finally {
     await app?.close()
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()))

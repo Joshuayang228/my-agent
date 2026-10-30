@@ -1,6 +1,6 @@
 # 质量总控
 
-路飞正式 Chat 工具回环验收（2026-10-30）：`luffy-chat-tools.test.ts` 启动独立 Electron 与本地 OpenAI 兼容 SSE，确认模型请求包含 `companion_post_moment` 与 `companion_create_asset`，Runtime 分别写入路飞动态和家具，正式 Companion IPC 可读到动态摘要 / 原始事件正文及家具资产；1 项通过。该证据验证工具可见性与本地持久化链，不证明外部模型选择质量。
+路飞正式 Chat 工具回环验收（2026-10-30）：`luffy-chat-tools.test.ts` 启动独立 Electron 与本地 OpenAI 兼容 SSE，确认模型请求包含 `companion_post_moment`、`companion_create_asset` 和基于上一轮真实动态 ID 的 `companion_comment_moment`，Runtime 分别写入路飞动态、家具和评论，正式 Companion IPC 可读回全部结果；1 项通过。该证据验证工具可见性与本地持久化链，不证明外部模型选择质量。
 
 路飞全旅程生产验收矩阵（2026-10-30）：`luffy-journey-acceptance.test.ts` 一次核对唯一主角、Role Pack 行为、千里阳光号 / 草帽、四位伙伴关系弧线、基础衣柜、Chat 生活工具、关键 Prompt 注册项和 Debug 人物资产目录；2 项通过。它是总入口护栏，不替代各功能的失败、持久化与跨角色细测。
 
