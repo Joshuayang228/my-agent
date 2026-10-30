@@ -80,7 +80,9 @@ vi.mock('../../electron/main/storage/session-store', async (importOriginal) => {
   return {
     ...actual,
     countUserMessagesForRoleSince: vi.fn(async () => userMsgCount),
-    listRecentUserMessagesForRole: vi.fn(async () => ['你好', '继续', '谢谢']),
+    listRecentUserMessagesForRole: vi.fn(async (roleId: string) => roleId === 'luffy'
+      ? ['我希望你提醒我先做一个小动作，再一起往前冲。', '如果我说累了，先陪我把事情拆小。']
+      : ['你好', '继续', '谢谢']),
   }
 })
 
@@ -280,5 +282,17 @@ describe('companion reflection runner', () => {
     expect(call.request.messages[0].content).toContain('路飞')
     expect(call.request.messages[0].content).toContain('不得抄进 MUTABLE')
     expect(await getMutable('luffy')).not.toContain('千里阳光号')
+  })
+
+  it('路飞反思把用户材料作为成长输入，但不把人物世界事实当成用户材料', async () => {
+    growthByRole = JSON.stringify({ luffy: Date.now() - COLD_START_MS - 60_000 })
+    settingsMap.activeRoleId = 'luffy'
+    vi.mocked(chatComplete).mockResolvedValueOnce('{"newMutable":null,"summary":"no-change"}')
+    await runReflectionNow('luffy', { apiKey: 'x', baseUrl: 'http://x', model: 'm' }, { force: true })
+    const call = vi.mocked(chatComplete).mock.calls[0]?.[0] as { request: { messages: Array<{ content: string }> } }
+    const body = call.request.messages[0].content
+    expect(body).toContain('先做一个小动作')
+    expect(body).toContain('先陪我把事情拆小')
+    expect(body).not.toContain('把千里阳光号写进用户习惯')
   })
 })
