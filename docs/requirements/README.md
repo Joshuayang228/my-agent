@@ -31,7 +31,6 @@
 | [prompt-coverage-and-review-v2.md](./prompt-coverage-and-review-v2.md) | 全量方案已确认：推进用途 / 消费者门禁、集中展示、缺失生成闭环和人物扩展；新增 UI 待候选验收后统一回流 |
 | [character-system-extension-v1.md](./character-system-extension-v1.md) | 首个人物的 Role Pack、Prompt 装配、材料采集、验收与扩展边界 |
 | [character-luffy-v1.md](./character-luffy-v1.md) | 进行中：删除默认宇宙旧人物资产，建立唯一首个人物路飞并验证制作流程 |
-| [luffy-full-journey-v1.md](./luffy-full-journey-v1.md) | 进行中：以路飞贯穿聊天、生活世界、记忆、生图与 Debug 的全功能人物验收 |
 | [foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md) | P0 方案待确认：四个产品体验的真实基础复用、Markdown / Diff / 控件收口与源码自动门禁 |
 | [playground-state-switchers-v1.md](./playground-state-switchers-v1.md) | P0：统一 Playground 场景、状态与宽度控制器，采用 MCP 独立选项样式 |
 | [playground-page-baseline-polish-v1.md](./playground-page-baseline-polish-v1.md) | P0 施工：Sidebar 底栏、Toast、Right Dock、人物世界与记忆页面样张统一精修 |
@@ -81,6 +80,7 @@ Debug 阅读层级：[debug-foundation-reading-v2.md](./debug-foundation-reading
 | [debug-prompt-layered-assets-v1.md](./debug-prompt-layered-assets-v1.md) | 已完成施工快照（冻结）：Prompt 语义编译、全入口注册与防漏门禁 |
 | [product-experience-production-rollout-v1.md](./product-experience-production-rollout-v1.md) | 已完成施工快照：Chat、人物世界、设置、记忆、主题 / Foundation、工作区的正式回流与主线后端验收；RAG、MCP OAuth、完整 PTY 等后置边界明确保留 |
 | [companion-world-model-v1.md](./companion-world-model-v1.md) | 已完成施工快照：人物世界六面、静态 / 动态分层、事件关联、生活切片、真实生图资产链、正式回流与质量门禁；RAG、MCP OAuth、完整 PTY 等后置边界明确保留 |
+| [luffy-full-journey-v1.md](./luffy-full-journey-v1.md) | 已完成施工快照（冻结）：以路飞贯穿聊天、生活世界、记忆、生图与 Debug 的全功能人物验收；外部效果门与独立 P2 边界保留 |
 | [image-generation-product-integration-v1.md](./image-generation-product-integration-v1.md) | 已完成施工快照：对话与人物世界统一真实生图入口、视觉资产归属、受控读取、定位和备份恢复 |
 | [playground-memory-information-architecture-v1.md](./playground-memory-information-architecture-v1.md) | 已完成施工快照：四类长期记忆导航、紧凑列表与 Debug 来源开关 |
 | [playground-memory-settings-journey-v1.md](./playground-memory-settings-journey-v1.md) | 已完成施工快照：记忆来源、纠正与设置管理的关系旅程 |
