@@ -98,6 +98,7 @@ test('正式生图设置、审批、真实文件、图片展示与重启恢复',
     expect(await sharp(file).metadata()).toMatchObject({ width: 48, height: 32, format: 'png' })
     const sessions = await page.evaluate(() => window.electronAPI.session.list())
     const sessionId = sessions[0].id
+    const sessionTitle = sessions.find(value => value.id === sessionId)?.title!
     const session = await page.evaluate(id => window.electronAPI.session.get(id), sessionId)
     const reference = session!.messages.find(message => message.generatedImages?.length)?.generatedImages![0]
     expect(reference).toMatchObject({ width: 48, height: 32, byteLength: file.length })
@@ -109,7 +110,7 @@ test('正式生图设置、审批、真实文件、图片展示与重启恢复',
     app = await launch()
     page = await app.firstWindow()
     await expect(page.getByTestId('chat-messages')).toBeVisible()
-    await page.getByTestId('primary-sidebar').getByText(sessions[0].title!, { exact: true }).click()
+    await page.getByTestId('primary-sidebar').getByText(sessionTitle, { exact: true }).click()
     await expect(page.getByTestId('generated-image-result').getByRole('button', { name: '查看原图' })).toBeEnabled()
     expect(requests.filter(request => request.url.endsWith('/images/generations'))).toHaveLength(1)
     await app.evaluate(({ shell }) => {
@@ -162,7 +163,7 @@ test('正式生图设置、审批、真实文件、图片展示与重启恢复',
     app = await launch()
     page = await app.firstWindow()
     await expect(page.getByTestId('chat-messages')).toBeVisible()
-    await page.getByTestId('primary-sidebar').getByText(sessions[0].title!, { exact: true }).click()
+    await page.getByTestId('primary-sidebar').getByText(sessionTitle, { exact: true }).click()
     await expect(page.getByTestId('generated-image-result').getByRole('button', { name: '查看原图' })).toBeEnabled()
     await app.evaluate(({ shell }) => { shell.showItemInFolder = filePath => { (globalThis as any).__restoredPath = filePath } })
     await page.getByTestId('generated-image-result').getByRole('button', { name: '在文件夹中定位' }).click()
