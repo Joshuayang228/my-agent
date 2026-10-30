@@ -9,6 +9,9 @@
 import { loadRelations, loadRolePack, loadUniverseManifest } from '../identity/loader'
 import type { RolePack } from '../types'
 import { loadCastDisplayLine, loadCastScenePrompt } from './scene-prompts'
+import { formatRelationSummary } from './relation-summary'
+
+export { formatRelationSummary } from './relation-summary'
 
 const TYPE_LABELS: Record<string, string> = {
   colleague: '同事',
@@ -67,7 +70,7 @@ export function buildRosterLines(
     const rel = typeLabel(edge.type)
     // M26-G3：优先展示场景短句，再退回边 note / summary
     const display = loadCastDisplayLine(other.id, universeId)
-    const detail = (edge.note || display || other.summary || other.description).trim()
+    const detail = (formatRelationSummary(edge) || display || other.summary || other.description).trim()
     const text = `你与${other.name}（${rel}）：${detail}`
     lines.push({
       otherId: other.id,

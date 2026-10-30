@@ -465,6 +465,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 **缺口**：Swarm（wishlist）；更完整的子 Agent 产品化；真实 HTTP/SSE replay 与操作系统级 Shell 隔离仍未纳入默认门禁；外部 MCP 工具描述已标记为不受信任数据，超大 schema fail-closed。
 
 - 2026-10-30：内置工具注册链新增 `companion_post_moment` 与 `companion_create_asset`，Chat 可通过当前会话人物写入朋友圈和生活资产；图片工具支持 `targetMomentId`。工具 schema、来源和输入示例随 `builtinTools` 自动进入 Debug 生产资产目录，执行仍经过现有权限、中间件与会话角色绑定。
+- 2026-10-30：关系摘要格式化抽为 companion cast 共享服务，工具 / Runtime Prompt 只消费短摘要，不读取 NPC protected 全文；关系弧线仅作为角色生活上下文，不改变工具权限边界。
 
 - 2026-09-17：复核生活资产备份 IPC。`data:export` / `data:import` 覆盖生活资产与播种标记，失败与会话同一事务回滚；记忆导入仍走 `memoryStore.addMemory`。该链路不进入 Loop，也不把朋友圈互动、MCP、权限、凭据或项目路径纳入备份。
 

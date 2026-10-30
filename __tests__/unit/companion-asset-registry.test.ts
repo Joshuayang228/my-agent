@@ -83,4 +83,15 @@ describe('伙伴生产资产目录', () => {
     expect(starters.every(item => item.payload.seededFrom === 'role-pack:luffy')).toBe(true)
     expect(starters.map(item => item.payload.category)).toEqual(['top', 'bottom', 'shoes'])
   })
+
+  it('路飞关系弧线登记为同源生产资产并保留伙伴依赖', () => {
+    const asset = getCompanionAssetCatalog().find(asset => asset.key === 'companion:default:luffy:relations')
+    expect(asset).toMatchObject({
+      source: 'role-pack://default/relations.json',
+      assetType: 'companion-life',
+      contentKind: 'data',
+      dependencies: ['companion:default:luffy:manifest'],
+    })
+    expect(asset?.content).toContain('修复')
+  })
 })

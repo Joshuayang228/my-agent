@@ -190,6 +190,12 @@ export interface UniverseRelations {
     to: string
     type: string
     note?: string
+    arc?: {
+      bond: string
+      friction: string
+      repair: string
+      growthSignal?: string
+    }
   }>
 }
 

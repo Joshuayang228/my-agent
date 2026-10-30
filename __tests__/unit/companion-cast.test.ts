@@ -114,5 +114,7 @@ describe('Companion Cast roster', () => {
     expect(lines.map(line => line.otherId)).toEqual(['zoro', 'nami', 'usopp', 'sanji'])
     expect(lines.map(line => line.relationType)).toEqual(['friend', 'friend', 'friend', 'friend'])
     expect(lines.every(line => line.text.includes('朋友'))).toBe(true)
+    expect(lines.find(line => line.otherId === 'zoro')?.text).toContain('修复方式')
+    expect(lines.find(line => line.otherId === 'nami')?.text).toContain('共同规划')
   })
 })

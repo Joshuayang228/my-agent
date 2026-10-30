@@ -17,6 +17,7 @@ import { getStarterAssetDefinitions } from './life/assets'
 import { CAST_SCENES, loadCastScenePrompt } from './cast/scene-prompts'
 import {
   listAvailableRoleIds,
+  loadRelations,
   loadRolePack,
   loadUniverseManifest,
   tryReadRoleText,
@@ -77,6 +78,32 @@ function buildLifeAssets(universeId: string, roleId: string, rolePack: RolePack)
 }
 
 /**
+ * 将关系弧线登记为 Debug 可追踪的伙伴资产。
+ *
+ * 背景：关系资料会同时影响名册、通讯录和动态互动，不能只在某个调用方读取 JSON。
+ * 设计意图：目录只保存同一 relations.json 的结构化索引，运行态共同经历仍由事件表提供。
+ * 关键约束：按角色筛选边；不把关系弧线复制进 Prompt 注册表，也不把运行态关系变化写回静态资产。
+ */
+function buildRelationAssets(universeId: string, roleId: string, rolePack: RolePack, universeVersion: number): ModelContextAsset[] {
+  const edges = loadRelations(universeId).edges.filter(edge => edge.from === roleId || edge.to === roleId)
+  if (!edges.length) return []
+  return [makeCompanionAsset({
+    key: `companion:${universeId}:${roleId}:relations`,
+    name: `关系弧线 · ${rolePack.name}`,
+    purpose: `角色${rolePack.name}的静态关系方向、摩擦与修复信号`,
+    role: `role-pack:${roleId}`,
+    description: rolePack.description,
+    source: sourceForRole(roleId, 'relations.json', universeId),
+    version: `universe-${universeVersion}`,
+    assetType: 'companion-life',
+    contentKind: 'data',
+    ownership: 'role-pack',
+    content: jsonContent({ roleId, edges }),
+    dependencies: [`companion:${universeId}:${roleId}:manifest`],
+  })]
+}
+
+/**
  * 聚合当前宇宙的伙伴生产资产。
  *
  * 背景：Debug 需要看到所有可加载角色，而不只是当前活跃主角。
@@ -104,6 +131,7 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
       const rolePack = loadRolePack(roleId, universeId)
       assets.push(...buildSceneAssets(universeId, roleId, rolePack, universe.version))
       assets.push(...buildLifeAssets(universeId, roleId, rolePack))
+      assets.push(...buildRelationAssets(universeId, roleId, rolePack, universe.version))
     } catch (error) {
       log.warn('Failed to register companion assets', {
         universeId,

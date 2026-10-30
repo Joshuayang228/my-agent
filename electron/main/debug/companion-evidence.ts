@@ -2,6 +2,7 @@ import type { Database, SqlValue } from 'sql.js'
 import { z } from 'zod'
 import { getInitializedDatabase } from '../storage/database'
 import { listAvailableRoleIds, loadRolePack, loadRelations, isKnownProtagonist } from '../companion/identity/loader'
+import { formatRelationSummary } from '../companion/cast/relation-summary'
 import { parseWorldJson } from '../companion/life/world-codec'
 import { DEBUG_EVIDENCE_VIEWS, type DebugEvidenceQuery, type DebugEvidenceRecord, type DebugEvidenceResult, type DebugEvidenceScope } from '../../../src/shared/debug-evidence'
 import { detectSensitiveKinds } from '../../../src/shared/sensitive-memory'
@@ -142,7 +143,7 @@ export function queryCompanionEvidence(input: unknown, db: Database | null = get
       const people = new Map<string, Row>()
       for (const edge of edges) {
         const personId = edge.from === query.roleId ? edge.to : edge.from
-        if (!people.has(personId)) people.set(personId, { id: personId, role_id: query.roleId, name: scope.roles.find(role => role.id === personId)?.name ?? personId, text: edge.note ?? '', type: edge.type, relations: [] })
+        if (!people.has(personId)) people.set(personId, { id: personId, role_id: query.roleId, name: scope.roles.find(role => role.id === personId)?.name ?? personId, text: formatRelationSummary(edge), type: edge.type, relations: [] })
         ;(people.get(personId)!.relations as unknown[]).push(edge)
       }
       const selected = [...people.values()].filter(person => !query.recordId || person.id === query.recordId).slice(0, query.limit)

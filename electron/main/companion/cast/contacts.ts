@@ -1,5 +1,6 @@
 import { loadRelations } from '../identity/loader'
 import { listRelatedCast } from './roster'
+import { formatRelationSummary } from './relation-summary'
 import { listEvents, listEventLinks, getMomentByEventId } from '../life/store'
 import { listAssets } from '../life/assets'
 import type { CompanionContactsData, CompanionContactExperience } from '../../../../src/shared/types'
@@ -14,7 +15,7 @@ export async function getContactsForRole(roleId: string, universeId = 'default')
   const ids = new Set(cast.map(person => person.id))
   const relations = loadRelations(universeId).edges.flatMap(edge => {
     const personId = edge.from === roleId ? edge.to : edge.to === roleId ? edge.from : null
-    return personId && ids.has(personId) ? [{ ownerRoleId: roleId, personId, relationType: edge.type, summary: edge.note ?? '' }] : []
+    return personId && ids.has(personId) ? [{ ownerRoleId: roleId, personId, relationType: edge.type, summary: formatRelationSummary(edge) }] : []
   })
   const [events, assets] = await Promise.all([listEvents(roleId, { status: 'published', order: 'desc' }), listAssets(roleId)])
   const experiences: CompanionContactExperience[] = []

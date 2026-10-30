@@ -451,3 +451,4 @@ published event（事件事实）
 - 2026-10-29：Role Pack loader 仅内嵌文本资产，视觉 PNG 保留为项目文件，避免人物视觉资料影响 Electron 主包体积。
 - 2026-10-29：按用户确认，路飞完整 protected 与 selfAwareness 去除平台身份措辞；回归检查完整正文，权限与事实边界保持不变。
 - 2026-10-30：Chat 新增人物生活写入工具：`companion_post_moment` 复用事件 → 朋友圈投影链，`companion_create_asset` 复用生活资产白名单；生图工具支持 `targetMomentId`，生成结果可绑定已发布动态并沿图片关联链读取。
+- 2026-10-30：路飞核心伙伴关系新增结构化相处弧线；名册、通讯录和 Debug 统一显示方向、摩擦、修复与成长信号，缺少弧线的旧关系保持原摘要。

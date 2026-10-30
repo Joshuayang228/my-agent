@@ -464,3 +464,4 @@ LLM 返回 tool_calls（可能多个）
 - LLM 配置工厂提供主对话、辅助任务和独立生图配置；Runtime 的图片输入仍使用主对话配置，image_generate 才调用生图配置。
 
 - 2026-10-30：Chat 人物生活写入沿现有分层落地：`tools/builtins/companion-life.ts` 只做工具薄包装，朋友圈写入 `companion_events` 后由 `life/moments.ts` 投影，家居等资料经 `life/assets.ts` 白名单入库；生图动态绑定经 `life/moment-images.ts` 写 `companion_event_links`。不新增 Renderer 直写路径或第二份生活真相。
+- 2026-10-30：关系资料继续沿 Role Pack / Universe relations 单一来源：`cast/relation-summary.ts` 负责跨名册、通讯录、Debug 的短摘要投影，关系弧线不进入用户记忆或 MUTABLE。
