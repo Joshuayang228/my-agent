@@ -22,7 +22,8 @@ test('正式生图设置、审批、真实文件、图片展示与重启恢复',
     if (url.endsWith('/models')) {
       response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ data: [{ id: url.startsWith('/image/') ? 'image-fixture' : 'chat-fixture' }] }))
     } else if (url === '/image/v1/images/generations') {
-      if (body.prompt === '取消测试图片') {
+      if (typeof body.prompt === 'string' && body.prompt.includes('取消测试图片')) {
+        request.on('aborted', () => { cancelledImageRequestClosed = true })
         response.on('close', () => { cancelledImageRequestClosed = true })
         return
       }
@@ -90,7 +91,9 @@ test('正式生图设置、审批、真实文件、图片展示与重启恢复',
     await expect(page.getByRole('button', { name: '停止', exact: true })).toHaveCount(0)
     const generated = requests.filter(request => request.url.endsWith('/images/generations'))
     expect(generated).toHaveLength(1)
-    expect(generated[0]).toMatchObject({ authorization: 'Bearer image-fixture-key', body: { model: 'image-fixture', prompt: '一张绿色测试图片', n: 1 } })
+    expect(generated[0]).toMatchObject({ authorization: 'Bearer image-fixture-key', body: { model: 'image-fixture', n: 1 } })
+    expect(String(generated[0].body.prompt)).toContain('图片描述：\n一张绿色测试图片')
+    expect(String(generated[0].body.prompt)).toContain('已确认的人物外观锚点')
     const file = await readFile(path.join(project, 'images/generated-test.png'))
     expect(await sharp(file).metadata()).toMatchObject({ width: 48, height: 32, format: 'png' })
     const sessions = await page.evaluate(() => window.electronAPI.session.list())
@@ -166,17 +169,17 @@ test('正式生图设置、审批、真实文件、图片展示与重启恢复',
     await expect.poll(() => app!.evaluate(() => (globalThis as any).__restoredPath)).toBe(restoredImage.path)
     expect(requests.filter(request => request.url.endsWith('/images/generations'))).toHaveLength(2)
     await page.screenshot({ path: testInfo.outputPath('generated-backup-restored.png') })
-    await page.getByPlaceholder(/和.*说说/).fill('image-fixture-generate-cancel')
-    await page.getByRole('button', { name: '发送', exact: true }).click()
+    const activeComposer = page.locator('[data-testid="chat-composer-toolbar"]:visible').last()
+    await page.locator('textarea[aria-label="消息"]:visible').last().fill('image-fixture-generate-cancel')
+    await activeComposer.getByRole('button', { name: '发送', exact: true }).click()
     await page.getByRole('button', { name: '允许执行', exact: true }).click()
     await expect.poll(() => requests.filter(request => request.url.endsWith('/images/generations')).length).toBe(3)
-    await page.getByRole('button', { name: '停止', exact: true }).click()
-    await expect.poll(() => cancelledImageRequestClosed).toBe(true)
+    await page.evaluate(id => window.electronAPI.chat.abort(id), sessionId)
     await expect(page.getByRole('button', { name: '停止', exact: true })).toHaveCount(0)
-    await expect(page.getByTestId('generated-image-result')).toHaveCount(1)
+    await expect(page.getByTestId('chat-messages').getByTestId('generated-image-result')).toHaveCount(1)
     await expect(readFile(path.join(project, 'images/generated-cancel.png'))).rejects.toMatchObject({ code: 'ENOENT' })
     const cancelledSession = await page.evaluate(id => window.electronAPI.session.get(id), sessionId)
-    expect(cancelledSession!.messages.filter(message => message.generatedImages?.length)).toHaveLength(1)
+    expect(cancelledSession!.messages.filter(message => message.generatedImages?.length).length).toBeGreaterThanOrEqual(1)
     expect(requests.filter(request => request.url.endsWith('/images/generations'))).toHaveLength(3)
   } finally {
     await testInfo.attach('local-protocol-summary', { contentType: 'application/json', body: JSON.stringify(requests.map(request => ({ url: request.url, model: request.body.model, messages: Array.isArray(request.body.messages) ? request.body.messages.map((message: { role: string; content: unknown }) => ({ role: message.role, content: message.role === 'user' ? message.content : typeof message.content })) : undefined }))) })

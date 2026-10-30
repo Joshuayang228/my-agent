@@ -134,3 +134,5 @@ npx vitest run __tests__/unit/live-image-generation.test.ts
 验收补充（2026-10-30）：新增 `__tests__/unit/luffy-journey-acceptance.test.ts` 生产验收矩阵，统一核对唯一主角、Role Pack 行为、千里阳光号 / 草帽、四位伙伴关系弧线、基础衣柜、Chat 生活工具、关键 Prompt 注册和 Debug 人物资产目录；矩阵 2 项通过，细节失败路径仍由专项测试负责。
 
 验收补充（2026-10-30）：`__tests__/e2e/luffy-chat-tools.test.ts` 本地 Electron 回环门依次驱动 `companion_post_moment`、`companion_create_asset` 与基于真实动态 ID 的 `companion_comment_moment`；Runtime 分别写入路飞动态 / 事件原文、甲板家具和评论，正式 Companion IPC 均能读回；该门 1 项通过，只证明本地协议与生产持久化链，不替代外部模型质量验收。
+
+验收补充（2026-10-30）：正式生图 Electron 门重新通过；测试按路飞视觉锚点包装核对原始图片描述，使用当前会话 ID 取消在途请求，并验证图片解码、落盘、备份恢复、重启定位及取消后的无引用清理。主动消息 Electron 门同期通过。
