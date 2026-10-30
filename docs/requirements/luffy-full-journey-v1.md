@@ -101,6 +101,24 @@
 
 验收补充（2026-10-30）：新增可选真实 Images 协议门 `live-image-generation.test.ts`，使用独立生图凭据时验证路飞家居场景请求和返回图像解码；当前环境无凭据，仍待实际服务运行与人工审阅。
 
+## 10. 外部模型最终验收入口
+
+拿到明确的测试凭据后，在项目根目录执行：
+
+```powershell
+$env:TEST_LLM_API_KEY = '<聊天模型测试密钥>'
+$env:TEST_LLM_BASE_URL = '<兼容聊天接口地址>'
+$env:TEST_LLM_MODEL = '<聊天模型名>'
+npx playwright test __tests__/e2e/electron.test.ts --config=playwright.electron.config.ts
+
+$env:TEST_IMAGE_API_KEY = '<生图模型测试密钥>'
+$env:TEST_IMAGE_BASE_URL = '<兼容 Images 接口地址>'
+$env:TEST_IMAGE_MODEL = '<生图模型名>'
+npx vitest run __tests__/unit/live-image-generation.test.ts
+```
+
+聊天门必须看到路飞身份和千里阳光号 / 伙伴锚点；生图门必须收到包含路飞外观与千里阳光号家居锚点的请求，并返回可解码图片。还要人工查看生成图的身份一致性、衣物、草帽、居所和构图；自动测试只证明协议、解码和尺寸，不替代审美判断。未配置凭据时两条门禁都应跳过，不能把跳过写成通过。
+
 验收补充（2026-10-29）：路飞主动消息、正式 Debug 全导航和成长反思回归已通过；压缩长会话、朋友圈配图与真实外部模型效果仍保留为未完成项。用户材料驱动成长现已补充按人物分桶的反思输入回归，仍需更长真实会话观察。
 
 验收补充（2026-10-29）：长会话压缩已通过路飞共同约定正例，关系最小集保留用户约定；本轮补充 120 轮压力回归，真实模型下的更长会话召回仍需独立验收。
