@@ -123,4 +123,11 @@ test.describe('Electron 真实对话', () => {
     await send('我叫什么名字？')
     expect(await completedReply()).toContain('小明')
   })
+
+  test('路飞真实模型保持人物身份与生活世界锚点', async () => {
+    await send('请以路飞的身份回答，用一两句话说说你现在和伙伴在哪里。必须保留千里阳光号或伙伴中的至少一个事实锚点。')
+    const reply = await completedReply()
+    expect(reply).toMatch(/千里阳光号|伙伴/)
+    await expect(page.getByTestId('chat-messages')).toContainText(/千里阳光号|伙伴/)
+  })
 })
