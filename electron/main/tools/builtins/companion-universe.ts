@@ -12,7 +12,8 @@ export const companionUniverseTool = buildTool({
     },
     required: ['action'],
   },
-  metadata: { isReadOnly: false, isDestructive: true, isConcurrencySafe: false },
+  metadata: { isReadOnly: false, isDestructive: false, isConcurrencySafe: false },
+  resolveMetadata: (args) => ({ isReadOnly: args.action === 'list', isDestructive: args.action === 'switch' }),
   execute: async (args) => {
     if (args.action === 'list') return `可用世界观：${listAvailableUniverseIds().join('、') || '暂无'}。`
     if (args.action !== 'switch' || typeof args.universeId !== 'string') return '请提供 switch 操作和 universeId。'

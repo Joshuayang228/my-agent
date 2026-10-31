@@ -6,6 +6,8 @@
 
 审阅发布后，`draft-store` 以同一 Universe loader 形状写入用户 `universes/`，并为角色生成带 Universe 前缀的内部 ID，规避当前运行表按 `role_id` 分桶的碰撞。`companion_switch_universe` 经 Companion orchestrator 校验、暂停 / 恢复与设置回滚后切换；正式 UI 和完整历史隔离门禁仍未完成。
 
+人物工具使用 `resolveMetadata` 按 action 动态解析权限：整理草稿 / 查询世界观保持非破坏性，发布和切换显式进入确认路径，避免把整个 Skill 的普通资料采集误判为写入操作。
+
 ## Chat 生活互动工具数据流
 
 Chat 的 `companion_comment_moment` 与发布、资产工具一起由 `tools/builtins/index.ts` 注册；工具从 `ToolContext.roleId` 取得当前人物，不接受调用方指定人物。评论请求进入 `companion/life/moments.ts` 的正式服务，先校验动态角色并保存用户互动，再按已注册的 `moment-reply` 配方尝试主角回复；失败只保留用户评论。WorldHub、Debug 和 Chat 读取同一生活存储，不产生第二份动态或互动事实。

@@ -20,7 +20,8 @@ export const companionCharacterDraftTool = buildTool({
     },
     required: ['action'],
   },
-  metadata: { isReadOnly: false, isDestructive: true, isConcurrencySafe: false },
+  metadata: { isReadOnly: false, isDestructive: false, isConcurrencySafe: false },
+  resolveMetadata: (args) => ({ isDestructive: args.action === 'publish' }),
   execute: async (args) => {
     const action = typeof args.action === 'string' ? args.action : ''
     if (action === 'list') return JSON.stringify(await listCharacterDrafts())

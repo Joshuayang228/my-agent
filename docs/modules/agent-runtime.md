@@ -4,6 +4,8 @@
 
 世界观切换工具（2026-10-31）：`companion_switch_universe` 读取同一 loader 的内置 / 用户 Universe 清单，切换前校验默认主角和流式状态；用户发布人物使用带世界观前缀的内部 role ID。该入口仍需完整 UI、跨世界历史隔离和重启回读验收。
 
+人物工具按参数解析确认级别：草稿创建 / 更新和世界观列表是普通工具调用；发布草稿与切换世界观动态标记为破坏性操作，必须走现有用户确认门。
+
 Debug 模型上下文目录按设置中的 `universeId` 聚合 Companion 资产，避免用户世界发布后仍只展示默认世界的角色、关系和生活目录。
 
 Chat 生活工具入口补充（2026-10-30）：内置工具注册现在包含 `companion_post_moment`、`companion_comment_moment` 和 `companion_create_asset`。评论工具只接受当前会话人物的动态 ID，调用正式 `addMomentCommentForRole`；用户评论、主角回复 Prompt、失败回退和持久化仍由 companion 领域服务负责，工具注册表只暴露 schema 与来源。
