@@ -28,6 +28,7 @@ describe('伙伴生产资产目录', () => {
   it('为全部可加载角色生成稳定且唯一的清单、场景和生活资产', () => {
     const assets = getCompanionAssetCatalog()
     expect(assets.find(asset => asset.key === 'companion:default:canon-main-sagas')?.content).toContain('阿拉巴斯坦篇')
+    expect(assets.find(asset => asset.key === 'companion:default:canon-cast-index')?.content).toContain('托尼托尼·乔巴')
     const keys = assets.map((asset) => asset.key)
 
     expect(new Set(keys).size).toBe(keys.length)

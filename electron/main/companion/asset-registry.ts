@@ -136,6 +136,7 @@ function buildContinuityAssets(universeId: string, roleId: string, rolePack: Rol
 function buildCanonAssets(universeId: string, universeVersion: number): ModelContextAsset[] {
   const files = [
     { path: 'canon/index.json', key: 'canon-index', name: '世界经历索引', purpose: '世界观可引用篇章和事件入口' },
+    { path: 'canon/characters/cast-index.json', key: 'canon-cast-index', name: '草帽团与相关人物索引', purpose: '按主线关系分层的人物目录和检索深度' },
     { path: 'canon/arcs/main-sagas.json', key: 'canon-main-sagas', name: '主要篇章索引', purpose: '主要篇章与主题的结构化导航，具体事件按需补证' },
     { path: 'canon/arcs/skypiea-enel.json', key: 'canon-arc-skypiea-enel', name: '篇章 · 艾尼路篇章', purpose: '空岛与艾尼路篇章的结构化高层事实' },
     { path: 'canon/events/skypiea-events.json', key: 'canon-events-skypiea', name: '事件 · 艾尼路篇章', purpose: '篇章关键事件、参与者和影响' },

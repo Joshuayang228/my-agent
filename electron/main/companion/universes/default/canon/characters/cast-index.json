@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "straw-hat-cast-index",
+  "title": "草帽团与主线相关人物索引",
+  "detailPolicy": {
+    "core": "完整身份、梦想、主要经历、关系变化、篇章视角和功能适配",
+    "related": "主线关系、关键经历、人物立场和与路飞的影响",
+    "index": "身份、关联篇章和检索入口；具体细节按用户提问搜索"
+  },
+  "source": {
+    "kind": "external_index",
+    "sources": [
+      "https://one-piece.com/strawhatpirates/index.html",
+      "https://lineup.toei-anim.co.jp/ja/tv/onep/character/"
+    ],
+    "retrievedAt": "2026-10-31"
+  },
+  "characters": [
+    { "id": "luffy", "name": "蒙奇·D·路飞", "group": "straw-hat", "detailLevel": "core", "rolePackStatus": "active", "focus": ["船长", "自由", "伙伴", "海贼王目标"] },
+    { "id": "zoro", "name": "罗罗诺亚·索隆", "group": "straw-hat", "detailLevel": "core", "rolePackStatus": "cast-existing", "focus": ["剑士", "承诺", "训练", "路飞的可靠支柱"] },
+    { "id": "nami", "name": "娜美", "group": "straw-hat", "detailLevel": "core", "rolePackStatus": "cast-existing", "focus": ["航海士", "路线", "资源", "安全判断"] },
+    { "id": "usopp", "name": "乌索普", "group": "straw-hat", "detailLevel": "core", "rolePackStatus": "cast-existing", "focus": ["狙击手", "想象", "害怕与勇气", "发明"] },
+    { "id": "sanji", "name": "山治", "group": "straw-hat", "detailLevel": "core", "rolePackStatus": "cast-existing", "focus": ["厨师", "照料", "体面", "伙伴需要"] },
+    { "id": "chopper", "name": "托尼托尼·乔巴", "group": "straw-hat", "detailLevel": "core", "rolePackStatus": "pending-role-pack", "focus": ["船医", "治愈", "身份认同", "保护伙伴"] },
+    { "id": "robin", "name": "妮可·罗宾", "group": "straw-hat", "detailLevel": "core", "rolePackStatus": "pending-role-pack", "focus": ["考古学家", "历史", "幸存", "被接纳"] },
+    { "id": "franky", "name": "弗兰奇", "group": "straw-hat", "detailLevel": "core", "rolePackStatus": "pending-role-pack", "focus": ["船匠", "创造", "梦想之船", "家族式伙伴关系"] },
+    { "id": "brook", "name": "布鲁克", "group": "straw-hat", "detailLevel": "core", "rolePackStatus": "pending-role-pack", "focus": ["音乐家", "重逢", "死亡与记忆", "幽默"] },
+    { "id": "jinbe", "name": "甚平", "group": "straw-hat", "detailLevel": "core", "rolePackStatus": "pending-role-pack", "focus": ["舵手", "责任", "鱼人族与人类关系", "成熟判断"] },
+    { "id": "vivi", "name": "薇薇", "group": "allied", "detailLevel": "related", "rolePackStatus": "index-only", "focus": ["阿拉巴斯坦", "旧伙伴", "国家责任"] },
+    { "id": "shanks", "name": "香克斯", "group": "related", "detailLevel": "related", "rolePackStatus": "index-only", "focus": ["草帽来源", "路飞的早期影响", "时代航向"] },
+    { "id": "ace", "name": "波特卡斯·D·艾斯", "group": "related", "detailLevel": "related", "rolePackStatus": "index-only", "focus": ["兄弟", "顶上战争", "路飞的失去与成长"] },
+    { "id": "sabo", "name": "萨博", "group": "related", "detailLevel": "related", "rolePackStatus": "index-only", "focus": ["兄弟", "革命军", "继承意志"] },
+    { "id": "garp", "name": "蒙奇·D·卡普", "group": "related", "detailLevel": "related", "rolePackStatus": "index-only", "focus": ["家族", "海军", "路飞的成长背景"] },
+    { "id": "law", "name": "特拉法尔加·D·瓦铁尔·罗", "group": "related", "detailLevel": "related", "rolePackStatus": "index-only", "focus": ["同盟", "德雷斯罗萨", "共同目标"] },
+    { "id": "hancock", "name": "波雅·汉库克", "group": "related", "detailLevel": "related", "rolePackStatus": "index-only", "focus": ["女儿岛", "顶上战争", "对路飞的特殊关系"] },
+    { "id": "rayleigh", "name": "西尔巴兹·雷利", "group": "related", "detailLevel": "related", "rolePackStatus": "index-only", "focus": ["罗杰海贼团", "修行", "时代传承"] },
+    { "id": "enel", "name": "艾尼路", "group": "arc-related", "detailLevel": "related", "rolePackStatus": "index-only", "focus": ["空岛", "神权统治", "路飞的对立"] },
+    { "id": "blackbeard", "name": "马歇尔·D·蒂奇", "group": "related", "detailLevel": "related", "rolePackStatus": "index-only", "focus": ["时代对手", "海贼王目标", "长线冲突"] },
+    { "id": "world-cast", "name": "其他主线人物", "group": "broad-index", "detailLevel": "index", "rolePackStatus": "search-on-demand", "focus": ["按篇章和用户问题检索"] }
+  ]
+}

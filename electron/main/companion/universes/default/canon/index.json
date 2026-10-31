@@ -2,5 +2,6 @@
   "schemaVersion": 1,
   "universeId": "default",
   "arcs": ["main-sagas", "skypiea-enel"],
-  "events": ["skypiea-arrival", "enel-conflict", "golden-bell"]
+  "events": ["skypiea-arrival", "enel-conflict", "golden-bell"],
+  "characterIndex": "characters/cast-index.json"
 }
