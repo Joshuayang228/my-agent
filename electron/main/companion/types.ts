@@ -11,6 +11,8 @@ export interface UniverseManifest {
   version: number
   /** 已交付主角 id（可逐步加到 3） */
   protagonistIds: string[]
+  /** 同一世界观中的朋友 / NPC 角色；不能因此自动成为活跃主角。 */
+  castIds?: string[]
   /** 架构容量，当前为 3 */
   plannedProtagonistSlots: number
   defaultProtagonistId: string

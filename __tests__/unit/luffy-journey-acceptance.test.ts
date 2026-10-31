@@ -13,6 +13,7 @@ describe('路飞全旅程生产验收矩阵', () => {
 
     expect(manifest.defaultProtagonistId).toBe('luffy')
     expect(manifest.protagonistIds).toEqual(['luffy'])
+    expect(manifest.castIds).toEqual(['zoro', 'nami', 'usopp', 'sanji'])
     expect(listAvailableRoleIds()).toContain('luffy')
     expect(pack.name).toBe('路飞')
     expect(pack.protected).toContain('伙伴')

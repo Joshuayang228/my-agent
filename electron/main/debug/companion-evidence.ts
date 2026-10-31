@@ -1,7 +1,7 @@
 import type { Database, SqlValue } from 'sql.js'
 import { z } from 'zod'
 import { getInitializedDatabase } from '../storage/database'
-import { listAvailableRoleIds, loadRolePack, loadRelations, isKnownProtagonist } from '../companion/identity/loader'
+import { getUniverseRoleKind, listAvailableRoleIds, loadRolePack, loadRelations, isKnownProtagonist } from '../companion/identity/loader'
 import { formatRelationSummary } from '../companion/cast/relation-summary'
 import { parseWorldJson } from '../companion/life/world-codec'
 import { DEBUG_EVIDENCE_VIEWS, type DebugEvidenceQuery, type DebugEvidenceRecord, type DebugEvidenceResult, type DebugEvidenceScope } from '../../../src/shared/debug-evidence'
@@ -39,7 +39,7 @@ export function getDebugEvidenceScope(): DebugEvidenceScope {
   const db = getInitializedDatabase()
   const universeId = setting(db, 'universeId', 'default')
   if (!/^[a-zA-Z0-9_-]{1,80}$/.test(universeId)) throw new Error('宇宙登记标识无效')
-  const roles = listAvailableRoleIds(universeId).map(id => { try { return { id, name: loadRolePack(id, universeId).name } } catch { return { id, name: `${id}（资料读取失败）` } } })
+  const roles = listAvailableRoleIds(universeId).map(id => { try { return { id, name: loadRolePack(id, universeId).name, kind: getUniverseRoleKind(id, universeId) } } catch { return { id, name: `${id}（资料读取失败）`, kind: 'unlisted' as const } } })
   const configured = setting(db, 'activeRoleId', '')
   return { roles, universeId, activeRoleId: roles.some(role => role.id === configured) && isKnownProtagonist(configured, universeId) ? configured : null, ready: Boolean(db) }
 }

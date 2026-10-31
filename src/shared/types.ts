@@ -131,6 +131,9 @@ export interface PromptLocaleAsset {
 /** 生产用途标识；用于目录分组，不参与指令优先级或模型路由。 */
 export type PromptDomain = 'conversation' | 'character' | 'life' | 'social' | 'visual' | 'memory' | 'proactive' | 'tools' | 'platform' | 'evaluation'
 
+/** Debug 目录中的人物适配状态；仅用于解释资产覆盖，不改变模型优先级。 */
+export type PromptAdaptationStatus = 'adapted' | 'generic' | 'character-independent' | 'pending'
+
 export interface PromptAsset {
   /** 稳定语义标识；文案改动和文件移动不得随意改变。 */
   key: string
@@ -141,6 +144,10 @@ export interface PromptAsset {
   purpose: string
   /** 固定用途由生产定义声明；其他资产可不提供，浏览端不得根据正文猜测。 */
   domain?: PromptDomain
+  /** 对应的通用功能合同 key；仅用于 Debug 关系阅读。 */
+  featureKey?: string
+  /** 人物适配是否存在；不代表本次调用已经使用。 */
+  adaptationStatus?: PromptAdaptationStatus
   role: string
   /** 生产来源明确登记的人物归属；缺失时不得由 Renderer 从正文或路径猜测。 */
   roleIds?: string[]
@@ -193,6 +200,8 @@ export type PromptAssetTrace = Pick<
   | 'slots'
   | 'behavior'
   | 'domain'
+  | 'featureKey'
+  | 'adaptationStatus'
 >
 
 export type ModelContextAsset = PromptAsset

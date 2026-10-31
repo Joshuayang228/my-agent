@@ -58,6 +58,8 @@ type PromptAssetInput = {
   name: string
   category: PromptAsset['category']
   domain: PromptDomain
+  featureKey?: string
+  adaptationStatus?: PromptAsset['adaptationStatus']
   desc: string
   sourcePath: string
   definitions?: string[]
@@ -165,6 +167,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     name: `功能合同 · ${item.name}`,
     category: 'system',
     role: 'feature-contract',
+    featureKey: item.key,
+    adaptationStatus: 'generic',
     purpose: item.purpose,
     desc: `通用功能协议：${item.output} 回退：${item.fallback}`,
     sourcePath: 'electron/main/prompts/feature-contracts.ts#PROMPT_FEATURE_CONTRACTS',

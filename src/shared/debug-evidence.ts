@@ -37,7 +37,7 @@ export interface DebugEvidenceResult {
   boundary: string
 }
 export interface DebugEvidenceScope {
-  roles: Array<{ id: string; name: string }>
+  roles: Array<{ id: string; name: string; kind: 'protagonist' | 'cast' | 'unlisted' }>
   activeRoleId: string | null
   universeId: string
   ready: boolean

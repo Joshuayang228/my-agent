@@ -3,6 +3,7 @@
   "title": "默认主角团",
   "version": 1,
   "protagonistIds": ["luffy"],
+  "castIds": ["zoro", "nami", "usopp", "sanji"],
   "plannedProtagonistSlots": 3,
   "defaultProtagonistId": "luffy"
 }

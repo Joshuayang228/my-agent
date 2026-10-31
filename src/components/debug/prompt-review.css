@@ -8,6 +8,9 @@
 }
 .debug-prompt-review .debug-review-scope { width: auto; flex: 0 0 auto; font-size: var(--type-control); line-height: var(--line-height-control); }
 .debug-prompt-review .debug-review-caption { margin-top: var(--review-gap-item); white-space: nowrap; }
+.debug-prompt-review .debug-review-role-kind { margin-left: var(--review-gap-item); color: var(--text-muted); font-size: var(--type-caption); line-height: var(--line-height-caption); }
+.debug-prompt-review .debug-review-tags { display: flex; flex-wrap: wrap; gap: var(--review-gap-item); margin-top: var(--review-gap-item); }
+.debug-prompt-review .debug-review-tags span { border: 1px solid var(--border-subtle); border-radius: 999px; padding: 0.15rem 0.45rem; color: var(--text-muted); font-size: var(--type-caption); line-height: var(--line-height-caption); }
 .debug-prompt-review .debug-candidate-facts dd { white-space: pre-wrap; overflow-wrap: anywhere; }
 .debug-prompt-review .debug-review-variable { display: grid; gap: var(--spacing); margin: 0; font-size: var(--type-caption); line-height: var(--line-height-caption); }
 .debug-prompt-review .debug-review-variable dt { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--review-gap-item); }

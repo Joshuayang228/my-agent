@@ -272,6 +272,22 @@ export function isKnownProtagonist(roleId: string, universeId: string = DEFAULT_
   return manifest.protagonistIds.includes(roleId)
 }
 
+export type UniverseRoleKind = 'protagonist' | 'cast' | 'unlisted'
+
+/**
+ * 返回人物在世界观套装中的入口类型。
+ *
+ * 背景：一个世界可以同时拥有主角与朋友角色；Debug 和切换入口不能把所有 Role Pack 都当成主角。
+ * 设计意图：主角以 manifest.protagonistIds 为唯一事实，朋友优先读取显式 castIds，旧套装再把其余已登记角色视为卡司。
+ * 关键约束：只有 protagonist 才能成为 activeRoleId；cast 只能参与名册、关系和召唤，不能绕过主角切换门闸。
+ */
+export function getUniverseRoleKind(roleId: string, universeId: string = DEFAULT_UNIVERSE): UniverseRoleKind {
+  const manifest = loadUniverseManifest(universeId)
+  if (manifest.protagonistIds.includes(roleId)) return 'protagonist'
+  if (manifest.castIds?.includes(roleId) || listAvailableRoleIds(universeId).includes(roleId)) return 'cast'
+  return 'unlisted'
+}
+
 /**
  * 读取角色目录下可选文本资产；不存在返回 null。
  * 应用场景：scenes/*.md 等多场景 prompt（M26-G3）。

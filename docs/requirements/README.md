@@ -30,6 +30,7 @@
 |------|------|
 | [prompt-coverage-and-review-v2.md](./prompt-coverage-and-review-v2.md) | 全量方案已确认：推进用途 / 消费者门禁、集中展示、缺失生成闭环和人物扩展；新增 UI 待候选验收后统一回流 |
 | [prompt-layered-composition-v1.md](./prompt-layered-composition-v1.md) | 进行中：通用功能 Prompt、平台约束、人物适配和运行时上下文的四层组合改造 |
+| [world-and-character-authoring-v1.md](./world-and-character-authoring-v1.md) | 进行中：世界观套装、主角 / 朋友边界与用户人物生成 |
 | [character-system-extension-v1.md](./character-system-extension-v1.md) | 首个人物的 Role Pack、Prompt 装配、材料采集、验收与扩展边界 |
 | [character-luffy-v1.md](./character-luffy-v1.md) | 进行中：删除默认宇宙旧人物资产，建立唯一首个人物路飞并验证制作流程 |
 | [foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md) | P0 方案待确认：四个产品体验的真实基础复用、Markdown / Diff / 控件收口与源码自动门禁 |

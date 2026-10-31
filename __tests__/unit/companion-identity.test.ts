@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import {
   getDefaultProtagonistId,
+  getUniverseRoleKind,
   getUniversesRoot,
   isKnownProtagonist,
   listProtagonists,
@@ -17,6 +18,7 @@ describe('companion identity loader', () => {
     expect(m.plannedProtagonistSlots).toBe(3)
     expect(m.defaultProtagonistId).toBe('luffy')
     expect(m.protagonistIds).toEqual(['luffy'])
+    expect(m.castIds).toEqual(['zoro', 'nami', 'usopp', 'sanji'])
   })
 
   it('listProtagonists 返回已挂满的 3 个主角槽', () => {
@@ -24,6 +26,8 @@ describe('companion identity loader', () => {
     expect(list.map((r) => r.id)).toEqual(['luffy'])
     expect(list[0].name).toBe('路飞')
     expect(isKnownProtagonist('luffy')).toBe(true)
+    expect(getUniverseRoleKind('luffy')).toBe('protagonist')
+    expect(getUniverseRoleKind('nami')).toBe('cast')
   })
 
   it('loadRolePack 读出 protected / mutable（含第三槽 xia）', () => {
