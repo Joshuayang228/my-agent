@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { builtinTools } from '../../electron/main/tools/builtins'
 import { getCompanionAssetCatalog } from '../../electron/main/companion/asset-registry'
 import { getStarterAssetDefinitions } from '../../electron/main/companion/life/assets'
@@ -49,5 +50,12 @@ describe('路飞全旅程生产验收矩阵', () => {
       'companion:default:luffy:world-default',
       'companion:default:luffy:relations',
     ]))
+  })
+
+  it('人物体系 Skill 激活时不隐藏 Chat 生活与世界观工具', () => {
+    const skill = readFileSync('electron/skills-builtin/character-system-builder/SKILL.md', 'utf8')
+    for (const tool of ['companion_character_draft', 'companion_switch_universe', 'companion_post_moment', 'companion_comment_moment', 'companion_create_asset', 'web_search', 'image_generate']) {
+      expect(skill).toContain(`- ${tool}`)
+    }
   })
 })

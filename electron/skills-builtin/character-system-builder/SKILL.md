@@ -6,6 +6,10 @@ when_to_use: |
   不适用于只写一段临时角色扮演提示词。
 allowed_tools:
   - companion_character_draft
+  - companion_switch_universe
+  - companion_post_moment
+  - companion_comment_moment
+  - companion_create_asset
   - web_search
   - url_fetch
   - image_generate
