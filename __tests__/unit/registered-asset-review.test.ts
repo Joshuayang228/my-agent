@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { filterRegisteredAssets, registeredAssetBody, registeredAssetGroup, registeredAssetKind, uniqueRegisteredAssets } from '../../src/components/debug/registered-asset-review'
+import { filterRegisteredAssets, registeredAssetBody, registeredAssetClassification, registeredAssetGroup, registeredAssetKind, uniqueRegisteredAssets } from '../../src/components/debug/registered-asset-review'
 import type { ModelContextAsset } from '../../src/shared/types'
 
 vi.mock('electron', () => ({ app: { getPath: () => 'C:/tmp/my-agent-test' }, safeStorage: { isEncryptionAvailable: () => false } }))
@@ -40,5 +40,11 @@ describe('正式提示词审阅展示规则', () => {
     expect(registeredAssetBody({ ...base, content: '' })).toBe('')
     expect(registeredAssetBody({ ...base, locales: { 'zh-CN': { template: '{{real}}' } } })).toBe('{{real}}')
     expect(registeredAssetKind({ ...base, contentKind: 'schema', content: '{}' })).toBe('结构内容')
+  })
+  it('未知用途保留在其他定义，并显式标记待归类', () => {
+    const unknown = { ...assets[0], key: 'unknown-definition', domain: undefined, category: 'companion', role: 'unknown' } as ModelContextAsset
+    expect(registeredAssetGroup(unknown)).toBe('其他定义')
+    expect(registeredAssetClassification(unknown)).toEqual({ group: '其他定义', fallback: true })
+    expect(filterRegisteredAssets([unknown], 'all', '', '')).toHaveLength(1)
   })
 })

@@ -35,6 +35,10 @@ export function registeredAssetGroup(asset: ModelContextAsset): string {
   const value = section(asset)
   return value ? REVIEW_SECTIONS[value].label : '其他定义'
 }
+export function registeredAssetClassification(asset: ModelContextAsset): { group: string; fallback: boolean } {
+  const value = section(asset)
+  return { group: value ? REVIEW_SECTIONS[value].label : '其他定义', fallback: !value }
+}
 export function uniqueRegisteredAssets(assets: readonly ModelContextAsset[]): ModelContextAsset[] {
   return [...new Map(assets.map(asset => [asset.key, asset])).values()]
 }

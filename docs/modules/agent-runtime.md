@@ -18,6 +18,8 @@ Chat 生活工具入口补充（2026-10-30）：内置工具注册现在包含 `
 
 正式 `DevPanel` → `RegisteredAssetWorkbench` 读取 `debug:model-context-assets`，默认按唯一 key 统计提示词定义，其他资产 / 全部资产仍可访问；搜索覆盖用途、正文、模板、变量和真实定义符号，人物筛选保留平台共用来源。按已登记 purpose / role / roleUses / assetType 将主对话、身份、成长、世界与生活前置，平台规则后置；未知用途不猜补，排序不影响注册、编译和注入。
 
+无法由已登记用途稳定归类的资产进入“其他定义”组并标记“待归类”，继续保留计数、搜索、正文 / 模板和来源详情；该兜底不改变资产注册或模型注入顺序。
+
 详情默认仅名称、复制与完整正文；动态无固定正文独立说明，不用 preview 回填。变量展示实际登记的名称、来源和更新时机，不编造解释或示例。来源、嵌套版本指纹、实际调用按需展开；调用仅展开后通过 assetUsageQuery 读取，迟到响应绑定 key，失败可重试，不推测未保存输入。首次目录失败不补零，刷新失败保留目录与展开，明确引用缺失不替代其他资产。
 
 正式与 Playground 共用 `prompt-review.css`、Foundation caption / body 行高和 SPACING：字段行距 tight（8px）、表格末行到版本入口 compact（12px）。Playground 的隔离示例与状态控制不进入正式数据链。施工边界见 [提示词审阅施工快照](../requirements/debug-prompt-review-workbench-v1.md)。
