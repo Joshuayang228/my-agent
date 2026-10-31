@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "main-sagas",
+  "title": "主要篇章索引",
+  "status": "canon_index",
+  "purpose": "只保存篇章层级和检索入口；具体事件由搜索补证并进入待确认提案，不把原作正文复制进人物 Prompt。",
+  "sagas": [
+    { "id": "east-blue", "title": "东海篇", "arcs": ["冒险黎明", "橘子镇", "西罗布村", "巴拉蒂", "阿龙公园", "罗格镇"], "theme": "伙伴形成、出海与梦想宣言" },
+    { "id": "arabasta", "title": "阿拉巴斯坦篇", "arcs": ["颠倒山", "威士忌山峰", "小花园", "磁鼓岛", "阿拉巴斯坦"], "theme": "国家危机、承诺与守护" },
+    { "id": "sky-island", "title": "空岛篇", "arcs": ["加雅岛", "艾尼路篇章"], "theme": "未知世界、自由与传达" },
+    { "id": "water-seven", "title": "水之都篇", "arcs": ["长环岛", "水之都", "司法岛", "司法岛后日谈"], "theme": "伙伴分离、选择与夺回" },
+    { "id": "thriller-bark", "title": "恐怖三桅帆船篇", "arcs": ["恐怖三桅帆船"], "theme": "新伙伴、影子与承担" },
+    { "id": "summit-war", "title": "顶上战争篇", "arcs": ["香波地群岛", "女儿岛", "推进城", "马林梵多", "战后"], "theme": "失去、成长与重新出发" },
+    { "id": "fish-man-island", "title": "鱼人岛篇", "arcs": ["重返香波地", "鱼人岛"], "theme": "时代创伤、传承与平等" },
+    { "id": "dressrosa", "title": "德雷斯罗萨篇", "arcs": ["庞克哈萨德", "德雷斯罗萨"], "theme": "同盟、解放与旧时代阴影" },
+    { "id": "whole-cake", "title": "万国篇", "arcs": ["佐乌", "万国", "世界会议"], "theme": "家族、选择与带伙伴回家" },
+    { "id": "wano", "title": "和之国篇", "arcs": ["和之国"], "theme": "历史、解放与新时代" },
+    { "id": "final-saga", "title": "最终篇", "arcs": ["蛋头岛", "艾尔巴夫（进行中）"], "theme": "世界真相与最终航路", "status": "ongoing" }
+  ],
+  "source": {
+    "kind": "external_index",
+    "sources": [
+      "https://thelibraryofohara.com/one-piece-story-arcs-and-sagas/",
+      "https://www.gamesradar.com/entertainment/anime-shows/how-to-watch-one-piece-in-order/"
+    ],
+    "retrievedAt": "2026-10-31",
+    "detailPolicy": "篇章索引可先入库；具体事件和人物影响需要逐篇搜索、核对、确认。"
+  }
+}
