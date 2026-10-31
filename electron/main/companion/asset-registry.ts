@@ -103,6 +103,31 @@ function buildRelationAssets(universeId: string, roleId: string, rolePack: RoleP
   })]
 }
 
+function buildContinuityAssets(universeId: string, roleId: string, rolePack: RolePack, universeVersion: number): ModelContextAsset[] {
+  const files = [
+    { path: 'scenes/first-contact.md', key: 'first-contact', name: '首次冷启', purpose: '首次建立关系时的人物自我介绍、名言和后续行动' },
+    { path: 'timeline/continuity.md', key: 'continuity', name: '人物连续性', purpose: '既有经历、当前状态和用户共同经历的分层承接' },
+  ]
+  return files.flatMap((file) => {
+    const content = tryReadRoleText(roleId, file.path, universeId)
+    if (!content) return []
+    return [makeCompanionAsset({
+      key: `companion:${universeId}:${roleId}:${file.key}`,
+      name: `${file.name} · ${rolePack.name}`,
+      purpose: file.purpose,
+      role: `role-pack:${roleId}`,
+      description: rolePack.description,
+      source: sourceForRole(roleId, file.path, universeId),
+      version: `universe-${universeVersion}`,
+      assetType: 'companion-scene',
+      contentKind: 'static',
+      ownership: 'role-pack',
+      content,
+      dependencies: [`companion:${universeId}:${roleId}:manifest`],
+    })]
+  })
+}
+
 /**
  * 聚合当前宇宙的伙伴生产资产。
  *
@@ -130,6 +155,7 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     try {
       const rolePack = loadRolePack(roleId, universeId)
       assets.push(...buildSceneAssets(universeId, roleId, rolePack, universe.version))
+      assets.push(...buildContinuityAssets(universeId, roleId, rolePack, universe.version))
       assets.push(...buildLifeAssets(universeId, roleId, rolePack))
       assets.push(...buildRelationAssets(universeId, roleId, rolePack, universe.version))
     } catch (error) {

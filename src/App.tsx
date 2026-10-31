@@ -163,6 +163,7 @@ function App() {
   const confirmDialog = confirmQueue[0] ?? null
   const [currentPersonaName, setCurrentPersonaName] = useState('路飞')
   const [companionBlurb, setCompanionBlurb] = useState('自由、直率、重视伙伴的冒险伙伴')
+  const [companionFirstContact, setCompanionFirstContact] = useState<{ openingLine: string; quote?: string } | undefined>()
   const [activeRoleId, setActiveRoleId] = useState('luffy')
   const [protagonistNames, setProtagonistNames] = useState<Record<string, string>>({ luffy: '路飞' })
   const [reasoning, setReasoning] = useState<ReasoningCallbackState>(() => resetReasoning())
@@ -344,6 +345,7 @@ function App() {
       if (p?.name) setCurrentPersonaName(p.name)
       if (p?.description) setCompanionBlurb(p.description)
       if (p?.id) setActiveRoleId(p.id)
+      setCompanionFirstContact(p?.firstContact ? { openingLine: p.firstContact.openingLine, quote: p.firstContact.quote } : undefined)
     })
     window.electronAPI.companion.listProtagonists().then((list) => {
       const map: Record<string, string> = {}
@@ -363,6 +365,7 @@ function App() {
         if (p?.name) setCurrentPersonaName(p.name)
         if (p?.description) setCompanionBlurb(p.description)
         if (p?.id) setActiveRoleId(p.id)
+        setCompanionFirstContact(p?.firstContact ? { openingLine: p.firstContact.openingLine, quote: p.firstContact.quote } : undefined)
       })
       const sid = activeSessionIdRef.current
       const sess = sid ? sessionsRef.current.find((s) => s.id === sid) : undefined
@@ -462,6 +465,7 @@ function App() {
         if (p?.name) setCurrentPersonaName(p.name)
         if (p?.description) setCompanionBlurb(p.description)
         if (p?.id) setActiveRoleId(p.id)
+        setCompanionFirstContact(p?.firstContact ? { openingLine: p.firstContact.openingLine, quote: p.firstContact.quote } : undefined)
       })
       window.electronAPI.companion.listProtagonists().then((list) => {
         const map: Record<string, string> = {}
@@ -964,6 +968,7 @@ function App() {
   const coldStart = buildColdStartCopy({
     name: currentPersonaName,
     description: companionBlurb,
+    firstContact: companionFirstContact,
   })
 
   // 全屏导航不能销毁项目工作区：保留固定位置的产品子树，仅隐藏；项目 key 才定义资源归属。

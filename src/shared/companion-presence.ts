@@ -12,9 +12,17 @@ export interface ColdStartCopy {
 export function buildColdStartCopy(role: {
   name: string
   description: string
+  firstContact?: { openingLine: string; quote?: string }
 }): ColdStartCopy {
   const name = role.name?.trim() || '伙伴'
   const description = role.description?.trim() || '你的数字伙伴'
+  const openingLine = role.firstContact?.openingLine?.trim()
+  if (openingLine) {
+    return {
+      title: openingLine,
+      subtitle: `${name} · ${description}`,
+    }
+  }
   return {
     title: `嗨，我是${name}`,
     subtitle: description,

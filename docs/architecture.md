@@ -480,3 +480,4 @@ LLM 返回 tool_calls（可能多个）
 - 2026-10-30：Chat 人物生活写入沿现有分层落地：`tools/builtins/companion-life.ts` 只做工具薄包装，朋友圈写入 `companion_events` 后由 `life/moments.ts` 投影，家居等资料经 `life/assets.ts` 白名单入库；生图动态绑定经 `life/moment-images.ts` 写 `companion_event_links`。不新增 Renderer 直写路径或第二份生活真相。
 - 2026-10-30：关系资料继续沿 Role Pack / Universe relations 单一来源：`cast/relation-summary.ts` 负责跨名册、通讯录、Debug 的短摘要投影，关系弧线不进入用户记忆或 MUTABLE。
 - 2026-10-30：关系事件由 Chat 工具写入 `companion_events.payload.relationship / participantIds`，`life/moments.ts` 投影为 `companion_event_links(targetType=cast, relation=coframe)`；参与者和阶段不创建第二份关系真相。
+- 2026-10-31：人物设计新增的首次冷启与既有经历资料仍属于 Role Pack / Debug 资产层：loader 读取人物清单和场景文件，Prompt 注册表负责防漏登记，运行时按当前功能选择性注入；用户草稿先写入独立 userData，发布时才转换为 Universe / Role Pack，不新增 Renderer 直写生产资产路径。

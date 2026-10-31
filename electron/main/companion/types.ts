@@ -24,12 +24,22 @@ export interface RoleManifest {
   description: string
   canBeProtagonist: boolean
   asideStyle?: string
+  characterKind?: 'original' | 'canon' | 'adapted'
+  firstContact?: RoleFirstContact
+}
+
+export interface RoleFirstContact {
+  openingLine: string
+  quote?: string
+  followUpStyle?: string
+  repeatPolicy: 'once_per_relationship' | 'once_per_universe' | 'every_new_chat'
 }
 
 export interface RoleSummary {
   id: string
   name: string
   description: string
+  firstContact?: RoleFirstContact
 }
 
 /** 角色稳定表达基线；与 LLM temperature 无关，由本轮 tone-control 再做场景收放。 */
@@ -179,6 +189,8 @@ export interface RolePack {
   mutableDefault: string
   summary: string
   asideStyle?: string
+  characterKind?: RoleManifest['characterKind']
+  firstContact?: RoleFirstContact
   voice?: string
   profile?: RoleProfile
   worldDefaults?: RoleWorldDefaults

@@ -82,6 +82,8 @@ function buildManifestAsset(universeId: string, roleId: string, rolePack: RolePa
     description: rolePack.description,
     canBeProtagonist: rolePack.canBeProtagonist,
     asideStyle: rolePack.asideStyle,
+    characterKind: rolePack.characterKind,
+    firstContact: rolePack.firstContact,
   })
   return makeCompanionAsset({
     key: `companion:${universeId}:${roleId}:manifest`,

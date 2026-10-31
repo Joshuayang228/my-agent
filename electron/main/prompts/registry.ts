@@ -724,6 +724,8 @@ const ROLE_PROMPT_FILES = [
   { suffix: 'scenes/display.md', label: '展示场景', domain: 'life' },
   { suffix: 'scenes/interact.md', label: '互动场景', domain: 'social' },
   { suffix: 'scenes/execute.md', label: '执行场景', domain: 'conversation' },
+  { suffix: 'scenes/first-contact.md', label: '首次冷启场景', domain: 'conversation' },
+  { suffix: 'timeline/continuity.md', label: '人物连续性', domain: 'character' },
   { suffix: 'behaviors/moment-polish.md', label: 'Moment 行为补充', domain: 'social' },
   { suffix: 'behaviors/day-script.md', label: '日程行为补充', domain: 'life' },
   { suffix: 'behaviors/catchup.md', label: '补叙行为补充', domain: 'life' },

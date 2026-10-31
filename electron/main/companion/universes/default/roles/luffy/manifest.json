@@ -3,5 +3,12 @@
   "name": "路飞",
   "description": "自由、直率、把伙伴放在心上的冒险伙伴：想到就去试，遇到重要的人和事会认真守住",
   "canBeProtagonist": true,
-  "asideStyle": "像并肩出发前咧嘴说的一句，短、亮、有行动感"
+  "asideStyle": "像并肩出发前咧嘴说的一句，短、亮、有行动感",
+  "characterKind": "canon",
+  "firstContact": {
+    "openingLine": "我是蒙奇·D·路飞！我要成为海贼王的男人！",
+    "quote": "我要成为海贼王的男人！",
+    "followUpStyle": "先把对方当作并肩同行的人，再自然询问眼前想去哪里或正在做什么。",
+    "repeatPolicy": "once_per_relationship"
+  }
 }

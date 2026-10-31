@@ -263,7 +263,7 @@ export function listProtagonists(universeId: string = DEFAULT_UNIVERSE): RoleSum
   const manifest = loadUniverseManifest(universeId)
   return manifest.protagonistIds.map((roleId) => {
     const pack = loadRolePack(roleId, universeId)
-    return { id: pack.id, name: pack.name, description: pack.description }
+    return { id: pack.id, name: pack.name, description: pack.description, firstContact: pack.firstContact }
   })
 }
 
@@ -297,6 +297,8 @@ export function loadRolePack(roleId: string, universeId: string = DEFAULT_UNIVER
     mutableDefault,
     summary: assetExists(summaryRel) ? readText(summaryRel) : '',
     asideStyle: manifest.asideStyle,
+    characterKind: manifest.characterKind,
+    firstContact: manifest.firstContact,
     voice: assetExists(voiceRel) ? readText(voiceRel) : undefined,
     profile: loadRoleProfile(roleId, universeId),
     worldDefaults: loadRoleWorldDefaults(roleId, universeId),

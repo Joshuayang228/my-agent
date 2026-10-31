@@ -33,6 +33,7 @@
 | [world-and-character-authoring-v1.md](./world-and-character-authoring-v1.md) | 进行中：世界观套装、主角 / 朋友边界与用户人物生成 |
 | [character-system-extension-v1.md](./character-system-extension-v1.md) | 首个人物的 Role Pack、Prompt 装配、材料采集、验收与扩展边界 |
 | [character-luffy-v1.md](./character-luffy-v1.md) | 进行中：删除默认宇宙旧人物资产，建立唯一首个人物路飞并验证制作流程 |
+| [character-design-method-v1.md](./character-design-method-v1.md) | 进行中：通用人物设计、首次冷启与既有经历连续性承接 |
 | [foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md) | P0 方案待确认：四个产品体验的真实基础复用、Markdown / Diff / 控件收口与源码自动门禁 |
 | [playground-state-switchers-v1.md](./playground-state-switchers-v1.md) | P0：统一 Playground 场景、状态与宽度控制器，采用 MCP 独立选项样式 |
 | [playground-page-baseline-polish-v1.md](./playground-page-baseline-polish-v1.md) | P0 施工：Sidebar 底栏、Toast、Right Dock、人物世界与记忆页面样张统一精修 |

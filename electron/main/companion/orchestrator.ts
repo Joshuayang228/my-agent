@@ -54,6 +54,7 @@ export async function getActiveRole(): Promise<RoleSummary & { universeId: strin
     id: pack.id,
     name: pack.name,
     description: pack.description,
+    firstContact: pack.firstContact,
     universeId,
   }
 }

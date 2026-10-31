@@ -15,6 +15,16 @@ describe('companion presence', () => {
     expect(copy).not.toHaveProperty('hint')
   })
 
+  it('既有角色冷启动优先使用人物首次宣言', () => {
+    const copy = buildColdStartCopy({
+      name: '路飞',
+      description: '自由、直率的冒险伙伴',
+      firstContact: { openingLine: '我是蒙奇·D·路飞！我要成为海贼王的男人！', quote: '我要成为海贼王的男人！' },
+    })
+    expect(copy.title).toContain('我要成为海贼王的男人')
+    expect(copy.subtitle).toContain('路飞')
+  })
+
   it('换角再认识文案：换视角非重开，且点名双方', () => {
     const copy = buildReacquaintCopy({
       fromName: '小林',

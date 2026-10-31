@@ -1,7 +1,10 @@
 import { buildTool } from '../builder'
 import { listCharacterDrafts, publishCharacterDraft, readCharacterDraft, saveCharacterDraft, type CharacterDraftSection } from '../../companion/authoring/draft-store'
 
-const SECTIONS = ['identity', 'world', 'relationships', 'appearance', 'behaviors', 'materials'] as const
+const SECTIONS = [
+  'identity', 'world', 'relationships', 'appearance', 'behaviors', 'materials',
+  'dramaturgy', 'decisionRules', 'continuity', 'firstContact', 'evidence',
+] as const
 
 export const companionCharacterDraftTool = buildTool({
   name: 'companion_character_draft',

@@ -3,7 +3,18 @@ import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promise
 import { join } from 'node:path'
 
 export type CharacterDraftStatus = 'draft' | 'review'
-export type CharacterDraftSection = 'identity' | 'world' | 'relationships' | 'appearance' | 'behaviors' | 'materials'
+export type CharacterDraftSection =
+  | 'identity'
+  | 'world'
+  | 'relationships'
+  | 'appearance'
+  | 'behaviors'
+  | 'materials'
+  | 'dramaturgy'
+  | 'decisionRules'
+  | 'continuity'
+  | 'firstContact'
+  | 'evidence'
 
 export interface CharacterDraft {
   id: string
@@ -19,7 +30,10 @@ export interface CharacterDraft {
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9_-]{1,63}$/i
 const MAX_TEXT = 50_000
-const SECTIONS = new Set<CharacterDraftSection>(['identity', 'world', 'relationships', 'appearance', 'behaviors', 'materials'])
+const SECTIONS = new Set<CharacterDraftSection>([
+  'identity', 'world', 'relationships', 'appearance', 'behaviors', 'materials',
+  'dramaturgy', 'decisionRules', 'continuity', 'firstContact', 'evidence',
+])
 
 function draftsRoot(): string {
   try { return join(app.getPath('userData'), 'character-drafts') } catch { return join(process.cwd(), '.agent-data', 'character-drafts') }
@@ -88,13 +102,19 @@ export async function publishCharacterDraft(id: string): Promise<{ universeId: s
   await mkdir(roleRoot, { recursive: true })
   const identity = draft.sections.identity || `${draft.roleName} 的稳定身份和表达仍待补充。`
   const world = draft.sections.world || '人物世界尚未设定，不能补造居所、经历或当前位置。'
+  const firstContact = draft.sections.firstContact || '首次冷启尚未设定；发布后不会自动补造名言或经历。'
+  const continuity = draft.sections.continuity || '既有经历、当前状态和用户共同经历尚未分开设定。'
   try {
+    await mkdir(join(roleRoot, 'scenes'), { recursive: true })
     await writeFile(join(temporaryRoot, 'manifest.json'), JSON.stringify({ id: universeId, title: draft.title, version: 1, protagonistIds: [roleId], castIds: [], plannedProtagonistSlots: 1, defaultProtagonistId: roleId, ownership: 'user' }, null, 2), 'utf8')
     await writeFile(join(temporaryRoot, 'relations.json'), JSON.stringify({ edges: [] }, null, 2), 'utf8')
     await writeFile(join(roleRoot, 'manifest.json'), JSON.stringify({ id: roleId, name: draft.roleName, description: identity.slice(0, 240), canBeProtagonist: true, asideStyle: '沿用已确认的人物表达，缺少资料时明确说明。', ownership: 'user', sourceDraftId: draft.id }, null, 2), 'utf8')
     await writeFile(join(roleRoot, 'protected.md'), `你是${draft.roleName}。\n\n${identity}\n\n世界观资料：\n${world}`, 'utf8')
     await writeFile(join(roleRoot, 'mutable.default.md'), '当前可变行为状态尚未设定，只根据用户确认逐步形成。', 'utf8')
     await writeFile(join(roleRoot, 'summary.txt'), identity.slice(0, 1000), 'utf8')
+    await writeFile(join(roleRoot, 'scenes', 'first-contact.md'), firstContact, 'utf8')
+    await mkdir(join(roleRoot, 'timeline'), { recursive: true })
+    await writeFile(join(roleRoot, 'timeline', 'continuity.md'), continuity, 'utf8')
     await rename(temporaryRoot, root)
   } catch (error) {
     await rm(temporaryRoot, { recursive: true, force: true }).catch(() => undefined)

@@ -80,6 +80,14 @@ describe('companion identity loader', () => {
     expect(pack.profile?.selfAwareness).not.toContain('数字')
   })
 
+  it('路飞首个冷启承接人物宣言与既有经历', () => {
+    const pack = loadRolePack('luffy')
+    expect(pack.characterKind).toBe('canon')
+    expect(pack.firstContact?.openingLine).toContain('我要成为海贼王的男人')
+    expect(pack.firstContact?.repeatPolicy).toBe('once_per_relationship')
+    expect(pack.firstContact && pack.firstContact.quote).toContain('海贼王')
+  })
+
   it('路飞档案关联基础衣物视觉参考，图片属于 Role Pack 资产', () => {
     const profile = loadRolePack('luffy').profile
     expect(profile?.appearance.visualReferencePath).toBe('visual/wardrobe-initial-v1.png')
