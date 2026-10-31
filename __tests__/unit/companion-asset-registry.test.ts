@@ -21,6 +21,10 @@ describe('伙伴生产资产目录', () => {
     expect(JSON.parse(asset!.content!)).toEqual(MOMENT_COMMENT_POLICY)
     expect(asset?.dependencies).toEqual(['companion-moment-comment'])
   })
+  it('经历库搜索策略明确本地优先且不自动晋升记忆', () => {
+    const asset = getCompanionAssetCatalog().find(item => item.key === 'companion:policy:continuity-search')
+    expect(JSON.parse(asset!.content!)).toMatchObject({ localFirst: true, autoPromote: false, candidateStatus: 'external_candidate' })
+  })
   it('为全部可加载角色生成稳定且唯一的清单、场景和生活资产', () => {
     const assets = getCompanionAssetCatalog()
     const keys = assets.map((asset) => asset.key)
@@ -93,5 +97,14 @@ describe('伙伴生产资产目录', () => {
       dependencies: ['companion:default:luffy:manifest'],
     })
     expect(asset?.content).toContain('先听完提醒')
+  })
+
+  it('经历库登记篇章、事件和人物视角，外部搜索不混入本地 canon', () => {
+    const assets = getCompanionAssetCatalog()
+    expect(assets.find(asset => asset.key === 'companion:default:canon-arc-skypiea-enel')?.content).toContain('艾尼路篇章')
+    expect(assets.find(asset => asset.key === 'companion:default:canon-events-skypiea')?.content).toContain('黄金钟')
+    expect(assets.find(asset => asset.key === 'companion:default:luffy:continuity')?.content).toContain('canon')
+    expect(assets.find(asset => asset.key === 'companion:default:luffy:character-view')?.content).toContain('enel-conflict')
+    expect(assets.find(asset => asset.key === 'companion:default:zoro:character-view')?.content).toContain('skypiea-enel')
   })
 })

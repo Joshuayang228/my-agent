@@ -15,6 +15,8 @@ export type CharacterDraftSection =
   | 'continuity'
   | 'firstContact'
   | 'evidence'
+  | 'canon'
+  | 'externalEvidence'
 
 export interface CharacterDraft {
   id: string
@@ -32,7 +34,7 @@ const ID_PATTERN = /^[a-z0-9][a-z0-9_-]{1,63}$/i
 const MAX_TEXT = 50_000
 const SECTIONS = new Set<CharacterDraftSection>([
   'identity', 'world', 'relationships', 'appearance', 'behaviors', 'materials',
-  'dramaturgy', 'decisionRules', 'continuity', 'firstContact', 'evidence',
+  'dramaturgy', 'decisionRules', 'continuity', 'firstContact', 'evidence', 'canon', 'externalEvidence',
 ])
 
 function draftsRoot(): string {
@@ -104,6 +106,8 @@ export async function publishCharacterDraft(id: string): Promise<{ universeId: s
   const world = draft.sections.world || '人物世界尚未设定，不能补造居所、经历或当前位置。'
   const firstContact = draft.sections.firstContact || '首次冷启尚未设定；发布后不会自动补造名言或经历。'
   const continuity = draft.sections.continuity || '既有经历、当前状态和用户共同经历尚未分开设定。'
+  const canon = draft.sections.canon || '人物既有经历尚未整理为篇章 / 事件索引。'
+  const externalEvidence = draft.sections.externalEvidence || '尚无待确认的外部搜索证据。'
   try {
     await mkdir(join(roleRoot, 'scenes'), { recursive: true })
     await writeFile(join(temporaryRoot, 'manifest.json'), JSON.stringify({ id: universeId, title: draft.title, version: 1, protagonistIds: [roleId], castIds: [], plannedProtagonistSlots: 1, defaultProtagonistId: roleId, ownership: 'user' }, null, 2), 'utf8')
@@ -115,6 +119,8 @@ export async function publishCharacterDraft(id: string): Promise<{ universeId: s
     await writeFile(join(roleRoot, 'scenes', 'first-contact.md'), firstContact, 'utf8')
     await mkdir(join(roleRoot, 'timeline'), { recursive: true })
     await writeFile(join(roleRoot, 'timeline', 'continuity.md'), continuity, 'utf8')
+    await writeFile(join(roleRoot, 'timeline', 'canon.md'), canon, 'utf8')
+    await writeFile(join(roleRoot, 'timeline', 'external-evidence.md'), externalEvidence, 'utf8')
     await rename(temporaryRoot, root)
   } catch (error) {
     await rm(temporaryRoot, { recursive: true, force: true }).catch(() => undefined)

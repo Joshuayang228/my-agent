@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "universeId": "default",
+  "arcs": ["skypiea-enel"],
+  "events": ["skypiea-arrival", "enel-conflict", "golden-bell"]
+}

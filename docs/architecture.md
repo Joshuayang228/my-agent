@@ -482,3 +482,4 @@ LLM 返回 tool_calls（可能多个）
 - 2026-10-30：关系事件由 Chat 工具写入 `companion_events.payload.relationship / participantIds`，`life/moments.ts` 投影为 `companion_event_links(targetType=cast, relation=coframe)`；参与者和阶段不创建第二份关系真相。
 - 2026-10-31：人物设计新增的首次冷启与既有经历资料仍属于 Role Pack / Debug 资产层：loader 读取人物清单和场景文件，Prompt 注册表负责防漏登记，运行时按当前功能选择性注入；用户草稿先写入独立 userData，发布时才转换为 Universe / Role Pack，不新增 Renderer 直写生产资产路径。
 - 2026-10-31：首次冷启门闸落在 companion life store 与 IPC，按人物保存一次性领取记录；UI 只消费结果，避免把展示状态写进人物 Prompt 或用户记忆。
+- 2026-10-31：世界观 canon 篇章 / 事件与人物视角由 companion loader / asset registry 读取；`web_search` / `url_fetch` 只提供外部候选证据，用户确认后才通过人物草稿发布链进入 Role Pack。

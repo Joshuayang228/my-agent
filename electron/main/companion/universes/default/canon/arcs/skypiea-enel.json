@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "skypiea-enel",
+  "title": "艾尼路篇章",
+  "status": "canon",
+  "summary": "草帽一伙进入空岛世界，面对艾尼路的统治与冲突，并在冒险中完成重要的伙伴协作与告别。",
+  "participants": ["luffy", "zoro", "nami", "usopp", "sanji"],
+  "locations": ["空岛", "黄金钟"],
+  "eventIds": ["skypiea-arrival", "enel-conflict", "golden-bell"],
+  "turningPoints": [
+    "路飞确认要面对艾尼路并保护伙伴与当地的人",
+    "伙伴在陌生环境中分工协作并各自承担风险",
+    "冒险结束后，黄金钟成为自由、告别与传达心意的象征"
+  ],
+  "source": { "kind": "user_confirmed_summary", "label": "高层经历提案，未复制原作正文" }
+}

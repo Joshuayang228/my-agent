@@ -3,7 +3,7 @@ import { listCharacterDrafts, publishCharacterDraft, readCharacterDraft, saveCha
 
 const SECTIONS = [
   'identity', 'world', 'relationships', 'appearance', 'behaviors', 'materials',
-  'dramaturgy', 'decisionRules', 'continuity', 'firstContact', 'evidence',
+  'dramaturgy', 'decisionRules', 'continuity', 'firstContact', 'evidence', 'canon', 'externalEvidence',
 ] as const
 
 export const companionCharacterDraftTool = buildTool({

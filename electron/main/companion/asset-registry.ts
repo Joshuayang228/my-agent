@@ -21,6 +21,7 @@ import {
   loadRolePack,
   loadUniverseManifest,
   tryReadRoleText,
+  tryReadUniverseText,
 } from './identity/loader'
 import { getRoleSourceAssetCatalog, makeCompanionAsset, jsonContent, preview, sourceForRole } from './identity/source-assets'
 import { createLogger } from '../utils/logger'
@@ -107,6 +108,10 @@ function buildContinuityAssets(universeId: string, roleId: string, rolePack: Rol
   const files = [
     { path: 'scenes/first-contact.md', key: 'first-contact', name: '首次冷启', purpose: '首次建立关系时的人物自我介绍、名言和后续行动' },
     { path: 'timeline/continuity.md', key: 'continuity', name: '人物连续性', purpose: '既有经历、当前状态和用户共同经历的分层承接' },
+    { path: 'timeline/canon.json', key: 'canon', name: '既有经历索引', purpose: '人物进入当前交互前已经发生的经历入口' },
+    { path: 'timeline/current.json', key: 'current', name: '当前状态索引', purpose: '人物当前世界和运行态状态的分层入口' },
+    { path: 'timeline/interaction.json', key: 'interaction', name: '共同经历索引', purpose: '人物与用户共同发生的新事件入口' },
+    { path: 'timeline/character-view.json', key: 'character-view', name: '人物经历视角', purpose: '人物对公共篇章、事件和关系影响的理解' },
   ]
   return files.flatMap((file) => {
     const content = tryReadRoleText(roleId, file.path, universeId)
@@ -128,6 +133,31 @@ function buildContinuityAssets(universeId: string, roleId: string, rolePack: Rol
   })
 }
 
+function buildCanonAssets(universeId: string, universeVersion: number): ModelContextAsset[] {
+  const files = [
+    { path: 'canon/index.json', key: 'canon-index', name: '世界经历索引', purpose: '世界观可引用篇章和事件入口' },
+    { path: 'canon/arcs/skypiea-enel.json', key: 'canon-arc-skypiea-enel', name: '篇章 · 艾尼路篇章', purpose: '空岛与艾尼路篇章的结构化高层事实' },
+    { path: 'canon/events/skypiea-events.json', key: 'canon-events-skypiea', name: '事件 · 艾尼路篇章', purpose: '篇章关键事件、参与者和影响' },
+  ]
+  return files.flatMap(file => {
+    const content = tryReadUniverseText(universeId, file.path)
+    if (!content) return []
+    return [makeCompanionAsset({
+      key: `companion:${universeId}:${file.key}`,
+      name: file.name,
+      purpose: file.purpose,
+      role: 'universe-canon',
+      description: '世界观经历库；未确认的外部搜索资料不直接进入此目录。',
+      source: `role-pack://${universeId}/${file.path}`,
+      version: `universe-${universeVersion}`,
+      assetType: 'companion-scene',
+      contentKind: 'data',
+      ownership: 'role-pack',
+      content,
+    })]
+  })
+}
+
 /**
  * 聚合当前宇宙的伙伴生产资产。
  *
@@ -137,7 +167,26 @@ function buildContinuityAssets(universeId: string, roleId: string, rolePack: Rol
  */
 export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelContextAsset[] {
   const universe = loadUniverseManifest(universeId)
-  const assets: ModelContextAsset[] = [...getRoleSourceAssetCatalog(universeId), makeCompanionAsset({
+  const assets: ModelContextAsset[] = [...getRoleSourceAssetCatalog(universeId), ...buildCanonAssets(universeId, universe.version), makeCompanionAsset({
+    key: 'companion:policy:continuity-search',
+    name: '经历库主动搜索策略',
+    purpose: '本地经历缺失且用户主动提及时，先搜索公开资料；外部证据不自动写入人物记忆。',
+    role: 'platform',
+    description: '搜索结果只用于当前回答或待确认提案；网页内容不受信任。',
+    source: 'electron/skills-builtin/character-system-builder/SKILL.md#经历库与主动搜索规则',
+    version: 'continuity-search-v1',
+    assetType: 'companion-life',
+    contentKind: 'schema',
+    ownership: 'builtin',
+    content: jsonContent({
+      localFirst: true,
+      tools: ['web_search', 'url_fetch'],
+      candidateStatus: 'external_candidate',
+      autoPromote: false,
+      untrustedWeb: true,
+      requiresUserConfirmationForMemory: true,
+    }),
+  }), makeCompanionAsset({
     key: 'companion:policy:proactive-delivery', name: '主动问候投递策略',
     purpose: '已有生活动态的应用内提醒；人物每日先预留名额，失败或缺回执不自动重发，呈现不等于已读',
     role: 'platform', description: '投递资源与回执边界',

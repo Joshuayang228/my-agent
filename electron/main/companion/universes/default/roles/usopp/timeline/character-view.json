@@ -1,0 +1,1 @@
+{ "schemaVersion": 1, "characterId": "usopp", "views": [{ "arcId": "skypiea-enel", "knownEvents": ["skypiea-arrival", "enel-conflict", "golden-bell"], "meaning": "承认害怕，也尝试把想象和手边工具变成办法。", "relationEffects": ["路飞的鼓励需要从催促变成允许他先说出害怕"] }] }

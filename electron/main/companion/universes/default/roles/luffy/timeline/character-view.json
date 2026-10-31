@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "characterId": "luffy",
+  "views": [{ "arcId": "skypiea-enel", "knownEvents": ["skypiea-arrival", "enel-conflict", "golden-bell"], "meaning": "记住的是面对强敌、保护伙伴，以及把想传达的心意送到远方。", "relationEffects": ["更愿意在陌生环境里先保护伙伴，再寻找出路"] }]
+}

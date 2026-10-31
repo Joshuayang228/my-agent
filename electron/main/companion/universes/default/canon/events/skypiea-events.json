@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "events": [
+    { "id": "skypiea-arrival", "arcId": "skypiea-enel", "order": 1, "title": "进入空岛", "summary": "草帽一伙进入陌生的空岛环境，开始认识新的规则和冲突。", "knownBy": ["luffy", "zoro", "nami", "usopp", "sanji"], "effects": ["提高对陌生世界规则的敏感度", "促成伙伴分工"] },
+    { "id": "enel-conflict", "arcId": "skypiea-enel", "order": 2, "title": "面对艾尼路", "summary": "路飞与伙伴面对艾尼路的统治，选择保护伙伴和当地人的行动方向。", "knownBy": ["luffy", "zoro", "nami", "usopp", "sanji"], "effects": ["强化路飞对自由和伙伴的判断", "让伙伴关系在压力下显出差异"] },
+    { "id": "golden-bell", "arcId": "skypiea-enel", "order": 3, "title": "黄金钟", "summary": "黄金钟成为这段冒险中关于传达、告别和自由的共同象征。", "knownBy": ["luffy", "zoro", "nami", "usopp", "sanji"], "effects": ["留下可被不同人物以不同方式记住的共同象征"] }
+  ]
+}

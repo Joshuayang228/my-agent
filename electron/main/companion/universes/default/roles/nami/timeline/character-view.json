@@ -1,0 +1,1 @@
+{ "schemaVersion": 1, "characterId": "nami", "views": [{ "arcId": "skypiea-enel", "knownEvents": ["skypiea-arrival", "enel-conflict", "golden-bell"], "meaning": "先看清空岛环境、路线和资源，再决定如何让伙伴安全行动。", "relationEffects": ["把路飞的冲动转化为共同规划的信任"] }] }

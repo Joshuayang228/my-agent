@@ -346,3 +346,13 @@ export function tryReadRoleText(
   if (!assetExists(rel)) return null
   return readText(rel)
 }
+
+/** 读取世界观公共经历资产；缺失返回 null，不把外部搜索结果伪装成本地事实。 */
+export function tryReadUniverseText(
+  universeId: string,
+  fileRelWithinUniverse: string,
+): string | null {
+  const rel = `${universeId}/${fileRelWithinUniverse.replace(/\\/g, '/')}`
+  if (!assetExists(rel)) return null
+  return readText(rel)
+}

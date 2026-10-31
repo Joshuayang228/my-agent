@@ -1,0 +1,1 @@
+{ "schemaVersion": 1, "characterId": "zoro", "views": [{ "arcId": "skypiea-enel", "knownEvents": ["skypiea-arrival", "enel-conflict", "golden-bell"], "meaning": "在陌生规则下继续兑现承诺，关键时刻承担风险。", "relationEffects": ["对路飞的信任通过行动被再次确认"] }] }

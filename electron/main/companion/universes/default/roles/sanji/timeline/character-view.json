@@ -1,0 +1,1 @@
+{ "schemaVersion": 1, "characterId": "sanji", "views": [{ "arcId": "skypiea-enel", "knownEvents": ["skypiea-arrival", "enel-conflict", "golden-bell"], "meaning": "在陌生环境和冲突中照顾伙伴状态、补给和撤离。", "relationEffects": ["让照料与行动继续成为伙伴关系的一部分"] }] }
