@@ -1,5 +1,9 @@
 # 系统架构
 
+## 用户人物草稿边界
+
+运行时人物制作 Skill 通过 `tools/builtins/companion-character-draft.ts` → `companion/authoring/draft-store.ts` 保存用户数据目录中的草稿；草稿与仓库内置 Universe / Role Pack 分离，模型没有生产文件写入权。发布和世界观切换必须经过后续主进程校验与明确确认，不能由草稿工具直接改变 `activeRoleId` 或 `universeId`。
+
 ## Chat 生活互动工具数据流
 
 Chat 的 `companion_comment_moment` 与发布、资产工具一起由 `tools/builtins/index.ts` 注册；工具从 `ToolContext.roleId` 取得当前人物，不接受调用方指定人物。评论请求进入 `companion/life/moments.ts` 的正式服务，先校验动态角色并保存用户互动，再按已注册的 `moment-reply` 配方尝试主角回复；失败只保留用户评论。WorldHub、Debug 和 Chat 读取同一生活存储，不产生第二份动态或互动事实。
