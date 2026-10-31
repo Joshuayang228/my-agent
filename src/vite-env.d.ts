@@ -153,6 +153,11 @@ declare global {
       }
       companion: {
         listProtagonists: () => Promise<Array<{ id: string; name: string; description: string }>>
+        listUniverses: () => Promise<Array<{ id: string; title: string; version: number; defaultProtagonistId: string; active: boolean }>>
+        switchUniverse: (universeId: string) => Promise<
+          | { ok: true; universeId: string; roleId: string; name: string }
+          | { ok: false; code: 'UNKNOWN_UNIVERSE' | 'SESSION_ACTIVE' | 'ALREADY_ACTIVE' | 'INVALID_UNIVERSE' | 'SWITCH_FAILED' }
+        >
         getActive: () => Promise<{ id: string; name: string; description: string; universeId: string }>
         requestSwitch: (roleId: string) => Promise<
           | {

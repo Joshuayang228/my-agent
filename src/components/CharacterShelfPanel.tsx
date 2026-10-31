@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useToast } from './Toast'
 import { CharacterShelfContent, type ShelfCharacter } from './companion/CharacterShelfContent'
+import { SelectField } from './foundation/SelectField'
 
 interface CharacterShelfPanelProps {
   onClose: () => void
@@ -16,6 +17,9 @@ export function CharacterShelfPanel({ onClose, onSwitched }: CharacterShelfPanel
   const { toast } = useToast()
   const [list, setList] = useState<ShelfCharacter[]>([])
   const [activeId, setActiveId] = useState('')
+  const [universes, setUniverses] = useState<Array<{ id: string; title: string; version: number; defaultProtagonistId: string; active: boolean }>>([])
+  const [universeError, setUniverseError] = useState('')
+  const [switchingUniverse, setSwitchingUniverse] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [switchingId, setSwitchingId] = useState<string | null>(null)
@@ -29,13 +33,15 @@ export function CharacterShelfPanel({ onClose, onSwitched }: CharacterShelfPanel
     setError('')
     try {
       if (!window.electronAPI?.companion) throw new Error('Companion unavailable')
-      const [pros, active] = await Promise.all([
+      const [pros, active, availableUniverses] = await Promise.all([
         window.electronAPI.companion.listProtagonists(),
         window.electronAPI.companion.getActive(),
+        window.electronAPI.companion.listUniverses(),
       ])
       if (!mounted.current || current !== generation.current) return
       setList(pros)
       setActiveId(active.id)
+      setUniverses(availableUniverses)
     } catch {
       if (mounted.current && current === generation.current) setError('角色读取失败，请刷新重试。')
     } finally {
@@ -76,8 +82,24 @@ export function CharacterShelfPanel({ onClose, onSwitched }: CharacterShelfPanel
     }
   }
 
+  const handleUniverseSwitch = async (id: string) => {
+    if (!id || switchingUniverse || loading) return
+    setSwitchingUniverse(true); setUniverseError('')
+    try {
+      const result = await window.electronAPI?.companion.switchUniverse(id)
+      if (result?.ok) {
+        toast(`已切换到${universes.find(item => item.id === id)?.title || id}`, 'success')
+        await load()
+      } else {
+        setUniverseError(result?.code === 'SESSION_ACTIVE' ? '对话进行中，请先结束当前回复后再切换世界观。' : '世界观切换未完成，请重试。')
+      }
+    } catch { setUniverseError('世界观切换未完成，请重试。') }
+    finally { if (mounted.current) setSwitchingUniverse(false) }
+  }
+
   return <div className="h-full min-h-0 overflow-y-auto scrollbar-thin" data-testid="character-shelf-panel">
-    <CharacterShelfContent characters={list} activeId={activeId} switchingId={switchingId} loading={loading} error={error}
+    {universes.length > 0 && <div className="mb-4 rounded-lg border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}><label className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>当前世界观</label><SelectField className="mt-1 w-full" aria-label="当前世界观" value={universes.find(item => item.active)?.id || ''} disabled={loading || switchingUniverse || !!switchingId} onChange={event => { void handleUniverseSwitch(event.target.value) }}>{universes.map(item => <option key={item.id} value={item.id}>{item.title} · {item.id}</option>)}</SelectField>{universeError && <p className="mt-2 text-xs" role="alert" style={{ color: 'var(--danger)' }}>{universeError}</p>}</div>}
+    <CharacterShelfContent characters={list} activeId={activeId} switchingId={switchingId} loading={loading || switchingUniverse} error={error}
       onSelect={id => { void handleSwitch(id) }} onRefresh={() => { void load() }} onClose={onClose} />
   </div>
 }

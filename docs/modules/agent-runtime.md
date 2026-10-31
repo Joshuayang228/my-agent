@@ -8,6 +8,8 @@
 
 Debug 模型上下文目录按设置中的 `universeId` 聚合 Companion 资产，避免用户世界发布后仍只展示默认世界的角色、关系和生活目录。
 
+世界观切换同步贯穿 preload、Companion IPC、orchestrator 和角色架；Renderer 不直接写 `universeId`，主进程负责验证 manifest、默认主角、流式状态和设置回滚。
+
 Chat 生活工具入口补充（2026-10-30）：内置工具注册现在包含 `companion_post_moment`、`companion_comment_moment` 和 `companion_create_asset`。评论工具只接受当前会话人物的动态 ID，调用正式 `addMomentCommentForRole`；用户评论、主角回复 Prompt、失败回退和持久化仍由 companion 领域服务负责，工具注册表只暴露 schema 与来源。
 
 ## 提示词覆盖边界（2026-10-27 核对）

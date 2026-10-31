@@ -140,6 +140,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   companion: {
     listProtagonists: (): Promise<{ id: string; name: string; description: string }[]> =>
       ipcRenderer.invoke('companion:list-protagonists'),
+    listUniverses: (): Promise<Array<{ id: string; title: string; version: number; defaultProtagonistId: string; active: boolean }>> =>
+      ipcRenderer.invoke('companion:list-universes'),
+    switchUniverse: (universeId: string) => ipcRenderer.invoke('companion:switch-universe', universeId),
     getActive: (): Promise<{ id: string; name: string; description: string; universeId: string }> =>
       ipcRenderer.invoke('companion:get-active'),
     requestSwitch: (

@@ -13,11 +13,14 @@ import {
   getActiveRoleId,
   getActiveRoster,
   listActiveUniverseProtagonists,
+  listAvailableUniverseIds,
+  requestUniverseSwitch,
   getCastAvailability,
   requestSwitch,
   startSummonSession,
   summonCastBrief,
 } from '../companion/orchestrator'
+import * as identity from '../companion/identity/loader'
 import {
   getMutable,
   listMutableVersions,
@@ -64,6 +67,19 @@ export function registerCompanionIPC(): void {
   ipcMain.handle('companion:list-protagonists', async () => {
     const universeId = await settings.getSetting('universeId')
     return listActiveUniverseProtagonists(universeId)
+  })
+  ipcMain.handle('companion:list-universes', async () => {
+    const active = await settings.getSetting('universeId')
+    return listAvailableUniverseIds().map(id => {
+      try {
+        const manifest = identity.loadUniverseManifest(id)
+        return { id, title: manifest.title, version: manifest.version, defaultProtagonistId: manifest.defaultProtagonistId, active: id === active }
+      } catch { return { id, title: id, version: 0, defaultProtagonistId: '', active: id === active } }
+    })
+  })
+  ipcMain.handle('companion:switch-universe', async (_e, universeId: unknown) => {
+    if (typeof universeId !== 'string') return { ok: false as const, code: 'INVALID_UNIVERSE' as const }
+    try { return await requestUniverseSwitch(universeId) } catch { return { ok: false as const, code: 'SWITCH_FAILED' as const } }
   })
 
   ipcMain.handle('companion:get-active', async () => getActiveRole())
