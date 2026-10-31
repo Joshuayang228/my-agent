@@ -33,6 +33,12 @@ async function ensureTables(): Promise<void> {
       updated_at      INTEGER NOT NULL
     )
   `)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS companion_first_contact (
+      role_id  TEXT PRIMARY KEY,
+      shown_at INTEGER NOT NULL
+    )
+  `)
   // 旧表缺列时补齐（单测 memDb / 未跑完 schema migrate 的路径）
   try {
     db.run(`ALTER TABLE companion_role_state ADD COLUMN world_json TEXT NOT NULL DEFAULT '{}'`)
@@ -134,6 +140,26 @@ async function ensureTables(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_companion_event_links_target
       ON companion_event_links(role_id, target_type, target_id)
   `)
+}
+
+/**
+ * 原子领取人物首次冷启资格。
+ *
+ * 背景：首次人物宣言属于关系建立仪式，不能在每个空白新聊天中重复播放。
+ * 设计意图：单独按角色保存一次性门闸，避免把展示状态混入可成长状态或用户记忆。
+ * 关键约束：只有第一次调用返回 true；数据库失败必须上抛，由 IPC 转成友好错误，不能假装已展示。
+ */
+export async function claimFirstContact(roleId: string): Promise<boolean> {
+  await ensureTables()
+  const db = await getDatabase()
+  const check = db.prepare('SELECT role_id FROM companion_first_contact WHERE role_id = ?')
+  check.bind([roleId])
+  const alreadyShown = check.step()
+  check.free()
+  if (alreadyShown) return false
+  db.run('INSERT INTO companion_first_contact (role_id, shown_at) VALUES (?, ?)', [roleId, Date.now()])
+  persist()
+  return true
 }
 
 export async function getRoleState(roleId: string): Promise<CompanionRoleState | null> {

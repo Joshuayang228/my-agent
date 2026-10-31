@@ -145,6 +145,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     switchUniverse: (universeId: string) => ipcRenderer.invoke('companion:switch-universe', universeId),
     getActive: (): Promise<{ id: string; name: string; description: string; universeId: string; firstContact?: { openingLine: string; quote?: string; followUpStyle?: string; repeatPolicy: string } }> =>
       ipcRenderer.invoke('companion:get-active'),
+    claimFirstContact: (): Promise<boolean> => ipcRenderer.invoke('companion:claim-first-contact'),
     requestSwitch: (
       roleId: string,
     ): Promise<

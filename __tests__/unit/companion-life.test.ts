@@ -113,6 +113,12 @@ describe('LifeEngine', () => {
     memDb.close()
   })
 
+  it('首次冷启资格按人物持久化且只领取一次', async () => {
+    expect(await lifeStore.claimFirstContact('luffy')).toBe(true)
+    expect(await lifeStore.claimFirstContact('luffy')).toBe(false)
+    expect(await lifeStore.claimFirstContact('zoro')).toBe(true)
+  })
+
   it('实际生活推进与发布沿真实事件和动态 ID 关联，历史不含正文', async () => {
     const history: DiagnosticHistoryRecord[] = []
     setDiagnosticHistorySink(record => { history.push(record) })

@@ -49,7 +49,7 @@ import {
   toggleMomentLikeForRole,
 } from '../companion/life/moments'
 import { describeMomentSocial } from '../../../src/shared/moment-user-interactions'
-import { getRoleState } from '../companion/life/store'
+import { claimFirstContact, getRoleState } from '../companion/life/store'
 import { getLifeSliceForRole } from '../companion/life/slices'
 import { momentImageIdsForRole, readMomentImageForRole } from '../companion/life/moment-images'
 import * as settings from '../storage/settings-store'
@@ -83,6 +83,9 @@ export function registerCompanionIPC(): void {
   })
 
   ipcMain.handle('companion:get-active', async () => getActiveRole())
+  ipcMain.handle('companion:claim-first-contact', async () => {
+    try { return await claimFirstContact(await getActiveRoleId()) } catch { throw new Error('无法读取人物首次冷启状态') }
+  })
 
   ipcMain.handle('companion:request-switch', async (_e, roleId: string) => {
     if (typeof roleId !== 'string' || !roleId.trim()) {

@@ -164,6 +164,7 @@ function App() {
   const [currentPersonaName, setCurrentPersonaName] = useState('路飞')
   const [companionBlurb, setCompanionBlurb] = useState('自由、直率、重视伙伴的冒险伙伴')
   const [companionFirstContact, setCompanionFirstContact] = useState<{ openingLine: string; quote?: string } | undefined>()
+  const [showFirstContact, setShowFirstContact] = useState(false)
   const [activeRoleId, setActiveRoleId] = useState('luffy')
   const [protagonistNames, setProtagonistNames] = useState<Record<string, string>>({ luffy: '路飞' })
   const [reasoning, setReasoning] = useState<ReasoningCallbackState>(() => resetReasoning())
@@ -266,6 +267,14 @@ function App() {
 
   useEffect(() => { sessionsRef.current = sessions }, [sessions])
   useEffect(() => { activeSessionIdRef.current = activeSessionId }, [activeSessionId])
+
+  useEffect(() => {
+    if (messages.length > 0 || !companionFirstContact || !window.electronAPI?.companion.claimFirstContact) {
+      setShowFirstContact(false)
+      return
+    }
+    void window.electronAPI.companion.claimFirstContact().then(setShowFirstContact).catch(() => setShowFirstContact(false))
+  }, [messages.length, companionFirstContact])
 
   // ── M13：MCP Elicitation（服务端要补充信息）──
   useEffect(() => {
@@ -968,7 +977,7 @@ function App() {
   const coldStart = buildColdStartCopy({
     name: currentPersonaName,
     description: companionBlurb,
-    firstContact: companionFirstContact,
+    firstContact: showFirstContact ? companionFirstContact : undefined,
   })
 
   // 全屏导航不能销毁项目工作区：保留固定位置的产品子树，仅隐藏；项目 key 才定义资源归属。

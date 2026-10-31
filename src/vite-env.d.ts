@@ -159,6 +159,7 @@ declare global {
           | { ok: false; code: 'UNKNOWN_UNIVERSE' | 'SESSION_ACTIVE' | 'ALREADY_ACTIVE' | 'INVALID_UNIVERSE' | 'SWITCH_FAILED' }
         >
         getActive: () => Promise<{ id: string; name: string; description: string; universeId: string; firstContact?: { openingLine: string; quote?: string; followUpStyle?: string; repeatPolicy: string } }>
+        claimFirstContact: () => Promise<boolean>
         requestSwitch: (roleId: string) => Promise<
           | {
               ok: true
