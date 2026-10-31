@@ -2,7 +2,9 @@
 
 ## 用户人物草稿边界
 
-运行时人物制作 Skill 通过 `tools/builtins/companion-character-draft.ts` → `companion/authoring/draft-store.ts` 保存用户数据目录中的草稿；草稿与仓库内置 Universe / Role Pack 分离，模型没有生产文件写入权。发布和世界观切换必须经过后续主进程校验与明确确认，不能由草稿工具直接改变 `activeRoleId` 或 `universeId`。
+运行时人物制作 Skill 通过 `tools/builtins/companion-character-draft.ts` → `companion/authoring/draft-store.ts` 保存用户数据目录中的草稿；草稿与仓库内置 Universe / Role Pack 分离，模型不能绕过工具确认直接覆盖内置资产。发布和世界观切换必须经过主进程校验与明确确认，不能由普通草稿更新直接改变 `activeRoleId` 或 `universeId`。
+
+审阅发布后，`draft-store` 以同一 Universe loader 形状写入用户 `universes/`，并为角色生成带 Universe 前缀的内部 ID，规避当前运行表按 `role_id` 分桶的碰撞。`companion_switch_universe` 经 Companion orchestrator 校验、暂停 / 恢复与设置回滚后切换；正式 UI 和完整历史隔离门禁仍未完成。
 
 ## Chat 生活互动工具数据流
 

@@ -246,6 +246,50 @@ export function listActiveUniverseProtagonists(universeId?: string): RoleSummary
   return identity.listProtagonists(universeId ?? 'default')
 }
 
+export function listAvailableUniverseIds(): string[] {
+  return identity.listAvailableUniverseIds()
+}
+
+/**
+ * 切换当前世界观套装，并把 activeRoleId 指向目标世界默认主角。
+ *
+ * 背景：世界观设置和主角设置分开保存，先改其中一个会让运行时短暂读取到跨世界组合。
+ * 设计意图：先校验目标 manifest 与默认主角，再在暂停旧角色后连续写入世界观 / 主角并恢复新角色。
+ * 关键约束：流式会话期间拒绝切换；目标世界不存在、默认主角无效或写入失败时不宣称切换成功。
+ */
+export async function requestUniverseSwitch(universeId: string): Promise<
+  | { ok: true; universeId: string; roleId: string; name: string }
+  | { ok: false; code: 'UNKNOWN_UNIVERSE' | 'SESSION_ACTIVE' | 'ALREADY_ACTIVE' | 'INVALID_UNIVERSE' }
+> {
+  const id = universeId.trim()
+  if (!/^[a-zA-Z0-9_-]{1,80}$/.test(id)) return { ok: false, code: 'INVALID_UNIVERSE' }
+  let manifest
+  try { manifest = identity.loadUniverseManifest(id) } catch { return { ok: false, code: 'UNKNOWN_UNIVERSE' } }
+  if (!identity.isKnownProtagonist(manifest.defaultProtagonistId, id)) return { ok: false, code: 'UNKNOWN_UNIVERSE' }
+  const currentUniverse = await settings.getSetting('universeId')
+  const currentRole = await getActiveRoleId()
+  if (currentUniverse === id) return { ok: false, code: 'ALREADY_ACTIVE' }
+  if (isStreamingActive()) return { ok: false, code: 'SESSION_ACTIVE' }
+  const now = Date.now()
+  await pauseRole(currentRole, now)
+  try {
+    await settings.setSetting('universeId', id)
+    await settings.setSetting('activeRoleId', manifest.defaultProtagonistId)
+    await resumeRole(manifest.defaultProtagonistId)
+  } catch (error) {
+    // 两个设置键不是同一个 SQL 事务；失败时尽力恢复旧组合，避免留下跨世界半切换状态。
+    try {
+      await settings.setSetting('universeId', currentUniverse)
+      await settings.setSetting('activeRoleId', currentRole)
+      await resumeRole(currentRole)
+    } catch { /* 下次启动会按旧世界 / 默认主角校验并报告异常 */ }
+    throw error
+  }
+  const pack = identity.loadRolePack(manifest.defaultProtagonistId, id)
+  broadcastRoleChanged({ roleId: manifest.defaultProtagonistId, catchupQueued: false, previousRoleId: currentRole, reacquaint: buildReacquaintCopy({ fromName: currentRole, toName: pack.name, catchupQueued: false }) })
+  return { ok: true, universeId: id, roleId: manifest.defaultProtagonistId, name: pack.name }
+}
+
 /**
  * 聊天前校验：会话绑定的 role_id 不可被 activeRoleId 悄悄替换。
  * 返回应使用的 assembleRoleId；mismatch 时 UI 应提示「当前会话仍是旧主角」。

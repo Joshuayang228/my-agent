@@ -19,6 +19,7 @@ import { thinkTool } from './think'
 import { imageGenerateTool } from './image-generate'
 import { companionCommentMomentTool, companionCreateAssetTool, companionPostMomentTool } from './companion-life'
 import { companionCharacterDraftTool } from './companion-character-draft'
+import { companionUniverseTool } from './companion-universe'
 
 const BUILTIN_TOOL_ENTRIES: Array<{ tool: ToolDefinition; source: string }> = [
   { tool: getCurrentTimeTool, source: 'electron/main/tools/builtins/get-current-time.ts' },
@@ -49,6 +50,7 @@ const BUILTIN_TOOL_ENTRIES: Array<{ tool: ToolDefinition; source: string }> = [
   { tool: companionCreateAssetTool, source: 'electron/main/tools/builtins/companion-life.ts' },
   { tool: companionCommentMomentTool, source: 'electron/main/tools/builtins/companion-life.ts' },
   { tool: companionCharacterDraftTool, source: 'electron/main/tools/builtins/companion-character-draft.ts' },
+  { tool: companionUniverseTool, source: 'electron/main/tools/builtins/companion-universe.ts' },
 ]
 
 export const builtinTools: ToolDefinition[] = BUILTIN_TOOL_ENTRIES.map((entry) => entry.tool)

@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 export type CharacterDraftStatus = 'draft' | 'review'
@@ -23,6 +23,10 @@ const SECTIONS = new Set<CharacterDraftSection>(['identity', 'world', 'relations
 
 function draftsRoot(): string {
   try { return join(app.getPath('userData'), 'character-drafts') } catch { return join(process.cwd(), '.agent-data', 'character-drafts') }
+}
+
+function universesRoot(): string {
+  try { return join(app.getPath('userData'), 'universes') } catch { return join(process.cwd(), '.agent-data', 'universes') }
 }
 
 function assertId(value: string, label: string): string {
@@ -62,6 +66,41 @@ export async function listCharacterDrafts(): Promise<CharacterDraft[]> {
     const drafts = await Promise.all(entries.filter(entry => entry.isFile() && entry.name.endsWith('.json')).map(entry => readCharacterDraft(entry.name.slice(0, -5))))
     return drafts.filter((draft): draft is CharacterDraft => Boolean(draft)).sort((a, b) => b.updatedAt - a.updatedAt)
   } catch { return [] }
+}
+
+/**
+ * 将已提交审阅的最小人物草稿发布为用户世界观。
+ *
+ * 背景：用户生成的人物必须进入与内置 Universe 相同的 loader 形状，才能复用 Prompt、名册和 Debug 目录。
+ * 设计意图：发布时生成带世界观前缀的内部 role id，规避当前运行库按 role_id 分桶造成的跨世界碰撞；模型不能直接调用此函数。
+ * 关键约束：只接受 review 草稿，拒绝覆盖既有世界；只写 manifest / relations / 必需 Role Pack，缺失的详细档案保持未设定而不是编造。
+ */
+export async function publishCharacterDraft(id: string): Promise<{ universeId: string; roleId: string; title: string }> {
+  const draft = await readCharacterDraft(id)
+  if (!draft) throw new Error('找不到人物草稿。')
+  if (draft.status !== 'review') throw new Error('人物草稿必须先提交审阅。')
+  const universeId = assertId(draft.universeId, '世界观标识')
+  const roleId = assertId(`${universeId}-${draft.roleId}`.slice(0, 64), '发布人物标识')
+  const root = join(universesRoot(), universeId)
+  if (await readFile(join(root, 'manifest.json'), 'utf8').then(() => true).catch(() => false)) throw new Error('世界观已存在，不能覆盖。')
+  const temporaryRoot = join(universesRoot(), `.tmp-${universeId}-${process.pid}-${Date.now()}`)
+  const roleRoot = join(temporaryRoot, 'roles', roleId)
+  await mkdir(roleRoot, { recursive: true })
+  const identity = draft.sections.identity || `${draft.roleName} 的稳定身份和表达仍待补充。`
+  const world = draft.sections.world || '人物世界尚未设定，不能补造居所、经历或当前位置。'
+  try {
+    await writeFile(join(temporaryRoot, 'manifest.json'), JSON.stringify({ id: universeId, title: draft.title, version: 1, protagonistIds: [roleId], castIds: [], plannedProtagonistSlots: 1, defaultProtagonistId: roleId, ownership: 'user' }, null, 2), 'utf8')
+    await writeFile(join(temporaryRoot, 'relations.json'), JSON.stringify({ edges: [] }, null, 2), 'utf8')
+    await writeFile(join(roleRoot, 'manifest.json'), JSON.stringify({ id: roleId, name: draft.roleName, description: identity.slice(0, 240), canBeProtagonist: true, asideStyle: '沿用已确认的人物表达，缺少资料时明确说明。', ownership: 'user', sourceDraftId: draft.id }, null, 2), 'utf8')
+    await writeFile(join(roleRoot, 'protected.md'), `你是${draft.roleName}。\n\n${identity}\n\n世界观资料：\n${world}`, 'utf8')
+    await writeFile(join(roleRoot, 'mutable.default.md'), '当前可变行为状态尚未设定，只根据用户确认逐步形成。', 'utf8')
+    await writeFile(join(roleRoot, 'summary.txt'), identity.slice(0, 1000), 'utf8')
+    await rename(temporaryRoot, root)
+  } catch (error) {
+    await rm(temporaryRoot, { recursive: true, force: true }).catch(() => undefined)
+    throw error
+  }
+  return { universeId, roleId, title: draft.title }
 }
 
 /**

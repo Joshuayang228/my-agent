@@ -11,6 +11,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { app } from 'electron'
 import type {
   RoleManifest,
   RolePack,
@@ -79,11 +80,21 @@ function resolveUniversesRoot(): string {
   )
 }
 
+function resolveUserUniversesRoot(): string {
+  try { return path.join(app.getPath('userData'), 'universes') } catch { return path.join(process.cwd(), '.agent-data', 'universes') }
+}
+
+function resolveAssetPath(relUnixPath: string): string {
+  const userPath = path.join(resolveUserUniversesRoot(), ...relUnixPath.split('/'))
+  if (fs.existsSync(userPath)) return userPath
+  return path.join(resolveUniversesRoot(), ...relUnixPath.split('/'))
+}
+
 function readText(relUnixPath: string): string {
   const bundled = readBundled(relUnixPath)
   if (bundled !== null) return bundled
 
-  const abs = path.join(resolveUniversesRoot(), ...relUnixPath.split('/'))
+  const abs = resolveAssetPath(relUnixPath)
   if (isVitestFixtureMode() && !fs.existsSync(abs) && fs.existsSync(fixturePath(relUnixPath))) {
     return fs.readFileSync(fixturePath(relUnixPath), 'utf-8').replace(/^\uFEFF/, '').trimEnd()
   }
@@ -97,7 +108,7 @@ function readJson<T>(relUnixPath: string): T {
 function assetExists(relUnixPath: string): boolean {
   if (readBundled(relUnixPath) !== null) return true
   try {
-    const abs = path.join(resolveUniversesRoot(), ...relUnixPath.split('/'))
+    const abs = resolveAssetPath(relUnixPath)
     return fs.existsSync(abs) || (isVitestFixtureMode() && fs.existsSync(fixturePath(relUnixPath)))
   } catch {
     return false
@@ -199,6 +210,15 @@ export function listAvailableRoleIds(universeId: string = DEFAULT_UNIVERSE): str
     // 打包环境可能没有可扫描目录；bundledAssets 已覆盖正常生产路径。
   }
 
+  try {
+    const rolesRoot = path.join(resolveUserUniversesRoot(), universeId, 'roles')
+    for (const entry of fs.readdirSync(rolesRoot, { withFileTypes: true })) {
+      if (entry.isDirectory() && fs.existsSync(path.join(rolesRoot, entry.name, 'manifest.json'))) roleIds.push(entry.name)
+    }
+  } catch {
+    // 用户世界不存在或尚未发布时，只保留内置 / 打包资产。
+  }
+
   if (isVitestFixtureMode()) {
     try {
       const fixtureRoot = path.join(TEST_FIXTURE_ROOT, 'roles')
@@ -211,6 +231,29 @@ export function listAvailableRoleIds(universeId: string = DEFAULT_UNIVERSE): str
   }
 
   return [...new Set(roleIds)].sort()
+}
+
+/** 列出可切换的内置与用户世界观套装；用户世界的 manifest 仍由同一 loader 校验。 */
+export function listAvailableUniverseIds(): string[] {
+  const ids = new Set<string>()
+  try {
+    for (const key of Object.keys(bundledAssets)) {
+      const normalized = key.replace(/\\/g, '/')
+      const marker = normalized.indexOf('/universes/')
+      if (marker < 0) continue
+      const rest = normalized.slice(marker + '/universes/'.length)
+      const id = rest.split('/')[0]
+      if (id && rest.endsWith('/manifest.json')) ids.add(id)
+    }
+  } catch { /* bundled assets unavailable in a narrow test harness */ }
+  for (const root of [resolveUniversesRoot(), resolveUserUniversesRoot()]) {
+    try {
+      for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+        if (entry.isDirectory() && fs.existsSync(path.join(root, entry.name, 'manifest.json'))) ids.add(entry.name)
+      }
+    } catch { /* root may not exist */ }
+  }
+  return [...ids].sort()
 }
 
 /**

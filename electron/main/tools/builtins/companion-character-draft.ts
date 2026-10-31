@@ -1,5 +1,5 @@
 import { buildTool } from '../builder'
-import { listCharacterDrafts, readCharacterDraft, saveCharacterDraft, type CharacterDraftSection } from '../../companion/authoring/draft-store'
+import { listCharacterDrafts, publishCharacterDraft, readCharacterDraft, saveCharacterDraft, type CharacterDraftSection } from '../../companion/authoring/draft-store'
 
 const SECTIONS = ['identity', 'world', 'relationships', 'appearance', 'behaviors', 'materials'] as const
 
@@ -9,7 +9,7 @@ export const companionCharacterDraftTool = buildTool({
   parameters: {
     type: 'object',
     properties: {
-      action: { type: 'string', enum: ['create', 'update', 'submit_for_review', 'read', 'list'] },
+      action: { type: 'string', enum: ['create', 'update', 'submit_for_review', 'publish', 'read', 'list'] },
       draftId: { type: 'string', description: '已有草稿标识。' },
       universeId: { type: 'string', description: '世界观套装标识。' },
       title: { type: 'string', description: '人物体系草稿标题。' },
@@ -20,7 +20,7 @@ export const companionCharacterDraftTool = buildTool({
     },
     required: ['action'],
   },
-  metadata: { isReadOnly: false, isDestructive: false, isConcurrencySafe: false },
+  metadata: { isReadOnly: false, isDestructive: true, isConcurrencySafe: false },
   execute: async (args) => {
     const action = typeof args.action === 'string' ? args.action : ''
     if (action === 'list') return JSON.stringify(await listCharacterDrafts())
@@ -28,6 +28,15 @@ export const companionCharacterDraftTool = buildTool({
       if (typeof args.draftId !== 'string') return '读取人物草稿需要 draftId。'
       const draft = await readCharacterDraft(args.draftId)
       return draft ? JSON.stringify(draft) : '找不到人物草稿。'
+    }
+    if (action === 'publish') {
+      if (typeof args.draftId !== 'string') return '发布人物草稿需要 draftId。'
+      try {
+        const result = await publishCharacterDraft(args.draftId)
+        return `人物草稿已发布为用户世界观「${result.title}」，世界观 ID：${result.universeId}，主角 ID：${result.roleId}。尚未自动切换当前世界观。`
+      } catch (error) {
+        return `人物草稿未发布：${error instanceof Error ? error.message : '发布校验失败'}。`
+      }
     }
     if (!['create', 'update', 'submit_for_review'].includes(action)) return '人物草稿操作无效。'
     try {

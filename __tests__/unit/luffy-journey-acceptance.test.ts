@@ -34,7 +34,7 @@ describe('路飞全旅程生产验收矩阵', () => {
     expect(starters.some(item => item.kind === 'wardrobe' && item.name === '甲板凉鞋')).toBe(true)
 
     expect(builtinTools.map(tool => tool.name)).toEqual(expect.arrayContaining([
-      'image_generate', 'companion_post_moment', 'companion_comment_moment', 'companion_create_asset',
+      'image_generate', 'companion_post_moment', 'companion_comment_moment', 'companion_create_asset', 'companion_character_draft', 'companion_switch_universe',
     ]))
     const prompts = getPromptAssets().map(asset => asset.key)
     expect(prompts).toEqual(expect.arrayContaining([
