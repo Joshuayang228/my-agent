@@ -3,6 +3,7 @@ import { rm } from 'node:fs/promises'
 import path from 'node:path'
 import { listCharacterDrafts, publishCharacterDraft, saveCharacterDraft } from '../../electron/main/companion/authoring/draft-store'
 import { listAvailableUniverseIds, loadRolePack, loadUniverseManifest } from '../../electron/main/companion/identity/loader'
+import { getCompanionAssetCatalog } from '../../electron/main/companion/asset-registry'
 
 const draftRoot = path.join(process.cwd(), '.agent-data', 'character-drafts')
 const universeRoot = path.join(process.cwd(), '.agent-data', 'universes')
@@ -32,5 +33,6 @@ describe('人物体系草稿存储', () => {
     expect(listAvailableUniverseIds()).toContain('draft-world')
     expect(loadUniverseManifest('draft-world').defaultProtagonistId).toBe(published.roleId)
     expect(loadRolePack(published.roleId, 'draft-world').name).toBe('测试主角')
+    expect(getCompanionAssetCatalog('draft-world').some(asset => asset.key === `companion:draft-world:${published.roleId}:manifest`)).toBe(true)
   })
 })

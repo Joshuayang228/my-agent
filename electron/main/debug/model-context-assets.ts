@@ -142,12 +142,13 @@ export function buildModelContextAssets(input: {
   tools: ToolDefinition[]
   skills: SkillDefinition[]
   systemPrompt: string
+  universeId?: string
 }): ModelContextAsset[] {
   const promptAssets = withCurrentUserPrompt(input.promptAssets, input.systemPrompt)
   const toolAssets = input.tools.map((tool) => toolAsset(tool, input.skills))
   const skillAssets = input.skills.map(skillAsset)
   const promptKeys = new Set(promptAssets.map(asset => asset.key))
-  const companionAssets = getCompanionAssetCatalog().filter(asset => !promptKeys.has(asset.key))
+  const companionAssets = getCompanionAssetCatalog(input.universeId ?? 'default').filter(asset => !promptKeys.has(asset.key))
   const memoryStrategyAssets = getMemoryStrategyAssetCatalog()
   const permissionSandboxAssets = getPermissionSandboxAssetCatalog()
   const evalCaseGraderAssets = getEvalCaseGraderAssetCatalog()
@@ -163,6 +164,7 @@ export async function getModelContextAssets(toolRegistry: ToolRegistry): Promise
     tools: toolRegistry.getAll(),
     skills: getLoadedSkills(),
     systemPrompt: settings.systemPrompt || '',
+    universeId: settings.universeId || 'default',
   })
 }
 
