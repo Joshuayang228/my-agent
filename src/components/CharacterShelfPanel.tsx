@@ -36,7 +36,7 @@ export function CharacterShelfPanel({ onClose, onSwitched }: CharacterShelfPanel
       const [pros, active, availableUniverses] = await Promise.all([
         window.electronAPI.companion.listProtagonists(),
         window.electronAPI.companion.getActive(),
-        window.electronAPI.companion.listUniverses(),
+        window.electronAPI.companion.listUniverses?.() ?? Promise.resolve([]),
       ])
       if (!mounted.current || current !== generation.current) return
       setList(pros)
