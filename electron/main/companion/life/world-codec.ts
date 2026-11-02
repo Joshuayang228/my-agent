@@ -175,12 +175,18 @@ export function formatWorldSliceForPrompt(world: CompanionWorldState): string {
     bits.push(`当前地点${world.currentLocation}${world.locationDetail ? `（${world.locationDetail}）` : ''}`)
   }
   if (world.currentActivity) bits.push(`正在${world.currentActivity}`)
-  bits.push(`心情${world.mood}/100`)
-  bits.push(`精力${world.energy}/100`)
-  bits.push(`社交需求${world.socialNeed}/100`)
+  bits.push(`心情${world.mood}/100（${narrativeMood(world.mood)}）；精力${world.energy}/100；社交需求${world.socialNeed}/100`)
   if (world.statusTags.length > 0) bits.push(`状态${world.statusTags.join('、')}`)
   if (world.situation) bits.push(`近况${world.situation}`)
   return bits.join(' · ')
+}
+
+export function narrativeMood(score: number): string {
+  if (score >= 80) return '明亮有劲'
+  if (score >= 65) return '轻快稳定'
+  if (score >= 45) return '平静'
+  if (score >= 25) return '有些低落或疲惫'
+  return '明显沉重，需要放慢节奏'
 }
 
 export const __test = { boundedScore, statusTags }

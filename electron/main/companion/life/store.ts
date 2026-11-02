@@ -133,6 +133,29 @@ async function ensureTables(): Promise<void> {
     )
   `)
   db.run(`
+    CREATE TABLE IF NOT EXISTS companion_relationship_state (
+      role_id TEXT NOT NULL,
+      subject_id TEXT NOT NULL,
+      phase TEXT NOT NULL DEFAULT 'familiar',
+      signal INTEGER NOT NULL DEFAULT 0,
+      note TEXT NOT NULL DEFAULT '',
+      updated_at INTEGER NOT NULL,
+      PRIMARY KEY (role_id, subject_id)
+    )
+  `)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS companion_emotion_events (
+      id TEXT PRIMARY KEY,
+      role_id TEXT NOT NULL,
+      event_id TEXT,
+      label TEXT NOT NULL,
+      intensity INTEGER NOT NULL,
+      note TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL
+    )
+  `)
+  db.run('CREATE INDEX IF NOT EXISTS idx_companion_emotion_role_time ON companion_emotion_events(role_id, created_at DESC)')
+  db.run(`
     CREATE INDEX IF NOT EXISTS idx_companion_event_links_event
       ON companion_event_links(role_id, event_id)
   `)
@@ -140,6 +163,72 @@ async function ensureTables(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_companion_event_links_target
       ON companion_event_links(role_id, target_type, target_id)
   `)
+}
+
+export interface CompanionRelationshipState {
+  roleId: string
+  subjectId: string
+  phase: string
+  signal: number
+  note: string
+  updatedAt: number
+}
+
+export interface CompanionEmotionEvent {
+  id: string
+  roleId: string
+  eventId: string | null
+  label: string
+  intensity: number
+  note: string
+  createdAt: number
+}
+
+/** 将生活事件里的关系变化落成可重启恢复的关系事实；signal 只供内部连续性，不对用户显示成分数。 */
+export async function recordRelationshipEvent(input: {
+  roleId: string
+  subjectId?: string
+  phase?: string
+  note?: string
+  delta?: number
+}): Promise<CompanionRelationshipState> {
+  await ensureTables()
+  const db = await getDatabase()
+  const subjectId = input.subjectId?.trim() || 'user'
+  const phase = input.phase?.trim() || 'familiar'
+  const note = input.note?.trim() || ''
+  const current = db.exec('SELECT signal FROM companion_relationship_state WHERE role_id = ? AND subject_id = ?', [input.roleId, subjectId])[0]?.values[0]?.[0]
+  const signal = Math.max(-100, Math.min(100, Number(current ?? 0) + Math.round(input.delta ?? 1)))
+  const updatedAt = Date.now()
+  db.run(`INSERT INTO companion_relationship_state (role_id, subject_id, phase, signal, note, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(role_id, subject_id) DO UPDATE SET phase=excluded.phase, signal=excluded.signal, note=excluded.note, updated_at=excluded.updated_at`,
+    [input.roleId, subjectId, phase, signal, note, updatedAt])
+  persist()
+  return { roleId: input.roleId, subjectId, phase, signal, note, updatedAt }
+}
+
+export async function listRelationshipStates(roleId: string): Promise<CompanionRelationshipState[]> {
+  await ensureTables()
+  const db = await getDatabase()
+  const rows = db.exec('SELECT role_id, subject_id, phase, signal, note, updated_at FROM companion_relationship_state WHERE role_id = ? ORDER BY updated_at DESC', [roleId])[0]
+  return (rows?.values ?? []).map((row) => ({ roleId: String(row[0]), subjectId: String(row[1]), phase: String(row[2]), signal: Number(row[3]) || 0, note: String(row[4] ?? ''), updatedAt: Number(row[5]) || 0 }))
+}
+
+export async function recordEmotionEvent(input: Omit<CompanionEmotionEvent, 'id' | 'createdAt'> & { createdAt?: number }): Promise<CompanionEmotionEvent> {
+  await ensureTables()
+  const db = await getDatabase()
+  const row: CompanionEmotionEvent = { ...input, id: randomUUID(), createdAt: input.createdAt ?? Date.now() }
+  db.run('INSERT INTO companion_emotion_events (id, role_id, event_id, label, intensity, note, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)', [row.id, row.roleId, row.eventId, row.label, Math.max(0, Math.min(100, row.intensity)), row.note, row.createdAt])
+  persist()
+  return row
+}
+
+export async function listEmotionEvents(roleId: string, limit = 20): Promise<CompanionEmotionEvent[]> {
+  await ensureTables()
+  const db = await getDatabase()
+  const rows = db.exec('SELECT id, role_id, event_id, label, intensity, note, created_at FROM companion_emotion_events WHERE role_id = ? ORDER BY created_at DESC LIMIT ?', [roleId, Math.max(1, Math.min(100, Math.floor(limit)))])[0]
+  return (rows?.values ?? []).map((row) => ({ id: String(row[0]), roleId: String(row[1]), eventId: row[2] == null ? null : String(row[2]), label: String(row[3]), intensity: Number(row[4]) || 0, note: String(row[5] ?? ''), createdAt: Number(row[6]) || 0 }))
 }
 
 /**

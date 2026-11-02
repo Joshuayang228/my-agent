@@ -79,6 +79,7 @@ export interface PromptSituationContext {
   recentMomentsSlice?: string
   bookshelfSlice?: string
   rosterLines?: string
+  relationshipSummary?: string
 }
 
 export interface MainChatPromptRequest {
@@ -163,6 +164,7 @@ function buildSituationModule(situation?: PromptSituationContext): PromptSemanti
     situation.sessionInfo ? `## 会话上下文\n${situation.sessionInfo}` : undefined,
     situation.catchupSummary ? `## 近期生活（补叙）\n${situation.catchupSummary}` : undefined,
     situation.worldSlice?.trim() ? `## 世界状态切片\n${situation.worldSlice.trim()}\n（勿编造额外行程；近况仅供语气参考。）` : undefined,
+    situation.relationshipSummary?.trim() ? `## 关系状态摘要\n${situation.relationshipSummary.trim()}\n（关系事件只影响表达和关系连续性，不影响任务执行、权限或事实标准。）` : undefined,
     situation.recentMomentsSlice?.trim() ? `## 近期动态\n${situation.recentMomentsSlice.trim()}` : undefined,
     situation.bookshelfSlice?.trim() ? `## 书架\n${situation.bookshelfSlice.trim()}` : undefined,
     situation.rosterLines?.trim() ? `## 角色名册\n${situation.rosterLines.trim()}` : undefined,

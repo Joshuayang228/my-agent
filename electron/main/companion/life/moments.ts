@@ -26,6 +26,7 @@ import { formatMomentText } from './moment-format'
 import { resolveCastInteractions } from './moment-comment-service'
 import { resolveMomentText } from './moment-polish'
 import * as store from './store'
+import { getSetting } from '../../storage/settings-store'
 
 export { formatMomentText } from './moment-format'
 
@@ -130,6 +131,25 @@ export async function projectMomentFromEvent(
   const relationship = event.payload.relationship && typeof event.payload.relationship === 'object' && !Array.isArray(event.payload.relationship)
     ? event.payload.relationship as Record<string, unknown>
     : undefined
+  if (relationship) {
+    await store.recordRelationshipEvent({
+      roleId: event.roleId,
+      subjectId: typeof relationship.subjectId === 'string' ? relationship.subjectId : 'user',
+      phase: typeof relationship.phase === 'string' ? relationship.phase : undefined,
+      note: typeof relationship.note === 'string' ? relationship.note : undefined,
+      delta: typeof relationship.delta === 'number' ? relationship.delta : 1,
+    })
+  }
+  const mood = typeof event.payload.mood === 'string' ? event.payload.mood.trim() : ''
+  if (mood) {
+    await store.recordEmotionEvent({
+      roleId: event.roleId,
+      eventId: event.id,
+      label: mood,
+      intensity: typeof event.payload.moodIntensity === 'number' ? event.payload.moodIntensity : 50,
+      note: typeof event.payload.activity === 'string' ? event.payload.activity : '',
+    })
+  }
   for (const participantId of [...new Set(participantIds)]) {
     let castName = participantId
     try { castName = loadRolePack(participantId, opts?.universeId ?? 'default').name } catch { /* 关系表已在工具入口校验；缺失 NPC 只保留 ID 证据 */ }
@@ -202,6 +222,15 @@ export async function publishAndProjectRange(
 
 /** tick 用：发布所有 scheduled_at <= now 的 planned 并投影（prefer LLM 润色） */
 export async function publishAndProjectDue(roleId: string, now: number, parentSpanId?: string): Promise<number> {
+  const cadence = await getSetting('companionMomentCadence')
+  if (cadence === 'manual') return 0
+  if (cadence === 'low') {
+    const start = new Date(now)
+    start.setHours(0, 0, 0, 0)
+    const planned = await store.listEvents(roleId, { status: 'planned', order: 'asc' })
+    const firstToday = planned.find((event) => event.scheduledAt >= start.getTime() && event.scheduledAt <= now)
+    return firstToday ? publishAndProjectRange(roleId, firstToday.scheduledAt, firstToday.scheduledAt, { preferLlm: true, parentSpanId }) : 0
+  }
   return publishAndProjectRange(roleId, 0, now, { preferLlm: true, parentSpanId })
 }
 

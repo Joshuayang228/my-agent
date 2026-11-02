@@ -37,6 +37,8 @@ interface SettingsForm {
   companionMomentTipsQuietEnd: string
   /** 每日最多轻提示（M31-G2）；0=不限 */
   companionMomentTipsMaxPerDay: string
+  companionMomentCadence: string
+  companionMomentVisibility: string
   /** 定时主动问候（M31-G3）；默认关 */
   companionProactiveGreetingEnabled: string
   sessionTokenBudget: string
@@ -59,6 +61,8 @@ const DEFAULTS: SettingsForm = {
   companionMomentTipsQuietStart: '22',
   companionMomentTipsQuietEnd: '8',
   companionMomentTipsMaxPerDay: '3',
+  companionMomentCadence: 'regular',
+  companionMomentVisibility: 'always',
   companionProactiveGreetingEnabled: 'false',
   sessionTokenBudget: '0',
   dailyTokenBudget: '0',
@@ -221,6 +225,8 @@ export function SettingsPanel({
           s.companionMomentTipsQuietEnd || DEFAULTS.companionMomentTipsQuietEnd,
         companionMomentTipsMaxPerDay:
           s.companionMomentTipsMaxPerDay || DEFAULTS.companionMomentTipsMaxPerDay,
+        companionMomentCadence: s.companionMomentCadence || DEFAULTS.companionMomentCadence,
+        companionMomentVisibility: s.companionMomentVisibility || DEFAULTS.companionMomentVisibility,
         companionProactiveGreetingEnabled:
           s.companionProactiveGreetingEnabled || DEFAULTS.companionProactiveGreetingEnabled,
         sessionTokenBudget: s.sessionTokenBudget || '0',
@@ -424,6 +430,10 @@ export function SettingsPanel({
     onQuietStartChange={(value) => update('companionMomentTipsQuietStart', value)}
     onQuietEndChange={(value) => update('companionMomentTipsQuietEnd', value)}
     onMaxPerDayChange={(value) => update('companionMomentTipsMaxPerDay', value)}
+    cadence={form.companionMomentCadence as 'manual' | 'low' | 'regular'}
+    visibility={form.companionMomentVisibility as 'always' | 'three_days' | 'private'}
+    onCadenceChange={(value) => update('companionMomentCadence', value)}
+    onVisibilityChange={(value) => update('companionMomentVisibility', value)}
     saveFailed={saveFailed}
     onRetrySave={() => { void persistSettings() }}
     roleAction={<ActionButton onClick={() => setRoleShelfOpen(true)} disabled={preview} data-testid="settings-open-role-shelf">管理角色架</ActionButton>}

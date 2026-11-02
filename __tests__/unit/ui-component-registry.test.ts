@@ -263,7 +263,7 @@ describe('UI component asset registry', () => {
       ['src/components/settings/ModelRoutingSettings.tsx', []],
       ['src/components/settings/ModelConnectionCard.tsx', ['TextField']],
       ['src/components/settings/ModelAdvancedSettings.tsx', ['TextField']],
-      ['src/components/settings/CompanionSettingsContent.tsx', ['TextField']],
+      ['src/components/settings/CompanionSettingsContent.tsx', ['SelectField', 'TextField']],
       ['src/components/settings/ModelUsageArrangements.tsx', ['SelectField']],
       ['src/components/settings/ModelConnectionForm.tsx', ['SelectField', 'TextField']],
       ['src/components/settings/McpConnectionForm.tsx', ['CheckboxField', 'SelectField', 'TextField']],

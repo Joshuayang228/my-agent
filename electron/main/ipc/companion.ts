@@ -143,7 +143,13 @@ export function registerCompanionIPC(): void {
       const roleId = await getActiveRoleId()
       const limit = Number.isSafeInteger(opts?.limit) ? Math.max(1, Math.min(200, opts!.limit!)) : 50
       const offset = Number.isSafeInteger(opts?.offset) ? Math.max(0, opts!.offset!) : 0
-      const moments = await listMomentsForRole(roleId, { limit, offset })
+      const visibility = await settings.getSetting('companionMomentVisibility')
+      let moments = await listMomentsForRole(roleId, { limit: visibility === 'three_days' ? Math.min(200, limit + offset + 200) : limit, offset: visibility === 'three_days' ? 0 : offset })
+      if (visibility === 'private') moments = []
+      if (visibility === 'three_days') {
+        const cutoff = Date.now() - 3 * 24 * 60 * 60 * 1000
+        moments = moments.filter((moment) => moment.publishedAt >= cutoff).slice(offset, offset + limit)
+      }
       const items = await Promise.all(moments.map(async moment => ({ ...moment, imageIds: await momentImageIdsForRole(roleId, moment.id) })))
       const interactions = await listMomentUserInteractionsForRole(roleId)
       const socialByMomentId = Object.fromEntries(

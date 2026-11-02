@@ -38,7 +38,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 20
+export const SCHEMA_VERSION = 21
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -498,6 +498,28 @@ export function runMigrations(database: SqlJsDatabase): void {
     createDiagnosticHistorySchema,
     // v19 -> v20: role-scoped send reservations are independent of prunable greeting evidence.
     createProactiveEvidenceSchema,
+    // v20 -> v21: relationship continuity and emotion events need restart-safe facts.
+    (d) => {
+      d.run(`CREATE TABLE IF NOT EXISTS companion_relationship_state (
+        role_id TEXT NOT NULL,
+        subject_id TEXT NOT NULL,
+        phase TEXT NOT NULL DEFAULT 'familiar',
+        signal INTEGER NOT NULL DEFAULT 0,
+        note TEXT NOT NULL DEFAULT '',
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (role_id, subject_id)
+      )`)
+      d.run(`CREATE TABLE IF NOT EXISTS companion_emotion_events (
+        id TEXT PRIMARY KEY,
+        role_id TEXT NOT NULL,
+        event_id TEXT,
+        label TEXT NOT NULL,
+        intensity INTEGER NOT NULL,
+        note TEXT NOT NULL DEFAULT '',
+        created_at INTEGER NOT NULL
+      )`)
+      d.run('CREATE INDEX IF NOT EXISTS idx_companion_emotion_role_time ON companion_emotion_events(role_id, created_at DESC)')
+    },
   ]
 
   while (version < SCHEMA_VERSION) {

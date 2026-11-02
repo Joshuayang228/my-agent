@@ -487,3 +487,6 @@ LLM 返回 tool_calls（可能多个）
 - 2026-11-02：Chat 世界读取沿 builtinTools → companion_read_world → companion life store/assets 单向调用，当前会话 roleId 是唯一查询归属；不新增 Renderer 直写接口。
 
 - 2026-11-02：世界观切换沿 Settings / CharacterShelfPanel → companion:switch-universe → orchestrator 运行；Chat ToolRegistry 不持有该能力。
+## 人物关系与情绪事实
+
+生活事件发布时，关系载荷写入 `companion_relationship_state`，情绪载荷写入 `companion_emotion_events`；运行时只读取摘要注入人物表达，Debug 世界态展示结构化证据。朋友圈节奏与可见范围来自设置存储，用户读取入口执行策略，Debug 保留完整事实。关系与情绪不得改变工具权限、审批或任务执行。

@@ -80,6 +80,7 @@ export async function loadRoleAssembleInput(
   /** M25 旁路：书架薄切片 */
   bookshelfSlice?: string
   rosterLines?: string
+  relationshipSummary?: string
 }> {
   const uid = universeId ?? (await settings.getSetting('universeId'))
   const pack = identity.loadRolePack(roleId, uid)
@@ -91,10 +92,21 @@ export async function loadRoleAssembleInput(
   const { ensureWorldState, formatWorldSliceForPrompt } = await import('./life/world-state')
   const { collectRecentMomentsSlice } = await import('./life/moment-consistency')
   const { collectBookshelfSlice } = await import('./life/assets')
+  const { listEvents } = await import('./life/store')
   const world = await ensureWorldState(roleId)
   const worldSlice = formatWorldSliceForPrompt(world) || undefined
   const { slice: recentMomentsSlice } = await collectRecentMomentsSlice(roleId)
   const { slice: bookshelfSlice } = await collectBookshelfSlice(roleId)
+  const relationshipEvents = (await listEvents(roleId, { status: 'published', order: 'desc', limit: 30 }))
+    .filter(event => event.payload.relationship && typeof event.payload.relationship === 'object')
+    .slice(0, 5)
+    .map(event => {
+      const relationship = event.payload.relationship as Record<string, unknown>
+      const note = typeof relationship.note === 'string' ? relationship.note : ''
+      const phase = typeof relationship.phase === 'string' ? relationship.phase : '变化'
+      return `${phase}${note ? `：${note}` : ''}`
+    })
+  const relationshipSummary = relationshipEvents.length ? `近期关系事件：${relationshipEvents.join('；')}` : undefined
   return {
     pack,
     mutableBody,
@@ -103,6 +115,7 @@ export async function loadRoleAssembleInput(
     recentMomentsSlice: recentMomentsSlice || undefined,
     bookshelfSlice: bookshelfSlice || undefined,
     rosterLines: roster || undefined,
+    relationshipSummary,
   }
 }
 
@@ -114,6 +127,7 @@ export async function loadActiveAssembleInput(): Promise<{
   recentMomentsSlice?: string
   bookshelfSlice?: string
   rosterLines?: string
+  relationshipSummary?: string
 }> {
   const universeId = await settings.getSetting('universeId')
   const roleId = await getActiveRoleId()

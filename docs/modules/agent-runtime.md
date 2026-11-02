@@ -501,3 +501,5 @@ Chat 内置工具注册现在包含 `companion_post_moment`、`companion_comment
 - 2026-11-02：Chat 查询工具复用 companion 领域存储并进入 builtinTools；人物 Skill 保留 companion_read_world，模型可先查真实目标再调用评论或配图工具。
 
 - 2026-11-02：companion_switch_universe 不进入 Chat builtinTools；世界观切换只由设置 / 角色架 IPC 发起，避免模型把应用级状态变更当作普通对话工具。
+
+- 2026-11-02：主 Prompt 当前状态切片补充叙事化心情和近期关系事件，来源仍是 companion world state / published events；情绪与关系不进入工具权限决策。

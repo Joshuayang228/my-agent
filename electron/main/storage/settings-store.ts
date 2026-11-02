@@ -141,6 +141,10 @@ export interface AppSettings {
   companionMomentTipsMaxPerDay: string
   /** 当日计数 JSON：{ day: YYYY-MM-DD, count: number }（M31-G2） */
   companionMomentTipsDayStats: string
+  /** 朋友圈自动更新节奏：manual | low | regular */
+  companionMomentCadence: string
+  /** 朋友圈可见范围：always | three_days | private */
+  companionMomentVisibility: string
   /** 定时主动问候开关（M31-G3 / L4）：默认 false */
   companionProactiveGreetingEnabled: string
   /** 上次主动问候本地日 YYYY-MM-DD（M31-G3） */
@@ -197,6 +201,8 @@ function getDefaults(): AppSettings {
     companionMomentTipsQuietEnd: '8',
     companionMomentTipsMaxPerDay: '3',
     companionMomentTipsDayStats: '',
+    companionMomentCadence: 'regular',
+    companionMomentVisibility: 'always',
     companionProactiveGreetingEnabled: 'false',
     companionProactiveGreetingLastDay: '',
     conversationDebugMode: 'false',
