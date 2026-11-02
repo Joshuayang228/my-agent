@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
-import { companionCommentMomentTool, companionCreateAssetTool, companionPostMomentTool } from '../../electron/main/tools/builtins/companion-life'
+import { companionCommentMomentTool, companionCreateAssetTool, companionPostMomentTool, companionReadWorldTool } from '../../electron/main/tools/builtins/companion-life'
 import { ToolRegistry } from '../../electron/main/tools/registry'
 import { listEventLinks, listMomentUserInteractions, listMoments } from '../../electron/main/companion/life/store'
 import { listAssets } from '../../electron/main/companion/life/assets'
@@ -16,11 +16,37 @@ function registry() {
   value.register(companionPostMomentTool)
   value.register(companionCreateAssetTool)
   value.register(companionCommentMomentTool)
+  value.register(companionReadWorldTool)
   return value
 }
 
 beforeEach(() => { db = new SQL.Database() })
 afterEach(() => db.close())
+
+it('Chat 查询真实动态 ID 后可评论，其他人物读不到该动态', async () => {
+  const tools = registry()
+  const context = { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' }
+  await tools.executeAll([{ id: 'post', name: 'companion_post_moment', arguments: JSON.stringify({ text: '读写闭环动态' }) }], context)
+  const [read] = await tools.executeAll([{ id: 'read', name: 'companion_read_world', arguments: '{"view":"moments"}' }], context)
+  const data = JSON.parse(read.content)
+  expect(data.items[0].text).toBe('读写闭环动态')
+  const [comment] = await tools.executeAll([{ id: 'comment', name: 'companion_comment_moment', arguments: JSON.stringify({ momentId: data.items[0].id, text: '收到' }) }], context)
+  expect(comment.content).toContain('已评论朋友圈')
+  const [other] = await tools.executeAll([{ id: 'other', name: 'companion_read_world', arguments: '{"view":"moments"}' }], { ...context, roleId: 'nami' })
+  expect(JSON.parse(other.content).items).toEqual([])
+})
+
+it('生活查询返回资产 ID，拒绝非法分页且无绑定时不查询', async () => {
+  const tools = registry()
+  const context = { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' }
+  await tools.executeAll([{ id: 'create', name: 'companion_create_asset', arguments: '{"kind":"furniture","name":"观察架"}' }], context)
+  const [result] = await tools.executeAll([{ id: 'read', name: 'companion_read_world', arguments: '{"view":"assets","kind":"furniture"}' }], context)
+  expect(JSON.parse(result.content).items[0]).toMatchObject({ id: expect.any(String), name: '观察架' })
+  const [invalid] = await tools.executeAll([{ id: 'invalid', name: 'companion_read_world', arguments: '{"view":"assets","offset":-1}' }], context)
+  expect(invalid.content).toContain('分页起点')
+  const [unbound] = await tools.executeAll([{ id: 'unbound', name: 'companion_read_world', arguments: '{"view":"assets"}' }], { workdir: process.cwd() })
+  expect(unbound.content).toContain('没有绑定人物')
+})
 
 it('朋友圈与生活资产工具进入 Chat 的统一内置注册链', () => {
   expect(builtinTools.map(tool => tool.name)).toEqual(expect.arrayContaining(['companion_post_moment', 'companion_create_asset', 'companion_comment_moment']))

@@ -900,3 +900,5 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 
 2026-10-30：`companion_comment_moment` 的门禁覆盖内置工具注册来源、路飞发布后评论正例、用户评论真实落库与无人物绑定拒绝；评论回复继续复用 `moment-reply` 的现有解析 / 回退测试。验证命令：`npx vitest run __tests__/unit/companion-life-tools.test.ts`、`npx tsc --noEmit`、`npm run build`、`npm run docs:validate`。
 
+
+- 2026-11-02：Chat 世界查询回归覆盖发布→读取真实 ID→评论、跨人物空结果、生活资产引用、非法分页与无人物绑定；查询和写入工具需要共同验证。

@@ -497,3 +497,5 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 
 Chat 内置工具注册现在包含 `companion_post_moment`、`companion_comment_moment` 和 `companion_create_asset`。评论工具只接受当前会话人物的动态 ID，调用正式 `addMomentCommentForRole`，因此用户评论、主角回复 Prompt、失败回退和持久化仍由 companion 领域服务负责；工具注册表只暴露 schema 与来源，不复制生活事实或 Prompt 正文。
 
+
+- 2026-11-02：Chat 查询工具复用 companion 领域存储并进入 builtinTools；人物 Skill 保留 companion_read_world，模型可先查真实目标再调用评论或配图工具。

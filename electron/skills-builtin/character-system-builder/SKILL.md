@@ -10,6 +10,7 @@ allowed_tools:
   - companion_post_moment
   - companion_comment_moment
   - companion_create_asset
+  - companion_read_world
   - web_search
   - url_fetch
   - image_generate

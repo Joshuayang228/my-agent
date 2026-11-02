@@ -483,3 +483,5 @@ LLM 返回 tool_calls（可能多个）
 - 2026-10-31：人物设计新增的首次冷启与既有经历资料仍属于 Role Pack / Debug 资产层：loader 读取人物清单和场景文件，Prompt 注册表负责防漏登记，运行时按当前功能选择性注入；用户草稿先写入独立 userData，发布时才转换为 Universe / Role Pack，不新增 Renderer 直写生产资产路径。
 - 2026-10-31：首次冷启门闸落在 companion life store 与 IPC，按人物保存一次性领取记录；UI 只消费结果，避免把展示状态写进人物 Prompt 或用户记忆。
 - 2026-10-31：世界观 canon 篇章 / 事件与人物视角由 companion loader / asset registry 读取；`web_search` / `url_fetch` 只提供外部候选证据，用户确认后才通过人物草稿发布链进入 Role Pack。
+
+- 2026-11-02：Chat 世界读取沿 builtinTools → companion_read_world → companion life store/assets 单向调用，当前会话 roleId 是唯一查询归属；不新增 Renderer 直写接口。

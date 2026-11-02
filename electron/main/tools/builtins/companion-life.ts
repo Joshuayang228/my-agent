@@ -1,12 +1,46 @@
 import { buildTool } from '../builder'
-import { createAsset } from '../../companion/life/assets'
+import { createAsset, listAssets } from '../../companion/life/assets'
 import { addMomentCommentForRole, projectMomentFromEvent } from '../../companion/life/moments'
-import { deleteEvent, insertEvent } from '../../companion/life/store'
+import { deleteEvent, insertEvent, listMoments } from '../../companion/life/store'
 import { getSession } from '../../storage/session-store'
 import { loadRelations } from '../../companion/identity/loader'
 
 const ASSET_KINDS = ['home', 'furniture', 'footprint', 'culture', 'bookshelf', 'wardrobe'] as const
 type CompanionAssetKind = (typeof ASSET_KINDS)[number]
+
+/**
+ * 背景：Chat 写入和评论需要真实目标 ID，最近动态摘要无法支持完整查找流程。
+ * 设计意图：查询复用同人物存储，只返回有界摘要及稳定 ID，让后续工具使用真实引用。
+ * 关键约束：不接受外部 roleId，不播种默认资产，不返回文件路径；失败交由工具中间件报告。
+ */
+export const companionReadWorldTool = buildTool({
+  name: 'companion_read_world',
+  description: '读取当前会话人物的朋友圈或生活资产，返回真实 ID 和摘要。评论动态、给已有资产配图前先查询，不猜测目标 ID。',
+  parameters: {
+    type: 'object',
+    properties: {
+      view: { type: 'string', enum: ['moments', 'assets'] },
+      kind: { type: 'string', enum: [...ASSET_KINDS], description: '查询资产时可按类型筛选。' },
+      offset: { type: 'integer', description: '分页起点，默认 0。' },
+    },
+    required: ['view'],
+  },
+  metadata: { isReadOnly: true, isConcurrencySafe: true },
+  execute: async (args, context) => {
+    const roleId = context?.roleId?.trim()
+    if (!roleId) return '当前会话没有绑定人物，暂时不能读取人物世界。'
+    const offset = args.offset === undefined ? 0 : args.offset
+    if (typeof offset !== 'number' || !Number.isInteger(offset) || offset < 0 || offset > 10000) return '分页起点必须是 0–10000 的整数。'
+    if (args.view === 'moments') {
+      const rows = await listMoments(roleId, { offset, limit: 21 })
+      return JSON.stringify({ roleId, items: rows.slice(0, 20).map(row => ({ id: row.id, text: row.text.slice(0, 2000), publishedAt: row.publishedAt })), nextOffset: rows.length > 20 ? offset + 20 : null })
+    }
+    if (args.view !== 'assets') return '请选择 moments 或 assets。'
+    if (args.kind !== undefined && !ASSET_KINDS.includes(args.kind as CompanionAssetKind)) return '资产类型无效。'
+    const rows = await listAssets(roleId, { kind: args.kind as string | undefined })
+    return JSON.stringify({ roleId, items: rows.slice(offset, offset + 20).map(row => ({ id: row.id, kind: row.kind, name: row.name, description: typeof row.payload.description === 'string' ? row.payload.description.slice(0, 500) : '' })), nextOffset: rows.length > offset + 20 ? offset + 20 : null })
+  },
+})
 
 function textArg(args: Record<string, unknown>, key: string, max: number): string {
   const value = typeof args[key] === 'string' ? args[key].trim() : ''

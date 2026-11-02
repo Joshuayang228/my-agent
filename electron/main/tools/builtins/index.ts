@@ -17,7 +17,7 @@ import { ragSearchTool } from './rag-search'
 import { gitStatusTool, gitDiffTool, gitLogTool, gitCommitTool, gitBranchTool } from './git-tools'
 import { thinkTool } from './think'
 import { imageGenerateTool } from './image-generate'
-import { companionCommentMomentTool, companionCreateAssetTool, companionPostMomentTool } from './companion-life'
+import { companionCommentMomentTool, companionCreateAssetTool, companionPostMomentTool, companionReadWorldTool } from './companion-life'
 import { companionCharacterDraftTool } from './companion-character-draft'
 import { companionUniverseTool } from './companion-universe'
 
@@ -47,6 +47,7 @@ const BUILTIN_TOOL_ENTRIES: Array<{ tool: ToolDefinition; source: string }> = [
   { tool: thinkTool, source: 'electron/main/tools/builtins/think.ts' },
   { tool: imageGenerateTool, source: 'electron/main/tools/builtins/image-generate.ts' },
   { tool: companionPostMomentTool, source: 'electron/main/tools/builtins/companion-life.ts' },
+  { tool: companionReadWorldTool, source: 'electron/main/tools/builtins/companion-life.ts' },
   { tool: companionCreateAssetTool, source: 'electron/main/tools/builtins/companion-life.ts' },
   { tool: companionCommentMomentTool, source: 'electron/main/tools/builtins/companion-life.ts' },
   { tool: companionCharacterDraftTool, source: 'electron/main/tools/builtins/companion-character-draft.ts' },
