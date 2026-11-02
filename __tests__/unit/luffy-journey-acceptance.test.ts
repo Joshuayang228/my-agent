@@ -35,7 +35,7 @@ describe('路飞全旅程生产验收矩阵', () => {
     expect(starters.some(item => item.kind === 'wardrobe' && item.name === '甲板凉鞋')).toBe(true)
 
     expect(builtinTools.map(tool => tool.name)).toEqual(expect.arrayContaining([
-      'image_generate', 'companion_post_moment', 'companion_comment_moment', 'companion_create_asset', 'companion_character_draft', 'companion_switch_universe',
+      'image_generate', 'companion_post_moment', 'companion_comment_moment', 'companion_create_asset', 'companion_character_draft',
     ]))
     const prompts = getPromptAssets().map(asset => asset.key)
     expect(prompts).toEqual(expect.arrayContaining([
@@ -53,8 +53,9 @@ describe('路飞全旅程生产验收矩阵', () => {
   })
 
   it('人物体系 Skill 激活时不隐藏 Chat 生活与世界观工具', () => {
+    expect(builtinTools.map(tool => tool.name)).not.toContain('companion_switch_universe')
     const skill = readFileSync('electron/skills-builtin/character-system-builder/SKILL.md', 'utf8')
-    for (const tool of ['companion_character_draft', 'companion_switch_universe', 'companion_post_moment', 'companion_comment_moment', 'companion_create_asset', 'web_search', 'image_generate']) {
+    for (const tool of ['companion_character_draft', 'companion_post_moment', 'companion_comment_moment', 'companion_create_asset', 'companion_read_world', 'web_search', 'image_generate']) {
       expect(skill).toContain(`- ${tool}`)
     }
   })

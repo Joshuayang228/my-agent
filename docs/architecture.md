@@ -485,3 +485,5 @@ LLM 返回 tool_calls（可能多个）
 - 2026-10-31：世界观 canon 篇章 / 事件与人物视角由 companion loader / asset registry 读取；`web_search` / `url_fetch` 只提供外部候选证据，用户确认后才通过人物草稿发布链进入 Role Pack。
 
 - 2026-11-02：Chat 世界读取沿 builtinTools → companion_read_world → companion life store/assets 单向调用，当前会话 roleId 是唯一查询归属；不新增 Renderer 直写接口。
+
+- 2026-11-02：世界观切换沿 Settings / CharacterShelfPanel → companion:switch-universe → orchestrator 运行；Chat ToolRegistry 不持有该能力。
