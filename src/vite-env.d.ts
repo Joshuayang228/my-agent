@@ -728,6 +728,9 @@ declare global {
           eventsTruncated: boolean
           moments: Array<{ id: string; publishedAt: number; text: string }>
           momentsTruncated: boolean
+          relationship: Array<{ subjectId: string; phase: string; note: string; updatedAt: number }>
+          emotions: Array<{ label: string; intensity: number; note: string; createdAt: number }>
+          momentPolicy: { cadence: string; visibility: string }
           profile: { identity: string; workflow: string; voice: string } | null
           memories: Array<{ id: string; category: string; content: string; updatedAt: number }>
           memoriesTruncated: boolean

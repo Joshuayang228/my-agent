@@ -153,6 +153,9 @@ export interface WorldSnapshot {
   eventsTruncated: boolean
   moments: Array<{ id: string; publishedAt: number; text: string }>
   momentsTruncated: boolean
+  relationship: Array<{ subjectId: string; phase: string; note: string; updatedAt: number }>
+  emotions: Array<{ label: string; intensity: number; note: string; createdAt: number }>
+  momentPolicy: { cadence: string; visibility: string }
   profile: { identity: string; workflow: string; voice: string } | null
   memories: Array<{ id: string; category: string; content: string; updatedAt: number }>
   memoriesTruncated: boolean
@@ -335,6 +338,39 @@ export function WorldStatePanel({ snap, error }: { snap: WorldSnapshot | null; e
             </pre>
           </>
         )}
+      </Section>
+
+      <Section title="关系连续性">
+        {snap.relationship.length === 0 ? <Empty /> : (
+          <div className="space-y-1">
+            {snap.relationship.map((item) => (
+              <div key={item.subjectId} className="rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: 'var(--border-color)' }}>
+                <div style={{ color: 'var(--text-primary)' }}>{item.subjectId} · {item.phase}</div>
+                <div style={{ color: 'var(--text-secondary)' }}>{item.note || '（无说明）'}</div>
+                <div className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{fmt(item.updatedAt)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      <Section title="情绪事件">
+        {snap.emotions.length === 0 ? <Empty /> : (
+          <div className="space-y-1">
+            {snap.emotions.map((item) => (
+              <div key={`${item.createdAt}:${item.label}`} className="rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: 'var(--border-color)' }}>
+                <div style={{ color: 'var(--text-primary)' }}>{item.label} · 强度 {item.intensity}/100</div>
+                <div style={{ color: 'var(--text-secondary)' }}>{item.note || '（无说明）'}</div>
+                <div className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{fmt(item.createdAt)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      <Section title="朋友圈策略">
+        <KV label="更新节奏" value={snap.momentPolicy.cadence} />
+        <KV label="可见范围" value={snap.momentPolicy.visibility} />
       </Section>
 
       <Section title={`今日剧本${snap.dayScript ? ` · ${snap.dayScript.date}` : ''}`}>

@@ -42,4 +42,20 @@ describe('Prompt semantic compiler', () => {
     expect(text).toContain('必须锚定活动或地点')
     expect(text).not.toContain('<aside>')
   })
+
+  it('主对话把持久化关系和情绪摘要放入情境区，并保留行为边界', () => {
+    const result = compileMainChatPrompt({
+      character,
+      platform: { toolNames: [] },
+      behavior: { key: 'main-chat', purpose: '回应用户' },
+      situation: {
+        relationshipSummary: '持久化关系摘要：用户：熟悉（一起完成了新的航段）',
+        emotionSummary: '近期情绪线索：兴奋（明显）：准备出航',
+      },
+      currentDate: '2026-11-03',
+    })
+    expect(result.text).toContain('## 关系状态摘要')
+    expect(result.text).toContain('## 情绪线索')
+    expect(result.text).toContain('不改变事实、权限或任务结果')
+  })
 })

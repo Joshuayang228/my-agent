@@ -249,6 +249,7 @@ class AgentRuntime {
         bookshelfSlice,
         rosterLines,
         relationshipSummary,
+        emotionSummary,
       } = await loadRoleAssembleInput(assembleRoleId)
       const character = characterDefinitionFromRolePack(pack, mutableBody)
 
@@ -404,6 +405,7 @@ class AgentRuntime {
           bookshelfSlice: isSummon ? undefined : bookshelfSlice,
           rosterLines,
           relationshipSummary,
+          emotionSummary: isSummon ? undefined : emotionSummary,
         },
         currentDate: new Date().toLocaleDateString('sv-SE'),
       }, isSummon ? 'summon' : isWorkspace ? 'workspace' : 'main')

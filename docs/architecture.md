@@ -490,3 +490,5 @@ LLM 返回 tool_calls（可能多个）
 ## 人物关系与情绪事实
 
 生活事件发布时，关系载荷写入 `companion_relationship_state`，情绪载荷写入 `companion_emotion_events`；运行时只读取摘要注入人物表达，Debug 世界态展示结构化证据。朋友圈节奏与可见范围来自设置存储，用户读取入口执行策略，Debug 保留完整事实。关系与情绪不得改变工具权限、审批或任务执行。
+
+- 2026-11-03：运行时先读 companion life 的持久化关系 / 情绪事实，再注入主 Prompt；Debug 世界态沿同一事实源只读展示，情绪不进入权限或任务执行链。

@@ -65,6 +65,43 @@ export async function loadActiveRolePack(): Promise<RolePack> {
   return identity.loadRolePack(roleId, universeId)
 }
 
+/**
+ * 将持久化关系阶段转成模型可读的中文摘要。
+ *
+ * 背景：关系事实需要跨重启继续影响表达，但内部阶段值不能直接变成 RPG 数值或英文枚举。
+ * 设计意图：只暴露阶段语义和有限说明，保留未知阶段的保守“变化”标签，不复制关系表全文。
+ * 关键约束：摘要只影响表达与连续性，不能成为工具权限、事实判断或任务执行依据。
+ */
+function formatRelationshipStateSummary(states: Array<{ subjectId: string; phase: string; note: string }>): string | undefined {
+  if (states.length === 0) return undefined
+  const phaseLabel: Record<string, string> = { stranger: '陌生', familiar: '熟悉', rapport: '默契' }
+  const lines = states.slice(0, 5).map(state => {
+    const subject = state.subjectId === 'user' ? '用户' : state.subjectId.slice(0, 80)
+    const phase = phaseLabel[state.phase] ?? '关系变化'
+    const note = state.note.trim().slice(0, 180)
+    return `${subject}：${phase}${note ? `（${note}）` : ''}`
+  })
+  return `持久化关系摘要：${lines.join('；')}`
+}
+
+/**
+ * 把情绪事件的内部强度压成叙事级标签。
+ *
+ * 背景：情绪强度用于 Debug 和排序，直接把 0–100 注入模型会把人物变成可调数值条。
+ * 设计意图：模型只接收“轻 / 中 / 明显”的表达提示，具体事件说明仍保留为运行时资料。
+ * 关键约束：缺失或异常强度按中等处理，情绪提示不能改变事实、权限或任务结果。
+ */
+function formatEmotionSummary(events: Array<{ label: string; intensity: number; note: string }>): string | undefined {
+  if (events.length === 0) return undefined
+  const lines = events.slice(0, 5).map(event => {
+    const level = event.intensity >= 70 ? '明显' : event.intensity >= 40 ? '中等' : '轻微'
+    const label = event.label.trim().slice(0, 60) || '未命名情绪'
+    const note = event.note.trim().slice(0, 120)
+    return `${label}（${level}）${note ? `：${note}` : ''}`
+  })
+  return `近期情绪线索：${lines.join('；')}`
+}
+
 /** Assemble 输入：Pack + MUTABLE + catchup + 世界薄片 + 近 Moment + 名册浅注入 */
 export async function loadRoleAssembleInput(
   roleId: string,
@@ -81,6 +118,7 @@ export async function loadRoleAssembleInput(
   bookshelfSlice?: string
   rosterLines?: string
   relationshipSummary?: string
+  emotionSummary?: string
 }> {
   const uid = universeId ?? (await settings.getSetting('universeId'))
   const pack = identity.loadRolePack(roleId, uid)
@@ -92,11 +130,12 @@ export async function loadRoleAssembleInput(
   const { ensureWorldState, formatWorldSliceForPrompt } = await import('./life/world-state')
   const { collectRecentMomentsSlice } = await import('./life/moment-consistency')
   const { collectBookshelfSlice } = await import('./life/assets')
-  const { listEvents } = await import('./life/store')
+  const { listEvents, listRelationshipStates, listEmotionEvents } = await import('./life/store')
   const world = await ensureWorldState(roleId)
   const worldSlice = formatWorldSliceForPrompt(world) || undefined
   const { slice: recentMomentsSlice } = await collectRecentMomentsSlice(roleId)
   const { slice: bookshelfSlice } = await collectBookshelfSlice(roleId)
+  const relationshipStates = await listRelationshipStates(roleId)
   const relationshipEvents = (await listEvents(roleId, { status: 'published', order: 'desc', limit: 30 }))
     .filter(event => event.payload.relationship && typeof event.payload.relationship === 'object')
     .slice(0, 5)
@@ -106,7 +145,9 @@ export async function loadRoleAssembleInput(
       const phase = typeof relationship.phase === 'string' ? relationship.phase : '变化'
       return `${phase}${note ? `：${note}` : ''}`
     })
-  const relationshipSummary = relationshipEvents.length ? `近期关系事件：${relationshipEvents.join('；')}` : undefined
+  const relationshipSummary = formatRelationshipStateSummary(relationshipStates)
+    ?? (relationshipEvents.length ? `近期关系事件：${relationshipEvents.join('；')}` : undefined)
+  const emotionSummary = formatEmotionSummary(await listEmotionEvents(roleId, 5))
   return {
     pack,
     mutableBody,
@@ -116,6 +157,7 @@ export async function loadRoleAssembleInput(
     bookshelfSlice: bookshelfSlice || undefined,
     rosterLines: roster || undefined,
     relationshipSummary,
+    emotionSummary,
   }
 }
 
@@ -128,6 +170,7 @@ export async function loadActiveAssembleInput(): Promise<{
   bookshelfSlice?: string
   rosterLines?: string
   relationshipSummary?: string
+  emotionSummary?: string
 }> {
   const universeId = await settings.getSetting('universeId')
   const roleId = await getActiveRoleId()
