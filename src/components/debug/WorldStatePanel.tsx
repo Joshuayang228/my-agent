@@ -155,7 +155,7 @@ export interface WorldSnapshot {
   momentsTruncated: boolean
   relationship: Array<{ subjectId: string; phase: string; note: string; updatedAt: number }>
   emotions: Array<{ label: string; intensity: number; note: string; createdAt: number }>
-  momentPolicy: { cadence: string; visibility: string; maxPerDay: string; cooldownMinutes: string; postingQuietStart: string; postingQuietEnd: string; imagePolicy: string }
+  momentPolicy: { cadence: string; visibility: string; maxPerDay: string; cooldownMinutes: string; postingQuietStart: string; postingQuietEnd: string; imagePolicy: string; interactionPolicy: string }
   profile: { identity: string; workflow: string; voice: string } | null
   memories: Array<{ id: string; category: string; content: string; updatedAt: number }>
   memoriesTruncated: boolean
@@ -375,6 +375,7 @@ export function WorldStatePanel({ snap, error }: { snap: WorldSnapshot | null; e
         <KV label="最短间隔" value={`${snap.momentPolicy.cooldownMinutes} 分钟`} />
         <KV label="自动发帖勿扰" value={`${snap.momentPolicy.postingQuietStart}:00–${snap.momentPolicy.postingQuietEnd}:00`} />
         <KV label="自动配图" value={snap.momentPolicy.imagePolicy} />
+        <KV label="自动互动" value={snap.momentPolicy.interactionPolicy} />
       </Section>
 
       <Section title={`今日剧本${snap.dayScript ? ` · ${snap.dayScript.date}` : ''}`}>

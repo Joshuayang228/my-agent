@@ -486,4 +486,15 @@ describe('LifeEngine', () => {
     await publishAndProjectDue('activity-only', now)
     expect(await lifeStore.listMoments('activity-only')).toHaveLength(0)
   })
+
+  it('自动互动策略在关闭时不生成卡司评论，偶尔模式保留关系事件入口', async () => {
+    const event = await lifeStore.insertEvent({ roleId: 'luffy', scheduledAt: 1, status: 'published', type: 'moment', payload: { activity: '同框', participantIds: ['zoro'] }, dayScriptId: null })
+    settingValues.companionMomentInteractionPolicy = 'never'
+    const silent = await projectMomentFromEvent(event, { automatic: true })
+    expect(silent?.meta.interactions).toBeUndefined()
+    const second = await lifeStore.insertEvent({ roleId: 'luffy', scheduledAt: 2, status: 'published', type: 'moment', payload: { activity: '关系修复', relationship: { subjectId: 'user', phase: 'rapport', note: '共同完成任务' } }, dayScriptId: null })
+    settingValues.companionMomentInteractionPolicy = 'occasional'
+    const occasional = await projectMomentFromEvent(second, { automatic: true })
+    expect(occasional).not.toBeNull()
+  })
 })

@@ -44,6 +44,7 @@ interface SettingsForm {
   companionMomentPostingQuietStart: string
   companionMomentPostingQuietEnd: string
   companionMomentImagePolicy: string
+  companionMomentInteractionPolicy: string
   /** 定时主动问候（M31-G3）；默认关 */
   companionProactiveGreetingEnabled: string
   sessionTokenBudget: string
@@ -73,6 +74,7 @@ const DEFAULTS: SettingsForm = {
   companionMomentPostingQuietStart: '23',
   companionMomentPostingQuietEnd: '7',
   companionMomentImagePolicy: 'never',
+  companionMomentInteractionPolicy: 'occasional',
   companionProactiveGreetingEnabled: 'false',
   sessionTokenBudget: '0',
   dailyTokenBudget: '0',
@@ -242,6 +244,7 @@ export function SettingsPanel({
         companionMomentPostingQuietStart: s.companionMomentPostingQuietStart || DEFAULTS.companionMomentPostingQuietStart,
         companionMomentPostingQuietEnd: s.companionMomentPostingQuietEnd || DEFAULTS.companionMomentPostingQuietEnd,
         companionMomentImagePolicy: s.companionMomentImagePolicy || DEFAULTS.companionMomentImagePolicy,
+        companionMomentInteractionPolicy: s.companionMomentInteractionPolicy || DEFAULTS.companionMomentInteractionPolicy,
         companionProactiveGreetingEnabled:
           s.companionProactiveGreetingEnabled || DEFAULTS.companionProactiveGreetingEnabled,
         sessionTokenBudget: s.sessionTokenBudget || '0',
@@ -454,11 +457,13 @@ export function SettingsPanel({
     postingQuietStart={form.companionMomentPostingQuietStart}
     postingQuietEnd={form.companionMomentPostingQuietEnd}
     imagePolicy={form.companionMomentImagePolicy as 'never' | 'existing'}
+    interactionPolicy={form.companionMomentInteractionPolicy as 'never' | 'occasional' | 'regular'}
     onPostingMaxPerDayChange={(value) => update('companionMomentMaxPerDay', value)}
     onCooldownMinutesChange={(value) => update('companionMomentCooldownMinutes', value)}
     onPostingQuietStartChange={(value) => update('companionMomentPostingQuietStart', value)}
     onPostingQuietEndChange={(value) => update('companionMomentPostingQuietEnd', value)}
     onImagePolicyChange={(value) => update('companionMomentImagePolicy', value)}
+    onInteractionPolicyChange={(value) => update('companionMomentInteractionPolicy', value)}
     saveFailed={saveFailed}
     onRetrySave={() => { void persistSettings() }}
     roleAction={<ActionButton onClick={() => setRoleShelfOpen(true)} disabled={preview} data-testid="settings-open-role-shelf">管理角色架</ActionButton>}

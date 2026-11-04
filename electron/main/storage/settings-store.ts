@@ -155,6 +155,7 @@ export interface AppSettings {
   companionMomentPostingQuietEnd: string
   /** 自动配图偏好：never | existing */
   companionMomentImagePolicy: string
+  companionMomentInteractionPolicy: string
   /** 定时主动问候开关（M31-G3 / L4）：默认 false */
   companionProactiveGreetingEnabled: string
   /** 上次主动问候本地日 YYYY-MM-DD（M31-G3） */
@@ -218,6 +219,7 @@ function getDefaults(): AppSettings {
     companionMomentPostingQuietStart: '23',
     companionMomentPostingQuietEnd: '7',
     companionMomentImagePolicy: 'never',
+    companionMomentInteractionPolicy: 'occasional',
     companionProactiveGreetingEnabled: 'false',
     companionProactiveGreetingLastDay: '',
     conversationDebugMode: 'false',

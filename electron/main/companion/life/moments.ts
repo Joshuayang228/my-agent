@@ -104,10 +104,15 @@ export async function projectMomentFromEvent(
     universeId: opts?.universeId,
   })
 
-  // 公开名册仍决定选人；已有辅助模型路径只增强短评论，失败保留确定性结果，不启动其他角色生活。
-  const interactions = await resolveCastInteractions(event, {
-    universeId: opts?.universeId, preferLlm: opts?.preferLlm, llmConfig, postText: text,
-  })
+  const interactionPolicy = opts?.automatic ? await getSetting('companionMomentInteractionPolicy') : 'regular'
+  const hasSocialSignal = Boolean(event.payload.relationship)
+    || Array.isArray(event.payload.participantIds) && event.payload.participantIds.length > 0
+  // 公开名册仍决定选人；偶尔模式只在关系变化或同框事件下触发，失败保留空互动。
+  const interactions = interactionPolicy === 'never' || (interactionPolicy === 'occasional' && !hasSocialSignal)
+    ? []
+    : await resolveCastInteractions(event, {
+      universeId: opts?.universeId, preferLlm: opts?.preferLlm, llmConfig, postText: text,
+    })
 
   const links: store.CompanionEventLinkInput[] = []
   if (assetId && outfitName) {

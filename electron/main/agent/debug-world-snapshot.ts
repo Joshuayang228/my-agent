@@ -92,7 +92,7 @@ export type DebugWorldSnapshot = {
   momentsTruncated: boolean
   relationship: Array<{ subjectId: string; phase: string; note: string; updatedAt: number }>
   emotions: Array<{ label: string; intensity: number; note: string; createdAt: number }>
-  momentPolicy: { cadence: string; visibility: string; maxPerDay: string; cooldownMinutes: string; postingQuietStart: string; postingQuietEnd: string; imagePolicy: string }
+  momentPolicy: { cadence: string; visibility: string; maxPerDay: string; cooldownMinutes: string; postingQuietStart: string; postingQuietEnd: string; imagePolicy: string; interactionPolicy: string }
   profile: { identity: string; workflow: string; voice: string } | null
   memories: Array<{ id: string; category: string; content: string; updatedAt: number }>
   memoriesTruncated: boolean
@@ -157,11 +157,11 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
     publishedAt: m.publishedAt,
     text: clip(m.text, MOMENT_TEXT_MAX),
   }))
-  const [relationships, emotions, cadence, visibility, maxPerDay, cooldownMinutes, postingQuietStart, postingQuietEnd, imagePolicy] = await Promise.all([
+  const [relationships, emotions, cadence, visibility, maxPerDay, cooldownMinutes, postingQuietStart, postingQuietEnd, imagePolicy, interactionPolicy] = await Promise.all([
     listRelationshipStates(role.id), listEmotionEvents(role.id, 10),
     getSetting('companionMomentCadence'), getSetting('companionMomentVisibility'), getSetting('companionMomentMaxPerDay'),
     getSetting('companionMomentCooldownMinutes'), getSetting('companionMomentPostingQuietStart'), getSetting('companionMomentPostingQuietEnd'),
-    getSetting('companionMomentImagePolicy'),
+    getSetting('companionMomentImagePolicy'), getSetting('companionMomentInteractionPolicy'),
   ])
 
   const profile = await buildUserProfile(role.id)
@@ -222,7 +222,7 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
     momentsTruncated,
     relationship: relationships.map(({ subjectId, phase, note, updatedAt }) => ({ subjectId, phase, note: clip(note, 180), updatedAt })),
     emotions: emotions.map(({ label, intensity, note, createdAt }) => ({ label, intensity, note: clip(note, 180), createdAt })),
-    momentPolicy: { cadence, visibility, maxPerDay, cooldownMinutes, postingQuietStart, postingQuietEnd, imagePolicy },
+    momentPolicy: { cadence, visibility, maxPerDay, cooldownMinutes, postingQuietStart, postingQuietEnd, imagePolicy, interactionPolicy },
     profile: profile
       ? {
           identity: clip(profile.identity, 400),

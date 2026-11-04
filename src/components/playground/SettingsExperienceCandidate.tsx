@@ -96,6 +96,7 @@ function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProa
   const [postingQuietStart, setPostingQuietStart] = useState('23')
   const [postingQuietEnd, setPostingQuietEnd] = useState('7')
   const [imagePolicy, setImagePolicy] = useState<'never' | 'existing'>('never')
+  const [interactionPolicy, setInteractionPolicy] = useState<'never' | 'occasional' | 'regular'>('occasional')
   return <CompanionSettingsContent
     showHeader={false}
     expertise={expertise as 'auto' | 'novice' | 'intermediate' | 'expert'}
@@ -120,11 +121,13 @@ function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProa
     postingQuietStart={postingQuietStart}
     postingQuietEnd={postingQuietEnd}
     imagePolicy={imagePolicy}
+    interactionPolicy={interactionPolicy}
     onPostingMaxPerDayChange={setPostingMaxPerDay}
     onCooldownMinutesChange={setCooldownMinutes}
     onPostingQuietStartChange={setPostingQuietStart}
     onPostingQuietEndChange={setPostingQuietEnd}
     onImagePolicyChange={setImagePolicy}
+    onInteractionPolicyChange={setInteractionPolicy}
     testIdPrefix="settings-candidate-"
     roleAction={<ActionButton onClick={onOpenRoleShelf} className="gap-1" data-testid="settings-candidate-open-role-shelf">小林 · 管理角色架 <ChevronRight size={12} /></ActionButton>}
   />
