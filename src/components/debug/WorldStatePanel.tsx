@@ -151,6 +151,7 @@ export interface WorldSnapshot {
     location: string
   }>
   eventsTruncated: boolean
+  executions: Array<{ id: string; eventId: string; attemptedAt: number; action: 'published' | 'skipped' | 'deferred'; reason: string; momentId: string | null }>
   moments: Array<{ id: string; publishedAt: number; text: string }>
   momentsTruncated: boolean
   relationship: Array<{ subjectId: string; phase: string; note: string; updatedAt: number }>
@@ -206,6 +207,19 @@ export function WorldStatePanel({ snap, error }: { snap: WorldSnapshot | null; e
                     {[event.location, event.mood, event.type].filter(Boolean).map((value) => ` · ${value}`).join('')}
                   </span>
                 </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      <Section title="生活执行账本">
+        {snap.executions.length === 0 ? <Empty /> : (
+          <div className="space-y-1">
+            {snap.executions.map((item) => (
+              <div key={item.id} className="rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: 'var(--border-color)' }}>
+                <div style={{ color: 'var(--text-primary)' }}>{item.action} · {item.reason}</div>
+                <div className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{fmt(item.attemptedAt)} · event {item.eventId.slice(0, 12)}</div>
               </div>
             ))}
           </div>

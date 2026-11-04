@@ -726,6 +726,7 @@ declare global {
             location: string
           }>
           eventsTruncated: boolean
+          executions: Array<{ id: string; eventId: string; attemptedAt: number; action: 'published' | 'skipped' | 'deferred'; reason: string; momentId: string | null }>
           moments: Array<{ id: string; publishedAt: number; text: string }>
           momentsTruncated: boolean
           relationship: Array<{ subjectId: string; phase: string; note: string; updatedAt: number }>

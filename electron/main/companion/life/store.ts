@@ -156,6 +156,18 @@ async function ensureTables(): Promise<void> {
   `)
   db.run('CREATE INDEX IF NOT EXISTS idx_companion_emotion_role_time ON companion_emotion_events(role_id, created_at DESC)')
   db.run(`
+    CREATE TABLE IF NOT EXISTS companion_event_executions (
+      id TEXT PRIMARY KEY,
+      role_id TEXT NOT NULL,
+      event_id TEXT NOT NULL,
+      attempted_at INTEGER NOT NULL,
+      action TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      moment_id TEXT
+    )
+  `)
+  db.run('CREATE INDEX IF NOT EXISTS idx_companion_event_exec_role_time ON companion_event_executions(role_id, attempted_at DESC)')
+  db.run(`
     CREATE INDEX IF NOT EXISTS idx_companion_event_links_event
       ON companion_event_links(role_id, event_id)
   `)
@@ -182,6 +194,33 @@ export interface CompanionEmotionEvent {
   intensity: number
   note: string
   createdAt: number
+}
+
+export type CompanionEventExecutionAction = 'published' | 'skipped' | 'deferred'
+export interface CompanionEventExecution {
+  id: string
+  roleId: string
+  eventId: string
+  attemptedAt: number
+  action: CompanionEventExecutionAction
+  reason: string
+  momentId: string | null
+}
+
+export async function recordEventExecution(input: Omit<CompanionEventExecution, 'id'>): Promise<CompanionEventExecution> {
+  await ensureTables()
+  const db = await getDatabase()
+  const row = { ...input, id: randomUUID() }
+  db.run('INSERT INTO companion_event_executions (id, role_id, event_id, attempted_at, action, reason, moment_id) VALUES (?, ?, ?, ?, ?, ?, ?)', [row.id, row.roleId, row.eventId, row.attemptedAt, row.action, row.reason, row.momentId])
+  persist()
+  return row
+}
+
+export async function listEventExecutions(roleId: string, limit = 30): Promise<CompanionEventExecution[]> {
+  await ensureTables()
+  const db = await getDatabase()
+  const rows = db.exec('SELECT id, role_id, event_id, attempted_at, action, reason, moment_id FROM companion_event_executions WHERE role_id = ? ORDER BY attempted_at DESC, id DESC LIMIT ?', [roleId, Math.max(1, Math.min(100, Math.floor(limit)))])[0]
+  return (rows?.values ?? []).map(row => ({ id: String(row[0]), roleId: String(row[1]), eventId: String(row[2]), attemptedAt: Number(row[3]) || 0, action: String(row[4]) as CompanionEventExecutionAction, reason: String(row[5] ?? ''), momentId: row[6] == null ? null : String(row[6]) }))
 }
 
 /** 将生活事件里的关系变化落成可重启恢复的关系事实；signal 只供内部连续性，不对用户显示成分数。 */
@@ -633,6 +672,7 @@ export async function deleteEvent(roleId: string, eventId: string): Promise<bool
     )
     db.run('DELETE FROM companion_moments WHERE role_id = ? AND event_id = ?', [roleId, eventId])
     db.run('DELETE FROM companion_event_links WHERE role_id = ? AND event_id = ?', [roleId, eventId])
+    db.run('DELETE FROM companion_event_executions WHERE role_id = ? AND event_id = ?', [roleId, eventId])
     db.run('DELETE FROM companion_events WHERE role_id = ? AND id = ?', [roleId, eventId])
     db.run('RELEASE SAVEPOINT delete_life_event')
   } catch (error) {

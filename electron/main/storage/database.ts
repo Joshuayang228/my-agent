@@ -38,7 +38,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 21
+export const SCHEMA_VERSION = 22
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -519,6 +519,19 @@ export function runMigrations(database: SqlJsDatabase): void {
         created_at INTEGER NOT NULL
       )`)
       d.run('CREATE INDEX IF NOT EXISTS idx_companion_emotion_role_time ON companion_emotion_events(role_id, created_at DESC)')
+    },
+    // v21 -> v22: life execution decisions are retained for read-only Debug diagnosis.
+    (d) => {
+      d.run(`CREATE TABLE IF NOT EXISTS companion_event_executions (
+        id TEXT PRIMARY KEY,
+        role_id TEXT NOT NULL,
+        event_id TEXT NOT NULL,
+        attempted_at INTEGER NOT NULL,
+        action TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        moment_id TEXT
+      )`)
+      d.run('CREATE INDEX IF NOT EXISTS idx_companion_event_exec_role_time ON companion_event_executions(role_id, attempted_at DESC)')
     },
   ]
 

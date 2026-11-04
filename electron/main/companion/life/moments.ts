@@ -238,7 +238,9 @@ async function projectRange(
   const candidates = planned.filter(event => event.scheduledAt >= fromMs && event.scheduledAt <= toMs)
   // 离线恢复只分享一个最近片段，生活事实仍逐条推进。每次 tick 按实际时刻重新校验预算。
   const selected = opts?.automatic ? [...candidates].reverse().find(event => event.type === 'moment' && event.scheduledAt >= toMs - 24 * 60 * 60_000) : undefined
-  const allowShare = opts?.automatic ? Boolean(selected) && await canAutomaticallyPost(roleId, toMs, selected!) : true
+  const decision = opts?.automatic
+    ? Boolean(selected) ? await canAutomaticallyPost(roleId, toMs, selected!) : { allow: false, reason: 'no-moment-candidate' }
+    : { allow: true, reason: 'manual' }
   let n = 0
   for (const ev of planned) {
     if (ev.scheduledAt < fromMs || ev.scheduledAt > toMs) continue
@@ -254,10 +256,18 @@ async function projectRange(
       })
       const moment = await projectMomentFromEvent(published, {
         ...opts,
-        suppressMoment: opts?.automatic ? !allowShare || ev.id !== selected?.id : opts?.suppressMoment,
+        suppressMoment: opts?.automatic ? !decision.allow || ev.id !== selected?.id : opts?.suppressMoment,
         publishedAt: opts?.automatic ? toMs : opts?.publishedAt,
       })
       if (moment) span.setAttribute('momentId', moment.id)
+      await store.recordEventExecution({
+        roleId,
+        eventId: ev.id,
+        attemptedAt: toMs,
+        action: moment ? 'published' : 'skipped',
+        reason: moment ? decision.reason : decision.reason,
+        momentId: moment?.id ?? null,
+      })
       span.end()
     } catch (error) { span.end('error'); throw error }
     n += 1
@@ -270,13 +280,13 @@ async function projectRange(
  * 意图：以已保存动态的实际发帖时间执行每日预算和冷却，低频模式每天最多一条。
  * 约束：只约束自动分享，生活推进和用户明确发布独立运行。
  */
-async function canAutomaticallyPost(roleId: string, now: number, candidate: CompanionEvent): Promise<boolean> {
+async function canAutomaticallyPost(roleId: string, now: number, candidate: CompanionEvent): Promise<{ allow: boolean; reason: string }> {
   const cadence = await getSetting('companionMomentCadence')
-  if (cadence === 'manual') return false
+  if (cadence === 'manual') return { allow: false, reason: 'manual-mode' }
   const hour = new Date(now).getHours()
   const quietStart = Math.max(0, Math.min(23, Number.parseInt(await getSetting('companionMomentPostingQuietStart'), 10) || 0))
   const quietEnd = Math.max(0, Math.min(23, Number.parseInt(await getSetting('companionMomentPostingQuietEnd'), 10) || 0))
-  if (quietStart !== quietEnd && (quietStart < quietEnd ? hour >= quietStart && hour < quietEnd : hour >= quietStart || hour < quietEnd)) return false
+  if (quietStart !== quietEnd && (quietStart < quietEnd ? hour >= quietStart && hour < quietEnd : hour >= quietStart || hour < quietEnd)) return { allow: false, reason: 'posting-quiet-hours' }
 
   const maxPerDay = Math.max(1, Math.min(10, Number.parseInt(await getSetting('companionMomentMaxPerDay'), 10) || 3))
   const cooldownMinutes = Math.max(0, Math.min(24 * 60, Number.parseInt(await getSetting('companionMomentCooldownMinutes'), 10) || 240))
@@ -285,14 +295,15 @@ async function canAutomaticallyPost(roleId: string, now: number, candidate: Comp
   const recent = await listMomentsForRole(roleId, { limit: 500 })
   const todayCount = recent.filter(moment => moment.publishedAt >= start.getTime() && moment.publishedAt <= now).length
   const lastPublishedAt = recent.reduce((latest, moment) => Math.max(latest, moment.publishedAt), 0)
-  if (todayCount >= (cadence === 'low' ? 1 : maxPerDay)) return false
-  if (lastPublishedAt && now - lastPublishedAt < cooldownMinutes * 60_000) return false
+  if (todayCount >= (cadence === 'low' ? 1 : maxPerDay)) return { allow: false, reason: 'daily-limit' }
+  if (lastPublishedAt && now - lastPublishedAt < cooldownMinutes * 60_000) return { allow: false, reason: 'cooldown' }
   const latest = recent[0]
   const lastEvent = latest ? await store.getEventById(latest.eventId) : null
   // 相同活动与地点只保留最近一次分享，新的关系事实仍允许作为独立事件表达。
-  return Boolean(candidate.payload.relationship) || !lastEvent
+  const distinct = Boolean(candidate.payload.relationship) || !lastEvent
     || candidate.payload.activity !== lastEvent.payload.activity
     || candidate.payload.location !== lastEvent.payload.location
+  return distinct ? { allow: true, reason: 'policy-selected' } : { allow: false, reason: 'duplicate-context' }
 }
 
 /** tick 推进到期生活事件，朋友圈由同一自动策略选择分享。 */

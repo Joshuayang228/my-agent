@@ -9,7 +9,7 @@
 import { getActiveRole } from '../companion/orchestrator'
 import { loadRolePack } from '../companion/identity/loader'
 import { getMutable, getMutableMeta } from '../companion/growth/mutable-store'
-import { getRoleState, getDayScript, listEvents, listRelationshipStates, listEmotionEvents } from '../companion/life/store'
+import { getRoleState, getDayScript, listEvents, listRelationshipStates, listEmotionEvents, listEventExecutions } from '../companion/life/store'
 import { getSetting } from '../storage/settings-store'
 import { listMomentsForRole } from '../companion/life/moments'
 import { toLocalDateString } from '../companion/life/dates'
@@ -101,6 +101,7 @@ export type DebugWorldSnapshot = {
     location: string
   }>
   eventsTruncated: boolean
+  executions: Array<{ id: string; eventId: string; attemptedAt: number; action: 'published' | 'skipped' | 'deferred'; reason: string; momentId: string | null }>
   moments: Array<{ id: string; publishedAt: number; text: string }>
   momentsTruncated: boolean
   relationship: Array<{ subjectId: string; phase: string; note: string; updatedAt: number }>
@@ -129,6 +130,7 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
     listEvents(role.id, { status: 'planned', order: 'desc', limit: EVENT_LIMIT + 1 }),
     listEvents(role.id, { status: 'published', order: 'desc', limit: EVENT_LIMIT + 1 }),
   ])
+  const executions = await listEventExecutions(role.id, EVENT_LIMIT)
   const eventsRaw = [...plannedEvents, ...publishedEvents]
     .sort((a, b) => b.scheduledAt - a.scheduledAt)
   const eventsTruncated = plannedEvents.length > EVENT_LIMIT
@@ -232,6 +234,7 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
     dayScript,
     events,
     eventsTruncated,
+    executions,
     moments,
     momentsTruncated,
     relationship: relationships.map(({ subjectId, phase, note, updatedAt }) => ({ subjectId, phase, note: clip(note, 180), updatedAt })),

@@ -131,6 +131,7 @@ describe('LifeEngine', () => {
     expect(published.length).toBeGreaterThan(0)
     const events = await __lifeStore.listEvents('luffy', { status: 'published' })
     const moments = await __lifeStore.listMoments('luffy')
+    const executions = await lifeStore.listEventExecutions('luffy')
     for (const row of published) {
       expect(row.parentId).toBe(root.spanId)
       expect(events.some(event => event.id === row.sourceEventId)).toBe(true)
@@ -140,6 +141,8 @@ describe('LifeEngine', () => {
     }
     expect(published.some(row => row.momentId)).toBe(true)
     expect(moments).toHaveLength(1)
+    expect(executions.some(item => item.action === 'published')).toBe(true)
+    expect(executions.some(item => item.action === 'skipped')).toBe(true)
     expect(JSON.stringify(history)).not.toContain('payload')
   })
 
