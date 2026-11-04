@@ -732,7 +732,7 @@ declare global {
           emotions: Array<{ label: string; intensity: number; note: string; createdAt: number }>
           momentPolicy: { cadence: string; visibility: string; maxPerDay: string; cooldownMinutes: string; postingQuietStart: string; postingQuietEnd: string; imagePolicy: string; interactionPolicy: string }
           profile: { identity: string; workflow: string; voice: string } | null
-          memories: Array<{ id: string; category: string; content: string; updatedAt: number }>
+          memories: Array<{ id: string; category: string; scope: 'role' | 'shared'; content: string; updatedAt: number }>
           memoriesTruncated: boolean
           generatedAt: number
         }>

@@ -33,6 +33,19 @@ function clip(s: string, max: number): string {
   return `${s.slice(0, max)}…`
 }
 
+/**
+ * 过滤人物快照中的记忆范围。
+ *
+ * 背景：记忆表同时保存共享用户事实和按人物分桶的反馈，世界态 Debug 不能把其他人物的反馈带入当前人物。
+ * 设计意图：共享条目保留并明确标注，人物条目只保留当前 roleId，避免把全局列表误读成当前人物上下文。
+ * 关键约束：该过滤只影响 Debug 展示，不改变记忆存储、召回或用户画像组装。
+ */
+function filterMemoriesForRole(memories: Array<{ id: string; category: string; content: string; updatedAt: number; roleId?: string }>, roleId: string) {
+  return memories
+    .filter(memory => !memory.roleId || memory.roleId === roleId)
+    .map(memory => ({ ...memory, scope: memory.roleId ? 'role' as const : 'shared' as const }))
+}
+
 export type DebugWorldSnapshot = {
   role: { id: string; name: string; description: string; universeId: string }
   characterProfile: RoleProfile | null
@@ -94,7 +107,7 @@ export type DebugWorldSnapshot = {
   emotions: Array<{ label: string; intensity: number; note: string; createdAt: number }>
   momentPolicy: { cadence: string; visibility: string; maxPerDay: string; cooldownMinutes: string; postingQuietStart: string; postingQuietEnd: string; imagePolicy: string; interactionPolicy: string }
   profile: { identity: string; workflow: string; voice: string } | null
-  memories: Array<{ id: string; category: string; content: string; updatedAt: number }>
+  memories: Array<{ id: string; category: string; scope: 'role' | 'shared'; content: string; updatedAt: number }>
   memoriesTruncated: boolean
   generatedAt: number
 }
@@ -165,11 +178,12 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
   ])
 
   const profile = await buildUserProfile(role.id)
-  const allMem = await listMemories()
+  const allMem = filterMemoriesForRole(await listMemories(), role.id)
   const memoriesTruncated = allMem.length > MEMORY_LIMIT
   const memories = allMem.slice(0, MEMORY_LIMIT).map((m) => ({
     id: m.id,
     category: m.category,
+    scope: m.scope,
     content: clip(m.content, MEMORY_CONTENT_MAX),
     updatedAt: m.updatedAt,
   }))
@@ -247,6 +261,7 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
 
 export const __test = {
   clip,
+  filterMemoriesForRole,
   MUTABLE_MAX,
   MEMORY_LIMIT,
   MOMENT_LIMIT,

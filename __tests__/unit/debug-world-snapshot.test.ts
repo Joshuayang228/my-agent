@@ -19,4 +19,15 @@ describe('debug-world-snapshot clip', () => {
     expect(__test.SLOT_LIMIT).toBeLessThanOrEqual(24)
     expect(__test.EVENT_LIMIT).toBeLessThanOrEqual(50)
   })
+
+  it('世界态快照过滤其他人物反馈，并保留共享记忆范围', () => {
+    expect(__test.filterMemoriesForRole([
+      { id: 'shared', category: 'fact', content: '共享', updatedAt: 1 },
+      { id: 'current', category: 'feedback', content: '当前', updatedAt: 2, roleId: 'luffy' },
+      { id: 'other', category: 'feedback', content: '其他', updatedAt: 3, roleId: 'zoro' },
+    ], 'luffy')).toEqual([
+      expect.objectContaining({ id: 'shared', scope: 'shared' }),
+      expect.objectContaining({ id: 'current', scope: 'role' }),
+    ])
+  })
 })

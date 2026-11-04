@@ -157,7 +157,7 @@ export interface WorldSnapshot {
   emotions: Array<{ label: string; intensity: number; note: string; createdAt: number }>
   momentPolicy: { cadence: string; visibility: string; maxPerDay: string; cooldownMinutes: string; postingQuietStart: string; postingQuietEnd: string; imagePolicy: string; interactionPolicy: string }
   profile: { identity: string; workflow: string; voice: string } | null
-  memories: Array<{ id: string; category: string; content: string; updatedAt: number }>
+  memories: Array<{ id: string; category: string; scope: 'role' | 'shared'; content: string; updatedAt: number }>
   memoriesTruncated: boolean
   generatedAt: number
 }
@@ -428,7 +428,7 @@ export function WorldStatePanel({ snap, error }: { snap: WorldSnapshot | null; e
           <div className="space-y-1">
             {snap.memories.map((memory) => (
               <div key={memory.id} className="flex gap-2 rounded border px-2 py-1 text-[11px]" style={{ borderColor: 'var(--border-color)' }}>
-                <span className="shrink-0 font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{memory.category}</span>
+                <span className="shrink-0 font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{memory.scope === 'role' ? '人物' : '共享'} · {memory.category}</span>
                 <span style={{ color: 'var(--text-secondary)' }}>{memory.content}</span>
               </div>
             ))}
