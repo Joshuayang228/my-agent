@@ -179,7 +179,7 @@ export async function runCatchup(
   await ensureDayScripts(roleId, fromDate, toDate)
   const fineDays = eachLocalDateInclusive(fromDate, toDate).length
 
-  const published = await publishAndProjectRange(roleId, fineStart, now)
+  const published = await publishAndProjectRange(roleId, fineStart, now, { automatic: true })
   await store.clearPausedAt(roleId)
   await store.touchLastTick(roleId, now)
 

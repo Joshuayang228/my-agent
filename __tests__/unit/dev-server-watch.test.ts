@@ -1,6 +1,7 @@
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { createServer as createNetServer, type AddressInfo } from 'node:net'
 import { setTimeout as delay } from 'node:timers/promises'
 import { createServer, loadConfigFromFile } from 'vite'
 import { expect, it, vi } from 'vitest'
@@ -11,8 +12,17 @@ it.each([false, true])('Vite 忽略文档和产物，保留源码刷新（交叠
   const root = await mkdtemp(path.join(tmpdir(), 'my-agent-watch-'))
   const index = path.join(root, 'index.html')
   await writeFile(index, '<main>initial</main>')
+  // Vite 的启动逻辑会把 port=0 回退为 5173。先获取系统空闲端口，再显式传入，
+  // 保持开发服务器原端口可用，监听断言继续覆盖真实 Vite 服务。
+  const portProbe = createNetServer()
+  await new Promise<void>((resolve, reject) => {
+    portProbe.once('error', reject)
+    portProbe.listen(0, '127.0.0.1', resolve)
+  })
+  const port = (portProbe.address() as AddressInfo).port
+  await new Promise<void>((resolve, reject) => portProbe.close(error => error ? reject(error) : resolve()))
   const server = await createServer({ root, configFile: false, logLevel: 'silent', server: {
-    host: '127.0.0.1', port: 0, strictPort: true, watch: loaded!.config.server?.watch,
+    host: '127.0.0.1', port, strictPort: true, watch: loaded!.config.server?.watch,
   } })
   const changes: string[] = []
   const send = vi.spyOn(server.ws, 'send')

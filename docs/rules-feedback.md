@@ -17,3 +17,5 @@
 ## 历史索引
 
 - [完整规则反馈快照](../_archive/ledgers/rules-feedback-through-2026-08-16.md)
+
+- 2026-11-04：朋友圈发布策略控件曾在 P0 查看确认前直接加入共享正式设置。已用显式 showPostingPolicy 预览参数恢复候选边界，只有 Playground 启用新增控件。后端策略与设置持久化继续独立验证。

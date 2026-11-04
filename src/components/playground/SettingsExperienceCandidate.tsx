@@ -91,6 +91,11 @@ function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProa
   const [maxPerDay, setMaxPerDay] = useState('3')
   const [cadence, setCadence] = useState<'manual' | 'low' | 'regular'>('regular')
   const [visibility, setVisibility] = useState<'always' | 'three_days' | 'private'>('always')
+  const [postingMaxPerDay, setPostingMaxPerDay] = useState('3')
+  const [cooldownMinutes, setCooldownMinutes] = useState('240')
+  const [postingQuietStart, setPostingQuietStart] = useState('23')
+  const [postingQuietEnd, setPostingQuietEnd] = useState('7')
+  const [imagePolicy, setImagePolicy] = useState<'never' | 'existing'>('never')
   return <CompanionSettingsContent
     showHeader={false}
     expertise={expertise as 'auto' | 'novice' | 'intermediate' | 'expert'}
@@ -109,6 +114,17 @@ function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProa
     visibility={visibility}
     onCadenceChange={setCadence}
     onVisibilityChange={setVisibility}
+    showPostingPolicy
+    postingMaxPerDay={postingMaxPerDay}
+    cooldownMinutes={cooldownMinutes}
+    postingQuietStart={postingQuietStart}
+    postingQuietEnd={postingQuietEnd}
+    imagePolicy={imagePolicy}
+    onPostingMaxPerDayChange={setPostingMaxPerDay}
+    onCooldownMinutesChange={setCooldownMinutes}
+    onPostingQuietStartChange={setPostingQuietStart}
+    onPostingQuietEndChange={setPostingQuietEnd}
+    onImagePolicyChange={setImagePolicy}
     testIdPrefix="settings-candidate-"
     roleAction={<ActionButton onClick={onOpenRoleShelf} className="gap-1" data-testid="settings-candidate-open-role-shelf">小林 · 管理角色架 <ChevronRight size={12} /></ActionButton>}
   />

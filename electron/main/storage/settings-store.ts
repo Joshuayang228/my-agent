@@ -145,6 +145,16 @@ export interface AppSettings {
   companionMomentCadence: string
   /** 朋友圈可见范围：always | three_days | private */
   companionMomentVisibility: string
+  /** 自动发布每日上限，字符串数字，默认 3 */
+  companionMomentMaxPerDay: string
+  /** 自动发布最短间隔分钟，字符串数字，默认 240 */
+  companionMomentCooldownMinutes: string
+  /** 自动发布勿扰开始小时 0–23，默认 23 */
+  companionMomentPostingQuietStart: string
+  /** 自动发布勿扰结束小时 0–23，默认 7 */
+  companionMomentPostingQuietEnd: string
+  /** 自动配图偏好：never | existing */
+  companionMomentImagePolicy: string
   /** 定时主动问候开关（M31-G3 / L4）：默认 false */
   companionProactiveGreetingEnabled: string
   /** 上次主动问候本地日 YYYY-MM-DD（M31-G3） */
@@ -203,6 +213,11 @@ function getDefaults(): AppSettings {
     companionMomentTipsDayStats: '',
     companionMomentCadence: 'regular',
     companionMomentVisibility: 'always',
+    companionMomentMaxPerDay: '3',
+    companionMomentCooldownMinutes: '240',
+    companionMomentPostingQuietStart: '23',
+    companionMomentPostingQuietEnd: '7',
+    companionMomentImagePolicy: 'never',
     companionProactiveGreetingEnabled: 'false',
     companionProactiveGreetingLastDay: '',
     conversationDebugMode: 'false',

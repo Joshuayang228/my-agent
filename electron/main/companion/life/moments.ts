@@ -36,6 +36,12 @@ export interface ProjectMomentOpts {
   preferLlm?: boolean
   llmConfig?: LLMConfig
   universeId?: string
+  /** 自动生活发布路径；自动配图偏好只约束该路径，用户明确发布不受影响。 */
+  automatic?: boolean
+  /** 自动分享按实际发布时间计数，生活事件仍保留原计划时间。 */
+  publishedAt?: number
+  /** 保留事件事实但跳过朋友圈投影。 */
+  suppressMoment?: boolean
 }
 
 /** 将已 published 事件投影为 moment（幂等） */
@@ -44,6 +50,29 @@ export async function projectMomentFromEvent(
   opts?: ProjectMomentOpts,
 ): Promise<CompanionMoment | null> {
   if (event.status !== 'published') return null
+  const relationship = event.payload.relationship && typeof event.payload.relationship === 'object' && !Array.isArray(event.payload.relationship)
+    ? event.payload.relationship as Record<string, unknown>
+    : undefined
+  if (relationship) {
+    await store.recordRelationshipEvent({
+      roleId: event.roleId,
+      subjectId: typeof relationship.subjectId === 'string' ? relationship.subjectId : 'user',
+      phase: typeof relationship.phase === 'string' ? relationship.phase : undefined,
+      note: typeof relationship.note === 'string' ? relationship.note : undefined,
+      delta: typeof relationship.delta === 'number' ? relationship.delta : 1,
+    })
+  }
+  const mood = typeof event.payload.mood === 'string' ? event.payload.mood.trim() : ''
+  if (mood) {
+    await store.recordEmotionEvent({
+      roleId: event.roleId,
+      eventId: event.id,
+      label: mood,
+      intensity: typeof event.payload.moodIntensity === 'number' ? event.payload.moodIntensity : 50,
+      note: typeof event.payload.activity === 'string' ? event.payload.activity : '',
+    })
+  }
+  if (opts?.suppressMoment) return null
   let outfitName: string | undefined
   let bookName: string | undefined
   const assetId = typeof event.payload.assetId === 'string' ? event.payload.assetId : null
@@ -101,8 +130,10 @@ export async function projectMomentFromEvent(
       metadata: { name: bookName },
     })
   }
-  const imageId = typeof event.payload.imageId === 'string' ? event.payload.imageId.trim() : ''
-  const imageIds = Array.isArray(event.payload.imageIds)
+  const imagePolicy = opts?.automatic ? await getSetting('companionMomentImagePolicy') : 'existing'
+  const allowExistingImages = !opts?.automatic || imagePolicy === 'existing'
+  const imageId = allowExistingImages && typeof event.payload.imageId === 'string' ? event.payload.imageId.trim() : ''
+  const imageIds = allowExistingImages && Array.isArray(event.payload.imageIds)
     ? event.payload.imageIds.filter((id): id is string => typeof id === 'string' && /^[a-f0-9]{64}$/.test(id)).slice(0, 9) : []
   for (const [position, linkedImageId] of [...new Set([...(imageId ? [imageId] : []), ...imageIds])].slice(0, 9).entries()) {
     links.push({
@@ -128,28 +159,6 @@ export async function projectMomentFromEvent(
   const participantIds = Array.isArray(event.payload.participantIds)
     ? event.payload.participantIds.filter((id): id is string => typeof id === 'string' && id.trim()).slice(0, 4)
     : []
-  const relationship = event.payload.relationship && typeof event.payload.relationship === 'object' && !Array.isArray(event.payload.relationship)
-    ? event.payload.relationship as Record<string, unknown>
-    : undefined
-  if (relationship) {
-    await store.recordRelationshipEvent({
-      roleId: event.roleId,
-      subjectId: typeof relationship.subjectId === 'string' ? relationship.subjectId : 'user',
-      phase: typeof relationship.phase === 'string' ? relationship.phase : undefined,
-      note: typeof relationship.note === 'string' ? relationship.note : undefined,
-      delta: typeof relationship.delta === 'number' ? relationship.delta : 1,
-    })
-  }
-  const mood = typeof event.payload.mood === 'string' ? event.payload.mood.trim() : ''
-  if (mood) {
-    await store.recordEmotionEvent({
-      roleId: event.roleId,
-      eventId: event.id,
-      label: mood,
-      intensity: typeof event.payload.moodIntensity === 'number' ? event.payload.moodIntensity : 50,
-      note: typeof event.payload.activity === 'string' ? event.payload.activity : '',
-    })
-  }
   for (const participantId of [...new Set(participantIds)]) {
     let castName = participantId
     try { castName = loadRolePack(participantId, opts?.universeId ?? 'default').name } catch { /* 关系表已在工具入口校验；缺失 NPC 只保留 ID 证据 */ }
@@ -166,7 +175,7 @@ export async function projectMomentFromEvent(
   const moment = await store.insertMoment({
     roleId: event.roleId,
     eventId: event.id,
-    publishedAt: event.scheduledAt,
+    publishedAt: opts?.publishedAt ?? event.scheduledAt,
     text,
     meta: {
       type: event.type,
@@ -191,13 +200,40 @@ export async function projectMomentFromEvent(
  * 发布 [fromMs, toMs] 内 planned 事件并投影 moments。
  * 返回新 published 数量。
  */
+const automaticPublishingRoles = new Set<string>()
+
+/**
+ * 背景：ticker 与换角追赶可能同时推进同一人物。
+ * 意图：同人物自动推进在单进程中串行领取，预算读取与写入保持一个临界区。
+ * 约束：所有退出路径释放领取，失败向原调用者传播，下次 tick 可继续读取未处理事件。
+ */
 export async function publishAndProjectRange(
   roleId: string,
   fromMs: number,
   toMs: number,
   opts?: ProjectMomentOpts,
 ): Promise<number> {
+  if (!opts?.automatic) return projectRange(roleId, fromMs, toMs, opts)
+  if (automaticPublishingRoles.has(roleId)) return 0
+  automaticPublishingRoles.add(roleId)
+  try {
+    return await projectRange(roleId, fromMs, toMs, opts)
+  } finally {
+    automaticPublishingRoles.delete(roleId)
+  }
+}
+
+async function projectRange(
+  roleId: string,
+  fromMs: number,
+  toMs: number,
+  opts?: ProjectMomentOpts,
+): Promise<number> {
   const planned = await store.listEvents(roleId, { status: 'planned' })
+  const candidates = planned.filter(event => event.scheduledAt >= fromMs && event.scheduledAt <= toMs)
+  // 离线恢复只分享一个最近片段，生活事实仍逐条推进。每次 tick 按实际时刻重新校验预算。
+  const selected = opts?.automatic ? [...candidates].reverse().find(event => event.type === 'moment' && event.scheduledAt >= toMs - 24 * 60 * 60_000) : undefined
+  const allowShare = opts?.automatic ? Boolean(selected) && await canAutomaticallyPost(roleId, toMs, selected!) : true
   let n = 0
   for (const ev of planned) {
     if (ev.scheduledAt < fromMs || ev.scheduledAt > toMs) continue
@@ -211,7 +247,11 @@ export async function publishAndProjectRange(
         eventId: ev.id,
         eventPayload: ev.payload,
       })
-      const moment = await projectMomentFromEvent(published, opts)
+      const moment = await projectMomentFromEvent(published, {
+        ...opts,
+        suppressMoment: opts?.automatic ? !allowShare || ev.id !== selected?.id : opts?.suppressMoment,
+        publishedAt: opts?.automatic ? toMs : opts?.publishedAt,
+      })
       if (moment) span.setAttribute('momentId', moment.id)
       span.end()
     } catch (error) { span.end('error'); throw error }
@@ -220,18 +260,39 @@ export async function publishAndProjectRange(
   return n
 }
 
-/** tick 用：发布所有 scheduled_at <= now 的 planned 并投影（prefer LLM 润色） */
-export async function publishAndProjectDue(roleId: string, now: number, parentSpanId?: string): Promise<number> {
+/**
+ * 背景：离线恢复会同时出现多条过期事件，按计划时间限流会在一个 tick 内刷屏。
+ * 意图：以已保存动态的实际发帖时间执行每日预算和冷却，低频模式每天最多一条。
+ * 约束：只约束自动分享，生活推进和用户明确发布独立运行。
+ */
+async function canAutomaticallyPost(roleId: string, now: number, candidate: CompanionEvent): Promise<boolean> {
   const cadence = await getSetting('companionMomentCadence')
-  if (cadence === 'manual') return 0
-  if (cadence === 'low') {
-    const start = new Date(now)
-    start.setHours(0, 0, 0, 0)
-    const planned = await store.listEvents(roleId, { status: 'planned', order: 'asc' })
-    const firstToday = planned.find((event) => event.scheduledAt >= start.getTime() && event.scheduledAt <= now)
-    return firstToday ? publishAndProjectRange(roleId, firstToday.scheduledAt, firstToday.scheduledAt, { preferLlm: true, parentSpanId }) : 0
-  }
-  return publishAndProjectRange(roleId, 0, now, { preferLlm: true, parentSpanId })
+  if (cadence === 'manual') return false
+  const hour = new Date(now).getHours()
+  const quietStart = Math.max(0, Math.min(23, Number.parseInt(await getSetting('companionMomentPostingQuietStart'), 10) || 0))
+  const quietEnd = Math.max(0, Math.min(23, Number.parseInt(await getSetting('companionMomentPostingQuietEnd'), 10) || 0))
+  if (quietStart !== quietEnd && (quietStart < quietEnd ? hour >= quietStart && hour < quietEnd : hour >= quietStart || hour < quietEnd)) return false
+
+  const maxPerDay = Math.max(1, Math.min(10, Number.parseInt(await getSetting('companionMomentMaxPerDay'), 10) || 3))
+  const cooldownMinutes = Math.max(0, Math.min(24 * 60, Number.parseInt(await getSetting('companionMomentCooldownMinutes'), 10) || 240))
+  const start = new Date(now)
+  start.setHours(0, 0, 0, 0)
+  const recent = await listMomentsForRole(roleId, { limit: 500 })
+  const todayCount = recent.filter(moment => moment.publishedAt >= start.getTime() && moment.publishedAt <= now).length
+  const lastPublishedAt = recent.reduce((latest, moment) => Math.max(latest, moment.publishedAt), 0)
+  if (todayCount >= (cadence === 'low' ? 1 : maxPerDay)) return false
+  if (lastPublishedAt && now - lastPublishedAt < cooldownMinutes * 60_000) return false
+  const latest = recent[0]
+  const lastEvent = latest ? await store.getEventById(latest.eventId) : null
+  // 相同活动与地点只保留最近一次分享，新的关系事实仍允许作为独立事件表达。
+  return Boolean(candidate.payload.relationship) || !lastEvent
+    || candidate.payload.activity !== lastEvent.payload.activity
+    || candidate.payload.location !== lastEvent.payload.location
+}
+
+/** tick 推进到期生活事件，朋友圈由同一自动策略选择分享。 */
+export async function publishAndProjectDue(roleId: string, now: number, parentSpanId?: string): Promise<number> {
+  return publishAndProjectRange(roleId, 0, now, { preferLlm: true, parentSpanId, automatic: true })
 }
 
 export async function listMomentsForRole(

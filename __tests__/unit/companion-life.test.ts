@@ -26,6 +26,7 @@ vi.mock('../../electron/main/utils/logger', () => ({
 const SQL = await initSqlJs()
 let memDb: InstanceType<typeof SQL.Database>
 let activeRoleId = 'luffy'
+const settingValues: Record<string, string> = {}
 
 vi.mock('../../electron/main/storage/database', () => ({
   getDatabase: vi.fn(async () => memDb),
@@ -36,7 +37,7 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
   getSetting: vi.fn(async (key: string) => {
     if (key === 'universeId') return 'default'
     if (key === 'activeRoleId') return activeRoleId
-    return ''
+    return settingValues[key] ?? ''
   }),
   setSetting: vi.fn(async (key: string, value: string) => {
     if (key === 'activeRoleId') activeRoleId = value
@@ -71,7 +72,7 @@ const { requestSwitch } = await import('../../electron/main/companion/orchestrat
 const { getLifeSliceForRole } = await import('../../electron/main/companion/life/slices')
 const lifeStore = await import('../../electron/main/companion/life/store')
 const { createAsset } = await import('../../electron/main/companion/life/assets')
-const { projectMomentFromEvent } = await import('../../electron/main/companion/life/moments')
+const { projectMomentFromEvent, publishAndProjectDue } = await import('../../electron/main/companion/life/moments')
 const { registerStreamingProbe } = await import('../../electron/main/companion/streaming-gate')
 const identity = await import('../../electron/main/companion/identity/loader')
 
@@ -105,6 +106,7 @@ describe('LifeEngine', () => {
   beforeEach(() => {
     memDb = new SQL.Database()
     activeRoleId = 'luffy'
+    for (const key of Object.keys(settingValues)) delete settingValues[key]
     registerStreamingProbe(() => false)
   })
 
@@ -132,8 +134,12 @@ describe('LifeEngine', () => {
     for (const row of published) {
       expect(row.parentId).toBe(root.spanId)
       expect(events.some(event => event.id === row.sourceEventId)).toBe(true)
-      expect(moments.some(moment => moment.id === row.momentId && moment.eventId === row.sourceEventId)).toBe(true)
+      if (row.momentId) {
+        expect(moments.some(moment => moment.id === row.momentId && moment.eventId === row.sourceEventId)).toBe(true)
+      }
     }
+    expect(published.some(row => row.momentId)).toBe(true)
+    expect(moments).toHaveLength(1)
     expect(JSON.stringify(history)).not.toContain('payload')
   })
 
@@ -162,12 +168,12 @@ describe('LifeEngine', () => {
   it('生活切片按事件聚合动态并拒绝跨主角读取', async () => {
     const now = localDateTimeMs('2026-08-02', 15, 0)
     await tickActiveRole(now)
-    const published = await __lifeStore.listEvents('luffy', { status: 'published', order: 'desc', limit: 1 })
-    expect(published).toHaveLength(1)
-    const slice = await getLifeSliceForRole('luffy', published[0].id)
-    expect(slice?.event.id).toBe(published[0].id)
-    expect(slice?.moment?.eventId).toBe(published[0].id)
-    expect(await getLifeSliceForRole('other', published[0].id)).toBeNull()
+    const moments = await lifeStore.listMoments('luffy')
+    expect(moments).toHaveLength(1)
+    const slice = await getLifeSliceForRole('luffy', moments[0].eventId)
+    expect(slice?.event.id).toBe(moments[0].eventId)
+    expect(slice?.moment?.id).toBe(moments[0].id)
+    expect(await getLifeSliceForRole('other', moments[0].eventId)).toBeNull()
   })
 
   it('事件关联按角色幂等保存，并由 Moment 投影写入资产与图片关系', async () => {
@@ -393,5 +399,91 @@ describe('LifeEngine', () => {
     expect((await lifeStore.listRelationshipStates('luffy'))[0]).toMatchObject({ subjectId: 'user', signal: 3 })
     await lifeStore.recordEmotionEvent({ roleId: 'luffy', eventId: null, label: '兴奋', intensity: 80, note: '准备出航' })
     expect((await lifeStore.listEmotionEvents('luffy'))[0]).toMatchObject({ label: '兴奋', intensity: 80 })
+  })
+
+  it('自动朋友圈遵守每日上限、冷却和勿扰时段，手动节奏不发布', async () => {
+    const base = localDateTimeMs('2026-08-04', 10, 0)
+    for (const hour of [8, 9, 10]) {
+      await __lifeStore.insertEvent({ roleId: 'luffy', scheduledAt: localDateTimeMs('2026-08-04', hour, 0), status: 'planned', type: 'moment', payload: { activity: `活动${hour}` }, dayScriptId: null })
+    }
+    settingValues.companionMomentCadence = 'regular'
+    settingValues.companionMomentMaxPerDay = '1'
+    settingValues.companionMomentCooldownMinutes = '120'
+    settingValues.companionMomentPostingQuietStart = '23'
+    settingValues.companionMomentPostingQuietEnd = '7'
+    expect(await publishAndProjectDue('luffy', base)).toBe(3)
+    expect(await __lifeStore.listEvents('luffy', { status: 'published' })).toHaveLength(3)
+    expect(await __lifeStore.listMoments('luffy')).toHaveLength(1)
+    expect(await publishAndProjectDue('luffy', localDateTimeMs('2026-08-04', 11, 0))).toBe(0)
+
+    settingValues.companionMomentCadence = 'manual'
+    expect(await publishAndProjectDue('luffy', localDateTimeMs('2026-08-04', 14, 0))).toBe(0)
+    settingValues.companionMomentCadence = 'regular'
+    expect(await publishAndProjectDue('luffy', localDateTimeMs('2026-08-04', 2, 0))).toBe(0)
+  })
+
+  it('恢复时只分享最近片段，重复和并发 tick 不刷屏，冷却按真实发帖时刻计算', async () => {
+    const postTime = localDateTimeMs('2026-08-04', 18, 0)
+    for (const hour of [8, 12, 16]) {
+      await lifeStore.insertEvent({ roleId: 'luffy', scheduledAt: localDateTimeMs('2026-08-04', hour, 0), status: 'planned', type: 'moment', payload: { activity: `活动${hour}`, mood: '平静' }, dayScriptId: null })
+    }
+    settingValues.companionMomentCadence = 'regular'
+    settingValues.companionMomentCooldownMinutes = '240'
+    const results = await Promise.all([publishAndProjectDue('luffy', postTime), publishAndProjectDue('luffy', postTime)])
+    expect(results.reduce((a, b) => a + b, 0)).toBe(3)
+    const moments = await lifeStore.listMoments('luffy')
+    expect(moments).toHaveLength(1)
+    expect(moments[0].publishedAt).toBe(postTime)
+    expect(await lifeStore.listEmotionEvents('luffy')).toHaveLength(3)
+    await lifeStore.insertEvent({ roleId: 'luffy', scheduledAt: postTime + 60_000, status: 'planned', type: 'moment', payload: { activity: '新的片段' }, dayScriptId: null })
+    await publishAndProjectDue('luffy', postTime + 60_000)
+    expect(await lifeStore.listMoments('luffy')).toHaveLength(1)
+  })
+
+  it('关闭自动发帖或夜间勿扰时生活继续，普通活动保留为事件', async () => {
+    const now = localDateTimeMs('2026-08-04', 23, 0)
+    settingValues.companionMomentCadence = 'manual'
+    await lifeStore.insertEvent({ roleId: 'luffy', scheduledAt: now, status: 'planned', type: 'moment', payload: { mood: '轻快', activity: '晚间活动' }, dayScriptId: null })
+    expect(await publishAndProjectDue('luffy', now)).toBe(1)
+    expect(await lifeStore.listMoments('luffy')).toHaveLength(0)
+    expect(await lifeStore.listEmotionEvents('luffy')).toHaveLength(1)
+    settingValues.companionMomentCadence = 'regular'
+    settingValues.companionMomentPostingQuietStart = '23'
+    settingValues.companionMomentPostingQuietEnd = '7'
+    await lifeStore.insertEvent({ roleId: 'luffy', scheduledAt: now + 60_000, status: 'planned', type: 'moment', payload: {}, dayScriptId: null })
+    await publishAndProjectDue('luffy', now + 60_000)
+    expect(await lifeStore.listMoments('luffy')).toHaveLength(0)
+  })
+
+  it('低频跨 tick 每日一条，按人物隔离，次日恢复分享', async () => {
+    settingValues.companionMomentCadence = 'low'
+    const insert = async (roleId: string, hour: number, day = '2026-08-04') => {
+      const time = localDateTimeMs(day, hour, 0)
+      await lifeStore.insertEvent({ roleId, scheduledAt: time, status: 'planned', type: 'moment', payload: { activity: `活动${hour}` }, dayScriptId: null })
+      await publishAndProjectDue(roleId, time)
+    }
+    await insert('luffy', 9)
+    await insert('luffy', 18)
+    expect(await lifeStore.listMoments('luffy')).toHaveLength(1)
+    await insert('other', 18)
+    expect(await lifeStore.listMoments('other')).toHaveLength(1)
+    await insert('luffy', 12, '2026-08-05')
+    expect(await lifeStore.listMoments('luffy')).toHaveLength(2)
+  })
+
+  it('自动配图开关控制已有图片绑定，普通活动不会生成动态', async () => {
+    const now = localDateTimeMs('2026-08-04', 12, 0)
+    const imageId = 'a'.repeat(64)
+    const first = await lifeStore.insertEvent({ roleId: 'luffy', scheduledAt: now, status: 'planned', type: 'moment', payload: { activity: '甲板', imageId }, dayScriptId: null })
+    settingValues.companionMomentImagePolicy = 'never'
+    await publishAndProjectDue('luffy', now)
+    expect((await lifeStore.listEventLinks('luffy', first.id)).filter(link => link.targetType === 'image')).toHaveLength(0)
+    const second = await lifeStore.insertEvent({ roleId: 'other', scheduledAt: now, status: 'planned', type: 'moment', payload: { activity: '风景', imageId }, dayScriptId: null })
+    settingValues.companionMomentImagePolicy = 'existing'
+    await publishAndProjectDue('other', now)
+    expect(await lifeStore.listEventLinks('other', second.id)).toEqual(expect.arrayContaining([expect.objectContaining({ targetId: imageId })]))
+    await lifeStore.insertEvent({ roleId: 'activity-only', scheduledAt: now, status: 'planned', type: 'activity', payload: { activity: '日常收拾' }, dayScriptId: null })
+    await publishAndProjectDue('activity-only', now)
+    expect(await lifeStore.listMoments('activity-only')).toHaveLength(0)
   })
 })
