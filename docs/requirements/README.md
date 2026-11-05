@@ -35,6 +35,7 @@
 | [character-luffy-v1.md](./character-luffy-v1.md) | 进行中：删除默认宇宙旧人物资产，建立唯一首个人物路飞并验证制作流程 |
 | [character-design-method-v1.md](./character-design-method-v1.md) | 进行中：通用人物设计、首次冷启与既有经历连续性承接 |
 | [character-state-and-relationship-v1.md](./character-state-and-relationship-v1.md) | 进行中：亲密关系、情绪状态与朋友圈频率 / 可见性策略 |
+| [companion-autonomous-moment-media-v1.md](./companion-autonomous-moment-media-v1.md) | 进行中：朋友圈自主配图的触发、预算、媒体归属、失败恢复与 Debug 证据 |
 | [foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md) | P0 方案待确认：四个产品体验的真实基础复用、Markdown / Diff / 控件收口与源码自动门禁 |
 | [playground-state-switchers-v1.md](./playground-state-switchers-v1.md) | P0：统一 Playground 场景、状态与宽度控制器，采用 MCP 独立选项样式 |
 | [playground-page-baseline-polish-v1.md](./playground-page-baseline-polish-v1.md) | P0 施工：Sidebar 底栏、Toast、Right Dock、人物世界与记忆页面样张统一精修 |
