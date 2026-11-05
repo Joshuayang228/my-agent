@@ -8,12 +8,18 @@
 
 import { listMomentsForRole } from '../life/moments'
 import { getRoleState } from '../life/store'
+import { ASSET_KIND_BOOKSHELF, listAssets } from '../life/assets'
 
 export const LIFE_SIGNAL_MOMENT_LIMIT = 12
 
 export interface LifeSignalMoment {
   publishedAt: number
   text: string
+}
+export interface LifeSignalReading {
+  name: string
+  note?: string
+  status?: string
 }
 
 function formatLocalStamp(ms: number): string {
@@ -31,6 +37,7 @@ function formatLocalStamp(ms: number): string {
 export function formatLifeSignalsForReflection(input: {
   catchupSummary?: string | null
   moments: LifeSignalMoment[]
+  readings?: LifeSignalReading[]
   maxMoments?: number
 }): string {
   const lines: string[] = []
@@ -48,6 +55,17 @@ export function formatLifeSignalsForReflection(input: {
       lines.push(`- ${formatLocalStamp(m.publishedAt)} ${text}`)
     }
   }
+  const readings = input.readings ?? []
+  if (readings.length > 0) {
+    lines.push('【阅读记录】')
+    for (const reading of readings.slice(0, 6)) {
+      const name = reading.name.trim().slice(0, 80)
+      if (!name) continue
+      const note = reading.note?.trim().slice(0, 120)
+      const status = reading.status?.trim().slice(0, 40)
+      lines.push(`- ${name}${status ? `（${status}）` : ''}${note ? `：${note}` : ''}`)
+    }
+  }
   return lines.join('\n').trim()
 }
 
@@ -57,13 +75,19 @@ export async function collectLifeSignalsForRole(
   opts?: { limit?: number },
 ): Promise<string> {
   const limit = opts?.limit ?? LIFE_SIGNAL_MOMENT_LIMIT
-  const [state, moments] = await Promise.all([
+  const [state, moments, bookshelf] = await Promise.all([
     getRoleState(roleId),
     listMomentsForRole(roleId, { limit }),
+    listAssets(roleId, { kind: ASSET_KIND_BOOKSHELF }),
   ])
   return formatLifeSignalsForReflection({
     catchupSummary: state?.catchupSummary ?? '',
     moments: moments.map((m) => ({ publishedAt: m.publishedAt, text: m.text })),
+    readings: bookshelf.map((asset) => ({
+      name: asset.name,
+      note: typeof asset.payload.note === 'string' ? asset.payload.note : undefined,
+      status: typeof asset.payload.readingStatus === 'string' ? asset.payload.readingStatus : undefined,
+    })),
     maxMoments: limit,
   })
 }

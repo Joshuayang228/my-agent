@@ -30,6 +30,16 @@ describe('formatLifeSignalsForReflection', () => {
     expect(text).toContain('清晨咖啡（清醒）')
   })
 
+  it('把已保存阅读笔记作为独立薄信号', () => {
+    const text = formatLifeSignalsForReflection({
+      moments: [],
+      readings: [{ name: '海边的卡夫卡', status: '在读', note: '读到孤独与选择时停下来记了一句。' }],
+    })
+    expect(text).toContain('【阅读记录】')
+    expect(text).toContain('海边的卡夫卡（在读）')
+    expect(text).toContain('孤独与选择')
+  })
+
   it('截断过长 catchup / moment 文案', () => {
     const text = formatLifeSignalsForReflection({
       catchupSummary: '啊'.repeat(300),
