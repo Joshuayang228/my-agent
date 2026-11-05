@@ -265,7 +265,7 @@ async function projectRange(
         eventId: ev.id,
         attemptedAt: toMs,
         action: moment ? 'published' : 'skipped',
-        reason: moment ? decision.reason : decision.reason,
+        reason: opts?.automatic && selected && ev.id !== selected.id ? 'not-selected' : decision.reason,
         momentId: moment?.id ?? null,
       })
       span.end()

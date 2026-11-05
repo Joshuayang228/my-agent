@@ -143,6 +143,7 @@ describe('LifeEngine', () => {
     expect(moments).toHaveLength(1)
     expect(executions.some(item => item.action === 'published')).toBe(true)
     expect(executions.some(item => item.action === 'skipped')).toBe(true)
+    expect(executions.filter(item => item.eventId !== moments[0].eventId).every(item => item.reason === 'not-selected')).toBe(true)
     expect(JSON.stringify(history)).not.toContain('payload')
   })
 
