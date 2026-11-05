@@ -21,7 +21,7 @@ export const DEBUG_PERSPECTIVES: readonly DebugView[] = [
   { id: 'growth', group: '生活', label: '成长与反思', description: '查看成长覆盖、版本及已记录的反思结果。', source: 'debug:companion-evidence-query · mutable / versions / reflection' },
   { id: 'moments', group: '社交', label: '朋友圈', description: '查看已发布动态、评论和生活事件来源，区别于计划。', source: 'debug:companion-evidence-query · moments / user interactions' },
   { id: 'relations', group: '社交', label: '通讯录', description: '查看人物关系、忙闲与已有经历，保留用户关系证据。', source: 'debug:companion-evidence-query · relations / published coframe events' },
-  { id: 'proactive', group: '社交', label: '主动消息证据', description: '只展示可证明的问候与消息证据。', source: '独立主动消息投递索引尚未实现' },
+  { id: 'proactive', group: '社交', label: '主动消息证据', description: '只展示可证明的问候与消息证据。', source: 'ProactiveEvidenceStore · companion:proactive-greeting-receipt' },
   { id: 'wardrobe', group: '资产', label: '衣柜', description: '拥有的衣物、当前穿着与来源，默认只读。', source: 'debug:companion-evidence-query · companion_assets wardrobe' },
   { id: 'items', group: '资产', label: '文化角', description: '查看阅读、音乐、影视、摄影与所属笔记；生活物件归家居。', source: 'debug:companion-evidence-query · culture / bookshelf / readingNotes' },
   { id: 'links', group: '资产', label: '生活事件关联', description: '按显式事件标识查看动态与长期资产之间的关联。', source: 'debug:companion-evidence-query · companion_event_links' },
