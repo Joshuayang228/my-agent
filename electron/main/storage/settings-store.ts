@@ -155,6 +155,8 @@ export interface AppSettings {
   companionMomentPostingQuietEnd: string
   /** 自动配图偏好：never | existing */
   companionMomentImagePolicy: string
+  /** 自动生图每日上限，字符串数字，默认 1 */
+  companionMomentImageMaxPerDay: string
   companionMomentInteractionPolicy: string
   /** 定时主动问候开关（M31-G3 / L4）：默认 false */
   companionProactiveGreetingEnabled: string
@@ -219,6 +221,7 @@ function getDefaults(): AppSettings {
     companionMomentPostingQuietStart: '23',
     companionMomentPostingQuietEnd: '7',
     companionMomentImagePolicy: 'never',
+    companionMomentImageMaxPerDay: '1',
     companionMomentInteractionPolicy: 'occasional',
     companionProactiveGreetingEnabled: 'false',
     companionProactiveGreetingLastDay: '',

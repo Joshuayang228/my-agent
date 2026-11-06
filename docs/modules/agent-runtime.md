@@ -513,3 +513,4 @@ Chat 内置工具注册现在包含 `companion_post_moment`、`companion_comment
 - 2026-11-05：Debug 世界态记忆薄片现在沿 roleId 过滤人物反馈，显式标记共享 / 人物范围，避免快照与实际人物上下文不一致。
 
 - 2026-11-05：LifeEngine / Catch-up 的事件投影现在写入只读执行证据，Debug 可区分生活事实已推进与朋友圈分享被策略跳过。
+<!-- 2026-11-06：自动配图每日预算由 settings-store 提供，媒体尝试写入人物生活存储，不进入用户记忆或 LLM 历史正文。 -->

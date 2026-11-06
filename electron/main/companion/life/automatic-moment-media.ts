@@ -6,12 +6,22 @@ import { normalizeGeneratedImage } from '../../utils/generated-image-codec'
 import { loadRolePack } from '../identity/loader'
 import { formatRoleAppearanceForImagePrompt } from '../identity/profile'
 import { attachMomentImageForRole } from './moment-images'
-import { recordMomentMediaAttempt, storeMomentMedia } from './moment-media-store'
+import { listMomentMediaAttempts, recordMomentMediaAttempt, storeMomentMedia } from './moment-media-store'
+import { getSetting } from '../../storage/settings-store'
+
+function localDay(ms: number): string { return new Date(ms).toLocaleDateString('sv-SE') }
 
 export async function generateAutomaticMomentMedia(roleId: string, event: CompanionEvent, moment: CompanionMoment): Promise<{ ok: true; imageId: string } | { ok: false; reason: string }> {
   const attemptedAt = Date.now()
   await recordMomentMediaAttempt({ roleId, eventId: event.id, momentId: moment.id, status: 'started', reason: 'requested', imageId: null, attemptedAt, completedAt: null })
   try {
+    const maxPerDay = Math.max(1, Math.min(3, Number.parseInt(await getSetting('companionMomentImageMaxPerDay'), 10) || 1))
+    const todayAttempts = await listMomentMediaAttempts(roleId, 100)
+    const usedToday = todayAttempts.filter(item => localDay(item.attemptedAt) === localDay(attemptedAt) && (item.status === 'stored' || item.status === 'started')).length
+    if (usedToday > maxPerDay) {
+      await recordMomentMediaAttempt({ roleId, eventId: event.id, momentId: moment.id, status: 'skipped', reason: 'daily-image-limit', imageId: null, attemptedAt, completedAt: Date.now() })
+      return { ok: false, reason: 'daily-image-limit' }
+    }
     const config = await loadImageGenerationConfig()
     if (!config) {
       await recordMomentMediaAttempt({ roleId, eventId: event.id, momentId: moment.id, status: 'skipped', reason: 'no-image-config', imageId: null, attemptedAt, completedAt: Date.now() })
