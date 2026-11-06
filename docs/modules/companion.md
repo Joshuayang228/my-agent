@@ -193,7 +193,7 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 ## 边界
 
 **做**：Role Pack / 单活跃门控 / MUTABLE 版本与自动反思 / LifeEngine（暂停·剧本·tick）/ Catch-up≤7×24h / Moments·Assets 截面 / 名册浅注入 / 冷启动在场 / 召唤子会话与忙闲婉拒。  
-反思服务会读取当前人物已保存的书架阅读笔记薄信号，只作为反思输入，不自动创建书籍、补写阅读事实或直接改写成长状态；用户可通过 `companion_add_reading_note` 在明确选择书架条目后保存笔记，存储层最多读取六条记录。  
+反思服务会读取当前人物已保存的书架阅读笔记薄信号，只作为反思输入，不自动创建书籍、补写阅读事实或直接改写成长状态；用户可通过 `companion_add_reading_note` 在明确选择书架条目后保存笔记，存储层最多读取六条记录。关系变化另有 `companion_relationship_events` 历史表，按来源事件幂等记录阶段、增量、说明和时间，当前快照仍由 `companion_relationship_state` 提供。
 自主配图施工已接入自动路径：仅当策略值为 `generated` 时，生活 ticker 才调用统一生图配置，生成结果写入应用管理媒体表并绑定人物 / 事件 / 动态；每日默认最多生成一张，预算按本地日历日计算并在跨日后重置，缺配置、超出预算、生成失败或绑定失败均保留文字动态并记录终态尝试原因。相同人物 / 事件已有 `started`、`skipped`、`failed` 或 `stored` 尝试时不再重复调用，成功图片直接复用 ID；默认策略仍为关闭。
 **不做**：会话中途换角；非活跃后台养成；多宇宙并行；自动生成朋友圈内容（视觉资产生图已接入，但不自动替动态生成内容）。自动发布的执行账本现在将未选中事件记为 `not-selected`，不借用获选事件的限流原因。人物行为 Skill 的发现、激活和权限治理属于能力扩展边界，不由 Role Pack 静默切换。
 
@@ -366,6 +366,7 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 | Debug 计划 / 发布状态时间线 | 已落地 | Debug「世界态」只读视图 | `debug-world-snapshot` 有界读取 planned / published 事件；不提供生活世界写操作 |
 | 朋友圈可见窗口自适应 | 已落地 | 设置 → 伙伴与相处；Debug「世界态」 | 设置保留“跟随人物状态 / 最多保留最近三天 / 仅人物自己可见”三档；默认按关系阶段显示最近 3 / 7 / 14 天，用户边界优先，Debug 展示当前实际窗口 |
 | 朋友圈自动发布策略设置 | 已落地 | 设置 → 伙伴与相处 | 正式设置读取并保存节奏、每日上限、冷却、勿扰时段、自动配图 / 图片预算和自动互动；用户明确发布不受自动策略限制，Debug 显示实际策略 |
+| 关系事件历史与 Debug 依据 | 已落地 | Debug「世界态」 | `companion_relationship_events` 按人物 / 来源事件保存关系阶段、增量和说明；重复投影幂等，近期依据可展开查看 |
 | Catch-up ≤7×24h | 已落地 | 朋友圈暖色条 / Prompt | `life/catchup` · `catchup-status` |
 | 此刻 presence | 已落地 | Catch-up / Prompt | `describeCastPresence` · `catchup-status.presence` |
 | Moments（朋友圈） | 已落地 | 人物世界 / 欢迎屏 → 朋友圈 | `get-moments` · `toggle-moment-like` · `add-moment-comment` · MomentsPanel · 卡司互动 meta；正式页真实赞 / 评论落独立用户表，不改 moment.text；Playground 可用只读 Moments / Catch-up 样张、可选本地图片内容位且跳过 IPC |

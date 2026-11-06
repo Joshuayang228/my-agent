@@ -38,7 +38,7 @@ let db: SqlJsDatabase | null = null
 let dbPath = ''
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 23
+export const SCHEMA_VERSION = 24
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -545,6 +545,21 @@ export function runMigrations(database: SqlJsDatabase): void {
         status TEXT NOT NULL, reason TEXT NOT NULL, image_id TEXT, attempted_at INTEGER NOT NULL, completed_at INTEGER
       )`)
       d.run('CREATE INDEX IF NOT EXISTS idx_companion_moment_media_attempts_role_time ON companion_moment_media_attempts(role_id, attempted_at DESC)')
+    },
+    // v23 -> v24: relationship history keeps the event evidence behind the current state snapshot.
+    (d) => {
+      d.run(`CREATE TABLE IF NOT EXISTS companion_relationship_events (
+        id TEXT PRIMARY KEY,
+        role_id TEXT NOT NULL,
+        subject_id TEXT NOT NULL,
+        phase TEXT NOT NULL,
+        delta INTEGER NOT NULL,
+        note TEXT NOT NULL DEFAULT '',
+        source_event_id TEXT,
+        created_at INTEGER NOT NULL
+      )`)
+      d.run('CREATE INDEX IF NOT EXISTS idx_companion_relationship_events_role_time ON companion_relationship_events(role_id, created_at DESC)')
+      d.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_relationship_events_source ON companion_relationship_events(role_id, source_event_id) WHERE source_event_id IS NOT NULL')
     },
   ]
 

@@ -155,6 +155,7 @@ export interface WorldSnapshot {
   moments: Array<{ id: string; publishedAt: number; text: string }>
   momentsTruncated: boolean
   relationship: Array<{ subjectId: string; phase: string; note: string; updatedAt: number }>
+  relationshipEvents: Array<{ subjectId: string; phase: string; delta: number; note: string; sourceEventId: string | null; createdAt: number }>
   emotions: Array<{ label: string; intensity: number; note: string; createdAt: number }>
   momentPolicy: { cadence: string; visibility: string; visibilityDays: string; maxPerDay: string; cooldownMinutes: string; postingQuietStart: string; postingQuietEnd: string; imagePolicy: string; interactionPolicy: string }
   profile: { identity: string; workflow: string; voice: string } | null
@@ -366,6 +367,7 @@ export function WorldStatePanel({ snap, error }: { snap: WorldSnapshot | null; e
             ))}
           </div>
         )}
+        {snap.relationshipEvents.length > 0 && <details className="mt-2 rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: 'var(--border-color)' }}><summary style={{ color: 'var(--text-secondary)' }}>近期关系依据（{snap.relationshipEvents.length}）</summary><div className="mt-1 space-y-1">{snap.relationshipEvents.map((item) => <div key={`${item.createdAt}:${item.subjectId}:${item.phase}`}><span style={{ color: 'var(--text-primary)' }}>{item.subjectId} · {item.phase} · {item.delta >= 0 ? `+${item.delta}` : item.delta}</span><div style={{ color: 'var(--text-secondary)' }}>{item.note || '（无说明）'}</div><div className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{fmt(item.createdAt)}{item.sourceEventId ? ` · 事件 ${item.sourceEventId}` : ''}</div></div>)}</div></details>}
       </Section>
 
       <Section title="情绪事件">

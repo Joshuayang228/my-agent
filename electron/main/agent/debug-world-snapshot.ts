@@ -9,7 +9,7 @@
 import { getActiveRole } from '../companion/orchestrator'
 import { loadRolePack } from '../companion/identity/loader'
 import { getMutable, getMutableMeta } from '../companion/growth/mutable-store'
-import { getRoleState, getDayScript, listEvents, listRelationshipStates, listEmotionEvents, listEventExecutions } from '../companion/life/store'
+import { getRoleState, getDayScript, listEvents, listRelationshipStates, listRelationshipEvents, listEmotionEvents, listEventExecutions } from '../companion/life/store'
 import { resolveMomentVisibilityDays } from '../companion/life/moment-visibility'
 import { getSetting } from '../storage/settings-store'
 import { listMomentsForRole } from '../companion/life/moments'
@@ -106,6 +106,7 @@ export type DebugWorldSnapshot = {
   moments: Array<{ id: string; publishedAt: number; text: string }>
   momentsTruncated: boolean
   relationship: Array<{ subjectId: string; phase: string; note: string; updatedAt: number }>
+  relationshipEvents: Array<{ subjectId: string; phase: string; delta: number; note: string; sourceEventId: string | null; createdAt: number }>
   emotions: Array<{ label: string; intensity: number; note: string; createdAt: number }>
   momentPolicy: { cadence: string; visibility: string; visibilityDays: string; maxPerDay: string; cooldownMinutes: string; postingQuietStart: string; postingQuietEnd: string; imagePolicy: string; interactionPolicy: string }
   profile: { identity: string; workflow: string; voice: string } | null
@@ -173,8 +174,8 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
     publishedAt: m.publishedAt,
     text: clip(m.text, MOMENT_TEXT_MAX),
   }))
-  const [relationships, emotions, cadence, visibility, maxPerDay, cooldownMinutes, postingQuietStart, postingQuietEnd, imagePolicy, interactionPolicy] = await Promise.all([
-    listRelationshipStates(role.id), listEmotionEvents(role.id, 10),
+  const [relationships, relationshipEvents, emotions, cadence, visibility, maxPerDay, cooldownMinutes, postingQuietStart, postingQuietEnd, imagePolicy, interactionPolicy] = await Promise.all([
+    listRelationshipStates(role.id), listRelationshipEvents(role.id, 10), listEmotionEvents(role.id, 10),
     getSetting('companionMomentCadence'), getSetting('companionMomentVisibility'), getSetting('companionMomentMaxPerDay'),
     getSetting('companionMomentCooldownMinutes'), getSetting('companionMomentPostingQuietStart'), getSetting('companionMomentPostingQuietEnd'),
     getSetting('companionMomentImagePolicy'), getSetting('companionMomentInteractionPolicy'),
@@ -239,6 +240,7 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
     moments,
     momentsTruncated,
     relationship: relationships.map(({ subjectId, phase, note, updatedAt }) => ({ subjectId, phase, note: clip(note, 180), updatedAt })),
+    relationshipEvents: relationshipEvents.map(({ subjectId, phase, delta, note, sourceEventId, createdAt }) => ({ subjectId, phase, delta, note: clip(note, 180), sourceEventId, createdAt })),
     emotions: emotions.map(({ label, intensity, note, createdAt }) => ({ label, intensity, note: clip(note, 180), createdAt })),
     momentPolicy: { cadence, visibility, visibilityDays: (() => { const days = resolveMomentVisibilityDays(visibility === 'always' ? 'ai' : visibility, relationships.find(item => item.subjectId === 'user')?.phase); return days === null ? 'private' : `${days}天` })(), maxPerDay, cooldownMinutes, postingQuietStart, postingQuietEnd, imagePolicy, interactionPolicy },
     profile: profile

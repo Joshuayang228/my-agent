@@ -71,6 +71,8 @@ companion_presence_policy
 
 2026-11-07：既有策略控件已从 Playground 候选回流正式「伙伴与相处」设置；设置保存继续复用真实 settings IPC，候选保留为隔离体验样张。
 
+2026-11-07：关系事件历史补齐为独立 `companion_relationship_events` 表，按人物 / 来源生活事件幂等落库；当前关系快照继续用于 Prompt 和可见性计算，Debug 可读取近期事件依据。
+
 - `companionMomentCadence`：手动、偶尔、按日程；只约束自动生活事件，用户明确发帖不受限。
 - `companionMomentMaxPerDay`：自动发布每日上限，默认 3 条；达到上限后生活事件照常发生，朋友圈跳过本次分享。
 - `companionMomentCooldownMinutes`：自动发布之间的最短间隔，默认 240 分钟；重要事件仍先进入同一队列，不绕过冷却。

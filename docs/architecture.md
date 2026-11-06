@@ -1,5 +1,7 @@
 # 系统架构
 
+关系事件历史（2026-11-07）：`companion_relationship_events` 保存生活事件到关系变化的可追溯边，`companion_relationship_state` 仍是当前快照；两者按 role 隔离，Debug 只读投影。
+
 自主配图幂等（2026-11-07）：生活层在生图请求前查询 `companion_moment_media_attempts` 的人物 / 事件键，成功复用或终态跳过；媒体表、事件事实与动态投影边界不变。
 
 伙伴策略正式设置（2026-11-07）：正式 Settings 仅暴露已存在的 companion 设置字段，Renderer 通过既有设置保存桥接写入；没有新增 IPC、存储表或跨层依赖。

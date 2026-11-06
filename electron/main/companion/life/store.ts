@@ -144,6 +144,20 @@ async function ensureTables(): Promise<void> {
     )
   `)
   db.run(`
+    CREATE TABLE IF NOT EXISTS companion_relationship_events (
+      id TEXT PRIMARY KEY,
+      role_id TEXT NOT NULL,
+      subject_id TEXT NOT NULL,
+      phase TEXT NOT NULL,
+      delta INTEGER NOT NULL,
+      note TEXT NOT NULL DEFAULT '',
+      source_event_id TEXT,
+      created_at INTEGER NOT NULL
+    )
+  `)
+  db.run('CREATE INDEX IF NOT EXISTS idx_companion_relationship_events_role_time ON companion_relationship_events(role_id, created_at DESC)')
+  db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_relationship_events_source ON companion_relationship_events(role_id, source_event_id) WHERE source_event_id IS NOT NULL')
+  db.run(`
     CREATE TABLE IF NOT EXISTS companion_emotion_events (
       id TEXT PRIMARY KEY,
       role_id TEXT NOT NULL,
@@ -197,6 +211,17 @@ export interface CompanionRelationshipState {
   updatedAt: number
 }
 
+export interface CompanionRelationshipEvent {
+  id: string
+  roleId: string
+  subjectId: string
+  phase: string
+  delta: number
+  note: string
+  sourceEventId: string | null
+  createdAt: number
+}
+
 export interface CompanionEmotionEvent {
   id: string
   roleId: string
@@ -241,21 +266,39 @@ export async function recordRelationshipEvent(input: {
   phase?: string
   note?: string
   delta?: number
+  sourceEventId?: string | null
 }): Promise<CompanionRelationshipState> {
   await ensureTables()
   const db = await getDatabase()
   const subjectId = input.subjectId?.trim() || 'user'
   const phase = input.phase?.trim() || 'familiar'
   const note = input.note?.trim() || ''
+  const sourceEventId = input.sourceEventId?.trim() || null
+  if (sourceEventId) {
+    const existing = db.exec('SELECT id FROM companion_relationship_events WHERE role_id = ? AND source_event_id = ? LIMIT 1', [input.roleId, sourceEventId])[0]?.values[0]
+    if (existing) {
+      const current = db.exec('SELECT role_id, subject_id, phase, signal, note, updated_at FROM companion_relationship_state WHERE role_id = ? AND subject_id = ?', [input.roleId, subjectId])[0]?.values[0]
+      if (current) return { roleId: String(current[0]), subjectId: String(current[1]), phase: String(current[2]), signal: Number(current[3]) || 0, note: String(current[4] ?? ''), updatedAt: Number(current[5]) || 0 }
+    }
+  }
+  const delta = Math.round(input.delta ?? 1)
   const current = db.exec('SELECT signal FROM companion_relationship_state WHERE role_id = ? AND subject_id = ?', [input.roleId, subjectId])[0]?.values[0]?.[0]
-  const signal = Math.max(-100, Math.min(100, Number(current ?? 0) + Math.round(input.delta ?? 1)))
+  const signal = Math.max(-100, Math.min(100, Number(current ?? 0) + delta))
   const updatedAt = Date.now()
+  db.run('INSERT INTO companion_relationship_events (id, role_id, subject_id, phase, delta, note, source_event_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [randomUUID(), input.roleId, subjectId, phase, delta, note, sourceEventId, updatedAt])
   db.run(`INSERT INTO companion_relationship_state (role_id, subject_id, phase, signal, note, updated_at)
     VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(role_id, subject_id) DO UPDATE SET phase=excluded.phase, signal=excluded.signal, note=excluded.note, updated_at=excluded.updated_at`,
     [input.roleId, subjectId, phase, signal, note, updatedAt])
   persist()
   return { roleId: input.roleId, subjectId, phase, signal, note, updatedAt }
+}
+
+export async function listRelationshipEvents(roleId: string, limit = 20): Promise<CompanionRelationshipEvent[]> {
+  await ensureTables()
+  const db = await getDatabase()
+  const rows = db.exec('SELECT id, role_id, subject_id, phase, delta, note, source_event_id, created_at FROM companion_relationship_events WHERE role_id = ? ORDER BY created_at DESC, id DESC LIMIT ?', [roleId, Math.max(1, Math.min(100, Math.floor(limit)))])[0]
+  return (rows?.values ?? []).map(row => ({ id: String(row[0]), roleId: String(row[1]), subjectId: String(row[2]), phase: String(row[3]), delta: Number(row[4]) || 0, note: String(row[5] ?? ''), sourceEventId: row[6] == null ? null : String(row[6]), createdAt: Number(row[7]) || 0 }))
 }
 
 export async function listRelationshipStates(roleId: string): Promise<CompanionRelationshipState[]> {

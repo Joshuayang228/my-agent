@@ -398,8 +398,11 @@ describe('LifeEngine', () => {
   })
 
   it('关系状态与情绪事件写入后可按人物恢复', async () => {
-    const relation = await lifeStore.recordRelationshipEvent({ roleId: 'luffy', subjectId: 'user', phase: 'rapport', note: '一起经历了新的航段', delta: 3 })
+    const relation = await lifeStore.recordRelationshipEvent({ roleId: 'luffy', subjectId: 'user', phase: 'rapport', note: '一起经历了新的航段', delta: 3, sourceEventId: 'event-relation-1' })
     expect(relation.phase).toBe('rapport')
+    expect((await lifeStore.listRelationshipStates('luffy'))[0]).toMatchObject({ subjectId: 'user', signal: 3 })
+    await lifeStore.recordRelationshipEvent({ roleId: 'luffy', subjectId: 'user', phase: 'rapport', note: '重复投影', delta: 3, sourceEventId: 'event-relation-1' })
+    expect(await lifeStore.listRelationshipEvents('luffy')).toHaveLength(1)
     expect((await lifeStore.listRelationshipStates('luffy'))[0]).toMatchObject({ subjectId: 'user', signal: 3 })
     await lifeStore.recordEmotionEvent({ roleId: 'luffy', eventId: null, label: '兴奋', intensity: 80, note: '准备出航' })
     expect((await lifeStore.listEmotionEvents('luffy'))[0]).toMatchObject({ label: '兴奋', intensity: 80 })

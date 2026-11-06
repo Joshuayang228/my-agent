@@ -61,6 +61,7 @@ export async function projectMomentFromEvent(
       phase: typeof relationship.phase === 'string' ? relationship.phase : undefined,
       note: typeof relationship.note === 'string' ? relationship.note : undefined,
       delta: typeof relationship.delta === 'number' ? relationship.delta : 1,
+      sourceEventId: event.id,
     })
   }
   const mood = typeof event.payload.mood === 'string' ? event.payload.mood.trim() : ''
