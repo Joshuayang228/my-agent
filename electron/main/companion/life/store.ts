@@ -311,6 +311,10 @@ export async function listRelationshipStates(roleId: string): Promise<CompanionR
 export async function recordEmotionEvent(input: Omit<CompanionEmotionEvent, 'id' | 'createdAt'> & { createdAt?: number }): Promise<CompanionEmotionEvent> {
   await ensureTables()
   const db = await getDatabase()
+  if (input.eventId) {
+    const existing = db.exec('SELECT id, role_id, event_id, label, intensity, note, created_at FROM companion_emotion_events WHERE role_id = ? AND event_id = ? LIMIT 1', [input.roleId, input.eventId])[0]?.values[0]
+    if (existing) return { id: String(existing[0]), roleId: String(existing[1]), eventId: existing[2] == null ? null : String(existing[2]), label: String(existing[3]), intensity: Number(existing[4]) || 0, note: String(existing[5] ?? ''), createdAt: Number(existing[6]) || 0 }
+  }
   const row: CompanionEmotionEvent = { ...input, id: randomUUID(), createdAt: input.createdAt ?? Date.now() }
   db.run('INSERT INTO companion_emotion_events (id, role_id, event_id, label, intensity, note, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)', [row.id, row.roleId, row.eventId, row.label, Math.max(0, Math.min(100, row.intensity)), row.note, row.createdAt])
   persist()

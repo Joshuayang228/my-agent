@@ -404,7 +404,9 @@ describe('LifeEngine', () => {
     await lifeStore.recordRelationshipEvent({ roleId: 'luffy', subjectId: 'user', phase: 'rapport', note: '重复投影', delta: 3, sourceEventId: 'event-relation-1' })
     expect(await lifeStore.listRelationshipEvents('luffy')).toHaveLength(1)
     expect((await lifeStore.listRelationshipStates('luffy'))[0]).toMatchObject({ subjectId: 'user', signal: 3 })
-    await lifeStore.recordEmotionEvent({ roleId: 'luffy', eventId: null, label: '兴奋', intensity: 80, note: '准备出航' })
+    await lifeStore.recordEmotionEvent({ roleId: 'luffy', eventId: 'event-emotion-1', label: '兴奋', intensity: 80, note: '准备出航' })
+    await lifeStore.recordEmotionEvent({ roleId: 'luffy', eventId: 'event-emotion-1', label: '兴奋', intensity: 90, note: '重复投影' })
+    expect(await lifeStore.listEmotionEvents('luffy')).toHaveLength(1)
     expect((await lifeStore.listEmotionEvents('luffy'))[0]).toMatchObject({ label: '兴奋', intensity: 80 })
   })
 
