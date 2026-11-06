@@ -90,7 +90,7 @@ function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProa
   const [quietEnd, setQuietEnd] = useState('8')
   const [maxPerDay, setMaxPerDay] = useState('3')
   const [cadence, setCadence] = useState<'manual' | 'low' | 'regular'>('regular')
-  const [visibility, setVisibility] = useState<'always' | 'three_days' | 'private'>('always')
+  const [visibility, setVisibility] = useState<'ai' | 'three_days' | 'private'>('ai')
   const [postingMaxPerDay, setPostingMaxPerDay] = useState('3')
   const [cooldownMinutes, setCooldownMinutes] = useState('240')
   const [postingQuietStart, setPostingQuietStart] = useState('23')

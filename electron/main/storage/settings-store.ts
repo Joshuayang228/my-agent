@@ -215,7 +215,7 @@ function getDefaults(): AppSettings {
     companionMomentTipsMaxPerDay: '3',
     companionMomentTipsDayStats: '',
     companionMomentCadence: 'regular',
-    companionMomentVisibility: 'always',
+    companionMomentVisibility: 'ai',
     companionMomentMaxPerDay: '3',
     companionMomentCooldownMinutes: '240',
     companionMomentPostingQuietStart: '23',

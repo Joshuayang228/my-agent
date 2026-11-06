@@ -1,5 +1,7 @@
 # 系统架构
 
+朋友圈可见窗口（2026-11-06）：Renderer 仍通过设置入口保存用户边界；主进程 `companion:get-moments` 读取当前角色关系阶段后调用 `moment-visibility.ts` 过滤动态，Debug 世界态沿同一函数展示实际窗口。未新增跨层依赖或第二份生活事实源。
+
 ## 用户人物草稿边界
 
 运行时人物制作 Skill 通过 `tools/builtins/companion-character-draft.ts` → `companion/authoring/draft-store.ts` 保存用户数据目录中的草稿；草稿与仓库内置 Universe / Role Pack 分离，模型不能绕过工具确认直接覆盖内置资产。发布和世界观切换必须经过主进程校验与明确确认，不能由普通草稿更新直接改变 `activeRoleId` 或 `universeId`。

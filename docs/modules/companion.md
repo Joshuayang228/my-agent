@@ -364,6 +364,7 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 | 反思吃生活薄信号（G4） | 已落地 | （隐式）自动/手动反思 | `life-signals` · Moments + Catch-up |
 | LifeEngine（暂停 · 剧本 · tick） | 已落地 | （隐式）presence / Prompt | `life/engine.ts` |
 | Debug 计划 / 发布状态时间线 | 已落地 | Debug「世界态」只读视图 | `debug-world-snapshot` 有界读取 planned / published 事件；不提供生活世界写操作 |
+| 朋友圈可见窗口自适应 | 已落地 | 设置 → 伙伴与相处；Debug「世界态」 | 设置保留“跟随人物状态 / 最多保留最近三天 / 仅人物自己可见”三档；默认按关系阶段显示最近 3 / 7 / 14 天，用户边界优先，Debug 展示当前实际窗口 |
 | Catch-up ≤7×24h | 已落地 | 朋友圈暖色条 / Prompt | `life/catchup` · `catchup-status` |
 | 此刻 presence | 已落地 | Catch-up / Prompt | `describeCastPresence` · `catchup-status.presence` |
 | Moments（朋友圈） | 已落地 | 人物世界 / 欢迎屏 → 朋友圈 | `get-moments` · `toggle-moment-like` · `add-moment-comment` · MomentsPanel · 卡司互动 meta；正式页真实赞 / 评论落独立用户表，不改 moment.text；Playground 可用只读 Moments / Catch-up 样张、可选本地图片内容位且跳过 IPC |

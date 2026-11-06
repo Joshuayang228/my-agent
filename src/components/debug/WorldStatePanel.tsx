@@ -156,7 +156,7 @@ export interface WorldSnapshot {
   momentsTruncated: boolean
   relationship: Array<{ subjectId: string; phase: string; note: string; updatedAt: number }>
   emotions: Array<{ label: string; intensity: number; note: string; createdAt: number }>
-  momentPolicy: { cadence: string; visibility: string; maxPerDay: string; cooldownMinutes: string; postingQuietStart: string; postingQuietEnd: string; imagePolicy: string; interactionPolicy: string }
+  momentPolicy: { cadence: string; visibility: string; visibilityDays: string; maxPerDay: string; cooldownMinutes: string; postingQuietStart: string; postingQuietEnd: string; imagePolicy: string; interactionPolicy: string }
   profile: { identity: string; workflow: string; voice: string } | null
   memories: Array<{ id: string; category: string; scope: 'role' | 'shared'; content: string; updatedAt: number }>
   memoriesTruncated: boolean
@@ -385,6 +385,7 @@ export function WorldStatePanel({ snap, error }: { snap: WorldSnapshot | null; e
       <Section title="朋友圈策略">
         <KV label="更新节奏" value={snap.momentPolicy.cadence} />
         <KV label="可见范围" value={snap.momentPolicy.visibility} />
+        <KV label="当前窗口" value={snap.momentPolicy.visibilityDays} />
         <KV label="每日上限" value={snap.momentPolicy.maxPerDay} />
         <KV label="最短间隔" value={`${snap.momentPolicy.cooldownMinutes} 分钟`} />
         <KV label="自动发帖勿扰" value={`${snap.momentPolicy.postingQuietStart}:00–${snap.momentPolicy.postingQuietEnd}:00`} />

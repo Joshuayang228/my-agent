@@ -10,6 +10,7 @@ import { getActiveRole } from '../companion/orchestrator'
 import { loadRolePack } from '../companion/identity/loader'
 import { getMutable, getMutableMeta } from '../companion/growth/mutable-store'
 import { getRoleState, getDayScript, listEvents, listRelationshipStates, listEmotionEvents, listEventExecutions } from '../companion/life/store'
+import { resolveMomentVisibilityDays } from '../companion/life/moment-visibility'
 import { getSetting } from '../storage/settings-store'
 import { listMomentsForRole } from '../companion/life/moments'
 import { toLocalDateString } from '../companion/life/dates'
@@ -106,7 +107,7 @@ export type DebugWorldSnapshot = {
   momentsTruncated: boolean
   relationship: Array<{ subjectId: string; phase: string; note: string; updatedAt: number }>
   emotions: Array<{ label: string; intensity: number; note: string; createdAt: number }>
-  momentPolicy: { cadence: string; visibility: string; maxPerDay: string; cooldownMinutes: string; postingQuietStart: string; postingQuietEnd: string; imagePolicy: string; interactionPolicy: string }
+  momentPolicy: { cadence: string; visibility: string; visibilityDays: string; maxPerDay: string; cooldownMinutes: string; postingQuietStart: string; postingQuietEnd: string; imagePolicy: string; interactionPolicy: string }
   profile: { identity: string; workflow: string; voice: string } | null
   memories: Array<{ id: string; category: string; scope: 'role' | 'shared'; content: string; updatedAt: number }>
   memoriesTruncated: boolean
@@ -239,7 +240,7 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
     momentsTruncated,
     relationship: relationships.map(({ subjectId, phase, note, updatedAt }) => ({ subjectId, phase, note: clip(note, 180), updatedAt })),
     emotions: emotions.map(({ label, intensity, note, createdAt }) => ({ label, intensity, note: clip(note, 180), createdAt })),
-    momentPolicy: { cadence, visibility, maxPerDay, cooldownMinutes, postingQuietStart, postingQuietEnd, imagePolicy, interactionPolicy },
+    momentPolicy: { cadence, visibility, visibilityDays: (() => { const days = resolveMomentVisibilityDays(visibility === 'always' ? 'ai' : visibility, relationships.find(item => item.subjectId === 'user')?.phase); return days === null ? 'private' : `${days}天` })(), maxPerDay, cooldownMinutes, postingQuietStart, postingQuietEnd, imagePolicy, interactionPolicy },
     profile: profile
       ? {
           identity: clip(profile.identity, 400),

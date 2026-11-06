@@ -215,6 +215,13 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     source: 'electron/main/companion/life/automatic-moment-media.ts#generateAutomaticMomentMedia', version: 'media-generation-v1',
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ policy: 'generated', failure: 'keep-text-moment', retry: 'none' }),
+  }), makeCompanionAsset({
+    key: 'companion:policy:moment-visibility', name: '朋友圈可见窗口策略',
+    purpose: '按用户隐私边界与关系阶段决定朋友圈历史可见窗口',
+    role: 'platform', description: '默认跟随人物状态；用户可收窄到最近三天或完全关闭。',
+    source: 'electron/main/companion/life/moment-visibility.ts#resolveMomentVisibilityDays', version: 'visibility-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ default: 'ai', relationshipWindows: { stranger: 3, familiar: 7, rapport: 14 }, userBounds: ['three_days', 'private'] }),
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

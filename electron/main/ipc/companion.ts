@@ -49,7 +49,8 @@ import {
   toggleMomentLikeForRole,
 } from '../companion/life/moments'
 import { describeMomentSocial } from '../../../src/shared/moment-user-interactions'
-import { claimFirstContact, getRoleState } from '../companion/life/store'
+import { claimFirstContact, getRoleState, listRelationshipStates } from '../companion/life/store'
+import { resolveMomentVisibilityDays } from '../companion/life/moment-visibility'
 import { getLifeSliceForRole } from '../companion/life/slices'
 import { momentImageIdsForRole, readMomentImageForRole } from '../companion/life/moment-images'
 import * as settings from '../storage/settings-store'
@@ -144,10 +145,12 @@ export function registerCompanionIPC(): void {
       const limit = Number.isSafeInteger(opts?.limit) ? Math.max(1, Math.min(200, opts!.limit!)) : 50
       const offset = Number.isSafeInteger(opts?.offset) ? Math.max(0, opts!.offset!) : 0
       const visibility = await settings.getSetting('companionMomentVisibility')
-      let moments = await listMomentsForRole(roleId, { limit: visibility === 'three_days' ? Math.min(200, limit + offset + 200) : limit, offset: visibility === 'three_days' ? 0 : offset })
-      if (visibility === 'private') moments = []
-      if (visibility === 'three_days') {
-        const cutoff = Date.now() - 3 * 24 * 60 * 60 * 1000
+      const relationship = (await listRelationshipStates(roleId)).find(item => item.subjectId === 'user')
+      const visibilityDays = resolveMomentVisibilityDays(visibility === 'always' ? 'ai' : visibility, relationship?.phase)
+      let moments = await listMomentsForRole(roleId, { limit: visibilityDays === null ? 1 : Math.min(200, limit + offset + 200), offset: 0 })
+      if (visibilityDays === null) moments = []
+      if (visibilityDays !== null) {
+        const cutoff = Date.now() - visibilityDays * 24 * 60 * 60 * 1000
         moments = moments.filter((moment) => moment.publishedAt >= cutoff).slice(offset, offset + limit)
       }
       const items = await Promise.all(moments.map(async moment => ({ ...moment, imageIds: await momentImageIdsForRole(roleId, moment.id) })))

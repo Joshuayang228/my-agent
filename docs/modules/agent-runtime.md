@@ -1,5 +1,7 @@
 # Agent 运行时
 
+朋友圈可见窗口（2026-11-06）：`companion:get-moments` 在主进程按关系阶段解析当前窗口，Debug 快照复用同一纯函数；本批未改变 Agent Loop、Prompt、记忆或任务调度边界。
+
 人物体系草稿工具（2026-10-31）：新增 `companion_character_draft` 内置工具和运行时 `character-system-builder` Skill。工具只把有界分区草稿保存到用户数据目录，支持创建、更新和提交审阅，不直接发布 Role Pack、覆盖生产资产或切换世界观。
 
 世界观切换工具（2026-10-31）：`companion_switch_universe` 读取同一 loader 的内置 / 用户 Universe 清单，切换前校验默认主角和流式状态；用户发布人物使用带世界观前缀的内部 role ID。该入口仍需完整 UI、跨世界历史隔离和重启回读验收。

@@ -69,7 +69,7 @@ const DEFAULTS: SettingsForm = {
   companionMomentTipsQuietEnd: '8',
   companionMomentTipsMaxPerDay: '3',
   companionMomentCadence: 'regular',
-  companionMomentVisibility: 'always',
+  companionMomentVisibility: 'ai',
   companionMomentMaxPerDay: '3',
   companionMomentCooldownMinutes: '240',
   companionMomentPostingQuietStart: '23',
@@ -452,7 +452,7 @@ export function SettingsPanel({
     onQuietEndChange={(value) => update('companionMomentTipsQuietEnd', value)}
     onMaxPerDayChange={(value) => update('companionMomentTipsMaxPerDay', value)}
     cadence={form.companionMomentCadence as 'manual' | 'low' | 'regular'}
-    visibility={form.companionMomentVisibility as 'always' | 'three_days' | 'private'}
+    visibility={form.companionMomentVisibility as 'ai' | 'three_days' | 'private'}
     onCadenceChange={(value) => update('companionMomentCadence', value)}
     onVisibilityChange={(value) => update('companionMomentVisibility', value)}
     postingMaxPerDay={form.companionMomentMaxPerDay}
