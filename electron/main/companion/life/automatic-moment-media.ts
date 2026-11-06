@@ -11,14 +11,19 @@ import { getSetting } from '../../storage/settings-store'
 
 function localDay(ms: number): string { return new Date(ms).toLocaleDateString('sv-SE') }
 
+export function shouldSkipAutomaticMomentImage(input: { attemptedAt: number; maxPerDay: number; priorAttempts: Array<{ attemptedAt: number; status: string }> }): boolean {
+  const day = localDay(input.attemptedAt)
+  const used = input.priorAttempts.filter(item => localDay(item.attemptedAt) === day && (item.status === 'stored' || item.status === 'started')).length
+  return used > Math.max(0, input.maxPerDay)
+}
+
 export async function generateAutomaticMomentMedia(roleId: string, event: CompanionEvent, moment: CompanionMoment): Promise<{ ok: true; imageId: string } | { ok: false; reason: string }> {
   const attemptedAt = Date.now()
   await recordMomentMediaAttempt({ roleId, eventId: event.id, momentId: moment.id, status: 'started', reason: 'requested', imageId: null, attemptedAt, completedAt: null })
   try {
     const maxPerDay = Math.max(1, Math.min(3, Number.parseInt(await getSetting('companionMomentImageMaxPerDay'), 10) || 1))
     const todayAttempts = await listMomentMediaAttempts(roleId, 100)
-    const usedToday = todayAttempts.filter(item => localDay(item.attemptedAt) === localDay(attemptedAt) && (item.status === 'stored' || item.status === 'started')).length
-    if (usedToday > maxPerDay) {
+    if (shouldSkipAutomaticMomentImage({ attemptedAt, maxPerDay, priorAttempts: todayAttempts })) {
       await recordMomentMediaAttempt({ roleId, eventId: event.id, momentId: moment.id, status: 'skipped', reason: 'daily-image-limit', imageId: null, attemptedAt, completedAt: Date.now() })
       return { ok: false, reason: 'daily-image-limit' }
     }
