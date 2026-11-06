@@ -197,6 +197,16 @@ export function queryCompanionEvidence(input: unknown, db: Database | null = get
   result.hasMore = raw.length > query.limit
   const page = raw.slice(0, query.limit)
   append(page, source.table)
+  if (query.view === 'activity' && hasTable(db, 'companion_event_executions')) {
+    // 背景：生活事件分页已经是活动视角的时间主轴，执行账本另有尝试时间，直接拼成第二套分页会让同一事件重复出现。
+    // 设计意图：把同事件的自动推进 / 发帖决策附着在已分页事件详情里，复用人物、日期和来源链接。
+    // 关键约束：只按 role_id + event_id 读取，最多保留 20 条，账本缺失时不补造执行结论。
+    for (const entry of result.records) {
+      if (entry.source !== 'companion_events') continue
+      const executionRows = rows(db, 'SELECT id, attempted_at, action, reason, moment_id FROM companion_event_executions WHERE role_id = ? AND event_id = ? ORDER BY attempted_at DESC, id DESC LIMIT 20', [query.roleId, entry.id])
+      if (executionRows.length) entry.data.executions = safeValue(executionRows, { truncated: false })
+    }
+  }
   if (result.hasMore) { const last = page.at(-1)!; result.nextCursor = Buffer.from(JSON.stringify({ view: query.view, roleId: query.roleId, date: query.date ?? '', time: last[source.time], id: last[source.id] })).toString('base64url') }
   if (query.view === 'profile') result.boundary = '有界画像来源：身份 / 事实、协作、表达记忆沿用全局范围，反馈限定所选人物；当前页不是全量画像，也不证明实际注入。'
   if (query.view === 'moments' && hasTable(db, 'companion_moment_user_interactions')) for (const entry of result.records) {
