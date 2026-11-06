@@ -154,7 +154,7 @@ export interface WorldSnapshot {
   executions: Array<{ id: string; eventId: string; attemptedAt: number; action: 'published' | 'skipped' | 'deferred'; reason: string; momentId: string | null }>
   moments: Array<{ id: string; publishedAt: number; text: string }>
   momentsTruncated: boolean
-  relationship: Array<{ subjectId: string; phase: string; note: string; updatedAt: number }>
+  relationship: Array<{ subjectId: string; phase: string; signal: number; note: string; updatedAt: number }>
   relationshipEvents: Array<{ subjectId: string; phase: string; delta: number; note: string; sourceEventId: string | null; createdAt: number }>
   emotions: Array<{ label: string; intensity: number; note: string; createdAt: number }>
   momentPolicy: { cadence: string; visibility: string; visibilityDays: string; maxPerDay: string; cooldownMinutes: string; postingQuietStart: string; postingQuietEnd: string; imagePolicy: string; interactionPolicy: string }
@@ -361,6 +361,7 @@ export function WorldStatePanel({ snap, error }: { snap: WorldSnapshot | null; e
             {snap.relationship.map((item) => (
               <div key={item.subjectId} className="rounded border px-2 py-1.5 text-[11px]" style={{ borderColor: 'var(--border-color)' }}>
                 <div style={{ color: 'var(--text-primary)' }}>{item.subjectId} · {item.phase}</div>
+                <div className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>内部连续性信号：{item.signal}/100（诊断值，不是好感度）</div>
                 <div style={{ color: 'var(--text-secondary)' }}>{item.note || '（无说明）'}</div>
                 <div className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>{fmt(item.updatedAt)}</div>
               </div>

@@ -105,7 +105,7 @@ export type DebugWorldSnapshot = {
   executions: Array<{ id: string; eventId: string; attemptedAt: number; action: 'published' | 'skipped' | 'deferred'; reason: string; momentId: string | null }>
   moments: Array<{ id: string; publishedAt: number; text: string }>
   momentsTruncated: boolean
-  relationship: Array<{ subjectId: string; phase: string; note: string; updatedAt: number }>
+  relationship: Array<{ subjectId: string; phase: string; signal: number; note: string; updatedAt: number }>
   relationshipEvents: Array<{ subjectId: string; phase: string; delta: number; note: string; sourceEventId: string | null; createdAt: number }>
   emotions: Array<{ label: string; intensity: number; note: string; createdAt: number }>
   momentPolicy: { cadence: string; visibility: string; visibilityDays: string; maxPerDay: string; cooldownMinutes: string; postingQuietStart: string; postingQuietEnd: string; imagePolicy: string; interactionPolicy: string }
@@ -239,7 +239,7 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
     executions,
     moments,
     momentsTruncated,
-    relationship: relationships.map(({ subjectId, phase, note, updatedAt }) => ({ subjectId, phase, note: clip(note, 180), updatedAt })),
+    relationship: relationships.map(({ subjectId, phase, signal, note, updatedAt }) => ({ subjectId, phase, signal, note: clip(note, 180), updatedAt })),
     relationshipEvents: relationshipEvents.map(({ subjectId, phase, delta, note, sourceEventId, createdAt }) => ({ subjectId, phase, delta, note: clip(note, 180), sourceEventId, createdAt })),
     emotions: emotions.map(({ label, intensity, note, createdAt }) => ({ label, intensity, note: clip(note, 180), createdAt })),
     momentPolicy: { cadence, visibility, visibilityDays: (() => { const days = resolveMomentVisibilityDays(visibility === 'always' ? 'ai' : visibility, relationships.find(item => item.subjectId === 'user')?.phase); return days === null ? 'private' : `${days}天` })(), maxPerDay, cooldownMinutes, postingQuietStart, postingQuietEnd, imagePolicy, interactionPolicy },

@@ -1,5 +1,7 @@
 # 系统架构
 
+状态量化边界（2026-11-07）：运行态保留有界数值供 Debug / 计算使用，正式 UI 只消费状态词和摘要；数值不进入设置写入、权限决策或用户长期记忆。
+
 情绪事件幂等（2026-11-07）：生活投影在 `companion_emotion_events` 写入前按 role / source event 去重，保留无来源手动事件，不新增跨层依赖。
 
 关系事件历史（2026-11-07）：`companion_relationship_events` 保存生活事件到关系变化的可追溯边，`companion_relationship_state` 仍是当前快照；两者按 role 隔离，Debug 只读投影。
