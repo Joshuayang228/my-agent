@@ -95,6 +95,7 @@ function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProa
   const [cooldownMinutes, setCooldownMinutes] = useState('240')
   const [postingQuietStart, setPostingQuietStart] = useState('23')
   const [postingQuietEnd, setPostingQuietEnd] = useState('7')
+  const [imageMaxPerDay, setImageMaxPerDay] = useState('1')
   const [imagePolicy, setImagePolicy] = useState<'never' | 'existing' | 'generated'>('never')
   const [interactionPolicy, setInteractionPolicy] = useState<'never' | 'occasional' | 'regular'>('occasional')
   return <CompanionSettingsContent
@@ -120,12 +121,14 @@ function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProa
     cooldownMinutes={cooldownMinutes}
     postingQuietStart={postingQuietStart}
     postingQuietEnd={postingQuietEnd}
+    imageMaxPerDay={imageMaxPerDay}
     imagePolicy={imagePolicy}
     interactionPolicy={interactionPolicy}
     onPostingMaxPerDayChange={setPostingMaxPerDay}
     onCooldownMinutesChange={setCooldownMinutes}
     onPostingQuietStartChange={setPostingQuietStart}
     onPostingQuietEndChange={setPostingQuietEnd}
+    onImageMaxPerDayChange={setImageMaxPerDay}
     onImagePolicyChange={setImagePolicy}
     onInteractionPolicyChange={setInteractionPolicy}
     testIdPrefix="settings-candidate-"

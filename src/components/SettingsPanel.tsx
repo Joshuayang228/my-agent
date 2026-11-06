@@ -44,6 +44,7 @@ interface SettingsForm {
   companionMomentPostingQuietStart: string
   companionMomentPostingQuietEnd: string
   companionMomentImagePolicy: string
+  companionMomentImageMaxPerDay: string
   companionMomentInteractionPolicy: string
   /** 定时主动问候（M31-G3）；默认关 */
   companionProactiveGreetingEnabled: string
@@ -74,6 +75,7 @@ const DEFAULTS: SettingsForm = {
   companionMomentPostingQuietStart: '23',
   companionMomentPostingQuietEnd: '7',
   companionMomentImagePolicy: 'never',
+  companionMomentImageMaxPerDay: '1',
   companionMomentInteractionPolicy: 'occasional',
   companionProactiveGreetingEnabled: 'false',
   sessionTokenBudget: '0',
@@ -244,6 +246,7 @@ export function SettingsPanel({
         companionMomentPostingQuietStart: s.companionMomentPostingQuietStart || DEFAULTS.companionMomentPostingQuietStart,
         companionMomentPostingQuietEnd: s.companionMomentPostingQuietEnd || DEFAULTS.companionMomentPostingQuietEnd,
         companionMomentImagePolicy: s.companionMomentImagePolicy || DEFAULTS.companionMomentImagePolicy,
+        companionMomentImageMaxPerDay: s.companionMomentImageMaxPerDay || DEFAULTS.companionMomentImageMaxPerDay,
         companionMomentInteractionPolicy: s.companionMomentInteractionPolicy || DEFAULTS.companionMomentInteractionPolicy,
         companionProactiveGreetingEnabled:
           s.companionProactiveGreetingEnabled || DEFAULTS.companionProactiveGreetingEnabled,
@@ -456,12 +459,14 @@ export function SettingsPanel({
     cooldownMinutes={form.companionMomentCooldownMinutes}
     postingQuietStart={form.companionMomentPostingQuietStart}
     postingQuietEnd={form.companionMomentPostingQuietEnd}
+    imageMaxPerDay={form.companionMomentImageMaxPerDay}
     imagePolicy={form.companionMomentImagePolicy as 'never' | 'existing' | 'generated'}
     interactionPolicy={form.companionMomentInteractionPolicy as 'never' | 'occasional' | 'regular'}
     onPostingMaxPerDayChange={(value) => update('companionMomentMaxPerDay', value)}
     onCooldownMinutesChange={(value) => update('companionMomentCooldownMinutes', value)}
     onPostingQuietStartChange={(value) => update('companionMomentPostingQuietStart', value)}
     onPostingQuietEndChange={(value) => update('companionMomentPostingQuietEnd', value)}
+    onImageMaxPerDayChange={(value) => update('companionMomentImageMaxPerDay', value)}
     onImagePolicyChange={(value) => update('companionMomentImagePolicy', value)}
     onInteractionPolicyChange={(value) => update('companionMomentInteractionPolicy', value)}
     saveFailed={saveFailed}
