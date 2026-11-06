@@ -59,4 +59,28 @@ describe('settings header embedding remains explicit', () => {
     expect(embedded).toContain('回答方式')
     expect(embedded).not.toContain('相处补充说明')
   })
+  it('renders the real posting policy controls when the host enables them', () => {
+    const html = renderToStaticMarkup(createElement(CompanionSettingsContent, {
+      ...companionProps,
+      showHeader: false,
+      showPostingPolicy: true,
+      postingMaxPerDay: '3',
+      cooldownMinutes: '240',
+      postingQuietStart: '23',
+      postingQuietEnd: '7',
+      imageMaxPerDay: '1',
+      imagePolicy: 'never',
+      interactionPolicy: 'occasional',
+      onPostingMaxPerDayChange: noop,
+      onCooldownMinutesChange: noop,
+      onPostingQuietStartChange: noop,
+      onPostingQuietEndChange: noop,
+      onImageMaxPerDayChange: noop,
+      onImagePolicyChange: noop,
+      onInteractionPolicyChange: noop,
+    }))
+    expect(html).toContain('自动发帖上限')
+    expect(html).toContain('自动配图偏好')
+    expect(html).toContain('自动互动频率')
+  })
 })

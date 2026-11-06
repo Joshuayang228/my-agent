@@ -1,5 +1,7 @@
 # Agent 运行时
 
+伙伴策略正式设置（2026-11-07）：本批只把已有设置字段接入正式 CompanionSettingsContent 宿主，保存仍沿现有 settings IPC；生活 ticker、权限和模型调用链不变。
+
 朋友圈可见窗口（2026-11-06）：`companion:get-moments` 在主进程按关系阶段解析当前窗口，Debug 快照复用同一纯函数；本批未改变 Agent Loop、Prompt、记忆或任务调度边界。
 
 人物体系草稿工具（2026-10-31）：新增 `companion_character_draft` 内置工具和运行时 `character-system-builder` Skill。工具只把有界分区草稿保存到用户数据目录，支持创建、更新和提交审阅，不直接发布 Role Pack、覆盖生产资产或切换世界观。

@@ -69,6 +69,8 @@ companion_presence_policy
 
 为避免人物像机器人一样高频刷屏，朋友圈自动发布新增一层与提醒分离的策略：
 
+2026-11-07：既有策略控件已从 Playground 候选回流正式「伙伴与相处」设置；设置保存继续复用真实 settings IPC，候选保留为隔离体验样张。
+
 - `companionMomentCadence`：手动、偶尔、按日程；只约束自动生活事件，用户明确发帖不受限。
 - `companionMomentMaxPerDay`：自动发布每日上限，默认 3 条；达到上限后生活事件照常发生，朋友圈跳过本次分享。
 - `companionMomentCooldownMinutes`：自动发布之间的最短间隔，默认 240 分钟；重要事件仍先进入同一队列，不绕过冷却。

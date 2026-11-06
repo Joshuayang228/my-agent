@@ -455,6 +455,7 @@ export function SettingsPanel({
     visibility={form.companionMomentVisibility as 'ai' | 'three_days' | 'private'}
     onCadenceChange={(value) => update('companionMomentCadence', value)}
     onVisibilityChange={(value) => update('companionMomentVisibility', value)}
+    showPostingPolicy
     postingMaxPerDay={form.companionMomentMaxPerDay}
     cooldownMinutes={form.companionMomentCooldownMinutes}
     postingQuietStart={form.companionMomentPostingQuietStart}
