@@ -100,6 +100,15 @@ describe('Debug 专用只读证据', () => {
     expect(() => queryCompanionEvidence({ view: 'activity', roleId: 'lin', cursor: first.nextCursor }, db, scope)).toThrow()
     expect(db.export()).toEqual(before)
   })
+  it('活动详情附带同事件执行决策，缺失账本不补造', () => {
+    events()
+    db.run('CREATE TABLE companion_event_executions (id TEXT, role_id TEXT, event_id TEXT, attempted_at INTEGER, action TEXT, reason TEXT, moment_id TEXT)')
+    db.run("INSERT INTO companion_event_executions VALUES ('exec-a','lin','a',2,'skipped','not-selected',NULL)")
+    const withLedger = queryCompanionEvidence({ view: 'activity', roleId: 'lin', recordId: 'a' }, db, scope)
+    expect(withLedger.records[0]?.data.executions).toEqual([{ id: 'exec-a', attempted_at: 2, action: 'skipped', reason: 'not-selected', moment_id: null }])
+    const withoutLedger = queryCompanionEvidence({ view: 'activity', roleId: 'lin', recordId: 'b' }, db, scope)
+    expect(withoutLedger.records[0]?.data.executions).toBeUndefined()
+  })
   it('非法日期、角色、超限、未知参数与恶意游标在查询前拒绝', () => {
     database()
     for (const extra of [{ limit: 101 }, { limit: 0 }, { date: '2026-02-30' }, { roleId: '../lin' }, { sql: 'DROP TABLE memories' }, { view: 'arbitrary' }, { cursor: 'bad' }]) {
