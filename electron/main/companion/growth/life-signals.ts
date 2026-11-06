@@ -78,7 +78,7 @@ export async function collectLifeSignalsForRole(
   const [state, moments, bookshelf] = await Promise.all([
     getRoleState(roleId),
     listMomentsForRole(roleId, { limit }),
-    listAssets(roleId, { kind: ASSET_KIND_BOOKSHELF }),
+    listAssets(roleId, { kind: ASSET_KIND_BOOKSHELF, limit: 6 }),
   ])
   return formatLifeSignalsForReflection({
     catchupSummary: state?.catchupSummary ?? '',

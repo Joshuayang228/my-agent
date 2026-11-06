@@ -115,6 +115,13 @@ describe('Companion Assets', () => {
     expect((await listAssets('lin', { kind: 'wardrobe' }))[0].payload.color).toBe('蓝'.repeat(24))
   })
 
+  it('listAssets 支持有界读取并保持角色与 kind 过滤', async () => {
+    await addAsset({ roleId: 'lin', kind: 'bookshelf', name: '第一本' })
+    await addAsset({ roleId: 'lin', kind: 'bookshelf', name: '第二本' })
+    await addAsset({ roleId: 'lin', kind: 'culture', name: '摄影' })
+    expect((await listAssets('lin', { kind: 'bookshelf', limit: 1 })).map(item => item.name)).toEqual(['第一本'])
+  })
+
   function useWorldFixture() {
     const load = identityLoader.loadRoleWorldDefaults
     const world = structuredClone(load('hang')!)

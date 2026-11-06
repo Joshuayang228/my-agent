@@ -55,20 +55,21 @@ function rowToAsset(r: Record<string, unknown>): CompanionAsset {
 
 export async function listAssets(
   roleId: string,
-  opts?: { kind?: string },
+  opts?: { kind?: string; limit?: number },
 ): Promise<CompanionAsset[]> {
   await ensureTables()
   const db = await getDatabase()
+  const limit = opts?.limit === undefined ? undefined : Math.max(1, Math.min(100, Math.floor(opts.limit)))
   const sql = opts?.kind
     ? `SELECT id, role_id, kind, name, payload_json, acquired_at, source_event_id
        FROM companion_assets WHERE role_id = ? AND kind = ?
-       ORDER BY acquired_at ASC`
+       ORDER BY acquired_at ASC${limit === undefined ? '' : ' LIMIT ?'}`
     : `SELECT id, role_id, kind, name, payload_json, acquired_at, source_event_id
        FROM companion_assets WHERE role_id = ?
-       ORDER BY kind ASC, acquired_at ASC`
+       ORDER BY kind ASC, acquired_at ASC${limit === undefined ? '' : ' LIMIT ?'}`
   const stmt = db.prepare(sql)
-  if (opts?.kind) stmt.bind([roleId, opts.kind])
-  else stmt.bind([roleId])
+  if (opts?.kind) stmt.bind(limit === undefined ? [roleId, opts.kind] : [roleId, opts.kind, limit])
+  else stmt.bind(limit === undefined ? [roleId] : [roleId, limit])
   const out: CompanionAsset[] = []
   while (stmt.step()) {
     out.push(rowToAsset(stmt.getAsObject() as Record<string, unknown>))
