@@ -27,6 +27,7 @@ import { resolveCastInteractions } from './moment-comment-service'
 import { resolveMomentText } from './moment-polish'
 import * as store from './store'
 import { getSetting } from '../../storage/settings-store'
+import { generateAutomaticMomentMedia } from './automatic-moment-media'
 
 export { formatMomentText } from './moment-format'
 
@@ -198,6 +199,9 @@ export async function projectMomentFromEvent(
     },
   })
   await store.replaceEventLinks(event.roleId, event.id, links)
+  if (opts?.automatic && (await getSetting('companionMomentImagePolicy')) === 'generated') {
+    await generateAutomaticMomentMedia(event.roleId, event, moment)
+  }
   return moment
 }
 

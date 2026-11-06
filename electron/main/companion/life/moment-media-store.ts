@@ -62,3 +62,22 @@ export async function listMomentMediaAttempts(roleId: string, limit = 50): Promi
   const rows = db.exec('SELECT id, role_id, event_id, moment_id, status, reason, image_id, attempted_at, completed_at FROM companion_moment_media_attempts WHERE role_id = ? ORDER BY attempted_at DESC, id DESC LIMIT ?', [roleId, Math.max(1, Math.min(100, Math.floor(limit)))])[0]
   return (rows?.values ?? []).map(row => ({ id: String(row[0]), roleId: String(row[1]), eventId: String(row[2]), momentId: row[3] == null ? null : String(row[3]), status: String(row[4]) as MomentMediaAttemptStatus, reason: String(row[5] ?? ''), imageId: row[6] == null ? null : String(row[6]), attemptedAt: Number(row[7]) || 0, completedAt: row[8] == null ? null : Number(row[8]) }))
 }
+
+export async function readStoredMomentMedia(roleId: string, momentId: string, imageId: string): Promise<{ ok: true; dataUrl: string; fileName: string } | { ok: false; error: string }> {
+  if (!/^[a-f0-9]{64}$/.test(imageId)) return { ok: false, error: '图片引用无效。' }
+  await ensureTables()
+  const db = await getDatabase()
+  const rows = db.exec('SELECT path, byte_length FROM companion_moment_media WHERE id = ? AND role_id = ? AND moment_id = ? LIMIT 1', [imageId, roleId, momentId])[0]
+  const row = rows?.values[0]
+  if (!row || typeof row[0] !== 'string') return { ok: false, error: '图片暂时无法读取。' }
+  const filePath = path.resolve(row[0])
+  const root = path.resolve(mediaRoot())
+  const relative = path.relative(root, filePath)
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative) || fs.realpathSync(root) !== root || fs.realpathSync(filePath) !== filePath) return { ok: false, error: '图片位置不受控。' }
+  try {
+    const bytes = fs.readFileSync(filePath)
+    if (bytes.length !== Number(row[1]) || createHash('sha256').update(bytes).digest('hex') !== imageId) return { ok: false, error: '图片内容已变化。' }
+    return { ok: true, dataUrl: `data:image/png;base64,${bytes.toString('base64')}`, fileName: path.basename(filePath) }
+  } catch { return { ok: false, error: '图片暂时无法读取。' }
+  }
+}

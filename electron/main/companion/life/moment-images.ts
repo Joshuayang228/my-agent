@@ -2,6 +2,7 @@ import type { GeneratedImageReadResult } from '../../../../src/shared/types'
 import { getDatabase } from '../../storage/database'
 import { readGeneratedImageReference } from '../../storage/generated-images'
 import { getEventById, getMomentById, listEventLinks, replaceEventLinks } from './store'
+import { readStoredMomentMedia } from './moment-media-store'
 
 export type MomentImageTarget =
   | { ok: true; eventId: string; position: number }
@@ -78,6 +79,8 @@ function referenceInJSON(value: unknown, imageId: string, array: boolean): unkno
  */
 export async function readMomentImageForRole(roleId: string, momentId: string, imageId: string): Promise<GeneratedImageReadResult> {
   if (!(await momentImageIdsForRole(roleId, momentId)).includes(imageId)) return { ok: false, error: '这条动态没有可读取的图片。' }
+  const managed = await readStoredMomentMedia(roleId, momentId, imageId)
+  if (managed.ok) return managed
   const db = await getDatabase()
   const queries = [
     { table: 'companion_assets', sql: 'SELECT payload_json FROM companion_assets WHERE role_id = ? AND instr(payload_json, ?) > 0 LIMIT 20', array: false },

@@ -95,7 +95,7 @@ function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProa
   const [cooldownMinutes, setCooldownMinutes] = useState('240')
   const [postingQuietStart, setPostingQuietStart] = useState('23')
   const [postingQuietEnd, setPostingQuietEnd] = useState('7')
-  const [imagePolicy, setImagePolicy] = useState<'never' | 'existing'>('never')
+  const [imagePolicy, setImagePolicy] = useState<'never' | 'existing' | 'generated'>('never')
   const [interactionPolicy, setInteractionPolicy] = useState<'never' | 'occasional' | 'regular'>('occasional')
   return <CompanionSettingsContent
     showHeader={false}

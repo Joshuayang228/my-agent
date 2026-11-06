@@ -456,7 +456,7 @@ export function SettingsPanel({
     cooldownMinutes={form.companionMomentCooldownMinutes}
     postingQuietStart={form.companionMomentPostingQuietStart}
     postingQuietEnd={form.companionMomentPostingQuietEnd}
-    imagePolicy={form.companionMomentImagePolicy as 'never' | 'existing'}
+    imagePolicy={form.companionMomentImagePolicy as 'never' | 'existing' | 'generated'}
     interactionPolicy={form.companionMomentInteractionPolicy as 'never' | 'occasional' | 'regular'}
     onPostingMaxPerDayChange={(value) => update('companionMomentMaxPerDay', value)}
     onCooldownMinutesChange={(value) => update('companionMomentCooldownMinutes', value)}

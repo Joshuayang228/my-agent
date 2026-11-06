@@ -208,6 +208,13 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     source: 'electron/main/companion/life/moment-media-store.ts#storeMomentMedia', version: 'media-storage-v1',
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ owner: 'role_id', links: ['event_id', 'moment_id'], contentAddressed: true, automaticGeneration: 'not-enabled' }),
+  }), makeCompanionAsset({
+    key: 'companion:policy:moment-media-generation', name: '朋友圈自动配图生成策略',
+    purpose: '自动生活投影在明确 generated 策略下使用统一图片请求与失败记录',
+    role: 'platform', description: '生成失败保留文字动态，成功后才绑定应用媒体。',
+    source: 'electron/main/companion/life/automatic-moment-media.ts#generateAutomaticMomentMedia', version: 'media-generation-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ policy: 'generated', failure: 'keep-text-moment', retry: 'none' }),
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {
