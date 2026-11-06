@@ -13,14 +13,20 @@ export async function generateAutomaticMomentMedia(roleId: string, event: Compan
   await recordMomentMediaAttempt({ roleId, eventId: event.id, momentId: moment.id, status: 'started', reason: 'requested', imageId: null, attemptedAt, completedAt: null })
   try {
     const config = await loadImageGenerationConfig()
-    if (!config) return { ok: false, reason: 'no-image-config' }
+    if (!config) {
+      await recordMomentMediaAttempt({ roleId, eventId: event.id, momentId: moment.id, status: 'skipped', reason: 'no-image-config', imageId: null, attemptedAt, completedAt: Date.now() })
+      return { ok: false, reason: 'no-image-config' }
+    }
     const appearance = (() => { try { return formatRoleAppearanceForImagePrompt(loadRolePack(roleId).profile) } catch { return '' } })()
     const description = `为人物朋友圈动态生成一张自然生活照片。动态正文：${moment.text.slice(0, 1200)}。只表现动态已保存的活动、地点和情绪，不添加新的事件或人物事实。${appearance ? `人物外观锚点：${appearance}` : ''}`
     const response = await requestGeneratedImage(config, compileImageGenerationRequest(description), undefined)
     const image = await normalizeGeneratedImage(response.bytes)
     const stored = await storeMomentMedia({ roleId, eventId: event.id, momentId: moment.id, mimeType: 'image/png', width: image.width, height: image.height, bytes: image.bytes })
     const linked = await attachMomentImageForRole(roleId, moment.id, stored.id)
-    if (!linked.ok) return { ok: false, reason: 'moment-link-rejected' }
+    if (!linked.ok) {
+      await recordMomentMediaAttempt({ roleId, eventId: event.id, momentId: moment.id, status: 'failed', reason: 'moment-link-rejected', imageId: stored.id, attemptedAt, completedAt: Date.now() })
+      return { ok: false, reason: 'moment-link-rejected' }
+    }
     await recordMomentMediaAttempt({ roleId, eventId: event.id, momentId: moment.id, status: 'stored', reason: 'stored-and-linked', imageId: stored.id, attemptedAt, completedAt: Date.now() })
     return { ok: true, imageId: stored.id }
   } catch (error) {
