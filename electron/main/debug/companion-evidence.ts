@@ -207,6 +207,13 @@ export function queryCompanionEvidence(input: unknown, db: Database | null = get
       if (executionRows.length) entry.data.executions = safeValue(executionRows, { truncated: false })
     }
   }
+  if (query.view === 'activity' && hasTable(db, 'companion_moment_media_attempts')) {
+    for (const entry of result.records) {
+      if (entry.source !== 'companion_events') continue
+      const mediaRows = rows(db, 'SELECT id, attempted_at, status, reason, image_id, completed_at FROM companion_moment_media_attempts WHERE role_id = ? AND event_id = ? ORDER BY attempted_at DESC, id DESC LIMIT 20', [query.roleId, entry.id])
+      if (mediaRows.length) entry.data.mediaAttempts = safeValue(mediaRows, { truncated: false })
+    }
+  }
   if (result.hasMore) { const last = page.at(-1)!; result.nextCursor = Buffer.from(JSON.stringify({ view: query.view, roleId: query.roleId, date: query.date ?? '', time: last[source.time], id: last[source.id] })).toString('base64url') }
   if (query.view === 'profile') result.boundary = '有界画像来源：身份 / 事实、协作、表达记忆沿用全局范围，反馈限定所选人物；当前页不是全量画像，也不证明实际注入。'
   if (query.view === 'moments' && hasTable(db, 'companion_moment_user_interactions')) for (const entry of result.records) {

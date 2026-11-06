@@ -109,6 +109,13 @@ describe('Debug 专用只读证据', () => {
     const withoutLedger = queryCompanionEvidence({ view: 'activity', roleId: 'lin', recordId: 'b' }, db, scope)
     expect(withoutLedger.records[0]?.data.executions).toBeUndefined()
   })
+  it('活动详情附带自主配图尝试，按人物与事件隔离', () => {
+    events()
+    db.run('CREATE TABLE companion_moment_media_attempts (id TEXT, role_id TEXT, event_id TEXT, attempted_at INTEGER, status TEXT, reason TEXT, image_id TEXT, completed_at INTEGER)')
+    db.run("INSERT INTO companion_moment_media_attempts VALUES ('media-a','lin','a',3,'skipped','daily-image-limit',NULL,4)")
+    const result = queryCompanionEvidence({ view: 'activity', roleId: 'lin', recordId: 'a' }, db, scope)
+    expect(result.records[0]?.data.mediaAttempts).toEqual([{ id: 'media-a', attempted_at: 3, status: 'skipped', reason: 'daily-image-limit', image_id: null, completed_at: 4 }])
+  })
   it('非法日期、角色、超限、未知参数与恶意游标在查询前拒绝', () => {
     database()
     for (const extra of [{ limit: 101 }, { limit: 0 }, { date: '2026-02-30' }, { roleId: '../lin' }, { sql: 'DROP TABLE memories' }, { view: 'arbitrary' }, { cursor: 'bad' }]) {

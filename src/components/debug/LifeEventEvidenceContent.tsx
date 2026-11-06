@@ -50,6 +50,7 @@ export function LifeEventEvidenceContent({ view, result, loading, error, date, q
         {record.body ? <p className="debug-reading-body">{record.body}</p> : <p className="debug-recent-state">此{readLabel}未保存正文。</p>}
         <details className="debug-prompt-provenance"><summary>完整字段</summary>{fullFields(record)}</details>
         {Array.isArray(record.data.executions) && <details className="debug-prompt-provenance"><summary>生活执行决策</summary><p>这里显示该事件已保存的自动推进与朋友圈投影尝试。</p><pre>{JSON.stringify(record.data.executions, null, 2)}</pre></details>}
+        {Array.isArray(record.data.mediaAttempts) && <details className="debug-prompt-provenance"><summary>自动配图尝试</summary><p>这里显示自动配图的终态、原因和已绑定图片摘要。</p><pre>{JSON.stringify(record.data.mediaAttempts, null, 2)}</pre></details>}
         <details className="debug-prompt-provenance"><summary>记录标识与范围</summary><p>{record.source} · {record.id} · {record.roleId}</p><pre>{JSON.stringify(record.data, null, 2)}</pre></details>
         <section className="debug-candidate-section"><h3>明确关联的来源与证据</h3>{record.links.length ? record.links.map(link => <ActionButton key={`${link.view}:${link.id}`} variant="plain" onClick={() => onEvidence(link.view, link.id)}>{link.label}</ActionButton>) : <p>没有保存更多关联标识，不按时间或名称补猜。</p>}</section>
         {view === 'activity' && record.source === 'companion_events' && <ActionButton variant="plain" onClick={() => onEvidence('recent', record.id)}>查看来源生活事件</ActionButton>}
