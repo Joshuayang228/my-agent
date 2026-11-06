@@ -6,7 +6,7 @@ let db: InstanceType<typeof import('sql.js').Database>
 vi.mock('../../electron/main/storage/database', () => ({ getDatabase: async () => db, persist: vi.fn() }))
 
 const SQL = await initSqlJs()
-const { recordMomentMediaAttempt, storeMomentMedia, listMomentMediaAttempts } = await import('../../electron/main/companion/life/moment-media-store')
+const { recordMomentMediaAttempt, storeMomentMedia, listMomentMediaAttempts, getLatestMomentMediaAttempt } = await import('../../electron/main/companion/life/moment-media-store')
 const { shouldSkipAutomaticMomentImage } = await import('../../electron/main/companion/life/automatic-moment-media')
 
 describe('moment media store', () => {
@@ -20,6 +20,8 @@ describe('moment media store', () => {
     expect(stored.path).toContain(`${stored.id}.png`)
     expect(attempts).toHaveLength(1)
     expect(attempts[0]).toMatchObject({ eventId: 'event-1', status: 'failed', reason: 'no-image-config' })
+    expect(await getLatestMomentMediaAttempt('luffy', 'event-1')).toMatchObject({ eventId: 'event-1', status: 'failed' })
+    expect(await getLatestMomentMediaAttempt('other', 'event-1')).toBeNull()
   })
 
   it('图片预算按本地日历日计算', () => {

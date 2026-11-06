@@ -63,6 +63,33 @@ export async function listMomentMediaAttempts(roleId: string, limit = 50): Promi
   return (rows?.values ?? []).map(row => ({ id: String(row[0]), roleId: String(row[1]), eventId: String(row[2]), momentId: row[3] == null ? null : String(row[3]), status: String(row[4]) as MomentMediaAttemptStatus, reason: String(row[5] ?? ''), imageId: row[6] == null ? null : String(row[6]), attemptedAt: Number(row[7]) || 0, completedAt: row[8] == null ? null : Number(row[8]) }))
 }
 
+/**
+ * 读取某个自动配图事件的最近尝试。
+ *
+ * 背景：生活 ticker 可能在同一事件上重复触发，进程重启也可能再次看到原事件；
+ * 设计意图：用持久化事件键做幂等判断，避免把“没有当前图片”误当成“可以重新付费生成”。
+ * 关键约束：查询必须同时绑定 roleId 和 eventId，返回最近一条真实尝试；调用方不得
+ * 用别的人物的记录阻断当前人物，也不得在这里自动重试失败请求。
+ */
+export async function getLatestMomentMediaAttempt(roleId: string, eventId: string): Promise<MomentMediaAttempt | null> {
+  await ensureTables()
+  const db = await getDatabase()
+  const rows = db.exec('SELECT id, role_id, event_id, moment_id, status, reason, image_id, attempted_at, completed_at FROM companion_moment_media_attempts WHERE role_id = ? AND event_id = ? ORDER BY attempted_at DESC, id DESC LIMIT 1', [roleId, eventId])[0]
+  const row = rows?.values[0]
+  if (!row) return null
+  return {
+    id: String(row[0]),
+    roleId: String(row[1]),
+    eventId: String(row[2]),
+    momentId: row[3] == null ? null : String(row[3]),
+    status: String(row[4]) as MomentMediaAttemptStatus,
+    reason: String(row[5] ?? ''),
+    imageId: row[6] == null ? null : String(row[6]),
+    attemptedAt: Number(row[7]) || 0,
+    completedAt: row[8] == null ? null : Number(row[8]),
+  }
+}
+
 export async function readStoredMomentMedia(roleId: string, momentId: string, imageId: string): Promise<{ ok: true; dataUrl: string; fileName: string } | { ok: false; error: string }> {
   if (!/^[a-f0-9]{64}$/.test(imageId)) return { ok: false, error: '图片引用无效。' }
   await ensureTables()

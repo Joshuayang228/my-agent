@@ -1,5 +1,7 @@
 # Agent 运行时
 
+自主配图幂等（2026-11-07）：自动生活图片请求在统一配置与媒体服务前按人物 / 事件读取持久化尝试，已处理事件不自动重试；不改变 Agent Loop 或工具权限边界。
+
 伙伴策略正式设置（2026-11-07）：本批只把已有设置字段接入正式 CompanionSettingsContent 宿主，保存仍沿现有 settings IPC；生活 ticker、权限和模型调用链不变。
 
 朋友圈可见窗口（2026-11-06）：`companion:get-moments` 在主进程按关系阶段解析当前窗口，Debug 快照复用同一纯函数；本批未改变 Agent Loop、Prompt、记忆或任务调度边界。
