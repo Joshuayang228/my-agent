@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
-import { companionCommentMomentTool, companionCreateAssetTool, companionPostMomentTool, companionReadWorldTool } from '../../electron/main/tools/builtins/companion-life'
+import { companionAddReadingNoteTool, companionCommentMomentTool, companionCreateAssetTool, companionPostMomentTool, companionReadWorldTool } from '../../electron/main/tools/builtins/companion-life'
 import { ToolRegistry } from '../../electron/main/tools/registry'
 import { listEventLinks, listMomentUserInteractions, listMoments } from '../../electron/main/companion/life/store'
 import { listAssets } from '../../electron/main/companion/life/assets'
@@ -17,6 +17,7 @@ function registry() {
   value.register(companionCreateAssetTool)
   value.register(companionCommentMomentTool)
   value.register(companionReadWorldTool)
+  value.register(companionAddReadingNoteTool)
   return value
 }
 
@@ -48,8 +49,20 @@ it('生活查询返回资产 ID，拒绝非法分页且无绑定时不查询', a
   expect(unbound.content).toContain('没有绑定人物')
 })
 
+it('用户明确选择书架条目后可保存阅读笔记并拒绝跨人物资产', async () => {
+  const tools = registry()
+  const context = { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' }
+  await tools.executeAll([{ id: 'create', name: 'companion_create_asset', arguments: JSON.stringify({ kind: 'bookshelf', name: '航海日志' }) }], context)
+  const book = (await listAssets('luffy', { kind: 'bookshelf' }))[0]
+  const [saved] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '读到选择路线时停下来记了一句。' }) }], context)
+  expect(saved.content).toContain('已保存')
+  expect((await listAssets('luffy', { kind: 'bookshelf' }))[0].payload.note).toContain('选择路线')
+  const [rejected] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '跨人物' }) }], { ...context, roleId: 'nami' })
+  expect(rejected.content).toContain('只能为当前人物')
+})
+
 it('朋友圈与生活资产工具进入 Chat 的统一内置注册链', () => {
-  expect(builtinTools.map(tool => tool.name)).toEqual(expect.arrayContaining(['companion_post_moment', 'companion_create_asset', 'companion_comment_moment']))
+  expect(builtinTools.map(tool => tool.name)).toEqual(expect.arrayContaining(['companion_post_moment', 'companion_create_asset', 'companion_comment_moment', 'companion_add_reading_note']))
   expect(getBuiltinToolSource('companion_post_moment')).toBe('electron/main/tools/builtins/companion-life.ts')
   expect(getBuiltinToolSource('companion_create_asset')).toBe('electron/main/tools/builtins/companion-life.ts')
   expect(getBuiltinToolSource('companion_comment_moment')).toBe('electron/main/tools/builtins/companion-life.ts')

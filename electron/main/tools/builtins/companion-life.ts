@@ -1,5 +1,5 @@
 import { buildTool } from '../builder'
-import { createAsset, listAssets } from '../../companion/life/assets'
+import { createAsset, getAsset, listAssets, updateAsset } from '../../companion/life/assets'
 import { addMomentCommentForRole, projectMomentFromEvent } from '../../companion/life/moments'
 import { deleteEvent, insertEvent, listMoments } from '../../companion/life/store'
 import { getSession } from '../../storage/session-store'
@@ -169,6 +169,36 @@ export const companionCreateAssetTool = buildTool({
     } catch (error) {
       return `生活资产未保存：${error instanceof Error ? error.message : '资料校验失败'}`
     }
+  },
+})
+
+/**
+ * 背景：阅读感想必须由用户明确选择材料后保存，不能由书名或聊天内容自动伪造已读事实。
+ * 设计意图：复用资产层的角色归属、字段长度和持久化校验，允许覆盖笔记而不复制另一套文化存储。
+ * 关键约束：只接受当前人物的 bookshelf 资产和用户提供的 note；模型生成或失败结果不得绕过此确认入口。
+ */
+export const companionAddReadingNoteTool = buildTool({
+  name: 'companion_add_reading_note',
+  description: '为当前人物已存在的书架条目保存一条用户明确确认的阅读笔记。先用 companion_read_world 查询真实资产 ID。',
+  parameters: {
+    type: 'object',
+    properties: {
+      assetId: { type: 'string', description: '书架条目的真实资产 ID。' },
+      note: { type: 'string', description: '阅读笔记，最多 4000 字。' },
+    },
+    required: ['assetId', 'note'],
+  },
+  metadata: { isReadOnly: false, isDestructive: false, isConcurrencySafe: false },
+  execute: async (args, context) => {
+    const roleId = context?.roleId?.trim()
+    if (!roleId) return '当前会话没有绑定人物，暂时不能保存阅读笔记。'
+    const assetId = textArg(args, 'assetId', 200)
+    const note = textArg(args, 'note', 4000)
+    if (!assetId || !note) return '资产 ID 和阅读笔记不能为空。'
+    const asset = await getAsset(assetId)
+    if (!asset || asset.roleId !== roleId || asset.kind !== 'bookshelf') return '只能为当前人物已存在的书架条目保存笔记。'
+    const result = await updateAsset(assetId, { payload: { note } }, { expectedRoleId: roleId })
+    return result.ok ? `已保存《${asset.name}》的阅读笔记。` : `阅读笔记未保存：${result.error}`
   },
 })
 

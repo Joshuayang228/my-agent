@@ -514,3 +514,4 @@ Chat 内置工具注册现在包含 `companion_post_moment`、`companion_comment
 
 - 2026-11-05：LifeEngine / Catch-up 的事件投影现在写入只读执行证据，Debug 可区分生活事实已推进与朋友圈分享被策略跳过。
 <!-- 2026-11-06：自动配图每日预算由 settings-store 提供，媒体尝试写入人物生活存储，不进入用户记忆或 LLM 历史正文。 -->
+<!-- 2026-11-06：companion_add_reading_note 复用内置工具注册链和资产层校验，写入人物生活资产。 -->
