@@ -201,6 +201,13 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     source: 'electron/main/prompts/moment-comment.ts#MOMENT_COMMENT_POLICY', version: '1.0.0',
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent(MOMENT_COMMENT_POLICY), dependencies: [PROMPT_KEYS.momentComment],
+  }), makeCompanionAsset({
+    key: 'companion:policy:moment-media-storage', name: '朋友圈自主配图媒体存储',
+    purpose: '应用管理目录中的动态图片元数据、人物归属和失败尝试记录',
+    role: 'platform', description: '自动配图接入前的受控存储基础设施，不代表已启用自动生图。',
+    source: 'electron/main/companion/life/moment-media-store.ts#storeMomentMedia', version: 'media-storage-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ owner: 'role_id', links: ['event_id', 'moment_id'], contentAddressed: true, automaticGeneration: 'not-enabled' }),
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

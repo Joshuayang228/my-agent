@@ -167,6 +167,17 @@ async function ensureTables(): Promise<void> {
     )
   `)
   db.run('CREATE INDEX IF NOT EXISTS idx_companion_event_exec_role_time ON companion_event_executions(role_id, attempted_at DESC)')
+  db.run(`CREATE TABLE IF NOT EXISTS companion_moment_media (
+    id TEXT PRIMARY KEY, role_id TEXT NOT NULL, event_id TEXT NOT NULL, moment_id TEXT NOT NULL,
+    path TEXT NOT NULL, mime_type TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL,
+    byte_length INTEGER NOT NULL, created_at INTEGER NOT NULL, UNIQUE(event_id, id)
+  )`)
+  db.run('CREATE INDEX IF NOT EXISTS idx_companion_moment_media_role_time ON companion_moment_media(role_id, created_at DESC)')
+  db.run(`CREATE TABLE IF NOT EXISTS companion_moment_media_attempts (
+    id TEXT PRIMARY KEY, role_id TEXT NOT NULL, event_id TEXT NOT NULL, moment_id TEXT,
+    status TEXT NOT NULL, reason TEXT NOT NULL, image_id TEXT, attempted_at INTEGER NOT NULL, completed_at INTEGER
+  )`)
+  db.run('CREATE INDEX IF NOT EXISTS idx_companion_moment_media_attempts_role_time ON companion_moment_media_attempts(role_id, attempted_at DESC)')
   db.run(`
     CREATE INDEX IF NOT EXISTS idx_companion_event_links_event
       ON companion_event_links(role_id, event_id)
