@@ -662,10 +662,12 @@ export function shouldAttachBookshelfRef(input: {
 
 export const BOOKSHELF_PROMPT_LIMIT = 3
 
-export function latestReadingNote(payload: Record<string, unknown>): string {
+export function latestReadingNote(payload: Record<string, unknown>, field: 'text' | 'observation' | 'inference' = 'text'): string {
   const notes = Array.isArray(payload.readingNotes) ? payload.readingNotes : []
   const latest = [...notes].reverse().find((item) => item && typeof item === 'object' && !Array.isArray(item) && typeof (item as Record<string, unknown>).text === 'string') as Record<string, unknown> | undefined
-  return typeof latest?.text === 'string' ? latest.text.trim() : typeof payload.note === 'string' ? payload.note.trim() : ''
+  const grounding = latest?.grounding && typeof latest.grounding === 'object' && !Array.isArray(latest.grounding) ? latest.grounding as Record<string, unknown> : undefined
+  const value = field === 'text' ? latest?.text : grounding?.[field]
+  return typeof value === 'string' ? value.trim() : field === 'text' && typeof payload.note === 'string' ? payload.note.trim() : ''
 }
 
 /**

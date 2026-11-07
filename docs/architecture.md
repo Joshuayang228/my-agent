@@ -1,5 +1,7 @@
 # 系统架构
 
+材料观察与阅读写回（2026-11-07）：图片材料沿 `companion_observe_material` → 注册多模态 Prompt → 候选 observation / inference / uncertainties → `companion_add_reading_note` 明确写回进入人物 `bookshelf` 资产；观察工具不持久化图片事实，写回沿当前 role、来源和 `world-records` schema 校验，Debug / 反思只读同一结构。
+
 阅读笔记来源边界（2026-11-07）：书架 `readingNotes` 属于人物生活资产，写入沿 `companion_add_reading_note` 的当前 role 校验和 world-records schema；记录者与来源范围随资产保存，不进入用户长期记忆。
 
 自动配图状态一致性（2026-11-07）：生活层从 `companion_role_state.world_json` 读取图片描述所需的当前地点、活动和叙事心情，与 Prompt / Moment 使用同一事实源；图片服务不写回新的世界事实。

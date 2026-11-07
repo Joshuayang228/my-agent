@@ -53,6 +53,7 @@ export const PROMPT_KEYS = {
   companionMutableState: promptKey('companion-mutable-state'),
   companionCompiler: promptKey('companion-compiler'),
   companionReflection: promptKey('companion-reflection'),
+  materialObservation: promptKey('companion-material-observation'),
   companionCatchup: promptKey('companion-catchup'),
   companionMomentPolish: promptKey('companion-moment-polish'),
   companionDayScript: promptKey('companion-day-script'),

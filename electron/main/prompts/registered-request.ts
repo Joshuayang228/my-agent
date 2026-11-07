@@ -1,4 +1,5 @@
 import { buildMomentCommentPrompt, type MomentCommentInput } from './moment-comment'
+import { buildMaterialObservationPrompt } from './material-observation'
 import { buildMomentReplyPrompt, type MomentReplyInput } from './moment-reply'
 import { buildProactiveGreetingPrompt, type ProactiveGreetingInput } from './proactive-greeting'
 import { buildImageGenerationPrompt } from './image-generation'
@@ -9,6 +10,7 @@ import { buildImageGenerationPrompt } from './image-generation'
  * 关键约束：禁止导出通用签发器；实验来源不能冒充生产，消息和来源必须一同冻结。
  */
 import type { ChatMessage, PromptAssetKey, PromptAssetKeyList, RegisteredModelRequest, RegisteredSystemPrompt } from '../../../src/shared/types'
+import type { ImageAttachment } from '../../../src/shared/types'
 import type { RolePack } from '../companion/types'
 import { characterDefinitionFromRolePack, compileMainChatPrompt, type MainChatPromptRequest } from './compiler'
 import { getCharacterPromptAssetKeys, getSummonSceneAssetKeys } from './dependencies'
@@ -184,6 +186,9 @@ export function compileDayRequest(pack: RolePack, input: BehaviorInput<typeof bu
 }
 export function compileReflectionRequest(pack: RolePack, input: BehaviorInput<typeof buildReflectionPrompt>): RegisteredModelRequest {
   return signRequest([{ role: 'user', content: buildReflectionPrompt({ ...input, character: characterDefinitionFromRolePack(pack, input.currentMutable), behaviorPrompt: pack.behaviorPrompts?.[ROLE_BEHAVIOR_IDS.reflection] }) }], behaviorKeys(pack, 'reflection', input.currentMutable), ['persona-reflection'])
+}
+export function compileMaterialObservationRequest(input: { source: string; image: ImageAttachment }): RegisteredModelRequest {
+  return signRequest([{ role: 'user', content: buildMaterialObservationPrompt(input), images: [input.image] }], [PROMPT_KEYS.materialObservation], ['material-observation'])
 }
 export function compileCompactRequest(messages: ChatMessage[], comprehensive: boolean): RegisteredModelRequest {
   const history = buildCompactHistoryPrompt(messages)

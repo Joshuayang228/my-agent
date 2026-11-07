@@ -32,6 +32,10 @@ export const readingNoteSchema = z.object({
   text: narrative.refine(value => value.trim().length > 0, '笔记不能为空'),
   source: shortText.min(1).optional(),
   author: z.enum(['user', 'companion']).optional(),
+  grounding: z.object({
+    observation: narrative.refine(value => value.trim().length > 0, '材料观察不能为空'),
+    inference: narrative.refine(value => value.trim().length > 0, '材料推断不能为空').optional(),
+  }).strict().optional(),
   occurredAt: timestamp.optional(), createdAt: timestamp.optional(),
   page: z.number().int().min(1).max(1_000_000).optional(),
   chapter: shortText.optional(),

@@ -7,13 +7,14 @@ import { projectCultureRecords } from '../../src/components/debug/culture-projec
 const record = (id: string, kind: string, payload: Record<string, unknown>): DebugEvidenceRecord => ({ id, kind, data: { payload, acquired_at: Date.parse('2026-10-26T06:00:00Z') }, roleId: 'lin', title: id, source: 'companion_assets', time: null, body: '', status: '', truncated: false, links: [] })
 describe('文化作品与笔记真实阅读', () => {
   it('四类状态只读各自字段，归档 / 未识别保留，正文优先级与笔记时间独立', () => {
-    const records = [record('book', 'bookshelf', { readingStatus: 'reading', summary: '作品说明', detail: '完整说明', author: '作者', readingNotes: [{ id: 'new', text: '笔记二', occurredAt: 2000 }, { id: 'old', text: '笔记一', createdAt: 1000 }] }), record('film', 'culture', { type: 'film', watchStatus: 'watching' }), record('music', 'culture', { type: 'music', listeningStatus: 'revisiting', visibility: 'archived' }), record('photo', 'culture', { type: 'photography', workStatus: 'published' }), record('unknown', 'culture', { type: 'future' }), record('missing', 'bookshelf', { watchStatus: 'finished' })]
+    const records = [record('book', 'bookshelf', { readingStatus: 'reading', summary: '作品说明', detail: '完整说明', author: '作者', readingNotes: [{ id: 'new', text: '笔记二', occurredAt: 2000, grounding: { observation: '材料写到海风。', inference: '人物因此想起航线。' } }, { id: 'old', text: '笔记一', createdAt: 1000 }] }), record('film', 'culture', { type: 'film', watchStatus: 'watching' }), record('music', 'culture', { type: 'music', listeningStatus: 'revisiting', visibility: 'archived' }), record('photo', 'culture', { type: 'photography', workStatus: 'published' }), record('unknown', 'culture', { type: 'future' }), record('missing', 'bookshelf', { watchStatus: 'finished' })]
     const before = JSON.stringify(records), items = projectCultureRecords(records, 'Asia/Shanghai')
     expect(items.map(item => item.status)).toEqual(['阅读中', '观看中', '最近常听', '已发布作品', '状态未识别', '状态未记录'])
     expect(items[0].body).toBe('完整说明')
     expect(items[0].notes.map(note => note.id)).toEqual(['new', 'old'])
     expect(items[0].notes[0].at).toContain('发生时间')
     expect(items[0].notes[1].at).toContain('创建时间')
+    expect(items[0].notes[0]).toMatchObject({ observation: '材料写到海风。', inference: '人物因此想起航线。' })
     expect(items[2].archived).toBe(true)
     expect(JSON.stringify(records)).toBe(before)
   })

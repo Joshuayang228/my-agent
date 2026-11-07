@@ -49,6 +49,7 @@ import { CONNECTION_TEST_MESSAGES } from '../../../src/shared/llm-connection-tes
 import { getRoleSourceAssetCatalog } from '../companion/identity/source-assets'
 import { listAvailableRoleIds, tryReadRoleText } from '../companion/identity/loader'
 import { PROMPT_FEATURE_CONTRACTS } from './feature-contracts'
+import { buildMaterialObservationPrompt } from './material-observation'
 
 const PROMPT_LOCALE = 'zh-CN'
 const DEFAULT_PROMPT_VERSION = '1.0.0'
@@ -604,6 +605,20 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     preview: '输出结构化反思结果；不复用主对话 System Prompt。',
     slots: [{ name: 'reflectionInput', source: 'recent interaction', lifecycle: '每次反思' }],
     behavior: BEHAVIOR_CONTRACTS[PROMPT_KEYS.companionReflection],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.materialObservation,
+    domain: 'visual',
+    name: '人物材料图片观察',
+    category: 'companion',
+    purpose: '把图片材料转为可核对观察和明确标注的有限推断',
+    role: 'companion-material',
+    desc: '只输出候选观察，不直接写入人物世界；来源和写回由工具单独校验。',
+    sourcePath: 'electron/main/prompts/material-observation.ts#buildMaterialObservationPrompt',
+    definitions: ['electron/main/prompts/material-observation.ts#buildMaterialObservationPrompt', 'electron/main/prompts/registered-request.ts#compileMaterialObservationRequest'],
+    template: buildMaterialObservationPrompt({ source: '{{source}}', image: { dataUrl: '{{image}}', mimeType: 'image/png' } }),
+    preview: '观察、推断、不确定性分离；图片材料不自动写回。',
+    slots: [{ name: 'source', source: 'tool 参数', lifecycle: '每次调用' }, { name: 'image', source: '当前会话图片附件', lifecycle: '每次调用' }],
   }),
   dynamicAsset({
     id: PROMPT_KEYS.companionCatchup,

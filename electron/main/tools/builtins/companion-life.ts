@@ -5,6 +5,9 @@ import { addMomentCommentForRole, projectMomentFromEvent } from '../../companion
 import { deleteEvent, insertEvent, listMoments } from '../../companion/life/store'
 import { getSession } from '../../storage/session-store'
 import { loadRelations } from '../../companion/identity/loader'
+import { loadAuxLLMConfig } from '../../llm/aux-config'
+import { chatComplete } from '../../llm/index'
+import { compileMaterialObservationRequest } from '../../prompts/registered-request'
 
 const ASSET_KINDS = ['home', 'furniture', 'footprint', 'culture', 'bookshelf', 'wardrobe'] as const
 type CompanionAssetKind = (typeof ASSET_KINDS)[number]
@@ -47,6 +50,72 @@ function textArg(args: Record<string, unknown>, key: string, max: number): strin
   const value = typeof args[key] === 'string' ? args[key].trim() : ''
   return value.length <= max ? value : ''
 }
+
+function parseMaterialObservation(raw: string): { observation: string; inference?: string; uncertainties: string[] } | null {
+  const match = raw.match(/\{[\s\S]*\}/)
+  if (!match) return null
+  try {
+    const value = JSON.parse(match[0]) as Record<string, unknown>
+    const observation = typeof value.observation === 'string' ? value.observation.trim().slice(0, 4000) : ''
+    const inference = typeof value.inference === 'string' ? value.inference.trim().slice(0, 4000) : ''
+    const uncertainties = Array.isArray(value.uncertainties)
+      ? value.uncertainties.filter((item): item is string => typeof item === 'string').map(item => item.trim().slice(0, 300)).filter(Boolean).slice(0, 8)
+      : []
+    return observation ? { observation, ...(inference ? { inference } : {}), uncertainties } : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 背景：图片可以提供阅读材料，但视觉模型的猜测不能绕过来源和人物世界写回边界。
+ * 设计意图：只读取当前会话已有附件，返回候选观察；写回仍必须调用带 source / author 的阅读笔记工具。
+ * 关键约束：不接受本地路径或外部 URL，不把图片二进制写入资产；模型失败和解析失败都不产生阅读事实。
+ */
+export const companionObserveMaterialTool = buildTool({
+  name: 'companion_observe_material',
+  description: '观察当前会话已有图片中的阅读材料，返回分开的材料观察、人物推断和不确定性。只生成候选，不会自动写入人物世界；确认后再调用 companion_add_reading_note。',
+  parameters: {
+    type: 'object',
+    properties: {
+      messageId: { type: 'string', description: '当前会话中包含图片的消息 ID。' },
+      imageIndex: { type: 'integer', description: '消息图片下标，默认 0。' },
+      source: { type: 'string', description: '材料来源范围，例如“用户提供的书页照片，第 12 页”。最多 300 字。' },
+    },
+    required: ['messageId', 'source'],
+  },
+  metadata: { isReadOnly: true, isConcurrencySafe: false },
+  execute: async (args, context) => {
+    if (!context?.sessionId) return '当前会话不可用，暂时不能观察图片材料。'
+    const messageId = textArg(args, 'messageId', 200)
+    const source = textArg(args, 'source', 300)
+    if (!messageId || !source) return '消息 ID 和材料来源范围不能为空。'
+    const imageIndex = args.imageIndex === undefined ? 0 : args.imageIndex
+    if (typeof imageIndex !== 'number' || !Number.isSafeInteger(imageIndex) || imageIndex < 0 || imageIndex > 8) return '图片下标必须是 0–8 的整数。'
+    const session = await getSession(context.sessionId)
+    const message = session?.messages.find(item => item.id === messageId)
+    const image = message?.images?.[imageIndex]
+    if (!image || typeof image.dataUrl !== 'string' || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(image.dataUrl)) return '只能观察当前会话中可读取的图片附件。'
+    if (image.dataUrl.length > 20_000_000) return '图片过大，暂时不能观察。'
+    try {
+      const raw = await chatComplete({
+        config: await loadAuxLLMConfig(),
+        request: compileMaterialObservationRequest({ source, image }),
+        temperature: 0.1,
+        maxTokens: 1200,
+        caller: 'material-observation',
+        sessionId: context.sessionId,
+        parentSpanId: context.parentSpanId,
+        signal: context.signal,
+      })
+      const parsed = parseMaterialObservation(raw)
+      if (!parsed) return '图片观察未得到可核对结果，未生成阅读事实。'
+      return JSON.stringify({ source, ...parsed, writeback: '如需保存，必须由用户或人物明确调用 companion_add_reading_note，并同时提供 source、author 和 observation。' })
+    } catch (error) {
+      return `图片观察失败，未写入阅读事实：${error instanceof Error ? error.message.slice(0, 160) : '模型调用失败'}`
+    }
+  },
+})
 
 function imageIdsFromSession(session: Awaited<ReturnType<typeof getSession>>, raw: unknown): string[] | null {
   if (!Array.isArray(raw)) return []
@@ -188,6 +257,8 @@ export const companionAddReadingNoteTool = buildTool({
       note: { type: 'string', description: '阅读笔记，最多 4000 字。' },
       source: { type: 'string', description: '笔记依据，例如“用户提供的摘录”或“人物读取的第 3 章材料”，最多 300 字。' },
       author: { type: 'string', enum: ['user', 'companion'], description: '记录者：user = 用户记录，companion = 人物根据明确材料记录。' },
+      observation: { type: 'string', description: '材料中可以直接核对的内容，人物记录者必填，最多 4000 字。' },
+      inference: { type: 'string', description: '人物基于材料观察形成的解释，可省略，最多 4000 字；不能替代 observation。' },
       page: { type: 'integer', description: '可选：页码，必须是 1–100000 的整数。' },
       chapter: { type: 'string', description: '可选：章节或段落范围，最多 120 字。' },
     },
@@ -203,6 +274,11 @@ export const companionAddReadingNoteTool = buildTool({
     const source = textArg(args, 'source', 300)
     const author = args.author === 'user' || args.author === 'companion' ? args.author : ''
     if (!source || !author) return '阅读笔记必须提供来源范围和记录者（user 或 companion）。'
+    const observation = textArg(args, 'observation', 4000)
+    const inference = args.inference === undefined ? '' : textArg(args, 'inference', 4000)
+    if (args.observation !== undefined && !observation) return '材料观察不能为空，且不能超过 4000 字。'
+    if (args.inference !== undefined && !inference) return '材料推断不能为空，且不能超过 4000 字。'
+    if (author === 'companion' && !observation) return '人物记录阅读笔记必须提供材料观察，不能只根据书名或无来源聊天推断。'
     const page = args.page === undefined ? undefined : args.page
     if (page !== undefined && (typeof page !== 'number' || !Number.isSafeInteger(page) || page < 1 || page > 100000)) return '页码必须是 1–100000 的整数。'
     const chapter = args.chapter === undefined ? '' : textArg(args, 'chapter', 120)
@@ -212,7 +288,11 @@ export const companionAddReadingNoteTool = buildTool({
     const existingNotes = Array.isArray(asset.payload.readingNotes) ? asset.payload.readingNotes : []
     const normalizedNotes = existingNotes.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
     const duplicate = normalizedNotes.some(item => item.text === note && item.source === source && item.page === page && item.chapter === chapter)
-    const readingNotes = duplicate ? normalizedNotes : [...normalizedNotes, { id: randomUUID(), text: note, source, author, ...(page === undefined ? {} : { page }), ...(chapter ? { chapter } : {}), createdAt: Date.now() }].slice(-50)
+    const readingNotes = duplicate ? normalizedNotes : [...normalizedNotes, {
+      id: randomUUID(), text: note, source, author,
+      ...(observation ? { grounding: { observation, ...(inference ? { inference } : {}) } } : {}),
+      ...(page === undefined ? {} : { page }), ...(chapter ? { chapter } : {}), createdAt: Date.now(),
+    }].slice(-50)
     const result = await updateAsset(assetId, { payload: { readingNotes } }, { expectedRoleId: roleId })
     return result.ok ? `已保存《${asset.name}》的阅读笔记${duplicate ? '（已存在相同来源记录）' : ''}。${author === 'companion' ? '记录者：人物。' : '记录者：用户。'}来源：${source}${page === undefined ? '' : `，第 ${page} 页`}${chapter ? `，${chapter}` : ''}` : `阅读笔记未保存：${result.error}`
   },

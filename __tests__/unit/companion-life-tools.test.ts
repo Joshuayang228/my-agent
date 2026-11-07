@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
-import { companionAddReadingNoteTool, companionCommentMomentTool, companionCreateAssetTool, companionPostMomentTool, companionReadWorldTool } from '../../electron/main/tools/builtins/companion-life'
+import { companionAddReadingNoteTool, companionCommentMomentTool, companionCreateAssetTool, companionObserveMaterialTool, companionPostMomentTool, companionReadWorldTool } from '../../electron/main/tools/builtins/companion-life'
 import { ToolRegistry } from '../../electron/main/tools/registry'
 import { listEventLinks, listMomentUserInteractions, listMoments } from '../../electron/main/companion/life/store'
 import { listAssets } from '../../electron/main/companion/life/assets'
@@ -18,6 +18,7 @@ function registry() {
   value.register(companionCommentMomentTool)
   value.register(companionReadWorldTool)
   value.register(companionAddReadingNoteTool)
+  value.register(companionObserveMaterialTool)
   return value
 }
 
@@ -57,10 +58,20 @@ it('用户明确选择书架条目后可保存阅读笔记并拒绝跨人物资�
   const [saved] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '读到选择路线时停下来记了一句。', source: '用户提供的第 12 页摘录', author: 'user', page: 12, chapter: '选择路线' }) }], context)
   expect(saved.content).toContain('已保存')
   expect((await listAssets('luffy', { kind: 'bookshelf' }))[0].payload.readingNotes).toEqual([expect.objectContaining({ text: expect.stringContaining('选择路线'), source: expect.stringContaining('第 12 页'), author: 'user', page: 12, chapter: '选择路线' })])
-  const [characterSaved] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '这一章让人物重新想起航线选择。', source: '人物读取的第 13 章材料', author: 'companion', chapter: '第 13 章' }) }], context)
+  const [characterSaved] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '这一章让人物重新想起航线选择。', source: '人物读取的第 13 章材料', author: 'companion', observation: '第 13 章明确写到航线选择需要重新核对。', inference: '人物因此重新想起此前的航线选择。', chapter: '第 13 章' }) }], context)
   expect(characterSaved.content).toContain('记录者：人物')
+  expect((await listAssets('luffy', { kind: 'bookshelf' }))[0].payload.readingNotes).toEqual(expect.arrayContaining([expect.objectContaining({ grounding: { observation: expect.stringContaining('重新核对'), inference: expect.stringContaining('重新想起') } })]))
+  const [ungrounded] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '只凭书名猜出来的感想。', source: '书名', author: 'companion' }) }], context)
+  expect(ungrounded.content).toContain('必须提供材料观察')
   const [rejected] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '跨人物', source: '不存在的来源', author: 'user' }) }], { ...context, roleId: 'nami' })
   expect(rejected.content).toContain('只能为当前人物')
+})
+
+it('图片材料观察只接受当前会话附件，缺图时不触发模型也不写回', async () => {
+  const tools = registry()
+  const [result] = await tools.executeAll([{ id: 'observe', name: 'companion_observe_material', arguments: JSON.stringify({ messageId: 'missing', source: '用户提供的书页照片，第 12 页' }) }], { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' })
+  expect(result.content).toContain('只能观察当前会话中可读取的图片附件')
+  expect((await listAssets('luffy', { kind: 'bookshelf' }))).toEqual([])
 })
 
 it('朋友圈与生活资产工具进入 Chat 的统一内置注册链', () => {

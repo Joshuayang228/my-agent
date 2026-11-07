@@ -5,7 +5,7 @@ describe('world record production contracts', () => {
   it('preserves full narratives and rejects invalid structured records atomically', () => {
     const long = '读完以后留下的感想。'.repeat(80)
     expect(normalizeWorldRecordField('culture', 'detail', long)).toEqual({ handled: true, ok: true, value: long })
-    expect(normalizeWorldRecordField('culture', 'readingNotes', [{ id: 'a', text: long, page: 36 }])).toMatchObject({ ok: true })
+    expect(normalizeWorldRecordField('culture', 'readingNotes', [{ id: 'a', text: long, page: 36, grounding: { observation: '材料明确写到航线需要复核。', inference: '人物因此停下来重新思考。' } }])).toMatchObject({ ok: true })
     for (const notes of [[{ id: 'a', text: '' }], [{ id: 'a', text: '一' }, { id: 'a', text: '二' }], [{ id: 'a', text: '正文', page: -1 }], [{ id: 'a', text: '正文', occurredAt: Infinity }]]) {
       expect(normalizeWorldRecordField('bookshelf', 'readingNotes', notes)).toMatchObject({ ok: false })
     }

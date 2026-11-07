@@ -33,11 +33,13 @@ describe('formatLifeSignalsForReflection', () => {
   it('把已保存阅读笔记作为独立薄信号', () => {
     const text = formatLifeSignalsForReflection({
       moments: [],
-      readings: [{ name: '海边的卡夫卡', status: '在读', note: '读到孤独与选择时停下来记了一句。' }],
+      readings: [{ name: '海边的卡夫卡', status: '在读', note: '读到孤独与选择时停下来记了一句。', observation: '材料明确写到孤独与选择。', inference: '人物开始重新理解选择。' }],
     })
     expect(text).toContain('【阅读记录】')
     expect(text).toContain('海边的卡夫卡（在读）')
     expect(text).toContain('孤独与选择')
+    expect(text).toContain('材料观察：材料明确写到孤独与选择')
+    expect(text).toContain('人物推断：人物开始重新理解选择')
   })
 
   it('截断过长 catchup / moment 文案', () => {

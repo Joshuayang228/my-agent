@@ -1,5 +1,7 @@
 # Agent 运行时
 
+材料观察工具（2026-11-07）：新增 `companion_observe_material`，通过注册的视觉观察配方读取当前会话已有图片，返回 observation / inference / uncertainties 候选；工具只读、不接受路径或 URL、不直接写入人物资产。`companion_add_reading_note` 负责带来源、记录者和 grounding 的明确写回，模型失败不产生阅读事实。
+
 阅读笔记来源边界（2026-11-07）：Chat 工具允许用户或人物记录者写入带来源范围的 `readingNotes`；人物自主记录仍必须提供明确材料来源，不由书名或无来源闲聊推断。
 
 自动配图状态一致性（2026-11-07）：图片描述与对话 / 动态共用当前 world slice 的地点、活动和叙事心情，缺失字段不补造；不把内部指标交给图片模型。

@@ -19,6 +19,8 @@ export interface LifeSignalMoment {
 export interface LifeSignalReading {
   name: string
   note?: string
+  observation?: string
+  inference?: string
   status?: string
 }
 
@@ -62,8 +64,11 @@ export function formatLifeSignalsForReflection(input: {
       const name = reading.name.trim().slice(0, 80)
       if (!name) continue
       const note = reading.note?.trim().slice(0, 120)
+      const observation = reading.observation?.trim().slice(0, 120)
+      const inference = reading.inference?.trim().slice(0, 120)
       const status = reading.status?.trim().slice(0, 40)
-      lines.push(`- ${name}${status ? `（${status}）` : ''}${note ? `：${note}` : ''}`)
+      const grounding = [observation ? `材料观察：${observation}` : '', inference ? `人物推断：${inference}` : ''].filter(Boolean).join('；')
+      lines.push(`- ${name}${status ? `（${status}）` : ''}${note ? `：${note}` : ''}${grounding ? `｜${grounding}` : ''}`)
     }
   }
   return lines.join('\n').trim()
@@ -86,6 +91,8 @@ export async function collectLifeSignalsForRole(
     readings: bookshelf.map((asset) => ({
       name: asset.name,
       note: latestReadingNote(asset.payload) || undefined,
+      observation: latestReadingNote(asset.payload, 'observation') || undefined,
+      inference: latestReadingNote(asset.payload, 'inference') || undefined,
       status: typeof asset.payload.readingStatus === 'string' ? asset.payload.readingStatus : undefined,
     })),
     maxMoments: limit,
