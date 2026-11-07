@@ -6,12 +6,15 @@ import { listEventLinks, listMomentUserInteractions, listMoments } from '../../e
 import { listAssets } from '../../electron/main/companion/life/assets'
 import { queryCompanionEvidence } from '../../electron/main/debug/companion-evidence'
 import type { DebugEvidenceScope } from '../../src/shared/debug-evidence'
+import { getSession } from '../../electron/main/storage/session-store'
 import { builtinTools, getBuiltinToolSource } from '../../electron/main/tools/builtins'
 
 const SQL = await initSqlJs()
 let db: InstanceType<typeof SQL.Database>
 vi.mock('../../electron/main/storage/database', () => ({ getDatabase: vi.fn(async () => db), persist: vi.fn() }))
 vi.mock('../../electron/main/storage/session-store', () => ({ getSession: vi.fn(async () => ({ messages: [] })) }))
+vi.mock('../../electron/main/llm/aux-config', () => ({ loadAuxLLMConfig: vi.fn(async () => ({ provider: 'openai', apiKey: 'test', baseUrl: 'http://127.0.0.1', model: 'vision-test' })) }))
+vi.mock('../../electron/main/llm/index', () => ({ chatComplete: vi.fn(async () => JSON.stringify({ observation: '图片中可直接读到“重新核对航线”。', inference: '人物因此开始重新思考下一段路线。', uncertainties: ['无法确认拍摄页码'] })) }))
 
 function registry() {
   const value = new ToolRegistry()
@@ -77,6 +80,20 @@ it('图片材料观察只接受当前会话附件，缺图时不触发模型也�
   const scope: DebugEvidenceScope = { roles: [{ id: 'luffy', name: '路飞', kind: 'protagonist' }], activeRoleId: 'luffy', universeId: 'default', ready: true }
   const evidence = queryCompanionEvidence({ view: 'growth', roleId: 'luffy', limit: 10 }, db, scope)
   expect(evidence.records.some(record => record.source === 'companion_material_observation_attempts' && record.status === 'failed')).toBe(true)
+})
+
+it('图片观察候选经明确记录者写回后保留确认与 Debug 证据', async () => {
+  const tools = registry()
+  vi.mocked(getSession).mockResolvedValueOnce({ messages: [{ id: 'image-message', role: 'user', content: '书页', timestamp: Date.now(), images: [{ dataUrl: 'data:image/png;base64,AA==', mimeType: 'image/png', fileName: 'page.png' }] }] } as never)
+  const context = { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' }
+  const [observed] = await tools.executeAll([{ id: 'observe', name: 'companion_observe_material', arguments: JSON.stringify({ messageId: 'image-message', source: '用户提供的书页照片，第 12 页' }) }], context)
+  const candidate = JSON.parse(observed.content)
+  expect(candidate.observation).toContain('重新核对航线')
+  await tools.executeAll([{ id: 'create', name: 'companion_create_asset', arguments: JSON.stringify({ kind: 'bookshelf', name: '航海日志' }) }], context)
+  const book = (await listAssets('luffy', { kind: 'bookshelf' }))[0]
+  const [saved] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '这页让我停下来想了一会儿。', source: candidate.source, author: 'companion', observation: candidate.observation, inference: candidate.inference, page: 12 }) }], context)
+  expect(saved.content).toContain('记录者：人物')
+  expect((await listAssets('luffy', { kind: 'bookshelf' }))[0].payload.readingNotes).toEqual([expect.objectContaining({ confirmation: { by: 'companion', at: expect.any(Number) }, grounding: expect.objectContaining({ observation: expect.stringContaining('重新核对航线') }) })])
 })
 
 it('朋友圈与生活资产工具进入 Chat 的统一内置注册链', () => {
