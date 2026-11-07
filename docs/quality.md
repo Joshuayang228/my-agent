@@ -1,5 +1,7 @@
 # 质量总控
 
+真实 Electron 证据契约同步（2026-11-07）：`debug-production.test.ts` 的注册资产目录计数对齐 `· 世界观 default` 范围展示，`image-generation.test.ts` 的生图请求断言对齐四层结构化运行时资料 JSON；两项独立真实 Electron 用例复跑通过，不改变生产行为。
+
 主进程类型门禁（2026-11-07）：`tsconfig.node.json` 已纳入 Electron、Eval 和 `src/shared/**/*.ts`，独立检查 0 诊断；`npm run typecheck` / `npm run build` 均强制执行根检查和主进程检查。历史施工快照中的 WISH-043 失败记录保留为当时证据，不代表当前状态。
 
 UI webServer 并发门禁（2026-11-07）：Playwright 配置按进程隔离 Vite UI 构建目录，多个 UI 回归命令不再共享静态复制目标；不修改测试断言、不延长超时。完整 691 项回归仍有独立的页面挂载 / 旧断言失败，继续按 WISH-042 分组处理。

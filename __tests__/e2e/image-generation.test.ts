@@ -92,7 +92,7 @@ test('正式生图设置、审批、真实文件、图片展示与重启恢复',
     const generated = requests.filter(request => request.url.endsWith('/images/generations'))
     expect(generated).toHaveLength(1)
     expect(generated[0]).toMatchObject({ authorization: 'Bearer image-fixture-key', body: { model: 'image-fixture', n: 1 } })
-    expect(String(generated[0].body.prompt)).toContain('图片描述：\n一张绿色测试图片')
+    expect(String(generated[0].body.prompt)).toContain('一张绿色测试图片')
     expect(String(generated[0].body.prompt)).toContain('已确认的人物外观锚点')
     const file = await readFile(path.join(project, 'images/generated-test.png'))
     expect(await sharp(file).metadata()).toMatchObject({ width: 48, height: 32, format: 'png' })

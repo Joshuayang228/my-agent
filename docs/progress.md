@@ -1,5 +1,7 @@
 # 项目进度
 
+真实 Electron 证据契约同步（2026-11-07）：`debug-production.test.ts` 目录计数断言同步世界观范围标签，`image-generation.test.ts` 生图 Prompt 断言同步四层结构化运行时资料，两项真实 Electron 用例复跑通过。
+
 主进程类型门禁收口（2026-11-07）：`tsconfig.node.json` 已覆盖 Electron、Eval 和共享源码，独立检查 0 诊断；`npm run typecheck` 与 `npm run build` 现在同时检查 Renderer 和主进程，WISH-043 关闭。
 
 UI 回归并发隔离（2026-11-07）：Playwright UI webServer 按配置进程使用独立 `ui-dist-*` 构建目录，避免多个回归命令同时复制静态文件时产生 Vite `EBUSY`；页面断言和测试超时保持原值。
