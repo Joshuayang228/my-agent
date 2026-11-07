@@ -8,6 +8,7 @@ import { loadRelations } from '../../companion/identity/loader'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { chatComplete } from '../../llm/index'
 import { compileMaterialObservationRequest } from '../../prompts/registered-request'
+import { recordMaterialObservationAttempt } from '../../companion/life/material-observation-store'
 
 const ASSET_KINDS = ['home', 'furniture', 'footprint', 'culture', 'bookshelf', 'wardrobe'] as const
 type CompanionAssetKind = (typeof ASSET_KINDS)[number]
@@ -95,8 +96,11 @@ export const companionObserveMaterialTool = buildTool({
     const session = await getSession(context.sessionId)
     const message = session?.messages.find(item => item.id === messageId)
     const image = message?.images?.[imageIndex]
-    if (!image || typeof image.dataUrl !== 'string' || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(image.dataUrl)) return '只能观察当前会话中可读取的图片附件。'
-    if (image.dataUrl.length > 20_000_000) return '图片过大，暂时不能观察。'
+    const attemptAt = Date.now()
+    const recordFailure = async (reason: string) => { await recordMaterialObservationAttempt({ roleId: context.roleId?.trim() || 'unbound', sessionId: context.sessionId!, messageId, imageIndex, source, status: 'failed', reason, attemptedAt: attemptAt, completedAt: Date.now() }) }
+    if (!image || typeof image.dataUrl !== 'string' || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(image.dataUrl)) { await recordFailure('image-unavailable'); return '只能观察当前会话中可读取的图片附件。' }
+    if (image.dataUrl.length > 20_000_000) { await recordFailure('image-too-large'); return '图片过大，暂时不能观察。' }
+    await recordMaterialObservationAttempt({ roleId: context.roleId?.trim() || 'unbound', sessionId: context.sessionId, messageId, imageIndex, source, status: 'started', reason: 'requested', attemptedAt: attemptAt, completedAt: null })
     try {
       const raw = await chatComplete({
         config: await loadAuxLLMConfig(),
@@ -109,9 +113,11 @@ export const companionObserveMaterialTool = buildTool({
         signal: context.signal,
       })
       const parsed = parseMaterialObservation(raw)
-      if (!parsed) return '图片观察未得到可核对结果，未生成阅读事实。'
+      if (!parsed) { await recordFailure('invalid-model-output'); return '图片观察未得到可核对结果，未生成阅读事实。' }
+      await recordMaterialObservationAttempt({ roleId: context.roleId?.trim() || 'unbound', sessionId: context.sessionId, messageId, imageIndex, source, status: 'succeeded', reason: 'candidate-ready', attemptedAt: attemptAt, completedAt: Date.now() })
       return JSON.stringify({ source, ...parsed, writeback: '如需保存，必须由用户或人物明确调用 companion_add_reading_note，并同时提供 source、author 和 observation。' })
     } catch (error) {
+      await recordFailure(error instanceof Error ? error.message.slice(0, 160) : 'model-failed')
       return `图片观察失败，未写入阅读事实：${error instanceof Error ? error.message.slice(0, 160) : '模型调用失败'}`
     }
   },
@@ -291,6 +297,7 @@ export const companionAddReadingNoteTool = buildTool({
     const readingNotes = duplicate ? normalizedNotes : [...normalizedNotes, {
       id: randomUUID(), text: note, source, author,
       ...(observation ? { grounding: { observation, ...(inference ? { inference } : {}) } } : {}),
+      confirmation: { by: author, at: Date.now() },
       ...(page === undefined ? {} : { page }), ...(chapter ? { chapter } : {}), createdAt: Date.now(),
     }].slice(-50)
     const result = await updateAsset(assetId, { payload: { readingNotes } }, { expectedRoleId: roleId })

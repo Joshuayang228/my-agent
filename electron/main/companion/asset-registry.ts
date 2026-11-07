@@ -222,6 +222,13 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     source: 'electron/main/companion/life/moment-visibility.ts#resolveMomentVisibilityDays', version: 'visibility-v1',
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ default: 'ai', relationshipWindows: { stranger: 3, familiar: 7, rapport: 14 }, userBounds: ['three_days', 'private'] }),
+  }), makeCompanionAsset({
+    key: 'companion:policy:material-observation', name: '人物材料观察与写回边界',
+    purpose: '把图片材料候选观察与已确认阅读事实分开，并保留失败证据',
+    role: 'platform', description: '观察工具只返回 observation / inference / uncertainties；写回必须由用户或人物明确确认并带来源。',
+    source: 'electron/main/companion/life/material-observation-store.ts#recordMaterialObservationAttempt', version: 'material-observation-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ observation: 'candidate-only', writeback: 'explicit-confirmation', failureEvidence: 'bounded-attempts', imageBytes: 'not-persisted' }),
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

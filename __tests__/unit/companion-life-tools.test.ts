@@ -4,6 +4,8 @@ import { companionAddReadingNoteTool, companionCommentMomentTool, companionCreat
 import { ToolRegistry } from '../../electron/main/tools/registry'
 import { listEventLinks, listMomentUserInteractions, listMoments } from '../../electron/main/companion/life/store'
 import { listAssets } from '../../electron/main/companion/life/assets'
+import { queryCompanionEvidence } from '../../electron/main/debug/companion-evidence'
+import type { DebugEvidenceScope } from '../../src/shared/debug-evidence'
 import { builtinTools, getBuiltinToolSource } from '../../electron/main/tools/builtins'
 
 const SQL = await initSqlJs()
@@ -72,6 +74,9 @@ it('图片材料观察只接受当前会话附件，缺图时不触发模型也�
   const [result] = await tools.executeAll([{ id: 'observe', name: 'companion_observe_material', arguments: JSON.stringify({ messageId: 'missing', source: '用户提供的书页照片，第 12 页' }) }], { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' })
   expect(result.content).toContain('只能观察当前会话中可读取的图片附件')
   expect((await listAssets('luffy', { kind: 'bookshelf' }))).toEqual([])
+  const scope: DebugEvidenceScope = { roles: [{ id: 'luffy', name: '路飞', kind: 'protagonist' }], activeRoleId: 'luffy', universeId: 'default', ready: true }
+  const evidence = queryCompanionEvidence({ view: 'growth', roleId: 'luffy', limit: 10 }, db, scope)
+  expect(evidence.records.some(record => record.source === 'companion_material_observation_attempts' && record.status === 'failed')).toBe(true)
 })
 
 it('朋友圈与生活资产工具进入 Chat 的统一内置注册链', () => {

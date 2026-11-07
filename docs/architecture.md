@@ -1,6 +1,6 @@
 # 系统架构
 
-材料观察与阅读写回（2026-11-07）：图片材料沿 `companion_observe_material` → 注册多模态 Prompt → 候选 observation / inference / uncertainties → `companion_add_reading_note` 明确写回进入人物 `bookshelf` 资产；观察工具不持久化图片事实，写回沿当前 role、来源和 `world-records` schema 校验，Debug / 反思只读同一结构。
+材料观察与阅读写回（2026-11-07）：图片材料沿 `companion_observe_material` → 注册多模态 Prompt → 候选 observation / inference / uncertainties → `companion_add_reading_note` 明确写回进入人物 `bookshelf` 资产；观察工具不持久化图片事实，尝试状态写入独立有界证据表，写回沿当前 role、来源、confirmation 和 `world-records` schema 校验，Debug / 反思只读同一结构。
 
 阅读笔记来源边界（2026-11-07）：书架 `readingNotes` 属于人物生活资产，写入沿 `companion_add_reading_note` 的当前 role 校验和 world-records schema；记录者与来源范围随资产保存，不进入用户长期记忆。
 

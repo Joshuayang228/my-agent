@@ -183,7 +183,13 @@ export function queryCompanionEvidence(input: unknown, db: Database | null = get
     else append([{ id: `${query.roleId}:pack-default`, role_id: query.roleId, name: '成长默认定义', body: pack.mutableDefault }], 'Role Pack mutable.default')
     if (hasTable(db, 'companion_reflection_state')) append(rows(db, 'SELECT role_id AS id, * FROM companion_reflection_state WHERE role_id = ? LIMIT 1', [query.roleId]), 'companion_reflection_state')
   }
-  if (!hasTable(db, source.table)) return result
+  if (!hasTable(db, source.table)) {
+    if (query.view === 'growth' && hasTable(db, 'companion_material_observation_attempts')) {
+      append(rows(db, 'SELECT id, role_id, session_id, message_id, image_index, source, status, reason, attempted_at, completed_at FROM companion_material_observation_attempts WHERE role_id = ? ORDER BY attempted_at DESC, id DESC LIMIT ?', [query.roleId, query.limit]), 'companion_material_observation_attempts')
+      result.boundary += ' 图片材料观察只保存脱敏尝试与失败证据，不保存图片二进制或未确认生活事实。'
+    }
+    return result
+  }
   const clauses = [source.where ?? 'role_id = ?']
   const values: SqlValue[] = [query.roleId]
   if (source.where && !['memories', 'profile'].includes(query.view)) { clauses.unshift('role_id = ?') }
@@ -197,6 +203,14 @@ export function queryCompanionEvidence(input: unknown, db: Database | null = get
   result.hasMore = raw.length > query.limit
   const page = raw.slice(0, query.limit)
   append(page, source.table)
+  if (query.view === 'growth' && hasTable(db, 'companion_material_observation_attempts')) {
+    const attempts = rows(db, 'SELECT id, session_id, message_id, image_index, source, status, reason, attempted_at, completed_at FROM companion_material_observation_attempts WHERE role_id = ? ORDER BY attempted_at DESC, id DESC LIMIT 30', [query.roleId])
+    if (attempts.length) {
+      if (result.records[0]) result.records[0].data.materialObservationAttempts = safeValue(attempts, { truncated: false })
+      else append(attempts.map(row => ({ ...row, role_id: query.roleId })), 'companion_material_observation_attempts')
+    }
+    result.boundary += ' 图片材料观察只保存脱敏尝试与失败证据，不保存图片二进制或未确认生活事实。'
+  }
   if (query.view === 'activity' && hasTable(db, 'companion_event_executions')) {
     // 背景：生活事件分页已经是活动视角的时间主轴，执行账本另有尝试时间，直接拼成第二套分页会让同一事件重复出现。
     // 设计意图：把同事件的自动推进 / 发帖决策附着在已分页事件详情里，复用人物、日期和来源链接。
