@@ -1,5 +1,7 @@
 # 项目进度
 
+主进程类型门禁收口（2026-11-07）：`tsconfig.node.json` 已覆盖 Electron、Eval 和共享源码，独立检查 0 诊断；`npm run typecheck` 与 `npm run build` 现在同时检查 Renderer 和主进程，WISH-043 关闭。
+
 材料依据与图片观察闭环首批（2026-11-07）：新增结构化 `grounding.observation / inference`，人物自主阅读写回必须提供可核对观察；`companion_observe_material` 只读取当前会话图片并返回候选，不自动写入人物世界。Debug 与反思读取同一结构，模型失败不产生阅读事实。视觉模型真实供应商效果和更完整的自动感想仍待独立验收。
 
 材料确认与失败证据（2026-11-07）：阅读笔记新增 `confirmation.by / at`，写回明确记录用户或人物确认主体；图片观察尝试保存 started / succeeded / failed 及缺图 / 超限原因，Debug 成长证据可追溯尝试但不保存图片二进制。

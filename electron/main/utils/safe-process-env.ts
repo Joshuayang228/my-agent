@@ -16,5 +16,5 @@ export function buildSafeChildProcessEnv(
   const inherited = Object.fromEntries(
     Object.entries(process.env).filter(([key]) => !SECRET_ENV_KEY_PATTERN.test(key)),
   )
-  return { ...inherited, ...overrides }
+  return { ...inherited, ...overrides } as NodeJS.ProcessEnv
 }

@@ -12,6 +12,7 @@ import type {
   LLMConfig,
   PersonaEvalAgentInputSnapshot,
   PersonaEvalJudgeSnapshot,
+  AgentStreamEvent,
 } from '../src/shared/types'
 import type { ToolRegistry } from '../electron/main/tools/registry'
 import { loadEvalEnvironment } from './eval-config'

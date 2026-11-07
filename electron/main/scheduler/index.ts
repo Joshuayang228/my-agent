@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../storage/database'
 import { createLogger, hashForLog } from '../utils/logger'
 import { BrowserWindow, Notification } from 'electron'
+import type { SqlValue } from 'sql.js'
 
 const log = createLogger('Scheduler')
 
@@ -211,7 +212,7 @@ export async function updateTask(id: string, updates: Partial<Pick<ScheduledTask
   if (validationError) throw new Error(validationError)
   const db = await getDatabase()
   const sets: string[] = []
-  const vals: unknown[] = []
+  const vals: SqlValue[] = []
 
   if (updates.name !== undefined) { sets.push('name = ?'); vals.push(updates.name) }
   if (updates.prompt !== undefined) { sets.push('prompt = ?'); vals.push(updates.prompt) }

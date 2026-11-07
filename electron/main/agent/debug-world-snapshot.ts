@@ -126,7 +126,7 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
   const mutableTrunc = mutableBody.length > MUTABLE_MAX
 
   const state = await getRoleState(role.id)
-  const today = toLocalDateString(new Date())
+  const today = toLocalDateString(Date.now())
   const script = await getDayScript(role.id, today)
   const [plannedEvents, publishedEvents] = await Promise.all([
     listEvents(role.id, { status: 'planned', order: 'desc', limit: EVENT_LIMIT + 1 }),

@@ -1,5 +1,7 @@
 # 质量总控
 
+主进程类型门禁（2026-11-07）：`tsconfig.node.json` 已纳入 Electron、Eval 和 `src/shared/**/*.ts`，独立检查 0 诊断；`npm run typecheck` / `npm run build` 均强制执行根检查和主进程检查。历史施工快照中的 WISH-043 失败记录保留为当时证据，不代表当前状态。
+
 材料依据与图片观察门禁（2026-11-07）：Unit 覆盖人物笔记的 `grounding.observation / inference` 校验、旧笔记兼容、反思薄信号和 Debug 只读投影；图片观察工具覆盖缺少当前会话附件时不调用模型且不写回。全量 Unit 248 文件 / 1610 项通过，`assets:check` 104 项通过，根类型检查、构建和文档检查通过。真实视觉供应商效果仍需凭据条件验收。
 
 材料确认与失败证据门禁（2026-11-07）：阅读笔记写回断言 `confirmation.by / at`；图片观察覆盖成功候选 → 人物明确写回、缺图失败和 Debug growth 投影的尝试状态 / 原因；图片数据不进入尝试表。

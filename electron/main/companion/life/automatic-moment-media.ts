@@ -61,12 +61,12 @@ export async function generateAutomaticMomentMedia(roleId: string, event: Compan
       await recordMomentMediaAttempt({ roleId, eventId: event.id, momentId: moment.id, status: 'skipped', reason: 'no-image-config', imageId: null, attemptedAt, completedAt: Date.now() })
       return { ok: false, reason: 'no-image-config' }
     }
-    const appearance = (() => { try { return formatRoleAppearanceForImagePrompt(loadRolePack(roleId).profile) } catch { return '' } })()
+    const appearance = (() => { try { const profile = loadRolePack(roleId).profile; return profile ? formatRoleAppearanceForImagePrompt(profile) : '' } catch { return '' } })()
     const worldState = await getRoleState(roleId)
     const description = buildAutomaticMomentImageDescription({ momentText: moment.text, world: worldState?.world, appearance })
     const response = await requestGeneratedImage(config, compileImageGenerationRequest(description), undefined)
     const image = await normalizeGeneratedImage(response.bytes)
-    const stored = await storeMomentMedia({ roleId, eventId: event.id, momentId: moment.id, mimeType: 'image/png', width: image.width, height: image.height, bytes: image.bytes })
+    const stored = await storeMomentMedia({ roleId, eventId: event.id, momentId: moment.id, mimeType: 'image/png', width: image.width, height: image.height, byteLength: image.bytes.length, bytes: image.bytes })
     const linked = await attachMomentImageForRole(roleId, moment.id, stored.id)
     if (!linked.ok) {
       await recordMomentMediaAttempt({ roleId, eventId: event.id, momentId: moment.id, status: 'failed', reason: 'moment-link-rejected', imageId: stored.id, attemptedAt, completedAt: Date.now() })

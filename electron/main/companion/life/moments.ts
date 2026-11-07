@@ -164,7 +164,7 @@ export async function projectMomentFromEvent(
     })
   }
   const participantIds = Array.isArray(event.payload.participantIds)
-    ? event.payload.participantIds.filter((id): id is string => typeof id === 'string' && id.trim()).slice(0, 4)
+    ? event.payload.participantIds.filter((id): id is string => typeof id === 'string' && Boolean(id.trim())).slice(0, 4)
     : []
   for (const participantId of [...new Set(participantIds)]) {
     let castName = participantId
@@ -199,6 +199,7 @@ export async function projectMomentFromEvent(
       ...(relationship ? { relationship } : {}),
     },
   })
+  if (!moment) return null
   await store.replaceEventLinks(event.roleId, event.id, links)
   if (opts?.automatic && (await getSetting('companionMomentImagePolicy')) === 'generated') {
     await generateAutomaticMomentMedia(event.roleId, event, moment)

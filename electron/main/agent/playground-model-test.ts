@@ -67,6 +67,7 @@ async function consumeOnce(
 ): Promise<{
   content: string
   reasoning: string
+  reasoningLen: number
   completionTokens: number
   ms: number
 }> {
@@ -87,6 +88,7 @@ async function consumeOnce(
   return {
     content: (result.content || '').trim(),
     reasoning: (result.reasoning || '').trim(),
+    reasoningLen: (result.reasoning || '').trim().length,
     completionTokens: result.usage?.completionTokens ?? 0,
     ms: Date.now() - t0,
   }

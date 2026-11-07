@@ -112,7 +112,7 @@ Chat 工具入口复核：普通 Chat 注册全部内置工具；人物体系 Sk
 - 新结构化字段由共享 world-records 校验，用户与内部发放入口共同校验引用；保存失败保留草稿，跨角色请求拒绝。事件关联整体替换与事件投影清理使用 SAVEPOINT，失败保留原记录。
 - 真实图片只接受角色资产 / 动态和图片 ID，经受控文件校验读取，不依赖当前项目、不接受 Renderer 路径；备份恢复重新映射摘要，重启可读取新目录媒体，重复导入不覆盖既存内容。
 
-生产路径：WorldHub → MomentsPanel / AssetsPanel / WorldDetailsPanel / WorldContactsPanel → companion IPC → 生活存储与关系服务。深浅窄宽、异步隔离、维护失败、真实 SQLite、Electron 重载及新目录媒体恢复均有测试。主进程独立类型债仍由 WISH-043 管理，不用根类型通过替代它。
+生产路径：WorldHub → MomentsPanel / AssetsPanel / WorldDetailsPanel / WorldContactsPanel → companion IPC → 生活存储与关系服务。深浅窄宽、异步隔离、维护失败、真实 SQLite、Electron 重载及新目录媒体恢复均有测试。主进程独立类型门禁已纳入 `npm run typecheck` / `npm run build`，伙伴运行时改动与根类型检查、主进程检查一起验证。
 
 ## 六面施工验证记录（历史）
 

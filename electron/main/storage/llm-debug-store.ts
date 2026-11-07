@@ -405,7 +405,8 @@ class LLMDebugStore implements LLMTraceSink {
 
   async getById(id: string): Promise<LLMCallDetail | null> {
     await this.operationTail
-    return this.getRecordById(id.trim(), true)
+    const record = await this.getRecordById(id.trim(), true)
+    return record && 'requestMessages' in record ? record : null
   }
 
   async clear(sessionId?: string): Promise<void> {

@@ -49,12 +49,13 @@ function makeBehaviorScenario(testCase: BehaviorCase): EvalScenario {
 
       if (realMode) {
         if (!hasKey) throw new Error('Real Eval 缺少 LLM API Key')
-        return { config, messages, systemPrompt }
+        return { config, messages, tools: [], systemPrompt }
       }
 
       return {
         config: makeEvalLLMConfig(),
         messages,
+        tools: [],
         systemPrompt,
         _streamChatOverride: async function* () {
           yield { type: 'text' as const, content: testCase.fallback }

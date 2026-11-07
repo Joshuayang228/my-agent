@@ -155,7 +155,6 @@
 
 - 工作区回流审计补充（WISH-041 / WISH-042）：共享 Markdown 的就近主题／Mermaid、DiffViewer/模式控件、IconButton 和 WorkspaceToolMenu 已接入真实调用，空稿/缺稿回退、四主题、长文件和完整 UI/Electron 回归通过。仍需输入及其它基础控件全量复用核验。侧聊流中关闭已有真实 Electron 证据；终端 Windows 停止/关闭后的真实父子进程退出已验证，Unix 仍需实机验证，不把 Renderer 替身当作跨平台完成。
 
-- [ ] **WISH-043 · 主进程类型检查门禁** — 来源：正式侧聊 Electron 回归发现 runtime 的 undefined.trim 和 span 越域未被默认 tsc 检出；根配置只 include src，主进程 `tsc -p tsconfig.node.json --noEmit` 仍报告跨项目 include/composite、ImportMeta.glob 与多个存量类型错误。重启条件：当前回流质量门禁收口；明确前端/主进程检查入口，先清理真实诊断，再纳入 build/commit，不用宽泛 any 或排除文件消音。 文件规则批次用相同 TypeScript Compiler API 对比 HEAD 覆盖前与当前工作树，均为 70 条既有诊断，无新增错误；仅排除诊断附带导入来源列表的文本变化。根 tsc 通过不代表主进程独立门禁通过，未删除检查或改用 any。
 
 - [ ] **WISH-042 · Foundation 真实复用与源码门禁** — 来源：2026-09-13 用户对白底、孤立控件和基础复用原则的反馈及代码审计；施工合同：`foundation-reuse-enforcement-v1.md`，范围待确认。共享 Prism 主题清洗已去掉容器独立白底，并有正式审阅 / 文件预览 / Foundation / 工作区审阅证据；四个 Playground 产品体验的通用控件真实复用和源码门禁仍待收口，不得只补调用参数或包装标签后宣称完成。
   2026-10-26 Debug 批次复核：扩大 UI 回归发现设置外观旧标题定位、通讯录状态切换、文化 / 家居 / 足迹旧刷新按钮定位失败。用 HEAD 的 App / Toast / DevPanel / Debug 候选源码覆盖构建逐类复现（`var/verification/debug-evidence-before-ui-baseline-v2.log` 与 `debug-evidence-before-world-baseline.log`）；不修改原断言或范围外页面以掩盖失败，不宣称全仓 UI 全绿。本次 Debug 专项单独验收，旧用例与当前组合边界的同步仍归本项。

@@ -132,7 +132,7 @@ export function toAgentError(err: unknown): AgentError {
 
   // LLMError duck-typing：有 status 数字字段的 Error 视为 LLM 错误
   if (err instanceof Error && typeof (err as { status?: unknown }).status === 'number') {
-    const status = (err as { status: number }).status
+    const status = (err as unknown as { status: number }).status
     const code = status === 429 ? AgentErrorCode.LLM_RATE_LIMITED : AgentErrorCode.LLM_REQUEST_FAILED
     const message = status === 429
       ? '模型服务请求过于频繁，请稍后重试。'

@@ -8,8 +8,8 @@
 
 import type { PromptAssetKey } from '../../../src/shared/types'
 
-function promptKey<T extends string>(value: T): T & PromptAssetKey {
-  return value as T & PromptAssetKey
+function promptKey(value: string): PromptAssetKey {
+  return value as PromptAssetKey
 }
 
 export const PROMPT_KEYS = {

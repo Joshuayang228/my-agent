@@ -193,7 +193,7 @@ export const codeSearchTool = buildTool({
     }
 
     const files = (await walkDir(realDir, fileExt)).map(file => resolveToolReadPath(file))
-      .filter((file): file is string => Boolean(file) && isPathInsideRoot(file, realDir))
+      .filter((file): file is string => Boolean(file) && isPathInsideRoot(file as string, realDir))
       .filter(file => checkFileReadSandbox(file, mode, realDir) === null)
     log.info(`Scanning ${files.length} files`)
 

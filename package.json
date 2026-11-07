@@ -9,10 +9,10 @@
   "main": "dist-electron/index.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && tsc -p tsconfig.node.json --noEmit && vite build",
     "preview": "vite preview",
     "package": "vite build && electron-builder",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.node.json --noEmit",
     "eval:run": "vitest run --config vitest.eval.config.ts",
     "eval:persona": "vitest run --config vitest.eval-persona.config.ts",
     "test": "vitest run",

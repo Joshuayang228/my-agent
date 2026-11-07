@@ -139,7 +139,7 @@ export const imageGenerateTool = buildTool({
       context?.signal?.throwIfAborted()
       const requestTarget = resolveGeneratedImageTarget(args.path, context, requestMode)
       if (requestTarget.target !== target.target || mode !== requestMode || rules !== JSON.stringify(getRules())) throw new ImageGenerationError('项目或权限已变化，未发起生图。请检查设置后再操作。')
-      const appearanceAnchor = context?.roleId ? (() => { try { return formatRoleAppearanceForImagePrompt(loadRolePack(context.roleId).profile) } catch { return '' } })() : ''
+      const appearanceAnchor = context?.roleId ? (() => { try { const profile = loadRolePack(context.roleId).profile; return profile ? formatRoleAppearanceForImagePrompt(profile) : '' } catch { return '' } })() : ''
       const wardrobeAnchor = context?.roleId && targetAsset ? await formatWardrobeVisualAnchor(context.roleId, targetAsset) : ''
       const visualAnchor = [appearanceAnchor, wardrobeAnchor].filter(Boolean).join('；')
       const response = await requestGeneratedImage(config, compileImageGenerationRequest(args.prompt, visualAnchor), context?.signal)

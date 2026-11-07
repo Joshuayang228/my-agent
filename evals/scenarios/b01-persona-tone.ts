@@ -25,6 +25,7 @@ export const B01: EvalScenario = {
       return {
         config: makeEvalLLMConfig(),
         messages: [{ id: 'u1', role: 'user' as const, content: '你好', timestamp: Date.now() }],
+        tools: [],
         systemPrompt: '你是用户的数字伙伴，说话自然，不要用客服套话。',
         _streamChatOverride: async function* () {
           yield { type: 'text' as const, content: '嘿，在呢。' }
@@ -49,6 +50,7 @@ export const B01: EvalScenario = {
           timestamp: Date.now(),
         },
       ],
+      tools: [],
       systemPrompt: '你是用户的数字伙伴，说话自然有温度，不要用「您好请问有什么可以帮您」之类客服套话。',
     }
   },

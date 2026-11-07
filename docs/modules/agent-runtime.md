@@ -1,5 +1,7 @@
 # Agent 运行时
 
+主进程类型门禁（2026-11-07）：运行时、LLM、工具和 Eval 共享源码纳入 `tsconfig.node.json`，`npm run typecheck` / `npm run build` 会在 Renderer 检查后执行主进程检查，当前诊断为 0。
+
 材料观察工具（2026-11-07）：新增 `companion_observe_material`，通过注册的视觉观察配方读取当前会话已有图片，返回 observation / inference / uncertainties 候选；工具只读、不接受路径或 URL、不直接写入人物资产。`companion_add_reading_note` 负责带来源、记录者、grounding 和 confirmation 的明确写回，模型失败不产生阅读事实；尝试状态由独立表提供 Debug 证据。
 
 阅读笔记来源边界（2026-11-07）：Chat 工具允许用户或人物记录者写入带来源范围的 `readingNotes`；人物自主记录仍必须提供明确材料来源，不由书名或无来源闲聊推断。

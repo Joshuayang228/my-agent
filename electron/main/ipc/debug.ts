@@ -217,7 +217,8 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
       return { ok: false, error: '不支持的 Eval 套件' }
     }
     if (suite === 'persona-real') {
-      const owner = BrowserWindow.fromWebContents(event.sender) ?? undefined
+      const owner = BrowserWindow.fromWebContents(event.sender)
+      if (!owner) return { ok: false, error: '调试窗口已关闭' }
       const confirmation = await dialog.showMessageBox(owner, {
         type: 'warning',
         title: '确认运行真人格 Eval',
@@ -285,7 +286,8 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     if (!record) return { ok: false, error: 'Debug 记录不存在' }
     const evidence = await assetUsageStore.query({ spanId: id, limit: 100 })
     const exportRecord = { ...record, assetUsage: evidence.records }
-    const owner = BrowserWindow.fromWebContents(event.sender) ?? undefined
+    const owner = BrowserWindow.fromWebContents(event.sender)
+    if (!owner) return { ok: false, error: '调试窗口已关闭' }
     const result = await dialog.showSaveDialog(owner, {
       defaultPath: `my-agent-llm-debug-${id}.json`,
       filters: [{ name: 'JSON', extensions: ['json'] }],
@@ -327,7 +329,8 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
       search: bounded(input?.search),
       order: input?.order === 'desc' ? 'desc' : 'asc',
     })
-    const owner = BrowserWindow.fromWebContents(event.sender) ?? undefined
+    const owner = BrowserWindow.fromWebContents(event.sender)
+    if (!owner) return { ok: false, error: '调试窗口已关闭' }
     const result = await dialog.showSaveDialog(owner, {
       defaultPath: 'my-agent-llm-debug.jsonl',
       filters: [{ name: 'JSON Lines', extensions: ['jsonl'] }],
@@ -380,7 +383,8 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
       const preview = await runDebugTool(toolRegistry, { ...request, confirmRisk: false })
       if (preview.ok || !preview.needsConfirmation || !input?.confirmRisk) return preview
 
-      const owner = BrowserWindow.fromWebContents(_e.sender) ?? undefined
+      const owner = BrowserWindow.fromWebContents(_e.sender)
+      if (!owner) return { ...preview, error: '调试窗口已关闭' }
       const argsText = JSON.stringify(request.args, null, 2).slice(0, 4_000)
       const confirmation = await dialog.showMessageBox(owner, {
         type: 'warning',

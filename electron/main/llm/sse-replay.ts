@@ -51,10 +51,11 @@ export async function* replayOpenAiSse(sseText: string): AsyncGenerator<ReplayCh
 
     const u = parsed.usage as Record<string, number> | undefined
     if (u) {
+      const previousUsage: { promptTokens: number; completionTokens: number } | null = usage
       usage = {
-        promptTokens: (u.prompt_tokens ?? 0) > 0 ? u.prompt_tokens : (usage?.promptTokens ?? 0),
+        promptTokens: (u.prompt_tokens ?? 0) > 0 ? u.prompt_tokens : ((previousUsage as { promptTokens?: number } | null)?.promptTokens ?? 0),
         completionTokens:
-          (u.completion_tokens ?? 0) > 0 ? u.completion_tokens : (usage?.completionTokens ?? 0),
+          (u.completion_tokens ?? 0) > 0 ? u.completion_tokens : ((previousUsage as { completionTokens?: number } | null)?.completionTokens ?? 0),
       }
     }
 

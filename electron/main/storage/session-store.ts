@@ -219,7 +219,7 @@ export async function forkSession(sourceSessionId: string, upToMessageId: string
     db.run(`
       INSERT INTO messages (id, session_id, role, content, tool_calls, tool_call_id, created_at, sort_order, generated_images)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [msgId, newId, r.role, r.content, r.tool_calls, r.tool_call_id, r.created_at, order, typeof r.generated_images === 'string' ? r.generated_images : null])
+    `, [msgId, newId, r.role as string, r.content as string, r.tool_calls as string | null, r.tool_call_id as string | null, r.created_at as number, order, typeof r.generated_images === 'string' ? r.generated_images : null])
 
     messages.push({
       id: msgId,

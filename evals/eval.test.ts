@@ -38,6 +38,6 @@ describe('Eval Suite', () => {
         const errorInfo = result.error ? `\nRunner Error: ${result.error}` : ''
         expect.fail(`场景失败:\n${details}${errorInfo}`)
       }
-    }, { timeout: 30000 })
+    })
   }
 })

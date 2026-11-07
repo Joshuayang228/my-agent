@@ -178,7 +178,7 @@ async function restoreMcpConnections() {
 
 // ── System Tray ──
 
-function createTrayIcon(): nativeImage {
+function createTrayIcon(): ReturnType<typeof nativeImage.createFromBuffer> {
   const size = 16
   const canvas = Buffer.alloc(size * size * 4)
   for (let i = 0; i < size * size; i++) {

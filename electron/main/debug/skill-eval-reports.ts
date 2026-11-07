@@ -58,7 +58,7 @@ function isSkillEvalReport(value: unknown): value is SkillEvalReport {
     && Array.isArray(report.cases)
     && report.cases.every((testCase) => {
       if (!testCase || typeof testCase !== 'object') return false
-      const item = testCase as Record<string, unknown>
+      const item = testCase as unknown as Record<string, unknown>
       if (!item.input || typeof item.input !== 'object' || !item.evidence || typeof item.evidence !== 'object') return false
       const input = item.input as Record<string, unknown>
       const skill = input.skill as Record<string, unknown> | undefined

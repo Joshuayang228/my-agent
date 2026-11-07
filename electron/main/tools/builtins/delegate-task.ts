@@ -98,7 +98,7 @@ export const delegateTaskTool = buildTool({
 
     // M26-G2：仅 main/summon（或未标记）可委派；避免 tools→companion 反向依赖
     const sk = toolContext.sessionKind
-    if (sk != null && sk !== '' && sk !== 'main' && sk !== 'summon') {
+    if (sk != null && sk !== 'main' && sk !== 'summon') {
       return '[错误] 当前会话类型不允许委派子 Agent。'
     }
 

@@ -86,7 +86,7 @@ function isPersonaEvalReport(value: unknown): value is PersonaEvalReport {
         && Array.isArray(item.trials)
         && item.trials.every((trial) => {
           if (!trial || typeof trial !== 'object') return false
-          const trialItem = trial as Record<string, unknown>
+      const trialItem = trial as unknown as Record<string, unknown>
           return typeof trialItem.id === 'string'
             && typeof trialItem.description === 'string'
             && typeof trialItem.pass === 'boolean'

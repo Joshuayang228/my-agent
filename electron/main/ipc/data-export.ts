@@ -799,7 +799,7 @@ export function registerDataExportIPC(): void {
       } catch (error) { restored.rollback(); throw error }
       restored.finish()
       const stats: DataImportStats = importedCore
-      log.info('Data imported', stats)
+      log.info('Data imported', stats as unknown as Record<string, unknown>)
       return { success: true, stats }
     } catch (err) {
       log.error('Import failed', { errorType: err instanceof Error ? err.name : 'unknown' })

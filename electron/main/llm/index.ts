@@ -36,7 +36,7 @@ import {
 import { getTraceContext } from '../utils/trace-context'
 import { resolvePromptAssetTraces } from '../prompts/registry'
 import { readRegisteredModelRequest } from '../prompts/registered-request'
-import { recordAssetUsage, recordAssetUsages } from '../utils/asset-usage'
+import { recordAssetUsage, recordAssetUsages, type AgentAssetUsageInput } from '../utils/asset-usage'
 import { PROVIDER_ASSET_KEYS } from './provider-asset-keys'
 import { PROVIDER_PRESETS } from '../../../src/shared/provider-presets'
 import { skillAssetKey, toolAssetKey } from '../tools/asset-keys'
@@ -282,7 +282,7 @@ export async function* streamChat(
       : provider === 'gemini'
         ? PROVIDER_ASSET_KEYS.gemini
         : PROVIDER_ASSET_KEYS.openai
-    const providerEvidence = [{
+    const providerEvidence: AgentAssetUsageInput[] = [{
       assetKey: providerKey,
       relation: 'used' as const,
       usageKind: 'provider-route' as const,
@@ -522,9 +522,10 @@ async function* streamChatSingle(
       const u = parsed.usage as Record<string, number> | undefined
       if (u) {
         // >0 guard：只在拿到正数时更新，防止代理在中间 chunk 塞 0 值覆盖真实统计
+        const previousUsage: { promptTokens: number; completionTokens: number } | null = usage
         usage = {
-          promptTokens: (u.prompt_tokens ?? 0) > 0 ? u.prompt_tokens : (usage?.promptTokens ?? 0),
-          completionTokens: (u.completion_tokens ?? 0) > 0 ? u.completion_tokens : (usage?.completionTokens ?? 0),
+          promptTokens: (u.prompt_tokens ?? 0) > 0 ? u.prompt_tokens : ((previousUsage as { promptTokens?: number } | null)?.promptTokens ?? 0),
+          completionTokens: (u.completion_tokens ?? 0) > 0 ? u.completion_tokens : ((previousUsage as { completionTokens?: number } | null)?.completionTokens ?? 0),
         }
       }
 
@@ -711,9 +712,10 @@ async function* streamChatAnthropic(
           // 合并更新而非重建：message_delta 只带 output_tokens，
           // input_tokens / cache tokens 来自更早的 message_start，必须保留。
           // 且用 >0 guard 防止 delta 的 0 值覆盖 start 的真实值（对照 CC claude.ts:2924）。
+          const previousUsage: { promptTokens: number; completionTokens: number; cacheReadTokens?: number; cacheCreationTokens?: number } | null = usage
           usage = {
-            ...(usage ?? { promptTokens: 0, completionTokens: 0 }),
-            completionTokens: u.output_tokens > 0 ? u.output_tokens : (usage?.completionTokens ?? 0),
+            ...(previousUsage ?? { promptTokens: 0, completionTokens: 0 }),
+            completionTokens: u.output_tokens > 0 ? u.output_tokens : ((previousUsage as { completionTokens?: number } | null)?.completionTokens ?? 0),
           }
         }
       }
