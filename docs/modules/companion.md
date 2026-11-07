@@ -368,6 +368,7 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 | 朋友圈自动发布策略设置 | 已落地 | 设置 → 伙伴与相处 | 正式设置读取并保存节奏、每日上限、冷却、勿扰时段、自动配图 / 图片预算和自动互动；用户明确发布不受自动策略限制，Debug 显示实际策略 |
 | 关系事件历史与 Debug 依据 | 已落地 | Debug「世界态」 | `companion_relationship_events` 按人物 / 来源事件保存关系阶段、增量和说明；重复投影幂等，近期依据可展开查看 |
 | 人物状态量化诊断 | 已落地 | 人物世界头部「看数字 / 看描述」；Debug「世界态」 | 默认呈现叙事化状态，用户可在人物世界头部主动切换只读数字；Debug 同时保留来源与内部信号，Chat 正文和设置不暴露数值养成栏 |
+| 对话 / 动态 / 生图状态一致 | 已落地 | （隐式）生活投影与自动配图 | 自动配图描述复用当前世界态的地点、活动和叙事心情；缺失字段不补造默认事实 |
 | Catch-up ≤7×24h | 已落地 | 朋友圈暖色条 / Prompt | `life/catchup` · `catchup-status` |
 | 此刻 presence | 已落地 | Catch-up / Prompt | `describeCastPresence` · `catchup-status.presence` |
 | Moments（朋友圈） | 已落地 | 人物世界 / 欢迎屏 → 朋友圈 | `get-moments` · `toggle-moment-like` · `add-moment-comment` · MomentsPanel · 卡司互动 meta；正式页真实赞 / 评论落独立用户表，不改 moment.text；Playground 可用只读 Moments / Catch-up 样张、可选本地图片内容位且跳过 IPC |

@@ -7,7 +7,7 @@ vi.mock('../../electron/main/storage/database', () => ({ getDatabase: async () =
 
 const SQL = await initSqlJs()
 const { recordMomentMediaAttempt, storeMomentMedia, listMomentMediaAttempts, getLatestMomentMediaAttempt } = await import('../../electron/main/companion/life/moment-media-store')
-const { shouldSkipAutomaticMomentImage } = await import('../../electron/main/companion/life/automatic-moment-media')
+const { shouldSkipAutomaticMomentImage, buildAutomaticMomentImageDescription } = await import('../../electron/main/companion/life/automatic-moment-media')
 
 describe('moment media store', () => {
   beforeEach(() => { db = new SQL.Database() })
@@ -29,5 +29,18 @@ describe('moment media store', () => {
     expect(shouldSkipAutomaticMomentImage({ attemptedAt: now, maxPerDay: 1, priorAttempts: [] })).toBe(false)
     expect(shouldSkipAutomaticMomentImage({ attemptedAt: now, maxPerDay: 1, priorAttempts: [{ attemptedAt: now - 1, status: 'stored' }, { attemptedAt: now - 2, status: 'started' }] })).toBe(true)
     expect(shouldSkipAutomaticMomentImage({ attemptedAt: now, maxPerDay: 1, priorAttempts: [{ attemptedAt: now - 1, status: 'failed' }, { attemptedAt: now - 86_400_000, status: 'stored' }] })).toBe(false)
+  })
+
+  it('自动配图描述复用当前世界态的地点、活动和叙事心情，不暴露数值', () => {
+    const description = buildAutomaticMomentImageDescription({
+      momentText: '甲板上的风把航线图吹得哗啦响。',
+      world: { currentLocation: '千里阳光号甲板', locationDetail: '共享甲板', currentActivity: '确认下一段航线', mood: 82 },
+      appearance: '草帽、黑发、轻便航海服',
+    })
+    expect(description).toContain('当前地点：千里阳光号甲板（共享甲板）')
+    expect(description).toContain('当前活动：确认下一段航线')
+    expect(description).toContain('当前心情：明亮有劲')
+    expect(description).not.toContain('82/100')
+    expect(description).toContain('人物外观锚点')
   })
 })
