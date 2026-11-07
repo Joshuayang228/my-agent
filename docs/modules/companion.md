@@ -367,7 +367,7 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 | 朋友圈可见窗口自适应 | 已落地 | 设置 → 伙伴与相处；Debug「世界态」 | 设置保留“跟随人物状态 / 最多保留最近三天 / 仅人物自己可见”三档；默认按关系阶段显示最近 3 / 7 / 14 天，用户边界优先，Debug 展示当前实际窗口 |
 | 朋友圈自动发布策略设置 | 已落地 | 设置 → 伙伴与相处 | 正式设置读取并保存节奏、每日上限、冷却、勿扰时段、自动配图 / 图片预算和自动互动；用户明确发布不受自动策略限制，Debug 显示实际策略 |
 | 关系事件历史与 Debug 依据 | 已落地 | Debug「世界态」 | `companion_relationship_events` 按人物 / 来源事件保存关系阶段、增量和说明；重复投影幂等，近期依据可展开查看 |
-| 人物状态量化诊断 | 已落地 | Debug「世界态」 | Debug 展示世界态心情 / 精力 / 社交需求和关系连续性内部信号；正式产品只呈现叙事化状态，不暴露数值养成栏 |
+| 人物状态量化诊断 | 已落地 | 人物世界头部「看数字 / 看描述」；Debug「世界态」 | 默认呈现叙事化状态，用户可在人物世界头部主动切换只读数字；Debug 同时保留来源与内部信号，Chat 正文和设置不暴露数值养成栏 |
 | Catch-up ≤7×24h | 已落地 | 朋友圈暖色条 / Prompt | `life/catchup` · `catchup-status` |
 | 此刻 presence | 已落地 | Catch-up / Prompt | `describeCastPresence` · `catchup-status.presence` |
 | Moments（朋友圈） | 已落地 | 人物世界 / 欢迎屏 → 朋友圈 | `get-moments` · `toggle-moment-like` · `add-moment-comment` · MomentsPanel · 卡司互动 meta；正式页真实赞 / 评论落独立用户表，不改 moment.text；Playground 可用只读 Moments / Catch-up 样张、可选本地图片内容位且跳过 IPC |

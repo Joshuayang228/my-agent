@@ -39,6 +39,9 @@ export interface RoleSummary {
   id: string
   name: string
   description: string
+  /** 运行态用户可见摘要；不含内部数值。 */
+  statusSummary?: string
+  statusMetrics?: { mood: number; energy: number; socialNeed: number; relationshipSignal: number | null; relationshipPhase: string | null }
   firstContact?: RoleFirstContact
 }
 

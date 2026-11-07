@@ -163,6 +163,8 @@ function App() {
   const confirmDialog = confirmQueue[0] ?? null
   const [currentPersonaName, setCurrentPersonaName] = useState('路飞')
   const [companionBlurb, setCompanionBlurb] = useState('自由、直率、重视伙伴的冒险伙伴')
+  const [companionStatusSummary, setCompanionStatusSummary] = useState<string | undefined>()
+  const [companionStatusMetrics, setCompanionStatusMetrics] = useState<{ mood: number; energy: number; socialNeed: number; relationshipSignal: number | null; relationshipPhase: string | null } | undefined>()
   const [companionFirstContact, setCompanionFirstContact] = useState<{ openingLine: string; quote?: string } | undefined>()
   const [showFirstContact, setShowFirstContact] = useState(false)
   const [activeRoleId, setActiveRoleId] = useState('luffy')
@@ -353,6 +355,8 @@ function App() {
     window.electronAPI.companion.getActive().then((p) => {
       if (p?.name) setCurrentPersonaName(p.name)
       if (p?.description) setCompanionBlurb(p.description)
+      setCompanionStatusSummary(p?.statusSummary)
+      setCompanionStatusMetrics(p?.statusMetrics)
       if (p?.id) setActiveRoleId(p.id)
       setCompanionFirstContact(p?.firstContact ? { openingLine: p.firstContact.openingLine, quote: p.firstContact.quote } : undefined)
     })
@@ -373,6 +377,8 @@ function App() {
       void window.electronAPI.companion.getActive().then((p) => {
         if (p?.name) setCurrentPersonaName(p.name)
         if (p?.description) setCompanionBlurb(p.description)
+        setCompanionStatusSummary(p?.statusSummary)
+        setCompanionStatusMetrics(p?.statusMetrics)
         if (p?.id) setActiveRoleId(p.id)
         setCompanionFirstContact(p?.firstContact ? { openingLine: p.firstContact.openingLine, quote: p.firstContact.quote } : undefined)
       })
@@ -473,6 +479,8 @@ function App() {
       window.electronAPI.companion.getActive().then((p) => {
         if (p?.name) setCurrentPersonaName(p.name)
         if (p?.description) setCompanionBlurb(p.description)
+        setCompanionStatusSummary(p?.statusSummary)
+        setCompanionStatusMetrics(p?.statusMetrics)
         if (p?.id) setActiveRoleId(p.id)
         setCompanionFirstContact(p?.firstContact ? { openingLine: p.firstContact.openingLine, quote: p.firstContact.quote } : undefined)
       })
@@ -1168,7 +1176,7 @@ function App() {
           <div className="view-transition flex flex-1 flex-col overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
             {isWorldView(activeView) ? (
               <WorldHub
-                profile={{ name: currentPersonaName, description: companionBlurb }}
+                profile={{ name: currentPersonaName, description: companionBlurb, statusSummary: companionStatusSummary, statusMetrics: companionStatusMetrics }}
                 allowAssetEditing={false}
                 onGenerateAssetImage={(asset) => {
                   setActiveView('chat')

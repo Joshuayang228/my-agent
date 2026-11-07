@@ -28,6 +28,8 @@ import { getMutable } from './growth/mutable-store'
 import { runCatchup } from './life/catchup'
 import { pauseRole, resumeRole } from './life/engine'
 import { getRoleState } from './life/store'
+import { listEmotionEvents, listRelationshipStates } from './life/store'
+import { narrativeMood } from './life/world-codec'
 import { recordAndBroadcastMilestone } from './growth/milestones'
 import { buildReacquaintCopy } from './presence'
 import { isStreamingActive } from './streaming-gate'
@@ -50,13 +52,58 @@ export async function getActiveRole(): Promise<RoleSummary & { universeId: strin
   const universeId = await settings.getSetting('universeId')
   const roleId = await getActiveRoleId()
   const pack = identity.loadRolePack(roleId, universeId)
+  const [state, relationships, emotions] = await Promise.all([
+    getRoleState(roleId),
+    listRelationshipStates(roleId),
+    listEmotionEvents(roleId, 1),
+  ])
+  const userRelationship = relationships.find(item => item.subjectId === 'user')
   return {
     id: pack.id,
     name: pack.name,
     description: pack.description,
     firstContact: pack.firstContact,
     universeId,
+    statusSummary: formatCompanionStatusSummary({ world: state?.world, relationships, emotions }),
+    statusMetrics: state ? {
+      mood: state.world.mood,
+      energy: state.world.energy,
+      socialNeed: state.world.socialNeed,
+      relationshipSignal: userRelationship?.signal ?? null,
+      relationshipPhase: userRelationship?.phase ?? null,
+    } : undefined,
   }
+}
+
+/**
+ * 将运行态压成用户可读的当前状态摘要。
+ *
+ * 背景：人物世界需要让用户感知伙伴此刻的状态，但不能把内部 0–100 指标变成养成面板。
+ * 设计意图：只保留叙事级心情、精力、关系阶段和最近情绪，来源仍是运行态事实；不显示
+ * 原始数值，也不把关系信号写入设置或交给权限判断。
+ * 关键约束：缺少运行态时返回 undefined，不用默认值补造“当前心情”；关系说明和情绪笔记
+ * 必须有界，用户可见文案不能暴露内部字段名或诊断术语。
+ */
+export function formatCompanionStatusSummary(input: {
+  world?: { mood: number; energy: number; socialNeed: number }
+  relationships: Array<{ subjectId: string; phase: string; note: string }>
+  emotions: Array<{ label: string; note: string }>
+}): string | undefined {
+  const parts: string[] = []
+  if (input.world) {
+    const energy = input.world.energy >= 75 ? '精力充足' : input.world.energy >= 45 ? '精力还够用' : '需要缓一缓'
+    const social = input.world.socialNeed >= 70 ? '最近比较想找人说话' : input.world.socialNeed <= 30 ? '最近更想安静一点' : ''
+    parts.push(`${narrativeMood(input.world.mood)}，${energy}`)
+    if (social) parts.push(social)
+  }
+  const userRelationship = input.relationships.find(item => item.subjectId === 'user')
+  if (userRelationship) {
+    const phase: Record<string, string> = { stranger: '还在慢慢熟悉', familiar: '相处得越来越自然', rapport: '已经很有默契' }
+    parts.push(`和你：${phase[userRelationship.phase] ?? '关系正在变化'}${userRelationship.note.trim() ? `，${userRelationship.note.trim().slice(0, 80)}` : ''}`)
+  }
+  const emotion = input.emotions[0]
+  if (emotion?.label.trim()) parts.push(`最近有些${emotion.label.trim().slice(0, 40)}`)
+  return parts.length ? parts.join(' · ') : undefined
 }
 
 export async function loadActiveRolePack(): Promise<RolePack> {

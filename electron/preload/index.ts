@@ -143,7 +143,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     listUniverses: (): Promise<Array<{ id: string; title: string; version: number; defaultProtagonistId: string; active: boolean }>> =>
       ipcRenderer.invoke('companion:list-universes'),
     switchUniverse: (universeId: string) => ipcRenderer.invoke('companion:switch-universe', universeId),
-    getActive: (): Promise<{ id: string; name: string; description: string; universeId: string; firstContact?: { openingLine: string; quote?: string; followUpStyle?: string; repeatPolicy: string } }> =>
+    getActive: (): Promise<{ id: string; name: string; description: string; universeId: string; statusSummary?: string; statusMetrics?: { mood: number; energy: number; socialNeed: number; relationshipSignal: number | null; relationshipPhase: string | null }; firstContact?: { openingLine: string; quote?: string; followUpStyle?: string; repeatPolicy: string } }> =>
       ipcRenderer.invoke('companion:get-active'),
     claimFirstContact: (): Promise<boolean> => ipcRenderer.invoke('companion:claim-first-contact'),
     requestSwitch: (
