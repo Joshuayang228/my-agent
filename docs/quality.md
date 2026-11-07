@@ -18,6 +18,8 @@ Debug 候选整组复跑（2026-11-07）：`debug-candidate.test.ts` 单 worker 
 
 Debug 能力补齐候选复跑（2026-11-07）：`debug-capability-candidate.test.ts` 单 worker 在瓷青 / 曜石、1096 / 600 共 4 项通过；能力页分组、失败态和窄宽布局保持可读，无生产行为改动。
 
+Debug 正式人物档案复跑（2026-11-07）：`debug-character-production.test.ts` 单 worker 在瓷青 / 曜石、1096 / 600 共 4 项通过，覆盖人物档案、来源分组和恢复态。
+
 材料依据与图片观察门禁（2026-11-07）：Unit 覆盖人物笔记的 `grounding.observation / inference` 校验、旧笔记兼容、反思薄信号和 Debug 只读投影；图片观察工具覆盖缺少当前会话附件时不调用模型且不写回。全量 Unit 248 文件 / 1610 项通过，`assets:check` 104 项通过，根类型检查、构建和文档检查通过。真实视觉供应商效果仍需凭据条件验收。
 
 材料确认与失败证据门禁（2026-11-07）：阅读笔记写回断言 `confirmation.by / at`；图片观察覆盖成功候选 → 人物明确写回、缺图失败和 Debug growth 投影的尝试状态 / 原因；图片数据不进入尝试表。
