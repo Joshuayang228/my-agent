@@ -54,10 +54,12 @@ it('用户明确选择书架条目后可保存阅读笔记并拒绝跨人物资�
   const context = { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' }
   await tools.executeAll([{ id: 'create', name: 'companion_create_asset', arguments: JSON.stringify({ kind: 'bookshelf', name: '航海日志' }) }], context)
   const book = (await listAssets('luffy', { kind: 'bookshelf' }))[0]
-  const [saved] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '读到选择路线时停下来记了一句。' }) }], context)
+  const [saved] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '读到选择路线时停下来记了一句。', source: '用户提供的第 12 页摘录', author: 'user', page: 12, chapter: '选择路线' }) }], context)
   expect(saved.content).toContain('已保存')
-  expect((await listAssets('luffy', { kind: 'bookshelf' }))[0].payload.note).toContain('选择路线')
-  const [rejected] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '跨人物' }) }], { ...context, roleId: 'nami' })
+  expect((await listAssets('luffy', { kind: 'bookshelf' }))[0].payload.readingNotes).toEqual([expect.objectContaining({ text: expect.stringContaining('选择路线'), source: expect.stringContaining('第 12 页'), author: 'user', page: 12, chapter: '选择路线' })])
+  const [characterSaved] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '这一章让人物重新想起航线选择。', source: '人物读取的第 13 章材料', author: 'companion', chapter: '第 13 章' }) }], context)
+  expect(characterSaved.content).toContain('记录者：人物')
+  const [rejected] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '跨人物', source: '不存在的来源', author: 'user' }) }], { ...context, roleId: 'nami' })
   expect(rejected.content).toContain('只能为当前人物')
 })
 

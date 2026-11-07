@@ -662,6 +662,12 @@ export function shouldAttachBookshelfRef(input: {
 
 export const BOOKSHELF_PROMPT_LIMIT = 3
 
+export function latestReadingNote(payload: Record<string, unknown>): string {
+  const notes = Array.isArray(payload.readingNotes) ? payload.readingNotes : []
+  const latest = [...notes].reverse().find((item) => item && typeof item === 'object' && !Array.isArray(item) && typeof (item as Record<string, unknown>).text === 'string') as Record<string, unknown> | undefined
+  return typeof latest?.text === 'string' ? latest.text.trim() : typeof payload.note === 'string' ? payload.note.trim() : ''
+}
+
 /**
  * 背景：文化角允许保存完整笔记，书架上下文仍是有限的生活摘要而非文档注入。
  * 设计意图：将原短笔记的 24 字预算放在 Prompt 展示边界，正文留在资产中供界面完整读取。
@@ -676,7 +682,7 @@ export function formatBookshelfSliceForPrompt(
     const name = a.name.trim()
     if (!name) continue
     const author = typeof a.payload.author === 'string' ? a.payload.author.trim() : ''
-    const note = typeof a.payload.note === 'string' ? a.payload.note.trim().slice(0, 24) : ''
+    const note = latestReadingNote(a.payload).slice(0, 24)
     const extra = [author, note].filter(Boolean).join(' · ')
     lines.push(extra ? `- 《${name}》${extra}` : `- 《${name}》`)
   }

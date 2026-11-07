@@ -8,7 +8,7 @@
 
 import { listMomentsForRole } from '../life/moments'
 import { getRoleState } from '../life/store'
-import { ASSET_KIND_BOOKSHELF, listAssets } from '../life/assets'
+import { ASSET_KIND_BOOKSHELF, latestReadingNote, listAssets } from '../life/assets'
 
 export const LIFE_SIGNAL_MOMENT_LIMIT = 12
 
@@ -85,7 +85,7 @@ export async function collectLifeSignalsForRole(
     moments: moments.map((m) => ({ publishedAt: m.publishedAt, text: m.text })),
     readings: bookshelf.map((asset) => ({
       name: asset.name,
-      note: typeof asset.payload.note === 'string' ? asset.payload.note : undefined,
+      note: latestReadingNote(asset.payload) || undefined,
       status: typeof asset.payload.readingStatus === 'string' ? asset.payload.readingStatus : undefined,
     })),
     maxMoments: limit,

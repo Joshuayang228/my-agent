@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { buildTool } from '../builder'
 import { createAsset, getAsset, listAssets, updateAsset } from '../../companion/life/assets'
 import { addMomentCommentForRole, projectMomentFromEvent } from '../../companion/life/moments'
@@ -173,20 +174,24 @@ export const companionCreateAssetTool = buildTool({
 })
 
 /**
- * 背景：阅读感想必须由用户明确选择材料后保存，不能由书名或聊天内容自动伪造已读事实。
- * 设计意图：复用资产层的角色归属、字段长度和持久化校验，允许覆盖笔记而不复制另一套文化存储。
- * 关键约束：只接受当前人物的 bookshelf 资产和用户提供的 note；模型生成或失败结果不得绕过此确认入口。
+ * 背景：阅读感想可能来自用户记录，也可能来自人物对明确材料的自主整理；两者都必须留下来源范围。
+ * 设计意图：复用资产层的角色归属、字段长度和持久化校验，将多条来源笔记存入同一书架资产，不复制另一套文化存储。
+ * 关键约束：只接受当前人物的 bookshelf 资产；source 和 author 必须显式提供，不能仅凭书名或无来源聊天内容伪造已读事实。
  */
 export const companionAddReadingNoteTool = buildTool({
   name: 'companion_add_reading_note',
-  description: '为当前人物已存在的书架条目保存一条用户明确确认的阅读笔记。先用 companion_read_world 查询真实资产 ID。',
+  description: '为当前人物已存在的书架条目保存一条带来源范围的阅读笔记；可以由用户记录，也可以由人物根据明确材料自主记录。先用 companion_read_world 查询真实资产 ID。',
   parameters: {
     type: 'object',
     properties: {
       assetId: { type: 'string', description: '书架条目的真实资产 ID。' },
       note: { type: 'string', description: '阅读笔记，最多 4000 字。' },
+      source: { type: 'string', description: '笔记依据，例如“用户提供的摘录”或“人物读取的第 3 章材料”，最多 300 字。' },
+      author: { type: 'string', enum: ['user', 'companion'], description: '记录者：user = 用户记录，companion = 人物根据明确材料记录。' },
+      page: { type: 'integer', description: '可选：页码，必须是 1–100000 的整数。' },
+      chapter: { type: 'string', description: '可选：章节或段落范围，最多 120 字。' },
     },
-    required: ['assetId', 'note'],
+    required: ['assetId', 'note', 'source', 'author'],
   },
   metadata: { isReadOnly: false, isDestructive: false, isConcurrencySafe: false },
   execute: async (args, context) => {
@@ -195,10 +200,21 @@ export const companionAddReadingNoteTool = buildTool({
     const assetId = textArg(args, 'assetId', 200)
     const note = textArg(args, 'note', 4000)
     if (!assetId || !note) return '资产 ID 和阅读笔记不能为空。'
+    const source = textArg(args, 'source', 300)
+    const author = args.author === 'user' || args.author === 'companion' ? args.author : ''
+    if (!source || !author) return '阅读笔记必须提供来源范围和记录者（user 或 companion）。'
+    const page = args.page === undefined ? undefined : args.page
+    if (page !== undefined && (typeof page !== 'number' || !Number.isSafeInteger(page) || page < 1 || page > 100000)) return '页码必须是 1–100000 的整数。'
+    const chapter = args.chapter === undefined ? '' : textArg(args, 'chapter', 120)
+    if (args.chapter !== undefined && !chapter) return '章节或段落范围不能为空，且不能超过 120 字。'
     const asset = await getAsset(assetId)
     if (!asset || asset.roleId !== roleId || asset.kind !== 'bookshelf') return '只能为当前人物已存在的书架条目保存笔记。'
-    const result = await updateAsset(assetId, { payload: { note } }, { expectedRoleId: roleId })
-    return result.ok ? `已保存《${asset.name}》的阅读笔记。` : `阅读笔记未保存：${result.error}`
+    const existingNotes = Array.isArray(asset.payload.readingNotes) ? asset.payload.readingNotes : []
+    const normalizedNotes = existingNotes.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
+    const duplicate = normalizedNotes.some(item => item.text === note && item.source === source && item.page === page && item.chapter === chapter)
+    const readingNotes = duplicate ? normalizedNotes : [...normalizedNotes, { id: randomUUID(), text: note, source, author, ...(page === undefined ? {} : { page }), ...(chapter ? { chapter } : {}), createdAt: Date.now() }].slice(-50)
+    const result = await updateAsset(assetId, { payload: { readingNotes } }, { expectedRoleId: roleId })
+    return result.ok ? `已保存《${asset.name}》的阅读笔记${duplicate ? '（已存在相同来源记录）' : ''}。${author === 'companion' ? '记录者：人物。' : '记录者：用户。'}来源：${source}${page === undefined ? '' : `，第 ${page} 页`}${chapter ? `，${chapter}` : ''}` : `阅读笔记未保存：${result.error}`
   },
 })
 
