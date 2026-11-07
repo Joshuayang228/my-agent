@@ -4,6 +4,8 @@
 
 UI 回归并发隔离（2026-11-07）：Playwright UI webServer 按配置进程使用独立 `ui-dist-*` 构建目录，避免多个回归命令同时复制静态文件时产生 Vite `EBUSY`；页面断言和测试超时保持原值。
 
+UI 回归端口隔离（2026-11-07）：端口由主 Playwright 配置进程生成并通过 `MY_AGENT_UI_E2E_PORT` 传给 worker，多个并行命令不会因 worker 重载配置而出现 baseURL / webServer 端口漂移。
+
 材料依据与图片观察闭环首批（2026-11-07）：新增结构化 `grounding.observation / inference`，人物自主阅读写回必须提供可核对观察；`companion_observe_material` 只读取当前会话图片并返回候选，不自动写入人物世界。Debug 与反思读取同一结构，模型失败不产生阅读事实。视觉模型真实供应商效果和更完整的自动感想仍待独立验收。
 
 材料确认与失败证据（2026-11-07）：阅读笔记新增 `confirmation.by / at`，写回明确记录用户或人物确认主体；图片观察尝试保存 started / succeeded / failed 及缺图 / 超限原因，Debug 成长证据可追溯尝试但不保存图片二进制。
