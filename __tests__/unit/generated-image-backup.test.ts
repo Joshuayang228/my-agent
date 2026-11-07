@@ -25,6 +25,7 @@ import { createSession, deleteSession, getSession, saveMessage } from '../../ele
 import { readGeneratedImage } from '../../electron/main/storage/generated-images'
 import { insertEvent, insertMoment, replaceEventLinks } from '../../electron/main/companion/life/store'
 import { momentImageIdsForRole, readMomentImageForRole } from '../../electron/main/companion/life/moment-images'
+import { ensureStarterAssets, listAssets } from '../../electron/main/companion/life/assets'
 
 const SQL = await initSqlJs()
 let db: InstanceType<typeof SQL.Database>
@@ -341,4 +342,23 @@ it('拒绝超过 16MB 的媒体总量及重复消息 ID', async () => {
   const duplicate = JSON.parse(fs.readFileSync(backup, 'utf8'))
   duplicate.sessions[0].messages.push(duplicate.sessions[0].messages[0])
   expect(isValidExportData(duplicate)).toBe(false)
+})
+
+it('路飞出厂静态视觉参考不计入 16MB 备份媒体上限，导入后自动从 Role Pack 恢复本地图片引用', async () => {
+  await ensureStarterAssets('luffy')
+  const seeded = await listAssets('luffy')
+  expect(seeded.filter((asset) => asset.payload.image).length).toBeGreaterThanOrEqual(8)
+
+  expect(await invoke('export')).toMatchObject({ success: true })
+  const data = JSON.parse(fs.readFileSync(backup, 'utf8')) as ExportData
+  expect(data.generatedImageMedia).toBeUndefined()
+  expect(data.livingAssets?.every((asset) => !('image' in asset.payload))).toBe(true)
+
+  db.run('DELETE FROM companion_assets')
+  expect(await invoke('import')).toMatchObject({ success: true })
+  const restored = await listAssets('luffy')
+  const outfit = restored.find((asset) => asset.id === 'wardrobe:luffy:starter-outfit')
+  expect(outfit?.payload.image).toMatchObject({ mimeType: 'image/png' })
+  expect(outfit?.payload.imageOutfitVersion).toBe(1)
+  expect(restored.filter((asset) => asset.payload.image).length).toBeGreaterThanOrEqual(8)
 })

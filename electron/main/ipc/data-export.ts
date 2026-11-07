@@ -31,6 +31,7 @@ import {
 import type { Database } from 'sql.js'
 import { BACKUP_IMAGE_ERRORS } from '../../../src/shared/backup-errors'
 import { collectMomentBackup, importMomentBackup, isValidMomentBackup, type MomentBackup } from '../storage/moment-backup'
+import { isStarterVisualImage, restoreStarterVisualPayload } from '../companion/life/assets'
 
 const log = createLogger('DataExport')
 
@@ -217,18 +218,25 @@ function assetImageReference(payload: Record<string, unknown>): GeneratedImageRe
   return value as unknown as GeneratedImageReference
 }
 
+function exportableAssetImageReference(asset: BackupLivingAsset): GeneratedImageReference | null {
+  const image = assetImageReference(asset.payload)
+  if (!image) return null
+  if (isStarterVisualImage(asset.roleId, asset.payload, image)) return null
+  return image
+}
+
 function livingAssetImageCollections(assets: readonly BackupLivingAsset[]): ImageReferenceCollection[] {
   return assets.flatMap((asset) => {
     const backupImage = isBackupImageReference(asset.payload.image) ? asset.payload.image : null
     if (backupImage) return [{ scope: `asset:${asset.id}`, references: [backupImage] }]
-    const image = assetImageReference(asset.payload)
+    const image = exportableAssetImageReference(asset)
     return image ? [{ scope: `asset:${asset.id}`, references: [toBackupImageReference(image)] }] : []
   })
 }
 
 function livingAssetImageSources(assets: readonly BackupLivingAsset[]): ImageReferenceCollection[] {
   return assets.flatMap((asset) => {
-    const image = assetImageReference(asset.payload)
+    const image = exportableAssetImageReference(asset)
     return image ? [{ scope: `asset:${asset.id}`, references: [image] }] : []
   })
 }
@@ -247,7 +255,7 @@ function newLivingAssets(db: Database, assets: readonly BackupLivingAsset[]): Ba
 
 function toBackupLivingAssets(assets: readonly BackupLivingAsset[]): BackupLivingAsset[] {
   return assets.map((asset) => {
-    const image = assetImageReference(asset.payload)
+    const image = exportableAssetImageReference(asset)
     if (!image) {
       if (Object.prototype.hasOwnProperty.call(asset.payload, 'image')) {
         const payload = { ...asset.payload }
@@ -263,7 +271,9 @@ function toBackupLivingAssets(assets: readonly BackupLivingAsset[]): BackupLivin
 function restoreLivingAssetImages(assets: readonly BackupLivingAsset[], references: ReadonlyMap<string, GeneratedImageReference>): BackupLivingAsset[] {
   return assets.map((asset) => {
     const value = asset.payload.image
-    if (!isBackupImageReference(value)) return asset
+    if (!isBackupImageReference(value)) {
+      return { ...asset, payload: restoreStarterVisualPayload(asset.roleId, asset.payload) }
+    }
     const restored = references.get(value.id)
     if (!restored) throw new BackupImageError(BACKUP_IMAGE_ERRORS.incomplete)
     return { ...asset, payload: { ...asset.payload, image: restored } }

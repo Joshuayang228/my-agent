@@ -2,7 +2,7 @@
 
 路飞初始化包配图挂载门禁（2026-11-07）：`companion-assets.test.ts` 新增 2 项回归，验证 `ensureStarterAssets('luffy')` 为住所、共享甲板空间、草帽、高处足迹、三件单品与初始套装共 8 条出厂记录挂载可通过 `readGeneratedImageReference` 安全核验的 PNG 引用，换上初始套装可沿用套装配图，且旧库已播种记录支持无损补图、用户删除套装后不复活。
 
-真实 Electron 证据契约同步（2026-11-07）：`debug-production.test.ts` 的注册资产目录计数对齐 `· 世界观 default` 范围展示，`image-generation.test.ts` 的生图请求断言对齐四层结构化运行时资料 JSON；两项独立真实 Electron 用例复跑通过，不改变生产行为。
+真实 Electron 证据契约同步与全套收口（2026-11-07）：`debug-production.test.ts` 的注册资产目录计数对齐 `· 世界观 default` 范围展示，`image-generation.test.ts` 的生图请求断言对齐四层结构化运行时资料 JSON；`moment-backup.test.ts` 与 `onboarding.test.ts` 对齐路飞默认唯一主角、千里阳光号「共享甲板」与四位伙伴卡司，多主角切角与角色隔离用例通过受控临时用户世界观验证；同时修复出厂静态 `visualPath` 配图计入 16MB 备份媒体上限的问题（`generated-image-backup.test.ts` 25 项通过）。至此 `playwright.electron.config.ts` 全部 13 个真实 Electron E2E 测试文件（共 46 项用例）全量通过。
 
 主进程类型门禁（2026-11-07）：`tsconfig.node.json` 已纳入 Electron、Eval 和 `src/shared/**/*.ts`，独立检查 0 诊断；`npm run typecheck` / `npm run build` 均强制执行根检查和主进程检查。历史施工快照中的 WISH-043 失败记录保留为当时证据，不代表当前状态。
 

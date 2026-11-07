@@ -334,7 +334,13 @@ export async function changeWardrobe(input: CompanionWardrobeChangeInput): Promi
   const payload: Record<string, unknown> = { recordType: 'wear-state', slots: slots.data, outfitVersion: nextVersion }
   if (isOutfit && Number.isSafeInteger(target.payload.outfitVersion) && target.payload.outfitVersion === target.payload.imageOutfitVersion) {
     const image = normalizeImageReference(target.payload.image)
-    if (image) { payload.image = image; payload.imageOutfitVersion = nextVersion }
+    if (image) {
+      payload.image = image
+      payload.imageOutfitVersion = nextVersion
+      if (typeof target.payload.visualPath === 'string' && isStarterVisualImage(input.roleId, target.payload, image)) {
+        payload.visualPath = target.payload.visualPath
+      }
+    }
   }
   const asset: CompanionAsset = { id: current?.id ?? randomUUID(), roleId: input.roleId, kind: ASSET_KIND_WARDROBE, name: '当前穿搭', payload, acquiredAt: current?.acquiredAt ?? Date.now(), sourceEventId: null }
   if (current) db.run('UPDATE companion_assets SET name = ?, payload_json = ? WHERE id = ? AND role_id = ?', [asset.name, JSON.stringify(payload), asset.id, input.roleId])
@@ -531,6 +537,43 @@ function withMaterializedStarterImage(roleId: string, payload: Record<string, un
   if (!next.image && typeof next.visualPath === 'string') {
     const image = materializeRoleVisualImage(roleId, next.visualPath)
     if (image) next.image = image
+  }
+  return next
+}
+
+/**
+ * 背景：出厂 starter 资产会把 Role Pack 静态 visual/*.png 物化到 companion-media/images 并挂到 payload.image，而路飞 8 张出厂原图合计超过 16MB 备份媒体上限。
+ * 设计意图：按角色与 visualPath 的真实文件 SHA-256 摘要识别未改动的出厂静态配图，使数据导出只打包用户/运行时生成的媒体。
+ * 关键约束：仅当 visualPath 对应出厂原图且摘要完全一致时返回 true；用户后续重新生成过的资产配图摘要不同，仍必须随备份导出。
+ */
+export function isStarterVisualImage(
+  roleId: string,
+  payload: Record<string, unknown>,
+  image: GeneratedImageReference,
+): boolean {
+  if (typeof payload.visualPath !== 'string' || !payload.visualPath.trim()) return false
+  const starter = materializeRoleVisualImage(roleId, payload.visualPath)
+  return starter?.id === image.id
+}
+
+/**
+ * 背景：出厂静态配图在导出备份时省略了机器相关的 payload.image，导入到新环境后需立即恢复本地可读引用。
+ * 设计意图：复用 Role Pack 的 visualPath 物化逻辑，在导入落库前无损补回本地 GeneratedImageReference 与穿搭配图版本号。
+ * 关键约束：已有用户生成图片引用时不覆盖；仅在成功物化出厂图片且穿搭版本有效时同步补齐 imageOutfitVersion。
+ */
+export function restoreStarterVisualPayload(
+  roleId: string,
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
+  const next = withMaterializedStarterImage(roleId, payload)
+  if (
+    !payload.image
+    && next.image
+    && ['outfit', 'wear-state'].includes(String(next.recordType))
+    && Number.isSafeInteger(next.outfitVersion)
+    && next.imageOutfitVersion === undefined
+  ) {
+    next.imageOutfitVersion = next.outfitVersion
   }
   return next
 }

@@ -1,5 +1,7 @@
 # 系统架构
 
+出厂静态视觉备份边界（2026-11-07）：`ipc/data-export.ts` 通过 `companion/life/assets.ts` 的 `isStarterVisualImage` 识别与 Role Pack `visualPath` 摘要一致的出厂静态图片，导出 JSON 时仅保留 `visualPath` 而不打包进 `generatedImageMedia`；导入时通过 `restoreStarterVisualPayload` 从本地 Role Pack 重新物化受控图片引用，用户重新生成的资产配图仍走完整 base64 媒体备份与恢复链路。
+
 类型检查边界（2026-11-07）：Renderer 与主进程分别由根 `tsconfig.json` 和 `tsconfig.node.json` 检查；`typecheck` / `build` 强制执行两套检查，主进程、Eval 与共享源码不再依赖隐式 include。
 
 材料观察与阅读写回（2026-11-07）：图片材料沿 `companion_observe_material` → 注册多模态 Prompt → 候选 observation / inference / uncertainties → `companion_add_reading_note` 明确写回进入人物 `bookshelf` 资产；观察工具不持久化图片事实，尝试状态写入独立有界证据表，写回沿当前 role、来源、confirmation 和 `world-records` schema 校验，Debug / 反思只读同一结构。

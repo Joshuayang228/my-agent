@@ -160,9 +160,9 @@ test.beforeAll(async () => {
 
 test.afterAll(async () => {
   if (electronApp) {
-    // 失败用例可能留在受保护草稿；仅销毁独占测试进程的窗口，不让清理再触发产品离页确认。
+    // 失败用例可能留在受保护草稿；先 emit before-quit 解除托盘隐藏拦截，再销毁独占测试窗口，避免 electronApp.close() 在有 Tray 时挂起。
     // 保持产品 beforeunload 不变，正常流程的显式重启仍在各用例内验收。
-    if (electronApp.process().exitCode === null) await electronApp.evaluate(({ BrowserWindow }) => { for (const window of BrowserWindow.getAllWindows()) window.destroy() }).catch(() => {})
+    if (electronApp.process().exitCode === null) await electronApp.evaluate(({ app, BrowserWindow }) => { app.emit('before-quit'); for (const window of BrowserWindow.getAllWindows()) window.destroy() }).catch(() => {})
     await electronApp.close()
   }
   if (fixtureReportCreated) await unlink(fixtureReportPath).catch(error => { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error })
@@ -286,6 +286,9 @@ test('首次进入通过模型路由配置后开始对话', async () => {
   const reopened = await page.evaluate(recordId => window.electronAPI.debug.historyQuery({ recordId }), history.records[0].id)
   expect(reopened.records).toEqual(history.records)
   expect(reopened.coverage.processRunId).not.toBe(history.coverage.processRunId)
+  await page.evaluate(() => window.electronAPI.settings.set('developerMode', 'false'))
+  await page.reload()
+  await expect(page.locator('#startup-splash')).toBeHidden()
 })
 
 test('正式自定义模型连接保存协议并在重载后通过真实协议测试', async () => {
@@ -580,6 +583,43 @@ test('正式生活资产经真实备份导出导入后保留且不覆盖现有�
   }
 })
 
+async function seedMultiRoleTestUniverse(): Promise<() => Promise<void>> {
+  const universeDir = path.join(userDataDir, 'universes', 'e2e-multi-role')
+  await mkdir(path.join(universeDir, 'roles'), { recursive: true })
+  await writeFile(path.join(universeDir, 'manifest.json'), JSON.stringify({
+    id: 'e2e-multi-role',
+    title: '多主角切角测试世界',
+    version: 1,
+    protagonistIds: ['lin', 'zhou'],
+    castIds: [],
+    plannedProtagonistSlots: 2,
+    defaultProtagonistId: 'lin',
+    ownership: 'user',
+  }, null, 2), 'utf8')
+  await writeFile(path.join(universeDir, 'relations.json'), JSON.stringify({ edges: [] }, null, 2), 'utf8')
+  for (const [id, name, description] of [['lin', '小林', '沉稳体贴的数字伙伴'], ['zhou', '小周', '活泼外向的数字伙伴']] as const) {
+    const roleDir = path.join(universeDir, 'roles', id)
+    await mkdir(roleDir, { recursive: true })
+    await writeFile(path.join(roleDir, 'manifest.json'), JSON.stringify({
+      id,
+      name,
+      description,
+      canBeProtagonist: true,
+      asideStyle: '简短自然旁白',
+      ownership: 'user',
+    }, null, 2), 'utf8')
+    await writeFile(path.join(roleDir, 'protected.md'), `你是${name}。\n\n${description}`, 'utf8')
+    await writeFile(path.join(roleDir, 'mutable.default.md'), '当前可变行为状态尚未设定。', 'utf8')
+    await writeFile(path.join(roleDir, 'summary.txt'), description, 'utf8')
+  }
+  const switched = await page.evaluate(() => window.electronAPI.companion.switchUniverse('e2e-multi-role'))
+  expect(switched.ok).toBe(true)
+  return async () => {
+    await page.evaluate(() => window.electronAPI.companion.switchUniverse('default'))
+    await rm(universeDir, { recursive: true, force: true })
+  }
+}
+
 test('正式朋友圈赞评经真实 IPC 重载保留并拒绝空值超长', async () => {
   await expect(page.locator('#startup-splash')).toBeHidden()
   await page.evaluate(() => window.electronAPI.settings.set('llmApiKey', 'local-test-key'))
@@ -589,15 +629,15 @@ test('正式朋友圈赞评经真实 IPC 重载保留并拒绝空值超长', asy
     const store = (globalThis as { __lifeStore?: { insertMoment: Function } }).__lifeStore
     if (!store) throw new Error('__lifeStore missing')
     const moment = await store.insertMoment({
-      roleId: 'lin',
+      roleId: 'luffy',
       eventId: `e2e-moment-${Date.now()}`,
       publishedAt: Date.now(),
       text: '今天把书桌收拾出来了。',
       meta: {
         location: '家中',
         interactions: [
-          { kind: 'comment', castId: 'chen', castName: '陈晨', text: '这桌面终于能看见了' },
-          { kind: 'coframe', castId: 'ayu', castName: '阿雨' },
+          { kind: 'comment', castId: 'zoro', castName: '索隆', text: '这桌面终于能看见了' },
+          { kind: 'coframe', castId: 'nami', castName: '娜美' },
         ],
       },
     })
@@ -606,7 +646,7 @@ test('正式朋友圈赞评经真实 IPC 重载保留并拒绝空值超长', asy
   })
   try {
     const listed = await page.evaluate(() => window.electronAPI.companion.getMoments({ limit: 80 }))
-    expect(listed.roleId).toBe('lin')
+    expect(listed.roleId).toBe('luffy')
     expect(listed.items.some((item) => item.id === seeded.id && item.text === '今天把书桌收拾出来了。')).toBe(true)
     const empty = await page.evaluate((momentId) => window.electronAPI.companion.addMomentComment(momentId, '   '), seeded.id)
     expect(empty).toMatchObject({ ok: false, code: 'INVALID' })
@@ -628,13 +668,13 @@ test('正式朋友圈赞评经真实 IPC 重载保留并拒绝空值超长', asy
     expect(social.comments.map((item) => item.text)).toEqual(['先把窗帘拉开'])
     expect(persisted.items.find((item) => item.id === seeded.id)?.text).toBe('今天把书桌收拾出来了。')
     expect(persisted.items.find((item) => item.id === seeded.id)?.meta.interactions).toEqual([
-      { kind: 'comment', castId: 'chen', castName: '陈晨', text: '这桌面终于能看见了' },
-      { kind: 'coframe', castId: 'ayu', castName: '阿雨' },
+      { kind: 'comment', castId: 'zoro', castName: '索隆', text: '这桌面终于能看见了' },
+      { kind: 'coframe', castId: 'nami', castName: '娜美' },
     ])
     await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
     const post = page.getByTestId('moment-post').filter({ hasText: '今天把书桌收拾出来了。' }).first()
     await expect(post.getByTestId('moment-like-button')).toHaveAttribute('aria-label', '取消赞')
-    await expect(post.getByTestId('moment-comment')).toHaveText(['陈晨：这桌面终于能看见了', '我：先把窗帘拉开'])
+    await expect(post.getByTestId('moment-comment')).toHaveText(['索隆：这桌面终于能看见了', '我：先把窗帘拉开'])
   } finally {
     const back = page.getByTestId('world-hub').getByRole('button', { name: '返回聊天', exact: true })
     if (await back.isVisible().catch(() => false)) await back.click()
@@ -650,7 +690,7 @@ test('正式人物世界六面从正式入口读取真实伙伴数据', async ()
     const store = (globalThis as { __lifeStore?: { insertMoment: Function } }).__lifeStore
     if (!store) throw new Error('__lifeStore missing')
     const moment = await store.insertMoment({
-      roleId: 'lin',
+      roleId: 'luffy',
       eventId: `e2e-world-surfaces-${Date.now()}`,
       publishedAt: Date.now(),
       text: '六面入口验收：今天把书桌收拾出来了。',
@@ -661,7 +701,7 @@ test('正式人物世界六面从正式入口读取真实伙伴数据', async ()
   })
   try {
     const listed = await page.evaluate(() => window.electronAPI.companion.getMoments({ limit: 80 }))
-    expect(listed.roleId).toBe('lin')
+    expect(listed.roleId).toBe('luffy')
     expect(listed.items.some((item) => item.id === seeded.id && item.text === '六面入口验收：今天把书桌收拾出来了。')).toBe(true)
 
     await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
@@ -678,9 +718,12 @@ test('正式人物世界六面从正式入口读取真实伙伴数据', async ()
     await expect(wardrobe).toBeVisible()
     await expect(wardrobe).toContainText('还没有当前穿搭。')
     await wardrobe.getByRole('tab', { name: '全部', exact: true }).click()
-    await expect(wardrobe).toContainText('衣柜还是空的。')
+    await expect(wardrobe).toContainText('轻便红色背心')
+    await expect(wardrobe).toContainText('深蓝短裤')
+    await expect(wardrobe).toContainText('甲板凉鞋')
     const initial = await page.evaluate(() => window.electronAPI.companion.getAssets())
-    expect(initial.items.filter(item => ['wardrobe', 'bookshelf', 'culture'].includes(item.kind))).toEqual([])
+    expect(initial.items.filter(item => ['bookshelf', 'culture'].includes(item.kind))).toEqual([])
+    expect(initial.items.filter(item => item.kind === 'wardrobe').map(item => item.name)).toEqual(expect.arrayContaining(['轻便红色背心', '深蓝短裤', '甲板凉鞋']))
 
     await page.getByTestId('world-tab-culture').click()
     const culture = page.locator('[data-world-content="culture"]')
@@ -703,16 +746,19 @@ test('正式人物世界六面从正式入口读取真实伙伴数据', async ()
 
     await page.getByTestId('world-tab-home').click()
     const home = page.getByTestId('home-gallery')
-    await expect(home).toContainText('还没有记录居住空间')
+    await expect(home.getByRole('tab', { name: '总览', exact: true })).toBeVisible()
+    await expect(home.getByRole('tab', { name: '共享甲板', exact: true })).toBeVisible()
+    await home.getByRole('tab', { name: '共享甲板', exact: true }).click()
+    await expect(home).toContainText('草帽')
     await expect(home).not.toContainText('城西小公寓')
 
     await page.getByTestId('world-tab-cast').click()
     const contacts = page.getByTestId('world-contacts-panel')
-    await expect(contacts.getByTestId('contact-card-chen')).toContainText('陈姐')
-    await expect(contacts.getByTestId('contact-card-ayu')).toContainText('阿雨')
+    await expect(contacts.getByTestId('contact-card-zoro')).toContainText('索隆')
+    await expect(contacts.getByTestId('contact-card-nami')).toContainText('娜美')
     await expect(contacts.getByRole('button', { name: /开聊|强行开聊/ })).toHaveCount(0)
-    await contacts.getByTestId('contact-card-chen').click()
-    await expect(contacts.getByTestId('contact-detail')).toContainText('陈姐')
+    await contacts.getByTestId('contact-card-zoro').click()
+    await expect(contacts.getByTestId('contact-detail')).toContainText('索隆')
     await contacts.getByRole('button', { name: '返回', exact: true }).click()
 
     await page.getByTestId('world-tab-footprints').click()
@@ -800,6 +846,7 @@ test('正式生活资产角色隔离与迟到通知', async () => {
   await page.reload()
   await expect(page.locator('#startup-splash')).toBeHidden()
   if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
+  const cleanupUniverse = await seedMultiRoleTestUniverse()
   const original = await page.evaluate(() => window.electronAPI.companion.getActive())
   const marker = '过期角色新增-' + randomUUID().slice(0, 8)
   const switchTo = async (role: string) => {
@@ -817,7 +864,7 @@ test('正式生活资产角色隔离与迟到通知', async () => {
       await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
       await page.getByTestId('world-tab-' + tab).click()
       if (tab === 'wardrobe') await page.getByTestId('world-assets-panel').getByRole('tab', { name: '全部', exact: true }).click()
-      await page.evaluate(({ kind, name }) => window.electronAPI.companion.createAsset({ kind, name, payload: kind === 'footprint' ? { recordType: 'trip', destination: '苏州', start: '2026-09-01', end: '2026-09-02' } : {} }), { kind, name: marker + '-' + kind })
+      await page.evaluate(async ({ kind, name }) => window.electronAPI.companion.createAsset({ roleId: (await window.electronAPI.companion.getActive()).id, kind, name, payload: kind === 'footprint' ? { recordType: 'trip', status: 'completed', destination: '苏州', start: '2026-09-01', end: '2026-09-02' } : {} }), { kind, name: marker + '-' + kind })
       // 只延迟测试窗口的通知，保留真实切角、preload、IPC 校验和 SQLite 提交。
       await electronApp.evaluate(({ BrowserWindow }) => {
         const contents = BrowserWindow.getAllWindows()[0].webContents
@@ -849,7 +896,7 @@ test('正式生活资产角色隔离与迟到通知', async () => {
         expect(rejected.every(result => !result.ok)).toBe(true)
         expect((await page.evaluate(() => window.electronAPI.companion.getAssets())).items.some(item => item.name === marker + '-invalid')).toBe(false)
       }
-      await page.evaluate(({ kind, name }) => window.electronAPI.companion.createAsset({ kind, name, payload: kind === 'footprint' ? { recordType: 'trip', destination: '苏州', start: '2026-09-01', end: '2026-09-02' } : {} }), { kind, name: marker + '-' + kind + '-accepted' })
+      await page.evaluate(async ({ kind, name }) => window.electronAPI.companion.createAsset({ roleId: (await window.electronAPI.companion.getActive()).id, kind, name, payload: kind === 'footprint' ? { recordType: 'trip', status: 'completed', destination: '苏州', start: '2026-09-01', end: '2026-09-02' } : {} }), { kind, name: marker + '-' + kind + '-accepted' })
       const saved = (await page.evaluate(() => window.electronAPI.companion.getAssets())).items.find(item => item.name === marker + '-' + kind + '-accepted')
       expect(saved?.roleId).toBe('zhou')
       await page.reload()
@@ -874,6 +921,7 @@ test('正式生活资产角色隔离与迟到通知', async () => {
       for (const asset of assets.items.filter(item => item.name.startsWith(marker))) await page.evaluate(id => window.electronAPI.companion.deleteAsset(id), asset.id)
     }
     await switchTo(original.id)
+    await cleanupUniverse()
     await page.reload()
   }
 })
@@ -888,6 +936,7 @@ test('正式共享角色架点击切角后重载保留并恢复原角色', async
   }, baseUrl)
   await page.reload()
   await expect(page.locator('#startup-splash')).toBeHidden()
+  const cleanupUniverse = await seedMultiRoleTestUniverse()
   const original = await page.evaluate(() => window.electronAPI.companion.getActive())
   const other = (await page.evaluate(() => window.electronAPI.companion.listProtagonists())).find(role => role.id !== original.id)!
   expect(other).toBeDefined()
@@ -914,6 +963,7 @@ test('正式共享角色架点击切角后重载保留并恢复原角色', async
     await expect.poll(async () => (await page.evaluate(() => window.electronAPI.companion.getActive())).id).toBe(original.id)
   } finally {
     await page.evaluate(id => window.electronAPI.companion.requestSwitch(id), original.id)
+    await cleanupUniverse()
     await page.reload()
     await expect(page.locator('#startup-splash')).toBeHidden()
   }
@@ -930,6 +980,7 @@ test('正式生活面真实切角通知隔离四类资产并重载保留', async
   await page.reload()
   await expect(page.locator('#startup-splash')).toBeHidden()
   if (await page.getByTestId('settings-back').isVisible().catch(() => false)) await page.getByTestId('settings-back').click()
+  const cleanupUniverse = await seedMultiRoleTestUniverse()
   const original = await page.evaluate(() => window.electronAPI.companion.getActive())
   const created: Array<{ role: string; id: string }> = []
   const marker = '切角验收-' + randomUUID().slice(0, 8)
@@ -984,6 +1035,7 @@ test('正式生活面真实切角通知隔离四类资产并重载保留', async
       for (const item of created.filter(item => item.role === role)) await page.evaluate(id => window.electronAPI.companion.deleteAsset(id), item.id)
     }
     await switchTo(original.id)
+    await cleanupUniverse()
     await page.reload()
     await expect(page.locator('#startup-splash')).toBeHidden()
   }

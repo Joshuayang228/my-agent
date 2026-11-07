@@ -17,12 +17,12 @@ test('正式朋友圈赞评经数据页备份到新目录、重启展示且重�
   const reference = { id: sourceId, fileName: 'moment.png', width: 24, height: 16, byteLength: png.length, mimeType: 'image/png' }
   const { fileName: _fileName, ...media } = reference
   await writeFile(input, JSON.stringify({ version: 1, exportedAt: timestamp, sessions: [], memories: [], settings: {},
-    livingAssets: [{ id: 'history-picture', roleId: 'lin', kind: 'culture', name: '真实媒体验收', payload: { type: 'photography', image: reference }, acquiredAt: timestamp, sourceEventId: 'history-event' }],
+    livingAssets: [{ id: 'history-picture', roleId: 'luffy', kind: 'culture', name: '真实媒体验收', payload: { type: 'photography', image: reference }, acquiredAt: timestamp, sourceEventId: 'history-event' }],
     generatedImageMedia: [{ ...media, data: png.toString('base64') }], momentHistory: {
-    events: [{ id: 'history-event', roleId: 'lin', scheduledAt: timestamp, status: 'published', type: 'rest', payload: { location: '窗边', imageId: sourceId, imageIds: [sourceId] } }],
-    moments: [{ id: 'history-moment', roleId: 'lin', eventId: 'history-event', publishedAt: timestamp, text: '今天读完了一本书。', meta: { location: '窗边', interactions: [{ kind: 'comment', castName: '朋友', text: '读完记得聊聊' }] } }],
+    events: [{ id: 'history-event', roleId: 'luffy', scheduledAt: timestamp, status: 'published', type: 'rest', payload: { location: '窗边', imageId: sourceId, imageIds: [sourceId] } }],
+    moments: [{ id: 'history-moment', roleId: 'luffy', eventId: 'history-event', publishedAt: timestamp, text: '今天读完了一本书。', meta: { location: '窗边', interactions: [{ kind: 'comment', castName: '朋友', text: '读完记得聊聊' }] } }],
     interactions: [],
-    links: [{ id: 'history-image-link', roleId: 'lin', eventId: 'history-event', targetType: 'image', targetId: sourceId, relation: 'depicts', metadata: { position: 0 }, createdAt: timestamp }],
+    links: [{ id: 'history-image-link', roleId: 'luffy', eventId: 'history-event', targetType: 'image', targetId: sourceId, relation: 'depicts', metadata: { position: 0 }, createdAt: timestamp }],
   } }))
   const launch = async (directory: string) => {
     await mkdir(directory, { recursive: true })
