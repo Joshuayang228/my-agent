@@ -123,18 +123,20 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
       await heading.scrollIntoViewIfNeeded()
       await page.screenshot({ path: info.outputPath(`settings-${section}.png`) })
       if (section === 'model') {
-        await candidate.getByTestId('settings-candidate-model-state-empty').click()
-        await expect(candidate.getByTestId('settings-candidate-model-state-empty')).toHaveAttribute('aria-selected', 'true')
+        const controls = page.getByTestId('settings-candidate-controls')
+        await controls.getByTestId('settings-candidate-model-state-empty').click()
+        await expect(controls.getByTestId('settings-candidate-model-state-empty')).toHaveAttribute('aria-selected', 'true')
       } else if (section === 'memory') {
-        await panel.getByRole('tab', { name: '空态', exact: true }).click()
+        await page.getByTestId('settings-candidate-controls').getByRole('tablist', { name: '记忆页面场景' }).getByRole('tab', { name: '空态', exact: true }).click()
         await expect(panel.getByText('还没有任何记忆。', { exact: true })).toBeVisible()
       } else if (section === 'skills') {
-        await candidate.getByTestId('settings-candidate-skills-states').getByRole('tab', { name: '详情', exact: true }).click()
+        const controls = page.getByTestId('settings-candidate-controls')
+        await controls.getByTestId('settings-candidate-skills-states').getByRole('tab', { name: '详情', exact: true }).click()
         await expect(candidate.getByTestId('settings-candidate-skill-detail')).toBeVisible()
         await candidate.getByRole('button', { name: '返回 Skills', exact: true }).click()
         await expect(candidate.getByTestId('settings-candidate-skill-detail')).toHaveCount(0)
       } else if (section === 'mcp') {
-        await panel.getByRole('tab', { name: '连接失败', exact: true }).click()
+        await page.getByTestId('settings-candidate-controls').getByRole('tablist', { name: 'MCP 样张场景' }).getByRole('tab', { name: '连接失败', exact: true }).click()
         const service = panel.getByTestId('settings-candidate-mcp-server-files')
         await expect(service.getByRole('status')).toHaveText('连接失败')
         await service.getByRole('button', { name: '重试', exact: true }).click()
