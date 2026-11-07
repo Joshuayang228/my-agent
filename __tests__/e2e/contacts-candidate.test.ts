@@ -9,7 +9,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1096, 
     await page.getByTestId('playground-nav').getByRole('button', { name: '人物世界', exact: true }).click()
     await page.getByTestId('world-tab-cast').click()
     const panel = page.getByTestId('world-cast-fixture')
-    const scenario = panel.getByRole('tablist', { name: '通讯录状态样张' })
+    const scenario = page.getByRole('tablist', { name: '通讯录状态样张' })
     const card = panel.getByTestId('contact-card-yao')
     for (const id of ['yao', 'xu']) {
       const image = panel.getByTestId(`contact-card-${id}`).getByRole('img')
