@@ -516,3 +516,4 @@ published event（事件事实）
 - 2026-11-05：Debug 世界态快照按人物过滤 feedback 记忆，同时保留共享记忆并标注范围；其他人物的专属反馈不再进入当前角色透视。
 
 - 2026-11-05：Debug 世界态新增生活执行账本，记录事件尝试时间、已分享 / 跳过 / 延后动作、策略原因和关联 Moment。
+- 2026-11-07：路飞出厂初始化包视觉补齐与挂载：`roles/luffy/visual/` 补齐草帽、红背心、深蓝短裤、甲板凉鞋与高处足迹 5 张 PNG，连同既有千里阳光号外景、室内空间和初始穿搭共 8 张视觉资产统一在 `ensureStarterAssets` 播种时落入 `userData/companion-media/images/` 并生成 `GeneratedImageReference`；同时将 `rooms[0]` 播种为 `home:luffy:space:shared-deck` 空间资产、草帽关联至该空间，并初始化可一键换上的 `wardrobe:luffy:starter-outfit`（不自动写入 `wear-state`），旧库支持无损补图。

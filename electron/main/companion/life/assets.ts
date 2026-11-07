@@ -6,14 +6,18 @@
  * 约束：IPC 只暴露 active role；删除后引用自然降级；不 import agent/。
  */
 
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
+import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
+import { app } from 'electron'
 import { getDatabase, persist } from '../../storage/database'
+import { GENERATED_IMAGE_LIMITS } from '../../utils/generated-image-codec'
 import { createLogger } from '../../utils/logger'
 import type { CompanionAsset, GrantAssetSpec } from '../types'
 import type { GeneratedImageReference } from '../../../../src/shared/types'
 import { BACKUP_LIVING_ASSET_KINDS } from '../../../../src/shared/types'
-import { loadRoleWorldDefaults } from '../identity/loader'
+import { loadRoleWorldDefaults, resolveRoleAssetFilePath } from '../identity/loader'
 import { normalizeGrantAsset } from './grant-asset'
 import { normalizeWorldRecordField, wardrobeCategorySchema, wardrobeSlotsSchema, worldRecordConsistencyError } from '../../../../src/shared/world-records'
 import type { CompanionWardrobeChangeInput } from '../../../../src/shared/types'
@@ -450,10 +454,127 @@ function startersFor(kind: AssetKind, roleId: string): StarterItem[] {
  */
 function luffyWardrobeStarters(): StarterItem[] {
   return [
-    { key: 'red-vest', name: '轻便红色背心', payload: { recordType: 'garment', category: 'top', color: '红色', description: '无袖、便于活动的轻便上装；视觉锚点仍可由用户调整。', style: '轻快、耐用、适合行动', seededFrom: 'role-pack:luffy' } },
-    { key: 'blue-shorts', name: '深蓝短裤', payload: { recordType: 'garment', category: 'bottom', color: '深蓝色', description: '活动时保持轻松的短裤；长度与细节不固定为唯一版本。', style: '简洁、便于移动', seededFrom: 'role-pack:luffy' } },
-    { key: 'deck-sandals', name: '甲板凉鞋', payload: { recordType: 'garment', category: 'shoes', color: '棕色', description: '适合甲板和短途移动的耐用鞋履。', style: '实用、耐磨', seededFrom: 'role-pack:luffy' } },
+    { key: 'red-vest', name: '轻便红色背心', payload: { recordType: 'garment', category: 'top', color: '红色', description: '无袖、便于活动的轻便上装；视觉锚点仍可由用户调整。', style: '轻快、耐用、适合行动', visualPath: 'visual/wardrobe-red-vest-v1.png', seededFrom: 'role-pack:luffy' } },
+    { key: 'blue-shorts', name: '深蓝短裤', payload: { recordType: 'garment', category: 'bottom', color: '深蓝色', description: '活动时保持轻松的短裤；长度与细节不固定为唯一版本。', style: '简洁、便于移动', visualPath: 'visual/wardrobe-blue-shorts-v1.png', seededFrom: 'role-pack:luffy' } },
+    { key: 'deck-sandals', name: '甲板凉鞋', payload: { recordType: 'garment', category: 'shoes', color: '棕色', description: '适合甲板和短途移动的耐用鞋履。', style: '实用、耐磨', visualPath: 'visual/wardrobe-deck-sandals-v1.png', seededFrom: 'role-pack:luffy' } },
   ]
+}
+
+const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])
+const starterVisualImageCache = new Map<string, GeneratedImageReference>()
+
+function resolveStarterImagesDir(): string {
+  let baseRoot: string
+  try {
+    const userData = app.getPath('userData')
+    baseRoot = process.platform === 'win32' && userData.startsWith('/')
+      ? path.join(os.tmpdir(), 'my-agent-starter-media')
+      : userData
+  } catch {
+    baseRoot = path.join(os.tmpdir(), 'my-agent-starter-media')
+  }
+  const targetDir = path.join(baseRoot, 'companion-media', 'images')
+  fs.mkdirSync(targetDir, { recursive: true })
+  return fs.realpathSync(targetDir)
+}
+
+/**
+ * 背景：Role Pack 中的 visual/*.png 是仓库静态文件，而人物世界图片读取器要求图片位于受控 images 目录并通过真实路径、大小与 SHA-256 核验。
+ * 设计意图：在出厂播种或无损补图时将 Role Pack 视觉参考落入 userData/companion-media/images，生成可由 companion:read-asset-image 安全读取的 GeneratedImageReference。
+ * 关键约束：不放入静态 getStarterAssetDefinitions（避免机器绝对路径污染生产资产指纹）；源文件缺失或非合规 PNG 时静默返回 null。
+ */
+function materializeRoleVisualImage(roleId: string, visualPath: unknown): GeneratedImageReference | null {
+  if (typeof visualPath !== 'string' || !visualPath.trim()) return null
+  const cacheKey = `${roleId}:${visualPath.trim()}`
+  const cached = starterVisualImageCache.get(cacheKey)
+  if (cached && fs.existsSync(cached.path)) return { ...cached }
+  const sourcePath = resolveRoleAssetFilePath(roleId, visualPath)
+  if (!sourcePath) return null
+  try {
+    const bytes = fs.readFileSync(sourcePath)
+    if (
+      bytes.byteLength < 24
+      || bytes.byteLength > GENERATED_IMAGE_LIMITS.bytes
+      || !bytes.subarray(0, 8).equals(PNG_SIGNATURE)
+    ) {
+      return null
+    }
+    const width = bytes.readUInt32BE(16)
+    const height = bytes.readUInt32BE(20)
+    if (!Number.isSafeInteger(width) || width <= 0 || !Number.isSafeInteger(height) || height <= 0) return null
+    const id = createHash('sha256').update(bytes).digest('hex')
+    const imagesDir = resolveStarterImagesDir()
+    const safeRole = roleId.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/^-+/, '') || 'role'
+    const safeBase = path.basename(visualPath, path.extname(visualPath)).replace(/[^a-zA-Z0-9_-]/g, '-')
+    const fileName = `${safeRole}-${safeBase}-${id.slice(0, 12)}.png`.slice(0, 80)
+    const targetPath = path.join(imagesDir, fileName)
+    if (!fs.existsSync(targetPath) || fs.statSync(targetPath).size !== bytes.byteLength) {
+      fs.writeFileSync(targetPath, bytes)
+    }
+    const ref: GeneratedImageReference = {
+      id,
+      path: targetPath,
+      mimeType: 'image/png',
+      width,
+      height,
+      byteLength: bytes.byteLength,
+    }
+    starterVisualImageCache.set(cacheKey, ref)
+    return { ...ref }
+  } catch {
+    return null
+  }
+}
+
+function withMaterializedStarterImage(roleId: string, payload: Record<string, unknown>): Record<string, unknown> {
+  const next = { ...payload }
+  if (!next.image && typeof next.visualPath === 'string') {
+    const image = materializeRoleVisualImage(roleId, next.visualPath)
+    if (image) next.image = image
+  }
+  return next
+}
+
+function backfillRowStarterImage(
+  db: Awaited<ReturnType<typeof getDatabase>>,
+  roleId: string,
+  assetId: string,
+  visualPath: unknown,
+  extraFields?: Record<string, unknown>,
+): boolean {
+  if (typeof visualPath !== 'string' || !visualPath.trim()) return false
+  const stmt = db.prepare('SELECT payload_json FROM companion_assets WHERE id = ? AND role_id = ?')
+  try {
+    stmt.bind([assetId, roleId])
+    if (!stmt.step()) return false
+    const row = stmt.getAsObject()
+    const payload = JSON.parse(String(row.payload_json || '{}')) as Record<string, unknown>
+    let changed = false
+    if (!payload.visualPath) {
+      payload.visualPath = visualPath
+      changed = true
+    }
+    if (extraFields) {
+      for (const [k, v] of Object.entries(extraFields)) {
+        if (v !== undefined && payload[k] === undefined) {
+          payload[k] = v
+          changed = true
+        }
+      }
+    }
+    if (!payload.image) {
+      const image = materializeRoleVisualImage(roleId, visualPath)
+      if (image) {
+        payload.image = image
+        changed = true
+      }
+    }
+    if (!changed) return false
+    db.run('UPDATE companion_assets SET payload_json = ? WHERE id = ? AND role_id = ?', [JSON.stringify(payload), assetId, roleId])
+    return true
+  } finally {
+    stmt.free()
+  }
 }
 
 /**
@@ -485,7 +606,7 @@ export async function ensureStarterForKind(
       roleId,
       kind,
       name: item.name,
-      payload: item.payload,
+      payload: withMaterializedStarterImage(roleId, item.payload),
       acquiredAt: base + i,
       sourceEventId: null,
     })
@@ -494,8 +615,77 @@ export async function ensureStarterForKind(
   return { created }
 }
 
+/**
+ * 背景：路飞的出厂衣柜除三件单品外，还拥有《草帽冒险日常装》视觉参考（visual/wardrobe-initial-v1.png），但不能直接生成 wear-state 当前穿着。
+ * 设计意图：单品播种后，为路飞初始化一套可一键换上的 starter-outfit 并绑定出厂配图，同时为旧库无损补齐单品图片。
+ * 关键约束：使用 companion_asset_seeds 标记，用户删除套装后绝不复活；绝不自动写入 recordType=wear-state。
+ */
 export async function ensureStarterWardrobe(roleId: string): Promise<{ created: number }> {
-  return ensureStarterForKind(roleId, ASSET_KIND_WARDROBE)
+  const result = await ensureStarterForKind(roleId, ASSET_KIND_WARDROBE)
+  if (roleId !== 'luffy') return result
+
+  const db = await getDatabase()
+  db.run(`CREATE TABLE IF NOT EXISTS companion_asset_seeds (
+    role_id TEXT NOT NULL, kind TEXT NOT NULL, PRIMARY KEY (role_id, kind)
+  )`)
+  let backfilled = false
+  for (const item of luffyWardrobeStarters()) {
+    const id = `${ASSET_KIND_WARDROBE}:${roleId}:${item.key}`
+    if (backfillRowStarterImage(db, roleId, id, item.payload.visualPath)) backfilled = true
+  }
+  if (backfilled) persist()
+
+  const seedKind = `${ASSET_KIND_WARDROBE}:starter-outfit`
+  const outfitId = `${ASSET_KIND_WARDROBE}:${roleId}:starter-outfit`
+  const outfitVisualPath = 'visual/wardrobe-initial-v1.png'
+  const seeded = db.exec('SELECT 1 FROM companion_asset_seeds WHERE role_id = ? AND kind = ?', [roleId, seedKind])
+  let createdOutfit = 0
+  if (!seeded.length) {
+    const garments = await listAssets(roleId, { kind: ASSET_KIND_WARDROBE })
+    const requiredIds = [
+      `${ASSET_KIND_WARDROBE}:${roleId}:red-vest`,
+      `${ASSET_KIND_WARDROBE}:${roleId}:blue-shorts`,
+      `${ASSET_KIND_WARDROBE}:${roleId}:deck-sandals`,
+    ]
+    const hasAllGarments = requiredIds.every((id) => garments.some((asset) => asset.id === id))
+    if (hasAllGarments && !garments.some((asset) => asset.id === outfitId)) {
+      await addAsset({
+        id: outfitId,
+        roleId,
+        kind: ASSET_KIND_WARDROBE,
+        name: '草帽冒险日常装',
+        payload: {
+          recordType: 'outfit',
+          slots: {
+            top: requiredIds[0],
+            bottom: requiredIds[1],
+            shoes: requiredIds[2],
+          },
+          style: '轻快、耐造、随时能出发',
+          description: '路飞的出厂日常穿搭组合：轻便红色背心、深蓝短裤与甲板凉鞋。',
+          visualPath: outfitVisualPath,
+          seededFrom: 'role-pack:luffy',
+        },
+        acquiredAt: Date.now() + 10,
+        sourceEventId: null,
+      })
+      createdOutfit = 1
+    }
+    if (hasAllGarments) {
+      db.run('INSERT OR IGNORE INTO companion_asset_seeds (role_id, kind) VALUES (?, ?)', [roleId, seedKind])
+      persist()
+    }
+  }
+
+  const outfitAsset = await getAsset(outfitId)
+  if (outfitAsset && outfitAsset.roleId === roleId && !outfitAsset.payload.image && outfitAsset.payload.outfitVersion === 1) {
+    const outfitImage = materializeRoleVisualImage(roleId, outfitVisualPath)
+    if (outfitImage) {
+      await attachWorldAssetImage(outfitId, outfitImage, { expectedRoleId: roleId, expectedOutfitVersion: 1 })
+    }
+  }
+
+  return { created: result.created + createdOutfit }
 }
 
 export async function ensureStarterBookshelf(roleId: string): Promise<{ created: number }> {
@@ -508,13 +698,39 @@ function worldHomeStarters(roleId: string): StarterItem[] {
   return [{ key: 'residence', name: world.home.shortName, payload: { ...world.home, seededFrom: 'world.default' } }]
 }
 
+function worldHomeRoomStarters(roleId: string): StarterItem[] {
+  const world = loadRoleWorldDefaults(roleId)
+  if (!world || !world.home.shortName.trim() || world.home.shortName === '未设定' || !Array.isArray(world.rooms)) return []
+  const residenceId = `${ASSET_KIND_HOME}:${roleId}:residence`
+  return world.rooms
+    .filter((room) => room && typeof room.id === 'string' && room.id.trim() && typeof room.name === 'string' && room.name.trim())
+    .map((room) => ({
+      key: `space:${room.id.trim()}`,
+      name: room.name.trim(),
+      payload: {
+        recordType: 'space',
+        residenceId,
+        description: [room.day, room.night].filter(Boolean).join('；'),
+        ...(room.visualPath ? { visualPath: room.visualPath } : {}),
+        seededFrom: 'world.default',
+      },
+    }))
+}
+
 function worldFootprintStarters(roleId: string): StarterItem[] {
   const world = loadRoleWorldDefaults(roleId)
   if (!world) return []
   return world.favoritePlaces.map((place) => ({
     key: place.id,
     name: place.name,
-    payload: { placeKind: place.kind, description: place.description, travelMinutes: place.travelMinutes, city: world.city.name, seededFrom: 'world.default' },
+    payload: {
+      placeKind: place.kind,
+      description: place.description,
+      travelMinutes: place.travelMinutes,
+      city: world.city.name,
+      ...(place.visualPath ? { visualPath: place.visualPath } : {}),
+      seededFrom: 'world.default',
+    },
   }))
 }
 
@@ -530,12 +746,15 @@ export async function ensureStarterCulture(roleId: string): Promise<{ created: n
 async function ensureWorldDetailStarter(roleId: string, kind: typeof ASSET_KIND_HOME | typeof ASSET_KIND_FOOTPRINT): Promise<{ created: number }> {
   const starter = startersFor(kind, roleId)
   if (!starter.length) return { created: 0 }
+  const roomStarters = kind === ASSET_KIND_HOME ? worldHomeRoomStarters(roleId) : []
+  const fullStarter = [...starter, ...roomStarters]
   await ensureTables()
   const db = await getDatabase()
   db.run(`CREATE TABLE IF NOT EXISTS companion_asset_seeds (
     role_id TEXT NOT NULL, kind TEXT NOT NULL, PRIMARY KEY (role_id, kind)
   )`)
   let created = 0
+  let updated = false
   db.run('BEGIN TRANSACTION')
   try {
     const seeded = db.exec('SELECT 1 FROM companion_asset_seeds WHERE role_id = ? AND kind = ?', [roleId, kind])
@@ -543,20 +762,55 @@ async function ensureWorldDetailStarter(roleId: string, kind: typeof ASSET_KIND_
       const existing = db.exec('SELECT 1 FROM companion_assets WHERE role_id = ? AND kind = ? LIMIT 1', [roleId, kind])
       if (!existing.length) {
         const now = Date.now()
-        for (const [index, item] of starter.entries()) {
+        for (const [index, item] of fullStarter.entries()) {
+          const payload = withMaterializedStarterImage(roleId, item.payload)
           db.run(`INSERT INTO companion_assets (id, role_id, kind, name, payload_json, acquired_at, source_event_id)
-            VALUES (?, ?, ?, ?, ?, ?, NULL)`, [`${kind}:${roleId}:${item.key}`, roleId, kind, item.name, JSON.stringify(item.payload), now + index])
+            VALUES (?, ?, ?, ?, ?, ?, NULL)`, [`${kind}:${roleId}:${item.key}`, roleId, kind, item.name, JSON.stringify(payload), now + index])
           created++
         }
       }
       db.run('INSERT INTO companion_asset_seeds (role_id, kind) VALUES (?, ?)', [roleId, kind])
+      if (roomStarters.length) {
+        db.run('INSERT OR IGNORE INTO companion_asset_seeds (role_id, kind) VALUES (?, ?)', [roleId, `${kind}:rooms`])
+      }
+    } else {
+      for (const item of starter) {
+        if (backfillRowStarterImage(db, roleId, `${kind}:${roleId}:${item.key}`, item.payload.visualPath)) {
+          updated = true
+        }
+      }
+      if (kind === ASSET_KIND_HOME && roomStarters.length) {
+        const residenceId = `${ASSET_KIND_HOME}:${roleId}:residence`
+        const hasResidence = db.exec('SELECT 1 FROM companion_assets WHERE id = ? AND role_id = ?', [residenceId, roleId]).length > 0
+        const roomsSeeded = db.exec('SELECT 1 FROM companion_asset_seeds WHERE role_id = ? AND kind = ?', [roleId, `${kind}:rooms`]).length > 0
+        if (hasResidence && !roomsSeeded) {
+          const now = Date.now()
+          for (const [index, room] of roomStarters.entries()) {
+            const roomId = `${kind}:${roleId}:${room.key}`
+            const exists = db.exec('SELECT 1 FROM companion_assets WHERE id = ?', [roomId]).length > 0
+            if (!exists) {
+              const payload = withMaterializedStarterImage(roleId, room.payload)
+              db.run(`INSERT INTO companion_assets (id, role_id, kind, name, payload_json, acquired_at, source_event_id)
+                VALUES (?, ?, ?, ?, ?, ?, NULL)`, [roomId, roleId, kind, room.name, JSON.stringify(payload), now + index])
+              created++
+            }
+          }
+          db.run('INSERT OR IGNORE INTO companion_asset_seeds (role_id, kind) VALUES (?, ?)', [roleId, `${kind}:rooms`])
+        }
+        for (const room of roomStarters) {
+          if (backfillRowStarterImage(db, roleId, `${kind}:${roleId}:${room.key}`, room.payload.visualPath)) {
+            updated = true
+          }
+        }
+      }
     }
     db.run('COMMIT')
   } catch (error) {
     db.run('ROLLBACK')
     throw error
   }
-  persist()
+  if (created > 0 || updated) persist()
+  else persist()
   return { created }
 }
 
@@ -577,11 +831,19 @@ export async function ensureWorldDefaultPossessions(roleId: string): Promise<{ c
   const defaults = loadRoleWorldDefaults(roleId)
   if (!defaults?.possessions.length) return { created: 0 }
   await ensureTables()
+  const db = await getDatabase()
   const existing = await listAssets(roleId)
   if (existing.some((asset) => asset.id.startsWith(`world:${roleId}:`) && asset.payload.seededFrom === 'world.default')) {
+    let backfilled = false
+    for (const item of defaults.possessions) {
+      const id = `world:${roleId}:${item.id}`
+      if (backfillRowStarterImage(db, roleId, id, item.visualPath, item.spaceId ? { spaceId: item.spaceId } : undefined)) {
+        backfilled = true
+      }
+    }
+    if (backfilled) persist()
     return { created: 0 }
   }
-  const db = await getDatabase()
   let created = 0
   const base = Date.now()
   for (let index = 0; index < defaults.possessions.length; index++) {
@@ -597,11 +859,13 @@ export async function ensureWorldDefaultPossessions(roleId: string): Promise<{ c
       roleId,
       kind: item.kind,
       name: item.name,
-      payload: {
+      payload: withMaterializedStarterImage(roleId, {
         description: item.description,
         condition: item.condition,
+        ...(item.spaceId ? { spaceId: item.spaceId } : {}),
+        ...(item.visualPath ? { visualPath: item.visualPath } : {}),
         seededFrom: 'world.default',
-      },
+      }),
       acquiredAt: base + index,
       sourceEventId: null,
     })
@@ -627,7 +891,9 @@ export async function pickWardrobeAssetId(
   seed: number,
 ): Promise<string | null> {
   await ensureStarterWardrobe(roleId)
-  const items = await listAssets(roleId, { kind: ASSET_KIND_WARDROBE })
+  const items = (await listAssets(roleId, { kind: ASSET_KIND_WARDROBE })).filter(
+    (item) => item.payload.recordType !== 'wear-state' && item.payload.recordType !== 'outfit',
+  )
   if (!items.length) return null
   return items[Math.abs(seed) % items.length].id
 }

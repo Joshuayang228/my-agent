@@ -115,6 +115,8 @@ export interface RoleHomeScene {
   name: string
   day: string
   night: string
+  /** 可选项目内视觉参考（相对角色目录，如 visual/thousand-sunny-interior-v1.png） */
+  visualPath?: string
 }
 
 export interface RoleWorldPlace {
@@ -123,6 +125,8 @@ export interface RoleWorldPlace {
   kind: string
   description: string
   travelMinutes: number
+  /** 可选项目内视觉参考（相对角色目录） */
+  visualPath?: string
 }
 
 export interface RoleWorldPossession {
@@ -131,6 +135,10 @@ export interface RoleWorldPossession {
   name: string
   description: string
   condition: string
+  /** 可选关联的居所空间资产 ID（如 home:luffy:space:shared-deck） */
+  spaceId?: string
+  /** 可选项目内视觉参考（相对角色目录） */
+  visualPath?: string
 }
 
 export interface RoleWorldInitialState {
@@ -164,6 +172,8 @@ export interface RoleWorldDefaults {
     layout: string
     view: string
     sensoryDetails: string[]
+    /** 可选项目内视觉参考（相对角色目录，如 visual/thousand-sunny-crew-scene-v1.png） */
+    visualPath?: string
   }
   initialLocation: string
   mobility: {

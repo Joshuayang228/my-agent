@@ -1,5 +1,7 @@
 # 质量总控
 
+路飞初始化包配图挂载门禁（2026-11-07）：`companion-assets.test.ts` 新增 2 项回归，验证 `ensureStarterAssets('luffy')` 为住所、共享甲板空间、草帽、高处足迹、三件单品与初始套装共 8 条出厂记录挂载可通过 `readGeneratedImageReference` 安全核验的 PNG 引用，换上初始套装可沿用套装配图，且旧库已播种记录支持无损补图、用户删除套装后不复活。
+
 真实 Electron 证据契约同步（2026-11-07）：`debug-production.test.ts` 的注册资产目录计数对齐 `· 世界观 default` 范围展示，`image-generation.test.ts` 的生图请求断言对齐四层结构化运行时资料 JSON；两项独立真实 Electron 用例复跑通过，不改变生产行为。
 
 主进程类型门禁（2026-11-07）：`tsconfig.node.json` 已纳入 Electron、Eval 和 `src/shared/**/*.ts`，独立检查 0 诊断；`npm run typecheck` / `npm run build` 均强制执行根检查和主进程检查。历史施工快照中的 WISH-043 失败记录保留为当时证据，不代表当前状态。

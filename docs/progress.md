@@ -1,5 +1,7 @@
 # 项目进度
 
+路飞初始化包全套配图挂载与补齐（2026-11-07）：补齐草帽、三件基础衣物与高处足迹 5 张 PNG，连同既有千里阳光号船景、室内空间与初始穿搭共 8 张 Role Pack 视觉资产统一接入 `ensureStarterAssets('luffy')`；新增共享甲板空间资产播种、草帽空间关联与可一键换上的《草帽冒险日常装》套装（不预写 `wear-state`），旧库支持无损补图且删除不复活。
+
 真实 Electron 证据契约同步（2026-11-07）：`debug-production.test.ts` 目录计数断言同步世界观范围标签，`image-generation.test.ts` 生图 Prompt 断言同步四层结构化运行时资料，两项真实 Electron 用例复跑通过。
 
 主进程类型门禁收口（2026-11-07）：`tsconfig.node.json` 已覆盖 Electron、Eval 和共享源码，独立检查 0 诊断；`npm run typecheck` 与 `npm run build` 现在同时检查 Renderer 和主进程，WISH-043 关闭。

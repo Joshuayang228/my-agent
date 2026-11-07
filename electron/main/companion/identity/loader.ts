@@ -356,3 +356,31 @@ export function tryReadUniverseText(
   if (!assetExists(rel)) return null
   return readText(rel)
 }
+
+
+/**
+ * 解析角色目录下二进制/视觉资产的真实磁盘路径。
+ *
+ * 背景：Role Pack 的 visual/*.png 不能走 ?raw 文本 glob 打入主包，但出厂生活资产播种时需要读取真实 PNG 并落入受控图片目录。
+ * 设计意图：复用用户世界优先、内置 universes 次之、测试夹具兜底的同一寻址顺序，同时拦截路径穿越。
+ * 关键约束：仅接受角色目录内的相对路径，不允许 .. 或绝对路径；文件不存在时返回 null，调用方负责降级为无图。
+ */
+export function resolveRoleAssetFilePath(
+  roleId: string,
+  fileRelWithinRole: string,
+  universeId: string = DEFAULT_UNIVERSE,
+): string | null {
+  const normalized = fileRelWithinRole.replace(/\\/g, '/').trim()
+  if (!normalized || normalized.startsWith('/') || normalized.split('/').some((part) => !part || part === '.' || part === '..')) {
+    return null
+  }
+  const rel = `${universeId}/roles/${roleId}/${normalized}`
+  try {
+    const abs = resolveAssetPath(rel)
+    if (fs.existsSync(abs)) return abs
+    if (isVitestFixtureMode() && fs.existsSync(fixturePath(rel))) return fixturePath(rel)
+    return null
+  } catch {
+    return null
+  }
+}

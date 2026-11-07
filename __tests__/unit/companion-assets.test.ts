@@ -51,6 +51,7 @@ const {
   listAssets,
   addAsset,
   createAsset,
+  changeWardrobe,
   updateAsset,
   deleteAsset,
   pickWardrobeAssetId,
@@ -60,6 +61,9 @@ const {
   ASSET_KIND_BOOKSHELF,
   USER_CREATABLE_ASSET_KINDS,
 } = await import('../../electron/main/companion/life/assets')
+
+const { readGeneratedImageReference } =
+  await import('../../electron/main/storage/generated-images')
 
 const { ensureDayScripts, __lifeStore } =
   await import('../../electron/main/companion/life/engine')
@@ -417,5 +421,122 @@ describe('Companion Assets', () => {
     const grants = parsed!.slots.filter((s) => s.grantAsset)
     expect(grants).toHaveLength(1)
     expect(grants[0].grantAsset?.name).toBe('帆布袋')
+  })
+
+  it('路飞初始化包为千里阳光号、共享甲板、草帽、高处足迹、三件衣物和初始套装全部挂载可读取配图', async () => {
+    const seeded = await ensureStarterAssets('luffy')
+    expect(seeded.created).toBe(8)
+
+    const assets = await listAssets('luffy')
+    expect(assets.filter((item) => item.payload.recordType === 'wear-state')).toEqual([])
+
+    const expectedIds = [
+      'home:luffy:residence',
+      'home:luffy:space:shared-deck',
+      'world:luffy:straw-hat',
+      'footprint:luffy:lookout',
+      'wardrobe:luffy:red-vest',
+      'wardrobe:luffy:blue-shorts',
+      'wardrobe:luffy:deck-sandals',
+      'wardrobe:luffy:starter-outfit',
+    ]
+    expect(assets.map((item) => item.id).sort()).toEqual([...expectedIds].sort())
+
+    const space = assets.find((item) => item.id === 'home:luffy:space:shared-deck')!
+    expect(space.payload).toMatchObject({
+      recordType: 'space',
+      residenceId: 'home:luffy:residence',
+      visualPath: 'visual/thousand-sunny-interior-v1.png',
+      seededFrom: 'world.default',
+    })
+
+    const strawHat = assets.find((item) => item.id === 'world:luffy:straw-hat')!
+    expect(strawHat.payload).toMatchObject({
+      spaceId: 'home:luffy:space:shared-deck',
+      visualPath: 'visual/straw-hat-v1.png',
+      seededFrom: 'world.default',
+    })
+
+    for (const id of expectedIds) {
+      const asset = assets.find((item) => item.id === id)!
+      const image = asset.payload.image as { id: string; width: number; height: number } | undefined
+      expect(image, `${id} 应挂载出厂图片`).toBeTruthy()
+      const readResult = await readGeneratedImageReference(image, image!.id)
+      expect(readResult.ok).toBe(true)
+      if (readResult.ok) {
+        expect(readResult.dataUrl.startsWith('data:image/png;base64,')).toBe(true)
+      }
+    }
+
+    const changed = await changeWardrobe({
+      roleId: 'luffy',
+      assetId: 'wardrobe:luffy:starter-outfit',
+      expectedVersion: 0,
+    })
+    expect(changed.ok).toBe(true)
+    if (changed.ok) {
+      expect(changed.asset.payload).toMatchObject({
+        recordType: 'wear-state',
+        outfitVersion: 1,
+        imageOutfitVersion: 1,
+      })
+      expect(changed.asset.payload.image).toBeTruthy()
+    }
+  })
+
+  it('旧库已播种的路飞资产在 ensureStarterAssets 时无损补齐配图与空间，删除套装后不复活', async () => {
+    await addAsset({
+      id: 'home:luffy:residence',
+      roleId: 'luffy',
+      kind: 'home',
+      name: '用户自定义千里阳光号',
+      payload: { shortName: '千里阳光号', residence: '用户改过的描述', seededFrom: 'world.default' },
+    })
+    await addAsset({
+      id: 'footprint:luffy:lookout',
+      roleId: 'luffy',
+      kind: 'footprint',
+      name: '能看见远处的高处',
+      payload: { placeKind: 'viewpoint', description: '旧库地点', travelMinutes: 10, city: '海上航路', seededFrom: 'world.default' },
+    })
+    await addAsset({
+      id: 'world:luffy:straw-hat',
+      roleId: 'luffy',
+      kind: 'symbolic-item',
+      name: '草帽',
+      payload: { description: '旧库草帽', condition: '完好', seededFrom: 'world.default' },
+    })
+    for (const [key, name, category] of [
+      ['red-vest', '轻便红色背心', 'top'],
+      ['blue-shorts', '深蓝短裤', 'bottom'],
+      ['deck-sandals', '甲板凉鞋', 'shoes'],
+    ] as const) {
+      await addAsset({
+        id: `wardrobe:luffy:${key}`,
+        roleId: 'luffy',
+        kind: 'wardrobe',
+        name,
+        payload: { recordType: 'garment', category, seededFrom: 'role-pack:luffy' },
+      })
+    }
+    memDb.run(`CREATE TABLE IF NOT EXISTS companion_asset_seeds (role_id TEXT NOT NULL, kind TEXT NOT NULL, PRIMARY KEY (role_id, kind))`)
+    memDb.run(`INSERT INTO companion_asset_seeds (role_id, kind) VALUES ('luffy', 'home'), ('luffy', 'footprint')`)
+
+    await ensureStarterAssets('luffy')
+    const after = await listAssets('luffy')
+    const residence = after.find((item) => item.id === 'home:luffy:residence')!
+    expect(residence.name).toBe('用户自定义千里阳光号')
+    expect(residence.payload.residence).toBe('用户改过的描述')
+    expect(residence.payload.image).toBeTruthy()
+    expect(after.find((item) => item.id === 'home:luffy:space:shared-deck')?.payload.image).toBeTruthy()
+    expect(after.find((item) => item.id === 'world:luffy:straw-hat')?.payload).toMatchObject({
+      spaceId: 'home:luffy:space:shared-deck',
+    })
+    expect(after.find((item) => item.id === 'world:luffy:straw-hat')?.payload.image).toBeTruthy()
+    expect(after.find((item) => item.id === 'wardrobe:luffy:starter-outfit')?.payload.image).toBeTruthy()
+
+    await deleteAsset('wardrobe:luffy:starter-outfit', { expectedRoleId: 'luffy' })
+    await ensureStarterAssets('luffy')
+    expect((await listAssets('luffy')).some((item) => item.id === 'wardrobe:luffy:starter-outfit')).toBe(false)
   })
 })
