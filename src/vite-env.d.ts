@@ -192,7 +192,7 @@ declare global {
         getMoments: (opts?: { limit?: number; offset?: number }) => Promise<MomentListResult>
         getLifeSlice: (eventId: string) => Promise<CompanionLifeSlice | null>
         toggleMomentLike: (momentId: string) => Promise<MomentSocialMutationResult>
-        addMomentComment: (momentId: string, text: string) => Promise<MomentSocialMutationResult>
+        addMomentComment: (momentId: string, text: string, opts?: import('./shared/types').AddMomentCommentOptions) => Promise<MomentSocialMutationResult>
         catchupStatus: () => Promise<{
           roleId: string
           pausedAt: number | null
@@ -369,6 +369,13 @@ declare global {
             catchupQueued: boolean
             previousRoleId: string
             reacquaint?: { title: string; body: string; toast: string }
+          }) => void,
+        ) => () => void
+        onMomentUpdated: (
+          callback: (payload: {
+            momentId: string
+            roleId: string
+            reply?: { actorName: string; text: string }
           }) => void,
         ) => () => void
       }

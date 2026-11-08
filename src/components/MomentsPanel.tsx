@@ -115,8 +115,18 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
   const [commentFocusId, setCommentFocusId] = useState<string | null>(null)
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({})
   const [commentErrors, setCommentErrors] = useState<Record<string, string>>({})
+  const [replyTargetByMomentId, setReplyTargetByMomentId] = useState<Record<string, { commentId: string; actorName: string } | null>>({})
   const [pendingLikeIds, setPendingLikeIds] = useState<Set<string>>(new Set())
   const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(new Set())
+
+  const handleStartReply = useCallback((momentId: string, target: { commentId: string; actorName: string }) => {
+    setReplyTargetByMomentId((current) => ({ ...current, [momentId]: target }))
+    setCommentFocusId(momentId)
+  }, [])
+
+  const handleCancelReply = useCallback((momentId: string) => {
+    setReplyTargetByMomentId((current) => ({ ...current, [momentId]: null }))
+  }, [])
   const [previewImage, setPreviewImage] = useState<{ items: MomentMediaItem[]; index: number } | null>(null)
   const pendingLikeLock = useRef(new Set<string>())
   const pendingCommentLock = useRef(new Set<string>())
@@ -263,6 +273,7 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
   const handleSubmitComment = useCallback(async (momentId: string) => {
     if (!socialEnabled || pendingCommentLock.current.has(momentId)) return
     const draft = commentDrafts[momentId] ?? ''
+    const replyTarget = replyTargetByMomentId[momentId]
     if (previewData) {
       const normalized = normalizeMomentCommentText(draft)
       if (!normalized.ok) {
@@ -272,11 +283,22 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
       const text = normalized.text
       setSocialByMomentId((current) => {
         const prev = current[momentId] ?? emptyMomentSocial()
-        const comments = [...prev.comments, { id: `preview-comment-${Date.now()}`, actorName: '我', text, createdAt: Date.now() }]
+        const comments = [
+          ...prev.comments,
+          {
+            id: `preview-comment-${Date.now()}`,
+            actorName: '我',
+            replyToActorName: replyTarget?.actorName ?? null,
+            parentInteractionId: replyTarget?.commentId ?? null,
+            text,
+            createdAt: Date.now(),
+          },
+        ]
         return { ...current, [momentId]: { ...prev, comments, commentCount: comments.length } }
       })
       setCommentDrafts((current) => ({ ...current, [momentId]: '' }))
       setCommentErrors((current) => ({ ...current, [momentId]: '' }))
+      setReplyTargetByMomentId((current) => ({ ...current, [momentId]: null }))
       return
     }
     if (!window.electronAPI?.companion.addMomentComment) return
@@ -284,7 +306,10 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
     const epoch = roleEpoch.current
     setPendingCommentIds((current) => new Set(current).add(momentId))
     try {
-      const result = await window.electronAPI.companion.addMomentComment(momentId, draft)
+      const result = await window.electronAPI.companion.addMomentComment(momentId, draft, {
+        parentInteractionId: replyTarget?.commentId ?? null,
+        replyToActorName: replyTarget?.actorName ?? null,
+      })
       if (epoch !== roleEpoch.current) return
       if (!result.ok) {
         setCommentErrors((current) => ({ ...current, [momentId]: result.error }))
@@ -293,6 +318,7 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
       patchSocial(momentId, result.social)
       setCommentDrafts((current) => ({ ...current, [momentId]: '' }))
       setCommentErrors((current) => ({ ...current, [momentId]: '' }))
+      setReplyTargetByMomentId((current) => ({ ...current, [momentId]: null }))
     } catch {
       if (epoch === roleEpoch.current) setCommentErrors((current) => ({ ...current, [momentId]: '评论未发送，请重试。' }))
     } finally {
@@ -305,7 +331,7 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
         })
       }
     }
-  }, [commentDrafts, patchSocial, previewData, socialEnabled])
+  }, [commentDrafts, patchSocial, previewData, replyTargetByMomentId, socialEnabled])
 
   const handleCommentKey = useCallback((event: KeyboardEvent<HTMLInputElement>, momentId: string) => {
     if (event.key !== 'Enter' || event.shiftKey) return
@@ -433,7 +459,32 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                         ) : null}
                         {comments.length ? (
                           <ul className="mt-2 space-y-1 rounded-md px-2.5 py-2 text-[11px]" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                            {comments.map((c) => <li key={c.key} data-testid="moment-comment" data-comment-source={c.source}><span style={{ color: 'var(--accent-fg)' }}>{c.actorName}</span>：{c.text || '赞'}</li>)}
+                            {comments.map((c) => (
+                              <li key={c.key} data-testid="moment-comment" data-comment-source={c.source} className="group flex items-start justify-between gap-1 leading-snug">
+                                <div className="flex-1 break-words">
+                                  <span style={{ color: 'var(--accent-fg)', fontWeight: 500 }}>{c.actorName}</span>
+                                  {c.replyToActorName ? (
+                                    <>
+                                      <span className="mx-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>回复</span>
+                                      <span style={{ color: 'var(--accent-fg)' }}>@{c.replyToActorName}</span>
+                                    </>
+                                  ) : null}
+                                  <span>：{c.text || '赞'}</span>
+                                </div>
+                                {socialEnabled && (
+                                  <ActionButton
+                                    variant="plain"
+                                    size="sm"
+                                    aria-label={`回复 ${c.actorName}`}
+                                    onClick={() => handleStartReply(m.id, { commentId: c.id ?? c.key, actorName: c.actorName })}
+                                    className="h-4 px-1 text-[10px] opacity-0 transition-opacity hover:text-[var(--accent-fg)] focus-visible:opacity-100 group-hover:opacity-100"
+                                    style={{ color: 'var(--text-muted)' }}
+                                  >
+                                    回复
+                                  </ActionButton>
+                                )}
+                              </li>
+                            ))}
                           </ul>
                         ) : null}
                         {socialEnabled && (
@@ -521,7 +572,32 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                   <div className="text-[13px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>{m.text}</div>
                   {comments.length ? (
                     <ul className="mt-2 space-y-1 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
-                      {comments.map((c) => <li key={c.key} data-testid="moment-comment" data-comment-source={c.source} className="text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}><span style={{ color: 'var(--companion-accent-warm)' }}>{c.actorName}</span>：{c.text || '赞'}</li>)}
+                      {comments.map((c) => (
+                        <li key={c.key} data-testid="moment-comment" data-comment-source={c.source} className="group flex items-start justify-between gap-1 text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
+                          <div className="flex-1 break-words">
+                            <span style={{ color: 'var(--companion-accent-warm)', fontWeight: 500 }}>{c.actorName}</span>
+                            {c.replyToActorName ? (
+                              <>
+                                <span className="mx-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>回复</span>
+                                <span style={{ color: 'var(--companion-accent-warm)' }}>@{c.replyToActorName}</span>
+                              </>
+                            ) : null}
+                            <span>：{c.text || '赞'}</span>
+                          </div>
+                          {socialEnabled && (
+                            <ActionButton
+                              variant="plain"
+                              size="sm"
+                              aria-label={`回复 ${c.actorName}`}
+                              onClick={() => handleStartReply(m.id, { commentId: c.id ?? c.key, actorName: c.actorName })}
+                              className="h-4 px-1 text-[10px] opacity-0 transition-opacity hover:text-[var(--companion-accent-warm)] focus-visible:opacity-100 group-hover:opacity-100"
+                              style={{ color: 'var(--text-muted)' }}
+                            >
+                              回复
+                            </ActionButton>
+                          )}
+                        </li>
+                      ))}
                     </ul>
                   ) : null}
                 </li>

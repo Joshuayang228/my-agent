@@ -107,6 +107,7 @@ async function ensureTables(): Promise<void> {
     "ALTER TABLE companion_moment_user_interactions ADD COLUMN actor_type TEXT NOT NULL DEFAULT 'user'",
     'ALTER TABLE companion_moment_user_interactions ADD COLUMN actor_name TEXT',
     'ALTER TABLE companion_moment_user_interactions ADD COLUMN parent_interaction_id TEXT',
+    'ALTER TABLE companion_moment_user_interactions ADD COLUMN reply_to_actor_name TEXT',
   ]) {
     try { db.run(column) } catch { /* 已升级的数据库 */ }
   }
@@ -946,6 +947,7 @@ export async function countMoments(roleId: string): Promise<number> {
 
 function mapMomentUserInteraction(row: Record<string, unknown>): MomentUserInteraction {
   const kind: MomentUserInteractionKind = row.kind === 'comment' ? 'comment' : 'like'
+  const actorType = row.actor_type === 'protagonist' ? 'protagonist' : row.actor_type === 'cast' ? 'cast' : 'user'
   return {
     id: row.id as string,
     momentId: row.moment_id as string,
@@ -953,9 +955,10 @@ function mapMomentUserInteraction(row: Record<string, unknown>): MomentUserInter
     kind,
     actorId: row.actor_id as string,
     text: typeof row.text === 'string' ? row.text : null,
-    actorType: row.actor_type === 'protagonist' ? 'protagonist' : 'user',
+    actorType,
     actorName: typeof row.actor_name === 'string' ? row.actor_name : undefined,
     parentInteractionId: typeof row.parent_interaction_id === 'string' ? row.parent_interaction_id : null,
+    replyToActorName: typeof row.reply_to_actor_name === 'string' ? row.reply_to_actor_name : null,
     createdAt: Number(row.created_at) || 0,
   }
 }
@@ -1014,7 +1017,7 @@ export async function listMomentUserInteractions(
   await ensureTables()
   const db = await getDatabase()
   const stmt = db.prepare(
-    `SELECT id, moment_id, role_id, kind, actor_id, actor_type, actor_name, parent_interaction_id, text, created_at
+    `SELECT id, moment_id, role_id, kind, actor_id, actor_type, actor_name, parent_interaction_id, reply_to_actor_name, text, created_at
      FROM companion_moment_user_interactions
      WHERE role_id = ?
      ORDER BY created_at ASC`,
@@ -1056,9 +1059,10 @@ export async function insertMomentUserInteraction(input: {
   kind: MomentUserInteractionKind
   actorId: string
   text?: string | null
-  actorType?: 'user' | 'protagonist'
+  actorType?: 'user' | 'protagonist' | 'cast'
   actorName?: string
   parentInteractionId?: string | null
+  replyToActorName?: string | null
 }): Promise<MomentUserInteraction> {
   await ensureTables()
   const db = await getDatabase()
@@ -1066,8 +1070,8 @@ export async function insertMomentUserInteraction(input: {
   const createdAt = Date.now()
   db.run(
     `INSERT INTO companion_moment_user_interactions
-       (id, moment_id, role_id, kind, actor_id, actor_type, actor_name, parent_interaction_id, text, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, moment_id, role_id, kind, actor_id, actor_type, actor_name, parent_interaction_id, reply_to_actor_name, text, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.momentId,
@@ -1077,6 +1081,7 @@ export async function insertMomentUserInteraction(input: {
       input.actorType ?? 'user',
       input.actorName ?? null,
       input.parentInteractionId ?? null,
+      input.replyToActorName ?? null,
       input.text ?? null,
       createdAt,
     ],
@@ -1092,6 +1097,7 @@ export async function insertMomentUserInteraction(input: {
     actorType: input.actorType ?? 'user',
     actorName: input.actorName,
     parentInteractionId: input.parentInteractionId ?? null,
+    replyToActorName: input.replyToActorName ?? null,
     createdAt,
   }
 }

@@ -177,8 +177,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('companion:get-life-slice', eventId),
     toggleMomentLike: (momentId: string): Promise<MomentSocialMutationResult> =>
       ipcRenderer.invoke('companion:toggle-moment-like', momentId),
-    addMomentComment: (momentId: string, text: string): Promise<MomentSocialMutationResult> =>
-      ipcRenderer.invoke('companion:add-moment-comment', momentId, text),
+    addMomentComment: (
+      momentId: string,
+      text: string,
+      opts?: import('../../src/shared/types').AddMomentCommentOptions,
+    ): Promise<MomentSocialMutationResult> =>
+      ipcRenderer.invoke('companion:add-moment-comment', momentId, text, opts),
     catchupStatus: (): Promise<{
       roleId: string
       pausedAt: number | null
@@ -377,6 +381,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ) => callback(payload)
       ipcRenderer.on('companion:role-changed', handler)
       return () => ipcRenderer.removeListener('companion:role-changed', handler)
+    },
+    onMomentUpdated: (
+      callback: (payload: {
+        momentId: string
+        roleId: string
+        reply?: { actorName: string; text: string }
+      }) => void,
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        payload: {
+          momentId: string
+          roleId: string
+          reply?: { actorName: string; text: string }
+        },
+      ) => callback(payload)
+      ipcRenderer.on('companion:moment-updated', handler)
+      return () => ipcRenderer.removeListener('companion:moment-updated', handler)
     },
   },
 

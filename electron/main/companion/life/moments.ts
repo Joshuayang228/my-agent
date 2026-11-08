@@ -6,7 +6,8 @@
  * 约束：列表仅按 role 查询；互动不 tick 对方、不写独立真相。
  */
 
-import type { LLMConfig } from '../../../../src/shared/types'
+import { BrowserWindow } from 'electron'
+import type { LLMConfig, AddMomentCommentOptions } from '../../../../src/shared/types'
 import { startSpan } from '../../utils/tracer'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
@@ -16,6 +17,7 @@ import { loadRolePack } from '../identity/loader'
 import type { CompanionEvent, CompanionMoment } from '../types'
 import {
   MOMENT_USER_ACTOR_ID,
+  MOMENT_USER_ACTOR_NAME,
   describeMomentSocial,
   normalizeMomentCommentText,
   type MomentSocialView,
@@ -23,6 +25,7 @@ import {
 } from '../../../../src/shared/moment-user-interactions'
 import { ensureStarterMoments, getAsset, maybeGrantFromEvent } from './assets'
 import { formatMomentText } from './moment-format'
+import { buildRosterLines } from '../cast/roster'
 import { resolveCastInteractions } from './moment-comment-service'
 import { resolveMomentText } from './moment-polish'
 import * as store from './store'
@@ -30,6 +33,7 @@ import { getSetting } from '../../storage/settings-store'
 import { generateAutomaticMomentMedia } from './automatic-moment-media'
 
 export { formatMomentText } from './moment-format'
+export type { AddMomentCommentOptions } from '../../../../src/shared/types'
 
 export interface ProjectMomentOpts {
   /** tick 路径可为 true；Catch-up 细补默认 false */
@@ -375,10 +379,77 @@ export async function toggleMomentLikeForRole(
  * 设计意图：评论先规范化再落库；空值和超长在写入前拒绝，避免半截文本。
  * 关键约束：评论按创建时间追加；展示时卡司评论仍排在用户评论前面。
  */
+interface AutonomousReplyDecision {
+  shouldReply: boolean
+  responderId: string
+  responderName: string
+  actorType: 'protagonist' | 'cast'
+  reply: string
+  delaySeconds: number
+  reason?: string
+}
+
+function parseAutonomousReply(raw: string, defaultRoleId: string, defaultName: string): AutonomousReplyDecision | null {
+  try {
+    const value: unknown = JSON.parse(raw)
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+    const rec = value as Record<string, unknown>
+    // 兼容历史返回 {"reply":"..."} 的结构
+    if (typeof rec.reply === 'string' && rec.shouldReply === undefined) {
+      const text = rec.reply.trim()
+      if (text.length >= 2 && text.length <= 120 && !/[\r\n<>]/.test(text)) {
+        return {
+          shouldReply: true,
+          responderId: defaultRoleId,
+          responderName: defaultName,
+          actorType: 'protagonist',
+          reply: text,
+          delaySeconds: 0,
+        }
+      }
+      return null
+    }
+
+    if (rec.shouldReply === false) {
+      return {
+        shouldReply: false,
+        responderId: '',
+        responderName: '',
+        actorType: 'protagonist',
+        reply: '',
+        delaySeconds: 0,
+        reason: typeof rec.reason === 'string' ? rec.reason : undefined,
+      }
+    }
+
+    const reply = typeof rec.reply === 'string' ? rec.reply.trim() : ''
+    if (reply.length < 2 || reply.length > 120 || !reply || /[\r\n<>]/.test(reply)) return null
+    const responderId = typeof rec.responderId === 'string' && rec.responderId.trim() ? rec.responderId.trim() : defaultRoleId
+    const responderName = typeof rec.responderName === 'string' && rec.responderName.trim() ? rec.responderName.trim() : defaultName
+    const actorType = rec.actorType === 'cast' ? 'cast' : 'protagonist'
+    const delaySeconds = typeof rec.delaySeconds === 'number' && Number.isFinite(rec.delaySeconds)
+      ? Math.max(0, Math.min(120, Math.round(rec.delaySeconds)))
+      : 0
+
+    return {
+      shouldReply: true,
+      responderId,
+      responderName,
+      actorType,
+      reply,
+      delaySeconds,
+      reason: typeof rec.reason === 'string' ? rec.reason : undefined,
+    }
+  } catch {
+    return null
+  }
+}
+
 export async function addMomentCommentForRole(
   roleId: string,
   momentId: string,
   text: unknown,
+  opts?: AddMomentCommentOptions,
 ): Promise<MomentSocialMutationResult> {
   const id = typeof momentId === 'string' ? momentId.trim() : ''
   if (!id) return { ok: false, code: 'INVALID', error: '动态不存在' }
@@ -392,13 +463,30 @@ export async function addMomentCommentForRole(
     roleId,
     kind: 'comment',
     actorId: MOMENT_USER_ACTOR_ID,
+    actorType: 'user',
+    actorName: MOMENT_USER_ACTOR_NAME,
+    parentInteractionId: opts?.parentInteractionId ?? null,
+    replyToActorName: opts?.replyToActorName ?? null,
     text: normalized.text,
   })
-  // 回复是独立的主角作者记录；任何模型、配置或解析失败都不回滚用户评论。
+
+  // 自主回复：由模型/在场 NPC 自主决策是否回复、谁来回复以及延迟时长
   try {
     const config = await loadAuxLLMConfig()
     const pack = loadRolePack(roleId)
     if (hasLLMAuthentication(config)) {
+      const universeId = opts?.universeId ?? 'default'
+      const roster = buildRosterLines(roleId, universeId)
+      const castContext = roster.map((r) => `${r.otherName}（ID: ${r.otherId}，关系: ${r.relationType}，简介: ${r.text}）`).join('\n')
+
+      const priorRows = await store.listMomentUserInteractions(roleId)
+      const thisMomentRows = priorRows.filter((r) => r.momentId === id && r.kind === 'comment')
+      const recentComments = thisMomentRows.map((r) => {
+        const actor = r.actorName || (r.actorType === 'protagonist' ? pack.name : MOMENT_USER_ACTOR_NAME)
+        const target = r.replyToActorName ? ` 回复 @${r.replyToActorName}` : ''
+        return `${actor}${target}：${r.text}`
+      }).slice(-8).join('\n')
+
       const raw = await chatComplete({
         config,
         request: compileMomentReplyRequest({
@@ -406,18 +494,57 @@ export async function addMomentCommentForRole(
           protagonistBrief: `${pack.description}\n${pack.voice ?? ''}`.slice(0, 800),
           postText: moment.text.slice(0, 1500),
           userComment: normalized.text.slice(0, 280),
+          replyToActorName: opts?.replyToActorName ?? null,
+          castContext,
+          recentComments,
         }),
-        caller: 'moment-reply', temperature: 0.65, maxTokens: 220,
+        caller: 'moment-reply',
+        temperature: 0.65,
+        maxTokens: 280,
       })
-      let reply: unknown
-      try { reply = JSON.parse(raw) } catch { reply = null }
-      const textValue = reply && typeof reply === 'object' && !Array.isArray(reply) && typeof (reply as Record<string, unknown>).reply === 'string'
-        ? ((reply as Record<string, unknown>).reply as string).trim() : ''
-      if (textValue.length >= 2 && textValue.length <= 120 && !/[\r\n<>]/.test(textValue)) {
-        await store.insertMomentUserInteraction({
-          momentId: id, roleId, kind: 'comment', actorId: roleId, actorType: 'protagonist', actorName: pack.name,
-          parentInteractionId: inserted.id, text: textValue,
-        })
+
+      const decision = parseAutonomousReply(raw, roleId, pack.name)
+      if (decision && decision.shouldReply) {
+        if (opts?.immediate || decision.delaySeconds <= 0) {
+          await store.insertMomentUserInteraction({
+            momentId: id,
+            roleId,
+            kind: 'comment',
+            actorId: decision.responderId,
+            actorType: decision.actorType,
+            actorName: decision.responderName,
+            parentInteractionId: inserted.id,
+            replyToActorName: MOMENT_USER_ACTOR_NAME,
+            text: decision.reply,
+          })
+        } else {
+          setTimeout(async () => {
+            try {
+              await store.insertMomentUserInteraction({
+                momentId: id,
+                roleId,
+                kind: 'comment',
+                actorId: decision.responderId,
+                actorType: decision.actorType,
+                actorName: decision.responderName,
+                parentInteractionId: inserted.id,
+                replyToActorName: MOMENT_USER_ACTOR_NAME,
+                text: decision.reply,
+              })
+              for (const win of BrowserWindow.getAllWindows()) {
+                if (!win.isDestroyed()) {
+                  win.webContents.send('companion:moment-updated', {
+                    momentId: id,
+                    roleId,
+                    reply: { actorName: decision.responderName, text: decision.reply },
+                  })
+                }
+              }
+            } catch {
+              // 异步回复落盘失败静默忽略
+            }
+          }, decision.delaySeconds * 1000)
+        }
       }
     }
   } catch {

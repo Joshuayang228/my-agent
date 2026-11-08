@@ -1,5 +1,10 @@
 # Agent 运行时
 
+朋友圈评论回复与 NPC 自主决策（2026-11-08）：
+- `companion:add-moment-comment` IPC 接口支持 `parentInteractionId` 与 `replyToActorName` 扩展参数；
+- 新增 `companion:moment-updated` 广播通道，支持后台异步延迟落地的人物/NPC 回复向渲染进程分发；
+- `momentReply` 提示词与功能合同全面升级为自主决策协议（支持 `shouldReply`、`responderId`、`actorType`、`delaySeconds` 与 `reason`），兼容旧版纯回复响应。
+
 今日生活轨迹与消息流自主卡片（2026-11-08）：
 - `companion:get-today-timeline` IPC 暴露角色生活轨迹时间轴读取接口，由 `timeline.ts` 聚合；
 - 消息流 `ToolCallbackList` 在 `companion_post_moment` 或 `companion_create_asset` 执行成功后内联渲染伙伴自主生活动态卡片，提供直达朋友圈或人物世界的生活面跳转。

@@ -7,7 +7,7 @@
  * 关键约束：纯只读/聚合能力，缺省时尽力补齐当日剧本，不修改世界状态水位线或触发外部生图。
  */
 
-import type { CompanionTodayTimeline, CompanionTodayTimelineSlot } from '../../../src/shared/types'
+import type { CompanionTodayTimeline, CompanionTodayTimelineSlot } from '../../../../src/shared/types'
 import { toLocalDateString, localDateTimeMs } from './dates'
 import * as store from './store'
 import { generateDayScript } from './script-generator'

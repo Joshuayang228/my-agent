@@ -31,12 +31,12 @@ const contract = (value: PromptFeatureContract): PromptFeatureContract => Object
 export const PROMPT_FEATURE_CONTRACTS = Object.freeze({
   momentReply: contract({
     key: 'feature:moment-reply', name: '朋友圈评论回复', domain: 'social',
-    purpose: '根据已发布动态和用户评论生成当前人物的简短回应。',
+    purpose: '根据已发布动态、在场人物与用户最新评论生成主角或在场 NPC 的自主决策回应。',
     staticInputs: ['平台事实边界', '评论回复输出协议'],
-    runtimeInputs: ['人物公开简介', '动态正文', '用户评论', '关系阶段（可选）'],
+    runtimeInputs: ['人物公开简介', '动态正文', '用户评论', '回复对象与在场人物（可选）'],
     overrideBoundary: ['表达语气', '回应直接度', '对关系的表达方式'],
-    output: 'JSON 对象 {"reply":"2 到 120 字"}，不得附加旁白或其他字段。',
-    fallback: '缺输入、模型失败或解析不合约时保留用户评论，不写入主角回复。',
+    output: 'JSON 对象 {"shouldReply":boolean,"reply":"2 到 120 字","responderId":"...","responderName":"...","actorType":"protagonist|cast","delaySeconds":5..60,"reason":"..."}，亦兼容仅含 {"reply":"..."} 的旧格式。',
+    fallback: '缺输入、模型失败或解析不合约时保留用户评论，不写入回复。',
     consumers: ['electron/main/companion/life/moments.ts#addMomentCommentForRole'],
   }),
   momentComment: contract({

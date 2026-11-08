@@ -1022,8 +1022,16 @@ export interface MomentUserCommentView {
   actorName: string
   text: string
   createdAt: number
-  source?: 'user' | 'protagonist'
+  source?: 'user' | 'protagonist' | 'cast'
   parentInteractionId?: string | null
+  replyToActorName?: string | null
+}
+
+export interface AddMomentCommentOptions {
+  parentInteractionId?: string | null
+  replyToActorName?: string | null
+  immediate?: boolean
+  universeId?: string
 }
 
 export interface MomentSocialView {

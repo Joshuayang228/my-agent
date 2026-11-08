@@ -191,12 +191,17 @@ export function registerCompanionIPC(): void {
 
   ipcMain.handle(
     'companion:add-moment-comment',
-    async (_e, momentId: string, text?: string) => {
+    async (
+      _e,
+      momentId: string,
+      text?: string,
+      opts?: import('../../../src/shared/types').AddMomentCommentOptions,
+    ) => {
       if (typeof momentId !== 'string' || !momentId.trim()) {
         return { ok: false as const, error: '动态不存在', code: 'INVALID' }
       }
       const roleId = await getActiveRoleId()
-      return addMomentCommentForRole(roleId, momentId.trim(), text)
+      return addMomentCommentForRole(roleId, momentId.trim(), text, opts)
     },
   )
 

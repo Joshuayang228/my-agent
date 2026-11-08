@@ -31,9 +31,10 @@ export interface MomentUserInteraction {
   kind: MomentUserInteractionKind
   actorId: string
   text: string | null
-  actorType?: 'user' | 'protagonist'
+  actorType?: 'user' | 'protagonist' | 'cast'
   actorName?: string
   parentInteractionId?: string | null
+  replyToActorName?: string | null
   createdAt: number
 }
 
@@ -46,9 +47,14 @@ export interface MomentCastInteractionView {
 
 export interface MomentMergedCommentView {
   key: string
+  id?: string
+  actorId?: string
   actorName: string
+  replyToActorName?: string | null
+  parentInteractionId?: string | null
   text: string
   source: 'cast' | 'user' | 'protagonist'
+  createdAt?: number
 }
 
 export function normalizeMomentCommentText(
@@ -107,8 +113,9 @@ export function groupMomentUserInteractions(rows: readonly MomentUserInteraction
       actorName: row.actorName || (row.actorType === 'protagonist' ? row.actorId : MOMENT_USER_ACTOR_NAME),
       text: row.text,
       createdAt: row.createdAt,
-      source: row.actorType === 'protagonist' ? 'protagonist' : 'user',
+      source: row.actorType === 'protagonist' ? 'protagonist' : row.actorType === 'cast' ? 'cast' : 'user',
       parentInteractionId: row.parentInteractionId ?? null,
+      replyToActorName: row.replyToActorName ?? null,
     })
     commentsByMomentId.set(row.momentId, list)
   }
@@ -135,7 +142,7 @@ export function mergeMomentComments(
   cast: readonly MomentCastInteractionView[],
   user: readonly MomentUserCommentView[],
 ): MomentMergedCommentView[] {
-  const fromCast = cast
+  const fromCast: MomentMergedCommentView[] = cast
     .filter((item) => item.kind === 'comment')
     .map((item, index) => ({
       key: 'cast-' + (item.castId ?? item.castName) + '-' + String(index),
@@ -143,12 +150,34 @@ export function mergeMomentComments(
       text: item.text || '赞',
       source: 'cast' as const,
     }))
-  const fromUser = user.map((item) => ({
-      key: (item.source === 'protagonist' ? 'protagonist-' : 'user-') + item.id,
+
+  const actorMap = new Map<string, string>()
+  for (const c of fromCast) {
+    actorMap.set(c.key, c.actorName)
+  }
+  for (const u of user) {
+    actorMap.set(u.id, u.actorName)
+    actorMap.set('user-' + u.id, u.actorName)
+    actorMap.set('protagonist-' + u.id, u.actorName)
+    actorMap.set('cast-' + u.id, u.actorName)
+  }
+
+  const fromUser = user.map((item) => {
+    let replyToActorName = item.replyToActorName ?? null
+    if (!replyToActorName && item.parentInteractionId) {
+      replyToActorName = actorMap.get(item.parentInteractionId) ?? null
+    }
+    const view: MomentMergedCommentView = {
+      key: (item.source === 'protagonist' ? 'protagonist-' : item.source === 'cast' ? 'cast-' : 'user-') + item.id,
       actorName: item.actorName,
       text: item.text,
       source: item.source ?? 'user',
-    }))
+    }
+    if (replyToActorName) {
+      view.replyToActorName = replyToActorName
+    }
+    return view
+  })
   return [...fromCast, ...fromUser]
 }
 

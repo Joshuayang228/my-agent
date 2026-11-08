@@ -394,6 +394,11 @@ function App() {
     const unsubMomentTip = window.electronAPI.companion.onMomentTip?.((payload) => {
       if (payload.toast) toast(payload.toast, 'info')
     })
+    const unsubMomentUpdated = window.electronAPI.companion.onMomentUpdated?.((payload) => {
+      if (payload.reply) {
+        toast(`${payload.reply.actorName} 回复了评论：“${payload.reply.text}”`, 'info')
+      }
+    })
     const unsubGreeting = window.electronAPI.companion.onProactiveGreeting?.((payload) => {
       if (payload.toast) {
         toast(payload.toast, 'info', {
@@ -419,6 +424,7 @@ function App() {
       unsub?.()
       unsubMilestone?.()
       unsubMomentTip?.()
+      unsubMomentUpdated?.()
       unsubGreeting?.()
     }
   }, [toast])
